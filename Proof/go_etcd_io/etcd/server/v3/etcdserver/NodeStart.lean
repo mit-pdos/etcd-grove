@@ -224,11 +224,8 @@ durability layer 4: `restartStorage` at the empty contents): `FirstIndex` is `1`
 empty conf state (`memSnapEmpty`'s), and its continuation, at the key `K` raft names, allocates the
 storage's invariant at `K`'s justifications (`memStorInv_alloc`), the storage `isStorage`
 (`memStorage_isStorage`), its dummy entry and end; the client's frame `F` is made from the
-invariant and the hard state at every key (`HF`).
-
-(API gap G1, `stageI-5-clients.md`: the frame does not depend on the key, so it cannot carry the
-invariant at the key `StartNode`'s post's driver records; once it is `F : GName → IProp GF` with the
-post's `F K`, `HF`'s conclusion is `F K`.) -/
+invariant and the hard state at the key (`HF`; 2026-11-01, stage-I fix G1-frame: the frame
+depends on the key). -/
 theorem srvMem_bootStorage
     (wp_InitialState : MemoryStorage.InitialState.spec (GF := GF) (hG := hG))
     (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
@@ -236,14 +233,14 @@ theorem srvMem_bootStorage
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
-    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (F : IProp GF) :
+    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (F : GName → IProp GF) :
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
     memStorReg ms γs ∗ memStorLock ms γs ∗ memStorFresh ms γs 0 memSnapEmpty ∗
       memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
       memLog (GF := GF) γs 0 DFrac.discard [(zero_val EntryM : EntryM)] ∗ memEnd (GF := GF) γs 1 ∗
       (∀ K : GName, memStorInv ms γs γr.cl K -∗
-        memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗ F) ⊢
+        memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗ F K) ⊢
       restartStorage γr.cl (memStorIface ms)
         ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
         memSnapEmpty.Metadata'.ConfState' 0 F := by

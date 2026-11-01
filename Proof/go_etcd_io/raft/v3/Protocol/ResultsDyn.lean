@@ -74,8 +74,18 @@ theorem raft_dyn_alloc (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
         -- (2026-10-15, stage N) as `ownRaftGhost_alloc`: the empty committed log, every read
         -- credit
         isCommitted γ [] ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ := by
-  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
-  sorry
+  intro Hnz
+  iintro Hcl
+  imod ownRaftGhost_alloc_gen (GF := GF) E c0.cfg.incoming ids
+    (some (DynCfg.all (DynCfg.ofFold dec c0 h0))) ccOk C h0.2.1 Hnz $$ Hcl
+    with ⟨%γ, %Hγ, #Hinv, #Hc0, Hn, HC, Hcr, #Hcri⟩
+  imodintro
+  iexists γ
+  isplitr
+  · ipureintro
+    refine ⟨?_, Hγ.2.2.1, Hγ.1, Hγ.2.2.2⟩
+    unfold RaftNames.dyn; rw [Hγ.2.1]; simp [DynCfg.all_self]
+  iframe Hinv HC Hc0 Hcr Hcri Hn
 
 /-- (2026-10-25, T-M M2a) A member of a new cluster after `RawNode.Bootstrap`, in the dynamic
 model: the bootstrap state (`bootPState bootLog`: term `1`, the boot log committed), configuration
@@ -129,8 +139,21 @@ theorem raft_dyn_alloc_boot (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgO
         raftCommitInv (GF := GF) γ ∗ C γ ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id) ∗
         isCommitted γ bootLog ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ := by
-  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
-  sorry
+  intro Hnz Hbne Hok
+  iintro Hcl
+  imod ownRaftGhost_alloc_core (GF := GF) E c0.cfg.incoming ids
+    (some (DynCfg.all (DynCfg.ofFold dec c0 h0))) ccOk bootLog (W64 1) C none
+    (fun _ h => by cases h) ns (fun _ => Hbne) nx (fun _ => Hbne) (fun _ _ => True) (fun _ => none)
+    (nroot .@ "raft_commit") (nroot .@ "raft_snapcert") h0.2.1 Hnz Hok
+    (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
+    $$ Hcl with ⟨%γ, %Hγ, #Hinv, #Hc0, Hn, HC, Hcr, #Hcri⟩
+  imodintro
+  iexists γ
+  isplitr
+  · ipureintro
+    refine ⟨?_, Hγ.2.2.1, Hγ.1, Hγ.2.2.2.1, Hγ.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.1⟩
+    unfold RaftNames.dyn; rw [Hγ.2.1]; simp [DynCfg.all_self]
+  iframe Hinv HC Hc0 Hcr Hcri Hn
 
 end ghost
 

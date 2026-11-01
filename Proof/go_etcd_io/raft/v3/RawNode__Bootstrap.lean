@@ -524,12 +524,17 @@ theorem RawNode.Bootstrap.wp_proof
           ⟨by simp only; rw [HNgh]; rfl, fun _ => ⟨by simp only; rw [HNgh], fun _ _ _ _ h => (by cases h)⟩,
             fun l h => (by cases h)⟩
           (SdtTie.of_none (by rw [HNls]; simp only [logAppend, Hsn]; exact Hdtk0))
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] []
+        -- (durability stage II, G2) a fresh node's recorded role: `NewRawNode`'s follower
+        (by exact Hsvr.1.symm) $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
       · first | (rw [HNls]; simp only [logAppend, Hsn]) | (simp only; rw [HNls]; simp only [logAppend, Hsn])
         iapply snapLocOk_none
+      · -- (durability stage II, G2) a fresh node's durable state's tie (`durTie_fresh`)
+        iapply durTie_fresh γ _ _ rfl
+        · show sk.logst.prev = _; rw [HNls]; exact Hp
+        · show sk.logst.stored = _; rw [HNls]; exact Hsd
     | dyn dec c0 h0 h1 =>
       -- (2026-10-25, T-M M2a) the dynamic mode: the ghost state at `rboot c0 bootLog`, the
       -- configuration index `0`, the configuration the peers' (`ownRaftPhysC` at it, as
@@ -583,12 +588,17 @@ theorem RawNode.Bootstrap.wp_proof
           ⟨by simp only; rw [HNgh]; rfl, fun _ => ⟨by simp only; rw [HNgh], fun _ _ _ _ h => (by cases h)⟩,
             fun l h => (by cases h)⟩
           (SdtTie.of_none (by rw [HNls]; simp only [logAppend, Hsn]; exact Hdtk0))
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] []
+        -- (durability stage II, G2) a fresh node's recorded role: `NewRawNode`'s follower
+        (by exact Hsvr.1.symm) $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
       · first | (rw [HNls]; simp only [logAppend, Hsn]) | (simp only; rw [HNls]; simp only [logAppend, Hsn])
         iapply snapLocOk_none
+      · -- (durability stage II, G2) a fresh node's durable state's tie (`durTie_fresh`)
+        iapply durTie_fresh γ _ _ rfl
+        · show sk.logst.prev = _; rw [HNls]; exact Hp
+        · show sk.logst.stored = _; rw [HNls]; exact Hsd
   · iexact Hpeers
 
 end proof

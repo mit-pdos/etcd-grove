@@ -113,6 +113,11 @@ abbrev NewRawNode.spec : Prop :=
   uint.Z σ.fl ≤ uint.Z σ.prev.index' → σ.sg ≤ uint.nat σ.prev.index' →
   (∀ k t, σ.dt !! k = some t → k ≤ uint.nat σ.prev.index') →
   uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 < 2 ^ 64 →
+  -- (2026-11-01, durability stage I-6) the storage key's attach record (`restartStorage`'s
+  -- continuation): the applied bound `max b A`, the commit `loadState` restores, the view's terms
+  -- at the recorded indices (from the base)
+  AttachRec sn σ.prev σ.ents (uint.nat (committedAfter σ.prev hs))
+    (max (uint.nat σ.prev.index') (uint.nat cv.Applied')) →
   (HsEmpty hs ∨ uint.Z σ.prev.index' ≤ uint.Z hs.Commit' ∧
     uint.Z hs.Commit' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) →
   (cv.Applied' = W64 0 ∨ uint.Z σ.prev.index' ≤ uint.Z cv.Applied' ∧
@@ -131,7 +136,8 @@ abbrev NewRawNode.spec : Prop :=
       (□ {{ R }} (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #()))
          {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
             hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
-            |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn (interface.ok si) σ ∗ R' }}) }}
+            |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn.unrec (interface.ok si) σ ∗
+              R' }}) }}
     (App (Val #(functions NewRawNode [])) (Val #c))
   {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
       -- (D17d, 2026-10-18) what the `InitialState` premise's caller gets back

@@ -77,6 +77,9 @@ private abbrev StartNode.specRaw : Prop :=
   csm.LearnersNext' = [] →
   csm.AutoLeave' = false →
   σ.fl = W64 0 →
+  -- (2026-11-01, durability stage I-6) no attach record: an empty storage, nothing applied or
+  -- committed (`NewRawNode`'s `AttachRec` holds vacuously and its `ownStorage sn.unrec` is this one)
+  sn.unrec = sn →
   ps = pv.map Peer.ID' →
   ps ≠ [] → ps.Nodup → W64 0 ∉ ps →
   (ps.length : Int) ≤ 2 ^ 62 →

@@ -1092,7 +1092,8 @@ theorem RawNode.Advance.wp_proof
                     s1.logst.applied = l.snap.Metadata'.Index' ∧ s1.logst.sip = false ∧
                     s1.logst.sat = false ∧ s1.logst.lent = false ∧
                     -- (2026-10-26, D22 J2) the pending snapshot kept or cleared (`ackSnapLog_snap`)
-                    (s1.logst.snap = s.logst.snap ∨ s1.logst.snap = none) ∧
+                    (s1.logst.snap = s.logst.snap ∨
+                      (s1.logst.snap = none ∧ s.logst.snap = some (snapId l.snap))) ∧
                     -- (U3c) a follower (it was one, a snapshot pending)
                     s1.role = .follower)⌝ ∗
         "%Hsg1" ∷ ⌜s1.logst.storage = s0.logst.storage ∧ s1.prevote = s0.prevote ∧ s1.gh = s0.gh⌝ ∗
@@ -1310,7 +1311,7 @@ theorem RawNode.Advance.wp_proof
             ⟨by rw [List.length_set]; exact Hsteps1.1, ?_⟩, Hwf2,
             ⟨b6.trans Hs1.1, b7.trans Hs1.2.1, b8.trans Hs1.2.2.1,
               fun h => absurd h (by omega), fun _ => ⟨fun _ => b1, b4, b5, b2, b3, b12.trans Hlt1,
-                by rw [Hl2]; exact (ackSnapLog_snap _ _ _ _).imp_left (fun h => h.trans Hsn1s),
+                by rw [Hl2]; exact (ackSnapLog_snap _ _ _ _).imp (fun h => h.trans Hsn1s) (fun h => ⟨h, Hu⟩),
                 Hr2.trans (Hsf1 (by rw [Hsn1']; simp))⟩⟩,
             ⟨b9.trans Hsg1.1, Hpv2.trans Hsg1.2.1, Hg2.trans Hsg1.2.2⟩,
             by rw [b11]; exact Hc1,
@@ -1460,7 +1461,7 @@ theorem RawNode.Advance.wp_proof
               fun h => absurd h (by omega),
               fun _ => ⟨(fun h => by rw [Hps2] at h; cases h), b4, b5, b2.trans Hsip1, b3,
                 b12.trans Hlt1,
-                by rw [Hl2']; exact (ackSnapLog_snap _ _ _ _).imp_left (fun h => h.trans Hsn1s),
+                .inl (b1.trans Hsn1s),
                 Hr2.trans (Hsf1 (by rw [Hsn1']; simp))⟩⟩,
             ⟨b9.trans Hsg1.1, Hpv2.trans Hsg1.2.1, Hg2.trans Hsg1.2.2⟩,
             by rw [b11]; exact Hc1,
@@ -1506,7 +1507,7 @@ theorem RawNode.Advance.wp_proof
         · exact RNMode.toG_static hm _ _
         · rw [HCA, if_pos hm, Hdll]; rfl
       subst md1
-      ihave #Hsloc' := snapLocOk_keep γ id Hsk1 $$ Hsloc
+      ihave #Hsloc' := snapLocOk_keep γ id (Hsk1.imp_right And.left) $$ Hsloc
       -- the snapshot handed out, acknowledged: the mirror's record of it dropped
       icases ownRaftPhysC_log_at_snp cf1 rnv.raft' id s1 $$ Hphys with ⟨Hlog1, %Hgh1, Hback1⟩
       ihave Hphys := Hback1 $$ %s1.logst %false %none Hlog1
@@ -1573,9 +1574,25 @@ theorem RawNode.Advance.wp_proof
             show s1.logst.dtk = l.dlv.length
             rw [logStoreRec_dtk Hs1.2.2.1, Hs0dtk]
             have H := Hsdt; unfold SdtTie sdtLen at H; rw [hsl] at H; exact H)
-          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdl Hstr1 [] Hsloc'
+          Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdl Hstr1 [] Hsloc' [Hdur]
         · iapply lentPend_none rfl; iapply pendList_nil
         · iapply loanCom_none γ rfl
+        · -- (durability stage II (i)) the acknowledgement of the lent snapshot keeps `durTie`
+          have Hsnk : s1.logst.snap = none → s.logst.snap = some (snapId l.snap) := by
+            intro h
+            rcases Hsk1 with h' | ⟨-, h'⟩
+            · obtain ⟨-, Hd, -⟩ := Hloan.2.2 l hsl
+              rcases Hd with Hd | ⟨s2, Hd, -⟩
+              · exact Hd
+              · rw [← h', h] at Hd; cases Hd
+            · exact h'
+          iapply durTie_ack γ (rs := rs) (s := s)
+            (rs' := { rs with
+              steps := [], term := s1.term, capplied := CA, flw := false, slent := none,
+              unpersisted := [], delivered := l.dlv, cfg := rs.mode.foldCfg l.decs l.dlv rs.cfg })
+            (s' := { s1 with logst := s1.logst, gh := { s1.gh with slent := false, snp := none } })
+            rfl hsl rfl (Hs1.2.1.trans Hs0f.2.2.2.1)
+            ((logStoreRec_stored Hs1.2.2.1).trans Hs0f.2.2.2.2.1) Hsnk $$ Hdur
       isplitr
       · ipureintro
         rw [Htrm0]
@@ -1901,8 +1918,10 @@ theorem RawNode.Advance.wp_proof
         (by rw [Hsg1.2.2]; exact Hrs_out)
         (by rw [Hsg1.2.2]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc1) HrnflA HloanA
         (Hsdt.ofRec Hs1.2.2.1 Hs1.2.2.2.2)
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdeliv Hstr1 Hloanc Hsloc'
+        Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdeliv Hstr1 Hloanc Hsloc' [Hdur]
       · iapply lentPend_none hsl; iapply pendList_nil
+      · -- (durability stage II (i)) the queue's steps keep `durTie`'s fields
+        iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hs1.2.2.1 Hs1.2.2.2.1 (logStoreRec_stored Hs1.2.2.2.2) $$ Hdur
     isplitr
     · ipureintro
       rw [Htrm]

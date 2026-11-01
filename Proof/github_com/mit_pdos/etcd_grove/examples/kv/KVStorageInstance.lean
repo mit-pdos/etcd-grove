@@ -385,11 +385,8 @@ gave of its `MemoryStorage` and the wrapper's records: `FirstIndex` is `1` (the 
 gives the empty hard state, the voters' conf state, and -- at the key `K` raft names the storage by,
 allocating the storage's invariant from `memStorLock ∗ memStorFresh` and raft's bound at the attach
 (`kvJ_B0`) -- the contract and the (empty) log. The frame `F` is the client's, made from the
-invariant at every key (`HF`); `run` keeps the invariant (`runStor`).
-
-(API gap G1, `stageI-5-clients.md`: the frame does not depend on the key, so it cannot carry the
-invariant *at the key* `RestartNode`'s post's driver records; once it is `F : GName → IProp GF` with
-the post's `F K`, `HF`'s conclusion is `F K`.) -/
+invariant at the key (`HF`; 2026-11-01, stage-I fix G1-frame: the frame depends on the key); `run`
+keeps the invariant (`runStor`). -/
 theorem kvStorage_bootStorage
     (wp_InitialState : kv.Storage.InitialState.spec (GF := GF) (hG := hG))
     (wp_Snapshot : kv.Storage.Snapshot.spec (GF := GF) (hG := hG))
@@ -398,12 +395,12 @@ theorem kvStorage_bootStorage
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) (vsl : GoSlice) (voters : List w64)
-    (γ : Cluster) (F : IProp GF) :
+    (γ : Cluster) (F : GName → IProp GF) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
       kvStorRec s ms γs -∗ s.[RStorage, go!"voters"] ↦□ vsl -∗ vsl ↦*□ voters -∗
       memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty -∗
       memLog γs 0 DFrac.discard [zero_val EntryM] -∗ memEnd γs 1 -∗
-      (∀ K : GName, memStorInvP ms γs (kvJ γ K) -∗ F) -∗
+      (∀ K : GName, memStorInvP ms γs (kvJ γ K) -∗ F K) -∗
       restartStorage γ (kvStorIface s)
         ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
         (kv.kvConfState voters) 0 F := by

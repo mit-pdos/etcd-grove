@@ -6,7 +6,7 @@ theorem StartNode.wp_proof [package_sem : Assumptions] (wp_setupNode : setupNode
     : node.run.spec) : StartNode.spec
   -- `Perennial.EtcdGrove.StartNode.spec`, unfolded:
   ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (csm : ConfStateM) (Q F : IProp GF) (peers : GoSlice) (dq : DFrac) (pv : List Peer),
+    (csm : ConfStateM) (Q : IProp GF) (F : GName → IProp GF) (peers : GoSlice) (dq : DFrac) (pv : List Peer),
     ConfigValid cv →
       cv.Logger' = GoInterface.ok lok →
         cv.Storage' = GoInterface.ok si →
@@ -46,6 +46,6 @@ theorem StartNode.wp_proof [package_sem : Assumptions] (wp_setupNode : setupNode
                                                           nodeConfig n γ N
                                                               { applied := 0,
                                                                 membership := Membership.simple (listToSet vs) } ∗
-                                                            nodeRunning n γ N 1 ∗ Q ∗ F ∗ ownSlice peers pv dq) -∗
+                                                            nodeRunning n γ N 1 ∗ Q ∗ F K ∗ ownSlice peers pv dq) -∗
                                                   Φ (intoVal nd)) -∗
                                             WP (((intoVal (functions StartNode [])) (intoVal c)) (intoVal peers)) {{ Φ }}

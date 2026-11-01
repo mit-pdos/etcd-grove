@@ -108,6 +108,16 @@ instance HsEmpty.decidable (hs : HardStateM) : Decidable (HsEmpty hs) := by
 def committedAfter (prev : entryID) (hs : HardStateM) : w64 :=
   if HsEmpty hs then prev.index' else hs.Commit'
 
+/-- (2026-11-01, durability stage I-6) **The storage names `sn` carry the attach record of a
+storage holding the log `prev :: ents`**, with the commit `c0` and the applied bound `a0` raft
+restores: what `restartStorage`'s continuation hands out (`nodeAppliedLb γ K a0`, `nodeCommitLb γ
+K c0`), recorded in the key (`storKeyNames`). Every recorded term is the log's at its index, from
+the base up to `c0`: so raft's view, once its commit reaches `c0`, certifies them (`storCaught`). -/
+def AttachRec (sn : StorNames) (prev : entryID) (ents : List EntryM) (c0 a0 : Nat) : Prop :=
+  sn.a0 = a0 ∧ sn.c0 = c0 ∧
+  ∀ (i : Nat) (t : w64), (i, t) ∈ sn.ct → i ≤ c0 →
+    uint.nat prev.index' ≤ i ∧ termAt prev ents (W64 (i : Int)) = some t
+
 end defs
 
 section spec
@@ -117,8 +127,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `newRaft(c)`: see the file header. (2026-11-01, durability stage I-6: from a storage holding a
-log from the base `b` to `last`, the hard state `hs` restored (`loadState`) and `Applied` within
+/-- `newRaft(c)`: see the file header. (2026-11-01, durability stage I-6, the attach record: the
+storage names carry it (`AttachRec`: the applied bound `max b A`, the commit `loadState` restores,
+the terms on the way), the `InitialState` continuation makes raft's view at the base without it
+(`ownStorage sn.unrec`: the client may compact up to the record from the attach on, before raft
+has caught up), and `newRaft` catches up (`storCaught`, certifying the recorded terms: the
+certification bound at the restored commit) before it returns the node. 2026-11-01, durability
+stage I-6: from a storage holding a log from the base `b` to `last`, the hard state `hs` restored (`loadState`) and `Applied` within
 the committed part (`appliedTo`); the `ConfState` any that `Restore` accepts (`restoreM`), joint
 or with learners; raft's view `σ` of the storage at the base. Until then a fresh storage, an empty
 hard state, nothing applied, voters only.) (raft-final phase 1, 2026-10-29: U8 v2 step 4's boot bundle,
@@ -151,6 +166,11 @@ abbrev newRaft.spec : Prop :=
   uint.Z σ.fl ≤ uint.Z σ.prev.index' → σ.sg ≤ uint.nat σ.prev.index' →
   (∀ k t, σ.dt !! k = some t → k ≤ uint.nat σ.prev.index') →
   uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 < 2 ^ 64 →
+  -- (2026-11-01, durability stage I-6) the storage key's attach record (`restartStorage`'s
+  -- continuation): the applied bound `max b A`, the commit `loadState` restores, the view's terms
+  -- at the recorded indices (from the base)
+  AttachRec sn σ.prev σ.ents (uint.nat (committedAfter σ.prev hs))
+    (max (uint.nat σ.prev.index') (uint.nat cv.Applied')) →
   -- `loadState`'s bound (it panics otherwise), unless the hard state is empty
   (HsEmpty hs ∨ uint.Z σ.prev.index' ≤ uint.Z hs.Commit' ∧
     uint.Z hs.Commit' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) →
@@ -172,7 +192,8 @@ abbrev newRaft.spec : Prop :=
       (□ {{ R }} (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #()))
          {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
             hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
-            |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn (interface.ok si) σ ∗ R' }}) }}
+            |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn.unrec (interface.ok si) σ ∗
+              R' }}) }}
     (App (Val #(functions newRaft [])) (Val #c))
   {{ (r : Loc) (s : NState) (cv' : Config), RET #r;
       R' ∗ ownRaftPhysC cs'.cfg r cv.ID' s ∗
@@ -204,9 +225,10 @@ abbrev newRaft.spec : Prop :=
         -- (2026-10-14, reconfiguration stage B7 part 2, for a dynamic `NewRawNode`) the
         -- `Config`'s `StepDownOnRemoval`, and the voters tracked, no learner
         s.sdr = cv.StepDownOnRemoval' ∧ domSet s.progress = domSet cs'.prs ∧
-        -- (raft-final phase 2; durability stage I-6: the view's certified terms, at most the
-        -- base) the certification bound at the base (for `SdtTie` at `RestartNode`)
-        s.logst.dtk = uint.nat σ.prev.index'⌝ }}
+        -- (raft-final phase 2; durability stage I-6: raft certified the attach record's terms,
+        -- up to the commit `loadState` restored) the certification bound (for `SdtTie` at
+        -- `RestartNode`)
+        s.logst.dtk = uint.nat (committedAfter σ.prev hs)⌝ }}
 
 end spec
 

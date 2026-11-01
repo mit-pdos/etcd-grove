@@ -1510,19 +1510,19 @@ theorem lentStor_dt (b : Bool) (sn : StorNames) (st : Storage) (σ : StorState) 
   cases b
   · simp only [lentStor, Bool.false_eq_true, ↓reduceIte]
     unfold ownStorage storAuths
-    iintro ⟨%e0, #Hcomp, #HFr, HO, Hend, ⟨Ha, Hg, Hd⟩, %Hw⟩
+    iintro ⟨%e0, #Hcomp, #HFr, HO, Hend, ⟨Ha, Hg, Hd, #Hcu⟩, %Hw⟩
     iframe Hd
     iintro %M HM
     rw [show ({ σ with dt := M } : StorState).kOut = σ.kOut from rfl]
     iexists e0
-    iframe Hcomp HFr HO Hend Ha Hg HM
+    iframe Hcomp HFr HO Hend Ha Hg HM Hcu
     ipureintro; exact Hw
   · simp only [lentStor, ↓reduceIte]
     unfold storAuths
-    iintro ⟨Ha, Hg, Hd⟩
+    iintro ⟨Ha, Hg, Hd, #Hcu⟩
     iframe Hd
     iintro %M HM
-    iframe Ha Hg HM
+    iframe Ha Hg HM Hcu
 
 /-- (U8 v2 step 4) **Certifying a term**: at a committed index `i` above every index certified so
 far (`dtk`), of the log's term there once at or past the boundary, raft certifies the term `t`

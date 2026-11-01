@@ -2,6 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+def storCaught (sn : StorNames) : IProp GF :=
+  iprop(monoNatLbOwn sn.ga sn.a0 ∗ □ ∀ i t, ⌜i ≤ sn.c0 ∧ (i, t) ∈ sn.ct⌝ -∗ i ↪[sn.gd]□ t)
+
 theorem ksnCert_pers (sn : StorNames) (k : SnapTrip) : Persistent (ksnCert sn k)
 
 theorem storApp_pend (σ : StorState) (q pend : List EntryM) : storApp { prev := σ.prev, ents :=
@@ -61,7 +64,7 @@ structure StorState : Type where
   dt : GMap Nat w64
 
 def raftBnd (sn : StorNames) (c : Nat) : IProp GF :=
-  iprop(∃ k, ⌜c ≤ k⌝ ∗ (monoNatLbOwn sn.ga k ∨ monoNatLbOwn sn.gg k))
+  iprop((∃ k, ⌜c ≤ k⌝ ∗ (monoNatLbOwn sn.ga k ∨ monoNatLbOwn sn.gg k)) ∨ ⌜c ≤ sn.a0⌝)
 
 theorem ksnCerts_nil (sn : StorNames) : ⊢ ksnCerts sn []
 
@@ -95,6 +98,9 @@ def ownStorage (sn : StorNames) (st : Storage) (σ : StorState) : IProp GF :=
                     uint.nat σ.prev.index' ≤ σ.fr ∧
                       σ.fr + 1 ≤ σ.kOut ∧
                         σ.kOut ≤ uint.nat σ.prev.index' + 1 + σ.ents.length ∧ σ.sg ≤ uint.nat σ.prev.index'⌝)
+
+theorem storCaught_unrec [package_sem : Assumptions] (sn : StorNames) (q : Qp) (n : Nat) : ⊢
+    monoNatAuthOwn sn.ga q n -∗ storCaught sn.unrec
 
 theorem storPast_pers (st : Storage) (m : Int) : Persistent (storPast st m)
 
@@ -150,10 +156,10 @@ theorem ksnCerts_snoc (sn : StorNames) (K : List SnapTrip) (k : SnapTrip) : ⊢ 
     ksnCert sn k -∗ ksnCerts sn (K ++ [k])
 
 def raftDL (sn : StorNames) (i : Nat) (t : w64) : IProp GF :=
-  iprop(i ↪[sn.gd]□ t ∨ ∃ k, ⌜i < k⌝ ∗ monoNatLbOwn sn.gg k)
+  iprop(i ↪[sn.gd]□ t ∨ (∃ k, ⌜i < k⌝ ∗ monoNatLbOwn sn.gg k) ∨ ⌜i ≤ sn.c0 ∧ (i, t) ∈ sn.ct⌝)
 
 def storAuths (sn : StorNames) (σ : StorState) : IProp GF :=
-  iprop(monoNatAuthOwn sn.ga 1 (uint.nat σ.fl) ∗ monoNatAuthOwn sn.gg 1 σ.sg ∗ ghostMapAuth sn.gd 1 σ.dt)
+  iprop(monoNatAuthOwn sn.ga 1 (uint.nat σ.fl) ∗ monoNatAuthOwn sn.gg 1 σ.sg ∗ ghostMapAuth sn.gd 1 σ.dt ∗ storCaught sn)
 
 def isStorageWith (P : StorState → IProp GF) (CT : Int → IProp GF) (SC : SnapshotM → IProp GF) (st :
     Storage) : IProp GF :=
@@ -272,6 +278,8 @@ theorem storPast_one (st : Storage) (x : w64) : storPast st (uint.Z x + 1) ⊢ s
 
 def PendFrom (σ : StorState) (n : Int) : Prop :=
   ∀ (e0 : EntryM), σ.pend.head? = some e0 → n ≤ uint.Z e0.Index'
+
+theorem storCaught_pers (sn : StorNames) : Persistent (storCaught sn)
 
 def LogAgree (k1 : Nat) (es1 : List EntryM) (k2 : Nat) (es2 : List EntryM) : Prop :=
   ∀ (i : Nat) (e1 e2 : EntryM), k1 ≤ i → k2 ≤ i → es1[i - k1]? = some e1 → es2[i - k2]? = some e2 → e1 = e2

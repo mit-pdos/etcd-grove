@@ -661,19 +661,6 @@ theorem rnCe_index (b : Nat) (ce : List LogEntry) (n : Nat) (m : EntryModel)
     subst h
     simp [EntryModel.ofM, LogEntry.toEntryM]
 
-/-- (2026-11-01, durability stage II) **A `Ready`'s messages with their `sentMsg`**: the messages as
-`readyRest` owns them, with the sends *enter* gave (`readyMsgs`). -/
-theorem rn_readyMsgs_sent [StorageModel GF] [go_etcd_io.raft.v3.Assumptions] (γ : Cluster)
-    (N : Namespace) (id : w64) (ms : List QMsg) :
-    ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
-      readyMsgs γ N id ms ⊢
-    [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗ msgCredits γ N q.st := by
-  unfold readyMsgs
-  refine BigSepL.bigSepL_sep_eqv_symm.1.trans (BigSepL.bigSepL_mono_of_forall ?_)
-  intro _ _
-  iintro ⟨⟨Ho, Hc⟩, Hs⟩
-  iframe
-
 /-- (2026-10-27) **Receiving a `Ready`, after the node API's receive** (`isReadyChan_recvAu`'s
 postcondition, `readyGot`): the idle driver at `L` learns the `Ready`'s data in the server's terms
 and is busy with it; the messages persisted, `E.C` of the committed log (`rnEnvOk`), the read states
@@ -741,7 +728,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   icases entsPts_elim _ _ _ $$ Hce with ⟨%ceL, #HceL, #Hcero⟩
   icases entsPts_elim _ _ _ $$ Hes with ⟨%esL, #HesL, #Hesro⟩
   imod ownSlice_persist _ _ _ $$ Hmsgs with #Hmsgs
-  ihave Hmo := rn_readyMsgs_sent γ.node.cl srvClusterN γ.id ms $$ [$Hmo $Hsent]
+  ihave Hmo := readyMsgs_sent γ.node.cl srvClusterN γ.id ms $$ [$Hmo $Hsent]
   imod rnMsgOk_of_api E γ ms $$ HM Hcl %Hraft Hmo with Hmok
   -- `E.C (L ++ ce)` from the committed log, the next index fitting
   ihave #Hcom' : isCommittedLogLb E.γr.raft.raft.cl (srvLE E.γr.raft (L ++ ce')) $$ []

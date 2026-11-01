@@ -19,6 +19,9 @@ theorem RInv_rinit (dec : CCDec) (c0 : CCState) : RInv dec c0 (rinit c0)
 def rinit (c0 : CCState) : RState :=
   { p := initPState, applied := W64 0, pci := W64 0, snap := false, cidx := 0, cfg := c0, fp := [] }
 
+theorem DynCfg.ofFold.congr_simp (dec dec✝ : CCDec) (e_dec : dec = dec✝) (c0 c0✝ : CCState) (e_c0 :
+    c0 = c0✝) (h0 : CfgOk c0) : DynCfg.ofFold dec c0 h0 = DynCfg.ofFold dec✝ c0✝ ⋯
+
 theorem RInv_rboot (dec : CCDec) (c0 : CCState) (bootLog : List EntryM) (hL : ↑bootLog.length < 2 ^
     64) : RInv dec c0 (rboot c0 bootLog)
 

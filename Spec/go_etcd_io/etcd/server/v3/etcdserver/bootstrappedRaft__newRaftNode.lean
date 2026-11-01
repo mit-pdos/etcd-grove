@@ -90,7 +90,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       -- server `srvMem_bootStorage`'s)
       "Hbs" ∷ restartStorage γr.cl (memStorIface bv.storage')
         ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
-        memSnapEmpty.Metadata'.ConfState' 0 Q ∗
+        memSnapEmpty.Metadata'.ConfState' 0 (fun _ => Q) ∗
       -- the peers and their contexts
       "Hpeers" ∷ bv.peers' ↦*{dq} pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
       -- this node's boot token (the cluster's allocation's, persistent), and (2026-11-01,

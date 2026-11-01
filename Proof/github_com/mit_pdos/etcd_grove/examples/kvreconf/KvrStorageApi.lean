@@ -386,11 +386,8 @@ gave of its `MemoryStorage` and the wrapper's records: `FirstIndex` is `1` (the 
 conf state, and -- at the key `K` raft names the storage by, allocating the storage's invariant
 `memStorInvP ms γs (kvrJ γ K)` from raft's bounds at the attach (`kvrJ_B0`, the empty snapshot) --
 the contract and the storage's (empty) log. The frame `F` is the client's: what it makes of the
-hard state's metadata and the invariant, at every key (`HF`).
-
-(API gap G1, `stageI-5-clients.md`: `restartStorage`'s frame does not depend on the key, so `F` cannot
-hold the invariant *at the key* the driver records (`RestartNode`'s `∃ K`); once the frame is
-`F : GName → IProp GF` with the post's `F K`, `HF`'s conclusion is `F K`.) -/
+hard state's metadata and the invariant, at the key (`HF`; 2026-11-01, stage-I fix G1-frame: the
+frame depends on the key, so it holds the invariant at the key the driver records). -/
 theorem kvr_bootStorage
     (wp_InitialState : Storage.InitialState.spec (GF := GF) (hG := hG))
     (wp_Snapshot : Storage.Snapshot.spec (GF := GF) (hG := hG))
@@ -399,12 +396,12 @@ theorem kvr_bootStorage
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (s ms bp : Loc) (γs : MemStorNames) (hs : HardStateM) (csm : ConfStateM)
-    (γ : Cluster) (F : IProp GF) :
+    (γ : Cluster) (F : GName → IProp GF) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvreconf -∗
       kvrStorRec s ms γs -∗ kvrStorBoot s bp csm -∗
       memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty -∗ memStorMeta ms γs hs -∗
       memLog γs 0 DFrac.discard [zero_val EntryM] -∗ memEnd γs 1 -∗
-      (∀ K : GName, memStorMeta ms γs hs -∗ memStorInvP ms γs (kvrJ γ K) -∗ F) -∗
+      (∀ K : GName, memStorMeta ms γs hs -∗ memStorInvP ms γs (kvrJ γ K) -∗ F K) -∗
       restartStorage γ (kvrStorIface s) ⟨hs, none, entryID.mk (W64 0) (W64 0), []⟩ csm 0 F := by
   -- PORT(durability stage II): restated (durability layer 4: `restartStorage` with a frame)
   sorry

@@ -83,11 +83,15 @@ abbrev RawNode.Ready.spec : Prop :=
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Ready")) (Val #()))
   {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
-      (sts : List ReadStateM) (h : HardStateM) (steps : List Pending) (L : Option SnapLoan), RET #rd;
+      (sts : List ReadStateM) (h : HardStateM) (steps : List Pending) (L : Option SnapLoan)
+      (ss : Option (w64 × StateType)), RET #rd;
       "Hrn" ∷ ownRawNode γ rn id
         { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
                   outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false,
-                  slent := L } ∗
+                  slent := L, dur := readyDurable rs.dur (phsNext rs.phs h) L es,
+                  role := roleAfter rs.role ss } ∗
+      -- (2026-11-01, durability stage I fix G2) the soft state the node records
+      "#Hss" ∷ softStateIs rd.SoftState' ss ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
       "#Hents" ∷ entsRO rd.Entries' es ∗

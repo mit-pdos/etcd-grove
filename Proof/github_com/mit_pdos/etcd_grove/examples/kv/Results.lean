@@ -134,15 +134,14 @@ which `bootStorage` became): from `NewStorage`'s records and tokens, `FirstIndex
 `LastIndex` `0`, and `InitialState` the empty hard state and the voters' conf state, read-only for
 good, with -- at the key `K` raft names the storage by, allocating its `MemoryStorage`'s invariant
 at `kvJ γ K` -- the contract and the empty log; the client's frame `F`, made from the invariant at
-every key (an argument: until 2026-11-01 the frame was the invariant itself, which would now name
-the key). -/
+the key (an argument, depending on the key: until 2026-11-01 the frame was the invariant itself). -/
 theorem kv_bootStorage (s ms : Loc) (γs : MemStorNames) (vsl : GoSlice) (voters : List w64)
-    (γ : Cluster) (F : IProp GF) :
+    (γ : Cluster) (F : GName → IProp GF) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
       kvStorRec (GF := GF) s ms γs -∗ s.[RStorage, go!"voters"] ↦□ vsl -∗ vsl ↦*□ voters -∗
       memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty -∗
       memLog γs 0 DFrac.discard [zero_val EntryM] -∗ memEnd γs 1 -∗
-      (∀ K : GName, memStorInvP ms γs (kvJ γ K) -∗ F) -∗
+      (∀ K : GName, memStorInvP ms γs (kvJ γ K) -∗ F K) -∗
       restartStorage γ (kvStorIface s)
         ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
         (kv.kvConfState voters) 0 F :=

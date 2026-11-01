@@ -80,7 +80,10 @@ def rawNodeFresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr 
     "%Hsdr" ∷ ⌜s.sdr = sdr⌝ ∗
     "%Hdom" ∷ ⌜domSet s.progress = V⌝ ∗
     -- (D22l) `prevHardSt` the zero record (`r.hardState()` at term `0`, nothing committed)
-    "%Hhz" ∷ ⌜hprev = hsZero⌝)
+    "%Hhz" ∷ ⌜hprev = hsZero⌝ ∗
+    -- (2026-11-01, durability stage II, G2) `prevSoftSt` a follower's (`r.softState()`), nothing
+    -- handed out yet (`offsetInProgress` at the empty log's end)
+    "%Hsvr" ∷ ⌜sv.RaftState' = W64 0 ∧ s.logst.inprogress = W64 1⌝)
 
 /-- (2026-11-01, durability stage I-6) The protocol state a node restarted on a storage holds: a
 follower of the hard state's term with its vote, no leader, the stored log from the view's base,
@@ -96,7 +99,7 @@ conf state's tracker `cs`, `Applied` `A`): `rawNodeFresh` generalized -- the raf
 configuration `cs` (`ownRaftPhysC`), at a state refining the restarted follower's protocol state (the
 hard state's term and vote, the stored log from the base, the commit index `loadState` restores), the
 log stable with nothing unstable or handed out, applying from `A` (or the base), the certification
-bound at the base; `prevHardSt` the hard state `r.hardState()` reads then. -/
+bound at the restored commit (durability stage I-6: raft certified the attach record's terms); `prevHardSt` the hard state `r.hardState()` reads then. -/
 def rawNodeAt (rn : Loc) (id : w64) (si : GoInterfaceOk) (cs : CCState) (sdr : Bool) (pre : Bool)
     (hs : HardStateM) (σ : StorState) (A : w64) (s : NState) : IProp GF :=
   iprop(∃ (rnv : RawNode) (sv : SoftState) (hprev : HardStateM),
@@ -115,12 +118,15 @@ def rawNodeAt (rn : Loc) (id : w64) (si : GoInterfaceOk) (cs : CCState) (sdr : B
       s.logst.applied = s.logst.applying ∧
       s.logst.applying = w64Max σ.prev.index' (if A = W64 0 then σ.prev.index' else A) ∧
       s.logst.unpersisted = [] ∧ s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧
-      s.logst.dtk = uint.nat σ.prev.index'⌝ ∗
+      s.logst.dtk = uint.nat (committedAfter σ.prev hs)⌝ ∗
     "%Hgh" ∷ ⌜s.gh = { sn := s.gh.sn }⌝ ∗
     "%Hpvoff" ∷ ⌜s.prevote = pre⌝ ∗
     "%Hsdr" ∷ ⌜s.sdr = sdr⌝ ∗
     "%Hdom" ∷ ⌜domSet s.progress = domSet cs.prs⌝ ∗
-    "%Hhz" ∷ ⌜hprev = HardStateM.mk hs.Term' hs.Vote' (committedAfter σ.prev hs)⌝)
+    "%Hhz" ∷ ⌜hprev = HardStateM.mk hs.Term' hs.Vote' (committedAfter σ.prev hs)⌝ ∗
+    -- (2026-11-01, durability stage II, G2) `prevSoftSt` a follower's, nothing handed out yet
+    "%Hsvr" ∷ ⌜sv.RaftState' = W64 0 ∧
+      uint.Z s.logst.inprogress = uint.Z σ.prev.index' + (σ.ents.length : Int) + 1⌝)
 
 /-- (2026-11-01, durability stage I-6) On an empty storage, at the voters' tracker, the node built
 is `rawNodeFresh`'s (what `setupNode`'s `Bootstrap` takes). -/
@@ -143,7 +149,8 @@ theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet 
       s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
       s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧ s.logst.dtk = 0)
     (Hgh : s.gh = {}) (Hpvoff : s.prevote = pre) (Hsdr : s.sdr = sdr)
-    (Hdom : domSet s.progress = V) (Hhz : hprev = hsZero) :
+    (Hdom : domSet s.progress = V) (Hhz : hprev = hsZero)
+    (Hsvr : sv.RaftState' = W64 0 ∧ s.logst.inprogress = W64 1) :
     ⊢ rawNodeOwn (GF := GF) rn rnv -∗ ownRaftPhys V rnv.raft' id s -∗
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗
       rnv.stepsOnAdvance' ↦* ([] : List Loc) -∗
@@ -155,7 +162,7 @@ theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet 
   simp only [named]
   iframe Hrn Hphys Hsoft Hhard Hsteps Hcap
   ipureintro
-  exact ⟨Hasync, Hrel, Hterm0, Hlog, by rw [Hgh], Hpvoff, Hsdr, Hdom, Hhz⟩
+  exact ⟨Hasync, Hrel, Hterm0, Hlog, by rw [Hgh], Hpvoff, Hsdr, Hdom, Hhz, Hsvr⟩
 
 /-- (raft-final phase 2) `rawNodeFresh_intro` with the storage names mirrored in the ghost state
 (`newRaft`'s post: `s.gh = { sn := sn }`). -/
@@ -169,7 +176,8 @@ theorem rawNodeFresh_intro_sn (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GS
       s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
       s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧ s.logst.dtk = 0)
     (Hgh : s.gh = { sn := s.gh.sn }) (Hpvoff : s.prevote = pre) (Hsdr : s.sdr = sdr)
-    (Hdom : domSet s.progress = V) (Hhz : hprev = hsZero) :
+    (Hdom : domSet s.progress = V) (Hhz : hprev = hsZero)
+    (Hsvr : sv.RaftState' = W64 0 ∧ s.logst.inprogress = W64 1) :
     ⊢ rawNodeOwn (GF := GF) rn rnv -∗ ownRaftPhys V rnv.raft' id s -∗
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗
       rnv.stepsOnAdvance' ↦* ([] : List Loc) -∗
@@ -181,7 +189,7 @@ theorem rawNodeFresh_intro_sn (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GS
   simp only [named]
   iframe Hrn Hphys Hsoft Hhard Hsteps Hcap
   ipureintro
-  exact ⟨Hasync, Hrel, Hterm0, Hlog, Hgh, Hpvoff, Hsdr, Hdom, Hhz⟩
+  exact ⟨Hasync, Hrel, Hterm0, Hlog, Hgh, Hpvoff, Hsdr, Hdom, Hhz, Hsvr⟩
 
 /-- The commit invariant, from the boot ghost state in either mode. -/
 theorem bootInit_inv (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64)

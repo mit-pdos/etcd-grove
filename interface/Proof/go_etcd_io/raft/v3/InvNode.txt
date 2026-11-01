@@ -182,6 +182,11 @@ theorem nodeErrS_nodeErr [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N
 
 def (sealed) snapshotCert (γ : Cluster) (N : Namespace) (k : SnapTrip) : IProp GF
 
+theorem readyMsgs_sent [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (ms :
+    List QMsg) : ([∗list] q ∈ ms, iprop(msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st)) ∗
+    readyMsgs γ N id ms ⊢ [∗list] q ∈ ms, iprop(msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id
+    q.st ∗ msgCredits γ N q.st)
+
 theorem isReadCtx_persistent (γ : Cluster) (N : Namespace) (c : List w8) (Q : List LogEntry → IProp
     GF) : Persistent (isReadCtx γ N c Q)
 

@@ -110,18 +110,6 @@ theorem runInv_init (γr : RNames) (vs : List w64) (id : w64) (r n st : Loc) (ρ
   iapply BigSepL.bigSepL_nil.2
   itrivial
 
-/-- (2026-11-01, durability stage II) **A `Ready`'s messages with their `sentMsg`**: the messages as
-`readyRest` owns them, with the sends *enter* gave (`readyMsgs`), are what a transport takes. -/
-theorem readyMsgs_sent (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) :
-    ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
-      readyMsgs γ N id ms ⊢
-    [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗ msgCredits γ N q.st := by
-  unfold readyMsgs
-  refine BigSepL.bigSepL_sep_eqv_symm.1.trans (BigSepL.bigSepL_mono_of_forall ?_)
-  intro _ _
-  iintro ⟨⟨Ho, Hc⟩, Hs⟩
-  iframe
-
 end inv
 
 end kvreconf

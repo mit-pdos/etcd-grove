@@ -32,6 +32,7 @@ public import Spec.go_etcd_io.raft.v3.NewMemoryStorage
 public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.ApiVocab
 import all Proof.go_etcd_io.raft.v3.InvNodeChan
+import Proof.go_etcd_io.raft.v3.Protocol.Enter
 
 @[expose] public section
 
@@ -1653,13 +1654,16 @@ def NodeOk (γ : Cluster) (γn : NodeNames) : Prop :=
 
 /-- The configuration names of a node's `NodeNames` (`Cluster.nodeTab`); (2026-10-29, stage U9a) and its
 `live` name, by which `nodeLive` and `nodeStopped` agree. -/
-abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat
+abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat × Nat
 
 /-- (U8 v2, 2026-10-29) with the node's storage names (`NodeNames.sn`), by which the API's
 `nodeAppliedLb`/`snapGiven` (of the node's id) are the floor's and the snapshot hand-out's lower
 bounds of the node's log (`nodeStorNames`). -/
 def cfgNamesOf (γn : NodeNames) : CfgNames :=
-  (γn.dlm, γn.cap, γn.ccq, γn.cam, γn.live, γn.sn.ga, γn.sn.gg, γn.sn.gsv, γn.sn.gd, γn.sn.gk)
+  (γn.dlm, γn.cap, γn.ccq, γn.cam, γn.live, γn.sn.ga, γn.sn.gg, γn.sn.gsv, γn.sn.gd, γn.sn.gk,
+    -- (2026-11-01, durability stage II(g), approved fix A) the generation of the id's slot, so that
+    -- a `nodeRunning` share is at the driver's generation (`api_enter`)
+    γn.gen)
 
 /-- **Node `n`'s configuration names are `γn`'s** (persistent): its entry of the cluster's table.
 (2026-11-01, durability stage I-2: keyed by the node object, not its id.) -/
@@ -1672,8 +1676,9 @@ instance nodeTabOk_persistent (γ : Cluster) (n : Loc) (γn : NodeNames) :
 
 theorem nodeTabOk_agree (γ : Cluster) (n : Loc) (γ1 γ2 : NodeNames) :
     ⊢ nodeTabOk (GF := GF) γ n γ1 -∗ nodeTabOk γ n γ2 -∗ ⌜(cfgNamesOf γ1) = (cfgNamesOf γ2)⌝ := by
-  -- PORT(durability stage II): restated (I-2, the table keyed by the node object)
-  sorry
+  unfold nodeTabOk
+  iintro #E1 #E2
+  iapply ghostMapElem_agree $$ E1 E2
 
 /-- (2026-11-01, durability stage I-2) **The node table's invariant** (in `N .@ "nodetab"`): its
 authority, every key a node struct (`n ↦□`), so that a node whose struct is still owned whole is
@@ -1692,7 +1697,7 @@ the attach (`restartStorage`'s continuation, where raft allocates `K`). By this 
 `nodeAppliedLb γ K`/`nodeCommitLb γ K` are the floor's, the snapshot hand-out's and the certified
 terms' lower bounds of the one node attached to it. -/
 def storKeyNames (K : GName) (sn : StorNames) : IProp GF :=
-  dghostVar K DFrac.discard (sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk)
+  dghostVar K DFrac.discard (sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct)
 
 instance storKeyNames_persistent (K : GName) (sn : StorNames) :
     Persistent (storKeyNames (GF := GF) K sn) := by
@@ -1704,16 +1709,22 @@ instance storKeyNames_timeless (K : GName) (sn : StorNames) :
 
 theorem storKeyNames_agree (K : GName) (sn1 sn2 : StorNames) :
     ⊢ storKeyNames (GF := GF) K sn1 -∗ storKeyNames K sn2 -∗ ⌜sn1 = sn2⌝ := by
-  -- PORT(durability stage II): proof (new lemma; as the old `nodeStorNames_agree`)
-  sorry
+  unfold storKeyNames
+  iintro #E1 #E2
+  ihave %H := dghostVar_agree _ _ _ _ _ $$ E1 E2
+  ipureintro
+  simp only [Prod.mk.injEq] at H
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := H
+  cases sn1; cases sn2; simp only at h1 h2 h3 h4 h5 h6 h7 h8; subst h1 h2 h3 h4 h5 h6 h7 h8; rfl
 
 /-- (U8 v2, 2026-10-29; 2026-11-01, durability stage I-4: keyed by the storage's key, with
 `snapGiven` merged in) **Compacting the storage of key `K` up to `k` is safe** (the API's
 `nodeAppliedLb`): `k = 0`, or a lower bound of the floor its node's log published (`storFloor`), or
-of a snapshot it handed out (which `Advance` applies: `appliedSnap`). -/
+of a snapshot it handed out (which `Advance` applies: `appliedSnap`), or (2026-11-01, durability
+stage I-6) at most the applied bound the attach recorded (`StorNames.a0`, raft's `raftBnd`). -/
 def nodeAppliedLbU (γ : Cluster) (K : GName) (k : Nat) : IProp GF :=
   iprop(⌜k = 0⌝ ∨ ∃ sn : StorNames, storKeyNames K sn ∗
-    (monoNatLbOwn sn.ga k ∨ monoNatLbOwn sn.gg k))
+    (monoNatLbOwn sn.ga k ∨ monoNatLbOwn sn.gg k ∨ ⌜k ≤ sn.a0⌝))
 
 /-- (2026-11-01, durability stage I-4; until then the open `storDL γ id i`) **The node on the
 storage of key `K` has committed at least `i`** (the API's `nodeCommitLb`): a committed log `l` at
@@ -1747,18 +1758,21 @@ theorem nodeAppliedLbU_zero (γ : Cluster) (K : GName) : ⊢ nodeAppliedLbU (GF 
 theorem nodeAppliedLbU_mono (γ : Cluster) (K : GName) (k k' : Nat) (h : k' ≤ k) :
     nodeAppliedLbU (GF := GF) γ K k ⊢ nodeAppliedLbU γ K k' := by
   unfold nodeAppliedLbU
-  iintro (%H | ⟨%sn, #Hs, (#Hl | #Hl)⟩)
+  iintro (%H | ⟨%sn, #Hs, (#Hl | #Hl | %Hl)⟩)
   · ileft; ipureintro; omega
   · iright; iexists sn; iframe Hs; ileft; iapply monoNatLbOwn_le k' h $$ Hl
-  · iright; iexists sn; iframe Hs; iright; iapply monoNatLbOwn_le k' h $$ Hl
+  · iright; iexists sn; iframe Hs; iright; ileft; iapply monoNatLbOwn_le k' h $$ Hl
+  · iright; iexists sn; iframe Hs; iright; iright; ipureintro; omega
 
 theorem nodeCommitLbU_zero (γ : Cluster) (K : GName) : ⊢ nodeCommitLbU (GF := GF) γ K 0 := by
   unfold nodeCommitLbU; iintro; ileft; ipureintro; rfl
 
 theorem nodeCommitLbU_mono (γ : Cluster) (K : GName) (i i' : Nat) (h : i' ≤ i) :
     nodeCommitLbU (GF := GF) γ K i ⊢ nodeCommitLbU γ K i' := by
-  -- PORT(durability stage II): proof (new lemma)
-  sorry
+  unfold nodeCommitLbU
+  iintro (%H | ⟨%sn, %l, #Hs, #Hc, %Hl, #Hd⟩)
+  · ileft; ipureintro; omega
+  · iright; iexists sn, l; iframe Hs Hc Hd; ipureintro; omega
 
 /-- (2026-11-01, durability stage I-2; candidate 12 §1) **Node `id`'s durable state is `S`** (the
 API's `raftState`): the protocol's durable half at `S` (`ownDurGhost`: its share of the promise
@@ -1845,18 +1859,60 @@ instance nodeStopped_persistent (n : Loc) (γ : Cluster) (N : Namespace) :
 (2026-11-01, durability stage I-2: the table keyed by the location, so no id agreement needed.) -/
 theorem nodeNames_live_agree (γ : Cluster) (γ1 γ2 : NodeNames) (n : Loc) :
     ⊢ nodeTabOk (GF := GF) γ n γ1 -∗ nodeTabOk γ n γ2 -∗ ⌜γ1.live = γ2.live⌝ := by
-  -- PORT(durability stage II): restated (I-2)
-  sorry
+  iintro #T1 #T2
+  ihave %Hn := nodeTabOk_agree γ n γ1 γ2 $$ T1 T2
+  simp only [cfgNamesOf, Prod.mk.injEq] at Hn
+  ipureintro; exact Hn.2.2.2.2.1
 
 theorem nodeRunning_stopped_impl (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) :
     nodeRunning (GF := GF) n γ N q ∗ nodeStopped n γ N ⊢ False := by
-  -- PORT(durability stage II): the table keyed by `n` (I-2), `nodeLiveRaw` with the generation
-  sorry
+  unfold nodeRunning nodeStopped
+  iintro ⟨⟨%γ1, %id1, %Hok1, #H1, #T1, Hl⟩, ⟨%γ2, %id2, %Hok2, #H2, #T2, #Hs⟩⟩
+  ihave %Hlv := nodeNames_live_agree γ γ1 γ2 n $$ T1 T2
+  unfold EtcdGrove.nodeLiveRaw EtcdGrove.nodeStoppedRaw
+  rw [Hlv]
+  icases Hl with ⟨Hl, -⟩
+  ihave %H := dghostVar_agree _ _ _ _ _ $$ Hl Hs
+  cases H
 
 theorem nodeRunning_split_impl (n : Loc) (γ : Cluster) (N : Namespace) (p q : Qp) :
     nodeRunning (GF := GF) n γ N (p + q) ⊣⊢ nodeRunning n γ N p ∗ nodeRunning n γ N q := by
-  -- PORT(durability stage II): the table keyed by `n` (I-2), `nodeLiveRaw` with the generation
-  sorry
+  unfold nodeRunning
+  constructor
+  · iintro ⟨%γ1, %id1, %Hok1, #H1, #T1, Hl⟩
+    icases (EtcdGrove.nodeLiveRaw_fractional (GF := GF) γ1).fractional p q |>.1 $$ Hl with ⟨Hl1, Hl2⟩
+    isplitl [Hl1]
+    · iexists γ1, id1; iframe Hl1 H1 T1; ipureintro; exact Hok1
+    · iexists γ1, id1; iframe Hl2 H1 T1; ipureintro; exact Hok1
+  · iintro ⟨⟨%γ1, %id1, %Hok1, #H1, #T1, Hl1⟩, ⟨%γ2, %id2, %Hok2, #H2, #T2, Hl2⟩⟩
+    ihave %Hlv := nodeNames_live_agree γ γ1 γ2 n $$ T1 T2
+    ihave %Hid := isNode_id_agree γ1 γ2 id1 id2 n $$ H1 H2
+    subst Hid
+    ihave %Hg1 := EtcdGrove.isNode_id γ1 id1 n $$ H1
+    ihave %Hg2 := EtcdGrove.isNode_id γ2 id1 n $$ H2
+    have Hr : γ2.raft = γ1.raft := Hok2.1.1.trans Hok1.1.1.symm
+    have Hi : γ2.id = γ1.id := Hg2.trans Hg1.symm
+    iexists γ1, id1
+    iframe H1 T1
+    isplitr
+    · ipureintro; exact Hok1
+    iunfold EtcdGrove.nodeLiveRaw at Hl1 Hl2
+    icases Hl1 with ⟨Hl1, Hs1⟩
+    icases Hl2 with ⟨Hl2, Hs2⟩
+    iunfold slotLive at Hs1 Hs2
+    icases Hs1 with ⟨%γs, %Hγs, Hs1⟩
+    icases Hs2 with ⟨%γs', %Hγs', Hs2⟩
+    rw [Hr, Hi, Hγs] at Hγs'; cases Hγs'
+    ihave %Hgen := ghostVar_agree _ _ _ _ _ $$ Hs1 Hs2
+    iapply ((EtcdGrove.nodeLiveRaw_fractional (GF := GF) γ1).fractional p q).2
+    unfold EtcdGrove.nodeLiveRaw slotLive
+    isplitl [Hl1 Hs1]
+    · iframe Hl1; iexists γs; iframe Hs1; ipureintro; exact Hγs
+    isplitl [Hl2]
+    · rw [Hlv]; iexact Hl2
+    iexists γs
+    rw [Hgen]
+    iframe Hs2; ipureintro; exact Hγs
 
 /-- The node's `Ready` channel `ch` (persistent): the node struct's `readyc`. -/
 def isReadyChan (n : Loc) (_γ : Cluster) (_N : Namespace) (ch : Loc) : IProp GF :=
@@ -1891,7 +1947,9 @@ def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
      (∃ (es : List EntryM) (L : Option SnapLoan) (W : DurMaps), ⌜st.handling = some (es, L)⌝ ∗
        nodeDriverBusy γn id n ds es st.hardState L ∗
        dghostVar γn.dur (DFrac.own 1) (st.durable, st.role) ∗
-       dghostVar γn.bw (DFrac.own (1 : Qp).half) W ∗ durFrags γ.raft id W ∗
+       dghostVar γn.bw (DFrac.own (1 : Qp).half) (W, (st.durable, st.role)) ∗ durFrags γ.raft id W ∗
+       -- (2026-11-01, stage II(g), approved fix D) the generation's queue, freed by *enter*
+       slotFree γ.raft id γn.gen ∗
        -- (U8 v2, 2026-10-29) after a snapshot `Ready`, the snapshot handed out (what `Advance`'s
        -- post, `nodeAppliedLb`, is then)
        (match L with
@@ -2134,6 +2192,247 @@ theorem api_msgs (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (
     iapply BigSepL.bigSepL_cons.2
     iframe H1 H
 
+-- (stage II(g): moved here from `InvApiView.lean`, for `readyRecv_open`)
+/-- (stage II helper) A certified term is raft's reading of the contract's `DL` (`raftDL`'s first
+disjunct). -/
+theorem raftDL_of_key (sn : StorNames) (i : Nat) (t : w64) :
+    (i ↪[sn.gd]□ t : IProp GF) ⊢ raftDL sn i t := by
+  unfold raftDL; iintro #H; ileft; iexact H
+
+/-- (stage II helper) The certified terms of a committed log `ds` give `raftDL` of each entry of
+what the client sees of it. -/
+theorem dlvKeys_raftDL (sn : StorNames) (ds : List EntryM) :
+    dlvKeys (GF := GF) sn ds ⊢
+      [∗list] j ↦ e ∈ LogEntry.toEntries (strip ds) 0, raftDL sn (j + 1) e.Term' := by
+  have Hm : (LogEntry.toEntries (strip ds) 0).map (fun e : EntryM => e.Term') =
+      ds.map (fun e : EntryM => e.Term') := by
+    apply List.ext_getElem?
+    intro k
+    rw [List.getElem?_map, List.getElem?_map, toEntries_getElem?]
+    unfold strip
+    rw [List.getElem?_map]
+    cases ds[k]? <;> rfl
+  have h1 := BigSepL.bigSepL_map (fun e : EntryM => e.Term')
+    (Φ := fun j (t : w64) => raftDL (GF := GF) sn (j + 1) t) (l := LogEntry.toEntries (strip ds) 0)
+  have h2 := BigSepL.bigSepL_map (fun e : EntryM => e.Term')
+    (Φ := fun j (t : w64) => raftDL (GF := GF) sn (j + 1) t) (l := ds)
+  rw [← h1, Hm, h2]
+  unfold dlvKeys dlvKeysAt
+  apply BigSepL.bigSepL_mono
+  intro k x _
+  rw [show 0 + k + 1 = k + 1 by omega]
+  exact raftDL_of_key sn (k + 1) x.Term'
+
+/-- (stage II helper) A committed log with raft's certified terms under the key's names is
+committed for the key's storage. -/
+theorem nodeCommitLbU_of_dlvLb (γ : Cluster) (K : GName) (γn : NodeNames) (ds : List EntryM) :
+    storKeyNames (GF := GF) K γn.sn ∗ dlvLb γn ds ∗ isCommittedLogLb γ (strip ds) ⊢
+      nodeCommitLbU γ K (strip ds).length := by
+  unfold nodeCommitLbU dlvLb
+  iintro ⟨#Hk, ⟨-, #Hd⟩, #Hc⟩
+  iright; iexists γn.sn, strip ds
+  iframe Hk Hc
+  isplitr; · ipureintro; exact Nat.le_refl _
+  iapply dlvKeys_raftDL $$ Hd
+
+/-- (2026-11-01, durability stage II(g) helper) A `Ready`'s messages, each `sentMsg`, from their raft
+facts and their terms' bounds. -/
+theorem api_sentMsgs (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (γn : NodeNames)
+    (Hγr : γn.raft = γ.raft) (Hγb : γn.bud = γ.bud) (HU : UniNames γ N) (ms : List QMsg) :
+    ⊢ clusterInv (GF := GF) γ N -∗ rdPool γ N -∗
+      ([∗list] q ∈ ms, isRaftMsg γn.raft γn.id q.st) -∗
+      ([∗list] q ∈ ms, termLB γn.bud q.st.msg.Term') ={E}=∗
+      [∗list] q ∈ ms, sentMsg γ N γn.id q.st := by
+  induction ms with
+  | nil =>
+    iintro #_ #_ - -
+    imodintro
+    iapply (BigSepL.bigSepL_nil (Φ := fun _ (q : QMsg) => iprop(sentMsg (GF := GF) γ N γn.id q.st))).2
+    iempintro
+  | cons q ms ih =>
+    iintro #Hci #Hpool Hr Ht
+    icases BigSepL.bigSepL_cons.1 $$ Hr with ⟨#Hr1, Hr⟩
+    icases BigSepL.bigSepL_cons.1 $$ Ht with ⟨#Ht1, Ht⟩
+    ihave #Hraft' : isRaftMsg γ.raft γn.id q.st $$ []
+    · rw [← Hγr]; iexact Hr1
+    imod api_sentSnapCert γ N E HE HU.noSnap γn.id q.st $$ Hci Hraft' with #Hsc
+    imod ih $$ Hci Hpool Hr Ht with H
+    imodintro
+    iapply BigSepL.bigSepL_cons.2
+    iframe H
+    unfold sentMsg
+    rw [← Hγb]
+    iframe Hci Ht1 Hraft' Hsc Hpool
+    ipureintro; exact HU
+
+/-- (stage II(g) helper) A `Ready`'s messages' ownership with their credits, and their terms'
+bounds apart. -/
+theorem readyMsgs_own_split (γ : Cluster) (N : Namespace) (γn : NodeNames)
+    (Hγr : γn.raft = γ.raft) (ms : List QMsg) :
+    ⊢ ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗ termLB γn.bud q.st.msg.Term') -∗
+      ([∗list] q ∈ ms, stTks γn.raft q.st) -∗
+      ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+      [∗list] q ∈ ms, termLB γn.bud q.st.msg.Term' := by
+  induction ms with
+  | nil =>
+    iintro - -
+    isplitl []
+    · iapply (BigSepL.bigSepL_nil (Φ := fun _ (q : QMsg) => iprop(msgOwn (GF := GF) q.loc
+        (readyDq q.st) q.st ∗ msgCredits γ N q.st))).2
+      iempintro
+    · iapply (BigSepL.bigSepL_nil (Φ := fun _ (q : QMsg) => iprop(termLB (GF := GF) γn.bud
+        q.st.msg.Term'))).2
+      iempintro
+  | cons q ms ih =>
+    iintro Hm Ht
+    icases BigSepL.bigSepL_cons.1 $$ Hm with ⟨⟨Ho, #Hl⟩, Hm⟩
+    icases BigSepL.bigSepL_cons.1 $$ Ht with ⟨Ht1, Ht⟩
+    icases ih $$ Hm Ht with ⟨Hm, Hls⟩
+    isplitl [Ho Ht1 Hm]
+    · iapply BigSepL.bigSepL_cons.2
+      iframe Hm Ho
+      unfold msgCredits; rw [← Hγr]; iexact Ht1
+    · iapply BigSepL.bigSepL_cons.2
+      iframe Hl Hls
+
+/-- (stage II(g) helper) The batch's fragments release its messages' raft facts. -/
+theorem msgs_of_frags (γ : RaftNames) (id : w64) (W : DurMaps) (ms : List QMsg) :
+    ⊢ durFrags (GF := GF) γ id W -∗
+      ([∗list] q ∈ ms, □ (durFrags γ id W -∗ isRaftMsg γ id q.st)) -∗
+      [∗list] q ∈ ms, isRaftMsg γ id q.st := by
+  induction ms with
+  | nil =>
+    iintro - -
+    iapply (BigSepL.bigSepL_nil (Φ := fun _ (q : QMsg) => iprop(isRaftMsg (GF := GF) γ id q.st))).2
+    iempintro
+  | cons q ms ih =>
+    iintro #Hf Hw
+    icases BigSepL.bigSepL_cons.1 $$ Hw with ⟨#Hw1, Hw⟩
+    iapply BigSepL.bigSepL_cons.2
+    isplitr [Hw]
+    · iapply Hw1 $$ Hf
+    · iapply ih $$ Hf Hw
+
+/-- (stage II(g) helper) **The leader's law** at the receive: at role leader the cut's messages are
+the raft node's outright (R9), so they are sent at once; otherwise the law is vacuous. -/
+theorem api_leaderMsgs (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (γn : NodeNames)
+    (Hγr : γn.raft = γ.raft) (Hγb : γn.bud = γ.bud) (HU : UniNames γ N) (ms : List QMsg)
+    (b : Prop) [Decidable b] :
+    ⊢ clusterInv (GF := GF) γ N -∗ rdPool γ N -∗
+      □ (⌜b⌝ -∗ [∗list] q ∈ ms, isRaftMsg γn.raft γn.id q.st) -∗
+      ([∗list] q ∈ ms, termLB γn.bud q.st.msg.Term') ={E}=∗
+      □ (⌜b⌝ -∗ readyMsgs γ N γn.id ms) := by
+  iintro #Hci #Hpool #Hl #Ht
+  by_cases hb : b
+  · ihave #Hr := Hl $$ %hb
+    imod api_sentMsgs γ N E HE γn Hγr Hγb HU ms $$ Hci Hpool Hr Ht with #Hs
+    imodintro
+    imodintro
+    iintro -
+    unfold readyMsgs; iexact Hs
+  · imodintro
+    imodintro
+    iintro %h
+    exact absurd h hb
+
+/-- (stage II(g) helper) ***Enter*, built at the receive** from the busy token's pieces, both halves
+of the recorded durable state, `run`'s half of the batch's maps, the queued batch and the messages'
+facts behind its fragments. -/
+theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
+    (st st' : NodeDriverState) (ds' es : List EntryM) (L : Option SnapLoan) (ms : List QMsg)
+    (S' : RaftState) (W : DurMaps)
+    (Hnok : NodeOk γ γn) (HU : UniNames γ N) (HNs : γ.raft.reNs = N .@ "raft")
+    (Hγs : γn.stor = st'.storage) (Hds : strip ds' = st'.delivered) (Hdyn : γn.mode.isDyn = true)
+    (Hh : st'.handling = some (es, L)) (HS : st'.durable = S') :
+    ⊢ clusterInv (GF := GF) γ N -∗ rdPool γ N -∗ isCommittedLogLb γ st'.delivered -∗
+      nodeTabOk γ n γn -∗ storKeyNames st'.key γn.sn -∗ EtcdGrove.isNodeChan γn γn.id n -∗
+      nodeDriverBusy γn γn.id n ds' es st'.hardState L -∗
+      (match (generalizing := false) L with
+        | none => iprop(True)
+        | some l => storGiven γn.sn (uint.nat l.snap.Metadata'.Index')) -∗
+      dghostVar γn.dur (DFrac.own (1 : Qp).half) (st.durable, st.role) -∗
+      dghostVar γn.dur (DFrac.own (1 : Qp).half) (st.durable, st.role) -∗
+      dghostVar γn.bw (DFrac.own (1 : Qp).half) (W, (S', st'.role)) -∗
+      pendBatch γn.raft γn.id γn.gen S' W -∗
+      termLB γn.bud S'.term -∗
+      ([∗list] q ∈ ms, □ (durFrags γn.raft γn.id W -∗ isRaftMsg γn.raft γn.id q.st)) -∗
+      ([∗list] q ∈ ms, termLB γn.bud q.st.msg.Term') -∗
+      readyEnter n γ N γn.id st st' ms := by
+  iintro #Hci #Hpool #Hlb #Htab #Hkey #Hnode Hbusy Hgv Hd1 Hd2 Hbw Hpend #HtS'0 #Hmw #Htl
+  unfold readyEnter
+  iintro %E %q %HE ⟨Hrs, Hrun⟩
+  iunfold raftStateU at Hrs
+  icases Hrs with ⟨Hdg, #HtS⟩
+  iunfold nodeRunning at Hrun
+  icases Hrun with ⟨%γ1, %id1, %Hok1, #H1, #T1, Hl⟩
+  icases isNode_id_agree γ1 γn id1 γn.id n $$ H1 Hnode with %Hid1
+  subst Hid1
+  ihave %Hg1 := EtcdGrove.isNode_id γ1 γn.id n $$ H1
+  have Hr1 : γ1.raft = γ.raft := Hok1.1.1
+  -- the generations agree through the node table (`cfgNamesOf` records it)
+  ihave %Hcn := nodeTabOk_agree γ n γ1 γn $$ T1 Htab
+  have Hgen : γ1.gen = γn.gen := by
+    simp only [cfgNamesOf, Prod.mk.injEq] at Hcn
+    exact Hcn.2.2.2.2.2.2.2.2.2.2
+  iunfold EtcdGrove.nodeLiveRaw at Hl
+  icases Hl with ⟨Hlv, Hsl⟩
+  ihave Hsl : slotLive γ.raft γn.id q.half γn.gen $$ [Hsl]
+  · rw [← Hr1, ← Hg1, ← Hgen]; iexact Hsl
+  have HrE : (↑(raftN γ.raft) : CoPset) ⊆ E := by
+    intro p hp
+    unfold raftN at hp; rw [HNs] at hp
+    exact HE p (nclose_subseteq N "raft" p hp)
+  ihave Hpend : pendBatch γ.raft γn.id γn.gen S' W $$ [Hpend]
+  · rw [← Hnok.1]; iexact Hpend
+  imod raft_enter E γ.raft γn.id st.durable q.half γn.gen S' W HrE $$ Hdg Hsl Hpend
+    with ⟨Hdg, Hsl, Hfree, #Hfr⟩
+  ihave #HtS' : termLB γ.bud S'.term $$ []
+  · rw [← Hnok.2.1]; iexact HtS'0
+  imod dghostVar_update_halves (st'.durable, st'.role) γn.dur _ _ $$ Hd1 Hd2 with ⟨Hd1, Hd2⟩
+  ihave Hdw : dghostVar γn.dur (DFrac.own 1) (st'.durable, st'.role) $$ [Hd1 Hd2]
+  · have hf := (dghostVar_fractional (GF := GF) γn.dur (st'.durable, st'.role)).fractional
+      (1 : Qp).half (1 : Qp).half
+    rw [Qp.half_add_half] at hf
+    iapply hf.2
+    iframe Hd1 Hd2
+  ihave #Hrm : ([∗list] q ∈ ms, isRaftMsg γn.raft γn.id q.st) $$ []
+  · iapply msgs_of_frags γn.raft γn.id W ms $$ [] Hmw
+    rw [Hnok.1]; iexact Hfr
+  imod api_sentMsgs γ N E HE γn Hnok.1 Hnok.2.1 HU ms $$ Hci Hpool Hrm Htl with #Hsm
+  imodintro
+  isplitl [Hdg]
+  · unfold raftStateU
+    rw [HS]
+    iframe Hdg HtS'
+  isplitl [Hlv Hsl]
+  · unfold nodeRunning
+    iexists γ1, γn.id
+    iframe H1 T1
+    isplitr
+    · ipureintro; exact Hok1
+    unfold EtcdGrove.nodeLiveRaw
+    iframe Hlv
+    rw [Hr1, Hg1, Hgen]
+    iexact Hsl
+  isplitl [Hbusy Hdw Hbw Hgv Hfree]
+  · unfold nodeDriver
+    iexists γn, γn.id, ds'
+    isplitr
+    · ipureintro; exact ⟨Hnok, Hγs, Hds⟩
+    iframe Hci Htab Hkey Hlb
+    isplitr
+    · ipureintro; exact Hdyn
+    isplitr
+    · unfold hsCommitted; iright; iright; ipureintro; exact HU.noSnap
+    iright
+    iexists es, L, W
+    isplitr
+    · ipureintro; exact Hh
+    iframe Hbusy Hdw Hfr Hgv Hfree
+    rw [HS]; iexact Hbw
+  unfold readyMsgs
+  iexact Hsm
+
 /-- **Receiving a `Ready`, opened**: the node's raft channel and driver token, and the update
 from what raft's receive gives to `readyPost`. -/
 theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
@@ -2145,12 +2444,233 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
             (L : Option SnapLoan), readyDataL γn rd ds ce es ms st.hardState p' L ∗
             nodeDriverBusy γn id n (dlvAfter ds ce L) es p' L ∗ readyCut γn rd es ms p' L) ={⊤}=∗
           readyPost n γ N id0 st rd) := by
-  -- PORT(durability stage II): the receive restated (I-3: the cut batch, *enter*)
-  sorry
+  iintro #Hrc #Hnode0 Hdrv
+  iunfold nodeDriver at Hdrv
+  icases Hdrv with ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, %Hdyn, #Htab, #Hhc0, #Hkey, Htok⟩
+  obtain ⟨Hnok, Hγs, Hds⟩ := Hf
+  have Hγr := Hnok.1
+  have Hγb := Hnok.2.1
+  ihave ⟨#Hpool, %HU⟩ : rdPool γ N ∗ ⌜UniNames γ N⌝ $$ []
+  · iunfold isNode at Hnode0
+    icases Hnode0 with ⟨%γn0, -, -, -, -, #Hp, %Hu⟩
+    iframe Hp; ipureintro; exact Hu
+  ihave %HNs : ⌜γ.raft.reNs = N .@ "raft"⌝ $$ []
+  · iunfold clusterInv at Hci
+    icases Hci with ⟨%H, -⟩
+    ipureintro; exact H
+  icases Htok with (⟨-, Htok, Hdur⟩ | ⟨%es0, %L0, %W0, %Hh', -⟩)
+  rotate_left
+  · rw [Hh] at Hh'; cases Hh'
+  ihave ⟨Htok, #Hnode⟩ := nodeDriver_isNode γn id n ds st.hardState $$ Htok
+  ihave %Hgid := EtcdGrove.isNode_id γn id n $$ Hnode
+  ihave %Hid0 : ⌜γn.id = id0⌝ $$ []
+  · iunfold isNode at Hnode0
+    icases Hnode0 with ⟨%γn0, -, #Hn0', -⟩
+    icases isNode_id_agree γn γn0 id id0 n $$ Hnode Hn0' with %He
+    ipureintro; rw [Hgid]; exact He
+  subst Hid0
+  subst Hgid
+  iunfold isReadyChan at Hrc
+  icases Hrc with ⟨%nv, #Hn0, %Hch⟩
+  ihave #Hnode' := Hnode
+  iunfold EtcdGrove.isNodeChan at Hnode'
+  icases Hnode' with ⟨%nv', %r, %lok, #Hnode'⟩
+  iNamed Hnode'
+  icombine Hn0 Hn gives %Hnv
+  subst Hnv
+  ihave #Hrc' : EtcdGrove.isReadyChanRaw γn ch $$ []
+  · unfold EtcdGrove.isReadyChanRaw; rw [Hch]; iexact Hreadyc
+  have Hlen : st.delivered.length = ds.length := by rw [← Hds, strip_length]
+  iexists γn, γn.id, ds
+  iframe Hrc' Htok
+  iintro %rd ⟨%ce, %es, %ms, %p', %L, Hdata, Hbusy, Hcut⟩
+  iunfold readyCut at Hcut
+  icases Hcut with ⟨%x, %S', %W, %ss, Hdx, Hbw, Hpend, %HS', #HtS', #Hss, #Hmw, #Hlead⟩
+  ihave %Hx := dghostVar_agree _ _ _ _ _ $$ Hdur Hdx
+  subst Hx
+  cases L with
+  | none =>
+    iunfold readyDataL at Hdata
+    iunfold readyData at Hdata
+    icases Hdata with ⟨#Hce, #Hcom, #Hes, Hout, #Hfz, Hmsgs, Hmo, -, Htks, ⟨%sts, Hsts, Hrs⟩,
+      ⟨%h, Hhs, %Hp'⟩, -, -, %Hnull, #Hidx, %Hix⟩
+    icases readyMsgs_own_split γ N γn Hγr ms $$ Hmo Htks with ⟨Hmo, #Htl⟩
+    imod api_committed_lb γ N ⊤ CoPset.subseteq_top (ds ++ ce) $$ Hci [Hcom] with ⟨#Hlb, %HidxOk⟩
+    · rw [Hγr]; iexact Hcom
+    imod api_readStates γ N ⊤ CoPset.subseteq_top sts $$ Hci [Hrs] with Hrs
+    · rw [← Hγr]; iexact Hrs
+    imod api_leaderMsgs γ N ⊤ CoPset.subseteq_top γn Hγr Hγb HU ms
+      (roleAfter st.role ss = StateLeader) $$ Hci Hpool Hlead Htl with #Hlm
+    iunfold readyIdx at Hidx
+    icases Hidx with ⟨%Lx, #Hlr, %HLx⟩
+    imod lastRec_receipt γn.raft Lx $$ Hlr with #Hrcp
+    ihave %Hrl := preceipt_lt _ $$ Hrcp
+    have Hce : LogEntry.toEntries (strip ce) st.delivered.length = ce := by
+      apply toEntries_strip
+      intro k e Hk
+      have := HidxOk (ds.length + k) e
+        (by rw [List.getElem?_append_right (by omega), Nat.add_sub_cancel_left]; exact Hk)
+      rw [this, Hlen]; push_cast; omega
+    ihave #Hlb' : isCommittedLogLb γ (st.delivered ++ strip ce) $$ []
+    · rw [← Hds, ← strip_append]; iexact Hlb
+    ihave Henter := api_enter n γ N γn st (st.afterReady (strip ce) es h none ss) (ds ++ ce) es none
+      ms S' W Hnok HU HNs Hγs (by rw [strip_append, Hds]; rfl) Hdyn rfl
+      (by rw [HS', Hp']; rfl) $$ Hci Hpool [] Htab [] Hnode [Hbusy] [] Hdur Hdx [Hbw] Hpend HtS' Hmw Htl
+    · iExactEq Hlb'; rfl
+    · iExactEq Hkey; rfl
+    · rw [show (st.afterReady (strip ce) es h none ss).hardState = p' from Hp'.symm,
+        show ds ++ ce = dlvAfter ds ce none from rfl]
+      iexact Hbusy
+    · itrivial
+    · iExactEq Hbw; rfl
+    imodintro
+    iexists strip ce, es, h, none, ms, ss
+    isplitl []
+    · unfold committedEntriesAt; rw [Hce]; iexact Hce
+    isplitl []
+    · iexact Hlb'
+    isplitl [Hsts Hrs]
+    · iexists sts; iframe Hsts Hrs
+    isplitl [Hes Hout Hmsgs Hmo Hhs]
+    · unfold readyRest
+      iframe Hes Hmsgs Hmo Hhs Hss
+      isplitr
+      · ipureintro
+        refine ⟨Lx, HLx.1, HLx.2.1, ?_, by rw [← Hγr]; omega⟩
+        have := HLx.2.2
+        simp only [List.length_append, strip_length] at this ⊢
+        omega
+      unfold readySnap
+      isplitr
+      · ipureintro; exact Hnull
+      rw [← Hγs, Hce, Hlen]
+      iframe Hfz
+      isplitl [Hout]
+      · iExactEq Hout
+        rfl
+      ipureintro
+      intro e0 he
+      obtain ⟨h1, h2⟩ := Hix e0 he
+      refine ⟨h1, fun j e hj hle => ?_⟩
+      unfold strip at hj
+      rw [List.getElem?_map] at hj
+      cases hce : ce[j]? with
+      | none => rw [hce] at hj; cases hj
+      | some e' =>
+        rw [hce] at hj
+        simp only [Option.map_some, Option.some.injEq] at hj
+        subst hj
+        try rw [Hlen] at hle
+        try rw [Hlen]
+        rw [h2 j e' hce hle]
+        rfl
+    isplitr
+    · iexact Hlm
+    iexact Henter
+  | some l =>
+    iunfold readyDataL at Hdata
+    iunfold readySnapData at Hdata
+    icases Hdata with ⟨#Hce, #Hcom, #Hes, Hmsgs, Hmo, -, Htks, ⟨%sts, Hsts, Hrs⟩,
+      ⟨%h, Hhs, %Hp'⟩, -, -, #Hidx, Hsnap, #Hdlv, -, #HD, -, %Hfacts, Hout⟩
+    obtain ⟨Hptr, Hce0, Hpre, Hlt, Hdl, Hpos, H61, Hfl, Hind⟩ := Hfacts
+    subst Hce0
+    icases readyMsgs_own_split γ N γn Hγr ms $$ Hmo Htks with ⟨Hmo, #Htl⟩
+    ihave ⟨Hrng, #Hgv⟩ : (∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
+        storLog γn.stor k (DFrac.own 1) old ∗ storEnd γn.stor (k + old.length)) ∗
+        storGiven γn.sn (uint.nat l.snap.Metadata'.Index') $$ [Hout]
+    · iExactEq Hout; rfl
+    imod api_committed_lb γ N ⊤ CoPset.subseteq_top (ds ++ []) $$ Hci [Hcom] with ⟨#Hlb, -⟩
+    · rw [Hγr]; iexact Hcom
+    imod api_committed_lb γ N ⊤ CoPset.subseteq_top l.dlv $$ Hci [Hdlv] with ⟨#Hlbd, %Hidxd⟩
+    · rw [Hγr]; iexact Hdlv
+    imod api_readStates γ N ⊤ CoPset.subseteq_top sts $$ Hci [Hrs] with Hrs
+    · rw [← Hγr]; iexact Hrs
+    imod api_leaderMsgs γ N ⊤ CoPset.subseteq_top γn Hγr Hγb HU ms
+      (roleAfter st.role ss = StateLeader) $$ Hci Hpool Hlead Htl with #Hlm
+    imod snapshotCert_of_raft γ N ⊤ CoPset.subseteq_top HU.noSnap _ $$ Hci [HD] with #Hcert
+    · rw [← Hγr]; iexact HD
+    iunfold readyIdx at Hidx
+    icases Hidx with ⟨%Lx, #Hlr, %HLx⟩
+    imod lastRec_receipt γn.raft Lx $$ Hlr with #Hrcp
+    ihave %Hrl := preceipt_lt _ $$ Hrcp
+    -- the committed log handed out, certified for the storage
+    ihave ⟨Hbusy, #Hdlb0⟩ : nodeDriverBusy γn γn.id n (dlvAfter ds [] (some l)) es p' (some l) ∗
+        dlvLb γn (dlvAfter ds [] (some l)) $$ [Hbusy]
+    · iunfold nodeDriverBusy at Hbusy
+      icases Hbusy with ⟨#Hbn, #Hdlb, Hbr⟩
+      iframe Hdlb
+      unfold nodeDriverBusy
+      iframe Hbn Hdlb Hbr
+    ihave #Hdlb : dlvLb γn l.dlv $$ []
+    · iExactEq Hdlb0; rfl
+    ihave #Hdcl : nodeCommitLbU γ st.key (uint.nat l.snap.Metadata'.Index') $$ []
+    · have hl : (strip l.dlv).length = uint.nat l.snap.Metadata'.Index' := by
+        rw [strip_length, Hdl]; rfl
+      rw [← hl]
+      iapply nodeCommitLbU_of_dlvLb γ st.key γn l.dlv
+      iframe Hkey Hdlb Hlbd
+    ihave Henter := api_enter n γ N γn st (st.afterReady [] es h (some l) ss) l.dlv es (some l)
+      ms S' W Hnok HU HNs Hγs rfl Hdyn rfl
+      (by rw [HS', Hp']; rfl) $$ Hci Hpool [] Htab [] Hnode [Hbusy] [] Hdur Hdx [Hbw] Hpend HtS' Hmw Htl
+    · iExactEq Hlbd; rfl
+    · iExactEq Hkey; rfl
+    · rw [show (st.afterReady [] es h (some l) ss).hardState = p' from Hp'.symm]
+      iExactEq Hbusy; rfl
+    · iexact Hgv
+    · iExactEq Hbw; rfl
+    imodintro
+    iexists [], es, h, some l, ms, ss
+    isplitl []
+    · unfold committedEntriesAt LogEntry.toEntries; simp only [List.mapIdx_nil]
+      iexact Hce
+    isplitl []
+    · have e : st.delivered ++ [] = strip (ds ++ []) := by rw [List.append_nil, List.append_nil, Hds]
+      rw [e]; iexact Hlb
+    isplitl [Hsts Hrs]
+    · iexists sts; iframe Hsts Hrs
+    isplitl [Hes Hmsgs Hmo Hhs Hsnap Hrng]
+    · unfold readyRest
+      iframe Hes Hmsgs Hmo Hhs Hss
+      isplitr
+      · ipureintro
+        refine ⟨Lx, HLx.1, HLx.2.1, ?_, by rw [← Hγr]; omega⟩
+        have := HLx.2.2
+        simp only [List.length_append, strip_length, List.length_nil] at this ⊢
+        omega
+      unfold readySnap
+      dsimp only
+      iframe Hsnap Hlbd Hcert Hdcl
+      isplitr
+      · ipureintro
+        refine ⟨(toEntries_strip l.dlv 0 (IdxOk_base Hidxd)).symm, Hptr, rfl,
+          by rw [← Hds]; exact strip_prefix Hpre, by rw [Hlen]; exact Hlt, ?_, Hpos, H61, Hfl, Hind⟩
+        rw [Hdl]; rfl
+      isplitl [Hrng]
+      · rw [← Hγs]; iexact Hrng
+      unfold nodeAppliedLbU
+      iright
+      iexists γn.sn
+      iframe Hkey
+      iright
+      ileft
+      iunfold storGiven at Hgv; iexact Hgv
+    isplitr
+    · iexact Hlm
+    iexact Henter
 
 theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
-  -- PORT(durability stage II): the receive restated (I-3: the cut batch, *enter*)
-  sorry
+  intro n ch γ N id0 st Hh
+  iintro %Φ ⟨#Hrc, #Hnode0, Hdrv⟩ HΦ
+  icases readyRecv_open n ch γ N id0 st Hh $$ Hrc Hnode0 Hdrv
+    with ⟨%γn, %id, %ds, #Hrc', Htok, Hk⟩
+  iapply wp_fupd
+  iapply node_ready_receive γn id n ch ds st.hardState $$ [Htok]
+  · iframe Hrc' Htok
+  iintro !> %rd Hraw
+  imod Hk $$ %rd Hraw with Hpost
+  imodintro
+  iapply HΦ
+  iexact Hpost
 
 /-- Raft's `Ready` receive as a channel receive's update (`node_ready_receive`'s). -/
 theorem node_ready_recvAu (γn : NodeNames) (id : w64) (n ch : Loc) (ds : List EntryM)
@@ -2161,8 +2681,29 @@ theorem node_ready_recvAu (γn : NodeNames) (id : w64) (n ch : Loc) (ds : List E
           nodeDriverBusy γn id n (dlvAfter ds ce L) es p' L ∗ readyCut γn rd es ms p' L) -∗
           Φ rd true) -∗
       recvAu γn.readyc Ready Φ := by
-  -- PORT(durability stage II): the receive restated (I-3: the cut batch, *enter*)
-  sorry
+  iintro Hlc #Hrc Hdrv HΦ
+  iunfold EtcdGrove.nodeDriverChan at Hdrv
+  icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
+  unfold EtcdGrove.isReadyChanRaw
+  iapply handshake_receive_au γn.readyc ch (readyP γn) iprop(True) Φ
+    $$ Hlc Hrc [] [HΦ Hds Hreq]
+  · itrivial
+  inext
+  iintro %rd HP
+  unfold readyP
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld, Hcut⟩
+  ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
+  cases Heq
+  iapply HΦ
+  iexists ce, es, ms, p', L
+  iframe Hdata Hcut
+  unfold nodeDriverBusy
+  iframe Hnode Hld
+  isplitr
+  · unfold dlvLb; iframe Hlb Hk
+  iexists ds, ce, p
+  iframe Hd Hds Hrof Hreq
+  ipureintro; rfl
 
 /-- **Receiving a `Ready` as a channel's receive** (the draft's `isReadyChan_recvAu`). -/
 theorem isReadyChan_recvAu_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
@@ -2171,8 +2712,31 @@ theorem isReadyChan_recvAu_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id 
       ∃ γc : ChanNames, isChan ch γc Ready ∗
         (£ 1 ∗ £ 1 -∗ ▷ (∀ rd : Ready, readyPost n γ N id st rd -∗ Φ rd true) -∗
           recvAu γc Ready Φ) := by
-  -- PORT(durability stage II): the receive restated (I-3: the cut batch, *enter*)
-  sorry
+  iintro #Hrc #Hnode0 Hdrv
+  icases readyRecv_open n ch γ N id st Hh $$ Hrc Hnode0 Hdrv
+    with ⟨%γn, %id', %ds, #Hrc', Htok, Hk⟩
+  iexists γn.readyc
+  isplitr
+  · iunfold EtcdGrove.isReadyChanRaw at Hrc'
+    iunfold isHandshake at Hrc'
+    icases Hrc' with ⟨#Hc, -⟩
+    iexact Hc
+  iintro Hlc HΦ
+  iapply recvAu_wand_fupd γn.readyc Ready
+    (fun rd ok => iprop(⌜ok = true⌝ ∗ (∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM)
+          (L : Option SnapLoan), readyDataL γn rd ds ce es ms st.hardState p' L ∗
+          nodeDriverBusy γn id' n (dlvAfter ds ce L) es p' L ∗ readyCut γn rd es ms p' L) ∗
+        (∀ rd : Ready, readyPost n γ N id st rd -∗ Φ rd true))) Φ
+    $$ [Htok Hlc HΦ] [Hk]
+  · iapply node_ready_recvAu γn id' n ch ds st.hardState $$ Hlc Hrc' Htok
+    inext
+    iintro %rd Hraw
+    iframe Hraw HΦ
+    ipureintro; rfl
+  iintro %rd %ok ⟨%Hok, Hraw, HΦ⟩
+  subst Hok
+  imod Hk $$ %rd Hraw with Hpost
+  iapply HΦ $$ Hpost
 
 end node
 

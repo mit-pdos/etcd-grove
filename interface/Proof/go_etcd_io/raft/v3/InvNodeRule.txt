@@ -124,7 +124,7 @@ theorem snapshotCert_valid [package_sem : Assumptions] (γ : Cluster) (N : Names
 def (sealed) isCluster (γ : Cluster) (N : Namespace) : IProp GF
 
 def restartStorage (γ : Cluster) (st : Storage) (σ : StorContents) (csm : ConfStateM) (A : Nat) (F :
-    IProp GF) : IProp GF :=
+    GName → IProp GF) : IProp GF :=
   iprop(∃ i R,
       ⌜st = GoInterface.ok i⌝ ∗
         R ∗
@@ -153,7 +153,7 @@ def restartStorage (γ : Cluster) (st : Storage) (σ : StorContents) (csm : Conf
                               csPts cs DFrac.discard csm al ∗
                                 ∀ K,
                                   nodeAppliedLb γ K (max σ.b A) -∗
-                                    nodeCommitLb γ K σ.commit ={⊤}=∗ isStorage γ K st ∗ storHolds st σ ∗ F) -∗
+                                    nodeCommitLb γ K σ.commit ={⊤}=∗ isStorage γ K st ∗ storHolds st σ ∗ F K) -∗
                             Φ ((intoVal hp, intoVal cs), intoVal GoInterface.nil)) -∗
                       WP
                         ((intoVal

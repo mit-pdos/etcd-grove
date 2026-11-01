@@ -36,7 +36,7 @@ private abbrev node.Stop.specRaw : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       nodeLiveRaw γ 1 }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Stop")) (Val #()))
-  {{ RET #(); nodeStoppedRaw γ }}
+  {{ RET #(); nodeStoppedRaw γ ∗ raftIdSlot γ.raft id }}
 
 end spec
 
@@ -48,8 +48,52 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 private theorem node.Stop.wp_raw : node.Stop.specRaw (GF := GF) (hG := hG) := by
-  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
-  sorry
+  intro γ id n
+  wp_start as ⟨#Hnode, Hlive⟩
+  ihave #Hnode' := Hnode
+  open_node Hnode'
+  wp_auto_lc 3
+  wp_apply_core chan.wp_select_blocking
+  iapply BigAndL.bigAndL_cons.2
+  isplit
+  · -- `n.stop <- struct{}{}`: the client's half of `live` to `run`; then `<-n.done`
+    simp only [chan.blockingClausePre]
+    iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.stop',
+      γ.stop, ()
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl⟩
+    isplitr
+    · iapply isHandshake_isChan $$ Hstop
+    iapply handshake_send_au γ.stop nv.stop' () (fun (_ : Unit) => nodeLiveRaw γ 1)
+      (raftIdSlot γ.raft id)
+      $$ [$Hlc1 $Hlc2 $Hlc3] Hstop [Hlive]
+    · iexact Hlive
+    inext
+    iintro Hslot
+    wp_auto
+    wp_apply chan.wp_receive (V := Unit) nv.done' γ.done $$ [] as -
+    · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+    iapply node_done_recv_au γ nv.done' _ $$ Hdone
+    iintro #Hst
+    wp_auto
+    iapply HΦ
+    iframe Hst Hslot
+  iapply BigAndL.bigAndL_cons.2
+  isplit
+  · -- `<-n.done`: stopped already
+    simp only [chan.blockingClausePre]
+    iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.done', γ.done
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+    iapply node_done_recv_au γ nv.done' _ $$ Hdone
+    iintro #Hst
+    iexfalso
+    iapply nodeLiveRaw_stopped γ 1 $$ [$Hlive $Hst]
+  iapply BigAndL.bigAndL_nil.2
+  itrivial
+
 
 end proof
 
@@ -69,8 +113,27 @@ needed). -/
 private theorem node.wp_Stop_impl
     (hS : EtcdGrove.node.Stop.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Stop.spec (GF := GF) (hG := hG) := by
-  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
-  sorry
+  unfold EtcdGrove.node.Stop.spec EtcdGrove.Cluster EtcdGrove.nodeRunning EtcdGrove.nodeStopped
+    EtcdGrove.isNode
+  intro n γ N id
+  iintro %Φ ⟨#Hinit, #Hnd, Hlive⟩ HΦ
+  iunfold nodeRunning at Hlive
+  icases Hlive with ⟨%γn, %id1, %Hok, #Hn, #Htb, Hl⟩
+  iapply (hS γn id1 n) $$ [Hl]
+  · iframe Hinit Hn Hl
+  iintro !> ⟨#Hst, Hslot⟩
+  iunfold isNode at Hnd
+  icases Hnd with ⟨%γn2, %Hok2, #Hn2, -⟩
+  ihave %Hid := isNode_id_agree γn γn2 id1 id n $$ Hn Hn2
+  subst Hid
+  iapply HΦ
+  isplitr
+  · iapply nodeStoppedRaw_nodeStopped n γ N id1 γn Hok.1
+    iframe Hn Htb Hst
+  unfold EtcdGrove.nodeVacant nodeVacantU
+  rw [← Hok.1.1]
+  iexact Hslot
+
 
 end wrap
 
