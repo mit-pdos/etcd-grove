@@ -220,6 +220,36 @@ theorem page_borrow (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm 
     iapply gv_false_one γm q $$ [Hq Htok]
     iframe
 
+/-- A committed page's contents, from the invariant. -/
+theorem page_pageIs (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName)
+    (mp : List w8) (hwm r : Nat) (q : Qp) (h1 : 2 ≤ r) (h2 : r < hwm) :
+    mapInvL (GF := GF) γ p base len γm γl ∗ ghostVar γm q () ∗
+      ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ⊢
+    |={⊤}=> ghostVar γm q () ∗ ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ∗
+      ∃ B, pageIs (GF := GF) p r B := by
+  iintro ⟨#Hinv, Hq, Hcur⟩
+  imod inv_acc (by simp) $$ Hinv with ⟨Hi, Hclose⟩
+  icases Hi with (>Hc | >Htok)
+  · unfold mapLend
+    icases Hc with ⟨%mp', %fl, %hwm', %K, Hcur', %Hl, Ha, %HK, Hpages, Hmeta⟩
+    icombine Hcur Hcur' gives % ⟨_, Heq⟩
+    cases Heq
+    icases pages_acc _ r hwm h1 h2 $$ Hpages with ⟨⟨%B, #HB, Hr⟩, Hback⟩
+    imod Hclose $$ [Hcur' Ha Hback Hr Hmeta] with _
+    · inext; ileft
+      iexists mp, false, hwm, K
+      iframe
+      isplitr; · ipureintro; exact Hl
+      isplitr; · ipureintro; exact HK
+      iapply Hback
+      iexists B; iframe HB; iexact Hr
+    imodintro
+    iframe Hq Hcur
+    iexists B; iexact HB
+  · iexfalso
+    iapply gv_false_one γm q $$ [Hq Htok]
+    iframe
+
 theorem page_return (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName)
     (r : Nat) (q s : Qp) (B : List w8) (h1 : 2 ≤ r) :
     mapInvL (GF := GF) γ p base len γm γl ∗ ghostVar γm q () ∗ r ↪[γl]{#s.half.half} B ∗
