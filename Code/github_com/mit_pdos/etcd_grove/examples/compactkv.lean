@@ -44,7 +44,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
     value is not value; then gets the previous round's key at the previous round's Put revision and
     panics if the Get succeeds with another value.
 
-    go: compactkv.go:48:6 -/
+    go: compactkv.go:50:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -90,6 +90,69 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "prevKey" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "prevRev" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithCancel []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "wcancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
+  (Let "wctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "wctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "prevKey"))
+  (Let "$a2" (Let "$sl0" (Let "$a0" (Val #(W64 2))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithRev []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty (Var "$sl0")))])))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Watcher.ty go!"Watch"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Watcher.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty go!"Watcher"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "wch" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Var "wch"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (Var "prevRev"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Collect []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "evs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Var "evs"))
+  (Let "e" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (Val #())))
+  (App (App (Val (slice.forRange _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty go!"Val"))) (Var "e"))) (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val value))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"compactkv: the watch saw another value")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (Pair (Var "e") (Var "$value"))))))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "wcancel")) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Pair (Var "evs") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Pair (Var "wch") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "wcancel") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "wctx") (Var "$r0"))))))))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
   (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val (slice.forRange go.string)) (Var "$range"))
@@ -277,7 +340,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "k") (Var "$value")))))))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "k") (Var "$value"))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "prevKey") (Var "$r0")))))))))
   (App (Val doExecute)
