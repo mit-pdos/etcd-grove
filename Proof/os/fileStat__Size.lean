@@ -22,7 +22,12 @@ variable [sem : go.Semantics]
 variable [os.Assumptions]
 
 theorem os.fileStat.Size.wp_proof : os.fileStat.Size.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro fs sz
+  unfold os.ownFileStat
+  wp_start as #Hs
+  wp_auto
+  iapply HΦ
+  iassumption
 
 end proof
 

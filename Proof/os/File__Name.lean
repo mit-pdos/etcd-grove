@@ -22,7 +22,16 @@ variable [sem : go.Semantics]
 variable [os.Assumptions]
 
 theorem os.File.Name.wp_proof : os.File.Name.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro f fd name dq
+  unfold os.ownFile
+  wp_start as ⟨%inner, #Hf, Hfd, #Hn⟩
+  ihave #Hf2 := Hf
+  iStructNamed Hf2
+  wp_auto
+  iapply HΦ
+  iexists inner
+  iframe
+  isplitl [] <;> iassumption
 
 end proof
 
