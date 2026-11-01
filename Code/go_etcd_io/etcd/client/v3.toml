@@ -173,6 +173,14 @@ translate = [
   "Op.isWrite",
   "retryKVClient.DeleteRange",
   "retryKVClient.Txn",
+  # the client's `kv.Compact` (2026-11-01, `examples/compactkv`): `kv.go`'s `kv.Compact`,
+  # `compact_op.go`'s `OpCompact`, `CompactOp.applyCompactOpts`, `CompactOp.toRequest`;
+  # `retry.go`'s `retryKVClient.Compact`
+  "kv.Compact",
+  "OpCompact",
+  "CompactOp.applyCompactOpts",
+  "CompactOp.toRequest",
+  "retryKVClient.Compact",
   # the watch slice's unit W-C: the client's watch (`watch.go`, all of it but
   # `streamKeyFromCtx`, names only: grpc's `metadata.FromOutgoingContext` and `fmt.Sprintf` of a
   # map), with `block_logger.go` (the substream's buffer logger) and `client.go`'s `isHaltErr`,
@@ -248,6 +256,9 @@ translate = [
   # linkv-txn stage F: `(*Client).Delete`/`Txn`, promoted likewise (`examples/linkvtxn`'s `call`)
   "Client.Delete",
   "Client.Txn",
+  # the client's `kv.Compact` (2026-11-01): `(*Client).Compact`, promoted likewise
+  # (`examples/compactkv`)
+  "Client.Compact",
   # the client lease (item 1, branch `lease-client`): lease.go's lessor with bodies but
   # `closeRequireLeader` (grpc's `metadata`, not imported: names only), retry.go's lease client,
   # client.go's `canceledByCaller`
