@@ -16,6 +16,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.ReadLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.ApplyConfLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.EntryLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.ConfStep
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.ClientLemmas
 
 @[expose] public section
 
@@ -29,7 +30,7 @@ namespace EtcdGrove
 namespace kvdurable
 
 open kvreconf (decodeReadCtxB MintOk ConfOk ConfShaped odOf logHist kvFold AppliedOk kvrRule kvrRule_step
-  kvrRule_decoded)
+  kvrRule_decoded logHist_prefix readCtxB)
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section laws
@@ -306,6 +307,71 @@ theorem kd_ownConfChangeV2_persist (p : Loc) (dq : DFrac) (m : ConfChangeV2M) :
   isplitr
   · ipureintro; exact Hnn
   iframe HT cT HCh Hch Hccs HC Hcs Hpb
+
+/-- **What the applier answers a read with** (`readAns`, of the context minted at `(id, s)`): the
+key's value in a history that extends the reader's (`l0`'s, which the read state's index covers:
+`readStateOk_after`). -/
+theorem kd_readAns_ok (γ : KdNames) (id s : w64) (key : List w8) (l0 : List LogEntry)
+    (v : List w8) (Hk : (key.length : Int) < 2 ^ 64) :
+    ⊢ readCtxAfter (GF := GF) γ.r.cluster kdRaftN (readCtxB id s key) l0 -∗
+      isCommittedLogLb γ.r.cluster l0 -∗ readAns γ (readCtxB id s key) v -∗
+      ∃ L, kvLb γ L ∗ ⌜logHist l0 <+: L ∧ v = kvFold L key⌝ := by
+  iintro #Hra #Hl0 Hans
+  iunfold readAns at Hans
+  icases Hans with ⟨%i, %ap, %key', #Hok, #Hap, %Hfacts⟩
+  obtain ⟨Hle, ⟨rp, s', Hdec⟩, Hv⟩ := Hfacts
+  rw [kvreconf.decodeReadCtxB_readCtxB _ _ _ Hk] at Hdec
+  cases Hdec
+  ihave %Hl0i := readStateOk_after γ.r.cluster kdRaftN _ i l0 $$ [Hok Hra]
+  · iframe Hok Hra
+  ihave %Hagr := isCommittedLogLb_agree γ.r.cluster l0 ap $$ [Hl0 Hap]
+  · iframe Hl0 Hap
+  have Hpre : l0 <+: ap := by
+    rcases Hagr with h | h
+    · exact h
+    · have h1 := h.length_le
+      have hl : l0.length = ap.length := by word
+      rw [List.prefix_iff_eq_take] at h
+      rw [h, List.take_of_length_le (by omega)]; exact List.prefix_refl _
+  iexists logHist ap
+  isplitl
+  · unfold kvLb
+    iexists ap
+    iframe Hap
+    ipureintro; rfl
+  ipureintro
+  exact ⟨logHist_prefix _ _ Hpre, Hv⟩
+
+
+/-- A read dropped from the replica's waiting reads (`read`, after its timeout). -/
+theorem reads_drop (γ : KdNames) (id : w64) (Rd : GMap w64 Loc) (s : w64) :
+    ([∗map] k ↦ c ∈ Rd, readWaiterOk (GF := GF) γ id k c) ⊢
+      [∗map] k ↦ c ∈ GMap.delete s Rd, readWaiterOk γ id k c := by
+  cases h : Rd !! s with
+  | none =>
+    rw [GMap.delete_notin Rd s h]
+  | some x =>
+    iintro H
+    icases (BigSepM.bigSepM_delete (Φ := fun k c => readWaiterOk (GF := GF) γ id k c) h).1 $$ H
+      with ⟨-, H⟩
+    iexact H
+
+/-- **A receive's atomic update is a non-blocking receive's** (whose not-ready case, an empty
+buffer or a waiting receiver, asks nothing). -/
+theorem recvAu_nonblocking {V : Type} [Pos.Countable V] [ZeroVal V] (γ : ChanNames) (Φ : V → Bool → IProp GF) :
+    ⊢ recvAu γ V Φ -∗ nonblockingRecvAuInner γ V Φ := by
+  unfold recvAu nonblockingRecvAuInner
+  iintro Hau
+  imod Hau with Hau
+  imodintro
+  inext
+  icases Hau with ⟨%s, Hoc, Hcont⟩
+  iexists s
+  iframe Hoc
+  rcases s with (_ | ⟨_, _⟩) | _ | _ | _ | _ | _ | (_ | ⟨_, _⟩)
+  all_goals first
+    | iexact Hcont
+    | itrivial
 
 end laws
 
