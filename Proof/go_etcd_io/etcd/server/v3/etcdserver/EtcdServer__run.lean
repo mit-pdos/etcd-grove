@@ -52,7 +52,7 @@ KV's premises from `x₀`), the apply thread's resources at `A ++ ce`. The sched
 (in its run token) is the apply thread's while it runs (`srvGoRes`: `GoAttach` of the alarm). The
 batch's share of the write budget (`txn.storeWTs`, one token per entry of `ce`) is exactly what
 `applyAll` spends: every entry of `ce` is above the applied index (`unapplied ai ce = ce`). -/
-theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
+theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (A ce : List EntryModel)
     (apL : Loc) (es : GoSlice) (ceL : List Loc) (rac nc : GoChan) (γs : schedule.SchedNames)
     (dv : Option Loc) (γnc : NotifyNames)
@@ -95,7 +95,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     {{ RET #(); schedule.schedRunning γs ∗ applyRes C (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) }} := by
   have hR : ∀ dv : Option Loc, (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) =
       srvRunH (GF := GF) C.ρ.raft dv := fun dv => by cases dv <;> rfl
-  simp only [EtcdServer.applyAll.spec, srvRunH_applyAll_spec] at hAA
+  simp only [EtcdServer.applyAll.specBatch, srvRunH_applyAll_spec] at hAA
   rw [hR]
   iintro %Φ ⟨#Hpkg, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, Hdv, #Hdvr, Hrh, #Hesl,
     #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #Hrtok⟩ HΦ
@@ -943,7 +943,7 @@ theorem EtcdServer.run.wp_proof
           show uint.nat ai₀ + 1 = γn.pre.length + 1 by simp [hp0, ha0]]
         iexact Hrac
       have hgn : γr.raft.raft = γn.node := by rw [← HEγr, ← hρ]; exact hnd0
-      have hJ := run_job_body hAA ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ A ce ap_ptr
+      have hJ := run_job_body hAA.1 ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ A ce ap_ptr
         apv.entries' ceL apv.raftAdvancedC' apv.notifyc' γs (rnDv γn ce) γnc hidx hok rfl hdvn hdvs
         γn.id ha0 Hdisk γn apv.raftTerm' hgn.symm Hc0a.1
       ihave #Hmsinv' : (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩;

@@ -163,10 +163,11 @@ theorem cache_end_to_end_client (cl w api : Loc) (γ : client.KMNames) (dup : Bo
   iintro %Φ ⟨#Pk, #Pcc, #P1, #P2, #P3, #HKV, #HW, #Hkv, #Hw, #Hinv, Hopts, %Hcfg, %Hb⟩ HΦ
   ihave #Hcl := client.isEtcdClient_of_km cl w api γ dup pfx hp hff $$ []
   · iframe #
+  haveI : ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax) := ⟨by unfold cacheWgOwedMax at *; omega⟩
   iapply (cache_New (EM := client.etcdModelOfKV γ) cl pfx sl gs) $$ [Hopts] HΦ
   iframe #
   iframe
-  ipureintro; exact ⟨Hcfg, Hb, hpl⟩
+  ipureintro; exact ⟨Hcfg, hpl⟩
 
 /-- **etcd's cache over `clientv3.New`'s client, end to end** (K3; D48): `cache_end_to_end_client`
 for the client `clientv3.New(cfg)` returns (`isNewClient cl [ep] V`, `client_New`'s postcondition):
@@ -213,10 +214,11 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
     ipureintro; exact H.2
   ihave #Hcl := client.isEtcdClient_of_km cl w api γ true V.pfx hp hff $$ []
   · iframe #
+  haveI : ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax) := ⟨by unfold cacheWgOwedMax at *; omega⟩
   iapply (cache_New (EM := client.etcdModelOfKV γ) cl V.pfx sl gs) $$ [Hopts] HΦ
   iframe #
   iframe
-  ipureintro; exact ⟨Hcfg, Hb, hpl⟩
+  ipureintro; exact ⟨Hcfg, hpl⟩
 
 /-- **etcd's server, started for a cache** (the started-server step; as `client.etcd_kv_started`,
 the ghost step between `net.Listen` and `go gs.Serve(lis)`): the server `v3rpc.Server` built and a

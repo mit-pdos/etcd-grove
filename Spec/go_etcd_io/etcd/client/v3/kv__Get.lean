@@ -53,7 +53,7 @@ abbrev kv.Get.spec : Prop :=
           ⌜sint.Z (rangeWireOf (opGetModel key opts)).base.rev ≤ (σ.rev : Int) ∧
             txn.srvRangeOk (rangeWireOf (opGetModel key opts)) (σ.at (σ.readRev (rangeWireOf (opGetModel key opts)).base.rev)).kvs m.kvs m.more ∧
             m.count = txn.srvCount (rangeWireOf (opGetModel key opts)) (σ.at (σ.readRev (rangeWireOf (opGetModel key opts)).base.rev)).kvs true ∧
-            m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63 ∧ kvLogOk σ⌝) ∨
+            m.hdr.revision = W64 (σ.rev : Int) ∧ kvRevFits σ.rev ∧ kvLogOk σ⌝) ∨
         (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }}
 
 end spec

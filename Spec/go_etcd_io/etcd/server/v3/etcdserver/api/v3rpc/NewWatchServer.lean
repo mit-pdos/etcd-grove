@@ -29,20 +29,20 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **`NewWatchServer(s)`** on the server `s` whose KV is the watchable store `wsl` (`s.kv`, and
 the server's contract for the watch path, `watchSrvOk`), whose ids are readable (`srvIdsOk`), with
-its configuration's logger and request budget (read-only) and its progress interval (owned: the
-constructor raises it to `100ms` if it is below; at most `2 ^ 62` nanoseconds, the interval's
-lock invariant): a `WatchServer` holding a `*watchServer` (`isWatchServer`), the interval back. -/
+its configuration's logger, request budget and progress interval (read-only; the interval at most
+`2 ^ 62` nanoseconds, the interval's lock invariant; the constructor raises a local copy to `100ms`
+if it is below, J8a-3: the fork no longer writes `s.Cfg`): a `WatchServer` holding a
+`*watchServer` (`isWatchServer`). -/
 abbrev v3rpc.NewWatchServer.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γ : mvcc.WsNames) (wsl lg0 : Loc) (m d : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.watchSrvOk s E γ wsl ∗ srvKVAddr s ↦□ v3rpc.wsIface wsl ∗ v3rpc.srvIdsOk s ∗
       srvCfgFieldAddr s go!"Logger" ↦□ lg0 ∗ srvCfgFieldAddr s go!"MaxRequestBytes" ↦□ m ∗
-      srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ d ∗ ⌜sint.Z d ≤ 2 ^ 62⌝ }}
+      srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦□ d ∗ ⌜sint.Z d ≤ 2 ^ 62⌝ }}
     (App (Val (@! v3rpc.NewWatchServer)) (Val #s))
-  {{ (ws : GoInterface), RET #ws; ∃ (p lg : Loc) (cid mid d' : w64),
+  {{ (ws : GoInterface), RET #ws; ∃ (p lg : Loc) (cid mid : w64),
       ⌜ws = interface.mkOk (go.GoType.PointerType v3rpc.watchServer.ty) #p⌝ ∗
-      v3rpc.isWatchServer p ⟨s, E, wsl, γ, cid, mid, lg, m + W64 (512 * 1024)⟩ ∗
-      srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ d' }}
+      v3rpc.isWatchServer p ⟨s, E, wsl, γ, cid, mid, lg, m + W64 (512 * 1024)⟩ }}
 
 end spec
 

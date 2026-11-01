@@ -33,7 +33,7 @@ abbrev waitDeletes.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (client : Loc) (pfx : GoString)
     (maxCreateRev lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isEtcdMutexClient client pfx ∗ context.isContext ctx cs ∗
-      context.isCancelCtxCtx ctx cs ∗ etcdReached lo ∗ ⌜pfx ≠ [] ∧ pfx.length ≤ 2 ^ 27 ∧ 0 ≤ sint.Z maxCreateRev⌝ }}
+      context.isCancelCtxCtx ctx cs ∗ etcdReached lo ∗ ⌜pfx ≠ [] ∧ pfx.length ≤ concPfxMax ∧ 0 ≤ sint.Z maxCreateRev⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.waitDeletes))
       (Val #(GoInterface.ok ctx))) (Val #client)) (Val #pfx)) (Val #maxCreateRev))
   {{ (err : GoInterface), RET #err;

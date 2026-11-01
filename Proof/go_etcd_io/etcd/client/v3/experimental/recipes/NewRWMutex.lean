@@ -44,7 +44,7 @@ theorem NewRWMutex.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (hG 
   unfold isRWMutex
   iframe #
   isplitr
-  · ipureintro; exact ⟨by simp, by simp; omega⟩
+  · ipureintro; exact ⟨by simp, by simp; word⟩
   unfold rwMyKey
   iexists _
   iframe

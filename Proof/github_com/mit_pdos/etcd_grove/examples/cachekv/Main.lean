@@ -229,7 +229,7 @@ theorem Main.wp_proof
   have Hdirok : netDirOk (ckDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   wp_apply (wp_StartServer N go!"cachekv" go!"127.0.0.1:23883" go!"127.0.0.1:23873" lg (LogEntry.toEntries boot 0) ctxs
-      (ckDir id) id γ ρ E₀ Φs γn Htb31
+      (ckDir id) id γ ρ E₀ Φs γn Htb
       Hrb48 HrbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
       (by simp [ckDir, dirOne]) Hlg Hck Haf Hbuq Hdbo)
     $$ [Htok Hmb] as %srv %err Hr
@@ -243,7 +243,7 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   iunfold common.memberUp at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi,
+  icases Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
     Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
   have Hoff : E.γ.cm = false := envAgree_off E E₀ HEa Hcmp0
@@ -256,12 +256,12 @@ theorem Main.wp_proof
         watchAddrFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv.st) ∗
         srvGoRes srv ∗ mvcc.idxCert R.E.γ.idx [[], []]))
       (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
-    $$ [Haddr Hlg3 Hbemu Hgo Hwpi HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+    $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
     iunfold common.grpcUp at Hg
-    icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %d', %HC,
-      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo2, -, HWRs, Hlis⟩
+    icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo2, HWRs, Hlis⟩
     obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ⟩ := HC
     -- the watch server's environment is the server's: `E` is `R.E` from here on
     subst hRE
@@ -382,12 +382,13 @@ theorem Main.wp_proof
     imodintro
     iintro %i %f %g %Hf %Hg
     simp at Hf
+  haveI : ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax) := ⟨by unfold cacheWgOwedMax; omega⟩
   wp_apply (wp_CNew (EM := client.etcdModelOfKV γk) cl ckPfx slice.nil []) $$ []
     as %c %cerr Hnew
   · iframe #
     isplitr
     · ipureintro; intro _; exact cfgDefault_bounded
-    ipureintro; unfold cacheWgOwedMax; have : ckPfx.length = 3 := rfl; omega
+    ipureintro; have : ckPfx.length = 3 := rfl; omega
   irevert Hnew
   unfold newCacheResult
   rw [if_pos cfgDefault_valid]

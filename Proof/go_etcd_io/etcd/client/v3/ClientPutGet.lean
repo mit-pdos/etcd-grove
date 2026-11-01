@@ -187,7 +187,7 @@ theorem rangeReply_state_bnd (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : 
     (hr : o.base.rev = W64 0) :
     rangeReplyOk E γr c F o cid mid Q m ⊢
       ∃ σ : KVState, □ Q σ ∗ ⌜txn.srvRangeOk o σ.kvs m.kvs m.more ∧
-        m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63 ∧
+        m.hdr.revision = W64 (σ.rev : Int) ∧ kvRevFits σ.rev ∧
         -- (2026-10-31, `notes/vallen.md`) the state's values are short (the reply's log's)
         ∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝ := by
   iintro #H
@@ -213,7 +213,7 @@ theorem rangeReply_state_bnd (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : 
     simp only [kvStateOf_rev, kvStateOf_kvs]
     congr 1
     omega
-  · simp only [kvStateOf_rev, kvStateOf_kvs]
+  · simp only [kvRevFits, kvStateOf_rev, kvStateOf_kvs]
     omega
   · exact mvcc.stateAfter_vals Hlk
 
@@ -242,7 +242,7 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗
           □ Q σ ∗ ⌜m.kvs = σ.kvs.filter (fun v => decide (v.key = key)) ∧
-            m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝) ∨
+            m.hdr.revision = W64 (σ.rev : Int) ∧ kvRevFits σ.rev⌝) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hcl, #Hrr, #Hst, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
   iunfold isNewClient at Hcl
@@ -397,7 +397,7 @@ theorem client_Put_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
-          ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧ σ.rev + 4 < 2 ^ 63⌝) ∨
+          ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧ kvRevFits (σ.rev + 1)⌝) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ H HΦ
   wp_apply (client_Put_rep cl ms V ci cd key val sl Q hsz) $$ [H] as %resp %err Hout
@@ -415,7 +415,7 @@ theorem client_Put_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     ipureintro
     refine ⟨?_, ?_⟩
     · rw [hrev, kvStateOf_rev_succ _ hlen]
-    · simp only [kvStateOf_rev, kvStateOf_kvs]; omega
+    · simp only [kvRevFits, kvStateOf_rev, kvStateOf_kvs]; omega
   · iright
     isplitl
     · ipureintro; exact Herr
@@ -439,7 +439,7 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
           ⌜m.deleted = W64 ((rangeIn σ.kvs (txn.deleteOpOf key [] false)).length : Int) ∧
             m.hdr.revision =
               W64 ((kvOpStep (.deleteRange (txn.deleteOpOf key [] false)) σ).rev : Int) ∧
-            σ.rev + 4 < 2 ^ 63⌝) ∨
+            kvRevFits (σ.rev + 1)⌝) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hcl, #Hone, #Hrr, #HF, #Hctx, #Hce, #Hopts, Hau⟩ HΦ
   iunfold isNewClient at Hcl
@@ -477,7 +477,7 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
     · rw [hrev]
       unfold kvOpStep
       rw [kvStateOf_commit_rev _ _ hlen, kvStateOf_kvs]
-    · simp only [kvStateOf_rev, kvStateOf_kvs]; omega
+    · simp only [kvRevFits, kvStateOf_rev, kvStateOf_kvs]; omega
   · iright
     isplitl
     · ipureintro; exact Herr.1
@@ -544,7 +544,7 @@ theorem client_Put_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfa
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
-          ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧ σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ ∧
+          ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧ kvRevFits (σ.rev + 1) ∧ kvLogOk σ ∧
             kvLogOk (kvOpStep (.put (putWireOf (opPutModel key val []))) σ)⌝ ∗
           kvRevLb γ m.hdr.revision) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by

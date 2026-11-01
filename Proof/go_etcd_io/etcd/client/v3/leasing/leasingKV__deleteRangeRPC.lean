@@ -188,7 +188,7 @@ theorem leasingKV.deleteRangeRPC.wp_proof
     refine ⟨TxnModel.under_nil _, ?_⟩
     simp [txnSizeOk, txnWireLen, drpcTxn, cmpWireLen, TxnOp.wireLen, opWireLen, wireSlack, compareM,
       cmpKeyM, cmpWithRangeM, rangeDeleteOp, op_simps]
-    omega
+    word
   inext
   iintro %resp %err Hres
   iunfold txnCommitResultO at Hres

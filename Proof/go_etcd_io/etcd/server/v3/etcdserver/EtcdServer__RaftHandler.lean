@@ -29,7 +29,7 @@ theorem EtcdServer.RaftHandler.wp_proof
   intro s γn id τ a Hown
   wp_start as #Hm
   iunfold srvNetMember at Hm
-  icases Hm with ⟨-, #Htr, %Hlid, #Hst, #Hop, %Hcov⟩
+  icases Hm with ⟨-, #Htr, %Hlid, #Hst, %Hcov⟩
   ihave #Hrpkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp $$ []
   · iPkgInit

@@ -20,8 +20,9 @@ used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines t
     and the apply protocol's names and invariant (`consInv`, the apply thread's half at the start:
     the backend's batch lock's resource names them, so they exist before the backend; the
     protocol's allocation is `consInv_alloc`, `InvApply.lean`: since S7f its registry holds the boot
-    backend's physical names, `batchLockInv`'s `applyRegd`), the backend's meta keys at
-    `(0, 0)` (a new cluster's fresh backend);
+    backend's physical names, `batchLockInv`'s `applyRegd`), the boot data's meta keys at the
+    protocol's initial `γA.m0` (`Hm0`, which a restart keeps) and a fresh file's `Meta` empty
+    (`HmEmpty`, so `γA.m0 = (0, 0)`; 2026-11-01, "bootOk's boot metadata");
   - the backend of the real instance `d` with the server's hooks (`server_kv_backend_hooks`'s
     premises but the post-lock hook's, which `NewServer` sets: the hook's half, its open fraction,
     the write budget);
@@ -75,14 +76,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [MemStorReg GF]
 
-/-- **The network's directory, well formed** (rafthttp stage 6d, 2026-10-24; a premise of
-`NewServer.spec`, of the caller's directory): no member `0` (raft's ids are not `0`; the directory
-gives an unknown host the owner `0`, `netOwner`), each host of one member's URLs only
-(`dirHostsDistinct`), every peer URL a plain `http://` URL (`types.plainPeerURL`: what the
-transport's `AddPeer` parses). -/
-def netDirOk (dir : w64 → List GoString) : Prop :=
-  dir 0 = [] ∧ dirHostsDistinct dir ∧ ∀ (id : w64) (s : GoString), s ∈ dir id → types.plainPeerURL s
-
 /-- **The member's configured peer URLs are its directory URLs** (2026-10-27, D22 J-T, W8; a
 premise of `NewServer.spec`, of the caller's configuration): non-empty, each of only the scheme
 `http` and a plain host (`http.urlRootPlain`), `http://` and the host one of the member's peer
@@ -131,26 +124,6 @@ theorem addPeer_dir (γn : NetNames GF) (dir : w64 → List GoString) (hγ : γn
     (netRh_member γn pid).2 ((hps pid).2 hp)⟩
   rw [netRh_owner]
   exact netOwner_of_mem γn.dir hd.2.1 pid h hm
-
-omit [MemStorReg GF] in
-/-- Four of `n` copies of `P` for each id of `l` (D22 J-T: the transport's pool). -/
-theorem replicate_list4 (P : IProp GF) : ∀ (l : List w64) (n : Nat), 4 * l.length ≤ n →
-    ([∗list] _x ∈ List.replicate n (), P) ⊢ [∗list] _x ∈ l, P ∗ P ∗ P ∗ P
-  | [], _, _ => by
-    iintro -
-    iapply BigSepL.bigSepL_nil.2; itrivial
-  | x :: l, n, h => by
-    obtain ⟨m, rfl⟩ : ∃ m, n = m + 4 := ⟨n - 4, by simp only [List.length_cons] at h; omega⟩
-    rw [show List.replicate (m + 4) () = () :: () :: () :: () :: List.replicate m () by
-      simp [List.replicate_succ]]
-    iintro H
-    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H⟩
-    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H2, H⟩
-    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H3, H⟩
-    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H4, H⟩
-    iapply BigSepL.bigSepL_cons.2
-    iframe H1 H2 H3 H4
-    iapply replicate_list4 P l m (by simp only [List.length_cons] at h; omega) $$ H
 
 omit [MemStorReg GF] in
 /-- **The transport's configured peer URLs are its member's** (D22 J-T, W8): from the directory. -/
@@ -213,11 +186,8 @@ instance memberRO_persistent (dir : w64 → List GoString) (m : Loc) :
 
 -- (D22 J1a, 2026-10-26) `memberDirIs` moved to `SnapRO.lean`.
 
-/-- **A fresh alarm store** `a` (opaque, exclusive; D14i, 2026-10-17): made by
-`v3alarm.NewAlarmStore` over a fresh alarm bucket and not yet handed to an applier, it has no
-alarm (`Activate`, the only writer of its map, is in its apply contract, which taking this token
-gives: the axiom's postcondition). -/
-opaque alarmFresh (a : Loc) : IProp GF
+-- (2026-11-01, J8a-5) the fresh alarm store's opaque token `alarmFresh` is gone: the store's user
+-- holds half of its map (`alarmEmpty`, `api/v3alarm/Defs.lean`).
 
 -- (D22 J1a) the stores' apply contracts (`alarmApplyOk`, `authApplyOkM`, `authApplyOk`,
 -- `lessorApplyOk`, `clusterApplyOk`) moved to `SnapRO.lean`.
@@ -350,7 +320,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- entries' contexts are)
     "Hmem" ∷ membership.clusterMem bc.cl' (memBoot γ.boot) ∗
     -- the consistent index and the apply protocol
-    "%Hci" ∷ ⌜bk.ci' = ciIface cil ∧ γA.m0 = (W64 0, W64 0)⌝ ∗
+    -- (2026-11-01, the user's decision, "bootOk's boot metadata": until then also `γA.m0 = (0, 0)`,
+    -- a literal; now the data's facts `Hm0` and `HmEmpty`)
+    "%Hci" ∷ ⌜bk.ci' = ciIface cil⌝ ∗
     "#HisCI" ∷ isCI cil γA.ci ∗ "#Hcons" ∷ inv applyN (consInv γA) ∗
     -- (D43 M5e, 2026-10-26, the user's decision) the backend's hooks, as `NewBackendHooks(cfg.Logger,
     -- ci)` makes them (`bootstrapBackend`, `bootstrap.go:258`): the server's `s.beHooks`, whose
@@ -358,9 +330,27 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "#Hbh" ∷ (∃ lgh : Loc, storage.isBackendHooks bk.beHooks'
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
       lgh) ∗
-    "Hthr" ∷ applyThread γA ⟨W64 0, W64 0, W64 0, false⟩ ∗
+    -- (2026-11-01: `consInv_alloc`'s state, processed through the stored index `γA.m0.1`; until
+    -- then `⟨0, 0, 0, false⟩`, a hidden copy of the literal)
+    "Hthr" ∷ applyThread γA ⟨W64 0, γA.m0.1, W64 0, false⟩ ∗
     "Happ" ∷ ciApplying cil (W64 0) (W64 0) ∗ "Hown" ∷ ciOwner cil bk.be' ∗
+    -- the boot backend's meta reads: `#HmetaSnap`'s output at the boot open (`boot_create`,
+    -- `SnapApplyOpen.lean`: from the fresh keys and payment rights inside `OpenBackend`'s `openPre`,
+    -- with `Hm0`), which `bootstrap`, names-only, does not let `NewServer` derive
     "#Hmeta" ∷ isMetaBackend bk.be' (⊤ \ ↑applyN) (readView γA) ∗
+    -- (J8a-4, 2026-11-01, the user's decision: `notes/decisions.md`, "J8a-4") the meta reads of a
+    -- backend the apply thread opens (`applySnapshot`'s `OpenSnapshotBackend`) at the protocol's
+    -- names `π`, over an image whose meta keys are `π.m0`, at its fresh keys and payment rights
+    -- (they come back): what `applySnapshot.specSnap` takes
+    "#HmetaSnap" ∷ □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
+        ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
+        backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
+        backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ∗
+        □ ∀ (W : IProp GF) (b : Loc),
+          backend.isBackend γB P W (batchLockInv (γA.withPh π) (metaTM γB P)) b -∗
+          isMetaBackend (interface.mkOk (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
+            (readView (γA.withPh π))) ∗
     -- (D22 J1a, 2026-10-26) the backend's hooks over the consistent index (`bootstrapBackend`'s
     -- `serverstorage.NewBackendHooks(cfg.Logger, ci)`), which the snapshot path's
     -- `OpenSnapshotBackend` installs on each new backend
@@ -387,6 +377,11 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- uses)
     "Hnew" ∷ backend.newPost d.γB d.P (fun _ => mvcc.lateW d.gx)
       (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D ∗
+    -- (2026-11-01, the user's decision, "bootOk's boot metadata") the boot data's meta keys are the
+    -- protocol's initial ones: the consistent index and term stored in `D`'s `Meta` bucket are
+    -- `γA.m0` (what `#Hmeta`'s reads return and `batchLockInv γA`'s mirror starts at; a restart's
+    -- `D` holds the last commit's)
+    "%Hm0" ∷ ⌜metaIs D γA.m0⌝ ∗
     "%HD" ∷ ⌜mvcc.keyView (backend.vData d.P (D, ⟨∅, W64 0⟩)) ∅⌝ ∗
     "%HN" ∷ ⌜N + 7 ≤ backend.wbInit⌝ ∗
     -- (D22 J1a, 2026-10-26: of every backend at these parameters, for the snapshot path's backends;
@@ -400,11 +395,15 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "%HDr" ∷ ⌜(∀ n ∈ mvcc.restBuckets, (D.lookup n).getD ∅ = ∅) ∧
       D.lookup go!"members" = some ∅ ∧ D.lookup go!"members_removed" = some ∅ ∧
       D.lookup go!"cluster" = some ∅⌝ ∗
-    -- (D22 S-g, D19l (v) (A); until then the opaque premise `mvcc.backendNoCompaction` of
-    -- `NewServer.spec`) the fresh bbolt file records no compaction (`mvcc.store.restore`'s); (the
-    -- backend-compaction stage, 2026-10-29, the user's decision: until then the token
-    -- `mvcc.bkNoCmp d.γB` beside `Hnew`, which now holds it: `bootBackend_of_newPost`) a fact of `D`
-    "%HnoCmp" ∷ ⌜mvcc.noCmpData D⌝ ∗
+    -- the fresh data directory's file (the environment assumption of `HD`/`HDr`) holds nothing in
+    -- `Meta` (absent, or empty as `bootstrapBackend`'s `CreateMetaBucket` leaves it; a new
+    -- cluster's bootstrap stores no meta key: `UnsafeSave` never stores index 0, nothing calls
+    -- `SetConfState`): no consistent index stored, so `γA.m0 = (0, 0)` (`m0_of_metaEmpty`), and no
+    -- compaction recorded (`noCmpData_of_metaEmpty`, `mvcc.store.restore`'s). (2026-11-01, the
+    -- user's decision, "bootOk's boot metadata": until then `"%HnoCmp" ∷ ⌜mvcc.noCmpData D⌝`; until
+    -- 2026-10-29 the token `mvcc.bkNoCmp d.γB` beside `Hnew`; until D22 S-g, D19l (v) (A), the
+    -- opaque premise `mvcc.backendNoCompaction` of `NewServer.spec`)
+    "%HmEmpty" ∷ ⌜(D.lookup go_etcd_io.etcd.server.v3.storage.schema.metaName).getD ∅ = ∅⌝ ∗
     -- (D22 S-j2, 2026-10-20; an environment assumption the user approved, "D22's environment
     -- assumptions approved") the backend file's directory entry is the server's: nothing else
     -- creates, renames or deletes a file at `<DataDir>/member/snap/db`. `applySnapshot`'s
@@ -454,6 +453,13 @@ instance bootstrapContract_persistent (cfg : go_etcd_io.etcd.server.v3.config.Se
     (dir : w64 → List GoString) :
     Persistent (bootstrapContract (GF := GF) cfg U γ id ctxs N dir) := by
   unfold bootstrapContract; infer_instance
+
+/-- **The boot apply thread on a fresh file** (2026-11-01, "bootOk's boot metadata"): `bootOk`'s
+`Hthr`, at `consInv_alloc`'s state, is at `⟨0, 0, 0, false⟩` when `γA.m0 = (0, 0)`. -/
+theorem thr_fresh (γA : ApplyNames) (h : γA.m0 = (W64 0, W64 0)) :
+    applyThread (GF := GF) γA ⟨W64 0, γA.m0.1, W64 0, false⟩ ⊢
+      applyThread γA ⟨W64 0, W64 0, W64 0, false⟩ := by
+  rw [h]
 
 end defs
 
@@ -532,7 +538,7 @@ abbrev SrvKey := Loc × Loc × w64 × GName × GName × GName
 
 /-- The transport's names of a key. -/
 abbrev SrvKey.trN (x : SrvKey) : TrN GF :=
-  ⟨x.2.2.1, x.2.2.2.1, srvLgReader x.1, x.2.2.2.2.1, x.2.2.2.2.2, [], x.2.2.2.2.1, x.2.2.2.2.1⟩
+  ⟨x.2.2.1, x.2.2.2.1, srvLgReader x.1, x.2.2.2.2.1, x.2.2.2.2.2, []⟩
 
 /-- **The raft loop's key to the transport's `Send`** (rafthttp stage 6d, 2026-10-24, the user's
 choice: the raft loop holds one of the transport's lock's reader tokens): the server's transport's
@@ -569,7 +575,7 @@ theorem srvTrKey_of_trTok (γn : NetNames GF) (γk : GName) (s t : Loc) (c : TrN
   iunfold srvTrKey
   iexists (s, t, c.lid, c.γd, c.γs, c.γr)
   iframe Hk
-  obtain ⟨lid, γd, R, γs, γr, L, γk', γo⟩ := c
+  obtain ⟨lid, γd, R, γs, γr, L⟩ := c
   simp only at hR
   subst hR
   iunfold trTok at Htok
@@ -597,7 +603,7 @@ theorem netTransport_of_key (γn : NetNames GF) (lid : w64) (tr : GoInterface) (
     ihave %Heq := ghostMapElem_agree () γk DFrac.discard DFrac.discard _ _ $$ Hk Hx
     subst Heq
     ihave Htok' : trTok γn t c $$ [Htok]
-    · obtain ⟨lid', γd, R, γs, γr, L, γk', γo⟩ := c
+    · obtain ⟨lid', γd, R, γs, γr, L⟩ := c
       simp only at hR
       subst hR
       iunfold trTok at Htok

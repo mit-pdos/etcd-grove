@@ -190,7 +190,7 @@ theorem RWMutex.waitOnLastRev.wp_proof
   ipersist Hesl
   wp_apply wp_WaitEvents client pfx w.key st.rev _ [W32 1] (W32 1) $$ [$Hclosed $Hcl $Hesl]
     as %ev %werr Hwr
-  · ipureintro; exact ⟨rfl, Hwf'.2 w Hws, by have hk := Hkeys w Hws; unfold etcdKeyMax at hk; omega⟩
+  · ipureintro; exact ⟨rfl, Hwf'.2 w Hws, by have hk := Hkeys w Hws; unfold etcdKeyMax at hk; word⟩
   icases Hwr with (⟨%Hwnil, -⟩ | %Hwne)
   rotate_left
   · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by

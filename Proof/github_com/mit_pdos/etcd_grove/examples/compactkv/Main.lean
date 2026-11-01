@@ -149,7 +149,7 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   iunfold common.memberUp at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi,
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
     Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `Serve(s, clientAddr)`, with etcd's KV calls registered at the address
@@ -157,7 +157,7 @@ theorem Main.wp_proof
   wp_apply (wp_Serve srv go!"127.0.0.1:23794" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid _ => common.etcdKVAt go!"127.0.0.1:23794" E { ρ with wait := γw } ρ.rd cid mid)
       (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
-    $$ [Haddr Hlg3 Hbemu Hgo Hwpi HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+    $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
     iapply (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23794" cid mid
@@ -176,7 +176,7 @@ theorem Main.wp_proof
   -- `NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient go!"127.0.0.1:23794" lg
       (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null [] null default) Hlg
-      (by unfold plainEndpoint; decide) Htb) as %cl %cerr Hcl
+      (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
@@ -303,9 +303,9 @@ theorem Main.wp_proof
     iunfold hdrFull at Hhf
     icases Hhf with ⟨%Hhn, -, -, #HrevF, -, -⟩
     (try wp_auto)
-    have Hr1 : 1 ≤ sint.Z (m.hdr.revision - W64 1) := by rw [Hs.1]; have := Hs.2.1; word
+    have Hr1 : 1 ≤ sint.Z (m.hdr.revision - W64 1) := by rw [Hs.1]; have := Hs.2.1.lt; word
     ihave #Hrv1 := kvRevLb_mono ρ.rd.kv m.hdr.revision (m.hdr.revision - W64 1)
-      (by rw [Hs.1]; have := Hs.2.1; word) $$ Hrv
+      (by rw [Hs.1]; have := Hs.2.1.lt; word) $$ Hrv
     -- `cctx, ccancel := context.WithTimeout(...)`; `cli.Compact(cctx, ...)`, its outcome ignored
     wp_apply wp_Background
     (try wp_auto)
@@ -395,7 +395,7 @@ theorem Main.wp_proof
       iexists sint.nat n, r0
       iframe Hidx
       ipureintro
-      refine ⟨hk, ?_, ?_, hkl⟩ <;> (rw [Hs.1]; have := Hs.2.1; word)
+      refine ⟨hk, ?_, ?_, hkl⟩ <;> (rw [Hs.1]; have := Hs.2.1.lt; word)
     -- `if prevRev != 0`: the get of the previous round's key at its put's revision
     iunfold prevOk at Hprev
     icases Hprev with (%Hpr0 | ⟨%j, %rj, %Hj, #Hidxj⟩)

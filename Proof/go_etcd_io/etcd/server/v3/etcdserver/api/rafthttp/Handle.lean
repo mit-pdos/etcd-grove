@@ -77,11 +77,13 @@ instance pipeFixed_persistent (Rh : RaftHttp GF) (p : Loc) (to : w64) (R : IProp
 
 /-- **A started pipeline** (`start`'s postcondition; exclusive): its goroutines' facts (the
 message channel a sender sends on), its stop channel not yet closed (`stop` closes it), and its
-wait group's four `Done`s, each with one of the `Raft`'s resources `R` (`stop` collects them). -/
+wait group's four `Done`s (`stop` waits for them; until J8a-6, 2026-11-01, each gave back one of
+the `Raft`'s resources `R`, which the pipeline's goroutines held but never used: they call only
+`ReportUnreachable` and `ReportSnapshot`, which take none). -/
 def pipeStarted (Rh : RaftHttp GF) (p : Loc) (to : w64) (R : IProp GF) : IProp GF :=
   iprop(pipeHandleOk Rh p to R ∗ ∃ (sc : GoChan) (γs : ChanNames),
     p.[rafthttp.pipeline, go!"stopc"] ↦□ sc ∗ ownBroadcastChan sc γs iprop(True) .Pending ∗
-    sync.join.ownAdder (p.[rafthttp.pipeline, go!"wg"]) (W32 4) iprop(True ∗ R ∗ R ∗ R ∗ R))
+    sync.join.ownAdder (p.[rafthttp.pipeline, go!"wg"]) (W32 4) iprop(True ∗ True ∗ True ∗ True ∗ True))
 
 end defs
 

@@ -1429,3 +1429,33 @@ the pool's loan receipts (`ownThreadLoan`), the counter's bound needs "`k` loans
 `b < threadBound GF`) and `threadPool.init_named` (`init` under a name allocated beforehand,
 `ownTokAuth γ 0`, so that the name can be among the ghost names the pooled resource is defined
 over). Proposed change: both in `ThreadPool.lean` as they are.
+
+## `errors.Is` answers the same twice (2026-11-01, the lease rows at the gRPC level)
+
+`errors.Is.spec` (`Perennial/Proof/errors/Base.lean`, `errorIsTree S M target`) says only `err =
+target → true` and `true → some error of the tree is the target or an `Is` method said so`
+(`M`); the tree is an over-approximation (`S`, closed under `Unwrap`), and its nodes' `Is` and
+`Unwrap` specs return some answer. So two calls with the same error and target may answer
+differently, though Go's `errors.Is` is a function of the tree (the errors reachable by `Unwrap`
+from `err`, each compared with `target` and asked `Is(target)`), and Go's error methods are
+deterministic. etcd's `v3rpc/lease.go` calls `errors.Is(err, lease.ErrLeaseNotFound)` twice
+(`LeaseTimeToLive`, `LeaseLeases`): a `true` then a `false` would reach `ls.hdr.fill(resp.Header)`
+with `resp == nil`, so the handlers cannot be proved; `watch.go`'s `recvLoop` calls
+`errors.Is(err, context.Canceled)` twice too. The errors here are `applyErrIs` errors (any tree),
+so a local leaf fact would have to be threaded from the auth store up through about ten frozen
+specs (asked, 2026-11-01: the user chose this Perennial change instead). **Workaround here**: none (a `sorry`
+in each handler); the lease gRPC stage (`notes/lease-grpc-plan.md`) waits. **The change**
+(landed: Perennial `c4a24e323`, 2026-11-01; the pin): the
+tree's method specs as relations (`errorWalkTree S I U target`), `errors.Is`'s answer one of Go's
+walk over them (`IsWalk`), a function of the tree for exact relations (`isWalk_det`);
+`errorIsTree S M` the over-approximating instance (unchanged in meaning), `errors.wp_Is_tree` the old
+postcondition, `errorIsTree_of_walk`, `errorWalkTree_leaf`. It generalizes the first proposal: an error tree with
+exact node specs (`Unwrap() error` returns a fixed `u ii`, `Unwrap() []error` a fixed list, `Is`
+returns a fixed `f ii target`), and a spec of `errors.Is` over it whose answer is
+`decide (∃ e ∈ reach u err, e = target ∨ f e target)` (partial correctness: a cyclic chain does not
+return); `errorIsTree`'s current form follows from it. Every Go error type whose methods are
+deterministic (all of the standard library's and etcd's) has such a tree; `applyErrIs` would then
+carry it. Done here: `applyErrIs` with an exact tree (its three leaf constructors), etcd-grove's
+`errors.Is.spec` proved by `errors.wp_Is_tree`, the two handlers' `sorry`s closed. **Follow-up**
+(small, open): `errorIsTree_of_walk` (and the other `Base.lean` lemmas) take the section's
+`errors.Assumptions` though their proofs do not use it; an `omit package_sem in` would drop it.

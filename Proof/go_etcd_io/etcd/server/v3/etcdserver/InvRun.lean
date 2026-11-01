@@ -446,7 +446,11 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`): its
     -- persistent bundle; (D22 J1b, 2026-10-31) the counter's authority and the stocks in `applyStart`
-    "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt))
+    "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt) ∗
+    -- (J8a-3, 2026-11-01) the two configuration fields `start` writes, read-only from then on:
+    -- with `srvSnapRO`'s rebuild, the whole configuration read-only (`specSnap`'s `srvCfgAddr s ↦□`)
+    "#Hsncfg" ∷ (∃ sc scu : w64, srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
+      srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu))
 
 end defs
 

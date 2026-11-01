@@ -31,7 +31,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.FiltersFromRe
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.GetProgressReportInterval
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.IsCreateEvent
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseGrant
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseLeases
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseRevoke
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseTimeToLive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewAuthServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewClusterServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewKVServer
@@ -168,6 +170,7 @@ public import Proof.go_uber_org.zap.Logger__Warn
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_uber_org.zap.String
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
+public import Perennial.Proof.errors.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Link
@@ -469,9 +472,17 @@ theorem LeaseServer.wp_LeaseGrant :
     EtcdGrove.v3rpc.LeaseServer.LeaseGrant.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.LeaseServer.LeaseGrant.wp_proof wp_togRPCError header.wp_fill
 
+theorem LeaseServer.wp_LeaseLeases :
+    EtcdGrove.v3rpc.LeaseServer.LeaseLeases.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.LeaseServer.LeaseLeases.wp_proof _root_.Perennial.errors.wp_Is wp_togRPCError header.wp_fill
+
 theorem LeaseServer.wp_LeaseRevoke :
     EtcdGrove.v3rpc.LeaseServer.LeaseRevoke.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.LeaseServer.LeaseRevoke.wp_proof wp_togRPCError header.wp_fill
+
+theorem LeaseServer.wp_LeaseTimeToLive :
+    EtcdGrove.v3rpc.LeaseServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.LeaseServer.LeaseTimeToLive.wp_proof _root_.Perennial.errors.wp_Is wp_togRPCError header.wp_fill
 
 theorem wp_NewAuthServer :
     EtcdGrove.v3rpc.NewAuthServer.spec (GF := GF) (hG := hG) :=

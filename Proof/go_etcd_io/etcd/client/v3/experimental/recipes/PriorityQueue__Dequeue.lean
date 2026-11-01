@@ -113,7 +113,7 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
   · ipureintro
     intro v hv
     obtain ⟨h1, h2⟩ := Hgsub v hv
-    exact ⟨List.nil_prefix, by have := Hrevs v h1; have hk := Hkeys v h1; unfold etcdKeyMax at hk; omega⟩
+    exact ⟨List.nil_prefix, by have := Hrevs v h1; have hk := Hkeys v h1; unfold etcdKeyMax at hk; word⟩
   icases Hcres with (⟨%Hcnil, %n, #Hcb, Hcase⟩ | %Hcne)
   rotate_left
   · obtain ⟨Hcne, rfl⟩ := Hcne
@@ -227,7 +227,7 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
       wp_apply hDRK kv [] e.key e.rev rd $$ [$Hpkg $Hkv $Hrd] as %ok %derr Hdres
       · ipureintro; exact ⟨List.nil_prefix, Hepos, by
         have hk := Hkse v Hvse; unfold etcdKeyMax at hk
-        rw [Hvk] at hk; omega⟩
+        rw [Hvk] at hk; word⟩
       icases Hdres with (⟨%Hdnil, %r, #Hr, %Hrr, Hc⟩ | %Hdne)
       rotate_left
       · obtain ⟨Hdne, rfl⟩ := Hdne

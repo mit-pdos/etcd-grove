@@ -23075,7 +23075,8 @@ Not changed: `NewServer.spec`/`specM`'s text (their posts' `srvBuilt` gained the
 `run`, `Start`'s specs' text (`isServerBuilt`/`isServerRun` gained it).
 
 **Two items of J0's list not done, because they are false or not provable as stated**:
-- **The `isMetaBackend` family** (`specSnap`'s `□ ∀ π b, π.m0 = (i, t) → isMetaBackend b … (readView
+- *(Superseded 2026-11-01 by "J8a-4: the meta reads of a snapshot's backend": the premise restated
+  and carried in `bootOk`; `readView` over a `dghostVar`.)* **The `isMetaBackend` family** (`specSnap`'s `□ ∀ π b, π.m0 = (i, t) → isMetaBackend b … (readView
   (γ.withPh π))`, which J0 planned to take from `bootOk`'s `Hmeta` generalized): false of the Go
   code as stated, so not added to `bootOk` (where it would make every closed theorem vacuous). Its
   view `readView γ m = ghostVar γ.wr 1 false ∗ ⌜m = γ.m0⌝` can be met for physical names `π` no
@@ -28439,6 +28440,290 @@ The user, at Freeze: "approved, freeze and start Prove". Frozen:
   callers: the bound is the execution's, which the closed results already bound. `⧖`, not `⧗`: the
   lock's resource splits over read fractions, and only a persistent receipt does.
 
+## `srvSnapApplied`'s missing post (2026-11-01, J8a-1, item 5)
+
+**2026-11-01 · accepted**
+
+What `run`'s snapshot case (J8a-5) needs after `applySnapshot` and `srvSnapApplied` did not give:
+- the new applier's chain: `zal = true → x'.chain = apply.alarmChain E.authOn false false`, from
+  the walk's `NewUberApplier` (`snap_applyKV`'s `ns`, `cr`); with auth off it is `γk.ch0`, what
+  `kvApplied_of_jump` takes. `srvSnapApplied` takes `zal`, so `specSnap`'s post does.
+- the KV at `E'` (`∃ kv, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ`, `applyRes`'s), from the walk's
+  watchable store at the new physical names (`isWatchableStore_withPhys`).
+- the bundle `srvSnapRO` at `E'`: not in the post (it is persistent and the caller has it at `E`),
+  but a lemma, `srvSnapRO_succ`, from `beSucc` (the logical names, `RD`, the mode and the store
+  kept), the new backend's facts in the post and the stores' addresses (`↦□` agreement).
+
+Not needed: the alarm store's `Get` after `Recover` (`alarmGetIs al Tal zal` is persistent and the
+post gives `Tal` back). And in the merge with `lean`'s M2 track the bundle's compaction fact became
+`d.cm = E.cmp` (was `d.cm = false`, false in compaction mode): the snapshot case's mode off gives
+`specSnap`'s `hcm`; `srvSnapRes` holds `srvKVCloserW` (the closer without the compaction right,
+which is `srvKVCloser` with the mode off, `srvKVCloserW_off`).
+
+## The alarm store's alarms modelled: `alarmEmpty` replaces `alarmFresh` (2026-11-01 · accepted, the user's choice "Model the alarms" · J8a-5, `notes/snapshot-j8a-plan.md`)
+
+**2026-11-01 · accepted** (supersedes, in part, the alarm store's `alarmFresh` in the entry at
+"three constructor axioms strengthened" (D14i, 2026-10-17), the alarm parts of J1b's `srvSnapRes`
+and of "`srvSnapApplied`'s missing post" (J8a-1, item 5)).
+
+The problem: `run`'s snapshot case needs the new applier's alarm chain after `applySnapshot`
+(`kvApplied_of_jump` takes `x'.chain = γk.ch0`). The chain is fixed by the alarm store's `Get`
+when `NewUberApplier` runs, after `Recover`. But the walk only had `Get` under `Tal = True`
+(`zal = false`, from the apply contract), which says nothing about the result. The token
+`alarmFresh` was given only by `NewAlarmStore` and consumed by the first `NewUberApplier`, so the
+snapshot path had nothing at all.
+
+The model (`api/v3alarm/Defs.lean`):
+- The lock invariant holds half of `a.types` and half of its map.
+- The user's `alarmBeOnM a be gm` holds the other halves, beside half of `a.be`.
+- `alarmBeOn a be := ∃ gm, alarmBeOnM a be gm`, and `alarmEmpty a be := alarmBeOnM a be ∅`.
+
+What changes:
+- `Get.spec` takes an optional `be`. Under `alarmEmpty a be` the map is empty (`ownMap_agree`), so the result is empty.
+- `Recover` (proved) gives `alarmEmpty a be`: it writes a fresh map.
+- The `NewAlarmStore` axiom's post is now `isAlarmStore a ∗ alarmEmpty a d.be ∗ alarmApplyOk a`, and `restoreAlarms` passes this through. Before, it was `alarmBeOn ∗ alarmFresh ∗ alarmGetIs a (alarmFresh a) true ∗ □ (alarmFresh -∗ alarmApplyOk)`.
+- The apply contract is now given outright. This is sound because `Activate`/`Deactivate`, the map's only writers, need the user's half (`alarmBeOn`, which the contract's write right lends through `rwLens`), so they cannot run while the user holds `alarmEmpty`.
+- `alarmGetIs_empty` (`AlarmGet.lean`) derives `apply.alarmGetIs a (alarmEmpty a be) true` from `Get.spec`.
+- `NewServer` and the snapshot walk both build the applier at `T = alarmEmpty`, `z = true`.
+- `srvSnapRes`, `specSnap`, `snapWalkPost` and `srvSnapApplied` lose `Tal`/`zal`.
+- `srvSnapApplied`'s chain fact is now unconditional: `x'.chain = alarmChain E.authOn false false`.
+- `InvBoot`'s `opaque alarmFresh` is deleted.
+
+The `NewAlarmStore` axiom is the only trusted change. What it asserts: `restore` over an empty alarm bucket leaves the map empty, which is true of `alarms.go`'s `restore`, a range over the bucket.
+
+## J8a-3: the server's configuration read-only, from the fork's `NewWatchServer` fix (2026-11-01, `notes/snapshot-j8a-plan.md` item 3)
+
+**2026-11-01 · accepted, the user's decision (the fork change and the `new_watch_server` restatement) · branch `snap-j8a-3`**
+
+Supersedes in part "D22 J1a" (its "The whole configuration read-only" item, which left it to J8a).
+
+**The fork change** (the user's decision of 2026-11-01): `upamanyus/etcd` branch
+`goose-lean-watchcfg` `7cf3644ec` (on `633036387`), the pin of `etc/goose.py`: `NewWatchServer`
+keeps the adjusted progress interval in a local and passes it to `SetProgressReportInterval`; it no
+longer writes `s.Cfg.WatchProgressNotifyInterval`, the race of
+`issues/etcd-cfg-watch-progress-interval-race.md` (with `applySnapshot`'s struct copy
+`OpenSnapshotBackend(s.Cfg, …)` and another listener's read). A field-wise restatement of
+`specSnap`'s `srvCfgAddr s ↦□ cfg` was not an option: the copy reads every field.
+
+**Statement changes:**
+- `v3rpc.NewWatchServer.spec` (exported: v3rpc's `new_watch_server`, the user's approval): the pre
+  takes `srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦□ d ∗ ⌜sint.Z d ≤ 2 ^ 62⌝` (was `↦ d`),
+  the post drops `∃ d', … ↦ d'`. The proof follows the new code (the local `interval`).
+- Internal: `v3rpc.Server.spec` the same (pre `↦□ d`, post without `d'`); `srvServeBuilt` drops
+  the owned field, `srvServeCfg` gains it read-only; the examples' `Serve.spec`/`specOn` drop the
+  owned conjunct (their pure premise `cfg.WatchProgressNotifyInterval' = 0` stays, now only for the
+  bound), and `common/Defs.lean`'s `memberBuilt`, `memberUp`, `memberUpOn`, `grpcUp`, `grpcUpOn`
+  their conjuncts (and `grpcUp`'s and `grpcUpOn`'s `d'`); `srvServeFacts_interval` (`InvServe.lean`)
+  gives `v3rpc.Server`'s premise from `srvServeFacts`.
+
+**Not at `NewServer`: at `start`.** `EtcdServer.start` writes two configuration fields
+(`SnapshotCount`, `SnapshotCatchUpEntries`, to their defaults when zero, `server.go:554-570`; the
+only other writes to `s.Cfg`), before `go s.run()` and the listeners: not a race, but the whole
+struct is read-only only from then on, at the updated values. So (the coordinator's landing (a),
+with the other session's specifics):
+- `srvSnapRO` gains, as its last conjunct inside its `□ ∃ cfg …` (at the same `cfg` as its
+  field-wise facts), **the configuration's rebuild**: `□ (∀ (sc scu : w64), srvCfgFieldAddr s
+  go!"SnapshotCount" ↦□ sc -∗ srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu -∗ srvCfgAddr s
+  ↦□ ({ cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu }))`. Last, so that the
+  positional destructurings (`srvSnapRO_succ`, `srvSnapDisk_of_RO`) are unchanged. `NewServer`
+  persists every other field after the monitors' (39 `ipersist`s) and proves it by
+  `typedPointsto_combine`.
+- `isServerRun`/`isServerRunOn` gain `"#Hsncfg" ∷ (∃ sc scu : w64, srvCfgFieldAddr s
+  go!"SnapshotCount" ↦□ sc ∗ srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu)`, which `start`
+  persists (`ipersist Hsc`/`Hscu`, as before) and frames. No ready-made `∃ cfg', srvCfgAddr s ↦□
+  cfg'`: the caller could not tie it to `srvSnapRO`'s hidden `cfg`; applying the rebuild to
+  `"#Hsncfg"` inside its `srvSnapRO` destructuring gives `srvCfgAddr s ↦□ cfg'` with `cfg'`'s other
+  fields `cfg`'s (`applyAll.specSnap`'s, J8a-5).
+- The field-wise facts stay: deriving them from the whole would need the two fields, which
+  `srvSnapRO` is built without.
+Not changed: `NewServer.spec`'s forms, `start`'s, `run`'s, `Start`'s text (definition bodies only).
+No axiom, no `sorry`.
+
+## The transport's `R`s from a thread pool (2026-11-01, J8a-6, the user's decision)
+
+**Before** (D22 J-T, 2026-10-24): the transport's `R` (`srvLgReader s`, a reader slot of `lgMu`)
+was handed out in copies: `startPeer` took eight (`HR1`-`HR8`: its two stream writers, its
+pipeline's four goroutines, its two receiving goroutines), `startRemote` four, `Transport.Start`
+`4·|L|` for the remotes it may start, and `RemoveAllPeers` gave four of each peer's back. So every
+snapshot install (`RemoveAllPeers` then an `AddPeer` per member) leaked `4·|ps|` slots: J1b's
+`srvSnapStock` kept `2 ^ 28` of `lgMu`'s for them and `specSnap` took `8·|ps|` copies of `c.R`.
+
+**Now** (the user's choice, J8a's stocks, item 6): the slots are a pool, Perennial's `threadPool`
+(`Perennial/Proof/ThreadPool.lean`). `NewServer` makes it (`raftPool_init`, `threadPool.init`) of
+`2 ^ 28` of `lgMu`'s slots, so `threadBound GF ≤ 2 ^ 28` (was `2 ^ 31`, the approved change to
+`NewServer.spec` in all its forms and to the closed theorems' `n + 2 ≤ 2 ^ 31`; the examples at
+`2 ^ 29`, watchkv, cachekv, authkv, linkv3p, follow to `2 ^ 28` as well, since they start a
+server). The pool is persistent (`raftPool R`, `Net.lean`) and sits in `trFixed`; a goroutine that
+needs `R` borrows it with its thread token (`raftPool_borrow`, a later credit) and gives it back
+at exit (`raftLoan_giveBack`, returning the token). Only the two goroutines that call
+`Raft.Process` (`netRaftOk`) need `R`: the stream writers and the pipeline held theirs unused
+(`ReportUnreachable`/`ReportSnapshot` take `True`), so they now hold none, and `startPeer`'s two
+receiving goroutines are forked with `wp_fork_tok_body` and borrow for their life. Restated
+(internal): `startPeer`, `startRemote`, `pipeline.start`/`stop`/`handle`, `startStreamWriter`,
+`streamWriter.run`/`close`/`closeUnlocked`, `peer.stop`, `remote.stop`, `trPoolE`/`trPool` (no
+`R`s: the remotes' budget is their no-remote tokens), `removePeer_core`. Restated (`rafthttp`'s
+specs): `Transport.AddPeer` (takes no `R`), `Transport.RemoveAllPeers` (gives none back),
+`Transport.Start` (takes `raftPool R` in place of `[∗list] _ ∈ L, R ∗ R ∗ R ∗ R`). The stream
+readers never held `R` (the readers' goroutines are `startPeer`'s receiving ones): unchanged. Then
+`srvSnapStock` holds nothing and is gone (from `srvSnapBoot`, `srvSnapOwn`), `specSnap` and the
+walk lose the `8·|ps|` copies, and `InvBoot`'s `replicate_list4` is unused and gone. `c.R =
+srvLgReader s` is not needed by `specSnap` any more (the `AddPeer`s take nothing).
+
+Not done (design questions, for the user): `specSnap`'s `trPeersNoRem c rs` stays a premise. The
+no-remote tokens of the members whose remotes `CutPeer`/`MendPeer` may start are the examples'
+(`NewServer.spec`'s post, `srvTrTok`), so getting it from them means routing those tokens to the
+apply thread, an exported change. And `hdir`/`hdok` (`γn.dir = dir`, `netDirOk dir`) stay
+`specSnap` premises: `srvSnapRO` has no `γn`, and `ccMembRes`'s `γn` is not tied to it by any
+ghost agreement, so they are not a field to add.
+
+## A remote pauses by a flag: the no-remote tokens gone (2026-11-01, J8a-7, the user's choice "Fork fix")
+
+**Before** (D22 J-T, 2026-10-27; D43 M5c): upstream's `remote.Pause` is `g.stop()`, which closes
+the pipeline's `stopc`, so a second `CutPeer` of a remote, or `Transport.Stop` after one, panics
+("close of closed channel", `issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`).
+`CutPeer`/`MendPeer` therefore took `trNoRemOr c id`: `id` not among the pool's ids `c.L`, or its
+no-remote token (`trNoRem`), which `trPoolE` handed out per id of `L` and `NewServer` gave to the
+examples in `srvTrTok`; the transport carried an opening flag (`trUnopened`/`trOpened`) so that no
+handler's `AddRemote` started a remote before the tokens were collected; `RemoveAllPeers` took
+the peers' tokens back and `applySnapshot`'s `specSnap` had to take `trPeersNoRem c rs`, which
+the apply thread had no way to get (the tokens were the examples', an exported change to route).
+
+**Now** (the user's choice of the three: a fork fix, over routing the tokens or a premise): the
+fork's `goose-lean-remotepause` (`ab3c28d9a`, on `goose-lean`; the pin in `etc/goose.py`) gives
+`remote` a mutex and a `paused` flag: `Pause`/`Resume` set and clear it under the mutex, `send`
+drops a message while it is set; `stop` (only `Transport.Stop`'s) is unchanged. Idempotent, and
+`Stop` after `CutPeer` is fine. (A first version, `90017de31`, kept `Pause` as `stop` made
+idempotent and restarted the pipeline in `Resume`; dropped: `pipeline.start` rewrites `p.msgc`
+and `p.stopc` while `send` reads them, a race upstream has too.) A Go test,
+`TestTransportCutPeerTwiceRemote` (`remote_pause_test.go`), panics without the fix and passes with
+it under `-race`.
+
+In the proof: `remoteOk` gains the mutex (`remoteLockInv g`: the flag's points-to), `startRemote`
+allocates it, `remote.send` reads the flag under it, and `remote.Pause`/`Resume` have specs
+(`remoteOk` in, nothing out). Every no-remote token is gone: `TrN`'s `γk`/`γo`, `trStopInv`'s pool
+tokens and opening flag (it keeps `T ⊆ L` and `L.Nodup`), `trPoolE`, `trPool`, `trTokAt`,
+`trNoRem`, `trNoRemOr`, `trPeersNoRem`, `trUnopened`, `trOpened`, `trNoRemAcc*`, `trOpen_state`.
+Restated (`rafthttp`'s specs, weaker premises): `CutPeer`/`MendPeer` take `trTok` only (any id,
+the remote paused or resumed if there is one) and their proofs the remote's `Pause`/`Resume`
+specs; `AddPeer`'s post loses its token disjunct; `AddRemote` and `Handler` lose `trOpened`;
+`RemovePeer` and `RemoveAllPeers` take no tokens (`RemoveAllPeers` loses `Q`); `Start`'s post
+loses `trUnopened`. In the server: `srvTrTok` is `trTok` (`NewServer.spec`'s post, the approved
+exported change, keeps its text), `srvNetMember` loses `trOpened`, and `applySnapshot`'s
+`specSnap` (and the walk) take `trLive` without `trPeersNoRem`. Supersedes the J-T tokens part of
+"The transport's `R`s from a thread pool"'s "Not done".
+
+## `applySnapshot`'s directory facts in `ccMembRes` (2026-11-01, J8a, `hdir`/`hdok`)
+
+`specSnap` takes `hdir : γn.dir = dir`, `hdok : netDirOk dir`, `hps` (the members `ps` are the
+directory's) and `srvMembersDir cl ps dir`: what the walk's `AddPeer`s need of the members' URLs
+(`addPeer_dir`). `srvSnapRO` has `ps`, `dir` and `srvMembersDir` but no `γn`, so it could not give
+`hdir`. Now `ccMembRes` (internal, `srvApRes`'s, where the apply thread's `γn` is) holds them for its
+`γn`: `∃ ps, srvMembersDir cl ps γn.dir ∗ ⌜netDirOk γn.dir ∧ ∀ f, γn.dir f ≠ [] ↔ f ∈ ps⌝`, all
+persistent, which `NewServer` gives from `bootOk` (`Hmembers`, `Hdirok`, `Hdirps`) and
+`applyConfChange` carries through unchanged. `specSnap`'s text is unchanged: its caller (5e) takes
+`dir := γn.dir` (so `hdir` is `rfl`) and `ps` from `ccMembRes`. `netDirOk` moved from `InvBoot.lean`,
+`memberDirIs` and `srvMembersDir` from `SnapRO.lean`, to `InvApRes.lean`, unchanged.
+## J8a-4: the meta reads of a snapshot's backend, a trusted premise at the open (2026-11-01 · the user's decision · `notes/snapshot-j8a-plan.md` item 2)
+
+**Before** (D22 J1a, 2026-10-26; S8d): `applySnapshot.specSnap` (and the walk) took `□ ∀ π b,
+⌜π.m0 = (i, tI)⌝ → isMetaBackend b … (readView (γ.withPh π))`: the meta reads of *any* backend `b`
+at *any* physical names `π` whose initial keys are the snapshot's. False (D22 J1a said so, and left
+it to J8a): `readView`'s whole `wr` can be had for names no backend was opened with, and `b` can be
+any backend.
+
+**Now** (the user's option (a) of the plan's item 2: a sound trusted premise, carried in `bootOk`
+beside `#Hmeta`, form C2 of the drafts): the fact is about a backend the apply thread opens. At the
+open's creation step (`OpenSnapshotBackend`'s `openPre` wand, `snap_create`), from the fresh
+backend's own keys `hkOwn γB (hkData P D)` and payment rights `bFresh γB` (given back), for names `π`
+with the backend's write-back and open names and `metaIs D π.m0`, it gives, for every `isBackend γB
+P W (batchLockInv (γ.withPh π) (metaTM γB P)) b`, the meta reads `isMetaBackend b … (readView
+(γ.withPh π))`. The same text is `bootOk`'s new `"#HmetaSnap"` (at its names `γA`, a `NewServer.spec`
+premise) and `specSnap`'s premise (at its `γ`); the walk applies it in `snap_create` (the result kept
+in `snapOpenK`, which gains `P`) and to the new backend's `HnB` after the swap. The two text changes
+are the approved ones; `#Hmeta`'s text is unchanged.
+
+**Two holes in the model the drafts' reviews found** (spec-reviewer rounds 1 and 2), closed in this
+stage without changing any statement's text:
+- **The term key.** `readView` claims both meta keys read as `m0` while `wr` is `false`, but the
+  mirror (`mt`) covers only the index: a batch-lock holder gets the hook keys (`metaTM`, so
+  `hkOwn`) and can put the term key with `wr` still `false`. So `bootOk`'s `#Hmeta` was itself
+  false through the term key (this repository's bug, not the Go code's: the server writes the term
+  only with `UnsafeSave`, `schema/cindex.go:69-95`). **Fix (the user's decision, replacing the
+  approved "repair 1(a)", the full `MetaCI` mirror):** `batchLockInv` (and `hookDone`) gain `⌜mm.2
+  = γ.m0.2⌝ ∨ wrDone γ`: the stored term is the initial one, or the keys are written. The commits'
+  AUs give `⌜k = 0⌝ ∨ wrDone γ` (`commit_save_au`) and `wrDone γ` (`commit_freeze_au`) to their
+  continuations (a save of `k ≠ 0` writes), the hooks rebuild the disjunct (`termOk_after_save`),
+  and `ci_announce` takes `mm.2 = π.m0.2` (the open's `mm = π.m0`). Why not the full mirror: the
+  consistent index's `UnsafeSave.spec` reveals the stored term only in its continuation, after the
+  AU's linearization point where the mirror must move (so moving it would change `UnsafeSave.spec`'s
+  text), and the stored-index window's `freezeY` holds a quarter of the mirror at `s.k` alone (an
+  index, not a `MetaCI`) while frozen.
+- **`wr` was not monotone.** `wr` was a `ghostVar` held whole by the invariant, so any opener of
+  `consInv` could set it back to `false` whenever `mi = m0.1` (a counterexample at a snapshot
+  backend with `m0.1 = S`: a commit stores `S + 1`, a lock holder puts `S` back and moves both
+  halves of the mirror, resets `wr`, and a read is "proved" to return `S` while Go returns `S +
+  1`). `#Hmeta` escapes this route (its `m0` is `(0, 0)`, and an index of 0 is never stored), C2 did
+  not. **Fix (the user's repair 2):** `wr` is a `dghostVar`: the invariant holds `wrOwn γ w`, the
+  whole `false` or a discarded `true` (`wrDone γ`, persistent), so a written backend stays written;
+  `readView` takes the whole `false`, which `wrDone` refutes. `ci_swap_au` persists the retired
+  backend's flag as `true` (`retiredInv` carries `wrDone` per retired backend: its commits, its
+  `Close`'s, may store a term, and no read view of it is left).
+
+**Where the fact lives (the user's option (iii)):** `bootOk`, `specSnap` and the walk only.
+`srvSnapRO`/`srvSnapOwn` gain no `ApplyNames` parameter, so `applyAll.spec`'s text is unchanged.
+**The carrier from `bootOk` to `applyAll`'s snapshot case is open, for J8a-5's step 5e** (whoever
+writes `applyAll.specSnap` picks it: `srvSnapRO` with the names, `isServerCI`, or another).
+
+Supersedes the `isMetaBackend` part of "D22 J1a"'s "Two items of J0's list not done" (its
+`readView γ m = ghostVar γ.wr 1 false ∗ …` is now the `dghostVar` form above).
+
+## `applyAll.specSnap` (J8a-5, step 5e, 2026-11-01)
+
+`applyAll` on a snapshot payload gets its own spec, `applyAll.specSnap`, proved separately
+(`ApplyAllSnap.lean`). It is not a case of `applyAll.spec`, since that spec is about a batch of entries.
+Its premises are the payload's (`ownSnapM`, `snapshotCert`, `nodeSnapLocal`, the two-receive
+`notifyc`, `raftAdvancedC` at `i`, `rnRtOk`) and the fresh start's (`γr.raft = ⟨_, [], 0⟩`, `c0 = 0`,
+the boot chain, `log0`, `E.cmp = false`). Its post is `applyAll.spec`'s shape after the jump to the
+image's log `A'`. The choices made:
+
+- **J8a-4's meta premise is carried as a premise** of `specSnap` at its `γ`, the same text as
+  `bootOk`'s `#HmetaSnap`; `run` supplies it (J8b). There is no new parameter of `srvSnapRO`: the
+  premise names the apply names, which the snapshot path's persistent bundle does not fix.
+- **`srvPeersCover` after the walk** needs the boot voters to be members of the network's
+  directory, since the walk re-adds exactly the directory's members (`hL`). `ccMembRes` now holds
+  `∀ f ∈ γs.raft.cfg, γn.dir f ≠ []`. `NewServer` has it (the configuration is the boot peers `ps`,
+  `Hrvs`) and `applyConfChange` keeps it (its pure conjunct is passed through). The alternative, a fact
+  of `srvSnapRO`, would have meant a second copy of the directory.
+- **`srvMemOk` at `A'`** comes from `srvMemOk` at `A` and `ccLogOk` of the committed `A'`
+  (`kv_log_ccOk`), via `srvMemOk_append`, not from the image's members.
+- **`lastTermIs A' sv.Term'` and `epCsAt`** come from the payload's `snapshotCert`
+  (`snapshotCert_valid`: a committed log of length `i` with that last term and conf state):
+  `lastTermIs_of_snap` compares it with `srvRLogLb A'` (`isCommittedLogLb_agree`, both of length `i`),
+  and `epCsVoters_of_snap` reads the voters off `csOptA` (newly in `srvSnapApplied`).
+
+## J8b: the snapshot cases linked by conjoining (2026-11-01, the user's decision)
+
+The link generator takes one spec per Go function. To reach `run` through the link, the snapshot
+case's specs join their functions' specs (the user's choice, over teaching `etc/gen-link.py` a
+second spec per function). The pattern is `apply.spec = specOff ∧ specOn`'s:
+
+- `applySnapshot.spec = specEmpty ∧ specSnap`, from `wp_proofEmpty` and `wp_proof_snap`; the link
+  lists `wp_proof_snap`'s 63 callees, with `backend__Close` and `watchableStore__Restore` reused
+  from backend's and mvcc's Links;
+- `applyEntries.spec = specBatch ∧ specNil` (the user approved the strengthening of the exported
+  `applyEntries_model` by the empty-batch triple);
+- `snapshotIfNeededAndCompactRaftLog.spec = specBatch ∧ specNoop`;
+- `applyAll.spec = specBatch ∧ specSnap` (approved: the exported `applyAll_model` gains the
+  snapshot payload's triple; the old statement is its first projection).
+
+`run_job_body` takes `specBatch` (`hAA.1`); `server_apply_all_on` takes the first projections. A
+consequence: `applySnapshot`'s callee `NewUberApplier` carries the cache package's Goose type
+assumptions (`go_etcd_io.etcd.cache.v3.Assumptions`, the generated `TypeAssumptions` of its types),
+so `wp_applyAll`, `wp_run`, `wp_start` and `wp_Start` and their results in `Results.lean` (`applyAll_model`,
+`server_run`, `server_start`, `server_Start`, `start_gives_views` and the mode-on four) take that
+instance argument too. It adds no assumption to the closed results: `wp_NewServer`, under all of
+them, already took it.
+
 ## The lease checks' revision re-check is not stated (2026-11-01 · accepted, the user's choice · `notes/lease-revcheck-plan.md`)
 
 Item 3 of the lessor/auth list asked for the lease checks' `Revision()` re-check in their posts. The
@@ -28625,6 +28910,109 @@ first choice, reversed): through gRPC at the fork pin a revision can put a key a
 the compaction revision would miss an event; the compaction cannot know the earlier writes, a
 watch client's workload can. Three spec-reviewer rounds; no axiom, no `sorry`, no exported
 statement changed. Next: the Probe (`KeyDel_lt_of_noDup`, `syncWatchers`' compaction branch).
+
+## bootOk's boot metadata: the opened data's meta keys explicit (2026-11-01 · the user's decision, candidate (a))
+
+**Before** (J8a-4 and earlier): `bootOk` (`InvBoot.lean`) stated the boot backend's metadata as a
+literal about the names, `%Hci`'s `γA.m0 = (W64 0, W64 0)`, and again hidden in `Hthr`'s
+`applyThread γA ⟨0, 0, 0, false⟩` (its `p` is the stored index's initial copy, `consInv_alloc`'s
+`m0.1`). That the boot data `D` holds those keys was stated nowhere, though `Hnew`'s lock resource
+(`batchLockInv γA (metaTM γB d.P)`, whose `metaTM` starts at `mm = γA.m0` while `wr` is false) is
+consistent only if it does.
+
+**Now:**
+- `"%Hm0" ∷ ⌜metaIs D γA.m0⌝`: the boot data's meta keys are the protocol's initial ones. True of
+  any open (`D` is what `OpenBackend` read, `γA` `bootstrap`'s choice).
+- `"%HmEmpty" ∷ ⌜(D.lookup schema.metaName).getD ∅ = ∅⌝` replaces `"%HnoCmp" ∷ ⌜mvcc.noCmpData D⌝`,
+  which it implies (`noCmpData_of_metaEmpty`): the fresh data directory's file has nothing in
+  `Meta`. It rests on the approved fresh-data-directory assumption, as `HD`/`HDr` do, not on Go:
+  `UnsafeCreateBucket` is `CreateBucketIfNotExists` and the new-cluster path never checks
+  `beExist`, so a leftover `member/snap/db` keeps its `Meta`. Within a fresh directory nothing in
+  a new cluster's bootstrap writes `Meta`: `UnsafeSave` never stores index 0
+  (`schema/cindex.go:69-73`), `confState` only when `SetConfState` made it dirty
+  (`storage/hooks.go:49`), `Finalize` only the membership buckets.
+- `%Hci` is `⌜bk.ci' = ciIface cil⌝`; `Hthr` is `applyThread γA ⟨0, γA.m0.1, 0, false⟩`,
+  `consInv_alloc`'s state.
+- Laws: `m0_of_metaEmpty`, `noCmpData_of_metaEmpty` (`CindexBackend.lean`); `thr_fresh`
+  (`InvBoot.lean`). `NewServer` restores its old hypotheses right after `iNamed Hb` (three lines),
+  so no later line changed.
+- `boot_create` (`SnapApplyOpen.lean`, beside `snap_create`): the boot open's creation step,
+  `snap_create` without the announcement. From `#HmetaSnap` at `π := γA.ph`, the fresh keys and
+  payment rights (`OpenBackend`'s `openPre` wand arguments), `metaIs D γA.m0`, the names
+  `γA.ph.bwb/bopn = γB.wb/opn` and `consInv_alloc`'s pieces (`token γ.pend`, the mirror half,
+  `applyRegd`), it makes `batchLockInv γA (metaTM γB P)` and the meta reads `#Hmeta` states.
+  `#Hmeta`'s comment cites it: the trusted clause is this proved step's output at `bootstrap`'s
+  open.
+
+**Why (crash recovery).** A restart opens an existing data directory whose `Meta` holds the last
+commit's (index, term) (the hooks store both, never index 0). The old literal mixed a fact of any
+open with a fact of a fresh file; now `Hm0` is the clause restart keeps and `HmEmpty` the one it
+drops, and the apply thread's state names no literal.
+
+**Why deriving `#Hmeta` from `#HmetaSnap` (candidate (b)) was deferred.** `#HmetaSnap` consumes, and
+gives back, the backend's hook keys `hkOwn d.γB (hkData d.P D)` and payment rights. At boot the
+keys are already inside the batch lock (`Hnew`'s resource), so `NewServer` cannot hold them; the
+names equality `γA.ph.bwb/bopn = d.γB.wb/opn` is stated nowhere and `consInv_alloc` does not export
+it. Moving the creation step out of `bootstrap` would be false of Go: `bootstrap` takes the batch
+lock before returning (`CreateMetaBucket`, `bootstrap.go:266`; `Finalize`'s
+`MustCreateBackendBuckets`, :496; defrag, :268) and the backend's `run` goroutine commits from the
+open. A real derivation needs `bootstrapContract` in `OpenBackend`'s `openPre` shape (the caller's
+creation wand at the open, running `boot_create`), `consInv_alloc` split (names before the open,
+registry and invariant at the creation step) and exporting `γ.ph.bwb/bopn`, and `ciIdx` handed to
+the step: a rewrite of `NewServer.spec`'s premise to save one clause of the same trusted `bootOk`.
+Two spec-reviewer rounds agreed.
+
+**What restart support changes.** `HmEmpty` goes (with `HD`, `HDr`, `Hrms0`, the fresh raft hard
+state); `Hm0` stays with `D` the existing file. `NewServer`: the apply thread starts processed
+through `γA.m0.1` (no `bootOk` text change), and `Happ` at the stored index (`bootstrap`'s log line
+`ci.ConsistentIndex()`, `bootstrap.go:273`, loads it into `ci`). `recoverSnapshot`'s
+`RecoverSnapshotBackend` → `OpenSnapshotBackend` (a WAL snapshot newer than the db) is the snapshot
+install's own open: the second backend takes `#HmetaSnap` as `applySnapshot` does, the first is
+retired as `ci_swap_au` retires one. Boot and snapshot then share one mechanism: open data `D` with
+`metaIs D π.m0`, creation step `boot_create`/`snap_create`.
+
+**Open items (not changed now):**
+- `bootOk` declares `"#Hbh"` twice (`InvBoot.lean:326` and `:353` as of this entry, the D43 M5e and the D22 J1a clauses, same
+  text).
+- Whether `Hnew`'s write-back tokens cover `bootstrap`'s later batch-lock sessions: `Hnew` gives
+  every token (`ownToks γ.wb wbInit`) and a clean read buffer at `D`, while Go's `bootstrap` runs two
+  or three batch-lock sessions with writes after the open (`CreateMetaBucket`,
+  `MustCreateBackendBuckets`, defrag), each of which `batchTxBuffered.Unlock`'s spec charges a
+  write-back; `bootOk` folds them into `D` at no cost. `#HmetaSnap`'s `bFresh` premise at boot
+  would rest on the same fiction.
+
+No axiom or `sorry` added or removed; `bootOk`'s text changed (a `NewServer.spec` premise, approved).
+
+**Checks.** Full `lake build` green; `etc/tcb-report.py --check` and every collection match (772
+axioms, 10 `sorry`s: no change); `etc/api-check.py` and `etc/gen-interface.py --check --layout` on
+`etc/api/raft.txt` pass (0 new layout violations); `etc/gen-link.py`: every mode matches but the known
+`--lintest-logkvcompact` and `--lintest-logkvsnap`; `etc/gen-btree-link.py` matches.
+
+## B4: the revision bound named, not a law (2026-11-01 · the user's choice · `notes/bounds-plan.md`, B4)
+
+The client's posts restated `σ.rev + 3 < 2 ^ 63` (or `+ 4`) 15 times in specs, plus their proofs.
+It is a guarantee the reply gives its caller (a revision it may add up to three to), not a premise
+a caller threads, so it did not cost callers the reasoning the bounds plan is about. A law of the
+client model (`etcdKV γ σ` carrying the bound, the posts dropping it) would need the server's
+receipt-backed invariant inside the client's atomic update, whose masks exclude it, and would change
+how every caller extracts facts at the linearization point. Chosen: one name, `kvRevFits r`
+(`client/v3/KVService.lean`), stated of the reply's revision (`σ.rev` for a read, `σ.rev + 1` for
+a write), at exactly the old strength, with `kvRevFits.lt`/`.of_lt`/`.mono` so callers need not
+unfold it.
+
+## Shared size limits by name (2026-11-01 · the user's: "use the names for the shared limits" · `notes/bounds-plan.md`, B5)
+
+A length bound several specs share (`key.length ≤ 2 ^ 27`, 38 times in specs, though
+`etcdKeyMax = 2 ^ 27` existed) is written with a named constant defined next to the law that chose
+it: `opKeyMax`/`opValMax` (an operation a client library sends: `OpShape opKeyMax opKeyMax
+opValMax`), `etcdKeyMax` (etcd's stored keys and values), `leasingPfxMax`, `concPfxMax`/
+`concStrMax`, `recipesPfxMax`/`recipesStrMax`. Why: the name says why the bound is there, changing
+a limit is one edit, and a grep finds its uses. Each is a `def` tagged `@[word_unfold]`, so `word`
+sees through it; `omega` does not (nor through an `abbrev`), so the proofs that used `omega` on such
+a bound use `word`. *Rejected:* predicates (`keyOk k`) for a single `≤` (they hide the shape from
+`omega` and `word` alike); notation (no name in the elaborated statement, and `etcdKeyMax` is
+already a `def`). A literal stays for a bound local to one function. `opKeyMax` equals
+`etcdKeyMax` on purpose (a client re-sends keys it read); two names, two reasons.
 
 ## Watches across a compaction: the create token's fact, a disjunction (2026-11-01 · accepted, the user's approval · branch `watch-w1`)
 

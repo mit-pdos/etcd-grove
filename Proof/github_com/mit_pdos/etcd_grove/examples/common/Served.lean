@@ -77,15 +77,15 @@ theorem grpcUp_noRefusal (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
       grpcUp s E ρ γr gs lis addr cid mid R ∗ ⌜noRefusalAt addr⌝ := by
   iintro ⟨#Hreq, Hup⟩
   iunfold grpcUp at Hup
-  icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %d', %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbemu, Hgo, Hwpi, HWRs,
+  icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbemu, Hgo, HWRs,
     Hlis⟩
   ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal addr gs q p s lis E ρ [il, im, iu]
       [ims, is] svcs regs sregs HC.2.2.1 HEo) $$ [Hgsn Hlis]
   · iframe Hgsn Hlis; iframe #
   isplitl
   · iunfold grpcUp
-    iexists C, q, p, pw, il, im, iu, ims, is, svcs, regs, sregs, d'
+    iexists C, q, p, pw, il, im, iu, ims, is, svcs, regs, sregs
     iframe; iframe #
     ipureintro; exact HC
   ipureintro; exact Hnr
@@ -109,8 +109,8 @@ theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
       |={⊤}=> grpcServeTok gs lis ∗ etcdKVAt addr E ρ γr cid mid := by
   iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms, Hup⟩
   iunfold grpcUp at Hup
-  icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %d', %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, -, -, Hlis⟩
+  icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, -, Hlis⟩
   obtain ⟨HCA, -, Hregs, -⟩ := HC
   icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨-, -, Hrds⟩

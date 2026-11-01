@@ -53,6 +53,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchStep
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchClass
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthService
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.QuotaLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerLeaseRead
 
 @[expose] public section
 
@@ -1702,6 +1703,46 @@ theorem etcd_watch_served_etcd_chain (addr : GoString) (p : Loc) (R : WSrv GF) (
 
 end watch_wire
 
+/-! ## The lease reads at the gRPC level (`notes/lease-grpc-plan.md`, 2026-11-01)
+
+`LeaseServer.LeaseTimeToLive` and `LeaseServer.LeaseLeases` (linked, over the contract
+`raftLeaseRead`), and the contract discharged from the server's linked `EtcdServer.LeaseTimeToLive`
+and `EtcdServer.LeaseLeases` at `S := E.RD ∗ lessorRdOf γl ∗ threadTok` and the store's reader;
+the two specs' bounds premises are the discharge's. Both handler proofs rest on a `sorry` (Go's
+second `errors.Is(err, ErrLeaseNotFound)` answering differently from the first), pending
+Perennial's change (`notes/perennial-changes.md`, "`errors.Is` answers the same twice"). -/
+
+section leaseRead
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+open Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
+
+theorem leaseTimeToLive_handler :
+    EtcdGrove.v3rpc.LeaseServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) :=
+  LeaseServer.wp_LeaseTimeToLive
+
+theorem leaseLeases_handler :
+    EtcdGrove.v3rpc.LeaseServer.LeaseLeases.spec (GF := GF) (hG := hG) :=
+  LeaseServer.wp_LeaseLeases
+
+/-- **The lease-read contract, discharged** (`raftLeaseRead_of_server` at the linked results). -/
+theorem raftLeaseRead_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (γl : GName) (cs ms : w64) (hT : threadBound GF ≤ 2 ^ 30 - 1) (hR : receiptBound GF ≤ 2 ^ 62) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthAt s E ∗
+        srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ srvHeaderFacts s cs ms ⊢
+      raftLeaseRead s E γl iprop(E.RD ∗ lease.lessorRdOf γl ∗ threadTok)
+        (mvcc.storeReader E.s E.γ) :=
+  raftLeaseRead_of_server EtcdServer.wp_LeaseTimeToLive EtcdServer.wp_LeaseLeases
+    s E ρ γr γl cs ms hT hR
+
+end leaseRead
+
 end v3rpc
 
 #print axioms Perennial.EtcdGrove.v3rpc.checkIntervals_nodup
@@ -1747,6 +1788,9 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.userGrantRole_end_to_end_on
 #print axioms Perennial.EtcdGrove.v3rpc.roleGrantPermission_end_to_end_on
 #print axioms Perennial.EtcdGrove.v3rpc.etcd_auth_served
+#print axioms Perennial.EtcdGrove.v3rpc.leaseTimeToLive_handler
+#print axioms Perennial.EtcdGrove.v3rpc.leaseLeases_handler
+#print axioms Perennial.EtcdGrove.v3rpc.raftLeaseRead_server
 
 end EtcdGrove
 end Perennial

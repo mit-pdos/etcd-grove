@@ -114,7 +114,11 @@ def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
     -- (2026-10-31, #11) what the snapshot path takes of the construction (`isServerRun`'s; D22 J1b:
     -- the persistent bundle, the rest in `applyStartOn`)
-    "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt))
+    "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt) ∗
+    -- (J8a-3, 2026-11-01) the two configuration fields `start` writes, read-only from then on:
+    -- with `srvSnapRO`'s rebuild, the whole configuration read-only (`specSnap`'s `srvCfgAddr s ↦□`)
+    "#Hsncfg" ∷ (∃ sc scu : w64, srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
+      srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu))
 
 
 /-- **What `run` needs in the mode `on`** (the auth-mode merge's step 1, 2026-10-29):

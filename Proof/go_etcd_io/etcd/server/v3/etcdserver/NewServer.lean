@@ -24,6 +24,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NewUberApplier
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getTxPostLockInsideApplyHook
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__restoreAlarms
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AlarmGet
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.addFeatureGateMetrics
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NetBridge
@@ -322,6 +323,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (h94 : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
     -- (the lease-revoke plan, 2026-10-31) the lessor's `Revoke`, for `isApplyLessor`'s clause
     (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
+    -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, for the uber-applier's construction
+    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
     -- (M2, `NewServer.spec`'s compaction mode) what only the compacting server uses: the compacting store's
     -- backend contract's specs, and the compactor's run precondition's (the server's `Rev` and
     -- `Compact`, `CompactEnv.lean`)
@@ -378,6 +381,11 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- `bootOk` names two rows `Hmeta`: the storage's hard state, and the backend's
   irename : (memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) : IProp GF) =>
     Hmsmeta
+  -- (2026-11-01, "bootOk's boot metadata") the fresh file's meta keys: `γA.m0 = (0, 0)`, no
+  -- compaction recorded, the apply thread at `0`
+  replace Hci : bk.ci' = ciIface cil ∧ γA.m0 = (W64 0, W64 0) := ⟨Hci, m0_of_metaEmpty HmEmpty Hm0⟩
+  have HnoCmp : mvcc.noCmpData D := noCmpData_of_metaEmpty HmEmpty
+  ihave Hthr := thr_fresh γA Hci.2 $$ Hthr
   iStructNamed Hbc
   wp_auto
   ihave #Hmpkg : isPkgInit (PROP := IProp GF)
@@ -497,17 +505,20 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ipersist ElectionTicksS
   ipersist TickMsS
   ipersist ServerFeatureGateS
-  have hMR : 2 ^ 29 + 2 ^ 23 + 2 ^ 22 + 100 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
+  have hMR : 2 ^ 29 + 2 ^ 28 + 100 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
     rw [sync.rwmutex.actualMaxReaders_unseal]; decide
   have hM1 : 1 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by omega
   -- (D21 M2; rafthttp stage 6d) the transport's `lgMu` reader slots, one per concurrent call into
   -- the server's `Raft` (`Process`'s `Logger()`): `httpProcSlots` for the requests the member's raft
-  -- handler serves, `2 ^ 23` for the peers' goroutines (eight each, at most `2 ^ 20` peers)
+  -- handler serves
   have hHP : http.httpProcSlots = 2 ^ 29 := rfl
   icases replicate_takeN _ http.httpProcSlots _ (by omega) $$ Hlgrs with ⟨HlgServe, Hlgrs⟩
-  icases replicate_takeN _ (2 ^ 23) _ (by omega) $$ Hlgrs with ⟨HlgPeers, Hlgrs⟩
-  -- (D22 J-T) `2 ^ 22` for the transport's pool: four for each other member's one remote
-  icases replicate_takeN _ (2 ^ 22) _ (by omega) $$ Hlgrs with ⟨HlgPool, Hlgrs⟩
+  -- (J8a-6, 2026-11-01, the user's decision; until then `2 ^ 23` slots for the peers' goroutines,
+  -- eight each, and `2 ^ 22` for the remotes', four each, which the snapshots' `AddPeer`s consumed)
+  -- `2 ^ 28` for the transport's pool (`raftPool`, a thread pool: `threadBound GF ≤ 2 ^ 28`), which
+  -- the peers' receiving goroutines borrow from with their thread tokens
+  icases replicate_takeN _ (2 ^ 28) _ (by omega) $$ Hlgrs with ⟨HlgPool, Hlgrs⟩
+  imod raftPool_init (srvLgReader s) ⊤ (2 ^ 28) (by omega) $$ HlgPool with #HrPool
   icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨Hlr1, Hlgrs⟩
   wp_apply h19 $$ [Hlr1] as ⟨-, Hlr1⟩
   · iframe lg; iframe Hlr1; ipureintro; exact Hlgnn
@@ -812,7 +823,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- the rest buckets after the constructors: the boot state's
   rw [restBootBk_of_fresh d D HDr]
   clear hDl HDr
-  icases Hares with (⟨%Haerr, -⟩ | ⟨%Haerr, %alst, %Halnn, alarmStore, #HalS, HalOn, Hafr, #Hget, #HalAf⟩)
+  icases Hares with (⟨%Haerr, -⟩ | ⟨%Haerr, %alst, %Halnn, alarmStore, #HalS, HalOn, #HalA⟩)
   · -- the alarms could not be restored: the error returned, the store and `b` closed
     cases aerr with
     | nil => exact absurd rfl Haerr
@@ -836,12 +847,16 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ipersist consistIndex
   ipersist QuotaBackendBytesS
   ipersist WarningApplyDurationS
+  -- (2026-11-01, J8a-5) the store has no alarm: `Get` returns none under the user's half
+  ihave #Hv3apkg : isPkgInit (PROP := IProp GF)
+      pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm $$ []
+  · iPkgInit
+  ihave #Hget := alarmGetIs_empty hAG alst d.be $$ [$Hv3apkg $HalS]
   wp_apply (h33 s cfg.Logger' alst bc.cl' _ _ _ _ _ _ cfg.QuotaBackendBytes'
-      cfg.WarningApplyDuration' (DFrac.own 1) (alarmFresh alst) true Hbuq) $$ [be Hafr]
-    as %ua ⟨be, Hafr, %up, %uopts, %Hua, %Huopts, Hulate⟩
-  · iframe #; iframe be Hafr
-  -- the alarm store handed over: its apply contract (D14i)
-  ihave #HalA := HalAf $$ Hafr
+      cfg.WarningApplyDuration' (DFrac.own 1) (alarmEmpty alst d.be) true Hbuq) $$ [be HalOn]
+    as %ua ⟨be, HalOn, %up, %uopts, %Hua, %Huopts, Hulate⟩
+  · iframe #; iframe be HalOn
+  ihave HalOn := alarmEmpty_beOn alst d.be $$ HalOn
   (try wp_auto)
   -- the checkpointer, if the feature is on (`lessorCkptOk`; its later calls: `ckptEffectsOk`)
   ihave #Hlck' := Hlck
@@ -950,21 +965,16 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   have HLnd : (ps.filter (· ≠ id)).Nodup := Hrnodup.filter _
   have HLmem : ∀ f, f ∈ ps.filter (· ≠ id) ↔ f ∈ ps ∧ f ≠ id := by
     intro f; simp [List.mem_filter]
-  have HLlen : 4 * (ps.filter (· ≠ id)).length ≤ 2 ^ 22 := by
-    have := List.length_filter_le (· ≠ id) ps
-    have h2 := Hdirps.2
-    omega
-  ihave HRL := replicate_list4 (srvLgReader s) (ps.filter (· ≠ id)) (2 ^ 22) HLlen $$ HlgPool
   have Hturls : trURLsOk (netRh γn) id U.peer :=
     trURLsOk_of_dir γn dir Hγn.2 Hdirok ps Hdirps.1 id (Hrid ▸ Hrmem) U.peer HpU
   wp_apply (h38 γn t _ (srvLgReader s) γd (srvSnapRm γt ρ.rd) U.peer (ps.filter (· ≠ id)))
-    $$ [«$r0» Hlsf HRL] as %terr Htres
+    $$ [«$r0» Hlsf] as %terr Htres
   · iframe «$r0»
     simp only
     rw [Hid]
-    iframe Hnro Hss Hsdir HpU Hnet Hlsi Hlsf HRL
+    iframe Hnro Hss Hsdir HpU Hnet Hlsi Hlsf HrPool
     ipureintro; refine ⟨Hlgnn, Hssnn, Hlsnn, ?_, Hdid, HLnd, Hturls⟩ <;> first | rfl | trivial
-  icases Htres with (%Hterr | ⟨%Hterr, %c, %Hc, Htlive, Hun, Htoks, #HtrNet, #Htrr, -⟩)
+  icases Htres with (%Hterr | ⟨%Hterr, %c, %Hc, Htlive, Htoks, #HtrNet, #Htrr, -⟩)
   · -- the transport could not start: the error returned, the store and `b` closed
     cases terr with
     | nil => exact absurd rfl Hterr
@@ -1015,21 +1025,14 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   simp only at Hcl
   rw [Hid] at Hcl
   -- (rafthttp stage 6d) the loop's invariant: the ids `AddPeer` was called for (`L`, with the
-  -- transport's live state), each other member's so far, and `lgMu`'s reader slots left for the
-  -- next peers (eight each)
+  -- transport's live state), each other member's so far
   ihave IH2 : iprop(∃ (n : w64) (mm : Loc) (L : List w64), "i" ∷ i_ptr ↦ n ∗ "m" ∷ m_ptr ↦ mm ∗
-      "Htlive" ∷ trLive γn t c L ∗ "Hun" ∷ trUnopened c ∗ "Hnr" ∷ trNoRemAcc c L ∗
-      "HlgPeers" ∷ ([∗list] _x ∈ List.replicate (2 ^ 23 - 8 * L.length) (), srvLgReader s) ∗
+      "Htlive" ∷ trLive γn t c L ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z msl.len ∧ L.length ≤ (sint.Z n).toNat⌝ ∗
       "%Hcov" ∷ ⌜∀ (k : Nat) (p : Loc × w64), k < (sint.Z n).toNat → mps[k]? = some p →
-        p.2 ≠ id → p.2 ∈ L⌝) $$ [i m Htlive Hun HlgPeers]
+        p.2 ≠ id → p.2 ∈ L⌝) $$ [i m Htlive]
   · iexists W64 0, _, []
-    iframe i m Htlive Hun
-    isplitr
-    · iapply trNoRemAcc_nil
-    isplitl [HlgPeers]
-    · rw [show 2 ^ 23 - 8 * ([] : List w64).length = 2 ^ 23 from rfl]
-      iexact HlgPeers
+    iframe i m Htlive
     ipureintro
     refine ⟨⟨by decide, by have := Hmsll.2; word, by simp⟩, fun k p hk _ _ => ?_⟩
     exact absurd hk (by simp)
@@ -1042,10 +1045,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       "nodeID" ∷ bs.cluster'.[bootstrappedCluster, go!"nodeID"] ↦ bc.nodeID' ∗ "tr" ∷ tr_ptr ↦ t ∗
       "Hmsl" ∷ msl ↦* List.map Prod.fst mps ∗
       "Hmso" ∷ ([∗list] p ∈ mps, memberDirIs dir p.fst p.snd) ∗
-      "Htlive" ∷ trLive γn t c L ∗ "Hun" ∷ trUnopened c ∗ "Hnr" ∷ trNoRemAcc c L ∗
+      "Htlive" ∷ trLive γn t c L ∗
       "%Hcov" ∷ ⌜∀ f, (netRh γn).member f → f ≠ id → f ∈ L⌝))
     at (App (App (App (Val doFor) _) _) _) with [b Hb nodeID tr Hmsl Hmso IH2]
-    as ⟨%L, b, Hb, nodeID, tr, Hmsl, Hmso, Htlive, Hun, Hnr, %Hcov⟩
+    as ⟨%L, b, Hb, nodeID, tr, Hmsl, Hmso, Htlive, %Hcov⟩
   · wp_for IH2
     wp_if_destruct
     · obtain ⟨px, Hpx⟩ : ∃ px, mps[(sint.Z n).toNat]? = some px :=
@@ -1089,18 +1092,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       · have Hpid : px.2 ≠ id := by rw [← Hid]; simpa using Hif
         obtain ⟨Hne, Hpl, Hown, Hpm⟩ :=
           addPeer_dir γn dir Hγn.2 Hdirok ps Hdirps.1 px.2 Hpxps mpus Hmok.2
-        have H8 : 8 ≤ 2 ^ 23 - 8 * L.length := by
-          have h1 : mps.length = (sint.Z msl.len).toNat := Hmsll.1
-          have h2 := Hn.2.2
-          omega
-        icases replicate_takeN _ 8 _ H8 $$ HlgPeers with ⟨HR8, HlgPeers⟩
         wp_apply (h41 γn t c L px.2 mpu (DFrac.own 1) mpus Hne Hpl Hown
-            (by rw [Hcl]; exact fun h => Hpid h.symm) Hpm) $$ [Htlive Hmpus HR8]
-          as ⟨Htlive, Hmpus, Hnr1⟩
+            (by rw [Hcl]; exact fun h => Hpid h.symm) Hpm) $$ [Htlive Hmpus]
+          as ⟨Htlive, Hmpus⟩
         · iframe Htlive Hmpus
-          iframe #
-          rw [HcR]
-          iexact HR8
         (try wp_auto)
         ihave Hmso : iprop([∗list] p ∈ mps, memberDirIs (GF := GF) dir p.1 p.2)
             $$ [Hmso Hmid Hmpu Hmil Hmnm Hmcu Hmpus Hmcus]
@@ -1112,15 +1107,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
             · ipureintro; exact Hmnn
             iexists mpu, mcu, mil, mnm, mpus, mcus
             iframe; ipureintro; exact Hmok
-        ihave ⟨Hun, Hnr⟩ := trNoRemAcc_snoc c L px.2 $$ Hun Hnr Hnr1
         wp_for_post
         iframe
         iexists n + W64 1, _, L ++ [px.2]
         iframe
-        isplitl [HlgPeers]
-        · rw [show 2 ^ 23 - 8 * (L ++ [px.2]).length = 2 ^ 23 - 8 * L.length - 8 by
-            simp only [List.length_append, List.length_singleton]; omega]
-          iexact HlgPeers
         ipureintro
         refine ⟨⟨by word, by word, by simp only [List.length_append, List.length_singleton]; omega⟩, ?_⟩
         rw [Hn1]
@@ -1148,20 +1138,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- the transport, started: (rafthttp stage 6d) frozen, every other member a peer; the network's
   -- transport, its `Send` with the raft loop's key (fixed to it now)
   -- (D22 J-T, 2026-10-27: until then frozen here, D41) the transport stays live, the apply
-  -- thread's (`srvApRes`); opened now that every other member is a peer, the no-remote tokens
-  -- collected (`srvTrTok`'s)
+  -- thread's (`srvApRes`). (Until J8a-7, 2026-11-01, opened here and the no-remote tokens
+  -- collected, `srvTrTok`'s.)
   ihave #Hst : trState γn t c $$ [Htlive]
   · iunfold trLive at Htlive; icases Htlive with ⟨#H, -⟩; iexact H
-  imod (trOpen_state γn t c) $$ Hst Hun with #Hop
-  have HcLnd : c.L.Nodup := by rw [HcL]; exact Hrnodup.filter _
   have HcLm : ∀ f, f ∈ c.L ↔ f ∈ ps ∧ f ≠ id := by
     intro f; rw [HcL, List.mem_filter]; simp
-  have HcLcov : ∀ f ∈ c.L, f ∈ L := by
-    intro f hf
-    rw [HcLm] at hf
-    apply Hcov f _ hf.2
-    rw [netRh_member, Hγn.2]; exact (Hdirps.1 f).2 hf.1
-  ihave Hnrs := trNoRemAcc_full c L HcLnd HcLcov $$ Hnr
   ihave #Htrall0 := HtrNet
   imod (srvSendKey_fix γk s t c) $$ Hk with #Hkx
   ihave #Htrall : netTransport γn id (transportIface t) (srvTrKey γn γk) iprop(False) $$ []
@@ -1380,7 +1362,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (audit B4a) `monitorDowngrade`'s `lgMu` reader slot, and the monitors' configuration fields
   icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgMon, Hlgrs⟩
   -- (M2) one for the compactor's calls (`srvCompactR`)
-  icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgC, Hlgstock⟩
+  icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgC, -⟩
   ipersist CorruptCheckTimeS
   ipersist DowngradeCheckTimeS
   ihave HMon : srvMonitorCfg s cfg $$ [HlgMon]
@@ -1392,6 +1374,58 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ipersist EnableDistributedTracingS
   ipersist TracerOptionsS
   ipersist MaxConcurrentStreamsS
+  -- (J8a-3, 2026-11-01) the configuration read-only but for the two fields `start` writes
+  -- (`SnapshotCount`, `SnapshotCatchUpEntries`): the rest persisted, and the whole struct back
+  -- read-only from those two once `start` has persisted them (`srvSnapRO`'s rebuild)
+  ipersist NameS
+  ipersist DiscoveryCfgS
+  ipersist ClientURLsS
+  ipersist PeerURLsS
+  ipersist DataDirS
+  ipersist DedicatedWALDirS
+  ipersist MaxWALFilesS
+  ipersist BackendBatchIntervalS
+  ipersist BackendBatchLimitS
+  ipersist BackendFreelistTypeS
+  ipersist InitialPeerURLsMapS
+  ipersist InitialClusterTokenS
+  ipersist NewClusterS
+  ipersist PeerTLSInfoS
+  ipersist CORSS
+  ipersist HostWhitelistS
+  ipersist InitialElectionTickAdvanceS
+  ipersist BootstrapTimeoutS
+  ipersist AutoCompactionRetentionS
+  ipersist AutoCompactionModeS
+  ipersist CompactionBatchLimitS
+  ipersist CompactionSleepIntervalS
+  ipersist StrictReconfigCheckS
+  ipersist AuthTokenS
+  ipersist BcryptCostS
+  ipersist TokenTTLS
+  ipersist InitialCorruptCheckS
+  ipersist CompactHashCheckTimeS
+  ipersist PreVoteS
+  ipersist SocketOptsS
+  ipersist ForceNewClusterS
+  ipersist LeaseCheckpointIntervalS
+  ipersist EnableGRPCGatewayS
+  ipersist WatchProgressNotifyIntervalS
+  ipersist UnsafeNoFsyncS
+  ipersist MemoryMlockS
+  ipersist BootstrapDefragThresholdMegabytesS
+  ipersist MaxLearnersS
+  ipersist LocalAddressS
+  ihave #HcfgRb : iprop(□ (∀ (sc scu : w64),
+      srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc -∗
+      srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu -∗
+      srvCfgAddr s ↦□ ({ cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } :
+        go_etcd_io.etcd.server.v3.config.ServerConfig))) $$ []
+  · iintro !> %sc %scu #Hsc #Hscu
+    iapply typedPointsto_combine _ _ _ HCfgnn
+    simp only [TypedPointsto.typedPointstoDef]
+    rw [Hfgi]
+    iframe #
   -- (D22 S-g) the KV's closer, kept; (M2) in compaction mode split into the closer without the
   -- right and the apply thread's compaction right at `-1` (`srvKVCloserW_cmpRight_of_new`)
   ihave Hcl0 : srvKVCloser s (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF) $$ [Hwcl]
@@ -1408,42 +1442,19 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · iapply srvKVCloserW_cmpRight_of_new s _ (Hkbon rfl) Hcmw $$ Hcl0 Hcr
   imod HclR with ⟨Hcl, Hcmr⟩
   -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`srvSnapBoot`,
-  -- `SnapRO.lean`): its persistent bundle, the snapshot-taken counter's authority, the stocks of
-  -- the auth store's reader resource and `lgMu`'s reader slots (dropped here until J1a)
+  -- `SnapRO.lean`): its persistent bundle, the snapshot-taken counter's authority (J8a-6: no stock
+  -- of `lgMu`'s reader slots any more, the snapshots' `AddPeer`s borrowing from the transport's pool)
   ipersist DataDirS
   ipersist snapshotter
   ipersist beHooks
-  have hMR3 : 2 ^ 29 + 2 ^ 28 + 2 ^ 23 + 2 ^ 22 + 200 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
-    rw [sync.rwmutex.actualMaxReaders_unseal]; decide
   obtain ⟨stp, Hstp, Hstpss⟩ := Hrn15
-  -- (D22 J1b) the alarm store's `Get`, from its apply contract on the backend (`Tal = True`)
-  ihave #HalG : apply.alarmGetIs alst iprop(True) false $$ []
-  · iapply apply.alarmGetIs_of_ok
-    iapply apply.alarmGetOk_of _ γw.st (batchLockInv γA (metaTM d.γB d.P)) #hook
-      (srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be))
-    iunfold alarmApplyOk at HalA
-    iapply HalA $$ %({ d with cm := cmp } : mvcc.KBReal) %(mvcc.lateW ({ d with cm := cmp } : mvcc.KBReal).gx) %(batchLockInv γA (metaTM d.γB d.P)) %γw.st %hook
-      %(srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) [] HBs Hhooks [] []
-    · ipureintro; exact Hγw.2.2.1
-    · ipureintro; exact Hhknn
-    · iunfold rwLens
-      iintro !> Hrw
-      iunfold srvRestRWH at Hrw
-      iunfold srvObjsOn at Hrw
-      icases Hrw with ⟨Hrw, Hal, Hau, Hle, Hcb⟩
-      isplitl [Hrw Hal]
-      · iframe Hrw Hal
-      iintro ⟨Hrw, Hal⟩
-      iunfold srvRestRWH
-      iunfold srvObjsOn
-      iframe Hrw Hal Hau Hle Hcb
   ihave HsnapB : srvSnapBoot s cil
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF)
-      ρ.rd $$ [Hγt Hlgstock Hopen Hcl Hpath]
+      ρ.rd $$ [Hγt Hopen Hcl Hpath]
   · iunfold srvSnapBoot
     iexists γt
     iframe Hγt
-    isplitr [Hlgstock Hopen Hcl Hpath]
+    isplitr [Hopen Hcl Hpath]
     · icases Hbh with ⟨%lgh, #Hbh'⟩
       ihave #Hfix' := Hfix
       iunfold rnFixed at Hfix'
@@ -1473,17 +1484,15 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       · iunfold srvMembersDir; iexact Hmembers
       isplitr
       · rw [Hγw.2.1]; iexact Hlinv
-      iexists ws, γw; iframe kv Hws
-    isplitl [Hlgstock]
-    · iunfold srvSnapStock
-      iexists _
-      iframe Hlgstock
-      ipureintro; omega
+      isplitr
+      · iexists ws, γw; iframe kv Hws
+      -- (J8a-3) the configuration's rebuild
+      iexact HcfgRb
     -- (D22 J1b) the backend's stop channels and the constructors' half of its open token, the
-    -- alarm store's `Get`; (2026-11-01) the KV's closer, the backend file's directory entry
+    -- alarm store's field; (2026-11-01) the KV's closer, the backend file's directory entry
     iunfold srvSnapRes
-    iexists ({ d with cm := cmp } : mvcc.KBReal), alst, iprop(True), false, cfg.DataDir'
-    iframe HSC Hopen alarmStore HalG DataDirS Hpath
+    iexists ({ d with cm := cmp } : mvcc.KBReal), alst, cfg.DataDir'
+    iframe HSC Hopen alarmStore DataDirS Hpath
     isplitr
     · ipureintro; exact Hγw.2.2.1
     iexact Hcl
@@ -1494,16 +1503,16 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (by iintro H; iunfold srvBemuReader; iexists γbe; iunfold srvBemuReaderAt; iexact H) $$ Hbms
   ihave Hserve : srvServeBuilt s
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF)
-      cfg 64 $$ [WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs Hbms]
+      cfg 64 $$ [Hbmr2 Hlts Hlgs HRDs Hsrs Hbms]
   · unfold srvServeBuilt srvServeFacts srvServeCfg srvLeadTimeReader
     isplitr
     · isplitr
       · iexists ws, γw
         iframe kv Hws
         ipureintro; rfl
-      · iframe MaxConcurrentStreamsS TracerOptionsS EnableDistributedTracingS MetricsS WarningUnaryRequestDurationS MaxTxnOpsS LoggerS QuotaBackendBytesS
+      · iframe MaxConcurrentStreamsS TracerOptionsS EnableDistributedTracingS MetricsS WarningUnaryRequestDurationS MaxTxnOpsS LoggerS QuotaBackendBytesS WatchProgressNotifyIntervalS
         try (ipureintro; exact Hmto)
-    iframe WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs Hbms
+    iframe Hbmr2 Hlts Hlgs HRDs Hsrs Hbms
   -- (D19i part 2) the storage version monitor's read token, with an open share
   -- (D19i part 2) the storage version monitor's backend access
   ihave HSV : srvSVRes s
@@ -1520,14 +1529,14 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe Htrf
     isplitr
     · ipureintro; exact Hcl
-    iframe Hst Hop
+    iframe Hst
     ipureintro
     intro f hf hne
     rw [HcLm]
     refine ⟨?_, hne⟩
     rw [netRh_member, Hγn.2] at hf
     exact (Hdirps.1 f).1 hf
-  ihave HtokP : srvTrTok γn ⟨t, c⟩ $$ [HtokP Hnrs]
+  ihave HtokP : srvTrTok γn ⟨t, c⟩ $$ [HtokP]
   · iunfold srvTrTok; iframe
   -- (2026-10-23) `readych`, as a broadcast channel not yet closed: `publishV3`'s to close
   ipersist readych
@@ -1862,9 +1871,19 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       rw [hργ]
       iframe Hrc
       isplitl [Htlive]
-      · iexists γn, c
+      · iexists γn, c, ps
+        rw [Hγn.2]
         iframe Htlive
-        ipureintro; rw [Hcl, Hid]
+        isplitr
+        · ipureintro; rw [Hcl, Hid]
+        isplitr
+        · iunfold srvMembersDir; iexact Hmembers
+        ipureintro
+        refine ⟨Hdirok, Hdirps.1, fun f hf => ?_⟩
+        try rw [hργ] at hf
+        unfold SrvRaft.cfg at hf
+        rw [Hrvs, GMap.elem_of_list_to_set] at hf
+        exact (Hdirps.1 f).2 hf
       ipureintro
       refine ⟨⟨fun f hf hne => ?_, ?_⟩, ?_⟩
       · apply Hcov f _ (by rw [Hid] at hne; exact hne)
@@ -1912,7 +1931,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · iframe Hcvm Hpkg cluster; iframe Hk
     inext; iintro %v Hv; iapply HΦ' $$ Hv
   isplitr
-  · ipureintro; exact Hbnd
+  · ipureintro; omega
   -- `Hua`: the uber-applier (D14i): its options' contracts, its chain, the apply thread's KV
   have hm0 : γA.m0.1 = W64 0 := by rw [Hci.2]
   have hLoaded : ∀ st : ApplyState, stLoaded γA st = st := by
@@ -2243,9 +2262,11 @@ theorem NewServer.wp_proofM (on : Bool)
     -- (leases T3, 2026-10-25) the backend's delete, for the lessor's in the store's contract
     (h94 : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
     -- (the lease-revoke plan, 2026-10-31) the lessor's `Revoke`, for `isApplyLessor`'s clause
-    (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG)) :
+    (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
+    -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, for the uber-applier's construction
+    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG)) :
     NewServer.specM (GF := GF) (hG := hG) on := by
-  have h := NewServer.wp_proofG on false h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 hTP hKit h26 h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86 h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95
+  have h := NewServer.wp_proofG on false h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 hTP hKit h26 h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86 h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG
     (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h)
     (fun h => nomatch h)
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto Hacr Hcmp0
@@ -2371,7 +2392,9 @@ theorem NewServer.wp_proof
     (hRevS : mvcc.store.Rev.spec (GF := GF) (hG := hG))
     (hCmpS : EtcdServer.Compact.spec (GF := GF) (hG := hG))
     -- (the lease-revoke plan, 2026-10-31) the lessor's `Revoke`, for `isApplyLessor`'s clause
-    (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG)) :
+    (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
+    -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, for the uber-applier's construction
+    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hmrb Hmto
     Hacr Hcmp0 Hkcmp Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU
@@ -2380,7 +2403,7 @@ theorem NewServer.wp_proof
     h17 h18 h19 h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h26 h27 h28 h29 h31 h32 h33 h34 h35 h36
     h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
-    h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95
+    h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG
     (fun _ => hLSR) (fun _ => hUSR) (fun _ => hUP) (fun _ => hRevS) (fun _ => hCmpS)
   have Hmode : (if E₀.cmp = true then cfg.AutoCompactionMode' = go!"revision" ∧
       0 < sint.Z cfg.AutoCompactionRetention' ∧ false = false

@@ -34,7 +34,7 @@ theorem Queue.Enqueue.wp_proof (hNUK : newUniqueKV.spec (GF := GF) (hG := hG)) :
   ihave ⟨%kv, #Hkvf, #Hkv⟩ := isEtcdRecipesClient_kv $$ Hcl
   wp_auto
   wp_apply hNUK kv kp kp val lo $$ [$Hpkg $Hkv $Hlo] as %rk %err Hres
-  · ipureintro; exact ⟨List.prefix_refl kp, by omega, Hv⟩
+  · ipureintro; exact ⟨List.prefix_refl kp, by word, Hv⟩
   icases Hres with (⟨%Heq, %key, %r, -, #Hr, #Hc, %Hrr⟩ | %Hne)
   · subst Heq
     (try wp_auto)

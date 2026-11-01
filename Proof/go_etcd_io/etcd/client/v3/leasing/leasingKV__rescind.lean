@@ -149,7 +149,7 @@ theorem leasingKV.rescind.wp_proof
       refine ⟨TxnModel.under_nil _, ?_⟩
       simp [txnSizeOk, txnWireLen, cmpWireLen, TxnOp.wireLen, opWireLen, wireSlack, TxnBuild.empty,
         TxnModel.empty, compareM, cmpKeyM, op_simps]
-      omega
+      word
     (try wp_auto)
     cases err with
     | nil =>

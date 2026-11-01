@@ -36,7 +36,7 @@ model's auth state `sa`, unconstrained off), the apply thread's model (`kvApplie
 `srvAuthSt0`). **With auth on** (only): the server's lessor finds no lease (`srvLessorNilM`), the
 receipts' bound, and the rights to issue tokens at the consistent index (`srvTokRights`, `True` off),
 at the new consistent index after. -/
-abbrev EtcdServer.applyEntries.spec : Prop :=
+abbrev EtcdServer.applyEntries.specBatch : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (ep ap : Loc) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64)
     (rac : GoChan) (st : ApplyState) (ai at0 a t : w64) (cs : Loc)
@@ -78,6 +78,21 @@ abbrev EtcdServer.applyEntries.spec : Prop :=
             uint.Z (ciEff γ st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z ai')) ∧
           -- (D22 S-h, 2026-10-20; S-0's amendment) the applied term: the last applied entry's
           termAfter at0 (unapplied ai ms) at'⌝ }}
+
+/-- (2026-11-01, J8a-5) **No entries** (a snapshot batch's, `rnApSnap`: raft hands out no committed
+entries with a snapshot): `applyEntries` returns at once (its `len(apply.entries) == 0` check). -/
+abbrev EtcdServer.applyEntries.specNil : Prop :=
+  ∀ (s ep ap : Loc) (es : GoSlice),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      taEntriesAddr ap ↦□ es ∗ es ↦*□ ([] : List Loc) }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntries"))
+      (Val #ep)) (Val #ap))
+  {{ RET #(); True }}
+
+/-- **`applyEntries`'s spec** (J8b, 2026-11-01): both cases, the batch (`specBatch`) and the empty batch (`specNil`), for the link. -/
+abbrev EtcdServer.applyEntries.spec : Prop :=
+  EtcdServer.applyEntries.specBatch (GF := GF) (hG := hG) ∧
+    EtcdServer.applyEntries.specNil (GF := GF) (hG := hG)
 
 end spec
 

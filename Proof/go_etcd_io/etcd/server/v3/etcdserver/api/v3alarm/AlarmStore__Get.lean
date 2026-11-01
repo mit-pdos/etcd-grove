@@ -41,99 +41,90 @@ theorem alarmRet_nil (ret : Loc) : ret ↦ (zero_val GoSlice) ⊢ alarmRet (GF :
   · iapply ownSlice_nil
   · iapply ownSliceCap_nil
 
+/-- With the user's half at no alarm, the map `a.types` is empty (the lock's half agrees). -/
+theorem alarm_types_empty (tm tm' : GoMap) (gm : GMap w32 GoMap) :
+    tm ↦${DFrac.own (1 : Qp).half} gm ∗ tm ↦${DFrac.own (1 : Qp).half} (∅ : GMap w32 GoMap) ⊢
+      (⌜gm = ∅⌝ ∧ (tm ↦${DFrac.own (1 : Qp).half} gm ∗
+        tm ↦${DFrac.own (1 : Qp).half} (∅ : GMap w32 GoMap)) : IProp GF) := by
+  iintro H
+  isplit
+  · iapply ownMap_agree; iexact H
+  · iexact H
+
 theorem v3alarm.AlarmStore.Get.wp_proof :
     v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG) := by
-  intro a aty
-  wp_start as #Ha
-  iunfold isAlarmStore at Ha
-  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
-  · iPkgInit
-  wp_auto
-  wp_apply wp_with_defer as %defer defer
-  (try wp_auto)
-  wp_apply sync.Mutex.wp_Lock $$ [$Ha] as ⟨Hlocked, HR⟩
-  iunfold alarmLockInv at HR
-  icases HR with ⟨%tm, %gm, %ab, Htypes, Hm, Hin, Hbe⟩
-  ihave Hret := alarmRet_nil ret_ptr $$ ret
-  (try wp_auto)
-  wp_if_destruct
-  · -- every type
-    (try wp_func_lits)
+  intro a aty ob
+  cases ob with
+  | none =>
+    wp_start as ⟨#Ha, -⟩
+    iunfold isAlarmStore at Ha
+    ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+    · iPkgInit
+    wp_auto
+    wp_apply wp_with_defer as %defer defer
     (try wp_auto)
-    wp_bind (App (App (Val (map.forRange _ _)) _) _)
-    iapply wp_map_for_range (fun (_keys : List w32) (_i : Int) => iprop(alarmRet ret_ptr ∗
-        (∃ x : GoMap, t_ptr ↦ x) ∗ [∗map] _k ↦ t ∈ gm, ∃ im : GMap w64 Loc, t ↦$ im)) $$ Hm
-    iintro %keys %_
-    isplitl [Hret t Hin]
-    · iframe Hret Hin; iexists _; iframe t
-    isplitr
-    · imodintro
-      iintro %i %key %tv ⟨%Hkey, %Htv⟩ ⟨Hret, ⟨%x, Ht⟩, Hin⟩
-      (try wp_auto)
-      icases (BigSepM.bigSepM_lookup_acc (Φ := fun (_k : w32) (t : GoMap) =>
-          iprop(∃ im : GMap w64 Loc, t ↦$ im)) Htv).1 $$ Hin with ⟨⟨%im, Him⟩, Hback⟩
+    wp_apply sync.Mutex.wp_Lock $$ [$Ha] as ⟨Hlocked, HR⟩
+    iunfold alarmLockInv at HR
+    icases HR with ⟨%tm, %gm, %ab, Htypes, Hm, Hin, Hbe⟩
+    ihave Hret := alarmRet_nil ret_ptr $$ ret
+    (try wp_auto)
+    wp_if_destruct
+    · -- every type
       (try wp_func_lits)
       (try wp_auto)
       wp_bind (App (App (Val (map.forRange _ _)) _) _)
-      iapply wp_map_for_range (fun (_keys : List w64) (_i : Int) => iprop(alarmRet ret_ptr ∗
-          (∃ x : Loc, m_ptr ↦ x))) $$ Him
-      iintro %keys' %_
-      isplitl [Hret m]
-      · iframe Hret; iexists _; iframe m
+      iapply wp_map_for_range (fun (_keys : List w32) (_i : Int) => iprop(alarmRet ret_ptr ∗
+          (∃ x : GoMap, t_ptr ↦ x) ∗ [∗map] _k ↦ t ∈ gm, ∃ im : GMap w64 Loc, t ↦$ im)) $$ Hm
+      iintro %keys %_
+      isplitl [Hret t Hin]
+      · iframe Hret Hin; iexists _; iframe t
       isplitr
       · imodintro
-        iintro %i %key %vv ⟨%Hkey, %Hvv⟩ ⟨Hret, %x, Hmp⟩
+        iintro %i %key %tv ⟨%Hkey, %Htv⟩ ⟨Hret, ⟨%x, Ht⟩, Hin⟩
         (try wp_auto)
-        iunfold alarmRet at Hret
-        icases Hret with ⟨%sl, %l, Hret, Hsl, Hcap⟩
+        icases (BigSepM.bigSepM_lookup_acc (Φ := fun (_k : w32) (t : GoMap) =>
+            iprop(∃ im : GMap w64 Loc, t ↦$ im)) Htv).1 $$ Hin with ⟨⟨%im, Him⟩, Hback⟩
+        (try wp_func_lits)
         (try wp_auto)
-        wp_apply wp_slice_literal (V := Loc) [vv]
+        wp_bind (App (App (Val (map.forRange _ _)) _) _)
+        iapply wp_map_for_range (fun (_keys : List w64) (_i : Int) => iprop(alarmRet ret_ptr ∗
+            (∃ x : Loc, m_ptr ↦ x))) $$ Him
+        iintro %keys' %_
+        isplitl [Hret m]
+        · iframe Hret; iexists _; iframe m
         isplitr
-        · ipureintro; rfl
-        iintro %sl2 ⟨Hsl2, -⟩
-        (try wp_auto)
-        wp_apply wp_slice_append (V := Loc) _ _ _ _ _ $$ [$Hsl $Hcap $Hsl2] as %sl3 ⟨Hsl, Hcap, -⟩
+        · imodintro
+          iintro %i %key %vv ⟨%Hkey, %Hvv⟩ ⟨Hret, %x, Hmp⟩
+          (try wp_auto)
+          iunfold alarmRet at Hret
+          icases Hret with ⟨%sl, %l, Hret, Hsl, Hcap⟩
+          (try wp_auto)
+          wp_apply wp_slice_literal (V := Loc) [vv]
+          isplitr
+          · ipureintro; rfl
+          iintro %sl2 ⟨Hsl2, -⟩
+          (try wp_auto)
+          wp_apply wp_slice_append (V := Loc) _ _ _ _ _ $$ [$Hsl $Hcap $Hsl2] as %sl3 ⟨Hsl, Hcap, -⟩
+          (try wp_auto)
+          unfold forMapPostcondition
+          iright; ileft
+          isplitr
+          · ipureintro; rfl
+          isplitl [Hret Hsl Hcap]
+          · iunfold alarmRet; iexists sl3, _; iframe
+          · iexists vv; iframe
+        iintro ⟨Hret, Hmp⟩ Him
         (try wp_auto)
         unfold forMapPostcondition
         iright; ileft
         isplitr
         · ipureintro; rfl
-        isplitl [Hret Hsl Hcap]
-        · iunfold alarmRet; iexists sl3, _; iframe
-        · iexists vv; iframe
-      iintro ⟨Hret, Hmp⟩ Him
-      (try wp_auto)
-      unfold forMapPostcondition
-      iright; ileft
-      isplitr
-      · ipureintro; rfl
-      iframe Hret
-      isplitl [Ht]
-      · iexists _; iframe Ht
-      iapply Hback
-      iexists im; iframe Him
-    iintro ⟨Hret, -, Hin⟩ Hm
-    (try wp_auto)
-    iunfold alarmRet at Hret
-    icases Hret with ⟨%sl, %l, Hret, Hsl, Hcap⟩
-    (try wp_auto)
-    wp_apply sync.Mutex.wp_Unlock $$ [$Ha $Hlocked Htypes Hm Hin Hbe]
-    · inext
-      iunfold alarmLockInv
-      iexists tm, gm, ab
-      iframe
-    (try wp_auto)
-    iapply HΦ
-    itrivial
-  · -- one type: its set, if any
-    (try wp_auto)
-    wp_apply (wp_map_lookup1 (K := w32) (V := GoMap) _ _ tm gm aty) $$ [$Hm] as Hm
-    (try wp_func_lits)
-    (try wp_auto)
-    cases hlk : gm !! aty with
-    | none =>
-      simp only [Option.getD_none]
-      rw [show (zero_val GoMap : GoMap) = map.nil from rfl]
+        iframe Hret
+        isplitl [Ht]
+        · iexists _; iframe Ht
+        iapply Hback
+        iexists im; iframe Him
+      iintro ⟨Hret, -, Hin⟩ Hm
       (try wp_auto)
       iunfold alarmRet at Hret
       icases Hret with ⟨%sl, %l, Hret, Hsl, Hcap⟩
@@ -145,53 +136,140 @@ theorem v3alarm.AlarmStore.Get.wp_proof :
         iframe
       (try wp_auto)
       iapply HΦ
-      itrivial
-    | some tv =>
-      simp only [Option.getD_some]
-      icases (BigSepM.bigSepM_lookup_acc (Φ := fun (_k : w32) (t : GoMap) =>
-          iprop(∃ im : GMap w64 Loc, t ↦$ im)) hlk).1 $$ Hin with ⟨⟨%im, Him⟩, Hback⟩
-      wp_bind (App (App (Val (map.forRange _ _)) _) _)
-      iapply wp_map_for_range (fun (_keys : List w64) (_i : Int) => iprop(alarmRet ret_ptr ∗
-          (∃ x : Loc, m_ptr ↦ x))) $$ Him
-      iintro %keys' %_
-      isplitl [Hret m]
-      · iframe Hret; iexists _; iframe m
-      isplitr
-      · imodintro
-        iintro %i %key %vv ⟨%Hkey, %Hvv⟩ ⟨Hret, %x, Hmp⟩
+      iframe; ipureintro; simp
+    · -- one type: its set, if any
+      (try wp_auto)
+      wp_apply (wp_map_lookup1 (K := w32) (V := GoMap) _ _ tm gm aty) $$ [$Hm] as Hm
+      (try wp_func_lits)
+      (try wp_auto)
+      cases hlk : gm !! aty with
+      | none =>
+        simp only [Option.getD_none]
+        rw [show (zero_val GoMap : GoMap) = map.nil from rfl]
         (try wp_auto)
         iunfold alarmRet at Hret
         icases Hret with ⟨%sl, %l, Hret, Hsl, Hcap⟩
         (try wp_auto)
-        wp_apply wp_slice_literal (V := Loc) [vv]
-        isplitr
-        · ipureintro; rfl
-        iintro %sl2 ⟨Hsl2, -⟩
+        wp_apply sync.Mutex.wp_Unlock $$ [$Ha $Hlocked Htypes Hm Hin Hbe]
+        · inext
+          iunfold alarmLockInv
+          iexists tm, gm, ab
+          iframe
         (try wp_auto)
-        wp_apply wp_slice_append (V := Loc) _ _ _ _ _ $$ [$Hsl $Hcap $Hsl2] as %sl3 ⟨Hsl, Hcap, -⟩
-        (try wp_auto)
-        unfold forMapPostcondition
-        iright; ileft
+        iapply HΦ
+        iframe; ipureintro; simp
+      | some tv =>
+        simp only [Option.getD_some]
+        icases (BigSepM.bigSepM_lookup_acc (Φ := fun (_k : w32) (t : GoMap) =>
+            iprop(∃ im : GMap w64 Loc, t ↦$ im)) hlk).1 $$ Hin with ⟨⟨%im, Him⟩, Hback⟩
+        wp_bind (App (App (Val (map.forRange _ _)) _) _)
+        iapply wp_map_for_range (fun (_keys : List w64) (_i : Int) => iprop(alarmRet ret_ptr ∗
+            (∃ x : Loc, m_ptr ↦ x))) $$ Him
+        iintro %keys' %_
+        isplitl [Hret m]
+        · iframe Hret; iexists _; iframe m
         isplitr
-        · ipureintro; rfl
-        isplitl [Hret Hsl Hcap]
-        · iunfold alarmRet; iexists sl3, _; iframe
-        · iexists vv; iframe
-      iintro ⟨Hret, Hmp⟩ Him
+        · imodintro
+          iintro %i %key %vv ⟨%Hkey, %Hvv⟩ ⟨Hret, %x, Hmp⟩
+          (try wp_auto)
+          iunfold alarmRet at Hret
+          icases Hret with ⟨%sl, %l, Hret, Hsl, Hcap⟩
+          (try wp_auto)
+          wp_apply wp_slice_literal (V := Loc) [vv]
+          isplitr
+          · ipureintro; rfl
+          iintro %sl2 ⟨Hsl2, -⟩
+          (try wp_auto)
+          wp_apply wp_slice_append (V := Loc) _ _ _ _ _ $$ [$Hsl $Hcap $Hsl2] as %sl3 ⟨Hsl, Hcap, -⟩
+          (try wp_auto)
+          unfold forMapPostcondition
+          iright; ileft
+          isplitr
+          · ipureintro; rfl
+          isplitl [Hret Hsl Hcap]
+          · iunfold alarmRet; iexists sl3, _; iframe
+          · iexists vv; iframe
+        iintro ⟨Hret, Hmp⟩ Him
+        (try wp_auto)
+        iunfold alarmRet at Hret
+        icases Hret with ⟨%sl, %l, Hret, Hsl, Hcap⟩
+        (try wp_auto)
+        wp_apply sync.Mutex.wp_Unlock $$ [$Ha $Hlocked Htypes Hm Hback Him Hbe]
+        · inext
+          iunfold alarmLockInv
+          iexists tm, gm, ab
+          iframe
+          iapply Hback
+          iexists im; iframe Him
+        (try wp_auto)
+        iapply HΦ
+        iframe; ipureintro; simp
+  | some be =>
+    -- (J8a-5) no alarm: the map is empty, so the result is `nil`
+    wp_start as ⟨#Ha, He⟩
+    iunfold isAlarmStore at Ha
+    ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+    · iPkgInit
+    wp_auto
+    wp_apply wp_with_defer as %defer defer
+    (try wp_auto)
+    wp_apply sync.Mutex.wp_Lock $$ [$Ha] as ⟨Hlocked, HR⟩
+    iunfold alarmLockInv at HR
+    icases HR with ⟨%tm, %gm, %ab, Htypes, Hm, Hin, Hbe⟩
+    iunfold alarmEmpty at He
+    iunfold alarmBeOnM at He
+    icases He with ⟨%abl, %lg, %tm', %Hlg, Hbe', #Hb, #Hl, Htypes', Hm'⟩
+    icombine Htypes Htypes' gives %Htm
+    subst Htm
+    icases alarm_types_empty tm tm gm $$ [$Hm $Hm'] with ⟨%Hgm, Hm, Hm'⟩
+    subst Hgm
+    (try wp_auto)
+    wp_if_destruct
+    · -- every type: no key
+      (try wp_func_lits)
       (try wp_auto)
-      iunfold alarmRet at Hret
-      icases Hret with ⟨%sl, %l, Hret, Hsl, Hcap⟩
+      wp_bind (App (App (Val (map.forRange _ _)) _) _)
+      iapply wp_map_for_range (fun (_keys : List w32) (_i : Int) => iprop(
+          ret_ptr ↦ (zero_val GoSlice) ∗ (∃ x : GoMap, t_ptr ↦ x))) $$ Hm
+      iintro %keys %_
+      isplitl [ret t]
+      · iframe ret; iexists _; iframe t
+      isplitr
+      · imodintro
+        iintro %i %key %tv ⟨%Hkey, %Htv⟩ -
+        exfalso; simp at Htv
+      iintro ⟨ret, -⟩ Hm
       (try wp_auto)
-      wp_apply sync.Mutex.wp_Unlock $$ [$Ha $Hlocked Htypes Hm Hback Him Hbe]
+      wp_apply sync.Mutex.wp_Unlock $$ [$Ha $Hlocked Htypes Hm Hin Hbe]
       · inext
         iunfold alarmLockInv
-        iexists tm, gm, ab
+        iexists tm, ∅, ab
         iframe
-        iapply Hback
-        iexists im; iframe Him
       (try wp_auto)
       iapply HΦ
-      itrivial
+      isplitl
+      · iunfold alarmEmpty; iunfold alarmBeOnM; iexists abl, lg, tm; iframe; iframe #
+        ipureintro; exact Hlg
+      ipureintro; intro; rfl
+    · -- one type: none
+      (try wp_auto)
+      wp_apply (wp_map_lookup1 (K := w32) (V := GoMap) _ _ tm ∅ aty) $$ [$Hm] as Hm
+      (try wp_func_lits)
+      (try wp_auto)
+      (try simp only [GMap.lookup_empty, Option.getD_none])
+      rw [show (zero_val GoMap : GoMap) = map.nil from rfl]
+      (try wp_auto)
+      wp_apply sync.Mutex.wp_Unlock $$ [$Ha $Hlocked Htypes Hm Hin Hbe]
+      · inext
+        iunfold alarmLockInv
+        iexists tm, ∅, ab
+        iframe
+      (try wp_auto)
+      iapply HΦ
+      isplitl
+      · iunfold alarmEmpty; iunfold alarmBeOnM; iexists abl, lg, tm; iframe; iframe #
+        ipureintro; exact Hlg
+      ipureintro; intro; rfl
 
 end proof
 

@@ -456,6 +456,97 @@ theorem kvApplied_of_jump (γ : ServerRaftNames) (γk : KVNames) (A' : List Entr
   iframe H
   ipureintro; exact hch
 
+/-- (2026-11-01, J8a-5) **`ep.confState` after a snapshot reports the voters**: the snapshot's
+conf state (`srvSnapApplied`'s `csOptA`), certified (`rnApSnap`'s `snapshotCert`, valid by
+`snapshotCert_valid`), is the membership after its committed prefix, the voters' simple one at every
+index (`srv_confAt_simple`); not `nil`, since the voters hold the local member `lid`. -/
+theorem epCsVoters_of_snap (γ : ServerRaftNames) (sv : SnapshotM) (cs : Loc) (lid : w64)
+    (hpos : 0 < uint.Z sv.Metadata'.Index') (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
+    (hlid : lid ∈ γ.raft.cfg) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗
+      (letI := srvStor (GF := GF) γ.raft; snapshotCert γ.raft.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) -∗
+      csOptA cs DFrac.discard sv.Metadata'.ConfState' ={⊤}=∗ epCsVoters γ cs := by
+  letI := srvStor (GF := GF) γ.raft
+  iintro #Hinv #Hk #Hcs
+  ihave #Hinv' := Hinv
+  iunfold srvRaftLogInv at Hinv'
+  icases Hinv' with ⟨-, #Hcl, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨#Hc, -⟩
+  ihave #Hv := snapshotCert_valid γ.raft.cl srvClusterN sv hpos h61 $$ [Hc Hk]
+  · iframe Hc Hk
+  iunfold snapshotValid at Hv
+  icases Hv with ⟨%l, %m, #Hlb, #Hm, -, %Hf⟩
+  imod srv_confAt_simple γ l l.length (Nat.le_refl _) ⊤ (fun _ _ => CoPset.mem_full)
+    (fun _ _ => CoPset.mem_full) $$ [Hinv Hlb] with #Hs
+  · iframe Hinv Hlb
+  ihave %Heq := confAt_agree γ.raft.cl l.length m (Membership.simple γ.raft.cfg) $$ [Hm Hs]
+  · iframe Hm Hs
+  subst Heq
+  have hci : confStateIs sv.Metadata'.ConfState' (Membership.simple γ.raft.cfg) := Hf.2.2.2.1
+  imodintro
+  iunfold epCsVoters
+  iunfold csOptA at Hcs
+  icases Hcs with (%Hn | #H | #H)
+  · exfalso
+    have hv := hci.1
+    rw [Hn.2] at hv
+    exact List.not_mem_nil (hv.mem_iff.2 ((GMap.elem_of_elements _ lid).2 hlid))
+  · iexists sv.Metadata'.ConfState'
+    iframe H
+    ipureintro; exact hci
+  · iexists sv.Metadata'.ConfState'
+    isplitl
+    · iunfold csPts at H
+      icases H with ⟨%a1, %a2, %a3, %a4, %pa, H⟩
+      iNamed H
+      iunfold csPts
+      iexists a1, a2, a3, a4, pa
+      simp only [named]
+      iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+      ipureintro; exact ⟨Hnn, fun h => by cases h⟩
+    ipureintro; exact hci
+
+/-- (2026-11-01, J8a-5) **The image's log ends at the snapshot's term**: the certified snapshot's
+committed prefix (`snapshotValid`'s, of length its index, its last entry of its term) and the
+image's committed log `A'` of the same length (from an empty prefix) agree. -/
+theorem lastTermIs_of_snap (γ : ServerRaftNames) (sv : SnapshotM) (A' : List EntryModel)
+    (hpos : 0 < uint.Z sv.Metadata'.Index') (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
+    (hpre : γ.pre = []) (hlen : uint.Z sv.Metadata'.Index' = A'.length) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗
+      (letI := srvStor (GF := GF) γ.raft; snapshotCert γ.raft.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) -∗
+      srvRLogLb γ A' -∗ ⌜lastTermIs A' sv.Metadata'.Term'⌝ := by
+  letI := srvStor (GF := GF) γ.raft
+  iintro #Hinv #Hk #HA
+  ihave #Hinv' := Hinv
+  iunfold srvRaftLogInv at Hinv'
+  icases Hinv' with ⟨-, #Hcl, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨#Hc, -⟩
+  ihave #Hv := snapshotCert_valid γ.raft.cl srvClusterN sv hpos h61 $$ [Hc Hk]
+  · iframe Hc Hk
+  iunfold snapshotValid at Hv
+  icases Hv with ⟨%l, %m, #Hlb, -, -, %Hf⟩
+  iunfold srvRLogLb at HA
+  icases HA with ⟨#HA, -⟩
+  icases isCommittedLogLb_agree γ.raft.cl l (srvLE γ A') $$ [Hlb HA] with %H
+  · iframe Hlb HA
+  ipureintro
+  have hl : (srvLE γ A').length = l.length := by
+    rw [srvLE_length, hpre, Hf.1]; simp only [List.length_nil, Nat.zero_add]
+    have := uint_nat_eq sv.Metadata'.Index'; omega
+  have heq : srvLE γ A' = l := by
+    rcases H with h | h
+    · exact (h.eq_of_length hl.symm).symm
+    · exact h.eq_of_length hl
+  have ht := Hf.2.2.1
+  rw [← heq] at ht
+  unfold srvLE at ht
+  rw [hpre, List.nil_append, List.getLast?_map, Option.map_map] at ht
+  unfold lastTermIs
+  right
+  exact ht
+
 end lemmas
 
 end EtcdGrove

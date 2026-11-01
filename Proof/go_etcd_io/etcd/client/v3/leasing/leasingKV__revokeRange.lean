@@ -82,8 +82,8 @@ theorem leasingKV.revokeRange.wp_proof
     ipureintro
     refine ⟨by simp [opGetPanics, op_simps], by simp [op_simps], ?_⟩
     apply opSizeOk_opGetModel (K := 2 ^ 27 + 2 ^ 26) (E := 2 ^ 27 + 2 ^ 26) (V := 0)
-    · exact optsKeep_cons (withRangeM_keep (e := L) (by omega)) (optsKeep_nil _ _ _)
-    · simp only [List.length_append]; omega
+    · exact optsKeep_cons (withRangeM_keep (e := L) (by word)) (optsKeep_nil _ _ _)
+    · simp only [List.length_append]; word
     · decide
   iunfold kvGetResult at Hgres
   icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, -, -, -, -, -, Hgr⟩)
