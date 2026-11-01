@@ -499,14 +499,6 @@ instance BksDraft.backend.rbOwnIn_timeless (γ : BNames) (S : GoString → Prop)
     (r : GMap GoString BktData) : Timeless (BksDraft.backend.rbOwnIn (GF := GF) γ S r) := by
   sorry
 
-/-- **Exclusive**: two parts of a tracked bucket (of the backend's parameters: `isBackend` fixes
-`P` for `γ`) do not coexist (one writer per bucket). -/
-theorem BksDraft.backend.rbPart_excl (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc)
-    (n : GoString) (r r' : GMap GoString BktData) (hn : P.RB n = true) :
-    isBackend (GF := GF) γ P W Pk b ∗ BksDraft.backend.rbPart γ (fun m => m = n) r ∗
-      BksDraft.backend.rbPart γ (fun m => m = n) r' ⊢ False := by
-  sorry
-
 /-- **The writer's contents agree with the batch lock's** on the part's buckets (today's `rbOwn`'s
 agreement, per part; an untracked name of `S` is absent from `r`). -/
 theorem BksDraft.backend.batchLocked_rbPart (γ : BNames) (P : BParams) (b : Loc) (st : BSess)
@@ -549,8 +541,9 @@ theorem BksDraft.backend.rtHeldF_rbOwnIn (γ : BNames) (P : BParams) (b rtx : Lo
   sorry
 
 /-- **The batch lock's side of the tracked buckets** (what `backend.Snapshot`'s observation hands,
-in place of today's `rbOwn γ r`, the lock's half under the client's name: with `rbPart_excl` that
-would refute a caller holding its own part; round 2). Opaque in the draft. -/
+in place of today's `rbOwn γ r`, the lock's half under the client's name, which a part of
+`rbPart`'s representation, the readers' half or a receipt, no longer is; round 2). Opaque in the
+draft. -/
 opaque BksDraft.backend.rbLock (γ : BNames) (r : GMap GoString BktData) : IProp GF := iprop(True)
 
 /-- The lock's side agrees with a part, on the part's buckets. -/
@@ -818,8 +811,9 @@ def BksDraft.backend.rdStock (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
 /-- **What the constructor gives, restated** (`newPostK`): today's, with the tracked buckets **idle**
 (`rbOwnIn γ ⊤ (rbData P D)`: a fresh backend has no session, its readers see bbolt's data), and the
 reader slots as **the backend's pool** (`rdPool`, decision 2: for the readers that hold no lock of
-their owner's, the member, alarm and auth-admin reads, `Recover`s, the storage-version monitor:
-round 3) and the counted remainder (`rdStock`) for the owners that pool bundles. Q2. -/
+their owner's across a read transaction, all on the apply thread: `MustReadMembersFromBackend`, the
+alarm store's `GetAllAlarms`, `authStore.Recover`, `UserGet`/`UserList`/`RoleGet`/`Authenticate`:
+rounds 3-4) and the counted remainder (`rdStock`) for the owners that pool bundles. Q2. -/
 def BksDraft.backend.newPostK (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Loc)
     (D : Data) : IProp GF :=
   iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ b ∗ K γ ∗
