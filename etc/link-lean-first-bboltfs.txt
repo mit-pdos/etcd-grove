@@ -17,3 +17,6 @@ bboltfs_mmapSize:
 bboltfs_DB__meta: bboltfs_pickMeta
 bboltfs_DB__readPageSize: bboltfs_pageAt bboltfs_Page__meta bboltfs_Meta__validate os_File__ReadAt
 os_File__ReadAt:
+bboltfs_DB__munmap: unix_Munmap
+# the os/syscall/unix specs minibolt calls: `?` while their proofs are `sorry` (osfs-specs)
+unix_Munmap: ?

@@ -9,6 +9,7 @@ hand.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__meta
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__munmap
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__readPageSize
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__sum64
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__validate
@@ -19,6 +20,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.mmapSize
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pageAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pickMeta
 public import Proof.os.File__ReadAt
+public import Spec.golang_org.x.sys.unix.Munmap
 
 @[expose] public section
 
@@ -82,6 +84,23 @@ theorem wp_mmapSize :
   EtcdGrove.bboltfs.mmapSize.wp_proof
 
 end links
+
+/-! The results that reach a function specified but not proved yet (a later unit's):
+its spec is a hypothesis (`h_<fn>`) of each of them. -/
+section links_pending
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
+variable (h_unix_Munmap : EtcdGrove.golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG))
+include h_unix_Munmap
+
+theorem DB.wp_munmap :
+    EtcdGrove.bboltfs.DB.munmap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.DB.munmap.wp_proof h_unix_Munmap
+
+end links_pending
 
 end bboltfs
 end EtcdGrove
