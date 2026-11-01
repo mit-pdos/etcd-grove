@@ -186,3 +186,8 @@ every change marks what it changes as dirty, but the trusted file does not state
 4. `Specs.lean` (untrusted): mapped cells use the ordinary byte points-to; per-byte file ghost state
    that owns the mapped cells; the durable/dirty ghost state; `ExtCrashInterp`.
 5. Adequacy with the environment assumptions as premises.
+6. minibolt's proofs (`Proof/github_com/mit_pdos/etcd_grove/examples/bboltfs/`, linked by
+   `etc/gen-link.py --bboltfs`): its page and meta helpers (`page.go`: `pageAt`, `Page.meta`,
+   `Meta.sum64`, `Meta.validate`, `Meta.write`, `initPages`, `pickMeta`) are proved, over byte
+   points-tos at any fraction (`Pages.lean`'s views), so that they apply to the mapped cells'
+   client halves. The rest of minibolt (`minibolt.go`) is not specified yet.

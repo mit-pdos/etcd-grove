@@ -77,7 +77,7 @@ def pickValid (a : Loc) (va : Meta) (b : Loc) (vb : Meta) : Loc :=
 /-- `pickMeta(m0, m1)` of metas `v0`, `v1`: the valid one with the higher txid (`m0` on a tie), or
 the other if only it is valid, or nil. -/
 def pickMetaRes (m0 : Loc) (v0 : Meta) (m1 : Loc) (v1 : Meta) : Loc :=
-  if v0.txid' < v1.txid' then pickValid m1 v1 m0 v0 else pickValid m0 v0 m1 v1
+  if uint.Z v0.txid' < uint.Z v1.txid' then pickValid m1 v1 m0 v0 else pickValid m0 v0 m1 v1
 
 end pick
 

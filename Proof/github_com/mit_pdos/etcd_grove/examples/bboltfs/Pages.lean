@@ -76,6 +76,43 @@ theorem initBytes_length : initBytes.length = 4 * pageBytes := by
   simp only [initBytes, List.length_append, metaPageBytes_length, emptyPageBytes_length]
   omega
 
+/-- The zero `Meta`. -/
+def zeroMeta : Meta :=
+  ⟨W32 0, W32 0, W32 0, W32 0, ⟨W64 0, W64 0⟩, W64 0, W64 0, W64 0, W64 0⟩
+
+theorem encode_pageHdr_zero : encode (pageHdr (W64 0) (W16 0)) = zeroBytes 16 := by
+  show encode ((W64 0 : Pgid), W16 0, W16 0, W32 0) = _
+  simp only [ByteEncoding.prod_encode, encode_w64, encode_w16, encode_w32]
+  rfl
+
+theorem encode_zeroMeta : encode zeroMeta = zeroBytes 64 := by
+  show encode (W32 0, W32 0, W32 0, W32 0, (⟨W64 0, W64 0⟩ : InBucket), (W64 0 : Pgid),
+    (W64 0 : Pgid), W64 0, W64 0) = _
+  have hb : encode (⟨W64 0, W64 0⟩ : InBucket) = encode ((W64 0 : Pgid), W64 0) := rfl
+  simp only [ByteEncoding.prod_encode, hb, encode_w64, encode_w32]
+  rfl
+
+/-- A zero page, viewed as a meta page. -/
+theorem zeroPage_meta :
+    zeroBytes pageBytes = encode (pageHdr (W64 0) (W16 0)) ++ encode zeroMeta ++
+      zeroBytes (pageBytes - 80) := by
+  rw [encode_pageHdr_zero, encode_zeroMeta, List.replicate_append_replicate,
+    List.replicate_append_replicate]
+  rfl
+
+/-- A zero page, viewed as a page with a header. -/
+theorem zeroPage_hdr :
+    zeroBytes pageBytes = encode (pageHdr (W64 0) (W16 0)) ++ zeroBytes (pageBytes - 16) := by
+  rw [encode_pageHdr_zero, List.replicate_append_replicate]
+  rfl
+
+/-- Four zero pages. -/
+theorem zeroBytes_four :
+    zeroBytes (4 * pageBytes) =
+      zeroBytes pageBytes ++ zeroBytes pageBytes ++ zeroBytes pageBytes ++ zeroBytes pageBytes := by
+  simp only [List.replicate_append_replicate]
+  rfl
+
 end init
 
 /-! ## Typed views of a page's bytes -/
@@ -136,6 +173,106 @@ theorem pageHdr_view (l : Loc) (dq : DFrac) (hdr : Page) (rest : List w8) (hl : 
     iapply hs.2
     iframe H2
     iapply th.1 $$ Hh
+
+/-- Four pages' bytes are each page's bytes at its offset. -/
+theorem fourPages_view (l : Loc) (dq : DFrac) (a b c d : List w8) (ha : a.length = pageBytes)
+    (hb : b.length = pageBytes) (hc : c.length = pageBytes) :
+    bytesPointsto (GF := GF) l dq (a ++ b ++ c ++ d) ⊣⊢
+      bytesPointsto (l +ₗ ((4096 * 0 : Nat) : Int)) dq a ∗
+        bytesPointsto (l +ₗ ((4096 * 1 : Nat) : Int)) dq b ∗
+        bytesPointsto (l +ₗ ((4096 * 2 : Nat) : Int)) dq c ∗
+        bytesPointsto (l +ₗ ((4096 * 3 : Nat) : Int)) dq d := by
+  rw [show l +ₗ ((4096 * 0 : Nat) : Int) = l by simp]
+  have s1 := bytesPointsto_app (GF := GF) l dq (a ++ b ++ c) d
+  have s2 := bytesPointsto_app (GF := GF) l dq (a ++ b) c
+  have s3 := bytesPointsto_app (GF := GF) l dq a b
+  simp only [List.length_append, ha, hb, hc, pageBytes] at s1 s2 s3
+  constructor
+  · iintro H
+    icases s1.1 $$ H with ⟨H, Hd⟩
+    icases s2.1 $$ H with ⟨H, Hc⟩
+    icases s3.1 $$ H with ⟨Ha, Hb⟩
+    iframe
+  · iintro ⟨Ha, Hb, Hc, Hd⟩
+    iapply s1.2
+    iframe Hd
+    iapply s2.2
+    iframe Hc
+    iapply s3.2
+    iframe
+
+/-- A zero page as a zero header, a zero meta and zeros. -/
+theorem zeroPage_meta_view (l : Loc) (dq : DFrac) (hl : 0 < l.addr) :
+    bytesPointsto (GF := GF) l dq (zeroBytes pageBytes) ⊣⊢
+      l ↦{dq} pageHdr (W64 0) (W16 0) ∗ (l +ₗ 16) ↦{dq} zeroMeta ∗
+        bytesPointsto (l +ₗ 80) dq (zeroBytes (pageBytes - 80)) := by
+  rw [zeroPage_meta]; exact pageMeta_view l dq _ _ _ hl
+
+/-- A zero page as a zero header and zeros. -/
+theorem zeroPage_hdr_view (l : Loc) (dq : DFrac) (hl : 0 < l.addr) :
+    bytesPointsto (GF := GF) l dq (zeroBytes pageBytes) ⊣⊢
+      l ↦{dq} pageHdr (W64 0) (W16 0) ∗ bytesPointsto (l +ₗ 16) dq (zeroBytes (pageBytes - 16)) := by
+  rw [zeroPage_hdr]; exact pageHdr_view l dq _ _ hl
+
+/-- Meta page `i` as its header, its meta and zeros. -/
+theorem metaPage_view (l : Loc) (dq : DFrac) (i : Nat) (hl : 0 < l.addr) :
+    bytesPointsto (GF := GF) l dq (metaPageBytes i) ⊣⊢
+      l ↦{dq} pageHdr (W64 (i : Int)) (W16 4) ∗ (l +ₗ 16) ↦{dq} initMeta i ∗
+        bytesPointsto (l +ₗ 80) dq (zeroBytes (pageBytes - 80)) :=
+  pageMeta_view l dq _ _ _ hl
+
+/-- An empty page as its header and zeros. -/
+theorem emptyPage_view (l : Loc) (dq : DFrac) (id : w64) (flags : w16) (hl : 0 < l.addr) :
+    bytesPointsto (GF := GF) l dq (emptyPageBytes id flags) ⊣⊢
+      l ↦{dq} pageHdr id flags ∗ bytesPointsto (l +ₗ 16) dq (zeroBytes (pageBytes - 16)) :=
+  pageHdr_view l dq _ _ hl
+
+include package_sem in
+/-- The typed view of meta page `k` of the buffer at `l`: its header and its meta, initialized
+(`done`: the meta `IM k`, `initMeta k` in `initPages`'s proof) or zero.
+
+A `match`, not an `if`: with `if done then .. else ..`, Iris's tactics on a hypothesis
+`metaSlot .. true` made the kernel compare it with `□?false` (`intuitionisticallyIf`, itself an
+`if`) by unfolding both `if`s over and over, until a deep recursion after minutes. -/
+@[irreducible] def metaSlot (IM : Nat → Meta) (l : Loc) (k : Nat) : Bool → IProp GF
+  | true =>
+    iprop((l +ₗ ((4096 * k : Nat) : Int)) ↦ pageHdr (W64 (k : Int)) (W16 4) ∗
+      ((l +ₗ ((4096 * k : Nat) : Int)) +ₗ 16) ↦ IM k)
+  | false =>
+    iprop((l +ₗ ((4096 * k : Nat) : Int)) ↦ pageHdr (W64 0) (W16 0) ∗
+      ((l +ₗ ((4096 * k : Nat) : Int)) +ₗ 16) ↦ zeroMeta)
+
+theorem metaSlot_false (IM : Nat → Meta) (l : Loc) (k : Nat) :
+    metaSlot (GF := GF) IM l k false ⊣⊢
+      (l +ₗ ((4096 * k : Nat) : Int)) ↦ pageHdr (W64 0) (W16 0) ∗
+        ((l +ₗ ((4096 * k : Nat) : Int)) +ₗ 16) ↦ zeroMeta := by
+  unfold metaSlot; exact .rfl
+
+theorem metaSlot_true (IM : Nat → Meta) (l : Loc) (k : Nat) :
+    metaSlot (GF := GF) IM l k true ⊣⊢
+      (l +ₗ ((4096 * k : Nat) : Int)) ↦ pageHdr (W64 (k : Int)) (W16 4) ∗
+        ((l +ₗ ((4096 * k : Nat) : Int)) +ₗ 16) ↦ IM k := by
+  unfold metaSlot; exact .rfl
+
+/-- Before `initPages`'s iteration `n`: meta page `n` is zero, the other one as before. -/
+theorem metaSlots_open (IM : Nat → Meta) (l : Loc) (n : Nat) (hn : n < 2) :
+    metaSlot (GF := GF) IM l 0 (decide (0 < n)) ∗ metaSlot IM l 1 (decide (1 < n)) ⊢
+      metaSlot IM l n false ∗ metaSlot IM l (1 - n) (decide (1 - n < n)) := by
+  rcases (show n = 0 ∨ n = 1 by omega) with rfl | rfl
+  · show metaSlot IM l 0 false ∗ metaSlot IM l 1 false ⊢ metaSlot IM l 0 false ∗ metaSlot IM l 1 false
+    exact .rfl
+  · show metaSlot IM l 0 true ∗ metaSlot IM l 1 false ⊢ metaSlot IM l 1 false ∗ metaSlot IM l 0 true
+    exact sep_comm.1
+
+/-- After `initPages`'s iteration `n`: meta page `n` is initialized. -/
+theorem metaSlots_close (IM : Nat → Meta) (l : Loc) (n : Nat) (hn : n < 2) :
+    metaSlot (GF := GF) IM l n true ∗ metaSlot IM l (1 - n) (decide (1 - n < n)) ⊢
+      metaSlot IM l 0 (decide (0 < n + 1)) ∗ metaSlot IM l 1 (decide (1 < n + 1)) := by
+  rcases (show n = 0 ∨ n = 1 by omega) with rfl | rfl
+  · show metaSlot IM l 0 true ∗ metaSlot IM l 1 false ⊢ metaSlot IM l 0 true ∗ metaSlot IM l 1 false
+    exact .rfl
+  · show metaSlot IM l 1 true ∗ metaSlot IM l 0 true ⊢ metaSlot IM l 0 true ∗ metaSlot IM l 1 true
+    exact sep_comm.1
 
 end views
 
