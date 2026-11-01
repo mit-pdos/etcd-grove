@@ -60,6 +60,9 @@ attribute [irreducible] Meta.ty
 @[reducible] noncomputable def minMmapSize [GooseExts] [GoGlobalContext] : val :=
   #(32768 : Int)
 
+@[reducible] noncomputable def maxMapSize [GooseExts] [GoGlobalContext] : val :=
+  #(1073741824 : Int)
+
 @[reducible] noncomputable def flockRetryTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 50000000)
 
@@ -89,6 +92,9 @@ noncomputable def errPageSize [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def errFailed [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.errFailed"
+
+noncomputable def errMapTooLarge [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.errMapTooLarge"
 
 noncomputable def envErrors [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/bboltfs.envErrors"
@@ -874,7 +880,7 @@ noncomputable def DB.«meta».impl [GooseExts] [GoGlobalContext] : val :=
 /-- Get is a read transaction (beginTx, then the root page through the mapping):
     the current txid, and the value if the root page holds one.
 
-    go: minibolt.go:223:15 -/
+    go: minibolt.go:227:15 -/
 noncomputable def DB.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -1001,7 +1007,7 @@ noncomputable def DB.Get.impl [GooseExts] [GoGlobalContext] : val :=
     holds, as Get does. Its assertion: the copy reaches every page of the
     transaction.
 
-    go: minibolt.go:255:15 -/
+    go: minibolt.go:259:15 -/
 noncomputable def DB.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -1182,7 +1188,7 @@ noncomputable def DB.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
     marks the handle failed instead, so that it never reads or builds on a
     commit that may not be durable.
 
-    go: minibolt.go:295:15 -/
+    go: minibolt.go:299:15 -/
 noncomputable def DB.Commit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "v"
@@ -1262,7 +1268,7 @@ noncomputable def DB.Commit.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- commit writes the transaction after m (a copy of the current meta).
 
-    go: minibolt.go:315:15 -/
+    go: minibolt.go:319:15 -/
 noncomputable def DB.commit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "m"
@@ -1282,6 +1288,7 @@ noncomputable def DB.commit.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (Convert Pgid.ty go.int))) (App (Val (GoInstruction (GoOp GoPlus Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (StructFieldRef Meta.ty go!"pgid"))) (Var "m"))) (Val #(W64 1))))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val pageSize))))
   (Let "minsz" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1495,6 +1502,15 @@ noncomputable def DB.commit.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "minsz")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxMapSize)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errMapTooLarge))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "minsz") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -1509,7 +1525,7 @@ noncomputable def DB.commit.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Close is db.go's Close: all three locks, unmap, funlock, close; it returns the first error.
 
-    go: minibolt.go:376:15 -/
+    go: minibolt.go:384:15 -/
 noncomputable def DB.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -1558,7 +1574,7 @@ noncomputable def DB.Close.impl [GooseExts] [GoGlobalContext] : val :=
 /-- close is db.go's close: it reports a failed munmap (a mapping left behind) or close, as
     bbolt does.
 
-    go: minibolt.go:388:15 -/
+    go: minibolt.go:396:15 -/
 noncomputable def DB.close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -1603,7 +1619,7 @@ noncomputable def DB.close.impl [GooseExts] [GoGlobalContext] : val :=
     under the model's crash relation, however often the node crashes, given the
     premise of README.md. On an error it stops.
 
-    go: minibolt.go:403:6 -/
+    go: minibolt.go:411:6 -/
 noncomputable def BootMinibolt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dir"
   (Seq (App (Val exceptionDo)
@@ -1737,7 +1753,7 @@ noncomputable def BootMinibolt.impl [GooseExts] [GoGlobalContext] : val :=
 /-- flock is bolt_unix.go's flock with Options.Timeout 0: LOCK_NB with LOCK_EX
     or LOCK_SH, retried while the lock is held elsewhere.
 
-    go: page.go:31:6 -/
+    go: page.go:35:6 -/
 noncomputable def flock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam "exclusive"
@@ -1799,7 +1815,7 @@ noncomputable def flock.impl [GooseExts] [GoGlobalContext] : val :=
     db.data, a (*[MaxMapSize]byte); here, as in unsafememory's patched forms, the
     mapped slice is indexed directly.
 
-    go: page.go:96:6 -/
+    go: page.go:100:6 -/
 noncomputable def pageAt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "off"
@@ -1817,7 +1833,7 @@ noncomputable def pageAt.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- meta is Page.Meta: the Meta right after the page header.
 
-    go: page.go:101:16 -/
+    go: page.go:105:16 -/
 noncomputable def Page.«meta».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
@@ -1837,7 +1853,7 @@ noncomputable def Page.«meta».impl [GooseExts] [GoGlobalContext] : val :=
 /-- sum64 is Meta.Sum64: FNV-64a over the bytes of m before its checksum field.
     bbolt calls hash/fnv; the loop is that hash, inlined.
 
-    go: page.go:107:16 -/
+    go: page.go:111:16 -/
 noncomputable def Meta.sum64.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam BAnon
@@ -1877,7 +1893,7 @@ noncomputable def Meta.sum64.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- validate is Meta.Validate.
 
-    go: page.go:117:16 -/
+    go: page.go:121:16 -/
 noncomputable def Meta.validate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam BAnon
@@ -1895,7 +1911,7 @@ noncomputable def Meta.validate.impl [GooseExts] [GoGlobalContext] : val :=
 /-- write is Meta.Write: it sets m's checksum and copies m into the meta page p,
     through a local (the bbolt fork's Meta.Copy).
 
-    go: page.go:123:16 -/
+    go: page.go:127:16 -/
 noncomputable def Meta.write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "p"
@@ -1928,7 +1944,7 @@ noncomputable def Meta.write.impl [GooseExts] [GoGlobalContext] : val :=
     pages 0 and 1 (txids 0 and 1), an empty freelist at page 2 and an empty leaf
     at page 3, the root.
 
-    go: page.go:134:6 -/
+    go: page.go:138:6 -/
 noncomputable def initPages.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "buf"
   (Lam "pageSize"
@@ -2039,7 +2055,7 @@ noncomputable def initPages.impl [GooseExts] [GoGlobalContext] : val :=
 /-- pickMeta is db.go's meta: the valid meta with the highest txid, or nil if
     neither is valid (where bbolt panics).
 
-    go: page.go:161:6 -/
+    go: page.go:165:6 -/
 noncomputable def pickMeta.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "meta0"
   (Lam "meta1"
@@ -2628,13 +2644,19 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"minibolt: the database has another page size"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"minibolt: an earlier commit failed"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"minibolt: the database would exceed its maximum size"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr errFailed))) (Val #())) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr errMapTooLarge))) (Val #())) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr errFailed))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr errPageSize))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2659,6 +2681,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc errPageSize go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc errFailed go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc errMapTooLarge go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc envErrors go.uint64)) (Val #()))))))))
 

@@ -218,6 +218,10 @@ func (db *DB) meta() *Meta {
 // errFailed is what a handle answers after a failed commit.
 var errFailed = errors.New("minibolt: an earlier commit failed")
 
+// errMapTooLarge is a commit's answer when the database would grow past maxMapSize (bbolt's
+// "mmap too large").
+var errMapTooLarge = errors.New("minibolt: the database would exceed its maximum size")
+
 // Get is a read transaction (beginTx, then the root page through the mapping):
 // the current txid, and the value if the root page holds one.
 func (db *DB) Get() (uint64, uint64, bool, error) {
@@ -318,8 +322,12 @@ func (db *DB) commit(m Meta, v uint64) error {
 	m.pgid = pg + 1
 	m.root.root = pg
 
-	// db.allocate: remap if the high water mark passes the mapping
+	// db.allocate: remap if the high water mark passes the mapping; refuse to grow past
+	// maxMapSize, as db.mmapSize does
 	minsz := int(m.pgid+1) * pageSize
+	if minsz > maxMapSize {
+		return errMapTooLarge
+	}
 	if minsz >= db.datasz {
 		if err := db.mmap(minsz); err != nil {
 			return err
