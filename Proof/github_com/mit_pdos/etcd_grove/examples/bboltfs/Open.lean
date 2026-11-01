@@ -51,8 +51,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   intro path t vo
   wp_start as ⟨#Hpkg, #Hos, Hfile⟩
   imod dbFile_norm path t vo $$ Hfile with ⟨%mo, Hm, Hst⟩
-  iunfold pkgFacts at Hpkg
-  icases Hpkg with ⟨#Hsync, %e1, %e2, #He1, #He2, %He12, %eof, #Heof, %Heof⟩
+  ihave ⟨%e2, #He2, %He2⟩ := pkgFacts_errPageSize $$ Hpkg
   (try wp_auto)
   irename «$r0» => Hdb
   generalize «$r0_ptr» = db at *
@@ -196,7 +195,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
         iright
         iexists e2
         isplitr
-        · ipureintro; exact ⟨rfl, He12.2⟩
+        · ipureintro; exact ⟨rfl, He2⟩
         iframe
   · unfold openSt at *
     icases Hst with (⟨%Ht, Hi⟩ | Hs)
@@ -278,7 +277,102 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
         isplitr
         · ipureintro; simp
         iframe
-  sorry
+  iintro (⟨%Hv, %m', filesz, Hm, Hs, db, Hf, Hfdo, dataref, datasz, meta0, meta1, «$res0», «$res1»⟩ |
+    ⟨%e, %Hv, db, «$res0», «$res1», %mo', Hm⟩)
+  rotate_left
+  · obtain ⟨rfl, He⟩ := Hv
+    (try wp_auto)
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; exact ⟨He, rfl⟩
+    · iexists mo'; iexact Hm
+  subst Hv
+  iunfold dbStoredAt at Hs
+  icases Hs with ⟨%mp, %mxc, %tail, %B, Hmx, Hps, Htail, #HB, %Hso⟩
+  obtain ⟨⟨hmx, hclean, hmp, hpg, htl, hok', hmaps', h16', h40'⟩, ht, hvo⟩ := Hso
+  icases osBytes_halves path mxc 0 $$ Hmx with ⟨Hmx1, Hmx2⟩
+  imod open_ghost db path mp mxc B t vo hmx hmp ht hvo $$ [failed Hmx2 HB]
+    with ⟨%γ, HM, Hcur1, Hcur2, Hmap1, Hmap2, Hout1, Hout2, Hcls, Hown, #Hlast, #Htx⟩
+  · iframe; iframe #
+  imod sync.init_Mutex (metaR (GF := GF) γ db path) ⊤ db.[DB, go!"metalock"] $$ metalock [HM] with #Hmeta
+  · inext; iexact HM
+  icases (mapFields_join db none).2 $$ [dataref meta0 meta1] with ⟨Hflds1, Hflds2⟩
+  · iframe
+  imod sync.init_RWMutex (mapR (GF := GF) γ db f fd path) db.[DB, go!"mmaplock"] $$ [Hmap2 Hflds2] mmaplock
+    with Hrs
+  · inext; unfold mapR mapBody; iexists none; iframe; unfold mapRest; iempintro
+  icases sync.ownRWMutex_slots_guard _ _ $$ Hrs with ⟨Hrs, #Hguard⟩
+  icases (ownFile_halves f fd path).1 $$ Hf with ⟨Hf1, Hf2⟩
+  icases (osFd_halves fd _).1 $$ Hfdo with ⟨Hfd1, Hfd2⟩
+  (try wp_auto)
+  wp_apply wp_mmap γ db f fd path (W64 0) mp false (curPgid mp) none m' rfl (by decide) (by decide) h40'
+      $$ [Hcur1 Hmap1 Hout1 Hflds1 filesz datasz Hf1 Hfd1 Hm Hmx1 Htail Hcur2 Hf2 Hfd2 Hout2 Hps]
+    as %err5 ⟨%st', %m'', Hcur1, Hmap1, Hout1, Hflds1, Hw, %Hm'', Hres⟩
+  · iframe #
+    unfold writerFile mmapPre writerExtra
+    iframe
+    have hl8 : mxc.length = 8192 := by
+      have := congrArg List.length hmx; rw [List.length_map] at this; rw [this, hmp.1]
+    isplitr
+    · ipureintro
+      exact ⟨by have := hmp.2.2.1; have := hmp.2.2.2.1; omega, hpg, hl8, htl,
+        fun _ => ⟨hmx, hclean, rfl, Hfd⟩⟩
+    dsimp only
+    iframe
+    ipureintro; exact hmaps'
+  icases Hres with (⟨%He5, %base, %len, %γm, %Hst', Htok, #Hinv, Hwc⟩ | ⟨%He5, Hx⟩)
+  · subst He5
+    obtain ⟨rfl, Hmaps'', Hlen, -, Hbase, Hl41⟩ := Hst'
+    imod sync.init_Mutex (rwR (GF := GF) γ db f fd path) ⊤ db.[DB, go!"rwlock"] $$ rwlock
+        [Hcur1 Hmap1 Hout1 Hflds1 Hw Hcls Htok Hwc] with #Hrw
+    · inext
+      unfold rwR
+      ileft
+      iexists mp, false, curPgid mp, some (base, len, γm), m''
+      iframe
+      isplitr
+      · ipureintro; intro _; rw [Hm''.2]; exact hok'
+      dsimp only
+      iframe; iframe #
+      ipureintro; exact ⟨Hmaps'', by omega, Hbase, Hl41⟩
+    (try wp_auto)
+    iapply HΦ
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexists γ, curPgid mp
+    iframe Hown Hlast Htx
+    isplitr
+    · unfold isDB; iexists f, fd, path; iframe #
+    iapply readers_of γ db f fd path
+    iframe; iframe #
+  · obtain ⟨Herr5, rfl⟩ := He5
+    unfold writerExtra
+    icases Hx with ⟨-, Hf2, Hfd2⟩
+    iunfold writerFile at Hw
+    icases Hw with ⟨%mxw, %tailw, %fszw, Hfsz, Hdsz, Hf1, Hfd1, Hm, -, -, -⟩
+    ihave Hf := (ownFile_halves f fd path).2 $$ [Hf1 Hf2]
+    · iframe
+    ihave Hfd := (osFd_halves fd _).2 $$ [Hfd1 Hfd2]
+    · iframe
+    unfold mapFields
+    icases Hflds1 with ⟨Hd, H0, H1⟩
+    icases (pointsto_halves _ _).1 $$ Hdsz with ⟨Hdsz, -⟩
+    cases err5 with
+    | nil => exact absurd rfl Herr5
+    | ok ie =>
+    (try wp_auto)
+    wp_apply wp_close db (DFrac.own (1 : Qp).half) slice.nil (W64 0) null null f DFrac.discard fd path _ path
+        m'' (fun h => absurd rfl h) $$ [Hd Hdsz H0 H1 Hf Hfd]
+      as ⟨-, -, -, -, -, -, Hf⟩
+    · iframe; iframe #; unfold mappingRes; ileft; ipureintro; rfl
+    (try wp_auto)
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; exact ⟨by simp, rfl⟩
+    · iexists some m''; iexact Hm
 
 end proof
 

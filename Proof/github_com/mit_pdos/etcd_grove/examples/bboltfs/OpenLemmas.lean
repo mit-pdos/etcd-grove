@@ -351,6 +351,29 @@ theorem stored_of_init (p : GoString) (m : OsMeta) (xs : List (w8 × Bool)) (hl 
   rw [htx, hrt, initFile_root]
   iexact Hs
 
+/-- `errPageSize`'s value, from `pkgFacts`. -/
+theorem pkgFacts_errPageSize :
+    pkgFacts (GF := GF) ⊢ ∃ e2 : GoInterface, globalAddr errPageSize ↦□ e2 ∗ ⌜e2 ≠ interface.nil⌝ := by
+  unfold pkgFacts
+  iintro ⟨-, %e1, %e2, -, #He2, %He, -⟩
+  iexists e2; iframe #; ipureintro; exact He.2
+
+/-- `mmaplock`'s reader slots, as reader tokens of the database. -/
+theorem readers_of (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) :
+    ∀ n, db.[DB, go!"file"] ↦□ f ∗ db.[DB, go!"path"] ↦□ p ∗
+      ([∗list] _x ∈ List.replicate n (),
+        sync.ownRWMutex db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f fd p)) ⊢
+      [∗list] _x ∈ List.replicate n (), dbReader (GF := GF) γ db
+  | 0 => by iintro -; simp only [List.replicate_zero]; iapply BigSepL.bigSepL_nil.2; iempintro
+  | n + 1 => by
+    iintro ⟨#Hf, #Hp, H⟩
+    rw [List.replicate_succ]
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H⟩
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [H1]
+    · unfold dbReader; iexists f, fd, p; iframe; iframe #
+    · iapply readers_of γ db f fd p n; iframe; iframe #
+
 /-- Bytes of a file, as two halves. -/
 theorem osBytes_halves (p : GoString) :
     ∀ (xs : List (w8 × Bool)) (off : Nat),
