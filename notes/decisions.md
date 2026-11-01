@@ -28462,6 +28462,37 @@ reasoning at the time; they are left as written, and read as open items. What st
 an active branch (e.g. `snap-j8a`) is that session's until it lands, so coordinate with it before
 editing the same files.
 
+## M2's B2, the mvcc half switched: persistent receipts in the index's ghost state (2026-11-01 · accepted, the user's "start the mvcc half" · branch `m2-b2-mvcc`)
+
+The mvcc half of "M2's storage side: B2 by sealed logs, persistent receipts" (2026-10-30, drafted), in
+place, ahead of the snapshot half (which waits on J8a and SNAPSHOT-SORRY #7: they edit the same files).
+
+**In place** (`mvcc/InvIndex.lean`): `idxSealed` and `idxCert` carry `⧖ (logCh log)` in place of the
+pure `⌜logCh log < receiptBound GF⌝` (`idxSealed_small` from it by `preceipt_lt`; new `idxSealed_rcpt`,
+`idxCert_rcpt`); the writer's handles `idxWriter`/`idxWriterSealed` hold `⧖ (logCh ilog +
+pend.length)` in place of the exclusive `⧗` (the Draft's `idxWriterP` is now `idxWriter`; the seal and
+commit lemmas need no `receipt_snapshot`); `treeIndex.Put`/`Tombstone` raise it by the change's Go
+step (`wp_raise_receipt`, the Draft's `wp_proofP`s), spec texts unchanged. The handles' builders:
+`restore_finish` turns the rebuild's exclusive receipts into it (`receipt_snapshot`); `IdxPriv`'s new
+index starts at `⧖ 0`. Consumers that read the bound (`InvCompact.CompactSmall_of_cert`, the client's
+`WatchFire.sealed_logOk`, `KVService.idxCert_logOk`) take it through `preceipt_lt`. What is lost:
+the writer's receipts no longer add up with another pool's (`receipt_add`); nothing used it.
+
+**One statement the Draft had not listed: `store.restore.spec`** (the rebuild, `Spec/.../store__restore.lean`).
+It took `ents = logEnts … ∨ logCh L' < receiptBound` as a pure premise and gave the unlock's payload
+the pure bound, from which `restore_switch` built the new `idxCert`: with `idxCert` carrying `⧖`, the
+second disjunct cannot produce it. Restated: the premise is the pre's last conjunct
+`⌜ents = logEnts …⌝ ∨ ⧖ (logCh L')` (the caller's receipt: in compaction mode a compacted image's,
+which is what the snapshot half carries with it), and the unlock's payload is `⧖ (logCh L')` (the
+rebuild's receipts snapshotted for the whole bucket, else the caller's). `restore_switch` takes `⧖`;
+`store.restore.specNC` (what `NewStore` and `store.Restore` use, the whole bucket) passes the left
+disjunct. Every caller of `store.restore` was on the whole-bucket case, so nothing above mvcc moved.
+
+**Left in the Draft** (`M2StorageDraftSealed.lean`, now 140 lines): `idxSealedR`/`idxCertR` as names for
+`idxSealed`/`idxCert` (the server Draft's texts use them), and the restore's premise by the mode
+(`restoreRcptM`, `Restore.specMR`, `specMR_of_specM`), which wait on `Restore.specM` (itself a Draft).
+
+
 ## One token count goes with restore in compaction mode (2026-11-01 · accepted, the user's)
 
 Item 14 left `bootstrap`'s contract at `N + N` in compaction mode (the write-back pool `srvWTPool` and
