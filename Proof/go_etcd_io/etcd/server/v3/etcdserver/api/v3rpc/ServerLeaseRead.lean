@@ -11,6 +11,8 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLeaseRead
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseTimeToLive
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseLeases
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseRenew
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLeaseKeepAlive
 
 @[expose] public section
 
@@ -73,6 +75,28 @@ theorem raftLeaseRead_of_server (hTTL : EtcdServer.LeaseTimeToLive.spec (GF := G
       iframe #
       ipureintro; exact Hmi
     · iright; iexact Herr
+
+/-- **The server's renewals, from its linked spec** (the keep-alive's contract): `raftLeaseRenew` at
+`S' := E.RD ∗ lessorRdOf γl ∗ threadTok ∗ srvLgReader s ∗ srvReadReader s γr`, over the server's
+facts, its peer round tripper (`srvPeerRt`) and the spec's thread bound. -/
+theorem raftLeaseRenew_of_server (hRn : EtcdServer.LeaseRenew.spec (GF := GF) (hG := hG))
+    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
+    (hT : threadBound GF ≤ 2 ^ 30 - 1) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthAt s E ∗
+        srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ srvPeerRt s ⊢
+      raftLeaseRenew s E γl
+        iprop(E.RD ∗ lease.lessorRdOf γl ∗ threadTok ∗ srvLgReader s ∗ srvReadReader s γr) := by
+  iintro ⟨#Hpkg, #Hq, #Hrd, #Hat, #Hal, #Hlr, #Hpr⟩
+  iunfold raftLeaseRenew
+  iintro %ci %cd %id %n %m !> %Φ ⟨⟨HRD, Hrdo, Htok, Hlg, Hrr⟩, #Hctx, #Hpub, #Hllb⟩ HΦ
+  wp_apply (hRn s E ρ γr γl ci cd id n m) $$ [HRD Hrdo Htok Hlg Hrr]
+    as %ttl %err ⟨HRD, Hrdo, Htok, Hlg, Hrr, Hans⟩
+  · iframe; iframe #; ipureintro; exact hT
+  iapply HΦ
+  iframe
+  iunfold renewAns
+  iexact Hans
 
 end proofs
 

@@ -51,7 +51,11 @@ bounds per request", as watch's create `bound`): `{id, nb, mb}`, the wire carryi
 client's content `Up j q` gives `□ authPubLbM M q.nb ∗ □ lessorLb γl q.mb` (`kaUpOk`). The client's
 keep-alive specs and proofs (`lessor.sendKeepAliveLoop`, `recvKeepAliveLoop`, `resetRecv`,
 `KeepAlive`, `leaseClient.LeaseKeepAlive`, `retryLeaseClient.LeaseKeepAlive`, `leaseKAStreamOk`) are
-restated as callers: the client may send bounds `0` (the facts at `0` hold trivially).
+restated as callers. The client's lessor knows nothing of the server's ghost state, so the
+registration's `Up` (`kaUp E γl`) comes with a law the server proves when it registers, `□ ∀ j id,
+Up j ⟨id, 0, 0⟩` (the facts at `0`); `leaseKAStreamOk` becomes `∃ Up Spec, isGrpcStream … Up Spec ∗
+that law`, and the client sends bounds `0` (its keep-alives carry no verdict it could use: their
+posts are safety only).
 
 **K3. The contract grows a renewal triple with its own resources** (finding 5):
 `lessorRenewOk s E γl S'`, the server's `LeaseRenew(ctx, id)` at `S'`, the context,
@@ -126,3 +130,31 @@ exporting `peerRt` alone closed nothing (fix: all three, the user's choice); (5)
 widened with reader slots the unary reads do not use (fix: `S'`); (6) the registration's single
 stream slot (recorded); (7) `leaseKeepAlive` should give back its resources; (8) missing margins;
 (9) the header-revision comment may not hold in Go (to check).
+
+## Probe (2026-11-01)
+
+Built (`lake build` of each module):
+- **K2**: the wire model moved to `Proof/go_etcd_io/etcd/api/v3/etcdserverpb/LeaseKeepAliveMsg.lean`
+  (`KaReqM := {id, nb, mb}`); the client restated (`kaUpZero`, `leaseKAStreamOk := ∃ Up Spec, … ∗
+  kaUpZero Up`; `leaseClient.LeaseKeepAlive`, `retryLeaseClient.LeaseKeepAlive`, `resetRecv`,
+  `sendKeepAliveLoop` (sends bounds `0`), `recvKeepAliveLoop`): all re-prove. `leaseKAStreamOk` is
+  only ever a premise (the client's closed results'), so its stronger meaning breaks no proof.
+- **K3-K4**: `InvLeaseKeepAlive.lean`: `infoBoundTM`, `leaseCheckT` (with `leaseCheckT_of_from`,
+  proved), `kaUp`, `kaUpOk`, `kaDn`, `kaStreamSpec`, `renewAns`, `raftLeaseRenew` (a separate
+  contract, not a third parameter of `raftLeaseRead`: the unary handlers' specs are untouched).
+- **K5**: `leaseServerAt` gains the logger; `NewLeaseServer` re-proves (the `wp_join` of
+  `NewWatchServer`). The handler specs `LeaseServer.LeaseKeepAlive.spec`/`leaseKeepAlive.spec`
+  typecheck (proofs `sorry` for now).
+- **K6**: `srvPeerRt` (`LeaseRead.lean`); `EtcdServer.LeaseRenew.spec`'s premise restated with it,
+  re-proved; `raftLeaseRenew_of_server` proved from `EtcdServer.LeaseRenew.spec`.
+- **K7** (mapped, read-only, not yet changed): `NewServer`'s proof has `srvLessorRd`'s facts
+  (`NewLessor`'s `lessorInv`, the `lessor` field `↦□`) and the `peerRt` field (owned, one `ipersist`);
+  `bootOk` needs the pure conjunct on `bs.prt'`. **`srvHeaderFacts` needs no `NewServer` change**: it
+  follows from `isServerReqM` (`srvReqFieldsAtM`: `memberID`, `cluster`, `lead`, `srvPeersOk`'s
+  `clusterCid`), which the discharge already takes: a law (`srvHeaderFacts_of_reqM`), not a
+  frozen-spec change. Restated callers: `NewServer.spec{,M,G}`'s posts and `wp_proof`,
+  `examples/common/newServer.lean` (2 places), `examples/authkv/startServer.lean`; the examples'
+  `bootstrapContract` premises get stronger, their text unchanged.
+- **Found** (no source anywhere, for a later stage): `srvAuthLeaseLb s E` (a premise of every lease
+  discharge); `NewServer` drops `NewLessor`'s remaining `lessorRdOf` slots (`NewServer.lean:621`), so
+  no run slot can supply the renewal's `lessorRdOf γl` yet.
