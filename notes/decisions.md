@@ -28608,3 +28608,21 @@ splits). No trust-boundary change; pools remain for goroutines without a bound o
 *Rejected for now:* the caller's token through `Invoke` (uniform, no per-run slots at all, but an
 axiom change and the plan's largest stage).
 
+## Watches across a compaction: the Draft approved (2026-11-01 · accepted, the user's approval of candidate 4 · branch `watch-cmp`)
+
+The user lifted M2's F1 ("no watchers in compaction mode"), kept the client's `watcher.Watch.spec`
+("an error"), and chose to extend `compactkv`. The approved Draft (`.claude/skills/spec/examples/
+watch-compaction.md`, the statements; `notes/watch-compaction-plan.md`, the stages): the response
+model carries `compactRev`, the channel invariant has a compaction arm, `rangeEvents` takes the
+compaction revision's upper bound (`crevUB`, held by `syncWatchers` under `revMu`) and "the
+compaction revision writes each key once or there is none" in place of a frozen store, `chooseAll`/
+`choose` send the compaction response (the copy branch's Go bug included,
+`issues/etcd-watch-compacted-resent.md`), v3rpc forwards it canceled, and the watch-create token
+carries, gated by the mode, `mvcc.noDupKeys` (no revision of the logs a watch reads writes a key
+twice) in place of `noCompactor`. Why the gate and not a premise on `store.Compact` (the user's
+first choice, reversed): through gRPC at the fork pin a revision can put a key and then delete it
+(`issues/etcd-txn-check-intervals-sibling.md`), and compacting at it drops the put, so a watch from
+the compaction revision would miss an event; the compaction cannot know the earlier writes, a
+watch client's workload can. Three spec-reviewer rounds; no axiom, no `sorry`, no exported
+statement changed. Next: the Probe (`KeyDel_lt_of_noDup`, `syncWatchers`' compaction branch).
+

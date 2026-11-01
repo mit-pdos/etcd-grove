@@ -129,6 +129,11 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   statements stay, and the premise is taken where a proof reaches the producer, not beside a sibling
   premise wherever that one sits. No law extracts the premise back from the resource; the docstrings
   of the results consuming it say they are conditional on it. (`reply-size.md`)
+  The other way round: a premise on an operation must be provable by its callers from what they
+  hold. A property of the whole earlier history (no revision so far writes a key twice) is not a
+  later operation's premise (the compaction's): its callers cannot know it; it is the writers', or
+  that of whoever already reasons about them (a watch client's workload, gated by the mode where
+  only that mode needs it). (`watch-compaction.md`)
 - **A contract between packages states the receiver's need, not the supplier's mechanism**: the
   server's `Txn` takes the depth of the request's model, not the gRPC handler's budget bound that
   implies it; the supplier proves the law from its mechanism to the need. The need is weaker to

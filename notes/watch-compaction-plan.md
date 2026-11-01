@@ -1,4 +1,4 @@
-# Plan: watches across a compaction (spec-first; 2026-11-01: survey, the user's decisions; next W0, the Draft)
+# Plan: watches across a compaction (spec-first; 2026-11-01: the Draft approved (candidate 4), the Probe done; next W1)
 
 **Goal.** A compacting server serves watches, and a watch whose next revision was compacted ends
 the way etcd ends it: the watchable store sends the watcher one response with `CompactRevision` set
@@ -114,6 +114,25 @@ revision writes a key twice" (`mvcc.noDupKeys`), in place of `noCompactor`**; th
 watcher, or (in compaction mode) no duplicate keys"; `store.Compact` unchanged; the non-compacting
 examples untouched; the compacting example proves it from its workload. (The candidate in between
 said the client's `srvNoDupKeys` was an existing premise: it is an unused definition.)
+
+## The Draft approved, and the Probe (2026-11-01)
+
+The user approved candidate 4 (`.claude/skills/spec/examples/watch-compaction.md`, the statements;
+`notes/decisions.md`, "Watches across a compaction: the Draft approved"). The Probe:
+- **Proved** (`mvcc/CompactNoDup.lean`, no `sorry`): `kiAvail_unique` (a key's only revision with
+  main `c` is the one compaction at `c` keeps), `keepAt_of_noDup`, `not_KeyDel_of_noDup` (a bucket
+  key at revision `c` of a key's index is not deletable when revision `c` changes each key once):
+  the fact `rangeEvents` from the compaction revision needs. The prefix stability the review asked
+  for already exists (`kiAvail_prefix`, `KeyDel_prefix`).
+- **Traced, not proved**: `syncWatchers` has what D3 needs at `rangeEvents` (`revMuBody`'s
+  `crevUB` share at the `compactMainRev` it reads, `#Hcert`/`#Hok` for `evLog`, nothing open for the
+  `={⊤}=∗`; off mode `c = -1` from `wsFrozenM`); `compactkv` can prove `noDupKeys`: from `evLog L`,
+  `srvKVCoreM_fire` (`client/v3/WatchFire.lean`, `raw_to_state`'s route) fires a read update with
+  `Q σ := ⌜every revision of σ is at most one change⌝`, a new conjunct of `roundsOk` (its only
+  writes are single puts), giving a committed `C ⊒ L` with it; `oneChangePerKey` passes to the
+  prefix `L`.
+- Left to W1 (no longer a risk to the design): Goose's map range with deletes inside it
+  (`chooseAll`), and the mvcc-internal state model (D5).
 
 ## Stages (after the questions; each leaves the build green, committed, no push)
 
