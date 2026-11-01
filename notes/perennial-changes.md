@@ -1445,7 +1445,7 @@ with `resp == nil`, so the handlers cannot be proved; `watch.go`'s `recvLoop` ca
 so a local leaf fact would have to be threaded from the auth store up through about ten frozen
 specs (asked, 2026-11-01: the user chose this Perennial change instead). **Workaround here**: none (a `sorry`
 in each handler); the lease gRPC stage (`notes/lease-grpc-plan.md`) waits. **The change**
-(Perennial branch `errors-is-exact`, `c4a24e323`, 2026-11-01; trust review OK, not landed): the
+(landed: Perennial `c4a24e323`, 2026-11-01; the pin): the
 tree's method specs as relations (`errorWalkTree S I U target`), `errors.Is`'s answer one of Go's
 walk over them (`IsWalk`), a function of the tree for exact relations (`isWalk_det`);
 `errorIsTree S M` the over-approximating instance (unchanged in meaning), `errors.wp_Is_tree` the old
@@ -1455,5 +1455,7 @@ returns a fixed `f ii target`), and a spec of `errors.Is` over it whose answer i
 `decide (∃ e ∈ reach u err, e = target ∨ f e target)` (partial correctness: a cyclic chain does not
 return); `errorIsTree`'s current form follows from it. Every Go error type whose methods are
 deterministic (all of the standard library's and etcd's) has such a tree; `applyErrIs` would then
-carry it. Here, after the pin moves: `applyErrIs` with an exact tree (its three leaf constructors),
-etcd-grove's `errors.Is.spec` proved by `errors.wp_Is_tree`, the two handlers' `sorry`s closed.
+carry it. Done here: `applyErrIs` with an exact tree (its three leaf constructors), etcd-grove's
+`errors.Is.spec` proved by `errors.wp_Is_tree`, the two handlers' `sorry`s closed. **Follow-up**
+(small, open): `errorIsTree_of_walk` (and the other `Base.lean` lemmas) take the section's
+`errors.Assumptions` though their proofs do not use it; an `omit package_sem in` would drop it.

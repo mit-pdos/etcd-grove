@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 
 `s.LeaseTimeToLive(ctx, rr)` through the `Lessor` interface (`ls.le`, the server); then
 `errors.Is(err, lease.ErrLeaseNotFound)` twice (on `nil` the tree is empty and the answer `false`;
-on the server's error, its `applyErrIs` tree), a fresh not-found response, or `togRPCError`; then
+on the server's error, its exact `applyErrIs` tree, so that the two answer the same), a fresh not-found response, or `togRPCError`; then
 the header's `fill`.
 -/
 module
@@ -12,7 +12,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseTimeToLive
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
-public import Spec.errors.Is
+public import Perennial.Spec.errors.Is
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
 
 @[expose] public section
@@ -93,7 +93,7 @@ private theorem hdrRev_out (R : IProp GF) (h : Loc) (r r' : w64) :
     ipureintro; exact Hr
 
 theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
-    (hIs : errors.Is.spec (GF := GF) (hG := hG))
+    (hIs : _root_.Perennial.errors.Is.spec (GF := GF) (hG := hG))
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG))
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) := by
@@ -117,8 +117,8 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
   · subst He
     wp_auto
     -- `errors.Is(nil, ErrLeaseNotFound)`: `false` (an empty tree; `err` nil)
-    wp_apply hIs (· = GoInterface.nil) (fun _ => False) GoInterface.nil (GoInterface.ok eNF) hpt
-        (fun _ _ h _ _ => by cases h) $$ [] as %b ⟨%Hb1, -, -⟩
+    wp_apply hIs (· = GoInterface.nil) (fun _ _ => True) (fun _ _ => True) GoInterface.nil
+        (GoInterface.ok eNF) hpt (fun _ _ h _ _ => by cases h) $$ [] as %b ⟨%Hb1, -⟩
     · isplitr
       · iintro !> %ii %h; cases h
       ipureintro; rfl
@@ -160,10 +160,11 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
     | nil => exact absurd rfl Hen
     | ok ei =>
       (try wp_auto)
-      ihave #HTr := applyErrIs_tree _ $$ Hae
-      ihave ⟨%S', %M', #Htree, %HS⟩ := HTr $$ %(GoInterface.ok eNF)
+      ihave #HTr := applyErrIs_walk _ $$ Hae
+      ihave ⟨%S', %I', %U', #Htree, %HS⟩ := HTr $$ %(GoInterface.ok eNF)
       -- `if err != nil && !errors.Is(err, lease.ErrLeaseNotFound)`
-      wp_apply hIs S' M' (GoInterface.ok ei) (GoInterface.ok eNF) hpt (HS.2 hpt) $$ [] as %b1 -
+      wp_apply hIs S' I' U' (GoInterface.ok ei) (GoInterface.ok eNF) hpt (HS.2.1 hpt) $$ []
+        as %b1 ⟨-, %Hw1⟩
       · iframe #; ipureintro; exact HS.1
       cases b1 with
       | false =>
@@ -179,13 +180,14 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
       | true =>
         wp_auto
         -- `if errors.Is(err, lease.ErrLeaseNotFound)`, again
-        wp_apply hIs S' M' (GoInterface.ok ei) (GoInterface.ok eNF) hpt (HS.2 hpt) $$ [] as %b2 -
+        wp_apply hIs S' I' U' (GoInterface.ok ei) (GoInterface.ok eNF) hpt (HS.2.1 hpt) $$ []
+          as %b2 ⟨-, %Hw2⟩
         · iframe #; ipureintro; exact HS.1
         cases b2 with
         | false =>
-          -- a `true`, then a `false`: Go's `errors.Is` answers the same twice, the model's need not
-          -- (`notes/perennial-changes.md`, "`errors.Is` answers the same twice")
-          sorry
+          -- a `true`, then a `false`: impossible, the tree is exact (`applyErrIs_walk`)
+          exact absurd (_root_.Perennial.errors.isWalk_det HS.2.2.1 HS.2.2.2
+            (Hw1 (by simp) (by simp)) (Hw2 (by simp) (by simp))) (by decide)
         | true =>
           -- the not-found response `{Header: &pb.ResponseHeader{}, ID: rr.ID, TTL: -1}`
           (try wp_auto)

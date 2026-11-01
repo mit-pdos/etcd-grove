@@ -48,9 +48,10 @@ kvServer__Txn: checkTxnRequest checkIntervals togRPCError header__fill
 headerFillingRangeStream__Send: header__fillWithoutRevision
 # The lease rows at the gRPC level (notes/lease-grpc-plan.md, 2026-11-01): the unary lease reads,
 # over the contract `raftLeaseRead` (InvLeaseRead.lean; discharged by ServerLeaseRead.lean's
-# `raftLeaseRead_of_server`, Results.lean).
-LeaseServer__LeaseTimeToLive: errors_Is togRPCError header__fill
-LeaseServer__LeaseLeases: errors_Is togRPCError header__fill
+# `raftLeaseRead_of_server`, Results.lean). Their `errors.Is` is Perennial's, exact over
+# `applyErrIs`'s tree (`applyErrIs_walk`): Go tests `errors.Is(err, ErrLeaseNotFound)` twice.
+LeaseServer__LeaseTimeToLive: =_root_.Perennial.errors.wp_Is togRPCError header__fill
+LeaseServer__LeaseLeases: =_root_.Perennial.errors.wp_Is togRPCError header__fill
 # Not verified: `kvServer.RangeStream` (the server's `RangeStream`, the streaming read, is out of
 # the request path's model: no contract for it) and `kvServer.Compact` (`AuthAdmin.isPermitted`
 # and the server's `Compact`: compaction is out of the model, as in the apply package).

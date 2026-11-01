@@ -138,9 +138,9 @@ there); the handler specs over it, as `LeaseGrant`/`LeaseRevoke` over `raftLesso
 Both handlers and the contract's discharge are proved and linked. `LeaseServer__LeaseTimeToLive` and
 `LeaseServer__LeaseLeases` are in `etc/link-lean-first-v3rpc.txt` (callees `errors_Is togRPCError
 header__fill`), and `raftLeaseRead_server` is in v3rpc's `Results.lean`. The exception is one arm
-per handler: the second `errors.Is` answering `false` after the first answered `true` is a `sorry`.
-It waits on Perennial branch `errors-is-exact` (`notes/perennial-changes.md`, "`errors.Is` answers
-the same twice"). After the pin moves, it is closed by `isWalk_det` over an exact `applyErrIs` tree.
+per handler: the second `errors.Is` answering `false` after the first answered `true` was a `sorry`
+until Perennial `c4a24e323` (`notes/perennial-changes.md`, "`errors.Is` answers the same twice");
+it is now closed by `isWalk_det` over the exact `applyErrIs` tree (`applyErrIs_walk`).
 
 What the proofs needed:
 - `LeaseLeases`' header revision is the server's certified one: `leasesHdrDone` keeps `idxCert` and
@@ -152,4 +152,4 @@ What the proofs needed:
 
 **For Freeze** (the user's): S1 (the trusted contract strengthened: the collections resting on it,
 `etc/tcb-report.py --roots`), S2 (the frozen `EtcdServer.LeaseTimeToLive.spec`'s post), the
-`leasesRespIs` split, the not-found margin (finding 2), and the two `sorry`s pending Perennial.
+`leasesRespIs` split, and the not-found margin (finding 2). `applyErrIs` (exact tree) changed in meaning, not in the specs' text.
