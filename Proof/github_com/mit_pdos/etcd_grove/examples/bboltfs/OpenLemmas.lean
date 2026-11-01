@@ -376,7 +376,7 @@ theorem readers_of (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) :
     · iapply readers_of γ db f fd p n; iframe; iframe #
 
 /-- Bytes of a file, as two halves. -/
-theorem osBytes_halves (p : GoString) :
+theorem osBytes_split2 (p : GoString) :
     ∀ (xs : List (w8 × Bool)) (off : Nat),
     osBytes (GF := GF) p off (DFrac.own 1) xs ⊢
       osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) xs ∗
@@ -386,7 +386,7 @@ theorem osBytes_halves (p : GoString) :
   | x :: xs, off => by
     iintro H
     icases (osBytes_cons p off _ x xs).1 $$ H with ⟨Hx, H⟩
-    icases osBytes_halves p xs (off + 1) $$ H with ⟨H1, H2⟩
+    icases osBytes_split2 p xs (off + 1) $$ H with ⟨H1, H2⟩
     unfold osByte
     rw [← Qp.half_add_half 1] at *
     icases (gElem_split _ _ _ _ _ _).1 $$ Hx with ⟨Hx1, Hx2⟩

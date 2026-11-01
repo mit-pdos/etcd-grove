@@ -38,3 +38,8 @@ unix_Madvise:
 os_File__Close:
 bboltfs_DB__Get: bboltfs_DB__meta bboltfs_pageAt
 bboltfs_DB__Snapshot: bboltfs_DB__meta bboltfs_pageAt =_root_.Perennial.EtcdGrove.os.File.ReadAt.wp_proofRacy
+bboltfs_Open: os_OpenFile os_File__Name bboltfs_flock os_File__Stat os_fileStat__Size os_File__Close bboltfs_DB__close bboltfs_DB__readPageSize bboltfs_DB__init bboltfs_DB__mmap
+os_OpenFile:
+os_File__Name:
+os_File__Stat:
+os_fileStat__Size:

@@ -22,6 +22,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__readPage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__sum64
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__validate
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__write
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Open
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Page__meta
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.flock
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.initPages
@@ -30,10 +31,14 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pageAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pickMeta
 public import Proof.os.File__Close
 public import Proof.os.File__Fd
+public import Proof.os.File__Name
 public import Proof.os.File__ReadAt
+public import Proof.os.File__Stat
 public import Proof.os.File__Sync
 public import Proof.os.File__Truncate
 public import Proof.os.File__WriteAt
+public import Proof.os.OpenFile
+public import Proof.os.fileStat__Size
 public import Proof.syscall.Fdatasync
 public import Proof.syscall.Flock
 public import Proof.golang_org.x.sys.unix.Madvise
@@ -57,6 +62,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
+variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
 
 theorem golang_org.x.sys.unix.wp_Munmap :
     EtcdGrove.golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG) :=
@@ -178,9 +184,29 @@ theorem DB.wp_readPageSize :
     EtcdGrove.bboltfs.DB.readPageSize.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.DB.readPageSize.wp_proof wp_pageAt Page.wp_meta Meta.wp_validate os.File.wp_ReadAt
 
+theorem os.wp_OpenFile :
+    EtcdGrove.os.OpenFile.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.os.OpenFile.wp_proof
+
+theorem os.File.wp_Name :
+    EtcdGrove.os.File.Name.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.os.File.Name.wp_proof
+
 theorem wp_flock :
     EtcdGrove.bboltfs.flock.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.flock.wp_proof os.File.wp_Fd syscall.wp_Flock _root_.Perennial.time.wp_Sleep
+
+theorem os.File.wp_Stat :
+    EtcdGrove.os.File.Stat.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.os.File.Stat.wp_proof
+
+theorem os.fileStat.wp_Size :
+    EtcdGrove.os.fileStat.Size.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.os.fileStat.Size.wp_proof
+
+theorem wp_Open :
+    EtcdGrove.bboltfs.Open.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.Open.wp_proof os.wp_OpenFile os.File.wp_Name wp_flock os.File.wp_Stat os.fileStat.wp_Size os.File.wp_Close DB.wp_close DB.wp_readPageSize DB.wp_init DB.wp_mmap
 
 end links
 

@@ -291,7 +291,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   iunfold dbStoredAt at Hs
   icases Hs with ⟨%mp, %mxc, %tail, %B, Hmx, Hps, Htail, #HB, %Hso⟩
   obtain ⟨⟨hmx, hclean, hmp, hpg, htl, hok', hmaps', h16', h40'⟩, ht, hvo⟩ := Hso
-  icases osBytes_halves path mxc 0 $$ Hmx with ⟨Hmx1, Hmx2⟩
+  icases osBytes_split2 path mxc 0 $$ Hmx with ⟨Hmx1, Hmx2⟩
   imod open_ghost db path mp mxc B t vo hmx hmp ht hvo $$ [failed Hmx2 HB]
     with ⟨%γ, HM, Hcur1, Hcur2, Hmap1, Hmap2, Hout1, Hout2, Hcls, Hown, #Hlast, #Htx⟩
   · iframe; iframe #

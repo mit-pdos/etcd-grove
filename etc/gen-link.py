@@ -554,7 +554,12 @@ NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--lintest-logkv", 
 # `kvrStorageModel`, `KvrStorage.lean`): its specs are stated at it, and raft's results over any
 # `[StorageModel GF]` are instantiated there.
 LOCAL_INSTANCES = {"--kvreconf": ["kvreconf.kvrStorageModel"]}
-em = (("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
+# The trusted assumptions a mode's linked proofs need beyond its package's (minibolt's: the
+# layouts of `os.file` and `os.fileStat`, which `TrustedCode/os.lean` states and goose cannot
+# emit; `OpenFile`'s and `Stat`'s proofs take them).
+EXTRA_VARS = {"--bboltfs": "variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]\n"}
+em = ((EXTRA_VARS.get(sys.argv[1], ""))
+      + ("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else "")
       + "".join(f"\nattribute [local instance] {i}\n"
                 for i in LOCAL_INSTANCES.get(sys.argv[1], [])))
