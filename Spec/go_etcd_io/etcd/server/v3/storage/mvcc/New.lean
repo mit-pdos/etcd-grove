@@ -90,7 +90,7 @@ abbrev mvcc.New.specC : Prop :=
       ∃ γ : mvcc.MvccName, ⌜mvcc.mvccLeases γ = γl ∧ mvcc.mvccBackend γ = d.γB⌝ ∗
         mvcc.isWatchableMvcc ws γ ∗ mvcc.mvccState γ mvcc.mvccStart ∗ mvcc.mvccAnnAuth γ ∅ ∗
         mvcc.mvccHookInit γ Pk ∗ mvcc.mvccBackendIs γ d.P Pk d.be ∗ mvcc.mvccOpen γ 1 ∗
-        (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.mvccDeleter rd ws γ) }}
+        (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.mvccDeleter rd γ) }}
 
 end spec
 

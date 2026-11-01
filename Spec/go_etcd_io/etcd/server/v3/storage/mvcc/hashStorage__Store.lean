@@ -5,6 +5,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.HashDefs
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -28,6 +29,16 @@ abbrev mvcc.hashStorage.Store.spec : Prop :=
   ∀ (hp : Loc) (h : KeyValueHash),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.hashStorageOk hp }}
     (App (Val (hp @!! go.GoType.PointerType hashStorage.ty @!! go!"Store")) (Val #h))
+  {{ RET #(); True }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `hs.Store(h)` of a hash of the store (`mvccHashOk`: the compaction job's, of the
+revisions it compacted): kept (the last `hashStorageMaxSize`), so that `HashByRev` may return it.
+The premise is not the code's need: it keeps `HashByRev`'s result a hash of the store, which a
+stored arbitrary value would not be. -/
+abbrev mvcc.hashStorage.Store.specC : Prop :=
+  ∀ (hs : Loc) (γ : mvcc.MvccName) (h : KeyValueHash),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isHashStorage hs γ ∗ mvcc.mvccHashOk γ h }}
+    (App (Val (hs @!! go.GoType.PointerType hashStorage.ty @!! go!"Store")) (Val #h))
   {{ RET #(); True }}
 
 end spec

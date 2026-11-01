@@ -7,17 +7,20 @@ nothing proves them, and no proof uses them; today's specs and proofs are untouc
 
 - The vocabulary: `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean` (new).
 - The specs: `<F>.specC`, appended to each function's spec file next to today's `<F>.spec`
-  (28 functions: `New`, `store.Read`/`Rev`/`Commit`/`Compact`, `watchableStore.Write`/
-  `Close`/`NewWatchStream`, `metricsTxnWrite.Range`/`Put`/`DeleteRange`/`Rev`/`FirstRev`/
-  `Changes`/`End`, `watchableStoreTxnWrite.End`, `NewReadOnlyTxnWrite`,
-  `txnReadWrite.Range`/`Rev`/`Changes`/`End`, `watchStream.Watch`/`Chan`/`Rev`/`RequestProgress`/
-  `RequestProgressAll`/`Cancel`/`Close`). Side by side rather than in place so that the build stays
-  green while they are reviewed: adopting them replaces each `<F>.spec` (and its proof).
-- Rounds: round 1 (commit `8bd75f7cc2`), reviewed by the `spec-reviewer` agent; round 2 repairs
-  its findings (below, "Round 2").
-- Out of scope: the store's own `Put`/`DeleteRange`/`Range` (`writeView`, `readView`: no caller in
-  etcd's proof or the tester), `Restore`, hashing, `NewStore` (etcd uses `New`), the internal
-  functions.
+  (43 functions, mvcc's client-facing API: `New`, `NewStore`, `store.Read`/`Write`/`Rev`/
+  `Commit`/`Compact`/`Close`/`Restore`/`HashStorage`, `watchableStore.Write`/`Close`/`Restore`/
+  `NewWatchStream`, `readView.Range`/`Rev`/`FirstRev`, `writeView.Put`/`DeleteRange`,
+  `metricsTxnWrite.Range`/`Put`/`DeleteRange`/`Rev`/`FirstRev`/`Changes`/`End`,
+  `watchableStoreTxnWrite.End`, `NewReadOnlyTxnWrite`, `txnReadWrite.Range`/`Rev`/`Changes`/`End`,
+  `watchStream.Watch`/`Chan`/`Rev`/`RequestProgress`/`RequestProgressAll`/`Cancel`/`Close`,
+  `hashStorage.Store`/`HashByRev`/`Hash`/`Hashes`; the last three in new spec files of their own).
+  Side by side rather than in place so that the build stays green while they are reviewed:
+  adopting them replaces each `<F>.spec` (and its proof).
+- Rounds: 1 (`8bd75f7cc2`), 2 (`3f39b7e79d`), 3 (`a4cc4f33b8`), 4 (`e8bad5269e`), each after a
+  `spec-reviewer` review of the previous; 5 (below), after the user's critique.
+- Out of scope: mvcc's internal functions (the key index, the tree index, the revision encoding,
+  the compaction job, the sync loops): the `spec` skill's scope, an internal spec may mirror its
+  code.
 
 ## The design
 
@@ -119,6 +122,47 @@ its registrar's view could get back only `wsCanceled` and lose the view (v3rpc's
 could not register again). `Cancel` now takes the caller's case (`CancelBy`: `live`, `unknown`,
 `dead`), each with its own post. Not reviewed again (a split of an arm the review checked).
 
+## Round 5 (the user: every function of the API, `store.Write` included)
+
+The user's critique of round 2: removing `store.Write`'s candidate because one candidate was
+unsound left the function without a spec; an unsound candidate means a better one is needed
+(now a principle of the `spec` skill, "An unsound candidate is replaced by a sound one, not
+dropped"). Round 5 states every function of mvcc's client-facing API (the `KV`, `WatchableKV`,
+`TxnRead`/`TxnWrite`, `WatchStream` and `HashStorage` interfaces, the constructors); the internal
+helpers (the key index, the tree index, the revision encoding) keep today's specs (the skill's
+scope: an internal spec may mirror its code).
+
+- **`store.Write`** is back, on any store. What was unsound was the commit, not the opening: the
+  write transaction's own `End` (`metricsTxnWrite.End`, both kinds again) takes `mvccNotified γ σ
+  pend` ("the watchers were notified of this commit, or the store has none"), free for a store
+  without watchers (`mvccNotified_unwatched`, the store's mode `mvccWatched γ`, fixed at its
+  creation) and made for a watched store only by the watchable store's `End`, which notifies. One
+  spec of `End`, true in both modes.
+- **The announcement is inside the commit's update** (`watchableStoreTxnWrite.End`, the views):
+  the update's atomic precondition gives, with the state, the announcement of the log after the
+  commit, which the store reads when it notifies (opening the update and closing it unchanged).
+  So a caller that does not know the state beforehand (the store's own `Put` and `DeleteRange`) can
+  commit on a watched store; a sole writer still announces beforehand and gives it.
+- **New candidates**: `NewStore` (the mode `wq` its caller chooses; with watchers, the right to
+  wrap it, `mvccWrapRight`), `store.Close` (the whole open token), the store's views
+  (`readView.Range`/`Rev`/`FirstRev`, `writeView.Put`/`DeleteRange`: a transaction each, through
+  the watchable store when the store has watchers, `isMvcc_views`), `store.Restore` and
+  `watchableStore.Restore` (the whole open token: `Restore` stops and replaces the scheduler a
+  concurrent `Compact` reads after releasing `s.mu`; the new state from the backend,
+  `mvccRestorable`; on a watched store it extends the history and is announced; the leases
+  re-attached), `store.HashStorage`, `hashStorage.Store`/`HashByRev`/`Hash`/`Hashes` (a hash of
+  the store, `mvccHashOk`, is of the revisions `(CompactRevision, Revision]` of its history,
+  `mvccHashOf`; `Store` takes one, so `HashByRev`'s stored results are too; `Hash`'s result is not
+  stated: the backend's pages and an unsynchronized read).
+- Found: `issues/etcd-mvcc-hash-currentrev-race.md` (`store.hash` reads `currentRev` without
+  `revMu`; the race detector reports it against every write).
+
+Open after round 5: the backend's identity is fixed in the vocabulary (`mvccBackend`,
+`mvccBackendIs`, the hook), but `Restore` replaces the backend; `mvccRestorable` stands for the new
+backend's creator's resources; `mvccHashOf` stands for crc32 over the kept revisions (its proof
+needs the `kvHasher` axioms to say the hash is a function of its input); the backend's `Hash` has
+no spec.
+
 ## Decisions for the user (new client-owned ghost state and premises)
 
 The skill's policy: each new premise or client-owned ghost state on a spec with clients is the
@@ -147,8 +191,14 @@ user's decision. Today's statement beside the candidate's:
    `NewWatchStream`, threaded through `Watch`; `wsLive ι id` from `Watch`, taken by `Cancel`, or
    in its place a proof that the id is not live).
    Today: the stream's id map and per-id tokens (`idsInv`, `idTok`), internal names.
-7. **The store's open token** (`mvccOpen γ q`: `Compact` a share, `Close` the whole). Today: the
-   closer (`storeCloser`, `wsCloser`) and the compaction right (`compactRight`).
+7. **The store's open token** (`mvccOpen γ q`: `Compact` a share, `Close` and `Restore` the whole).
+   Today: the closer (`storeCloser`, `wsCloser`) and the compaction right (`compactRight`).
+8. **`hashStorage.Store`'s premise** `mvccHashOk γ h` (only hashes of the store are stored).
+   Today: `Store` takes nothing (`hashStorageOk`), and no spec says what `HashByRev` returns.
+   Alternative: no premise, and `HashByRev` promises a hash of the store only when none was stored
+   for the revision.
+9. **`Restore`'s atomic precondition on a watched store**: the new state extends the history and
+   is announced. Today: `store.Restore.spec` (D22) takes the server's snapshot machinery.
 
 Dropped premises (each today's, none needed by the code under the candidate's ownership): the
 reader tags `Z` (always `True`), `crevLb` floors, `NoDelPutAt` (already gone in M2 on `lean`),

@@ -6,6 +6,7 @@ spec and the ghost moves of `RestoreMoves.lean`. Lean-first (no Rocq counterpart
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -142,6 +143,32 @@ abbrev mvcc.store.Restore.spec : Prop :=
       (if γ.watchQ then mvcc.logQ γ ([[], []] ++ R) else iprop(True)) ∗
       ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1) (), mvcc.storeRT γ) ∗
       mvcc.storeRT (γ.withPhys p') }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Restore(b)`, with the store's whole open token (it stops and replaces the compaction
+scheduler, which a concurrent `Compact` reads: `mvccOpen`), from a backend `b` holding the state
+`σ'` (`mvccRestorable`): the store's state becomes `σ'` by the caller's update, `nil`. On a store
+with watchers, the watchers must be reset (`mvccRestoreOk`, free without watchers: only the
+watchable store's `Restore` has it), and the update gives that `σ'` extends the state's history,
+announced (the watchers resynchronize from it). Every key of `σ'` with a lease is on a live one, re-attached in the lessor's
+item map (which the lessor's own recovery emptied). Open: the backend's identity (`mvccBackend`,
+`mvccBackendIs`, the hook) is fixed in the vocabulary, but a restore replaces the backend; it must
+become the state's (the backend boundary's design, `notes/mvcc-api-candidate.md`). -/
+abbrev mvcc.store.Restore.specC : Prop :=
+  ∀ (s : Loc) (γ : mvcc.MvccName) (b : Loc) (σ' : mvcc.MvccState) (L : List w64)
+    (Q : mvcc.MvccState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isMvcc s γ ∗ mvcc.mvccOpen γ 1 ∗ mvcc.mvccRestoreOk γ ∗ mvcc.mvccRestorable γ b σ' ∗
+      lease.leaseOwn (mvcc.mvccLeases γ) L ∅ ∗
+      ⌜∀ it lid, (mvcc.pendItems σ'.log []).lookup it = some lid → lid ∈ L⌝ ∗
+      AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ ∗
+              (⌜mvcc.mvccWatched γ = false⌝ ∨ (⌜σ.log <+: σ'.log⌝ ∗ mvcc.mvccLogOk γ σ'.log)) }>
+          @ ⊤ \ ↑mvcc.mvccN, ∅
+        <{ mvcc.mvccState γ σ', COMM Q σ }> }}
+    (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Restore"))
+      (Val #(interface.mkOk
+        (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)))
+  {{ RET #(GoInterface.nil); mvcc.mvccOpen γ 1 ∗
+      lease.leaseOwn (mvcc.mvccLeases γ) L (mvcc.pendItems σ'.log []) ∗ ∃ σ : mvcc.MvccState, Q σ }}
 
 end spec
 

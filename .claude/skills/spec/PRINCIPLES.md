@@ -29,6 +29,14 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   premise. (The compactor's `compactableOk` passed five reviews checked against
   `EtcdServer.Compact.spec`, a `sorry`, and failed at the first glue: `Compact` reads
   `ctx.Value(TraceKey{})`; M2, `notes/m2-plan.md`, 2026-10-28.)
+- **An unsound candidate is replaced by a sound one, not dropped**: every function in the scope
+  keeps a spec. When a candidate turns out false (it lets a client reach a path that breaks
+  another spec's guarantee), find what is true of the function: often a precondition that names
+  the case the code handles (a mode of the object, a token only the safe path produces), not the
+  removal of the function from the API, which leaves its callers with nothing. (The mvcc candidate
+  API, round 2, 2026-11-01: `store.Write`'s candidate let a watched store commit without notifying
+  its watchers, and was removed; the user: "If one possible spec was unsound, that just means we
+  need a better spec.")
 - **Local**: a spec is about its function's footprint, the state that function touches, and nothing
   else, so that a change elsewhere (a new feature, a conjunct added to some other component's
   predicate) leaves the spec and every proof that uses it untouched. Take the footprint, not an

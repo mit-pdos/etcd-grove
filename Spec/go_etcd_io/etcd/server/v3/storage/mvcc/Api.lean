@@ -137,6 +137,15 @@ local instance : Inhabited backend.BNames :=
 /-- **The store's backend's ghost names** (its `backend.wbTok`, `backend.plHookRO`). -/
 opaque mvccBackend (γ : MvccName) : backend.BNames := default
 
+/-- **Whether the store has watchers** (it is a watchable store's: `New`; or `NewStore` at the
+watched mode): its mode, fixed at its creation. -/
+opaque mvccWatched (γ : MvccName) : Bool := false
+
+/-- **The hash of the revisions `(lo, hi]` of a history**, as the store computes it (a function of
+the history: two stores with the same history give the same hash; its value is crc32's over the
+revisions' keys and key-values, kept by the compaction at `lo`). -/
+opaque mvccHashOf (log : Log) (lo hi : Int) : w32 := W32 0
+
 /-- The namespace an implementation reserves for its invariants. -/
 def mvccN : Namespace := nroot .@ "mvcc"
 
@@ -193,9 +202,43 @@ opaque mvccRoTxn (t : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) : IPro
 transaction `mw`** (persistent: its fields). -/
 opaque mvccWatchTxnOf (tw mw : Loc) : IProp GF := iprop(True)
 
-/-- **`rd` is the range deleter the store set on its lessor**: `rd()` is `ws.Write(TODO)`
-(persistent). -/
-opaque mvccDeleter (rd : GoFunc) (ws : Loc) (γ : MvccName) : IProp GF := iprop(True)
+/-- **`rd` is the range deleter the store set on its lessor**: `rd()` is the store's
+`Write(TODO)`, the watchable store's if it has watchers (persistent; `mvccDeleter_spec`). -/
+opaque mvccDeleter (rd : GoFunc) (γ : MvccName) : IProp GF := iprop(True)
+
+/-- **The watchers were notified of the commit of `pend` after `σ`** (or the store has none):
+what a write transaction's own `End` takes. A store without watchers gives it freely
+(`mvccNotified_unwatched`); a watched store's is made only by the watchable store's `End`, which
+notifies: so a client of a watched store commits through that `End`. -/
+opaque mvccNotified (γ : MvccName) (σ : MvccState) (pend : List Change) : IProp GF := iprop(True)
+
+/-- **The watchers were reset for a restore** (or the store has none): what the store's own
+`Restore` takes (as `mvccNotified`; the watchable store's `Restore` resets them). -/
+opaque mvccRestoreOk (γ : MvccName) : IProp GF := iprop(True)
+
+/-- **The right to wrap the store `s` in a watchable store** (exclusive; `NewStore` at the
+watched mode gives it, `New`'s watchable store takes it). -/
+opaque mvccWrapRight (γ : MvccName) (s : Loc) : IProp GF := iprop(True)
+
+/-- **`rv` is a read view of the store `γ`** (persistent): its `kv` serves `γ` (the store, or its
+watchable store). -/
+opaque isReadViewOf (rv : Loc) (γ : MvccName) : IProp GF := iprop(True)
+
+/-- **`wv` is a write view of the store `γ`** (persistent): its `kv` serves `γ`, through the
+watchable store if `γ` has watchers. -/
+opaque isWriteViewOf (wv : Loc) (γ : MvccName) : IProp GF := iprop(True)
+
+/-- **The backend `b` holds the state `σ`, and the store `γ` may restore from it** (exclusive:
+the backend's creator's resources, as today's `store.Restore` takes them; the backend boundary is
+open, `notes/mvcc-api-candidate.md`). -/
+opaque mvccRestorable (γ : MvccName) (b : Loc) (σ : MvccState) : IProp GF := iprop(True)
+
+/-- **`hs` (a `*hashStorage`) is the store `γ`'s hash storage** (persistent). -/
+opaque isHashStorage (hs : Loc) (γ : MvccName) : IProp GF := iprop(True)
+
+/-- **`h` is a hash of the store `γ`** (persistent): of the revisions `(h.CompactRevision,
+h.Revision]` of its history (`mvccHashOk_state`). -/
+opaque mvccHashOk (γ : MvccName) (h : KeyValueHash) : IProp GF := iprop(True)
 
 /-- **The backend's commit serves the request `X ⇒ Y`** (the backend's hooks; for a backend
 without hooks, `X -∗ Y`). -/
@@ -307,7 +350,10 @@ abbrev mvcc.persistent.law : Prop :=
   (∀ γ P, Persistent (mvccHookInit (GF := GF) γ P)) ∧ (∀ γ P f, Persistent (mvccHook (GF := GF) γ P f)) ∧
   (∀ γ P Pk b, Persistent (mvccBackendIs (GF := GF) γ P Pk b)) ∧
   (∀ γ r L, Persistent (mvccAnn (GF := GF) γ r L)) ∧ (∀ tw mw, Persistent (mvccWatchTxnOf (GF := GF) tw mw)) ∧
-  (∀ rd ws γ, Persistent (mvccDeleter (GF := GF) rd ws γ)) ∧ (∀ ch, Persistent (mvccCompactChan (GF := GF) ch)) ∧
+  (∀ rd γ, Persistent (mvccDeleter (GF := GF) rd γ)) ∧ (∀ ch, Persistent (mvccCompactChan (GF := GF) ch)) ∧
+  (∀ rv γ, Persistent (isReadViewOf (GF := GF) rv γ)) ∧ (∀ wv γ, Persistent (isWriteViewOf (GF := GF) wv γ)) ∧
+  (∀ hs γ, Persistent (isHashStorage (GF := GF) hs γ)) ∧ (∀ γ h, Persistent (mvccHashOk (GF := GF) γ h)) ∧
+  (∀ γ σ pend, Persistent (mvccNotified (GF := GF) γ σ pend)) ∧ (∀ γ, Persistent (mvccRestoreOk (GF := GF) γ)) ∧
   (∀ ws γ ι, Persistent (isMvccWatchStream (GF := GF) ws γ ι)) ∧ (∀ ι ch, Persistent (wsChan (GF := GF) ι ch)) ∧
   (∀ ι id rg fs lo k, Persistent (wsWatcher (GF := GF) ι id rg fs lo k)) ∧
   (∀ ι id, Persistent (wsCanceled (GF := GF) ι id)) ∧ (∀ ι, Persistent (wsClosed (GF := GF) ι)) ∧
@@ -365,15 +411,49 @@ abbrev mvccCommitReq_of.law : Prop :=
   ∀ γ P Pk b X Y, mvccBackendIs (GF := GF) γ P Pk b ∗ backend.commitReq (mvccBackend γ) P Pk b X Y ⊢
     mvccCommitReq γ X Y
 
-/-- **The range deleter** the store set on its lessor is `ws.Write(traceutil.TODO())`: a write
-transaction of the watchable store (as `watchableStore.Write.specC`, at a trace of its own). -/
+/-- **The range deleter** the store set on its lessor is the store's `Write(traceutil.TODO())`,
+the watchable store's if it has watchers: a write transaction (as `store.Write.specC` or
+`watchableStore.Write.specC`, at a trace of its own). -/
 abbrev mvccDeleter_spec.law : Prop :=
-  ∀ rd ws γ (P Pre Q : IProp GF) (f : GoFunc), mvccDeleter (GF := GF) rd ws γ ⊢
+  ∀ rd γ (P Pre Q : IProp GF) (f : GoFunc), mvccDeleter (GF := GF) rd γ ⊢
     {{ threadTok ∗ mvccHook γ P f ∗ Pre ∗ hookRun P f Pre Q }}
       (App (Val #rd) (Val #()))
-    {{ (tw : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
-        (∃ (mw trace : Loc) (σ : MvccState), mvccWatchTxnOf tw mw ∗ mvccTxn mw γ trace (.write σ [])) ∗
+    {{ (t : GoInterface), RET #t;
+        (∃ (mw trace : Loc) (σ : MvccState), mvccTxn mw γ trace (.write σ []) ∗
+          if mvccWatched γ then
+            ∃ tw : Loc, ⌜t = interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw⌝ ∗
+              mvccWatchTxnOf tw mw
+          else ⌜t = interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw⌝) ∗
         Q }}
+
+/-- **A store without watchers is notified of every commit.** -/
+abbrev mvccNotified_unwatched.law : Prop :=
+  ∀ γ σ pend, mvccWatched γ = false → ⊢ mvccNotified (GF := GF) γ σ pend
+
+/-- **A store without watchers may restore.** -/
+abbrev mvccRestoreOk_unwatched.law : Prop :=
+  ∀ γ, mvccWatched γ = false → ⊢ mvccRestoreOk (GF := GF) γ
+
+/-- **A watchable store's store has watchers.** -/
+abbrev isWatchableMvcc_watched.law : Prop :=
+  ∀ ws γ, isWatchableMvcc (GF := GF) ws γ ⊢ ⌜mvccWatched γ = true⌝
+
+/-- **The store's views** (its embedded `ReadView`/`WriteView`, which serve its promoted `Range`,
+`Rev`, `FirstRev`, `Put` and `DeleteRange`): views of the store, set for good when it was made
+(the watchable store's, over itself, when it has watchers). -/
+abbrev isMvcc_views.law : Prop :=
+  ∀ s γ, isMvcc (GF := GF) s γ ⊢ ∃ rv wv : Loc,
+    s.[store, go!"ReadView"] ↦□ (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
+    isReadViewOf rv γ ∗
+    s.[store, go!"WriteView"] ↦□ (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
+    isWriteViewOf wv γ
+
+/-- **A hash of the store is of its history**: a hash it gave or stored is of the revisions
+`(CompactRevision, Revision]` of every later state's history (histories only grow). -/
+abbrev mvccHashOk_state.law : Prop :=
+  ∀ γ h σ, mvccHashOk (GF := GF) γ h ∗ mvccState γ σ ⊢
+    ⌜h.Hash' = mvccHashOf σ.log (sint.Z h.CompactRevision') (sint.Z h.Revision') ∧
+      sint.Z h.Revision' ≤ (σ.rev : Int)⌝
 
 /-- **Announcing**: a revision not yet announced. -/
 abbrev mvccAnn_alloc.law : Prop :=

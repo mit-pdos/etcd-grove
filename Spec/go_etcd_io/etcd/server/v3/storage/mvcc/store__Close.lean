@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -37,6 +38,14 @@ abbrev mvcc.store.Close.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (c : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeCloserM s γ c }}
+    (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Close")) (Val #()))
+  {{ RET #(GoInterface.nil); True }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Close()`, with the store's whole open token: its stop channel closed, its compaction
+scheduler stopped; `nil`. -/
+abbrev mvcc.store.Close.specC : Prop :=
+  ∀ (s : Loc) (γ : mvcc.MvccName),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isMvcc s γ ∗ mvcc.mvccOpen γ 1 }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Close")) (Val #()))
   {{ RET #(GoInterface.nil); True }}
 

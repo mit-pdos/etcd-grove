@@ -316,6 +316,10 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[etcd-mvcc-hash-currentrev-race](etcd-mvcc-hash-currentrev-race.md)** (2026-11-01):
+  `HashStorage().Hash()` reads `currentRev` without `revMu`, racing with every write (reported by
+  the race detector); reachable through the maintenance `Hash` RPC. Harmless on 64-bit in practice
+  (the TODO already says the revision may not match the hash), a one-line fix.
 - **[etcd-mvcc-watch-negative-start-rev](etcd-mvcc-watch-negative-start-rev.md)** (2026-11-01):
   `WatchStream.Watch`'s documentation says a start revision `<= 0` watches after the current
   revision; a negative one replays the history or gets a compaction response with
