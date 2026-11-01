@@ -1,7 +1,6 @@
-/- Lean-first (no Rocq counterpart). minibolt's crash obligations, as pure lemmas: `CrashOkQ (P1s p) p
-Good s` for the states `s` of the database file that `BootMinibolt`'s code passes through (`P1s`:
-P1 with a nonempty write in its third case, see below), reduced to statements on images
-(`idleImg`, `writingImg`), which `CrashImg.lean` proves for `init`'s and `commit`'s states.
+/- Lean-first (no Rocq counterpart). minibolt's crash obligations, as pure lemmas: `CrashOkQ (P1 p) p
+Good s` for the states `s` of the database file that `BootMinibolt`'s code passes through,
+reduced to statements on images (`idleImg`, `writingImg`), which `CrashImg.lean` proves for `init`'s and `commit`'s states.
 
 The core is what P1 says of a crash image's valid meta slot, in the terms the client holds
 (`seen_idle_slot`, `seen_writing_slot`): the slot is the durable image's (`D`, which agrees with
@@ -28,29 +27,6 @@ open Iris github_com.mit_pdos.etcd_grove.examples.bboltfs
 
 section pure
 variable [GooseExts]
-
-/-- **P1, with a nonempty write** (`P1s`): P1 (`BootP1.lean`), whose third case asks the write in
-flight to write something. An empty write leaves the slot as the page cache has it, which P1's
-second case admits only if every byte of the slot is dirty or lost; without this, an empty write
-in flight anywhere in the file (which another thread may start: it takes a fraction of the
-`OsMeta` and no byte) would admit a torn page-cache slot. `P1s` implies P1 and is the premise the
-proofs below use; `BootCrashSafety` should state it (a decision for the user). -/
-def P1s (p : GoString) (st st' : OsState) : Prop :=
-  ∀ (f : OsFile) (img : List w8) (i : Nat), st.file p = some f →
-    st'.files !! p = some (some (OsFile.ofDisk img)) → i < 2 → 4096 * i + 80 ≤ img.length →
-    metaValid (fileMeta img i) →
-    metaSlot img i = metaSlot f.durable i ∨
-    ((∀ k < 64, f.dirty (4096 * i + 16 + k) = true ∨ f.lost (4096 * i + 16 + k) = true) ∧
-      metaSlot img i = metaSlot f.cur i) ∨
-    ∃ (t off : Nat) (data : List w8), st.inflight !! t = some ⟨p, .write off data⟩ ∧ data ≠ [] ∧
-      metaSlot img i = metaSlot (writeBytes f.cur off data) i
-
-theorem P1s_P1 {p : GoString} {st st' : OsState} (h : P1s p st st') : P1 p st st' := by
-  intro f img i hf hst hi hl hv
-  rcases h f img i hf hst hi hl hv with h | h | ⟨t, off, data, ht, -, h⟩
-  · exact Or.inl h
-  · exact Or.inr (Or.inl h)
-  · exact Or.inr (Or.inr ⟨t, off, data, ht, h⟩)
 
 /-- What the crashed state holds of a file the client holds as `m`, and the bytes `bs` from 0
 (all of them): the file `f`, its bytes `bs`, the durable bytes `m.dur` knows and the clean ones. -/
@@ -202,7 +178,7 @@ theorem seen_writing {Q : OsState → OsState → Prop} {p : GoString} {m : OsMe
 `idleImg` is good, or the file may vanish (it was created since boot) . -/
 theorem crashOkQ_idle {p : GoString} {m : OsMeta} {bs : List (w8 × Bool)}
     (hwf : bs.length = m.size) (H : ∀ img D, idleImg m bs img D → goodImg img) :
-    CrashOkQ (P1s p) p Good (some (m, bs, none)) := by
+    CrashOkQ (P1 p) p Good (some (m, bs, none)) := by
   intro fo hfc hseen
   rcases hfc with ⟨rfl, -⟩ | ⟨img, rfl, hlo, hhi, hcl⟩
   · trivial
@@ -247,7 +223,7 @@ if every `writingImg` is good. -/
 theorem crashOkQ_writing {p : GoString} {m : OsMeta} {bs : List (w8 × Bool)} {t off : Nat}
     {data : List w8} (hwf : bs.length = m.size)
     (H : ∀ img D, writingImg m bs off data img D → goodImg img) :
-    CrashOkQ (P1s p) p Good (some (m, bs, some (t, off, data))) := by
+    CrashOkQ (P1 p) p Good (some (m, bs, some (t, off, data))) := by
   intro fo hfc hseen
   rcases hfc with ⟨rfl, -⟩ | ⟨img, rfl, hlo, hhi, hcl⟩
   · trivial
@@ -271,7 +247,7 @@ theorem crashOkQ_writing {p : GoString} {m : OsMeta} {bs : List (w8 × Bool)} {t
     exact Or.inr (Or.inr (by rw [h3, hcur]))
 
 /-- **Obligation 1**: the file `OpenFile` creates, empty. -/
-theorem crashOkQ_create (p : GoString) : CrashOkQ (P1s p) p Good (some (newMeta, [], none)) := by
+theorem crashOkQ_create (p : GoString) : CrashOkQ (P1 p) p Good (some (newMeta, [], none)) := by
   apply crashOkQ_idle rfl
   rintro img D ⟨-, hhi, -⟩
   have h0 : img.length = 0 := by simp only [newMeta] at hhi; omega

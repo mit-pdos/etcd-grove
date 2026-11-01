@@ -10,6 +10,12 @@ whose untouched bytes are still clean, and such a mix validates only by a collis
 slot as a write in flight would leave it. `P1 p st st'` relates the state `st` at the crash and
 the state `st'` the next boot starts from (`OsCrash st st'`).
 
+The write in flight is nonempty: an empty write changes nothing, so the slot "as it would leave
+it" is the page cache's, which the second case admits only if every byte of the slot is dirty or
+lost. Without it, an empty write in flight anywhere in the file (which any thread may start) would
+admit the page cache's slot even when torn (a failed write's mix of new bytes and clean old
+ones), which is a checksum collision on a torn meta, the case P1 excludes.
+
 **The statement** (`BootCrashSafety`): the boot program (initialize the package, call
 `BootMinibolt(dir)`) is run with the Linux file extension's semantics whose crash relation is
 `OsCrash ∧ P1 (dir ++ "/db")` (`osFsExtsSemanticsWith`, `GooseLang/Ext/OsFs/CrashP1.lean`): that
@@ -43,7 +49,7 @@ def P1 [GooseExts] (p : GoString) (st st' : OsState) : Prop :=
     metaSlot img i = metaSlot f.durable i ∨
     ((∀ k < 64, f.dirty (4096 * i + 16 + k) = true ∨ f.lost (4096 * i + 16 + k) = true) ∧
       metaSlot img i = metaSlot f.cur i) ∨
-    ∃ (t off : Nat) (data : List w8), st.inflight !! t = some ⟨p, .write off data⟩ ∧
+    ∃ (t off : Nat) (data : List w8), st.inflight !! t = some ⟨p, .write off data⟩ ∧ data ≠ [] ∧
       metaSlot img i = metaSlot (writeBytes f.cur off data) i
 
 attribute [local instance] osFsExts osFsExtsInterp
