@@ -1057,9 +1057,10 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
     (wp_pmeta : Page.«meta».spec (GF := GF) (hG := hG))
     (wp_write : Meta.write.spec (GF := GF) (hG := hG)) :
     DB.commit.specCrash (GF := GF) (hG := hG) := by
-  intro γ γc db f fd p mp st m bs v Hok Ht Hb Hmok Hst Hvp Hboot
+  intro γ γc db f fd p mp st m bs v Hok Ht Hmok Hst Hvp Hboot
+  have Hb1 : (curPgid mp + 1) * 4096 ≤ 2 ^ 30 := Hok.2.2.2.2
   generalize hmv : curMeta mp = mv at Ht Hvp Hboot ⊢
-  generalize hhwm : curPgid mp = hwm at Hb ⊢
+  generalize hhwm : curPgid mp = hwm at Hb1 ⊢
   have hpg : mv.pgid'.toNat = hwm := by rw [← hmv, ← hhwm]; rfl
   replace hhwm : HideEq (curPgid mp) hwm := hhwm
   wp_start as ⟨#Hpkg, #Hos, #Hci, #Hfile, #Hmeta, #Hguard, Hws, Hown⟩
@@ -1081,7 +1082,7 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
   wp_apply (Meta.wp_alloc_pos mv) as %m_ptr ⟨m, %Hmpos⟩
   (try wp_auto)
   dsimp only
-  have hhwm2 : hwm + 2 ≤ 2 ^ 18 := by omega
+  have hhwm2 : hwm + 1 ≤ 2 ^ 18 := by omega
   have hmZ : sint.Z ((mv.pgid' + W64 1 + W64 1) * W64 4096) = ((hwm + 2) * 4096 : Nat) := by
     have h1 : (mv.pgid' + W64 1 + W64 1).toNat = hwm + 2 := by
       simp only [BitVec.toNat_add]; rw [hpg]; show ((hwm + 1) % 2 ^ 64 + 1) % 2 ^ 64 = _; omega
@@ -1095,6 +1096,30 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
     rw [BitVec.toInt_eq_toNat_cond]; simp only [BitVec.toNat_ofInt]; split <;> omega
   simp only [mapLen, hlenZ, hmZ]
   generalize hminsz : (mv.pgid' + W64 1 + W64 1) * W64 4096 = minsz at hmZ ⊢
+  have hmax : sint.Z (W64 1073741824) = 1073741824 := by rfl
+  simp only [hmax]
+  -- refuse to grow past maxMapSize
+  by_cases Hb : (hwm + 2) * 4096 ≤ 2 ^ 30
+  rotate_left
+  · have hc : (1073741824 : Int) < ((hwm + 2) * 4096 : Nat) := by omega
+    simp only [hc, decide_true]
+    ihave ⟨%e3, #He3, %He3⟩ := pkgFacts_errMapTooLarge $$ Hpkg
+    wp_auto
+    ihave Herr := commitErrC_mk γ γc db f fd p mp hwm base len γm m bs _ _ hwm
+      ⟨Hstp.1, Hstp.2.1, Hstp.2.2.1, Hstp.2.2.2, Hwf.1, Hwf.2.1, Hwf.2.2.1⟩
+      $$ [Hown Hcur Hmap Hout Hflds Hfsz Hdsz Hf Hfd Hcs Hcls Htok Hwc]
+    · iframe; iframe #
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; exact He3
+    iunfold commitErrC at Herr
+    iexact Herr
+  have hc : ¬ (1073741824 : Int) < ((hwm + 2) * 4096 : Nat) := by omega
+  simp only [hc, decide_false]
+  clear hc hmax Hb1
+  (try wp_auto)
+  simp only [mapLen, hlenZ, hmZ]
   -- remap if the next high water mark passes the mapping
   wp_join (Q := fun bv => iprop((⌜bv = executeVal⌝ ∗ ∃ (base' : Loc) (len' : Nat) (γm' : GName) (m' : OsMeta),
       writerStC (GF := GF) γ γc db f fd p mp false hwm (some (base', len', γm')) m' bs ∗

@@ -10,16 +10,10 @@ the committer's token, reads transaction `t` and its value, which `dbTx` says is
 `Commit(t + 1)`, and the second `Get` reads transaction `t + 1` (the token), whose value is again
 `bootOk`'s, `t + 1` since `t + 1 > 1`.
 
-**What the specs leave open** (`bootPremises`, a hypothesis of `wp_BootMinibolt`): `Commit`
-requires `t + 1 < 2 ^ 64` and `(n + 2) * 4096 ≤ 2 ^ 30`, and its value `t + 1` must satisfy
-`bootOk (t + 1)`, which needs `1 ≤ t`. A `Good` file gives `1 ≤ t < n` and
-`(n + 1) * 4096 ≤ 2 ^ 30` (`goodImg_freshTx_tx`: `txOk`, `metaPagesOk`), so the first two, but
-not the size bound, which is one page short. It is not a gap of the proof: when the high water
-mark reaches 1 GiB, the Go `commit` maps `mmapSize((n + 2) * 4096)`, 2 GiB, and truncates the file
-to it, without checking `minibolt`'s 1 GiB bound, and the model lets both succeed (as Linux
-does). The file then leaves `goodImg` (`img.length ≤ 2 ^ 30`, `metaPagesOk`'s bound), which the
-whole proof assumes. `bootPremises` is this bound alone; it needs a check in the Go code (an
-error from `commit` when `(n + 2) * 4096` exceeds 1 GiB) to be dropped.
+**What `Commit` needs:** `t + 1 < 2 ^ 64`, and its value `t + 1` must satisfy `bootOk (t + 1)`,
+which needs `1 ≤ t`. A `Good` file gives `1 ≤ t < n` (`goodImg_freshTx_tx`: `txOk`), so both. When
+the high water mark reaches 1 GiB, `commit` refuses with `errMapTooLarge` (the file would pass
+`maxMapSize`); `Commit` then fails the handle, and `BootMinibolt` closes it and returns.
 -/
 module
 
@@ -43,11 +37,6 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.
 
 section pure
 variable [GooseExts]
-
-/-- What `wp_BootMinibolt` needs of the file a generation starts with beyond `Good` (see the file
-header): its high water mark `n` leaves room for one more page below 1 GiB. -/
-def bootPremises (fo : Option OsFile) : Prop :=
-  ((freshTx ((startImg fo).map (·, true))).2.2 + 2) * 4096 ≤ 2 ^ 30
 
 /-- `bootOk`'s first check: transaction `t ≤ 1` holds no value. -/
 theorem bootOk_le1 {t : Nat} {vo : Option w64} (h : bootOk t vo) (ht : t ≤ 1) : vo = none := by
@@ -86,7 +75,7 @@ theorem wp_BootMinibolt [ThreadBoundLe GF (2 ^ 30)]
     (wp_Get : DB.Get.specCrash (GF := GF) (hG := hG))
     (wp_Commit : DB.Commit.specCrash (GF := GF) (hG := hG))
     (wp_Close : DB.Close.specCrash (GF := GF) (hG := hG))
-    (dir : GoString) (γc : GName) (fo : Option OsFile) (hg : Good fo) (hb : bootPremises fo) :
+    (dir : GoString) (γc : GName) (fo : Option OsFile) (hg : Good fo) :
     {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗
         csInv (GF := GF) dbCrashN (dir ++ go!"/db") γc (dbOk (dir ++ go!"/db")) ∗
         csOwn (GF := GF) (dir ++ go!"/db") γc (csStart fo) ∗ threadTok }}
@@ -101,10 +90,10 @@ theorem wp_BootMinibolt [ThreadBoundLe GF (2 ^ 30)]
   have hvp : bootOk t vo := by
     have := goodImg_freshTx (startImg fo) hgi
     rw [hfresh] at this; exact this
-  have hb' : 1 ≤ t ∧ t + 1 < 2 ^ 64 ∧ (n + 2) * 4096 ≤ 2 ^ 30 := by
+  have hb' : 1 ≤ t ∧ t + 1 < 2 ^ 64 := by
     have htx := goodImg_freshTx_tx (startImg fo) hgi
-    unfold bootPremises at hb; rw [hfresh] at hb htx
-    exact ⟨htx.1, by omega, hb⟩
+    rw [hfresh] at htx
+    exact ⟨htx.1, by omega⟩
   wp_auto
   wp_apply wp_Open (dir ++ go!"/db") γc fo t vo n bootOk hg hfresh hvp (fun _ _ h => h) $$ [Hown]
     as %db %err (⟨%Herr, %γ, %Hvp, #Hdb, -, Hown, #Hlast, #Htx⟩ | ⟨%Herr, -⟩)
@@ -151,7 +140,7 @@ theorem wp_BootMinibolt [ThreadBoundLe GF (2 ^ 30)]
     have hhas : has = false := by cases has <;> simp_all
     subst hhas
     (try wp_auto)
-    wp_apply wp_Commit γ γc db t n (txid + W64 1) (by omega) hb'.2.2
+    wp_apply wp_Commit γ γc db t n (txid + W64 1) (by omega)
         (by rw [Hvp, ← htx]; exact bootOk_next txid (by omega) (by omega)) $$ [Hown]
       as %e (⟨%He, Hown, #Htxc, #Hlastc⟩ | ⟨%He, -, Hown⟩)
     · iframe; iframe #
@@ -215,7 +204,7 @@ theorem wp_BootMinibolt [ThreadBoundLe GF (2 ^ 30)]
       rw [hs]; exact (w64_of_toNat txid _ rfl).symm
     subst v
     (try wp_auto)
-    wp_apply wp_Commit γ γc db t n (txid + W64 1) (by omega) hb'.2.2
+    wp_apply wp_Commit γ γc db t n (txid + W64 1) (by omega)
         (by rw [Hvp, ← htx]; exact bootOk_next txid (by omega) (by omega)) $$ [Hown]
       as %e (⟨%He, Hown, #Htxc, #Hlastc⟩ | ⟨%He, -, Hown⟩)
     · iframe; iframe #
