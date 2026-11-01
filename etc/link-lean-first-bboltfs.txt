@@ -27,6 +27,10 @@ os_File__Fd:
 syscall_Flock:
 bboltfs_flock: os_File__Fd syscall_Flock =_root_.Perennial.time.wp_Sleep
 bboltfs_DB__mmap: bboltfs_DB__munmap bboltfs_mmapSize os_File__Fd unix_Mmap unix_Madvise unix_Munmap bboltfs_pageAt bboltfs_Page__meta
+bboltfs_DB__commit: bboltfs_DB__mmap os_File__Truncate os_File__Sync bboltfs_pageAt os_File__WriteAt os_File__Fd syscall_Fdatasync bboltfs_Page__meta bboltfs_Meta__write
+bboltfs_DB__Commit: bboltfs_DB__meta bboltfs_DB__commit
+os_File__Truncate:
+os_File__Sync:
 # the os/syscall/unix specs minibolt calls (proved on osfs-specs)
 unix_Munmap:
 unix_Mmap:

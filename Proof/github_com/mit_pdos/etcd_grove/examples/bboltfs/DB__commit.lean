@@ -374,6 +374,38 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     iexists m', tail
     iframe
     ipureintro; exact ⟨Hmaps, Hsz, by omega, Hok', Hwf.2.2.2.1⟩
+  iintro (⟨%Hbv, %m2, %tail2, %Hm2, Hm, Hfsz, Htail, Hwc, Hf, Hfd, Hdsz, db, «$res0», Hown, Hcur, Hmap,
+    Hout, Hflds, Hcls, Htok, Hmx⟩ | ⟨%e, %Hbv, db, «$res0», Herr⟩)
+  rotate_left
+  · obtain ⟨rfl, He⟩ := Hbv
+    (try wp_auto)
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; exact He
+    iunfold commitErr at Herr
+    iexact Herr
+  subst Hbv
+  clear Hsize Hok' Hlen Hsz Hmaps hsZ
+  obtain ⟨Hmaps, Hsz, Hgrow, Hok2, Htl2⟩ := Hm2
+  (try wp_auto)
+  -- TODO: the rest of `commit`, after the grow. The file is `m2` (size at least the next high
+  -- water mark's end, `m2.ok`), the bytes from `hwm` on `tail2`, the mapping `(base, len, γm)`.
+  -- 1. the data page: `make` (`wp_slice_make2`), the header and `v` through `pageHdr_view` and a
+  --    `w64` byte view at offset 16; `WriteAt` at `4096 * hwm` over `tail2.take 4096` and the cells
+  --    `[4096 * hwm, 4096 * hwm + 4096)` of `writerCells`' top (`mcellsAny_single`); `Fdatasync`
+  --    (`m2.ok`: the page's bytes clean); `cellsR_agree` around the next step for its cells;
+  --    `osBytes` discarded into `pageIs p hwm B` (a lemma like `ghostMapElem_persist` for
+  --    `bytesG`). On an error: `commitErr_of`.
+  -- 2. the meta page: `make`, `pageAt`, `Meta.write` (the meta `commitOf mv`, page id
+  --    `txid % 2`); `metalock` (`metaR`, not failed: `fail_handle`-like ghost reasoning), the
+  --    meta cells out of the invariant (`metas_out`), `WriteAt` over page `i` of the meta pages
+  --    (both halves of `mxc`, `osBytes_join`, `osBytes_window`), `Fdatasync` (clean), on an error
+  --    `failed := true` under `metalock` (`fail_cur_inv`, `metaR`'s `own` into its failed branch)
+  --    and `commitErr` with `dbFailed`.
+  -- 3. publish: `setPage mp i PB` (`metaPagesOk_commit`), `cur` (three parts), page `hwm`'s cells
+  --    into the invariant, `metas_in`, `own` to `(t + 1, hwm + 1)`, `last` to `t + 1`, the
+  --    transaction map at `t + 1` (`HTn`: no entry yet), `dbTx (t + 1) (some v)`; `rwR`.
   sorry
 
 end proof
