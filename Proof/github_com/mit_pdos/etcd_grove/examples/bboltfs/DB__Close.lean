@@ -243,7 +243,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
       iexact Hfailed
     | false =>
       icases Hrest with ⟨Hfa, %Hok, Hlast, Hown3, %B, #HB, #Htx, %HT⟩
-      obtain ⟨rfl, Hok, rfl⟩ := Hok
+      obtain ⟨rfl, Hok, rfl, HTn⟩ := Hok
       icombine Hown Hown3 gives % ⟨_, Heq⟩
       cases Heq
       ihave Hmx := osBytes_join p mxw mxc 0 (by rw [Hw.2.2.1, Hmx.1]) $$ [Hmxw Hmb]
@@ -260,7 +260,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
         dsimp only
         iframe Hfa
         isplitr
-        · ipureintro; exact ⟨rfl, Hok, rfl⟩
+        · ipureintro; exact ⟨rfl, Hok, rfl, HTn⟩
         iframe Hlast Hown3
         iexists B; iframe #; ipureintro; exact HT
       (try wp_auto)

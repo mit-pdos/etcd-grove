@@ -36,7 +36,8 @@ when it mapped the file, and no write touches them since).
   `hwm` on), `filesz` (the file's size while not failed: a failed `Truncate` may grow the file),
   `datasz`, halves of the mapping fields, and half the file and its fd.
 - `metalock` (`metaR`): `failed`, half the meta pages' bytes until closed (a meta `WriteAt` takes
-  both halves: it runs under both mutexes), the transaction map, and while not failed: the meta
+  both halves: it runs under both mutexes), the transaction map (no transaction after the current
+  one while not failed), and while not failed: the meta
   pages are valid (`metaPagesOk`), the current meta's root page `pageIs` its value, `dbTx` of it;
   once failed, its half of `own`.
 - `mmaplock` (`mapR γ db q`, Perennial's guarded `RWMutex`): the mapping, fractionally: the
@@ -329,7 +330,8 @@ def metaR (γ : DBNames) (db : Loc) (p : GoString) : IProp GF :=
     match b with
     | true => monoNatAuthOwn γ.fail 1 1 ∗ ∃ x : Nat × Nat, ghostVar γ.own (1 : Qp).half x
     | false =>
-      monoNatAuthOwn γ.fail 1 0 ∗ ⌜mx = mp ∧ metaPagesOk mp ∧ hwm = curPgid mp⌝ ∗
+      monoNatAuthOwn γ.fail 1 0 ∗ ⌜mx = mp ∧ metaPagesOk mp ∧ hwm = curPgid mp ∧
+        ∀ k, (curMeta mp).txid'.toNat < k → T !! k = none⌝ ∗
       monoNatAuthOwn γ.last 1 (curMeta mp).txid'.toNat ∗
       ghostVar γ.own (1 : Qp).half ((curMeta mp).txid'.toNat, hwm) ∗
       ∃ B, pageIs (GF := GF) p (curRoot mp) B ∗ dbTx γ (curMeta mp).txid'.toNat (pageVal B) ∗
