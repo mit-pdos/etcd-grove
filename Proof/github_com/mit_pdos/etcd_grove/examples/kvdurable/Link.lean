@@ -431,7 +431,7 @@ variable [HasExt durableExt] [go.IntoValInj GoString]
 
 attribute [local instance] kvdurable.kdStorageModel
 variable [AllG GF]
-variable (h_kvdurable_openStorage : ∀ [KdStor GF], kvdurable.openStorage.spec (GF := GF) (hG := hG))
+variable (h_kvdurable_openStorage : ∀ [kvdurable.KdStor GF], kvdurable.openStorage.spec (GF := GF) (hG := hG))
 include h_kvdurable_openStorage
 
 theorem kvdurable.Cluster.wp_start [KdStor GF] :

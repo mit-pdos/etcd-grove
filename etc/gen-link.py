@@ -569,6 +569,9 @@ em = (("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
 # The storage registries a store's specs take (kv's `KVStor`, kvreconf's `KvrStor`): passed on; a
 # spec taking one is stated at the store's storage model, not at any `[StorageModel GF]`.
 STOR_REGS = ["[KVStor GF]", "[KvrStor GF]", "[KdStor GF]"]
+# a registry as a pending hypothesis's binder, named in full (the Link opens the package's Go
+# namespace, not the store's proof namespace)
+STOR_QUAL = {"[KdStor GF]": "[kvdurable.KdStor GF]"}
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.normpath(os.path.join(here, ".."))
@@ -1054,7 +1057,7 @@ variable [sem : go.Semantics]
         pend_allg = any("[AllG GF]" in pend_src(fn) for fn in pending)
         hyps = ("variable [AllG GF]\n" if pend_allg else "") + "\n".join(
             f"variable ({hyp(fn)} : "
-            + "".join(f"∀ {r}, " for r in STOR_REGS if r in pend_src(fn))
+            + "".join(f"∀ {STOR_QUAL.get(r, r)}, " for r in STOR_REGS if r in pend_src(fn))
             + f"{specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG))"
             for fn in sorted(pending))
         names = " ".join(hyp(fn) for fn in sorted(pending))
