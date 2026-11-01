@@ -478,7 +478,7 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
   iNamed Hinit
   ihave #Hc0 := memCompacted_zero (GF := GF) γs
   iapply wp_fupd
-  wp_apply wp_Snapshot γ.ms γs (memStorJ γ.node.cl γ.id) none 0 true _
+  wp_apply wp_Snapshot γ.ms γs (memStorJ γ.node.cl (srvKey γ.node.cl γ.id)) none 0 true _
     $$ [$Hraft $Hc0 Hnone $ErrSnapUnavail] as %snap %err ⟨Hnone, %Herr, %sv, Hw, %Hsv, -⟩
   · isplitr [Hnone]
     · iapply memStorAt_none_intro $$ Hinv

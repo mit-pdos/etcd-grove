@@ -111,23 +111,23 @@ theorem EtcdServer.compactRaftLog.wp_proof
            ihave #Hfr' : iprop((∃ e, memLog γs (uint.nat (snapi - scu)) DFrac.discard [e]) ∨
                memCompacted γs (uint.nat (snapi - scu))) $$ []
            · rw [H.1]; iexact Hfr
-           wp_apply hCompact ms γs (memStorJ γr.cl id) none (snapi - scu) _ $$ [] as %err ⟨%Hor, -⟩
+           wp_apply hCompact ms γs (memStorJ γr.cl (srvKey γr.cl id)) none (snapi - scu) _ $$ [] as %err ⟨%Hor, -⟩
            · rw [memStorAt_none]
              iframe #
              simp only [memStorJ]
              isplitr
-             · ileft; iapply nodeAppliedLb_mono _ _ _ _ H.2 $$ Hapl
+             · iapply nodeAppliedLb_mono _ _ _ _ H.2 $$ Hapl
              iapply memSnapLb_mono _ _ _ H.2 $$ Hslb)
         | (have H := Hci (W64 1) (by rw [if_neg (by word)]; word)
            ihave #Hfr' : iprop((∃ e, memLog γs (uint.nat (W64 1)) DFrac.discard [e]) ∨
                memCompacted γs (uint.nat (W64 1))) $$ []
            · rw [H.1]; iexact Hfr
-           wp_apply hCompact ms γs (memStorJ γr.cl id) none (W64 1) _ $$ [] as %err ⟨%Hor, -⟩
+           wp_apply hCompact ms γs (memStorJ γr.cl (srvKey γr.cl id)) none (W64 1) _ $$ [] as %err ⟨%Hor, -⟩
            · rw [memStorAt_none]
              iframe #
              simp only [memStorJ]
              isplitr
-             · ileft; iapply nodeAppliedLb_mono _ _ _ _ H.2 $$ Hapl
+             · iapply nodeAppliedLb_mono _ _ _ _ H.2 $$ Hapl
              iapply memSnapLb_mono _ _ _ H.2 $$ Hslb)
       rcases Hor with Herr | Herr
       · -- compacted to `compacti`: log it
