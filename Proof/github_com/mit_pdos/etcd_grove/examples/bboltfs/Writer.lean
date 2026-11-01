@@ -41,6 +41,138 @@ theorem pick_cur (mp : List w8) (a b : Loc) (h : metaValid (fileMeta mp 0) ∨ m
     · have h0 : metaValid (fileMeta mp 1) := h.resolve_left h2
       simp [h2, h0]
 
+/-- A valid meta of the meta pages has a txid at most the current meta's. -/
+theorem curMeta_max (mp : List w8) (j : Nat) (hj : j < 2) (hv : metaValid (fileMeta mp j)) :
+    (fileMeta mp j).txid'.toNat ≤ (curMeta mp).txid'.toNat := by
+  unfold curMeta
+  dsimp only
+  have hj' : j = 0 ∨ j = 1 := by omega
+  rcases hj' with rfl | rfl
+  · by_cases h1 : uint.Z (fileMeta mp 0).txid' < uint.Z (fileMeta mp 1).txid'
+    · simp only [h1, ite_true]; split <;> simp only [uint.Z] at h1 <;> omega
+    · simp only [h1, ite_false, hv, ite_true]; omega
+  · by_cases h1 : uint.Z (fileMeta mp 0).txid' < uint.Z (fileMeta mp 1).txid'
+    · simp only [h1, ite_true, hv]; omega
+    · simp only [h1, ite_false]; split <;> simp only [uint.Z] at h1 <;> omega
+
+/-- The meta pages `xs` with page `i` replaced by `PB`. -/
+def setPage (xs : List w8) (i : Nat) (PB : List w8) : List w8 :=
+  xs.take (4096 * i) ++ PB ++ xs.drop (4096 * (i + 1))
+
+theorem setPage_length (xs : List w8) (i : Nat) (PB : List w8) (hl : xs.length = 8192) (hi : i < 2)
+    (hPB : PB.length = 4096) : (setPage xs i PB).length = 8192 := by
+  unfold setPage; simp only [List.length_append, List.length_take, List.length_drop, hPB, hl]; omega
+
+theorem fileMeta_setPage_same (xs : List w8) (i : Nat) (PB : List w8) (hl : xs.length = 8192)
+    (hi : i < 2) (hPB : PB.length = 4096) : fileMeta (setPage xs i PB) i = pageMeta PB := by
+  unfold fileMeta setPage
+  rw [List.append_assoc, List.drop_left' (by simp; omega)]
+  rw [← pageMeta_take _ 4096 (by omega), List.take_append_of_le_length (by omega),
+    List.take_of_length_le (by omega)]
+
+theorem fileMeta_setPage_other (xs : List w8) (i j : Nat) (PB : List w8) (hl : xs.length = 8192)
+    (hi : i < 2) (hj : j < 2) (hij : i ≠ j) (hPB : PB.length = 4096) :
+    fileMeta (setPage xs i PB) j = fileMeta xs j := by
+  have : (i = 0 ∧ j = 1) ∨ (i = 1 ∧ j = 0) := by omega
+  rcases this with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+  · unfold fileMeta setPage
+    simp only [Nat.mul_zero, List.take_zero, List.nil_append, Nat.zero_add, Nat.mul_one]
+    rw [List.drop_left' (by omega)]
+  · unfold fileMeta setPage
+    simp only [Nat.mul_zero, List.drop_zero, Nat.mul_one]
+    rw [← pageMeta_take _ 4096 (by omega), List.append_assoc,
+      List.take_append_of_le_length (by simp; omega), List.take_take, pageMeta_take _ _ (by omega)]
+
+/-- The meta pages after `commit` writes the meta `M` (valid, at the next txid) to page `i`: `M` is
+current. -/
+theorem curMeta_commit (xs : List w8) (M : Meta) (i : Nat) (PB : List w8) (h : metaPagesOk xs)
+    (hM : metaValid M) (ht : M.txid'.toNat = (curMeta xs).txid'.toNat + 1) (hi : i < 2)
+    (hPB : PB.length = 4096) (hPM : pageMeta PB = M) :
+    curMeta (setPage xs i PB) = M := by
+  have hl := h.1
+  have hmax := curMeta_max xs
+  have hs := fileMeta_setPage_same xs i PB hl hi hPB
+  rw [hPM] at hs
+  have : i = 0 ∨ i = 1 := by omega
+  unfold curMeta
+  dsimp only
+  rcases this with rfl | rfl
+  · have ho := fileMeta_setPage_other xs 0 1 PB hl hi (by omega) (by omega) hPB
+    rw [hs, ho]
+    by_cases hv : metaValid (fileMeta xs 1)
+    · have := hmax 1 (by omega) hv
+      have hn : ¬ uint.Z M.txid' < uint.Z (fileMeta xs 1).txid' := by simp only [uint.Z]; omega
+      simp [hn, hM]
+    · split <;> simp_all
+  · have ho := fileMeta_setPage_other xs 1 0 PB hl hi (by omega) (by omega) hPB
+    rw [hs, ho]
+    by_cases hv : metaValid (fileMeta xs 0)
+    · have := hmax 0 (by omega) hv
+      have hn : uint.Z (fileMeta xs 0).txid' < uint.Z M.txid' := by simp only [uint.Z]; omega
+      simp [hn, hM]
+    · split <;> simp_all
+
+theorem curMeta_valid (mp : List w8) (h : metaValid (fileMeta mp 0) ∨ metaValid (fileMeta mp 1)) :
+    metaValid (curMeta mp) := by
+  unfold curMeta; dsimp only
+  split
+  · split
+    · assumption
+    · exact h.resolve_right ‹_›
+  · split
+    · assumption
+    · exact h.resolve_left ‹_›
+
+/-- The meta `commit` writes after `mv`, checksummed. -/
+def commitOf (mv : Meta) : Meta :=
+  { nextMeta mv with checksum' := metaSum (nextMeta mv) }
+
+theorem commitOf_facts (mv : Meta) (hv : metaValid mv) (ht : mv.txid'.toNat + 1 < 2 ^ 64)
+    (hp : mv.pgid'.toNat + 1 < 2 ^ 64) :
+    metaValid (commitOf mv) ∧ (commitOf mv).txid'.toNat = mv.txid'.toNat + 1 ∧
+      (commitOf mv).pgid'.toNat = mv.pgid'.toNat + 1 ∧ (commitOf mv).root'.root' = mv.pgid' := by
+  refine ⟨metaValid_withSum _ hv.1 hv.2.1, ?_, ?_, rfl⟩
+  · simp only [commitOf, nextMeta, BitVec.toNat_add]
+    show (mv.txid'.toNat + 1) % 2 ^ 64 = _
+    omega
+  · simp only [commitOf, nextMeta, BitVec.toNat_add]
+    show (mv.pgid'.toNat + 1) % 2 ^ 64 = _
+    omega
+
+/-- The meta `commit` writes after the current meta of `xs`. -/
+abbrev commitMeta (xs : List w8) : Meta := commitOf (curMeta xs)
+
+/-- After `commit` writes `commitMeta` to page `i`, the meta pages are an open database's, at the
+next txid, one page on, the root at the old high water mark. -/
+theorem metaPagesOk_commit (xs : List w8) (i : Nat) (PB : List w8) (h : metaPagesOk xs)
+    (ht : (curMeta xs).txid'.toNat + 1 < 2 ^ 64) (hb : (curPgid xs + 2) * 4096 ≤ 2 ^ 30)
+    (hi : i < 2) (hPB : PB.length = 4096) (hPM : pageMeta PB = commitMeta xs) :
+    metaPagesOk (setPage xs i PB) ∧ curMeta (setPage xs i PB) = commitMeta xs ∧
+      curRoot (setPage xs i PB) = curPgid xs ∧ curPgid (setPage xs i PB) = curPgid xs + 1 ∧
+      (curMeta (setPage xs i PB)).txid'.toNat = (curMeta xs).txid'.toNat + 1 := by
+  obtain ⟨hl, hv, hr2, hrp, hbd⟩ := h
+  have hcv := curMeta_valid xs hv
+  obtain ⟨hM, htx, hpg, hrt⟩ := commitOf_facts (curMeta xs) hcv ht
+    (by unfold curPgid at hb; omega)
+  unfold commitMeta at hPM ⊢
+  have hc := curMeta_commit xs (commitOf (curMeta xs)) i PB ⟨hl, hv, hr2, hrp, hbd⟩ hM htx hi hPB hPM
+  have hcr : curRoot (setPage xs i PB) = curPgid xs := by
+    unfold curRoot curPgid; rw [hc, hrt]
+  have hcp : curPgid (setPage xs i PB) = curPgid xs + 1 := by
+    unfold curPgid; rw [hc]; exact hpg
+  refine ⟨?_, hc, hcr, hcp, by rw [hc]; exact htx⟩
+  refine ⟨setPage_length xs i PB hl hi hPB, ?_, ?_, ?_, ?_⟩
+  rotate_left
+  · rw [hcr]; exact Nat.le_trans hr2 (Nat.le_of_lt hrp)
+  · rw [hcr, hcp]; exact Nat.lt_succ_self _
+  · rw [hcp]; exact hb
+  have hs := fileMeta_setPage_same xs i PB hl hi hPB
+  rw [hPM] at hs
+  have : i = 0 ∨ i = 1 := by omega
+  rcases this with rfl | rfl
+  · left; rw [hs]; exact hM
+  · right; rw [hs]; exact hM
+
 end pure
 
 section lemmas
