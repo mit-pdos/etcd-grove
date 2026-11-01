@@ -873,6 +873,47 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   · iframe W0 Wi W2
   generalize hX : mxc.take (4096 * i) ++ ys2 ++ (mxc.drop (4096 * i)).drop 4096 = X
   have hXl : X.length = 8192 := by rw [← hX, window_join_length _ _ _ _ (by omega) hys2, hmxl]
+  have hb5 : ({ m4 with size := m4.size, hi := h2 } : OsMeta).maps !! base = some len := hb4
+  icases (mcellsAny_single (GF := GF) base len (4096 * i) (4096 * i + 4096) (by omega)
+    (by omega)).1 $$ [Hpi] with Hpi
+  · rw [hm4m]; iexact Hpi
+  rw [show 4096 * i + 4096 - 4096 * i = 4096 by omega]
+  icases metaPage_cells_split base i $$ Hpi with ⟨Ti, Hci⟩
+  icases (pick_page (fun k => iprop(hdrTail (GF := GF) base k ∗ cellsAny (GF := GF) base (4096 * k + 16) 64))
+    i hi2).2 $$ [Ti Hci Hother] with ⟨⟨T0, Hc0⟩, ⟨T1, Hc1⟩⟩
+  · iframe Ti Hci Hother
+  rw [show 4096 * 0 + 16 = 16 from rfl, show 4096 * 1 + 16 = 4112 from rfl]
+  iunfold cellsAny at Hc0 Hc1
+  icases Hc0 with ⟨%v0, Hc0⟩
+  icases Hc1 with ⟨%v1, Hc1⟩
+  iapply window_agree _ rfl p _ _ base len hb5 (by simp) _ _ X 16 64 v0 (by omega) (by omega)
+    $$ Hos Hm Hmxw Hc0
+  iintro Hm Hmxw Hc0
+  iapply window_agree _ rfl p _ _ base len hb5 (by simp) _ _ X 4112 64 v1 (by omega) (by omega)
+    $$ Hos Hm Hmxw Hc1
+  iintro Hm Hmxw Hc1
+  obtain ⟨-, hys2', hh2, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne2⟩⟩ := Hres2
+  rotate_left
+  · -- TODO: the meta `WriteAt` failed: `failed := true` under `metalock` (`fail_cur_inv`,
+    -- `metas_in` at `fl = true` with `X`'s metas, `mono_nat_own_update` of `fail` for `dbFailed`,
+    -- `metaR`'s failed branch with half of `X` (`osBytes_halves`) and `Hown2`), unlock, and
+    -- `commitErr` at `fl = true` (the writer's half of `X`, the data page's bytes and cells back
+    -- with the rest, `hdrTails`, `writerCells_top`).
+    sorry
+  (try wp_auto)
+  -- TODO: the meta write succeeded (`ys2.map fst = metaPageOf mv`, `pwBytes_inside`). `Fd`, then
+  -- `Fdatasync` over `X` (lo 0): on an error, as the failed `WriteAt` above (with `ok := false`).
+  -- On success `X` is clean (`syncedBytes`, `m4.ok`); its bytes are `setPage mx i (metaPageOf mv)`
+  -- (`hX`, `hmx`); `metaPagesOk_commit` (`metaPageOf_meta`, `i = txid' % 2` of `commitOf mv`).
+  -- Publish, in one opening of the invariant (a new lemma beside `metas_in`, over `mapLend`):
+  -- `cur` (all three parts) to `(setPage .., false, hwm + 1)`, page `hwm` into the pages with
+  -- `pageIs_of` of `Hpg` and `lent_intro` of `Hpc` (`cellsB_bytes`), its loan key `hwm` inserted
+  -- into the `γl` authority (`ghost_map_insert`; fresh by the invariant's `∀ k > 0, hwm ≤ k → K !! k
+  -- = none`), the metas back unlent (`out` false, key 0 updated as in `metas_in`). Then `own` to
+  -- `(t + 1, hwm + 1)` (`ghostVar_update_halves` of `Hown`, `Hown2`), `last` (`mono_nat_own_update`,
+  -- `dbLast`), `T` at `t + 1` (`ghost_map_insert_persist`, `HTn`; `dataPage_val`), `metaR` (not
+  -- failed, half of `X` each, `osBytes_halves`), unlock, and `rwR_of_writerSt` at `hwm + 1`
+  -- (`Hrest`, `Htop`, `hdrTails`, `writerCells_top`, `filesz = m2.size`).
   sorry
 
 end proof
