@@ -409,8 +409,19 @@ theorem ownStepGhost_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
 private theorem ownRaftGhost_leadInfo (γ : RaftNames) (id : w64) (ps : PState) (md : Bool) :
     ownRaftGhost (GF := GF) γ id ps md ⊢
       ⌜LeadOk id ps⌝ ∗ leaderWit γ id ps ∗ ownRaftGhost γ id ps md := by
-  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
-  sorry
+  iintro Hown
+  iunfold ownRaftGhost at Hown
+  icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
+  iNamed H
+  isplitr
+  · ipureintro; exact Hlead_ok
+  isplitr
+  · iexact Hlead
+  iapply ownRaftGhost_intro γ id ps γs V πc kl Hsname Hidnz Hmode Hfresh $$ Hslot Hvirt Hpend [] Hout Htally Hlead Hlg [] [] [] Hlcamps Hlcm Hrd
+  · ipureintro; exact Hhist
+  · ipureintro; exact Hlead_ok
+  · ipureintro; exact Hfollower_votes
+  · ipureintro; exact Hrole_ok
 
 private theorem leaderWit_isLeader' (γ : RaftNames) (id : w64) (ps : PState)
     (h : ps.role = .leader) : leaderWit (GF := GF) γ id ps ⊢ isLeader γ id ps.term := by

@@ -195,8 +195,32 @@ theorem ownRaftGhostR_env (γ : RaftNames) (dec : CCDec) (M : DecMap) (c0 : CCSt
     (HI : RInv (effDec dec M) c0 r) :
     ⊢ decLb (GF := GF) γ M -∗ logRecs γ base0 r.fp -∗
       dynEnv γ id r.cfg.cfg r.p := by
-  -- PORT(durability stage II): proof (restated: no candidate campaign record (durability R5))
-  sorry
+  iintro #HM #Hfr
+  unfold dynEnv
+  iright
+  isplitr
+  · ipureintro; exact reDyn_of HD
+  have Hcl : r.cidx < 2 ^ 64 := by
+    have := HI.cidx_commit; have := rUnat_eq r.p.commit; have := uint_Z_lt r.p.commit; omega
+  by_cases hc : r.p.role = .candidate
+  · iexists r.fp, r.p.commit, M
+    iframe Hfr HM
+    ipureintro
+    refine ⟨HI.full, ?_, Int.le_refl _, ?_, ?_, fun _ => rfl⟩
+    · rw [toNat_uZ]; exact HI.i1
+    · rw [toNat_uZ]; exact cfgAt_of_fold HD (HI.cand_cfg hc).1
+    · intro hl; rw [hc] at hl; cases hl
+  · iexists r.fp, (W64 (r.cidx : Int)), M
+    have Hw : (uint.Z (W64 (r.cidx : Int))).toNat = r.cidx := by
+      rw [uint_Z_W64 _ (by omega) (by omega)]; simp
+    iframe Hfr HM
+    ipureintro
+    refine ⟨HI.full, ?_, ?_, ?_, ?_, fun h => absurd h hc⟩
+    · rw [toNat_uZ]; exact HI.i1
+    · rw [uint_Z_W64 _ (by omega) (by omega)]
+      have := HI.cidx_commit; have := rUnat_eq r.p.commit; omega
+    · rw [Hw]; exact cfgAt_of_fold HD HI.cfg
+    · intro hl; rw [Hw]; exact HI.leader_drop_cidx hl
 
 /-- A node's log is well formed, with records (a persistent accessor). -/
 theorem ownRaftGhost_logRecs (γ : RaftNames) (id : w64) (s : PState) (md : Bool) :
@@ -239,8 +263,521 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (decB : CCDec) (M : DecMap) (c0 
       ([∗list] m ∈ recv, isMessage γ m) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗
       ownRaftGhostR γ (effDec decB M) c0 id r ={⊤ \ ↑(raftRegN γ)}=∗
       regsOwn γ ∗ ownRaftGhostR γ (effDec decB M) c0 id r' := by
-  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
-  sorry
+  intro Hstep
+  induction Hstep with
+  | refl r =>
+    iintro #Hrc #HM Hregs _ _ - - Hown
+    imodintro; iframe Hregs Hown
+  | trans r0 m1 r1 m2 r2 _ _ IH1 IH2 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    icases (BigSepL.bigSepL_append (Φ := fun _ m => isMessage (GF := GF) γ m)).1 $$ Hrecv with
+      ⟨Hr1, Hr2⟩
+    rw [rdCount_append]
+    icases (rdCred_split γ (rdCount m1) (rdCount m2)).1 $$ Hcr with ⟨Hc1, Hc2⟩
+    icases (msgsTks_app γ m1 m2).1 $$ Htk with ⟨Ht1, Ht2⟩
+    imod IH1 $$ Hrc HM Hregs HS Hr1 Hc1 Ht1 Hown with ⟨Hregs, Hown⟩
+    iapply IH2 $$ Hrc HM Hregs HS Hr2 Hc2 Ht2 Hown
+  | higherTerm m r h1 h2 h3 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imod ownRaftGhost_step_higherTerm γ id m r.p h1 h2 h3 $$ Hrecv Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (HI.frame rfl rfl rfl rfl rfl rfl rfl rfl (Or.inl rfl))
+  | grantVote m r h1 h2 h3 h4 h5 h6 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imod ownRaftGhost_step_grantVote γ id m r.p h1 h2 h3 h4 h5 h6 $$ Hrecv Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.grantVote m r h1 h2 h3 h4 h5 h6) HB (noApp1 (by rw [h1]; decide)) HI)
+  | rejectVote m r h1 h2 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imod ownRaftGhost_step_rejectVote γ id m r.p h1 h2 $$ Hrecv Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.rejectVote m r h1 h2) HB (noApp1 (by rw [h1]; decide)) HI)
+  | recordVote m r h1 h2 h3 h4 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imod ownRaftGhost_step_recordVote γ id m r.p h1 h2 h3 h4 $$ Hrecv Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.recordVote m r h1 h2 h3 h4) HB (noApp1 (by rw [h1]; decide)) HI)
+  | lose r h1 h2 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imod ownRaftGhost_step_lose γ r.cfg.cfg id r.p h1 h2 $$ Hrecv Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.lose r h1 h2) HB noApp0 HI)
+  | drain r o' h1 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imod ownRaftGhost_step_drain γ id r.p o' h1 $$ Hrecv Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.drain r o' h1) HB noApp0 HI)
+  | takeReads r =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imod ownRaftGhost_step_takeReads γ id r.p $$ Hrecv Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.takeReads r) HB noApp0 HI)
+  | sendFree r m h1 h2 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imod ownRaftGhost_step_sendFree γ id r.p m h1 h2 $$ Hrecv Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.sendFree r m h1 h2) HB noApp0 HI)
+  | abandon r h1 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imod ownRaftGhost_step_abandon γ id r.p h1 $$ Hrecv Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.abandon r h1) HB noApp0 HI)
+  | zeroAck r dst =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imod ownRaftGhost_step_zeroAck γ id r.p dst $$ Hrecv Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.zeroAck r dst) HB noApp0 HI)
+  | appStale m r h1 h2 h3 h4 h5 h6 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    imod ownRaftGhost_step_app_stale γ id r.p m h1 h3 h4 h5 $$ Hm Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (by first | exact RInv_keep _ HI rfl rfl rfl (Or.inr rfl) | exact RInv_keep _ HI rfl rfl rfl (Or.inl rfl) | exact HI.frame rfl rfl rfl rfl rfl rfl rfl rfl (Or.inl rfl))
+  | appReject m r hint hintterm h1 h2 h3 h4 h5 h6 h7 h8 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    imod ownRaftGhost_step_app_reject γ id r.p m hint hintterm h1 h3 h5 h6 h7 h8 $$ Hm Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (by first | exact RInv_keep _ HI rfl rfl rfl (Or.inr rfl) | exact RInv_keep _ HI rfl rfl rfl (Or.inl rfl) | exact HI.frame rfl rfl rfl rfl rfl rfl rfl rfl (Or.inl rfl))
+  | heartbeat m r h1 h2 h3 h4 h5 h6 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    imod ownRaftGhost_step_heartbeat γ id r.p m h1 h2 h4 h3 h5 h6 $$ Hm Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.heartbeat m r h1 h2 h3 h4 h5 h6) HB (noApp1 (by rw [h1]; decide)) HI)
+  | appResp m r x h1 h2 h3 h4 h5 h6 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    imod ownRaftGhost_step_app_resp γ id r.p m x h1 h3 h4 h5 h6 $$ Hm Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.appResp m r x h1 h2 h3 h4 h5 h6) HB (noApp1 (by rw [h1]; decide)) HI)
+  | propForward m r h1 h2 h3 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    ihave Htk := (msgsTks_singleton γ m).1 $$ Htk
+    imod ownRaftGhost_step_prop_forward γ id r.p m h1 $$ Hm Htk Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.propForward m r h1 h2 h3) HB (noApp1 (by rw [h1]; decide)) HI)
+  | snapFastfwd m r h1 h2 h3 h4 h5 h6 h7 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    imod ownRaftGhost_step_snap_fastfwd γ id r.p m h1 h3 h4 h5 h6 h7 $$ Hm Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.snapFastfwd m r h1 h2 h3 h4 h5 h6 h7) HB (noApp1 (by rw [h1]; decide)) HI)
+  | snapStale m r h1 h2 h3 h4 h5 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    imod ownRaftGhost_step_snap_stale γ id r.p m h1 h3 h4 h5 $$ Hm Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.snapStale m r h1 h2 h3 h4 h5) HB (noApp1 (by rw [h1]; decide)) HI)
+  | readState m r e h1 h2 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    imod ownRaftGhost_step_read_state γ id r.p m e h1 h2 $$ Hm Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.readState m r e h1 h2) HB (noApp1 (by rw [h1]; decide)) HI)
+  | beat r ms h1 h2 h3 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imod ownRaftGhost_step_beat γ id r.p ms h1 h2 h3 $$ Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.beat r ms h1 h2 h3) HB noApp0 HI)
+  | reMatch r mt h1 h2 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imod ownRaftGhost_step_rematch γ id r.p mt h1 h2 $$ Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.reMatch r mt h1 h2) HB noApp0 HI)
+  | readRelease r h1 h2 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imod ownRaftGhost_step_read_release γ id r.p h1 h2 $$ Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.readRelease r h1 h2) HB noApp0 HI)
+  | readFwd m r h1 h2 h3 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    rw [show rdCount [m] = 1 by simp [rdCount_singleton, h1]]
+    imod ownRaftGhost_step_read_fwd γ id r.p m h1 h2 h3 $$ Hm Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.readFwd m r h1 h2 h3) HB (noApp1 (by rw [h1]; decide)) HI)
+  | readPend m r pm h1 h2 h3 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    rw [show rdCount [m] = 1 by simp [rdCount_singleton, h1]]
+    imod ownRaftGhost_step_read_pend γ id r.p m pm h1 h2 $$ Hm Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.readPend m r pm h1 h2 h3) HB (noApp1 (by rw [h1]; decide)) HI)
+  | readArrive m r h1 h2 h3 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    rw [show rdCount [m] = 1 by simp [rdCount_singleton, h1]]
+    imod ownRaftGhost_step_read_arrive γ id r.p m h1 h2 h3 $$ Hm Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.readArrive m r h1 h2 h3) HB (noApp1 (by rw [h1]; decide)) HI)
+  | win r mt ms h1 h2 h3 h4 h5 h6 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Henv := ownRaftGhostR_env γ decB M c0 h0 HD id r HI $$ HM Hfr
+    imod ownRaftGhost_step_win γ r.cfg.cfg id r.p mt ms (B.toNat - γ.reBoot.length) h1 h2
+      (by omega) h4 h5 (fun _ => h6)
+      (fun _ _ _ T hT => by rw [RaftNames.reTracked_of_dyn (reDyn_of HD)] at hT; cases hT)
+      (by omega) $$ Hrc Henv Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.win r mt ms h1 h2 h3 h4 h5 h6) HB noApp0 HI)
+  | commit r n h1 h2 h3 h4 h5 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Henv := ownRaftGhostR_env γ decB M c0 h0 HD id r HI $$ HM Hfr
+    imod ownRaftGhost_step_commit γ r.cfg.cfg id r.p n h1 h2 h3 h4 h5 $$ Henv Hregs Hg
+      with ⟨Hregs, Hg⟩
+    imodintro
+    iframe Hregs
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.commit r n h1 h2 h3 h4 h5) HB noApp0 HI)
+  | sendApps r ms h1 h2 h3 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Henv := ownRaftGhostR_env γ decB M c0 h0 HD id r HI $$ HM Hfr
+    imod ownRaftGhost_step_send_apps γ r.cfg.cfg id r.p ms h1 h2 (fun _ => h3)
+      (fun _ _ _ T hT => by rw [RaftNames.reTracked_of_dyn (reDyn_of HD)] at hT; cases hT)
+      $$ Henv Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.sendApps r ms h1 h2 h3) HB noApp0 HI)
+  | readAck m r N h1 h2 h3 h4 h5 h6 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    ihave #Henv := ownRaftGhostR_env γ decB M c0 h0 HD id r HI $$ HM Hfr
+    imod ownRaftGhost_step_read_ack γ r.cfg.cfg id r.p m N h1 h2 h3 h4 h5 h6 $$ Henv Hm Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.readAck m r N h1 h2 h3 h4 h5 h6) HB (noApp1 (by rw [h1]; decide)) HI)
+  | readSingle m r h1 h2 h3 h4 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    rw [show rdCount [m] = 1 by simp [rdCount_singleton, h1]]
+    ihave #Henv := ownRaftGhostR_env γ decB M c0 h0 HD id r HI $$ HM Hfr
+    imod ownRaftGhost_step_read_single γ r.cfg.cfg id r.p m h1 h2 h3 h4 $$ Henv Hm Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.readSingle m r h1 h2 h3 h4) HB (noApp1 (by rw [h1]; decide)) HI)
+  | readReleaseSingle r h1 h2 h3 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Henv := ownRaftGhostR_env γ decB M c0 h0 HD id r HI $$ HM Hfr
+    imod ownRaftGhost_step_read_release_single γ r.cfg.cfg id r.p h1 h2 h3 $$ Henv Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.readReleaseSingle r h1 h2 h3) HB noApp0 HI)
+  | campaign r peers cl h1 h2 h3 h4 h5 h6 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Henv := ownRaftGhostR_env γ decB M c0 h0 HD id r HI $$ HM Hfr
+    imod ownRaftGhost_step_campaign γ r.cfg.cfg id r.p peers cl h1 h2 h5 h6 $$ Henv Hrecv Hcr Hg
+      with Hg
+    imodintro
+    unfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro
+    exact RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.campaign r peers cl h1 h2 h3 h4 h5 h6) HB noApp0 HI
+  | propose m r cs h1 h2 h3 h4 h5 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    iunfold isMessage at Hm
+    rw [h1]
+    icases Hm with ⟨-, #Hed⟩
+    have hrep : PropRepl m.entries (propBatch r m.entries cs).1 :=
+      propConf_repl (joint := CfgM.joint r.cfg.cfg) r.applied (plastIndex r.p) r.pci m.entries cs h3
+    ihave #Hed' := propData_propRepl γ _ _ hrep $$ Hed
+    -- (2026-10-19, D21 M6) the proposal's tickets, for its entries' indices
+    ihave Htk := (msgsTks_singleton γ m).1 $$ Htk
+    iunfold msgTks at Htk
+    rw [if_pos h1]
+    ihave Htk' := entTk_propRepl γ _ _ hrep $$ Htk
+    -- (2026-10-29, stage U5) an empty `ConfChangeV2` of the batch at the joint configuration
+    ihave #Hev : □ (∀ (fp' : List EntryM) (k : Nat) (x : EntryM),
+        ⌜FullOk r.p.base fp' ∧
+          ((propBatch r m.entries cs).1.mapIdx (stamp r.p.term (plastIndex r.p)))[k]? = some x ∧
+          γ.reDyn ≠ none ∧ IsEmptyV2 x⌝ -∗
+        logRecs γ base0 fp' -∗
+        ∃ (M' : DecMap) (c : CfgM), decLb γ M' ∗
+          ⌜CfgAt γ M' ((fp' ++ r.p.log) ++
+            ((propBatch r m.entries cs).1.mapIdx (stamp r.p.term (plastIndex r.p))).take k) c ∧
+            c.joint = true⌝) $$ []
+    · imodintro
+      iintro %fp' %k %x %Hc #Hfr'
+      obtain ⟨Hf', Hk, -, Hx⟩ := Hc
+      icases FullOk_unique γ r.p.base fp' r.fp Hf' HI.full $$ Hfr' Hfr with %Heq
+      subst Heq
+      have Hj := RInv_propose_ev2 HI h2 h3 h5 (by omega) k x Hk Hx
+      iexists M, r.cfg.cfg
+      iframe HM
+      ipureintro
+      exact ⟨cfgAt_of_fold HD Hj.2, Hj.1⟩
+    imod ownRaftGhost_step_propose γ id r.p (propBatch r m.entries cs).1
+      (B.toNat - γ.reBoot.length) h2 (by rw [hrep.length]; omega) (by rw [hrep.length]; omega)
+      $$ Hrc Hed' Htk' Hev Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.propose m r cs h1 h2 h3 h4 h5) HB (noApp1 (by rw [h1]; decide)) HI)
+  | propDrop m r cs h1 h2 h3 h4 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.propDrop m r cs h1 h2 h3 h4) HB noApp0 HI)
+  | advance r a h2 h3 h4 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.advance r a h2 h3 h4) HB noApp0 HI)
+  | applySnap r j sn cs' h1 h2 h3 h4 h5 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.applySnap r j sn cs' h1 h2 h3 h4 h5) HB noApp0 HI)
+  | applyConf r k e op cs' h2 h3 h4 h5 h6 h7 h8 h9 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.applyConf r k e op cs' h2 h3 h4 h5 h6 h7 h8 h9) HB noApp0 HI)
+  | snapRestore m r fp' cs' h1 h2 h3 h4 h5 h6 h7 h8 h8' h9 h10 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    imod ownRaftGhost_step_snap_restore γ id r.p m h1 h3 h4 h5 h6 h7 $$ Hm Hg with Hg
+    ihave #Hfr' := HS $$ %fp' %h10.2
+    imodintro
+    unfold ownRaftGhostR
+    iframe Hg Hfr'
+    ipureintro
+    exact RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.snapRestore m r fp' cs' h1 h2 h3 h4 h5 h6 h7 h8 h8' h9 h10) HB
+      (noApp1 (by rw [h1]; decide)) HI
+  | appAccept m r lastnewi es' h1 h2 h3 h4 h5 h6 h7 h8 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    -- what the message tells the receiver for I1 (`AppKnow`), from its knowledge and records
+    icases ownRaftGhost_logRecs γ id r.p true $$ Hg with ⟨%HwL, #HrL⟩
+    ihave #HrR : logRecs γ base0 r.full $$ []
+    · unfold RState.full; iapply logRecs_full γ r.p.base r.fp r.p.log HI.full $$ Hfr HrL
+    icases appKnow_of_msg γ r m h1 (reDyn_of HD) (full_wf _ _ _ HI.full HwL) $$ Hm HrR with %HK
+    imod ownRaftGhost_step_app_accept γ id r.p m lastnewi es' h1 h3 h4 h5 h6 h7 $$ Hm Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact RInv_appAccept m lastnewi es' _ HI h7 h8 HK
+  | stepDown r h1 =>
+    iintro #Hrc #HM Hregs #HS Hrecv Hcr Htk Hown
+    iapply fupd_frame_left
+    iframe Hregs
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr⟩
+    imod ownRaftGhost_step_stepDown γ id r.p h1 $$ Hrecv Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    ipureintro; exact (RInv_stepR (Adm := AdmS (effDec decB M) c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.stepDown r h1) HB noApp0 HI)
 
 /-- The dynamic refinement (see `ownRaftGhostR_stepR_in`), at `⊤`, given one later credit
 (2026-10-14, stage R): the commit invariant's registry half opened around the step. -/

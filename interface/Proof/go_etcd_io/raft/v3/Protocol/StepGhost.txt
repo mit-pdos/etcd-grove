@@ -10,8 +10,19 @@ theorem ownLogGhost_mono_up [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64
     = Role.follower → uint.Z s.term < uint.Z s'.term → ⊢ ownLogGhost γ id s kl W -∗ ownLogGhost γ id
     s' none W
 
+theorem durShares_timeless (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) : Timeless (durShares γ
+    id q E)
+
 theorem KlStep_bnd (s s' : PState) (kl kl' : Option w64) : KlStep s s' kl kl' → bnd s kl ≤ bnd s'
     kl'
+
+theorem durShares_evs [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps)
+    (γe' : GName) (L : List Aev) : γ.reEvs !! id = some γe' → ⊢ durShares γ id q E -∗ monoListLbOwn
+    γe' L -∗ ⌜L <+: E.evs⌝ ∗ durShares γ id q E
+
+theorem durShares_vote [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps)
+    (t c : w64) : ⊢ durShares γ id q E -∗ isVote γ id t c -∗ ⌜E.voted !! t = some c⌝ ∗ durShares γ
+    id q E
 
 theorem ownLogGhost_base [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl :
     Option w64) (W : DurMaps) : ⊢ ownLogGhost γ id s kl W -∗ baseOk γ s.base
@@ -47,6 +58,9 @@ theorem ownLogGhost_cmt [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s
     base0 fp ∗ isCommitted γ (cprefix fp s)
 
 theorem pleaderEntry_term (s : PState) : (pleaderEntry s).Term' = s.term
+
+theorem ownLogGhost_acks_term [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl
+    : Option w64) (W : DurMaps) : ⊢ ownLogGhost γ id s kl W -∗ ⌜AcksTerm s W.acks⌝
 
 theorem snapOk_message [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
     PlogWfR s.base s.log → SnapOk id s m → ⊢ isCommittedIdx γ s.commit -∗ logRecs γ s.base s.log -∗
@@ -104,6 +118,10 @@ theorem hist_replace [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (F F' Y : List E
 
 theorem klOk_step [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s s' : PState) (kl kl' :
     Option w64) : KlStep s s' kl kl' → ⊢ klOk γ id s kl -∗ klOk γ id s' kl'
+
+theorem durShares_ack [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps)
+    (γa' : GName) (t i : w64) : γ.reAcks !! id = some γa' → ⊢ durShares γ id q E -∗ (t, i) ↪[γa']□
+    () -∗ ⌜E.acks !! (t, i) = some ()⌝ ∗ durShares γ id q E
 
 theorem ownLogGhost_wf [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl :
     Option w64) (W : DurMaps) : ⊢ ownLogGhost γ id s kl W -∗ ⌜PlogWf s.base s.log⌝
@@ -191,6 +209,18 @@ theorem ownLogGhost_matched [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64
     Option w64) (W : DurMaps) : ⊢ ownLogGhost γ id s kl W -∗ ∃ fp, ⌜FullOk s.base fp⌝ ∗ logRecs γ
     base0 fp ∗ matchedOk γ id s fp
 
+theorem slot_open [ReceiptGS GF] [InvGS GF] (Em : CoPset) (γ : RaftNames) (id : w64) (γs :
+    SlotNames) (V : DurMaps) : γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ Em → ⊢ slotInv γ id -∗
+    ghostVar γs.fst (Qp.half 1) V ={Em,Em \ ↑(slotN γ id)}=∗ ∃ E, ⌜DurLe E V⌝ ∗ durShares γ id
+    (Qp.half 1) E ∗ ghostVar γs.fst (Qp.half 1) V ∗ (durShares γ id (Qp.half 1) E ={Em \ ↑(slotN γ
+    id),Em}=∗ True)
+
 def KlStep (s s' : PState) (kl kl' : Option w64) : Prop :=
   kl' = kl ∧ s'.term = s.term ∧ (s'.vote = W64 0 → s.vote = W64 0) ∧ (s'.role = Role.leader → s.role = Role.leader) ∨
     kl' = none ∧ uint.Z s.term < uint.Z s'.term ∧ s'.role ≠ Role.leader
+
+theorem ownLogGhost_acks_ok [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl :
+    Option w64) (W : DurMaps) : ⊢ ownLogGhost γ id s kl W -∗ acksOk γ s W.acks
+
+def DurMaps_inhabited : Inhabited DurMaps :=
+  { default := DurMaps.empty }
