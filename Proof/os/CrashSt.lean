@@ -120,6 +120,31 @@ def Wf (s : CSt) : Prop :=
   | .write _ off data => off + data.length ≤ s.fa ∨ s.fb ≤ off
   | .trunc _ sz => s.m.size ≤ sz
 
+theorem frozen_out (s : CSt) (k : Nat) (h : k < s.fa ∨ s.fb ≤ k) : s.frozen k = false := by
+  simp only [frozen, decide_eq_false_iff_not]; omega
+
+theorem frozen_in (s : CSt) (k : Nat) (h1 : s.fa ≤ k) (h2 : k < s.fb) : s.frozen k = true := by
+  simp only [frozen, decide_eq_true_eq]; omega
+
+theorem frac_out (s : CSt) (k : Nat) (h : k < s.fa ∨ s.fb ≤ k) :
+    s.frac k = DFrac.own (1 : Qp).half := by
+  simp only [frac, frozen_out s k h, Bool.false_eq_true, if_false]
+
+theorem frac_in (s : CSt) (k : Nat) (h1 : s.fa ≤ k) (h2 : k < s.fb) : s.frac k = DFrac.discard := by
+  simp only [frac, frozen_in s k h1 h2, if_true]
+
+theorem taken_out (s : CSt) (k : Nat)
+    (h : ∀ t off data, s.busy = .write t off data → k < cfLo s.m off ∨ cfHi s.m off data.length ≤ k) :
+    s.taken k = false := by
+  unfold taken
+  rcases hb : s.busy with _ | ⟨t, off, data⟩ | _ <;> dsimp only
+  have := h t off data hb
+  simp only [decide_eq_false_iff_not]; omega
+
+theorem taken_in (s : CSt) (k t off : Nat) (data : List w8) (hb : s.busy = .write t off data)
+    (h1 : cfLo s.m off ≤ k) (h2 : k < cfHi s.m off data.length) : s.taken k = true := by
+  unfold taken; rw [hb]; simp only [decide_eq_true_eq]; omega
+
 end CSt
 
 /-- What a crash sees of a state: its `OsMeta`... -/
