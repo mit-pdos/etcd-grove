@@ -152,6 +152,9 @@ structure OsWf : Prop where
   infl_disj : ∀ t1 c1 t2 c2 i, st.inflight !! t1 = some c1 → st.inflight !! t2 = some c2 →
     t1 ≠ t2 → c1.path = c2.path → Affects st c1 i → ¬ Affects st c2 i
   sizes : ∀ p f, st.file p = some f → f.sizeLo ≤ f.cur.length ∧ f.cur.length ≤ f.sizeHi
+  /-- A byte neither dirty nor lost has its page-cache byte on disk. -/
+  coherent : ∀ p f i, st.file p = some f → f.dirty i = false → f.lost i = false →
+    i < f.cur.length → i < f.durable.length → f.durable[i]? = f.cur[i]?
 
 /-- What the ghost `OsMeta` `m` of the file `f` at `p` says of it. -/
 structure MetaOk (p : GoString) (m : OsMeta) (f : OsFile) : Prop where
@@ -374,6 +377,163 @@ theorem gVar_update (a1 a2 b : GMap Loc (Option w8 × Bool) × Nat) :
 
 end wrappers
 
+
+/-! ### Runs of bytes -/
+
+section bytes
+variable {GF : BundledGFunctors} (hL : OsGS GF)
+
+/-- The bytes `xs` of the file `p` from `off` on. -/
+def bytesG (p : GoString) (off : Nat) (dq : DFrac) (xs : List (w8 × Bool)) : IProp GF :=
+  [∗list] k ↦ x ∈ xs, gElem hL hL.γb (p, off + k) dq x
+
+instance bytesG_timeless (p : GoString) (off : Nat) (dq : DFrac) (xs : List (w8 × Bool)) :
+    Timeless (bytesG hL p off dq xs) := by
+  unfold bytesG; infer_instance
+
+theorem bytesG_nil (p : GoString) (off : Nat) (dq : DFrac) :
+    bytesG hL p off dq [] ⊣⊢ emp := .rfl
+
+theorem bytesG_cons (p : GoString) (off : Nat) (dq : DFrac) (x : w8 × Bool)
+    (xs : List (w8 × Bool)) :
+    bytesG hL p off dq (x :: xs) ⊣⊢ gElem hL hL.γb (p, off) dq x ∗ bytesG hL p (off + 1) dq xs := by
+  unfold bytesG
+  refine BigSepL.bigSepL_cons.trans ?_
+  rw [Nat.add_zero]
+  refine sep_congr .rfl (.of_eq ?_)
+  apply BigSepL.bigSepL_eq_of_forall_eq
+  intro k _
+  rw [show off + (k + 1) = off + 1 + k by omega]
+
+theorem bytesG_append (p : GoString) (dq : DFrac) :
+    ∀ (off : Nat) (xs ys : List (w8 × Bool)),
+    bytesG hL p off dq (xs ++ ys) ⊣⊢ bytesG hL p off dq xs ∗ bytesG hL p (off + xs.length) dq ys
+  | off, [], ys => by
+    simp only [List.nil_append, List.length_nil, Nat.add_zero]
+    exact ⟨by iintro H; iframe; iempintro, by iintro ⟨-, H⟩; iexact H⟩
+  | off, x :: xs, ys => by
+    refine (bytesG_cons hL p off dq x (xs ++ ys)).trans ?_
+    refine (sep_congr .rfl (bytesG_append p dq (off + 1) xs ys)).trans ?_
+    rw [show off + 1 + xs.length = off + (x :: xs).length by simp; omega]
+    refine BIBase.BiEntails.trans ?_ (sep_congr (bytesG_cons hL p off dq x xs).symm .rfl)
+    exact ⟨by iintro ⟨H1, H2, H3⟩; iframe, by iintro ⟨⟨H1, H2⟩, H3⟩; iframe⟩
+
+/-- `m` with the bytes `ys` from `off` on. -/
+def insertBytes (p : GoString) : Nat → List (w8 × Bool) → GMap (GoString × Nat) (w8 × Bool) →
+    GMap (GoString × Nat) (w8 × Bool)
+  | _, [], m => m
+  | off, y :: ys, m => insertBytes p (off + 1) ys (<[(p, off) := y]> m)
+
+theorem lookup_insertBytes (p : GoString) : ∀ (off : Nat) (ys : List (w8 × Bool))
+    (m : GMap (GoString × Nat) (w8 × Bool)) (q : GoString) (j : Nat),
+    insertBytes p off ys m !! (q, j) =
+      if q = p ∧ off ≤ j ∧ j < off + ys.length then ys[j - off]? else m !! (q, j)
+  | off, [], m, q, j => by simp [insertBytes]; intros; omega
+  | off, y :: ys, m, q, j => by
+    simp only [insertBytes, lookup_insertBytes p (off + 1) ys, GMap.lookup_insert_eq_iff,
+      Prod.mk.injEq, List.length_cons]
+    by_cases hq : q = p
+    · subst hq
+      by_cases hj : j = off
+      · subst hj; simp; intro h; omega
+      · by_cases h1 : off + 1 ≤ j ∧ j < off + 1 + ys.length
+        · rw [if_pos ⟨rfl, h1⟩, if_pos ⟨rfl, by omega, by omega⟩]
+          rw [show j - off = (j - (off + 1)) + 1 by omega]; simp
+        · rw [if_neg (fun h => h1 h.2), if_neg (fun h => hj (Eq.symm h.2))]
+          rw [if_neg (fun h => by omega)]
+    · simp [hq, Ne.symm hq]
+
+theorem bytesG_update (p : GoString) : ∀ (off : Nat) (xs ys : List (w8 × Bool))
+    (Γb : GMap (GoString × Nat) (w8 × Bool)), ys.length = xs.length →
+    gAuth hL hL.γb Γb ∗ bytesG hL p off (DFrac.own 1) xs ⊢
+      |==> (gAuth hL hL.γb (insertBytes p off ys Γb) ∗ bytesG hL p off (DFrac.own 1) ys)
+  | off, [], [], Γb, _ => by
+    simp only [insertBytes]
+    iintro ⟨H, -⟩; imodintro; iframe; iapply (bytesG_nil hL p off _).2; iempintro
+  | off, x :: xs, y :: ys, Γb, hl => by
+    simp only [insertBytes]
+    iintro ⟨H, Hb⟩
+    icases (bytesG_cons hL p off _ x xs).1 $$ Hb with ⟨Hx, Hxs⟩
+    imod gAuth_update hL _ _ _ _ y $$ H Hx with ⟨H, Hy⟩
+    imod bytesG_update p (off + 1) xs ys _ (by simpa using hl) $$ [H Hxs] with ⟨H, Hys⟩
+    · iframe
+    imodintro
+    iframe H
+    iapply (bytesG_cons hL p off _ y ys).2
+    iframe
+  | _, [], _ :: _, _, hl => by simp at hl
+  | _, _ :: _, [], _, hl => by simp at hl
+
+theorem bytesG_alloc (p : GoString) : ∀ (off : Nat) (ys : List (w8 × Bool))
+    (Γb : GMap (GoString × Nat) (w8 × Bool)), (∀ k, k < ys.length → Γb !! (p, off + k) = none) →
+    gAuth hL hL.γb Γb ⊢
+      |==> (gAuth hL hL.γb (insertBytes p off ys Γb) ∗ bytesG hL p off (DFrac.own 1) ys)
+  | off, [], Γb, _ => by
+    simp only [insertBytes]
+    iintro H; imodintro; iframe; iapply (bytesG_nil hL p off _).2; iempintro
+  | off, y :: ys, Γb, hfree => by
+    simp only [insertBytes]
+    iintro H
+    imod gAuth_insert hL _ _ (p, off) y (by simpa using hfree 0 (by simp)) $$ H with ⟨H, Hy⟩
+    imod bytesG_alloc p (off + 1) ys _ (fun k hk => by
+        rw [GMap.lookup_insert_ne _ _ (by simp; omega)]
+        · rw [show off + 1 + k = off + (k + 1) by omega]; exact hfree (k + 1) (by simp; omega))
+      $$ H with ⟨H, Hys⟩
+    imodintro
+    iframe H
+    iapply (bytesG_cons hL p off _ y ys).2
+    iframe
+
+/-- `m` without the bytes `[off, off + n)` of `p`. -/
+def deleteBytes (p : GoString) : Nat → Nat → GMap (GoString × Nat) (w8 × Bool) →
+    GMap (GoString × Nat) (w8 × Bool)
+  | _, 0, m => m
+  | off, n + 1, m => deleteBytes p (off + 1) n (GMap.delete (p, off) m)
+
+theorem lookup_deleteBytes (p : GoString) : ∀ (off n : Nat)
+    (m : GMap (GoString × Nat) (w8 × Bool)) (q : GoString) (j : Nat),
+    deleteBytes p off n m !! (q, j) = if q = p ∧ off ≤ j ∧ j < off + n then none else m !! (q, j)
+  | off, 0, m, q, j => by simp [deleteBytes]; intros; omega
+  | off, n + 1, m, q, j => by
+    simp only [deleteBytes, lookup_deleteBytes p (off + 1) n, GMap.lookup_delete_iff,
+      Prod.mk.injEq]
+    by_cases hq : q = p
+    · subst hq
+      by_cases hj : j = off
+      · subst hj; simp
+      · by_cases h1 : off + 1 ≤ j ∧ j < off + 1 + n
+        · rw [if_pos ⟨rfl, h1⟩, if_pos ⟨rfl, by omega, by omega⟩]
+        · rw [if_neg (fun h => h1 h.2), if_neg (fun h => hj (Eq.symm h.2)),
+            if_neg (fun h => by omega)]
+    · simp [hq, Ne.symm hq]
+
+theorem bytesG_delete (p : GoString) : ∀ (off : Nat) (xs : List (w8 × Bool))
+    (Γb : GMap (GoString × Nat) (w8 × Bool)),
+    gAuth hL hL.γb Γb ∗ bytesG hL p off (DFrac.own 1) xs ⊢
+      |==> gAuth hL hL.γb (deleteBytes p off xs.length Γb)
+  | off, [], Γb => by simp only [List.length_nil, deleteBytes]; iintro ⟨H, -⟩; imodintro; iexact H
+  | off, x :: xs, Γb => by
+    simp only [List.length_cons, deleteBytes]
+    iintro ⟨H, Hb⟩
+    icases (bytesG_cons hL p off _ x xs).1 $$ Hb with ⟨Hx, Hxs⟩
+    imod gAuth_delete hL _ _ _ _ $$ H Hx with H
+    iapply bytesG_delete p (off + 1) xs _
+    iframe
+
+theorem bytesG_lookup (p : GoString) (off : Nat) (dq : DFrac) (xs : List (w8 × Bool))
+    (Γb : GMap (GoString × Nat) (w8 × Bool)) :
+    ⊢ gAuth hL hL.γb Γb -∗ bytesG hL p off dq xs -∗
+      ⌜∀ k (hk : k < xs.length), Γb !! (p, off + k) = some xs[k]⌝ := by
+  iintro HA Hbs
+  iapply pure_forall.2; iintro %k
+  iapply pure_forall.2; iintro %hk
+  unfold bytesG
+  icases BigSepL.bigSepL_lookup (Φ := fun k (x : w8 × Bool) => gElem hL hL.γb (p, off + k) dq x)
+    (List.getElem?_eq_getElem hk) $$ Hbs with Hb
+  iapply gAuth_lookup $$ HA Hb
+
+end bytes
+
 /-- The ghost `OsMeta` of a file as on disk. -/
 def initMeta (f : OsFile) : OsMeta :=
   ⟨f.cur.length, f.cur.length, f.cur.length, true, true, ∅⟩
@@ -407,8 +567,7 @@ bytes its first step took. -/
 def tokRes (hL : OsGS GF) (st : OsState) (Γt : GMap w64 TokInfo) : IProp GF :=
   iprop([∗map] _t ↦ ti ∈ Γt,
     gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
-    [∗list] k ↦ b ∈ ti.saved, gElem hL hL.γb (ti.c.path, affLo st ti.c + k) (DFrac.own 1)
-      (b, false))
+    bytesG hL ti.c.path (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false)))
 
 /-- The interpretation of the state `st`. -/
 def osCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
@@ -447,7 +606,7 @@ theorem osInit_wf_coh {st : OsState} (h : OsInit st) :
     fun p f hf => hdisk p f (file_eq_some.1 hf)
   have hnoinfl : ∀ p i, ¬ InflightAt st p i := by
     rintro p i ⟨t, c, ht, -⟩; simp [hin] at ht
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
   · intro fd d h; simp [hfd] at h
   · intro b m h; simp [hmp] at h
   · intro b1 m1 _ _ h; simp [hmp] at h
@@ -455,6 +614,8 @@ theorem osInit_wf_coh {st : OsState} (h : OsInit st) :
   · intro t1 c1 _ _ _ h; simp [hin] at h
   · intro p f hf
     rw [hdisk' p f hf]; simp [OsFile.ofDisk]
+  · intro p f i hf _ _ _ _
+    rw [hdisk' p f hf]; rfl
   · intro p; simp [metaMap]
   · intro p; simp [metaMap]
   · intro p m hm

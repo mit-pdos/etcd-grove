@@ -21,6 +21,7 @@ WP specs of the Linux file extension's operations (`GooseLang/Ext/OsFs/Impl.lean
 module
 
 public import GooseLang.Ext.OsFs.Cells
+public import GooseLang.Ext.OsFs.Facts
 public import Perennial.Golang.Defn.PostLang
 public import Iris.Instances.Lib.Invariants
 
@@ -32,91 +33,6 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 open goose_heap
-
-/-! ## Facts about the state -/
-
-theorem cellView_congr {st st' : OsState} (h1 : st'.maps = st.maps) (h2 : st'.files = st.files)
-    (h3 : st'.inflight = st.inflight) : cellView st' = cellView st := by
-  cases st; cases st'; simp only at h1 h2 h3; subst h1 h2 h3; rfl
-
-theorem mapsFresh_same [GooseExts] [GoGlobalContext] {st st' : OsState}
-    {h : GMap Loc (NonAtomic val)} (hm : st'.maps = st.maps) : MapsFresh st st' h := by
-  intro b m h1 h2; rw [hm] at h1; rw [h1] at h2; cases h2
-
-theorem heapRendered_same [GooseExts] [GoGlobalContext] {st st' : OsState}
-    {h : GMap Loc (NonAtomic val)} (hwf' : OsWf st') (hm : st'.maps = st.maps)
-    (hcv : cellView st' = cellView st)
-    (Hag : ∀ l x, cellView st !! l = some x → ∃ m, h !! l = some (m, toCellVal x.1)) :
-    HeapRendered st st' h h := by
-  have hM : ∀ l p i, MapsTo st' l p i ↔ MapsTo st l p i := by
-    intro l p i; simp only [MapsTo, hm]
-  refine ⟨?_, ?_, ?_, ?_⟩
-  · intro l p i hpi _
-    have hv := cellView_mapsTo hwf' hpi
-    rw [hcv] at hv
-    obtain ⟨m, hh⟩ := Hag l _ hv
-    exact ⟨m, _, hh, by rw [hh, cellVal_eq]⟩
-  · intro l p i hpi hn; exact absurd ⟨p, i, (hM l p i).1 hpi⟩ hn
-  · intro l hn hm'; obtain ⟨p, i, hpi⟩ := hm'; exact absurd ⟨p, i, (hM l p i).2 hpi⟩ hn
-  · intro l _ _; rfl
-
-theorem size_of_file {st : OsState} {p : GoString} {f : OsFile} (hf : st.file p = some f) :
-    st.size p = f.cur.length := by
-  simp [OsState.size, hf]
-
-/-- Below the size, the bytes a change affects are the bytes it takes. -/
-theorem affects_iff_affRange (st : OsState) (c : OsChange) (i : Nat) (f : OsFile)
-    (hf : st.file c.path = some f) (hi : i < f.cur.length) :
-    Affects st c i ↔ i ∈ affRange st c := by
-  unfold Affects affRange affLo affHi inRange
-  rw [size_of_file hf]
-  cases c.kind <;> dsimp only <;>
-    simp only [List.mem_range'_1, Bool.and_eq_true, decide_eq_true_eq] <;> omega
-
-theorem coh_byte {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {p : GoString}
-    {i : Nat} {x : w8 × Bool} (hx : Γb !! (p, i) = some x) :
-    ∃ f, st.file p = some f ∧ ∃ h : i < f.cur.length, f.cur[i] = x.1 := by
-  obtain ⟨f, hf, hb, -⟩ := hcoh.bytes p i x hx
-  obtain ⟨h, h'⟩ := List.getElem?_eq_some_iff.1 hb
-  exact ⟨f, hf, h, h'⟩
-
-theorem coh_tok {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {t : w64}
-    {c : OsChange} (ht : st.inflight !! t = some c) : ∃ ti, Γt !! t = some ti ∧ ti.c = c := by
-  have := hcoh.toks t
-  rw [ht] at this
-  cases h : Γt !! t with
-  | none => rw [h] at this; cases this
-  | some ti => rw [h] at this; exact ⟨ti, rfl, Option.some.inj this⟩
-
-/-- A size `fstat` may see is past every byte that no change affects. -/
-theorem statSees_gt {st : OsState} {p : GoString} {f : OsFile} {i sz : Nat}
-    (hf : st.file p = some f) (hi : i < f.cur.length) (hn : ¬ InflightAt st p i)
-    (hs : StatSees st p sz) : i < sz := by
-  rcases hs with rfl | ⟨t, c, ht, hcp, hlo, -⟩
-  · rw [size_of_file hf]; exact hi
-  · have hna : ¬ Affects st c i := fun ha => hn ⟨t, c, ht, hcp, ha⟩
-    subst hcp
-    rw [size_of_file hf] at hlo
-    unfold Affects inRange at hna
-    unfold OsChange.target at hlo
-    rw [size_of_file hf] at hna hlo
-    cases hk : c.kind with
-    | write off data => simp only [hk] at hna hlo; simp at hna; omega
-    | truncate sz' => simp only [hk] at hna hlo; omega
-
-/-- With no change in flight on `p` that may resize it, `fstat` sees the size. -/
-theorem statSees_eq {st : OsState} {p : GoString} {sz : Nat}
-    (h : ∀ t c, st.inflight !! t = some c → c.path = p → ¬ Reaches st c)
-    (hs : StatSees st p sz) : sz = st.size p := by
-  rcases hs with rfl | ⟨t, c, ht, hcp, hlo, hhi⟩
-  · rfl
-  · have hr := h t c ht hcp
-    subst hcp
-    unfold Reaches at hr
-    unfold OsChange.target at hlo hhi
-    cases hk : c.kind with
-    | write off data => simp only [hk] at hr hlo hhi; omega
-    | truncate _ => simp [hk] at hr
 
 /-! ## What the extension holds of the changes in flight -/
 
@@ -143,13 +59,16 @@ theorem tokRes_byte_free {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb �
       unfold affRange; rw [List.getElem?_range']; simp; omega; omega
     have hk' : ti.saved[i - affLo st ti.c]? = some (f.cur.getD i 0) := by
       rw [hsaved, List.getElem?_map, hk]; rfl
+    have hk'' : (ti.saved.map (·, false))[i - affLo st ti.c]? = some (f.cur.getD i 0, false) := by
+      rw [List.getElem?_map, hk']; rfl
     unfold tokRes
     icases BigSepM.bigSepM_lookup (Φ := fun (_t : w64) (ti : TokInfo) =>
       iprop(gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
-        [∗list] k ↦ b ∈ ti.saved, gElem hL hL.γb (ti.c.path, affLo st ti.c + k) (DFrac.own 1)
-          (b, false))) hti $$ Htok with ⟨-, Hs⟩
-    icases BigSepL.bigSepL_lookup (Φ := fun k (b : w8) =>
-      gElem hL hL.γb (ti.c.path, affLo st ti.c + k) (DFrac.own 1) (b, false)) hk' $$ Hs with Hs
+        bytesG hL ti.c.path (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false))))
+      hti $$ Htok with ⟨-, Hs⟩
+    unfold bytesG
+    icases BigSepL.bigSepL_lookup (Φ := fun k (x : w8 × Bool) =>
+      gElem hL hL.γb (ti.c.path, affLo st ti.c + k) (DFrac.own 1) x) hk'' $$ Hs with Hs
     rw [show affLo st ti.c + (i - affLo st ti.c) = i by omega]
     icases gElem_valid_2 hL _ _ _ _ _ _ $$ Hs Hb with %Hv
     exact absurd (DFrac.valid_own_op Hv.1) (by simp)
@@ -170,8 +89,8 @@ theorem tokRes_meta_frac {st : OsState} {Γt : GMap w64 TokInfo} {p : GoString} 
       · unfold tokRes
         icases BigSepM.bigSepM_lookup (Φ := fun (_t : w64) (ti : TokInfo) =>
           iprop(gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
-            [∗list] k ↦ b ∈ ti.saved, gElem hL hL.γb (ti.c.path, affLo st ti.c + k)
-              (DFrac.own 1) (b, false))) hti $$ Htok with ⟨Hs, -⟩
+            bytesG hL ti.c.path (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false))))
+          hti $$ Htok with ⟨Hs, -⟩
         rw [hp, hq]
         icases gElem_valid_2 hL _ _ _ _ _ _ $$ Hs Hm with %Hv
         exact absurd (DFrac.valid_own_op Hv.1) (by simp)
@@ -192,8 +111,8 @@ theorem tokRes_meta_whole {st : OsState} {Γt : GMap w64 TokInfo} {p : GoString}
     · unfold tokRes
       icases BigSepM.bigSepM_lookup (Φ := fun (_t : w64) (ti : TokInfo) =>
         iprop(gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
-          [∗list] k ↦ b ∈ ti.saved, gElem hL hL.γb (ti.c.path, affLo st ti.c + k)
-            (DFrac.own 1) (b, false))) hti $$ Htok with ⟨Hs, -⟩
+          bytesG hL ti.c.path (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false))))
+        hti $$ Htok with ⟨Hs, -⟩
       rw [hp]
       icases gElem_valid_2 hL _ _ _ _ _ _ $$ Hm Hs with %Hv
       exact absurd (DFrac.valid_own_op Hv.1) (by simp)
