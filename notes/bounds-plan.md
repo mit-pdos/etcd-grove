@@ -2,7 +2,8 @@
 
 **Status:** accepted, 2026-11-01: the user took the recommendation on each of D1-D4 ("follow your
 recommendations on D1-D4; start with B0"). B0 done (2026-11-01): `etc/bounds-check.py` (532 at the start) in the gates and CI, the
-lock inventory `notes/bounds-locks.md`. Next: B2's leasing pilot, then B2a.
+lock inventory `notes/bounds-locks.md`. B2's leasing pilot done (2026-11-01, branch `bounds-b2-leasing`: stock 2 → 0 in leasing; "The leasing
+pilot's design" below). Next: B2a.
 
 ## The problem
 
@@ -156,6 +157,24 @@ This deletes the counted stocks (70 places), `etcdGrpcSlots_of_started`, `watchR
   5. mvcc's `storeReader`/`watchReader`, after `m2-b2-mvcc` lands.
   6. The examples' slot plumbing, last.
   7. Any time: the cache's three locks, client-go's two.
+
+- **The leasing pilot's design (2026-11-01, branch `bounds-b2-leasing`).**
+  - **The pool.** The leasing KV's invariant (`isLeasingKV`) holds a `threadPool` of every reader
+    slot of `leaseCache.mu` but the one `NewKV` reads `waitSession` with, under a new name of
+    `LeasingNames`. `NewKV` builds it, under `threadBound GF ≤ 2^30 - 1`; that premise replaces `threadBound GF + leasingWgOwedMax ≤ 2^31`, which
+    it implies, until B1. `newKVResult` hands out no slots.
+  - **The exported methods** (`Get`, `Put`, `Delete`, `Do`, `txnLeasing.Commit`) take and return a
+    `threadTok` instead of `lkvReader`s. Each borrows a slot at entry and gives it back on return.
+    The internal functions keep `lkvReader`, a slot their caller holds.
+  - **A goroutine started on a token-backed wait group has no token to borrow with**: its token is
+    in the wait group. This is the general case, also found in the server's `GoAttach`. The
+    resolution: the wait group's running slot holds the pool's **loan receipt** (`ownThreadLoan`)
+    instead of a thread token. `get` hands its borrowed slot to the lease monitor and deposits the
+    loan at `Add(1)`, and the `go` statement gives `get` a fresh token. The monitor's `Done` returns
+    the receipt, and the goroutine gives the slot back for the token it exits with. The counter's
+    bound comes from a general lemma (`threadPool.loans_lt`: `k` loans of a pool are fewer than
+    `threadBound`, since the pool holds a thread token for each). That lemma is a Perennial change,
+    local and marked until it lands (`notes/perennial-changes.md`).
 
 ### B3. Wait groups backed by thread tokens
 

@@ -74,7 +74,6 @@ stock github_com/mit_pdos/etcd_grove/examples/linkv3p 1
 stock github_com/mit_pdos/etcd_grove/examples/watchkv 2
 stock go_etcd_io/etcd/cache/v3 12
 stock go_etcd_io/etcd/client/v3 20
-stock go_etcd_io/etcd/client/v3/leasing 2
 stock go_etcd_io/etcd/pkg/v3/notify 1
 stock go_etcd_io/etcd/server/v3/auth 7
 stock go_etcd_io/etcd/server/v3/etcdserver 44
