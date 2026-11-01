@@ -57,6 +57,26 @@ is no longer a prefix. Options:
 Recommended: (b), if the catch-up lemma goes through (it is ghost-only and local to the install);
 else (a).
 
+**Tried (2026-11-01, the user's "try the catch-up lemma"): (b) goes through, but not ghost-only.**
+The latest state's ghost variable is tied to the `revision` atomic (`revCur`: `uint.nat r =
+st.revision`), so the skipped states cannot be appended outside the atomic's store: the catch-up
+happens in `Recover`'s `setRevision`, as a list append. Proved, in two Drafts imported by nothing
+(no `axiom`, no `sorry`):
+- `auth/CatchUpDraft.lean`: `authHist_appendL`, `authOwnF_revCur_appendL` (the list form of
+  `authOwnF_revCur_append`), `authOwnF_revCur_appendN` (any list, empty included: then
+  `authOwnF_revCur_keep`), `capAtM` (one cap lower bound at the whole new history), and
+  `setRevision.specN` with its proof `wp_proofN` (today's proof with the list lemma; `spec` allows
+  `opt.length ≤ 1`).
+- `etcdserver/SnapAuthOnDraft.lean`: `authHistTie_catchup` (at a committed `A'` extending the applied
+  `A`, the store's history is a prefix of `srvHist A'` and the cap is raised to it; both cases of the
+  tie's log, behind or past `A'`) and `catchup_list` (the list to append, `(srvHist A').drop
+  hs.length`, after which the history is `srvHist A'`, its last state `A'`'s).
+Found on the way: today's `Recover` appends the read state unconditionally, which the tie forbids when
+the state does not change (the cap's list has no state twice); the empty-list case covers it.
+Left for (b): `Recover`'s mode-on variant appending the list through `setRevision.specN`, whose new
+backend's read contract can then give the image's **known** state (a fact of the buckets), not a
+recorded one: Q2's clause in that form.
+
 **Q2. `Recover`'s read contract needs the new state recorded first.** `authBackendOk be R (.on γa)`
 gives a read transaction whose state is `authSnap (.on γa) st`, i.e. already in the history
 (`∃ i, authStateAt γa i st`). The new backend's state is the image's, which the member never
