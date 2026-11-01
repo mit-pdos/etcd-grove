@@ -70,7 +70,7 @@ abbrev mvcc.watchableStore.Restore.spec : Prop :=
 
 /-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `ws.Restore(b)`: the store's `Restore` (`store.Restore.specC`), its watchers reset to
 resynchronize from the new state; so the update gives that `σ'` extends the state's history,
-announced. Every key of `σ'` with a lease is on a live one, re-attached in the lessor's
+does not lower its compaction revision (round 6), and is announced. Every key of `σ'` with a lease is on a live one, re-attached in the lessor's
 item map (which the lessor's own recovery emptied). Open: the backend's identity (`mvccBackend`,
 `mvccBackendIs`, the hook) is fixed in the vocabulary, but a restore replaces the backend; it must
 become the state's (the backend boundary's design, `notes/mvcc-api-candidate.md`). -/
@@ -80,8 +80,9 @@ abbrev mvcc.watchableStore.Restore.specC : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchableMvcc ws γ ∗ mvcc.mvccOpen γ 1 ∗ mvcc.mvccRestorable γ b σ' ∗
       lease.leaseOwn (mvcc.mvccLeases γ) L ∅ ∗
-      ⌜∀ it lid, (mvcc.pendItems σ'.log []).lookup it = some lid → lid ∈ L⌝ ∗
-      AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ ∗ ⌜σ.log <+: σ'.log⌝ ∗
+      ⌜∀ it lid, (mvcc.pendItems σ'.log []).lookup it = some lid →
+        lid ∈ L ∧ (it.Key'.length : Int) < 2 ^ 63 - 1⌝ ∗
+      AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ ∗ ⌜σ.log <+: σ'.log ∧ σ.crev ≤ σ'.crev⌝ ∗
               mvcc.mvccLogOk γ σ'.log }> @ ⊤ \ ↑mvcc.mvccN, ∅
         <{ mvcc.mvccState γ σ', COMM Q σ }> }}
     (App (Val (ws @!! go.GoType.PointerType watchableStore.ty @!! go!"Restore"))

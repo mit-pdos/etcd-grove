@@ -30,17 +30,22 @@ caller's update at the store's state `σ`, unchanged:
 * else a hash of the store (`mvccHashOk`: of the revisions `(CompactRevision, Revision]` of its
   history, `mvccHashOk_state`) at `rev`, and the current revision, `nil`.
 (A stored hash short-cuts both checks: a hash stored at a revision later compacted is still
-returned.) Its value rests on crc32's (`kvHasher`'s trust boundary). -/
+returned; and for `0` a hash stored for revision `0`, by a compaction at `0`, is returned, not the
+current revision's: `issues/etcd-mvcc-hashbyrev-zero-stored.md`.) A share of the store's open
+token: a stored hash is answered with the current revision read under `revMu` only, which a
+concurrent `Restore` sets to `1` for a while (`issues/etcd-mvcc-hashbyrev-restore-rev1.md`; round
+6). Its value rests on crc32's (`kvHasher`'s trust boundary). -/
 abbrev mvcc.hashStorage.HashByRev.specC : Prop :=
-  ∀ (hs : Loc) (γ : mvcc.MvccName) (rev : w64) (Q : mvcc.MvccState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isHashStorage hs γ ∗ threadTok ∗
+  ∀ (hs : Loc) (γ : mvcc.MvccName) (q : Qp) (rev : w64) (Q : mvcc.MvccState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isHashStorage hs γ ∗ mvcc.mvccOpen γ q ∗ threadTok ∗
       AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ }> @ ⊤ \ ↑mvcc.mvccN, ∅
         <{ mvcc.mvccState γ σ, COMM Q σ }> }}
     (App (Val (hs @!! go.GoType.PointerType hashStorage.ty @!! go!"HashByRev")) (Val #rev))
   {{ (h : KeyValueHash) (cur : w64) (err : GoInterface), RET (PairV (PairV #h #cur) #err);
-      threadTok ∗ ∃ σ : mvcc.MvccState, Q σ ∗
+      mvcc.mvccOpen γ q ∗ threadTok ∗ ∃ σ : mvcc.MvccState, Q σ ∗
       ((⌜err = GoInterface.nil ∧ cur = W64 (σ.rev : Int) ∧
-          h.Revision' = (if rev = W64 0 then W64 (σ.rev : Int) else rev)⌝ ∗ mvcc.mvccHashOk γ h) ∨
+          (h.Revision' = rev ∨ (rev = W64 0 ∧ h.Revision' = W64 (σ.rev : Int)))⌝ ∗
+          mvcc.mvccHashOk γ h) ∨
        (⌜0 < sint.Z rev ∧ sint.Z rev < σ.crev ∧ cur = W64 0⌝ ∗
           (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝)) ∨
        (⌜(σ.rev : Int) < sint.Z rev ∧ cur = W64 (σ.rev : Int)⌝ ∗

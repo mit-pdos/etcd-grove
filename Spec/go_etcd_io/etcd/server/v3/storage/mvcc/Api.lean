@@ -217,7 +217,8 @@ opaque mvccNotified (γ : MvccName) (σ : MvccState) (pend : List Change) : IPro
 opaque mvccRestoreOk (γ : MvccName) : IProp GF := iprop(True)
 
 /-- **The right to wrap the store `s` in a watchable store** (exclusive; `NewStore` at the
-watched mode gives it, `New`'s watchable store takes it). -/
+watched mode gives it, `New`'s watchable store takes it): it holds the store's `ReadView` and
+`WriteView` fields, which the watchable store overwrites with its own views. -/
 opaque mvccWrapRight (γ : MvccName) (s : Loc) : IProp GF := iprop(True)
 
 /-- **`rv` is a read view of the store `γ`** (persistent): its `kv` serves `γ` (the store, or its
@@ -438,15 +439,31 @@ abbrev mvccRestoreOk_unwatched.law : Prop :=
 abbrev isWatchableMvcc_watched.law : Prop :=
   ∀ ws γ, isWatchableMvcc (GF := GF) ws γ ⊢ ⌜mvccWatched γ = true⌝
 
-/-- **The store's views** (its embedded `ReadView`/`WriteView`, which serve its promoted `Range`,
-`Rev`, `FirstRev`, `Put` and `DeleteRange`): views of the store, set for good when it was made
-(the watchable store's, over itself, when it has watchers). -/
+/-- **A store's views** (its embedded `ReadView`/`WriteView`, which serve its promoted `Range`,
+`Rev`, `FirstRev`, `Put` and `DeleteRange`), set for good: a store without watchers' views, over
+itself, when it was made; a watchable store's store's, over the watchable store, when the watchable
+store was made (`newWatchableStore` overwrites the fields `NewStore` set: until then the right to
+wrap the store, `mvccWrapRight`, holds them; round 6). -/
 abbrev isMvcc_views.law : Prop :=
-  ∀ s γ, isMvcc (GF := GF) s γ ⊢ ∃ rv wv : Loc,
+  (∀ s γ, mvccWatched γ = false → isMvcc (GF := GF) s γ ⊢ ∃ rv wv : Loc,
     s.[store, go!"ReadView"] ↦□ (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
     isReadViewOf rv γ ∗
     s.[store, go!"WriteView"] ↦□ (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
-    isWriteViewOf wv γ
+    isWriteViewOf wv γ) ∧
+  (∀ ws γ, isWatchableMvcc (GF := GF) ws γ ⊢ ∃ s rv wv : Loc,
+    ws.[watchableStore, go!"store"] ↦□ s ∗
+    s.[store, go!"ReadView"] ↦□ (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
+    isReadViewOf rv γ ∗
+    s.[store, go!"WriteView"] ↦□ (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
+    isWriteViewOf wv γ)
+
+/-- **A commit of nothing needs no notification** (the code notifies nothing then). -/
+abbrev mvccNotified_nil.law : Prop :=
+  ∀ γ σ, ⊢ mvccNotified (GF := GF) γ σ []
+
+/-- **A restored state is reachable** (its backend's creator says so). -/
+abbrev mvccRestorable_reachable.law : Prop :=
+  ∀ γ b σ', mvccRestorable (GF := GF) γ b σ' ⊢ ⌜MvccReachable σ'⌝
 
 /-- **A hash of the store is of its history**: a hash it gave or stored is of the revisions
 `(CompactRevision, Revision]` of every later state's history (histories only grow). -/

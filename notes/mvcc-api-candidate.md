@@ -163,6 +163,30 @@ backend's creator's resources; `mvccHashOf` stands for crc32 over the kept revis
 needs the `kvHasher` axioms to say the hash is a function of its input); the backend's `Hash` has
 no spec.
 
+## Round 6 (the review of round 5)
+
+The design held (`mvccNotified` and the announcement inside the update are true of the code in
+both modes); four new statements were false, repaired:
+
+- `HashByRev` concurrent with `Restore`: its stored-hash path reads the current revision under
+  `revMu` alone, which `Restore` sets to `1` for a while; it now takes a share of the open token
+  (`Restore` takes it whole). Go behaviour: `issues/etcd-mvcc-hashbyrev-restore-rev1.md`
+  (reproduced).
+- `HashByRev(0)` may return a hash stored for revision `0` (a compaction at `0`), not the current
+  revision's: the post says either. Go behaviour: `issues/etcd-mvcc-hashbyrev-zero-stored.md`
+  (reproduced).
+- `Restore` (both): the history extended and the compaction revision not lowered, in both modes
+  (the stored hashes survive a restore: `mvccHashOk_state`; the watchers' compaction responses:
+  `wsRecv_compact`); the announcement only with watchers.
+
+And: the views law for a store without watchers, and for a watchable store's store through the
+watchable store (`NewStore` at the watched mode leaves the fields to `mvccWrapRight`, which the
+watchable store overwrites); `Restore` bounds the re-attached keys (`Attach`'s premise);
+`mvccRestorable_reachable`; `mvccNotified_nil` (a commit of nothing); `Hash` is not provable while
+its read races (the candidate holds once the issue's fix is in, or a trust-boundary axiom until
+then). Open (noted): a compaction the new backend left unfinished is resumed by `restore`, with no
+contract for its hook and commit yet (the backend boundary).
+
 ## Decisions for the user (new client-owned ghost state and premises)
 
 The skill's policy: each new premise or client-owned ghost state on a spec with clients is the

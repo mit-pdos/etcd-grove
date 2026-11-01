@@ -316,6 +316,12 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[etcd-mvcc-hashbyrev-restore-rev1](etcd-mvcc-hashbyrev-restore-rev1.md)** (2026-11-01): a
+  stored-hash `HashByRev` during a snapshot's `Restore` returns current revision `1`, so `HashKV`'s
+  header revision goes back transiently. Reproduced; a narrow window, a small fix.
+- **[etcd-mvcc-hashbyrev-zero-stored](etcd-mvcc-hashbyrev-zero-stored.md)** (2026-11-01): after
+  `Compact(0)`, `HashByRev(0)` returns the hash stored for revision 0, not the current revision's.
+  Needs a client `Compact(0)` (the auto-compactors never issue it); reproduced; a small fix.
 - **[etcd-mvcc-hash-currentrev-race](etcd-mvcc-hash-currentrev-race.md)** (2026-11-01):
   `HashStorage().Hash()` reads `currentRev` without `revMu`, racing with every write (reported by
   the race detector); reachable through the maintenance `Hash` RPC. Harmless on 64-bit in practice

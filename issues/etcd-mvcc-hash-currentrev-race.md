@@ -10,7 +10,8 @@ links: []
   one the hash is of: the code's TODO says so ("hash and revision could be inconsistent"), but the
   read itself is unsynchronized, which Go's memory model does not define. Reachable through etcd's
   maintenance API (`Hash` RPC: `maintenanceServer.Hash` → `HashStorage().Hash()`) while the apply
-  thread writes.
+  thread writes. (Also, by reading: `hash()` reads `s.b` without `s.mu`, which `Restore` replaces
+  under it, so a `Hash()` during a snapshot's restore may hash the old backend; not reproduced.)
 - **Where**: `server/storage/mvcc/kvstore.go:155-165` at the etcd pin (`etc/goose.py`,
   `249d76bea`): `store.hash()` returns `s.currentRev` with no lock. Every write transaction's
   `End` increments it under `s.revMu` (`kvstore_txn.go:214`); every other reader takes `s.revMu`

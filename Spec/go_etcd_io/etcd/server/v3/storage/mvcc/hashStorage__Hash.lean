@@ -27,7 +27,9 @@ request `X ⇒ Y` of its hooks, as `Commit`), and a revision. Neither is stated:
 backend's pages (compacted revisions not yet deleted by the compaction job included), not a
 function of the state, and the revision is read without `revMu`, racing with every write
 (`issues/etcd-mvcc-hash-currentrev-race.md`; the margin: with the read synchronized, a revision of
-a state between the call and its return). The backend's `Hash` has no spec yet. -/
+a state between the call and its return). The backend's `Hash` has no spec yet. Not provable as the code is: a racy load has no proof in
+Perennial's model (its points-to is the writer's); the candidate is what holds once the read is
+synchronized (the issue's fix), or a trust-boundary axiom until then (round 6). -/
 abbrev mvcc.hashStorage.Hash.specC : Prop :=
   ∀ (hs : Loc) (γ : mvcc.MvccName) (X Y : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isHashStorage hs γ ∗ threadTok ∗ X ∗ mvcc.mvccCommitReq γ X Y }}
