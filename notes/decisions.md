@@ -11389,6 +11389,9 @@ Following the design above, with D21i (A) and D21j. Where it departs from the de
 
 ## T-S: the snapshot path, scope and staging (D22, 2026-10-19 · proposed)
 
+*Superseded in part (2026-11-01, "D22 and bbolt are open to every session"): the constraint below on the
+bbolt proofs, and D22 being the collaborator's to direct, no longer hold.*
+
 A design pass only (no Lean change); track T-S of D21 ("Later tracks"), D21c (B). Goal: lift D21
 M3's run bound, so that `NewServer.spec` drops `receiptBound ≤ SnapshotCatchUpEntries + 1`,
 `bootOk` drops `"%Hnosnap"` (`γ.reNoSnap = true ∧ γs.cap = 1`), and a cluster member may
@@ -28442,3 +28445,17 @@ the verdicts: the permission cache lags the published revision) and what protect
 statement would bound each verdict by the end read's state; `revCur` would then need its quarter's
 last state (`hs.getLast? = some st` with its `authStateAt`), which the dropped Draft proved
 maintainable.
+
+## D22 and bbolt are open to every session (2026-11-01 · accepted, the user's)
+
+Since 2026-10-19 two restrictions held: D22 (T-S, the snapshot path) was the user's collaborator's to
+direct, so sessions waited for their decisions on it, and no session but theirs edited the bbolt
+proofs (`Proof`/`Spec` under `go_etcd_io/bbolt`; T-S's constraint above, "bbolt-level facts become
+specs or axioms at etcd's backend boundary"). The user lifted both (2026-11-01: "these comments are
+stale"). D22's stages and the bbolt proofs are now ordinary work, decided as anything else is: no
+waiting for the collaborator, and no need to route a bbolt fact through a backend-boundary axiom
+when it can be proved. The notes' many "(the collaborator's)" and "for the collaborator" remarks
+(this file, `m2-apply-plan.md`, `m2-storage-plan.md`, `STATUS.md`'s older sections) are the
+reasoning at the time; they are left as written, and read as open items. What still holds: work on
+an active branch (e.g. `snap-j8a`) is that session's until it lands, so coordinate with it before
+editing the same files.
