@@ -382,12 +382,13 @@ theorem Main.wp_proof
     imodintro
     iintro %i %f %g %Hf %Hg
     simp at Hf
+  haveI : ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax) := ⟨by unfold cacheWgOwedMax; omega⟩
   wp_apply (wp_CNew (EM := client.etcdModelOfKV γk) cl ckPfx slice.nil []) $$ []
     as %c %cerr Hnew
   · iframe #
     isplitr
     · ipureintro; intro _; exact cfgDefault_bounded
-    ipureintro; unfold cacheWgOwedMax; have : ckPfx.length = 3 := rfl; omega
+    ipureintro; have : ckPfx.length = 3 := rfl; omega
   irevert Hnew
   unfold newCacheResult
   rw [if_pos cfgDefault_valid]

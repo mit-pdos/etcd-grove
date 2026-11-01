@@ -4,6 +4,7 @@
 module
 
 public import Proof.k8s_io.client_go.tools.cache.synctrack.Defs
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -25,8 +26,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.synctrack.Assumptions]
 /-- **`t.Start()`**: a start token (`sftTok`); in an execution of fewer than `2^63` Go steps
 (`receiptBound GF ≤ 2^63`), so the counter does not wrap. -/
 abbrev SingleFileTracker.Start.spec : Prop :=
-  ∀ (t : Loc) (γ : GName), receiptBound GF ≤ 2 ^ 63 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache.synctrack ∗ isSFT t γ }}
+  ∀ [ReceiptBoundLe GF (2 ^ 63)] (t : Loc) (γ : GName), {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache.synctrack ∗ isSFT t γ }}
     (App (Val (t @!! go.GoType.PointerType SingleFileTracker.ty @!! go!"Start")) (Val #()))
   {{ RET #(); sftTok γ }}
 

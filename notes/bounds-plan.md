@@ -110,6 +110,21 @@ the premises are packaged and which resources the specs take.
   instance from it (`ThreadBoundLe.of_eq`, then `weaken`).
 - `receiptBound GF ≤ N + 1` is not a smallness bound: it ties the write-token stock to the step
   bound. It stays until B4.
+- **First batch done (2026-11-01, branch `bounds-b1-specs`).** Each converted spec takes the bound
+  as a leading instance binder (`∀ [ThreadBoundLe GF (2 ^ k)] …`): the same strength as the
+  premise, and `Link.lean`, the callee hypotheses and the `Results` restatements stay as they were.
+  A caller with a pure premise adds one `haveI`. Converted: the client's `clientv3.New`, `newClient`,
+  `NewWatcher`, `NewWatchFromWatchClient` and kubernetes `New` (`2 ^ 31`), credentials'
+  `NewPerRPCCredentialBundle` (`2 ^ 30`), leasing's `NewKV` (`2 ^ 29`, from `2 ^ 30 - 1`: no closed
+  result reaches it), mvcc's `New`, `NewStore` and `newWatchableStore` (receipts `2 ^ 48`), and
+  client-go's informer chain (receipts `2 ^ 63`, `pop` `2 ^ 61`). `newWatcherGRPCStream`'s premise was
+  redundant (`isClientWatcher` carries the bound) and is dropped, which makes the spec stronger.
+  **Left:**
+  - the cache's `New`/`newCache` (`threadBound GF + 3 ≤ 2 ^ 31`; `2 ^ 30` would weaken the cache's
+    exported `cache_end_to_end_*` results, which restate it);
+  - the lessor's `Remaining`, `Less` and `Leases` (`2 ^ 30 - 1`; their caller `LeaseLeases` is in
+    etcdserver, whose statements wait for the snapshot branches);
+  - v3rpc's `GetProgressReportInterval` (its bound travels in `watchRunSlot`, B2's v3rpc pool).
 
 ### B2. Reader slots in pools owned by their package (D2)
 
@@ -150,8 +165,14 @@ This deletes the counted stocks (70 places), `etcdGrpcSlots_of_started`, `watchR
 - **Order** (as the inventory recommends; it supersedes the order first written here).
   1. Pilot on the leasing client (`client/v3/leasing`: one lock, `lkvReader`, not touched by any
      active branch).
-  2. B2a: a `threadTok` for each gRPC run and stream and each `net/http` handler (a trust-boundary
-     change, for approval).
+  2. ~~B2a: a `threadTok` for each gRPC run~~ **replaced (2026-11-01, the user's choice): run slots
+     built in `NewServer`.** `grpc.serve` runs a handler in the calling client's thread, so the only
+     sound source of a handler's thread token is the caller's, which would put `threadTok` on
+     `Invoke`'s axiom, the 13 generated stubs, the client library and the examples' calls. Instead
+     `grpc.serve`'s `n` per-run slots stay, and `NewServer` builds them itself from its locks' stocks
+     (counted inside the one owner) and hands out `n` ready bundles: the examples' splits,
+     `etcdGrpcSlots_of_started` and `watchRunSlots_of` go. No trust-boundary change. Pools stay for
+     the unbounded goroutines (lease monitors, `GoAttach`, the watch loops). After `snap-j8a`.
   3. The auth store's `E.RD` (the most mentions).
   4. The server's own locks (`lg`, `leadTime`, `read`, `bemu`, `wg`, quota).
   5. mvcc's `storeReader`/`watchReader`, after `m2-b2-mvcc` lands.
@@ -183,6 +204,13 @@ This deletes the counted stocks (70 places), `etcdGrpcSlots_of_started`, `watchR
 - Retire the cache's own `cacheWgInv` arithmetic. Its premise `threadBound GF + cacheWgOwedMax ≤ 2^31`
   goes away under B1.
 - Low priority: few sites, and they are already local.
+- **Status (2026-11-01).** Inventory done (`notes/bounds-waitgroups.md`: 16 wait groups, twelve kept,
+  leasing done by the pilot, the client's watch stream by B1's first batch, `GoAttach` with B1's
+  server step). `sync.tokJoin` fits none of the hand-written schemes (one adder only); a shared-adder
+  wait group in Perennial is a separate proposal. **The cache done** (branch `bounds-b3-cache`):
+  `New.spec`/`newCache.spec` take `[ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax)]` (the exact bound:
+  `cache_end_to_end_client`/`_new` keep their premise and build the instance); the budget tokens
+  (`γwb`, `cacheWgSlot`) stay, since `cacheWatchSlot`, in `Cache.Watch.spec`, carries one.
 
 ### B4. Counters and stocks from receipts
 

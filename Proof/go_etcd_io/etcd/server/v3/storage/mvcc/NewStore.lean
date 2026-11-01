@@ -93,7 +93,8 @@ theorem mvcc.NewStore.wp_proof
     mvcc.NewStore.spec (GF := GF) (hG := hG) := by
   -- `store.restore` at no record and the whole bucket (its spec before M2's item 18)
   have hRestore := mvcc.store.restore.specNC_of_spec hRestore
-  intro lg b le cfg kb γb γl P f rd0 wq γi γok Hcfg0 Hrb0
+  intro _ lg b le cfg kb γb γl P f rd0 wq γi γok Hcfg0
+  have Hrb0 : receiptBound GF ≤ 2 ^ 48 := ReceiptBoundLe.le (GF := GF) _
   wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok⟩
   have hnr : 1 ≤ mvcc.nReaders := Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos)
   have hjr : mvcc.nJobRd kb ≤ mvcc.nReaders := Nat.le_trans (mvcc.nJobRd_le kb) hnr

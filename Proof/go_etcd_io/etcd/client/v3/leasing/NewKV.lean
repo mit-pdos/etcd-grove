@@ -36,8 +36,10 @@ theorem NewKV.wp_proof
     (hClose : leasingKV.Close.spec (GF := GF) (hG := hG))
     (hWS : leasingKV.waitSession.spec (GF := GF) (hG := hG)) :
     NewKV.spec (GF := GF) (hG := hG) := by
-  intro cl pfx osl
-  wp_start as ⟨#Hcci, #Hcl, %Hpre⟩
+  intro _ cl pfx osl
+  wp_start as ⟨#Hcci, #Hcl, %Hpre0⟩
+  have Hpre : pfx ≠ [] ∧ pfx.length ≤ 2 ^ 26 ∧ threadBound GF ≤ 2 ^ 30 - 1 :=
+    ⟨Hpre0.1, Hpre0.2, by have := ThreadBoundLe.le (GF := GF) (2 ^ 29); omega⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
