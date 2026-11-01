@@ -573,9 +573,12 @@ def isStorage (γ : Cluster) (K : GName) (st : Storage) : IProp GF :=
 contract states its log: compacted at the base, the base's entry (of the base's term) frozen, the
 entries above it owned, the end after them. What a restarted node's view of its storage starts
 from (until then `bootStorage`'s at the empty log). -/
-def storHolds (st : Storage) (σ : StorContents) : IProp GF :=
+def storHolds (st : Storage) (σ : StorContents) (f : Nat) : IProp GF :=
   iprop(∃ e0 : EntryM, ⌜e0.Term' = σ.base.term'⌝ ∗ storCompacted st σ.b ∗
-    storLog st σ.b DFrac.discard [e0] ∗ storLog st (σ.b + 1) (DFrac.own 1) σ.ents ∗
+    storLog st σ.b DFrac.discard [e0] ∗
+    -- (2026-11-01, durability stage II (k), the freeze point) the entries up to `f` frozen
+    storLog st (σ.b + 1) DFrac.discard (σ.ents.take (f - σ.b)) ∗
+    storLog st (f + 1) (DFrac.own 1) (σ.ents.drop (f - σ.b)) ∗
     storEnd st (σ.last + 1))
 
 /-- (2026-11-01, durability stage I-4; candidate 12 §4, generalizing `bootStorage`) **A storage `st`
@@ -584,7 +587,9 @@ to start a node from, holding `σ`**: a frame `R` of the client's, with `FirstIn
 conf state `csm`, after which -- given the fresh key `K` raft names the storage by, and raft's
 bounds at the attach (compacting up to the applied index it starts at, `max σ.b A`, is safe; it
 committed up to the stored commit) -- the client makes the storage contract (`isStorage γ K st`)
-and gives the storage's log (`storHolds`), keeping its frame `F K`, which `RestartNode`'s post returns
+and gives the storage's log (`storHolds`; (2026-11-01, durability stage II (k)) the entries up to a
+freeze point `f` of the client's choice, `σ.b ≤ f ≤ σ.commit`, frozen, the rest owned), keeping its
+frame `F K`, which `RestartNode`'s post returns
 at the driver's key. (2026-11-01, stage-I fix G1-frame: the frame depends on the key, so that a
 client allocating its storage's invariant at `K` in the continuation has it at the driver's key.)
 `newRaft` reads `FirstIndex` and `LastIndex` (`newLogWithSize`) *before* `InitialState`, and a
@@ -594,7 +599,10 @@ made once `InitialState` returned: the contract comes in `InitialState`'s post. 
 key, so a key's bounds are one node's. -/
 def restartStorage (γ : Cluster) (st : Storage) (σ : StorContents) (csm : ConfStateM) (A : Nat)
     (F : GName → IProp GF) : IProp GF :=
-  iprop(∃ (i : GoInterfaceOk) (R : IProp GF), ⌜st = interface.ok i⌝ ∗ R ∗
+  iprop(∃ (i : GoInterfaceOk) (R : IProp GF) (f : Nat), ⌜st = interface.ok i⌝ ∗
+    -- (2026-11-01, durability stage II (k)) the freeze point: the stored entries up to `f`, committed,
+    -- frozen (`storHolds`), so that the client may have made a snapshot among them before the attach
+    ⌜σ.b ≤ f ∧ f ≤ σ.commit⌝ ∗ R ∗
     ({{ R }} (App (Val #(methods i.ty go!"FirstIndex" i.v)) (Val #()))
        {{ RET (PairV #(W64 (σ.b + 1)) #interface.nil); R }}) ∗
     ({{ R }} (App (Val #(methods i.ty go!"LastIndex" i.v)) (Val #()))
@@ -603,7 +611,7 @@ def restartStorage (γ : Cluster) (st : Storage) (σ : StorContents) (csm : Conf
        {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
           hsOpt hp σ.hs ∗ csPts cs DFrac.discard csm al ∗
           ∀ K : GName, nodeAppliedLb γ K (max σ.b A) -∗ nodeCommitLb γ K σ.commit -∗
-            |={⊤}=> isStorage γ K st ∗ storHolds st σ ∗ F K }}))
+            |={⊤}=> isStorage γ K st ∗ storHolds st σ f ∗ F K }}))
 
 /-- (raft-final, 2026-10-29, U8: the WIP's `snapshotCert_valid`) **A certified snapshot is valid**:
 a `Ready`'s snapshot (`readySnap`'s certificate, its index past `0` and below `2^61`) is what

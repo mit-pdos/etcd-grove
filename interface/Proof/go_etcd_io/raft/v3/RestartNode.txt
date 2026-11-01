@@ -28,7 +28,7 @@ theorem RestartNode.wp_proof [package_sem : Assumptions] (wp_NewRawNode : NewRaw
                                           isLogger lok ∗
                                             isCluster γ N ∗
                                               nodeVacant γ cv.ID' ∗
-                                                AU <{ ∃∃ S, raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅ <{
+                                                AU <{ ∃∃ S, ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅ <{
                                                       raftState γ cv.ID' S, COMM Q S }> ∗
                                                   confAt γ a m ∗
                                                     restartStorage γ (GoInterface.ok si) σ csm (uint.nat cv.Applied') F -∗
@@ -41,13 +41,11 @@ theorem RestartNode.wp_proof [package_sem : Assumptions] (wp_NewRawNode : NewRaw
                                                       ⌜l.length = max σ.b (uint.nat cv.Applied')⌝ ∗
                                                         ⌜List.drop σ.b (LogEntry.toEntries l 0) =
                                                               List.take (l.length - σ.b) σ.ents⌝ ∗
-                                                          storLog (GoInterface.ok si) (σ.b + 1) DFrac.discard
-                                                              (List.take (max σ.b (uint.nat cv.Applied') - σ.b) σ.ents) ∗
-                                                            nodeDriver n γ N
-                                                                { storage := GoInterface.ok si, delivered := l,
-                                                                  hardState := σ.hs, handling := none, key := K,
-                                                                  durable := S, role := StateFollower } ∗
-                                                              nodeConfig n γ N { applied := a, membership := m } ∗
-                                                                nodeRunning n γ N 1 ∗ Q S ∗ F K) -∗
+                                                          nodeDriver n γ N
+                                                              { storage := GoInterface.ok si, delivered := l,
+                                                                hardState := σ.hs, handling := none, key := K,
+                                                                durable := S, role := StateFollower } ∗
+                                                            nodeConfig n γ N { applied := a, membership := m } ∗
+                                                              nodeRunning n γ N 1 ∗ Q S ∗ F K) -∗
                                               Φ (intoVal nd)) -∗
                                         WP ((intoVal (functions RestartNode [])) (intoVal c)) {{ Φ }}

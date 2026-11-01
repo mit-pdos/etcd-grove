@@ -74,7 +74,9 @@ abbrev RestartNode.spec : Prop :=
       isCluster γ N ∗ nodeVacant γ cv.ID' ∗
       -- the client's durable state at `RestartNode`'s linearization point (its `InitialState`
       -- read, before any step): the storage holds it
-      AU <{ ∃∃ (S : RaftState), raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
+      -- ((2026-11-01, durability stage II (k)) under a later: `raftState` holds an invariant, so
+      -- it is not timeless, and a client keeping it in an invariant opens it later-ed)
+      AU <{ ∃∃ (S : RaftState), ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
          <{ raftState γ cv.ID' S, COMM Q S }> ∗
       confAt γ a m ∗
       restartStorage γ (interface.ok si) σ csm (uint.nat cv.Applied') F }}
@@ -87,10 +89,6 @@ abbrev RestartNode.spec : Prop :=
         -- (2026-11-01, durability stage II (k), addendum S1b) the delivered log is the stored
         -- entries up to its length (raft read them from the storage)
         ⌜(LogEntry.toEntries l 0).drop σ.b = σ.ents.take (l.length - σ.b)⌝ ∗
-        -- (2026-11-01, durability stage II (k), addendum S1) the stored entries up to the applied
-        -- index, frozen: committed (at or below `A ≤ σ.commit`), raft never rewrites them
-        storLog (interface.ok si) (σ.b + 1) DFrac.discard
-          (σ.ents.take (max σ.b (uint.nat cv.Applied') - σ.b)) ∗
         nodeDriver n γ N ⟨interface.ok si, l, σ.hs, none, K, S, StateFollower⟩ ∗
         nodeConfig n γ N ⟨a, m⟩ ∗
         nodeRunning n γ N 1 ∗

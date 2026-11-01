@@ -125,42 +125,43 @@ def (sealed) isCluster (γ : Cluster) (N : Namespace) : IProp GF
 
 def restartStorage (γ : Cluster) (st : Storage) (σ : StorContents) (csm : ConfStateM) (A : Nat) (F :
     GName → IProp GF) : IProp GF :=
-  iprop(∃ i R,
+  iprop(∃ i R f,
       ⌜st = GoInterface.ok i⌝ ∗
-        R ∗
-          (□
-              ∀ Φ,
-                R -∗
-                  ▷ (R -∗ Φ (intoVal (W64 (↑σ.b + 1)), intoVal GoInterface.nil)) -∗
-                    WP
-                      ((intoVal (methods i.ty go!"FirstIndex" i.v))
-                        (intoVal ()))
-                      {{ Φ }}) ∗
+        ⌜σ.b ≤ f ∧ f ≤ σ.commit⌝ ∗
+          R ∗
             (□
                 ∀ Φ,
                   R -∗
-                    ▷ (R -∗ Φ (intoVal (W64 ↑σ.last), intoVal GoInterface.nil)) -∗
+                    ▷ (R -∗ Φ (intoVal (W64 (↑σ.b + 1)), intoVal GoInterface.nil)) -∗
                       WP
-                        ((intoVal (methods i.ty go!"LastIndex" i.v))
+                        ((intoVal (methods i.ty go!"FirstIndex" i.v))
                           (intoVal ()))
                         {{ Φ }}) ∗
-              □
-                ∀ Φ,
-                  R -∗
-                    (▷
-                        ∀ hp cs al,
-                          (hsOpt hp σ.hs ∗
-                              csPts cs DFrac.discard csm al ∗
-                                ∀ K,
-                                  nodeAppliedLb γ K (max σ.b A) -∗
-                                    nodeCommitLb γ K σ.commit ={⊤}=∗ isStorage γ K st ∗ storHolds st σ ∗ F K) -∗
-                            Φ ((intoVal hp, intoVal cs), intoVal GoInterface.nil)) -∗
-                      WP
-                        ((intoVal
-                            (methods i.ty go!"InitialState"
-                              i.v))
-                          (intoVal ()))
-                        {{ Φ }})
+              (□
+                  ∀ Φ,
+                    R -∗
+                      ▷ (R -∗ Φ (intoVal (W64 ↑σ.last), intoVal GoInterface.nil)) -∗
+                        WP
+                          ((intoVal (methods i.ty go!"LastIndex" i.v))
+                            (intoVal ()))
+                          {{ Φ }}) ∗
+                □
+                  ∀ Φ,
+                    R -∗
+                      (▷
+                          ∀ hp cs al,
+                            (hsOpt hp σ.hs ∗
+                                csPts cs DFrac.discard csm al ∗
+                                  ∀ K,
+                                    nodeAppliedLb γ K (max σ.b A) -∗
+                                      nodeCommitLb γ K σ.commit ={⊤}=∗ isStorage γ K st ∗ storHolds st σ f ∗ F K) -∗
+                              Φ ((intoVal hp, intoVal cs), intoVal GoInterface.nil)) -∗
+                        WP
+                          ((intoVal
+                              (methods i.ty
+                                go!"InitialState" i.v))
+                            (intoVal ()))
+                          {{ Φ }})
 
 def (sealed) nodeConfig (n : Loc) (γ : Cluster) (N : Namespace) (v : ConfigView) : IProp GF
 
@@ -197,11 +198,13 @@ theorem isCluster_persistent (γ : Cluster) (N : Namespace) : Persistent (isClus
 theorem confAt_valid [package_sem : Assumptions] (γ : Cluster) (k : Nat) (m : Membership) : confAt γ
     k m ⊢ ⌜m.Valid⌝
 
-def storHolds (st : Storage) (σ : StorContents) : IProp GF :=
+def storHolds (st : Storage) (σ : StorContents) (f : Nat) : IProp GF :=
   iprop(∃ e0,
       ⌜e0.Term' = σ.base.term'⌝ ∗
         storCompacted st σ.b ∗
-          storLog st σ.b DFrac.discard [e0] ∗ storLog st (σ.b + 1) (DFrac.own 1) σ.ents ∗ storEnd st (σ.last + 1))
+          storLog st σ.b DFrac.discard [e0] ∗
+            storLog st (σ.b + 1) DFrac.discard (List.take (f - σ.b) σ.ents) ∗
+              storLog st (f + 1) (DFrac.own 1) (List.drop (f - σ.b) σ.ents) ∗ storEnd st (σ.last + 1))
 
 theorem snapshotCert_make [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (E : CoPset) (l
     : List LogEntry) (i t : w64) (d : List w8) (m : Membership) (cs : ConfStateM) (S : List SnapRec)
