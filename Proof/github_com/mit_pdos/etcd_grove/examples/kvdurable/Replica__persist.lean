@@ -142,7 +142,12 @@ theorem Replica.persist.wp_proof
     iinv HfInv with HI Hclose
     · exact kdRepN_files id
     imod lc_fupd_elim_later $$ Hlc1 HI with HI
-    icases HI with ⟨%S0, %o0, HrS, Hdf, Hwv, %HSH, HcF⟩
+    icases HI with ⟨%S0, %o0, HD, Hwv, %HSH, HcF⟩
+    icases HD with (⟨HrS, Hdf⟩ | Hlent)
+    rotate_left
+    · iexfalso
+      iapply kdWriter_lent_absurd γ id _ _ _ _
+      iframe Hwr Hwv Hlent
     iunfold kdWriter at Hwr
     ihave %Hag := ghostVar_agree (γ.wr id) _ _ _ _ $$ Hwr Hwv
     obtain ⟨rfl, -⟩ := Prod.mk.inj Hag
@@ -157,9 +162,10 @@ theorem Replica.persist.wp_proof
     imod Hclose $$ [HrS Hdf Hwv] with -
     · inext
       iexists S', some M
-      iframe HrS Hwv
       simp only [kdFileVal, Option.map_some]
-      iframe Hdf
+      isplitl [HrS Hdf]
+      · ileft; iframe HrS Hdf
+      iframe Hwv
       isplitl []
       · ipureintro; exact ⟨HSM, fun f hf => by cases hf; exact HMok⟩
       iintro %f %hf
@@ -300,7 +306,12 @@ theorem Replica.persist.wp_proofRun
     iinv HfInv with HI Hclose
     · exact kdRepN_files id
     imod lc_fupd_elim_later $$ Hlc1 HI with HI
-    icases HI with ⟨%S0, %o0, HrS, Hdf, Hwv, %HSH, HcF⟩
+    icases HI with ⟨%S0, %o0, HD, Hwv, %HSH, HcF⟩
+    icases HD with (⟨HrS, Hdf⟩ | Hlent)
+    rotate_left
+    · iexfalso
+      iapply kdWriter_lent_absurd γ id _ _ _ _
+      iframe Hwr Hwv Hlent
     iunfold kdWriter at Hwr
     ihave %Hag := ghostVar_agree (γ.wr id) _ _ _ _ $$ Hwr Hwv
     obtain ⟨rfl, -⟩ := Prod.mk.inj Hag
@@ -317,9 +328,10 @@ theorem Replica.persist.wp_proofRun
     imod Hclose $$ [HrS Hdf Hwv] with -
     · inext
       iexists st'.durable, some M
-      iframe HrS Hwv
       simp only [kdFileVal, Option.map_some]
-      iframe Hdf
+      isplitl [HrS Hdf]
+      · ileft; iframe HrS Hdf
+      iframe Hwv
       isplitl []
       · ipureintro; exact ⟨HSM, fun f hf => by cases hf; exact HMok⟩
       iintro %f %hf

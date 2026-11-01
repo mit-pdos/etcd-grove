@@ -409,11 +409,15 @@ def decimalB (n : Nat) : GoString := (Nat.toDigits 10 n).map (fun c => W8 (c.toN
 def kdFileName (dir : GoString) (id : w64) : GoString :=
   dir ++ go!"/replica-" ++ decimalB (uint.nat id)
 
-/-- **The file of replica `id`** (an invariant; see the file header). -/
+/-- **The file of replica `id`** (an invariant; see the file header). (2026-11-01, the start
+functions) The durable state and the file's entry may be *lent* to the writer, which leaves its
+half of the variable in their place (so the variable is pinned while they are out; a writer holding
+its half refutes the lent case): `Cluster.start` borrows them around `RestartNode`, whose update
+reads `raftState` with no step to take the invariant's later off (`raftState` is not timeless). -/
 def kdFileInv (γ : KdNames) (dir : GoString) (id : w64) : IProp GF :=
   inv (kdRepN .@ uint.nat id) iprop(∃ (S : RaftState) (o : Option StorFile),
-    raftState γ.r.cluster id S ∗
-    dfile γ.files (kdFileName dir id) (kdFileVal o) ∗
+    ((raftState γ.r.cluster id S ∗ dfile γ.files (kdFileName dir id) (kdFileVal o)) ∨
+      ghostVar (γ.wr id) (1 : Qp).half (S, kdFileVal o)) ∗
     ghostVar (γ.wr id) (1 : Qp).half (S, kdFileVal o) ∗
     ⌜StorageHolds S (kdContents o) ∧ ∀ f, o = some f → KdFileOk f⌝ ∗
     (∀ f, ⌜o = some f⌝ -∗ kdSnapCert γ f.snap))

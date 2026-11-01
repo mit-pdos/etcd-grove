@@ -36,23 +36,6 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
-/-- Three halves of a ghost variable are refuted. -/
-theorem ghostVar_three_halves {A : Type} [Pos.Countable A] (γv : GName) (a b c : A) :
-    ghostVar (GF := GF) γv (1 : Qp).half a ∗ ghostVar γv (1 : Qp).half b ∗
-      ghostVar γv (1 : Qp).half c ⊢ False := by
-  iintro ⟨H1, H2, H3⟩
-  ihave %Hab := ghostVar_agree γv _ _ _ _ $$ H1 H2
-  subst Hab
-  ihave H12 : ghostVar γv ((1 : Qp).half + (1 : Qp).half) a $$ [H1 H2]
-  · iapply (ghostVar_fractional (GF := GF) γv a).fractional _ _ |>.2
-    iframe H1 H2
-  rw [Qp.half_add_half] at *
-  ihave %Hv := ghostVar_valid_2 γv _ _ _ _ $$ H12 H3
-  exfalso
-  have h1 : (1 : Rat) + ((1 : Qp).half).val ≤ 1 := Hv.1
-  have := ((1 : Qp).half).2
-  grind
-
 /-- The phase's half of the claim. -/
 theorem kdPhaseInv_claim (γ : KdNames) (id : w64) (n : Loc) (g : GName) (S : RaftState)
     (M : StorFile) (pz : KdPhase) :

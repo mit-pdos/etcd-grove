@@ -116,6 +116,32 @@ theorem isStats_field (s : Loc) (f : GoString) (hf : f ∈ statsFields) :
   unfold isStats
   exact BigSepL.bigSepL_mem hf
 
+/-- Three halves of a ghost variable are refuted. -/
+theorem ghostVar_three_halves {A : Type} [Pos.Countable A] (γv : GName) (a b c : A) :
+    ghostVar (GF := GF) γv (1 : Qp).half a ∗ ghostVar γv (1 : Qp).half b ∗
+      ghostVar γv (1 : Qp).half c ⊢ False := by
+  iintro ⟨H1, H2, H3⟩
+  ihave %Hab := ghostVar_agree γv _ _ _ _ $$ H1 H2
+  subst Hab
+  ihave H12 : ghostVar γv ((1 : Qp).half + (1 : Qp).half) a $$ [H1 H2]
+  · iapply (ghostVar_fractional (GF := GF) γv a).fractional _ _ |>.2
+    iframe H1 H2
+  rw [Qp.half_add_half] at *
+  ihave %Hv := ghostVar_valid_2 γv _ _ _ _ $$ H12 H3
+  exfalso
+  have h1 : (1 : Rat) + ((1 : Qp).half).val ≤ 1 := Hv.1
+  have := ((1 : Qp).half).2
+  grind
+
+/-- (2026-11-01, the start functions) A writer refutes the file's lent case (`kdFileInv`): its half,
+the invariant's and the lent one are three. -/
+theorem kdWriter_lent_absurd (γ : KdNames) (id : w64) (S : RaftState) (o : Option StorFile)
+    (a b : RaftState × Option GoString) :
+    kdWriter (GF := GF) γ id S o ∗ ghostVar (γ.wr id) (1 : Qp).half a ∗
+      ghostVar (γ.wr id) (1 : Qp).half b ⊢ False := by
+  unfold kdWriter
+  exact ghostVar_three_halves _ _ _ _
+
 end laws
 
 end kvdurable
