@@ -329,13 +329,15 @@ theorem Replica.run.wp_proof
       obtain ⟨syncb, rfl, Hsync⟩ := Hv
       try wp_auto
       -- `dmu`: the phase idle at the driver's durable state, the image's hard state the driver's
+      irename Hfz => HfzD
       wp_apply (lc := 2) sync.Mutex.wp_Lock _ _ $$ [$Hdmu] as ⟨Hlocked, HI⟩
       iunfold kdDmuInv at HI
       iNamed HI
       icases Hlive with ⟨%S1, %o, %pz, Hwr, %HMok, #Hcert, %Hfb, Hph⟩
       ihave ⟨Hclaim, Hph, %Hidle⟩ := kd_claim_idle γ id n ρ.ph.ph S S1 M pz $$ [Hclaim Hph]
       · iframe Hclaim Hph
-      obtain ⟨rfl, rfl, HSM⟩ := Hidle
+      obtain ⟨rfl, HS1, HSM⟩ := Hidle
+      subst S1
       ihave %Hcmeq := ghostVar_agree ρ.ph.cm _ _ _ _ $$ Hcm Hcmh
       ihave %Hfzd := monoNatLbOwn_valid ρ.ph.ic 1 fz D.length $$ Hic Hicl
       ihave #Hst' : st.[KStorage, go!"img"] ↦□ ip $$ []
@@ -367,6 +369,63 @@ theorem Replica.run.wp_proof
           iexists rdv.HardState'
           iframe
           iexact Hhs
+      -- the entries, on the `MemoryStorage` (the range raft lends) and the image
+      icases append_none_pre st ρ.ms ρ.γs es $$ Hrec Happ with ⟨%k, %old, ⟨%Hk, %Hk0⟩, Hrange⟩
+      have h1 : ∀ (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = k + j := by
+        intro j e hj
+        cases hes : es with
+        | nil => rw [hes] at hj; cases hj
+        | cons e0 rest =>
+          rw [Hk e0 (by rw [hes]; rfl)]
+          exact Hidx e0 (by rw [hes]; rfl) j e hj
+      have h2 : k + es.length ≤ 2 ^ 61 := by
+        cases hes : es with
+        | nil => rw [Hk0 hes]; simp
+        | cons e0 rest =>
+          have := Hfit' e0 (by rw [hes]; rfl)
+          rw [Hk e0 (by rw [hes]; rfl)]
+          rw [hes] at this
+          word
+      have Hlast := holds_last S M HSM
+      have hk9 : es ≠ [] → k ≤ uint.nat (imgSetHardState M (phsNext hd h)).prev + 1 +
+          (imgSetHardState M (phsNext hd h)).ents.length := by
+        intro hne
+        obtain ⟨e0, he0⟩ : ∃ e0, es.head? = some e0 := by
+          cases es with
+          | nil => exact absurd rfl hne
+          | cons x xs => exact ⟨x, rfl⟩
+        have := G9 e0 he0
+        rw [Hk e0 he0]; simp only [imgSetHardState]; omega
+      have hsz : uint.nat (imgSetHardState M (phsNext hd h)).prev + 1 +
+          (imgSetHardState M (phsNext hd h)).ents.length + es.length < 2 ^ 63 := by
+        obtain ⟨-, Hp61, Hlen, -⟩ := HMok
+        simp only [imgSetHardState]
+        cases hes : es with
+        | nil => simp only [List.length_nil]; word
+        | cons e0 rest =>
+          have := Hfit' e0 (by rw [hes]; rfl)
+          rw [hes] at this
+          simp only [List.length_cons] at this ⊢
+          word
+      ihave #HmsInv' := HmsInv
+      iunfold memStorInvP at HmsInv'
+      icases HmsInv' with ⟨#Hlock, -, -⟩
+      have Htrip : {{ iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+            memStorLock ρ.ms ρ.γs ∗
+            (if es = [] then emp else memLog ρ.γs k (DFrac.own 1) old ∗ memEnd ρ.γs (k + old.length))) ∗
+            entsPts rdv.Entries' DFrac.discard es }}
+          (App (Val (ρ.ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Append")) (Val #rdv.Entries'))
+          {{ RET #interface.nil; entsPts rdv.Entries' DFrac.discard es ∗
+            (if es = [] then emp else memLog ρ.γs k (DFrac.own 1) es ∗ memEnd ρ.γs (k + es.length)) }} := by
+        iintro %Φ ⟨⟨#Hr, #Hl, Hb⟩, He⟩ HΦ
+        iapply wp_Append ρ.ms ρ.γs k old es rdv.Entries' DFrac.discard h1 h2 $$ [Hb He]
+        · iframe Hr Hl Hb He
+        iexact HΦ
+      wp_apply wp_SAppend st ρ.ms ρ.γs ip (imgSetHardState M (phsNext hd h)) rdv.Entries' DFrac.discard k
+          es _ _ h1 hk9 hsz Htrip $$ [$Hpkg $Hrec $Hst' $Himage $Hes Hrange] as ⟨-, Hb, Himage⟩
+      · iframe Hrange Hlock
+      imod append_none_post st ρ.ms ρ.γs c D ce es k Hsi.2.2.1 Hin Hidx Hk
+        $$ Hrec HfzD Hcef Hb with ⟨#HfzD', Hrcpt⟩
       sorry
     | some lo =>
       sorry

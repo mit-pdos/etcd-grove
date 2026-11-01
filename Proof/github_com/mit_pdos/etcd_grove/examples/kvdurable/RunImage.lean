@@ -264,6 +264,30 @@ theorem img_ready_snap_ok (M : StorFile) (S : RaftState) (hd' : HardStateM) (sv 
     · intro sv' hsv'; cases hsv'; exact ⟨Nat.le_refl _, G7⟩
     · intro h; exact absurd rfl h
 
+/-- The image's log ends where the durable state's does. -/
+theorem holds_last (S : RaftState) (M : StorFile) (Hh : StorageHolds S (kdContents (some M))) :
+    uint.nat M.prev + M.ents.length = S.last := by
+  obtain ⟨H1, H2, H3, -⟩ := Hh
+  simp only [kdContents, StorContents.b] at H1 H2 H3
+  have HbZ : uint.Z S.base.index' ≤ uint.Z M.prev := H1
+  have Hpl : uint.nat M.prev ≤ S.last := by
+    unfold plogTermAt at H2
+    unfold RaftState.last
+    by_cases hlt : uint.Z M.prev < uint.Z S.base.index'
+    · word
+    rw [if_neg hlt] at H2
+    by_cases heq : uint.Z M.prev = uint.Z S.base.index'
+    · word
+    rw [if_neg heq] at H2
+    have : (uint.Z M.prev - uint.Z S.base.index' - 1).toNat < S.ents.length := by
+      rcases Nat.lt_or_ge (uint.Z M.prev - uint.Z S.base.index' - 1).toNat S.ents.length with h | h
+      · exact h
+      · rw [List.getElem?_eq_none h] at H2; cases H2
+    word
+  rw [H3]; unfold RaftState.entsFrom RaftState.last at *; simp only [List.length_drop]
+  clear H2 H3
+  word
+
 end pure
 
 end kvdurable
