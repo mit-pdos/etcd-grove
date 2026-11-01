@@ -43,11 +43,11 @@ theorem EtcdServer.newHeader.wp_proof
     (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG)) :
     EtcdServer.newHeader.spec (GF := GF) (hG := hG) := by
   have hRev := mvcc.store.Rev.spec_R hRev
-  intro s E γr cl mid cid
+  intro on s E γr cl mid cid
   wp_start as ⟨#Hrd, #Hcl, #Hcid, #Hmid, #Hlead, Hsr⟩
-  iunfold isServerRead at Hrd
+  iunfold isServerReadM at Hrd
   icases Hrd with ⟨%v, #Hf⟩
-  iunfold srvReadFieldsAt at Hf
+  iunfold srvReadFieldsAtM at Hf
   icases Hf with ⟨-, -, #HkvA, #Hkv, #HrvA, #Hrv, -, -, -, -, -, -, -, #Hterm, -, -⟩
   ihave %Hkvok := txn.isKV_ok _ E.s E.γ $$ Hkv
   obtain ⟨kty, kvv, Hkveq⟩ := Hkvok

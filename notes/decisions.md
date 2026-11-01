@@ -27925,3 +27925,23 @@ go ahead with item 14" (Q4: merge once the compaction-on case is proved, done th
   the one `NewServer.spec` now.
 - Later (the user's): one token count for the write budget and the compaction's stock, in place of
   `N + N`.
+
+## The lease read entry points: `LeaseTimeToLive` and `LeaseLeases` (2026-11-01 · accepted, the user's Freeze · `notes/lease-read-plan.md`)
+
+The user, at Freeze: "approved, freeze and start Prove". Frozen:
+- **`EtcdServer.leaseTimeToLive` a contract** (S1, "wrapper only"): the leader's re-lookup and the
+  follower's forwarding (`leasehttp.TimeToLiveHTTP`) stay untranslated; the axiom states a fresh
+  response with a header or an `applyErrIs` error, nothing of the lease, so the key check's TOCTOU
+  (`issues/etcd-lease-timetolive-keys-toctou.md`) is the spec's stated gap. Its assumption on the
+  peers (etcd's lease handler serves them) is in its docstring
+  (`issues/etcd-leasehttp-timetolive-nil-response-panic.md`).
+- **`sort.Sort` for any `Less`** (S2): the local axiom `sort.«Sort».wp_anyLess` (a permutation, at
+  most `2^62` elements), until Perennial proves it (`notes/perennial-changes.md`). Supersedes in part
+  the lease-keys plan's B4 ("names-only" for `Leases`).
+- **`isLeaseObj`** gains its `expiryMu` guard and a pool of that lock's reader slots (`Remaining`
+  read-locks it on any goroutine); `newHeader.spec` holds in either auth mode.
+- **The lease map's receipt** (a Probe finding): `lessorMu` holds the persistent `⧖ |M|`, raised by
+  `Grant`, so `|M| < receiptBound GF`; `lessor.Leases.spec` and `LeaseLeases.spec` take
+  `receiptBound GF ≤ 2^62` (the sort's bound). Not an axiom, and not a lease-count premise on the
+  callers: the bound is the execution's, which the closed results already bound. `⧖`, not `⧗`: the
+  lock's resource splits over read fractions, and only a persistent receipt does.

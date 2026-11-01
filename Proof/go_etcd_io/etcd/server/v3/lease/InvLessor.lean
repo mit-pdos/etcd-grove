@@ -401,6 +401,75 @@ theorem leaseLiveFrom_lb (γl : GName) (m : Nat) (id : w64) (l : Loc) :
   · ipureintro; exact ⟨Nat.le_refl i, Hi.2⟩
   iexists γr; iframe Hp; iexists hs; iframe Hlb; ipureintro; exact Hhs
 
+/-- **`ls` is the lease map at the index `i`** (persistent; the lease-read plan, 2026-10-31): its
+pairs `(l, id)` are the map's there, each id once. What `Leases()` returns, in some order. -/
+def leaseMapAt (γl : GName) (i : Nat) (ls : List (Loc × w64)) : IProp GF :=
+  iprop(∃ σ : LSnap, ⌜(ls.map Prod.snd).Nodup ∧
+      ∀ (id : w64) (l : Loc), (l, id) ∈ ls ↔ σ.1.lookup id = some l⌝ ∗ lessorAt γl i σ)
+
+instance leaseMapAt_persistent (γl : GName) (i : Nat) (ls : List (Loc × w64)) :
+    Persistent (leaseMapAt (GF := GF) γl i ls) := by
+  unfold leaseMapAt; infer_instance
+
+/-- **`ids` are the live leases' ids at the index `i`** (persistent): each once. -/
+def leaseIdsAt (γl : GName) (i : Nat) (ids : List w64) : IProp GF :=
+  iprop(∃ σ : LSnap, ⌜ids.Nodup ∧ ∀ id : w64, id ∈ ids ↔ (σ.1.lookup id).isSome⌝ ∗ lessorAt γl i σ)
+
+instance leaseIdsAt_persistent (γl : GName) (i : Nat) (ids : List w64) :
+    Persistent (leaseIdsAt (GF := GF) γl i ids) := by
+  unfold leaseIdsAt; infer_instance
+
+/-- Each lease of `leaseMapAt` is live there. -/
+theorem leaseMapAt_live (γl : GName) (i : Nat) (ls : List (Loc × w64)) :
+    leaseMapAt (GF := GF) γl i ls ⊢ [∗list] x ∈ ls, leaseLiveFrom γl i x.2 x.1 := by
+  iintro #Hm
+  iunfold leaseMapAt at Hm
+  icases Hm with ⟨%σ, %H, #Hat⟩
+  have key : □ lessorAt (GF := GF) γl i σ ⊢ [∗list] x ∈ ls, leaseLiveFrom γl i x.2 x.1 := by
+    apply BigSepL.bigSepL_intro
+    intro k x hk
+    refine intuitionistically_elim.trans ?_
+    iintro #Hat
+    iunfold leaseLiveFrom
+    iexists i, σ
+    iframe Hat
+    ipureintro
+    exact ⟨Nat.le_refl i, (H.2 x.2 x.1).1 (List.mem_of_getElem? hk)⟩
+  iapply key
+  imodintro
+  iexact Hat
+
+/-- `leaseMapAt` of a permutation. -/
+theorem leaseMapAt_perm (γl : GName) (i : Nat) {ls ls' : List (Loc × w64)} (h : ls ≡ₚ ls') :
+    leaseMapAt (GF := GF) γl i ls ⊢ leaseMapAt γl i ls' := by
+  iintro #Hm
+  iunfold leaseMapAt at Hm
+  icases Hm with ⟨%σ, %H, #Hat⟩
+  iunfold leaseMapAt
+  iexists σ
+  iframe Hat
+  ipureintro
+  exact ⟨(h.map Prod.snd).nodup_iff.1 H.1, fun id l => (h.mem_iff).symm.trans (H.2 id l)⟩
+
+/-- The ids of `leaseMapAt`'s leases. -/
+theorem leaseMapAt_ids (γl : GName) (i : Nat) (ls : List (Loc × w64)) :
+    leaseMapAt (GF := GF) γl i ls ⊢ leaseIdsAt γl i (ls.map Prod.snd) := by
+  iintro #Hm
+  iunfold leaseMapAt at Hm
+  icases Hm with ⟨%σ, %H, #Hat⟩
+  iunfold leaseIdsAt
+  iexists σ
+  iframe Hat
+  ipureintro
+  refine ⟨H.1, fun id => ?_⟩
+  constructor
+  · intro hm
+    obtain ⟨x, hx, rfl⟩ := List.mem_map.1 hm
+    rw [(H.2 x.2 x.1).1 hx]; rfl
+  · intro hs
+    obtain ⟨l, hl⟩ := Option.isSome_iff_exists.1 hs
+    exact List.mem_map.2 ⟨(l, id), (H.2 id l).2 hl, rfl⟩
+
 /-- **The keys a reader read are short** (every key of a snapshot's item map is). -/
 theorem leaseKeysFrom_short (γl : GName) (m : Nat) (id : w64) (l : Loc) (ks : List GoString) :
     leaseKeysFrom (GF := GF) γl m id l ks ⊢ ⌜∀ k ∈ ks, k.length < 2 ^ 63 - 1⌝ := by
@@ -418,18 +487,33 @@ def leaseItemsOwn (l : Loc) (I : GMap LeaseItem w64) (id : w64) : IProp GF :=
   iprop(∃ (sm : Loc) (S : GMap LeaseItem Unit), lsF go!"itemSet" l ↦{DFrac.own (1 : Qp).half} sm ∗
     sm ↦${DFrac.own (1 : Qp).half} S ∗ ⌜itemsFor I id S⌝)
 
+/-- What `l.expiryMu` guards at `q`: half of `l.expiry` at `q` (the other half is the lessor's,
+in `leaseMeta`). -/
+def leaseExpiry (l : Loc) (q : Qp) : IProp GF :=
+  iprop(∃ e : _root_.Perennial.time.Time, lsF go!"expiry" l ↦{DFrac.own q.half} e)
+
 def leasePoolN : Namespace := nroot .@ "lease_pool"
+
+/-- The namespace of a lease's pool of `expiryMu`'s reader slots (the lease-read plan). -/
+def leaseExpPoolN : Namespace := nroot .@ "lease_exp_pool"
 
 /-- A lease of the map (persistent): not nil, its lock guarding its item set, the lessor's
 reader-side invariant, and (Part B) a thread pool of its lock's reader slots, from which a reader
 borrows one with its thread token (`threadPool`, Perennial's `ThreadPool.lean`): `Grant` gives it
 every slot but the owner's (`closerAt`), `actualMaxReaders - 1 = 2^30 - 2` of them, enough when at
 most `2^30 - 1` threads are live (`threadBound GF ≤ 2^30 - 1`, the premise under which the pool
-exists: `threadPool.init` needs `threadBound ≤ n + 1`; found by Part B's Probe). -/
+exists: `threadPool.init` needs `threadBound ≤ n + 1`; found by Part B's Probe). (The lease-read
+plan, 2026-10-31) The same of `l.expiryMu`: its guard (`leaseExpiry`) and a pool of its reader
+slots, from which `Remaining()` borrows one (`LeaseLeases`' sort, on a gRPC goroutine); `Grant`
+gives it every slot but the one whose guard it keeps. -/
 def isLeaseObj (γl : GName) (l : Loc) : IProp GF :=
   iprop(⌜l ≠ null⌝ ∗ sync.isRWMutexGuard (lsF go!"mu" l) (leaseItems γl l) ∗ lessorRdInv γl ∗
+    sync.isRWMutexGuard (lsF go!"expiryMu" l) (leaseExpiry l) ∗
     □ (⌜threadBound GF ≤ 2 ^ 30 - 1⌝ → ∃ γp : GName,
-      threadPool.isThreadPool leasePoolN γp (sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l))))
+      threadPool.isThreadPool leasePoolN γp (sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l))) ∗
+    □ (⌜threadBound GF ≤ 2 ^ 30 - 1⌝ → ∃ γe : GName,
+      threadPool.isThreadPool leaseExpPoolN γe
+        (sync.ownRWMutex (lsF go!"expiryMu" l) (leaseExpiry l))))
 
 instance isLeaseObj_persistent (γl : GName) (l : Loc) : Persistent (isLeaseObj (GF := GF) γl l) := by
   unfold isLeaseObj; infer_instance
@@ -498,11 +582,6 @@ def notifierAt (np : Loc) (q : Qp) : IProp GF :=
     queueAt s xs q ∗
     ⌜(xs.map Prod.fst).Nodup ∧ ∀ (id : w64) (p : Loc), M.lookup id = some p ↔ (p, id) ∈ xs⌝)
 
-/-- What `l.expiryMu` guards at `q`: half of `l.expiry` at `q` (the other half is the lessor's,
-in `leaseMeta`). -/
-def leaseExpiry (l : Loc) (q : Qp) : IProp GF :=
-  iprop(∃ e : _root_.Perennial.time.Time, lsF go!"expiry" l ↦{DFrac.own q.half} e)
-
 /-- **A granted lease's state** (`l`, of id `id`) under `le.mu`, at `q`: its `ID` and `ttl`
 (read-only once granted), its `revokec` (read-only), its `remainingTTL` and the lessor's half
 of `expiry`; its `expiryMu` guards the other half. -/
@@ -535,7 +614,10 @@ after releasing the lock); every lease of the map `isLeaseObj`; (2026-10-13, uni
 (`lessorExtra`); and (lease-keys Part B, 2026-10-31) a share `q/4` of the lessor's history
 (`monoListAuthOwn γr.1`, the readers' model: `lessorRdBody` holds `1/4`, `leaseClosers` `1/2`), whose
 last snapshot is the map `M` with the item map `I`: a writer under the lock with the owner's half
-(`Grant`, `Revoke`, `Recover`) appends to it. -/
+(`Grant`, `Revoke`, `Recover`) appends to it; and (the lease-read plan, 2026-10-31) the persistent
+time receipt `⧖ |M|` (`M`'s leases were inserted by as many steps), which bounds the map by the
+execution's (`preceipt_lt`: `|M| < receiptBound GF`), so `lessor.Leases` can sort them (`sort.Sort`
+takes at most `2^62` elements); `Grant` raises it at its insertion (`wp_raise_receipt`). -/
 def lessorMu (lp : Loc) (γl : GName) (q : Qp) : IProp GF :=
   iprop(∃ (lm im : Loc) (M : GMap w64 Loc) (I : GMap LeaseItem w64) (rd : GoFunc)
       (L : List w64),
@@ -543,7 +625,7 @@ def lessorMu (lp : Loc) (γl : GName) (q : Qp) : IProp GF :=
     lF go!"itemMap" lp ↦{DFrac.own q.half} im ∗ im ↦${DFrac.own q.half} I ∗
     lF go!"rd" lp ↦{DFrac.own q.half} rd ∗
     lessorAuth γl q lp L M ∗ leaseFrag γl q.half L ∗
-    ⌜∀ id : w64, id ∈ L ↔ (M.lookup id).isSome⌝ ∗
+    ⌜∀ id : w64, id ∈ L ↔ (M.lookup id).isSome⌝ ∗ ⧖ (GMap.size M) ∗
     ([∗map] _id ↦ l ∈ M, isLeaseObj γl l) ∗ lessorExtra lp M q ∗
     (∃ (γr : LessorRdNames) (hs : List LSnap), lessorPinR γl γr ∗
       monoListAuthOwn γr.1 q.half.half hs ∗ ⌜hs.getLast? = some (M, I)⌝))

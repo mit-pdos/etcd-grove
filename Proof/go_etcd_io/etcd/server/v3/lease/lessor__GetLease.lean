@@ -36,7 +36,7 @@ theorem lease.lessor.GetLease.wp_proof : lease.lessor.GetLease.spec (GF := GF) (
   wp_auto
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
-  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hls, Hx, Hhist⟩
+  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx, Hhist⟩
   -- the owner's half of the item map agrees with the lock's
   iunfold leaseOwn at Hown
   icases Hown with ⟨Hown, Hcls⟩
@@ -56,7 +56,7 @@ theorem lease.lessor.GetLease.wp_proof : lease.lessor.GetLease.spec (GF := GF) (
     iunfold lessorMu
     iexists lm, im, M, I, rd0, L
     iframe
-    iframe Hls
+    iframe Hsz Hls
     ipureintro; exact HL
   rw [show (zero_val w64) = W64 0 from rfl]
   iapply HΦ

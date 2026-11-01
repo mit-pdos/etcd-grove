@@ -335,6 +335,8 @@ feature, `lessor.Renew` (the expiry heap, `refresh`, the checkpointer), a timed 
 `checkLeaseTimeToLive`, `checkLeaseLeases`, with `lessor.Leases` and `Lease.Keys` from a reader);
 the entry points stay names-only, so no lease row is closed at the handler level, and B3 does not
 reach a spec. B1: **the history, with lower bounds**, as recommended.
+*B4 superseded in part (2026-10-31)*: the user took up the `TimeToLive` and `Leases` entry points
+(`notes/lease-read-plan.md`); `LeaseRenew` stays names-only.
 
 ## Part B, Draft (the design, top-down; 2026-10-31)
 
