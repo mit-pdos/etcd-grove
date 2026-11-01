@@ -127,6 +127,10 @@ theorem os.File.ReadAt.wp_proof : os.File.ReadAt.spec (GF := GF) (hG := hG) := b
         · isplitl [] <;> iassumption
         · ipureintro; exact ⟨hvl, .inr ⟨rfl, by intro h; cases h⟩⟩
 
+
+theorem os.File.ReadAt.wp_proofRacy : os.File.ReadAt.specRacy (GF := GF) (hG := hG) := by
+  sorry
+
 end proof
 
 end EtcdGrove
