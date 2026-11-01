@@ -35,31 +35,53 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- **What `applySnapshot` keeps of a backend it opens** (D22 receiver epochs, S8d): the
 announcement of the fresh physical names `futPhys π0 γB` in the protocol's futures (its claim
 token and index), which `ci_swap_au` turns into the registration at `SetBackend`, and the new
-backend's close right (`γB.cls`, which the futures' deposit does not name). -/
-def snapOpenK (γA : ApplyNames) (π0 : ApplyPhys) (γB : backend.BNames) : IProp GF :=
+backend's close right (`γB.cls`, which the futures' deposit does not name); (J8a-4, 2026-11-01)
+the meta reads of the new backend at those names (`applySnapshot.specSnap`'s premise at its fresh
+keys and payment rights, `snap_create`). -/
+def snapOpenK (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (γB : backend.BNames) :
+    IProp GF :=
   iprop(ghostVar γB.cls 1 () ∗
+    □ (∀ (W : IProp GF) (b : Loc),
+      backend.isBackend γB P W (batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P)) b -∗
+      isMetaBackend (interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
+        (readView (γA.withPh (futPhys π0 γB)))) ∗
     ∃ (j : Nat) (γc : GName), token γc ∗ monoListIdxOwn γA.fut j (futPhys π0 γB, γc))
 
 /-- **The creation step of the backend `applySnapshot` opens** (`openPre`'s wand): the fresh
 backend's own keys (at the image `D`, whose meta keys are `π0.m0`) and payment rights give the
 store's late registration slot `lateW gx`, the batch lock's resource at the announced names
-(`ci_announce`: the payment rights deposited in the futures) and the announcement. -/
+(`ci_announce`: the payment rights deposited in the futures) and the announcement; (J8a-4,
+2026-11-01) with `applySnapshot.specSnap`'s meta premise `HmS`, applied to the fresh keys and
+payment rights before they go, the new backend's meta reads. -/
 theorem snap_create (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (D : backend.Data)
-    (gx : GName) (hm : metaIs D π0.m0) :
-    inv applyN (consInv (GF := GF) γA) ⊢ token π0.pend -∗ ghostVar π0.mt (1 : Qp).half π0.m0.1 -∗
+    (gx : GName) (hm : metaIs D π0.m0) (hP : ciKeys P) :
+    □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
+      ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
+      backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
+      backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ∗
+      □ ∀ (W : IProp GF) (b : Loc),
+        backend.isBackend γB P W (batchLockInv (γA.withPh π) (metaTM γB P)) b -∗
+        isMetaBackend (interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
+          (readView (γA.withPh π))) ⊢
+    inv applyN (consInv (GF := GF) γA) -∗ token π0.pend -∗ ghostVar π0.mt (1 : Qp).half π0.m0.1 -∗
       mvcc.lateW gx -∗
       ∀ γB : backend.BNames, backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ={⊤}=∗
         mvcc.lateW gx ∗ batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P) ∗
-        snapOpenK γA π0 γB := by
-  iintro #Hinv Hpend Hmt HW %γB ⟨Hk, Hfr⟩
+        snapOpenK γA π0 P γB := by
+  iintro #HmS #Hinv Hpend Hmt HW %γB ⟨Hk, Hfr⟩
+  have hc : ciKeys P ∧ metaIs D (futPhys π0 γB).m0 ∧ (futPhys π0 γB).bwb = γB.wb ∧
+      (futPhys π0 γB).bopn = γB.opn := ⟨hP, hm, rfl, rfl⟩
+  icases HmS $$ %(futPhys π0 γB) %γB %P %D %hc Hk Hfr with ⟨Hk, Hfr, #HmB⟩
   ihave HTM : metaTM (GF := GF) γB P π0.m0 $$ [Hk]
   · iunfold metaTM; iexists D; iframe Hk; ipureintro; exact hm
-  imod ci_announce γA (futPhys π0 γB) γB (metaTM γB P) π0.m0 rfl rfl $$ Hinv Hfr Hpend Hmt HTM
+  imod ci_announce γA (futPhys π0 γB) γB (metaTM γB P) π0.m0 rfl rfl rfl $$ Hinv Hfr Hpend Hmt HTM
     with ⟨Hbl, Hcls, %j, %γc, Htc, #Hidx⟩
   imodintro
   iframe HW Hbl
   iunfold snapOpenK
-  iframe Hcls
+  iframe Hcls HmB
   iexists j, γc
   iframe Htc Hidx
 
@@ -115,7 +137,7 @@ theorem wp_ci_swap (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG))
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
         isCI ci γ.ci ∗ inv applyN (consInv γ) ∗ applyThread γ s ∗ ciOwner ci b ∗
-        ghostVar π'.mt (1 : Qp).half π'.m0.1 ∗ ghostVar π'.wr 1 false ∗ token γc ∗
+        ghostVar π'.mt (1 : Qp).half π'.m0.1 ∗ dghostVar π'.wr (DFrac.own 1) false ∗ token γc ∗
         monoListIdxOwn γ.fut j (π', γc)) -∗
       (applyThread (γ.withPh π') s' ∗ applyRegd (γ.withPh π') ∗ futStash π' ∗ ciOwner ci be -∗
         Φ #()) -∗

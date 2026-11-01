@@ -23055,7 +23055,8 @@ Not changed: `NewServer.spec`/`specM`'s text (their posts' `srvBuilt` gained the
 `run`, `Start`'s specs' text (`isServerBuilt`/`isServerRun` gained it).
 
 **Two items of J0's list not done, because they are false or not provable as stated**:
-- **The `isMetaBackend` family** (`specSnap`'s `□ ∀ π b, π.m0 = (i, t) → isMetaBackend b … (readView
+- *(Superseded 2026-11-01 by "J8a-4: the meta reads of a snapshot's backend": the premise restated
+  and carried in `bootOk`; `readView` over a `dghostVar`.)* **The `isMetaBackend` family** (`specSnap`'s `□ ∀ π b, π.m0 = (i, t) → isMetaBackend b … (readView
   (γ.withPh π))`, which J0 planned to take from `bootOk`'s `Hmeta` generalized): false of the Go
   code as stated, so not added to `bootOk` (where it would make every closed theorem vacuous). Its
   view `readView γ m = ghostVar γ.wr 1 false ∗ ⌜m = γ.m0⌝` can be met for physical names `π` no
@@ -28588,3 +28589,57 @@ loses `trUnopened`. In the server: `srvTrTok` is `trTok` (`NewServer.spec`'s pos
 exported change, keeps its text), `srvNetMember` loses `trOpened`, and `applySnapshot`'s
 `specSnap` (and the walk) take `trLive` without `trPeersNoRem`. Supersedes the J-T tokens part of
 "The transport's `R`s from a thread pool"'s "Not done".
+
+## J8a-4: the meta reads of a snapshot's backend, a trusted premise at the open (2026-11-01 · the user's decision · `notes/snapshot-j8a-plan.md` item 2)
+
+**Before** (D22 J1a, 2026-10-26; S8d): `applySnapshot.specSnap` (and the walk) took `□ ∀ π b,
+⌜π.m0 = (i, tI)⌝ → isMetaBackend b … (readView (γ.withPh π))`: the meta reads of *any* backend `b`
+at *any* physical names `π` whose initial keys are the snapshot's. False (D22 J1a said so, and left
+it to J8a): `readView`'s whole `wr` can be had for names no backend was opened with, and `b` can be
+any backend.
+
+**Now** (the user's option (a) of the plan's item 2: a sound trusted premise, carried in `bootOk`
+beside `#Hmeta`, form C2 of the drafts): the fact is about a backend the apply thread opens. At the
+open's creation step (`OpenSnapshotBackend`'s `openPre` wand, `snap_create`), from the fresh
+backend's own keys `hkOwn γB (hkData P D)` and payment rights `bFresh γB` (given back), for names `π`
+with the backend's write-back and open names and `metaIs D π.m0`, it gives, for every `isBackend γB
+P W (batchLockInv (γ.withPh π) (metaTM γB P)) b`, the meta reads `isMetaBackend b … (readView
+(γ.withPh π))`. The same text is `bootOk`'s new `"#HmetaSnap"` (at its names `γA`, a `NewServer.spec`
+premise) and `specSnap`'s premise (at its `γ`); the walk applies it in `snap_create` (the result kept
+in `snapOpenK`, which gains `P`) and to the new backend's `HnB` after the swap. The two text changes
+are the approved ones; `#Hmeta`'s text is unchanged.
+
+**Two holes in the model the drafts' reviews found** (spec-reviewer rounds 1 and 2), closed in this
+stage without changing any statement's text:
+- **The term key.** `readView` claims both meta keys read as `m0` while `wr` is `false`, but the
+  mirror (`mt`) covers only the index: a batch-lock holder gets the hook keys (`metaTM`, so
+  `hkOwn`) and can put the term key with `wr` still `false`. So `bootOk`'s `#Hmeta` was itself
+  false through the term key (this repository's bug, not the Go code's: the server writes the term
+  only with `UnsafeSave`, `schema/cindex.go:69-95`). **Fix (the user's decision, replacing the
+  approved "repair 1(a)", the full `MetaCI` mirror):** `batchLockInv` (and `hookDone`) gain `⌜mm.2
+  = γ.m0.2⌝ ∨ wrDone γ`: the stored term is the initial one, or the keys are written. The commits'
+  AUs give `⌜k = 0⌝ ∨ wrDone γ` (`commit_save_au`) and `wrDone γ` (`commit_freeze_au`) to their
+  continuations (a save of `k ≠ 0` writes), the hooks rebuild the disjunct (`termOk_after_save`),
+  and `ci_announce` takes `mm.2 = π.m0.2` (the open's `mm = π.m0`). Why not the full mirror: the
+  consistent index's `UnsafeSave.spec` reveals the stored term only in its continuation, after the
+  AU's linearization point where the mirror must move (so moving it would change `UnsafeSave.spec`'s
+  text), and the stored-index window's `freezeY` holds a quarter of the mirror at `s.k` alone (an
+  index, not a `MetaCI`) while frozen.
+- **`wr` was not monotone.** `wr` was a `ghostVar` held whole by the invariant, so any opener of
+  `consInv` could set it back to `false` whenever `mi = m0.1` (a counterexample at a snapshot
+  backend with `m0.1 = S`: a commit stores `S + 1`, a lock holder puts `S` back and moves both
+  halves of the mirror, resets `wr`, and a read is "proved" to return `S` while Go returns `S +
+  1`). `#Hmeta` escapes this route (its `m0` is `(0, 0)`, and an index of 0 is never stored), C2 did
+  not. **Fix (the user's repair 2):** `wr` is a `dghostVar`: the invariant holds `wrOwn γ w`, the
+  whole `false` or a discarded `true` (`wrDone γ`, persistent), so a written backend stays written;
+  `readView` takes the whole `false`, which `wrDone` refutes. `ci_swap_au` persists the retired
+  backend's flag as `true` (`retiredInv` carries `wrDone` per retired backend: its commits, its
+  `Close`'s, may store a term, and no read view of it is left).
+
+**Where the fact lives (the user's option (iii)):** `bootOk`, `specSnap` and the walk only.
+`srvSnapRO`/`srvSnapOwn` gain no `ApplyNames` parameter, so `applyAll.spec`'s text is unchanged.
+**The carrier from `bootOk` to `applyAll`'s snapshot case is open, for J8a-5's step 5e** (whoever
+writes `applyAll.specSnap` picks it: `srvSnapRO` with the names, `isServerCI`, or another).
+
+Supersedes the `isMetaBackend` part of "D22 J1a"'s "Two items of J0's list not done" (its
+`readView γ m = ghostVar γ.wr 1 false ∗ …` is now the `dghostVar` form above).

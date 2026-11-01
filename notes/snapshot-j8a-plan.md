@@ -34,6 +34,12 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
    tie `π` to how `b` was opened (`isBackend` at `batchLockInv (γ.withPh π)`) and to the opened data's
    meta keys (`metaIs D π.m0`); or prove it from the backend's `ReadTx` (verified) and the protocol.
    **Approval: `specSnap` is a spec here, not trusted; but the premise is a named one to discharge.**
+   **Done (J8a-4, 2026-11-01, the user's decision)**: the premise restated at the open (form C2: from
+   the fresh backend's `hkOwn`/`bFresh`, for `isBackend` at `batchLockInv (γ.withPh π)` and
+   `metaIs D π.m0`), carried in `bootOk` as `"#HmetaSnap"` beside `#Hmeta`; the model's two holes
+   closed (the term key, `batchLockInv`'s `⌜mm.2 = γ.m0.2⌝ ∨ wrDone γ`; `wr` a `dghostVar`).
+   **Open, for 5e: the carrier from `bootOk` to `applyAll`'s snapshot case** (this stage threads it
+   nowhere: `srvSnapRO`/`srvSnapOwn` and `applyAll.spec` unchanged). `notes/decisions.md`, "J8a-4".
 3. **`srvCfgAddr s ↦□ cfg` is false** (the struct copy in `OpenSnapshotBackend(s.Cfg, …)` races
    with `NewWatchServer`'s write of `WatchProgressNotifyInterval`,
    `issues/etcd-cfg-watch-progress-interval-race.md`). A field-wise restatement is not sound: the
@@ -115,7 +121,8 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
   `hdir`/`hdok`, with J8a-6, and item 8's image lemmas, with J8a-5).
 - **J8a-2** (raft API, approved 2026-11-01): `snapLocal` through the API (item 1); done.
 - **J8a-3** (fork, approval): `NewWatchServer`'s config write (item 3). Done 2026-11-01.
-- **J8a-4**: the `isMetaBackend` restatement (item 2).
+- **J8a-4**: the `isMetaBackend` restatement (item 2). Done 2026-11-01; the carrier to `applyAll`
+  is 5e's.
 - **J8a-5**: `applyAll.specSnap` (item 4). `run`'s two `sorry`s over it need `applyRes` restated
   (`kvReach`, `notes/snapshot-sj-plan.md` §6), J8b's. Steps:
   - *5a, done 2026-11-01*: the payload `rnApSnap` (and `rnApplyTok_recv`'s snapshot case) carries

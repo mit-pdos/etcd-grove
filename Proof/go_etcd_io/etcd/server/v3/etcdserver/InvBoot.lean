@@ -334,6 +334,19 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "Hthr" ∷ applyThread γA ⟨W64 0, W64 0, W64 0, false⟩ ∗
     "Happ" ∷ ciApplying cil (W64 0) (W64 0) ∗ "Hown" ∷ ciOwner cil bk.be' ∗
     "#Hmeta" ∷ isMetaBackend bk.be' (⊤ \ ↑applyN) (readView γA) ∗
+    -- (J8a-4, 2026-11-01, the user's decision: `notes/decisions.md`, "J8a-4") the meta reads of a
+    -- backend the apply thread opens (`applySnapshot`'s `OpenSnapshotBackend`) at the protocol's
+    -- names `π`, over an image whose meta keys are `π.m0`, at its fresh keys and payment rights
+    -- (they come back): what `applySnapshot.specSnap` takes
+    "#HmetaSnap" ∷ □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
+        ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
+        backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
+        backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ∗
+        □ ∀ (W : IProp GF) (b : Loc),
+          backend.isBackend γB P W (batchLockInv (γA.withPh π) (metaTM γB P)) b -∗
+          isMetaBackend (interface.mkOk (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
+            (readView (γA.withPh π))) ∗
     -- (D22 J1a, 2026-10-26) the backend's hooks over the consistent index (`bootstrapBackend`'s
     -- `serverstorage.NewBackendHooks(cfg.Logger, ci)`), which the snapshot path's
     -- `OpenSnapshotBackend` installs on each new backend
