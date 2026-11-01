@@ -66,16 +66,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **The shared read transaction held, its interval live** (`rtHeldF`, redefined: today's and
-`rd.live`). `RLock` takes an open share to know the backend has not stopped and gives it back; from
-then on the interval stays live until `RUnlock`, since the stop's commit (`CommitAndStop` →
-`commit`) takes `readTx.Lock()`, which waits for every reader. So a read in progress needs no open
-share of its own (decision 1). -/
+/-- **The shared read transaction held, its interval live** (`rtHeldF`, redefined: today's, and
+its bbolt transaction not nil; review round 1's T1). `RLock` takes an open share to know the backend
+has not stopped (a stopped interval's transaction is nil, `rtIntv`) and gives it back; from then on
+the interval stays live until `RUnlock`, since the stop's commit (`CommitAndStop` → `commit`) takes
+`readTx.Lock()`, which waits for every reader. So a read in progress needs no open share of its own
+(decision 1), and today's laws carry over by framing the fact. -/
 def BksDraft.backend.rtHeldF (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) (p : Qp) :
     IProp GF :=
-  iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView) (L : VData), bF go!"readTx" b ↦□ rt ∗
-    sync.ownRWMutexRLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
-    rtResAt γ P rt sync.rfrac rd rv H p L ∗ ⌜rd.rtx = rtx ∧ rd.live = true⌝ ∗ crTok γ b)
+  iprop(Perennial.EtcdGrove.backend.rtHeldF γ P b rtx rv p ∗ ⌜rtx ≠ Loc.null⌝)
 
 /-- `BksDraft.backend.rtHeldF` at the reader's own share of bbolt's transaction. -/
 abbrev BksDraft.backend.rtHeld (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) :
@@ -84,41 +83,91 @@ abbrev BksDraft.backend.rtHeld (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc)
 
 /-- The live read is today's held read. -/
 theorem BksDraft.rtHeldF_old (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p : Qp) :
-    BksDraft.backend.rtHeldF (GF := GF) γ P b rtx rv p ⊢ rtHeldF γ P b rtx rv p := by
-  unfold BksDraft.backend.rtHeldF rtHeldF
-  iintro ⟨%rt, %rd, %H, %L, #Hrt, Hl, HR, %Hx, Hc⟩
-  iexists rt, rd, H, L
-  iframe Hl HR Hc; iframe #
-  ipureintro; exact Hx.1
+    BksDraft.backend.rtHeldF (GF := GF) γ P b rtx rv p ⊢ Perennial.EtcdGrove.backend.rtHeldF γ P b rtx rv p := by
+  unfold BksDraft.backend.rtHeldF
+  iintro ⟨Hh, -⟩
+  iexact Hh
 
-/-- `readTx.mu`'s resource at a layout that is not live holds the stop's mark, which an open share
-refutes. -/
-theorem BksDraft.rtResAt_live (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RView)
-    (H : GMap (w64 × Nat) RView) (p : Qp) (L : VData) (qo : Qp) :
-    rtResAt (GF := GF) γ P rt q rd rv H p L ∗ bOpen γ qo ⊢
-      rtResAt γ P rt q rd rv H p L ∗ bOpen γ qo ∗ ⌜rd.live = true⌝ := by
-  cases hl : rd.live
-  · unfold rtResAt rtRest rtCore rtIntv
-    simp only [hl, Bool.false_eq_true, ↓reduceIte]
-    iintro ⟨⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs, Hcur, Hcln, Hhist, Hrtxf, Hwg, %Hfacts,
-      #Hha, #Hcv, Hpo, #Hauth, ⟨-, #Hst⟩, #Hfk⟩, Ho⟩
-    iexfalso
-    iapply bOpen_stopped γ qo $$ [$Ho $Hst]
-  · iintro ⟨HR, Ho⟩
-    iframe HR Ho
-    ipureintro; rfl
-
-/-- Today's held read, with an open share, is live. -/
+/-- Today's held read, with an open share, is live (what `RLock`'s proof adds before returning;
+the corollaries' step). -/
 theorem BksDraft.rtHeldF_of_open (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p qo : Qp) :
-    rtHeldF (GF := GF) γ P b rtx rv p ∗ bOpen γ qo ⊢
+    Perennial.EtcdGrove.backend.rtHeldF (GF := GF) γ P b rtx rv p ∗ bOpen γ qo ⊢
       BksDraft.backend.rtHeldF γ P b rtx rv p ∗ bOpen γ qo := by
-  unfold BksDraft.backend.rtHeldF rtHeldF
-  iintro ⟨⟨%rt, %rd, %H, %L, #Hrt, Hl, HR, %Hx, Hc⟩, Ho⟩
-  icases BksDraft.rtResAt_live γ P rt sync.rfrac rd rv H p L qo $$ [$HR $Ho] with ⟨HR, Ho, %Hlive⟩
+  iintro ⟨Hh, Ho⟩
+  have hp : p = p.half + p.half := (Qp.half_add_half p).symm
+  icases (Perennial.EtcdGrove.backend.rtHeldF_lend γ P b rtx rv qo p.half p.half) $$ [Hh Ho] with ⟨Hh, Ho, Hl⟩
+  · rw [← hp]; iframe Hh Ho
+  ihave %Hn := txLive_nonnull rtx p.half $$ Hl
   iframe Ho
-  iexists rt, rd, H, L
-  iframe Hl HR Hc; iframe #
-  ipureintro; exact ⟨Hx, Hlive⟩
+  unfold BksDraft.backend.rtHeldF
+  isplitl
+  · have e := Perennial.EtcdGrove.backend.rtHeldF_return (GF := GF) γ P b rtx rv p.half p.half
+    rw [← hp] at e
+    iapply e $$ [$Hh $Hl]
+  ipureintro; exact Hn
+
+/-- **A live held read lends a share of bbolt's transaction, with no open share** (today's
+`rtHeldF_lend` without `bOpen`; review round 1's T1: the laws a reader without a share needs). -/
+theorem BksDraft.rtHeldF_lend (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p1 p2 : Qp) :
+    BksDraft.backend.rtHeldF (GF := GF) γ P b rtx rv (p1 + p2) ⊢
+      BksDraft.backend.rtHeldF γ P b rtx rv p1 ∗ txLive rtx p2 := by
+  unfold BksDraft.backend.rtHeldF
+  iintro ⟨Hh, %Hn⟩
+  unfold Perennial.EtcdGrove.backend.rtHeldF rtResAt rtRest rtCore rtIntv
+  icases Hh with ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
+    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩
+  cases hl : rd.live
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Hiv with ⟨%Hnull, -⟩
+    exact absurd (Hrtx ▸ Hnull) Hn
+  simp only [↓reduceIte]
+  icases Hiv with ⟨Hlive, #Hsnap, #Hintv, #Hwgi, Hwo, Htk⟩
+  icases ((txLive_fractional rd.rtx).fractional p1 p2).1 $$ Hlive with ⟨Hl1, Hl2⟩
+  subst Hrtx
+  iframe Hl2
+  isplitl
+  · iexists rt, rd, H, L
+    iframe; iframe #
+    rw [hl]
+    simp only [↓reduceIte]
+    iframe; iframe #
+    isplitr
+    · ipureintro; exact Hok
+    ipureintro; exact Hf
+  ipureintro; exact Hn
+
+/-- The lent share back. -/
+theorem BksDraft.rtHeldF_return (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p1 p2 : Qp) :
+    BksDraft.backend.rtHeldF (GF := GF) γ P b rtx rv p1 ∗ txLive rtx p2 ⊢
+      BksDraft.backend.rtHeldF γ P b rtx rv (p1 + p2) := by
+  unfold BksDraft.backend.rtHeldF
+  iintro ⟨⟨Hh, %Hn⟩, Hl⟩
+  isplitl
+  · iapply Perennial.EtcdGrove.backend.rtHeldF_return γ P b rtx rv p1 p2 $$ [$Hh $Hl]
+  ipureintro; exact Hn
+
+/-- **A slice a live held read returned, read, with no open share** (today's `rtHeldF_read`
+without `bOpen`). -/
+theorem BksDraft.rtHeldF_read (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p : Qp)
+    (s : GoSlice) (v : GoString) :
+    BksDraft.backend.rtHeldF (GF := GF) γ P b rtx rv p ∗ rdB rtx s v ⊢
+      ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ BksDraft.backend.rtHeldF γ P b rtx rv p) := by
+  iintro ⟨Hh, #Hs⟩
+  have hp : p = p.half + p.half := (Qp.half_add_half p).symm
+  rw [hp]
+  icases BksDraft.rtHeldF_lend γ P b rtx rv p.half p.half $$ Hh with ⟨Hh, Hl⟩
+  unfold rdB
+  icases Hs with (#Hs | #Hs)
+  · iexists DFrac.discard
+    iframe #
+    iintro _
+    iapply BksDraft.rtHeldF_return γ P b rtx rv p.half p.half $$ [$Hh $Hl]
+  icases txBytes_acc rtx s v p.half $$ [$Hs $Hl] with ⟨%dq, Hsl, Hback⟩
+  iexists dq
+  iframe Hsl
+  iintro Hsl
+  ihave Hl := Hback $$ Hsl
+  iapply BksDraft.rtHeldF_return γ P b rtx rv p.half p.half $$ [$Hh $Hl]
 
 /-- **`rt.RLock()`, restated** (decision 1: the guard is here): an open share in and back at once,
 the read held over the readers' state now, its interval live. -/
@@ -306,21 +355,22 @@ theorem BksDraft.reader_RUnlock
   iapply HΦ
   iexact Ht
 
-/-- **A guard that carries an open share** (glue for the auth realization's release, decision 1):
-a fractional token `G` whose share `q` holds the share `f q` of the backend open (the realization's
-currency `Cu q` with `bOpen γ (q * authOpenQ)` inside). A reader `RLock`s with it and has it back
-at once; a read in progress holds no part of it, so the whole `G 1`, hence the open share `f 1`,
-comes back (for `Close`) while reads begun before still run. -/
+/-- **`RLock` under a guard that carries an open share** (the frame the auth realization's `RLock`
+clause uses, decision 1): a token `G q` that yields the open share `f q` and takes it back (the
+realization's currency `Cu q`). The guard comes back at `RLock`'s return; the read then needs no
+share (`BksDraft.backend.readTx.UnsafeRange.spec`), so the guard's holder can give the whole of it
+up (for `Close`) while reads begun before still run. A frame of `RLock`; what it shows is that the
+restated `RLock` leaves nothing of the guard with the reader. -/
 theorem BksDraft.guarded_RLock (hRL : BksDraft.backend.readTx.RLock.spec (GF := GF) (hG := hG))
     (γ : BNames) (G : Qp → IProp GF) (f : Qp → Qp)
-    (hG1 : ∀ q, G q ⊣⊢ bOpen γ (f q) ∗ (bOpen γ (f q) -∗ G q))
+    (hG1 : ∀ q, G q ⊢ bOpen γ (f q) ∗ (bOpen γ (f q) -∗ G q))
     (P : BParams) (W Pk : IProp GF) (b rt : Loc) (q : Qp) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ rdTok γ P b ∗ G q }}
       (App (Val (rt @!! go.GoType.PointerType readTx.ty @!! go!"RLock")) (Val #()))
     {{ RET #(); ∃ (rtx : Loc) (rv : RView), BksDraft.backend.rtHeld γ P b rtx rv ∗ G q }} := by
   iintro %Φ ⟨#Hpkg, #Hb, #Hrt, Hr, Hg⟩ HΦ
-  icases (hG1 q).1 $$ Hg with ⟨Ho, Hback⟩
+  icases hG1 q $$ Hg with ⟨Ho, Hback⟩
   iapply (hRL γ P W Pk b rt (f q)) $$ %Φ [Hr Ho]
   · iframe Hr Ho; iframe #
   inext
@@ -460,6 +510,13 @@ instance BksDraft.backend.rbPart_timeless (γ : BNames) (S : GoString → Prop)
 
 instance BksDraft.backend.rbOwnIn_timeless (γ : BNames) (S : GoString → Prop)
     (r : GMap GoString BktData) : Timeless (BksDraft.backend.rbOwnIn (GF := GF) γ S r) := by
+  sorry
+
+/-- **Exclusive**: two parts of a tracked bucket do not coexist (one writer per bucket). -/
+theorem BksDraft.backend.rbPart_excl (γ : BNames) (P : BParams) (n : GoString)
+    (r r' : GMap GoString BktData) (hn : P.RB n = true) :
+    BksDraft.backend.rbPart (GF := GF) γ (fun m => m = n) r ∗
+      BksDraft.backend.rbPart γ (fun m => m = n) r' ⊢ False := by
   sorry
 
 /-- **The writer's contents agree with the batch lock's** on the part's tracked buckets (today's
@@ -671,12 +728,9 @@ theorem BksDraft.batchTxBuffered.Unlock.spec_old
   iapply HΦ
   iexact HQ
 
-/-- **A session of the idle part's holder keeps it idle** (glue for the draft auth premise's write
-contract): an idle part handed to the session (a part of it, `rbOwnIn_part`), written by the session's
-puts (each its bucket's part, `rbPut`), comes back idle from `Unlock` at the writer's final
-contents. Stated on the resources: the part at the session's end, handed to `Unlock`, gives the idle
-part (the triple's frame); here, the part's agreement with the lock that fixes `r`. -/
-theorem BksDraft.session_idle (γ : BNames) (P : BParams) (b : Loc) (st : BSess)
+/-- **The idle part agrees with the batch lock** (glue for the draft auth premise's write contract:
+a holder of the idle part opening a session starts from its contents). -/
+theorem BksDraft.rbOwnIn_agree (γ : BNames) (P : BParams) (b : Loc) (st : BSess)
     (S : GoString → Prop) (r : GMap GoString BktData) :
     batchLocked (GF := GF) γ P b st ∗ BksDraft.backend.rbOwnIn γ S r ⊢
       batchLocked γ P b st ∗ BksDraft.backend.rbPart γ S r ∗

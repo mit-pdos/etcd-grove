@@ -55,8 +55,8 @@ All in `AuthSplitDraft.lean`; a definition redefining an existing one carries it
 
 ```lean
 def BksDraft.backend.rtHeldF γ P b rtx rv p : IProp GF :=
-  -- today's rtHeldF body, with ⌜rd.rtx = rtx ∧ rd.live = true⌝ in place of ⌜rd.rtx = rtx⌝
-abbrev BksDraft.backend.rtHeld γ P b rtx rv := BksDraft.backend.rtHeldF γ P b rtx rv (1:Qp).half
+  iprop(rtHeldF γ P b rtx rv p ∗ ⌜rtx ≠ Loc.null⌝)      -- today's, and the transaction not nil
+abbrev BksDraft.backend.rtHeld γ P b rtx rv := BksDraft.backend.rtHeldF γ P b rtx rv sync.rfrac.half
 
 BksDraft.backend.readTx.RLock.spec:        -- today's statement over the new rtHeld
   {{ isPkgInit ∗ isBackend γ P W Pk b ∗ bF "readTx" b ↦□ rt ∗ rdTok γ P b ∗ bOpen γ qo }}
@@ -65,11 +65,15 @@ BksDraft.backend.readTx.RLock.spec:        -- today's statement over the new rtH
 BksDraft.backend.readTx.UnsafeRange.spec:  -- today's, without `bOpen γ qo` in pre and post
 ```
 
-Proved: `rtHeldF_old` (new ⊢ today's), `rtResAt_live` (`rtResAt ∗ bOpen ⊢ … ∗ ⌜rd.live⌝`, by
-`bOpen_stopped`), `rtHeldF_of_open` (today's ∗ `bOpen` ⊢ new ∗ `bOpen`: what `RLock`'s proof
-adds), the corollaries `BksDraft.readTx.RLock.spec_old` and `BksDraft.readTx.UnsafeRange.spec_old`
-(today's statements follow: every caller unchanged). `live` is stable while held: only the stop's
-commit (`rtRes_cm_close`, under `readTx.Lock()`, the whole `γ.rd`) sets it false.
+A stopped interval's transaction is nil (`rtIntv`), so `rtx ≠ null` is liveness, stated without
+`rd.live` (an internal field); today's laws carry over by framing the fact (round 1's T1). Proved:
+`rtHeldF_old` (new ⊢ today's), `rtHeldF_of_open` (today's ∗ `bOpen` ⊢ new ∗ `bOpen`, by
+`rtHeldF_lend` and `txLive_nonnull`: what `RLock`'s proof adds), the share-free laws a reader
+without an open share needs, `BksDraft.rtHeldF_lend` (new `(p1+p2)` ⊢ new `p1` ∗ `txLive rtx p2`),
+`BksDraft.rtHeldF_return`, `BksDraft.rtHeldF_read` (a returned slice read, no `bOpen`), and the
+corollaries `BksDraft.readTx.RLock.spec_old` and `BksDraft.readTx.UnsafeRange.spec_old` (today's
+statements follow: every caller unchanged). Liveness is stable while held: only the stop's commit
+(`rtRes_cm_close`, under `readTx.Lock()`, the whole `γ.rd`) ends the interval.
 
 `backend.Close.spec` is unchanged (`bOpen γ 1`): with no reader holding a share, the clients'
 whole token is all it needs (its proof: unchanged, 59 lines; it never needed the readers' shares,
@@ -77,8 +81,8 @@ only `stop_take`'s). Its docstring gains: reads begun before it finish first (co
 `readTx.Lock()`, bbolt's `Close`).
 
 Glue for the auth realization's release (`authBkLife`'s `□ (authRetired ∗ authCur 1 ==∗ K ∗ …)`,
-`K = bOpen authOpenQ`): `BksDraft.guarded_RLock` (proved): for any fractional guard `G` with
-`G q ⊣⊢ bOpen γ (f q) ∗ (bOpen γ (f q) -∗ G q)` (the currency `Cu q` with the open share inside),
+`K = bOpen authOpenQ`): `BksDraft.guarded_RLock` (proved; a frame of `RLock`): for any guard `G`
+with `G q ⊢ bOpen γ (f q) ∗ (bOpen γ (f q) -∗ G q)` (the currency `Cu q` with the open share inside),
 `{{ … ∗ rdTok ∗ G q }} RLock {{ ∃ rtx rv, rtHeld ∗ G q }}`: the guard comes back at `RLock`, so the
 whole `G 1` (hence `bOpen (f 1)`, for `Close`) can be released while reads begun before still run
 `UnsafeRange` (no share needed). Over today's specs this is not realizable (a read holds
@@ -125,7 +129,8 @@ empty set: `⊢`), timeless, `batchLocked_rbPart` (agreement with `rbData P st.S
 **`rbOwnIn_split_compl`** (the draft premise's `backend.rbOwn_split_in`, restated:
 `rbOwnIn γ ⊤ r ⊣⊢ rbOwnIn γ S r ∗ rbOwnIn γ (¬S) r`; the draft's own statement, over `rbOwn`, is
 false while a write is pending), `rbOwn_split`, `premise_buckets` (`rbOwnIn ⊤ r ⊢ rbOwnIn
-authBkts r ∗ rbOwnIn restNonAuth r`), `rbPutAll_split`, `session_idle`.
+authBkts r ∗ rbOwnIn restNonAuth r`), `rbPutAll_split`, `rbOwnIn_agree`. Also stated:
+`rbPart_excl` (two parts of a tracked bucket exclude each other).
 
 Restated statements (each today's, but):
 - `batchTxBuffered.UnsafePut.spec`, `UnsafeDelete.spec`: `rbPut` per bucket (the part of the
@@ -152,12 +157,21 @@ must change; what does:
 | `readTx.UnsafeRange`, `RLock` restated | backend's own proofs (`readTx__RLock`, `readTx__UnsafeRange`) | `RLock`: `rtHeldF_of_open` before returning; `UnsafeRange`: the `live = false` branch goes (`rtHeldF`'s fact) |
 | callers of `UnsafeRange.spec` | 9 (applySnapshot, NewServer, SnapApplyWalk, BuildLemmas, StoreBackend, M2StorageDraft{,Restore}, BackendRecs, BackendBridge) | none (corollary); optionally drop the `bOpen` they thread |
 | `mvcc.bkRTx := rdTok ∗ bOpen rdOpen`, `rdOpen`, `bOpen_one_shares` | `bkRTx` 8, `rdOpen` 5, `bOpen_one_shares` 2 | Q5: keep, or drop the `bOpen` (`bkRTx := rdTok`), then `rdOpen`/`bOpen_one_shares` go and `BootBackend`'s split of `bOpen 1` with them |
-| `rbOwn` (now `rbPart ⊤`) | 14 importing modules; 31 files mention it (13 outside the backend and mvcc are specs) | none by text. The specs taking the whole `rbOwn`: 10 trust-boundary axioms (membership `RaftCluster.Recover`/`SetBackend`, schema `MustSave`/`MustDelete`/`MustReadMembersFromBackend`, v3alarm `NewAlarmStore`/`AlarmStore.restore`, lease `NewLessor`/`lessor.Recover`, auth `NewAuthStore`) and 2 proved (`EtcdServer.restoreAlarms`, `AlarmStore.Recover`, which pass it through): restated over their own buckets' part (Q4), so that the mode-on server can hold only `rbOwnIn restNonAuth` |
+| `rbOwn` (now `rbPart ⊤`) | 14 importing modules; 31 files mention it (13 outside the backend and mvcc are specs) | none by text. The specs taking the whole `rbOwn`: 10 trust-boundary axioms (membership `RaftCluster.Recover`/`SetBackend`, schema `MustSave`/`MustDelete`/`MustReadMembersFromBackend`, v3alarm `NewAlarmStore`/`AlarmStore.restore`, lease `NewLessor`/`lessor.Recover`, auth `NewAuthStore`) and 2 proved (`EtcdServer.restoreAlarms`, `AlarmStore.Recover`, which pass it through): restated over their own buckets (Q4), so that the mode-on server can hold only `rbOwnIn restNonAuth`. Those that **read** the buckets through `be.ReadTx()` (`MustReadMembersFromBackend`, and `RaftCluster.Recover` through it) take the **idle** part `rbOwnIn` of theirs, and give it back; those that lock the batch themselves (`NewLessor`, `AlarmStore.restore`, `NewAuthStore`, the member writers) take `rbPart` |
 | `rbPut` per bucket | 10 (InvBatch, `UnsafePut`/`UnsafeCreateBucket`/`UnsafeDelete`/`UnsafeDeleteBucket` specs and proofs, BackendBridge, CindexBackend, `OnPreCommitUnsafe`, `NewLessor` spec) | proved callers use `rbPut_other`-style (untracked buckets): unchanged; the 4 specs' proofs over the part; `NewLessor`'s (trusted) its bucket's part |
-| `Unlock.spec` restated | 8 direct users + backend internals | none (corollary); the auth premise's realization passes `S := authBkts` |
+| `Unlock.spec` restated | 8 direct users + backend internals | none by text (corollary, `S := ⊥`); but a caller passing `⊥` gets no idle part back, so every server site whose part later reaches a reading axiom (the member reads after the apply's batch: `applyConfChange`, the snapshot install's `RaftCluster.Recover`) passes its buckets as `S`, and the auth premise's realization `authBkts` |
 | `newPost`/`newPostK` | 14 / 12 (`BootBackend`, `SnapApplyOpen`, `NewAlloc`, …) | `rbOwnIn ⊤` for `rbOwn` (`rbOwnIn_part` gives today's); the reader stock: `rdPool ∗ rdStock` for `replicate actualMaxReaders rdTok`; mvcc's `New`/`NewStore` count `rdStockN` |
 | `New.spec` under `ThreadBoundLe GF (2^29)` | `New`'s callers: `newBackend`→`openBackend`/`bootstrap` → `NewServer`, the snapshot install (`SnapApplyOpen`), the examples' adequacy | each closed result's thread bound `2^31` → `2^29` where `New` is reached (Q2) |
 | `rdTok` | 12 | none (still the slot); its counted copies only in `rdStock` |
+
+**A bug in today's specs (round 1's T3).** `MustReadMembersFromBackend.spec` (and
+`RaftCluster.Recover.spec`, which reads through it) take `rbOwn` (the writer's contents) and
+conclude that the read sees it; their docstring assumes "the caller holds no batch lock", which
+neither precondition states. A caller inside a batch with a pending write to `members` reads the
+old contents (`axiomcx/pending_test.go`, for a delete; a put is not written back before `Unlock`):
+both axioms are false as stated today. The restatement over `rbOwnIn` repairs them (the idle part
+cannot be held across a pending write of its buckets). Whether a proved caller reaches the false
+case today is not checked here.
 
 ## The mode-off auth contract (decision 6): who produces it
 
@@ -187,4 +201,31 @@ the acquisition guard requires.
 
 ## Review rounds
 
-(below, one section per round)
+### Round 1 (fresh `spec-reviewer`, given the Go code, the draft, today's specs and the callers)
+
+No draft statement falsified by a Go execution (checked: `rtHeldF`'s liveness, `UnsafeRange`
+without a share, `Close` with readers in flight, `Unlock`'s idle post, `rtHeldF_rbOwnIn`, the
+split laws). First tier:
+
+- **T1, no read law without the open share.** `rtHeld_read`, `rtHeldF_read`, `rtHeldF_lend`
+  (`ReadLemmas.lean:1019,1058,1112`) and mvcc's `rtHeld_lendQ` take `bOpen`, and the draft's
+  `rtHeldF` (with `rd.live = true` inside today's body) could not reach them without one.
+  Repaired: `rtHeldF` is today's ∗ `⌜rtx ≠ Loc.null⌝` (the reviewer's proposal); share-free
+  `lend`/`return`/`read` proved; `rtHeldF_of_open` reproved over `rtHeldF_lend`/`txLive_nonnull`.
+- **T2, readers while a part is out.** The draft says nothing of what a reader sees of a bucket
+  whose writer's part is out (from a session's first write to its `Unlock`'s return), and the
+  auth readers' clause needs it. Not repaired in the backend: the question goes to the user (Q7).
+- **T3, the reading axioms must take the idle part.** The Impact's "restated over their own
+  buckets' part" would keep `MustReadMembersFromBackend`/`RaftCluster.Recover` false (above).
+  Repaired in the Impact: the readers take `rbOwnIn`, the lockers `rbPart`; `Unlock`'s callers
+  pass `S` where an idle part is needed later.
+
+Second tier, repaired: `guarded_RLock`'s guard law one direction (`⊢`), docstring no longer
+claims what `UnsafeRange` shows; `session_idle` renamed `rbOwnIn_agree`; `rbPart_excl` added.
+Second tier, open: the tracked names finite (a `P.Wf` conjunct) and `rbPart`/`rbOwnIn` not
+taking `P`; on the server's backend the auth buckets are hook buckets (`bridgeParams`), outside
+the readers' view `vData`, so `rtHeldF_rbOwnIn` for them needs the readers' model extended (the
+auth Draft's Q2 survey: 2.5–10k lines); `UnsafeCreateBucket`/`UnsafeDeleteBucket`/`newPost`
+not restated; `ConcurrentReadTx` has no pool glue, and must get no idle law (its cache serves
+stale reads after a commit: `issues/etcd-backend-read-buffer-cache-stale-after-commit.md`);
+`rdStock` and `ThreadBoundLe (2^29)` are transitional counted stock.
