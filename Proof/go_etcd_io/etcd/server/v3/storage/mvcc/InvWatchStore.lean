@@ -174,10 +174,14 @@ structure RespM where
   regs : List Loc
   /-- its position in the channel's sent list (ghost, K1b): so the responses sent are distinct -/
   idx : Nat
+  /-- (watches across a compaction, 2026-11-01) its `CompactRevision`: `0`, or the store's
+  compaction revision when the watcher's next revision was compacted (`chooseAll`'s response) -/
+  compactRev : w64 := W64 0
 
 instance RespM.countable : Pos.Countable RespM :=
-  .ofInjective (fun r => Pos.Countable.encode (r.w, r.id, r.evs, r.rev, r.cov, r.regs, r.idx))
-    (by rintro ⟨a, b, c, d, e, f, g⟩ ⟨a', b', c', d', e', f', g'⟩ h; have h := Pos.encode_inj h;
+  .ofInjective (fun r => Pos.Countable.encode (r.w, r.id, r.evs, r.rev, r.cov, r.regs, r.idx,
+      r.compactRev))
+    (by rintro ⟨a, b, c, d, e, f, g, i⟩ ⟨a', b', c', d', e', f', g', i'⟩ h; have h := Pos.encode_inj h;
         simp_all)
 
 instance watchResponseCountable [GooseExts] : Pos.Countable WatchResponse :=
@@ -450,10 +454,10 @@ instance filtersOk_persistent (fcs : GoSlice) : Persistent (filtersOk (GF := GF)
 
 /-! ## Responses -/
 
-/-- The `WatchResponse` value `v` is the response `r`: its id and revision, no compaction, its
-events a read-only slice of `r`'s events (`evIs` each). -/
+/-- The `WatchResponse` value `v` is the response `r`: its id, revision and compaction revision,
+its events a read-only slice of `r`'s events (`evIs` each). -/
 def respIs (v : WatchResponse) (r : RespM) : IProp GF :=
-  iprop(⌜v.WatchID' = r.id ∧ v.Revision' = r.rev ∧ v.CompactRevision' = W64 0⌝ ∗
+  iprop(⌜v.WatchID' = r.id ∧ v.Revision' = r.rev ∧ v.CompactRevision' = r.compactRev⌝ ∗
     ∃ ps : List Loc, v.Events' ↦*□ ps ∗ ⌜ps.length = r.evs.length⌝ ∗
       [∗list] x ∈ ps.zip r.evs, evIs x.1 x.2)
 
@@ -470,12 +474,16 @@ instance respsIs_persistent (vs : List WatchResponse) (rs : List RespM) :
     Persistent (respsIs (GF := GF) vs rs) := by
   unfold respsIs; infer_instance
 
-/-- What a response says, for good: its revision is at or above its events', and a response
-with events carries its watcher's id. -/
+/-- What a response says, for good: its revision is at or above its events', a response with
+events carries its watcher's id, and (watches across a compaction, 2026-11-01) a compaction
+response (`compactRev ≠ 0`, `chooseAll`'s) has no events, carries its watcher's own id (never
+`-1`) and no revision (Go leaves `Revision` unset). Margin: the code also gives
+`minRev < compactRev ≤ curRev` for the watcher's `minRev` at the choice; no client needs it. -/
 def respOk (r : RespM) : IProp GF :=
   iprop(⌜∀ ev ∈ r.evs, sint.Z ev.kv.modRev ≤ sint.Z r.rev⌝ ∗
     ∃ (rr : WatchRange) (fcs : GoSlice), watcherFixed r.w rr fcs ∗
-      ⌜(r.evs ≠ [] → r.id = rr.id) ∧ (r.id = rr.id ∨ r.id = W64 (-1))⌝)
+      ⌜(r.evs ≠ [] → r.id = rr.id) ∧ (r.id = rr.id ∨ r.id = W64 (-1)) ∧
+        (r.compactRev ≠ W64 0 → r.evs = [] ∧ r.id = rr.id ∧ r.id ≠ W64 (-1) ∧ r.rev = W64 0)⌝)
 
 instance respOk_persistent (r : RespM) : Persistent (respOk (GF := GF) r) := by
   unfold respOk; infer_instance
@@ -646,10 +654,11 @@ def notifiedLb (γ : WsNames) (L : Log) : IProp GF := monoListLbOwn γ.wlog L
 instance notifiedLb_persistent (γ : WsNames) (L : Log) : Persistent (notifiedLb (GF := GF) γ L) := by
   unfold notifiedLb; infer_instance
 
-/-- A fraction of the notified log's authority, at `L`, lent (`watcher.send` for a progress
+/-- A fraction of the notified log's authority, at `L` (not empty: the store's log has its first
+revisions; a compaction response's revision `0` is below it), lent (`watcher.send` for a progress
 response, K2e-5), or nothing. -/
 def notifiedLent (γ : WsNames) : Option (Qp × Log) → IProp GF
-  | some (q, L) => monoListAuthOwn γ.wlog q L
+  | some (q, L) => iprop(monoListAuthOwn γ.wlog q L ∗ ⌜L ≠ []⌝)
   | none => iprop(True)
 
 theorem notifiedLent_none (γ : WsNames) : ⊢ notifiedLent (GF := GF) γ none := by
@@ -657,18 +666,22 @@ theorem notifiedLent_none (γ : WsNames) : ⊢ notifiedLent (GF := GF) γ none :
 
 /-- **An event-less response's revision** (K2e-5): the notified log's last when it was sent, so
 at least every earlier event-less response's on the channel (`pre`). (Only `progressIfSync` sends
-one: a victim's batch has events.) -/
+one: a victim's batch has events.) A compaction response (watches across a compaction,
+2026-11-01) claims no revision: its own (`0`, unset) is at or below every other's. -/
 def respRev (γ : WsNames) (pre : List RespM) (x : RespM) : IProp GF :=
-  iprop(⌜x.evs ≠ []⌝ ∨ ∃ L : Log, notifiedLb γ L ∗
-    ⌜sint.Z x.rev + 1 = (L.length : Int) ∧ ∀ y ∈ pre, y.evs = [] → sint.Z y.rev ≤ sint.Z x.rev⌝)
+  iprop(⌜x.evs ≠ []⌝ ∨ (∃ L : Log, notifiedLb γ L ∗
+    ⌜sint.Z x.rev + 1 = (L.length : Int) ∧ ∀ y ∈ pre, y.evs = [] → sint.Z y.rev ≤ sint.Z x.rev⌝) ∨
+    ⌜x.compactRev ≠ W64 0 ∧ x.rev = W64 0⌝)
 
 instance respRev_persistent (γ : WsNames) (pre : List RespM) (x : RespM) :
     Persistent (respRev (GF := GF) γ pre x) := by
   unfold respRev; infer_instance
 
-/-- An event-less response's revision is the last of a log the store had notified. -/
+/-- An event-less response's revision is the last of a log the store had notified, or (a
+compaction response) `0`. -/
 def revLbOf (γ : WsNames) (y : RespM) : IProp GF :=
-  iprop(⌜y.evs ≠ []⌝ ∨ ∃ L : Log, notifiedLb γ L ∗ ⌜sint.Z y.rev + 1 = (L.length : Int)⌝)
+  iprop(⌜y.evs ≠ []⌝ ∨ (∃ L : Log, notifiedLb γ L ∗ ⌜sint.Z y.rev + 1 = (L.length : Int)⌝) ∨
+    ⌜y.compactRev ≠ W64 0 ∧ y.rev = W64 0⌝)
 
 instance revLbOf_persistent (γ : WsNames) (y : RespM) : Persistent (revLbOf (GF := GF) γ y) := by
   unfold revLbOf; infer_instance
@@ -676,22 +689,23 @@ instance revLbOf_persistent (γ : WsNames) (y : RespM) : Persistent (revLbOf (GF
 theorem revLbOf_of (γ : WsNames) (pre : List RespM) (y : RespM) :
     respRev (GF := GF) γ pre y ⊢ revLbOf γ y := by
   unfold respRev revLbOf
-  iintro (%h | ⟨%L, #Hl, %h⟩)
+  iintro (%h | ⟨%L, #Hl, %h⟩ | %h)
   · ileft; ipureintro; exact h
-  · iright; iexists L; iframe Hl; ipureintro; exact h.1
+  · iright; ileft; iexists L; iframe Hl; ipureintro; exact h.1
+  · iright; iright; ipureintro; exact h
 
 /-- **Below the notified log** (K2e-5): with a fraction of its authority at `Lx`, every event-less
 response whose revision is the last of a notified log is at most `Lx`'s last. -/
-theorem revLbs_le (γ : WsNames) (q : Qp) (Lx : Log) :
+theorem revLbs_le (γ : WsNames) (q : Qp) (Lx : Log) (hLx : Lx ≠ []) :
     ∀ l : List RespM, monoListAuthOwn (GF := GF) γ.wlog q Lx ∗ □ ([∗list] y ∈ l, revLbOf γ y) ⊢
       ⌜∀ y ∈ l, y.evs = [] → sint.Z y.rev + 1 ≤ (Lx.length : Int)⌝
   | [] => by iintro -; ipureintro; intro y hy; cases hy
   | y :: l => by
     iintro ⟨Ha, #H⟩
     icases BigSepL.bigSepL_cons.1 $$ H with ⟨#Hy, #Hl⟩
-    icases persistent_entails_right (revLbs_le γ q Lx l) $$ [$Ha $Hl] with ⟨%ih, ⟨Ha, -⟩⟩
+    icases persistent_entails_right (revLbs_le γ q Lx hLx l) $$ [$Ha $Hl] with ⟨%ih, ⟨Ha, -⟩⟩
     iunfold revLbOf at Hy
-    icases Hy with (%hne | ⟨%Ly, #Hlb, %hy⟩)
+    icases Hy with (%hne | ⟨%Ly, #Hlb, %hy⟩ | %hc)
     · ipureintro
       intro y' hy' he
       rcases List.mem_cons.1 hy' with rfl | h
@@ -704,10 +718,24 @@ theorem revLbs_le (γ : WsNames) (q : Qp) (Lx : Log) :
       rcases List.mem_cons.1 hy' with rfl | h
       · have := hp.2.length_le; omega
       · exact ih y' h he
+    · -- a compaction response: revision `0`, below a non-empty log's length
+      ipureintro
+      intro y' hy' he
+      rcases List.mem_cons.1 hy' with rfl | h
+      · rw [hc.2]
+        have : 0 < Lx.length := List.length_pos_iff.2 hLx
+        have : sint.Z (W64 0) = 0 := rfl
+        omega
+      · exact ih y' h he
 
+/-- **What a response sent covers** (K1b): the watchers it covers (`covFact`), its completeness
+for an id `-1` (`respCompl`), that an event-less one covers its watcher, and its revision
+(`respRev`). A compaction response (watches across a compaction, 2026-11-01: `chooseAll`'s, no
+events, revision `0`) covers nothing: it is exempt from covering its watcher, and its
+`respRev` is the compaction arm. -/
 def respCov (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM) : IProp GF :=
   iprop((□ ∀ w' : Loc, ⌜w' ∈ x.cov⌝ -∗ covFact γ γc pre w' x.rev) ∗ respCompl γc x ∗
-    ⌜x.evs = [] → x.w ∈ x.cov⌝ ∗ respRev γ pre x)
+    ⌜x.evs = [] → x.compactRev = W64 0 → x.w ∈ x.cov⌝ ∗ respRev γ pre x)
 
 theorem respCov_rev (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM) :
     respCov (GF := GF) γ γc pre x ⊢ revLbOf γ x := by
@@ -1126,7 +1154,7 @@ theorem respCov_of_list (γ : WsNames) (γc : WatchChanNames) (pre : List RespM)
   iframe Hc Hr
   isplitr
   rotate_left
-  · ipureintro; exact hown
+  · ipureintro; exact fun h _ => hown h
   iintro !> %w' %hw'
   rw [hcov] at hw'
   obtain ⟨c, hc, rfl⟩ := List.mem_map.1 hw'
@@ -1136,7 +1164,7 @@ theorem respCov_of_list (γ : WsNames) (γc : WatchChanNames) (pre : List RespM)
 /-- **The sent responses' revisions, below the notified log** (K2e-5): with a fraction of the
 notified log's authority at `Lx`, every event-less response sent is at most `Lx`'s last. -/
 theorem sentAuth_revs (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
-    (q : Qp) (Lx : Log) :
+    (q : Qp) (Lx : Log) (hLx : Lx ≠ []) :
     sentAuth (GF := GF) γ γc sent L ∗ monoListAuthOwn γ.wlog q Lx ⊢
       sentAuth γ γc sent L ∗ monoListAuthOwn γ.wlog q Lx ∗
         ⌜∀ y ∈ sent, y.evs = [] → sint.Z y.rev + 1 ≤ (Lx.length : Int)⌝ := by
@@ -1144,7 +1172,7 @@ theorem sentAuth_revs (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) 
   iintro ⟨⟨Ha0, %RI, Hr, %HRI, #Hc⟩, Ha⟩
   ihave #Hl : [∗list] y ∈ sent, revLbOf (GF := GF) γ y $$ []
   · iapply (BigSepL.bigSepL_mono (fun {k y} _ => respCov_rev γ γc (sent.take k) y)) $$ Hc
-  icases persistent_entails_right (revLbs_le γ q Lx sent) $$ [$Ha $Hl] with ⟨%H, ⟨Ha, -⟩⟩
+  icases persistent_entails_right (revLbs_le γ q Lx hLx sent) $$ [$Ha $Hl] with ⟨%H, ⟨Ha, -⟩⟩
   iframe Ha
   isplitl
   · iframe Ha0
@@ -1163,12 +1191,18 @@ theorem respRev_new (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L
   by_cases he : x.evs = []
   · obtain ⟨q, Lx, rfl, hx⟩ := hnl he
     unfold notifiedLent
-    iintro ⟨Hs, Ha⟩
-    icases sentAuth_revs γ γc sent L q Lx $$ [$Hs $Ha] with ⟨Hs, Ha, %H⟩
+    iintro ⟨Hs, Ha, %hLx⟩
+    icases sentAuth_revs γ γc sent L q Lx hLx $$ [$Hs $Ha] with ⟨Hs, Ha, %H⟩
     ihave #Hlb := monoListLbOwn_get _ _ _ $$ Ha
-    iframe Hs Ha
+    isplitl [Hs]
+    · iexact Hs
+    isplitl [Ha]
+    · isplitl [Ha]
+      · iexact Ha
+      ipureintro; exact hLx
     iunfold respRev
     iright
+    ileft
     iexists Lx
     iunfold notifiedLb
     iframe Hlb
