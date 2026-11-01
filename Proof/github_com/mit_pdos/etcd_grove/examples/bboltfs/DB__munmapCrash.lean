@@ -1,5 +1,5 @@
 /- Lean-first (no Rocq counterpart). The proof of `db.munmap()`'s crash-aware spec: as
-`DB__munmap.lean`'s, with `Munmap.specCrashS`, whose obligation is `writer_okS`. -/
+`DB__munmap.lean`'s, with `Munmap.specCrashS`, whose obligation `mappingResC` carries. -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__munmapCrash
@@ -36,7 +36,7 @@ theorem DB.munmap.wp_proof_crash
     iframe
     unfold unmappedResC
     ileft; ipureintro; exact ⟨rfl, rfl⟩
-  · obtain ⟨rfl, Hpos, Hlen, Hb, hl, hcc⟩ := Hsl
+  · obtain ⟨rfl, Hpos, Hlen, Hb, hok⟩ := Hsl
     have hne : ({ ptr := base, len := len, cap := len } : GoSlice) ≠ slice.nil := by
       intro h; have := congrArg GoSlice.ptr h; simp [slice.nil] at this; subst this
       simp [null] at Hpos
@@ -45,7 +45,7 @@ theorem DB.munmap.wp_proof_crash
     rw [decide_eq_false hne]
     wp_auto
     wp_apply wp_Munmap base len p dbCrashN γc (dbOk p) m bs fa fb vf Hlen Hb dbCrashN_disj
-        (writer_okS fa fb hl hcc _) $$ [Hos Hinv Hm Hc] as %e He
+        (hok _) $$ [Hos Hinv Hm Hc] as %e He
     · iframe; iframe #
     (try wp_auto)
     iapply HΦ

@@ -107,7 +107,7 @@ theorem mmap_prepC (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List
       rw [hl']
       iframe; iframe #
       ipureintro
-      refine ⟨rfl, Hbase, ?_, ?_, hl, hcc⟩
+      refine ⟨rfl, Hbase, ?_, ?_, fun M => writer_okS fa fb hl hcc M⟩
       · have := sint_Z_W64_nat len (by omega); simp only [sint.Z] at this; omega
       · rw [Hmaps]; simp
     · isplit

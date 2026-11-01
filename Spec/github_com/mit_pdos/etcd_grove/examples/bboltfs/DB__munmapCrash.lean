@@ -1,7 +1,8 @@
 /- Lean-first (no Rocq counterpart). `db.munmap()`'s crash-aware spec: `DB.munmap.spec`
 (`DB__munmap.lean`) with the writer's part of the file as an idle state of the crash invariant
-(`csOwn`, `DBCrash.lean`) in place of the whole `OsMeta`. The state is one a commit may start from
-(`commitClean`), so that every mapping change keeps it `dbOk` (`writer_okS`). -/
+(`csOwn`, `DBCrash.lean`) in place of the whole `OsMeta`. The state is `dbOk` whatever the
+mappings, so that unmapping keeps it so (`writer_okS` gives it of a state a commit may start from,
+`writerFileC` keeps it once failed). -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__munmap
@@ -29,13 +30,13 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
 
 /-- The mapping `sl` of the file `p` (`mappingRes`), over the crash invariant `γc`: the writer's
-idle state `⟨m, bs, fa, fb⟩`, one a commit may start from. -/
+idle state `⟨m, bs, fa, fb⟩`, `dbOk` whatever the mappings. -/
 def mappingResC (p : GoString) (γc : GName) (m : OsMeta) (bs : List (w8 × Bool)) (fa fb : Nat)
     (sl : GoSlice) : IProp GF :=
   iprop(⌜sl = slice.nil⌝ ∨
     ∃ (base : Loc) (len : w64) (vf : Nat → val),
       ⌜sl = ⟨base, len, len⟩ ∧ 0 < base.addr ∧ 0 < len.toInt ∧ m.maps !! base = some len.toNat ∧
-        bs.length = m.size ∧ commitClean m bs⌝ ∗
+        ∀ M : GMap Loc Nat, dbOk p (some ⟨{ m with maps := M }, bs, fa, fb, .idle⟩)⌝ ∗
       osInv (GF := GF) ∗ csInv (GF := GF) dbCrashN p γc (dbOk p) ∗
       csOwn (GF := GF) p γc (some ⟨m, bs, fa, fb, .idle⟩) ∗
       cellsR (GF := GF) base 0 len.toNat vf)
