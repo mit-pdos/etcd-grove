@@ -93,7 +93,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       iexact H
   wp_apply (wp_StartNode γr γr.cl srvClusterN ps ctxs bv.config' cv lok
       ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
-      memSnapEmpty.Metadata'.ConfState' (raftState γr.cl cv.ID' RaftState.init) (fun _ => Q)
+      memSnapEmpty.Metadata'.ConfState' (raftState γr.cl cv.ID' RaftState.init) Q
       bv.peers' dq pv Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied
       rfl rfl rfl rfl rfl Hps) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
     as %nd ⟨%n, %K, %Hnd, #Hnode, Hdrv, Hncfg, Hrun, Hrst, HQ, -⟩
@@ -136,9 +136,10 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     obtain ⟨h1, h2, h3, h4, h5, h6, -⟩ := Hγw
     exact ⟨h1, h2, h3, h4, h5, h6⟩
   obtain ⟨-, -, -, -, -, -, hkey⟩ := Hγw
+  subst hkey
   iframe Hnode Hst Hbuilt Hb HQ Hrun Hncfg Hrst
   isplitl [Hdrv]
-  · rw [hkey]; iExactEq Hdrv; rfl
+  · iExactEq Hdrv; rfl
   isplitr
   · -- the closure meets `isRNIDRemoved`
     iunfold isRNIDRemoved

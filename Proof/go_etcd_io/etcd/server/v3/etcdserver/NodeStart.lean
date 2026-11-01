@@ -449,15 +449,122 @@ theorem raftNode_of_StartNode
     (wp_ApplyConfChange : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NodeStartSpec (GF := GF) := by
-  -- PORT(durability stage II): not provable against `bootstrappedRaft.newRaftNode.spec` as stated
-  -- (2026-11-01, stage II (l)). Its storage frame is key-independent (`restartStorage … (fun _ =>
-  -- Q)`, post `Q`), but `srvMem_bootStorage` allocates the storage's invariant at the key `K` raft
-  -- names (`memStorInv … K`), and this statement posts it at the wrapper's key (`memStorInv …
-  -- γw.key`); a `K`-independent `Q` cannot carry it, and no law ties a client-chosen name to the
-  -- driver's key. Fix (a statement change, stage I): `newRaftNode.spec`'s frame `Q : GName → IProp
-  -- GF`, `"Hbs"` at `restartStorage … Q`, post `Q γw.key` (its proof passes `Q` to `StartNode` and
-  -- `K` to `newRaftNode`, whose post gives `γw.key = K`).
-  sorry
+  intro γr E b ss wal cl dq bv cv lok γs pv ps ctxs issued Hlg Hhb Hvalid Hlok Hstor Hinfl
+    Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hvs Hfit HEγ HEpre HEai
+  letI : MemStorReg GF := ⟨γr.reg⟩
+  letI := srvStor (GF := GF) γr
+  iintro %Φ Hpre HΦ
+  iNamed Hpre
+  ihave Hbs := srvMem_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
+      wp_Entries γr bv.storage' γs
+      (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
+        memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0))))
+      $$ [Hfresh Hmeta Hend]
+  · iframe Hreg Hlock Hfresh Hmeta Hlog0 Hend
+    iintro %K Hi Hm
+    iframe Hi Hm
+  icases Hboot with ⟨#Hnboot, HrS, Hvac⟩
+  wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] pv ps ctxs
+    (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
+      memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0))))
+    Hlg Hhb Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0
+    (by omega) Hid Hvs)
+    $$ [Hb Hc Hbs Hpeers HrS Hvac]
+    as %r Hpost
+  · iframe #; iframe Hb Hc Hbs Hpeers HrS Hvac
+  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, HrS, Hncfg, Hrun, #Hidri, #Hsti,
+    %Hstss, Hbuilt, Hb, ⟨#Hminv, Hmeta⟩⟩
+  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs⟩ := Hnames
+  iunfold rnBuilt at Hbuilt
+  iNamed Hbuilt
+  obtain ⟨Hrvlg, Hrvcfg⟩ := Hrv
+  -- the bridges
+  ihave #Hfits' : rnLogFits γw $$ []
+  · iunfold rnLogFits; ipureintro; rw [Hwnode]; exact Hfit
+  ihave #Hreg' : rnMemStorReg γw $$ []
+  · unfold rnMemStorReg RNNames.reg; rw [Hwms, Hwγs, Hwnode]; iexact Hreg
+  ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iPkgInit
+  ihave #Hmsi : isRNMemStor γw γw.ms $$ []
+  · iapply isRNMemStor_of_memstorage γw
+    iframe Hpraft Hreg'
+    rw [Hwms, Hwγs]; iexact Hlock
+  ihave #Hisnode : rnIsNode γw $$ []
+  · unfold rnIsNode; rw [Hwnode, Hwid, Hwnl]; iexact Hnode
+  -- the running token's halves
+  icases ((nodeRunning_fractional n γr.cl srvClusterN).fractional (1 : Qp).half
+      (1 : Qp).half).1 $$ [Hrun] with ⟨Hrun1, Hrun2⟩
+  · rw [Qp.half_add_half]; iexact Hrun
+  -- the tokens
+  ihave ⟨Hloop, Happly⟩ := rnToks_of_start γw Hwpre
+      (by
+        rw [Hwnode]
+        unfold SrvRaft.cfg
+        rw [Hvs]
+        refine srvCfgOk_nil _ (fun h0 => H0 ((GMap.elem_of_list_to_set _ _).1 h0)) ?_
+        rw [GMap.size_list_to_set ps Hnodup]
+        omega)
+    $$ [Hdrv HrS Hncfg Hrun1 Hprod Hcons Hcum Hcum0]
+  · rw [Hwnode, Hwnl, Hwms, Hwid]
+    iframe Hdrv HrS Hrun1 Hprod Hcons Hcum Hcum0
+    unfold SrvRaft.cfg
+    rw [Hvs]
+    iexact Hncfg
+  iapply HΦ
+  iexists γw, rv
+  isplitr
+  · ipureintro
+    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hrvlg, ?_, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
+    all_goals first | exact Hstss | simp only [rnNodeIface, Hwnl]
+  iframe Hr Hmu Hloop Happly Hb Hminv Hmeta
+  isplitr
+  · iapply rnStepIfc_of_isNode γw (wp_Step γw.node) (wp_ReportUnreachable γw.node)
+      (wp_ReportSnapshot γw.node)
+    iframe Hpkg Hisnode
+  isplitl [Hrun2]
+  · rw [Hwnode, Hwnl]; iexact Hrun2
+  -- the installer
+  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hfix Htrf Hlts #Htri Hmu'
+  ihave #Hrsb : rnReadStateBridge E γw $$ []
+  · iapply rnReadStateBridge_of_raft E γw $$ Henv'
+  ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
+  · iapply isRaftNodeIfc_of_isNode E γw s issued (wp_Ready γw.node) (wp_Advance γw.node)
+      (wp_Tick γw.node) (wp_Stop γw.node) (wp_ReadIndex γw.node)
+      (wp_ApplyConfChange γw.node)
+    iframe Hpkg Henv' Hisnode Hcommi Hreg' Hrdi
+  ihave #Hprop : raftPropose E.γr.raft (rnNodeIface γw) $$ []
+  · iapply raftPropose_of_isNode E γw (wp_Propose γw.node)
+    iframe Hpkg Henv' Hisnode Hlinv
+  ihave #Hfix' : rnFixed a
+      { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } $$ []
+  · simp only [rnFixed]
+    iexact Hfix
+  imod (isRaftNode_of_rnParts E γw a
+    { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } })
+    $$ [Htrf Hlts Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
+  · iframe Hpkg Henv' Hfits' Hrsb Hreg' Hfix' Htrf Hlts Hmu' Hdtok
+    simp only [Hrvcfg]
+    iframe Hidri Hsti Htri Hmsi
+    isplitr
+    · -- the node's contract, at the config's `Node` field
+      rw [← Hwnl]
+      iexact Hni
+    isplitr
+    · ipureintro; exact Hwms.symm
+    -- the components are the same (`transport` is no component)
+    iunfold rnParts at Hparts
+    iunfold rnParts
+    iNamed Hparts
+    simp only [named]
+    iframe #
+    ipureintro; exact Hlgnn
+  imodintro
+  iframe Hrn Hdone Htrf Hprop
+  have hn : rnNodeIface γw =
+      ({ rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } : raftNode).raftNodeConfig'.Node' := by
+    simp only [Hrvcfg, rnNodeIface, Hwnl]
+  rw [hn]
+  iexact Hnodef
 
 end compose
 

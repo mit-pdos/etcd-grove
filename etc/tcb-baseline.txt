@@ -792,7 +792,6 @@ sorry newLogWithSize.wp_proof
 sorry newRaft.wp_proof
 sorry node.run.wp_proof
 sorry raftNode.start.wp_proof
-sorry raftNode_of_StartNode
 sorry rnApplyTok_recv
 sorry rn_ready_recv
 sorry setupNode.wp_proof

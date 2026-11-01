@@ -59,7 +59,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   ∀ (E : RNEnv GF) (γr : SrvRaft) (b ss wal cl : Loc) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
     (pre : List EntryModel)
-    (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (Q : IProp GF),
+    (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (Q : GName → IProp GF),
   letI := srvStor (GF := GF) γr
   -- `newRaftNode`'s premises: a logger, a heartbeat
   bv.lg' ≠ null →
@@ -90,7 +90,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       -- server `srvMem_bootStorage`'s)
       "Hbs" ∷ restartStorage γr.cl (memStorIface bv.storage')
         ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
-        memSnapEmpty.Metadata'.ConfState' 0 (fun _ => Q) ∗
+        memSnapEmpty.Metadata'.ConfState' 0 Q ∗
       -- the peers and their contexts
       "Hpeers" ∷ bv.peers' ↦*{dq} pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
       -- this node's boot token (the cluster's allocation's, persistent), and (2026-11-01,
@@ -129,8 +129,10 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         -- give it back, it only reads it)
         b ↦{dq} bv ∗
         -- (2026-10-30, the repair) the storage's frame (`InitialState` ran before the node's
-        -- goroutine)
-        Q }}
+        -- goroutine), at the storage's key (2026-11-01, durability stage II (l): the frame depends
+        -- on the key, as `restartStorage`'s, so that the storage's invariant allocated at the key
+        -- comes back at the wrapper's `γw.key`)
+        Q γw.key }}
 
 end spec
 

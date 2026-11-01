@@ -674,10 +674,8 @@ Proved against their current statements (no statement changed; report
   kvreconf's `isClusterC` gains `"%Hbl0" ∷ ⌜γr.cluster.bootLen = 0⌝`, kv's `kvCluster_alloc`
   posts `γr.cluster.bootLen = 0` beside `dup = false`. (kvdurable's own `isClusterC` will need the
   same for its `startNew`.)
-- Still `sorry`: `raftNode_of_StartNode`, not provable as stated: `bootstrappedRaft.newRaftNode.spec`'s
-  storage frame is key-independent (`fun _ => Q`), so the storage's invariant allocated at the key
-  cannot reach the post's `memStorInv … γw.key`. Fix (stage I): the frame `Q : GName → IProp`,
-  post `Q γw.key`. Raft's `memStorInv_alloc` (raft's file) is still `sorry`; the server uses
+- `bootstrappedRaft.newRaftNode.spec`'s storage frame made key-dependent (approved: `Q : GName →
+  IProp`, post `Q γw.key`, as `kv_bootStorage`'s), and `raftNode_of_StartNode` proved. Raft's `memStorInv_alloc` (raft's file) is still `sorry`; the server uses
   `memStorInvP_alloc` directly.
 
 ## Durability stage II (i): durTie tied to the storage (2026-11-01, branch `worktree-kvdurable`)
