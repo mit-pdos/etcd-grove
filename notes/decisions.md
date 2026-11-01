@@ -29187,3 +29187,38 @@ Supersedes the Freeze entry's "decision 3 stopped" in its consequence (the findi
 - **`Unlock` takes any part** (`Unlock.spec` with `S`, `r`, `rbPart γ S r` to `rbOwnIn γ S r`);
   callers that hold none use `Unlock.bare` (the empty set). The writers take their bucket's part
   (`rbPut` per bucket; `rbPutAll` the whole form, for `bt_leaseDel`'s split).
+
+
+## The cache over a compacting store: `etcd_cache_served` over the store's fact for watches (2026-11-01 · accepted, the user's approval)
+
+The survey (the cache's Go code at the pin): on any watch error, a compaction response's
+`ErrCompacted` included, `watchEvents` returns it and `getWatchLoop` re-lists at the current
+revision and watches again; the cache never reads the compaction revision (`demux.Compact` has no
+caller). Its results take the client watcher and `watchAddrFacts`, which carry `watchNoDup` since
+D8, so they hold of a compacting store already; the client's `Watch.spec` needs no compaction
+bound (the watch-compaction plan's question 2(b) stays deferred). The one premise excluding
+compaction was `etcd_cache_served`'s `hoff : V.R.E.γ.cm = false`; it now takes
+`mvcc.watchNoDup V.R.E.γ` (as `watchkv.wk_served_nd`), which `hoff` implies
+(`isWatchServer_watchNoDup_env`). The end-to-end example over a compacting member is another
+session's (`cachekv` with compaction).
+
+## `restorePre_of_apply`'s frozen fact from the watchable store: `srvEnvOk` gains `E.γ.cm = E.cmp` (2026-11-01 · the user's choice, option A · branch `snap-restorepre`)
+
+**The gap.** `restorePre_of_apply` (`RestorePre.lean`) had one `sorry`: `crevFrozen E.γ`, which
+`watchableStore.Restore.spec` takes. M2 S1 took `crevFrozen` out of `storeReader`, and with it the
+lemma's old source. M2's own decision (`notes/m2-plan.md`, "Draft, S1 steps 4-5") kept `Restore`'s
+frozen premise for compaction-off servers.
+
+**The source.** A compaction-off watchable store is frozen by a proved law
+(`mvcc.isWatchableStore_frozen`, needing `γ.st.cm = false`), and the lemma holds that store. This was
+`restorePre_of_applyM`'s draft off case (`M2StorageDraftRestore.lean`). The missing fact was the
+store names' mode `E.γ.cm`: the store ties it to its backend only inside its invariant (`physOk`'s
+`%Hcmt`), and the server recorded the backend's mode (`d.cm = E.cmp`), not the names'.
+
+**Chosen (A).** `srvEnvOk` gains a first conjunct `E.γ.cm = E.cmp` (law `srvEnvOk_cm`). `NewServer`
+has it (`envAgree`'s), and `applySnapshot`'s new environment keeps it definitionally (`withPhys` and
+`onBe` keep both flags). `restorePre_of_apply` takes `E.γ.cm = false`, which `applySnapshot_walk`
+reads off `isServer`'s `srvEnvOk` with `srvEnvOk_off`. `srvEnvOk` is inside `isServer`, which the
+exported `applyAll_model`'s preconditions name: a change to an exported statement's meaning, approved.
+Rejected: (B) a new `specSnap` premise, which pushes the same fact up to `run`; and (C) an mvcc law
+opening the store's invariant at names the restore is changing.

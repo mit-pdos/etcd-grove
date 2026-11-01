@@ -1647,7 +1647,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe #
     isplitr
     · ipureintro; exact Hlgnn
-    ipureintro; exact ⟨⟨rfl, rfl⟩, rfl, rfl, d.γB, _, rfl, rfl, ({ d with cm := cmp } : mvcc.KBReal), alst, astl, lp, Hγw.2.2.1, rfl, rfl,
+    ipureintro; exact ⟨⟨rfl, rfl⟩, by show γw.st.cm = _; rw [Hcmw]; first | rfl | exact Hcmp0 | exact Hcmp0.symm,
+      rfl, rfl, d.γB, _, rfl, rfl, ({ d with cm := cmp } : mvcc.KBReal), alst, astl, lp, Hγw.2.2.1, rfl, rfl,
       Hcmp0.symm⟩
   isplitr
   · -- `#Hreqb`

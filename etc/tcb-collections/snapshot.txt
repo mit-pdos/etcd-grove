@@ -199,4 +199,3 @@ axiom zap.Stringer.wp_proof
 axiom zap.Strings.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
-sorry etcdserver.restorePre_of_apply

@@ -2,7 +2,7 @@
 What the apply thread holds for `watchableStore.Restore` (D22 receiver epochs, S6): the sanity
 check that its precondition's store half is assemblable from the apply thread's resources after S5
 (`apply.kvOwn`) and the server's kept closer (`srvKVCloser`); the new backend's half is S7/S8's
-(the docstring of `restorePre_of_apply`). Not used yet: `applySnapshot` (S8) calls `kv.Restore`.
+(the docstring of `restorePre_of_apply`). Used by `applySnapshot_walk` (S8's `kv.Restore`).
 -/
 module
 
@@ -52,7 +52,7 @@ watchable store's names' `st` replaced: `isWatchableStore` reads only its logica
 `writerOwn`, the old backend's `k + 1` tokens (with the storage-version monitor's, S7, every `bOpen`
 share of the old backend for `oldbe.Close`), the new backend's left over (the monitor's). -/
 theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc.Log)
-    (hwq : E.γ.watchQ = true) :
+    (hwq : E.γ.watchQ = true) (hcm : E.γ.cm = false) :
     apply.kvOwn E log ∗ srvKVCloser s E ⊢
       ∃ (ws : Loc) (γw : mvcc.WsNames), ⌜γw.st = E.γ⌝ ∗ mvcc.isWatchableStore ws E.s γw ∗
         mvcc.storeCloser E.s γw.st ∗ mvcc.writerFrag γw.st ∗ mvcc.writerOwn γw.st ∗
@@ -74,10 +74,11 @@ theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc
   icases Hcl with ⟨%wsl, #Hkvf, Hcl⟩
   iunfold mvcc.wsCloser at Hcl
   icases Hcl with ⟨%stc, #Hstc, Hstcl, Hwsw, Hcl⟩
-  -- (M2, `notes/m2-plan.md`, S1 step 5) the reader no longer carries the frozen fact: `Restore`
-  -- from the compaction right, S1 step 5
+  -- (M2, `notes/m2-plan.md`, S1 steps 4-5) the reader no longer carries the frozen fact; with the
+  -- mode off the watchable store does (`isWatchableStore_frozen`; `restorePre_of_applyM`'s draft)
   ihave #Hfrz : mvcc.crevFrozen E.γ $$ []
-  · sorry -- M2 S1: re-prove from 6e23b02e5d:Proof/go_etcd_io/etcd/server/v3/etcdserver/RestorePre.lean
+  · rw [← hγw]
+    iapply mvcc.isWatchableStore_frozen ws E.s γw (by rw [hγw]; exact hcm) $$ Hws
   iexists ws, γw
   iunfold mvcc.watchWriter
   rw [hγw]
