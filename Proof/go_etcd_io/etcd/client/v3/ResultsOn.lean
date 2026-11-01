@@ -13,7 +13,10 @@ facts at the token of the metadata some attempt of the call delivered (`∃ md,
 the client's API version, delivered by grpc on `conn`): a write's grant (`v3rpc.writeGrantOn`), a
 read's check (`v3rpc.rangeAuthed`, `txnAuthOn`) at the lower bound `n` of the auth store's
 published index the caller gives (`auth.authPubLbM`; `0` is free). What the token is (the
-client's, after `Authenticate`) is the auth plan's item 2 (C1–C4, over `clientAttemptMd`).
+client's, after `Authenticate`) is the auth plan's item 2 (C1–C4, over `clientAttemptMd`). A
+write's update is told the same grant when it fires (`clientOpAuOn`, the auth-mode merge's 5a): at
+a lower bound of the requested log the caller gives (`srvReqLogLb`; `[]` is free,
+`clientOpAuOn_of_au1`).
 Lean-first (no Rocq counterpart).
 -/
 module
@@ -41,21 +44,25 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`kv.Put(ctx, key, val)` through a `*kv` over `conn` to a member with auth on** (as
 `client_put_any` at one member): etcd's `Put` with auth on registered at `addr`, the floor `F`
-and the caller's update, persistent or on a client that sends a write at most once; `nil` and the
+and the caller's update told the put's grant (`clientOpAuOn`), persistent or on a client that sends
+a write at most once; `nil` and the
 reply with `putReplied` and the put's grant at the token of some attempt's metadata, or an
 error. -/
 theorem client_put_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
+    (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAtC api conn [addr] ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn s E ρ cid mid) ∗
         mvcc.idxCert E.γ.idx F ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-        (□ kvOpAu1 ρ.rd.kv (.put (putKeyOp key val)) Q ∨
-          (writeOnce api [addr] ∗ kvOpAu1 ρ.rd.kv (.put (putKeyOp key val)) Q)) }}
+        (□ clientOpAuOn s E ρ conn (GoInterface.ok ci) (.put (putKeyOp key val)) Q ∨
+          (writeOnce api [addr] ∗
+            clientOpAuOn s E ρ conn (GoInterface.ok ci) (.put (putKeyOp key val)) Q)) }}
       (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -77,7 +84,8 @@ theorem client_put_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AE
     isplitl []
     · ipureintro; exact Hpm
     rw [show putWireOf (opPutModel key val []) = putKeyOp key val from rfl]
-    have h : (mvcc.idxCert E.γ.idx F ∗ kvOpAu1 ρ.rd.kv (.put (putKeyOp key val)) Q : IProp GF) ⊢
+    have h : (mvcc.idxCert E.γ.idx F ∗
+          clientOpAuOn s E ρ conn (GoInterface.ok ci) (.put (putKeyOp key val)) Q : IProp GF) ⊢
         attemptPre conn (GoInterface.ok ci) (etcdPutSpecOn s E ρ cid mid)
           (putKeyOp key val)
           (fun (m : PutRespM) => iprop(putReplied E ρ.rd F (putKeyOp key val) Q cid mid m ∗
@@ -86,19 +94,22 @@ theorem client_put_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AE
       iintro ⟨#HF, Hau⟩
       unfold attemptPre
       iintro %md %Hmd
-      unfold etcdPutSpecOn etcdPutSpec
+      unfold etcdPutSpecOn
       iexists F
       iframe HF
       iexists Q
       isplitr
       · ipureintro; rfl
-      iframe Hau
+      isplitl [Hau]
+      · iapply clientOpAuOn_attempt s E ρ conn (GoInterface.ok ci) md _ Q Hmd $$ Hau
       iintro %m Hm Hg
       simp only []
       iframe Hm
       iexists md
       iframe Hg
       ipureintro; exact Hmd
+    isplitl [Hau]; rotate_left
+    · ipureintro; exact hsz
     iapply (kvReqPre_wand api [addr] (mvcc.idxCert E.γ.idx F) _ _ h)
     iframe HF
     unfold kvReqPre
@@ -137,7 +148,8 @@ read's check at the token of some attempt's metadata, or an error. -/
 theorem client_range_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid c : w64) (n : Nat) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
-    (gs : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (gs : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF) (F : mvcc.Log)
+    (hsz : opSizeOk (opGetModel key gs)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAtC api conn [addr] ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn s E γr cid mid) ∗
@@ -165,6 +177,8 @@ theorem client_range_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.
     iframe Hopts HR Hsn
     isplitl []
     · ipureintro; exact Hg
+    isplitl []; rotate_left
+    · ipureintro; exact hsz
     imodintro
     inext
     unfold attemptPre
@@ -200,14 +214,16 @@ cache decides, `auth.reqShape`); the reply with `deleteReplied` and the delete's
 token of some attempt's metadata. -/
 theorem client_delete_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) (hk : key ≠ []) :
+    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) (hk : key ≠ [])
+    (hsz : opSizeOk (opDeleteModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAtC api conn [addr] ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecOn s E ρ cid mid) ∗
         mvcc.idxCert E.γ.idx F ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-        (□ kvOpAu1 ρ.rd.kv (.deleteRange (txn.deleteOpOf key [] false)) Q ∨
+        (□ clientOpAuOn s E ρ conn (GoInterface.ok ci) (.deleteRange (txn.deleteOpOf key [] false)) Q ∨
           (writeOnce api [addr] ∗
-            kvOpAu1 ρ.rd.kv (.deleteRange (txn.deleteOpOf key [] false)) Q)) }}
+            clientOpAuOn s E ρ conn (GoInterface.ok ci)
+              (.deleteRange (txn.deleteOpOf key [] false)) Q)) }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Delete")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -232,7 +248,8 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply
       simp [op_simps, opDeletePanics, opGetPanics, OpFull.deletePanics]
     rw [hw]
     have h : (mvcc.idxCert E.γ.idx F ∗
-          kvOpAu1 ρ.rd.kv (.deleteRange (txn.deleteOpOf key [] false)) Q : IProp GF) ⊢
+          clientOpAuOn s E ρ conn (GoInterface.ok ci) (.deleteRange (txn.deleteOpOf key [] false)) Q :
+          IProp GF) ⊢
         attemptPre conn (GoInterface.ok ci) (etcdDeleteSpecOn s E ρ cid mid)
           (txn.deleteOpOf key [] false)
           (fun (m : DelRespM) =>
@@ -243,7 +260,7 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply
       iintro ⟨#HF, Hau⟩
       unfold attemptPre
       iintro %md %Hmd
-      unfold etcdDeleteSpecOn etcdDeleteSpec
+      unfold etcdDeleteSpecOn
       isplitl []
       · ipureintro; exact ⟨hk, Or.inl rfl⟩
       iexists F
@@ -251,13 +268,16 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply
       iexists Q
       isplitr
       · ipureintro; simp [txn.deleteOpOf]
-      iframe Hau
+      isplitl [Hau]
+      · iapply clientOpAuOn_attempt s E ρ conn (GoInterface.ok ci) md _ Q Hmd $$ Hau
       iintro %m Hm Hg
       simp only []
       iframe Hm
       iexists md
       iframe Hg
       ipureintro; exact Hmd
+    isplitl [Hau]; rotate_left
+    · ipureintro; exact hsz
     iapply (kvReqPre_wand api [addr] (mvcc.idxCert E.γ.idx F) _ _ h)
     iframe HF
     unfold kvReqPre
@@ -289,24 +309,26 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply
     · iunfold kvErr; iframe #; ipureintro; exact Herr.2.1
 
 /-- **`Commit()` on a builder over a `*kv` over `conn` to a member with auth on** (as
-`client_txn_any` at one member): a transaction a writing one of which has every permission of the
+`client_txn_any` at one member, nested transactions included: `notes/txn-nested.md`): a
+transaction, read-only within the model (`txnModelIn`), a writing one with every permission of the
 shape the permission cache decides (`kvShapeAll`), the member's committed index at least `c`, the
-floor `F`, a lower bound `n` of the published auth index and the caller's update (at the write
-names `ρ.rd`, the read names `γr`: `txnUpdAt`), persistent or on a builder that sends a write at
+floor `F`, a lower bound `n` of the published auth index and the caller's update
+(`txnUpdAtOn`: a writing one's told its grant), persistent or on a builder that sends a write at
 most once; `nil` with the reply's `txnReplied` and the transaction's auth facts at the token of
 some attempt's metadata (`txnAuthOn`), or an error. -/
 theorem client_txn_on (tp api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (cid mid c : w64) (n : Nat) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) (Q : KVState → IProp GF) (F : mvcc.Log)
-    (hp : TxnModel.plain (txnWireOf b.model)) (hin : txnModelIn (txnWireOf b.model))
+    (hin : txn.txnReadonly (txnWireOf b.model) = true → txnModelIn (txnWireOf b.model))
+    (hsz : txnSizeOk (txnWireOf b.model))
     (hsh : txn.txnReadonly (txnWireOf b.model) = false →
       ∀ tw : txn.TxnModelW, tw.toModel = txnWireOf b.model → kvShapeAll (irrTxn tw)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         txnObjAt tp [addr] ci cd b ∗ txnKvIs tp api ∗ kvObjAtC api conn [addr] ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpecOn s E ρ γr cid mid) ∗
         committedAtLeast γr c ∗ mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode n ∗
-        (□ txnUpdAt ρ.rd γr (txnWireOf b.model) Q ∨
-          (txnWriteOnce tp [addr] ∗ txnUpdAt ρ.rd γr (txnWireOf b.model) Q)) }}
+        (□ txnUpdAtOn s E ρ conn (GoInterface.ok ci) γr (txnWireOf b.model) Q ∨
+          (txnWriteOnce tp [addr] ∗ txnUpdAtOn s E ρ conn (GoInterface.ok ci) γr (txnWireOf b.model) Q)) }}
       (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
         (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -317,7 +339,7 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (s : Loc) (E : apply
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, Hobj, #Htk, #Hkv, #Hreg, #Hc, #HF, #Hn, Hnp⟩ HΦ
   have h : (iprop(committedAtLeast γr c ∗ mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode n) ∗
-        txnUpdAt ρ.rd γr (txnWireOf b.model) Q : IProp GF) ⊢
+        txnUpdAtOn s E ρ conn (GoInterface.ok ci) γr (txnWireOf b.model) Q : IProp GF) ⊢
       attemptPre conn (GoInterface.ok ci) (etcdTxnSpecOn s E ρ γr cid mid) (txnWireOf b.model)
         (fun (m : TxnRespM) => iprop(txnReplied E ρ.rd γr c F (txnWireOf b.model) Q cid mid m ∗
           ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
@@ -327,10 +349,17 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (s : Loc) (E : apply
     iintro %md %Hmd
     unfold etcdTxnSpecOn
     isplitl []
-    · ipureintro; exact ⟨hp, hin, hsh⟩
+    · ipureintro; exact ⟨hin, hsh⟩
     iexists Q
     isplitl [Hu]
-    · iunfold txnUpdAt at Hu; iexact Hu
+    · iunfold txnUpdAtOn at Hu
+      icases Hu with (%Hro | ⟨%Hrs, #Hr⟩ | ⟨%Hw, Hau⟩)
+      · ileft; ipureintro; exact Hro
+      · iright; ileft; iframe Hr; ipureintro; exact Hrs
+      · iright; iright
+        isplitr
+        · ipureintro; exact Hw
+        iapply clientOpAuOn_attempt s E ρ conn (GoInterface.ok ci) md _ Q Hmd $$ Hau
     iexists c, F, n
     iframe Hc HF Hn
     iintro %m Hm Ha
@@ -345,6 +374,8 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (s : Loc) (E : apply
         txnAuthOn s E ρ γr c n (auth.mdTokenOf md) (txnWireOf b.model)))) $$ [Hobj Hnp]
   · iframe Hobj
     iframe #
+    isplitl [Hnp]; rotate_left
+    · ipureintro; exact hsz
     iapply (txnReqPre_wand tp [addr] _ _ _ h)
     isplitl []
     · iframe #

@@ -16,3 +16,5 @@ axiom zap.Error.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.String.wp_proof
+sorry raftNode.start.wp_proof
+sorry rn_ready_recv

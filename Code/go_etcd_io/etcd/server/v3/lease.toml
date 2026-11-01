@@ -1,7 +1,8 @@
 # Types and names only, except the lessor's methods the KV store calls (`GetLease`, `Attach`,
 # `Detach`, `Lookup`, `SetRangeDeleter`; lessor.go, unit 8 of the backend) and those the apply
 # thread calls (`Grant`, `Revoke`, `Checkpoint`, `Demote`, `ExpiredLeasesC`, with their callees in
-# lessor.go, lease.go and lease_queue.go; unit 9), with bodies.
+# lessor.go, lease.go and lease_queue.go; unit 9), with bodies; (the lease-read plan, 2026-10-31)
+# `Leases` (the server's `LeaseLeases`), with its sort's `leasesByExpiry` and `Remaining`.
 # Names only: `Promote` (float arithmetic, a float-to-integer conversion, `sort.Sort` of the
 # leases), `scheduleCheckpointIfNeeded` (`int64(d.Seconds())`, a float-to-integer conversion,
 # which Perennial's semantics does not step) and the rest (renewal, recovery, the expiry loop).
@@ -19,6 +20,8 @@ translate = ["!*", "Lessor", "NoLease", "MaxLeaseTTL", "forever", "ErrLeaseNotFo
   "lessor.clearScheduledLeasesCheckpoints", "lessor.clearLeaseExpiredNotifier",
   "NewLease", "Lease.persistTo", "Lease.TTL", "Lease.getRemainingTTL", "Lease.refresh",
   "Lease.forever", "Lease.Keys",
+  "lessor.Leases", "lessor.unsafeLeases", "leasesByExpiry", "leasesByExpiry.Len",
+  "leasesByExpiry.Less", "leasesByExpiry.Swap", "Lease.Remaining",
   "LeaseQueue.Len", "LeaseQueue.Less", "LeaseQueue.Swap", "LeaseQueue.Push", "LeaseQueue.Pop",
   "newLeaseExpiredNotifier", "LeaseExpiredNotifier.RegisterOrUpdate"]
 imports = ["!*", "container/heap", "context", "sort", "sync", "time", "errors",

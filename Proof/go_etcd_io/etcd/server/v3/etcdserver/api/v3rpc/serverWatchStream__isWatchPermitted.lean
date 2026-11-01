@@ -42,26 +42,34 @@ theorem v3rpc.authInfoIs_ptsto' (a : Loc) (user : GoString) (rev : w64) :
     iframe Hu Hr
   · ipureintro; exact Hn
 
+/-- One proof for both modes (the auth-mode merge, 2026-10-29: the former `wp_proof` and
+(`isWatchPermitted_bound`): the binding under the mode's gate). -/
 theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     v3rpc.serverWatchStream.isWatchPermitted.spec (GF := GF) (hG := hG) := by
-  intro sws r wcr ks es k e dk de
-  wp_start as ⟨#Hs, HRD, Hk, #Hks, He, #Hes, %Hkl⟩
+  intro sws r wcr ks es k e dk de n
+  wp_start as ⟨#Hs, HRD, #HaLb, #Hpub, Hk, #Hks, He, #Hes, %Hkl⟩
   iunfold v3rpc.swsIs at Hs
   icases Hs with ⟨%Hnn, -, -, -, -, -, -, #Hag, #Hst, -, -, -, -, -, -, #Hok, #Hstr, -⟩
   iunfold v3rpc.watchSrvOk at Hok
-  icases Hok with ⟨-, -, -, ⟨%st, %cca, %P, %f, #Has, #Hreq, #Hcca, #Has2⟩, -⟩
+  icases Hok with ⟨-, -, -, ⟨%st, %cca, %P, %f, #Has, #Hreq, #Hreqb, #Hcca, #Has2⟩, -⟩
   iunfold v3rpc.srvStreamIs at Hstr
   icases Hstr with ⟨%si, %Hsi, -, -, #Hctx, #Hic, -⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
+  iunfold apply.isAuthStore at Has2
+  icases Has2 with ⟨%ai, %Hai, -, #HIRP, -⟩
+  subst Hai
+  -- the store's range check, with auth on at the bound `n` (`srvAuthLb`)
+  ihave #HRC := srvAuthLb_rangeCheck r.srv.s r.srv.E ai n $$ [$Has $HaLb $Hpub $HIRP]
   (try wp_auto)
   rw [Hsi]
   (try wp_auto)
   wp_apply Hctx
   (try wp_auto)
-  wp_apply (hAI r.srv.s st r.srv.E.RD cca r.ci r.cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr⟩
+  wp_apply (hAI r.srv.s _ r.srv.E.RD r.srv.E.authMode cca
+      r.ci r.cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb⟩
   · iframe #
     iunfold mvcc.txnCtx
     iright; iexact Hic
@@ -73,19 +81,16 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     iframe #
     iintro %h; cases h
   (try wp_auto)
-  iunfold apply.isAuthStore at Has2
-  icases Has2 with ⟨%ai, %Hai, -, #HIRP, -⟩
-  iunfold apply.permCheck3 at HIRP
   ihave %Hksl := ownSlice_len _ _ _ $$ Hks
   iunfold authInfoOpt at Ha
-  icases Ha with (%Han | ⟨%user, %rev, Hau⟩)
+  icases Ha with (%Han | ⟨%user, %rev, #Hau⟩)
   · subst Han
     (try wp_auto)
-    wp_apply (hAS r.srv.s st)
+    wp_apply (hAS r.srv.s _)
     · iframe #
-    subst Hai
+    (try iintro -)
     (try wp_auto)
-    wp_apply HIRP $$ [$«$r0» $HRD] as %err2 ⟨-, -, -, HRD, #Herr2a, -, #Hv⟩
+    wp_apply HRC $$ [$«$r0» $HRD] as %err2 ⟨-, -, -, HRD, #Herr2a, #Hv⟩
     · iframe #
       ipureintro; word
     ihave #Herr2 := authApplyErrIs_apply err2 $$ Herr2a
@@ -96,18 +101,23 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     iintro %h
     subst h
     iexists _
-    iapply (apply.classRes_of_permVerdict r.srv.E.authMode _ k e .read) $$ Hv
-  · ihave #Hap := v3rpc.authInfoIs_ptsto' a user rev $$ Hau
+    isplitl
+    · iapply Hv; ipureintro; rfl
+    iintro !> -
+    iunfold principalBoundI
+    ileft; ipureintro; rfl
+  · ihave #Hap := authInfoIs_pointsto a user rev $$ Hau
+    ihave #Hpb := principalBound_of_ctxBoundOrTLS_gate r.srv.s r.srv.E.authMode (GoInterface.ok r.ci) a user rev $$ [$Hb $Hau]
     iunfold authInfoIs at Hau
     icases Hau with ⟨%Hann, -, -⟩
     (try wp_auto)
     rw [_root_.decide_eq_false Hann]
     (try wp_auto)
-    wp_apply (hAS r.srv.s st)
+    wp_apply (hAS r.srv.s _)
     · iframe #
-    subst Hai
+    (try iintro -)
     (try wp_auto)
-    wp_apply HIRP $$ [$Hap $HRD] as %err2 ⟨-, -, -, HRD, #Herr2a, -, #Hv⟩
+    wp_apply HRC $$ [$Hap $HRD] as %err2 ⟨-, -, -, HRD, #Herr2a, #Hv⟩
     · iframe #
       ipureintro; word
     ihave #Herr2 := authApplyErrIs_apply err2 $$ Herr2a
@@ -118,7 +128,11 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     iintro %h
     subst h
     iexists _
-    iapply (apply.classRes_of_permVerdict r.srv.E.authMode _ k e .read) $$ Hv
+    isplitl
+    · iapply Hv; ipureintro; rfl
+    iintro !> %h
+    iunfold principalBoundI
+    iright; iapply Hpb; ipureintro; exact h
 
 end proof
 

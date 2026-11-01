@@ -14,6 +14,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Spec.context.WithTimeoutBackground
+public import Spec.context.WithTimeoutBackgroundMd
 
 @[expose] public section
 
@@ -66,6 +67,40 @@ theorem wp_WithTimeout_bg (hWT : context.WithTimeoutBackground.spec (GF := GF) (
     iexact Hctx
   iapply Hall
   iexact Hctx
+
+/-- **`wp_WithTimeout_bg` with the context's outgoing metadata** (5b): over
+`context.WithTimeoutBackgroundMd`, the context also carries no outgoing metadata. -/
+theorem wp_WithTimeout_bgMd (hWT : context.WithTimeoutBackgroundMd.spec (GF := GF) (hG := hG))
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
+    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
+    (d : _root_.Perennial.time.Duration) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.context }}
+      (App (App (Val (@! _root_.Perennial.context.WithTimeout))
+        (Val #(interface.ok _root_.Perennial.context.backgroundCtxVal))) (Val #d))
+    {{ (ctx' : GoInterfaceOk) (cd : _root_.Perennial.context.ContextDesc (IProp GF))
+        (cancel : GoFunc), RET (PairV #(interface.ok ctx') #cancel);
+        □ (∀ Φ : val → IProp GF, True -∗ ▷ (True -∗ Φ #()) -∗
+          WP (App (Val #cancel) (Val #())) {{ Φ }}) ∗
+        ctxOk ctx' cd ∗ ctxErrClient ctx' cd ∗ _root_.Perennial.context.isContext ctx' cd ∗
+        ⌜metadata.outgoingOf (GoInterface.ok ctx') = none⌝ }} := by
+  iintro %Φ #Hpkg HΦ
+  ihave #Hcci : _root_.Perennial.context.isClosedchanInit (GF := GF) $$ []
+  · iapply _root_.Perennial.context.isClosedchanInit_of_init
+    iexact Hpkg
+  ihave #Hall := ctxErrClientAllW_of wp_ErrAny hAs $$ Hpkg
+  iunfold ctxErrClientAllW at Hall
+  wp_apply hWT d $$ [] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, %Hmd⟩
+  · iframe #
+  iapply HΦ
+  iframe #
+  isplitr
+  · iapply ctxOk_of_isContext
+    iexact Hctx
+  isplitl
+  · iapply Hall
+    iexact Hctx
+  ipureintro; exact Hmd
 
 end proof
 

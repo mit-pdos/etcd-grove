@@ -115,7 +115,7 @@ schedule_fifo__run: schedule_fifo__executeJob
 schedule_NewFIFOScheduler: verify_Assert schedule_fifo__run
 NewHashStorage:
 schema_UnsafeCreateMetaBucket:
-store__restore: store__setupMetricsReporter NewRevBytes RevToBytes UnsafeReadFinishedCompact UnsafeReadScheduledCompact restoreIntoIndex restoreChunk BytesToRev zap_Int64 zap_Logger__Info
+store__restore: store__setupMetricsReporter NewRevBytes RevToBytes UnsafeReadFinishedCompact UnsafeReadScheduledCompact restoreIntoIndex restoreChunk BytesToRev zap_Int64 zap_Logger__Info zap_String zap_Error zap_Logger__Warn
 # schema's `bucket` methods (bucket.go): the backend calls them through its `Bucket` interface
 # (`isBucket`), on schema's `Key` and `Meta` (the backend bridge, `BackendBridge.lean`).
 schema_bucket__ID:

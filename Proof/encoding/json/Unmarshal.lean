@@ -20,6 +20,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 axiom encoding.json.Unmarshal.wp_proof : encoding.json.Unmarshal.spec (GF := GF) (hG := hG)
 

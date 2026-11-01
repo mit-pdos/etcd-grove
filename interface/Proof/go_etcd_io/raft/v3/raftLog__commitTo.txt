@@ -17,7 +17,7 @@ theorem raftLog.commitTo.wp_proof [package_sem : Assumptions] (wp_raftLog_lastIn
                       inprogress := ls.inprogress, applying := ls.applying, unpersisted := ls.unpersisted,
                       stored := ls.stored, apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn,
                       fl := ls.fl, sip := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat,
-                      sxt := ls.sxt } -∗
+                      sxt := ls.sxt, stb := ls.stb, sdt := ls.sdt, sn := ls.sn, sg := ls.sg, dtk := ls.dtk } -∗
                   Φ (intoVal ())) -∗
               WP
                 ((intoVal

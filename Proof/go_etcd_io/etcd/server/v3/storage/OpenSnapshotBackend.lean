@@ -69,14 +69,14 @@ theorem storage.OpenSnapshotBackend.wp_proof
     icases Hr with (⟨%Hr, Hf, Hpo⟩ | ⟨%Hr, Hok, Hf, Hpo⟩)
     · subst Hr
       wp_auto
-      wp_apply wp_OpenBackend cfg _ P D W Pk K $$ [$Hpkg $Hf $Hpre] as %b %γ ⟨Hnew, Hncmp⟩
+      wp_apply wp_OpenBackend cfg _ P D W Pk K $$ [$Hpkg $Hf $Hpre] as %b %γ Hnew
       iapply HΦ
       iframe Hmdp Hsm
       ileft
       isplitr
       · ipureintro; rfl
       iexists b, γ
-      iframe Hnew Hncmp Hpo
+      iframe Hnew Hpo
       ipureintro; rfl
     · obtain ⟨ei, rfl⟩ : ∃ ei, err2 = GoInterface.ok ei := by
         cases err2 with

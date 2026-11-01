@@ -176,7 +176,7 @@ theorem leasingKV.acquire.wp_proof
     intro h
     have := congrArg List.length h
     simp only [List.length_append] at this
-    exact Hpfx (List.length_eq_zero_iff.1 (by omega))
+    exact Hpfx.1 (List.length_eq_zero_iff.1 (by omega))
   wp_apply_raw HIf $$ %TxnBuild.empty %_
       %([compareM (cmpKeyM .create (pfx ++ key)) .eq (.num (W64 0)),
          compareM (cmpKeyM .lease key) .eq (.num (W64 0))] : List CmpModel) [$HB]
@@ -243,7 +243,14 @@ theorem leasingKV.acquire.wp_proof
   (try wp_auto)
   ihave HB := txnBuild_conv B _ (TxnBuild.mk (acquireTxn key (pfx ++ key) id o) true true true) (by rfl) $$ HB
   wp_apply HCommit $$ %_ %lo [$HB $Hlo] as %resp %err Hres
-  · ipureintro; exact TxnModel.under_nil _
+  · ipureintro
+    refine ⟨TxnModel.under_nil _, ?_⟩
+    obtain ⟨h1, h2, h3⟩ := Ho.2.2.2
+    have hk : key.length ≤ 2 ^ 27 := Ho.2.1 ▸ h1
+    have hp := Hpfx.2
+    simp [txnSizeOk, txnWireLen, acquireTxn, cmpWireLen, TxnOp.wireLen, opWireLen, wireSlack,
+      compareM, cmpKeyM, op_simps]
+    omega
   iunfold txnCommitResultO at Hres
   icases Hres with (⟨%Hne, %Hce, #Hse⟩ | ⟨%Heq, Hok⟩)
   · -- an error: `errors.As`, then `status.FromError`
@@ -317,7 +324,7 @@ theorem leasingKV.acquire.wp_proof
     icases txnStates_wrote $$ Hts with ⟨#Hs0, #Hs1⟩
     obtain ⟨Hwf', nv, Hnv, Hnvl⟩ := putKv_wf r (pfx ++ key) [] id s Hwf
     ihave %Hrevs := etcdState_revs r [] _ $$ Hs1
-    obtain ⟨Hsel, -⟩ := rangeSel_putKv r (pfx ++ key) [] id s o Ho.2.2 (by rw [Hko]; exact hlk)
+    obtain ⟨Hsel, -⟩ := rangeSel_putKv r (pfx ++ key) [] id s o Ho.2.2.1 (by rw [Hko]; exact hlk)
     wp_auto
     wp_for_post
     iapply HΦ

@@ -24,12 +24,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
 
-/-- A `Schedule` after `Stop` is excluded: a tracked one brings a third half of the queue, an
-untracked one `schedLive`, which the stop token excludes. -/
+/-- A `Schedule` after `Stop` is excluded: a tracked one brings a half of the queue beyond the
+lock invariant's half and fraction `q`, an untracked one `schedLive`, which the stop token
+excludes. -/
 theorem schedPre_stopped (γ : SchedNames) (tr : Option (List GName × GName × GName))
-    (Prev Post : IProp GF) (L : List GName) :
+    (Prev Post : IProp GF) (L : List GName) (q : Qp) :
     ⊢ schedPre γ tr Prev Post -∗ schedStopTok γ -∗ monoListAuthOwn γ.jobs (1 : Qp).half L -∗
-      monoListAuthOwn γ.jobs (1 : Qp).half L -∗ False := by
+      monoListAuthOwn γ.jobs q L -∗ False := by
   iintro Hpre Htok Hq1 Hq2
   cases tr with
   | none =>
@@ -49,17 +50,17 @@ theorem schedPre_stopped (γ : SchedNames) (tr : Option (List GName × GName × 
     simp only [schedPre]
     icases Hpre with ⟨Hq, -, -⟩
     iunfold schedQueue at Hq
-    ihave Hq12 := (monoListAuthOwn_fractional γ.jobs L).fractional (1 : Qp).half (1 : Qp).half
+    ihave Hq12 := (monoListAuthOwn_fractional γ.jobs L).fractional (1 : Qp).half q
       |>.2 $$ [Hq1 Hq2]
     · iframe
-    rw [Qp.half_add_half] at *
     ihave %Hv := monoListAuthOwn_agree γ.jobs _ _ _ _ $$ Hq12 Hq
     exfalso
-    have h := Hv.1
-    have h' : (1 + (1 : Qp).half).val ≤ (1 : Qp).val := Qp.le_iff.1 h
-    have hh : (1 + (1 : Qp).half).val = 1 + 1 / 2 := rfl
+    have h' := Qp.le_iff.1 Hv.1
+    have hq := q.2
+    have hh : ((1 : Qp).half).val = 1 / 2 := rfl
     have h1 : (1 : Qp).val = 1 := rfl
-    rw [hh, h1] at h'
+    have hs : (((1 : Qp).half + q) + (1 : Qp).half).val = 1 / 2 + q.val + 1 / 2 := rfl
+    rw [hs, h1] at h'
     grind
 
 /-- The baton read in a longer queue. -/
@@ -93,7 +94,8 @@ theorem schedule.fifo.Schedule.wp_proof : schedule.fifo.Schedule.spec (GF := GF)
   icases Hst with (⟨%Hcf, Hst⟩ | ⟨%Hcf, #Hstp, Htok, Hq'⟩)
   rotate_left
   · iexfalso
-    iapply schedPre_stopped γ tr Prev Post L $$ Htr Htok Hq Hq'
+    icases Hq' with ⟨%q, Hq'⟩
+    iapply schedPre_stopped γ tr Prev Post L q $$ Htr Htok Hq Hq'
   subst Hcf
   simp only [decide_eq_false Hcfnn]
   wp_auto

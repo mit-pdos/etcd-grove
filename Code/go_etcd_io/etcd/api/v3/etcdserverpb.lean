@@ -193,6 +193,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   _KV_Put_Handler_unfold : FuncUnfold _KV_Put_Handler [] _KV_Put_Handler.impl
   _KV_DeleteRange_Handler_unfold : FuncUnfold _KV_DeleteRange_Handler [] _KV_DeleteRange_Handler.impl
   _KV_Txn_Handler_unfold : FuncUnfold _KV_Txn_Handler [] _KV_Txn_Handler.impl
+  _KV_Compact_Handler_unfold : FuncUnfold _KV_Compact_Handler [] _KV_Compact_Handler.impl
   NewWatchClient_unfold : FuncUnfold NewWatchClient [] NewWatchClient.impl
   RegisterWatchServer_unfold : FuncUnfold RegisterWatchServer [] RegisterWatchServer.impl
   _Watch_Watch_Handler_unfold : FuncUnfold _Watch_Watch_Handler [] _Watch_Watch_Handler.impl
@@ -206,6 +207,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewAuthClient_unfold : FuncUnfold NewAuthClient [] NewAuthClient.impl
   RegisterAuthServer_unfold : FuncUnfold RegisterAuthServer [] RegisterAuthServer.impl
   _Auth_AuthEnable_Handler_unfold : FuncUnfold _Auth_AuthEnable_Handler [] _Auth_AuthEnable_Handler.impl
+  _Auth_Authenticate_Handler_unfold : FuncUnfold _Auth_Authenticate_Handler [] _Auth_Authenticate_Handler.impl
   _Auth_UserAdd_Handler_unfold : FuncUnfold _Auth_UserAdd_Handler [] _Auth_UserAdd_Handler.impl
   _Auth_UserGrantRole_Handler_unfold : FuncUnfold _Auth_UserGrantRole_Handler [] _Auth_UserGrantRole_Handler.impl
   _Auth_RoleAdd_Handler_unfold : FuncUnfold _Auth_RoleAdd_Handler [] _Auth_RoleAdd_Handler.impl
@@ -389,6 +391,7 @@ attribute [instance] Assumptions.Metadata_instance
   Assumptions._KV_Put_Handler_unfold
   Assumptions._KV_DeleteRange_Handler_unfold
   Assumptions._KV_Txn_Handler_unfold
+  Assumptions._KV_Compact_Handler_unfold
   Assumptions.NewWatchClient_unfold
   Assumptions.RegisterWatchServer_unfold
   Assumptions._Watch_Watch_Handler_unfold
@@ -402,6 +405,7 @@ attribute [instance] Assumptions.Metadata_instance
   Assumptions.NewAuthClient_unfold
   Assumptions.RegisterAuthServer_unfold
   Assumptions._Auth_AuthEnable_Handler_unfold
+  Assumptions._Auth_Authenticate_Handler_unfold
   Assumptions._Auth_UserAdd_Handler_unfold
   Assumptions._Auth_UserGrantRole_Handler_unfold
   Assumptions._Auth_RoleAdd_Handler_unfold

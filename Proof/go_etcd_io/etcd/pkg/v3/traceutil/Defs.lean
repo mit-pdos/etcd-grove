@@ -40,7 +40,7 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
 /-- The fields' values are `nil` or of a predeclared basic type (`fmt.ArgsWf`), as the trace's
 logger formats them with `%v`. -/
-def traceutil.fieldsWf (fs : List traceutil.Field) : Prop :=
+def traceutil.fieldsWf [GoSemanticsFunctions] (fs : List traceutil.Field) : Prop :=
   _root_.Perennial.fmt.ArgsWf (fs.map traceutil.Field.Value')
 
 /-- A slice of fields, owned with its capacity, its values formattable. -/
@@ -105,7 +105,7 @@ theorem traceutil.ownFields_nil : ⊢ traceutil.ownFields (GF := GF) slice.nil :
   intro ii h
   simp at h
 
-theorem traceutil.fieldsWf_append {l1 l2 : List traceutil.Field} (h1 : traceutil.fieldsWf l1)
+theorem traceutil.fieldsWf_append [GoSemanticsFunctions] {l1 l2 : List traceutil.Field} (h1 : traceutil.fieldsWf l1)
     (h2 : traceutil.fieldsWf l2) : traceutil.fieldsWf (l1 ++ l2) := by
   unfold traceutil.fieldsWf _root_.Perennial.fmt.ArgsWf at *
   intro ii h
@@ -114,15 +114,15 @@ theorem traceutil.fieldsWf_append {l1 l2 : List traceutil.Field} (h1 : traceutil
   · exact h1 ii h
   · exact h2 ii h
 
-theorem traceutil.fieldsWf_of_mem {l : List traceutil.Field} {f : traceutil.Field}
+theorem traceutil.fieldsWf_of_mem [GoSemanticsFunctions] {l : List traceutil.Field} {f : traceutil.Field}
     (h : traceutil.fieldsWf l) (hm : f ∈ l) : traceutil.fieldsWf [f] := by
   unfold traceutil.fieldsWf _root_.Perennial.fmt.ArgsWf at *
   intro ii hi
   simp only [List.map_cons, List.map_nil, List.mem_singleton] at hi
   exact h ii (by rw [hi]; exact List.mem_map_of_mem hm)
 
-theorem traceutil.fieldsWf_set {l : List traceutil.Field} {f : traceutil.Field} (i : Nat)
-    (h : traceutil.fieldsWf l) (hf : traceutil.fieldsWf [f]) :
+theorem traceutil.fieldsWf_set [GoSemanticsFunctions] {l : List traceutil.Field}
+    {f : traceutil.Field} (i : Nat) (h : traceutil.fieldsWf l) (hf : traceutil.fieldsWf [f]) :
     traceutil.fieldsWf (l.set i f) := by
   unfold traceutil.fieldsWf _root_.Perennial.fmt.ArgsWf at *
   intro ii hi
@@ -133,30 +133,34 @@ theorem traceutil.fieldsWf_set {l : List traceutil.Field} {f : traceutil.Field} 
   · subst hg
     exact hf ii (by rw [← he]; simp)
 
-theorem traceutil.fieldsWf_nil : traceutil.fieldsWf [] := by
+theorem traceutil.fieldsWf_nil [GoSemanticsFunctions] : traceutil.fieldsWf [] := by
   unfold traceutil.fieldsWf; exact _root_.Perennial.fmt.ArgsWf.nil
 
-theorem traceutil.fieldsWf_cons_string (k x : GoString) (fs : List traceutil.Field)
-    (h : traceutil.fieldsWf fs) :
+theorem traceutil.fieldsWf_cons_string [GoSemanticsFunctions] [go.string ↓u go.string]
+    (k x : GoString) (fs : List traceutil.Field) (h : traceutil.fieldsWf fs) :
     traceutil.fieldsWf ({ Key' := k, Value' := interface.mkOk go.string #x } :: fs) := by
   unfold traceutil.fieldsWf at *
   exact _root_.Perennial.fmt.ArgsWf.cons_string x _ h
 
-theorem traceutil.fieldsWf_cons_int (k : GoString) (ii : GoInterfaceOk) (z : Int)
-    (hz : _root_.Perennial.fmt.IntArgValue ii z) (fs : List traceutil.Field)
+theorem traceutil.fieldsWf_cons_int [GoSemanticsFunctions] [go.string ↓u go.string]
+    (k : GoString) (ii : GoInterfaceOk) (z : Int) (hz : _root_.Perennial.fmt.IntArgValue ii z) (fs : List traceutil.Field)
     (h : traceutil.fieldsWf fs) :
     traceutil.fieldsWf ({ Key' := k, Value' := GoInterface.ok ii } :: fs) := by
   unfold traceutil.fieldsWf at *
   exact _root_.Perennial.fmt.ArgsWf.cons_int ii z _ hz h
 
-theorem traceutil.fieldsWf_cons_bool (k : GoString) (b : Bool) (fs : List traceutil.Field)
-    (h : traceutil.fieldsWf fs) :
+theorem traceutil.fieldsWf_cons_bool [GoSemanticsFunctions] [go.bool ↓u go.bool] (k : GoString)
+    (b : Bool) (fs : List traceutil.Field) (h : traceutil.fieldsWf fs) :
     traceutil.fieldsWf ({ Key' := k, Value' := interface.mkOk go.bool #b } :: fs) := by
   unfold traceutil.fieldsWf at *
   refine _root_.Perennial.fmt.ArgsWf.cons_other go.bool #b _ ?_ ?_ ?_ h
   · simp [go.bool, go.string]
-  · simp [_root_.Perennial.fmt.IsIntType, go.bool, go.int, go.int64, go.int32, go.int16, go.int8,
-      go.uint, go.uint64, go.uint32, go.uint16, go.uint8]
+  · have hb : ¬ _root_.Perennial.fmt.IsIntType go.bool := by
+      simp [_root_.Perennial.fmt.IsIntType, go.bool, go.int, go.int64, go.int32, go.int16,
+        go.int8, go.uint, go.uint64, go.uint32, go.uint16, go.uint8]
+    rintro (hi | ⟨hi, -⟩)
+    · exact hb hi
+    · rw [go.is_underlying] at hi; exact hb hi
   · exact Or.inr (Or.inl rfl)
 
 /-- **`context.TODO()` carries no trace**: its `Value` (`emptyCtx`'s) returns `nil`. -/

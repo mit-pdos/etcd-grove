@@ -121,13 +121,12 @@ theorem RInv_rboot (dec : CCDec) (c0 : CCState) (bootLog : List EntryM)
   have hfull : (rboot c0 bootLog).full = bootLog := by
     show [] ++ bootLog = bootLog; rfl
   have h0 := base0_index
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · exact FullOk_base0
   · show uint.Z base0.index' ≤ _; rw [h0, hc]; omega
   · show _ ≤ plogLastIndexZ base0 bootLog; unfold plogLastIndexZ; rw [h0, hc]; omega
   · show uint.nat (W64 0) ≤ 0; decide
   · show 0 ≤ _; omega
-  · intro h; cases h
   · intro _; show uint.Z base0.index' ≤ uint.Z (W64 0); rw [h0]; decide
   · intro h; cases h
   · show cfgFold dec c0 (([] ++ bootLog).take 0) = some c0; rfl

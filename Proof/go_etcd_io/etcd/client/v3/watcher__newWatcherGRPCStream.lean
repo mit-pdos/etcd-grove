@@ -47,9 +47,10 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   wp_auto
   wp_alloc vcp as Hvc
   ipersist Hvc
-  wp_apply wp_WithCancel vcp inctx cs $$ [] as %cx %γc %cancel ⟨#Hcspec, #Hcx⟩
+  wp_apply wp_WithCancel vcp inctx cs $$ [] as %cx %γc %cancel ⟨#Hcspec, #Hcx, %Hmd⟩
   · iframe #
-  wp_apply wp_key as %ckey -
+  wp_apply wp_key inctx cs $$ []
+  · iframe #
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %m0 Hm0
   wp_apply chan.wp_make1 (V := Loc) as %respc %γresp ⟨#Hrespc, %-, Hrespo⟩
   wp_apply chan.wp_make1 (V := GoInterface) as %reqc %γreq ⟨#Hreqc, %-, Hreqo⟩
@@ -73,7 +74,8 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   ipersist closingc
   ipersist lg
   imod wgsWg_init _ Hb $$ wg with Hadder
-  imod start_bag (reqP V) _ reqc γreq (by trivial) $$ Hreqc Hreqo with #Hbreq
+  imod start_bag (reqP V (streamKeyOf (metadata.outgoingOf (GoInterface.ok cx)))) _ reqc γreq
+    (by trivial) $$ Hreqc Hreqo with #Hbreq
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Unit) with ⟨%γws, Hws⟩
   -- (D25) `respc`'s SPSC over every epoch of `run`, the epochs' mono list
   imod mono_list_own_alloc (GF := GF) ([] : List EpInfo) with ⟨%γep, Hep, -⟩
@@ -82,7 +84,7 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   imod start_bag (errP γr γep) _ errc γerr (by trivial) $$ Herrc Herro with #Hberr
   -- (D25) the generations of `resumec`
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γend, Hgen, -⟩
-  let G : WgsPrm GF := ⟨«$r0_ptr», w, cx, { Values := ∅, Deadline := none, Done_gn := γc, PDone := iprop(True) }, γc, cancel, ckey, reqc, γreq, respc, donec, γdone, errc, γerr, closingc, γcl, γws, γr, γep, γend⟩
+  let G : WgsPrm GF := ⟨«$r0_ptr», w, cx, { Values := ∅, Deadline := none, Done_gn := γc, PDone := iprop(True) }, γc, cancel, streamKeyOf (metadata.outgoingOf (GoInterface.ok inctx)), reqc, γreq, respc, donec, γdone, errc, γerr, closingc, γcl, γws, γr, γep, γend⟩
   imod start_bag (closingP V G) _ closingc γcl (by trivial) $$ Hclc Hclo with #Hbcl
   imod alloc_broadcast_chan (E := ⊤) (closeErrPub «$r0_ptr») γdone donec $$ Hdonec Hdoneo with Hdb
   icases ownBroadcastChan_dup_unknown _ _ _ _ $$ Hdb with ⟨Hdb, #Hdbu⟩
@@ -110,7 +112,7 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   iapply HΦ
   iexists G, callSl
   iframe #
-  ipureintro; exact ⟨rfl, rfl⟩
+  ipureintro; exact ⟨⟨rfl, rfl⟩, Hmd, rfl⟩
 
 end proof
 

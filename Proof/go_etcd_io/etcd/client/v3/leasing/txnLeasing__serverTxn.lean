@@ -53,7 +53,7 @@ theorem txnLeasing.serverTxn.wp_proof
     (hrfb : txnLeasing.revokeFallback.spec (GF := GF) (hG := hG)) :
     txnLeasing.serverTxn.spec (GF := GF) (hG := hG) := by
   intro txn lkv γ pfx ctx cs b lo
-  wp_start as ⟨Htxn, Hrd, #Hcc, #Hlo⟩
+  wp_start as ⟨Htxn, Hrd, #Hcc, #Hlo, %Hsz⟩
   unfold ownTxnLeasing
   icases Htxn with ⟨%t0, %B0, %csl, %tsl, %esl, %tops, %eops, -, -, -, Hl, #Hlkv, Hc, #Hctx,
     Hcs, Hcso, Hts, Htso, Hes, Heso, %Hops⟩
@@ -103,7 +103,8 @@ theorem txnLeasing.serverTxn.wp_proof
   · iPkgInit
   wp_apply hOpTxn $$ [$Hcv3 $Hcmps] as %uv ⟨#Huv, #Huvc, %Huvs⟩
   ihave #Htree := userTxn_tree uv b.cmps tsl esl b.thenOs b.elseOs tops eops Ht He Huvs $$ [$Huv $Huvc $Hthen $Helse]
-  wp_apply hfb $$ [$Hl $Hlkv $Huopsat] as %fb ⟨Hl, %fos, #Hfos, %Hfosget⟩
+  wp_apply hfb $$ [$Hl $Hlkv $Huopsat] as %fb ⟨Hl, %fos, #Hfos, %Hfb⟩
+  obtain ⟨Hfosget, Hfosl, Hfosg⟩ := Hfb
   ihave #Hcache := isLeasingKV_cache $$ Hlkv
   ihave #Hwaitc := leasingX_waitc (GF := GF) lkv γ
   wp_apply hlwo $$ [$Hcache $Hwaitc $Huopsat] as %wsl ⟨%wcs, Hwsl, Hwcap, Hwcs⟩
@@ -114,7 +115,8 @@ theorem txnLeasing.serverTxn.wp_proof
   · simp only [named]; iframe
   wp_for IH
   wp_apply hguard $$ [$Hl $Hc $Hlkv $Hrd $Hsr $Hctx $Hcc $Huopsat] as %cmps %gerr ⟨Hl, Hc, Hrd, Hg⟩
-  icases Hg with (%Hgerr | ⟨%Hgerr, %ms, #Hms⟩)
+  · ipureintro; exact LTxnBuild.sizeOk_ops Hsz
+  icases Hg with (%Hgerr | ⟨%Hgerr, %ms, #Hms, %Hmsg⟩)
   · cases gerr with
     | nil => exact absurd rfl Hgerr
     | ok e =>
@@ -173,7 +175,10 @@ theorem txnLeasing.serverTxn.wp_proof
     iintro HB
     wp_auto
     wp_apply_raw HCommit $$ %_ %lo [$HB $Hlo]
-    · ipureintro; exact TxnModel.under_nil _
+    · ipureintro
+      refine ⟨TxnModel.under_nil _, ?_⟩
+      simpa [TxnBuild.empty, TxnModel.empty] using
+        serverTxn_sizeOk pfx b tops eops ms fos Hsz Ht He Hmsg ⟨Hfosl, Hfosg⟩
     inext
     iintro %resp %cerr Hcr
     simp only [TxnBuild.empty, TxnModel.empty, List.nil_append]
@@ -326,10 +331,22 @@ theorem txnLeasing.serverTxn.wp_proof
 
       | false =>
         simp only [TxnModel.branch, Bool.false_eq_true, ↓reduceIte]
-        imod fallbackResps_ro $$ Hops with ⟨%kvss, %Hkl, Hro⟩
+        ihave %Hks : ⌜∀ w ∈ s, w.key.length ≤ etcdKeyMax⌝ $$ [Hst]
+        · unfold txnStates
+          split
+          · icases Hst with ⟨#H0, -⟩
+            iapply etcdState_keys $$ H0
+          · iapply etcdState_keys $$ Hst
+        imod fallbackResps_ro etcdKeyMax _ _ _ (by
+            intro x hx
+            have hok' := hok
+            simp only [runTxn] at hok'
+            simp only [runTxn, TxnModel.branch, hok', Bool.false_eq_true, ↓reduceIte] at hx
+            exact runOps_gets_keys r s fos etcdKeyMax Hks x hx) $$ Hops
+          with ⟨%kvss, %Hkl, %Hkk, Hro⟩
         wp_auto
         wp_apply hrfb $$ [$Hl $Hc $Hlkv $Hrd $Hsr $Hctx $Hcc $Hps $Hro] as %ferr ⟨Hl, Hc, Hrd⟩
-        · ipureintro; exact Hkl
+        · ipureintro; exact ⟨Hkl, Hkk⟩
         cases ferr with
         | ok e =>
           wp_auto

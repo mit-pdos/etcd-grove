@@ -25,7 +25,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- `m.StreamServerInterceptor()` (no option) returns a transparent stream interceptor
-(`srvStreamInterceptorOk`, no resource). -/
+(`srvStreamInterceptorOk`, no resource), whose handler sees the run's own context (G2, 2026-10-30):
+it wraps the stream in a counting `monitoredServerStream` whose `Context()` is `newCtx`, which is
+`ss.Context()` unchanged (go-grpc-middleware v2.3.4 `interceptors/server.go:35,49-51`;
+providers/prometheus v1.1.0 `reporter.go:84-86,130`). -/
 abbrev grpc_prometheus.ServerMetrics.StreamServerInterceptor.spec : Prop :=
   ∀ (m : Loc),
   {{ promSrvMetrics (GF := GF) m }}

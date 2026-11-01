@@ -19,13 +19,19 @@ theorem raftLog.snapshot.wp_proof [package_sem : Assumptions] (wp_proto_CloneSna
                       ⌜err = GoInterface.nil⌝ ∗
                         ∃ sv,
                           ownSnapM snap (DFrac.own 1) sv ∗
-                            ⌜sv.Metadata'.Index' ≠ W64 0 ∧
-                                  uint.Z sv.Metadata'.Index' ≤ uint.Z ls.committed ∧
-                                    plogTermAt ls.prev (ls.sents ++ ls.uents) sv.Metadata'.Index' =
-                                        some sv.Metadata'.Term' ∧
-                                      (snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn ∨
-                                        uint.Z sv.Metadata'.Index' ≤ uint.Z ls.fl)⌝ ∗
-                              storCert ls.storage (snapTrip sv sv.Metadata'.ConfState'.lists)) -∗
+                            ⌜sv.Metadata'.Index' ≠ W64 0⌝ ∗
+                              (⌜ls.snap ≠ none ∧
+                                      snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn ∧
+                                        uint.Z sv.Metadata'.Index' ≤ uint.Z ls.committed ∧
+                                          plogTermAt ls.prev (ls.sents ++ ls.uents) sv.Metadata'.Index' =
+                                            some sv.Metadata'.Term'⌝ ∗
+                                  ksnCert ls.sn (snapTrip sv sv.Metadata'.ConfState'.lists) ∨
+                                ⌜ls.snap = none ∧
+                                      uint.Z ls.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
+                                        uint.Z sv.Metadata'.Index' ≤ uint.Z ls.committed ∧
+                                          plogTermAt ls.prev (ls.sents ++ ls.uents) sv.Metadata'.Index' =
+                                            some sv.Metadata'.Term'⌝ ∗
+                                  svCert ls.sn sv)) -∗
                   Φ (intoVal snap, intoVal err)) -∗
             WP
               ((intoVal

@@ -54,14 +54,15 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The monitors' permission in the auth mode `on`** (persistent; `srvMonitorPermit`'s): the
 request view in the mode, and the proposal permission in the mode (`reqPropOkM`, with a trivial
 result) for the monitors' requests. -/
 def srvMonitorPermitM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
   iprop(isServerReqM on s E ρ ∗
-    □ ∀ rq : apply.IRRModel, ⌜monitorReq rq⌝ -∗
-      reqPropOkM on ρ.kv rq (fun _ _ => iprop(True)))
+    □ ∀ (rq : apply.IRRModel) (Gb : apply.HeaderModel → IProp GF), ⌜monitorReq rq⌝ -∗
+      reqPropOkM on ρ.raft ρ.kv Gb rq (fun _ _ => iprop(True)))
 
 /-- The monitors' permission in either mode, from the server's request path in the mode. -/
 theorem srvMonitorPermitM_of (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
@@ -69,10 +70,11 @@ theorem srvMonitorPermitM_of (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : Req
   iintro #H
   iunfold srvMonitorPermitM
   iframe H
-  iintro !> %rq %hrq
+  iintro !> %rq %Gb %hrq
   cases on
-  · iapply (reqPropOkM_of_false ρ.kv rq (fun _ => iprop(True)))
-    iunfold reqPropOk
+  · iapply (reqPropOkM_of_false ρ.raft ρ.kv Gb rq (fun _ => iprop(True)))
+    iapply reqPropOk_of_W
+    iunfold reqPropOkW
     ileft
     ipureintro
     obtain ⟨h1, h2, h3, h4, -⟩ := monitorReq_prop rq hrq

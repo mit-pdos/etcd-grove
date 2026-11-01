@@ -32,6 +32,7 @@ public import Spec.errors.Is
 public import Spec.time.Duration__Seconds
 public import Perennial.Spec.time.Now
 public import Perennial.Spec.time.Since
+public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
 
 @[expose] public section
 
@@ -49,6 +50,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
 /-- A frozen message's snapshot's metadata (what `send` logs, `m.Snapshot.Metadata.GetIndex()`). -/
@@ -69,15 +71,15 @@ set_option hygiene false in
 /-- A log call (`lg.Info(...)`, `lg.Warn(...)`): its fields (the snapshot's index, strings, the
 error), the call. -/
 local macro "zap_log" : tactic => `(tactic| (
-  repeat' (first
-    | (wp_apply hGetIndex pm DFrac.discard sn.Metadata' $$ [Hsm] as Hsm; iframe; iframe #)
-    | (wp_apply hZUint64 as %_ -)
-    | (wp_apply hZString as %_ -)
-    | (wp_apply hZError as %_ -)
+  repeat' (first_callee
+    | "GetIndex" => (wp_apply hGetIndex pm DFrac.discard sn.Metadata' $$ [Hsm] as Hsm; iframe; iframe #)
+    | "zap.Uint64" => (wp_apply hZUint64 as %_ -)
+    | "zap.String" => (wp_apply hZString as %_ -)
+    | "zap.Error" => (wp_apply hZError as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
-    | (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
     | wp_auto)))
 
 set_option hygiene false in

@@ -35,14 +35,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `raft.wp_store_stateC` at the value the Go code stores. -/
+/-- `raft.wp_store_stateC` at the value the Go code stores (raft-final P2a: at a term past `0`,
+`XfOk`'s last clause; the premise added, the lemma being private). -/
 private theorem wp_store_state_leader (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (Hcfg : id ∈ c.voters) (Hpr : ∀ v p, s.prvals !! v = some p → PrOkN s.gh.ns s.logst p) :
+    (Hcfg : id ∈ c.voters) (Hpr : ∀ v p, s.prvals !! v = some p → PrOkN s.gh.ns s.logst p)
+    (Ht : s.term ≠ W64 0) :
     {{ ownRaftPhysCV (GF := GF) c c.voters r id s }}
       (App (Val (GoInstruction (GoStore StateType.ty)))
         (Val (PairV #(r.[raft, go!"state"]) go_etcd_io.raft.v3.StateLeader)))
     {{ RET #(); ownRaftPhysCV c c.voters r id { s with role := .leader } }} :=
   raft.wp_store_stateC c r id s .leader (fun _ _ => Hcfg) (Hpr := fun _ => Hpr)
+    (Hrt := fun _ => Ht)
 
 theorem raft.becomeLeader.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))
@@ -85,7 +88,7 @@ theorem raft.becomeLeader.wp_proof
   wp_apply wp_store_state_leader c r id
       { resetTo { s with stepfn := functions stepLeader [] } s.term with
           prvals := pvs, ticking := true, lead := id }
-      Hcfg (fun v p hv => (Hrp v p hv).prOkN Hnw Hli1) $$ Hphys as Hphys
+      Hcfg (fun v p hv => (Hrp v p hv).prOkN Hnw Hli1) Hnz $$ Hphys as Hphys
   -- the state is now `becomeLeaderPre` up to the order of the record updates
   ihave Hphys : ownRaftPhysCV c c.voters r id { becomeLeaderPre id s with prvals := pvs } $$ [Hphys]
   · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys

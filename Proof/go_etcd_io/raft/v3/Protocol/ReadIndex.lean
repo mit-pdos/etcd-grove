@@ -231,8 +231,8 @@ static instance has them overlap (`CfgAt.overlap`). B5: the paper's section 8, b
 reader's and the doom fact's configuration indices (the far cases through the doom fact's
 witness and at-most-one, `lc_core` at the doom term, I3 at the reader). -/
 theorem rqRecOk_confirm (γ : RaftNames) (T : w64) (r : RqRec) (P : List EntryM)
-    (c : CfgM) (Q : GSet w64) (Hst : γ.reDyn = none) :
-    CfgAt γ P c → JQuorum c Q →
+    (c : CfgM) (Q : GSet w64) (Hst : γ.reDyn = none) (M : DecMap) :
+    CfgAt γ M P c → JQuorum c Q →
     (∀ v ∈ Q, ∀ t' q, r.2 = some (t', q) → v ∉ q) →
     ⊢ rqRecOk (GF := GF) γ T r -∗ readOk γ r.1.1 r.1.2 := by
   intro HcQ HQ Hw
@@ -240,7 +240,7 @@ theorem rqRecOk_confirm (γ : RaftNames) (T : w64) (r : RqRec) (P : List EntryM)
   · iintro H; iexact H
   · unfold doomed
     iintro ⟨%n, %G, %a, %c', %q, %HqU, #Hcqa, -, -⟩
-    icases cqAt_parts γ _ _ _ _ _ _ $$ Hcqa with ⟨%Hpq, -⟩
+    icases cqAt_parts γ _ _ _ _ _ _ $$ Hcqa with ⟨%MHcqa, %Hpq, #HMHcqa, -⟩
     obtain ⟨-, -, Hc', Hq'⟩ := Hpq
     obtain ⟨x, Hx1, Hx2⟩ := CfgAt.overlap Hst HcQ Hc' Q q HQ Hq'
     exact absurd (HqU.2.2 x Hx2) (Hw x Hx1 t' U h)
@@ -278,7 +278,7 @@ theorem doom_choice (γ : RaftNames) (G : List EntryM) (T tD : w64) : ∀ (m : N
     by_cases hp : IsConfPos G m ∧ γ.reBoot.length ≤ m
     · ihave Hwm := H $$ %m %(⟨hp.1, by omega⟩ : IsConfPos G m ∧ m < m + 1) %hp.2
       icases Hwm with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
-      icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨-, -, -, #Hackw, -⟩
+      icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%MHcqw, -, #HMHcqw, -, -, #Hackw, -⟩
       iexists (if uint.Z T < uint.Z tw then U0 ∪ qw else U0)
       isplitr
       · iintro %u %hu
@@ -330,7 +330,7 @@ theorem doomed_intro (γ : RaftNames) (T t n : w64) (G : List EntryM) (a : w64) 
     ⊢ cqAt (GF := GF) γ t n G a c q -∗ ∃ U, doomed γ T t U := by
   intro HT Hn
   iintro #Hc
-  icases cqAt_parts γ t n G a c q $$ Hc with ⟨%Hp, -, -, #Hacks, #Hd⟩
+  icases cqAt_parts γ t n G a c q $$ Hc with ⟨%MHc, %Hp, #HMHc, -, -, #Hacks, #Hd⟩
   ihave #Hq : (∀ (u : w64), ∀ (_ : u ∈ q), ∃ (t'' i'' : w64),
       ⌜uint.Z T < uint.Z t'' ∧ 0 < uint.Z i''⌝ ∗ isAcked (GF := GF) γ u t'' i'') $$ []
   · iintro %u %hu
@@ -532,22 +532,23 @@ above `T`, `Q` meets its quorum (recorded in the doom set); at most `T`, its log
 configuration index, against I3 at the reader. -/
 theorem rqRecOk_confirm_dyn (γ : RaftNames) (T L : w64) (r : RqRec) (FL F0L : List EntryM)
     (aL cL : w64) (c : CfgM) (Q : GSet w64) (Hdyn : γ.reDyn ≠ none) (Y : IProp GF)
-    (HLw : ∀ G, ⊢ Y -∗ leadFull γ T G -∗ ⌜plogLastIndexZ base0 G ≤ plogLastIndexZ base0 FL⌝) :
-    CfgAt γ (FL.take (uint.Z aL).toNat) c → JQuorum c Q →
+    (HLw : ∀ G, ⊢ Y -∗ leadFull γ T G -∗ ⌜plogLastIndexZ base0 G ≤ plogLastIndexZ base0 FL⌝)
+    (ML : DecMap) :
+    CfgAt γ ML (FL.take (uint.Z aL).toNat) c → JQuorum c Q →
     confCount (FL.drop (uint.Z aL).toNat) ≤ 1 → uint.Z aL ≤ uint.Z cL → PlogWf base0 FL →
     CampOk T F0L → F0L <+: FL →
     (∀ v ∈ Q, ∀ t' q, r.2 = some (t', q) → v ∉ q) →
     ⊢ votesTbl (GF := GF) γ -∗ isLeader γ L T -∗ isCamp γ L T F0L -∗ logRecs γ base0 FL -∗
       isCommitted γ (FL.take (uint.Z aL).toNat) -∗ commitIn γ FL cL T -∗ leadFull γ T FL -∗
-      Y -∗ rqRecOk γ T r -∗ readOk γ r.1.1 r.1.2 := by
+      Y -∗ decLb γ ML -∗ rqRecOk γ T r -∗ readOk γ r.1.1 r.1.2 := by
   intro HcQ HQ HI3 HaL HwFL Hcok Hpre Hw
-  iintro HS #Hl #Hc #HrFL #HcFL #HcmL #HflL HY
+  iintro HS #Hl #Hc #HrFL #HcFL #HcmL #HflL HY #HML
   rcases h : r.2 with _ | ⟨tD, U⟩ <;> simp only [rqRecOk, h]
   · iintro H; iexact H
   unfold doomed
   iintro ⟨%nD, %GD, %aD, %cD, %qD, %HD, #HcqD, -, #HdW⟩
   iexfalso
-  icases cqAt_parts γ tD nD GD aD cD qD $$ HcqD with ⟨%Hp, #HflD, #HcGD, -, #HdD⟩
+  icases cqAt_parts γ tD nD GD aD cD qD $$ HcqD with ⟨%MHcqD, %Hp, #HMHcqD, #HflD, #HcGD, -, #HdD⟩
   ihave #HdD' := dynOn_elim γ _ Hdyn $$ HdD
   iunfold cqDyn at HdD'
   icases HdD' with ⟨%HI1D, -⟩
@@ -557,7 +558,9 @@ theorem rqRecOk_confirm_dyn (γ : RaftNames) (T L : w64) (r : RqRec) (FL F0L : L
   icases isCommitted_agree γ _ _ $$ HcGD HcFL with %Hpre2
   by_cases Hadj : confCount (GD.take (uint.Z aD).toNat) ≤ confCount (FL.take (uint.Z aL).toNat) + 1 ∧
       confCount (FL.take (uint.Z aL).toNat) ≤ confCount (GD.take (uint.Z aD).toNat) + 1
-  · obtain ⟨x, hx1, hx2⟩ := CfgAt.overlap_adj Hpre2 Hadj.2 Hadj.1 Hp.2.2.1 HcQ qD Q Hp.2.2.2 HQ
+  · icases decLb_compat γ MHcqD ML $$ [HMHcqD HML] with %Hcm
+    · iframe HMHcqD HML
+    obtain ⟨x, hx1, hx2⟩ := CfgAt.overlap_adj Hcm Hpre2 Hadj.2 Hadj.1 Hp.2.2.1 HcQ qD Q Hp.2.2.2 HQ
     ipureintro
     exact absurd (HD.2.2 x hx1) (Hw x hx2 tD U h)
   rcases (by omega : confCount (GD.take (uint.Z aD).toNat) + 2 ≤ confCount (FL.take (uint.Z aL).toNat) ∨
@@ -602,14 +605,17 @@ theorem rqRecOk_confirm_dyn (γ : RaftNames) (T L : w64) (r : RqRec) (FL F0L : L
     ihave Hw2 := HdW' $$ %p %(⟨hpc, hp⟩ : IsConfPos GD p ∧ p < (uint.Z aD).toNat) %Hb
     icases Hw2 with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
     obtain ⟨Hwo1, HwU⟩ := Hwo
-    icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%Hpw, #HflW, #HcGw, -, -⟩
+    icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%MHcqw, %Hpw, #HMHcqw, #HflW, #HcGw, -, -⟩
     ihave #Hcqw' := cqAt_cq γ _ _ _ _ _ _ $$ Hcqw
     icases cq_full γ tw nw Gw $$ Hcqw' with ⟨%HwGw, #HrGw⟩
     have Hcw : confCount (Gw.take (uint.Z aw).toNat) = confCount (FL.take (uint.Z aL).toNat) + 1 := by
       rw [Hwo1.2.2.2.2, hpcc]
     by_cases HtwT : uint.Z T < uint.Z tw
     · icases isCommitted_agree γ _ _ $$ HcGw HcFL with %Hpre3
-      obtain ⟨x, hx1, hx2⟩ := CfgAt.overlap_adj Hpre3 (by omega) (by omega) Hpw.2.2.1 HcQ qw Q
+      icases decLb_compat γ MHcqw ML $$ [HMHcqw HML] with %Hcm
+      · iframe HMHcqw HML
+      obtain ⟨x, hx1, hx2⟩ := CfgAt.overlap_adj Hcm Hpre3 (by omega) (by omega) Hpw.2.2.1 HcQ qw Q
+
         Hpw.2.2.2 HQ
       ipureintro
       exact absurd (HwU HtwT x hx1) (Hw x hx2 tD U h)

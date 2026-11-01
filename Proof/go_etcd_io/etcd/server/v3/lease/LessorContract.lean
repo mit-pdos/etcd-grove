@@ -45,7 +45,7 @@ theorem isLessor_of_lessorInv
   iintro ⟨#Hpkg, #Hinv⟩
   ihave #Hinv' := Hinv
   iunfold lessorInv at Hinv'
-  icases Hinv' with ⟨%Hlp, #Hpin, -⟩
+  icases Hinv' with ⟨%Hlp, #Hpin, -, -⟩
   iunfold mvcc.isLessor
   iexists lp
   isplitr
@@ -56,10 +56,10 @@ theorem isLessor_of_lessorInv
     iapply (hGL lp γl item L I) $$ [Hrd Hown] HΦ
     iframe Hpkg Hinv Hrd Hown
   isplitr
-  · iintro !> %id %items %l %dq %L %I %Φ !> ⟨Hown, %Hin, %Hl, Hitems⟩ HΦ
+  · iintro !> %id %items %l %dq %L %I %Φ !> ⟨Hown, %Hin, %Hl, %Hsh, Hitems⟩ HΦ
     iapply (hAt lp γl id items l dq L I) $$ [Hown Hitems] HΦ
     iframe Hpkg Hinv Hown Hitems
-    ipureintro; exact ⟨Hin, Hl⟩
+    ipureintro; exact ⟨Hin, Hl, Hsh⟩
   isplitr
   · iintro !> %id %items %l %dq %L %I %Φ !> ⟨Hown, %Hne, %Hl, Hitems⟩ HΦ
     iapply (hDt lp γl id items l dq L I) $$ [Hown Hitems] HΦ
@@ -89,7 +89,7 @@ theorem isTxnLessor_of_lessorInv
   · ipureintro; rfl
   ihave #Hinv' := Hinv
   iunfold lessorInv at Hinv'
-  icases Hinv' with ⟨%Hlp, #Hpin, -⟩
+  icases Hinv' with ⟨%Hlp, #Hpin, -, -⟩
   iintro !> %id %L %I %Φ !> Hu HΦ
   iunfold lessorUser at Hu
   icases Hu with ⟨Hown, Hrdo, Hrvk⟩
@@ -97,15 +97,24 @@ theorem isTxnLessor_of_lessorInv
   icases Hrdo with ⟨%lp', #Hpin', Hrd⟩
   ihave %Heq := lessorPin_agree γl lp lp' $$ [$Hpin $Hpin']
   subst Heq
-  iunfold leaseOwn at Hown
-  icases Hown with ⟨Hown, Hcls⟩
-  iapply (hLk lp γl id _ L) $$ [Hrd Hown]
-  · iframe Hpkg Hinv Hrd Hown
-  iintro !> %l ⟨Hrd, Hown, %Hl, -⟩
+  ihave ⟨Hown, #Hlb⟩ := leaseOwn_lb γl L I $$ Hown
+  iapply (hLk lp γl id 0 (some (L, I))) $$ [Hrd Hown]
+  · iframe Hpkg Hinv Hrd Hlb; rw [lookupView_some]; iexact Hown
+  iintro !> %l ⟨Hrd, -, Ho⟩
+  ihave ⟨%Hl, Ho⟩ : iprop(⌜l = null ↔ id ∉ L⌝ ∗
+      ((⌜l = null⌝ ∗ leaseOwn γl L I) ∨ leaseOwnOpen γl L I id l)) $$ [Ho]
+  · rw [← lookupViewAfter_some]; iexact Ho
   iapply HΦ
-  isplitl [Hrd Hown Hcls Hrvk]
-  · iunfold lessorUser; iunfold leaseOwn; iframe Hown Hcls Hrvk
-    iunfold lessorRdOf; iexists lp; iframe Hpin Hrd
+  isplitl [Hrd Ho Hrvk]
+  · iunfold lessorUserOpen
+    icases Ho with (⟨%Hn, Hown⟩ | Ho)
+    · ileft
+      isplitr
+      · ipureintro; exact Hn
+      iunfold lessorUser; iframe Hown Hrvk
+      iunfold lessorRdOf; iexists lp; iframe Hpin Hrd
+    · iright; iframe Ho Hrvk
+      iunfold lessorRdOf; iexists lp; iframe Hpin Hrd
   ipureintro; exact Hl
 
 end proof

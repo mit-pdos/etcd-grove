@@ -48,7 +48,10 @@ selection; for a `DeleteRange`, the application of the delete the proposed data 
 The results:
 * **`etcd_kv_served`** (the server side): the gRPC server at `addr` built with etcd's chain of
   interceptors and the KV service registered on the quota wrapper (`grpcServerAt`), that hands
-  the runtime `N` run slots, registers etcd's three specs at `addr` (`isGrpcRpc`).
+  the runtime `N` run slots, registers etcd's three specs at `addr` (`isGrpcRpc`). Like every
+  result taking a server token (`grpcServerAt`, `grpcStreamServerAt`), conditional on the workload
+  premise `grpcRepliesFit` through it (made only by `grpc.start`, which takes the premise;
+  2026-10-31, `notes/reply-size.md`); `etcd_kv_started` takes it.
 * **`client_put_end_to_end`**: `kv.Put(ctx, key, val)` with no options on a connection to `addr`
   whose `Put` is registered with `etcdPutSpec`: `nil` and a reply holding a message `m`
   (`putRespMsg`) with `putReplied` for the put `key ↦ val` (`putReplyOk` and the revision's
@@ -317,32 +320,41 @@ theorem get_after_put_kvs (key val : GoString) (x x' : apply.ApplyKV) (l : Log)
 
 end pure
 
-/-- A delete's count of plain operations: `delCountT` and `v3rpc.delCount` agree. -/
-theorem delCount_toTxnOps : ∀ (us : List v3rpc.ReqOp) (ops : List TxnOp),
-    v3rpc.ReqOp.toTxnOps us = some ops → (∀ op ∈ ops, TxnOp.plain op) → v3rpc.delCount us = delCountT ops
-  | [], ops, h, _ => by
-    simp [v3rpc.ReqOp.toTxnOps] at h; subst h; simp [v3rpc.delCount, delCountT]
-  | u :: us, ops, h, hp => by
+/-- A delete's count: `delCountT` and `v3rpc.delCount` agree (nested transactions included). -/
+theorem delCount_toTxnOps (us : List v3rpc.ReqOp) (ops : List TxnOp)
+    (h : v3rpc.ReqOp.toTxnOps us = some ops) : v3rpc.delCount us = delCountT ops := by
+  induction us using v3rpc.delCount.induct generalizing ops with
+  | case1 => simp only [v3rpc.ReqOp.toTxnOps, Option.some.injEq] at h; subst h; simp [v3rpc.delCount, delCountT]
+  | case2 o us ih =>
+    simp only [v3rpc.ReqOp.toTxnOps, v3rpc.ReqOp.toTxnOp] at h
+    cases hb : v3rpc.ReqOp.toTxnOps us <;> simp only [hb] at h <;> try cases h
+    simp only [v3rpc.delCount, delCountT, ih _ hb]
+  | case3 cs ts es us ih1 ih2 ih3 =>
+    simp only [v3rpc.ReqOp.toTxnOps, v3rpc.ReqOp.toTxnOp] at h
+    cases ha : v3rpc.ReqOp.toTxnOps ts <;> cases hb : v3rpc.ReqOp.toTxnOps es <;>
+      cases hc : v3rpc.ReqOp.toTxnOps us <;> simp only [ha, hb, hc] at h <;> try cases h
+    simp only [v3rpc.delCount, delCountT, ih1 _ ha, ih2 _ hb, ih3 _ hc]
+  | case4 u us hd ht ih =>
     simp only [v3rpc.ReqOp.toTxnOps] at h
-    split at h
-    · rename_i t ts h1 h2
-      simp only [Option.some.injEq] at h
-      subst h
-      have ih := delCount_toTxnOps us ts h2 (fun op hm => hp op (List.mem_cons_of_mem _ hm))
-      have ht := hp t (List.mem_cons_self ..)
+    cases ha : v3rpc.ReqOp.toTxnOp u <;> cases hb : v3rpc.ReqOp.toTxnOps us <;>
+      simp only [ha, hb] at h <;> try cases h
+    rename_i a b
+    have e : v3rpc.delCount (u :: us) = v3rpc.delCount us := by
       cases u with
-      | range o => simp [v3rpc.ReqOp.toTxnOp] at h1; subst h1; simp [v3rpc.delCount, delCountT, ih]
+      | delete o => exact absurd rfl (hd o)
+      | txn cs ts es => exact absurd rfl (ht cs ts es)
+      | _ => simp [v3rpc.delCount]
+    have e' : delCountT (a :: b) = delCountT b := by
+      cases u with
+      | delete o => exact absurd rfl (hd o)
+      | txn cs ts es => exact absurd rfl (ht cs ts es)
+      | range o => simp only [v3rpc.ReqOp.toTxnOp, Option.some.injEq] at ha; subst ha; simp [delCountT]
       | put o =>
-        simp [v3rpc.ReqOp.toTxnOp] at h1; subst h1
+        simp only [v3rpc.ReqOp.toTxnOp, Option.some.injEq] at ha; subst ha
         unfold txn.putTxnOp
-        split <;> (try split) <;> simp [v3rpc.delCount, delCountT, ih]
-      | delete o => simp [v3rpc.ReqOp.toTxnOp] at h1; subst h1; simp [v3rpc.delCount, delCountT, ih]
-      | txn cs ts' es' =>
-        simp only [v3rpc.ReqOp.toTxnOp] at h1
-        split at h1 <;> simp at h1
-        subst h1; exact ht.elim
-      | empty => simp [v3rpc.ReqOp.toTxnOp] at h1
-    · cases h
+        by_cases h1 : o.ignoreValue = true <;> by_cases h2 : o.ignoreLease = true <;> simp [h1, h2, delCountT]
+      | empty => simp [v3rpc.ReqOp.toTxnOp] at ha
+    rw [e, e', ih _ hb]
 
 section bridge
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -350,14 +362,33 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **A plain operation of the server's copy is the handler's request operation**: the txn
-package's `requestOpIs` of a plain operation is `v3rpc.reqOpIs` of a request operation whose
-model it is. -/
-theorem reqOp_of_requestOp (p : Loc) (op : TxnOp) (hp : TxnOp.plain op) :
-    txn.requestOpIs (GF := GF) p op ⊢ ∃ u : v3rpc.ReqOp, v3rpc.reqOpIs p u ∗ ⌜v3rpc.ReqOp.toTxnOp u = some op⌝ := by
-  cases op with
-  | txn cs ts es => exact hp.elim
-  | get o =>
+mutual
+/-- **An operation of the server's copy is the handler's request operation** (nested ones
+included, recursively): the txn package's `requestOpIs` of an operation is `v3rpc.reqOpIs` of a
+request operation whose model it is. -/
+theorem reqOp_of_requestOp (p : Loc) : ∀ op : TxnOp,
+    txn.requestOpIs (GF := GF) p op ⊢ ∃ u : v3rpc.ReqOp, v3rpc.reqOpIs p u ∗ ⌜v3rpc.ReqOp.toTxnOp u = some op⌝
+  | .txn cs ts es => by
+    iintro #H
+    iunfold txn.requestOpIs at H
+    icases H with ⟨%Hn, %w, %r, #Hu, #Hw, %Hr, %csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm,
+      #Hs, #Hss, #Hsm, #Hf, #Hfs, #Hfm⟩
+    ihave ⟨%ts', #Hts, %Hts'⟩ := reqOps_of_requestOps sps ts $$ Hsm
+    ihave ⟨%es', #Hes, %Hes'⟩ := reqOps_of_requestOps fps es $$ Hfm
+    iexists (v3rpc.ReqOp.txn cs ts' es')
+    isplitl
+    · unfold v3rpc.reqOpIs
+      imodintro
+      isplitl
+      · ipureintro; exact Hn
+      iexists w, r
+      isplitl []; · iexact Hu
+      isplitl []; · iexact Hw
+      isplitl []; · ipureintro; exact Hr
+      iexists csl, ssl, fsl, cps, sps, fps
+      iframe #
+    · ipureintro; simp [v3rpc.ReqOp.toTxnOp, Hts', Hes']
+  | .get o => by
     iintro #H
     iunfold txn.requestOpIs at H
     icases H with ⟨%Hn, %u, %w, %r, %o', #Hu, (⟨%Hx, #Hw, #Hr⟩ | ⟨%Hx, -⟩ | ⟨%Hx, -⟩)⟩
@@ -372,7 +403,7 @@ theorem reqOp_of_requestOp (p : Loc) (op : TxnOp) (hp : TxnOp.plain op) :
       have := Hx.2
       unfold txn.putTxnOp at this; split at this <;> (try split at this) <;> simp at this
     · cases Hx.2
-  | delete o =>
+  | .delete o => by
     iintro #H
     iunfold txn.requestOpIs at H
     icases H with ⟨%Hn, %u, %w, %r, %o', #Hu, (⟨%Hx, -⟩ | ⟨%Hx, -⟩ | ⟨%Hx, #Hw, #Hr⟩)⟩
@@ -387,7 +418,7 @@ theorem reqOp_of_requestOp (p : Loc) (op : TxnOp) (hp : TxnOp.plain op) :
       · unfold v3rpc.reqOpIs; imodintro; isplitl; · ipureintro; exact Hn
         iexists w, r; iframe #
       · ipureintro; rfl
-  | put k v l =>
+  | .put k v l => by
     iintro #H
     iunfold txn.requestOpIs at H
     icases H with ⟨%Hn, %u, %w, %r, %o', #Hu, (⟨%Hx, -⟩ | ⟨%Hx, #Hw, #Hr⟩ | ⟨%Hx, -⟩)⟩
@@ -399,7 +430,7 @@ theorem reqOp_of_requestOp (p : Loc) (op : TxnOp) (hp : TxnOp.plain op) :
         iexists w, r; iframe #
       · ipureintro; simp [v3rpc.ReqOp.toTxnOp, Ho]
     · cases Hx.2
-  | putKeep k l =>
+  | .putKeep k l => by
     iintro #H
     iunfold txn.requestOpIs at H
     icases H with ⟨%Hn, %u, %w, %r, %o', #Hu, (⟨%Hx, -⟩ | ⟨%Hx, #Hw, #Hr⟩ | ⟨%Hx, -⟩)⟩
@@ -411,7 +442,7 @@ theorem reqOp_of_requestOp (p : Loc) (op : TxnOp) (hp : TxnOp.plain op) :
         iexists w, r; iframe #
       · ipureintro; simp [v3rpc.ReqOp.toTxnOp, Ho]
     · cases Hx.2
-  | putIgnVal k l =>
+  | .putIgnVal k l => by
     iintro #H
     iunfold txn.requestOpIs at H
     icases H with ⟨%Hn, %u, %w, %r, %o', #Hu, (⟨%Hx, -⟩ | ⟨%Hx, #Hw, #Hr⟩ | ⟨%Hx, -⟩)⟩
@@ -424,103 +455,93 @@ theorem reqOp_of_requestOp (p : Loc) (op : TxnOp) (hp : TxnOp.plain op) :
       · ipureintro; simp [v3rpc.ReqOp.toTxnOp, Ho]
     · cases Hx.2
 
-/-- **The plain operations of the server's copy are the handler's request operations** (in
-order). -/
+/-- **The operations of the server's copy are the handler's request operations** (in order). -/
 theorem reqOps_of_requestOps : ∀ (ps : List Loc) (ops : List TxnOp),
-    (∀ op ∈ ops, TxnOp.plain op) →
     txn.requestOpsIs (GF := GF) ps ops ⊢
       ∃ us : List v3rpc.ReqOp, v3rpc.reqOpsIs ps us ∗ ⌜v3rpc.ReqOp.toTxnOps us = some ops⌝
-  | [], [], _ => by
+  | [], [] => by
     iintro -
     iexists []
     unfold v3rpc.reqOpsIs
     isplitl; · itrivial
     ipureintro; rfl
-  | p :: ps, op :: ops, hp => by
+  | p :: ps, op :: ops => by
     iintro H
     iunfold txn.requestOpsIs at H
     icases H with ⟨H1, H2⟩
-    ihave ⟨%u, H1, %Hu⟩ := reqOp_of_requestOp p op (hp op (List.mem_cons_self ..)) $$ H1
-    ihave ⟨%us, H2, %Hus⟩ := reqOps_of_requestOps ps ops
-      (fun o hm => hp o (List.mem_cons_of_mem _ hm)) $$ H2
+    ihave ⟨%u, H1, %Hu⟩ := reqOp_of_requestOp p op $$ H1
+    ihave ⟨%us, H2, %Hus⟩ := reqOps_of_requestOps ps ops $$ H2
     iexists u :: us
     rw [v3rpc.reqOpsIs.eq_2]
     iframe H1 H2
     ipureintro
     simp [v3rpc.ReqOp.toTxnOps, Hu, Hus]
-  | [], _ :: _, _ => by iintro H; iunfold txn.requestOpsIs at H; iexfalso; iexact H
-  | _ :: _, [], _ => by iintro H; iunfold txn.requestOpsIs at H; iexfalso; iexact H
+  | [], _ :: _ => by iintro H; iunfold txn.requestOpsIs at H; iexfalso; iexact H
+  | _ :: _, [] => by iintro H; iunfold txn.requestOpsIs at H; iexfalso; iexact H
+end
 
-/-- A request operation that is not a nested transaction. -/
-def reqNotTxn : v3rpc.ReqOp → Prop
-  | .txn _ _ _ => False
-  | _ => True
+/-- `delWireAtT` is persistent. -/
+instance delWireAtT_persistent (p : Loc) (op : TxnOp) :
+    Persistent (delWireAtT (GF := GF) p op) := by
+  cases op <;> unfold delWireAtT <;> infer_instance
 
-theorem reqNotTxn_of_toTxnOps : ∀ (us : List v3rpc.ReqOp) (ops : List TxnOp),
-    v3rpc.ReqOp.toTxnOps us = some ops → (∀ op ∈ ops, TxnOp.plain op) → ∀ u ∈ us, reqNotTxn u
-  | [], _, _, _ => by simp
-  | u :: us, ops, h, hp => by
-    simp only [v3rpc.ReqOp.toTxnOps] at h
-    split at h
-    · rename_i t ts h1 h2
-      simp only [Option.some.injEq] at h
-      subst h
-      have ih := reqNotTxn_of_toTxnOps us ts h2 (fun op hm => hp op (List.mem_cons_of_mem _ hm))
-      intro u' hu'
-      rcases List.mem_cons.mp hu' with rfl | hm
-      · have ht := hp t (List.mem_cons_self ..)
-        cases u' with
-        | txn cs ts' es' =>
-          simp only [v3rpc.ReqOp.toTxnOp] at h1
-          split at h1 <;> simp at h1
-          subst h1; exact ht.elim
-        | _ => trivial
-      · exact ih u' hm
-    · cases h
+/-- `delWiresAtT` is persistent. -/
+instance delWiresAtT_persistent (ps : List Loc) (ops : List TxnOp) :
+    Persistent (delWiresAtT (GF := GF) ps ops) := by
+  induction ops generalizing ps with
+  | nil => cases ps <;> unfold delWiresAtT <;> infer_instance
+  | cons op ops ih => cases ps <;> unfold delWiresAtT <;> infer_instance
 
-/-- The deletes' range ends of the operations `ps` are `nil` or not empty (what `txnWireOk` says
-of each branch). -/
-def delWireAt (ps : List Loc) : IProp GF :=
-  iprop(□ ∀ (i : Nat) (p w d : Loc) (esl : GoSlice), ⌜ps[i]? = some p⌝ -∗
-      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
-        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestDeleteRange.ty) #w :
-          GoInterface) -∗
-      structFieldRef etcdserverpb.RequestOp_RequestDeleteRange go!"RequestDeleteRange" w ↦□ d -∗
-      structFieldRef etcdserverpb.DeleteRangeRequest go!"RangeEnd" d ↦□ esl -∗
-      ⌜esl = slice.nil ∨ esl.len ≠ W64 0⌝)
-
-instance delWireAt_persistent (ps : List Loc) : Persistent (delWireAt (GF := GF) ps) := by
-  unfold delWireAt; infer_instance
-
-theorem reqOpsWire_of_delWireAt : ∀ (ps : List Loc) (us : List v3rpc.ReqOp),
-    (∀ u ∈ us, reqNotTxn u) → delWireAt (GF := GF) ps ⊢ v3rpc.reqOpsWire ps us
-  | [], [], _ => by iintro -; unfold v3rpc.reqOpsWire; itrivial
-  | [], _ :: _, _ => by iintro -; unfold v3rpc.reqOpsWire; itrivial
-  | _ :: _, [], _ => by iintro -; unfold v3rpc.reqOpsWire; itrivial
-  | p :: ps, u :: us, hu => by
+mutual
+/-- `delWiresAtT_reqOpsWire` at one operation. -/
+theorem delWireAtT_reqOpWire (p : Loc) : ∀ (u : v3rpc.ReqOp) (op : TxnOp),
+    v3rpc.ReqOp.toTxnOp u = some op → delWireAtT (GF := GF) p op ⊢ v3rpc.reqOpWire p u
+  | .delete o, op, h => by
+    simp only [v3rpc.ReqOp.toTxnOp, Option.some.injEq] at h; subst h
+    unfold delWireAtT v3rpc.reqOpWire
+    exact .rfl
+  | .txn cs ts es, op, h => by
+    simp only [v3rpc.ReqOp.toTxnOp] at h
+    cases ha : v3rpc.ReqOp.toTxnOps ts <;> cases hb : v3rpc.ReqOp.toTxnOps es <;>
+      simp only [ha, hb] at h <;> try cases h
+    rename_i a b
+    unfold delWireAtT v3rpc.reqOpWire
     iintro #H
-    iunfold delWireAt at H
-    have ih := reqOpsWire_of_delWireAt ps us (fun u' hm => hu u' (List.mem_cons_of_mem _ hm))
-    rw [v3rpc.reqOpsWire.eq_2]
+    iintro !> %w %r %ssl %fsl %sps %fps #H1 #H2 #H3 #H4 #H5 #H6
+    ihave ⟨#A, #B⟩ := H $$ %w %r %ssl %fsl %sps %fps H1 H2 H3 H4 H5 H6
     isplitl
-    · cases u with
-      | delete o =>
-        unfold v3rpc.reqOpWire
-        iintro !> %w %d %esl #H1 #H2 #H3
-        iapply H $$ %0 %p %w %d %esl %rfl H1 H2 H3
-      | txn cs ts es => exact (hu _ (List.mem_cons_self ..)).elim
-      | range o => unfold v3rpc.reqOpWire; itrivial
-      | put o => unfold v3rpc.reqOpWire; itrivial
-      | empty => unfold v3rpc.reqOpWire; itrivial
-    · iapply ih
-      unfold delWireAt
-      iintro !> %i %q %w %d %esl %Hi #H1 #H2 #H3
-      iapply H $$ %(i + 1) %q %w %d %esl %Hi H1 H2 H3
+    · iapply delWiresAtT_reqOpsWire sps ts a ha $$ A
+    · iapply delWiresAtT_reqOpsWire fps es b hb $$ B
+  | .range _, _, _ => by unfold v3rpc.reqOpWire; iintro -; itrivial
+  | .put _, _, _ => by unfold v3rpc.reqOpWire; iintro -; itrivial
+  | .empty, _, _ => by unfold v3rpc.reqOpWire; iintro -; itrivial
+
+/-- **The client's wire facts of a transaction's operations are the handler's** (`notes/txn-nested.md`,
+L12): `delWiresAtT` of the model is `v3rpc.reqOpsWire` of the request operations whose model it is. -/
+theorem delWiresAtT_reqOpsWire (ps : List Loc) (us : List v3rpc.ReqOp) (ops : List TxnOp)
+    (h : v3rpc.ReqOp.toTxnOps us = some ops) :
+    delWiresAtT (GF := GF) ps ops ⊢ v3rpc.reqOpsWire ps us :=
+  match ps, us, ops, h with
+  | [], [], _, _ => by iintro -; unfold v3rpc.reqOpsWire; itrivial
+  | [], _ :: _, _, _ => by iintro -; unfold v3rpc.reqOpsWire; itrivial
+  | _ :: _, [], _, _ => by iintro -; unfold v3rpc.reqOpsWire; itrivial
+  | p :: ps, u :: us, ops, h => by
+    simp only [v3rpc.ReqOp.toTxnOps] at h
+    cases ha : v3rpc.ReqOp.toTxnOp u <;> cases hb : v3rpc.ReqOp.toTxnOps us <;>
+      simp only [ha, hb] at h <;> try cases h
+    rename_i a b
+    rw [v3rpc.reqOpsWire.eq_2]
+    unfold delWiresAtT
+    iintro ⟨#H1, #H2⟩
+    isplitl
+    · iapply delWireAtT_reqOpWire p u a ha $$ H1
+    · iapply delWiresAtT_reqOpsWire ps us b hb $$ H2
+end
 
 /-- **The transport's request is the gRPC handler's** (see the file header): the server's copy of
-a transaction `t` of plain operations, as decoded (`txnRequestIs`, `txnWireOk`), is the handler's
+a transaction `t` (nested ones included), as decoded (`txnRequestIs`, `txnWireOk`), is the handler's
 request `txnReqIs r t.cmps ts es` with its wire facts, whose model is `t`. -/
-theorem txnReq_of_requestIs (r : Loc) (t : TxnModel) (hp : TxnModel.plain t) :
+theorem txnReq_of_requestIs (r : Loc) (t : TxnModel) :
     txn.txnRequestIs (GF := GF) r t ∗ txnWireOk r t ⊢
       ∃ ts es : List v3rpc.ReqOp, v3rpc.txnReqIs r t.cmps ts es ∗ v3rpc.txnReqWire r ts es ∗
         ⌜v3rpc.txnModelOf t.cmps ts es = some t⌝ := by
@@ -530,8 +551,8 @@ theorem txnReq_of_requestIs (r : Loc) (t : TxnModel) (hp : TxnModel.plain t) :
   iunfold txn.txnFieldsIs at Hreq
   icases Hreq with ⟨%csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm, #Hs, #Hss, #Hsm,
     #Hf, #Hfs, #Hfm⟩
-  ihave ⟨%ts, #Hts, %Hts'⟩ := reqOps_of_requestOps sps t.thenOps hp.1 $$ Hsm
-  ihave ⟨%es, #Hes, %Hes'⟩ := reqOps_of_requestOps fps t.elseOps hp.2 $$ Hfm
+  ihave ⟨%ts, #Hts, %Hts'⟩ := reqOps_of_requestOps sps t.thenOps $$ Hsm
+  ihave ⟨%es, #Hes, %Hes'⟩ := reqOps_of_requestOps fps t.elseOps $$ Hfm
   iexists ts, es
   iunfold txnWireOk at Hw
   icases Hw with ⟨%Hcnt, #Hw⟩
@@ -544,20 +565,13 @@ theorem txnReq_of_requestIs (r : Loc) (t : TxnModel) (hp : TxnModel.plain t) :
   · unfold v3rpc.txnReqWire
     isplitl
     · ipureintro
-      rw [delCount_toTxnOps ts _ Hts' hp.1, delCount_toTxnOps es _ Hes' hp.2]
+      rw [delCount_toTxnOps ts _ Hts', delCount_toTxnOps es _ Hes']
       exact Hcnt
     iintro !> %ssl' %fsl' %sps' %fps' #Hs' #Hss' #Hf' #Hfs'
+    ihave ⟨#A, #B⟩ := Hw $$ %ssl' %fsl' %sps' %fps' Hs' Hss' Hf' Hfs'
     isplitl
-    · iapply reqOpsWire_of_delWireAt sps' ts (reqNotTxn_of_toTxnOps ts _ Hts' hp.1)
-      unfold delWireAt
-      iintro !> %i %q %w %d %esl %Hi #H1 #H2 #H3
-      iapply Hw $$ %ssl' %sps' %i %q %w %d %esl [] Hss' %Hi H1 H2 H3
-      ileft; iexact Hs'
-    · iapply reqOpsWire_of_delWireAt fps' es (reqNotTxn_of_toTxnOps es _ Hes' hp.2)
-      unfold delWireAt
-      iintro !> %i %q %w %d %esl %Hi #H1 #H2 #H3
-      iapply Hw $$ %fsl' %fps' %i %q %w %d %esl [] Hfs' %Hi H1 H2 H3
-      iright; iexact Hf'
+    · iapply delWiresAtT_reqOpsWire sps' ts _ Hts' $$ A
+    · iapply delWiresAtT_reqOpsWire fps' es _ Hes' $$ B
   · ipureintro
     simp [v3rpc.txnModelOf, Hts', Hes']
 
@@ -707,11 +721,12 @@ end
 end resp
 
 theorem txnInModel_of (t : TxnModel) (cs : List CmpModel) (ts es : List v3rpc.ReqOp)
-    (h : txnModelIn t) (hm : v3rpc.txnModelOf cs ts es = some t) : v3rpc.txnInModel cs ts es := by
+    (h : txn.txnReadonly t = true → txnModelIn t) (hm : v3rpc.txnModelOf cs ts es = some t) :
+    v3rpc.txnInModel cs ts es := by
   intro t' ht'
   rw [hm] at ht'
   cases ht'
-  exact fun _ => h
+  exact h
 
 /-- No get of a list of operations, none nested, sorts cut by a limit (D19c). -/
 theorem opsNoCut_of_flat (ops : List TxnOp) (hp : ∀ op ∈ ops, TxnOp.plain op)
@@ -861,6 +876,9 @@ def etcdKVMethods (q : Loc) (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid :
      interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩,
    ⟨go!"/etcdserverpb.KV/Txn", pbTxnRequest, pbTxnResponse,
      GrpcSpec.md (etcdTxnSpec E γw γr cid mid), (@! etcdserverpb._KV_Txn_Handler),
+     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩,
+   ⟨go!"/etcdserverpb.KV/Compact", pbCompactionRequest, pbCompactionResponse,
+     GrpcSpec.md (etcdCompactSpec E γw cid mid), (@! etcdserverpb._KV_Compact_Handler),
      interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩]
 
 /-- **What `RegisterKVServer(gs, q)` registers of the KV service's unary methods we specify**
@@ -873,6 +891,8 @@ def etcdKVRegs (q : Loc) : List (GoString × val × GoInterface) :=
    (go!"/etcdserverpb.KV/DeleteRange", (@! etcdserverpb._KV_DeleteRange_Handler),
      interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q),
    (go!"/etcdserverpb.KV/Txn", (@! etcdserverpb._KV_Txn_Handler),
+     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q),
+   (go!"/etcdserverpb.KV/Compact", (@! etcdserverpb._KV_Compact_Handler),
      interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q)]
 
 /-- **The interceptors' per-run resources** (`v3rpc.Server`'s chain: `newLogUnaryInterceptor`'s
@@ -967,7 +987,7 @@ a run, with its slot, the runtime's context, an id credit the server mints (`□
 1`, `srvStarted`'s), the decoded request: its slot back, the reply holds the response's
 message, with `putReplied` (`putReplyOk` and the revision's token). -/
 theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
-    (cid mid n : w64) :
+    (cid mid n : w64) (hρ : ρ.rd = γr) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗
@@ -984,7 +1004,8 @@ theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
   icases Hspec with ⟨%F, #HF, Hspec⟩
   ihave ⟨%d, Hdep, %Hdp, Hk⟩ : iprop(∃ d : v3rpc.KVDep GF, v3rpc.kvDepOwn ρ γr d ∗
       ⌜v3rpc.kvDepPre d (.put o)⌝ ∗
-      ∀ m : PutRespM, putReplied E ρ.rd F o (v3rpc.opDepQ d) cid mid m -∗ Φ m)
+      ∀ m : PutRespM, putReplied E ρ.rd F o (v3rpc.opDepQ d) cid mid m -∗
+        kvRevLb ρ.rd.kv m.hdr.revision -∗ Φ m)
       $$ [Hspec]
   · icases Hspec with ⟨%Q, %Hpl, Hau, Hk⟩
     iexists (.op1 (.put o) Q)
@@ -993,8 +1014,8 @@ theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
     · iexact Hau
     isplitr
     · ipureintro; exact ⟨⟨Q, rfl⟩, Hpl⟩
-    iintro %m Hm
-    iapply Hk
+    iintro %m Hm #Hrv0
+    iapply Hk $$ %m [Hm] Hrv0
     simp only [v3rpc.opDepQ]; iexact Hm
   rw [kvServerAt_srvKVAns p s E ρ γr (W64 0) (W64 0) cid mid n [] F .none d]
   iunfold etcdRunSlot at Hslot
@@ -1043,6 +1064,25 @@ theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
       -- the revision's token (`revMinted`, exclusive) goes to the reply's `Φ` (`putReplied`),
       -- with the witness (`appliedWit`, persistent)
       icases Hap with ⟨%hm, %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok, #Hwit, #Hcok, HQv⟩
+      imod read_keys s E γr x'.log $$ Hsrd Hcert Hcok with %Hkeys
+      -- (the client's `kv.Compact`, 2026-11-01) the KV has reached the put's revision: the
+      -- store's certificate of the log after it, as the cluster's bound (`kvRevLb_of_srvRevLb`)
+      have hlog := kvs_put_applied_log o hm x x' l skip Hst.1
+      have hlen : x.log.length + 4 ≤ 2 ^ 63 := Hst.2.2.2.2
+      ihave #Hkvi := srvKVInvs_of_read s E γr $$ Hsrd
+      iunfold srvKVInvs at Hkvi
+      icases Hkvi with ⟨#Hkv, #Hci, #Hrl, %Hγcok, -⟩
+      ihave #Hlb : srvRevLb E.γ (sint.Z (W64 (x.log.length : Int))) $$ []
+      · iunfold srvRevLb
+        iexists x'.log
+        iframe Hcert Hcok
+        ipureintro
+        rw [hlog, List.length_append]
+        have : sint.Z (W64 (x.log.length : Int)) = (x.log.length : Int) := by word
+        rw [this]; simp only [List.length_append, List.length_singleton]; omega
+      imod (kvRevLb_of_srvRevLb γr.raft γr.kv E.γ Hγcok ⊤ (fun _ _ => CoPset.mem_full)
+          (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full) (W64 (x.log.length : Int)))
+        $$ Hkv Hci Hrl Hlb with #Hrv
       iunfold apply.putOutcomeIs at Hout
       icases Hout with ⟨#Hpr, -⟩
       iunfold txn.putResponseIs at Hpr
@@ -1071,13 +1111,17 @@ theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         iexists h, pk
         iframe #
         ipureintro; exact Hh2n
-      · iapply Hk
+      · ihave #Hrv' : kvRevLb ρ.rd.kv (W64 (x.log.length : Int)) $$ []
+        · rw [hρ]; iexact Hrv
+        iapply Hk $$ %(PutRespM.mk (HdrM.mk cid mid (W64 (x.log.length : Int)) t ld)
+          (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter x.log) else none))
+          [Htok HQv] Hrv'
         unfold putReplied
         iexists hm, x, x', l, skip
         iframe Htok HQv
         iframe #
         ipureintro
-        exact ⟨Hst.1, rfl, rfl, rfl, rfl, Hst.2.2⟩
+        exact ⟨⟨Hst.1, rfl, rfl, rfl, rfl, Hst.2.2⟩, Hkeys⟩
     · iunfold v3rpc.putErrOk at Hep
       icases Hep with ⟨Hlt, -⟩
       imodintro
@@ -1164,6 +1208,7 @@ theorem etcd_rangeHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold v3rpc.rangeAnsOk at Hans
       icases Hans with ⟨%log, #Hcert, #Hcok, %Hlog, #Hrl, HQl, Hres⟩
+      imod read_keys s E γr log $$ Hsrd Hcert Hcok with %Hkeys
       ihave #HQl' := rangeQ_of_ans γr d Q o log Hdd $$ HQl
       icases Hres with ⟨%crev, Hres⟩
       iunfold txn.rangeResult at Hres
@@ -1204,7 +1249,7 @@ theorem etcd_rangeHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
         iexists log
         iframe #
         ipureintro
-        exact ⟨Hlog.1, Hlog.2.1, rfl, rfl, rfl, Hx.1, rfl, Hsel, Hlog.2.2.2⟩
+        exact ⟨Hkeys, Hlog.1, Hlog.2.1, rfl, rfl, rfl, Hx.1, rfl, Hsel, Hlog.2.2.2⟩
     · imodintro
       iapply HΨ
       isplitl [Hlt Hcr]
@@ -1283,6 +1328,7 @@ theorem etcd_deleteHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
       -- the revision's token (`revMinted`) goes to the reply's `Φ` (`deleteReplied`)
       icases Hap with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok, #Hwit, #Hcok,
         HQv⟩
+      imod read_keys s E γr x'.log $$ Hsrd Hcert Hcok with %Hkeys
       simp only [v3rpc.opDepQ] at *
       iunfold apply.deleteOutcomeIs at Hout
       icases Hout with ⟨#Hdr, -⟩
@@ -1321,7 +1367,8 @@ theorem etcd_deleteHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
         iframe Htok HQv
         iframe #
         ipureintro
-        exact ⟨Hst.1, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, rfl, rfl, rfl, rfl, rfl, Hst.2.2.2.2.2⟩
+        exact ⟨⟨Hst.1, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, rfl, rfl, rfl, rfl, rfl, Hst.2.2.2.2.2⟩,
+          Hkeys⟩
     · iunfold v3rpc.deleteErrOk at Hep
       icases Hep with ⟨Hlt, -⟩
       imodintro
@@ -1331,6 +1378,187 @@ theorem etcd_deleteHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
         iframe
       iintro %Hnil
       exact absurd Hnil Herr.2
+
+/-- **etcd's `Compact` handler meets etcd's `Compact` spec** (`grpcHandlerOwnOk`; the client's
+`kv.Compact`, 2026-11-01; from `kvServer.Compact.spec` over `EtcdServer.Compact.spec`): a run,
+with its slot, the runtime's context, an id credit the server mints (`□ |==> idCred ρ.ids 1`), the
+decoded request it owns: its slot back, the reply holds the response's header (the member's ids).
+The request's mode and revision reached are the spec's premises; with the auth layer off, the admin
+guard passes. -/
+theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (cid mid n : w64) (hρ : ρ.rd = γr) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗
+        v3rpc.kvServerAt p s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) cid mid n ∗
+        □ (|==> idCred ρ.ids 1) ⊢
+      grpcHandlerOwnOk (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!!
+      go!"Compact") (etcdRunSlot s E γr) (etcdCompactSpec E ρ.rd cid mid) := by
+  iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR⟩
+  unfold grpcHandlerOwnOk
+  iintro %o %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, -, Hown, Hspec⟩ HΨ
+  ihave #Htr := ctxTraceIs_none_of_runCtx ci $$ Hrc
+  rw [show (pbCompactionRequest (GF := GF)).recvOwn r o =
+    iprop(∃ req : etcdserverpb.CompactionRequest, r ↦ req ∗
+      ⌜o = ⟨req.Revision', req.Physical'⟩⌝) from rfl]
+  icases Hown with ⟨%req, Hreq, %Ho⟩
+  subst Ho
+  iunfold etcdCompactSpec at Hspec
+  icases Hspec with ⟨%Hpre, #Hrv, Hk⟩
+  obtain ⟨Hr1, Hph, Hkc⟩ := Hpre
+  simp only at Hr1 Hph Hkc
+  -- the server's mode: compaction (the readers' view's tie)
+  ihave #Hkvi := srvKVInvs_of_read s E γr $$ Hsrd
+  iunfold srvKVInvs at Hkvi
+  icases Hkvi with ⟨-, -, -, -, %Htie⟩
+  have hEc : E.cmp = true := by rw [← Htie.1, ← hρ]; exact Hkc
+  -- the guard's facts: the admin guard `aa` and the server's auth fields
+  ihave #Hau := srvAuthAt_of_views s E ρ γr $$ [Hsrv Hsrd]
+  · iframe #
+  ihave #Hanil := srvAdminNilOk_of_srvAuthAt s E $$ Hau
+  ihave #Hat' := Hat
+  iunfold v3rpc.kvServerAt at Hat'
+  icases Hat' with ⟨-, -, -, -, ⟨%aa, #Haa, %Haan, #Hag⟩, -⟩
+  ihave #Haai : v3rpc.authAdminIs aa s E $$ []
+  · iunfold v3rpc.authAdminIs
+    iframe #
+    ipureintro; exact Haan
+  ihave #Hkv := v3rpc.raftKV_server s E ρ γr (W64 0) [] .none $$ [$Ps $Hsrv $Hsrd]
+  ihave #Hkis := v3rpc.kvServerIs_of_at p s _ cid mid n $$ [$Hat $Hkv]
+  -- the run's slot
+  iunfold etcdRunSlot at Hslot
+  icases Hslot with ⟨Hlt, Hsr, Hlg, Hrr, Hrd⟩
+  imod HNR with Hid
+  have hrev : W64 (sint.Z req.Revision') = req.Revision' := by word
+  ihave #Hrv' : kvRevLb ρ.rd.kv (W64 (sint.Z req.Revision')) $$ []
+  · rw [hrev]; iexact Hrv
+  -- the server's `Compact`, guarded: the caller's readers, credit and request in, back out
+  let Pin : IProp GF := iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ mvcc.storeReader E.s E.γ ∗
+    idCred ρ.ids 1 ∗ r ↦ req)
+  let Q : Loc → IProp GF := fun _ =>
+    iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ mvcc.storeReader E.s E.γ)
+  ihave #Hcok : v3rpc.compactOk s E (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) Pin
+      (GoInterface.ok ci) r Q $$ []
+  · iunfold v3rpc.compactOk
+    iintro %ai !> %Ψ' ⟨⟨Hlt, Hlg, Hsr, Hid, Hreq⟩, Hrd, -⟩ HΨ'
+    ihave #Hsrd' : isServerRead s E ρ.rd $$ []
+    · rw [hρ]; iexact Hsrd
+    iapply wp_fupd
+    iapply (EtcdServer.wp_Compact s E ρ ci cd r (sint.Z req.Revision') Hr1) $$
+      [Hlt Hlg Hrd Hsr Hid Hreq]
+    · iframe #
+      iframe Hlt Hlg Hrd Hid
+      isplitr
+      · ipureintro; exact hEc
+      isplitl [Hsr]
+      · iExactEq Hsr; rfl
+      iapply compactReqIs_of r req (sint.Z req.Revision') ⟨rfl, Hph⟩
+      iexact Hreq
+    inext
+    iintro %resp %err ⟨Hlt, Hlg, Hrd, Hsr, Hout⟩
+    iunfold compactOutIs at Hout
+    icases Hout with (⟨%Herr, %h, %v, %log, Hhd, Hh, #Hlc, %Hl⟩ | ⟨%Herr, #HaE⟩)
+    · ipersist Hhd
+      ihave %Hhn := typedPointsto_not_null _ _ _ $$ Hh
+      iStructNamed Hh
+      ipersist Revision
+      imodintro
+      iapply HΨ'
+      iframe Hrd
+      ileft
+      isplitr
+      · ipureintro; exact Herr
+      ihave %Hlp := v3rpc.idxCert_pure E.γ.idx log $$ Hlc
+      iexists h, v.Revision'
+      iframe Hhd
+      isplitl [ClusterId MemberId RaftTerm LeaderId]
+      · iunfold v3rpc.hdrW
+        isplitr
+        · ipureintro; exact Hhn
+        iexists _, _, _, _
+        iframe
+      isplitr
+      · iunfold v3rpc.hdrRevIn
+        ileft
+        isplitr
+        · ipureintro
+          rw [Hl.2.2]
+          have h2 := Hl.2.1
+          have h3 := Hlp.2
+          intro heq
+          have := congrArg (fun w : w64 => uint.Z w) heq
+          word
+        iexact Revision
+      simp only [Q]
+      iframe
+      iExactEq Hsr; rfl
+    · imodintro
+      iapply HΨ'
+      iframe Hrd
+      iright
+      isplitr
+      · ipureintro; exact Herr.1
+      isplitr
+      · iapply (v3rpc.srvErrIs_applyErrIs err Herr.2)
+        iexact HaE
+      simp only [Q]
+      iframe
+      iExactEq Hsr; rfl
+  -- `kvServer.Compact`
+  iapply wp_fupd
+  iapply (v3rpc.kvServer.wp_Compact p s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) cid mid n aa E
+    ci cd r Pin Q) $$ [Hrd Hlt Hlg Hsr Hid Hreq]
+  · iframe #
+    iframe Hrd
+    isplitr
+    · iunfold mvcc.txnCtx; iright; iexact Hctx
+    simp only [Pin]
+    iframe
+  inext
+  iintro %resp %err ⟨Hrd, Hout⟩
+  iunfold v3rpc.compactOut at Hout
+  icases Hout with (⟨%Herr, %h, %rv, %rv', #Hh, Hf, Hro, Hlt, Hlg, Hsr⟩ |
+    ⟨%Herr, (⟨Hlt, Hlg, Hsr⟩ | ⟨Hlt, Hlg, Hsr, -, -⟩)⟩)
+  · obtain ⟨rfl, Hrn⟩ := Herr
+    iunfold v3rpc.hdrFilled at Hf
+    icases Hf with ⟨%Hhn, %t, %ld, Hcid, Hmid, Ht, Hld⟩
+    ipersist Hcid
+    ipersist Hmid
+    ipersist Ht
+    ipersist Hld
+    ihave Hrevm : iprop(|==> structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ rv')
+      $$ [Hro]
+    · iunfold v3rpc.hdrRevOut at Hro
+      icases Hro with (⟨%Hr, #Hr'⟩ | ⟨%Hr, Hr', -⟩)
+      · imodintro; rw [Hr.2]; iexact Hr'
+      · ipersist Hr'; imodintro; iexact Hr'
+    imod Hrevm with #Hrev
+    imodintro
+    iapply HΨ
+    isplitl [Hlt Hlg Hsr Hrd Hrr]
+    · unfold etcdRunSlot; iframe
+    iintro -
+    iexists ⟨⟨cid, mid, rv', t, ld⟩⟩
+    isplitl []
+    · simp only [pbCompactionResponse]
+      iunfold compactRespMsg
+      isplitr
+      · ipureintro; exact Hrn
+      iexists h
+      iframe Hh
+      iunfold hdrFull
+      isplitr
+      · ipureintro; exact Hhn
+      iframe #
+    · iapply Hk
+      ipureintro; exact ⟨rfl, rfl⟩
+  all_goals
+    imodintro
+    iapply HΨ
+    isplitl [Hlt Hlg Hsr Hrd Hrr]
+    · unfold etcdRunSlot; iframe
+    iintro %Hnil
+    exact absurd Hnil Herr.2
 
 /-- **etcd's `Txn` handler meets etcd's `Txn` spec** (`grpcHandlerOk`; from `txn_end_to_end`; the
 vertical slice's unit V2): as `etcd_rangeHandlerOk`, for a transaction of plain operations within
@@ -1355,7 +1583,7 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
   icases Hspec with ⟨%Hpl, %Q, Hnp, %c, %F, #Hc0, #HF, Hspec⟩
   obtain ⟨hp, hin⟩ := Hpl
   icases Hr with ⟨#Hreq, #Hw⟩
-  ihave ⟨%ts, %es, #Htq, #Htw, %Hmod⟩ := txnReq_of_requestIs r t hp $$ [$Hreq $Hw]
+  ihave ⟨%ts, %es, #Htq, #Htw, %Hmod⟩ := txnReq_of_requestIs r t $$ [$Hreq $Hw]
   -- the deposit (unit T2): none, or (unit W-M3) a linearizable read-only transaction's read
   -- update, or a writing one's update
   ihave ⟨%d, Hdep, %Hdp, %HdQ⟩ : iprop(∃ d : v3rpc.KVDep GF, v3rpc.kvDepOwn ρ γr d ∗
@@ -1415,7 +1643,7 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
     iframe
     iframe Hc0
     isplitr
-    · ipureintro; exact txnInModel_of t _ _ _ hin Hmod
+    · ipureintro; exact txnInModel_of t _ _ _ (fun _ => hin) Hmod
     ipureintro; exact Hdp
   inext
   iintro %resp %err Hpost
@@ -1449,6 +1677,7 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         icases Hans with ⟨-, Hans⟩
         iunfold v3rpc.txnReadAns at Hans
         icases Hans with ⟨%log, #Hcert, #Hcok, %Hlog, #Hrl, HQl, Hres⟩
+        imod read_keys s E γr log $$ Hsrd Hcert Hcok with %Hkeys
         have hdq : (d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q := by
           rcases HdQ with ⟨-, h⟩ | ⟨h, -⟩
           · exact h
@@ -1472,7 +1701,7 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         iframe #
         ipureintro
         obtain ⟨h1, h2, h3, h4, h5⟩ := Hmm
-        refine ⟨Hlog.1, Hlog.2.1, Hlog.2.2.2, ?_, h2, h3, h4, ?_⟩
+        refine ⟨Hkeys, Hlog.1, Hlog.2.1, Hlog.2.2.2, ?_, h2, h3, h4, ?_⟩
         · rw [h1]
         · rw [h4]; exact h5
       | false =>
@@ -1480,6 +1709,7 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         iunfold v3rpc.txnAppliedAns at Hans
         icases Hans with ⟨%tw, %hm, %rq', %t'', %x, %x', %l, %skip, %Hst, Hout, #Hcert, HMint, #Hwit,
           #Hcok, HQv⟩
+        imod read_keys s E γr x'.log $$ Hsrd Hcert Hcok with %Hkeys
         have hdq : d = .op1 (.txn t) Q := by
           rcases HdQ with ⟨h, -⟩ | ⟨-, h⟩
           · rw [hro] at h; cases h
@@ -1507,7 +1737,7 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         ipureintro
         obtain ⟨h1, h2, h3, h4, h5⟩ := Hmm
         obtain ⟨s0, s1, s2, s3, s4, s5, s6, s7, s8, s9⟩ := Hst
-        refine ⟨s0, s1, s2, s3, s4, ?_, h2, h3, s6, s7, s8, h4, ?_, s9⟩
+        refine ⟨⟨s0, s1, s2, s3, s4, ?_, h2, h3, s6, s7, s8, h4, ?_, s9⟩, Hkeys⟩
         · rw [h1]
         · rw [h4]; exact h5
     · obtain ⟨-, Hne⟩ := Herr
@@ -1599,6 +1829,38 @@ theorem etcd_rangeMethodOk (q : Loc) (E : apply.AEnv GF)
   iapply HΨ
   iframe
 
+/-- **etcd's `Compact`, as grpc runs it** (as `etcd_rangeMethodOk`, the handler owning its request;
+the client's `kv.Compact`, 2026-11-01). -/
+theorem etcd_compactMethodOk (q : Loc) (E : apply.AEnv GF)
+    (γr : ReadNames) (cid mid : w64) (S : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) :
+    grpcHandlerOwnOk (q @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty @!! go!"Compact")
+        S (etcdCompactSpec E γr cid mid) ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ srvInterceptorsOk v3rpc.learnerReqOk ics Rs ⊢
+      grpcMethodOk (@! etcdserverpb._KV_Compact_Handler)
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q)
+        ics iprop(S ∗ [∗list] R ∈ Rs, R) (etcdCompactSpec E γr cid mid) := by
+  iintro ⟨#Hh, #Ppb, #Hics⟩
+  unfold grpcMethodOk
+  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.CompactionRequest) -∗
+      (pbCompactionRequest (GF := GF)).blank l) $$ []
+  · iintro !> %l Hl; simp only [pbCompactionRequest]; iexact Hl
+  ihave #HQr : iprop(□ ∀ l : Loc, (pbCompactionRequest (GF := GF)).recv l m -∗
+      v3rpc.learnerReqOk (interface.mkOk (go.GoType.PointerType etcdserverpb.CompactionRequest.ty) #l)) $$ []
+  · iintro !> %l -
+    iapply (v3rpc.learnerReqOk_ptr _ l (by simp [etcdserverpb.CompactionRequest.ty, etcdserverpb.RangeRequest.ty]))
+  ihave #Hh' := (grpcHandlerOwnOk_md _ _ _).1 $$ Hh
+  iapply (v3rpc.etcdserverpb.wp__KV_Compact_Handler pbCompactionRequest pbCompactionResponse
+    (GrpcSpec.md (etcdCompactSpec E γr cid mid))
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
+    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
+    $$ [HS HRs HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iapply HΨ
+  iframe
+
 /-- **etcd's `DeleteRange`, as grpc runs it** (as `etcd_putMethodOk`). -/
 theorem etcd_deleteMethodOk (q : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (S : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) :
@@ -1681,7 +1943,7 @@ assumed), the method-set fact `QuotaKVServerIsKVServer`, the packages'. -/
 theorem etcd_kv_served (addr : GoString) (p q s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64) (il im iu : GoFunc)
     (regs : List (GoString × val × GoInterface)) (N : Nat)
-    (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q, x ∈ regs) :
+    (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q, x ∈ regs) (hρ : ρ.rd = γr) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗
@@ -1697,9 +1959,10 @@ theorem etcd_kv_served (addr : GoString) (p q s : Loc)
       |={⊤}=> isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) := by
+        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hl, Hslots⟩
-  ihave #Hp := etcd_putHandlerOk p s E ρ γr cid mid n $$ []
+  ihave #Hp := etcd_putHandlerOk p s E ρ γr cid mid n hρ $$ []
   · iframe #
   ihave #Hr := etcd_rangeHandlerOk p s E ρ γr cid mid n $$ []
   · iframe #
@@ -1725,6 +1988,13 @@ theorem etcd_kv_served (addr : GoString) (p q s : Loc)
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
     iprop(etcdRunSlot s E γr ∗ v3rpc.quotaRd s) go!"DeleteRange" inferInstance $$ [Hq Hd']
   · iframe #
+  ihave #Hc := etcd_compactHandlerOk p s E ρ γr cid mid n hρ $$ []
+  · iframe #
+  ihave #Hc' := grpcHandlerOwnOk_frame _ _ (v3rpc.quotaRd s) (etcdCompactSpec E ρ.rd cid mid) $$ Hc
+  ihave #Hqc := v3rpc.quotaKV_promotedHandlerOwnOk (etcdCompactSpec E ρ.rd cid mid) q s
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
+    iprop(etcdRunSlot s E γr ∗ v3rpc.quotaRd s) go!"Compact" inferInstance $$ [Hq Hc']
+  · iframe #
   ihave #Hics : srvInterceptorsOk (GF := GF) v3rpc.learnerReqOk [il, im, iu] (etcdIcRs s) $$ []
   · unfold etcdIcRs srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk
     iframe #
@@ -1738,17 +2008,20 @@ theorem etcd_kv_served (addr : GoString) (p q s : Loc)
   · iframe #
   ihave #Hmt := etcd_txnMethodOk q E ρ.rd γr cid mid _ _ _ $$ [Hqt Ppb Hics]
   · iframe #
+  ihave #Hmc := etcd_compactMethodOk q E ρ.rd cid mid _ _ _ $$ [Hqc Ppb Hics]
+  · iframe #
   ihave #Hmp' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmp
   ihave #Hmr' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmr
   ihave #Hmd' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmd
   ihave #Hmt' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmt
+  ihave #Hmc' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmc
   imod (grpc_serve_rpcs addr [il, im, iu] regs (etcdKVMethods q E ρ.rd γr cid mid)
     (etcdGrpcSlot s E γr) N (by simp only [etcdKVMethods, List.map]; decide)
     (by
       intro x hx
       apply hregs
       simp only [etcdKVMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-      rcases hx with rfl | rfl | rfl | rfl <;> simp [etcdKVRegs])) $$ [Hl Hslots] with Hrpcs
+      rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp [etcdKVRegs])) $$ [Hl Hslots] with Hrpcs
   · iframe
     imodintro
     simp only [etcdKVMethods]
@@ -1757,11 +2030,12 @@ theorem etcd_kv_served (addr : GoString) (p q s : Loc)
     iapply BigSepL.bigSepL_nil.2
     itrivial
   simp only [etcdKVMethods]
-  icases Hrpcs with ⟨#H1, #H2, #H3, #H4, -⟩
+  icases Hrpcs with ⟨#H1, #H2, #H3, #H4, #H5, -⟩
   ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
   ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
   ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
   ihave #H4' := (isGrpcRpc_md _ _ _).2 $$ H4
+  ihave #H5' := (isGrpcRpc_md _ _ _).2 $$ H5
   imodintro
   iframe #
 
@@ -1813,7 +2087,7 @@ caller's updates, one per member, persistent or on a client that sends a write a
 and the reply with `putReplied` of some member, or an error. -/
 theorem client_put_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
-    (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (Q : KVState → IProp GF) (F : mvcc.Log) (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAt api (ms.map SrvAt.addr) ∗ ([∗list] x ∈ ms, kvRegsAt x) ∗
         ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx F) ∗
@@ -1841,6 +2115,8 @@ theorem client_put_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
     · ipureintro; exact Hpm
     isplitl []
     · iunfold floorsAt; iframe #
+    isplitl [Hau]; rotate_left
+    · ipureintro; exact hsz
     unfold kvReqPre putUpd
     icases Hau with (#Hau | ⟨#Ho, Hau⟩)
     · ileft
@@ -1865,7 +2141,11 @@ theorem client_put_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
     iexists m
     iframe Hm
     iunfold putAns at Hq
-    iExactEq Hq; rfl
+    icases Hq with ⟨%x, %hx, Hr, -⟩
+    iexists x
+    isplitr
+    · ipureintro; exact hx
+    iExactEq Hr; rfl
   · iright
     isplitl
     · ipureintro; exact ⟨Herr.1, Herr.2.2⟩
@@ -1878,7 +2158,8 @@ list]`: a read may be answered by any member); `R` back, and `nil` with the repl
 `rangeReplyOk` of some member, or an error. -/
 theorem client_range_any (api : Loc) (ms : List (SrvAt GF)) (c : w64) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
-    (gs : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (gs : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF) (F : mvcc.Log)
+    (hsz : opSizeOk (opGetModel key gs)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAt api (ms.map SrvAt.addr) ∗ ([∗list] x ∈ ms, kvRegsAt x) ∗
         ([∗list] x ∈ ms, committedAtLeast x.γr c ∗ mvcc.idxCert x.E.γ.idx F) ∗
@@ -1903,6 +2184,8 @@ theorem client_range_any (api : Loc) (ms : List (SrvAt GF)) (c : w64) (ci : GoIn
     · ipureintro; exact Hg
     isplitl []
     · iunfold knownAt; iframe #
+    isplitl []; rotate_left
+    · ipureintro; exact hsz
     iunfold rangeUpd
     iexact Hdq
   inext
@@ -1927,7 +2210,7 @@ theorem client_range_any (api : Loc) (ms : List (SrvAt GF)) (c : w64) (ci : GoIn
 `kv.Delete.spec` with no options). -/
 theorem client_delete_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
-    (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (Q : KVState → IProp GF) (F : mvcc.Log) (hsz : opSizeOk (opDeleteModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAt api (ms.map SrvAt.addr) ∗ ([∗list] x ∈ ms, kvRegsAt x) ∗
         ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx F) ∗
@@ -1953,6 +2236,8 @@ theorem client_delete_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk
       · simp [op_simps, deleteWireOf, txn.deleteOpOf]
     isplitl []
     · iunfold floorsAt; iframe #
+    isplitl [Hau]; rotate_left
+    · ipureintro; exact hsz
     unfold kvReqPre delUpd
     icases Hau with (#Hau | ⟨#Ho, Hau⟩)
     · ileft
@@ -1991,7 +2276,8 @@ error. -/
 theorem client_txn_any (tp : Loc) (ms : List (SrvAt GF)) (c : w64)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
     (Q : KVState → IProp GF) (F : mvcc.Log)
-    (hp : TxnModel.plain b.model) (hin : txnModelIn (txnWireOf b.model)) :
+    (hp : TxnModel.plain b.model) (hin : txnModelIn (txnWireOf b.model))
+    (hsz : txnSizeOk (txnWireOf b.model)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         txnObjAt tp (ms.map SrvAt.addr) ci cd b ∗ ([∗list] x ∈ ms, kvRegsAt x) ∗
         ([∗list] x ∈ ms, committedAtLeast x.γr c ∗ mvcc.idxCert x.E.γ.idx F) ∗
@@ -2014,6 +2300,8 @@ theorem client_txn_any (tp : Loc) (ms : List (SrvAt GF)) (c : w64)
     · ipureintro; exact ⟨hp, hin⟩
     isplitl []
     · iunfold knownAt; iframe #
+    isplitl [Hnp]; rotate_left
+    · ipureintro; exact hsz
     unfold txnReqPre txnUpd
     icases Hnp with (#Hu | ⟨Ho, Hu⟩)
     · ileft
@@ -2090,7 +2378,7 @@ context's (`ctxErrClient`), the package's. `client_put_any` at one server's memb
 (`srvsAt addr E γr cid mid`), its update persistent. -/
 theorem client_put_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key val : GoString)
-    (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
@@ -2109,7 +2397,7 @@ theorem client_put_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv
     (fun x : SrvAt GF => mvcc.idxCert x.E.γ.idx F) (fun _ _ => .rfl) $$ HF
   ihave #Hus := srvsAt_box addr E γr cid mid (kvOpAu1 γr.kv (.put (putKeyOp key val)) Q)
     (fun x : SrvAt GF => kvOpAu1 x.γr.kv (.put (putKeyOp key val)) Q) (fun _ _ => .rfl) $$ Hau
-  iapply (client_put_any api (srvsAt addr E γr cid mid) ci cd key val sl Q F) $$ []
+  iapply (client_put_any api (srvsAt addr E γr cid mid) ci cd key val sl Q F hsz) $$ []
   · rw [srvsAt_addr]
     iframe #
   inext
@@ -2138,7 +2426,7 @@ members (`srvsAt addr E γr cid mid`). -/
 theorem client_range_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF)
     (γr : ReadNames) (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
-    (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (Q : KVState → IProp GF) (F : mvcc.Log) (hsz : opSizeOk (opGetModel key gs)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
@@ -2164,7 +2452,7 @@ theorem client_range_end_to_end (api : Loc) (addr : List GoString) (E : apply.AE
     (fun x : SrvAt GF => iprop(⌜Q = fun _ => iprop(True)⌝ ∨
       (⌜(rangeWireOf (opGetModel key gs)).base.serializable = false⌝ ∗ kvReadAu x.γr.kv Q)))
     (fun _ _ => .rfl) $$ Hdq
-  iapply (client_range_any api (srvsAt addr E γr cid mid) c ci cd key sl gs R Q F)
+  iapply (client_range_any api (srvsAt addr E γr cid mid) c ci cd key sl gs R Q F hsz)
     $$ [Hopts HR Hsn]
   · rw [srvsAt_addr]
     iframe #
@@ -2195,7 +2483,8 @@ through an index at least `c`); or an error and no reply. `client_range_end_to_e
 options. -/
 theorem client_get_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
+    (hsz : opSizeOk (opGetModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
@@ -2209,7 +2498,7 @@ theorem client_get_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx', #Hce, #Hopts, #Hc0, #Hdq, #HF⟩ HΦ
   ihave #Hopts' := optsAt_res sl [] iprop(True) $$ Hopts
-  iapply (client_range_end_to_end api addr E γr c cid mid ci cd key sl [] iprop(True) Q F) $$ []
+  iapply (client_range_end_to_end api addr E γr c cid mid ci cd key sl [] iprop(True) Q F hsz) $$ []
   · iframe #
     isplitl []
     · rw [show (opGetModel key []).base.sortSet = false from rfl]
@@ -2244,7 +2533,8 @@ context a client call takes (`ctxOk`: `Background()` too). `client_delete_any` a
 members (`srvsAt addr E γr cid mid`), its update persistent. -/
 theorem client_delete_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
+    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
+    (hsz : opSizeOk (opDeleteModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ mvcc.idxCert E.γ.idx F ∗
@@ -2265,7 +2555,7 @@ theorem client_delete_end_to_end (api : Loc) (addr : List GoString) (E : apply.A
     (kvOpAu1 γr.kv (.deleteRange (txn.deleteOpOf key [] false)) Q)
     (fun x : SrvAt GF => kvOpAu1 x.γr.kv (.deleteRange (txn.deleteOpOf key [] false)) Q)
     (fun _ _ => .rfl) $$ Hau
-  iapply (client_delete_any api (srvsAt addr E γr cid mid) ci cd key sl Q F) $$ []
+  iapply (client_delete_any api (srvsAt addr E γr cid mid) ci cd key sl Q F hsz) $$ []
   · rw [srvsAt_addr]
     iframe #
   inext
@@ -2300,7 +2590,7 @@ path's and read loop's being the same, `ρ.rd = γr`), its update persistent. -/
 theorem client_txn_end_to_end (tp : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
     (F : mvcc.Log) (Q : KVState → IProp GF) (hp : TxnModel.plain b.model)
-    (hin : txnModelIn (txnWireOf b.model)) :
+    (hin : txnModelIn (txnWireOf b.model)) (hsz : txnSizeOk (txnWireOf b.model)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         committedAtLeast γr c ∗ mvcc.idxCert E.γ.idx F ∗
@@ -2335,7 +2625,7 @@ theorem client_txn_end_to_end (tp : Loc) (addr : List GoString) (E : apply.AEnv 
   · iframe #
   ihave #Hus := srvsAt_box addr E γr cid mid (txnUpdAt γr γr (txnWireOf b.model) Q)
     (fun x : SrvAt GF => txnUpdAt x.γr x.γr (txnWireOf b.model) Q) (fun _ _ => .rfl) $$ Hu
-  iapply (client_txn_any tp (srvsAt addr E γr cid mid) c ci cd b Q F hp hin)
+  iapply (client_txn_any tp (srvsAt addr E γr cid mid) c ci cd b Q F hp hin hsz)
     $$ [Hobj]
   · rw [srvsAt_addr]
     iframe Hobj
@@ -2365,7 +2655,8 @@ The get is linearizable: it asks the read index at the put's committed index (`a
 `i` (`readLogOk`), which extends the put's (`appliedMono`). -/
 theorem client_get_after_put (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (key val : GoString) (sl : GoSlice) (Fp : mvcc.Log) (mp : PutRespM) :
+    (key val : GoString) (sl : GoSlice) (Fp : mvcc.Log) (mp : PutRespM)
+    (hsz : opSizeOk (opGetModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
@@ -2384,7 +2675,7 @@ theorem client_get_after_put (api : Loc) (addr : List GoString) (E : apply.AEnv 
   have hx' := put_applied_log (putKeyOp key val) hm x x' lp skip Hpp.1
   iapply wp_fupd
   iapply (client_get_end_to_end api addr E γr i cid mid ci cd key sl (fun _ => iprop(True))
-    x'.log) $$ []
+    x'.log hsz) $$ []
   · iframe #
     ileft; ipureintro; rfl
   inext
@@ -2394,7 +2685,7 @@ theorem client_get_after_put (api : Loc) (addr : List GoString) (E : apply.AEnv 
     rw [show (txn.rangeOpOf key [] (W64 0) (W64 0) (W32 0) (W32 0) false false false (W64 0)
       (W64 0) (W64 0) (W64 0)).base.serializable = false from rfl]
     simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hq with ⟨%l, #Hcl, -, %Hl, #Hrl, -⟩
+    icases Hq with ⟨%l, #Hcl, -, -, %Hl, #Hrl, -⟩
     iunfold readLogOk at Hrl
     icases Hrl with ⟨-, %ci₀, %L₀, %Hci₀, #HL₀, %HpL⟩
     iunfold appliedMono at Hmono
@@ -2444,7 +2735,7 @@ theorem client_get_value (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64)
         m.hdr.revision = W64 (σ.rev : Int)⌝ := by
   iintro #H
   iunfold rangeReplyOk at H
-  icases H with ⟨%l, -, -, %Hl, -, #HQ⟩
+  icases H with ⟨%l, -, -, -, %Hl, -, #HQ⟩
   have hs : (getKeyOp key).base.serializable = false := rfl
   have hk : (getKeyOp key).key = key := rfl
   simp only [hs, hk, Bool.false_eq_true, ↓reduceIte]
@@ -2481,7 +2772,7 @@ theorem rangeReply_state (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64)
   iintro #H
   iunfold rangeReplyOk at H
   simp only [hser, Bool.false_eq_true, ↓reduceIte]
-  icases H with ⟨%l, -, -, %Hl, -, #HQ⟩
+  icases H with ⟨%l, -, -, -, %Hl, -, #HQ⟩
   obtain ⟨hlen, hlen', hr, -, -, -, hcount, hsel, -⟩ := Hl
   have hst : mvcc.stateAt l (sint.nat (mvcc.rangeRev m.hdr.revision o.base.rev)) =
       mvcc.stateAfter l := by
@@ -2577,22 +2868,23 @@ theorem kvServerAt_of_is (p s : Loc) (A : v3rpc.KVAns GF) (cid mid n : w64) :
     v3rpc.kvServerIs (GF := GF) p s A cid mid n ⊢ v3rpc.kvServerAt p s A cid mid n := by
   iintro #H
   iunfold v3rpc.kvServerIs at H
-  icases H with ⟨%Hp, #Hh, #Hk, #Hn, -⟩
+  icases H with ⟨%Hp, #Hh, #Hk, #Hn, %Hmx, #Haa, -⟩
   iunfold v3rpc.kvServerAt
   iframe #
-  ipureintro; exact Hp
+  ipureintro; exact ⟨Hp, Hmx⟩
 
 /-- **etcd's KV service, started** (see the file header): the server `v3rpc.Server` built
 (`grpcSrvNew` with its chains and registrations, the KV methods `kvRegs q` among them, the quota
 wrapper `q` over `p`, the interceptors' contracts) and a listener at `addr` become, in a ghost
 step, the right to serve `gs` on `lis`, the stream registrations at `addr`, and etcd's specs of
 `Put`, `Range`, `DeleteRange` and `Txn` registered at `addr` (`isGrpcRpc`), given the server's
-request-path premises (`etcd_kv_served`'s). -/
+request-path premises (`etcd_kv_served`'s), under the workload premise `grpcRepliesFit`
+(`grpc.start`'s, 2026-10-31). -/
 theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
     (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64)
     (il im iu ims is : GoFunc) (svcs : List GoString)
     (regs sregs : List (GoString × val × GoInterface)) (N : Nat)
-    (hregs : ∀ x ∈ v3rpc.kvRegs q, x ∈ regs) :
+    (hregs : ∀ x ∈ v3rpc.kvRegs q, x ∈ regs) (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗
@@ -2609,14 +2901,15 @@ theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
         isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) := by
+        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots⟩
-  imod (grpc.start gs lis addr [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgs Hlis] with ⟨Hat', Hst, Htok⟩
+  imod (grpc.start gs lis addr [il, im, iu] [ims, is] svcs regs sregs Hrf) $$ [Hgs Hlis] with ⟨Hat', Hst, Htok⟩
   · iframe
   ihave #Hil' := Hil $$ %v3rpc.learnerReqOk
   ihave #Him' := Him $$ %v3rpc.learnerReqOk
   imod (etcd_kv_served addr p q s E ρ γr cid mid n il im iu regs N
-    (by rw [etcdKVRegs_eq]; exact hregs)) $$ [Hat' Hslots] with H
+    (by rw [etcdKVRegs_eq]; exact hregs) hρ) $$ [Hat' Hslots] with H
   · iframe; iframe #
   imodintro
   iframe
@@ -3011,7 +3304,8 @@ the KV's `etcdGrpcSlot`, and the lessor contract is at the KV handlers' slot `et
 theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n lcid lmid : w64)
     (il im iu : GoFunc) (regs : List (GoString × val × GoInterface)) (N : Nat)
-    (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q ++ etcdLeaseRegs (GF := GF) ql, x ∈ regs) :
+    (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q ++ etcdLeaseRegs (GF := GF) ql, x ∈ regs)
+    (hρ : ρ.rd = γr) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗
@@ -3032,13 +3326,14 @@ theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant"
           (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E)) ∗
         isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseRevoke"
           (etcdLeaseRevokeSpec (EM := v3rpc.etcdModelOfServer E)) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hlat, #HL, #Hql, #Hil, #Him, #Hiu, Hl,
     Hslots⟩
-  ihave #Hp := etcd_putHandlerOk p s E ρ γr cid mid n $$ []
+  ihave #Hp := etcd_putHandlerOk p s E ρ γr cid mid n hρ $$ []
   · iframe #
   ihave #Hr := etcd_rangeHandlerOk p s E ρ γr cid mid n $$ []
   · iframe #
@@ -3064,6 +3359,13 @@ theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
     iprop(etcdRunSlot s E γr ∗ v3rpc.quotaRd s) go!"DeleteRange" inferInstance $$ [Hq Hd']
   · iframe #
+  ihave #Hc := etcd_compactHandlerOk p s E ρ γr cid mid n hρ $$ []
+  · iframe #
+  ihave #Hc' := grpcHandlerOwnOk_frame _ _ (v3rpc.quotaRd s) (etcdCompactSpec E ρ.rd cid mid) $$ Hc
+  ihave #Hqc := v3rpc.quotaKV_promotedHandlerOwnOk (etcdCompactSpec E ρ.rd cid mid) q s
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
+    iprop(etcdRunSlot s E γr ∗ v3rpc.quotaRd s) go!"Compact" inferInstance $$ [Hq Hc']
+  · iframe #
   ihave #Hics : srvInterceptorsOk (GF := GF) v3rpc.learnerReqOk [il, im, iu] (etcdIcRs s) $$ []
   · unfold etcdIcRs srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk
     iframe #
@@ -3077,10 +3379,13 @@ theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
   · iframe #
   ihave #Hmt := etcd_txnMethodOk q E ρ.rd γr cid mid _ _ _ $$ [Hqt Ppb Hics]
   · iframe #
+  ihave #Hmc := etcd_compactMethodOk q E ρ.rd cid mid _ _ _ $$ [Hqc Ppb Hics]
+  · iframe #
   ihave #Hmp' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmp
   ihave #Hmr' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmr
   ihave #Hmd' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmd
   ihave #Hmt' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmt
+  ihave #Hmc' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmc
   ihave #Hms := etcd_leaseMethodsOk lp ql s _ E ρ lcid lmid (etcdRunSlot s E γr) il im iu $$ []
   · iframe #
   imod (grpc_serve_rpcs addr [il, im, iu] regs (etcdKVMethods q E ρ.rd γr cid mid ++
@@ -3093,7 +3398,7 @@ theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
       apply hregs
       simp only [etcdKVMethods, etcdLeaseMethods, List.cons_append, List.nil_append,
         List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-      rcases hx with rfl | rfl | rfl | rfl | rfl | rfl <;> simp [etcdKVRegs, etcdLeaseRegs]))
+      rcases hx with rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> simp [etcdKVRegs, etcdLeaseRegs]))
     $$ [Hl Hslots] with Hrpcs
   · iframe
     imodintro
@@ -3109,8 +3414,9 @@ theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
   ihave Hrpcs := BigSepL.bigSepL_append.1 $$ Hrpcs
   icases Hrpcs with ⟨Hkv, Hle⟩
   simp only [etcdKVMethods, etcdLeaseMethods]
-  icases Hkv with ⟨#H1, #H2, #H3, #H4, -⟩
+  icases Hkv with ⟨#H1, #H2, #H3, #H4, #H7, -⟩
   icases Hle with ⟨#H5, #H6, -⟩
+  ihave #H7' := (isGrpcRpc_md _ _ _).2 $$ H7
   ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
   ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
   ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3

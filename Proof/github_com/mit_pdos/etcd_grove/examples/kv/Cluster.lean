@@ -11,29 +11,23 @@ raft's `Node`, connected in process by `deliver`, each node driven by a `tick` g
   methods return (`quietLogger.{Debugf,Errorf,Infof,Warningf}`), which is raft's
   `isLogger` (`qLogger_isLogger`).
 * **The transport** (`deliverable`, `deliver`): `Ready` says of each of its messages only
-  that it was sent (`sentMsg`), with its credits (`msgCredits`); `Node.Step` takes
-  more (`stepIn`, `stepIn_intro`: the type, the target, a nonzero term and sender but
-  for a forwarded read-index request (unstamped), its entries owned, and a `MsgTimeoutNow`'s tick
-  credit). The transport checks in Go what
-  it can (`Deliverable`: the type, a sender other than the target, a term (none on a
-  forwarded read-index request), a nil context but on a heartbeat, its response or a vote
-  request, and (2026-10-13) no entries on a `MsgTimeoutNow`), routes by `To` (so the target
-  is the receiver), copies the entries and passes each message's read credit on
-  (2026-10-13); raft sends nothing it drops but a follower's forwarded transfer request
-  (stamped, which `Node.Step` does not take). Since 2026-10-13 a vote request's context
-  may be the leader-transfer marker (a transfer's campaign; `Node.Step` takes it).
-  Raft v3.7 (2026-10-16, stage R6b): the messages are `*pb.Message`s a `Ready` hands out owned
-  (D8, `readyDq`: whole, but a response at half), and `Node.Step` takes the pointer for good
-  (Q3, `msgIn`): `Deliverable` is over the message's state `st : MsgSt`, `stepP_deliverable`
-  takes the message at `1` with its entries slice fresh (`deliver`'s copy). A response
-  (`MsgAppResp`, `MsgVoteResp`) comes at half, so the in-process transport cannot write its
-  `Entries` nor hand it to `Step`: `deliver` steps the wire's copy of every message instead.
-* **The transfer budget** (`isTransfers`, 2026-10-13): a `MsgTimeoutNow` makes its target
-  campaign at once, one term past its own or the message's, so `Node.Step` takes it with a
-  tick credit (`tickCredit`). The transport holds `timeouts` of them in a
-  mutex-protected counter (`transfers`, `transfersInv`: one credit per count) and passes a
-  `MsgTimeoutNow` on only while one is left (`transfers.take`), as `tick` bounds a node's
-  ticks; `Main` allocates them with the budget.
+  that it was sent (`sentMsg`), with its credits (`msgCredits`); `Node.Step` takes it with its
+  wire state and its credits, routed to its target (`stepIn`, `stepIn_intro`: since 2026-10-30,
+  stage F of the client repair, no premise on the type, the term, the transfer, a snapshot or a
+  tick credit). The transport still checks in Go what it did (`Deliverable`: the type, a sender
+  other than the target, a term (none on a forwarded read-index request), a nil context but on a
+  heartbeat, its response or a vote request, no entries on a `MsgTimeoutNow`), routes by `To` (so
+  the target is the receiver), copies the entries and passes each message's credits on. Raft
+  v3.7 (2026-10-16, stage R6b): the messages are `*pb.Message`s a `Ready` hands out owned (D8,
+  `readyDq`: whole, but a response at half), and `Node.Step` takes the pointer for good (Q3,
+  `msgIn`). A response (`MsgAppResp`, `MsgVoteResp`) comes at half, so the in-process transport
+  cannot write its `Entries` nor hand it to `Step`: `deliver` steps the wire's copy of every
+  message instead. (Until 2026-10-30 `Deliverable` was what `NetMsgOk` asked,
+  `deliverable_netMsgOk`, `deliverable_step`.)
+* **The transfer budget** (`isTransfers`, 2026-10-13): the transport holds `timeouts`
+  `MsgTimeoutNow`s in a mutex-protected counter (`transfers`) and passes one on only while one is
+  left (`transfers.take`). Since 2026-10-30 nothing rides on it (until then a tick credit each,
+  what `Node.Step` took with a `MsgTimeoutNow`).
 * **The peers** (`kvPeerOk`): the node a peer table maps an id to is that id's, of the
   cluster (persistent).
 -/
@@ -157,93 +151,6 @@ theorem deliverable_not_prevote (st : MsgSt) (Hd : Deliverable st) : st.msg.Type
         MsgHeartbeatResp, MsgReadIndexResp]
   · rw [h]; simp [MsgTimeoutNow, MsgPreVote]
   · rw [h]; simp [MsgSnap, MsgPreVote]
-
-/-- A deliverable message other than a proposal, addressed to `id`, is what `RawNode.Step`
-takes from the network (`NetMsgOk`). -/
-theorem deliverable_netMsgOk (id : w64) (st : MsgSt) (Hd : Deliverable st)
-    (Hnp : st.msg.Type' ≠ MsgProp) (Hto : st.msg.To' = id) (Hr : st.resps = []) :
-    NetMsgOk id st := by
-  obtain ⟨Hty, HF, HFT, -⟩ := Hd
-  have HF' : st.msg.From' ≠ id := Hto ▸ HFT
-  have Hntl : st.msg.Type' ≠ MsgTransferLeader := by
-    rcases Hty with h | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩
-    · exact absurd h Hnp
-    · rw [h]; simp [MsgReadIndex, MsgTransferLeader]
-    · simp only [kvNetTypes, List.mem_cons, List.not_mem_nil, or_false] at h
-      rcases h with h | h | h | h | h | h | h <;> rw [h] <;>
-        simp [MsgTransferLeader, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
-          MsgHeartbeatResp, MsgReadIndexResp]
-    · rw [h]; simp [MsgTimeoutNow, MsgTransferLeader]
-    · rw [h]; simp [MsgSnap, MsgTransferLeader]
-  show st.msg.Type' ∈ netStepTypes ∧
-    (¬ UnstampedType st.msg.Type' → st.msg.To' = id ∧ st.msg.Term' ≠ W64 0 ∧ st.msg.From' ≠ W64 0) ∧
-    (UnstampedType st.msg.Type' → st.msg.Term' = W64 0) ∧
-    (st.msg.Type' = MsgApp ∨ st.msg.Type' = MsgHeartbeat ∨ st.msg.Type' = MsgHeartbeatResp ∨
-       st.msg.Type' = MsgReadIndexResp ∨ st.msg.Type' = MsgSnap → st.msg.From' ≠ id) ∧
-    (st.msg.Type' = MsgAppResp → st.msg.Reject' = true → st.msg.From' ≠ id) ∧
-    (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
-    (st.msg.Type' = MsgPreVote → st.msg.From' ≠ id) ∧ st.resps = []
-  rcases Hty with h | ⟨Hri, Ht0⟩ | ⟨Hn, Ht⟩ | ⟨Htn, Ht, -⟩ | ⟨Hsn, Ht, -⟩
-  · exact absurd h Hnp
-  · refine ⟨by rw [Hri]; simp [netStepTypes], fun h => absurd (.inl Hri) h, fun _ => Ht0,
-      fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl, fun _ => HF', Hr⟩
-  · have Hun : ¬ UnstampedType st.msg.Type' := by
-      simp only [kvNetTypes, List.mem_cons, List.not_mem_nil, or_false] at Hn
-      rcases Hn with h | h | h | h | h | h | h <;> rw [h] <;>
-        simp [UnstampedType, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
-          MsgHeartbeatResp, MsgReadIndexResp, MsgReadIndex, MsgTransferLeader, MsgForgetLeader,
-          MsgUnreachable, MsgSnapStatus]
-    have Hnet : st.msg.Type' ∈ netStepTypes := by
-      simp only [kvNetTypes, List.mem_cons, List.not_mem_nil, or_false] at Hn
-      simp only [netStepTypes, List.mem_cons, List.not_mem_nil, or_false]
-      rcases Hn with h | h | h | h | h | h | h <;> simp [h]
-    exact ⟨Hnet, fun _ => ⟨Hto, Ht, HF⟩, fun h => absurd h Hun, fun _ => HF', fun _ _ => HF',
-      fun h => absurd h Hntl, fun _ => HF', Hr⟩
-  · have Hun : ¬ UnstampedType st.msg.Type' := by
-      rw [Htn]
-      simp [UnstampedType, MsgTimeoutNow, MsgReadIndex, MsgTransferLeader, MsgForgetLeader,
-        MsgUnreachable, MsgSnapStatus]
-    exact ⟨by rw [Htn]; simp [netStepTypes], fun _ => ⟨Hto, Ht, HF⟩, fun h => absurd h Hun,
-      fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl, fun _ => HF', Hr⟩
-  · have Hun : ¬ UnstampedType st.msg.Type' := by
-      rw [Hsn]
-      simp [UnstampedType, MsgSnap, MsgReadIndex, MsgTransferLeader, MsgForgetLeader,
-        MsgUnreachable, MsgSnapStatus]
-    exact ⟨by rw [Hsn]; simp [netStepTypes], fun _ => ⟨Hto, Ht, HF⟩, fun h => absurd h Hun,
-      fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl, fun _ => HF', Hr⟩
-
-/-- A deliverable message, addressed to `id`, as `stepIn_intro` asks of a message a node
-steps: a forwarded proposal with no context, or what a node takes from the network (`NetMsgOk`, of
-its copy with no responses; no pre-vote, no leader transfer), a snapshot below `2^61`. -/
-theorem deliverable_step (id : w64) (st : MsgSt) (Hd : Deliverable st) (Hto : st.msg.To' = id) :
-    (st.msg.Type' = MsgProp → st.ctx = []) ∧
-    (st.msg.Type' ≠ MsgProp → NetMsgOk id ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∧
-      st.msg.Type' ≠ MsgPreVote ∧ st.msg.Type' ≠ MsgTransferLeader) ∧
-    (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) := by
-  refine ⟨fun Hp => ?_, fun Hnp => ⟨deliverable_netMsgOk id ⟨st.msg, st.ents, st.snap, st.ctx, []⟩
-    Hd Hnp Hto rfl, deliverable_not_prevote st Hd, ?_⟩, fun Hsn => ?_⟩
-  · rcases Hd.2.2.2 with h | h | h | h
-    · exact h
-    all_goals (rw [Hp] at h; simp [MsgProp, MsgHeartbeat, MsgHeartbeatResp, MsgVote] at h)
-  · obtain ⟨Hty, -⟩ := Hd
-    rcases Hty with h | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩
-    · exact absurd h Hnp
-    · rw [h]; simp [MsgReadIndex, MsgTransferLeader]
-    · simp only [kvNetTypes, List.mem_cons, List.not_mem_nil, or_false] at h
-      rcases h with h | h | h | h | h | h | h <;> rw [h] <;>
-        simp [MsgTransferLeader, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
-          MsgHeartbeatResp, MsgReadIndexResp]
-    · rw [h]; simp [MsgTimeoutNow, MsgTransferLeader]
-    · rw [h]; simp [MsgSnap, MsgTransferLeader]
-  · obtain ⟨Hty0, -⟩ := Hd
-    rcases Hty0 with h | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩ | ⟨-, -, sv', Hs', Hi'⟩
-    · rw [Hsn] at h; revert h; simp [MsgSnap, MsgProp]
-    · rw [Hsn] at h; revert h; simp [MsgSnap, MsgReadIndex]
-    · unfold kvNetTypes at h; rw [Hsn] at h; revert h
-      simp [MsgSnap, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,
-        MsgReadIndexResp]
-    · rw [Hsn] at h; revert h; simp [MsgSnap, MsgTimeoutNow]
-    · exact ⟨sv', Hs', Hi'⟩
 
 end defs
 

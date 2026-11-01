@@ -14,7 +14,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__compactRaftLog
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
-public import Proof.go_etcd_io.raft.v3.MemstorageAU
+public import Proof.go_etcd_io.raft.v3.MemstorageApi
 public import Spec.errors.Is
 public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.go_uber_org.zap.Logger__Debug
@@ -47,10 +47,9 @@ theorem EtcdServer.compactRaftLog.wp_proof
     (hU64 : zap.Uint64.spec (GF := GF) (hG := hG))
     (hDebug : zap.Logger.Debug.spec (GF := GF) (hG := hG)) :
     EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG) := by
-  -- (D22 J4) `Compact` over the shared token (`Compact.wp_shared`)
-  have hCompact := MemoryStorage.Compact.wp_shared hCompact srvStorTokN srvStorTokN_disj
-  intro s snapi ms γs γss sl scu l Hsl Hpos Hcap
-  wp_start as ⟨Hlr, #Hlgf, %Hlgn, #Hinf, #Hrs, #Hro, #Htinv, #Hslb, #Hfl, #Hscu⟩
+  intro s snapi ms γs γr id scu l Hpos
+  letI : MemStorReg GF := ⟨γr.reg⟩
+  wp_start as ⟨Hlr, #Hlgf, %Hlgn, #Hinf, #Hrs, ⟨#Hmsi, #Hapl⟩, #Hslb, #Hfr, #Hscu⟩
   ihave #Patm : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
@@ -85,8 +84,6 @@ theorem EtcdServer.compactRaftLog.wp_proof
   · -- nothing in flight: compact
     subst hv
     (try wp_auto)
-    iunfold memFloorAtLeast at Hfl
-    icases Hfl with ⟨%x, #Hft, %Hx⟩
     ihave #Hrinit := go_etcd_io.raft.v3.isInitialized_access $$ Praft
     unfold go_etcd_io.raft.v3.isInitialized
     icases Hrinit with ⟨%e1, %e2, %e3, %e4, %e5, %_, %_, %_, %_, %_, #Hrinit⟩
@@ -95,28 +92,57 @@ theorem EtcdServer.compactRaftLog.wp_proof
     icases ErrCompactedNew with ⟨%xc, #Hxc, -⟩
     icombine ErrCompacted Hxc gives %Heq
     subst Heq
-    -- the compaction index, at most `snapi`
+    -- the compaction index: `compactIdx`, at most `snapi`
     have Hci : ∀ ci : w64, uint.Z ci =
         (if uint.Z scu < uint.Z snapi then uint.Z snapi - uint.Z scu else 1) →
-        uint.Z ci ≤ uint.Z x ∧ uint.Z ci ≤ (uint.nat sl : Int) ∧ uint.Z ci ≤ γs.cap := by
+        uint.nat ci = compactIdx snapi scu ∧ uint.nat ci ≤ uint.nat snapi := by
       intro ci h
       have h0 : 0 ≤ uint.Z scu := by word
-      have hle : uint.Z ci ≤ uint.Z snapi := by split at h <;> omega
-      have := uint_nat_eq sl
-      exact ⟨by omega, by omega, by rw [h]; exact Hcap⟩
+      unfold compactIdx
+      split at h
+      · rw [if_pos (by assumption)]; constructor <;> word
+      · rw [if_neg (by assumption)]; constructor <;> word
+    iunfold memStorInv at Hmsi
     wp_if_destruct
     all_goals (
       (try wp_auto)
       first
         | (have H := Hci (snapi - scu) (by rw [if_pos (by word)]; word)
-           wp_apply hCompact ms γs γss x (snapi - scu) (uint.nat sl) _ H.1 H.2.1 H.2.2 $$ []
-             as %err %Hor
-           · iframe #)
+           ihave #Hfr' : iprop((∃ e, memLog γs (uint.nat (snapi - scu)) DFrac.discard [e]) ∨
+               memCompacted γs (uint.nat (snapi - scu))) $$ []
+           · rw [H.1]; iexact Hfr
+           wp_apply hCompact ms γs (memStorJ γr.cl id) (snapi - scu) _ $$ [] as %err ⟨%Hor, -⟩
+           · iframe #
+             simp only [memStorJ]
+             isplitr
+             · ileft; iapply nodeAppliedLb_mono _ _ _ _ H.2 $$ Hapl
+             iapply memSnapLb_mono _ _ _ H.2 $$ Hslb)
         | (have H := Hci (W64 1) (by rw [if_neg (by word)]; word)
-           wp_apply hCompact ms γs γss x (W64 1) (uint.nat sl) _ H.1 H.2.1 H.2.2 $$ []
-             as %err %Hor
-           · iframe #)
+           ihave #Hfr' : iprop((∃ e, memLog γs (uint.nat (W64 1)) DFrac.discard [e]) ∨
+               memCompacted γs (uint.nat (W64 1))) $$ []
+           · rw [H.1]; iexact Hfr
+           wp_apply hCompact ms γs (memStorJ γr.cl id) (W64 1) _ $$ [] as %err ⟨%Hor, -⟩
+           · iframe #
+             simp only [memStorJ]
+             isplitr
+             · ileft; iapply nodeAppliedLb_mono _ _ _ _ H.2 $$ Hapl
+             iapply memSnapLb_mono _ _ _ H.2 $$ Hslb)
       rcases Hor with Herr | Herr
+      · -- compacted to `compacti`: log it
+        subst Herr
+        (try wp_auto)
+        wp_apply hU64 $$ [] as %f -
+        (try wp_auto)
+        wp_apply wp_slice_literal
+        isplitr
+        · ipureintro; rfl
+        iintro %fsl ⟨-, -⟩
+        (try wp_auto)
+        wp_apply hDebug l $$ []
+        · iframe #; ipureintro; exact Hlgn
+        (try wp_auto)
+        iapply HΦ
+        iframe Hlr
       · -- `ErrCompacted`: `errors.Is` is `true`, return
         subst Herr
         (try wp_auto)
@@ -131,21 +157,6 @@ theorem EtcdServer.compactRaftLog.wp_proof
           · iapply _root_.Perennial.errors.errorIsTree_leaf _ (fun _ => False) _ Hleaf HnoIs
           ipureintro; rfl
         rw [Hb _ rfl Hptr rfl]
-        (try wp_auto)
-        iapply HΦ
-        iframe Hlr
-      · -- compacted to `compacti`: log it
-        subst Herr
-        (try wp_auto)
-        wp_apply hU64 $$ [] as %f -
-        (try wp_auto)
-        wp_apply wp_slice_literal
-        isplitr
-        · ipureintro; rfl
-        iintro %fsl ⟨-, -⟩
-        (try wp_auto)
-        wp_apply hDebug l $$ []
-        · iframe #; ipureintro; exact Hlgn
         (try wp_auto)
         iapply HΦ
         iframe Hlr)

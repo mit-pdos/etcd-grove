@@ -60,17 +60,35 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **Two apply environments agree on the names** the raft contract's `E.C` reads (`srvC`: the
 store's index names, through the results' certificates `idxCert`; its certificate map, `certOk`;
-the revisions' tokens, `revMinted`). -/
+the revisions' tokens, `revMinted`), and (M2, the storage side, review round 2's N1, the
+approval's item 10) on the compaction mode, the first one's mode its store's (`E.γ.cm = E.cmp`:
+one reading of the mode, the store's logical one, which a restore keeps). -/
 def envAgree (E E' : apply.AEnv GF) : Prop :=
-  E.γ.idx = E'.γ.idx ∧ E.γ.cok = E'.γ.cok ∧ E.γrev = E'.γrev
+  E.γ.idx = E'.γ.idx ∧ E.γ.cok = E'.γ.cok ∧ E.γrev = E'.γrev ∧ E.cmp = E'.cmp ∧ E.γ.cm = E.cmp
+
+/-- **The mode, read at the stand-in** (N1): the server's store compacts exactly when the stand-in
+says so. -/
+theorem envAgree_mode (E E₀ : apply.AEnv GF) (h : envAgree E E₀) : E.γ.cm = E₀.cmp := by
+  rw [h.2.2.2.2, h.2.2.2.1]
+
+/-- **An off stand-in, an off server** (N1: what the watching examples read off `memberUp`'s
+`envAgree E E₀`, with `E₀.cmp = false` from the member's boot bundle). -/
+theorem envAgree_off (E E₀ : apply.AEnv GF) (h : envAgree E E₀) (h0 : E₀.cmp = false) :
+    E.γ.cm = false := by
+  rw [envAgree_mode E E₀ h, h0]
+
+/-- A compacting stand-in, a compacting server. -/
+theorem envAgree_on (E E₀ : apply.AEnv GF) (h : envAgree E E₀) (h0 : E₀.cmp = true) :
+    E.γ.cm = true := by
+  rw [envAgree_mode E E₀ h, h0]
 
 /-- **The start of a new cluster's apply thread** (`x₀`): `NewStore`'s two empty revisions, the
-base chain with auth disabled and no alarm. -/
-def bootKV : apply.ApplyKV := ⟨[[], []], apply.alarmChain false false false⟩
+base chain with auth disabled and no alarm, no compaction yet (`-1`). -/
+def bootKV : apply.ApplyKV := ⟨[[], []], apply.alarmChain false false false, -1⟩
 
 /-- **The start with auth on or off** (the auth plan's E2i, 2026-10-26): the base chain's auth
 layer enabled when `on` (`NewServer.specM`); `bootKV` is its mode off (`bootKVOf_false`). -/
-def bootKVOf (on : Bool) : apply.ApplyKV := ⟨[[], []], apply.alarmChain on false false⟩
+def bootKVOf (on : Bool) : apply.ApplyKV := ⟨[[], []], apply.alarmChain on false false, -1⟩
 
 theorem bootKVOf_false : bootKVOf false = bootKV := rfl
 
@@ -124,23 +142,26 @@ stream needs), with its credits (`msgCredits`: a `MsgReadIndex`'s read credit, a
 proposal's tickets): what a peer's `node.Step` takes of a network message (`stepIn_intro`) but the
 receiver's own facts. -/
 def srvMsgNet (γ : SrvRaft) (id : w64) (m : Loc) : IProp GF :=
+  letI := srvStor (GF := GF) γ
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ sentMsg γ.cl srvClusterN id st ∗
     msgCredits γ.cl srvClusterN st)
 
 /-- **What the server's messages carry over the network** (D21 M2, 2026-10-19; the network's
 payload, `NetPayload`; 2026-10-27: the node API's): persistently, the protocol facts
 (`sentMsg`); once, the credits of a `MsgReadIndex` or a forwarded `MsgProp`, delivered at most
-once; any other message may be duplicated, its credits made anew (`msgCredits_none`). (2026-10-19,
+once; any other message may be duplicated, its credits made anew (`msgCredits_intro`, any but a
+`MsgProp`'s; 2026-10-30, the repair: until then `msgCredits_none`). (2026-10-19,
 D22 S-i) A snapshot's database image carries `srvImage` (`dbImage` at the fresh cluster's start;
 the server's clusters send no snapshot). -/
-def srvNet (γ : SrvRaft) : NetPayload GF where
-  P st := iprop(∃ sid, sentMsg γ.cl srvClusterN sid st)
-  O st := msgCredits γ.cl srvClusterN st
-  once st := st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgProp
-  P_pers st := by infer_instance
-  dup st h := msgCredits_none γ.cl srvClusterN st (fun e => h (Or.inl e)) (fun e => h (Or.inr e))
-  img i D := srvImage γ i D
-  img_pers i D := by infer_instance
+def srvNet (γ : SrvRaft) : NetPayload GF :=
+  letI := srvStor (GF := GF) γ
+  { P := fun st => iprop(∃ sid, sentMsg γ.cl srvClusterN sid st)
+    O := fun st => msgCredits γ.cl srvClusterN st
+    once := fun st => st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgProp
+    P_pers := fun st => by infer_instance
+    dup := fun st h => msgCredits_intro γ.cl srvClusterN st (fun e => h (Or.inr e))
+    img := fun i D => srvImage γ i D
+    img_pers := fun i D => by infer_instance }
 
 /-- Two read-only views of a message agree on its type. -/
 theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :
@@ -159,16 +180,16 @@ theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :
 /-- A message raft hands the server, with its bundle, not a snapshot (D22 S-i: `Send` takes
 none), is one the network takes from its sender (`netBundle`; 2026-10-24, rafthttp stage 6d: with
 leader transfer off, a `MsgApp` of raft's shape, `SentMsgOk`, from its sender, `AppFrom`;
-2026-10-27: the node API's `sentMsg_transferOff`, `sentMsg_appFrom`). -/
+2026-10-27: the node API's `sentMsg_transferOff`, `sentMsg_appFrom`; 2026-10-30, the repair:
+`sentMsg_shape`, no leader-transfer premise). -/
 theorem srvMsgNet_bundle (γ : SrvRaft) (id : w64) (m : Loc) :
-    leaderTransferOff (GF := GF) γ.cl srvClusterN ∗ srvMsgNet γ id m ∗ srvMsgNoSnap m ⊢
+    srvMsgNet (GF := GF) γ id m ∗ srvMsgNoSnap m ⊢
       netBundle (srvNet γ) id m := by
   letI := srvAnyStor (GF := GF)
-  iintro ⟨#Hxo, H, Hns⟩
+  iintro ⟨H, Hns⟩
   iunfold srvMsgNet at H
   icases H with ⟨%st, #Hm, #Hr, Hc⟩
-  ihave %Hsent := sentMsg_transferOff γ.cl srvClusterN id st $$ [Hxo Hr]
-  · iframe Hxo Hr
+  ihave %Hsh := sentMsg_shape γ.cl srvClusterN id st $$ Hr
   ihave %Hfrom := sentMsg_appFrom γ.cl srvClusterN id st $$ Hr
   iunfold srvMsgNoSnap at Hns
   icases Hns with ⟨%st', #Hm', %Hns⟩
@@ -183,7 +204,7 @@ theorem srvMsgNet_bundle (γ : SrvRaft) (id : w64) (m : Loc) :
     iexists id; iexact Hr
   ipureintro
   rw [Hty]
-  exact ⟨Hns, Hsent.2.2.2.2.2.2, fun ha => ⟨Hsent.2.2.2.2.2.1 (Hty ▸ ha), Hfrom (Hty ▸ ha)⟩⟩
+  exact ⟨Hns, Hsh.1.2.2.2.2.2.2.2, fun ha => ⟨Hsh.1.2.2.2.2.2.1 (Hty ▸ ha), Hfrom (Hty ▸ ha)⟩⟩
 
 /-- **The server's raft environment** (`RNEnv`): `E.C` the server's (`srvC`), every message raft
 hands out but a snapshot (`srvMsgNoSnap`, D19p) with its bundle (`srvMsgNet`, D21 stage M1), a
@@ -205,12 +226,8 @@ theorem rnTickerOk_srvEr_S (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
   unfold rnTickerOk isRNTicker srvEr
   exact .rfl
 
-/-- **The server's `msgSnapC` never delivers** (D19p): what `processMessages` hands it is
-`rnSnapMsg`, which is `False` since the server's clusters send no snapshot (2026-10-27). -/
-theorem rnSnapMsg_false (m : Loc) : rnSnapMsg m ⊢ (False : IProp GF) := by
-  iintro H
-  iunfold rnSnapMsg at H
-  iexact H
+/- (2026-10-30, the repair: snapshots allowed) `rnSnapMsg_false` is gone: `msgSnapC` delivers raft's
+`MsgSnap`s (`rnSnapMsg`). -/
 
 /-- **The read names' fresh rows but the KV state's variable** (D19g (a), 2026-10-18): what
 `NewServer.spec` takes, the KV state's variable having gone into the KV invariant and the
@@ -269,12 +286,13 @@ instance srvFieldsBuiltNA_persistent (s : Loc) (γ : ApplyNames) (ci : Loc)
 /-- `srvReadBuilt` without the KV rows (`srvKVAddr`, `txn.isKV`, the store's read view,
 `storeSmall`: `srvBuildGap`). -/
 def srvReadBuiltNK (s : Loc) (E : apply.AEnv GF) (v : ReadFields) : IProp GF :=
-  iprop(srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RW ∗
+  iprop(srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RO E.RW ∗
     srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.γ E.P E.f E.RD E.authMode E.RW ∗
     srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
-    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗ ⌜2 ≤ log₀.length⌝) ∗
+    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗
+      ⌜2 ≤ log₀.length ∧ mvcc.LogPutsLe etcdKeyMax log₀⌝) ∗
     srvFirstCommitAddr s ↦□ v.fc)
 
 instance srvReadBuiltNK_persistent (s : Loc) (E : apply.AEnv GF) (v : ReadFields) :
@@ -305,16 +323,20 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuiltNK s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗
     -- (M2, S4) the compactor's run, once (`start` spends it)
-    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun c) ∗
+    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun s E c) ∗
     "#Hsab" ∷ srvApplyAllBuilt s ∗
     "#Hai" ∷ srvAppliedInv s E γr ∗
     "#Hkvi" ∷ srvKVInvs E γr ∗
     "#Hti" ∷ inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     "#Hci'" ∷ srvCommittedInv s γr ∗
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
-    -- (D43 M3, 2026-10-25) in raft's dynamic mode a fresh start: no entry replayed
+    -- (D43 M3, 2026-10-25) a fresh start: no entry replayed (2026-10-30, the repair: in every
+    -- cluster, raft's one mode; until then in its dynamic mode)
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (γn.node.dyn = true → uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+    -- (2026-10-30, the repair) the apply side's half of the node's running token (`dvRun`), which
+    -- `run` gives the raft loop with `raftNode.stop` (`rnStopBag`)
+    "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
@@ -329,10 +351,9 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "Hread" ∷ (∃ r : Loc, srvReadAddr s ↦ r) ∗
     "Hlc" ∷ (∃ n : Loc, srvLeaderChangedAddr s ↦ n) ∗
     "Hsc" ∷ (∃ n : w64, srvSnapCountAddr s ↦ n) ∗
-    -- (2026-10-19, D21 M3) the receipts' bound at most the value `start` sets (`5000`, etcd's
-    -- default, for `0`) plus one: `NewServer.spec`'s run bound
-    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗
-      ⌜receiptBound GF ≤ uint.Z (if n = W64 0 then W64 5000 else n) + 1⌝) ∗
+    -- (2026-10-30, the repair, P10: no run-length premise; until then the receipts' bound at most
+    -- the value `start` sets, `5000` for `0`, plus one)
+    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n) ∗
     "Hwg" ∷ srvWgAddr s ↦ (zero_val sync.WaitGroup) ∗
     "HwgMu" ∷ srvWgMuAddr s ↦ (zero_val sync.RWMutex) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
@@ -384,7 +405,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 raft contract's `E.C`. -/
 theorem srvC_agree (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (h : envAgree E E') : srvC ρ E ai₀ c₀ x₀ = srvC ρ E' ai₀ c₀ x₀ := by
-  obtain ⟨hi, hc, hr⟩ := h
+  obtain ⟨hi, hc, hr, -, -⟩ := h
   have hres : resultΨ (GF := GF) E = resultΨ E' := by
     funext ρ' rq F x
     unfold resultΨ resultIsW revMinted revTok mvcc.certOk

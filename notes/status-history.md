@@ -18320,6 +18320,56 @@ etcd's v1 changes), `confStateIs`, `LogEntry.isConfChange`, `NoConfChangeIn`, `C
 placeholders (`node.wp_ApplyConfChange_dynamic`, ...). Nothing uses them yet; the existing statements
 and their proofs are unchanged (`interface/.../NodeApiDraft.txt` regenerated).
 
+## The conf-change decision switch: protocol and node ghost done, API not started (2026-10-28, branch `raft-unified`)
+
+The frozen spec: `notes/spec-first-study/raft-decisions-spec.md`; the reasoning:
+`notes/decisions.md`, "The conf-change decision switch". Scope by the user: raft's own tree only;
+clients are repaired later.
+
+**Done (raft's whole tree builds, `etc/api-check.py etc/api/raft.txt --check` and
+`etc/gen-interface.py etc/api/raft.txt --check --layout` pass, interface regenerated; no `sorry` or
+axiom added; commits `b056769ac1`, `01cf882ad1`):**
+- The protocol over client decision maps: `RaftNames.reDec`, `decLb`, `DynCfg.fold` over a map,
+  `CfgAt γ M`, the records carrying their witnesses, `overlap_adj` over compatible maps.
+- The node's ghost part over the decisions it witnessed (`RGh.decs`, existential `ds` in
+  `ownRawNode`), `ownStepGhost_absorb`, `StepR.mono_dec`, `RInv.mono_dec`, `DynCCPreOp.mono_dec`.
+- Every existing cluster unchanged in behaviour (empty maps); no node-API statement changed, so no
+  client is expected to break (not built: raft's tree only).
+
+**Remaining, in order:**
+1. *Snapshots with decisions* (interim: certificates fold at the empty map): the certificate carries
+   `∃ M, decLb γ M ∗ ⌜D.fold M fp = …⌝` (`raftSnapCert`, `snapAtOk`, `SnapAtPure`,
+   `raftSnapCert_make_dyn`, `ghost_stepCDSM` joins it at a restore, already written for it); a
+   snapshot loan records its decisions (`SnapLoan`), `RNMode.foldCfg` folds over them
+   (`RawNode.Advance`'s post, `runCfgLoan`, `InvAdvance`, `node__Advance`).
+2. *The node loop's intake*: `node.ApplyConfChange.specRaw` and `confcP` (`InvNodeChan`) carry a
+   `decLb γ.raft M` with `DynCCPreOp (effDec dec M)`; `wp_rn_raft_applyConfChange_dyn` absorbs `M`
+   (`ownStepGhost_absorb`, compatibility with the ghost's `ds` by `decLb_compat`); `Advance`'s A1
+   (`RawNode.Advance`, `runCfg`/`runCfgLoan`'s `NoConfIn`) becomes `NoUndecConfIn (effDec dec M)`
+   with its `decLb`, down to `DynHyp`'s `MsgStorageApplyResp` clause (spec §4, N1).
+3. *The API* (`InvNodeRule`, replacing `InvApiRule*`, `ConfRuleDec`, `SnapsMade`'s rule): a cluster
+   in the dynamic mode of the base decoder `fun _ _ => none` with `reDec = some g`;
+   `ownConfDecisions` (the map's authority, at `D.fmap`), `confDecided` (an element with
+   `confDecide`'s facts), `confAt` over the protocol fold at a witnessed map; `cluster_alloc`,
+   `confDecide`, `skippedIn`; `ConfPolicy.lean` (`confPolicy` an invariant over the authority);
+   `RestartNode`/`ApplyConfChange`/`Advance`/`CreateSnapshot` `.unifiedSpec`s re-proved; §5's items
+   removed. Then kv (deferred by the user).
+
+## raft-final: phases 0-1, every statement final, proofs `sorry` (2026-10-29, branch `raft-final`)
+
+The final raft proof, after `notes/raft-unified-plan.md`'s design (the coordinator's gap design and
+its review, amendments A1-A10, K5 back in by the user's decision). Phase 0: tracks A and B merged
+(`raft-unified` + `raft-unified-storage2`), track B's node-level WIP re-applied, U9's deletions (the
+static and dynamic families, `StartNode`'s spec until U10, `InvApiDyn` → `InvApiView`). Phase 1:
+every definition, invariant and spec statement in final form (the leader witness `leadW`, the
+transfer records `NGhost.xw`/`xfW`, `XfOk`'s final form, `isRaftMsg` with the transfer witness,
+`NetMsgOk` internal, the read-credit exchange `rdPool`, `isNode` with its table entry, K5's
+`nodeErrS`, the storage node level, A1-A4); raft's `Link`, `Linked`, `Results`, `Api` and
+`MemstorageApi` build, with 152 `sorry`s in 76 files (listed, with the phase-2 tracks' file map, in
+the plan's "Phase 1 sorries"), each broken proof kept in a `PHASE1-OLD` comment. Phase 2 (the
+proofs, parallel tracks) waits for the review of the statements (`interface/` regenerated). Clients
+(kv, server, examples) broken until later.
+
 ## `lean` merged into the DaemonSet branch: three Perennial pins, and a Goose blocker (2026-10-28, branch `k8s-daemonset-proof`)
 
 `origin/lean` (`d56018bd59`, 429 commits, Perennial `24bef275e` -> `edcadb1e5` through `f73703285`
@@ -18356,3 +18406,33 @@ libraries, the informers, the model API server, the controller's first round) fo
   merge into `lean` as is.
 - `lake build` (10749 jobs) passes; `etc/gen-init.py --check` passes; every generated `Link.lean`
   is current.
+
+<!-- Moved from STATUS.md 2026-10-31: done by M2 apply's item 18 (branch m2-apply), but for CompactMode's interim irrNoDelPut and v3rpc's check_gives_nodup (see STATUS, "M2, the apply side"). -->
+
+## The delete-then-put fix in the fork: what is left (2026-10-30, branch `etcd-ndp-fix`)
+
+The fork fix of round 1's decision (b) is in: upstream's etcd-io/etcd#22377 (`keyIndex.doCompact`)
+and #22395 (`checkIntervals`, from-key deletes) cherry-picked as `e7bb9f2de`/`249d76bea` (branch
+`goose-lean-compactfix` of `upamanyus/etcd`, pushed), the pin bumped (`5d82727117`), and
+`doCompact`, `generation.isRecreatedAt` and `checkIntervals` re-proved over the fixed code
+(`7c8ef717ef`, M2 step 1). The specs were left alone: `NoDelPutAt` is still a premise.
+Dropping it is a spec change for the user to approve:
+
+- **mvcc, the model**: `kiGet_avail` (`Compact.lean`) uses `hnd` in one `exfalso` branch (the
+  tombstone of generation `j'` and the read's revision `r` in a later generation `gx` both at
+  main `c`). Under the fixed loop that case is `genAdv` by `genRecreatedAt` of generation `j'+1`
+  (its first revision is above the tombstone and at or below `r`, so at main `c`). Then
+  `kiGet_avail`, `named_not_del` and `rangeAnswers_not_del` drop `hnd`, and `NoDelPutAt`,
+  `NoDelPutAt_neg` and `NoDelPutAt_prefix` go unless something else still needs them.
+- **mvcc, the store**: `crevSafe`, `delKey`'s and `compactJobPre`'s conjunct (`InvStore.lean`,
+  `InvCompact.lean`), and the premise in `store.Compact.spec` (export `mvcc_store_Compact`),
+  `store.compactLockfree.spec` and `store.updateCompactRev.spec`, with their proofs
+  (`store__scheduleCompaction`, `store__updateCompactRev`) and `M2StorageDraftRestore`'s uses.
+- **server**: `CompactMode.lean`'s `NoDelPutAt` dispatch clause (and `irrNoDelPut`); in the
+  `m2-apply` Draft (not on `lean`), `cmpAdmit`, `cmpTriple`, `applierV3backend.Compaction.specD`,
+  `cmpEntryOk`, `kvInvD`'s clause, `reqPropOkD`'s `irrNoDelPut`, and `EtcdServer.Txn`'s
+  compaction-mode premise (`m2-apply-plan.md`, "`NoDelPutAt`: what the upstream fix would
+  remove").
+- **v3rpc** (to check, not shown): whether `check_gives_nodup` still needs
+  `ReqOp.noFromKeyDelL` now that `delIvl` reads a from-key delete as `[k, +∞)`.
+

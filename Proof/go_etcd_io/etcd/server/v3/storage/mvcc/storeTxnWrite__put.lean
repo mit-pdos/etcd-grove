@@ -63,10 +63,13 @@ local macro "tw_attach" J:term:max : tactic => `(tactic| (
     wp_apply HAttach $$ %leaseID %_ %_ %(DFrac.own 1) %L %$J [$(frameH `Hown)
         $(frameH `Hitems)] as ⟨Hown, -⟩
     · ipureintro
-      refine ⟨Hin, ?_⟩
-      intro it hit
-      rw [List.mem_singleton] at hit; subst hit
-      left; exact hJnone
+      refine ⟨Hin, ?_, ?_⟩
+      · intro it hit
+        rw [List.mem_singleton] at hit; subst hit
+        left; exact hJnone
+      · intro it hit
+        rw [List.mem_singleton] at hit; subst hit
+        exact Hklen
     (try wp_auto)
     -- `if err != nil { panic }`: not taken (resolved by `wp_auto`)
     ihave Hown := lease.leaseOwn_eq (mvcc.pendItems_put ilog pend k v leaseID
@@ -205,7 +208,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     (hLogErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.put.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend key value k v leaseID L te crev Z
-  wp_start as ⟨Htw, #Hkey, #Hval, Hown, %Hlease, Htrc⟩
+  wp_start as ⟨Htw, #Hkey, #Hval, %Hklen, Hown, %Hlease, Htrc⟩
   simp only [go_etcd_io.etcd.server.v3.lease.NoLease]
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
@@ -240,7 +243,8 @@ theorem mvcc.storeTxnWrite.put.wp_proof
   icases HlessorS with ⟨%lp, %Hli, #Hpin, #HGetL, #HAttach, #HDetach, -⟩
   subst Hli
   ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
-      (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw (mvcc.hookFn γ) (mvcc.storeRb γ) $$ []
+      (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw (mvcc.hookFn γ) (mvcc.storeRb γ)
+      (mvcc.kbMW γ.kb γ.bucket) $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨-, #HSeqPut, -, -, -⟩

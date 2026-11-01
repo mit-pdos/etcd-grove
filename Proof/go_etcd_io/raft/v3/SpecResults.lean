@@ -11,7 +11,7 @@ came from, ported with the log and raft layers (stages R3/R4), import this one a
 * from `Spec/go_etcd_io/raft/v3/raft__hup.lean`, its `section results`: `HupOk`, `HupGuard`,
   `HupOkC` (what `hup` leaves and checked), `HupOkC.simple`;
 * from `Spec/go_etcd_io/raft/v3/raft__restore.lean`, its `section results`: `SnapScope`,
-  `CSLists.Has`, `snapCfg`, `RestoreResult`, `restoreCfg` (stated on the snapshot's record
+  `CSLists.Has`, `snapCfg`, `RestoreResult` (and until 2026-10-28 `restoreCfg`) (stated on the snapshot's record
   `SnapshotM` instead of the Goose value `raftpb.Snapshot`; they read the same fields,
   `sv.Metadata'.Index'`, `sv.Metadata'.ConfState'.AutoLeave'`). See that spec file's header for
   what they mean.
@@ -121,7 +121,8 @@ abbrev snapCfg (sv : SnapshotM) (cl : CSLists) : CfgM :=
 
 /-- The three exits of `restore`; see the file header. (D22 S-b, D22j, 2026-10-19: the first
 also when the node `id` is in none of the `ConfState`'s sets, the `!found` exit, until then a
-premise of the spec.) -/
+premise of the spec.) (2026-10-28, stage U0) The third keeps the tracker (until then rebuilt, its
+progress map, `Progress` values and learner flag unpinned): `appliedSnap` rebuilds it. -/
 def RestoreResult (id : w64) (s : NState) (sv : SnapshotM) (cl : CSLists) (b : Bool)
     (s' : NState) : Prop :=
   let ls := s.logst
@@ -136,14 +137,7 @@ def RestoreResult (id : w64) (s : NState) (sv : SnapshotM) (cl : CSLists) (b : B
   ∨
   (uint.Z ls.committed < uint.Z sid.index' ∧ cl.Has id ∧
    ¬ PlogMatches ls.prev es sid ∧ b = true ∧
-   ∃ prs pvs il, s' = { s with progress := prs, prvals := pvs,
-                               logst := logRestore ls (snapTrip sv cl), isLearner := il })
-
-/-- The configuration the node is at after `restore` (2026-10-14, reconfiguration stage A3; the
-snapshot's any `ConfState`'s since B8): the snapshot's when it restored (`b`), the one it was
-at otherwise. -/
-def restoreCfg (c : CfgM) (sv : SnapshotM) (cl : CSLists) (b : Bool) : CfgM :=
-  if b then snapCfg sv cl else c
+   s' = { s with logst := logRestore ls (snapTrip sv cl) })
 
 end restore_results
 

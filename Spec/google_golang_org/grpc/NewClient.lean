@@ -23,7 +23,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **`grpc.NewClient(target, opts...)`** with dial options doing `ds` (`dialOptsAt`), whose stream
-interceptors are etcd's and whose one resolver is `rb` (`dialOk`), which resolves the target's
+interceptors are etcd's (one at least, G2) and whose one resolver is `rb` (`dialOk`), which resolves the target's
 scheme to the addresses `addrs` (`grpcResolverAt`, taken: the resolver's state is the connection's
 from then on), returns a connection that reaches the servers at `addrs` (each attempt one of them) with the unary interceptor chain the
 options set (`unaryIcsOf ds`: the last `WithUnaryInterceptor`'s) and no default call options

@@ -52,6 +52,20 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   specs, 2026-10-25 to 10-28: about 3.5k lines of copied proofs, every other track's change made
   twice, `notes/auth-mode-merge-plan.md`; M2's round-1 repair `8950d80bf2`, reversed by the user,
   `notes/m2-plan.md` on `m2`.)
+  The exception is the trust boundary: a fact only an axiom gives does not go into a proved spec,
+  which would put the axiom under every result using that spec. It is a separate trust-boundary spec,
+  the proved one's post plus the assumed fact, and only the callers that need it take it. Before you
+  strengthen a spec in place, check whether its proof is a theorem (`etc/tcb-report.py --check`
+  shows which collections gain an axiom). (`context.WithTimeoutBackgroundMd`, 2026-10-29: folding
+  it into the proved `WithTimeoutBackground` would have put an axiom under ten collections for
+  authkv's one fact; the user kept the split.)
+  The split needs a second spec of the same function. When the proved spec itself must carry the
+  fact (its proof is the only place it can come from), there is nothing to split: strengthen the
+  axioms in place, list for each the collections that now rest on the stronger claim (`--check` does
+  not flag a same-name change), and put it to the user. Before strengthening, check what the axiom
+  admits beyond the code's own uses: a stronger claim can be false on an input the old one covered
+  harmlessly. A post that says a call returns claims it returns on every input the premise admits:
+  check Go's stack and memory there too (a recursion per level of a deep message). (`irr-depth.md`) (`watcher.Watch` with auth on, G2, 2026-10-30: `examples/watch-auth.md`.)
 
 ## Preferences: strength
 
@@ -72,6 +86,22 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   what the caller already holds can never be chained with another. (`pilot-review-1.md`)
 - **Know the margin**: where the postcondition is weaker than what the code guarantees, say what the
   code guarantees. (`notes/spec-first-plan.md`, Review)
+- **A size argument from fresh copies checks every path for aliasing**: an encoding counts each
+  reference, a heap counts each allocation; one fast path that reuses a buffer (etcd's keys-only
+  ranges reuse the index's key slices) turns "Go runs out of memory first" into a reachable panic.
+  (`reply-size.md`, critique 2)
+- **One spec, a gated row, not two specs**: a stronger variant that holds only under a condition the
+  caller knows (the auth mode) is a row `□ (⌜cond⌝ → …)` of the one spec, not a second spec; when
+  the condition is there only because a trust-boundary axiom is too weak to give the row
+  unconditionally, the docstring names that axiom as the margin. (`authinfo.md`)
+- **A new mode redefines the shared predicates in place, not mode-indexed copies**: when a mode widens
+  what a family of predicates admits (compaction entries in the KV invariant), redefine the few that
+  change, keep the text of the specs and predicates that carry them (read under the redefinition), and
+  prove that the old mode means the old statements (laws, not `rfl`). Copies indexed by the mode must
+  cover every carrier, and each review round finds one more that was missed. (`compaction-in-place.md`)
+- **No arm the precondition excludes**: an error case of the code that the caller's premises rule out
+  (`ErrFutureRev` under a certificate of the revision) is a sentence in the docstring, not a disjunct
+  every caller must discharge; its proof branch is a contradiction. (`compaction-in-place.md`)
 
 ## Preferences: abstraction
 
@@ -88,6 +118,21 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   in a module only that proof imports. (`pilot-review-5.md`)
 - **Every premise has a source the client sees**: a spec or a law of the API, never the
   implementation's internal lemmas.
+- **A client's certificate is the cluster's**: a persistent fact a client takes from one call's
+  reply into a later call (a revision reached) must hold at every member the later call may reach,
+  so build it from what the members share (the cluster's raft log, the KV model), never from one
+  member's ghost state (its store's certificate map); and check the tie it needs against the
+  multi-member allocation, not only today's single-member producers. (`compact-client.md`)
+- **A workload premise about a resource's later operations goes on the resource's only producer**,
+  carried by the resource (as `apply.backendUnderQuota` on `storage.NewBackendQuota`, carried by the
+  quota object; `grpcRepliesFit` on `grpc.start`, carried by the server tokens): the consumers'
+  statements stay, and the premise is taken where a proof reaches the producer, not beside a sibling
+  premise wherever that one sits. No law extracts the premise back from the resource; the docstrings
+  of the results consuming it say they are conditional on it. (`reply-size.md`)
+- **A contract between packages states the receiver's need, not the supplier's mechanism**: the
+  server's `Txn` takes the depth of the request's model, not the gRPC handler's budget bound that
+  implies it; the supplier proves the law from its mechanism to the need. The need is weaker to
+  supply and names nothing of the supplier. (`irr-depth.md`, critique 2)
 - **No constant or conjunct whose reason you do not know.** A numeric bound in a post is usually the
   proof's slack; a fact that holds of every reachable state is one law of the vocabulary, not a
   conjunct of each operation's post. Do not copy a conjunct from a sibling spec without knowing why it
@@ -122,6 +167,11 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   depend on the value (a persistent one-shot fact), not on the call. (`pilot-review-2.md`)
 - **Read the definitions of the resources a spec takes**, not only their names: a predicate chosen
   for the access it gives may also assert what the function breaks. (`pilot-review-2.md`)
+- **When only some clients need a resource the library hands back to be duplicable, let the client
+  choose its persistence where it gives it** (a persistent update in, a persistent credit out:
+  `propCredit γ P := if γ.dup then □ P else P`, `dup` chosen at allocation), instead of adding
+  identification state (a registry) that every client threads. (raft's `node.Propose`, 2026-10-29,
+  `notes/spec-first-study/raft-propose-dup-spec.md`)
 - **Know what it rests on**: the axioms a spec depends on (`etc/tcb-report.py --roots`), whether a
   tester covers them, and how much of the pre and post is pure and decidable. The tester is the Test step
   of `notes/spec-first-plan.md`: instrumented Go runs record each call's state, arguments and result,

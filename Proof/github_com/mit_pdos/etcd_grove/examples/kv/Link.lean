@@ -12,7 +12,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__Append
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__Get
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__Put
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__Read
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__RemoveMember
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__TransferLeadership
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__answer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__apply
@@ -51,6 +50,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.less
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.putBytes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.putMap
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.sortStrings
+public import Proof.go_etcd_io.raft.v3.Linked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Link
 public import Proof.go_etcd_io.raft.v3.Link
 
@@ -106,10 +106,6 @@ theorem kv.KV.wp_Put [KVStor GF] :
 theorem kv.KV.wp_Read [KVStor GF] :
     kv.KV.Read.spec (GF := GF) (hG := hG) :=
   kv.KV.Read.wp_proof kv.wp_encode node.wp_ReadIndex
-
-theorem kv.KV.wp_RemoveMember [KVStor GF] :
-    kv.KV.RemoveMember.spec (GF := GF) (hG := hG) :=
-  kv.KV.RemoveMember.wp_proof node.wp_ProposeConfChange raftpb.ConfChangeType.wp_Enum
 
 theorem kv.KV.wp_TransferLeadership [KVStor GF] :
     kv.KV.TransferLeadership.spec (GF := GF) (hG := hG) :=

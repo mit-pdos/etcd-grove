@@ -28,22 +28,23 @@ theorem authClient.UserGrantRole.wp_proof
     (wp_retry : retryAuthClient.UserGrantRole.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     authClient.UserGrantRole.spec (GF := GF) (hG := hG) := by
-  intro api addr ci cd user role Spec Q
-  wp_start as ⟨#Hapi, #Hctx, #Hce, #Hrpc, #Hpre⟩
-  iunfold authObjAt at Hapi
-  icases Hapi with ⟨%rac, %conn, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
+  intro api conn addr ci cd user role Spec Q
+  wp_start as ⟨#Hapi, #Hctx, #Hce, #Hrpc, #Hpre, %Hsz⟩
+  iunfold authObjAtC at Hapi
+  icases Hapi with ⟨%rac, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
   wp_auto
   ihave Hsend : (pbAuthUserGrantRoleRequest (GF := GF)).send «$a1_ptr» (user, role) $$ [«$a1»]
   · simp only [pbAuthUserGrantRoleRequest]
     iexists _
     iframe «$a1»
-    ipureintro; exact ⟨rfl, rfl⟩
+    ipureintro; exact ⟨rfl, rfl, rfl⟩
   iunfold callOptsAt at Hsl
   icases Hsl with ⟨%vs, #Hvs, -, #Hvok, -⟩
   wp_apply wp_retry rac conn addr Spec Q ci cd «$a1_ptr» (user, role) sl vs $$ [Hsend]
     as %resp %err ⟨-, Hres⟩
   · iframe #
     iframe
+    try (ipureintro; exact strsSizeOk.lt_2 Hsz)
   iunfold authCallOut at Hres
   icases Hres with (⟨%Herr, Hq⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr

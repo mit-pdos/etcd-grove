@@ -3,35 +3,56 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 theorem raft.appliedTo.wp_proof [package_sem : Assumptions] (wp_raftLog_appliedTo :
-    raftLog.appliedTo.spec) : raft.appliedTo.spec
+    raftLog.appliedTo.spec) (wp_confChangeToMsg : confChangeToMsg.spec) (wp_traceReceiveMessage :
+    traceReceiveMessage.spec) (wp_stepFollower : stepFollower.spec) (wp_stepCandidate :
+    stepCandidate.spec) (wp_stepLeader : stepLeader.spec) (wp_Message_GetType :
+    raftpb.Message.GetType.spec) (wp_Message_GetTerm : raftpb.Message.GetTerm.spec)
+    (wp_Message_GetFrom : raftpb.Message.GetFrom.spec) (wp_Message_GetTo :
+    raftpb.Message.GetTo.spec) (wp_Message_GetIndex : raftpb.Message.GetIndex.spec)
+    (wp_Message_GetLogTerm : raftpb.Message.GetLogTerm.spec) (wp_Message_GetCommit :
+    raftpb.Message.GetCommit.spec) (wp_Message_GetReject : raftpb.Message.GetReject.spec)
+    (wp_Message_GetEntries : raftpb.Message.GetEntries.spec) (wp_Message_GetSnapshot :
+    raftpb.Message.GetSnapshot.spec) (wp_Message_GetContext : raftpb.Message.GetContext.spec)
+    (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec) (wp_MessageType_Enum :
+    raftpb.MessageType.Enum.spec) : raft.appliedTo.spec
   -- `Perennial.EtcdGrove.raft.appliedTo.spec`, unfolded:
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (index size : w64),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (index size : w64) (k0 : Nat),
     uint.Z index ≤ uint.Z s.logst.committed →
       (uint.Z s.logst.applying < uint.Z index → uint.Z index < uint.Z s.logst.inprogress) →
-        (c.autoLeave = true → s.role ≠ PRole.leader) →
-          s.logst.sapp = false →
-            (s.logst.aps = true → uint.Z s.logst.prev.index' ≤ uint.Z index) →
-              (s.logst.snap ≠ none →
-                  s.logst.lent = false → uint.Z s.logst.applying < uint.Z index → uint.Z index ≤ uint.Z s.logst.sxt) →
-                (s.logst.snap ≠ none →
-                    s.logst.sip = false →
-                      uint.Z s.logst.applying < uint.Z index → uint.Z index < uint.Z s.logst.prev.index') →
-                  (s.logst.aps = true → ∀ (k : SnapTrip), s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z index) →
-                    ⊢
-                      ∀ Φ,
-                        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hphys" ∷ ownRaftPhysCVW c c.voters r id s -∗
-                          ▷
-                              (ownRaftPhysCV c c.voters r id
-                                  { term := s.term, vote := s.vote, lead := s.lead, role := s.role, votes := s.votes,
-                                    outbox := s.outbox, stepfn := s.stepfn, ticking := s.ticking, progress := s.progress,
-                                    log := s.log, logst := logAppliedTo s.logst index size, prvals := s.prvals,
-                                    prevote := s.prevote, gh := s.gh, rd := s.rd, lt := s.lt, pci := s.pci,
-                                    isLearner := s.isLearner, sdr := s.sdr, cq := s.cq } -∗
-                                Φ (intoVal ())) -∗
-                            WP
-                              (((intoVal
-                                    (methods raft.ty.PointerType
-                                      go!"appliedTo" (intoVal r)))
-                                  (intoVal index))
-                                (intoVal size))
-                              {{ Φ }}
+        (s.role = PRole.leader → NStateWf s) →
+          (s.role = PRole.leader → s.term ≠ W64 0) →
+            (s.role = PRole.leader → plogLastIndexZ (toPState s).base (toPState s).log < 2 ^ 64) →
+              s.logst.sapp = false →
+                (s.logst.aps = true → uint.Z s.logst.prev.index' ≤ uint.Z index) →
+                  (s.logst.snap ≠ none →
+                      s.logst.lent = false → uint.Z s.logst.applying < uint.Z index → uint.Z index ≤ uint.Z s.logst.sxt) →
+                    (s.logst.snap ≠ none →
+                        s.logst.sip = false →
+                          uint.Z s.logst.applying < uint.Z index → uint.Z index < uint.Z s.logst.prev.index') →
+                      (s.logst.aps = true → ∀ (k : SnapTrip), s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z index) →
+                        ⊢
+                          ∀ Φ,
+                            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                "Hphys" ∷ ownRaftPhysCVW c c.voters r id s ∗ "#Hrc" ∷ ⧖k0 -∗
+                              (▷
+                                  ∀ s' B recv,
+                                    "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+                                        "%Hstep" ∷
+                                            ⌜LeaveStep c id
+                                                { term := s.term, vote := s.vote, lead := s.lead, role := s.role,
+                                                  votes := s.votes, outbox := s.outbox, stepfn := s.stepfn,
+                                                  ticking := s.ticking, progress := s.progress, log := s.log,
+                                                  logst := logAppliedTo s.logst index size, prvals := s.prvals,
+                                                  prevote := s.prevote, gh := s.gh, rd := s.rd, lt := s.lt, pci := s.pci,
+                                                  isLearner := s.isLearner, sdr := s.sdr, cq := s.cq }
+                                                s' B recv⌝ ∗
+                                          "Hrcb" ∷
+                                            (⌜plogLastIndexZ (toPState s).base (toPState s).log < B⌝ -∗ ⧖(k0 + 1)) -∗
+                                      Φ (intoVal ())) -∗
+                                WP
+                                  (((intoVal
+                                        (methods raft.ty.PointerType
+                                          go!"appliedTo" (intoVal r)))
+                                      (intoVal index))
+                                    (intoVal size))
+                                  {{ Φ }}

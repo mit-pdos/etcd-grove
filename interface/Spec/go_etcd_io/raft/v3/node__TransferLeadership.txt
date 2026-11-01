@@ -7,7 +7,7 @@ def node.TransferLeadership.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗ leaderTransferOn γ N -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd -∗
           ▷ (True -∗ Φ (intoVal ())) -∗
             WP
               ((((intoVal

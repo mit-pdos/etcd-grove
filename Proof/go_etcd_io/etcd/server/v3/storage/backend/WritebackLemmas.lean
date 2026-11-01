@@ -94,11 +94,11 @@ theorem rbClean_writeback {P : BParams} {W : WBuf} {R : RBuf}
 /-- The write-back keeps the safe-range discipline: the merged read buffer's keys are the read
 buffer's and the write buffer's, both above the committed ones. -/
 theorem safeSt_writeback {P : BParams} {st : BSess} (hs : safeSt P st) : safeSt P (wbSt P st) := by
-  refine ⟨?_, fun n i hn hsb => ⟨?_, (hs.2 n i hn hsb).2⟩⟩
+  refine ⟨?_, fun n i hn hsb => ?_⟩
   · intro n i hn hsb kc vc e hc he
     rcases mem_bkOf_wbMerge (W := st.W.bks) (R := st.R.bks) he with he | he
     · exact hs.1 n i hn hsb kc vc e hc he
-    · exact (hs.2 n i hn hsb).1 kc vc e hc he
+    · exact hs.2 n i hn hsb kc vc e hc he
   · intro kc vc e _ he
     exact absurd he (by show e ∉ bkOf (writebackW st.W st.R).bks i; rw [bkOf_writebackW]; simp)
 

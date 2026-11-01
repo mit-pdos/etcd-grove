@@ -72,6 +72,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The certificates a KV entry's latest-state outcomes need, in the mode `on`** (see the file
 header): for a plain KV request of the entry `m` above `c₀`, at the start chain with auth on and
@@ -140,7 +141,7 @@ theorem kv_entry_pre_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.Auth
   iintro #Hinvs Ha #Hlb
   ihave #Hinvs' := Hinvs
   iunfold srvKVInvsOn at Hinvs'
-  icases Hinvs' with ⟨-, -, -, %Hcok⟩
+  icases Hinvs' with ⟨-, -, -, -, %Hcok⟩
   imod kv_applied_step_on E γr st₀ A m x st hlen $$ Hinvs Ha Hlb with ⟨%Hp, Ha⟩
   obtain ⟨Hpl, hdet, -, hch⟩ := Hp
   have hpz : plainCover rq ∧ noZeroEnds rq ∧ kvShapeAll rq := by

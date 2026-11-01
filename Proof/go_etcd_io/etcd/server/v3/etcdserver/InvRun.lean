@@ -172,6 +172,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The raft contract's apply side, for the server** (`E.C`; see the file header): the log
 after `ai₀`, consecutive, each entry's id claimed, meeting the KV's premises from `x₀` at the
@@ -267,7 +269,7 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     -- installed: `applyAll`'s premise; J8a's snapshot case makes it conditional)
     (∃ w : Nat, srvWTTaken C.wt w ∗ ⌜uint.Z ai ≤ w⌝) ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
-      entriesStep C.c₀ A C.x₀ x ∧ 1 ≤ C.γs.cap ∧
+      entriesStep C.c₀ A C.x₀ x ∧
       -- (D22 S-h, 2026-10-20; S-0's amendment) `ep.appliedt` the last applied entry's term
       lastTermIs A at'⌝)
 
@@ -283,19 +285,24 @@ instance compactorOk_persistent (c : GoInterface) : Persistent (compactorOk (GF 
   unfold compactorOk; infer_instance
 
 /-- **The compactor's run, once** (M2, S4; not persistent): what `start`'s `s.compactor.Run()`
-spends: nil, or the compactor's contract with its run token `T` and its run precondition `P`
-(`NewServer` makes them: the run token from `v3compactor.New`, `P` the environment's contracts,
-`v3compactor.runPre`). -/
-def compactorRun (c : GoInterface) : IProp GF :=
-  iprop(⌜c = GoInterface.nil⌝ ∨ ∃ (T P : IProp GF), v3compactor.compactorOk c T P ∗ T ∗ P)
+spends: nil, or (auth off) the compactor's contract with its run token `T` and how to make its run
+precondition `P` from the server's views, which `start` builds (`NewServer` makes the token, from
+`v3compactor.New`, and the wand: `P` is `v3compactor.runPre` of the server's `Rev` and `Compact`,
+whose contracts need the request and read views, `CompactEnv.lean`; the wand holds the rest, the
+reader slots the compactor's calls borrow). -/
+def compactorRun (s : Loc) (E : apply.AEnv GF) (c : GoInterface) : IProp GF :=
+  iprop(⌜c = GoInterface.nil⌝ ∨ ⌜E.authOn = false⌝ ∗ ∃ (T P : IProp GF),
+    v3compactor.compactorOk c T P ∗ T ∗
+    (∀ ρ : ReqNames, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReq s E ρ ∗ isServerRead s E ρ.rd ∗ idCred ρ.ids 1 -∗ |={⊤}=> P))
 
 /-- The run's contract is the compactor's. -/
-theorem compactorRun_ok (c : GoInterface) :
-    compactorRun (GF := GF) c ⊢ compactorOk c := by
+theorem compactorRun_ok (s : Loc) (E : apply.AEnv GF) (c : GoInterface) :
+    compactorRun (GF := GF) s E c ⊢ compactorOk c := by
   iintro H
   iunfold compactorRun at H
   iunfold compactorOk
-  icases H with (%H | ⟨%T, %P, #Hc, -, -⟩)
+  icases H with (%H | ⟨-, %T, %P, #Hc, -, -⟩)
   · ileft; ipureintro; exact H
   · iright; iexists T, P; iexact Hc
 
@@ -319,11 +326,11 @@ def rnSnapOnce (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) : IProp GF :=
       ownSnapM sn DFrac.discard sv -∗
       sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦□ pm -∗
       pm.[go_etcd_io.raft.v3.raftpb.SnapshotMetadata, go!"ConfState"] ↦□ cs -∗
-      -- (D19i part 1) the conf state read-only for good (`ep.confState`'s first value), and the
-      -- application's snapshot token back; (D22 J4) its boundary at most its snapshot (what the
-      -- shared token's invariant keeps; until J4 at most `ai₀`)
-      epCsOk cs -∗
-      (∃ σ : StorState, memSnapTok ms γs σ ∗ ⌜uint.Z σ.prev.index' ≤ uint.Z σ.ss.index'⌝) -∗
+      -- (D19i part 1) the conf state read-only for good (`ep.confState`'s first value), and
+      -- (2026-10-30, the repair: raft's two-writer `MemoryStorage` specs, R1) the storage's
+      -- "no snapshot taken yet" token back (`memSnapNone`, under which `Snapshot()` answers the
+      -- empty snapshot; until then the application's snapshot token `memSnapTok`)
+      epCsOk cs -∗ memSnapNone γs -∗
       Φ (PairV #sn #(GoInterface.nil))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
       (Val #())) {{ Φ }})
@@ -403,7 +410,9 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     -- (D43 M3, 2026-10-25) in raft's dynamic mode a fresh start: no entry replayed
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (γn.node.dyn = true → uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+    -- (2026-10-30, the repair) the apply side's half of the node's running token
+    "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗

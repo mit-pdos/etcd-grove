@@ -60,10 +60,10 @@ theorem Main.wp_proof
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
+  intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := common.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (putgetDir id)
       go!"putget" go!"putget"
@@ -98,7 +98,7 @@ theorem Main.wp_proof
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (putgetDir id) (dirOne_member id _)
       (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hvs, hdyn, hboot, hγn1, hγn2, hlog⟩ := Hal
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
   -- `StartServer("putget", "127.0.0.1:23800", clientAddr, lg)`
@@ -107,7 +107,7 @@ theorem Main.wp_proof
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   wp_apply (wp_StartServer N go!"putget" go!"127.0.0.1:23800" go!"127.0.0.1:23790" lg
       (LogEntry.toEntries boot 0) ctxs (putgetDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
-      hdyn hboot hblen hγn1 hγn2 Hdirok
+      hrule hboot hblen hγn1 hγn2 Hdirok
       (by simp [putgetDir, dirOne]) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
@@ -132,7 +132,7 @@ theorem Main.wp_proof
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
     iapply (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23790" cid mid
-      R Hrb48)
+      R Hrb48 Hrf rfl)
     iframe; iframe #
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv⟩)
   · cases serr with
@@ -148,7 +148,7 @@ theorem Main.wp_proof
   wp_apply (wp_NewClient go!"127.0.0.1:23790" lg
       (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23790" [] null null [] null default) Hlg
       (by unfold plainEndpoint; decide) Htb) as %cl %cerr Hcl
-  icases Hcl with (⟨%Hcerr, #Hnc⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with
@@ -181,7 +181,9 @@ theorem Main.wp_proof
     simp at Hf
   -- `cli.Put(ctx, "k", "v")`
   wp_apply (client.client_Put_own cl go!"127.0.0.1:23790" _ E ρ.rd γf cid mid
-      pctx pcd go!"k" go!"v" slice.nil []) as %presp %perr Hput
+      pctx pcd go!"k" go!"v" slice.nil []
+      (opSizeOk_opPutModel (K := 1) (E := 0) (V := 1) (optsKeep_nil _ _ _) (by decide) (by decide)
+        (by decide))) as %presp %perr Hput
   · iframe #
   -- `pcancel()`
   (try wp_auto)
@@ -205,7 +207,8 @@ theorem Main.wp_proof
   -- `cli.Get(gctx, "k")`
   imod monoNatLbOwn_0 (GF := GF) ρ.rd.committed with #Hc0
   wp_apply (client.client_Get_own cl go!"127.0.0.1:23790" _ E ρ.rd γf (W64 0) cid mid
-      gctx gcd go!"k" go!"v" slice.nil []) as %gresp %gerr Hget
+      gctx gcd go!"k" go!"v" slice.nil []
+      (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide))) as %gresp %gerr Hget
   · iframe #
     iunfold committedAtLeast
     iExactEq Hc0; rfl

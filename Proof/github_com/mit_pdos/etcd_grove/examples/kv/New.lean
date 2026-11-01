@@ -28,7 +28,7 @@ variable [KVStor GF]
 theorem New.wp_proof (wp_run : kv.KV.run.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
   intro γr id n st send
-  wp_start as ⟨#Hinv, #HisNode, Hdrv, #Hstatic, #Hxfer, #Hsrec, Hseq, Hrs, #Hsend⟩
+  wp_start as ⟨#Hinv, #HisNode, Hdrv, Hcfg, Hrunning, #Hcl, #Hsrec, Hseq, #Hrs, #Hsend⟩
   wp_auto
   wp_apply wp_map_make1 (K := List w8) (V := List w8) as %mK HK
   wp_apply wp_map_make1 (K := List w8) (V := List w8) as %mA HA
@@ -65,12 +65,11 @@ theorem New.wp_proof (wp_run : kv.KV.run.spec (GF := GF) (hG := hG)) :
     simp only [named]
     iframe #
   ihave #Hc0 := isCommittedLogLb_nil (GF := GF) γr.cluster
-  wp_apply wp_fork $$ [Hdrv kv HK applied HA Hrs]
+  wp_apply wp_fork $$ [Hdrv Hcfg Hrunning kv HK applied HA]
   · wp_apply wp_run γr ⟨⟩ «$r0_ptr» id n st send
-      $$ [$Hpkg $Hrep Hdrv kv HK applied HA Hrs]
+      $$ [$Hpkg $Hrep Hdrv Hcfg Hrunning kv HK applied HA]
     · iframe #
-      iframe Hrs
-      iframe Hdrv
+      iframe Hdrv Hcfg Hrunning
       unfold runOwn
       iexists mK, ∅, mA, ∅, []
       simp only [named]

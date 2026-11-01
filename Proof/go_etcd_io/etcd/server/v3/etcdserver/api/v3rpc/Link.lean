@@ -49,10 +49,12 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RegisterWatchServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Server
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SetProgressReportInterval
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_AuthEnable_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_Authenticate_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_RoleAdd_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_RoleGrantPermission_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_UserAdd_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Auth_UserGrantRole_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Compact_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_DeleteRange_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Put_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Range_Handler
@@ -651,6 +653,10 @@ theorem etcdserverpb.wp__Auth_AuthEnable_Handler :
     EtcdGrove.etcdserverpb._Auth_AuthEnable_Handler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdserverpb._Auth_AuthEnable_Handler.wp_proof
 
+theorem etcdserverpb.wp__Auth_Authenticate_Handler :
+    EtcdGrove.etcdserverpb._Auth_Authenticate_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._Auth_Authenticate_Handler.wp_proof
+
 theorem etcdserverpb.wp__Auth_RoleAdd_Handler :
     EtcdGrove.etcdserverpb._Auth_RoleAdd_Handler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdserverpb._Auth_RoleAdd_Handler.wp_proof
@@ -666,6 +672,10 @@ theorem etcdserverpb.wp__Auth_UserAdd_Handler :
 theorem etcdserverpb.wp__Auth_UserGrantRole_Handler :
     EtcdGrove.etcdserverpb._Auth_UserGrantRole_Handler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdserverpb._Auth_UserGrantRole_Handler.wp_proof
+
+theorem etcdserverpb.wp__KV_Compact_Handler :
+    EtcdGrove.etcdserverpb._KV_Compact_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._KV_Compact_Handler.wp_proof
 
 theorem etcdserverpb.wp__KV_DeleteRange_Handler :
     EtcdGrove.etcdserverpb._KV_DeleteRange_Handler.spec (GF := GF) (hG := hG) :=

@@ -6,6 +6,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthAdmin
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
 
 @[expose] public section
 
@@ -31,14 +32,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- `aa.requireAuthInfo(ctx)`: `nil` unless auth is enabled and the request carries no auth info
 (`auth.ErrUserEmpty`) or the getter's `AuthInfoFromCtx` failed; the outcome `authedOut`
 (`AuthGuard.lean`): never an error with auth off, on `nil` the token `authedRes`, on an error
-auth enabled at a recorded state. -/
+auth enabled at a recorded state.
+With auth on, a passed check's auth info is moreover bound (`authedOutB`; the auth-mode merge,
+2026-10-29: `spec` and `boundSpec` one spec). -/
 abbrev v3rpc.AuthAdmin.requireAuthInfo.spec : Prop :=
   ∀ (aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.authAdminIs aa s E ∗ mvcc.txnCtx ctx cd ∗ E.RD }}
     (App (Val (aa @!! go.GoType.PointerType v3rpc.AuthAdmin.ty @!! go!"requireAuthInfo"))
       (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; E.RD ∗ authedOut E.authMode err }}
+  {{ (err : GoInterface), RET #err; E.RD ∗ authedOutB s E.authMode (GoInterface.ok ctx) err }}
 
 end spec
 

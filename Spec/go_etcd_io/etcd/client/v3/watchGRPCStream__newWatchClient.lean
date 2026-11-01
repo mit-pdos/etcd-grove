@@ -70,11 +70,16 @@ abbrev watchGRPCStream.newWatchClient.spec : Prop :=
       wgAdder G.wgs ∗ threadTok ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (γs' : StreamNames)
           (Dn : Nat → v3rpc.WatchRespM → IProp GF) (cd' : context.ContextDesc (IProp GF))
-          (γc : GName),
-        -- (W3b) the stream at the member `i`, which its epoch records
-        ⌜i < V.nm⌝ ∗ v3rpc.cliWatchStreamIs wc γs' (v3rpc.watchUp (V.mem i).2.γ) Dn cd' ∗
-        cliSendTok (Req := v3rpc.pbWatchRequest) γs' [] ∗ v3rpc.watchSpec (V.mem i).2 γs' Dn ∗
-        monoListAuthOwn G.γep 1 (eps ++ [((γs', sent.length, γc, i) : EpInfo)])) ∨
+          (γc : GName) (md : GrpcMd),
+        -- (W3b) the stream at the member `i`, which its epoch records; (G2) opened with the
+        -- metadata `md` an attempt on the connection delivered for the stream's context, its
+        -- specification at `md`'s token, which the epoch records too
+        ⌜i < V.nm ∧ clientAttemptMd V.conn (GoInterface.ok G.ctx) md⌝ ∗
+        v3rpc.cliWatchStreamIs wc γs' (v3rpc.watchUp (V.mem i).2) Dn cd' ∗
+        cliSendTok (Req := v3rpc.pbWatchRequest) γs' [] ∗
+        v3rpc.watchSpec (V.mem i).2 (auth.mdTokenOf md) γs' Dn ∗
+        monoListAuthOwn G.γep 1
+          (eps ++ [((γs', sent.length, γc, i, auth.mdTokenOf md) : EpInfo)])) ∨
        (⌜wc = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ statusErrOk err ∗
         sspscProducer G.γr sent ∗ monoListAuthOwn G.γep 1 eps)) }}
 

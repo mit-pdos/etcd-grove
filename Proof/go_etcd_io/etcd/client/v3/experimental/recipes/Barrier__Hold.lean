@@ -31,11 +31,11 @@ theorem Barrier.Hold.wp_proof (hNK : newKey.spec (GF := GF) (hG := hG)) :
   intro b client key lo
   wp_start as ⟨#Hb, #Hlo⟩
   iunfold isBarrier at Hb
-  icases Hb with ⟨#Hbc, -, #Hbk, #Hcl⟩
+  icases Hb with ⟨#Hbc, -, #Hbk, #Hcl, %Hkl⟩
   ihave ⟨%kv, #Hkvf, #Hkv⟩ := isEtcdRecipesClient_kv $$ Hcl
   wp_auto
   wp_apply hNK kv key key (W64 0) lo $$ [$Hpkg $Hkv $Hlo] as %rk %err Hres
-  · ipureintro; exact List.prefix_refl key
+  · ipureintro; exact ⟨List.prefix_refl key, by omega⟩
   icases Hres with (⟨%Heq, %r, -, #Hr, #Hc, %Hrr⟩ | ⟨#Herr, %Hrk, %r, #Hr, #Hp, %Hlr⟩ | %Hne)
   · subst Heq
     (try wp_auto)

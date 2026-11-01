@@ -4,8 +4,10 @@ Proof of `Spec/EtcdServer__applyEntries.lean`. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntries
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SDRun
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__apply
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 
 @[expose] public section
 
@@ -68,13 +70,15 @@ theorem entriesAt_drop (ents : List Loc) (ms : List EntryModel) (k : Nat) :
   rw [List.getElem?_drop] at He Hm
   iapply H $$ %(k + n) %e %m %He %Hm
 
-theorem EtcdServer.applyEntries.wp_proof
+/-- **`applyEntries.specOff`**, with auth off (until step 3 of the auth-mode merge, `wp_proof`). -/
+theorem EtcdServer.applyEntries.wp_proofOff
     (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
-    (hApply : EtcdServer.apply.spec (GF := GF) (hG := hG)) :
-    EtcdServer.applyEntries.spec (GF := GF) (hG := hG) := by
+    (hApply : EtcdServer.apply.specOff (GF := GF) (hG := hG)) :
+    EtcdServer.applyEntries.specOff (GF := GF) (hG := hG) := by
   have hGI := wp_entryAt_GetIndex hGI
   intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w Hms Hai1 Hok hEok hdv
-  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hfs, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR⟩
+  unfold EtcdServer.apply.specOff at hApply
+  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hfs, Hka, HRS, #Hkb, Hdv, #Hdvr, Hrun, HAR⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   iunfold entriesAt at Hentsat
   icases Hentsat with ⟨%Hlen2, #Hent⟩
@@ -91,6 +95,8 @@ theorem EtcdServer.applyEntries.wp_proof
     iframe Hfs
     isplitl [Hdv]
     · rw [show A ++ unapplied ai [] = A by simp [unapplied]]; iexact Hdv
+    isplitl [Hrun]
+    · iexact Hrun
     isplitl [HAR]
     · rw [show A ++ unapplied ai [] = A by simp [unapplied]]; iexact HAR
     iexists st, ai, at0, a, t, cs
@@ -196,12 +202,12 @@ theorem EtcdServer.applyEntries.wp_proof
       ipureintro; exact List.mem_of_mem_drop hm
     wp_apply hApply s γ ci TM E ρ b (slice.slice es Loc off es.len) (ents.drop k) (ms.drop k)
       (ai + 1) ep cs rac st a t x γr A γp dv w hne' hfrom' hok' hEok hdv
-      $$ [Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hfs Hka HRS Hdv HAR]
-      as %appt %appi %stop ⟨Hfs, Hdv, HAR, %st', %a', %at', %csl, Hst, Hbe, Happ, Hcs, Hlr, Hgr, Hao, #HWA',
+      $$ [Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hfs Hka HRS Hdv Hrun HAR]
+      as %appt %appi %stop ⟨Hfs, Hdv, Hrun, HAR, %st', %a', %at', %csl, Hst, Hbe, Happ, Hcs, Hlr, Hgr, Hao, #HWA',
         ⟨%x', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
     · rw [show ai + 1 - 1 = ai by word]
       iframe Hsrv Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hlr Hgr HKV Hao HW HWA Hfs Hbc' Hlog Hka HRS Hkb'
-        Hdv Hdvr2 HAR
+        Hdv Hdvr2 Hrun HAR
     obtain ⟨hli, hlt, hok2, hci2, hstop⟩ := Hpost
     -- `apply` never asks to stop (D19m: no member removed), so `stopWithDelay` is not reached
     subst hstop
@@ -221,6 +227,8 @@ theorem EtcdServer.applyEntries.wp_proof
     iframe Hfs
     isplitl [Hdv]
     · rw [hun]; iexact Hdv
+    isplitl [Hrun]
+    · iexact Hrun
     isplitl [HAR]
     · rw [hun]; iexact HAR
     iexists st', appi, appt, a', at', csl
@@ -250,6 +258,8 @@ theorem EtcdServer.applyEntries.wp_proof
     iframe Hfs
     isplitl [Hdv]
     · rw [hun, List.append_nil]; iexact Hdv
+    isplitl [Hrun]
+    · iexact Hrun
     isplitl [HAR]
     · rw [hun, List.append_nil]; iexact HAR
     iexists st, ai, at0, a, t, cs
@@ -277,7 +287,8 @@ theorem EtcdServer.applyEntries.wp_proofOn
   have hGI := wp_entryAt_GetIndex hGI
   intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w γa sa hM hRB Hms Hai1 Hok hEok
     hdv
-  wp_start as ⟨#Hsrv, #Hlnil, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hfs, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, HtokR⟩
+  unfold EtcdServer.apply.specOn at hApply
+  wp_start as ⟨#Hsrv, #Hlnil, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hfs, Hka, HRS, #Hkb, Hdv, #Hdvr, Hrun, HAR, HtokR⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   iunfold entriesAt at Hentsat
   icases Hentsat with ⟨%Hlen2, #Hent⟩
@@ -294,6 +305,8 @@ theorem EtcdServer.applyEntries.wp_proofOn
     iframe Hfs
     isplitl [Hdv]
     · rw [show A ++ unapplied ai [] = A by simp [unapplied]]; iexact Hdv
+    isplitl [Hrun]
+    · iexact Hrun
     isplitl [HAR]
     · rw [show A ++ unapplied ai [] = A by simp [unapplied]]; iexact HAR
     iexists st, ai, at0, a, t, cs
@@ -399,12 +412,12 @@ theorem EtcdServer.applyEntries.wp_proofOn
       ipureintro; exact List.mem_of_mem_drop hm
     wp_apply hApply s γ ci TM E ρ b (slice.slice es Loc off es.len) (ents.drop k) (ms.drop k)
       (ai + 1) ep cs rac st a t x γr A γp dv w γa sa hM hRB hne' hfrom' hok' hEok hdv
-      $$ [Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hfs Hka HRS Hdv HAR HtokR]
-      as %appt %appi %stop ⟨Hfs, Hdv, HAR, %st', %a', %at', %csl, Hst, HtokR, Hbe, Happ, Hcs, Hlr, Hgr, Hao, #HWA',
+      $$ [Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hfs Hka HRS Hdv Hrun HAR HtokR]
+      as %appt %appi %stop ⟨Hfs, Hdv, Hrun, HAR, %st', %a', %at', %csl, Hst, HtokR, Hbe, Happ, Hcs, Hlr, Hgr, Hao, #HWA',
         ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
     · rw [show ai + 1 - 1 = ai by word]
       iframe Hsrv Hlnil Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hlr Hgr HKV Hao HW HWA Hfs Hbc' Hlog Hka HRS Hkb'
-        Hdv Hdvr2 HAR HtokR
+        Hdv Hdvr2 Hrun HAR HtokR
     obtain ⟨hli, hlt, hok2, hci2, hstop⟩ := Hpost
     -- `apply` never asks to stop (D19m: no member removed), so `stopWithDelay` is not reached
     subst hstop
@@ -424,6 +437,8 @@ theorem EtcdServer.applyEntries.wp_proofOn
     iframe Hfs
     isplitl [Hdv]
     · rw [hun]; iexact Hdv
+    isplitl [Hrun]
+    · iexact Hrun
     isplitl [HAR]
     · rw [hun]; iexact HAR
     iexists st', appi, appt, a', at', csl
@@ -453,6 +468,8 @@ theorem EtcdServer.applyEntries.wp_proofOn
     iframe Hfs
     isplitl [Hdv]
     · rw [hun, List.append_nil]; iexact Hdv
+    isplitl [Hrun]
+    · iexact Hrun
     isplitl [HAR]
     · rw [hun, List.append_nil]; iexact HAR
     iexists st, ai, at0, a, t, cs
@@ -470,6 +487,49 @@ theorem EtcdServer.applyEntries.wp_proofOn
     simp only [Option.map_some, Option.getD_some]
     have : ¬ uint.Z ai + 1 - uint.Z f0 < ents.length := by rw [← hoff, ← hlenu]; exact Hif
     omega
+
+
+/-- **`applyEntries.spec`**, in the environment's auth mode (step 3 of the auth-mode merge,
+2026-10-30): `wp_proofOff` with auth off, `wp_proofOn` with auth on. -/
+theorem EtcdServer.applyEntries.wp_proof
+    (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
+    (hApply : EtcdServer.apply.spec (GF := GF) (hG := hG)) :
+    EtcdServer.applyEntries.spec (GF := GF) (hG := hG) := by
+  have hOff := EtcdServer.applyEntries.wp_proofOff hGI (EtcdServer.apply.spec_off hApply)
+  have hOn := EtcdServer.applyEntries.wp_proofOn hGI (EtcdServer.apply.spec_on hApply)
+  intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w sa hany hRB Hms Hai1
+    Hok hEok hdv
+  simp only [srvRunH_applyEntries_spec]
+  cases hm : E.authMode with
+  | any => exact absurd hm hany
+  | off =>
+    have hoff : E.authOn = false := by rw [apply.AEnv.authOn_eq, hm]; rfl
+    have hT : ∀ k, srvTokRights (GF := GF) E k = iprop(True) := by
+      intro k; unfold srvTokRights; rw [hm]
+    rw [hoff] at hEok ⊢
+    simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false, hT]
+    iintro %Φ ⟨#Hpkg, #Hsrv, -, Hbw, Hes, Hrac, Hesl, Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr,
+      HKV, Hao, Hlog, Hbc, HW, HWA, Hfs, Hka, HRS, Hkb, Hdv, Hdvr, Hrun, HAR, -⟩ HΦ
+    iapply (hOff s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w Hms Hai1 Hok
+      hEok hdv) $$ [Hbw Hes Hrac Hesl Hentsat Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hao Hlog Hbc HW HWA
+      Hfs Hka HRS Hkb Hdv Hdvr Hrun HAR] [HΦ]
+    · iframe Hpkg Hsrv Hbw Hes Hrac Hesl Hentsat Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hao Hlog Hbc HW
+        HWA Hfs Hka HRS Hkb Hdv Hdvr Hrun HAR
+    iintro !> ⟨Hfs, Hdv, Hrun, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, Hst, Hbe, Hci,
+      Hlr, Hgr, Hao, HWT, ⟨%x', HKV, %Hstep, Hlog, Hka, HRS⟩, %Hp⟩
+    iapply HΦ
+    iframe Hfs Hdv Hrun HAR
+    iexists st', ai', at', a', t', cs'
+    iframe Hai Hat Hcs Hst Hbe Hci Hlr Hgr Hao HWT
+    isplitl [HKV Hlog Hka HRS]
+    · iexists x', sa; iframe HKV Hlog Hka HRS; ipureintro; exact Hstep
+    ipureintro; exact Hp
+  | on γa =>
+    have hon : E.authOn = true := by rw [apply.AEnv.authOn_eq, hm]; rfl
+    rw [hon] at hEok ⊢
+    simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true]
+    exact hOn s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w γa sa hm
+      (hRB hon) Hms Hai1 Hok hEok hdv
 
 end proof2
 

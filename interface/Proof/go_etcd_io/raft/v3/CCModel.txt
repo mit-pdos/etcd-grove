@@ -96,6 +96,11 @@ structure ConfChangeM : Type where
 
 def (sealed) ccDecodeV1 : List w8 → Option ConfChangeM
 
+def CCLeaveOk (ents : List EntryM) (cs : List (Option ConfChangeIM)) : Prop :=
+  ∀ (x : EntryM × Option ConfChangeIM),
+    x ∈ ents.zip cs →
+      x.fst.Data' = [] → x.fst.Type' = W32 2 → ∀ (c : ConfChangeIM), x.snd = some c → ccWantsLeave c = true
+
 theorem propConf_repl {joint : Bool} (applied li pci : w64) (ents : List EntryM) (cs : List (Option
     ConfChangeIM)) (H : CCTypesOk ents cs) : PropRepl ents (propConf applied li pci ents cs
     joint).fst

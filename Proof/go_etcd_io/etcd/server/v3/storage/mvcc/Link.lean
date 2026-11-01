@@ -217,6 +217,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem binary.bigEndian.wp_PutUint64 :
@@ -576,6 +577,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.wp_ChanBufLen :
@@ -616,7 +618,7 @@ theorem mvcc.wp_restoreChunk :
 
 theorem mvcc.store.wp_restore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.restore.spec (GF := GF) (hG := hG) :=
-  mvcc.store.restore.wp_proof mvcc.store.wp_setupMetricsReporter mvcc.wp_NewRevBytes mvcc.wp_RevToBytes mvcc.wp_UnsafeReadFinishedCompact mvcc.wp_UnsafeReadScheduledCompact mvcc.wp_restoreIntoIndex mvcc.wp_restoreChunk mvcc.wp_BytesToRev zap.wp_Int64 zap.Logger.wp_Info
+  mvcc.store.restore.wp_proof mvcc.store.wp_setupMetricsReporter mvcc.wp_NewRevBytes mvcc.wp_RevToBytes mvcc.wp_UnsafeReadFinishedCompact mvcc.wp_UnsafeReadScheduledCompact mvcc.wp_restoreIntoIndex mvcc.wp_restoreChunk mvcc.wp_BytesToRev zap.wp_Int64 zap.Logger.wp_Info zap.wp_String zap.wp_Error zap.Logger.wp_Warn
 
 theorem mvcc.wp_NewStore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.NewStore.spec (GF := GF) (hG := hG) :=

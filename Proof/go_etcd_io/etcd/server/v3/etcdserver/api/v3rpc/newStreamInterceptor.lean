@@ -40,7 +40,7 @@ set_option hygiene false in
 handler's continuation `Hk`. -/
 local macro "handler_tail" : tactic => `(tactic| (
   icases Hk with ⟨Hk, -⟩;
-  ihave Hk := Hk $$ %(GoInterface.ok si) %ci %cd Hss;
+  ihave Hk := Hk $$ %(GoInterface.ok si) %cd Hss;
   iunfold streamHandlerCall at Hk;
   wp_bind (App (App (Val #h) _) _);
   iapply (wp_wand (Φ := fun v =>
@@ -108,8 +108,8 @@ theorem v3rpc.newStreamInterceptor.wp_proof
   wp_auto
   ipersist info
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ «$res0_ptr» ↦ GoInterface.nil ∗
-      ((∀ (st' : GoInterface) (ci' : GoInterfaceOk) (cd' : context.ContextDesc (IProp GF)),
-          srvRawStreamIs st' γ Req Rep Up Dn ci' cd' -∗
+      ((∀ (st' : GoInterface) (cd' : context.ContextDesc (IProp GF)),
+          srvRawStreamIs st' γ Req Rep Up Dn ci cd' -∗
           WP (streamHandlerCall #h #srv #st')
             {{ v, ∃ err : GoInterface, ⌜v = #err⌝ ∗ (True -∗ Ψ v) }}) ∧
         (True -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗ Ψ #err))) ∨

@@ -74,6 +74,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The store stays small** (persistent; a theorem since D19b, `storeSmall_of_receipts`,
 until then a premise of `NewServer.spec`): every sealed log (`mvcc.idxSealed`: every
@@ -124,17 +125,21 @@ def srvReadFieldsAt (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v : ReadFie
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)
         #v.rv : GoInterface) ∗
     mvcc.isReadView v.rv E.s E.γ ∗
-    srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RW ∗
+    srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RO E.RW ∗
     srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.γ E.P E.f E.RD E.authMode E.RW ∗
     srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     storeSmall E.γ ∗
-    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗ ⌜2 ≤ log₀.length⌝) ∗
+    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗
+      ⌜2 ≤ log₀.length ∧ mvcc.LogPutsLe etcdKeyMax log₀⌝) ∗
     srvAppliedInv s E γr ∗ srvKVInvs E γr ∗ srvCommittedInv s γr ∗
     srvApplyWaitAddr s ↦□ v.aw ∗ isWaitTime v.aw (appliedAtLeast γr) ∗
     srvLeaderChangedAddr s ↦□ v.lc ∗ srvFirstCommitAddr s ↦□ v.fc ∗
-    srvStoppingAddr s ↦□ v.stopping ∗ stopChan v.stopping)
+    srvStoppingAddr s ↦□ v.stopping ∗ stopChan v.stopping ∗
+    -- (the auth-mode merge, 2026-10-29) with auth on, the store's request side bound to the
+    -- request's token (`AuthInfoFromCtx.spec`'s gated row)
+    □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound v.auth E.RD E.authMode))
 
 instance srvReadFieldsAt_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (v : ReadFields) : Persistent (srvReadFieldsAt s E γr v) := by
@@ -256,6 +261,35 @@ def txnErrOk (E : apply.AEnv GF) (ρ : ReqNames) (F : mvcc.Log) (t : TxnModel) (
       ⌜irrWireOf (apply.withHeader (irrTxn tw) hm) rq'⌝ ∗ appliedErr E rq' F err) ∨
     srvMaybeDeposited ρ (irrTxn tw)))
 
+/-- The server's KV invariants, of the read side (`isServerRead`'s; G2's follow-up, 2026-10-30: the server's law,
+until then the client's). -/
+theorem srvKVInvs_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    isServerRead (GF := GF) s E γr ⊢ srvKVInvs E γr := by
+  iintro #Hsrd
+  iunfold isServerRead at Hsrd
+  icases Hsrd with ⟨%v, Hsrd⟩
+  iunfold srvReadFieldsAt at Hsrd
+  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hk, -⟩
+  iexact Hk
+
+/-- The store's size premise of the read path (`storeSmall`; G2's follow-up: the server's law, until then
+the client's). -/
+theorem storeSmall_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    isServerRead (GF := GF) s E γr ⊢ storeSmall E.γ := by
+  iintro #Hsrd
+  iunfold isServerRead at Hsrd
+  icases Hsrd with ⟨%v, Hsrd⟩
+  iunfold srvReadFieldsAt at Hsrd
+  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hsm, -⟩
+  iexact Hsm
+
+/-- `storeSmall`'s meaning (G2's follow-up, 2026-10-30: so that a client need not unfold it). -/
+theorem storeSmall_small (γ : mvcc.StoreNames) :
+    storeSmall (GF := GF) γ ⊢ □ ∀ log : mvcc.Log, mvcc.idxSealed γ.idx log -∗ ⌜txn.LogSmall log⌝ := by
+  iintro #H
+  iunfold storeSmall at H
+  iexact H
+
 end defs
 
 section lemmas
@@ -263,6 +297,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [_root_.Perennial.errors.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- A read call's auth reader resource, lent out (2026-10-14, unit A2). -/
 theorem srvRdCall_rd (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) :

@@ -38,7 +38,7 @@ theorem callGet.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_vrOf : vrOf.spec (GF := GF) (hG := hG)) :
     callGet.spec (GF := GF) (hG := hG) := by
-  intro _ CRE CEC cl ms V hAs key Q
+  intro _ CRE CEC cl ms V hAs key Q hkl
   wp_start as ⟨#Hcl, #Hregs, #Hau⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
@@ -51,7 +51,8 @@ theorem callGet.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
   ihave #Hnil := optsAt_nil (GF := GF)
   (try wp_auto)
   ihave #Hrr := client.kvRegs_range ms $$ Hregs
-  wp_apply (client.client_Get_st cl ms V cctx ccd key slice.nil Q) $$ []
+  wp_apply (client.client_Get_st cl ms V cctx ccd key slice.nil Q
+      (opSizeOk_opGetModel (K := inMax) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide))) $$ []
     as %resp %err Hout
   · iframe #
   -- `cancel()`

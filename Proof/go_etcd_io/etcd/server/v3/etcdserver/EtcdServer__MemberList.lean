@@ -41,7 +41,7 @@ theorem EtcdServer.MemberList.wp_proof
   icases Hr' with ⟨#Hrd, #HRN, -⟩
   ihave #Hq' := Hq
   iunfold isServerReq at Hq'
-  icases Hq' with ⟨%vq, Hq'⟩
+  icases Hq' with ⟨⟨%vq, Hq'⟩, -⟩
   iunfold srvReqFieldsAt at Hq'
   icases Hq' with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hcl, -, #Hpeers, -⟩
   iunfold srvPeersOk at Hpeers
@@ -57,6 +57,7 @@ theorem EtcdServer.MemberList.wp_proof
   · (try wp_auto)
     wp_apply (hReq s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout⟩
     · iframe #
+    ihave #Hout := authedOut_of_authedOutB _ _ _ _ $$ Hout
     iunfold authedOut at Hout
     icases Hout with ⟨#Herr, -, #Htok, -⟩
     (try wp_auto)
@@ -100,6 +101,7 @@ theorem EtcdServer.MemberList.wp_proof
       · iapply Hri; ipureintro; rfl
       wp_apply (hReq s E ctx cd) $$ [$HRD] as %err2 ⟨HRD, #Hout⟩
       · iframe #
+      ihave #Hout := authedOut_of_authedOutB _ _ _ _ $$ Hout
       iunfold authedOut at Hout
       icases Hout with ⟨#Herr2, -, #Htok, -⟩
       (try wp_auto)

@@ -14,7 +14,7 @@ public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Perennial.Proof.context
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.InvApi
-import Proof.go_etcd_io.raft.v3.InvApiDyn
+import Proof.go_etcd_io.raft.v3.InvApiView
 
 @[expose] public section
 
@@ -39,7 +39,7 @@ From any goroutine: `pb.Message{Type: MsgTransferLeader, From: transferee, To: l
 `recvc` (`netP`: unstamped, no entries, no context; `netP_local`), which `run` steps as
 `RawNode.TransferLeader` does: at a follower forwarded to its leader, at a leader recorded
 with a `MsgTimeoutNow` or an append to the transferee. Until stage R7a specified for
-`context.Background()`; `n.done` never fires. Nothing is promised of the transfer.
+`context.Background()`; (2026-10-29, stage U9a) If `n.done` fires, nothing is done. Nothing is promised of the transfer.
 (2026-10-16, stage R7a, D10 gap (2)) The context is any `nodeCtx ctx cd` (`InvNodeCtx.lean`); the
 `case <-ctx.Done()` returns nothing.
 -/
@@ -57,10 +57,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private abbrev node.TransferLeadership.specRaw : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (lead transferee : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  -- (2026-10-19, D21 M2r) outside the cluster's no-transfer mode, where leader transfer is off
-  -- (`NGhost.xf`; etcd's server, in that mode, never transfers leadership; D22 S-a:
-  -- `RaftNames.reNoXfer`, until then the no-snapshot mode's flag)
-  γ.raft.reNoXfer = false →
+  -- (raft-final, 2026-10-29, U9: until then outside the cluster's no-transfer mode,
+  -- `γ.raft.reNoXfer = false`; `netP_local` no longer needs it)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗ nodeCtx ctx cd }}
     (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"TransferLeadership"))
       (Val #(interface.ok ctx))) (Val #lead)) (Val #transferee))
@@ -85,7 +83,7 @@ into `msgIn` by `msgIn_of_scalar_struct`; `MsgTransferLeader.Enum()` is a new ca
 private theorem node.TransferLeadership.wp_raw
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.TransferLeadership.specRaw (GF := GF) (hG := hG) := by
-  intro γ id n lead transferee ctx cd Hns
+  intro γ id n lead transferee ctx cd
   wp_start as ⟨#Hnode, #Hctx⟩
   ihave #Hnode' := Hnode
   open_node Hnode'
@@ -122,8 +120,8 @@ private theorem node.TransferLeadership.wp_raw
     · iapply isHandshake_isChan $$ Hrecvc
     iapply handshake_send_au γ.recvc nv.recvc' _ (netP γ id) iprop(True)
       $$ [$Hlc1 $Hlc2 $Hlc3] Hrecvc [Hmsg Hcr Htc]
-    · iapply netP_local γ id _ _ (by first | exact .inl rfl | exact .inr (.inl rfl) | exact .inr (.inr (.inl rfl)) | exact .inr (.inr (.inr rfl))) rfl rfl rfl rfl
-        (fun _ => Hns) $$ Hmsg Hlb Hcr Htc
+    · iapply netP_local γ id _ _ (.inl rfl) rfl rfl rfl rfl
+        $$ Hmsg Hlb Hcr Htc
     inext
     iintro -
     wp_auto
@@ -137,8 +135,13 @@ private theorem node.TransferLeadership.wp_raw
     isplitr
     · ipureintro; rfl
     isplitr
-    · iapply isHandshake_isChan $$ Hdone
-    iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+    · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+    -- (2026-10-29, stage U9a) the node stopped: nothing done
+    iapply node_done_recv_au γ nv.done' _ $$ Hdone
+    iintro -
+    wp_auto
+    iapply HΦ
+    itrivial
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `case <-ctx.Done():` returns
@@ -167,15 +170,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_TransferLeadership_impl
     (hT : EtcdGrove.node.TransferLeadership.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.TransferLeadership.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.TransferLeadership.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.leaderTransferOn
+  unfold EtcdGrove.node.TransferLeadership.spec EtcdGrove.Cluster EtcdGrove.isNode
   intro n γ N id lead transferee ctx cd
-  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hx⟩ HΦ
-  iunfold leaderTransferOn at Hx
-  icases Hx with %Hx
+  iintro %Φ ⟨#Hinit, #Hnode, #Hctx⟩ HΦ
   iunfold isNode at Hnode
-  icases Hnode with ⟨%γn, %Hf, #Hrn, -⟩
-  obtain ⟨Hγr, -⟩ := Hf
-  iapply (hT γn id n lead transferee ctx cd (by rw [Hγr]; exact Hx)) $$ []
+  icases Hnode with ⟨%γn, -, #Hrn, -⟩
+  iapply (hT γn id n lead transferee ctx cd) $$ []
   · iframe Hinit Hrn Hctx
   iexact HΦ
 

@@ -147,3 +147,177 @@ mechanical and request groups).
 - **`backend-cmp`** (`/shared/etcd-grove-be`): in `storage/mvcc` and `storage/backend`; its
   server-side touches (`hookStep`, the put/`UnsafeDelete` premises, `srvWTPool`) are invariant and
   hook files, not these specs. Little overlap.
+- **Nested transactions** (`notes/txn-nested.md`, 2026-10-30): the client's `Txn` with auth on admits
+  nested writing transactions (`txnNestOk`), the auth-off one stays plain (`TxnModel.plain`), a
+  recorded scope restriction (`notes/decisions.md`, "Nested transactions with auth on only"): merging
+  the `Txn` specs takes the on side's premise.
+
+## Progress (branch `auth-mm`, worktree `/shared/etcd-grove-amm`, started 2026-10-29)
+
+**Step 0.** `auth-e3zc` (C1's A1-A3) merged into `lean` (`0bb0334b84`); M2 paused behind
+`backend-cmp` (the user's order, relayed 2026-10-29).
+
+**Step 1 done** (internal predicates; decided by the agent): `srvApplyKVM`, `kvAppliedM`
+(`AppliedOn.lean`), `srvLessorNilM` (`UberOn.lean`), `entryOkM` (`ApplyNormalOn.lean`),
+`isServerRunM` (`RunOn.lean`), each a `match on` with `_false`/`_true` lemmas by `rfl`.
+
+**Step 2, the spec review** (`spec-reviewer`, 2026-10-29) of two candidates on `applyAll`: (A) a
+`Bool` parameter, today's `specM on`; (B) no parameter, the mode the environment's. It
+recommends B, amended:
+- B as drafted claimed the mode-`on` spec at `.any` (`AuthMode.any.isOn = true`), which no proof
+  covers: exclude it (`E.authMode ≠ .any`);
+- the flag is `E.authOn`, and a postcondition row about `E'` uses `E'.authOn`;
+- the premises only `on` needs (`srvLessorNil`, `receiptBound ≤ 2^48`, `Put`'s non-empty key)
+  stay gated by the mode.
+
+Its findings:
+- B's premise `E.authOn = false` on today's off spec costs nothing: the off precondition is
+  contradictory at `E.authOn = true` (`kvInv_ch0_off`, `applyKV_authOn`), and every off client
+  builds `.off`.
+- A's corollary `spec := specM false` fails at an `.on` environment (`srvTokRights` is a real
+  resource there).
+- A keeps the exported results split (`server_*`/`server_*_on`).
+
+Decided by the agent:
+- the gating of the `on`-only premises (the reviewer's "no unneeded premise"; it leaves the
+  off statements' premises as they are);
+- `sa` bound and unconstrained off.
+
+For the user (a top-level and structural choice, "Who decides"): A or B; under B, the nine
+existing `specM (on : Bool)` converted in this stage, and the exported results' pairs merged.
+
+**Step 2 decided by the user (2026-10-29):** B, as amended by the reviewer: one spec per function
+with no mode parameter, the mode `E.authOn` (`.any` excluded); the nine `specM (on : Bool)`
+converted in this stage; each pair of exported results (`server_*`/`server_*_on`, v3rpc's
+`*_of_server`/`*_of_serverOn`) merged into one.
+
+**Step 3, as far as it goes (2026-10-29).** Merged, one spec at `E.authOn` each:
+`snapshotIfNeededAndCompactRaftLog` (its two proofs one), `setAppliedIndex` and `setTerm` (their
+`specM` gone; `apply`'s two proofs take `spec`, the off one obtaining `E.authOn = false` by
+`authOn_false_of_off`). Transitional corollaries for callers not yet merged: `ModeSpecs.lean`
+(`snapshotIfNeededAndCompactRaftLog.spec_off`/`spec_on`, used by `applyAll`'s two proofs).
+
+**Blocked: the rest of steps 3-5, by linking** (found 2026-10-29; the plan missed it). A merged
+spec's one proof needs its auth-on proof's callees, and those are variant families, not `.spec`:
+- `apply` needs `applyEntryNormal.specOn`, whose proof takes `apply.Apply.kvSpecL`,
+  `authApplierV3.*.specL`, `applierV3backend.*.fuelSpecX`/`specX`, `adminEntryOn.spec`, ...
+  (linked in `Results.lean`: `server_apply_entry_normal_on`, over `apply_apply_kv_latest`, ...);
+- the request path (`processInternalRaftRequestOnce`, `raftRequest`, `doSerialize`, so `Put`,
+  `DeleteRange`, `Range`) needs `AuthInfoFromCtx.boundSpec` (`AuthBound.lean`), a stronger
+  precondition (`isReqAuthBound`), not a mode of `spec`;
+- every function above them (`applyEntries`, `applyAll`, `run`, `start`, `Start`) through these.
+`etc/gen-link.py` passes each callee as `wp_<callee> : <callee>.spec`, so the merged
+`apply.spec`, ..., `Start.spec` cannot be linked in `Link.lean` until those families are merged into
+their functions' `.spec`. Linking them in `Results.lean` instead (as the `_on` chain is today) would
+take them out of `Link.lean`, which the examples' Links (`EtcdServer.wp_Start`) and
+`etc/verified-code.py` read: verified code would become unverified. Nor can a leaf (`getAppliedIndex`,
+`AppliedIndex`, `parseProposeCtxErr`) go first: its callers' `specM on` take a free `on`, not
+`E.authOn`. `NewServer.specM on` is a different case: `on` is the configuration's choice, made
+before there is an `E`; it may stay a parameter.
+
+**Recommendation (for the user):** do step 6's family decisions first, bottom-up from the leaves
+the chains need: `AuthInfoFromCtx.boundSpec` into `spec` (then the request path, step 5, and the
+`specM` leaves), then `applyEntryNormal`'s families (then `apply` and the rest of step 3, and
+step 4). Merging a family into a `.spec` changes that function's spec, an escalation trigger.
+Ready for when it resumes: the merged `apply.spec` (drafted) and the
+`M` lemmas of its proof (`srvApplyKVM_small`/`_idxCert`/`_ua_rt`, `srvWTPool_take_nM`,
+`entryOkM_of_shape`, `srvApplyKVM_appliedPub`, `kv_cc_stepM`; compiled) and `applyEntryNormal.specE`, the bridge, parked on branch `auth-mm-apply-wip` (`notes/auth-mm-drafts/`):
+unused until then).
+
+**`AuthInfoFromCtx`'s family merged** (branch `auth-bound`, 2026-10-29; `notes/decisions.md`,
+"`AuthInfoFromCtx`: one spec, the binding gated by the mode"). The user chose G (the binding gated
+by `⌜M.isOn = true⌝`, `M` a binder) and, for the guards, the same gate: one spec each for the
+server's `checkMembershipOperationPermission` and `requireAuthInfo` and v3rpc's
+`AuthAdmin.isPermitted`, `AuthAdmin.requireAuthInfo`, `authMaintenanceServer.requireAuthInfo`,
+`serverWatchStream.isWatchPermitted`, whose posts carry the gated binding (`adminOutB`,
+`authedOutB`, `principalBoundI`). `boundSpec`, `AuthInfoFromCtx_bound`, `GuardBound.lean`,
+`WatchBound.lean` and the seven `*_bound` exported results are gone: the guards' linked results
+now state the binding. `AuthInfoFromCtx.wpM`'s `hAuthB` premise is gone, so the request path's
+proofs link over `.spec` alone. Next: the request path's mode merge (step 5), then
+`applyEntryNormal`'s families.
+
+**Step 5 (branch `auth-req`, worktree `/shared/etcd-grove-rq`, started 2026-10-29).** The user
+folded authkv's D into it (the write update told its grant) and decided authkv's D2, option (A):
+the admin specs take a caller update over a client-side view of the auth history. Spec-first: the
+candidate went through three rounds with the spec reviewer (`step5-review.md`, kept outside the
+repository) and authkv's session checked it against its history invariant S1. The design:
+- A: `processInternalRaftRequestOnce`, `raftRequest`, `doSerialize`: `spec := specM E.authOn` (no
+  `.any` premise; by cases on `E.authOn`). `processInternalRaftRequestOnce.specCompact` stays a
+  second spec (M2's).
+- B (D): the on write update is `kvAu1G` (an AU whose atomic postcondition, supplied by the server
+  at the commit, carries `writeGrantAt`: some stamped header bound to the context, and a committed
+  prefix `L` of the requested log, `L₀ <+: L` for the lower bound `srvReqLogLb ρ.raft L₀` the
+  client sends with its update, at which the model grants the write and whose KV state is the
+  update's). Laws for clients: `srvReqLogLb_nil`, `srvReqLogLb_of_rlogLb` (from raft's committed
+  view), `grantedAt_iff`, `kvGranted_emptyUser` (enabled, no `""` user, a request with
+  permissions), `srvTLSId_false`. Threaded through Put, DeleteRange, Txn (its merge stays step 6)
+  and the v3rpc/client `On` results.
+- C: `Put`, `DeleteRange`: one spec, the grant row `□ (⌜E.authOn = true⌝ → …)`; `isServerReq`
+  gains `⌜E.authOn = false⌝` (decided by the agent: its one constructor is the off `start`), with
+  laws `isServerReq_authOff`, `isServerReq_fields`.
+- D: `Range`: one spec, `E.authMode ≠ .any` (the user's B); `srvAuthLb_off`, `rangeClassFrom_off`.
+- E: bridges `specOff`/`specOn` for `Start`'s two specs until step 4.
+- **Done (2026-10-29):** A (`ModeSpecs.lean` holds `specM`/`spec_M` and the off forms), C, D
+  (one proof each, the prefix shared, split on `E.authOn`; the tails unify later), the laws
+  (`grantedAt_iff`, `kvGranted_emptyUser`, `srvTLSId_false`, `srvAuthLb_off`, `rangeClassFrom_off`).
+  E holds as the `ModeSpecs` corollaries (`spec_off`/`spec_on`), which `ServerKV`/`ServerKVOn` and the
+  `_on` results use.
+- Off-only still (no regression; merges to do): `MemberList.spec`, `read_server`,
+  `srvAuthAt_of_views`, `parseProposeCtxErr.spec`.
+- **5a (2026-10-29, done on `auth-5b`):** the write grant through the client's `On` registrations
+  and results (`clientOpAuOn`, `txnUpdAtOn`; decisions, "The write grant through the client's `On`
+  results"), a step-5 gap authkv found.
+- **5b progress (2026-10-29, branch `auth-5b`):** the server side, the Auth gRPC layer, the
+  client's Auth wrappers (`authObjAtC`, `clientTokAt` naming `Auth`, `clientHistAu`) and authkv's
+  `SetUp` (auth half: `SetupHist`, `SetupInv`; the premise `c0 ≤ ai0` added, the reply's
+  `authHistLb` and `pubAfterM`'s `e.data ≠ []` found in the proof). The context's metadata: the
+  axiom `context.WithTimeoutBackgroundMd` (user's choice). Left: `Main`'s
+  `ClientCertAuthEnabled` from the started member's config.
+- **5b (D2), after step 5:** a mono-list auth history in `kvInvOn`, its client half exported at the
+  on start; the admin case of `reqPropOkOn` takes an AU over it; `writeGrantAt` gains the
+  history's prefix up to `L`. Needs the on start (step 4's statements). Drafted to authkv's session
+  before proof. authkv's S2 also needs `ClientCertAuthEnabled ↦□ cfg…` exported from the start
+  (`srvServeCfg`), step 4 or 5b.
+  authkv's S6 asks of 5b (2026-10-29): the history is a pure function of the requested log
+  (`admStates γk L`, with `last (admStates L) = srvAuthAtLog … L` and `L₁ <+: L₂ → admStates L₁ <+:
+  admStates L₂`), and an admin update's commit gives `srvReqLogLb ρ.raft (L ++ [e])` with
+  `admStates (L ++ [e]) = hs ++ [next]` (so the set-up's `Lset` is tied to the view's states).
+  F-S2's refusal split (route B): part 1, the axiom `etcd_noOtherRefusal` (no KV answer is one of
+  the non-auth refusals, in either mode), reviewed by the `axiom` skill (survives under the voter
+  condition, `notes/axiom-review/etcd-noOtherRefusal.md`) and **approved by the user as stated**
+  (2026-10-29, relayed), its docstring to cite `ccLogOk` and state the voter assumption; added in
+  5b, where it is used. Added on `lean` 2026-10-29 (after 5b's merge, which did not need it):
+`noOtherRefusalAt`/`otherRefusalDescs` in `InvGrpc`, the axiom in `NoRefusal.lean`; unused until
+the attempt contract reads it. Part 2 is 2a (the auth refusals' identity proved in the error branches, no
+  axiom); `etcd_noRefusal` then becomes a theorem.
+  **Part 2 parked (user, 2026-10-30).** Spec-first, one review round (candidate and review kept
+  outside the repository). `etcd_noRefusal` cannot become a theorem locally: nothing links a
+  handler's error to the client (on an error `grpcInvokerOk` says nothing; `noRefusalAt` is opaque,
+  introduced only by the axiom), and the KV path's specs give errors by structure only (`srvErrIs`,
+  `togRPCError.spec`). Even the reviewer's smaller design (keep `grpc.serve`; keep `noRefusalAt` as
+  a definition, `noOtherRefusalAt ∧` a no-auth-description fact; the refusal fact `False` with auth
+  off only) changes the grpc client contract (and `perRPCCredsOk`: a credentials error with a status
+  reaches the client unchanged, `http2_client.go:695-705`), the `toGRPCErrorMap`/`rpctypes`
+  initializer axioms, the stream interceptor contract, and ~15 server specs, and needs a no-TLS
+  premise: the auth-off claim is false of etcd with client-cert auth
+  (`issues/etcd-auth-old-revision-auth-disabled.md`). The axiom stays (true of the model, which has
+  no TLS). The auth-on payoff (an auth-refused attempt's update given back) also needs the proposer
+  to keep the update for a write refused at commit (`ProposeOn.lean:230-233`).
+
+
+**Step 6, `applyEntryNormal` (2026-10-30, branch `fam-merge`, candidate 3 approved by the user):**
+done. One parametric `apply.Apply.spec`; the on server's uber-applier contracts built by
+`NewServer` (`srvUberOn`); `applyEntryNormal.spec` merged and linked; the bridge `specE` is not
+needed (the merged spec is the `.spec`). Deviations from the approved text, both reducing what
+changes: the recorded-state triple through a callee `.spec` instead of `applierFor`, and the
+receipt gated on the mode (decisions, "Step 6: one `apply.Apply.spec`"). Steps 3-4 (`apply`,
+`applyEntries`, `applyAll`, `run`, `start`, `Start`) are unblocked; `Txn`'s variants remain.
+
+**Step 3, `apply` and `applyEntries` (2026-10-30, branch `apply-mm`):** done, candidate 2 approved by
+the user after one spec-review round (candidate 1's claim that `applyAll` stays untouched was false
+with the precedent's `specOff`, which takes `E.authOn = false`: these off corollaries derive it from
+the server's view instead). The specs' `match dv` stays in the merged statements; the corollaries
+(`ModeSpecs.lean`, which now imports `SDRun`) are written over `srvRunH`, so the old proofs lose
+their matcher rewrites. Left of step 3: `applyAll` and `run`, whose proofs carry the snapshot
+sorries #7/#8 that the snapshot verification will rewrite: merge them after it lands, not
+interleaved. Then step 4 (`start`, `Start`), 5b's D2 (the history at the on start), `Txn`'s variants.

@@ -28,7 +28,7 @@ theorem auth.authStore.commitRevision.wp_proof
     (h_Revision : auth.authStore.Revision.spec (GF := GF) (hG := hG)) :
     auth.authStore.commitRevision.spec (GF := GF) (hG := hG) := by
   intro st R M P f T ti Lk sta X hs st0
-  wp_start as ⟨#Hinv, #Hlk, HLk, Hown, %Hp⟩
+  wp_start as ⟨#Hinv, #Hlk, HLk, Hown, #Hcap, %Hp⟩
   obtain ⟨Hlast, Hsrev, Hfit, Hk, Hoff⟩ := Hp
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
@@ -60,7 +60,7 @@ theorem auth.authStore.commitRevision.wp_proof
     rw [← Hsrev] at this
     word
   imod (authOwnF_revCur_append M hs (bump sta) r (r + W64 1) Hk (fun h => by
-      subst h; exact Hoff rfl) hr') $$ Hown Hc with ⟨Hown, Hc, #Hv⟩
+      subst h; exact Hoff rfl) hr') $$ Hown Hc Hcap with ⟨Hown, Hc, #Hv⟩
   imod (authOwnF_revFresh M (hs ++ [bump sta]) (bump sta) r (r + W64 1)
     (fun _ _ => by simp) hr') $$ Hown Hf with ⟨Hown, Hf⟩
   imod Hmask with -

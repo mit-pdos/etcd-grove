@@ -1,0 +1,161 @@
+/-
+A writer begins (`beginRWTx`): the database's state with the writer (`DBState.addWriter`: its
+view of the current tree, carved as a reader's, and `rwtx`), its facts kept
+(`dbOK_addWriter`), and what the new write transaction holds (`wtxInit`: the transaction's
+objects as `Tx.init` leaves them, and the view), from which the transaction's predicate is
+built (the object graph's side).
+-/
+module
+
+public import Proof.go_etcd_io.bbolt.DBRelease
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace bbolt
+
+open Iris Iris.BI go_etcd_io.bbolt
+
+section defs
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [AllG GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.bbolt.Assumptions]
+variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
+
+/-- The database with the writer `txl` begun, its view `w` (taking its fraction of the slots
+it sees and of the fields, as a reader does). -/
+def DBState.addWriter (σ : DBState) (txl : Loc) (w : Reader) : DBState :=
+  { σ with
+    rwtx := txl
+    wr := some w
+    rem := fun s => if w.sees s then qsub (σ.rem s) w.q else σ.rem s
+    frem := qsub σ.frem w.q }
+proj_simps DBState.addWriter
+
+theorem dbOK_addWriter (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v1)
+    (hw : σ.wr = none) (txl : Loc) (htxl : txl ≠ null) :
+    dbOK (σ.addWriter txl (newReader σ v0 v1 (beginQ σ))) v0 v1 := by
+  obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h
+  have hcur' := hcur
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, ⟨va1, va2⟩, crb, cfl⟩ := hcur'
+  have hps16 : 16 ≤ σ.ps := by omega
+  have hsees := newReader_sees σ v0 v1 (beginQ σ) hps16 hcur
+  refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv,
+    ⟨cwf, cdisj, cin, calloc,
+      fun s hs => ⟨(cfree s hs).1, (cfree s hs).2.1, fun t pd a ht hp => (by
+        obtain ⟨⟨w, hw', _⟩, _⟩ := (cfree s hs).2.2 t pd a ht hp
+        rw [hw] at hw'; cases hw')⟩,
+      ⟨cbelow.1, cbelow.2.1, fun t pd p ht hp => (by
+        rcases cbelow.2.2.1 t pd p ht hp with h | ⟨w, hw', _⟩
+        · exact Or.inl h
+        · rw [hw] at hw'; cases hw'),
+      fun w hw' => (by
+        simp only [DBState.addWriter.proj_wr, Option.some.injEq] at hw'
+        subst hw'; exact ⟨rfl, rfl⟩), cbelow.2.2.2.2⟩,
+      ⟨va1, fun w hw' => (by
+        simp only [DBState.addWriter.proj_wr, Option.some.injEq] at hw'
+        subst hw'
+        exact ⟨pagesAgree_self cdisj, fun k r hk => (va1 k r hk).2⟩)⟩, crb,
+      flCurOK_congr σ _ _ _ cfl rfl rfl (Nat.le_refl _) rfl rfl (fun s ⟨u1, _, u3⟩ => ⟨u1, fun w hw' => (by
+        simp only [DBState.addWriter.proj_wr, Option.some.injEq] at hw'
+        subst hw'; exact u3), u3⟩)⟩,
+    hrd, hmv, ?_, ?_, hro, hrs, ?_⟩
+  · -- the slots
+    intro s hs
+    have H := hsl s hs
+    rw [hw] at H
+    show fracSum (if (newReader σ v0 v1 (beginQ σ)).sees s then
+        qsub (σ.rem s) (newReader σ v0 v1 (beginQ σ)).q else σ.rem s)
+      (wQ (some (newReader σ v0 v1 (beginQ σ))) (fun r => r.sees s)
+        (readersQ σ.readers (fun r => r.sees s))) halfQ
+    unfold wQ at H ⊢
+    cases hrs' : (newReader σ v0 v1 (beginQ σ)).sees s
+    · simp only [hrs', Bool.false_eq_true, ↓reduceIte]; exact H
+    · simp only [hrs', ↓reduceIte]
+      exact fracSum_take _ _ _ _ _ H (qsub_add _ _ (beginQ_lt_rem σ s hs))
+  · -- the fields
+    have H := hfl
+    unfold fieldsOK at H
+    rw [hw] at H
+    show fracSum (qsub σ.frem (newReader σ v0 v1 (beginQ σ)).q)
+      (wQ (some (newReader σ v0 v1 (beginQ σ))) (fun _ => true)
+        (readersQ σ.readers (fun _ => true))) 1
+    unfold wQ at H ⊢
+    simp only [↓reduceIte]
+    exact fracSum_take _ _ _ _ _ H (qsub_add _ _ (beginQ_lt_frem σ))
+  · -- the writer
+    unfold writerOK
+    simp only [DBState.addWriter.proj_wr, DBState.addWriter.proj_rwtx]
+    refine ⟨by simp [htxl], fun w hw' => ?_⟩
+    simp only [Option.some.injEq] at hw'
+    subst hw'
+    refine ⟨⟨cwf.1, cdisj, fun id pg hid =>
+      ⟨(newReader_pages σ v0 v1 _ id pg hid).symm, cin id pg hid⟩⟩, ?_, fun s hs => ?_⟩
+    · exact fun id pg hid a ha => calloc id pg hid a ha
+    · have hs' : (newReader σ v0 v1 (beginQ σ)).sees s = true := by
+        unfold Reader.sees; simp only [decide_eq_true_eq]; exact hs
+      obtain ⟨_, h2, h3, h4⟩ := hsees s hs'
+      exact ⟨h2, h3, h4⟩
+
+/-- What a new writer's view `w` of the metas `v0`, `v1` gives the transaction's predicate
+(`ownWriteTx_init`): the view is the current tree, strict, its root no meta page, and inside
+the mapping (whose size bounds every page's offset). -/
+def wtxOK (dbl : Loc) (w : Reader) (data : Loc) (ps : Nat) (v0 v1 : internal.common.Meta) : Prop :=
+  let m := if metaPick v0 v1 then v1 else v0
+  w.hwm = uint.nat m.pgid' ∧ treeStrict w.pages (uint.nat m.pgid') (uint.nat m.root'.root') ∧
+  m.root'.root' ≠ W64 0 ∧ 2 ≤ uint.nat m.pgid' ∧ data.locCar ≠ 0 ∧ (80 ≤ ps ∧ ps < 2 ^ 32) ∧
+  (∀ id pg, w.pages !! id = some pg → id * ps < 281474976710655) ∧ dbl ≠ null
+
+theorem wtx_root_ne (x : w64) (h : 2 ≤ uint.nat x) : x ≠ W64 0 := by
+  intro e; subst e; simp at h
+
+theorem wtx_bound (id nslots ps sz : Nat) (h : id + 1 ≤ nslots) (hn : nslots * ps ≤ sz)
+    (hsz : sz ≤ 281474976710655) (hps : 80 ≤ ps) : id * ps < 281474976710655 := by
+  have := Nat.mul_le_mul_right ps h
+  rw [Nat.succ_mul] at this
+  omega
+
+/-- A writer begun on the current tree (`newReader`) of a database with its facts. -/
+theorem dbOK_wtxOK (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v1) (q : Qp)
+    (dbl : Loc) (hdbl : dbl ≠ null) : wtxOK dbl (newReader σ v0 v1 q) σ.data σ.ps v0 v1 := by
+  obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, -⟩ := h
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, -⟩ := hcur
+  have hroot : ∃ pg, (newReader σ v0 v1 q).pages !! (newReader σ v0 v1 q).root = some pg ∧
+      (newReader σ v0 v1 q).root < (newReader σ v0 v1 q).hwm := by
+    match cwf.1 with
+    | .page _ pg hlt hpg _ _ => exact ⟨pg, hpg, hlt⟩
+  obtain ⟨pg, hpg, hlt⟩ := hroot
+  have h2 := (cfree _ ⟨_, pg, hpg, Nat.le_refl _, by omega⟩).1
+  refine ⟨rfl, cwf, wtx_root_ne _ h2, by simp only [newReader] at hlt h2; omega, hdc, ⟨by omega, hps2⟩,
+    fun id pg' hid => ?_, hdbl⟩
+  have hin := cin id pg' hid
+  unfold pageSpan at hin
+  exact wtx_bound id σ.nslots σ.ps σ.sz (by omega)
+    (Nat.le_trans (Nat.div_mul_le_self (min σ.sz σ.bs.length) σ.ps) (Nat.min_le_left _ _))
+    hsz.1 hps
+
+/-- What a new write transaction at `txl` holds (as `Tx.init` leaves it, writable): the
+transaction (`txInitOf`; managed off), its meta copy (the current one, its txid incremented),
+the root bucket's header copy, the empty page cache and bucket caches, and its view `w` of the
+current tree (the pages it sees and its part of `data`, `pageSize`, at its fraction). The
+object graph's predicate is built from it. -/
+def wtxInit (dbl : Loc) (txl : Loc) (w : Reader) (data : Loc) (ps : Nat)
+    (v0 v1 : internal.common.Meta) : IProp GF :=
+  iprop(∃ (ml ibl : Loc) (pm bm nm : GoMap),
+    txl ↦ txInitOf { (zero_val Tx) with writable' := true } txl dbl ml ibl pm bm nm ∗
+    ml ↦ txMetaOf true v0 v1 ∗ ibl ↦ (if metaPick v0 v1 then v1 else v0).root' ∗
+    pm ↦$ (∅ : GMap w64 Loc) ∗ bm ↦$ (∅ : GMap GoString Loc) ∗ nm ↦$ (∅ : GMap w64 Loc) ∗
+    structFieldRef DB go!"data" dbl ↦{DFrac.own w.q} data ∗
+    structFieldRef DB go!"pageSize" dbl ↦□ W64 ps ∗
+    pagesView data ps w.q w.pages)
+
+end defs
+
+end bbolt
+end EtcdGrove
+end Perennial

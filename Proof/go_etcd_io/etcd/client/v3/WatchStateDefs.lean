@@ -156,12 +156,13 @@ theorem hdrAt_of_hdrOwn (h : Loc) (r : RespModel) :
 
 /-- **The `i`-th response `v` of a watch of `o` with the read update's `Q`**: modelled by some `r`
 (`respAt`: its events, header and flags), the update's `□ Q σ` at the state `σ` it fired at, and
-`watchStateRespOk` at the positions `i` and `i + 1` of the watch's cursor. -/
-def watchStateElem (γw : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) (i : Int)
-    (v : go_etcd_io.etcd.client.v3.WatchResponse) : IProp GF :=
+`watchStateRespOk` at the positions `i` and `i + 1` of the watch's cursor, and (G2, 2026-10-30)
+`Au` when the response has events (the caller's auth fact: `watcher.Watch.spec`'s gated row). -/
+def watchStateElem (γw : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) (Au : IProp GF)
+    (i : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse) : IProp GF :=
   iprop(∃ (r : RespModel) (σ : KVState) (c c' : w64), respAt v r ∗ □ Q σ ∗
     monoListIdxOwn γw.cur i.toNat c ∗ monoListIdxOwn γw.cur (i.toNat + 1) c' ∗
-    watchStateRespOk o σ c c' v r)
+    watchStateRespOk o σ c c' v r ∗ □ (⌜r.events ≠ []⌝ → Au))
 
 /-- **A position of a watch of `o` with the read update's `Q`** (persistent; D48): the watch's start
 (`c + 1` its revision), or a revision of a state the update fired at, well formed through it. -/

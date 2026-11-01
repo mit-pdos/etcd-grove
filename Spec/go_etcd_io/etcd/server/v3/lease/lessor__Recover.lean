@@ -44,7 +44,17 @@ nothing decoded, no panic), `Unlock` (the create's pending operation written bac
 the expiry notifier and the checkpoint heap re-initialized empty, `ForceCommit` (one token; its
 pre-commit hook runs at the new backend's registered names: `applySnapshot` calls `Recover` after
 `ci.SetBackend`). `rd` is stored, not called (no lease to revoke). The lessor's other contracts
-(`lessorApplyOk`, for whichever backend the user's half of `le.b` names) stay true. -/
+(`lessorApplyOk`, for whichever backend the user's half of `le.b` names) stay true.
+(lease-keys Part B, 2026-10-31) **The readers' model**: under `le.mu`, with the owner's half (in
+`leaseOwn`/`leaseClosers`), the lock's quarter (the write lock: fraction 1) and the invariant's
+quarter (`lessorRdN`, opened inside the call) of the lessor's history, the fresh maps' snapshot
+`(∅, ∅)` is appended to it. The invariant survives: `setsOk`, since the new map has no lease, every
+old lease's last live index is unchanged, and Go never writes an old lease's `itemSet` again (the
+old leases keep their keys there, frozen: `Recover` does not clear them); `histOk`, since `∅` has no
+key and no lease is new. The item-sets map is unchanged; the old leases' `closerAt` (the owner's
+half of each set, a reader slot of its lock) are dropped, and a reader in an old lease's `Keys()`
+keeps the slot it borrowed. The post's `leaseClosers` is at `C = ∅`, `I = ∅`, the history's last
+snapshot, with the owner's half of the item-sets map. -/
 abbrev lease.lessor.Recover.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (oldbe : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
     (r : GMap GoString backend.BktData) (rd : GoFunc) (L : List w64)

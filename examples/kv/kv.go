@@ -235,10 +235,11 @@ func fits(es []*pb.Entry) bool {
 
 // run handles the node's Readys: install the snapshot, if any, persist the entries, send the
 // messages, note the read states, apply the committed entries in order (a configuration
-// change, RemoveMember's, to the node: Node.ApplyConfChange, before the Advance that
-// acknowledges it, as raft needs), answer the reads whose index is applied, then Advance. A
-// log that would outgrow maxIndex stops the replica (2^61 entries: it does not happen). The
-// applied index is the number of entries applied: the log starts empty, at index 1.
+// change to the node: Node.ApplyConfChange, before the Advance that acknowledges it, as raft
+// needs; the store itself proposes none), answer the reads whose index is applied, then
+// Advance. A log that would outgrow maxIndex stops the replica (2^61 entries: it does not
+// happen). The applied index is the number of entries applied: the log starts empty, at
+// index 1.
 //
 // Snapshots: a Ready's snapshot (one of another replica's, which this one lags too far behind
 // to be sent entries) is installed before the entries after it are appended: its data, the
@@ -440,16 +441,6 @@ func (r *KV) Append(key, val string) {
 // the outcome, and the store's operations are correct whoever leads.
 func (r *KV) TransferLeadership(to uint64) {
 	r.node.TransferLeadership(context.Background(), r.id, to)
-}
-
-// RemoveMember asks raft to remove replica id from the cluster's voters
-// (Node.ProposeConfChange): once the change is committed, every replica's run applies it to
-// its node (Node.ApplyConfChange), and the cluster's quorums are then those of the remaining
-// voters; a leader that removes itself steps down (Config.StepDownOnRemoval). Nothing is
-// promised of the outcome: raft drops a change proposed while another one is not yet
-// applied, and RemoveMember proposes it once.
-func (r *KV) RemoveMember(id uint64) {
-	r.node.ProposeConfChange(context.Background(), &pb.ConfChange{Type: pb.ConfChangeRemoveNode.Enum(), NodeId: new(id)})
 }
 
 // Read returns key's value, by a read index rather than through the log: a fresh context

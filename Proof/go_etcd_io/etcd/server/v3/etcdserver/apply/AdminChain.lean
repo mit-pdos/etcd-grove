@@ -61,14 +61,15 @@ inductive AdminReq where
   | .authEnable => go!"AuthEnable"
   | .authenticate _ _ => go!"Authenticate"
 
-/-- The request's name within bbolt's key bound (the step specs' premise; `AuthEnable` has none). -/
+/-- The request's name within bbolt's key bound (the step specs' premise; `AuthEnable` has none);
+(2026-10-30) an `Authenticate`'s token prefix one the provider makes (`auth.tokPrefixOk`). -/
 @[reducible] def AdminReq.nameOk : AdminReq → Prop
   | .userAdd n => n.length ≤ backend.maxKeySize
   | .roleAdd n => n.length ≤ backend.maxKeySize
   | .userGrantRole u _ => u.length ≤ backend.maxKeySize
   | .roleGrantPermission n _ => n.length ≤ backend.maxKeySize
   | .authEnable => True
-  | .authenticate _ _ => True
+  | .authenticate _ pre => auth.tokPrefixOk pre
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -102,13 +103,18 @@ variable [sem : go.Semantics]
 
 /-- **What the request needs besides `mPre`** (C1's A2, 2026-10-28): for an `Authenticate`, an
 index `x` that `ConsistentIndex()` returns under the resource it borrows from the critical section's
-precondition `Pre` (`ciSplitAt`), and the right to issue the token `<prefix>.<x>`; nothing for the
-other five. -/
-@[reducible] def AdminReq.extraPre (E : AEnv GF) (γa : auth.AuthNames) (Pre : IProp GF) :
-    AdminReq → IProp GF
+precondition `Pre` (`ciSplitAt`), and the right to issue the token `<prefix>.<x>`; (H5) for the
+five that may append to the history `hs`, the cap's permission for their step (`auth.capNextM`;
+`AuthEnable`'s at the flag the latest state has, `auth.authEnableOwnR`). -/
+@[reducible] def AdminReq.extraPre (E : AEnv GF) (γa : auth.AuthNames) (hs : List auth.AuthState)
+    (Pre : IProp GF) : AdminReq → IProp GF
+  | .userAdd n => auth.capNextM (.on γa) hs (auth.stepOf (auth.userAddF n))
+  | .roleAdd n => auth.capNextM (.on γa) hs (auth.stepOf (auth.roleAddF n))
+  | .userGrantRole u ro => auth.capNextM (.on γa) hs (auth.userGrantRoleR u ro)
+  | .roleGrantPermission n w => auth.capNextM (.on γa) hs (auth.roleGrantPermissionR n w)
+  | .authEnable => auth.capNextM (.on γa) hs auth.authEnableOwnR
   | .authenticate _ pre => iprop(∃ x : w64, ciSplitAt E Pre x ∗
       auth.tokFresh γa (auth.simpleTok pre x))
-  | _ => iprop(True)
 
 /-- **The request's result** with the error `err` for the authority family `Own` (E2l's
 `adminOutFu` at `Own = auth.authOwnFu`; E2v: an authority carrying a resource of its history,
@@ -137,7 +143,7 @@ def adminTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) (W : IProp GF)
       (log : mvcc.Log) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
     ⌜E.authMode = .on γa ∧ receiptBound GF ≤ 2 ^ 48 ∧ ar.nameOk⌝ -∗
     {{ ar.reqIs r ∗ Own γa hs ∗ ⧗ 1 ∗ W ∗ mPre E c (.ok ai) info log Pre Q Post ∗
-        ar.extraPre E γa Pre }}
+        ar.extraPre E γa hs Pre }}
       (App (Val #(methods ai.ty ar.method ai.v)) (Val (ar.arg r)))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       mPost E c (.ok ai) log Pre Post ∗ applyErrIs err ∗ W ∗
@@ -372,31 +378,31 @@ theorem applierAdmin_backendX
   cases ar with
   | userAdd n =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
-    iintro !> %Φ ⟨⟨Hr, Hsure⟩, ⟨Ho, HX⟩, Hrc, HW, Hm, -⟩ HΦ
+    iintro !> %Φ ⟨⟨Hr, Hsure⟩, ⟨Ho, HX⟩, Hrc, HW, Hm, #Hcap⟩ HΦ
     iapply (hUA E γa X W p r log Pre Q Post info hs n hM hb hn) $$ [Hr Hsure Ho HX Hrc HW Hm] HΦ
     iframe Hr Hsure Ho HX Hrc HW Hm
     iframe #
   | roleAdd n =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
-    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, HW, Hm, -⟩ HΦ
+    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, HW, Hm, #Hcap⟩ HΦ
     iapply (hRA E γa X W p r log Pre Q Post info hs n hM hb hn) $$ [Hr Ho HX Hrc HW Hm] HΦ
     iframe Hr Ho HX Hrc HW Hm
     iframe #
   | userGrantRole u ro =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
-    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, HW, Hm, -⟩ HΦ
+    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, HW, Hm, #Hcap⟩ HΦ
     iapply (hUGR E γa X W p r log Pre Q Post info hs u ro hM hb hn) $$ [Hr Ho HX Hrc HW Hm] HΦ
     iframe Hr Ho HX Hrc HW Hm
     iframe #
   | roleGrantPermission n w =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
-    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, HW, Hm, -⟩ HΦ
+    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, HW, Hm, #Hcap⟩ HΦ
     iapply (hRGP E γa X W p r log Pre Q Post info hs n w hM hb hn) $$ [Hr Ho HX Hrc HW Hm] HΦ
     iframe Hr Ho HX Hrc HW Hm
     iframe #
   | authEnable =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
-    iintro !> %Φ ⟨-, ⟨Ho, HX⟩, Hrc, HW, Hm, -⟩ HΦ
+    iintro !> %Φ ⟨-, ⟨Ho, HX⟩, Hrc, HW, Hm, #Hcap⟩ HΦ
     iapply (hAE E γa X W p log Pre Q Post info hs hM hb) $$ [Ho HX Hrc HW Hm] HΦ
     iframe Ho HX Hrc HW Hm
     iframe #
@@ -406,7 +412,7 @@ theorem applierAdmin_backendX
     obtain ⟨rfl, rfl⟩ := Ham
     iunfold auth.authOwnFu at Ho
     icases Ho with ⟨Ho, Hfu⟩
-    iapply (hAu E γa X W p r log Pre Q Post info hs am x hM) $$ [Ho HX HW Hm Hfr]
+    iapply (hAu E γa X W p r log Pre Q Post info hs am x hM hn) $$ [Ho HX HW Hm Hfr]
     · rw [hM]; iframe Ho HX HW Hm Hfr; iframe #
     inext
     iintro %resp %err ⟨Hpost, #HeI, Ho, HX, HW, Hout⟩

@@ -26,15 +26,15 @@ variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- **`_Auth_AuthEnable_Handler(srv, ctx, dec, interceptor)`** for a service value `srv` whose type
 implements `AuthServer` (a method-set fact) and whose `AuthEnable` meets `Spec` with the resource `S`, given
-what it owns of the decoded request (`grpcHandlerOwnOk`), for messages whose types are
+what it owns of the decoded request (`grpcHandlerOwnOkMd`, at the run's metadata), for messages whose types are
 `*AuthEnableRequest`/`*AuthEnableResponse` (a zero `*AuthEnableRequest` is the request's blank), under the chain `ics` of transparent interceptors with
 their resources `Rs`, for requests with `Q` (which the decoded request has;
 `srvInterceptorsOk`, given `grpcSrvChain ics interceptor`), with grpc's
-`dec` for the request at `m` and `Spec m Φ`: decodes a new `*AuthEnableRequest` and runs `srv.AuthEnable`
+`dec` for the request at `m` and `Spec` at the run's incoming metadata: decodes a new `*AuthEnableRequest` and runs `srv.AuthEnable`
 through the chain; the resources come back, and on success the response (as `any`) is at some
 `m'` with `Φ m'`. -/
 abbrev etcdserverpb._Auth_AuthEnable_Handler.spec : Prop :=
-  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
+  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
     (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
     (Φ : Rep.M → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
@@ -42,11 +42,11 @@ abbrev etcdserverpb._Auth_AuthEnable_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.AuthServer.ty = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       (□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.AuthEnableRequest) -∗ Req.blank l) ∗
-      grpcHandlerOwnOk #(methods srv.ty go!"AuthEnable" srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
+      grpcHandlerOwnOkMd #(methods srv.ty go!"AuthEnable" srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType etcdserverpb.AuthEnableRequest.ty) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChain ics ui ∗ Spec m Φ }}
+      grpcSrvChain ics ui ∗ Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ }}
     (methodHandlerCall (@! etcdserverpb._Auth_AuthEnable_Handler) #(GoInterface.ok srv)
       #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗

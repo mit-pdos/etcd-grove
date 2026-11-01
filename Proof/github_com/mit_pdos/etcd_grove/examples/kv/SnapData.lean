@@ -96,33 +96,5 @@ theorem ownSnapS_not_null (p : Loc) (dq : DFrac) (s : SnapshotM) :
 
 end getdata
 
-section pend
-variable [GooseExts]
-
-/-- A batch numbered on from the boundary of a storage that holds no entries (one that has just
-installed a snapshot) may be handed out (`memStorage_handout`'s premise). -/
-theorem pendOk_of_logIndices (σ : StorState) (es : List EntryM) (hne : es ≠ [])
-    (hents : σ.ents = []) (H : LogIndicesOk σ.prev es) : PendOk σ es := by
-  refine ⟨hne, fun e0 h0 => ?_⟩
-  have h0' : es[0]? = some e0 := by rw [List.head?_eq_getElem?] at h0; exact h0
-  have H0 := H 0 e0 h0'
-  rw [hents]
-  simp only [List.length_nil] at H0 ⊢
-  push_cast at H0 ⊢
-  refine ⟨by omega, by omega, fun k e hk => ?_⟩
-  have := H k e hk
-  push_cast at this
-  omega
-
-theorem pendAbove_of_logIndices (σ : StorState) (es : List EntryM)
-    (hfl : uint.Z σ.fl ≤ uint.Z σ.prev.index') (H : LogIndicesOk σ.prev es) : PendAbove σ es := by
-  intro e0 h0
-  have h0' : es[0]? = some e0 := by rw [List.head?_eq_getElem?] at h0; exact h0
-  have H0 := H 0 e0 h0'
-  push_cast at H0
-  omega
-
-end pend
-
 end EtcdGrove
 end Perennial

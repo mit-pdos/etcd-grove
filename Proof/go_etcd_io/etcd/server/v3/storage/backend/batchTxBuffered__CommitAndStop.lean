@@ -44,13 +44,16 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
   wp_apply (hlock γ P W Pk b t (1 : Qp).half.half) $$ [$Hq] as ⟨%st, Hl, %Hfo, ⟨HWv, HWR⟩, Hq⟩
   · iframe #
   ihave Hl := batchLocked_W γ P b st $$ Hl
-  wp_apply (hC γ P W Pk b t rt st false true 0 0 iprop(True) iprop(True)) $$ [$Hl $HWR Ho Hq]
+  wp_apply (hC γ P W Pk b t rt st false true 0 0 iprop(True) iprop(True) (vData P (st.C, st.R))) $$ [$Hl $HWR Ho Hq]
     as ⟨-, HWR, -, Hpost⟩
   · iframe #
     isplitr
     · ipureintro
-      exact ⟨room_of_freeOk HP Hfo.1, Hfo.2, Hfo.1.2.2.2.1,
-        fun _ => vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2.1⟩
+      exact ⟨room_of_freeOk HP Hfo.1, Hfo.2, Hfo.1.2.2.2.1⟩
+    isplitr
+    · simp only [Bool.false_eq_true, ↓reduceIte]
+      rw [vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2.1]
+      iapply thinV_refl
     unfold payIn
     simp only [↓reduceIte]
     isplitl [Ho Hq]

@@ -53,7 +53,7 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
     simp only [linkv.MIn.isWrite, Bool.false_eq_true, ↓reduceIte]
     wp_if_destruct
     · ihave #Hau' := client.readUpds_box ms Q $$ Hau
-      wp_apply wp_callGet cl ms V hAs x.Key' Q $$ [] as %y Hy
+      wp_apply wp_callGet cl ms V hAs x.Key' Q (hgen.2.2 _ hx) $$ [] as %y Hy
       · iframe #
       iapply HΦ
       icases Hy with (%Hy | ⟨%σ, #HQ, %Hy, %Hb⟩)
@@ -92,7 +92,7 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
     wp_if_destruct
     · exfalso; rw [hk] at Hif; exact absurd Hif (by decide)
     wp_if_destruct
-    · wp_apply wp_callPut cl ms V hAs x.Key' x.Val' Q $$ [Hau] as %y Hy
+    · wp_apply wp_callPut cl ms V hAs x.Key' x.Val' Q (hgen.2.2 _ hx).1 (hgen.2.2 _ hx).2 $$ [Hau] as %y Hy
       · iframe #
         iExactEq Hau; rfl
       iapply HΦ
@@ -115,7 +115,7 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
     wp_if_destruct
     · exfalso; rw [hk] at Hif; exact absurd Hif (by decide)
     wp_if_destruct
-    · wp_apply wp_callDel cl ms V hAs x.Key' Q $$ [Hau] as %y Hy
+    · wp_apply wp_callDel cl ms V hAs x.Key' Q (hgen.2.2 _ hx) $$ [Hau] as %y Hy
       · iframe #
         iExactEq Hau; rfl
       iapply HΦ
@@ -130,7 +130,7 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
         · rw [Hy]; exact delOut_eq σ hg x.Key'
     · exact absurd hk Hif
   · -- a transaction
-    have hne := hgen.2 cs t e hx
+    have hne := hgen.2.1 cs t e hx
     wp_if_destruct
     · exfalso; rw [hk] at Hif; exact absurd Hif (by decide)
     wp_if_destruct
@@ -139,7 +139,7 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
     · exfalso; rw [hk] at Hif; exact absurd Hif (by decide)
     wp_if_destruct
     · exfalso; rw [hk] at Hif; exact absurd Hif (by decide)
-    wp_apply wp_callTxn cl ms V hAs x cs t e Q hx hne $$ [Hau] as %y Hy
+    wp_apply wp_callTxn cl ms V hAs x cs t e Q hx hne (hgen.2.2 _ hx) $$ [Hau] as %y Hy
     · iframe #
       unfold callUpd
       iexact Hau

@@ -27,14 +27,16 @@ scheduler (`isFifo`, persistent: a `Scheduler` interface value with its names; i
 the run token, `schedRunning`, which it lends each job it runs), the stop token, and the queue (the stop
 token's name `n`, then the tracked jobs' `Post`s' names, here the initial one, `True`) (the request path's unit
 4c: the FIFO chain; mvcc's store gives up the stop token, `schedLive_of_stopTok`, for
-`isScheduler`). -/
+`isScheduler`); and (M2, the storage side, 2026-10-30: review round 3's F2) with the payload
+`Pay` the caller fixes (`schedPayIs γ Pay`: the scheduler's context is done with it, so `Stop`
+presents it and a job finding the context cancelled learns it). -/
 abbrev schedule.NewFIFOScheduler.spec : Prop :=
-  ∀ (lg : Loc),
+  ∀ (lg : Loc) (Pay : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗ ⌜lg ≠ null⌝ }}
     (App (Val (@! schedule.NewFIFOScheduler)) (Val #lg))
   {{ (sc : GoInterface), RET #sc; ∃ (γ : schedule.SchedNames) (n p₀ : GName),
       schedule.isFifo sc γ ∗ schedule.schedStopTok γ ∗ schedule.schedQueue γ [n, p₀] ∗
-      schedule.savedProp p₀ iprop(True) }}
+      schedule.savedProp p₀ iprop(True) ∗ schedule.schedPayIs γ Pay }}
 
 end spec
 

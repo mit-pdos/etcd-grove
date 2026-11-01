@@ -4,17 +4,18 @@
 
 theorem StepCD.trans_frame [GoGlobalContext] [GoSemanticsFunctions] {B : Int} {c : CfgM} {id : w64}
     {m : MessageM} {s s1 s' : NState} {r1 r2 : List Msg} (h1 : StepCF c id (toPState s) r1 (toPState
-    s1)) (hf : RFrame s s1) (h2 : StepCD c id B m s1 r2 s') (hd : ∀ (g : RGh), DynHyp m s s' g →
-    DynHyp m s1 s' g) : StepCD c id B m s (r1 ++ r2) s'
+    s1)) (hf : RFrame s s1) (h2 : StepCD c id B m s1 r2 s') (hd : ∀ (dec : CCDec) (g : RGh), DynHyp
+    dec m s s' g → DynHyp dec m s1 s' g) : StepCD c id B m s (r1 ++ r2) s'
 
 def StepCD (c : CfgM) (id : w64) (B : Int) (m : MessageM) (s : NState) (recv : List Msg) (s' :
     NState) : Prop :=
   StepC c id B (toPState s) recv (toPState s') ∧
     ∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) (g : RGh),
       g.cfg.cfg = c →
-        DynHyp m s s' g →
+        DynHyp dec m s s' g →
           ∃ cidx',
-            CidxMove m s' g cidx' ∧ StepR Adm dec id B (rOf s g) recv (rOf s' { cidx := cidx', cfg := g.cfg, fp := g.fp })
+            CidxMove m s' g cidx' ∧
+              StepR Adm dec id B (rOf s g) recv (rOf s' { cidx := cidx', cfg := g.cfg, fp := g.fp, decs := g.decs })
 
 def pciR (s : NState) : w64 :=
   if s.role = PRole.leader then s.pci else W64 0
@@ -33,9 +34,9 @@ theorem StepR.pci_keep {B : Int} {Adm : List EntryM → CCState → Prop} {dec :
     applied := r.applied, pci := pciKeep p' r.pci, snap := r.snap, cidx := r.cidx, cfg := r.cfg, fp
     := r.fp }
 
-theorem StepCDS.frame [GoGlobalContext] [GoSemanticsFunctions] {B : Int} {c cn : CfgM} {id : w64}
-    {sid : entryID} {s : NState} {recv : List Msg} {s' : NState} (h : StepCF c id (toPState s) recv
-    (toPState s')) (hf : RFrame s s') : StepCDS c c cn id B sid s recv s'
+theorem StepCDS.frame [GoGlobalContext] [GoSemanticsFunctions] {B : Int} {c cn : CfgM} {hid : Prop}
+    {id : w64} {sid : entryID} {s : NState} {recv : List Msg} {s' : NState} (h : StepCF c id
+    (toPState s) recv (toPState s')) (hf : RFrame s s') : StepCDS c c cn hid id B sid s recv s'
 
 def pciKeep (p' : PState) (x : w64) : w64 :=
   if p'.role = Role.leader then x else W64 0
@@ -80,20 +81,31 @@ theorem StepCF.toC {B : Int} {c : CfgM} {id : w64} {s : PState} {ms : List Msg} 
 theorem RFrame.trans [GoGlobalContext] [GoSemanticsFunctions] {s1 s2 s3 : NState} (h1 : RFrame s1
     s2) (h2 : RFrame s2 s3) : RFrame s1 s3
 
-theorem StepCDS.trans_frame [GoGlobalContext] [GoSemanticsFunctions] {B : Int} {c c' cn : CfgM} {id
-    : w64} {sid : entryID} {s s1 s' : NState} {r1 r2 : List Msg} (h1 : StepCF c id (toPState s) r1
-    (toPState s1)) (hf : RFrame s s1) (h2 : StepCDS c c' cn id B sid s1 r2 s') : StepCDS c c' cn id
-    B sid s (r1 ++ r2) s'
+theorem StepCDS.trans_frame [GoGlobalContext] [GoSemanticsFunctions] {B : Int} {c c' cn : CfgM} {hid
+    : Prop} {id : w64} {sid : entryID} {s s1 s' : NState} {r1 r2 : List Msg} (h1 : StepCF c id
+    (toPState s) r1 (toPState s1)) (hf : RFrame s s1) (hlc : (toPState s1).log = (toPState s).log ∧
+    (toPState s1).commit = (toPState s).commit) (h2 : StepCDS c c' cn hid id B sid s1 r2 s') :
+    StepCDS c c' cn hid id B sid s (r1 ++ r2) s'
 
 theorem RFrame.refl [GoGlobalContext] [GoSemanticsFunctions] (s : NState) : RFrame s s
 
-def StepCDS (c c' cn : CfgM) (id : w64) (B : Int) (sid : entryID) (s : NState) (recv : List Msg) (s'
-    : NState) : Prop :=
+def StepCDS (c c' cn : CfgM) (hid : Prop) (id : w64) (B : Int) (sid : entryID) (s : NState) (recv :
+    List Msg) (s' : NState) : Prop :=
   StepC c id B (toPState s) recv (toPState s') ∧
     ∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) (g : RGh) (fp' : List EntryM) (cs' : CCState),
       g.cfg.cfg = c →
         FullOk sid fp' →
-          cs'.cfg = cn → Adm fp' cs' → ∃ g', g'.cfg.cfg = c' ∧ StepR Adm dec id B (rOf s g) recv (rOf s' g')
+          SnapAgree s g fp' →
+            (hid → cs'.cfg = cn ∧ Adm fp' cs') →
+              ∃ g',
+                g'.cfg.cfg = c' ∧
+                  g'.cidx = g.cidx ∧
+                    g'.cfg = g.cfg ∧
+                      (s'.role = PRole.preCandidate → g' = g) ∧ StepR Adm dec id B (rOf s g) recv (rOf s' g')
+
+def SnapAgree (s : NState) (g : RGh) (fp' : List EntryM) : Prop :=
+  List.take (uint.nat (toPState s).commit) (rOf s g).full <+: fp' ∨
+    fp' <+: List.take (uint.nat (toPState s).commit) (rOf s g).full
 
 theorem snapCfg_ids [GoGlobalContext] [GoSemanticsFunctions] {sv : SnapshotM} {scfg : CSLists} {id :
     w64} (h : scfg.Has id) : id ∈ (snapCfg sv scfg).ids
@@ -138,14 +150,15 @@ theorem stepR_snap_restore [GoGlobalContext] [GoSemanticsFunctions] {B : Int} {A
     (cs' : CCState) (h1 : m.ty = MsgType.snap) (h2 : m.dst = id) (h3 : m.src ≠ id) (h4 : m.term =
     (toPState s).term) (h5 : s.role ≠ PRole.leader) (h6 : uint.Z (toPState s).commit < uint.Z
     m.index) (h7 : ¬PlogMatches (toPState s).base (toPState s).log { term' := m.logterm, index' :=
-    m.index }) (h8 : FullOk { term' := m.logterm, index' := m.index } fp') (h9 : id ∈ cs'.cfg.ids)
-    (h10 : Adm fp' cs') (Hp : toPState s' = psendMsgs (have __src := padoptLeader (toPState s)
-    m.src; { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role, votes
-    := __src.votes, outbox := __src.outbox, base := { term' := m.logterm, index' := m.index }, log
-    := [], commit := m.index, matched := __src.matched, rd := __src.rd }) [Msg.mk MsgType.appResp id
-    m.src (toPState s).term false m.index (W64 0) (W64 0) (W64 0) []]) (Ha : s'.logst.applied =
-    s.logst.applied) (Hsn : s'.logst.snap.isSome = true) (Hl' : s'.role ≠ PRole.leader) : StepR Adm
-    dec id B (rOf s g) [m] (rOf s' { cidx := uint.nat m.index, cfg := cs', fp := fp' })
+    m.index }) (h8 : FullOk { term' := m.logterm, index' := m.index } fp') (hag : SnapAgree s g fp')
+    (h9 : id ∈ cs'.cfg.ids) (h10 : Adm fp' cs') (Hp : toPState s' = psendMsgs (have __src :=
+    padoptLeader (toPState s) m.src; { term := __src.term, vote := __src.vote, lead := __src.lead,
+    role := __src.role, votes := __src.votes, outbox := __src.outbox, base := { term' := m.logterm,
+    index' := m.index }, log := [], commit := m.index, matched := __src.matched, rd := __src.rd })
+    [Msg.mk MsgType.appResp id m.src (toPState s).term false m.index (W64 0) (W64 0) (W64 0) []])
+    (Ha : s'.logst.applied = s.logst.applied) (Hsn : s'.logst.snap.isSome = true) (Hl' : s'.role ≠
+    PRole.leader) : StepR Adm dec id B (rOf s g) [m] (rOf s' { cidx := g.cidx, cfg := g.cfg, fp :=
+    fp', decs := g.decs })
 
 theorem StepCD.of_excluded [GoGlobalContext] [GoSemanticsFunctions] {B : Int} {c : CfgM} {id : w64}
     {m : MessageM} {s : NState} {recv : List Msg} {s' : NState} (h : StepC c id B (toPState s) recv
@@ -173,6 +186,7 @@ structure RGh : Type where
   cidx : Nat
   cfg : CCState
   fp : List EntryM
+  decs : DecMap
 
 theorem rOf.proj_applied (s : NState) (g : RGh) : (rOf s g).applied = s.logst.applied
 
@@ -188,13 +202,16 @@ theorem rOf.proj_pci (s : NState) (g : RGh) : (rOf s g).pci = pciR s
 
 theorem rOf.proj_fp (s : NState) (g : RGh) : (rOf s g).fp = g.fp
 
-def DynHyp (m : MessageM) (s s' : NState) (g : RGh) : Prop :=
+def DynHyp (dec : CCDec) (m : MessageM) (s s' : NState) (g : RGh) : Prop :=
   m.Type' ≠ MsgSnap ∧
     PreGuard g.fp s ∧
       FullOk (toPState s).base g.fp ∧
-        (m.Type' = MsgStorageApplyResp →
-            s.logst.snap = none ∧ NoConfIn (rOf s g).full g.cidx (uint.nat s'.logst.applied)) ∧
+        (m.Type' = MsgStorageApplyResp → NoUndecConfIn dec (rOf s g).full g.cidx (uint.nat s'.logst.applied)) ∧
           (m.Type' = MsgProp → plogLastIndexZ (toPState s).base (toPState s).log + 2 ^ 61 < 2 ^ 64)
+
+theorem SnapAgree.restore [GoGlobalContext] [GoSemanticsFunctions] {s : NState} {g : RGh} {fp' :
+    List EntryM} (h : SnapAgree s g fp') (hl : uint.nat (toPState s).commit < fp'.length) :
+    List.take (uint.nat (toPState s).commit) (rOf s g).full <+: fp'
 
 theorem rOf.proj_snap (s : NState) (g : RGh) : (rOf s g).snap = s.logst.snap.isSome
 

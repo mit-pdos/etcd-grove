@@ -25,6 +25,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.common.GenAll
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.writer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.MaxRev
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Collect
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.CollectPlan
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.WatchWrites
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Boot
@@ -119,7 +120,7 @@ theorem MainWatch.wp_proof
     (wp_WithCreatedNotify : WithCreatedNotify.spec (GF := GF) (hG := hG)) :
     MainWatch.spec (GF := GF) (hG := hG) := by
   intro CS ES FS RS CRE CEC N id₁ id₂ id₃ ctxs boot nw nops sched steps Hbf Htb Hrb48
-    HrbN Hck Haf Hbuq Hdbo Hms hAs H0 H31 Hops Hmul
+    HrbN Hck Haf Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, #Hsched, Htok, #Hprem⟩
   -- `io.EOF` (the watch client's) and `context`'s `closedchan`, from their packages' facts
   ihave #Heo : client.eofOk (GF := GF) $$ []
@@ -162,11 +163,13 @@ theorem MainWatch.wp_proof
     simp only [pairOf]
     simp only [genKeys, List.mem_cons, List.not_mem_nil, or_false] at hk
     rcases hk with h | h | h <;> rw [h] <;> decide
+  have hsz : ∀ p ∈ trs, common.wkvSizeOk p := fun p hp =>
+    common.GenKv.sizeOk (by decide) (Htrs.2 p hp)
   (try wp_auto)
   -- the cluster, its clients' watch prefix `wk/`
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
-  wp_apply (wp_startCluster N id₁ id₂ id₃ ctxs boot lg wkPfx Hbf Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms)
+  wp_apply (wp_startCluster N id₁ id₂ id₃ ctxs boot lg wkPfx Hbf Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hrf Hdbo Hms)
     $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Hf₁ Hf₂ Hf₃ Htok] as %srvs %brs %clis %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
@@ -181,15 +184,15 @@ theorem MainWatch.wp_proof
     #Hm₁, #Hm₂, #Hm₃, Hctl₁, Hctl₂, Hctl₃, Hob₁, Hob₂, Hob₃, #Hnc₁, #Hnc₂, #Hnc₃, Hetcd, %Hal⟩
   obtain ⟨hst₂, hst₃⟩ := Hal
   iunfold memberAt at Hm₁ Hm₂ Hm₃
-  icases Hm₁ with ⟨#Hfw₁, #Hrd₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, %Hnr₁, ⟨%pw₁, #Hws₁⟩,
+  icases Hm₁ with ⟨#Hfw₁, #Hrd₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, ⟨%pw₁, #Hws₁⟩,
     %HR₁, #Hstr₁, %Hp₁⟩
-  icases Hm₂ with ⟨#Hfw₂, #Hrd₂, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, %Hnr₂, ⟨%pw₂, #Hws₂⟩,
+  icases Hm₂ with ⟨#Hfw₂, #Hrd₂, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, ⟨%pw₂, #Hws₂⟩,
     %HR₂, #Hstr₂, %Hp₂⟩
-  icases Hm₃ with ⟨#Hfw₃, #Hrd₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, %Hnr₃, ⟨%pw₃, #Hws₃⟩,
+  icases Hm₃ with ⟨#Hfw₃, #Hrd₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, %Hnr₃, ⟨%pw₃, #Hws₃⟩,
     %HR₃, #Hstr₃, %Hp₃⟩
-  obtain ⟨hr₁, hc₁, hch₁, hlog₁⟩ := Hp₁
-  obtain ⟨hr₂, hc₂, hch₂, hlog₂⟩ := Hp₂
-  obtain ⟨hr₃, hc₃, hch₃, hlog₃⟩ := Hp₃
+  obtain ⟨hr₁, hc₁, hch₁, hlog₁, hoff₁⟩ := Hp₁
+  obtain ⟨hr₂, hc₂, hch₂, hlog₂, hoff₂⟩ := Hp₂
+  obtain ⟨hr₃, hc₃, hch₃, hlog₃, hoff₃⟩ := Hp₃
   -- the members' names are the history's (the first member's)
   -- (2026-10-27, the server port) the members' raft names are the cluster's but for each one's
   -- storage registry
@@ -220,21 +223,21 @@ theorem MainWatch.wp_proof
     · iexact Hrd₁
     isplitr
     · iexists pw₁; iexact Hws₁
-    ipureintro; exact ⟨HR₁.2, hm₁, rfl⟩
+    ipureintro; exact ⟨HR₁.2, hm₁, rfl, hoff₁⟩
   ihave #Hmw₂ : memberWatch ρ₁.rd s₂ E₂ ρ₂ R₂ $$ []
   · iunfold memberWatch
     isplitr
     · iexact Hrd₂
     isplitr
     · iexists pw₂; iexact Hws₂
-    ipureintro; exact ⟨HR₂.2, hm₂, hst₂⟩
+    ipureintro; exact ⟨HR₂.2, hm₂, hst₂, hoff₂⟩
   ihave #Hmw₃ : memberWatch ρ₁.rd s₃ E₃ ρ₃ R₃ $$ []
   · iunfold memberWatch
     isplitr
     · iexact Hrd₃
     isplitr
     · iexists pw₃; iexact Hws₃
-    ipureintro; exact ⟨HR₃.2, hm₃, hst₃⟩
+    ipureintro; exact ⟨HR₃.2, hm₃, hst₃, hoff₃⟩
   -- each member's `Watch` stream at its bridge
   ihave #Hb₁ := isGrpcStream_forwards bridgeAddr₁ clientAddr₁ _ _ _ $$ [Hfw₁ Hstr₁]
   · iframe #
@@ -394,7 +397,9 @@ theorem MainWatch.wp_proof
         · iapply isGrpcRpc_forwards $$ [Hfw₁ HRange₁]; iframe #
         isplitr
         · iapply isGrpcRpc_forwards $$ [Hfw₁ HDel₁]; iframe #
-        iapply isGrpcRpc_forwards $$ [Hfw₁ HTxn₁]; iframe #
+        isplitr
+        · iapply isGrpcRpc_forwards $$ [Hfw₁ HTxn₁]; iframe #
+        iapply isGrpcRpc_forwards $$ [Hfw₁ HCmp₁]; iframe #
       iframe #
       ipureintro; rw [hγk]
     iapply BigSepL.bigSepL_cons.2
@@ -408,7 +413,9 @@ theorem MainWatch.wp_proof
         · iapply isGrpcRpc_forwards $$ [Hfw₂ HRange₂]; iframe #
         isplitr
         · iapply isGrpcRpc_forwards $$ [Hfw₂ HDel₂]; iframe #
-        iapply isGrpcRpc_forwards $$ [Hfw₂ HTxn₂]; iframe #
+        isplitr
+        · iapply isGrpcRpc_forwards $$ [Hfw₂ HTxn₂]; iframe #
+        iapply isGrpcRpc_forwards $$ [Hfw₂ HCmp₂]; iframe #
       iframe #
       ipureintro; rw [hγk]; exact hst₂
     iapply BigSepL.bigSepL_cons.2
@@ -422,7 +429,9 @@ theorem MainWatch.wp_proof
         · iapply isGrpcRpc_forwards $$ [Hfw₃ HRange₃]; iframe #
         isplitr
         · iapply isGrpcRpc_forwards $$ [Hfw₃ HDel₃]; iframe #
-        iapply isGrpcRpc_forwards $$ [Hfw₃ HTxn₃]; iframe #
+        isplitr
+        · iapply isGrpcRpc_forwards $$ [Hfw₃ HTxn₃]; iframe #
+        iapply isGrpcRpc_forwards $$ [Hfw₃ HCmp₃]; iframe #
       iframe #
       ipureintro; rw [hγk]; exact hst₃
     iapply BigSepL.bigSepL_nil.2
@@ -520,7 +529,7 @@ theorem MainWatch.wp_proof
               rw [hmul]; exact Int.mul_nonneg H0 Hops
             have e : ((sint.nat (nw * nops) : Nat) : Int) = sint.Z (nw * nops) := by word
             rw [e, hmul]
-            omega)) $$ []
+            omega) hsz) $$ []
       · iframe #
       (try wp_auto)
       wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done iprop(True) wg_ptr)
@@ -570,7 +579,7 @@ theorem MainWatch.wp_proof
   · rw [← h10]; iexact Hcons
   ihave #Hrc := common.isRespChan_of_etcdWatchChan (EM := client.etcdModelOfKV γ) wch γw wkPfx
     $$ Hwch
-  wp_apply (wp_Collect (watchRespOk (EM := client.etcdModelOfKV γ) wkPfx) (revAtK γ)
+  wp_apply (common.wp_Collect_plan wp_Collect (watchRespOk (EM := client.etcdModelOfKV γ) wkPfx) (revAtK γ)
       (client.kmInv γ) (trs.map pairOf) wch γw m (fun _ _ _ _ => inferInstance)
       (fun c c' v r => common.watchRespOk_closeErr' (EM := client.etcdModelOfKV γ) wkPfx c c' v r)
       (fun n c c' v r hne hcur => by

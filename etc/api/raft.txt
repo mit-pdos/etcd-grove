@@ -19,11 +19,35 @@ importable Spec.go_etcd_io.raft.v3.Api
 # their laws; its pure vocabulary `NodeApiVocab`; the specs in the per-function spec files below
 importable Proof.go_etcd_io.raft.v3.InvNode
 importable Proof.go_etcd_io.raft.v3.NodeApiVocab
-importable Spec.go_etcd_io.raft.v3.StartNode
+# (2026-10-28, stage U1) the unified API's configuration vocabulary: `ConfDecision`, `ConfRule`,
+# `SnapRec`, with their laws (over `InvNode`'s sealed `Valid`/`applyChange`); (the decision switch)
+# `Membership.fold`, `RaftLeave`, `opsOfRule` gone
+importable Proof.go_etcd_io.raft.v3.ConfRule
+# (2026-10-28, stage U4a; the conf-change decision switch) a cluster with snapshots and
+# reconfiguration, its conf entries decided by the client: `isCluster`, `confAt`, `confDecided`,
+# `ownConfDecisions`, `confDecide`, `skippedIn`, `ownSnapsMade`, `snapMade`, `nodeFounder`,
+# `cluster_alloc_dec`, sealed, with laws (until the switch, of a rule fixed at allocation)
+importable Proof.go_etcd_io.raft.v3.InvNodeRule
+# (2026-10-28, the conf-change decision switch) a client library deciding conf entries by a rule over
+# the cluster's decisions: `confPolicy` (persistent), `confPolicy_alloc`, `confPolicy_decide`
+importable Proof.go_etcd_io.raft.v3.ConfPolicy
+# (2026-10-29, stage U11) `confchange`/`tracker` for clients validating a change as raft does:
+# `Membership.applyGo` (sealed; `applyChange` is it cut at `2^62` ids), `Membership.Restorable`
+# (`confAt_restorable`), `ownTrackerM`/`ownCfgPairM` (sealed) with their laws, the `apiSpec`s of
+# `MakeProgressTracker`, `Restore`, `Changer.{Simple,EnterJoint,LeaveJoint}` (linked in `Linked`)
+importable Proof.go_etcd_io.raft.v3.ConfchangeApi
 importable Spec.go_etcd_io.raft.v3.RestartNode
+# (2026-10-30, stage R5) a cluster with a bootstrap log
+importable Spec.go_etcd_io.raft.v3.StartNode
 importable Spec.go_etcd_io.raft.v3.node__Advance
 importable Spec.go_etcd_io.raft.v3.node__ApplyConfChange
-# (2026-10-28) `node__ForgetLeader` is not importable: its spec is still over raft's internals (`isNodeChan`)
+# (2026-10-29, stage U9a) `node__ForgetLeader` over the node API (until then over raft's internals,
+# `isNodeChan`, and not importable); `node__Stop`
+importable Spec.go_etcd_io.raft.v3.node__ForgetLeader
+importable Spec.go_etcd_io.raft.v3.node__Stop
+# (2026-10-29, stage U7) `node__Campaign`, `node__Status`
+importable Spec.go_etcd_io.raft.v3.node__Campaign
+importable Spec.go_etcd_io.raft.v3.node__Status
 importable Spec.go_etcd_io.raft.v3.node__Propose
 importable Spec.go_etcd_io.raft.v3.node__ProposeConfChange
 importable Spec.go_etcd_io.raft.v3.node__ReadIndex
@@ -52,16 +76,19 @@ importable Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
 importable Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
 importable Spec.go_etcd_io.raft.v3.MemoryStorage__Entries
 importable Spec.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
+importable Spec.go_etcd_io.raft.v3.MemoryStorage__InitialState
 importable Spec.go_etcd_io.raft.v3.MemoryStorage__LastIndex
 importable Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
+# (2026-10-29, U8, J5) kvreconf persists a Ready's hard state
+importable Spec.go_etcd_io.raft.v3.MemoryStorage__SetHardState
 importable Spec.go_etcd_io.raft.v3.MemoryStorage__Term
 importable Proof.go_etcd_io.raft.v3.InvStorage
 importable Proof.go_etcd_io.raft.v3.InvMemstorage
 importable Proof.go_etcd_io.raft.v3.MemstorageInstance
-importable Proof.go_etcd_io.raft.v3.MemCertLink
+# (raft-final, 2026-10-29) `MemoryStorage` at the node API: `memStorInv`, `memStorage_isStorage`
+importable Proof.go_etcd_io.raft.v3.MemstorageApi
 importable Proof.go_etcd_io.raft.v3.LemmasMemstorage
-# the token-in-hand forms of the atomic `MemoryStorage` specs (added on lean, 2026-10-26)
-importable Proof.go_etcd_io.raft.v3.MemstorageAU
+importable Proof.go_etcd_io.raft.v3.LemmasEnts
 
 ## raftpb: the getters' specs, the protobuf records' models
 importable Spec.go_etcd_io.raft.v3.raftpb.*
@@ -84,6 +111,7 @@ importable Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
 importable Proof.go_etcd_io.raft.v3.Protocol.SnapMint
 importable Proof.go_etcd_io.raft.v3.Protocol.Model
 importable Proof.go_etcd_io.raft.v3.Protocol.CfgOverlap
+importable Proof.go_etcd_io.raft.v3.Protocol.DecMap
 importable Proof.go_etcd_io.raft.v3.Protocol.StepC
 importable Proof.go_etcd_io.raft.v3.Protocol.StepR
 importable Proof.go_etcd_io.raft.v3.Protocol.StepGhost
@@ -93,7 +121,6 @@ importable Proof.go_etcd_io.raft.v3.CCModel
 importable Proof.go_etcd_io.raft.v3.CCApply
 importable Proof.go_etcd_io.raft.v3.CCApplyC
 importable Proof.go_etcd_io.raft.v3.SnapConf
-importable Proof.go_etcd_io.raft.v3.StepGhostMode
 
 ## The models of raft's other objects that the vocabulary above is stated in
 importable Proof.go_etcd_io.raft.v3.InvConfchange

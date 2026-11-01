@@ -78,15 +78,15 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (D22 S-b′3, 2026-10-20) the snapshot certified in the storage's registry
-        "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) }}
+        "#Hcert" ∷ ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (c' : CfgM), RET #err;
         "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
-        -- (2026-10-14, stage B7) the snapshot's configuration after a restore
-        "%Hc'" ∷ ⌜c' = c ∨ (c' = snapCfg sv scfg ∧ scfg.Has id)⌝ ∗
+        -- (2026-10-28, stage U0) the configuration kept (from stage B7 the snapshot's after a restore)
+        "%Hc'" ∷ ⌜c' = c⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
-            StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s'⌝ ∗
+            StepCDS c c' (snapCfg sv scfg) (scfg.Has id) id B (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         -- (2026-10-19, D21 M3) the no-snapshot mode kept
         "%Hng" ∷ ⌜s'.gh = s.gh⌝ ∗
@@ -104,7 +104,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       iapply HΦ $$ %err %s' %c
       iframe Hphys
       ipureintro
-      exact ⟨Or.inl rfl, Hwf', Href, Herr, Hng, Hsf⟩
+      exact ⟨rfl, Hwf', Href, Herr, Hng, Hsf⟩
     · have Hteq : m.Term' = s.term := by word
       exact wp_Step_MsgSnap_eq _P _Q c r id s ml m sn ctx rs ents scfg sv Hnsf Hty Hto Hterm Hfnz Hfid
         Hwf Hscope Hsn Hscl Hteq (Hnl Hteq) Hvotes

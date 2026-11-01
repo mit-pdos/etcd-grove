@@ -39,7 +39,7 @@ theorem backend.batchTx.UnsafeDelete.wp_proof
     (hDelete : bbolt.Bucket.Delete_kv.spec (GF := GF) (hG := hG))
     (hError : zap.Error.spec (GF := GF) (hG := hG)) :
     backend.batchTx.UnsafeDelete.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t st bk bi key kb dk
+  intro γ P W Pk b t st bk bi key kb dk own
   wp_start as ⟨#Hb, #Ht, Hw, #Hbk, Hkey⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
@@ -70,8 +70,9 @@ theorem backend.batchTx.UnsafeDelete.wp_proof
   obtain ⟨m, Hm⟩ : ∃ m, st.S.lookup bi.name = some m := Option.ne_none_iff_exists'.mp Hn
   wp_if_destruct
   · exact absurd rfl Hnn
-  wp_apply (hDelete st.tx γ.db st.C st.S G bkt bi.name (G bi.name) m key kb dk rfl Hm)
-    $$ [$Hwtx $Hwb $Hkey] as ⟨Hwtx, Hkey⟩
+  -- the key, the caller's own slice or one of the session's transaction (`Delete_kv`'s `own`)
+  have hDel := hDelete st.tx γ.db st.C st.S G bkt bi.name (G bi.name) m key kb dk own rfl Hm
+  wp_apply hDel $$ [$Hwtx $Hwb $Hkey] as ⟨Hwtx, Hkey⟩
   iapply HΦ
   unfold BSess.del bktOf
   rw [Hm]

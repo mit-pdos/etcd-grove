@@ -42,17 +42,17 @@ theorem newServer.wp_proof
       NewServer.spec (GF := GF) (hG := hG)) :
     newServer.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token retention peer cluster lg M iu Uok ps bootLog ctxs dir id γ
-    ρ E₀ Φs γn Htb Hrb48 HrbN hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hret Hck Haf Hbuq
+    ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hret Hck Haf Hbuq
     Hdbo
   subst Hret
   wp_start as ⟨#Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
+  icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   iunfold memberBoot at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #HNZ0, #Hpmint, #Hrdctx,
-    Hids, HrdCred, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
-  obtain ⟨hraft, hdyn', hc0, hch, hlog, hcok, hpfx, hΦs⟩ := Hρ
+    Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
+  obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp⟩ := Hρ
   -- the imports' package facts
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
@@ -73,23 +73,20 @@ theorem newServer.wp_proof
   imod ownSlice_persist _ _ _ $$ Hcurls with #Hcurls
   have hblen' : γ.boot.length ≤ 2 ^ 60 := by rw [hboot]; exact hblen
   wp_apply (wp_NewServer _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
-      γ id ctxs ρ E₀ N Φs γn dir γd hraft hdyn hc0 hch hlog hcok
-      Hlg (by simp) rfl Htb Hrb48 HrbN
-      -- (D21 M3) the run bound: `SnapshotCatchUpEntries` is `2 ^ 48`
-      (by
-        have h48 : uint.Z (W64 281474976710656 : w64) = 2 ^ 48 := by rfl
-        have hne : (W64 281474976710656 : w64) ≠ W64 0 := by decide
-        simp only [hne, if_false, h48]
-        omega)
+      γ id ctxs ρ E₀ N Φs γn dir γd hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok
+      Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
+      (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
+      v3rpc.maxTxnOpsOk_default (Or.inl rfl) (by rw [hcmp0]; simp) (hkcmp.trans hcmp0.symm)
+      Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir))
-    $$ [Hnboot HrdCred Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
-  · simp only [hdyn, Bool.false_eq_true, ↓reduceIte]
-    iframe
+    $$ [Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
+  · iframe
     iframe #
     isplitr
-    · iapply Hboot
+    · rw [show (N + if E₀.cmp = true then N else 0) = N by simp [hcmp0]]
+      iapply Hboot
       ipureintro
-      refine ⟨?_, HU, hvs, hdyn, hboot⟩
+      refine ⟨?_, HU, hvs, hrule, hboot⟩
       unfold cfgOk; simp
     isplitr
     · iunfold bootCfgRO
@@ -105,6 +102,7 @@ theorem newServer.wp_proof
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
     isplitr; · ipureintro; exact Hdbo
+    isplitr; · ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
     iapply Htk
     ipureintro; rfl
   icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb, -, -,
@@ -137,23 +135,24 @@ theorem newServer.wp_proof
 
 
 /-- `newServer` with the auto-compactor on (M2's S4, `notes/m2-plan.md`): the glue over
-`NewServer.specCompact`, as `newServer.wp_proof` over `NewServer.spec`. -/
+`NewServer.spec` in compaction mode (M2's item 14: one spec in both modes), as `newServer.wp_proof`
+in the mode off. -/
 theorem newServer.wp_proofCompact
     (wp_FG : features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG))
     (wp_NewServer : ∀ [go_etcd_io.etcd.cache.v3.Assumptions],
-      NewServer.specCompact (GF := GF) (hG := hG)) :
+      NewServer.spec (GF := GF) (hG := hG)) :
     newServer.specCompact (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token retention peer cluster lg M iu Uok ps bootLog ctxs dir id γ
-    ρ E₀ Φs γn Htb Hrb48 HrbN hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hret Hck Haf Hbuq
+    ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hret Hck Haf Hbuq
     Hdbo
   wp_start as ⟨#Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
+  icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   iunfold memberBoot at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #HNZ0, #Hpmint, #Hrdctx,
-    Hids, HrdCred, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
-  obtain ⟨hraft, hdyn', hc0, hch, hlog, hcok, hpfx, hΦs⟩ := Hρ
+    Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
+  obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp⟩ := Hρ
   -- the imports' package facts
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
@@ -174,23 +173,21 @@ theorem newServer.wp_proofCompact
   imod ownSlice_persist _ _ _ $$ Hcurls with #Hcurls
   have hblen' : γ.boot.length ≤ 2 ^ 60 := by rw [hboot]; exact hblen
   wp_apply (wp_NewServer _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
-      γ id ctxs ρ E₀ N Φs γn dir γd hraft hdyn hc0 hch hlog hcok
-      Hlg (by simp) rfl (by simpa using Hret) Htb Hrb48 HrbN
-      -- (D21 M3) the run bound: `SnapshotCatchUpEntries` is `2 ^ 48`
-      (by
-        have h48 : uint.Z (W64 281474976710656 : w64) = 2 ^ 48 := by rfl
-        have hne : (W64 281474976710656 : w64) ≠ W64 0 := by decide
-        simp only [hne, if_false, h48]
-        omega)
+      γ id ctxs ρ E₀ N Φs γn dir γd hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok
+      Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
+      (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
+      v3rpc.maxTxnOpsOk_default (Or.inr ⟨rfl, by simpa using Hret⟩)
+      (by rw [hcmp0]; symm; simp only [decide_eq_true_eq]; intro h0; simp [h0] at Hret)
+      (hkcmp.trans hcmp0.symm) Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir))
-    $$ [Hnboot HrdCred Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
-  · simp only [hdyn, Bool.false_eq_true, ↓reduceIte]
-    iframe
+    $$ [Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
+  · iframe
     iframe #
     isplitr
-    · iapply Hboot
+    · rw [show (N + if E₀.cmp = true then N else 0) = N + N by simp [hcmp0]]
+      iapply Hboot
       ipureintro
-      refine ⟨?_, HU, hvs, hdyn, hboot⟩
+      refine ⟨?_, HU, hvs, hrule, hboot⟩
       unfold cfgOk; simp
     isplitr
     · iunfold bootCfgRO
@@ -206,6 +203,7 @@ theorem newServer.wp_proofCompact
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
     isplitr; · ipureintro; exact Hdbo
+    isplitr; · ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
     iapply Htk
     ipureintro; rfl
   icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb, -, -,

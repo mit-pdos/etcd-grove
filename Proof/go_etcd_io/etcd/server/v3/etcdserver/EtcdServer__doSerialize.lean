@@ -4,6 +4,7 @@ Rocq counterpart); the request path's unit 3b (2026-10-12).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__doSerialize
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthInfoFromCtx
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Get
@@ -47,7 +48,6 @@ set_option maxHeartbeats 4000000 in
 theorem EtcdServer.doSerialize.wp_proofM (on : Bool)
     (hGet : traceutil.Get.spec (GF := GF) (hG := hG))
     (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
-    (hAuthB : on = true → EtcdServer.AuthInfoFromCtx.boundSpec (GF := GF) (hG := hG))
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
     EtcdServer.doSerialize.specM (GF := GF) (hG := hG) on := by
   intro s E ρ γr ctx cd chk get G Q C t e
@@ -67,7 +67,7 @@ theorem EtcdServer.doSerialize.wp_proofM (on : Bool)
   wp_auto
   wp_apply hGet ctx (some t) $$ [$Hct] as %tr ⟨%Htr, %Hteq⟩
   subst tr
-  wp_apply EtcdServer.AuthInfoFromCtx.wpM on hAI hAuthB s E v.auth v.cca ctx cd $$ [Hard]
+  wp_apply EtcdServer.AuthInfoFromCtx.wpM on hAI s E v.auth v.cca ctx cd $$ [Hard]
     as %a %err ⟨Hard, Ha, #HaE, #Hab⟩
   · iframe; iframe #
   cases err with
@@ -157,20 +157,8 @@ theorem EtcdServer.doSerialize.wp_proof
     (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
     EtcdServer.doSerialize.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr ctx cd chk get G Q C t e
-  iintro %Φ Hpre HΦ
-  iapply (EtcdServer.doSerialize.wp_proofM false hGet hAI (fun h => by cases h) hStep
-    s E ρ γr ctx cd chk get G Q C t e) $$ %Φ [Hpre]
-  · rw [isServerReqM_false, isServerReadM_false]; iexact Hpre
-  inext
-  iintro %err ⟨Hrd, Hres⟩
-  iapply HΦ
-  iframe Hrd
-  icases Hres with (⟨%He, ⟨%info, HC, -⟩, HQ⟩ | Hr)
-  · ileft; iframe HQ; isplitr
-    · ipureintro; exact He
-    · iexists info; iexact HC
-  · iright; iexact Hr
+  intro s E ρ
+  exact EtcdServer.doSerialize.wp_proofM E.authOn hGet hAI hStep s E ρ
 
 end proof
 

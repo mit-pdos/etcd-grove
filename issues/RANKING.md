@@ -137,6 +137,39 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     downgrade from `READWRITE` to `READ` leaves writes permitted). Needs two permissions sharing a
     key; admin-only with auth on; reproduced by a unit test at the pin; a small fix (match the
     range end too). Upstream not searched.
+14. **[etcd-txn-nested-depth-apply-panic](etcd-txn-nested-depth-apply-panic.md)** (2026-10-30): a
+    transaction nested 4999 deep passes gRPC's protobuf decoding (10000 levels) but its raft entry is
+    one level deeper, and every member panics applying it, again on every restart (as item 1, the
+    cluster down for good). Only with `--max-txn-ops` raised to about 5000 or more (the default
+    128 bounds the nesting); reproduced end to end; a small fix (a depth bound in
+    `checkTxnRequest`). Upstream not searched.
+15. **[etcd-txn-keysonly-reply-alloc-panic](etcd-txn-keysonly-reply-alloc-panic.md)** (2026-10-31): a
+    `Txn` of nested keys-only whole-range reads builds a reply whose encoding exceeds 2^48 bytes while
+    using only about 11 GiB of heap (keys-only aliases the index's key slices), and the gRPC codec's
+    `make([]byte, size)` panics (`makeslice`) marshalling it, exiting the member; `checkTxnRequest`
+    budgets `maxTxnOps` per nesting level, so nesting multiplies the leaf count. Any client with
+    read+write access (any client with auth off). Needs `--max-request-bytes` raised to about 10 MiB
+    (borderline at the 1.5 MiB default), and the clean crash needs a wide election timeout so the
+    handler waits for the apply to finish (at the default timing the client times out first, but the
+    apply loop still builds the multi-GB reply on every member and replays it on each restart);
+    reproduced end to end through `clientv3`. Same codec root cause as
+    [grpc-codec-alloc-before-size-check](grpc-codec-alloc-before-size-check.md) (the client send side)
+    and the known-false server reply-size axioms (`notes/audit.md:338`). Upstream searched
+    2026-10-31: no duplicate. Candidate drafted locally, on hold for the user's security decision
+    (etcd's `THREAT_MODEL.md` likely classes it a robustness defect): count nested txns' operations
+    toward `--max-txn-ops` (`issues/upstream/etcd-txn-keysonly-reply-alloc-panic/`).
+16. **[etcd-lease-timetolive-keys-toctou](etcd-lease-timetolive-keys-toctou.md)** (2026-10-31):
+    with auth on, `LeaseTimeToLive` with `Keys` returns the names of keys attached to the lease after
+    its permission check (a second lookup, or the leader's over leasehttp), to a user who may not
+    read them; the revision re-check sees no auth change. An information leak of key names (not
+    values), across a permission line, so a candidate for etcd's private security process (the
+    user's decision, as item 1's). Reproduced with gofail on leader and follower; fix: check the
+    returned keys. Upstream not searched.
+17. **[etcd-leasehttp-timetolive-nil-response-panic](etcd-leasehttp-timetolive-nil-response-panic.md)**
+    (2026-10-31): a follower forwarding `LeaseTimeToLive` panics on a 200 reply without the
+    `LeaseTimeToLiveResponse` field (`leasehttp/http.go:274`); etcd's own handler always sets it, so
+    it takes a peer URL served by something else. A one-line nil check; low impact. Reproduced
+    (unit test). Upstream not searched.
 
 Also to file (2026-10-21, the last scan of the current batch):
 [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (a watch created with a
@@ -148,7 +181,10 @@ wrong), [raft-memorystorage-initialstate-unlocked](raft-memorystorage-initialsta
 without its documented mutex; the fix takes the lock) and
 [etcd-alarm-store-snapshot-race](etcd-alarm-store-snapshot-race.md) (above). Not in the batch:
 [raft-joint-self-quorum-read](raft-joint-self-quorum-read.md) (liveness, a configuration nobody
-runs) and the conf-change validation panics (`raft-joint-empty-transition-panic`,
+runs), [raft-snapshot-without-recipient-livelock](raft-snapshot-without-recipient-livelock.md)
+(liveness, 2026-10-28: a member added after the storage's latest snapshot is sent it forever once the
+log is compacted; etcd is not affected, a `MemoryStorage` application that snapshots every N
+entries is; reproduced, a documentation fix) and the conf-change validation panics (`raft-joint-empty-transition-panic`,
 `raft-unknown-transition-panic`: only the application's own proposals reach them, a trusted
 caller's precondition).
 
@@ -280,6 +316,31 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[etcd-restore-pending-compaction-unclosed](etcd-restore-pending-compaction-unclosed.md)**
+  (2026-10-30): `store.Restore` drops a queued compaction job without closing its channel, so a
+  `Physical` compaction RPC on a follower that installs a snapshot meanwhile hangs and leaks its
+  handler. Reproduced at the mvcc level with a test; a narrow window (a compaction queued behind
+  another, plus a snapshot install), a liveness effect only, and a one-line fix in
+  `compactBarrier`.
+- **[etcd-restore-scheduled-compact-zero](etcd-restore-scheduled-compact-zero.md)** (2026-10-30):
+  `restore()` ignores a scheduled, unfinished compaction at revision 0, so after a snapshot install
+  or a restart a member's compaction revision is `-1` where its peers have `0`. Reproduced at the
+  mvcc level; needs a client `Compact(0)` (the auto-compactors never issue it) and observable only
+  through a re-issued `Compact(0)` or `HashKV`.
+- **[etcd-watch-stream-key-collision](etcd-watch-stream-key-collision.md)** (2026-10-29): the
+  client keys its watch streams by `%+v` of the outgoing metadata, which collides, so a watch can
+  go out with another context's metadata (its token). Needs a metadata value with a space; etcd's
+  tokens have none. A small fix (an injective key); no test yet.
+- **[etcd-cluster-version-stale-proposal-downgrade](etcd-cluster-version-stale-proposal-downgrade.md)**
+  (2026-10-30): two `ClusterVersionSet` proposals in flight (the monitor proposes from goroutines,
+  from its own read of the version) can apply out of order, regressing the cluster version and
+  forcing a disk snapshot with no downgrade enabled. Unreproduced and its reachability unchecked;
+  ranked here until a reproduction shows it is more than a startup window.
+- **[etcd-quota-backend-bytes-mmap-panic](etcd-quota-backend-bytes-mmap-panic.md)** (2026-10-29):
+  a `--quota-backend-bytes` above about 2.5·10^14 (amd64) makes `newBackend`'s 110% mmap exceed
+  bbolt's `maxMapSize`, and etcd panics at startup with a message that does not name the flag. An
+  operator's absurd setting, loud and immediate; a validation check and a line in the flag's help
+  fix it. With a test.
 - **[etcd-cfg-watch-progress-interval-race](etcd-cfg-watch-progress-interval-race.md)** (2026-10-26):
   `NewWatchServer` writes `s.Cfg.WatchProgressNotifyInterval` (a sub-100ms setting raised to the
   minimum) while other goroutines read `s.Cfg`; a data race with a non-default setting, benign in
@@ -323,6 +384,10 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   (2026-10-26): a raft request from an id that is no peer with a malformed `X-PeerURLs` makes
   `AddRemote` `Logger.Panic`, which `net/http` recovers (a logged stack, no exit), with a test; a
   log-and-return fix; low priority.
+  [etcd-auth-old-revision-auth-disabled](etcd-auth-old-revision-auth-disabled.md)
+  (2026-10-30): with `--client-cert-auth` and auth disabled, a serializable read racing an
+  auth-store write fails with `ErrAuthOldRevision`; a transient spurious error in an uncommon
+  configuration, no test yet; low priority.
 - **Internal-API preconditions etcd never violates**:
   [etcd-alarm-activate-none-zero-fatal](etcd-alarm-activate-none-zero-fatal.md),
   [etcd-auth-token-md-empty](etcd-auth-token-md-empty.md),

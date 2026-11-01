@@ -88,7 +88,10 @@ theorem EtcdServer.snapshot.wp_proof_full
     (hU64 : zap.Uint64.spec (GF := GF) (hG := hG))
     (hStr : zap.String.spec (GF := GF) (hG := hG))
     (hBool : zap.Bool.spec (GF := GF) (hG := hG)) :
-    EtcdServer.snapshot.specFull (GF := GF) (hG := hG) := by
+    EtcdServer.snapshot.spec (GF := GF) (hG := hG) := by
+  -- SNAPSHOT-SORRY: lean's proof (below), rewired to the new `CreateSnapshot.spec` over `srvSnapStor`
+  sorry
+/- REPAIR-OLD
   intro s γ ci TM E ρ γr γw b ep st ai at' cs a t x toDisk ms γs sl kv RC RC' ua Hloop Hci Hrel
   cases toDisk <;> simp only [Bool.false_eq_true, ↓reduceIte]
   all_goals (
@@ -375,6 +378,7 @@ theorem EtcdServer.snapshot.wp_proof_full
       · iunfold epConfState; iframe Hcs Hcsok
       ipureintro
       refine ⟨⟨by rw [hlp]; exact Hloop.1, by rw [hlpp, hlc]; exact Hloop.2⟩, hlc⟩
+-/
 
 end proof
 

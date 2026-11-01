@@ -48,6 +48,19 @@ def entryOkOn (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧ (∃ id, apply.irrId rq = some id) ∧
     (apply.rqOk x.log rq ∨ apply.adminKindOk rq) ∧ apply.dispatchOk x.chain.authOn rq
 
+/-- **An entry's premise in the mode `on`** (the auth-mode merge's step 1, 2026-10-29): `entryOk`
+off, `entryOkOn` on. -/
+def entryOkM (on : Bool) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
+  match on with
+  | false => entryOk x m
+  | true => entryOkOn x m
+
+theorem entryOkM_false (x : apply.ApplyKV) (m : EntryModel) : entryOkM false x m = entryOk x m :=
+  rfl
+
+theorem entryOkM_true (x : apply.ApplyKV) (m : EntryModel) : entryOkM true x m = entryOkOn x m :=
+  rfl
+
 theorem latestOk_all (M : auth.AuthMode) (hs : List auth.AuthState) (P : auth.AuthState → Prop)
     (h : ∀ stl, P stl) : apply.latestOk M hs P := by
   cases M with
@@ -350,9 +363,8 @@ theorem entryOkOn_of_shape (x : apply.ApplyKV) (m : EntryModel) (hs : entryShape
   · refine Or.inr ⟨rq, hdec, hid, ?_⟩
     rcases hsh with hsh | hadm
     · exact ⟨Or.inl (hsh.2 x.log (rqSmall_of_small x.log rq hl hc)), hsh.1 _⟩
-    · refine ⟨Or.inr hadm, ?_, ?_, fun _ => ha⟩
-      · intro h; unfold apply.adminKindOk at hadm; rw [h] at hadm; exact hadm
-      · intro h; unfold apply.adminKindOk at hadm; rw [h] at hadm; exact hadm
+    · refine ⟨Or.inr hadm, ?_, fun _ => ha⟩
+      intro h; unfold apply.adminKindOk at hadm; rw [h] at hadm; exact hadm
 
 
 /-- A conf change leaves the mode-`on` model's state. -/
@@ -368,6 +380,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The applied logs grow with the index, in the mode** (`appliedMono_of_inv`'s). -/
 theorem appliedMono_of_invM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
@@ -499,6 +512,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The apply thread's auth row with auth on, opened** (see the file header). -/
 theorem srvAuthApplyResB_open (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames)
@@ -566,7 +580,7 @@ theorem srvAuthApplyResB_publish (s : Loc) (ua : GoInterface) (E : apply.AEnv GF
 
 /-- **The apply thread publishes the auth state at its applied log** (E3u): from its KV row at the
 latest auth state `sa` and the model's tie of `sa` to the committed raft log `A`, the auth state at
-the log through `i` published (`appliedPubM true`, what `setAppliedIndex.specM true` takes). -/
+the log through `i` published (`appliedPubM true`, what `setAppliedIndex.spec` takes with auth on). -/
 theorem srvApplyKVOn_appliedPub (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (sa : auth.AuthState) (γa : auth.AuthNames) (hM : E.authMode = .on γa) (γr : ReadNames)
     (A : List EntryModel) (i : w64) (hi : uint.Z i = uint.Z γr.raft.ai0 + A.length) :
@@ -739,7 +753,7 @@ theorem srvApplyKVOn_small (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
   iunfold srvApplyKVOn at H
   icases H with ⟨%ua, -, -, -, Hkv, -⟩
   iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, -, -, Hk⟩
+  icases Hkv with ⟨%p, -, -, Hk, -⟩
   iunfold apply.kvOwn at Hk
   icases Hk with ⟨-, Hsw, -⟩
   iunfold txn.kvWriter at Hsw
@@ -757,7 +771,7 @@ theorem srvApplyKVOn_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
   iunfold srvApplyKVOn at H
   icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hrest⟩
   iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp, Hu, Ho⟩
+  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
   iunfold apply.kvOwn at Ho
   icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
   icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
@@ -775,7 +789,7 @@ theorem srvApplyKVOn_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
   · iexact Hb
   isplitr
   · iexact Hap
-  isplitl [Hu Hsr Hsw Hll Hrd Hwo]
+  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
   · iunfold apply.applyKV
     iexists p
     iframe Hu
@@ -832,6 +846,16 @@ theorem srvApplyKVOn_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply
   isplitl [Har]
   · iexact Har
   iexact Hw
+
+/-- `srvApplyKVM`'s part shared by both modes (`srvApplyKV_core`, `srvApplyKVOn_core`). -/
+theorem srvApplyKVM_core (on : Bool) (s : Loc) (E : apply.AEnv GF) (γw : GName)
+    (x : apply.ApplyKV) (st : auth.AuthState) :
+    srvApplyKVM (GF := GF) on s E γw x st ⊢
+      ∃ ua, srvApplyKVCore s E γw x ua ∗
+        (srvApplyKVCore s E γw x ua -∗ srvApplyKVM on s E γw x st) := by
+  cases on
+  · exact srvApplyKV_core s E γw x
+  · exact srvApplyKVOn_core s E γw x st
 
 end row
 

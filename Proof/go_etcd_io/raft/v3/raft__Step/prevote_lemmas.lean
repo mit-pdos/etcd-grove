@@ -83,7 +83,8 @@ theorem leaderStepResult_prevoteresp (c : CfgM) (id : w64) (s : NState)
 `campaign`). -/
 theorem prevoteRespResult_frame (id : w64) (s : NState) (src : w64) (reject won lost : Bool)
     (peers : List w64) (pvs : GMap w64 Progress) (m : MessageM)
-    (Hty : m.Type' = MsgPreVoteResp) (Hnw : uint.Z s.term + 1 < 2 ^ 64) :
+    (Hty : m.Type' = MsgPreVoteResp) (Hp : s.role = .preCandidate)
+    (Hnw : uint.Z s.term + 1 < 2 ^ 64) :
     NetFrame s { prevoteRespResult id s src reject won lost peers with prvals := pvs } ∧
     TermStep m s { prevoteRespResult id s src reject won lost peers with prvals := pvs } := by
   have H : ({ prevoteRespResult id s src reject won lost peers with prvals := pvs } :
@@ -106,7 +107,7 @@ theorem prevoteRespResult_frame (id : w64) (s : NState) (src : w64) (reject won 
       · exact ⟨rfl, Int.le_refl _, rfl, rfl⟩
   obtain ⟨Hl, Ht, Hpv, Hg⟩ := H
   refine ⟨NetFrame.of_logst Hl Hpv Hg, Ht, fun h => ?_, fun _ h => absurd Hty h,
-    fun _ => by rw [Hl]; exact Int.le_refl _, fun h => ?_, fun h => ?_⟩
+    fun _ => by rw [Hl]; exact Int.le_refl _, fun h => ?_, fun h => ?_, fun _ h2 => ?_⟩
   · rw [Hty] at h; exact absurd h (by w32_ne)
   · rw [Hty] at h; exact absurd h (by w32_ne)
   · -- (2026-10-17) a pre-candidate afterwards stayed one, at its term
@@ -114,6 +115,8 @@ theorem prevoteRespResult_frame (id : w64) (s : NState) (src : w64) (reject won 
     split at h
     · simp [campaignState, sendMsgs, becomeCandidate] at h
     · split at h <;> simp_all [becomeFollower, PreKeep]
+  · -- (U0) a pre-candidate before, its log kept
+    exact ⟨by rw [Hp]; decide, by rw [← Hl]; exact h2⟩
 
 /-- A pre-candidate's tally, for `RespStep`: a win campaigns -- a candidate one term up
 (the term does not wrap) -- a loss steps down at the same term, and otherwise it stays a
@@ -219,7 +222,7 @@ theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} 
     obtain ⟨won, lost, peers, pvs, Hw, -, rfl⟩ := Hres
     refine ⟨nstateWf_prvals _ _ (nstateWf_prevoteRespResult _ _ _ _ _ _ _ Hwf), ?_,
       prevoteRespResult_resp id s _ _ won lost peers pvs m Hty Hp (Hnw Hp),
-      prevoteRespResult_frame id s _ _ won lost peers pvs m Hty (Hnw Hp)⟩
+      prevoteRespResult_frame id s _ _ won lost peers pvs m Hty Hp (Hnw Hp)⟩
     exact ⟨stepC_prevoteRespResult c id s _ _ won lost peers pvs Hp Hin (Hnw Hp)
       (fun Hwon => (Hw Hwon).2), fun Adm dec g hc hd => ⟨g.cidx, .inl rfl,
         stepR_prevoteRespResult c id s _ _ won lost peers pvs Hp Hin (Hnw Hp)

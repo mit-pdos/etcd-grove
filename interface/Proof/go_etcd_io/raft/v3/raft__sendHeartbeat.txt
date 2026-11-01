@@ -9,29 +9,32 @@ theorem raft.sendHeartbeat.wp_proof [package_sem : Assumptions] (wp_raft_send : 
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (ctx : GoSlice) (cl : List w8),
     to ≠ id →
       to ∈ s.progress.domSet →
-        ⊢
-          ∀ Φ,
-            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ "#Hctx" ∷ ownSlice ctx cl DFrac.discard -∗
-              (▷
-                  ∀ cm pvs,
-                    ownRaftPhysCV c c.voters r id
-                          (have __src :=
-                            sendMsgs s [Msg.mkV MsgType.heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl];
-                          { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role,
-                            votes := __src.votes, outbox := __src.outbox, stepfn := __src.stepfn,
-                            ticking := __src.ticking, progress := __src.progress, log := __src.log, logst := __src.logst,
-                            prvals := pvs, prevote := __src.prevote, gh := __src.gh, rd := __src.rd, lt := __src.lt,
-                            pci := __src.pci, isLearner := __src.isLearner, sdr := __src.sdr, cq := __src.cq }) ∗
-                        ⌜uint.Z cm ≤ uint.Z s.logst.committed⌝ ∗
-                          ⌜uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ ∗
-                            ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ -∗
-                      Φ (intoVal ())) -∗
-                WP
-                  (((intoVal
-                        (methods raft.ty.PointerType
-                          go!"sendHeartbeat"
-                          (intoVal r)))
-                      (intoVal to))
-                    (intoVal ctx))
-                  {{ Φ }}
+        s.term ≠ W64 0 →
+          ⊢
+            ∀ Φ,
+              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                  "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ "#Hctx" ∷ ownSlice ctx cl DFrac.discard -∗
+                (▷
+                    ∀ cm pvs,
+                      ownRaftPhysCV c c.voters r id
+                            (have __src :=
+                              sendMsgs s
+                                [Msg.mkV MsgType.heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl];
+                            { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role,
+                              votes := __src.votes, outbox := __src.outbox, stepfn := __src.stepfn,
+                              ticking := __src.ticking, progress := __src.progress, log := __src.log,
+                              logst := __src.logst, prvals := pvs, prevote := __src.prevote, gh := __src.gh,
+                              rd := __src.rd, lt := __src.lt, pci := __src.pci, isLearner := __src.isLearner,
+                              sdr := __src.sdr, cq := __src.cq }) ∗
+                          ⌜uint.Z cm ≤ uint.Z s.logst.committed⌝ ∗
+                            ⌜uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ ∗
+                              ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ -∗
+                        Φ (intoVal ())) -∗
+                  WP
+                    (((intoVal
+                          (methods raft.ty.PointerType
+                            go!"sendHeartbeat"
+                            (intoVal r)))
+                        (intoVal to))
+                      (intoVal ctx))
+                    {{ Φ }}

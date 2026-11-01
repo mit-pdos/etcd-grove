@@ -36,7 +36,11 @@ then being the committed data and the read buffer empty; at the end of each, its
 the batch lock's resources `W ∗ Pk`, the lock's ghost shares were `viewAt γ (sData P C)`,
 `hkOwn γ (hkData P C)` and (D22, 2026-10-23) `rbOwn γ (rbData P C)` of the committed `C` (a
 commit makes the writer's contents committed: the hook's shares are of the writer's contents), and
-the caller held `R`, so the observation gives `Q`. What would discharge it: bbolt's `DB.Begin(false)` read isolation and the backend's
+the caller held `R`, so the observation gives `Q`. (Question 2, option (a), the user's, 2026-10-29:
+`viewAt γ (sData P C)` is the batch lock's quarter at a logical view the committed data reads thin
+of, as `batchGhostAt` holds it after a commit, `batchViewQ`; a weaker observation than the quarter
+at `sData P C` itself, which a compaction's deletes would make false. To be checked by the `axiom`
+skill before the backend stage's Freeze.) What would discharge it: bbolt's `DB.Begin(false)` read isolation and the backend's
 commit protocol (`batchTxBuffered.commit`) with a read transaction begun outside the batch lock,
 in a model of bbolt where the database's committed state is shared (a fraction of `ownDB`)
 rather than the batch lock's alone. -/

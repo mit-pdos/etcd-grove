@@ -5,6 +5,7 @@ axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
+axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorCompactHash.wp_proof
 axiom EtcdServer.monitorDowngrade.wp_proof
@@ -12,7 +13,6 @@ axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.purgeFile.wp_proof
-axiom EtcdServer.snapshot.wp_proof
 axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
@@ -289,6 +289,7 @@ axiom auth.authStore.AuthInfoFromTLS.wp_proof
 axiom auth.authStore.selectPassword.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom auth.redactToken.wp_proof
+axiom auth.tokenSimple.genTokenPrefix.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledInsideUnittest.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
@@ -376,6 +377,7 @@ axiom bridge.bridgeAt
 axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Bytes.wp_proof
 axiom bytes.Buffer.Write.wp_proof
+axiom ccDecodeV2_nil
 axiom clock.RealClock.NewTicker.wp_proof
 axiom clock.RealClock.NewTimer.wp_proof
 axiom clock.RealClock.Now.wp_proof
@@ -400,6 +402,7 @@ axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelBackground.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
+axiom context.WithTimeoutBackgroundMd.wp_proof
 axiom context.WithValue.wp_proof
 axiom conversion.EnforcePtr.wp_proof
 axiom corev1.Node.DeepCopyObject.wp_proof
@@ -567,7 +570,6 @@ axiom metrics.RecordEtcdRequest.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom mvcc.kbNoCmp_metaNone
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof
@@ -672,6 +674,7 @@ axiom snap.Message.fields.wp_proof
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
+axiom sort.Sort.wp_anyLess
 axiom sort.Stable.wp_proof
 axiom sort.StringSlice.Sort.wp_proof
 axiom status.Code.wp_proof
@@ -687,6 +690,8 @@ axiom strconv.FormatUint.wp_proof
 axiom strconv.ParseBool.wp_proof
 axiom strconv.ParseInt.wp_proof
 axiom streamKeyFromCtx.wp_proof
+axiom streamKeyOf_none
+axiom streamKeyOf_single
 axiom strings.Contains.wp_proof
 axiom strings.HasSuffix.wp_proof
 axiom strings.SplitN.wp_proof
@@ -765,11 +770,18 @@ axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
-sorry EtcdServer.processInternalRaftRequestOnce.wp_proofCompact
-sorry NewServer.wp_proofCompact
+sorry EtcdServer.applyAll.wp_proof
+sorry EtcdServer.applyAll.wp_proofOn
+sorry EtcdServer.run.wp_proof
+sorry EtcdServer.run.wp_proofOn
+sorry EtcdServer.snapshot.wp_proof
+sorry EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
-sorry authkv.Main.wp_proof
+sorry isRaftNodeIfc_of_isNode
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
+sorry raftNode.start.wp_proof
+sorry rnApplyTok_recv
+sorry rn_ready_recv

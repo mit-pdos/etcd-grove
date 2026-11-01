@@ -24,6 +24,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`watchableStore.Restore`'s store half, from the apply thread** (D22 receiver epochs, S6): the
 apply thread's KV resources at the applied log `log` (`apply.kvOwn`: the sole writer, its half of

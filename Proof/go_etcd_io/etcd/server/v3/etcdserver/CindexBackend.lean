@@ -257,7 +257,7 @@ theorem hookTM_put_ci (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) 
     revert h1
     split <;> intro h1 <;> omega
   have hSB : P.SB mvcc.metaBI.name = true → ∀ kc vc,
-      (bktOf st.S mvcc.metaBI.name).lookup kc = some vc → strLt kc schema.ciKeyBytes := by
+      (bktOf st.C mvcc.metaBI.name).lookup kc = some vc → strLt kc schema.ciKeyBytes := by
     intro h
     have := HPw.2.2.2.2 _ h
     rw [show mvcc.metaBI.name = schema.metaName from rfl, hP.2.1] at this
@@ -265,9 +265,10 @@ theorem hookTM_put_ci (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) 
   have hhk : P.hk mvcc.metaBI.name schema.ciKeyBytes = true := ciKeys_hk hP (Or.inl rfl)
   have hhk' : P.hk schema.metaName schema.ciKeyBytes = true := ciKeys_hk hP (Or.inl rfl)
   wp_apply (hPut γ P W Pk b t st bk mvcc.metaBI key val schema.ciKeyBytes (u64Be x) hP.1
-      (by decide) (by decide) hpend hSB)
-    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk, -⟩
+      (by decide) (by decide) hpend hSB (fun h => absurd h (by decide)))
+    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk, -, -⟩
   · iframe #
+    rw [fkPut_eq γ _ _ (by decide)]
     rw [hkPut_hk hhk]
     iframe Hhk
     simp only [rbPut, show mvcc.metaBI.name = schema.metaName from rfl, hP.2.2.2.2.2,
@@ -322,7 +323,7 @@ theorem hookTM_put_term (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF
     revert h1
     split <;> intro h1 <;> omega
   have hSB : P.SB mvcc.metaBI.name = true → ∀ kc vc,
-      (bktOf st.S mvcc.metaBI.name).lookup kc = some vc → strLt kc schema.termKeyBytes := by
+      (bktOf st.C mvcc.metaBI.name).lookup kc = some vc → strLt kc schema.termKeyBytes := by
     intro h
     have := HPw.2.2.2.2 _ h
     rw [show mvcc.metaBI.name = schema.metaName from rfl, hP.2.1] at this
@@ -330,9 +331,10 @@ theorem hookTM_put_term (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF
   have hhk : P.hk mvcc.metaBI.name schema.termKeyBytes = true := ciKeys_hk hP (Or.inr rfl)
   have hhk' : P.hk schema.metaName schema.termKeyBytes = true := ciKeys_hk hP (Or.inr rfl)
   wp_apply (hPut γ P W Pk b t st bk mvcc.metaBI key val schema.termKeyBytes (u64Be x) hP.1
-      (by decide) (by decide) hpend hSB)
-    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk, -⟩
+      (by decide) (by decide) hpend hSB (fun h => absurd h (by decide)))
+    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk, -, -⟩
   · iframe #
+    rw [fkPut_eq γ _ _ (by decide)]
     rw [hkPut_hk hhk]
     iframe Hhk
     simp only [rbPut, show mvcc.metaBI.name = schema.metaName from rfl, hP.2.2.2.2.2,

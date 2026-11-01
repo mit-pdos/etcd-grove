@@ -125,7 +125,7 @@ Perennial's `own_slice_len` bounds *any* slice's length by `2^63` -- re-derived 
 new slice after the `append`, so it is inductive for free. `prev.index + |sents|` is the
 compaction boundary plus the stable prefix, which lives behind the client-supplied
 `Storage` and which nothing on this path changes. So the assumption was put where it
-belongs: `isStorage`'s `Hbounded` clause (`InvStorage.lean`) says the stable log's last
+belongs: `isStorageD`'s `Hbounded` clause (`InvStorage.lean`) says the stable log's last
 index is below `2^61`. With it, and with `Hsmall`, the log's last index stays below
 `2^61 + 2^63` and the append cannot wrap -- no caller obligation, and `becomeLeader`'s
 spec is unchanged.

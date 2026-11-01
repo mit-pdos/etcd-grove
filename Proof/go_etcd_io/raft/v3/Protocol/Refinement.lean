@@ -536,6 +536,70 @@ private theorem logRecs_elem (γ : RaftNames) (b : entryID) (es : List EntryM)
     else iprop(True)) Hk).trans ?_
   simp only [Hr, ↓reduceIte]
   exact .rfl
+private theorem logRecsC_intro' (γ : RaftNames) (b : entryID) (es : List EntryM) :
+    ⊢ □ (∀ (k : Nat) (x : EntryM),
+          ⌜es[k]? = some x ∧ uint.Z b.index' + (k : Int) + 1 < 2 ^ 64⌝ →
+          ∃ pt, ⌜plogTermAt b es (pidx b k) = some pt⌝ ∗ isEntryC (GF := GF) γ x pt) -∗
+      logRecsC γ b es := by
+  iintro #H
+  unfold logRecsC
+  iapply BigSepL.bigSepL_forall_elim
+  iintro %k %x Hk
+  ipure Hk
+  split
+  · rename_i Hr
+    iapply H $$ %k %x
+    ipureintro; exact ⟨Hk, Hr⟩
+  · itrivial
+
+private theorem logRecsC_elem (γ : RaftNames) (b : entryID) (es : List EntryM)
+    (k : Nat) (x : EntryM) :
+    es[k]? = some x → uint.Z b.index' + (k : Int) + 1 < 2 ^ 64 →
+    logRecsC (GF := GF) γ b es ⊢ ∃ pt, ⌜plogTermAt b es (pidx b k) = some pt⌝ ∗ isEntryC γ x pt := by
+  intro Hk Hr
+  unfold logRecsC
+  refine (BigSepL.bigSepL_lookup (Φ := fun k e =>
+    if uint.Z b.index' + (k : Int) + 1 < 2 ^ 64
+    then iprop(∃ pt, ⌜plogTermAt b es (pidx b k) = some pt⌝ ∗ isEntryC (GF := GF) γ e pt)
+    else iprop(True)) Hk).trans ?_
+  simp only [Hr, ↓reduceIte]
+  exact .rfl
+
+/-- (2026-10-29, stage U5) An entry's `ev2Rec` from the configuration of its prefix in a full log
+`fp ++ es` with the records' cores. -/
+private theorem ev2Rec_of_prefix (γ : RaftNames) (b : entryID) (fp es : List EntryM) (k : Nat)
+    (x : EntryM) (pt : w64) (M : DecMap) (c : CfgM)
+    (Hfull : FullOk b fp) (Hwf : PlogWf b es) (Hk : es[k]? = some x)
+    (Hpt : plogTermAt b es (pidx b k) = some pt)
+    (Hc : CfgAt γ M ((fp ++ es).take (fp.length + k)) c) (Hj : c.joint = true) :
+    ⊢ logRecsC (GF := GF) γ base0 fp -∗ logRecsC γ b es -∗ decLb γ M -∗ ev2Rec γ x pt := by
+  iintro #Hf #He #HM
+  unfold ev2Rec
+  iintro %_
+  iexists (fp ++ es).take (fp.length + k), M, c
+  isplitr
+  · iapply logRecsC_take γ (fp ++ es) (fp.length + k) $$ []
+    iapply logRecsC_full γ b fp es Hfull $$ Hf He
+  iframe HM
+  ipureintro
+  have Hlt := (List.getElem?_eq_some_iff.mp Hk).1
+  have Hxi := Hwf k x Hk
+  have Hlen := Hfull.1
+  have Hrng := uint_Z_lt x.Index'
+  have HbZ := uint_Z_nonneg b.index'
+  have HPl : ((fp ++ es).take (fp.length + k)).length = fp.length + k := by
+    rw [List.length_take, List.length_append]; omega
+  refine ⟨PlogWf_take _ _ _ (full_wf b fp es Hfull Hwf), by rw [HPl]; push_cast at Hxi ⊢; omega,
+    ?_, Hc, Hj⟩
+  rw [HPl]
+  have HW : uint.Z (W64 ((fp.length + k : Nat) : Int)) = ((fp.length + k : Nat) : Int) :=
+    uint_Z_W64 _ (by omega) (by push_cast at Hxi ⊢; omega)
+  rw [plogTermAt_take_full _ _ _ (by rw [HW]; push_cast; omega),
+    full_term_at b fp es _ Hfull (by rw [HW]; push_cast; omega)]
+  have Hp : pidx b k = W64 ((fp.length + k : Nat) : Int) := by
+    unfold pidx; congr 1; push_cast; omega
+  rw [← Hp]; exact Hpt
+
 private theorem leadLogOwn_leader (γ : RaftNames) (s : PState) (terms : GMap w64 TermRec) :
     s.role = .leader →
     leadLogOwn (GF := GF) γ s terms =
@@ -622,7 +686,7 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
   -- (2026-10-14, stage B5) and, in the dynamic mode, I1 of the full log at the commit index
   ihave %Hi1 : ⌜γ.reDyn ≠ none → ConfI1 (fp ++ s.log) (uint.Z s.commit).toNat⌝ $$ []
   · iunfold dynEnv at Henv
-    icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %HR, #HrR, -⟩)
+    icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %MR, %HR, #HrR, -, #HMR⟩)
     · ipureintro; intro h; exact absurd HC.2.2 h
     · icases FullOk_unique γ s.base fpR fp HR.1 Hfull.1 $$ HrR Hfrecs with %Heq
       ipureintro; intro _; rw [← Heq]; exact HR.2.1
@@ -631,19 +695,26 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
     icases Hcown with ⟨%k, #Hk⟩
     -- the campaign prefix's configuration: static, the ghost state's; dynamic, the candidate's
     -- (`RInv.cand_cfg`: of its committed prefix, which is its campaign record's)
-    ihave %Hcfg : ⌜CfgAt γ ((fp ++ s.log).take (uint.Z k).toNat) c⌝ $$ []
+    ihave #HcfgI : iprop(∃ M, ⌜CfgAt γ M ((fp ++ s.log).take (uint.Z k).toNat) c⌝ ∗
+        decLb γ M) $$ []
     · iunfold dynEnv at Henv
-      icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %HR, #HrR, #HcR⟩)
-      · ipureintro; exact CfgAt.of_static _ HC
+      icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %MR, %HR, #HrR, #HcR, #HMR⟩)
+      · iexists ∅
+        isplitr; · ipureintro; exact CfgAt.of_static _ _ HC
+        iapply decLb_empty
       · ihave #HcR' := HcR $$ %Hrole
         icases isCampK_agree γ id s.term _ _ _ _ $$ Hk HcR' with %Hag
         obtain ⟨HF, Hkk⟩ := Hag
+        iexists MR
+        iframe HMR
         ipureintro
         rw [HF, Hkk, ← HR.2.2.2.2.2 Hrole]; exact HR.2.2.2.1
+    icases HcfgI with ⟨%Mc, %Hcfg, #HMc⟩
     unfold isWinCore
-    iexists γw, (fp ++ s.log), k
-    iframe Hk Hwf Htally
+    iexists γw, (fp ++ s.log), k, Mc
+    iframe Hk Hwf Htally HMc
     ipureintro; exact ⟨Hwname, Hq, Hcfg⟩
+
   imod win_register γ id s.term c (granted s.votes) $$ Hinv Hcore with #Hwin
   ihave #Hnewlead : isLeader γ id s.term $$ []
   · unfold isLeader; iexists _; iexact Hwin
@@ -701,11 +772,20 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
       iexists none
       simp only [entDataIs, propDataIs]
       ipureintro
-      rw [← He]; exact ⟨⟨rfl, rfl⟩, CCDecodes_normal _⟩
+      rw [← He]; exact ⟨⟨rfl, Or.inl rfl⟩, CCDecodes_normal _⟩
     -- (2026-10-18, D19b stage 5) its index is covered by the receipt
-    iapply (preceipt_mono (GF := GF) (show (uint.Z e.Index').toNat - γ.reBoot.length ≤ n by
-      omega))
-    iexact Hrcpt
+    isplitr
+    · iapply (preceipt_mono (GF := GF) (show (uint.Z e.Index').toNat - γ.reBoot.length ≤ n by
+        omega))
+      iexact Hrcpt
+    -- (2026-10-29, stage U5) a normal entry
+    unfold ev2Rec
+    iintro %Hc
+    exfalso
+    have h2 := Hc.2.2
+    have h0 : e.Type' = W32 0 := by rw [← He]; rfl
+    rw [h0] at h2
+    revert h2; word
   have Hwl2 : PlogWf s.base s2.log := by
     rw [Hs2log]
     refine (PlogWf_app _ _ _).mpr ⟨Hwl, fun k x Hk => ?_⟩
@@ -1160,7 +1240,7 @@ theorem ownRaftGhost_step_send_apps (γ : RaftNames) (c : CfgM) (id : w64) (s : 
   -- (2026-10-14, stage B5) I1 of the leader's log at its commit index, in the dynamic mode
   ihave %Hi1 : ⌜γ.reDyn ≠ none → ConfI1 (fp ++ s.log) (uint.Z s.commit).toNat⌝ $$ []
   · iunfold dynEnv at Henv
-    icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %HR, #HrR, -⟩)
+    icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %MR, %HR, #HrR, -, #HMR⟩)
     · ipureintro; intro h; exact absurd HC.2.2 h
     · icases FullOk_unique γ s.base fpR fp HR.1 Hfp.1 $$ HrR Hfrp with %Heq
       ipureintro; intro _; rw [← Heq]; exact HR.2.1
@@ -1346,25 +1426,33 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (id : w64)
   · rw [← Heqw]; iexact Hcomw
   -- the configuration index: static, the commit index; dynamic, the node's (`RInv`), with at
   -- most one conf entry at or past it (I3)
-  ihave %Henvp : ⌜∃ a : w64, uint.Z a ≤ uint.Z s.commit ∧
-      CfgAt γ ((fp0 ++ s.log).take (uint.Z a).toNat) c ∧
-      (γ.reDyn ≠ none → confCount ((fp0 ++ s.log).drop (uint.Z a).toNat) ≤ 1)⌝ $$ []
+  ihave #HenvI : iprop(∃ (a : w64) (M : DecMap), ⌜uint.Z a ≤ uint.Z s.commit ∧
+      CfgAt γ M ((fp0 ++ s.log).take (uint.Z a).toNat) c ∧
+      (γ.reDyn ≠ none → confCount ((fp0 ++ s.log).drop (uint.Z a).toNat) ≤ 1)⌝ ∗
+      decLb γ M) $$ []
   · iunfold dynEnv at Henv
-    icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %HR, #HrR, -⟩)
-    · ipureintro
-      exact ⟨s.commit, Int.le_refl _, CfgAt.of_static _ HC, fun h => absurd HC.2.2 h⟩
+    icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %MR, %HR, #HrR, -, #HMR⟩)
+    · iexists s.commit, ∅
+      isplitr
+      · ipureintro
+        exact ⟨Int.le_refl _, CfgAt.of_static _ _ HC, fun h => absurd HC.2.2 h⟩
+      iapply decLb_empty
     · icases FullOk_unique γ s.base fpR fp0 HR.1 Hfull0.1 $$ HrR Hfr0 with %Heq
+      iexists aR, MR
+      iframe HMR
       ipureintro; rw [← Heq]
-      exact ⟨aR, HR.2.2.1, HR.2.2.2.1, fun _ => HR.2.2.2.2.1 Hrole⟩
-  obtain ⟨a, Ha, Hcfga, HI3a⟩ := Henvp
+      exact ⟨HR.2.2.1, HR.2.2.2.1, fun _ => HR.2.2.2.2.1 Hrole⟩
+  icases HenvI with ⟨%a, %Ma, %Henvp, #HMa⟩
+  obtain ⟨Ha, Hcfga, HI3a⟩ := Henvp
   ihave #Hcmta : isCommitted γ ((fp0 ++ s.log).take (uint.Z a).toNat) $$ []
   · iapply isCommitted_mono γ _ (cprefix fp0 s) (take_prefix_le _ _ _ (Int.toNat_le_toNat Ha))
       $$ Hcmt0
   ihave #Hcqa : cqAt γ s.term n (fp0 ++ s.log) a c (ackedBy s n) $$ []
-  · iapply cqAt_intro γ s.term n (fp0 ++ s.log) a c (ackedBy s n)
+  · iapply cqAt_intro γ s.term n (fp0 ++ s.log) a c (ackedBy s n) Ma
       (by rw [full_term_at s.base fp0 s.log n Hfull0.1 (by have := Hok.2.1; omega)]
           exact Htm)
-      (by omega) Hcfga Hq $$ Hfl Hcmta [] []
+      (by omega) Hcfga Hq $$ HMa Hfl Hcmta [] []
+
     rotate_left
     · -- dynamic: I1 at `a` (I3) and the witnesses of the conf entries below it (`W`)
       unfold dynOn
@@ -2455,6 +2543,14 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
     -- (2026-10-18, D19b stage 5) the new entries' indices are covered by the receipt `⧖ n`
     plogLastIndexZ s.base s.log + (ents.length : Int) ≤ (n : Int) + γ.reBoot.length →
     ⊢ ⧖ n -∗ ([∗list] e ∈ ents, propData (GF := GF) γ e) -∗ ([∗list] e ∈ ents, entTk γ e) -∗
+      -- (2026-10-29, stage U5) an empty `ConfChangeV2` of the batch at a joint configuration
+      (□ ∀ (fp' : List EntryM) (k : Nat) (x : EntryM),
+        ⌜FullOk s.base fp' ∧ (ents.mapIdx (stamp s.term (plastIndex s)))[k]? = some x ∧
+          γ.reDyn ≠ none ∧ IsEmptyV2 x⌝ -∗
+        logRecs γ base0 fp' -∗
+        ∃ (M : DecMap) (c : CfgM), decLb γ M ∗
+          ⌜CfgAt γ M ((fp' ++ s.log) ++ (ents.mapIdx (stamp s.term (plastIndex s))).take k) c ∧
+            c.joint = true⌝) -∗
       ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
         (psendMsgs (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))
@@ -2462,7 +2558,7 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
   intro Hrole Hnw Hrb
   rw [show plastIndex s = W64 (plogLastIndexZ s.base s.log) from rfl]
   generalize HL : plogLastIndexZ s.base s.log = L at Hnw Hrb ⊢
-  iintro #Hrcpt #Hed Htk Hown
+  iintro #Hrcpt #Hed Htk #Hev Hown
   imod entData_mapIdx_stamp γ s.term (W64 L) ents $$ Hed Htk with #Hnwd
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γv, %voted, %kl, H⟩
@@ -2504,15 +2600,19 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
   generalize Hnwdef : ents.mapIdx (stamp s.term (W64 L)) = nw at Hnwk Hlen ⊢
   have HlenL : uint.Z s.base.index' + (s.log.length : Int) = L := by rw [← HL]; rfl
   have HbZ := uint_Z_nonneg s.base.index'
-  ihave #Hrecs' : logRecs γ s.base (s.log ++ nw) $$ []
-  · iapply logRecs_intro
+  have Hwl' : PlogWf s.base (s.log ++ nw) :=
+    (PlogWf_app _ _ _).mpr ⟨Hwl, fun k e Hk => by have := (Hnwk k e Hk).1; push_cast; omega⟩
+  ihave #HrecsOC := logRecs_core γ s.base s.log $$ Hrecs
+  ihave #HfrecsC := logRecs_core γ base0 fp $$ Hfrecs
+  ihave #HrecsC : logRecsC γ s.base (s.log ++ nw) $$ []
+  · iapply logRecsC_intro'
     imodintro
     iintro %k %x Hk
     ipure Hk
     obtain ⟨Hk, Hr⟩ := Hk
     by_cases Hkl : k < s.log.length
     · rw [List.getElem?_append_left Hkl] at Hk
-      icases logRecs_elem γ s.base s.log k x Hk Hr $$ Hrecs with ⟨%pt, %Hpt, #Hx⟩
+      icases logRecsC_elem γ s.base s.log k x Hk Hr $$ HrecsOC with ⟨%pt, %Hpt, #Hx⟩
       iexists pt
       iframe Hx
       ipureintro
@@ -2544,7 +2644,7 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
           rw [this, Hy']
           simp only [Option.map_eq_map, Option.map_some]
           rw [(Hnwk _ y Hy').2]
-      · unfold isEntryR
+      · unfold isEntryC
         ileft
         iexists id, γt, s.base, l0, F0
         rw [Hxt]
@@ -2562,6 +2662,43 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
         iapply (preceipt_mono (GF := GF)
           (show (uint.Z x.Index').toNat - γ.reBoot.length ≤ n by omega))
         iexact Hrcpt
+  ihave #Hrecs' : logRecs γ s.base (s.log ++ nw) $$ []
+  · iapply logRecs_intro
+    imodintro
+    iintro %k %x Hk
+    ipure Hk
+    obtain ⟨Hk, Hr⟩ := Hk
+    by_cases Hkl : k < s.log.length
+    · have Hk' := Hk
+      rw [List.getElem?_append_left Hkl] at Hk'
+      icases logRecs_elem γ s.base s.log k x Hk' Hr $$ Hrecs with ⟨%pt, %Hpt, #Hx⟩
+      iexists pt
+      iframe Hx
+      ipureintro
+      rw [plogTermAt_app_l]
+      · exact Hpt
+      · unfold pidx plogLastIndexZ; rw [uint_Z_W64 _ (by omega) (by omega)]; omega
+    · icases logRecsC_elem γ s.base (s.log ++ nw) k x Hk Hr $$ HrecsC with ⟨%pt, %Hpt, #Hx⟩
+      iexists pt
+      isplitr; · ipureintro; exact Hpt
+      iapply isEntryR_of_core_ev2 γ x pt $$ Hx
+      unfold ev2Rec
+      iintro %Hc
+      have Hk' := Hk
+      rw [List.getElem?_append_right (by omega)] at Hk'
+      icases Hev $$ %fp %(k - s.log.length) %x
+        %(⟨Hfp, Hk', Hc.1, Hc.2⟩ : FullOk s.base fp ∧ nw[k - s.log.length]? = some x ∧
+          γ.reDyn ≠ none ∧ IsEmptyV2 x) Hfrecs with ⟨%M0, %c, #HM0, %Hcf⟩
+      have Htk : (fp ++ s.log) ++ nw.take (k - s.log.length) =
+          (fp ++ (s.log ++ nw)).take (fp.length + k) := by
+        have Hkk : fp.length + k = (fp ++ s.log).length + (k - s.log.length) := by
+          simp only [List.length_append]; omega
+        rw [Hkk, ← List.append_assoc, List.take_length_add_append]
+      rw [Htk] at Hcf
+      ihave #He2 := ev2Rec_of_prefix γ s.base fp (s.log ++ nw) k x pt M0 c Hfp Hwl' Hk Hpt
+        Hcf.1 Hcf.2 $$ HfrecsC HrecsC HM0
+      iunfold ev2Rec at He2
+      iapply He2 $$ %Hc
   ihave #Hlf' : leadFrags γt l0 (s.log ++ nw) $$ []
   · unfold leadFrags
     iapply (BigSepL.bigSepL_append (Φ := fun k (e : EntryM) =>
@@ -2896,14 +3033,14 @@ theorem ownRaftGhost_step_snap_fastfwd (γ : RaftNames) (id : w64) (s : PState) 
 
 /-- A snapshot message shows its prefix (2026-10-14, reconfiguration stage B8): some prefix of
 the full log, recorded (`logRecs`), ends at the snapshot's entry id -- the sender's committed
-prefix up to it (its leader prefix, `isMessage_snap_inv`, taken to the index). This is the
-prefix a receiver's restore takes (`StepR.snapRestore`'s `fp'`, which records make unique). -/
+prefix up to it (its leader prefix, `isMessage_snap_inv`, taken to the index), committed
+(2026-10-28, stage U3). This is the prefix a receiver's restore takes (`StepR.snapRestore`'s `fp'`, which records make unique). -/
 theorem isMessage_snap_prefix (γ : RaftNames) (m : Msg) (Hty : m.ty = .snap) :
     ⊢ isMessage (GF := GF) γ m -∗
-      ∃ fp, ⌜FullOk (entryID.mk m.logterm m.index) fp⌝ ∗ logRecs γ base0 fp := by
+      ∃ fp, ⌜FullOk (entryID.mk m.logterm m.index) fp⌝ ∗ logRecs γ base0 fp ∗ isCommitted γ fp := by
   iintro #Hm
   icases isMessage_snap_inv γ m Hty $$ Hm with
-    ⟨-, -, ⟨%bL, %l', %fpL, #Hp', %Hidx', #Hpf', -, -⟩, -⟩
+    ⟨-, -, ⟨%bL, %l', %fpL, #Hp', %Hidx', #Hpf', -, #Hcm⟩, -⟩
   ihave #HLf := leadFull_intro $$ Hp' Hpf'
   icases leadFull_wf γ m.term (fpL ++ l') $$ HLf with ⟨%HwLf, #HrLf⟩
   icases lpfull_fp $$ Hpf' with ⟨-, %HfL⟩
@@ -2913,6 +3050,7 @@ theorem isMessage_snap_prefix (γ : RaftNames) (m : Msg) (Hty : m.ty = .snap) :
   iexists (fpL ++ l').take (uint.Z m.index).toNat
   isplitr
   · ipureintro; exact FullOk_take _ _ _ HwLf.1 HLidx
+  iframe Hcm
   iapply logRecs_take $$ HrLf
 
 /-- `Step.snapRestore`: the log is replaced by the snapshot -- no entries after the new
@@ -3457,14 +3595,14 @@ acknowledged confirmed: each of their records is not doomed (`Hconf`: static,
 `rqRecOk_confirm`; dynamic, `rqRecOk_confirm_dyn`, from the resource `X`, kept), so each
 confirmed request has its answer's facts. -/
 theorem rdOwn_ack (γ : RaftNames) (id : w64) (s : PState) (src q N : w64)
-    (recs0 : List RqRec) (P : List EntryM) (c : CfgM) (X : IProp GF)
+    (recs0 : List RqRec) (P : List EntryM) (c : CfgM) (X : IProp GF) {M : DecMap}
     (Hconf : ∀ (Q : GSet w64) (r : RqRec), JQuorum c Q →
       (∀ v ∈ Q, ∀ t' qq, r.2 = some (t', qq) → v ∉ qq) →
       ⊢ X -∗ rqRecOk γ s.term r -∗ readOk γ r.1.1 r.1.2) :
     s.role = .leader →
     -- (2026-10-14, reconfiguration stage B4) a joint quorum of a recorded configuration, the
     -- reader's (was `QuorumAcked γ.reCfg`)
-    CfgAt γ P c →
+    CfgAt γ M P c →
     JQuorumAcked c
       (fun v => ((readonlyRecvAck s.rd.ro src (u64Le q)).acks !! v).getD (W64 0)) N →
     HbAckOk src (uint.nat q) recs0 →
@@ -3726,15 +3864,15 @@ theorem ownRaftGhost_step_read_ack (γ : RaftNames) (c : CfgM) (id : w64)
   · iapply (BigSepL.bigSepL_nil).2; iempintro
   · iintro %kl Hlg Hrd
     iunfold dynEnv at Henv
-    icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %HR, #HrR, -⟩)
+    icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %MR, %HR, #HrR, -, #HMR⟩)
     · -- static: the reader's configuration is the ghost state's
       iframe Hlg
       imodintro
       icases rdOwn_ack γ id s m.src q N recs0 [] c iprop(emp)
         (fun Q r HQ' Hc => by
           iintro -
-          exact rqRecOk_confirm γ s.term r [] c Q HC.2.2 (CfgAt.of_static _ HC) HQ' Hc)
-        Hrole (CfgAt.of_static _ HC) HQ Hack $$ [] Hrd Hlb with ⟨-, Hrd', Hresp⟩
+          exact rqRecOk_confirm γ s.term r [] c Q HC.2.2 ∅ (CfgAt.of_static _ _ HC) HQ' Hc)
+        Hrole (CfgAt.of_static ∅ _ HC) HQ Hack $$ [] Hrd Hlb with ⟨-, Hrd', Hresp⟩
       · iempintro
       iframe Hrd' Hresp
     · -- dynamic: the reader's configuration is its prefix's at its configuration index; the
@@ -3760,18 +3898,18 @@ theorem ownRaftGhost_step_read_ack (γ : RaftNames) (c : CfgM) (id : w64)
           ⊢ (votesTbl γ ∗ ownLogGhost γ id s kl ∗
             (isLeader γ id s.term ∗ isCamp γ id s.term F0L ∗ logRecs γ base0 (fpR ++ s.log) ∗
             isCommitted γ ((fpR ++ s.log).take (uint.Z aR).toNat) ∗
-            commitIn γ (fpR ++ s.log) s.commit s.term ∗ leadFull γ s.term (fpR ++ s.log))) -∗
+            commitIn γ (fpR ++ s.log) s.commit s.term ∗ leadFull γ s.term (fpR ++ s.log) ∗ decLb γ MR)) -∗
             rqRecOk γ s.term r -∗ readOk γ r.1.1 r.1.2 := by
         intro Q r HQ' Hc
-        iintro ⟨HS, HY, #Hl, #Hc0, #HrFL, #HcFL, #Hcom, #HflL⟩ #Hr
+        iintro ⟨HS, HY, #Hl, #Hc0, #HrFL, #HcFL, #Hcom, #HflL, #HMR'⟩ #Hr
         iapply rqRecOk_confirm_dyn γ s.term id r (fpR ++ s.log) F0L aR s.commit c Q Hdyn
           (iprop(ownLogGhost γ id s kl ∗ isLeader γ id s.term))
           (fun G => by
             iintro ⟨HY, #Hl⟩ #HG
             ihave %h := ownLogGhost_within γ id s kl G Hrole $$ Hl HG HY
             ipureintro; rw [full_last_index _ _ _ HR.1]; exact h)
-          HR.2.2.2.1 HQ' (HR.2.2.2.2.1 Hrole) HR.2.2.1 HwFL Hcok HnL.2.2 Hc
-          $$ HS Hl Hc0 HrFL HcFL Hcom HflL [HY] Hr
+          MR HR.2.2.2.1 HQ' (HR.2.2.2.2.1 Hrole) HR.2.2.1 HwFL Hcok HnL.2.2 Hc
+          $$ HS Hl Hc0 HrFL HcFL Hcom HflL [HY] HMR' Hr
         iframe HY Hl
       ihave #Hinv := ownLogGhost_inv γ id s kl $$ Hlg
       ihave #Hli := raftCommitInv_log γ $$ Hinv
@@ -3781,9 +3919,9 @@ theorem ownRaftGhost_step_read_ack (γ : RaftNames) (c : CfgM) (id : w64)
         (iprop(votesTbl γ ∗ ownLogGhost γ id s kl ∗
             (isLeader γ id s.term ∗ isCamp γ id s.term F0L ∗ logRecs γ base0 (fpR ++ s.log) ∗
             isCommitted γ ((fpR ++ s.log).take (uint.Z aR).toNat) ∗
-            commitIn γ (fpR ++ s.log) s.commit s.term ∗ leadFull γ s.term (fpR ++ s.log)))) Hconf Hrole HR.2.2.2.1 HQ Hack
+            commitIn γ (fpR ++ s.log) s.commit s.term ∗ leadFull γ s.term (fpR ++ s.log) ∗ decLb γ MR))) Hconf Hrole HR.2.2.2.1 HQ Hack
         $$ [Htbl Hlg] Hrd Hlb with ⟨⟨Htbl, Hlg, -⟩, Hrd', Hresp⟩
-      · iframe Htbl Hlg Hl Hc0 HrFL HcFL Hcom HflL
+      · iframe Htbl Hlg Hl Hc0 HrFL HcFL Hcom HflL HMR
       imod Hclose $$ [HP Hjust Htbl Hpo Hwt] with -
       · inext
         iexists P
@@ -3820,12 +3958,12 @@ theorem ownRaftGhost_single_confirm (γ : RaftNames) (c : CfgM) (id : w64) (s : 
     subst hv
     exact Hnd
   iunfold dynEnv at Henv
-  icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %HR, #HrR, -⟩)
+  icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %MR, %HR, #HrR, -, #HMR⟩)
   · -- static: the reader's configuration is the ghost state's
     iframe Hlg Hrd
     imodintro
-    iapply rqRecOk_confirm γ s.term ((cx, s.commit), d) [] c {[id]} HC.2.2
-      (CfgAt.of_static _ HC) HQ Hc $$ Hrec
+    iapply rqRecOk_confirm γ s.term ((cx, s.commit), d) [] c {[id]} HC.2.2 ∅
+      (CfgAt.of_static _ _ HC) HQ Hc $$ Hrec
   · -- dynamic: as `ownRaftGhost_step_read_ack`'s, with the quorum `{id}`
     icases FullOk_unique γ s.base fpR fpL HR.1 HnL.1 $$ HrR HfrL with %Heq
     subst Heq
@@ -3846,17 +3984,17 @@ theorem ownRaftGhost_single_confirm (γ : RaftNames) (c : CfgM) (id : w64) (s : 
     have Hconf : ⊢ (votesTbl γ ∗ ownLogGhost γ id s kl ∗
           (isLeader γ id s.term ∗ isCamp γ id s.term F0L ∗ logRecs γ base0 (fpR ++ s.log) ∗
           isCommitted γ ((fpR ++ s.log).take (uint.Z aR).toNat) ∗
-          commitIn γ (fpR ++ s.log) s.commit s.term ∗ leadFull γ s.term (fpR ++ s.log))) -∗
+          commitIn γ (fpR ++ s.log) s.commit s.term ∗ leadFull γ s.term (fpR ++ s.log) ∗ decLb γ MR)) -∗
           rqRecOk γ s.term ((cx, s.commit), d) -∗ readOk γ cx s.commit := by
-      iintro ⟨HS, HY, #Hl, #Hc0, #HrFL, #HcFL, #Hcom, #HflL⟩ #Hr
+      iintro ⟨HS, HY, #Hl, #Hc0, #HrFL, #HcFL, #Hcom, #HflL, #HMR'⟩ #Hr
       iapply rqRecOk_confirm_dyn γ s.term id ((cx, s.commit), d) (fpR ++ s.log) F0L aR s.commit c
         {[id]} Hdyn (iprop(ownLogGhost γ id s kl ∗ isLeader γ id s.term))
         (fun G => by
           iintro ⟨HY, #Hl⟩ #HG
           ihave %h := ownLogGhost_within γ id s kl G Hrole $$ Hl HG HY
           ipureintro; rw [full_last_index _ _ _ HR.1]; exact h)
-        HR.2.2.2.1 HQ (HR.2.2.2.2.1 Hrole) HR.2.2.1 HwFL Hcok HnL.2.2 Hc
-        $$ HS Hl Hc0 HrFL HcFL Hcom HflL [HY] Hr
+        MR HR.2.2.2.1 HQ (HR.2.2.2.2.1 Hrole) HR.2.2.1 HwFL Hcok HnL.2.2 Hc
+        $$ HS Hl Hc0 HrFL HcFL Hcom HflL [HY] HMR' Hr
       iframe HY Hl
     ihave #Hinv := ownLogGhost_inv γ id s kl $$ Hlg
     ihave #Hli := raftCommitInv_log γ $$ Hinv
@@ -3865,9 +4003,9 @@ theorem ownRaftGhost_single_confirm (γ : RaftNames) (c : CfgM) (id : w64) (s : 
     ihave HX : iprop(votesTbl (GF := GF) γ ∗ ownLogGhost γ id s kl ∗
         (isLeader γ id s.term ∗ isCamp γ id s.term F0L ∗ logRecs γ base0 (fpR ++ s.log) ∗
         isCommitted γ ((fpR ++ s.log).take (uint.Z aR).toNat) ∗
-        commitIn γ (fpR ++ s.log) s.commit s.term ∗ leadFull γ s.term (fpR ++ s.log)))
+        commitIn γ (fpR ++ s.log) s.commit s.term ∗ leadFull γ s.term (fpR ++ s.log) ∗ decLb γ MR))
       $$ [Htbl Hlg]
-    · iframe Htbl Hlg Hl Hc0 HrFL HcFL Hcom HflL
+    · iframe Htbl Hlg Hl Hc0 HrFL HcFL Hcom HflL HMR
     ihave #Hok := Hconf $$ HX Hrec
     icases HX with ⟨Htbl, Hlg, -⟩
     imod Hclose $$ [HP Hjust Htbl Hpo Hwt] with -
@@ -4390,7 +4528,7 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
   -- commit justification (with the node-local witnesses) at the old term
   ihave #Hcd : dynOn γ (campDyn γ id (s.term + W64 1) F) $$ []
   · iunfold dynEnv at Henv
-    icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %HR, #HrR, -⟩)
+    icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %MR, %HR, #HrR, -, #HMR⟩)
     · iapply dynOn_static γ _ HC.2.2
     · unfold dynOn; iright
       icases FullOk_unique γ s.base fpR fp0 HR.1 HF0.1 $$ HrR Hfr0 with %Heq
@@ -4694,7 +4832,11 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     rw [if_pos Hty]
     ihave Htk' := entTk_propRepl γ _ _ Hents $$ Htk
     imod ownRaftGhost_step_propose γ id s ents (B.toNat - γ.reBoot.length) Hrole (by omega)
-      (by omega) $$ Hrc Hed' Htk' Hown with Hown
+      (by omega) $$ Hrc Hed' Htk' [] Hown with Hown
+    · -- (2026-10-29, stage U5) the static mode: nothing
+      imodintro
+      iintro %fp' %k %x %Hc
+      exact absurd HC.2.2 Hc.2.2.1
     imodintro; iframe Hregs Hown
   | propForward m s Hty _ _ =>
     iintro #Hrc Hregs Hrecv - Htk Hown

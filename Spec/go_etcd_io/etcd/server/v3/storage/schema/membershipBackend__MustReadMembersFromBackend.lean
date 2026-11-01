@@ -24,6 +24,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`mb.MustReadMembersFromBackend()`** (the trust boundary; D43 M5b′, 2026-10-26, the user's
 decision): on the membership backend `mb` over the real backend `d` of the store's names `γ`, with

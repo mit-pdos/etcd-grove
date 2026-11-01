@@ -1,0 +1,22 @@
+# The reconfigurable key-value store example (examples/kvreconf): every linked result of
+# Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/Link.lean and the results of its
+# Results.lean (added 2026-10-30, stage P of the client repair; baseline as found).
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/(Link|Results)\.lean$
+axiom DescribeConfChange.wp_proof
+axiom Perennial.os.Stderr_init
+axiom Perennial.os.initFuncsOk
+axiom Perennial.os.opaqueInitsOk
+axiom ccDecodeV2_nil
+axiom context.ErrAny.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom initLb_of_spec
+axiom proto.CloneConfState.wp_proof
+axiom proto.CloneEntry.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualConfState.wp_proof
+axiom proto.MarshalConfChange.wp_proof
+axiom proto.MarshalConfChangeV2.wp_proof
+axiom proto.SizeEntry.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
+axiom raftpb.ConfChangeType.String.wp_proof

@@ -25,12 +25,14 @@ public import Spec.go_etcd_io.raft.v3.RawNode__Advance
 public import Spec.go_etcd_io.raft.v3.RawNode__Tick
 public import Spec.go_etcd_io.raft.v3.raft__Step
 public import Spec.go_etcd_io.raft.v3.raft__hasLeader
+public import Spec.go_etcd_io.raft.v3.getStatus
 public import Spec.go_etcd_io.raft.v3.IsResponseMsg
 public import Spec.go_etcd_io.raft.v3.IsLocalMsgTarget
 public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
 public import Proof.go_etcd_io.raft.v3.InvNodeRun
+public import Proof.go_etcd_io.raft.v3.InvNodeRunHup
 public import Proof.go_etcd_io.raft.v3.LemmasRunR
 import all Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
@@ -91,14 +93,15 @@ theorem node.run.wp_proof
     (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG))
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
-    (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG)) :
+    (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
+    (wp_getStatus : getStatus.spec (GF := GF) (hG := hG)) :
     node.run.spec (GF := GF) (hG := hG) := by
   intro γ id n
   wp_start as ⟨#Hnode, Hpre⟩
   ihave #Hnode' := Hnode
   open_node Hnode'
   unfold runPre
-  icases Hpre with ⟨%nv0, %rs, %x, #Hn0, Hrn, %Hrs, Hdlv, Hr1, Hr2, #Hlb, Hcfg⟩
+  icases Hpre with ⟨%nv0, %rs, %x, #Hn0, Hrn, %Hrs, Hdlv, Hr1, Hr2, #Hlb, Hcfg, Hpend, Hlive⟩
   icombine Hn Hn0 gives %Heq
   subst Heq
   -- (D22 S-d4) nothing queued, so nothing lent
@@ -304,7 +307,7 @@ theorem node.run.wp_proof
       · simp only [↓reduceIte]
         itrivial
       wp_for_post
-      iframe HΦ n r
+      iframe HΦ n r Hpend Hlive
       iexists nv.propc', rc', ac, rdv', ld'
       iframe propc readyc advancec rd lead
       isplitr
@@ -331,7 +334,7 @@ theorem node.run.wp_proof
       rotate_left
       · exact absurd rfl Hif
       wp_for_post
-      iframe HΦ n r
+      iframe HΦ n r Hpend Hlive
       iexists nv.propc', rc', ac, rdv', ld'
       iframe propc readyc advancec rd lead
       isplitr
@@ -356,7 +359,70 @@ theorem node.run.wp_proof
     inext
     iintro %ml Hnet
     iunfold netP at Hnet
-    icases Hnet with ⟨%st, Hm, %Hok, %Hpvb, #Hmsg, #Hsnap, #Hlbm, Hcred, Htc⟩
+    icases Hnet with (⟨%st, Hm, %Hok, #Hxf, #Hmsg, #Hsnap, #Hlbm, Hcred, Htc⟩ | Hhup)
+    rotate_left
+    · -- (2026-10-29, stage U7) `Campaign`'s `MsgHup`: its tick credit raises the term ceiling by
+      -- one, past the campaign's term (as a tick's)
+      iunfold hupP at Hhup
+      icases Hhup with ⟨Hm, Htc⟩
+      generalize Hst : hupSt = st
+      wp_auto_lc 1
+      ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
+      iunfold runHead at Hhead
+      icases Hhead with ⟨%rs, Hrn, Hrest⟩
+      wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
+      wp_apply wp_IsResponseMsg _ (by rw [← Hst]; simp [hupSt]) as %b2 _
+      wp_if_destruct
+      all_goals try (
+        wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
+        wp_apply wp_IsLocalMsgTarget st.msg.From'
+        wp_if_destruct)
+      all_goals try (
+        icases ownRawNode_borrow γ.raft nv.rn' id rs r $$ Hrn Hrnraft with ⟨%cf, %s, Hphys, Hback⟩
+        icases ownRaftPhysC_tracker_same cf r id s $$ Hphys with
+          ⟨%tv, Htrkf, Htrk, Hback2⟩
+        icases ownTrackerC_progress_map cf tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
+        try wp_auto
+        wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
+        try wp_auto
+        wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ _
+          st.msg.From' _ $$ Hprs with -
+        ihave Hphys := Hback2 $$ %tv Htrkf Htrk
+        ihave Hrn := Hback $$ Hphys
+        wp_if_destruct)
+      -- filtered out: `break`
+      all_goals try (
+        wp_for_post
+        iframe HΦ n r Hpend Hlive
+        iexists pc', rc', ac, rdv', ld'
+        iframe propc readyc advancec rd lead
+        isplitr
+        · ipureintro; exact Hpc'
+        unfold runHead
+        iexists rs
+        iframe Hrn Hrest)
+      -- `r.Step(m)`
+      all_goals (
+        try wp_auto
+        icases headRest_termLB γ nv rs ac rc' rdv' $$ Hrest with ⟨#Hlb', Hrest⟩
+        icases headRest_flw γ nv rs ac rc' rdv' $$ Hrest with ⟨%Hflw, Hrest⟩
+        imod budget_spend γ.bud rs.tc ⊤ (by solve_ndisj) $$ Hbud Htc Hlb' with ⟨%Hb, #Hlb1⟩
+        icases ownRawNode_term_tc γ.raft nv.rn' id rs $$ Hrn with ⟨%Htt, Hrn⟩
+        ihave Hrn := ownRawNode_raise_tc γ.raft nv.rn' id rs (rs.tc + W64 1) (by word) $$ Hrn
+        wp_apply wp_rn_raft_Step_hup wp_raft_Step γ.raft nv.rn' id { rs with tc := rs.tc + W64 1 }
+          r ml st Hst.symm (by simp only; word) Hflw $$ [Hrn Hm Hlc1] as %err %t ⟨Hrn, %Ht⟩
+        · iframe Hrn Hm Hrnraft Hlc1
+        ihave Hrest := headRest_term γ nv rs ac rc' rdv' t (rs.tc + W64 1) $$ Hrest Hlb1
+        try wp_auto
+        wp_for_post
+        iframe HΦ n r Hpend Hlive
+        iexists pc', rc', ac, rdv', ld'
+        iframe propc readyc advancec rd lead
+        isplitr
+        · ipureintro; exact Hpc'
+        unfold runHead
+        iexists { { rs with tc := rs.tc + W64 1 } with term := t }
+        iframe Hrn Hrest)
     have Hty0 : 0 ≤ sint.Z st.msg.Type' := netStepTypes_nonneg Hok.1
     wp_auto_lc 1
     ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
@@ -387,7 +453,7 @@ theorem node.run.wp_proof
     -- filtered out: `break`
     all_goals try (
       wp_for_post
-      iframe HΦ n r
+      iframe HΦ n r Hpend Hlive
       iexists pc', rc', ac, rdv', ld'
       iframe propc readyc advancec rd lead
       isplitr
@@ -400,16 +466,6 @@ theorem node.run.wp_proof
       try wp_auto
       icases headRest_termLB γ nv rs ac rc' rdv' $$ Hrest with ⟨#Hlb', Hrest⟩
       icases headRest_flw γ nv rs ac rc' rdv' $$ Hrest with ⟨%Hflw, Hrest⟩
-      -- (D22 S-d4) a `MsgSnap` only at a node that takes snapshots: outside the no-snapshot mode, in
-      -- the static mode
-      icases headRest_snapIn γ nv rs ac rc' rdv' $$ Hrest with ⟨%Hsi, %Hrm, Hrest⟩
-      have Hsnp : st.msg.Type' = MsgSnap → γ.raft.reNoSnap = false :=
-        fun h => (Hsi (Hpvb.2.2 h)).1
-      have Hdns : DynNoSnap rs st.msg := by
-        intro hd hs
-        have := (Hsi (Hpvb.2.2 hs)).2
-        rw [Hrm, this] at hd
-        cases hd
       -- the budget covers the step: a `MsgTimeoutNow` spends its tick credit; (2026-10-17) the
       -- term ceiling raised to the bound, past the message's term (a granted pre-vote answers at
       -- it) and a transfer's campaign
@@ -422,15 +478,15 @@ theorem node.run.wp_proof
       ihave Hrn := ownRawNode_raise_tc γ.raft nv.rn' id rs tb (by omega) $$ Hrn
       icases ownRawNode_mode γ.raft nv.rn' id _ $$ Hrn with ⟨%Hmd, Hrn⟩
       wp_apply wp_rn_raft_Step_net wp_raft_Step γ.raft nv.rn' id { rs with tc := tb } r ml st Hok
-        Hdns (by simp only; omega)
-        (fun h => by simp only; rw [ite_eq_left h] at Htb; omega) Hpvb.1 Hflw Hpvb.2.1 Hsnp
+        (by simp only; omega)
+        (fun h => by simp only; rw [ite_eq_left h] at Htb; omega) Hflw
         $$ [Hrn Hm Hcred Hlc1] as %err %t ⟨Hrn, %Ht⟩
-      · iframe Hrn Hm Hrnraft Hmsg Hsnap Hcred Hlc1
+      · iframe Hrn Hm Hrnraft Hxf Hmsg Hsnap Hcred Hlc1
       ihave Hrest := headRest_step γ nv rs ac rc' rdv' t tb (decide (st.msg.Type' = MsgSnap))
-        (fun h => Hpvb.2.2 (of_decide_eq_true h)) $$ Hrest Hlbtb
+        $$ Hrest Hlbtb
       try wp_auto
       wp_for_post
-      iframe HΦ n r
+      iframe HΦ n r Hpend Hlive
       iexists pc', rc', ac, rdv', ld'
       iframe propc readyc advancec rd lead
       isplitr
@@ -463,7 +519,7 @@ theorem node.run.wp_proof
     icases Hhead with ⟨%rs, Hrn, Hrest⟩
     icases headRest_mode γ nv rs ac rc' rdv' $$ Hrest with ⟨%Hrm, Hrest⟩
     icases ownRawNode_mode γ.raft nv.rn' id rs $$ Hrn with ⟨%Hmd, Hrn⟩
-    icases HP with (%Hn | ⟨%ds, %ca, %cfg, %k, %e, %cs', %Hpre, #Hdlb, Hcap, Hccq⟩)
+    icases HP with (%Hn | ⟨%ds, %ca, %cfg, %k, %e, %cs', %Mc, %Hpre, #HMc, #Hdlb, Hcap, Hccq⟩)
     · -- the static mode: a shrinking change (2026-10-13)
       have Hstatic : γ.raft.reDyn = none := Hmd.1 (Hrm.trans Hn.1)
       have Hgm := Hn.1
@@ -525,7 +581,7 @@ theorem node.run.wp_proof
         iintro -
         wp_auto
         wp_for_post
-        iframe HΦ n r
+        iframe HΦ n r Hpend Hlive
         iexists pc', rc', ac, rdv', ld'
         iframe propc readyc advancec rd lead
         isplitr
@@ -540,8 +596,8 @@ theorem node.run.wp_proof
         isplitr
         · ipureintro; rfl
         isplitr
-        · iapply isHandshake_isChan $$ Hdone
-        iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+        · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+        iapply node_done_recv_live_au γ nv.done' 1 _ $$ Hlive Hdone
       iapply BigAndL.bigAndL_nil.2
       itrivial
     -- (2026-10-15, stage N) the dynamic mode: the next committed conf entry's change
@@ -555,8 +611,8 @@ theorem node.run.wp_proof
     -- the driver's view agrees with `run`'s: the change's premises at the `RawNode`; the shared
     -- configuration moves to the entry applied
     icases headRest_cfg γ nv rs ac rc' rdv' cs' (k + 1) $$ Hrest with ⟨Hcfg, Hrestb⟩
-    icases runCfg_confc γ rs ds ca cfg _ k e cs' dec (by rw [Hgm]; rfl) Hp $$ Hcfg Hdlb Hcap
-      with ⟨%Hp', Hupd⟩
+    icases runCfg_confc γ rs ds ca cfg _ k e cs' dec c0 h0 h1 Hgm Mc Hp $$ Hcfg Hdlb HMc Hcap
+      with ⟨⟨%Mr, #HMr, %Hp'⟩, Hupd⟩
     imod Hupd with ⟨Hcfg, Hcap, #Hcamlb⟩
     ihave Hrest := Hrestb $$ Hcfg
     -- `_, okBefore := r.trk.Progress[r.id]`
@@ -570,8 +626,8 @@ theorem node.run.wp_proof
     try wp_auto
     -- `cs := r.applyConfChange(cc)`
     wp_apply wp_rn_raft_applyConfChange_dyn wp_raft_applyConfChange γ.raft nv.rn' id rs r cc ccs
-      dec c0 h0 h1 hm k e cs' Hp'
-      $$ [$Hrn $Hrnraft $Hccs $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcsp, %Hcs⟩
+      dec c0 h0 h1 hm k e cs' Mr Hp'
+      $$ [$Hrn $Hrnraft $Hccs $Hlc1 $HMr] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcsp, %Hcs⟩
     -- `_, okAfter := r.trk.Progress[r.id]`
     icases ownRawNode_borrow γ.raft nv.rn' id _ r $$ Hrn Hrnraft with ⟨%cf2, %s2, Hphys, Hback⟩
     try wp_auto
@@ -723,7 +779,7 @@ theorem node.run.wp_proof
       iintro -
       wp_auto
       wp_for_post
-      iframe HΦ n r
+      iframe HΦ n r Hpend Hlive
       iexists pc'', rc', ac, rdv', ld'
       iframe propc readyc advancec rd lead
       isplitr
@@ -738,8 +794,8 @@ theorem node.run.wp_proof
       isplitr
       · ipureintro; rfl
       isplitr
-      · iapply isHandshake_isChan $$ Hdone
-      iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+      · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+      iapply node_done_recv_live_au γ nv.done' 1 _ $$ Hlive Hdone
     iapply BigAndL.bigAndL_nil.2
     itrivial
   -- `<-n.tickc`
@@ -770,7 +826,7 @@ theorem node.run.wp_proof
     iNamed H
     ihave Hrest := headRest_term γ nv rs ac rc' rdv' t (rs.tc + W64 1) $$ Hrest Hlb1
     wp_for_post
-    iframe HΦ n r
+    iframe HΦ n r Hpend Hlive
     iexists pc', rc', ac, rdv', ld'
     iframe propc readyc advancec rd lead
     isplitr
@@ -869,6 +925,21 @@ theorem node.run.wp_proof
       ⟨%ce, %es, %ms, %L, Hrn, #Hce, #Hcommitted, #Hents, Hmsgs, Hown, #Hmsgs_ok, #Hrsts,
         ⟨%h, #Hhh, #Hhw⟩, Hsnz, %Hfacts⟩
     icases rdSnapOut_pure γ.raft rs rdv' ce es L $$ Hsnz with ⟨%HLo, Hsnz⟩
+    -- (raft-final phase 2) the batch's indices, and a snapshot's certificate (a `⊤` update first)
+    icases ownRawNodeReady_batch γ.raft nv.rn' id rs rdv' ce es ms false L $$ Hrn with ⟨%Hbatch, Hrn⟩
+    icases runCfg_sn γ rs $$ Hcfg with ⟨%Hsnγ, Hcfg⟩
+    iapply sendAu_fupd
+    ihave Hcx : iprop(|={⊤}=> (□ ∀ l : SnapLoan, ⌜L = some l⌝ -∗
+        raftSnapCertD γ.raft (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) ∗
+        ownRawNodeReady γ.raft nv.rn' id rs rdv' ce es ms false L) $$ [Hrn]
+    · cases L with
+      | none =>
+        imodintro; iframe Hrn; imodintro; iintro %l %h; cases h
+      | some l0 =>
+        imod ownRawNodeReady_loanCert γ.raft nv.rn' id rs rdv' ce es ms false l0 $$ Hrn
+          with ⟨#Hc, Hrn⟩
+        imodintro; iframe Hrn; imodintro; iintro %l %h; cases h; iexact Hc
+    imod Hcx with ⟨#Hcert, Hrn⟩
     iapply handshake_send_au_upd (t := Ready.ty) γ.readyc nv.readyc' rdv' (readyP γ) iprop(True) _
       $$ [$Hlc1 $Hlc2 $Hlc3] Hreadyc
     -- (2026-10-16, stage R7a) the `Ready`'s soft state, read-only for the application
@@ -893,14 +964,26 @@ theorem node.run.wp_proof
         icases ownRawNodeReady_loanLast γ.raft nv.rn' id rs rdv' ce es ms false l0 $$ Hrn
           with ⟨%Hx, -⟩
         ipureintro; intro l h; cases h; exact Hx
+    -- (2026-10-28, the decision switch) the loan's decisions, for the driver's `Advance`
+    icases ownRawNodeReady_loanDec γ.raft nv.rn' id rs rdv' ce es ms false L $$ Hrn
+      with ⟨#Hld, Hrn⟩
     imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms L $$ Hrn
-      with ⟨Hrn, Happ, Hcr, Htk, #Hri⟩
+      with ⟨Hrn, Happ, #Hcef, #Hdk, Hcr, Htk, #Hri⟩
     -- (2026-10-15, stage N) the committed log handed out grows, a lower bound for the driver;
-    -- (D22 S-d4) with a snapshot, to the committed log up to it
+    -- (D22 S-d4) with a snapshot, to the committed log up to it; (U8 v2) with raft's certified
+    -- terms of it
+    have Hext : rs.delivered <+: dlvAfter rs.delivered ce L := by
+      cases L with
+      | none => exact List.prefix_append _ _
+      | some l => exact (HLo.2 l rfl).2.2.1
+    ihave #Hdk' : dlvKeysAt γ.sn rs.delivered.length
+        ((dlvAfter rs.delivered ce L).drop rs.delivered.length) $$ []
+    · rw [← Hsnγ]; iexact Hdk
     imod runCfg_extend γ rs { rs with delivered := rs.delivered ++ ce, psnap := false, slent := L }
       ce L Hsl0 rfl rfl rfl rfl rfl rfl rfl
-      (fun l hl => ⟨(HLo.2 l hl).2.1, (HLo.2 l hl).2.2.1⟩) Hfacts.2 $$ Hcfg
-      with ⟨Hcfg, #Hdlb⟩
+      (fun l hl => ⟨(HLo.2 l hl).2.1, (HLo.2 l hl).2.2.1⟩) Hfacts.2 rfl _
+      (List.prefix_iff_eq_append.1 Hext).symm $$ Hdk' Hcfg
+      with ⟨Hcfg, #Hdlb, #Hdlk⟩
     iunfold rofFull at Hrof
     icases Hrof with ⟨%x, Hr1, Hr2⟩
     imod dghostVar_update_halves (rs.delivered, ce, es, phsNext rs.phs h, L) γ.rof x x $$ Hr1 Hr2
@@ -910,40 +993,39 @@ theorem node.run.wp_proof
     isplitl [Hdlv Hr1 Happ Hmsgs Hmt Hcr Htk Hsnz]
     · unfold readyP
       iexists rs.delivered, ce, es, ms, rs.phs, phsNext rs.phs h, L
-      iframe Hdlv Hr1 Hdlb
+      iframe Hdlv Hr1 Hdlb Hdlk Hld
       cases L with
       | none =>
-        simp only [readyDataL, readyData, readyOut, rdSnapOut]
+        simp only [readyDataL, readyData, rdSnapOut]
         icases Hsnz with %Hrdz
         iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw Hss Hri
         isplitl [Happ]
-        · rw [← Hstor]
+        · rw [← Hstor, ← Hsnγ]
           iexact Happ
         isplitr
+        · icases Hcef with (%Hn | #Hcf)
+          · exact absurd rfl Hn
+          rw [← Hstor]; iexact Hcf
+        isplitr
         · iexists h; iframe Hhh; ipureintro; rfl
-        ipureintro; exact Hrdz
+        ipureintro; exact ⟨Hrdz, Hbatch⟩
       | some l =>
-        -- (D22 S-d4) a snapshot: one was restored since the last `Ready`, so the node takes
-        -- snapshots (`runCfg`)
-        have Hsin : γ.snapIn = true := by
-          cases hs : γ.snapIn
-          · have := Hfacts.2 (Hsnp.1 hs).1; cases this
-          · rfl
         simp only [readyDataL, readySnapData, rdSnapOut]
         icases Hsnz with ⟨Hhalf, #Hdc, %Hlo⟩
         ihave #Hll : snapLocal γ.raft γ.id l.snap.Metadata'.Index' $$ []
         · rw [Hgid]; iapply Hlloc $$ %l %rfl
-        iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw Hss Hri Hhalf Hdc Hll
+        ihave #Hcl : raftSnapCertD γ.raft (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) $$ []
+        · iapply Hcert $$ %l %rfl
+        iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw Hss Hri Hhalf Hdc Hll Hcl
         isplitr
         · iexists h; iframe Hhh; ipureintro; rfl
-        isplitr
-        · ipureintro; exact ⟨Hsin, Hsnp.2.1 Hsin⟩
         isplitr
         · ipureintro; exact Hllast l rfl
         isplitr
         · ipureintro; exact Hlo
-        rw [← Hstor]
+        rw [← Hstor, ← Hsnγ]
         iexact Happ
+    try imodintro
     inext
     iintro -
     wp_auto
@@ -955,7 +1037,7 @@ theorem node.run.wp_proof
     wp_auto
     ihave Hrn := Hrnback $$ Hrnown
     wp_for_post
-    iframe HΦ n r
+    iframe HΦ n r Hpend Hlive
     iexists pc', chan.nil, nv.advancec', rdv', ld'
     iframe propc readyc advancec rd lead
     isplitr
@@ -995,25 +1077,26 @@ theorem node.run.wp_proof
       ⟨%rs, %d, %ce, Hrn, #Hlb', Hcfg, %Hrs, Hrof⟩
     obtain ⟨Hstor, Hrc, Hunst, Hdel⟩ := Hrs
     subst Hrc
+    icases runCfg_sn γ rs $$ Hcfg with ⟨%Hsnγ, Hcfg⟩
     -- (D19i part 1) the rendezvous raises the floor (`advInv`): `run`'s node goes in, comes
     -- back appended and raised; (D22 S-d4) or, after a snapshot `Ready`, with the loan's receipt
     iapply adv_recv_au γ nv.rn' id nv.advancec' _ $$ [$Hlc1 $Hlc2] Hadvancec [Hrn Hcfg Hrof]
     · iunfold advDep
       iexists rs, d, ce
       iframe Hrn Hlb' Hcfg Hrof
-      ipureintro; exact ⟨Hstor, Hunst, Hdel⟩
+      ipureintro; exact ⟨⟨Hstor, Hsnγ⟩, Hunst, Hdel⟩
     inext
     iintro Hret
     iunfold advRet at Hret
-    icases Hret with ⟨%rs1, %ca_d, Hrn, #Hlb1, Hcfg, Hdlv, Hrofs, #Hcamlb, Hlr, %Hr1⟩
-    obtain ⟨Hstor1, Hunst1, Hunp1, HA⟩ := Hr1
+    icases Hret with ⟨%rs1, %ca_d, Hrn, #Hlb1, Hcfg, Hdlv, Hrofs, #Hcamlb, Hlr, %Hr1, #HA⟩
+    obtain ⟨Hstor1, Hunst1, Hunp1⟩ := Hr1
     wp_auto
-    -- (2026-10-15, stage N) A1, from the driver's
-    icases runCfg_a1 γ { rs1 with flw := false } ca_d $$ Hcfg Hcamlb [] with ⟨%HA1, Hcfg⟩
-    · ipureintro; exact HA
-    wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1 HA1
-      $$ [$Hrn $Hlr] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
-    ihave Hcfg := runCfg_advance γ rs1 t ca Hca HA1 $$ Hcfg
+    -- (2026-10-15, stage N) A1, from the driver's; (2026-10-28, stage U3d) dynamically after a
+    -- snapshot `Ready`, its `ConfState` no auto-leave one (the driver's, `advanceP`)
+    icases runCfgR_a1 γ rs1 ca_d $$ Hcfg Hcamlb HA with ⟨#HA1, Hcfg⟩
+    wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1
+      $$ [$Hrn $Hlr $HA1] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
+    ihave Hcfg := runCfg_advance γ rs1 t ca Hca $$ HA1 Hcfg
     -- (D22 S-d4) the node after `Advance` (`advRS`): nothing queued, unpersisted or lent, the
     -- committed log handed out the driver's
     have Hadv : (advRS rs1 t ca).steps = [] ∧ (advRS rs1 t ca).unpersisted = [] ∧
@@ -1025,7 +1108,7 @@ theorem node.run.wp_proof
       | some l => simp [advRS, rsDlv, hs]
     obtain ⟨Ha1, Ha2, Ha3, Ha4, Ha5, Ha6, Ha7⟩ := Hadv
     wp_for_post
-    iframe HΦ n r
+    iframe HΦ n r Hpend Hlive
     iexists pc', chan.nil, chan.nil, zero_val Ready, ld'
     iframe propc readyc advancec rd lead
     isplitr
@@ -1047,7 +1130,7 @@ theorem node.run.wp_proof
     · unfold rofFull
       iexact Hrofs
     ileft; ipureintro; simp
-  -- `<-n.status`: never
+  -- `c := <-n.status: c <- getStatus(r)` (2026-10-29, stage U7; until then refuted, `False`)
   iapply BigAndL.bigAndL_cons.2
   isplit
   · ileft
@@ -1058,8 +1141,40 @@ theorem node.run.wp_proof
     · ipureintro; rfl
     isplitr
     · iapply isHandshake_isChan $$ Hstatus
-    iapply handshake_false_recv_au γ.status nv.status' $$ [$Hlc1 $Hlc2] Hstatus
-  -- `<-n.stop`: never
+    iapply handshake_receive_au γ.status nv.status' statusChP iprop(True) _
+      $$ [$Hlc1 $Hlc2] Hstatus []
+    · itrivial
+    inext
+    iintro %ch Hch
+    iunfold statusChP at Hch
+    icases Hch with ⟨%γc, #Hc⟩
+    wp_auto
+    ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
+    iunfold runHead at Hhead
+    icases Hhead with ⟨%rs, Hrn, Hrest⟩
+    icases ownRawNode_borrow γ.raft nv.rn' id rs r $$ Hrn Hrnraft with ⟨%cf, %s, Hphys, Hback⟩
+    wp_apply wp_getStatus cf r id s $$ [$Hphys] as %st ⟨Hst, Hphys⟩
+    ihave Hrn := Hback $$ Hphys
+    try wp_auto
+    wp_bind (App (App (Val (chan.send _)) (Val _)) (Val _))
+    iapply chan.wp_send ch st γc $$ []
+    · iapply isHandshake_isChan $$ Hc
+    iintro ⟨Hl1, Hl2, Hl3, -⟩
+    iapply handshake_send_au γc ch st _ iprop(True) $$ [$Hl1 $Hl2 $Hl3] Hc Hst
+    inext
+    iintro -
+    wp_auto
+    wp_for_post
+    iframe HΦ n r Hpend Hlive
+    iexists pc', rc', ac, rdv', ld'
+    iframe propc readyc advancec rd lead
+    isplitr
+    · ipureintro; exact Hpc'
+    unfold runHead
+    iexists rs
+    iframe Hrn Hrest
+  -- `<-n.stop` (2026-10-29, stage U9a): the client's half of `live`; the node stopped,
+  -- `close(n.done)` and return
   iapply BigAndL.bigAndL_cons.2
   isplit
   · ileft
@@ -1069,7 +1184,21 @@ theorem node.run.wp_proof
     · ipureintro; rfl
     isplitr
     · iapply isHandshake_isChan $$ Hstop
-    iapply handshake_false_recv_au γ.stop nv.stop' $$ [$Hlc1 $Hlc2] Hstop
+    iapply handshake_receive_au γ.stop nv.stop' _ iprop(True) _ $$ [$Hlc1 $Hlc2] Hstop []
+    · itrivial
+    inext
+    iintro %v Hcl
+    unfold nodeLiveRaw
+    imod dghostVar_update_halves true _ _ _ $$ Hlive Hcl with ⟨Hl1, -⟩
+    imod dghostVar_persist _ _ _ $$ Hl1 with #Hst
+    wp_auto
+    wp_apply wp_broadcast_chan_close nv.done' γ.done (nodeStoppedRaw γ) $$ [$Hpend]
+    · unfold nodeStoppedRaw; iexact Hst
+    iintro -
+    wp_auto
+    wp_for_post
+    iapply HΦ
+    itrivial
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

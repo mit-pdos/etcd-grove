@@ -33,7 +33,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header. (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStoppedRaw`.) -/
 abbrev node.stepWait.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (ml : Loc) (data : List w8)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
@@ -43,7 +43,7 @@ abbrev node.stepWait.spec : Prop :=
       propData γ.raft (propEntryM data) ∗ entTk γ.raft (propEntryM data) }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"stepWait"))
       (Val #(interface.ok ctx))) (Val #ml))
-  {{ (err : GoInterface), RET #err; propErr cd err }}
+  {{ (err : GoInterface), RET #err; propErrRaw γ cd err }}
 
 end spec
 

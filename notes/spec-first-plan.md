@@ -83,6 +83,23 @@ repairs), so every repair is followed by another round with a fresh reviewer, un
 nothing in the first tier; each later round is told what the previous repair changed (the diff) and
 looks hardest there.
 
+*When to stop iterating* (2026-10-29, the user's). Count rounds per design increment (the statements
+one round's repair or one Scope decision introduced), not per stage: about 2-3 rounds to converge is
+normal (the compactor pilot's whole scope took 5; `backend-cmp`'s first increment, the delete-only
+token, 3). If the same statements still draw a first-tier finding after their third round, stop
+reviewing them: the round's questions go to the user, or the glue is written against the real caller,
+which finds what reviews miss (`compactableOk`, the freeze below). A round whose first-tier findings
+come from the previous repair is the sign of churn. Rounds on a new increment do not count against a
+stage when the increment is needed for soundness: `backend-cmp`'s rounds 7-8 reviewed the tracked
+absence of the compaction keys, the design left after round 6 found the axiom it was to replace false.
+
+*An axiom check* (2026-10-29, the user's). A stage that adds or changes a trust-boundary axiom, or
+restates an axiom-backed spec, runs the `axiom` skill on it before the freeze: an attempt to refute it
+with a concrete Go program, which the spec review does not make. `mvcc.kbNoCmp_metaNone` was on
+`lean`, past its review, until `backend-cmp`'s round 6 saw that its antecedent holds for any read
+transaction (take `L := False`); the restatement proposed in its place was refuted by the `axiom`
+skill (direct `Meta` puts; branch `axiom/kbnocmp-metanone`), not by a review.
+
 *Cost.* A round took about 9 minutes in the pilot (28-47 tool calls, about 170k tokens), most of it
 the fresh reviewer finding and reading its context (the agent file, `CLAUDE.md`, the targets and what
 they unfold to, the Go code, and above all the callers' proofs: `NewServer.lean` alone is 1800 lines);
@@ -177,11 +194,61 @@ an unproved `sorry`, not against `Compact`'s Go body (which reads the context's
 **Prove (was phase 4): the remaining proofs**, against frozen specs, in parallel (independent per function,
 which suits agents).
 
+**The change log after the freeze, classified** (2026-10-30, the user's). Every change to a frozen
+statement goes in the stage's change log (old → new, why), as raft-unified's did
+(`notes/raft-unified-plan.md`), and is tagged there **when it is made**, with one category and how it
+was found. A raw count misleads: of raft-unified's 162 logged entries, 22 were status notes or
+duplicates, and of the other 140 only 59 were the review's misses. The categories:
+- **F, fix**: the frozen statement is false of the code or unprovable (a premise added, a post
+  weakened, a statement restated). A review miss.
+- **R, redesign**: the frozen design of an abstraction is replaced (raft-unified's storage contract,
+  candidate 17). A review miss, and the costliest kind.
+- **W, weakening**: a premise turns out unnecessary and is dropped.
+- **E, extension**: a spec, law or vocabulary the frozen design does not have (a new method's spec, a
+  law a client asks for).
+- **D, decision**: the user or the coordinator changes the scope or the design, not forced by a proof.
+- **A, adaptation**: a client restated over a changed API (what the freeze exists to allow).
+- **C, conformance**: the design built as stated, renames, moves, visibility, deletions, the
+  follow-through of another change.
+
+How it was found: *proof* (a proof or glue failed), *Go* (reading the code showed the statement false:
+the change then often comes with an `issues/` file), *test*, *user*, *check* (a final `tcb-report`
+or API check). Also mark whether the change touches a public or trusted statement or only an
+internal one, and whether the user approved it or it awaits review. The tag is one line ahead of the
+entry, e.g. `[F, Go, trusted, awaits user]`.
+
+The metric is the review's misses (F and R) after the freeze, by category, against the spec's
+size; the tags also show where the misses cluster. raft-unified's (classified after the fact,
+2026-10-30, one reader): F 41, R 18, W 12, E 8, D 13, A 12, C 36; the misses concentrated in the
+storage contract, the newest abstraction, which had the fewest review rounds before the freeze; 28
+fixes touched public or trusted statements, 8 were facts of the Go code or the protocol, and 7 trusted
+changes (Stage P's P2, P4-P6, P8-P10) were approved by the coordinator while the user was away.
+Lesson: review depth should match how new the abstraction is.
+
 **Agents in Draft and Review** (M2, 2026-10-28): a long agent drifts toward proving. Its brief says
 skeleton only from the start (statements; the glue; a marked `sorry` on the failing step of anything
 else) and **never deletes a finished proof**: a broken one keeps its text, with the `sorry` on the
 failing step naming the commit that had the proof. (M2's S1 agent re-proved about 45 files before
 S2-S4 had statements, and replaced finished proofs wholesale with `sorry`s, until redirected.)
+
+**The build budget** (2026-10-29, the user's). Reviewers never build; the repairs after their rounds
+do, and builds were about half of a repair's time: `backend-cmp`'s six repairs (rounds 1-6) ran 35
+full `lake build`s (114 minutes in the foreground, three at the 10-minute shell timeout, 30 more in
+the background), 10 `tcb-report`s (37 minutes) and 71 targeted builds (27 minutes), out of about 250
+minutes. The full builds were mostly a search ("the full build, to find the callers that must supply
+the new premise") or the check of record before each commit; after a change to a widely imported
+statement each one rebuilds most of the repository (`mvcc/InvStore.lean` has 1724 importers, about
+300k lines), and the search ran it once per caller fixed. A repair's brief therefore says:
+- **Find the callers without building**: `etc/importers.py --uses NAME FILE` lists the modules that
+  import `FILE` (directly or not) and mention `NAME`; edit them all, check each with
+  `etc/lean-check.py` (`--files`), then build them (`lake build $(etc/importers.py --uses NAME
+  --leaves FILE)`).
+- **One full build per round**, at the end of the repair, in the background while the next round's
+  reviewer starts (a round reviews a named commit, not a build). Commits within a round need not each
+  pass a full build; each commit's message says what was checked (the files `lean-check`ed, the
+  targets built).
+- **`etc/tcb-report.py --check` only when an axiom or a `sorry` changed**, and once before a merge
+  into the main branch, which also takes the full build of record.
 
 **Not covered by testing:** the resource part of a spec (ownership, fractions, invariants,
 atomicity). Only Draft's glue proofs and Probe's sampled proofs check it before Prove.
@@ -394,6 +461,35 @@ resource parts show. Next libraries by the paper replay's yield: etcd's own name
 (mvcc, lease, quota: call sequences), prometheus and `strconv`-like single calls (cheap), rafthttp.
 The `wBkt` trio: fixed 2026-10-27 (handles at a generation, `notes/decisions.md`, "bbolt handles at
 a generation"); the tester now runs the new statements by default (`-old-wbkt` for the old).
+
+**`Bucket.Delete_kv` widened (backend-cmp F3, 2026-10-30).** The tester now records every slice a
+cursor move hands out (`curAt`'s `txBytes tx k e.1`, `txBytes tx v e.2`) and checks, at a step
+`(read txBytes)` (`txBytes_acc` with a fraction of `txLive`), that each slice of a live transaction
+still reads its bytes; `Seek` may take such a slice as its key; and `Delete`'s key is a fresh slice
+or another live transaction's slice (`own = true`, through `txBytes_acc`), or, with the widened
+statement, the write transaction's own slice (`own = false`), given back holding the same bytes
+(`-old-delete`: owned keys only). A write cursor goes back (the wand) before the `Delete`, which
+needs `ownWTxG`, so the specs allow iteration after a `Delete` on a new cursor only; reads of the
+deleted key's own slice after the `Delete`, after more `Put`s and `Delete`s, are allowed and
+checked. `-focus delete` weights the steps toward that path (no `Close`, mostly writers);
+`-nkeys 12 -vmax 1500` makes buckets large enough to leave inline storage, so that a write
+transaction's cursor keys point into the memory map (instrumented). Runs of 60 calls:
+
+| statements | runs | refuted | how |
+|---|---|---|---|
+| current, uniform steps | 10 000 | **0** | 280 blocked (as before); 143 Deletes by the tx's own slice, 55 of a present key |
+| current, `-focus delete` | 10 000 | **0** | 1108 blocked (11%, from the weighting: commits remapping under readers; `-old-delete` 11% too); 5922 Deletes by the tx's own slice (2102 of a present key), 6340 reads of a deleted key's slice |
+| current, `-focus delete -nkeys 12 -vmax 1500` | 10 000 | **0** | 1593 blocked; 2073 Deletes of a present key by the tx's own slice, 72 of them a slice into the memory map |
+| `-old-delete`, `-focus delete` | 3000 | 0 | no Delete by the tx's own slice (the generator respects the old pre) |
+| mutant: a Delete by the tx's own slice keeps the key (`delete-tx-noop`) | 3000 | 117 (3.9%) | a later cursor sees the key; uniform steps: 2 (0.07%) |
+| mutant: a Delete by the tx's own slice changes what the slice reads (`delete-clears-txbytes`) | 3000 | 562 (19%) | `(read txBytes)`, or the slice given back, reads the old bytes; uniform steps: 15 (0.5%) |
+| mutant: `Delete` a no-op, `-focus delete` | 3000 | 903 (30%) | (1.7% with uniform steps) |
+
+So the widened statement survives at bbolt v1.5.0 (etcd's pin), including the uncertain point
+(`txBytes` after `Delete`: the deleted key's slice and the others still read their bytes, the
+inode array is shifted, the key bytes are not touched; `node.go:145-159`). The uniform generator
+reaches the new path rarely (55 Deletes of a present key in 10 000 runs): a widened precondition
+needs a weighting toward it, as here, or the tester's verdict on it is weak.
 
 ## Checkpoint: the compactor pilot and M2 to review round 1 (2026-10-28)
 

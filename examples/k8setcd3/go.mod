@@ -12,7 +12,7 @@ replace go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-202610
 
 replace go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261028111014-249d76bea78d
 
-replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261019023206-c8217eb91ae5
+replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261028061729-565c2bda9e6d
 
 require (
 	github.com/anishathalye/porcupine v1.3.1

@@ -18,7 +18,8 @@ theorem raftLog.nextUnstableSnapshot.wp_proof [package_sem : Assumptions] (wp_un
                           ⌜ls.snap = some sid ∧
                                 ls.sip = false ∧
                                   snapId sv = sid ∧
-                                    snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn ∧ 0 < uint.Z sid.index'⌝ ∗
+                                    snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn ∧
+                                      0 < uint.Z sid.index' ∧ ∃ x, sv.Metadata'.ConfState'.lists.Has x⌝ ∗
                             ownSnapS p (DFrac.own 1) sv) -∗
                   Φ (intoVal p)) -∗
             WP

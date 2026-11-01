@@ -28,6 +28,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The applier row's part shared by both auth modes** at the uber-applier `ua` (`srvApplyKV`'s
 without the auth store's apply-side resource). -/

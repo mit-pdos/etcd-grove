@@ -49,6 +49,30 @@ instance isClientWatcherCore_persistent (V : WEnv GF) (w : Loc) :
     Persistent (isClientWatcherCore V w) := by
   unfold isClientWatcherCore; infer_instance
 
+/-- **The watcher `w`'s stub is over the connection `conn`** (persistent; G2's F-W3, 2026-10-30):
+its `remote` field holds a watch client whose connection is `conn` (`v3rpc.watchStubAt`), as
+`isClientWatcherCore` says of its environment's: what ties a client's `Watcher` to the connection
+its other fields use (`clientTokAt`). -/
+def watcherConnAt (w conn : Loc) : IProp GF :=
+  iprop(∃ wc : Loc, watcherF w go!"remote" ↦□ wcIface wc ∗ v3rpc.watchStubAt wc conn)
+
+instance watcherConnAt_persistent (w conn : Loc) : Persistent (watcherConnAt (GF := GF) w conn) := by
+  unfold watcherConnAt; infer_instance
+
+theorem watcherConnAt_of_core (V : WEnv GF) (w : Loc) :
+    isClientWatcherCore V w ⊢ watcherConnAt w V.conn := by
+  unfold isClientWatcherCore watcherConnAt
+  iintro ⟨%callSl, %vs, -, #Hr, -, -, -, -, -, #Hs, -⟩
+  iexists V.wc
+  iframe Hr Hs
+
+theorem watcherConnAt_of_watcher (V : WEnv GF) (w : Loc) :
+    isClientWatcher V w ⊢ watcherConnAt w V.conn := by
+  unfold isClientWatcher watchSrvFacts watcherConnAt
+  iintro ⟨%callSl, %vs, -, #Hr, -, -, -, -, -, ⟨#Hs, -⟩, -⟩
+  iexists V.wc
+  iframe Hr Hs
+
 /-- **The watcher with the facts of its connection's server** is `isClientWatcher`. -/
 theorem isClientWatcher_of_core (V : WEnv GF) (w : Loc) :
     isClientWatcherCore V w ∗ watchConnFacts V ⊢ isClientWatcher V w := by

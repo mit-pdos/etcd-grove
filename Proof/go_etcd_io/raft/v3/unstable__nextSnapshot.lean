@@ -35,7 +35,7 @@ theorem unstable.nextSnapshot.wp_proof
   rcases snap_some_or_none us.snap with ⟨sid, Hs⟩ | Hs
   · ihave Hpk := Hpksn
     iunfold pendKsn at Hpk
-    icases Hpk $$ %sid %Hs with ⟨%sv, #Hsv, %Hid, %Hin⟩
+    icases Hpk $$ %sid %Hs with ⟨%sv, #Hsv, %Hid, %Hin, %Hhas⟩
     ihave %Hnn : ⌜uv.snapshot' ≠ null⌝ $$ [Hsv]
     · iunfold ownSnapS at Hsv; iNamed Hsv; ipureintro; exact Hnn
     simp only [Hnn, _root_.decide_false]
@@ -54,7 +54,7 @@ theorem unstable.nextSnapshot.wp_proof
       iright
       iexists sid, sv
       isplitr
-      · ipureintro; exact ⟨Hs, rfl, Hid, Hin⟩
+      · ipureintro; exact ⟨Hs, rfl, Hid, Hin, Hhas⟩
       iunfold ownSnapS
       iexists ds, pm, uf
       isplitr

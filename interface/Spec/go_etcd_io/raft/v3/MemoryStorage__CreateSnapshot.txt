@@ -3,35 +3,25 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def MemoryStorage.CreateSnapshot.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (x i : w64) (cs : Loc) (dq : DFrac) (oc : Option ConfStateM) (data : GoSlice)
-    (bs : List w8) (eood : GoInterface),
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (i : w64) (e : EntryM) (cs : Loc) (dq : DFrac) (c : ConfStateM)
+    (data : GoSlice) (bs : List w8) (eood : GoInterface),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            memSnapRO ms γs ∗
-              memKey γs.ak ∗
-                memFloorTok ms γs x ∗
-                  memCsArg cs dq oc ∗
-                    ownSlice data bs (DFrac.own 1) ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
-          (|={⊤ \ ↑memSnapN,∅}=>
-              ∃ σt,
-                memSnapTokG γs σt ∗
-                  ⌜uint.Z σt.ss.index' < uint.Z i → uint.Z σt.prev.index' ≤ uint.Z i ∧ uint.Z i ≤ uint.Z x⌝ ∗
-                    (□
-                        ∀ t,
-                          memStorCert γs
-                            (snapTrip (memSnapCreated σt i t oc bs)
-                              (memSnapCreated σt i t oc bs).Metadata'.ConfState'.lists)) ∗
-                      (⌜uint.Z i ≤ uint.Z σt.ss.index'⌝ -∗
-                          memSnapTokG γs σt ={∅,⊤ \ ↑memSnapN}=∗
-                            memKey γs.ak -∗
-                              memCsArg cs dq oc -∗ ownSlice data bs (DFrac.own 1) -∗ Φ (intoVal null, intoVal eood)) ∧
-                        ∀ t,
-                          ⌜uint.Z σt.ss.index' < uint.Z i⌝ -∗
-                            memSnapTokG γs (memStorCreated σt i t oc bs) ={∅,⊤ \ ↑memSnapN}=∗
-                              ∀ snap',
-                                ownSnapM snap' (DFrac.own 1) (memSnapCreated σt i t oc bs) -∗
-                                  memKey γs.ak -∗ memCsArg cs dq oc -∗ Φ (intoVal snap', intoVal GoInterface.nil)) -∗
+            memStorInvP ms γs J ∗
+              memLog γs (uint.nat i) DFrac.discard [e] ∗
+                J.SV (memSnapMade i e.Term' c bs) ∗
+                  J.DL (uint.nat i) ∗
+                    memSnapLb γs 0 ∗
+                      ownCSM cs dq c ∗
+                        ownSlice data bs (DFrac.own 1) ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+          (▷
+              ∀ snap err,
+                ownCSM cs dq c ∗
+                    memSnapLb γs (uint.nat i) ∗
+                      (⌜err = GoInterface.nil⌝ ∗ ownSnapM snap (DFrac.own 1) (memSnapMade i e.Term' c bs) ∨
+                        ⌜snap = null ∧ err = eood⌝ ∗ ownSlice data bs (DFrac.own 1)) -∗
+                  Φ (intoVal snap, intoVal err)) -∗
             WP
               ((((intoVal
                       (methods MemoryStorage.ty.PointerType

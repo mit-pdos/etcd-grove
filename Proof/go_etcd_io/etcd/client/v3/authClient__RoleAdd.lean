@@ -28,22 +28,23 @@ theorem authClient.RoleAdd.wp_proof
     (wp_retry : retryAuthClient.RoleAdd.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     authClient.RoleAdd.spec (GF := GF) (hG := hG) := by
-  intro api addr ci cd name Spec Q
-  wp_start as ⟨#Hapi, #Hctx, #Hce, #Hrpc, #Hpre⟩
-  iunfold authObjAt at Hapi
-  icases Hapi with ⟨%rac, %conn, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
+  intro api conn addr ci cd name Spec Q
+  wp_start as ⟨#Hapi, #Hctx, #Hce, #Hrpc, #Hpre, %Hsz⟩
+  iunfold authObjAtC at Hapi
+  icases Hapi with ⟨%rac, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
   wp_auto
   ihave Hsend : (pbAuthRoleAddRequest (GF := GF)).send «$a1_ptr» name $$ [«$a1»]
   · simp only [pbAuthRoleAddRequest]
     iexists _
     iframe «$a1»
-    ipureintro; rfl
+    ipureintro; exact ⟨rfl, rfl⟩
   iunfold callOptsAt at Hsl
   icases Hsl with ⟨%vs, #Hvs, -, #Hvok, -⟩
   wp_apply wp_retry rac conn addr Spec Q ci cd «$a1_ptr» name sl vs $$ [Hsend]
     as %resp %err ⟨-, Hres⟩
   · iframe #
     iframe
+    try (ipureintro; exact strsSizeOk.lt_1 Hsz)
   iunfold authCallOut at Hres
   icases Hres with (⟨%Herr, Hq⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr

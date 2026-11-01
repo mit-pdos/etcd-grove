@@ -51,7 +51,7 @@ theorem Main.wp_proof
   intro Hrb
   wp_start as #Hcc
   -- the storage registry
-  imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := MemStorRec) with ⟨%γreg, Hreg⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := KVStorRecT) with ⟨%γreg, Hreg⟩
   letI : KVStor GF := ⟨γreg⟩
   imod kvStorInv_alloc (GF := GF) ⊤ $$ Hreg with #HstorInv
   wp_apply wp_slice_literal

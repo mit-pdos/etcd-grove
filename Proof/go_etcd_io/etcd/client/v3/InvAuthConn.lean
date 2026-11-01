@@ -76,8 +76,10 @@ def pbAuthUserAddRequest : ProtoMsg GF where
   ty := etcdserverpb.AuthUserAddRequest.ty
   M := UserAddW
   send inp m := iprop(∃ req : etcdserverpb.AuthUserAddRequest, inp ↦ req ∗
-    ⌜req.Name' = m.name ∧ req.Password' = m.pw ∧ req.HashedPassword' = []⌝ ∗
+    ⌜req.Name' = m.name ∧ req.Password' = m.pw ∧ req.HashedPassword' = [] ∧
+      req.unknownFields' = slice.nil⌝ ∗
     userOptsFalse req.Options')
+  wireLen m := m.name.length + m.pw.length + wireSlack
   recv r m := iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthUserAddRequest go!"Name" r ↦□ m.name ∗
     ∃ o : Loc, structFieldRef etcdserverpb.AuthUserAddRequest go!"Options" r ↦□ o ∗ userOptsFalse o)
   recv_persistent _ _ := inferInstance
@@ -92,7 +94,8 @@ def pbAuthUserGrantRoleRequest : ProtoMsg GF where
   ty := etcdserverpb.AuthUserGrantRoleRequest.ty
   M := GoString × GoString
   send inp m := iprop(∃ req : etcdserverpb.AuthUserGrantRoleRequest, inp ↦ req ∗
-    ⌜req.User' = m.1 ∧ req.Role' = m.2⌝)
+    ⌜req.User' = m.1 ∧ req.Role' = m.2 ∧ req.unknownFields' = slice.nil⌝)
+  wireLen m := m.1.length + m.2.length + wireSlack
   recv r m := auth.userGrantRoleReqIs r m.1 m.2
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.AuthUserGrantRoleRequest))
@@ -103,7 +106,9 @@ def pbAuthUserGrantRoleRequest : ProtoMsg GF where
 def pbAuthRoleAddRequest : ProtoMsg GF where
   ty := etcdserverpb.AuthRoleAddRequest.ty
   M := GoString
-  send inp m := iprop(∃ req : etcdserverpb.AuthRoleAddRequest, inp ↦ req ∗ ⌜req.Name' = m⌝)
+  send inp m := iprop(∃ req : etcdserverpb.AuthRoleAddRequest, inp ↦ req ∗
+    ⌜req.Name' = m ∧ req.unknownFields' = slice.nil⌝)
+  wireLen m := m.length + wireSlack
   recv r m := auth.roleAddReqIs r m
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.AuthRoleAddRequest))
@@ -116,7 +121,8 @@ def pbAuthRoleGrantPermissionRequest : ProtoMsg GF where
   ty := etcdserverpb.AuthRoleGrantPermissionRequest.ty
   M := GoString × auth.PermW
   send inp m := iprop(∃ req : etcdserverpb.AuthRoleGrantPermissionRequest, inp ↦ req ∗
-    ⌜req.Name' = m.1⌝ ∗ auth.ownPermW req.Perm' m.2)
+    ⌜req.Name' = m.1 ∧ req.unknownFields' = slice.nil⌝ ∗ auth.ownPermW req.Perm' m.2)
+  wireLen m := m.1.length + m.2.key.length + m.2.rangeEnd.length + wireSlack
   recv r m := auth.roleGrantPermissionReqIs r m.1 (some m.2)
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.AuthRoleGrantPermissionRequest))
@@ -127,7 +133,9 @@ def pbAuthRoleGrantPermissionRequest : ProtoMsg GF where
 def pbAuthEnableRequest : ProtoMsg GF where
   ty := etcdserverpb.AuthEnableRequest.ty
   M := Unit
-  send inp _ := iprop(∃ req : etcdserverpb.AuthEnableRequest, inp ↦ req)
+  send inp _ := iprop(∃ req : etcdserverpb.AuthEnableRequest, inp ↦ req ∗
+    ⌜req.unknownFields' = slice.nil⌝)
+  wireLen _ := wireSlack
   recv r _ := iprop(⌜r ≠ null⌝)
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.AuthEnableRequest))
@@ -231,6 +239,28 @@ def authObjAt (api : Loc) (addr : List GoString) : IProp GF :=
 instance authObjAt_persistent (api : Loc) (addr : List GoString) :
     Persistent (authObjAt (GF := GF) api addr) := by
   unfold authObjAt; infer_instance
+
+/-- **The `*authClient` `api` over the connection `conn`** (5b): `authObjAt`'s, with the connection
+named, which a metadata-indexed call's precondition speaks of (`attemptPre`), as `kvObjAtC`. -/
+def authObjAtC (api conn : Loc) (addr : List GoString) : IProp GF :=
+  iprop(∃ (rac : Loc) (sl : GoSlice),
+    structFieldRef go_etcd_io.etcd.client.v3.authClient go!"remote" api ↦□
+      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryAuthClient.ty) #rac :
+        GoInterface) ∗
+    retryAuthAt rac conn ∗ isEtcdConn conn addr ∗
+    structFieldRef go_etcd_io.etcd.client.v3.authClient go!"callOpts" api ↦□ sl ∗ callOptsAt sl)
+
+instance authObjAtC_persistent (api conn : Loc) (addr : List GoString) :
+    Persistent (authObjAtC (GF := GF) api conn addr) := by
+  unfold authObjAtC; infer_instance
+
+/-- An `*authClient` over a named connection is one over some connection. -/
+theorem authObjAt_of_C (api conn : Loc) (addr : List GoString) :
+    authObjAtC (GF := GF) api conn addr ⊢ authObjAt api addr := by
+  unfold authObjAt authObjAtC
+  iintro ⟨%rac, %sl, H⟩
+  iexists rac, conn, sl
+  iexact H
 
 end defs
 

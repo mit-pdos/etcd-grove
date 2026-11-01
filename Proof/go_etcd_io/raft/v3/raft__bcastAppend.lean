@@ -66,7 +66,7 @@ theorem raft.bcastAppend.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_sendAppend : raft.sendAppend.spec (GF := GF) (hG := hG)) :
     raft.bcastAppend.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hlead
+  intro c r id s Hlead Htz
   wp_start as Hphys
   wp_auto
   -- (stage R8a) the leader's progress bound, carried through the `Visit`
@@ -133,7 +133,7 @@ theorem raft.bcastAppend.wp_proof
     · -- a peer: `sendAppend` may add `App`s and change `Progress`es
       rw [decide_eq_false Hii]
       wp_auto
-      wp_apply wp_raft_sendAppend _ _ _ _ i Hii (by exact Hicfg) (by exact Hlead) $$ [$Hphys]
+      wp_apply wp_raft_sendAppend _ _ _ _ i Hii (by exact Hicfg) (by exact Hlead) (by exact Htz) $$ [$Hphys]
         as %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
       try wp_auto
       icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩

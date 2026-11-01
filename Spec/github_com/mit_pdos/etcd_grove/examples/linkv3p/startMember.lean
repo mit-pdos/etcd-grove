@@ -45,10 +45,10 @@ abbrev startMember.spec : Prop :=
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
   -- (W4 of `notes/watch-cut-plan.md`) the members' workload, granting no lease
   threadBound GF ≤ 2 ^ 29 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  γ.vs = ps → γ.dyn = false → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
+  γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   lg ≠ null →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.dbOpensOk →
   v3rpc.ServerMethodSets →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p ∗
       netAddrFree (GF := GF) peerAddr ∗ netAddrFree (GF := GF) client ∗ threadTok ∗

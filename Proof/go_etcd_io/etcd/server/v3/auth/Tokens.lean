@@ -21,6 +21,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.auth.Model
 public import Perennial.Ghost.GhostMap
 public import Perennial.Proof.fmt.Base
+public import Perennial.Proof.strings.Base
 
 @[expose] public section
 
@@ -43,8 +44,34 @@ def simpleTok (pre : GoString) (idx : w64) : GoString :=
   pre ++ go!"." ++ fmt.decimal (uint.Z idx)
 
 /-- **A token of the simple provider's shape** (`<prefix>.<raft index>`; the auth plan's E2c,
-2026-10-25). -/
-def tokShape (token : GoString) : Prop := ∃ (pre : GoString) (idx : w64), token = simpleTok pre idx
+2026-10-25), its prefix without a space (`tokPrefixOk`, 2026-10-30). -/
+def tokShape (token : GoString) : Prop :=
+  ∃ (pre : GoString) (idx : w64), token = simpleTok pre idx ∧ tokPrefixOk pre
+
+/-- **A token of the simple shape has no space**: its prefix has none, nor `.` or a digit. -/
+theorem tokShape_noSpace (token : GoString) (h : tokShape token) : W8 32 ∉ token := by
+  obtain ⟨pre, idx, rfl, hp⟩ := h
+  intro hm
+  simp only [simpleTok, List.mem_append] at hm
+  rcases hm with (hm | hm) | hm
+  · exact hp hm
+  · revert hm; decide
+  · rw [fmt.decimal_of_nonneg (by word)] at hm
+    have := fmt.decimalNat_digits _ _ hm
+    revert this; decide
+
+/-- **The server's `"Bearer "` trim leaves a token of the simple shape as it is** (`"Bearer "` has
+a space, the token none). -/
+theorem tokShape_trimBearer (token : GoString) (h : tokShape token) :
+    strings.trimPrefix token go!"Bearer " = token := by
+  unfold strings.trimPrefix
+  split
+  · rename_i hp
+    exfalso
+    apply tokShape_noSpace token h
+    obtain ⟨t, rfl⟩ := hp
+    simp
+  · rfl
 
 /-- **The token `token` was issued to `user`** under the names `γa` (persistent): an element of a
 ghost map keyed by the token (the auth plan's E2c, 2026-10-25: a token is issued once, to one user,

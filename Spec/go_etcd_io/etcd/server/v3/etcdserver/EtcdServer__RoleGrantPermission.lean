@@ -46,17 +46,20 @@ abbrev EtcdServer.RoleGrantPermission.spec : Prop :=
 with its contract `raftRequest.specM true`'s (`authRaftOk_on`), the request admitted (`adminPropOk`, for a role name of at most `maxKeySize` bytes);
 the outcome `authEntryOut` of `adminOutOn`: on success, the request applied at the committed prefix
 `L` before its entry (`appliedOkM true`), the auth state after it published (`pubAfterM true`) and
-its step determinate there (`adminQh`); else the apply thread's error, or the request perhaps
-proposed. -/
+its step determinate there (`adminQh`), with (5b) the result `Q` of its client's update of the
+auth history (`histAu`) if its entry is recorded; else the apply thread's error, or the request
+perhaps proposed. -/
 abbrev EtcdServer.RoleGrantPermission.specOn : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (r : Loc) (name : GoString) (w : Option auth.PermW) (F : mvcc.Log),
+    (cd : context.ContextDesc (IProp GF))
+    (Q : List auth.AuthState → IProp GF) (r : Loc) (name : GoString) (w : Option auth.PermW) (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ apply.authRoleGrantPermissionIs r (name, w) ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
-      adminPreOn s E ρ ctx cd F }}
+      adminPreOn s E ρ ctx cd F
+        (adminHistAu s E ρ ctx (irrRoleGrantPermission name w) Q) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"RoleGrantPermission"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); applyErrIs err ∗
-      authEntryOut (adminOutOn s E ρ (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w))
+      authEntryOut (adminOutOn s E ρ ctx (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w) Q)
         etcdserverpb.AuthRoleGrantPermissionResponse.ty) resp err }}
 
 end spec

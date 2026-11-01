@@ -50,28 +50,28 @@ theorem stepLeader.wp_proof [package_sem : Assumptions] (wp_raft_bcastHeartbeat 
                               m.Type' = MsgUnreachable ∨
                                 m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader ∨ m.Type' = MsgCheckQuorum →
       s.role = PRole.leader →
-        (m.Type' = MsgAppResp → m.From' ≠ W64 0) →
-          (m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∧ m.Reject' = true → m.From' ≠ id) →
-            (m.Type' = MsgProp → ents ≠ [] ∧ ↑ents.length < 2 ^ 61 ∧ s.term ≠ W64 0) →
-              (m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgReadIndex →
-                  RdOk c.voters s.rd ∧ s.term ≠ W64 0) →
-                (m.Type' = MsgReadIndex → ents ≠ []) →
-                  (m.Type' = MsgHeartbeatResp →
-                      (ctx = [] ∨ 8 ≤ ctx.length) ∧
-                        (ctx ≠ [] →
-                            uint.Z (leToU64 (List.take 8 ctx)) ≤ uint.Z s.rd.ro.confirmed + ↑s.rd.ro.pending.length) ∧
-                          c.voters ≠ ∅) →
-                    (m.Type' = MsgAppResp →
-                        (m.Reject' = false → uint.Z m.Index' ≤ uint.Z (logLast s.logst)) ∧
-                          (m.Reject' = true →
-                            s.gh.ns = true →
-                              2 ≤ uint.Z m.Index' ∧
-                                1 ≤ uint.Z m.RejectHint' ∧
-                                  uint.Z m.RejectHint' ≤ uint.Z m.Index' ∧
-                                    ∀ (t0 : w64),
-                                      plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) (W64 1) = some t0 →
-                                        uint.Z t0 ≤ 1)) →
-                      (m.Type' = MsgTransferLeader → s.gh.xf = false) →
+        (m.Type' = MsgBeat ∨ m.Type' = MsgTransferLeader → s.term ≠ W64 0) →
+          (m.Type' = MsgAppResp → m.From' ≠ W64 0) →
+            (m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∧ m.Reject' = true → m.From' ≠ id) →
+              (m.Type' = MsgProp → ents ≠ [] ∧ ↑ents.length < 2 ^ 61 ∧ s.term ≠ W64 0) →
+                (m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgReadIndex →
+                    RdOk c.voters s.rd ∧ s.term ≠ W64 0) →
+                  (m.Type' = MsgReadIndex → ents ≠ []) →
+                    (m.Type' = MsgHeartbeatResp →
+                        (ctx = [] ∨ 8 ≤ ctx.length) ∧
+                          (ctx ≠ [] →
+                              uint.Z (leToU64 (List.take 8 ctx)) ≤ uint.Z s.rd.ro.confirmed + ↑s.rd.ro.pending.length) ∧
+                            c.voters ≠ ∅) →
+                      (m.Type' = MsgAppResp →
+                          (m.Reject' = false → uint.Z m.Index' ≤ uint.Z (logLast s.logst)) ∧
+                            (m.Reject' = true →
+                              s.gh.ns = true →
+                                2 ≤ uint.Z m.Index' ∧
+                                  1 ≤ uint.Z m.RejectHint' ∧
+                                    uint.Z m.RejectHint' ≤ uint.Z m.Index' ∧
+                                      ∀ (t0 : w64),
+                                        plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) (W64 1) = some t0 →
+                                          uint.Z t0 ≤ 1)) →
                         ⊢
                           ∀ Φ,
                             isPkgInit pkg_id.go_etcd_io.raft.v3 ∗

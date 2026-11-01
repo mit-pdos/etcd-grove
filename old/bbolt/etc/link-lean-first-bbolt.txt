@@ -1,0 +1,121 @@
+# bbolt's functions (go.etcd.io/bbolt, all Lean-first), read by `etc/gen-link.py --bbolt`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# internal/common: the sorted merge of page ids, unsafe.go's pointer arithmetic, the
+# accessors of the on-disk structs.
+common_Mergepgids:
+common_UnsafeAdd:
+common_UnsafeIndex:
+common_UnsafeByteSlice: common_UnsafeAdd
+Page__Id:
+Page__SetId:
+Page__Flags:
+Page__SetFlags:
+Page__Count:
+Page__SetCount:
+Page__Overflow:
+Page__SetOverflow:
+Page__IsBranchPage:
+Page__IsLeafPage:
+Page__IsMetaPage:
+Page__IsFreelistPage:
+Page__IsValidPage: Page__IsBranchPage Page__IsLeafPage Page__IsMetaPage Page__IsFreelistPage
+Page__Meta: common_UnsafeAdd
+Page__LeafPageElement: common_UnsafeIndex
+Page__BranchPageElement: common_UnsafeIndex
+Page__PageElementSize: Page__IsLeafPage
+branchPageElement__Pos:
+branchPageElement__SetPos:
+branchPageElement__Ksize:
+branchPageElement__SetKsize:
+branchPageElement__Pgid:
+branchPageElement__SetPgid:
+leafPageElement__Flags:
+leafPageElement__SetFlags:
+leafPageElement__Pos:
+leafPageElement__SetPos:
+leafPageElement__Ksize:
+leafPageElement__SetKsize:
+leafPageElement__Vsize:
+leafPageElement__SetVsize:
+Meta__Magic:
+Meta__SetMagic:
+Meta__Version:
+Meta__SetVersion:
+Meta__PageSize:
+Meta__SetPageSize:
+Meta__Flags:
+Meta__SetFlags:
+Meta__Freelist:
+Meta__SetFreelist:
+Meta__Pgid:
+Meta__SetPgid:
+Meta__Txid:
+Meta__SetTxid:
+Meta__Checksum:
+Meta__SetChecksum:
+InBucket__RootPage:
+InBucket__SetRootPage:
+InBucket__InSequence:
+InBucket__SetInSequence:
+Inode__Flags:
+Inode__SetFlags:
+Inode__Pgid:
+Inode__SetPgid:
+Inode__Key:
+Inode__SetKey:
+Inode__Value:
+Inode__SetValue:
+Meta__IncTxid:
+Meta__DecTxid:
+InBucket__IncSequence:
+Meta__IsFreelistPersisted:
+Meta__RootBucket:
+common_LoadBucket:
+common_LoadPage:
+common_LoadPageMeta:
+leafPageElement__IsBucketEntry:
+leafPageElement__Key: common_UnsafeByteSlice
+leafPageElement__Value: common_UnsafeByteSlice
+branchPageElement__Key: common_UnsafeByteSlice
+Pgids__Len:
+Pgids__Less:
+Pgids__Swap:
+Pgids__Merge: common_Mergepgids
+Page__LeafPageElements: common_UnsafeAdd
+Page__BranchPageElements: common_UnsafeAdd
+fnv_New64a:
+fnv_sum64a__Sum64:
+fnv_sum64a__Write:
+os_Getenv:
+os_Setenv:
+os_Unsetenv:
+strings_ToLower:
+common_getEnvVerify: os_Getenv strings_ToLower
+common_Assert:
+common_DisableVerifications: common_getEnvVerify os_Setenv os_Unsetenv
+common_EnableVerifications: common_getEnvVerify os_Setenv
+common_EnableAllVerifications: common_EnableVerifications
+InBucket__InlinePage:
+InBucket__String:
+common_IsVerificationEnabled: common_getEnvVerify strings_ToLower
+Meta__Copy:
+Meta__SetRootBucket:
+Meta__Sum64: fnv_New64a fnv_sum64a__Write fnv_sum64a__Sum64
+Meta__Validate: Meta__Sum64
+Meta__Write: Meta__Sum64 Page__SetFlags Page__Meta Meta__Copy
+common_NewInBucket:
+common_NewLeafPageElement:
+common_NewPage:
+Page__FastCheck: Page__IsValidPage
+Page__FreelistPageCount: Page__IsFreelistPage common_UnsafeAdd
+Page__FreelistPageIds: Page__IsFreelistPage Page__FreelistPageCount common_UnsafeIndex
+Page__Typ: Page__IsBranchPage Page__IsLeafPage Page__IsMetaPage Page__IsFreelistPage
+Page__String: Page__Typ
+Pages__Len:
+Pages__Less:
+Pages__Swap:
+common_ReadInodeFromPage: Page__Count Page__IsLeafPage Page__LeafPageElement Page__BranchPageElement leafPageElement__Flags leafPageElement__Key leafPageElement__Value branchPageElement__Pgid branchPageElement__Key Inode__SetFlags Inode__SetKey Inode__SetValue Inode__SetPgid Inode__Key common_Assert
+common_UsedSpaceInPage: Page__PageElementSize Inode__Key Inode__Value
+common_Verify: common_IsVerificationEnabled
+common_WriteInodeToPage: Page__PageElementSize Page__IsLeafPage Page__LeafPageElement Page__BranchPageElement Page__Id leafPageElement__SetPos leafPageElement__SetFlags leafPageElement__SetKsize leafPageElement__SetVsize branchPageElement__SetPos branchPageElement__SetKsize branchPageElement__SetPgid branchPageElement__Pgid Inode__Key Inode__Value Inode__Flags Inode__Pgid common_UnsafeByteSlice common_Assert
+leafPageElement__Bucket: leafPageElement__IsBucketEntry leafPageElement__Value common_LoadBucket

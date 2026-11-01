@@ -21,17 +21,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `t.Then(ops...)` (before `Else`, once; else it panics) with plain operations `os` (each one a
-transaction can run: `txnOpOf`, a get, a put or a delete): their requests (`Op.toRequestOp`)
-appended, `cthen` set; returns the builder as a `Txn`. -/
+/-- `t.Then(ops...)` (before `Else`, once; else it panics) with operations `ts`, each a plain
+operation or a nested transaction (`OpTxn`), whose transaction operations are `ops` (`OpT.txnOps`:
+every get at revision `0`, every put one etcd accepts): their requests (`Op.toRequestOp`, nested
+ones recursively) appended, `cthen` set; returns the builder as a `Txn`. -/
 abbrev txn.Then.spec : Prop :=
   ∀ (tp : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (b : TxnBuild) (sl : GoSlice) (os : List OpFull) (ops : List TxnOp),
+    (b : TxnBuild) (sl : GoSlice) (ts : List OpT) (ops : List TxnOp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
-      opsAt sl os ∗ ⌜os.map txnOpOf = ops.map some ∧ b.cthen = false ∧ b.celse = false⌝ }}
+      opsTAt sl ts ∗ ⌜OpT.txnOps ts = some ops ∧ b.cthen = false ∧ b.celse = false⌝ }}
     (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Then")) (Val #sl))
   {{ RET #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty) #tp : GoInterface);
       txnObjAt tp addr ci cd { b with model := { b.model with thenOps := b.model.thenOps ++ ops }, cthen := true } }}
+
 
 end spec
 

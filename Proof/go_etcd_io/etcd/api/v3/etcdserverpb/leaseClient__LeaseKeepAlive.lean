@@ -83,7 +83,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
   wp_bind (App (App (App (App (Val _) _) _) _) _)
   -- (D32) the one-address case
   iapply (wp_NewStream conn [addr] [ic] go!"/etcdserverpb.Lease/LeaseKeepAlive"
-    pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse (fun _ _ _ => iprop(True)) (fun _ => Spec)
+    pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse (fun _ _ _ => iprop(True)) (fun _ _ => Spec)
     ctx cd _ copts ([sm] ++ vs))
   · iframe #
     iexists _
@@ -93,7 +93,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
   inext
   iintro %cs %err Hres
   wp_auto
-  icases Hres with (⟨%Herr, %a, %γ, %Dn, %cd', -, #Hcs, HSt, HRt, HSpec⟩ | ⟨%Hcs, #Herr⟩)
+  icases Hres with (⟨%Herr, %a, %γ, %Dn, %cd', %md, -, #Hcs, HSt, HRt, HSpec⟩ | ⟨%Hcs, #Herr⟩)
   · subst Herr
     iapply wp_fupd
     wp_auto

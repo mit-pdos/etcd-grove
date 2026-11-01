@@ -35,6 +35,7 @@ process serves fewer than `2 ^ 48` requests).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.RecvLimit
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.features.Defs
 public import Spec.google_golang_org.protobuf.proto.MarshalIRR
@@ -92,6 +93,16 @@ def apply.irrEmpty : apply.IRRModel where
   downgradeInfoSet := none
   downgradeVersionTest := false
 
+/-- `&pb.InternalRaftRequest{Compaction: r}`, for `r` at the revision `rev` (`EtcdServer.Compact`'s). -/
+def irrCompaction (rev : w64) : apply.IRRModel := { apply.irrEmpty with compaction := some rev }
+
+/-- `Compact`'s request at a revision `≥ 1` is a compaction in M2's scope. -/
+theorem compactPropOk_irrCompaction (rev : w64) (h : 1 ≤ sint.Z rev) :
+    compactPropOk (irrCompaction rev) :=
+  ⟨⟨by simp [apply.dispatchKind, irrCompaction, apply.irrEmpty], rev, rfl, h⟩,
+    by simp [apply.noSideEffect, irrCompaction, apply.irrEmpty],
+    by simp [apply.needAdminPermission, irrCompaction, apply.irrEmpty]⟩
+
 /-- `&pb.InternalRaftRequest{Put: r}` for `r` holding `op`. -/
 def irrPut (op : OpFull) : apply.IRRModel := { apply.irrEmpty with put := some op }
 /-- `&pb.InternalRaftRequest{DeleteRange: r}`. -/
@@ -104,6 +115,11 @@ def irrTxn (tw : txn.TxnModelW) : apply.IRRModel := { apply.irrEmpty with txnW :
 @[simp] theorem irrTxn_txn (tw : txn.TxnModelW) : (irrTxn tw).txn = some tw.toModel := rfl
 @[simp] theorem irrTxn_txnW (tw : txn.TxnModelW) : (irrTxn tw).txnW = some tw := rfl
 @[simp] theorem irrEmpty_txn : apply.irrEmpty.txn = none := rfl
+
+/-- `irrTxn tw` is within protobuf's recursion limit if its transaction is. -/
+theorem apply.irrDepthOk_irrTxn {tw : txn.TxnModelW} (h : apply.txnDepthOk tw.toModel) :
+    apply.irrDepthOk (irrTxn tw) := by
+  intro t ht; simp only [irrTxn_txn, Option.some.injEq] at ht; subst ht; exact h
 
 /-- **`exceedsRequestLimit(ai, ci, r, enable)`** (`util.go`), `prio` = `isPriorityRequest(r)`
 (a lease revocation): the committed index more than `maxNormalGap` (5000) past the applied one,
@@ -161,6 +177,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-! ## The request in the heap -/
@@ -220,7 +237,8 @@ whole state; 2026-10-19, D21 M6: its update fired at most once, its result left 
 theorem putPermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) (γc : GName) :
     putPermit (GF := GF) γk op Q ⊢
       reqPropOk γk (irrPut op) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
-  unfold putPermit reqPropOk
+  unfold putPermit
+  iintro H; iapply reqPropOk_of_W; iunfold reqPropOkW; irevert H
   iintro ⟨%Hl, Hau⟩
   iright; iright
   iexists .put op, Q, γc
@@ -247,7 +265,8 @@ theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IP
     (γc : GName) :
     deletePermit (GF := GF) γk op Q ⊢
       reqPropOk γk (irrDeleteRange op) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
-  unfold deletePermit reqPropOk
+  unfold deletePermit
+  iintro H; iapply reqPropOk_of_W; iunfold reqPropOkW; irevert H
   iintro ⟨%Hz, Hau⟩
   iright; iright
   iexists .deleteRange op, Q, γc
@@ -273,7 +292,8 @@ theorem txnPermit_reqPropOk (γk : KVNames) (tw : txn.TxnModelW) (Q : KVState �
     (γc : GName) :
     txnPermit (GF := GF) γk tw.toModel Q ⊢
       reqPropOk γk (irrTxn tw) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
-  unfold txnPermit reqPropOk
+  unfold txnPermit
+  iintro H; iapply reqPropOk_of_W; iunfold reqPropOkW; irevert H
   iintro ⟨%Ht, Hau⟩
   iright; iright
   iexists .txn tw.toModel, Q, γc
@@ -330,6 +350,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The proposals' mint** (persistent; the cluster's since stage M4, 2026-10-19, allocated once,
 `srvPropMint_alloc`): the authority of raft's fresh-data tokens `F`, each token's data decoding to a
@@ -399,7 +420,9 @@ instance srvPeersOk_persistent (cl : Loc) (cid : w64) (tr : GoInterface) :
 
 /-- **The server `s` as a proposer sees it** at the fields' values `v` (persistent; see the file
 header), the applier's environment `E` (whose store's certificates the results carry), the
-request path's ghost names `ρ`. -/
+request path's ghost names `ρ`; (M2's apply side, item 19) the KV names' compaction mode the
+server's, and the certificates' invariant (the commit step reads a compaction's reached revision
+through it). -/
 def srvReqFieldsAt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) : IProp GF :=
   iprop(structFieldRef EtcdServer go!"reqIDGen" s ↦□ v.gen ∗ idGen ρ.ids v.gen (srvFloorFact E) ∗
     structFieldRef EtcdServer go!"w" s ↦□ v.w ∗ waitInv v.w ρ E ∗
@@ -418,19 +441,36 @@ def srvReqFieldsAt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields)
       (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ v.tr ∗
     srvPeersOk v.cluster v.cid v.tr ∗
     srvIndexInvs s E ∗
-    srvMintInv ρ ∗ kvInv ρ.raft ρ.kv ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
+    srvMintInv ρ ∗ kvInv ρ.raft ρ.kv ∗ ⌜ρ.kv.cmp = E.cmp⌝ ∗ kvCertInv ρ.raft ρ.kv ∗
+    ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null ∧ v3rpc.etcdMaxRequestBytesOk (uint.nat v.maxReq)⌝)
 
 instance srvReqFieldsAt_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     Persistent (srvReqFieldsAt s E ρ v) := by
   unfold srvReqFieldsAt; infer_instance
 
-/-- **The server `s`, as a proposer sees it** (persistent). -/
+/-- **The server `s`, as a proposer sees it** (persistent), with auth off (the auth-mode merge's
+step 5, 2026-10-29: `⌜E.authOn = false⌝`, so that the one spec of a function over the mode
+`E.authOn` gives the mode-off one, `isServerReq_authOff`). -/
 def isServerReq (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
-  iprop(∃ v : ReqFields, srvReqFieldsAt s E ρ v)
+  iprop((∃ v : ReqFields, srvReqFieldsAt s E ρ v) ∗ ⌜E.authOn = false⌝)
 
 instance isServerReq_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     Persistent (isServerReq s E ρ) := by
   unfold isServerReq; infer_instance
+
+/-- A server seen as a proposer with auth off has auth off. -/
+theorem isServerReq_authOff (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isServerReq (GF := GF) s E ρ ⊢ ⌜E.authOn = false⌝ := by
+  unfold isServerReq
+  iintro ⟨-, %h⟩
+  ipureintro; exact h
+
+/-- The fields of a server seen as a proposer. -/
+theorem isServerReq_fields (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isServerReq (GF := GF) s E ρ ⊢ ∃ v : ReqFields, srvReqFieldsAt s E ρ v := by
+  unfold isServerReq
+  iintro ⟨H, -⟩
+  iexact H
 
 /-- `s.leadTimeMu`'s lock invariant: the time the current leader was elected. -/
 def leadTimeP (s : Loc) (q : Qp) : IProp GF :=
@@ -468,7 +508,7 @@ def appliedOk (E : apply.AEnv GF) (γr : ReadNames) (rq' : apply.IRRModel) (F : 
   iprop(∃ (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
     ⌜apply.applyStep rq' true x x' (.dispatched o skip) ∧ apply.kvFloorOk rq' true F x.log o ∧
       x.log = lb ∧ skip = false⌝ ∗
-    apply.dispatchAnswer rq' x.log skip resp GoInterface.nil o ∗ mvcc.idxCert E.γ.idx x'.log ∗
+    apply.dispatchAnswer rq' x.log skip resp GoInterface.nil null o ∗ mvcc.idxCert E.γ.idx x'.log ∗
     revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ mvcc.certOk E.γ x'.log)
 
 /-- **The apply thread's answer to `rq'` carried the error `err`** (`result.Err`): the result

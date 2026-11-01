@@ -11,11 +11,12 @@ def node.ProposeConfChange.spec : Prop :=
             isNode n γ N id ∗
               nodeCtx ctx cd ∗
                 ownConfChangeI c dq (some o) ∗
-                  AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ∀∀ t bs,
-                      ⌜MarshalsConfChange (some o) bs⌝ ∗
-                        ownCommittedOps γ (ops ++ [{ term := t, type := confChangeEntryType (some o), data := bs }]),
-                      COMM True }> -∗
-          (▷ ∀ err, ownConfChangeI c dq (some o) ∗ nodeErr cd err -∗ Φ (intoVal err)) -∗
+                  □?γ.dup AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ∀∀ t bs,
+                        ⌜MarshalsConfChange (some o) bs⌝ ∗
+                          ownCommittedOps γ
+                            (ops ++ opsOf [{ term := t, type := confChangeEntryType (some o), data := bs }]),
+                        COMM True }> -∗
+          (▷ ∀ err, ownConfChangeI c dq (some o) ∗ nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
             WP
               (((intoVal
                     (methods node.ty.PointerType

@@ -44,6 +44,8 @@ theorem apply.applierV3Capped.Put.wp_proof :
   · iapply apply.traceRes_null
   ihave #Hcls : apply.chainClass (GF := GF) E.authMode info (.capped c) rq (.rejected .noSpace) $$ []
   · iapply apply.chainClass_capped_rejected
+  ihave #Hlc : apply.chainLeaseClass (GF := GF) E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) (.capped c) rq (.rejected .noSpace) $$ []
+  · iapply apply.chainLeaseClass_capped_rejected
   iunfold apply.kvPostF
   iexists (.rejected .noSpace)
   isplitr
@@ -51,7 +53,7 @@ theorem apply.applierV3Capped.Put.wp_proof :
     refine ⟨?_, fun _ _ h => by cases h⟩
     simp only [apply.chainStep, apply.cappedRejects, Hk.2.1, ↓reduceIte]
   simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
-  iframe Hkv Hres Hcls
+  iframe Hkv Hres Hcls Hlc
   isplitl []
   · isplitl []
     · ipureintro; trivial

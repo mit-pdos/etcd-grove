@@ -7,14 +7,19 @@ theorem logAcceptUnstable.proj_sat (ls : LogState) : (logAcceptUnstable ls).sat 
 theorem logAbsorbSnap.proj_storage (ls : LogState) (sid : entryID) : (logAbsorbSnap ls sid).storage
     = ls.storage
 
+theorem logAcceptUnstable.proj_sdt (ls : LogState) : (logAcceptUnstable ls).sdt = ls.sdt
+
 theorem logAcceptUnstable.proj_inprogress (ls : LogState) : (logAcceptUnstable ls).inprogress =
     logEnd ls
 
-theorem ownRaftLog_absorb_snap [package_sem : Assumptions] (l : Loc) (ls : LogState) (σr :
-    StorState) (Hlt : ls.lent = true) (Hr : σr.prev = σr.ss ∧ σr.ents = ls.stored ∧ σr.pend = [] ∧
-    σr.fl = ls.fl) (Hk : σr.ss.index' ≠ W64 0 → { sid := σr.ss, cl := σr.scs, al := σr.sal, dat :=
-    σr.sdat } ∈ ls.ksn) (Happ : uint.Z ls.applying ≤ uint.Z σr.prev.index') : ⊢ ownRaftLog l ls -∗
-    ownStorage ls.storage σr -∗ ownRaftLog l (logAbsorbSnap ls σr.ss)
+theorem ownRaftLog_absorb_snap [package_sem : Assumptions] (l : Loc) (ls : LogState) (sid : entryID)
+    (e : EntryM) (Hlt : ls.lent = true) (He : e.Term' = sid.term') (Hsg : ls.sg ≤ uint.nat
+    sid.index') (Happ : uint.Z ls.applying ≤ uint.Z sid.index') (Hsid : uint.nat sid.index' ≤
+    uint.nat ls.prev.index' ∧ (ls.sip = false → uint.nat sid.index' < uint.nat ls.prev.index')) : ⊢
+    ownRaftLog l ls -∗ storCompacted ls.storage (uint.nat sid.index') -∗ storLog ls.storage
+    (uint.nat sid.index') DFrac.discard [e] -∗ storLog ls.storage (uint.nat sid.index' + 1)
+    (DFrac.own 1) ls.stored -∗ storEnd ls.storage (uint.nat sid.index' + 1 + ls.stored.length) -∗
+    ownRaftLog l (logAbsorbSnap ls sid)
 
 theorem logAcceptUnstable.proj_lent (ls : LogState) : (logAcceptUnstable ls).lent = ls.lent
 
@@ -32,6 +37,9 @@ theorem ownRaftLog_snap_next [package_sem : Assumptions] (l : Loc) (ls : LogStat
 theorem logAppliedTo.proj_unpersisted (ls : LogState) (index size : w64) : (logAppliedTo ls index
     size).unpersisted = ls.unpersisted
 
+theorem logAppliedTo.proj_stb (ls : LogState) (index size : w64) : (logAppliedTo ls index size).stb
+    = ls.stb
+
 theorem logAppliedTo.proj_lent (ls : LogState) (index size : w64) : (logAppliedTo ls index
     size).lent = ls.lent
 
@@ -39,6 +47,10 @@ theorem logAbsorbSnap.proj_applying (ls : LogState) (sid : entryID) : (logAbsorb
     sid).applying = ls.applying
 
 theorem logHanded.proj_snap (ls : LogState) : (logHanded ls).snap = ls.snap
+
+def lendView (σ : StorState) (ls : LogState) : StorState :=
+  { prev := σ.prev, ents := σ.ents, pend := nextUnstable ls, fl := σ.fl, fr := σ.fr, sg := uint.nat ls.prev.index',
+    dt := σ.dt }
 
 theorem logAcceptUnstable.proj_sxt (ls : LogState) : (logAcceptUnstable ls).sxt = ls.sxt
 
@@ -74,7 +86,7 @@ def logStableSnap (ls : LogState) (i : w64) : LogState :=
     { prev := ls.prev, sents := ls.sents, uents := ls.uents, committed := ls.committed, applied := ls.applied,
       snap := none, inprogress := ls.inprogress, applying := ls.applying, unpersisted := ls.unpersisted,
       stored := ls.stored, apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl,
-      lent := ls.lent, aps := true, sxt := ls.sxt }
+      lent := ls.lent, aps := true, sxt := ls.sxt, stb := ls.stb, sdt := ls.sdt, sn := ls.sn, sg := ls.sg, dtk := ls.dtk }
   else ls
 
 theorem logAbsorbSnap.proj_lent (ls : LogState) (sid : entryID) : (logAbsorbSnap ls sid).lent =
@@ -104,14 +116,16 @@ def logStableTo (ls : LogState) (id : entryID) : LogState :=
       committed := ls.committed, applied := ls.applied, snap := ls.snap,
       inprogress := w64Max ls.inprogress (id.index' + W64 1), applying := ls.applying, unpersisted := ls.unpersisted,
       stored := ls.stored, apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl,
-      sip := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt }
+      sip := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt, stb := ls.stb,
+      sdt := ls.sdt, sn := ls.sn, sg := ls.sg, dtk := ls.dtk }
   else ls
 
 def logAcceptUnstable (ls : LogState) : LogState :=
   { prev := ls.prev, sents := ls.sents, uents := ls.uents, committed := ls.committed, applied := ls.applied,
     snap := ls.snap, inprogress := logEnd ls, applying := ls.applying, unpersisted := nextUnstable ls,
     stored := ls.sents ++ ls.uents, apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn,
-    fl := ls.fl, sip := ls.sip || ls.snap.isSome, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sxt := ls.sxt }
+    fl := ls.fl, sip := ls.sip || ls.snap.isSome, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sxt := ls.sxt,
+    stb := ls.stb, sdt := ls.sdt, sn := ls.sn, sg := ls.sg, dtk := ls.dtk }
 
 theorem logHanded.proj_inprogress (ls : LogState) : (logHanded ls).inprogress = ls.inprogress
 
@@ -125,6 +139,8 @@ theorem SnpExt.raise {g : NGhost} {ls ls' : LogState} (h : SnpExt g ls) (hlt : l
 theorem logAppliedTo.proj_sents (ls : LogState) (index size : w64) : (logAppliedTo ls index
     size).sents = ls.sents
 
+theorem logStableSnap_sn (ls : LogState) (i : w64) : (logStableSnap ls i).sn = ls.sn
+
 theorem logAppliedTo.proj_sxt (ls : LogState) (index size : w64) : (logAppliedTo ls index size).sxt
     = ls.sxt
 
@@ -134,6 +150,8 @@ theorem logAcceptUnstable.proj_sip (ls : LogState) : (logAcceptUnstable ls).sip 
 def logCommittedEnts (ls : LogState) : List EntryM :=
   List.take (uint.Z ls.committed - uint.Z ls.applying).toNat
     (plogFrom ls.prev (ls.sents ++ ls.uents) (ls.applying + W64 1))
+
+theorem logStableTo_sn (ls : LogState) (id : entryID) : (logStableTo ls id).sn = ls.sn
 
 theorem logAbsorbSnap.proj_sents (ls : LogState) (sid : entryID) : (logAbsorbSnap ls sid).sents =
     ls.sents
@@ -147,13 +165,21 @@ theorem logAcceptUnstable.proj_aps (ls : LogState) : (logAcceptUnstable ls).aps 
 
 theorem logAcceptUnstable.proj_fl (ls : LogState) : (logAcceptUnstable ls).fl = ls.fl
 
+theorem logAppliedTo.proj_sdt (ls : LogState) (index size : w64) : (logAppliedTo ls index size).sdt
+    = ls.sdt
+
 def logAbsorbSnap (ls : LogState) (sid : entryID) : LogState :=
   { prev := ls.prev, sents := ls.sents, uents := ls.uents, committed := ls.committed, applied := ls.applied,
     snap := ls.snap, inprogress := ls.inprogress, applying := ls.applying, unpersisted := [], stored := ls.stored,
     apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl, sip := ls.sip,
-    sapp := ls.sapp, aps := ls.aps, sat := decide (ls.snap = some sid ∧ ls.sip = true), sxt := sid.index' }
+    sapp := ls.sapp, aps := ls.aps, sat := decide (ls.snap = some sid ∧ ls.sip = true), sxt := sid.index',
+    stb := sid.index', sn := ls.sn, sg := ls.sg, dtk := ls.dtk }
 
 theorem logLast_stableTo (ls : LogState) (id : entryID) : logLast (logStableTo ls id) = logLast ls
+
+theorem logAcceptUnstable.proj_dtk (ls : LogState) : (logAcceptUnstable ls).dtk = ls.dtk
+
+theorem logHanded.proj_dtk (ls : LogState) : (logHanded ls).dtk = ls.dtk
 
 theorem logStableTo_fields (ls : LogState) (id : entryID) : (logStableTo ls id).applying =
     ls.applying ∧ (logStableTo ls id).unpersisted = ls.unpersisted ∧ (logStableTo ls id).snap =
@@ -175,8 +201,13 @@ theorem toPState_logAppliedTo (s : NState) (index size : w64) : toPState { term 
     s.logst index size, prvals := s.prvals, prevote := s.prevote, gh := s.gh, rd := s.rd, lt :=
     s.lt, pci := s.pci, isLearner := s.isLearner, sdr := s.sdr, cq := s.cq } = toPState s
 
+theorem logHanded.proj_sn (ls : LogState) : (logHanded ls).sn = ls.sn
+
 def StableHit.decidable (ls : LogState) (id : entryID) : Decidable (StableHit ls id) :=
   _root_.id inferInstance
+
+theorem logAppliedTo.proj_sn (ls : LogState) (index size : w64) : (logAppliedTo ls index size).sn =
+    ls.sn
 
 theorem logHanded.proj_unpersisted (ls : LogState) : (logHanded ls).unpersisted = nextUnstable ls
 
@@ -189,14 +220,10 @@ theorem logLast_acceptApplying (ls : LogState) (ce : List EntryM) (sz : w64) : l
     (logAcceptApplying ls ce sz) = logLast ls
 
 theorem ownRaftLog_lend [package_sem : Assumptions] (l : Loc) (ls : LogState) (Hunp0 :
-    ls.unpersisted = []) (Hs0 : ls.snap ≠ none) (Hlt0 : ls.lent = false) : ⊢ ownRaftLog l ls -∗
-    ownRaftLog l (logHanded { prev := ls.prev, sents := ls.sents, uents := ls.uents, committed :=
-    ls.committed, applied := ls.applied, snap := ls.snap, inprogress := ls.inprogress, applying :=
-    ls.applying, unpersisted := ls.unpersisted, stored := ls.stored, apsize := ls.apsize, apmax :=
-    ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl, sip := ls.sip, lent := true, sapp
-    := ls.sapp, aps := ls.aps, sxt := ls.sxt }) ∗ ∃ σ, ownStorage ls.storage σ ∗ ⌜σ.pend = [] ∧ σ.fl
-    = ls.fl ∧ (σ.ss.index' ≠ W64 0 → { sid := σ.ss, cl := σ.scs, al := σ.sal, dat := σ.sdat } ∈
-    ls.ksn)⌝
+    ls.unpersisted = []) (Hs0 : ls.snap ≠ none) (Hlt0 : ls.lent = false) (Hsip0 : ls.sip = false) :
+    ⊢ ownRaftLog l ls ==∗ ownRaftLog l (logHanded (lendLog ls)) ∗ (∃ k old, storLog ls.storage k
+    (DFrac.own 1) old ∗ storEnd ls.storage (k + old.length) ∗ ⌜k ≤ uint.nat ls.prev.index'⌝) ∗
+    storGiven ls.sn (uint.nat ls.prev.index')
 
 theorem logAppliedTo.proj_uents (ls : LogState) (index size : w64) : (logAppliedTo ls index
     size).uents = ls.uents
@@ -214,7 +241,8 @@ def logAppliedTo (ls : LogState) (index size : w64) : LogState :=
     inprogress := ls.inprogress, applying := w64Max ls.applying na, unpersisted := ls.unpersisted, stored := ls.stored,
     apsize := if uint.Z size < uint.Z ls.apsize then ls.apsize - size else W64 0, apmax := ls.apmax,
     storage := ls.storage, ksn := ls.ksn, fl := ls.fl, sip := ls.sip, lent := ls.lent, sapp := ls.sapp,
-    aps := ls.aps && decide (uint.Z na < uint.Z ls.prev.index'), sat := ls.sat, sxt := ls.sxt }
+    aps := ls.aps && decide (uint.Z na < uint.Z ls.prev.index'), sat := ls.sat, sxt := ls.sxt, stb := ls.stb,
+    sdt := ls.sdt, sn := ls.sn, sg := ls.sg, dtk := ls.dtk }
 
 theorem logAcceptUnstable.proj_sents (ls : LogState) : (logAcceptUnstable ls).sents = ls.sents
 
@@ -226,6 +254,8 @@ theorem persist_accept (prev : entryID) (σ : StorState) (sents uents : List Ent
 theorem logAppliedTo.proj_applied (ls : LogState) (index size : w64) : (logAppliedTo ls index
     size).applied = w64Max index ls.applied
 
+theorem logAbsorbSnap.proj_sn (ls : LogState) (sid : entryID) : (logAbsorbSnap ls sid).sn = ls.sn
+
 theorem logHanded.proj_fl (ls : LogState) : (logHanded ls).fl = ls.fl
 
 theorem logAppliedTo.proj_ksn (ls : LogState) (index size : w64) : (logAppliedTo ls index size).ksn
@@ -234,6 +264,11 @@ theorem logAppliedTo.proj_ksn (ls : LogState) (index size : w64) : (logAppliedTo
 theorem logAbsorbSnap.proj_ksn (ls : LogState) (sid : entryID) : (logAbsorbSnap ls sid).ksn = ls.ksn
 
 theorem logAcceptUnstable.proj_apmax (ls : LogState) : (logAcceptUnstable ls).apmax = ls.apmax
+
+def frozenEnd (ls : LogState) : Nat :=
+  min (uint.nat ls.committed) (uint.nat ls.inprogress - 1)
+
+theorem logHanded.proj_stb (ls : LogState) : (logHanded ls).stb = ls.stb
 
 theorem logAbsorbSnap.proj_stored (ls : LogState) (sid : entryID) : (logAbsorbSnap ls sid).stored =
     ls.stored
@@ -250,6 +285,8 @@ theorem logHanded.proj_uents (ls : LogState) : (logHanded ls).uents = ls.uents
 
 theorem logHanded.proj_lent (ls : LogState) : (logHanded ls).lent = ls.lent
 
+theorem logAbsorbSnap.proj_sdt (ls : LogState) (sid : entryID) : (logAbsorbSnap ls sid).sdt = []
+
 theorem logAcceptUnstable.proj_sapp (ls : LogState) : (logAcceptUnstable ls).sapp = ls.sapp
 
 theorem logHanded.proj_storage (ls : LogState) : (logHanded ls).storage = ls.storage
@@ -263,6 +300,11 @@ def StableHit (ls : LogState) (id : entryID) : Prop :=
 theorem logAbsorbSnap.proj_inprogress (ls : LogState) (sid : entryID) : (logAbsorbSnap ls
     sid).inprogress = ls.inprogress
 
+theorem logHanded.proj_sdt (ls : LogState) : (logHanded ls).sdt = ls.sdt
+
+theorem logAppliedTo.proj_sg (ls : LogState) (index size : w64) : (logAppliedTo ls index size).sg =
+    ls.sg
+
 theorem logStableTo_storage (ls : LogState) (id : entryID) : (logStableTo ls id).storage =
     ls.storage
 
@@ -273,6 +315,8 @@ theorem logAcceptUnstable.proj_ksn (ls : LogState) : (logAcceptUnstable ls).ksn 
 
 theorem logHanded.proj_ksn (ls : LogState) : (logHanded ls).ksn = ls.ksn
 
+theorem logAbsorbSnap.proj_dtk (ls : LogState) (sid : entryID) : (logAbsorbSnap ls sid).dtk = ls.dtk
+
 theorem logAbsorbSnap_sat (ls : LogState) (sid : entryID) : (logAbsorbSnap ls sid).sat = true ↔
     ls.snap = some sid ∧ ls.sip = true
 
@@ -282,7 +326,8 @@ def logAcceptApplying (ls : LogState) (ce : List EntryM) (sz : w64) : LogState :
     { prev := ls.prev, sents := ls.sents, uents := ls.uents, committed := ls.committed, applied := ls.applied,
       snap := ls.snap, inprogress := ls.inprogress, applying := e.Index', unpersisted := ls.unpersisted,
       stored := ls.stored, apsize := ls.apsize + sz, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl,
-      sip := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt }
+      sip := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt, stb := ls.stb,
+      sdt := ls.sdt, sn := ls.sn, sg := ls.sg, dtk := ls.dtk }
   | none => ls
 
 theorem logHanded.proj_sip (ls : LogState) : (logHanded ls).sip = ls.sip
@@ -296,6 +341,12 @@ theorem logAbsorbSnap.proj_sxt (ls : LogState) (sid : entryID) : (logAbsorbSnap 
 theorem logAppliedTo.proj_fl (ls : LogState) (index size : w64) : (logAppliedTo ls index size).fl =
     ls.fl
 
+def frozenRdy (ls : LogState) : List EntryM :=
+  List.take (frozenEnd ls - uint.nat ls.applying)
+    (List.drop (uint.nat ls.applying - uint.nat ls.prev.index') (ls.sents ++ ls.uents))
+
+theorem logAbsorbSnap.proj_sg (ls : LogState) (sid : entryID) : (logAbsorbSnap ls sid).sg = ls.sg
+
 theorem logStableTo_concat (ls : LogState) (id : entryID) : (logStableTo ls id).sents ++
     (logStableTo ls id).uents = ls.sents ++ ls.uents
 
@@ -306,6 +357,8 @@ theorem logAcceptUnstable.proj_committed (ls : LogState) : (logAcceptUnstable ls
     ls.committed
 
 theorem logHanded.proj_apsize (ls : LogState) : (logHanded ls).apsize = ls.apsize
+
+theorem logAcceptUnstable.proj_sn (ls : LogState) : (logAcceptUnstable ls).sn = ls.sn
 
 theorem logAcceptApplying_fields (ls : LogState) (ce : List EntryM) (sz : w64) : (logAcceptApplying
     ls ce sz).committed = ls.committed ∧ (logAcceptApplying ls ce sz).inprogress = ls.inprogress ∧
@@ -336,13 +389,30 @@ theorem logHanded.proj_applied (ls : LogState) : (logHanded ls).applied = ls.app
 theorem logAbsorbSnap.proj_committed (ls : LogState) (sid : entryID) : (logAbsorbSnap ls
     sid).committed = ls.committed
 
+def lendLog (ls : LogState) : LogState :=
+  { prev := ls.prev, sents := ls.sents, uents := ls.uents, committed := ls.committed, applied := ls.applied,
+    snap := ls.snap, inprogress := ls.inprogress, applying := ls.applying, unpersisted := ls.unpersisted,
+    stored := ls.stored, apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl,
+    sip := ls.sip, lent := true, sapp := ls.sapp, aps := ls.aps, sxt := ls.sxt, stb := ls.stb, sdt := ls.sdt, sn := ls.sn,
+    sg := uint.nat ls.prev.index', dtk := ls.dtk }
+
 theorem logAcceptUnstable.proj_storage (ls : LogState) : (logAcceptUnstable ls).storage = ls.storage
+
+theorem logAbsorbSnap.proj_stb (ls : LogState) (sid : entryID) : (logAbsorbSnap ls sid).stb =
+    sid.index'
 
 def logHanded (ls : LogState) : LogState :=
   { prev := ls.prev, sents := ls.sents, uents := ls.uents, committed := ls.committed, applied := ls.applied,
     snap := ls.snap, inprogress := ls.inprogress, applying := ls.applying, unpersisted := nextUnstable ls,
     stored := ls.sents ++ ls.uents, apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn,
-    fl := ls.fl, sip := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt }
+    fl := ls.fl, sip := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt,
+    stb := ls.stb, sdt := ls.sdt, sn := ls.sn, sg := ls.sg, dtk := ls.dtk }
+
+theorem frozen_sub_eq (L ents P : List EntryM) (d0 : EntryM) (a n F : Nat) (hP1 : P <+: ents) (hP2 :
+    P <+: L) (hn : a + n ≤ F) (hF : a + n ≤ P.length) : List.take n (List.drop (a + 1) (d0 ::
+    List.take F ents)) = List.take n (List.drop a L)
+
+theorem logAcceptUnstable.proj_stb (ls : LogState) : (logAcceptUnstable ls).stb = ls.stb
 
 theorem logAcceptUnstable.proj_apsize (ls : LogState) : (logAcceptUnstable ls).apsize = ls.apsize
 
@@ -352,6 +422,9 @@ theorem logAppliedTo.proj_sapp (ls : LogState) (index size : w64) : (logAppliedT
     size).sapp = ls.sapp
 
 theorem logAcceptUnstable.proj_uents (ls : LogState) : (logAcceptUnstable ls).uents = ls.uents
+
+theorem logAppliedTo.proj_dtk (ls : LogState) (index size : w64) : (logAppliedTo ls index size).dtk
+    = ls.dtk
 
 theorem logAbsorbSnap.proj_aps (ls : LogState) (sid : entryID) : (logAbsorbSnap ls sid).aps = ls.aps
 
@@ -379,10 +452,13 @@ theorem logAcceptApplying_storage (ls : LogState) (ce : List EntryM) (sz : w64) 
 
 theorem ownRaftLog_handout [package_sem : Assumptions] (l : Loc) (ls : LogState) (Hunp0 :
     ls.unpersisted = []) (Hs0 : ls.snap = none) : ⊢ ownRaftLog l ls ==∗ ownRaftLog l (logHanded ls)
-    ∗ appendRight ls.storage (nextUnstable ls)
+    ∗ appendRight ls.storage (nextUnstable ls) ∗ storLog ls.storage (uint.nat ls.applying + 1)
+    DFrac.discard (frozenRdy ls)
 
 theorem logAbsorbSnap.proj_applied (ls : LogState) (sid : entryID) : (logAbsorbSnap ls sid).applied
     = ls.applied
+
+theorem logHanded.proj_sg (ls : LogState) : (logHanded ls).sg = ls.sg
 
 theorem persist_handed (prev : entryID) (σ : StorState) (sents uents : List EntryM) (ipo : Int)
     (Hidx : LogIndicesOk prev (sents ++ uents)) (Hsp : σ.prev = prev) (Hipo : 0 ≤ ipo ∧ ipo ≤
@@ -403,3 +479,5 @@ theorem logAppliedTo.proj_sat (ls : LogState) (index size : w64) : (logAppliedTo
 theorem logHanded.proj_sapp (ls : LogState) : (logHanded ls).sapp = ls.sapp
 
 theorem logHanded.proj_sxt (ls : LogState) : (logHanded ls).sxt = ls.sxt
+
+theorem logAcceptUnstable.proj_sg (ls : LogState) : (logAcceptUnstable ls).sg = ls.sg

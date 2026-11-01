@@ -75,6 +75,12 @@ structure ObjCodec (Obj : Type) where
 
 variable {Obj : Type} [DecidableEq Obj]
 
+/-- **What the store writes for `o` fits a request** (2026-10-30, `notes/invoke-size-b.md`): every
+value the transformer may store for `o`'s encoding is at most `2 ^ 28` bytes (with a key of at most
+`2 ^ 27`, the optimistic put's transaction fits a gRPC message: `kubernetes.clientTxn_size`). -/
+def ObjCodec.storedSizeOk (C : ObjCodec Obj) (o : Obj) : Prop :=
+  ∀ v, C.toS (C.encode o) v → v.length ≤ 2 ^ 28
+
 /-- **The model's reading of a stored value** (`Model.lean`'s `Dec`): the object its data
 decodes to; canonical when not stale and its data is the object's encoding. -/
 def ObjCodec.dec (C : ObjCodec Obj) : Dec Obj := fun v =>

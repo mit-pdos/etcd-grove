@@ -47,6 +47,21 @@ def pairOf (p : wkv) : GoString × GoString := (p.Key', p.Val')
 /-- A `KV` `Gen` of `keys` may return. -/
 def GenKv (keys : List GoString) (p : wkv) : Prop := p.Key' ∈ keys ∧ p.Val' ∈ genVals
 
+/-- **A `kv` small enough to put**: its key and value at most `2 ^ 28` bytes each, so that its Put
+fits a gRPC message (`opSizeOk`, `wkvSizeOk.put`). -/
+def wkvSizeOk (p : wkv) : Prop := p.Key'.length ≤ 2 ^ 28 ∧ p.Val'.length ≤ 2 ^ 28
+
+theorem wkvSizeOk.put {p : wkv} (h : wkvSizeOk p) : opSizeOk (opPutModel p.Key' p.Val' []) :=
+  opSizeOk_opPutModel (K := 2 ^ 28) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _) h.1 h.2 (by decide)
+
+/-- A `kv` `Gen` of short keys returns is small enough to put (its value is one of `genVals`). -/
+theorem GenKv.sizeOk {keys : List GoString} {p : wkv} (hk : ∀ k ∈ keys, k.length ≤ 2 ^ 28)
+    (h : GenKv keys p) : wkvSizeOk p := by
+  refine ⟨hk _ h.1, ?_⟩
+  have h2 := h.2
+  simp only [genVals, List.mem_cons, List.mem_nil_iff, or_false] at h2
+  rcases h2 with h2 | h2 | h2 | h2 <;> rw [h2] <;> decide
+
 /-- **What `check` needs not to panic**: the events are puts at revisions `2, 3, ...` (one per
 revision, in order), each of a key and value tried, fewer than `2 ^ 63 - 1`; and each successful Put
 is the event at its revision with its key and value. -/
@@ -116,6 +131,11 @@ def evFactR (R : Nat → GoString → GoString → IProp GF) (P : List (GoString
     IProp GF :=
   iprop(⌜e.typ = W32 0 ∧ sint.Z e.rev = r⌝ ∗ ∃ (v : GoString) (kvv : EtcdKv),
     kvValAt e.kv kvv ∗ ⌜kvv.value = v ∧ (e.key, v) ∈ P⌝ ∗ R r e.key v)
+
+/-- **The `Event` `Collect` appends** for the event `e` whose key-value's value is `v`: its
+revision (the key-value's `ModRevision`), key, value, and whether it is a put. -/
+def evWev (e : EvModel) (v : GoString) : wev :=
+  { Rev' := e.rev, Key' := e.key, Val' := v, Put' := decide (e.typ = W32 0) }
 
 /-- **What `Collect` returns with `true`**, at `upTo`: the events are the puts at revisions
 `2, 3, ...` (one per revision, in order), each of a key and value of the plan `P`, at least up to

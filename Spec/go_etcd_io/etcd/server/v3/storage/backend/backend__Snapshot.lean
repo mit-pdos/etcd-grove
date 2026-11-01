@@ -10,10 +10,12 @@ The pre: the backend open (`bOpen`), one write-back's budget (`wbTok`, for the c
 as `batchTxBuffered.Commit`), and the caller's **observation** `Q` of what a commit leaves: a
 resource `R` the caller holds through the call (given back) such that, whatever the batch lock's
 client resource `W` and hooks' resource `Pk` are, `R` with them, the batch lock's quarter of the
-readers' view at `vd` (`viewAt`), its half of the hook's own keys at `d` (`hkOwn`) and (D22,
+readers' view, at a logical view the physical view `vd` is thin of (`viewAt`; question 2, option
+(a), 2026-10-29: until then the quarter at `vd` itself), its half of the hook's own keys at `d` (`hkOwn`) and (D22,
 2026-10-23: the backend over every bucket) its half of the tracked buckets at `r` (`rbOwn`) give
 `Q vd d r`. The post: the snapshot open (`snapOpen`) over bbolt's committed data `D`, with
-`Q (sData P D) (hkData P D) (rbData P D)`: `D` reads as the readers' view off the hook's buckets
+`Q (sData P D) (hkData P D) (rbData P D)`: `D` reads thin of the readers' (logical) view off the
+hook's buckets (exactly as it, with nothing deletable: `viewAt_noDel`)
 and holds the hook's own keys and the tracked buckets as they were when the last commit before
 the read transaction began left them. For the server, `W` holds the store's view of the `Key`
 bucket (`mvcc.writerRes`'s `bucketView`), `Pk` the consistent index's meta keys

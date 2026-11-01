@@ -289,7 +289,8 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     ipureintro
     refine ⟨Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩, rfl,
       stepdown_frame' (by rw [Hty]; w32_ne) Hgt0 Hs1 rfl rfl rfl rfl
-        (fun h => absurd h (by subst Hs1; simp [sendMsgs, becomeFollower]))⟩
+        (.mk' (fun h => absurd h (by subst Hs1; simp [sendMsgs, becomeFollower]))
+          (fun h1 _ => (h1 (by subst Hs1; simp [sendMsgs, becomeFollower])).elim))⟩
     · intro m' Hm'; simpa using Hm'
     · refine StepCD.frame ?_ (by subst Hs1; exact ⟨rfl, rfl, fun h => absurd h (by simp [becomeFollower])⟩)
       have H : StepCF c id (toPState s) ([absMsg .vote m ents] ++ [absMsg .vote m ents])

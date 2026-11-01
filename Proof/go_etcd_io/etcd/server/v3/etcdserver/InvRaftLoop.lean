@@ -53,20 +53,37 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
     (ap : toApply) :
     ⊢ spscConsumer γ.ap (rcv ++ [ap]) -∗ monoListIdxOwn γ.cum rcv.length A -∗
       rnApP E γ (rcv.length : Int) ap -∗
-      ∃ (ce : List EntryModel) (ceL : List Loc),
+      (∃ (ce : List EntryModel) (ceL : List Loc),
         rnApplyTok γ (A ++ ce) ∗ ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (A ++ ce) ∗
         ⌜ap.snapshot' = null⌝ ∗
         (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' (rnApR γ A ce) ∗ notifyRcv γnc) ∗
         rnApGive γ A ce ∗
-        rnAdvChan ap.raftAdvancedC' (memFloorAtLeast γ.ms γ.γs (γ.pre ++ A ++ ce).length) ∗
-        committedLast E.γr ce := by
+        rnAdvChan ap.raftAdvancedC'
+          (letI := srvStor (GF := GF) γ.node
+           iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A ++ ce).length ∗
+            srvFrozenRange γ.γs ((γ.pre ++ A).length + 1) ((γ.pre ++ A ++ ce).length + 1))) ∗
+        committedLast E.γr ce) ∨
+      -- (2026-10-30, the repair: snapshots allowed) a snapshot payload: the log jumps to `A'`
+      (∃ (A' : List EntryModel) (sv : SnapshotM),
+        rnApplyTok γ A' ∗
+        ⌜A.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index'⌝ ∗
+        ownSnapM ap.snapshot' DFrac.discard sv ∗
+        (letI := srvStor (GF := GF) γ.node
+         snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) ∗
+        □ E.C A' ∗ (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' iprop(True) ∗ notifyRcv γnc) ∗
+        rnAdvChan ap.raftAdvancedC'
+          (letI := srvStor (GF := GF) γ.node
+           iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A').length ∗
+            srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length)) ∗
+        committedAtLeast E.γr sv.Metadata'.Index') := by
   iintro Hcons #HA HP
   iunfold rnApP at HP
   icases HP with (HP | HP)
   rotate_left
-  · -- (D22 J6a; 2026-10-27) no snapshot payload
-    iunfold rnApSnap at HP
-    iexfalso; iexact HP
+  · -- SNAPSHOT-SORRY: the snapshot payload's components, `cum`'s agreement at `rcv.length`
+    -- (`A` is `F`) and the consumer's token at `A'`
+    sorry
+  ileft
   iunfold rnApN at HP
   icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, -⟩
   simp only [Int.toNat_natCast] at *
@@ -82,22 +99,14 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
     iexact HFce
   ipureintro; exact Hsnap
 
-/-- (D43 M3) In raft's static mode the view is any `nodeCfg`: it holds after any log. -/
-theorem rnCfgAt_static (γ : RNNames) (L L' : List EntryModel) (h : γ.node.dyn = false) :
-    rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ L' := by
-  unfold rnCfgAt
-  rw [ite_eq_right (by rw [h]; decide), ite_eq_right (by rw [h]; decide)]
 
 /-- (D43 M3) A normal entry keeps the view. -/
 theorem rnCfgAt_normal1 (γ : RNNames) (L : List EntryModel) (m : EntryModel)
     (hm : m.typ = W32 0) :
     rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ (L ++ [m]) := by
-  unfold rnCfgAt
-  split
-  · have := dvView_normal (GF := GF) γ.srv (some γ.nl) L m hm
-    unfold dvView at this
-    exact this
-  · exact .rfl
+  have := dvView_normal (GF := GF) γ.srv (some γ.nl) L m hm
+  unfold dvView at this
+  exact this
 
 /-- (D43 M3) A batch of normal entries keeps the view. -/
 theorem rnCfgAt_normal (γ : RNNames) (ce : List EntryModel)
@@ -133,21 +142,16 @@ theorem rnCfgAt_back_false (γ : RNNames) (ai₀ : w64) (L ce : List EntryModel)
   rw [ite_eq_right (by rw [hh]; decide)]
   exact rnCfgAt_normal γ ce (ccIn_false_normal ai₀ L ce hidx hcc) L
 
-/-- (D43 M3) **The view after a batch with a `ConfChange` entry**: in raft's dynamic mode the
-second `notifyc` send's (`rnApR`), in the static mode the one the loop kept. -/
+/-- (D43 M3) **The view after a batch with a `ConfChange` entry**: the second `notifyc` send's
+(`rnApR`; 2026-10-30, the repair: one mode, until then in the static mode the one the loop kept). -/
 theorem rnCfgAt_back_true (γ : RNNames) (L ce : List EntryModel) (hcc : ccIn ce = true) :
     (if rnHands γ ce then iprop(True) else rnCfgAt (GF := GF) γ L) ∗ rnApR γ L ce ⊢
       rnCfgAt γ (L ++ ce) := by
+  have hh : rnHands γ ce = true := hcc
   unfold rnApR
-  cases hd : γ.node.dyn
-  · have hh : rnHands γ ce = false := by unfold rnHands; simp [hd]
-    rw [ite_eq_right (by rw [hh]; decide), ite_eq_right (by rw [hh]; decide)]
-    iintro ⟨H, -⟩
-    iapply rnCfgAt_static γ L (L ++ ce) hd $$ H
-  · have hh : rnHands γ ce = true := by unfold rnHands; simp [hd, hcc]
-    rw [ite_eq_left hh, ite_eq_left hh]
-    iintro ⟨-, H⟩
-    iexact H
+  rw [ite_eq_left hh, ite_eq_left hh]
+  iintro ⟨-, H⟩
+  iexact H
 
 /-- (D43 M3) The batch's view option at the apply side: the node's names when the view goes along
 (`rnHands`). -/
@@ -160,53 +164,44 @@ theorem rnApR_dv (γ : RNNames) (γs : ServerRaftNames) (hpre : γ.pre = γs.pre
     rnApR (GF := GF) γ A ce = dvView γs (rnDv γ ce) (A ++ ce) := by
   unfold rnApR rnDv dvView
   by_cases h : rnHands γ ce
-  · have hd : γ.node.dyn = true := by
-      unfold rnHands at h; simp only [Bool.and_eq_true] at h; exact h.1
-    rw [ite_eq_left h, ite_eq_left h]
+  · rw [ite_eq_left h, ite_eq_left h]
     unfold rnCfgAt srvCfgView
-    rw [ite_eq_left hd, hpre, hraft]
+    rw [hraft, ← hpre]
   · rw [ite_eq_right h, ite_eq_right h]
 
-/-- (D43 M3) What goes along with the batch, as the apply side states it, with the node's dynamic
-contract (`isRaftNodeIfc`'s, in the dynamic mode). -/
+/-- (D43 M3) What goes along with the batch, as the apply side states it, with the node's
+conf-change contract (`isRaftNodeIfc`'s). -/
 theorem rnApGive_dv (s : Loc) (γ : RNNames) (γs : ServerRaftNames) (hpre : γ.pre = γs.pre)
     (hraft : γs.raft = γ.node) (A ce : List EntryModel) :
-    (⌜γ.node.dyn = false⌝ ∨ srvRaftNodeDyn (GF := GF) s γ.srv γ.nl) ∗ rnApGive γ A ce ⊢
+    srvRaftNodeCC (GF := GF) s γ.srv γ.nl ∗ rnApGive γ A ce ⊢
       dvView γs (rnDv γ ce) A ∗ dvRes s γs (rnDv γ ce) (A ++ ce) := by
   unfold rnApGive rnDv dvView dvRes
   by_cases h : rnHands γ ce
-  · have hd : γ.node.dyn = true := by
-      unfold rnHands at h; simp only [Bool.and_eq_true] at h; exact h.1
-    rw [ite_eq_left h, ite_eq_left h]
+  · rw [ite_eq_left h, ite_eq_left h]
     simp only
-    unfold rnCfgAt srvCfgView
-    rw [ite_eq_left hd, srvRaftNodeDyn_congr s γs γ.srv γ.nl hraft]
-    iintro ⟨(%Hf | #Hn), Hv, #Hd⟩
-    · rw [hd] at Hf; cases Hf
-    have hγs : γs = ⟨γ.node, γ.pre, γs.ai0⟩ := by cases γs; simp_all
-    rw [hγs]
-    iframe Hv Hn
-    unfold srvLE at *
-    iexact Hd
+    rw [srvRaftNodeCC_congr s γs γ.srv γ.nl hraft]
+    unfold rnCfgAt srvCfgView srvLE
+    rw [hraft, ← hpre]
+    iintro ⟨#Hn, Hv, #Hd⟩
+    iframe Hv Hn Hd
   · rw [ite_eq_right h, ite_eq_right h]
     simp only
     iintro -
     isplit <;> itrivial
 
-/-- (D43 M3) The server's node meets the dynamic contract in raft's dynamic mode: the wrapper's
-node contract's (`isRaftNodeIfc`). -/
-theorem srvRaftNodeDyn_of_isRaftNode (E : RNEnv GF) (γ : RNNames) (s : Loc) :
-    isRaftNode E γ (srvRAddr s) ⊢ ⌜γ.node.dyn = false⌝ ∨ srvRaftNodeDyn s γ.srv γ.nl := by
+/-- (D43 M3) The server's node meets the conf-change contract: the wrapper's node contract's
+(`isRaftNodeIfc`). (2026-10-30, the repair: in every cluster; until then `srvRaftNodeDyn`, in the
+dynamic mode.) -/
+theorem srvRaftNodeCC_of_isRaftNode (E : RNEnv GF) (γ : RNNames) (s : Loc) :
+    isRaftNode E γ (srvRAddr s) ⊢ srvRaftNodeCC s γ.srv γ.nl := by
   iintro #H
   iunfold isRaftNode at H
   iNamed H
   iunfold isRaftNodeIfc at Hni
-  icases Hni with ⟨%ni, %Hn, (%Hd | #Hd), -⟩
-  · ileft; ipureintro; exact Hd
-  · iright
-    iunfold srvRaftNodeDyn
-    iexists n
-    iframe Hn Hd
+  icases Hni with ⟨%ni, %Hn, #Hcc, -⟩
+  iunfold srvRaftNodeCC
+  iexists n
+  iframe Hn Hcc
 
 end lemmas
 

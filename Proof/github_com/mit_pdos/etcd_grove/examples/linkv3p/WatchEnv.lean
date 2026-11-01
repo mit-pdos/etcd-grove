@@ -57,11 +57,12 @@ theorem cert0_of_server (p : Loc) (R : v3rpc.WSrv GF) :
   iexact Hc0
 
 /-- **A member's watch facts** (persistent): its read view at its apply environment, its watch
-server there, its names the history's (`memberOf`), its KV state variable the cluster's. -/
+server there, its names the history's (`memberOf`), its KV state variable the cluster's; and (M2,
+the storage side, review round 2's N1, the approval's item 13) its server off. -/
 def memberWatch (γr : ReadNames) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(isServerRead s E ρ.rd ∗ (∃ pw : Loc, v3rpc.isWatchServer pw R) ∗
-    ⌜R.E = E ∧ v3rpc.memberOf γr.raft γr.kv ρ.rd ∧ ρ.rd.kv.st = γr.kv.st⌝)
+    ⌜R.E = E ∧ v3rpc.memberOf γr.raft γr.kv ρ.rd ∧ ρ.rd.kv.st = γr.kv.st ∧ E.γ.cm = false⌝)
 
 instance memberWatch_persistent (γr : ReadNames) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (R : v3rpc.WSrv GF) : Persistent (memberWatch γr s E ρ R) := by
@@ -76,12 +77,13 @@ theorem memberWatch_facts (V : client.WEnv GF) (γr : ReadNames) (s : Loc) (E : 
   iintro #H
   iunfold memberWatch at H
   icases H with ⟨#Hrd, ⟨%pw, #Hws⟩, %h⟩
-  obtain ⟨hE, hm, hst⟩ := h
+  obtain ⟨hE, hm, hst, hoff⟩ := h
   subst hE
   ihave %Hlink := client.watchSrvLink_of_server pw V.R $$ Hws
   ihave #Htok := client.watchTokPool_of_server pw V.R $$ Hws
+  ihave #Hnc := v3rpc.isWatchServer_noCompactor_env pw V.R hoff $$ Hws
   ihave #Hsm := client.srvLogsSmall_of_read V.R s ρ.rd Hlink $$ Hrd
-  ihave #Hinvs := client.srvKVInvs_of_read s V.R.E ρ.rd $$ Hrd
+  ihave #Hinvs := srvKVInvs_of_read s V.R.E ρ.rd $$ Hrd
   ihave #Hlaws := client.watchLaws_hist V γr.raft γr.kv ρ.rd pw hWM hWL hm hlog0 $$ [Hinvs Hws]
   · iframe #
   ihave #H00 := cert0_of_server pw V.R $$ Hws
@@ -90,11 +92,8 @@ theorem memberWatch_facts (V : client.WEnv GF) (γr : ReadNames) (s : Loc) (E : 
   iframe #
   isplitr
   · ipureintro; exact Hlink
-  iunfold client.srvKVFacts
-  iexists ρ.rd
+  iapply client.srvKVFacts_of_off V ρ.rd (by rw [hst, hK]) (by rw [hm.2.2.2, hlog0]) hrb
   iframe #
-  ipureintro
-  exact ⟨by rw [hst, hK], by rw [hm.2.2.2, hlog0], hrb⟩
 
 theorem watchEnv_addrs (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
     (watchEnv R₁ R₂ R₃ γr pfx).addrs = [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] := rfl
@@ -122,12 +121,15 @@ theorem watchEnv_conn [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fm
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ client.eofOk ∗
       memberWatch γr s₁ E₁ ρ₁ R₁ ∗ memberWatch γr s₂ E₂ ρ₂ R₂ ∗ memberWatch γr s₃ E₃ ρ₃ R₃ ∗
-      isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) bridgeAddr₁
-        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R₁.γ) (v3rpc.watchSpec R₁) ∗
-      isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) bridgeAddr₂
-        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R₂.γ) (v3rpc.watchSpec R₂) ∗
-      isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) bridgeAddr₃
-        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R₃.γ) (v3rpc.watchSpec R₃) ⊢
+      isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) bridgeAddr₁
+        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R₁)
+        (fun md => v3rpc.watchSpec R₁ (auth.mdTokenOf md)) ∗
+      isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) bridgeAddr₂
+        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R₂)
+        (fun md => v3rpc.watchSpec R₂ (auth.mdTokenOf md)) ∗
+      isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) bridgeAddr₃
+        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R₃)
+        (fun md => v3rpc.watchSpec R₃ (auth.mdTokenOf md)) ⊢
       □ ∀ (conn : Loc) (ics : List GoFunc),
         grpcConn (GF := GF) conn [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] ics [] -∗
           client.watchConnFacts { watchEnv R₁ R₂ R₃ γr pfx with conn := conn, ics := ics } := by
@@ -135,7 +137,7 @@ theorem watchEnv_conn [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fm
   iintro !> %conn %ics #Hc
   iapply watchConnFacts_of_members wp_ErrAny hAs (watchEnv R₁ R₂ R₃ γr pfx) conn ics
   rw [watchEnv_addrs]
-  simp only [isGrpcStreams, watchEnv_memOf₁, watchEnv_memOf₂, watchEnv_memOf₃]
+  simp only [isGrpcStreamsMd, watchEnv_memOf₁, watchEnv_memOf₂, watchEnv_memOf₃]
   iframe #
   isplitr
   · iintro !> %i %hi

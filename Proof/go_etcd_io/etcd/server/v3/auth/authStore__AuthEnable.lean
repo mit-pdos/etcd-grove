@@ -39,7 +39,7 @@ theorem auth.authStore.AuthEnable.wp_tieB
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.AuthEnable.specTB (GF := GF) (hG := hG) := by
   intro st R M P f T hs Pre Q Post en sc0 be
-  wp_start as ⟨#Hinv, %HisOn, Hown, HWR, Htpa, Hcs, %Hok⟩
+  wp_start as ⟨#Hinv, %HisOn, Hown, HWR, Htpa, Hcs, %Hok, #Hcap⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   icases authErrVar_of_init .rootUserNotExist $$ Hpkg with ⟨%eRUN, #HeRUN⟩
@@ -52,7 +52,7 @@ theorem auth.authStore.AuthEnable.wp_tieB
   icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
   ihave #Htpok := HtpokA
   iunfold tokenProviderOkA at Htpok
-  icases Htpok with ⟨%tpi, %Htpi, -, #HEnable, -, -, -⟩
+  icases Htpok with ⟨%tpi, %Htpi, -, #HEnable, -, -, -, -⟩
   subst Htpi
   iunfold authWRxB at HWR
   icases HWR with ⟨⟨Hbe, #Hbeok⟩, HT, Hen, #Hev, Hca, #Hcsn⟩
@@ -247,7 +247,8 @@ theorem auth.authStore.AuthEnable.wp_tieB
   have hoff : M = .off → ({ st0 with enabled := true } : AuthState).enabled = false := by
     intro h; subst h; cases HisOn
   imod (authOwnF_append_same st R M hs st0 { st0 with enabled := true } Hl0 rfl
-    (fun h1 h2 => permKeysOk_enabled _ _ (Hpk st0 Hl0 h1 h2)) hoff) $$ Hinv Hown with Hown
+    (fun h1 h2 => permKeysOk_enabled _ _ (Hpk st0 Hl0 h1 h2)) hoff) $$ Hinv Hown [] with Hown
+  · iapply (capNextM_step M hs (authEnableF false) st0 _ Hl0 hstep) $$ Hcap
   have Hl1 : histLast M (hs ++ [{ st0 with enabled := true }]) { st0 with enabled := true } := by
     cases M with
     | on γa => simp [histLast]
@@ -282,6 +283,8 @@ theorem auth.authStore.AuthEnable.wp_tieB
   · isplitl [Hown]
     · iExactEq Hown
       all_goals simp
+    isplitr
+    · iintro !> %x %hx; simp at hx
     ipureintro
     refine ⟨by simpa using Hl1, Hrv, by simp, by simp⟩
   (try wp_auto)

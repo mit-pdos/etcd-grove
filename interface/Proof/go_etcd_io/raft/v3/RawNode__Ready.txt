@@ -17,8 +17,9 @@ theorem RawNode.Ready.wp_proof [package_sem : Assumptions] (wp_RawNode_readyWith
                     "Hrn" ∷
                           ownRawNode γ rn id
                             { delivered := rs.delivered ++ ce, unpersisted := es, steps := steps, term := rs.term,
-                              storage := rs.storage, clb := rs.clb, tc := rs.tc, mode := rs.mode, cfg := rs.cfg,
-                              capplied := rs.capplied, flw := rs.flw, slent := L, phs := phsNext rs.phs h } ∗
+                              storage := rs.storage, sn := rs.sn, clb := rs.clb, tc := rs.tc, mode := rs.mode,
+                              cfg := rs.cfg, capplied := rs.capplied, flw := rs.flw, slent := L,
+                              phs := phsNext rs.phs h } ∗
                         "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
                           "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
                             "#Hents" ∷ entsRO rd.Entries' es ∗
@@ -35,7 +36,13 @@ theorem RawNode.Ready.wp_proof [package_sem : Assumptions] (wp_RawNode_readyWith
                                                 ("#Hrs_ok" ∷ [∗list] st ∈ sts, readStateRaw γ st) ∗
                                                   "#Hhard" ∷ hsOpt rd.HardState' h ∗
                                                     "#Hhsw" ∷ hsWit γ (phsNext rs.phs h) (rs.delivered ++ ce).length ∗
-                                                      "Happ" ∷ readyOut rs.storage es L -∗
+                                                      "Happ" ∷ readyOut rs.storage rs.sn es L ∗
+                                                        "#Hfrz" ∷
+                                                            (⌜L ≠ none⌝ ∨ ceFrozen rs.storage rs.delivered.length ce es) ∗
+                                                          "#Hdk" ∷
+                                                            dlvKeysAt rs.sn rs.delivered.length
+                                                              (List.drop rs.delivered.length
+                                                                (dlvAfter rs.delivered ce L)) -∗
                       Φ (intoVal rd)) -∗
                 WP
                   ((intoVal (methods RawNode.ty.PointerType go!"Ready" (intoVal rn))) (intoVal ()))

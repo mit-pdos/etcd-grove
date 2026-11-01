@@ -6,13 +6,20 @@ theorem MemoryStorage.Append.wp_proof [package_sem : Assumptions] (wp_MemoryStor
     MemoryStorage.firstIndex.spec) (wp_GetIndex : raftpb.Entry.GetIndex.spec) :
     MemoryStorage.Append.spec
   -- `Perennial.EtcdGrove.MemoryStorage.Append.spec`, unfolded:
-  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (p : List EntryM) (s : GoSlice) (dq : DFrac),
-    (∀ (e0 : EntryM), p.head? = some e0 → uint.Z e0.Index' + ↑p.length ≤ 2 ^ 61) →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Htok" ∷ (⌜p = []⌝ ∨ memAppendTok ms γs σ p) ∗ "Hs" ∷ entsPts s dq p -∗
-            ▷ ((⌜p = []⌝ ∨ memAppendedTok ms γs σ p) ∗ entsPts s dq p -∗ Φ (intoVal GoInterface.nil)) -∗
-              WP
-                ((intoVal (methods MemoryStorage.ty.PointerType go!"Append" (intoVal ms)))
-                  (intoVal s))
-                {{ Φ }}
+  ∀ (ms : Loc) (γs : MemStorNames) (k : Nat) (old es : List EntryM) (s : GoSlice) (dq : DFrac),
+    (∀ (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = k + j) →
+      k + es.length ≤ 2 ^ 61 →
+        ⊢
+          ∀ Φ,
+            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                memStorLock ms γs ∗
+                  (if es = [] then emp else memLog γs k (DFrac.own 1) old ∗ memEnd γs (k + old.length)) ∗
+                    entsPts s dq es -∗
+              ▷
+                  ((entsPts s dq es ∗
+                      if es = [] then emp else memLog γs k (DFrac.own 1) es ∗ memEnd γs (k + es.length)) -∗
+                    Φ (intoVal GoInterface.nil)) -∗
+                WP
+                  ((intoVal (methods MemoryStorage.ty.PointerType go!"Append" (intoVal ms)))
+                    (intoVal s))
+                  {{ Φ }}

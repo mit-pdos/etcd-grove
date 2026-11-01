@@ -36,13 +36,13 @@ theorem backend.readTx.RLock.wp_proof : backend.readTx.RLock.spec (GF := GF) (hG
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$Hmu] as ⟨Hrl, HP⟩
   wp_pure
   unfold rtRes
-  icases HP with ⟨%rd, %rv, %H, HP⟩
+  icases HP with ⟨%rd, %rv, %H, %L, HP⟩
   wp_auto
   iapply HΦ
   iframe
   iexists rd.rtx, rv
   unfold rtHeld
-  iexists rt, rd, H
+  iexists rt, rd, H, L
   iframe; iframe #
   ipureintro; rfl
 

@@ -46,6 +46,7 @@ theorem newEphemeralKV.wp_proof (hCl : concurrency.Session.Client.spec (GF := GF
   icases Hres with (⟨%Heq, %r, Hrk, #Hr, #Hc, %Hrr⟩ | ⟨#Herr, %Hrk, %r, #Hr, #Hp, %Hlr⟩ | ⟨%Hne, #Hce⟩)
   · subst Heq
     unfold ownRemoteKV RemoteKVSt.val'
+    icases Hrk with ⟨Hrk, %Hkl⟩
     wp_auto
     irename «$r0» => Hek
     generalize «$r0_ptr» = ek at *
@@ -58,7 +59,7 @@ theorem newEphemeralKV.wp_proof (hCl : concurrency.Session.Client.spec (GF := GF
     unfold ownEphemeralKV ownRemoteKV RemoteKVSt.val'
     iframe HKV Hr Hc
     iframe
-    ipureintro; exact Hrr
+    ipureintro; exact ⟨Hkl, Hrr⟩
   · ihave %Hne : ⌜err ≠ GoInterface.nil⌝ $$ [Herr]
     · unfold concurrency.isPkgErr; icases Herr with ⟨-, %H⟩; ipureintro; exact H
     obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by

@@ -29,6 +29,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **What a served read knows of the log it will read** (persistent): the round's read index
 `ci`, a log `L₀` applied through an index at least `ci` that `logR` extends, raft's witness of the
@@ -110,7 +111,7 @@ theorem readWit_fire (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Q : List E
       ={⊤}=∗ ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = l⌝ ∗ □ Q L := by
   iintro #Hainv #Hkvi #Hw #Hc Hlc
   iunfold srvKVInvs at Hkvi
-  icases Hkvi with ⟨-, #HcI, -, %Hcok⟩
+  icases Hkvi with ⟨-, #HcI, -, %Hcok, -⟩
   iunfold readWitAt at Hw
   icases Hw with ⟨%ci, %ci₀, %L₀, %gs, %k, %Hp, #HL, #HW, #HQ⟩
   imod appliedLogAt_kvLogAt s E γr ci₀ L₀ $$ Hainv HL with #HkL

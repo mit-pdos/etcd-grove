@@ -55,7 +55,7 @@ theorem apply.newQuotaApplierV3.wp_proof
   subst Hbi
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster,
-    #HApply⟩
+    #HApply, #HCmp⟩
   iunfold apply.applierSpec
   iexists ⟨go.GoType.PointerType quotaApplierV3.ty, #p⟩
   isplitr
@@ -100,10 +100,11 @@ theorem apply.newQuotaApplierV3.wp_proof
     · iexact Htrc
     iunfold apply.kvPostF at Hpost
     iunfold apply.kvPostF
-    icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, #Hcls⟩
+    icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, #Hcls, #Hlc⟩
     ihave #Hcls := apply.chainClass_quota E.authMode info c rq oc $$ Hcls
+    ihave #Hlc := apply.chainLeaseClass_quota E.authMode info _ c rq oc $$ Hlc
     iexists oc
-    iframe HR Hkv HPP Hcls
+    iframe HR Hkv HPP Hcls Hlc
     isplitr
     · ipureintro
       simp only [apply.chainStep, apply.quotaChecks, Hk.2.1]
@@ -156,17 +157,40 @@ theorem apply.newQuotaApplierV3.wp_proof
   isplitr
   · -- LeaseRevoke: the inner applier's (promoted)
     imodintro
-    iintro %r %rq %id %log %Pre %Q %Post %info
+    iintro %r %rq %id %log %rs %Pre %Q %Post %info
     imodintro
     iintro %Φ' Hpre HΦ'
     rw [method_unfold (t := go.GoType.PointerType quotaApplierV3.ty) (m := go!"LeaseRevoke")]
     wp_call
     wp_auto
     iunfold apply.revokePre at Hpre
-    icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
-    -- D14h: no lease revocation in the workload
-    have hF := Hk.2.2
-    simp only [apply.rqOk, Hk.2.1] at hF
+    icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm, Hrr⟩
+    ihave #Hcp := apply.certPre_quota _ _ _ _ $$ Hcp
+    iunfold apply.mPre at Hm
+    icases Hm with ⟨Hkv, Hres, Hcs⟩
+    ihave Hres := apply.chainRes_quota_out c p (.ok bi) info $$ applierV3 Hres
+    iapply HRev $$ %r %rq %id %log %rs %Pre %Q %Post %info [Hwt Hkv Hres Hcs Hrr]
+    · iunfold apply.revokePre
+      iunfold apply.mPre
+      iframe
+      iframe #
+      ipureintro; exact Hk
+    inext
+    iintro %resp %err ⟨Hpost, Hrr⟩
+    iapply HΦ'
+    iframe Hrr
+    iunfold apply.kvPost at Hpost
+    iunfold apply.kvPost
+    icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, #Hcls, #Hlc⟩
+    ihave #Hcls := apply.chainClass_quota E.authMode info c rq oc $$ Hcls
+    ihave #Hlc := apply.chainLeaseClass_quota E.authMode info _ c rq oc $$ Hlc
+    iexists oc
+    iframe HR Hkv HPP Hcls Hlc
+    isplitr
+    · ipureintro
+      simp only [apply.chainStep, apply.quotaChecks, Hk.2.1]
+      simpa using Hst
+    iapply apply.chainRes_quota_in c p (.ok bi) info $$ applierV3 Hres
   isplitr
   · -- the methods that leave the log as it is: `LeaseGrant` the quota applier's, the others
     -- the inner applier's (promoted)
@@ -282,6 +306,7 @@ theorem apply.newQuotaApplierV3.wp_proof
       icases Hpost with ⟨Hkv, Hres, HPP⟩
       iframe Hkv HPP
       iapply apply.chainRes_quota_in c p (.ok bi) info $$ applierV3 Hres
+  isplitr
   · -- `Apply`: the inner applier's (promoted), its `applyFunc` under the inner's resources
     imodintro
     iintro %r %rq %skip %v3 %af %A %B
@@ -312,7 +337,32 @@ theorem apply.newQuotaApplierV3.wp_proof
       iapply apply.adminPass_wrap E.authMode c (.quota c) rq rfl $$ Hadm
     · iright
       iexact Hrej
-
+  · -- `Compaction`: the inner applier's (promoted)
+    iunfold apply.cmpTriple
+    iunfold apply.cmpTriple at HCmp
+    imodintro
+    iintro %cr %rev %log %crev %Pre %Q %Post %info
+    imodintro
+    iintro %Φ' ⟨#Hcr, %Hadm, Hm, Hc⟩ HΦ'
+    rw [method_unfold (t := go.GoType.PointerType quotaApplierV3.ty) (m := go!"Compaction")]
+    wp_call
+    wp_auto
+    iunfold apply.mPre at Hm
+    icases Hm with ⟨Hkv, Hres, Hcs⟩
+    ihave Hres := apply.chainRes_quota_out c p (.ok bi) info $$ applierV3 Hres
+    iapply HCmp $$ %cr %rev %log %crev %Pre %Q %Post %info [Hkv Hres Hcs Hc]
+    · iunfold apply.mPre; iframe; iframe #; ipureintro; exact Hadm
+    inext
+    iintro %resp %ch %trace %err ⟨Hkv, Hres, HPP, Hc, Hans⟩
+    iapply HΦ'
+    rw [apply.chainCompacts_quota c, apply.cmpAnswerIs_congr (.quota c) c (apply.chainCompacts_quota c)]
+    iframe Hkv HPP
+    isplitr [Hc Hans]
+    rotate_left
+    · isplitl [Hc]
+      · iexact Hc
+      · iexact Hans
+    iapply apply.chainRes_quota_in c p (.ok bi) info $$ applierV3 Hres
 
 end proof
 

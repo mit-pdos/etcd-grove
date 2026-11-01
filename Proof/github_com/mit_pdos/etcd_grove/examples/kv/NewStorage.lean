@@ -34,7 +34,7 @@ theorem NewStorage.wp_proof
   wp_start as ⟨#Hreg, #Hv⟩
   iapply wp_fupd
   wp_auto
-  wp_apply wp_NewMemoryStorage (2 ^ 64) (by simp only [memStorEmpty]; word) as %ms %γs ⟨%Hcap, Hown, -, Htok, Hca⟩
+  wp_apply wp_NewMemoryStorage as %ms %γs ⟨Hl, Hlog, He, Hnone, Hmeta, Hfresh⟩
   irename «$r0» => Hs
   generalize «$r0_ptr» = s at *
   iStructNamed Hs
@@ -43,8 +43,7 @@ theorem NewStorage.wp_proof
   imodintro
   iapply HΦ
   iexists ms, γs
-  iframe Hrec voters Hown Hca Htok
-  ipureintro; exact Hcap
+  iframe Hrec voters Hl Hlog He Hnone Hmeta Hfresh
 
 end proof
 

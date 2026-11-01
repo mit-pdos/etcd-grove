@@ -298,6 +298,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /- `membership.clusterMem` (the cluster's in-memory members) is defined in the membership
 package's `Defs.lean` since D43 M5b (2026-10-26; opaque here until then). -/

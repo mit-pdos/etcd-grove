@@ -40,7 +40,7 @@ theorem KV.Read.wp_proof
     (wp_node_ReadIndex : node.ReadIndex.spec (GF := GF) (hG := hG)) :
     KV.Read.spec (GF := GF) (hG := hG) := by
   intro γr γp r key L0 Hkey
-  wp_start as ⟨#Hreg, Hrdc, #Hlb⟩
+  wp_start as ⟨#Hreg, #Hlb⟩
   iunfold isKV at Hreg
   icases Hreg with ⟨%id, %n, %st, #Hrep⟩
   ihave #Hrep' := Hrep
@@ -116,7 +116,7 @@ theorem KV.Read.wp_proof
   ihave #Hbg := nodeCtx_background (GF := GF) bgCd
   wp_apply +noauto wp_node_ReadIndex n γr.cluster kvRaftN id b cx
     (fun ops => iprop(⌜opsOf l0 <+: ops⌝)) context.backgroundCtxVal
-    bgCd $$ [$Hraftinit $HisNode $Hbg $Hb $Hrc $Hrdc] as %err -
+    bgCd $$ [$Hraftinit $HisNode $Hbg $Hb $Hrc] as %err -
   -- the answer: a read state of the context, and the value after a committed log at least that
   -- long; the read took effect at a committed log that long (`readStateOk_ctx`), whose
   -- requested entries extend `l0`'s

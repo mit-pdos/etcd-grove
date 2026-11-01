@@ -65,9 +65,11 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
     (cid : w64),
   ccApplyOkM γs m → E.RO = srvRestOwnH γB cl (srvObjsOn al st lp cl d.be) →
   E.γ.kb = some d → d.γB = γB →
-  (dv = none → γs.raft.dyn = false) →
+  -- (2026-10-30, the repair: raft's one mode, a conf entry's batch hands the view over; until
+  -- then, without a view, a static cluster)
+  dv ≠ none →
   (∀ n, dv = some n → v3 = true ∧
-    srvDynCCPre γs.raft.dec ds v (.v1 (membership.ccRaftEff rs.bk m)) k e m') →
+    srvCCPre γs.raft.rule ds v (.v1 (membership.ccRaftEff rs.bk m)) k e m') →
   (m.type = W32 0 → m.nodeId ≠ lid → m.nodeId ∈ prs) →
   (m.type = W32 1 → m.nodeId ≠ lid) →
   (m.type = W32 0 →

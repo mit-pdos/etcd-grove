@@ -314,7 +314,9 @@ theorem watchGRPCStream.newWatchClient.wp_proof
   imod wgsWg_share (wgsF G.wgs go!"wg") $$ Had with ⟨%γS, %γh, Hsh⟩
   -- what each substream's goroutine left, lent
   ihave ⟨HTr, HTw⟩ : iprop(([∗list] ws ∈ (S.l ++ keys.filterMap (S.M !! ·)).filter
-        (fun x => decide (x ≠ null)), ⌜(f ws).1.ws = ws ∧ phOk S ws (f ws).2.1⌝ ∗ wsIs V (f ws).1 ∗
+        (fun x => decide (x ≠ null)), ⌜(f ws).1.ws = ws ∧ phOk S ws (f ws).2.1 ∧
+        streamKeyOf (metadata.outgoingOf (GoInterface.ok (f ws).1.ctx)) =
+          streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx))⌝ ∗ wsIs V (f ws).1 ∗
         wsRest V γs S.Dm (f ws).1 (f ws).2.1 ∗ lifeInvIs V G (f ws).1 (f ws).2.2) ∗
       ([∗list] ws ∈ (S.l ++ keys.filterMap (S.M !! ·)).filter
         (fun x => decide (x ≠ null)), wcIn V G (f ws).1)) $$ [HT]
@@ -354,7 +356,9 @@ theorem watchGRPCStream.newWatchClient.wp_proof
   icases client.bigSepM_take_list _ U _ Hlnd HlU $$ Hids with ⟨Hidl, Hids⟩
   icases client.bigSepM_take_list _ U _ Hlnd HlU $$ Hdcs with ⟨Hdcl, Hdcs⟩
   ihave Hbun : iprop([∗list] ws ∈ (S.l ++ keys.filterMap (S.M !! ·)).filter (fun x => !decide (x = null)),
-      ((((⌜(f ws).1.ws = ws ∧ phOk S ws (f ws).2.1⌝ ∗ wsIs V (f ws).1 ∗
+      ((((⌜(f ws).1.ws = ws ∧ phOk S ws (f ws).2.1 ∧
+        streamKeyOf (metadata.outgoingOf (GoInterface.ok (f ws).1.ctx)) =
+          streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx))⌝ ∗ wsIs V (f ws).1 ∗
         wsRest V γs S.Dm (f ws).1 (f ws).2.1 ∗ lifeInvIs V G (f ws).1 (f ws).2.2) ∗
         wcOut V G (f ws).1) ∗ wsF ws go!"id" ↦ W64 (-1)) ∗
         donecAt ws (lifeDn V G (f ws).1 (f ws).2.2))) $$ [HTr Hout Hidl Hdcl]
@@ -389,7 +393,9 @@ theorem watchGRPCStream.newWatchClient.wp_proof
   ihave HI3 : iprop(∃ (k : w64) (wv : Loc), "i" ∷ i_ptr ↦ k ∗ "ws" ∷ ws_ptr ↦ wv ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (((S.l ++ keys.filterMap (S.M !! ·)).filter (fun x => !decide (x = null))).length : Int)⌝ ∗
       "Hnew" ∷ ([∗list] ws ∈ ((S.l ++ keys.filterMap (S.M !! ·)).filter (fun x => !decide (x = null))).take (sint.nat k), wsElem V G (n + 1) γs (S.reconnect ((S.l ++ keys.filterMap (S.M !! ·)).filter (fun x => !decide (x = null)))) ws) ∗
-      "Hbun" ∷ ([∗list] ws ∈ ((S.l ++ keys.filterMap (S.M !! ·)).filter (fun x => !decide (x = null))).drop (sint.nat k), ((((⌜(f ws).1.ws = ws ∧ phOk S ws (f ws).2.1⌝ ∗ wsIs V (f ws).1 ∗
+      "Hbun" ∷ ([∗list] ws ∈ ((S.l ++ keys.filterMap (S.M !! ·)).filter (fun x => !decide (x = null))).drop (sint.nat k), ((((⌜(f ws).1.ws = ws ∧ phOk S ws (f ws).2.1 ∧
+        streamKeyOf (metadata.outgoingOf (GoInterface.ok (f ws).1.ctx)) =
+          streamKeyOf (metadata.outgoingOf (GoInterface.ok G.ctx))⌝ ∗ wsIs V (f ws).1 ∗
         wsRest V γs S.Dm (f ws).1 (f ws).2.1 ∗ lifeInvIs V G (f ws).1 (f ws).2.2) ∗
         wcOut V G (f ws).1) ∗ wsF ws go!"id" ↦ W64 (-1)) ∗
         donecAt ws (lifeDn V G (f ws).1 (f ws).2.2))) ∗
@@ -428,10 +434,10 @@ theorem watchGRPCStream.newWatchClient.wp_proof
     iintro Hbun
     icases BigSepL.bigSepL_cons.1 $$ Hbun with ⟨⟨⟨⟨⟨%Hpx, #HPx, Hrestx, #Hlix⟩, Houtx⟩, Hidx⟩, Hdcx⟩, Hbun⟩
     have hrec : phOk (S.reconnect ((S.l ++ keys.filterMap (S.M !! ·)).filter (fun x => !decide (x = null)))) x (WPh.queued none) := by
-      have := Hrecon x (f x).2.1 hxU Hpx.2
+      have := Hrecon x (f x).2.1 hxU Hpx.2.1
       rcases hphx with ⟨X, hX⟩ | ⟨si, hX⟩ <;> rw [hX] at this <;> simpa [WPh.recon] using this
     generalize hP : (f x).1 = P at *
-    obtain ⟨hPx, -⟩ := Hpx
+    obtain ⟨hPx, -, hkx⟩ := Hpx
     subst hPx
     iunfold wcOut at Houtx
     icases Houtx with (Hrb | ⟨#Hstp, Hsb⟩)
@@ -486,7 +492,7 @@ theorem watchGRPCStream.newWatchClient.wp_proof
       unfold wsElem
       iexists P, .queued none
       isplitr
-      · ipureintro; exact ⟨rfl, hrec⟩
+      · ipureintro; exact ⟨rfl, hrec, hkx⟩
       simp only [WPh.id, noCancelOk, WPh.isOrphan]
       iframe HPx Hidx
       have hDm : ∀ l, (S.reconnect l).Dm = [] := fun _ => rfl
@@ -518,7 +524,7 @@ theorem watchGRPCStream.newWatchClient.wp_proof
       unfold wsElem
       iexists P, .queued none
       isplitr
-      · ipureintro; exact ⟨rfl, hrec⟩
+      · ipureintro; exact ⟨rfl, hrec, hkx⟩
       simp only [WPh.id, noCancelOk, WPh.isOrphan]
       iframe HPx Hidx
       have hDm : ∀ l, (S.reconnect l).Dm = [] := fun _ => rfl
@@ -587,18 +593,18 @@ theorem watchGRPCStream.newWatchClient.wp_proof
       (client.wsElem_recon_any V G (n + 1) γs γs' S _ ws).trans
         (client.wsElem_recon_at V G (n + 1) γs' S _ ws i'))) $$ Hall
   (try wp_auto)
-  icases Hopen with (⟨%Herr, %i, %γs2, %Dn, %cd', %Hi, #Hcli, Htok, Hrtok, #Hspec⟩ |
+  icases Hopen with (⟨%Herr, %i, %γs2, %Dn, %cd', %md, %Hi, #Hcli, Htok, Hrtok, #Hspec⟩ |
     ⟨⟨%Hwc, %Herr⟩, #Hse⟩)
   · subst Herr
     (try wp_auto)
     -- (D25) the new epoch: its count from `respc`'s position `sent.length`
     imod mono_nat_own_alloc (GF := GF) sent.length with ⟨%γc, Hcnt, -⟩
-    imod monoListAuthOwn_update_app (GF := GF) [((γs2, sent.length, γc, i) : EpInfo)] $$ Hep with
+    imod monoListAuthOwn_update_app (GF := GF) [((γs2, sent.length, γc, i, auth.mdTokenOf md) : EpInfo)] $$ Hep with
       ⟨Hep, #Hlb⟩
-    ihave #Hidx := monoListIdxOwn_get (GF := GF) eps.length ((γs2, sent.length, γc, i) : EpInfo)
+    ihave #Hidx := monoListIdxOwn_get (GF := GF) eps.length ((γs2, sent.length, γc, i, auth.mdTokenOf md) : EpInfo)
       (by simp) $$ Hlb
     wp_apply wp_fork $$ [Hrtok Hprod Hcnt]
-    · wp_apply wp_serve V G callSl wc γs2 Dn cd' eps.length γc i sent $$ [$Hrtok $Hprod $Hcnt]
+    · wp_apply wp_serve V G callSl wc γs2 Dn cd' eps.length γc i sent (auth.mdTokenOf md) $$ [$Hrtok $Hprod $Hcnt]
       · iframe #
       itrivial
     iapply HΦ
@@ -611,7 +617,7 @@ theorem watchGRPCStream.newWatchClient.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
-    iexists i, γs2, Dn, cd', γc
+    iexists i, γs2, Dn, cd', γc, md
     iframe #
     iframe
     ipureintro; exact Hi

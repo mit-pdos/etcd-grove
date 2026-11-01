@@ -64,7 +64,7 @@ theorem startMember.wp_proof
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog ctxs dir id γ ρ E₀
     Φs γn
-    Htb Hrb48 HrbN hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir Hlg Hck Haf Hbuq Hdbo Hms
+    Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hlg Hck Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨Haddr, Hcaddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb,
     #Hnet, Hpown⟩
   -- the premises in the shared start's form
@@ -76,7 +76,7 @@ theorem startMember.wp_proof
   · iunfold common.commonPremises; iunfold putget3.commonPremises at Hcom; iexact Hcom
   ihave #Hcom' := Hcom
   iunfold putget3.commonPremises at Hcom'
-  icases Hcom' with ⟨-, -, -, -, -, -, #Hnrl⟩
+  icases Hcom' with ⟨-, -, -, -, -, #Hnrl⟩
   ihave #Hsls : [∗map] k ↦ sl ∈ GMap.insert name₃ sl₃ (GMap.insert name₂ sl₂
       (GMap.insert name₁ sl₁ ∅)), sl ↦*□ initURLs3 k $$ []
   · iapply (BigSepM.bigSepM_insert (by
@@ -104,7 +104,7 @@ theorem startMember.wp_proof
   wp_apply (wp_NewMember N name peerAddr client go!"linkv3p" peer cluster lg
       (GMap.insert name₃ sl₃ (GMap.insert name₂ sl₂ (GMap.insert name₁ sl₁ ∅))) initURLs3
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn
-      (by omega) Hrb48 HrbN hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir
+      (by omega) Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir
       ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Hmb Hpown] as %srv %err Hres
   · iframe; iframe #
     iExactEq Hpeer; rfl
@@ -197,8 +197,8 @@ theorem startMember.wp_proof
     [Hgsn Hclis]
   · iframe Hgsn Hclis; iframe #
   imod (EtcdGrove.client.etcd_kv_started client gs q p srv clis E { ρ with wait := γw } ρ.rd
-      cid mid C.n il im iu ims is svcs regs sregs 1 Hregs.1)
-    $$ [Hgsn Hclis Hslots] with ⟨Hserv, Hss, #HPut, #HRange, #HDel, #HTxn⟩
+      cid mid C.n il im iu ims is svcs regs sregs 1 Hregs.1 Hrf rfl)
+    $$ [Hgsn Hclis Hslots] with ⟨Hserv, Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   · iframe Hgsn Hclis Hslots
     iframe Pv3 Psrv Hreq Hrd Hkva Hq Hil Him Hiu
     iintro !>
@@ -221,7 +221,7 @@ theorem startMember.wp_proof
   isplitr; · ipureintro; rfl
   iunfold memberServed
   iexists E, γw, cid, mid
-  iframe Hgo2 HPut HRange HDel HTxn Hctl
+  iframe Hgo2 HPut HRange HDel HTxn HCmp Hctl
   iframe #
   isplitl []
   · ipureintro

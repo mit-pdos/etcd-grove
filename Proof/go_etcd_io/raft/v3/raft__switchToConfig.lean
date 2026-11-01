@@ -61,7 +61,7 @@ theorem raft.switchToConfig.wp_proof
     (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     raft.switchToConfig.spec (GF := GF) (hG := hG) := by
-  intro c r id s tv0 cfgv prsm prs pvs Hlead Hcand Hpok
+  intro c r id s tv0 cfgv prsm prs pvs Hlead Hltz Hcand Hpok
   wp_start as H
   iNamed H
   wp_auto
@@ -145,6 +145,7 @@ theorem raft.switchToConfig.wp_proof
       rw [Hs1l]
       have Hrole1 : s1.role = s.role := by rw [← Hs1, ← Hs0]
       have Hl1 : s1.role = .leader := by rw [Hrole1]; exact Hl
+      have Ht1 : s1.term = s.term := by rw [← Hs1, ← Hs0]
       have Hst : stateW64 s1.role = W64 2 := by rw [Hl1]; rfl
       wp_auto
       wp_apply raft.wp_load_stateC $$ Hphys as Hphys
@@ -257,6 +258,7 @@ theorem raft.switchToConfig.wp_proof
               rw [decide_eq_false Hii]
               wp_auto
               wp_apply wp_raft_maybeSendAppend _ _ _ _ i false Hii (by exact Hicfg) (by exact Hl1)
+                (by first | (simp only [sendMsgs]; rw [Ht1]; exact Hltz Hl) | (rw [Ht1]; exact Hltz Hl) | simp_all)
                 $$ [$Hphys]
                 as %b' %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
               try wp_auto
@@ -296,7 +298,8 @@ theorem raft.switchToConfig.wp_proof
         · -- a commit: broadcast
           simp only [↓reduceIte]
           wp_auto
-          wp_apply wp_raft_bcastAppend c r id _ (by exact Hl1) $$ [$Hphys]
+          wp_apply wp_raft_bcastAppend c r id _ (by exact Hl1)
+            (by first | (simp only [sendMsgs]; rw [Ht1]; exact Hltz Hl) | (rw [Ht1]; exact Hltz Hl) | simp_all) $$ [$Hphys]
             as %ms %pvs2 ⟨Hphys, %Hms, %Hmm⟩
           wp_join_done
           iexists ms, pvs2

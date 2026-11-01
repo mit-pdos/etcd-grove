@@ -42,10 +42,9 @@ theorem tick.wp_proof (wp_node_Tick : node.Tick.spec (GF := GF) (hG := hG)) :
   wp_if_destruct
   · have Hlt : sint.nat k < ticksN := by unfold ticksN at *; word
     wp_apply +noauto time.wp_Sleep
-    -- the tick's credit (D19b): the receipt of the resolution of `Tick`
-    wp_take_receipt as Hc1
-    ihave Hc1 := tickCredit_intro γ 1 $$ Hc1
-    wp_apply wp_node_Tick n γ kvRaftN id $$ [$Hraftinit $HisNode $Hc1]
+    -- the resolution of `Tick`'s receipt (until 2026-10-30 the tick's credit; unused now)
+    wp_take_receipt as _Hc1
+    wp_apply wp_node_Tick n γ kvRaftN id $$ [$Hraftinit $HisNode]
     wp_for_post
     iframe
     iexists k + W64 1

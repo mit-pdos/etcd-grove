@@ -19,6 +19,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.Base
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvMutex
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.RecvLimit
 
 @[expose] public section
 

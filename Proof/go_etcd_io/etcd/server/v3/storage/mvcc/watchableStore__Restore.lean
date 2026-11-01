@@ -228,7 +228,7 @@ theorem mvcc.watchableStore.Restore.wp_proof
     mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG) := by
   have hAddG := mvcc.watcherGroup.add.spec_group hAdd
   intro s st γ b' d' γb' P' L R hLR hR
-  wp_start as ⟨#Hws, %Hkb, Hcl, Hfrag, Hown, #Hfrz, Hww, #Hok', #HbkT, #HcrT, Hview, Hnc, Hrr, Hrts⟩
+  wp_start as ⟨#Hws, %Hkb, %Hcm', Hcl, Hfrag, Hown, #Hfrz, Hww, #Hok', #HbkT, #HcrT, Hview, Hnc, Hrr, Hrts⟩
   ihave #HwsAll : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
   ihave #Hpkg0 : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -271,6 +271,8 @@ theorem mvcc.watchableStore.Restore.wp_proof
     iframe #
     isplitr
     · ipureintro; exact Hkb
+    isplitr
+    · ipureintro; exact Hcm'
     isplitl [Hwsd]
     · iunfold mvcc.wsDep; iexact Hwsd
     iunfold mvcc.logQ
@@ -436,10 +438,12 @@ theorem mvcc.watchableStore.Restore.wp_proof
   have e8 : (σ.restoreSt L').VB = σ.VB := rfl
   have eo : ∀ w x, mvcc.outRes (GF := GF) γ (σ.restoreSt L') w x = mvcc.outRes γ σ w x :=
     fun _ _ => rfl
+  ihave #Hwfz2 := mvcc.wsWatchFrozen_mono γ σ (σ.restoreSt L') (fun h => by rw [e5]; exact h) $$ Hwfz
   ihave HPf : mvcc.watchStoreBody s γ 1 (σ.restoreSt L') $$ [Hσ HwlL HlogQ Hsy Hun Hvf Hvs Hvcap Hvbs
       Hst Hwo Hmeta Hwt Hmem']
   · iunfold mvcc.watchStoreBody
     simp only [named, e1, e2, e3, e4, e5, e6, e7, e8, eo]
+    iframe Hwfz2
     iframe Hσ Hsy Hun Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmfix Hmem' HcL'
     isplitl [HwlL HlogQ]
     · iunfold mvcc.wlogQ; iunfold mvcc.logQ at HlogQ; iframe HwlL HlogQ

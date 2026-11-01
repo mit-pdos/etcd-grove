@@ -72,6 +72,81 @@ def keyWatchOp (key : GoString) (rev : w64) : OpFull := opWatchModel key [withRe
 def prefixWatchOp (kp : GoString) (rev : w64) : OpFull :=
   opWatchModel kp [withPrefixM, withRevM rev]
 
+/-! ## The requests' sizes (2026-10-30, `notes/invoke-size-b.md`)
+
+The recipes' objects keep their prefix at most `2 ^ 27` bytes (their constructors' premise), a
+value is at most `2 ^ 28` (`Enqueue`'s premise), and a key the helpers create or delete at most
+`2 ^ 28` (the prefix, a separator and a number): each request fits a gRPC message. -/
+
+/-- `putNewKV`'s transaction fits. -/
+theorem newKeyTxn_size {key val : GoString} (lease : w64) (hk : key.length ≤ 2 ^ 28)
+    (hv : val.length ≤ 2 ^ 28) : txnSizeOk (newKeyTxn key val lease) := by
+  unfold txnSizeOk txnWireLen newKeyTxn
+  simp [cmpWireLen, TxnOp.wireLen, compareM, cmpKeyM, wireSlack]
+  omega
+
+/-- `deleteRevKey`'s transaction fits. -/
+theorem deleteRevTxn_size {key : GoString} (rev : w64) (hk : key.length ≤ 2 ^ 28) :
+    txnSizeOk (deleteRevTxn key rev) := by
+  unfold txnSizeOk txnWireLen deleteRevTxn
+  simp [cmpWireLen, TxnOp.wireLen, opWireLen, compareM, cmpKeyM, wireSlack, opDeleteModel, opFold,
+    OpFull.deleteInit, OpFull.newOp, OpModel.zero]
+  omega
+
+/-- A 64-bit integer's decimal (`%v`, `%d`) has at most 20 bytes (19 digits and a sign). -/
+theorem decimal_sint_length_le (x : w64) :
+    (_root_.Perennial.fmt.decimal (sint.Z x)).length ≤ 20 := by
+  have h1 : -(2 ^ 63) ≤ sint.Z x ∧ sint.Z x < 2 ^ 63 := by word
+  have h : (sint.Z x).natAbs < 10 ^ 19 := by omega
+  have := _root_.Perennial.fmt.length_decimalNat_le _ 19 (by omega) h
+  unfold _root_.Perennial.fmt.decimal
+  split <;> simp <;> omega
+
+/-- A unique key `kp ++ "/" ++ decimal t` of a prefix within `2 ^ 27 + 2 ^ 10` is within
+`2 ^ 28`. -/
+theorem uniqueKey_length_le {kp key : GoString} (t : w64) (hkp : kp.length ≤ 2 ^ 27 + 2 ^ 10)
+    (hkey : key = kp ++ go!"/" ++ _root_.Perennial.fmt.decimal (sint.Z t)) :
+    key.length ≤ 2 ^ 28 := by
+  have := decimal_sint_length_le t
+  subst hkey; simp; omega
+
+/-- A get of one key fits. -/
+theorem getOp_size {key : GoString} (hk : key.length ≤ 2 ^ 28) : opSizeOk (opGetModel key []) :=
+  opSizeOk_opGetModel (K := 2 ^ 28) (E := 0) (V := 0) (optsKeep_nil _ _ _) hk (by decide)
+
+/-- A get of the first or last key of a prefix (`WithFirstKey()`, `WithLastRev()`, ...: the
+prefix, a sort and a limit, `withTopM`), with any scalar options after it, fits. -/
+theorem topOp_size {key : GoString} (t o : w64) (gs : List (OpFull → OpFull))
+    (hgs : optsKeep (2 ^ 28) (2 ^ 28) 0 gs) (hk : key.length ≤ 2 ^ 28) :
+    opSizeOk (opGetModel key (withTopM t o ++ gs)) :=
+  opSizeOk_opGetModel (K := 2 ^ 28) (E := 2 ^ 28) (V := 0)
+    (optsKeep_append (optsKeep_cons (withPrefixM_keep (by decide) (Nat.le_refl _))
+      (optsKeep_cons (withSortM_keep _ _)
+        (optsKeep_cons (withLimitM_keep _) (optsKeep_nil _ _ _)))) hgs) hk (by decide)
+
+/-- `RemoteKV.Delete`'s delete fits. -/
+theorem deleteOp_size {key : GoString} (hk : key.length ≤ 2 ^ 28) :
+    opSizeOk (opDeleteModel key []) :=
+  opSizeOk_opDeleteModel (K := 2 ^ 28) (E := 0) (V := 0) (optsKeep_nil _ _ _) hk (by decide)
+
+/-- `RemoteKV.Put`'s put fits. -/
+theorem putOp_size {key val : GoString} (hk : key.length ≤ 2 ^ 28) (hv : val.length ≤ 2 ^ 28) :
+    opSizeOk (opPutModel key val []) :=
+  opSizeOk_opPutModel (K := 2 ^ 28) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _) hk hv (by decide)
+
+/-- `WaitEvents`' watch fits. -/
+theorem keyWatchOp_size {key : GoString} (rev : w64) (hk : key.length ≤ 2 ^ 28) :
+    watchSizeOk (keyWatchOp key rev) :=
+  watchSizeOk_opWatchModel (K := 2 ^ 28) (E := 0) (V := 0)
+    (optsKeep_cons (withRevM_keep rev) (optsKeep_nil _ _ _)) hk (by decide)
+
+/-- `WaitPrefixEvents`' watch fits. -/
+theorem prefixWatchOp_size {kp : GoString} (rev : w64) (hk : kp.length ≤ 2 ^ 28) :
+    watchSizeOk (prefixWatchOp kp rev) :=
+  watchSizeOk_opWatchModel (K := 2 ^ 28) (E := 2 ^ 28) (V := 0)
+    (optsKeep_cons (withPrefixM_keep (by decide) (Nat.le_refl _))
+      (optsKeep_cons (withRevM_keep rev) (optsKeep_nil _ _ _))) hk (by decide)
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -133,8 +208,10 @@ structure RemoteKVSt where
 def RemoteKVSt.val' (st : RemoteKVSt) : RemoteKV :=
   { kv' := st.kv, key' := st.key, rev' := st.rev, val' := st.val }
 
-/-- **A `*RemoteKV`** `rk` holds the record `st` (exclusive: `Delete` writes `kv`). -/
-def ownRemoteKV (rk : Loc) (st : RemoteKVSt) : IProp GF := iprop(rk ↦ st.val')
+/-- **A `*RemoteKV`** `rk` holds the record `st` (exclusive: `Delete` writes `kv`); its key is at
+most `2 ^ 28` bytes (kept from its creation, for `Delete`'s and `Put`'s requests). -/
+def ownRemoteKV (rk : Loc) (st : RemoteKVSt) : IProp GF :=
+  iprop(rk ↦ st.val' ∗ ⌜st.key.length ≤ 2 ^ 28⌝)
 
 /-- **An `*EphemeralKV`** `ek` holds the record `st` in its embedded `RemoteKV` (the field its
 promoted methods address). -/

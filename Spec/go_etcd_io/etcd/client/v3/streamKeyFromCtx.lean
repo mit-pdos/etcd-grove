@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
+public import Proof.go_etcd_io.etcd.client.v3.StreamKey
 
 @[expose] public section
 
@@ -26,14 +27,19 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `streamKeyFromCtx(ctx)` returns some string (the formatted outgoing metadata, or `""`).
-Nothing more: the watcher's safety does not need two calls on one context to agree (a stream
-found under another key is still a stream of the watcher). -/
+/-- `streamKeyFromCtx(ctx)`, for a context `ctx` (`isContext`: Go's body calls `ctx.Value`, which
+panics on a nil context; until G2, 2026-10-30, the spec took any `ctx`, a latent bug of the trust
+base, `notes/audit.md`), returns the key of its outgoing metadata (`streamKeyOf`):
+`FromOutgoingContext(ctx)` then `fmt.Sprintf("%+v", ...)` of the map, `""` with none. Margins: like
+`metadata.FromOutgoingContext.wp_proof`, it assumes `Value(mdOutgoingKey{})` returns, the same value on every call
+(`isContext` does not constrain `Value` at grpc's key; `notes/axiom-review/g2-streamkey.md`); a function of `outgoingOf`, it excludes a context whose
+raw `MD` has two keys equal up to case (grpc lower-cases them into one, keeping whichever the map's
+iteration gives last, so two calls may disagree; no spec here builds such a context). -/
 abbrev streamKeyFromCtx.spec : Prop :=
-  ∀ (ctx : GoInterface),
-  {{ (True : IProp GF) }}
-    (App (Val (@! go_etcd_io.etcd.client.v3.streamKeyFromCtx)) (Val #ctx))
-  {{ (s : GoString), RET #s; True }}
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ context.isContext ctx cd }}
+    (App (Val (@! go_etcd_io.etcd.client.v3.streamKeyFromCtx)) (Val #(GoInterface.ok ctx)))
+  {{ RET #(streamKeyOf (metadata.outgoingOf (GoInterface.ok ctx))); True }}
 
 end spec
 

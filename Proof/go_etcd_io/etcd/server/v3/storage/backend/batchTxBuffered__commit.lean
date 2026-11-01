@@ -33,8 +33,8 @@ theorem backend.batchTxBuffered.commit.wp_proof
     (hUC : backend.batchTxBuffered.unsafeCommit.spec (GF := GF) (hG := hG))
     (hUnlock : backend.readTx.Unlock.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t rt st win stop m u X Y
-  wp_start as ⟨#Hb, #Ht, #Hrt, Hl, HWR, %Hc, Hpay, HX, #Hrq⟩
+  intro γ P W Pk b t rt st win stop m u X Y L'
+  wp_start as ⟨#Hb, #Ht, #Hrt, Hl, HWR, %Hc, Hpre, Hpay, HX, #Hrq⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #-⟩
   · iframe #
@@ -44,7 +44,7 @@ theorem backend.batchTxBuffered.commit.wp_proof
   subst Heq
   wp_auto
   wp_apply (hLock γ P rt) $$ [$Hrg] as ⟨Hwl, Hrr⟩
-  wp_apply (hUC γ P W Pk b t rt st win stop m u X Y) $$ [$Hl $HWR $Hrr $Hpay $HX] as ⟨HY, Hrr, HWR, Hpo, Hpost⟩
+  wp_apply (hUC γ P W Pk b t rt st win stop m u X Y L') $$ [$Hl $HWR $Hrr $Hpre $Hpay $HX] as ⟨HY, Hrr, HWR, Hpo, Hpost⟩
   · iframe #
     ipureintro
     exact Hc

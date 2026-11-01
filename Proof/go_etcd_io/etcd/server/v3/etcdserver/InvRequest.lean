@@ -77,6 +77,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SrvRaftLog
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WorkloadDefs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVKeys
 public import Spec.google_golang_org.protobuf.proto.MarshalIRR
 public import Perennial.Std.Word.LittleEndian
 public import Perennial.Ghost.SavedProp
@@ -88,6 +89,7 @@ public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.Token
 public import Iris.BI.Lib.Atomic
 public import Iris.Instances.Lib.FUpd
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
 
@@ -119,6 +121,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- The KV ghost state's names and the start state the model is folded from: the state's ghost
 variable (`st`, halves: `etcdKV`'s and the KV invariant's), the consistent index `c0`, the chain
@@ -138,6 +141,35 @@ structure KVNames where
   cok : GName
   hi : GName
   ids : IdNames
+  /-- The auth history's mono-list (the auth-mode merge's 5b: `kvInvOn`'s half and a client's
+  view, `authHistView`; unused with auth off). -/
+  hist : GName := 0
+  /-- The cluster's compaction mode (M2's apply side, item 5: one for every member; `srvKVInvs` and
+  `srvReqFieldsAt` tie each member's `E.cmp` to it). -/
+  cmp : Bool := false
+  /-- The cluster's log of requested raft entries (`SrvRaft.log`: one for the cluster, every
+  member's `ServerRaftNames.raft.log`; `kvInv`'s tie `γk.rlog = γ.raft.log`), where a revision
+  reached is read (`kvRevLb`; the client's `kv.Compact`, 2026-10-31). -/
+  rlog : GName := 0
+
+/-- **Two KV names of one cluster's KV** (pure; the client's `kv.Compact`, 2026-10-31): the same
+state, the same model (its start index, chain and start log), the same requested log and the same
+mode; a member's own names (its certificates' map `cok`, `hi`, `ids`) aside. -/
+def kvSame (γk γk' : KVNames) : Prop :=
+  γk.st = γk'.st ∧ γk.c0 = γk'.c0 ∧ γk.ch0 = γk'.ch0 ∧ γk.log0 = γk'.log0 ∧
+    γk.rlog = γk'.rlog ∧ γk.cmp = γk'.cmp
+
+theorem kvSame_refl (γk : KVNames) : kvSame γk γk := ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+
+theorem kvSame_symm {γk γk' : KVNames} (h : kvSame γk γk') : kvSame γk' γk := by
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
+  exact ⟨h1.symm, h2.symm, h3.symm, h4.symm, h5.symm, h6.symm⟩
+
+theorem kvSame_trans {γk γk' γk'' : KVNames} (h : kvSame γk γk') (h' : kvSame γk' γk'') :
+    kvSame γk γk'' := by
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
+  obtain ⟨h1', h2', h3', h4', h5', h6'⟩ := h'
+  exact ⟨h1.trans h1', h2.trans h2', h3.trans h3', h4.trans h4', h5.trans h5', h6.trans h6'⟩
 
 /-- The KV invariant's namespace (disjoint from raft's commit). -/
 def kvN : Namespace := nroot .@ "server_kv"
@@ -209,7 +241,8 @@ shape (`logShape`: a request's premise at every log but for its size clauses; a 
 `0`), every conf change one `applyConfChange` takes at raft's configuration `cfg` (`ccLogOk`,
 audit phase B3), and every id claimed. -/
 def kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) : IProp GF :=
-  iprop(⌜logShape L ∧ ccLogOk cfg L⌝ ∗ [∗list] m ∈ L, entryClaim γk.ids m)
+  iprop(⌜logShape L ∧ ccLogOk cfg L ∧ logPutsOk L ∧ mvcc.LogPutsLe etcdKeyMax γk.log0⌝ ∗
+    [∗list] m ∈ L, entryClaim γk.ids m)
 
 instance kvWork_persistent (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
     Persistent (kvWork (GF := GF) cfg γk L) := by
@@ -219,18 +252,77 @@ instance kvWork_timeless (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
     Timeless (kvWork (GF := GF) cfg γk L) := by
   unfold kvWork; infer_instance
 
+/-- **What a committed compaction entry `m` after the log `A` claims** (pure; M2's apply side,
+item 5): in the cluster's compaction mode only, in M2's scope (`compactPropOk`: neither skipped nor
+rejected by `Apply`; review round 1's F-4), at a revision of the model of `A` (no `ErrFutureRev`). -/
+def cmpEntryOk (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel) : Prop :=
+  m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
+    apply.dispatchKind rq = .compaction → cmp = true ∧ compactPropOk rq ∧
+      ∀ r, rq.compaction = some r → sint.Z r < (kvModel γk A).length
+
+/-- **Every compaction of `L` claims at the model before it.** -/
+def cmpLogOk (γk : KVNames) (cmp : Bool) (L : List EntryModel) : Prop :=
+  ∀ (i : Nat) (m : EntryModel), L[i]? = some m → cmpEntryOk γk cmp (L.take i) m
+
+theorem cmpLogOk_snoc_entry (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel)
+    (h : cmpLogOk γk cmp (A ++ [m])) : cmpEntryOk γk cmp A m := by
+  have := h A.length m (by simp)
+  simpa using this
+
+theorem cmpLogOk_prefix (γk : KVNames) (cmp : Bool) (A L : List EntryModel)
+    (h : cmpLogOk γk cmp L) (hp : A <+: L) : cmpLogOk γk cmp A := by
+  obtain ⟨C, rfl⟩ := hp
+  intro i m hi
+  have hlt : i < A.length := by
+    rcases (List.getElem?_eq_some_iff.1 hi) with ⟨hl, -⟩; exact hl
+  have := h i m (by rw [List.getElem?_append_left hlt]; exact hi)
+  rwa [List.take_append_of_le_length (Nat.le_of_lt hlt)] at this
+
+/-- The claims, one entry on. -/
+theorem cmpLogOk_snoc (γk : KVNames) (cmp : Bool) (L : List EntryModel) (e : EntryModel)
+    (h : cmpLogOk γk cmp L) (he : cmpEntryOk γk cmp L e) : cmpLogOk γk cmp (L ++ [e]) := by
+  intro i m hi
+  have hil := (List.getElem?_eq_some_iff.1 hi).1
+  simp only [List.length_append, List.length_singleton] at hil
+  rcases Nat.lt_or_ge i L.length with hlt | hge
+  · rw [List.getElem?_append_left hlt] at hi
+    rw [List.take_append_of_le_length (Nat.le_of_lt hlt)]
+    exact h i m hi
+  · have hi' : i = L.length := by omega
+    subst hi'
+    simp only [List.getElem?_append_right (Nat.le_refl _), Nat.sub_self, List.getElem?_cons_zero,
+      Option.some.injEq] at hi
+    subst hi
+    simpa using he
+
+/-- A plain entry claims nothing. -/
+theorem cmpEntryOk_plain (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel)
+    (h : plainEntry m) : cmpEntryOk γk cmp A m :=
+  fun ht hd rq hrq hk => absurd hk (plainReq_nonCmp rq (h ht hd rq hrq))
+
+/-- A plain log has no compaction, so its claims hold in either mode. -/
+theorem cmpLogOk_plain (γk : KVNames) (cmp : Bool) (L : List EntryModel) (h : plainLog L) :
+    cmpLogOk γk cmp L := by
+  intro i m hi
+  exact cmpEntryOk_plain γk cmp _ m (h m (List.mem_of_getElem? hi))
+
 /-- **The KV invariant** (see the section header): the server's half of its log `L` of requested entries
 (after `ai0`, consecutive, plain, every entry above the start's consistent index) and the other
 half of the state's ghost variable at the state of `L`'s model; the start's chain the base chain
 with auth disabled and no alarm, the start log not empty; and (D19c, 2026-10-18) the workload
 facts of `L` (`kvWork`), which every update the server hands raft checks of its entry. (2026-10-27:
 `L` the requested entries only, `srvRLog`; the start's consistent index at most the start index, so
-that every entry of a log after the start is above it, `kvModel_eqv`.) -/
+that every entry of a log after the start is above it, `kvModel_eqv`.) (M2's apply side, item 5,
+2026-10-31: "plain" in the cluster's compaction mode `γk.cmp`, `plainLogM`: a compaction in M2's
+scope admitted in compaction mode; and, last, each committed compaction's claims, `cmpLogOk`. At
+`γk.cmp = false` it means what it meant: `kv_log_plain_off`.) -/
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
-    ⌜plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γ.raft γk L)
+    ⌜plainLogM γk.cmp L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
+      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
+      γk.rlog = γ.raft.log⌝ ∗
+      kvWork γ.raft γk L)
 
 instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
     Persistent (kvInv (GF := GF) γ γk) := by
@@ -267,6 +359,52 @@ def kvAu1 (γk : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) :
 /-- **A client's update for the operation `op`, fired at most once** (D21 M6). -/
 def kvOpAu1 (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
   kvAu1 γk (kvOpStep op) Q
+
+/-- **A client's update by `f`, fired at most once, told `G σ` when it fires** (the auth-mode
+merge's step 5, 2026-10-29): `kvAu1`'s, whose atomic postcondition, which the server supplies at the
+commit, carries `G σ` too (with auth on, the write's grant, `writeGrantG`). -/
+def kvAu1G (γk : KVNames) (f : KVState → KVState) (G Q : KVState → IProp GF) : IProp GF :=
+  iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+          <{ etcdKV γk (f σ) ∗ G σ, COMM Q σ }>)
+
+open Iris.ProofMode in
+/-- An atomic update whose committer supplies more (`β' ⊢ β`) (a fact of Iris's atomic updates;
+`notes/perennial-changes.md`). -/
+theorem aupd_post_mono {PROP : Type _} [BI PROP] [BIFUpdate PROP] {TA TB : Std.Tele}
+    {Eo Ei : CoPset} {α : TA.Arg → PROP} {β β' Φ : TA.Arg → TB.Arg → PROP}
+    (h : ∀ x y, β' x y ⊢ β x y) :
+    atomic_update Eo Ei α β Φ ⊢ atomic_update Eo Ei α β' Φ := by
+  change atomic_update Eo Ei α β Φ ⊢ bi_greatest_fixpoint (atomic_update_pre Eo Ei α β' Φ) ()
+  iintro HAU
+  iapply greatest_fixpoint_coiter (atomic_update_pre Eo Ei α β' Φ)
+    (fun _ => atomic_update Eo Ei α β Φ) $$ [] HAU
+  iintro !> %_ H
+  unfold atomic_update_pre
+  ihave Hacc := aupd_aacc $$ H
+  unfold atomic_acc
+  imod Hacc with ⟨%x, Hα, Hclose⟩
+  imodintro
+  iexists x
+  iframe Hα
+  isplit
+  · icases Hclose with ⟨Hc, -⟩; iexact Hc
+  · iintro %y Hβ
+    icases Hclose with ⟨-, Hc⟩
+    iapply Hc
+    iapply h $$ Hβ
+
+/-- An update told more is one told less (`G' ⊢ G`). -/
+theorem kvAu1G_mono (γk : KVNames) (f : KVState → KVState) (G G' Q : KVState → IProp GF)
+    (h : ∀ σ, G' σ ⊢ G σ) :
+    kvAu1G (GF := GF) γk f G Q ⊢ kvAu1G γk f G' Q := by
+  unfold kvAu1G
+  exact aupd_post_mono (fun x _ => sep_mono_right (h _))
+
+/-- A client's update not told anything is one told `G` (the grant ignored). -/
+theorem kvAu1_G (γk : KVNames) (f : KVState → KVState) (G Q : KVState → IProp GF) :
+    kvAu1 (GF := GF) γk f Q ⊢ kvAu1G γk f G Q := by
+  unfold kvAu1 kvAu1G
+  exact aupd_post_mono (fun _ _ => sep_elim_left)
 
 open Iris.ProofMode in
 /-- A persistent update fires once, its result persistent. -/
@@ -407,8 +545,9 @@ delete, no transaction: `Qr` trivial); or a plain request of the KV operation `o
 no range end of it `[0]` (so the wire keeps it, `irrWireOf`), with its client's update (`Qr L`
 the client's `□ Q` at the state of `L`'s model). Since D19c (2026-10-18) either of a good shape
 (`rqShape`: the apply's premise at every log but for its size clauses) and, the first, with no
-range end `[0]` either. Since D19q (2026-10-18) plain (`plainReq`). -/
-def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
+range end `[0]` either. Since D19q (2026-10-18) plain (`plainReq`). (M2's apply side, item 6: the
+write forms, `reqPropOk`'s first disjunct.) -/
+def reqPropOkW (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
   iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
       Qr = fun _ => iprop(True)⌝) ∨
@@ -421,6 +560,77 @@ def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IP
         reqKVOp rq = some op ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
         Qr = fun L => kvRes γc Q (kvStateOf (kvModel γk L))⌝ ∗
       kvOpAu1 γk op Q))
+
+/-- **etcd's KV `γk` has reached revision `r`** (persistent; the client's `kv.Compact`, 2026-10-31,
+in place of M2's `cmpReach`): the cluster's requested raft log has a prefix whose KV model is
+longer than `r`, so every entry requested later is applied after revision `r` exists. One for the
+cluster (`kvSame` names agree on it), unlike a member's certificates. A `Put`'s reply gives it at
+the put's revision; the start's revisions are free (`kvRevLb_start`). What `reqPropOk`'s compaction
+form carries to the commit, where the KV invariant records the revision as one of the model
+before the entry (`cmpLogOk`, `kv_prop_au_cmp`). Clients use its laws only. -/
+def kvRevLb (γk : KVNames) (r : w64) : IProp GF :=
+  iprop(∃ L₀ : List EntryModel, monoListLbOwn γk.rlog L₀ ∗
+    ⌜sint.Z r < (kvModel γk L₀).length⌝)
+
+omit raftAsm in
+instance kvRevLb_persistent (γk : KVNames) (r : w64) : Persistent (kvRevLb (GF := GF) γk r) := by
+  unfold kvRevLb; infer_instance
+
+omit raftAsm in
+/-- A revision below a reached one is reached. -/
+theorem kvRevLb_mono (γk : KVNames) (r r' : w64) (h : sint.Z r' ≤ sint.Z r) :
+    kvRevLb (GF := GF) γk r ⊢ kvRevLb γk r' := by
+  iintro H
+  iunfold kvRevLb at H
+  icases H with ⟨%L₀, #HL, %Hl⟩
+  iunfold kvRevLb
+  iexists L₀
+  iframe HL
+  ipureintro; omega
+
+omit raftAsm in
+/-- The start log's revisions are reached (`log0 = [[], []]` in every cluster: `0` and `1`). -/
+theorem kvRevLb_start (γk : KVNames) (r : w64) (h : sint.Z r < γk.log0.length) :
+    ⊢ |==> kvRevLb (GF := GF) γk r := by
+  iintro
+  imod (monoListLbOwn_nil (GF := GF) (A := EntryModel) γk.rlog) with #H0
+  imodintro
+  iunfold kvRevLb
+  iexists []
+  iframe H0
+  ipureintro
+  exact h
+
+omit raftAsm in
+/-- The same cluster's KV names agree on the revisions reached. -/
+theorem kvRevLb_same (γk γk' : KVNames) (h : kvSame γk γk') (r : w64) :
+    kvRevLb (GF := GF) γk r ⊢ kvRevLb γk' r := by
+  obtain ⟨-, h2, h3, h4, h5, -⟩ := h
+  unfold kvRevLb kvModel
+  rw [h2, h3, h4, h5]
+
+/-- **What a proposal of `rq` needs** (M2's apply side, item 6, 2026-10-31): the write forms
+(`reqPropOkW`); or, in the cluster's compaction mode, a compaction in M2's scope at a reached
+revision (`kvRevLb`), its result trivial. -/
+def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
+    IProp GF :=
+  iprop(reqPropOkW γk rq Qr ∨
+    (⌜γk.cmp = true ∧ compactPropOk rq ∧ rqShape rq ∧ irrNoZeroEnd rq ∧
+        Qr = fun _ => iprop(True)⌝ ∗
+      ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLb γk r))
+
+/-- The write forms are proposals. -/
+theorem reqPropOk_of_W (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
+    reqPropOkW (GF := GF) γk rq Qr ⊢ reqPropOk γk rq Qr := by
+  iintro H; iunfold reqPropOk; ileft; iexact H
+
+/-- **Off, only the write forms** (the compaction form needs the mode on). -/
+theorem reqPropOk_off (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF)
+    (h : γk.cmp = false) : reqPropOk (GF := GF) γk rq Qr ⊢ reqPropOkW γk rq Qr := by
+  unfold reqPropOk
+  iintro (H | ⟨%hc, -⟩)
+  · iexact H
+  · rw [h] at hc; exact absurd hc.1 (by decide)
 
 /-! ### Reads: a client's deposit and the results of a list of clients -/
 
@@ -469,6 +679,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- Raft's `ReadState` (v3.7) is countable (a channel's element type: the raft wrapper's
 `readStateC`, the read loop's `ReadState()`; moved here from `InvRaftNode.lean`, 2026-10-13, for
@@ -703,6 +914,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- The request path's ghost names: the raft contract's, the ids', the wait's registered
 ids' (`isWait`'s `γw`), and (2026-10-14, unit C2a) the read names the apply thread's answers are
@@ -820,7 +1032,7 @@ theorem backendStep_grow {rq : apply.IRRModel} {log : mvcc.Log} {o : apply.Outco
     · rw [h.1]; exact commitLog_grow _ _
   · obtain ⟨pend, -, h⟩ := h
     rw [h]; exact commitLog_grow _ _
-  · exact h.elim
+  · rw [h]; left; rfl
   · exact h.elim
   · rcases h with h | h <;> (rw [h]; left; rfl)
 
@@ -1013,10 +1225,8 @@ the verified `node.Propose`'s statement over the server's ghost names (see the f
 its error is `nil` or one the gRPC layer can take (`applyErrIs`: raft's `ErrStopped`,
 `ErrProposalDropped`, `errors.New` errors, or the context's `Canceled`/`DeadlineExceeded`;
 2026-10-12, unit 3a). A theorem since stage R7b (`NodeBridge.lean`, `raftPropose_of_isNode`).
-**`ApplyConfChange(c)`** (audit phase B3, 2026-10-18; `applyConfChange`'s call): of a v1 change,
-read-only, that leaves raft's configuration as it is (`ccRaftOk`, raft's static mode's
-`CCShrink`), it returns the new `*ConfState`, owned (`node.ApplyConfChange.spec`); (D43 M3,
-2026-10-25) in raft's static mode (`reDyn = none`): the dynamic mode's is `raftApplyCCDyn`. -/
+(2026-10-30, the repair: one mode; `ApplyConfChange` is `raftApplyCC`'s, `InvCfgView.lean`; until
+then, in raft's static mode, here: of a v1 change that leaves raft's configuration as it is.) -/
 def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
   iprop(∃ ni : GoInterfaceOk, ⌜n = GoInterface.ok ni⌝ ∗ srvRaftLogInv γ ∗ srvPropWits γ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (data_sl : GoSlice)
@@ -1027,11 +1237,7 @@ def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
       {{ mvcc.txnCtx ctx cd ∗ data_sl ↦*□ data ∗ ⌜data ≠ []⌝ ∗ srvPropArg γ data Q ∗ £ 1 }}
         (App (App (Val #(methods ni.ty go!"Propose" ni.v)) (Val #(GoInterface.ok ctx)))
           (Val #data_sl))
-      {{ (err : GoInterface), RET #err; srvPropRes γ data Q ∗ applyErrIs err }}) ∗
-    □ (∀ (c : GoInterface) (cm : ConfChangeM), ⌜γ.raft.dyn = false⌝ -∗ ⌜ccRaftOk γ.raft.cfg cm⌝ -∗
-      {{ ownConfChangeI c DFrac.discard (some (.v1 cm)) }}
-        (App (Val #(methods ni.ty go!"ApplyConfChange" ni.v)) (Val #c))
-      {{ (csp : Loc), RET #csp; ∃ cs : ConfStateM, csPts csp (DFrac.own 1) cs true }}))
+      {{ (err : GoInterface), RET #err; srvPropRes γ data Q ∗ applyErrIs err }}))
 
 instance raftPropose_persistent (γ : ServerRaftNames) (n : GoInterface) :
     Persistent (raftPropose (GF := GF) γ n) := by
@@ -1062,6 +1268,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The server `s`'s raft node** (persistent): `s.r`'s `Node` is fixed and meets the raft
 contract. -/
@@ -1079,6 +1286,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- The server's atomics' invariants' namespace (moved here from `InvApplier.lean`, 2026-10-13). -/
 abbrev srvN : Namespace := nroot.@"server"
@@ -1473,6 +1681,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The read loop's lock resource** at fraction `q` (`r.mux`, a `sync.RWMutex`; 2026-10-13, the
 request path's unit 4a): `r.notifier` (at `q`) and the ghost variable of the current notifier and
@@ -1541,6 +1750,25 @@ def isReqAuth (st : GoInterface) (RD : IProp GF) : IProp GF :=
 instance isReqAuth_persistent (st : GoInterface) (RD : IProp GF) :
     Persistent (isReqAuth (GF := GF) st RD) := by
   unfold isReqAuth; infer_instance
+
+/-- **The request side with the token binding** (persistent; the auth plan's S5, 2026-10-24):
+`isReqAuth`'s `AuthInfoFromCtx`, whose auth info is moreover bound to the context's own token in
+the mode `M` (`auth.ctxBound`: the token `auth.ctxTokenOf ctx` its metadata carries, the auth plan's
+E2c; in `on γa`, its user is one the token was issued to). Stated beside
+`isReqAuth` (which the request path's and `NewAuthStore`'s statements name) rather than in it; with
+auth on, a row of the server's reader view (`srvReadFieldsAt`). Of the real store:
+`isReqAuthBound_of_authInv` (`AuthReqDerive.lean`). -/
+def isReqAuthBound (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) : IProp GF :=
+  iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
+    □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+      {{ mvcc.txnCtx ctx cd ∗ RD }}
+        (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
+      {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
+          applyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a }}))
+
+instance isReqAuthBound_persistent (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) :
+    Persistent (isReqAuthBound (GF := GF) st RD M) := by
+  unfold isReqAuthBound; infer_instance
 
 end read
 

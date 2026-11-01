@@ -960,5 +960,126 @@ theorem msgOwn_split (l : Loc) (dq1 dq2 : DFrac) (ms : MsgSt) :
 
 end lemmas
 
+set_option hygiene false in
+/-- Combine two fractions of a field points-to at one value (`icombine` gives the agreement). -/
+local macro "pcomb " h:ident h':ident : tactic =>
+  `(tactic| (icombine $h:ident $h':ident gives %e; subst e
+             icombine $h:ident $h':ident as $h:ident
+             ihave $h:ident := ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).2 $$ $h:ident))
+
+set_option hygiene false in
+/-- Combine two fractions of a slice points-to at one list. -/
+local macro "scomb " h:ident h':ident : tactic =>
+  `(tactic| (icombine $h:ident $h':ident as $h:ident
+             ihave $h:ident := ((ownSlice_dfractional (GF := GF) _ _).dfractional _ _).2 $$ $h:ident))
+
+/-! ## Fractions of a snapshot combine (2026-10-16, stage R5; raft-final, 2026-10-29: moved here
+from `InvRawnodeReady.lean`, for a client that splits a lent snapshot to read it and recombines it) -/
+
+section combine
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+open Iris.ProofMode
+
+-- The two halves joined at `AutoLeave = false` (the shares may disagree on it).
+theorem csPts_combine_open (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) (al1 al2 : Bool) :
+    csPts (GF := GF) p dq1 c al1 ∗ csPts p dq2 c al2 ⊢ csPts p (dq1 • dq2) c false := by
+  iintro ⟨H1, H2⟩
+  iunfold csPts at H1 H2
+  icases H1 with ⟨%sv, %sl, %so, %sn, %pa, %Hnn, HV, Hv, HL, Hl, HO, Ho, HN, Hn, HA, #cA, %-, #Hpb⟩
+  icases H2 with ⟨%sv', %sl', %so', %sn', %pa', %-, HV', Hv', HL', Hl', HO', Ho', HN', Hn', HA', -, %-, -⟩
+  pcomb HV HV'
+  pcomb HL HL'
+  pcomb HO HO'
+  pcomb HN HN'
+  pcomb HA HA'
+  scomb Hv Hv'
+  scomb Hl Hl'
+  scomb Ho Ho'
+  scomb Hn Hn'
+  iunfold csPts
+  iexists sv, sl, so, sn, pa
+  isplitr
+  · ipureintro; exact Hnn
+  simp only [named]
+  iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+  ipureintro; intro h; cases h
+
+theorem csOptA_combine (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) :
+    csOptA (GF := GF) p dq1 c ∗ csOptA p dq2 c ⊢ csOptA p (dq1 • dq2) c := by
+  iintro ⟨H1, H2⟩
+  iunfold csOptA at H1 H2
+  icases H1 with (%H1 | H1 | H1) <;> icases H2 with (%H2 | H2 | H2)
+  all_goals first
+    | (iunfold csOptA; ileft; ipureintro; exact H1)
+    | (icases csPts_nn _ _ _ _ $$ H2 with ⟨-, %Hn⟩; exact absurd H1.1 Hn)
+    | (icases csPts_nn _ _ _ _ $$ H1 with ⟨-, %Hn⟩; exact absurd H2.1 Hn)
+    | (iunfold csOptA; iright; iright; iexact H2)
+    | (iunfold csOptA; iright; iright; iexact H1)
+    | (iunfold csOptA; iright; ileft; iapply csPts_combine_open p dq1 dq2 c false false; isplitl [H1]
+       · iexact H1
+       · iexact H2)
+
+theorem smPts_combine (p : Loc) (dq1 dq2 : DFrac) (md : SnapshotMetadataM) :
+    smPts (GF := GF) p dq1 md ∗ smPts p dq2 md ⊢ smPts p (dq1 • dq2) md := by
+  iintro ⟨H1, H2⟩
+  iunfold smPts at H1 H2
+  icases H1 with ⟨%pc, %pi, %pt, %uf, %Hnn, HC, Hc, HI, #cI, HT, #cT, #Hpb⟩
+  icases H2 with ⟨%pc', %pi', %pt', %uf', %-, HC', Hc', HI', -, HT', -, -⟩
+  pcomb HC HC'
+  pcomb HI HI'
+  pcomb HT HT'
+  ihave Hc := csOptA_combine _ _ _ _ $$ [Hc Hc']
+  · iframe Hc Hc'
+  iunfold smPts
+  iexists pc, pi, pt, uf
+  isplitr
+  · ipureintro; exact Hnn
+  simp only [named]
+  iframe HC Hc HI cI HT cT Hpb
+
+theorem smOpt_combine (p : Loc) (dq1 dq2 : DFrac) (md : SnapshotMetadataM) :
+    smOpt (GF := GF) p dq1 md ∗ smOpt p dq2 md ⊢ smOpt p (dq1 • dq2) md := by
+  iintro ⟨H1, H2⟩
+  iunfold smOpt at H1 H2
+  icases H1 with (%H1 | H1) <;> icases H2 with (%H2 | H2)
+  · iunfold smOpt; ileft; ipureintro; exact H1
+  · iunfold smPts at H2; icases H2 with ⟨%_, %_, %_, %_, %Hn, -⟩; exact absurd H1.1 Hn
+  · iunfold smPts at H1; icases H1 with ⟨%_, %_, %_, %_, %Hn, -⟩; exact absurd H2.1 Hn
+  · iunfold smOpt; iright; iapply smPts_combine; iframe H1 H2
+
+theorem ownSnapM_combine (p : Loc) (dq1 dq2 : DFrac) (sn : SnapshotM) :
+    ownSnapM (GF := GF) p dq1 sn ∗ ownSnapM p dq2 sn ⊢ ownSnapM p (dq1 • dq2) sn := by
+  iintro ⟨H1, H2⟩
+  iunfold ownSnapM at H1 H2
+  icases H1 with ⟨%ds, %pm, %uf, %Hnn, HD, Hd, HM, Hm, #Hpb⟩
+  icases H2 with ⟨%ds', %pm', %uf', %-, HD', Hd', HM', Hm', -⟩
+  pcomb HD HD'
+  pcomb HM HM'
+  scomb Hd Hd'
+  ihave Hm := smOpt_combine _ _ _ _ $$ [Hm Hm']
+  · iframe Hm Hm'
+  iunfold ownSnapM
+  iexists ds, pm, uf
+  isplitr
+  · ipureintro; exact Hnn
+  simp only [named]
+  iframe HD Hd HM Hm Hpb
+
+theorem snapOpt_combine (p : Loc) (dq1 dq2 : DFrac) (o : Option SnapshotM) :
+    snapOpt (GF := GF) p dq1 o ∗ snapOpt p dq2 o ⊢ snapOpt p (dq1 • dq2) o := by
+  rcases o with _ | sn
+  · simp only [snapOpt]
+    iintro ⟨%H, -⟩
+    ipureintro; exact H
+  · simp only [snapOpt]
+    iapply ownSnapM_combine
+
+end combine
+
 end EtcdGrove
 end Perennial

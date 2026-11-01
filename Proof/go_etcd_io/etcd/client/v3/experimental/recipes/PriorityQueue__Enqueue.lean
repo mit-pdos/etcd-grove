@@ -28,9 +28,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 theorem PriorityQueue.Enqueue.wp_proof (hNSK : newSequentialKV.spec (GF := GF) (hG := hG)) :
     PriorityQueue.Enqueue.spec (GF := GF) (hG := hG) := by
   intro q client key val pr lo
-  wp_start as ⟨#Hq, #Hlo⟩
+  wp_start as ⟨#Hq, #Hlo, %Hv⟩
   iunfold isPriorityQueue at Hq
-  icases Hq with ⟨#Hqc, -, #Hqk, #Hcl⟩
+  icases Hq with ⟨#Hqc, -, #Hqk, #Hcl, %Hkl⟩
   ihave ⟨%kv, #Hkvf, #Hkv⟩ := isEtcdRecipesClient_kv $$ Hcl
   wp_auto
   wp_apply wp_slice_literal
@@ -50,7 +50,15 @@ theorem PriorityQueue.Enqueue.wp_proof (hNSK : newSequentialKV.spec (GF := GF) (
   subst Hpfx'
   (try wp_auto)
   wp_apply hNSK kv [] _ val lo $$ [$Hpkg $Hkv $Hlo] as %rk %err Hres
-  · ipureintro; exact ⟨List.nil_prefix, List.nil_prefix⟩
+  · ipureintro
+    refine ⟨List.nil_prefix, List.nil_prefix, ?_, Hv⟩
+    have h0 : 0 ≤ uint.Z pr ∧ uint.Z pr < 2 ^ 16 := by word
+    have hp : (uint.Z pr).natAbs < 10 ^ 5 := by omega
+    have := _root_.Perennial.fmt.length_decimalNat_le _ 5 (by omega) hp
+    unfold _root_.Perennial.fmt.decimal
+    rw [if_neg (by omega)]
+    generalize _root_.Perennial.fmt.decimalNat (uint.Z pr).natAbs = D at this ⊢
+    simp [_root_.Perennial.fmt.length_padZeros]; omega
   icases Hres with (⟨%Heq, %k, %g, %r, -, #Hr, #Hc, %Hrr⟩ | %Hne)
   · subst Heq
     (try wp_auto)

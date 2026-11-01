@@ -52,7 +52,9 @@ theorem watcher.RequestProgress.wp_proof
   ihave #Hce := HcA $$ %ctx %cs Hctx
   iunfold ctxErrClient at Hce
   wp_auto
-  wp_apply wp_key as %ckey -
+  wp_apply wp_key ctx cs $$ []
+  · iframe #
+  generalize hck : streamKeyOf (metadata.outgoingOf (GoInterface.ok ctx)) = ckey
   irename ctx => Hctxp
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
   iunfold watcherMu at HR
@@ -82,11 +84,12 @@ theorem watcher.RequestProgress.wp_proof
   wp_apply wp_map_lookup1 go.string go_etcd_io.etcd.client.v3.watchGRPCStream.ty.PointerType m M ckey
     (DFrac.own 1) $$ [$HM] as HM
   wp_join iprop(∃ (G : WgsPrm GF) (M' : GMap GoString Loc), wgs_ptr ↦ G.wgs ∗ m ↦$ M' ∗
-      (□ [∗map] _k ↦ x ∈ M', ∃ G' : WgsPrm GF, ⌜G'.wgs = x ∧ G'.w = w⌝ ∗ isWGS V G' callSl) ∗
+      (□ [∗map] k ↦ x ∈ M', ∃ G' : WgsPrm GF, ⌜G'.wgs = x ∧ G'.w = w ∧
+        streamKeyOf (metadata.outgoingOf (GoInterface.ok G'.ctx)) = k⌝ ∗ isWGS V G' callSl) ∗
       ⌜G.w = w⌝ ∗ isWGS V G callSl ∗ w_ptr ↦ w ∗ ctx_ptr ↦ GoInterface.ok ctx ∗
       ctxKey_ptr ↦ ckey ∗ watcherF w go!"streams" ↦ m)
     with [wgs HM w Hctxp ctxKey Hst] as ⟨%G, %M', wgs, HM, #HMs', %HGw, #HG, w, Hctxp, ctxKey, Hst⟩
-  · wp_apply wp_newStream V w ctx cs $$ [] as %wgs' ⟨%G, %callSl', %HGeq, #Hco', #HG⟩
+  · wp_apply wp_newStream V w ctx cs $$ [] as %wgs' ⟨%G, %callSl', %HGeq, #Hco', #HG, %Hmd⟩
     · iframe #; ipureintro; exact Hb
     icombine Hco Hco' gives %Hcs
     obtain ⟨-, rfl⟩ := Hcs
@@ -102,7 +105,7 @@ theorem watcher.RequestProgress.wp_proof
       iapply BigSepM.bigSepM_insert_elim $$ [] HMs
       iexists G
       iframe #
-      ipureintro; exact ⟨rfl, HGeq.2⟩
+      ipureintro; exact ⟨rfl, HGeq.2, by rw [Hmd.1, hck]⟩
     ipureintro; exact HGeq.2
   · cases h : M !! ckey with
     | none => exact absurd (by simp [h]; rfl) Hif
@@ -113,7 +116,7 @@ theorem watcher.RequestProgress.wp_proof
       rw [HGx.1]
       iframe
       iframe #
-      ipureintro; exact HGx.2
+      ipureintro; exact HGx.2.1
   iunfold isWGS at HG
   icases HG with ⟨%Hgnn, #Hcv, #Hsf, %Hlg', #Howner, #Hremote, #Hcallo, #Hgctx, #Hckey, #Hcancel,
     #Hreqc, #Hrespc, #Hdonec, #Herrc, #Hclosingc, #Hglg, #HisCtx, #Hcspec, #Hbreq, #Hberr, #Hbcl,

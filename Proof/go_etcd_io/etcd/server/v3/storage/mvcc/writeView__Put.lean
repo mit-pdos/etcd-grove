@@ -37,7 +37,7 @@ theorem mvcc.writeView.Put.wp_proof
   have hWrite := mvcc.store.Write.spec_R hWrite
   have hEnd := mvcc.metricsTxnWrite.End.spec_R hEnd
   intro wv s γ P Pre Q Post f key value k v leaseID L I
-  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, Hhook, Hcs, #Hfree, #Hkey, #Hval, Hown, #HI, %Hlease, %Hwq⟩
+  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, Hhook, Hcs, #Hfree, #Hkey, #Hval, %Hklen, Hown, #HI, %Hlease, %Hwq⟩
   iunfold mvcc.isWriteView at Hwv
   iNamed Hwv
   iunfold mvcc.csContract at Hcs
@@ -65,7 +65,7 @@ theorem mvcc.writeView.Put.wp_proof
   -- `tw.Put(key, value, lease)`
   wp_apply (hPut t mw s γ ilog [] (W64 0) (W64 0) (W64 0) key value k v leaseID L)
     $$ [$Htx $Hkey $Hval $Hown] as ⟨Htx, Hown⟩
-  · ipureintro; exact Hlease
+  · ipureintro; exact ⟨Hklen, Hlease⟩
   (try wp_auto)
   -- the deferred `tw.End()`
   rw [List.nil_append]

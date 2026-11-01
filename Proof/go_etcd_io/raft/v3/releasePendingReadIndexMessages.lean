@@ -206,6 +206,7 @@ theorem releasePendingReadIndexMessages.wp_proof
       wp_apply wp_sendMsgReadIndexResponse _ _ _
         (readRespondAll id { s with rd := { s.rd with pend := [] } }
           ((pendReqs s).take (sint.nat n))) l p.1 p.2 psn pctx prs (by rw [Hcf.2.1]; exact Hlead)
+        (by first | exact Hterm | simpa using Hterm | simp_all)
         (Hpne p (List.mem_of_getElem? Hp))
         $$ [$Hphys $Hpl] as %s' ⟨Hphys, %Hres⟩
       obtain ⟨-, rfl⟩ := Hres.resolve_right (fun h => h.1 Hsg)
@@ -267,6 +268,7 @@ theorem releasePendingReadIndexMessages.wp_proof
     try wp_auto
     wp_apply wp_sendMsgReadIndexResponse _ _ _
       { sendMsgs (relState id s (sint.nat n)) ms with prvals := pvs } l p.1 p.2 psn pctx prs Hlead
+      (by first | exact Hterm | simpa using Hterm | simp_all)
       (Hpne p (List.mem_of_getElem? Hp))
       $$ [$Hphys $Hpl] as %s1 ⟨Hphys, %Hres⟩
     rcases Hres with ⟨Hs1, -⟩ | ⟨-, ms', pvs', rfl, Hms', Hmm'⟩

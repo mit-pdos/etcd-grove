@@ -13,11 +13,9 @@ theorem node.Propose.wp_proof [package_sem : Assumptions] (wp_node_stepWait : no
             isNode n γ N id ∗
               nodeCtx ctx cd ∗
                 ownSlice data_sl data DFrac.discard ∗
-                  AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ∀∀ t,
-                      ownCommittedOps γ (ops ++ [{ term := t, type := W32 0, data := data }]), COMM True }> -∗
-          (▷
-              ∀ err,
-                ⌜err = GoInterface.nil⌝ ∨ errStopped err ∨ errProposalDropped err ∨ ctxErr cd err -∗ Φ (intoVal err)) -∗
+                  □?γ.dup AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ∀∀ t,
+                        ownCommittedOps γ (ops ++ [{ term := t, type := W32 0, data := data }]), COMM True }> -∗
+          (▷ ∀ err, propErrS n γ N cd err -∗ Φ (intoVal err)) -∗
             WP
               (((intoVal (methods node.ty.PointerType go!"Propose" (intoVal n)))
                   (intoVal (GoInterface.ok ctx)))

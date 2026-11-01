@@ -8,26 +8,27 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof [package_sem : Assumptions] (wp_Prog
   -- `Perennial.EtcdGrove.raft.bcastHeartbeatWithCtx.spec`, unfolded:
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ctx : GoSlice) (cl : List w8),
     s.role = PRole.leader →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-              "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ "#Hctx" ∷ ownSlice ctx cl DFrac.discard -∗
-            (▷
-                ∀ ms pvs,
-                  ownRaftPhysCV c c.voters r id
-                        (have __src := sendMsgs s ms;
-                        { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role,
-                          votes := __src.votes, outbox := __src.outbox, stepfn := __src.stepfn, ticking := __src.ticking,
-                          progress := __src.progress, log := __src.log, logst := __src.logst, prvals := pvs,
-                          prevote := __src.prevote, gh := __src.gh, rd := __src.rd, lt := __src.lt, pci := __src.pci,
-                          isLearner := __src.isLearner, sdr := __src.sdr, cq := __src.cq }) ∗
-                      ⌜∀ (m : Msg), m ∈ ms → HeartbeatOk id (toPState s) m ∧ m.ctx = cl⌝ ∗
-                        ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ -∗
-                    Φ (intoVal ())) -∗
-              WP
-                ((intoVal
-                    (methods raft.ty.PointerType
-                      go!"bcastHeartbeatWithCtx"
-                      (intoVal r)))
-                  (intoVal ctx))
-                {{ Φ }}
+      s.term ≠ W64 0 →
+        ⊢
+          ∀ Φ,
+            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ "#Hctx" ∷ ownSlice ctx cl DFrac.discard -∗
+              (▷
+                  ∀ ms pvs,
+                    ownRaftPhysCV c c.voters r id
+                          (have __src := sendMsgs s ms;
+                          { term := __src.term, vote := __src.vote, lead := __src.lead, role := __src.role,
+                            votes := __src.votes, outbox := __src.outbox, stepfn := __src.stepfn,
+                            ticking := __src.ticking, progress := __src.progress, log := __src.log, logst := __src.logst,
+                            prvals := pvs, prevote := __src.prevote, gh := __src.gh, rd := __src.rd, lt := __src.lt,
+                            pci := __src.pci, isLearner := __src.isLearner, sdr := __src.sdr, cq := __src.cq }) ∗
+                        ⌜∀ (m : Msg), m ∈ ms → HeartbeatOk id (toPState s) m ∧ m.ctx = cl⌝ ∗
+                          ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ -∗
+                      Φ (intoVal ())) -∗
+                WP
+                  ((intoVal
+                      (methods raft.ty.PointerType
+                        go!"bcastHeartbeatWithCtx"
+                        (intoVal r)))
+                    (intoVal ctx))
+                  {{ Φ }}

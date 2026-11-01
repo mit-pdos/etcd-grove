@@ -40,10 +40,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The reply of every exit: `SendOk`'s `MsgAppResp` clause, with no entries. -/
-private theorem appResp_sendOk (id : w64) (s : NState) (dst idx : w64) (Hdst : dst ≠ id) :
+private theorem appResp_sendOk (id : w64) (s : NState) (dst idx : w64) (Hdst : dst ≠ id)
+    (Htz : s.term ≠ W64 0) :
     SendOk id s ⟨W32 4, dst, 0, 0, 0, idx, 0, 0, false, 0⟩
       [] [] [appResp id s dst false idx (W64 0) (W64 0)] :=
-  Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hdst, rfl⟩)))
+  Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, Htz, fun h => absurd h Hdst, rfl⟩)))
 
 /-- The snapshot the message holds is the one `restore` gets (`EnsureSnapshot` of a non-`nil`
 pointer is the pointer). Then `restore`'s three exits: on `true` (a restore) the reply carries
@@ -60,7 +61,7 @@ theorem raft.handleSnapshot.wp_proof
     (wp_SnapshotMetadata_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleSnapshot.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs sv cl Hrole Hvotes Hsn Hcl Hscope Hfid Hns
+  intro c r id s ml m ents sn ctx rs sv cl Hrole Hvotes Hsn Hcl Hscope Hfid Hns Htz
   subst Hsn
   wp_start as H
   iNamed H
@@ -83,8 +84,7 @@ theorem raft.handleSnapshot.wp_proof
     $$ [$Hphys $Hsnap $Hcert] as %b %s1 ⟨Hphys, Hsnap, %Hres⟩
   ihave Hm := Hmback $$ [Hsnap]
   · simp only [snapOpt]; iapply ownSnapE_weaken $$ Hsnap
-  generalize Hc1 : restoreCfg c sv cl b = c1
-  rcases Hres with ⟨Hst, rfl, rfl⟩ | ⟨Hlt, Hin, Hmt, rfl, rfl⟩ | ⟨Hlt, Hin, Hnm, rfl, prs, pvs, il, rfl⟩
+  rcases Hres with ⟨Hst, rfl, rfl⟩ | ⟨Hlt, Hin, Hmt, rfl, rfl⟩ | ⟨Hlt, Hin, Hnm, rfl, rfl⟩
   · -- obsolete: acknowledge the commit index
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -119,19 +119,14 @@ theorem raft.handleSnapshot.wp_proof
       msg_nulls
     rw [Hlv2.1]
     wp_apply wp_raft_send _ _ _ _ _ _ [] none [] [] _ (Or.inl rfl)
-      (appResp_sendOk id s1 m.From' s1.logst.committed Hfid) (fun h => absurd h (by simp [MsgSnap]))
+      (appResp_sendOk id s1 m.From' s1.logst.committed Hfid (by first | exact Htz | simpa using Htz | simp_all)) (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp]))
       rfl $$ [$Hphys $Hr] as Hphys
     · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
-    iapply HΦ $$ %_ %c1
+    iapply HΦ $$ %_
     iframe Hphys
-    isplitr
-    · ipureintro
-      exact Or.inl ⟨Hst, rfl⟩
     ipureintro
-    simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte] at Hc1
-    exact Or.inr ⟨fun h => Hst.elim (fun H => absurd H (Int.not_le.2 h.1)) (fun H => H h.2.1),
-      Hc1.symm⟩
+    exact Or.inl ⟨Hst, rfl⟩
   · -- fast-forward: acknowledge the new commit index, the snapshot's
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -166,18 +161,14 @@ theorem raft.handleSnapshot.wp_proof
       msg_nulls
     rw [Hlv2.1]
     wp_apply wp_raft_send _ _ _ _ _ _ [] none [] [] _ (Or.inl rfl)
-      (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid) (fun h => absurd h (by simp [MsgSnap]))
+      (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid (by first | exact Htz | simpa using Htz | simp_all)) (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp]))
       rfl $$ [$Hphys $Hr] as Hphys
     · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
-    iapply HΦ $$ %_ %c1
+    iapply HΦ $$ %_
     iframe Hphys
-    isplitr
-    · ipureintro
-      exact Or.inr (Or.inl ⟨Hlt, Hin, Hmt, rfl⟩)
     ipureintro
-    simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte] at Hc1
-    exact Or.inr ⟨fun h => h.2.2 Hmt, Hc1.symm⟩
+    exact Or.inr (Or.inl ⟨Hlt, Hin, Hmt, rfl⟩)
   · -- a restore: acknowledge the new last index, the snapshot's
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -216,18 +207,14 @@ theorem raft.handleSnapshot.wp_proof
       · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
       msg_nulls
     wp_apply wp_raft_send _ _ _ _ _ _ [] none [] [] _ (Or.inl rfl)
-      (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid) (fun h => absurd h (by simp [MsgSnap]))
+      (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid (by first | exact Htz | simpa using Htz | simp_all)) (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp]))
       rfl $$ [$Hphys $Hr] as Hphys
     · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
-    iapply HΦ $$ %_ %c1
+    iapply HΦ $$ %_
     iframe Hphys
-    isplitr
-    · ipureintro
-      exact Or.inr (Or.inr ⟨Hlt, Hin, Hnm, prs, pvs, il, rfl⟩)
     ipureintro
-    simp only [restoreCfg, ↓reduceIte] at Hc1
-    exact Or.inl ⟨⟨Hlt, Hin, Hnm⟩, Hc1.symm⟩
+    exact Or.inr (Or.inr ⟨Hlt, Hin, Hnm, rfl⟩)
 
 end proof
 

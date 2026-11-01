@@ -33,7 +33,7 @@ theorem auth.authStore.Recover.wp_proof
     (h_setRevision : auth.authStore.setRevision.spec (GF := GF) (hG := hG)) :
     auth.authStore.Recover.spec (GF := GF) (hG := hG) := by
   intro st R M P f T hs be
-  wp_start as ⟨#Hinv, Hown, HWR, Htpa, HR, %Hbenn, #Hbeok, #HwbeokR, #Hfit⟩
+  wp_start as ⟨#Hinv, Hown, HWR, Htpa, HR, %Hbenn, #Hbeok, #HwbeokR, #Hfit, #Hcapall⟩
   ihave #Hwbeok := authWBackendOk_of_R _ M P f T $$ HwbeokR
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -44,7 +44,7 @@ theorem auth.authStore.Recover.wp_proof
   icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
   ihave #Htpok := HtpokA
   iunfold tokenProviderOkA at Htpok
-  icases Htpok with ⟨%tpi, %Htpi, -, #HEnable, -, -, -⟩
+  icases Htpok with ⟨%tpi, %Htpi, -, #HEnable, -, -, -, -⟩
   subst Htpi
   iunfold authWR at HWR
   icases HWR with ⟨⟨%be0, Hbe, -⟩, HT, Hen, Hca⟩
@@ -116,7 +116,9 @@ theorem auth.authStore.Recover.wp_proof
     | off => exact Hpks.2 rfl
     | any => trivial
   wp_apply (h_setRevision st R M rv hs [sta] sta) $$ [$Hinv $Hown] as Hown
-  · ipureintro
+  · isplitr
+    · iintro !> %x %_; iapply Hcapall
+    ipureintro
     refine ⟨Hlast, Hrv, by simp, ?_⟩
     intro x hx; rw [List.mem_singleton] at hx; subst hx; exact Hpks
   (try wp_auto)

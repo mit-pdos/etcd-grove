@@ -273,10 +273,12 @@ theorem newClient.wp_proof
       · ileft; ipureintro; exact Hup
       · obtain ⟨rfl, rfl⟩ := Hupc
         iunfold clientAuthPre at Hauth
-        icases Hauth with (%Hup | ⟨-, #Hall, #Hreg⟩)
+        icases Hauth with (%Hup | ⟨-, #Hall, #Hreg, %Hsz⟩)
         · ileft; ipureintro; exact Hup
         · iright
           iframe Hall Hreg
+          isplitl []; rotate_left
+          · ipureintro; exact Hsz
           iapply tokenBundleInv_nn
           iexact Hb
     ihave #Hconn : isEtcdConn (GF := GF) conn eps $$ []
@@ -366,8 +368,20 @@ theorem newClient.wp_proof
     isplitl []
     · iapply kvObjAtC_of
       iframe HapiS Hconn
-    iapply attemptTokOk_of
-    iexact Hctok
+    isplitl []
+    · iapply attemptTokOk_of
+      iexact Hctok
+    isplitl []
+    · iexists ap
+      iframe Auth
+      iapply authObjAtC_of
+      iframe HapS Hconn
+    -- (G2's F-W3) its `Watcher`, over the same connection
+    iexists w
+    subst Hwi
+    iframe Watcher
+    ihave #Hwc := watcherConnAt_of_core (GF := GF) _ w $$ Hcw
+    iexact Hwc
   · cases derr with
     | nil => exact absurd rfl Hderr
     | ok e =>

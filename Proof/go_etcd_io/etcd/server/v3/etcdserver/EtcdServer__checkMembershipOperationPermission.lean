@@ -26,6 +26,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- One proof for both modes (the auth-mode merge, 2026-10-29: the former `wp_proof` and
+`checkMembershipOperationPermission_bound`): the binding under the mode's gate. -/
 theorem EtcdServer.checkMembershipOperationPermission.wp_proof
     (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
@@ -33,7 +35,7 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proof
   intro s E ctx cd
   wp_start as ⟨#Hau, #Hnil, #Hctx, HRD⟩
   iunfold srvAuthAt at Hau
-  icases Hau with ⟨%st, %cca, %P, %f, #Has, #Hreq, #Hcca, #Hast⟩
+  icases Hau with ⟨%st, %cca, %P, %f, #Has, #Hreq, #Hreqb, #Hcca, #Hast⟩
   iunfold srvAdminNilOk at Hnil
   icases Hnil with ⟨%st2, #Has2, #Hnil⟩
   icombine Has Has2 gives %Heq
@@ -46,14 +48,15 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proof
   subst Hai2'
   subst Hai
   (try wp_auto)
-  wp_apply (hAI s (GoInterface.ok ai) E.RD cca ctx cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr⟩
+  wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd)
+    $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb⟩
   · iframe #
   (try wp_auto)
   rcases err with ei | _
   · (try wp_auto)
     iapply HΦ
     iframe HRD
-    iunfold adminOut
+    iunfold adminOutB
     iframe #
     iintro %h; cases h
   · (try wp_auto)
@@ -61,20 +64,23 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proof
     · iframe #
     (try wp_auto)
     iunfold authInfoOpt at Ha
-    icases Ha with (%Han | ⟨%user, %rev, Hau⟩)
+    icases Ha with (%Han | ⟨%user, %rev, #Hau⟩)
     · subst Han
       (try wp_auto)
       wp_apply HAdmNil $$ [$HRD] as %err2 ⟨HRD, #Herr2, %Hoff, #Hv⟩
       (try wp_auto)
       iapply HΦ
       iframe HRD
-      iunfold adminOut
+      iunfold adminOutB
       iframe #
       iintro %h
       subst h
       iexists none
-      iapply (adminRes_of_adminVerdict _ _) $$ Hv
+      isplitl
+      · iapply (adminRes_of_adminVerdict _ _) $$ Hv
+      iintro !> -; iunfold principalBound; itrivial
     · ihave #Hap := authInfoIs_pointsto a user rev $$ Hau
+      ihave #Hpb := principalBound_of_ctxBoundOrTLS_gate s E.authMode (GoInterface.ok ctx) a user rev $$ [$Hb $Hau]
       iunfold authInfoIs at Hau
       icases Hau with ⟨%Hann, -, -⟩
       (try wp_auto)
@@ -82,12 +88,14 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proof
       (try wp_auto)
       iapply HΦ
       iframe HRD
-      iunfold adminOut
+      iunfold adminOutB
       iframe #
       iintro %h
       subst h
       iexists (some _)
-      iapply (adminRes_of_adminVerdict _ _) $$ Hv
+      isplitl
+      · iapply (adminRes_of_adminVerdict _ _) $$ Hv
+      iexact Hpb
 
 end proof
 

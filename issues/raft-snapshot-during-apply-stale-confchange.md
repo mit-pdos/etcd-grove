@@ -17,6 +17,15 @@ candidate: issues/upstream/raft-snapshot-during-apply-stale-confchange/
   dropped that day too): with it, the fix also needs
   [raft-async-snapshot-during-apply-divergence](raft-async-snapshot-during-apply-divergence.md)'s hold, a
   candidate of its own; the two merge cleanly and together fix the async case.
+- **Reached in a full cluster** (2026-10-28): `examples/kvreconf`'s randomized test (`Node` API,
+  raft v3.7 plus the fork's fixes, `c8217eb9`; real leaders; a lossy, reordering network; random
+  snapshots, compactions and conf changes) panicked in `applyConfChange` with "can't leave a
+  non-joint config" on a node started by `RestartNode`, called from the application's
+  `ApplyConfChange` of a change the application had checked against its own configuration (the
+  previous one's, restored from the log it had applied): in 1 of 17 rounds (`go test -count=3
+  -run TestRounds`). Not yet tied to this issue by a trace; it is this issue's panic variant
+  (with "config is already joint" here "can't leave a non-joint config": a leaving applied on
+  top of a snapshot taken after it).
 - **Where** (etcd-io/raft at `40f8be730b18`):
   - `node.go:380-445` (`node.run`): while it waits for `Advance` (`advancec != nil`) it still
     steps the messages it receives (`case m := <-n.recvc: r.Step(m)`); `doc.go:110` ("when

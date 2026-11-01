@@ -9,8 +9,9 @@ state pointer `pc` (the getters' specs do not say which pointer they return). `c
 `id`, so the `nil` case of `GetConfState` is dead), `pb.EnsureConfState` makes its `AutoLeave`
 non-`nil` in place. The `found` search reads `cs`'s three slices (owned, lent one at a time,
 `found_slice_acc`). `raftLog.restore(s)` gets half of the snapshot; the other half keeps the
-pointers, ties the returned half to them (`ownSnapM_tie`) and lends `cs` to `confchange.Restore`
-and `assertConfStatesEquivalent`; the halves are put back together at the end.
+pointers and ties the returned half to them (`ownSnapM_tie`); the halves are put back together at
+the end. (Until 2026-10-28, stage U0, it also lent `cs` to `confchange.Restore` and
+`assertConfStatesEquivalent`, the tracker's rebuild, now `appliedSnap`'s.)
 -/
 module
 
@@ -19,12 +20,7 @@ public import Proof.go_etcd_io.raft.v3.LemmasConfState
 public import Spec.go_etcd_io.raft.v3.raftLog__matchTerm
 public import Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
 public import Spec.go_etcd_io.raft.v3.raftLog__commitTo
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
 public import Spec.go_etcd_io.raft.v3.raftLog__restore
-public import Spec.go_etcd_io.raft.v3.tracker.MakeProgressTracker
-public import Spec.go_etcd_io.raft.v3.confchange.Restore
-public import Spec.go_etcd_io.raft.v3.raft__switchToConfig
-public import Spec.go_etcd_io.raft.v3.assertConfStatesEquivalent
 public import Proof.go_etcd_io.raft.v3.InvApplyConfC
 public import Proof.go_etcd_io.raft.v3.LemmasSendRD
 public import Spec.go_etcd_io.raft.v3.raftpb.EnsureConfState
@@ -44,122 +40,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- A list without repeats is a permutation of the elements of its set. -/
-private theorem perm_elements_listToSet (l : List w64) (h : l.Nodup) :
-    l ≡ₚ GMap.elements (GMap.listToSet l) := by
-  refine (List.perm_ext_iff_of_nodup h (GMap.NoDup_elements _)).2 ?_
-  intro k; rw [GMap.elem_of_elements, GMap.elem_of_list_to_set]
-
-private theorem gset_size_union_le (X Y : GSet w64) :
-    GMap.size (X ∪ Y) ≤ GMap.size X + GMap.size Y := by
-  rw [GMap.size_union_alt]
-  have := GMap.subseteq_size (GMap.difference_subseteq Y X)
-  omega
-
-/-- The progress map `Restore` builds for the lists `cl` has at most as many entries as the
-lists have ids. -/
-private theorem restore_prs_size (cl : CSLists) (Hvnd : cl.voters.Nodup) (Hlnd : cl.learners.Nodup)
-    (Hond : cl.outgoing.Nodup)
-    (Hsz : (cl.voters.length + cl.learners.length + cl.outgoing.length + cl.learnersNext.length :
-      Int) ≤ 2 ^ 62)
-    (prs : GMap w64 Loc) (al : Bool)
-    (Hprs : domSet prs =
-      domSet (cfgStateC (csCfgM cl.outgoing cl.voters cl.learners cl.learnersNext al)).prs) :
-    (GMap.size prs : Int) ≤ 2 ^ 62 := by
-  have Hd : domSet prs = (GMap.listToSet cl.voters ∪ GMap.listToSet cl.outgoing) ∪
-      GMap.listToSet cl.learners := by
-    rw [Hprs]
-    apply GMap.set_eq; intro k
-    rw [GMap.elem_of_dom']
-    simp only [cfgStateC, csCfgM, CfgM.voters]
-    rw [cfgFlags_mem]
-    simp only [GMap.elem_of_union]
-  have h1 := GMap.size_dom prs
-  rw [Hd] at h1
-  have h2 := gset_size_union_le (GMap.listToSet cl.voters ∪ GMap.listToSet cl.outgoing)
-    (GMap.listToSet cl.learners)
-  have h3 := gset_size_union_le (GMap.listToSet cl.voters) (GMap.listToSet cl.outgoing)
-  rw [GMap.size_list_to_set _ Hvnd, GMap.size_list_to_set _ Hond] at h3
-  rw [GMap.size_list_to_set _ Hlnd] at h2
-  have : (0 : Int) ≤ cl.learnersNext.length := by omega
-  omega
-
-/-- What `confchange.Restore` builds for a `ConfState` denoting `c`, as `switchToConfig` takes
-it (`ownConfigC`): its `Progress` values are some `pvs` whose learner flags are `c`'s. -/
-private theorem ownConfigC_of_restore (c : CfgM) (cfgv : tracker.Config) (prsm : Loc)
-    (prs : GMap w64 Loc) (Hinv : CfgInv (cfgStateC c))
-    (Hdom : domSet prs = domSet (cfgStateC c).prs) (Hsz : (GMap.size prs : Int) ≤ 2 ^ 62)
-    (P : w64 → Progress → Prop) (HP : ∀ k p, P k p → (cfgStateC c).prs !! k = some p.learner) :
-    ⊢ ownCfgCC (GF := GF) cfgv (DFrac.own 1) c -∗ prsm ↦$□ prs -∗
-      ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜P k p⌝) -∗
-      ∃ pvs, ownConfigC c cfgv prsm prs pvs := by
-  iintro Hc #Hprsm Hprogs
-  ihave Hprogs : ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress (GF := GF) pr p ∗
-      ⌜(cfgStateC c).prs !! k = some p.learner⌝) $$ [Hprogs]
-  · iapply BigSepM.bigSepM_mono ?_ $$ Hprogs
-    intro k pr _
-    iintro ⟨%p, Hp, %Hpk⟩
-    iexists p
-    iframe Hp
-    ipureintro; exact HP k p Hpk
-  icases bigSepM_exist_sepM2 prs
-    (fun k pr (p : Progress) => iprop(ownProgress (GF := GF) pr p ∗
-      ⌜(cfgStateC c).prs !! k = some p.learner⌝))
-    $$ Hprogs with ⟨%pvs, Hprogs⟩
-  ihave %Hiff := BigSepM2.bigSepM2_lookup_iff $$ Hprogs
-  icases BigSepM2.bigSepM2_sep_eqv.1 $$ Hprogs with ⟨Hprogs, Hfl⟩
-  ihave %Hfl := BigSepM2.bigSepM2_pure_intro $$ Hfl
-  -- the learner flags of `pvs` are the configuration's
-  have Htf : trkFlags pvs = (cfgStateC c).prs := by
-    apply GMap.map_eq; intro k
-    rw [trkFlags_lookup]
-    cases hp : pvs !! k with
-    | some p =>
-      obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1
-        ((Hiff k).2 (by show (pvs !! k).isSome = true; rw [hp]; rfl))
-      exact (Hfl k pr p hpr hp).symm
-    | none =>
-      cases hc : (cfgStateC c).prs !! k with
-      | none => rfl
-      | some b =>
-        exfalso
-        have hk : k ∈ domSet prs := by
-          rw [Hdom, GMap.elem_of_dom', GMap.mem_iff, hc]; rfl
-        rw [GMap.elem_of_dom', GMap.mem_iff] at hk
-        have h2 : (pvs !! k).isSome = true := (Hiff k).1 hk
-        rw [hp] at h2
-        exact absurd h2 (by decide)
-  iexists pvs
-  unfold ownConfigC
-  iframe Hc Hprsm Hprogs
-  ipureintro
-  refine ⟨?_, ?_, ?_, Hsz⟩
-  · rw [Htf]; exact Hinv
-  · rw [Hdom]
-    apply GMap.set_eq; intro k
-    rw [GMap.elem_of_dom']
-    simp only [cfgStateC, CfgM.ids]
-    rw [cfgFlags_mem, GMap.elem_of_union]
-  · intro k p hp
-    have h1 : (cfgStateC c).prs !! k = some p.learner := by
-      rw [← Htf, trkFlags_lookup, hp]; rfl
-    simp only [cfgStateC] at h1
-    rw [cfgFlags_lookup] at h1
-    by_cases hv : k ∈ c.voters
-    · rw [ite_eq_left hv] at h1
-      have hl : k ∉ c.learners := by
-        intro hl
-        obtain ⟨ho, hi, -⟩ := Hinv.2.2.1 k hl
-        unfold CfgM.voters at hv
-        rcases (GMap.elem_of_union _ _ _).1 hv with h | h
-        · exact hi h
-        · exact ho h
-      rw [← Option.some.inj h1]; simp [hl]
-    · rw [ite_eq_right hv] at h1
-      by_cases hl : k ∈ c.learners
-      · rw [ite_eq_left hl] at h1; rw [← Option.some.inj h1]; simp [hl]
-      · rw [ite_eq_right hl] at h1; cases h1
 
 /-- `restore`'s `found` search has not met `id` in the first `k` of its three sets
 (`[Voters, Learners, VotersOutgoing]`). -/
@@ -222,8 +102,6 @@ private theorem found_slice_acc (sv sl so : GoSlice) (dq : DFrac) (cl : CSLists)
 an implication kept opaque, so that `word` does not unfold it. -/
 private def FoundQ (cl : CSLists) (id : w64) (q pc : Loc) : Prop := cl.Has id → q = pc
 
-private theorem ownCfgCC_cast (cfgv : tracker.Config) (dq : DFrac) (c1 c2 : CfgM) (h : c1 = c2) :
-    ownCfgCC (GF := GF) cfgv dq c1 ⊢ ownCfgCC cfgv dq c2 := h ▸ .rfl
 
 set_option hygiene false in
 /-- The snapshot closed again (`ownSnapE`) from its parts and its conf state `Hcs` (`csOptA`). -/
@@ -249,28 +127,20 @@ local macro "snap_close" : tactic => `(tactic| (
   conf state is a fresh empty one, in which nothing is found (`wp_EnsureConfState_opt`);
 - `matchTerm(id)`: `lastEntryID`, an `Infof`, `commitTo(Index)` (in range: `Index` has
   a term in the log) and `false`;
-- otherwise `raftLog.restore(s)`; the tracker replaced by the empty one
-  `MakeProgressTracker` builds -- `ownRaftPhys` at the empty configuration, as in
-  `newRaft` (`ownRaftPhysC_retrack`, `ownTrackerC_empty`; the tally was already empty,
-  `s.votes = ∅`); `confchange.Restore` on it, its `v0` read back out of the empty
-  tracker; then `switchToConfig` to the snapshot's configuration and `assertConfStatesEquivalent`;
-  `lastEntryID`, an `Infof` and `true`. -/
+- otherwise `raftLog.restore(s)`, `lastEntryID`, an `Infof` and `true`. (Until 2026-10-28, stage
+  U0, the tracker was rebuilt from the snapshot's `ConfState` in between: `appliedSnap` does it
+  now, `raft__appliedSnap.lean`.) -/
 theorem raft.restore.wp_proof
     (wp_raftLog_matchTerm : raftLog.matchTerm.spec (GF := GF) (hG := hG))
     (wp_raftLog_lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG))
     (wp_raftLog_commitTo : raftLog.commitTo.spec (GF := GF) (hG := hG))
-    (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
     (wp_raftLog_restore : raftLog.restore.spec (GF := GF) (hG := hG))
-    (wp_MakeProgressTracker : tracker.MakeProgressTracker.spec (GF := GF) (hG := hG))
-    (wp_confchange_Restore : confchange.Restore.spec (GF := GF) (hG := hG))
-    (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG))
-    (wp_assertConfStatesEquivalent : assertConfStatesEquivalent.spec (GF := GF) (hG := hG))
     (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG)) :
     raft.restore.spec (GF := GF) (hG := hG) := by
-  intro c r id s sp sv cl Hrole Hvotes Hcl Hscope Hns
+  intro c r id s sp sv cl Hrole _ Hcl Hscope Hns
   subst Hcl
-  -- (D22 S-b′4) the scope only once the node is found; the index bound either way
-  obtain ⟨Hscope, Hidx61⟩ := Hscope
+  -- (D22 S-b′4) the index bound (the scope was the tracker rebuild's, `appliedSnap`'s since stage U0)
+  obtain ⟨-, Hidx61⟩ := Hscope
   wp_start as H
   iNamed H
   -- (D22 S-d4 item 4) the snapshot, every pointer field set, opened into its parts
@@ -298,7 +168,6 @@ theorem raft.restore.wp_proof
     wp_auto
     snap_close
     iapply HΦ $$ %false %s
-    simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte]
     iframe Hphys Hsnap
     ipureintro
     exact .inl ⟨.inl Hst, rfl, rfl⟩
@@ -367,7 +236,6 @@ theorem raft.restore.wp_proof
     wp_raft_logC
     snap_close
     iapply HΦ $$ %false %s
-    simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte]
     iframe Hphys Hsnap
     ipureintro
     exact .inl ⟨.inr Hnf, rfl, rfl⟩
@@ -436,9 +304,6 @@ theorem raft.restore.wp_proof
   -- (D22 S-b) the node is one of the `ConfState`'s ids, so the conf state is the snapshot's
   have Hidv : CSLists.Has sv.Metadata'.ConfState'.lists id :=
     found_has Hk3' HLk (List.mem_of_getElem? Hy_lookup)
-  -- (D22 S-b′4) found: the scope of its lists
-  obtain ⟨Hwf, Hvnd, Hlnd, Hond, Hnnd, Hsz, Hal0, -⟩ := Hscope (by
-    first | exact Hidv | (rw [Hcl]; exact Hidv) | (subst Hcl; exact Hidv))
   icases Hfq with %Hfq
   have Hqp : pc = q := (Hfq Hidv).symm
   subst Hqp
@@ -498,7 +363,6 @@ theorem raft.restore.wp_proof
     · iunfold csOptA; iright; iright; iexact Hcf
     snap_close
     iapply HΦ $$ %false %_
-    simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte]
     iframe Hphys Hsnap
     ipureintro
     refine .inr (.inl ⟨by simp only [snapId]; omega, Hidv, Hm, rfl, ?_⟩)
@@ -514,7 +378,9 @@ theorem raft.restore.wp_proof
     -- last `Ready` handed out (`SnpOk`)
     icases ownRaftLog_quiet _ _ $$ Hlog with ⟨%Hq1, Hlog⟩
     have Hsnp1 : SnpOk s.gh (logRestore s.logst (snapTrip sv sv.Metadata'.ConfState'.lists)) :=
-      Hgh1.1.2.restore _ (by simp only [snapTrip, snapId]; omega) Hq1.2
+      Hgh1.1.2.1.restore _ (by simp only [snapTrip, snapId]; omega) Hq1.2
+    ihave #Hcert' : ksnCert (GF := GF) s.logst.sn (snapTrip sv sv.Metadata'.ConfState'.lists) $$ []
+    · rw [Hgh1.1.2.2]; iexact Hcert
     -- (D22 S-d4 item 4) the log's half set (its conf state read-only, `Hcf`)
     icases ownSnapS_rest_of_parts sp pm pc pi pt ds uf ufm (DFrac.own (Qp.half 1))
         (DFrac.own (Qp.half 1)) sv Hspn Hpmn HpcS Hpin Hptn $$ [HD Hd HM HC HI HT]
@@ -523,98 +389,12 @@ theorem raft.restore.wp_proof
       iframe HD Hd HM HC HI HT
       iframe cI cT Hpb Hpbm Hcf
     wp_apply wp_raftLog_restore _ _ sp _ sv (by simp only [snapId]; omega)
-        (by simp only [snapId]; omega) $$ [$Hlog $HsA $Hcert] as ⟨HsA, Hlog⟩
+        (by simp only [snapId]; omega) ⟨id, Hidv⟩ $$ [$Hlog $HsA $Hcert'] as ⟨HsA, Hlog⟩
     ihave HsA := ownSnapS_M _ _ _ $$ HsA
     icases ownSnapM_tie sp pm pc _ _ sv $$ [HsA HrB] with ⟨HrA, HcsA, HrB⟩
     · iframe
-    ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]) Hns Hsnp1)
+    ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]) Hns Hsnp1 Hgh1.1.2.2)
       %(fun h => absurd (Hrole.symm.trans h) (by decide))
-    -- the tracker replaced by the empty one, the log used meanwhile
-    icases ownRaftPhysC_retrack c c.voters (CfgM.simple ∅ ∅).voters
-        (c := CfgM.simple ∅ ∅) _ _ _
-        (by intro h; exact absurd Hrole h) $$ Hphys with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
-    icases ownTrackerC_maxinflight $$ Htrk with ⟨%Hmi, -⟩
-    wp_auto
-    wp_apply wp_MakeProgressTracker as %tv0 %v0 ⟨%Htv0, Hv0, Hvotes0, Hprs0⟩
-    obtain ⟨Htv0mi, Htv0mb, Htv0arr, Htv0l, Htv0ln, Htv0al⟩ := Htv0
-    wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, -⟩
-    -- `confchange.Restore`: the empty tracker, the snapshot's `ConfState`, which it answers
-    -- exactly (`restoreM_wf`)
-    ipersist Hprs0
-    have Hmi0 : 0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62 := by
-      rw [Htv0mi]; exact Hmi
-    have Hvne : sv.Metadata'.ConfState'.lists.voters ≠ [] := Hwf.1
-    have Hrm := restoreM_wf sv.Metadata'.ConfState'.lists.outgoing sv.Metadata'.ConfState'.lists.voters sv.Metadata'.ConfState'.lists.learners sv.Metadata'.ConfState'.lists.learnersNext
-      sv.Metadata'.ConfState'.AutoLeave' Hwf
-    have Hinv := restoreM_cfgInv Hrm
-    ihave HcB := csPts_weaken $$ Hcf
-    wp_apply wp_confchange_Restore { Tracker' := tv0, LastIndex' := li } pc sv.Metadata'.ConfState'
-        _ v0 _ Hrm Hmi0 Htv0arr Htv0l Htv0ln Htv0al
-        $$ [$HcB $Hv0 $Hprs0]
-      as %cfgv %prsm %prs ⟨HcB, Hv0, -, Hres⟩
-    -- a voter, so an op ran: the fresh maps (2026-10-16, stage R8b)
-    icases Hres with (⟨%Hops, -⟩ | ⟨-, Hcfg, Hprsm, %Hprs, Hprogs⟩)
-    · exfalso; exact restoreSimpleOps_ne_nil_of_voters _ _ _ _ Hvne Hops
-    -- the configuration `Restore` built, as `switchToConfig` takes it
-    ipersist Hprsm
-    have Hsz' : (GMap.size prs : Int) ≤ 2 ^ 62 :=
-      restore_prs_size sv.Metadata'.ConfState'.lists Hvnd Hlnd Hond Hsz prs sv.Metadata'.ConfState'.AutoLeave' Hprs
-    ihave Hprogs : ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress (GF := GF) pr p ∗
-        ⌜(cfgStateC (csCfgM sv.Metadata'.ConfState'.lists.outgoing sv.Metadata'.ConfState'.lists.voters sv.Metadata'.ConfState'.lists.learners sv.Metadata'.ConfState'.lists.learnersNext
-          sv.Metadata'.ConfState'.AutoLeave')).prs !! k = some p.learner⌝) $$ [Hprogs]
-    · iapply BigSepM.bigSepM_mono ?_ $$ Hprogs
-      intro k pr _
-      iintro ⟨%p, Hp, %Hpk⟩
-      iexists p
-      iframe Hp
-      ipureintro
-      simpa [cfgStateC, cfgFlags, csCfgM, CfgM.voters, ConfStateM.lists] using Hpk
-    ihave Hcfg := ownCfgCC_cast cfgv _
-      (csCfgM sv.Metadata'.ConfState'.VotersOutgoing' sv.Metadata'.ConfState'.Voters' sv.Metadata'.ConfState'.Learners' sv.Metadata'.ConfState'.LearnersNext' sv.Metadata'.ConfState'.AutoLeave')
-      (snapCfg sv sv.Metadata'.ConfState'.lists) rfl $$ Hcfg
-    icases ownConfigC_of_restore (snapCfg sv sv.Metadata'.ConfState'.lists) cfgv prsm prs Hinv Hprs Hsz' _ (fun _ _ h => h) $$ Hcfg Hprsm Hprogs
-      with ⟨%pvs, Hnew⟩
-    -- the struct, re-sealed over the empty configuration
-    ihave Htrk0 := ownTrackerC_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi0 $$ Hv0 Hvotes0 Hprs0
-    ihave Hphys := Hback $$ %tv0 %∅ %∅ %∅ %_ Hlf Htrkf Htrk0 Hlog
-      %(LogGhOk.of_snap (by simp [logRestore]) Hns Hsnp1)
-      %(PrvalsOk.not_leader (fun h => absurd (Hrole.symm.trans h) (by decide)))
-    generalize HS1 : ({ s with votes := ∅, progress := ∅, prvals := ∅, logst := logRestore s.logst (snapTrip sv sv.Metadata'.ConfState'.lists) } : NState) = s1
-    have Hrole1 : s1.role = .follower := by rw [← HS1]; exact Hrole
-    -- `assertConfStatesEquivalent(r.logger, cs, r.switchToConfig(cfg, trk))`
-    wp_apply raft.wp_load_loggerC $$ Hphys as %lok0 ⟨Hphys, #Hlg0⟩
-    icases ownRaftPhysCV_reconfig _ (snapCfg sv sv.Metadata'.ConfState'.lists) ((snapCfg sv sv.Metadata'.ConfState'.lists).voters ∪ {[id]}) r id s1
-        (fun h => absurd Hrole1 h) $$ Hphys with ⟨%tv1, Htrkf, Hold, Hback2⟩
-    icases ownTrackerC_votes $$ Hold with ⟨Hvotes, %Hmi1⟩
-    wp_apply wp_raft_switchToConfig (snapCfg sv sv.Metadata'.ConfState'.lists) r id s1 tv1 cfgv prsm prs pvs
-        (fun h => absurd (Hrole1.symm.trans h) (by decide))
-        (fun h => by rcases h with h | h <;> rw [Hrole1] at h <;> cases h)
-        (fun h => absurd (Hrole1.symm.trans h) (by decide))
-      $$ [$Htrkf $Hback2 $Hvotes $Hnew]
-      as %cs2 %xs2 %os2 %ls2 %lns2 %s2 ⟨Hphys, Hcs2v, %Hcs2, %Hsw⟩
-    · ipureintro; exact Hmi1
-    obtain ⟨Hxs2, Hos2, Hls2, Hlns2⟩ := Hcs2
-    unfold SwitchOkC at Hsw
-    rw [ite_eq_right (by simp [Hrole1])] at Hsw
-    subst Hsw
-    -- the snapshot's lists against the configuration's sets
-    have Hperm : sv.Metadata'.ConfState'.lists.Perm ⟨xs2, ls2, os2, lns2⟩ := by
-      refine ⟨(perm_elements_listToSet _ Hvnd).trans Hxs2.symm,
-        (perm_elements_listToSet _ Hlnd).trans Hls2.symm,
-        (perm_elements_listToSet _ Hond).trans Hos2.symm,
-        (perm_elements_listToSet _ Hnnd).trans Hlns2.symm⟩
-    have Hbnd : sv.Metadata'.ConfState'.lists.Bounded := by
-      refine ⟨?_, ?_, ?_, ?_⟩ <;> omega
-    ihave Hcs2v := csPts_weaken $$ Hcs2v
-    have Hal2 : sv.Metadata'.ConfState'.AutoLeave' = (snapCfg sv sv.Metadata'.ConfState'.lists).autoLeave := by
-      unfold snapCfg csCfgM
-      by_cases ho : sv.Metadata'.ConfState'.lists.outgoing = []
-      · simp only [ho, ↓reduceIte]; exact Hal0 ho
-      · simp only [ho, ↓reduceIte]
-    wp_apply wp_assertConfStatesEquivalent _ pc cs2 sv.Metadata'.ConfState'
-        (ConfStateM.mk xs2 ls2 os2 lns2
-          (if sv.Metadata'.ConfState'.VotersOutgoing' = [] then false else sv.Metadata'.ConfState'.AutoLeave')) _ _ Hperm Hbnd Hal2
-        $$ [$HcB $Hcs2v] as ⟨HcB, -⟩
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply wp_raftLog_lastEntryID $$ [$Hlog] as %last ⟨Hlog, -⟩
@@ -628,7 +408,7 @@ theorem raft.restore.wp_proof
     ihave Hphys := Hlogback $$ Hlog
     wp_raft_logC
     -- the snapshot put back together
-    iclear HcsA HcB
+    iclear HcsA
     have Hh : DFrac.own (Qp.half 1) • DFrac.own (Qp.half 1) = DFrac.own 1 := by
       rw [DFrac.op_own, Qp.half_add_half]
     ihave Hrest : snapRest sp pm pc (DFrac.own 1) sv $$ [HrA HrB]
@@ -636,16 +416,9 @@ theorem raft.restore.wp_proof
     ihave Hsnap := ownSnapE_close sp pm pc _ sv $$ [Hrest]
     · iframe Hrest; iunfold csOptA; iright; iright; iexact Hcf
     iapply HΦ $$ %true %_
-    simp only [restoreCfg, ↓reduceIte]
     iframe Hphys Hsnap
     ipureintro
-    refine .inr (.inr ⟨by simp only [snapId]; omega, Hidv, Hm, rfl, prs, pvs,
-      learnerOfC (snapCfg sv sv.Metadata'.ConfState'.lists) id, ?_⟩)
-    subst HS1
-    obtain ⟨⟩ := s
-    simp only at Hvotes
-    subst Hvotes
-    rfl
+    exact .inr (.inr ⟨by simp only [snapId]; omega, Hidv, Hm, rfl, rfl⟩)
 
 
 end proof

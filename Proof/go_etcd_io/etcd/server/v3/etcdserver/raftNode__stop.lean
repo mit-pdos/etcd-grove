@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem raftNode.stop.wp_proof : raftNode.stop.spec (GF := GF) (hG := hG) := by
   intro E γ r
-  wp_start as ⟨#Hr, HST⟩
+  wp_start as ⟨#Hr, HST, Hrun⟩
   iunfold isRaftNode at Hr
   iNamed Hr
   iunfold rnStopBag at Hstci
@@ -43,8 +43,8 @@ theorem raftNode.stop.wp_proof : raftNode.stop.spec (GF := GF) (hG := hG) := by
     · ipureintro; exact ⟨rfl, rfl⟩
     isplitr
     · iapply is_bag_is_chan $$ Hbag
-    iapply bag_send_au γs stc (fun _ => E.ST) () _ $$ [$Hlc1 $Hlc2] Hbag [HST]
-    · iexact HST
+    iapply bag_send_au γs stc _ () _ $$ [$Hlc1 $Hlc2] Hbag [HST Hrun]
+    · iframe HST Hrun
     inext
     wp_auto
     wp_apply_core chan.wp_receive dnc γ.done $$ Hdch
