@@ -29013,10 +29013,12 @@ decisions of 2026-11-01 (Draft in `AuthSplitDraft.lean`, imported by nothing).
   live, which `RLock` establishes with the share it takes and gives back; the interval stays live
   while held (only the stop's commit, under the write lock, clears it). `UnsafeRange` drops the
   share; `Close` keeps `bOpen γ 1`. Today's statements are corollaries.
-- **Readers draw slots from a pool with a thread token** (the Bounds rule), as minibolt's `isDB`
-  and rafthttp's `raftPool`: `rdPool`/`rdLoan`/`rdTok_borrow`/`rdTok_giveBack` over Perennial's
-  `threadPool`. Where it is built is open (the plan's Q2; drafted: the constructor, under
-  `ThreadBoundLe GF (2 ^ 29)`, the other half of the slots left counted for mvcc).
+- **Readers draw slots from a pool with a thread token, owned by the readers' owners** (the Bounds
+  rule; the shape of minibolt's `isDB` and rafthttp's `raftPool`). First drafted in the backend's
+  constructor; review round 2 found no client could use it (every reader of `readTx` holds its
+  owner's read lock across `RLock`: mvcc's `s.mu`, auth's `beMu`), so the constructor keeps giving
+  counted slots, local to their owner, and mvcc and auth pool bundles that contain one
+  (`notes/bounds-locks.md`, B2). The open share leaves mvcc's `bkRTx` with decision 1 (Q5).
 - **`rbOwn` is the writer's contents; idleness is a separate predicate.** The auth Draft's
   `rbOwn_split_in` split `rbOwn` into idle parts, false while the holder's own write is pending
   (a held batch with a pending delete: readers still see the key). Chosen: `rbPart γ S r` (the
@@ -29024,4 +29026,5 @@ decisions of 2026-11-01 (Draft in `AuthSplitDraft.lean`, imported by nothing).
   `rbOwnIn γ S r` (idle: readers see `r` there), split/join over disjoint sets; `rbPut` takes its
   bucket's part only; `Unlock` turns a part handed in into the idle part (Go writes the session
   back and commits a pending delete, etcd-io/etcd#17119); a fresh backend's are idle. The split the
-  premise needs is restated over `rbOwnIn ⊤`.
+  premise needs is restated over `rbOwnIn ⊤`. The batch lock's own side is a third predicate
+  (`rbLock`), so that `backend.Snapshot`'s observation no longer hands the lock's half as `rbOwn`.
