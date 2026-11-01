@@ -76,8 +76,51 @@ theorem runInv_init (γr : RNames) (vs : List w64) (id : w64) (r n st : Loc) (ρ
     (pp sp : Loc) :
     runStart (GF := GF) γr vs id r n st ρ ∗ pp ↦ slice.nil ∗ sp ↦ W64 0 ⊢
       runInv γr id r n st ρ pp sp := by
-  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
-  sorry
+  iintro ⟨Hs, Hpp, Hsp⟩
+  iunfold runStart at Hs
+  icases Hs with ⟨%csp, %mA, %hs, Hdrv, Hraft, Hrun, Hcfg, Hown, Hprod, Hmeta⟩
+  ihave ⟨Hdrv, #Hdl⟩ := nodeDriver_deliveredLogLb _ _ _ _ $$ Hdrv
+  unfold runInv
+  iexists [], hsZero, hs, csp, mA, Membership.simple (GMap.listToSet vs), ∅, W64 0, 0,
+    slice.nil, [], RaftState.init, W64 0
+  unfold NodeDriverState.init
+  iframe Hdrv Hraft Hrun Hprod Hown Hmeta Hsp Hpp
+  isplitl [Hcfg]
+  · unfold appNode
+    iexists ⟨0, Membership.simple (GMap.listToSet vs)⟩
+    iframe Hcfg Hdl
+    isplitl []
+    · iapply skippedIn_noConf γr.cluster [] 0 0 (fun _ _ _ h _ => absurd h (Nat.not_lt_zero _))
+    ipureintro; exact ⟨rfl, Nat.le_refl _⟩
+  isplitl []
+  · iapply memCompacted_zero
+  isplitl []
+  · unfold frozenTo LogEntry.toEntries; simp only [List.mapIdx_nil, List.drop_nil]
+    iapply memLog_nil
+  isplitl []
+  · ipureintro; exact ⟨Nat.zero_le _, Nat.le_refl _⟩
+  isplitl []
+  · iapply nodeAppliedLb_zero
+  isplitl []
+  · iapply nodeCommitLb_zero
+  isplitl []
+  · iapply ownSlice_nil
+  isplitl []
+  · iapply ownSliceCap_nil
+  iapply BigSepL.bigSepL_nil.2
+  itrivial
+
+/-- (2026-11-01, durability stage II) **A `Ready`'s messages with their `sentMsg`**: the messages as
+`readyRest` owns them, with the sends *enter* gave (`readyMsgs`), are what a transport takes. -/
+theorem readyMsgs_sent (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) :
+    ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+      readyMsgs γ N id ms ⊢
+    [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗ msgCredits γ N q.st := by
+  unfold readyMsgs
+  refine BigSepL.bigSepL_sep_eqv_symm.1.trans (BigSepL.bigSepL_mono_of_forall ?_)
+  intro _ _
+  iintro ⟨⟨Ho, Hc⟩, Hs⟩
+  iframe
 
 end inv
 
