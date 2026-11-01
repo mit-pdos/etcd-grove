@@ -28724,6 +28724,33 @@ so `wp_applyAll`, `wp_run`, `wp_start` and `wp_Start` and their results in `Resu
 instance argument too. It adds no assumption to the closed results: `wp_NewServer`, under all of
 them, already took it.
 
+## J8b: `run`'s snapshot job, spec-first (2026-11-01 · the user's approval: drop both, split compaction)
+
+Supersedes D22 J5's `uint.Z ai ≤ w` (its entry: "J8a ... drops `applyAll.spec`'s premise `uint.Z ai ≤ w`")
+and the J8b candidate's `kvReach` restatement of `applyRes`'s `entriesStep`.
+
+The review read `applyAll.specSnap`'s pre and post against `run`'s loop invariant (`applyRes`) and
+`isServerRun`, conjunct by conjunct (`notes/snapshot-j8a-plan.md`, J8b). What did not fit, and the
+change:
+- `applyRes`'s `ai ≤ w`: false after the jump (`ai = i`, `w` unchanged). J5 kept it for the
+  compaction's bound through `srvWTPool_bound_n`, which nothing uses; `snapshotIfNeededAndCompactRaftLog`'s
+  proof took it (`haw`) and never read it. Dropped everywhere (the premise of five specs, two loop
+  invariants). The applied index's bounds come from raft (`srvIdxOk`, the payload's `< 2^61`).
+- `applyRes`'s `entriesStep C.c₀ A C.x₀ x` (the KV a fold of the log from `x₀`): false after the
+  jump; its only reader rebuilt it. Dropped rather than restated as `kvReach`: no client. A
+  run-level trace result, if wanted, states its own.
+- `E.cmp = false` (`specSnap`'s, for `srvKVCloserW`): `run.spec` covers both compaction modes. The
+  job cases on the mode; the mode on is `run_job_snap_cmp`, a named `sorry` (the user's choice).
+- The member id: `specSnap` takes `srvMemberIDAddr s ↦□ nid` and the payload's `nodeSnapLocal` is at
+  `γn.id`; `run` had no tie. `isServerRun` gains it (`NewServer` knows `γrn.id = id`).
+- The meta reads (`bootOk`'s `#HmetaSnap`): reached `run` nowhere. `isServerRun` gains them, by name
+  (`srvMetaSnap`), through `start`'s construction premise.
+- `|boot| ≤ i`: not derivable by the server (the payload says nothing of the boot log). It is per
+  payload, so not an `isServerRun` fact: `rnApSnap` gains it, from `rnReadySnap_bootLen`, a named
+  `sorry` whose proof is a `readySnap` conjunct proved in raft (to propose).
+Everything else `specSnap` takes is in `applyRes`, the payload, or `isServerRun`; its post rebuilds
+`applyRes` at raft's `A'` (`srvRLogLb_prefix` with the lengths ties the image's log to raft's).
+
 ## The lease checks' revision re-check is not stated (2026-11-01 · accepted, the user's choice · `notes/lease-revcheck-plan.md`)
 
 Item 3 of the lessor/auth list asked for the lease checks' `Revision()` re-check in their posts. The

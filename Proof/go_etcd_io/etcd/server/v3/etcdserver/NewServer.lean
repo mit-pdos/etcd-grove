@@ -1774,6 +1774,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · ipureintro; exact Hdisk
   isplitr
   · ipureintro; rfl
+  isplitr
+  · -- (J8b) the member id, the raft node's (`srvProcOk`'s)
+    have hidr : γrn.id = id := by rw [Hrn5, Hrid]
+    rw [hidr, ← Hid]; iexact memberID
+  isplitr
+  · -- (J8b) `bootOk`'s meta reads, by name
+    unfold srvMetaSnap; iexact HmetaSnap
   isplitl [Hsend]
   · simp only [srvErM]; iexact Hsend
   isplitl [w]

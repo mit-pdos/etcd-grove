@@ -91,7 +91,8 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
       (∃ (A' : List EntryModel) (sv : SnapshotM),
         rnApplyTok γ A' ∗
         ⌜A.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧
-          uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ ∗
+          uint.Z sv.Metadata'.Index' < 2 ^ 61 ∧
+          (γ.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index'⌝ ∗
         ap.entries' ↦*□ ([] : List Loc) ∗ ownSnapM ap.snapshot' DFrac.discard sv ∗
         (letI := srvStor (GF := GF) γ.node
          snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) ∗

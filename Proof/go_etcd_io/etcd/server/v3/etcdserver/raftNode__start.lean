@@ -213,6 +213,7 @@ theorem raftNode.start.wp_proof
         icases Hbusy with ⟨Hbdrv, Hbcv, %Hbs⟩
         obtain ⟨HbA, HbPre, HbD, HbPos, Hb61⟩ := Hbs
         ihave ⟨Hbdrv, #Hdl⟩ := nodeDriver_deliveredLogLb _ _ _ _ $$ Hbdrv
+        icases rnReadySnap_bootLen E γ _ _ _ _ _ _ _ $$ Hdata with ⟨Hdata, %Hbb⟩
         iunfold rnReadySnap at Hdata
         icases Hdata with ⟨%ceL, %esL, %msL, %hs, HrS, #Hce, #Hcea, %HA', #HC, #HsvV, #Hes, #Hesa,
           #Hmsl, Hmsok, #Hss, #Hhs, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩⟩
@@ -507,7 +508,7 @@ theorem raftNode.start.wp_proof
             simp only [Int.toNat_natCast]
             iframe Hcn Hcn1 HC Hc2M Hcert HsnLoc Hcal
             isplitr
-            · ipureintro; exact ⟨HLA, hlenA, Hb61⟩
+            · ipureintro; exact ⟨HLA, hlenA, Hb61, Hbb⟩
             isplitr
             · ihave %HceL : iprop(⌜ceL.length = ([] : List EntryModel).length⌝) $$ []
               · iunfold entriesAt at Hcea; icases Hcea with ⟨%H, -⟩; ipureintro; exact H

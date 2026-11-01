@@ -402,3 +402,4 @@ sorry EtcdServer.applyAll.wp_proofOn
 sorry EtcdServer.run.wp_proofOn
 sorry etcdserver.restorePre_of_apply
 sorry mergedCreate_window
+sorry rnReadySnap_bootLen
