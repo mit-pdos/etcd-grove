@@ -261,7 +261,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
         isplitr
         · ipureintro; trivial
         iexists { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
-                         dur := durOf 0 (initFile xs) }
+                         dur := durOf 0 (initFile xs), durHi := max m.size 16384 }
         rw [show (max (m.size : Int) 16384) = ((max m.size 16384 : Nat) : Int) by omega]
         iframe
       · cases err4 with

@@ -414,3 +414,49 @@ Open, in order:
 5-7. Not started: `CrashOps`/`Spec/os/Crash.lean` over `cfInvQ` (`crashOk_narrow` for `CrashOkQ`;
    `Truncate`, `File.Sync`, `Mmap`/`Munmap` with mappings), `rwR` holding `cfOwn`, the re-proofs,
    `BootCrashSafety`.
+
+### minibolt's crash proof, round 3 (2026-11-01, branch `osfs-mbcrash`)
+
+Merged `origin/lean` (`21879d1e78`, clean; Perennial pin still `2130bdb99`).
+
+Done:
+- **`OsMeta.durHi`** (`Ghost.lean`, untrusted): a bound on the length of the durable image,
+  `MetaOk.durLen : f.durable.length ≤ m.durHi`. Needed because P1's first case ("the slot is the
+  durable one") says nothing useful when the ghost state cannot rule out a durable image that holds
+  the slot: a created file (`newMeta`, `durHi = 0`, the model's `OsFile.ofDisk []`), or a short
+  file a crash left (`initMeta f`, `durHi = f.cur.length`), whose durable copy of a slot it does not
+  hold is shorter than 64 bytes and so never equal to a slot the image holds whole. Only a
+  successful sync changes the durable image (and makes it the file's size): `OsMeta.synced` sets
+  `durHi := m.size`; every other step keeps it (`osCoh_setMaps`, `osCoh_addTok` now ask
+  `(m'.dur, m'.durHi) = (m.dur, m.durHi)`). `DB.init.spec`'s post gained `durHi := max m.size 16384`.
+- **`wp_osFsync_keep`** (`Specs.lean`, the approved proposal): a sync also given bytes `ys2` from
+  `lo2`, at any fraction, shown clean, posts `m.syncedKeep lo xs lo2 ys2` (`dur := durOverlay
+  (m.synced lo xs).dur (durOf lo2 ys2)`); `wp_osFsync` is its instance `0 []`
+  (`OsMeta.syncedKeep_nil`).
+- **`P1s`** (`CrashOk.lean`): P1 with `data ≠ []` in its third case (`P1s_P1 : P1s → P1`).
+  `crashOkQ_idle`/`_writing`/`_create` are now for `CrashOkQ (P1s p)`. Reason: with the file idle,
+  `CrashSeenR` admits other changes in flight on it only if they take none of the client's bytes
+  and a fraction of the `OsMeta`, i.e. an empty write (another thread could start one: nothing in
+  the crash invariant's half excludes it); P1's third case then admits the page cache's slot,
+  even a torn one (a failed write's mix of new bytes and clean old bytes). **Decision for the
+  user:** state `BootCrashSafety` with `P1s` (one conjunct; an empty write makes no change, so the
+  slot "as it would leave it" is the page cache's, which P1's second case already restricts).
+- **`idleImg`** gained `D.length ≤ m.durHi` and its page-cache case now requires that no byte of
+  the slot is clean in `bs` (from P1's "every byte dirty or lost"; `seen_file` returns
+  `CleanPhys` of the clean bytes). `writingImg` gained `D.length ≤ m.durHi`.
+- **`CrashImg.lean`** (item 4, pure): slot machinery (`metaSlot_ext`, `slot_held`,
+  `fileMeta_of_slot`, `slot_zero_invalid`; `durOk m i P` for the durable copy of slot `i`,
+  `durOk_of`; `cacheOk bs i P` for the page cache's, idle; `idleImg_slot`, `writingImg_slot`,
+  `idleImg_clean`, `writingImg_clean`), and the image obligations:
+  - `goodImg_noValid`, `goodImg_cur`, `curMeta_cases`, `curMeta_congr`, `curMeta_take`;
+  - init: `initIdle` (`initIdle_good`: Open's state, W1's narrowings, S1 and its failure, with
+    `cacheOk` for zeros-or-clean slots), `initW1_good` (the first write in flight), `initMid`
+    (after S1: durable slots zero, page 3 clean) with `initW2_good` (the meta write in flight)
+    and `initMid_idle_good` (after it, S2, failures; `cacheOk` for `init`'s metas), via
+    `goodImg_init`;
+  - commit: `commitClean`/`commit_clean_img` (every state before the meta write: the metas and
+    the current root page are clean, so an image has them; covers Truncate/Sync/data
+    WriteAt/Fdatasync, in flight or idle, and their failures, given the image's size bounds and
+    that the changed range misses them), `commitMeta` with `commitMetaW_good` (meta write in
+    flight) and `commitMetaIdle_good` (after it, failed, or a failed meta sync), via `commit_cur`
+    and `commitMeta_good`.

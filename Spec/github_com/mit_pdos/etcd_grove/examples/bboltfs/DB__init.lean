@@ -40,7 +40,8 @@ abbrev DB.init.spec : Prop :=
           db.[DB, go!"filesz"] ↦ W64 (max m.size 16384) ∗
           osMeta (GF := GF) p (DFrac.own 1)
             (some { m with size := max m.size 16384, lo := max m.size 16384,
-                           hi := max m.size 16384, dur := durOf 0 (initFile xs) }) ∗
+                           hi := max m.size 16384, dur := durOf 0 (initFile xs),
+                           durHi := max m.size 16384 }) ∗
           osBytes (GF := GF) p 0 (DFrac.own 1) (initFile xs)) ∨
        (⌜err ≠ interface.nil⌝ ∗ ∃ (sz : w64) (m' : OsMeta),
           db.[DB, go!"filesz"] ↦ sz ∗ osMeta (GF := GF) p (DFrac.own 1) (some m'))) }}

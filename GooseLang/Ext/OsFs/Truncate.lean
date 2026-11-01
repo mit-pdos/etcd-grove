@@ -204,13 +204,14 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
         by rw [truncate_sizeLo]; have := hmo.lo; dsimp only; omega,
         by rw [truncate_sizeHi]; have := hmo.hi; dsimp only; omega,
         fun hok i => by rw [truncate_lost]; exact hmo.ok hok i, hmo.maps, fun t' c' h1 h2 => ?_,
-        fun i d h => by rw [truncate_durable]; exact hmo.dur i d h⟩⟩
+        fun i d h => by rw [truncate_durable]; exact hmo.dur i d h,
+        by rw [truncate_durable]; exact hmo.durLen⟩⟩
       obtain ⟨h1, n1⟩ := hdel t' c' h1
       exact absurd h2 (hother t' c' n1 h1)
     · rename_i hpq
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
       refine ⟨f1, ?_, ⟨hm1.size, hm1.named, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_,
-        hm1.dur⟩⟩
+        hm1.dur, hm1.durLen⟩⟩
       · show (({ st with inflight := GMap.delete t st.inflight } : OsState).setFile p _).files !! q = _
         rw [files_setFile, if_neg hpq]; exact h1
       · rw [htg' c' ⟨t', h1⟩]; exact hm1.targets t' c' (hdel t' c' h1).1 h2

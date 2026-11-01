@@ -56,6 +56,9 @@ structure OsMeta where
   successful sync changes the image on disk; it records the bytes it is given (`OsMeta.synced`).
   At boot, all of the file is known. -/
   dur : List (Option w8)
+  /-- A bound on the length of the image on disk: a successful sync makes it the size; nothing
+  else changes the image (`MetaOk.durLen`). Past it, a crash leaves arbitrary bytes. -/
+  durHi : Nat
 
 /-- An in-flight change, as the ghost state records it. -/
 structure TokInfo where
@@ -69,11 +72,11 @@ structure TokInfo where
 
 instance OsMeta.countable : Pos.Countable OsMeta :=
   Pos.Countable.ofInjective
-    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.named, m.ok, m.maps, m.dur))
+    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.named, m.ok, m.maps, m.dur, m.durHi))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h; subst h1 h2 h3 h4 h5 h6 h7; rfl)
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h; subst h1 h2 h3 h4 h5 h6 h7 h8; rfl)
 
 instance Qp.countable : Pos.Countable Qp :=
   Pos.Countable.ofInjective (fun q => Pos.Countable.encode (q.val.num, q.val.den))
@@ -169,6 +172,7 @@ structure MetaOk (p : GoString) (m : OsMeta) (f : OsFile) : Prop where
   maps : ∀ b len, m.maps !! b = some len ↔ st.maps !! b = some ⟨p, len⟩
   targets : ∀ t c, st.inflight !! t = some c → c.path = p → m.lo ≤ c.target st ∧ c.target st ≤ m.hi
   dur : ∀ (i : Nat) (d : w8), m.dur[i]? = some (some d) → f.durable[i]? = some d
+  durLen : f.durable.length ≤ m.durHi
 
 /-- The ghost maps mirror the state. -/
 structure OsCoh (Γb : GMap (GoString × Nat) (w8 × Bool)) (Γm : GMap GoString (Option OsMeta))
@@ -540,7 +544,7 @@ end bytes
 
 /-- The ghost `OsMeta` of a file as on disk: all of it durable. -/
 def initMeta (f : OsFile) : OsMeta :=
-  ⟨f.cur.length, f.cur.length, f.cur.length, true, true, ∅, f.cur.map some⟩
+  ⟨f.cur.length, f.cur.length, f.cur.length, true, true, ∅, f.cur.map some, f.cur.length⟩
 
 /-- The bytes of the files of `st`, all clean. -/
 def bytesMap (st : OsState) : GMap (GoString × Nat) (w8 × Bool) :=
@@ -633,7 +637,7 @@ theorem osInit_wf_coh {st : OsState} (h : OsInit st) :
         simp only [hfo, Option.map_some, Option.some.injEq] at hm
         subst hm
         have hf := hdisk p f hfo
-        refine ⟨f, rfl, ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
+        refine ⟨f, rfl, ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
         · rw [hf]; rfl
         · rw [hf]; simp [initMeta, OsFile.ofDisk]
         · rw [hf]; simp [initMeta, OsFile.ofDisk]
@@ -644,6 +648,7 @@ theorem osInit_wf_coh {st : OsState} (h : OsInit st) :
           simp only [initMeta, List.getElem?_map, Option.map_eq_some_iff, Option.some.injEq] at h
           obtain ⟨b, hb, rfl⟩ := h
           rw [hf]; exact hb
+        · rw [hf]; simp [initMeta, OsFile.ofDisk]
   · intro p i x hx
     simp only [bytesMap, GMap.lookup_mk] at hx
     cases hf : st.file p with
