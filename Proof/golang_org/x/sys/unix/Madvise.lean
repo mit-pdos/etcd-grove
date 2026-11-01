@@ -22,7 +22,16 @@ variable [sem : go.Semantics]
 variable [golang_org.x.sys.unix.Assumptions]
 
 theorem golang_org.x.sys.unix.Madvise.wp_proof : golang_org.x.sys.unix.Madvise.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro sl advice hadv
+  wp_start
+  have h : uint.Z advice ≤ uint.Z (W64 3) := by
+    simp only [uint.Z]; have : (W64 3).toNat = 3 := rfl; omega
+  rw [decide_eq_true h]
+  wp_auto
+  wp_apply wp_ArbitraryInt as %x _
+  iapply wp_errno
+  iapply HΦ
+  iempintro
 
 end proof
 

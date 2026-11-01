@@ -6,8 +6,9 @@ resource of an open `*os.File` (`ownFile`) and of the `fileStat` its `Stat` retu
 
 The model's `file` and `fileStat` are trusted types (`Code/os.toml`); goose emits no field-access
 assumptions for them (`file.TypeAssumptions` has no `get_fd`/`set_fd`, unlike `File`'s
-`get_file`), so they have no typed points-to of the whole struct, and a `GoAlloc` of one (in
-`OpenFile` and `Stat`) cannot be reasoned about. Their fields are owned one by one
+`get_file`), so `TrustedCode/os.lean` states them by hand (`file.FieldAssumptions`,
+`fileStat.FieldAssumptions`), and their `IntoValTyped`, which a `GoAlloc` of one needs (in
+`OpenFile` and `Stat`), takes them as instance hypotheses. Their fields are owned one by one
 (`structFieldRef os.file go!"fd" inner ↦ fd`), which is all that loads and stores need.
 -/
 module
@@ -42,6 +43,46 @@ theorem File_ty_eq : os.model.File = os.File.ty := by
 
 theorem fileStat_ty_eq : os.model.fileStat = os.fileStat.ty := by
   unfold os.fileStat.ty; rfl
+
+/-! The typed points-to of the model's `file` and `fileStat`, as goose emits it for a translated
+struct; their `IntoValTyped` needs the struct-field facts of `TrustedCode/os.lean`
+(`file.FieldAssumptions`, `fileStat.FieldAssumptions`), which goose cannot emit for a trusted
+layout. -/
+
+instance file_fields_unfold :
+    EqualsUnfold [go.field_decl.FieldDecl go!"fd" go.int, go.field_decl.FieldDecl go!"name" go.string]
+      [go.field_decl.FieldDecl go!"fd" go.int, go.field_decl.FieldDecl go!"name" go.string] :=
+  ⟨rfl⟩
+
+instance fileStat_fields_unfold :
+    EqualsUnfold [go.field_decl.FieldDecl go!"size" go.int64]
+      [go.field_decl.FieldDecl go!"size" go.int64] :=
+  ⟨rfl⟩
+
+noncomputable instance file_typed_pointsto : TypedPointsto (GF := GF) os.file where
+  typedPointstoDef l v dq := iprop(
+    "fd" ∷ typedPointsto (structFieldRef os.file go!"fd" l) v.fd' dq ∗
+    "name" ∷ typedPointsto (structFieldRef os.file go!"name" l) v.name' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance file_into_val_typed [os.file.FieldAssumptions] :
+    IntoValTypedUnderlying (GF := GF) os.file os.file.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance fileStat_typed_pointsto : TypedPointsto (GF := GF) os.fileStat where
+  typedPointstoDef l v dq := iprop(
+    "size" ∷ typedPointsto (structFieldRef os.fileStat go!"size" l) v.size' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance fileStat_into_val_typed [os.fileStat.FieldAssumptions] :
+    IntoValTypedUnderlying (GF := GF) os.fileStat os.fileStat.underlying := by
+  solve_into_val_typed_struct
 
 include sem package_sem' in
 /-- The `*os.File` `f` is open on the fd `fd`, named `name`: `f` points to a `File` whose inner
