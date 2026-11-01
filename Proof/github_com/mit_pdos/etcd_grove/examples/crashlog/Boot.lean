@@ -456,6 +456,134 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   iframe Hf Hfd
   iexists _; iexact Hown
 
+theorem wp_run (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
+    (wp_WriteAtC : os.File.WriteAt.specCrash (GF := GF) (hG := hG))
+    (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
+    (wp_FdatasyncC : syscall.Fdatasync.specCrash (GF := GF) (hG := hG))
+    (wp_Stat : os.File.Stat.spec (GF := GF) (hG := hG))
+    (wp_Size : os.fileStat.Size.spec (GF := GF) (hG := hG))
+    (f : Loc) (fd : w64) (p : GoString) (γ : GName) (m : OsMeta) (bs : List (w8 × Bool))
+    (hhi : m.hi = m.size) (hok : m.ok = true) (hbd : m.size < 2 ^ 62)
+    (hcl : ∀ (i : Nat) (x : w8 × Bool), bs[i]? = some x → x.2 = true) (hg : GoodImg (bs.map Prod.fst)) :
+    {{ osInv (GF := GF) ∗ cfInv (GF := GF) logN p γ Good ∗ os.ownFile (GF := GF) f fd p (DFrac.own 1) ∗
+        osFd (GF := GF) fd (DFrac.own 1) ⟨p, true, true⟩ ∗ cfOwn (GF := GF) p γ (some (m, bs, none)) }}
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.crashlog.run)) (Val #f))
+    {{ RET #(); os.ownFile f fd p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨p, true, true⟩ ∗
+        ∃ s', cfOwn p γ s' }} := by
+  wp_start as ⟨#Hos, #Hinv, Hf, Hfd, Hown⟩
+  icases (cfOwn_idle _ _ _ _).1 $$ Hown with ⟨Hv, ⟨Hm, Hb⟩, %Hwf⟩
+  have hlen : bs.length = m.size := Hwf.1
+  wp_auto
+  wp_apply wp_Stat f fd p (DFrac.own 1) (DFrac.own 1) (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ m
+      $$ [Hos Hf Hfd Hm] as %fi %err ⟨Hf, Hfd, Hm, Hfi⟩
+  · iframe; iframe #
+  icases Hfi with (⟨%fs, %Hfi, Hfs⟩ | %Hfi)
+  rotate_left
+  · obtain ⟨Herr, rfl⟩ := Hfi
+    cases err with
+    | nil => exact absurd rfl Herr
+    | ok ie =>
+    (try wp_auto)
+    iapply HΦ
+    iframe Hf Hfd
+    iexists _; iapply (cfOwn_idle _ _ _ _).2; iframe; ipureintro; exact Hwf
+  obtain ⟨rfl, rfl⟩ := Hfi
+  (try wp_auto)
+  wp_apply wp_Size fs (W64 m.size) $$ [Hfs] as -
+  · iexact Hfs
+  have hsZ : sint.Z (W64 (m.size : Int)) = m.size := by
+    show BitVec.toInt _ = _
+    rw [BitVec.toInt_eq_toNat_cond]; simp only [BitVec.toNat_ofInt]; split <;> omega
+  (try wp_auto)
+  rw [hsZ, show sint.Z (W64 8) = 8 from rfl]
+  by_cases h8 : (8 : Int) < m.size
+  · rw [decide_eq_true h8]
+    (try wp_auto)
+    wp_apply (wp_slice_make2 (V := w8) (W64 1)) as %buf ⟨Hbuf, -⟩
+    · ipureintro; decide
+    (try wp_auto)
+    icases (osBytes_take_drop p 0 8 _ bs (by omega)).1 $$ Hb with ⟨Hb0, Hb8⟩
+    icases (osBytes_take_drop p (0 + 8) 1 _ (bs.drop 8) (by simp; omega)).1 $$ Hb8 with ⟨Hb1, Hb9⟩
+    have h1 : sint.nat (W64 1) = 1 := rfl
+    wp_apply wp_ReadAt f fd p (DFrac.own 1) buf (List.replicate (sint.nat (W64 1)) (zero_val w8))
+        (W64 8) (DFrac.own 1) (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ m
+        ((bs.drop 8).take 1) rfl (by decide)
+        (by rw [List.length_replicate, h1]; decide)
+        (by rw [List.length_replicate, h1]; show 8 + 1 ≤ m.size; omega)
+        (by rw [List.length_replicate, h1, List.length_take, List.length_drop]; omega)
+        $$ [Hos Hf Hbuf Hfd Hm Hb1]
+      as %n %err ⟨Hf, Hfd, Hm, Hb1, %vs', Hbuf, %Hres⟩
+    · iframe; iframe #
+    ihave Hb8 := (osBytes_take_drop p (0 + 8) 1 _ (bs.drop 8) (by simp; omega)).2 $$ [Hb1 Hb9]
+    · iframe
+    ihave Hb := (osBytes_take_drop p 0 8 _ bs (by omega)).2 $$ [Hb0 Hb8]
+    · iframe
+    ihave Hown := (cfOwn_idle _ _ _ _).2 $$ [Hv Hm Hb]
+    · iframe; ipureintro; exact Hwf
+    obtain ⟨hl', ⟨rfl, rfl, hvs'⟩ | ⟨rfl, hne⟩⟩ := Hres
+    rotate_left
+    · cases err with
+      | nil => exact absurd rfl hne
+      | ok ie =>
+      (try wp_auto)
+      iapply HΦ
+      iframe Hf Hfd
+      iexists _; iexact Hown
+    (try wp_auto)
+    have hb8 : 8 < bs.length := by omega
+    have hvs0 : vs'[0]? = some bs[8].1 := by
+      rw [hvs']; simp [List.getElem?_eq_getElem hb8]
+    ihave %Hbl := ownSlice_len $$ Hbuf
+    have hl1 : vs'.length = 1 := by rw [hl', List.length_replicate, h1]
+    rw [if_pos (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z buf.len by
+      rw [show sint.Z (W64 0) = 0 from rfl]
+      have h1 := Hbl.1; simp only [sint.nat, sint.Z] at h1 ⊢; omega)]
+    wp_apply wp_load_slice_index buf (sint.Z (W64 0)) vs' (DFrac.own 1) bs[8].1 (by decide) $$ [Hbuf]
+      as Hbuf
+    · iframe; ipureintro; exact hvs0
+    by_cases hz : bs[8].1 = W8 0
+    · -- the flag is not set: commit
+      rw [hz]
+      (try wp_auto)
+      have hcl8 : bs[8]? = some (0, true) := by
+        rw [List.getElem?_eq_getElem hb8]
+        have := hcl 8 bs[8] (List.getElem?_eq_getElem hb8)
+        congr 1
+        generalize bs[8] = x at hz this ⊢
+        obtain ⟨b, c⟩ := x
+        simp only at hz this
+        subst hz this; rfl
+      wp_apply wp_commit wp_ReadAt wp_WriteAtC wp_Fd wp_FdatasyncC f fd p γ m bs hhi hok hbd
+          (.inr hcl8) $$ [Hos Hinv Hf Hfd Hown] as ⟨Hf, Hfd, Hown⟩
+      · iframe; iframe #
+      (try wp_auto)
+      iapply HΦ
+      iframe
+    · -- the flag is set: the data is there
+      have hv : ∀ i < 8, (bs[i]?).map Prod.fst = dataC[i]? := by
+        intro i hi
+        have ht := hg bs[8].1 (by simp [List.getElem?_eq_getElem hb8]) hz
+        rw [← ht, List.getElem?_take_of_lt hi, List.getElem?_map]
+      rw [decide_eq_false hz]
+      (try wp_auto)
+      wp_apply wp_check wp_ReadAt f fd p γ m bs (by omega) hv $$ [Hos Hf Hfd Hown]
+        as ⟨Hf, Hfd, Hown⟩
+      · iframe; iframe #
+      (try wp_auto)
+      iapply HΦ
+      iframe Hf Hfd
+      iexists _; iexact Hown
+  · rw [decide_eq_false h8]
+    (try wp_auto)
+    ihave Hown := (cfOwn_idle _ _ _ _).2 $$ [Hv Hm Hb]
+    · iframe; ipureintro; exact Hwf
+    wp_apply wp_commit wp_ReadAt wp_WriteAtC wp_Fd wp_FdatasyncC f fd p γ m bs hhi hok hbd
+        (.inl (by omega)) $$ [Hos Hinv Hf Hfd Hown] as ⟨Hf, Hfd, Hown⟩
+    · iframe; iframe #
+    (try wp_auto)
+    iapply HΦ
+    iframe
+
 end proof
 
 end crashlog
