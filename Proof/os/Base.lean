@@ -49,6 +49,21 @@ def ownFile (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) : IProp GF :=
     structFieldRef os.file go!"fd" inner ↦{dq} fd ∗
     structFieldRef os.file go!"name" inner ↦□ name)
 
+variable [syscall.Assumptions] in
+/-- `f.wrapErr(op, Errno(e))` (`model.wrapErrno`) for the file whose inner `file` is `inner`: a
+fresh `*PathError` as an `error`. -/
+theorem wp_wrapErrno (op : GoString) (inner : Loc) (name : GoString) (e : w64)
+    (Φ : val → IProp GF) :
+    structFieldRef os.file go!"name" inner ↦□ name -∗
+      (∀ pe : Loc, Φ #(interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)) -∗
+      WP (App (App (App (Val os.model.wrapErrno) (Val #op)) (Val #inner)) (Val #e)) {{ Φ }} := by
+  iintro #Hn HΦ
+  unfold os.model.wrapErrno os.model.pathError
+  rw [file_ty_eq]
+  wp_auto
+  wp_apply wp_errno
+  iapply HΦ
+
 end def_
 end os
 
