@@ -41,6 +41,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
 
+theorem snap_mul4096 (x : w64) (hx : x.toNat * 4096 < 2 ^ 30) :
+    sint.Z (x * W64 4096) = ((4096 * x.toNat : Nat) : Int) := by
+  word
+
+theorem snap_sintZ (n : w64) (h : n.toNat ≤ 2 ^ 30) : sint.Z n = (n.toNat : Int) := by
+  word
+
 set_option maxHeartbeats 1600000 in
 theorem DB.Snapshot.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
     (wp_pageAt : pageAt.spec (GF := GF) (hG := hG))
@@ -217,7 +224,83 @@ theorem DB.Snapshot.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
           ⟨p, true, true⟩ _ eof rfl (by decide) (by simp; omega) (by simp; omega)
         $$ [Hf Hbuf Hfd Hrs] as %n %err ⟨Hf, Hfd, Hrs, %vs', Hbuf, %Hres⟩
       · iframe; iframe #
-      sorry
+      obtain ⟨-, Heofpe, T, l, rfl⟩ := Heof
+      obtain ⟨Hl', Hn, Hheld, Hcase⟩ := Hres
+      simp only [List.length_replicate] at Hl' Hn Hheld Hcase
+      have hlast : os.heldByte [(4096 * curRoot mp, DFrac.discard, B.map (·, true)),
+          (4096 * (curPgid mp - 1), DFrac.discard, B2.map (·, true))] (4096 * curPgid mp - 1) (B2[4095]!) := by
+        refine ⟨_, List.mem_cons_of_mem _ (List.mem_singleton_self _), ?_, ?_⟩
+        · dsimp only; omega
+        · dsimp only
+          rw [show 4096 * curPgid mp - 1 - 4096 * (curPgid mp - 1) = 4095 by omega]
+          rw [List.getElem?_map, List.getElem?_eq_getElem (by omega)]
+          simp [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem (show 4095 < B2.length by omega)]
+      have hcase : (err = interface.nil ∨ err = interface.mkOk (go.GoType.PointerType T) #l) ∧
+            4096 * curPgid mp ≤ n.toNat ∨
+          ∃ pe : Loc, err = interface.mkOk (go.GoType.PointerType _root_.Perennial.io.fs.PathError.ty) #pe := by
+        rcases Hcase with ⟨rfl, Hnlen⟩ | ⟨rfl, Hreach⟩ | ⟨pe, rfl⟩
+        · left; refine ⟨Or.inl rfl, ?_⟩; rw [Hnlen]; rw [Nat.add_mul]; omega
+        · left; refine ⟨Or.inr rfl, ?_⟩
+          have := Hreach _ _ hlast (by simp) (by simp; rw [Nat.add_mul]; omega)
+          simp at this; omega
+        · right; exact ⟨pe, rfl⟩
+      clear Hcase
+      rcases hcase with ⟨herr, hnge⟩ | ⟨pe, rfl⟩
+      · have hpgw : sint.Z ((curMeta mp).pgid' * W64 4096) = ((4096 * curPgid mp : Nat) : Int) := by
+          rw [hpg]; exact snap_mul4096 _ (by rw [← hpg]; rw [Nat.add_mul] at Hbound; omega)
+        have hnZ : sint.Z n = (n.toNat : Int) :=
+          snap_sintZ n (by rw [Nat.add_mul] at Hbound Hn; omega)
+        rcases herr with rfl | rfl <;> wp_auto
+        all_goals
+          rw [decide_eq_false (by rw [hpgw, hnZ]; omega)]
+          wp_auto
+          sorry
+      · wp_auto
+        by_cases hT : go.GoType.PointerType _root_.Perennial.io.fs.PathError.ty = go.GoType.PointerType T
+        · rw [ite_cond_eq_true _ _ (eq_true hT)]
+          have hpl : pe ≠ l := by
+            rintro rfl; exact Heofpe pe (by rw [hT])
+          wp_auto
+          rw [decide_eq_false hpl]
+          wp_auto
+          wp_apply sync.RWMutex.wp_RUnlock db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f' fd' p)
+            $$ [$Hrl $Hsync Hmap Hd H0 H1 Htok Hf Hfd] as Hrd
+          · iunfold mapR; iexists (some (base, len, γm)); iunfold mapBody
+            dsimp only [mapFields, mapRest]
+            isplitl [Hmap]; · iexact Hmap
+            isplitl [Hd H0 H1]; · iframe
+            isplitr; · ipureintro; exact Hbase
+            isplitl [Htok]; · iexact Htok
+            isplitr
+            · iunfold mapInv
+              isplitr; · ipureintro; exact Hlen
+              iexists γl; iexact HinvL
+            iframe
+          (try wp_auto)
+          iapply HΦ
+          isplitl [Hrd]
+          · iunfold dbReader; iexists f', fd', p; iframe; iframe #
+          iright; ipureintro; intro h; cases h
+        · rw [ite_cond_eq_false _ _ (eq_false hT)]
+          wp_auto
+          wp_apply sync.RWMutex.wp_RUnlock db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f' fd' p)
+            $$ [$Hrl $Hsync Hmap Hd H0 H1 Htok Hf Hfd] as Hrd
+          · iunfold mapR; iexists (some (base, len, γm)); iunfold mapBody
+            dsimp only [mapFields, mapRest]
+            isplitl [Hmap]; · iexact Hmap
+            isplitl [Hd H0 H1]; · iframe
+            isplitr; · ipureintro; exact Hbase
+            isplitl [Htok]; · iexact Htok
+            isplitr
+            · iunfold mapInv
+              isplitr; · ipureintro; exact Hlen
+              iexists γl; iexact HinvL
+            iframe
+          (try wp_auto)
+          iapply HΦ
+          isplitl [Hrd]
+          · iunfold dbReader; iexists f', fd', p; iframe; iframe #
+          iright; ipureintro; intro h; cases h
 
 end proof
 
