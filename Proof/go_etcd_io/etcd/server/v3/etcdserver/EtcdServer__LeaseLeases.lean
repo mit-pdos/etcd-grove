@@ -167,10 +167,13 @@ theorem EtcdServer.LeaseLeases.wp_proof
   · iapply lease.leaseMapAt_ids; iexact Hmap
   isplitr [Hc]
   · iunfold leasesRespIs
-    iexists _, ps
+    iexists _
     iframe
     isplitl [Hh]
     · iunfold srvHeaderAt; iexact Hh
+    iunfold leasesListIs
+    iexists ps
+    iframe
     ipureintro; rw [List.length_map]; exact Hj.2.2
   iapply leaseCheckFrom_mono _ _ _ _ _ _ ?_
   rotate_left

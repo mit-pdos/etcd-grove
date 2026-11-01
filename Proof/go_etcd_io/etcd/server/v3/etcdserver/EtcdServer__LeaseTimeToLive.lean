@@ -98,7 +98,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     wp_apply (hTTL s E ρ γr γl ctx cd r dq v) $$ [$Hrdo $Htok $Hreq] as %resp %err2
         ⟨Hrdo, Htok, Hreq, Hres⟩
     · iframe #; ipureintro; exact Hbound
-    icases Hres with (⟨%He2, %w, Hw, %Hh⟩ | ⟨%Hn, #He2⟩)
+    icases Hres with (⟨%He2, %w, Hw, %Hh, Hhv⟩ | ⟨%Hn, #He2⟩)
     · subst He2
       (try wp_auto)
       ihave ⟨Hreq, -⟩ := typedPointsto_not_null_dup _ _ _ $$ Hreq
@@ -125,8 +125,8 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
         isplitr
         · ipureintro; rfl
         iframe Hout
-        isplitl [Hw]
-        · iexists w; iframe Hw; ipureintro; exact Hh
+        isplitl [Hw Hhv]
+        · iexists w; iframe Hw Hhv; ipureintro; exact Hh
         (try simp only [↓reduceIte]); iexact Hchk
       | true =>
         (try wp_auto)
@@ -143,8 +143,8 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
           isplitr
           · ipureintro; rfl
           iframe Hout
-          isplitl [Hw]
-          · iexists w; iframe Hw; ipureintro; exact Hh
+          isplitl [Hw Hhv]
+          · iexists w; iframe Hw Hhv; ipureintro; exact Hh
           (try simp only [↓reduceIte]); iexact Hchk
         · -- `return nil, auth.ErrAuthOldRevision`
           (try wp_auto)
@@ -171,7 +171,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     wp_apply (hTTL s E ρ γr γl ctx cd r dq v) $$ [$Hrdo $Htok $Hreq] as %resp %err2
         ⟨Hrdo, Htok, Hreq, Hres⟩
     · iframe #; ipureintro; exact Hbound
-    icases Hres with (⟨%He2, %w, Hw, %Hh⟩ | ⟨%Hn, #He2⟩)
+    icases Hres with (⟨%He2, %w, Hw, %Hh, Hhv⟩ | ⟨%Hn, #He2⟩)
     · subst He2
       (try wp_auto)
       ihave ⟨Hreq, -⟩ := typedPointsto_not_null_dup _ _ _ $$ Hreq
@@ -189,8 +189,8 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
       isplitr
       · ipureintro; rfl
       iframe Hout
-      isplitl [Hw]
-      · iexists w; iframe Hw; ipureintro; exact Hh
+      isplitl [Hw Hhv]
+      · iexists w; iframe Hw Hhv; ipureintro; exact Hh
       (try simp only [↓reduceIte, Bool.false_eq_true]); itrivial
     · obtain ⟨rfl, Hne⟩ := Hn
       rcases err2 with ei | _

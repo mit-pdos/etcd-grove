@@ -182,6 +182,10 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     `LeaseTimeToLiveResponse` field (`leasehttp/http.go:274`); etcd's own handler always sets it, so
     it takes a peer URL served by something else. A one-line nil check; low impact. Reproduced
     (unit test). Upstream not searched.
+17a. **[etcd-leasehttp-timetolive-nil-header-panic](etcd-leasehttp-timetolive-nil-header-panic.md)**
+    (2026-11-01): its sibling: the forwarded response without a `Header` passes `TimeToLiveHTTP`
+    and the gRPC handler's `fill` panics on it (`header.go:55`). One nil check fixes both. Low
+    impact. Reproduced (unit tests). Upstream not searched.
 
 Also to file (2026-10-21, the last scan of the current batch):
 [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (a watch created with a
