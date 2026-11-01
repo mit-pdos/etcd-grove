@@ -276,6 +276,8 @@ def isClusterC (γr : RNames) (vs : List w64) (c : Loc) : IProp GF :=
     "#Hcl" ∷ kvrCluster γr vs ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
     "%Hdup" ∷ ⌜γr.cluster.dup = true⌝ ∗
+    -- (2026-11-01, J8a) no snapshot directories (`cluster_alloc`'s `sl`)
+    "%Hsl" ∷ ⌜γr.cluster.snapLoc = fun _ => none⌝ ∗
     "#HstorInv" ∷ kvrStorInv ∗
     "#Hopts" ∷ c.[RCluster, go!"opts"] ↦□ o ∗
     "%Ho" ∷ ⌜OptsOk o ∧ vs = bootVoters (uint.nat o.Voters')⌝ ∗

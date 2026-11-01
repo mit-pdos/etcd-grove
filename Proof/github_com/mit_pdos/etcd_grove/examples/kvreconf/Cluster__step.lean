@@ -89,7 +89,8 @@ theorem Cluster.step.wp_proof
   try wp_auto
   ihave #Hnc : nodeCtx ctx' cd $$ []
   · unfold nodeCtx; iright; iexact Hctx
-  imod stepIn_intro γr.cluster kvrRaftN st.msg.To' ml sid st rfl $$ [$Hsent $Hm $Hcred] with Hin
+  ihave #Hloc := snapLocalMsg_noDir (GF := GF) γr.cluster st.msg.To' (by rw [Hsl]) st
+  imod stepIn_intro γr.cluster kvrRaftN st.msg.To' ml sid st rfl $$ [$Hsent $Hm $Hcred $Hloc] with Hin
   wp_apply wp_node_Step dn γr.cluster kvrRaftN st.msg.To' ml ctx' cd
     $$ [$Hraftinit $HDisNode $Hnc $Hin] as %err #Herr
   try wp_auto

@@ -28177,3 +28177,34 @@ least `2^28` `lgMu` reader slots. Each install's `specSnap` takes one `E.RD` (th
 enough for J8a) and `8·|ps|` slots. `srvSnapApplied` gives none of them back.
 
 No axiom or `sorry` added or removed.
+
+## The raft API's `snapLocal` clause (2026-11-01, branch `snap-j8a`, the user's decision)
+
+**Problem.** The apply thread installs a snapshot from its file (`snapDirInv`'s `fileHolds
+(snapDBPath ss i) D`), which it can read only with `snapSaved γd i`: the transport saved that
+file before `Process` stepped the `MsgSnap`. Raft's internals carry the fact through
+(`RaftNames.reSnapLoc`, `snapLocal γ id i`: `node.Step` takes it for a `MsgSnap`, `readySnapData`
+gives it back with the snapshot `Ready`, `InvNodeChan.lean:733`), but the node API (fdf2da3d6b)
+fixed `reSnapLoc = fun _ => none` (`UniNames`, `NodeOk`), so a client got `True` back.
+
+**Decision** (the user's, after the argument below): the node API exposes it.
+- `Cluster.snapLoc` (`γ.raft.reSnapLoc`, sealed), chosen by the client at `cluster_alloc` (a new
+  argument `sl`; its post `γ.snapLoc = sl`);
+- `nodeSnapLocal γ id i` (sealed; laws `nodeSnapLocal_none`, `nodeSnapLocal_of_elem`,
+  `nodeSnapLocal_elem`) and `snapLocalMsg γ id st` (`□ ∀ sv, ⌜Type = MsgSnap ∧ snap = some sv⌝ -∗
+  nodeSnapLocal …`; laws `snapLocalMsg_intro`, `snapLocalMsg_notSnap`, `snapLocalMsg_noDir`);
+- `stepIn_intro` takes `snapLocalMsg`, and `readySnap`'s snapshot case gives `nodeSnapLocal` of the
+  snapshot's index.
+
+**Why an API change.** It exposes a fact raft's proof already had (no new raft reasoning); it is
+generic (the client picks the directories, `none` for a client without out-of-band snapshot data:
+the examples, kvreconf, take `snapLocalMsg_noDir`); and etcd v3 needs it (raft's snapshot data is
+nil, the image travels outside raft). The alternatives fail: the cluster's snapshot certificate
+(`snapshotCert`) is cluster-level, not per member's disk; a "stepped" record of the server's own
+would need raft to relate the `Ready` to the step anyway; a named premise would be an unverified
+assumption; a fork change would alter raft's behavior.
+
+**Server side.** `srvClusterOk` adds `γ.raft.cl.snapLoc = γ.raft.snapLoc` (from `cluster_alloc`'s
+post), and `srvProcOk γn s id γd` the member's directory (`γ.node.snapLoc id = some γd`), from which
+`stepIn_of_recv` builds `snapLocalMsg` out of `netRecv`'s `netSnapRecv`. `rnApSnap` carrying it to the
+apply thread is J8a's next step (`notes/snapshot-j8a-plan.md`, item 1).

@@ -835,13 +835,14 @@ theorem NewServer.wp_proofM (on : Bool)
   ipersist memberID
   ipersist beHooks
   ipersist stats
-  ihave #Hprocok : srvProcOk γn s id $$ []
+  ihave #Hprocok : srvProcOk γn s id γd $$ []
   · iunfold srvProcOk
     iexists cfg.Logger', bc.cl', sstats, γrn
     rw [← Hid]
     iframe stats memberID HNodeC cluster lg HstepI Hrc Hkind
     ipureintro
-    exact ⟨Hlgnn, by rw [Hrn5, Hrid, Hid], Hssnn, by rw [Hγn.1, Hrn1]⟩
+    exact ⟨Hlgnn, by rw [Hrn5, Hrid, Hid], Hssnn, by rw [Hγn.1, Hrn1],
+      by rw [Hrn1]; (first | (rw [Hid]; exact Hsloc) | (rw [← Hid]; exact Hsloc) | exact Hsloc)⟩
   -- (D22 S-i) the member's snapshot directory, empty (a fresh data directory), for the
   -- transport's snapshot handler; no removal yet (`applySnapshot`'s, S-j); (2026-10-26, D22 J2) at
   -- the names raft's names give the member (`RaftNames.reSnapLoc`, `snapDir_init`)
@@ -1390,7 +1391,8 @@ theorem NewServer.wp_proofM (on : Bool)
   -- (D21 M5) the server is member `id` of the network: `RaftHandler`'s premise
   ihave #Hnm : srvNetMember γn s id ⟨t, c⟩ $$ []
   · iunfold srvNetMember
-    iframe Hprocok
+    isplitr
+    · iexists γd; iexact Hprocok
     simp only
     iframe Htrf
     isplitr

@@ -26,9 +26,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.IsIDRemoved(x)`** returns `false`: the cluster removes no member (`rcLockInv`). -/
 abbrev EtcdServer.IsIDRemoved.spec : Prop :=
-  ∀ (γn : NetNames GF) (s : Loc) (id x : w64),
+  ∀ (γn : NetNames GF) (γd : GName) (s : Loc) (id x : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvProcOk γn s id }}
+      srvProcOk γn s id γd }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"IsIDRemoved")) (Val #x))
   {{ RET #false; True }}
 

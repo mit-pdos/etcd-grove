@@ -688,7 +688,9 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
   iprop(isCluster γ.raft.cl srvClusterN ∗ confPolicy γ.raft.cl srvConfN γ.raft.rule ∗
     confAt γ.raft.cl 0 (Membership.simple γ.raft.cfg) ∗ readyFits γ.raft.cl srvClusterN ∗
     ⌜γ.raft.cl.dup = false⌝ ∗ inv srvSnapsN (∃ S, ownSnapsMade γ.raft.cl S) ∗
-    ⌜srvRuleKeeps γ.raft.rule γ.raft.cfg⌝)
+    ⌜srvRuleKeeps γ.raft.rule γ.raft.cfg⌝ ∗
+    -- (2026-11-01, J8a) the cluster's snapshot directories the members' (`snapLoc`)
+    ⌜γ.raft.cl.snapLoc = γ.raft.snapLoc⌝)
 
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
   unfold srvClusterOk; infer_instance
@@ -974,7 +976,7 @@ theorem srv_confAt_simple (γ : ServerRaftNames) (l : List LogEntry) (k : Nat) (
   iunfold srvRaftLogInv at Hinv
   icases Hinv with ⟨-, #Hcl, -⟩
   iunfold srvClusterOk at Hcl
-  icases Hcl with ⟨#Hc, #Hp, #H0, -, -, -, %Hkeep⟩
+  icases Hcl with ⟨#Hc, #Hp, #H0, -, -, -, %Hkeep, -⟩
   iapply srv_confAt_simple_ind γ l E hC Hall Hkeep k hk
   iframe Hc Hp Hl H0
 
