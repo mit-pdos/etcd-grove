@@ -1,7 +1,8 @@
 /-
 Shared definitions of the specs of `os`'s trusted models (`TrustedCode/os.lean`, this repository's
 `os`, project `bboltfs`): the typed points-to of the model's `file` and `fileStat`, and the
-resource of an open `*os.File` (`ownFile`).
+resource of an open `*os.File` (`ownFile`) and of the `fileStat` its `Stat` returns
+(`ownFileStat`).
 
 The model's `file` and `fileStat` are trusted types (`Code/os.toml`); goose emits no field-access
 assumptions for them (`file.TypeAssumptions` has no `get_fd`/`set_fd`, unlike `File`'s
@@ -13,6 +14,7 @@ module
 
 public import GeneratedProof.os
 public import Proof.syscall.Base
+public import GooseLang.Ext.OsFs.Truncate
 
 @[expose] public section
 
@@ -48,6 +50,16 @@ def ownFile (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) : IProp GF :=
   iprop(∃ inner : Loc, f ↦□ (os.File.mk inner) ∗
     structFieldRef os.file go!"fd" inner ↦{dq} fd ∗
     structFieldRef os.file go!"name" inner ↦□ name)
+
+include sem package_sem' in
+/-- The `fileStat` at `fs` (what `(*File).Stat` returns, as a `FileInfo`) holds the size `sz`. -/
+def ownFileStat (fs : Loc) (sz : w64) : IProp GF :=
+  iprop(structFieldRef os.fileStat go!"size" fs ↦□ sz)
+
+/-- One of the ranges `rs` of bytes held (each `(off, dq, xs)`: `osBytes p off dq xs`) says that
+byte `i` of the file is `b`. -/
+def heldByte (rs : List (Nat × DFrac × List (w8 × Bool))) (i : Nat) (b : w8) : Prop :=
+  ∃ r ∈ rs, r.1 ≤ i ∧ (r.2.2[i - r.1]?).map Prod.fst = some b
 
 variable [syscall.Assumptions] in
 /-- `f.wrapErr(op, Errno(e))` (`model.wrapErrno`) for the file whose inner `file` is `inner`: a
