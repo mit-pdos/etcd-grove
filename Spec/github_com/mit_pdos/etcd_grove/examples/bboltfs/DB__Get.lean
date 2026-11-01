@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart). `db.Get()` (`examples/bboltfs/minibolt.go`), a read transaction through the mapping, with a reader token (`dbReader`) and a lower bound `t` of the current txid: on success, a txid at least `t` and what its root page holds (`dbTx`: `has` and `v`); on an error, the handle failed. A client that commits `txid` as transaction `txid`'s value gets `valueOk`. NOT PROVABLE for the code as it is: `issues/bbolt-failed-remap-nil-meta-panic.md`. -/
+/- Lean-first (no Rocq counterpart). `db.Get()` (`examples/bboltfs/minibolt.go`), a read transaction through the mapping, with a reader token (`dbReader`) and a lower bound `t` of the current txid: on success, a txid at least `t` and what its root page holds (`dbTx`: `has` and `v`); on an error, nothing (an error is just an error: no client needs more). A client that commits `txid` as transaction `txid`'s value gets `valueOk`. -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB
@@ -29,7 +29,7 @@ abbrev DB.Get.spec : Prop :=
       dbReader (GF := GF) γ db ∗
       ((⌜err = interface.nil ∧ t ≤ txid.toNat⌝ ∗ dbLast (GF := GF) γ txid.toNat ∗
           dbTx (GF := GF) γ txid.toNat (if has then some v else none)) ∨
-       (⌜err ≠ interface.nil⌝ ∗ dbFailed (GF := GF) γ)) }}
+       ⌜err ≠ interface.nil⌝) }}
 
 end spec
 

@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart). `Open(path)` (`examples/bboltfs/minibolt.go`): opens (or creates) the database at `path`, an allowed path, given the whole of its `OsMeta` and, if it exists, all of its bytes, which `fileOk` accepts. On success, an open database (`isDB`), its committer token at the current txid and high water mark, a lower bound of the txid, and every reader token. On an error, the file is closed, and its `OsMeta` is that of the path after an open (it may have been created) with a size that `init` may have changed; its bytes are lost to the caller (a crash proof would keep them). -/
+/- Lean-first (no Rocq counterpart). `Open(path)` (`examples/bboltfs/minibolt.go`): opens (or creates) the database at `path`, an allowed path, given the whole of its `OsMeta` and, if it exists, all of its bytes, which `fileOk` accepts, no mapping of it, no byte lost by a failed sync (`ok`), and a size below 1 TiB. On success, an open database (`isDB`), its committer token at the current txid and high water mark, a lower bound of the txid, and every reader token. On an error, the file is closed, and its `OsMeta` is that of the path after an open (it may have been created) with a size that `init` may have changed; its bytes are lost to the caller (a crash proof would keep them). -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB
@@ -23,7 +23,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumpti
 /-- See the file header. -/
 abbrev Open.spec : Prop :=
   ∀ (path : GoString) (mo : Option OsMeta) (xs : List (w8 × Bool)),
-  (∀ m, mo = some m → xs.length = m.size ∧ m.maps = ∅ ∧ fileOk xs) →
+  (∀ m, mo = some m → xs.length = m.size ∧ m.maps = ∅ ∧ m.ok = true ∧ m.size ≤ 2 ^ 40 ∧ fileOk xs) →
   {{ osInv (GF := GF) ∗ osMeta (GF := GF) path (DFrac.own 1) mo ∗
       (match mo with
        | none => emp

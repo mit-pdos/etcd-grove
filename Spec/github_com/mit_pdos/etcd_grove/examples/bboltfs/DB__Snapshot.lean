@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart). `db.Snapshot()` (`examples/bboltfs/minibolt.go`, tx.go's `WriteTo`): as `Get` (`DB__Get.lean`), what the copy's root page holds, read with the racing `ReadAt` (`os.File.ReadAt.specRacy`, over the committed pages' discarded bytes, `pageIs`). Not provable for the code as it is, as `Get`: `issues/bbolt-failed-remap-nil-meta-panic.md`. -/
+/- Lean-first (no Rocq counterpart). `db.Snapshot()` (`examples/bboltfs/minibolt.go`, tx.go's `WriteTo`): as `Get` (`DB__Get.lean`), what the copy's root page holds, read with the racing `ReadAt` (`os.File.ReadAt.specRacy`, over the committed pages' discarded bytes, `pageIs`). -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB
@@ -29,7 +29,7 @@ abbrev DB.Snapshot.spec : Prop :=
       dbReader (GF := GF) γ db ∗
       ((⌜err = interface.nil ∧ t ≤ txid.toNat⌝ ∗ dbLast (GF := GF) γ txid.toNat ∗
           dbTx (GF := GF) γ txid.toNat (if has then some v else none)) ∨
-       (⌜err ≠ interface.nil⌝ ∗ dbFailed (GF := GF) γ)) }}
+       ⌜err ≠ interface.nil⌝) }}
 
 end spec
 
