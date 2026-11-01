@@ -36,7 +36,7 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
   wp_apply wp_with_defer as %defer defer
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
-  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hls, Hx,
+  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx,
     %γrl, %hsl, #Hprl, Hhl, %Hlastl⟩
   wp_auto
   -- the owner's: the live set, the item map's half, the lease's element and item set's half
@@ -142,7 +142,7 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
       iunfold lessorMu
       iexists lm, im, M, insertAll I ys id, rd0, L0
       iframe
-      iframe Hls
+      iframe Hsz Hls
       isplitr
       · ipureintro; exact HL
       iframe Hpr; ipureintro; exact hlast'

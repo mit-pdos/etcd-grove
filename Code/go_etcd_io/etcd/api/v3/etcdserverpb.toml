@@ -37,6 +37,9 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "MemberListRequest",
   "LeaseGrantRequest", "LeaseGrantResponse", "LeaseRevokeRequest", "LeaseCheckpointRequest",
   "LeaseCheckpoint", "LeaseCheckpointResponse",
+  # the lease-read plan (2026-10-31): `LeaseTimeToLive` reads its request's `ID` and `Keys`,
+  # `LeaseLeases` builds its response; `leaseTimeToLive`'s contract states its response's `Header`
+  "LeaseTimeToLiveRequest", "LeaseTimeToLiveResponse", "LeaseLeasesResponse", "LeaseStatus",
   "AlarmRequest", "AlarmResponse", "AlarmMember", "AlarmRequest_GET", "AlarmRequest_ACTIVATE",
   "AlarmRequest_DEACTIVATE", "AlarmType_NONE", "AlarmType_CORRUPT",
   "AuthEnableResponse", "AuthDisableResponse", "AuthStatusResponse", "AuthenticateResponse",

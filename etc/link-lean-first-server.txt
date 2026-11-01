@@ -126,6 +126,16 @@ schema_UnsafeDeleteLease:
 mvcc_metricsTxnWrite__DeleteRange: @
 mvcc_watchableStoreTxnWrite__End: @
 lease_lessor__Revoke: lease_Lease__Keys sort_StringSlice__Sort schema_UnsafeDeleteLease mvcc_metricsTxnWrite__DeleteRange mvcc_watchableStoreTxnWrite__End
+# The lessor's listing for the lease read entry points (the lease-read plan, 2026-10-31):
+# `Leases` (read-locked `unsafeLeases`, then sorted by `Remaining()`) and its sorter. The trust
+# boundary: `sort.Sort` for a `Less` that answers anything (`Proof/sort/SortAnyLess.lean`, until
+# Perennial proves it).
+lease_Lease__Remaining: time_Time__IsZero
+lease_lessor__unsafeLeases:
+lease_leasesByExpiry__Len:
+lease_leasesByExpiry__Less: lease_Lease__Remaining
+lease_leasesByExpiry__Swap:
+lease_lessor__Leases: lease_lessor__unsafeLeases =EtcdGrove.sort.«Sort».wp_anyLess lease_leasesByExpiry__Len lease_leasesByExpiry__Less lease_leasesByExpiry__Swap
 schema_bucket__ID:
 schema_bucket__Name:
 schema_bucket__IsSafeRangeBucket:
@@ -306,6 +316,11 @@ EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_
 # call them stay names-only
 EtcdServer__checkLeaseRenew: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore lease_lessor__Lookup lease_Lease__Keys
 EtcdServer__checkLeaseTimeToLive: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore lease_lessor__Lookup lease_Lease__Keys
+# The lease read entry points (the lease-read plan, 2026-10-31). The trust boundary:
+# `leaseTimeToLive` (names-only, a contract: the leader's re-lookup and the follower's forwarding).
+EtcdServer__leaseTimeToLive:
+EtcdServer__LeaseTimeToLive: EtcdServer__requireAuthInfo EtcdServer__checkLeaseTimeToLive EtcdServer__leaseTimeToLive EtcdServer__AuthStore
+EtcdServer__LeaseLeases: lease_lessor__Leases EtcdServer__checkLeaseLeases EtcdServer__newHeader
 EtcdServer__checkLeaseLeases: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore lease_Lease__Keys
 EtcdServer__MemberList: EtcdServer__requireAuthInfo RaftCluster__Members
 # the auth plan's A3, the API layer (2026-10-24): the Auth service's entry points (v3_server.go;

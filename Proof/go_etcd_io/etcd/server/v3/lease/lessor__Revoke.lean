@@ -61,7 +61,7 @@ theorem lease.lessor.Revoke.wp_proof
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
-  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L', Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hls, Hx, Hhist⟩
+  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L', Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx, Hhist⟩
   iunfold leaseOwn at Hown
   icases Hown with ⟨Hfr, Hcls⟩
   ihave %Hag := leaseFrag_agree γw.st.leases _ _ _ _ $$ [$Hfr $Hg]
@@ -80,7 +80,7 @@ theorem lease.lessor.Revoke.wp_proof
       iunfold lessorMu
       iexists lm, im, M, I, rd0, L
       iframe
-      iframe Hls
+      iframe Hsz Hls
       ipureintro; exact HL
     (try wp_auto)
     iapply HΦ
@@ -135,7 +135,7 @@ theorem lease.lessor.Revoke.wp_proof
       iunfold lessorMu
       iexists lm, im, M, I, rd0, L
       iframe
-      iframe Hls
+      iframe Hsz Hls
       ipureintro; exact HL
     -- `le.rd`, read with the deleter's owner's half: not `nil`
     iunfold rdOwn at Hro
@@ -308,7 +308,7 @@ theorem lease.lessor.Revoke.wp_proof
       -- the second critical section: the lessor's map still has `l` at `id` (the revokers' half)
       wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
       iunfold lessorMu at HR
-      icases HR with ⟨%lm2, %im2, %M2, %I2, %rd2, %L2, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL2, #Hls2, Hx,
+      icases HR with ⟨%lm2, %im2, %M2, %I2, %rd2, %L2, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL2, #Hsz2, #Hls2, Hx,
         %γrl, %hsl, #Hprl, Hhl, %Hlastl⟩
       iunfold leaseOwn at Hown
       icases Hown with ⟨Hfr, Hcls⟩
@@ -451,6 +451,11 @@ theorem lease.lessor.Revoke.wp_proof
           by_cases hx : id = x
           · subst hx; simp
           · simp [hx, Ne.symm hx]
+        isplitr
+        · -- the map's receipt: the map shrinks
+          iapply (preceipt_mono (GF := GF) (m := GMap.size (C4.delete id)) (n := GMap.size C4)
+            (by rw [GMap.map_size_delete_Some _ _ _ hC4l]; omega))
+          iexact Hsz2
         isplitr
         · icases (BigSepM.bigSepM_delete (Φ := fun _ x => isLeaseObj (GF := GF) γw.st.leases x) HM2l).1 $$ Hls2
             with ⟨-, #H⟩

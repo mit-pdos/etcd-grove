@@ -37,7 +37,7 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
   wp_apply wp_with_defer as %defer defer
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
-  icases HR with ⟨%lm, %im, %M, %I', %rd0, %L', Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hls, Hx,
+  icases HR with ⟨%lm, %im, %M, %I', %rd0, %L', Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx,
     %γr, %hs, #Hpr, Hhl, %Hlast⟩
   -- the reader's view: the history's last snapshot, at an index no earlier than `m`
   icases lockHist_at γl γr _ hs (M, I') m Hlast $$ [$Hlb $Hpr $Hhl] with ⟨Hhl, %Hm, #Hat⟩
@@ -73,7 +73,7 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
       iunfold lessorMu
       iexists lm, im, M, I', rd0, L'
       iframe
-      iframe Hls
+      iframe Hsz Hls
       isplitr
       · ipureintro; exact HL
       iframe Hpr; ipureintro; exact Hlast
@@ -152,7 +152,7 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
       iunfold lessorMu
       iexists lm, im, M, I', rd0, L'
       iframe
-      iframe Hls
+      iframe Hsz Hls
       isplitr
       · ipureintro; exact HL
       iframe Hpr; ipureintro; exact Hlast

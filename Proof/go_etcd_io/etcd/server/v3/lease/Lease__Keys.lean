@@ -127,7 +127,7 @@ theorem lease.Lease.Keys.wp_proof : lease.Lease.Keys.spec (GF := GF) (hG := hG) 
   rw [keysPre_reader]
   icases Hpre with ⟨#Hlive, Htt, %Hb⟩
   iunfold isLeaseObj at Hlo
-  icases Hlo with ⟨%Hnn, #Hguard, #Hrd, #Hpool⟩
+  icases Hlo with ⟨%Hnn, #Hguard, #Hrd, -, #Hpool, -⟩
   icases Hpool $$ %Hb with ⟨%γp, #Hpool⟩
   iapply fupd_wp
   imod threadPool.borrow leasePoolN γp (sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l)) ⊤ (fun _ _ => CoPset.mem_full) $$ [Hpool Htt]

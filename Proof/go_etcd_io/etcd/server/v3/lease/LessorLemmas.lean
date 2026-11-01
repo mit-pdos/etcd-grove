@@ -410,13 +410,32 @@ theorem grant_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
   iframe
   iexact HID
 
+/-- **A lock's spare reader slots make a thread pool** (Part B; the lease-read plan): the
+`actualMaxReaders - 1 = 2^30 - 2` slots `init_RWMutex` leaves after one, under
+`threadBound GF ≤ 2^30 - 1`. -/
+theorem slotsPool (N : Namespace) (Q : IProp GF) (E : CoPset) :
+    ([∗list] _x ∈ List.replicate (sync.rwmutex.actualMaxReaders.toNat - 1) (), Q) ⊢
+      |={E}=> □ (⌜threadBound GF ≤ 2 ^ 30 - 1⌝ → ∃ γp : GName, threadPool.isThreadPool N γp Q) := by
+  iintro Hrest
+  by_cases hb : threadBound GF ≤ 2 ^ 30 - 1
+  · have hn : threadBound GF ≤ (sync.rwmutex.actualMaxReaders.toNat - 1) + 1 := by
+      rw [sync.rwmutex.actualMaxReaders_unseal]; simp; omega
+    imod threadPool.init N Q E _ hn $$ Hrest with ⟨%γp, #Hpool⟩
+    imodintro
+    iintro !> %_
+    iexists γp; iexact Hpool
+  · imodintro
+    iintro !> %h
+    iexfalso; ipureintro; exact hb h
+
 /-- **`Grant`'s ghost step, a granted lease joining the lessor and the owner** (unit T3; Part B):
 the closers' map gains the lease (with the lessor's map), the owner its element (half in
 `leaseOwn`'s closers, half in the revokers, with the right to close its `revokec`) and (L2b) its
 half of the lease's item set, empty (no item of the item map is on a lease not yet live); (Part
 B) the lease's empty set registered, its `ID` read-only, the snapshot with it appended to the
 history (`grant_hist`), and its lock made: one reader slot to the owner (`closerAt`), the others in
-the lease's pool under `threadBound GF ≤ 2^30 - 1` (`isLeaseObj`). -/
+the lease's pool under `threadBound GF ≤ 2^30 - 1` (`isLeaseObj`); (the lease-read plan) its
+`expiryMu`'s spare slots, from the lock `Grant` made, in the lease's other pool. -/
 theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc) (id : w64)
     (l : Loc) (c : GoChan) (I I0 : GMap LeaseItem w64) (sm : Loc) (E : CoPset)
     (hE : ↑lessorRdN ⊆ E) (hl : l ≠ null) (hM : M.lookup id = none)
@@ -427,13 +446,17 @@ theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc)
           monoListAuthOwn γr.1 (1 : Qp).half.half hs ∗ ⌜hs.getLast? = some (M, I)⌝) ∗
         lsF go!"revokec" l ↦□ c ∗ revokeCloser c ∗ lsF go!"itemSet" l ↦ sm ∗
         sm ↦$ (∅ : GMap LeaseItem Unit) ∗
-        lsF go!"mu" l ↦ (zero_val _root_.Perennial.sync.RWMutex) ∗ lsF go!"ID" l ↦ id ⊢
+        lsF go!"mu" l ↦ (zero_val _root_.Perennial.sync.RWMutex) ∗ lsF go!"ID" l ↦ id ∗
+        sync.isRWMutexGuard (lsF go!"expiryMu" l) (leaseExpiry l) ∗
+        ([∗list] _x ∈ List.replicate (sync.rwmutex.actualMaxReaders.toNat - 1) (),
+          sync.ownRWMutex (lsF go!"expiryMu" l) (leaseExpiry l)) ⊢
       |={E}=> lessorAuth γl 1 lp L (M.insert id l) ∗ leaseClosers γl (L ++ [id]) I0 ∗
         leaseRevokers γl (L ++ [id]) ∗
         (∃ (γr : LessorRdNames) (hs : List LSnap), lessorPinR γl γr ∗
           monoListAuthOwn γr.1 (1 : Qp).half.half hs ∗ ⌜hs.getLast? = some (M.insert id l, I)⌝) ∗
         isLeaseObj γl l ∗ lsF go!"ID" l ↦□ id := by
-  iintro ⟨#Hrd, Ha, Hcls, Hrvk, ⟨%γrl, %hsl, #Hprl, Hl, %Hlastl⟩, #Hrc, Hrcl, HiS, Hsm, Hmu0, HID⟩
+  iintro ⟨#Hrd, Ha, Hcls, Hrvk, ⟨%γrl, %hsl, #Hprl, Hl, %Hlastl⟩, #Hrc, Hrcl, HiS, Hsm, Hmu0, HID,
+    #HexG, HexRest⟩
   iunfold leaseClosers at Hcls
   icases Hcls with ⟨%lp', %γga, %γcl, %C, %im, #Hp, %HC, Him, HI, %HIL, %HIS, Hcs, %γr, %hs, %Sm,
     #Hpr, Ho, %Hlast, HSo⟩
@@ -459,6 +482,9 @@ theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc)
   -- the history: `l` registered, the snapshot with it appended
   imod grant_hist γl γr hs Sm M I id l E hE Hlast hM hI $$ [$Hrd $Hpr $Ho $Hl $HSo $HID]
     with ⟨Ho, Hl, HSo, He, #HID⟩
+  -- the expiry lock's spare slots, in the lease's other pool
+  imod slotsPool leaseExpPoolN (sync.ownRWMutex (lsF go!"expiryMu" l) (leaseExpiry l)) E $$ HexRest
+    with #Hpe
   -- the lease's lock, its slots: the owner's and the pool's
   icases ptsto_halves_split _ sm $$ HiS with ⟨HiS, HiS'⟩
   icases ownMap_halves_split sm (∅ : GMap LeaseItem Unit) $$ Hsm with ⟨Hsm, Hsm'⟩
@@ -471,23 +497,10 @@ theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc)
   rw [hmax, List.replicate_succ]
   icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ HmuRs with ⟨HmuR, HmuRest⟩
   icases sync.ownRWMutex_guard _ _ $$ HmuR with ⟨HmuR, #HmuG⟩
-  ihave Hpo : iprop(|={E}=> □ (⌜threadBound GF ≤ 2 ^ 30 - 1⌝ → ∃ γp : GName,
-      threadPool.isThreadPool leasePoolN γp (sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l))))
-    $$ [HmuRest]
-  · by_cases hb : threadBound GF ≤ 2 ^ 30 - 1
-    · have hn : threadBound GF ≤ (sync.rwmutex.actualMaxReaders.toNat - 1) + 1 := by
-        rw [← hmax, sync.rwmutex.actualMaxReaders_unseal]; simp; omega
-      imod threadPool.init leasePoolN (sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l)) E _ hn
-        $$ HmuRest with ⟨%γp, #Hpool⟩
-      imodintro
-      iintro !> %_
-      iexists γp; iexact Hpool
-    · imodintro
-      iintro !> %h
-      iexfalso; ipureintro; exact hb h
-  imod Hpo with #Hpo
+  imod slotsPool leasePoolN (sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l)) E $$ HmuRest
+    with #Hpo
   ihave #Hlo : isLeaseObj γl l $$ []
-  · iunfold isLeaseObj; iframe HmuG Hrd Hpo; ipureintro; exact hl
+  · iunfold isLeaseObj; iframe HmuG Hrd HexG Hpo Hpe; ipureintro; exact hl
   -- the closers' map
   imod ghost_map_insert id l hM $$ Hcl with ⟨Hcl, He2⟩
   icases (ghostMapElem_fractional (GF := GF) id γcl l).fractional (1 : Qp).half (1 : Qp).half |>.1

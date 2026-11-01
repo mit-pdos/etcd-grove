@@ -1375,3 +1375,21 @@ lessor's `Revoke` needs it: the sorted item set it deletes is the lease's keys i
 `Proof/.../storage/mvcc/LeaseItems.lean`, from irreflexivity and transitivity). Proposed change: a
 general `List.eq_of_pairwise_lt_mem` for a strict order (in Perennial's list lemmas, or the
 `GoStringLt` instance of one), so that the local copy goes.
+
+## `sort.Sort` for a `Less` that answers anything (2026-10-31, lease-read)
+
+Perennial proves `sort.Sort` (`sort.wp_Sort`, over `sort.isSorter x own R`) only for a `Less` that
+agrees with a strict weak order `R`. The lessor's `Leases()` sorts with `leasesByExpiry`, whose
+`Less` compares `Remaining()`, read off the clock (and moved by `Renew`): it agrees with no fixed
+order, and the caller needs only the permutation. Go's `pdqsort` (`zsortinterface.go`) bounds every
+index it passes to `Less` and `Swap` by the slice's bounds, never by `Less`'s answers, so the
+permutation holds for any `Less`. Worked around locally by a trust-boundary axiom,
+`sort.Sort.wp_anyLess` (`Spec/sort/SortAnyLess.lean`: `sorterAnySpec`, a `Less` triple returning
+some boolean; the result a permutation), the user's choice (the lease-read plan's S2). Proposed
+change: a spec of `sort.Sort` (and of `pdqsort` and its helpers) for a sorter whose `Less` returns
+any boolean, the result a permutation of the whole slice; `wp_Sort` then adds sortedness for a
+strict weak order. Not `wp_Sort`'s induction without the order: with any `Less`,
+`partialInsertionSort`'s left shift runs down to index 1, not to the segment's start
+(`zsortinterface.go:218`, `j >= 1`), so it moves elements below the segment and the per-segment
+"outside unchanged" invariant fails; the proof needs a whole-slice invariant (every index in
+`[0, n)`, the list a permutation). The local axiom goes when it lands.
