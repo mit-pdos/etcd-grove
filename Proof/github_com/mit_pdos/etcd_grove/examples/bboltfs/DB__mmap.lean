@@ -325,7 +325,7 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     ipureintro
     refine ⟨by simp only [List.length_append, hw0, hw1], fun hfl => ?_⟩
     rw [(Hw.2.2.2.2 hfl).1]
-  ihave Hinv := mapInv_alloc γ p base sz.toNat $$ Hc
+  ihave Hinv := mapInv_alloc γ p base sz.toNat (by have := Hsz2.2.1; word) $$ Hc
   imod Hinv with ⟨%γm, Htok, #Hinv⟩
   icases (ghostVar_split_half γm 1 ()).1 $$ Htok with ⟨Htok, Htok2⟩
   imod ghostVar_update_halves (some (base, sz.toNat, γm)) γ.map none none $$ Hmap Hmap0 with ⟨Hmap, Hmap0⟩

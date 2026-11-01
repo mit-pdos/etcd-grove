@@ -190,12 +190,59 @@ def mapCells (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) : IProp GF :
         ⌜mc.length = 128 ∧ (fl = false →
           mc = (mp.drop 16).take 64 ++ (mp.drop 4112).take 64)⌝)))
 
+/-- A group of cells (the bytes `B` from `l`, the client halves), lent to readers by fractions:
+unlent (`none`), with the whole of the group's loan token `k ↪[γl] B`; or lent (`some d`), with
+the readers' deposits `d` of the mapping's token `γm`, and of the cells and of the loan token what
+the readers did not take: a reader that deposits `s` takes `s/4` of both, so the invariant keeps
+`e` with `e + d/4 = 1/2`. The loan token proves to a returning reader that its loan is still
+counted (`lent_return`); the deposits, that the whole of `γm` finds the group unlent. -/
+def lentCells (γm γl : GName) (k : Nat) (l : Loc) (B : List w8) : IProp GF :=
+  iprop(∃ o : Option Qp, match o with
+    | none => k ↪[γl] B ∗ bytesPointsto (GF := GF) l (DFrac.own (1 : Qp).half) B
+    | some d => ∃ e : Qp, ⌜e + d.half.half = (1 : Qp).half⌝ ∗ ghostVar γm d () ∗
+        k ↪[γl]{#((1 : Qp).half + e)} B ∗ bytesPointsto (GF := GF) l (DFrac.own e) B)
+
+/-- The client halves of the meta cells holding `mc` (the two metas), at fraction `dq`. -/
+def metaBytes (base : Loc) (dq : DFrac) (mc : List w8) : IProp GF :=
+  iprop(bytesPointsto (GF := GF) (base +ₗ (16 : Int)) dq (mc.take 64) ∗
+    bytesPointsto (GF := GF) (base +ₗ (4112 : Int)) dq (mc.drop 64))
+
+/-- A meta reader's deposit of `γm`: an eighth of `mmaplock`'s reader fraction (whose `γm` share
+is a half of it). -/
+def metaDep : Qp := sync.rfrac.half.half.half
+
+/-- The meta cells holding `mc`: unlent, or lent whole to the one reader holding `metalock`, which
+deposits `metaR`'s quarter of `out` (so that the writer, with both mutexes' quarters, finds them
+unlent when it takes them out), half of `metaR`'s authority over the transactions (so that the next
+holder of `metalock`, with the whole of it, finds them unlent) and `metaDep` of `γm` (so that the
+whole of `γm` does), and holds half of the loan token. -/
+def metaLent (γ : DBNames) (γm γl : GName) (base : Loc) (mc : List w8) : IProp GF :=
+  iprop((0 ↪[γl] mc ∗ metaBytes (GF := GF) base (DFrac.own (1 : Qp).half) mc) ∨
+    (ghostVar γ.out (1 : Qp).half.half false ∗
+      (∃ T : GMap Nat (Option w64), ghostMapAuth γ.txs (1 : Qp).half T) ∗ ghostVar γm metaDep () ∗
+      0 ↪[γl]{#(1 : Qp).half} mc))
+
+/-- The mapping invariant's contents, as `mapCells` but with each group of cells lendable
+(`lentCells`, `metaLent`), and the authority `K` over the loan tokens: key 0 for the metas,
+`r` for committed page `r`. -/
+def mapLend (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName) : IProp GF :=
+  iprop(∃ (mp : List w8) (fl : Bool) (hwm : Nat) (K : GMap Nat (List w8)),
+    ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ⌜4096 * hwm ≤ len⌝ ∗
+    ghostMapAuth γl 1 K ∗ ⌜∀ k, 0 < k → hwm ≤ k → K.lookup k = none⌝ ∗
+    ([∗list] r ∈ List.range' 2 (hwm - 2),
+      ∃ B, pageIs (GF := GF) p r B ∗ lentCells (GF := GF) γm γl r (base +ₗ ((4096 * r : Nat) : Int)) B) ∗
+    ((ghostVar γ.out (1 : Qp).half true ∗ ∃ mc : List w8, 0 ↪[γl] mc) ∨
+      (ghostVar γ.out (1 : Qp).half false ∗ ∃ mc : List w8,
+        ⌜mc.length = 128 ∧ (fl = false → mc = (mp.drop 16).take 64 ++ (mp.drop 4112).take 64)⌝ ∗
+        metaLent (GF := GF) γ γm γl base mc)))
+
 /-- The namespace of a mapping's invariant. -/
 def mapN : Namespace := nroot .@ "minibolt_map"
 
-/-- The invariant of the mapping at `base`, closable with the whole of `γm`'s token. -/
+/-- The invariant of the mapping at `base`, closable with the whole of `γm`'s token (and then
+holding `mapCells`, `mapInv_close`), with its loan tokens at `γl`; its length is an `int`. -/
 def mapInv (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName) : IProp GF :=
-  inv mapN iprop(mapCells (GF := GF) γ p base len ∨ ghostVar γm 1 ())
+  iprop(⌜len < 2 ^ 63⌝ ∗ ∃ γl, inv mapN iprop(mapLend (GF := GF) γ p base len γm γl ∨ ghostVar γm 1 ()))
 
 /-- The state of the mapping: `some (base, len, γm)`, the mapping at `base` of length `len`,
 whose invariant is closable with `γm`'s token; `none`, no mapping (before the first one, after a

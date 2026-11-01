@@ -36,3 +36,4 @@ unix_Munmap:
 unix_Mmap:
 unix_Madvise:
 os_File__Close:
+bboltfs_DB__Get: bboltfs_DB__meta bboltfs_pageAt

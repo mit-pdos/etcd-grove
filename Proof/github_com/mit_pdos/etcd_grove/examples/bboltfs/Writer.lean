@@ -212,22 +212,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
 
-/-- The client halves of mapped cells holding `B` are half of `B`'s bytes. -/
-theorem cellsB_bytes (base : Loc) :
-    ∀ (B : List w8) (lo : Nat), cellsB (GF := GF) base lo B ⊣⊢
-      bytesPointsto (GF := GF) (base +ₗ ((lo : Nat) : Int)) (DFrac.own (1 : Qp).half) B
-  | [], lo => by
-    unfold cellsB cellsR bytesPointsto
-    simp only [List.length_nil, List.range'_zero]
-    exact ⟨by iintro _; ipureintro; trivial, by iintro _; iapply BigSepL.bigSepL_nil.2; iempintro⟩
-  | b :: B, lo => by
-    refine (cellsB_cons _ _ _ _).trans ?_
-    unfold bytesPointsto
-    refine sep_congr .rfl ?_
-    refine (cellsB_bytes base B (lo + 1)).trans ?_
-    rw [loc_add_assoc, show ((lo : Nat) : Int) + 1 = ((lo + 1 : Nat) : Int) by omega]
-    exact .rfl
-
 /-- The client halves of 64 mapped cells, as half a typed meta. -/
 theorem cellsB_meta (base : Loc) (lo : Nat) (B : List w8) (hB : B.length = 64)
     (hl : 0 < (base +ₗ ((lo : Nat) : Int)).addr) :
@@ -252,6 +236,7 @@ theorem metas_out (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : 
         cellsB (GF := GF) base 4112 ((mp.drop 4112).take 64) := by
   iintro ⟨#Hinv, Htok, Hcur, Ho1, Ho2⟩
   unfold mapInv
+  icases Hinv with ⟨%_, %γl, #Hinv⟩
   imod inv_acc (by simp) $$ Hinv with ⟨Hi, Hclose⟩
   icases Hi with (>Hc | >Htok2)
   rotate_left
@@ -260,28 +245,35 @@ theorem metas_out (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : 
     have h : 0 < ((1 : Qp).half).val := ((1 : Qp).half).2
     simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at Hbad
     grind
-  iunfold _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bboltfs.mapCells at Hc
-  icases Hc with ⟨%mp2, %fl2, %hwm2, Hcur2, %Hl, Hpages, Hmo⟩
+  unfold mapLend
+  icases Hc with ⟨%mp2, %fl2, %hwm2, %K, Hcur2, %Hl, Ha, %HK, Hpages, Hmo⟩
   icombine Hcur Hcur2 gives % ⟨_, Heq⟩
   cases Heq
   ihave Ho := (ghostVar_split_half γ.out (1 : Qp).half false).2 $$ [Ho1 Ho2]
   · iframe
-  icases Hmo with (Hout | ⟨Hout, %mc, Hc0, Hc1, %Hmc⟩)
+  icases Hmo with (⟨Hout, -⟩ | ⟨Hout, %mc, %Hmc, Hml⟩)
   · icombine Ho Hout gives % ⟨_, Hbad⟩; cases Hbad
+  unfold metaLent metaBytes
+  icases Hml with (⟨Hk, Hc0, Hc1⟩ | ⟨Hod, -, -, -⟩)
+  rotate_left
+  · ihave Ho := (ghostVar_fractional γ.out false).fractional _ _ |>.2 $$ [Ho Hod]
+    · iframe
+    icombine Ho Hout gives % ⟨Hbad, _⟩
+    exfalso
+    simp only [Qp.le_iff, Qp.val_add, Qp.val_one, Qp.val_half] at Hbad
+    grind
   obtain ⟨Hml, Hmc⟩ := Hmc
   have hmc := Hmc rfl
   imod ghostVar_update_halves true γ.out false false $$ Ho Hout with ⟨Ho, Hout⟩
   icases (ghostVar_split_half γ.out (1 : Qp).half true).1 $$ Ho with ⟨Ho1, Ho2⟩
-  imod Hclose $$ [Hcur2 Hpages Hout] with _
+  imod Hclose $$ [Hcur2 Ha Hpages Hout Hk] with _
   · inext; ileft
-    iunfold _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bboltfs.mapCells
-    iexists mp, false, hwm
-    isplitl [Hcur2]
-    · iexact Hcur2
-    isplitr
-    · ipureintro; exact Hl
-    iframe Hpages
-    ileft; iexact Hout
+    iexists mp, false, hwm, K
+    iframe
+    isplitr; · ipureintro; exact Hl
+    isplitr; · ipureintro; exact HK
+    ileft; iframe Hout
+    iexists mc; iexact Hk
   imodintro
   iframe
   have hl1 : ((mp.drop 16).take 64).length = 64 := by
@@ -291,7 +283,9 @@ theorem metas_out (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : 
   have h2 : mc.drop 64 = (mp.drop 4112).take 64 := by
     rw [hmc]; exact List.drop_left' hl1
   rw [h1] at *; rw [h2] at *
-  iframe
+  isplitl [Hc0]
+  · iapply (cellsB_bytes base _ 16).2; iexact Hc0
+  · iapply (cellsB_bytes base _ 4112).2; iexact Hc1
 
 /-- The meta cells back into the mapping's invariant, holding the metas of `mp` unless failed. -/
 theorem metas_in (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName)
@@ -305,6 +299,7 @@ theorem metas_in (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : G
         ghostVar γ.out (1 : Qp).half.half false ∗ ghostVar γ.out (1 : Qp).half.half false := by
   iintro ⟨#Hinv, Htok, Hcur, Ho1, Ho2, Hc0, Hc1⟩
   unfold mapInv
+  icases Hinv with ⟨%_, %γl, #Hinv⟩
   imod inv_acc (by simp) $$ Hinv with ⟨Hi, Hclose⟩
   icases Hi with (>Hc | >Htok2)
   rotate_left
@@ -313,26 +308,35 @@ theorem metas_in (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : G
     have h : 0 < ((1 : Qp).half).val := ((1 : Qp).half).2
     simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at Hbad
     grind
-  iunfold _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bboltfs.mapCells at Hc
-  icases Hc with ⟨%mp2, %fl2, %hwm2, Hcur2, %Hl, Hpages, Hmo⟩
+  unfold mapLend
+  icases Hc with ⟨%mp2, %fl2, %hwm2, %K, Hcur2, %Hl, Ha, %HK, Hpages, Hmo⟩
   icombine Hcur Hcur2 gives % ⟨_, Heq⟩
   cases Heq
   ihave Ho := (ghostVar_split_half γ.out (1 : Qp).half true).2 $$ [Ho1 Ho2]
   · iframe
-  icases Hmo with (Hout | ⟨Hout, %mc2, -, -, -⟩)
+  icases Hmo with (⟨Hout, %mc2, Hk⟩ | ⟨Hout, %mc2, -, -⟩)
   rotate_left
   · icombine Ho Hout gives % ⟨_, Hbad⟩; cases Hbad
   imod ghostVar_update_halves false γ.out true true $$ Ho Hout with ⟨Ho, Hout⟩
   icases (ghostVar_split_half γ.out (1 : Qp).half false).1 $$ Ho with ⟨Ho1, Ho2⟩
-  imod Hclose $$ [Hcur2 Hpages Hout Hc0 Hc1] with _
+  imod ghost_map_update (V := List w8) mc $$ Ha Hk with ⟨Ha, Hk⟩
+  imod Hclose $$ [Hcur2 Ha Hpages Hout Hk Hc0 Hc1] with _
   · inext; ileft
-    iunfold _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bboltfs.mapCells
-    iexists mp, fl, hwm
+    iexists mp, fl, hwm, K.insert 0 mc
     iframe
+    isplitr; · ipureintro; exact Hl
     isplitr
-    · ipureintro; exact Hl
-    iright; iframe
-    ipureintro; exact ⟨hmc, hmp⟩
+    · ipureintro; intro k hk hh
+      show (K.insert 0 mc) !! k = none
+      rw [GMap.lookup_insert_ne _ _ (by omega)]; exact HK k hk hh
+    iright; iframe Hout
+    iexists mc
+    isplitr; · ipureintro; exact ⟨hmc, hmp⟩
+    unfold metaLent metaBytes
+    ileft; iframe Hk
+    isplitl [Hc0]
+    · iapply (cellsB_bytes base _ 16).1; iexact Hc0
+    · iapply (cellsB_bytes base _ 4112).1; iexact Hc1
   imodintro
   iframe
 
@@ -346,6 +350,7 @@ theorem fail_cur_inv (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm
         ghostVar γ.cur (1 : Qp).half (mp, true, hwm) := by
   iintro ⟨#Hinv, Htok, Hcur, Hcm⟩
   unfold mapInv
+  icases Hinv with ⟨%_, %γl, #Hinv⟩
   imod inv_acc (by simp) $$ Hinv with ⟨Hi, Hclose⟩
   icases Hi with (>Hc | >Htok2)
   rotate_left
@@ -354,24 +359,23 @@ theorem fail_cur_inv (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm
     have h : 0 < ((1 : Qp).half).val := ((1 : Qp).half).2
     simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at Hbad
     grind
-  iunfold _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bboltfs.mapCells at Hc
-  icases Hc with ⟨%mp2, %fl2, %hwm2, Hcur2, %Hl, Hpages, Hmo⟩
+  unfold mapLend
+  icases Hc with ⟨%mp2, %fl2, %hwm2, %K, Hcur2, %Hl, Ha, %HK, Hpages, Hmo⟩
   icombine Hcur Hcur2 gives % ⟨_, Heq⟩
   cases Heq
   ihave Hc := (ghostVar_split_half γ.cur (1 : Qp).half (mp, false, hwm)).2 $$ [Hcur Hcur2]
   · iframe
   imod ghostVar_update_halves (mp, true, hwm) γ.cur _ _ $$ Hc Hcm with ⟨Hc, Hcm⟩
   icases (ghostVar_split_half γ.cur (1 : Qp).half (mp, true, hwm)).1 $$ Hc with ⟨Hcur, Hcur2⟩
-  imod Hclose $$ [Hcur2 Hpages Hmo] with _
+  imod Hclose $$ [Hcur2 Ha Hpages Hmo] with _
   · inext; ileft
-    iunfold _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bboltfs.mapCells
-    iexists mp, true, hwm
+    iexists mp, true, hwm, K
     iframe
-    isplitr
-    · ipureintro; exact Hl
-    icases Hmo with (Hout | ⟨Hout, %mc, Hc0, Hc1, %Hmc⟩)
+    isplitr; · ipureintro; exact Hl
+    isplitr; · ipureintro; exact HK
+    icases Hmo with (Hout | ⟨Hout, %mc, %Hmc, Hml⟩)
     · ileft; iexact Hout
-    · iright; iframe; ipureintro; exact ⟨Hmc.1, fun h => by cases h⟩
+    · iright; iframe Hout; iexists mc; iframe Hml; ipureintro; exact ⟨Hmc.1, fun h => by cases h⟩
   imodintro
   iframe
 
