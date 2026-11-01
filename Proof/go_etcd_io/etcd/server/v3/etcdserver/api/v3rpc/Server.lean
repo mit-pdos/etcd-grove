@@ -144,7 +144,7 @@ theorem v3rpc.Server.wp_proof
     v3rpc.Server.spec (GF := GF) (hG := hG) := by
   intro _
   intro s C d gsl gvs Hbuq
-  wp_start as ⟨#Hc, Hlr, Hbr, Hgo, Hd, %Hdb, #Hgvs, %Hgn⟩
+  wp_start as ⟨#Hc, Hlr, Hbr, Hgo, #Hd, %Hdb, #Hgvs, %Hgn⟩
   iunfold v3rpc.grpcCfgOk at Hc
   icases Hc with ⟨#HKV, #Hws, #Hkv, #Hids, #Hlg0, %Hlg0n, #Hlg, %Hlgn, #Hqb, #Hmid, #Hn, %Hmx, #Hwd,
     #Hlead, #Hcl, #Hrc, #Hlk, #Hch, #Hstop, #Htm, #Het, #Hm, #Hfg, #Hgate, #Hmt, #Htr, #Htsl,
@@ -350,9 +350,9 @@ theorem v3rpc.Server.wp_proof
       v3rpc.kvDesc_nodup kmds ksds HkvD, ⟨_, rfl, v3rpc.ServerMethodSets.kv_te⟩⟩
     exact v3rpc.ServerMethodSets.kv_impl
   (try wp_auto)
-  wp_apply (hNewW s C.E C.γ C.wsl C.lg0 C.m d) $$ [Hd]
-    as %ws ⟨%pw, %lgw, %cidw, %midw, %d', %Hws', #Hpw, Hd⟩
-  · iframe; iframe #; ipureintro; exact Hdb
+  wp_apply (hNewW s C.E C.γ C.wsl C.lg0 C.m d)
+    as %ws ⟨%pw, %lgw, %cidw, %midw, %Hws', #Hpw⟩
+  · iframe #; ipureintro; exact Hdb
   subst Hws'
   (try wp_auto)
   wp_apply (hRegW gs _ _ _ _ _ _ _ _ [] wsds) $$ [Hgs] as Hgs
@@ -417,7 +417,7 @@ theorem v3rpc.Server.wp_proof
   (try wp_auto)
   iapply HΦ
   iexists q, p, pw, pa, il, im, iu, ims, is, _, _, _, cid, mid',
-    ⟨s, C.E, C.wsl, C.γ, cidw, midw, lgw, C.m + W64 (512 * 1024)⟩, d'
+    ⟨s, C.E, C.wsl, C.γ, cidw, midw, lgw, C.m + W64 (512 * 1024)⟩
   iframe Hgs
   isplitr
   · ipureintro

@@ -7,12 +7,15 @@ postcondition (`v3rpc/ServeFromStart.lean`). Lean-first (no Rocq counterpart).
 * `srvServeCfg s cfg` (persistent): the configuration fields `v3rpc.Server` and its callees read
   that `srvBuilt` does not hold (`Logger`, `QuotaBackendBytes`, `MaxTxnOps`,
   `WarningUnaryRequestDuration`, `Metrics`, `EnableDistributedTracing`, `TracerOptions`,
-  `MaxConcurrentStreams`), at `cfg`'s values, read-only.
+  `MaxConcurrentStreams`, and since J8a-3 `WatchProgressNotifyInterval`), at `cfg`'s values,
+  read-only.
 * `srvServeBuilt s E cfg K`: those, the KV field as the watchable store `NewServer` built
-  (`isWatchableStore`), the progress interval's field (owned: `NewWatchServer` writes it), a
-  reader slot of `bemu` (`v3rpc.Server`'s), and `K` reader slots each of `leadTimeMu`, `lgMu`,
+  (`isWatchableStore`), a reader slot of `bemu` (`v3rpc.Server`'s), and `K` reader slots each of `leadTimeMu`, `lgMu`,
   the auth store (`E.RD`) and the store (`mvcc.storeReader`), which `NewServer`'s proof dropped
   until D19g, and of `bemu` (the quota checks', which read the current backend: D22g (A)).
+  (Until J8a-3, 2026-11-01, also the progress interval's field, owned: `NewWatchServer` wrote it;
+  the fork's `NewWatchServer` keeps the adjusted interval local, and the field is read-only in
+  `srvServeCfg`.)
 * `replicate_takeN`, `replicate_sepL`: splitting and pairing replicated resources.
 -/
 module
@@ -72,7 +75,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The configuration fields `v3rpc.Server` reads that `srvBuilt` does not hold** (persistent;
 see the file header); (2026-10-31) the transaction budget within protobuf's recursion limit
-(`v3rpc.maxTxnOpsOk`, `NewServer`'s configuration premise). -/
+(`v3rpc.maxTxnOpsOk`, `NewServer`'s configuration premise); (J8a-3) the progress interval. -/
 def srvServeCfg (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
   iprop(srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗
     srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ cfg.QuotaBackendBytes' ∗
@@ -82,7 +85,8 @@ def srvServeCfg (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) 
     srvCfgFieldAddr s go!"Metrics" ↦□ cfg.Metrics' ∗
     srvCfgFieldAddr s go!"EnableDistributedTracing" ↦□ cfg.EnableDistributedTracing' ∗
     srvCfgFieldAddr s go!"TracerOptions" ↦□ cfg.TracerOptions' ∗
-    srvCfgFieldAddr s go!"MaxConcurrentStreams" ↦□ cfg.MaxConcurrentStreams')
+    srvCfgFieldAddr s go!"MaxConcurrentStreams" ↦□ cfg.MaxConcurrentStreams' ∗
+    srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦□ cfg.WatchProgressNotifyInterval')
 
 instance srvServeCfg_persistent (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) :
     Persistent (srvServeCfg (GF := GF) s cfg) := by
@@ -103,11 +107,22 @@ instance srvServeFacts_persistent (s : Loc) (E : apply.AEnv GF)
     Persistent (srvServeFacts (GF := GF) s E cfg) := by
   unfold srvServeFacts; infer_instance
 
+/-- (J8a-3) **The progress interval's field, read-only** (`v3rpc.Server`'s premise). -/
+theorem srvServeFacts_interval (s : Loc) (E : apply.AEnv GF)
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) :
+    srvServeFacts (GF := GF) s E cfg ⊢
+      srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦□ cfg.WatchProgressNotifyInterval' := by
+  iintro #H
+  iunfold srvServeFacts at H
+  icases H with ⟨-, #H⟩
+  iunfold srvServeCfg at H
+  icases H with ⟨-, -, -, -, -, -, -, -, -, #H⟩
+  iexact H
+
 /-- **What `NewServer` leaves for serving** (see the file header). -/
 def srvServeBuilt (s : Loc) (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (K : Nat) : IProp GF :=
   iprop(srvServeFacts s E cfg ∗
-    srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ cfg.WatchProgressNotifyInterval' ∗
     srvBemuReader s ∗
     ([∗list] _x ∈ List.replicate K (), srvLeadTimeReader s) ∗
     ([∗list] _x ∈ List.replicate K (), srvLgReader s) ∗
