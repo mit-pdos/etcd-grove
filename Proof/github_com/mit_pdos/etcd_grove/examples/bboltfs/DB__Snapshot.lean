@@ -55,9 +55,9 @@ theorem DB.Snapshot.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
   iunfold isDB at Hdb
   icases Hdb with ⟨%f, %fd, %p, #Hpkg, #Hos, #Hfile, #Hpath, #Hrw, #Hmeta, #Hguard⟩
   iunfold dbReader at Hrd
-  icases Hrd with ⟨%f', %fd', %p', #Hfile', Hrd⟩
+  icases Hrd with ⟨%f', %fd', %p', #Hfile', #Hpath', Hrd⟩
   iunfold pkgFacts at Hpkg
-  icases Hpkg with ⟨#Hsync, %e1, %e2, #He1, #He2, %He⟩
+  icases Hpkg with ⟨#Hsync, %e1, %e2, #He1, #He2, %He, %eof, #Heof, %Heof⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
@@ -111,7 +111,7 @@ theorem DB.Snapshot.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
       iright; ipureintro; exact He.1
     · dsimp only [mapFields, mapRest]
       icases Hflds with ⟨Hd, H0, H1⟩
-      icases Hmr with ⟨Htok, #Hinv, Hf, Hfd⟩
+      icases Hmr with ⟨%Hbase, Htok, #Hinv, Hf, Hfd⟩
       wp_auto
       -- The meta copy `*db.meta()` is blocked on `DB.lean` (see the file header).
       sorry
