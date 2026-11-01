@@ -1821,7 +1821,7 @@ theorem ownStepGhost_deliv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : C
     with ⟨Hg, %fp', %Hf', #Hfr', #Hc⟩
   iunfold ghostRest at Hr
   iunfold ghostRestM at Hr
-  icases Hr with ⟨%Hnl, ⟨%HC, #HM, #Hfr, Hcamp⟩, #Hcl⟩
+  icases Hr with ⟨%Hnl, ⟨%HC, #HM, #Hfr⟩, #Hcl⟩
   icases FullOk_unique γ (toPState s).base fp' g.fp Hf' HC.2.2.full $$ Hfr' Hfr with %He
   icases isCommitted_agree γ _ _ $$ HD Hc with %Hag
   isplitr
@@ -1851,13 +1851,11 @@ theorem ownStepGhost_deliv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : C
   iunfold ghostRestM
   isplitr
   · ipureintro; exact Hnl
-  isplitl [Hcamp]
+  isplitr
   · isplitr
     · ipureintro; exact HC
     iframe HM
-    isplitr
-    · iexact Hfr
-    iexact Hcamp
+    iexact Hfr
   iexact Hcl
 
 /-! ## The one predicate for a `RawNode` -/

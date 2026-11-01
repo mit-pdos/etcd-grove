@@ -800,7 +800,10 @@ def matchedOk (γ : RaftNames) (id : w64) (s : PState) (fp : List EntryM) : IPro
   | Role.leader =>
     [∗map] v ↦ i ∈ s.matched,
       iprop(isAcked γ v s.term i ∨
-          ⌜v = id ∧ ∀ (x : w64), plogTermAt base0 (fp ++ s.log) i = some x → uint.Z x < uint.Z s.term⌝)
+          ⌜v = id ∧
+              uint.Z i ≤ plogLastIndexZ base0 (fp ++ s.log) ∧
+                ∀ (j : BitVec 64) (x : w64),
+                  uint.Z j ≤ uint.Z i → plogTermAt base0 (fp ++ s.log) j = some x → uint.Z x < uint.Z s.term⌝)
   | x => iprop(True)
 
 def entsData (γ : RaftNames) (l : List EntryM) : IProp GF :=
@@ -815,7 +818,7 @@ theorem outMsgOk_wand [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s :
 def campOwn (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64)) (s : PState) (F : List
     EntryM) : IProp GF :=
   match s.role with
-  | Role.candidate => iprop(⌜∃ k, camps !! s.term = some (F, k)⌝)
+  | Role.candidate => iprop(⌜camps !! s.term = some (F, s.commit)⌝)
   | Role.leader =>
     iprop(∃ F0,
         isCamp γ id s.term F0 ∗

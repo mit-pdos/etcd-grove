@@ -455,7 +455,7 @@ private theorem ownStepGhost_rinv (γ : RaftNames) (dec : CCDec) (c0 : CCState) 
   iunfold ghostRest at Hr
   icases Hr with ⟨%Hnl, Hr, #Hcl⟩
   simp only [ghostRestM]
-  icases Hr with ⟨%HC, #HM, #Hfr, Hcamp⟩
+  icases Hr with ⟨%HC, #HM, #Hfr⟩
   isplitr
   · ipureintro; exact HC.2.2
   iunfold ownStepGhost
@@ -465,7 +465,7 @@ private theorem ownStepGhost_rinv (γ : RaftNames) (dec : CCDec) (c0 : CCState) 
   · ipureintro; exact Hnl
   iframe Hcl
   simp only [ghostRestM]
-  iframe Hfr Hcamp HM
+  iframe Hfr HM
   ipureintro; exact HC
 
 /-- (D22 S-d3a, 2026-10-21) **A snapshot `Ready`'s acknowledgement** through `Step`'s spec, its receipt
@@ -596,15 +596,15 @@ private theorem wp_step_snapack
     | dyn dec c0 h0 g =>
       obtain ⟨Hlt, Hsnb, Hdl, Hdlast, Hic⟩ := Hdyn rfl
       simp only [ghostRestM]
-      icases Hrm with ⟨%Hdgc, #HMg, #Hfr, Hcamp⟩
+      icases Hrm with ⟨%Hdgc, #HMg, #Hfr⟩
       obtain ⟨HDy, hc, HI⟩ := Hdgc
-      ihave Hghost : ownStepGhost γ (.dyn dec c0 h0 g) c id s $$ [Hg Hcamp]
+      ihave Hghost : ownStepGhost γ (.dyn dec c0 h0 g) c id s $$ [Hg]
       · unfold ownStepGhost ghostRest
         iframe Hg Hlink Hlw Hxw
         isplitr
         · ipureintro; exact Hnlk
         simp only [ghostRestM]
-        iframe Hfr Hcamp HMg
+        iframe Hfr HMg
         ipureintro; exact ⟨HDy, hc, HI⟩
       -- `D`, committed and no longer than the commit index, is the full prefix up to the index
       icases ownStepGhost_deliv γ dec c0 h0 g c id s D

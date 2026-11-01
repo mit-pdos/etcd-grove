@@ -24,6 +24,10 @@ theorem durShares_vote [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (q 
     (t c : w64) : ⊢ durShares γ id q E -∗ isVote γ id t c -∗ ⌜E.voted !! t = some c⌝ ∗ durShares γ
     id q E
 
+theorem durShares_camp [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps)
+    (γc' : GName) (T : w64) (F : List EntryM) (k : w64) : γ.reCamp !! id = some γc' → ⊢ durShares γ
+    id q E -∗ T ↪[γc']□ (F, k) -∗ ⌜E.camps !! T = some (F, k)⌝ ∗ durShares γ id q E
+
 theorem ownLogGhost_base [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl :
     Option w64) (W : DurMaps) : ⊢ ownLogGhost γ id s kl W -∗ baseOk γ s.base
 
@@ -45,13 +49,13 @@ theorem ownLogGhost_mono' [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) 
     kl' : Option w64) (W : DurMaps) : s'.log = s.log → s'.base = s.base → (s'.role = Role.leader →
     s.role = Role.leader ∧ s'.term = s.term) → (s'.role ≠ Role.leader → s.role = Role.leader →
     uint.Z s.term < uint.Z s'.term) → (s'.role = Role.candidate → s.role = Role.candidate ∧ s'.term
-    = s.term) → uint.Z s.term ≤ uint.Z s'.term → uint.Z s.commit ≤ uint.Z s'.commit → KlStep s s' kl
-    kl' → s'.commit = s.commit ∨ uint.Z s'.commit ≤ plogLastIndexZ s.base s.log → ⊢ ownLogGhost γ id
-    s kl W -∗ (□ ∀ fp, matchedOk γ id s fp -∗ matchedOk γ id s' fp) -∗ (∀ fp, ⌜FullOk s.base fp ∧
-    PlogWf s.base s.log⌝ -∗ logRecs γ base0 fp -∗ commitIn γ (fp ++ s.log) s.commit s.term -∗
-    commitIn γ (fp ++ s.log) s'.commit s'.term) -∗ (∀ fp, ⌜FullOk s.base fp ∧ PlogWf s.base s.log⌝
-    -∗ logRecs γ base0 fp -∗ isCommitted γ (cprefix fp s) -∗ isCommitted γ (cprefix fp s')) -∗
-    ownLogGhost γ id s' kl' W
+    = s.term ∧ s'.commit = s.commit) → uint.Z s.term ≤ uint.Z s'.term → uint.Z s.commit ≤ uint.Z
+    s'.commit → KlStep s s' kl kl' → s'.commit = s.commit ∨ uint.Z s'.commit ≤ plogLastIndexZ s.base
+    s.log → ⊢ ownLogGhost γ id s kl W -∗ (□ ∀ fp, matchedOk γ id s fp -∗ matchedOk γ id s' fp) -∗ (∀
+    fp, ⌜FullOk s.base fp ∧ PlogWf s.base s.log⌝ -∗ logRecs γ base0 fp -∗ commitIn γ (fp ++ s.log)
+    s.commit s.term -∗ commitIn γ (fp ++ s.log) s'.commit s'.term) -∗ (∀ fp, ⌜FullOk s.base fp ∧
+    PlogWf s.base s.log⌝ -∗ logRecs γ base0 fp -∗ isCommitted γ (cprefix fp s) -∗ isCommitted γ
+    (cprefix fp s')) -∗ ownLogGhost γ id s' kl' W
 
 theorem ownLogGhost_cmt [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl :
     Option w64) (W : DurMaps) : ⊢ ownLogGhost γ id s kl W -∗ ∃ fp, ⌜FullOk s.base fp⌝ ∗ logRecs γ
@@ -176,16 +180,17 @@ theorem ownLogGhost_upd [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s
     : Option w64) (W : DurMaps) : (s'.role = Role.leader → s.role = Role.leader ∧ s'.term = s.term ∧
     s'.base = s.base ∧ s'.log = s.log) → (s'.role ≠ Role.leader → s.role = Role.leader → uint.Z
     s.term < uint.Z s'.term) → (s'.role = Role.candidate → s.role = Role.candidate ∧ s'.term =
-    s.term) → uint.Z s.term ≤ uint.Z s'.term → uint.Z s.commit ≤ uint.Z s'.commit → KlStep s s' kl
-    kl' → LogOk s' → ⊢ ownLogGhost γ id s kl W -∗ □ (⌜s'.term = s.term⌝ -∗ ∀ i, ⌜uint.Z s'.commit <
-    uint.Z i⌝ -∗ ackAgree γ s.base s.log s.term i -∗ ackAgree γ s'.base s'.log s.term i) -∗ logRecs
-    γ s'.base s'.log -∗ (□ ∀ fp, matchedOk γ id s fp -∗ matchedOk γ id s' fp) -∗ baseOk γ s'.base -∗
-    (∀ fp, ⌜FullOk s.base fp ∧ PlogWf s.base s.log ∧ TermsLe s (fp ++ s.log)⌝ -∗ logRecs γ base0 fp
-    -∗ commitIn γ (fp ++ s.log) s.commit s.term -∗ isCommitted γ (cprefix fp s) -∗ ∃ fp', ⌜(FullOk
-    s'.base fp' ∧ PlogWf s'.base s'.log ∧ TermsLe s' (fp' ++ s'.log)) ∧ (s'.role ≠ Role.follower →
-    fp' ++ s'.log = fp ++ s.log)⌝ ∗ logRecs γ base0 fp' ∗ commitIn γ (fp' ++ s'.log) s'.commit
-    s'.term ∗ isCommitted γ (cprefix fp' s') ∗ □ ∀ t i, ⌜uint.Z t ≤ uint.Z s.term⌝ -∗ hist γ (fp ++
-    s.log) t i (bnd s kl) -∗ hist γ (fp' ++ s'.log) t i (bnd s' kl')) -∗ ownLogGhost γ id s' kl' W
+    s.term ∧ s'.commit = s.commit) → uint.Z s.term ≤ uint.Z s'.term → uint.Z s.commit ≤ uint.Z
+    s'.commit → KlStep s s' kl kl' → LogOk s' → ⊢ ownLogGhost γ id s kl W -∗ □ (⌜s'.term = s.term⌝
+    -∗ ∀ i, ⌜uint.Z s'.commit < uint.Z i⌝ -∗ ackAgree γ s.base s.log s.term i -∗ ackAgree γ s'.base
+    s'.log s.term i) -∗ logRecs γ s'.base s'.log -∗ (□ ∀ fp, matchedOk γ id s fp -∗ matchedOk γ id
+    s' fp) -∗ baseOk γ s'.base -∗ (∀ fp, ⌜FullOk s.base fp ∧ PlogWf s.base s.log ∧ TermsLe s (fp ++
+    s.log)⌝ -∗ logRecs γ base0 fp -∗ commitIn γ (fp ++ s.log) s.commit s.term -∗ isCommitted γ
+    (cprefix fp s) -∗ ∃ fp', ⌜(FullOk s'.base fp' ∧ PlogWf s'.base s'.log ∧ TermsLe s' (fp' ++
+    s'.log)) ∧ (s'.role ≠ Role.follower → fp' ++ s'.log = fp ++ s.log)⌝ ∗ logRecs γ base0 fp' ∗
+    commitIn γ (fp' ++ s'.log) s'.commit s'.term ∗ isCommitted γ (cprefix fp' s') ∗ □ ∀ t i, ⌜uint.Z
+    t ≤ uint.Z s.term⌝ -∗ hist γ (fp ++ s.log) t i (bnd s kl) -∗ hist γ (fp' ++ s'.log) t i (bnd s'
+    kl')) -∗ ownLogGhost γ id s' kl' W
 
 theorem ownLogGhost_lead_full [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl
     : Option w64) (W : DurMaps) : s.role = Role.leader → ⊢ isLeader γ id s.term -∗ ownLogGhost γ id
@@ -208,6 +213,12 @@ theorem boot_term_le [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (F : List EntryM
 theorem ownLogGhost_matched [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl :
     Option w64) (W : DurMaps) : ⊢ ownLogGhost γ id s kl W -∗ ∃ fp, ⌜FullOk s.base fp⌝ ∗ logRecs γ
     base0 fp ∗ matchedOk γ id s fp
+
+theorem slot_campK [ReceiptGS GF] [InvGS GF] (Em : CoPset) (γ : RaftNames) (id : w64) (γs :
+    SlotNames) (V : DurMaps) (πc : List Prom) (T : w64) (F : List EntryM) (k : w64) : γ.reSlot !! id
+    = some γs → ↑(slotN γ id) ⊆ Em → PromsFresh V πc → ⊢ slotInv γ id -∗ ghostVar γs.fst (Qp.half 1)
+    V -∗ isCampK γ id T F k ={Em}=∗ ghostVar γs.fst (Qp.half 1) V ∗ ⌜(virt V πc).camps !! T = some
+    (F, k) ∧ ∀ (F' : List EntryM) (k' : w64), ¬Prom.camp T F' k' ∈ πc⌝
 
 theorem slot_open [ReceiptGS GF] [InvGS GF] (Em : CoPset) (γ : RaftNames) (id : w64) (γs :
     SlotNames) (V : DurMaps) : γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ Em → ⊢ slotInv γ id -∗

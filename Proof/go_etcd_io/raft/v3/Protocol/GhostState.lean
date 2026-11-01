@@ -431,11 +431,15 @@ def leadLogOwn (_γ : RaftNames) (s : PState) (terms : GMap w64 TermRec) : IProp
 
 /-- A leader's `Match` values are backed by acknowledgements. (2026-10-31, durability R3: but
 its own, set at the win to its last index, which is a pending acknowledgement: there every term
-of its full log `fp ++ log` is below its term, so `step_commit` never counts it.) -/
+of its full log `fp ++ log` is below its term, so `step_commit` never counts it. 2026-11-01,
+stage II(a): the exempt index is within the log and every term at or below it is below the term
+-- an index past the log's end made the arm vacuous, and `step_commit` needs the prefix.) -/
 def matchedOk (γ : RaftNames) (id : w64) (s : PState) (fp : List EntryM) : IProp GF :=
   match s.role with
   | .leader => iprop([∗map] v ↦ i ∈ s.matched, isAcked γ v s.term i ∨
-      ⌜v = id ∧ ∀ x, plogTermAt base0 (fp ++ s.log) i = some x → uint.Z x < uint.Z s.term⌝)
+      ⌜v = id ∧ uint.Z i ≤ plogLastIndexZ base0 (fp ++ s.log) ∧
+        ∀ j x, uint.Z j ≤ uint.Z i → plogTermAt base0 (fp ++ s.log) j = some x →
+          uint.Z x < uint.Z s.term⌝)
   | _ => iprop(True)
 
 instance matchedOk_persistent (γ : RaftNames) (id : w64) (s : PState) (fp : List EntryM) :
@@ -504,11 +508,12 @@ def TermsLe (s : PState) (F : List EntryM) : Prop :=
 leader's entry, and ends in an entry of its term. (2026-10-31, durability stage I-1: a
 candidate's record is in the node's virtual campaign map `camps`, possibly pending; a leader's
 campaign is entered -- it won with votes whose justification holds its fragment -- and is the
-fragment, as before.) -/
+fragment, as before. 2026-11-01, stage II(a): a candidate's record is at its commit index, which does
+not move within its candidacy: what the dynamic win reads its configuration at.) -/
 def campOwn (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64)) (s : PState)
     (F : List EntryM) : IProp GF :=
   match s.role with
-  | .candidate => iprop(⌜∃ k, camps !! s.term = some (F, k)⌝)
+  | .candidate => iprop(⌜camps !! s.term = some (F, s.commit)⌝)
   | .leader => iprop(∃ F0, isCamp γ id s.term F0 ∗
        ⌜F0 <+: F ∧ plogLastIndexZ base0 F0 < plogLastIndexZ base0 F ∧
          (plogLast base0 F).term' = s.term⌝)

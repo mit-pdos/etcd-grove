@@ -169,7 +169,7 @@ theorem ownLogGhost_upd (γ : RaftNames) (id : w64) (s s' : PState) (kl kl' : Op
     (s'.role ≠ .leader → s.role = .leader →
        uint.Z s.term < uint.Z s'.term) →
     (s'.role = .candidate →
-       s.role = .candidate ∧ s'.term = s.term) →
+       s.role = .candidate ∧ s'.term = s.term ∧ s'.commit = s.commit) →
     uint.Z s.term ≤ uint.Z s'.term →
     uint.Z s.commit ≤ uint.Z s'.commit →
     KlStep s s' kl kl' →
@@ -225,7 +225,7 @@ theorem ownLogGhost_upd (γ : RaftNames) (id : w64) (s s' : PState) (kl kl' : Op
         refine ⟨uint_Z_inj.mp (by omega), fun hc => Hr (Hcand hc).1⟩
   have Hlacks' : LeadAcksOk s' W.acks := by
     refine ⟨fun hc i => ?_, fun hl i hi => ?_⟩
-    · obtain ⟨hc0, hte⟩ := Hcand hc
+    · obtain ⟨hc0, hte, -⟩ := Hcand hc
       rw [hte]; exact Hlacks.1 hc0 i
     · obtain ⟨hl0, hte, hb, hlg⟩ := Hlead hl
       rw [hte] at hi; rw [hb, hlg]; exact Hlacks.2 hl0 i hi
@@ -252,10 +252,10 @@ theorem ownLogGhost_upd (γ : RaftNames) (id : w64) (s s' : PState) (kl kl' : Op
   · cases Hr' : s'.role with
     | follower => unfold campOwn; rw [Hr']; ipureintro; trivial
     | candidate =>
-      obtain ⟨Hr, Ht⟩ := Hcand Hr'
+      obtain ⟨Hr, Ht, Hc⟩ := Hcand Hr'
       rw [Hfeq (by rw [Hr']; decide)]
       unfold campOwn
-      rw [Hr', Hr, Ht]
+      rw [Hr', Hr, Ht, Hc]
       iexact Hcown
     | leader =>
       obtain ⟨Hr, Ht, -⟩ := Hlead Hr'
@@ -399,7 +399,7 @@ theorem ownLogGhost_mono' (γ : RaftNames) (id : w64) (s s' : PState)
     (s'.role ≠ .leader → s.role = .leader →
        uint.Z s.term < uint.Z s'.term) →
     (s'.role = .candidate →
-       s.role = .candidate ∧ s'.term = s.term) →
+       s.role = .candidate ∧ s'.term = s.term ∧ s'.commit = s.commit) →
     uint.Z s.term ≤ uint.Z s'.term →
     uint.Z s.commit ≤ uint.Z s'.commit →
     KlStep s s' kl kl' →
@@ -450,7 +450,7 @@ theorem ownLogGhost_mono' (γ : RaftNames) (id : w64) (s s' : PState)
       intro j x Hx
       obtain ⟨H1, H2⟩ := Ht j x Hx
       refine ⟨by omega, fun Hc => ?_⟩
-      obtain ⟨Hc0, Hte⟩ := Hcand Hc
+      obtain ⟨Hc0, Hte, -⟩ := Hcand Hc
       rw [Hte]; exact H2 Hc0
     isplitr; · iexact Hfr
     isplitr; · rw [Hlog]; iexact Hc'
@@ -478,7 +478,8 @@ theorem ownLogGhost_mono (γ : RaftNames) (id : w64) (s s' : PState) (kl : Optio
   intro Hlog Hbase Hcm Hlead Hcand Hstay Hte Hv
   iintro H
   iapply ownLogGhost_mono' γ id s s' kl kl W Hlog Hbase
-    (fun Hr' => ⟨(Hlead Hr').1, (Hlead Hr').2.1⟩) (fun Hr' Hr => absurd (Hstay Hr) Hr') Hcand
+    (fun Hr' => ⟨(Hlead Hr').1, (Hlead Hr').2.1⟩) (fun Hr' Hr => absurd (Hstay Hr) Hr')
+    (fun Hr' => ⟨(Hcand Hr').1, (Hcand Hr').2, Hcm⟩)
     (Int.le_of_eq (congrArg _ Hte.symm)) (Int.le_of_eq (congrArg _ Hcm.symm))
     (Or.inl ⟨rfl, Hte, Hv, fun Hr' => (Hlead Hr').1⟩) (Or.inl Hcm) $$ H [] [] []
   · imodintro
@@ -983,7 +984,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
     rw [show (pbecomeCandidate id s).role = .candidate from rfl,
       show (pbecomeCandidate id s).term = s.term + W64 1 from rfl]
     ipureintro
-    exact ⟨s.commit, GMap.lookup_insert_eq _ _ _⟩
+    exact GMap.lookup_insert_eq _ _ _
   ihave #Hkl' : klOk (GF := GF) γ id (pbecomeCandidate id s) none $$ []
   · unfold klOk; ipureintro; exact Hnl
   ihave #Hvlogs' : vlogsOk (GF := GF) γ (pbecomeCandidate id s) W.acks
@@ -1398,6 +1399,48 @@ theorem durShares_ack (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (γa' :
   iexists γv, γa', γc, γl, γe
   iframe Hv Ha Hc Hl He
   ipureintro; exact Hn
+
+/-- An entered campaign record's fragment against the authority share. -/
+theorem durShares_camp (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (γc' : GName) (T : w64)
+    (F : List EntryM) (k : w64) :
+    γ.reCamp !! id = some γc' →
+    ⊢ durShares (GF := GF) γ id q E -∗ T ↪[γc']□ ((F, k) : List EntryM × w64) -∗
+      ⌜E.camps !! T = some (F, k)⌝ ∗ durShares γ id q E := by
+  intro Hγc'
+  unfold durShares
+  iintro ⟨%γv, %γa, %γc, %γl, %γe, %Hn, Hv, Ha, Hc, Hl, He⟩ #Hf
+  rw [Hn.2.2.1] at Hγc'; cases Hγc'
+  ihave %Hk := ghost_map_lookup $$ Hc Hf
+  isplitr; · ipureintro; exact Hk
+  iexists γv, γa, γc', γl, γe
+  iframe Hv Ha Hc Hl He
+  ipureintro; exact Hn
+
+/-- An entered campaign record, through the slot: it is in the virtual maps, and no campaign of
+its term is pending (`PromsFresh`). -/
+theorem slot_campK (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V : DurMaps)
+    (πc : List Prom) (T : w64) (F : List EntryM) (k : w64) :
+    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ Em → PromsFresh V πc →
+    ⊢ slotInv (GF := GF) γ id -∗ ghostVar γs.1 (1 : Qp).half V -∗ isCampK γ id T F k ={Em}=∗
+      ghostVar γs.1 (1 : Qp).half V ∗
+      ⌜(virt V πc).camps !! T = some (F, k) ∧ ∀ F' k', Prom.camp T F' k' ∉ πc⌝ := by
+  intro Hs HE Hfr
+  iintro #Hslot Hv #Hck
+  imod slot_open Em γ id γs V Hs HE $$ Hslot Hv with ⟨%E0, %HEV, Hsh, Hv, Hcl⟩
+  unfold isCampK
+  icases Hck with ⟨%γc, %Hc, #Hf, -⟩
+  icases durShares_camp γ id _ E0 γc T F k Hc.1 $$ Hsh Hf with ⟨%HE0, Hsh⟩
+  imod Hcl $$ Hsh with -
+  imodintro
+  iframe Hv
+  ipureintro
+  have HV : V.camps !! T = some (F, k) := HEV.2.2.1 T _ HE0
+  refine ⟨(DurLe_virt V πc Hfr).2.2.1 T _ HV, fun F' k' Hin => ?_⟩
+  obtain ⟨j, Hj⟩ := List.mem_iff_getElem?.mp Hin
+  have Hnone : (virt V (πc.take j)).camps !! T = none := Hfr j _ Hj
+  have Hsome := virt_camps_isSome V (πc.take j) T (by rw [HV]; rfl)
+  rw [Hnone] at Hsome
+  cases Hsome
 
 /-- An event history's lower bound against the authority share. -/
 theorem durShares_evs (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (γe' : GName) (L : List Aev) :
