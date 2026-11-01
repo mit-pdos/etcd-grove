@@ -148,6 +148,9 @@ a byte.
   sync does not redo them. The first choice, a poisoned bit making the whole file arbitrary,
   made every crash property unprovable once a sync can fail: `examples/bboltfs`'s minibolt
   needed a premise "no fsync fails".
+- **Fsync never fails with EINTR (2026-11-01).** `fsync(2)` on a local ext4 or xfs file does not
+  return EINTR, and Go's `File.Sync` retries it. With EINTR allowed, a successful `Sync` could
+  hide a failed attempt that lost the dirty bytes (D2), so no crash proof could rely on a sync.
 - **D3:** `Fdatasync` = `Sync`: both flush contents and size. Linux flushes `i_size` in
   fdatasync. bbolt's `init` grows an empty file by `WriteAt`, then calls `fdatasync`.
 - **D4:** a created file is not durably named until a crash survives it (no dir fsync

@@ -146,6 +146,8 @@ def O_RDWR : Nat := 0x2
 def O_CREAT : Nat := 0x40
 def O_TRUNC : Nat := 0x200
 def O_CLOEXEC : Nat := 0x80000
+/-- `EINTR` on linux/amd64. -/
+def EINTR : w64 := 4
 def PROT_READ : Nat := 0x1
 def MAP_SHARED : Nat := 0x1
 def MAP_POPULATE : Nat := 0x8000
@@ -377,10 +379,13 @@ def IsOsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
        let st1 := st0.setFile p (f.truncate sz)
        st' = st1 ∧ e' = Val (#(0 : w64)) ∨
        ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st0 ∨ st' = st1))
-  /- `fsync(fd)` and `fdatasync(fd)` alike (D3): `#fd ↦ #errno`. -/
+  /- `fsync(fd)` and `fdatasync(fd)` alike (D3): `#fd ↦ #errno`. A failure is never `EINTR`:
+  `fsync(2)` on a local ext4 or xfs file does not return it (its errors are EIO, ENOSPC, EDQUOT,
+  EBADF, EROFS/EINVAL), and Go's `File.Sync` retries `EINTR`, so a hidden failed attempt that
+  lost pages behind a successful `Sync` would be a run Linux does not have. -/
   | "Fsync" => ∃ (fd : w64) (d : OsFd) (f : OsFile), v = #fd ∧ FdOpen st fd d ∧ st.file d.path = some f ∧
       (st' = st.setFile d.path (f.synced (InflightAt st d.path ·)) ∧ e' = Val (#(0 : w64)) ∨
-       ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧
+       ∃ e : w64, e ≠ 0 ∧ e ≠ EINTR ∧ e' = Val (#e) ∧
          st' = st.setFile d.path (f.syncFailed (InflightAt st d.path ·)))
   /- `flock(fd, how)`: `(#fd, #how) ↦ #errno`. Trivial (D7): the lock state is not modelled, so
   the errno is anything (a lock held elsewhere, EINTR, ...); only the fd must be open. -/

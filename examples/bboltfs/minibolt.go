@@ -347,8 +347,15 @@ func (db *DB) commit(m Meta, v uint64) error {
 		db.metalock.Unlock()
 		return err
 	}
+	// the meta's fdatasync under metalock too (bbolt syncs after unlocking): the proof then holds
+	// the meta pages' bytes whole across it, and so knows them durable once it succeeds
+	if err := syscall.Fdatasync(int(db.file.Fd())); err != nil {
+		db.failed = true
+		db.metalock.Unlock()
+		return err
+	}
 	db.metalock.Unlock()
-	return syscall.Fdatasync(int(db.file.Fd()))
+	return nil
 }
 
 // Close is db.go's Close: all three locks, unmap, funlock, close.

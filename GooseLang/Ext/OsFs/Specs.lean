@@ -786,7 +786,7 @@ theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
   rw [hf] at hf'; cases hf'
   have hs := sizes_setFile_sameCur (f' := f.synced (InflightAt st d.path ·)) hf rfl
   have hsF := sizes_setFile_sameCur (f' := f.syncFailed (InflightAt st d.path ·)) hf rfl
-  rcases hres with ⟨rfl, rfl⟩ | ⟨e, he, rfl, rfl⟩
+  rcases hres with ⟨rfl, rfl⟩ | ⟨e, he, _hEINTR, rfl, rfl⟩
   · -- success
     have hkeep : ∀ i, CleanPhys f i → CleanPhys (f.synced (InflightAt st d.path ·)) i :=
       fun i hc => synced_clean f _ hcohf hnoI i (by have := hc.2.2.1; omega) hc.2.1
