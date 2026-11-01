@@ -22,7 +22,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
 
 /-- A database closed while not failed, at transaction `t`, on the path `p`: the whole of the
-file's `OsMeta` `m`, the meta pages' bytes (valid, `metaPagesOk`, the current meta at `t`), the
+file's `OsMeta` `m` (no byte lost by a failed sync, `ok`), the meta pages' bytes (clean, valid,
+`metaPagesOk`, the current meta at `t`), the
 committed pages (`pageIs`, discarded), the current root page holding `dbTx γ t`'s value, and the
 bytes from the high water mark on, whole. The mapping is gone, or (a failed `Munmap`) still there,
 with its cells' client halves. -/
@@ -32,8 +33,9 @@ def dbClosed (γ : DBNames) (p : GoString) (t : Nat) : IProp GF :=
     ([∗list] r ∈ List.range' 2 (curPgid mp - 2), ∃ B', pageIs (GF := GF) p r B') ∗
     osBytes (GF := GF) p (4096 * curPgid mp) (DFrac.own 1) tail ∗
     pageIs (GF := GF) p (curRoot mp) B ∗ dbTx (GF := GF) γ t (pageVal B) ∗
-    ⌜mxc.map Prod.fst = mp ∧ metaPagesOk mp ∧ (curMeta mp).txid'.toNat = t ∧
-      4096 * curPgid mp ≤ m.size ∧ tail.length = m.size - 4096 * curPgid mp⌝ ∗
+    ⌜mxc.map Prod.fst = mp ∧ (∀ x ∈ mxc, x.2 = true) ∧ metaPagesOk mp ∧
+      (curMeta mp).txid'.toNat = t ∧ 4096 * curPgid mp ≤ m.size ∧
+      tail.length = m.size - 4096 * curPgid mp ∧ m.ok = true⌝ ∗
     (⌜m.maps = ∅⌝ ∨ ∃ (base : Loc) (len : Nat) (vf : Nat → val),
       ⌜m.maps = {[base := len]}⌝ ∗ cellsR (GF := GF) base 0 len vf))
 

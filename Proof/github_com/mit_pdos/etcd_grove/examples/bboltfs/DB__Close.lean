@@ -46,7 +46,7 @@ no mapping, or with the mapping still there (a failed `Munmap`) and its cells. -
 theorem close_unmapped (p : GoString) (m : OsMeta) (base : Loc) (len : Nat) (err : GoInterface)
     (hm : m.maps = {[base := len]}) (hlen : (W64 (len : Int)).toNat = len) (hb : 0 < base.addr) :
     unmappedRes (GF := GF) p m ⟨base, W64 len, W64 len⟩ err ⊢
-      ∃ m', osMeta (GF := GF) p (DFrac.own 1) (some m') ∗ ⌜m'.size = m.size⌝ ∗
+      ∃ m', osMeta (GF := GF) p (DFrac.own 1) (some m') ∗ ⌜m'.size = m.size ∧ m'.ok = m.ok⌝ ∗
         (⌜m'.maps = ∅⌝ ∨ ∃ (base' : Loc) (len' : Nat) (vf : Nat → val),
           ⌜m'.maps = {[base' := len']}⌝ ∗ cellsR (GF := GF) base' 0 len' vf) := by
   unfold unmappedRes
@@ -58,13 +58,13 @@ theorem close_unmapped (p : GoString) (m : OsMeta) (base : Loc) (len : Nat) (err
     cases Hsl
     icases Hu with (⟨%He, Hm⟩ | ⟨%He, (Hm | ⟨Hm, Hc⟩)⟩)
     · iexists _; iframe; isplit
-      · ipureintro; rfl
+      · ipureintro; exact ⟨rfl, rfl⟩
       · ileft; ipureintro; simp only [hm]; exact GMap.delete_singleton _ _
     · iexists _; iframe; isplit
-      · ipureintro; rfl
+      · ipureintro; exact ⟨rfl, rfl⟩
       · ileft; ipureintro; simp only [hm]; exact GMap.delete_singleton _ _
     · iexists m; iframe; isplit
-      · ipureintro; rfl
+      · ipureintro; exact ⟨rfl, rfl⟩
       · iright; iexists base, len, vf; rw [hlen]; iframe; ipureintro; exact hm
 
 theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
@@ -90,7 +90,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
   icases HM with ⟨%b, %mp, %mx, %hwm, %mxc, %T, Hfl, Hcur, Hmb, %Hmx, Hauth, Hout, Hrest⟩
   iunfold dbOwner at Hown
   iunfold rwR at HW
-  icases HW with (⟨%mp1, %fl, %hwm1, %st, %m, Hcur1, Hmap1, Hout1, Hflds1, Hw, Hcls1, -, Hst⟩ |
+  icases HW with (⟨%mp1, %fl, %hwm1, %st, %m, Hcur1, Hmap1, Hout1, Hflds1, Hw, Hcls1, %Hok0, Hst⟩ |
     ⟨⟨%x, Hown2⟩, Hcls1, %st, Hmap1, Hflds1⟩)
   rotate_left
   · -- closed: three halves of `own`
@@ -278,7 +278,8 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
       iexists m', mx, mxw, tail, B
       iframe; iframe #
       ipureintro
-      refine ⟨(Hw.2.2.2.2 rfl).1, Hok, rfl, ?_, ?_⟩ <;> omega
+      refine ⟨(Hw.2.2.2.2 rfl).1, (Hw.2.2.2.2 rfl).2.1, Hok, rfl, by omega, by omega, ?_⟩
+      rw [Hm'.2]; exact Hok0 rfl
 
 end proof
 

@@ -5,6 +5,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.bboltfs.Open
 public import Spec.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__init
+public import Spec.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__Close
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Writer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.MapLoan
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.InitLayout
@@ -466,6 +467,54 @@ theorem open_ghost (db : Loc) (p : GoString) (mp : List w8) (mxc : List (w8 × B
   iframe HB Htx
   ipureintro
   exact GMap.lookup_insert _ _ _
+
+/-- A stored database whose file still has a mapping (a failed `Munmap` in `Close`), with the
+mapping's cells: `Open` does not accept it yet (`Open.wp_leftover_mapping`). -/
+def dbStoredMapped (p : GoString) (t : Nat) (vo : Option w64) : IProp GF :=
+  iprop(∃ (m : OsMeta) (base : Loc) (len : Nat) (vf : Nat → val),
+    osMeta (GF := GF) p (DFrac.own 1) (some m) ∗ ⌜m.maps = {[base := len]}⌝ ∗
+    cellsR (GF := GF) base 0 len vf ∗ dbStoredAt (GF := GF) p t vo { m with maps := ∅ })
+
+/-- A closed database's file of a size `Open` does not accept: shorter than four pages or
+larger than 1 TiB (nothing in the open database bounds it). -/
+def dbClosedOdd (p : GoString) : IProp GF :=
+  iprop(∃ m : OsMeta, osMeta (GF := GF) p (DFrac.own 1) (some m) ∗
+    ⌜m.size < 4 * 4096 ∨ 2 ^ 40 < m.size⌝)
+
+/-- What `Close` gives back, for `Open`: a stored database (`dbStored`, which `Open` accepts),
+one with a leftover mapping, or a file of a size `Open` does not accept. -/
+theorem dbClosed_reopen (γ : DBNames) (p : GoString) (t : Nat) :
+    dbClosed (GF := GF) γ p t ⊢ ∃ vo, dbTx (GF := GF) γ t vo ∗
+      (dbStored (GF := GF) p t vo ∨ dbStoredMapped (GF := GF) p t vo ∨ dbClosedOdd (GF := GF) p) := by
+  unfold dbClosed
+  iintro ⟨%m, %mp, %mxc, %tail, %B, Hm, Hmx, Hps, Htail, #HB, #Htx, %H, Hmaps⟩
+  obtain ⟨hmx, hclean, hmp, ht, hpg, htl, hok⟩ := H
+  iexists pageVal B
+  iframe Htx
+  by_cases hsz : 4 * 4096 ≤ m.size ∧ m.size ≤ 2 ^ 40
+  rotate_left
+  · iright; iright
+    unfold dbClosedOdd
+    iexists m; iframe
+    ipureintro; omega
+  icases Hmaps with (%Hm0 | ⟨%base, %len, %vf, %Hmb, Hc⟩)
+  · ileft
+    unfold dbStored dbStoredAt
+    iexists m; iframe Hm
+    iexists mp, mxc, tail, B
+    iframe; iframe #
+    ipureintro
+    exact ⟨⟨hmx, hclean, hmp, hpg, htl, hok, Hm0, hsz.1, hsz.2⟩, ht, rfl⟩
+  · iright; ileft
+    unfold dbStoredMapped dbStoredAt
+    iexists m, base, len, vf
+    iframe Hm Hc
+    isplitr
+    · ipureintro; exact Hmb
+    iexists mp, mxc, tail, B
+    iframe; iframe #
+    ipureintro
+    exact ⟨⟨hmx, hclean, hmp, hpg, htl, hok, rfl, hsz.1, hsz.2⟩, ht, rfl⟩
 
 end lemmas
 

@@ -374,6 +374,24 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     · ipureintro; exact ⟨by simp, rfl⟩
     · iexists some m''; iexact Hm
 
+/-- TODO: `Open` of a stored database whose file still has a mapping (a failed `Munmap` in
+`Close`, `dbClosed_reopen`'s second case). The leftover mapping's cells must go to `init`'s and
+`WriteAt`'s `mcellsAny`, and `mmap` must map around it; but `rwR` (`m.maps = {[base := len]}` with
+a mapping, as `mmap`'s spec) and `init`'s and `mmap`'s specs (`m.maps = ∅`) admit one mapping at
+most, so this needs those definitions generalized to extra mappings whose cells the writer holds.
+Not used by `Link.lean`. -/
+theorem Open.wp_leftover_mapping : ∀ (path : GoString) (t : Nat) (vo : Option w64),
+  {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ dbStoredMapped (GF := GF) path t vo }}
+    (App (Val (@! github_com.mit_pdos.etcd_grove.examples.bboltfs.Open)) (Val #path))
+  {{ (db : Loc) (err : GoInterface), RET (PairV #db #err);
+      (⌜err = interface.nil⌝ ∗ ∃ (γ : DBNames) (n : Nat),
+          isDB (GF := GF) γ db ∗ dbOwner (GF := GF) γ t n ∗ dbLast (GF := GF) γ t ∗
+          dbTx (GF := GF) γ t vo ∗
+          ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+            dbReader (GF := GF) γ db)) ∨
+      (⌜err ≠ interface.nil ∧ db = null⌝ ∗ ∃ mo', osMeta (GF := GF) path (DFrac.own 1) mo') }} := by
+  sorry
+
 end proof
 
 end bboltfs
