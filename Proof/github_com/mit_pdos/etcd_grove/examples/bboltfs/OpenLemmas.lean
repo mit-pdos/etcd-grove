@@ -117,7 +117,7 @@ theorem pages_ex (p : GoString) (G : Nat → List w8) :
 current meta. -/
 theorem stored_of_bytes (p : GoString) (m : OsMeta) (F : List w8) (hl : F.length = m.size)
     (hmp : metaPagesOk (F.take 8192)) (hpg : 4096 * curPgid (F.take 8192) ≤ m.size)
-    (hok : m.ok = true) (hmaps : m.maps = ∅) (h16 : 4 * 4096 ≤ m.size) (h40 : m.size ≤ 2 ^ 40) :
+    (hok : m.ok = true) (hmaps : m.maps = ∅) (h16 : 4 * 4096 ≤ m.size) (h40 : m.size ≤ 2 ^ 30) :
     osBytes (GF := GF) p 0 (DFrac.own 1) (F.map (·, true)) ⊢
       |==> dbStoredAt (GF := GF) p (curMeta (F.take 8192)).txid'.toNat
         (pageVal (pageOf F (curRoot (F.take 8192)))) m := by
@@ -181,7 +181,7 @@ theorem openSt_facts (p : GoString) (t : Nat) (vo : Option w64) (m : OsMeta) :
     · ipureintro; exact ⟨by omega, H.2.2.1, H.2.1⟩
   · isplitl
     · iright; iexists mp, mxc, tail, B; iframe; ipureintro; exact H
-    · ipureintro; obtain ⟨⟨_, _, _, _, _, hok, hmaps, _, h40⟩, _⟩ := H; exact ⟨h40, hok, hmaps⟩
+    · ipureintro; obtain ⟨⟨_, _, _, _, _, hok, hmaps, _, h40⟩, _⟩ := H; exact ⟨by omega, hok, hmaps⟩
 
 /-- The file once open, as `Open` found it: a stored database (`valid`), or one for `init`. -/
 def validSt (p : GoString) (t : Nat) (vo : Option w64) (m : OsMeta) (b : Bool) : IProp GF :=
@@ -468,35 +468,20 @@ theorem open_ghost (db : Loc) (p : GoString) (mp : List w8) (mxc : List (w8 × B
   ipureintro
   exact GMap.lookup_insert _ _ _
 
-/-- A closed database's file of a size `Open` does not accept: shorter than four pages or
-larger than 1 TiB (nothing in the open database bounds it). -/
-def dbClosedOdd (p : GoString) : IProp GF :=
-  iprop(∃ m : OsMeta, osMeta (GF := GF) p (DFrac.own 1) (some m) ∗
-    ⌜m.size < 4 * 4096 ∨ 2 ^ 40 < m.size⌝)
-
-/-- What `Close` gives back, for `Open`: a stored database (`dbStored`, which `Open` accepts),
-or a file of a size `Open` does not accept. -/
+/-- What `Close` gives back is a stored database, which `Open` accepts (`dbStored`). -/
 theorem dbClosed_reopen (γ : DBNames) (p : GoString) (t : Nat) :
-    dbClosed (GF := GF) γ p t ⊢ ∃ vo, dbTx (GF := GF) γ t vo ∗
-      (dbStored (GF := GF) p t vo ∨ dbClosedOdd (GF := GF) p) := by
+    dbClosed (GF := GF) γ p t ⊢ ∃ vo, dbTx (GF := GF) γ t vo ∗ dbStored (GF := GF) p t vo := by
   unfold dbClosed
   iintro ⟨%m, %mp, %mxc, %tail, %B, Hm, Hmx, Hps, Htail, #HB, #Htx, %H⟩
-  obtain ⟨hmx, hclean, hmp, ht, hpg, htl, hok, Hm0⟩ := H
+  obtain ⟨hmx, hclean, hmp, ht, hpg, htl, hok, Hm0, h16, h30⟩ := H
   iexists pageVal B
   iframe Htx
-  by_cases hsz : 4 * 4096 ≤ m.size ∧ m.size ≤ 2 ^ 40
-  rotate_left
-  · iright
-    unfold dbClosedOdd
-    iexists m; iframe
-    ipureintro; omega
-  ileft
   unfold dbStored dbStoredAt
   iexists m; iframe Hm
   iexists mp, mxc, tail, B
   iframe; iframe #
   ipureintro
-  exact ⟨⟨hmx, hclean, hmp, hpg, htl, hok, Hm0, hsz.1, hsz.2⟩, ht, rfl⟩
+  exact ⟨⟨hmx, hclean, hmp, hpg, htl, hok, Hm0, h16, h30⟩, ht, rfl⟩
 
 end lemmas
 

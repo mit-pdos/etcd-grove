@@ -428,7 +428,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   icases Hstr with ⟨%Hstp, Htok, #Hinv, Hwc⟩
   iunfold writerFile at Hw
   icases Hw with ⟨%mxc, %tail, %fsz, Hfsz, Hdsz, Hf, Hfd, Hm, Hmx, Htail, %Hwf⟩
-  obtain ⟨hmx, hclean, rfl, hfd⟩ := Hwf.2.2.2.2 rfl
+  obtain ⟨hmx, hclean, rfl, hfd, hsz⟩ := Hwf.2.2.2.2 rfl
   wp_alloc «$res0_ptr» as «$res0»
   wp_pures
   wp_alloc_auto
@@ -472,7 +472,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       dsimp only
       iframe
       ipureintro
-      exact ⟨⟨Hwf.1, Hwf.2.1, Hwf.2.2.1, Hwf.2.2.2.1, fun _ => ⟨hmx, hclean, rfl, hfd⟩⟩, Hstp⟩
+      exact ⟨⟨Hwf.1, Hwf.2.1, Hwf.2.2.1, Hwf.2.2.2.1, fun _ => ⟨hmx, hclean, rfl, hfd, hsz⟩⟩, Hstp⟩
     icases Hres with (⟨%Herr, %base', %len', %γm', %Hst', Htok, #Hinv', Hwc⟩ | ⟨%Herr, Hx⟩)
     · subst Herr
       obtain ⟨rfl, Hmaps', Hsz', Hmin', Hb', Hl41⟩ := Hst'
@@ -518,7 +518,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     dsimp only
     iframe; iframe #
     isplitr
-    · ipureintro; exact ⟨⟨Hwf.1, Hwf.2.1, Hwf.2.2.1, Hwf.2.2.2.1, fun _ => ⟨hmx, hclean, rfl, hfd⟩⟩, Hstp⟩
+    · ipureintro; exact ⟨⟨Hwf.1, Hwf.2.1, Hwf.2.2.1, Hwf.2.2.2.1, fun _ => ⟨hmx, hclean, rfl, hfd, hsz⟩⟩, Hstp⟩
     · ipureintro; exact ⟨rfl, Hmok, by omega⟩
   iintro (⟨%Hbv, %base, %len, %γm, %m', Hws, %Hm', Hown, db, minsz, «$res0», v, pg, m⟩ |
     ⟨%e, %Hbv, db, «$res0», Herr⟩)
@@ -536,7 +536,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   icases Hws with ⟨Hcur, Hmap, Hout, Hflds, Hw, Hcls, %Hstp, Htok, #Hinv, Hwc⟩
   iunfold writerFile at Hw
   icases Hw with ⟨%mxc, %tail, %fsz, Hfsz, Hdsz, Hf, Hfd, Hm, Hmx, Htail, %Hwf⟩
-  obtain ⟨hmx, hclean, rfl, hfd⟩ := Hwf.2.2.2.2 rfl
+  obtain ⟨hmx, hclean, rfl, hfd, hsz⟩ := Hwf.2.2.2.2 rfl
   obtain ⟨Hmaps, Hsz, Hbase, Hl41⟩ := Hstp
   obtain ⟨Hsize, Hok', Hlen⟩ := Hm'
   have hsZ : sint.Z (W64 (m'.size : Int)) = m'.size := by
@@ -551,7 +551,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   -- grow: Truncate and Sync
   wp_join (Q := fun bv => iprop((⌜bv = executeVal⌝ ∗ ∃ (m2 : OsMeta) (tail2 : List (w8 × Bool)),
       ⌜m2.maps = {[base := len]} ∧ m2.size ≤ len ∧ (hwm + 2) * 4096 ≤ m2.size ∧ m2.ok = true ∧
-        tail2.length = m2.size - 4096 * hwm⌝ ∗
+        tail2.length = m2.size - 4096 * hwm ∧ 4 * 4096 ≤ m2.size ∧ m2.size ≤ 2 ^ 30⌝ ∗
       osMeta (GF := GF) p (DFrac.own 1) (some m2) ∗ db.[DB, go!"filesz"] ↦ W64 m2.size ∗
       osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail2 ∗ writerCells (GF := GF) base hwm len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
@@ -609,7 +609,8 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
         iexists (m'.grown len).synced, tail2
         iframe
         ipureintro
-        exact ⟨rfl, Nat.le_refl _, Hlen, Hok', Htl2⟩
+        exact ⟨rfl, Nat.le_refl _, Hlen, Hok', Htl2,
+          Nat.le_trans hsz.1 (Nat.le_of_lt (Nat.lt_of_lt_of_le hsz' Hlen)), hsz.2.2⟩
       · cases err2 with
         | nil => exact absurd rfl Herr2
         | ok ie =>
@@ -662,7 +663,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     · ipureintro; trivial
     iexists m', tail
     iframe
-    ipureintro; exact ⟨Hmaps, Hsz, by omega, Hok', Hwf.2.2.2.1⟩
+    ipureintro; exact ⟨Hmaps, Hsz, by omega, Hok', Hwf.2.2.2.1, hsz.1, hsz.2.1⟩
   iintro (⟨%Hbv, %m2, %tail2, %Hm2, Hm, Hfsz, Htail, Hwc, Hf, Hfd, Hdsz, db, «$res0», v, pg, m, Hown, Hcur, Hmap,
     Hout, Hflds, Hcls, Htok, Hmx⟩ | ⟨%e, %Hbv, db, «$res0», Herr⟩)
   rotate_left
@@ -676,7 +677,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     iexact Herr
   subst Hbv
   clear Hsize Hok' Hlen Hsz Hmaps hsZ
-  obtain ⟨Hmaps, Hsz, Hgrow, Hok2, Htl2⟩ := Hm2
+  obtain ⟨Hmaps, Hsz, Hgrow, Hok2, Htl2, Hm2sz⟩ := Hm2
   (try wp_auto)
   -- the data page
   wp_apply (wp_slice_make2 (V := w8) (W64 4096)) as %buf ⟨Hbuf, -⟩
@@ -1115,7 +1116,8 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
         iframe Hfsz Hdsz Hf Hfd Hm Hx2 Hrest
         ipureintro
         refine ⟨by omega, by omega, by simp [hmpl], by simp only [List.length_drop]; omega,
-          fun _ => ⟨by rw [List.map_map]; exact List.map_id _, by simp, hm5s.symm, hfd⟩⟩
+          fun _ => ⟨by rw [List.map_map]; exact List.map_id _, by simp, hm5s.symm, hfd,
+            by rw [hm5s]; exact Hm2sz.1, by rw [hm5s]; exact Hm2sz.2, hsz.2.2⟩⟩
       isplitl [Hcls]; · iexact Hcls
       iframe Htok Hwc; iframe #
       ipureintro; exact ⟨hm5m, by omega, Hbase, Hl41⟩

@@ -276,7 +276,8 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
         iexists m', mx, mxw, tail, B
         iframe; iframe #
         ipureintro
-        refine ⟨(Hw.2.2.2.2 rfl).1, (Hw.2.2.2.2 rfl).2.1, Hok, rfl, by omega, by omega, ?_, Hm'.2.2⟩
+        refine ⟨(Hw.2.2.2.2 rfl).1, (Hw.2.2.2.2 rfl).2.1, Hok, rfl, by omega, by omega, ?_, Hm'.2.2,
+          by have := (Hw.2.2.2.2 rfl).2.2.2.2.1; omega, by have := (Hw.2.2.2.2 rfl).2.2.2.2.2.1; omega⟩
         rw [Hm'.2.1]; exact Hok0 rfl
       · iright; ileft; ipureintro; exact herrc
 

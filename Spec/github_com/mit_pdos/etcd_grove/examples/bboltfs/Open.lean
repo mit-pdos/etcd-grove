@@ -28,11 +28,11 @@ def freshTx (xs : List (w8 × Bool)) : Nat × Option w64 :=
 
 /-- The facts of a stored database (`dbStored`): the whole `OsMeta` `m`, the meta pages' bytes
 `mxc` (clean, an open database's `mp`), the bytes `tail` from the high water mark on; at least
-four pages and at most 1 TiB (`mmap`'s bound), no mapping, no byte lost by a failed sync. -/
+four pages and at most 1 GiB (as an open database keeps it), no mapping, no byte lost by a failed sync. -/
 def storedOk (m : OsMeta) (mp : List w8) (mxc tail : List (w8 × Bool)) : Prop :=
   mxc.map Prod.fst = mp ∧ (∀ x ∈ mxc, x.2 = true) ∧ metaPagesOk mp ∧
     4096 * curPgid mp ≤ m.size ∧ tail.length = m.size - 4096 * curPgid mp ∧
-    m.ok = true ∧ m.maps = ∅ ∧ 4 * 4096 ≤ m.size ∧ m.size ≤ 2 ^ 40
+    m.ok = true ∧ m.maps = ∅ ∧ 4 * 4096 ≤ m.size ∧ m.size ≤ 2 ^ 30
 
 end pure
 

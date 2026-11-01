@@ -164,11 +164,12 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   unfold writerFile
   icases Hw with ⟨%mxc, %tail, %fsz, Hfsz, Hdsz, Hf, Hfd, Hm, Hmx, Htail, %Hw⟩
   have hfsz : fsz = m.size := (Hw.2.2.2.2 Hfl).2.2.1
+  have hsz30 : m.size ≤ 2 ^ 30 := (Hw.2.2.2.2 Hfl).2.2.2.2.2.1
   subst hfsz
   wp_auto
   have _hsz : sint.Z (W64 (m.size : Int)) = m.size := sint_Z_W64_nat _ (by omega)
   wp_join iprop(∃ s : w64, size_ptr ↦ s ∗ minsz_ptr ↦ minsz ∗
-      ⌜sint.Z minsz ≤ sint.Z s ∧ (m.size : Int) ≤ sint.Z s ∧ sint.Z s ≤ 2 ^ 40⌝)
+      ⌜sint.Z minsz ≤ sint.Z s ∧ (m.size : Int) ≤ sint.Z s ∧ sint.Z s ≤ 2 ^ 40 ∧ sint.Z s ≤ 2 ^ 30⌝)
     with [size minsz] as ⟨%s, size, minsz, %Hs⟩
   · iexists minsz; iframe; ipureintro; omega
   · iexists _; iframe; ipureintro; omega
@@ -203,7 +204,10 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     rw [Hm1.1]
     iframe
     isplitr
-    · ipureintro; exact Hw
+    · ipureintro
+      exact ⟨Hw.1, Hw.2.1, Hw.2.2.1, Hw.2.2.2.1, fun hfl => ⟨(Hw.2.2.2.2 hfl).1, (Hw.2.2.2.2 hfl).2.1,
+        (Hw.2.2.2.2 hfl).2.2.1, (Hw.2.2.2.2 hfl).2.2.2.1, (Hw.2.2.2.2 hfl).2.2.2.2.1,
+        (Hw.2.2.2.2 hfl).2.2.2.2.2.1, by simp only [mapLen]; omega⟩⟩
     isplitr
     · ipureintro; exact ⟨rfl, Hm1.2.1⟩
     iright
@@ -233,7 +237,10 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     rw [Hm1.1]
     iframe
     isplitr
-    · ipureintro; exact Hw
+    · ipureintro
+      exact ⟨Hw.1, Hw.2.1, Hw.2.2.1, Hw.2.2.2.1, fun hfl => ⟨(Hw.2.2.2.2 hfl).1, (Hw.2.2.2.2 hfl).2.1,
+        (Hw.2.2.2.2 hfl).2.2.1, (Hw.2.2.2.2 hfl).2.2.2.1, (Hw.2.2.2.2 hfl).2.2.2.2.1,
+        (Hw.2.2.2.2 hfl).2.2.2.2.2.1, by simp only [mapLen]; omega⟩⟩
     isplitr
     · ipureintro; exact ⟨rfl, Hm1.2.1⟩
     iright
@@ -278,7 +285,10 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     rw [Hm2.1]
     iframe
     isplitr
-    · ipureintro; exact Hw
+    · ipureintro
+      exact ⟨Hw.1, Hw.2.1, Hw.2.2.1, Hw.2.2.2.1, fun hfl => ⟨(Hw.2.2.2.2 hfl).1, (Hw.2.2.2.2 hfl).2.1,
+        (Hw.2.2.2.2 hfl).2.2.1, (Hw.2.2.2.2 hfl).2.2.2.1, (Hw.2.2.2.2 hfl).2.2.2.2.1,
+        (Hw.2.2.2.2 hfl).2.2.2.2.2.1, by simp only [mapLen]; omega⟩⟩
     isplitr
     · ipureintro; exact ⟨rfl, Hm2.2⟩
     iright
@@ -359,7 +369,10 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   rw [hszeq, Hm1.1]
   iframe
   isplitr
-  · ipureintro; exact Hw
+  · ipureintro
+    exact ⟨Hw.1, Hw.2.1, Hw.2.2.1, Hw.2.2.2.1, fun hfl => ⟨(Hw.2.2.2.2 hfl).1, (Hw.2.2.2.2 hfl).2.1,
+      (Hw.2.2.2.2 hfl).2.2.1, (Hw.2.2.2.2 hfl).2.2.2.1, (Hw.2.2.2.2 hfl).2.2.2.2.1,
+      (Hw.2.2.2.2 hfl).2.2.2.2.2.1, by have := Hsz2.2.2.2.2 (by omega); omega⟩⟩
   isplitr
   · ipureintro; exact ⟨rfl, Hm1.2.1⟩
   ileft

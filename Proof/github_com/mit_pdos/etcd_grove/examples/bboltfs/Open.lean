@@ -306,7 +306,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   icases (ownFile_halves f fd path).1 $$ Hf with ⟨Hf1, Hf2⟩
   icases (osFd_halves fd _).1 $$ Hfdo with ⟨Hfd1, Hfd2⟩
   (try wp_auto)
-  wp_apply wp_mmap γ db f fd path (W64 0) mp false (curPgid mp) none m' rfl (by decide) (by decide) h40'
+  wp_apply wp_mmap γ db f fd path (W64 0) mp false (curPgid mp) none m' rfl (by decide) (by decide) (by omega)
       $$ [Hcur1 Hmap1 Hout1 Hflds1 filesz datasz Hf1 Hfd1 Hm Hmx1 Htail Hcur2 Hf2 Hfd2 Hout2 Hps]
     as %err5 ⟨%st', %m'', Hcur1, Hmap1, Hout1, Hflds1, Hw, %Hm'', Hres⟩
   · iframe #
@@ -317,7 +317,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro
       exact ⟨by have := hmp.2.2.1; have := hmp.2.2.2.1; omega, hpg, hl8, htl,
-        fun _ => ⟨hmx, hclean, rfl, Hfd⟩⟩
+        fun _ => ⟨hmx, hclean, rfl, Hfd, h16', h40', by simp only [mapLen]; omega⟩⟩
     dsimp only
     iframe
     ipureintro; exact hmaps'

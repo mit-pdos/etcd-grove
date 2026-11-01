@@ -35,7 +35,7 @@ def mmapPre (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List w8) (f
 abbrev DB.mmap.spec : Prop :=
   ∀ (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (minsz : w64) (mp : List w8) (fl : Bool)
     (hwm : Nat) (st : MapSt) (m : OsMeta),
-  fl = false → 0 ≤ sint.Z minsz → sint.Z minsz ≤ 2 ^ 40 → m.size ≤ 2 ^ 40 →
+  fl = false → 0 ≤ sint.Z minsz → sint.Z minsz ≤ 2 ^ 30 → m.size ≤ 2 ^ 40 →
   {{ pkgFacts (GF := GF) ∗
       osInv (GF := GF) ∗ db.[DB, go!"file"] ↦□ f ∗
       sync.isRWMutexGuard db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f fd p) ∗
