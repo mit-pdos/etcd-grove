@@ -112,7 +112,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
   icombine Hcur Hcur1 gives % ⟨_, Heq⟩
   cases Heq
   iunfold writerFile at Hw
-  icases Hw with ⟨%mxw, %tail, Hfsz, Hdsz, Hf1, Hfd1, Hm, Hmxw, Htail, %Hw⟩
+  icases Hw with ⟨%mxw, %tail, %fsz, Hfsz, Hdsz, Hf1, Hfd1, Hm, Hmxw, Htail, %Hw⟩
   imod ghostVar_update_halves true γ.cls false false $$ Hcls1 Hcls2 with ⟨Hcls1, Hcls2⟩
   rcases st with _ | ⟨base, len, γm⟩
   · -- no mapping: the handle failed

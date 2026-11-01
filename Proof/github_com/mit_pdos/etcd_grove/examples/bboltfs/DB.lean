@@ -33,7 +33,8 @@ when it mapped the file, and no write touches them since).
   `Munmap` all take it; no sync failed while not failed, `m.ok`, so that a sync makes bytes
   clean), the bytes from `hwm` on and half the meta pages' bytes (clean while not failed), the client
   halves of the mapped cells it may write (the meta pages' header and tail, and the pages from
-  `hwm` on), `filesz`, `datasz`, halves of the mapping fields, and half the file and its fd.
+  `hwm` on), `filesz` (the file's size while not failed: a failed `Truncate` may grow the file),
+  `datasz`, halves of the mapping fields, and half the file and its fd.
 - `metalock` (`metaR`): `failed`, half the meta pages' bytes until closed (a meta `WriteAt` takes
   both halves: it runs under both mutexes), the transaction map, and while not failed: the meta
   pages are valid (`metaPagesOk`), the current meta's root page `pageIs` its value, `dbTx` of it;
@@ -344,15 +345,15 @@ def writerCells (base : Loc) (hwm len : Nat) : IProp GF :=
 /-- The writer's part of the file, with the mapping in the state `st` (see `rwR`). -/
 def writerFile (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8) (fl : Bool)
     (hwm : Nat) (st : MapSt) (m : OsMeta) : IProp GF :=
-  iprop(∃ (mxc tail : List (w8 × Bool)),
-    db.[DB, go!"filesz"] ↦ W64 m.size ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen st) ∗
+  iprop(∃ (mxc tail : List (w8 × Bool)) (fsz : Nat),
+    db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen st) ∗
     os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
     osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
     osMeta (GF := GF) p (DFrac.own 1) (some m) ∗
     osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
     osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail ∗
     ⌜2 ≤ hwm ∧ 4096 * hwm ≤ m.size ∧ mxc.length = 8192 ∧ tail.length = m.size - 4096 * hwm ∧
-      (fl = false → mxc.map Prod.fst = mp ∧ ∀ x ∈ mxc, x.2 = true)⌝)
+      (fl = false → mxc.map Prod.fst = mp ∧ (∀ x ∈ mxc, x.2 = true) ∧ fsz = m.size)⌝)
 
 /-- What the writer holds besides `writerFile` while there is no mapping: the invariant's quarter
 of `cur`, and `mmaplock`'s halves of the file and its fd. -/

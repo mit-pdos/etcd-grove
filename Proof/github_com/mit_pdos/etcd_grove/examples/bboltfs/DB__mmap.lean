@@ -149,7 +149,7 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     (wp_pageAt : pageAt.spec (GF := GF) (hG := hG))
     (wp_meta : Page.«meta».spec (GF := GF) (hG := hG)) :
     DB.mmap.spec (GF := GF) (hG := hG) := by
-  intro γ db f fd p minsz mp fl hwm st m Hmin0 Hmin Hsz
+  intro γ db f fd p minsz mp fl hwm st m Hfl Hmin0 Hmin Hsz
   wp_start as ⟨#Hpkg, #Hos, #Hfile, #Hguard, Hcur, Hmap, Hout, Hflds, Hw, Hpre⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
@@ -162,7 +162,9 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   icombine Hmap Hmap0 gives % ⟨_, Heq⟩
   subst Heq
   unfold writerFile
-  icases Hw with ⟨%mxc, %tail, Hfsz, Hdsz, Hf, Hfd, Hm, Hmx, Htail, %Hw⟩
+  icases Hw with ⟨%mxc, %tail, %fsz, Hfsz, Hdsz, Hf, Hfd, Hm, Hmx, Htail, %Hw⟩
+  have hfsz : fsz = m.size := (Hw.2.2.2.2 Hfl).2.2
+  subst hfsz
   wp_auto
   have _hsz : sint.Z (W64 (m.size : Int)) = m.size := sint_Z_W64_nat _ (by omega)
   wp_join iprop(∃ s : w64, size_ptr ↦ s ∗ minsz_ptr ↦ minsz ∗

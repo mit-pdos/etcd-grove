@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart). `db.mmap(minsz)` (`examples/bboltfs/minibolt.go`, db.go's `mmap`): under `mmaplock`'s write lock, unmap (`DB__munmap.lean`), then map `mmapSize` of the larger of the file's size and `minsz`. Its caller is the writer: it holds the writer's part of the file (`writerFile`, as in `rwR`), the writer's halves of the mapping state and fields, and, with a mapping, the writer's half of its invariant's token and the writer's cells; without one, what the new mapping's invariant and `mmaplock` take (`writerExtra`: the invariant's quarter of `cur` and `mmaplock`'s halves of the file and fd; the invariant's half of `out`; the committed pages). The old mapping's invariant is closed and its cells unmapped. On success, the new mapping is `mmaplock`'s, with a new invariant over the committed pages' and the meta pages' cells (`mapCells`, whose bytes the writer's `OsMeta` shows), and the writer has its cells; on an error, there is no mapping, and the writer has `writerExtra`. -/
+/- Lean-first (no Rocq counterpart). `db.mmap(minsz)` (`examples/bboltfs/minibolt.go`, db.go's `mmap`): under `mmaplock`'s write lock, unmap (`DB__munmap.lean`), then map `mmapSize` of the larger of the file's size and `minsz`. Its caller is the writer, not failed (`fl = false`, so that `filesz` is the file's size): it holds the writer's part of the file (`writerFile`, as in `rwR`), the writer's halves of the mapping state and fields, and, with a mapping, the writer's half of its invariant's token and the writer's cells; without one, what the new mapping's invariant and `mmaplock` take (`writerExtra`: the invariant's quarter of `cur` and `mmaplock`'s halves of the file and fd; the invariant's half of `out`; the committed pages). The old mapping's invariant is closed and its cells unmapped. On success, the new mapping is `mmaplock`'s, with a new invariant over the committed pages' and the meta pages' cells (`mapCells`, whose bytes the writer's `OsMeta` shows), and the writer has its cells; on an error, there is no mapping, and the writer has `writerExtra`. -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB
@@ -35,7 +35,7 @@ def mmapPre (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List w8) (f
 abbrev DB.mmap.spec : Prop :=
   ∀ (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (minsz : w64) (mp : List w8) (fl : Bool)
     (hwm : Nat) (st : MapSt) (m : OsMeta),
-  0 ≤ sint.Z minsz → sint.Z minsz ≤ 2 ^ 40 → m.size ≤ 2 ^ 40 →
+  fl = false → 0 ≤ sint.Z minsz → sint.Z minsz ≤ 2 ^ 40 → m.size ≤ 2 ^ 40 →
   {{ pkgFacts (GF := GF) ∗
       osInv (GF := GF) ∗ db.[DB, go!"file"] ↦□ f ∗
       sync.isRWMutexGuard db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f fd p) ∗
