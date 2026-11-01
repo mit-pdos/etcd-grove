@@ -202,6 +202,14 @@ This deletes the counted stocks (70 places), `etcdGrpcSlots_of_started`, `watchR
     `threadBound`, since the pool holds a thread token for each). That lemma is a Perennial change,
     local and marked until it lands (`notes/perennial-changes.md`).
 
+- **minibolt (2026-11-01, branch `osfs-ext`).** `isDB` holds a `threadPool` of `mmaplock`'s reader
+  slots (`dbReader`, now internal), which `Open` builds under `[ThreadBoundLe GF (2 ^ 30)]`. `Get` and
+  `Snapshot` take and return a `threadTok` (`dbReader_borrow`/`dbReader_giveBack` around
+  `wp_reader`, the proof over a borrowed slot); `Open` returns no stock and `Close` takes none (its
+  proof never used it: a read after `Close` finds no mapping and refuses). `testMinibolt` reads
+  with the main thread's token, `testMiniboltConcurrent`'s readers with their forked threads'
+  (`wp_fork_tok_body`), so its 2-of-`actualMaxReaders` split is gone.
+
 ### B3. Wait groups backed by thread tokens
 
 - Inventory the `WaitGroup`s whose counter is bounded by an `Add` count.
