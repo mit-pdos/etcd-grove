@@ -526,7 +526,11 @@ What kvdurable's adequacy needs that does not wait for raft's node API
   `sortStrings`, `putMap`, `getMap`, `encodeState`, `decodeState` (kvreconf's, ported), `putUint64`,
   `getUint64`, `putIDs`, `getIDs`, `putEntry`, `getEntry`, `putSnapshot`, `getSnapshot`.
   `Codec.lean` holds kvreconf's `putB`/`encMap`/`encState`/`KVsWf`/`KVsOf`: kvdurable's port of
-  kvreconf's `Base` must take them from there, not copy them again.
+  kvreconf's `Base` must take them from there, not copy them again. An entry's type is written
+  sign-extended (`W64 (sint.Z e.Type')`: Go's `uint64` of an `int32`). Debt: `SnapLemmas.lean`'s
+  `dfrac_split` (every `DFrac` is a sum of two) belongs to Perennial (no `Proof/Lib`).
+- **Not done** (they call raft's `MemoryStorage` or node API): `Storage.encode`, `openStorage`, and
+  every other kvdurable function; kvdurable's `Init`/`PkgTable`/`Link`/adequacy.
 
 ## examples/kvdurable and the durable node API (2026-10-31, branch `worktree-kvdurable`)
 
