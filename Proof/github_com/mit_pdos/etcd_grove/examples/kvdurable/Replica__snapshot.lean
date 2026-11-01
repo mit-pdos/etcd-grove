@@ -21,6 +21,7 @@ request's index. A compaction keeps the frozen record (`frozen_compact`).
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.KdStorageApi
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__snapshot
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__persist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kvdurable.Stats__add
@@ -59,24 +60,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvdurable.Assump
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
 
 attribute [local instance] kdStorageModel
-
-/-- `s.FirstIndex()` (the promoted `MemoryStorage.FirstIndex`). -/
-theorem Storage.wp_FirstIndex (wp : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
-    (s ms : Loc) (γs : MemStorNames) (c : Nat) :
-  {{ kdStorRec (GF := GF) s ms γs ∗
-      (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorLock ms γs ∗
-      memCompacted γs c) }}
-    (App (Val (s @!! go.GoType.PointerType kStorageTy @!! go!"FirstIndex")) (Val #()))
-  {{ (fi : w64), RET (PairV #fi #interface.nil);
-      ⌜c + 1 ≤ uint.nat fi⌝ ∗ memCompacted γs (uint.nat fi - 1) }} := by
-  wp_start as ⟨#Hrec, HP⟩
-  iunfold kdStorRec at Hrec
-  icases Hrec with ⟨#Hf, -⟩
-  try wp_auto
-  wp_apply wp ms γs c $$ [HP] as %fi HQ
-  · iexact HP
-  iapply HΦ
-  iexact HQ
 
 theorem Replica.snapshot.wp_proof
     (wp_add : Stats.add.spec (GF := GF) (hG := hG))
