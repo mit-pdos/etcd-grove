@@ -56,16 +56,18 @@ theorem Replica.crash.wp_proof (wp_stop : Replica.stop.spec (GF := GF) (hG := hG
   ihave ⟨%Hc, Hcr⟩ := typedPointsto_half_combine _ _ _ (1 : Qp) $$ [$Hcr $Htok]
   subst Hc
   simp only [Bool.false_eq_true, ↓reduceIte]
-  icases Hlive with ⟨%S, %o, %pz, Hwr, -, -, -⟩
+  icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, Hph⟩
   try wp_auto
   ihave ⟨Hcr, -⟩ := (typedPointsto_half_split _ true (1 : Qp)).1 $$ Hcr
-  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta]
+  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hph]
   · inext
     iunfold kdDmuInv
     iexists true, ip, M
     iframe Hcr Himg Himage Hmeta
+    iexists S, o, pz
     simp only [↓reduceIte]
-    itrivial
+    iframe Hcert Hph
+    ipureintro; exact HMok
   try wp_auto
   wp_apply wp_stop γ vs dir id r $$ [Hpend Hrd Htd Hsd] as Hvac
   · iunfold repStopper

@@ -23,8 +23,9 @@ predicates at kvdurable's structs (the model, `kvreconf.Base`'s pure definitions
   (`crash` takes it out with `crashed := true`), then the restarter.
 - **`dmu`'s lock invariant** (`kdDmuInv`, per incarnation): half of `crashed` (the other half, at
   `false`, is the crasher's token in `repStop`); the storage's image (`Storage.img`,
-  `ownImage`) holding the contents `M`, the `MemoryStorage`'s hard state `M`'s (`memStorMeta`); and,
-  while not crashed, the writer's half at `(S, o)`, `M`'s shape and snapshot certificate, and the
+  `ownImage`) holding the contents `M`, the `MemoryStorage`'s hard state `M`'s (`memStorMeta`);
+  while not crashed, the writer's half at `(S, o)`; and (also after the crash: the loop and the
+  snapshotter go on changing the storage until `stop`) `M`'s shape and snapshot certificate, and the
   pending batch (`KdPhase`): none (`M` holds `S`), a cut batch whose
   *enter* (`readyEnter`) has not fired (`M` holds the batch's durable state: `persist` fires it inside
   `durable.Write`'s atomic update, with its caller's share of `nodeRunning`), or one fired by the
@@ -411,9 +412,12 @@ def kdDmuInv (γ : KdNames) (id : w64) (r n st ms : Loc) (γs : MemStorNames) (p
     "#Himg" ∷ st.[KStorage, go!"img"] ↦□ ip ∗
     "Himage" ∷ ownImage ip M ∗
     "Hmeta" ∷ memStorMeta ms γs M.hs ∗
-    "Hlive" ∷ (if crashed then iprop(True) else
-      iprop(∃ (S : RaftState) (o : Option StorFile) (pz : KdPhase),
-        kdWriter γ id S o ∗ ⌜KdFileOk M⌝ ∗ kdSnapCert γ M.snap ∗ kdPhaseInv γ id n ph S M pz)))
+    -- (2026-11-01, stage II (h)) `M`'s shape, certificate and phase also after the crash (the run
+    -- loop and the snapshotter go on changing the storage until `stop`, and their changes' premises
+    -- are about `M`); only the writer's half leaves with the crash
+    "Hlive" ∷ (∃ (S : RaftState) (o : Option StorFile) (pz : KdPhase),
+      (if crashed then iprop(True) else kdWriter γ id S o) ∗ ⌜KdFileOk M⌝ ∗ kdSnapCert γ M.snap ∗
+      kdPhaseInv γ id n ph S M pz))
 
 /-- **The reads' sequence numbers** (`readSeqs`'s lock invariant): the last one issued, at least
 every replica's last read sequence number (`γ.r.rseq`, the elements of the ids `0..9`), which

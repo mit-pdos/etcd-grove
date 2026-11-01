@@ -184,13 +184,11 @@ theorem Replica.persist.wp_proof
     iframe Hrun
   · -- crashed: nothing written
     try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta]
+    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hlive]
     · inext
       iunfold kdDmuInv
       iexists true, ip, M
-      iframe Hcr Himg Himage Hmeta
-      simp only [↓reduceIte]
-      itrivial
+      iframe Hcr Himg Himage Hmeta Hlive
     try wp_auto
     iapply HΦ
     iframe Hrun
@@ -337,13 +335,11 @@ theorem Replica.persist.wp_proofRun
     iframe Hrun Hclaim HA
   · -- crashed: nothing written, the claim kept
     try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta]
+    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hlive]
     · inext
       iunfold kdDmuInv
       iexists true, ip, M
-      iframe Hcr Himg Himage Hmeta
-      simp only [↓reduceIte]
-      itrivial
+      iframe Hcr Himg Himage Hmeta Hlive
     try wp_auto
     iapply HΦ
     simp only [Bool.false_eq_true, ↓reduceIte]
