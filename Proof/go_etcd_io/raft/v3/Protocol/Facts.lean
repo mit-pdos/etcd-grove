@@ -932,8 +932,10 @@ private theorem durPers_init (γ : RaftNames) (id : w64) :
       have := Hk.2
       simp at this
   iframe Hinv
-  simp only [List.nil_append, List.take_nil]
-  iexact Hc0
+  isplitr
+  · simp only [List.nil_append, List.take_nil]
+    iexact Hc0
+  · imodintro; iintro -; iapply (BigSepM.bigSepM_empty).2; iempintro
 
 /-- (stage II helper) A fresh node's durable half at the initial state and its vacant slot, from
 its fresh authorities and slot: the slot invariant allocated with the other halves. -/
@@ -998,6 +1000,8 @@ private theorem slot_init (E : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNa
       iexists γv, γa, γc, γl, γe
       iframe Hv2 Ha2 Hc2 Hl2 He2
       ipureintro; exact ⟨Hγv, Hγa, Hγc, Hγl, Hγe⟩
+    isplitr
+    · simp only [DurMaps.empty]; iapply (BigSepM.bigSepM_empty).2; iempintro
     isplitr
     · ipureintro
       intro k hk

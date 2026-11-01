@@ -2239,6 +2239,36 @@ instance durFrags_persistent (γ : RaftNames) (id : w64) (W : DurMaps) :
     Persistent (durFrags (GF := GF) γ id W) := by
   unfold durFrags; infer_instance
 
+/-- (2026-11-01, durability stage II(d), approved repair 1) **An acknowledgement's leader**: `(t, i)`
+is `0`, or within a prefix `(bL, l)` of the term-`t` leader's log, at or above its base (which is
+the leader's base at its win, the same for every prefix of the term: `leadPrefix_base`), with its
+full log (`lpfull`). Stronger than `ackIn` by the base and the full log: what the restart's
+`ackAgree` of an acknowledgement in `(c, S.commit]` needs (`durPers_restart_acks`). Every step that
+makes an acknowledgement has it, from the leader's message or its own log; it is the pending
+acknowledgement's justification (`promNeed`), and the entered ones' are kept by the slot and
+`durPers`. -/
+def ackInF (γ : RaftNames) (t i : w64) : IProp GF :=
+  iprop(⌜uint.Z i = 0⌝ ∨ ∃ ldr bL l fp, leadPrefix γ ldr t bL l ∗ lpfull γ ldr t bL l fp ∗
+    ⌜uint.Z bL.index' ≤ uint.Z i ∧ uint.Z i ≤ plogLastIndexZ bL l⌝)
+
+instance ackInF_persistent (γ : RaftNames) (t i : w64) : Persistent (ackInF (GF := GF) γ t i) := by
+  unfold ackInF; infer_instance
+instance ackInF_timeless (γ : RaftNames) (t i : w64) : Timeless (ackInF (GF := GF) γ t i) := by
+  unfold ackInF; infer_instance
+
+/-- `ackInF` from a leader prefix holding a term at `i`. -/
+theorem ackInF_intro (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp : List EntryM) (i : w64) :
+    (plogTermAt bL l i).isSome →
+    ⊢ leadPrefix (GF := GF) γ ldr t bL l -∗ lpfull γ ldr t bL l fp -∗ ackInF γ t i := by
+  intro Hs
+  obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp Hs
+  have Hr := plogTermAt_some_range _ _ _ _ Hx
+  iintro #Hp #Hpf
+  unfold ackInF; iright
+  iexists ldr, bL, l, fp
+  iframe Hp Hpf
+  ipureintro; exact Hr
+
 /-- What minting `p` after the maps `W` needs, beyond the fragments: a vote's justification
 (`voteJust` without its `isVlog` and `voteEv`, which *enter* mints, and with the histories of
 `W`'s earlier acknowledgements, which `voteEv` asks of the vote-time log); a campaign record's
@@ -2249,7 +2279,7 @@ def promNeed (γ : RaftNames) (id : w64) (W : DurMaps) : Prom → IProp GF
       (⌜d = false⌝ ∨ ∃ ldr q, isWin γ ldr T q ∗ ⌜id ∉ q⌝) ∗
       dynOn γ (campDyn γ c T Fc) ∗
       ([∗map] k ↦ _u ∈ W.acks, ∀ (_ : uint.Z k.1 < uint.Z T), hist γ Fv k.1 k.2 (vbnd T d)))
-  | .ack _ _ => iprop(True)
+  | .ack T i => ackInF γ T i
   | .camp T F k => iprop(⌜CampOk T F ∧ uint.Z k ≤ plogLastIndexZ base0 F ∧
       γ.reBoot <+: F ∧ (γ.reBoot ≠ [] → 2 ≤ uint.Z T)⌝ ∗ isCommitted γ (F.take (uint.Z k).toNat))
 
@@ -2495,8 +2525,14 @@ def durPers (γ : RaftNames) (id : w64) (S : RaftState) (E : DurMaps) : IProp GF
       ackAgree γ S.base S.ents k.1 k.2) ∗
     commitIn γ (fp ++ S.ents) S.commit S.term ∗
     isCommitted γ ((fp ++ S.ents).take (uint.Z S.commit).toNat) ∗
-    raftCommitInv γ)
+    raftCommitInv γ ∗
+    -- (2026-11-01, stage II(d), approved repair 1) every acknowledgement's leader (`ackInF`), given
+    -- the maps' fragments (a pending one's justification needs them, `promJust`)
+    □ (durFrags γ id E -∗ [∗map] k ↦ _u ∈ E.acks, ackInF γ k.1 k.2))
 
+set_option synthInstance.maxHeartbeats 400000 in
+set_option synthInstance.maxSize 2048 in
+set_option maxSynthPendingDepth 4 in
 instance durPers_persistent (γ : RaftNames) (id : w64) (S : RaftState) (E : DurMaps) :
     Persistent (durPers (GF := GF) γ id S E) := by
   unfold durPers; infer_instance
@@ -2571,6 +2607,9 @@ def slotBody (γ : RaftNames) (id : w64) : IProp GF :=
   iprop(∃ (γs : SlotNames) (E : DurMaps) (g : Nat) (Mq : GMap Nat (Option RaftBatch)),
     ⌜γ.reSlot !! id = some γs⌝ ∗
     durShares γ id (1 : Qp).half E ∗ durFrags γ id E ∗
+    -- (2026-11-01, stage II(d), approved repair 1) the entered acknowledgements' leaders, for the
+    -- cut's `durPers`
+    ([∗map] k ↦ _u ∈ E.acks, ackInF γ k.1 k.2) ∗
     ghostVar γs.1 (1 : Qp).half (virtQ E (Mq !! g)) ∗
     ghostVar γs.2.2 (1 : Qp).half g ∗
     ghostMapAuth γs.2.1 1 Mq ∗ ⌜∀ k, (Mq !! k).isSome → k ≤ g⌝ ∗ ⌜(Mq !! g).isSome⌝ ∗

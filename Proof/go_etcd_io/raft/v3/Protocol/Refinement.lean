@@ -179,7 +179,7 @@ theorem padoptLeader_role (s : PState) (src : w64) : (padoptLeader s src).role =
 theorem ownLogGhost_ack_at (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps)
     (i T : w64) (HT : s.term = T) (Hnc : s.role ≠ .candidate)
     (Hli : s.role = .leader → uint.Z i ≤ plogLastIndexZ s.base s.log) :
-    ⊢ ackOk (GF := GF) γ s (s.term, i) -∗
+    ⊢ ackInF (GF := GF) γ T i -∗ ackOk γ s (s.term, i) -∗
       (∀ fp, ⌜FullOk s.base fp ∧ PlogWf s.base s.log⌝ -∗
          logRecs γ base0 fp -∗
          commitIn γ (fp ++ s.log) s.commit s.term -∗
@@ -563,6 +563,64 @@ theorem commitIn_ackIn (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp F : L
     unfold ackIn; iright
     iexists ldr, bL, l; iframe Hp; ipureintro; omega
 
+/-- (2026-11-01, durability stage II(d), approved repair 1) `commitIn_ackIn` with the leader's full
+log and the base (`ackInF`), given that the commit index is at or above the base of the given
+prefix (every prefix of the term has that base, `leadPrefix_base`). -/
+theorem commitIn_ackInF (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp F : List EntryM)
+    (c tm : w64) :
+    uint.Z tm ≤ uint.Z t → uint.Z bL.index' ≤ uint.Z c →
+    ⊢ votesTbl (GF := GF) γ -∗ leadPrefix γ ldr t bL l -∗ lpfull γ ldr t bL l fp -∗
+      commitIn γ F c tm -∗ votesTbl γ ∗ ackInF γ t c := by
+  intro Htm Hbc
+  iintro Htbl #Hp #Hpf #Hc
+  ihave #Hcj := commitIn_j γ F c tm $$ Hc
+  unfold commitJ
+  icases Hcj with (%H0 | ⟨%t', %n, %G, #Hq, %Hcn⟩)
+  · iframe Htbl
+    ihave #Hpf0 := Hpf
+    iunfold lpfull at Hpf0
+    icases Hpf0 with ⟨%F0, #Hc0, -, %Hpf0⟩
+    icases isCamp_boot γ ldr t F0 $$ Hc0 with %Hb0
+    have Hlen := (Hb0.1.trans Hpf0.2.1).length_le
+    have HL := full_last_index _ _ l Hpf0.1
+    unfold ackInF; iright
+    iexists ldr, bL, l, fp; iframe Hp Hpf; ipureintro
+    refine ⟨Hbc, ?_⟩
+    rw [← HL]; unfold plogLastIndexZ; rw [base0_index]; omega
+  obtain ⟨Hcn, Htt, -⟩ := Hcn
+  icases cq_base γ t' n G $$ Hq with ⟨%HGn, #HGl⟩
+  have Hn := (plogTermAt_some_range _ _ _ _ HGn).2
+  by_cases Hne : t' = t
+  · subst Hne
+    iunfold leadFull at HGl
+    icases HGl with ⟨%ldr', %bL', %l', %fp', #Hp2, #Hpf2, %HG⟩
+    subst HG
+    icases lpfull_fp $$ Hpf2 with ⟨-, %Hf2⟩
+    icases leadPrefix_base γ ldr ldr' t' bL bL' l l' $$ Hp Hp2 with %Hbb
+    subst Hbb
+    rw [full_last_index _ _ _ Hf2.1] at Hn
+    iframe Htbl
+    unfold ackInF; iright
+    iexists ldr', bL, l', fp'; iframe Hp2 Hpf2; ipureintro; omega
+  · have Hlt : uint.Z t' < uint.Z t := by
+      have : uint.Z t' ≠ uint.Z t := fun h => Hne (uint_Z_inj.mp h)
+      omega
+    ihave #HLf := leadFull_intro $$ Hp Hpf
+    icases leadFull_camp γ t (fp ++ l) $$ HLf with ⟨%ldr2, %F0, #Hl2, #Hc0, %Hpre⟩
+    icases leadFull_wf γ t (fp ++ l) $$ HLf with ⟨%HwL, #HrL⟩
+    icases isCamp_ok γ ldr2 t F0 $$ Hc0 with %Hcok
+    have Hcl := camp_last t F0 Hcok
+    icases lc_core γ ((uint.Z t).toNat + 1) t t' n G ldr2 F0 (fp ++ l)
+        (by have := uint_Z_nonneg t; omega) Hlt HwL.1
+        (by rw [plogTermAt_prefix _ F0 _ _ Hpre (by rw [Hcl]; rfl)]; exact Hcl)
+        $$ Htbl Hq Hl2 Hc0 HrL with %HnL
+    icases lpfull_fp $$ Hpf with ⟨-, %Hf⟩
+    have Hn' := (plogTermAt_some_range _ _ _ _ HnL).2
+    rw [full_last_index _ _ _ Hf.1] at Hn'
+    iframe Htbl
+    unfold ackInF; iright
+    iexists ldr, bL, l, fp; iframe Hp Hpf; ipureintro; omega
+
 /-- `Step.appStale` and `Step.snapStale`: learn the leader, adopt it, and acknowledge the
 commit index -- with the witness that it is within the leader's log (`commitIn_ackIn`, which
 reads the vote table out of the commit invariant: hence the fancy update, 2026-10-16). -/
@@ -594,6 +652,19 @@ private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState)
   iinv Hli with ⟨%P, HP, Hjust, >Htbl, Hwt, Hpo⟩ Hclose
   icases commitIn_ackIn γ m.src s.term bL lL fpL (fpw ++ s.log) s.commit s.term (Int.le_refl _)
     $$ Htbl Hp' Hpf' Hcom with ⟨Htbl, #HackIn⟩
+  -- (2026-11-01, stage II(d), repair 1) the acknowledgement's leader (`ackInF`) needs the commit
+  -- index at or above the leader's base (the base of every prefix of the term).
+  -- PORT(durability stage II): unprovable as stated. For `Step.appStale` it follows from the
+  -- message (`bL ≤ m.index`, its prefix holds `m.index`) and the rule's guard `m.index < s.commit`,
+  -- which `StepCF.appStale`/`StepR.appStale` have but `ownRaftGhost_step_app_stale` does not take.
+  -- For `Step.snapStale` nothing bounds it: the rule (`StepC.snapStale`, D22 S-b) also covers a
+  -- snapshot refused because the node is not in its `ConfState`, with `m.index > s.commit`, and the
+  -- leader's base (its snapshot index at its win) may be above the follower's commit. Such an
+  -- acknowledgement `(t, c)` with `c < bL` has no `ackAgree` once a restart lowers the commit below
+  -- `c` (every prefix of `t` has base `bL > c`), so `raft_restart`'s `acksOk` would fail on it.
+  have Hbase : uint.Z bL.index' ≤ uint.Z s.commit := by sorry
+  icases commitIn_ackInF γ m.src s.term bL lL fpL (fpw ++ s.log) s.commit s.term (Int.le_refl _)
+    Hbase $$ Htbl Hp' Hpf' Hcom with ⟨Htbl, #HackInF⟩
   imod Hclose $$ [HP Hjust Htbl Hpo Hwt] with -
   · inext
     iexists P
@@ -608,7 +679,8 @@ private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState)
     (by intro h; cases h) (by intro h; cases h) (by intro h; exact absurd h Hrole) rfl (fun h => h) $$ Hlg
   icases ownLogGhost_ack_at γ id (padoptLeader s m.src) (some m.src) (virt V πc)
     s.commit s.term rfl (by simp [padoptLeader]) (by intro h; simp [padoptLeader] at h)
-    $$ [] [] Hlg with ⟨Hlg, #Hj, #Hack⟩
+    $$ [] [] [] Hlg with ⟨Hlg, #Hj, #Hack⟩
+  · iexact HackInF
   · unfold ackOk
     iintro %H
     exfalso; exact absurd H.2 (Int.lt_irrefl _)
@@ -1261,8 +1333,12 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
     iframe % # ∗
   -- the self-acknowledgement of the new last index, pending (its message is self-addressed)
   icases ownLogGhost_ack_at γ id s2 (some id) (virt V πc) (plastIndex s2) s.term Hs2term
-      (by rw [Hs2role]; decide) (fun _ => by rw [HplZ2, HLs2]; exact Int.le_refl _) $$ [] [] Hlg
+      (by rw [Hs2role]; decide) (fun _ => by rw [HplZ2, HLs2]; exact Int.le_refl _) $$ [] [] [] Hlg
     with ⟨Hlg, #Hj, #Hack⟩
+  · rw [← Hs2term]
+    iapply ackInF_intro γ id s2.term s2.base s2.log fp _
+      (plogTermAt_in_range _ _ _ ⟨by rw [HplZ2, Hs2base]; omega, by rw [HplZ2, HLs2]; exact Int.le_refl _⟩)
+      $$ Hp2 Hpf2
   · unfold ackOk
     iintro %_
     unfold ackAgree
@@ -2688,7 +2764,9 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
             (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) }
       (some m.src) (virt V πc) lastnewi s.term rfl (by simp [padoptLeader])
       (by intro h; simp [padoptLeader] at h)
-      $$ [] [] Hlg with ⟨Hlg, #Hj, #Hack⟩
+      $$ [] [] [] Hlg with ⟨Hlg, #Hj, #Hack⟩
+  · iapply ackInF_intro γ m.src s.term bL l' fpL lastnewi
+      (Hagree lastnewi (by omega) (by omega)).2 $$ Hp' Hpf'
   · unfold ackOk
     iintro %_
     simp only [padoptLeader]
@@ -3202,8 +3280,12 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
     unfold plastIndex; rw [HLs', uint_Z_W64 _ (by omega) (by omega)]
   icases ownLogGhost_ack_at γ id (pappend s nw) kl (virt V πc) (plastIndex (pappend s nw)) s.term rfl
       (by show s.role ≠ .candidate; rw [Hrole]; decide)
-      (fun _ => by rw [Hpl, HLs']; exact Int.le_refl _) $$ [] [] Hlg with
+      (fun _ => by rw [Hpl, HLs']; exact Int.le_refl _) $$ [] [] [] Hlg with
     ⟨Hlg, #Hj, #Hack⟩
+  · rw [show s.term = (pappend s nw).term from rfl]
+    iapply ackInF_intro γ id (pappend s nw).term (pappend s nw).base (pappend s nw).log fp' _
+      (plogTermAt_in_range _ _ _ ⟨by show uint.Z s.base.index' ≤ _; rw [Hpl]; omega,
+        by rw [Hpl, HLs']; exact Int.le_refl _⟩) $$ Hp' Hpf'
   · unfold ackOk
     iintro %_
     unfold ackAgree
@@ -3358,7 +3440,8 @@ theorem ownRaftGhost_step_snap_fastfwd (γ : RaftNames) (id : w64) (s : PState) 
     rw [Htk]; iexact Hmcm
   icases ownLogGhost_ack_at γ id { padoptLeader s m.src with commit := m.index } (some m.src) (virt V πc) m.index s.term rfl
     (by simp [padoptLeader]) (by intro h; simp [padoptLeader] at h)
-    $$ [] [] Hlg with ⟨Hlg, #Hj, #Hack⟩
+    $$ [] [] [] Hlg with ⟨Hlg, #Hj, #Hack⟩
+  · iapply ackInF_intro γ m.src s.term bL l' fpL m.index (by rw [Hidx']; rfl) $$ Hp' Hpf'
   · unfold ackOk
     iintro %H
     exfalso; exact absurd H.2 (Int.lt_irrefl _)
@@ -3551,7 +3634,8 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
       { padoptLeader s m.src with
           base := entryID.mk m.logterm m.index, log := [], commit := m.index }
       (some m.src) (virt V πc) m.index s.term rfl (by simp [padoptLeader]) (by intro h; simp [padoptLeader] at h)
-      $$ [] [] Hlg with ⟨Hlg, #Hj, #Hack⟩
+      $$ [] [] [] Hlg with ⟨Hlg, #Hj, #Hack⟩
+  · iapply ackInF_intro γ m.src s.term bL l' fpL m.index (by rw [Hidx']; rfl) $$ Hp' Hpf'
   · unfold ackOk
     iintro %H
     exfalso; exact absurd H.2 (Int.lt_irrefl _)

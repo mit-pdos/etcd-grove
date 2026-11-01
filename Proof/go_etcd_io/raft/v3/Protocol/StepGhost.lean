@@ -588,7 +588,7 @@ carries until it is entered.) -/
 theorem ownLogGhost_ack (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps)
     (i : w64) (Hnc : s.role ≠ .candidate)
     (Hli : s.role = .leader → uint.Z i ≤ plogLastIndexZ s.base s.log) :
-    ⊢ ackOk (GF := GF) γ s (s.term, i) -∗
+    ⊢ ackInF (GF := GF) γ s.term i -∗ ackOk γ s (s.term, i) -∗
       (∀ fp, ⌜FullOk s.base fp ∧ PlogWf s.base s.log⌝ -∗
          logRecs γ base0 fp -∗
          commitIn γ (fp ++ s.log) s.commit s.term -∗
@@ -596,7 +596,7 @@ theorem ownLogGhost_ack (γ : RaftNames) (id : w64) (s : PState) (kl : Option w6
       ownLogGhost γ id s kl W -∗
       ownLogGhost γ id s kl (W.add (.ack s.term i)) ∗ promJust γ id W (.ack s.term i) ∗
       □ (durFrags γ id (W.add (.ack s.term i)) -∗ isAcked γ id s.term i) := by
-  iintro #Hk Hhnew H
+  iintro #Hai #Hk Hhnew H
   unfold ownLogGhost
   icases H with ⟨%γm, %terms, %fp, %γw, %wins, H⟩
   iNamed H
@@ -625,7 +625,7 @@ theorem ownLogGhost_ack (γ : RaftNames) (id : w64) (s : PState) (kl : Option w6
     iframe # ∗ <;> iframe %
   isplitr
   · unfold promJust promNeed
-    imodintro; iintro -; ipureintro; trivial
+    imodintro; iintro -; iexact Hai
   · unfold durFrags
     imodintro
     iintro ⟨-, #Ha, -⟩
@@ -1337,7 +1337,7 @@ theorem slot_open (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V
   unfold slotInv
   iinv Hslot with H Hclose
   unfold slotBody
-  icases H with ⟨%γs', %E, %g, %Mq, >%Hγs', >Hsh, #Hfr, >Hv', >Hg, >Hq, >%Hdom, >%Hcur, >%Hb⟩
+  icases H with ⟨%γs', %E, %g, %Mq, >%Hγs', >Hsh, #Hfr, #Hai, >Hv', >Hg, >Hq, >%Hdom, >%Hcur, >%Hb⟩
   rw [Hs] at Hγs'; cases Hγs'
   icases ghostVar_agree γs.1 V (1 : Qp).half _ (1 : Qp).half $$ Hv Hv' with %HV
   have Hle := slot_batch_le E Mq g Hb
@@ -1351,7 +1351,7 @@ theorem slot_open (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V
   · inext
     iexists γs, E, g, Mq
     isplitr; · ipureintro; exact Hs
-    iframe Hsh Hfr Hv' Hg Hq
+    iframe Hsh Hfr Hai Hv' Hg Hq
     ipureintro; exact ⟨Hdom, Hcur, Hb⟩
   imodintro; ipureintro; trivial
 

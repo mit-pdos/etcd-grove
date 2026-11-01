@@ -169,6 +169,47 @@ private theorem plog_rebase_eq (b1 b2 : entryID) (fp1 es1 fp2 es2 : List EntryM)
   · rw [← full_term_at b1 fp1 es1 i H1 Hi1, ← full_term_at b2 fp2 es2 i H2 Hi2, He]
   · rw [← full_last_index b1 fp1 es1 H1, ← full_last_index b2 fp2 es2 H2, He]
 
+/-- The justifications of a pending list, head and tail. -/
+theorem promsJust_cons (γ : RaftNames) (id : w64) (W : DurMaps) (p : Prom) (π : List Prom) :
+    promsJust (GF := GF) γ id W (p :: π) ⊣⊢ promJust γ id W p ∗ promsJust γ id (W.add p) π := by
+  unfold promsJust
+  exact BigSepL.bigSepL_cons
+
+/-- (stage II helper, 2026-11-01, approved repair 1) **The acknowledgements' leaders of a pending
+list's maps** (`ackInF`), given the fragments of maps above them: the entered ones' (given), and
+each pending acknowledgement's from its justification. -/
+theorem acksInF_virt (γ : RaftNames) (id : w64) (W : DurMaps) :
+    ∀ (π : List Prom) (V : DurMaps), PromsFresh V π → DurLe (virt V π) W →
+    ⊢ promsJust (GF := GF) γ id V π -∗
+      □ (durFrags γ id W -∗ [∗map] k ↦ _u ∈ V.acks, ackInF γ k.1 k.2) -∗
+      □ (durFrags γ id W -∗ [∗map] k ↦ _u ∈ (virt V π).acks, ackInF γ k.1 k.2)
+  | [], V, _, _ => by
+    iintro - #H
+    rw [virt_nil]; iexact H
+  | p :: π, V, Hfr, Hle => by
+    rw [PromsFresh_cons] at Hfr
+    obtain ⟨Hf1, Hf2⟩ := Hfr
+    rw [virt_cons] at Hle ⊢
+    have HleV : DurLe V W :=
+      DurLe_trans _ _ _ (DurLe_add V p Hf1) (DurLe_trans _ _ _ (DurLe_virt _ π Hf2) Hle)
+    iintro #Hj #H
+    icases (promsJust_cons γ id V p π).1 $$ Hj with ⟨#Hj1, #Hj2⟩
+    iapply acksInF_virt γ id W π (V.add p) Hf2 Hle $$ Hj2
+    imodintro
+    iintro #Hf
+    ihave #Hm := H $$ Hf
+    cases p with
+    | ack T i =>
+      iunfold promJust at Hj1
+      ihave #Hn := Hj1 $$ []
+      · iapply durFrags_mono γ id V W HleV $$ Hf
+      iunfold promNeed at Hn
+      rw [show (V.add (.ack T i)).acks = <[(T, i) := ()]> V.acks from rfl]
+      iapply (BigSepM.bigSepM_insert_elim (Φ := fun (k : w64 × w64) (_ : Unit) =>
+        ackInF (GF := GF) γ k.1 k.2) (m := V.acks) (i := (T, i)) (x := ())) $$ Hn Hm
+    | vote T c d Fv => rw [show (V.add (.vote T c d Fv)).acks = V.acks from rfl]; iexact Hm
+    | camp T F k => rw [show (V.add (.camp T F k)).acks = V.acks from rfl]; iexact Hm
+
 /-- (stage II helper) **The durable invariants at the cut**, from the volatile ones: the cut
 state `S'` has the node's term, vote and commit, and its full log (`DurFull`), with its base at
 most the commit; the acknowledgements of the term above the commit agree with the log -- a
@@ -179,9 +220,10 @@ theorem cut_durPers (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (
     uint.Z S'.base.index' ≤ uint.Z s.commit → VoteHistOk W.voted s →
     ⊢ (□ ∀ fp, ⌜FullOk s.base fp⌝ -∗ logRecs (GF := GF) γ base0 fp -∗ ⌜DurFull S' (fp ++ s.log)⌝) -∗
       leaderWit γ id s -∗ ownLogGhost γ id s kl W -∗
+      □ (durFrags γ id W -∗ [∗map] k ↦ _u ∈ W.acks, ackInF γ k.1 k.2) -∗
       ownLogGhost γ id s kl W ∗ durPers γ id S' W := by
   intro Ht Hv Hc Hbc Hvh
-  iintro #Hdf #Hlw Hlg
+  iintro #Hdf #Hlw Hlg #Hai
   -- a leader's own prefix, for its own acknowledgements
   ihave HL : iprop((□ (⌜s.role = .leader⌝ -∗ ∃ fpL, leadPrefix (GF := GF) γ id s.term s.base s.log ∗
       lpfull γ id s.term s.base s.log fpL)) ∗ ownLogGhost γ id s kl W) $$ [Hlg]
@@ -326,7 +368,7 @@ theorem cut_durPers (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (
       iframe Hp Hpf
       ipureintro; exact ⟨Hag.1, Hag.2.trans Hte⟩
   isplitr; · rw [Hc, Ht]; iexact Hcommit
-  iframe Hinv
+  iframe Hinv Hai
   rw [Hc, ← HF]; iunfold cprefix at Hcmt; iexact Hcmt
 
 /-- **The cut** (at a `Ready`, `InvRawnodeReady`'s handout, beside `ownRaftGhost_drain`): the outbox
@@ -379,8 +421,6 @@ theorem ownRaftGhost_cut (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {
     rw [virt_nil]
     iframe Hw
     ipureintro; intro h; exact absurd Hxd h
-  -- the batch's durable invariants
-  icases cut_durPers γ id s kl (virt V πc) S' Ht Hv Hc Hbc Hhist $$ Hdf Hlead Hlg with ⟨Hlg, #Hdp⟩
   icases rdOwn_drain γ id s o' out Hp $$ Hrd with ⟨Hrd, Hcr, Htk⟩
   -- the slot: the batch queued in the free generation
   iunfold slotLive at Hlive
@@ -393,7 +433,7 @@ theorem ownRaftGhost_cut (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {
   iunfold slotInv at Hsi
   iinv Hsi with H Hclose
   iunfold slotBody at H
-  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
+  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, #>Hai, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
   rw [Hsname] at Hγs'; cases Hγs'
   icombine Hl Hg0 gives %Hgg
   obtain ⟨-, Hgg⟩ := Hgg
@@ -405,6 +445,12 @@ theorem ownRaftGhost_cut (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {
   rw [HMq'] at HV
   simp only [virtQ] at HV
   subst HV
+  -- the batch's durable invariants (the acknowledgements' leaders: the entered ones' from the
+  -- slot, the pending ones' from their justifications)
+  ihave #HaiW := acksInF_virt γ id (virt V πc) πc V Hfresh (DurLe_refl _) $$ Hpend []
+  · imodintro; iintro -; iexact Hai
+  icases cut_durPers γ id s kl (virt V πc) S' Ht Hv Hc Hbc Hhist $$ Hdf Hlead Hlg HaiW
+    with ⟨Hlg, #Hdp⟩
   imod ghost_map_update (some ((S', virt V πc, V) : RaftBatch)) $$ Hq Hfr with ⟨Hq, Hpf⟩
   imod ghostVar_update_halves (virt V πc) γs.1 _ _ $$ Hvirt Hv0 with ⟨Hvirt, Hv0⟩
   imod Hclose $$ [Hsh0 Hv0 Hg0 Hq] with -
@@ -415,7 +461,7 @@ theorem ownRaftGhost_cut (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {
         some (some ((S', virt V πc, V) : RaftBatch)) := GMap.lookup_insert _ _ _
     rw [Hl0]
     simp only [virtQ]
-    iframe Hsh0 Hfr0 Hv0 Hg0 Hq
+    iframe Hsh0 Hfr0 Hai Hv0 Hg0 Hq
     ipureintro
     refine ⟨Hsname, ?_, rfl, fun b hb => ?_⟩
     · intro k hk
@@ -490,12 +536,6 @@ theorem EvSorted_prefix (L1 L2 : List Aev) : L1 <+: L2 → EvSorted L2 → EvSor
   have h2 := (List.getElem?_eq_some_iff.mp H2).1
   exact H p1 p2 e1 e2 Hlt (by rw [List.getElem?_append_left h1]; exact H1)
     (by rw [List.getElem?_append_left h2]; exact H2)
-
-/-- The justifications of a pending list, head and tail. -/
-theorem promsJust_cons (γ : RaftNames) (id : w64) (W : DurMaps) (p : Prom) (π : List Prom) :
-    promsJust (GF := GF) γ id W (p :: π) ⊣⊢ promJust γ id W p ∗ promsJust γ id (W.add p) π := by
-  unfold promsJust
-  exact BigSepL.bigSepL_cons
 
 private theorem auth_halves_q {K V : Type} [DecidableEq K] [Pos.Countable K] [Pos.Countable V]
     (γm : GName) (q : Qp) (m : GMap K V) :
@@ -741,7 +781,7 @@ theorem raft_enter (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (q :
   iunfold slotInv at Hsi
   iinv Hsi with H Hclose
   iunfold slotBody at H
-  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
+  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, #>Hai0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
   rw [Hγs] at Hγs'; cases Hγs'
   icombine Hl Hg0 gives %Hgg
   obtain ⟨-, Hgg⟩ := Hgg
@@ -759,17 +799,18 @@ theorem raft_enter (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (q :
   subst HE1
   ihave #Hdp0 := Hdp
   iunfold durPers at Hdp0
-  icases Hdp0 with ⟨%kd, %fp0, %Hp0, -, -, -, -, -, -, -, -, -, #Hci⟩
+  icases Hdp0 with ⟨%kd, %fp0, %Hp0, -, -, -, -, -, -, -, -, -, #Hci, -⟩
   have Hae : AcksEvs E0 := Hp0.2.2.2.1.2.2
   ihave #Hdp'' := Hdp'
   iunfold durPers at Hdp''
-  icases Hdp'' with ⟨%kd', %fp', %Hp', -, -, -, -, -, -, -, -, -, -⟩
+  icases Hdp'' with ⟨%kd', %fp', %Hp', -, -, -, -, -, -, -, -, -, -, #HaiW⟩
   have Hsort : EvSorted (virt E0 π).evs := by rw [← HW]; exact Hp'.2.2.2.1.1
   icases (durShares_combine γ id E0).1 $$ [Hsh0 Hsh1] with Hsh
   · iframe Hsh0 Hsh1
   imod mint_list (E \ ↑(slotN γ id)) γ id π E0 HlE Hfresh Hae Hsort $$ Hci Hsh Hfr0 Hj
     with ⟨Hsh, #HfrW⟩
   rw [← HW]
+  ihave #HaiW' := HaiW $$ HfrW
   icases (durShares_combine γ id W).2 $$ Hsh with ⟨Hsh0, Hsh1⟩
   imod ghost_map_update (none : Option RaftBatch) $$ Hq Hpf with ⟨Hq, Hfree⟩
   have HvQ : virtQ E0 (Mq !! g) = W := by rw [HMq']; rfl
@@ -781,7 +822,7 @@ theorem raft_enter (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (q :
     have Hl0 : (Mq.insert g (none : Option RaftBatch)) !! g = some none := GMap.lookup_insert _ _ _
     rw [Hl0]
     simp only [virtQ]
-    iframe Hsh0 HfrW Hv0 Hg0 Hq
+    iframe Hsh0 HfrW HaiW' Hv0 Hg0 Hq
     ipureintro
     refine ⟨Hγs, ?_, rfl, fun b hb => by cases hb⟩
     intro k hk
@@ -830,7 +871,7 @@ theorem durPers_rebase (γ : RaftNames) (id : w64) (S : RaftState) (Ed : DurMaps
   intro Hb1 Hb2 Hb3 Hbt
   iintro #Hd
   unfold durPers
-  icases Hd with ⟨%kd, %fp0, %Hp, #HrS, -, #Hfp0, #Hvl, #Hhs, #Hkl, -, #Hci, #Hc, #Hinv⟩
+  icases Hd with ⟨%kd, %fp0, %Hp, #HrS, -, #Hfp0, #Hvl, #Hhs, #Hkl, -, #Hci, #Hc, #Hinv, -⟩
   obtain ⟨Hvh, Hak, Hcp, Hev, HfullS, HwfS, Hterms, -, HcL⟩ := Hp
   have HwfF : PlogWf base0 (fp0 ++ S.ents) := full_wf _ _ _ HfullS HwfS
   ihave #HrF := logRecs_full γ S.base fp0 S.ents HfullS $$ Hfp0 HrS
@@ -1018,7 +1059,7 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) {m
   iunfold slotInv at Hsi
   iinv Hsi with H Hclose
   iunfold slotBody at H
-  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
+  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, #>Hai0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
   rw [Hγs] at Hγs'; cases Hγs'
   icombine Hl Hg0 gives %Hgg
   obtain ⟨-, Hgg⟩ := Hgg
@@ -1036,7 +1077,7 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) {m
   · inext
     unfold slotBody
     iexists γs, V, g, Mq
-    iframe Hsh0 Hfr0 Hv0 Hg0 Hq
+    iframe Hsh0 Hfr0 Hai0 Hv0 Hg0 Hq
     ipureintro; exact ⟨Hγs, Hdom, Hcur, Hb⟩
   -- the durable invariants, re-based at `b` and `c`
   icases durPers_rebase γ id S V b c Hb1 Hb2 Hb3 Hbt $$ Hdp with
@@ -1311,7 +1352,7 @@ theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} :
   iunfold slotInv at Hsi
   iinv Hsi with H Hclose
   iunfold slotBody at H
-  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
+  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, #>Hai0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
   rw [Hγs] at Hγs'; cases Hγs'
   icombine Hl Hg0 gives %Hgg
   obtain ⟨-, Hgg⟩ := Hgg
@@ -1329,7 +1370,7 @@ theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} :
   · inext
     unfold slotBody
     iexists γs, V, g, Mq
-    iframe Hsh0 Hfr0 Hv0 Hg0 Hq
+    iframe Hsh0 Hfr0 Hai0 Hv0 Hg0 Hq
     ipureintro; exact ⟨Hγs, Hdom, Hcur, Hb⟩
   -- the initial state's durable invariants: every promise at term `0`
   ihave #Hdp' := Hdp
@@ -1556,7 +1597,7 @@ theorem raft_stop (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {md : Bo
   unfold slotInv
   iinv Hslot with H Hclose
   unfold slotBody
-  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh, #Hfr, >Hv', >Hg', >Hq, >%Hdom, >%Hcur, -⟩
+  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh, #Hfr, #Hai, >Hv', >Hg', >Hq, >%Hdom, >%Hcur, -⟩
   rw [Hsname] at Hγs'; cases Hγs'
   ihave %Hgg := ghostVar_agree _ _ _ _ _ $$ Hgen Hg'
   subst Hgg
@@ -1577,7 +1618,7 @@ theorem raft_stop (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {md : Bo
     have Hl : (Mq.insert (g + 1) (none : Option RaftBatch)) !! (g + 1) = some none :=
       GMap.lookup_insert _ _ _
     rw [Hl]
-    iframe Hsh Hfr Hg' Hq
+    iframe Hsh Hfr Hai Hg' Hq
     isplitr; · ipureintro; exact Hsname
     isplitl [Hv']; · simp only [virtQ]; iexact Hv'
     isplitr
