@@ -322,6 +322,56 @@ theorem tw_End (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG))
       ipureintro; rfl
     iapply (mvcc.hookIs_split γw.st P f).2; iframe HhookOk Hfrag
 
+/-- **The KV's writer, opened at the watchable store** (the lease-revoke plan, R2, F4): the sole writer of the watchable
+store at the names its notified-log half holds (the store's `γ`), `X` of them (from a contract at
+every name set), the log's bounds (`soleLog`, fewer than `2 ^ 48` changes), and its closing at a
+`soleLog` log. -/
+theorem kvWriter_open (s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (hw : γ.watchQ = true)
+    (X : Loc → mvcc.WsNames → IProp GF) :
+    kvWriter s γ log ∗ □ (∀ (ws : Loc) (γw : mvcc.WsNames), mvcc.isWatchableStore ws s γw -∗ X ws γw) ⊢
+      ∃ (ws : Loc) (γw : mvcc.WsNames), ⌜γw.st = γ ∧ soleLog log ∧ mvcc.logCh log < 2 ^ 48⌝ ∗
+        X ws γw ∗ mvcc.watchWriter γw log ∗ mvcc.writerFrag γ ∗
+        (∀ log' : mvcc.Log, ⌜soleLog log'⌝ -∗ mvcc.watchWriter γw log' -∗ mvcc.writerFrag γ -∗
+          kvWriter s γ log') := by
+  iintro ⟨Hkw, #HX⟩
+  iunfold kvWriter at Hkw
+  icases Hkw with ⟨Hsw, Hwl, Hfrag⟩
+  iunfold soleWriter at Hsw
+  icases Hsw with ⟨#Hc, Htok, %Hs⟩
+  ihave #Hcs := mvcc.idxCert_sealed γ.idx log $$ Hc
+  ihave %Hsm := mvcc.idxSealed_small γ.idx log $$ Hcs
+  icases (wlogOwn_watch (GF := GF) s γ log hw).1 $$ Hwl with ⟨%ws, %γw, %hγ, #Hws, Hhalf, -⟩
+  subst hγ
+  iexists ws, γw
+  isplitr
+  · ipureintro; exact ⟨rfl, Hs.1, by have := Hs.2; omega⟩
+  isplitr
+  · iapply HX $$ Hws
+  isplitl [Htok Hhalf]
+  · iunfold mvcc.watchWriter
+    iframe Hc Hhalf
+    unfold mvcc.wBudget
+    unfold soleBudget
+    iexact Htok
+  iframe Hfrag
+  iintro %log' %Hs' Hww Hfrag
+  iunfold mvcc.watchWriter at Hww
+  icases Hww with ⟨#Hc', Htok', Hhalf'⟩
+  iunfold kvWriter
+  iframe Hfrag
+  isplitl [Htok']
+  · iunfold soleWriter
+    iframe Hc'
+    isplitl
+    · unfold mvcc.wBudget
+      unfold soleBudget
+      iexact Htok'
+    · ipureintro; exact ⟨Hs', Hs.2⟩
+  iapply (wlogOwn_watch (GF := GF) s γw.st log' hw).2
+  iexists ws, γw
+  iframe Hws Hhalf' Hc'
+  ipureintro; rfl
+
 end kv
 
 end txn

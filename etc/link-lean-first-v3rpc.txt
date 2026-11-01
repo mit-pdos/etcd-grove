@@ -64,6 +64,7 @@ headerFillingRangeStream__Send: header__fillWithoutRevision
 # then an axiom), over `utf8.word`.
 _KV_Put_Handler:
 _KV_Range_Handler:
+_KV_Compact_Handler:
 _KV_DeleteRange_Handler:
 _KV_Txn_Handler:
 # The auth plan's E3za: the generated handlers of the Auth service's five admin methods SetUp calls

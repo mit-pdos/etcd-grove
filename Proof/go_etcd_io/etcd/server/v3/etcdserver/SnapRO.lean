@@ -154,6 +154,38 @@ theorem lessorBeOn_lens (lp be : Loc) :
   iframe Hle
   iintro Hle; iexact Hle
 
+/-- **The server's rest resource lends the lessor's revocation its buckets** (the lease-revoke
+plan, 2026-10-31; `apply.isApplyLessor_of_lessorInv`'s lens): at the store's real backend `d` (its
+parameters naming the `Lease` bucket, tracked, with no hook keys: `leaseParams`, a boot fact), the
+tracked buckets' client half as the store's right `storeRb` and the lessor's half of `le.b`, given
+back at any buckets. -/
+theorem srvRestOwnH_lens_revoke (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = some d)
+    (hlp : mvcc.leaseParams d.P) (al ast lp cl : Loc) :
+    ⊢ □ (∀ rs : apply.RestM, srvRestOwnH (GF := GF) d.γB cl (srvObjsOn al ast lp cl d.be) rs -∗
+      ∃ d' : mvcc.KBReal, ⌜γ.kb = some d'⌝ ∗ mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d'.be ∗
+        (∀ bk, mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d'.be -∗
+          srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) { rs with bk := bk })) := by
+  iintro !> %rs Hro
+  iunfold srvRestOwnH at Hro
+  iunfold srvObjsOn at Hro
+  icases Hro with ⟨Hro, Hal, Hau, Hle, Hcb⟩
+  iunfold srvRestOwn at Hro
+  icases Hro with ⟨Hrb, Hmem⟩
+  iexists d
+  unfold mvcc.storeRb
+  rw [hk]
+  simp only [mvcc.kbRb]
+  isplitr
+  · ipureintro; trivial
+  iframe Hrb Hle
+  isplitr
+  · ipureintro; exact hlp
+  iintro %bk ⟨⟨Hrb, -⟩, Hle⟩
+  iunfold srvRestOwnH
+  iunfold srvObjsOn
+  iunfold srvRestOwn
+  iframe Hrb Hmem Hal Hau Hle Hcb
+
 /-- **The cluster `c`'s apply contract on whichever backend it is on** (persistent; D22 receiver
 epochs, S7e, 2026-10-23; `bootOk`'s, the bootstrap contract): for a real backend `d` (its
 contract at some `W`, `Pk`, its frozen post-lock hook `f`), the apply package's `isCluster` at `d`'s
@@ -256,10 +288,12 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
       apply.backendUnderQuota ∧ γr.raft.raft.snapLoc idm = some γd ∧
       (∀ f, dir f ≠ [] ↔ f ∈ ps) ∧
       -- (2026-11-01, J8a-1, item 7) the environment's facts `specSnap` takes: the snapshot files'
-      -- opens, the backend not compacting and its parameters, the store watchable, the rest
+      -- opens, the backend's compaction mode the environment's (the snapshot case's mode off gives
+      -- `specSnap`'s `d.cm = false`) and its parameters, the store watchable, the rest
       -- buckets' resource at this backend, the receipts' bound
-      storage.snapOpensOk ∧ d.cm = false ∧ mvcc.bridgeParams d.P ∧ ciKeys d.P ∧
-      storage.hooksParams d.P ∧ d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ E.γ.watchQ = true ∧
+      storage.snapOpensOk ∧ d.cm = E.cmp ∧ mvcc.bridgeParams d.P ∧ ciKeys d.P ∧
+      storage.hooksParams d.P ∧ d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ mvcc.leaseParams d.P ∧
+      E.γ.watchQ = true ∧
       E.RO = srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) ∧
       receiptBound GF ≤ backend.wbInit - 6⌝ ∗
     -- the configuration's fields the snapshot path reads, its feature gate
@@ -321,6 +355,25 @@ def srvKVCloser (s : Loc) (E : apply.AEnv GF) : IProp GF :=
       go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
     mvcc.wsCloser wsl E.s E.γ)
 
+/-- **The KV's closer without the compaction right** (M2's apply side, item 20; review round 1's
+F-6): off, `srvKVCloser`; on, the watchable store's own parts (its stop channel's close and its
+waiter), the inner store's compaction right being the apply thread's (`apply.cmpOwn` in
+`apply.applyKV`, A1). What `NewServer` hands out (in compaction mode after giving the right to the
+boot state). -/
+def srvKVCloserW (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  if mvcc.kbCmpM E.γ.kb then
+    iprop(∃ wsl : Loc,
+      srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
+      ∃ stc : Loc, wsl.[go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore, go!"stopc"] ↦□ stc ∗
+        mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl)
+  else srvKVCloser s E
+
+/-- Off, the closer. -/
+theorem srvKVCloserW_off (s : Loc) (E : apply.AEnv GF) (h : ¬ mvcc.kbCmpM E.γ.kb) :
+    srvKVCloserW (GF := GF) s E = srvKVCloser s E := by
+  unfold srvKVCloserW; simp only [h, ↓reduceIte]
+
 /-- **The snapshot path's own resources at the current backend** (D22 J1b, 2026-10-31; spatial):
 what `applySnapshot.specSnap` takes of the backend `E` is on (`E.γ.kb = some d`) and gives back at
 the new one (`srvSnapApplied`): the backend's stop channels and the constructors' half of its open
@@ -334,7 +387,7 @@ def srvSnapRes (s : Loc) (E : apply.AEnv GF) : IProp GF :=
     ⌜E.γ.kb = some d⌝ ∗
     backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half ∗
     srvAlarmStoreAddr s ↦□ al ∗ apply.alarmGetIs al Tal zal ∗ Tal ∗
-    srvKVCloser s E ∗
+    srvKVCloserW s E ∗
     srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.pathOwn (config.backendPathOf dd))
 
 /-- **What `NewServer` hands the snapshot path** (see the file header): the bundle at a fresh

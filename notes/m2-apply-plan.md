@@ -685,6 +685,11 @@ merge (the auth-mode merge, after the snapshot track's SNAPSHOT-SORRYs #7/#8) an
    three plain ones over the new invariant), `CompactMode.lean`'s family retired; the Probe's copies
    (`M2ApplyProbe.lean`) become today's lemmas.
 5. Item 14 (`NewServer.specD`) and `applyAll`/`run` stay blocked (Q4; the auth-mode merge).
+   **2026-10-31:** item 14 done. `applyAll`/`run` need nothing of M2 (their specs never mention the
+   mode; item 13 superseded): what is left is the auth-mode merge of their `spec`/`specOn`, which
+   rewrites the files the snapshot track (`snap-s1`, `snap-sorries`) is changing for #7/#8. The user
+   (2026-10-31): wait for `snap-s1` to land, then merge. `kvApplied`'s `crevOf` clause waits too (it
+   changes every `kvApplied` producer, the install and `run`'s loop among them).
 
 **Stage 1: done (2026-10-31).** Three findings of the Probe kind (the approved `Compaction.specD` was
 not provable over today's callees), each settled by the agent, reversible, for the user to review
@@ -792,7 +797,13 @@ the compaction arm (`notes/decisions.md`, "stage 4c"). **`srvEnvOkD` in place an
 `applyEntryNormal` (auth off) applying compaction entries (`ApplyCmpArm.lean`); the compaction's
 outcome the chain's and its error named (`notes/decisions.md`, "`srvEnvOkD` in place"). Left: lifting
 the restriction (restore in compaction mode, the collaborator's (b)), `kvApplied`'s `crevOf` clause,
-stage 5 (Q4, the auth-mode merge). (Before:) **Stage 4 is done but for what waits on
+stage 5 (Q4, the auth-mode merge). **`NewServer.specCompact`: proved (2026-10-31, branch
+`m2-newsc`)**: one proof over both compaction modes (`NewServer.wp_proofG`/`specG`), the post's
+closer `srvKVCloserW` (item 20 in place), the compaction's write-back stock (`srvCmpStock`, at `N`
+more tokens: `bootstrap`'s contract at `N + N` in the compaction chain), the compactor's run
+contract built in `start` from its views (`compactorRun`'s wand); `notes/decisions.md`,
+"`NewServer.specCompact` proved". **Item 14: done (2026-10-31, branch `m2-specd`)**: `NewServer.spec` in both
+modes (`notes/decisions.md`, "M2 item 14"). (Before:) **Stage 4 is done but for what waits on
 `srvEnvOkD`** (the snapshot track's, the collaborator's): `applyEntryNormal`'s compaction arm and
 `kvApplied`'s `crevOf` clause. Next: stage 5 (blocked: Q4, the auth-mode merge), or `NewServer.specD`
 (item 14) when Q4 is answered.

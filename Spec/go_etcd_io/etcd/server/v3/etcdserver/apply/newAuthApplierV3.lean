@@ -38,10 +38,10 @@ abbrev apply.newAuthApplierV3.spec : Prop :=
       -- (the auth plan's E3k) its store and lessor, read-only, and its structure (`authIs`)
       structFieldRef authApplierV3 go!"as" p ↦□ st ∗ structFieldRef authApplierV3 go!"lessor" p ↦□ le ∗
       □ (∀ E : AEnv GF,
-        apply.isAuthStore st E.γ E.P E.f E.RD E.authMode E.RW -∗ apply.isApplyLessor le E.s E.γ E.P E.f E.RW -∗
+        apply.isAuthStore st E.γ E.P E.f E.RD E.authMode E.RW -∗ apply.isApplyLessor le E.s E.γ E.P E.f E.RO E.RW -∗
         apply.authIs E p base) ∗
       □ (∀ (E : AEnv GF) (c : apply.Chain),
-        apply.isAuthStore st E.γ E.P E.f E.RD E.authMode E.RW -∗ apply.isApplyLessor le E.s E.γ E.P E.f E.RW -∗
+        apply.isAuthStore st E.γ E.P E.f E.RD E.authMode E.RW -∗ apply.isApplyLessor le E.s E.γ E.P E.f E.RO E.RW -∗
         apply.applierSpec E c base -∗
         apply.applierSpec E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p)) }}
 

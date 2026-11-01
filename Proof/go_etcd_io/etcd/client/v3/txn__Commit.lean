@@ -144,7 +144,8 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
   icases Hkv with ⟨%ms, #Hkv⟩
   iunfold isKvOf at Hkv
   icases Hkv with ⟨#Hko, #Hregs, #Hst, %Hm⟩
-  obtain ⟨Hn, Hr, Hrb⟩ := Hm
+  obtain ⟨Hns, Hr, Hrb⟩ := Hm
+  have Hn : ∀ x ∈ ms, x.γr.kv.st = γ.st := fun x hx => (Hns x hx).1
   ihave Hobj := txnObjAt_conn tp api addr (ms.map SrvAt.addr) ci cd b $$ [Hobj]
   · iframe Hobj; iframe #
   ihave #HK := srvStart_both ms $$ Hst

@@ -63,6 +63,9 @@ def srvWatchReaders (s : Loc) (E : apply.AEnv GF) (n : Nat) : IProp GF :=
 
 -- (D22 J1b, 2026-11-01) `srvKVCloser` moved to `SnapRO.lean` (`srvSnapRes` holds it).
 
+-- (2026-11-01, the merge of `lean`) `srvKVCloserW` moved to `SnapRO.lean` with `srvKVCloser`
+-- (`srvSnapRes` holds it).
+
 end defs
 
 end EtcdGrove

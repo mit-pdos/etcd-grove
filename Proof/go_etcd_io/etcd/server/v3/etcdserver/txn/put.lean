@@ -75,6 +75,7 @@ local macro "put_reply" vsl:term:max v:term:max l:term:max : tactic => `(tactic|
       $$ [$(frameH `Htx) $(frameH `Hks) $(frameH `HVS) $(frameH `Hlok)
         $(frameH `Hown)]
       as ⟨Htx, Hown⟩
+    · ipureintro; exact Hklen
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
@@ -119,7 +120,9 @@ theorem txn.put.wp_proof
   · iPkgInit
   iunfold txn.putRequestIs at Hp
   icases Hp with ⟨%Hpnn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #Hk, #Hks, #Hv, #Hvs, #Hl,
-    #Hpk, #Hiv, #Hil, -, %Ho, -⟩
+    #Hpk, #Hiv, #Hil, -, %Ho, %Hksl⟩
+  ihave %Hkl := ownSlice_len _ _ _ $$ Hks
+  have Hklen : (k.length : Int) < 2 ^ 63 - 1 := by rw [Hkl.1]; word
   wp_auto
   wp_apply (hGet ctx (some trace)) $$ [$Hct] as %t ⟨%Ht, %Hteq⟩
   subst t

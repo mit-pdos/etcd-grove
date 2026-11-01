@@ -51,6 +51,9 @@ storage_BackendHooks__OnPreCommitUnsafe: schema_MustUnsafeSaveConfStateToBackend
 # (D43 M5b′, 2026-10-26) `applyConfChange`'s `SetConfState`, with its body
 storage_BackendHooks__SetConfState: proto_CloneConfState
 batchTxBuffered__UnsafePut: @
+# (M2, 2026-10-31) the compacting store's backend contract's, for `NewServer` in compaction mode
+backend__LockForSafeRangeDelete: @
+backend__UnlockForSafeRangeDelete: @
 backend__ConcurrentReadTx: @
 backend__ReadTx: @
 backend__BatchTx: @
@@ -115,14 +118,24 @@ lease_lessor__Demote:
 # Revoke (unit T3, 2026-10-25): the lease's keys (`Lease.Keys`), sorted (`sort.StringSlice.Sort`,
 # the trust boundary: Perennial's `sort` has the type only), deleted through the store's range
 # deleter (mvcc's metrics/watchable write transaction), the lease's record deleted
-# (`schema.UnsafeDeleteLease`, names-only: the trust boundary). Not reached from NewServer: the
-# apply thread's `Revoke` clause is still vacuous (L3).
+# (`schema.UnsafeDeleteLease`, names-only: the trust boundary). Reached from NewServer since the
+# lease-revoke plan (2026-10-31): the apply thread's `Revoke` clause is derived of it.
 lease_Lease__Keys:
 sort_StringSlice__Sort:
 schema_UnsafeDeleteLease:
 mvcc_metricsTxnWrite__DeleteRange: @
 mvcc_watchableStoreTxnWrite__End: @
 lease_lessor__Revoke: lease_Lease__Keys sort_StringSlice__Sort schema_UnsafeDeleteLease mvcc_metricsTxnWrite__DeleteRange mvcc_watchableStoreTxnWrite__End
+# The lessor's listing for the lease read entry points (the lease-read plan, 2026-10-31):
+# `Leases` (read-locked `unsafeLeases`, then sorted by `Remaining()`) and its sorter. The trust
+# boundary: `sort.Sort` for a `Less` that answers anything (`Proof/sort/SortAnyLess.lean`, until
+# Perennial proves it).
+lease_Lease__Remaining: time_Time__IsZero
+lease_lessor__unsafeLeases:
+lease_leasesByExpiry__Len:
+lease_leasesByExpiry__Less: lease_Lease__Remaining
+lease_leasesByExpiry__Swap:
+lease_lessor__Leases: lease_lessor__unsafeLeases =EtcdGrove.sort.«Sort».wp_anyLess lease_leasesByExpiry__Len lease_leasesByExpiry__Less lease_leasesByExpiry__Swap
 schema_bucket__ID:
 schema_bucket__Name:
 schema_bucket__IsSafeRangeBucket:
@@ -301,6 +314,17 @@ EtcdServer__AuthInfoFromCtx: EtcdServer__AuthStore
 EtcdServer__requireAuthInfo: EtcdServer__AuthInfoFromCtx
 EtcdServer__checkMembershipOperationPermission: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
 EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum
+# the lease-keys plan's Part B (2026-10-31): the lease API's key checks (v3_server.go), a reader
+# of the auth store and of the lessor at lower bounds (`LeaseCheck.lean`); the entry points that
+# call them stay names-only
+EtcdServer__checkLeaseRenew: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore lease_lessor__Lookup lease_Lease__Keys
+EtcdServer__checkLeaseTimeToLive: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore lease_lessor__Lookup lease_Lease__Keys
+# The lease read entry points (the lease-read plan, 2026-10-31). The trust boundary:
+# `leaseTimeToLive` (names-only, a contract: the leader's re-lookup and the follower's forwarding).
+EtcdServer__leaseTimeToLive:
+EtcdServer__LeaseTimeToLive: EtcdServer__requireAuthInfo EtcdServer__checkLeaseTimeToLive EtcdServer__leaseTimeToLive EtcdServer__AuthStore
+EtcdServer__LeaseLeases: lease_lessor__Leases EtcdServer__checkLeaseLeases EtcdServer__newHeader
+EtcdServer__checkLeaseLeases: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore lease_Lease__Keys
 EtcdServer__MemberList: EtcdServer__requireAuthInfo RaftCluster__Members
 # the auth plan's A3, the API layer (2026-10-24): the Auth service's entry points (v3_server.go;
 # `AuthEntry.lean`): each is `raftRequest` on its request, taken as the contract `authRaftOk`
@@ -686,7 +710,7 @@ watchableStore__Close: @
 backend__SetTxPostLockInsideApplyHook: @
 EtcdServer__restoreAlarms: schema_NewAlarmBackend v3alarm_NewAlarmStore
 EtcdServer__NewUberApplier: EtcdServer__KV apply_NewUberApplier
-etcdserver_NewServer: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger__Warn v2stats_NewServerStats membership_RaftCluster__String v2stats_NewLeaderStats types_ID__String_ptr bootstrappedRaft__newRaftNode =srvApi_wp_Ready =srvApi_wp_Advance =srvApi_wp_Stop =srvApi_wp_Tick =srvApi_wp_ReadIndex types_URLs__StringSlice idutil_NewGenerator NewNotifier addFeatureGateMetrics prometheus_GaugeVec__With membership_RaftCluster__SetVersionChangedNotifier EtcdServer__Logger config_ServerConfig__ReqTimeout EtcdServer__FeatureEnabled time_Duration__Seconds_ptr math_Ceil lease_NewLessor auth_NewTokenProvider mvcc_New newCorruptionChecker mvcc_store__HashStorage schema_NewAuthBackend auth_NewAuthStore v3compactor_New EtcdServer__restoreAlarms EtcdServer__NewUberApplier EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook config_ServerConfig__PeerDialTimeout membership_RaftCluster__ID rafthttp_Transport__Start rafthttp_Transport__AddRemote rafthttp_Transport__AddPeer watchableStore__Close schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Promote lease_lessor__Demote lease_lessor__ExpiredLeasesC backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeCreateBucket =srvApi_wp_Propose EtcdServer__MemberID EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot consistentIndex__ConsistentIndex EtcdServer__ClusterVersion =srvApi_wp_MemSnapshot =srvApi_wp_ApplyConfChange =srvApi_wp_MemInitialState =srvApi_wp_MemLastIndex =srvApi_wp_MemFirstIndex =srvApi_wp_MemTerm =srvApi_wp_MemEntries =srvApi_wp_Step =srvApi_wp_ReportUnreachable =srvApi_wp_ReportSnapshot EtcdServer__Process EtcdServer__IsIDRemoved EtcdServer__ReportUnreachable EtcdServer__ReportSnapshot batchTxBuffered__UnsafeDelete
+etcdserver_NewServer: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger__Warn v2stats_NewServerStats membership_RaftCluster__String v2stats_NewLeaderStats types_ID__String_ptr bootstrappedRaft__newRaftNode =srvApi_wp_Ready =srvApi_wp_Advance =srvApi_wp_Stop =srvApi_wp_Tick =srvApi_wp_ReadIndex types_URLs__StringSlice idutil_NewGenerator NewNotifier addFeatureGateMetrics prometheus_GaugeVec__With membership_RaftCluster__SetVersionChangedNotifier EtcdServer__Logger config_ServerConfig__ReqTimeout EtcdServer__FeatureEnabled time_Duration__Seconds_ptr math_Ceil lease_NewLessor auth_NewTokenProvider mvcc_New newCorruptionChecker mvcc_store__HashStorage schema_NewAuthBackend auth_NewAuthStore v3compactor_New EtcdServer__restoreAlarms EtcdServer__NewUberApplier EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook config_ServerConfig__PeerDialTimeout membership_RaftCluster__ID rafthttp_Transport__Start rafthttp_Transport__AddRemote rafthttp_Transport__AddPeer watchableStore__Close schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Promote lease_lessor__Demote lease_lessor__ExpiredLeasesC backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeCreateBucket =srvApi_wp_Propose EtcdServer__MemberID EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot consistentIndex__ConsistentIndex EtcdServer__ClusterVersion =srvApi_wp_MemSnapshot =srvApi_wp_ApplyConfChange =srvApi_wp_MemInitialState =srvApi_wp_MemLastIndex =srvApi_wp_MemFirstIndex =srvApi_wp_MemTerm =srvApi_wp_MemEntries =srvApi_wp_Step =srvApi_wp_ReportUnreachable =srvApi_wp_ReportSnapshot EtcdServer__Process EtcdServer__IsIDRemoved EtcdServer__ReportUnreachable EtcdServer__ReportSnapshot batchTxBuffered__UnsafeDelete backend__LockForSafeRangeDelete backend__UnlockForSafeRangeDelete batchTxBuffered__UnsafePut mvcc_store__Rev EtcdServer__Compact lease_lessor__Revoke
 # (D22 S-f, 2026-10-19) opening a received database snapshot (server/storage/backend.go,
 # storage/InvOpen.lean): `OpenSnapshotBackend` with its body; the trust boundary: `OpenBackend`
 # (its goroutine can panic: `dbOpensOk`), the snapshotter's `DBFilePath`, `os.Rename` and the

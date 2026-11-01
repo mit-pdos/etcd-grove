@@ -30,7 +30,9 @@ reads (`putWireOf`; `kvOpStep`), persistent if the client's writes may be delive
 (`□?dup`); the error through `ContextError`:
 `nil` and the reply's message `m` with `Q σ` for the state `σ` the update fired at, the reply's
 revision `σ`'s next and its previous key-value the key's record in `σ`'s current store if asked,
-`σ` and the state after the put well-formed small logs' states (`kvLogOk`, D48); or a client error
+`σ` and the state after the put well-formed small logs' states (`kvLogOk`, D48), and the KV has
+reached the reply's revision (`kvRevLb`, persistent: what a later `Compact` takes; the client's
+`kv.Compact`, 2026-11-01); or a client error
 (`kvErr`) and no reply. The request fits a gRPC message (`opSizeOk`; 2026-10-30, `grpcInvokerOk`).
 -/
 abbrev kv.Put.spec : Prop :=
@@ -52,7 +54,8 @@ abbrev kv.Put.spec : Prop :=
           m.prev = (if (putWireOf (opPutModel key val opts)).base.prevKV then
             (σ.store.lookup (putWireOf (opPutModel key val opts)).key).map (KVRec.toKv (putWireOf (opPutModel key val opts)).key) else none) ∧
           σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ ∧
-          kvLogOk (kvOpStep (.put (putWireOf (opPutModel key val opts))) σ)⌝) ∨
+          kvLogOk (kvOpStep (.put (putWireOf (opPutModel key val opts))) σ)⌝ ∗
+        kvRevLb γ m.hdr.revision) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }}
 
 end spec

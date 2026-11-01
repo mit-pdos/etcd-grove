@@ -44,6 +44,8 @@ theorem apply.applierV3Corrupt.Put.wp_proof :
   · iapply apply.traceRes_null
   ihave #Hcls : apply.chainClass (GF := GF) E.authMode info (.corrupt c) rq (.rejected .corrupt) $$ []
   · iapply apply.chainClass_corrupt_rejected
+  ihave #Hlc : apply.chainLeaseClass (GF := GF) E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) (.corrupt c) rq (.rejected .corrupt) $$ []
+  · iapply apply.chainLeaseClass_corrupt_rejected
   iunfold apply.kvPostF
   iexists (.rejected .corrupt)
   isplitr
@@ -51,7 +53,7 @@ theorem apply.applierV3Corrupt.Put.wp_proof :
     refine ⟨?_, fun _ _ h => by cases h⟩
     simp only [apply.chainStep, apply.corruptRejects, Hk.2.1, ↓reduceIte]
   simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
-  iframe Hkv Hres Hcls
+  iframe Hkv Hres Hcls Hlc
   isplitl []
   · isplitl []
     · ipureintro; trivial

@@ -158,6 +158,18 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     2026-10-31: no duplicate. Candidate drafted locally, on hold for the user's security decision
     (etcd's `THREAT_MODEL.md` likely classes it a robustness defect): count nested txns' operations
     toward `--max-txn-ops` (`issues/upstream/etcd-txn-keysonly-reply-alloc-panic/`).
+16. **[etcd-lease-timetolive-keys-toctou](etcd-lease-timetolive-keys-toctou.md)** (2026-10-31):
+    with auth on, `LeaseTimeToLive` with `Keys` returns the names of keys attached to the lease after
+    its permission check (a second lookup, or the leader's over leasehttp), to a user who may not
+    read them; the revision re-check sees no auth change. An information leak of key names (not
+    values), across a permission line, so a candidate for etcd's private security process (the
+    user's decision, as item 1's). Reproduced with gofail on leader and follower; fix: check the
+    returned keys. Upstream not searched.
+17. **[etcd-leasehttp-timetolive-nil-response-panic](etcd-leasehttp-timetolive-nil-response-panic.md)**
+    (2026-10-31): a follower forwarding `LeaseTimeToLive` panics on a 200 reply without the
+    `LeaseTimeToLiveResponse` field (`leasehttp/http.go:274`); etcd's own handler always sets it, so
+    it takes a peer URL served by something else. A one-line nil check; low impact. Reproduced
+    (unit test). Upstream not searched.
 
 Also to file (2026-10-21, the last scan of the current batch):
 [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (a watch created with a

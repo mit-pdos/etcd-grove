@@ -28251,3 +28251,168 @@ backends. `srvSnapRO` carries it.
 
 A wrong turn on the way: `hrbw` was weakened to `receiptBound ≤ 2^48` (what `SnapApplyKV` needs),
 but the walk's backend swap (`srv_be_swap`) needs `receiptBound ≤ wbInit - 5`: reverted.
+
+## `lessor.Revoke` at its actual deletions (2026-10-31 · accepted, the user's approval of R1 · `notes/lease-revoke-plan.md`)
+
+**Context.** `lease.lessor.Revoke.spec` (proved, unit T3) took the certificates of *any* commit of
+deletions (`□ ∀ pend, ⌜all deletes⌝ -∗ certOkNext γ log pend`) and returned some sorted `ks` with
+the item map's keys of the lease. The apply chain certifies only the log its outcome model names
+(`certPre`); with the revocation's outcome exact (the lease-revoke plan's D1), nothing supplies the
+`∀`, and at the server it is false (the raft log certifies one log). The independent review's
+D3-1 (`notes/spec-review/lease-revoke-draft.md`).
+
+**Decision.** The deletions are named: `mvcc.leaseDels s id` (`mvcc/LeaseItems.lean`: the keys of
+`s` with lease `id`, none for `0`, in key order; `leaseDelKeys_mem`, `leaseDels_mem` its members).
+The premise is `□ certOkNext γ log (leaseDels (stateAfter log) id)`; the live case's post is at
+`commitLog log (leaseDels …)`, no `∃ ks`. The proof identifies the sorted item set with it
+(`leaseDelKeys_eq`: two strictly increasing lists with the same members are equal).
+
+**Why.** A weaker premise (one certificate) and a determined post: both stronger for every caller.
+The other `lessor.Revoke` (the client's, `Spec/go_etcd_io/etcd/client/v3/`) is a different function.
+
+## The server's backend names the `Lease` bucket: `leaseParams` a boot fact (2026-10-31 · accepted, the user's choice · `notes/lease-revoke-plan.md`)
+
+**Context.** The lease-revoke plan derives `isApplyLessor`'s `Revoke` clause of the real lessor
+(`apply.isApplyLessor_of_lessorInv`). `lessor.Revoke` deletes the lease's record from the `Lease`
+bucket through the store's batch transaction, whose right is `mvcc.storeRb γ` (for a real backend
+`d`: `backend.rbOwn d.γB r ∗ ⌜mvcc.leaseParams d.P⌝`, the table naming `lease`, tracked, no hook
+keys; leases L2d). The server lends it from its rest resource (`srvRestOwnH`: `rbOwn` at the model's
+buckets), so it needs `leaseParams d.P` of its backend. Nothing in hand gave it: `bootOk`'s backend
+facts were `bridgeParams`, `ciKeys`, `hooksParams` of `d.P`, and the snapshot path's backend
+(`EtcdServer.applySnapshot.specSnap`) has the boot backend's parameters (`d'.P = d.P`), with
+`bridgeParams` as a named premise (`hbr`). The leases plan had put it there ("`leaseParams` from
+the boot facts is L3's").
+
+**Decision.** `bootOk`'s `%Hbe` adds `mvcc.leaseParams d.P` (a premise of `NewServer.spec`), and
+`applySnapshot.specSnap` takes it as a named premise `hlp` beside `hbr`, carried to the new
+backend by `d'.P = d.P` (`srvSnapApplied_of_walk`, `snap_backendOptsOk`, `snap_isApplyLessor`).
+`SnapRO.lean`'s `srvRestOwnH_lens_revoke` is the lens. `NewServer.wp_proof` and the snapshot's
+proof take `lease.lessor.Revoke.spec` (proved, unit T3; `etc/link-lean-first-server.txt`).
+
+**Why.** A fact of the same kind as the three already there (the backend's bucket table), true of
+etcd: `NewLessor`'s `initAndRecover` creates the `Lease` bucket, which is tracked (D22), and the
+server's hooks write only `Meta`. Folding it into `bridgeParams` would change a definition every
+bridge lemma is stated in and mix the lessor's bucket into the KV store's bridge; leaving the server
+out would leave the branch unbuilt until L3c.
+
+## M2: `NewServer.specCompact` proved, over one proof in both compaction modes (2026-10-31, branch `m2-newsc`)
+
+The user: "yes, go ahead with specCompact", then on the plan "yes, go ahead with both" (switch D22's
+`srvWTPool`/`srvKVCloser` side as `srvEnvOkD` was, and build the compactor's run contract in
+`start`), then offline. The `sorry` of `NewServer.wp_proofCompact` is gone (trust base: one `sorry`
+fewer). For the collaborator to review where it touches the snapshot track (`srvKVCloserW` in the
+post, the compaction's supply).
+- **One proof, two modes** (`NewServer.wp_proofG on cmp`, `NewServer.specG`): `wp_proofM` (the
+  auth modes) generalized over the compaction mode, not copied (1700 lines); `wp_proofM` and
+  `wp_proofCompact` are its instances. The mode-dependent steps: the store at `{ d with cm := cmp }`
+  (`server_kv_watchable_ofM`, the storage Draft's `server_kv_watchable_ofD` made one lemma with
+  today's: on, the store's keys deletable and its backend contract the compacting one, a job reader
+  kept back, the right `crevRightM`), the error returns' closer (`wsCloserM_of_new`), the
+  compactor (a `wp_join` over `if num != 0`: on, `v3compactor.New` in revision mode, no error), the
+  post's closer and the apply thread's right (`srvKVCloserW_cmpRight_of_new`), the write-back
+  supply, the KV tie's mode law. `specG`'s mode premise is an `if cmp` (on: revision mode, positive
+  retention, auth off); item 14's `NewServer.specD` (Q4) can be read off it once both are wanted.
+- **The KV's closer without the right in the post (`srvKVCloserW`, item 20 in place)**, not the
+  Draft's `srvKVCloserM srv E (-1)`: since A1 the right is the boot `applyKV`'s (`cmpOwn`), so
+  `NewServer` splits the new store's closer at once. Off it is `srvKVCloser` (`srvKVCloserW_off`).
+- **The compaction's write-back supply: a stock of its own (`srvCmpStock`, `CmpSupply.lean`)**, not
+  `srvWTPool` restated: the apply thread's boot state needs `kbWTSupplyM` at `NewServer`, while the
+  pool is made by `start`, and the Draft's `kbWTSupplyM_of_srvWTPool` needs a discarded share of
+  `E.γbe`, which the pool's owners (bemu, the apply thread, the pool) do not leave. With no snapshot
+  in compaction mode (the interim restriction) the backend is never swapped, so a stock of the boot
+  backend's tokens, with receipts of its own, serves for good. **Its cost: `N` more tokens**, the
+  stock's separate receipt bound: `NewServer.specCompact` takes `bootstrap`'s contract at `N + N`
+  (`specG` at `N + if cmp then N else 0`), and the compaction chain with it (`newServer.specCompact`,
+  `StartCompactingServer.spec`, putgetc's premises, its adequacy's `n + n + 7 ≤ wbInit`). The
+  storage Draft's `srvWTStockInv` shares the pool's receipt counter, for a stock per backend across
+  swaps (restore in compaction mode, the collaborator's (b)); it would make the extra tokens
+  unnecessary only with the two supplies sharing one token count, which neither draft does.
+- **The compactor's run contract built in `start`** (the S4 problem: the run precondition's
+  contracts, the server's `Rev` and `Compact`, need the request and read views, which only `start`
+  builds): `compactorRun s E c` holds, besides the compactor's contract and run token, a wand from
+  the views (`isServerReq`, `isServerRead`, `idCred`, at any request names: `start` changes the wait
+  name) to the run precondition; `start` (auth off) builds its views before `Run`, `start` (auth
+  on) has no compactor (`compactorRun`'s run is auth off's). `NewServer` makes the wand from
+  `revGetterOk_server` (new, `CompactEnv.lean`: `s.kv`'s `Rev` over `srvRevLb`) and
+  `compactableOk_server`, with one reader slot of each kind (`srvCompactR`: the lead-time and `lgMu`
+  mutexes', the auth store's, the store's) and the boot log's certificate (`srvRevLb … 0`).
+- **Callees**: `NewServer.wp_proofCompact` takes `wp_proof`'s and the compacting server's own (the
+  compacting store's backend contract's `LockForSafeRangeDelete`, `UnlockForSafeRangeDelete`,
+  `UnsafePut`; the store's `Rev`; the server's `Compact`); putgetc's `MainLinked` links them by hand.
+
+## M2 item 14: `NewServer.spec` in both compaction modes, `specCompact` merged in (2026-10-31, branch `m2-specd`)
+
+The user, on `N + N`: "N + N is fine for now but later we may want to switch to one token count,
+go ahead with item 14" (Q4: merge once the compaction-on case is proved, done the same day).
+- **`NewServer.spec` is the Draft's `specD`**: the compactor off or on in revision mode at a
+  positive retention, the stand-in's mode the configuration's (`E₀.cmp = decide (retention ≠ 0)`),
+  the KV names' mode the stand-in's (`ρ.rd.kv.cmp = E₀.cmp`), `bootstrap`'s contract at
+  `N + if E₀.cmp then N else 0`; the post as before (the closer without the right, `srvKVCloserW`,
+  not the Draft's `srvKVCloserM … (-1)`: the previous entry). `NewServer.specCompact` and
+  `NewServer.wp_proofCompact` are gone; `NewServer.wp_proof` is `wp_proofG false E₀.cmp` and takes
+  the compacting server's five callees (the server's `Link.lean`, regenerated); putgetc's hand link
+  is gone (`wp_NewServer`). `specM` (auth on, the mode off) and `specG` (the general one) stay.
+- The examples' glue keeps `newServer.spec`/`newServer.specCompact` apart (the example-level
+  statements: the off examples' fixed `retention = 0`, putgetc's compacting start); both are over
+  the one `NewServer.spec` now.
+- Later (the user's): one token count for the write budget and the compaction's stock, in place of
+  `N + N`.
+
+## The client's `kv.Compact`: the KV's revision reached, one for the cluster (2026-11-01 · accepted, the user's approval of candidate 3 · branch `m2-kvcompact`)
+
+For `examples/compactkv` (a client compacting at the revision before its `Put`'s). Candidates and
+reviews: `.claude/skills/spec/examples/compact-client.md` (the approved spec and its history).
+
+- **The user's design (a), 2026-10-31**: the server keeps excluding `ErrFutureRev` by a premise
+  that the revision is reached; the client gets a persistent certificate from a `Put`'s reply.
+  Rejected (b): the server models `ErrFutureRev` as a no-op and `Compact` takes no revision premise
+  (stronger, but it reverses M2's approved server design).
+- **Cluster-wide, the user's (a1)**: review 1 found the first candidate's certificate (a member's
+  store's map `cok`, tied by `isKv`) unsatisfiable for a client of several members (one map per
+  member). `kvRevLb γk r` is a lower bound of the cluster's requested raft log (`SrvRaft.log`, one
+  per cluster; the new `KVNames.rlog`, tied by `kvInv`'s `γk.rlog = γ.raft.log`) whose KV model is
+  longer than `r`. It replaces `cmpReach` (`reqPropOk`'s compaction form; the commit step had
+  reduced `cmpReach` to it first). `kvSame` (two names of one cluster's KV) replaces `isKv`'s
+  state-name tie.
+- **Stage 1 (server side)**: `EtcdServer.Compact.spec` takes `kvRevLb ρ.rd.kv (W64 r)` in place of
+  `srvRevLb E.γ r` (weaker, so stronger); the compactor's glue converts (`kvRevLb_of_srvRevLb`:
+  `kvCert_of_srvRevLb`, `kvCert_reqLb`, the KV invariant's tie and `c0 ≤ ai0`). The tie sits in
+  `kvInv`'s pure part, last (review 2's N1: no new `NewServer` premise).
+- **A deviation from candidate 3**: the auth-on reply does not carry `kvRevLb`. The auth-on server's
+  KV model is `kvModelOn` (the bound, over `kvModel`, would say nothing there), compaction is in
+  scope only with auth off, and an auth-on client reaches `Put` through `kv.Put.specG`, not
+  `kv.Put.spec`; so the auth-off registration (`etcdPutSpec`) hands `kvRevLb` beside `putReplied`,
+  which stays unchanged (and with it `kvInvOn` and the auth-on registrations).
+- **Stage 3 (the `Compact` RPC), what the approved candidate missed, settled with the user**:
+  the server's handler (`kvServer.Compact`) reads the admin guard `aa`, which `NewKVServer.spec`'s
+  post did not export: the user chose "strengthen NewKVServer" (2026-11-01): `kvServerIs`/`kvServerAt`
+  carry `aa`'s field facts (no new premise: the server's auth facts come from the views,
+  `srvAuthAt_of_views`), and every server registers `Compact` (`kvRegsAt`, `etcdKVRegs`,
+  `v3rpc.kvRegs`; vacuous in mode off: the spec's precondition needs the compaction mode). Two
+  strengthenings of `EtcdServer.Compact.spec`'s post (`compactOutIs`), both true of the code: the
+  reply's log has at least two revisions (`store.Rev` called at the readers' first certificate),
+  so the header's revision is not `0` (the handler then keeps its store reader, `hdrRevIn`'s first
+  arm); the error arm's error is not `nil`. The no-options premise is `opts_sl = slice.nil`, what
+  goose passes for a call with no variadic arguments (candidate 3 said `len = 0`). The examples'
+  registration bundles (`common.etcdKVAt`, `linkv3p`'s `memberServed`/`memberAt`, `linkvtxn`'s
+  `Check` premises) gain `Compact`.
+
+## The lease read entry points: `LeaseTimeToLive` and `LeaseLeases` (2026-11-01 · accepted, the user's Freeze · `notes/lease-read-plan.md`)
+
+The user, at Freeze: "approved, freeze and start Prove". Frozen:
+- **`EtcdServer.leaseTimeToLive` a contract** (S1, "wrapper only"): the leader's re-lookup and the
+  follower's forwarding (`leasehttp.TimeToLiveHTTP`) stay untranslated; the axiom states a fresh
+  response with a header or an `applyErrIs` error, nothing of the lease, so the key check's TOCTOU
+  (`issues/etcd-lease-timetolive-keys-toctou.md`) is the spec's stated gap. Its assumption on the
+  peers (etcd's lease handler serves them) is in its docstring
+  (`issues/etcd-leasehttp-timetolive-nil-response-panic.md`).
+- **`sort.Sort` for any `Less`** (S2): the local axiom `sort.«Sort».wp_anyLess` (a permutation, at
+  most `2^62` elements), until Perennial proves it (`notes/perennial-changes.md`). Supersedes in part
+  the lease-keys plan's B4 ("names-only" for `Leases`).
+- **`isLeaseObj`** gains its `expiryMu` guard and a pool of that lock's reader slots (`Remaining`
+  read-locks it on any goroutine); `newHeader.spec` holds in either auth mode.
+- **The lease map's receipt** (a Probe finding): `lessorMu` holds the persistent `⧖ |M|`, raised by
+  `Grant`, so `|M| < receiptBound GF`; `lessor.Leases.spec` and `LeaseLeases.spec` take
+  `receiptBound GF ≤ 2^62` (the sort's bound). Not an axiom, and not a lease-count premise on the
+  callers: the bound is the execution's, which the closed results already bound. `⧖`, not `⧗`: the
+  lock's resource splits over read fractions, and only a persistent receipt does.

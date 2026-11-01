@@ -49,6 +49,7 @@ theorem srvSnapApplied_of_walk
     (hGrant : lease.lessor.Grant.spec (GF := GF) (hG := hG))
     (hCk : lease.lessor.Checkpoint.spec (GF := GF) (hG := hG))
     (hTTL : lease.Lease.TTL.spec (GF := GF) (hG := hG))
+    (hRv : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
@@ -73,6 +74,7 @@ theorem srvSnapApplied_of_walk
     (hwq : E.γ.watchQ = true)
     (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
     (hkI : mvcc.keyImage ([[], []] ++ R) D) (hbr : mvcc.bridgeParams d.P)
+    (hlp : mvcc.leaseParams d.P)
     (γp : GName) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
     (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat ai)
@@ -125,8 +127,9 @@ theorem srvSnapApplied_of_walk
   ihave #Hsrv' := snap_isServer s γ ci TM E ρ γr π0 d'.γB d.P d' p' g al ast lp cl rfl hkb' hcm' d hkb hcm $$ []
   · iframe #
   -- step 3: the new applier's options
-  ihave #Hbo' := snap_backendOptsOk hGL hAt hDt hSRD hLk hGrant hCk hTTL hMID hLead hTerm hFS hCIg
+  ihave #Hbo' := snap_backendOptsOk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg
     s γ ci TM E ρ γr π0 d'.γB d.P d' p' γw ws g opts' lg al ast lp cl rfl hkb' hγw hwq hgnn hoff
+    (by rw [hP']; exact hlp)
     ⟨ho1, ho2, ho3, ho4, ho5, ho6, ho7, ho11, ho12⟩ $$ []
   · iframe #
   -- step 4: the applier state

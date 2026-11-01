@@ -369,7 +369,11 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "%Hbe" ∷ ⌜bk.be' = interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be ∧
       mvcc.bridgeParams d.P ∧ ciKeys d.P ∧ storage.hooksParams d.P ∧
-      d.P.Wf ∧ d.P.limit = storage.openLimit cfg⌝ ∗
+      d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧
+      -- (the lease-revoke plan, 2026-10-31) the `Lease` bucket in the table, tracked, no hook
+      -- keys: what a revocation's deletions from it take (`mvcc.storeRb`)
+      mvcc.leaseParams d.P⌝ ∗
+
     -- (the integration with `construct`, 2026-10-17) what `backend.New` gives (item 6's
     -- `newPost`, at the server's batch-lock resources: its hooks the server's, so its
     -- `isBackend` names the apply protocol's batch lock), over bbolt's data `D` with an empty

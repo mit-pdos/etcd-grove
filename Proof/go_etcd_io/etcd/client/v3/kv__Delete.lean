@@ -130,7 +130,7 @@ theorem kv.Delete.wp_proof
     ipureintro; exact ⟨Ht, Hz⟩
   ihave Hout' : deleteCallOut (delStOk (deleteWireOf (opDeleteModel key gs)) Q) r.del' err
       $$ [Hout]
-  · have Heq : doOut (opDeleteModel key gs) (putStOk (putWireOf (opDeleteModel key gs)) Q)
+  · have Heq : doOut (opDeleteModel key gs) (putStOk γ (putWireOf (opDeleteModel key gs)) Q)
         (rangeStOk (rangeWireOf (opDeleteModel key gs)) Q)
         (delStOk (deleteWireOf (opDeleteModel key gs)) Q) r err =
         deleteCallOut (delStOk (deleteWireOf (opDeleteModel key gs)) Q) r.del' err := by

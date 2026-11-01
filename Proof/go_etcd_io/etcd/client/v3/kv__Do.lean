@@ -334,7 +334,8 @@ theorem kv.Do.wp_proof
   icases Hkv with ⟨%ms, #Hkv⟩
   iunfold isKvOf at Hkv
   icases Hkv with ⟨#Hobj, #Hregs, #Hst, %Hm⟩
-  obtain ⟨Hn, Hr, Hrb⟩ := Hm
+  obtain ⟨Hns, Hr, Hrb⟩ := Hm
+  have Hn : ∀ x ∈ ms, x.γr.kv.st = γ.st := fun x hx => (Hns x hx).1
   ihave #HK := srvStart_both ms $$ Hst
   ihave #HF := srvStart_idx ms $$ Hst
   iapply (kv.Do.wp_members wp_IsSortOptionValid wp_toRangeRequest wp_retry_Range wp_retry_Put
@@ -379,7 +380,7 @@ theorem kv.Do.wp_proof
   iapply HΦ
   iapply (doOut_mono o _ _ _ _ _ _ r err
     (fun _ m => rangeAns_st Hrb ms (W64 0) [] (rangeWireOf o) Q m)
-    (fun _ m => putAns_st Hrb ms [] (putWireOf o) Q m)
+    (fun _ m => putAns_st Hrb ms γ Hns [] (putWireOf o) Q m)
     (fun h1 h2 m => delAns_st Hrb ms [] (deleteWireOf o) Q m (hdz h1 h2))) $$ Hout
 
 end proof

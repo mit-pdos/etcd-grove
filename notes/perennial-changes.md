@@ -1361,3 +1361,43 @@ The receive counterpart of the previous entry: `applyAll`'s `select` on `msgSnap
 `chanBag_nbRecv : isChanBag γ ch P ⊢ (∀ v, P v -∗ Φ v true) -∗ nonblockingRecvAuInner γ Loc Φ`
 (`Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapSendBranch.lean`, generic). Proposed change: the
 lemma in `Bag.lean`, next to `bag_send_au` (with `bag_nb_send_au`).
+
+## A typed points-to's fraction validity (2026-10-31, lease-keys Part B)
+
+`typedPointsto l v dq` has value agreement (`typedPointsto_combine_sep_gives`, `⌜v1 = v2⌝`) but
+not the fractions' validity that the heap points-to's `CombineSepGives` gives
+(`⌜✓ (dq1 • dq2) ∧ v1 = v2⌝`): so a points-to owned whole and a read-only one of the same field
+cannot be shown to exclude each other. The lessor's `Grant` needs it: a fresh `*Lease` (its `ID`
+owned whole) is not one the item sets' map already has (each with `ID ↦□`). Worked around locally
+for a `w64` field (`w64_own_discard_false`, `Proof/.../lease/InvLessor.lean`: through the first
+byte's heap points-to). Proposed change: `TypedPointsto` gains (or derives, for the byte and heap
+instances) `typedPointstoDef l v1 dq1 ∗ typedPointstoDef l v2 dq2 ⊢ ⌜✓ (dq1 • dq2)⌝` for a
+non-empty representation, and `typedPointsto`'s `CombineSepGives` returns it with the agreement.
+
+## Strictly sorted lists with the same members are equal (2026-10-31, lease-revoke)
+
+`go.GoStringLt` (Perennial's order on Go strings, which `sort.StringSlice.Sort`'s model sorts by)
+has no law that two lists strictly increasing for it, with the same members, are equal. The
+lessor's `Revoke` needs it: the sorted item set it deletes is the lease's keys in key order
+(`mvcc.leaseDelKeys_eq`). Worked around locally (`eq_of_lt_sorted_mem`,
+`Proof/.../storage/mvcc/LeaseItems.lean`, from irreflexivity and transitivity). Proposed change: a
+general `List.eq_of_pairwise_lt_mem` for a strict order (in Perennial's list lemmas, or the
+`GoStringLt` instance of one), so that the local copy goes.
+
+## `sort.Sort` for a `Less` that answers anything (2026-10-31, lease-read)
+
+Perennial proves `sort.Sort` (`sort.wp_Sort`, over `sort.isSorter x own R`) only for a `Less` that
+agrees with a strict weak order `R`. The lessor's `Leases()` sorts with `leasesByExpiry`, whose
+`Less` compares `Remaining()`, read off the clock (and moved by `Renew`): it agrees with no fixed
+order, and the caller needs only the permutation. Go's `pdqsort` (`zsortinterface.go`) bounds every
+index it passes to `Less` and `Swap` by the slice's bounds, never by `Less`'s answers, so the
+permutation holds for any `Less`. Worked around locally by a trust-boundary axiom,
+`sort.Sort.wp_anyLess` (`Spec/sort/SortAnyLess.lean`: `sorterAnySpec`, a `Less` triple returning
+some boolean; the result a permutation), the user's choice (the lease-read plan's S2). Proposed
+change: a spec of `sort.Sort` (and of `pdqsort` and its helpers) for a sorter whose `Less` returns
+any boolean, the result a permutation of the whole slice; `wp_Sort` then adds sortedness for a
+strict weak order. Not `wp_Sort`'s induction without the order: with any `Less`,
+`partialInsertionSort`'s left shift runs down to index 1, not to the segment's start
+(`zsortinterface.go:218`, `j >= 1`), so it moves elements below the segment and the per-segment
+"outside unchanged" invariant fails; the proof needs a whole-slice invariant (every index in
+`[0, n)`, the list a permutation). The local axiom goes when it lands.
