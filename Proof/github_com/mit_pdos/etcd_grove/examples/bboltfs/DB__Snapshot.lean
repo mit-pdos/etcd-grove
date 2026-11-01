@@ -1,19 +1,17 @@
 /- Lean-first (no Rocq counterpart). The proof of `db.Snapshot()`.
 
-Proved: every error path (a failed handle; no mapping, `meta0 == nil`), and the success path up to
-the copy: the meta copied through the meta cells borrowed from the mapping's invariant
-(`meta_borrow`/`meta_return`, as in `DB__Get.lean`), `metalock` released, the deferred `RUnlock`
-pushed, with `pageIs` of the root page (`metaR`) and of the last committed page `pgid - 1`
-(`page_pageIs`) in hand. Not proved (`sorry`): from `make` on. What remains:
-- `make([]byte, (pgid+1)*4096)` (`wp_slice_make2`, `(pgid+1)*4096 ≤ 2^30` by `metaPagesOk`);
-- the racing `ReadAt` (`os.File.ReadAt.specRacy`) over the held ranges of those two pages' discarded
-  bytes, with the file and fd fractions of `mapRest`;
-- `err != nil && err != io.EOF`: comparing an `error` with `io.EOF` needs `eof`'s dynamic type to be
-  comparable, which `pkgFacts` does not say (an addition to `pkgFacts` may be needed);
-- `n ≥ pgid*4096`: the `io.EOF` clause at the last byte of page `pgid - 1`;
-- the root page's bytes in `out` are `B` (the held range), viewed from `out`'s slice points-to
-  (`bytesPointsto_ownSlice`) as a `Page` and a `uint64`, as in `Get`;
-- the deferred `RUnlock` with `mapR` rebuilt from the fields, `γm`'s share and the file fractions.
+Under `metalock`, as in `DB__Get.lean`: the meta copied through the meta cells borrowed from the
+mapping's invariant (`meta_borrow`/`meta_return`), with `pageIs` of the root page (`metaR`) and of
+the last committed page `pgid - 1` (`page_pageIs`) in hand; then `metalock` released, and the
+deferred `RUnlock` pushed. The copy is a racing `ReadAt` (`os.File.ReadAt.specRacy`) of
+`[0, (pgid+1)*4096)` into a fresh buffer, over the held ranges of those two pages' discarded bytes
+and `mmaplock`'s fractions of the file and its fd. Its error is `nil`, `io.EOF` or a `*PathError`.
+`err != io.EOF` compares two interface values: `io.EOF` is a pointer error (`pkgFacts`), so the
+comparison does not panic, and a `*PathError` is never `io.EOF`. With `nil` the read is whole; with
+`io.EOF` it reaches every held byte, the last byte of page `pgid - 1` included, so `n ≥ pgid*4096`
+and the panic never fires. The root page's bytes in the buffer are then exactly `B` (the held-byte
+clause), viewed as a `Page` (its `count`) and a `uint64` (its value), so the result is `dbTx` of the
+current transaction. The deferred `RUnlock` gives back `mmaplock`'s resource.
 -/
 module
 
@@ -52,7 +50,7 @@ theorem snap_add16 (x : w64) (hx : x.toNat * 4096 < 2 ^ 30) :
     sint.Z (x * W64 4096 + W64 16) = ((4096 * x.toNat + 16 : Nat) : Int) := by
   word
 
-set_option maxHeartbeats 1600000 in
+set_option maxHeartbeats 4000000 in
 theorem DB.Snapshot.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
     (wp_pageAt : pageAt.spec (GF := GF) (hG := hG))
     (wp_ReadAt : os.File.ReadAt.specRacy (GF := GF) (hG := hG)) :
@@ -320,7 +318,69 @@ theorem DB.Snapshot.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
             simp only [TypedPointsto.typedPointstoDef]
             iframe
           ihave Hbytes := Hpgb $$ Hpg
-          sorry
+          have hcnt : (pageHdrOf B).count' = (decode (List.take 2 (List.drop 2 (List.drop 8 (List.take 16 B)))) : w16) := rfl
+          generalize (decode (List.take 2 (List.drop 2 (List.drop 8 (List.take 16 B)))) : w16) = cnt at hcnt ⊢
+          by_cases hc : cnt = W16 1
+          · rw [decide_eq_true hc]
+            wp_auto
+            rw [hix, ite_cond_eq_true _ _ (eq_true ⟨by omega, by rw [hlenZ, Hl', Nat.add_mul]; omega⟩),
+              sliceIndexRef_byte _ _ Hpos (by omega)]
+            (try simp only)
+            icases bytesPointsto_view_read (V := w64) buf.ptr _ vs' (4096 * curRoot mp + 16)
+              (buf.ptr +ₗ ((4096 * curRoot mp + 16 : Nat) : Int)) rfl (by rw [Hl', Nat.add_mul]; omega) Hpos
+              $$ Hbytes with ⟨Hv, -⟩
+            rw [h8]
+            wp_auto
+            wp_apply sync.RWMutex.wp_RUnlock db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f' fd' p)
+              $$ [$Hrl $Hsync Hmap Hd H0 H1 Htok Hf Hfd] as Hrd
+            · iunfold mapR; iexists (some (base, len, γm)); iunfold mapBody
+              dsimp only [mapFields, mapRest]
+              isplitl [Hmap]; · iexact Hmap
+              isplitl [Hd H0 H1]; · iframe
+              isplitr; · ipureintro; exact Hbase
+              isplitl [Htok]; · iexact Htok
+              isplitr
+              · iunfold mapInv
+                isplitr; · ipureintro; exact Hlen
+                iexists γl; iexact HinvL
+              iframe
+            (try wp_auto)
+            iapply HΦ
+            isplitl [Hrd]
+            · iunfold dbReader; iexists f', fd', p; iframe; iframe #
+            ileft
+            isplitr; · ipureintro; exact ⟨rfl, Hle⟩
+            have hpv : pageVal B = some (decode (List.take 8 (List.drop 16 B))) := by
+              unfold pageVal; rw [hcnt, if_pos hc]
+            rw [if_pos rfl, ← hpv]
+            iunfold dbLast
+            iframe #
+          · rw [decide_eq_false hc]
+            wp_auto
+            wp_apply sync.RWMutex.wp_RUnlock db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f' fd' p)
+              $$ [$Hrl $Hsync Hmap Hd H0 H1 Htok Hf Hfd] as Hrd
+            · iunfold mapR; iexists (some (base, len, γm)); iunfold mapBody
+              dsimp only [mapFields, mapRest]
+              isplitl [Hmap]; · iexact Hmap
+              isplitl [Hd H0 H1]; · iframe
+              isplitr; · ipureintro; exact Hbase
+              isplitl [Htok]; · iexact Htok
+              isplitr
+              · iunfold mapInv
+                isplitr; · ipureintro; exact Hlen
+                iexists γl; iexact HinvL
+              iframe
+            (try wp_auto)
+            iapply HΦ
+            isplitl [Hrd]
+            · iunfold dbReader; iexists f', fd', p; iframe; iframe #
+            ileft
+            isplitr; · ipureintro; exact ⟨rfl, Hle⟩
+            have hpv : pageVal B = none := by
+              unfold pageVal; rw [hcnt, if_neg hc]
+            rw [if_neg Bool.false_ne_true, ← hpv]
+            iunfold dbLast
+            iframe #
       · wp_auto
         by_cases hT : go.GoType.PointerType _root_.Perennial.io.fs.PathError.ty = go.GoType.PointerType T
         · rw [ite_cond_eq_true _ _ (eq_true hT)]
