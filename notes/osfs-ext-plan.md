@@ -827,3 +827,50 @@ Done (no `sorryAx`; axioms `propext`, `Classical.choice`, `Quot.sound` plus goos
 
 Next: decide gap 1, then fix 1–3 (`goodImg`, `commitClean`, the obligations, `Open.specCrash`'s
 `freshTx` facts), which discharges `Hprem`; then 4.
+
+### minibolt's crash proof, round 8 (2026-11-01, branch `osfs-mbcrash`)
+
+`origin/lean` not merged (Perennial pin still `2130bdb99`).
+
+Done (no `sorryAx`; `#print axioms bootCrashSafety`: `propext`, `Classical.choice`, `Quot.sound`
+and goose's opaque declarations, `.underlying`/`.zero_val`/`.init`, as in round 7):
+- **`DB.init`'s two proofs** for the Go fix of `154786d32a` (meta 1 at 4096, synced, then meta 0
+  at 0, synced). `DB__init.lean`: the buffer's first 8192 bytes split with `ownSlice_split` at
+  4096; the file split in three around page 1. `DB__initCrash.lean`: `narrow_mid` (a write inside
+  the file read back), `map_clean_getElem`; both theorems need `set_option maxRecDepth 20000`.
+- **`goodImg`'s committed case has `txOk`** (`CrashGood.lean`: `1 ≤ txid ∧ txid < curPgid`);
+  `goodImg_freshTx_tx` gives `1 ≤ t < n ∧ (n + 1) * 4096 ≤ 2 ^ 30` for `freshTx`.
+  `goodImg_cur` takes `1 ≤ X.txid` and `X.txid < X.pgid`.
+- **`init`'s states in two phases** (`CrashImg.lean`): `initMid ph` (`ph = false`: meta 1 being
+  written at `4096 * initSlot false`, slot 0 clean and zero; `true`: meta 0 at 0, slot 1 clean
+  and `init`'s meta 1: `initOrd`), `goodImg_init` with `h01` (slot 0 valid only with slot 1:
+  `curMeta_init1`, the current meta is meta 1, txid 1). `initW_good/okS/reach/obl`, `initWData`
+  (the data's slot is `initBytes`'s), `initW_done` (after a meta write: slots, page 3, and
+  `initOrd true` for the next sync), `initMid_synced`/`initSync_ok` take `ph` and `initOrd ph` of
+  the clean bytes.
+- **`commitClean.tx : txOk`** (last field), **`commitMetaSt.tx`** (after `metaS`) and
+  **`commitMetaSt.nTxPg`** (after `nRootPg`); `init_commitClean`, `start_commitClean`
+  (`committedImg` has `txOk`), `commitClean_of_prefix`, `commitMetaSt_of`,
+  `metaSynced_commitClean` (new premise `txOk mp'`), `metaS_facts` (new premise
+  `mv.txid < hwm`, from `hcc4.tx`).
+- **`bootPremises`** is now only `(n + 2) * 4096 ≤ 2 ^ 30`; `wp_BootMinibolt` gets `1 ≤ t` and
+  `t + 1 < 2 ^ 64` from `goodImg_freshTx_tx`.
+- **`BootCrashSafety` takes `n + 2 ≤ 2 ^ 30`** (`BootP1.lean`), `Hlive` dropped:
+  `bootCrashSafety` uses `RealCrashThreadsBelow.of_single` (`T = n + 2`). Why not a proof that the
+  boot program forks no thread: `RealCrashThreadsBelow` is a property of every reachable
+  configuration of the real semantics (no `Fork` redex through every function `FuncResolve`/
+  `MethodResolve` reach, every closure in the heap, every external step's result); there is no
+  proof device for it, and the adequacy theorem does not derive the thread bound from the proof's
+  thread tokens (that would be a new Perennial adequacy theorem). `Open` needs `ThreadBoundLe GF
+  (2 ^ 30)` for `mmaplock`'s reader pool.
+
+**Left (decision 2, blocked on the Go code):** `Hprem : ∀ fo, Good fo → bootPremises fo`, i.e.
+`(n + 2) * 4096 ≤ 2 ^ 30`, is false for long runs. `Good` gives `(n + 1) * 4096 ≤ 2 ^ 30`; at that
+bound `commit` computes `minsz = (n + 2) * 4096 > 2 ^ 30`, `mmap(minsz)` maps `mmapSize(minsz) =
+2 ^ 31` (no cap in `mmapSize`), and `db.grow` truncates the file to `2 ^ 31`; the model's `Mmap`
+(any `len > 0`) and `ftruncate` succeed, as Linux does. The new meta has `(pgid + 1) * 4096 >
+2 ^ 30` and the file exceeds 1 GiB: not `goodImg` (`img.length ≤ 2 ^ 30`, `metaPagesOk`). Dropping
+the premise from `DB.Commit.spec`/`DB.commit.spec` therefore needs a check in Go, e.g. in
+`commit`, `if minsz > maxMapSize { return errFull }` (1 GiB), before `mmap`; then the specs can
+allow that error result and `bootPremises` goes. Nothing else is assumed besides `Hinit_wp` and
+the `os.file`/`os.fileStat` field instances.
