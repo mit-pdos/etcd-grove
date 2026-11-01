@@ -34,7 +34,10 @@ returned; and for `0` a hash stored for revision `0`, by a compaction at `0`, is
 current revision's: `issues/etcd-mvcc-hashbyrev-zero-stored.md`.) A share of the store's open
 token: a stored hash is answered with the current revision read under `revMu` only, which a
 concurrent `Restore` sets to `1` for a while (`issues/etcd-mvcc-hashbyrev-restore-rev1.md`; round
-6). Its value rests on crc32's (`kvHasher`'s trust boundary). -/
+6). The margin: etcd's periodic corruption check, its peers' `/members/hashkv`
+handler and the maintenance `HashKV` call it with nothing that excludes a snapshot's `Restore`,
+so until the Go code is fixed a proof of etcd's server has restores or concurrent hash checks, not
+both (the user's decision, `notes/mvcc-api-candidate.md`). Its value rests on crc32's (`kvHasher`'s trust boundary). -/
 abbrev mvcc.hashStorage.HashByRev.specC : Prop :=
   ∀ (hs : Loc) (γ : mvcc.MvccName) (q : Qp) (rev : w64) (Q : mvcc.MvccState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isHashStorage hs γ ∗ mvcc.mvccOpen γ q ∗ threadTok ∗

@@ -461,9 +461,17 @@ abbrev isMvcc_views.law : Prop :=
 abbrev mvccNotified_nil.law : Prop :=
   ∀ γ σ, ⊢ mvccNotified (GF := GF) γ σ []
 
-/-- **A restored state is reachable** (its backend's creator says so). -/
+/-- **A restored state is reachable**, and its revisions fit as every state's do
+(`mvccState_reachable`; a restored history consumed no time receipts here, so its backend's
+creator says so). -/
 abbrev mvccRestorable_reachable.law : Prop :=
-  ∀ γ b σ', mvccRestorable (GF := GF) γ b σ' ⊢ ⌜MvccReachable σ'⌝
+  ∀ γ b σ', mvccRestorable (GF := GF) γ b σ' ⊢ ⌜MvccReachable σ' ∧ σ'.log.length < 2 ^ 62⌝
+
+/-- **A hash depends only on the history up to its revision** (what `mvccHashOk_state` needs of
+`mvccHashOf`, whatever its definition). -/
+abbrev mvccHashOf_prefix.law : Prop :=
+  ∀ (L L' : Log) (lo hi : Int), L <+: L' → hi < (L.length : Int) →
+    mvccHashOf L lo hi = mvccHashOf L' lo hi
 
 /-- **A hash of the store is of its history**: a hash it gave or stored is of the revisions
 `(CompactRevision, Revision]` of every later state's history (histories only grow). -/

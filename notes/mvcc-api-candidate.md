@@ -187,6 +187,14 @@ its read races (the candidate holds once the issue's fix is in, or a trust-bound
 then). Open (noted): a compaction the new backend left unfinished is resumed by `restore`, with no
 contract for its hook and commit yet (the backend boundary).
 
+## Round 7 (the review of round 6)
+
+Round 6's repairs sound, no new defect. Two laws added: `mvccHashOf_prefix` (a hash depends only
+on the history up to its revision, which `mvccHashOk_state` needs of whatever defines
+`mvccHashOf`), and the restored state's length bound in `mvccRestorable_reachable`. The review
+showed `HashByRev`'s open-token share cuts three of etcd's callers off from concurrent restores:
+decision 10 below. Not reviewed again (two laws and a docstring).
+
 ## Decisions for the user (new client-owned ghost state and premises)
 
 The skill's policy: each new premise or client-owned ghost state on a spec with clients is the
@@ -221,8 +229,17 @@ user's decision. Today's statement beside the candidate's:
    Today: `Store` takes nothing (`hashStorageOk`), and no spec says what `HashByRev` returns.
    Alternative: no premise, and `HashByRev` promises a hash of the store only when none was stored
    for the revision.
-9. **`Restore`'s atomic precondition on a watched store**: the new state extends the history and
-   is announced. Today: `store.Restore.spec` (D22) takes the server's snapshot machinery.
+9. **`Restore`'s atomic precondition**: the new state extends the history and keeps the
+   compaction revision (both modes), and on a watched store is announced. Today:
+   `store.Restore.spec` (D22) takes the server's snapshot machinery.
+10. **`HashByRev` excludes a concurrent `Restore`** (a share of the open token, which `Restore`
+    takes whole), because the Go code returns current revision `1` during a restore
+    (`issues/etcd-mvcc-hashbyrev-restore-rev1.md`). Consequence for etcd's server: its periodic
+    corruption check (`corrupt.go:180, 193`), its peers' `/members/hashkv` handler (`:550`) and the
+    maintenance `HashKV` (`maintenance.go:243`) cannot hold a share while `applySnapshot` restores,
+    so until the Go code is fixed its proof has restores or concurrent hash checks, not both.
+    Alternative: no share, and `HashByRev`'s current revision stated only as "a revision the store
+    had, or `1`" (a weaker spec true of today's code).
 
 Dropped premises (each today's, none needed by the code under the candidate's ownership): the
 reader tags `Z` (always `True`), `crevLb` floors, `NoDelPutAt` (already gone in M2 on `lean`),

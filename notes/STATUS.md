@@ -514,9 +514,9 @@ tester, designed with the `spec` skill (`notes/mvcc-api-candidate.md`). A vocabu
 `mvccState γ σ`, opaque predicates, laws stated as `<name>.law : Prop`) and 43 candidate specs
 `<F>.specC` beside today's `<F>.spec` (mvcc's whole client-facing API): reads fire the caller's atomic update at the state they
 read, write transactions are pinned to their state and commit by the caller's update, watch events
-come from logs the client announced. Six rounds: five reviews (`spec-reviewer`), and the user's
+come from logs the client announced. Seven rounds: six reviews (`spec-reviewer`), and the user's
 critique that an unsound candidate is replaced, not dropped (a principle of the `spec` skill now);
-they typecheck, nothing proves them, no proof uses them; nine decisions are the user's (the note's
+they typecheck, nothing proves them, no proof uses them; ten decisions are the user's (the note's
 list). Found on the way: `issues/etcd-mvcc-watch-negative-start-rev.md`,
 `etcd-mvcc-hash-currentrev-race.md`, `etcd-mvcc-hashbyrev-zero-stored.md`,
 `etcd-mvcc-hashbyrev-restore-rev1.md` (each reproduced).
