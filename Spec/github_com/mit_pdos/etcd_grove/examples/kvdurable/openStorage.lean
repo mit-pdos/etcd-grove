@@ -4,7 +4,7 @@
 bytes `encode` wrote of contents `f` that `openStorage` accepts (`KdFileOk`), `good` and a new,
 registered storage, detached (`memStorFresh`: no node reads it yet) and holding `f`'s contents
 (`kdContents (some f)`: its compaction point at the log's start, the entries after it, the end, the
-snapshot, the hard state and its copy), with its bootstrap conf state `boot`: what `Cluster.start`
+snapshot, the hard state), whose image holds `f`, with its bootstrap conf state `boot`: what `Cluster.start`
 hands `RestartNode` (`restartStorage`, through the storage's frame).
 -/
 module
@@ -39,10 +39,10 @@ abbrev openStorage.spec : Prop :=
       b ↦*{dq} encStor f }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kvdurable.openStorage)) (Val #bp)) (Val #b))
   {{ (s : Loc) (good : Bool), RET (PairV #s #good); ⌜good = true⌝ ∗
-      ∃ (ms hsp : Loc) (γs : MemStorNames) (e0 : EntryM),
+      ∃ (ms ip : Loc) (γs : MemStorNames) (e0 : EntryM),
         kdStorRec s ms γs ∗ kdStorBoot s bp boot ∗ memStorLock ms γs ∗
         memStorFresh ms γs (uint.nat f.prev) (if f.snap.Metadata'.Index' = W64 0 then memSnapEmpty else f.snap) ∗
-        memStorMeta ms γs f.hs ∗ s.[KStorage, go!"hs"] ↦ hsp ∗ hsOpt hsp f.hs ∗
+        memStorMeta ms γs f.hs ∗ s.[KStorage, go!"img"] ↦□ ip ∗ ownImage ip f ∗
         ⌜e0.Term' = f.prevTerm⌝ ∗ memLog γs (uint.nat f.prev) DFrac.discard [e0] ∗
         memLog γs (uint.nat f.prev + 1) (DFrac.own 1) f.ents ∗
         memEnd γs (uint.nat f.prev + f.ents.length + 1) ∗

@@ -4,8 +4,8 @@ Lean-first (no Rocq counterpart).
 # The durable store's `Storage` and its `StorageModel` (2026-11-01, durability layer 4)
 
 kvreconf's `KvrStorage.lean` at kvdurable's `*Storage` (the same wrapper: an embedded
-`MemoryStorage` and the bootstrap `ConfState` `boot`, plus the replica's copy of the hard state
-`hs`, which `Storage.SetHardState` sets): the registry `kdStorRec s ms γs` keyed by the wrapper's
+`MemoryStorage` and the bootstrap `ConfState` `boot`, plus the replica's image of its file `img`,
+`Image.lean`, which the wrappers of the storage changes change): the registry `kdStorRec s ms γs` keyed by the wrapper's
 pointer, raft's vocabulary over it (`kdStorageModel`, a `def`, a local instance where used), and
 the justifications `kdJ γ K` of the `MemoryStorage` of key `K` (raft's `memStorJ` without its
 registry). Copied with renames; the proofs are kvreconf's.

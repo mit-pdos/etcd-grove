@@ -92,7 +92,7 @@ func (m *image) append(entries []*pb.Entry) {
 // createSnapshot is MemoryStorage.CreateSnapshot of (i, cs, data) on the image:
 // ErrSnapOutOfDate, and no change, if i is at most the snapshot's index; otherwise the snapshot
 // is at index i, at the term of the log's entry there (the log's start's at its start), of the
-// configuration cs (the old snapshot's if cs is nil) and the data. It panics, as MemoryStorage
+// configuration cs (the old snapshot's if cs is nil) and a copy of the data. It panics, as MemoryStorage
 // does, if i is outside the log (below its start or past its last index).
 func (m *image) createSnapshot(i uint64, cs *pb.ConfState, data []byte) error {
 	if i <= m.snap.GetMetadata().GetIndex() {
@@ -108,7 +108,8 @@ func (m *image) createSnapshot(i uint64, cs *pb.ConfState, data []byte) error {
 	if cs == nil {
 		cs = m.snap.GetMetadata().GetConfState()
 	}
-	m.snap = &pb.Snapshot{Metadata: &pb.SnapshotMetadata{ConfState: cs, Index: new(i), Term: new(term)}, Data: data}
+	m.snap = &pb.Snapshot{Metadata: &pb.SnapshotMetadata{ConfState: cs, Index: new(i), Term: new(term)},
+		Data: append([]byte(nil), data...)}
 	return nil
 }
 
@@ -137,28 +138,30 @@ func (s *Storage) ApplySnapshot(snap *pb.Snapshot) error {
 
 // SetHardState sets the hard state of the MemoryStorage and of the image.
 func (s *Storage) SetHardState(hs *pb.HardState) {
-	s.MemoryStorage.SetHardState(hs)
 	s.img.hs = hs
+	s.MemoryStorage.SetHardState(hs)
 }
 
 // Append appends entries to the MemoryStorage and the image.
 func (s *Storage) Append(entries []*pb.Entry) {
-	s.MemoryStorage.Append(entries)
 	s.img.append(entries)
+	s.MemoryStorage.Append(entries)
 }
 
 // CreateSnapshot takes the snapshot (i, cs, data) in the MemoryStorage and the image; the image's
 // answer (the MemoryStorage's is the same).
 func (s *Storage) CreateSnapshot(i uint64, cs *pb.ConfState, data []byte) error {
+	err := s.img.createSnapshot(i, cs, data)
 	s.MemoryStorage.CreateSnapshot(i, cs, data)
-	return s.img.createSnapshot(i, cs, data)
+	return err
 }
 
 // Compact compacts the MemoryStorage and the image up to i; the image's answer (the
 // MemoryStorage's is the same).
 func (s *Storage) Compact(i uint64) error {
+	err := s.img.compact(i)
 	s.MemoryStorage.Compact(i)
-	return s.img.compact(i)
+	return err
 }
 
 // snapIndex is the index of the storage's snapshot (0 if it has none).

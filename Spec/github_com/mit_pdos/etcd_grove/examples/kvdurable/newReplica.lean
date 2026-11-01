@@ -5,8 +5,8 @@
 durable file is `file` (its invariant, `kdFileInv`), at the replicated state of the stored
 snapshot's prefix `ap` (`repOwn`'s fields `kv` and `applied` given here, the configuration `cs`
 denoting `m`, `index = len ap`); raft's applied index at start `rafted`. Its `dmu` lock gets the
-writer's half of the file's variable at `(S, o)` and the storage's contents `M` (holding `S`), its
-hard state copy; the node's driver (at the storage's key `K`), its configuration view at `(len ap,
+writer's half of the file's variable at `(S, o)` and the storage's image, at the contents `M` (holding
+`S`); the node's driver (at the storage's key `K`), its configuration view at `(len ap,
 m)`, its running token whole (halves to `run` and the snapshotter, the stopper collecting both) go
 to the incarnation's goroutines (`run`, `ticker`, `snapshotter`). It returns the running
 incarnation with the stopper's share.
@@ -39,7 +39,7 @@ attribute [local instance] kdStorageModel
 abbrev newReplica.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (n st sts sq ms : Loc)
     (γs : MemStorNames) (K : GName) (mK mA csp : Loc) (Kv A : GMap (List w8) (List w8))
-    (ap l : List LogEntry) (m : Membership) (cfg : ConfStateM) (hsp : Loc) (hs : HardStateM) (S : RaftState)
+    (ap l : List LogEntry) (m : Membership) (cfg : ConfStateM) (ip : Loc) (hs : HardStateM) (S : RaftState)
     (o : Option StorFile) (M : StorFile) (rafted : w64) (tick : time.Duration) (f : GoFunc),
   0 < sint.Z tick → M.hs = hs → KdFileOk M → StorageHolds S (kdContents (some M)) →
   (ap.length : Int) < 2 ^ 61 → uint.nat rafted = l.length →
@@ -50,7 +50,7 @@ abbrev newReplica.spec : Prop :=
       nodeConfig n γ.r.cluster kdRaftN ⟨ap.length, m⟩ ∗
       nodeRunning n γ.r.cluster kdRaftN 1 ∗
       kdStorRec st ms γs ∗ memStorInvP ms γs (kdJ γ.r.cluster K) ∗
-      memStorMeta ms γs hs ∗ st.[KStorage, go!"hs"] ↦ hsp ∗ hsOpt hsp hs ∗ kdStorView γs M ∗
+      memStorMeta ms γs hs ∗ st.[KStorage, go!"img"] ↦□ ip ∗ ownImage ip M ∗
       kdSnapCert γ M.snap ∗ kdWriter γ id S o ∗
       mK ↦$ Kv ∗ mA ↦$ A ∗ csOpt csp DFrac.discard cfg ∗ ⌜confStateIs cfg m⌝ ∗
       isCommittedLogLb γ.r.cluster ap ∗ confAt γ.r.cluster ap.length m ∗

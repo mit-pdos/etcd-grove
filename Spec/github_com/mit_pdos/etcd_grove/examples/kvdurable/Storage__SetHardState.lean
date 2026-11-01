@@ -1,9 +1,8 @@
 /- Lean-first (no Rocq counterpart).
 
-`s.SetHardState(hs)` (storage.go): the `MemoryStorage`'s hard state set (`MemoryStorage.SetHardState`)
-and the replica's copy `s.hs` (which `encode` reads: `MemoryStorage.InitialState` reads it without the
-lock, `issues/raft-memorystorage-initialstate-unlocked.md`). The caller holds the replica's `dmu`, or
-owns the storage before its node runs (`openStorage`).
+`s.SetHardState(hs)` (storage.go): the hard state `hs'` (at `p`, read-only) set in the image
+(`imgSetHardState`), then in the `MemoryStorage` (`MemoryStorage.SetHardState`). The caller holds the
+replica's `dmu`, or owns the storage before its node runs (`openStorage`).
 -/
 module
 
@@ -31,11 +30,12 @@ attribute [local instance] kdStorageModel
 
 /-- See the file header. -/
 abbrev Storage.SetHardState.spec : Prop :=
-  ∀ (s ms : Loc) (γs : MemStorNames) (hs : HardStateM) (hsp0 : Loc) (p : Loc) (hs' : HardStateM),
+  ∀ (s ms : Loc) (γs : MemStorNames) (hs : HardStateM) (ip : Loc) (I : StorFile) (p : Loc)
+    (hs' : HardStateM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvdurable ∗ kdStorRec s ms γs ∗
-      memStorMeta ms γs hs ∗ s.[KStorage, go!"hs"] ↦ hsp0 ∗ hsOpt p hs' }}
+      memStorMeta ms γs hs ∗ s.[KStorage, go!"img"] ↦□ ip ∗ ownImage ip I ∗ hsOpt p hs' }}
     (App (Val (s @!! go.GoType.PointerType kStorageTy @!! go!"SetHardState")) (Val #p))
-  {{ RET #(); memStorMeta ms γs hs' ∗ s.[KStorage, go!"hs"] ↦ p }}
+  {{ RET #(); memStorMeta ms γs hs' ∗ ownImage ip (imgSetHardState I hs') }}
 
 end spec
 

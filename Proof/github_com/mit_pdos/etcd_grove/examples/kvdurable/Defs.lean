@@ -21,17 +21,21 @@ predicates at kvdurable's structs (the model, `kvreconf.Base`'s pure definitions
   prefix at the snapshot's configuration). Half of a ghost variable at `(S, o)`; the other half,
   `kdWriter`, is the right to move them: the running incarnation's `dmu` holds it until it crashes
   (`crash` takes it out with `crashed := true`), then the restarter.
-- **`dmu`'s lock invariant** (`kdDmuInv`, per incarnation): `crashed`; the storage's hard state copy
-  (`Storage.hs`, `memStorMeta`); and, while not crashed, the writer's half at `(S, o)`, the
-  storage's contents `M` and the pending batch (`KdPhase`): none (`M` holds `S`), a cut batch whose
+- **`dmu`'s lock invariant** (`kdDmuInv`, per incarnation): `crashed`; the storage's image (`Storage.img`,
+  `ownImage`) holding the contents `M`, the `MemoryStorage`'s hard state `M`'s (`memStorMeta`); and,
+  while not crashed, the writer's half at `(S, o)`, `M`'s shape and snapshot certificate, and the
+  pending batch (`KdPhase`): none (`M` holds `S`), a cut batch whose
   *enter* (`readyEnter`) has not fired (`M` holds the batch's durable state: `persist` fires it inside
   `durable.Write`'s atomic update, with its caller's share of `nodeRunning`), or one fired by the
   snapshotter's `persist`, its results (`nodeDriver`, `readyMsgs`) left for `run`. A commit-only batch
   is entered at once (`run`'s `dmu` section): it changes only `S.commit`, which the file may lag.
-- **The storage's contents** `M` (a `StorFile`): the hard state is `memStorMeta`'s; its log and
-  snapshot are the `MemoryStorage`'s (`kdStorView`, at a half: **API gap G2**, `stageI-5-clients.md`:
-  raft's storage contract owns the uncommitted log wholly between `Ready`s, so `encode`, which reads
-  the whole log, has no share of it to read).
+- **The storage's contents** `M` (a `StorFile`) are the image's (`Image.lean`), which the replica
+  changes with each of its storage changes (the `Storage` wrappers: the image's change, then the
+  `MemoryStorage`'s) and `encode` writes: the replica never reads the `MemoryStorage` back for its
+  file, so `encode` needs no share of the log raft's storage contract owns between `Ready`s, nor
+  to know which snapshot `MemoryStorage.Snapshot` returns (API gaps G2/G3 of `stageI-5-clients.md`,
+  which an earlier version, reading the `MemoryStorage`, met). The image relates to raft's durable
+  state only through the batches (`kdPhaseInv`'s `StorageHolds … (kdContents (some M))`).
 
 ## Incarnations
 
@@ -44,6 +48,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.KdStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Codec
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Image
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.DefsCluster
 public import Proof.github_com.mit_pdos.etcd_grove.examples.durable.Files
 
@@ -61,7 +66,6 @@ namespace kvdurable
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-- The store's structs. -/
-abbrev KStorage [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage
 abbrev KReplica [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica
 abbrev KCluster [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster
 abbrev KReadSeqs [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs
@@ -70,8 +74,6 @@ abbrev KSnapReq [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kvdurable
 
 abbrev kReplicaTy [GooseExts] [GoGlobalContext] : go.GoType :=
   github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica.ty
-abbrev kStorageTy [GooseExts] [GoGlobalContext] : go.GoType :=
-  github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage.ty
 abbrev kClusterTy [GooseExts] [GoGlobalContext] : go.GoType :=
   github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster.ty
 abbrev kReadSeqsTy [GooseExts] [GoGlobalContext] : go.GoType :=
@@ -376,16 +378,6 @@ def kdFileInv (γ : KdNames) (dir : GoString) (id : w64) : IProp GF :=
     ⌜StorageHolds S (kdContents o) ∧ ∀ f, o = some f → KdFileOk f⌝ ∗
     (∀ f, ⌜o = some f⌝ -∗ kdSnapCert γ f.snap))
 
-/-- **The storage's log and snapshot are `M`'s** (the `MemoryStorage`'s ranges at a half, the
-compaction point, the end; the snapshot's lower bound). (**API gap G2**: while a node runs, raft's
-storage contract owns the uncommitted ranges wholly (`storHolds`, `appendReceipt`), so no half of
-them is the client's: the definition is stated for when the contract leaves the client a share.) -/
-def kdStorView (γs : MemStorNames) (M : StorFile) : IProp GF :=
-  iprop(memCompacted γs (uint.nat M.prev) ∗
-    (∃ e0 : EntryM, ⌜e0.Term' = M.prevTerm⌝ ∗ memLog γs (uint.nat M.prev) DFrac.discard [e0]) ∗
-    memLog γs (uint.nat M.prev + 1) (DFrac.own (1 : Qp).half) M.ents ∗
-    memSnapLb γs (uint.nat M.snap.Metadata'.Index'))
-
 /-- **A batch's results** (`readyEnter`'s post but the durable state and the running token): the
 loop's token after the `Ready` and its messages sent. -/
 def kdBatchRes (γ : KdNames) (id : w64) (n : Loc) (st' : NodeDriverState) (ms : List QMsg) :
@@ -407,17 +399,18 @@ def kdPhaseInv (γ : KdNames) (id : w64) (n : Loc) (ph : GName) (S : RaftState) 
       ⌜StorageHolds S (kdContents (some M))⌝)
 
 /-- **An incarnation's `dmu` lock invariant** (see the file header): replica `id`'s incarnation at
-`r`, its node `n`, its storage `st` (the `MemoryStorage` `ms`, names `γs`). -/
+`r`, its node `n`, its storage `st` (the `MemoryStorage` `ms`, names `γs`), whose image holds `M`
+(also after a crash: `run` goes on changing the storage until it stops). -/
 def kdDmuInv (γ : KdNames) (id : w64) (r n st ms : Loc) (γs : MemStorNames) (ph : GName) :
     IProp GF :=
-  iprop(∃ (crashed : Bool) (hsp : Loc) (hs : HardStateM),
+  iprop(∃ (crashed : Bool) (ip : Loc) (M : StorFile),
     "Hcr" ∷ r.[KReplica, go!"crashed"] ↦ crashed ∗
-    "Hhsp" ∷ st.[KStorage, go!"hs"] ↦ hsp ∗ "#Hhs" ∷ hsOpt hsp hs ∗
-    "Hmeta" ∷ memStorMeta ms γs hs ∗
+    "#Himg" ∷ st.[KStorage, go!"img"] ↦□ ip ∗
+    "Himage" ∷ ownImage ip M ∗
+    "Hmeta" ∷ memStorMeta ms γs M.hs ∗
     "Hlive" ∷ (if crashed then iprop(True) else
-      iprop(∃ (S : RaftState) (o : Option StorFile) (M : StorFile) (pz : KdPhase),
-        kdWriter γ id S o ∗ ⌜M.hs = hs ∧ KdFileOk M⌝ ∗ kdStorView γs M ∗
-        kdSnapCert γ M.snap ∗ kdPhaseInv γ id n ph S M pz)))
+      iprop(∃ (S : RaftState) (o : Option StorFile) (pz : KdPhase),
+        kdWriter γ id S o ∗ ⌜KdFileOk M⌝ ∗ kdSnapCert γ M.snap ∗ kdPhaseInv γ id n ph S M pz)))
 
 /-- **The reads' sequence numbers** (`readSeqs`'s lock invariant): the last one issued, at least
 every replica's last read sequence number (`γ.r.rseq`, the elements of the ids `0..9`), which
