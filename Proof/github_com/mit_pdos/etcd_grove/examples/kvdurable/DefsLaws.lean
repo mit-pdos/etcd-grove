@@ -95,6 +95,16 @@ instance isReplicaR_persistent (γ : KdNames) (vs : List w64) (dir : GoString) (
     Persistent (isReplicaR (GF := GF) γ vs dir id r n st sts sq ρ) := by
   unfold isReplicaR; infer_instance
 
+instance isRep_persistent (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) :
+    Persistent (isRep (GF := GF) γ vs dir id r) := by
+  unfold isRep; infer_instance
+
+set_option synthInstance.maxHeartbeats 400000 in
+set_option synthInstance.maxSize 4096 in
+instance isClusterC_persistent (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) :
+    Persistent (isClusterC (GF := GF) γ vs dir c) := by
+  unfold isClusterC; infer_instance
+
 instance sendSpec_persistent (γ : KdNames) (id : w64) (f : GoFunc) :
     Persistent (sendSpec (GF := GF) γ id f) := by
   unfold sendSpec; infer_instance
