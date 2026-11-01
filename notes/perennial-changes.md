@@ -93,6 +93,22 @@ It is proved, with no axiom, from Perennial's exported unsealing equations and `
 first `Unlock` establishes `R`. Proposed: the same lemma next to `init_Mutex` in Perennial's
 `Proof/sync/Base.lean`, after which the local copy goes. Status: not yet proposed.
 
+### Tactics: `wp_auto` and `iunfold` unfold a `token` hypothesis to its model (2026-11-01, kvdurable)
+
+- **Limitation.** In `Cluster.Crash`'s proof, a spatial hypothesis `crasher γ` (kvdurable's
+  `def crasher γ := token γ.crt`) came out of `try wp_auto` unfolded past `token` and `own`, down to
+  the `UPred` structure (`{ holds := fun n x => iSingleton … ≼{n} x.val, … }`). After that no spec
+  can frame it and `iexact` cannot unify it with `crasher γ`. `iunfold isClusterC at Hc'` did the
+  same to it, although it unfolds another hypothesis. A `curRep` hypothesis (`ghostMapElem`) in
+  `Cluster.restart`'s proof went through `wp_auto` unchanged. Unconfirmed guess: something reduces
+  the hypotheses' types to weak head normal form, and `token`/`own` unfold all the way there.
+- **Needed by.** `Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/Cluster__Crash.lean`.
+- **Workaround here.** `attribute [local irreducible] crasher in` on the theorem. The package
+  init comes from `isClusterC` in a subgoal with only that hypothesis.
+- **Proposed.** First a minimal reproduction (a `token` hypothesis through `wp_auto`), then keep
+  the tactics from changing hypotheses they do not use.
+- **Status.** Open.
+
 ### Tactics: `wp_if_destruct` on a loop condition left as `#(decide P) = #true` (2026-10-27)
 
 - **Limitation.** After a `wp_for`, `wp_if_destruct` sometimes splits on `#(decide P) = #true`
