@@ -964,6 +964,61 @@ theorem initW_obl {ph : Bool} {m : OsMeta} {bs : List (w8 × Bool)} {D : List w8
       simp only [initSlot] at e ⊢
       rw [e, initBytes_meta1]
 
+/-- After a successful meta write of phase `ph` (its data `D` read back): the slots are invalid or
+`init`'s metas, page 3 is `init`'s, and slot 1 is `init`'s meta 1 (`initOrd true`, for the next
+sync), in both phases. -/
+theorem initW_done {ph : Bool} {m : OsMeta} {bs : List (w8 × Bool)} {D : List w8}
+    (hD : initWData ph D) (hM : initMid ph m bs)
+    (hd : ∀ i < D.length, (bs[4096 * initSlot ph + i]?).map Prod.fst = D[i]?) :
+    (∀ i < 2, metaValid (fileMeta (bs.map Prod.fst) i) →
+      fileMeta (bs.map Prod.fst) i = bInitMeta i) ∧
+    (∀ k < 4096, (bs[4096 * 3 + k]?).map Prod.fst =
+      some ((emptyPageBytes (W64 3) (W16 2))[k]?.getD 0)) ∧
+    initOrd true (bs.map fun x => (x.1, true)) := by
+  have hil := initBytes_length
+  simp only [pageBytes] at hil
+  have hcl : ∀ {j : Nat} {b : w8}, (bs[j]?).map Prod.fst = some b →
+      (bs.map fun x => (x.1, true))[j]? = some (b, true) := by
+    intro j b h
+    rw [List.getElem?_map]
+    cases hx : bs[j]? with
+    | none => rw [hx] at h; cases h
+    | some x => rw [hx] at h; simp only [Option.map_some, Option.some.injEq] at h ⊢; rw [h]
+  have hw : fileMeta (bs.map Prod.fst) (initSlot ph) = bInitMeta (initSlot ph) :=
+    initWData_meta hD fun k hk => by
+      rw [List.getElem?_map, Nat.add_assoc, hd _ (by rw [hD.1]; omega)]
+  have h1 : ∀ k < 64, (bs[4096 + 16 + k]?).map Prod.fst = some (initBytes.getD (4096 + 16 + k) 0) := by
+    intro k hk
+    cases ph
+    · rw [show 4096 + 16 + k = 4096 * initSlot false + (16 + k) by simp [initSlot]; omega,
+        hd _ (by rw [hD.1]; omega), hD.2 k hk, List.getD_eq_getElem?_getD,
+        List.getElem?_eq_getElem (by simp only [initSlot]; omega)]
+      simp only [initSlot, ← Nat.add_assoc]
+      rw [List.getElem?_eq_getElem (by omega)]
+      rfl
+    · have := hM.ord k hk
+      simp only [initSlot, initOrdByte] at this
+      rw [this]; rfl
+  refine ⟨fun i hi hv => ?_, fun k hk => ?_, fun k hk => ?_⟩
+  · have e1 : fileMeta (bs.map Prod.fst) 1 = bInitMeta 1 := by
+      rw [← initBytes_meta1]
+      refine fileMeta_of_slot (metaSlot_ext fun k hk => ?_)
+      rw [List.getElem?_map, h1 k hk, List.getD_eq_getElem?_getD,
+        List.getElem?_eq_getElem (by omega)]
+      rfl
+    rcases i with _ | _ | i
+    · cases ph
+      · refine absurd hv (slot_zero_invalid fun k hk => ?_)
+        have := hM.ord k hk
+        simp only [initSlot, initOrdByte] at this
+        rw [List.getElem?_map, this]; rfl
+      · exact hw
+    · exact e1
+    · omega
+  · have := hM.page3 k hk
+    rw [this]; rfl
+  · exact hcl (h1 k hk)
+
 /-- **`init`'s syncs' obligation** (success; `syscall.Fdatasync.specCrashS` with `H = F = []`):
 the file synced whole, with `init`'s page 3, slots invalid or `init`'s metas, and the other slot of
 phase `ph` as `initOrd` says. On failure, the state is the write's last (`initIdle_notOk`,
