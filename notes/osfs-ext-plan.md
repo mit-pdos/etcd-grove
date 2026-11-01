@@ -357,3 +357,60 @@ translation; (b) add `OsMeta.dur`; (c) prove the obligations above as pure lemma
 `File.Sync` (= `Fdatasync`), and `Mmap`/`Munmap` with mappings (`CfWf` asks for none); `ReadAt`,
 `Stat` and `Close` need no crash-aware spec (fractions or no file resource); (e) rework `rwR` to
 hold `cfOwn` with `cfInvQ` as the invariant, and re-prove `Open`, `init`, `commit`, `Close`.
+
+### minibolt's crash proof, round 2 (2026-11-01, branch `osfs-mbcrash`)
+
+Done (no `sorryAx`; `DB.init.wp_proof` has only goose's usual opaque-type axioms):
+- **`init` fixed** (`9a01d8a154`, the user's) and **`DB.init`'s proof redone** (`DB__init.lean`):
+  `buf` from `initPages`, `first` zero with `buf`'s last two pages copied in (`wp_slice_copy`),
+  `WriteAt(first, 0)`, `Fdatasync`, `WriteAt(buf[:8192], 0)`, `Fdatasync`. Same spec, except that
+  the post's `OsMeta` now says the bytes are durable (`dur := durOf 0 (initFile xs)`); `Open`
+  and `stored_of_init` follow. Proof note: `iframe` on the `wp_slice_copy` precondition made the
+  kernel hit "deep recursion" (a `List.replicate 16384` unfolded); `isplitl`/`iexact` does not.
+- **`OsMeta.dur : List (Option w8)`** (`Ghost.lean`), the durable bytes known, with
+  `MetaOk.dur : m.dur[i]? = some (some d) → f.durable[i]? = some d`. Only a successful sync changes
+  the durable image; **`OsMeta.synced m lo xs`** (now taking the synced bytes) sets
+  `dur := if m.ok then durOf lo xs else []` (`durOf lo xs = replicate lo none ++ xs.map (some ∘ fst)`,
+  `durOf_some`); every other step keeps `dur` (`osCoh_addTok`'s and `osCoh_setMaps`' hypotheses
+  have `om.dur = m.dur` / `m'.dur = m.dur`). `initMeta f` knows all of the file
+  (`dur := f.cur.map some`), `newMeta` nothing. `wp_osFsync`, `syscall.Fdatasync.spec`,
+  `os.File.Sync.spec` post `m.synced lo xs`; minibolt's (`DB__commit`), crashlog's (`Boot`) and
+  `CrashOps`/`Spec/os/Crash.lean` follow (`m.synced 0 bs`).
+- **`CrashSeenR` knows the other changes in flight on the file** (`CrashQT.lean`): each is one of
+  `ts` or takes a fraction of the `OsMeta` (`ti.q ≠ 1`) and none of the runs' bytes
+  (`tokRes_runs_disj`: a token holds its bytes whole). `crashRestQT` gained
+  `∀ t ti, Γt !! t = some ti → ti.c.path ∉ D → Γt' !! t = some ti` (tokens of files not yet taken
+  are still there). Without this, a foreign write in flight would make P1's third case arbitrary.
+- **`Proof/.../bboltfs/CrashOk.lean`**: the obligations reduced to pure statements on images.
+  - `seen_file` (idle, runs `[(0, dq, bs)]`, `bs` whole) and `seen_writing` (the write's state):
+    the crashed file `f` has `f.cur = bs.map fst`, `f.durable` agrees with `m.dur` and the clean
+    bytes (outside the write's range), and the only change in flight on it is the client's write
+    (idle: others write `[]`).
+  - **`crashOkQ_idle`**: `CrashOkQ (P1 p) p Good (some (m, bs, none))` from
+    `∀ img D, idleImg m bs img D → goodImg img`; **`crashOkQ_writing`**: the same for
+    `some (m, bs, some (t, off, data))` from `writingImg m bs off data img D`. `idleImg`/`writingImg`:
+    size bounds, the clean bytes, `D` (the durable image) agreeing with `m.dur` and the clean bytes,
+    and each valid slot of `img` (held whole) is `D`'s, `bs`'s, or (writing) `writeBytes bs off data`'s.
+  - **`crashOkQ_create`** (obligation 1) proved.
+
+**Gap found: commit's data-page sync forgets the metas' durable bytes.** Commit syncs the data page
+alone (`Fdatasync` with `(4096 * hwm, ys)`), which resets `dur` to that page; the meta write that
+follows needs the durable slot `(T+1) % 2` (meta `T-1`, recorded by the previous commit's meta sync
+`(0, X)`). Fix (untrusted, `Specs.lean`): a sync that also records other bytes the caller shows clean,
+at any fraction: `wp_osFsync_keep ... (lo2 dq2 ys2) (hc : ∀ y ∈ ys2, y.2 = true)` posting
+`dur := overlay (if m.ok then durOf lo xs else []) (durOf lo2 ys2)` (clean bytes are not dirty, so
+the sync keeps their durable byte = their page-cache byte; `CleanPhys`), with `wp_osFsync` its
+instance `ys2 = []`; use it only in the crash-aware Fdatasync spec. Alternative: sync's `dur` keeps
+the entries of `m.dur` at bytes the caller shows clean.
+
+Open, in order:
+4. The remaining obligations, each now `∀ img D, idleImg/writingImg ... → goodImg img` (pure):
+   init W1 (`writingImg m bs 0 first`, `first` = zeros then pages 2-3; the old slots invalid or not
+   held whole, `goodImg` of the opened image, `m.dur` = the whole file from `initMeta`/the last
+   sync); S1 (`m.synced 0 _`, failed: `{m with ok := false}`, `idleImg` ignores `ok`); W2
+   (`writingImg` over the zero slots, `dur` zeros from S1); S2; commit's `Truncate` and `Sync`;
+   data `WriteAt`/`Fdatasync`; meta `WriteAt`/`Fdatasync` (needs the gap's fix); failure paths
+   (a failed `WriteAt` leaves `pwBytes` with `j` bytes: an idle state again).
+5-7. Not started: `CrashOps`/`Spec/os/Crash.lean` over `cfInvQ` (`crashOk_narrow` for `CrashOkQ`;
+   `Truncate`, `File.Sync`, `Mmap`/`Munmap` with mappings), `rwR` holding `cfOwn`, the re-proofs,
+   `BootCrashSafety`.
