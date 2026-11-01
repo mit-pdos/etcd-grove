@@ -542,9 +542,8 @@ First tier, with the repairs made in the Draft:
 30. **Pending writes (attack C; also today's `authSchemaSrv`)**: `rbOwn r` is the writer's pending
    contents (`batchLocked_rb`), not what readers see; a client holding a raw batch with a pending
    delete passes `rbOwn` to the premise, and the read clause promises a state Go does not return
-   (reproduced: `axiomcx/pending_test.go`). Repair: `backend.bIdle γ` (no batch held; a backend-level
-   change: the batch lock's `Lock` takes it, `Unlock` gives it back after the write-back), taken and
-   given back by both premises and `authRecoverOn.spec`.
+   (reproduced: `axiomcx/pending_test.go`). Repair (A1): `backend.bIdle γ`, a server-wide idle token;
+   superseded by round A2's 33 (idleness scoped to the auth buckets, in `rbOwnIn`).
 31. **The release is unrealizable over today's backend specs**: `Cu` comes back at `RLock`, so reads
    begun before the release still hold open shares (`readTx__UnsafeRange` needs `bOpen`), while
    `backend__Close` needs `bOpen 1`. Go is safe (`Close` waits: `commit` takes `readTx.Lock()`;
@@ -560,6 +559,29 @@ supplying the guards (`lockedReadTx.specL`, the `…Permitted.specL`, `authStore
 `recoverFit` off the mode is unsatisfiable for a huge disabled state (inherited from today's spec);
 `authApplyResPre` drops boot's `ghostMapAuth γa.fresh 1 ∅` (it belongs to boot's form); the write-back
 token `wbTok` of a snapshot backend's `Unlock` is not accounted for (uncertain).
+
+### Review round A2 (2026-11-01; the last round: its other first-tier findings repeat A1's)
+
+32. **Boot's premise took no succession right** (first tier): `γa` is the client's, whose allocation
+   mints `token γa.succ`, so attack A goes through with a minted right. Repaired: `AonDraft.authSchemaSrv`
+   takes `authSucc γa` too.
+33. **`bIdle` was unrealizable and too strong** (first tier): the write contract's `Lock` (`csContract
+   ∗ T`) cannot supply a server-wide idle token, and `kv.Restore` may start a compaction batch
+   (`LockOutsideApply`) on the new backend before `Recover`. Repaired: `bIdle` dropped; idleness folded
+   into `rbOwnIn γ S r` (a put into `S` moves the holder's share into the batch until the write-back),
+   and both premises and `authRecoverOn.spec` take only `rbOwnIn … authBkts r` (the client keeps the
+   other buckets' half: nothing comes back). `rbOwnIn`'s docstring lists the laws the backend change
+   owes (split, restriction, per-bucket `rbPut`, `batchLocked` agreement, timelessness).
+- Repeats (on the same statements; to the user): the reader slots (S9; A2 ranks it first tier:
+  `New` mints `actualMaxReaders` `rdTok`s, all the server's readers', so no realization holds a slot
+  for `R` or for the `T`-guarded reads; repair: partition each backend's reader pool, or `R` from
+  the reader's `threadTok`); the release against `Close` (finding 31; A2's repair: drop `bOpen` from
+  `readTx.UnsafeRange`'s precondition, as `rtHeld` already excludes the stop's commit, and add a
+  shutdown release from `T` alone, or put shutdown out of scope).
+- Second tier: `authApplyResPre`'s untied `authWBackendOk be … P f0` (S5); `latestRes`
+  (`LatestAdmin.lean:53`) must carry `authWHeld`; the publication quarter belongs to one store-wide
+  realization (boot's), not to each backend's; `recoverFit` unusable in mode `any`; a snapshot
+  backend's write-back tokens (untraced). Third: a law `authOwnPM M hs [] ⊣⊢ authOwn M hs`.
 
 ### The axiom check (the restated premise; Go tests in the session's scratchpad `axiomcx/`)
 
@@ -605,8 +627,8 @@ not a false claim about Go) and the reader-slot count (S9).
   `rbOwnIn restNonAuth`, which needs the per-bucket `rbPut` (finding 30's backend change).
 - `bOpen` (32 modules): the apply thread's half becomes a quarter in mode on (`specSnap`, the walk's
   close goroutine `SnapApplyWalk.lean` ~:571-601, `NewServer`).
-- Backend: `rbOwnIn`/`rbOwn_split_in`, `bIdle` (the batch lock's `Lock`/`Unlock` specs), `Close`
-  waiting for readers (finding 31).
+- Backend: `rbOwnIn` (idle per bucket set) and its laws, the per-bucket `rbPut`, `Close` waiting for
+  readers (finding 31), the reader pool's partition (S9).
 
 ## J8b's changes the Draft depends on (2026-11-01, from the J8b session)
 

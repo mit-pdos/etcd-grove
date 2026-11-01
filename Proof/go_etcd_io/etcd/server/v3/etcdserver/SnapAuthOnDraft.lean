@@ -277,8 +277,10 @@ The restatement (decisions 1-3, 5 and 7), all applying to **today's** `authSchem
   quarter (`authBkLife`'s publish clause), the token's retirement takes the quarter and the release
   gives it back, so nothing is published while a retired backend may still be read.
 - **The auth buckets' write authority stays with the realization** (decision 1): the premise takes
-  the client's half of all tracked buckets (`rbOwn`) and gives back only the non-auth ones'
-  (`rbOwnIn … restNonAuth`, a split of the backend's tracked-bucket token).
+  the client's half of the auth buckets (`rbOwnIn … authBkts`, a part of the backend's tracked-bucket
+  token, idle: no pending write; review rounds A1's C, A2's 4); the client keeps the others'.
+- **One live backend** (review rounds A1's A, A2's 1): both premises take the succession right
+  `authSucc`.
 
 Definitions redefining an existing one carry its name under `AonDraft.` (`AonDraft.auth.beP` for
 `auth.beP`); the merge drops the prefix. Inside the bodies the originals are written in full
@@ -330,9 +332,10 @@ here). -/
 opaque auth.AuthNames.succ : auth.AuthNames → GName
 
 /-- **The right to make a new backend current** (exclusive; review round A1's attack A): only the
-retirement of the current backend's write token produces it, and the snapshot clause takes it, so at
-most one backend of the store is live (its write contract, its latest clause and its publication)
-at a time. Boot's backend starts live without it. -/
+retirement of the current backend's write token produces it, and the premises take it (boot's,
+from the store's allocation, which mints it: review round A2's 1; the snapshot clause's, from the
+previous backend's retirement), so at most one backend of the store is live (its write contract, its
+latest clause and its publication) at a time. -/
 def auth.authSucc (γa : auth.AuthNames) : IProp GF := token γa.succ
 
 /-- **The share `q` of the current backend's name**: `beP` holds half (at its fraction), the apply
@@ -637,13 +640,23 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 /-- **The auth realization's share of a backend's open token** (a quarter). -/
 def authOpenQ : Qp := (1 : Qp).half.half
 
+/-- The auth buckets. -/
+def authBkts (n : GoString) : Prop :=
+  n = go!"auth" ∨ n = go!"authUsers" ∨ n = go!"authRoles"
+
 /-- The tracked buckets but the auth ones. -/
 def restNonAuth (n : GoString) : Prop :=
   n ≠ go!"auth" ∧ n ≠ go!"authUsers" ∧ n ≠ go!"authRoles"
 
-/-- **The client's half of the tracked buckets in `S`** (decision 1: `rbOwn` split by bucket set;
-a backend-level change, the tracked-bucket token `γ.rbk` becoming a map per bucket): the writer's
-contents hold `r` at the tracked buckets of `S`. Opaque in the draft; its law below. -/
+/-- **The client's half of the tracked buckets in `S`, idle** (decision 1: `rbOwn` split by bucket
+set; review rounds A1's C and A2's 4: idleness scoped to `S`): a backend-level change, the
+tracked-bucket token `γ.rbk` becoming a map per bucket, and a put into a bucket of `S` moving the
+holder's share into the batch's state until `Unlock`'s write-back: the writer's contents hold `r`
+at the tracked buckets of `S`, **and so do the readers' (no write to `S` pending)**. Only the writers
+of `S` see the change (for the auth buckets, the auth realization; not mvcc, compaction or the
+cluster's writers). Opaque in the draft: its laws are obligations of that change (the split below;
+restriction, `rbOwnIn γ S r ⊣⊢ rbOwnIn γ S r'` when `r`, `r'` agree on `S`; a per-bucket `rbPut`;
+agreement with `batchLocked`; timelessness). -/
 opaque backend.rbOwnIn (γ : backend.BNames) (S : GoString → Prop)
     (r : GMap GoString backend.BktData) : IProp GF := iprop(True)
 
@@ -652,12 +665,6 @@ theorem backend.rbOwn_split_in (γ : backend.BNames) (S : GoString → Prop)
     (r : GMap GoString backend.BktData) :
     backend.rbOwn (GF := GF) γ r ⊣⊢ backend.rbOwnIn γ S r ∗ backend.rbOwnIn γ (fun n => ¬ S n) r := by
   sorry
-
-/-- **No batch transaction is held on the backend** (review round A1's attack C; a backend-level
-change, like `rbOwnIn`: an exclusive token the batch lock's `Lock` takes and `Unlock` gives back,
-after its write-back): with it, the client's tracked buckets `rbOwn r` are also what the readers
-see (no pending write). Opaque in the draft. -/
-opaque backend.bIdle (γ : backend.BNames) : IProp GF := iprop(True)
 
 /-- The schema auth backend `abl` over the backend `be`, with the logger `lg` (read-only). -/
 def ablOn (abl : Loc) (be lg : Loc) : IProp GF :=
@@ -684,26 +691,25 @@ instance authWAtHook_persistent (γa : auth.AuthNames) (d : mvcc.KBReal) (γc : 
 thread opened, its hook frozen, its tracked auth buckets `r` holding `st` (`authBucketsAt`), the
 lock's share of the history at `st` (deposited, as at boot: `st` is the history's last, so
 recorded and at an index no smaller than the published one), its open share `authOpenQ`, the
-succession right (the previous backend retired) and no batch held (`bIdle`: the buckets `r` are
-what its readers see): schema's
+succession right (the previous backend retired) and the client's idle half of the auth buckets
+(`rbOwnIn … authBkts`: `r` is what its readers see): schema's
 auth backend `abl` over it meets, for fresh names `γc`, the guarded read contract at `R`, the write
 contract at its hook and at every schema auth backend on it (`authWAtHook`), with the write token,
 the whole currency and the lifecycle (`authBkLife`, its realization keeping the open share); one
-`R` lent against the backend's read token; the client's half of the **non-auth** tracked buckets
-back (decision 1). -/
+`R` lent against the backend's read token. The client keeps the other tracked buckets. -/
 def authSchemaSnap (γa : auth.AuthNames) (R : IProp GF) : IProp GF :=
   iprop(□ ∀ (lg abl : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc)
       (r : GMap GoString backend.BktData) (st : auth.AuthState),
     ⌜lg ≠ null⌝ -∗ ⌜authBucketsAt st r⌝ -∗ ablOn abl d.be lg -∗
     backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
-    backend.rbOwn d.γB r -∗ mvcc.bkRTx d.γB d.P d.be -∗ backend.bOpen d.γB authOpenQ -∗
-    auth.authLockI (.on γa) st -∗ auth.authSucc γa -∗ backend.bIdle d.γB -∗
+    backend.rbOwnIn d.γB authBkts r -∗ mvcc.bkRTx d.γB d.P d.be -∗ backend.bOpen d.γB authOpenQ -∗
+    auth.authLockI (.on γa) st -∗ auth.authSucc γa -∗
     |==> ∃ γc : auth.AuthBkNames,
       AonDraft.auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
       auth.authWBackendOkR (authBkIface abl) (.on γa) Pk #f (auth.authWTok γc) ∗
       authWAtHook γa d γc ∗ auth.authWTok γc ∗
       auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ) ∗
-      R ∗ (R -∗ mvcc.bkRTx d.γB d.P d.be) ∗ backend.rbOwnIn d.γB restNonAuth r ∗ backend.bIdle d.γB)
+      R ∗ (R -∗ mvcc.bkRTx d.γB d.P d.be))
 
 instance authSchemaSnap_persistent (γa : auth.AuthNames) (R : IProp GF) :
     Persistent (authSchemaSnap (GF := GF) γa R) := by
@@ -718,14 +724,16 @@ currency; the write contract (with the hook `P f`) and at every schema auth back
 frozen hook, `CreateAuthBuckets`, at the write token `T := authWTok γc`; the publication quarter
 and the lifecycle (its realization keeping the open share and a quarter of the published index's
 authority); `actualMaxReaders` copies of `R`; the constructor's critical section, whose `Post`
-gives back the open share, the hook and the client's half of the **non-auth** tracked buckets
-(decision 1: the auth buckets' write authority stays with the realization); and the snapshot clause
-at `R`.
+gives back the open share and the hook; and the snapshot clause at `R`. It takes the client's idle
+half of the (empty) auth buckets (decision 1: their write authority stays with the realization; the
+client keeps the others') and the succession right (one live backend).
 
 Today's five refutations, against this text: (1) the latest clause takes `T`; (2) the published
 index's authority is shared with the realization, publication needs `T`; (3) no `rbOwn` of the auth
 buckets comes back; (4) `Cu`/`T` stand for an open share the realization keeps until both are
-surrendered; (5) `T` and `Cu` are functions of `γc`, which `beP` and the apply thread share. -/
+surrendered; (5) `T` and `Cu` are functions of `γc`, which `beP` and the apply thread share. Review
+rounds A1/A2: the auth buckets taken idle (no pending write: the readers see `r`); the succession
+right taken (one live backend). -/
 def AonDraft.authSchemaSrv : IProp GF :=
   iprop(□ ∀ (γa : auth.AuthNames) (lg abl : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
       (r : GMap GoString backend.BktData),
@@ -735,7 +743,8 @@ def AonDraft.authSchemaSrv : IProp GF :=
     ablOn abl d.be lg -∗
     backend.isBackend d.γB d.P W Pk d.be -∗ backend.bOpen d.γB qo -∗
     backend.bOpen d.γB authOpenQ -∗
-    backend.plHook d.γB func.nil -∗ ownToks d.γB.wb 2 -∗ backend.rbOwn d.γB r -∗ backend.bIdle d.γB -∗
+    backend.plHook d.γB func.nil -∗ ownToks d.γB.wb 2 -∗ backend.rbOwnIn d.γB authBkts r -∗
+    auth.authSucc γa -∗
     auth.authLockI (.on γa) auth.bootState -∗ auth.authPubQ γa (1 : Qp).half 0 -∗
     |==> ∃ (R P : IProp GF) (f : val) (Pre Q Post : IProp GF) (γc : auth.AuthBkNames),
       AonDraft.auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
@@ -748,8 +757,7 @@ def AonDraft.authSchemaSrv : IProp GF :=
       auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ) ∗
       mvcc.csContract P f Pre Q Post ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), R) ∗
-      (Post -∗ backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil ∗
-        backend.rbOwnIn d.γB restNonAuth (authBucketsAfter r) ∗ backend.bIdle d.γB) ∗
+      (Post -∗ backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil) ∗
       authSchemaSnap γa R)
 
 instance AonDraft.authSchemaSrv_persistent : Persistent (AonDraft.authSchemaSrv (GF := GF)) := by
@@ -818,10 +826,11 @@ def AonDraft.authApplyResB (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState)
 /-- **`ast.Recover(NewAuthBackend(lg, newbe))` at the install, auth on** (the mode-on case of
 `authRecoverOk`, gated by `E.authMode` in the merge): the apply thread's auth resource on the old
 backend `dO` at the applied log `A`'s state `sa`, the store's tie to the log (`authHistTie`), the
-image's committed log `A'` extending `A`, the new backend `dn` opened with its hook frozen, its
-tracked auth buckets `r` holding `A'`'s state, its open share for the realization, and the snapshot
-clause at the store's `R`: after `Recover`, the store on the new backend (`authBeOn`), the apply
-thread's auth resource on it at `A'`'s state, the non-auth buckets' half and the read token back,
+image's committed log `A'` extending `A`, the new backend `dn` opened with its hook frozen, the
+client's idle half of its auth buckets `r` holding `A'`'s state (`rbOwnIn … authBkts`; the install
+keeps the other buckets' half), its open share for the realization, and the snapshot clause at the
+store's `R`: after `Recover`, the store on the new backend (`authBeOn`), the apply thread's auth
+resource on it at `A'`'s state, the read token back,
 and **the old backend's open share** (after an update: its release, for the close goroutine;
 decision 3c). -/
 abbrev authRecoverOn.spec : Prop :=
@@ -836,14 +845,13 @@ abbrev authRecoverOn.spec : Prop :=
       ⌜A <+: A' ∧ sa = srvAuthAtLog γr.kv srvAuthSt0 A ∧ A'.length < 2 ^ 61⌝ ∗
       ⌜lg ≠ null⌝ ∗ ablOn abl dn.be lg ∗
       backend.isBackend dn.γB dn.P W Pk dn.be ∗ backend.plHookRO dn.γB f ∗ ⌜f ≠ func.nil⌝ ∗
-      backend.rbOwn dn.γB r ∗ mvcc.bkRTx dn.γB dn.P dn.be ∗ backend.bOpen dn.γB authOpenQ ∗
-      backend.bIdle dn.γB ∗ ⌜authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A') r⌝ }}
+      backend.rbOwnIn dn.γB authBkts r ∗ mvcc.bkRTx dn.γB dn.P dn.be ∗
+      backend.bOpen dn.γB authOpenQ ∗ ⌜authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A') r⌝ }}
     (App (Val (ast @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!!
       go!"Recover")) (Val #(authBkIface abl)))
   {{ RET #(); |==> (authBeOn ast dn.be ∗
       AonDraft.authApplyResPre (.on γa) ast (srvAuthAtLog γr.kv srvAuthSt0 A') dn RD ∗
-      backend.rbOwnIn dn.γB restNonAuth r ∗ mvcc.bkRTx dn.γB dn.P dn.be ∗ backend.bIdle dn.γB ∗
-      backend.bOpen dO.γB authOpenQ) }}
+      mvcc.bkRTx dn.γB dn.P dn.be ∗ backend.bOpen dO.γB authOpenQ) }}
 
 end premise
 
@@ -866,7 +874,7 @@ theorem authRecoverOn_glue (hRec : AonDraft.auth.authStore.Recover.spec (GF := G
   intro ast abl lg dO dn W Pk f r γa R RD E γr A A' sa hM
   simp only [AonDraft.authApplyResPre]
   iintro %Φ ⟨#Hpkg, Hbeon, Hres, #Hinv, #Hsnap, #Htie, #HA', %Hp, %Hlg, #Habl, #HisB, #Hhk,
-    %Hf, Hrb, Hrt, HbO, HId, %Hbk⟩ HΦ
+    %Hf, Hrb, Hrt, HbO, %Hbk⟩ HΦ
   obtain ⟨hpre, hsa, hlen⟩ := Hp
   obtain ⟨hk, hfit, hsmall, hrev⟩ := srvHist_wf γr.kv A' hlen
   icases Hres with ⟨%hs, %P0, %f0, %γc₀, %be, %b, Hown, Hfu, Htr, -, HTh, Hpub,
@@ -896,8 +904,8 @@ theorem authRecoverOn_glue (hRec : AonDraft.auth.authStore.Recover.spec (GF := G
   ihave #Hsn := Hsnap
   iunfold authSchemaSnap at Hsn
   imod Hsn $$ %lg %abl %dn %W %Pk %f %r %(srvAuthAtLog γr.kv srvAuthSt0 A') [] [] Habl HisB Hhk
-      [] Hrb Hrt HbO Hlk Hsucc HId
-    with ⟨%γc, #HokH, HCu, #HwR, #HwH, HT', #Hlife', HR, HRb, Hrb, HId⟩
+      [] Hrb Hrt HbO Hlk Hsucc
+    with ⟨%γc, #HokH, HCu, #HwR, #HwH, HT', #Hlife', HR, HRb⟩
   · ipureintro; exact Hlg
   · ipureintro; exact Hbk
   · ipureintro; exact Hf
@@ -933,7 +941,7 @@ theorem authRecoverOn_glue (hRec : AonDraft.auth.authStore.Recover.spec (GF := G
   · iframe Hrtd HCu0
   ihave Hrt := HRb $$ HR
   imodintro
-  iframe Hrb Hrt HoO HId
+  iframe Hrt HoO
   isplitl [Hbe]
   · iunfold authBeOn; iexists abl, lg
     iunfold ablOn at Habl
