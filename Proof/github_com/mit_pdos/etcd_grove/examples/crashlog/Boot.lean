@@ -214,6 +214,64 @@ theorem wp_newData :
   iapply HΦ
   iexact Hs
 
+theorem osBytes_take_drop (p : GoString) (off n : Nat) (dq : DFrac) (bs : List (w8 × Bool))
+    (hn : n ≤ bs.length) :
+    osBytes (GF := GF) p off dq bs ⊣⊢
+      osBytes (GF := GF) p off dq (bs.take n) ∗ osBytes (GF := GF) p (off + n) dq (bs.drop n) := by
+  have A := bytesG_append (gooseOsGS (L := hG.goose_localGS)) p dq off (bs.take n) (bs.drop n)
+  rw [List.take_append_drop, List.length_take, show min n bs.length = n by omega] at A
+  exact A
+
+variable [os.Assumptions]
+
+theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
+    (f : Loc) (fd : w64) (p : GoString) (γ : GName) (m : OsMeta) (bs : List (w8 × Bool))
+    (hsz : 8 < m.size) (hv : ∀ i < 8, (bs[i]?).map Prod.fst = dataC[i]?) :
+    {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd p (DFrac.own 1) ∗
+        osFd (GF := GF) fd (DFrac.own 1) ⟨p, true, true⟩ ∗ cfOwn (GF := GF) p γ (some (m, bs, none)) }}
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.crashlog.check)) (Val #f))
+    {{ RET #(); os.ownFile f fd p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨p, true, true⟩ ∗
+        cfOwn p γ (some (m, bs, none)) }} := by
+  wp_start as ⟨#Hos, Hf, Hfd, Hown⟩
+  icases (cfOwn_idle _ _ _ _).1 $$ Hown with ⟨Hv, ⟨Hm, Hb⟩, %Hwf⟩
+  have hlen : bs.length = m.size := Hwf.1
+  wp_auto
+  wp_apply (wp_slice_make2 (V := w8) (W64 8)) as %buf ⟨Hbuf, -⟩
+  · ipureintro; decide
+  (try wp_auto)
+  icases (osBytes_take_drop p 0 8 _ bs (by omega)).1 $$ Hb with ⟨Hb8, Hbr⟩
+  have h8 : sint.nat (W64 8) = 8 := rfl
+  wp_apply wp_ReadAt f fd p (DFrac.own 1) buf (List.replicate (sint.nat (W64 8)) (zero_val w8)) (W64 0)
+      (DFrac.own 1) (DFrac.own (1 : Qp).half)
+      (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ m (bs.take 8) rfl (by decide)
+      (by rw [List.length_replicate, h8]; decide) (by rw [List.length_replicate, h8]; simp; omega)
+      (by rw [List.length_replicate, h8, List.length_take]; omega) $$ [Hos Hf Hbuf Hfd Hm Hb8]
+    as %n %err ⟨Hf, Hfd, Hm, Hb8, %vs', Hbuf, %Hres⟩
+  · iframe; iframe #
+  ihave Hb := (osBytes_take_drop p 0 8 _ bs (by omega)).2 $$ [Hb8 Hbr]
+  · iframe
+  obtain ⟨hl', ⟨rfl, rfl, hvs'⟩ | ⟨rfl, hne⟩⟩ := Hres
+  · (try wp_auto)
+    have hd : vs'.take 8 = dataC := by
+      apply take8_of; intro i hi
+      rw [hvs', List.getElem?_map, List.getElem?_take_of_lt hi]
+      exact hv i hi
+    wp_apply wp_dataOk buf (DFrac.own 1) vs' hd $$ [Hbuf] as Hbuf
+    · iframe
+    (try wp_auto)
+    iapply HΦ
+    iframe Hf Hfd
+    iapply (cfOwn_idle _ _ _ _).2
+    iframe; ipureintro; exact Hwf
+  · cases err with
+    | nil => exact absurd rfl hne
+    | ok ie =>
+    (try wp_auto)
+    iapply HΦ
+    iframe Hf Hfd
+    iapply (cfOwn_idle _ _ _ _).2
+    iframe; ipureintro; exact Hwf
+
 end proof
 
 end crashlog
