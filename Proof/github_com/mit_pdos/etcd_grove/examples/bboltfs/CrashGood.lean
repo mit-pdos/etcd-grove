@@ -101,6 +101,29 @@ theorem goodImg_freshTx (img : List w8) (h : goodImg img) :
     simp only [h4, hv, and_self, ↓reduceIte]
     exact hb
 
+/-- The transaction `t` and high water mark `n` `Open` finds in a good image: `1 ≤ t < n`, and
+`n` leaves room for its page below 1 GiB (`(n + 1) * 4096 ≤ 2 ^ 30`). -/
+theorem goodImg_freshTx_tx (img : List w8) (h : goodImg img) :
+    1 ≤ (freshTx (img.map (·, true))).1 ∧
+      (freshTx (img.map (·, true))).1 < (freshTx (img.map (·, true))).2.2 ∧
+      ((freshTx (img.map (·, true))).2.2 + 1) * 4096 ≤ 2 ^ 30 := by
+  have hfst : (img.map (·, true)).map Prod.fst = img := by
+    simp [List.map_map, Function.comp_def]
+  unfold freshTx
+  simp only [hfst, List.length_map]
+  obtain ⟨-, h | ⟨h4, h0, h1⟩ | ⟨h4, hok, -, -, -, htx⟩⟩ := h
+  · split
+    · rename_i hc; exact absurd hc.1 (by omega)
+    · exact ⟨by decide, by decide, by decide⟩
+  · split
+    · rename_i hc; rcases hc.2 with hc | hc <;> contradiction
+    · exact ⟨by decide, by decide, by decide⟩
+  · have hv := hok.2.1
+    have hb := hok.2.2.2.2
+    simp only [imgMetas] at hv htx hb
+    simp only [h4, hv, and_self, ↓reduceIte]
+    exact ⟨htx.1, htx.2, hb⟩
+
 end pure
 
 end bboltfs

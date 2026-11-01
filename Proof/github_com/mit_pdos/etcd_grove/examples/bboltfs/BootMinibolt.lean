@@ -12,16 +12,14 @@ the committer's token, reads transaction `t` and its value, which `dbTx` says is
 
 **What the specs leave open** (`bootPremises`, a hypothesis of `wp_BootMinibolt`): `Commit`
 requires `t + 1 < 2 ^ 64` and `(n + 2) * 4096 ≤ 2 ^ 30`, and its value `t + 1` must satisfy
-`bootOk (t + 1)`, which needs `1 ≤ t`. A `Good` file does not give any of the three:
-* `t = 0` is `Good` and reachable: `init` syncs the data pages, then writes both meta pages in one
-  `WriteAt`; a crash may leave slot 0 (txid 0) whole and valid and slot 1 still zero. The next boot
-  reads transaction 0 (no value), commits transaction 1 holding 1, and the boot after it panics
-  ("init's root page holds a value"): a real bug of the Go program (or of `bootOk`).
-* `goodImg` bounds the high water mark by `(n + 1) * 4096 ≤ 2 ^ 30` (`metaPagesOk`), one page short
-  of `Commit`'s premise; `Commit` itself fails (its `mmap` exceeds the bound) when the file is full,
-  but its spec does not say so.
-* `goodImg` says nothing of the txid against the high water mark (each commit adds one to both, so
-  a reachable file has `t < n`, which would give `t + 1 < 2 ^ 64`).
+`bootOk (t + 1)`, which needs `1 ≤ t`. A `Good` file gives `1 ≤ t < n` and
+`(n + 1) * 4096 ≤ 2 ^ 30` (`goodImg_freshTx_tx`: `txOk`, `metaPagesOk`), so the first two, but
+not the size bound, which is one page short. It is not a gap of the proof: when the high water
+mark reaches 1 GiB, the Go `commit` maps `mmapSize((n + 2) * 4096)`, 2 GiB, and truncates the file
+to it, without checking `minibolt`'s 1 GiB bound, and the model lets both succeed (as Linux
+does). The file then leaves `goodImg` (`img.length ≤ 2 ^ 30`, `metaPagesOk`'s bound), which the
+whole proof assumes. `bootPremises` is this bound alone; it needs a check in the Go code (an
+error from `commit` when `(n + 2) * 4096` exceeds 1 GiB) to be dropped.
 -/
 module
 
@@ -47,12 +45,9 @@ section pure
 variable [GooseExts]
 
 /-- What `wp_BootMinibolt` needs of the file a generation starts with beyond `Good` (see the file
-header): its transaction `t` is at least 1 and below `2 ^ 64 - 1`, and its high water mark `n`
-leaves room for one more page. -/
+header): its high water mark `n` leaves room for one more page below 1 GiB. -/
 def bootPremises (fo : Option OsFile) : Prop :=
-  1 ≤ (freshTx ((startImg fo).map (·, true))).1 ∧
-    (freshTx ((startImg fo).map (·, true))).1 + 1 < 2 ^ 64 ∧
-    ((freshTx ((startImg fo).map (·, true))).2.2 + 2) * 4096 ≤ 2 ^ 30
+  ((freshTx ((startImg fo).map (·, true))).2.2 + 2) * 4096 ≤ 2 ^ 30
 
 /-- `bootOk`'s first check: transaction `t ≤ 1` holds no value. -/
 theorem bootOk_le1 {t : Nat} {vo : Option w64} (h : bootOk t vo) (ht : t ≤ 1) : vo = none := by
@@ -100,13 +95,16 @@ theorem wp_BootMinibolt [ThreadBoundLe GF (2 ^ 30)]
   wp_start as ⟨#Hpkg, #Hos, #Hci, Hown, Htok⟩
   obtain ⟨t, vo, n, hfresh⟩ : ∃ t vo n, freshTx ((startImg fo).map (·, true)) = (t, vo, n) :=
     ⟨_, _, _, rfl⟩
+  have hgi : goodImg (startImg fo) := by cases fo with
+    | none => exact ⟨by simp [startImg], Or.inl ⟨by simp [startImg], fun i _ h => by simp [startImg] at h⟩⟩
+    | some f => exact hg
   have hvp : bootOk t vo := by
-    have := goodImg_freshTx (startImg fo) (by cases fo with
-      | none => exact ⟨by simp [startImg], Or.inl ⟨by simp [startImg], fun i _ h => by simp [startImg] at h⟩⟩
-      | some f => exact hg)
+    have := goodImg_freshTx (startImg fo) hgi
     rw [hfresh] at this; exact this
   have hb' : 1 ≤ t ∧ t + 1 < 2 ^ 64 ∧ (n + 2) * 4096 ≤ 2 ^ 30 := by
-    unfold bootPremises at hb; rw [hfresh] at hb; exact hb
+    have htx := goodImg_freshTx_tx (startImg fo) hgi
+    unfold bootPremises at hb; rw [hfresh] at hb htx
+    exact ⟨htx.1, by omega, hb⟩
   wp_auto
   wp_apply wp_Open (dir ++ go!"/db") γc fo t vo n bootOk hg hfresh hvp (fun _ _ h => h) $$ [Hown]
     as %db %err (⟨%Herr, %γ, %Hvp, #Hdb, -, Hown, #Hlast, #Htx⟩ | ⟨%Herr, -⟩)

@@ -15,21 +15,30 @@ boot the file is absent.
 The specs `wp_BootMinibolt` uses are linked to their proofs (`Open`, `Get`, `Close`, `Commit`,
 from the crash-aware proofs of their callees and the crash-free ones of `Link.lean`).
 
-**What is assumed** (hypotheses of `bootCrashSafety`):
+**What is assumed** (hypotheses of `bootCrashSafety`, besides `BootCrashSafety`'s step bound
+`n + 2 ≤ 2 ^ 30`, `BootP1.lean`):
 * `Hinit_wp`: the package initializer runs from the fresh package state and gives `pkgFacts`
   (the `sync` package initialized, `errFailed`, `errPageSize` and `io.EOF` set). `BootCrashSafety`
   does not have it; as for crashlog, its proof needs `wp_initialize'` of `os`, `syscall` and
   their imports, which are not generated.
-* `Hprem`: every `Good` file meets `bootPremises` (`BootMinibolt.lean`). **This is false**: `Good`
-  admits transaction 0 (a torn `init`, after which `BootMinibolt` really panics at the next boot)
-  and a high water mark one page short of `Commit`'s premise; see `BootMinibolt.lean`'s header.
-  The theorem is therefore vacuous until `Good` (or the program) is fixed and `Hprem` proved.
-* `Hlive`: executions of at least `2 ^ 30 - 2` steps keep fewer than `2 ^ 30` threads live.
-  `Open.specCrash` needs the thread bound `2 ^ 30` (`ThreadBoundLe`), which the adequacy
-  theorem gives from its `T`; `RealCrashThreadsBelow.of_single` gives `T = n + 2` for an
-  execution of `n` steps, enough below `2 ^ 30 - 2` steps.
+* `Hprem`: every `Good` file meets `bootPremises` (`BootMinibolt.lean`): its high water mark `n`
+  has `(n + 2) * 4096 ≤ 2 ^ 30`. **This is false for long runs**: `Good` gives only
+  `(n + 1) * 4096 ≤ 2 ^ 30`, and each boot commits one page; at the bound the Go `commit` grows
+  the file to 2 GiB without an error (it does not check minibolt's 1 GiB bound, and the model, as
+  Linux, lets its `Mmap` and `Truncate` succeed), leaving `Good`. Dropping `Hprem` needs that check
+  in the Go code.
 * The hand-written `os.file` and `os.fileStat` field facts, as instance hypotheses (as for every
   `OpenFile` and `Stat` spec).
+
+**The step bound.** `Open.specCrash` needs the thread bound `2 ^ 30` (`ThreadBoundLe`: the reader
+pool of `mmaplock`), which the adequacy theorem gives from its `T`, under the hypothesis that every
+execution keeps fewer than `T` live threads (`RealCrashThreadsBelow`); `RealCrashThreadsBelow.of_single`
+gives `T = n + 2` for an execution of `n` steps, hence the bound. The boot program forks no thread,
+so the hypothesis holds for `T = 2` at any length, but proving it is a property of every reachable
+configuration of the real semantics (no `Fork` redex is ever reached, through every function the
+global context resolves, every closure in the heap and every expression an external step returns),
+for which there is no proof device: the program logic proves no thread count, and the adequacy
+theorem does not derive the thread bound from the thread tokens of the proof.
 -/
 module
 
@@ -206,28 +215,22 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       iframe Hf'
       ipureintro; exact hg'
 
-/-- **minibolt's crash safety** (`BootCrashSafety`, `BootP1.lean`), under the hypotheses of the
-file header: the package initializer (`Hinit_wp`), `bootPremises` of every `Good` file (`Hprem`, false as things stand), and
-fewer than `2 ^ 30` live threads in executions of at least `2 ^ 30 - 2` steps (`Hlive`). -/
+/-- **minibolt's crash safety** (`BootCrashSafety`, `BootP1.lean`: executions of fewer than
+`2 ^ 30 - 2` steps), under the hypotheses of the file header: the package initializer
+(`Hinit_wp`), and `bootPremises` of every `Good` file (`Hprem`: the high water mark a page below
+1 GiB, false for long runs until the Go `commit` checks it). -/
 theorem bootCrashSafety [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (dir : GoString)
     (Hinit_wp : ∀ hG : HeapGS .hasLC osFsGF,
       initialize'.spec (GF := osFsGF) (hG := heapAt hG lctx))
-    (Hprem : ∀ fo, Good fo → bootPremises fo)
-    (Hlive : ∀ (σ : state) (g : GlobalState) (n : Nat), 2 ^ 30 ≤ n + 2 →
-      @RealCrashThreadsBelow osFsExts (osFsExtsSemanticsWith (P1 (dir ++ go!"/db"))) _
-        (boot dir) (2 ^ 30) n ([boot dir], ((σ, g) : CfgState))) :
+    (Hprem : ∀ fo, Good fo → bootPremises fo) :
     BootCrashSafety dir := by
-  intro σ g Hlctx Hpkgs Hinit Hfile Hthreads n κs t2 σ2 b Hsteps
-  by_cases hn : n + 2 ≤ 2 ^ 30
-  · exact bootCrashSafety_bounded (GF := osFsGF) Hinit_wp Hprem (n + 1) (n + 2) hn
-      σ g dir Hlctx Hpkgs Hinit Hfile n κs t2 σ2 b Hsteps (by omega) Hthreads
-      (@RealCrashThreadsBelow.of_single osFsExts (osFsExtsSemanticsWith (P1 (dir ++ go!"/db"))) _
-        _ _ _ Hthreads)
-  · exact bootCrashSafety_bounded (GF := osFsGF) Hinit_wp Hprem (n + 1) (2 ^ 30)
-      (Nat.le_refl _) σ g dir Hlctx Hpkgs Hinit Hfile n κs t2 σ2 b Hsteps (by omega) Hthreads
-      (Hlive σ g n (by omega))
+  intro σ g Hlctx Hpkgs Hinit Hfile Hthreads n κs t2 σ2 b hn Hsteps
+  exact bootCrashSafety_bounded (GF := osFsGF) Hinit_wp Hprem (n + 1) (n + 2) hn
+    σ g dir Hlctx Hpkgs Hinit Hfile n κs t2 σ2 b Hsteps (by omega) Hthreads
+    (@RealCrashThreadsBelow.of_single osFsExts (osFsExtsSemanticsWith (P1 (dir ++ go!"/db"))) _
+      _ _ _ Hthreads)
 
 end adequacy
 
