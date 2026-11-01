@@ -95,7 +95,7 @@ theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet �
     ihave ⟨%sn, %Hsn, #Hsav⟩ := HS $$ %Hty
     rw [Hsv] at Hsn
     cases Hsn
-    iapply (nodeSnapLocal_of_elem γ.node.cl γ.id γd (by rw [Hcsl]; exact Hd))
+    iapply (nodeSnapLocal_of_elem γ.node.cl γ.id γd (by rw [Hcsl.1]; exact Hd))
     iunfold snapSaved at Hsav
     iexact Hsav
   iapply stepIn_intro γ.node.cl srvClusterN γ.id ml sid st Hto

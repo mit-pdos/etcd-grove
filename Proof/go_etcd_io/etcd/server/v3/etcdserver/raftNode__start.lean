@@ -213,13 +213,13 @@ theorem raftNode.start.wp_proof
         icases Hbusy with ⟨Hbdrv, Hbcv, %Hbs⟩
         obtain ⟨HbA, HbPre, HbD, HbPos, Hb61⟩ := Hbs
         ihave ⟨Hbdrv, #Hdl⟩ := nodeDriver_deliveredLogLb _ _ _ _ $$ Hbdrv
-        icases rnReadySnap_bootLen E γ _ _ _ _ _ _ _ $$ Hdata with ⟨Hdata, %Hbb⟩
+        icases rnReadySnap_bootLen E γ _ _ _ _ _ _ _ $$ Henv Hdata with ⟨Hdata, %Hbb⟩
         iunfold rnReadySnap at Hdata
         icases Hdata with ⟨%ceL, %esL, %msL, %hs, HrS, #Hce, #Hcea, %HA', #HC, #HsvV, #Hes, #Hesa,
           #Hmsl, Hmsok, #Hss, #Hhs, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩⟩
         obtain ⟨-, HLA, Hfit, Hlast⟩ := HA'
         iunfold readySnap at HrS
-        icases HrS with ⟨%Hl, Hsn, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HsnLoc⟩
+        icases HrS with ⟨%Hl, Hsn, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HsnLoc, -⟩
         obtain ⟨-, Hptr, -, -, -, -, -, -, -, Hli⟩ := Hl
         -- the snapshot's log `A'`, `pre ++ A'` the snapshot's index long
         have hlenA : (γ.pre ++ A').length = uint.nat l.snap.Metadata'.Index' := by

@@ -678,5 +678,4 @@ sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
 sorry mergedCreate_window
 sorry merged_image
-sorry rnReadySnap_bootLen
 sorry run_job_snap_cmp

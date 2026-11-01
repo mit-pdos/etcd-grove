@@ -29027,3 +29027,30 @@ how every caller extracts facts at the linearization point. Chosen: one name, `k
 a write), at exactly the old strength, with `kvRevFits.lt`/`.of_lt`/`.mono` so callers need not
 unfold it.
 
+
+## A snapshot `Ready` is past the bootstrap log: `readySnap` gains `bootLen < index` (2026-11-01 · the user's approval, strict · branch `snap-bootlen`)
+
+**The gap.** `applyAll.specSnap` takes `|boot| ≤ i` for the snapshot's index `i`. The server had it
+from the named `sorry` `rnReadySnap_bootLen` (J8b), because raft's `readySnap` did not say it.
+
+**Why it is true.** A `Ready` hands out a pending (unstable) snapshot, and only `restore` sets one.
+`restore` takes only an index above the commit index (`SnapLogStep`'s restore disjunct:
+`committed < index`). The commit index is at least the bootstrap log's length (`ownLogGhost`'s
+`%Hboot`). A node restarted from storage has no pending snapshot (`RestartNode`: `snapLocOk … none`),
+so restarts need nothing new.
+
+**Where.** The pending snapshot's fact `snapLocOk` (`InvRawnode.lean`) already holds the
+receiver-local `snapLocal`. It gains `⌜|reBoot| < index⌝`. Only the two places that set it from a
+`MsgSnap` (`RawNode.Step`, `InvNodeRun`'s network step) prove it: `ownStepGhost_bootCommit` gives
+`|reBoot| ≤ committed` at the pre-state, and the restore disjunct gives `committed < index`. Every
+other step keeps or clears the pending snapshot (`snapLocOk_keep`, unchanged). The fact goes out
+through `ownRawNodeReady_loanLoc` to `readySnapData` and the impl's `readySnap`, and from there to
+the API's `readySnap` as `⌜(γ.bootLen : Int) < index⌝`, with the law `readySnap_bootLen`. Strict,
+because `restore` is strict (the user's choice); the server uses `≤`.
+
+**The server.** `srvClusterOk` gains `cl.bootLen = boot.length`; both `NewServerAlloc`s have it
+from `cluster_alloc`. `rnReadySnap_bootLen` takes `rnEnvOk`, which holds `srvClusterOk`, and is
+proved. Its `sorry` is gone.
+
+**The raft API changed** (`interface/` diff): `readySnap`'s snapshot case, `readySnap_bootLen`
+new. It is a stronger postcondition of `node.readyRecv`, so no client loses anything.

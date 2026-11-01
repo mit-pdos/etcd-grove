@@ -622,5 +622,4 @@ axiom zap.Uint64.wp_proof
 sorry etcdserver.restorePre_of_apply
 sorry mergedCreate_window
 sorry merged_image
-sorry rnReadySnap_bootLen
 sorry run_job_snap_cmp

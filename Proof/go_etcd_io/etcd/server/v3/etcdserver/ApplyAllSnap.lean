@@ -110,7 +110,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
   ihave #Hsaved : snapSaved γd sv.Metadata'.Index' $$ []
   · iunfold snapSaved
     letI := srvStor (GF := GF) γr.raft.raft
-    iapply (nodeSnapLocal_elem γr.raft.raft.cl nid γd (by rw [Hsloc']; exact hsl))
+    iapply (nodeSnapLocal_elem γr.raft.raft.cl nid γd (by rw [Hsloc'.1]; exact hsl))
     iexact Hsloc
   -- the snapshot's file out of the directory, the counter raised to its index (`snapDir_take`)
   have hnt' : nt < uint.nat sv.Metadata'.Index' := by

@@ -18,4 +18,3 @@ axiom zap.Logger.Info.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Uint64.wp_proof
-sorry rnReadySnap_bootLen

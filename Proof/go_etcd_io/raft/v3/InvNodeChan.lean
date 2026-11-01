@@ -731,6 +731,8 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     -- (2026-10-26, D22 J2, R-loc) the snapshot local to the node (`snapLocal`: for a server, its
     -- index saved in the member's snapshot directory, which `snapDirInv` turns into its file)
     snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
+    -- (2026-11-01, J8b) past the bootstrap log (`snapLocOk`: `restore` is above the commit index)
+    ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝ ∗
     -- (raft-final phase 2, 2026-10-30) the snapshot's certificate (raft's, from the `MsgSnap` it
     -- restored, `ksnCert` through `certLink`): what the API's `readyRecv_open` makes the client's
     -- `snapshotCert` of (until U8 v2 the storage's registry, `storageCertLink`)

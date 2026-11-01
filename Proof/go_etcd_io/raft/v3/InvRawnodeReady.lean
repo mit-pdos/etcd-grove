@@ -1215,21 +1215,26 @@ theorem ownRawNodeReady_softStateRO (γ : RaftNames) (rn : Loc) (id : w64) (rs :
   iframe Hss H
 
 /-- (2026-10-26, D22 J2, R-loc) **A computed `Ready`'s snapshot is local to the node**: the
-pending snapshot is the loan's (`SnapRdy`), whose receiver-local fact the node keeps (`Hsloc`). -/
+pending snapshot is the loan's (`SnapRdy`), whose receiver-local fact the node keeps (`Hsloc`);
+(2026-11-01, J8b) its index past the bootstrap log (`snapLocOk`). -/
 theorem ownRawNodeReady_loanLoc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (h : Bool) (l : SnapLoan) :
     ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms h (some l) ⊢
-      snapLocal γ id l.snap.Metadata'.Index' ∗ ownRawNodeReady γ rn id rs rd ce es ms h (some l) := by
+      (snapLocal γ id l.snap.Metadata'.Index' ∗
+        ⌜(γ.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) ∗
+      ownRawNodeReady γ rn id rs rd ce es ms h (some l) := by
   iintro H
-  ihave #Hss : snapLocal γ id l.snap.Metadata'.Index' $$ [H]
+  ihave #Hss : iprop(snapLocal γ id l.snap.Metadata'.Index' ∗
+      ⌜(γ.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) $$ [H]
   · iunfold ownRawNodeReady at H
     icases H with ⟨%s, %cf, %fp, %ds, %rnv, %sv, %hprev, H⟩
     iNamed H
     unfold rdSnapRel
     icases Hrdz with ⟨-, -, -, %Hr⟩
     rw [show l.snap.Metadata'.Index' = (snapId l.snap).index' from rfl]
-    iapply (snapLocOk_some γ id (snapId l.snap)).1
-    rw [← Hr.2.1]; iexact Hsloc
+    ihave Hx := (snapLocOk_some γ id (snapId l.snap)).1 $$ [Hsloc]
+    · rw [← Hr.2.1]; iexact Hsloc
+    iexact Hx
   iframe Hss H
 
 /-- (2026-10-28, the conf-change decision switch) A computed `Ready`'s loan has its decisions

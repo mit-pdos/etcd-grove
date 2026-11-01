@@ -224,9 +224,9 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
       id against the payload's `nodeSnapLocal … γn.id`) and `"#HmetaSnap" ∷ srvMetaSnap γ` (`bootOk`'s
       `#HmetaSnap` by name, `InvRun.lean`), both proved in `NewServer`.
     - `rnApSnap` (and `rnApplyTok_recv`'s snapshot case) gains `|boot| ≤ i`, from
-      **`rnReadySnap_bootLen` (`sorry`, open)**: true of raft (`restore` refuses an index at or
-      below the committed one, which bootstrap sets to `|boot|`), not in raft's `readySnap` yet (an
-      API change to propose).
+      `rnReadySnap_bootLen`, **proved** (2026-11-01, branch `snap-bootlen`): raft's `readySnap`
+      gains `bootLen < index` (an API change, approved), from the pending snapshot's `snapLocOk`
+      (`restore` takes only an index above the commit index, which is at least `|boot|`).
     - `run_job_snap` (`EtcdServer__run.lean`): the snapshot payload's job, `applyRes C A` to
       `applyRes C A'`; `run`'s mode-off `SNAPSHOT-SORRY` replaced by the job's scheduling over it
       (built). Its proof cases on `E.cmp`: **`run_job_snap_cmp` (`sorry`, open)** the compaction mode

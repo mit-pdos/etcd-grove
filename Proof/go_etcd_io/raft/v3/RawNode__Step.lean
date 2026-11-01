@@ -116,6 +116,7 @@ theorem RawNode.Step.wp_proof
   -- `rn.raft.Step(m)`
   all_goals (
       try wp_auto
+      icases ownStepGhost_bootCommit γ _ cf id s $$ Hghost with ⟨%Hbc0, Hghost⟩
       icases ownStepGhost_term0 γ _ cf id s $$ Hghost
         with ⟨%Hb1, Hghost⟩
       -- (raft-final phase 2) the no-snapshot mode is off (`NsCap`)
@@ -182,10 +183,12 @@ theorem RawNode.Step.wp_proof
         have Hsl0 := Hsl sv0 Hsn0
         -- (2026-10-26, D22 J2) the pending snapshot kept, or the message's, local to the node
         ihave #Hsloc' : snapLocOk γ id s'.logst.snap $$ []
-        · rcases Hsl0 with ⟨-, h2, -, -⟩ | ⟨-, -, h2, -, -, -⟩
+        · rcases Hsl0 with ⟨-, h2, -, -⟩ | ⟨-, -, h2, -, hcm, -⟩
           · rw [h2]; iexact Hsloc
           · rw [h2]; iapply (snapLocOk_some γ id (snapId sv0)).2
-            rw [show (snapId sv0).index' = sv0.Metadata'.Index' from rfl]; iexact Hloc0
+            isplitr
+            · rw [show (snapId sv0).index' = sv0.Metadata'.Index' from rfl]; iexact Hloc0
+            ipureintro; show _ < uint.Z sv0.Metadata'.Index'; omega
         -- (2026-10-28, stage U3c) in either mode: the ghost part at a new full prefix (a restore's)
         obtain ⟨fp', ds', Hmd, Hfp'⟩ := RNMode.stepOut_snap Href Hs
         ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp', ds'⟩) cf id s' $$ [Hghost]

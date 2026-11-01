@@ -2042,7 +2042,10 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
         storLog st.storage k (DFrac.own 1) old ∗ storEnd st.storage (k + old.length)) ∗
       snapGivenU γ id (uint.nat l.snap.Metadata'.Index') ∗
       -- (2026-11-01, J8a) the snapshot local to the node (raft's `snapLocal`, `snapLocalMsg`)
-      snapLocal γ.raft id l.snap.Metadata'.Index')
+      snapLocal γ.raft id l.snap.Metadata'.Index' ∗
+      -- (2026-11-01, J8b) past the bootstrap log: `restore` takes only an index above the commit
+      -- index, which starts at the bootstrap log's length
+      ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝)
 
 /-- (open) **The rest of a `Ready`** (the draft's `readyRest`). -/
 def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
@@ -2274,7 +2277,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     iunfold readyDataL at Hdata
     iunfold readySnapData at Hdata
     icases Hdata with ⟨#Hce, #Hcom, #Hes, Hmsgs, Hmo, -, Htks, ⟨%sts, Hsts, Hrs⟩,
-      ⟨%h, Hhs, %Hp'⟩, #Hhw, Hss, #Hidx, Hsnap, #Hdlv, #Hloc, #HD, -, %Hfacts, Hout⟩
+      ⟨%h, Hhs, %Hp'⟩, #Hhw, Hss, #Hidx, Hsnap, #Hdlv, #Hloc, %Hbl, #HD, -, %Hfacts, Hout⟩
     obtain ⟨Hptr, Hce0, Hpre, Hlt, Hdl, Hpos, H61, Hfl, Hind⟩ := Hfacts
     subst Hce0
     ihave ⟨Hrng, #Hgv⟩ : (∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
@@ -2337,8 +2340,10 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
         rw [← Hid]
         iframe Hsn
         iunfold storGiven at Hgv; iexact Hgv
-      iExactEq Hloc
-      first | rw [Hγr, Hid0, Hid] | rw [← Hγr, Hid0, Hid] | simp only [Hγr, Hid0, Hid]
+      isplitr
+      · iExactEq Hloc
+        first | rw [Hγr, Hid0, Hid] | rw [← Hγr, Hid0, Hid] | simp only [Hγr, Hid0, Hid]
+      ipureintro; rw [← Hγr]; exact Hbl
     unfold nodeDriver
     dsimp only
     iexists γn, id, l.dlv
