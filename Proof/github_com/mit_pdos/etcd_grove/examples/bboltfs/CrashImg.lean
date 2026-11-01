@@ -21,6 +21,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.CrashOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.InitLayout
+public import Proof.os.CrashWReach
 
 @[expose] public section
 
@@ -115,6 +116,39 @@ def cacheOk (bs : List (w8 × Bool)) (i : Nat) (P : Meta → Prop) : Prop :=
   4096 * i + 80 ≤ bs.length →
     (∃ k < 64, ∃ x, bs[4096 * i + 16 + k]? = some x ∧ x.2 = true) ∨
     (metaValid (fileMeta (bs.map Prod.fst) i) → P (fileMeta (bs.map Prod.fst) i))
+
+/-- `cacheOk` of every state a retried write covering slot `i` reaches, from a state whose bytes
+of the slot are all clean: a partly written slot keeps a clean old byte, or is all the new data,
+which satisfies `P` if valid. -/
+theorem cacheOk_wreach {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {off : Nat} {data : List w8}
+    {i : Nat} {P : Meta → Prop} (h : WReach m bs off data m' bs') (hl : bs.length = m.size)
+    (ha : off ≤ 4096 * i + 16) (haw : 4096 * i + 80 ≤ off + data.length)
+    (hcl : ∀ k < 64, ∀ x, bs[4096 * i + 16 + k]? = some x → x.2 = true)
+    (hP : ∀ L : List w8, (∀ k < 64, L[4096 * i + 16 + k]? =
+        some (data.getD (4096 * i + 16 + k - off) 0)) →
+      metaValid (fileMeta L i) → P (fileMeta L i)) :
+    cacheOk bs' i P := by
+  intro hlen
+  rcases h.torn hl (a := 4096 * i + 16) (w := 64) (by omega) ha (by omega) (by omega) with
+    ⟨hin, heq⟩ | ⟨-, ⟨j, hj, hjl, heq⟩ | hall⟩
+  · obtain ⟨x, hx⟩ : ∃ x, bs[4096 * i + 16 + 0]? = some x :=
+      ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    exact .inl ⟨0, by omega, x, by rw [heq 0 (by omega)]; exact hx, hcl 0 (by omega) x hx⟩
+  · obtain ⟨x, hx⟩ : ∃ x, bs[4096 * i + 16 + j]? = some x :=
+      ⟨_, List.getElem?_eq_getElem hjl⟩
+    exact .inl ⟨j, hj, x, by rw [heq]; exact hx, hcl j hj x hx⟩
+  · exact .inr (hP _ fun k hk => by rw [List.getElem?_map, hall k hk]; rfl)
+
+/-- `hP` of `cacheOk_wreach` from the write's slot (`writeBytes`). -/
+theorem slot_data_write {bs : List w8} {off : Nat} {data : List w8} {i : Nat} {L : List w8}
+    (ha : off ≤ 4096 * i + 16) (haw : 4096 * i + 80 ≤ off + data.length)
+    (hL : ∀ k < 64, L[4096 * i + 16 + k]? = some (data.getD (4096 * i + 16 + k - off) 0)) :
+    fileMeta L i = fileMeta (writeBytes bs off data) i := by
+  have hne : data ≠ [] := by intro h; simp [h] at haw; omega
+  refine fileMeta_of_slot (metaSlot_ext fun k hk => ?_)
+  rw [hL k hk, writeBytes_getElem? _ _ _ hne, if_neg (by omega), if_pos (by omega),
+    List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]
+  rfl
 
 theorem durOk_slot {m : OsMeta} {i : Nat} {P : Meta → Prop} {img D : List w8}
     (hD : ∀ (j : Nat) (d : w8), m.dur[j]? = some (some d) → D[j]? = some d)
@@ -299,6 +333,31 @@ theorem initIdle_good {m : OsMeta} {bs : List (w8 × Bool)} (h : initIdle m bs) 
   refine goodImg_noValid (by have := hI.2.1; have := h.hi; omega) fun i hi hl hv => ?_
   exact idleImg_slot hI (h.dur i hi) (h.cache i hi) hi hl hv
 
+/-- A retried write keeps what `m.dur` knows and its bound. -/
+theorem wreach_dur {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {off : Nat} {data : List w8}
+    (h : WReach m bs off data m' bs') : m'.dur = m.dur ∧ m'.durHi = m.durHi := by
+  induction h with
+  | refl => exact ⟨rfl, rfl⟩
+  | step k _ _ ih => exact ih
+
+theorem durOk_congr {m m' : OsMeta} {i : Nat} {P : Meta → Prop} (h1 : m'.dur = m.dur)
+    (h2 : m'.durHi = m.durHi) (h : durOk m i P) : durOk m' i P := by
+  unfold durOk; rw [h1, h2]; exact h
+
+/-- `init`'s first write, retried: every state it reaches is `initIdle`, from one whose bytes of
+the slots are clean (the file as `Open` found it), since the data zeroes the slots. -/
+theorem initIdle_wreach {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {data : List w8}
+    (h : initIdle m bs) (hl : bs.length = m.size) (hR : WReach m bs 0 data m' bs')
+    (hcl : ∀ i < 2, ∀ k < 64, ∀ x, bs[4096 * i + 16 + k]? = some x → x.2 = true)
+    (hdl : 8192 ≤ data.length) (hdl' : data.length ≤ 2 ^ 30)
+    (hz : ∀ k < 8192, data[k]? = some 0) : initIdle m' bs' := by
+  obtain ⟨hd1, hd2⟩ := wreach_dur hR
+  refine ⟨by have := (hR.narrow hl).hi; have := h.hi; omega,
+    fun i hi => durOk_congr hd1 hd2 (h.dur i hi), fun i hi => ?_⟩
+  refine cacheOk_wreach hR hl (by omega) (by omega) (hcl i hi) fun L hL hv => ?_
+  refine slot_zero_invalid (fun k hk => ?_) hv
+  rw [hL k hk, List.getD_eq_getElem?_getD, Nat.sub_zero, hz _ (by omega)]; rfl
+
 /-- `init`'s first write in flight: the data zeroes both slots. -/
 theorem initW1_good {m : OsMeta} {bs : List (w8 × Bool)} {data : List w8}
     (hhi : m.hi ≤ 2 ^ 30) (hdl : data.length ≤ 2 ^ 30)
@@ -342,6 +401,16 @@ theorem initMid_page3 {m : OsMeta} {bs : List (w8 × Bool)} (h : initMid m bs) {
   · rename_i hk
     rw [himg k hk (h.page3 k hk), List.getElem?_eq_getElem (by omega)]; rfl
   · rw [List.getElem?_eq_none (by omega)]
+
+/-- `init`'s meta write, retried (it misses page 3): every state it reaches is `initMid`. -/
+theorem initMid_wreach {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {data : List w8}
+    (h : initMid m bs) (hl : bs.length = m.size) (hR : WReach m bs 0 data m' bs')
+    (hdl : data.length ≤ 4096 * 3) (hsz : 4 * 4096 ≤ m.size) : initMid m' bs' := by
+  obtain ⟨hd1, hd2⟩ := wreach_dur hR
+  have hN := hR.narrow hl
+  refine ⟨by have := hN.hi; have := h.hi; omega, by rw [hN.lo]; exact h.lo,
+    fun i hi => durOk_congr hd1 hd2 (h.dur i hi), fun k hk => ?_⟩
+  rw [hN.suf (by omega) _ (by omega)]; exact h.page3 k hk
 
 theorem initMid_idle_good {m : OsMeta} {bs : List (w8 × Bool)} (h : initMid m bs)
     (hc : ∀ i < 2, cacheOk bs i (fun X => X = bInitMeta i)) :
