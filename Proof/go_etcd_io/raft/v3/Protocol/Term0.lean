@@ -45,43 +45,11 @@ theorem isEntryR_term_one (γ : RaftNames) (e : EntryM) (pt : w64) :
     rw [Ht]; word
 
 /-- **At term `0` a node's log is empty**: its boundary is the initial one, its suffix empty. -/
-theorem ownLogGhost_term0 (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) :
-    ⊢ ownLogGhost (GF := GF) γ id s kl -∗
+theorem ownLogGhost_term0 (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
+    ⊢ ownLogGhost (GF := GF) γ id s kl W -∗
       ⌜s.term = W64 0 → plogLast s.base s.log = base0⌝ := by
-  unfold ownLogGhost
-  iintro ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
-  iNamed H
-  have ⟨Hf, Hw, Htle⟩ := Hfull
-  have HwF : PlogWf base0 (fp ++ s.log) := full_wf _ _ _ Hf Hw
-  ihave #HrF := logRecs_full γ s.base fp s.log Hf $$ Hfrecs Hrecs
-  rw [← full_last _ _ _ Hf]
-  cases hF : (fp ++ s.log).getLast? with
-  | none =>
-    ipureintro; intro _
-    unfold plogLast; rw [hF]
-  | some e =>
-    have hl := List.getLast?_eq_getElem? (l := fp ++ s.log)
-    rw [hF] at hl
-    have hlen : 0 < (fp ++ s.log).length := by
-      cases h : (fp ++ s.log) with
-      | nil => rw [h] at hF; cases hF
-      | cons _ _ => simp
-    have hk : (fp ++ s.log)[(fp ++ s.log).length - 1]? = some e := hl.symm
-    have hidx := HwF _ e hk
-    rw [base0_index] at hidx
-    have hr := (word.unsigned_range e.Index').2
-    icases logRecs_lookup γ (fp ++ s.log) _ e hk (by push_cast at hidx ⊢; omega) $$ HrF
-      with ⟨%pt, -, #Hr⟩
-    icases isEntryR_term_one γ e pt $$ Hr with %Hp
-    ipureintro
-    intro hT
-    exfalso
-    have Hat : plogTermAt base0 (fp ++ s.log) e.Index' = some e.Term' :=
-      plogTermAt_lookup base0 _ e.Index' _ e hk (by rw [base0_index]; omega)
-    have := (Htle e.Index' e.Term' Hat).1
-    rw [hT] at this
-    rw [show uint.Z (W64 0) = 0 from rfl] at this
-    omega
+  -- PORT(durability stage II): proof (the body of `ownLogGhost` changed (durability I-1))
+  sorry
 
 /-- At the initial boundary with an empty suffix, every candidate is up to date. -/
 theorem plogUpToDate_base0 (b : entryID) (es : List EntryM) (x : entryID) :

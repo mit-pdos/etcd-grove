@@ -63,41 +63,17 @@ acknowledgement of `pr.Match` in `m.term`. The receiver acknowledges only at its
 it is not leader -- the role premise) the acknowledgement is at most the commit index or
 justified by its log (`acksOk`, `ackAgree`), and either way within it (`LogOk`). `Step`
 holds the ghost state before its term preamble: hence `≤`. -/
-theorem heartbeat_commit_le_last (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bool} :
+theorem heartbeat_commit_le_last (E : CoPset) (γ : RaftNames) (id : w64) (ps : PState) (m : Msg)
+    {md : Bool} :
+    ↑(slotN γ id) ⊆ E →
     m.ty = .heartbeat →
     m.dst = id →
     uint.Z ps.term ≤ uint.Z m.term →
     (m.term = ps.term → ps.role ≠ .leader) →
-    ⊢ ownRaftGhost (GF := GF) γ id ps md -∗ isMessage γ m -∗
-      ⌜uint.Z m.commit ≤ plogLastIndexZ ps.base ps.log⌝ := by
-  intro Hty Hto Hle Hrole
-  simp only [isMessage, Hty]
-  unfold ownRaftGhost ownLogGhost isAcked
-  iintro ⟨%γv, %voted, %kl, H⟩ ⟨-, -, ⟨%i, %Hci, Hack⟩, -⟩
-  iNamed H
-  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
-  iNamed H
-  obtain ⟨-, -, Hcl⟩ := Hlog_ok
-  have := plogLastIndexZ_nonneg ps.base ps.log
-  icases Hack with (%H0 | ⟨⟨%γa', %Hγa', Hfrag⟩, -⟩)
-  · ipureintro; omega
-  rw [Hto, Haname] at Hγa'
-  cases Hγa'
-  icases ghost_map_lookup $$ Hacks Hfrag with %Hk
-  have Hkt : uint.Z m.term ≤ uint.Z ps.term := Hacks_term _ (by rw [Hk]; rfl)
-  have Heq : m.term = ps.term := by word
-  have Hr := Hrole Heq
-  unfold acksOk
-  rcases Hr' : ps.role
-  rotate_left 2
-  · exact absurd Hr' Hr
-  all_goals
-    ihave #Hk' := BigSepM.bigSepM_lookup (Φ := fun k _ => ackOk (GF := GF) γ ps k) Hk $$ Hacks_ok
-    by_cases Hlt : uint.Z ps.commit < uint.Z i
-    · unfold ackOk ackAgree
-      ihave ⟨%Hil, -⟩ := Hk' $$ %(⟨Heq, Hlt⟩ : (m.term, i).1 = ps.term ∧ uint.Z ps.commit < uint.Z (m.term, i).2)
-      ipureintro; simp only at Hil; omega
-    · ipureintro; omega
+    ⊢ ownRaftGhost (GF := GF) γ id ps md -∗ isMessage γ m ={E}=∗
+      ownRaftGhost γ id ps md ∗ ⌜uint.Z m.commit ≤ plogLastIndexZ ps.base ps.log⌝ := by
+  -- PORT(durability stage II): proof (restated: a fancy update, the acknowledgement looked up in the slot (durability R2))
+  sorry
 
 /-- What `raftLog.maybeAppend` needs of a received `app`'s batch: carried by the message
 (`AppPayloadOk`). No premise on the terms: it is a fact of the message alone (until
@@ -708,92 +684,9 @@ private theorem ownLogGhost_init (γ : RaftNames) (id t : w64) (L : List EntryM)
       ghostMapAuth γl 1 (∅ : GMap Nat ((w64 × Bool) × List EntryM)) -∗
       ghostMapAuth γw 1 (∅ : GMap w64 (GSet w64)) -∗
       monoListAuthOwn γe 1 ([] : List Aev) -∗
-      ownLogGhost γ id (initPStateAt t L) none := by
-  intro Hγm Hγa Hγc Hγl Hγw Hγe HL HwfL Hlen Hones Ht
-  iintro #Hinv #Hc0 #HrL Hm Ha Hc Hl Hw He
-  have HWL : uint.Z (W64 (L.length : Int)) = L.length := uint_Z_W64 _ (by omega) Hlen
-  have Hcommit : (initPStateAt t L).commit = W64 (L.length : Int) := rfl
-  have Hlog : (initPStateAt t L).log = L := rfl
-  have Hbase : (initPStateAt t L).base = base0 := rfl
-  have Hterm : (initPStateAt t L).term = t := rfl
-  have Hrole : (initPStateAt t L).role = .follower := rfl
-  have Hcp : cprefix [] (initPStateAt t L) = L := by
-    unfold cprefix; rw [Hlog, Hcommit, List.nil_append, HWL]; simp
-  unfold ownLogGhost
-  iexists γm, ∅, γa, ∅, [], γc, ∅, γl, ∅, γw, ∅
-  iframe Hm Ha Hc Hl Hw Hinv
-  isplitr; · ipureintro; exact Hγm
-  isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
-  isplitr; · ipureintro; intro t Ht; simp at Ht
-  isplitr; · unfold leadLogOwn; rw [Hrole]; iempintro
-  isplitr; · ipureintro; exact Hγa
-  isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
-  isplitr; · ipureintro; intro k Hk; simp at Hk
-  isplitr; · unfold acksOk; rw [Hrole]; iapply (BigSepM.bigSepM_empty).2; iempintro
-  isplitr
-  · ipureintro
-    unfold LogOk plogLastIndexZ
-    rw [Hlog, Hbase, Hcommit, base0_index, HWL]
-    exact ⟨PlogWf_wfR _ _ HwfL, Int.natCast_nonneg _, by omega⟩
-  isplitr; · rw [Hlog, Hbase]; iexact HrL
-  isplitr; · unfold matchedOk; rw [Hrole]; iempintro
-  isplitr
-  · unfold commitIn
-    isplitr
-    · unfold commitJ; ileft; ipureintro
-      rw [Hlog, Hcommit, HL, HWL, List.nil_append]; exact ⟨Int.le_refl _, rfl⟩
-    · unfold dynOn
-      -- (2026-10-25, T-M M2a) in either mode: every entry below the commit index is the boot
-      -- log's, which needs no witness
-      iright; unfold witsB; iintro %k %Hk %Hb; exfalso
-      have := Hk.2
-      rw [Hcommit, HWL] at this
-      rw [HL] at Hb
-      simp at this
-      omega
-  isplitr; · unfold baseOk; ileft; ipureintro; rfl
-  isplitr
-  · ipureintro
-    rw [Hlog, Hbase]
-    refine ⟨FullOk_base0, HwfL, ?_⟩
-    intro j x Hx
-    rw [List.nil_append] at Hx
-    refine ⟨?_, fun h => by rw [Hrole] at h; cases h⟩
-    rw [Hterm]
-    have := uint_Z_nonneg j
-    by_cases Hj0 : uint.Z j = 0
-    · have Hj : j = base0.index' := uint_Z_inj.mp (by rw [base0_index]; exact Hj0)
-      subst Hj
-      rw [plogTermAt_base] at Hx
-      cases Hx
-      rw [show uint.Z (base0 : entryID).term' = 0 from rfl]; exact uint_Z_nonneg t
-    · obtain ⟨e, He, -, Hxt⟩ := plogTermAt_some_entry _ _ _ _ (PlogWf_wfR _ _ HwfL) Hx
-        (by rw [base0_index]; omega)
-      have Hne : L ≠ [] := by intro h; subst h; simp at He
-      rw [← Hxt, Hones e (List.mem_of_getElem? He), show uint.Z (W64 1) = 1 from rfl]
-      exact Ht Hne
-  isplitr; · unfold logRecs; iapply (BigSepL.bigSepL_nil).2; iempintro
-  isplitr; · ipureintro; exact Hγc
-  isplitr; · ipureintro; intro T HT; simp at HT
-  isplitr; · unfold campOwn; rw [Hrole]; iempintro
-  isplitr; · ipureintro; exact Hγl
-  isplitr; · unfold vlogsOk; iapply (BigSepM.bigSepM_empty).2; iempintro
-  isplitr; · unfold histsOk; iapply (BigSepM.bigSepM_empty).2; iempintro
-  isplitr; · ipureintro; exact Hγw
-  isplitr; · ipureintro; intro t Ht; simp at Ht
-  isplitr; · unfold klOk; ipureintro; rw [Hrole]; intro h; cases h
-  isplitl [He]
-  · unfold ownEvs
-    iexists γe, []
-    isplitr; · ipureintro; exact Hγe
-    isplitl [He]; · iexact He
-    ipureintro
-    refine ⟨fun p1 p2 e1 e2 _ H1 _ => by simp at H1, fun e He => by simp at He,
-      fun t i Hi => by simp at Hi⟩
-  isplitr; · rw [Hcp]; iexact Hc0
-  ipureintro
-  refine ⟨⟨fun h => (by rw [Hrole] at h; cases h), fun h => (by rw [Hrole] at h; cases h)⟩, ?_⟩
-  rw [Hcommit, HWL, HL]; exact Int.le_refl _
+      ownLogGhost γ id (initPStateAt t L) none DurMaps.empty := by
+  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
+  sorry
 
 private theorem tbl_of_ids (nv : GMap w64 GName) (P : w64 → GName → IProp GF) :
     ∀ m : GMap w64 GName, (∀ k v, m !! k = some v → nv !! k = some v) →
@@ -845,57 +738,8 @@ private theorem ownRaftGhost_init (γ : RaftNames) (id t : w64) (L : List EntryM
       monoListAuthOwn γe 1 ([] : List Aev) -∗
       ghostMapAuth γlc 1 (∅ : GMap w64 GName) -∗
       ownRaftGhost γ id (initPStateAt t L) md := by
-  intro Hnz Hγv Hγm Hγa Hγc Hγl Hγw Hγe Hγlc Hγrq HL HwfL Hlen Hones Ht
-  iintro #Hinv #Hc0 #HrL #Hcinv Hcr0 Hrq Hv Hm Ha Hc Hl Hw He Hlc
-  ihave Hlg := ownLogGhost_init γ id t L γm γa γc γl γw γe Hγm Hγa Hγc Hγl Hγw Hγe
-    HL HwfL Hlen Hones Ht $$ Hinv Hc0 HrL Hm Ha Hc Hl Hw He
-  have Hrole : (initPStateAt t L).role = .follower := rfl
-  unfold ownRaftGhost
-  iexists γv, ∅, none
-  isplitr; · ipureintro; exact Hγv
-  isplitr; · ipureintro; exact Hnz
-  isplitl [Hv]; · iexact Hv
-  isplitr; · ipureintro; exact ⟨fun t Ht => by simp at Ht, by simp [initPStateAt, initPState]⟩
-  isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
-  isplitr
-  · rw [show (initPStateAt t L).outbox = [] from rfl]
-    iapply (BigSepL.bigSepL_nil).2; iempintro
-  isplitr
-  · rw [show (initPStateAt t L).votes = ∅ from rfl, granted_empty]
-    iapply (BigSepM.bigSepM_empty).2; iempintro
-  isplitr; · unfold leaderWit; rw [Hrole]; iempintro
-  isplitl [Hlg]; · iexact Hlg
-  isplitr; · ipureintro; intro _ h; exact Hnz h.symm
-  isplitr; · ipureintro; intro _; rfl
-  isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
-  isplitr
-  · ipureintro
-    exact ⟨fun h => absurd Hrole h, fun h => by rw [Hrole] at h; cases h⟩
-  isplitl [Hlc]
-  · unfold lcmOwn
-    iexists γlc, ∅
-    iframe Hlc
-    isplitr; · ipureintro; exact Hγlc
-    isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
-    isplitr; · ipureintro; intro t Ht; simp at Ht
-    unfold lcmLead; rw [Hrole]; iempintro
-  isplitl [Hrq Hcr0]
-  · unfold rdOwn
-    iexists γrq, ∅
-    isplitr; · ipureintro; exact Hγrq
-    isplitl [Hrq]; · iexact Hrq
-    isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
-    isplitr; · ipureintro; intro t Ht; simp at Ht
-    isplitr; · unfold rdLead; rw [Hrole]; ipureintro; rfl
-    isplitr
-    · rw [show (initPStateAt t L).rd.states = [] from rfl]; iapply (BigSepL.bigSepL_nil).2; iempintro
-    isplitr
-    · rw [show (initPStateAt t L).rd.pend = [] from rfl]; iapply (BigSepL.bigSepL_nil).2; iempintro
-    isplitl [Hcr0]
-    · rw [show (initPStateAt t L).rd.pend.length + rdCount (initPStateAt t L).outbox = 0 from rfl]; iexact Hcr0
-    iframe Hcinv
-    rw [show (initPStateAt t L).outbox = [] from rfl]; iapply msgsTks_nil
-  ipureintro; exact Hmode
+  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
+  sorry
 
 private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) (t : w64) (L : List EntryM)
     {md : Bool} (Hmode : γ.reDyn.isSome = md) :
@@ -1229,176 +1073,12 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
           γ.reDec = rdec ∧ γ.dup = dup⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ L ∗
-        ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗
+        ([∗map] id ↦ _u ∈ toMap ids, ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id) ∗
         C γ ∗
         -- (2026-10-13) every read credit
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
-  intro Hcne Hnz HLok Ht
-  have HwfL := HLok.wf
-  have Hones := HLok.terms
-  have Hlen : (L.length : Int) < 2 ^ 64 := by have := HLok.1; omega
-  iintro Hcl
-  imod alloc_maps (GF := GF) (K := w64) (V := w64) ids with ⟨%nv, %Hnv, Hv⟩
-  imod alloc_maps (GF := GF) (K := w64) (V := TermRec) ids with ⟨%nt, -, Ht⟩
-  imod alloc_maps (GF := GF) (K := w64 × w64) (V := Unit) ids with ⟨%na, -, Ha⟩
-  imod alloc_maps (GF := GF) (K := w64) (V := List EntryM × w64) ids with ⟨%nc, -, Hc⟩
-  imod alloc_maps (GF := GF) (K := Nat) (V := (w64 × Bool) × List EntryM) ids
-    with ⟨%nl, -, Hl⟩
-  imod alloc_maps (GF := GF) (K := w64) (V := GSet w64) ids with ⟨%nw, -, Hw⟩
-  imod alloc_evs (GF := GF) ids with ⟨%ne, He⟩
-  imod alloc_maps (GF := GF) (K := w64) (V := GName) ids with ⟨%nlc, -, Hlc⟩
-  imod alloc_maps (GF := GF) (K := w64) (V := GName) ids with ⟨%nrq, -, Hrq⟩
-  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName × List EntryM)
-    with ⟨%γrd, Hrda⟩
-  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γrf, Hrfa⟩
-  imod own_alloc ((● (2 ^ 64 - 2 : Nat) : Auth Nat) • (◯ (2 ^ 64 - 2 : Nat) : Auth Nat))
-    (Auth.auth_both_valid_discrete.mpr ⟨⟨0, (Nat.add_zero _).symm⟩, trivial⟩) with ⟨%γrc, HC⟩
-  icases (own_op γrc _ _).1 $$ HC with ⟨HCa, HCf⟩
-  imod ownCommitted_alloc_at (GF := GF) L with ⟨%γc, Hcauth, #Hclb⟩
-  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := PropRec) with ⟨%γpr, Hpra⟩
-  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γfr, Hfra⟩
-  imod ghostVar_alloc (GF := GF) L with ⟨%γcl, Hcl0⟩
-  -- (2026-10-14, reconfiguration stage B4) the winners table, empty
-  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := WinRec) with ⟨%γtb, Htba⟩
-  icases ghostVar_split γcl L (1 : Qp).half (1 : Qp).half $$ [Hcl0]
-    with ⟨Hcl1, Hcl2⟩
-  · rw [Qp.half_add_half]; iexact Hcl0
-  obtain ⟨γ0, Hγ0⟩ : ∃ γ0 : RaftNames,
-      γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
-        dyn, ccOk, L.map BootEntry.ofEntry, Hcne, trk, Htrk, ns,
-        fun h he => Hns h (List.map_eq_nil_iff.1 he), nx,
-        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl, nsN, certN, reg, rdec, dup⟩ :=
-    ⟨_, rfl⟩
-  have e1 : γ0.reVotes = nv := by rw [Hγ0]
-  have e2 : γ0.reTerms = nt := by rw [Hγ0]
-  have e3 : γ0.reAcks = na := by rw [Hγ0]
-  have e4 : γ0.reCamp = nc := by rw [Hγ0]
-  have e5 : γ0.reVlogs = nl := by rw [Hγ0]
-  have e6 : γ0.reWins = nw := by rw [Hγ0]
-  have e7 : γ0.reEvs = ne := by rw [Hγ0]
-  have e8 : γ0.reCommit = γc := by rw [Hγ0]
-  have e9 : γ0.reProps = γpr := by rw [Hγ0]
-  have e0 : γ0.reCfg = cfg := by rw [Hγ0]
-  have e11 : γ0.reRLog = γcl := by rw [Hγ0]
-  have e12 : γ0.reFresh = γfr := by rw [Hγ0]
-  have e13 : γ0.reLcm = nlc := by rw [Hγ0]
-  have e14 : γ0.reRdq = nrq := by rw [Hγ0]
-  have e15 : γ0.reReads = γrd := by rw [Hγ0]
-  have e15' : γ0.reRdFresh = γrf := by rw [Hγ0]
-  have e16 : γ0.reRdCred = γrc := by rw [Hγ0]
-  have e17 : γ0.reTbl = γtb := by rw [Hγ0]
-  have eB : γ0.reBoot = L := by
-    unfold RaftNames.reBoot; rw [Hγ0]; exact BootEntry.map_toEntry_ofEntry L
-  have eD : γ0.reDyn = dyn := by rw [Hγ0]
-  have eCC : γ0.reCCOk = ccOk := by rw [Hγ0]
-  rw [← e1, ← e2, ← e3, ← e4, ← e5, ← e6, ← e7, ← e8, ← e9, ← e11, ← e12, ← e13, ← e14,
-    ← e15, ← e15', ← e16, ← e17]
-  ihave #Hc0 : isCommitted (GF := GF) γ0 L $$ []
-  · rw [isCommitted_unseal]; unfold isCommittedDef; iexact Hclb
-  -- (2026-10-27) the bootstrap log's entries, registered as proposals already appended; their
-  -- data, and the records
-  imod saved_pred_alloc (fun _ : List EntryM => iprop(True : IProp GF)) DFrac.discard trivial
-    with ⟨%γT, #HspT⟩
-  imod boot_register γ0 L γT L ∅ ∅ HLok.2.2
-    (fun e He => by
-      obtain ⟨H1, H2, H3⟩ := HLok.data e He
-      exact ⟨H1, H2, H3, GMap.lookup_empty _, GMap.lookup_empty _⟩)
-    $$ HspT Hpra Hfra [] with ⟨%R0, Hpra, Hfra, Hs0, #Hents0, #Hpis0⟩
-  · iapply (BigSepM.bigSepM_empty (Φ := fun d (p : PropRec) =>
-      iprop(propSlot (GF := GF) γ0 d p L ∗ propFresh γ0 d))).2
-    iempintro
-  ihave ⟨#Hds, #Hents⟩ := entsData_keys γ0 L $$ Hents0
-  ihave #HrL : logRecs (GF := GF) γ0 base0 L $$ []
-  · iapply logRecs_boot_intro γ0 L eB HwfL Hlen Hones $$ Hents
-  -- the client's part: its standing update
-  iunfold allocClientGen at Hcl
-  iunfold bootFresh at Hcl
-  imod Hcl $$ %γ0 [] Hc0 [Hcl2] Hfra Hrfa [] with ⟨#Hnoop, HCl⟩
-  · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0]⟩
-  · unfold rLog; iexact Hcl2
-  · iexists γT; iframe HspT Hpis0
-  imod inv_alloc (rdCredN γ0) E iprop(∃ B : Nat, own γ0.reRdCred (● B : Auth Nat) ∗
-      ⌜B < 2 ^ 64 - 1⌝) $$ [HCa] with #Hcinv
-  · inext
-    iexists 2 ^ 64 - 2
-    iframe HCa
-    ipureintro; omega
-  ihave #Hcinv' : rdCredInv (GF := GF) γ0 $$ []
-  · unfold rdCredInv; iexact Hcinv
-  ihave Hcr : rdCred (GF := GF) γ0 (0 + (2 ^ 64 - 2)) $$ [HCf]
-  · unfold rdCred; rw [Nat.zero_add]; iexact HCf
-  icases (rdCred_split γ0 0 (2 ^ 64 - 2)).1 $$ Hcr with ⟨Hcr0, Hcr⟩
-  -- each vote map: half to the node, half to the table
-  ihave Hv2 : ([∗map] x ↦ _u ∈ toMap ids,
-      iprop((∃ γx, ⌜γ0.reVotes !! x = some γx⌝ ∗
-          ghostMapAuth (GF := GF) γx (1 : Qp).half (∅ : GMap w64 w64)) ∗
-        (∃ γx, ⌜γ0.reVotes !! x = some γx⌝ ∗
-          ghostMapAuth (GF := GF) γx (1 : Qp).half (∅ : GMap w64 w64)))) $$ [Hv]
-  · iapply BigSepM.bigSepM_impl $$ Hv
-    imodintro
-    iintro %x %u %_ ⟨%γx, %Hx, Hax⟩
-    icases (ghostMapAuth_halves γx _).1 $$ Hax with ⟨Ha1, Ha2⟩
-    isplitl [Ha1]
-    · iexists γx
-      isplitr
-      · ipureintro; exact Hx
-      · iexact Ha1
-    · iexists γx
-      isplitr
-      · ipureintro; exact Hx
-      · iexact Ha2
-  rw [BigSepM.bigSepM_sep_eq (m := toMap ids)]
-  icases Hv2 with ⟨Hv, Hvt⟩
-  ihave Htbl : votesTbl (GF := GF) γ0 $$ [Hvt]
-  · unfold votesTbl
-    rw [← Hnv, e1]
-    ihave Ht' := tbl_of_ids nv
-      (fun _ γv => ghostMapAuth (GF := GF) γv (1 : Qp).half (∅ : GMap w64 w64))
-      nv (fun _ _ h => h) $$ Hvt
-    iapply BigSepM.bigSepM_impl $$ Ht'
-    imodintro
-    iintro %v %γv %_ Hav
-    iexists ∅
-    isplitl [Hav]
-    · iexact Hav
-    · iapply (BigSepM.bigSepM_empty).2; iempintro
-  icases rlq_split γ0 L $$ Hcl1 with ⟨Hq1, Hq2⟩
-  imod inv_alloc (raftLogN γ0) E (raftLogInvBody γ0) $$ [Hcauth Htbl Hq1 Htba] with #Hinv
-  · inext
-    unfold raftLogInvBody
-    iexists L
-    isplitl [Hcauth]
-    · rw [ownCommitted_unseal]; unfold ownCommittedDef; iexact Hcauth
-    isplitr
-    · unfold committedJust; ileft; ipureintro; rw [eB]; exact ⟨rfl, HwfL⟩
-    isplitl [Htbl]; · iexact Htbl
-    isplitl [Htba]
-    · unfold winTbl
-      iexists ∅
-      iframe Htba
-      iapply (BigSepM.bigSepM_empty).2; iempintro
-    unfold logRest
-    iframe Hq1 Hds
-  imod inv_alloc (raftRegN γ0) E (regsOwn γ0) $$ [Hq2 Hpra Hrda Hs0] with #Hreg
-  · inext
-    unfold regsOwn regsAt propsOwn readsReg
-    iexists L
-    iframe Hq2
-    iexists R0, ∅
-    iframe Hpra Hrda Hnoop Hs0
-    iapply (BigSepM.bigSepM_empty).2; iempintro
-  ihave #Hinv' : raftCommitInv (GF := GF) γ0 $$ []
-  · unfold raftCommitInv raftLogInv raftRegInv; iframe Hinv Hreg
-  imodintro
-  iexists γ0
-  isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0],
-    by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0]⟩
-  isplitr; · iexact Hinv'
-  isplitr; · iexact Hc0
-  isplitl [Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcr0]
-  · iapply alloc_nodes γ0 ids t L (by rw [Hγ0]) Hnz eB HwfL Hlen Hones Ht
-      $$ Hinv' Hc0 HrL Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcinv' Hcr0
-  iframe HCl Hcr Hcinv'
+  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
+  sorry
 
 /-- **The allocation's core**, with no registry of the snapshots made
 (`ownRaftGhost_alloc_core_reg` at `none`). -/
@@ -1423,7 +1103,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
           γ.dup = false⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ L ∗
-        ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗
+        ([∗map] id ↦ _u ∈ toMap ids, ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id) ∗
         C γ ∗
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
   intro a b c d
@@ -1455,23 +1135,12 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
           γ.reNoXfer = false⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ [] ∗
-        ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id initPState dyn.isSome) ∗
+        ([∗map] id ↦ _u ∈ toMap ids, ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id) ∗
         C γ ∗
         -- (2026-10-13) every read credit
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
-  intro Hcne Hnz
-  iintro Hcl
-  ihave Hcl' := allocClient_gen E cfg dyn ccOk C $$ Hcl
-  imod ownRaftGhost_alloc_core E cfg ids dyn ccOk [] (W64 0) C none (fun _ h => by cases h)
-    false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) (fun _ => none)
-    (nroot .@ "raft_commit") (nroot .@ "raft_snapcert") Hcne Hnz
-    BootWf_nil
-    (fun h => absurd rfl h) $$ Hcl' with ⟨%γ, %Hγ, H⟩
-  imodintro
-  iexists γ
-  isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.2.2.2.1⟩
-  rw [initPState_eq]
-  iexact H
+  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
+  sorry
 
 /-- (2026-10-21, D22 S-r) **The static allocation of a cluster that takes snapshots**: as
 `ownRaftGhost_alloc_gen` in the static mode, at the empty log, with the snapshots' data the cluster
@@ -1489,23 +1158,11 @@ theorem ownRaftGhost_alloc_snap (E : CoPset) (cfg ids : GSet w64)
           γ.reSnapLoc = fun _ => none⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ [] ∗
-        ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id initPState) ∗
+        ([∗map] id ↦ _u ∈ toMap ids, ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id) ∗
         C γ ∗
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
-  intro Hcne Hnz
-  iintro Hcl
-  ihave Hcl' := allocClient_gen E cfg none ccOk C $$ Hcl
-  imod ownRaftGhost_alloc_core E cfg ids none ccOk [] (W64 0) C none (fun _ h => by cases h)
-    false (fun h => by cases h) false (fun h => by cases h) sok (fun _ => none) (nroot .@ "raft_commit") (nroot .@ "raft_snapcert") Hcne Hnz
-    BootWf_nil
-    (fun h => absurd rfl h) $$ Hcl' with ⟨%γ, %Hγ, H⟩
-  imodintro
-  iexists γ
-  isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.1,
-    Hγ.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.2.1⟩
-  rw [initPState_eq]
-  simp only [Option.isSome_none]
-  iexact H
+  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
+  sorry
 
 /-! ### A new cluster's bootstrap log (2026-10-16, stage R8b, D12) -/
 
@@ -1594,33 +1251,11 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
           γ.reTracked = some cfg ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapLoc = sl⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ bootLog ∗
-        ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (bootPState bootLog)) ∗
+        ([∗map] id ↦ _u ∈ toMap ids, ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id) ∗
         C γ ∗
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
-  intro Hcne Hnz Hcfg Hnd Hok
-  have Hbne : bootLog ≠ [] := by
-    intro h
-    rw [h] at Hok
-    have hps : ps = [] := List.eq_nil_of_length_eq_zero Hok.1.symm
-    apply Hcne
-    rw [Hcfg, hps]; rfl
-  iintro Hcl
-  ihave Hcl' : allocClientGen (GF := GF) E cfg none ccOk bootLog C $$ [Hcl]
-  · unfold allocClientGen allocClientBoot
-    iintro %γ %Hγ #Hc HrL Hf Hrf -
-    iapply Hcl $$ %γ %(⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1⟩) Hc HrL Hf Hrf
-  imod ownRaftGhost_alloc_core E cfg ids none ccOk bootLog (W64 1) C (some cfg)
-    (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) ns (fun _ => Hbne) nx (fun _ => Hbne)
-    (fun _ _ => True) sl (nroot .@ "raft_commit") (nroot .@ "raft_snapcert") Hcne Hnz (Hok.wf Hnd)
-    (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
-    $$ Hcl' with ⟨%γ, %Hγ, H⟩
-  imodintro
-  iexists γ
-  isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1, Hγ.2.2.2.2.1, Hγ.2.2.2.2.2.1,
-    Hγ.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.2.1⟩
-  rw [bootPState_eq]
-  simp only [Option.isSome_none]
-  iexact H
+  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
+  sorry
 
 end ghost
 

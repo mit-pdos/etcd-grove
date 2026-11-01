@@ -409,6 +409,14 @@ structure RaftNames where
   `false` (the default): a proposal's update and ticket are one-shot. Pure data, fixed at
   allocation. -/
   dup : Bool := false
+  /-- **Each node's slot** (2026-10-31, durability stage I-1, `notes/raft-durability-proof-plan.md`):
+  `reSlot !! id = some (γv, γq, γg)` names node `id`'s ghost variable of its virtual maps (the
+  entered promises with the queued batch applied, `DurMaps`: half in the slot invariant
+  `slotInv`, half in the running node's `ownRaftGhost` or the vacant `idSlot`), its queue (a
+  ghost map `generation ↦ Option batch`, the authority in `slotInv`, each generation's element
+  `slotFree`/`pendBatch`) and its generation counter (a ghost variable, half in `slotInv`, half
+  `slotLive`). Set at allocation (`ownRaftGhost_alloc_*`). -/
+  reSlot : GMap w64 (GName × GName × GName) := ∅
 
 /-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
 stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged

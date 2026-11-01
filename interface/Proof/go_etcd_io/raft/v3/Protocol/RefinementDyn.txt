@@ -14,8 +14,7 @@ theorem DynCfg.mk.congr_simp (fold fold✝ : DecMap → List EntryM → Option C
 
 def ownRaftGhostR [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id : w64)
     (r : RState) : IProp GF :=
-  iprop(ownRaftGhost γ id r.p true ∗
-      ⌜RInv dec c0 r⌝ ∗ logRecs γ base0 r.fp ∗ ∀ x, isCampK γ id r.p.term r.full r.p.commit)
+  iprop(ownRaftGhost γ id r.p true ∗ ⌜RInv dec c0 r⌝ ∗ logRecs γ base0 r.fp)
 
 theorem ownRaftGhostR_stepR [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (decB : CCDec) (M : DecMap)
     (c0 : CCState) (h0 : CfgOk c0) (HD : γ.dyn = some (DynCfg.ofFold decB c0 h0)) (S : List EntryM →
@@ -30,8 +29,8 @@ theorem noApp0 {dec : CCDec} {c0 : CCState} (r1 : RState) (m' : Msg) : m' ∈ []
 
 theorem ownRaftGhostR_env [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (dec : CCDec) (M : DecMap) (c0 :
     CCState) (h0 : CfgOk c0) (HD : γ.dyn = some (DynCfg.ofFold dec c0 h0)) (id : w64) (r : RState)
-    (HI : RInv (effDec dec M) c0 r) : ⊢ decLb γ M -∗ logRecs γ base0 r.fp -∗ (∀ x, isCampK γ id
-    r.p.term r.full r.p.commit) -∗ dynEnv γ id r.cfg.cfg r.p
+    (HI : RInv (effDec dec M) c0 r) : ⊢ decLb γ M -∗ logRecs γ base0 r.fp -∗ dynEnv γ id r.cfg.cfg
+    r.p
 
 theorem cfgAt_of_fold {γ : RaftNames} {dec : CCDec} {M : DecMap} {c0 : CCState} {h0 : CfgOk c0} (HD
     : γ.dyn = some (DynCfg.ofFold dec c0 h0)) {P : List EntryM} {s : CCState} (h : cfgFold (effDec
@@ -54,9 +53,6 @@ theorem noApp1 {dec : CCDec} {c0 : CCState} {m : Msg} (h : m.ty ≠ MsgType.app)
 theorem reDyn_of {γ : RaftNames} {D : DynCfg} (HD : γ.dyn = some D) : γ.reDyn ≠ none
 
 theorem toNat_uZ (w : w64) : (uint.Z w).toNat = uint.nat w
-
-theorem DynCfg.ofFold.congr_simp (dec dec✝ : CCDec) (e_dec : dec = dec✝) (c0 c0✝ : CCState) (e_c0 :
-    c0 = c0✝) (h0 : CfgOk c0) : DynCfg.ofFold dec c0 h0 = DynCfg.ofFold dec✝ c0✝ ⋯
 
 def AdmS (dec : CCDec) (c0 : CCState) (S : List EntryM → Prop) (l : List EntryM) (cs : CCState) :
     Prop :=

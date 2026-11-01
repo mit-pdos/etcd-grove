@@ -29,13 +29,14 @@ theorem ownRaftGhost_alloc_core [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids 
     nsN ={E}=∗ ∃ γ, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧ γ.reTracked =
     trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧ γ.reSnapLoc = sl ∧ γ.reNs = nsN
     ∧ γ.reCertNs = certN ∧ γ.reSnapReg = none ∧ γ.dup = false⌝ ∗ raftCommitInv γ ∗ isCommitted γ L ∗
-    ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗ C γ ∗ rdCred γ
-    (2 ^ 64 - 2) ∗ rdCredInv γ
+    ([∗map] id ↦ _u ∈ toMap ids, iprop(ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id)) ∗ C γ ∗
+    rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
 
-theorem heartbeat_commit_le_last [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (ps : PState)
-    (m : Msg) {md : Bool} : m.ty = MsgType.heartbeat → m.dst = id → uint.Z ps.term ≤ uint.Z m.term →
-    (m.term = ps.term → ps.role ≠ Role.leader) → ⊢ ownRaftGhost γ id ps md -∗ isMessage γ m -∗
-    ⌜uint.Z m.commit ≤ plogLastIndexZ ps.base ps.log⌝
+theorem heartbeat_commit_le_last [ReceiptGS GF] [InvGS GF] (E : CoPset) (γ : RaftNames) (id : w64)
+    (ps : PState) (m : Msg) {md : Bool} : ↑(slotN γ id) ⊆ E → m.ty = MsgType.heartbeat → m.dst = id
+    → uint.Z ps.term ≤ uint.Z m.term → (m.term = ps.term → ps.role ≠ Role.leader) → ⊢ ownRaftGhost γ
+    id ps md -∗ isMessage γ m ={E}=∗ ownRaftGhost γ id ps md ∗ ⌜uint.Z m.commit ≤ plogLastIndexZ
+    ps.base ps.log⌝
 
 theorem prop_collect [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (E : CoPset) (d : List w8) (Q : List
     EntryM → IProp GF) (L : List EntryM) (m : Nat) (e : EntryM) : ↑(raftN γ) ⊆ E → L[m]? = some e →
@@ -117,13 +118,15 @@ theorem ownRaftGhost_alloc_core_reg [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg 
     γ.reCCOk = ccOk ∧ γ.reBoot = L ∧ γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧
     γ.reSnapOkRaw = sok ∧ γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = reg ∧
     γ.reDec = rdec ∧ γ.dup = dup⌝ ∗ raftCommitInv γ ∗ isCommitted γ L ∗ ([∗map] id ↦ _u ∈ toMap ids,
-    ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
+    iprop(ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id)) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗
+    rdCredInv γ
 
 theorem ownRaftGhost_alloc_gen [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids : GSet w64) (dyn :
     Option ((e : GooseExts) → DynCfg)) (ccOk : w32 → List w8 → Prop) (C : RaftNames → IProp GF) :
     cfg ≠ ∅ → ¬W64 0 ∈ ids → ⊢ allocClient E cfg dyn C ={E}=∗ ∃ γ, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧
     γ.reCCOk = ccOk ∧ γ.reNoXfer = false⌝ ∗ raftCommitInv γ ∗ isCommitted γ [] ∗ ([∗map] id ↦ _u ∈
-    toMap ids, ownRaftGhost γ id initPState dyn.isSome) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
+    toMap ids, iprop(ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id)) ∗ C γ ∗ rdCred γ (2 ^ 64 -
+    2) ∗ rdCredInv γ
 
 theorem propIsAt_persistent (γ : RaftNames) (d : List w8) (γq : GName) : Persistent (propIsAt γ d
     γq)
@@ -167,8 +170,8 @@ theorem ownRaftGhost_alloc_boot [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids 
     BootLogOk ps bootLog → ⊢ allocClientBoot E cfg ccOk bootLog C ={E}=∗ ∃ γ, ⌜γ.reCfg = cfg ∧
     γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog ∧ γ.reTracked = some cfg ∧ γ.reNoSnap = ns
     ∧ γ.reNoXfer = nx ∧ γ.reSnapLoc = sl⌝ ∗ raftCommitInv γ ∗ isCommitted γ bootLog ∗ ([∗map] id ↦
-    _u ∈ toMap ids, ownRaftGhost γ id (bootPState bootLog)) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗
-    rdCredInv γ
+    _u ∈ toMap ids, iprop(ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id)) ∗ C γ ∗ rdCred γ (2 ^
+    64 - 2) ∗ rdCredInv γ
 
 theorem ownRaftGhost_committed [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) {md
     : Bool} : ⊢ ownRaftGhost γ id s md -∗ ∃ fp, ⌜FullOk s.base fp⌝ ∗ isCommitted γ (List.take
@@ -233,4 +236,5 @@ theorem ownRaftGhost_alloc_snap [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids 
     ∅ → ¬W64 0 ∈ ids → ⊢ allocClient E cfg none C ={E}=∗ ∃ γ, ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧
     γ.reCCOk = ccOk ∧ γ.reNoXfer = false ∧ γ.reNoSnap = false ∧ γ.reTracked = none ∧ γ.reSnapOkRaw =
     sok ∧ γ.reSnapLoc = fun x => none⌝ ∗ raftCommitInv γ ∗ isCommitted γ [] ∗ ([∗map] id ↦ _u ∈
-    toMap ids, ownRaftGhost γ id initPState) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
+    toMap ids, iprop(ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id)) ∗ C γ ∗ rdCred γ (2 ^ 64 -
+    2) ∗ rdCredInv γ

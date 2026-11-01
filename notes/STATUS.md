@@ -625,6 +625,35 @@ A crash in between may restart a one-member cluster at its members' `ConfState` 
 where it could elect itself and commit a different index 1. To confirm with a gofail test before
 filing.
 
+## Durability stage I, layer 1: the protocol ghost state (2026-10-31, branch `worktree-kvdurable`)
+
+`notes/raft-durability-proof-plan.md`, I-1, as amended by its review 1 (R2-R9). Statements only:
+every proof that no longer compiles, and every new or restated lemma, is `sorry` with the marker
+`-- PORT(durability stage II)`; the worklist is
+`/home/ubuntu/spec-scratch/raft-durability/stageI-1-worklist.md` (outside the repository).
+
+- **New vocabulary.** `Protocol/RaftState.lean` (pure, importable): `RaftState` (term, vote,
+  base, entries, commit), `RaftState.init/last/next/entsFrom`, `appendEnts`, `DurFull`.
+  `RaftNames.reSlot` (default `∅`): each node's slot names (virtual maps, queue, generation).
+- **`Protocol/GhostState.lean`:** `DurMaps`, `Prom`, `virt`, `PromFresh(s)`, `durFrags`,
+  `promNeed`/`promJust`/`promsJust`, `promFrag`, `OutPend`/`outMsgOk` (R7, R9), `EvsOk`,
+  `durPers`, `durShares`, `ledgerKey`/`ledgerCamps` (R6), `slotN`/`slotBody`/`slotInv` (R2),
+  `slotLive`/`slotFree`/`pendBatch` (R8), `ownDurGhost`, `raftIdSlot`. `ownLogGhost` takes the
+  virtual maps `W` (no promise authority in it any more); `ownRaftGhost` holds the slot, its half
+  of the virtual maps, the pending list and `outMsgOk` outbox. `matchedOk` takes the node and its
+  full prefix (R3), `campOwn` the virtual campaign map, `dynEnv` lost its candidate record (R5).
+- **`Protocol/Enter.lean` (new):** `ownRaftGhost_cut`, `raft_enter`, `raft_restart`,
+  `raft_start_boot`, `raft_stop`, R4's `durPers_restart_commit`/`_acks`, `restartP`.
+  `ownRaftGhost_leader_outbox` (R9) is in `GhostState`.
+- **Restated:** the `ownLogGhost_*` family (the `W` argument; `_ack`/`_vote`/`_campaign` produce
+  pending promises), `vote_excl`, `ownLogGhost_ack_agree`, `ownLogGhost_ack_le`/`not_doomed`/
+  `hbAck`/`hbResp`, `ownRaftGhost_rd(R)`, the four step lemmas that became fancy updates
+  (`heartbeat`, `app_accept`, `snap_fastfwd`, `snap_restore`), `heartbeat_commit_le_last` (a fancy
+  update), `step_campaign` (no `isCampK` output), `ownRaftGhostR` (no candidate conjunct) and
+  `_env`, `ownRaftGhost_outbox` (wands), the allocation lemmas (`ownDurGhost` at `RaftState.init`
+  and `raftIdSlot` per node) and `raft_dyn_alloc(_boot)`.
+- Deviations from the plan's text are listed in the worklist's header.
+
 ## M2, the storage side (2026-10-30, branch `m2-storage`)
 
 **Merged with G2's freeze** (`lean` `51b0f7adad`): v3rpc's `upOk γ M Up`/`watchUp R` create arm is `mvcc.watchTok ∗ □ auth.authPubLbM … c.bound ∗ mvcc.noCompactor ….st` (G2's bound, then step 1's conjunct; text in `notes/m2-storage-plan.md`, "Merge of lean at 51b0f7adad"); `recvLoop` and `watchGRPCStream.run` repaired for it.

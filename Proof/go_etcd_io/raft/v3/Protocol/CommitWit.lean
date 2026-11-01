@@ -123,18 +123,8 @@ theorem hsWit_of_phsWit (γ : RaftNames) (h : HardStateM) (n : Nat)
 /-- Every node holds the witness of its own term and commit index. -/
 theorem ownRaftGhost_commitWit (γ : RaftNames) (id : w64) (s : PState) {md : Bool} :
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗ commitWit γ s.term s.commit := by
-  unfold ownRaftGhost ownLogGhost
-  iintro ⟨%γv, %voted, %kl, H⟩
-  iNamed H
-  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
-  iNamed H
-  unfold commitWit
-  iexists fp ++ s.log
-  isplitr; · ipureintro; exact full_wf _ _ _ Hfull.1 Hfull.2.1
-  isplitr; · iapply logRecs_full γ s.base fp s.log Hfull.1 $$ Hfrecs Hrecs
-  isplitr; · iexact Hcommit
-  iunfold cprefix at Hcmt
-  iexact Hcmt
+  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
+  sorry
 
 end ghost
 

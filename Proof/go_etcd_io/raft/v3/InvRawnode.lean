@@ -1143,17 +1143,8 @@ instance storedRecs_pers (γ : RaftNames) (b : entryID) (L : List EntryM) :
 /-- The node's own log has records. -/
 theorem ownRaftGhost_storedRecs (γ : RaftNames) (id : w64) (ps : PState) {md : Bool} :
     ownRaftGhost (GF := GF) γ id ps md ⊢ storedRecs γ ps.base ps.log := by
-  iintro H
-  unfold ownRaftGhost
-  icases H with ⟨%γv, %voted, %kl, H⟩
-  iNamed H
-  unfold ownLogGhost
-  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, Hlg⟩
-  iNamed Hlg
-  unfold storedRecs
-  isplitr
-  · ipureintro; exact Hfull.2.1
-  iexact Hrecs
+  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
+  sorry
 
 /-- ... read out without consuming the ghost state. -/
 theorem ownRaftGhost_storedRecs_keep (γ : RaftNames) (id : w64) (ps : PState) {md : Bool} :
@@ -1314,20 +1305,8 @@ theorem ownRaftGhost_terms_le (γ : RaftNames) (id : w64) (ps : PState) {md : Bo
     ownRaftGhost (GF := GF) γ id ps md ⊢
       ⌜∀ j x, plogTermAt ps.base ps.log j = some x → uint.Z x ≤ uint.Z ps.term⌝ ∗
         ownRaftGhost γ id ps md := by
-  apply persistent_entails_right
-  iintro H
-  unfold ownRaftGhost
-  icases H with ⟨%γv, %voted, %kl, H⟩
-  iNamed H
-  unfold ownLogGhost
-  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, Hlg⟩
-  iNamed Hlg
-  ipureintro
-  intro j x Hx
-  obtain ⟨Hfo, -, Htl⟩ := Hfull
-  have hj := (plogTermAt_some_range _ _ _ _ Hx).1
-  rw [← full_term_at ps.base fp ps.log j Hfo hj] at Hx
-  exact (Htl j x Hx).1
+  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
+  sorry
 
 /-- (D22 S-d3b) **The batch a `MsgApp` of term `t` cut** from what the storage holds after `b`
 (`es`), above `offsetInProgress` `ip`: nothing (all of `es` is in progress), or an index `c`,

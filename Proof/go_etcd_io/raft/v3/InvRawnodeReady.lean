@@ -1972,87 +1972,8 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       entsRO rd.Entries' [] -∗
       isCommitted γ (rs.delivered ++ ce) -∗ readStatesPts rd.ReadStates' sts -∗
       ownRawNodeIdle (GF := GF) γ rn id rs -∗ ownRawNodeReady γ rn id rs rd ce [] [] false := by
-  iintro #Hrdsoft #Hrdh #Hrdw #Hce Hce_cap #Hents #Hcommitted #Hrsts H
-  iNamed H
-  have Hsl : rs.slent = none := Hloan.none_of_nil Hsteps0
-  ihave Hpend := lentPend_none_elim Hsl _ $$ Hpend
-  ihave %Hlen := BigSepL2.bigSepL2_length $$ Hpend
-  have Hsteps_nil : steps = [] := by
-    rw [Hsteps0] at Hlen; exact List.eq_nil_of_length_eq_zero Hlen
-  subst Hsteps_nil
-  icases ownRaftPhysC_gh cf rnv.raft' id s $$ Hphys with ⟨%Hgh, Hphys⟩
-  have Hsn : s.logst.snap = none := by
-    rcases Hidle.2.2.2 with h | h
-    · exact h
-    · exact absurd (Hloan.2.1 Hsl).1 (Hgh.1.2.1.2.2.1 (.inl h))
-  icases ownRaftPhysC_nsOut γ _ cf rnv.raft' id s $$ Hphys Hghost with ⟨%Hnsout, Hphys, Hghost⟩
-  icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with
-    ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
-  iNamed Hv
-  ihave #Hout : ([∗list] x ∈ s.outbox, isMessage (GF := GF) γ x) $$ [Hghost]
-  · iunfold ownStepGhost at Hghost
-    icases Hghost with ⟨Hg, -⟩
-    rw [show s.outbox = (toPState s).outbox from rfl]
-    iapply ownRaftGhost_outbox _ _ _ $$ Hg
-  ihave #Hrdrs : iprop(∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
-      ⌜sts = [] → s.rd.states = []⌝) $$ []
-  · iexists sts
-    iframe Hrsts
-    ipureintro; intro _; exact Hidle.2.2.1
-  icases outboxRel_split _ _ _ $$ Houtbox with ⟨%Hob, Hown1, Hown2⟩
-  icases (qOwns_self_split id ms2).1 $$ Hown2 with ⟨Hself, Hoth⟩
-  icases (qOwns_other_halves id ms2).2 $$ Hoth with ⟨Hhalf, Hother⟩
-  ihave #Hrdhard : iprop(∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ phsWit γ hrd) $$ []
-  · iexists hrd; iframe Hrdh Hrdw
-  ihave Hrdz : rdSnapRel γ rs rd ce none s $$ []
-  · unfold rdSnapRel; ipureintro; exact ⟨Hrdz0, Hsn⟩
-  iunfold ownRawNodeReady
-  iexists s, cf, fp, ds, rnv, sv, hprev
-  simp only [named, Bool.false_eq_true, ↓reduceIte]
-  iframe Hrn Hghost Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs
-    Hce Hce_cap Hents Hrdhard Hrdz Hsloc
-  isplitl
-  · iunfold ownRaftPhysReady
-    iexists rss, sl1, sl2, ms1, ms2
-    simp only [named, Bool.false_eq_true, ↓reduceIte]
-    iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
-      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother
-    isplitr
-    · ipureintro; exact Hob
-    isplitr
-    · ipureintro; exact HmsgsAA_ok
-    isplitr
-    · ipureintro; exact Hout_term
-    isplitr
-    · ipureintro; exact Hgh_out
-    isplitr
-    · ipureintro; exact Hgh_unst
-    isplitr
-    · ipureintro; exact Hxf
-    isplitr
-    · iexact Hscert
-    isplitr
-    · ipureintro; simp
-    isplitl [Hmsgs Hmsgs_cap Hown1 Hhalf]
-    · iintro - - -
-      iframe Hmsgs Hmsgs_cap Hown1 Hhalf
-    isplitl [Hlog]
-    · iExactEq Hlog; rfl
-    iintro %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc %Hrd'
-      Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 #Hsc' Hl
-    iapply Hclose $$ %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc
-      %Hrd' Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 Hsc' Hl
-  ipureintro
-  refine ⟨Hwf, Hin, Hasync, Hdlen, Hunp0 ▸ Hunp.symm, Hsnap, ⟨Hloan, Hsl⟩, Htrm, Hstor, Hpvoff,
-    Hrs_out, Hrs_unst, Hrs_clb,
-    ⟨Hrnfl.1, Int.not_lt.1 fun h => by
-      obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
-    fun e He => ?_, fun h => absurd rfl h, Hidle.2.1.symm, Nat.zero_le _, List.nil_subperm, Hnsout, Hsdt⟩
-  obtain ⟨H1, H2⟩ := Hce_ok e He
-  have Hne : ce ≠ [] := by intro h; subst h; simp at He
-  have : 0 < ce.length := List.length_pos_iff.2 Hne
-  have := uint_Z_nonneg s.logst.applying
-  refine ⟨by omega, by omega, by omega⟩
+  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
+  sorry
 
 /-- The `ReadState`s of the protocol state, each `readStateRaw` (2026-10-13): persistent,
 copied out of `rdOwn`. -/
