@@ -338,6 +338,53 @@ theorem authMode_off_of (E : apply.AEnv GF) (h : E.authOn = false) : E.authMode 
   unfold apply.AEnv.authOn at h
   cases hm : E.authMode <;> simp_all [auth.AuthMode.isOn]
 
+/-- (2026-11-01, J8a-1, item 5) **The bundle at the next backend**: `srvSnapRO` at the environment
+`E'` a snapshot install moves to (`beSucc`: the store's logical names, the auth store's reader
+resource and mode, the store kept), from the new backend's facts `srvSnapApplied` gives (`E'` on
+`d'`, at the boot parameters, its compaction mode the environment's, the rest buckets' resource at
+it) and the stores' addresses, which name the bundle's. -/
+theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc) (γr : ReadNames)
+    (γt : GName) (d d' : mvcc.KBReal) (al ast lp cl : Loc)
+    (hb : beSucc γ E γ' E') (hkb : E.γ.kb = some d) (hkb' : E'.γ.kb = some d')
+    (hcm' : d'.cm = E.cmp) (hP : d'.P = d.P)
+    (hRO : E'.RO = srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be)) :
+    srvSnapRO s ci E γr γt ∗ srvAlarmStoreAddr s ↦□ al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
+      srvLessorAddr s ↦□ lease.lessorIface lp ∗ srvClusterAddr s ↦□ cl ⊢
+    srvSnapRO s ci E' γr γt := by
+  obtain ⟨-, p, P, f, c, RO, RW, rfl⟩ := hb
+  iintro ⟨#H, #Hal, #Hau, #Hle, #Hcl⟩
+  iunfold srvSnapRO at H
+  icases H with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al0, %ast0, %lp0, %cl0, %ps, %dir, %d0,
+    %Hp, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12, #H13, #H14, #H15, #H16, #H17,
+    #H18, #H19, #H20, #H21, #H22, #H23, #H24, #H25, #H26, #H27, #H28, #H29, #H30, #H31⟩
+  icombine Hal H14 gives %e1
+  icombine Hau H15 gives %e2
+  icombine Hle H16 gives %e3
+  icombine Hcl H17 gives %e4
+  simp only [auth.authIface, lease.lessorIface, interface_mkOk_inj] at e2 e3
+  obtain ⟨hkb0, hlg, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, -, hbr, hci, hhk, hwf, hlim, hlp, hwq,
+    -, hrb⟩ := Hp
+  rw [hkb] at hkb0
+  cases hkb0
+  have e2' : ast = ast0 := by
+    simp only [intoVal_eq_iff, true_and] at e2; first | exact e2 | exact e2.symm
+  have e3' : lp = lp0 := by
+    simp only [intoVal_eq_iff, true_and] at e3; first | exact e3 | exact e3.symm
+  subst al0 cl0 ast0 lp0
+  iunfold srvSnapRO
+  imodintro
+  iexists cfg, ss, hk, lgh, stp, γd, idm, al, ast, lp, cl, ps, dir, d'
+  isplitr
+  · ipureintro
+    refine ⟨hkb', hlg, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, hcm', ?_, ?_, ?_, ?_, ?_, ?_, hwq, hRO,
+      hrb⟩ <;> rw [hP] <;> assumption
+  have e5 : (E.onBe p P f c RO RW).authMode = E.authMode := rfl
+  have e6 : (E.onBe p P f c RO RW).RD = E.RD := rfl
+  have e7 : (E.onBe p P f c RO RW).γ.leases = E.γ.leases := rfl
+  have e8 : (E.onBe p P f c RO RW).s = E.s := rfl
+  rw [e5, e6, e7, e8, hP]
+  iframe #
+
 /-- **The reader-slot stock** (see the file header; spatial): `m` of `lgMu`'s reader slots, at least
 `2 ^ 28` (2026-11-01, J8a: until then also as many of the auth store's reader resource `E.RD`). -/
 def srvSnapStock (s : Loc) (E : apply.AEnv GF) : IProp GF :=

@@ -173,17 +173,21 @@ takes again at the new backend: its stop channels and the constructors' half of 
 restated: until then the snapshot file's), the transport's live state (W8: with every other member re-added, `L`) and the
 alarm store's resource `Tal`. The KV's model (`kvApplied`) is S-j1's (`kv_cert_jump`). The new
 backend's instance does not compact (`d'.cm = false`: question 5's core stage, part (1), review round
-16's M1), as the next snapshot's `store.Restore` needs. -/
+16's M1), as the next snapshot's `store.Restore` needs. (2026-11-01, J8a-1, item 5) Also: the new
+applier's chain, with no alarm (`zal`) the start's (`alarmChain E.authOn false false`, what
+`kvApplied_of_jump` takes), and the KV at `E'` (`txn.isKV`, `applyRes`'s), the watchable store at
+the new physical names. -/
 def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (R : mvcc.Log) (A' : List EntryModel)
     (ss : Loc) (bp : GoString) (γt : GName) (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds)
-    (idm : w64) (lp al ast cl : Loc) (Tal : IProp GF) : IProp GF :=
+    (idm : w64) (lp al ast cl : Loc) (Tal : IProp GF) (zal : Bool) : IProp GF :=
   iprop(∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
       (st' : ApplyState) (d' : mvcc.KBReal) (x' : apply.ApplyKV) (cs' : Loc) (L : List w64),
     ⌜beSucc γ E γ' E' ∧ E'.γ.kb = some d' ∧ d'.cm = false ∧ d'.P = d.P ∧
       E'.RO = srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be) ∧
       loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧
-      x'.log = [[], []] ++ R ∧ (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L)⌝ ∗
+      x'.log = [[], []] ++ R ∧ (zal = true → x'.chain = apply.alarmChain E.authOn false false) ∧
+      (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L)⌝ ∗
     isServer s γ' ci TM' E' ρ γr ∗
     epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
     epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗
@@ -193,7 +197,8 @@ def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E
     backend.isStopChans d'.γB d'.be ∗ backend.bOpen d'.γB (1 : Qp).half ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
     backend.pathOwn bp ∗
-    trLive γn t c L ∗ Tal)
+    trLive γn t c L ∗ Tal ∗
+    (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ))
 
 end proof
 end EtcdGrove

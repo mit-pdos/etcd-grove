@@ -108,13 +108,13 @@ theorem srvSnapApplied_of_walk
       srvWTPool E γp ∗
       snapWalkPost s ep sv γ ci E ρ γr d D A x R ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad Tal zal ⊢
-    |={⊤}=> srvSnapApplied s ep sv γ ci E ρ γr d R A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl Tal := by
+    |={⊤}=> srvSnapApplied s ep sv γ ci E ρ γr d R A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl Tal zal := by
   iintro ⟨#Hpkg, #Hsrv, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #Hlinv, #Hlpf, #Half,
     #HisAl, #Haustf, #Hclf, #Hirc, #Hcok, #HWP, Hw⟩
   iunfold snapWalkPost at Hw
   icases Hw with ⟨%γB, %d', %gx, %π0, %p', %γw, %ws, %g, %up', %opts', %L, %spc, %Ll, %jf, %γcf,
     %w0, %RD0, %up, %lg, %wsk, %stck, %Hpure, #HB, HSC, -, -, -, -, -, #HCI', #HhkS, -, -, -,
-    #Hws, -, -, #HhP, -, #Hwa, #Hlga, Hwok, HplH, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Halb, Haub, Hclb,
+    #Hws, -, -, #HhP, #Hkva, #Hwa, #Hlga, Hwok, HplH, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Halb, Haub, Hclb,
     Hleb, Hlo, Hlrd, Hlrv, Hrt, Hrb, Hcm, Hbo, Hsc, Hwf, Hww, HwOwn, Hsr, Htl, Hlgr, Hai, Hatt, Hds, Hms,
     Hcsa, Hcso, Hpath, HTal, HRD2, Hube, Hua, -, Hra, Hauar, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
   obtain ⟨hγB, hP', -, hcm', hm0, -, hkb', hγw, -, hcov, hgnn, ho1, ho2, ho3, ho4, ho5, ho6, ho7, -, -, -,
@@ -157,10 +157,24 @@ theorem srvSnapApplied_of_walk
     snapSt (snapγ γ π0 d'.γB) sv.Metadata'.Index', d', x', spc, L
   isplitr
   · ipureintro
-    exact ⟨by apply snapE_beSucc, hkb', hcm', hP', rfl, snapSt_loopOk γ π0 d'.γB _ _ hm0, snapSt_ciEff γ π0 d'.γB _ _ hm0, Hx'.1,
-      hcov⟩
+    refine ⟨by apply snapE_beSucc, hkb', hcm', hP', rfl, snapSt_loopOk γ π0 d'.γB _ _ hm0, snapSt_ciEff γ π0 d'.γB _ _ hm0, Hx'.1,
+      ?_, hcov⟩
+    intro hz
+    obtain ⟨ns, cr, hch, hn⟩ := Hx'.2
+    obtain ⟨rfl, rfl⟩ := hn hz
+    exact hch
   iunfold epConfState
   iframe Hsrv' Hai Hatt Hds Hms Hcsa Hcs Hat Hab Hlgr Hbmr HKV' HRest HKC HSC Hbo Hγt Hpath Htl HTal
+  -- (J8a-1, item 5) the KV at the new environment: the walk's watchable store, its inner store's
+  -- names at the new physical ones (`isWatchableStore_withPhys`)
+  iexists _
+  iframe Hkva
+  iunfold txn.isKV
+  iright
+  iexists ws, { γw with st := γw.st.withPhys p' }
+  rw [mvcc.isWatchableStore_withPhys, snapE_s]
+  iframe Hws
+  ipureintro; exact ⟨rfl, by simp only [snapE_γ]; rw [hγw]⟩
 
 end proof
 end EtcdGrove

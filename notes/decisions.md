@@ -28416,3 +28416,23 @@ The user, at Freeze: "approved, freeze and start Prove". Frozen:
   `receiptBound GF ≤ 2^62` (the sort's bound). Not an axiom, and not a lease-count premise on the
   callers: the bound is the execution's, which the closed results already bound. `⧖`, not `⧗`: the
   lock's resource splits over read fractions, and only a persistent receipt does.
+
+## `srvSnapApplied`'s missing post (2026-11-01, J8a-1, item 5)
+
+**2026-11-01 · accepted**
+
+What `run`'s snapshot case (J8a-5) needs after `applySnapshot` and `srvSnapApplied` did not give:
+- the new applier's chain: `zal = true → x'.chain = apply.alarmChain E.authOn false false`, from
+  the walk's `NewUberApplier` (`snap_applyKV`'s `ns`, `cr`); with auth off it is `γk.ch0`, what
+  `kvApplied_of_jump` takes. `srvSnapApplied` takes `zal`, so `specSnap`'s post does.
+- the KV at `E'` (`∃ kv, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ`, `applyRes`'s), from the walk's
+  watchable store at the new physical names (`isWatchableStore_withPhys`).
+- the bundle `srvSnapRO` at `E'`: not in the post (it is persistent and the caller has it at `E`),
+  but a lemma, `srvSnapRO_succ`, from `beSucc` (the logical names, `RD`, the mode and the store
+  kept), the new backend's facts in the post and the stores' addresses (`↦□` agreement).
+
+Not needed: the alarm store's `Get` after `Recover` (`alarmGetIs al Tal zal` is persistent and the
+post gives `Tal` back). And in the merge with `lean`'s M2 track the bundle's compaction fact became
+`d.cm = E.cmp` (was `d.cm = false`, false in compaction mode): the snapshot case's mode off gives
+`specSnap`'s `hcm`; `srvSnapRes` holds `srvKVCloserW` (the closer without the compaction right,
+which is `srvKVCloser` with the mode off, `srvKVCloserW_off`).

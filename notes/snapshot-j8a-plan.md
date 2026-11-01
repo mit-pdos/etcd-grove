@@ -57,6 +57,10 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
 5. **What `srvSnapApplied` does not give back**: `x'.chain` (needed by `kvApplied_of_jump`), the
    alarm store's `Get` after `Recover` (`alarmGetIs` at the new `Tal`), `isKV` at `E'`, `srvSnapRO`
    moved along `beSucc`. Strengthen the walk (`SnapApplyWalk`, `SnapApplyPost`).
+   *Done 2026-11-01* (decisions, "`srvSnapApplied`'s missing post"): `srvSnapApplied` gives the
+   chain (`zal = true → x'.chain = alarmChain E.authOn false false`) and the KV at `E'`
+   (`txn.isKV`); `srvSnapRO_succ` moves the bundle along `beSucc`; the alarm store's `Get` needs
+   nothing (`alarmGetIs` is persistent, `Tal` given back).
 6. **The stocks** (the user's decision, 2026-11-01: thread pool, `threadBound ≤ 2^28`):
    - `E.RD`: `authIs`'s mutex holds `authInfoIdle p ∗ E.RD` (`Chain.lean:1270`); only the admin
      check (`IsAdminPermitted`) uses it, before the inner call. Restate: the mutex holds
