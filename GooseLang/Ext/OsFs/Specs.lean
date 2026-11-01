@@ -767,14 +767,15 @@ theorem wp_Fsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
 
 /-- `mmap(nil, len, PROT_READ, MAP_SHARED[|MAP_POPULATE], fd, 0)`, with the whole of the file's
 `OsMeta`, so that no change is in flight on it: on success, fresh cells at `base`, whose client
-halves hold the file's bytes, then holes past its end; on failure, `nil`. -/
+halves hold the file's bytes, then holes past its end, inside the address space; on failure,
+`nil`. -/
 theorem wp_Mmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN ⊆ E)
     (hrd : d.readable = true) (hoff : off = 0) (hlen : 0 < len.toInt)
     (hprot : prot.toNat = PROT_READ)
     (hfl : fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.path (DFrac.own 1) (some m) -∗
       (∀ base : Loc, ∀ e : w64,
-        ((⌜e = 0⌝ ∗
+        ((⌜e = 0 ∧ 0 < base.addr ∧ base.addr + len.toNat ≤ maxAddr⌝ ∗
             osMeta (L := L) d.path (DFrac.own 1) (some { m with maps := <[base := len.toNat]> m.maps }) ∗
             ∃ bs : List w8, ⌜bs.length = m.size⌝ ∗
               cellsR base 0 len.toNat (fun i => toCellVal bs[i]?)) ∨
@@ -953,7 +954,7 @@ theorem wp_Mmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) 
     ileft
     iframe Hm
     isplitr
-    · ipureintro; rfl
+    · ipureintro; exact ⟨rfl, hpos, by simpa using hmax⟩
     iexists f.cur
     isplitr
     · ipureintro; exact hmo.size.symm
