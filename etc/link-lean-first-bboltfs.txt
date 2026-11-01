@@ -43,3 +43,8 @@ os_OpenFile:
 os_File__Name:
 os_File__Stat:
 os_fileStat__Size:
+#
+# the programs over minibolt (`examples/bboltfs/programs.go`)
+bboltfs_envFailure: =_root_.Perennial.sync.atomic.wp_AddUint64
+bboltfs_valueOk:
+bboltfs_testMinibolt: bboltfs_Open bboltfs_DB__Get bboltfs_DB__Snapshot bboltfs_DB__Commit bboltfs_DB__Close bboltfs_envFailure

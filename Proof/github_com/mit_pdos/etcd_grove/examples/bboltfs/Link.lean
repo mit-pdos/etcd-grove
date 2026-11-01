@@ -24,11 +24,14 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__valida
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__write
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Open
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Page__meta
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.envFailure
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.flock
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.initPages
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.mmapSize
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pageAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pickMeta
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.testMinibolt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.valueOk
 public import Proof.os.File__Close
 public import Proof.os.File__Fd
 public import Proof.os.File__Name
@@ -45,6 +48,7 @@ public import Proof.golang_org.x.sys.unix.Madvise
 public import Proof.golang_org.x.sys.unix.Mmap
 public import Proof.golang_org.x.sys.unix.Munmap
 public import Perennial.Proof.time.Link
+public import Perennial.Proof.sync.atomic.Link
 
 @[expose] public section
 
@@ -207,6 +211,18 @@ theorem os.fileStat.wp_Size :
 theorem wp_Open :
     EtcdGrove.bboltfs.Open.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.Open.wp_proof os.wp_OpenFile os.File.wp_Name wp_flock os.File.wp_Stat os.fileStat.wp_Size os.File.wp_Close DB.wp_close DB.wp_readPageSize DB.wp_init DB.wp_mmap
+
+theorem wp_envFailure :
+    EtcdGrove.bboltfs.envFailure.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.envFailure.wp_proof _root_.Perennial.sync.atomic.wp_AddUint64
+
+theorem wp_testMinibolt :
+    EtcdGrove.bboltfs.testMinibolt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.testMinibolt.wp_proof wp_Open DB.wp_Get DB.wp_Snapshot DB.wp_Commit DB.wp_Close wp_envFailure
+
+theorem wp_valueOk :
+    EtcdGrove.bboltfs.valueOk.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.valueOk.wp_proof
 
 end links
 
