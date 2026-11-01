@@ -286,3 +286,74 @@ with no data.
 - **Not proved:** the package initializer. `crash_safety` takes `Hinit_wp` (the package's
   `initialize'` runs from `ownGoState ∅`); `etc/gen-init.py` does not generate `wp_initialize'`
   for this repository's `os`/`syscall`/`io/fs`.
+
+### minibolt's crash proof, round 1 (2026-11-01, branch `osfs-mbcrash`)
+
+Done (no `sorryAx`):
+- `GooseLang/Ext/OsFs/CrashQT.lean`: the crash interpretation under a premise `Q` that keeps the
+  changes in flight (`crashRestQT`, `os_crash_interpQT`, `osFsQ_crash_adequacyT`), and the take
+  lemmas `osCrashQT_take_runs_keep`/`osCrashQT_take_tok_keep`, which return `FileCrashedR` and the
+  crash's facts `CrashSeenR` (crashed state `st`, `OsCoh` with the old maps, `OsCrash`, `Q`, the
+  file in `st'`, the runs' bytes and the tokens in `Γt`).
+- `Proof/os/CrashFileQ.lean`: `CrashOkQ Q p Good s` (`CrashOk` with `CrashSeenR` as a further
+  hypothesis; `crashOk_Q`), `cfInvQ`, `cfInvQ_alloc`, `cfInvQ_crash_keep`.
+- `Proof/.../bboltfs/CrashGood.lean`: minibolt's `Good` (`goodImg`: at most 1 GiB, and short with
+  no valid meta in a slot held whole, or four pages with neither meta valid, or committed:
+  `metaPagesOk`, high water mark inside, `bootOk` of the current root page), with
+  `goodImg_fileOk` (`Open`'s `dbFresh`) and `goodImg_freshTx` (`BootMinibolt`'s first check).
+
+**Finding 1: `BootCrashSafety` is false for the current `init`.** A crash during the first `init`'s
+first `WriteAt` (pages 2–3 at offset 8192 of the new, empty file) may leave a file of 79 bytes,
+all arbitrary (D1; P1 says nothing of a slot the image does not hold whole). The next boot finds a
+short file and redoes `init`, whose first `WriteAt` zero-fills `[79, 8192)`: slot 0 is then the 63
+old bytes and a zero, which validates if the 79 bytes were chosen so. Example (txid 59, root 3,
+pgid 4; FNV-64a's top byte is 0, so the zero completes the checksum):
+`00000000000000000000000000000000edda0ced02000000001000000000000003000000000000000000000000000000020000000000000004000000000000003b00000000000000b5c02b352ffed3`.
+After the `Fdatasync`, a crash leaves that valid meta durable; the third boot's `Open` takes it
+(`readPageSize` validates it), and `Get` finds page 3 (`init`'s root page, `count` 0) under txid
+59: `BootMinibolt` panics. It is a checksum collision on garbage, not on a torn meta, so P1 does
+not exclude it. Proposed fix (a change to `examples/bboltfs/minibolt.go`, for the user): `init`'s
+first `WriteAt` writes all four pages from offset 0 with pages 0–1 zero, then `Fdatasync`, then the
+metas, then `Fdatasync`. A torn first write then leaves every slot dirty, and P1 makes a valid one
+the durable slot (one `goodImg` already had invalid) or zeros. (Alternative: `Truncate(0)` before
+`init`, which needs a shrinking-truncate spec.) `goodImg` is written for the fixed `init`.
+
+**Finding 2: the ghost state does not know the durable bytes, which P1 needs.** P1's first case is
+"the slot is the durable one" (`f.durable`). The ghost state knows `durable[i] = cur[i]` only for a
+clean byte (`OsCoh.bytes`, `CleanPhys`); once a write makes a byte dirty, nothing ties its durable
+copy to anything. Commit's meta write over slot `(T+1) % 2` needs "the durable slot is meta `T-1`"
+(it was clean before the write), and the fixed `init`'s writes need "the durable slots are the old
+ones (invalid)" and "zeros". No `Good` avoids it: the old durable slot validates. Proposed ghost
+change (untrusted, `GooseLang/Ext/OsFs/Ghost.lean`): a field `dur : List (Option w8)` of `OsMeta`,
+the durable bytes known, with `MetaOk.dur : dur[i]? = some (some d) → f.durable[i]? = some d`.
+Durable bytes change only at a successful sync (which takes the whole `OsMeta`) and at a crash, so
+every other step keeps `dur`; `OsMeta.synced` resets it to what the sync makes durable (the given
+bytes, when `m.ok`); `initMeta f` sets it to `f.cur`; `newMeta` to `[]`. `CrashSeenR` then gives the
+durable slot through `OsCoh.meta_some`. It touches the `MetaOk` constructions (`Facts.lean`,
+`Specs.lean`), `wp_osFsync`, and everything that builds an `OsMeta` anonymously.
+
+`CrashOk` obligations of `BootMinibolt` (with the fixed `init`), all open; "P1+dur" marks those
+needing finding 2:
+1. `OpenFile` of an absent path: created, empty (`openState none`): short.
+2. `init` W1 (four pages at 0, pages 0–1 zero), in flight and after, failed or retried: P1+dur
+   (old slots invalid by `goodImg`, or not held whole).
+3. `init` S1 (`Fdatasync`), and its failure (bytes lost: arbitrary, P1's dirty-or-lost case).
+4. `init` W2 (the metas at 0): P1+dur (durable slots zero; the page cache's or the write's are
+   `init`'s metas, txids 0 and 1, root 3, whose page is synced with `count` 0).
+5. `init` S2.
+6. Commit's `Truncate` (growth) and `Sync`: the metas and committed pages are below the old size.
+7. Commit's data page `WriteAt` (page `pgid`, past every committed page) and `Fdatasync`.
+8. Commit's meta `WriteAt` (slot `(T+1) % 2`) and `Fdatasync`: P1+dur (slot is meta `T-1`, durable,
+   or meta `T+1`, whose root page `pgid` is synced; `curMeta` picks the right one even if the slot
+   is invalid with any txid field).
+9. Failure paths (a failed sync's lost bytes; a partial write's mixed slot is excluded from P1's
+   page-cache case by its clean bytes).
+
+Next round: get the user's decision on both findings; then (a) fix `init` and regenerate the
+translation; (b) add `OsMeta.dur`; (c) prove the obligations above as pure lemmas over
+`CrashSeenR`/P1 (`CrashOkQ (P1 p) p Good`); (d) the crash-aware specs of `Spec/os/Crash.lean` for
+`cfInvQ` (generalize `CrashOps.lean` over the invariant's predicate; `crashOk_narrow` over
+`CrashOkQ`, where a retry is a new token with the rest of the data), plus `Truncate` (growth),
+`File.Sync` (= `Fdatasync`), and `Mmap`/`Munmap` with mappings (`CfWf` asks for none); `ReadAt`,
+`Stat` and `Close` need no crash-aware spec (fractions or no file resource); (e) rework `rwR` to
+hold `cfOwn` with `cfInvQ` as the invariant, and re-prove `Open`, `init`, `commit`, `Close`.
