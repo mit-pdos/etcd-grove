@@ -47,34 +47,6 @@ instance mapCells_timeless (γ : DBNames) (p : GoString) (base : Loc) (len : Nat
   haveI : ∀ b : Bool, Timeless (ghostVar (GF := GF) γ.out (1 : Qp).half b) := fun _ => inferInstance
   infer_instance
 
-theorem mapInv_close (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName) :
-    mapInv (GF := GF) γ p base len γm ∗ ghostVar γm 1 () ⊢ |={⊤}=> ▷ mapCells (GF := GF) γ p base len := by
-  iintro ⟨#Hinv, Htok⟩
-  unfold mapInv
-  imod inv_acc (by simp) $$ Hinv with ⟨Hi, Hclose⟩
-  icases Hi with (Hc | >Htok2)
-  · imod Hclose $$ [Htok] with _
-    · inext; iright; iexact Htok
-    imodintro; iexact Hc
-  · icombine Htok Htok2 gives % ⟨Hbad, _⟩
-    exfalso
-    simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at Hbad
-    grind
-
-theorem mapInv_alloc (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) :
-    mapCells (GF := GF) γ p base len ⊢
-      |={⊤}=> ∃ γm, ghostVar γm 1 () ∗ mapInv (GF := GF) γ p base len γm := by
-  iintro Hc
-  imod ghostVar_alloc () with ⟨%γm, Htok⟩
-  imod inv_alloc mapN ⊤ iprop(mapCells (GF := GF) γ p base len ∨ ghostVar γm 1 ()) $$ [Hc] with #Hinv
-  · inext; ileft; iexact Hc
-  imodintro
-  iexists γm
-  iframe
-  unfold mapInv
-  iexact Hinv
-
-
 /-- Two halves of the same bytes of a file, as the whole (they agree). -/
 theorem osBytes_join (p : GoString) :
     ∀ (xs ys : List (w8 × Bool)) (off : Nat), xs.length = ys.length →
@@ -111,6 +83,379 @@ theorem ghostVar_halves3 (γ : GName) (x y z : Nat × Nat) :
   have h : 0 < ((1 : Qp).half).val := ((1 : Qp).half).2
   simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at Hbad
   grind
+
+/-! ### Lending cells to readers (`lentCells`, `metaLent`) -/
+
+theorem bytes_frac (a b : Qp) : ∀ (B : List w8) (l : Loc),
+    bytesPointsto (GF := GF) l (DFrac.own (a + b)) B ⊣⊢
+      bytesPointsto (GF := GF) l (DFrac.own a) B ∗ bytesPointsto (GF := GF) l (DFrac.own b) B
+  | [], l => by
+    unfold bytesPointsto
+    exact ⟨by iintro _; isplitl <;> itrivial, by iintro _; itrivial⟩
+  | x :: B, l => by
+    unfold bytesPointsto
+    have h1 := (heapPointsto_fractional l (LitV (LitByte x))).fractional a b
+    have h2 := bytes_frac a b B (l +ₗ 1)
+    refine (sep_congr h1 h2).trans ?_
+    exact ⟨by iintro ⟨⟨H1, H2⟩, ⟨H3, H4⟩⟩; iframe, by iintro ⟨⟨H1, H2⟩, ⟨H3, H4⟩⟩; iframe⟩
+
+/-- The client halves of mapped cells, as byte points-tos. -/
+theorem cellsB_bytes (base : Loc) : ∀ (B : List w8) (lo : Nat),
+    cellsB (GF := GF) base lo B ⊣⊢
+      bytesPointsto (GF := GF) (base +ₗ ((lo : Nat) : Int)) (DFrac.own (1 : Qp).half) B
+  | [], lo => by
+    unfold cellsB cellsR bytesPointsto
+    simp only [List.length_nil, List.range'_zero]
+    exact ⟨by iintro _; itrivial, by iintro _; iapply BigSepL.bigSepL_nil.2; iempintro⟩
+  | x :: B, lo => by
+    refine (cellsB_cons _ _ _ _).trans ?_
+    unfold bytesPointsto
+    refine sep_congr .rfl ((cellsB_bytes base B (lo + 1)).trans ?_)
+    rw [loc_add_assoc]
+    exact .of_eq (by congr 2 <;> omega)
+
+theorem qp_rest (s : Qp) (d : Qp) (h : d + s ≤ 1) :
+    ∃ e : Qp, e + (d + s).half.half = (1 : Qp).half := by
+  obtain ⟨c, hc⟩ := Qp.lt_iff_exists_add.1
+    (show (d + s).half.half < (1 : Qp).half by simp only [Qp.le_iff, Qp.lt_iff, Qp.val_add, Qp.val_half, Qp.val_one] at h ⊢; grind)
+  exact ⟨c, Subtype.ext (by have := congrArg Subtype.val hc; simp only [Qp.val_add] at this ⊢; grind)⟩
+
+theorem qp_rest1 (s : Qp) (h : s.half + s.half ≤ 1) :
+    ∃ e : Qp, e + s.half.half = (1 : Qp).half := by
+  obtain ⟨c, hc⟩ := Qp.lt_iff_exists_add.1
+    (show s.half.half < (1 : Qp).half by simp only [Qp.le_iff, Qp.lt_iff, Qp.val_add, Qp.val_half, Qp.val_one] at h ⊢; grind)
+  exact ⟨c, Subtype.ext (by have := congrArg Subtype.val hc; simp only [Qp.val_add] at this ⊢; grind)⟩
+
+/-- `Qp` equalities, through their values. -/
+macro "qp_eq" : tactic => `(tactic| (apply Subtype.ext; simp only [Qp.val_add, Qp.val_half, Qp.val_one] at *; grind))
+
+theorem lent_intro (γm γl : GName) (k : Nat) (l : Loc) (B : List w8) :
+    k ↪[γl] B ∗ bytesPointsto (GF := GF) l (DFrac.own (1 : Qp).half) B ⊢
+      lentCells (GF := GF) γm γl k l B := by
+  iintro ⟨Hk, Hb⟩
+  unfold lentCells
+  iexists none
+  dsimp only
+  iframe
+
+/-- With the whole of `γm`, a group is unlent. -/
+theorem lent_full (γm γl : GName) (k : Nat) (l : Loc) (B : List w8) :
+    lentCells (GF := GF) γm γl k l B ∗ ghostVar γm 1 () ⊢
+      (k ↪[γl] B ∗ bytesPointsto (GF := GF) l (DFrac.own (1 : Qp).half) B) ∗ ghostVar γm 1 () := by
+  iintro ⟨Hl, Hm⟩
+  unfold lentCells
+  icases Hl with ⟨%o, Ho⟩
+  rcases o with _ | d
+  · iframe
+  · icases Ho with ⟨%e, %he, Hd, -, -⟩
+    icombine Hd Hm gives % ⟨Hbad, _⟩
+    exfalso
+    simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at Hbad
+    have := d.2; grind
+
+/-- A reader deposits `s` of `γm` and borrows `s/4` of the cells and of the loan token. -/
+theorem lent_borrow (γm γl : GName) (k : Nat) (l : Loc) (B : List w8) (s : Qp) :
+    lentCells (GF := GF) γm γl k l B ∗ ghostVar γm s () ⊢
+      lentCells (GF := GF) γm γl k l B ∗ k ↪[γl]{#s.half.half} B ∗
+        bytesPointsto (GF := GF) l (DFrac.own s.half.half) B := by
+  iintro ⟨Hl, Hs⟩
+  unfold lentCells
+  icases Hl with ⟨%o, Ho⟩
+  rcases o with _ | d
+  · icases Ho with ⟨Hk, Hb⟩
+    icases (ghostVar_split_half γm s ()).1 $$ Hs with ⟨Hs1, Hs2⟩
+    icombine Hs1 Hs2 gives % ⟨Hsv, _⟩
+    ihave Hs := (ghostVar_split_half γm s ()).2 $$ [Hs1 Hs2]
+    · iframe
+    obtain ⟨e, he⟩ := qp_rest1 s Hsv
+    icases (show k ↪[γl] B ⊢ k ↪[γl]{#((1 : Qp).half + e)} B ∗ k ↪[γl]{#s.half.half} B by
+      have h := ((ghostMapElem_fractional k γl B).fractional ((1 : Qp).half + e) s.half.half).1
+      rwa [show ((1 : Qp).half + e) + s.half.half = 1 by qp_eq] at h) $$ Hk with ⟨Hk, Hk'⟩
+    icases (show bytesPointsto (GF := GF) l (DFrac.own (1 : Qp).half) B ⊢
+        bytesPointsto (GF := GF) l (DFrac.own e) B ∗ bytesPointsto (GF := GF) l (DFrac.own s.half.half) B by
+      rw [← he]; exact (bytes_frac e s.half.half B l).1) $$ Hb with ⟨Hb, Hb'⟩
+    iframe Hk' Hb'
+    iexists (some s)
+    iexists e
+    iframe
+    ipureintro; exact he
+  · icases Ho with ⟨%e, %he, Hd, Hk, Hb⟩
+    icombine Hd Hs gives % ⟨Hds, _⟩
+    obtain ⟨e', he'⟩ := qp_rest s d Hds
+    have hee : e = e' + s.half.half := by qp_eq
+    rw [hee]
+    icases (bytes_frac e' s.half.half B l).1 $$ Hb with ⟨Hb, Hb'⟩
+    rw [show (1 : Qp).half + (e' + s.half.half) = ((1 : Qp).half + e') + s.half.half by qp_eq]
+    icases ((ghostMapElem_fractional k γl B).fractional _ _).1 $$ Hk with ⟨Hk, Hk'⟩
+    iframe Hk' Hb'
+    iexists (some (d + s))
+    iexists e'
+    iframe
+    ipureintro; exact he'
+
+/-- A reader gives back its loan, and gets back its deposit. -/
+theorem lent_return (γm γl : GName) (k : Nat) (l : Loc) (B B' : List w8) (s : Qp) :
+    lentCells (GF := GF) γm γl k l B ∗ k ↪[γl]{#s.half.half} B' ∗
+        bytesPointsto (GF := GF) l (DFrac.own s.half.half) B' ⊢
+      lentCells (GF := GF) γm γl k l B ∗ ghostVar γm s () := by
+  iintro ⟨Hl, Hk', Hb'⟩
+  unfold lentCells
+  icases Hl with ⟨%o, Ho⟩
+  rcases o with _ | d
+  · icases Ho with ⟨Hk, -⟩
+    icombine Hk Hk' gives % ⟨Hbad, _⟩
+    exfalso
+    have := DFrac.valid_own_op Hbad
+    simp at this
+  · icases Ho with ⟨%e, %he, Hd, Hk, Hb⟩
+    icombine Hk Hk' gives % ⟨Hv, HB⟩
+    subst HB
+    have Hv' : ((1 : Qp).half + e + s.half.half).val ≤ 1 := Hv
+    by_cases hsd : s = d
+    · subst hsd
+      iframe Hd
+      iexists none
+      dsimp only
+      isplitl [Hk Hk']
+      · have h := ((ghostMapElem_fractional k γl B).fractional ((1 : Qp).half + e) s.half.half).2
+        rw [show ((1 : Qp).half + e) + s.half.half = 1 by qp_eq] at h
+        iapply h
+        iframe
+      · rw [← he]
+        iapply (bytes_frac e s.half.half B l).2
+        iframe
+    · obtain ⟨d', hd'⟩ := Qp.lt_iff_exists_add.1 (show s < d by
+        have h1 : s.val ≠ d.val := fun h => hsd (Subtype.ext h)
+        have := congrArg Subtype.val he
+        simp only [Qp.lt_iff, Qp.val_add, Qp.val_half, Qp.val_one] at this Hv' ⊢; grind)
+      subst hd'
+      icases ((ghostVar_fractional γm ()).fractional s d').1 $$ Hd with ⟨Hs, Hd⟩
+      iframe Hs
+      iexists (some d')
+      iexists (e + s.half.half)
+      isplitr
+      · ipureintro; qp_eq
+      iframe Hd
+      isplitl [Hk Hk']
+      · rw [show (1 : Qp).half + (e + s.half.half) = ((1 : Qp).half + e) + s.half.half by qp_eq]
+        iapply ((ghostMapElem_fractional k γl B).fractional _ _).2
+        iframe
+      · iapply (bytes_frac e s.half.half B l).2
+        iframe
+
+instance lentCells_timeless (γm γl : GName) (k : Nat) (l : Loc) (B : List w8) :
+    Timeless (lentCells (GF := GF) γm γl k l B) := by
+  unfold lentCells
+  refine @exists_timeless _ _ _ _ (fun o => ?_)
+  rcases o with _ | d <;> dsimp only <;> infer_instance
+
+instance mapLend_timeless (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName) :
+    Timeless (mapLend (GF := GF) γ p base len γm γl) := by
+  unfold mapLend metaLent metaBytes
+  haveI : ∀ r B, Timeless (pageIs (GF := GF) p r B) := by intro r B; unfold pageIs; infer_instance
+  haveI : ∀ x : List w8 × Bool × Nat, Timeless (ghostVar (GF := GF) γ.cur (1 : Qp).half.half x) := fun _ => inferInstance
+  haveI : ∀ (q : Qp) (b : Bool), Timeless (ghostVar (GF := GF) γ.out q b) := fun _ _ => inferInstance
+  haveI : ∀ q : Qp, Timeless (ghostVar (GF := GF) γm q ()) := fun _ => inferInstance
+  haveI : ∀ K : GMap Nat (List w8), Timeless (ghostMapAuth (GF := GF) γl 1 K) := fun _ => by
+    unfold ghostMapAuth; infer_instance
+  haveI : ∀ (dq : DFrac) (mc : List w8), Timeless (ghostMapElem (GF := GF) γl 0 dq mc) := fun _ _ => inferInstance
+  haveI : ∀ (l : Loc) (dq : DFrac) (bs : List w8), Timeless (bytesPointsto (GF := GF) l dq bs) :=
+    fun l dq bs => bytesPointsto_timeless l dq bs
+  haveI : ∀ n, Timeless iprop([∗list] r ∈ List.range' 2 n,
+      ∃ B, pageIs (GF := GF) p r B ∗ lentCells (GF := GF) γm γl r (base +ₗ ((4096 * r : Nat) : Int)) B) :=
+    fun _ => BigSepL.bigSepL_timeless (fun _ => inferInstance)
+  refine @exists_timeless _ _ _ _ (fun mp => @exists_timeless _ _ _ _ (fun fl =>
+    @exists_timeless _ _ _ _ (fun hwm => @exists_timeless _ _ _ _ (fun K => ?_))))
+  refine @sep_timeless _ _ _ _ inferInstance (@sep_timeless _ _ _ _ inferInstance
+    (@sep_timeless _ _ _ _ inferInstance (@sep_timeless _ _ _ _ inferInstance
+      (@sep_timeless _ _ _ _ inferInstance ?_))))
+  refine @or_timeless _ _ _ _ ?_ ?_
+  · infer_instance
+  · infer_instance
+
+/-- The pages of a `mapLend`, with the whole of `γm`: none is lent. -/
+theorem pages_unlend (p : GoString) (base : Loc) (γm γl : GName) : ∀ L : List Nat,
+    ([∗list] r ∈ L, ∃ B, pageIs (GF := GF) p r B ∗
+        lentCells (GF := GF) γm γl r (base +ₗ ((4096 * r : Nat) : Int)) B) ∗ ghostVar γm 1 () ⊢
+      ([∗list] r ∈ L, ∃ B, pageIs (GF := GF) p r B ∗ cellsB (GF := GF) base (4096 * r) B) ∗
+        ghostVar γm 1 ()
+  | [] => by
+    iintro ⟨-, Hm⟩; iframe; iapply BigSepL.bigSepL_nil.2; iempintro
+  | r :: L => by
+    iintro ⟨H, Hm⟩
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨⟨%B, #HB, Hl⟩, H⟩
+    icases lent_full γm γl r _ B $$ [Hl Hm] with ⟨⟨-, Hb⟩, Hm⟩
+    · iframe
+    icases pages_unlend p base γm γl L $$ [H Hm] with ⟨H, Hm⟩
+    · iframe
+    iframe Hm
+    iapply BigSepL.bigSepL_cons.2
+    iframe H
+    iexists B; iframe HB
+    iapply (cellsB_bytes base B (4096 * r)).2; iexact Hb
+
+/-- The pages of a `mapCells`, lendable, with their loan tokens. -/
+theorem pages_lend (p : GoString) (base : Loc) (γm γl : GName) : ∀ (n s : Nat) (K : GMap Nat (List w8)),
+    (∀ k, s ≤ k → K.lookup k = none) →
+    ghostMapAuth γl 1 K ∗
+      ([∗list] r ∈ List.range' s n, ∃ B, pageIs (GF := GF) p r B ∗ cellsB (GF := GF) base (4096 * r) B) ⊢
+      |==> ∃ K', ghostMapAuth γl 1 K' ∗ ⌜∀ k, (k < s ∨ s + n ≤ k) → K'.lookup k = K.lookup k⌝ ∗
+        ([∗list] r ∈ List.range' s n, ∃ B, pageIs (GF := GF) p r B ∗
+          lentCells (GF := GF) γm γl r (base +ₗ ((4096 * r : Nat) : Int)) B)
+  | 0, s, K, _ => by
+    iintro ⟨Ha, -⟩
+    imodintro
+    iexists K; iframe
+    isplitr
+    · ipureintro; intro k _; rfl
+    simp only [List.range'_zero]; iapply BigSepL.bigSepL_nil.2; iempintro
+  | n + 1, s, K, hK => by
+    iintro ⟨Ha, H⟩
+    rw [List.range'_succ]
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨⟨%B, #HB, Hc⟩, H⟩
+    imod ghost_map_insert (V := List w8) s B (hK s (Nat.le_refl s)) $$ Ha with ⟨Ha, Hk⟩
+    imod pages_lend p base γm γl n (s + 1) (K.insert s B) (fun k hk => by
+        show (K.insert s B) !! k = none
+        rw [GMap.lookup_insert_ne _ _ (by omega)]; exact hK k (by omega)) $$ [Ha H] with ⟨%K', Ha, %HK', H⟩
+    · iframe
+    imodintro
+    iexists K'; iframe Ha
+    isplitr
+    · ipureintro
+      intro k hk
+      rw [HK' k (by omega)]
+      show (K.insert s B) !! k = K !! k
+      rw [GMap.lookup_insert_ne _ _ (by omega)]
+    iapply BigSepL.bigSepL_cons.2
+    iframe H
+    iexists B; iframe HB
+    iapply lent_intro
+    iframe Hk
+    iapply (cellsB_bytes base B (4096 * s)).1; iexact Hc
+
+/-- With the whole of `γm`, the invariant's contents as `mapCells`. -/
+theorem mapLend_full (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName) :
+    mapLend (GF := GF) γ p base len γm γl ∗ ghostVar γm 1 () ⊢
+      mapCells (GF := GF) γ p base len ∗ ghostVar γm 1 () := by
+  iintro ⟨Hc, Hm⟩
+  unfold mapLend
+  icases Hc with ⟨%mp, %fl, %hwm, %K, Hcur, %Hl, -, -, Hpages, Hmeta⟩
+  icases pages_unlend p base γm γl _ $$ [Hpages Hm] with ⟨Hpages, Hm⟩
+  · iframe
+  unfold mapCells
+  icases Hmeta with (⟨Hout, -⟩ | ⟨Hout, %mc, %Hmc, Hml⟩)
+  · iframe Hm
+    iexists mp, fl, hwm
+    isplitl [Hcur]; · iexact Hcur
+    isplitr; · ipureintro; exact Hl
+    isplitl [Hpages]; · iexact Hpages
+    ileft; iexact Hout
+  · unfold metaLent metaBytes
+    icases Hml with (⟨-, Hb0, Hb1⟩ | ⟨-, Hd, -⟩)
+    · iframe Hm
+      iexists mp, fl, hwm
+      isplitl [Hcur]; · iexact Hcur
+      isplitr; · ipureintro; exact Hl
+      isplitl [Hpages]; · iexact Hpages
+      iright; iframe Hout
+      iexists mc
+      isplitl [Hb0]
+      · iapply (cellsB_bytes base _ 16).2; iexact Hb0
+      isplitl [Hb1]
+      · iapply (cellsB_bytes base _ 4112).2; iexact Hb1
+      ipureintro; exact Hmc
+    · icombine Hd Hm gives % ⟨Hbad, _⟩
+      exfalso
+      simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at Hbad
+      have := metaDep.2; grind
+
+/-- `mapCells`, lendable, with a fresh authority over its loan tokens. -/
+theorem mapLend_alloc (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName) :
+    mapCells (GF := GF) γ p base len ⊢ |==> ∃ γl, mapLend (GF := GF) γ p base len γm γl := by
+  iintro Hc
+  unfold mapCells
+  icases Hc with ⟨%mp, %fl, %hwm, Hcur, %Hl, Hpages, Hmeta⟩
+  imod ghost_map_alloc_empty (K := Nat) (V := List w8) with ⟨%γl, Ha⟩
+  iexists γl
+  unfold mapLend
+  icases Hmeta with (Hout | ⟨Hout, %mc, Hc0, Hc1, %Hmc⟩)
+  · imod ghost_map_insert (V := List w8) 0 [] (by rfl) $$ Ha with ⟨Ha, Hk⟩
+    imod pages_lend p base γm γl (hwm - 2) 2 _ (fun k hk => by
+        show (GMap.insert 0 [] ∅ : GMap Nat (List w8)) !! k = none
+        rw [GMap.lookup_insert_ne _ _ (by omega)]; rfl) $$ [Ha Hpages] with ⟨%K', Ha, %HK', Hpages⟩
+    · iframe
+    imodintro
+    iexists mp, fl, hwm, K'
+    isplitl [Hcur]; · iexact Hcur
+    isplitr; · ipureintro; exact Hl
+    isplitl [Ha]; · iexact Ha
+    isplitr
+    · ipureintro
+      intro k hk hh
+      rw [HK' k (by omega)]
+      show (GMap.insert 0 [] ∅ : GMap Nat (List w8)) !! k = none
+      rw [GMap.lookup_insert_ne _ _ (by omega)]; rfl
+    isplitl [Hpages]; · iexact Hpages
+    ileft; iframe Hout
+    iexists []; iexact Hk
+  · imod ghost_map_insert (V := List w8) 0 mc (by rfl) $$ Ha with ⟨Ha, Hk⟩
+    imod pages_lend p base γm γl (hwm - 2) 2 _ (fun k hk => by
+        show (GMap.insert 0 mc ∅ : GMap Nat (List w8)) !! k = none
+        rw [GMap.lookup_insert_ne _ _ (by omega)]; rfl) $$ [Ha Hpages] with ⟨%K', Ha, %HK', Hpages⟩
+    · iframe
+    imodintro
+    iexists mp, fl, hwm, K'
+    isplitl [Hcur]; · iexact Hcur
+    isplitr; · ipureintro; exact Hl
+    isplitl [Ha]; · iexact Ha
+    isplitr
+    · ipureintro
+      intro k hk hh
+      rw [HK' k (by omega)]
+      show (GMap.insert 0 mc ∅ : GMap Nat (List w8)) !! k = none
+      rw [GMap.lookup_insert_ne _ _ (by omega)]; rfl
+    isplitl [Hpages]; · iexact Hpages
+    iright; iframe Hout
+    iexists mc
+    isplitr
+    · ipureintro; exact Hmc
+    unfold metaLent metaBytes
+    ileft; iframe Hk
+    isplitl [Hc0]
+    · iapply (cellsB_bytes base _ 16).1; iexact Hc0
+    · iapply (cellsB_bytes base _ 4112).1; iexact Hc1
+
+theorem mapInv_close (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName) :
+    mapInv (GF := GF) γ p base len γm ∗ ghostVar γm 1 () ⊢ |={⊤}=> ▷ mapCells (GF := GF) γ p base len := by
+  iintro ⟨#Hinv, Htok⟩
+  unfold mapInv
+  icases Hinv with ⟨%γl, #Hinv⟩
+  imod inv_acc (by simp) $$ Hinv with ⟨Hi, Hclose⟩
+  icases Hi with (>Hc | >Htok2)
+  · icases mapLend_full γ p base len γm γl $$ [Hc Htok] with ⟨Hc, Htok⟩
+    · iframe
+    imod Hclose $$ [Htok] with _
+    · inext; iright; iexact Htok
+    imodintro; inext; iexact Hc
+  · icombine Htok Htok2 gives % ⟨Hbad, _⟩
+    exfalso
+    simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at Hbad
+    grind
+
+theorem mapInv_alloc (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) :
+    mapCells (GF := GF) γ p base len ⊢
+      |={⊤}=> ∃ γm, ghostVar γm 1 () ∗ mapInv (GF := GF) γ p base len γm := by
+  iintro Hc
+  imod ghostVar_alloc () with ⟨%γm, Htok⟩
+  imod mapLend_alloc γ p base len γm $$ Hc with ⟨%γl, Hc⟩
+  imod inv_alloc mapN ⊤ iprop(mapLend (GF := GF) γ p base len γm γl ∨ ghostVar γm 1 ()) $$ [Hc] with #Hinv
+  · inext; ileft; iexact Hc
+  imodintro
+  iexists γm
+  iframe
+  unfold mapInv
+  iexists γl
+  iexact Hinv
 
 /-- The invariant's pages `[s, s + k)`: their contents, and their cells as one range. -/
 theorem pagesCells_split (p : GoString) (base : Loc) :
