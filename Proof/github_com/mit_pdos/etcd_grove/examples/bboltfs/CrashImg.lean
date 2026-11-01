@@ -412,6 +412,35 @@ theorem initMid_wreach {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {data : List
     fun i hi => durOk_congr hd1 hd2 (h.dur i hi), fun k hk => ?_⟩
   rw [hN.suf (by omega) _ (by omega)]; exact h.page3 k hk
 
+/-- A successful sync of the whole file, with `init`'s page 3 and slots that are invalid or
+`init`'s metas (both of `init`'s syncs), leaves an `initMid` state, all clean. -/
+theorem initMid_synced {m : OsMeta} {bs : List (w8 × Bool)} (hok : m.ok = true)
+    (hl : bs.length = m.size) (hlo : 4 * 4096 ≤ m.size) (hhi : m.size ≤ 2 ^ 30)
+    (hs : ∀ i < 2, metaValid (fileMeta (bs.map Prod.fst) i) →
+      fileMeta (bs.map Prod.fst) i = bInitMeta i)
+    (h3 : ∀ k < 4096, (bs[4096 * 3 + k]?).map Prod.fst =
+      some ((emptyPageBytes (W64 3) (W16 2))[k]?.getD 0)) :
+    initMid (m.synced 0 bs) (syncedBytes m bs) ∧
+      ∀ i < 2, cacheOk (syncedBytes m bs) i (fun X => X = bInitMeta i) := by
+  have hsb : syncedBytes m bs = bs.map (fun x => (x.1, true)) := by simp [syncedBytes, hok]
+  refine ⟨⟨by simp [OsMeta.synced]; omega, by simp [OsMeta.synced]; omega, fun i hi => ?_,
+    fun k hk => ?_⟩, fun i hi hlen => ?_⟩
+  · refine durOk_of (bs.map Prod.fst) (fun j b hb _ => ?_) (by simp [OsMeta.synced, hl])
+      (fun _ hv => hs i hi hv)
+    simp only [OsMeta.synced, hok, if_true, durOf, List.replicate_zero, List.nil_append,
+      List.getElem?_map] at hb ⊢
+    cases hx : bs[j]? with
+    | none => rw [hx] at hb; cases hb
+    | some x => rw [hx] at hb; simp only [Option.map_some, Option.some.injEq] at hb ⊢; rw [hb]
+  · have := h3 k hk
+    rw [hsb, List.getElem?_map]
+    cases hx : bs[4096 * 3 + k]? with
+    | none => rw [hx] at this; cases this
+    | some x => rw [hx] at this; simp only [Option.map_some, Option.some.injEq] at this ⊢; rw [this]
+  · rw [hsb] at hlen ⊢
+    simp only [List.length_map] at hlen
+    exact .inl ⟨0, by omega, _, by rw [List.getElem?_map, List.getElem?_eq_getElem (by omega)]; rfl, rfl⟩
+
 theorem initMid_idle_good {m : OsMeta} {bs : List (w8 × Bool)} (h : initMid m bs)
     (hc : ∀ i < 2, cacheOk bs i (fun X => X = bInitMeta i)) :
     ∀ img D, idleImg m bs img D → goodImg img := by
@@ -736,6 +765,82 @@ theorem commitMetaIdle_okS {mp : List w8} {N : Meta} {sl : Nat} (hb : s.busy = .
   crashOkS_idle s hb (crashOkQ_idle hl (commitMetaIdle_good h hc))
 
 end states
+
+section obligations
+variable {p : GoString}
+
+/-- A failed sync leaves `initIdle`/`initMid` as they were (they ignore `ok`). -/
+theorem initIdle_notOk {m : OsMeta} {bs : List (w8 × Bool)} (h : initIdle m bs) :
+    initIdle { m with ok := false } bs := ⟨h.hi, h.dur, h.cache⟩
+
+theorem initMid_notOk {m : OsMeta} {bs : List (w8 × Bool)} (h : initMid m bs) :
+    initMid { m with ok := false } bs := ⟨h.hi, h.lo, h.dur, h.page3⟩
+
+/-- **`init`'s first write's obligation** (`os.File.WriteAt.specCrashS`): every state it reaches,
+idle or with the next attempt in flight, from an `initIdle` state whose slots are clean. -/
+theorem initW1_obl {m : OsMeta} {xs : List (w8 × Bool)} {F : List w8} (h : initIdle m xs)
+    (hl : xs.length = m.size)
+    (hcl : ∀ i < 2, ∀ k < 64, ∀ x, xs[4096 * i + 16 + k]? = some x → x.2 = true)
+    (hF : 8192 ≤ F.length) (hF' : F.length ≤ 2 ^ 30) (hz : ∀ k < 8192, F[k]? = some 0)
+    (fa fb : Nat) :
+    ∀ m' bs', WReach m xs 0 F m' bs' →
+      CrashOkS (P1 p) p Good (some ⟨m', bs', fa, fb, .idle⟩) ∧
+      ∀ t, CrashOkS (P1 p) p Good (some ⟨m', bs', fa, fb, .write t 0 F⟩) := by
+  intro m' bs' hR
+  have hI := initIdle_wreach h hl hR hcl hF hF' hz
+  have hl' := (hR.narrow hl).len
+  exact ⟨initIdle_okS ⟨m', bs', fa, fb, .idle⟩ hl' rfl hI, fun t =>
+    initW1_okS ⟨m', bs', fa, fb, .write t 0 F⟩ hl' rfl hI.hi hF' hI.dur hI.cache hz⟩
+
+/-- **`init`'s meta write's obligation**: every state it reaches, from an `initMid` state whose
+slots are clean, with data `D` whose slots are `init`'s metas. -/
+theorem initW2_obl {m : OsMeta} {bs : List (w8 × Bool)} {D : List w8} (h : initMid m bs)
+    (hl : bs.length = m.size)
+    (hcl : ∀ i < 2, ∀ k < 64, ∀ x, bs[4096 * i + 16 + k]? = some x → x.2 = true)
+    (hD : D.length = 8192) (hDs : ∀ i < 2, fileMeta D i = bInitMeta i)
+    (hsz : 4 * 4096 ≤ m.size) (fa fb : Nat) :
+    ∀ m' bs', WReach m bs 0 D m' bs' →
+      CrashOkS (P1 p) p Good (some ⟨m', bs', fa, fb, .idle⟩) ∧
+      ∀ t, CrashOkS (P1 p) p Good (some ⟨m', bs', fa, fb, .write t 0 D⟩) := by
+  intro m' bs' hR
+  have hM := initMid_wreach h hl hR (by omega) hsz
+  have hN := hR.narrow hl
+  have hDslot : ∀ i < 2, ∀ L : List w8, (∀ k < 64, L[4096 * i + 16 + k]? =
+      some (D.getD (4096 * i + 16 + k - 0) 0)) → fileMeta L i = fileMeta D i := by
+    intro i hi L hL
+    refine fileMeta_of_slot (metaSlot_ext fun k hk => ?_)
+    rw [hL k hk, List.getD_eq_getElem?_getD, Nat.sub_zero, List.getElem?_eq_getElem (by omega)]; rfl
+  have hc : ∀ i < 2, cacheOk bs' i (fun X => X = bInitMeta i) := fun i hi =>
+    cacheOk_wreach hR hl (by omega) (by omega) (hcl i hi) fun L hL _ => by
+      rw [hDslot i hi L hL, hDs i hi]
+  refine ⟨initMid_okS ⟨m', bs', fa, fb, .idle⟩ hN.len rfl hM hc, fun t =>
+    initW2_okS ⟨m', bs', fa, fb, .write t 0 D⟩ hN.len rfl hM (by omega) (by show 4 * 4096 ≤ m'.size; have := hN.size; omega)
+      hc fun i hi _ => ?_⟩
+  have e : fileMeta D i = fileMeta (writeBytes (bs'.map Prod.fst) 0 D) i :=
+    slot_data_write (by omega) (by omega) fun k hk => by
+      rw [List.getD_eq_getElem?_getD, Nat.sub_zero, List.getElem?_eq_getElem (by omega)]; rfl
+  rw [← e, hDs i hi]
+
+/-- **`init`'s syncs' obligation** (success; `syscall.Fdatasync.specCrashS` with `H = F = []`):
+the file synced whole, with `init`'s page 3 and slots invalid or `init`'s metas. On failure, the
+state is the write's last (`initIdle_notOk`, `initMid_notOk`). -/
+theorem initSync_ok {m : OsMeta} {bs : List (w8 × Bool)} (hok : m.ok = true)
+    (hl : bs.length = m.size) (hlo : 4 * 4096 ≤ m.size) (hhi : m.size ≤ 2 ^ 30)
+    (hs : ∀ i < 2, metaValid (fileMeta (bs.map Prod.fst) i) →
+      fileMeta (bs.map Prod.fst) i = bInitMeta i)
+    (h3 : ∀ k < 4096, (bs[4096 * 3 + k]?).map Prod.fst =
+      some ((emptyPageBytes (W64 3) (W16 2))[k]?.getD 0)) :
+    CrashOkS (P1 p) p Good (some (csSynced false m [] [] bs 0 0)) := by
+  obtain ⟨hM, hc⟩ := initMid_synced hok hl hlo hhi hs h3
+  have e : m.syncedKeep 0 bs 0 [] = m.synced 0 bs := by
+    simp only [OsMeta.syncedKeep, durOf, List.replicate_zero, List.nil_append, List.map_nil]
+    rw [show ∀ a : List (Option w8), durOverlay a [] = a from fun a => by cases a <;> rfl]
+  simp only [csSynced, List.nil_append]
+  rw [e]
+  refine initMid_okS ⟨m.synced 0 bs, syncedBytes m bs, 0, 0, .idle⟩ ?_ rfl hM hc
+  simp [syncedBytes, OsMeta.synced, hok, hl]
+
+end obligations
 
 end pure
 
