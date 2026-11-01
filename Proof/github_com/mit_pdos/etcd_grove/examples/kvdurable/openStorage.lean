@@ -1,6 +1,19 @@
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvdurable/openStorage.lean`. Lean-first (no
 Rocq counterpart).
+
+- The decode: the readers on the bytes taken whole (`getUint64`, `getSnapshot`: the snapshot with
+  every pointer field set, frozen read-only at once), the entries' loop on the rest frozen read-only
+  (the rest holding the entries not read yet, the slice the ones read, each frozen), every check
+  refuted by `KdFileOk` (the term checks by `KdSnapTermOk`, joined: `wp_join`).
+- The restore, on the storage detached throughout (`memStorFresh`, justifications `trivJ` nothing
+  reads): `NewMemoryStorage`; joined at "the log starts at `prev`": the dummy at `0` (`prev = 0`) or
+  `ApplySnapshot` of the file's snapshot (`si = prev`) or of a base one at `prev` (`si > prev`);
+  `Append` of the entries at `prev + 1`; joined at "the stored snapshot is the file's, the log split
+  at `si`": nothing (`si = prev`) or `CreateSnapshot` at `si` (`si > prev`), on the entry there
+  frozen (the log's lower part frozen) and a copy of the data, the refusal excluded by its
+  `i ≤ sv0`'s index (`sv0` at `prev < si`).
+- Then `SetHardState` and the image (`ownImage`: the snapshot and entries read-only).
 -/
 module
 
@@ -231,8 +244,10 @@ theorem openStorage.wp_proof
       · wp_join_done
     try wp_auto
     -- the restore: the storage registered, the stored snapshot opened for writes
+    obtain ⟨stp, Hstp⟩ : ∃ x, x = «$r0_ptr» := ⟨_, rfl⟩
+    subst Hstp
     iStructNamedPrefix «$r0» "S"
-    imod kdStor_register «$r0_ptr» ms γs ⊤ CoPset.subseteq_top $$ HsInv SMemoryStorage with #Hrec
+    imod kdStor_register stp ms γs ⊤ CoPset.subseteq_top $$ HsInv SMemoryStorage with #Hrec
     imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Sboot with #Sboot
     imod memSnapNone_open γs $$ Hnone with #Hlb0
     ihave #Hinit := isInitialized_access $$ Hraft
@@ -240,12 +255,12 @@ theorem openStorage.wp_proof
     iNamed Hinit
     iunfold errorsNewVar at ErrSnapOODNew
     icases ErrSnapOODNew with ⟨%eood, #Heood, -⟩
-    ihave #Hmsf : «$r0_ptr».[KStorage, go!"MemoryStorage"] ↦□ ms $$ []
+    ihave #Hmsf : stp.[KStorage, go!"MemoryStorage"] ↦□ ms $$ []
     · iunfold kdStorRec at Hrec; icases Hrec with ⟨#H, -⟩; iexact H
     -- the log's start: the snapshot applied there (`prev > 0`), or the dummy at `0`
     wp_join iprop("prev" ∷ prev_ptr ↦ f.prev ∗ "snap" ∷ snap_ptr ↦ sp ∗
         "si" ∷ si_ptr ↦ f.snap.Metadata'.Index' ∗ "prevTerm" ∷ prevTerm_ptr ↦ f.prevTerm ∗
-        "s" ∷ s_ptr ↦ «$r0_ptr» ∗
+        "s" ∷ s_ptr ↦ stp ∗
         ∃ (sv0 : SnapshotM) (e0 : EntryM), "Hfresh" ∷ memStorFresh ms γs (uint.nat f.prev) sv0 ∗
           "Hend" ∷ memEnd γs (uint.nat f.prev + 1) ∗
           "#He0" ∷ memLog γs (uint.nat f.prev) DFrac.discard [e0] ∗ "%He0t" ∷ ⌜e0.Term' = f.prevTerm⌝ ∗
@@ -368,7 +383,7 @@ theorem openStorage.wp_proof
     try wp_auto
     -- the snapshot taken again from the log above its start (`si > prev`)
     wp_join iprop("prev" ∷ prev_ptr ↦ f.prev ∗ "snap" ∷ snap_ptr ↦ sp ∗
-        "si" ∷ si_ptr ↦ f.snap.Metadata'.Index' ∗ "s" ∷ s_ptr ↦ «$r0_ptr» ∗
+        "si" ∷ si_ptr ↦ f.snap.Metadata'.Index' ∗ "s" ∷ s_ptr ↦ stp ∗
         "Hfresh" ∷ memStorFresh ms γs (uint.nat f.prev)
           (if f.snap.Metadata'.Index' = W64 0 then memSnapEmpty else f.snap) ∗
         "#Hfz" ∷ memLog γs (uint.nat f.prev + 1) DFrac.discard
@@ -463,7 +478,37 @@ theorem openStorage.wp_proof
         rw [Hsp, Nat.sub_self, List.take_zero, List.drop_zero]
         iframe Hlog HslP
         iapply memLog_nil
-    sorry
+    -- the hard state
+    imod cellRO_alloc _ _ $$ «$v0» with #cT
+    imod cellRO_alloc _ _ $$ «$v1» with #cV
+    imod cellRO_alloc _ _ $$ «$v2» with #cC
+    imod hsRO_of_struct «$r0_ptr» ⟨zeroValDef, «$v0_ptr», «$v1_ptr», «$v2_ptr», slice.nil, 0⟩ f.hs ⊤ rfl
+      $$ [«$r0»] with #Hhs
+    · iframe «$r0»; iframe cT cV cC
+    ihave #HhsO : hsOpt «$r0_ptr» f.hs $$ []
+    · iunfold hsOpt; iright; iexact Hhs
+    iapply wp_fupd
+    wp_apply wp_SetHardState ms γs _ «$r0_ptr» f.hs $$ [$Hmeta $HhsO] as Hmeta
+    -- the image
+    rename_i hsp
+    iStructNamedPrefix «$r0» "I"
+    imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Simg with #Simg
+    imodintro
+    iapply HΦ
+    isplitr
+    · ipureintro; rfl
+    iexists ms, «$r0_ptr», γs, e0
+    rw [show uint.nat f.prev + f.ents.length + 1 = uint.nat f.prev + 1 + f.ents.length by omega]
+    iframe Hrec Hlock Hfresh Hmeta Simg He0 Hfz Hown Hend Hcomp Hslb
+    isplitl []
+    · iunfold kdStorBoot; iframe Sboot Hboot
+    isplitl [Ihs Isnap Iprev IprevTerm Ients]
+    · iunfold ownImage
+      iexists hsp, sp, sv
+      simp only [named]
+      iframe Ihs Isnap Iprev IprevTerm Ients HhsO HsM HentsO
+      ipureintro; omega
+    ipureintro; exact He0t
 
 end proof
 
