@@ -1388,7 +1388,8 @@ def rnApN (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
 `F` forwarded before it (`cum[i]`) and the committed log up to the snapshot `A'` it jumps to
 (`cum[i + 1] = A'`, extending `F` strictly, `pre ++ A'` the snapshot's index long), no committed
 entries, the clone read-only (`ownSnapM … DFrac.discard`), `E.C A'`, the snapshot local to the node
-(`snapLocal`: for the server, saved in the member's snapshot directory), the snapshot's id the last
+(`nodeSnapLocal`, the node API's `readySnap`, 2026-11-01: for the server, saved in the member's
+snapshot directory), the snapshot's id the last
 of the committed log (raft's `Ready` states it, `readySnapData`: so its term is the term of the
 entry at its index), its two channels, the committed index at least the snapshot's
 (`updateCommittedIndex`), its raft term. Only outside raft's no-snapshot mode. `notifyc` is as in
@@ -1401,7 +1402,9 @@ def rnApSnap (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :
     monoListIdxOwn γ.cum i.toNat F ∗ monoListIdxOwn γ.cum (i.toNat + 1) A' ∗
     ⌜F.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index'⌝ ∗
     ownSnapM ap.snapshot' DFrac.discard sv ∗
-    snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗ □ E.C A' ∗
+    snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
+    -- (2026-11-01, J8a) the snapshot's index in the member's snapshot directory (raft's `readySnap`)
+    nodeSnapLocal γ.node.cl γ.id sv.Metadata'.Index' ∗ □ E.C A' ∗
     -- `notifyc`: two sends for a snapshot batch (raft.go:274,302), two receives (`applySnapshot`'s,
     -- `applyAll`'s): the two-receive notify (`NotifyC2.lean`; 2026-10-31, #3)
     (∃ γnc : NotifyNames, isNotify2 γnc ap.notifyc' iprop(True) iprop(True) ∗ notifyRcvN γnc 0) ∗
@@ -1439,13 +1442,13 @@ theorem rnApP_rtOk (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) :
     iframe H2 Hrt
   · -- (D22 J6a) a snapshot (2026-10-30, the repair: allowed): `cum[i+1] = A'`, as `A' ++ []`
     iunfold rnApSnap at H
-    icases H with ⟨%F, %A', %sv, #H1, #H2, %H3, #H4, #H5, #H6, H7, #H8, #H9, #Hrt⟩
+    icases H with ⟨%F, %A', %sv, #H1, #H2, %H3, #H4, #H5, #H5l, #H6, H7, #H8, #H9, #Hrt⟩
     isplitl [H7]
     · iunfold rnApP
       iright
       iunfold rnApSnap
       iexists F, A', sv
-      iframe H1 H2 H4 H5 H6 H7 H8 H9 Hrt
+      iframe H1 H2 H4 H5 H5l H6 H7 H8 H9 Hrt
       ipureintro; exact H3
     iexists A', []
     rw [List.append_nil]

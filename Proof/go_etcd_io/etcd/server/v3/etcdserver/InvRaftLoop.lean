@@ -70,7 +70,8 @@ theorem cum_push (γc : GName) (cums : List (List EntryModel)) (L A : List Entry
 
 /-- **The apply side's receive** of the payload at its position: the batch extends exactly the
 log `A` it got so far, and its token moves to `A ++ ce`; its term is good for that log
-(`rnRtOk`; 2026-10-31, S1: for `applyAll`'s merge). -/
+(`rnRtOk`; 2026-10-31, S1: for `applyAll`'s merge; 2026-11-01, J8a: for a snapshot too, with the
+member's `nodeSnapLocal` of the snapshot's index). -/
 theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : List EntryModel)
     (ap : toApply) :
     ⊢ spscConsumer γ.ap (rcv ++ [ap]) -∗ monoListIdxOwn γ.cum rcv.length A -∗
@@ -93,12 +94,15 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
         ownSnapM ap.snapshot' DFrac.discard sv ∗
         (letI := srvStor (GF := GF) γ.node
          snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) ∗
+        nodeSnapLocal γ.node.cl γ.id sv.Metadata'.Index' ∗
         □ E.C A' ∗ (∃ γnc : NotifyNames, isNotify2 γnc ap.notifyc' iprop(True) iprop(True) ∗ notifyRcvN γnc 0) ∗
         rnAdvChan ap.raftAdvancedC'
           (letI := srvStor (GF := GF) γ.node
            iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A').length ∗ storDL γ.node.cl γ.id (γ.pre ++ A').length ∗
             srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length)) ∗
-        committedAtLeast E.γr sv.Metadata'.Index') := by
+        committedAtLeast E.γr sv.Metadata'.Index' ∗
+        -- (2026-11-01, J8a) its term good for the jumped log (`applyAll`'s merge after the jump)
+        rnRtOk γ ap.raftTerm' (rnLogOf γ A').length) := by
   iintro Hcons #HA HP
   iunfold rnApP at HP
   icases HP with (HP | HP)
@@ -106,12 +110,12 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
   · -- a snapshot payload: `cum`'s agreement at `rcv.length` (`A` is `F`), the token at `A'`
     iright
     iunfold rnApSnap at HP
-    icases HP with ⟨%F, %A', %sv, #HF, #HFA, %Hlen, #Hsn, #Hcert, #HC, Hn, #Hrac, #Hcl, -⟩
+    icases HP with ⟨%F, %A', %sv, #HF, #HFA, %Hlen, #Hsn, #Hcert, #Hloc, #HC, Hn, #Hrac, #Hcl, #Hrt⟩
     simp only [Int.toNat_natCast] at *
     ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
     subst Heq
     iexists A', sv
-    iframe Hsn Hcert HC Hn Hrac Hcl
+    iframe Hsn Hcert Hloc HC Hn Hrac Hcl Hrt
     isplitl [Hcons]
     · iunfold rnApplyTok
       iexists rcv ++ [ap]

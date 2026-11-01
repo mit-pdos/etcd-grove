@@ -505,7 +505,7 @@ theorem raftNode.start.wp_proof
             iunfold rnApSnap
             iexists L', A', l.snap
             simp only [Int.toNat_natCast]
-            iframe Hcn Hcn1 HC Hc2M Hcert Hcal
+            iframe Hcn Hcn1 HC Hc2M Hcert HsnLoc Hcal
             isplitr
             · ipureintro; exact ⟨HLA, hlenA⟩
             isplitl [Hnrcv]

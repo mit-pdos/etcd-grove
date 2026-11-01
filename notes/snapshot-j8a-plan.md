@@ -25,7 +25,10 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
    raft API law giving `snapLocal` with the snapshot `Ready` (as `nodeDriver_hardStateCommitted`:
    an API change, `interface/` diff), then `rnApSnap` carries it again. **Approval: raft API.**
    *API part done (2026-11-01, the user approved):* `stepIn_intro` takes `snapLocalMsg`, `readySnap`
-   gives `nodeSnapLocal` (decisions, "The raft API's `snapLocal` clause"); `rnApSnap` carrying it is left.
+   gives `nodeSnapLocal` (decisions, "The raft API's `snapLocal` clause"); `rnApSnap` carries it
+   (2026-11-01), and `rnApplyTok_recv`'s snapshot case gives it to the apply thread. Item 1 done; the
+   apply thread turns it into `snapSaved γd i` with `nodeSnapLocal_elem` and `srvClusterOk`'s
+   `snapLoc` (J8a-5). That case now also keeps `rnRtOk` at `A'` (item 4's merge).
 2. **The `isMetaBackend` family is false as stated** (`specSnap`'s `□ ∀ π b, π.m0 = (i, tI) →
    isMetaBackend b … (readView (γ.withPh π))`, "D22 J1a"): any names `π`, any backend `b`. Restate:
    tie `π` to how `b` was opened (`isBackend` at `batchLockInv (γ.withPh π)`) and to the opened data's
@@ -83,7 +86,7 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
 
 - **J8a-1** (no approval): the stocks' `E.RD` half (item 6), the environment facts (item 7), `specSnap`
   over the payload's forms (item 8), the walk's missing post (item 5).
-- **J8a-2** (raft API, approved 2026-11-01): `snapLocal` through the API (item 1); API done, `rnApSnap` left.
+- **J8a-2** (raft API, approved 2026-11-01): `snapLocal` through the API (item 1); done.
 - **J8a-3** (fork, approval): `NewWatchServer`'s config write (item 3).
 - **J8a-4**: the `isMetaBackend` restatement (item 2).
 - **J8a-5**: `applyAll.specSnap` and `run`'s two `sorry`s over it (item 4).
