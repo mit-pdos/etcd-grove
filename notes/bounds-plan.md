@@ -1,7 +1,7 @@
 # Bounds localized: thread counts, reader slots, counters and sizes in one place each (plan, 2026-11-01)
 
-**Status:** proposed, 2026-11-01. Not started. The decisions D1-D4 below are open: they are the user's to
-make.
+**Status:** accepted, 2026-11-01: the user took the recommendation on each of D1-D4 ("follow your
+recommendations on D1-D4; start with B0"). B0 in progress (branch `bounds-b0`).
 
 ## The problem
 
@@ -197,7 +197,15 @@ Use `etc/importers.py --count` before each statement change for the rebuild budg
 - The rule above is a principle in `.claude/skills/spec/PRINCIPLES.md`, with a short pointer in
   CLAUDE.md.
 
-## Decisions for the user
+## Decisions (2026-11-01, the user's: the recommendation on each)
+
+- **D1: a Perennial change, with a local stopgap until it lands; `2^29` threads, `2^48` receipts.**
+- **D2: a counted stock at the nesting site**, unless B0's inventory shows many sites (then the
+  lock-level split, proposed to Perennial on its own).
+- **D3: yes**, `cfgScopeOk`.
+- **D4: yes**, one `Workload` record.
+
+The questions as they were put:
 
 - **D1.** Is the bounds class a Perennial change (recommended; local stopgap until it lands) or local
   to this repository? Are the constants (`2^29` threads, `2^48` receipts) right?

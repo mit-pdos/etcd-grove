@@ -28480,3 +28480,21 @@ count for both "later" (the user's). Reconsidered on 2026-11-01 (asked "is it a 
   the compaction chain's (`StartCompactingServer`, `newServer`, the examples) for no stronger result.
 - So the change goes with restore in compaction mode, on the snapshot track's side (after J8b),
   not on its own.
+
+## Bounds localized: reasoned about where owned, a check against new leaks (2026-11-01 · accepted, the user's · `notes/bounds-plan.md`)
+
+Thread bounds, reader slots, counters and sizes had leaked into every layer: 46 Spec files took a
+`threadBound` premise in five forms, 20 restated the `threadBound`/`receiptBound` chain, 70 places
+in the proofs counted reader slots out by hand (64, `64 - 2`, `actualMaxReaders`), and size literals
+were restated across the client libraries. An agent proving an ordinary function had to redo that
+arithmetic. The rule adopted: a bound is reasoned about by the adequacy theorem (the constants), by
+the bounded object's owner inside its invariant (Perennial's `threadPool` and
+`RWMutexThreads`, `sync.tokJoin`, the time receipts: the machinery the lessor already uses), or by
+one named predicate per boundary; a spec in between takes a `threadTok` and the owner's handle.
+The user took the recommendation on each open question: the bounds class goes to Perennial with a
+local stopgap (D1; `2^29` threads, `2^48` receipts); a goroutine holding two read locks at once
+pays for the inner one with a counted stock at that call path (D2, unless the inventory finds many
+sites); `NewServer`'s configuration premises become `cfgScopeOk` (D3); the closed results'
+workload hypotheses one `Workload` record (D4). Enforcement: `etc/bounds-check.py --check` (gates
+and CI) against a baseline that may only go down, so branches in flight that add a premise of
+these kinds must say why when they rewrite it.

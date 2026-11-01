@@ -163,6 +163,15 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   (`pilot-review-1.md`). A thread token is one such token (it bounds the live goroutines, as reader
   slots must be bounded); another is fine if all callers have it. Do not make callers thread a
   resource only the proof's bookkeeping needs. (`put.md`, critique 3)
+- **A bound is reasoned about where it is owned, not in the specs between** (`notes/bounds-plan.md`,
+  the user's, 2026-11-01): the adequacy theorem fixes the global constants (threads, steps, the
+  workload); the owner of a bounded object (the invariant allocating the `RWMutex`, `WaitGroup` or
+  counter) turns them into a protocol of unbounded use (a thread pool of reader slots, a wait group
+  backed by thread tokens, a counter ticked by receipts); a client takes its `threadTok`, the owner's
+  persistent handle, and one named size predicate per boundary. So a new spec mentions no
+  `threadBound`, `receiptBound`, `actualMaxReaders`, count of reader slots (`List.replicate 64 ...`)
+  or literal power-of-two size; `etc/bounds-check.py --check` refuses new ones. Where a goroutine holds
+  two read locks at once, the inner lock's slot is a counted stock at that call path only.
 - **A once-only resource is not spent per call**: check retry and loop paths; make the exception
   depend on the value (a persistent one-shot fact), not on the call. (`pilot-review-2.md`)
 - **Read the definitions of the resources a spec takes**, not only their names: a predicate chosen
