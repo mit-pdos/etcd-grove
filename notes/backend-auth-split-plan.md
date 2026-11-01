@@ -237,6 +237,30 @@ begun before `Close` reads, `Close` waiting for it (`TestConcurrentReadBegunBefo
 (`TestManyReadsWhileClosePending`). All pass; `RLock` after `Close` panics in `UnsafeRange`, as
 the acquisition guard requires.
 
+## Questions for the user
+
+1. **Q1, `Close`.** Keep `Close.spec`'s statement (`bOpen γ 1`) and change only its docstring (reads
+   begun before it finish first)? Recommended: yes; its proof is unchanged and the margin is Go's.
+2. **Q2, the reader pool.** (a) the constructor builds a pool of `2^28` slots (J8a's bound) for the
+   apply thread's lock-free readers and leaves the rest counted for mvcc's and auth's bundle pools
+   (drafted); (b) no backend pool, each owner pools bundles with a counted slot, the lock-free
+   readers taking a slot from a counted stock of their own; (c) Perennial-level reader tokens.
+   Recommended: (a), the Bounds rule's shape where the slots are owned, at no thread-bound cost.
+3. **Q3, `Unlock`.** A part handed in comes back idle through extra binders `S r` (drafted), with
+   today's statement a corollary at `S := ⊥`? Recommended: yes.
+4. **Q4, the trust-boundary specs taking `rbOwn`.** Restate the 10 over their own buckets: the
+   readers (`MustReadMembersFromBackend`, `RaftCluster.Recover`, `authRecoverOk`) over the idle
+   part, the self-locking writers over the part, giving the idle part back. Recommended: yes; it
+   also repairs the three false today.
+5. **Q5, mvcc's `bkRTx`.** Replace its open share by an acquisition guard in the store (a currency
+   lent under `s.mu`'s read side, back at `RLock`), so that a read in flight holds no share of an
+   old backend. Recommended: yes, as its own stage before the auth-on install's Prove.
+6. **Q6, mode off.** No guard (the apply thread's sequencing); only the loans move to the pool.
+   Recommended: yes.
+7. **Q7, readers of a bucket whose writer's part is out.** The Draft states nothing of them; the
+   auth readers' clause, today's and the auth Draft's, relies on what they see then. To be settled
+   with the auth premise, not in the backend (details to the coordinator).
+
 ## Review rounds
 
 ### Round 1 (fresh `spec-reviewer`, given the Go code, the draft, today's specs and the callers)
