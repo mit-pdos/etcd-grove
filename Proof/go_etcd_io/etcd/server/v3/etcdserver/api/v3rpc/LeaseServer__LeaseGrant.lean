@@ -37,7 +37,7 @@ theorem v3rpc.LeaseServer.LeaseGrant.wp_proof
   wp_start as ⟨#Hls, #HL, HS, #Hctx, #Hrc, #Hr⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
-  icases Hls' with ⟨%Hpn, #Hhdr, #Hle⟩
+  icases Hls' with ⟨%Hpn, #Hhdr, #Hle, -⟩
   iunfold v3rpc.raftLessor at HL
   icases HL with ⟨#HG, #HR⟩
   iunfold v3rpc.lessorGrantOk at HG

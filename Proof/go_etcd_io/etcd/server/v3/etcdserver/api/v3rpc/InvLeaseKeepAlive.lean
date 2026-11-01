@@ -89,9 +89,17 @@ lessor's history index `q.mb`. -/
 def kaUp (E : apply.AEnv GF) (γl : GName) (_j : Nat) (q : KaReqM) : IProp GF :=
   iprop(□ auth.authPubLbM E.authMode q.nb ∗ □ lease.lessorLb γl q.mb)
 
+instance kaUp_persistent (E : apply.AEnv GF) (γl : GName) (j : Nat) (q : KaReqM) :
+    Persistent (kaUp (GF := GF) E γl j q) := by
+  unfold kaUp; infer_instance
+
 /-- **What the client's content gives the server** (persistent): the bounds of each request. -/
 def kaUpOk (E : apply.AEnv GF) (γl : GName) (Up : Nat → KaReqM → IProp GF) : IProp GF :=
   iprop(□ ∀ (j : Nat) (q : KaReqM), Up j q -∗ kaUp E γl j q)
+
+instance kaUpOk_persistent (E : apply.AEnv GF) (γl : GName) (Up : Nat → KaReqM → IProp GF) :
+    Persistent (kaUpOk (GF := GF) E γl Up) := by
+  unfold kaUpOk; infer_instance
 
 /-- **The `j`th response `r` of a keep-alive stream** (persistent; K4): it answers the `j`th request
 `q` (its ID) and, unless its TTL is `0`, carries the renewal's verdict at `q`'s bounds for the
@@ -102,10 +110,20 @@ def kaDn (s : Loc) (E : apply.AEnv GF) (γl : GName) (γs : StreamNames) (tok : 
     (⌜r.2 = W64 0⌝ ∨ leaseCheckT s E tok q.nb
       (fun info => leaseKeysVerdictFrom E.authMode q.nb info γl q.mb q.id .write)))
 
+instance kaDn_persistent (s : Loc) (E : apply.AEnv GF) (γl : GName) (γs : StreamNames)
+    (tok : Option GoString) (j : Nat) (r : w64 × w64) :
+    Persistent (kaDn (GF := GF) s E γl γs tok j r) := by
+  unfold kaDn upAt; infer_instance
+
 /-- **The keep-alive stream's specification** (persistent): the handler's `Dn` is `kaDn`. -/
 def kaStreamSpec (s : Loc) (E : apply.AEnv GF) (γl : GName) (γs : StreamNames)
     (tok : Option GoString) (Dn : Nat → (w64 × w64) → IProp GF) : IProp GF :=
   iprop(□ ∀ (j : Nat) (r : w64 × w64), Dn j r ∗-∗ kaDn s E γl γs tok j r)
+
+instance kaStreamSpec_persistent (s : Loc) (E : apply.AEnv GF) (γl : GName) (γs : StreamNames)
+    (tok : Option GoString) (Dn : Nat → (w64 × w64) → IProp GF) :
+    Persistent (kaStreamSpec (GF := GF) s E γl γs tok Dn) := by
+  unfold kaStreamSpec; infer_instance
 
 /-! ## The contract -/
 
