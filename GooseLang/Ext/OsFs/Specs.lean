@@ -1180,6 +1180,104 @@ theorem wp_Munmap (base : Loc) (len cap : w64) (p : GoString) (m : OsMeta) (n : 
     · ipureintro; exact he
     ileft; iframe
 
+/-- The `OsMeta` of a file just created. -/
+def newMeta : OsMeta := ⟨0, 0, 0, false, true, ∅⟩
+
+/-- A file just created. -/
+def newFile : OsFile := { OsFile.ofDisk [] with named := false }
+
+/-- What the ghost state knows of the file at `p` after an open without `O_TRUNC`: it is created
+if `creat` and absent. -/
+def openMeta : Option OsMeta → Bool → Option OsMeta
+  | some m, _ => some m
+  | none, true => some newMeta
+  | none, false => none
+
+section create
+variable {st : OsState} {p : GoString}
+
+theorem sizes_create (hn : st.file p = none) : ∀ q, (st.setFile p newFile).size q = st.size q := by
+  intro q; rw [size_setFile]; split
+  · subst_vars; simp [OsState.size, hn, newFile, OsFile.ofDisk]
+  · rfl
+
+theorem osWf_create (hwf : OsWf st) (hn : st.file p = none) : OsWf (st.setFile p newFile) := by
+  have hs := sizes_create hn
+  have hex : ∀ q f0, st.file q = some f0 → ∃ f1, (st.setFile p newFile).file q = some f1 := by
+    intro q f0 h0; rw [file_setFile]; split
+    · exact ⟨_, rfl⟩
+    · exact ⟨_, h0⟩
+  refine ⟨fun fd d h => ?_, fun b m h => ?_, hwf.maps_disj, fun t c h => ?_, ?_, ?_, ?_⟩
+  · obtain ⟨f0, h0⟩ := hwf.fds fd d h; exact hex _ _ h0
+  · obtain ⟨⟨f0, h0⟩, h1, h2, h3⟩ := hwf.maps b m h; exact ⟨hex _ _ h0, h1, h2, h3⟩
+  · obtain ⟨f0, h0⟩ := hwf.infl t c h; exact hex _ _ h0
+  · intro t1 c1 t2 c2 i h1 h2 hne hp
+    simp only [affects_congr hs]
+    exact hwf.infl_disj t1 c1 t2 c2 i h1 h2 hne hp
+  · intro q f1 h1
+    rw [file_setFile] at h1; split at h1
+    · cases h1; simp [newFile, OsFile.ofDisk]
+    · exact hwf.sizes q f1 h1
+  · intro q f1 i h1
+    rw [file_setFile] at h1; split at h1
+    · cases h1; intro _ _ hi; simp [newFile, OsFile.ofDisk] at hi
+    · exact hwf.coherent q f1 i h1
+
+theorem cellView_create (hwf : OsWf st) (hn : st.file p = none) :
+    cellView (st.setFile p newFile) = cellView st := by
+  have hI := inflightAt_congr (sizes_create hn) (st' := st.setFile p newFile) rfl
+  refine cellView_congr' hwf (osWf_create hwf hn) rfl (fun q i => ?_) hI
+  by_cases hpq : p = q
+  · subst hpq; unfold cellByte; rw [file_setFile_eq, hn]; simp [newFile, OsFile.ofDisk]
+  · unfold cellByte; rw [file_setFile_ne _ _ hpq, hI]
+
+theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt)
+    (hn : st.file p = none)
+    (hp : st.files !! p = some none) :
+    OsCoh (st.setFile p newFile) Γb (<[p := some newMeta]> Γm) Γf Γt := by
+  have hs := sizes_create hn
+  have hI := inflightAt_congr (sizes_create hn) (st' := st.setFile p newFile) rfl
+  have hnt : ∀ t c, st.inflight !! t = some c → c.path ≠ p := by
+    intro t c ht hcp
+    obtain ⟨ti, hti, rfl⟩ := coh_tok hcoh ht
+    obtain ⟨f, hf, -⟩ := hcoh.tok_saved t ti hti
+    rw [hcp, hn] at hf; cases hf
+  refine ⟨fun q => ?_, fun q => ?_, fun q m hm => ?_, fun q i x hx => ?_, fun q f1 i h1 hi => ?_,
+    hcoh.fds, hcoh.toks, fun t ti h => ?_, hcoh.tok_alone, fun t ti h => ?_⟩
+  · rw [files_setFile, GMap.lookup_insert_eq_iff]; split
+    · simp
+    · exact hcoh.meta_dom q
+  · rw [files_setFile, GMap.lookup_insert_eq_iff]; split
+    · simp
+    · exact hcoh.meta_none q
+  · rw [GMap.lookup_insert_eq_iff] at hm
+    split at hm
+    · subst_vars; cases hm
+      refine ⟨newFile, by rw [files_setFile, if_pos rfl], ⟨rfl, rfl, Nat.le_refl _, Nat.le_refl _,
+        fun _ _ => rfl, fun b len => ?_, fun t c ht hc => absurd hc (hnt t c ht)⟩⟩
+      simp only [newMeta, GMap.lookup_empty, reduceCtorEq, false_iff]
+      intro hb
+      obtain ⟨⟨f0, hf0⟩, -⟩ := hwf.maps b _ hb
+      simp only at hf0; rw [hn] at hf0; cases hf0
+    · rename_i hpq
+      obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m hm
+      exact ⟨f1, by rw [files_setFile, if_neg hpq]; exact h1, hm1.transfer hs rfl rfl⟩
+  · obtain ⟨f1, h1, hb, hc⟩ := hcoh.bytes q i x hx
+    have hpq : p ≠ q := fun e => by subst e; rw [hn] at h1; cases h1
+    refine ⟨f1, by rw [file_setFile_ne _ _ hpq]; exact h1, hb, fun hx2 => ?_⟩
+    obtain ⟨hc1, hc2⟩ := hc hx2
+    exact ⟨hc1, by rw [hI]; exact hc2⟩
+  · rw [file_setFile] at h1; split at h1
+    · cases h1; simp [newFile, OsFile.ofDisk] at hi
+    · exact hcoh.bytes_full q f1 i h1 hi
+  · rw [reaches_congr hs]; exact hcoh.tok_q t ti h
+  · obtain ⟨f1, h1, hsv⟩ := hcoh.tok_saved t ti h
+    rw [affRange_congr hs, file_setFile]; split
+    · subst_vars; rw [hn] at h1; cases h1
+    · exact ⟨f1, h1, hsv⟩
+
+end create
+
 end specs
 
 end Perennial
