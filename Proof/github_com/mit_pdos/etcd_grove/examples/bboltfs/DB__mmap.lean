@@ -163,7 +163,7 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   subst Heq
   unfold writerFile
   icases Hw with ⟨%mxc, %tail, %fsz, Hfsz, Hdsz, Hf, Hfd, Hm, Hmx, Htail, %Hw⟩
-  have hfsz : fsz = m.size := (Hw.2.2.2.2 Hfl).2.2
+  have hfsz : fsz = m.size := (Hw.2.2.2.2 Hfl).2.2.1
   subst hfsz
   wp_auto
   have _hsz : sint.Z (W64 (m.size : Int)) = m.size := sint_Z_W64_nat _ (by omega)

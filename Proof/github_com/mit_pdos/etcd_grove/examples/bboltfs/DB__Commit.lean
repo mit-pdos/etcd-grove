@@ -37,7 +37,7 @@ theorem fileMeta_cells1 (mp : List w8) : fileMeta mp 1 = decode ((mp.drop 4112).
 /-- Failing the handle under `metalock`, after a failed `commit`: `metaR` failed, and `rwR`. -/
 theorem fail_handle (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (t n : Nat)
     (mp' : List w8) (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) :
-    dbOwner (GF := GF) γ t n ∗ writerSt (GF := GF) γ db f fd p mp' fl hwm st m ∗
+    dbOwner (GF := GF) γ t n ∗ writerStF (GF := GF) γ db f fd p mp' fl hwm st m ∗
       (⌜fl = false⌝ ∨ (⌜fl = true⌝ ∗ dbFailed (GF := GF) γ)) ∗ metaR (GF := GF) γ db p ⊢
       |={⊤}=> ∃ b : Bool, db.[DB, go!"failed"] ↦ b ∗
         (db.[DB, go!"failed"] ↦ true -∗ metaR (GF := GF) γ db p ∗ rwR (GF := GF) γ db f fd p ∗
@@ -45,7 +45,7 @@ theorem fail_handle (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (t n :
   iintro ⟨Hown, Hws, Hfl, HM⟩
   iunfold metaR at HM
   icases HM with ⟨%b, %mp, %mx, %hwm0, %mxc, %T, Hfa, Hcur, Hmb, %Hmx, Hauth, Hout, Hrest⟩
-  unfold writerSt
+  unfold writerStF
   icases Hws with ⟨Hcur1, Hmap1, Hout1, Hflds1, Hw, Hcls1, Hst⟩
   icombine Hcur1 Hcur gives % ⟨_, Heq⟩
   cases Heq

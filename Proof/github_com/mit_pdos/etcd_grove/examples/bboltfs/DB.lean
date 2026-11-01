@@ -355,7 +355,8 @@ def writerFile (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List 
     osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
     osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail ∗
     ⌜2 ≤ hwm ∧ 4096 * hwm ≤ m.size ∧ mxc.length = 8192 ∧ tail.length = m.size - 4096 * hwm ∧
-      (fl = false → mxc.map Prod.fst = mp ∧ (∀ x ∈ mxc, x.2 = true) ∧ fsz = m.size)⌝)
+      (fl = false → mxc.map Prod.fst = mp ∧ (∀ x ∈ mxc, x.2 = true) ∧ fsz = m.size ∧
+        0 ≤ fd.toInt)⌝)
 
 /-- What the writer holds besides `writerFile` while there is no mapping: the invariant's quarter
 of `cur`, and `mmaplock`'s halves of the file and its fd. -/

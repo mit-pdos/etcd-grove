@@ -40,7 +40,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumpti
 def commitErr (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (t n : Nat) : IProp GF :=
   iprop(dbOwner (GF := GF) γ t n ∗
     ∃ (mp' : List w8) (fl : Bool) (hwm : Nat) (st' : MapSt) (m' : OsMeta),
-      writerSt (GF := GF) γ db f fd p mp' fl hwm st' m' ∗
+      writerStF (GF := GF) γ db f fd p mp' fl hwm st' m' ∗
       (⌜fl = false⌝ ∨ (⌜fl = true⌝ ∗ dbFailed (GF := GF) γ)))
 
 theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
@@ -66,7 +66,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   icases Hstr with ⟨%Hstp, Htok, #Hinv, Hwc⟩
   iunfold writerFile at Hw
   icases Hw with ⟨%mxc, %tail, %fsz, Hfsz, Hdsz, Hf, Hfd, Hm, Hmx, Htail, %Hwf⟩
-  obtain ⟨hmx, hclean, rfl⟩ := Hwf.2.2.2.2 rfl
+  obtain ⟨hmx, hclean, rfl, hfd⟩ := Hwf.2.2.2.2 rfl
   (try wp_auto)
   dsimp only
   have hhwm2 : hwm + 2 ≤ 2 ^ 18 := by omega
@@ -102,7 +102,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       dsimp only
       iframe
       ipureintro
-      exact ⟨⟨Hwf.1, Hwf.2.1, Hwf.2.2.1, Hwf.2.2.2.1, fun _ => ⟨hmx, hclean, rfl⟩⟩, Hstp⟩
+      exact ⟨⟨Hwf.1, Hwf.2.1, Hwf.2.2.1, Hwf.2.2.2.1, fun _ => ⟨hmx, hclean, rfl, hfd⟩⟩, Hstp⟩
     icases Hres with (⟨%Herr, %base', %len', %γm', %Hst', Htok, #Hinv', Hwc⟩ | ⟨%Herr, Hx⟩)
     · subst Herr
       obtain ⟨rfl, Hmaps', Hsz', Hmin', Hb', Hl41⟩ := Hst'
@@ -127,10 +127,17 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       iframe
       isplitr
       · ipureintro; exact ⟨rfl, Herr⟩
-      unfold commitErr writerSt
+      unfold commitErr writerStF
       iframe
       dsimp only
-      iframe
+      iexists m'
+      iunfold writerFile at Hw
+      icases Hw with ⟨%mxc1, %tail1, %fsz1, Hfsz, Hdsz, Hf, Hfd, Hm, Hmx, Htail, %Hw1⟩
+      isplitl [Hfsz Hdsz Hf Hfd Hm Hmx Htail Hx]
+      · isplitl [Hfsz Hdsz Hf Hfd Hm Hmx Htail]
+        · unfold writerFile; iexists mxc1, tail1, fsz1; iframe; ipureintro
+          exact ⟨Hw1.1, Hw1.2.1, Hw1.2.2.1, Hw1.2.2.2.1, fun h => by cases h⟩
+        · iexact Hx
       ileft; ipureintro; rfl
   · -- no remap
     ileft
@@ -141,8 +148,26 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     dsimp only
     iframe; iframe #
     isplitr
-    · ipureintro; exact ⟨⟨Hwf.1, Hwf.2.1, Hwf.2.2.1, Hwf.2.2.2.1, fun _ => ⟨hmx, hclean, rfl⟩⟩, Hstp⟩
+    · ipureintro; exact ⟨⟨Hwf.1, Hwf.2.1, Hwf.2.2.1, Hwf.2.2.2.1, fun _ => ⟨hmx, hclean, rfl, hfd⟩⟩, Hstp⟩
     · ipureintro; exact ⟨rfl, Hmok, by omega⟩
+  iintro (⟨%Hbv, %base, %len, %γm, %m', Hws, %Hm', Hown, db, minsz, «$res0»⟩ |
+    ⟨%e, %Hbv, db, «$res0», Herr⟩)
+  rotate_left
+  · obtain ⟨rfl, He⟩ := Hbv
+    (try wp_auto)
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; exact He
+    iunfold commitErr at Herr
+    iexact Herr
+  subst Hbv
+  iunfold writerSt at Hws
+  icases Hws with ⟨Hcur, Hmap, Hout, Hflds, Hw, Hcls, %Hstp, Htok, #Hinv, Hwc⟩
+  iunfold writerFile at Hw
+  icases Hw with ⟨%mxc, %tail, %fsz, Hfsz, Hdsz, Hf, Hfd, Hm, Hmx, Htail, %Hwf⟩
+  obtain ⟨hmx, hclean, rfl, hfd⟩ := Hwf.2.2.2.2 rfl
+  (try wp_auto)
   sorry
 
 end proof

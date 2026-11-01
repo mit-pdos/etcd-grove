@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart). `db.commit(m, v)` (`examples/bboltfs/minibolt.go`, a write transaction after `m`, the current meta): remap if the high water mark passes the mapping (`mmap`), grow the file (`Truncate`, `Sync`), write the data page at the high water mark and `Fdatasync` it (it is then a committed page, `pageIs`), then, under `metalock`, write the meta to slot `txid % 2` and `Fdatasync` it. Its caller (`Commit`) holds `rwlock` and found the handle not failed: it has the writer's part of the database (`writerSt`, `rwR`'s open branch) at the current meta pages `mp`, and the committer's token. On success, transaction `t + 1` is current, its root page holds `v`, and `rwlock`'s resource is whole again. On an error, the caller keeps its token and the writer's part, failed (`dbFailed`) if `commit` failed the handle itself (the meta's write or sync), or not yet failed, for `Commit` to fail it. -/
+/- Lean-first (no Rocq counterpart). `db.commit(m, v)` (`examples/bboltfs/minibolt.go`, a write transaction after `m`, the current meta): remap if the high water mark passes the mapping (`mmap`), grow the file (`Truncate`, `Sync`), write the data page at the high water mark and `Fdatasync` it (it is then a committed page, `pageIs`), then, under `metalock`, write the meta to slot `txid % 2` and `Fdatasync` it. Its caller (`Commit`) holds `rwlock` and found the handle not failed: it has the writer's part of the database (`writerSt`, `rwR`'s open branch) at the current meta pages `mp`, and the committer's token. On success, transaction `t + 1` is current, its root page holds `v`, and `rwlock`'s resource is whole again. On an error, the caller keeps its token and the writer's part (`writerStF`: the file without the facts of a handle not failed), failed (`dbFailed`) if `commit` failed the handle itself (the meta's write or sync), or not yet failed, for `Commit` to fail it. -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB
@@ -41,6 +41,21 @@ def writerSt (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8
       writerCells (GF := GF) base hwm len
     | none => writerExtra (GF := GF) γ f fd p mp fl hwm)
 
+/-- The writer's part after a failed `commit`, at `failed` `fl` (`cur`'s): `writerSt`, its file
+without the facts of a handle not failed (a failed `Truncate` may have grown the file past
+`filesz`, a failed sync may have lost bytes). -/
+def writerStF (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8) (fl : Bool)
+    (hwm : Nat) (st : MapSt) (m : OsMeta) : IProp GF :=
+  iprop(ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ghostVar γ.map (1 : Qp).half st ∗
+    ghostVar γ.out (1 : Qp).half.half false ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st ∗
+    writerFile (GF := GF) γ db f fd p mp true hwm st m ∗ ghostVar γ.cls (1 : Qp).half false ∗
+    match st with
+    | some (base, len, γm) =>
+      ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗
+      ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ p base len γm ∗
+      writerCells (GF := GF) base hwm len
+    | none => writerExtra (GF := GF) γ f fd p mp fl hwm)
+
 /-- See the file header. -/
 abbrev DB.commit.spec : Prop :=
   ∀ (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8) (st : MapSt)
@@ -61,7 +76,7 @@ abbrev DB.commit.spec : Prop :=
           dbLast (GF := GF) γ ((curMeta mp).txid'.toNat + 1)) ∨
       (⌜err ≠ interface.nil⌝ ∗ dbOwner (GF := GF) γ (curMeta mp).txid'.toNat (curPgid mp) ∗
         ∃ (mp' : List w8) (fl : Bool) (hwm : Nat) (st' : MapSt) (m' : OsMeta),
-          writerSt (GF := GF) γ db f fd p mp' fl hwm st' m' ∗
+          writerStF (GF := GF) γ db f fd p mp' fl hwm st' m' ∗
           (⌜fl = false⌝ ∨ (⌜fl = true⌝ ∗ dbFailed (GF := GF) γ))) }}
 
 end spec
