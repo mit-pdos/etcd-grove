@@ -323,6 +323,15 @@ EtcdServer__checkLeaseTimeToLive: EtcdServer__AuthInfoFromCtx EtcdServer__AuthSt
 # `leaseTimeToLive` (names-only, a contract: the leader's re-lookup and the follower's forwarding).
 EtcdServer__leaseTimeToLive:
 EtcdServer__LeaseTimeToLive: EtcdServer__requireAuthInfo EtcdServer__checkLeaseTimeToLive EtcdServer__leaseTimeToLive EtcdServer__AuthStore
+# The lease keep-alive entry point (the lease-renew plan, 2026-11-01; its contracts approved by
+# the user): the trust boundary is the lessor's `Renew`, `ensureLeadership`, `waitAppliedIndex`,
+# `waitLeader` (names-only) and the forwarding, `leasehttp.RenewHTTP`.
+lease_lessor__Renew:
+EtcdServer__ensureLeadership:
+EtcdServer__waitAppliedIndex:
+EtcdServer__waitLeader:
+leasehttp_RenewHTTP:
+EtcdServer__LeaseRenew: EtcdServer__ensureLeadership EtcdServer__waitAppliedIndex EtcdServer__waitLeader EtcdServer__checkLeaseRenew lease_lessor__Renew lease_lessor__Lookup leasehttp_RenewHTTP EtcdServer__isLeader EtcdServer__FeatureEnabled config_ServerConfig__ReqTimeout traceutil_Tracer__Start trace_WithAttributes attribute_Int64 errors_Is context_ErrDone errors_IsCtxErr
 EtcdServer__LeaseLeases: lease_lessor__Leases EtcdServer__checkLeaseLeases EtcdServer__newHeader
 EtcdServer__checkLeaseLeases: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore lease_Lease__Keys
 EtcdServer__MemberList: EtcdServer__requireAuthInfo RaftCluster__Members

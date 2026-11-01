@@ -12,7 +12,7 @@
 # `zap` and `semver` for the struct `lessor` (its logger, its cluster's version); `container/heap`
 # (names only) for the expiry notifier's queue; `leasepb` and `schema` for `persistTo` and
 # `Revoke`'s writes; `version` for `shouldPersistCheckpoints`; prometheus for the metrics.
-translate = ["!*", "Lessor", "NoLease", "MaxLeaseTTL", "forever", "ErrLeaseNotFound",
+translate = ["!*", "Lessor", "NoLease", "MaxLeaseTTL", "forever", "ErrNotPrimary", "ErrLeaseNotFound",
   "ErrLeaseExists", "ErrLeaseTTLTooLarge",
   "lessor.GetLease", "lessor.Attach", "lessor.Detach", "lessor.Lookup", "lessor.SetRangeDeleter",
   "lessor.isPrimary", "lessor.Grant", "lessor.Revoke", "lessor.Checkpoint",
