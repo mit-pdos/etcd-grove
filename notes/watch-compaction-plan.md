@@ -179,3 +179,17 @@ unchanged), so the server's watches are those of a store that does not compact u
 **Left**: W2: `mvccResp` (D6: `canceled := compactRev ≠ 0`, `compactRev := r.compactRev`) and
 `sendLoop`'s `hCR`; then the client: `mvccOk_revLb` (an event-less response with
 `compactRev = 0`; its callers `WatchRun`), `run`'s handling of a compaction response; W4.
+
+## W4 done (2026-11-01, branch `watch-w4`)
+
+`compactkv`'s `Main` watches the last round's key from revision 2 after the rounds (guarded by
+`prevRev != 0`) and checks every collected event's value; in a run the first response is the
+compaction's (`ErrCompacted`, the Go test checks it). Proved: `Rounds`' `oneValW` (each revision
+one put of `v`, or empty) and `oneValAu`; `NoDup.lean`: `noDupKeys_of_rounds` (the read update fired
+at a watched log, `srvKVCoreM_fire`; `oneChange_of_oneVal` passes it to the sealed prefix),
+`kvModel_boot`, `rangeEvents_val`, `resp_val`; `watchkv.wk_served_nd`, the served lemma over the
+store's fact for watches (`watchkv`'s and `cachekv`'s callers give its no-compactor arm);
+`common.Collect.spec` from any start cursor (a watch from revision `r` starts at `r - 1`).
+`compactkv_safe`'s statement is unchanged; its collection gains the watch stack's sixteen axioms
+(gRPC streams, `etcd_noRefusal`, ...), all already in the trust base; its `sorry`s are unchanged.
+

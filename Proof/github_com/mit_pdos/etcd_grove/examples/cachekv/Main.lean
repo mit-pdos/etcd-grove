@@ -7,7 +7,7 @@ adapter) with the watch through etcd's cache: `genAll`
 picks the writers' Puts `trs` first; the server's start is watchkv's, the examples' shared one
 (`common.alloc1`; D48: the adapter's invariant over the KV state's half, `client.kmInv_alloc` at
 the plan's fact `watchkv.wkW (trs.map pairOf)`; `common.StartServer`, `common.Serve` with one
-watch run slot, `etcd_noRefusal` and `watchkv.wk_served` as the ghost step, D33). Then
+watch run slot, `etcd_noRefusal` and `watchkv.wk_served_nd` as the ghost step, D33). Then
 `common.NewClient` (etcd's default configuration; the member refusal-free, so `clientWriteOnce`,
 D29); the cache's client at the adapter's model (`client.isEtcdClient_of_km`: its `KV` a client of
 the KV, `client.isKv_of_regs`, its `Watcher` a watcher of the KV, `isNewClient_watcher`);
@@ -247,7 +247,7 @@ theorem Main.wp_proof
     Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
   have Hoff : E.γ.cm = false := envAgree_off E E₀ HEa Hcmp0
-  -- `Serve(s, clientAddr)`, with the ghost step `wk_served` (the KV specs and the watch server's
+  -- `Serve(s, clientAddr)`, with the ghost step `wk_served_nd` (the KV specs and the watch server's
   -- facts at the address), the member refusal-free (D29) first
   haveI := Hms
   wp_apply (wp_Serve srv go!"127.0.0.1:23873" E { ρ with wait := γw } ρ.rd cfg
@@ -299,9 +299,12 @@ theorem Main.wp_proof
         { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo) $$
       [Hgsn Hlis]
     · iframe Hgsn Hlis; iframe #
-    imod (watchkv.wk_served (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv.st) go!"127.0.0.1:23873"
+    ihave %Hlk := client.watchSrvLink_of_server pw R $$ Hws
+    ihave #HwnD : mvcc.watchNoDup R.E.γ $$ []
+    · rw [← Hlk]; iapply v3rpc.isWatchServer_watchNoDup_env pw R Hoff $$ Hws
+    imod (watchkv.wk_served_nd (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv.st) go!"127.0.0.1:23873"
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
-        1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl Hoff Hrf)
+        1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl Hrf)
       $$ [Hgsn Hlis Hslots Hwslots] with ⟨Hserv, #HKV, #HWF⟩
     · iframe; iframe #
       iintro !>
