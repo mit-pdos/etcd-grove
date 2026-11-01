@@ -380,7 +380,77 @@ theorem openStorage.wp_proof
       with [prev snap si s Hfresh Hlog]
       as ⟨prev, snap, si, s, Hfresh, #Hfz, Hown, #Hslb⟩
     · wp_if_destruct
-      · sorry
+      · have Hgt : uint.nat f.prev < uint.nat f.snap.Metadata'.Index' := by word
+        -- the conf state, non-`nil` (`ownSnapS`), read-only
+        wp_apply wp_Snapshot_GetMetadata_S sp DFrac.discard f.snap $$ [$Hsnap] as %pm3 ⟨#Hsm3, -⟩
+        iNamed Hsm3
+        wp_apply wp_SnapshotMetadata_GetConfState_field pm3 pc DFrac.discard Hnn.1 $$ [$HC] as -
+        ihave #Hcs : ownCSM pc DFrac.discard f.snap.Metadata'.ConfState' $$ []
+        · iunfold csSet at Hc
+          icases Hc with (#Hc | #Hc) <;> iapply csPts_weaken _ _ _ _ $$ Hc
+        -- a copy of the data
+        wp_apply wp_GetData.1 sp DFrac.discard f.snap $$ [$HsM] as %ds ⟨#Hds, -⟩
+        ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+        · iapply ownSlice_nil
+        ihave Hnilc : ownSliceCap w8 slice.nil (DFrac.own 1) $$ []
+        · iapply ownSliceCap_nil
+        wp_apply wp_slice_append (V := w8) slice.nil [] ds f.snap.Data' DFrac.discard
+          $$ [$Hnil $Hnilc $Hds] as %data ⟨Hdata, -, -⟩
+        rw [List.nil_append]
+        -- the log split at the snapshot's index, the entry there frozen
+        have Hk1 : 1 ≤ uint.nat f.snap.Metadata'.Index' - uint.nat f.prev := by omega
+        have Hkl : uint.nat f.snap.Metadata'.Index' - uint.nat f.prev ≤ f.ents.length := by omega
+        obtain ⟨e, He⟩ : ∃ e, f.ents[uint.nat f.snap.Metadata'.Index' - uint.nat f.prev - 1]? = some e :=
+          ⟨_, List.getElem?_eq_getElem (by omega)⟩
+        ihave Hlog := (show (memLog γs (uint.nat f.prev + 1) (DFrac.own 1) f.ents : IProp GF) ⊣⊢
+            memLog γs (uint.nat f.prev + 1) (DFrac.own 1)
+              (f.ents.take (uint.nat f.snap.Metadata'.Index' - uint.nat f.prev) ++
+                f.ents.drop (uint.nat f.snap.Metadata'.Index' - uint.nat f.prev)) by
+          rw [List.take_append_drop]; exact .rfl).1 $$ Hlog
+        icases (memLog_app γs _ _ _ _).1 $$ Hlog with ⟨Hlo, Hhi⟩
+        imod memLog_persist $$ Hlo with #Hlo
+        have Htk : f.ents.take (uint.nat f.snap.Metadata'.Index' - uint.nat f.prev) =
+            f.ents.take (uint.nat f.snap.Metadata'.Index' - uint.nat f.prev - 1) ++ [e] := by
+          have h : uint.nat f.snap.Metadata'.Index' - uint.nat f.prev =
+              (uint.nat f.snap.Metadata'.Index' - uint.nat f.prev - 1) + 1 := by omega
+          calc f.ents.take (uint.nat f.snap.Metadata'.Index' - uint.nat f.prev)
+              = f.ents.take ((uint.nat f.snap.Metadata'.Index' - uint.nat f.prev - 1) + 1) :=
+                congrArg (fun m => f.ents.take m) h
+            _ = _ := by rw [List.take_add_one, He]; rfl
+        ihave Hlo2 := (show (memLog γs (uint.nat f.prev + 1) DFrac.discard
+            (f.ents.take (uint.nat f.snap.Metadata'.Index' - uint.nat f.prev)) : IProp GF) ⊣⊢
+            memLog γs (uint.nat f.prev + 1) DFrac.discard
+              (f.ents.take (uint.nat f.snap.Metadata'.Index' - uint.nat f.prev - 1) ++ [e]) by
+          rw [Htk]; exact .rfl).1 $$ Hlo
+        icases (memLog_app γs _ _ _ _).1 $$ Hlo2 with ⟨-, #He1⟩
+        have Hti : uint.nat f.prev + 1 +
+            (f.ents.take (uint.nat f.snap.Metadata'.Index' - uint.nat f.prev - 1)).length =
+            uint.nat f.snap.Metadata'.Index' := by
+          rw [List.length_take]; omega
+        rw [Hti]
+        have Hti2 : uint.nat f.prev + 1 +
+            (f.ents.take (uint.nat f.snap.Metadata'.Index' - uint.nat f.prev)).length =
+            uint.nat f.snap.Metadata'.Index' + 1 := by
+          rw [List.length_take]; omega
+        rw [Hti2]
+        have Het : e.Term' = f.snap.Metadata'.Term' := by
+          rw [← Hsterm]; unfold imgTermAt; rw [ite_eq_right (by omega), He]; rfl
+        wp_apply wp_CreateSnapshot ms γs trivJ (some (uint.nat f.prev, sv0)) f.snap.Metadata'.Index' e
+          pc DFrac.discard f.snap.Metadata'.ConfState' data f.snap.Data' _ $$ [Hfresh Hdata]
+          as %snapr %err ⟨-, #Hslb, Hres⟩
+        · rw [memStorAt_some]
+          iframe Hlock Hfresh Hdata He1 Hlb0 Hcs Heood
+        icases Hres with (⟨%Herr, -, Hfresh⟩ | ⟨-, -, -, %Hstale⟩)
+        · have Hs0 : f.snap.Metadata'.Index' ≠ W64 0 := by
+            intro h; rw [h] at Hgt; exact Nat.not_lt_zero _ Hgt
+          have Hmade : memSnapMade f.snap.Metadata'.Index' e.Term' f.snap.Metadata'.ConfState'
+              f.snap.Data' = (if f.snap.Metadata'.Index' = W64 0 then memSnapEmpty else f.snap) := by
+            rw [ite_eq_right Hs0, Het]; rfl
+          rw [Hmade]
+          isplitr
+          · ipureintro; rfl
+          iframe prev snap si s Hfresh Hlo Hhi Hslb
+        · exfalso; omega
       · have Hsp : f.snap.Metadata'.Index' = f.prev := by
           apply BitVec.eq_of_toNat_eq
           have h1 : ¬ ((f.prev.toNat : Int) < f.snap.Metadata'.Index'.toNat) := Hif
