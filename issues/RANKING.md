@@ -463,6 +463,10 @@ For Kubernetes' sig-api-machinery, not etcd's maintainers:
 storage test model `correctness.Model` rejects the store's intended rewrite of non-canonical or
 stale data on a no-op update. It is a test-only bug that `TestCorrectness` does not reach, with a
 Go reproduction and a small fix in the Model.
+[k8s-etcd3-cached-object-trusted-at-current-rv](k8s-etcd3-cached-object-trusted-at-current-rv.md)
+(2026-11-01): `storage.Interface` does not say a cached object must be an unmodified copy the
+storage returned; the etcd3 store trusts one at the current resource version. A documentation
+sentence; Kubernetes' own callers meet it. Low priority.
 [k8s-watchcache-index-error-partial-update](k8s-watchcache-index-error-partial-update.md)
 (2026-10-26): the watch cache keeps (and soon serves) an object whose update failed in its
 indexer, with no event in its history; reproduced at the store. Only reached through an index

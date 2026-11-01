@@ -278,7 +278,8 @@ traffic grows):
 - **7a. `GetList` translated** (done 2026-10-31): the pinned Perennial supports range over a
   function (`caa9d07ee`, pin `edcadb1e5`), so `!store.GetList` is dropped from `etcd3.toml`;
   476 lines of `Code`, elaborates. G2 closed.
-- **7b. The unary paths without new etcd capabilities**: `Preconditions.Check` non-nil (UID, RV),
+- **7b. The unary paths without new etcd capabilities**: `Get` with a resource version (a minimum),
+  `Preconditions.Check` non-nil (UID, RV),
   `cachedExistingObject` on `Delete`/`GuaranteedUpdate` (`getStateFromObject`, the
   `!origStateIsCurrent` re-read and retry: the stale-suggestion class), `ignoreNotFound` on
   `GuaranteedUpdate`, `IgnoreNotFound` on a consistent `Get`. The store's specs already state the
@@ -289,9 +290,10 @@ traffic grows):
   `Range` at a revision, which M2 specified (`txn.executeRange`: `stateAt` of the read log, or
   `ErrFutureRev`, or `ErrCompacted` below the compaction revision); the client-layer specs
   (linkvtxn's `client_*`) carry it up, with the error identities ("From the etcd client proof",
-  item 1). Then `store.Get`'s RV modes (`validateMinimumResourceVersion` with a minimum,
-  `NotOlderThan`, RV `0`), and the driver's history: the store's states by revision (D30j's
-  `kvSeen` extended to whole states).
+  item 1). Needed by lists only (7e): `store.Get` always reads etcd's latest state
+  (`store.go:299`) and uses its resource version as a minimum only
+  (`validateMinimumResourceVersion`), so its RV modes are 7b's (the model's `get` has the
+  minimum), not this stage's (corrected 2026-11-01).
 - **7d. The replay.** The verified porcupine returns its linearization; a Go copy of `Replay`
   (or the real one, with 7g) in the driver's `Check`, proved against the history.
 - **7e. `GetList`**, the paginated path (`EtcdRangeStream` off, so no `streamChunks`): a spec of
@@ -314,8 +316,11 @@ Also, independent of the stages: the three `sorry`s of `k8setcd3_safe`'s own (`r
 `client_ctx_field`, `kvIs_ne_null`); the server's `sorry`s it rests on (`EtcdServer.run`, ...) are
 the server repair's (Stage P), not this plan's.
 
-Order: 7b first (the most bugs per unit of work, nothing new from etcd), then 7c and 7d together
-(stale `Get`s are the smallest traffic needing both), 7e, 7f, 7g.
+Order: 7b first (the most bugs per unit of work, nothing new from etcd), then 7c and 7d with 7e
+(stale lists are the traffic needing them), 7f, 7g. The specs' statements for 7b are under review
+(2026-11-01, the `spec` skill: a cached object needs a witness of what the key held at its resource
+version, `issues/k8s-etcd3-cached-object-trusted-at-current-rv.md`; preconditions answer the model's
+own error).
 
 ## What blocks where
 
