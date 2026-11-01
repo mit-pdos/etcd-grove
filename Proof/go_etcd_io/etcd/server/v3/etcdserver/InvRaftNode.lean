@@ -661,6 +661,19 @@ theorem rnCe_index (b : Nat) (ce : List LogEntry) (n : Nat) (m : EntryModel)
     subst h
     simp [EntryModel.ofM, LogEntry.toEntryM]
 
+/-- (2026-11-01, durability stage II) **A `Ready`'s messages with their `sentMsg`**: the messages as
+`readyRest` owns them, with the sends *enter* gave (`readyMsgs`). -/
+theorem rn_readyMsgs_sent [StorageModel GF] [go_etcd_io.raft.v3.Assumptions] (γ : Cluster)
+    (N : Namespace) (id : w64) (ms : List QMsg) :
+    ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+      readyMsgs γ N id ms ⊢
+    [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗ msgCredits γ N q.st := by
+  unfold readyMsgs
+  refine BigSepL.bigSepL_sep_eqv_symm.1.trans (BigSepL.bigSepL_mono_of_forall ?_)
+  intro _ _
+  iintro ⟨⟨Ho, Hc⟩, Hs⟩
+  iframe
+
 /-- (2026-10-27) **Receiving a `Ready`, after the node API's receive** (`isReadyChan_recvAu`'s
 postcondition, `readyGot`): the idle driver at `L` learns the `Ready`'s data in the server's terms
 and is busy with it; the messages persisted, `E.C` of the committed log (`rnEnvOk`), the read states
@@ -684,9 +697,157 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       (∃ (es' A' : List EntryModel) (p' : HardStateM) (l : SnapLoan),
         rnReadySnap E γ rd L es' A' p p' l ∗ rnBusyS γ L A' es' p' l ∗
         ⌜srvIdxOkW E.γr.raft.ai0 A'⌝)) := by
-  -- PORT(durability stage II): restated (durability layer 4: from `readyGot`, *enter* applied at
-  -- once)
-  sorry
+  letI := srvStor (GF := GF) γ.node
+  iintro #Henv #Hbr Hcfg HrS Hrun Hgot
+  iunfold readyGot at Hgot
+  icases Hgot with ⟨%ce, %es, %h, %Lo, %ms, %ss, #Hce, #Hcom, ⟨%sts, #Hrs, #Hrsok⟩, Hrest, -, Henter⟩
+  iunfold readyEnter at Henter
+  simp only [committedEntriesAt, rnDrvSt]
+  imod Henter $$ %⊤ %((1 : Qp).half) %(by simp) [$HrS $Hrun] with ⟨HrS, Hrun, Hdrv, #Hsent⟩
+  ihave #Henv' := Henv
+  iunfold rnEnvOk at Henv'
+  icases Henv' with ⟨-, %Hn, -, #Hinv, #HM, #HC, -, -⟩
+  obtain ⟨Hraft, Hpre, Hai0⟩ := Hn
+  ihave #Hcl : srvClusterOk E.γr.raft $$ []
+  · iunfold srvRaftLogInv at Hinv; icases Hinv with ⟨-, #H, -⟩; iexact H
+  cases Lo with
+  | some l =>
+    -- SNAPSHOT-SORRY: `rnReadySnap` from `readySnap (some l)` and the messages, `rnBusyS` from
+    -- the driver
+    sorry
+  | none =>
+  simp only [NodeDriverState.afterReady]
+  ihave #Hfits : readyFits γ.node.cl srvClusterN $$ []
+  · iunfold srvClusterOk at Hcl; icases Hcl with ⟨-, -, -, #H, -⟩; rw [Hraft]; iexact H
+  icases readyRest_fits γ.node.cl srvClusterN rd _ ce es h none ms ss $$ [Hfits Hrest]
+    with ⟨Hrest, %Hfit61⟩
+  · iframe Hfits Hrest
+  simp only [readyRest, readySnap]
+  icases Hrest with ⟨#Hes, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ, #Hcf, %Hidx⟩⟩
+  obtain ⟨Lx, HLx, Hes0, Hdl, -⟩ := Hbnd
+  obtain ⟨ce', Hce'def⟩ : ∃ ce', ce' = rnCe (srvLE γ.srv L).length ce := ⟨_, rfl⟩
+  have Hce'LE : ce'.map EntryModel.toLE = ce := by rw [Hce'def]; exact rnCe_toLE _ ce
+  have Hce'len : ce'.length = ce.length := by rw [Hce'def]; exact rnCe_length _ ce
+  have Hdel : srvLE γ.srv (L ++ ce') = srvLE γ.srv L ++ ce := by
+    rw [srvLE_append, Hce'LE]
+  have HsrvLE : srvLE E.γr.raft (L ++ ce') = srvLE γ.srv (L ++ ce') := by
+    unfold srvLE RNNames.srv; rw [Hpre]
+  have Hlen : ((srvLE γ.srv (L ++ ce')).length : Int) ≤ Lx := by
+    rw [Hdel]; simpa [rnDrvSt] using Hdl
+  have hfit : (γ.pre.length : Int) + L.length + ce'.length < 2 ^ 64 := by
+    have : (srvLE γ.srv (L ++ ce')).length = γ.pre.length + L.length + ce'.length := by
+      simp [srvLE]; omega
+    omega
+  icases entsPts_elim _ _ _ $$ Hce with ⟨%ceL, #HceL, #Hcero⟩
+  icases entsPts_elim _ _ _ $$ Hes with ⟨%esL, #HesL, #Hesro⟩
+  imod ownSlice_persist _ _ _ $$ Hmsgs with #Hmsgs
+  ihave Hmo := rn_readyMsgs_sent γ.node.cl srvClusterN γ.id ms $$ [$Hmo $Hsent]
+  imod rnMsgOk_of_api E γ ms $$ HM Hcl %Hraft Hmo with Hmok
+  -- `E.C (L ++ ce)` from the committed log, the next index fitting
+  ihave #Hcom' : isCommittedLogLb E.γr.raft.raft.cl (srvLE E.γr.raft (L ++ ce')) $$ []
+  · rw [HsrvLE, Hdel, Hraft]; iexact Hcom
+  ihave #Hfits' : readyFits E.γr.raft.raft.cl srvClusterN $$ []
+  · first | (rw [Hraft]; iexact Hfits) | (rw [← Hraft]; iexact Hfits)
+  ihave %Hnext := isCommittedLogLb_length E.γr.raft.raft.cl srvClusterN _ $$ [Hfits' Hcom']
+  · iframe Hfits' Hcom'
+  have HLi' : ∀ (n : Nat) (m : EntryModel), (L ++ ce')[n]? = some m →
+      uint.Z m.index = uint.Z E.γr.raft.ai0 + 1 + n := by
+    intro n m hm
+    rcases Nat.lt_or_ge n L.length with hn | hn
+    · rw [List.getElem?_append_left hn] at hm
+      exact (HLi n m hm).1
+    · rw [List.getElem?_append_right hn] at hm
+      have hl : (n - L.length) < ce'.length := (List.getElem?_eq_some_iff.1 hm).1
+      rw [Hce'def] at hm
+      have hi := rnCe_index _ ce _ m hm
+      have hl' : (srvLE γ.srv L).length = γ.pre.length + L.length := by
+        simp [srvLE, RNNames.srv]
+      rw [hi, hl']
+      have : ((γ.pre.length + L.length : Nat) : Int) + ((n - L.length : Nat) : Int) + 1 < 2 ^ 64 := by
+        push_cast
+        omega
+      rw [Hai0]
+      word
+  imod srvRLogLb_intro E.γr.raft ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full) (L ++ ce') HLi' $$ Hinv Hcom'
+    with #HLb
+  ihave %HLiW := srvRLogLb_idx E.γr.raft _ $$ HLb
+  imod HC $$ %(L ++ ce') HLb [] with #HEC
+  · ipureintro
+    rw [HsrvLE, srvLE_length] at Hnext
+    simp only [RNNames.srv] at Hnext
+    rw [Hai0]
+    simp only [List.length_append] at Hnext ⊢
+    omega
+  ihave ⟨Hdrv, #Hdlb⟩ := nodeDriver_deliveredLogLb γ.nl γ.node.cl srvClusterN _ $$ Hdrv
+  imodintro
+  iframe Hrun
+  ileft
+  iexists ce', es.map EntryModel.ofM, phsNext p h
+  isplitl [Happ Hmok]
+  · iunfold rnReadyData
+    iexists ceL, esL, ms.map QMsg.loc, HardStateModel.ofM h
+    iframe HceL HesL Hmsgs Hmok HEC
+    isplitr
+    · rw [Hce'def]; unfold rnCe
+      iapply entriesAt_of_entRO ceL _ $$ Hcero
+    isplitr
+    · iapply entriesAt_of_entRO esL es $$ Hesro
+    isplitl [Happ]
+    · iunfold rnAppendRight
+      rw [EntryModel.map_toM_ofM]
+      iframe Happ
+      ipureintro
+      constructor
+      · intro e0 He0
+        rw [List.head?_map] at He0
+        cases Hh : es.head? with
+        | none => rw [Hh] at He0; cases He0
+        | some x =>
+          rw [Hh] at He0; cases He0
+          have := Hfit61 x Hh
+          simp only [List.length_map]
+          show uint.Z x.Index' + (es.length : Int) ≤ 2 ^ 61
+          omega
+      · intro e0 He0 j e He
+        rw [List.head?_map] at He0
+        rw [List.getElem?_map] at He
+        cases Hh : es.head? with
+        | none => rw [Hh] at He0; cases He0
+        | some x =>
+          rw [Hh] at He0; cases He0
+          cases Hj : es[j]? with
+          | none => rw [Hj] at He; cases He
+          | some y =>
+            rw [Hj] at He; cases He
+            exact (Hidx x Hh).1 j y Hj
+    isplitr
+    · iunfold softStateAt; iapply softStateIs_RO $$ Hss
+    isplitr
+    · iunfold hardStateAt
+      rw [HardStateModel.toM_ofM]
+      iexact Hhs
+    isplitr
+    · rw [HardStateModel.toM_ofM]; ipureintro; rfl
+    isplitr
+    · iunfold readStatesPts at Hrs
+      icases Hrs with ⟨%vs, #Hvs, #Hrs2⟩
+      iexists vs
+      iframe Hvs
+      iapply rnReadStates_of_api E γ vs sts $$ Hbr Hrs2 Hrsok
+    isplitr
+    · ipureintro; exact Hsnap
+    iunfold rnCeFrozen
+    rw [EntryModel.map_toM_ofM, Hce'LE]
+    iframe Hcf
+    ipureintro; exact Hidx
+  isplitl [Hcfg Hdrv HrS]
+  · iunfold rnBusy
+    iframe Hcfg
+    iunfold rnBusyN
+    rw [EntryModel.map_toM_ofM, Hdel]
+    iexists _, _
+    iframe Hdrv HrS
+  · rw [Hdel]; iframe Hdlb; ipureintro; exact HLiW
 
 /-! ## The other components -/
 

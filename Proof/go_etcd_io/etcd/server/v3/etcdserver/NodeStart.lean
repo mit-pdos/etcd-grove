@@ -185,8 +185,36 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
       monoListAuthOwn γ.cum 1 [([] : List EntryModel)] ∗
       monoListIdxOwn γ.cum 0 ([] : List EntryModel) ⊢
       rnLoopTok γ [] ∗ rnApplyTok γ [] := by
-  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
-  sorry
+  letI := srvStor (GF := GF) γ.node
+  iintro ⟨⟨Hdrv, HrS, Hcfg⟩, Hrun, Hprod, Hcons, Hcum, Hcum0⟩
+  isplitl [Hdrv HrS Hcfg Hrun Hprod Hcum]
+  · iunfold rnLoopTok
+    iexists hsZero
+    iunfold rnLoopTokP
+    iexists [], [[]]
+    isplitl [Hdrv HrS Hcfg]
+    · iunfold rnDrv
+      iexists RaftState.init, W64 0
+      have h : rnDrvSt γ [] hsZero RaftState.init (W64 0) =
+          NodeDriverState.init (memStorIface γ.ms) γ.key := by
+        simp [rnDrvSt, NodeDriverState.init, srvLE, RNNames.srv, hpre]
+      rw [h]
+      iframe Hdrv HrS
+      unfold rnCfgAt srvCfgView
+      iexists ⟨0, Membership.simple γ.node.cfg⟩
+      iframe Hcfg
+      ipureintro
+      simp only [RNNames.srv, hpre, List.append_nil]
+      exact hcfg
+    iframe Hrun Hprod Hcum
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl⟩
+    ipureintro
+    exact ⟨W64 0, by rw [hpre]; rfl, fun n m h => by simp at h⟩
+  · iunfold rnApplyTok
+    iexists []
+    iframe Hcons
+    iexact Hcum0
 
 /-- **A fresh `MemoryStorage` boots a node** (2026-10-30, the repair: `StartNode.spec`'s
 `bootStorage`, at the empty conf state and hard state, over raft's two-writer `MemoryStorage`
