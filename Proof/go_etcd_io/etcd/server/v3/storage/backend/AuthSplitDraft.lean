@@ -15,12 +15,13 @@ user's decisions on the restated Draft's questions"), what this module drafts fo
    before it (a held `readTx`, a `ConcurrentReadTx`) finish first in Go (`commit` takes
    `readTx.Lock()`; bbolt's `Close` waits for the read transactions). Today's specs are corollaries
    (`BksDraft.readTx.RLock.spec_old`, `BksDraft.readTx.UnsafeRange.spec_old`).
-2. **Readers backed by thread tokens.** The backend's pool of reader slots (`BksDraft.backend.rdPool`,
-   a `threadPool` of `rdTok`), from which a thread token borrows a slot for one read
-   (`rdTok_borrow`, `rdTok_giveBack`); the glue `BksDraft.reader_RLock`/`reader_RUnlock`. Where the
-   pool is built is a question for the user (the plan note, Q2): the candidate drafted here is
-   `New`'s post (`BksDraft.backend.newPostK`, under `[ThreadBoundLe GF (2 ^ 29)]`, with the counted
-   remainder `rdStock` for the clients that still count slots).
+2. **Readers backed by thread tokens.** A pool of reader slots (`BksDraft.backend.rdPool`, a
+   `threadPool` of `rdTok`), from which a thread token borrows a slot for one read
+   (`rdTok_borrow`, `rdTok_giveBack`; the glue `BksDraft.reader_RLock`/`reader_RUnlock`): the shape,
+   not a backend predicate to export. Round 2: every reader of `readTx` already holds its owner's
+   read lock (mvcc's `s.mu`, auth's `beMu`), so the pools belong to those owners, over bundles
+   that contain a slot (`notes/bounds-locks.md`, B2); the constructor keeps giving counted slots
+   (`BksDraft.backend.newPostK`, as today; Q2).
 3. **Per-bucket idleness.** The client's part of the tracked buckets in a set `S`, possibly with a
    write of its own session pending (`BksDraft.backend.rbPart`: the writer's contents, what `rbOwn`
    is today), and the idle part (`BksDraft.backend.rbOwnIn`: no write to `S` pending, so the readers
@@ -363,44 +364,26 @@ up (for `Close`) while reads begun before still run. A frame of `RLock`; what it
 restated `RLock` leaves nothing of the guard with the reader. -/
 theorem BksDraft.guarded_RLock (hRL : BksDraft.backend.readTx.RLock.spec (GF := GF) (hG := hG))
     (γ : BNames) (G : Qp → IProp GF) (f : Qp → Qp)
-    (hG1 : ∀ q, G q ⊢ bOpen γ (f q) ∗ (bOpen γ (f q) -∗ G q))
+    (hG1 : ∀ q, G q ⊢ |={⊤}=> bOpen γ (f q) ∗ (bOpen γ (f q) ={⊤}=∗ G q))
     (P : BParams) (W Pk : IProp GF) (b rt : Loc) (q : Qp) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ rdTok γ P b ∗ G q }}
       (App (Val (rt @!! go.GoType.PointerType readTx.ty @!! go!"RLock")) (Val #()))
     {{ RET #(); ∃ (rtx : Loc) (rv : RView), BksDraft.backend.rtHeld γ P b rtx rv ∗ G q }} := by
   iintro %Φ ⟨#Hpkg, #Hb, #Hrt, Hr, Hg⟩ HΦ
-  icases hG1 q $$ Hg with ⟨Ho, Hback⟩
-  iapply (hRL γ P W Pk b rt (f q)) $$ %Φ [Hr Ho]
+  imod hG1 q $$ Hg with ⟨Ho, Hback⟩
+  iapply wp_fupd
+  iapply (hRL γ P W Pk b rt (f q)) $$ %(fun v => iprop(|={⊤}=> Φ v)) [Hr Ho]
   · iframe Hr Ho; iframe #
   inext
   iintro ⟨%rtx, %rv, Hh, Ho⟩
+  imod Hback $$ Ho with Hg
+  imodintro
   iapply HΦ
   iexists rtx, rv
-  iframe Hh
-  iapply Hback $$ Ho
+  iframe Hh Hg
 
 end poolLC
-
-/-! ### Where the pool is built: the candidate (Q2), `New`'s post -/
-
-section newpost
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
-
-/-- The reader slots the candidate leaves counted (`actualMaxReaders - 2 ^ 29 = 2 ^ 29`), for the
-clients that count slots until they move to pools (mvcc's readers, `bkRTx`; `notes/bounds-plan.md`,
-B2's mvcc step): the pool takes the other `2 ^ 29`. -/
-def BksDraft.backend.rdStockN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - 2 ^ 29
-
-/-- The counted reader slots (the candidate's remainder). -/
-def BksDraft.backend.rdStock (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
-  iprop([∗list] _x ∈ List.replicate BksDraft.backend.rdStockN (), rdTok γ P b)
-
-end newpost
 
 /-! ## 3. The tracked buckets by bucket set (decision 3) -/
 
@@ -512,21 +495,35 @@ instance BksDraft.backend.rbOwnIn_timeless (γ : BNames) (S : GoString → Prop)
     (r : GMap GoString BktData) : Timeless (BksDraft.backend.rbOwnIn (GF := GF) γ S r) := by
   sorry
 
-/-- **Exclusive**: two parts of a tracked bucket do not coexist (one writer per bucket). -/
-theorem BksDraft.backend.rbPart_excl (γ : BNames) (P : BParams) (n : GoString)
-    (r r' : GMap GoString BktData) (hn : P.RB n = true) :
-    BksDraft.backend.rbPart (GF := GF) γ (fun m => m = n) r ∗
+/-- **Exclusive**: two parts of a tracked bucket (of the backend's parameters: `isBackend` fixes
+`P` for `γ`) do not coexist (one writer per bucket). -/
+theorem BksDraft.backend.rbPart_excl (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc)
+    (n : GoString) (r r' : GMap GoString BktData) (hn : P.RB n = true) :
+    isBackend (GF := GF) γ P W Pk b ∗ BksDraft.backend.rbPart γ (fun m => m = n) r ∗
       BksDraft.backend.rbPart γ (fun m => m = n) r' ⊢ False := by
   sorry
 
-/-- **The writer's contents agree with the batch lock's** on the part's tracked buckets (today's
-`rbOwn`'s agreement, per part). -/
+/-- **The writer's contents agree with the batch lock's** on the part's buckets (today's `rbOwn`'s
+agreement, per part; an untracked name of `S` is absent from `r`). -/
 theorem BksDraft.backend.batchLocked_rbPart (γ : BNames) (P : BParams) (b : Loc) (st : BSess)
     (S : GoString → Prop) (r : GMap GoString BktData) :
     batchLocked (GF := GF) γ P b st ∗ BksDraft.backend.rbPart γ S r ⊢
       batchLocked γ P b st ∗ BksDraft.backend.rbPart γ S r ∗
-        ⌜∀ n, S n → P.RB n = true → (rbData P st.S).lookup n = r.lookup n⌝ := by
+        ⌜∀ n, S n → (rbData P st.S).lookup n = r.lookup n⌝ := by
   sorry
+
+/-- **Today's exact agreement** (`batchLocked_rb`'s `r = rbData P st.S`, which `BackendBridge`
+substitutes), from the part of every bucket. -/
+theorem BksDraft.backend.batchLocked_rbOwn (γ : BNames) (P : BParams) (b : Loc) (st : BSess)
+    (r : GMap GoString BktData) :
+    batchLocked (GF := GF) γ P b st ∗ BksDraft.backend.rbOwn γ r ⊢
+      batchLocked γ P b st ∗ BksDraft.backend.rbOwn γ r ∗ ⌜r = rbData P st.S⌝ := by
+  unfold BksDraft.backend.rbOwn
+  iintro H
+  icases BksDraft.backend.batchLocked_rbPart γ P b st (fun _ => True) r $$ H with ⟨Hl, Hp, %Ha⟩
+  iframe Hl Hp
+  ipureintro
+  exact GMap.ext fun n => (Ha n trivial).symm
 
 /-- **The readers see the idle part's contents** (what `rbOwnIn` adds to `rbPart`): a held read's
 state agrees with it on every key of the part's tracked buckets. While the read is held its state
@@ -536,6 +533,19 @@ theorem BksDraft.backend.rtHeldF_rbOwnIn (γ : BNames) (P : BParams) (b rtx : Lo
     BksDraft.backend.rtHeldF (GF := GF) γ P b rtx rv p ∗ BksDraft.backend.rbOwnIn γ S r ⊢
       BksDraft.backend.rtHeldF γ P b rtx rv p ∗ BksDraft.backend.rbOwnIn γ S r ∗
         ⌜∀ n k, S n → P.RB n = true → vOf P rv n k = ((r.lookup n).getD ∅).lookup k⌝ := by
+  sorry
+
+/-- **The batch lock's side of the tracked buckets** (what `backend.Snapshot`'s observation hands,
+in place of today's `rbOwn γ r`, the lock's half under the client's name: with `rbPart_excl` that
+would refute a caller holding its own part; round 2). Opaque in the draft. -/
+opaque BksDraft.backend.rbLock (γ : BNames) (r : GMap GoString BktData) : IProp GF := iprop(True)
+
+/-- The lock's side agrees with a part, on the part's buckets. -/
+theorem BksDraft.backend.rbLock_agree (γ : BNames) (S : GoString → Prop)
+    (r r' : GMap GoString BktData) :
+    BksDraft.backend.rbLock (GF := GF) γ r ∗ BksDraft.backend.rbPart γ S r' ⊢
+      BksDraft.backend.rbLock γ r ∗ BksDraft.backend.rbPart γ S r' ∗
+        ⌜∀ n, S n → r.lookup n = r'.lookup n⌝ := by
   sorry
 
 /-! ### The split the draft auth premise needs (`backend.rbOwn_split_in`, restated) -/
@@ -694,6 +704,39 @@ abbrev BksDraft.backend.batchTxBuffered.UnsafeDelete.spec : Prop :=
       (if own then key ↦*{dk} kb else txBytes st.tx key kb) ∗
       BksDraft.backend.rbPut γ P bi.name (st.del bi kb).S }}
 
+/-- The delete changes only its bucket. -/
+theorem BksDraft.del_other (st : BSess) (bi : BucketInfo) (kb : GoString) :
+    ∀ m, m ≠ bi.name → (st.del bi kb).S.lookup m = st.S.lookup m := by
+  intro m hm
+  show (st.S.insert bi.name _).lookup m = _
+  exact GMap.lookup_insert_ne _ _ (Ne.symm hm)
+
+/-- **Today's `UnsafeDelete` (the whole tracked-bucket token) is a corollary.** -/
+theorem BksDraft.batchTxBuffered.UnsafeDelete.spec_all
+    (h : BksDraft.backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG)) :
+    ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess)
+      (bk : GoInterface) (bi : BucketInfo) (key : GoSlice) (kb : GoString) (dk : DFrac) (own : Bool),
+    P.has bi → sint.Z st.pend + 1 < 2 ^ 58 → P.hk bi.name kb = false → ¬ fkKey bi.name kb →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
+        bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗
+        (if own then key ↦*{dk} kb else txBytes st.tx key kb) ∗
+        BksDraft.backend.rbPutAll γ P bi.name st.S }}
+      (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeDelete")) (Val #bk))
+        (Val #key))
+    {{ RET #(); batchLocked γ P b (st.del bi kb) ∗
+        (if own then key ↦*{dk} kb else txBytes st.tx key kb) ∗
+        BksDraft.backend.rbPutAll γ P bi.name (st.del bi kb).S }} := by
+  intro γ P W Pk b t st bk bi key kb dk own h1 h2 h3 h4
+  iintro %Φ ⟨#Hpkg, #Hb, #Ht, Hl, #Hbk, Hk, Hrb⟩ HΦ
+  icases BksDraft.backend.rbPutAll_split γ P bi.name st.S $$ Hrb with ⟨Hrb, Hback⟩
+  iapply (h γ P W Pk b t st bk bi key kb dk own h1 h2 h3 h4) $$ %Φ [Hl Hk Hrb]
+  · iframe Hl Hk Hrb; iframe #
+  inext
+  iintro ⟨Hl, Hk, Hrb⟩
+  iapply HΦ
+  iframe Hl Hk
+  iapply Hback $$ %_ %(BksDraft.del_other st bi kb) Hrb
+
 /-- **`t.Unlock()`, restated** (decision 3): today's statement, and **a part handed in comes back
 idle** (`rbPart γ S r` in, `rbOwnIn γ S r` out, for any bucket set `S`: the caller's choice, nothing
 for `S` empty). Go: `Unlock` writes the session's puts back into the read buffer under
@@ -734,7 +777,7 @@ theorem BksDraft.rbOwnIn_agree (γ : BNames) (P : BParams) (b : Loc) (st : BSess
     (S : GoString → Prop) (r : GMap GoString BktData) :
     batchLocked (GF := GF) γ P b st ∗ BksDraft.backend.rbOwnIn γ S r ⊢
       batchLocked γ P b st ∗ BksDraft.backend.rbPart γ S r ∗
-        ⌜∀ n, S n → P.RB n = true → (rbData P st.S).lookup n = r.lookup n⌝ := by
+        ⌜∀ n, S n → (rbData P st.S).lookup n = r.lookup n⌝ := by
   iintro ⟨Hl, Hi⟩
   ihave Hp := BksDraft.backend.rbOwnIn_part γ S r $$ Hi
   iapply BksDraft.backend.batchLocked_rbPart γ P b st S r $$ [$Hl $Hp]
@@ -751,21 +794,20 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- **What the constructor gives, restated** (`newPostK`): today's, with the tracked buckets **idle**
-(`rbOwnIn γ ⊤ (rbData P D)`: a fresh backend has no session, its readers see bbolt's data), and the
-reader slots as **the backend's pool** (`rdPool`, decision 2; the candidate of Q2) and the counted
-remainder (`rdStock`) in place of `actualMaxReaders` counted slots. -/
+(`rbOwnIn γ ⊤ (rbData P D)`: a fresh backend has no session, its readers see bbolt's data). The
+reader slots stay counted, as today (round 2: no backend pool; the readers' owners, mvcc's store and
+auth's, pool bundles that contain a slot, `notes/bounds-locks.md`'s B2). -/
 def BksDraft.backend.newPostK (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Loc)
     (D : Data) : IProp GF :=
   iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ b ∗ K γ ∗
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗
     BksDraft.backend.rbOwnIn γ (fun _ => True) (rbData P D) ∗
-    BksDraft.backend.rdPool γ P b ∗ BksDraft.backend.rdStock γ P b ∗
+    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b) ∗
     dlInit γ ∗ fkCl γ P D ∗ srSlot b)
 
-/-- **`New(bcfg)`, restated** (the candidate of Q2: the pool built by the constructor, which owns
-`readTx.mu`; the thread bound its pool needs as an instance, B1's form). -/
+/-- **`New(bcfg)`, restated**: today's statement over the restated `newPostK`. -/
 abbrev BksDraft.backend.New.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 29)] (cfg : BackendConfig) (P : BParams) (D : Data) (W Pk K : BNames → IProp GF),
+  ∀ (cfg : BackendConfig) (P : BParams) (D : Data) (W Pk K : BNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       fileHolds cfg.Path' D ∗ ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
       hooksOk P W Pk cfg.Hooks' ∗
