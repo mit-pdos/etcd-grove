@@ -23,6 +23,9 @@ public import Proof.os.CrashStSpec
 
 noncomputable section
 
+-- the kernel's check of some `omega` proofs below recurses deeply
+set_option maxRecDepth 20000
+
 namespace Perennial
 namespace EtcdGrove
 namespace bboltfs
@@ -492,7 +495,7 @@ theorem dataW_after {p : GoString} {m2 m4 : OsMeta} {bs2 bs4 : List (w8 × Bool)
   exact take8192_congr (N := 4096 * hwm) (fun k hk => hN.pre k (by unfold cfLo; omega)) (by omega)
 
 /-- The slot the next commit writes. -/
-theorem slot_next (t : w64) (ht : t.toNat + 1 < 2 ^ 64) :
+theorem slot_next (t : w64) :
     ((t + W64 1) % W64 2).toNat = 1 - t.toNat % 2 := by
   rw [BitVec.toNat_umod, BitVec.toNat_add]
   show ((t.toNat + 1) % 2 ^ 64) % 2 = _
@@ -1040,7 +1043,6 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
 
 set_option maxHeartbeats 1000000 in
-set_option maxRecDepth 20000 in
 theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := hG))
     (wp_Truncate : os.File.Truncate.specCrashS (GF := GF) (hG := hG))
     (wp_Sync : os.File.Sync.specCrashS (GF := GF) (hG := hG))
@@ -1522,7 +1524,7 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
     with ⟨Htok, Hcur, Hout, Hout2, Hc0, Hc1⟩
   · iframe Htok Hcur Hout Hout2; iframe #
   have hml : mp.length = 8192 := Hok.1
-  have hi1 := slot_next mv.txid' Ht
+  have hi1 := slot_next mv.txid'
   obtain ⟨i, hi⟩ : ∃ i, i = 1 - mv.txid'.toNat % 2 := ⟨_, rfl⟩
   rw [← hi] at hi1
   have hi2 : i < 2 := by rw [hi]; exact Nat.lt_of_le_of_lt (Nat.sub_le _ _) (by decide)
