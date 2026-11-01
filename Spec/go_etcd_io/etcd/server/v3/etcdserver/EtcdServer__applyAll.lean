@@ -59,7 +59,7 @@ snapshot's index guard") is rewritten to carry the backend's image at the applie
 **The snapshot resources** (D22 J1b, 2026-10-31, the user's decision): what each snapshot install
 takes and gives back (`srvSnapOwn`, `SnapRO.lean`) at the backend's environment, passed through
 (no snapshot here: `E' = E`, the counter's bound raised to `ai'`), for J8a's snapshot case. -/
-abbrev EtcdServer.applyAll.spec : Prop :=
+abbrev EtcdServer.applyAll.specBatch : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
@@ -344,6 +344,11 @@ abbrev EtcdServer.applyAll.specSnap : Prop :=
         ⌜loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧
           A <+: A' ∧ (γr.raft.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧
           lastTermIs A' sv.Metadata'.Term'⌝ }}
+
+/-- **`applyAll`'s spec** (J8b, 2026-11-01): both cases, a batch of entries (`specBatch`) and a snapshot payload (`specSnap`), for the link. -/
+abbrev EtcdServer.applyAll.spec : Prop :=
+  EtcdServer.applyAll.specBatch (GF := GF) (hG := hG) ∧
+    EtcdServer.applyAll.specSnap (GF := GF) (hG := hG)
 
 end spec
 

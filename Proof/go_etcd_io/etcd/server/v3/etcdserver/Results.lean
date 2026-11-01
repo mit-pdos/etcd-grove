@@ -204,7 +204,7 @@ x'.log`), the applied index's waiters through `ai'` released (`applyWait.Trigger
 no-snapshot contract (`ap.snapshot = nil`) and the snapshot, compaction and merged-snapshot
 contracts. (2026-10-26) Under `ErrorStringLeaf`: the compaction (`compactRaftLog`, proved since)
 decides `errors.Is(err, raft.ErrCompacted)` of an `errors.New` error. -/
-theorem applyAll_model : EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
+theorem applyAll_model [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyAll
 
 /-- **The applied logs** (the apply-side half of `range_linearizable`'s log; the request path's
@@ -1776,12 +1776,12 @@ theorem server_admin_entry_on : adminEntryOn.spec (GF := GF) (hG := hG) :=
 `server_apply_on`),
 the snapshot and compaction with the mode-`on` applier row (`snapshot`'s contract over the part
 both rows share, `srvApplyKVCore`). -/
-theorem server_apply_all_on [EtcdGrove.ErrorStringLeaf] :
+theorem server_apply_all_on [EtcdGrove.ErrorStringLeaf] [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.applyAll.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.applyAll.wp_proofOn EtcdServer.wp_applySnapshot
-    (EtcdServer.applyEntries.spec_on EtcdServer.wp_applyEntries)
+  EtcdServer.applyAll.wp_proofOn EtcdServer.wp_applySnapshot.1
+    (EtcdServer.applyEntries.spec_on EtcdServer.wp_applyEntries.1)
     EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency
-    EtcdServer.wp_snapshotIfNeededAndCompactRaftLog
+    EtcdServer.wp_snapshotIfNeededAndCompactRaftLog.1
     raftpb.Message.wp_GetTerm raftpb.Message.wp_GetSnapshot raftpb.Snapshot.wp_GetMetadata
     raftpb.SnapshotMetadata.wp_GetIndex EtcdServer.wp_createMergedSnapshotMessage
     EtcdServer.wp_sendMergedSnap mvcc.store.wp_Commit backend.backend.wp_Snapshot
@@ -1792,7 +1792,7 @@ theorem server_apply_all_on [EtcdGrove.ErrorStringLeaf] :
 /-- **`run` with auth on** (the auth plan's E3q, `EtcdServer__run.lean`'s `wp_proofOn`): from
 `isServerRunOn`, every scheduled job `server_apply_all_on` over the apply thread's mode-`on`
 resources (`applyResOn`). -/
-theorem server_run_on [EtcdGrove.ErrorStringLeaf] :
+theorem server_run_on [EtcdGrove.ErrorStringLeaf] [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.run.specOn (GF := GF) (hG := hG) :=
   EtcdServer.run.wp_proofOn server_apply_all_on EtcdServer.wp_Logger
     raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm
@@ -1805,7 +1805,7 @@ theorem server_run_on [EtcdGrove.ErrorStringLeaf] :
 mode-`on` construction premise and the lessor finding no lease, `run` started with auth on
 (`server_run_on`), the request and read views in the mode, and the read loop's precondition at the
 mode-`on` model's state (`kv_read_compose_on`). Every callee linked. -/
-theorem server_start_on [EtcdGrove.ErrorStringLeaf] :
+theorem server_start_on [EtcdGrove.ErrorStringLeaf] [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.start.specOn (GF := GF) (hG := hG) :=
   EtcdServer.start.wp_proofOn EtcdServer.wp_Logger zap.Logger.wp_Info zap.wp_String zap.wp_Uint64
     wait.wp_New wait.wp_NewTimeList wait.timeList.wp_Wait wait.timeList.wp_Trigger read.wp_NewRead
@@ -1819,7 +1819,7 @@ theorem server_start_on [EtcdGrove.ErrorStringLeaf] :
 with auth on (`server_start_on`), then the goroutines `Start` attaches, the monitors' proposals with
 the permission in the mode (`srvMonitorPermitM true`) and the read loop at the mode-`on` model's
 state. -/
-theorem server_Start_on [EtcdGrove.ErrorStringLeaf] :
+theorem server_Start_on [EtcdGrove.ErrorStringLeaf] [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.Start.specOn (GF := GF) (hG := hG) :=
   EtcdServer.Start.wp_proofOn server_start_on EtcdServer.wp_GoAttach EtcdServer.wp_Logger
     EtcdServer.wp_adjustTicks EtcdServer.wp_publishV3 config.ServerConfig.wp_ReqTimeout
@@ -2212,22 +2212,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 v3/etcdserver/EtcdServer__run.lean`): from `isServerRun` (`start`'s), it applies every batch raft
 commits through the FIFO scheduler, the apply thread's resources chained from job to job, and
 shuts down. -/
-theorem server_run : EtcdServer.run.spec (GF := GF) (hG := hG) := EtcdServer.wp_run
+theorem server_run [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.run.spec (GF := GF) (hG := hG) := EtcdServer.wp_run
 
 /-- **The server's `start`** (the request path's unit 4c; `Spec/.../EtcdServer__start.lean`): from
 the construction premise `isServerBuilt` alone, the server's views and `run` started. -/
-theorem server_start : EtcdServer.start.spec (GF := GF) (hG := hG) := EtcdServer.wp_start
+theorem server_start [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.start.spec (GF := GF) (hG := hG) := EtcdServer.wp_start
 
 /-- **The server's `Start`** (the request path's unit 4c; `Spec/.../EtcdServer__Start.lean`):
 `start`, then the read loop and nine names-only monitors through `GoAttach`. -/
-theorem server_Start : EtcdServer.Start.spec (GF := GF) (hG := hG) := EtcdServer.wp_Start
+theorem server_Start [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.Start.spec (GF := GF) (hG := hG) := EtcdServer.wp_Start
 
 /-- **`start` gives the request path's views** (the request path's unit 4c): from the construction
 premise, `start` returns the views `range_linearizable`, `txn_applied` and the v3rpc results take
 (`isServerReq`, `isServerRead`), the read loop's `server` contract over them (`read_server`), and
 the read loop's lock's reader slots (`srvRdCall`'s `srvReadReader`): those results are conditional
 on `isServerBuilt` alone (and each call's own resources). -/
-theorem start_gives_views (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+theorem start_gives_views [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat)
     (Hrb : receiptBound GF ≤ N + 1) (Hai0 : ai₀ = W64 0) :

@@ -36,7 +36,7 @@ model's auth state `sa`, unconstrained off), the apply thread's model (`kvApplie
 `srvAuthSt0`). **With auth on** (only): the server's lessor finds no lease (`srvLessorNilM`), the
 receipts' bound, and the rights to issue tokens at the consistent index (`srvTokRights`, `True` off),
 at the new consistent index after. -/
-abbrev EtcdServer.applyEntries.spec : Prop :=
+abbrev EtcdServer.applyEntries.specBatch : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (ep ap : Loc) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64)
     (rac : GoChan) (st : ApplyState) (ai at0 a t : w64) (cs : Loc)
@@ -88,6 +88,11 @@ abbrev EtcdServer.applyEntries.specNil : Prop :=
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntries"))
       (Val #ep)) (Val #ap))
   {{ RET #(); True }}
+
+/-- **`applyEntries`'s spec** (J8b, 2026-11-01): both cases, the batch (`specBatch`) and the empty batch (`specNil`), for the link. -/
+abbrev EtcdServer.applyEntries.spec : Prop :=
+  EtcdServer.applyEntries.specBatch (GF := GF) (hG := hG) ∧
+    EtcdServer.applyEntries.specNil (GF := GF) (hG := hG)
 
 end spec
 

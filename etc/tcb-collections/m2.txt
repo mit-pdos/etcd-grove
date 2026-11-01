@@ -291,6 +291,7 @@ axiom bbolt.Bucket.Put_kv.wp_proof
 axiom bbolt.Cursor.Next_kv.wp_proof
 axiom bbolt.Cursor.Seek_kv.wp_proof
 axiom bbolt.DB.Begin_kv.wp_proof
+axiom bbolt.DB.Close_kv.wp_proof
 axiom bbolt.DB.Info_kv.wp_proof
 axiom bbolt.DB.Stats_kv.wp_proof
 axiom bbolt.Tx.Bucket_kvr.wp_proof
@@ -315,6 +316,7 @@ axiom clockwork.clockLb_persistent
 axiom clockwork.realClock
 axiom clockwork.stampAt
 axiom clockwork.stampAt_persistent
+axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.Err.wp_proof
 axiom context.ErrAny.wp_proof
@@ -421,11 +423,15 @@ axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
+axiom lease.lessor.Recover.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom math.Ceil.wp_proof
+axiom membership.RaftCluster.Recover.wp_proof
+axiom membership.RaftCluster.SetBackend.wp_proof
 axiom membership.RaftCluster.SetVersionChangedNotifier.wp_proof
 axiom membership.RaftCluster.String.wp_proof
 axiom membership.RaftCluster.updateMembershipMetric.wp_proof
+axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
 axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
@@ -439,6 +445,7 @@ axiom net.Listen.wp_proof
 axiom netAddrFree
 axiom netListenerAt
 axiom newCorruptionChecker.wp_proof
+axiom os.Rename.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
 axiom pbEnc_ok
 axiom pbutil.MustUnmarshalMessage.wp_proof
@@ -512,6 +519,7 @@ axiom snap.Message.CloseWithError.wp_proof
 axiom snap.Message.GetTo.wp_proof
 axiom snap.Message.fields.wp_proof
 axiom snap.NewMessage.wp_proof
+axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom sort.Stable.wp_proof
 axiom sort.StringSlice.Sort.wp_proof
 axiom status.Code.wp_proof
@@ -519,6 +527,7 @@ axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
+axiom storage.OpenBackend.wp_proof
 axiom storage.storage.Release.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
@@ -553,6 +562,7 @@ axiom v2stats.NewServerStats.wp_proof
 axiom v2stats.ServerStats.BecomeLeader.wp_proof
 axiom v2stats.ServerStats.RecvAppendReq.wp_proof
 axiom v2stats.ServerStats.SendAppendReq.wp_proof
+axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
@@ -582,5 +592,6 @@ axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
 sorry EtcdServer.run.wp_proof
+sorry etcdserver.restorePre_of_apply
 sorry mergedCreate_window
 sorry merged_image

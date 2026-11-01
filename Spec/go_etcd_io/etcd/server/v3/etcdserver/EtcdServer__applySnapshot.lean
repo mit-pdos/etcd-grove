@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `s.applySnapshot(ep, ap)` with no snapshot (`ap.snapshot = nil`, raft's contract): it returns
 at once (`raft.IsEmptySnap(nil)`). -/
-abbrev EtcdServer.applySnapshot.spec : Prop :=
+abbrev EtcdServer.applySnapshot.specEmpty : Prop :=
   ∀ (s ep ap : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       taSnapshotAddr ap ↦□ (null : Loc) }}
@@ -168,6 +168,12 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
         (Val #ap))
     {{ RET #(); srvSnapApplied s ep sv γ ci E ρ γr d R A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl ∗
       notifyRcvN γnc 1 }} 
+
+/-- **`applySnapshot`'s spec** (J8b, 2026-11-01): both cases, the empty snapshot (`specEmpty`) and a
+non-empty one (`specSnap`), for the link. -/
+abbrev EtcdServer.applySnapshot.spec : Prop :=
+  EtcdServer.applySnapshot.specEmpty (GF := GF) (hG := hG) ∧
+    EtcdServer.applySnapshot.specSnap (GF := GF) (hG := hG)
 
 end spec
 

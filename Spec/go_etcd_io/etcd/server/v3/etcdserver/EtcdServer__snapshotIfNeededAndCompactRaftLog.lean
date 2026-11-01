@@ -37,7 +37,7 @@ and `specOn` its corollaries), kept. It takes what `snapshot` takes (`isServerM`
 spec, whose proof closed the snapshot branch with SNAPSHOT-SORRY #11, and this one, then `specFull`;
 2026-10-31, #11: `applyAll` uses this one, the other is gone. The snapshot track's S6: until then
 the KV commit contract with `RC`, post `RC ∨ RC'`.) -/
-abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.spec : Prop :=
+abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
     (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
     (ms : Loc) (γs : MemStorNames) (nid : w64) (γp : GName) (w : Nat)
@@ -85,6 +85,11 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specNoop : Prop :=
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))
       (Val #ep))
   {{ RET #(); srvFS s ∗ epAppliedIAddr ep ↦ ai ∗ epDiskSnapAddr ep ↦ ai ∗ epMemSnapAddr ep ↦ ai }}
+
+/-- **`snapshotIfNeededAndCompactRaftLog`'s spec** (J8b, 2026-11-01): both cases, after a batch (`specBatch`) and at the snapshot indices (`specNoop`), for the link. -/
+abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.spec : Prop :=
+  EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch (GF := GF) (hG := hG) ∧
+    EtcdServer.snapshotIfNeededAndCompactRaftLog.specNoop (GF := GF) (hG := hG)
 
 end spec
 

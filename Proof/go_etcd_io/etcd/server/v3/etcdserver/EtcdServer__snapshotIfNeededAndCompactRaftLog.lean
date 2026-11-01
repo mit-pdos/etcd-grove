@@ -32,12 +32,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
+theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
     (hD : EtcdServer.shouldSnapshotToDisk.spec (GF := GF) (hG := hG))
     (hM : EtcdServer.shouldSnapshotToMemory.spec (GF := GF) (hG := hG))
     (hS : EtcdServer.snapshot.spec (GF := GF) (hG := hG))
     (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
-    EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG) := by
+    EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch (GF := GF) (hG := hG) := by
   intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ sa q hok haw hci hrel hsz
     hwso
   wp_start as ⟨#Hsrv, #Hsd, #Hal, #Hkv, #Hss, #Hsa, #HWP, #HWA, HSS, #Hfz, #Hecs, #Hft, #Hapl, Hai,
@@ -155,6 +155,17 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofNoop
   iapply HΦ
   iframe Hai Hd Hm
   iunfold srvFS; iexists f; iexact Hf
+
+/-- **`snapshotIfNeededAndCompactRaftLog.spec`** (J8b, 2026-11-01): `wp_proofBatch` and
+`wp_proofNoop`. -/
+theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
+    (hD : EtcdServer.shouldSnapshotToDisk.spec (GF := GF) (hG := hG))
+    (hM : EtcdServer.shouldSnapshotToMemory.spec (GF := GF) (hG := hG))
+    (hS : EtcdServer.snapshot.spec (GF := GF) (hG := hG))
+    (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
+    EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG) :=
+  ⟨EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch hD hM hS hC,
+    EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofNoop hD hM⟩
 
 end proof
 

@@ -28679,3 +28679,26 @@ image's log `A'`. The choices made:
   `lastTermIs_of_snap` compares it with `srvRLogLb A'` (`isCommittedLogLb_agree`, both of length `i`),
   and `epCsVoters_of_snap` reads the voters off `csOptA` (newly in `srvSnapApplied`).
 
+## J8b: the snapshot cases linked by conjoining (2026-11-01, the user's decision)
+
+The link generator takes one spec per Go function. To reach `run` through the link, the snapshot
+case's specs join their functions' specs (the user's choice, over teaching `etc/gen-link.py` a
+second spec per function). The pattern is `apply.spec = specOff ∧ specOn`'s:
+
+- `applySnapshot.spec = specEmpty ∧ specSnap`, from `wp_proofEmpty` and `wp_proof_snap`; the link
+  lists `wp_proof_snap`'s 63 callees, with `backend__Close` and `watchableStore__Restore` reused
+  from backend's and mvcc's Links;
+- `applyEntries.spec = specBatch ∧ specNil` (the user approved the strengthening of the exported
+  `applyEntries_model` by the empty-batch triple);
+- `snapshotIfNeededAndCompactRaftLog.spec = specBatch ∧ specNoop`;
+- `applyAll.spec = specBatch ∧ specSnap` (approved: the exported `applyAll_model` gains the
+  snapshot payload's triple; the old statement is its first projection).
+
+`run_job_body` takes `specBatch` (`hAA.1`); `server_apply_all_on` takes the first projections. A
+consequence: `applySnapshot`'s callee `NewUberApplier` carries the cache package's Goose type
+assumptions (`go_etcd_io.etcd.cache.v3.Assumptions`, the generated `TypeAssumptions` of its types),
+so `wp_applyAll`, `wp_run`, `wp_start` and `wp_Start` and their results in `Results.lean` (`applyAll_model`,
+`server_run`, `server_start`, `server_Start`, `start_gives_views` and the mode-on four) take that
+instance argument too. It adds no assumption to the closed results: `wp_NewServer`, under all of
+them, already took it.
+
