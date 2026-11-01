@@ -584,6 +584,69 @@ theorem wp_run (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     iapply HΦ
     iframe
 
+/-- What the boot program knows of the file once open: as on disk, `GoodImg`. -/
+theorem open_facts (fo : Option OsFile) (hg : Good fo) :
+    ∃ m bs, openState (startState fo) = some (m, bs, none) ∧ m.hi = m.size ∧ m.ok = true ∧
+      m.size < 2 ^ 62 ∧ (∀ (i : Nat) (x : w8 × Bool), bs[i]? = some x → x.2 = true) ∧
+      GoodImg (bs.map Prod.fst) := by
+  cases fo with
+  | none =>
+    refine ⟨newMeta, [], rfl, rfl, rfl, by decide, fun i x h => by simp at h, ?_⟩
+    intro b hb; simp at hb
+  | some f =>
+    refine ⟨initMeta f, f.cur.map (·, true), rfl, rfl, rfl, hg.2, fun i x h => ?_, ?_⟩
+    · simp only [List.getElem?_map, Option.map_eq_some_iff] at h
+      obtain ⟨_, -, rfl⟩ := h; rfl
+    · have e : (f.cur.map (·, true)).map Prod.fst = f.cur := by
+        rw [List.map_map]; exact List.map_id'' (fun _ => rfl) _
+      rw [e]; exact hg.1
+
+theorem wp_Boot (wp_OpenFileC : os.OpenFile.specCrash (GF := GF) (hG := hG))
+    (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
+    (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
+    (wp_WriteAtC : os.File.WriteAt.specCrash (GF := GF) (hG := hG))
+    (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
+    (wp_FdatasyncC : syscall.Fdatasync.specCrash (GF := GF) (hG := hG))
+    (wp_Stat : os.File.Stat.spec (GF := GF) (hG := hG))
+    (wp_Size : os.fileStat.Size.spec (GF := GF) (hG := hG))
+    (dir : GoString) (γ : GName) (fo : Option OsFile) (hg : Good fo) :
+    {{ osInv (GF := GF) ∗ cfInv (GF := GF) logN (dir ++ go!"/log") γ Good ∗
+        cfOwn (GF := GF) (dir ++ go!"/log") γ (startState fo) }}
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.crashlog.Boot)) (Val #dir))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hos, #Hinv, Hown⟩
+  wp_auto
+  have hs : startState fo = none ∨ ∃ m bs, startState fo = some (m, bs, none) := by
+    cases fo with
+    | none => exact .inl rfl
+    | some f => exact .inr ⟨_, _, rfl⟩
+  rw [show (W64 2 ||| W64 64) = W64 0x42 from by decide]
+  wp_apply wp_OpenFileC (dir ++ go!"/log") _ logN γ Good (startState fo) hs logN_disj
+      (crash_open fo hg) $$ [Hos Hinv Hown]
+    as %f %err (⟨%fd, %Herr, Hf, Hfd, Hown⟩ | ⟨%Herr, %s', -, -⟩)
+  · iframe; iframe #
+  rotate_left
+  · obtain ⟨Herr, rfl⟩ := Herr
+    cases err with
+    | nil => exact absurd rfl Herr
+    | ok ie =>
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  obtain ⟨rfl, -⟩ := Herr
+  (try wp_auto)
+  obtain ⟨m, bs, hst, hhi, hok, hbd, hcl, hgi⟩ := open_facts fo hg
+  rw [hst]
+  wp_apply wp_run wp_ReadAt wp_WriteAtC wp_Fd wp_FdatasyncC wp_Stat wp_Size f fd _ γ m bs hhi hok hbd
+      hcl hgi $$ [Hos Hinv Hf Hfd Hown] as ⟨Hf, Hfd, -⟩
+  · iframe; iframe #
+  (try wp_auto)
+  wp_apply wp_Close f fd _ ⟨dir ++ go!"/log", true, true⟩ $$ [Hos Hf Hfd] as %_e -
+  · iframe; iframe #
+  (try wp_auto)
+  iapply HΦ
+  itrivial
+
 end proof
 
 end crashlog
