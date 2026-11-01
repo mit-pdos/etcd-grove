@@ -268,6 +268,61 @@ theorem dmu_close_enter (γ : KdNames) (dir : GoString) (id : w64) (r n st ms : 
   iunfold kdBatchRes
   iframe Hdrv Hmsgs
 
+/-- **The frozen record raised to the delivered log `D'`**: the image's entries up to `fz` were
+frozen; those from `fz` to `len D'` are `D'`'s (the batch's durable log's, G14), which the applier's
+frozen record (`frozenTo c D'`, `c ≤ fz`) has frozen. -/
+theorem frozen_extend (γs : MemStorNames) (p : Nat) (E E' : List EntryM) (c fz : Nat)
+    (D' : List LogEntry) (Hc : c ≤ fz) (Hp : p ≤ fz)
+    (Htk : E'.take (fz - p) = E.take (fz - p))
+    (Hent : ∀ i, fz < i → i ≤ D'.length →
+      ∃ x, D'[i - 1]? = some x ∧ E'[i - p - 1]? = some (x.toEntryM (W64 i))) :
+    memLog (GF := GF) γs (p + 1) DFrac.discard (E.take (fz - p)) ∗ kvreconf.frozenTo γs c D' ⊢
+      memLog γs (p + 1) DFrac.discard (E'.take (max fz D'.length - p)) := by
+  iintro ⟨#Hold, #Hf⟩
+  by_cases hle : D'.length ≤ fz
+  · rw [show max fz D'.length = fz by omega, Htk]; iexact Hold
+  rw [show max fz D'.length = D'.length by omega]
+  have hlen : D'.length - p ≤ E'.length := by
+    obtain ⟨x, -, hx⟩ := Hent D'.length (by omega) (Nat.le_refl _)
+    have := (List.getElem?_eq_some_iff.1 hx).1
+    omega
+  have hsplit : E'.take (D'.length - p) =
+      E'.take (fz - p) ++ (LogEntry.toEntries D' 0).drop fz := by
+    apply List.ext_getElem?
+    intro j
+    by_cases hj : j < fz - p
+    · rw [List.getElem?_append_left (by rw [List.length_take]; omega), List.getElem?_take_of_lt hj,
+        List.getElem?_take_of_lt (by omega)]
+    · rw [List.getElem?_append_right (by rw [List.length_take]; omega), List.length_take,
+        show min (fz - p) E'.length = fz - p by omega]
+      by_cases hj2 : j < D'.length - p
+      · rw [List.getElem?_take_of_lt hj2, List.getElem?_drop]
+        obtain ⟨x, hx, hx'⟩ := Hent (p + j + 1) (by omega) (by omega)
+        rw [show p + j + 1 - p - 1 = j by omega] at hx'
+        rw [hx', show fz + (j - (fz - p)) = p + j + 1 - 1 by omega,
+          kvreconf.kvr_toEntries_get D' 0 _ x hx]
+        congr 3; push_cast; omega
+      · rw [List.getElem?_eq_none (by rw [List.length_take]; omega), List.getElem?_eq_none
+          (by rw [List.length_drop, kvreconf.kvr_toEntries_length]; omega)]
+  rw [hsplit]
+  iapply (memLog_app γs (p + 1) DFrac.discard _ _).2
+  rw [show (E'.take (fz - p)).length = fz - p by rw [List.length_take]; omega]
+  isplitl []
+  · rw [Htk]; iexact Hold
+  unfold kvreconf.frozenTo
+  have hd : (LogEntry.toEntries D' 0).drop c =
+      ((LogEntry.toEntries D' 0).drop c).take (fz - c) ++ (LogEntry.toEntries D' 0).drop fz := by
+    conv => lhs; rw [← List.take_append_drop (fz - c) ((LogEntry.toEntries D' 0).drop c)]
+    rw [List.drop_drop, show c + (fz - c) = fz by omega]
+  ihave #Hf' : memLog γs (c + 1) DFrac.discard
+      (((LogEntry.toEntries D' 0).drop c).take (fz - c) ++ (LogEntry.toEntries D' 0).drop fz) $$ []
+  · rw [← hd]; iexact Hf
+  ihave ⟨-, H2⟩ := (memLog_app γs (c + 1) DFrac.discard _ _).1 $$ Hf'
+  rw [List.length_take, List.length_drop, kvreconf.kvr_toEntries_length,
+    show min (fz - c) (D'.length - c) = fz - c by omega,
+    show c + 1 + (fz - c) = p + 1 + (fz - p) by omega]
+  iexact H2
+
 end dmu
 
 end kvdurable
