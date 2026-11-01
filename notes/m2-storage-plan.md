@@ -1,6 +1,21 @@
 # Plan: M2, the storage side (spec-first; branch `m2-storage`)
 
-Status (2026-10-30): **item 17 switched with the lease** ("Item 17 switched: the jobs' share
+**Done (2026-11-01).** Compaction is in the server's model: the request path (`EtcdServer.Compact`),
+the apply side (the backend's `Compaction`, the chain's triple, `dispatch`/`Apply`, `applyEntryNormal`'s
+compaction arm), the storage side and `NewServer` in both compaction modes are proved; the client's
+`kv.Compact` is proved; `examples/compactkv`'s closed theorem `compactkv_safe` is proved and `putgetc`
+rests on the same proofs (both still on the server's snapshot-track `sorry`s). `notes/STATUS.md`, "M2,
+the apply side".
+What is left, none of it M2's goal: restore in compaction mode (the interim restriction "a snapshot
+installed only with the mode off", `specSnap`'s `d.cm = false`; the storage plan's "B2 by sealed
+logs" Drafts are its unswitched design); `kvApplied`'s `crevOf` clause (deferred, `notes/decisions.md`,
+"stage 4c"); the compaction arm with auth on (`applyEntryNormal` applies compactions on the auth-off
+path only), with the auth-mode merge of `applyAll`/`run`'s `spec`/`specOn` (the apply plan's stage 5,
+which needs nothing of M2 and waits on SNAPSHOT-SORRY #7/#8); one token count in place of `bootstrap`'s
+`N + N` (the user's later); the Draft modules (`M2ApplyDraft*`, `M2StorageDraft*`, `M2ApplyProbe` under
+`etcdserver/`, `apply/` and `mvcc/`; they import only each other) to delete or fold in.
+
+Earlier status (2026-10-30): **item 17 switched with the lease** ("Item 17 switched: the jobs' share
 leased", the last section: 17, item 4's step-2 text, 20, 23, 24 real; item 31 stopped, its `none`
 arm needing a nil-hook `SetScheduledCompact` no approved text states). Before: **the approved items switched** ("The switch of the approved items", the last
 section: 1-13, 19, 26, 28, 29's pure vocabulary, 34, 35 and item 4's supply line real; item 17
