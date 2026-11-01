@@ -337,19 +337,34 @@ theorem RawNode.acceptReady.wp_proof
   wp_auto
   -- `if rd.SoftState != nil { rn.prevSoftSt = rd.SoftState }`: either way `prevSoftSt`
   -- points to a read-only `SoftState`
+  -- (durability stage II, G2) and the `Ready`'s soft state as `softStateIs`, at the role `prevSoftSt`
+  -- then has
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ rd ∗
-      ∃ (psp : Loc) (v : SoftState), rawNodeOwn rn { rnv with prevSoftSt' := psp } ∗ psp ↦□ v)
-    with [Hrn rn rd] as ⟨rn, rd, %psp, %v, Hrn, #Hpsp⟩
+      ∃ (psp : Loc) (v : SoftState), rawNodeOwn rn { rnv with prevSoftSt' := psp } ∗ psp ↦□ v ∗
+        ∃ ss : Option (w64 × StateType), softStateIs rd.SoftState' ss ∗
+          ⌜roleAfter rs.role ss = v.RaftState'⌝)
+    with [Hrn rn rd] as ⟨rn, rd, %psp, %v, Hrn, #Hpsp, Hss0⟩
   · iframe rn rd
     iexists rnv.prevSoftSt', sv
     iframe Hsoft
-    iexact Hrn
+    iframe Hrn
+    iexists none
+    unfold softStateIs
+    ipureintro
+    exact ⟨Hif, Hrole⟩
   · icases Hrdsoft with (%Hn | ⟨%v, #Hv⟩)
     · exact absurd Hn Hif
     iframe rn rd
     iexists rd.SoftState', v
     iframe Hv
-    iexact Hrn
+    iframe Hrn
+    iexists some (v.Lead', v.RaftState')
+    unfold softStateIs
+    icases typedPointsto_split _ _ _ $$ Hv with Hv'
+    simp only [TypedPointsto.typedPointstoDef]
+    iNamed Hv'
+    iframe Lead RaftState
+    ipureintro; rfl
   -- `if !IsEmptyHardState(rd.HardState) { rn.prevHardSt = rd.HardState }`: either way
   -- `prevHardSt` points to a read-only hard state
   wp_apply wp_IsEmptyHardState $$ [$Hrdhard]
@@ -929,12 +944,7 @@ theorem RawNode.acceptReady.wp_proof
   -- (D19i part 1) the floor and `applied` unmoved; `applying` moved to the last committed entry
   -- handed out, whose acknowledgement is queued
   -- (2026-11-01, durability stage I fix G2) the `Ready`'s soft state, which the node records
-  ihave #Hss : ∃ ss : Option (w64 × StateType), softStateIs rd.SoftState' ss ∗
-      ⌜roleAfter rs.role ss = v.RaftState'⌝ $$ []
-  · -- PORT(durability stage II): G2, the soft state `prevSoftSt` now points to, as `softStateIs`
-    -- of the `Ready`'s (`nil`: the old one, `Hrole`)
-    sorry
-  icases Hss with ⟨%ss, #Hss, %HroleN⟩
+  icases Hss0 with ⟨%ss, #Hss, %HroleN⟩
   let rsN : RNState :=
     { rs with delivered := rs.delivered ++ ce, unpersisted := nextUnstable s.logst,
               steps := readySteps s L ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce,
@@ -1065,9 +1075,52 @@ theorem RawNode.acceptReady.wp_proof
       readyNstate_snapFol Hpvoff.2.2.2.2⟩ rfl rfl
     (by rw [Hlogst, Haf4, Hf_cm]; exact Hrs_clb) HrnflN HloanN
     HsdtN HroleN $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc' []
-  · -- PORT(durability stage II): G2, the `Ready` keeps the durable state's tie (`durTie`: the batch
-    -- handed out, `readyDurable`, is the log up to the unstable entries not yet handed out)
-    sorry
+  · -- (durability stage II, G2) the `Ready` keeps the durable state's tie: the batch handed out
+    -- (`readyDurable`) is the log up to the unstable entries not yet handed out (none left now)
+    have Hnu' : nextUnstable (readyNstate s L ce sz (dlvAfter rs.delivered ce L).length).logst = [] := by
+      have h : nextUnstable (logAcceptApplying (logAcceptUnstable ls0) ce sz) =
+          nextUnstable (logAcceptUnstable ls0) := by
+        unfold logAcceptApplying; split <;> rfl
+      rw [Hlogst, h]
+      exact nextUnstable_acceptUnstable ls0 Hwf3
+    have Hp' : (readyNstate s L ce sz (dlvAfter rs.delivered ce L).length).logst.prev = s.logst.prev := by
+      rw [Hlogst, Haf1, Hf_prev]
+    have Hse' : (readyNstate s L ce sz (dlvAfter rs.delivered ce L).length).logst.sents = s.logst.sents := by
+      rw [Hlogst, Haf14, Hf_sents]
+    have Hue' : (readyNstate s L ce sz (dlvAfter rs.delivered ce L).length).logst.uents = s.logst.uents := by
+      rw [Hlogst, Haf13, Hf_uents]
+    unfold durTie
+    rw [Hnu', Hp', Hse', Hue']
+    iintro !> %_ %fp %Hfp #Hrec
+    cases hl : L with
+    | none =>
+      have Hsn : s.logst.snap = none := (Hrdp.1 hl).2
+      ihave %H := Hdur $$ %(.inl Hsn) %fp %Hfp Hrec
+      ipureintro
+      rw [DurFull_next_nil]
+      show DurFull (readyDurable rs.dur (phsNext rs.phs hrd) L (nextUnstable s.logst)) _
+      rw [hl]
+      unfold readyDurable
+      simp only [Option.map_none]
+      exact (DurFull_next_tvc _ _ _ _ _ _ _ _ _ _).1 H
+    | some l =>
+      obtain ⟨-, Hrd⟩ := Hrdp.2 l hl
+      obtain ⟨Hsn, -, -, -, -, -, -, -, -, Hnul, -⟩ := Hrd
+      have Hh := Hsfa.2.2.2 (snapId l.snap) (by
+        show ls0.snap = _; rw [Hf_snap]; exact Hsn)
+      rw [Hhp, Hhs] at Hh
+      obtain ⟨Hprev, Hsents, -⟩ := Hh
+      ipureintro
+      rw [DurFull_next_nil]
+      show DurFull (readyDurable rs.dur (phsNext rs.phs hrd) L (nextUnstable s.logst)) _
+      rw [hl]
+      unfold readyDurable
+      simp only [Option.map_some]
+      rw [Hnul, Hsents, List.nil_append, List.append_nil]
+      rw [Hprev] at Hfp
+      have Hidx' := Hidx
+      rw [Hprev, Hsents, List.nil_append] at Hidx'
+      exact DurFull_next_snap _ _ _ _ _ _ _ Hfp Hidx'
 
 end proof
 

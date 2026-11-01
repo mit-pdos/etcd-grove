@@ -2154,6 +2154,93 @@ theorem durTie_congr (γ : RaftNames) {rs rs' : RNState} {s s' : NState}
     durTie (GF := GF) γ rs s ⊢ durTie γ rs' s' := by
   unfold durTie; rw [hd, hl, hsn, hp, hse, hue, hnu]
 
+/-- (durability stage II, G2) `DurFull` of a batch's state reads only the base and the entries: not
+the hard state's term, vote and commit. -/
+theorem DurFull_next_tvc (S : RaftState) (t v c t' v' c' : w64) (o : Option SnapshotM)
+    (es F : List EntryM) :
+    DurFull (S.next t v c o es) F ↔ DurFull (S.next t' v' c' o es) F := by
+  cases o <;> exact Iff.rfl
+
+/-- (durability stage II, G2) A batch of no entries and no snapshot leaves the base and the
+entries. -/
+theorem DurFull_next_nil (S : RaftState) (t v c : w64) (F : List EntryM) :
+    DurFull (S.next t v c none []) F ↔ DurFull S F := Iff.rfl
+
+/-- (durability stage II, G2) **A batch with a snapshot**: its state's full log is the prefix up to
+the snapshot (`fp`, of the snapshot's id) with the batch's entries after it, numbered from it. -/
+theorem DurFull_next_snap (S : RaftState) (t v c : w64) (sv : SnapshotM) (fp es : List EntryM)
+    (Hfp : FullOk (entryID.mk sv.Metadata'.Term' sv.Metadata'.Index') fp)
+    (Hidx : LogIndicesOk (entryID.mk sv.Metadata'.Term' sv.Metadata'.Index') es) :
+    DurFull (S.next t v c (some sv) es) (fp ++ es) := by
+  have Happ : appendEnts (entryID.mk sv.Metadata'.Term' sv.Metadata'.Index') [] es = es := by
+    cases hu : es with
+    | nil => rfl
+    | cons e0 r =>
+      have h1 := Hidx 0 e0 (by rw [hu]; rfl)
+      unfold appendEnts plogTruncateAppend
+      have : (uint.Z (entryID.mk sv.Metadata'.Term' sv.Metadata'.Index').index' + 1 -
+          uint.Z e0.Index').toNat = 0 := by
+        simp only at h1 ⊢; omega
+      simp only [this, List.drop_zero, List.take_nil, List.nil_append]
+  have Hl : fp.length = uint.nat sv.Metadata'.Index' := by
+    have := Hfp.1; have h2 := uint_nat_eq sv.Metadata'.Index'; simp only at this; omega
+  refine ⟨?_, ?_⟩
+  · show appendEnts (entryID.mk sv.Metadata'.Term' sv.Metadata'.Index') [] es =
+      (fp ++ es).drop (uint.nat sv.Metadata'.Index')
+    rw [Happ, ← Hl, List.drop_left]
+  · show FullOk (entryID.mk sv.Metadata'.Term' sv.Metadata'.Index')
+      ((fp ++ es).take (uint.nat sv.Metadata'.Index'))
+    rw [← Hl, List.take_left]
+    exact Hfp
+
+/-- (durability stage II, G2) After a `Ready` nothing unstable is left to hand out. -/
+theorem nextUnstable_acceptUnstable (ls : LogState)
+    (Hnw : uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int) + 1 < 2 ^ 64) :
+    nextUnstable (logAcceptUnstable ls) = [] := by
+  unfold nextUnstable logAcceptUnstable logEnd logLast logOffset
+  apply List.drop_eq_nil_of_le
+  have h0 := word.unsigned_range ls.prev.index'
+  have : uint.Z (W64 (uint.Z ls.prev.index' + ls.sents.length + ls.uents.length) + W64 1) =
+      uint.Z ls.prev.index' + ls.sents.length + ls.uents.length + 1 := by word
+  simp only
+  rw [this]; omega
+
+/-- (durability stage II, G2) **A fresh node's tie**: at the initial durable state, with an empty
+stable log from the zero boundary, nothing handed out and no snapshot, the unstable entries
+numbered from `1`. -/
+theorem durTie_fresh (γ : RaftNames) (rs : RNState) (s : NState) (Hd : rs.dur = RaftState.init)
+    (Hp : s.logst.prev = entryID.mk (W64 0) (W64 0)) (Hse : s.logst.sents = [])
+    (Hnu : nextUnstable s.logst = s.logst.uents)
+    (Hidx : ∀ e0, s.logst.uents.head? = some e0 → uint.Z e0.Index' = 1) :
+    ⊢ durTie (GF := GF) γ rs s := by
+  unfold durTie
+  iintro !> %_ %fp %Hfp _
+  ipureintro
+  obtain ⟨Hlen, -, -⟩ := Hfp
+  rw [Hp] at Hlen
+  have Hfp0 : fp = [] := List.eq_nil_of_length_eq_zero (by
+    have : uint.Z (entryID.mk (W64 0) (W64 0)).index' = 0 := rfl
+    omega)
+  subst Hfp0
+  rw [Hd, Hnu, Hse, List.nil_append, List.nil_append]
+  have Happ : appendEnts (entryID.mk (W64 0) (W64 0)) [] s.logst.uents = s.logst.uents := by
+    cases hu : s.logst.uents with
+    | nil => rfl
+    | cons e0 r =>
+      have h1 := Hidx e0 (by rw [hu]; rfl)
+      unfold appendEnts plogTruncateAppend
+      have : (uint.Z (entryID.mk (W64 0) (W64 0)).index' + 1 - uint.Z e0.Index').toNat = 0 := by
+        have : uint.Z (entryID.mk (W64 0) (W64 0)).index' = 0 := rfl
+        omega
+      simp only [this, List.drop_zero, List.take_nil, List.nil_append]
+  refine ⟨?_, ?_⟩
+  · show appendEnts (entryID.mk (W64 0) (W64 0)) [] s.logst.uents = _
+    rw [Happ]
+    show _ = s.logst.uents.drop (uint.nat (W64 0))
+    rfl
+  · show FullOk (entryID.mk (W64 0) (W64 0)) (s.logst.uents.take (uint.nat (W64 0)))
+    exact FullOk_base0
+
 /-- See the file header. `s` is the node's physical state, `c` the configuration the struct is
 at, `fp` the ghost full prefix (the dynamic mode's ghost part is `⟨rs.capplied, rs.cfg, fp⟩`);
 `delivered` is the committed log up to `applying` (`isCommitted_agree` makes it the one such
