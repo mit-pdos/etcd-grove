@@ -81,7 +81,7 @@ private abbrev RestartNode.specRaw : Prop :=
     -- node's table entry (`nodeTabOk`) exists before the storage's contract is read
     (gdlm gcap gccq gcam glive : GName)
     (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM) (R R' : IProp GF),
+    (hs : HardStateM) (csm : ConfStateM) (R R' : IProp GF) (cs' : CCState),
   -- `NewRawNode`'s premises
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -96,35 +96,46 @@ private abbrev RestartNode.specRaw : Prop :=
   cv.AsyncStorageWrites' = false →
   -- (2026-10-25, T-M M2b: pre-vote either way; 2026-10-17 to 2026-10-25 off in the dynamic mode,
   -- which did not model pre-candidates; until then off in either mode)
-  cv.Applied' = W64 0 →
-  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → σ.pend = [] →
-  σ.fr = 0 → σ.sg = 0 → σ.dt = ∅ →
-  HsEmpty hs →
+  -- (2026-11-01, durability stage I-6: a restart from a storage holding a log, `NewRawNode`'s
+  -- premises as they are now: raft's view from the base, the attach record, the hard state
+  -- restored, `Applied` within the committed part, any conf state `Restore` accepts. Until then an
+  -- empty storage, an empty hard state, nothing applied, voters only.
+  -- PORT(durability stage II): the ghost-state premises and the post below are still the empty
+  -- start's (`rnInit`, `isCommitted γ []`, the configuration names at `0`, the driver at `[]`);
+  -- stage II (d) restates them with `raft_restart` (`restartP`) and the wrapper.)
+  LogIndicesOk σ.prev σ.ents → σ.pend = [] → σ.fr = uint.nat σ.prev.index' →
+  uint.Z σ.fl ≤ uint.Z σ.prev.index' → σ.sg ≤ uint.nat σ.prev.index' →
+  (∀ k t, σ.dt !! k = some t → k ≤ uint.nat σ.prev.index') →
+  uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 < 2 ^ 64 →
+  AttachRec sn σ.prev σ.ents (uint.nat (committedAfter σ.prev hs))
+    (max (uint.nat σ.prev.index') (uint.nat cv.Applied')) →
+  (HsEmpty hs ∨ uint.Z σ.prev.index' ≤ uint.Z hs.Commit' ∧
+    uint.Z hs.Commit' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) →
+  (cv.Applied' = W64 0 ∨ uint.Z σ.prev.index' ≤ uint.Z cv.Applied' ∧
+    uint.Z cv.Applied' ≤ uint.Z (committedAfter σ.prev hs)) →
   -- (2026-10-16, stage R5) the conf state's record `csm`, as `NewRawNode`'s
-  csm.Voters' ≠ [] → csm.Voters'.Nodup → W64 0 ∉ csm.Voters' →
-  (csm.Voters'.length : Int) ≤ 2 ^ 62 →
-  csm.VotersOutgoing' = [] →
-  csm.Learners' = [] →
-  csm.LearnersNext' = [] →
-  csm.AutoLeave' = false →
+  restoreM csm.VotersOutgoing' csm.Voters' csm.Learners' csm.LearnersNext' csm.AutoLeave' =
+    some cs' →
+  csm.Voters'.length + csm.VotersOutgoing'.length + csm.Learners'.length +
+    csm.LearnersNext'.length ≤ 2 ^ 62 →
   -- (2026-10-29, stage U4: only in the static mode; a dynamic node, a newcomer, need not be one of
   -- the conf state's voters)
   (md = .static → γ.reCfg = GMap.listToSet csm.Voters') →
   (md = .static → cv.ID' ∈ csm.Voters') →
   -- (2026-10-25, T-M M2c: `StepDownOnRemoval` either way; 2026-10-15 to 2026-10-25 on in the dynamic
   -- mode)
-  -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
-  σ.fl = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
-      -- (raft-final phase 1) `NewRawNode`'s boot bundle
+      -- (raft-final phase 1) `NewRawNode`'s boot bundle (durability stage I-6: at the view's base
+      -- and last index; raft's view made without the attach record, `sn.unrec`)
       (□ {{ R }} (App (Val #(methods si.ty go!"FirstIndex" si.v)) (Val #()))
-         {{ RET (PairV #(W64 1) #interface.nil); R }}) ∗
+         {{ RET (PairV #(W64 (uint.nat σ.prev.index' + 1)) #interface.nil); R }}) ∗
       (□ {{ R }} (App (Val #(methods si.ty go!"LastIndex" si.v)) (Val #()))
-         {{ RET (PairV #(W64 0) #interface.nil); R }}) ∗
+         {{ RET (PairV #(W64 (uint.nat σ.prev.index' + σ.ents.length)) #interface.nil); R }}) ∗
       (□ {{ R }} (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #()))
          {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
             hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
-            |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn (interface.ok si) σ ∗ R' }}) ∗
+            |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn.unrec (interface.ok si) σ ∗
+              R' }}) ∗
       -- (2026-10-15, stage N) the ghost state in the mode `md` (`NewRawNode`'s `rnInit`; until
       -- then `ownRaftGhost γ cv.ID' initPState`, the static mode's)
       rnInit γ md cv.ID' (GMap.listToSet csm.Voters') ∗ isCommitted γ [] ∗

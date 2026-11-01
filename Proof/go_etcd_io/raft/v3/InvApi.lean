@@ -1692,7 +1692,7 @@ the attach (`restartStorage`'s continuation, where raft allocates `K`). By this 
 `nodeAppliedLb γ K`/`nodeCommitLb γ K` are the floor's, the snapshot hand-out's and the certified
 terms' lower bounds of the one node attached to it. -/
 def storKeyNames (K : GName) (sn : StorNames) : IProp GF :=
-  dghostVar K DFrac.discard (sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk)
+  dghostVar K DFrac.discard (sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct)
 
 instance storKeyNames_persistent (K : GName) (sn : StorNames) :
     Persistent (storKeyNames (GF := GF) K sn) := by
@@ -1710,10 +1710,11 @@ theorem storKeyNames_agree (K : GName) (sn1 sn2 : StorNames) :
 /-- (U8 v2, 2026-10-29; 2026-11-01, durability stage I-4: keyed by the storage's key, with
 `snapGiven` merged in) **Compacting the storage of key `K` up to `k` is safe** (the API's
 `nodeAppliedLb`): `k = 0`, or a lower bound of the floor its node's log published (`storFloor`), or
-of a snapshot it handed out (which `Advance` applies: `appliedSnap`). -/
+of a snapshot it handed out (which `Advance` applies: `appliedSnap`), or (2026-11-01, durability
+stage I-6) at most the applied bound the attach recorded (`StorNames.a0`, raft's `raftBnd`). -/
 def nodeAppliedLbU (γ : Cluster) (K : GName) (k : Nat) : IProp GF :=
   iprop(⌜k = 0⌝ ∨ ∃ sn : StorNames, storKeyNames K sn ∗
-    (monoNatLbOwn sn.ga k ∨ monoNatLbOwn sn.gg k))
+    (monoNatLbOwn sn.ga k ∨ monoNatLbOwn sn.gg k ∨ ⌜k ≤ sn.a0⌝))
 
 /-- (2026-11-01, durability stage I-4; until then the open `storDL γ id i`) **The node on the
 storage of key `K` has committed at least `i`** (the API's `nodeCommitLb`): a committed log `l` at
@@ -1747,10 +1748,11 @@ theorem nodeAppliedLbU_zero (γ : Cluster) (K : GName) : ⊢ nodeAppliedLbU (GF 
 theorem nodeAppliedLbU_mono (γ : Cluster) (K : GName) (k k' : Nat) (h : k' ≤ k) :
     nodeAppliedLbU (GF := GF) γ K k ⊢ nodeAppliedLbU γ K k' := by
   unfold nodeAppliedLbU
-  iintro (%H | ⟨%sn, #Hs, (#Hl | #Hl)⟩)
+  iintro (%H | ⟨%sn, #Hs, (#Hl | #Hl | %Hl)⟩)
   · ileft; ipureintro; omega
   · iright; iexists sn; iframe Hs; ileft; iapply monoNatLbOwn_le k' h $$ Hl
-  · iright; iexists sn; iframe Hs; iright; iapply monoNatLbOwn_le k' h $$ Hl
+  · iright; iexists sn; iframe Hs; iright; ileft; iapply monoNatLbOwn_le k' h $$ Hl
+  · iright; iexists sn; iframe Hs; iright; iright; ipureintro; omega
 
 theorem nodeCommitLbU_zero (γ : Cluster) (K : GName) : ⊢ nodeCommitLbU (GF := GF) γ K 0 := by
   unfold nodeCommitLbU; iintro; ileft; ipureintro; rfl

@@ -96,7 +96,7 @@ conf state's tracker `cs`, `Applied` `A`): `rawNodeFresh` generalized -- the raf
 configuration `cs` (`ownRaftPhysC`), at a state refining the restarted follower's protocol state (the
 hard state's term and vote, the stored log from the base, the commit index `loadState` restores), the
 log stable with nothing unstable or handed out, applying from `A` (or the base), the certification
-bound at the base; `prevHardSt` the hard state `r.hardState()` reads then. -/
+bound at the restored commit (durability stage I-6: raft certified the attach record's terms); `prevHardSt` the hard state `r.hardState()` reads then. -/
 def rawNodeAt (rn : Loc) (id : w64) (si : GoInterfaceOk) (cs : CCState) (sdr : Bool) (pre : Bool)
     (hs : HardStateM) (σ : StorState) (A : w64) (s : NState) : IProp GF :=
   iprop(∃ (rnv : RawNode) (sv : SoftState) (hprev : HardStateM),
@@ -115,7 +115,7 @@ def rawNodeAt (rn : Loc) (id : w64) (si : GoInterfaceOk) (cs : CCState) (sdr : B
       s.logst.applied = s.logst.applying ∧
       s.logst.applying = w64Max σ.prev.index' (if A = W64 0 then σ.prev.index' else A) ∧
       s.logst.unpersisted = [] ∧ s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧
-      s.logst.dtk = uint.nat σ.prev.index'⌝ ∗
+      s.logst.dtk = uint.nat (committedAfter σ.prev hs)⌝ ∗
     "%Hgh" ∷ ⌜s.gh = { sn := s.gh.sn }⌝ ∗
     "%Hpvoff" ∷ ⌜s.prevote = pre⌝ ∗
     "%Hsdr" ∷ ⌜s.sdr = sdr⌝ ∗

@@ -43,6 +43,18 @@ pend := [] }` only; until 2026-10-29 a general view's `isStorageD` and `ownStora
 needs `R` again for `InitialState`; so the post hands out `R` together with the wand that
 completes the log once raft's view is given.
 
+**The struct out, and the log at a loaded state** (2026-11-01, durability stage I-6, the attach
+record). On a restart the storage key's attach record (`StorNames.a0`/`c0`/`ct`: the applied bound
+`max σ.b A`, the stored commit, its terms) is ahead of the struct `newLogWithSize` builds
+(`committed = applied = applying = b`), and raft's view catches up with it (`storCaught`, in
+`ownStorage`) only once `newRaft` has run `loadState` and `appliedTo`. Between `InitialState` and
+`appliedTo` there is no `ownRaftLog`: the client may already compact up to the record, which the
+view's triples (`isStorageD`) do not allow below the floor. So the post gives the struct `l ↦ lv0`
+itself (its fields as built: nothing unstable, the counters at `b`) and the wand completes the log
+at the state the caller's `loadState`/`appliedTo` moved the struct to (`committed := c`, `applied =
+applying := a`), raft's view at the base with the floor at most `a` and the terms certified at most
+`c` (of the view's log at or above the base). (Until 2026-11-01 the wand completed the log at `b`.)
+
 The `Logger` is a non-nil one with `isLogger` (since 2026-10-01): `ownRaftLog` carries
 it, for the `Infof`s of `findConflict` and `unstable.truncateAndAppend`, and the struct
 literal installs it as both `l.logger` and `l.unstable.logger`. -/
@@ -67,17 +79,29 @@ abbrev newLogWithSize.spec : Prop :=
       (Val #maxSize))
   {{ (l : Loc) (ip : w64), RET #l;
       R ∗ ⌜uint.Z ip = (last : Int) + 1⌝ ∗
-      (∀ σ : StorState,
+      -- (durability stage I-6) the struct as built
+      ∃ lv0 : raftLog, l ↦ lv0 ∗
+      ⌜lv0.storage' = interface.ok si ∧ lv0.committed' = W64 b ∧ lv0.applied' = W64 b ∧
+        lv0.applying' = W64 b ∧ lv0.unstable'.snapshot' = null ∧ lv0.unstable'.entries'.len = W64 0 ∧
+        lv0.unstable'.offset' = ip ∧ lv0.unstable'.offsetInProgress' = ip ∧
+        lv0.unstable'.snapshotInProgress' = false ∧ lv0.applyingEntsSize' = W64 0 ∧
+        lv0.applyingEntsPaused' = false ∧ lv0.maxApplyingEntsSize' = maxSize⌝ ∗
+      -- the log, at the counters `loadState`/`appliedTo` set, over raft's view from the base
+      (∀ (σ : StorState) (c a : w64),
         ⌜uint.nat σ.prev.index' = b ∧ b + σ.ents.length = last ∧ LogIndicesOk σ.prev σ.ents ∧
-          σ.pend = [] ∧ uint.nat σ.fl ≤ b ∧ σ.fr = b ∧ σ.sg ≤ b ∧
-          (∀ k t, σ.dt !! k = some t → k ≤ b)⌝ -∗
+          σ.pend = [] ∧ σ.fr = b ∧ σ.sg ≤ b ∧
+          b ≤ uint.nat a ∧ uint.nat a ≤ uint.nat c ∧ uint.nat c ≤ last ∧ uint.nat σ.fl ≤ uint.nat a ∧
+          (∀ k t, σ.dt !! k = some t → k ≤ uint.nat c ∧
+            (b ≤ k → termAt σ.prev σ.ents (W64 (k : Int)) = some t))⌝ -∗
+       l ↦ { lv0 with committed' := c, applied' := a, applying' := a } -∗
        isStorageD sn (interface.ok si) -∗
        ownStorage sn (interface.ok si) σ -∗
        ownRaftLog l
-         { prev := σ.prev, sents := σ.ents, uents := [], committed := σ.prev.index',
-           applied := σ.prev.index', snap := none, inprogress := ip,
-           applying := σ.prev.index', unpersisted := [], stored := σ.ents, apsize := W64 0,
-           apmax := maxSize, storage := interface.ok si, ksn := [], sn := sn }) }}
+         { prev := σ.prev, sents := σ.ents, uents := [], committed := c,
+           applied := a, snap := none, inprogress := ip,
+           applying := a, unpersisted := [], stored := σ.ents, apsize := W64 0,
+           apmax := maxSize, storage := interface.ok si, ksn := [], sn := sn, fl := σ.fl,
+           sg := σ.sg, dtk := uint.nat c }) }}
 
 end spec
 
