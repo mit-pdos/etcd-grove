@@ -47,6 +47,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchBatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CompactNoDup
 public import Perennial.Golang.Theory.Chan
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
@@ -320,9 +321,13 @@ instance WsState.countable : Pos.Countable WsState :=
 /-- The victim batch of `w`, if any. -/
 def WsState.victimOf (σ : WsState) (w : Loc) : Option EventBatch := σ.VB.findSome? (· !! w)
 
-/-- `w` is a live watcher under the lock: synced, unsynced or a victim. -/
+/-- `w` is a live watcher under the lock: synced, unsynced or a victim, or (watches across a
+compaction, 2026-11-01) compacted with its channel open (`chooseAll` sent it its compaction
+response and deleted it from the unsynced group; it waits for its cancel, `cancelWatcher`'s
+`compacted` arm). -/
 def WsState.live (σ : WsState) (w : Loc) : Prop :=
-  (σ.Ws !! w).isSome ∨ (σ.Wu !! w).isSome ∨ (σ.victimOf w).isSome
+  (σ.Ws !! w).isSome ∨ (σ.Wu !! w).isSome ∨ (σ.victimOf w).isSome ∨
+    (σ.ST !! w).any (fun st => st.compacted && st.ch != null)
 
 instance (σ : WsState) (w : Loc) : Decidable (σ.live w) := by unfold WsState.live; infer_instance
 
@@ -345,7 +350,7 @@ structure WsOk (σ : WsState) : Prop where
   wo_st : ∀ w, (σ.Wo !! w).isSome → σ.ST !! w = none
   wo_live : ∀ w, (σ.Wo !! w).isSome → ¬ σ.live w
   st_flags : ∀ w st, σ.ST !! w = some st →
-    st.compacted = false ∧
+    (st.compacted = true → (σ.Ws !! w) = none ∧ σ.victimOf w = none) ∧
     (σ.live w → (st.victim = true ↔ (σ.victimOf w).isSome)) ∧ (st.ch = null ↔ ¬ σ.live w)
   wo_flags : ∀ w st, σ.Wo !! w = some st →
     st.compacted = false ∧ st.victim = true ∧ st.ch ≠ null
@@ -520,6 +525,26 @@ def evLog (γ : StoreNames) (L : Log) : IProp GF := iprop(idxSealed γ.idx L ∗
 
 instance evLog_persistent (γ : StoreNames) (L : Log) : Persistent (evLog (GF := GF) γ L) := by
   unfold evLog; infer_instance
+
+/-- **No revision of the logs a watch reads writes a key twice** (persistent; watches across a
+compaction, 2026-11-01): every watched log (`evLog`) changes each key at most once per revision.
+Compaction at a revision that writes a key twice keeps only the later change
+(`issues/etcd-compaction-delete-then-put.md`, `issues/etcd-txn-check-intervals-sibling.md`), so a
+watch from that revision would miss the earlier one. -/
+def noDupKeys (γ : StoreNames) : IProp GF :=
+  iprop(□ ∀ log : Log, evLog γ log ={⊤}=∗ ⌜oneChangePerKey log⌝)
+
+instance noDupKeys_persistent (γ : StoreNames) : Persistent (noDupKeys (GF := GF) γ) := by
+  unfold noDupKeys; infer_instance
+
+/-- **What a watcher's registration needs of the store** (the create token's; watches across a
+compaction, 2026-11-01, `notes/watch-compaction-plan.md`): the store never compacts
+(`noCompactor`), or no revision of the logs a watch reads writes a key twice (`noDupKeys`). Until
+then the first alone (M2's F1, no watchers in compaction mode). -/
+def watchNoDup (γ : StoreNames) : IProp GF := iprop(noCompactor γ ∨ noDupKeys γ)
+
+instance watchNoDup_persistent (γ : StoreNames) : Persistent (watchNoDup (GF := GF) γ) := by
+  unfold watchNoDup; infer_instance
 
 theorem evLog_sealed (γ : StoreNames) (L : Log) : evLog (GF := GF) γ L ⊢ idxSealed γ.idx L := by
   unfold evLog; iintro ⟨#H, -⟩; iexact H
@@ -1283,7 +1308,11 @@ def popFacts (γ : WsNames) (σ : WsState) (w : Loc) (r : WatchRange) (lo : Nat)
       evsWf γ r lo evsw (sint.nat st.minRev))
   else if (σ.Wu !! w).isSome then
     iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev⌝ ∗ evsWf γ r lo evsw d ∗
-      ∃ Lc : Log, idxCert γ.st.idx Lc ∗ ⌜sint.nat st.minRev ≤ max lo Lc.length⌝)
+      (∃ Lc : Log, idxCert γ.st.idx Lc ∗ ⌜sint.nat st.minRev ≤ max lo Lc.length⌝) ∗
+      -- (watches across a compaction, 2026-11-01) a compacted watcher left unsynced (`choose`'s
+      -- copy branch) is behind a compaction revision, so behind every later one: `syncWatchers`
+      -- never syncs it
+      (⌜st.compacted = true⌝ → ∃ c0 : Int, crevLb γ.st.idx c0 ∗ ⌜sint.Z st.minRev < c0⌝))
   else match σ.victimOf w with
     | some B => iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev ∧
           victimBatchOk lo st B ∧ B.evs ≠ []⌝ ∗
@@ -1331,9 +1360,9 @@ theorem popFacts_victim (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchRange)
 theorem memberRes_congr (γ : WsNames) (q : Qp) (σ σ' : WsState) (w : Loc) (st : WatcherSt)
     (hM : σ'.M = σ.M) (hWs : (σ'.Ws !! w).isSome = (σ.Ws !! w).isSome)
     (hWu : (σ'.Wu !! w).isSome = (σ.Wu !! w).isSome) (hV : σ'.victimOf w = σ.victimOf w)
-    (hE : σ'.E !! w = σ.E !! w) :
+    (hE : σ'.E !! w = σ.E !! w) (hST : σ'.ST !! w = σ.ST !! w) :
     memberRes (GF := GF) γ q σ w st ⊢ memberRes γ q σ' w st := by
-  have hl : σ'.live w = σ.live w := by unfold WsState.live; rw [hWs, hWu, hV]
+  have hl : σ'.live w = σ.live w := by unfold WsState.live; rw [hWs, hWu, hV, hST]
   unfold memberRes popFacts
   simp only [hM, hl, hWs, hWu, hV, hE]
   exact .rfl
@@ -1478,12 +1507,13 @@ theorem wlogQ_auth_agree (γ : WsNames) (q q' : Qp) (L C : Log) :
 
 /-- **No watcher, or no compactor** (M2, the storage side, 2026-10-30: review round 1's F1, the
 user's: no watchers in compaction mode; a conjunct of the lock's body, `watchStoreBody`): no
-watcher is registered, or the inner store is frozen. `watch` (registration) has the fact from the
-create token (`storeWatchParams`'s `T`, through `noCompactor_frozen`); `syncWatchers`' non-empty
+watcher is registered, or the inner store is frozen or (watches across a compaction, 2026-11-01)
+without duplicate keys (`watchNoDup`). `watch` (registration) has the fact from the create token
+(`storeWatchParams`'s `T`); `syncWatchers`' non-empty
 branch (`Wu ≠ ∅`, so `M ≠ ∅`: `wsOk_M_ne_of_Wu`) takes it here; every other step keeps `M` empty or
 the fact. -/
 def wsWatchFrozen (γ : WsNames) (σ : WsState) : IProp GF :=
-  iprop(⌜σ.M = ∅⌝ ∨ crevFrozen γ.st)
+  iprop(⌜σ.M = ∅⌝ ∨ watchNoDup γ.st)
 
 instance wsWatchFrozen_persistent (γ : WsNames) (σ : WsState) :
     Persistent (wsWatchFrozen (GF := GF) γ σ) := by
@@ -1493,6 +1523,13 @@ omit package_sem in
 /-- With the frozen fact, any state. -/
 theorem wsWatchFrozen_of_frozen (γ : WsNames) (σ : WsState) :
     crevFrozen (GF := GF) γ.st ⊢ wsWatchFrozen γ σ := by
+  iintro #H; iunfold wsWatchFrozen; iright; iunfold watchNoDup; ileft
+  iapply noCompactor_of_frozen $$ H
+
+omit package_sem in
+/-- With the registration's fact, any state. -/
+theorem wsWatchFrozen_of_noDup (γ : WsNames) (σ : WsState) :
+    watchNoDup (GF := GF) γ.st ⊢ wsWatchFrozen γ σ := by
   iintro #H; iunfold wsWatchFrozen; iright; iexact H
 
 omit package_sem in
@@ -1520,7 +1557,7 @@ omit package_sem in
 /-- **`syncWatchers`' frozen fact** (M2, the storage side): with an unsynced watcher, the store is
 frozen (`wsWatchFrozen`'s second arm: the first, no watcher, is excluded by `wsOk_M_ne_of_Wu`). -/
 theorem wsWatchFrozen_of_Wu (γ : WsNames) (σ : WsState) (h : WsOk σ) (hsz : GMap.size σ.Wu ≠ 0) :
-    wsWatchFrozen (GF := GF) γ σ ⊢ crevFrozen γ.st := by
+    wsWatchFrozen (GF := GF) γ σ ⊢ watchNoDup γ.st := by
   obtain ⟨w, v, hw⟩ := (GMap.map_size_ne_0_lookup σ.Wu).mp hsz
   have hM := wsOk_M_ne_of_Wu σ h w (by rw [hw]; rfl)
   iintro H
@@ -1759,7 +1796,7 @@ def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
   CR ch γc L := iprop(isChan ch γc.ch WatchResponse ∗
     inv watchN (watchChanInv γ ch γc) ∗ ghostVar γc.regl (1 : Qp).half L)
   R := watchReader s st γ
-  T := iprop(watchTok γ ∗ noCompactor γ.st)
+  T := iprop(watchTok γ ∗ watchNoDup γ.st)
   IWF := watcherIs γ
   OC w γc := iprop(∃ γw : WatcherNames, watcherMeta γ w γw ∗ ⌜γw.wc = γc⌝)
   WS w := iprop(∃ γw : WatcherNames, watcherMeta γ w γw)
