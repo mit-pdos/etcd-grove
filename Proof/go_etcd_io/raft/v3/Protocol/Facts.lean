@@ -1008,14 +1008,13 @@ private theorem slot_init (E : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNa
         rw [this, GMap.lookup_empty] at hk
         cases hk
     isplitr; · ipureintro; rfl
-    iintro %b %hb
-    cases hb
+    ipureintro; intro b hb; cases hb
   ihave #Hdp := durPers_init γ id $$ Hinv Hc0
   imodintro
   isplitl [Hv1 Ha1 Hc1 Hl1 He1]
-  · unfold ownDurGhost
+  · unfold ownDurGhost slotInv
     iexists DurMaps.empty
-    iframe Hdp
+    iframe Hdp Hslot
     unfold durShares
     simp only [DurMaps.empty]
     iexists γv, γa, γc, γl, γe
@@ -1518,7 +1517,7 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
     isplitl [Hcauth]
     · rw [ownCommitted_unseal]; unfold ownCommittedDef; iexact Hcauth
     isplitr
-    · unfold committedJust; ileft; ipureintro; rw [eB]; exact ⟨rfl, HwfL⟩
+    · unfold committedJust; ileft; ipureintro; rw [eB]; exact ⟨rfl, HwfL, Hones⟩
     isplitl [Htbl]; · iexact Htbl
     isplitl [Htba]
     · unfold winTbl

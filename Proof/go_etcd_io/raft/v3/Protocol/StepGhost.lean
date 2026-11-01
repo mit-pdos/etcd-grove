@@ -1315,33 +1315,15 @@ instance durShares_timeless (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) :
   unfold durShares; infer_instance
 
 /-- (Lean helper.) The queue's current batch, if any, extends the entered maps. -/
-private theorem slot_batch_le (γ : RaftNames) (id : w64) (E : DurMaps) (Mq : GMap Nat (Option RaftBatch))
-    (g : Nat) :
-    (∀ b, ⌜Mq !! g = some (some b)⌝ -∗ batchOk (GF := GF) γ id E b) ⊢
-      ⌜DurLe E (virtQ E (Mq !! g))⌝ ∗ (∀ b, ⌜Mq !! g = some (some b)⌝ -∗ batchOk γ id E b) := by
-  iintro Hb
+private theorem slot_batch_le (E : DurMaps) (Mq : GMap Nat (Option RaftBatch)) (g : Nat) :
+    (∀ b, Mq !! g = some (some b) → b.2.2 = E ∧ DurLe E b.2.1) → DurLe E (virtQ E (Mq !! g)) := by
+  intro H
   cases h : Mq !! g with
-  | none =>
-    isplitr; · ipureintro; exact DurLe_refl E
-    iexact Hb
+  | none => exact DurLe_refl E
   | some o =>
     cases o with
-    | none =>
-      isplitr; · ipureintro; exact DurLe_refl E
-      iexact Hb
-    | some b =>
-      ihave Hbo := Hb $$ %b %rfl
-      unfold batchOk
-      icases Hbo with ⟨%π, %Hπ, #Hj, #Hd⟩
-      isplitr
-      · ipureintro
-        show DurLe E b.2
-        rw [Hπ.1]; exact DurLe_virt E π Hπ.2
-      iintro %b' %hb'
-      cases hb'
-      iexists π
-      iframe Hj Hd
-      ipureintro; exact Hπ
+    | none => exact DurLe_refl E
+    | some b => exact (H b h).2
 
 /-- **Opening the slot** against the node's half of its virtual maps `V`: the entered maps `E`,
 below `V`, with their authority shares, until the slot is closed. -/
@@ -1355,22 +1337,22 @@ theorem slot_open (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V
   unfold slotInv
   iinv Hslot with H Hclose
   unfold slotBody
-  icases H with ⟨%γs', %E, %g, %Mq, >%Hγs', >Hsh, #Hfr, >Hv', >Hg, >Hq, >%Hdom, >%Hcur, Hb⟩
+  icases H with ⟨%γs', %E, %g, %Mq, >%Hγs', >Hsh, #Hfr, >Hv', >Hg, >Hq, >%Hdom, >%Hcur, >%Hb⟩
   rw [Hs] at Hγs'; cases Hγs'
   icases ghostVar_agree γs.1 V (1 : Qp).half _ (1 : Qp).half $$ Hv Hv' with %HV
-  icases (later_mono (slot_batch_le γ id E Mq g)) $$ Hb with ⟨>%Hle, Hb⟩
+  have Hle := slot_batch_le E Mq g Hb
   imodintro
   iexists E
   isplitr; · ipureintro; rw [HV]; exact Hle
   isplitl [Hsh]; · iexact Hsh
   isplitl [Hv]; · iexact Hv
   iintro Hsh
-  imod Hclose $$ [Hsh Hv' Hg Hq Hb] with -
+  imod Hclose $$ [Hsh Hv' Hg Hq] with -
   · inext
     iexists γs, E, g, Mq
     isplitr; · ipureintro; exact Hs
-    iframe Hsh Hfr Hv' Hg Hq Hb
-    ipureintro; exact ⟨Hdom, Hcur⟩
+    iframe Hsh Hfr Hv' Hg Hq
+    ipureintro; exact ⟨Hdom, Hcur, Hb⟩
   imodintro; ipureintro; trivial
 
 /-- An entered vote's fragment against the authority share. -/

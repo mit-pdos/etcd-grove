@@ -430,15 +430,16 @@ theorem mint_list (Em : CoPset) (γ : RaftNames) (id : w64) :
     iapply mint_list Em γ id π (X.add p) HlE Hf2 (AcksEvs_add X p Hae) Hsort
       $$ Hci Hsh Hfrg' Hj2
 
-/-- (stage II helper) **`raft_enter` with the slot invariant and a later credit**, which
-`raft_enter`'s premises do not give (see its proof's comment): the slot's queued batch (`batchOk`) is
-read under the invariant's later, and it is not timeless. -/
-theorem raft_enter_slot (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (q : Qp) (g : Nat)
+/-- **Entering a batch** (the client's *enter*, under the node's generation): its promises minted
+in order in the authorities (`vote_insert`, `ghost_map_insert_persist` of the acknowledgements,
+campaign records and vote-time logs, the event history's appends), from their justifications; the
+durable half moved to the batch's state; the batch's fragments out, which discharge its drained
+messages' wands; the generation's queue free again. -/
+theorem raft_enter (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (q : Qp) (g : Nat)
     (S' : RaftState) (W : DurMaps) :
     ↑(raftN γ) ⊆ E →
-    ⊢ £ 1 -∗ slotInv (GF := GF) γ id -∗ ownDurGhost γ id S -∗ slotLive γ id q g -∗
-      pendBatch γ id g S' W
-      ={E}=∗ ownDurGhost γ id S' ∗ slotLive γ id q g ∗ slotFree γ id g ∗ durFrags γ id W := by
+    ⊢ ownDurGhost (GF := GF) γ id S -∗ slotLive γ id q g -∗ pendBatch γ id g S' W ={E}=∗
+      ownDurGhost γ id S' ∗ slotLive γ id q g ∗ slotFree γ id g ∗ durFrags γ id W := by
   intro HE
   have HsE : (↑(slotN γ id) : CoPset) ⊆ E := fun p hp => HE p (slotN_raftN γ id p hp)
   have HlE : (↑(raftLogN γ) : CoPset) ⊆ E \ ↑(slotN γ id) := by
@@ -447,34 +448,34 @@ theorem raft_enter_slot (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState)
     refine ⟨raftLogN_of HE p hp, fun h => ?_⟩
     have h1 := nclose_subseteq (raftN γ .@ "slot") id p h
     exact ndot_ne_disjoint (raftN γ) (show "log" ≠ "slot" by decide) p ⟨hp, h1⟩
-  iintro Hlc #Hsinv Hdur Hlive Hpend
+  iintro Hdur Hlive Hpend
   unfold ownDurGhost
-  icases Hdur with ⟨%E1, Hsh1, #Hdp⟩
+  icases Hdur with ⟨%E1, Hsh1, #Hdp, #Hsinv⟩
   iunfold slotLive at Hlive
   icases Hlive with ⟨%γs, %Hγs, Hl⟩
   iunfold pendBatch at Hpend
-  icases Hpend with ⟨%γs2, %H2, Hpf⟩
+  icases Hpend with ⟨%γs2, %Ep, %H2, Hpf, #Hbo⟩
   rw [Hγs] at H2; cases H2
   ihave #Hsi := Hsinv
   iunfold slotInv at Hsi
   iinv Hsi with H Hclose
   iunfold slotBody at H
-  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, Hb⟩
+  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
   rw [Hγs] at Hγs'; cases Hγs'
   icombine Hl Hg0 gives %Hgg
   obtain ⟨-, Hgg⟩ := Hgg
   subst Hgg
   icombine Hq Hpf gives %HMq
-  have HMq' : Mq !! g = some (some ((S', W) : RaftBatch)) := HMq
-  imod lc_fupd_elim_later (E := E \ ↑(slotN γ id)) $$ Hlc Hb with Hb
-  ihave Hbo := Hb $$ %((S', W) : RaftBatch) %HMq'
+  have HMq' : Mq !! g = some (some ((S', W, Ep) : RaftBatch)) := HMq
+  obtain ⟨HEp, -⟩ := Hb _ HMq'
+  simp only at HEp
+  subst Ep
   iunfold batchOk at Hbo
   icases Hbo with ⟨%π, %Hπ, #Hj, #Hdp'⟩
   obtain ⟨HW, Hfresh⟩ := Hπ
-  simp only at HW
+  simp only at HW Hfresh
   icases durShares_agree γ id _ _ E0 E1 $$ Hsh0 Hsh1 with ⟨Hsh0, Hsh1, %HE1⟩
   subst HE1
-  -- the entered maps' invariants (the durable half's), for the order of the events
   ihave #Hdp0 := Hdp
   iunfold durPers at Hdp0
   icases Hdp0 with ⟨%kd, %fp0, %Hp0, -, -, -, -, -, -, -, -, -, #Hci⟩
@@ -500,46 +501,23 @@ theorem raft_enter_slot (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState)
     rw [Hl0]
     simp only [virtQ]
     iframe Hsh0 HfrW Hv0 Hg0 Hq
-    isplitr; · ipureintro; exact Hγs
-    isplitr
-    · ipureintro
-      intro k hk
-      by_cases hkg : k = g
-      · omega
-      · have : (Mq.insert g (none : Option RaftBatch)) !! k = Mq !! k :=
-          GMap.lookup_insert_ne _ _ (Ne.symm hkg)
-        rw [this] at hk
-        exact Hdom k hk
-    isplitr; · ipureintro; rfl
-    iintro %b %hb
-    cases hb
+    ipureintro
+    refine ⟨Hγs, ?_, rfl, fun b hb => by cases hb⟩
+    intro k hk
+    by_cases hkg : k = g
+    · omega
+    · have : (Mq.insert g (none : Option RaftBatch)) !! k = Mq !! k :=
+        GMap.lookup_insert_ne _ _ (Ne.symm hkg)
+      rw [this] at hk
+      exact Hdom k hk
   imodintro
   isplitl [Hsh1]
-  · iexists W; iframe Hsh1 Hdp'
+  · iexists W; iframe Hsh1 Hdp' Hsinv
   isplitl [Hl]
   · unfold slotLive; iexists γs; iframe Hl; ipureintro; exact Hγs
   isplitl [Hfree]
   · unfold slotFree; iexists γs; iframe Hfree; ipureintro; exact Hγs
   iexact HfrW
-
-/-- **Entering a batch** (the client's *enter*, under the node's generation): its promises minted
-in order in the authorities (`vote_insert`, `ghost_map_insert_persist` of the acknowledgements,
-campaign records and vote-time logs, the event history's appends), from their justifications; the
-durable half moved to the batch's state; the batch's fragments out, which discharge its drained
-messages' wands; the generation's queue free again. -/
-theorem raft_enter (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (q : Qp) (g : Nat)
-    (S' : RaftState) (W : DurMaps) :
-    ↑(raftN γ) ⊆ E →
-    ⊢ ownDurGhost (GF := GF) γ id S -∗ slotLive γ id q g -∗ pendBatch γ id g S' W ={E}=∗
-      ownDurGhost γ id S' ∗ slotLive γ id q g ∗ slotFree γ id g ∗ durFrags γ id W := by
-  -- PORT(durability stage II): unprovable as stated, back to stage I: (1) none of the premises
-  -- holds the slot invariant `slotInv γ id` (`ownDurGhost` is the authority shares and `durPers`,
-  -- `slotLive`/`pendBatch` bare ghost elements), so the slot's half of the promise authorities, which
-  -- minting needs, cannot be reached; (2) the queued batch's `batchOk` (its pending list's
-  -- justifications and `durPers γ id S' W`) is in the slot invariant, read under a later, and is not
-  -- timeless (`durPers` holds `raftCommitInv`, `promsJust` wands), with no later credit to strip it.
-  -- With both (`slotInv` and `£ 1`) it is `raft_enter_slot`, proved above.
-  sorry
 
 /-- (stage II helper) **`durPers` re-based** at a base `b` within `S`'s log and a lower commit `c`:
 the same full log, cut at `b` (`fp ++ S.entsFrom b`), with `S.commit`'s certificate lowered to `c`
@@ -731,7 +709,7 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) {m
   intro HE Hmd Hb1 Hb2 Hb3 Hbt Hboot
   iintro Hdur Hslot
   unfold ownDurGhost
-  icases Hdur with ⟨%E1, Hsh1, #Hdp⟩
+  icases Hdur with ⟨%E1, Hsh1, #Hdp, -⟩
   unfold raftIdSlot
   icases Hslot with ⟨%γs, %V, %g, %Hγs, %Hnz, Hvirt, Hlive, Hfree, #Hsinv, #Hcinv, #Hrci,
     ⟨%γm, %terms, %Htm, Hterms, #Htf⟩, ⟨%γw, %wins, %Hwn, Hwins, #Hwf⟩,
@@ -748,7 +726,7 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) {m
   iunfold slotInv at Hsi
   iinv Hsi with H Hclose
   iunfold slotBody at H
-  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, Hb⟩
+  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
   rw [Hγs] at Hγs'; cases Hγs'
   icombine Hl Hg0 gives %Hgg
   obtain ⟨-, Hgg⟩ := Hgg
@@ -762,12 +740,12 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) {m
   subst HV
   icases durShares_agree γ id _ _ V E1 $$ Hsh0 Hsh1 with ⟨Hsh0, Hsh1, %HE1⟩
   subst HE1
-  imod Hclose $$ [Hsh0 Hv0 Hg0 Hq Hb] with -
+  imod Hclose $$ [Hsh0 Hv0 Hg0 Hq] with -
   · inext
     unfold slotBody
     iexists γs, V, g, Mq
-    iframe Hsh0 Hfr0 Hv0 Hg0 Hq Hb
-    ipureintro; exact ⟨Hγs, Hdom, Hcur⟩
+    iframe Hsh0 Hfr0 Hv0 Hg0 Hq
+    ipureintro; exact ⟨Hγs, Hdom, Hcur, Hb⟩
   -- the durable invariants, re-based at `b` and `c`
   icases durPers_rebase γ id S V b c Hb1 Hb2 Hb3 Hbt $$ Hdp with
     ⟨%kd, %fp, %Hp, #Hrb, #Hbb, #Hfp, #Hvl, #Hhs, #Hkl, #Hci, #Hcm, -⟩
@@ -791,7 +769,7 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) {m
   have Hvote : (restartP S b c).vote = S.vote := rfl
   imodintro
   isplitl [Hsh1]
-  · iexists V; iframe Hsh1 Hdp
+  · iexists V; iframe Hsh1 Hdp Hsinv
   isplitr [Hl Hfr]
   rotate_left
   · iexists g
@@ -900,17 +878,30 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) {m
     rw [show (restartP S b c).outbox = [] from rfl]; iapply msgsTks_nil
   ipureintro; exact Hmd
 
-/-- (stage II helper; **not provable as stated**, `sorry`, back to stage I) Every entry of the
-bootstrap log is of term `1`. Allocation knows it (`BootWf.terms`), but nothing persistent keeps it:
-the commit invariant's boot arm (`committedJust`'s first disjunct) holds only `PlogWf base0
-γ.reBoot`, and `RaftNames` has no such field. With the committed log still exactly `γ.reBoot`
-(no commit fact yet), no resource reachable from `raftCommitInv` names the boot entries' terms
-(their records `isEntryR` need them). Repair: add `∀ e ∈ γ.reBoot, e.Term' = W64 1` to
-`committedJust`'s boot arm (allocation has it). -/
+/-- (stage II helper) Every entry of the bootstrap log is of term `1`: the commit invariant's boot
+arm records it, and a commit fact's log starts with the boot log, whose records say so. -/
 private theorem boot_terms (E : CoPset) (γ : RaftNames) :
     ↑(raftN γ) ⊆ E → ⊢ raftCommitInv (GF := GF) γ ={E}=∗ ⌜∀ e ∈ γ.reBoot, e.Term' = W64 1⌝ := by
-  -- PORT(durability stage II): unprovable as stated (see the docstring); back to stage I
-  sorry
+  intro HE
+  iintro #Hci
+  ihave #Hli := raftCommitInv_log γ $$ Hci
+  have HlE : (↑(raftLogN γ) : CoPset) ⊆ E := raftLogN_of HE
+  unfold raftLogInv
+  iinv Hli with H Hclose
+  unfold raftLogInvBody
+  icases H with ⟨%l, >Hauth, >Hj, >Htbl, >Hwt, >Hrest⟩
+  icases Hj with #Hj
+  ihave #Hj' := Hj
+  iunfold committedJust at Hj'
+  imod Hclose $$ [Hauth Hj Htbl Hwt Hrest] with -
+  · inext; iexists l; iframe Hauth Hj Htbl Hwt Hrest
+  imodintro
+  icases Hj' with (%Ha | ⟨%t, %n, %G, %ldr, #Hq, -, -, -⟩)
+  · ipureintro; exact Ha.2.2
+  · icases cq_boot γ t n G $$ Hq with %Hb
+    icases cq_full γ t n G $$ Hq with ⟨%HwG, #HrG⟩
+    icases logRecs_boot_wf γ G HwG $$ HrG with %Hw
+    ipureintro; exact (Hw Hb.1).2
 
 /-- (stage II helper) -/
 instance committedJust_persistent' (γ : RaftNames) (l : List EntryM) :
@@ -938,7 +929,7 @@ private theorem boot_facts (E : CoPset) (γ : RaftNames) :
   ihave #Hj' := Hj
   iunfold committedJust at Hj'
   icases Hj' with (%Ha | ⟨%t, %n, %G, %ldr, #Hq, %HlG, -, -⟩)
-  · obtain ⟨Hl, Hwf⟩ := Ha
+  · obtain ⟨Hl, Hwf, -⟩ := Ha
     subst Hl
     have Hlen : (γ.reBoot.length : Int) < 2 ^ 64 := by
       have := PlogWf_range _ _ Hwf; unfold plogLastIndexZ at this; rw [base0_index] at this; omega
@@ -1012,7 +1003,7 @@ theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} :
   intro HE Hmd
   iintro Hdur Hslot
   unfold ownDurGhost
-  icases Hdur with ⟨%E1, Hsh1, #Hdp⟩
+  icases Hdur with ⟨%E1, Hsh1, #Hdp, -⟩
   unfold raftIdSlot
   icases Hslot with ⟨%γs, %V, %g, %Hγs, %Hnz, Hvirt, Hlive, Hfree, #Hsinv, #Hcinv, #Hrci,
     ⟨%γm, %terms, %Htm, Hterms, #Htf⟩, ⟨%γw, %wins, %Hwn, Hwins, #Hwf⟩,
@@ -1028,7 +1019,7 @@ theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} :
   iunfold slotInv at Hsi
   iinv Hsi with H Hclose
   iunfold slotBody at H
-  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, Hb⟩
+  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
   rw [Hγs] at Hγs'; cases Hγs'
   icombine Hl Hg0 gives %Hgg
   obtain ⟨-, Hgg⟩ := Hgg
@@ -1042,12 +1033,12 @@ theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} :
   subst HV
   icases durShares_agree γ id _ _ V E1 $$ Hsh0 Hsh1 with ⟨Hsh0, Hsh1, %HE1⟩
   subst HE1
-  imod Hclose $$ [Hsh0 Hv0 Hg0 Hq Hb] with -
+  imod Hclose $$ [Hsh0 Hv0 Hg0 Hq] with -
   · inext
     unfold slotBody
     iexists γs, V, g, Mq
-    iframe Hsh0 Hfr0 Hv0 Hg0 Hq Hb
-    ipureintro; exact ⟨Hγs, Hdom, Hcur⟩
+    iframe Hsh0 Hfr0 Hv0 Hg0 Hq
+    ipureintro; exact ⟨Hγs, Hdom, Hcur, Hb⟩
   -- the initial state's durable invariants: every promise at term `0`
   ihave #Hdp' := Hdp
   iunfold durPers at Hdp'
@@ -1088,7 +1079,7 @@ theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} :
     intro t ht; left; have := Hcp t ht; rw [Hi0] at this; rw [Hterm, H1]; omega
   imodintro
   isplitl [Hsh1]
-  · iexists V; iframe Hsh1 Hdp
+  · iexists V; iframe Hsh1 Hdp Hsinv
   isplitr [Hl Hfr]
   rotate_left
   · iexists g
@@ -1308,8 +1299,7 @@ theorem raft_stop (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {md : Bo
         have := Hdom k hk
         omega
     isplitr; · ipureintro; rfl
-    iintro %b %hb
-    cases hb
+    ipureintro; intro b hb; cases hb
   imodintro
   unfold raftIdSlot slotInv slotBody
   iexists γs, E0, g + 1

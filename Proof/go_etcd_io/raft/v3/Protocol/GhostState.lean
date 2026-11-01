@@ -786,7 +786,9 @@ theorem votesTbl_insert (γ : RaftNames) (id : w64) (γv : GName) (voted : GMap 
 def committedJust (γ : RaftNames) (l : List EntryM) : IProp GF :=
   -- (2026-10-16, stage R8b, D12) the bootstrap log, committed from the start (`[]` for a
   -- cluster starting empty)
-  iprop(⌜l = γ.reBoot ∧ PlogWf base0 γ.reBoot⌝ ∨
+  -- (2026-11-01, durability stage II(d), approved stage-I repair) with every boot entry of term `1`
+  -- (allocation's `BootWf.terms`), which a node's first start (`raft_start_boot`) reads
+  iprop(⌜l = γ.reBoot ∧ PlogWf base0 γ.reBoot ∧ ∀ e ∈ γ.reBoot, e.Term' = W64 1⌝ ∨
     ∃ t n G ldr, cq γ t n G ∗ ⌜l = G.take (uint.Z n).toNat⌝ ∗
     -- (2026-10-12, read-index) the leader of `t` whose commit extended the log to `n`,
     -- and its commit lower bound for `t`
@@ -2515,8 +2517,10 @@ def durShares (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) : IProp GF :=
 /-- The names of node `id`'s slot: its virtual maps, its queue, its generation. -/
 abbrev SlotNames := GName × GName × GName
 
-/-- A queued batch: the durable state it enters, and the virtual maps at its cut. -/
-abbrev RaftBatch := RaftState × DurMaps
+/-- A queued batch: the durable state it enters, the virtual maps at its cut, and (2026-11-01,
+stage II(d)) the entered maps it was cut from, which the slot pins (`slotBody`) and the batch's
+facts (`batchOk`, carried by `pendBatch`) are relative to. -/
+abbrev RaftBatch := RaftState × DurMaps × DurMaps
 
 instance RaftState_countable : Pos.Countable RaftState :=
   .ofInjective (fun S => Pos.Countable.encode (S.term, S.vote, S.base, S.ents, S.commit))
@@ -2528,7 +2532,7 @@ instance RaftState_countable : Pos.Countable RaftState :=
 /-- The virtual maps of the entered ones `E` and a queue entry: with the batch's promises
 applied (its maps), or `E`. -/
 def virtQ (E : DurMaps) : Option (Option RaftBatch) → DurMaps
-  | some (some b) => b.2
+  | some (some b) => b.2.1
   | _ => E
 
 /-- Node `id`'s slot invariant's namespace (R2): within raft's, apart from the commit
@@ -2551,8 +2555,13 @@ theorem slotN_sub_reg_log {γ : RaftNames} {id : w64} :
 /-- What the slot holds of a queued batch `b` cut from the entered maps `E`: the pending list it
 applies, fresh, with its justifications, and the durable invariants of the batch's state over its
 maps. -/
-def batchOk (γ : RaftNames) (id : w64) (E : DurMaps) (b : RaftBatch) : IProp GF :=
-  iprop(∃ π, ⌜b.2 = virt E π ∧ PromsFresh E π⌝ ∗ promsJust γ id E π ∗ durPers γ id b.1 b.2)
+def batchOk (γ : RaftNames) (id : w64) (b : RaftBatch) : IProp GF :=
+  iprop(∃ π, ⌜b.2.1 = virt b.2.2 π ∧ PromsFresh b.2.2 π⌝ ∗ promsJust γ id b.2.2 π ∗
+    durPers γ id b.1 b.2.1)
+
+instance batchOk_persistent (γ : RaftNames) (id : w64) (b : RaftBatch) :
+    Persistent (batchOk (GF := GF) γ id b) := by
+  unfold batchOk; infer_instance
 
 /-- **Node `id`'s slot** (R2, R7, R8): the other half of its promise authorities at the entered
 maps `E`, their fragments, the other half of its virtual maps (`E` with the current generation's
@@ -2565,7 +2574,9 @@ def slotBody (γ : RaftNames) (id : w64) : IProp GF :=
     ghostVar γs.1 (1 : Qp).half (virtQ E (Mq !! g)) ∗
     ghostVar γs.2.2 (1 : Qp).half g ∗
     ghostMapAuth γs.2.1 1 Mq ∗ ⌜∀ k, (Mq !! k).isSome → k ≤ g⌝ ∗ ⌜(Mq !! g).isSome⌝ ∗
-    (∀ b, ⌜Mq !! g = some (some b)⌝ -∗ batchOk γ id E b))
+    -- (2026-11-01, stage II(d)) the current batch was cut from the entered maps, and extends
+    -- them; its facts (`batchOk`) are with the client's `pendBatch`, outside the invariant
+    ⌜∀ b, Mq !! g = some (some b) → b.2.2 = E ∧ DurLe E b.2.1⌝)
 
 /-- The slot invariant: permanent, allocated with the cluster (R2). -/
 def slotInv (γ : RaftNames) (id : w64) : IProp GF := inv (slotN γ id) (slotBody γ id)
@@ -2585,14 +2596,19 @@ def slotFree (γ : RaftNames) (id : w64) (g : Nat) : IProp GF :=
 /-- A batch cut in generation `g` and not entered: it enters `S'`, with the maps `W` (`raft_enter`
 mints `W`'s fragments). -/
 def pendBatch (γ : RaftNames) (id : w64) (g : Nat) (S' : RaftState) (W : DurMaps) : IProp GF :=
-  iprop(∃ γs : SlotNames, ⌜γ.reSlot !! id = some γs⌝ ∗
-    g ↪[γs.2.1] (some ((S', W) : RaftBatch) : Option RaftBatch))
+  iprop(∃ (γs : SlotNames) (E : DurMaps), ⌜γ.reSlot !! id = some γs⌝ ∗
+    g ↪[γs.2.1] (some ((S', W, E) : RaftBatch) : Option RaftBatch) ∗
+    -- (2026-11-01, stage II(d), approved stage-I repair) the batch's facts, persistent, with the
+    -- client (so that *enter* reads them without a later)
+    batchOk γ id ((S', W, E) : RaftBatch))
 
 /-- **The durable half of node `id`'s protocol state at `S`** (I-1; `raftState`'s sealed body,
 which adds the term counter's lower bound, amendment 3): half its promise authorities at the
 entered maps, and the durable invariants of `S` over them. -/
 def ownDurGhost (γ : RaftNames) (id : w64) (S : RaftState) : IProp GF :=
-  iprop(∃ E : DurMaps, durShares γ id (1 : Qp).half E ∗ durPers γ id S E)
+  iprop(∃ E : DurMaps, durShares γ id (1 : Qp).half E ∗ durPers γ id S E ∗
+    -- (2026-11-01, stage II(d), approved stage-I repair) the slot invariant, for *enter*
+    slotInv γ id)
 
 /-- **No node of `id` runs** (I-1, R2, R6, R8; the protocol part of `nodeVacant`): the half of
 its virtual maps (the entered ones: its generation's queue is free), its whole generation with
