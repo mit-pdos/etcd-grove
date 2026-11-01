@@ -572,6 +572,32 @@ theorem Replica.run.wp_proof
           simp only [imgAppend_hs, imgSetHardState, ↓reduceIte]
           iframe
           iframe Hicl' Hsv
+      clear Htrip Hhead G17' G9' Htk Hent HMc3 Hfzc3 His3
+      -- `write`: the batch's, or a commit-only one one time in two
+      wp_join iprop(∃ wb : Bool, write_ptr ↦ wb ∗ ⌜syncb = true → wb = true⌝ ∗
+          changed_ptr ↦ !decide (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0) ∗ r_ptr ↦ r) at next
+        with [write changed r] as ⟨%wb, write, %Hwb, changed, r⟩
+      · cases syncb
+        · try wp_auto
+          wp_if_destruct
+          rotate_left
+          · wp_apply wp_oneIn (W64 2) (by decide) $$ [$Hpkg] as %b -
+            wp_if_destruct
+            rotate_left
+            · try wp_auto
+              wp_join_done
+              iexists true; iframe; ipureintro; intro h'; cases h'
+            · ihave #Hcu := isStats_field sts go!"CommitUnwritten" (by decide) $$ Hstats
+              try wp_auto
+              wp_apply wp_add sts _ $$ [$Hpkg $Hcu]
+              try wp_auto
+              wp_join_done
+              iexists false; iframe; ipureintro; intro h'; cases h'
+          · wp_join_done
+            iexists false; iframe; ipureintro; intro h'; cases h'
+        · try wp_auto
+          wp_join_done
+          iexists true; iframe; ipureintro; intro _; rfl
       sorry
     | some lo =>
       sorry
