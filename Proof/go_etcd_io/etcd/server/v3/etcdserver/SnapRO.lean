@@ -15,9 +15,10 @@ with the names it is stated over (`srvSnapBoot`):
   the cluster's), the cluster's `Members()` (`srvMembersDir`, `bootOk`'s `Hmembers`), and the
   Key bucket's size bound of every backend at the boot parameters (`keySized`, `bootOk`'s);
 * the snapshot-taken counter's authority at `0` (`γt`, the removal fact's);
-* the reader-slot stock `NewServer` dropped until J1a (`srvSnapStock`): `lgMu`'s reader slots, for
-  the snapshots' `AddPeer`s (2026-11-01, J8a: and no longer the auth store's reader resource `E.RD`,
-  which the snapshots' `NewUberApplier` took until the auth layer's `Apply` borrowed its caller's).
+* (until J8a-6, 2026-11-01) a reader-slot stock (`srvSnapStock`): `lgMu`'s reader slots for the
+  snapshots' `AddPeer`s (and until J8a-1 the auth store's reader resource `E.RD`, which the
+  snapshots' `NewUberApplier` took until the auth layer's `Apply` borrowed its caller's). Gone: the
+  transport's peers borrow from its thread pool (`raftPool`), so an `AddPeer` takes no slot.
 
 Not here (J1a's findings, `notes/decisions.md`, "D22 J1a"): the whole configuration read-only
 (`srvCfgAddr s ↦□ cfg`, which `applySnapshot` reads as a struct while `v3rpc.NewWatchServer` may
@@ -444,11 +445,6 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   rw [e5, e6, e7, e8, hP]
   iframe #
 
-/-- **The reader-slot stock** (see the file header; spatial): `m` of `lgMu`'s reader slots, at least
-`2 ^ 28` (2026-11-01, J8a: until then also as many of the auth store's reader resource `E.RD`). -/
-def srvSnapStock (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ m : Nat, ⌜2 ^ 28 ≤ m⌝ ∗ ([∗list] _x ∈ List.replicate m (), srvLgReader s))
-
 /-- **The KV's closer, kept** (D22 S-g, 2026-10-19, D22d (A); until then `NewServer` dropped it, D19m
 (C)): the right to close the server's watchable store (`mvcc.wsCloser`: its stop channel's close,
 the wait for its loops, and the inner store's `storeCloser`, the stop channel's close, the
@@ -497,22 +493,20 @@ def srvSnapRes (s : Loc) (E : apply.AEnv GF) : IProp GF :=
     srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.pathOwn (config.backendPathOf dd))
 
 /-- **What `NewServer` hands the snapshot path** (see the file header): the bundle at a fresh
-snapshot-taken counter, its authority at `0`, the stocks; (D22 J1b) the backend's own resources
-(`srvSnapRes`). -/
+snapshot-taken counter, its authority at `0` (until J8a-6, 2026-11-01, the reader-slot stock);
+(D22 J1b) the backend's own resources (`srvSnapRes`). -/
 def srvSnapBoot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  iprop(∃ γt : GName, srvSnapRO s ci E γr γt ∗ monoNatAuthOwn γt 1 0 ∗ srvSnapStock s E ∗
-    srvSnapRes s E)
+  iprop(∃ γt : GName, srvSnapRO s ci E γr γt ∗ monoNatAuthOwn γt 1 0 ∗ srvSnapRes s E)
 
 /-- **The apply thread's snapshot resources at the applied index `ai`** (D22 J1b, 2026-10-31;
 `notes/snapshot-sj-plan.md`, J1b; spatial): the persistent bundle at the snapshot-taken counter
-`γt`, the counter's authority at most `ai` (`specSnap`'s `hnt`), the reader-slot stocks (the
-second `E.RD` of each install's `NewUberApplier`, the `lgMu` slots of its `AddPeer`s) and the
-backend's own resources (`srvSnapRes`). `run`'s loop invariant holds it (`applyRes`), at the
-current backend's environment `E`; `applyAll` passes it through a batch. The transport's live
-state is `srvApRes`'s (J-T). -/
+`γt`, the counter's authority at most `ai` (`specSnap`'s `hnt`) and the backend's own resources
+(`srvSnapRes`; until J8a-6, 2026-11-01, also the reader-slot stock for the installs'
+`AddPeer`s). `run`'s loop invariant holds it (`applyRes`), at the current backend's environment
+`E`; `applyAll` passes it through a batch. The transport's live state is `srvApRes`'s (J-T). -/
 def srvSnapOwn (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (ai : w64) : IProp GF :=
   iprop(∃ (γt : GName) (nt : Nat), srvSnapRO s ci E γr γt ∗ ⌜nt ≤ uint.nat ai⌝ ∗
-    monoNatAuthOwn γt 1 nt ∗ srvSnapStock s E ∗ srvSnapRes s E)
+    monoNatAuthOwn γt 1 nt ∗ srvSnapRes s E)
 
 /-- The resources hold at any larger applied index. -/
 theorem srvSnapOwn_mono (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (ai ai' : w64)
@@ -520,10 +514,10 @@ theorem srvSnapOwn_mono (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (ai a
     srvSnapOwn (GF := GF) s ci E γr ai ⊢ srvSnapOwn s ci E γr ai' := by
   iintro H
   iunfold srvSnapOwn at H
-  icases H with ⟨%γt, %nt, #Hro, %Hnt, Ha, Hst, Hres⟩
+  icases H with ⟨%γt, %nt, #Hro, %Hnt, Ha, Hres⟩
   iunfold srvSnapOwn
   iexists γt, nt
-  iframe Hro Ha Hst Hres
+  iframe Hro Ha Hres
   ipureintro
   have : uint.nat ai ≤ uint.nat ai' := by word
   omega
@@ -535,11 +529,11 @@ theorem srvSnapOwn_of_boot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (a
       srvSnapOwn s ci E γr ai ∗ ∃ γt : GName, srvSnapRO s ci E γr γt := by
   iintro H
   iunfold srvSnapBoot at H
-  icases H with ⟨%γt, #Hro, Ha, Hst, Hres⟩
-  isplitl [Ha Hst Hres]
+  icases H with ⟨%γt, #Hro, Ha, Hres⟩
+  isplitl [Ha Hres]
   · iunfold srvSnapOwn
     iexists γt, 0
-    iframe Hro Ha Hst Hres
+    iframe Hro Ha Hres
     ipureintro; exact Nat.zero_le _
   · iexists γt; iexact Hro
 

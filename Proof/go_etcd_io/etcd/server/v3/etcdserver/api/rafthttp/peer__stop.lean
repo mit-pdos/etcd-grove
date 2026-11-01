@@ -83,7 +83,7 @@ theorem rafthttp.peer.stop.wp_proof
   wp_apply hSWStop Rh .message lid pid R cw1 $$ [Hsw1]
   · iframe #; iframe
   (try wp_auto)
-  wp_apply hPipeStop Rh pl pid R $$ [Hpls] as ⟨HR1, HR2, HR3, HR4⟩
+  wp_apply hPipeStop Rh pl pid R $$ [Hpls]
   · iframe #; iframe
   (try wp_auto)
   wp_apply hSnapStop ss $$ [Hsns]
@@ -97,7 +97,7 @@ theorem rafthttp.peer.stop.wp_proof
   (try wp_auto)
   ps_log
   iapply HΦ
-  iframe
+  itrivial
 
 end proof
 

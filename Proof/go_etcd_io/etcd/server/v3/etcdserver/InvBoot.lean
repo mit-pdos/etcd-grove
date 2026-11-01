@@ -133,26 +133,6 @@ theorem addPeer_dir (γn : NetNames GF) (dir : w64 → List GoString) (hγ : γn
   exact netOwner_of_mem γn.dir hd.2.1 pid h hm
 
 omit [MemStorReg GF] in
-/-- Four of `n` copies of `P` for each id of `l` (D22 J-T: the transport's pool). -/
-theorem replicate_list4 (P : IProp GF) : ∀ (l : List w64) (n : Nat), 4 * l.length ≤ n →
-    ([∗list] _x ∈ List.replicate n (), P) ⊢ [∗list] _x ∈ l, P ∗ P ∗ P ∗ P
-  | [], _, _ => by
-    iintro -
-    iapply BigSepL.bigSepL_nil.2; itrivial
-  | x :: l, n, h => by
-    obtain ⟨m, rfl⟩ : ∃ m, n = m + 4 := ⟨n - 4, by simp only [List.length_cons] at h; omega⟩
-    rw [show List.replicate (m + 4) () = () :: () :: () :: () :: List.replicate m () by
-      simp [List.replicate_succ]]
-    iintro H
-    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H⟩
-    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H2, H⟩
-    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H3, H⟩
-    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H4, H⟩
-    iapply BigSepL.bigSepL_cons.2
-    iframe H1 H2 H3 H4
-    iapply replicate_list4 P l m (by simp only [List.length_cons] at h; omega) $$ H
-
-omit [MemStorReg GF] in
 /-- **The transport's configured peer URLs are its member's** (D22 J-T, W8): from the directory. -/
 theorem trURLsOk_of_dir (γn : NetNames GF) (dir : w64 → List GoString) (hγ : γn.dir = dir)
     (hd : netDirOk dir) (ps : List w64) (hps : ∀ f, dir f ≠ [] ↔ f ∈ ps) (id : w64)

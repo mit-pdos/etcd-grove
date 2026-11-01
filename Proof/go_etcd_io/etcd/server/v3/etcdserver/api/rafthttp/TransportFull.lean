@@ -86,7 +86,8 @@ theorem rafthttp.Transport.AddPeer_known (γn : NetNames GF) (t : Loc) (c : TrN 
   iframe Hst Hg
 
 /-- **`t.AddPeer(id, us)`** on a live transport, of `id`'s URL strings (non-empty, plain, owned by
-`id`), another member than its own, with eight `R`s: `id` among the peers' ids. -/
+`id`), another member than its own: `id` among the peers' ids (until J8a-6, 2026-11-01, with eight
+`R`s). -/
 theorem rafthttp.Transport.AddPeer_full
     (hNewURLs : types.NewURLs.spec (GF := GF) (hG := hG))
     (hFollower : v2stats.LeaderStats.Follower.spec (GF := GF) (hG := hG))
@@ -102,19 +103,19 @@ theorem rafthttp.Transport.AddPeer_full
     (Hown : ∀ h, go!"http://" ++ h ∈ ss → (netRh γn).owner h = id) (Hself : c.lid ≠ id)
     (Hpm : (netRh γn).member id) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trLive γn t c rs ∗ us ↦*{dq} ss ∗ [∗list] _x ∈ List.replicate 8 (), c.R }}
+        trLive γn t c rs ∗ us ↦*{dq} ss }}
       (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddPeer")) (Val #id))
         (Val #us))
     {{ RET #(); trLive γn t c (rs ++ [id]) ∗ us ↦*{dq} ss ∗
         (⌜id ∈ rs ∨ id ∉ c.L⌝ ∨ trNoRem c id ∨ trOpened c) }} := by
-  wp_start_folded as ⟨Hl, Hus, HRs⟩
+  wp_start_folded as ⟨Hl, Hus⟩
   iunfold trLive at Hl
   icases Hl with ⟨#Hst, Hg⟩
   ihave #Hst' := Hst
   tr_state Hst'
   wp_apply (rafthttp.Transport.AddPeer_core hNewURLs hFollower hStartPeer hProber hIDString
       hIDStringPtr hInfo hZString hZStrings (netRh γn) t c.lid c.γd c.R c.γs c.γr c.L c.γk c.γo rs id
-      us dq ss Hne Hpl Hown Hself Hpm) $$ [Hg Hus HRs] as ⟨Hg, Hus, Htk⟩
+      us dq ss Hne Hpl Hown Hself Hpm) $$ [Hg Hus] as ⟨Hg, Hus, Htk⟩
   · iframe; iframe #
   iapply HΦ
   iframe Hus
@@ -126,7 +127,7 @@ theorem rafthttp.Transport.AddPeer_full
   iexact Htk
 
 /-- **`t.AddRemote(id, us)`** on a started transport (D43 M5c: any caller, no owner's right), as
-`AddPeer`, of an id the pool has four `R`s for (`id ∈ c.L`): it returns. -/
+`AddPeer`, of an id the remotes' budget has (`id ∈ c.L`): it returns. -/
 theorem rafthttp.Transport.AddRemote_full
     (hNewURLs : types.NewURLs.spec (GF := GF) (hG := hG))
     (hStartRemote : rafthttp.startRemote.spec (GF := GF) (hG := hG))
@@ -259,8 +260,8 @@ theorem rafthttp.Transport.Send_full (hSend : rafthttp.Transport.Send.spec (GF :
 /-- **`t.Handler()`** on a started transport (D22 J-T: until then frozen, with every other member
 among its peers) of the member owning `a`, opened, every other member one of the ids its pool
 budgets (`c.L`): a handler of `a` for the raft protocol, lending each invocation an `R` and a
-reader's token. The handlers' `AddRemote` of a sender that is no peer starts its remote with the
-pool's `R`s (`trAddRemote_of_state`; W8: the protocol's `X-PeerURLs`, the sender's URLs). -/
+reader's token. The handlers' `AddRemote` of a sender that is no peer starts its remote
+(`trAddRemote_of_state`; W8: the protocol's `X-PeerURLs`, the sender's URLs). -/
 theorem rafthttp.Transport.Handler_full
     (hNPH : rafthttp.newPipelineHandler.spec (GF := GF) (hG := hG))
     (hNSH : rafthttp.newStreamHandler.spec (GF := GF) (hG := hG))

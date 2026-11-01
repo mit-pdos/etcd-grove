@@ -32,10 +32,10 @@ theorem rafthttp.remote.stop.wp_proof
   iunfold remoteStop at Hst
   icases Hst with ⟨%pl, #Hpl, Hpls⟩
   wp_auto
-  wp_apply hPipeStop Rh pl pid R $$ [Hpls] as ⟨HR1, HR2, HR3, HR4⟩
+  wp_apply hPipeStop Rh pl pid R $$ [Hpls]
   · iframe #; iframe
   (try wp_auto)
-  iapply HΦ; iframe
+  iapply HΦ; itrivial
 
 end proof
 

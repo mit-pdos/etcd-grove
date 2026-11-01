@@ -194,7 +194,7 @@ theorem Main.wp_proof
       · simp [Hlg]
     isplitr
     · iapply clientAuthPre_anon; rfl
-    ipureintro; exact Htb
+    ipureintro; omega
   icases Hcl with (⟨%Hcerr, %cl, #Hkc, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · cases cerr with

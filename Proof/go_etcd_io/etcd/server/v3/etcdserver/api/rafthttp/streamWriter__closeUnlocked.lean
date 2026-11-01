@@ -38,7 +38,6 @@ local macro "close_fresh" : tactic => `(tactic| (
   imod start_bag (swMsg Rh ty lid pid) _ mc' γm' (by trivial) $$ Hmcc Hmo with #Hbag'
   wp_auto
   iapply HΦ
-  iframe HR
   isplitr
   · ipureintro; rfl
   iexists mc', γm'
@@ -68,7 +67,7 @@ theorem rafthttp.streamWriter.closeUnlocked.wp_proof
     (hIDStringPtr : types.ID.String_ptr.spec (GF := GF) (hG := hG)) :
     rafthttp.streamWriter.closeUnlocked.spec (GF := GF) (hG := hG) := by
   intro Rh ty lid pid Rr cw mc γm wk cl Q
-  wp_start as ⟨#Hf, Hmc, Hwk, Hcl, #Hbag, Hcls, HR⟩
+  wp_start as ⟨#Hf, Hmc, Hwk, Hcl, #Hbag, Hcls⟩
   iunfold swFixed at Hf
   icases Hf with ⟨%lg, %ps, %fs, %r, %γd, %cc, %sc, %dc, %γc, %γs, %γdn, #Hlg, %Hlgnn, #Hlid,
     #Hpid, -, -, -, -, #Hr, #Hraft, -, -, -, -, -, -, -⟩
@@ -79,7 +78,6 @@ theorem rafthttp.streamWriter.closeUnlocked.wp_proof
   | false =>
     wp_auto
     iapply HΦ
-    iframe HR
     isplitr
     · ipureintro; rfl
     iexists mc, γm

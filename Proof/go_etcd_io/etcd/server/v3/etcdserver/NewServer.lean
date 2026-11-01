@@ -497,17 +497,20 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ipersist ElectionTicksS
   ipersist TickMsS
   ipersist ServerFeatureGateS
-  have hMR : 2 ^ 29 + 2 ^ 23 + 2 ^ 22 + 100 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
+  have hMR : 2 ^ 29 + 2 ^ 28 + 100 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
     rw [sync.rwmutex.actualMaxReaders_unseal]; decide
   have hM1 : 1 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by omega
   -- (D21 M2; rafthttp stage 6d) the transport's `lgMu` reader slots, one per concurrent call into
   -- the server's `Raft` (`Process`'s `Logger()`): `httpProcSlots` for the requests the member's raft
-  -- handler serves, `2 ^ 23` for the peers' goroutines (eight each, at most `2 ^ 20` peers)
+  -- handler serves
   have hHP : http.httpProcSlots = 2 ^ 29 := rfl
   icases replicate_takeN _ http.httpProcSlots _ (by omega) $$ Hlgrs with ⟨HlgServe, Hlgrs⟩
-  icases replicate_takeN _ (2 ^ 23) _ (by omega) $$ Hlgrs with ⟨HlgPeers, Hlgrs⟩
-  -- (D22 J-T) `2 ^ 22` for the transport's pool: four for each other member's one remote
-  icases replicate_takeN _ (2 ^ 22) _ (by omega) $$ Hlgrs with ⟨HlgPool, Hlgrs⟩
+  -- (J8a-6, 2026-11-01, the user's decision; until then `2 ^ 23` slots for the peers' goroutines,
+  -- eight each, and `2 ^ 22` for the remotes', four each, which the snapshots' `AddPeer`s consumed)
+  -- `2 ^ 28` for the transport's pool (`raftPool`, a thread pool: `threadBound GF ≤ 2 ^ 28`), which
+  -- the peers' receiving goroutines borrow from with their thread tokens
+  icases replicate_takeN _ (2 ^ 28) _ (by omega) $$ Hlgrs with ⟨HlgPool, Hlgrs⟩
+  imod raftPool_init (srvLgReader s) ⊤ (2 ^ 28) (by omega) $$ HlgPool with #HrPool
   icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨Hlr1, Hlgrs⟩
   wp_apply h19 $$ [Hlr1] as ⟨-, Hlr1⟩
   · iframe lg; iframe Hlr1; ipureintro; exact Hlgnn
@@ -950,19 +953,14 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   have HLnd : (ps.filter (· ≠ id)).Nodup := Hrnodup.filter _
   have HLmem : ∀ f, f ∈ ps.filter (· ≠ id) ↔ f ∈ ps ∧ f ≠ id := by
     intro f; simp [List.mem_filter]
-  have HLlen : 4 * (ps.filter (· ≠ id)).length ≤ 2 ^ 22 := by
-    have := List.length_filter_le (· ≠ id) ps
-    have h2 := Hdirps.2
-    omega
-  ihave HRL := replicate_list4 (srvLgReader s) (ps.filter (· ≠ id)) (2 ^ 22) HLlen $$ HlgPool
   have Hturls : trURLsOk (netRh γn) id U.peer :=
     trURLsOk_of_dir γn dir Hγn.2 Hdirok ps Hdirps.1 id (Hrid ▸ Hrmem) U.peer HpU
   wp_apply (h38 γn t _ (srvLgReader s) γd (srvSnapRm γt ρ.rd) U.peer (ps.filter (· ≠ id)))
-    $$ [«$r0» Hlsf HRL] as %terr Htres
+    $$ [«$r0» Hlsf] as %terr Htres
   · iframe «$r0»
     simp only
     rw [Hid]
-    iframe Hnro Hss Hsdir HpU Hnet Hlsi Hlsf HRL
+    iframe Hnro Hss Hsdir HpU Hnet Hlsi Hlsf HrPool
     ipureintro; refine ⟨Hlgnn, Hssnn, Hlsnn, ?_, Hdid, HLnd, Hturls⟩ <;> first | rfl | trivial
   icases Htres with (%Hterr | ⟨%Hterr, %c, %Hc, Htlive, Hun, Htoks, #HtrNet, #Htrr, -⟩)
   · -- the transport could not start: the error returned, the store and `b` closed
@@ -1015,21 +1013,16 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   simp only at Hcl
   rw [Hid] at Hcl
   -- (rafthttp stage 6d) the loop's invariant: the ids `AddPeer` was called for (`L`, with the
-  -- transport's live state), each other member's so far, and `lgMu`'s reader slots left for the
-  -- next peers (eight each)
+  -- transport's live state), each other member's so far
   ihave IH2 : iprop(∃ (n : w64) (mm : Loc) (L : List w64), "i" ∷ i_ptr ↦ n ∗ "m" ∷ m_ptr ↦ mm ∗
       "Htlive" ∷ trLive γn t c L ∗ "Hun" ∷ trUnopened c ∗ "Hnr" ∷ trNoRemAcc c L ∗
-      "HlgPeers" ∷ ([∗list] _x ∈ List.replicate (2 ^ 23 - 8 * L.length) (), srvLgReader s) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z msl.len ∧ L.length ≤ (sint.Z n).toNat⌝ ∗
       "%Hcov" ∷ ⌜∀ (k : Nat) (p : Loc × w64), k < (sint.Z n).toNat → mps[k]? = some p →
-        p.2 ≠ id → p.2 ∈ L⌝) $$ [i m Htlive Hun HlgPeers]
+        p.2 ≠ id → p.2 ∈ L⌝) $$ [i m Htlive Hun]
   · iexists W64 0, _, []
     iframe i m Htlive Hun
     isplitr
     · iapply trNoRemAcc_nil
-    isplitl [HlgPeers]
-    · rw [show 2 ^ 23 - 8 * ([] : List w64).length = 2 ^ 23 from rfl]
-      iexact HlgPeers
     ipureintro
     refine ⟨⟨by decide, by have := Hmsll.2; word, by simp⟩, fun k p hk _ _ => ?_⟩
     exact absurd hk (by simp)
@@ -1089,18 +1082,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       · have Hpid : px.2 ≠ id := by rw [← Hid]; simpa using Hif
         obtain ⟨Hne, Hpl, Hown, Hpm⟩ :=
           addPeer_dir γn dir Hγn.2 Hdirok ps Hdirps.1 px.2 Hpxps mpus Hmok.2
-        have H8 : 8 ≤ 2 ^ 23 - 8 * L.length := by
-          have h1 : mps.length = (sint.Z msl.len).toNat := Hmsll.1
-          have h2 := Hn.2.2
-          omega
-        icases replicate_takeN _ 8 _ H8 $$ HlgPeers with ⟨HR8, HlgPeers⟩
         wp_apply (h41 γn t c L px.2 mpu (DFrac.own 1) mpus Hne Hpl Hown
-            (by rw [Hcl]; exact fun h => Hpid h.symm) Hpm) $$ [Htlive Hmpus HR8]
+            (by rw [Hcl]; exact fun h => Hpid h.symm) Hpm) $$ [Htlive Hmpus]
           as ⟨Htlive, Hmpus, Hnr1⟩
         · iframe Htlive Hmpus
-          iframe #
-          rw [HcR]
-          iexact HR8
         (try wp_auto)
         ihave Hmso : iprop([∗list] p ∈ mps, memberDirIs (GF := GF) dir p.1 p.2)
             $$ [Hmso Hmid Hmpu Hmil Hmnm Hmcu Hmpus Hmcus]
@@ -1117,10 +1102,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
         iframe
         iexists n + W64 1, _, L ++ [px.2]
         iframe
-        isplitl [HlgPeers]
-        · rw [show 2 ^ 23 - 8 * (L ++ [px.2]).length = 2 ^ 23 - 8 * L.length - 8 by
-            simp only [List.length_append, List.length_singleton]; omega]
-          iexact HlgPeers
         ipureintro
         refine ⟨⟨by word, by word, by simp only [List.length_append, List.length_singleton]; omega⟩, ?_⟩
         rw [Hn1]
@@ -1380,7 +1361,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (audit B4a) `monitorDowngrade`'s `lgMu` reader slot, and the monitors' configuration fields
   icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgMon, Hlgrs⟩
   -- (M2) one for the compactor's calls (`srvCompactR`)
-  icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgC, Hlgstock⟩
+  icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgC, -⟩
   ipersist CorruptCheckTimeS
   ipersist DowngradeCheckTimeS
   ihave HMon : srvMonitorCfg s cfg $$ [HlgMon]
@@ -1408,13 +1389,11 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · iapply srvKVCloserW_cmpRight_of_new s _ (Hkbon rfl) Hcmw $$ Hcl0 Hcr
   imod HclR with ⟨Hcl, Hcmr⟩
   -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`srvSnapBoot`,
-  -- `SnapRO.lean`): its persistent bundle, the snapshot-taken counter's authority, the stocks of
-  -- the auth store's reader resource and `lgMu`'s reader slots (dropped here until J1a)
+  -- `SnapRO.lean`): its persistent bundle, the snapshot-taken counter's authority (J8a-6: no stock
+  -- of `lgMu`'s reader slots any more, the snapshots' `AddPeer`s borrowing from the transport's pool)
   ipersist DataDirS
   ipersist snapshotter
   ipersist beHooks
-  have hMR3 : 2 ^ 29 + 2 ^ 28 + 2 ^ 23 + 2 ^ 22 + 200 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
-    rw [sync.rwmutex.actualMaxReaders_unseal]; decide
   obtain ⟨stp, Hstp, Hstpss⟩ := Hrn15
   -- (D22 J1b) the alarm store's `Get`, from its apply contract on the backend (`Tal = True`)
   ihave #HalG : apply.alarmGetIs alst iprop(True) false $$ []
@@ -1439,11 +1418,11 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       iframe Hrw Hal Hau Hle Hcb
   ihave HsnapB : srvSnapBoot s cil
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF)
-      ρ.rd $$ [Hγt Hlgstock Hopen Hcl Hpath]
+      ρ.rd $$ [Hγt Hopen Hcl Hpath]
   · iunfold srvSnapBoot
     iexists γt
     iframe Hγt
-    isplitr [Hlgstock Hopen Hcl Hpath]
+    isplitr [Hopen Hcl Hpath]
     · icases Hbh with ⟨%lgh, #Hbh'⟩
       ihave #Hfix' := Hfix
       iunfold rnFixed at Hfix'
@@ -1474,11 +1453,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       isplitr
       · rw [Hγw.2.1]; iexact Hlinv
       iexists ws, γw; iframe kv Hws
-    isplitl [Hlgstock]
-    · iunfold srvSnapStock
-      iexists _
-      iframe Hlgstock
-      ipureintro; omega
     -- (D22 J1b) the backend's stop channels and the constructors' half of its open token, the
     -- alarm store's `Get`; (2026-11-01) the KV's closer, the backend file's directory entry
     iunfold srvSnapRes
@@ -1912,7 +1886,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · iframe Hcvm Hpkg cluster; iframe Hk
     inext; iintro %v Hv; iapply HΦ' $$ Hv
   isplitr
-  · ipureintro; exact Hbnd
+  · ipureintro; omega
   -- `Hua`: the uber-applier (D14i): its options' contracts, its chain, the apply thread's KV
   have hm0 : γA.m0.1 = W64 0 := by rw [Hci.2]
   have hLoaded : ∀ st : ApplyState, stLoaded γA st = st := by

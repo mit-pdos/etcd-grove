@@ -45,8 +45,9 @@ theorem peerURL_of_parsed (Rh : RaftHttp GF) (pid : w64) (ss : List GoString)
 set_option maxRecDepth 8000 in
 set_option maxHeartbeats 8000000 in
 /-- **`t.AddPeer(id, us)`** on a live transport (its half of `γr`, not stopped) with the write
-lock's guard, of `id`'s URL strings (non-empty, plain, owned by `id`), and eight `R`s: it returns,
-the peer of `id` started and added (with its stop right) unless there was one. -/
+lock's guard, of `id`'s URL strings (non-empty, plain, owned by `id`): it returns, the peer of `id`
+started and added (with its stop right) unless there was one. (Until J8a-6, 2026-11-01, with eight
+`R`s; the peer's goroutines now borrow from the transport's pool, `trFixed`'s `raftPool`.) -/
 theorem rafthttp.Transport.AddPeer_core
     (hNewURLs : types.NewURLs.spec (GF := GF) (hG := hG))
     (hFollower : v2stats.LeaderStats.Follower.spec (GF := GF) (hG := hG))
@@ -66,18 +67,17 @@ theorem rafthttp.Transport.AddPeer_core
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         trFixed Rh t lid γd R ∗ trStopInv Rh R γs L γk γo ∗
         sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) ∗
-        ghostVar γr (1 : Qp).half (rs, false) ∗ us ↦*{dq} ss ∗
-        [∗list] _x ∈ List.replicate 8 (), R }}
+        ghostVar γr (1 : Qp).half (rs, false) ∗ us ↦*{dq} ss }}
       (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddPeer")) (Val #id))
         (Val #us))
     {{ RET #(); ghostVar γr (1 : Qp).half (rs ++ [id], false) ∗ us ↦*{dq} ss ∗
         (⌜id ∈ rs ∨ id ∉ L⌝ ∨ trTokAt γk id 1 ∨ trOpenedAt γo) }} := by
-  wp_start as ⟨#Htr, #Hst, #Hgd, Hlive, Hus, HRs⟩
+  wp_start as ⟨#Htr, #Hst, #Hgd, Hlive, Hus⟩
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
     #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
-    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU⟩
+    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU, #HrPool⟩
   obtain ⟨Hmem, Hturls⟩ := HmemU
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -144,7 +144,7 @@ theorem rafthttp.Transport.AddPeer_core
   have Hune : uvs ≠ [] := by
     intro h; rw [h] at Huvs; exact Hne (List.length_eq_zero_iff.1 Huvs.1.symm)
   wp_apply hStartPeer Rh t lid γd R urls uvs id fs Hune
-      (fun u hu => peerURL_of_parsed Rh id ss Hown u (Huvs.2 u hu)) Hfs Hmem Hself Hpm $$ [HRs]
+      (fun u hu => peerURL_of_parsed Rh id ss Hown u (Huvs.2 u hu)) Hfs Hmem Hself Hpm $$ []
     as %pp ⟨#Hpok, Hpstop⟩
   · iframe; iframe #
   (try wp_auto)
@@ -219,9 +219,9 @@ set_option maxRecDepth 8000 in
 set_option maxHeartbeats 8000000 in
 /-- **`t.AddRemote(id, us)`** by any holder of the write lock's guard (D43 M5c: no owner's right;
 the handlers' `addRemoteFromRequest` calls it on every request), of `id`'s URL strings
-(non-empty, plain, owned by `id`), `id` another member, one of the ids `L` the pool has four `R`s
-for: it returns, the remote of `id` started with the pool's four `R`s and added (with its stop
-right) unless the transport is stopped or `id` is a peer or a remote already. -/
+(non-empty, plain, owned by `id`), `id` another member, one of the ids `L` the remotes' budget
+has: it returns, the remote of `id` started and added (with its stop right) unless the transport is
+stopped or `id` is a peer or a remote already. -/
 theorem rafthttp.Transport.AddRemote_core
     (hNewURLs : types.NewURLs.spec (GF := GF) (hG := hG))
     (hStartRemote : rafthttp.startRemote.spec (GF := GF) (hG := hG))
@@ -246,7 +246,7 @@ theorem rafthttp.Transport.AddRemote_core
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
     #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
-    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU⟩
+    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU, #HrPool⟩
   obtain ⟨Hmem, Hturls⟩ := HmemU
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -285,9 +285,8 @@ theorem rafthttp.Transport.AddRemote_core
   obtain ⟨Hnn, Hcov, HT⟩ := Hrs
   have HnT : id ∉ T := fun h => by have := (HT hrm id).2 h; rw [hr] at this; simp at this
   wp_auto_lc 1
-  -- the remote's four `R`s, from the pool
-  imod trStop_pool_take Rh R γs L γk γo pm rm PM RM T id HnT HL hrm hp $$ Hst Hg Hop Hlc1 with
-    ⟨Hg, HR1, HR2, HR3, HR4⟩
+  -- the remote, budgeted
+  imod trStop_pool_take Rh R γs L γk γo pm rm PM RM T id HnT HL hrm hp $$ Hst Hg Hop Hlc1 with Hg
   ihave #Htyp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types $$ []
   · iPkgInit
   wp_apply hNewURLs us dq ss Hne Hpl $$ [Hus] as %urls %uvs ⟨Hus, Hurls, %Huvs⟩
@@ -297,7 +296,7 @@ theorem rafthttp.Transport.AddRemote_core
   have Hune : uvs ≠ [] := by
     intro h; rw [h] at Huvs; exact Hne (List.length_eq_zero_iff.1 Huvs.1.symm)
   wp_apply hStartRemote Rh t lid γd R urls uvs id Hune
-      (fun u hu => peerURL_of_parsed Rh id ss Hown u (Huvs.2 u hu)) Hmem Hself Hpm $$ [HR1 HR2 HR3 HR4]
+      (fun u hu => peerURL_of_parsed Rh id ss Hown u (Huvs.2 u hu)) Hmem Hself Hpm $$ []
     as %g ⟨#Hgok, Hgstop⟩
   · iframe; iframe #
   (try wp_auto)

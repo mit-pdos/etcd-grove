@@ -48,8 +48,8 @@ monitor's shares the swap gathers), the transport's peers are removed and the me
 (W8), and `NewUberApplier` rebuilds the applier: `srvSnapApplied`. Named premises (S-j1's to
 discharge): the image's facts (`hmeta`, `hkI`, `hRok`, `hpre`, `hlease`, `hlp`, `halarm`, `hauthb`,
 `hmemb`, `himg`, `hA'`), the auth store's mode `.off` (`hoff`), the auth store's `Recover` (`authRecoverOk`, the auth track's E
-stage), the members' directory (`srvMembersDir`) and `8·|ps|` reader slots of the transport's
-`lgMu`, the KV's closer, `NewUberApplier`'s fields and feature gate, the stores' contracts on
+stage), the members' directory (`srvMembersDir`) (until J8a-6, 2026-11-01, also `8·|ps|` reader
+slots of the transport's `lgMu`), the KV's closer, `NewUberApplier`'s fields and feature gate, the stores' contracts on
 whichever backend (`alarmApplyOk`, `authApplyOk`, `lessorApplyOk`, `clusterApplyOk`). -/
 abbrev EtcdServer.applySnapshot.specSnap : Prop :=
   ∀
@@ -141,7 +141,6 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
        rnTransportAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t : GoInterface) ∗
        (trLive γn t c rs ∗ trPeersNoRem c rs) ∗ srvMemberIDAddr s ↦□ idm ∗
-       ([∗list] _x ∈ List.replicate (8 * ps.length) (), c.R) ∗
        srvMembersDir cl ps dir ∗
        epMemSnapAddr ep ↦ msi ∗ epConfState ep cs0 ∗
        srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗

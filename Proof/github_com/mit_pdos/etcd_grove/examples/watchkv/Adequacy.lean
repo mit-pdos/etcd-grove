@@ -26,8 +26,8 @@ gone with D25); the address
 `127.0.0.1:23872`), and beyond them (until 2026-10-20 also the marked `EofOkFromIoInit`, `io.EOF`
 as the watch client takes it, now `client.eofOk_of_init`): the client watcher's classes (`isNewClient_watcher`'s:
 `ErrorStringNoGRPCStatus`, `ContextErrsClient`, and the package assumptions of `errors`, `fmt` and
-`rpctypes`); the execution's length below the watchable store's lock's reader limit
-(`n + 2 ≤ 2 ^ 29`, in place of putget's `2 ^ 31`); and the bounds on `nw` and `nops`.
+`rpctypes`); the execution's length below the server's thread bound
+(`n + 2 ≤ 2 ^ 28`, J8a-6, 2026-11-01; until then the watchable store's lock's reader limit, `2 ^ 29`); and the bounds on `nw` and `nops`.
 -/
 module
 
@@ -94,7 +94,7 @@ theorem watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([watchkvProgram nw nops], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 29) (Hwb : n + 7 ≤ backend.wbInit) :
+    (Hn : n + 2 ≤ 2 ^ 28) (Hwb : n + 7 ≤ backend.wbInit) :
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by

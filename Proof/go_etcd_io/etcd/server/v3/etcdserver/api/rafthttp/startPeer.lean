@@ -56,7 +56,8 @@ local macro "sp_log" : tactic => `(tactic| (
 
 set_option hygiene false in
 /-- A peer's receiving goroutine: `for { select { case mm := <-ch: r.Process(ctx, mm) ...;
-case <-p.stopc: return } }`, holding a resource for its calls; `Hbag` the channel's bag. -/
+case <-p.stopc: return } }`, holding a resource for its calls (`HR7`, borrowed from the pool:
+`Hloan`, given back at the return for the thread token); `Hbag` the channel's bag. -/
 local macro "proc_loop" ch:term "," γ:term : tactic => `(tactic| (
   (try wp_auto)
   wp_for_core
@@ -107,10 +108,13 @@ local macro "proc_loop" ch:term "," γ:term : tactic => `(tactic| (
     · iapply ownBroadcastChan_is_chan $$ Hsunk
     iapply broadcast_chan_receive $$ Hsunk
     iintro ⟨-, -⟩
+    imod raftLoan_giveBack R ⊤ (fun _ _ => CoPset.mem_full) $$ [Hloan HR7] with Htt
+    · iframe
     (try wp_auto)
     wp_for_post
     (try wp_auto)
-    first | itrivial | (ipureintro; exact isPanic_intoVal _)
+    iframe Htt
+    try (ipureintro; exact isPanic_intoVal _)
   iapply BigAndL.bigAndL_nil.2
   itrivial))
 
@@ -162,21 +166,12 @@ theorem rafthttp.startPeer.wp_proof
     (hBackground : context.Background.spec (GF := GF) (hG := hG)) :
     rafthttp.startPeer.spec (GF := GF) (hG := hG) := by
   intro Rh t lid γd R urls uvs pid fs Hne Hurls Hfs Hmem Hnp Hpm
-  rw [show List.replicate 8 () = [(), (), (), (), (), (), (), ()] from rfl]
-  wp_start as ⟨#Htr, #Hus, HRs⟩
-  icases BigSepL.bigSepL_cons.1 $$ HRs with ⟨HR1, HRs⟩
-  icases BigSepL.bigSepL_cons.1 $$ HRs with ⟨HR2, HRs⟩
-  icases BigSepL.bigSepL_cons.1 $$ HRs with ⟨HR3, HRs⟩
-  icases BigSepL.bigSepL_cons.1 $$ HRs with ⟨HR4, HRs⟩
-  icases BigSepL.bigSepL_cons.1 $$ HRs with ⟨HR5, HRs⟩
-  icases BigSepL.bigSepL_cons.1 $$ HRs with ⟨HR6, HRs⟩
-  icases BigSepL.bigSepL_cons.1 $$ HRs with ⟨HR7, HRs⟩
-  icases BigSepL.bigSepL_cons.1 $$ HRs with ⟨HR8, -⟩
+  wp_start as ⟨#Htr, #Hus⟩
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, %Hlgnn,
     #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok, #Hdrf, #Hls,
-    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg0, #HPfx, %HmemU⟩
+    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg0, #HPfx, %HmemU, #HrPool⟩
   obtain ⟨Hmem, Hturls⟩ := HmemU
   have Hpp : Rh.member pid ∧ pid ≠ lid := ⟨Hpm, fun h => Hnp h.symm⟩
   ihave #Hpreg := Hpreg0 $$ %pid %Hpp
@@ -190,14 +185,14 @@ theorem rafthttp.startPeer.wp_proof
   wp_apply hNewPicker urls uvs (peerURL Rh pid) Hne Hurls $$ [] as %pk #Hpk
   · iframe #
   (try wp_auto)
-  -- the pipeline, started with four of the resources
+  -- the pipeline, started
   iStructNamedSuffix «$r0» "P"
   ipersist peerIDP; ipersist trP; ipersist pickerP; ipersist statusP; ipersist raftP
   ipersist errorcP; ipersist followerStatsP
   imod sync.init_WaitGroup (sync.join.wgjN.@"wg") («$r0_ptr».[rafthttp.pipeline, go!"wg"]) $$ wgP
     with ⟨%γwg, Hwg⟩
   imod sync.join.init _ γwg $$ Hwg with Hwg
-  wp_apply hPipeStart Rh «$r0_ptr» pid R $$ [msgcP stopcP Hwg HR1 HR2 HR3 HR4] as Hpl
+  wp_apply hPipeStart Rh «$r0_ptr» pid R $$ [msgcP stopcP Hwg] as Hpl
   · iframe
     iunfold pipeFixed
     iexists t, pk, ec, lg, turls, tuvs, lid, cid, prt, ps, fs, r, lid, γd
@@ -210,12 +205,12 @@ theorem rafthttp.startPeer.wp_proof
   (try wp_auto)
   obtain ⟨pl, hpl⟩ : ∃ pl : Loc, pl = «$r0_ptr» := ⟨_, rfl⟩
   subst hpl
-  -- the two stream writers, each with a resource; the snapshot sender
-  wp_apply hStartSW Rh .msgAppV2 lid pid R lg ps fs r γd $$ [HR5] as %cw2 ⟨#Hcw2, Hcw2s⟩
-  · iframe #; iframe HR5; ipureintro; exact ⟨Hlgnn, Hfs⟩
+  -- the two stream writers; the snapshot sender
+  wp_apply hStartSW Rh .msgAppV2 lid pid R lg ps fs r γd $$ [] as %cw2 ⟨#Hcw2, Hcw2s⟩
+  · iframe #; ipureintro; exact ⟨Hlgnn, Hfs⟩
   (try wp_auto)
-  wp_apply hStartSW Rh .message lid pid R lg ps fs r γd $$ [HR6] as %cw1 ⟨#Hcw1, Hcw1s⟩
-  · iframe #; iframe HR6; ipureintro; exact ⟨Hlgnn, Hfs⟩
+  wp_apply hStartSW Rh .message lid pid R lg ps fs r γd $$ [] as %cw1 ⟨#Hcw1, Hcw1s⟩
+  · iframe #; ipureintro; exact ⟨Hlgnn, Hfs⟩
   (try wp_auto)
   wp_apply hNewSnap Rh t lid γd R pk pid ps Hpm (fun h => Hnp h.symm) $$ [] as %sns ⟨#Hsns, Hsnstop⟩
   · iframe #
@@ -259,12 +254,20 @@ theorem rafthttp.startPeer.wp_proof
   icases Hraft with ⟨%ri, %Hri, #HProc, -, -, -⟩
   subst Hri
   ipersist p; ipersist ctx; ipersist r; ipersist t
-  wp_apply wp_fork $$ [HR7]
-  · ihave #Hbag := Hrbag
+  -- the two receiving goroutines, each borrowing an `R` from the pool with its thread token
+  wp_apply wp_fork_tok_body
+  · iintro Htt
+    wp_auto_lc 1
+    imod raftPool_borrow R ⊤ (fun _ _ => CoPset.mem_full) $$ [Hlc1 HrPool Htt] with ⟨HR7, Hloan⟩
+    · iframe; iframe #
+    ihave #Hbag := Hrbag
     proc_loop rcc, γr
   (try wp_auto)
-  wp_apply wp_fork $$ [HR8]
-  · irename HR8 => HR7
+  wp_apply wp_fork_tok_body
+  · iintro Htt
+    wp_auto_lc 1
+    imod raftPool_borrow R ⊤ (fun _ _ => CoPset.mem_full) $$ [Hlc1 HrPool Htt] with ⟨HR7, Hloan⟩
+    · iframe; iframe #
     ihave #Hbag := Hpbag
     proc_loop pcc, γp
   (try wp_auto)
