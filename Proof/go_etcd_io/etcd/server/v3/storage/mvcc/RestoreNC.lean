@@ -55,7 +55,7 @@ abbrev mvcc.store.restore.specNC : Prop :=
         iprop(mvcc.restoreViewOut γ q R ∗ mvcc.isTreeIndex ti γ.idx ∗
           ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
             mvcc.idxReader ti γ.idx) ∗
-          ⌜mvcc.logCh ([[], []] ++ R) < receiptBound GF⌝) RevQ }}
+          ⧖ (mvcc.logCh ([[], []] ++ R))) RevQ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
   {{ RET #GoInterface.nil; RT ∗ mvcc.kbMW γ.kb γ.bucket ∗
       ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
@@ -87,7 +87,7 @@ theorem mvcc.store.restore.specNC_of_spec (h : mvcc.store.restore.spec (GF := GF
         s.[store, go!"b"] ↦{dqb} b ∗
         s.[store, go!"kvindex"] ↦{dqi}
           (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface))
-      hR hq12 hrec (fun x hx => by cases hx) (mvcc.entsCutAt_full _ _) (Or.inl rfl)) $$
+      hR hq12 hrec (fun x hx => by cases hx) (mvcc.entsCutAt_full _ _)) $$
     [Hb Hrt Hnc Hview Hkvi Hix Hig Hcur1 Hcmp HRevP HLk HUl]
   · rw [mvcc.isKeyBackendGR_empty, mvcc.bucketOfEnts_logEnts, mvcc.CmpRecs.crev_empty]
     ihave Hig := (mvcc.idxLockG_at _ _).1 $$ Hig
@@ -116,7 +116,9 @@ theorem mvcc.store.restore.specNC_of_spec (h : mvcc.store.restore.spec (GF := GF
       ihave H2 := mvcc.kbNoCmp_MW _ _ $$ H2
       iframe H1 H2 H3
     iframe Hpkg Hb Hbk Hrt Hnc Hkvi Hix Hiw Hle Hlg Hcur1 Hcmp HRevP HLk Hig Hview Hfw HUl Hk
-    ipureintro; exact Hlgnn
+    isplitl []
+    · ipureintro; exact Hlgnn
+    ileft; ipureintro; rfl
   iintro !> H
   iapply HΦ
   iexact H

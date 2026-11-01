@@ -57,8 +57,10 @@ range's first entries (`issues/etcd-unsafe-range-limit-buffer.md`).
   records, `restoreCur_cut`), under `s.revMu`'s second round: the caller gives the lock's
   protocol, `RevP` before, its part `q2` of `currentRev` (at `1`) with `RevK` once locked, `RevQ`
   once unlocked with it at `|L'| - 1`, the view `restore` read through, the index's lock with every
-  reader's token and the restored log's changes below the time receipts' bound (from the rebuild's
-  receipts for the whole bucket, else the caller's premise); `restore` holds the other part `q1`.
+  reader's token and the restored log's persistent time receipt `⧖ (logCh L')` (M2's B2, 2026-11-01:
+  the writer's, in place of the pure bound below it; from the rebuild's receipts for the whole
+  bucket, else the caller's, the last conjunct of the pre: a compacted image's, carried with it);
+  `restore` holds the other part `q1`.
 * **The resumed compaction** (`resumeK`): if the records resume one (`CmpRecs.resumes`),
   `compactLockfree` at the scheduled record, from what `restore` has then (`restoreDone`), as the
   caller provides it; `restore` ends in the caller's `Fin`.
@@ -78,8 +80,6 @@ abbrev mvcc.store.restore.spec : Prop :=
   mvcc.restoreLogOk R → q1 + q2 = 1 → mvcc.recsOk ([[], []] ++ R) r →
     (∀ x, r.fin = some x → dqc • dql = DFrac.own 1) →
     mvcc.entsCutAt ([[], []] ++ R) r.crev ents →
-    (ents = mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length ∨
-      mvcc.logCh ([[], []] ++ R) < receiptBound GF) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       s.[store, go!"b"] ↦{dqb} b ∗
       mvcc.isKeyBackendGR b (mvcc.bucketView γ) RT WT NC r PutOk (mvcc.delKey γ) W Wi Dep Cmp P HF
@@ -100,9 +100,11 @@ abbrev mvcc.store.restore.spec : Prop :=
           mvcc.isTreeIndex ti γ.idx ∗
           ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
             mvcc.idxReader ti γ.idx) ∗
-          ⌜mvcc.logCh ([[], []] ++ R) < receiptBound GF⌝) RevQ ∗
+          ⧖ (mvcc.logCh ([[], []] ++ R))) RevQ ∗
       mvcc.resumeK s r
-        (mvcc.restoreDone s b ti q1 dqb dqi dqc ([[], []] ++ R) ents r RT NC RevQ) Fin }}
+        (mvcc.restoreDone s b ti q1 dqb dqi dqc ([[], []] ++ R) ents r RT NC RevQ) Fin ∗
+      (⌜ents = mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length⌝ ∨
+        ⧖ (mvcc.logCh ([[], []] ++ R))) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
   {{ RET #GoInterface.nil; Fin }}
 

@@ -155,8 +155,7 @@ theorem dbImageR_of_sender (γ : ServerRaftNames) (γk : KVNames) (γi : mvcc.Id
     srvRLogLb (GF := GF) γ A ∗ mvcc.idxCertR γi log ⊢ dbImageR γ γk i D := by
   subst hlog
   iintro ⟨#HA, #Hc⟩
-  iunfold mvcc.idxCertR at Hc
-  icases Hc with ⟨-, #Hp⟩
+  ihave #Hp := mvcc.idxCertR_rcpt γi _ $$ Hc
   iunfold dbImageR
   iexists A
   iframe HA Hp

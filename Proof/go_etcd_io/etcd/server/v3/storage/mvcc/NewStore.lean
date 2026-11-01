@@ -406,7 +406,7 @@ theorem mvcc.NewStore.wp_proof
         «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64) ∗
         iprop(mvcc.restoreViewOut γ (1 : Qp).half [] ∗ mvcc.isTreeIndex ti γ.idx ∗
           ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-            mvcc.idxReader ti γ.idx) ∗ ⌜mvcc.logCh ([[], []] : mvcc.Log) < receiptBound GF⌝))
+            mvcc.idxReader ti γ.idx) ∗ ⧖ (mvcc.logCh ([[], []] : mvcc.Log))))
       (DFrac.own 1) (1 : Qp).half (1 : Qp).half mvcc.restoreLogOk_nil (Qp.half_add_half 1)
   simp only [List.append_nil] at hR
   icases mvcc.idxWriter_lb γ.idx [[], []] $$ Hiw with ⟨Hiw, #Hiwlb⟩
@@ -427,12 +427,12 @@ theorem mvcc.NewStore.wp_proof
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ rwW)
       iprop(mvcc.restoreViewOut γ (1 : Qp).half [] ∗ mvcc.isTreeIndex ti γ.idx ∗
           ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-            mvcc.idxReader ti γ.idx) ∗ ⌜mvcc.logCh ([[], []] : mvcc.Log) < receiptBound GF⌝)
+            mvcc.idxReader ti γ.idx) ∗ ⧖ (mvcc.logCh ([[], []] : mvcc.Log)))
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
         «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64) ∗
         iprop(mvcc.restoreViewOut γ (1 : Qp).half [] ∗ mvcc.isTreeIndex ti γ.idx ∗
           ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-            mvcc.idxReader ti γ.idx) ∗ ⌜mvcc.logCh ([[], []] : mvcc.Log) < receiptBound GF⌝)) $$ []
+            mvcc.idxReader ti γ.idx) ∗ ⧖ (mvcc.logCh ([[], []] : mvcc.Log)))) $$ []
   · iunfold mvcc.revUnlockW
     rw [show (W64 ((([[], []] : mvcc.Log).length : Int) - 1) : w64) = W64 1 from rfl]
     iintro %Ψ Hc HrevMu Hv HΨ

@@ -2198,6 +2198,12 @@ check the shape against; best done with item 15.
 
 ## B2 by sealed logs (2026-10-30; Draft)
 
+**The mvcc half switched (2026-11-01, branch `m2-b2-mvcc`)**: `idxSealed`/`idxCert`/`idxWriter` carry the
+persistent receipt in `InvIndex.lean`, `treeIndex.Put`/`Tombstone` raise it, and `store.restore.spec`
+takes and gives `⧖` (a statement the Draft had missed). `notes/decisions.md`, "M2's B2, the mvcc half
+switched". Left: the snapshot half (`dbImageR`/`srvImageR`, the sender, `specSnap`'s
+`restoreRcptM`), after J8a and with SNAPSHOT-SORRY #7, and `Restore.specMR` with `Restore.specM`.
+
 The user's answer after the restore chain's round 2 (above): no `NewServer` premise; every installed
 image's log is some member's sealed log, carried with the snapshot. Drafts:
 `storage/mvcc/M2StorageDraftSealed.lean` (new) and `etcdserver/M2StorageDraftB2.lean` (rewritten).
