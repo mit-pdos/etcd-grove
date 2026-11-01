@@ -346,3 +346,15 @@ The rounds stop here: rounds 2-4 found no false statement in the Draft; their fi
 were in the Impact (a client or a consumer missed, the same kind each round: T3, I2) or are the
 user's questions (Q2, Q5, Q7).
 
+
+## The user's decisions (2026-11-01)
+
+All seven recommendations accepted: Q1 `Close.spec` unchanged (docstring only); Q2 (a), the pool in
+the constructor at `2^28` with the counted remainder; Q3 `Unlock`'s extra `S r`; Q4 restate the 10
+specs taking `rbOwn` (readers over the idle part, writers over the part); Q5 `bkRTx`'s open share
+replaced by an acquisition guard in mvcc, its own stage; Q6 no guard in mode off; Q7 settled with
+the auth premise (round 1's reviewer's Go finding is recorded outside this repository).
+
+Next: Freeze of decisions 1–3 (the proved restatements, their corollaries, the callers), then the
+trusted restatements (Q4's 10, `OpenBackend`/`OpenSnapshotBackend`, `Snapshot`), each drafted with
+its axiom check and its text shown to the user before it changes.
