@@ -336,6 +336,13 @@ theorem dataErrT (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : Lis
     · iframe; iframe #; ipureintro; exact ⟨h1, h2, h3, h4⟩
   · iright; iframe #; ipureintro; rfl
 
+/-- The two metas' bytes of meta pages' bytes `xs`. -/
+theorem metas_length (xs : List (w8 × Bool)) (h : xs.length = 8192) :
+    (((xs.map Prod.fst).drop 16).take 64 ++ ((xs.map Prod.fst).drop 4112).take 64).length = 128 := by
+  rw [List.length_append, List.length_take, List.length_take, List.length_drop, List.length_drop,
+    List.length_map, h]
+  rfl
+
 /-- The header of the meta page `commit` writes after `mv`. -/
 def metaHdrOf (mv : Meta) : Page :=
   { pageHdr (W64 0) (W16 0) with id' := (nextMeta mv).txid' % W64 2, flags' := W16 4 }
@@ -948,7 +955,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     icases osBytes_halves p X 0 $$ Hmxw with ⟨Hx1, Hx2⟩
     imod meta_fail γ db p base len γm mx hwm
         (((X.map Prod.fst).drop 16).take 64 ++ ((X.map Prod.fst).drop 4112).take 64)
-        (by simp; omega) X hXl T _
+        (metas_length X hXl) X hXl T _
         $$ [Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hcls2 Hx1]
       with ⟨HR, #Hfailed, Htok, Hcur, Hout⟩
     · rw [List.take_left' hl1, List.drop_left' hl1]
@@ -995,7 +1002,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     icases osBytes_halves p X 0 $$ Hmxw with ⟨Hx1, Hx2⟩
     imod meta_fail γ db p base len γm mx hwm
         (((X.map Prod.fst).drop 16).take 64 ++ ((X.map Prod.fst).drop 4112).take 64)
-        (by simp; omega) X hXl T _
+        (metas_length X hXl) X hXl T _
         $$ [Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hcls2 Hx1]
       with ⟨HR, #Hfailed, Htok, Hcur, Hout⟩
     · rw [List.take_left' hl1, List.drop_left' hl1]
