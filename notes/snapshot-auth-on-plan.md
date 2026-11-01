@@ -597,7 +597,7 @@ not a false claim about Go) and the reader-slot count (S9).
 ### Impact on the base (users of the restated names; none changed in this stage)
 
 - `authSchemaSrv`: `etcdserver/AuthSrv.lean` (`authStoreKit_on`, `newAuthStore_on`, `authSrvTP_on`:
-  re-prove over the new post: `γc`, `authWHeld`, `authPubTok`, `authBkLife`, `rbOwnIn`, `bIdle`, the
+  re-prove over the new post: `γc`, `authWHeld`, `authPubTok`, `authBkLife`, `rbOwnIn` (idle), `authSucc`, the
   quarter `authOpenQ`, and carry `authSchemaSnap`), `etcdserver/Results.lean` and
   `examples/authkv/Results.lean` (restate the premise in the exported results),
   `Spec/.../etcdserver/NewServer.lean` (`NewServer.specM true`'s premise text; `srvAuthSnapOk` in
