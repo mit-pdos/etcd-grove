@@ -4,7 +4,11 @@ compaction pressure (`common.StartCompactingServer`, revision mode, retention 1;
 put of the round's key, a client compaction at the revision before it, a get of the key, and
 from the second round a get of the previous round's key at that round's put's revision,
 `client.client_Get_kv` with `getAtAu_round`: if `nil`, the previous put's value, by the rounds'
-invariant's history; an error skips the check);
+invariant's history; an error skips the check); then (watches across a compaction, W4,
+2026-11-01) a watch of the last round's key from revision 2 (`watcher.Watch.spec`), its events
+collected (`common.Collect`, `resp_val`: every event of value `v`, the rounds' `oneValW`), the
+member's watch server served with `noDupKeys` (`watchkv.wk_served_nd`, `noDupKeys_of_rounds`): a
+compaction response is an error, which ends the collection;
 putgetc's and putget's history below is the originals'.
 
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/compactkv/Main.lean` (item 9, stage 2,

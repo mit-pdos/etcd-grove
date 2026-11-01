@@ -29024,3 +29024,15 @@ noDupKeys γ`: weaker for clients (one of a store that never compacts keeps givi
 `noCompactor`, the token's old fact), and without the gate's margin (a compaction-mode store
 frozen by its creator). Presented to the user side by side with the approved gate; approved.
 `wsWatchFrozen γ σ := ⌜σ.M = ∅⌝ ∨ watchNoDup γ.st`.
+
+## Watches across a compaction, W4: `compactkv` with a watch (2026-11-01 · accepted, the user's question 3 (a) · branch `watch-w4`)
+
+The member's store gives the create token's `noDupKeys` arm from the example's own workload: the
+rounds' invariant keeps every revision one put of `v` (`oneValW`), a read update reads it at any
+state (`oneValAu`), and `srvKVCoreM_fire` fires it at every watched log, a prefix of a committed
+one. Two shared helpers changed shape for it: the served lemma takes the store's fact for watches
+as a premise (`watchkv.wk_served_nd`; `wk_served`, its `cm = false` form, is gone, its callers give
+the no-compactor arm), and `common.Collect.spec` takes the consumer at any start cursor `c0` with
+`I 0 c0` (until then `0`, a watch from revision 1). The watch is of the last round's key, guarded
+by `prevRev != 0` so that the key is a round's (`prevOk`, the request's size).
+

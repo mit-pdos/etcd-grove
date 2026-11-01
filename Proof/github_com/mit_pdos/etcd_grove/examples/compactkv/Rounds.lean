@@ -17,6 +17,9 @@ suffice; a state's earlier revisions never change (`kvOpStep_at`).
 * `getAu_round`: once round `i`'s put fired, a read update whose result is `keys[i] ↦ val`.
 * `getAtAu_round`: once round `i`'s put first fired at `r0`, a read update whose result is
   `keys[i] ↦ val` at every revision from `r0` to the current one.
+* (watches across a compaction, W4) `oneValAu`: a read update whose result is that every revision
+  is one put of `val`, or empty (`oneValW`, kept by every put): the watch's `noDupKeys` and the
+  events' value (`NoDup.lean`).
 
 Lean-first (no Rocq counterpart).
 -/
