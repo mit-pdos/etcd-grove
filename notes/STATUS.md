@@ -585,16 +585,19 @@ p.Term'` was already the tie, unchanged). Rests on `nodeDriver_hardStateCommitte
 with branch `snap-sorries` (not committed on `snap-rt`: it does not build alone). `applyAll`, its
 consumer, untouched.
 
-## The backend for the auth split (2026-11-01, branch `backend-auth-split`; decision 1 frozen)
+## The backend for the auth split (2026-11-01, branch `backend-auth-split`; decisions 1 and 3 applied)
 
-`notes/backend-auth-split-plan.md`, "Freeze". Applied: decision 1 (a held `readTx` records that its
-interval is live; `readTx.UnsafeRange` takes no open share; `guarded_RLock`; `Close.spec`'s
-docstring). Stopped: decision 3 (`rbPart`/`rbOwnIn`): its law `rtHeldF_rbOwnIn` is not provable
-over the backend's read model, which says nothing of a reader's view of a hook bucket, and every
-tracked bucket of the server's backend is one (`notes/decisions.md`, "The backend for the auth
-split, Freeze"). Held: decision 2's pool (it changes `storage.OpenBackend`'s axiom). The trusted
-restatements (Q4's specs, `OpenBackend`, `Snapshot`) are drafted for the user's approval, not
-applied.
+`notes/backend-auth-split-plan.md`, "Freeze" and "The user's decisions on the Freeze's questions".
+Applied: decision 1 (a held `readTx` records that its interval is live; `readTx.UnsafeRange` takes
+no open share; `guarded_RLock`; `Close.spec`'s docstring); decision 3's untrusted part, option (b):
+`rbOwnIn` is a ghost idle token, per-bucket elements of a ghost map under `γ.rbk` (contents and a
+pending flag) over the pure domain `γ.rbD`, not tied to the readers' model (`InvBackend.lean`,
+laws in `TrackedLemmas.lean`); `rbOwn = rbPart ⊤`; the four batch writers take their bucket's part
+only; `Unlock` takes any part and returns it idle (`Unlock.bare`, `UnlockBare.lean`, the old
+statement). Held for the trusted step: the readers' axioms taking `rbOwnIn`, `New`/`OpenBackend`
+giving the idle token, decision 2's pool, `premise_buckets`' consumer (`AuthSplitDraft.lean`).
+The revised trusted restatements are drafted for the user's approval, not applied. Later stage:
+option (a), the read model over the tracked hook buckets (the plan note).
 
 ## The lease keep-alive entry point (2026-11-01, branch `lease-renew`; frozen and proved)
 

@@ -43,18 +43,25 @@ of session (question 2, option (a), 2026-10-29: one spec, the readers' view the 
   view back at `relog P vd st` (its writes over the logical view, keys compaction deleted earlier
   kept), from which it makes `W ∗ Q`.
 A write-back's budget either way. Not in the hook's window, with room for the commit's hook.
+**A part of the tracked buckets handed in comes back idle** (decision 3, 2026-11-01, Q3:
+`rbPart γ S r` in, `rbOwnIn γ S r` out, for any bucket set `S`, the caller's choice; nothing for `S`
+empty, `Unlock.bare`): Go writes the session's puts back into the read buffer under
+`readTx.Lock()` and, when a delete is pending, commits (`pendingDeleteOperations`,
+etcd-io/etcd#17119), so the readers then see the writer's contents on every bucket, and a later
+write to a bucket of `S` needs the holder's part.
 (Until question 2: the put branch got `sData P st.S` back, and the first branch was `viewSame`;
 a Draft `specC` had the deleting branch beside it.) -/
 abbrev backend.batchTxBuffered.Unlock.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (Q : IProp GF),
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (Q : IProp GF)
+    (S : GoString → Prop) (r : GMap GoString BktData),
   st.cnt.hw = false → sint.Z st.pend + P.hookMax < 2 ^ 58 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
-      bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ wbTok γ ∗
+      bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ wbTok γ ∗ rbPart γ S r ∗
       ((thinV γ (sData P st.S) (vData P (st.C, st.R)) ∗
          ⌜∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []⌝ ∗ W ∗ Pk ∗ Q) ∨
        (∃ vd : VData, bView γ 1 vd ∗ Pk ∗ (bView γ 1 (relog P vd st) -∗ W ∗ Q))) }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"Unlock")) (Val #()))
-  {{ RET #(); Q }}
+  {{ RET #(); Q ∗ rbOwnIn γ S r }}
 
 end spec
 

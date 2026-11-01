@@ -395,3 +395,34 @@ decode, and Go panics on a key that is not a member id or a value that is not a 
 panics). Its restatement adds the premise (`membership.membersDecode`). Not checked: whether a
 proved caller reaches it (the apply thread's members are `MustSaveMemberToBackend`'s encodings; a
 Lean counterexample would write the key through the proved `UnsafePut`).
+
+## The user's decisions on the Freeze's questions (2026-11-01)
+
+All seven recommendations accepted:
+
+1. **Decision 3, option (b).** `rbOwnIn` is a ghost idle token (a per-bucket pending flag the
+   session's writes set and `Unlock` clears), not tied to the readers' model: the trusted readers
+   that take it argue from Go, each axiom's docstring saying why. Option (a), extending the read model
+   to the tracked hook buckets so that `rtHeldF_rbOwnIn` is proved, is a later stage (below).
+2. **`MustReadMembersFromBackend`'s decoding premise** fixed in the trusted step, defined from
+   `memberKey`/`memberEnc` (it excludes a `null` value).
+3. **The trusted set grows** to `srvRestOwn`/`srvRestRW` and `bootOk` (its `clusterApplyOk` and
+   `newPost`), with the self-locking writers taking any bucket set containing their own.
+4. **The pool:** a core `OpenBackend` axiom with the pooled spec a proved corollary; the thread bound
+   a persistent server fact built at `NewServer`, not an instance threaded through the specs between.
+5. **The alarm, `storeRT` and `bkRTx` readers move onto the pool now** (drafted with the trusted
+   step, applied with it).
+6. **The `etc/bounds-allow.txt` entry for the draft** stays.
+7. **Merge origin/lean** (for the `proof_roots`/`gen-link` fixes); check `memberEnc`'s round trip on
+   attributes that are not valid UTF-8.
+
+## Later stage: the read model over the tracked hook buckets (option (a))
+
+What would make `rbOwnIn`'s meaning a theorem instead of the trusted readers' Go argument: the law
+`rtHeldF_rbOwnIn` (a held read agrees with the idle part on its tracked buckets). Today the backend
+relates the readers' state to the writer's contents only off the hook buckets (`sessWf`'s
+`agreeOff P.HB`, `vData`, `viewSame`, `hookStep`), and on the server every tracked bucket is one
+(`bridgeParams`). The stage extends the readers' model to the tracked hook buckets: `sessWf` and
+every batch operation's preservation, the write-back, the commit, the hook window, `Unlock` (the auth
+Q2 survey's estimate: 2.5–10k lines). With it, the trusted readers' axioms that take `rbOwnIn` could
+become proofs over `readTx` (their bodies are `RLock`/`UnsafeRange`/`RUnlock` loops).

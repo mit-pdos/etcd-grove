@@ -136,6 +136,33 @@ theorem rep_zip (n : Nat) (A B : IProp GF) (γ : GName) :
     · iframe
     · iapply ih $$ [$Ha $Hb $Ht]
 
+/-- **The tracked buckets' names a fresh backend's ghost map has** (`γ.rbD`, decision 3): those of
+`rbData P D` and the table's tracked buckets (every bucket a session can write). -/
+def rbDomOf (P : BParams) (D : Data) : GMap GoString Unit :=
+  GMap.domSet (rbData P D) ∪ GMap.domSet (P.BT.filter (fun n _ => P.RB n))
+
+/-- A name outside `rbDomOf` is absent from the tracked buckets of `D`. -/
+theorem rbDomOf_absent (P : BParams) (D : Data) :
+    ∀ n, (fun _ => True) n → (rbDomOf P D).lookup n = none → (rbData P D).lookup n = none := by
+  intro n _ h
+  have h' : (((rbData P D).lookup n).map (fun _ => ())).or
+      (((P.BT.filter (fun n _ => P.RB n)).lookup n).map (fun _ => ())) = none := h
+  cases hr : (rbData P D).lookup n with
+  | none => rfl
+  | some x => rw [hr] at h'; cases h'
+
+/-- The table's tracked buckets are among `rbDomOf`'s names. -/
+theorem rbDomOf_bt (P : BParams) (D : Data) :
+    ∀ n i, P.BT.lookup n = some i → P.RB n = true → (rbDomOf P D).lookup n ≠ none := by
+  intro n i hi hrb h
+  have h' : (((rbData P D).lookup n).map (fun _ => ())).or
+      (((P.BT.filter (fun n _ => P.RB n)).lookup n).map (fun _ => ())) = none := h
+  have hf : (P.BT.filter (fun n _ => P.RB n)).lookup n = some i := by
+    show (P.BT.lookup n).filter (fun _ => P.RB n) = some i
+    rw [hi]; simp [hrb]
+  rw [hf] at h'
+  cases hr : (rbData P D).lookup n <;> rw [hr] at h' <;> cases h'
+
 theorem gv_halves {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
     ghostVar (GF := GF) γ 1 a ⊢ ghostVar γ (1 : Qp).half a ∗ ghostVar γ (1 : Qp).half a := by
   iintro H
@@ -487,7 +514,8 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   imod dghostVar_alloc false with ⟨%gsdn, Hsdn⟩
   imod ghostVar_alloc () with ⟨%gstk, Hstk⟩
   imod ghostVar_alloc (hkData P D) with ⟨%ghkd, Hhkd⟩
-  imod ghostVar_alloc (rbData P D) with ⟨%grbk, Hrbk⟩
+  imod rbEls_alloc (GF := GF) (rbDomOf P D) (fun n => ((rbData P D).lookup n, false)) with
+    ⟨%grbk, Hrbka, Hrbk⟩
   imod ghostVar_alloc true with ⟨%gcln, Hcln⟩
   -- (the backend-compaction stage, O1) the deletable keys' registration, nothing yet
   imod saved_pred_alloc (A := GoString × GoString) (fun _ => iprop(False)) (DFrac.own 1)
@@ -501,7 +529,8 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   imod dghostVar_alloc ((fkWInit P D, fkInit D, fkVals D) : FkG) with ⟨%gfkv, Hfkv⟩
   imod dghostVar_persist gfkv 1 ((fkWInit P D, fkInit D, fkVals D) : FkG) $$ Hfkv with #Hfkv
   let γ : BNames := ⟨γd, gview, grd, ghist, gcached, gcur, ghook, gopn, gwb, grdt, gtxa, gtxb,
-    grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk, gcln, gdlg, gdlb, gfk, gfkv⟩
+    grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk, gcln, gdlg, gdlb, gfk, gfkv,
+    rbDomOf P D⟩
   icases (fk_halves γ (fkInit D)).1 $$ Hfk with ⟨Hfkb, Hfkc⟩
   have Hok0 : fkOkG P (fkInit D) (fkWInit P D, fkInit D, fkVals D) (st0 D wtx) :=
     fkOkG_init rfl rfl rfl rfl
@@ -529,7 +558,27 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   icases gv_halves gcvw _ $$ Hcvw with ⟨Hcvwc, Hcvwi⟩
   icases gv_halves gused _ $$ Hused with ⟨Husedb, Husedr⟩
   icases gv_halves ghkd _ $$ Hhkd with ⟨Hhkdb, Hhkdc⟩
-  icases gv_halves grbk _ $$ Hrbk with ⟨Hrbkb, Hrbkc⟩
+  ihave Hrbk := rbEls_top_of γ 1 (fun n => ((rbData P D).lookup n, false)) $$ Hrbk
+  icases (rbEls_halves γ (fun _ => True) _).2 $$ Hrbk with ⟨Hrbkb, Hrbkc⟩
+  ihave Hrbkc : rbOwn γ (rbData P D) $$ [Hrbkc]
+  · unfold rbOwn
+    iapply rbPartF_part γ (fun _ => True) (rbData P D) (fun _ => false)
+    unfold rbPartF
+    isplitr
+    · ipureintro; exact rbDomOf_absent P D
+    · iexact Hrbkc
+  ihave Hrbkb : rbSide γ P (rbData P D) $$ [Hrbka Hrbkb]
+  · unfold rbSide
+    isplitl [Hrbka]
+    · iexact Hrbka
+    isplitl [Hrbkb]
+    · unfold rbOwn
+      iapply rbPartF_part γ (fun _ => True) (rbData P D) (fun _ => false)
+      unfold rbPartF
+      isplitr
+      · ipureintro; exact rbDomOf_absent P D
+      · iexact Hrbkb
+    · ipureintro; exact rbDomOf_bt P D
   icases gv_halves gcln _ $$ Hcln with ⟨Hclnc, Hclnr⟩
   -- the tokens
   imod ownTokAuth_add wbInit gwb 0 $$ Hwba with ⟨Hwba, Hwbt⟩
@@ -641,7 +690,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     · unfold plHook plHookAt
       iexact Hhookc
     isplitl [Hrbkc]
-    · unfold rbOwn; iexact Hrbkc
+    · iexact Hrbkc
     isplitl [Hrds]
     · iexact Hrds
     isplitl [Hdlg Hdlb]

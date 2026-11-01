@@ -29149,3 +29149,41 @@ Supersedes in part the entry above (its first bullet is now applied; its third i
   half as `rbOwn`). So nothing of decision 3 is applied; `AuthSplitDraft.lean` keeps it.
 - **Decision 2 held.** The pool in `newPostK` would make `storage.OpenBackend`'s axiom assert it
   under any thread bound; the axiom's restatement is step 2's, to be approved.
+
+## The backend for the auth split: the user's decisions on the Freeze's questions (2026-11-01 · the user's · `notes/backend-auth-split-plan.md`, "The user's decisions on the Freeze's questions")
+
+Supersedes the Freeze entry's "decision 3 stopped" in its consequence (the finding stands).
+
+- **`rbOwnIn` as a ghost idle token** (option (b)): its meaning is a fact about the session's
+  writes (no put, delete, bucket creation or deletion on the buckets since the holder's last
+  `Unlock`), kept by the proved batch operations, not a fact about what the readers see. That the
+  readers see the idle contents is Go's (`Unlock` writes the session back and commits a pending
+  delete), argued in each trusted reader's docstring and checked by the axiom check. Why not wait
+  for option (a): its cost (a read model over the hook buckets), and the trusted readers are
+  axioms today anyway; (a) is recorded as a later stage.
+- **The pool as a proved corollary of a core axiom**, the thread bound a persistent fact of the
+  server's: the Bounds rule (a bound reasoned about where it is owned) forbids an instance on
+  every spec between `NewServer` and `applySnapshot`.
+- The other five (the decoding premise defined, the trusted set extended to `srvRestOwn`/`bootOk`
+  with writers over any containing set, the readers moved onto the pool, the bounds entry, the
+  merge) as the plan note lists them.
+
+## The backend for the auth split: decision 3 applied as a per-bucket ghost map (2026-11-01 · applied, untrusted part · `notes/backend-auth-split-plan.md`)
+
+- **Representation.** `γ.rbk` is a ghost map, bucket name to (contents, pending flag), over a pure
+  domain `γ.rbD` (a new `BNames` field, `GMap GoString Unit`, fixed at `New`: the tracked buckets
+  with contents or a table entry). The client holds half of each element of its set (`rbPartF`, a
+  big separating conjunction over `rbD`, with the pure fact that a bucket outside `rbD` is empty);
+  `rbPart` hides the flags, `rbOwnIn` is the part with every flag false, `rbOwn = rbPart ⊤`. The
+  batch lock's side (`rbSide`) is the authority, an `rbOwn`-shaped half, and the fact that the
+  table's tracked buckets are in `rbD`. Why a flag rather than a separate token per bucket: the
+  writer's step (`rbSide_put`) and `Unlock`'s (`rbSide_idle`) update one element each, and
+  agreement of the halves gives a holder of `rbOwnIn` the lock's contents without a second
+  resource.
+- **Why `rbOwn`'s meaning is unchanged** (so the trusted axioms naming it, `backend.Snapshot`'s
+  observation included, keep their justification): `rbOwn γ r` still determines the writer's
+  contents `r` by agreement with the lock's side, which has `rbOwn`'s shape; only its
+  representation moved. Hence no `rbLock`: the lock's half is an `rbOwn`.
+- **`Unlock` takes any part** (`Unlock.spec` with `S`, `r`, `rbPart γ S r` to `rbOwnIn γ S r`);
+  callers that hold none use `Unlock.bare` (the empty set). The writers take their bucket's part
+  (`rbPut` per bucket; `rbPutAll` the whole form, for `bt_leaseDel`'s split).

@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- `t.UnsafePut(bucket, key, value)` under the lock: bbolt's writer and the write buffer get the
 entry (a key of `1..MaxKeySize` bytes, read-only for good: both keep the slices; in a safe-range
 bucket, a key above the committed keys; a hook's own key (`P.hk`) with the client's half of them, `hkPut`, which it
-gives back updated; a tracked bucket (`P.RB`, D22, 2026-10-23) with the client's half of the
-tracked buckets, `rbPut`, likewise; a compaction key (`fkKey`, the backend-compaction stage,
+gives back updated; a tracked bucket (`P.RB`, D22, 2026-10-23) with the client's part of that
+bucket, `rbPut` (since decision 3, 2026-11-01, of its bucket only; `spec_all` the whole form), likewise; a compaction key (`fkKey`, the backend-compaction stage,
 2026-10-29) with the client's half of their flag, `fkPut`, given back at some value: the code
 raises it to at least `1`, which the post does not say, no caller needing it), and a well-formed
 value (`P.FV`, question 4, 2026-10-29: so the backend's bit `fkV` stays true). A value above `MaxValueSize` makes bbolt fail and the backend's `lg.Fatal`

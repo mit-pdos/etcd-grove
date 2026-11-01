@@ -226,12 +226,10 @@ theorem snapObs_window (γA : ApplyNames) (γ : backend.BNames) (P : backend.BPa
   icases HTM with ⟨%S, Hk, %HmS⟩
   iunfold backend.hkOwn at Hk Hhk
   icombine Hk Hhk gives %Hd
-  iunfold backend.rbOwn at Hrb Hr
-  icombine Hrb Hr gives %Hrr
+  icases backend.rbOwn_agree γ rb r $$ [$Hrb $Hr] with ⟨-, -, %Hrr⟩
   ipureintro
   obtain ⟨-, Hm1⟩ := Hm1
   obtain ⟨-, Hd⟩ := Hd
-  obtain ⟨-, Hrr⟩ := Hrr
   subst Hd
   refine ⟨⟨?_, mm.2, ?_⟩, Hrr.symm⟩
   · rw [backend.hkData_lookup, ciKeys_hk hP (Or.inl rfl)]
