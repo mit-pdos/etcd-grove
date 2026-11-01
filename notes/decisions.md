@@ -28654,3 +28654,28 @@ writes `applyAll.specSnap` picks it: `srvSnapRO` with the names, `isServerCI`, o
 
 Supersedes the `isMetaBackend` part of "D22 J1a"'s "Two items of J0's list not done" (its
 `readView γ m = ghostVar γ.wr 1 false ∗ …` is now the `dghostVar` form above).
+
+## `applyAll.specSnap` (J8a-5, step 5e, 2026-11-01)
+
+`applyAll` on a snapshot payload gets its own spec, `applyAll.specSnap`, proved separately
+(`ApplyAllSnap.lean`). It is not a case of `applyAll.spec`, since that spec is about a batch of entries.
+Its premises are the payload's (`ownSnapM`, `snapshotCert`, `nodeSnapLocal`, the two-receive
+`notifyc`, `raftAdvancedC` at `i`, `rnRtOk`) and the fresh start's (`γr.raft = ⟨_, [], 0⟩`, `c0 = 0`,
+the boot chain, `log0`, `E.cmp = false`). Its post is `applyAll.spec`'s shape after the jump to the
+image's log `A'`. The choices made:
+
+- **J8a-4's meta premise is carried as a premise** of `specSnap` at its `γ`, the same text as
+  `bootOk`'s `#HmetaSnap`; `run` supplies it (J8b). There is no new parameter of `srvSnapRO`: the
+  premise names the apply names, which the snapshot path's persistent bundle does not fix.
+- **`srvPeersCover` after the walk** needs the boot voters to be members of the network's
+  directory, since the walk re-adds exactly the directory's members (`hL`). `ccMembRes` now holds
+  `∀ f ∈ γs.raft.cfg, γn.dir f ≠ []`. `NewServer` has it (the configuration is the boot peers `ps`,
+  `Hrvs`) and `applyConfChange` keeps it (its pure conjunct is passed through). The alternative, a fact
+  of `srvSnapRO`, would have meant a second copy of the directory.
+- **`srvMemOk` at `A'`** comes from `srvMemOk` at `A` and `ccLogOk` of the committed `A'`
+  (`kv_log_ccOk`), via `srvMemOk_append`, not from the image's members.
+- **`lastTermIs A' sv.Term'` and `epCsAt`** come from the payload's `snapshotCert`
+  (`snapshotCert_valid`: a committed log of length `i` with that last term and conf state):
+  `lastTermIs_of_snap` compares it with `srvRLogLb A'` (`isCommittedLogLb_agree`, both of length `i`),
+  and `epCsVoters_of_snap` reads the voters off `csOptA` (newly in `srvSnapApplied`).
+

@@ -40,6 +40,8 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
    closed (the term key, `batchLockInv`'s `⌜mm.2 = γ.m0.2⌝ ∨ wrDone γ`; `wr` a `dghostVar`).
    **Open, for 5e: the carrier from `bootOk` to `applyAll`'s snapshot case** (this stage threads it
    nowhere: `srvSnapRO`/`srvSnapOwn` and `applyAll.spec` unchanged). `notes/decisions.md`, "J8a-4".
+   The carrier (5e): a premise of `applyAll.specSnap`, the same text at its `γ`; `run` gives it from
+   `bootOk`'s `#HmetaSnap` (J8b).
 3. **`srvCfgAddr s ↦□ cfg` is false** (the struct copy in `OpenSnapshotBackend(s.Cfg, …)` races
    with `NewWatchServer`'s write of `WatchProgressNotifyInterval`,
    `issues/etcd-cfg-watch-progress-interval-race.md`). A field-wise restatement is not sound: the
@@ -191,6 +193,13 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
     premises that stay open: `srvCfgAddr s ↦□ cfg` (J8a-3; since done, from `srvSnapRO`'s rebuild
     applied to `isServerRun`'s `"#Hsncfg"`), the `isMetaBackend` family (J8a-4), the
     `hdir`/`hdok` (the `8·|ps|` copies of `c.R` gone in J8a-6, `trPeersNoRem` in J8a-7).
+    **Done 2026-11-01** (branch `snap-j8a-5e`): `Spec/.../EtcdServer__applyAll.lean`'s `specSnap`,
+    proved in `ApplyAllSnap.lean` (`applyAll.wp_proofSnap`), with no `sorry` of its own (the merge
+    branch rests on `mergedCreate_window`'s, as `wp_proof` does). New facts: `lastTermIs_of_snap`,
+    `epCsVoters_of_snap` (`SnapRecvFacts`), `srvMemOk_append` (`InvApRes`); `srvSnapApplied` gives
+    `ep.confState`'s `csOptA`; `ccMembRes` holds every voter in the directory (`NewServer` proves it
+    from the boot peers), which `srvPeersCover` at the walk's peers needs. Not linked yet: J8b
+    (`run`'s two `SNAPSHOT-SORRY`s) uses it.
 - **J8a-6**: the `lgMu` pool in `rafthttp` (item 6). Done 2026-11-01 (branch `snap-j8a-6`) but
   for `trPeersNoRem` and `hdir`/`hdok` (design questions, item 6).
 - **J8a-7** (fork fix, the user's choice): `trPeersNoRem` gone. The fork's remote pauses by a flag

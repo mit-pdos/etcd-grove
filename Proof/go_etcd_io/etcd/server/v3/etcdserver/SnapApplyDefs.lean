@@ -176,7 +176,8 @@ backend's instance does not compact (`d'.cm = false`: question 5's core stage, p
 applier's chain, with no alarm (2026-11-01, J8a-5: `Recover` empties the store; until then only
 under `zal`) the start's (`alarmChain E.authOn false false`, what
 `kvApplied_of_jump` takes), and the KV at `E'` (`txn.isKV`, `applyRes`'s), the watchable store at
-the new physical names. -/
+the new physical names; (2026-11-01, J8a-5) `ep.confState` the snapshot's (`csOptA`, what
+`applyAll.specSnap` reads the voters off). -/
 def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (R : mvcc.Log) (A' : List EntryModel)
     (ss : Loc) (bp : GoString) (γt : GName) (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds)
@@ -191,7 +192,7 @@ def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E
     isServer s γ' ci TM' E' ρ γr ∗
     epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
     epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗
-    epConfState ep cs' ∗
+    epConfState ep cs' ∗ csOptA cs' DFrac.discard sv.Metadata'.ConfState' ∗
     applyThread γ' st' ∗ applyBackend γ' ci b' ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
     srvApplyKV s E' ρ.wait x' ∗ srvRest E' γr A' ∗ srvKVCloser s E' ∗
     backend.isStopChans d'.γB d'.be ∗ backend.bOpen d'.γB (1 : Qp).half ∗

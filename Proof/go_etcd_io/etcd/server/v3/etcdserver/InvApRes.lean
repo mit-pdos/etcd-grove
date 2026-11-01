@@ -259,14 +259,16 @@ instance srvMembersDir_persistent (cl : Loc) (ps : List w64) (dir : w64 → List
 
 /-- **The cluster and the transport, as `applyConfChange` writes them** (see the file header),
 the transport `t` with the member `lid` and the peers' ids `rs`. -/
-def ccMembRes (_γs : ServerRaftNames) (cl t : Loc) (lid : w64) (rs : trIds) : IProp GF :=
+def ccMembRes (γs : ServerRaftNames) (cl t : Loc) (lid : w64) (rs : trIds) : IProp GF :=
   -- (2026-10-30, the repair, D3: static membership after boot, the old static mode's resource;
   -- until then, in the dynamic mode, the live transport with the removal registry `rcDyn`)
   -- (2026-11-01, J8a: `applySnapshot`'s `hdir`/`hdok`) also the network's directory, well formed,
-  -- and the cluster's `Members()` of it, which the snapshot walk's `AddPeer`s read
+  -- and the cluster's `Members()` of it, which the snapshot walk's `AddPeer`s read; (J8a-5) every
+  -- voter of raft's configuration in the directory (the boot's: the configuration is its peers),
+  -- so that the walk's re-added peers cover them (`srvPeersCover` after a snapshot)
   iprop(membership.isRaftCluster cl ∗ ∃ (γn : NetNames GF) (c : TrN GF) (ps : List w64),
       ⌜c.lid = lid⌝ ∗ trLive γn t c rs ∗ srvMembersDir cl ps γn.dir ∗
-      ⌜netDirOk γn.dir ∧ ∀ f, γn.dir f ≠ [] ↔ f ∈ ps⌝)
+      ⌜netDirOk γn.dir ∧ (∀ f, γn.dir f ≠ [] ↔ f ∈ ps) ∧ ∀ f, f ∈ γs.raft.cfg → γn.dir f ≠ []⌝)
 
 /-- **The local member a voter** (persistent; 2026-10-30, the repair, T1d: D3's static membership
 needs no positional policy, the server's conf entries being the boot log's `ccPolOk`; until then,
@@ -426,6 +428,33 @@ theorem ccRest_memKeys (v3 : Bool) (cm : ConfChangeM) (r : apply.RestM) (S : GSe
         · rw [GMap.lookup_delete_ne _ hkk] at hk; exact h k hk
       · exact h k hk
   · exact h k hk
+
+/-- (2026-11-01, J8a-5) **`srvMemOk` across committed entries** `B` (conf changes `applyConfChange`
+takes, `ccLogOk`): what the snapshot's jump to its log `A ++ B` keeps. -/
+theorem srvMemOk_append (γs : ServerRaftNames) (c0 : w64) (A B : List EntryModel)
+    (h : srvMemOk γs c0 A) (hB : ccLogOk γs.raft B) : srvMemOk γs c0 (A ++ B) := by
+  induction B generalizing A with
+  | nil => simpa using h
+  | cons m B ih =>
+    have h1 : srvMemOk γs c0 (A ++ [m]) := by
+      refine ⟨?_, h.2⟩
+      intro k hk
+      have e : γs.pre ++ (A ++ [m]) = (γs.pre ++ A) ++ [m] := by simp
+      rw [e, restModel_append] at hk
+      by_cases ht : m.typ = W32 0
+      · rw [restEntry_normal_memKeys _ _ _ ht] at hk
+        exact h.1 k hk
+      · cases hdec : ccDecodeV1 m.data with
+        | none =>
+          unfold restEntry at hk
+          rw [if_neg ht, hdec] at hk
+          exact h.1 k hk
+        | some cc =>
+          rw [restEntry_cc _ _ cc _ ht hdec] at hk
+          have hin := (hB m (by simp) ht cc hdec).2.1
+          exact ccRest_memKeys _ cc _ _ hin h.1 k hk
+    have := ih (A ++ [m]) h1 (fun e he => hB e (List.mem_cons_of_mem _ he))
+    simpa using this
 
 /-- **The resource around a conf entry** `m` (decoding to `cm`, in the scope, the next entry after
 `A`): the pieces `applyConfChange` takes, the premises it asks of them, and the way back, after

@@ -147,6 +147,7 @@ theorem srvSnapApplied_of_walk
     d'.be γw wsk stck hγw $$ [Hstc Hwsw Hsc]
   · iframe #; iframe Hstc Hwsw Hsc
   -- step 7: the rest, framed
+  icases Hcso with #Hcso
   ihave Hcs := epCsOk_of_csOptA spc sv.Metadata'.ConfState' $$ Hcso
   imodintro
   iunfold srvSnapApplied
@@ -160,7 +161,7 @@ theorem srvSnapApplied_of_walk
     refine ⟨by apply snapE_beSucc, hkb', hcm', hP', rfl, snapSt_loopOk γ π0 d'.γB _ _ hm0, snapSt_ciEff γ π0 d'.γB _ _ hm0, Hx'.1,
       Hx'.2, hcov⟩
   iunfold epConfState
-  iframe Hsrv' Hai Hatt Hds Hms Hcsa Hcs Hat Hab Hlgr Hbmr HKV' HRest HKC HSC Hbo Hγt Hpath Htl
+  iframe Hsrv' Hai Hatt Hds Hms Hcsa Hcs Hcso Hat Hab Hlgr Hbmr HKV' HRest HKC HSC Hbo Hγt Hpath Htl
   -- (J8a-1, item 5) the KV at the new environment: the walk's watchable store, its inner store's
   -- names at the new physical ones (`isWatchableStore_withPhys`)
   iexists _

@@ -10,6 +10,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyNormalOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapTake
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NotifyC2
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
 
 @[expose] public section
 
@@ -251,6 +253,97 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
           (uint.Z ai ≤ uint.Z (ciEff γ st.k) → uint.Z ai' ≤ uint.Z (ciEff γ' st'.k)) ∧
           -- (D22 S-h, 2026-10-20; S-0's amendment) the applied term: the last applied entry's
           termAfter at0 (unapplied ai ms) at'⌝ }}
+
+/-- **`s.applyAll(ep, ap)` on a snapshot payload** (2026-11-01, J8a-5, step 5e; `rnApSnap`'s:
+`notes/snapshot-j8a-plan.md`, item 4), by the apply thread of a fresh cluster's member (the start
+values of `NewServer.spec`: `γr.raft` the raft names with no prefix, the KV's start, compaction off):
+the snapshot `sv` at the index `i` past the applied index `ai` (below `2^61`, at least the boot
+log), certified (`snapshotCert`), in the member's snapshot directory (`nodeSnapLocal`, the member
+`nid` the server's), with no entries, its two-receive `notifyc` and `raftAdvancedC` (the node's
+applied index at `i`, the storage's snapshot frozen there). `applySnapshot` installs it
+(`applySnapshot.specSnap`, over the snapshot path's resources `srvSnapOwn` and the apply thread's
+`srvApRes`), `applyEntries` returns at once, `applyWait.Trigger(i)` releases the waiters through
+`i` (`applied_jump`), the two receives, `snapshotIfNeededAndCompactRaftLog` does nothing (disk =
+memory = applied index), and a pending merged-snapshot request is served at `i`. After: `applyAll.spec`'s
+post shape at the snapshot's backend (`beSucc`), the applied log the image's `A'` (committed,
+`pre ++ A'` of length `i`, extending `A`; J8b ties it to raft's `cum`), the applied index and term
+the snapshot's, the consistent index at `i`, `ep.confState` the snapshot's (the voters'), no write
+token taken. Not here: the driver's view (`dv`; the caller frames its running token). -/
+abbrev EtcdServer.applyAll.specSnap : Prop :=
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+    (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice) (sn : Loc)
+    (sv : SnapshotM) (rac nc : GoChan) (st : ApplyState) (ai at0 a t : w64) (cs : Loc)
+    (x : apply.ApplyKV) (A : List EntryModel) (mst : Loc) (γs : MemStorNames) (γp : GName)
+    (γnc : NotifyNames) (w : Nat) (nid : w64) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat),
+  -- the snapshot past the applied index, below `2^61`, at least the boot log
+  uint.Z ai < uint.Z sv.Metadata'.Index' → uint.Z sv.Metadata'.Index' < 2 ^ 61 →
+  (γr.raft.raft.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' →
+  -- the applied log `A` through `ai`, the consistent index at most the applied one
+  uint.Z ai = A.length → uint.Z (ciEff γ st.k) ≤ uint.Z ai →
+  -- a fresh cluster's start (`snapRecv_image`'s), compaction off
+  γr.raft = ⟨γr.raft.raft, [], W64 0⟩ → γr.kv.c0 = W64 0 →
+  γr.kv.ch0 = apply.alarmChain false false false → γr.kv.log0 = [[], []] → E.cmp = false →
+  -- the batch's term good for a log at least the snapshot's (the merge's guard)
+  γn.node = γr.raft.raft → uint.nat sv.Metadata'.Index' ≤ n →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServer s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ srvMemberIDAddr s ↦□ nid ∗
+      -- the payload (`rnApSnap`'s)
+      taEntriesAddr ap ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
+      taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
+      (letI := srvStor (GF := GF) γr.raft.raft; iprop(snapshotCert γr.raft.raft.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
+        nodeSnapLocal γr.raft.raft.cl nid sv.Metadata'.Index')) ∗
+      taNotifycAddr ap ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
+      taRaftAdvancedCAddr ap ↦□ rac ∗
+      rnAdvChan rac (letI := srvStor (GF := GF) ρ.raft.raft
+        iprop(nodeAppliedLb ρ.raft.raft.cl nid (uint.nat sv.Metadata'.Index') ∗
+          storDL ρ.raft.raft.cl nid (uint.nat sv.Metadata'.Index') ∗
+          srvFrozenAt γs (uint.nat sv.Metadata'.Index') ∗
+          srvFrozenBelow γs (uint.nat sv.Metadata'.Index'))) ∗
+      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗
+      -- the apply thread's resources, as `spec`'s
+      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
+      srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗
+      ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗
+      srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
+      srvWTPool E γp ∗ srvWTTaken γp w ∗ kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
+      srvApRes s γr A ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
+      rnWalTok (srvRAddr s) q ∗
+      -- the snapshot path's resources (`srvSnapRO`'s configuration rebuild over
+      -- `isServerApplyAll`'s two fields)
+      srvSnapOwn s ci E γr ai ∗
+      -- (J8a-4's, 2026-11-01) `applySnapshot.specSnap`'s meta reads of the backend it opens, at
+      -- the apply names `γ` (`bootOk`'s `#HmetaSnap`, which `run` carries)
+      □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
+        ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
+        backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
+        backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ∗
+        □ ∀ (W : IProp GF) (b : Loc),
+          backend.isBackend γB P W (batchLockInv (γ.withPh π) (metaTM γB P)) b -∗
+          isMetaBackend (interface.mkOk (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
+            (readView (γ.withPh π))) }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
+      (Val #ap))
+  {{ RET #();
+      ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
+        (st' : ApplyState) (A' : List EntryModel) (cs' : Loc),
+        ⌜beSucc γ E γ' E'⌝ ∗ isServer s γ' ci TM' E' ρ γr ∗ srvApRes s γr A' ∗
+        srvRLogLb γr.raft A' ∗
+        epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
+        epConfState ep cs' ∗ epCsAt ρ.raft A' cs' ∗
+        srvSnapState s ep mst γs sv.Metadata'.Index' (W64 0) ∗ applyThread γ' st' ∗
+        applyBackend γ' ci b' ∗ ciApplying ci a t ∗
+        srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗
+        srvAppliedOwn γr sv.Metadata'.Index' ∗ appliedAtLeast γr sv.Metadata'.Index' ∗
+        srvWTTaken γp w ∗
+        (∃ x' : apply.ApplyKV, srvApplyKV s E' ρ.wait x' ∗
+          appliedLogAt γr sv.Metadata'.Index' x'.log ∗
+          kvApplied γr.raft γr.kv A' x' ∗ srvRest E' γr A') ∗
+        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTok (srvRAddr s) q ∗
+        srvSnapOwn s ci E' γr sv.Metadata'.Index' ∗
+        ⌜loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧
+          A <+: A' ∧ (γr.raft.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧
+          lastTermIs A' sv.Metadata'.Term'⌝ }}
 
 end spec
 

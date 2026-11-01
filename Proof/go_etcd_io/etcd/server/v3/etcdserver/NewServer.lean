@@ -1873,7 +1873,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
         · ipureintro; rw [Hcl, Hid]
         isplitr
         · iunfold srvMembersDir; iexact Hmembers
-        ipureintro; exact ⟨Hdirok, Hdirps.1⟩
+        ipureintro
+        refine ⟨Hdirok, Hdirps.1, fun f hf => ?_⟩
+        try rw [hργ] at hf
+        unfold SrvRaft.cfg at hf
+        rw [Hrvs, GMap.elem_of_list_to_set] at hf
+        exact (Hdirps.1 f).2 hf
       ipureintro
       refine ⟨⟨fun f hf hne => ?_, ?_⟩, ?_⟩
       · apply Hcov f _ (by rw [Hid] at hne; exact hne)
