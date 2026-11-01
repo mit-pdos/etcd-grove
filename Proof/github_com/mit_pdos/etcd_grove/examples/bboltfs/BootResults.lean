@@ -18,15 +18,9 @@ from the crash-aware proofs of their callees and the crash-free ones of `Link.le
 **What is assumed** (hypotheses of `bootCrashSafety`, besides `BootCrashSafety`'s step bound
 `n + 2 ≤ 2 ^ 30`, `BootP1.lean`):
 * `Hinit_wp`: the package initializer runs from the fresh package state and gives `pkgFacts`
-  (the `sync` package initialized, `errFailed`, `errPageSize` and `io.EOF` set). `BootCrashSafety`
-  does not have it; as for crashlog, its proof needs `wp_initialize'` of `os`, `syscall` and
-  their imports, which are not generated.
-* `Hprem`: every `Good` file meets `bootPremises` (`BootMinibolt.lean`): its high water mark `n`
-  has `(n + 2) * 4096 ≤ 2 ^ 30`. **This is false for long runs**: `Good` gives only
-  `(n + 1) * 4096 ≤ 2 ^ 30`, and each boot commits one page; at the bound the Go `commit` grows
-  the file to 2 GiB without an error (it does not check minibolt's 1 GiB bound, and the model, as
-  Linux, lets its `Mmap` and `Truncate` succeed), leaving `Good`. Dropping `Hprem` needs that check
-  in the Go code.
+  (the `sync` package initialized, `errFailed`, `errPageSize`, `errMapTooLarge` and `io.EOF`
+  set). `BootCrashSafety` does not have it; as for crashlog, its proof needs `wp_initialize'` of
+  `os`, `syscall` and their imports, which are not generated.
 * The hand-written `os.file` and `os.fileStat` field facts, as instance hypotheses (as for every
   `OpenFile` and `Stat` spec).
 
@@ -148,7 +142,6 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     [hPre : GooseGpreS GF]
     (Hinit_wp : ∀ hG : HeapGS .hasLC GF, initialize'.spec (GF := GF) (hG := heapAt hG lctx))
-    (Hprem : ∀ fo, Good fo → bootPremises fo)
     (N T : Nat) (hT : T ≤ 2 ^ 30) (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
     (Hinit : OsInit (extLocal osFsExt σ.world))
@@ -196,7 +189,7 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       wp_apply (Hinit_wp hG) $$ Hgs as #Hpkg
       wp_pures
       wp_apply wp_BootMinibolt wp_OpenC DB.wp_GetC DB.wp_CommitC DB.wp_CloseC dir γ
-          fo0 hg0 (Hprem fo0 hg0) $$ [Hown Htok]
+          fo0 hg0 $$ [Hown Htok]
       · iframe; iframe #
       ipureintro; rfl
     · -- after a crash: take the file from the old generation's invariant
@@ -217,17 +210,15 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
 
 /-- **minibolt's crash safety** (`BootCrashSafety`, `BootP1.lean`: executions of fewer than
 `2 ^ 30 - 2` steps), under the hypotheses of the file header: the package initializer
-(`Hinit_wp`), and `bootPremises` of every `Good` file (`Hprem`: the high water mark a page below
-1 GiB, false for long runs until the Go `commit` checks it). -/
+(`Hinit_wp`) and the `os.file`/`os.fileStat` field instances. -/
 theorem bootCrashSafety [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (dir : GoString)
     (Hinit_wp : ∀ hG : HeapGS .hasLC osFsGF,
-      initialize'.spec (GF := osFsGF) (hG := heapAt hG lctx))
-    (Hprem : ∀ fo, Good fo → bootPremises fo) :
+      initialize'.spec (GF := osFsGF) (hG := heapAt hG lctx)) :
     BootCrashSafety dir := by
   intro σ g Hlctx Hpkgs Hinit Hfile Hthreads n κs t2 σ2 b hn Hsteps
-  exact bootCrashSafety_bounded (GF := osFsGF) Hinit_wp Hprem (n + 1) (n + 2) hn
+  exact bootCrashSafety_bounded (GF := osFsGF) Hinit_wp (n + 1) (n + 2) hn
     σ g dir Hlctx Hpkgs Hinit Hfile n κs t2 σ2 b Hsteps (by omega) Hthreads
     (@RealCrashThreadsBelow.of_single osFsExts (osFsExtsSemanticsWith (P1 (dir ++ go!"/db"))) _
       _ _ _ Hthreads)

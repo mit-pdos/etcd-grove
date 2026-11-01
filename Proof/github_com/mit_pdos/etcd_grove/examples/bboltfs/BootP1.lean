@@ -26,9 +26,8 @@ bound: `Open` builds the reader pool of `mmaplock` for at most `2 ^ 30` live thr
 `rwmutexMaxReaders`), and the adequacy theorem takes the thread bound as a hypothesis on the
 executions (`RealCrashThreadsBelow`), which an execution of `n` steps meets with `n + 2`. A proof
 that the boot program forks no thread would lift the bound; see `BootResults.lean`. It is a `def`:
-`bootCrashSafety` (`BootResults.lean`) proves it under hypotheses, one of which (`bootPremises` of
-every `Good` file, the file below 1 GiB minus a page) needs a check in the Go code
-(`BootMinibolt.lean`).
+`bootCrashSafety` (`BootResults.lean`) proves it under the hypotheses of package initialization
+(`Hinit_wp`) and the `os.file`/`os.fileStat` field instances.
 -/
 module
 

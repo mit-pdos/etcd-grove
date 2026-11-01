@@ -874,3 +874,34 @@ the premise from `DB.Commit.spec`/`DB.commit.spec` therefore needs a check in Go
 `commit`, `if minsz > maxMapSize { return errFull }` (1 GiB), before `mmap`; then the specs can
 allow that error result and `bootPremises` goes. Nothing else is assumed besides `Hinit_wp` and
 the `os.file`/`os.fileStat` field instances.
+
+### minibolt's crash proof, round 9 (2026-11-01, branch `osfs-mbcrash`)
+
+`origin/lean` not merged: its Perennial pin moved (`c4a24e323`), so the branch stays on
+`2130bdb99` until someone merges it with the pin bump.
+
+Done (no `sorryAx`; `#print axioms bootCrashSafety`: `propext`, `Classical.choice`, `Quot.sound`
+and goose's opaque declarations, as in rounds 7-8): **`Hprem` is gone**, on the Go fix of
+`63528e82b9` (`commit` returns `errMapTooLarge` when `minsz = (pgid + 1) * 4096 > maxMapSize`,
+1 GiB, before remapping).
+- **`pkgFacts`** ends with `∃ e3, globalAddr errMapTooLarge ↦□ e3 ∗ ⌜e3 ≠ nil⌝`
+  (`pkgFacts_errMapTooLarge`); `Get`/`Snapshot`'s `icases` of it take one more `-`.
+- **`DB.commit.spec`/`specCrash`** drop `(curPgid mp + 2) * 4096 ≤ 2 ^ 30`; the proofs take
+  `(hwm + 1) * 4096 ≤ 2 ^ 30` from `metaPagesOk` (no overflow in `minsz`) and split on the check
+  (`by_cases Hb`): past it, `errMapTooLarge` with the state unchanged, not failed
+  (`commitErr_of`, `commitErrC_mk`); below it, the old proof with `Hb`. Clear `Hb1` in that branch:
+  with both `Hb1` and `Hb` in context, later `omega`s hit `maxRecDepth`.
+- **`DB.Commit.spec`/`specCrash`** drop `(n + 2) * 4096 ≤ 2 ^ 30`; the result is unchanged
+  (`Commit` fails the handle on any error from `commit`, so the error branch already covered it).
+- **`bootPremises` removed**; `wp_BootMinibolt` needs only `Good` (`1 ≤ t`, `t + 1 < 2 ^ 64` from
+  `goodImg_freshTx_tx`). Its error branch after `Commit` (close, return) needed no change.
+- `testMinibolt`, `testMiniboltConcurrent`: one premise fewer to `wp_Commit`. `Link.lean`
+  regenerated (unchanged).
+
+`bootCrashSafety`'s remaining hypotheses: `Hinit_wp` (package initialization, ending in
+`pkgFacts`), the `os.file`/`os.fileStat` field instances, and, in `BootCrashSafety` itself, the step
+bound `n + 2 ≤ 2 ^ 30` and P1 (the strengthened crash relation).
+
+Left: the step bound (a thread-count proof device or an adequacy theorem deriving the bound from
+thread tokens, see round 8), and `Hinit_wp` (needs `wp_initialize'` for `os`, `syscall` and their
+imports).
