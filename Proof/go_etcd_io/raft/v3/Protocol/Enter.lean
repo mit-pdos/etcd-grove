@@ -39,6 +39,56 @@ section enter
 variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
+/-- (stage II helper) -/
+instance durFrags_timeless (γ : RaftNames) (id : w64) (W : DurMaps) :
+    Timeless (durFrags (GF := GF) γ id W) := by
+  unfold durFrags; infer_instance
+
+/-- (stage II helper) Two ghost map authorities agree, kept. -/
+private theorem auth_agree_keep {K V : Type} [DecidableEq K] [Pos.Countable K] [Pos.Countable V]
+    (γm : GName) (q1 q2 : Qp) (m1 m2 : GMap K V) :
+    iprop(ghostMapAuth (GF := GF) γm q1 m1 ∗ ghostMapAuth γm q2 m2) ⊢
+      iprop(ghostMapAuth (GF := GF) γm q1 m1 ∗ ghostMapAuth γm q2 m2) ∗ ⌜m1 = m2⌝ :=
+  persistent_entails_left (by iintro ⟨H1, H2⟩; iapply ghostMapAuth_agree $$ H1 H2)
+
+/-- (stage II helper) Two event-history authorities agree, kept. -/
+private theorem evs_agree_keep (γe : GName) (q1 q2 : Qp) (l1 l2 : List Aev) :
+    iprop(monoListAuthOwn (GF := GF) γe q1 l1 ∗ monoListAuthOwn γe q2 l2) ⊢
+      iprop(monoListAuthOwn (GF := GF) γe q1 l1 ∗ monoListAuthOwn γe q2 l2) ∗ ⌜l1 = l2⌝ :=
+  persistent_entails_left (by
+    iintro ⟨H1, H2⟩
+    ihave %H := monoListAuthOwn_agree _ _ _ _ _ $$ H1 H2
+    ipureintro; exact H.2)
+
+/-- (stage II helper) Two shares of a node's promise authorities are at the same maps. -/
+theorem durShares_agree (γ : RaftNames) (id : w64) (q1 q2 : Qp) (E1 E2 : DurMaps) :
+    ⊢ durShares (GF := GF) γ id q1 E1 -∗ durShares γ id q2 E2 -∗
+      durShares γ id q1 E1 ∗ durShares γ id q2 E2 ∗ ⌜E1 = E2⌝ := by
+  unfold durShares
+  iintro ⟨%γv, %γa, %γc, %γl, %γe, %Hn, Hv, Ha, Hc, Hl, He⟩
+    ⟨%γv', %γa', %γc', %γl', %γe', %Hn', Hv', Ha', Hc', Hl', He'⟩
+  obtain ⟨h1, h2, h3, h4, h5⟩ := Hn
+  obtain ⟨h1', h2', h3', h4', h5'⟩ := Hn'
+  rw [h1] at h1'; rw [h2] at h2'; rw [h3] at h3'; rw [h4] at h4'; rw [h5] at h5'
+  cases h1'; cases h2'; cases h3'; cases h4'; cases h5'
+  icases auth_agree_keep γv _ _ E1.voted E2.voted $$ [$Hv $Hv'] with ⟨⟨Hv, Hv'⟩, %E1v⟩
+  icases auth_agree_keep γa _ _ E1.acks E2.acks $$ [$Ha $Ha'] with ⟨⟨Ha, Ha'⟩, %E1a⟩
+  icases auth_agree_keep γc _ _ E1.camps E2.camps $$ [$Hc $Hc'] with ⟨⟨Hc, Hc'⟩, %E1c⟩
+  icases auth_agree_keep γl _ _ E1.vlogs E2.vlogs $$ [$Hl $Hl'] with ⟨⟨Hl, Hl'⟩, %E1l⟩
+  icases evs_agree_keep γe _ _ E1.evs E2.evs $$ [$He $He'] with ⟨⟨He, He'⟩, %E1e⟩
+  isplitl [Hv Ha Hc Hl He]
+  · iexists γv, γa, γc, γl, γe
+    iframe Hv Ha Hc Hl He
+    ipureintro; exact ⟨h1, h2, h3, h4, h5⟩
+  isplitl
+  · iexists γv, γa, γc, γl, γe
+    iframe Hv' Ha' Hc' Hl' He'
+    ipureintro; exact ⟨h1, h2, h3, h4, h5⟩
+  ipureintro
+  cases E1; cases E2
+  simp only at E1v E1a E1c E1l E1e
+  subst E1v E1a E1c E1l E1e; rfl
+
 /-- The slot invariant is inside raft's namespace. -/
 theorem slotN_raftN (γ : RaftNames) (id : w64) : (↑(slotN γ id) : CoPset) ⊆ ↑(raftN γ) :=
   fun p hp => nclose_subseteq (raftN γ) "slot" p (nclose_subseteq _ _ p hp)
@@ -128,6 +178,350 @@ theorem ownRaftGhost_cut (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {
   -- PORT(durability stage II): proof (new lemma)
   sorry
 
+/-! ### Entering a batch: minting its promises (stage II helpers) -/
+
+/-- Every acknowledgement in the event history is in the acknowledgement map (`EvsOk`'s third
+part). -/
+def AcksEvs (X : DurMaps) : Prop := ∀ t i, Aev.ack t i ∈ X.evs → (X.acks !! (t, i)).isSome
+
+theorem AcksEvs_add (X : DurMaps) (p : Prom) : AcksEvs X → AcksEvs (X.add p) := by
+  intro H t i Hm
+  cases p with
+  | vote T c d Fv =>
+    simp only [DurMaps.add, List.mem_append, List.mem_singleton] at Hm ⊢
+    rcases Hm with Hm | Hm
+    · exact H t i Hm
+    · cases Hm
+  | ack T i' =>
+    simp only [DurMaps.add, List.mem_append, List.mem_singleton] at Hm ⊢
+    by_cases Hk : (T, i') = (t, i)
+    · rw [Hk, GMap.lookup_insert]; rfl
+    · rw [GMap.lookup_insert_ne _ _ Hk]
+      rcases Hm with Hm | Hm
+      · exact H t i Hm
+      · cases Hm; exact absurd rfl Hk
+  | camp T F k => exact H t i Hm
+
+theorem EvSorted_prefix (L1 L2 : List Aev) : L1 <+: L2 → EvSorted L2 → EvSorted L1 := by
+  intro Hp H p1 p2 e1 e2 Hlt H1 H2
+  obtain ⟨t, rfl⟩ := Hp
+  have h1 := (List.getElem?_eq_some_iff.mp H1).1
+  have h2 := (List.getElem?_eq_some_iff.mp H2).1
+  exact H p1 p2 e1 e2 Hlt (by rw [List.getElem?_append_left h1]; exact H1)
+    (by rw [List.getElem?_append_left h2]; exact H2)
+
+/-- The justifications of a pending list, head and tail. -/
+theorem promsJust_cons (γ : RaftNames) (id : w64) (W : DurMaps) (p : Prom) (π : List Prom) :
+    promsJust (GF := GF) γ id W (p :: π) ⊣⊢ promJust γ id W p ∗ promsJust γ id (W.add p) π := by
+  unfold promsJust
+  exact BigSepL.bigSepL_cons
+
+private theorem auth_halves_q {K V : Type} [DecidableEq K] [Pos.Countable K] [Pos.Countable V]
+    (γm : GName) (q : Qp) (m : GMap K V) :
+    (ghostMapAuth (GF := GF) γm q m : IProp GF) ⊣⊢ ghostMapAuth γm q.half m ∗ ghostMapAuth γm q.half m := by
+  conv => lhs; rw [← Qp.half_add_half q]
+  exact (ghostMapAuth_fractional γm m).fractional _ _
+
+private theorem evs_halves (γe : GName) (l : List Aev) :
+    (monoListAuthOwn (GF := GF) γe 1 l : IProp GF) ⊣⊢
+      monoListAuthOwn γe (1 : Qp).half l ∗ monoListAuthOwn γe (1 : Qp).half l := by
+  conv => lhs; rw [← Qp.half_add_half 1]
+  exact (monoListAuthOwn_fractional γe l).fractional _ _
+
+/-- Two halves of the promise authorities make the whole (the vote map's half). -/
+theorem durShares_combine (γ : RaftNames) (id : w64) (X : DurMaps) :
+    durShares (GF := GF) γ id (1 : Qp).half X ∗ durShares γ id (1 : Qp).half X ⊣⊢
+      durShares γ id 1 X := by
+  unfold durShares
+  constructor
+  · iintro ⟨⟨%γv, %γa, %γc, %γl, %γe, %Hn, Hv, Ha, Hc, Hl, He⟩,
+      ⟨%γv', %γa', %γc', %γl', %γe', %Hn', Hv', Ha', Hc', Hl', He'⟩⟩
+    obtain ⟨h1, h2, h3, h4, h5⟩ := Hn
+    obtain ⟨h1', h2', h3', h4', h5'⟩ := Hn'
+    rw [h1] at h1'; rw [h2] at h2'; rw [h3] at h3'; rw [h4] at h4'; rw [h5] at h5'
+    cases h1'; cases h2'; cases h3'; cases h4'; cases h5'
+    iexists γv, γa, γc, γl, γe
+    isplitr; · ipureintro; exact ⟨h1, h2, h3, h4, h5⟩
+    isplitl [Hv Hv']
+    · iapply (auth_halves_q γv (1 : Qp).half X.voted).2; iframe Hv Hv'
+    isplitl [Ha Ha']
+    · iapply (ghostMapAuth_halves (GF := GF) γa X.acks).2; iframe Ha Ha'
+    isplitl [Hc Hc']
+    · iapply (ghostMapAuth_halves (GF := GF) γc X.camps).2; iframe Hc Hc'
+    isplitl [Hl Hl']
+    · iapply (ghostMapAuth_halves (GF := GF) γl X.vlogs).2; iframe Hl Hl'
+    · iapply (evs_halves γe X.evs).2; iframe He He'
+  · iintro ⟨%γv, %γa, %γc, %γl, %γe, %Hn, Hv, Ha, Hc, Hl, He⟩
+    icases (auth_halves_q γv (1 : Qp).half X.voted).1 $$ Hv with ⟨Hv, Hv'⟩
+    icases (ghostMapAuth_halves (GF := GF) γa X.acks).1 $$ Ha with ⟨Ha, Ha'⟩
+    icases (ghostMapAuth_halves (GF := GF) γc X.camps).1 $$ Hc with ⟨Hc, Hc'⟩
+    icases (ghostMapAuth_halves (GF := GF) γl X.vlogs).1 $$ Hl with ⟨Hl, Hl'⟩
+    icases (evs_halves γe X.evs).1 $$ He with ⟨He, He'⟩
+    isplitl [Hv Ha Hc Hl He]
+    · iexists γv, γa, γc, γl, γe; iframe Hv Ha Hc Hl He; ipureintro; exact Hn
+    · iexists γv, γa, γc, γl, γe; iframe Hv' Ha' Hc' Hl' He'; ipureintro; exact Hn
+
+/-- Entering one promise: minted in the authorities from its justification, with its fragments
+(a vote through the vote table, with its vote-time log and its event first). -/
+theorem mint_one (Em : CoPset) (γ : RaftNames) (id : w64) (X : DurMaps) (p : Prom) :
+    ↑(raftLogN γ) ⊆ Em → PromFresh X p → AcksEvs X → EvSorted (X.add p).evs →
+    ⊢ raftCommitInv (GF := GF) γ -∗ durShares γ id 1 X -∗ durFrags γ id X -∗ promJust γ id X p
+      ={Em}=∗ durShares γ id 1 (X.add p) ∗ durFrags γ id (X.add p) := by
+  intro HlE Hfresh Hae Hsort
+  iintro #Hci Hsh #Hfr #Hj
+  iunfold promJust at Hj
+  ihave #Hneed := Hj $$ Hfr
+  unfold durShares
+  icases Hsh with ⟨%γv, %γa, %γc, %γl, %γe, %Hn, Hv, Ha, Hc, Hl, He⟩
+  obtain ⟨Hγv, Hγa, Hγc, Hγl, Hγe⟩ := Hn
+  iunfold durFrags at Hfr
+  icases Hfr with ⟨#Hfv, #Hfa, #Hfc, #Hfl, %γe', %Hγe', #Hlb⟩
+  rw [Hγe] at Hγe'; cases Hγe'
+  cases p with
+  | camp T F k =>
+    simp only [PromFresh] at Hfresh
+    iunfold promNeed at Hneed
+    icases Hneed with ⟨%Hck, #Hcm⟩
+    imod ghost_map_insert_persist T ((F, k) : List EntryM × w64) Hfresh $$ Hc with ⟨Hc, #Hf⟩
+    imodintro
+    simp only [DurMaps.add]
+    isplitl [Hv Ha Hc Hl He]
+    · iexists γv, γa, γc, γl, γe
+      iframe Hv Ha Hc Hl He
+      ipureintro; exact ⟨Hγv, Hγa, Hγc, Hγl, Hγe⟩
+    unfold durFrags
+    iframe Hfv Hfa Hfl
+    isplitr
+    · iapply (BigSepM.bigSepM_insert (Φ := fun t (x : List EntryM × w64) =>
+        isCampK (GF := GF) γ id t x.1 x.2) Hfresh).2
+      iframe Hfc
+      unfold isCampK
+      iexists γc
+      iframe Hf Hcm
+      ipureintro; exact ⟨Hγc, Hck⟩
+    iexists γe; iframe Hlb; ipureintro; exact Hγe
+  | ack T i =>
+    imod monoListAuthOwn_update_app [Aev.ack T i] $$ He with ⟨He, #Hlbn⟩
+    have Hsort' : EvSorted (X.evs ++ [Aev.ack T i]) := Hsort
+    ihave #Hackn : ackEv (GF := GF) γ id T i $$ []
+    · unfold ackEv
+      iexists γe, (X.evs ++ [Aev.ack T i])
+      iframe Hlbn
+      ipureintro; exact ⟨Hγe, by simp, Hsort'⟩
+    cases hk : X.acks !! (T, i) with
+    | none =>
+      imod ghost_map_insert_persist (T, i) () hk $$ Ha with ⟨Ha, #Hf⟩
+      imodintro
+      simp only [DurMaps.add]
+      isplitl [Hv Ha Hc Hl He]
+      · iexists γv, γa, γc, γl, γe
+        iframe Hv Ha Hc Hl He
+        ipureintro; exact ⟨Hγv, Hγa, Hγc, Hγl, Hγe⟩
+      unfold durFrags
+      iframe Hfv Hfc Hfl
+      isplitr
+      · iapply (BigSepM.bigSepM_insert (Φ := fun (k : w64 × w64) (_ : Unit) =>
+          isAcked (GF := GF) γ id k.1 k.2) hk).2
+        iframe Hfa
+        unfold isAcked
+        iright
+        iframe Hackn
+        iexists γa; iframe Hf; ipureintro; exact Hγa
+      iexists γe; iframe Hlbn; ipureintro; exact Hγe
+    | some u =>
+      have Hid : Std.insert X.acks (T, i) () = X.acks := by
+        cases u; exact GMap.insert_id _ _ _ hk
+      imodintro
+      simp only [DurMaps.add]
+      rw [show (<[(T, i) := ()]> X.acks : GMap (w64 × w64) Unit) = X.acks from Hid]
+      isplitl [Hv Ha Hc Hl He]
+      · iexists γv, γa, γc, γl, γe
+        iframe Hv Ha Hc Hl He
+        ipureintro; exact ⟨Hγv, Hγa, Hγc, Hγl, Hγe⟩
+      unfold durFrags
+      iframe Hfv Hfa Hfc Hfl
+      iexists γe; iframe Hlbn; ipureintro; exact Hγe
+  | vote T c d Fv =>
+    simp only [PromFresh] at Hfresh
+    have Hsort' : EvSorted (X.evs ++ [Aev.vote T d Fv]) := Hsort
+    iunfold promNeed at Hneed
+    icases Hneed with ⟨%Fc, #Hcamp, #Hrec, %Hwfu, #Hd, #Hdyn, #Hhs⟩
+    imod ghost_map_insert_persist (vlogKey X.vlogs) (((T, d), Fv) : (w64 × Bool) × List EntryM)
+      (vlogKey_fresh X.vlogs) $$ Hl with ⟨Hl, #Hvlf⟩
+    imod monoListAuthOwn_update_app [Aev.vote T d Fv] $$ He with ⟨He, #Hlbn⟩
+    ihave #Hvlog : isVlog (GF := GF) γ id (vlogKey X.vlogs) T d Fv $$ []
+    · unfold isVlog; iexists γl; iframe Hvlf; ipureintro; exact Hγl
+    ihave #Hvev : voteEv (GF := GF) γ id T d Fv $$ []
+    · unfold voteEv
+      iexists γe, X.evs
+      iframe Hlbn
+      isplitr; · ipureintro; exact Hγe
+      iintro %t %i %Hti
+      obtain ⟨Hm, Hlt⟩ := Hti
+      obtain ⟨u, hu⟩ : ∃ u, X.acks !! (t, i) = some u := by
+        have := Hae t i Hm
+        cases h : X.acks !! (t, i) with
+        | none => rw [h] at this; cases this
+        | some u => exact ⟨u, rfl⟩
+      ihave Hh := BigSepM.bigSepM_lookup (Φ := fun (k : w64 × w64) (_ : Unit) =>
+        iprop(∀ (_ : uint.Z k.1 < uint.Z T), hist (GF := GF) γ Fv k.1 k.2 (vbnd T d))) hu $$ Hhs
+      iapply Hh $$ %Hlt
+    ihave #Hvj : voteJust (GF := GF) γ id T c $$ []
+    · unfold voteJust
+      iexists (vlogKey X.vlogs), d, Fv, Fc
+      iframe Hvlog Hcamp Hrec Hvev Hdyn
+      isplitr; · ipureintro; exact Hwfu
+      cases d with
+      | false => simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+      | true =>
+        simp only [↓reduceIte]
+        icases Hd with (%Hf | #Hw)
+        · cases Hf
+        · iexact Hw
+    -- the vote, into the vote table
+    ihave #Hli := raftCommitInv_log γ $$ Hci
+    unfold raftLogInv
+    have HlE' := HlE
+    iinv Hli with H Hclose
+    iunfold raftLogInvBody at H
+    icases H with ⟨%l, >Hauth, >Hjust, >Htbl, >Hwt, >Hrest⟩
+    imod votesTbl_insert γ id γv X.voted T c Hγv Hfresh $$ Hvj Htbl Hv with ⟨Htbl, Hv, #Hvf⟩
+    imod Hclose $$ [Hauth Hjust Htbl Hwt Hrest] with -
+    · inext; unfold raftLogInvBody; iexists l; iframe Hauth Hjust Htbl Hwt Hrest
+    imodintro
+    simp only [DurMaps.add]
+    isplitl [Hv Ha Hc Hl He]
+    · iexists γv, γa, γc, γl, γe
+      iframe Hv Ha Hc Hl He
+      ipureintro; exact ⟨Hγv, Hγa, Hγc, Hγl, Hγe⟩
+    unfold durFrags
+    iframe Hfa Hfc
+    isplitr
+    · iapply (BigSepM.bigSepM_insert (Φ := fun (t : w64) (c : w64) => isVote (GF := GF) γ id t c)
+        Hfresh).2
+      iframe Hfv
+      unfold isVote; iexists γv; iframe Hvf; ipureintro; exact Hγv
+    isplitr
+    · iapply (BigSepM.bigSepM_insert (Φ := fun (n : Nat) (x : (w64 × Bool) × List EntryM) =>
+        isVlog (GF := GF) γ id n x.1.1 x.1.2 x.2) (vlogKey_fresh X.vlogs)).2
+      iframe Hfl Hvlog
+    iexists γe; iframe Hlbn; ipureintro; exact Hγe
+
+/-- Entering a pending list, in order. -/
+theorem mint_list (Em : CoPset) (γ : RaftNames) (id : w64) :
+    ∀ (π : List Prom) (X : DurMaps),
+    ↑(raftLogN γ) ⊆ Em → PromsFresh X π → AcksEvs X → EvSorted (virt X π).evs →
+    ⊢ raftCommitInv (GF := GF) γ -∗ durShares γ id 1 X -∗ durFrags γ id X -∗ promsJust γ id X π
+      ={Em}=∗ durShares γ id 1 (virt X π) ∗ durFrags γ id (virt X π)
+  | [], X, _, _, _, _ => by
+    iintro #_ Hsh #Hfr #_
+    imodintro
+    rw [virt_nil]
+    iframe Hsh Hfr
+  | p :: π, X, HlE, Hfr, Hae, Hsort => by
+    rw [PromsFresh_cons] at Hfr
+    obtain ⟨Hf1, Hf2⟩ := Hfr
+    rw [virt_cons] at Hsort ⊢
+    have Hs1 : EvSorted (X.add p).evs :=
+      EvSorted_prefix _ _ (DurLe_virt (X.add p) π Hf2).2.2.2.2 Hsort
+    iintro #Hci Hsh #Hfrg #Hj
+    icases (promsJust_cons γ id X p π).1 $$ Hj with ⟨#Hj1, #Hj2⟩
+    imod mint_one Em γ id X p HlE Hf1 Hae Hs1 $$ Hci Hsh Hfrg Hj1 with ⟨Hsh, #Hfrg'⟩
+    iapply mint_list Em γ id π (X.add p) HlE Hf2 (AcksEvs_add X p Hae) Hsort
+      $$ Hci Hsh Hfrg' Hj2
+
+/-- (stage II helper) **`raft_enter` with the slot invariant and a later credit**, which
+`raft_enter`'s premises do not give (see its proof's comment): the slot's queued batch (`batchOk`) is
+read under the invariant's later, and it is not timeless. -/
+theorem raft_enter_slot (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (q : Qp) (g : Nat)
+    (S' : RaftState) (W : DurMaps) :
+    ↑(raftN γ) ⊆ E →
+    ⊢ £ 1 -∗ slotInv (GF := GF) γ id -∗ ownDurGhost γ id S -∗ slotLive γ id q g -∗
+      pendBatch γ id g S' W
+      ={E}=∗ ownDurGhost γ id S' ∗ slotLive γ id q g ∗ slotFree γ id g ∗ durFrags γ id W := by
+  intro HE
+  have HsE : (↑(slotN γ id) : CoPset) ⊆ E := fun p hp => HE p (slotN_raftN γ id p hp)
+  have HlE : (↑(raftLogN γ) : CoPset) ⊆ E \ ↑(slotN γ id) := by
+    intro p hp
+    rw [Iris.Std.LawfulSet.mem_diff]
+    refine ⟨raftLogN_of HE p hp, fun h => ?_⟩
+    have h1 := nclose_subseteq (raftN γ .@ "slot") id p h
+    exact ndot_ne_disjoint (raftN γ) (show "log" ≠ "slot" by decide) p ⟨hp, h1⟩
+  iintro Hlc #Hsinv Hdur Hlive Hpend
+  unfold ownDurGhost
+  icases Hdur with ⟨%E1, Hsh1, #Hdp⟩
+  iunfold slotLive at Hlive
+  icases Hlive with ⟨%γs, %Hγs, Hl⟩
+  iunfold pendBatch at Hpend
+  icases Hpend with ⟨%γs2, %H2, Hpf⟩
+  rw [Hγs] at H2; cases H2
+  ihave #Hsi := Hsinv
+  iunfold slotInv at Hsi
+  iinv Hsi with H Hclose
+  iunfold slotBody at H
+  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, Hb⟩
+  rw [Hγs] at Hγs'; cases Hγs'
+  icombine Hl Hg0 gives %Hgg
+  obtain ⟨-, Hgg⟩ := Hgg
+  subst Hgg
+  icombine Hq Hpf gives %HMq
+  have HMq' : Mq !! g = some (some ((S', W) : RaftBatch)) := HMq
+  imod lc_fupd_elim_later (E := E \ ↑(slotN γ id)) $$ Hlc Hb with Hb
+  ihave Hbo := Hb $$ %((S', W) : RaftBatch) %HMq'
+  iunfold batchOk at Hbo
+  icases Hbo with ⟨%π, %Hπ, #Hj, #Hdp'⟩
+  obtain ⟨HW, Hfresh⟩ := Hπ
+  simp only at HW
+  icases durShares_agree γ id _ _ E0 E1 $$ Hsh0 Hsh1 with ⟨Hsh0, Hsh1, %HE1⟩
+  subst HE1
+  -- the entered maps' invariants (the durable half's), for the order of the events
+  ihave #Hdp0 := Hdp
+  iunfold durPers at Hdp0
+  icases Hdp0 with ⟨%kd, %fp0, %Hp0, -, -, -, -, -, -, -, -, -, #Hci⟩
+  have Hae : AcksEvs E0 := Hp0.2.2.2.1.2.2
+  ihave #Hdp'' := Hdp'
+  iunfold durPers at Hdp''
+  icases Hdp'' with ⟨%kd', %fp', %Hp', -, -, -, -, -, -, -, -, -, -⟩
+  have Hsort : EvSorted (virt E0 π).evs := by rw [← HW]; exact Hp'.2.2.2.1.1
+  icases (durShares_combine γ id E0).1 $$ [Hsh0 Hsh1] with Hsh
+  · iframe Hsh0 Hsh1
+  imod mint_list (E \ ↑(slotN γ id)) γ id π E0 HlE Hfresh Hae Hsort $$ Hci Hsh Hfr0 Hj
+    with ⟨Hsh, #HfrW⟩
+  rw [← HW]
+  icases (durShares_combine γ id W).2 $$ Hsh with ⟨Hsh0, Hsh1⟩
+  imod ghost_map_update (none : Option RaftBatch) $$ Hq Hpf with ⟨Hq, Hfree⟩
+  have HvQ : virtQ E0 (Mq !! g) = W := by rw [HMq']; rfl
+  rw [HvQ]
+  imod Hclose $$ [Hsh0 Hv0 Hg0 Hq] with -
+  · inext
+    unfold slotBody
+    iexists γs, W, g, Mq.insert g none
+    have Hl0 : (Mq.insert g (none : Option RaftBatch)) !! g = some none := GMap.lookup_insert _ _ _
+    rw [Hl0]
+    simp only [virtQ]
+    iframe Hsh0 HfrW Hv0 Hg0 Hq
+    isplitr; · ipureintro; exact Hγs
+    isplitr
+    · ipureintro
+      intro k hk
+      by_cases hkg : k = g
+      · omega
+      · have : (Mq.insert g (none : Option RaftBatch)) !! k = Mq !! k :=
+          GMap.lookup_insert_ne _ _ (Ne.symm hkg)
+        rw [this] at hk
+        exact Hdom k hk
+    isplitr; · ipureintro; rfl
+    iintro %b %hb
+    cases hb
+  imodintro
+  isplitl [Hsh1]
+  · iexists W; iframe Hsh1 Hdp'
+  isplitl [Hl]
+  · unfold slotLive; iexists γs; iframe Hl; ipureintro; exact Hγs
+  isplitl [Hfree]
+  · unfold slotFree; iexists γs; iframe Hfree; ipureintro; exact Hγs
+  iexact HfrW
+
 /-- **Entering a batch** (the client's *enter*, under the node's generation): its promises minted
 in order in the authorities (`vote_insert`, `ghost_map_insert_persist` of the acknowledgements,
 campaign records and vote-time logs, the event history's appends), from their justifications; the
@@ -138,7 +532,13 @@ theorem raft_enter (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (q :
     ↑(raftN γ) ⊆ E →
     ⊢ ownDurGhost (GF := GF) γ id S -∗ slotLive γ id q g -∗ pendBatch γ id g S' W ={E}=∗
       ownDurGhost γ id S' ∗ slotLive γ id q g ∗ slotFree γ id g ∗ durFrags γ id W := by
-  -- PORT(durability stage II): proof (new lemma)
+  -- PORT(durability stage II): unprovable as stated, back to stage I: (1) none of the premises
+  -- holds the slot invariant `slotInv γ id` (`ownDurGhost` is the authority shares and `durPers`,
+  -- `slotLive`/`pendBatch` bare ghost elements), so the slot's half of the promise authorities, which
+  -- minting needs, cannot be reached; (2) the queued batch's `batchOk` (its pending list's
+  -- justifications and `durPers γ id S' W`) is in the slot invariant, read under a later, and is not
+  -- timeless (`durPers` holds `raftCommitInv`, `promsJust` wands), with no later credit to strip it.
+  -- With both (`slotInv` and `£ 1`) it is `raft_enter_slot`, proved above.
   sorry
 
 /-- (stage II helper) **`durPers` re-based** at a base `b` within `S`'s log and a lower commit `c`:
@@ -267,56 +667,6 @@ theorem durPers_restart_acks (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftS
         ackAgree γ b (S.entsFrom b) k.1 k.2 := by
   -- PORT(durability stage II): proof (new lemma)
   sorry
-
-/-- (stage II helper) -/
-instance durFrags_timeless (γ : RaftNames) (id : w64) (W : DurMaps) :
-    Timeless (durFrags (GF := GF) γ id W) := by
-  unfold durFrags; infer_instance
-
-/-- (stage II helper) Two ghost map authorities agree, kept. -/
-private theorem auth_agree_keep {K V : Type} [DecidableEq K] [Pos.Countable K] [Pos.Countable V]
-    (γm : GName) (q1 q2 : Qp) (m1 m2 : GMap K V) :
-    iprop(ghostMapAuth (GF := GF) γm q1 m1 ∗ ghostMapAuth γm q2 m2) ⊢
-      iprop(ghostMapAuth (GF := GF) γm q1 m1 ∗ ghostMapAuth γm q2 m2) ∗ ⌜m1 = m2⌝ :=
-  persistent_entails_left (by iintro ⟨H1, H2⟩; iapply ghostMapAuth_agree $$ H1 H2)
-
-/-- (stage II helper) Two event-history authorities agree, kept. -/
-private theorem evs_agree_keep (γe : GName) (q1 q2 : Qp) (l1 l2 : List Aev) :
-    iprop(monoListAuthOwn (GF := GF) γe q1 l1 ∗ monoListAuthOwn γe q2 l2) ⊢
-      iprop(monoListAuthOwn (GF := GF) γe q1 l1 ∗ monoListAuthOwn γe q2 l2) ∗ ⌜l1 = l2⌝ :=
-  persistent_entails_left (by
-    iintro ⟨H1, H2⟩
-    ihave %H := monoListAuthOwn_agree _ _ _ _ _ $$ H1 H2
-    ipureintro; exact H.2)
-
-/-- (stage II helper) Two shares of a node's promise authorities are at the same maps. -/
-theorem durShares_agree (γ : RaftNames) (id : w64) (q1 q2 : Qp) (E1 E2 : DurMaps) :
-    ⊢ durShares (GF := GF) γ id q1 E1 -∗ durShares γ id q2 E2 -∗
-      durShares γ id q1 E1 ∗ durShares γ id q2 E2 ∗ ⌜E1 = E2⌝ := by
-  unfold durShares
-  iintro ⟨%γv, %γa, %γc, %γl, %γe, %Hn, Hv, Ha, Hc, Hl, He⟩
-    ⟨%γv', %γa', %γc', %γl', %γe', %Hn', Hv', Ha', Hc', Hl', He'⟩
-  obtain ⟨h1, h2, h3, h4, h5⟩ := Hn
-  obtain ⟨h1', h2', h3', h4', h5'⟩ := Hn'
-  rw [h1] at h1'; rw [h2] at h2'; rw [h3] at h3'; rw [h4] at h4'; rw [h5] at h5'
-  cases h1'; cases h2'; cases h3'; cases h4'; cases h5'
-  icases auth_agree_keep γv _ _ E1.voted E2.voted $$ [$Hv $Hv'] with ⟨⟨Hv, Hv'⟩, %E1v⟩
-  icases auth_agree_keep γa _ _ E1.acks E2.acks $$ [$Ha $Ha'] with ⟨⟨Ha, Ha'⟩, %E1a⟩
-  icases auth_agree_keep γc _ _ E1.camps E2.camps $$ [$Hc $Hc'] with ⟨⟨Hc, Hc'⟩, %E1c⟩
-  icases auth_agree_keep γl _ _ E1.vlogs E2.vlogs $$ [$Hl $Hl'] with ⟨⟨Hl, Hl'⟩, %E1l⟩
-  icases evs_agree_keep γe _ _ E1.evs E2.evs $$ [$He $He'] with ⟨⟨He, He'⟩, %E1e⟩
-  isplitl [Hv Ha Hc Hl He]
-  · iexists γv, γa, γc, γl, γe
-    iframe Hv Ha Hc Hl He
-    ipureintro; exact ⟨h1, h2, h3, h4, h5⟩
-  isplitl
-  · iexists γv, γa, γc, γl, γe
-    iframe Hv' Ha' Hc' Hl' He'
-    ipureintro; exact ⟨h1, h2, h3, h4, h5⟩
-  ipureintro
-  cases E1; cases E2
-  simp only at E1v E1a E1c E1l E1e
-  subst E1v E1a E1c E1l E1e; rfl
 
 /-- (stage II helper) Every key of a map whose fragments carry `campKey` is an entered campaign's
 term. -/
