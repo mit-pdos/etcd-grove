@@ -264,6 +264,13 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   iunfold writerFile at Hw
   icases Hw with ⟨%mxc, %tail, %fsz, Hfsz, Hdsz, Hf, Hfd, Hm, Hmx, Htail, %Hwf⟩
   obtain ⟨hmx, hclean, rfl, hfd⟩ := Hwf.2.2.2.2 rfl
+  wp_alloc «$res0_ptr» as «$res0»
+  wp_pures
+  wp_alloc_auto
+  wp_pures
+  wp_alloc_auto
+  wp_pures
+  wp_apply (Meta.wp_alloc_pos mv) as %m_ptr ⟨m, %Hmpos⟩
   (try wp_auto)
   dsimp only
   have hhwm2 : hwm + 2 ≤ 2 ^ 18 := by omega
