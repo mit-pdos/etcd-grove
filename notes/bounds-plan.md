@@ -110,6 +110,21 @@ the premises are packaged and which resources the specs take.
   instance from it (`ThreadBoundLe.of_eq`, then `weaken`).
 - `receiptBound GF ≤ N + 1` is not a smallness bound: it ties the write-token stock to the step
   bound. It stays until B4.
+- **First batch done (2026-11-01, branch `bounds-b1-specs`).** Each converted spec takes the bound
+  as a leading instance binder (`∀ [ThreadBoundLe GF (2 ^ k)] …`): the same strength as the
+  premise, and `Link.lean`, the callee hypotheses and the `Results` restatements stay as they were.
+  A caller with a pure premise adds one `haveI`. Converted: the client's `clientv3.New`, `newClient`,
+  `NewWatcher`, `NewWatchFromWatchClient` and kubernetes `New` (`2 ^ 31`), credentials'
+  `NewPerRPCCredentialBundle` (`2 ^ 30`), leasing's `NewKV` (`2 ^ 29`, from `2 ^ 30 - 1`: no closed
+  result reaches it), mvcc's `New`, `NewStore` and `newWatchableStore` (receipts `2 ^ 48`), and
+  client-go's informer chain (receipts `2 ^ 63`, `pop` `2 ^ 61`). `newWatcherGRPCStream`'s premise was
+  redundant (`isClientWatcher` carries the bound) and is dropped, which makes the spec stronger.
+  **Left:**
+  - the cache's `New`/`newCache` (`threadBound GF + 3 ≤ 2 ^ 31`; `2 ^ 30` would weaken the cache's
+    exported `cache_end_to_end_*` results, which restate it);
+  - the lessor's `Remaining`, `Less` and `Leases` (`2 ^ 30 - 1`; their caller `LeaseLeases` is in
+    etcdserver, whose statements wait for the snapshot branches);
+  - v3rpc's `GetProgressReportInterval` (its bound travels in `watchRunSlot`, B2's v3rpc pool).
 
 ### B2. Reader slots in pools owned by their package (D2)
 

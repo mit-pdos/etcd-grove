@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -36,9 +37,9 @@ the compaction right of it only after its last error return, Go's deferred `kv.C
 freezes the store and watches, `noCompactor_of_new`), the logical mode the instance's, and no
 write-back supply. -/
 abbrev mvcc.New.spec : Prop :=
-  ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
+  ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (rd0 : GoFunc) (γi : mvcc.IdxNames) (γok γtag : GName),
-  mvcc.batchLimitOk cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 →
+  mvcc.batchLimitOk cfg.CompactionBatchLimit' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
         mvcc.storeBackend b s γ P) ∗

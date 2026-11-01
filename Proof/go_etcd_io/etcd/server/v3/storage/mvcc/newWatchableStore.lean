@@ -38,7 +38,7 @@ theorem mvcc.newWatchableStore.wp_proof
     (hWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
     (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f rd0 γi γok γtag Hcfg0 Hrb0
+  intro _ lg b le cfg kb γb γl P f rd0 γi γok γtag Hcfg0
   wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -48,7 +48,7 @@ theorem mvcc.newWatchableStore.wp_proof
     isplitr
     · ipureintro; rfl
     iexists l; iexact lg
-  wp_apply (hNewStore _ _ _ _ _ _ _ _ f _ true γi γok Hcfg0 Hrb0)
+  wp_apply (hNewStore _ _ _ _ _ _ _ _ f _ true γi γok Hcfg0)
     $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hsrm $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0] as %st
     ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok, %hγcm⟩, #Hst, ⟨%rd1, Hro⟩, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, Hfw,
       Hwsd, Hfrag, Hright, Hret⟩
