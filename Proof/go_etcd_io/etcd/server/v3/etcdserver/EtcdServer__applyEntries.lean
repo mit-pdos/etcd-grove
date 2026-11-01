@@ -549,6 +549,16 @@ theorem EtcdServer.applyEntries.wp_proof
     exact hOn s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w γa sa hm
       (hRB hon) Hms Hai1 Hok hEok hdv
 
+/-- `specNil`: the empty batch's early return. -/
+theorem EtcdServer.applyEntries.wp_proofNil :
+    EtcdServer.applyEntries.specNil (GF := GF) (hG := hG) := by
+  intro s ep ap es
+  wp_start as ⟨#Hes, #Hesl⟩
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
+  wp_auto
+  wp_if_destruct
+  · iapply HΦ; itrivial
+  · exfalso; apply Hif; simp only [List.length_nil] at Hlen; word
 end proof2
 
 end EtcdGrove

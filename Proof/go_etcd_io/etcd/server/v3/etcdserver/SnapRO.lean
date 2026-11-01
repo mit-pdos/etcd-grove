@@ -276,6 +276,65 @@ instance srvSnapRm_persistent (γt : GName) (γr : ReadNames) (j : w64) :
     Persistent (srvSnapRm (GF := GF) γt γr j) := by
   unfold srvSnapRm; infer_instance
 
+/-- (2026-11-01, J8a-5) **The snapshot's file taken from the directory** (`applyAll`'s, before
+`applySnapshot(i)`, whose `OpenSnapshotBackend` renames it): a saved index `i` above the counter's
+`nt` and the applied index `a` is present, its removal fact (`srvSnapRm γt γr i`) refuted by the
+apply thread's authorities; the counter raised to `i` gives that fact, so the file leaves the
+directory, with its certificate. A later credit strips the invariant's later (`fileHolds` is not
+timeless). -/
+theorem snapDir_take (ss : Loc) (γd γt : GName) (γr : ReadNames)
+    (img : w64 → backend.Data → IProp GF) (i a : w64) (nt : Nat) (hnt : nt < uint.nat i)
+    (ha : uint.Z a < uint.Z i) :
+    ⊢ £ 1 -∗ inv snapDirN (snapDirInv ss γd img (srvSnapRm γt γr)) -∗ snapSaved γd i -∗
+      monoNatAuthOwn γt 1 nt -∗ srvAppliedOwn γr a ={⊤}=∗
+      monoNatAuthOwn γt 1 (uint.nat i) ∗ srvAppliedOwn γr a ∗
+      ∃ D : backend.Data, backend.fileHolds (snap.snapDBPath ss i) D ∗ □ img i D := by
+  iintro Hlc #Hinv #Hsv Hγt Hao
+  iinv Hinv with Hi Hclose
+  imod (lc_fupd_elim_later (P := snapDirInv ss γd img (srvSnapRm γt γr))) $$ Hlc Hi with Hi
+  iunfold snapDirInv at Hi
+  icases Hi with ⟨%M, %Es, Ha, %HME, HM, #HEs, #HRm⟩
+  iunfold snapSaved at Hsv
+  ihave %HEi := ghost_map_lookup $$ Ha Hsv
+  cases hMi : M.lookup i with
+  | none =>
+    have hp : Es.lookup i ≠ none ∧ M.lookup i = none := ⟨by simp [HEi], hMi⟩
+    ihave #Hr := HRm $$ %i %hp
+    iunfold srvSnapRm at Hr
+    icases Hr with (#Hr | #Hr)
+    · iunfold snapTakenLb at Hr
+      ihave %Hv := monoNatLbOwn_valid γt 1 nt (uint.nat i) $$ Hγt Hr
+      exfalso; omega
+    · iunfold srvAppliedOwn at Hao
+      icases Hao with ⟨Hao1, -⟩
+      ihave %Hv := monoNatLbOwn_valid γr.applied _ _ _ $$ Hao1 Hr
+      exfalso; have := Hv.2; word
+  | some D =>
+    imod (mono_nat_own_update (uint.nat i) (by omega)) $$ Hγt with ⟨Hγt, #Htk⟩
+    icases (BigSepM.bigSepM_delete (Φ := fun (j : w64) (D : backend.Data) => iprop(backend.fileHolds
+      (snap.snapDBPath ss j) D ∗ □ img j D)) hMi).1 $$ HM with ⟨⟨Hf, #Himg⟩, HM⟩
+    imod Hclose $$ [Ha HM] with -
+    · inext
+      iunfold snapDirInv
+      iexists GMap.delete i M, Es
+      iframe Ha HM HEs
+      isplitr
+      · ipureintro
+        intro j hj
+        by_cases hji : i = j
+        · subst hji; exact absurd (GMap.lookup_delete M i) hj
+        · rw [GMap.lookup_delete_ne M hji] at hj; exact HME j hj
+      iintro !> %j %hj
+      by_cases hji : i = j
+      · subst hji
+        iunfold srvSnapRm; ileft; iunfold snapTakenLb; iexact Htk
+      · rw [GMap.lookup_delete_ne M hji] at hj
+        iapply HRm $$ %j %hj
+    imodintro
+    iframe Hγt Hao
+    iexists D
+    iframe Hf Himg
+
 /-- **The snapshot path's persistent bundle** (see the file header) of the server `s` with the
 consistent index `ci`, the apply environment `E` and the read names `γr`, the snapshot-taken
 counter `γt`. -/

@@ -77,7 +77,7 @@ theorem srvSnapApplied_of_walk
     (hlp : mvcc.leaseParams d.P)
     (γp : GName) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
-    (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat ai)
+    (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index')
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
     (hauthb : ((backend.rbData d.P D).lookup go!"auth").getD ∅ = authBoot ∧
       ((backend.rbData d.P D).lookup go!"authUsers").getD ∅ = ∅ ∧

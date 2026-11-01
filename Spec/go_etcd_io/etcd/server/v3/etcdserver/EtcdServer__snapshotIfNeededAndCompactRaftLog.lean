@@ -73,6 +73,19 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.spec : Prop :=
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVM E.authOn s E γw x sa ∗ rnWalTok (srvRAddr s) q ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
 
+/-- (2026-11-01, J8a-5) **Nothing due** (after a snapshot's install, `applyAll.specSnap`): with the
+disk and in-memory snapshot indices at the applied index `ai` (and `ai + memorySnapshotCount` not
+wrapping), neither snapshot is due, and the function returns at once. -/
+abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specNoop : Prop :=
+  ∀ (s : Loc) (γr : ReadNames) (ep : Loc) (ai : w64),
+  uint.Z ai + 100 < 2 ^ 64 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerApplyAll s γr ∗ srvFS s ∗
+      epAppliedIAddr ep ↦ ai ∗ epDiskSnapAddr ep ↦ ai ∗ epMemSnapAddr ep ↦ ai }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))
+      (Val #ep))
+  {{ RET #(); srvFS s ∗ epAppliedIAddr ep ↦ ai ∗ epDiskSnapAddr ep ↦ ai ∗ epMemSnapAddr ep ↦ ai }}
+
 end spec
 
 end EtcdGrove

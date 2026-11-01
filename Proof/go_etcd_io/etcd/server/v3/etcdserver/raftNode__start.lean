@@ -507,7 +507,13 @@ theorem raftNode.start.wp_proof
             simp only [Int.toNat_natCast]
             iframe Hcn Hcn1 HC Hc2M Hcert HsnLoc Hcal
             isplitr
-            · ipureintro; exact ⟨HLA, hlenA⟩
+            · ipureintro; exact ⟨HLA, hlenA, Hb61⟩
+            isplitr
+            · ihave %HceL : iprop(⌜ceL.length = ([] : List EntryModel).length⌝) $$ []
+              · iunfold entriesAt at Hcea; icases Hcea with ⟨%H, -⟩; ipureintro; exact H
+              have h0 : ceL = [] := List.eq_nil_of_length_eq_zero (by simpa using HceL)
+              subst h0
+              iexact Hce
             isplitl [Hnrcv]
             · iexists γnc
               iframe Hncb Hnrcv

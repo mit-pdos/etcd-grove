@@ -1400,7 +1400,11 @@ def rnApSnap (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :
   -- (2026-10-30, the repair: snapshots allowed, until then `False`)
   iprop(∃ (F A' : List EntryModel) (sv : SnapshotM),
     monoListIdxOwn γ.cum i.toNat F ∗ monoListIdxOwn γ.cum (i.toNat + 1) A' ∗
-    ⌜F.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index'⌝ ∗
+    ⌜F.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧
+      -- (2026-11-01, J8a-5) the index's bound (raft's `readySnap`)
+      uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ ∗
+    -- (2026-11-01, J8a-5) no committed entries with a snapshot (raft's `readySnap`: `ce = []`)
+    ap.entries' ↦*□ ([] : List Loc) ∗
     ownSnapM ap.snapshot' DFrac.discard sv ∗
     snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
     -- (2026-11-01, J8a) the snapshot's index in the member's snapshot directory (raft's `readySnap`)
@@ -1442,13 +1446,13 @@ theorem rnApP_rtOk (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) :
     iframe H2 Hrt
   · -- (D22 J6a) a snapshot (2026-10-30, the repair: allowed): `cum[i+1] = A'`, as `A' ++ []`
     iunfold rnApSnap at H
-    icases H with ⟨%F, %A', %sv, #H1, #H2, %H3, #H4, #H5, #H5l, #H6, H7, #H8, #H9, #Hrt⟩
+    icases H with ⟨%F, %A', %sv, #H1, #H2, %H3, #Hes, #H4, #H5, #H5l, #H6, H7, #H8, #H9, #Hrt⟩
     isplitl [H7]
     · iunfold rnApP
       iright
       iunfold rnApSnap
       iexists F, A', sv
-      iframe H1 H2 H4 H5 H5l H6 H7 H8 H9 Hrt
+      iframe H1 H2 Hes H4 H5 H5l H6 H7 H8 H9 Hrt
       ipureintro; exact H3
     iexists A', []
     rw [List.append_nil]

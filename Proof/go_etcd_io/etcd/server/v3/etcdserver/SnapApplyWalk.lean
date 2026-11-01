@@ -92,7 +92,7 @@ theorem applySnapshot_walk
     (γp : GName) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
     (hRel : storage.storage.Release.spec (GF := GF) (hG := hG))
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
-    (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat ai)
+    (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index')
     (hNAB : schema.NewAlarmBackend.spec (GF := GF) (hG := hG))
     (hAR : v3alarm.AlarmStore.Recover.spec (GF := GF) (hG := hG))
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)

@@ -77,7 +77,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
     -- (D19i part 1) the trigger fires only past index `0`
     have Hai1 : 1 ≤ uint.Z ai := by
       first
-        | (have := Hr2 rfl; omega)
+        | (have := (Hr2 rfl).1; omega)
         | (have h := Hr1 rfl
            have : uint.Z ai ≠ uint.Z d := fun e => h (by word)
            have := Hdm.1
@@ -126,6 +126,35 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
       · ipureintro; exact Hdm'
       iapply memSnapLb_mono γs _ _ (by simp) $$ Hslb'
     ipureintro; exact hst')
+
+/-- `specNoop`: neither check fires at the snapshot indices. -/
+theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofNoop
+    (hD : EtcdServer.shouldSnapshotToDisk.spec (GF := GF) (hG := hG))
+    (hM : EtcdServer.shouldSnapshotToMemory.spec (GF := GF) (hG := hG)) :
+    EtcdServer.snapshotIfNeededAndCompactRaftLog.specNoop (GF := GF) (hG := hG) := by
+  intro s γr ep ai hai
+  wp_start as ⟨#Hsa, Hfs, Hai, Hd, Hm⟩
+  ihave #Hsa' := Hsa
+  iunfold isServerApplyAll at Hsa'
+  icases Hsa' with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -, -, -, -, -, -⟩
+  iunfold srvFS at Hfs
+  icases Hfs with ⟨%f, Hf⟩
+  (try wp_auto)
+  wp_apply hD s ep f ai ai sc $$ [Hf Hai Hd] as %r1 ⟨Hf, Hai, Hd, %Hr1⟩
+  · iframe #; iframe
+  (try wp_auto)
+  wp_apply hM s ep ai ai $$ [Hai Hm] as %r2 ⟨Hai, Hm, %Hr2⟩
+  · iframe #; iframe
+  have h1 : r1 = false := by cases r1 <;> simp_all
+  have h2 : r2 = false := by
+    cases r2
+    · rfl
+    · exfalso; have := (Hr2 rfl).2 rfl; omega
+  subst h1 h2
+  (try wp_auto)
+  iapply HΦ
+  iframe Hai Hd Hm
+  iunfold srvFS; iexists f; iexact Hf
 
 end proof
 

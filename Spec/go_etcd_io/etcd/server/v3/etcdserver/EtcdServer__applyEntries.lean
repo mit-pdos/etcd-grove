@@ -79,6 +79,16 @@ abbrev EtcdServer.applyEntries.spec : Prop :=
           -- (D22 S-h, 2026-10-20; S-0's amendment) the applied term: the last applied entry's
           termAfter at0 (unapplied ai ms) at'⌝ }}
 
+/-- (2026-11-01, J8a-5) **No entries** (a snapshot batch's, `rnApSnap`: raft hands out no committed
+entries with a snapshot): `applyEntries` returns at once (its `len(apply.entries) == 0` check). -/
+abbrev EtcdServer.applyEntries.specNil : Prop :=
+  ∀ (s ep ap : Loc) (es : GoSlice),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      taEntriesAddr ap ↦□ es ∗ es ↦*□ ([] : List Loc) }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntries"))
+      (Val #ep)) (Val #ap))
+  {{ RET #(); True }}
+
 end spec
 
 end EtcdGrove

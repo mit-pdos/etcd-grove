@@ -59,8 +59,8 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
    moved along `beSucc`. Strengthen the walk (`SnapApplyWalk`, `SnapApplyPost`).
    *Done 2026-11-01* (decisions, "`srvSnapApplied`'s missing post"): `srvSnapApplied` gives the
    chain (`zal = true → x'.chain = alarmChain E.authOn false false`) and the KV at `E'`
-   (`txn.isKV`); `srvSnapRO_succ` moves the bundle along `beSucc`; the alarm store's `Get` needs
-   nothing (`alarmGetIs` is persistent, `Tal` given back).
+   (`txn.isKV`); `srvSnapRO_succ` moves the bundle along `beSucc`. *Corrected (J8a-5)*: the alarm
+   store's `Get` does need something: the run has `zal = false`, so no chain fact (J8a-5's 5d).
 6. **The stocks** (the user's decision, 2026-11-01: thread pool, `threadBound ≤ 2^28`):
    - `E.RD`: `authIs`'s mutex holds `authInfoIdle p ∗ E.RD` (`Chain.lean:1270`); only the admin
      check (`IsAdminPermitted`) uses it, before the inner call. Restate: the mutex holds
@@ -105,5 +105,33 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
 - **J8a-2** (raft API, approved 2026-11-01): `snapLocal` through the API (item 1); done.
 - **J8a-3** (fork, approval): `NewWatchServer`'s config write (item 3).
 - **J8a-4**: the `isMetaBackend` restatement (item 2).
-- **J8a-5**: `applyAll.specSnap` and `run`'s two `sorry`s over it (item 4).
+- **J8a-5**: `applyAll.specSnap` (item 4). `run`'s two `sorry`s over it need `applyRes` restated
+  (`kvReach`, `notes/snapshot-sj-plan.md` §6), J8b's. Steps:
+  - *5a, done 2026-11-01*: the payload `rnApSnap` (and `rnApplyTok_recv`'s snapshot case) carries
+    `ap.entries' ↦*□ []` and `uint.Z i < 2^61`, from raft's `readySnap` (`ce = []`, the index
+    bound) through `raftNode.start`.
+  - *5b, done*: the callees' no-op cases: `applyEntries.specNil` (no entries), and
+    `snapshotIfNeededAndCompactRaftLog.specNoop` (the disk and in-memory snapshot indices at the
+    applied one, `ai + 100 < 2^64`), over `shouldSnapshotToMemory.spec`'s post strengthened
+    (`m = ai → 2^64 ≤ ai + 100`: Go's `m + memorySnapshotCount` wraps only near `2^64`).
+  - *5c, done*: `snapDir_take` (`SnapRO.lean`): the snapshot's file out of `snapDirInv` before
+    `applySnapshot(i)` (a later credit; the removal fact refuted below the counter and the applied
+    index, then given by the counter raised to `i`), so `specSnap`'s `hnt` is `nt ≤ i` (was `nt ≤ ai`:
+    the file cannot leave the directory before the counter reaches `i`).
+  - *5d, open, blocked*: **the applier chain after the jump.** `kvApplied` at `A'` needs the new
+    chain to be the boot's (`alarmChain false false false`), i.e. the alarm store empty when
+    `NewUberApplier` reads it. True in Go (`Recover` loads the image's empty alarm bucket,
+    `halarm`), but not derivable: `AlarmStore.Get.spec` returns any slice, `Recover`'s post says
+    nothing of the store's alarms, and the boot's `alarmFresh` (the `NewAlarmStore` axiom's token)
+    is spent at boot, so `srvSnapRes` holds `alarmGetIs al True false` (`zal = false`, no chain
+    fact from `srvSnapApplied`). Item 5's "the alarm store's `Get` needs nothing" was wrong. Fix:
+    model the store's alarms (a ghost "no alarm" half in `alarmLockInv`, `Recover` re-establishing it
+    from the empty bucket, `Get` returning empty under it), which changes `v3alarm`'s predicates and
+    the `NewAlarmStore` axiom's post (**approval: a trusted statement**).
+  - *5e*: `applyAll.specSnap` and its proof: `snapDir_take` (`snapSaved` from the payload's
+    `nodeSnapLocal`, `nodeSnapLocal_elem`, `snapLoc`), `snapRecv_image`/`snapRecv_kv_jump` (the image
+    facts, the KV jump), `specSnap`, `specNil`, `applied_jump` for `applyWait.Trigger(i)` (Go does not
+    call `setAppliedIndex`, J5), `wp_notify2_receive2`, `specNoop`, the merge branch at `i`. Its
+    premises that stay open: `srvCfgAddr s ↦□ cfg` (J8a-3), the `isMetaBackend` family (J8a-4), the
+    transport's `8·|ps|` copies of `c.R`, `trPeersNoRem`, `hdir`/`hdok` (J8a-6).
 - **J8a-6** (with the peer?): the `lgMu` pool in `rafthttp` (item 6).
