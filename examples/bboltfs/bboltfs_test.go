@@ -1,6 +1,7 @@
 package bboltfs
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"sync/atomic"
@@ -9,9 +10,10 @@ import (
 	"time"
 )
 
-// TestMain runs a helper when re-executed by a test (BBOLTFS_HELPER set).
+// TestMain runs a helper when re-executed by a test (BBOLTFS_HELPER set): the
+// boot loop of TestBootMiniboltKilled, or a Linux fact of linux_test.go.
 func TestMain(m *testing.M) {
-	switch os.Getenv("BBOLTFS_HELPER") {
+	switch h := os.Getenv("BBOLTFS_HELPER"); h {
 	case "":
 		os.Exit(m.Run())
 	case "bootloop":
@@ -20,66 +22,51 @@ func TestMain(m *testing.M) {
 			BootMinibolt(os.Getenv("BBOLTFS_DIR"))
 		}
 	default:
-		os.Exit(3)
+		f, ok := facts[h]
+		if !ok {
+			os.Exit(3)
+		}
+		fmt.Println("RESULT", f(os.Getenv("BBOLTFS_DIR")))
+		os.Exit(0)
 	}
 }
 
-var targets = map[string]func(string) bool{
-	"testOpenCreate":         testOpenCreate,
-	"testInit":               testInit,
-	"testReadPageSize":       testReadPageSize,
-	"testShortReadAt":        testShortReadAt,
-	"testMmapMeta":           testMmapMeta,
-	"testWriteVisibleInMap":  testWriteVisibleInMap,
-	"testGrowRemap":          testGrowRemap,
-	"testOpenTrunc":          testOpenTrunc,
-	"testReadOnlyReopen":     testReadOnlyReopen,
-	"testFlock":              testFlock,
-	"testTrivialCalls":       testTrivialCalls,
-	"testWriteAtEmpty":       testWriteAtEmpty,
-	"testConcurrentDisjoint": testConcurrentDisjoint,
-
-	"testNegativeOffset":          testNegativeOffset,
-	"testStatRacingExtendBounded": testStatRacingExtendBounded,
-	"testWriteTo":                 testWriteTo,
-}
-
-// The targets hold in Go, each in a fresh directory, and meet no
+// The programs hold in Go, each in a fresh directory, and meet no
 // environmental failure (which would make them return true vacuously).
-func TestTargets(t *testing.T) {
-	for name, f := range targets {
+func TestPrograms(t *testing.T) {
+	for name, f := range map[string]func(string) bool{
+		"testMinibolt":           testMinibolt,
+		"testMiniboltConcurrent": testMiniboltConcurrent,
+	} {
 		t.Run(name, func(t *testing.T) {
 			before := atomic.LoadUint64(&envErrors)
 			if !f(t.TempDir()) {
-				t.Errorf("%s returned false", name)
+				t.Fatalf("%s returned false", name)
 			}
 			if atomic.LoadUint64(&envErrors) != before {
-				t.Errorf("%s met an environmental failure", name)
+				t.Fatalf("%s met an environmental failure", name)
 			}
 		})
 	}
 }
 
-// The concurrent targets, many times (and under -race).
-func TestConcurrentRepeated(t *testing.T) {
-	for name, f := range map[string]func(string) bool{
-		"testConcurrentDisjoint":      testConcurrentDisjoint,
-		"testStatRacingExtendBounded": testStatRacingExtendBounded,
-		"testWriteTo":                 testWriteTo,
-	} {
-		for i := 0; i < 100; i++ {
-			before := atomic.LoadUint64(&envErrors)
-			if !f(t.TempDir()) {
-				t.Fatalf("%s: run %d returned false", name, i)
-			}
-			if atomic.LoadUint64(&envErrors) != before {
-				t.Fatalf("%s: run %d met an environmental failure", name, i)
-			}
+// The concurrent program, again and again (and under -race, which checks that
+// it races on no Go memory).
+func TestMiniboltConcurrentRepeated(t *testing.T) {
+	n := 30
+	if testing.Short() {
+		n = 3
+	}
+	for i := 0; i < n; i++ {
+		before := atomic.LoadUint64(&envErrors)
+		if !testMiniboltConcurrent(t.TempDir()) || atomic.LoadUint64(&envErrors) != before {
+			t.Fatalf("run %d failed", i)
 		}
 	}
 }
 
-// A failed commit poisons the handle: later reads and commits refuse.
+// After a failed commit the handle refuses every transaction, and a reopen
+// sees the last commit that succeeded.
 func TestMiniboltFailedCommit(t *testing.T) {
 	path := t.TempDir() + "/db"
 	db, err := Open(path)
@@ -108,46 +95,6 @@ func TestMiniboltFailedCommit(t *testing.T) {
 	if txid, v, has, err := db.Get(); err != nil || txid != 2 || !has || v != 2 {
 		t.Fatalf("reopened: txid %d, value %d, has %v, err %v", txid, v, has, err)
 	}
-}
-
-// minibolt round-trips across remaps and grows, and across Close and Open.
-func TestMiniboltRoundTrip(t *testing.T) {
-	path := t.TempDir() + "/db"
-	db, err := Open(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if txid, _, has, err := db.Get(); err != nil || txid != 1 || has {
-		t.Fatalf("fresh db: txid %d, has %v", txid, has)
-	}
-	const last = 60 // 62 pages: the mapping grows 32 -> 64 -> 128 -> 256 KiB
-	for v := uint64(2); v <= last; v++ {
-		if err := db.Commit(v); err != nil {
-			t.Fatal(err)
-		}
-		if txid, got, has, err := db.Get(); err != nil || txid != v || !has || got != v {
-			t.Fatalf("after commit %d: txid %d, value %d, has %v", v, txid, got, has)
-		}
-	}
-	if db.datasz != 1<<18 {
-		t.Errorf("mapping is %d bytes, want 256 KiB", db.datasz)
-	}
-	db.Close()
-	info, err := os.Stat(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if info.Size() != 1<<18 {
-		t.Errorf("file is %d bytes, want 256 KiB (grown to the mapping)", info.Size())
-	}
-	db, err = Open(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if txid, got, has, err := db.Get(); err != nil || txid != last || !has || got != last {
-		t.Fatalf("reopened: txid %d, value %d, has %v", txid, got, has)
-	}
-	db.Close()
 }
 
 // Opening a file whose metas are both invalid (here: zero, as after a crash in

@@ -2,6 +2,7 @@ package bboltfs
 
 import (
 	"errors"
+	"io"
 	"os"
 	"sync"
 	"syscall"
@@ -19,6 +20,8 @@ import (
 //     Sync), write the data page and fdatasync, then write the meta to slot
 //     txid % 2 and fdatasync.
 //   - Get: a read transaction, through the mapping.
+//   - Snapshot: tx.go's WriteTo, a read transaction that copies the file with
+//     ReadAt while the writer may be writing it.
 //
 // It differs from bbolt in one place, init: bbolt writes the metas and the
 // pages they point at with one WriteAt and one fdatasync, so a crash in between
@@ -65,6 +68,13 @@ func Open(path string) (*DB, error) {
 		return nil, err
 	}
 	db.filesz = int(info.Size())
+	if db.filesz >= 4*pageSize {
+		// db.go's getPageSize: read before the file is mapped
+		if ps, ok := db.readPageSize(); ok && ps != pageSize {
+			db.close()
+			return nil, errPageSize
+		}
+	}
 	if db.filesz < 4*pageSize {
 		if err := db.init(); err != nil {
 			db.close()
@@ -82,6 +92,24 @@ func Open(path string) (*DB, error) {
 		}
 	}
 	return db, nil
+}
+
+// errPageSize is Open's answer for a database of another page size.
+var errPageSize = errors.New("minibolt: the database has another page size")
+
+// readPageSize is db.go's getPageSize: the page size in the first meta that
+// validates, read with ReadAt.
+func (db *DB) readPageSize() (int, bool) {
+	buf := make([]byte, pageSize)
+	for i := 0; i < 2; i++ {
+		n, err := db.file.ReadAt(buf, int64(i*pageSize))
+		if err == nil && n == len(buf) {
+			if m := pageAt(buf, 0).meta(); m.validate() {
+				return int(m.pageSize), true
+			}
+		}
+	}
+	return 0, false
 }
 
 // init writes db.go's four initial pages: the freelist and root pages, synced,
@@ -189,6 +217,39 @@ func (db *DB) Get() (uint64, uint64, bool, error) {
 		v = *(*uint64)(unsafe.Pointer(&db.dataref[off+int(pageHeaderSize)]))
 	}
 	db.mmaplock.RUnlock()
+	return m.txid, v, has, nil
+}
+
+// Snapshot is tx.go's WriteTo (WriteFlag 0), cut to minibolt: a read
+// transaction that copies the file with ReadAt, up to and including the page
+// the next commit writes, so that the copy races the writer's WriteAt and
+// Truncate there and its meta WriteAt. It returns what the copy's root page
+// holds, as Get does. Its assertion: the copy reaches every page of the
+// transaction.
+func (db *DB) Snapshot() (uint64, uint64, bool, error) {
+	db.metalock.Lock()
+	if db.failed {
+		db.metalock.Unlock()
+		return 0, 0, false, errFailed
+	}
+	db.mmaplock.RLock()
+	m := *db.meta()
+	db.metalock.Unlock()
+	defer db.mmaplock.RUnlock()
+	out := make([]byte, int(m.pgid+1)*pageSize)
+	n, err := db.file.ReadAt(out, 0)
+	if err != nil && err != io.EOF {
+		return 0, 0, false, err
+	}
+	if n < int(m.pgid)*pageSize {
+		panic("minibolt: a snapshot is shorter than its transaction")
+	}
+	off := int(m.root.root) * pageSize
+	has := pageAt(out, off).count == 1
+	var v uint64
+	if has {
+		v = *(*uint64)(unsafe.Pointer(&out[off+int(pageHeaderSize)]))
+	}
 	return m.txid, v, has, nil
 }
 

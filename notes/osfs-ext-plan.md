@@ -51,7 +51,7 @@ a wrong access mode, a bad fd, or an unsupported flag.
 | op | needs (else stuck) | effect |
 |---|---|---|
 | `Open(path, flags)` | path allowed; flags ⊆ {RDONLY, WRONLY, RDWR, CREAT, TRUNC, CLOEXEC} | absent, no CREAT: ENOENT. Absent, CREAT: create (`named := false`). TRUNC: size 0. Fresh fd. |
-| `PRead(fd, off, n)` | fd readable, off ≥ 0 | `cur[off, min(off+n, size))`; a byte under an in-flight change is arbitrary, and while a change resizes the file the length is anything ≤ n (`ReadSees`). On failure, a prefix of that with an errno. |
+| `PRead(fd, off, n)` | fd readable, off ≥ 0 | `cur[off, min(off+n, size))`; a byte under an in-flight change is arbitrary, and while a change resizes the file the length is that of a size `Fstat` could see then (`ReadSees`). On failure, a prefix of that with an errno. |
 | `PWriteStart(fd, off, data)` | fd writable; affected range misses the other in-flight writes | records the write, returns a token |
 | `PWriteFinish(tok)` | – | writes a prefix of length k (k = len on success), marks it dirty |
 | `Fstat(fd)` | – | `cur.length`, or while a change resizes the file, a size between it and the change's target (`StatSees`, D8) |
@@ -77,7 +77,7 @@ a wrong access mode, a bad fd, or an unsupported flag.
   `LoadBytes 8` or `pread` can tear. With a start and a finish step, any real overlap in time
   maps to a model interleaving that is stuck.
 - **One heap rule.** Every step ends with `h' := render st' (h minus the cells of st.maps)`.
-  `render` sets mapping cell i to the byte `cur[i]`, or to `#()` (a *hole*) when i is past EOF
+  `render` sets mapping cell i to the byte `cur[i]`, or to `LitV LitPoison` (a *hole*, never a byte) when i is past EOF
   or under an in-flight change. A new cell is an ordinary byte cell (`Free`). A hole makes every
   load stuck (SIGBUS, or a race). A store to a mapped byte succeeds until the next render: on
   Linux it is fatal (see "Mappings are not read-only in the model"). No operation spells out
@@ -158,6 +158,23 @@ a byte.
 - **D8 (changed 2026-10-31):** a `Stat` or `pread` racing a change returns a nondeterministic
   answer instead of being stuck. Only mapped loads are stuck on a race.
 - **W (open):** where the wrapper package lives.
+
+## Tests of the trusted definitions
+
+`GooseLang/Ext/OsFs/Tests.lean` holds lemmas about the step and crash relations:
+- misuse is stuck: a closed fd, a read-only fd, a disallowed path or flag, a writable mapping,
+  a partial munmap;
+- mapped cells: the file's byte, a hole past EOF and under an in-flight change, and a hole is
+  never a byte;
+- reads and `fstat`: exact with nothing in flight, and a racing read may see any byte the
+  change may write;
+- crashes: after a successful sync, a crash keeps exactly the page cache; after an unsynced
+  write, it may keep the old byte or the new one; a byte lost by a failed sync stays lost
+  across a later successful sync.
+
+Writing them surfaced the invariant the program logic must carry: a clean byte's durable copy
+is its page-cache copy (`crash_after_sync`'s premise). The operations maintain it, because
+every change marks what it changes as dirty, but the trusted file does not state it.
 
 ## Work
 

@@ -43,10 +43,10 @@ path resolution is never modelled.
   after such a store are never Go's. This rests on the fault being fatal:
   `runtime/debug.SetPanicOnFault(true)` would make it a recoverable panic, and Perennial does
   not model `runtime/debug` (calling it is stuck).
-* *Holes*: a mapped cell past EOF, or affected by an in-flight change, holds `#()`, not a
-  byte, so a load of it is stuck (SIGBUS, or a mix of old and new bytes): less defined than
-  Linux, which is sound. The extension relies on no rule of the core semantics but that a byte
-  load needs a byte.
+* *Holes*: a mapped cell past EOF, or affected by an in-flight change, holds `osHole`
+  (`LitV LitPoison`, by construction never a byte), so a load of it is stuck (SIGBUS, or a mix
+  of old and new bytes): less defined than Linux, which is sound. The extension relies on no
+  rule of the core semantics but that a byte load needs a byte.
 
 **Heap.** The operations never touch user memory: the models pass buffers as Go strings. The
 one heap rule is `HeapRendered`, applied by every step: the cells of every mapping after the
@@ -180,40 +180,34 @@ def Affects (c : OsChange) (i : Nat) : Prop :=
   | .write off data => inRange (min off (st.size c.path)) (off + data.length) i
   | .truncate sz => min (st.size c.path) sz ≤ i
 
-/-- The size the change `c` gives its file (a write that extends it, or a truncate). -/
+/-- The size the change `c` leaves its file: a write's end if it extends the file, the size
+otherwise; a truncate's new size. -/
 def OsChange.target (c : OsChange) : Nat :=
   match c.kind with
-  | .write off data => off + data.length
+  | .write off data => max (st.size c.path) (off + data.length)
   | .truncate sz => sz
 
 /-- Some in-flight change may change byte `i` of the file at `p`. -/
 def InflightAt (p : GoString) (i : Nat) : Prop :=
   ∃ t c, st.inflight !! t = some c ∧ c.path = p ∧ Affects st c i
 
-/-- Some in-flight change may change the size of the file at `p`: a write that extends it
-(its size grows page by page), or any truncate. -/
-def ResizingAt (p : GoString) : Prop :=
-  ∃ t c, st.inflight !! t = some c ∧ c.path = p ∧
-    match c.kind with
-    | .write _ _ => st.size p < c.target
-    | .truncate _ => True
-
 /-- Some change is in flight on the file at `p`. -/
 def BusyAt (p : GoString) : Prop := ∃ t c, st.inflight !! t = some c ∧ c.path = p
-
-/-- What a `pread` of `n` bytes at `off` of the file at `p` may return: at most `n` bytes; exactly
-the bytes up to EOF unless a change is resizing the file; and each byte the file's, unless an
-in-flight change may change it, when it is arbitrary (Linux returns some mix). -/
-def ReadSees (p : GoString) (off n : Nat) (r : List w8) : Prop :=
-  r.length ≤ n ∧ (¬ ResizingAt st p → r.length = min n (st.size p - off)) ∧
-  ∀ i (h : i < r.length), ¬ InflightAt st p (off + i) →
-    ((st.file p).map (·.cur)).bind (·[off + i]?) = some r[i]
 
 /-- What `fstat` may give as the size of the file at `p`: its size, or, while a change resizes it,
 a size between its size and the change's target (an extending write grows it page by page). -/
 def StatSees (p : GoString) (sz : Nat) : Prop :=
   sz = st.size p ∨ ∃ t c, st.inflight !! t = some c ∧ c.path = p ∧
-    min (st.size p) c.target ≤ sz ∧ sz ≤ max (st.size p) c.target
+    min (st.size p) (c.target st) ≤ sz ∧ sz ≤ max (st.size p) (c.target st)
+
+/-- What a `pread` of `n` bytes at `off` of the file at `p` may return: the bytes up to EOF, for a
+size `fstat` could see (`StatSees`: the size, or while a change resizes the file, one between the
+size and its target, as the read finds it, page by page); each byte the file's, unless an
+in-flight change may change it, when it is arbitrary (Linux returns some mix). -/
+def ReadSees (p : GoString) (off n : Nat) (r : List w8) : Prop :=
+  (∃ sz, StatSees st p sz ∧ r.length = min n (sz - off)) ∧
+  ∀ i (h : i < r.length), ¬ InflightAt st p (off + i) →
+    ((st.file p).map (·.cur)).bind (·[off + i]?) = some r[i]
 
 /-- `l` is byte `i` of a mapping of the file at `p`. Mappings are disjoint: each lies in cells
 that were free when it was made. -/
@@ -223,14 +217,18 @@ def MapsTo (l : Loc) (p : GoString) (i : Nat) : Prop :=
 /-- `l` is a cell of some mapping. -/
 def Mapped (l : Loc) : Prop := ∃ p i, MapsTo st l p i
 
+/-- A hole: what a mapped cell holds where a load must be stuck. A literal, not `#()`, so that it
+is never a byte whatever the Go context's `intoVal`. -/
+def osHole [GooseExts] : val := LitV LitPoison
+
 open Classical in
-/-- What byte `i` of a mapping of `p` holds: the file's byte, or a hole (`#()`) past EOF or
+/-- What byte `i` of a mapping of `p` holds: the file's byte, or a hole (`osHole`) past EOF or
 where an in-flight change may be changing it. -/
 noncomputable def cellVal [GooseExts] [GoGlobalContext] (p : GoString) (i : Nat) : val :=
   match st.file p with
   | some f => if h : i < f.cur.length then
-      (if InflightAt st p i then #() else LitV (LitByte f.cur[i])) else #()
-  | none => #()
+      (if InflightAt st p i then osHole else LitV (LitByte f.cur[i])) else osHole
+  | none => osHole
 
 end derived
 
@@ -416,9 +414,9 @@ durable one unless it is dirty, lost by a failed sync, under an in-flight change
 durable image. -/
 def CrashImage (st : OsState) (p : GoString) (f : OsFile) (img : List w8) : Prop :=
   ((f.sizeLo ≤ img.length ∨
-      ∃ t c, st.inflight !! t = some c ∧ c.path = p ∧ c.target ≤ img.length) ∧
+      ∃ t c, st.inflight !! t = some c ∧ c.path = p ∧ c.target st ≤ img.length) ∧
      (img.length ≤ f.sizeHi ∨
-      ∃ t c, st.inflight !! t = some c ∧ c.path = p ∧ img.length ≤ c.target)) ∧
+      ∃ t c, st.inflight !! t = some c ∧ c.path = p ∧ img.length ≤ c.target st)) ∧
   ∀ i (hi : i < img.length), ¬ f.dirty i → ¬ f.lost i → ¬ InflightAt st p i →
     (hd : i < f.durable.length) → img[i] = f.durable[i]
 

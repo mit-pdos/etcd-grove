@@ -1,26 +1,51 @@
-// Package bboltfs holds the acceptance tests for the Linux file extension of
-// notes/osfs-ext-plan.md (files, fsync and read-only mmap): Go programs that
-// call the operating system exactly as go.etcd.io/bbolt does (bolt_unix.go,
-// bolt_linux.go, db.go, tx.go, mlock_unix.go), with bbolt's flags.
-//
-//   - targets.go: programs that return true in Go, and must be provable in the
-//     model ({{ True }} testX(dir) {{ RET true }}).
-//   - minibolt.go: a two-meta-page store in bbolt's style, and its boot
-//     program, whose assertions must never fire under the model's crash
-//     relation.
-//   - stuck/: programs the model is stuck on on purpose (unprovable).
-//   - twoways/: boot programs for which both answers are model behaviours.
-//
-// README.md says what each one exercises and why. Every program takes the
-// directory it works in as its parameter and opens only paths dir+"/"+name:
-// the model's set of allowed paths is fixed, and each program's precondition
-// says which of those names are allowed (and absent at the start).
+// Package bboltfs is the acceptance test of the Linux file extension of
+// notes/osfs-ext-plan.md (files, fsync, mmap): minibolt (minibolt.go), a
+// two-meta-page store that calls the operating system exactly as
+// go.etcd.io/bbolt does (bolt_unix.go, bolt_linux.go, db.go, tx.go), with
+// bbolt's flags, and three programs to verify over it (programs.go). README.md
+// says what each exercises. Every program takes the directory it works in as
+// its parameter and opens only dir+"/db": the model's set of allowed paths is
+// fixed, and a program's precondition says that path is allowed.
 //
 // The page and meta layout below is internal/common's, as in Perennial's
 // goose/testdata/examples/unsafememory (meta.go, page.go).
 package bboltfs
 
-import "unsafe"
+import (
+	"os"
+	"syscall"
+	"time"
+	"unsafe"
+)
+
+// pageSize is common.DefaultPageSize (os.Getpagesize() on linux/amd64).
+const pageSize = 4096
+
+// minMmapSize is db.mmapSize's smallest mapping, 32 KiB.
+const minMmapSize = 1 << 15
+
+const flockRetryTimeout = 50 * time.Millisecond
+
+// flock is bolt_unix.go's flock with Options.Timeout 0: LOCK_NB with LOCK_EX
+// or LOCK_SH, retried while the lock is held elsewhere.
+func flock(f *os.File, exclusive bool) error {
+	fd := f.Fd()
+	flag := syscall.LOCK_NB
+	if exclusive {
+		flag |= syscall.LOCK_EX
+	} else {
+		flag |= syscall.LOCK_SH
+	}
+	for {
+		err := syscall.Flock(int(fd), flag)
+		if err == nil {
+			return nil
+		} else if err != syscall.EWOULDBLOCK {
+			return err
+		}
+		time.Sleep(flockRetryTimeout)
+	}
+}
 
 type Pgid uint64
 
