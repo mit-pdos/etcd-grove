@@ -126,6 +126,17 @@ variable [package_sem : Assumptions]
 def pageIs (p : GoString) (r : Nat) (B : List w8) : IProp GF :=
   iprop(⌜B.length = 4096⌝ ∗ osBytes (GF := GF) p (4096 * r) DFrac.discard (B.map (·, true)))
 
+instance osBytes_discard_persistent (p : GoString) (off : Nat) (xs : List (w8 × Bool)) :
+    Persistent (osBytes (GF := GF) p off DFrac.discard xs) := by
+  unfold osBytes bytesG
+  refine BigSepL.bigSepL_persistent ?_
+  intro k x _
+  unfold gElem; infer_instance
+
+instance pageIs_persistent (p : GoString) (r : Nat) (B : List w8) :
+    Persistent (pageIs (GF := GF) p r B) := by
+  unfold pageIs; infer_instance
+
 /-- Transaction `t`'s root page holds `vo`. -/
 def dbTx (γ : DBNames) (t : Nat) (vo : Option w64) : IProp GF :=
   ghostMapElem γ.txs t DFrac.discard vo
@@ -185,6 +196,10 @@ def mapRest (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (q : Qp) : MapSt 
       os.ownFile (GF := GF) f fd p (DFrac.own q.half.half) ∗
       osFd (GF := GF) fd (DFrac.own q.half.half) ⟨p, true, true⟩)
   | none => emp
+
+instance mapInv_persistent (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName) :
+    Persistent (mapInv (GF := GF) γ p base len γm) := by
+  unfold mapInv; infer_instance
 
 /-- `mmaplock`'s resource at fraction `q` in the state `st`. -/
 def mapBody (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (st : MapSt) (q : Qp) :
