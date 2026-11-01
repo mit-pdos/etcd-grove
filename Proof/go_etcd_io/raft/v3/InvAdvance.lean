@@ -47,7 +47,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
   icases Hdep with ⟨%rs, %d, %ce, Hrn, #Htlb, Hcfg, Hrof, %Hrs⟩
   obtain ⟨Hstor, Hunst, Hdel⟩ := Hrs
   iunfold advanceP at HP
-  icases HP with ⟨%d', %ce', %es', %p', Hdlv, Hrof', Hrcpt, Hpay, -, %ca_d, #Hcamlb, #HA⟩
+  icases HP with ⟨%d', %ce', %es', %p', Hdlv, Hrof', Hrcpt, Hpay, Hback, %ca_d, #Hcamlb, #HA⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hrof Hrof'
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨rfl, rfl, rfl, rfl, HL⟩ := Heq
@@ -85,7 +85,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     isplitr [Hfw]
     · iunfold advRet
       iexists { { rs with unpersisted := [] } with flw := true }, ca_d
-      iframe Hrn Htlb Hcamlb
+      iframe Hrn Htlb Hcamlb Hback
       isplitl [Hcfg]
       · iapply (runCfgR_of_runCfg (GF := GF) γ { { rs with unpersisted := [] } with flw := true }
           (.inl Hsl)).2
@@ -141,10 +141,10 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
         ipureintro; exact Hinv
       rw [loanCfg_static hd]
       imodintro
-      isplitl [Hrn Hcfg Hdlv Hrof Hrof' Hrcpt]
+      isplitl [Hrn Hcfg Hdlv Hrof Hrof' Hrcpt Hback]
       · iunfold advRet
         iexists rs, ca_d
-        iframe Hrn Htlb Hcamlb
+        iframe Hrn Htlb Hcamlb Hback
         isplitl [Hcfg]
         · iapply (runCfgR_of_runCfg (GF := GF) γ rs (.inr Hst)).2
           iapply (runCfg_congr (GF := GF) γ (rs := rs) (rs' := { rs with flw := false })
@@ -173,10 +173,10 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
         simp only [loanCfg, hd, ↓reduceIte, Hmd]
       rw [Hlc]
       imodintro
-      isplitl [Hrn Hdlm Hcap_r Hcam Hdlv Hrof Hrof' Hrcpt]
+      isplitl [Hrn Hdlm Hcap_r Hcam Hdlv Hrof Hrof' Hrcpt Hback]
       · iunfold advRet
         iexists rs, ca_d
-        iframe Hrn Htlb Hcamlb
+        iframe Hrn Htlb Hcamlb Hback
         isplitl [Hdlm Hcap_r Hcam]
         · iapply (runCfgR_loan (GF := GF) γ rs l Hsl Hdy).2
           iunfold runCfgLoan

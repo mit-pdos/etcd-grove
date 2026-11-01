@@ -53,7 +53,8 @@ def runPre (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
     -- (2026-11-01, durability stage I-3/I-8) its half of the durable state and role the driver
     -- recorded, both halves of the last batch's maps (no `Ready` out), the generation's queue free
     dghostVar γ.dur (DFrac.own (1 : Qp).half) (rs.dur, rs.role) ∗
-    (∃ W : DurMaps, dghostVar γ.bw (DFrac.own 1) W) ∗ slotFree γ.raft id γ.gen)
+    (∃ W : DurMaps × (RaftState × StateType), dghostVar γ.bw (DFrac.own 1) W) ∗
+    slotFree γ.raft id γ.gen)
 
 /-- See the file header. -/
 abbrev node.run.spec : Prop :=

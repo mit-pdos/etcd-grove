@@ -262,7 +262,7 @@ theorem deliveredLogLb_nodeCommitLb_core (n : Loc) (γ : Cluster) (N : Namespace
   ihave %Hn := nodeTabOk_agree γ n γn γn' $$ Htab Htab'
   have Hsn : γn'.sn = γn.sn := by
     simp only [cfgNamesOf, Prod.mk.injEq] at Hn
-    obtain ⟨-, -, -, -, -, h1, h2, h3, h4, h5⟩ := Hn
+    obtain ⟨-, -, -, -, -, h1, h2, h3, h4, h5, -⟩ := Hn
     have e : ∀ s1 s2 : StorNames, s1.ga = s2.ga → s1.gg = s2.gg → s1.gsv = s2.gsv →
         s1.gd = s2.gd → s1.gk = s2.gk → s1 = s2 := by
       intro s1 s2 a b c d e

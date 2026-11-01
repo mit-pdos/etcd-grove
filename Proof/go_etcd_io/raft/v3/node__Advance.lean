@@ -75,7 +75,8 @@ private abbrev node.Advance.specRaw : Prop :=
       -- (2026-11-01, durability stage I-3/I-8) `run`'s halves of the recorded durable state and of
       -- the batch's maps, with the fragments *enter* minted (`advanceP`)
       (∃ (y : RaftState × StateType) (W : DurMaps), dghostVar γ.dur (DFrac.own (1 : Qp).half) y ∗
-        dghostVar γ.bw (DFrac.own (1 : Qp).half) W ∗ durFrags γ.raft γ.id W) }}
+        dghostVar γ.bw (DFrac.own (1 : Qp).half) (W, y) ∗ durFrags γ.raft γ.id W ∗
+        slotFree γ.raft γ.id γ.gen) }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
   {{ RET #(); (nodeDriverChan γ id n ds p ∗
       -- (2026-10-28, stage U3d) the view of the configuration: after a snapshot `Ready`,
@@ -284,7 +285,7 @@ private theorem node.wp_Advance_impl
         show (Mk.lookup (ds.take k').length).map ccDecOf = some .reject
         rw [hlen, PMk k' _ hk1 hk2' hl' hc]; rfl
       · imodintro; iintro %l %h; cases h
-  icases Htok with (⟨%Hh', -, -⟩ | ⟨%es0, %L0, %W, %Hh', Htok, Hdur, Hbw, #Hfr, Hgiven⟩)
+  icases Htok with (⟨%Hh', -, -⟩ | ⟨%es0, %L0, %W, %Hh', Htok, Hdur, Hbw, #Hfr, Hfree, Hgiven⟩)
   · rw [Hh] at Hh'; cases Hh'
   rw [Hh] at Hh'
   cases Hh'
@@ -325,13 +326,13 @@ private theorem node.wp_Advance_impl
   subst Hid
   icases nodeTabOk_agree γ n γn γn2 $$ Htb Htab2 with %Hnm
   ihave Hcf := nodeCfg_names γn2 γn Hnm.symm _ _ $$ Hcf
-  iapply (hA γn id n ds es v.applied (stOf v.membership) st.hardState L) $$ [Htok Hrc Hcf Hdur2 Hbw]
+  iapply (hA γn id n ds es v.applied (stOf v.membership) st.hardState L) $$ [Htok Hrc Hcf Hdur2 Hbw Hfree]
   · iframe Hinit Htok Hcf HA1
     isplitl [Hrc]
     · rw [Hγs, ← Hds, strip_length]; iexact Hrc
     iexists (st.durable, st.role), W
     iframe Hdur2 Hbw
-    rw [Hgid, Hnok.1]; iexact Hfr
+    rw [Hgid, Hnok.1]; iframe Hfr Hfree
   iintro !> Hpost
   icases Hpost with (⟨Hdrv, Hcf, #Hw⟩ | ⟨#Hstp, Hdrv, -⟩)
   rotate_left

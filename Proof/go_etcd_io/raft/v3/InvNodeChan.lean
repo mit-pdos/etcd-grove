@@ -779,8 +779,13 @@ def readyCut (γ : NodeNames) (rd : Ready) (es : List EntryM) (ms : List QMsg) (
     (L : Option SnapLoan) : IProp GF :=
   iprop(∃ (x : RaftState × StateType) (S' : RaftState) (W : DurMaps)
       (ss : Option (w64 × StateType)),
-    dghostVar γ.dur (DFrac.own (1 : Qp).half) x ∗ dghostVar γ.bw (DFrac.own (1 : Qp).half) W ∗
+    dghostVar γ.dur (DFrac.own (1 : Qp).half) x ∗
+    -- (2026-11-01, stage II(g), approved fix D) `bw` also records the durable state and role the
+    -- batch enters, by which `run` recognizes the driver's half of `dur` back at `Advance`
+    dghostVar γ.bw (DFrac.own (1 : Qp).half) (W, (S', roleAfter x.2 ss)) ∗
     pendBatch γ.raft γ.id γ.gen S' W ∗ ⌜S' = readyDurable x.1 p' L es⌝ ∗
+    -- (2026-11-01, stage II(g), approved fix B) the budget covers the entered term (`raftState`'s)
+    termLB γ.bud S'.term ∗
     softStateIs rd.SoftState' ss ∗
     ([∗list] q ∈ ms, □ (durFrags γ.raft γ.id W -∗ isRaftMsg γ.raft γ.id q.st)) ∗
     □ (⌜roleAfter x.2 ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ.raft γ.id q.st))
@@ -839,8 +844,11 @@ loan `L`: the committed log handed out after it (`dlvAfter`), and the receipt fo
     capPay γ L x ∗
     -- (2026-11-01, durability stage I-3/I-8, R7) `run`'s halves back: the durable state and role
     -- recorded after the `Ready`, and the batch's maps with the fragments *enter* minted
+    -- ((2026-11-01, stage II(g), approved fix D) with the generation's free queue, which *enter*
+    -- freed, for `run`'s next cut; `bw` recording `y`)
     (∃ (y : RaftState × StateType) (W : DurMaps), dghostVar γ.dur (DFrac.own (1 : Qp).half) y ∗
-      dghostVar γ.bw (DFrac.own (1 : Qp).half) W ∗ durFrags γ.raft γ.id W) ∗
+      dghostVar γ.bw (DFrac.own (1 : Qp).half) (W, y) ∗ durFrags γ.raft γ.id W ∗
+      slotFree γ.raft γ.id γ.gen) ∗
     -- (2026-10-15, stage N) **A1**, in the dynamic mode: no conf entry of the committed log
     -- handed out past the driver's configuration index `ca` (a lower bound of `run`'s)
     -- (2026-10-28, the decision switch) or skipped (`undecFree`); (raft-final, 2026-10-29, the
@@ -1010,6 +1018,10 @@ entries not appended here, and the floor not raised; `dlv` at the committed log 
     (∃ x : List EntryM × List EntryM × List EntryM × HardStateM × Option SnapLoan,
       dghostVar γ.rof (DFrac.own (1 : Qp).half) x ∗ dghostVar γ.rof (DFrac.own (1 : Qp).half) x) ∗
     monoNatLbOwn γ.cam ca_d ∗ loanRet rs ∗
+    -- (2026-11-01, stage II(g), approved fix D) the driver's halves back (`advanceP`'s)
+    (∃ (y : RaftState × StateType) (W : DurMaps), dghostVar γ.dur (DFrac.own (1 : Qp).half) y ∗
+      dghostVar γ.bw (DFrac.own (1 : Qp).half) (W, y) ∗ durFrags γ.raft γ.id W ∗
+      slotFree γ.raft γ.id γ.gen) ∗
     ⌜rs.storage = γ.stor ∧ rs.unst = false ∧ (rs.slent = none → rs.unpersisted = [])⌝ ∗
     -- (raft-final phase 2: the design's A1, only after a `Ready` without a snapshot, as `advanceP`'s;
     -- until then unguarded)

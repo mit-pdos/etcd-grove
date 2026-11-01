@@ -1654,13 +1654,16 @@ def NodeOk (γ : Cluster) (γn : NodeNames) : Prop :=
 
 /-- The configuration names of a node's `NodeNames` (`Cluster.nodeTab`); (2026-10-29, stage U9a) and its
 `live` name, by which `nodeLive` and `nodeStopped` agree. -/
-abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat
+abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat × Nat
 
 /-- (U8 v2, 2026-10-29) with the node's storage names (`NodeNames.sn`), by which the API's
 `nodeAppliedLb`/`snapGiven` (of the node's id) are the floor's and the snapshot hand-out's lower
 bounds of the node's log (`nodeStorNames`). -/
 def cfgNamesOf (γn : NodeNames) : CfgNames :=
-  (γn.dlm, γn.cap, γn.ccq, γn.cam, γn.live, γn.sn.ga, γn.sn.gg, γn.sn.gsv, γn.sn.gd, γn.sn.gk)
+  (γn.dlm, γn.cap, γn.ccq, γn.cam, γn.live, γn.sn.ga, γn.sn.gg, γn.sn.gsv, γn.sn.gd, γn.sn.gk,
+    -- (2026-11-01, durability stage II(g), approved fix A) the generation of the id's slot, so that
+    -- a `nodeRunning` share is at the driver's generation (`api_enter`)
+    γn.gen)
 
 /-- **Node `n`'s configuration names are `γn`'s** (persistent): its entry of the cluster's table.
 (2026-11-01, durability stage I-2: keyed by the node object, not its id.) -/
@@ -1942,7 +1945,9 @@ def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
      (∃ (es : List EntryM) (L : Option SnapLoan) (W : DurMaps), ⌜st.handling = some (es, L)⌝ ∗
        nodeDriverBusy γn id n ds es st.hardState L ∗
        dghostVar γn.dur (DFrac.own 1) (st.durable, st.role) ∗
-       dghostVar γn.bw (DFrac.own (1 : Qp).half) W ∗ durFrags γ.raft id W ∗
+       dghostVar γn.bw (DFrac.own (1 : Qp).half) (W, (st.durable, st.role)) ∗ durFrags γ.raft id W ∗
+       -- (2026-11-01, stage II(g), approved fix D) the generation's queue, freed by *enter*
+       slotFree γ.raft id γn.gen ∗
        -- (U8 v2, 2026-10-29) after a snapshot `Ready`, the snapshot handed out (what `Advance`'s
        -- post, `nodeAppliedLb`, is then)
        (match L with
@@ -2345,11 +2350,13 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
         | some l => storGiven γn.sn (uint.nat l.snap.Metadata'.Index')) -∗
       dghostVar γn.dur (DFrac.own (1 : Qp).half) (st.durable, st.role) -∗
       dghostVar γn.dur (DFrac.own (1 : Qp).half) (st.durable, st.role) -∗
-      dghostVar γn.bw (DFrac.own (1 : Qp).half) W -∗ pendBatch γn.raft γn.id γn.gen S' W -∗
+      dghostVar γn.bw (DFrac.own (1 : Qp).half) (W, (S', st'.role)) -∗
+      pendBatch γn.raft γn.id γn.gen S' W -∗
+      termLB γn.bud S'.term -∗
       ([∗list] q ∈ ms, □ (durFrags γn.raft γn.id W -∗ isRaftMsg γn.raft γn.id q.st)) -∗
       ([∗list] q ∈ ms, termLB γn.bud q.st.msg.Term') -∗
       readyEnter n γ N γn.id st st' ms := by
-  iintro #Hci #Hpool #Hlb #Htab #Hkey #Hnode Hbusy Hgv Hd1 Hd2 Hbw Hpend #Hmw #Htl
+  iintro #Hci #Hpool #Hlb #Htab #Hkey #Hnode Hbusy Hgv Hd1 Hd2 Hbw Hpend #HtS'0 #Hmw #Htl
   unfold readyEnter
   iintro %E %q %HE ⟨Hrs, Hrun⟩
   iunfold raftStateU at Hrs
@@ -2360,11 +2367,11 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
   subst Hid1
   ihave %Hg1 := EtcdGrove.isNode_id γ1 γn.id n $$ H1
   have Hr1 : γ1.raft = γ.raft := Hok1.1.1
-  -- PORT(durability stage II): GAP (stage I) -- the generation of the client's `nodeRunning` share
-  -- is not known to be the driver's: `nodeRunning` names some `γ1` with the same table entry
-  -- (`cfgNamesOf`, which records `live` but not `gen`), and nothing else ties `γ1.gen` to the
-  -- driver's `γn.gen`, at which `run` queued the batch (`pendBatch`). Fix: `gen` in `cfgNamesOf`.
-  have Hgen : γ1.gen = γn.gen := by sorry
+  -- the generations agree through the node table (`cfgNamesOf` records it)
+  ihave %Hcn := nodeTabOk_agree γ n γ1 γn $$ T1 Htab
+  have Hgen : γ1.gen = γn.gen := by
+    simp only [cfgNamesOf, Prod.mk.injEq] at Hcn
+    exact Hcn.2.2.2.2.2.2.2.2.2.2
   iunfold EtcdGrove.nodeLiveRaw at Hl
   icases Hl with ⟨Hlv, Hsl⟩
   ihave Hsl : slotLive γ.raft γn.id q.half γn.gen $$ [Hsl]
@@ -2376,14 +2383,9 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
   ihave Hpend : pendBatch γ.raft γn.id γn.gen S' W $$ [Hpend]
   · rw [← Hnok.1]; iexact Hpend
   imod raft_enter E γ.raft γn.id st.durable q.half γn.gen S' W HrE $$ Hdg Hsl Hpend
-    with ⟨Hdg, Hsl, -, #Hfr⟩
-  -- PORT(durability stage II): GAP (stage I) -- `raftState`'s body holds the budget's bound on the
-  -- entered state's term (`termLB γ.bud S'.term`, `S'.term` the `Ready`'s hard state's term), which
-  -- neither the cut (`readyCut`) nor the `Ready`'s data (`readyData`: only the messages' terms)
-  -- carries; `run` has it (`termLB γ.bud rs.tc`, the hard state's term at most the ceiling).
-  -- Fix: `termLB γ.bud S'.term` in `readyCut`.
+    with ⟨Hdg, Hsl, Hfree, #Hfr⟩
   ihave #HtS' : termLB γ.bud S'.term $$ []
-  · sorry
+  · rw [← Hnok.2.1]; iexact HtS'0
   imod dghostVar_update_halves (st'.durable, st'.role) γn.dur _ _ $$ Hd1 Hd2 with ⟨Hd1, Hd2⟩
   ihave Hdw : dghostVar γn.dur (DFrac.own 1) (st'.durable, st'.role) $$ [Hd1 Hd2]
   · have hf := (dghostVar_fractional (GF := GF) γn.dur (st'.durable, st'.role)).fractional
@@ -2410,7 +2412,7 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
     iframe Hlv
     rw [Hr1, Hg1, Hgen]
     iexact Hsl
-  isplitl [Hbusy Hdw Hbw Hgv]
+  isplitl [Hbusy Hdw Hbw Hgv Hfree]
   · unfold nodeDriver
     iexists γn, γn.id, ds'
     isplitr
@@ -2424,7 +2426,8 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
     iexists es, L, W
     isplitr
     · ipureintro; exact Hh
-    iframe Hbusy Hdw Hbw Hfr Hgv
+    iframe Hbusy Hdw Hfr Hgv Hfree
+    rw [HS]; iexact Hbw
   unfold readyMsgs
   iexact Hsm
 
@@ -2480,7 +2483,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
   iframe Hrc' Htok
   iintro %rd ⟨%ce, %es, %ms, %p', %L, Hdata, Hbusy, Hcut⟩
   iunfold readyCut at Hcut
-  icases Hcut with ⟨%x, %S', %W, %ss, Hdx, Hbw, Hpend, %HS', #Hss, #Hmw, #Hlead⟩
+  icases Hcut with ⟨%x, %S', %W, %ss, Hdx, Hbw, Hpend, %HS', #HtS', #Hss, #Hmw, #Hlead⟩
   ihave %Hx := dghostVar_agree _ _ _ _ _ $$ Hdur Hdx
   subst Hx
   cases L with
@@ -2510,13 +2513,14 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     · rw [← Hds, ← strip_append]; iexact Hlb
     ihave Henter := api_enter n γ N γn st (st.afterReady (strip ce) es h none ss) (ds ++ ce) es none
       ms S' W Hnok HU HNs Hγs (by rw [strip_append, Hds]; rfl) Hdyn rfl
-      (by rw [HS', Hp']; rfl) $$ Hci Hpool [] Htab [] Hnode [Hbusy] [] Hdur Hdx Hbw Hpend Hmw Htl
+      (by rw [HS', Hp']; rfl) $$ Hci Hpool [] Htab [] Hnode [Hbusy] [] Hdur Hdx [Hbw] Hpend HtS' Hmw Htl
     · iExactEq Hlb'; rfl
     · iExactEq Hkey; rfl
     · rw [show (st.afterReady (strip ce) es h none ss).hardState = p' from Hp'.symm,
         show ds ++ ce = dlvAfter ds ce none from rfl]
       iexact Hbusy
     · itrivial
+    · iExactEq Hbw; rfl
     imodintro
     iexists strip ce, es, h, none, ms, ss
     isplitl []
@@ -2605,12 +2609,13 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
       iframe Hkey Hdlb Hlbd
     ihave Henter := api_enter n γ N γn st (st.afterReady [] es h (some l) ss) l.dlv es (some l)
       ms S' W Hnok HU HNs Hγs rfl Hdyn rfl
-      (by rw [HS', Hp']; rfl) $$ Hci Hpool [] Htab [] Hnode [Hbusy] [] Hdur Hdx Hbw Hpend Hmw Htl
+      (by rw [HS', Hp']; rfl) $$ Hci Hpool [] Htab [] Hnode [Hbusy] [] Hdur Hdx [Hbw] Hpend HtS' Hmw Htl
     · iExactEq Hlbd; rfl
     · iExactEq Hkey; rfl
     · rw [show (st.afterReady [] es h (some l) ss).hardState = p' from Hp'.symm]
       iExactEq Hbusy; rfl
     · iexact Hgv
+    · iExactEq Hbw; rfl
     imodintro
     iexists [], es, h, some l, ms, ss
     isplitl []
