@@ -20,8 +20,9 @@ ones), which is a checksum collision on a torn meta, the case P1 excludes.
 `BootMinibolt(dir)`) is run with the Linux file extension's semantics whose crash relation is
 `OsCrash ∧ P1 (dir ++ "/db")` (`osFsExtsSemanticsWith`, `GooseLang/Ext/OsFs/CrashP1.lean`): that
 is where P1 shows. In every execution with crashes from a state where `dir/db` is allowed and
-absent, no thread is stuck and none has an unrecovered panic. It is a `def`, not yet a theorem:
-its proof needs crash-aware specs of minibolt (see `notes/STATUS.md`).
+absent, no thread is stuck and none has an unrecovered panic. It is a `def`: `bootCrashSafety`
+(`BootResults.lean`) proves it under hypotheses, one of which (`bootPremises` of every `Good` file)
+does not hold yet (`BootMinibolt.lean`).
 -/
 module
 
@@ -60,7 +61,7 @@ def boot [GoGlobalContext] (dir : GoString) : Expr :=
     (App (App (Val (GoInstruction (FuncResolve BootMinibolt []))) (Val #())) (Val #dir))
 
 /-- **The crash safety of `BootMinibolt`** under P1 (see the file header): the statement. -/
-def BootCrashSafety [GoGlobalContext] [lctx : GoLocalContext] [GoSemanticsFunctions]
+def BootCrashSafety [GoGlobalContext] [lctx : GoLocalContext]
     [sem : go.Semantics] [package_sem : Assumptions]
     (dir : GoString) : Prop :=
   ∀ (σ : state) (g : GlobalState),
