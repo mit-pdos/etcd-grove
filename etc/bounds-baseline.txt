@@ -64,8 +64,8 @@ stock go_etcd_io/etcd/cache/v3 12
 stock go_etcd_io/etcd/client/v3 20
 stock go_etcd_io/etcd/pkg/v3/notify 1
 stock go_etcd_io/etcd/server/v3/auth 7
-stock go_etcd_io/etcd/server/v3/etcdserver 44
-stock go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp 7
+stock go_etcd_io/etcd/server/v3/etcdserver 39
+stock go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp 5
 stock go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 4
 stock go_etcd_io/etcd/server/v3/etcdserver/read 1
 stock go_etcd_io/etcd/server/v3/lease 2
