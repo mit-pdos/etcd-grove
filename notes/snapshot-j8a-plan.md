@@ -231,6 +231,9 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
       `applyRes C A'`; `run`'s mode-off `SNAPSHOT-SORRY` replaced by the job's scheduling over it
       (built). Its proof cases on `E.cmp`: **`run_job_snap_cmp` (`sorry`, open)** the compaction mode
       (`specSnap` needs it off; generalizing `specSnap` is a stage of its own); the mode off
-      **`sorry`, next** (the proof).
+      **proved** over `applyAll.specSnap`: the fresh start's facts (`ai₀ = 0`, `pre = []`,
+      `c₀ = 0`) give `specSnap`'s `γr.raft = ⟨_, [], 0⟩` and `ai = |A|`, `kvInv_ch0_off` its chain;
+      the post's log is raft's `A'` by `srvRLogLb_prefix` and the lengths. It takes three ties
+      `run` gives by `rfl` or `Hnm`: `C.γr.raft.pre = γn.pre`, `C.γs = γn.γs`, `C.γw = C.ρ.wait`.
     - The initial KV log (`log0 = [[], []]`) needed no new fact: `isServerApplyAll` has it.
     - Not touched: the auth-on `SNAPSHOT-SORRY` (the peer's `snap-auth-on`).

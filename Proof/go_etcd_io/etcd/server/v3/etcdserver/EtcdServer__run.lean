@@ -252,6 +252,7 @@ theorem run_job_snap_cmp (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := h
     (γn : RNNames) (rt : w64)
     (ha00 : uint.nat C.ai₀ = 0) (hc0 : uint.Z C.c₀ ≤ uint.Z C.ai₀) (hpre : γn.pre = [])
     (hγn : γn.node = C.γr.raft.raft) (hρ : C.ρ.raft = C.γr.raft)
+    (hpr : C.γr.raft.pre = γn.pre) (hγs : C.γs = γn.γs) (hγw : C.γw = C.ρ.wait)
     (hlt : A.length < A'.length)
     (hlen : (γn.pre ++ A').length = uint.nat sv.Metadata'.Index')
     (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
@@ -291,6 +292,7 @@ theorem run_job_snap (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
     (γn : RNNames) (rt : w64)
     (ha00 : uint.nat C.ai₀ = 0) (hc0 : uint.Z C.c₀ ≤ uint.Z C.ai₀) (hpre : γn.pre = [])
     (hγn : γn.node = C.γr.raft.raft) (hρ : C.ρ.raft = C.γr.raft)
+    (hpr : C.γr.raft.pre = γn.pre) (hγs : C.γs = γn.γs) (hγw : C.γw = C.ρ.wait)
     (hlt : A.length < A'.length)
     (hlen : (γn.pre ++ A').length = uint.nat sv.Metadata'.Index')
     (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
@@ -314,9 +316,129 @@ theorem run_job_snap (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
         (Val #apL))
     {{ RET #(); schedule.schedRunning γs ∗ applyRes C A' }} := by
   cases hcm : C.E.cmp
-  · sorry
-  · exact run_job_snap_cmp hAA C A A' apL es sn sv rac nc γs γnc γn rt ha00 hc0 hpre hγn hρ hlt
-      hlen h61 hboot hcm
+  · iintro %Φ ⟨#Hpkg, #Hsa, #Hmid, #Hmeta, #Hes, #Hesl, #Hsnf, Hsnv, #Hcl, #Hncf, #Hnc2, Hnr0,
+      #Hracf, #Hracc, #Hrtf, #Hrtok, Hrun, HR, #HWc, #Hlbr⟩ HΦ
+    iunfold applyRes at HR
+    icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %HB, #Hsrv, Hai, Hat, Hcs, #Hcv, Hss,
+      Hst, Hbe, Happ, Hlr, Hbr, Hwr, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HKVf, Hwal, ⟨%w, #HWA⟩, Hso,
+      %Hpure⟩
+    obtain ⟨Hloop, Hai0, HJ, Hci, Hlt⟩ := Hpure
+    iunfold kvRun at Hkr
+    icases Hkr with ⟨Hka, %Hkc⟩
+    iunfold schedule.schedRunning at Hrun
+    icases Hrun with ⟨Hrt0, Htok⟩
+    -- the fresh start's facts
+    have hai0 : C.ai₀ = W64 0 := by have := uint_nat_eq C.ai₀; word
+    have hpre' : C.γr.raft.pre = [] := by rw [hpr]; exact hpre
+    have hiA : (uint.nat sv.Metadata'.Index' : Int) = A'.length := by rw [← hlen, hpre]; simp
+    have hiZ := uint_nat_eq sv.Metadata'.Index'
+    have hz0 : uint.Z (W64 0) = 0 := by word
+    have hAL : uint.Z ai = A.length := by rw [Hai0, hai0, hz0]; simp
+    have hai : uint.Z ai < uint.Z sv.Metadata'.Index' := by
+      have : (A.length : Int) < A'.length := by exact_mod_cast hlt
+      omega
+    have hcia : uint.Z (ciEff B.γ st.k) ≤ uint.Z ai := by
+      rcases HJ with h1 | ⟨-, h2⟩
+      · rw [h1]; have : (0 : Int) ≤ A.length := by omega
+        rw [hai0] at hc0; omega
+      · exact h2
+    have hc00 : C.c₀ = W64 0 := by rw [hai0] at hc0; word
+    have hraft : C.γr.raft = ⟨C.γr.raft.raft, [], W64 0⟩ := by
+      have h1 := Hkc.2
+      rw [hai0] at h1
+      cases hr : C.γr.raft
+      simp only [hr] at hpre' h1
+      simp [hpre', h1]
+    ihave #Hsrv' := Hsrv
+    iunfold isServer at Hsrv'
+    icases Hsrv' with ⟨-, -, -, #Hatm, -, -⟩
+    iunfold srvAtomics at Hatm
+    icases Hatm with ⟨-, -, #Hkvi⟩
+    iunfold srvKVInvs at Hkvi
+    icases Hkvi with ⟨#Hkv, -⟩
+    imod kvInv_ch0_off C.γr.raft C.γr.kv $$ Hkv with %hch
+    ihave #Hsa' := Hsa
+    iunfold isServerApplyAll at Hsa'
+    icases Hsa' with ⟨%wt0, %msc, %sc, -, -, -, -, -, -, -, -, -, -, -, %Hlog0⟩
+    have hcmB : B.E.cmp = false := by
+      obtain ⟨-, p, P, f, c, RO, RW, hE⟩ := HB
+      rw [hE]; exact hcm
+    have hn : uint.nat sv.Metadata'.Index' ≤ (rnLogOf γn A').length := by
+      simp only [rnLogOf, List.length_map]; omega
+    -- the job's resources at the current backend `B`
+    ihave #HWc' : iprop(srvWTPool B.E C.wt) $$ []
+    · rw [srvWTPool_beSucc HB]; iexact HWc
+    ihave Hbr : iprop(srvBemuReaderAt C.s B.E.γbe) $$ [Hbr]
+    · rw [beSucc_γbe HB]; iexact Hbr
+    ihave #Hmeta' : srvMetaSnap B.γ $$ []
+    · have hms : srvMetaSnap (GF := GF) B.γ = srvMetaSnap C.γ := by
+        rw [HB.1]; exact srvMetaSnap_withPh _ _
+      rw [hms]; iexact Hmeta
+    iunfold srvMetaSnap at Hmeta'
+    ihave #Hracc' : rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
+        iprop(nodeAppliedLb C.ρ.raft.raft.cl γn.id (uint.nat sv.Metadata'.Index') ∗
+          storDL C.ρ.raft.raft.cl γn.id (uint.nat sv.Metadata'.Index') ∗
+          srvFrozenAt C.γs (uint.nat sv.Metadata'.Index') ∗
+          srvFrozenBelow C.γs (uint.nat sv.Metadata'.Index'))) $$ []
+    · rw [hρ, ← hγn, hγs, ← hlen]; iexact Hracc
+    ihave #Hcl' : (letI := srvStor (GF := GF) C.γr.raft.raft; iprop(
+        snapshotCert C.γr.raft.raft.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
+        nodeSnapLocal C.γr.raft.raft.cl γn.id sv.Metadata'.Index')) $$ []
+    · rw [← hγn]; iexact Hcl
+    ihave HKV : srvApplyKV C.s B.E C.ρ.wait x $$ [HKV]
+    · rw [← hγw]; iexact HKV
+    iapply (hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es sn sv rac nc st ai at' a t cs x A
+      C.ms C.γs C.wt γnc w γn.id (1 : Qp).half γn rt (rnLogOf γn A').length hai h61
+      (by rw [← hγn]; exact hboot) hAL hcia hraft (by rw [Hkc.1, hc00]) hch Hlog0 hcmB hγn hn)
+      $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS HAR Hwal Hso Hsnv Hnr0]
+    · iframe #
+      iframe
+      iunfold srvGoRes
+      iframe
+    inext
+    iintro ⟨%γ', %TM', %E', %b', %st', %A'', %cs', %HB', #Hsrv'', HAR, #Hlb'', Hai, Hat, Hcs,
+      #Hcv', Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, Hao, #Hal, #HWA', ⟨%x', HKV, #Hlog', Hka, HRS⟩,
+      #HKVf', Hwal, Hso, %Hpost⟩
+    obtain ⟨hloop', hci', -, hlen'', hlast⟩ := Hpost
+    -- the image's log is raft's `A'`: both committed, of the snapshot's length
+    ihave #Hlbr' : srvRLogLb C.γr.raft A' $$ []
+    · rw [← hρ]; iexact Hlbr
+    ihave %Hpf := srvRLogLb_prefix C.γr.raft A'' A' $$ [Hlb'' Hlbr']
+    · iframe Hlb'' Hlbr'
+    have hA : A'' = A' := by
+      have h1 : A''.length = A'.length := by
+        rw [hpre'] at hlen''; simp only [List.nil_append] at hlen''; omega
+      rcases Hpf with h | h
+      · exact h.eq_of_length h1
+      · exact (h.eq_of_length h1.symm).symm
+    subst hA
+    iunfold srvGoRes at Hgr
+    icases Hgr with ⟨Hwr, Htok⟩
+    ihave HKV : srvApplyKV C.s E' C.γw x' $$ [HKV]
+    · rw [hγw]; iexact HKV
+    iapply HΦ
+    iunfold schedule.schedRunning
+    iframe Hrt0 Htok
+    ihave Hbr : iprop(srvBemuReaderAt C.s C.E.γbe) $$ [Hbr]
+    · rw [← beSucc_γbe HB]; iexact Hbr
+    iunfold applyRes
+    iexists ⟨γ', TM', E', b'⟩, st', sv.Metadata'.Index', sv.Metadata'.Term', a, t, cs', x'
+    isplitr
+    · ipureintro; exact beSucc_trans HB HB'
+    iframe Hsrv'' Hcv' HKVf' Hlog'
+    iframe
+    isplitl [Hka]
+    · iunfold kvRun
+      iframe Hka
+      ipureintro; exact Hkc
+    isplitr
+    · iexists w; iexact HWA'
+    ipureintro
+    refine ⟨hloop', ?_, ?_, by rw [hci']; exact Int.le_refl _, hlast⟩
+    · rw [hai0, hz0]; omega
+    · right; rw [hci', hc00]; simp
+  · exact run_job_snap_cmp hAA C A A' apL es sn sv rac nc γs γnc γn rt ha00 hc0 hpre hγn hρ hpr hγs
+      hγw hlt hlen h61 hboot hcm
 
 /-- **The apply side's half of the running token, lent to a job** (2026-10-30, the repair): the
 job's view `rnDv γn ce` is the node's or none; with the node's, the half is `srvRunH`'s. -/
@@ -971,8 +1093,8 @@ theorem EtcdServer.run.wp_proof
         wp_bind (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll"))
           (Val #ep_ptr)) (Val #ap_ptr))
         iapply (run_job_snap hAA.2 ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ A A' ap_ptr apv.entries' apv.snapshot' sv
-          apv.raftAdvancedC' apv.notifyc' γs γnc γn apv.raftTerm' ha0 Hc0a.1 hp0 hgn hρC hlt hlenA
-          h61 hboot) $$ [Hrun Hres Hnrc]
+          apv.raftAdvancedC' apv.notifyc' γs γnc γn apv.raftTerm' ha0 Hc0a.1 hp0 hgn hρC
+          (by rw [← hρC, hρ]; exact Hnm.2.1) rfl rfl hlt hlenA h61 hboot) $$ [Hrun Hres Hnrc]
         · iframe #
           iframe Hrun Hres Hnrc
         inext
