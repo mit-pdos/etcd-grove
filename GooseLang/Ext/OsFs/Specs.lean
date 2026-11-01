@@ -154,7 +154,7 @@ def osByte (p : GoString) (i : Nat) (dq : DFrac) (x : w8 × Bool) : IProp GF :=
 
 /-- The bytes of the file `p` from `off` on are `xs`. -/
 def osBytes (p : GoString) (off : Nat) (dq : DFrac) (xs : List (w8 × Bool)) : IProp GF :=
-  [∗list] k ↦ x ∈ xs, osByte (L := L) p (off + k) dq x
+  bytesG (gooseOsGS (L := L)) p off dq xs
 
 /-- The file at `p`: `some m`, it exists, as `m` says; `none`, it does not. -/
 def osMeta (p : GoString) (dq : DFrac) (mo : Option OsMeta) : IProp GF :=
@@ -284,6 +284,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [GoGlobalCo
   [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
+attribute [local instance] Classical.propDecidable
 
 theorem cells_same {st st' : OsState} {h h' : GMap Loc (NonAtomic val)} (hwf : OsWf st)
     (hwf' : OsWf st') (hr : HeapRendered st st' h h') (hfr : MapsFresh st st' h)
@@ -382,7 +383,7 @@ theorem osBytes_lookup {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm
   iintro HAb Htok Hbs
   iapply pure_forall.2; iintro %k
   iapply pure_forall.2; iintro %hk
-  unfold osBytes osByte
+  unfold osBytes bytesG
   icases BigSepL.bigSepL_lookup (Φ := fun k (x : w8 × Bool) =>
     gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb (p, off + k) dq x)
     (List.getElem?_eq_getElem hk) $$ Hbs with Hb
@@ -626,6 +627,143 @@ theorem wp_PRead_racy (fd off n : w64) (dq dqb : DFrac) (d : OsFd) (lo : Nat)
     iapply HΦ $$ %_ %_ %(fun k hk h1 h2 => ⟨fun h => absurd h he, fun hlt => by
       have h' : lo + k - off.toNat < r.length := by simp at hlt; omega
       simp only [List.getElem_take]; exact (key k hk h1 h2).2 h'⟩) Hfd Hbs
+
+/-- The `OsMeta` after a successful sync: the size is durable. -/
+def OsMeta.synced (m : OsMeta) : OsMeta := { m with lo := m.size, hi := m.size }
+
+/-- The bytes after a successful sync: clean, unless a failed sync may have lost one. -/
+def syncedBytes (m : OsMeta) (xs : List (w8 × Bool)) : List (w8 × Bool) :=
+  if m.ok then xs.map (fun x => (x.1, true)) else xs
+
+/-- `fsync(fd)` (and `fdatasync`), with the whole of the file's `OsMeta`, so that no change is in
+flight on it, and some of its bytes, whole. On success the size is durable, and the bytes are
+clean unless a failed sync lost one (`m.ok`); on failure, nothing more is clean, and bytes may
+be lost (`ok := false`). -/
+theorem wp_Fsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
+    (xs : List (w8 × Bool)) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.path (DFrac.own 1) (some m) -∗
+      osBytes (L := L) d.path lo (DFrac.own 1) xs -∗
+      (∀ e : w64,
+        ((⌜e = 0⌝ ∗ osMeta (L := L) d.path (DFrac.own 1) (some m.synced) ∗
+            osBytes (L := L) d.path lo (DFrac.own 1) (syncedBytes m xs)) ∨
+         (⌜e ≠ 0⌝ ∗ osMeta (L := L) d.path (DFrac.own 1) (some { m with ok := false }) ∗
+            osBytes (L := L) d.path lo (DFrac.own 1) xs)) -∗
+        osFd (L := L) fd dq d -∗ Φ (#e)) -∗
+      WP (ExternalOp osFsExt.name "Fsync" (Val (#fd))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd Hm Hbs HΦ
+  iapply wp_os_step "Fsync" _ Φ (by simp) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h Hw
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  unfold osFd osMeta osBytes
+  icases bytesG_lookup _ d.path lo _ xs Γb $$ HAb Hbs with %Hbl
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
+  icases tokRes_meta_whole _ $$ Htok Hm with %Hnt
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hfd : st.fds !! fd = some d := hcoh.fds ▸ Hfdl
+  obtain ⟨f, hf, hmo⟩ := coh_meta hcoh Hml
+  have hnoI : ∀ i, ¬ InflightAt st d.path i := by
+    rintro i ⟨t, c, ht, hcp, -⟩; exact noTok_of_whole hcoh Hnt t c ht hcp
+  have hcohf : FileCoherent f := fun i => hwf.coherent d.path f i hf
+  have hszf := hwf.sizes d.path f hf
+  -- the two outcomes
+  have hwfS : OsWf (st.setFile d.path (f.synced (InflightAt st d.path ·))) :=
+    osWf_setFile_sameCur hwf hf rfl (by simp [OsFile.synced])
+      (synced_coherent f _ hcohf hnoI)
+  have hwfF : OsWf (st.setFile d.path (f.syncFailed (InflightAt st d.path ·))) :=
+    osWf_setFile_sameCur hwf hf rfl hszf (syncFailed_coherent f _ hcohf hnoI)
+  imodintro
+  isplitr
+  · ipureintro
+    exact ⟨_, h, _, ⟨fd, d, f, rfl, hfd, hf, .inl ⟨rfl, rfl⟩⟩, mapsFresh_same rfl,
+      heapRendered_same hwfS rfl (cellView_setFile_sameCur hwf hwfS hf rfl) Hag⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨fd', d', f', hv, hfd', hf', hres⟩ := Hst
+  cases go.intoVal_inj hv
+  simp only [FdOpen, hfd, Option.some.injEq] at hfd'; subst hfd'
+  rw [hf] at hf'; cases hf'
+  have hs := sizes_setFile_sameCur (f' := f.synced (InflightAt st d.path ·)) hf rfl
+  have hsF := sizes_setFile_sameCur (f' := f.syncFailed (InflightAt st d.path ·)) hf rfl
+  rcases hres with ⟨rfl, rfl⟩ | ⟨e, he, rfl, rfl⟩
+  · -- success
+    have hkeep : ∀ i, CleanPhys f i → CleanPhys (f.synced (InflightAt st d.path ·)) i :=
+      fun i hc => synced_clean f _ hcohf hnoI i (by have := hc.2.2.1; omega) hc.2.1
+    imod gAuth_update _ _ _ _ _ (some m.synced) $$ HAm Hm with ⟨HAm, Hm⟩
+    imod bytesG_update _ d.path lo xs (syncedBytes m xs) Γb
+      (by unfold syncedBytes; split <;> simp) $$ [HAb Hbs] with ⟨HAb, Hbs⟩
+    · iframe
+    imod cells_same hwf hwfS Hr Hfr rfl (cellView_setFile_sameCur hwf hwfS hf rfl)
+      $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+    · iframe
+    imodintro
+    iexists _, _, Γf, Γt
+    have htr : tokRes gooseOsGS (st.setFile d.path (f.synced (InflightAt st d.path ·))) Γt =
+        tokRes (gooseOsGS (L := L)) st Γt := by
+      unfold tokRes; simp only [affLo_congr hs]
+    rw [htr, show (st.setFile d.path (f.synced (InflightAt st d.path ·))).inflight = st.inflight
+      from rfl]
+    iframe
+    isplitr
+    · ipureintro
+      refine ⟨hwfS, osCoh_setFile_sameCur (f' := f.synced (InflightAt st d.path ·)) hcoh hf rfl
+        ?_ lo xs (syncedBytes m xs)
+        (by unfold syncedBytes; split <;> simp) Hbl ?_ hkeep ?_ hnoI⟩
+      · exact ⟨by simp [OsMeta.synced, hmo.size]; rfl,
+          by simp [OsMeta.synced, OsFile.synced, hmo.named],
+          by simp [OsMeta.synced, OsFile.synced, hmo.size],
+          by simp [OsMeta.synced, OsFile.synced, hmo.size],
+          (fun hok i => by
+            simp only [OsMeta.synced] at hok
+            simp [OsFile.synced, hmo.ok hok i]),
+          hmo.maps, fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht)⟩
+      · intro k hk; unfold syncedBytes at hk ⊢; split <;> simp
+      · intro k hk hc
+        have hk' : k < xs.length := by unfold syncedBytes at hk; split at hk <;> simpa using hk
+        obtain ⟨f1, h1, hb, hc1⟩ := hcoh.bytes _ _ _ (Hbl k hk')
+        rw [hf] at h1; cases h1
+        unfold syncedBytes at hc; split at hc
+        · rename_i hok
+          exact synced_clean f _ hcohf hnoI _ (List.getElem?_eq_some_iff.1 hb).1 (hmo.ok hok _)
+        · exact hkeep _ (hc1 hc).1
+    iapply wp_value'
+    iapply HΦ $$ [Hm Hbs] Hfd
+    ileft; iframe; ipureintro; rfl
+  · -- failure
+    have hkeep : ∀ i, CleanPhys f i → CleanPhys (f.syncFailed (InflightAt st d.path ·)) i :=
+      fun i hc => syncFailed_clean f _ i hc
+    imod gAuth_update _ _ _ _ _ (some { m with ok := false }) $$ HAm Hm with ⟨HAm, Hm⟩
+    imod bytesG_update _ d.path lo xs xs Γb rfl $$ [HAb Hbs] with ⟨HAb, Hbs⟩
+    · iframe
+    imod cells_same hwf hwfF Hr Hfr rfl (cellView_setFile_sameCur hwf hwfF hf rfl)
+      $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+    · iframe
+    imodintro
+    iexists _, _, Γf, Γt
+    have htr : tokRes gooseOsGS (st.setFile d.path (f.syncFailed (InflightAt st d.path ·))) Γt =
+        tokRes (gooseOsGS (L := L)) st Γt := by
+      unfold tokRes; simp only [affLo_congr hsF]
+    rw [htr, show (st.setFile d.path (f.syncFailed (InflightAt st d.path ·))).inflight =
+      st.inflight from rfl]
+    iframe
+    isplitr
+    · ipureintro
+      refine ⟨hwfF, osCoh_setFile_sameCur (f' := f.syncFailed (InflightAt st d.path ·)) hcoh hf
+        rfl ?_ lo xs xs rfl Hbl (fun _ _ => rfl)
+        hkeep ?_ hnoI⟩
+      · exact ⟨hmo.size, hmo.named, hmo.lo, hmo.hi, (fun h => by cases h), hmo.maps,
+          fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht)⟩
+      · intro k hk hc
+        obtain ⟨f1, h1, -, hc1⟩ := hcoh.bytes _ _ _ (Hbl k hk)
+        rw [hf] at h1; cases h1
+        exact hkeep _ (hc1 hc).1
+    iapply wp_value'
+    iapply HΦ $$ [Hm Hbs] Hfd
+    iright; iframe; ipureintro; exact he
 
 end specs
 

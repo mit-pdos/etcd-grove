@@ -173,4 +173,203 @@ theorem size_setFile_same {st : OsState} {p : GoString} {f f' : OsFile} (hf : st
   · subst_vars; rw [size_of_file hf, hl]
   · rfl
 
+theorem MetaOk.transfer {st st' : OsState} {q : GoString} {m : OsMeta} {f : OsFile}
+    (hs : ∀ p, st'.size p = st.size p) (hm : st'.maps = st.maps) (hin : st'.inflight = st.inflight)
+    (h : MetaOk st q m f) : MetaOk st' q m f :=
+  ⟨h.size, h.named, h.lo, h.hi, h.ok, by rw [hm]; exact h.maps,
+    by rw [hin]; intro t c ht hc; rw [target_congr hs]; exact h.targets t c ht hc⟩
+
+theorem file_setFile_ne (st : OsState) {p q : GoString} (f : OsFile) (h : p ≠ q) :
+    (st.setFile p f).file q = st.file q := by
+  rw [file_setFile, if_neg h]
+
+theorem file_setFile_eq (st : OsState) (p : GoString) (f : OsFile) :
+    (st.setFile p f).file p = some f := by
+  rw [file_setFile, if_pos rfl]
+
+theorem files_setFile (st : OsState) (p q : GoString) (f : OsFile) :
+    (st.setFile p f).files !! q = if p = q then some (some f) else st.files !! q := by
+  simp only [OsState.setFile, GMap.lookup_insert_eq_iff]
+
+/-- Replacing a file by one with the same contents keeps every derived notion of the other
+files, and of the mapped cells. -/
+theorem osWf_setFile_sameCur {st : OsState} {p : GoString} {f f' : OsFile} (hwf : OsWf st)
+    (hf : st.file p = some f) (hcur : f'.cur = f.cur)
+    (hsz : f'.sizeLo ≤ f'.cur.length ∧ f'.cur.length ≤ f'.sizeHi)
+    (hcoh : ∀ i, f'.dirty i = false → f'.lost i = false → i < f'.cur.length →
+      i < f'.durable.length → f'.durable[i]? = f'.cur[i]?) :
+    OsWf (st.setFile p f') := by
+  have hs := size_setFile_same hf (by rw [hcur])
+  have hex : ∀ q f0, st.file q = some f0 → ∃ f1, (st.setFile p f').file q = some f1 := by
+    intro q f0 h0; rw [file_setFile]; split
+    · exact ⟨_, rfl⟩
+    · exact ⟨_, h0⟩
+  refine ⟨fun fd d h => ?_, fun b m h => ?_, hwf.maps_disj, fun t c h => ?_, ?_, ?_, ?_⟩
+  · obtain ⟨f0, h0⟩ := hwf.fds fd d h; exact hex _ _ h0
+  · obtain ⟨⟨f0, h0⟩, h1, h2⟩ := hwf.maps b m h; exact ⟨hex _ _ h0, h1, h2⟩
+  · obtain ⟨f0, h0⟩ := hwf.infl t c h; exact hex _ _ h0
+  · intro t1 c1 t2 c2 i h1 h2 hne hp
+    simp only [affects_congr hs]
+    exact hwf.infl_disj t1 c1 t2 c2 i h1 h2 hne hp
+  · intro q f1 h1
+    rw [file_setFile] at h1; split at h1
+    · cases h1; exact hsz
+    · exact hwf.sizes q f1 h1
+  · intro q f1 i h1
+    rw [file_setFile] at h1; split at h1
+    · cases h1; exact hcoh i
+    · exact hwf.coherent q f1 i h1
+
+/-! ## Syncs -/
+
+section sync
+variable (f : OsFile) (busy : Nat → Prop) [DecidablePred busy]
+
+/-- A file's bytes neither dirty nor lost are on disk. -/
+def FileCoherent (f : OsFile) : Prop :=
+  ∀ i, f.dirty i = false → f.lost i = false → i < f.cur.length → i < f.durable.length →
+    f.durable[i]? = f.cur[i]?
+
+theorem synced_durable (i : Nat) (hi : i < f.cur.length) :
+    (f.synced busy).durable[i]? =
+      some (if (f.dirty i ∧ ¬ busy i) ∨ f.durable.length ≤ i then f.cur.getD i 0
+        else f.durable.getD i 0) := by
+  simp [OsFile.synced, hi]
+
+/-- After a successful sync with no byte busy, a byte not lost is clean. -/
+theorem synced_clean (hcoh : FileCoherent f) (hb : ∀ i, ¬ busy i) (i : Nat)
+    (hi : i < f.cur.length) (hl : f.lost i = false) : CleanPhys (f.synced busy) i := by
+  refine ⟨by simp [OsFile.synced, hb], by simp [OsFile.synced, hl], by simp [OsFile.synced, hi], ?_⟩
+  rw [synced_durable f busy i hi]
+  show _ = f.cur[i]?
+  rw [List.getElem?_eq_getElem hi]
+  simp only [hb, not_false_eq_true, and_true, Option.some.injEq]
+  split
+  · simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi]
+  · rename_i h
+    have hd : f.dirty i = false := by cases hd : f.dirty i <;> simp_all
+    have hdl : i < f.durable.length := by omega
+    have := hcoh i hd hl hi hdl
+    rw [List.getElem?_eq_getElem hi, List.getElem?_eq_getElem hdl] at this
+    simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hdl, Option.some.inj this]
+
+theorem synced_coherent (hcoh : FileCoherent f) (hb : ∀ i, ¬ busy i) :
+    FileCoherent (f.synced busy) := by
+  intro i _ hl hi _
+  have hi : i < f.cur.length := hi
+  by_cases hd : f.dirty i = true
+  · rw [synced_durable f busy i hi]
+    show _ = f.cur[i]?
+    simp [hd, hb, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi]
+  · have hl' : f.lost i = false := by
+      simp only [OsFile.synced] at hl
+      cases h : f.lost i <;> cases h2 : f.dirty i <;> simp_all
+    exact (synced_clean f busy hcoh hb i hi hl').2.2.2
+
+theorem syncFailed_clean (i : Nat) (h : CleanPhys f i) :
+    CleanPhys (f.syncFailed busy) i := by
+  obtain ⟨h1, h2, h3, h4⟩ := h
+  exact ⟨by simp [OsFile.syncFailed, h1], by simp [OsFile.syncFailed, h1, h2], h3, h4⟩
+
+theorem syncFailed_coherent (hcoh : FileCoherent f) (hb : ∀ i, ¬ busy i) :
+    FileCoherent (f.syncFailed busy) := by
+  intro i _ hl hi hdl
+  simp only [OsFile.syncFailed, Bool.or_eq_false_iff, Bool.and_eq_false_iff,
+    Bool.not_eq_false', decide_eq_true_eq] at hl
+  obtain ⟨hl, hd⟩ := hl
+  have hd' : f.dirty i = false := by rcases hd with hd | hd; exact hd; exact absurd hd (hb i)
+  exact hcoh i hd' hl hi hdl
+
+end sync
+
+/-! ## Replacing a file by one with the same contents -/
+
+section sameCur
+variable {st : OsState} {p : GoString} {f f' : OsFile}
+
+theorem sizes_setFile_sameCur (hf : st.file p = some f) (hcur : f'.cur = f.cur) :
+    ∀ q, (st.setFile p f').size q = st.size q :=
+  size_setFile_same hf (by rw [hcur])
+
+theorem inflightAt_setFile_sameCur (hf : st.file p = some f) (hcur : f'.cur = f.cur) :
+    ∀ q i, InflightAt (st.setFile p f') q i = InflightAt st q i :=
+  inflightAt_congr (sizes_setFile_sameCur hf hcur) rfl
+
+theorem cellView_setFile_sameCur (hwf : OsWf st) (hwf' : OsWf (st.setFile p f'))
+    (hf : st.file p = some f) (hcur : f'.cur = f.cur) : cellView (st.setFile p f') = cellView st := by
+  have hI := inflightAt_setFile_sameCur hf hcur
+  refine cellView_congr' hwf hwf' rfl (cellByte_congr (fun q => ?_) hI) hI
+  rw [file_setFile]; split
+  · subst_vars; rw [hf]; simp [hcur]
+  · rfl
+
+/-- The ghost maps after replacing the file `p` by `f'`, with the same contents, and its
+`OsMeta` by `m'`, and the bytes `xs` the client holds by `ys`, with the same values: the clean
+bytes of `f` stay clean, and those `ys` marks clean are clean. -/
+theorem osCoh_setFile_sameCur {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt)
+    (hf : st.file p = some f) (hcur : f'.cur = f.cur) {m' : OsMeta}
+    (hmo : MetaOk (st.setFile p f') p m' f') (lo : Nat) (xs ys : List (w8 × Bool))
+    (hys : ys.length = xs.length)
+    (hxs : ∀ k (hk : k < xs.length), Γb !! (p, lo + k) = some xs[k])
+    (hval : ∀ k (hk : k < ys.length), ys[k].1 = (xs[k]'(hys ▸ hk)).1)
+    (hkeep : ∀ i, CleanPhys f i → CleanPhys f' i)
+    (hnew : ∀ k (hk : k < ys.length), ys[k].2 = true → CleanPhys f' (lo + k))
+    (hnoI : ∀ i, ¬ InflightAt st p i) :
+    OsCoh (st.setFile p f') (insertBytes p lo ys Γb) (<[p := some m']> Γm) Γf Γt := by
+  have hs := sizes_setFile_sameCur hf hcur
+  have hI := inflightAt_setFile_sameCur hf hcur
+  have hfp : st.files !! p = some (some f) := file_eq_some.1 hf
+  refine ⟨fun q => ?_, fun q => ?_, fun q m hm => ?_, fun q i x hx => ?_, fun q f1 i h1 hi => ?_,
+    hcoh.fds, hcoh.toks, fun t ti h => ?_, hcoh.tok_alone, fun t ti h => ?_⟩
+  · rw [files_setFile, GMap.lookup_insert_eq_iff]
+    split
+    · simp
+    · exact hcoh.meta_dom q
+  · rw [files_setFile, GMap.lookup_insert_eq_iff]
+    split
+    · simp
+    · exact hcoh.meta_none q
+  · rw [GMap.lookup_insert_eq_iff] at hm
+    split at hm
+    · subst_vars; cases hm; exact ⟨f', by rw [files_setFile, if_pos rfl], hmo⟩
+    · rename_i hpq
+      obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m hm
+      exact ⟨f1, by rw [files_setFile, if_neg hpq]; exact h1, hm1.transfer hs rfl rfl⟩
+  · rw [lookup_insertBytes] at hx
+    split at hx
+    · rename_i hr
+      obtain ⟨rfl, h1, h2⟩ := hr
+      have hk : i - lo < ys.length := by omega
+      rw [List.getElem?_eq_getElem hk] at hx; cases hx
+      have hk' : i - lo < xs.length := hys ▸ hk
+      obtain ⟨f1, h1', hb, -⟩ := hcoh.bytes q (lo + (i - lo)) _ (hxs _ hk')
+      rw [hf] at h1'; cases h1'
+      refine ⟨f', file_setFile_eq st q f', ?_, fun hc => ⟨?_, by rw [hI]; exact hnoI i⟩⟩
+      · rw [hcur, hval _ hk]; rw [show lo + (i - lo) = i by omega] at hb; exact hb
+      · have := hnew _ hk hc; rwa [show lo + (i - lo) = i by omega] at this
+    · obtain ⟨f1, h1, hb, hc⟩ := hcoh.bytes q i x hx
+      by_cases hpq : p = q
+      · subst hpq; rw [hf] at h1; cases h1
+        refine ⟨f', file_setFile_eq st p f', by rw [hcur]; exact hb, fun hx2 => ?_⟩
+        obtain ⟨hc1, hc2⟩ := hc hx2
+        exact ⟨hkeep i hc1, by rw [hI]; exact hc2⟩
+      · refine ⟨f1, by rw [file_setFile_ne st f' hpq]; exact h1, hb, fun hx2 => ?_⟩
+        obtain ⟨hc1, hc2⟩ := hc hx2
+        exact ⟨hc1, by rw [hI]; exact hc2⟩
+  · rw [lookup_insertBytes]
+    split
+    · rename_i hr; rw [List.getElem?_eq_getElem (by omega)]; rfl
+    · rw [file_setFile] at h1
+      split at h1
+      · subst_vars; cases h1; exact hcoh.bytes_full _ f i hf (by rw [← hcur]; exact hi)
+      · exact hcoh.bytes_full q f1 i h1 hi
+  · rw [reaches_congr hs]; exact hcoh.tok_q t ti h
+  · obtain ⟨f1, h1, hsv⟩ := hcoh.tok_saved t ti h
+    rw [affRange_congr hs]
+    rw [file_setFile]; split
+    · subst_vars; rw [hf] at h1; cases h1; exact ⟨f', rfl, by rw [hcur]; exact hsv⟩
+    · exact ⟨f1, h1, hsv⟩
+
+end sameCur
+
 end Perennial
