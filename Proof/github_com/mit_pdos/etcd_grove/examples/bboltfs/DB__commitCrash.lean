@@ -527,6 +527,21 @@ theorem metaW_after {p : GoString} {m m' : OsMeta} {bs bs' : List (w8 × Bool)} 
   · exact hN.pre k (by unfold cfLo; omega)
   · exact hN.suf (by omega) k (by omega)
 
+theorem setPage_getElem? (xs PB : List w8) (i k : Nat) (hl : xs.length = 8192) (hi : i < 2)
+    (hPB : PB.length = 4096) :
+    (setPage xs i PB)[k]? =
+      if 4096 * i ≤ k ∧ k < 4096 * i + 4096 then PB[k - 4096 * i]? else xs[k]? := by
+  unfold setPage
+  have h1 : (xs.take (4096 * i)).length = 4096 * i := by rw [List.length_take]; omega
+  by_cases ha : k < 4096 * i
+  · rw [List.append_assoc, List.getElem?_append_left (by omega), List.getElem?_take, if_pos ha,
+      if_neg (by omega)]
+  · rw [List.append_assoc, List.getElem?_append_right (l₁ := xs.take (4096 * i)) (by omega), h1]
+    by_cases hb : k < 4096 * i + 4096
+    · rw [List.getElem?_append_left (by omega), if_pos ⟨by omega, hb⟩]
+    · rw [List.getElem?_append_right (by omega), hPB, List.getElem?_drop, if_neg (by omega),
+        show 4096 * (i + 1) + (k - 4096 * i - 4096) = k by omega]
+
 end pure
 
 section pure2
@@ -658,6 +673,91 @@ theorem dataS_facts {p : GoString} {m4 : OsMeta} {bs4 : List (w8 × Bool)} {hwm 
     fun M => writer_okS (m := { m4 with ok := false }) 8192 (4096 * hwm) (by rw [e]; exact hl)
       (commitClean_meta (m := m4) (by rw [e]; exact hc) rfl rfl) M,
     hc5, fun k hk => (hdur k hk).imp fun _ h => h.1, hblS, hsk, rfl, rfl, hok, by rw [htkS, hmp]⟩
+
+/-- The meta write succeeded: the meta pages are the new ones `mp'`; its sync (`Fdatasync`,
+`csSynced true`) leaves `commitClean` at `mp'`, whose root page is the data page. -/
+theorem metaS_facts {p : GoString} {M5 m6 : OsMeta} {B5 bs6 : List (w8 × Bool)} {hwm i : Nat}
+    {mp mp' : List w8} {mv : Meta} {v : w64}
+    (hl6 : bs6.length = m6.size) (hs6 : m6.size = M5.size) (hok6 : m6.ok = true)
+    (h2 : 2 ≤ hwm) (hsz : (hwm + 2) * 4096 ≤ M5.size) (h30 : M5.size ≤ 2 ^ 30)
+    (hi : i = 1 - mv.txid'.toNat % 2)
+    (hout : ∀ k, (k < 4096 * i ∨ 4096 * i + 4096 ≤ k) → bs6[k]? = B5[k]?)
+    (hd : ∀ j < 4096, (bs6[4096 * i + j]?).map Prod.fst = (metaPageOf mv)[j]?)
+    (ht5 : (B5.map Prod.fst).take 8192 = mp) (hml : mp.length = 8192)
+    (hpg5 : ∀ k < 4096, B5[4096 * hwm + k]? = (dataPage mv.pgid' v)[k]?.map (·, true))
+    (hmp' : mp' = setPage mp i (metaPageOf mv))
+    (hok' : metaPagesOk mp') (hcur' : curMeta mp' = commitOf mv) (hcr' : curRoot mp' = hwm)
+    (hcp' : curPgid mp' = hwm + 1) (hct' : (curMeta mp').txid'.toNat = mv.txid'.toNat + 1)
+    (hboot : bootOk (mv.txid'.toNat + 1) (some v)) :
+    ∃ (M7 : OsMeta) (B7 H F T : List (w8 × Bool)),
+      bs6 = H ++ (F ++ T) ∧ H.length = 8192 ∧ 8192 + F.length = 4096 * hwm ∧
+      csSynced true m6 H F T 8192 (4096 * hwm) = ⟨M7, B7, 8192, 4096 * hwm, .idle⟩ ∧
+      dbOk p (some ⟨M7, B7, 8192, 4096 * hwm, .idle⟩) ∧
+      commitClean M7 B7 ∧ B7.length = M7.size ∧ (B7.map Prod.fst).take 8192 = mp' ∧
+      (B7.drop (4096 * hwm)).take (4096 * (hwm + 1) - 4096 * hwm) =
+        (dataPage mv.pgid' v).map (·, true) ∧
+      M7.maps = m6.maps ∧ M7.size = m6.size ∧ M7.ok = true ∧
+      dbOk p (some ⟨M7, B7, 8192, 4096 * (hwm + 1), .idle⟩) ∧
+      (∀ M : GMap Loc Nat, dbOk p (some ⟨{ M7 with maps := M }, B7, 8192, 4096 * (hwm + 1), .idle⟩)) ∧
+      (bs6.take 8192).map Prod.fst = mp' := by
+  obtain ⟨h16, h4, h5, h8, h44⟩ := arith_hwm hwm M5.size h2 hsz
+  have hi2 : i < 2 := by rw [hi]; omega
+  have hD := metaPageOf_length mv
+  have hdp := dataPage_length mv.pgid' v
+  have hbl : 8192 ≤ bs6.length := by rw [hl6, hs6]; exact Nat.le_trans h8 h4
+  have e := split3_eq bs6 8192 (4096 * hwm) h8
+  have hH : (bs6.take 8192).length = 8192 := by rw [List.length_take]; omega
+  have hF : 8192 + ((bs6.drop 8192).take (4096 * hwm - 8192)).length = 4096 * hwm := by
+    rw [List.length_take, List.length_drop]; omega
+  -- the meta pages
+  have hX : (bs6.take 8192).map Prod.fst = mp' := by
+    rw [hmp']
+    apply List.ext_getElem?; intro k
+    rw [setPage_getElem? _ _ _ _ hml hi2 hD, List.getElem?_map, List.getElem?_take]
+    by_cases hk : k < 8192
+    · rw [if_pos hk]
+      by_cases hw : 4096 * i ≤ k ∧ k < 4096 * i + 4096
+      · rw [if_pos hw, ← hd (k - 4096 * i) (by omega), show 4096 * i + (k - 4096 * i) = k by omega]
+      · rw [if_neg hw, hout k (by omega), ← ht5, List.getElem?_take, if_pos hk, List.getElem?_map]
+    · rw [if_neg hk, if_neg (by omega), List.getElem?_eq_none (by omega)]; rfl
+  -- the data page
+  have hpg6 : ∀ k < 4096, (bs6.take 8192 ++ ((bs6.drop 8192).take (4096 * hwm - 8192) ++
+      bs6.drop (4096 * hwm)))[4096 * hwm + k]? = (dataPage mv.pgid' v)[k]?.map (·, true) := by
+    intro k hk
+    rw [e, hout _ (.inr (by omega)), hpg5 k hk]
+  obtain ⟨hcc7, hbl7⟩ := metaSynced_commitClean (m := m6) (B := dataPage mv.pgid' v) hok6
+    (by rw [e, hl6]) hH hX hok' (by
+      unfold curInSlot
+      rw [hct', show (mv.txid'.toNat + 1) % 2 = i by omega, hcur', hmp',
+        fileMeta_setPage_same mp i _ hml hi2 hD, metaPageOf_meta])
+    (by rw [hcp', hs6]; exact h5) (by rw [hs6]; exact h30) (by rw [hs6]; exact h16) hdp
+    (by rw [hcr']; exact hpg6) (by rw [hct', dataPage_val]; exact hboot)
+  have hsH : syncedBytes m6 (bs6.take 8192) = (bs6.take 8192).map (fun x => (x.1, true)) := by
+    unfold syncedBytes; rw [if_pos hok6]
+  have hsl : (syncedBytes m6 (bs6.take 8192)).length = 8192 := by rw [syncedBytes_length, hH]
+  have htk7 : ((syncedBytes m6 (bs6.take 8192) ++ ((bs6.drop 8192).take (4096 * hwm - 8192) ++
+      bs6.drop (4096 * hwm))).map Prod.fst).take 8192 = mp' := by
+    rw [List.map_append, List.take_append_of_le_length (by simp [hsl]),
+      List.take_of_length_le (by simp [hsl]), hsH, List.map_map, ← hX]; rfl
+  have hpg7 : ((syncedBytes m6 (bs6.take 8192) ++ ((bs6.drop 8192).take (4096 * hwm - 8192) ++
+      bs6.drop (4096 * hwm))).drop (4096 * hwm)).take (4096 * (hwm + 1) - 4096 * hwm) =
+        (dataPage mv.pgid' v).map (·, true) := by
+    apply List.ext_getElem?; intro k
+    rw [List.getElem?_take, List.getElem?_drop, List.getElem?_map]
+    by_cases hk : k < 4096 * (hwm + 1) - 4096 * hwm
+    · have hx := List.getElem?_append_right (l₁ := bs6.take 8192)
+        (l₂ := (bs6.drop 8192).take (4096 * hwm - 8192) ++ bs6.drop (4096 * hwm))
+        (i := 4096 * hwm + k) (by rw [hH]; omega)
+      rw [hH] at hx
+      rw [if_pos hk, List.getElem?_append_right (l₁ := syncedBytes m6 (bs6.take 8192)) (by omega),
+        hsl, ← hx, hpg6 k (by omega)]
+    · rw [if_neg hk, List.getElem?_eq_none (by rw [hdp]; omega)]; rfl
+  have hl7 : (syncedBytes m6 (bs6.take 8192) ++ ((bs6.drop 8192).take (4096 * hwm - 8192) ++
+      bs6.drop (4096 * hwm))).length = m6.size := hbl7
+  have hfb : 4096 * (hwm + 1) ≤ m6.size := by rw [hs6]; exact h5
+  refine ⟨_, _, _, _, _, e.symm, hH, hF, rfl, commitClean_okS _ hl7 rfl hcc7, hcc7, hbl7, htk7,
+    hpg7, rfl, rfl, hok6, commitClean_okS _ hl7 rfl hcc7,
+    writer_okS (m := m6.synced 0 (bs6.take 8192)) 8192 (4096 * (hwm + 1)) hl7 hcc7, hX⟩
 
 end pure2
 
@@ -1440,6 +1540,70 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
     (Nat.le_add_right _ _) (by rw [← hs5'] at Hsz; exact Nat.le_trans hil Hsz)).1 $$ [Hpi] with Hpi
   · rw [hm5']; iexact Hpi
   rw [Nat.add_sub_cancel_left]
+  obtain ⟨hR2, hsucc2⟩ := Hres2
+  rw [hi] at hR2
+  obtain ⟨hM6, hc6, hl6, hm6, hs6, ho6, hout6, hok6, hok6F, hok6F'⟩ :=
+    metaW_after (p := p) (hwm := hwm) hc5 hbl5 (metaPageOf_length mv) h8' hcl5 (metaPageOf_meta mv) hR2
+  have hlen8 : 8192 ≤ len := Nat.le_trans h8' (by rw [hs5']; exact Hsz)
+  -- the meta cells against the writer's half of the meta pages
+  icases metaPage_cells_split base i $$ Hpi with ⟨Ti, Hci⟩
+  icases (pick_page (fun k => iprop(hdrTail (GF := GF) base k ∗ cellsAny (GF := GF) base (4096 * k + 16) 64))
+    i hi2).2 $$ [Ti Hci Hother] with ⟨⟨T0, Hc0⟩, ⟨T1, Hc1⟩⟩
+  · iframe Ti Hci Hother
+  rw [show 4096 * 0 + 16 = 16 from rfl, show 4096 * 1 + 16 = 4112 from rfl]
+  iunfold cellsAny at Hc0 Hc1
+  icases Hc0 with ⟨%v0, Hc0⟩
+  icases Hc1 with ⟨%v1, Hc1⟩
+  icases (csOwn_idle _ _ _ rfl).1 $$ Hcs with ⟨Hv, ⟨Hm6, Hb6⟩, %Hwf6⟩
+  have hfb6 : 4096 * hwm ≤ bs6.length := by rw [hl6, hs6, hs5']; exact h4'
+  icases (writer_thrBytes p m6 bs6 hwm h2 hfb6).1 $$ Hb6 with ⟨Hmx, Htl⟩
+  have hb6 : m6.maps !! base = some len := by rw [hm6, hm5']; exact GMap.lookup_insert _ _ _
+  have hXl : (bs6.take 8192).length = 8192 := by
+    rw [List.length_take, hl6, hs6]; exact Nat.min_eq_left h8'
+  iapply window_agree _ rfl p _ m6 base len hb6 (by simp) _ _ (bs6.take 8192) 16 64 v0
+    (by rw [hXl]; decide) (Nat.le_trans (by decide) hlen8) $$ Hos Hm6 Hmx Hc0
+  iintro Hm6 Hmx Hc0
+  iapply window_agree _ rfl p _ m6 base len hb6 (by simp) _ _ (bs6.take 8192) 4112 64 v1
+    (by rw [hXl]; decide) (Nat.le_trans (by decide) hlen8) $$ Hos Hm6 Hmx Hc1
+  iintro Hm6 Hmx Hc1
+  ihave Hcs := (csOwn_idle (GF := GF) p γc ⟨m6, bs6, 8192, 4096 * hwm, .idle⟩ rfl).2
+    $$ [Hv Hm6 Hmx Htl]
+  · iframe Hv Hm6
+    isplitl
+    · iapply (writer_thrBytes p _ bs6 hwm h2 hfb6).2; iframe
+    · ipureintro; exact Hwf6
+  rcases hsucc2 with ⟨rfl, rfl, -, hd6⟩ | ⟨rfl, hne2⟩
+  rotate_left
+  · -- the meta `WriteAt` failed: fail the handle
+    cases err2 with
+    | nil => exact absurd rfl hne2
+    | ok ie =>
+    (try wp_auto)
+    have hl1 : (((bs6.take 8192).map Prod.fst).drop 16 |>.take 64).length = 64 := by
+      simp only [List.length_take, List.length_drop, List.length_map, hXl]; rfl
+    imod meta_failC γ db p base len γm mp hwm
+        ((((bs6.take 8192).map Prod.fst).drop 16).take 64 ++
+          (((bs6.take 8192).map Prod.fst).drop 4112).take 64)
+        (metas_length _ hXl) T _ _ _ c
+        $$ [Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hown Hcls2]
+      with ⟨HR, #Hfailed, Hown, Htok, Hcur, Hout⟩
+    · rw [List.take_left' hl1, List.drop_left' hl1]
+      iframe Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hown Hcls2; iframe #
+    wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaRC (GF := GF) γ db p)
+      $$ [$Hmeta $Hsync $Hlocked HR]
+    · iexact HR
+    (try wp_auto)
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; exact hne2
+    ihave Herr := dataErrTC γ γc db f fd p mp hwm base len γm m6 bs6 m2.size _ _
+      ⟨by rw [hm6]; exact hm5', by rw [hs6, hs5']; exact Hsz, Hbase, Hl41, h2,
+        by rw [hs6, hs5']; exact hin, hok6⟩
+      $$ [Hown Hfailed Hcur Hmap Hout Hflds Hcls Htok T0 T1 Hpc Htop Hfsz Hdsz Hf Hfd Hcs]
+    · iframe Hown Hcur Hmap Hout Hflds Hcls Htok T0 T1 Hpc Htop Hfsz Hdsz Hf Hfd Hcs; iframe #
+    iunfold commitErrC at Herr
+    iexact Herr
   sorry
 
 end proof
