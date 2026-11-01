@@ -128,8 +128,9 @@ CMPXCHG`, on a `PROT_READ` page is a SIGSEGV, and Go's runtime makes that a fata
 (`unexpected fault address`), not a panic. The model then only has to contain the run up to
 the fault, as for out-of-memory (`AllocOOMS`):
 - plain adequacy claims nothing of a run that dies;
-- crash adequacy covers the restart, because a process death is a crash at that step, and the
-  files keep the page cache, which the crash image allows.
+- crash adequacy covers the restart, because a process death is a crash at that step. Unlike
+  a machine crash, the kernel survives the process, so the files end up with the page cache's
+  contents. Those contents are always one of the crash images the model allows.
 
 The condition is that the fault stays fatal. `runtime/debug.SetPanicOnFault(true)` would make
 it a recoverable panic, and Perennial does not model `runtime/debug`.
@@ -168,7 +169,8 @@ a byte.
   never a byte;
 - reads and `fstat`: exact with nothing in flight, and a racing read may see any byte the
   change may write;
-- crashes: after a successful sync, a crash keeps exactly the page cache; after an unsynced
+- crashes: after a successful sync, a crash leaves the file with exactly the contents the page
+  cache had at the sync, since the sync wrote them to disk; after an unsynced
   write, it may keep the old byte or the new one; a byte lost by a failed sync stays lost
   across a later successful sync.
 

@@ -9,7 +9,8 @@ asks a question of the trusted file itself.
 * A mapped cell shows the file, and a hole past EOF and under an in-flight change.
 * A read with no change in flight sees exactly the file; a racing read may see any byte the
   change may write.
-* A crash after a successful sync (nothing in flight) keeps exactly the page cache; a crash
+* After a successful sync (nothing in flight), a crash, which loses the page cache, leaves the
+  file with exactly the contents the page cache had at the sync; a crash
   after an unsynced write may keep the old byte or the new one; a byte lost by a failed sync
   stays lost across a later successful sync, until it is written again.
 -/
@@ -159,9 +160,10 @@ theorem statSees_exact (st : OsState) (p : GoString) (sz : Nat)
 
 /-! ## Crashes -/
 
-/-- With no change in flight on the file, a crash after a successful sync keeps exactly the page
-cache, given what the operations maintain: a clean byte's durable copy is its page-cache copy, and
-no byte was lost by a failed sync. -/
+/-- With no change in flight on the file, a crash right after a successful sync leaves the file
+(as the next boot reads it from disk) with exactly the contents the page cache had: the sync
+wrote them to disk. This needs what the operations maintain: a clean byte's durable copy is its
+page-cache copy, and no byte was lost by a failed sync. -/
 theorem crash_after_sync (st : OsState) (p : GoString) (f : OsFile) (img : List w8)
     (hidle : ∀ t c, st.inflight !! t = some c → c.path ≠ p)
     (hcoh : ∀ i, f.dirty i = false → i < f.durable.length → f.durable[i]? = f.cur[i]?)

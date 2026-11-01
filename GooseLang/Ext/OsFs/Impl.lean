@@ -39,7 +39,8 @@ path resolution is never modelled.
   (`AllocOOMS`), a fatal error only asks the model to contain the run up to it: the adequacy
   theorems claim nothing of a run that dies (no panic fires, the postcondition holds if `main`
   returns), and crash adequacy covers the restart, since a process death is a crash at that
-  step whose files keep the page cache, which `CrashImage` allows. The model's extra behaviours
+  step: the kernel survives the process, so its page cache, written back later, is what the
+  files then hold, and those contents are always a `CrashImage`. The model's extra behaviours
   after such a store are never Go's. This rests on the fault being fatal:
   `runtime/debug.SetPanicOnFault(true)` would make it a recoverable panic, and Perennial does
   not model `runtime/debug` (calling it is stuck).
