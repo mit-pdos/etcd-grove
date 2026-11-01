@@ -45,9 +45,9 @@ theorem ownRaftGhost_stepC_in [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNa
 
 theorem ownRaftGhost_step_app_stale [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64)
     (s : PState) (m : Msg) : m.ty = MsgType.app → m.src ≠ id → m.term = s.term → s.role ≠
-    Role.leader → ⊢ isMessage γ m -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id
-    (psendMsgs (padoptLeader s m.src) [Msg.mk MsgType.appResp id m.src s.term false s.commit (W64 0)
-    (W64 0) (W64 0) []]) md
+    Role.leader → uint.Z m.index < uint.Z s.commit → ⊢ isMessage γ m -∗ ownRaftGhost γ id s md ={⊤ \
+    ↑(raftRegN γ)}=∗ ownRaftGhost γ id (psendMsgs (padoptLeader s m.src) [Msg.mk MsgType.appResp id
+    m.src s.term false s.commit (W64 0) (W64 0) (W64 0) []]) md
 
 theorem ownRaftGhost_respond [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64) (t :
     PState) (q : ReadReq) : ⊢ ownRaftGhost γ id t md -∗ respFacts γ q ={⊤ \ ↑(raftRegN γ)}=∗

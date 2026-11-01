@@ -394,7 +394,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (decB : CCDec) (M : DecMap) (c0 
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI, #Hfr⟩
     ihave #Hm := recv_one γ _ $$ Hrecv
-    imod ownRaftGhost_step_app_stale γ id r.p m h1 h3 h4 h5 $$ Hm Hg with Hg
+    imod ownRaftGhost_step_app_stale γ id r.p m h1 h3 h4 h5 h6 $$ Hm Hg with Hg
     imodintro
     iunfold ownRaftGhostR
     iframe Hg Hfr

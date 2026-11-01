@@ -629,19 +629,28 @@ private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState)
     m.src ≠ id →
     m.term = s.term →
     s.role ≠ .leader →
+    (m.ty = .app → uint.Z m.index < uint.Z s.commit) →
     ⊢ isMessage (GF := GF) γ m -∗
       ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
       ownRaftGhost γ id
         (psendMsgs (padoptLeader s m.src)
            [Msg.mk .appResp id m.src s.term false s.commit
               (W64 0) (W64 0) (W64 0) []]) md := by
-  intro Hty Hfid Hterm Hrole
+  intro Hty Hfid Hterm Hrole Hidx
   iintro #Hm Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
   icases isMessage_leader γ m (by rcases Hty with h | h <;> simp [h]) $$ Hm with ⟨#Hl, %Hfnz⟩
   icases isMessage_leadPrefix γ m Hty $$ Hm with ⟨%bL, %lL, %fpL, #Hp', #Hpf'⟩
+  -- an `app`'s index is at or above the leader's base (its prefix holds it)
+  ihave %Hbase0 : ⌜m.ty = .app → uint.Z bL.index' ≤ uint.Z m.index⌝ $$ []
+  · by_cases Ha : m.ty = .app
+    · icases isMessage_app_inv γ m Ha $$ Hm with ⟨-, -, ⟨%bL2, %l2, %fp2, #Hp2, %Hpl, -⟩, -⟩
+      icases leadPrefix_base γ m.src m.src m.term bL bL2 lL l2 $$ Hp' Hp2 with %Hbb
+      subst Hbb
+      ipureintro; intro _; exact (plogTermAt_some_range _ _ _ _ Hpl.1).1
+    · ipureintro; intro h; exact absurd h Ha
   rw [Hterm]
   -- the commit index is within the leader's log (`ackIn`): the vote table, out of the invariant
   ihave #HcI := ownLogGhost_commitIn γ id s kl (virt V πc) $$ Hlg
@@ -653,16 +662,20 @@ private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState)
   icases commitIn_ackIn γ m.src s.term bL lL fpL (fpw ++ s.log) s.commit s.term (Int.le_refl _)
     $$ Htbl Hp' Hpf' Hcom with ⟨Htbl, #HackIn⟩
   -- (2026-11-01, stage II(d), repair 1) the acknowledgement's leader (`ackInF`) needs the commit
-  -- index at or above the leader's base (the base of every prefix of the term).
-  -- PORT(durability stage II): unprovable as stated. For `Step.appStale` it follows from the
-  -- message (`bL ≤ m.index`, its prefix holds `m.index`) and the rule's guard `m.index < s.commit`,
-  -- which `StepCF.appStale`/`StepR.appStale` have but `ownRaftGhost_step_app_stale` does not take.
-  -- For `Step.snapStale` nothing bounds it: the rule (`StepC.snapStale`, D22 S-b) also covers a
-  -- snapshot refused because the node is not in its `ConfState`, with `m.index > s.commit`, and the
-  -- leader's base (its snapshot index at its win) may be above the follower's commit. Such an
-  -- acknowledgement `(t, c)` with `c < bL` has no `ackAgree` once a restart lowers the commit below
-  -- `c` (every prefix of `t` has base `bL > c`), so `raft_restart`'s `acksOk` would fail on it.
-  have Hbase : uint.Z bL.index' ≤ uint.Z s.commit := by sorry
+  -- index at or above the leader's base (the base of every prefix of the term): for `appStale`,
+  -- by the rule's guard `m.index < s.commit` (round 8).
+  have Hbase : uint.Z bL.index' ≤ uint.Z s.commit := by
+    by_cases Ha : m.ty = .app
+    · have := Hbase0 Ha; have := Hidx Ha; omega
+    -- PORT(durability stage II): unprovable for `Step.snapStale`. The rule (`StepC.snapStale`,
+    -- D22 S-b) also covers a snapshot refused because the node is not in its `ConfState`, with
+    -- `m.index > s.commit`, and the leader's base (its snapshot index at its win) may be above the
+    -- follower's commit. Such an acknowledgement `(t, c)` with `c < bL` has no `ackAgree` once a
+    -- restart lowers the commit below `c` (every prefix of `t` has base `bL > c`). Exempting it
+    -- from `ackOk` (round 8's proposal) is not enough: `ownRaftGhost_step_heartbeat` needs, for an
+    -- acknowledgement `i ≥ m.commit` above the commit, the follower's full log to agree with a
+    -- leader's full log of the term at `i` (`ackAgree_full`), also when `i ≤ bL`.
+    · sorry
   icases commitIn_ackInF γ m.src s.term bL lL fpL (fpw ++ s.log) s.commit s.term (Int.le_refl _)
     Hbase $$ Htbl Hp' Hpf' Hcom with ⟨Htbl, #HackInF⟩
   imod Hclose $$ [HP Hjust Htbl Hpo Hwt] with -
@@ -1869,14 +1882,15 @@ theorem ownRaftGhost_step_app_stale (γ : RaftNames) (id : w64) (s : PState) (m 
     m.src ≠ id →
     m.term = s.term →
     s.role ≠ .leader →
+    uint.Z m.index < uint.Z s.commit →
     ⊢ isMessage (GF := GF) γ m -∗
       ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
       ownRaftGhost γ id
         (psendMsgs (padoptLeader s m.src)
            [Msg.mk .appResp id m.src s.term false s.commit
               (W64 0) (W64 0) (W64 0) []]) md := by
-  intro Hty Hfid Hterm Hrole
-  exact ownRaftGhost_step_stale γ id s m (Or.inl Hty) Hfid Hterm Hrole
+  intro Hty Hfid Hterm Hrole Hidx
+  exact ownRaftGhost_step_stale γ id s m (Or.inl Hty) Hfid Hterm Hrole (fun _ => Hidx)
 
 /-- (2026-10-19, D21 M3) A follower's rejection of a leader's append, in a cluster with a non-empty
 bootstrap log, is of an index past the bootstrap log (both logs hold it, and the follower's commit
@@ -3371,6 +3385,7 @@ theorem ownRaftGhost_step_snap_stale (γ : RaftNames) (id : w64) (s : PState) (m
               (W64 0) (W64 0) (W64 0) []]) md := by
   intro Hty Hfid Hterm Hrole
   exact ownRaftGhost_step_stale γ id s m (Or.inr Hty) Hfid Hterm Hrole
+    (fun h => absurd (h.symm.trans Hty) (by decide))
 
 /-- `Step.snapFastfwd`: the new commit index is the snapshot's, which the message carries
 the commit fact for and the log reaches (it has the snapshot's last entry, which the
@@ -5348,10 +5363,10 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     ihave #Hm := recv_one $$ Hrecv
     imod ownRaftGhost_step_app_accept γ id s m lastnewi es' Hty Hfid Hterm Hrole Hcm Happ $$ Hm Hown with Hown
     imodintro; iframe Hregs Hown
-  | appStale m s Hty _ Hfid Hterm Hrole _ =>
+  | appStale m s Hty _ Hfid Hterm Hrole Hidx =>
     iintro #Hrc Hregs Hrecv - - Hown
     ihave #Hm := recv_one $$ Hrecv
-    imod ownRaftGhost_step_app_stale γ id s m Hty Hfid Hterm Hrole $$ Hm Hown with Hown
+    imod ownRaftGhost_step_app_stale γ id s m Hty Hfid Hterm Hrole Hidx $$ Hm Hown with Hown
     imodintro; iframe Hregs Hown
   | appReject m s hint hintterm Hty _ Hfid _ Hrole Hle Hnm Hh =>
     iintro #Hrc Hregs Hrecv - - Hown
