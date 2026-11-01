@@ -125,7 +125,7 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specOn : Prop :=
 
 /-- **`specOff`**, `spec` with auth off (the auth-mode merge's corollary). -/
 theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_off
-    (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
+    (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.specOff (GF := GF) (hG := hG) := by
   intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ q hoff
   have := h s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ srvAuthSt0 q
@@ -134,7 +134,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_off
 
 /-- **`specOn`**, `spec` with the mode-`on` row (the auth-mode merge's corollary). -/
 theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_on
-    (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
+    (h : EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.specOn (GF := GF) (hG := hG) := by
   intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ sa q hon
   have := h s E γw γ ci b γr ep st ai at' cs a t x ms γs nid γp w TM ρ sa q
@@ -581,9 +581,9 @@ theorem EtcdServer.apply.spec_on
 /-- **`specOff`**, `applyEntries.spec` with auth off (the auth-mode merge's corollary; the mode
 read off the server's view, `authOn_false_of_off`). -/
 theorem EtcdServer.applyEntries.spec_off
-    (h : EtcdServer.applyEntries.spec (GF := GF) (hG := hG)) :
+    (h : EtcdServer.applyEntries.specBatch (GF := GF) (hG := hG)) :
     EtcdServer.applyEntries.specOff (GF := GF) (hG := hG) := by
-  unfold EtcdServer.applyEntries.spec at h
+  unfold EtcdServer.applyEntries.specBatch at h
   simp only [srvRunH_applyEntries_spec] at h
   intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w Hms Hai1 Hok hEok hdv
   iintro %Φ ⟨#Hpkg, #Hsrv, Hbw, Hes, Hrac, Hesl, Hentsat, Hai, Hat, Hcs, Hcv, Hst, Hbe, Happ, Hlr, Hgr,
@@ -615,9 +615,9 @@ theorem EtcdServer.applyEntries.spec_off
 
 /-- **`specOn`**, `applyEntries.spec` in the mode `on` (the auth-mode merge's corollary). -/
 theorem EtcdServer.applyEntries.spec_on
-    (h : EtcdServer.applyEntries.spec (GF := GF) (hG := hG)) :
+    (h : EtcdServer.applyEntries.specBatch (GF := GF) (hG := hG)) :
     EtcdServer.applyEntries.specOn (GF := GF) (hG := hG) := by
-  unfold EtcdServer.applyEntries.spec at h
+  unfold EtcdServer.applyEntries.specBatch at h
   simp only [srvRunH_applyEntries_spec] at h
   intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w γa sa hM hRB Hms Hai1
     Hok hEok hdv

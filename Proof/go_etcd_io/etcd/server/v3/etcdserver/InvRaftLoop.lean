@@ -90,8 +90,9 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
       -- (2026-10-30, the repair: snapshots allowed) a snapshot payload: the log jumps to `A'`
       (∃ (A' : List EntryModel) (sv : SnapshotM),
         rnApplyTok γ A' ∗
-        ⌜A.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index'⌝ ∗
-        ownSnapM ap.snapshot' DFrac.discard sv ∗
+        ⌜A.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧
+          uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ ∗
+        ap.entries' ↦*□ ([] : List Loc) ∗ ownSnapM ap.snapshot' DFrac.discard sv ∗
         (letI := srvStor (GF := GF) γ.node
          snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) ∗
         nodeSnapLocal γ.node.cl γ.id sv.Metadata'.Index' ∗
@@ -110,12 +111,12 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
   · -- a snapshot payload: `cum`'s agreement at `rcv.length` (`A` is `F`), the token at `A'`
     iright
     iunfold rnApSnap at HP
-    icases HP with ⟨%F, %A', %sv, #HF, #HFA, %Hlen, #Hsn, #Hcert, #Hloc, #HC, Hn, #Hrac, #Hcl, #Hrt⟩
+    icases HP with ⟨%F, %A', %sv, #HF, #HFA, %Hlen, #Hes, #Hsn, #Hcert, #Hloc, #HC, Hn, #Hrac, #Hcl, #Hrt⟩
     simp only [Int.toNat_natCast] at *
     ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
     subst Heq
     iexists A', sv
-    iframe Hsn Hcert Hloc HC Hn Hrac Hcl Hrt
+    iframe Hes Hsn Hcert Hloc HC Hn Hrac Hcl Hrt
     isplitl [Hcons]
     · iunfold rnApplyTok
       iexists rcv ++ [ap]

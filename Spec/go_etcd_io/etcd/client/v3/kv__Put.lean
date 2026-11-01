@@ -53,7 +53,7 @@ abbrev kv.Put.spec : Prop :=
         ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧
           m.prev = (if (putWireOf (opPutModel key val opts)).base.prevKV then
             (σ.store.lookup (putWireOf (opPutModel key val opts)).key).map (KVRec.toKv (putWireOf (opPutModel key val opts)).key) else none) ∧
-          σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ ∧
+          kvRevFits (σ.rev + 1) ∧ kvLogOk σ ∧
           kvLogOk (kvOpStep (.put (putWireOf (opPutModel key val opts))) σ)⌝ ∗
         kvRevLb γ m.hdr.revision) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }}

@@ -48,7 +48,7 @@ abbrev kv.Delete.spec : Prop :=
       (⌜err = GoInterface.nil⌝ ∗ ∃ (m : DelRespM) (σ : KVState), delRespMsg resp m ∗ Q σ ∗
         ⌜m.deleted = W64 ((rangeIn σ.kvs (deleteWireOf (opDeleteModel key opts))).length : Int) ∧
           m.prevs = (if (deleteWireOf (opDeleteModel key opts)).base.prevKV then rangeIn σ.kvs (deleteWireOf (opDeleteModel key opts)) else []) ∧
-          m.hdr.revision = W64 ((kvOpStep (.deleteRange (deleteWireOf (opDeleteModel key opts))) σ).rev : Int) ∧ σ.rev + 4 < 2 ^ 63 ∧
+          m.hdr.revision = W64 ((kvOpStep (.deleteRange (deleteWireOf (opDeleteModel key opts))) σ).rev : Int) ∧ kvRevFits (σ.rev + 1) ∧
           kvLogOk σ ∧ kvLogOk (kvOpStep (.deleteRange (deleteWireOf (opDeleteModel key opts))) σ)⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }}
 

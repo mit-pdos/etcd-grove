@@ -63,7 +63,7 @@ theorem grpcCfgOk_of_started_on_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
   iunfold srvWatchReaders at Hwb
   icases Hwb with ⟨%wsl, %γ, #Hkvf, #Hws, %Hγ, #Hpool, #Htag, Hrds⟩
   iunfold srvServeCfg at Hcf
-  icases Hcf with ⟨#Hlg0, #Hqb, #Hn, %Hmto, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs⟩
+  icases Hcf with ⟨#Hlg0, #Hqb, #Hn, %Hmto, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs, -⟩
   iunfold isServerReqM at Hsrv
   icases Hsrv with ⟨⟨%v, #Hv⟩, -⟩
   iunfold srvReqFieldsAtM at Hv

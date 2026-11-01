@@ -319,7 +319,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗
           □ Q σ ∗ ⌜m.kvs = σ.kvs.filter (fun v => inRange listFrom listTo v.key) ∧
-            m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝) ∨
+            m.hdr.revision = W64 (σ.rev : Int) ∧ kvRevFits σ.rev⌝) ∨
           ⌜err ≠ GoInterface.nil⌝ }} := by
   iintro %Φ ⟨#Pc, #Hcl, #Hregs, #Hst, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
   iunfold isNewClient at Hcl
@@ -389,7 +389,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
               m.resps ∧
             m.hdr.revision = W64 ((if (linkv.MIn.txn cs t e).isWrite then
               (kvOpStep (opIn (.txn cs t e)) σ).rev else σ.rev : Nat) : Int) ∧
-            σ.rev + 3 < 2 ^ 63 ∧
+            kvRevFits σ.rev ∧
             -- (2026-10-31, `notes/vallen.md`) the state's values are short (the reply's log's)
             ∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
@@ -447,7 +447,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         rw [kvStateOf_rev]
         congr 1
         omega
-      · rw [kvStateOf_rev]; omega
+      · exact kvRevFits.of_lt (by rw [kvStateOf_rev]; omega)
     · iright
       isplitl
       · ipureintro; first | exact Herr | exact Herr.1
@@ -498,7 +498,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         mvcc.stateAfter_vals (Hlk.prefix (applyStep_prefix _ _ _ _ _ hap))⟩
       · (try simp only [↓reduceIte])
         rw [kvOpStep_txnOf_eq, hrev, ← hs, client.kvStateOf_commit_rev _ _ hlen, hs, hr]
-      · rw [kvStateOf_rev]; omega
+      · exact kvRevFits.of_lt (by rw [kvStateOf_rev]; omega)
     · iright
       isplitl
       · ipureintro; first | exact Herr | exact Herr.1

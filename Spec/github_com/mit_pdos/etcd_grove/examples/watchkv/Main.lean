@@ -12,8 +12,8 @@ if the watch did not report exactly the writes).
 putget's at `watchkv`'s configuration and the watch stream's transport premise), `Main(nw, nops)`
 does not panic and returns `Ok` (`0`: the check ran and passed), `Failed` (`1`: a step of the start
 failed) or `WatchEnded` (`2`: the watch ended before it reported every successful Put). The pure
-premises are putget's (`putget.Main.spec`), the thread bound below the watchable
-store's lock's reader limit (`2 ^ 29`), and the bounds on `nw` and `nops`; the class premises are
+premises are putget's (`putget.Main.spec`), the thread bound `2 ^ 28` (the server's, since
+J8a-6, 2026-11-01; until then the watchable store's lock's reader limit `2 ^ 29`), and the bounds on `nw` and `nops`; the class premises are
 the client watcher's (`isNewClient_watcher`'s).
 -/
 module
@@ -45,7 +45,7 @@ abbrev Main.spec : Prop :=
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (nw nops : w64),
   putget.BootFacts id ctxs boot →
-  threadBound GF ≤ 2 ^ 29 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
   storage.diskOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →

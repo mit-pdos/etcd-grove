@@ -43,7 +43,7 @@ abbrev callGet.spec : Prop :=
   {{ (y : Output), RET #y; ⌜y = errOut⌝ ∨
       ∃ σ : KVState, □ Q σ ∗
         ⌜y = getOut (W64 (σ.rev : Int)) (σ.kvs.filter fun v => decide (v.key = key)) ∧
-          σ.rev + 3 < 2 ^ 63⌝ }}
+          kvRevFits σ.rev⌝ }}
 
 end spec
 

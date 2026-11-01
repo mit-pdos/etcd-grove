@@ -3946,7 +3946,7 @@ noncomputable def pipeline.post.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.url.URL.ty))) (Pair (Var "u") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: remote.go:32:6 -/
+/-- go: remote.go:40:6 -/
 noncomputable def startRemote.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tr"
   (Lam "urls"
@@ -3997,13 +3997,19 @@ noncomputable def startRemote.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType urlPicker.ty)))) (Pair (Var "picker") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "$res0")))))))
 
-/-- go: remote.go:54:18 -/
+/-- go: remote.go:62:18 -/
 noncomputable def remote.send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam "m"
   (Seq (App (Val exceptionDo)
   (Let "g" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType remote.ty)))) (Var "g"))
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef remote.ty go!"paused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g"))))
+  (Let "paused" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (App (Val (GoInstruction (StructFieldRef pipeline.ty go!"msgc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pipeline.ty)))) (App (Val (GoInstruction (StructFieldRef remote.ty go!"pipeline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g"))))))
   (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
   (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (App (App (Val exceptionSeq) (Lam BAnon
@@ -4056,10 +4062,21 @@ noncomputable def remote.send.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef remote.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g"))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #())))))) [(CommClause (SendCase (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) (Var "$ch0") (Var "$v0")) (App (Val doExecute)
-  (Val #())))])))))))
+  (Val #())))]))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "paused"))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef remote.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "paused") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef remote.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g")))) (Val #())))))))
   (Val #()))))
 
-/-- go: remote.go:85:18 -/
+/-- go: remote.go:101:18 -/
 noncomputable def remote.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam BAnon
@@ -4069,24 +4086,48 @@ noncomputable def remote.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType pipeline.ty) go!"stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pipeline.ty)))) (App (Val (GoInstruction (StructFieldRef remote.ty go!"pipeline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g"))))) (Val #())))))
   (Val #()))))
 
-/-- go: remote.go:89:18 -/
+/-- go: remote.go:105:18 -/
 noncomputable def remote.Pause.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam BAnon
-  (Seq (App (Val exceptionDo)
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
   (Let "g" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType remote.ty)))) (Var "g"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType remote.ty) go!"stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g"))) (Val #())))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef remote.ty go!"paused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef remote.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef remote.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g")))) (Val #())))))))
   (Val #()))))
 
-/-- go: remote.go:93:18 -/
+/-- go: remote.go:111:18 -/
 noncomputable def remote.Resume.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam BAnon
-  (Seq (App (Val exceptionDo)
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
   (Let "g" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType remote.ty)))) (Var "g"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType pipeline.ty) go!"start"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pipeline.ty)))) (App (Val (GoInstruction (StructFieldRef remote.ty go!"pipeline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g"))))) (Val #())))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef remote.ty go!"paused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef remote.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef remote.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g")))) (Val #())))))))
   (Val #()))))
 
 /-- go: snapshot_sender.go:51:6 -/
@@ -9179,16 +9220,20 @@ structure remote [GooseExts] where
   id' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
   status' : Loc
   pipeline' : Loc
+  mu' : _root_.Perennial.sync.Mutex
+  paused' : Bool
 
 noncomputable instance remote.zero_val [GooseExts] : ZeroVal remote :=
-  ⟨remote.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨remote.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def remote.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"localID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"id" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"status" (go.GoType.PointerType peerStatus.ty)),
-(go.field_decl.FieldDecl go!"pipeline" (go.GoType.PointerType pipeline.ty))]
+(go.field_decl.FieldDecl go!"pipeline" (go.GoType.PointerType pipeline.ty)),
+(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"paused" go.bool)]
 
 @[irreducible] noncomputable def remote.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   remote.fieldsUnsealed
@@ -9213,6 +9258,10 @@ class remote.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_status : ∀ (x : remote) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet remote.underlying go!"status") (PairV #x #y) (Val #(({ x with status' := y } : remote)))
   get_pipeline : ∀ (x : remote), go.IsGoStepPureDetTagged under (StructFieldGet remote.underlying go!"pipeline") #x (Val #(x.pipeline'))
   set_pipeline : ∀ (x : remote) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet remote.underlying go!"pipeline") (PairV #x #y) (Val #(({ x with pipeline' := y } : remote)))
+  get_mu : ∀ (x : remote), go.IsGoStepPureDetTagged under (StructFieldGet remote.underlying go!"mu") #x (Val #(x.mu'))
+  set_mu : ∀ (x : remote) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet remote.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : remote)))
+  get_paused : ∀ (x : remote), go.IsGoStepPureDetTagged under (StructFieldGet remote.underlying go!"paused") #x (Val #(x.paused'))
+  set_paused : ∀ (x : remote) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet remote.underlying go!"paused") (PairV #x #y) (Val #(({ x with paused' := y } : remote)))
   method_set : go.MethodSetIs remote.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType remote.ty) [(go!"Pause", (some (go.signature.Signature [] false []))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.send", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop", (some (go.signature.Signature [] false [])))]
   ptr_Pause_unfold : MethodUnfold (go.GoType.PointerType remote.ty) go!"Pause" remote.Pause.impl
@@ -9232,6 +9281,10 @@ attribute [instance] remote.TypeAssumptions.type_repr
   remote.TypeAssumptions.set_status
   remote.TypeAssumptions.get_pipeline
   remote.TypeAssumptions.set_pipeline
+  remote.TypeAssumptions.get_mu
+  remote.TypeAssumptions.set_mu
+  remote.TypeAssumptions.get_paused
+  remote.TypeAssumptions.set_paused
   remote.TypeAssumptions.method_set
   remote.TypeAssumptions.ptr_method_set
   remote.TypeAssumptions.ptr_Pause_unfold

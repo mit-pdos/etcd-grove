@@ -43,7 +43,7 @@ abbrev callList.spec : Prop :=
   {{ (y : Output), RET #y; ⌜y = errOut⌝ ∨
       ∃ σ : KVState, □ Q σ ∗
         ⌜y = listOut (W64 (σ.rev : Int))
-            (σ.kvs.filter fun v => inRange listFrom listTo v.key) ∧ σ.rev + 3 < 2 ^ 63⌝ }}
+            (σ.kvs.filter fun v => inRange listFrom listTo v.key) ∧ kvRevFits σ.rev⌝ }}
 
 end spec
 

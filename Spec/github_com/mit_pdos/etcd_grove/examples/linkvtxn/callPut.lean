@@ -43,7 +43,7 @@ abbrev callPut.spec : Prop :=
       (Val #key)) (Val #val))
   {{ (y : Output), RET #y; ⌜y = errOut⌝ ∨
       ∃ σ : KVState, Q σ ∗
-        ⌜y = { zOut with Rev' := W64 ((σ.rev + 1 : Nat) : Int) } ∧ σ.rev + 4 < 2 ^ 63⌝ }}
+        ⌜y = { zOut with Rev' := W64 ((σ.rev + 1 : Nat) : Int) } ∧ kvRevFits (σ.rev + 1)⌝ }}
 
 end spec
 

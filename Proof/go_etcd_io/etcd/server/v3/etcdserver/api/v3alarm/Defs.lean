@@ -57,11 +57,12 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- The lock invariant of `a.mu`: the map `a.types` (from an alarm type to its set) and each
+/-- The lock invariant of `a.mu`: half of the map `a.types` (from an alarm type to its set; the
+other half is the store's user's, `alarmBeOnM`: 2026-11-01, J8a-5, until then owned here) and each
 set (from a member id to its alarm), owned; half of `a.be` (S7c). -/
 def alarmLockInv (a : Loc) : IProp GF :=
   iprop(∃ (tm : GoMap) (gm : GMap w32 GoMap) (ab : GoInterface),
-    alarmTypesAddr a ↦ tm ∗ tm ↦$ gm ∗
+    alarmTypesAddr a ↦{DFrac.own (1 : Qp).half} tm ∗ tm ↦${DFrac.own (1 : Qp).half} gm ∗
     ([∗map] _k ↦ t ∈ gm, ∃ im : GMap w64 Loc, t ↦$ im) ∗
     alarmBeAddr a ↦{DFrac.own (1 : Qp).half} ab)
 
@@ -70,17 +71,36 @@ abbrev alarmBkIface (abl : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.alarmBackend.ty)
     #abl
 
-/-- **The alarm store `a` is on the real backend at `be`** (D22 receiver epochs, S7c, 2026-10-23;
-not persistent): its user's half of `a.be`, a schema alarm backend over `be` with a logger (both
-read-only). The store's writes and its `Recover` take it (`apply.isAlarmStore`'s write right,
-`NewAlarmStore`'s contract): with the lock's half it names the backend they write to. -/
-def alarmBeOn (a be : Loc) : IProp GF :=
-  iprop(∃ (abl lg : Loc), ⌜lg ≠ null⌝ ∗
+/-- **The alarm store `a` is on the real backend at `be`, with the alarm map `gm`** (D22 receiver
+epochs, S7c, 2026-10-23; not persistent): its user's half of `a.be`, a schema alarm backend over
+`be` with a logger (both read-only), and (2026-11-01, J8a-5) the user's half of `a.types` and of its
+map, at `gm`. The store's writes and its `Recover` take it (`apply.isAlarmStore`'s write right,
+`NewAlarmStore`'s contract): with the lock's half it names the backend they write to, and the
+alarm map is the lock's (`Get` with `gm = ∅` returns no alarm). -/
+def alarmBeOnM (a be : Loc) (gm : GMap w32 GoMap) : IProp GF :=
+  iprop(∃ (abl lg : Loc) (tm : GoMap), ⌜lg ≠ null⌝ ∗
     alarmBeAddr a ↦{DFrac.own (1 : Qp).half} alarmBkIface abl ∗
     alarmBkBeAddr abl ↦□ (interface.mkOk
       (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #be :
         GoInterface) ∗
-    alarmBkLgAddr abl ↦□ lg)
+    alarmBkLgAddr abl ↦□ lg ∗
+    alarmTypesAddr a ↦{DFrac.own (1 : Qp).half} tm ∗ tm ↦${DFrac.own (1 : Qp).half} gm)
+
+/-- **The alarm store `a` is on the real backend at `be`** (`alarmBeOnM` at some alarm map). -/
+def alarmBeOn (a be : Loc) : IProp GF := iprop(∃ gm : GMap w32 GoMap, alarmBeOnM a be gm)
+
+/-- (2026-11-01, J8a-5) **The alarm store `a` on `be` has no alarm** (exclusive): `alarmBeOnM` at
+the empty map. `NewAlarmStore` and `Recover` over an empty alarm bucket give it, `Get` returns an
+empty slice under it (until J8a-5 the opaque token `alarmFresh a` of the `NewAlarmStore` axiom,
+which only the boot had). -/
+def alarmEmpty (a be : Loc) : IProp GF := alarmBeOnM a be ∅
+
+theorem alarmEmpty_beOn (a be : Loc) : alarmEmpty (GF := GF) a be ⊢ alarmBeOn a be := by
+  iintro H
+  iunfold alarmEmpty at H
+  iunfold alarmBeOn
+  iexists ∅
+  iexact H
 
 /-- `a` is an alarm store (persistent): its mutex, with the lock invariant. -/
 def isAlarmStore (a : Loc) : IProp GF :=
