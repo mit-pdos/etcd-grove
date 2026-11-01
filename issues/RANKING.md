@@ -316,6 +316,11 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[etcd-watch-compacted-resent](etcd-watch-compacted-resent.md)** (2026-11-01): with more than
+  512 unsynced watchers, `chooseAll` deletes a compacted watcher from `choose`'s copy only, so it
+  stays unsynced and is sent the compaction response again each sync until the client cancels.
+  Reproduced at the mvcc level; the Go client tolerates it (it cancels the unknown id), so a
+  duplicate canceled response and a stale `slowWatcherGauge`; a small fix in `syncWatchers`.
 - **[etcd-restore-pending-compaction-unclosed](etcd-restore-pending-compaction-unclosed.md)**
   (2026-10-30): `store.Restore` drops a queued compaction job without closing its channel, so a
   `Physical` compaction RPC on a follower that installs a snapshot meanwhile hangs and leaks its
