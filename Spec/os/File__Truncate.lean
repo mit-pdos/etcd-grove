@@ -5,7 +5,7 @@ closed file's -1): with the whole of the file's `OsMeta` (no change in flight on
 new size at least the size, and the client's halves of the cells of every mapping past the size
 (up to `hi`, where every mapping ends: a change in flight from the size on makes them all holes,
 and the new bytes fill `[size, sz)`). The model (`TrustedCode/os.lean`) is the extension's two
-steps (`wp_FtruncateStart`, `wp_FtruncateFinish`), retried on `EINTR`. On success the file is
+steps (`wp_osFtruncateStart`, `wp_osFtruncateFinish`), retried on `EINTR`. On success the file is
 grown (`osGrown`: size `sz`, the new bytes zeros, dirty, and the cells show them); on failure it
 is grown or unchanged. Proved in `Proof/os/File__Truncate.lean`. Lean-first (no Rocq
 counterpart).

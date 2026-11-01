@@ -105,7 +105,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
       min off.toNat m.size) = min off.toNat (pwSize m.size off.toNat j) by omega]) $$ Hbs
   ihave ⟨Hc1, Hc2⟩ := mcellsAny_split m.maps (min off.toNat m.size)
     (min off.toNat (pwSize m.size off.toNat j)) (off.toNat + data.length) (by omega) (by omega) $$ Hc
-  wp_apply wp_PWriteStart fd off data dq d q { m with size := pwSize m.size off.toNat j, hi := h }
+  wp_apply wp_osPWriteStart fd off data dq d q { m with size := pwSize m.size off.toNat j, hi := h }
     (ys.drop (min off.toNat (pwSize m.size off.toNat j) - min off.toNat m.size))
     CoPset.subseteq_top hwr hoff (by
       simp only [List.length_drop]
@@ -113,7 +113,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
         min off.toNat (pwSize m.size off.toNat j)
       omega)
     (fun hr => hq (by simp only at hr; omega)) $$ Hinv Hosfd Hm Hbs2 Hc2 as %t Hosfd Ht
-  wp_apply wp_PWriteFinish t d.path off.toNat data q
+  wp_apply wp_osPWriteFinish t d.path off.toNat data q
     { m with size := pwSize m.size off.toNat j, hi := h }
     (ys.drop (min off.toNat (pwSize m.size off.toNat j) - min off.toNat m.size))
     CoPset.subseteq_top $$ Hinv Ht as %k %e %hke Hm Hbs2 Hc2

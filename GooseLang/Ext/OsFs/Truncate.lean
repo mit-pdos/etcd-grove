@@ -65,9 +65,9 @@ theorem mcellsAny_nil (M : GMap Loc Nat) (lo hi : Nat) (h : lo = hi) :
   iempintro
 
 /-- The first step of `ftruncate(fd, sz)` growing the file, with the whole of its `OsMeta`, which
-stays with the change until its second step (`wp_FtruncateFinish`), and the client's halves of
+stays with the change until its second step (`wp_osFtruncateFinish`), and the client's halves of
 the cells of every mapping past the size, which the change affects. -/
-theorem wp_FtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hi : Nat)
+theorem wp_osFtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hi : Nat)
     (hE : ↑osN ⊆ E) (hwr : d.writable = true) (hsz : 0 ≤ sz.toInt) (hgrow : m.size ≤ sz.toNat)
     (hhi : MapsBelow m.maps hi) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.path (DFrac.own 1) (some m) -∗
@@ -79,7 +79,7 @@ theorem wp_FtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hi
 /-- The second step of a growing `ftruncate`, giving back the client's halves of the cells of
 every mapping past the old size. On success the file is grown (`osGrown`); on failure it may be
 grown, or unchanged. -/
-theorem wp_FtruncateFinish (t : Nat) (p : GoString) (sz : Nat) (m : OsMeta) (hi : Nat)
+theorem wp_osFtruncateFinish (t : Nat) (p : GoString) (sz : Nat) (m : OsMeta) (hi : Nat)
     (hE : ↑osN ⊆ E) (hgrow : m.size ≤ sz) (hhi : MapsBelow m.maps hi) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ ftTok (L := L) t p sz m -∗
       (∀ e : w64,

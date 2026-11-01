@@ -1,5 +1,5 @@
 /-
-The proof of `Spec/os/File__Close.lean`: a store of -1 to the fd field, and `wp_Close`.
+The proof of `Spec/os/File__Close.lean`: a store of -1 to the fd field, and `wp_osClose`.
 -/
 module
 
@@ -30,7 +30,7 @@ theorem os.File.Close.wp_proof : os.File.Close.spec (GF := GF) (hG := hG) := by
   ihave #Hf2 := Hf
   iStructNamed Hf2
   wp_auto
-  wp_apply wp_Close fd d CoPset.subseteq_top $$ [Hinv Hosfd] as %e -
+  wp_apply wp_osClose fd d CoPset.subseteq_top $$ [Hinv Hosfd] as %e -
   · iframe; iexact Hinv
   by_cases he : e = W64 0
   · rw [decide_eq_true he]

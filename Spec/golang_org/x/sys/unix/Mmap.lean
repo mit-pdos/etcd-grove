@@ -1,7 +1,7 @@
 /-
 `unix.Mmap(fd, 0, length, PROT_READ, MAP_SHARED[|MAP_POPULATE])` (this repository's
 `golang.org/x/sys/unix`, project `bboltfs`): the trusted model (`TrustedCode/golang_org/x/sys/unix.lean`)
-is the extension's `Mmap` (`wp_Mmap`), whose base it makes a slice of `length` bytes with
+is the extension's `Mmap` (`wp_osMmap`), whose base it makes a slice of `length` bytes with
 `unsafe.Slice`. With the whole of the file's `OsMeta` (no change in flight on it): on success, a
 slice of fresh cells, whose client halves hold the file's bytes, then holes past its end (a
 `length` past the file's size is allowed), and the mapping is recorded in the `OsMeta`; on

@@ -2,7 +2,7 @@
 `f.Sync()` on an open `*os.File` (this repository's `os`, project `bboltfs`): `fsync`, as
 `syscall.Fdatasync` (`Spec/syscall/Fdatasync.lean`, D3), with the whole of the file's `OsMeta`
 (no change in flight) and some of its bytes, whole. The model (`TrustedCode/os.lean`) is the
-extension's `Fsync` (`wp_Fsync`), retried on `EINTR`; a failed attempt may lose bytes (`ok :=
+extension's `Fsync` (`wp_osFsync`), retried on `EINTR`; a failed attempt may lose bytes (`ok :=
 false`) before a retry succeeds. On success the size is durable and the bytes clean unless a
 failed sync lost one; on failure, nothing more is clean, and bytes may be lost. Proved in
 `Proof/os/File__Sync.lean`. Lean-first (no Rocq counterpart).

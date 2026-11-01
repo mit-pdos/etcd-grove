@@ -1,5 +1,5 @@
 /-
-The proof of `Spec/os/File__Stat.lean`: the model's `EINTR` loop over `wp_Fstat`, and the `fileStat` it allocates, which
+The proof of `Spec/os/File__Stat.lean`: the model's `EINTR` loop over `wp_osFstat`, and the `fileStat` it allocates, which
 needs `fileStat.FieldAssumptions` (`TrustedCode/os.lean`).
 -/
 module
@@ -32,7 +32,7 @@ theorem os.File.Stat.wp_proof : os.File.Stat.spec (GF := GF) (hG := hG) := by
   iStructNamed Hf2
   wp_auto
   iloeb as IH generalizing Hosfd Hm Hfd HΦ
-  wp_apply wp_Fstat fd dq dqm d m CoPset.subseteq_top $$ Hinv Hosfd Hm as %sz %e %hr Hosfd Hm
+  wp_apply wp_osFstat fd dq dqm d m CoPset.subseteq_top $$ Hinv Hosfd Hm as %sz %e %hr Hosfd Hm
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     wp_auto

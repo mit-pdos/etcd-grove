@@ -3,7 +3,7 @@
 bytes inside the file that the client holds (any fractions), with a fraction of the file's
 `OsMeta` (so that the size is known): a non-negative offset, `b` of at most `maxRW` (1 GiB)
 bytes, and `off + len(b)` at most the size. The model (`TrustedCode/os.lean`) makes one `pread`
-(the extension's `PRead`, `wp_PRead`) per iteration, retried on `EINTR`. On success `b` holds the
+(the extension's `PRead`, `wp_osPRead`) per iteration, retried on `EINTR`. On success `b` holds the
 bytes and the result is `(len(b), nil)`; on failure, `(0, err)` with a non-nil `err`, and `b` holds
 anything. Proved in `Proof/os/File__ReadAt.lean`. Lean-first (no Rocq counterpart). `specRacy`, below, is the racing read.
 -/
@@ -49,7 +49,7 @@ abbrev os.File.ReadAt.spec : Prop :=
 /-- A racing `f.ReadAt(b, off)` (minibolt's `Snapshot`, which reads while the writer may write
 past what it knows, or a meta page it does not hold): no `OsMeta`, and bytes of the file held at
 any fractions, in ranges `rs` (each `(off, dq, xs)`: `osBytes path off dq xs`). The model makes
-one `pread` (`wp_PRead_racy`) per iteration, retried on `EINTR`, until `b` is full, a `pread`
+one `pread` (`wp_osPRead_racy`) per iteration, retried on `EINTR`, until `b` is full, a `pread`
 reads nothing (`io.EOF`, whose value `eof` the client knows) or one fails. The result's `n`
 bytes of `b` are exact at every held byte; with `nil` they are all of `b`, and with `io.EOF`
 they reach every held byte inside `[off, off + len(b))`. A failure is a `*PathError`, so never

@@ -524,8 +524,8 @@ theorem cellByte_eq (st : OsState) (p : GoString) (i : Nat) :
 /-- The first step of `pwrite(fd, data, off)`, with the bytes it may change below the size
 (`[min off size, min (off + n) size)`, whole), the client's halves of the cells of every mapping
 over `[min off size, off + n)`, and a fraction `q` of the file's `OsMeta`, all of it if the write
-may extend the file. They stay with the change until its second step (`wp_PWriteFinish`). -/
-theorem wp_PWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd) (q : Qp)
+may extend the file. They stay with the change until its second step (`wp_osPWriteFinish`). -/
+theorem wp_osPWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd) (q : Qp)
     (m : OsMeta) (xs : List (w8 × Bool)) (hE : ↑osN ⊆ E) (hwr : d.writable = true)
     (hoff : 0 ≤ off.toInt)
     (hlen : xs.length = min (off.toNat + data.length) m.size - min off.toNat m.size)
@@ -1142,7 +1142,7 @@ them with errno 0, or a prefix with a nonzero errno. What the first step took co
 `OsMeta` with the new size, the bytes `[min off size, min (off + n) size')` (the zero gap, the data
 written, then the old bytes), not clean, and the client's halves of the mapped cells, which show
 the new bytes. -/
-theorem wp_PWriteFinish (t : Nat) (p : GoString) (off : Nat) (data : List w8) (q : Qp)
+theorem wp_osPWriteFinish (t : Nat) (p : GoString) (off : Nat) (data : List w8) (q : Qp)
     (m : OsMeta) (xs : List (w8 × Bool)) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ pwTok (L := L) t p off data q m xs -∗
       (∀ k : Nat, ∀ e : w64, ⌜k ≤ data.length ∧ (k = data.length ∧ e = 0 ∨ e ≠ 0)⌝ -∗

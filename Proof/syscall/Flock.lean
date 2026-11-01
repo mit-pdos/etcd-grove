@@ -1,5 +1,5 @@
 /-
-The proof of `Spec/syscall/Flock.lean`: the extension's `Flock` (`wp_Flock`), then `errnoErr`.
+The proof of `Spec/syscall/Flock.lean`: the extension's `Flock` (`wp_osFlock`), then `errnoErr`.
 -/
 module
 
@@ -24,7 +24,7 @@ variable [syscall.Assumptions]
 theorem syscall.Flock.wp_proof : syscall.Flock.spec (GF := GF) (hG := hG) := by
   intro fd how dq d
   wp_start as ⟨#Hinv, Hfd⟩
-  wp_apply wp_Flock fd how dq d CoPset.subseteq_top $$ Hinv Hfd as %e Hfd
+  wp_apply wp_osFlock fd how dq d CoPset.subseteq_top $$ Hinv Hfd as %e Hfd
   iapply wp_errno
   iapply HΦ
   iframe

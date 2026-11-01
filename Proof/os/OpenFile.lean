@@ -1,5 +1,5 @@
 /-
-The proof of `Spec/os/OpenFile.lean`: the model's `EINTR` loop, by Löb induction, over `wp_Open`;
+The proof of `Spec/os/OpenFile.lean`: the model's `EINTR` loop, by Löb induction, over `wp_osOpen`;
 the `file` it allocates needs `file.FieldAssumptions` (`TrustedCode/os.lean`).
 -/
 module
@@ -36,7 +36,7 @@ theorem os.OpenFile.wp_proof : os.OpenFile.spec (GF := GF) (hG := hG) := by
     intro h; rcases hm2 with rfl | rfl
     · exact hq h
     · cases mo <;> simp [openMeta] at h
-  wp_apply wp_Open path (W64 0x80042) q mo' CoPset.subseteq_top
+  wp_apply wp_osOpen path (W64 0x80042) q mo' CoPset.subseteq_top
     (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide) (by decide) hq'
     $$ Hinv Hm as %fd %e %mo2 %hres Hm Hfd
   have hom : openMeta mo' true = openMeta mo true := by

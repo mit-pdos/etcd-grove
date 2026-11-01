@@ -1,7 +1,7 @@
 /-
 `f.Stat()` on an open `*os.File` (this repository's `os`, project `bboltfs`), with a fraction of
 the file's `OsMeta`, so that no change in flight resizes it and the size is exact. The model
-(`TrustedCode/os.lean`) is the extension's `Fstat` (`wp_Fstat`), retried on `EINTR`, whose size
+(`TrustedCode/os.lean`) is the extension's `Fstat` (`wp_osFstat`), retried on `EINTR`, whose size
 it stores in a fresh `fileStat`. On success the result is that `*fileStat` as a `FileInfo`, holding
 the size (`os.ownFileStat`, read by `Size`, `Spec/os/fileStat__Size.lean`); on failure a nil
 `FileInfo` and a non-nil error. Proved in `Proof/os/File__Stat.lean`. Lean-first (no Rocq

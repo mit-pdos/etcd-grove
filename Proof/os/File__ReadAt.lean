@@ -65,7 +65,7 @@ theorem os.File.ReadAt.wp_proof : os.File.ReadAt.spec (GF := GF) (hG := hG) := b
       rw [hslz, show sint.Z (W64 1073741824) = 1073741824 from rfl]; omega
     rw [decide_eq_false hmx]
     wp_auto
-    wp_apply wp_PRead fd off sl.len dq dqm dqb d m xs CoPset.subseteq_top hrd hoff
+    wp_apply wp_osPRead fd off sl.len dq dqm dqb d m xs CoPset.subseteq_top hrd hoff
       (by simp only [sint.Z] at hslz; have := BitVec.toInt_eq_toNat_cond sl.len; split at this <;> omega)
       $$ Hinv Hosfd Hm Hbs as %r %e %hre Hosfd Hm Hbs
     have hrl : r.length ≤ vs.length := by

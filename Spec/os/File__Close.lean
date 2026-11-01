@@ -1,7 +1,7 @@
 /-
 `f.Close()` on an open `*os.File` (this repository's `os`, project `bboltfs`), with the whole fd
 and the whole of the `*File`'s fd field: the model (`TrustedCode/os.lean`) sets the field to -1
-and calls the extension's `Close` (`wp_Close`), which frees the fd whatever the errno. The result
+and calls the extension's `Close` (`wp_osClose`), which frees the fd whatever the errno. The result
 is any error; the `*File` keeps its name (`Name` still works). Proved in
 `Proof/os/File__Close.lean`. Lean-first (no Rocq counterpart).
 -/
