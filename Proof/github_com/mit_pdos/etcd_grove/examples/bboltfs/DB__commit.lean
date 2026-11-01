@@ -17,6 +17,7 @@ public import Spec.os.File__WriteAt
 public import Spec.os.File__Fd
 public import Spec.syscall.Fdatasync
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Writer
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.InitLayout
 public import Perennial.Proof.sync.Results
 
 @[expose] public section
@@ -289,6 +290,28 @@ theorem metaPage_cells_split (base : Loc) (i : Nat) :
   isplitl [H0]
   · iexists v0; iexact H0
   · iexists v1; iexact H1
+
+/-- The header of the meta page `commit` writes after `mv`. -/
+def metaHdrOf (mv : Meta) : Page :=
+  { pageHdr (W64 0) (W16 0) with id' := (nextMeta mv).txid' % W64 2, flags' := W16 4 }
+
+/-- The meta page `commit` writes after `mv`. -/
+def metaPageOf (mv : Meta) : List w8 :=
+  encode (metaHdrOf mv) ++ encode (commitOf mv) ++ zeroBytes (pageBytes - 80)
+
+theorem metaPageOf_length (mv : Meta) : (metaPageOf mv).length = 4096 := by
+  simp only [metaPageOf, List.length_append, ByteEncoding.encode_length, List.length_replicate, pageBytes]
+
+theorem metaPageOf_meta (mv : Meta) : pageMeta (metaPageOf mv) = commitOf mv := by
+  unfold metaPageOf; exact pageMeta_encode _ _ _
+
+/-- One of two things, by its index. -/
+theorem pick_page (P : Nat → IProp GF) (i : Nat) (hi : i < 2) :
+    P 0 ∗ P 1 ⊣⊢ P i ∗ P (1 - i) := by
+  have : i = 0 ∨ i = 1 := by omega
+  rcases this with rfl | rfl
+  · exact .rfl
+  · exact ⟨by iintro ⟨H0, H1⟩; iframe H0 H1, by iintro ⟨H1, H0⟩; iframe H0 H1⟩
 
 theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     (wp_Truncate : os.File.Truncate.spec (GF := GF) (hG := hG))
@@ -740,6 +763,46 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   rotate_left
   · icombine Hcls Hcls2 gives % ⟨_, Hbad⟩; cases Hbad
   (try wp_auto)
+  -- the meta buffer holds the meta page
+  ihave Hh : mbuf.ptr ↦ metaHdrOf mv $$ [Hh]
+  · simp only [metaHdrOf, pageHdr, nextMeta]; iexact Hh
+  ihave Hmm : (mbuf.ptr +ₗ 16) ↦ commitOf mv $$ [Hmm]
+  · simp only [commitOf, nextMeta]; iexact Hmm
+  ihave Hb := (pageMeta_view mbuf.ptr _ _ _ _ Hmbpos).2 $$ [Hh Hmm Hr]
+  · iframe Hh Hmm Hr
+  ihave Hmb := Hmclose $$ %(metaPageOf mv) [] [Hb]
+  · ipureintro; rw [metaPageOf_length, List.length_replicate]
+  · simp only [metaPageOf]; iexact Hb
+  -- the meta cells out of the invariant, the meta pages' bytes whole
+  imod metas_out γ p base len γm mx hwm $$ [Hinv Htok Hcur Hout Hout2]
+    with ⟨Htok, Hcur, Hout, Hout2, Hc0, Hc1⟩
+  · iframe Htok Hcur Hout Hout2; iframe #
+  have hmxl : mxc.length = 8192 := Hwf.2.2.1
+  have hmxl' : mxc'.length = 8192 := Hmx'.1
+  ihave Hmxw := osBytes_join p mxc mxc' 0 (by rw [hmxl, hmxl']) $$ [Hmx Hmx2]
+  · iframe Hmx Hmx2
+  have hml : mx.length = 8192 := by rw [← hmx, List.length_map, hmxl]
+  generalize hi : ((mv.txid' + W64 1) % W64 2).toNat = i
+  have hi2 : i < 2 := by rw [← hi, BitVec.toNat_umod]; exact Nat.mod_lt _ (by decide)
+  have hoffm : ((mv.txid' + W64 1) % W64 2 * W64 4096).toNat = 4096 * i := by
+    rw [BitVec.toNat_mul, hi]; show i * 4096 % 2 ^ 64 = _; omega
+  have hoffmI : 0 ≤ ((mv.txid' + W64 1) % W64 2 * W64 4096).toInt := by
+    rw [BitVec.toInt_eq_toNat_cond, hoffm]; split <;> omega
+  -- meta page `i`'s cells
+  ihave Hc0 := cellsB_any base 16 _ $$ Hc0
+  ihave Hc1 := cellsB_any base 4112 _ $$ Hc1
+  have hl64 : ∀ k, ((mx.drop k).take 64).length = 64 ∨ 8192 < k + 64 := by
+    intro k; by_cases hk : k + 64 ≤ 8192
+    · left; simp only [List.length_take, List.length_drop, hml]; omega
+    · right; omega
+  rw [show ((mx.drop 16).take 64).length = 64 by simp only [List.length_take, List.length_drop, hml]; rfl,
+    show ((mx.drop 4112).take 64).length = 64 by simp only [List.length_take, List.length_drop, hml]; rfl]
+  icases (hdrTails base).1 $$ Hwc4 with ⟨T0, T1⟩
+  icases (pick_page (fun k => iprop(hdrTail (GF := GF) base k ∗ cellsAny (GF := GF) base (4096 * k + 16) 64))
+    i hi2).1 $$ [T0 T1 Hc0 Hc1] with ⟨⟨Ti, Hci⟩, Hother⟩
+  · iframe T0 T1 Hc0 Hc1
+  ihave Hpi := metaPage_cells base i $$ [Ti Hci]
+  · iframe Ti Hci
   sorry
 
 end proof
