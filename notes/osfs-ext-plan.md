@@ -186,3 +186,22 @@ every change marks what it changes as dirty, but the trusted file does not state
 4. `Specs.lean` (untrusted): mapped cells use the ordinary byte points-to; per-byte file ghost state
    that owns the mapped cells; the durable/dirty ghost state; `ExtCrashInterp`.
 5. Adequacy with the environment assumptions as premises.
+
+### Program logic, as of 2026-11-01 (branch `osfs-specs`)
+
+Extension-level specs (`GooseLang/Ext/OsFs/Specs.lean`, `Write.lean`): `Close`, `Flock`, `Fstat`,
+`PRead` (exact and racing), `Fsync`, `Mmap` (with the mapping's bounds), `Munmap`, `Open` without
+`O_TRUNC`, `PWriteStart`/`PWriteFinish` (and the facts a retried write needs: `pwBytes_retry`,
+`mcellsAny_split`/`_merge`). Not yet: `FtruncateStart`/`FtruncateFinish`, `Open` with `O_TRUNC`.
+
+Go-level specs (`Spec/`, proved in `Proof/`): `syscall.Fdatasync`, `syscall.Flock`, `unix.Mmap`,
+`(*os.File).Fd`, `WriteAt` (offset ≥ 0, `0 < len(b) ≤ maxRW`; EINTR retries), `ReadAt` (exact:
+inside the file, `len(b) ≤ maxRW`). An open file is `os.ownFile` (`Proof/os/Base.lean`), field by
+field. Not yet: `OpenFile` and `Stat` (blocked, below), `Truncate` (needs the ftruncate specs),
+`Sync`, `Close`, `Name`, the racing `ReadAt`, `unix.Munmap`, `unix.Madvise`.
+
+**Blocker in the trusted base:** `os.file` and `os.fileStat` are trusted types, and goose emits no
+field-access assumptions for them (`file.TypeAssumptions` lacks `get_fd`/`set_fd`/`get_name`/
+`set_name`, which `File.TypeAssumptions` has as `get_file`/`set_file`), so their `IntoValTyped`
+cannot be proved (`solve_into_val_typed_struct` gets stuck) and the `GoAlloc` of one, in
+`OpenFile.impl` and `File.Stat.impl`, cannot be reasoned about.
