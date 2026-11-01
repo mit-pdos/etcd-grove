@@ -305,50 +305,6 @@ def auth.authOwnPM (M : auth.AuthMode) (hs N : List auth.AuthState) : IProp GF :
   | .on γa => auth.authOwnP γa hs N
   | _ => auth.authOwn M (hs ++ N)
 
-/-- **The catch-up, before `Recover`** (candidate (ii); ghost only, proved): with the whole
-authority at `hs` and the cap's permission at `hs ++ N` (`authHistTie_catchup`), the states of `N`
-are appended to the history (the revision invariant's quarter with it, its cap bound raised to
-`hs ++ N`); the admin side keeps the pending authority, the lock's share is at the new last state
-`stI` (for the new backend's lock), and `stI` is recorded. (Over today's `authInv`: it opens only
-`revInv`'s `revCur`, which the restatement leaves unchanged, and frames `revFresh`.) -/
-theorem auth.authCatchUpFirst (stl : Loc) (R : IProp GF) (γa : auth.AuthNames)
-    (hs N : List auth.AuthState) (stI : auth.AuthState) (E' : CoPset)
-    (hE : ↑(nroot.@"authRev") ⊆ E') (hk : ∀ x ∈ N, auth.permKeysOk x)
-    (hl : (hs ++ N).getLast? = some stI) :
-    auth.authInv (GF := GF) stl R (.on γa) ∗ auth.authOwnF (.on γa) hs ∗
-        auth.capLb γa (hs ++ N) ={E'}=∗
-      auth.authOwnP γa hs N ∗ auth.authLockI (.on γa) stI ∗
-        auth.authStateAt γa ((hs ++ N).length - 1) stI := by
-  have hi : (hs ++ N)[(hs ++ N).length - 1]? = some stI := by
-    rw [List.getLast?_eq_getElem?] at hl; exact hl
-  simp only [auth.authOwnF]
-  iintro ⟨#Hinv, ⟨Hh, ⟨%stl', %Hl, Hc⟩⟩, #Hcap⟩
-  iunfold auth.authInv at Hinv
-  icases Hinv with ⟨-, #Hrev, -⟩
-  iinv Hrev with Hi Hclose
-  iunfold auth.revInv at Hi
-  icases Hi with ⟨%r, >Hr, Hv, >Hcur, Hf⟩
-  iunfold auth.revCur at Hcur
-  icases Hcur with ⟨%stc, Hc2, %Hrc, %hh, Hq, -⟩
-  ihave %Hhh := auth.authHist_rev_agree γa hs hh $$ Hh Hq
-  subst Hhh
-  imod (auth.authHist_appendL γa hs N hk) $$ [Hh Hq] with ⟨Hh, Hq⟩
-  · iframe Hh Hq
-  imod (auth.authHist_stateAt_keep γa (hs ++ N) ((hs ++ N).length - 1) stI hi) $$ Hh
-    with ⟨Hh, #Hst⟩
-  imod Hclose $$ [Hr Hv Hc2 Hq Hf] with -
-  · inext; iunfold auth.revInv; iexists r; iframe Hr Hv Hf
-    iunfold auth.revCur; iexists stc; iframe Hc2; isplitr
-    · ipureintro; exact Hrc
-    · iexists hs ++ N; iframe Hq Hcap
-  icases (auth.authHist_split γa (hs ++ N)).1 $$ Hh with ⟨Hh, Hlk⟩
-  imodintro
-  iframe Hst
-  isplitl [Hh Hc]
-  · iunfold auth.authOwnP; iframe Hh; iexists stl'; iframe Hc; ipureintro; exact Hl
-  · iunfold auth.authLockI; iexists hs ++ N; simp only [auth.authLockShare]; iframe Hlk
-    ipureintro; exact hl
-
 /-! ### The per-backend ghost names (decision 3b) -/
 
 /-- **A backend's auth ghost names** (the write token's, the currency's, the retired token's). -/
@@ -368,6 +324,16 @@ def auth.authCur (γc : auth.AuthBkNames) (q : Qp) : IProp GF := ghostVar γc.2.
 
 /-- **The backend `γc` retired** (exclusive; what retiring `T` leaves). -/
 def auth.authRetired (γc : auth.AuthBkNames) : IProp GF := token γc.2.2
+
+/-- **The store's succession name** (a new field `succ` of `auth.AuthNames` in the merge; opaque
+here). -/
+opaque auth.AuthNames.succ : auth.AuthNames → GName
+
+/-- **The right to make a new backend current** (exclusive; review round A1's attack A): only the
+retirement of the current backend's write token produces it, and the snapshot clause takes it, so at
+most one backend of the store is live (its write contract, its latest clause and its publication)
+at a time. Boot's backend starts live without it. -/
+def auth.authSucc (γa : auth.AuthNames) : IProp GF := token γa.succ
 
 /-- **The share `q` of the current backend's name**: `beP` holds half (at its fraction), the apply
 thread the other half with the write token (`authWHeld`); the tie of `beP`'s `T` to the apply
@@ -396,16 +362,22 @@ def auth.authPubTok (γa : auth.AuthNames) : IProp GF :=
 /-- **A backend's lifecycle** (persistent; trusted, given by the premise with each backend's `γc`;
 `K` what its realization keeps, `bOpen γB authOpenQ` for the server's backends):
 - **retire**: `T` and the publication quarter for the lock's share of the history (the share is at
-  rest in the realization while `T` is out of a batch; `Lock()` moves it out, `Unlock()` back) and
-  the retired token: the backend's write contract and latest clause end with it;
+  rest in the realization while `T` is out of a batch; `Lock()` moves it out, `Unlock()` back), the
+  retired token and the succession right (`authSucc`, for the next backend's snapshot clause): the
+  backend's write contract and latest clause end with it;
 - **release**: the retired token and the whole currency (no reader can begin a read) for `K` (the
-  backend's open share, for its `Close`: decision 3a) and the publication quarter back;
+  backend's open share, for its `Close`: decision 3a) and the publication quarter back. Reads begun
+  before the release may still be running (`Cu` comes back at `RLock`): this is realizable only over
+  a backend whose `Close` waits for the read transaction's holders (Go's does: `commit` takes
+  `readTx.Lock()`), which today's `backend__Close` spec (`bOpen 1`, with every reader's open share
+  back) does not state: a backend-level change (review round A1's 3);
 - **publish**: with `T` (no batch open, the backend holds the history's last state), the
   publication quarter, the history's half at `hs` and the store's half at `p`, the published index
   raised to `hs`'s last. -/
 def auth.authBkLife (γa : auth.AuthNames) (γc : auth.AuthBkNames) (K : IProp GF) : IProp GF :=
   iprop(□ (auth.authWTok γc ∗ auth.authPubTok γa ==∗
-        (∃ st : auth.AuthState, auth.authLockI (.on γa) st) ∗ auth.authRetired γc) ∗
+        (∃ st : auth.AuthState, auth.authLockI (.on γa) st) ∗ auth.authRetired γc ∗
+          auth.authSucc γa) ∗
     □ (auth.authRetired γc ∗ auth.authCur γc 1 ==∗ K ∗ auth.authPubTok γa) ∗
     □ (∀ (hs : List auth.AuthState) (p : Nat), auth.authWTok γc -∗ auth.authPubTok γa -∗
         auth.authHistHalf γa hs -∗ auth.authPubQ γa (1 : Qp).half p -∗ ⌜p + 1 ≤ hs.length⌝ ==∗
@@ -462,7 +434,7 @@ instance AonDraft.auth.authBackendOk_persistent (be : GoInterface) (R : IProp GF
 /-- **`beP`, redefined** (decision 3; what `beMu` guards at `q`): in `on γa`, the backend's field at
 half the fraction, the share of the current backend's name, its guarded contract and the currency
 at `q` (readers get a part; `Recover`, under the write lock, all of it). In the other modes today's.
-(`authInv` is read with this `beP` and `AonDraft.auth.revFresh`.) -/
+(Used by `AonDraft.auth.authInv`.) -/
 def AonDraft.auth.beP (st : Loc) (R : IProp GF) (M : auth.AuthMode) (q : Qp) : IProp GF :=
   match M with
   | .on γa => iprop(∃ (be : go_etcd_io.etcd.server.v3.auth.AuthBackend) (γc : auth.AuthBkNames),
@@ -483,6 +455,70 @@ def AonDraft.auth.revFresh (M : auth.AuthMode) (r : w64) : IProp GF :=
         ∃ (s : auth.AuthState) (j' : Nat) (s' : auth.AuthState), auth.authStateAt γa v.2 s ∗
           auth.authStateAt γa j' s' ∗ ⌜p ≤ j' ∧ auth.permView s = auth.permView s'⌝)
   | _ => iprop(True)
+
+/-- **`revInv`, redefined**: today's, with the redefined `revFresh`. -/
+def AonDraft.auth.revInv (st : Loc) (M : auth.AuthMode) : IProp GF :=
+  iprop(∃ r : w64, auth.aF go!"revision" st ↦ r ∗ auth.revisionVerdict M r ∗ auth.revCur M r ∗
+    AonDraft.auth.revFresh M r)
+
+/-- **`authInv`, redefined** (review round A1's 8): today's, with the redefined `revInv` and `beP`
+(the guarded contract, the currency and the backend's name under `beMu`). -/
+def AonDraft.auth.authInv (st : Loc) (R : IProp GF) (M : auth.AuthMode) : IProp GF :=
+  iprop(⌜st ≠ null⌝ ∗ inv (nroot.@"authRev") (AonDraft.auth.revInv st M) ∗
+    (∃ lg : Loc, auth.aF go!"lg" st ↦□ lg ∗ ⌜lg ≠ null⌝) ∗
+    sync.isRWMutexGuard (auth.aF go!"beMu" st) (AonDraft.auth.beP st R M) ∗
+    (∃ tp : go_etcd_io.etcd.server.v3.auth.TokenProvider, auth.aF go!"tokenProvider" st ↦□ tp ∗
+      auth.tokenProviderOk tp M) ∗
+    sync.isRWMutexGuard (auth.aF go!"enabledMu" st) (auth.enabledP st M) ∗
+    sync.isRWMutexGuard (auth.aF go!"rangePermCacheMu" st) (auth.cacheP st M))
+
+instance AonDraft.auth.authInv_persistent (st : Loc) (R : IProp GF) (M : auth.AuthMode) :
+    Persistent (AonDraft.auth.authInv (GF := GF) st R M) := by
+  unfold AonDraft.auth.authInv; infer_instance
+
+/-- **The catch-up, before `Recover`** (candidate (ii); ghost only, proved): with the whole
+authority at `hs` and the cap's permission at `hs ++ N` (`authHistTie_catchup`), the states of `N`
+are appended to the history (the revision invariant's quarter with it, its cap bound raised to
+`hs ++ N`); the admin side keeps the pending authority, the lock's share is at the new last state
+`stI` (for the new backend's lock), and `stI` is recorded. (It opens only `revInv`'s `revCur`, which
+the restatement leaves unchanged, and frames `revFresh`.) -/
+theorem auth.authCatchUpFirst (stl : Loc) (R : IProp GF) (γa : auth.AuthNames)
+    (hs N : List auth.AuthState) (stI : auth.AuthState) (E' : CoPset)
+    (hE : ↑(nroot.@"authRev") ⊆ E') (hk : ∀ x ∈ N, auth.permKeysOk x)
+    (hl : (hs ++ N).getLast? = some stI) :
+    AonDraft.auth.authInv (GF := GF) stl R (.on γa) ∗ auth.authOwnF (.on γa) hs ∗
+        auth.capLb γa (hs ++ N) ={E'}=∗
+      auth.authOwnP γa hs N ∗ auth.authLockI (.on γa) stI ∗
+        auth.authStateAt γa ((hs ++ N).length - 1) stI := by
+  have hi : (hs ++ N)[(hs ++ N).length - 1]? = some stI := by
+    rw [List.getLast?_eq_getElem?] at hl; exact hl
+  simp only [auth.authOwnF]
+  iintro ⟨#Hinv, ⟨Hh, ⟨%stl', %Hl, Hc⟩⟩, #Hcap⟩
+  iunfold AonDraft.auth.authInv at Hinv
+  icases Hinv with ⟨-, #Hrev, -⟩
+  iinv Hrev with Hi Hclose
+  iunfold AonDraft.auth.revInv at Hi
+  icases Hi with ⟨%r, >Hr, Hv, >Hcur, Hf⟩
+  iunfold auth.revCur at Hcur
+  icases Hcur with ⟨%stc, Hc2, %Hrc, %hh, Hq, -⟩
+  ihave %Hhh := auth.authHist_rev_agree γa hs hh $$ Hh Hq
+  subst Hhh
+  imod (auth.authHist_appendL γa hs N hk) $$ [Hh Hq] with ⟨Hh, Hq⟩
+  · iframe Hh Hq
+  imod (auth.authHist_stateAt_keep γa (hs ++ N) ((hs ++ N).length - 1) stI hi) $$ Hh
+    with ⟨Hh, #Hst⟩
+  imod Hclose $$ [Hr Hv Hc2 Hq Hf] with -
+  · inext; iunfold AonDraft.auth.revInv; iexists r; iframe Hr Hv Hf
+    iunfold auth.revCur; iexists stc; iframe Hc2; isplitr
+    · ipureintro; exact Hrc
+    · iexists hs ++ N; iframe Hq Hcap
+  icases (auth.authHist_split γa (hs ++ N)).1 $$ Hh with ⟨Hh, Hlk⟩
+  imodintro
+  iframe Hst
+  isplitl [Hh Hc]
+  · iunfold auth.authOwnP; iframe Hh; iexists stl'; iframe Hc; ipureintro; exact Hl
+  · iunfold auth.authLockI; iexists hs ++ N; simp only [auth.authLockShare]; iframe Hlk
+    ipureintro; exact hl
 
 /-! ### `Recover` and `setRevision`: one spec each over the mode (decision 5) -/
 
@@ -516,7 +552,7 @@ abbrev AonDraft.auth.authStore.setRevision.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (rev : w64) (hs N opt : List auth.AuthState)
     (stl : auth.AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
-      auth.authInv st R M ∗ auth.authOwnPM M hs N ∗
+      AonDraft.auth.authInv st R M ∗ auth.authOwnPM M hs N ∗
       (if opt.isEmpty then iprop(True) else auth.authLockShare M (hs ++ N)) ∗
       (□ ∀ x, ⌜x ∈ opt⌝ -∗ auth.capNext M (hs ++ N) x) ∗
       ⌜auth.histLast M (hs ++ N ++ opt) stl ∧ uint.nat rev = stl.revision ∧ opt.length ≤ 1 ∧
@@ -541,7 +577,7 @@ abbrev AonDraft.auth.authStore.Recover.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs N : List auth.AuthState)
     (stI : auth.AuthState) (be : GoInterface) (γc₀ γc : auth.AuthBkNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
-      auth.authInv st R M ∗ auth.authOwnPM M hs N ∗
+      AonDraft.auth.authInv st R M ∗ auth.authOwnPM M hs N ∗
       (∃ be0 : go_etcd_io.etcd.server.v3.auth.AuthBackend,
         auth.aF go!"be" st ↦{DFrac.own (1 : Qp).half} be0) ∗
       auth.enabledHalf st M ∗ auth.cacheHalf st M ∗ auth.tpAdmin st M ∗ R ∗
@@ -553,15 +589,16 @@ abbrev AonDraft.auth.authStore.Recover.spec : Prop :=
       auth.authOwnT st M (hs ++ N) ∗ auth.recoverOut M γc₀ γc }}
 
 /-- **Publication, redefined** (`authPublishM`, decision 2): in `on γa`, for the current backend's
-token and lifecycle, the publication quarter beside the authority and the tie (from the redefined
+token (with its share of the current backend's name, `authWHeld`: publication is on `beP`'s
+backend) and lifecycle, the publication quarter beside the authority and the tie (from the redefined
 `revFresh`'s half and `authBkLife`'s publish clause; `authPublishM_of_authInv`, restated, not
 drafted). -/
 def AonDraft.authPublishM (M : auth.AuthMode) (stl : Loc) : IProp GF :=
   match M with
   | .on γa => iprop(□ ∀ (hs : List auth.AuthState) (γc : auth.AuthBkNames) (K : IProp GF),
-      ⌜hs ≠ []⌝ -∗ auth.authBkLife γa γc K -∗ auth.authOwn (.on γa) hs -∗ auth.authWTok γc -∗
+      ⌜hs ≠ []⌝ -∗ auth.authBkLife γa γc K -∗ auth.authOwn (.on γa) hs -∗ auth.authWHeld γa γc -∗
       auth.authPubTok γa -∗ auth.tieRes stl (.on γa) hs ={⊤}=∗
-      auth.authOwn (.on γa) hs ∗ auth.authWTok γc ∗ auth.authPubTok γa ∗
+      auth.authOwn (.on γa) hs ∗ auth.authWHeld γa γc ∗ auth.authPubTok γa ∗
         auth.tieRes stl (.on γa) hs ∗ auth.authPubLb γa (hs.length - 1))
   | _ => iprop(True)
 
@@ -616,6 +653,12 @@ theorem backend.rbOwn_split_in (γ : backend.BNames) (S : GoString → Prop)
     backend.rbOwn (GF := GF) γ r ⊣⊢ backend.rbOwnIn γ S r ∗ backend.rbOwnIn γ (fun n => ¬ S n) r := by
   sorry
 
+/-- **No batch transaction is held on the backend** (review round A1's attack C; a backend-level
+change, like `rbOwnIn`: an exclusive token the batch lock's `Lock` takes and `Unlock` gives back,
+after its write-back): with it, the client's tracked buckets `rbOwn r` are also what the readers
+see (no pending write). Opaque in the draft. -/
+opaque backend.bIdle (γ : backend.BNames) : IProp GF := iprop(True)
+
 /-- The schema auth backend `abl` over the backend `be`, with the logger `lg` (read-only). -/
 def ablOn (abl : Loc) (be lg : Loc) : IProp GF :=
   iprop(structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" abl ↦□
@@ -640,7 +683,9 @@ instance authWAtHook_persistent (γa : auth.AuthNames) (d : mvcc.KBReal) (γc : 
 /-- **The snapshot clause** (trusted; persistent, at the store's `R`): a backend `d` the apply
 thread opened, its hook frozen, its tracked auth buckets `r` holding `st` (`authBucketsAt`), the
 lock's share of the history at `st` (deposited, as at boot: `st` is the history's last, so
-recorded and at an index no smaller than the published one), its open share `authOpenQ`: schema's
+recorded and at an index no smaller than the published one), its open share `authOpenQ`, the
+succession right (the previous backend retired) and no batch held (`bIdle`: the buckets `r` are
+what its readers see): schema's
 auth backend `abl` over it meets, for fresh names `γc`, the guarded read contract at `R`, the write
 contract at its hook and at every schema auth backend on it (`authWAtHook`), with the write token,
 the whole currency and the lifecycle (`authBkLife`, its realization keeping the open share); one
@@ -652,13 +697,13 @@ def authSchemaSnap (γa : auth.AuthNames) (R : IProp GF) : IProp GF :=
     ⌜lg ≠ null⌝ -∗ ⌜authBucketsAt st r⌝ -∗ ablOn abl d.be lg -∗
     backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
     backend.rbOwn d.γB r -∗ mvcc.bkRTx d.γB d.P d.be -∗ backend.bOpen d.γB authOpenQ -∗
-    auth.authLockI (.on γa) st -∗
+    auth.authLockI (.on γa) st -∗ auth.authSucc γa -∗ backend.bIdle d.γB -∗
     |==> ∃ γc : auth.AuthBkNames,
       AonDraft.auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
       auth.authWBackendOkR (authBkIface abl) (.on γa) Pk #f (auth.authWTok γc) ∗
       authWAtHook γa d γc ∗ auth.authWTok γc ∗
       auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ) ∗
-      R ∗ (R -∗ mvcc.bkRTx d.γB d.P d.be) ∗ backend.rbOwnIn d.γB restNonAuth r)
+      R ∗ (R -∗ mvcc.bkRTx d.γB d.P d.be) ∗ backend.rbOwnIn d.γB restNonAuth r ∗ backend.bIdle d.γB)
 
 instance authSchemaSnap_persistent (γa : auth.AuthNames) (R : IProp GF) :
     Persistent (authSchemaSnap (GF := GF) γa R) := by
@@ -690,7 +735,7 @@ def AonDraft.authSchemaSrv : IProp GF :=
     ablOn abl d.be lg -∗
     backend.isBackend d.γB d.P W Pk d.be -∗ backend.bOpen d.γB qo -∗
     backend.bOpen d.γB authOpenQ -∗
-    backend.plHook d.γB func.nil -∗ ownToks d.γB.wb 2 -∗ backend.rbOwn d.γB r -∗
+    backend.plHook d.γB func.nil -∗ ownToks d.γB.wb 2 -∗ backend.rbOwn d.γB r -∗ backend.bIdle d.γB -∗
     auth.authLockI (.on γa) auth.bootState -∗ auth.authPubQ γa (1 : Qp).half 0 -∗
     |==> ∃ (R P : IProp GF) (f : val) (Pre Q Post : IProp GF) (γc : auth.AuthBkNames),
       AonDraft.auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
@@ -704,7 +749,7 @@ def AonDraft.authSchemaSrv : IProp GF :=
       mvcc.csContract P f Pre Q Post ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), R) ∗
       (Post -∗ backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil ∗
-        backend.rbOwnIn d.γB restNonAuth (authBucketsAfter r)) ∗
+        backend.rbOwnIn d.γB restNonAuth (authBucketsAfter r) ∗ backend.bIdle d.γB) ∗
       authSchemaSnap γa R)
 
 instance AonDraft.authSchemaSrv_persistent : Persistent (AonDraft.authSchemaSrv (GF := GF)) := by
@@ -786,18 +831,18 @@ abbrev authRecoverOn.spec : Prop :=
   E.authMode = .on γa →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
       authBeOn ast dO.be ∗ AonDraft.authApplyResPre (.on γa) ast sa dO RD ∗
-      auth.authInv ast R (.on γa) ∗ authSchemaSnap γa R ∗
+      AonDraft.auth.authInv ast R (.on γa) ∗ authSchemaSnap γa R ∗
       authHistTie E γr srvAuthSt0 ∗ srvRLogLb γr.raft A' ∗
       ⌜A <+: A' ∧ sa = srvAuthAtLog γr.kv srvAuthSt0 A ∧ A'.length < 2 ^ 61⌝ ∗
       ⌜lg ≠ null⌝ ∗ ablOn abl dn.be lg ∗
       backend.isBackend dn.γB dn.P W Pk dn.be ∗ backend.plHookRO dn.γB f ∗ ⌜f ≠ func.nil⌝ ∗
       backend.rbOwn dn.γB r ∗ mvcc.bkRTx dn.γB dn.P dn.be ∗ backend.bOpen dn.γB authOpenQ ∗
-      ⌜authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A') r⌝ }}
+      backend.bIdle dn.γB ∗ ⌜authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A') r⌝ }}
     (App (Val (ast @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!!
       go!"Recover")) (Val #(authBkIface abl)))
   {{ RET #(); |==> (authBeOn ast dn.be ∗
       AonDraft.authApplyResPre (.on γa) ast (srvAuthAtLog γr.kv srvAuthSt0 A') dn RD ∗
-      backend.rbOwnIn dn.γB restNonAuth r ∗ mvcc.bkRTx dn.γB dn.P dn.be ∗
+      backend.rbOwnIn dn.γB restNonAuth r ∗ mvcc.bkRTx dn.γB dn.P dn.be ∗ backend.bIdle dn.γB ∗
       backend.bOpen dO.γB authOpenQ) }}
 
 end premise
@@ -821,7 +866,7 @@ theorem authRecoverOn_glue (hRec : AonDraft.auth.authStore.Recover.spec (GF := G
   intro ast abl lg dO dn W Pk f r γa R RD E γr A A' sa hM
   simp only [AonDraft.authApplyResPre]
   iintro %Φ ⟨#Hpkg, Hbeon, Hres, #Hinv, #Hsnap, #Htie, #HA', %Hp, %Hlg, #Habl, #HisB, #Hhk,
-    %Hf, Hrb, Hrt, HbO, %Hbk⟩ HΦ
+    %Hf, Hrb, Hrt, HbO, HId, %Hbk⟩ HΦ
   obtain ⟨hpre, hsa, hlen⟩ := Hp
   obtain ⟨hk, hfit, hsmall, hrev⟩ := srvHist_wf γr.kv A' hlen
   icases Hres with ⟨%hs, %P0, %f0, %γc₀, %be, %b, Hown, Hfu, Htr, -, HTh, Hpub,
@@ -836,7 +881,7 @@ theorem authRecoverOn_glue (hRec : AonDraft.auth.authStore.Recover.spec (GF := G
   -- the old backend's token retired: the lock's share, joined with the admin side's
   iunfold auth.authBkLife at Hlife
   icases Hlife with ⟨#Hret0, #Hrel0, -⟩
-  imod Hret0 $$ [HT Hpub] with ⟨⟨%st0, Hlk⟩, Hrtd⟩
+  imod Hret0 $$ [HT Hpub] with ⟨⟨%st0, Hlk⟩, Hrtd, Hsucc⟩
   · iframe HT Hpub
   ihave ⟨HoF, -⟩ := auth.authOwn_lockI_join (.on γa) hs st0 $$ Hown Hlk
   ihave #Hcap' : auth.capLb γa (hs ++ (srvHist γr.kv A').drop hs.length) $$ [Hcap]
@@ -851,8 +896,8 @@ theorem authRecoverOn_glue (hRec : AonDraft.auth.authStore.Recover.spec (GF := G
   ihave #Hsn := Hsnap
   iunfold authSchemaSnap at Hsn
   imod Hsn $$ %lg %abl %dn %W %Pk %f %r %(srvAuthAtLog γr.kv srvAuthSt0 A') [] [] Habl HisB Hhk
-      [] Hrb Hrt HbO Hlk
-    with ⟨%γc, #HokH, HCu, #HwR, #HwH, HT', #Hlife', HR, HRb, Hrb⟩
+      [] Hrb Hrt HbO Hlk Hsucc HId
+    with ⟨%γc, #HokH, HCu, #HwR, #HwH, HT', #Hlife', HR, HRb, Hrb, HId⟩
   · ipureintro; exact Hlg
   · ipureintro; exact Hbk
   · ipureintro; exact Hf
@@ -888,7 +933,7 @@ theorem authRecoverOn_glue (hRec : AonDraft.auth.authStore.Recover.spec (GF := G
   · iframe Hrtd HCu0
   ihave Hrt := HRb $$ HR
   imodintro
-  iframe Hrb Hrt HoO
+  iframe Hrb Hrt HoO HId
   isplitl [Hbe]
   · iunfold authBeOn; iexists abl, lg
     iunfold ablOn at Habl
@@ -935,7 +980,7 @@ round the draft took the invariant and the clause at `RD` itself: a bug of the d
 `authStoreKit_on` builds it.) -/
 def srvAuthSnapOk (s : Loc) (γa : auth.AuthNames) (RD : IProp GF) : IProp GF :=
   iprop(∃ (ast : Loc) (R : IProp GF), srvAuthStoreAddr s ↦□ auth.authIface ast ∗
-    auth.authInv ast R (.on γa) ∗ authSchemaSnap γa R ∗ ⌜RD = auth.authRd ast R (.on γa)⌝)
+    AonDraft.auth.authInv ast R (.on γa) ∗ authSchemaSnap γa R ∗ ⌜RD = auth.authRd ast R (.on γa)⌝)
 
 instance srvAuthSnapOk_persistent (s : Loc) (γa : auth.AuthNames) (RD : IProp GF) :
     Persistent (srvAuthSnapOk (GF := GF) s γa RD) := by

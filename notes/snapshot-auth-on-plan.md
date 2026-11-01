@@ -530,6 +530,84 @@ as a premise (already in `issues/etcd-auth-useradd-long-name-fatal.md`). `roleGr
 end accepted, `key < end` (the affine compare, for a non-empty end, is the byte order) or `end =
 "\x00"`.
 
+### Review round A1 on the restated premise (2026-11-01)
+
+First tier, with the repairs made in the Draft:
+29. **Two live backends (attack A)**: the snapshot clause took only `authLockI st`, which a client also
+   gets from an open batch on the current backend (`authBatchTxLkR`'s `Lock`); a second backend made
+   live without retiring the first lets the client publish past the first backend's state while
+   `beP`'s readers still read it. Repair: the succession right `auth.authSucc γa` (exclusive), produced
+   only by `authBkLife`'s retirement and taken by `authSchemaSnap`; `AonDraft.authPublishM` takes
+   `authWHeld` (publication on `beP`'s backend).
+30. **Pending writes (attack C; also today's `authSchemaSrv`)**: `rbOwn r` is the writer's pending
+   contents (`batchLocked_rb`), not what readers see; a client holding a raw batch with a pending
+   delete passes `rbOwn` to the premise, and the read clause promises a state Go does not return
+   (reproduced: `axiomcx/pending_test.go`). Repair: `backend.bIdle γ` (no batch held; a backend-level
+   change: the batch lock's `Lock` takes it, `Unlock` gives it back after the write-back), taken and
+   given back by both premises and `authRecoverOn.spec`.
+31. **The release is unrealizable over today's backend specs**: `Cu` comes back at `RLock`, so reads
+   begun before the release still hold open shares (`readTx__UnsafeRange` needs `bOpen`), while
+   `backend__Close` needs `bOpen 1`. Go is safe (`Close` waits: `commit` takes `readTx.Lock()`;
+   `axiomcx/close_test.go`: a read begun before `Close` completes and `Close` waits for it; an `RLock`
+   after `Close`, also on a handle taken before, panics). Not repaired in the Draft: needs a backend
+   change, a `Close` spec that waits for the read holders (question for the user).
+Second tier: reader slots minted from nothing (S9, open: `R` should come from a reader pool or the
+reader's `threadTok`, the Bounds rule); `rbOwnIn` needs per-bucket `rbPut` and its own
+`batchLocked` agreement; the mode-off contract stays unguarded (who produces it: open); the callers
+supplying the guards (`lockedReadTx.specL`, the `…Permitted.specL`, `authStoreKit`'s mode-dependent
+`rbOwn`, `newAuthStore_on`'s half of `γa.pub`) are not drafted; the specs were written over today's
+`authInv` (repaired: `AonDraft.auth.revInv`/`authInv`, `authCatchUpFirst` reproved over them);
+`recoverFit` off the mode is unsatisfiable for a huge disabled state (inherited from today's spec);
+`authApplyResPre` drops boot's `ghostMapAuth γa.fresh 1 ∅` (it belongs to boot's form); the write-back
+token `wbTok` of a snapshot backend's `Unlock` is not accounted for (uncertain).
+
+### The axiom check (the restated premise; Go tests in the session's scratchpad `axiomcx/`)
+
+- `TestReadTxInsideBatch` (refutation 1 of today's): a read inside the apply thread's batch misses the
+  batch's write; `TestReadTxAfterUnlock`: after `Unlock` it sees it (the latest clause at `T`).
+- `TestRawWriteThenAuthRead` (refutation 3): a raw write to `authUsers` shows in the auth read.
+- `TestReadBegunBeforeClose`, `TestRLockAfterClose`, `TestHandleBeforeCloseRLockAfter`: guards at
+  `RLock` (not `ReadTx`) are the right place; reads begun before `Close` are safe.
+- `TestPendingDeleteHeldBatch` (attack C).
+No Go program found against the repaired statements beyond finding 31 (a gap in the backend's specs,
+not a false claim about Go) and the reader-slot count (S9).
+
+### Impact on the base (users of the restated names; none changed in this stage)
+
+- `authSchemaSrv`: `etcdserver/AuthSrv.lean` (`authStoreKit_on`, `newAuthStore_on`, `authSrvTP_on`:
+  re-prove over the new post: `γc`, `authWHeld`, `authPubTok`, `authBkLife`, `rbOwnIn`, `bIdle`, the
+  quarter `authOpenQ`, and carry `authSchemaSnap`), `etcdserver/Results.lean` and
+  `examples/authkv/Results.lean` (restate the premise in the exported results),
+  `Spec/.../etcdserver/NewServer.lean` (`NewServer.specM true`'s premise text; `srvAuthSnapOk` in
+  its post, decision 8; `bootOk`, `isServerRunOn` likewise).
+- `authReadTxOk`/`authBackendOk`/`beP`: `auth/InvAuth.lean` (the definitions, `authInv`),
+  `auth/authStore__lockedReadTx.lean` and `auth/Latest.lean` (`lockedReadTx.specL`, the four
+  `…Permitted.specL`: take `Cu` from `beP` under `beMu`; the latest clause's callers supply `authWHeld`
+  through `authStoreLatestM`), `auth/ReadLb.lean` (the freshness clause with `Cu`),
+  `auth/authStore__Recover.lean` (the proof of the merged `Recover.spec`), `auth/NewAuthStoreOn.lean`,
+  `auth/Boot.lean` (`beP` at boot with `γc`, `authBkCur` allocated at `γa.bk`).
+- `authWBackendOkR`: `NewAuthStoreOn`, `Boot`, `AuthSrv`, `Spec/auth/authStore__Recover.lean` (the
+  merged spec drops the write contract).
+- `revFresh`/`revInv`/`authPubAuth`: `auth/Fresh.lean`, `FreshWrap.lean`, `FreshCheck.lean` (publish
+  with half the authority and `authBkLife`'s clause), `auth/NewAuthStoreOn.lean`,
+  `etcdserver/Results.lean`; `auth/Model.lean` (`AuthNames` gains `bk`, `succ`).
+- `authPublishM`: `etcdserver/StoreLatest.lean` (`authPublishM_of_authInv`), `ApplyNormalOn.lean`,
+  `ServerOn.lean`, `AuthSrv.lean` (callers pass `authWHeld`, `authPubTok`, `authBkLife`).
+- `authApplyResB`/`authApplyResPre`/`authApplyResAt`/`authApplyRes`: `StoreLatest.lean`,
+  `AuthApplyRes.lean`, `UberOn.lean`, `ApplyNormalOn.lean`, `AdminEntryOn.lean`, `AuthSrv.lean`
+  (signature: `bel` becomes `d : KBReal`; fuel `authOwnFu` → `authFuelB`; the hook facts become laws).
+- `setRevision.spec`/`Recover.spec`: their Spec and Proof files, `auth/authStore__AuthEnable.lean`
+  (the `opt` case), `etcdserver/Link.lean`; `authRecoverOk` (`Spec/auth/NewAuthStore.lean`,
+  `SnapApplyDefs`, `SnapApplyWalk`, `SnapRO`, `Spec/.../EtcdServer__applySnapshot.lean`): gated by
+  `E.authMode`, the mode-on case `authRecoverOn.spec`.
+- `authBeOn` (8 modules) unchanged in text; `srvRestOwn` (10 modules: `InvRest`, `InvBoot`,
+  `NewServer`, `applyConfChange`, `InvApplier`, `SnapApply*`, `SnapRO`, `SnapRecvFacts`): mode-on
+  `rbOwnIn restNonAuth`, which needs the per-bucket `rbPut` (finding 30's backend change).
+- `bOpen` (32 modules): the apply thread's half becomes a quarter in mode on (`specSnap`, the walk's
+  close goroutine `SnapApplyWalk.lean` ~:571-601, `NewServer`).
+- Backend: `rbOwnIn`/`rbOwn_split_in`, `bIdle` (the batch lock's `Lock`/`Unlock` specs), `Close`
+  waiting for readers (finding 31).
+
 ## J8b's changes the Draft depends on (2026-11-01, from the J8b session)
 
 To apply when the Draft is rebased onto J8b:
