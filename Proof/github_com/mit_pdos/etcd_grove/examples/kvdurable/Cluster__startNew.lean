@@ -133,6 +133,16 @@ theorem Cluster.startNew.wp_proof
       iframe Hreps
       unfold isRep
       iexact Hr
+    -- (2026-11-01, the stopper) stopped: the new incarnation's fragment alone (its `repStop`
+    -- dropped); running: its fragment and `repStop`
+    icases Hstops with (⟨Hcr, Hstops⟩ | Hstops)
+    · ileft
+      iframe Hcr
+      iapply (BigSepM.bigSepM_insert (Φ := fun id r => curRep (GF := GF) γ id r) (m := R) HRn).2
+      iframe Hstops
+      unfold curRep
+      iexact Hfrag
+    iright
     iapply (BigSepM.bigSepM_insert
       (Φ := fun id r => iprop((curRep (GF := GF) γ id r ∗ repStop γ vs dir id r) ∨ crasher γ))
       (m := R) HRn).2

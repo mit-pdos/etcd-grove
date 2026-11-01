@@ -3,6 +3,10 @@
 `c.all()` (cluster.go): every replica's current incarnation (as `c.replicas` held it under `c.mu`:
 running, `isRep`, though it may have crashed since), of a started id (`repKnown`); there is one at
 least (the voters).
+
+`specStop` (2026-11-01, the stopper; `Stop`'s): with the crasher's token, which it leaves in the lock
+(so no restart is under way, and none can start), it also takes every current incarnation's
+`repStop` out of the lock.
 -/
 module
 
@@ -35,6 +39,14 @@ abbrev Cluster.all.spec : Prop :=
     (App (Val (c @!! go.GoType.PointerType kClusterTy @!! go!"all")) (Val #()))
   {{ (sl : GoSlice), RET #sl; ∃ rs : List Loc, sl ↦* rs ∗ ⌜rs ≠ []⌝ ∗
       [∗list] r ∈ rs, ∃ id, isRep γ vs dir id r ∗ repKnown γ id }}
+
+/-- See the file header. -/
+abbrev Cluster.all.specStop : Prop :=
+  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc),
+  {{ isClusterC γ vs dir c ∗ crasher γ }}
+    (App (Val (c @!! go.GoType.PointerType kClusterTy @!! go!"all")) (Val #()))
+  {{ (sl : GoSlice), RET #sl; ∃ rs : List Loc, sl ↦* rs ∗
+      [∗list] r ∈ rs, ∃ id, repStop γ vs dir id r }}
 
 end spec
 

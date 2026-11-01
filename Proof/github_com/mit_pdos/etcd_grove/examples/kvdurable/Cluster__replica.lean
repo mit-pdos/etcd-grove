@@ -118,6 +118,11 @@ theorem Cluster.replica.wp_proofPin : Cluster.replica.specPin (GF := GF) (hG := 
     cases h : R !! id with
     | none => rw [h] at this; simp at this
     | some r => exact ⟨r, rfl⟩
+  -- (2026-11-01, the stopper) not stopped: the crasher's token is ours
+  icases Hstops with (⟨Hcr2, -⟩ | Hstops)
+  · iunfold crasher at Hcr Hcr2
+    iexfalso
+    iapply token_exclusive $$ Hcr Hcr2
   icases (BigSepM.bigSepM_delete
     (Φ := fun id r => iprop((curRep (GF := GF) γ id r ∗ repStop γ vs dir id r) ∨ crasher γ))
     (m := R) HRid).1 $$ Hstops with ⟨Hst, Hstops⟩
@@ -132,6 +137,9 @@ theorem Cluster.replica.wp_proofPin : Cluster.replica.specPin (GF := GF) (hG := 
   · iframe Hstops
     iright
     iexact Hcr
+  ihave Hstops : iprop((crasher γ ∗ [∗map] id ↦ r ∈ R, curRep (GF := GF) γ id r) ∨
+      [∗map] id ↦ r ∈ R, (curRep (GF := GF) γ id r ∗ repStop γ vs dir id r) ∨ crasher γ) $$ [Hstops]
+  · iright; iexact Hstops
   wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked HmR HR Hnid Hnop Hopn HnidA Hjoin Hreps Hcur
       Hstops Hfiles]
   · inext

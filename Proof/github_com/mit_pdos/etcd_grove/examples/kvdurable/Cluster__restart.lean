@@ -86,6 +86,13 @@ theorem Cluster.restart.wp_proof
   iNamed HL
   iunfold curRep at Hfrag
   ihave %HRid := ghost_map_lookup $$ Hcur Hfrag
+  -- (2026-11-01, the stopper) not stopped: the stopped lock holds every fragment, ours among them
+  icases Hstops with (⟨-, Hfrs⟩ | Hstops)
+  · ihave Hfrag2 := BigSepM.bigSepM_lookup_acc (Φ := fun id r => curRep (GF := GF) γ id r) HRid $$ Hfrs
+    icases Hfrag2 with ⟨Hfrag2, -⟩
+    iunfold curRep at Hfrag2
+    ihave %Hne := ghostMapElem_ne γ.cur id id (DFrac.own 1) r r $$ Hfrag Hfrag2
+    exact absurd rfl Hne
   icases (BigSepM.bigSepM_delete
     (Φ := fun id r => iprop((curRep (GF := GF) γ id r ∗ repStop γ vs dir id r) ∨ crasher γ))
     (m := R) HRid).1 $$ Hstops with ⟨Hst, Hstops⟩
@@ -115,6 +122,7 @@ theorem Cluster.restart.wp_proof
         Hreps
       unfold isRep
       iexact Hr'
+    iright
     iapply (BigSepM.bigSepM_insert_delete
       (Φ := fun id r => iprop((curRep (GF := GF) γ id r ∗ repStop γ vs dir id r) ∨ crasher γ))).2
     iframe Hstops

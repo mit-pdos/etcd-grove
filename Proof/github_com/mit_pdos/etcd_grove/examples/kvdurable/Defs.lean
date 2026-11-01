@@ -641,7 +641,8 @@ def crasher (γ : KdNames) : IProp GF := token γ.crt
 incarnation of each started replica, the ids not started yet with their allocated durable state and
 vacant slot (`joinAuth`), the map of the current incarnations (`γ.cur`) at `c.replicas`, and per
 started id either its current incarnation's fragment and stopper-and-crasher share (`repStop`) or
-(while `Crash` restarts it) the crasher's token. -/
+(while `Crash` restarts it) the crasher's token; or, once the cluster is stopped, only the
+fragments, and the crasher's token, which `Stop` gives up (2026-11-01, the stopper). -/
 def clusterLockInv (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) : IProp GF :=
   iprop(∃ (mR : Loc) (R : GMap w64 Loc) (nid nop : w64) (U : GSet w64),
     "HmR" ∷ c.[KCluster, go!"replicas"] ↦ mR ∗
@@ -655,9 +656,12 @@ def clusterLockInv (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) : I
       (∀ i, i ∈ U ↔ 1 ≤ uint.nat i ∧ uint.nat i < uint.nat nid) ∧
       vs.length < uint.nat nid ∧ uint.nat nid ≤ 10⌝ ∗
     "Hreps" ∷ ([∗map] id ↦ r ∈ R, isRep γ vs dir id r) ∗
-    -- (2026-11-01, the crasher) the current incarnations' map, and their `repStop`s
+    -- (2026-11-01, the crasher) the current incarnations' map, and their `repStop`s; (2026-11-01,
+    -- the stopper) or, once `Stop` has taken them (`Cluster.all.specStop`), the fragments alone and
+    -- the crasher's token: no restart is under way, and none can start
     "Hcur" ∷ ghostMapAuth γ.cur 1 R ∗
-    "Hstops" ∷ ([∗map] id ↦ r ∈ R, (curRep γ id r ∗ repStop γ vs dir id r) ∨ crasher γ) ∗
+    "Hstops" ∷ ((crasher γ ∗ [∗map] id ↦ r ∈ R, curRep γ id r) ∨
+      [∗map] id ↦ r ∈ R, (curRep γ id r ∗ repStop γ vs dir id r) ∨ crasher γ) ∗
     "Hfiles" ∷ ([∗list] i ∈ kvreconf.freshIds (uint.nat nid), dfile γ.files (kdFileName dir i) none ∗
       ∃ g : RaftState × Option GoString, ghostVar (γ.wr i) (1 : Qp) g))
 
