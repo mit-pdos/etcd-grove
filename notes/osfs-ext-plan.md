@@ -194,19 +194,21 @@ every change marks what it changes as dirty, but the trusted file does not state
 
 ### Program logic, as of 2026-11-01 (branch `osfs-specs`)
 
-Extension-level specs (`GooseLang/Ext/OsFs/Specs.lean`, `Write.lean`): `Close`, `Flock`, `Fstat`,
-`PRead` (exact and racing), `Fsync`, `Mmap` (with the mapping's bounds), `Munmap`, `Open` without
-`O_TRUNC`, `PWriteStart`/`PWriteFinish` (and the facts a retried write needs: `pwBytes_retry`,
-`mcellsAny_split`/`_merge`). Not yet: `FtruncateStart`/`FtruncateFinish`, `Open` with `O_TRUNC`.
+Extension-level specs (`GooseLang/Ext/OsFs/Specs.lean`, `Write.lean`, `Truncate.lean`): `Close`,
+`Flock`, `Fstat`, `PRead` (exact and racing), `Fsync`, `Mmap` (with the mapping's bounds),
+`Munmap`, `Open` without `O_TRUNC`, `PWriteStart`/`PWriteFinish` (and the facts a retried write
+needs: `pwBytes_retry`, `mcellsAny_split`/`_merge`). Stated, `sorry`: `FtruncateStart`/
+`FtruncateFinish` for a growing truncate (`Truncate.lean`; the first step takes the client's
+halves of every mapped cell past the size, up to `hi`, since a truncate in flight affects every
+byte from the size on). Not yet: a shrinking truncate, `Open` with `O_TRUNC`.
 
 Go-level specs (`Spec/`, proved in `Proof/`): `syscall.Fdatasync`, `syscall.Flock`, `unix.Mmap`,
-`(*os.File).Fd`, `WriteAt` (offset ≥ 0, `0 < len(b) ≤ maxRW`; EINTR retries), `ReadAt` (exact:
-inside the file, `len(b) ≤ maxRW`). An open file is `os.ownFile` (`Proof/os/Base.lean`), field by
-field. Not yet: `OpenFile` and `Stat` (blocked, below), `Truncate` (needs the ftruncate specs),
-`Sync`, `Close`, `Name`, the racing `ReadAt`, `unix.Munmap`, `unix.Madvise`.
+`unix.Munmap`, `unix.Madvise`, `os.OpenFile` (`O_RDWR|O_CREATE`), `(*os.File).Fd`, `Name`, `Stat`
+with `fileStat.Size`, `Sync`, `Close`, `WriteAt` (offset ≥ 0, `0 < len(b) ≤ maxRW`; EINTR
+retries), `ReadAt` (exact: inside the file, `len(b) ≤ maxRW`), `Truncate` (growing; over the
+`sorry` ftruncate specs). Stated, `sorry`: the racing `ReadAt` (`File.ReadAt.specRacy`). An open
+file is `os.ownFile` (`Proof/os/Base.lean`), field by field.
 
-**Blocker in the trusted base:** `os.file` and `os.fileStat` are trusted types, and goose emits no
-field-access assumptions for them (`file.TypeAssumptions` lacks `get_fd`/`set_fd`/`get_name`/
-`set_name`, which `File.TypeAssumptions` has as `get_file`/`set_file`), so their `IntoValTyped`
-cannot be proved (`solve_into_val_typed_struct` gets stuck) and the `GoAlloc` of one, in
-`OpenFile.impl` and `File.Stat.impl`, cannot be reasoned about.
+`os.file` and `os.fileStat` are trusted types, for which goose emits no field get/set facts;
+`TrustedCode/os.lean` states them by hand (`file.FieldAssumptions`, `fileStat.FieldAssumptions`,
+in goose's form), a trust-base item. `OpenFile` and `Stat` take them as instance hypotheses.
