@@ -95,7 +95,7 @@ theorem newUniqueKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
     iunfold clientErrIs at Hce
     ihave ⟨%S, %M, #Htree, %HS⟩ := Hce $$ %(GoInterface.ok eK)
     wp_auto
-    wp_apply errors.wp_Is S M (GoInterface.ok e) (GoInterface.ok eK)
+    wp_apply errors.wp_Is_tree S M (GoInterface.ok e) (GoInterface.ok eK)
       (fun tii h => by cases h; exact HeKl.1) HS.2.2 $$ [$Herr $Htree] as %b -
     · ipureintro; exact HS.1
     cases b

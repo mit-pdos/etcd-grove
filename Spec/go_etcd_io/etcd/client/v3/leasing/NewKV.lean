@@ -37,7 +37,7 @@ own requests carry it with the user's key; 2026-10-30, `notes/decisions.md`, "Le
 abbrev NewKV.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)] (cl : Loc) (pfx : GoString) (osl : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ closedChInit ∗ isLeasingEtcdClient cl osl ∗
-      ⌜pfx ≠ [] ∧ pfx.length ≤ 2 ^ 26⌝ }}
+      ⌜pfx ≠ [] ∧ pfx.length ≤ leasingPfxMax⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.leasing.NewKV)) (Val #cl)) (Val #pfx)) (Val #osl))
   {{ (kv : GoInterface) (cf : GoFunc) (err : GoInterface), RET (PairV (PairV #kv #cf) #err);
       newKVResult pfx kv cf err }}

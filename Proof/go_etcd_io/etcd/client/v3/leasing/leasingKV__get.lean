@@ -150,7 +150,7 @@ theorem leasingKV.get.wp_proof
         wp_apply hAcq lkv γ pfx ctx cs o.key opK (opGetModel o.key []) lo
           $$ [$Hpkg $Hlkv $Hrd $Hctx $HopK $Hlo] as %resp %err ⟨Hrd, Hacq⟩
         · ipureintro
-          refine ⟨keyGet_txnOpOf _, hkk, hke, ?_, ?_, ?_⟩ <;> simp [op_simps, Ho.2.1]
+          refine ⟨keyGet_txnOpOf _, hkk, hke, ?_, ?_, ?_⟩ <;> simp [op_simps, (show o.key.length ≤ 2 ^ 27 from Ho.2.1)]
         icases Hacq with (⟨%Hne, %Hresp⟩ | ⟨%Heq, Hacq⟩)
         · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
             cases err with

@@ -207,3 +207,33 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
   token is gone (decisions, "A remote pauses by a flag"). Done 2026-11-01 (branch `snap-j8a-7`).
   `hdir`/`hdok`: done 2026-11-01 (branch `snap-j8a-hdir`; decisions, "`applySnapshot`'s directory
   facts in `ccMembRes`"): 5e's caller takes them from `srvApRes`'s `ccMembRes`.
+- **J8b** (branch `snap-j8b`): `run`'s snapshot jobs over `applyAll.specSnap`.
+  - *Link step, done 2026-11-01*: the snapshot triples conjoined into the linked specs (decisions,
+    "J8b: the snapshot cases linked by conjoining").
+  - *Spec-first round, done 2026-11-01* (the user's approval: drop both, split compaction with a
+    named `sorry`): reading `specSnap`'s pre and post against `applyRes` and `isServerRun`, then the
+    statements built with sorried proofs. Changes:
+    - `uint.Z ai ≤ w` (J5) dropped from `applyAll.specBatch`/`specOn`,
+      `snapshotIfNeededAndCompactRaftLog.specBatch`/`specOff`/`specOn` and from `applyRes`/`applyResOn`
+      (no proof read it: `haw` was unused; the snapshot's jump breaks it). `applyAll_model` loses a
+      premise (a strengthening).
+    - `applyRes`/`applyResOn`'s `entriesStep C.c₀ A C.x₀ x` dropped (only ever rebuilt; false after a
+      jump; `kvApplied` ties `x` to the log).
+    - `isServerRun`/`isServerRunOn` (and `isServerBuilt`/`isServerBuiltOn`, `srvBuilt`/`srvBuiltG`)
+      gain `"#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id` (the member id the raft node's: `specSnap`'s member
+      id against the payload's `nodeSnapLocal … γn.id`) and `"#HmetaSnap" ∷ srvMetaSnap γ` (`bootOk`'s
+      `#HmetaSnap` by name, `InvRun.lean`), both proved in `NewServer`.
+    - `rnApSnap` (and `rnApplyTok_recv`'s snapshot case) gains `|boot| ≤ i`, from
+      `rnReadySnap_bootLen`, **proved** (2026-11-01, branch `snap-bootlen`): raft's `readySnap`
+      gains `bootLen < index` (an API change, approved), from the pending snapshot's `snapLocOk`
+      (`restore` takes only an index above the commit index, which is at least `|boot|`).
+    - `run_job_snap` (`EtcdServer__run.lean`): the snapshot payload's job, `applyRes C A` to
+      `applyRes C A'`; `run`'s mode-off `SNAPSHOT-SORRY` replaced by the job's scheduling over it
+      (built). Its proof cases on `E.cmp`: **`run_job_snap_cmp` (`sorry`, open)** the compaction mode
+      (`specSnap` needs it off; generalizing `specSnap` is a stage of its own); the mode off
+      **proved** over `applyAll.specSnap`: the fresh start's facts (`ai₀ = 0`, `pre = []`,
+      `c₀ = 0`) give `specSnap`'s `γr.raft = ⟨_, [], 0⟩` and `ai = |A|`, `kvInv_ch0_off` its chain;
+      the post's log is raft's `A'` by `srvRLogLb_prefix` and the lengths. It takes three ties
+      `run` gives by `rfl` or `Hnm`: `C.γr.raft.pre = γn.pre`, `C.γs = γn.γs`, `C.γw = C.ρ.wait`.
+    - The initial KV log (`log0 = [[], []]`) needed no new fact: `isServerApplyAll` has it.
+    - Not touched: the auth-on `SNAPSHOT-SORRY` (the peer's `snap-auth-on`).

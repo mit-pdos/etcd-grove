@@ -137,7 +137,9 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 - **A contract between packages states the receiver's need, not the supplier's mechanism**: the
   server's `Txn` takes the depth of the request's model, not the gRPC handler's budget bound that
   implies it; the supplier proves the law from its mechanism to the need. The need is weaker to
-  supply and names nothing of the supplier. (`irr-depth.md`, critique 2)
+  supply and names nothing of the supplier. (`irr-depth.md`, critique 2; the gRPC lease reads' contract keeps the
+  server's header ids inside its answer and leaves the server's bounds premises to the theorem that
+  discharges it, so the handlers' specs inherit neither (`lease-grpc.md`).
 - **No constant or conjunct whose reason you do not know.** A numeric bound in a post is usually the
   proof's slack; a fact that holds of every reachable state is one law of the vocabulary, not a
   conjunct of each operation's post. Do not copy a conjunct from a sibling spec without knowing why it
@@ -173,10 +175,15 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   workload); the owner of a bounded object (the invariant allocating the `RWMutex`, `WaitGroup` or
   counter) turns them into a protocol of unbounded use (a thread pool of reader slots, a wait group
   backed by thread tokens, a counter ticked by receipts); a client takes its `threadTok`, the owner's
-  persistent handle, and one named size predicate per boundary. So a new spec mentions no
+  persistent handle, and named size bounds. So a new spec mentions no
   `threadBound`, `receiptBound`, `actualMaxReaders` or count of reader slots (`List.replicate 64 ...`);
-  `etc/bounds-check.py --check` refuses new ones. (A library's exact precondition on its input's
-  length, `key.length ≤ 2 ^ 27`, is fine: B5.) Where a goroutine holds
+  `etc/bounds-check.py --check` refuses new ones.
+- **A size bound shared between specs is written with its named constant, not the number**
+  (`opKeyMax`, `etcdKeyMax`, `leasingPfxMax`, ...; the user's, 2026-11-01): the name says why the
+  bound is there, a change of the limit is one edit, and a caller composes named quantities. Define
+  it next to the law that chose it, `@[word_unfold]` so that `word` sees through it. A literal is
+  for a bound local to one function (a library's own overflow precondition, `< 2 ^ 63` for an
+  `int64`). Not a predicate (`keyOk k`) for a single `≤`: `omega` and `word` do not see through one. Where a goroutine holds
   two read locks at once, the inner lock's slot is a counted stock at that call path only.
 - **A once-only resource is not spent per call**: check retry and loop paths; make the exception
   depend on the value (a persistent one-shot fact), not on the call. (`pilot-review-2.md`)

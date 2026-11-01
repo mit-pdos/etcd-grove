@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`s.LeaseTimeToLive(ctx, r)`**, any goroutine, at a context, with the server's facts
 (`leaseTimeToLive`'s), the key check's resources (`checkLeaseTimeToLive.spec`'s: the auth store and
 lessor at lower bounds `n`, `m`, their readers, a thread token), reading `r`: on `nil`,
-`leaseTimeToLive`'s response (owned, with a header), the request authenticated (`authedOutB`:
+`leaseTimeToLive`'s response (owned, with its header owned), the request authenticated (`authedOutB`:
 `requireAuthInfo`'s) and, if it asks for the keys (`r.Keys`), auth disabled at a state no older than
 `n`, or its principal an admin at one or allowed to read every key of the lease `r.ID` at a lessor
 index no older than `m` (`leaseKeysVerdictFrom`; none if the lease was not live there); on an error,
@@ -53,7 +53,8 @@ abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗ lease.lessorRdOf γl ∗
       threadTok ∗ r ↦{dq} v ∗
       ((⌜err = GoInterface.nil⌝ ∗
-          (∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗ ⌜w.Header' ≠ null⌝) ∗
+          (∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗ ⌜w.Header' ≠ null⌝ ∗
+            ∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
           authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
           (if v.Keys' then leaseCheckFrom s E (GoInterface.ok ctx) n
               (fun info => leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read)

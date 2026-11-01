@@ -509,7 +509,7 @@ theorem EtcdServer.start.wp_proof
       $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hrunh Hwth Hwtl]
     · iunfold isServerRun
       iframe
-      iframe Hrf Hsa Hsrv Hrn
+      iframe Hrf Hsa Hsrv Hrn Hmid HmetaSnap
       isplitr
       · ipureintro; exact HEr
       isplitr
@@ -986,7 +986,7 @@ theorem EtcdServer.start.wp_proofOn
       $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hrunh Hwth Hwtl]
     · iunfold isServerRunOn
       iframe
-      iframe Hrf Hsa Hsrv Hrn Hlnil
+      iframe Hrf Hsa Hsrv Hrn Hlnil Hmid HmetaSnap
       isplitr
       · ipureintro; exact HEr
       isplitr

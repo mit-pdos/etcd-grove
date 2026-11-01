@@ -66,7 +66,7 @@ theorem WsOk.fresh {σ : WsState} (h : WsOk σ) {w : Loc} (hM : σ.M !! w = none
     | some _ => exact absurd (Or.inr (Or.inl (by rw [hs]; rfl))) hl
   · cases hs : σ.victimOf w with
     | none => rfl
-    | some _ => exact absurd (Or.inr (Or.inr (by rw [hs]; rfl))) hl
+    | some _ => exact absurd (Or.inr (Or.inr (Or.inl (by rw [hs]; rfl)))) hl
   · cases hs : σ.E !! w with
     | none => rfl
     | some _ => exact absurd ((h.live_e w).1 (by rw [hs]; rfl)) (by unfold WsState.live; exact hl)
@@ -197,14 +197,15 @@ theorem WsOk.addW {σ : WsState} (h : WsOk σ) (b : Bool) (w : Loc) (r : WatchRa
       simp only [WsState.addW, GMap.lookup_insert, Option.some.injEq] at h1
       subst h1
       obtain ⟨h1, h2, h3, h4⟩ := hst
-      refine ⟨h1, fun _ => ?_, ?_⟩
+      refine ⟨(fun hc => by rw [h1] at hc; cases hc), fun _ => ?_, ?_⟩
       · rw [hvo, hv, h3]; simp
       · constructor
         · intro hc; exact absurd hc h4
         · intro hn; exact absurd (σ.addW_live b w r st0 γw) hn
     · simp only [WsState.addW, GMap.lookup_insert_ne _ _ hw] at h1
       obtain ⟨h1, h3, h4⟩ := h.st_flags w' st' h1
-      refine ⟨h1, fun hl' => ?_, ?_⟩
+      refine ⟨fun hc => ⟨by cases b <;> simp [WsState.addW, GMap.lookup_insert_ne _ _ hw, (h1 hc).1, hw],
+        by rw [hvo]; exact (h1 hc).2⟩, fun hl' => ?_, ?_⟩
       · rw [hvo]; exact h3 ((σ.addW_live_ne b w r st0 γw hw).1 hl')
       · rw [σ.addW_live_ne b w r st0 γw hw]; exact h4
   · intro w' st' h1
@@ -289,14 +290,14 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
       mvcc.watcherMeta γ w γw ∗ mvcc.watcherChan γ w γw st0.ch ∗ mvcc.filtersOk fcs ∗
       monoListAuthOwn γw.evs (1 : Qp).half ([] : List mvcc.EvM) ∗
       dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗ mvcc.idxCert γ.st.idx C ∗
-      mvcc.crevFrozen γ.st ⊢
+      mvcc.watchNoDup γ.st ⊢
     |==> mvcc.watchStoreBody s γ 1 (σ.addW b w r st0 γw) := by
   obtain ⟨hST, hWo, hl, hWs, hWu, hv, hE⟩ := hok.fresh hM
   iintro ⟨Hσ, Hwlog, #Hcert, Hsy, Hun, Hvf, Hvs, Hvcap, %Hvlen, Hvbs, Hst, Hst0, Hwo, Hmeta,
     Hwt, #Hmfix, #Hfixed, Hmem, #Hout, #Hmw, #Hwc, #Hfo, He, Hl, #HC, #Hfz⟩
   imod ghostVar_update (σ.addW b w r st0 γw) γ.wst σ $$ Hσ with Hσ
   -- (M2, the storage side) a watcher registered: the store frozen (the create token's fact)
-  ihave #Hwfz := mvcc.wsWatchFrozen_of_frozen γ (σ.addW b w r st0 γw) $$ Hfz
+  ihave #Hwfz := mvcc.wsWatchFrozen_of_noDup γ (σ.addW b w r st0 γw) $$ Hfz
   -- no event yet: the empty log is watched (`evLog_nil`, unit W-M3)
   imod (mvcc.evLog_nil (GF := GF) γ.st) with #Hlb
   imod (monoNatLbOwn_0 (GF := GF) γ.rel) with #Hrl0
@@ -349,11 +350,13 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
           rw [show sint.nat st0.minRev = (sint.Z st0.minRev).toNat from rfl]; omega
         isplitr
         · iunfold mvcc.evsWf; iexists []; iframe Hlb Hrlb0; ipureintro; exact ⟨(hlb []).symm, Or.inr (Nat.le_refl _)⟩
-        iexists C
-        iframe HC
-        ipureintro
-        have h := hu rfl
-        show (sint.Z st0.minRev).toNat ≤ _; omega
+        isplitr
+        · iexists C
+          iframe HC
+          ipureintro
+          have h := hu rfl
+          show (sint.Z st0.minRev).toNat ≤ _; omega
+        iintro %hc; rw [hst.1] at hc; cases hc
       · simp only [mvcc.WsState.addW, GMap.lookup_insert, Option.isSome_some, ↓reduceIte]
         isplitr
         · ipureintro; omega
@@ -667,8 +670,9 @@ theorem mvcc.watchableStore.watch.wp_proof
   intro s st γ key endk fcs k e fs startRev id ch γc L Back
   simp only [mvcc.storeWatchParams]
   wp_start as ⟨#Hws, #Hk, #He, #Hfcs, #Hfs, -, HCR, HR, ⟨Htok, #Hnc⟩, %Hsr0, Hcb⟩
-  -- (M2, the storage side) the create token's "no compactor" fact: the store frozen
-  ihave #Hfz := mvcc.noCompactor_frozen γ.st $$ Hnc
+  -- the create token's fact: the store frozen, or without duplicate keys (watches across a
+  -- compaction, 2026-11-01; until then frozen, M2's F1)
+  ihave #Hfz := Hnc
   obtain ⟨Hsr, Hidm⟩ := Hsr0
   ihave #HwsAll : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws

@@ -43,9 +43,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 `errTreeOk`: `applyErrIs`'s tree, whose target condition `ptrTarget` is the compactor's). -/
 theorem errTreeOk_of_applyErrIs (err : GoInterface) :
     applyErrIs (GF := GF) err ⊢ v3compactor.errTreeOk err := by
-  iintro H
-  iunfold applyErrIs at H
-  icases H with ⟨#Ht, -⟩
+  iintro #H
+  ihave #Ht := applyErrIs_tree err $$ H
   iunfold v3compactor.errTreeOk
   imodintro
   iExactEq Ht; rfl

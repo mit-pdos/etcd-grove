@@ -499,6 +499,35 @@ def rnReadySnap (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d es A' : List Entry
     (∃ rsL : List ReadState, rd.ReadStates' ↦*□ rsL ∗
       [∗list] rs ∈ rsL, srvReadStateOk E.γr.raft E.RQ rs))
 
+/-- (J8b, 2026-11-01) **A snapshot `Ready` is past the boot log**: its index is at least the boot
+log's length. True of raft: a node restores a snapshot only above its committed index
+(`raft.restore`), which is at least the boot log's length, so every snapshot a `Ready` hands out is
+past it. From raft's `readySnap_bootLen` and the server's cluster at its bootstrap log
+(`srvClusterOk`, through `rnEnvOk`). What `applyAll.specSnap` takes (`|boot| ≤ i`, through
+`rnApSnap`). -/
+theorem rnReadySnap_bootLen (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d es A' : List EntryModel)
+    (p p' : HardStateM) (l : SnapLoan) :
+    ⊢ rnEnvOk E γ -∗ rnReadySnap E γ rd d es A' p p' l -∗ rnReadySnap E γ rd d es A' p p' l ∗
+      ⌜(γ.node.boot.length : Int) ≤ uint.Z l.snap.Metadata'.Index'⌝ := by
+  iintro #Henv H
+  iunfold rnEnvOk at Henv
+  icases Henv with ⟨-, %Hn, -, #Hinv, -⟩
+  iunfold srvRaftLogInv at Hinv
+  icases Hinv with ⟨-, #Hcl, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨-, -, -, -, -, -, -, -, %Hbl⟩
+  rw [Hn.1] at Hbl
+  iunfold rnReadySnap at H
+  icases H with ⟨%ceL, %esL, %msL, %hs, HrS, Hrest⟩
+  ihave ⟨%Hb, HrS⟩ := (letI := srvStor (GF := GF) γ.node; readySnap_bootLen _ _ _ _ _ _ _ _) $$ HrS
+  isplitl
+  · iunfold rnReadySnap
+    iexists ceL, esL, msL, hs
+    iframe HrS Hrest
+  ipureintro
+  rw [Hbl] at Hb
+  omega
+
 /-- (D22 J6a; 2026-10-30, the repair: until then `False`) **The driver with a snapshot `Ready` in
 hand**: the node API's `nodeDriver` busy with the loan, delivered the snapshot's log `A'`, its view
 after the log before (`rnCfgAt γ d`, replaced by `Advance`'s answer at the snapshot).
@@ -1402,7 +1431,9 @@ def rnApSnap (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :
     monoListIdxOwn γ.cum i.toNat F ∗ monoListIdxOwn γ.cum (i.toNat + 1) A' ∗
     ⌜F.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧
       -- (2026-11-01, J8a-5) the index's bound (raft's `readySnap`)
-      uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ ∗
+      uint.Z sv.Metadata'.Index' < 2 ^ 61 ∧
+      -- (J8b, 2026-11-01) past the boot log (`rnReadySnap_bootLen`, open)
+      (γ.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index'⌝ ∗
     -- (2026-11-01, J8a-5) no committed entries with a snapshot (raft's `readySnap`: `ce = []`)
     ap.entries' ↦*□ ([] : List Loc) ∗
     ownSnapM ap.snapshot' DFrac.discard sv ∗

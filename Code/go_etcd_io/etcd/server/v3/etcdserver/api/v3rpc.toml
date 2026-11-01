@@ -44,6 +44,9 @@ translate = ["!*",
   # `_Lease_LeaseRevoke_Handler` calls on the registered `*quotaLeaseServer` (stage (c))
   "LeaseServer.LeaseGrant", "LeaseServer.LeaseRevoke", "quotaLeaseServer.LeaseGrant",
   "quotaLeaseServer.LeaseRevoke",
+  # the lease rows at the gRPC level (item 6, branch `lease-grpc`): the read handlers, over the
+  # server's lease package (`lease.ErrLeaseNotFound`)
+  "LeaseServer.LeaseTimeToLive", "LeaseServer.LeaseLeases",
   # the auth plan's A2 (2026-10-23): auth.go's AuthAdmin (the API layer's admin and
   # authenticated-user guards) and maintenance.go's guarded wrappers (the inner
   # maintenanceServer methods stay names only: the wrappers' specs take their triples)
@@ -70,6 +73,8 @@ imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "go.etcd.io/etcd/pkg/v3/adt", "go.etcd.io/etcd/server/v3/etcdserver",
   "go.etcd.io/etcd/server/v3/etcdserver/apply", "go.etcd.io/etcd/server/v3/etcdserver/txn",
   "go.etcd.io/etcd/server/v3/auth",
+  # item 6: lease.go's read handlers
+  "go.etcd.io/etcd/server/v3/lease",
   # watch.go
   "io", "math/rand", "sync", "go.opentelemetry.io/otel/attribute", "go.opentelemetry.io/otel/trace",
   "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/mvccpb",

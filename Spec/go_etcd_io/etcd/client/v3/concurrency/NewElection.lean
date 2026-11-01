@@ -30,7 +30,7 @@ an election on that prefix, in its initial state (every field zero). -/
 abbrev NewElection.spec : Prop :=
   ∀ (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isSession s γ client id ∗
-      isEtcdMutexClient client (pfx ++ go!"/") ∗ ⌜pfx.length < 2 ^ 27⌝ }}
+      isEtcdMutexClient client (pfx ++ go!"/") ∗ ⌜pfx.length < concPfxMax⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewElection)) (Val #s)) (Val #pfx))
   {{ (e : Loc), RET #e; isElection e s γ client id (pfx ++ go!"/") ∗
       electionState e s ElectionSt.init }}

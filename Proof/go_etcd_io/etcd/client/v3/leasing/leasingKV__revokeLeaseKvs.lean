@@ -110,7 +110,7 @@ theorem leasingKV.revokeLeaseKvs.wp_proof
         unfold strings.trimPrefix; split <;> (try simp only [List.length_drop]) <;> omega
       refine ⟨by simp [op_simps], Ht, ?_⟩
       simp only [OpShape]
-      refine ⟨by simpa [op_simps] using Ht, by simp [op_simps], by simp [op_simps]⟩
+      refine ⟨by simpa [op_simps, opKeyMax] using Ht, by simp [op_simps], by simp [op_simps]⟩
     rcases err with e | _
     · wp_auto
       wp_for_post

@@ -43,7 +43,7 @@ abbrev store.Create.spec : Prop :=
     (rv : GoString) (out : GoInterface) (o0 : Obj) (rv0 : GoString) (k : GoString)
     (Φ : KVState → IProp GF),
   prepareKeyM c.resourcePrefix key false = some k →
-  (c.pathPrefix ++ k).length ≤ 2 ^ 27 →
+  (c.pathPrefix ++ k).length ≤ opKeyMax →
   c.S.storedSizeOk o →
   c.S.parseRV rv = some (W64 0) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗

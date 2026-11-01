@@ -42,7 +42,7 @@ abbrev Election.Campaign.spec : Prop :=
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (val : GoString) (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s γ client id pfx ∗
       electionState e s st ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
-      etcdReached lo ∗ ⌜val.length ≤ 2 ^ 28⌝ }}
+      etcdReached lo ∗ ⌜val.length ≤ concStrMax⌝ }}
     (App (App (Val (e @!! go.GoType.PointerType Election.ty @!! go!"Campaign"))
       (Val #(GoInterface.ok ctx))) (Val #val))
   {{ (err : GoInterface), RET #err;

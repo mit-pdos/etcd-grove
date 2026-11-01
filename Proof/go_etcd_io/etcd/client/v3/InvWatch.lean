@@ -464,20 +464,20 @@ theorem watchLaws_srv [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (V : 
 
 /-- **A member's facts** (persistent; W3b): its watch-token pool, its logs small, no key written
 twice in a revision, its store's names its environment's, and its watched logs as the contract's
-model sees them (`watchLaws`); and (M2, the storage side, 2026-10-30: review round 1's F1, the
-user's: no watchers in compaction mode) its store's "no compactor" fact, which the client's create
-requests carry (`watchUp`). -/
+model sees them (`watchLaws`); and (M2, the storage side; watches across a compaction, D8,
+2026-11-01) its store's fact for watches (`mvcc.watchNoDup`: no compactor, or no revision writing a
+key twice), which the client's create requests carry (`watchUp`). -/
 def watchMemberFacts (V : WEnv GF) : IProp GF :=
   iprop(mvcc.watchTokPool V.R.γ ∗ srvLogsSmall V.R ∗
-    ⌜V.R.γ.st = V.R.E.γ⌝ ∗ watchLaws V ∗ srvKVFacts V ∗ mvcc.noCompactor V.R.γ.st)
+    ⌜V.R.γ.st = V.R.E.γ⌝ ∗ watchLaws V ∗ srvKVFacts V ∗ mvcc.watchNoDup V.R.γ.st)
 
 instance watchMemberFacts_persistent (V : WEnv GF) : Persistent (watchMemberFacts V) := by
   unfold watchMemberFacts; infer_instance
 
-/-- **The member's "no compactor" fact** (a projection, so no site destructures the facts by
+/-- **The member's fact for watches** (a projection, so no site destructures the facts by
 position). -/
-theorem watchMemberFacts_noCompactor (V : WEnv GF) :
-    watchMemberFacts V ⊢ mvcc.noCompactor V.R.γ.st := by
+theorem watchMemberFacts_noDup (V : WEnv GF) :
+    watchMemberFacts V ⊢ mvcc.watchNoDup V.R.γ.st := by
   iintro #H
   iunfold watchMemberFacts at H
   icases H with ⟨-, -, -, -, -, #Hf⟩
@@ -505,7 +505,7 @@ theorem watchUp_create (V : WEnv GF) (i : Nat) (c : v3rpc.CreateReqM)
     watchMemberFacts V ∗ mvcc.watchTok V.R.γ ∗ □ auth.authPubLbM V.R.E.authMode c.bound ⊢
       v3rpc.watchUp V.R i (.create c) := by
   iintro ⟨#Hm, Ht, #Hb⟩
-  ihave #Hf := watchMemberFacts_noCompactor V $$ Hm
+  ihave #Hf := watchMemberFacts_noDup V $$ Hm
   unfold v3rpc.watchUp
   dsimp only
   iframe Ht Hf Hb
@@ -957,9 +957,18 @@ def dispOk (rev c c' : w64) (r : RespModel) : Prop :=
       sint.Z e.rev < 2 ^ 63 - 1) ∧
     c' = (r.events.getLast?.map EvModel.rev).getD c
 
+/-- **The kinds of response `run` sends a substream** (pure; watches across a compaction, D6,
+2026-11-01): one without compaction, not canceled; or a compaction response (the watch's next
+revision compacted: canceled, no events, not created, at the header revision `0`), which the substream delivers as its error
+(`ErrCompacted`) and stops. -/
+def respKindOk (r : RespModel) : Prop :=
+  (r.compactRev = W64 0 ∧ r.canceled = false) ∨
+  (r.compactRev ≠ W64 0 ∧ r.canceled = true ∧ r.events = [] ∧ r.created = false ∧
+    r.hdrRev = W64 0)
+
 /-- **The `k`th response `run` sends a substream** (`recvc`'s element) at `wr` (read-only): a
 `WatchResponse` modelled by `r` (its events read-only, its header non-nil, `watchHdrOwn`: the
-`Revision` owned for a response with events; no close error, no compaction, not canceled),
+`Revision` owned for a response with events; no close error, of a kind `run` sends: `respKindOk`),
 satisfying the contract from the dispatch cursor's position `k` to `k + 1` (`γhi`, a mono list
 `run` extends); a created response has no events and `run`'s half of
 the request's `rev` field (the substream writes it from then on); another is at no goroutine's
@@ -971,8 +980,7 @@ def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
   iprop((∃ (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hiB hiA : w64),
     wr ↦□ v ∗
     ⌜v.Header' ≠ null ∧ v.closeErr' = GoInterface.nil ∧ v.CompactRevision' = r.compactRev ∧
-      v.Canceled' = r.canceled ∧ v.Created' = r.created ∧ r.compactRev = W64 0 ∧
-      r.canceled = false⌝ ∗
+      v.Canceled' = r.canceled ∧ v.Created' = r.created ∧ respKindOk r⌝ ∗
     eventsAt v.Events' r.events ∗ watchHdrOwn v.Header' r ∗
     monoListIdxOwn P.γhi k.toNat hiB ∗ monoListIdxOwn P.γhi (k.toNat + 1) hiA ∗
     ⌜dispOk P.rev hiB hiA r⌝ ∗ recvCmpl V P k v r ∗
@@ -1446,8 +1454,7 @@ def recvLive (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
   iprop(∃ (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hiB hiA : w64),
     wr ↦□ v ∗
     ⌜v.Header' ≠ null ∧ v.closeErr' = GoInterface.nil ∧ v.CompactRevision' = r.compactRev ∧
-      v.Canceled' = r.canceled ∧ v.Created' = r.created ∧ r.compactRev = W64 0 ∧
-      r.canceled = false⌝ ∗
+      v.Canceled' = r.canceled ∧ v.Created' = r.created ∧ respKindOk r⌝ ∗
     eventsAt v.Events' r.events ∗ watchHdrOwn v.Header' r ∗
     monoListIdxOwn P.γhi k.toNat hiB ∗ monoListIdxOwn P.γhi (k.toNat + 1) hiA ∗
     ⌜dispOk P.rev hiB hiA r⌝ ∗ recvCmpl V P k v r ∗

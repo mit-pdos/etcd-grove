@@ -33,8 +33,8 @@ abbrev ResumeElection.spec : Prop :=
   ∀ (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx leaderKey : GoString)
     (leaderRev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isSession s γ client id ∗
-      isEtcdMutexClient client pfx ∗ ⌜pfx ≠ [] ∧ pfx.length ≤ 2 ^ 27⌝ ∗
-      ⌜leaderKey.length ≤ 2 ^ 28⌝ }}
+      isEtcdMutexClient client pfx ∗ ⌜pfx ≠ [] ∧ pfx.length ≤ concPfxMax⌝ ∗
+      ⌜leaderKey.length ≤ concStrMax⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.ResumeElection)) (Val #s))
       (Val #pfx)) (Val #leaderKey)) (Val #leaderRev))
   {{ (e : Loc), RET #e; isElection e s γ client id pfx ∗
