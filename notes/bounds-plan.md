@@ -1,6 +1,11 @@
 # Bounds localized: thread counts, reader slots, counters and sizes in one place each (plan, 2026-11-01)
 
 **Status:** accepted, 2026-11-01: the user took the recommendation on each of D1-D4 ("follow your
+**2026-11-01, the user's:** B1's server batch (`NewServer`, the server specs, the example `Main`
+specs, `GoAttach`'s wait group, with B5's `cfgScopeOk` and `Workload`) and the rest of B2 (the run
+slots built in `NewServer`, the pools of the auth store, the server's locks and mvcc) go with the
+auth merge, not as stages of their own. Done here: B0, B1's client-side batch, the leasing pilot
+(B2), B3's cache step, B4, and B5's shared size limits by name.
 recommendations on D1-D4; start with B0"). B0 done (2026-11-01): `etc/bounds-check.py` (532 at the start) in the gates and CI, the
 lock inventory `notes/bounds-locks.md`. B2's leasing pilot done (2026-11-01, branch `bounds-b2-leasing`: stock 2 → 0 in leasing; "The leasing
 pilot's design" below). Next: B2a.
