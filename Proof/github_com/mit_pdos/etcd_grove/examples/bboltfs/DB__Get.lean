@@ -20,6 +20,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__Get
 public import Spec.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__meta
 public import Spec.github_com.mit_pdos.etcd_grove.examples.bboltfs.pageAt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.MapLoan
 public import Perennial.Proof.sync.Results
 
 @[expose] public section
@@ -102,8 +103,118 @@ theorem DB.Get.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
     · dsimp only [mapFields, mapRest]
       icases Hflds with ⟨Hd, H0, H1⟩
       icases Hmr with ⟨%Hbase, Htok, #Hinv, Hf, Hfd⟩
+      icombine Hpath Hpath' gives %Hpp
+      subst Hpp
+      iunfold mapInv at Hinv
+      icases Hinv with ⟨%Hlen, %γl, #HinvL⟩
+      icases Hrest with ⟨Hfail, %Hok, Hlauth, Hown, %B, #HB, #Htx, %HT⟩
+      obtain ⟨Hmx', Hmpok, Hhwm⟩ := Hok
+      subst mx hwm
+      obtain ⟨Hmpl, Hval, Hr2, Hrh, Hbound⟩ := Hmpok
+      rw [show sync.rfrac.half = sync.rfrac.half.half + (metaDep + metaDep) by unfold metaDep; qp_eq] at *
+      icases ((ghostVar_fractional γm ()).fractional _ _).1 $$ Htok with ⟨Hq, Htok⟩
+      icases ((ghostVar_fractional γm ()).fractional _ _).1 $$ Htok with ⟨Hmd, Hpd⟩
+      imod meta_borrow γ p base len γm γl mp (curPgid mp) T sync.rfrac.half.half $$ [HinvL Hq Hcur Hout Hauth Hmd]
+        with ⟨Hq, Hcur, Hout, Hauth, Hk0, Hmc⟩
+      · iframe; iframe #
+      imod page_borrow γ p base len γm γl mp (curPgid mp) (curRoot mp) sync.rfrac.half.half metaDep Hr2 Hrh
+        $$ [HinvL Hq Hcur Hpd] with ⟨Hq, Hcur, %Hlen2, %B', #HB', Hkr, Hbr⟩
+      · iframe; iframe #
+      icases pageIs_agree p (curRoot mp) B B' $$ [HB HB'] with %HBB
+      · iframe #
+      subst HBB
+      obtain ⟨Hm0, Hm1⟩ := metasOf_take mp Hmpl
+      have Hmcl := metasOf_length mp Hmpl
+      iunfold metaBytes at Hmc
+      icases Hmc with ⟨Hc0, Hc1⟩
+      have h16 : 0 < (base +ₗ (16 : Int)).addr := by simp only [Loc.add]; omega
+      have h4112 : 0 < (base +ₗ (4112 : Int)).addr := by simp only [Loc.add]; omega
+      icases (bytesPointsto_typed (V := Meta) (base +ₗ (16 : Int)) _ ((metasOf mp).take 64)
+        (by simp; omega) h16).1 $$ Hc0 with Hc0
+      icases (bytesPointsto_typed (V := Meta) (base +ₗ (4112 : Int)) _ ((metasOf mp).drop 64)
+        (by simp; omega) h4112).1 $$ Hc1 with Hc1
+      rw [Hm0, Hm1]
+      have Hb0 : (base +ₗ (16 : Int) ↦{DFrac.own (1 : Qp).half} fileMeta mp 0 : IProp GF) ⊢
+          bytesPointsto (base +ₗ (16 : Int)) (DFrac.own (1 : Qp).half) ((metasOf mp).take 64) := by
+        rw [← Hm0]; exact (bytesPointsto_typed (V := Meta) _ _ _ (by simp; omega) h16).2
+      have Hb1 : (base +ₗ (4112 : Int) ↦{DFrac.own (1 : Qp).half} fileMeta mp 1 : IProp GF) ⊢
+          bytesPointsto (base +ₗ (4112 : Int)) (DFrac.own (1 : Qp).half) ((metasOf mp).drop 64) := by
+        rw [← Hm1]; exact (bytesPointsto_typed (V := Meta) _ _ _ (by simp; omega) h4112).2
+      have Hsel : (base +ₗ (16 : Int) ↦{DFrac.own (1 : Qp).half} fileMeta mp 0 ∗
+          base +ₗ (4112 : Int) ↦{DFrac.own (1 : Qp).half} fileMeta mp 1 : IProp GF) ⊢
+          pickMetaRes (base +ₗ 16) (fileMeta mp 0) (base +ₗ 4112) (fileMeta mp 1) ↦{DFrac.own (1 : Qp).half} curMeta mp ∗
+          (pickMetaRes (base +ₗ 16) (fileMeta mp 0) (base +ₗ 4112) (fileMeta mp 1) ↦{DFrac.own (1 : Qp).half} curMeta mp -∗
+            base +ₗ (16 : Int) ↦{DFrac.own (1 : Qp).half} fileMeta mp 0 ∗
+            base +ₗ (4112 : Int) ↦{DFrac.own (1 : Qp).half} fileMeta mp 1) := by
+        rcases pick_cur mp (base +ₗ 16) (base +ₗ 4112) Hval with ⟨Hpk, Hcm⟩ | ⟨Hpk, Hcm⟩ <;> rw [Hpk, Hcm]
+        · iintro ⟨H0, H1⟩; iframe H0; iintro H0; iframe
+        · iintro ⟨H0, H1⟩; iframe H1; iintro H1; iframe
+      have Hlv : (monoNatAuthOwn γ.last 1 (curMeta mp).txid'.toNat ∗ dbLast γ t : IProp GF) ⊢
+          (monoNatAuthOwn γ.last 1 (curMeta mp).txid'.toNat ∗ dbLast γ t) ∗ ⌜t ≤ (curMeta mp).txid'.toNat⌝ :=
+        keep_pure (by
+          iintro ⟨H1, H2⟩; iunfold dbLast at H2
+          icases monoNatLbOwn_valid γ.last 1 _ _ $$ H1 H2 with %h
+          ipureintro; exact h.2)
+      icases Hlv $$ [Hlauth Hlast] with ⟨⟨Hlauth, -⟩, %Hle⟩
+      · iframe
+      ihave #Hlb := monoNatLbOwn_get γ.last 1 _ $$ Hlauth
       wp_auto
-      -- The meta copy `*db.meta()` is blocked on `DB.lean` (see the file header).
+      have hnn : (base +ₗ (16 : Int)) ≠ null := by
+        intro h; have := congrArg Loc.addr h; simp only [Loc.add, null] at this; omega
+      rw [decide_eq_false hnn]
+      wp_auto
+      wp_apply wp_meta db (base +ₗ 16) (base +ₗ 4112) (fileMeta mp 0) (fileMeta mp 1) _ _ _ Hval
+        $$ [H0 H1 Hc0 Hc1] as ⟨H0, H1, Hc0, Hc1⟩
+      · iframe; ipureintro; exact ⟨h16, h4112⟩
+      icases Hsel $$ [Hc0 Hc1] with ⟨Hc, Hcb⟩
+      · iframe
+      wp_auto
+      icases Hcb $$ Hc with ⟨Hc0, Hc1⟩
+      icases Hb0 $$ Hc0 with Hc0
+      icases Hb1 $$ Hc1 with Hc1
+      imod meta_return γ p base len γm γl T sync.rfrac.half.half (metasOf mp)
+        $$ [HinvL Hq Hout Hauth Hk0 Hc0 Hc1] with ⟨Hq, Hout, Hauth, Hmd⟩
+      · iframe #; iunfold metaBytes; iframe
+      wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaR (GF := GF) γ db p)
+        $$ [$Hmeta $Hsync $Hlocked Hfl Hcur Hmb Hauth Hout Hfail Hlauth Hown]
+      · iunfold metaR
+        iexists false, mp, mp, curPgid mp, mxc, T
+        iframe
+        dsimp only
+        isplitr; · ipureintro; exact Hmx
+        iframe
+        isplitr; · ipureintro; exact ⟨rfl, ⟨Hmpl, Hval, Hr2, Hrh, Hbound⟩, rfl⟩
+        iframe
+        iexists B; iframe #; ipureintro; exact HT
+      iunfold pageIs at HB
+      icases HB with ⟨%HBl, -⟩
+      have hrr : 4096 * curRoot mp + 4096 ≤ 4096 * curPgid mp := by
+        have := Nat.mul_le_mul_left 4096 (Nat.succ_le_of_lt Hrh); omega
+      have hoff : sint.Z ((curMeta mp).root'.root' * W64 4096) = ((4096 * curRoot mp : Nat) : Int) := by
+        have h1 : (curMeta mp).root'.root'.toNat * 4096 < 2 ^ 30 := by
+          have : curRoot mp = (curMeta mp).root'.root'.toNat := rfl
+          omega
+        show _ = (((4096 * (curMeta mp).root'.root'.toNat : Nat)) : Int)
+        word
+      have hlenZ : sint.Z (W64 (len : Int)) = (len : Int) := sint_Z_W64_nat _ (by omega)
+      wp_apply wp_pageAt ⟨base, W64 len, W64 len⟩ ((curMeta mp).root'.root' * W64 4096)
+      · ipureintro
+        refine ⟨Hbase, ?_, ?_⟩
+        · rw [hoff]; omega
+        · rw [hoff]; simp only at hlenZ ⊢; rw [hlenZ]; omega
+      simp only
+      rw [hoff]
+      have hl : 0 < (base +ₗ ((4096 * curRoot mp : Nat) : Int)).addr := by simp only [Loc.add]; omega
+      icases bytesPointsto_view_read (V := Page) (base +ₗ ((4096 * curRoot mp : Nat) : Int)) _ B 0
+        (base +ₗ ((4096 * curRoot mp : Nat) : Int)) (by simp) (by omega) hl $$ Hbr with ⟨Hpg, Hpgb⟩
+      simp only [List.drop_zero]
+      rw [show (decode (List.take 16 B) : Page) = pageHdrOf B from rfl]
+      have hlnn : (base +ₗ ((4096 * curRoot mp : Nat) : Int)) ≠ null := by
+        intro h; have := congrArg Loc.addr h; simp only [Loc.add, null] at this hl; omega
+      icases typedPointsto_split _ _ _ $$ Hpg with Hpg
+      simp only [TypedPointsto.typedPointstoDef]
+      icases Hpg with ⟨Hid, Hflags, Hcount, Hover, -⟩
+      wp_auto
       sorry
 
 end proof
