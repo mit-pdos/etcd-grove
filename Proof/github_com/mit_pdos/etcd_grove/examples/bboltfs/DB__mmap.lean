@@ -30,27 +30,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
 
-instance cellsR_timeless (base : Loc) (lo n : Nat) (vf : Nat → val) :
-    Timeless (cellsR (GF := GF) base lo n vf) := by
-  unfold cellsR; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
-
-instance osBytes_timeless' (p : GoString) (off : Nat) (dq : DFrac) (xs : List (w8 × Bool)) :
-    Timeless (osBytes (GF := GF) p off dq xs) := by
-  unfold osBytes bytesG; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
-
-instance mapCells_timeless (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) :
-    Timeless (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bboltfs.mapCells (GF := GF) γ p base len) := by
-  unfold _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bboltfs.mapCells
-  haveI : ∀ r, Timeless iprop(∃ B, pageIs (GF := GF) p r B ∗ cellsB (GF := GF) base (4096 * r) B) := by
-    intro r; unfold pageIs cellsB; infer_instance
-  haveI : ∀ n, Timeless iprop([∗list] r ∈ List.range' 2 n,
-      ∃ B, pageIs (GF := GF) p r B ∗ cellsB (GF := GF) base (4096 * r) B) := fun _ =>
-    BigSepL.bigSepL_timeless (fun _ => inferInstance)
-  haveI : ∀ lo B, Timeless (cellsB (GF := GF) base lo B) := by intro lo B; unfold cellsB; infer_instance
-  haveI : ∀ x : List w8 × Bool × Nat, Timeless (ghostVar (GF := GF) γ.cur (1 : Qp).half.half x) := fun _ => inferInstance
-  haveI : ∀ b : Bool, Timeless (ghostVar (GF := GF) γ.out (1 : Qp).half b) := fun _ => inferInstance
-  infer_instance
-
 /-- What `munmap` leaves the writer besides `mappingRes`, in the state `st`. -/
 def unmapRest (p : GoString) (m : OsMeta) : MapSt → IProp GF
   | some (base, len, _) => iprop(⌜m.maps = {[base := len]} ∧ 0 < base.addr⌝)

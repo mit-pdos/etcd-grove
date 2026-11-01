@@ -26,6 +26,27 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : Assumptions]
 
+instance cellsR_timeless (base : Loc) (lo n : Nat) (vf : Nat → val) :
+    Timeless (cellsR (GF := GF) base lo n vf) := by
+  unfold cellsR; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
+
+instance osBytes_timeless' (p : GoString) (off : Nat) (dq : DFrac) (xs : List (w8 × Bool)) :
+    Timeless (osBytes (GF := GF) p off dq xs) := by
+  unfold osBytes bytesG; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
+
+instance mapCells_timeless (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) :
+    Timeless (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bboltfs.mapCells (GF := GF) γ p base len) := by
+  unfold _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bboltfs.mapCells
+  haveI : ∀ r, Timeless iprop(∃ B, pageIs (GF := GF) p r B ∗ cellsB (GF := GF) base (4096 * r) B) := by
+    intro r; unfold pageIs cellsB; infer_instance
+  haveI : ∀ n, Timeless iprop([∗list] r ∈ List.range' 2 n,
+      ∃ B, pageIs (GF := GF) p r B ∗ cellsB (GF := GF) base (4096 * r) B) := fun _ =>
+    BigSepL.bigSepL_timeless (fun _ => inferInstance)
+  haveI : ∀ lo B, Timeless (cellsB (GF := GF) base lo B) := by intro lo B; unfold cellsB; infer_instance
+  haveI : ∀ x : List w8 × Bool × Nat, Timeless (ghostVar (GF := GF) γ.cur (1 : Qp).half.half x) := fun _ => inferInstance
+  haveI : ∀ b : Bool, Timeless (ghostVar (GF := GF) γ.out (1 : Qp).half b) := fun _ => inferInstance
+  infer_instance
+
 theorem mapInv_close (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName) :
     mapInv (GF := GF) γ p base len γm ∗ ghostVar γm 1 () ⊢ |={⊤}=> ▷ mapCells (GF := GF) γ p base len := by
   iintro ⟨#Hinv, Htok⟩
@@ -52,6 +73,44 @@ theorem mapInv_alloc (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) :
   iframe
   unfold mapInv
   iexact Hinv
+
+
+/-- Two halves of the same bytes of a file, as the whole (they agree). -/
+theorem osBytes_join (p : GoString) :
+    ∀ (xs ys : List (w8 × Bool)) (off : Nat), xs.length = ys.length →
+    osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) xs ∗
+      osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) ys ⊢
+      osBytes (GF := GF) p off (DFrac.own 1) xs
+  | [], _, off, _ => by
+    iintro -; iapply (osBytes_nil p off _).2; iempintro
+  | x :: xs, [], _, h => by simp at h
+  | x :: xs, y :: ys, off, h => by
+    iintro ⟨H1, H2⟩
+    icases (osBytes_cons p off _ x xs).1 $$ H1 with ⟨Hx, H1⟩
+    icases (osBytes_cons p off _ y ys).1 $$ H2 with ⟨Hy, H2⟩
+    iapply (osBytes_cons p off _ x xs).2
+    unfold osByte
+    icases gElem_valid_2 _ _ _ _ _ x y $$ Hx Hy with %Hxy
+    obtain ⟨-, rfl⟩ := Hxy
+    isplitl [Hx Hy]
+    · conv => rhs; rw [← Qp.half_add_half 1]
+      iapply (gElem_split _ _ _ _ _ _).2; iframe
+    · iapply osBytes_join p xs ys (off + 1) (by simpa using h); iframe
+
+/-- Three halves of a ghost variable cannot be. -/
+theorem ghostVar_halves3 (γ : GName) (x y z : Nat × Nat) :
+    ghostVar (GF := GF) γ (1 : Qp).half x ∗ ghostVar γ (1 : Qp).half y ∗ ghostVar γ (1 : Qp).half z ⊢
+      False := by
+  iintro ⟨H1, H2, H3⟩
+  icombine H1 H2 gives % ⟨_, Hxy⟩
+  subst Hxy
+  ihave H12 := (ghostVar_split_half γ 1 x).2 $$ [H1 H2]
+  · iframe
+  icombine H12 H3 gives % ⟨Hbad, _⟩
+  exfalso
+  have h : 0 < ((1 : Qp).half).val := ((1 : Qp).half).2
+  simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at Hbad
+  grind
 
 /-- The invariant's pages `[s, s + k)`: their contents, and their cells as one range. -/
 theorem pagesCells_split (p : GoString) (base : Loc) :

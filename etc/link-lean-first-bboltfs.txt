@@ -22,6 +22,7 @@ os_File__WriteAt:
 syscall_Fdatasync:
 bboltfs_DB__munmap: unix_Munmap
 bboltfs_DB__close: bboltfs_DB__munmap os_File__Fd syscall_Flock os_File__Close
+bboltfs_DB__Close: bboltfs_DB__close
 os_File__Fd:
 syscall_Flock:
 bboltfs_flock: os_File__Fd syscall_Flock =_root_.Perennial.time.wp_Sleep

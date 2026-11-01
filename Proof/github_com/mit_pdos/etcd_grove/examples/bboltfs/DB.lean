@@ -161,6 +161,16 @@ def dbLast (γ : DBNames) (t : Nat) : IProp GF := monoNatLbOwn γ.last t
 /-- A commit failed: the handle refuses every later transaction. -/
 def dbFailed (γ : DBNames) : IProp GF := monoNatLbOwn γ.fail 1
 
+instance dbTx_persistent (γ : DBNames) (t : Nat) (vo : Option w64) :
+    Persistent (dbTx (GF := GF) γ t vo) := by
+  unfold dbTx; infer_instance
+
+instance dbLast_persistent (γ : DBNames) (t : Nat) : Persistent (dbLast (GF := GF) γ t) := by
+  unfold dbLast; infer_instance
+
+instance dbFailed_persistent (γ : DBNames) : Persistent (dbFailed (GF := GF) γ) := by
+  unfold dbFailed; infer_instance
+
 /-- The committer's token: the current txid is `t` and the high water mark `n`. -/
 def dbOwner (γ : DBNames) (t n : Nat) : IProp GF := ghostVar γ.own (1 : Qp).half (t, n)
 

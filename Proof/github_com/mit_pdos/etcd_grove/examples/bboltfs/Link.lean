@@ -8,6 +8,7 @@ hand.
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__Close
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__close
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__meta
@@ -74,6 +75,10 @@ theorem os.File.wp_Close :
 theorem DB.wp_close :
     EtcdGrove.bboltfs.DB.close.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.DB.close.wp_proof DB.wp_munmap os.File.wp_Fd syscall.wp_Flock os.File.wp_Close
+
+theorem DB.wp_Close :
+    EtcdGrove.bboltfs.DB.Close.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.DB.Close.wp_proof DB.wp_close
 
 theorem wp_pageAt :
     EtcdGrove.bboltfs.pageAt.spec (GF := GF) (hG := hG) :=
