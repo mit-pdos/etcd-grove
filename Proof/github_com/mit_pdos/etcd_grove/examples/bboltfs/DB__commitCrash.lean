@@ -491,6 +491,42 @@ theorem dataW_after {p : GoString} {m2 m4 : OsMeta} {bs2 bs4 : List (w8 × Bool)
   rw [← hmp]
   exact take8192_congr (N := 4096 * hwm) (fun k hk => hN.pre k (by unfold cfLo; omega)) (by omega)
 
+/-- The slot the next commit writes. -/
+theorem slot_next (t : w64) (ht : t.toNat + 1 < 2 ^ 64) :
+    ((t + W64 1) % W64 2).toNat = 1 - t.toNat % 2 := by
+  rw [BitVec.toNat_umod, BitVec.toNat_add]
+  show ((t.toNat + 1) % 2 ^ 64) % 2 = _
+  omega
+
+/-- What the meta write reaches, as the writer's state. -/
+theorem metaW_after {p : GoString} {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {mp : List w8}
+    {N : Meta} {s hwm : Nat} {D : List w8} (h : commitMetaSt m bs mp N s) (hl : bs.length = m.size)
+    (hD : D.length = 4096) (h8 : 8192 ≤ m.size) (hcl : ∀ k < 8192, ∃ b, bs[k]? = some (b, true))
+    (hw : pageMeta D = N) (hR : WReach m bs (4096 * (1 - s)) D m' bs') :
+    commitMetaSt m' bs' mp N s ∧
+      cacheOk bs' (1 - s) (fun X => X = fileMeta mp (1 - s) ∨ X = N) ∧ bs'.length = m'.size ∧
+      m'.maps = m.maps ∧ m'.size = m.size ∧ m'.ok = m.ok ∧
+      (∀ k, (k < 4096 * (1 - s) ∨ 4096 * (1 - s) + 4096 ≤ k) → bs'[k]? = bs[k]?) ∧
+      (∀ M : GMap Loc Nat, dbOk p (some ⟨{ m' with maps := M }, bs', 8192, 4096 * hwm, .idle⟩)) ∧
+      (∀ M : GMap Loc Nat, dbOk p (some ⟨{ { m' with ok := false } with maps := M }, bs', 8192,
+        4096 * hwm, .idle⟩)) ∧
+      dbOk p (some ⟨{ m' with ok := false }, bs', 8192, 4096 * hwm, .idle⟩) := by
+  obtain ⟨hM, hc, hl'⟩ := metaW_reach h hl hD h8 hcl hw hR
+  have hN := hR.narrow hl
+  have hs2 := h.s2
+  have hs1 := hN.size
+  have hs2' := hN.szhi
+  refine ⟨hM, hc, hl', hN.maps, by rw [hD] at hs2'; omega, hN.ok, ?_,
+    fun M => commitMetaIdle_okS ⟨{ m' with maps := M }, bs', 8192, 4096 * hwm, .idle⟩ hl' rfl
+      (commitMetaSt_meta (m := m') hM rfl rfl rfl rfl) hc,
+    fun M => commitMetaIdle_okS ⟨{ { m' with ok := false } with maps := M }, bs', 8192, 4096 * hwm,
+      .idle⟩ hl' rfl (commitMetaSt_meta (m := m') hM rfl rfl rfl rfl) hc,
+    commitMetaIdle_okS ⟨{ m' with ok := false }, bs', 8192, 4096 * hwm, .idle⟩ hl' rfl
+      (commitMetaSt_meta (m := m') hM rfl rfl rfl rfl) hc⟩
+  rintro k (hk | hk)
+  · exact hN.pre k (by unfold cfLo; omega)
+  · exact hN.suf (by omega) k (by omega)
+
 end pure
 
 section pure2
@@ -1302,6 +1338,108 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
   unfold errnoErr; rw [if_pos rfl]
   (try wp_auto)
   rw [hsyn]
+  -- the meta page
+  wp_apply (wp_slice_make2 (V := w8) (W64 4096)) as %mbuf ⟨Hmb, -⟩
+  · ipureintro; decide
+  (try wp_auto)
+  ihave %Hmblen := ownSlice_len $$ Hmb
+  ihave %Hmbpos := ownSlice_ptr_pos mbuf _ _
+    (List.ne_nil_of_length_pos (by rw [List.length_replicate]; decide)) $$ Hmb
+  have hmbl : sint.Z mbuf.len = 4096 := by
+    have h1 := Hmblen.1; have h2 := Hmblen.2; simp only [List.length_replicate] at h1
+    have : sint.nat mbuf.len = (sint.Z mbuf.len).toNat := rfl
+    omega
+  wp_apply wp_pageAt
+  · ipureintro; rw [hmbl]; exact ⟨Hmbpos, by decide, by decide⟩
+  rw [show sint.Z (W64 0) = 0 from rfl, loc_add_0]
+  icases ownSlice_bytes_acc go.uint8 (.scalar _ _ .isPlainScalar_uint8) mbuf _ _ Hmbpos $$ Hmb
+    with ⟨Hb, Hmclose⟩
+  simp only [flatMap_encode_w8, show zero_val w8 = (0 : w8) from rfl]
+  icases (zeroPage_meta_view _ _ Hmbpos).1 $$ [Hb] with ⟨Hh, Hmm, Hr⟩
+  · iexact Hb
+  (try wp_auto)
+  wp_apply wp_write m_ptr mbuf.ptr (nextMeta mv) _ _ $$ [m Hh Hmm] as ⟨m, Hh, Hmm⟩
+  · iframe m Hh Hmm; ipureintro; exact ⟨Hmpos, Hmbpos⟩
+  (try wp_auto)
+  -- `metalock`: the handle is not failed (the writer's `cur`)
+  ihave #Hpkg2 := Hpkg
+  iunfold pkgFacts at Hpkg2
+  icases Hpkg2 with ⟨#Hsync, -⟩
+  wp_apply sync.Mutex.wp_Lock db.[DB, go!"metalock"] (metaRC (GF := GF) γ db p) $$ [$Hmeta $Hsync]
+    as ⟨Hlocked, HR⟩
+  iunfold metaRC at HR
+  icases HR with ⟨%b, %mpx, %hwmx, %c, %T, Hfl, Hcm, Hcls2, Hauth, Hout2, Hrest⟩
+  icombine Hcur Hcm gives % ⟨_, Hceq⟩
+  cases Hceq
+  dsimp only
+  icases Hrest with ⟨Hfail, %Hmeta', Hlast, Hown2, %B0, #HB0, #Htx0, %HT0⟩
+  obtain ⟨-, -, HTn⟩ := Hmeta'
+  (try wp_auto)
+  -- the meta buffer holds the meta page
+  ihave Hh : mbuf.ptr ↦ metaHdrOf mv $$ [Hh]
+  · simp only [metaHdrOf, pageHdr, nextMeta]; iexact Hh
+  ihave Hmm : (mbuf.ptr +ₗ 16) ↦ commitOf mv $$ [Hmm]
+  · simp only [commitOf, nextMeta]; iexact Hmm
+  ihave Hb := (pageMeta_view mbuf.ptr _ _ _ _ Hmbpos).2 $$ [Hh Hmm Hr]
+  · iframe Hh Hmm Hr
+  ihave Hmb := Hmclose $$ %(metaPageOf mv) [] [Hb]
+  · ipureintro; rw [metaPageOf_length, List.length_replicate]
+  · simp only [metaPageOf]; iexact Hb
+  -- the meta cells out of the invariant
+  imod metas_out γ p base len γm mp hwm $$ [Hinv Htok Hcur Hout Hout2]
+    with ⟨Htok, Hcur, Hout, Hout2, Hc0, Hc1⟩
+  · iframe Htok Hcur Hout Hout2; iframe #
+  have hml : mp.length = 8192 := Hok.1
+  have hi1 := slot_next mv.txid' Ht
+  obtain ⟨i, hi⟩ : ∃ i, i = 1 - mv.txid'.toNat % 2 := ⟨_, rfl⟩
+  rw [← hi] at hi1
+  have hi2 : i < 2 := by rw [hi]; exact Nat.lt_of_le_of_lt (Nat.sub_le _ _) (by decide)
+  have hoffm : ((mv.txid' + W64 1) % W64 2 * W64 4096).toNat = 4096 * i := by
+    rw [BitVec.toNat_mul, hi1]; show i * 4096 % 2 ^ 64 = _; omega
+  have hoffmI : 0 ≤ ((mv.txid' + W64 1) % W64 2 * W64 4096).toInt := by
+    rw [BitVec.toInt_eq_toNat_cond, hoffm]; split <;> omega
+  -- meta page `i`'s cells
+  ihave Hc0 := cellsB_any base 16 _ $$ Hc0
+  ihave Hc1 := cellsB_any base 4112 _ $$ Hc1
+  rw [show ((mp.drop 16).take 64).length = 64 by simp only [List.length_take, List.length_drop, hml]; rfl,
+    show ((mp.drop 4112).take 64).length = 64 by simp only [List.length_take, List.length_drop, hml]; rfl]
+  icases (hdrTails base).1 $$ Hwc4 with ⟨T0, T1⟩
+  icases (pick_page (fun k => iprop(hdrTail (GF := GF) base k ∗ cellsAny (GF := GF) base (4096 * k + 16) 64))
+    i hi2).1 $$ [T0 T1 Hc0 Hc1] with ⟨⟨Ti, Hci⟩, Hother⟩
+  · iframe T0 T1 Hc0 Hc1
+  ihave Hpi := metaPage_cells base i $$ [Ti Hci]
+  · iframe Ti Hci
+  -- its write
+  have hs5' : M5.size = m2.size := by rw [hs5, hs4]
+  have hm5' : M5.maps = {[base := len]} := by rw [hm5, hm4]; exact Hmaps
+  have h8' : 8192 ≤ M5.size := by rw [hs5']; exact Nat.le_trans h8 h4'
+  have hil : 4096 * i + 4096 ≤ M5.size := by
+    have : 4096 * i + 4096 ≤ 8192 := by omega
+    exact Nat.le_trans this h8'
+  ihave Hpi := (mcellsAny_single (GF := GF) base len (4096 * i) (4096 * i + 4096)
+    (Nat.le_add_right _ _) (by rw [← hs5'] at Hsz; exact Nat.le_trans hil Hsz)).2 $$ [Hpi]
+  · rw [Nat.add_sub_cancel_left]; iexact Hpi
+  rw [← hm5']
+  have hobl2 := fun fb => metaW_obl (p := p) hc5 hbl5 (metaPageOf_length mv) h8' hcl5
+    (metaPageOf_meta mv) 8192 fb
+  rw [← hi, ← hoffm] at hobl2
+  wp_apply wp_WriteAt f fd p (DFrac.own (1 : Qp).half) mbuf (metaPageOf mv) (DFrac.own 1)
+      ((mv.txid' + W64 1) % W64 2 * W64 4096) (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ dbCrashN γc
+      (dbOk p) M5 B5 8192 (4096 * hwm) rfl hoffmI (by rw [metaPageOf_length]; decide)
+      (by rw [metaPageOf_length]; decide) dbCrashN_disj
+      (.inl (by rw [hoffm, metaPageOf_length]; omega)) (hobl2 _)
+      $$ [Hf Hmb Hfd Hcs Hpi]
+    as %n2 %err2 ⟨Hf, Hmb, Hfd, Hpi, %m6, %bs6, %Hres2, Hcs⟩
+  · simp only [cfLo]
+    rw [hoffm, metaPageOf_length, Nat.min_eq_left (Nat.le_trans (Nat.le_add_right _ _) hil)]
+    iframe Hf Hmb Hfd Hcs Hpi; iframe #
+  rw [hoffm, metaPageOf_length] at Hres2
+  simp only [cfLo]
+  rw [hoffm, metaPageOf_length, Nat.min_eq_left (Nat.le_trans (Nat.le_add_right _ _) hil)]
+  icases (mcellsAny_single (GF := GF) base len (4096 * i) (4096 * i + 4096)
+    (Nat.le_add_right _ _) (by rw [← hs5'] at Hsz; exact Nat.le_trans hil Hsz)).1 $$ [Hpi] with Hpi
+  · rw [hm5']; iexact Hpi
+  rw [Nat.add_sub_cancel_left]
   sorry
 
 end proof
