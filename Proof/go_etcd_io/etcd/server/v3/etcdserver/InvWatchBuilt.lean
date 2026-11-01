@@ -61,17 +61,7 @@ def srvWatchReaders (s : Loc) (E : apply.AEnv GF) (n : Nat) : IProp GF :=
     auth.modeTag γw.tag E.authMode ∗
     [∗list] _x ∈ List.replicate n (), mvcc.watchReader wsl E.s γw)
 
-/-- **The KV's closer, kept** (D22 S-g, 2026-10-19, D22d (A); until then `NewServer` dropped it, D19m
-(C)): the right to close the server's watchable store (`mvcc.wsCloser`: its stop channel's close,
-the wait for its loops, and the inner store's `storeCloser`, the stop channel's close, the
-scheduler's stop token and the compaction jobs' queue). `store.Restore` (`applySnapshot`'s
-`s.kv.Restore(newbe)`, D22 S-j) closes the inner store's `stopc` and stops its scheduler with
-it; the server's `Stop` path would close the store with it. -/
-def srvKVCloser (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ wsl : Loc,
-    srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
-      go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
-    mvcc.wsCloser wsl E.s E.γ)
+-- (D22 J1b, 2026-11-01) `srvKVCloser` moved to `SnapRO.lean` (`srvSnapRes` holds it).
 
 end defs
 

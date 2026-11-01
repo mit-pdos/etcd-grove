@@ -28152,20 +28152,23 @@ snapshot case would undo it. The proofs pass it through with `E' = E` and `srvSn
 **Already threaded, not repeated:** the live transport `trLive` is in `srvApRes`'s `ccMembRes`
 (J-T), which `applyRes` and `applyAll` already carry.
 
-**Not threaded: `srvKVCloser` and the backend file's `pathOwn` (a question for the user).**
-`NewServer.spec`'s post has them as conjuncts of their own, beside `srvBuilt` and `srvBuildGap`, and
-the examples drop them (`examples/common/newServer.lean`, the `-, -`). Every route to
-`isServerBuilt` changes the text of an exported statement:
-- moving them into `srvBuilt` or `srvBuildGap` changes `NewServer.spec`, `specM` and `specCompact`;
-- having `isServerBuilt_of_gap` and its mode-`on` analogue take them changes
-  `server_built_gap_on` (`Results.lean`), `srvBuiltG on … ∗ srvBuildGap … ⊢ isServerBuiltM on …`.
+**`srvKVCloser` and the backend file's `pathOwn`: in the built part (the user's decision,
+2026-11-01).** The first commit left them out. `NewServer.spec`'s post had them as conjuncts of
+their own, beside `srvBuilt` and `srvBuildGap`, and the examples dropped them
+(`examples/common/newServer.lean`, the `-, -`). Every route to `isServerBuilt` changed the text of
+an exported statement. The user chose to move them into the built part. `srvSnapRes`'s body now
+also holds `srvKVCloser s E ∗ srvCfgFieldAddr s "DataDir" ↦□ dd ∗ backend.pathOwn
+(config.backendPathOf dd)`, so it travels with the rest: `srvSnapBoot` (in `srvBuilt`), then
+`applyStart`, `applyRes` and `applyAll`.
+- `NewServer.spec`, `specM` and `specCompact` lose the two conjuncts (approved text change).
+- The examples' glue (`examples/common/newServer.lean` twice, `examples/authkv/startServer.lean`)
+  no longer drops them.
+- `srvKVCloser` moved from `InvWatchBuilt.lean` to `SnapRO.lean`, unchanged (`InvWatchBuilt`
+  imports `SnapRO` through `InvBuild`).
 
-Either way the examples' glue (`newServer`, `authkv/startServer`) passes them on. The second route
-also needs `srvCfgFieldAddr s "DataDir" ↦□ cfg.DataDir'` beside them, tying the path to
-`srvSnapRO`'s `DataDir`. `NewServer`'s post does not expose it yet; it could go in `srvServeCfg`'s
-body. Once decided, they join `srvSnapOwn`'s body as a definition-only change. The `pathOwn` to
-thread is `pathOwn (backendPathOf cfg.DataDir')`, one for every install: J8a's `os.Rename`
-restatement gives it back.
+The path is the one J8a's `os.Rename` restatement gives back: the field's points-to agrees with
+`srvSnapRO`'s `DataDir` and with `specSnap`'s configuration. `server_built_gap_on`,
+`run`/`start`/`Start` and the examples' closed theorems keep their text.
 
 **The stocks** (counted, not solved: plan item 5). `srvSnapStock` holds at least `2^28` copies of
 `E.RD` (`actualMaxReaders - 66`: 1 for the auth applier, 1 for the KV, 64 for requests) and at

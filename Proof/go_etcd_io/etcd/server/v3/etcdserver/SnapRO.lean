@@ -40,6 +40,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
 public import Perennial.Ghost.MonoNat
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
+public import Proof.go_etcd_io.etcd.server.v3.config.Defs
 
 @[expose] public section
 
@@ -289,16 +291,33 @@ def srvSnapStock (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ n m : Nat, ⌜2 ^ 28 ≤ n ∧ 2 ^ 28 ≤ m⌝ ∗
     ([∗list] _x ∈ List.replicate n (), E.RD) ∗ ([∗list] _x ∈ List.replicate m (), srvLgReader s))
 
+/-- **The KV's closer, kept** (D22 S-g, 2026-10-19, D22d (A); until then `NewServer` dropped it, D19m
+(C)): the right to close the server's watchable store (`mvcc.wsCloser`: its stop channel's close,
+the wait for its loops, and the inner store's `storeCloser`, the stop channel's close, the
+scheduler's stop token and the compaction jobs' queue). `store.Restore` (`applySnapshot`'s
+`s.kv.Restore(newbe)`, D22 S-j) closes the inner store's `stopc` and stops its scheduler with
+it; the server's `Stop` path would close the store with it. -/
+def srvKVCloser (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ wsl : Loc,
+    srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
+    mvcc.wsCloser wsl E.s E.γ)
+
 /-- **The snapshot path's own resources at the current backend** (D22 J1b, 2026-10-31; spatial):
 what `applySnapshot.specSnap` takes of the backend `E` is on (`E.γ.kb = some d`) and gives back at
 the new one (`srvSnapApplied`): the backend's stop channels and the constructors' half of its open
-token (W7: the old backend's `Close` goroutine takes them), and the alarm store's `Get` under a
+token (W7: the old backend's `Close` goroutine takes them), the alarm store's `Get` under a
 resource `Tal`, with `Tal` (`NewServer` gives `Tal = True`, `zal = false`: the store's `Get` from
-its apply contract). -/
+its apply contract); (2026-11-01, the user's decision) the KV's closer (`srvKVCloser`, for
+`store.Restore`) and the backend file's directory entry at the configuration's data directory
+(`pathOwn (backendPathOf dd)`, `OpenSnapshotBackend`'s rename target, one for every install). -/
 def srvSnapRes (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ (d : mvcc.KBReal) (al : Loc) (Tal : IProp GF) (zal : Bool), ⌜E.γ.kb = some d⌝ ∗
+  iprop(∃ (d : mvcc.KBReal) (al : Loc) (Tal : IProp GF) (zal : Bool) (dd : GoString),
+    ⌜E.γ.kb = some d⌝ ∗
     backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half ∗
-    srvAlarmStoreAddr s ↦□ al ∗ apply.alarmGetIs al Tal zal ∗ Tal)
+    srvAlarmStoreAddr s ↦□ al ∗ apply.alarmGetIs al Tal zal ∗ Tal ∗
+    srvKVCloser s E ∗
+    srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.pathOwn (config.backendPathOf dd))
 
 /-- **What `NewServer` hands the snapshot path** (see the file header): the bundle at a fresh
 snapshot-taken counter, its authority at `0`, the stocks; (D22 J1b) the backend's own resources
@@ -313,8 +332,7 @@ def srvSnapBoot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
 second `E.RD` of each install's `NewUberApplier`, the `lgMu` slots of its `AddPeer`s) and the
 backend's own resources (`srvSnapRes`). `run`'s loop invariant holds it (`applyRes`), at the
 current backend's environment `E`; `applyAll` passes it through a batch. The transport's live
-state is `srvApRes`'s (J-T). Not yet here: the KV's closer and the backend file's directory entry
-(`NewServer.spec`'s post has them beside the built part; see `notes/decisions.md`, "D22 J1b"). -/
+state is `srvApRes`'s (J-T). -/
 def srvSnapOwn (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (ai : w64) : IProp GF :=
   iprop(∃ (γt : GName) (nt : Nat), srvSnapRO s ci E γr γt ∗ ⌜nt ≤ uint.nat ai⌝ ∗
     monoNatAuthOwn γt 1 nt ∗ srvSnapStock s E ∗ srvSnapRes s E)

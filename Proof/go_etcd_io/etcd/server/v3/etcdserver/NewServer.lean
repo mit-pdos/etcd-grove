@@ -1317,11 +1317,11 @@ theorem NewServer.wp_proofM (on : Bool)
       iframe Hrw Hal Hau Hle Hcb
   ihave HsnapB : srvSnapBoot s cil
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF)
-      ρ.rd $$ [Hγt HRDstock Hlgstock Hopen]
+      ρ.rd $$ [Hγt HRDstock Hlgstock Hopen Hwcl Hpath]
   · iunfold srvSnapBoot
     iexists γt
     iframe Hγt
-    isplitr [HRDstock Hlgstock Hopen]
+    isplitr [HRDstock Hlgstock Hopen Hwcl Hpath]
     · icases Hbh with ⟨%lgh, #Hbh'⟩
       ihave #Hfix' := Hfix
       iunfold rnFixed at Hfix'
@@ -1353,11 +1353,16 @@ theorem NewServer.wp_proofM (on : Bool)
       iframe HRDstock Hlgstock
       ipureintro; constructor <;> omega
     -- (D22 J1b) the backend's stop channels and the constructors' half of its open token, the
-    -- alarm store's `Get`
+    -- alarm store's `Get`; (2026-11-01) the KV's closer, the backend file's directory entry
     iunfold srvSnapRes
-    iexists ({ d with cm := false } : mvcc.KBReal), alst, iprop(True), false
-    iframe HSC Hopen alarmStore HalG
-    ipureintro; exact Hγw.2.2.1
+    iexists ({ d with cm := false } : mvcc.KBReal), alst, iprop(True), false, cfg.DataDir'
+    iframe HSC Hopen alarmStore HalG DataDirS Hpath
+    isplitr
+    · ipureintro; exact Hγw.2.2.1
+    unfold srvKVCloser
+    iexists ws
+    iframe kv
+    iexact Hwcl
   -- (S7b) the request path's `bemu` reader slots, at some current backend's ghost variable
   ihave Hbmr2 : srvBemuReader (GF := GF) s $$ [Hbmr2]
   · iunfold srvBemuReader; iexists γbe; iunfold srvBemuReaderAt; iexact Hbmr2
@@ -1478,14 +1483,8 @@ theorem NewServer.wp_proofM (on : Bool)
     iexists ws, γw
     simp only
     iframe Hpool kv Hws Htag
-  isplitl [Hwcl]
-  · -- (D22 S-g) the KV's closer, kept (until then dropped here)
-    unfold srvKVCloser
-    iexists ws
-    iframe kv
-    iexact Hwcl
-  -- (D22 S-j2) the backend file's directory entry, `bootOk`'s, kept
-  iframe Hpath
+  -- (D22 S-g, S-j2) the KV's closer and the backend file's directory entry: in the built part
+  -- since D22 J1b (`srvSnapBoot`)
   unfold srvBuiltG
   iframe HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn
   isplitr
@@ -2074,7 +2073,7 @@ theorem NewServer.wp_proof
   iintro !> %srv %err Hpost
   iapply HΦ
   icases Hpost with (Hl | ⟨%He, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %H1, H2, H3, H4, H5, H6, H7,
-    H8, H9, H10, H11, H12, H13, H14, -⟩)
+    H8, H9, H10, H11, H12, -⟩)
   · ileft; iexact Hl
   iright
   isplitr
@@ -2082,7 +2081,7 @@ theorem NewServer.wp_proof
   iexists γA, ci, TM, E, γrn, b, γk, τ
   isplitr
   · ipureintro; exact ⟨H1.1, H1.2.1⟩
-  iframe H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
+  iframe H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12
 
 
 /-- **`NewServer` with the auto-compactor on** (M2, S4, `notes/m2-plan.md`): to prove, from
