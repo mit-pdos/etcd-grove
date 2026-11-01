@@ -33,7 +33,8 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 file `fo` is the one at `p` in the state `st'` the new generation starts from, which a crash
 (`OsCrash`, and `Q`) made of the crashed state `st`; `st` is coherent with the old ghost maps, in
 which `p`'s `OsMeta` is `mo`, the runs' bytes are as `rs` says, and the changes `ts` are in
-flight. -/
+flight; every change in flight on `p` is one of `ts`, or takes a fraction of the `OsMeta` and none
+of the runs' bytes (`crashRestQT` keeps the tokens of the files not yet taken). -/
 def CrashSeenR (Q : OsState → OsState → Prop) (p : GoString) (mo : Option OsMeta)
     (rs : List (Nat × DFrac × List (w8 × Bool))) (ts : List (Nat × TokInfo))
     (fo : Option OsFile) : Prop :=
@@ -42,7 +43,9 @@ def CrashSeenR (Q : OsState → OsState → Prop) (p : GoString) (mo : Option Os
     OsCoh st Γb Γm Γf Γt ∧ OsCrash st st' ∧ Q st st' ∧ st'.files !! p = some fo ∧
     Γm !! p = some mo ∧
     (∀ r ∈ rs, ∀ k (hk : k < r.2.2.length), Γb !! (p, r.1 + k) = some r.2.2[k]) ∧
-    ∀ x ∈ ts, Γt !! x.1 = some x.2
+    (∀ x ∈ ts, Γt !! x.1 = some x.2) ∧
+    ∀ t ti, Γt !! t = some ti → ti.c.path = p → (t, ti) ∈ ts ∨
+      (ti.q ≠ 1 ∧ ∀ r ∈ rs, ∀ k < r.2.2.length, r.1 + k ∉ affRange st ti.c)
 
 /-! ## The crash interpretation -/
 
@@ -57,7 +60,8 @@ def crashRestQT (Q : OsState → OsState → Prop) (hL hL' : OsGS GF) (D : List 
       (Γt Γt' : GMap Nat TokInfo),
     ⌜CrashRel Γb Γm F D ∧ OsCoh st Γb Γm Γf Γt ∧ OsCrash st st' ∧ Q st st' ∧
       (∀ p fo, F !! p = some fo → st'.files !! p = some fo) ∧
-      (∀ t ti, Γt' !! t = some ti → Γt !! t = some ti)⌝ ∗
+      (∀ t ti, Γt' !! t = some ti → Γt !! t = some ti) ∧
+      (∀ t ti, Γt !! t = some ti → ti.c.path ∉ D → Γt' !! t = some ti)⌝ ∗
     gAuth hL hL.γb Γb ∗ gAuth hL hL.γm Γm ∗
     ([∗map] p ↦ fo ∈ F, fileStart hL' p fo) ∗
     gAuth hL hL.γt Γt' ∗ tokRes hL st Γt')
@@ -66,8 +70,44 @@ def crashRestQT (Q : OsState → OsState → Prop) (hL hL' : OsGS GF) (D : List 
 def osCrashStartQT (Q : OsState → OsState → Prop) (hL hL' : OsGS GF) : IProp GF :=
   iprop(gVar hL' (1 : Qp).half ((∅ : GMap Loc (Option w8 × Bool)), 0) ∗ crashRestQT Q hL hL' [])
 
-/-- Taking the file at `p` with a fragment of its `OsMeta` and its bytes in runs, giving them
-back. -/
+/-- The runs' bytes of `p` are under no change in flight that `tokRes` holds: each holds the bytes
+it takes whole. -/
+theorem tokRes_runs_disj (hL : OsGS GF) {st : OsState} {Γb Γm Γf} {Γt Γt' : GMap Nat TokInfo}
+    (hcoh : OsCoh st Γb Γm Γf Γt) (hsub : ∀ t ti, Γt' !! t = some ti → Γt !! t = some ti)
+    (p : GoString) (rs : List (Nat × DFrac × List (w8 × Bool))) :
+    ⊢ tokRes hL st Γt' -∗ ([∗list] r ∈ rs, bytesG hL p r.1 r.2.1 r.2.2) -∗
+      ⌜∀ t ti, Γt' !! t = some ti → ti.c.path = p → ∀ r ∈ rs, ∀ k < r.2.2.length,
+        r.1 + k ∉ affRange st ti.c⌝ := by
+  iintro Htok Hbs
+  by_cases hφ : ∀ t ti, Γt' !! t = some ti → ti.c.path = p → ∀ r ∈ rs, ∀ k < r.2.2.length,
+      r.1 + k ∉ affRange st ti.c
+  · ipureintro; exact hφ
+  simp only [Classical.not_forall, Classical.not_not] at hφ
+  obtain ⟨t, ti, hti, hp, r, hr, k, hk, hin⟩ := hφ
+  obtain ⟨f, -, hsv⟩ := hcoh.tok_saved t ti (hsub t ti hti)
+  have hlen : ti.saved.length = affHi st ti.c - affLo st ti.c := by
+    rw [hsv, List.length_map]; simp [affRange]
+  simp only [affRange, List.mem_range'_1] at hin
+  obtain ⟨n, hn⟩ := List.mem_iff_getElem?.1 hr
+  unfold tokRes
+  icases BigSepM.bigSepM_lookup (Φ := fun (_t : Nat) (ti : TokInfo) =>
+      iprop(gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
+        bytesG hL ti.c.path (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false)))) hti
+    $$ Htok with ⟨-, Hb⟩
+  icases BigSepL.bigSepL_lookup (Φ := fun _ (r : Nat × DFrac × List (w8 × Bool)) =>
+      bytesG hL p r.1 r.2.1 r.2.2) hn $$ Hbs with Hr
+  unfold bytesG
+  have hj : r.1 + k - affLo st ti.c < (ti.saved.map (·, false)).length := by
+    rw [List.length_map, hlen]; omega
+  icases BigSepL.bigSepL_lookup (Φ := fun k (x : w8 × Bool) =>
+      gElem hL hL.γb (ti.c.path, affLo st ti.c + k) (DFrac.own 1) x)
+    (List.getElem?_eq_getElem hj) $$ Hb with Hb1
+  icases BigSepL.bigSepL_lookup (Φ := fun k (x : w8 × Bool) => gElem hL hL.γb (p, r.1 + k) r.2.1 x)
+    (List.getElem?_eq_getElem hk) $$ Hr with Hr1
+  rw [hp, show affLo st ti.c + (r.1 + k - affLo st ti.c) = r.1 + k by omega]
+  icases gElem_valid_2 hL _ _ _ _ _ _ $$ Hb1 Hr1 with %Hv
+  exact absurd (DFrac.valid_own_op Hv.1) (by simp)
+
 theorem crashRestQT_take_runs_keep (Q : OsState → OsState → Prop) (hL hL' : OsGS GF)
     (D : List GoString) (p : GoString) (hp : p ∉ D) (dq : DFrac) (mo : Option OsMeta)
     (rs : List (Nat × DFrac × List (w8 × Bool))) :
@@ -78,21 +118,26 @@ theorem crashRestQT_take_runs_keep (Q : OsState → OsState → Prop) (hL hL' : 
         gElem hL hL.γm p dq mo ∗ ([∗list] r ∈ rs, bytesG hL p r.1 r.2.1 r.2.2) := by
   unfold crashRestQT
   iintro ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %Γt', %hrel, Hab, Ham, Hfs, HAt, Htok⟩ Hm Hbs
-  obtain ⟨hrel, hcoh, hcr, hQ, hF, hsub⟩ := hrel
+  obtain ⟨hrel, hcoh, hcr, hQ, hF, hsub, hall⟩ := hrel
   icases gAuth_lookup hL _ _ _ _ _ $$ Ham Hm with %hmo
   icases bytesG_lookup_runs hL p Γb rs $$ Hab Hbs with %hxs
+  icases tokRes_meta_frac _ $$ Htok Hm with %hq
+  icases tokRes_runs_disj hL hcoh hsub p rs $$ Htok Hbs with %hd
   obtain ⟨fo, hFp, hfc⟩ := hrel p mo hmo hp
   icases (BigSepM.bigSepM_delete (Φ := fun p fo => fileStart hL' p fo) hFp).1 $$ Hfs with ⟨Hf, Hfs⟩
   iexists fo
   iframe Hf Hm Hbs
   isplitr
   · ipureintro
-    exact ⟨fileCrashedR_of_g hfc hxs, st, st', Γb, Γm, Γf, Γt, hcoh, hcr, hQ, hF p fo hFp, hmo,
-      hxs, fun _ h => nomatch h⟩
+    refine ⟨fileCrashedR_of_g hfc hxs, st, st', Γb, Γm, Γf, Γt, hcoh, hcr, hQ, hF p fo hFp, hmo,
+      hxs, (fun _ h => nomatch h), fun t ti ht hp' => Or.inr ?_⟩
+    have ht' := hall t ti ht (hp' ▸ hp)
+    exact ⟨hq t ti ht' hp', hd t ti ht' hp'⟩
   iexists Γb, Γm, GMap.delete p F, st, st', Γf, Γt, Γt'
   iframe Hab Ham Hfs HAt Htok
   ipureintro
-  refine ⟨fun q mq hq hqD => ?_, hcoh, hcr, hQ, fun q fq hq => ?_, hsub⟩
+  refine ⟨fun q mq hq hqD => ?_, hcoh, hcr, hQ, fun q fq hq => ?_, hsub,
+    fun t ti h hD => hall t ti h (fun h' => hD (List.mem_cons_of_mem _ h'))⟩
   · have hqp : q ≠ p := fun h => hqD (h ▸ List.mem_cons_self)
     obtain ⟨fq, h1, h2⟩ := hrel q mq hq (fun h => hqD (List.mem_cons_of_mem _ h))
     exact ⟨fq, by rw [GMap.lookup_delete_ne _ (Ne.symm hqp)]; exact h1, h2⟩
@@ -115,7 +160,7 @@ theorem crashRestQT_take_tok_keep (Q : OsState → OsState → Prop) (hL hL' : O
   iintro Hr Ht Hbs
   unfold crashRestQT
   icases Hr with ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %Γt', %hrel, Hab, Ham, Hfs, HAt, Htok⟩
-  obtain ⟨hrel, hcoh, hcr, hQ, hF, hsub⟩ := hrel
+  obtain ⟨hrel, hcoh, hcr, hQ, hF, hsub, hall⟩ := hrel
   icases gAuth_lookup hL _ _ _ _ _ $$ HAt Ht with %hti
   unfold tokRes
   icases (BigSepM.bigSepM_delete (Φ := fun _ (ti : TokInfo) => iprop(
@@ -124,6 +169,16 @@ theorem crashRestQT_take_tok_keep (Q : OsState → OsState → Prop) (hL hL' : O
     $$ Htok with ⟨⟨Hm, Hb⟩, Htok⟩
   icases gAuth_lookup hL _ _ _ _ _ $$ Ham Hm with %hmo
   icases bytesG_lookup_runs hL ti.c.path Γb rs $$ Hab Hbs with %hxs
+  have hsub' : ∀ t' ti', (GMap.delete t Γt') !! t' = some ti' → Γt !! t' = some ti' := by
+    intro t' ti' h
+    by_cases he : t' = t
+    · subst he; simp at h
+    · rw [GMap.lookup_delete_ne _ (Ne.symm he)] at h; exact hsub _ _ h
+  ihave Htok : tokRes hL st (GMap.delete t Γt') $$ [Htok]
+  · unfold tokRes; iexact Htok
+  icases tokRes_meta_frac _ $$ Htok Hm with %hq
+  icases tokRes_runs_disj hL hcoh hsub' ti.c.path rs $$ Htok Hbs with %hd
+  unfold tokRes
   obtain ⟨fo, hFp, hfc⟩ := hrel ti.c.path _ hmo hp
   icases (BigSepM.bigSepM_delete (Φ := fun p fo => fileStart hL' p fo) hFp).1 $$ Hfs with ⟨Hf, Hfs⟩
   iexists fo
@@ -131,16 +186,25 @@ theorem crashRestQT_take_tok_keep (Q : OsState → OsState → Prop) (hL hL' : O
   isplitr
   · ipureintro
     refine ⟨fileCrashedR_of_g hfc hxs, st, st', Γb, Γm, Γf, Γt, hcoh, hcr, hQ, hF _ fo hFp, hmo,
-      hxs, ?_⟩
-    intro x hx
-    simp only [List.mem_singleton] at hx
-    subst hx
-    exact hsub t ti hti
+      hxs, ?_, ?_⟩
+    · intro x hx
+      simp only [List.mem_singleton] at hx
+      subst hx
+      exact hsub t ti hti
+    · intro t' ti' ht' hp'
+      by_cases he : t' = t
+      · subst he
+        have := hsub t' ti hti; rw [ht'] at this; cases this
+        exact Or.inl List.mem_cons_self
+      · have ht'' : (GMap.delete t Γt') !! t' = some ti' := by
+          rw [GMap.lookup_delete_ne _ (Ne.symm he)]; exact hall t' ti' ht' (hp' ▸ hp)
+        exact Or.inr ⟨hq t' ti' ht'' hp', hd t' ti' ht'' hp'⟩
   iexists Γb, Γm, GMap.delete ti.c.path F, st, st', Γf, Γt, Γt'
   iframe Hab Ham Hfs HAt
   isplitr
   · ipureintro
-    refine ⟨fun q mq hq hqD => ?_, hcoh, hcr, hQ, fun q fq hq => ?_, hsub⟩
+    refine ⟨fun q mq hq hqD => ?_, hcoh, hcr, hQ, fun q fq hq => ?_, hsub,
+      fun t' ti' h hD => hall t' ti' h (fun h' => hD (List.mem_cons_of_mem _ h'))⟩
     · have hqp : q ≠ ti.c.path := fun h => hqD (h ▸ List.mem_cons_self)
       obtain ⟨fq, h1, h2⟩ := hrel q mq hq (fun h => hqD (List.mem_cons_of_mem _ h))
       exact ⟨fq, by rw [GMap.lookup_delete_ne _ (Ne.symm hqp)]; exact h1, h2⟩
@@ -170,7 +234,7 @@ theorem os_local_crashQT (Q : OsState → OsState → Prop) (hPre : OsGpreS GF) 
   iframe Hv
   iexists Γb, Γm, st'.files, st, st', Γf, Γt, Γt
   iframe Hab Ham Hfs HAt Htok
-  ipureintro; exact ⟨hrel, hwc.2, hc, hQ, fun _ _ h => h, fun _ _ h => h⟩
+  ipureintro; exact ⟨hrel, hwc.2, hc, hQ, fun _ _ h => h, fun _ _ h => h, fun _ _ h _ => h⟩
 
 /-- The crash interpretation of the Linux file extension under the premise `Q`, keeping the
 changes in flight. -/
