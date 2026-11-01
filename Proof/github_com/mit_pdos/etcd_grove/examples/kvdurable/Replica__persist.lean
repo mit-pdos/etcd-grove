@@ -3,9 +3,10 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvdurable/Replica__persis
 spec (`persist.spec`). Lean-first (no Rocq counterpart).
 
 Under `dmu`: crashed, nothing written; otherwise the image `M` encoded and written, the file's
-invariant opened in `durable.Write`'s atomic update. With the caller's claim at `none` (the pending
-phase's variable), `dmu`'s phase is idle (`kdPhaseInv .idle`: the others hold the claim at `some`),
-so the file's durable state `S` is the one `M` holds: the file moves to `M`, `S` stays.
+invariant opened in `durable.Write`'s atomic update. A batch pending in `dmu` (`KdPhase.waiting`) is
+entered there (its *enter* fired with the caller's share of `nodeRunning`), its results left in
+`dmu` for `run` (`KdPhase.fired`); the file moves to `M` and the durable state to the one `M`
+holds.
 -/
 module
 
@@ -41,13 +42,22 @@ attribute [local instance] kdStorageModel
 theorem kdRepN_files (id : w64) : (↑(kdRepN .@ uint.nat id) : CoPset) ⊆ ⊤ \ ↑kdFilesN :=
   nclose_subseteq' _ (mask_ndot_ne' nroot "kvdurable_rep" "kvdurable_files" (by decide))
 
+/-- raft's namespace is open inside the file's update. -/
+theorem kdRaftN_sub (id : w64) :
+    (↑kdRaftN : CoPset) ⊆ (⊤ \ ↑kdFilesN) \ ↑(kdRepN .@ uint.nat id) := by
+  intro p hp
+  rw [Std.LawfulSet.mem_diff, Std.LawfulSet.mem_diff]
+  refine ⟨⟨CoPset.mem_full, fun h' => ndot_ne_disjoint nroot
+    (show "kvdurable_raft" ≠ "kvdurable_files" by decide) p ⟨hp, h'⟩⟩, fun h' => ndot_ne_disjoint nroot
+    (show "kvdurable_raft" ≠ "kvdurable_rep" by decide) p ⟨hp, nclose_subseteq _ _ p h'⟩⟩
+
 theorem Replica.persist.wp_proof
     (wp_encode : Storage.encode.spec (GF := GF) (hG := hG))
     (wp_Write : github_com.mit_pdos.etcd_grove.examples.durable.Write.spec (GF := GF) (hG := hG))
     (wp_add : Stats.add.spec (GF := GF) (hG := hG)) :
     Replica.persist.spec (GF := GF) (hG := hG) := by
   intro γ vs dir id r n st sts sq ms γs ph q
-  wp_start as ⟨#Hrep, Hrun, Hclaim⟩
+  wp_start as ⟨#Hrep, Hrun⟩
   ihave #Hrep' := Hrep
   iunfold isReplica at Hrep'
   iNamed Hrep'
@@ -66,21 +76,61 @@ theorem Replica.persist.wp_proof
   · -- not crashed: the image written
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, Hph⟩
-    -- the phase is idle: the caller's claim is `none`
-    cases pz with
-    | waiting st0 st0' ms0 γb0 =>
-      iunfold kdPhaseInv at Hph
-      icases Hph with ⟨Hph, -⟩
-      ihave %Hag := ghostVar_agree ph _ _ _ _ $$ Hph Hclaim
-      cases Hag
-    | fired γb0 =>
-      iunfold kdPhaseInv at Hph
-      icases Hph with ⟨Hph, -⟩
-      ihave %Hag := ghostVar_agree ph _ _ _ _ $$ Hph Hclaim
-      cases Hag
-    | idle =>
-    iunfold kdPhaseInv at Hph
-    icases Hph with ⟨Hph, %HSM⟩
+    -- the new durable state, `M`'s, and the phase after the write: a pending batch is entered
+    -- here and left `fired` for `run`
+    ihave Hstep : iprop(∃ (S' : RaftState) (pz' : KdPhase), ⌜StorageHolds S' (kdContents (some M))⌝ ∗
+        (∀ (E : CoPset), ⌜↑kdRaftN ⊆ E⌝ -∗ raftState γ.r.cluster id S ={E}=∗
+          raftState γ.r.cluster id S' ∗ nodeRunning n γ.r.cluster kdRaftN q ∗
+          kdPhaseInv γ id n ph S' M pz')) $$ [Hph Hrun]
+    · cases pz with
+      | idle =>
+        iunfold kdPhaseInv at Hph
+        icases Hph with ⟨Hph, %HSM⟩
+        iexists S, KdPhase.idle
+        isplitr
+        · ipureintro; exact HSM
+        iintro %E %HE HrS
+        imodintro
+        iframe HrS Hrun
+        simp only [kdPhaseInv]
+        iframe Hph
+        ipureintro; exact HSM
+      | waiting st0 st0' ms0 γb0 =>
+        iunfold kdPhaseInv at Hph
+        icases Hph with ⟨Hph, #Hsv0, Henter, %Hst0⟩
+        iexists st0'.durable, KdPhase.fired γb0
+        isplitr
+        · ipureintro; exact Hst0.2
+        iintro %E %HE HrS
+        iunfold readyEnter at Henter
+        ihave HrS : raftState γ.r.cluster id st0.durable $$ [HrS]
+        · rw [Hst0.1]; iexact HrS
+        imod Henter $$ %E %q %HE [$HrS $Hrun] with ⟨HrS, Hrun, Hdrv, #Hmsgs⟩
+        imodintro
+        iframe HrS Hrun
+        simp only [kdPhaseInv]
+        iframe Hph
+        isplitl
+        · iexists kdBatchRes γ id n st0' ms0
+          iframe Hsv0
+          iunfold kdBatchRes
+          iframe Hdrv Hmsgs
+        ipureintro; exact Hst0.2
+      | fired γb0 =>
+        iunfold kdPhaseInv at Hph
+        icases Hph with ⟨Hph, HR, %HSM⟩
+        iexists S, KdPhase.fired γb0
+        isplitr
+        · ipureintro; exact HSM
+        iintro %E %HE HrS
+        imodintro
+        iframe HrS Hrun
+        simp only [kdPhaseInv]
+        iframe Hph
+        isplitl [HR]
+        · iexact HR
+        ipureintro; exact HSM
+    icases Hstep with ⟨%S', %pz', %HSM, Hstep⟩
     try wp_auto
     wp_apply wp_encode st ip M $$ [$Hpkg $Himg $Himage] as %sl ⟨Hsl, -, Himage⟩
     wp_apply wp_bytes_to_string sl (encStor M) (DFrac.own 1) $$ [$Hsl] as -
@@ -96,7 +146,8 @@ theorem Replica.persist.wp_proof
     iunfold kdWriter at Hwr
     ihave %Hag := ghostVar_agree (γ.wr id) _ _ _ _ $$ Hwr Hwv
     obtain ⟨rfl, -⟩ := Prod.mk.inj Hag
-    imod ghostVar_update_halves (S, kdFileVal (some M)) (γ.wr id) _ _ $$ Hwr Hwv with ⟨Hwr, Hwv⟩
+    imod Hstep $$ %_ %(kdRaftN_sub id) HrS with ⟨HrS, Hrun, Hph⟩
+    imod ghostVar_update_halves (S', kdFileVal (some M)) (γ.wr id) _ _ $$ Hwr Hwv with ⟨Hwr, Hwv⟩
     iapply fupd_mask_intro Std.LawfulSet.empty_subset
     iintro Hmask
     iexists kdFileVal o0
@@ -105,7 +156,7 @@ theorem Replica.persist.wp_proof
     imod Hmask with -
     imod Hclose $$ [HrS Hdf Hwv] with -
     · inext
-      iexists S, some M
+      iexists S', some M
       iframe HrS Hwv
       simp only [kdFileVal, Option.map_some]
       iframe Hdf
@@ -124,17 +175,13 @@ theorem Replica.persist.wp_proof
       iexists false, ip, M
       iframe Hcr Himg Himage Hmeta
       simp only [Bool.false_eq_true, ↓reduceIte]
-      iexists S, some M, KdPhase.idle
+      iexists S', some M, pz'
       iunfold kdWriter
-      iframe Hwr Hcert
-      isplitr
-      · ipureintro; exact HMok
-      simp only [kdPhaseInv]
-      iframe Hph
-      ipureintro; exact HSM
+      iframe Hwr Hcert Hph
+      ipureintro; exact HMok
     try wp_auto
     iapply HΦ
-    iframe Hrun Hclaim
+    iframe Hrun
   · -- crashed: nothing written
     try wp_auto
     wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta]
@@ -146,16 +193,7 @@ theorem Replica.persist.wp_proof
       itrivial
     try wp_auto
     iapply HΦ
-    iframe Hrun Hclaim
-
-/-- raft's namespace is open inside the file's update. -/
-theorem kdRaftN_sub (id : w64) :
-    (↑kdRaftN : CoPset) ⊆ (⊤ \ ↑kdFilesN) \ ↑(kdRepN .@ uint.nat id) := by
-  intro p hp
-  rw [Std.LawfulSet.mem_diff, Std.LawfulSet.mem_diff]
-  refine ⟨⟨CoPset.mem_full, fun h' => ndot_ne_disjoint nroot
-    (show "kvdurable_raft" ≠ "kvdurable_files" by decide) p ⟨hp, h'⟩⟩, fun h' => ndot_ne_disjoint nroot
-    (show "kvdurable_raft" ≠ "kvdurable_rep" by decide) p ⟨hp, nclose_subseteq _ _ p h'⟩⟩
+    iframe Hrun
 
 /-- `persist.specRun`: `run`'s write of its pending batch (see the spec's header). The phase is
 `waiting` (the batch is entered here, in the file's update) or `fired` (by the snapshotter's write);

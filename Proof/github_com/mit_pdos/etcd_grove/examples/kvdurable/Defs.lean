@@ -21,7 +21,8 @@ predicates at kvdurable's structs (the model, `kvreconf.Base`'s pure definitions
   prefix at the snapshot's configuration). Half of a ghost variable at `(S, o)`; the other half,
   `kdWriter`, is the right to move them: the running incarnation's `dmu` holds it until it crashes
   (`crash` takes it out with `crashed := true`), then the restarter.
-- **`dmu`'s lock invariant** (`kdDmuInv`, per incarnation): `crashed`; the storage's image (`Storage.img`,
+- **`dmu`'s lock invariant** (`kdDmuInv`, per incarnation): half of `crashed` (the other half, at
+  `false`, is the crasher's token in `repStop`); the storage's image (`Storage.img`,
   `ownImage`) holding the contents `M`, the `MemoryStorage`'s hard state `M`'s (`memStorMeta`); and,
   while not crashed, the writer's half at `(S, o)`, `M`'s shape and snapshot certificate, and the
   pending batch (`KdPhase`): none (`M` holds `S`), a cut batch whose
@@ -404,7 +405,9 @@ def kdPhaseInv (γ : KdNames) (id : w64) (n : Loc) (ph : GName) (S : RaftState) 
 def kdDmuInv (γ : KdNames) (id : w64) (r n st ms : Loc) (γs : MemStorNames) (ph : GName) :
     IProp GF :=
   iprop(∃ (crashed : Bool) (ip : Loc) (M : StorFile),
-    "Hcr" ∷ r.[KReplica, go!"crashed"] ↦ crashed ∗
+    -- half of `crashed`: the other half, at `false`, is the crasher's token (`repStop`) until
+    -- `crash` sets it (and drops it, at `true`)
+    "Hcr" ∷ r.[KReplica, go!"crashed"] ↦{DFrac.own (1 : Qp).half} crashed ∗
     "#Himg" ∷ st.[KStorage, go!"img"] ↦□ ip ∗
     "Himage" ∷ ownImage ip M ∗
     "Hmeta" ∷ memStorMeta ms γs M.hs ∗
@@ -485,12 +488,20 @@ def isReplicaR (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n s
       (fun _ => nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half) iprop(True) iprop(False) ∗
     "#HmsInv" ∷ memStorInvP ρ.ms ρ.γs (kdJ γ.r.cluster ρ.key))
 
-/-- **The stopper's share of incarnation `r`** (exclusive): `isReplicaR` with the stopper's tokens. -/
-def repStop (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) : IProp GF :=
+/-- **The stopper's share of incarnation `r`** (exclusive): `isReplicaR` with the stopper's tokens
+(what `stop` takes). -/
+def repStopper (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) : IProp GF :=
   iprop(∃ (n st sts sq : Loc) (ρ : KdRepNames),
     isReplicaR γ vs dir id r n st sts sq ρ ∗
     ownBroadcastChan ρ.stopc ρ.sc iprop(True) .Pending ∗
     handoffConsumer ρ.rd false ∗ handoffConsumer ρ.td false ∗ handoffConsumer ρ.sd false)
+
+/-- **The stopper's and the crasher's share of incarnation `r`** (exclusive; what `crash` takes):
+`repStopper` and the crasher's token, the half of `crashed` at `false` (`kdDmuInv` holds the other
+half): whoever holds it knows the incarnation has not crashed, so `crash` gets the writer's half
+out of `dmu` (2026-11-01, the stopper/crasher split). -/
+def repStop (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) : IProp GF :=
+  iprop(repStopper γ vs dir id r ∗ r.[KReplica, go!"crashed"] ↦{DFrac.own (1 : Qp).half} false)
 
 /-- **What `run` starts with** (kvreconf's `runStart`): the node's driver as `RestartNode` leaves it
 (at the committed log `l` of the applied index raft starts at, the stored hard state, the durable

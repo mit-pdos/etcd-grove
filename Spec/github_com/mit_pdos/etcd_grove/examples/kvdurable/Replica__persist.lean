@@ -32,15 +32,14 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
-/-- See the file header. -/
+/-- See the file header. The caller holds no claim on the pending batch (the snapshotter's
+`persist`): a batch pending in `dmu` is entered by this write and left `fired` for `run`. -/
 abbrev Replica.persist.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq ms : Loc)
     (γs : MemStorNames) (ph : GName) (q : Qp),
-  {{ isReplica γ vs dir id r n st sts sq ms γs ph ∗ nodeRunning n γ.r.cluster kdRaftN q ∗
-      ghostVar ph (1 : Qp).half (none : Option GName) }}
+  {{ isReplica γ vs dir id r n st sts sq ms γs ph ∗ nodeRunning n γ.r.cluster kdRaftN q }}
     (App (Val (r @!! go.GoType.PointerType kReplicaTy @!! go!"persist")) (Val #()))
-  {{ (ok : Bool), RET #ok; nodeRunning n γ.r.cluster kdRaftN q ∗
-      ghostVar ph (1 : Qp).half (none : Option GName) }}
+  {{ (ok : Bool), RET #ok; nodeRunning n γ.r.cluster kdRaftN q }}
 
 /-- `persist` called by `run` with its batch pending (`KdPhase.waiting … γb` in `dmu`, which `run`'s
 `dmu` section put there): when it writes, the batch is entered (by this write or an earlier one of

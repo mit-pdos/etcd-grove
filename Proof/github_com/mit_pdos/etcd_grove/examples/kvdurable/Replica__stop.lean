@@ -35,7 +35,7 @@ theorem Replica.stop.wp_proof (wp_Stop : node.Stop.spec (GF := GF) (hG := hG)) :
     Replica.stop.spec (GF := GF) (hG := hG) := by
   intro γ vs dir id r
   wp_start as Hs
-  iunfold repStop at Hs
+  iunfold repStopper at Hs
   icases Hs with ⟨%n, %st, %sts, %sq, %ρ, #HR, Hpend, Hrd, Htd, Hsd⟩
   ihave #HR' := HR
   iunfold isReplicaR at HR'
