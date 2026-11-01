@@ -74,6 +74,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.less
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.newReplica
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.newStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.oneIn
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.openStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.putBytes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.putEntry
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.putIDs
@@ -91,7 +92,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.sortString
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.validConf
 public import Proof.go_etcd_io.raft.v3.Linked
 public import Perennial.Proof.time.Link
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kvdurable.openStorage
 public import Proof.go_etcd_io.raft.v3.Link
 
 @[expose] public section
@@ -183,9 +183,29 @@ theorem kvdurable.wp_newStorage :
     kvdurable.newStorage.spec (GF := GF) (hG := hG) :=
   kvdurable.newStorage.wp_proof wp_NewMemoryStorage
 
+theorem kvdurable.wp_getUint64 :
+    kvdurable.getUint64.spec (GF := GF) (hG := hG) :=
+  kvdurable.getUint64.wp_proof
+
+theorem kvdurable.wp_getIDs :
+    kvdurable.getIDs.spec (GF := GF) (hG := hG) :=
+  kvdurable.getIDs.wp_proof kvdurable.wp_getUint64
+
 theorem kvdurable.wp_getBytes :
     kvdurable.getBytes.spec (GF := GF) (hG := hG) :=
   kvdurable.getBytes.wp_proof
+
+theorem kvdurable.wp_getSnapshot :
+    kvdurable.getSnapshot.spec (GF := GF) (hG := hG) :=
+  kvdurable.getSnapshot.wp_proof kvdurable.wp_getUint64 kvdurable.wp_getIDs kvdurable.wp_getBytes
+
+theorem kvdurable.wp_getEntry :
+    kvdurable.getEntry.spec (GF := GF) (hG := hG) :=
+  kvdurable.getEntry.wp_proof kvdurable.wp_getUint64 kvdurable.wp_getBytes raftpb.EntryType.wp_Enum
+
+theorem kvdurable.wp_openStorage [AllG GF] [KdStor GF] :
+    kvdurable.openStorage.spec (GF := GF) (hG := hG) :=
+  kvdurable.openStorage.wp_proof wp_NewMemoryStorage kvdurable.wp_getUint64 kvdurable.wp_getSnapshot kvdurable.wp_getEntry MemoryStorage.wp_ApplySnapshot MemoryStorage.wp_Append MemoryStorage.wp_CreateSnapshot MemoryStorage.wp_SetHardState raftpb.Snapshot.wp_GetMetadata raftpb.Snapshot.wp_GetData raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm
 
 theorem kvdurable.wp_getMap :
     kvdurable.getMap.spec (GF := GF) (hG := hG) :=
@@ -407,6 +427,22 @@ theorem kvdurable.quietLogger.wp_Warningf :
     kvdurable.quietLogger.Warningf.spec (GF := GF) (hG := hG) :=
   kvdurable.quietLogger.Warningf.wp_proof
 
+theorem kvdurable.Cluster.wp_start [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.start.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.start.wp_proof kvdurable.Cluster.wp_fileOf github_com.mit_pdos.etcd_grove.examples.durable.wp_Read kvdurable.wp_newStorage kvdurable.wp_openStorage MemoryStorage.wp_Snapshot raftpb.Snapshot.wp_GetMetadata raftpb.Snapshot.wp_GetData raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetConfState kvdurable.wp_decodeState kvdurable.Stats.wp_add kvdurable.wp_oneIn kvdurable.wp_below kvdurable.Cluster.wp_config wp_RestartNode kvdurable.Cluster.wp_tick kvdurable.Cluster.wp_sender kvdurable.wp_newReplica kvdurable.Storage.wp_InitialState kvdurable.Storage.wp_Snapshot MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term MemoryStorage.wp_Entries kvdurable.quietLogger.wp_Debugf kvdurable.quietLogger.wp_Errorf kvdurable.quietLogger.wp_Infof kvdurable.quietLogger.wp_Warningf
+
+theorem kvdurable.Cluster.wp_restart [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.restart.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.restart.wp_proof kvdurable.Cluster.wp_replicaPin kvdurable.Replica.wp_crash kvdurable.Stats.wp_add kvdurable.Cluster.wp_start
+
+theorem kvdurable.Cluster.wp_Crash [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.Crash.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.Crash.wp_proof kvdurable.wp_sleep kvdurable.Cluster.wp_random kvdurable.Cluster.wp_restart
+
+theorem kvdurable.Cluster.wp_startNew [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.startNew.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.startNew.wp_proof kvdurable.Cluster.wp_start kvdurable.Stats.wp_add
+
 theorem kvdurable.wp_encode :
     kvdurable.encode.spec (GF := GF) (hG := hG) :=
   kvdurable.encode.wp_proof
@@ -423,60 +459,11 @@ theorem kvdurable.Replica.wp_read [AllG GF] [KdStor GF] :
     kvdurable.Replica.read.spec (GF := GF) (hG := hG) :=
   kvdurable.Replica.read.wp_proof kvdurable.wp_readCtx kvdurable.readSeqs.wp_next node.wp_ReadIndex context.wp_WithTimeoutBackground
 
-theorem kvdurable.wp_getUint64 :
-    kvdurable.getUint64.spec (GF := GF) (hG := hG) :=
-  kvdurable.getUint64.wp_proof
-
-theorem kvdurable.wp_getEntry :
-    kvdurable.getEntry.spec (GF := GF) (hG := hG) :=
-  kvdurable.getEntry.wp_proof kvdurable.wp_getUint64 kvdurable.wp_getBytes raftpb.EntryType.wp_Enum
-
-theorem kvdurable.wp_getIDs :
-    kvdurable.getIDs.spec (GF := GF) (hG := hG) :=
-  kvdurable.getIDs.wp_proof kvdurable.wp_getUint64
-
-theorem kvdurable.wp_getSnapshot :
-    kvdurable.getSnapshot.spec (GF := GF) (hG := hG) :=
-  kvdurable.getSnapshot.wp_proof kvdurable.wp_getUint64 kvdurable.wp_getIDs kvdurable.wp_getBytes
+theorem kvdurable.wp_StartCluster [AllG GF] [KdStor GF] :
+    kvdurable.StartCluster.spec (GF := GF) (hG := hG) :=
+  kvdurable.StartCluster.wp_proof kvdurable.Cluster.wp_start kvdurable.Stats.wp_add
 
 end links_hasLC
-
-/-! The results that reach a function specified but not proved yet (a later unit's):
-its spec is a hypothesis (`h_<fn>`) of each of them. -/
-section links_pending
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvdurable.Assumptions]
-variable [HasExt durableExt] [go.IntoValInj GoString]
-
-attribute [local instance] kvdurable.kdStorageModel
-variable [AllG GF]
-variable (h_kvdurable_openStorage : ∀ [kvdurable.KdStor GF], kvdurable.openStorage.spec (GF := GF) (hG := hG))
-include h_kvdurable_openStorage
-
-theorem kvdurable.Cluster.wp_start [KdStor GF] :
-    kvdurable.Cluster.start.spec (GF := GF) (hG := hG) :=
-  kvdurable.Cluster.start.wp_proof kvdurable.Cluster.wp_fileOf github_com.mit_pdos.etcd_grove.examples.durable.wp_Read kvdurable.wp_newStorage h_kvdurable_openStorage MemoryStorage.wp_Snapshot raftpb.Snapshot.wp_GetMetadata raftpb.Snapshot.wp_GetData raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetConfState kvdurable.wp_decodeState kvdurable.Stats.wp_add kvdurable.wp_oneIn kvdurable.wp_below kvdurable.Cluster.wp_config wp_RestartNode kvdurable.Cluster.wp_tick kvdurable.Cluster.wp_sender kvdurable.wp_newReplica kvdurable.Storage.wp_InitialState kvdurable.Storage.wp_Snapshot MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term MemoryStorage.wp_Entries kvdurable.quietLogger.wp_Debugf kvdurable.quietLogger.wp_Errorf kvdurable.quietLogger.wp_Infof kvdurable.quietLogger.wp_Warningf
-
-theorem kvdurable.Cluster.wp_restart [KdStor GF] :
-    kvdurable.Cluster.restart.spec (GF := GF) (hG := hG) :=
-  kvdurable.Cluster.restart.wp_proof kvdurable.Cluster.wp_replicaPin kvdurable.Replica.wp_crash kvdurable.Stats.wp_add (kvdurable.Cluster.wp_start h_kvdurable_openStorage)
-
-theorem kvdurable.Cluster.wp_Crash [KdStor GF] :
-    kvdurable.Cluster.Crash.spec (GF := GF) (hG := hG) :=
-  kvdurable.Cluster.Crash.wp_proof kvdurable.wp_sleep kvdurable.Cluster.wp_random (kvdurable.Cluster.wp_restart h_kvdurable_openStorage)
-
-theorem kvdurable.Cluster.wp_startNew [KdStor GF] :
-    kvdurable.Cluster.startNew.spec (GF := GF) (hG := hG) :=
-  kvdurable.Cluster.startNew.wp_proof (kvdurable.Cluster.wp_start h_kvdurable_openStorage) kvdurable.Stats.wp_add
-
-theorem kvdurable.wp_StartCluster [KdStor GF] :
-    kvdurable.StartCluster.spec (GF := GF) (hG := hG) :=
-  kvdurable.StartCluster.wp_proof (kvdurable.Cluster.wp_start h_kvdurable_openStorage) kvdurable.Stats.wp_add
-
-end links_pending
 
 end EtcdGrove
 end Perennial

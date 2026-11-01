@@ -6,7 +6,7 @@
 # `<F>.spec<S>`/`<F>.wp_proof<S>`, linked as `wp_<M><S>` (`Replica.persist`'s `specRun`, the form
 # `Replica.run` calls it at).
 #
-# Every kvdurable function with a spec is linked. `openStorage`'s proof is not here yet (`?`).
+# Every kvdurable function with a spec is linked.
 #
 # the callees outside the store
 IsEmptyHardState: @
@@ -135,7 +135,7 @@ kvdurable_less:
 kvdurable_newReplica: kvdurable_Replica__run kvdurable_Replica__ticker kvdurable_Replica__snapshotter proto_CloneConfState
 kvdurable_newStorage: NewMemoryStorage
 kvdurable_oneIn:
-kvdurable_openStorage: ?
+kvdurable_openStorage: NewMemoryStorage kvdurable_getUint64 kvdurable_getSnapshot kvdurable_getEntry MemoryStorage__ApplySnapshot MemoryStorage__Append MemoryStorage__CreateSnapshot MemoryStorage__SetHardState raftpb_Snapshot__GetMetadata raftpb_Snapshot__GetData raftpb_SnapshotMetadata__GetIndex raftpb_SnapshotMetadata__GetTerm raftpb_Entry__GetIndex raftpb_Entry__GetTerm
 kvdurable_putBytes:
 kvdurable_putEntry: kvdurable_putUint64 kvdurable_putBytes raftpb_Entry__GetTerm raftpb_Entry__GetIndex raftpb_Entry__GetType raftpb_Entry__GetData
 kvdurable_putIDs: kvdurable_putUint64

@@ -1,7 +1,8 @@
 /- `MemoryStorage.CreateSnapshot` (`storage.go:244`), proved 2026-10-12 (Lean-first); U8 v2 step 3
 (2026-10-29): over the lock's invariant and the stored snapshot's home (`InvMemstorage.lean`). kvreconf-snapshot-thread (2026-10-30): no client snapshot half: the stored index's authority (the
 lock's) gives `memSnapLb γs i` either way, raised on success; the caller's frozen entry at
-`i` puts `i` in the map, so below the end (no panic) and its term is the physical one. -/
+`i` puts `i` in the map, so below the end (no panic) and its term is the physical one. 2026-11-01:
+detached, the refusal's `i ≤ sv0`'s index is the branch's condition (the mode's `sv0` is the lock's). -/
 module
 
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
@@ -130,8 +131,10 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
       icases Hval with %Hsv
       subst Hsv
       simp only [memSetAt, Option.map_some]
-      iapply memStorFresh_of_at
-      iframe Hjc Hho
+      isplitl [Hjc Hho]
+      · iapply memStorFresh_of_at
+        iframe Hjc Hho
+      · ipureintro; word
   -- `i` is past the stored snapshot (so past the compaction point) and in the map (below the end)
   have Hci : uint.nat σp.prev.index' < uint.nat i := by word
   have Hie : uint.nat i < uint.nat σp.prev.index' + 1 + σp.ents.length := by

@@ -2,7 +2,8 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvdurable/getSnapshot.lean`. Lean-first (no
 Rocq counterpart): the readers in turn (`getUint64`, `getIDs`, the auto-leave byte, `getBytes`),
 each on the rest the previous one left, all succeeding on `encSnap s`; then the three records
-built (`csPts_of_struct`, `smPts_of_struct`, `ownSnapM_of_struct`), the data a slice of `b`.
+built (`csPts_of_struct`, the metadata by hand, `ownSnapS_of_struct`: every pointer field set),
+the data a slice of `b`.
 -/
 module
 
@@ -77,7 +78,10 @@ theorem getSnapshot.wp_proof (wp_getUint64 : getUint64.spec (GF := GF) (hG := hG
   iapply wp_fupd
   wp_apply wp_getBytes _ _ _ _ Hwf.2 $$ [$Hr6] as %data %r7 ⟨Hdata, Hr7, -⟩
   try wp_auto
-  -- the three records
+  -- the three records, every pointer field set
+  ihave %Hn4 := typedPointsto_not_null $$ «$v4»
+  ihave %Hn1 := typedPointsto_not_null $$ «$v1»
+  ihave %Hn2 := typedPointsto_not_null $$ «$v2»
   imod cellRO_alloc _ _ $$ «$v4» with #cA
   imod cellRO_alloc _ _ $$ «$v1» with #cI
   imod cellRO_alloc _ _ $$ «$v2» with #cT
@@ -90,16 +94,26 @@ theorem getSnapshot.wp_proof (wp_getUint64 : getUint64.spec (GF := GF) (hG := hG
       s.Metadata'.ConfState' ⊤ rfl $$ [-HΦ Hdata Hr7 «$v0» «$r0»] with Hcs
   · iframe; iexact cA
   rename_i csp
-  ihave Hcs := csPts_weaken _ _ _ _ $$ Hcs
-  ihave Hcs : csOpt csp (DFrac.own 1) s.Metadata'.ConfState' $$ [Hcs]
-  · iunfold csOpt; iright; iexact Hcs
-  imod smPts_of_struct «$v0_ptr»
-      (⟨zeroValDef, csp, «$v1_ptr», «$v2_ptr», slice.nil, 0⟩ : raftpb.SnapshotMetadata)
-      s.Metadata' ⊤ rfl $$ [«$v0» Hcs] with Hsm
-  · iframe; iframe cI cT
-  ihave Hsm : smOpt «$v0_ptr» (DFrac.own 1) s.Metadata' $$ [Hsm]
-  · iunfold smOpt; iright; iexact Hsm
-  imod ownSnapM_of_struct «$r0_ptr»
+  simp only [decide_eq_true Hn4]
+  icases csPts_nn _ _ _ _ $$ Hcs with ⟨Hcs, %Hcsn⟩
+  ihave %Hmn := typedPointsto_not_null $$ «$v0»
+  icases typedPointsto_split _ _ _ $$ «$v0» with Hm
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hm with ⟨state, ConfState, Index, Term, unknownFields, sizeCache, -⟩
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod pbMsg_alloc raftpb.SnapshotMetadata «$v0_ptr» zeroValDef 0 slice.nil [] ⊤
+    $$ [state sizeCache unknownFields Hnil] with #Hpbm
+  · iframe
+  ihave Hsm : smPtsS «$v0_ptr» (DFrac.own 1) s.Metadata' $$ [ConfState Index Term Hcs]
+  · iunfold smPtsS
+    iexists csp, «$v1_ptr», «$v2_ptr», []
+    isplitr
+    · ipureintro; exact ⟨Hmn, Hcsn, Hn1, Hn2⟩
+    iframe ConfState Index Term
+    iframe cI cT Hpbm
+    iunfold csSet; ileft; iexact Hcs
+  imod ownSnapS_of_struct «$r0_ptr»
       (⟨zeroValDef, data, «$v0_ptr», slice.nil, 0⟩ : raftpb.Snapshot) s ⊤ rfl
       $$ [«$r0» Hdata Hsm] with Hs
   · iframe

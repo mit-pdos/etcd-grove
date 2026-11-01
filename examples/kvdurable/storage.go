@@ -321,9 +321,9 @@ func (s *Storage) encode() []byte {
 // stored one if that is where the log starts, an empty one otherwise -- appends the entries, then
 // takes the stored snapshot again from them, on a copy of its data), and its image is the file's
 // contents. good is false for bytes encode did not write, or contents raft would not restart from:
-// entries not consecutive from the log's start, a snapshot below the log's start or past its end,
-// or at another term than the log's at its index, a log starting at index 0 at a term other than 0,
-// a commit index outside the log.
+// entries not consecutive from the log's start, an index at or past maxIndex, a snapshot below the
+// log's start or past its end, or at another term than the log's at its index, a log starting at
+// index 0 at a term other than 0, a commit index outside the log.
 func openStorage(boot *pb.ConfState, b []byte) (s *Storage, good bool) {
 	s = &Storage{MemoryStorage: raft.NewMemoryStorage(), boot: boot}
 	term, r1, ok1 := getUint64(b)
@@ -336,7 +336,7 @@ func openStorage(boot *pb.ConfState, b []byte) (s *Storage, good bool) {
 	prev, r5, ok5 := getUint64(r4)
 	prevTerm, r6, ok6 := getUint64(r5)
 	n, rest, ok7 := getUint64(r6)
-	if !ok4 || !ok5 || !ok6 || !ok7 || prev >= maxIndex || n > maxIndex-prev {
+	if !ok4 || !ok5 || !ok6 || !ok7 || prev >= maxIndex || n >= maxIndex-prev {
 		return nil, false
 	}
 	var ents []*pb.Entry
