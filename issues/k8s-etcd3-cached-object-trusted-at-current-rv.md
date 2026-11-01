@@ -31,6 +31,14 @@ object; `GuaranteedUpdate` writes `tryUpdate(o_c)`, losing `o_s`'s contents, wit
 validation callbacks (`validateDeletion`, preconditions) run on `o_c` too. No reproduction yet (it
 needs an etcd member; the scenario is a few lines over `TestCorrectness`'s setup).
 
+A sharper case (found 2026-11-01, the spec review's third round): a cached object with no resource
+version (a never-stored object: `""` parses as `0`). The store's compare is
+`ModRevision(key) = 0` (`go.etcd.io/etcd/client/v3/kubernetes/client.go:85,111`), which etcd holds
+exactly when the key is absent. So `Delete` of an absent key "succeeds" and returns the cached
+object as the deleted one (the documented answer is `NotFound`, `interfaces.go:186`), and
+`GuaranteedUpdate(ignoreNotFound=false)` of an absent key creates it from `tryUpdate(cached)`
+instead of returning `NotFound`.
+
 **Expected**: either the documentation states that a cached object must be one the storage
 returned (unmodified) for that key at its resource version, or the store treats it only as a
 suggestion of the resource version and re-reads the data (which defeats its purpose: avoiding the
