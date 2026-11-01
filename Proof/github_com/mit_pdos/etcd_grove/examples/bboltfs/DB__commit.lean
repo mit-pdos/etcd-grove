@@ -80,6 +80,51 @@ theorem writerCells_top (base : Loc) (hwm len : Nat) :
   unfold writerCells cellsAny
   exact ⟨by iintro ⟨H0, H1, H2, H3, H4⟩; iframe, by iintro ⟨⟨H0, H1, H2, H3⟩, H4⟩; iframe⟩
 
+/-- A grown file (`Truncate` to the mapping's length `len`), as the writer's: its bytes from the
+high water mark on and their cells. -/
+theorem grown_writer (p : GoString) (base : Loc) (m' : OsMeta) (len hwm : Nat)
+    (tail : List (w8 × Bool)) (vf : Nat → val) (hmaps : m'.maps = {[base := len]})
+    (hsz : m'.size ≤ len) (h4 : 4096 * hwm ≤ m'.size) (htl : tail.length = m'.size - 4096 * hwm) :
+    osGrown (GF := GF) p m' len len ∗ osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail ∗
+      cellsR (GF := GF) base (4096 * hwm) (m'.size - 4096 * hwm) vf ⊢
+      ∃ tail2, ⌜tail2.length = len - 4096 * hwm⌝ ∗ osMeta (GF := GF) p (DFrac.own 1) (some (m'.grown len)) ∗
+        osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail2 ∗
+        cellsAny (GF := GF) base (4096 * hwm) (len - 4096 * hwm) := by
+  iintro ⟨Hg, Htail, Hlow⟩
+  iunfold osGrown at Hg
+  icases Hg with ⟨Hm, Hz, Hc, -⟩
+  iexists tail ++ List.replicate (len - m'.size) (0, false)
+  iframe Hm
+  isplitr
+  · ipureintro; simp; omega
+  isplitl [Htail Hz]
+  · iapply (osBytes_app p (4096 * hwm) _ tail _).2
+    rw [htl, show 4096 * hwm + (m'.size - 4096 * hwm) = m'.size by omega]
+    iframe
+  rw [hmaps] at *
+  icases (mcells_single (GF := GF) base len m'.size len _ hsz (Nat.le_refl _)).1 $$ Hc with Hc
+  rw [show len - 4096 * hwm = (m'.size - 4096 * hwm) + (len - m'.size) by omega]
+  iapply cellsAny_append
+  isplitl [Hlow]
+  · unfold cellsAny; iexists vf; iexact Hlow
+  rw [show 4096 * hwm + (m'.size - 4096 * hwm) = m'.size by omega]
+  unfold cellsAny; iexists _; iexact Hc
+
+/-- The cells past the file's end, back with the writer's. -/
+theorem cells_back (base : Loc) (m' : OsMeta) (len hwm : Nat) (vf : Nat → val)
+    (hmaps : m'.maps = {[base := len]}) (hsz : m'.size ≤ len) (h4 : 4096 * hwm ≤ m'.size) :
+    mcellsAny (GF := GF) m'.maps m'.size len ∗ cellsR (GF := GF) base (4096 * hwm) (m'.size - 4096 * hwm) vf ⊢
+      cellsAny (GF := GF) base (4096 * hwm) (len - 4096 * hwm) := by
+  iintro ⟨Hc, Hlow⟩
+  rw [hmaps]
+  icases (mcellsAny_single (GF := GF) base len m'.size len hsz (Nat.le_refl _)).1 $$ Hc with Hc
+  rw [show len - 4096 * hwm = (m'.size - 4096 * hwm) + (len - m'.size) by omega]
+  iapply cellsAny_append
+  isplitl [Hlow]
+  · unfold cellsAny; iexists vf; iexact Hlow
+  rw [show 4096 * hwm + (m'.size - 4096 * hwm) = m'.size by omega]
+  iexact Hc
+
 theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     (wp_Truncate : os.File.Truncate.spec (GF := GF) (hG := hG))
     (wp_Sync : os.File.Sync.spec (GF := GF) (hG := hG))
@@ -204,7 +249,131 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   iunfold writerFile at Hw
   icases Hw with ⟨%mxc, %tail, %fsz, Hfsz, Hdsz, Hf, Hfd, Hm, Hmx, Htail, %Hwf⟩
   obtain ⟨hmx, hclean, rfl, hfd⟩ := Hwf.2.2.2.2 rfl
+  obtain ⟨Hmaps, Hsz, Hbase, Hl41⟩ := Hstp
+  obtain ⟨Hsize, Hok', Hlen⟩ := Hm'
+  have hsZ : sint.Z (W64 (m'.size : Int)) = m'.size := by
+    show BitVec.toInt _ = _
+    rw [BitVec.toInt_eq_toNat_cond]; simp only [BitVec.toNat_ofInt]; split <;> omega
+  have hlen64 : (W64 (len : Int)).toNat = len := by simp only [BitVec.toNat_ofInt]; omega
+  have hlenI : 0 ≤ (W64 (len : Int)).toInt := by
+    rw [BitVec.toInt_eq_toNat_cond, hlen64]; split <;> omega
+  dsimp only [mapLen]
   (try wp_auto)
+  simp only [hsZ, hmZ]
+  -- grow: Truncate and Sync
+  wp_join (Q := fun bv => iprop((⌜bv = executeVal⌝ ∗ ∃ (m2 : OsMeta) (tail2 : List (w8 × Bool)),
+      ⌜m2.maps = {[base := len]} ∧ m2.size ≤ len ∧ (hwm + 2) * 4096 ≤ m2.size ∧ m2.ok = true ∧
+        tail2.length = m2.size - 4096 * hwm⌝ ∗
+      osMeta (GF := GF) p (DFrac.own 1) (some m2) ∗ db.[DB, go!"filesz"] ↦ W64 m2.size ∗
+      osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail2 ∗ writerCells (GF := GF) base hwm len ∗
+      os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
+      db.[DB, go!"datasz"] ↦ W64 len ∗ db_ptr ↦ db ∗ «$res0_ptr» ↦ GoInterface.nil ∗
+      dbOwner (GF := GF) γ mv.txid'.toNat hwm ∗ ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗
+      ghostVar γ.map (1 : Qp).half (some (base, len, γm)) ∗ ghostVar γ.out (1 : Qp).half.half false ∗
+      mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
+      ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
+      osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc) ∨
+    (∃ e : GoInterface, ⌜bv = returnVal #() ∧ e ≠ interface.nil⌝ ∗ db_ptr ↦ db ∗
+      «$res0_ptr» ↦ e ∗ commitErr (GF := GF) γ db f fd p mv.txid'.toNat hwm)))
+    with [-HΦ]
+  · (try wp_auto)
+    have hsz' : m'.size < (hwm + 2) * 4096 := by exact_mod_cast Hif
+    icases (writerCells_top base hwm len).1 $$ Hwc with ⟨Hwc4, Htop⟩
+    iunfold cellsAny at Htop
+    icases Htop with ⟨%vf, Htop⟩
+    rw [show len - 4096 * hwm = (m'.size - 4096 * hwm) + (len - m'.size) by omega]
+    icases (cellsR_append _ _ _ _ _).1 $$ Htop with ⟨Hlow, Hhigh⟩
+    rw [show 4096 * hwm + (m'.size - 4096 * hwm) = m'.size by omega]
+    ihave Hmc := (mcellsAny_single (GF := GF) base len m'.size len Hsz (Nat.le_refl _)).2 $$ [Hhigh]
+    · unfold cellsAny; iexists vf; iexact Hhigh
+    rw [← Hmaps]
+    wp_apply wp_Truncate f fd p _ (W64 (len : Int)) _ ⟨p, true, true⟩ m' len hfd rfl hlenI
+        (by rw [hlen64]; exact Hsz) (fun b l h => by rw [Hmaps] at h; simp at h; omega)
+        $$ [Hf Hfd Hm Hmc] as %err ⟨Hf, Hfd, Hres⟩
+    · iframe #
+      iframe
+    simp only [hlen64]
+    have h4 := Hwf.2.1
+    have htl := Hwf.2.2.2.1
+    have hmx8 := Hwf.2.2.1
+    have h2 := Hwf.1
+    icases Hres with (⟨%Herr, Hg⟩ | ⟨%Herr, (Hg | ⟨Hm, Hmc⟩)⟩)
+    · subst Herr
+      ihave Hx := grown_writer p base m' len hwm tail vf Hmaps Hsz h4 htl $$ [Hg Htail Hlow]
+      · iframe
+      icases Hx with ⟨%tail2, %Htl2, Hm, Htail, Htop⟩
+      ihave Hwc := (writerCells_top base hwm len).2 $$ [Hwc4 Htop]
+      · iframe
+      (try wp_auto)
+      ihave Hnil := (osBytes_nil (GF := GF) p 0 (DFrac.own 1)).2 $$ []
+      · iempintro
+      wp_apply wp_Sync f fd p _ _ ⟨p, true, true⟩ (m'.grown len) 0 [] $$ [Hf Hfd Hm Hnil]
+        as %err2 ⟨Hf, Hfd, Hres2⟩
+      · iframe; iframe #
+      icases Hres2 with (⟨%Herr2, Hm, -⟩ | ⟨%Herr2, Hm, -⟩)
+      · subst Herr2
+        (try wp_auto)
+        ileft
+        isplitr
+        · ipureintro; trivial
+        iexists (m'.grown len).synced, tail2
+        iframe
+        ipureintro
+        exact ⟨rfl, Nat.le_refl _, Hlen, Hok', Htl2⟩
+      · cases err2 with
+        | nil => exact absurd rfl Herr2
+        | ok ie =>
+        (try wp_auto)
+        iright
+        iexists GoInterface.ok ie
+        iframe
+        isplitr
+        · ipureintro; exact ⟨rfl, Herr2⟩
+        iapply commitErr_of γ db f fd p mp hwm base len γm { m'.grown len with ok := false } mxc tail2
+          m'.size _ _ ⟨Hmaps, Nat.le_refl _, Hbase, Hl41, h2, by simp [OsMeta.grown]; omega, hmx8,
+            by simp [OsMeta.grown]; exact Htl2⟩
+        iframe; iframe #
+    · cases err with
+      | nil => exact absurd rfl Herr
+      | ok ie =>
+      ihave Hx := grown_writer p base m' len hwm tail vf Hmaps Hsz h4 htl $$ [Hg Htail Hlow]
+      · iframe
+      icases Hx with ⟨%tail2, %Htl2, Hm, Htail, Htop⟩
+      ihave Hwc := (writerCells_top base hwm len).2 $$ [Hwc4 Htop]
+      · iframe
+      (try wp_auto)
+      iright
+      iexists GoInterface.ok ie
+      iframe
+      isplitr
+      · ipureintro; exact ⟨rfl, Herr⟩
+      iapply commitErr_of γ db f fd p mp hwm base len γm (m'.grown len) mxc tail2
+        m'.size _ _ ⟨Hmaps, Nat.le_refl _, Hbase, Hl41, h2, by simp [OsMeta.grown]; omega, hmx8,
+          by simp [OsMeta.grown]; exact Htl2⟩
+      iframe; iframe #
+    · cases err with
+      | nil => exact absurd rfl Herr
+      | ok ie =>
+      ihave Htop := cells_back base m' len hwm vf Hmaps Hsz h4 $$ [Hmc Hlow]
+      · iframe
+      ihave Hwc := (writerCells_top base hwm len).2 $$ [Hwc4 Htop]
+      · iframe
+      (try wp_auto)
+      iright
+      iexists GoInterface.ok ie
+      iframe
+      isplitr
+      · ipureintro; exact ⟨rfl, Herr⟩
+      iapply commitErr_of γ db f fd p mp hwm base len γm (ftMeta m' len) mxc tail
+        m'.size _ _ ⟨Hmaps, Hsz, Hbase, Hl41, h2, h4, hmx8, htl⟩
+      iframe; iframe #
+  · ileft
+    isplitr
+    · ipureintro; trivial
+    iexists m', tail
+    iframe
+    ipureintro; exact ⟨Hmaps, Hsz, by omega, Hok', Hwf.2.2.2.1⟩
   sorry
 
 end proof
