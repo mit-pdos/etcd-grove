@@ -67,6 +67,18 @@ def kvRunInv (γr : RKVNames) (id : w64) (K : GName) (r n st : Loc) (γs : MemSt
     "#Hfz" ∷ frozenTo γs c D ∗
     "%Ha" ∷ ⌜uint.nat a = D.length ∧ c ≤ uint.nat sI ∧ uint.nat sI ≤ uint.nat a⌝)
 
+/-- (2026-11-01, durability stage II) **A `Ready`'s messages with their `sentMsg`**: the messages as
+`readyRest` owns them, with the sends *enter* gave (`readyMsgs`), are what a transport takes. -/
+theorem readyMsgs_sent (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) :
+    ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+      readyMsgs γ N id ms ⊢
+    [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗ msgCredits γ N q.st := by
+  unfold readyMsgs
+  refine BigSepL.bigSepL_sep_eqv_symm.1.trans (BigSepL.bigSepL_mono_of_forall ?_)
+  intro _ _
+  iintro ⟨⟨Ho, Hc⟩, Hs⟩
+  iframe
+
 end inv
 
 end kv
