@@ -23,8 +23,8 @@ the replicated state takes it (`install`), and `Advance` gives the node's config
 invariant at the snapshot's log, compacted and frozen at its index.
 
 raft's facts on a `Ready` not yet in its API (being added to `readyRest`) are isolated below as
-private lemmas left `sorry` (`ready_*_G*`, `softState_ne_null_G21`); so is one premise `run`'s
-precondition lacks (`run_memSnapLb_G23`: `MemoryStorage.ApplySnapshot`'s `memSnapLb γs 0`).
+private lemmas left `sorry` (`ready_*_G*`, `softState_ne_null_G21`). (G23: `MemoryStorage.ApplySnapshot`'s
+`memSnapLb γs 0` is `isReplicaR`'s `#HsnLb`.)
 -/
 module
 
@@ -211,16 +211,6 @@ private theorem ownSnapS_wf (p : Loc) (dq : DFrac) (sv : SnapshotM) :
     ipureintro
     unfold SnapWf ConfWf
     refine ⟨⟨?_, ?_, ?_, ?_⟩, ?_⟩ <;> word
-
-/-- (G23, a statement gap: not a raft fact) The writers' lower bound of the `MemoryStorage`'s stored
-snapshot, which `MemoryStorage.ApplySnapshot`'s spec takes: `run`'s precondition has none
-(kvreconf's `isReplicaR` carries it, `"#HsnLb"`; kvdurable's `isReplicaR` does not, though the
-snapshotter's spec takes `memSnapLb ρ.γs known`, which `newReplica` would make with it). Fix: add
-`memSnapLb ρ.γs 0` to `isReplicaR` (or to `runStart`). -/
-private theorem run_memSnapLb_G23 (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64)
-    (r n st sts sq : Loc) (ρ : KdRepNames) :
-    isReplicaR (GF := GF) γ vs dir id r n st sts sq ρ ⊢ memSnapLb ρ.γs 0 := by
-  sorry
 
 set_option hygiene false in
 /-- `run`'s exit: `run`'s half of `nodeRunning` and its claim sent on `runDone`, then `return`. -/
@@ -1188,7 +1178,6 @@ theorem Replica.run.wp_proof
       icases ErrSnapOODNew with ⟨%eood, #Heood, -⟩
       ihave Hlog := kdStorLog_to st ρ.ms ρ.γs _ _ _ $$ Hrec Hlog
       ihave Hend := kdStorEnd_to st ρ.ms ρ.γs _ $$ Hrec Hend
-      ihave #HsnLb := run_memSnapLb_G23 γ vs dir id r n st sts sq ρ $$ Hrr
       have Htrip : {{ iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
             memStorAt ρ.ms ρ.γs (kdJ γ.r.cluster ρ.key) none
               iprop((kdJ γ.r.cluster ρ.key).B (uint.nat lo.snap.Metadata'.Index') ∗

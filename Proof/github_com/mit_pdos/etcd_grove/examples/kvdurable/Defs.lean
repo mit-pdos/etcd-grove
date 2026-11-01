@@ -530,7 +530,10 @@ def isReplicaR (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n s
     "#HsnB" ∷ isChanBag ρ.sn ρ.snc (snapReqOk γ ρ.key ρ.γs ρ.ph) ∗
     "#HsdH" ∷ isHandoff (V := Unit) ρ.sd ρ.sdc
       (fun _ => nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half) iprop(True) iprop(False) ∗
-    "#HmsInv" ∷ memStorInvP ρ.ms ρ.γs (kdJ γ.r.cluster ρ.key))
+    "#HmsInv" ∷ memStorInvP ρ.ms ρ.γs (kdJ γ.r.cluster ρ.key) ∗
+    -- (2026-11-01, stage II (j), G23) the writers' lower bound of the stored snapshot, which
+    -- `MemoryStorage.ApplySnapshot` takes (`run`'s snapshot `Ready`; kvreconf's `#HsnLb`)
+    "#HsnLb" ∷ memSnapLb ρ.γs 0)
 
 /-- **The stopper's share of incarnation `r`** (exclusive): `isReplicaR` with the stopper's tokens
 (what `stop` takes). -/
