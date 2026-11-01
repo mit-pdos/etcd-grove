@@ -957,9 +957,18 @@ def dispOk (rev c c' : w64) (r : RespModel) : Prop :=
       sint.Z e.rev < 2 ^ 63 - 1) ∧
     c' = (r.events.getLast?.map EvModel.rev).getD c
 
+/-- **The kinds of response `run` sends a substream** (pure; watches across a compaction, D6,
+2026-11-01): one without compaction, not canceled; or a compaction response (the watch's next
+revision compacted: canceled, no events, not created, at the header revision `0`), which the substream delivers as its error
+(`ErrCompacted`) and stops. -/
+def respKindOk (r : RespModel) : Prop :=
+  (r.compactRev = W64 0 ∧ r.canceled = false) ∨
+  (r.compactRev ≠ W64 0 ∧ r.canceled = true ∧ r.events = [] ∧ r.created = false ∧
+    r.hdrRev = W64 0)
+
 /-- **The `k`th response `run` sends a substream** (`recvc`'s element) at `wr` (read-only): a
 `WatchResponse` modelled by `r` (its events read-only, its header non-nil, `watchHdrOwn`: the
-`Revision` owned for a response with events; no close error, no compaction, not canceled),
+`Revision` owned for a response with events; no close error, of a kind `run` sends: `respKindOk`),
 satisfying the contract from the dispatch cursor's position `k` to `k + 1` (`γhi`, a mono list
 `run` extends); a created response has no events and `run`'s half of
 the request's `rev` field (the substream writes it from then on); another is at no goroutine's
@@ -971,8 +980,7 @@ def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
   iprop((∃ (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hiB hiA : w64),
     wr ↦□ v ∗
     ⌜v.Header' ≠ null ∧ v.closeErr' = GoInterface.nil ∧ v.CompactRevision' = r.compactRev ∧
-      v.Canceled' = r.canceled ∧ v.Created' = r.created ∧ r.compactRev = W64 0 ∧
-      r.canceled = false⌝ ∗
+      v.Canceled' = r.canceled ∧ v.Created' = r.created ∧ respKindOk r⌝ ∗
     eventsAt v.Events' r.events ∗ watchHdrOwn v.Header' r ∗
     monoListIdxOwn P.γhi k.toNat hiB ∗ monoListIdxOwn P.γhi (k.toNat + 1) hiA ∗
     ⌜dispOk P.rev hiB hiA r⌝ ∗ recvCmpl V P k v r ∗
@@ -1446,8 +1454,7 @@ def recvLive (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
   iprop(∃ (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hiB hiA : w64),
     wr ↦□ v ∗
     ⌜v.Header' ≠ null ∧ v.closeErr' = GoInterface.nil ∧ v.CompactRevision' = r.compactRev ∧
-      v.Canceled' = r.canceled ∧ v.Created' = r.created ∧ r.compactRev = W64 0 ∧
-      r.canceled = false⌝ ∗
+      v.Canceled' = r.canceled ∧ v.Created' = r.created ∧ respKindOk r⌝ ∗
     eventsAt v.Events' r.events ∗ watchHdrOwn v.Header' r ∗
     monoListIdxOwn P.γhi k.toNat hiB ∗ monoListIdxOwn P.γhi (k.toNat + 1) hiA ∗
     ⌜dispOk P.rev hiB hiA r⌝ ∗ recvCmpl V P k v r ∗

@@ -793,7 +793,7 @@ theorem recvElem_of (V : WEnv GF) (P : WsPrm GF) (k : Nat) (hk : k ≠ 0) (m : v
   isplitr
   · ipureintro
     obtain ⟨h1, h2, h3⟩ := hfl
-    simp [hhn, h1, h2, h3]
+    simp [hhn, h1, h2, h3, respKindOk]
   isplitr
   · iexact Hcm
   simp only [Bool.false_eq_true, ↓reduceIte]
@@ -1916,7 +1916,7 @@ theorem recvElem_created (V : WEnv GF) (P : WsPrm GF) (m : v3rpc.WatchRespM) (h 
   iframe Hwr Hes Hi0 Hi1
   obtain ⟨h1, h2, h3⟩ := hfl
   isplitr
-  · ipureintro; simp [hhn, h1, h2, h3]
+  · ipureintro; simp [hhn, h1, h2, h3, respKindOk]
   isplitr
   · unfold watchHdrOwn; simp only [↓reduceIte]; iexact Hha
   isplitr
