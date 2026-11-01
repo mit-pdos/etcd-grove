@@ -266,7 +266,7 @@ theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
   iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots,
     #Hws, #Hims, #His, Hwslots, #Hkf, #Heof⟩
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs N
-    hregs Hrf hrd) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, #Hdel, #Htxn⟩
+    hregs Hrf hrd) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
   · iframe; iframe #
   imod (v3rpc.etcd_watch_served_chain addr pw V.R ims is sregs nw hset hwreg) $$ [Hss Hwslots]
     with #Hst

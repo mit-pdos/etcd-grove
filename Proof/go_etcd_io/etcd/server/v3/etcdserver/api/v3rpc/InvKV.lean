@@ -492,6 +492,11 @@ def kvServerIs (p : Loc) (s : Loc) (A : KVAns GF) (cid mid n : w64) : IProp GF :
       (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s : GoInterface) ∗
     structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer go!"maxTxnOps" p ↦□ n ∗
     ⌜maxTxnOpsOk (sint.Z n)⌝ ∗
+    -- (the client's `kv.Compact`, 2026-11-01) the admin guard `aa` (`&AuthAdmin{s}`), which
+    -- `Compact`'s check reads (`authAdminIs`, with the server's auth facts)
+    (∃ aa : Loc, structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer go!"aa" p ↦□ aa ∗
+      ⌜aa ≠ null⌝ ∗ structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthAdmin go!"ag" aa ↦□
+        (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s : GoInterface)) ∗
     raftKV s A)
 
 instance kvServerIs_persistent (p s : Loc) (A : KVAns GF) (cid mid n : w64) :

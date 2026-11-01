@@ -169,7 +169,7 @@ theorem Main.wp_proof
   subst Hserr
   wp_auto
   iunfold common.etcdKVAt at Hkv
-  icases Hkv with ⟨#HPut, #HRange, #HDel, #HTxn⟩
+  icases Hkv with ⟨#HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   -- `kubernetes.New(Config{Endpoints: {clientAddr}, Logger: lg, MaxUnaryRetries: 1})`
   wp_apply wp_slice_literal
   try (isplitr; (ipureintro; rfl))

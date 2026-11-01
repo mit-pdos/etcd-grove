@@ -147,7 +147,7 @@ theorem Main.wp_proof
   subst Hserr
   wp_auto
   iunfold common.etcdKVAt at Hkv
-  icases Hkv with ⟨#HPut, #HRange, #HDel, #HTxn⟩
+  icases Hkv with ⟨#HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration, its default retries)
   wp_apply (wp_NewClient go!"127.0.0.1:23796" lg
       (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23796" [] null null [] null default) Hlg

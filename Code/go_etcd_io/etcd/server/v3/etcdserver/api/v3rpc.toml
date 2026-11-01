@@ -19,6 +19,8 @@ translate = ["!*",
   # unary interceptors (logUnaryRequestStats names only)
   "quotaKVServer", "quotaAlarmer", "quotaAlarmer.check", "NewQuotaKVServer", "quotaKVServer.Put",
   "quotaKVServer.Txn", "quotaKVServer.Range", "quotaKVServer.DeleteRange", "newBackendQuota",
+  # the client's `kv.Compact` (2026-11-01): the wrapper's promoted `Compact`
+  "quotaKVServer.Compact",
   "newUnaryInterceptor", "newLogUnaryInterceptor",
   # the watch slice's unit W-S: watch.go with bodies (the metrics and isClientCtxErr names only)
   "watchServer", "NewWatchServer", "GetProgressReportInterval", "SetProgressReportInterval",

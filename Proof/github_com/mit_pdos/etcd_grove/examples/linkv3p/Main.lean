@@ -84,9 +84,9 @@ theorem Main.wp_proof
     #Hm₁, #Hm₂, #Hm₃, Hctl₁, Hctl₂, Hctl₃, Hob₁, Hob₂, Hob₃, #Hnc₁, #Hnc₂, #Hnc₃, Hetcd, %Hal⟩
   obtain ⟨hst₂, hst₃⟩ := Hal
   iunfold memberAt at Hm₁ Hm₂ Hm₃
-  icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, %Hnr₁, -, -, -, %Hp₁⟩
-  icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, %Hnr₂, -, -, -, -⟩
-  icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, %Hnr₃, -, -, -, -⟩
+  icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, -, -, -, %Hp₁⟩
+  icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, -, -, -, -⟩
+  icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, %Hnr₃, -, -, -, -⟩
   obtain ⟨-, -, -, hlog₁, -⟩ := Hp₁
   -- `go partitioner(srvs, brs, sched)`: every member's place in the network
   ihave Hmem : ([∗list] s ∈ [s₁, s₂, s₃], ∃ id : w64, common.srvPeerCtl γn s id) $$ [Hctl₁ Hctl₂ Hctl₃]
@@ -150,7 +150,9 @@ theorem Main.wp_proof
       · iapply isGrpcRpc_forwards $$ [Hfw₁ HRange₁]; iframe #
       isplitr
       · iapply isGrpcRpc_forwards $$ [Hfw₁ HDel₁]; iframe #
-      iapply isGrpcRpc_forwards $$ [Hfw₁ HTxn₁]; iframe #
+      isplitr
+      · iapply isGrpcRpc_forwards $$ [Hfw₁ HTxn₁]; iframe #
+      iapply isGrpcRpc_forwards $$ [Hfw₁ HCmp₁]; iframe #
     iapply BigSepL.bigSepL_cons.2
     isplitr
     · iunfold EtcdGrove.client.kvRegsAt
@@ -160,7 +162,9 @@ theorem Main.wp_proof
       · iapply isGrpcRpc_forwards $$ [Hfw₂ HRange₂]; iframe #
       isplitr
       · iapply isGrpcRpc_forwards $$ [Hfw₂ HDel₂]; iframe #
-      iapply isGrpcRpc_forwards $$ [Hfw₂ HTxn₂]; iframe #
+      isplitr
+      · iapply isGrpcRpc_forwards $$ [Hfw₂ HTxn₂]; iframe #
+      iapply isGrpcRpc_forwards $$ [Hfw₂ HCmp₂]; iframe #
     iapply BigSepL.bigSepL_cons.2
     isplitr
     · iunfold EtcdGrove.client.kvRegsAt
@@ -170,7 +174,9 @@ theorem Main.wp_proof
       · iapply isGrpcRpc_forwards $$ [Hfw₃ HRange₃]; iframe #
       isplitr
       · iapply isGrpcRpc_forwards $$ [Hfw₃ HDel₃]; iframe #
-      iapply isGrpcRpc_forwards $$ [Hfw₃ HTxn₃]; iframe #
+      isplitr
+      · iapply isGrpcRpc_forwards $$ [Hfw₃ HTxn₃]; iframe #
+      iapply isGrpcRpc_forwards $$ [Hfw₃ HCmp₃]; iframe #
     iapply BigSepL.bigSepL_nil.2
     itrivial
   ihave #Hinvs : ([∗list] sv ∈ ms, linkvtxn.linkvInv γl sv.γr.kv) $$ []

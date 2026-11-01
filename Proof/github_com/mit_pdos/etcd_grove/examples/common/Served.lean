@@ -48,7 +48,8 @@ def etcdKVAt (addr : GoString) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
   iprop(isGrpcRpc addr go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E ρ.rd cid mid) ∗
     isGrpcRpc addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
     isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (client.etcdDeleteSpec E ρ.rd cid mid) ∗
-    isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (client.etcdTxnSpec E ρ.rd γr cid mid))
+    isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (client.etcdTxnSpec E ρ.rd γr cid mid) ∗
+    isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (client.etcdCompactSpec E ρ.rd cid mid))
 
 instance etcdKVAt_persistent (addr : GoString) (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (cid mid : w64) : Persistent (etcdKVAt (GF := GF) addr E ρ γr cid mid) := by
@@ -121,7 +122,7 @@ theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
   rw [HCA]
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid C.n il im iu ims is svcs regs
-      sregs 1 Hregs Hrf hρ) $$ [Hgsn Hlis Hslots] with ⟨Hserv, -, #HPut, #HRange, #HDel, #HTxn⟩
+      sregs 1 Hregs Hrf hρ) $$ [Hgsn Hlis Hslots] with ⟨Hserv, -, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   · iframe; iframe #
     iintro !>
     imodintro
