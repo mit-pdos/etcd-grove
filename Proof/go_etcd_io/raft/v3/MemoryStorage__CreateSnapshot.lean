@@ -173,7 +173,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   iNamedSuffix Hr "_s"
   iNamedSuffix Hm_s "_m"
   wp_auto
-  imod cellRO_alloc $$ «$r0» with #cIn
+  imod cellRO_alloc_nn _ _ $$ «$r0» with ⟨#cIn, %HnI⟩
   -- the term of `i`: `ms.ents[i - offset]`, the caller's entry
   rw [Hd0i]
   have Hk : sint.Z (i - σp.prev.index') = uint.Z i - uint.Z σp.prev.index' := by word
@@ -188,7 +188,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   · iframe Hls1; ipureintro; exact Hlk.1
   wp_apply wp_GetTerm.1 lk DFrac.discard e $$ [Hek] with -
   · iframe Hek
-  imod cellRO_alloc $$ «$r0» with #cTn
+  imod cellRO_alloc_nn _ _ $$ «$r0» with ⟨#cTn, %HnT⟩
   -- the frozen entry at the new snapshot's index (the lock's `Hsf`)
   ihave #Hei1 : (uint.nat i) ↪[γs.log]□ e $$ [Hei]
   · iunfold memLogL at Hei
@@ -208,25 +208,26 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   wp_apply wp_CloneConfState.1 cs dq cc $$ [Hcs] as %pc' ⟨Hcs, Hpc'⟩
   · iframe Hcs
   iclear Hc_m
+  icases csPts_not_null $$ Hpc' with ⟨Hpc', %Hpcnn⟩
   ihave Hc_m : csOptA pc' (DFrac.own 1) cc $$ [Hpc']
   · iunfold csOptA; iright; ileft; iexact Hpc'
-  ihave Hsm : smPts pm (DFrac.own 1) (SnapshotMetadataM.mk cc i e.Term') $$ [HC_m Hc_m HI_m HT_m]
-  · iunfold smPts
+  -- (2026-10-31) its conf state, index and term pointers set (`ownSnapV`, the WAL's validation)
+  ihave Hsm : smPtsV pm (DFrac.own 1) (SnapshotMetadataM.mk cc i e.Term') $$ [HC_m Hc_m HI_m HT_m]
+  · iunfold smPtsV
     iexists _, _, _, uf
     isplitr
-    · ipureintro; exact Hnn_m
+    · ipureintro; exact ⟨Hnn_m, Hpcnn, HnI, HnT⟩
     iframe HC_m Hc_m HI_m HT_m cIn cTn Hpb_m
-  ihave Hsnap : ownSnapM sp0 (DFrac.own 1) (memSnapMade i e.Term' cc bs) $$ [HD_s Hdata HM_s Hsm]
+  ihave Hsnap : ownSnapV sp0 (DFrac.own 1) (memSnapMade i e.Term' cc bs) $$ [HD_s Hdata HM_s Hsm]
   · rw [show memSnapMade i e.Term' cc bs = SnapshotM.mk bs (SnapshotMetadataM.mk cc i e.Term') from rfl]
-    iunfold ownSnapM
+    iunfold ownSnapV
     iexists data, pm, _
     isplitr
     · ipureintro; exact Hnn_s
-    iframe HD_s Hdata HM_s Hpb_s
-    iunfold smOpt
-    iright; iexact Hsm
-  wp_apply wp_CloneSnapshot.1 sp0 (DFrac.own 1) _ $$ [Hsnap] as %p' ⟨Hsnap, Hp'⟩
+    iframe HD_s Hdata HM_s Hpb_s Hsm
+  wp_apply wp_CloneSnapshot.2.2.2.2 sp0 (DFrac.own 1) _ $$ [Hsnap] as %p' ⟨Hsnap, Hp'⟩
   · iframe Hsnap
+  ihave Hsnap := ownSnapV_M _ _ _ $$ Hsnap
   -- the new snapshot back home, with its validity and delivered bound
   imod memSnap_put ms γs J ⊤ HN $$ Hsi [Hhk Hsnapshot Hsnap Hsxh] with Hlk
   · iunfold memSnapHome

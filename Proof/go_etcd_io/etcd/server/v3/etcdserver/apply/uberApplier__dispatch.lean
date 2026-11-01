@@ -426,7 +426,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       iunfold apply.mPre
       iframe
     iunfold apply.kvPostF at Hpost
-    icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls⟩
+    icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.putAnswerIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
     fin_kv
@@ -449,7 +449,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       iunfold apply.mPre
       iframe
     iunfold apply.kvPostF at Hpost
-    icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls⟩
+    icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.deleteAnswerIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
     fin_kv
@@ -472,7 +472,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       iunfold apply.mPre
       iframe
     iunfold apply.kvPostF at Hpost
-    icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls⟩
+    icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.txnAnswerIs_errIs _ _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
     fin_kv
@@ -493,7 +493,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       iunfold apply.mPre
       iframe
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.cmpAnswerIs_errIs _ _ _ _ _ _ _) $$ [$Hev $Hans]
-    ihave ⟨Htrc, Hans⟩ := apply.cmpAnswerIs_split _ _ _ _ _ _ _ $$ Hans
+    ihave ⟨Htrc, Hans⟩ := apply.cmpAnswerIs_split _ _ _ _ _ _ _ log $$ Hans
     join_ar
     ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
     iframe Hres
@@ -503,13 +503,19 @@ theorem apply.uberApplier.dispatch.wp_proof
       cases apply.chainCompacts c <;> simp [hk, hs]
     rw [hcr]
     iframe Hco
-    iexists (GoInterface.ok ai), c, (Outcome.applied log false)
-    simp only [apply.Outcome.logAfter]
+    -- (the outcome is the chain's: applied through the backend, the corrupt applier's rejection)
+    iexists (GoInterface.ok ai), c, (apply.cmpOutcome c log)
+    rw [apply.cmpOutcome_logAfter]
     iframe Ha Hs Hkv
     isplitl [HPP]
     · simp only [apply.cPost, ↓reduceIte]; iexact HPP
     isplitr
-    · ipureintro; simp [apply.kvFloorOk, apply.isFloorKind, apply.dispatchStep, apply.chainAfter, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter]
+    · ipureintro
+      refine ⟨?_, Or.inl rfl, ?_, rfl, rfl⟩
+      · simp only [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind, Bool.false_eq_true,
+          _root_.or_self, ↓reduceIte]
+        exact apply.chainStep_cmpOutcome rq hk log c
+      · simp [apply.kvFloorOk, apply.isFloorKind, hk]
     isplitl []
     · iintro %_; iapply (apply.chainClass_nonKV _ _ _ _ _ (by rw [hk]; rfl))
     isplitl [Htrc]

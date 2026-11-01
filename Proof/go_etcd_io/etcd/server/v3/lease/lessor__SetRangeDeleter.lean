@@ -29,7 +29,7 @@ theorem lease.lessor.SetRangeDeleter.wp_proof : lease.lessor.SetRangeDeleter.spe
   intro lp γl rd0 rd
   wp_start as ⟨#Hinv, Hown⟩
   iunfold lessorInv at Hinv
-  icases Hinv with ⟨%Hlp, #Hpin, #Hmu⟩
+  icases Hinv with ⟨%Hlp, #Hpin, #Hmu, #Hrdi⟩
   iunfold rdOwn at Hown
   icases Hown with ⟨%lp', #Hpin', Hro⟩
   ihave %Heq := lessorPin_agree γl lp lp' $$ [$Hpin $Hpin']
@@ -39,16 +39,16 @@ theorem lease.lessor.SetRangeDeleter.wp_proof : lease.lessor.SetRangeDeleter.spe
   wp_apply wp_with_defer as %defer defer
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
-  icases HR with ⟨%lm, %im, %M, %I, %rd1, %L, Hlm, HM, Him, HI, Hrd, Ha, Hg, %HL, #Hls, Hx⟩
+  icases HR with ⟨%lm, %im, %M, %I, %rd1, %L, Hlm, HM, Him, HI, Hrd, Ha, Hg, %HL, #Hsz, #Hls, Hx, Hhist⟩
   ihave ⟨%Hrd1, Hrd⟩ := typedPointsto_half_combine (lF go!"rd" lp) rd1 rd0 1 $$ [$Hrd $Hro]
   wp_auto
   icases (typedPointsto_half_split (lF go!"rd" lp) rd 1).1 $$ Hrd with ⟨Hrd, Hro⟩
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrd Ha Hg Hx]
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrd Ha Hg Hx Hhist]
   · inext
     iunfold lessorMu
     iexists lm, im, M, I, rd, L
     iframe
-    iframe Hls
+    iframe Hsz Hls
     ipureintro; exact HL
   iapply HΦ
   iunfold rdOwn

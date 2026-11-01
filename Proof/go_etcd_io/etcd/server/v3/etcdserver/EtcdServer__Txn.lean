@@ -202,12 +202,18 @@ local macro "txn_tail" : tactic => `(tactic| (
     isplitr
     · iintro %a %info %dq !> %Φ' ⟨Ha, Hard⟩ HΦ'
       wp_auto
-      wp_apply (hCTA w.auth w.lessor E.γ E.P E.f E.RD E.authMode E.RW a info dq r t) $$ [Ha Hard] as %cerr ⟨Ha, Hard, #HcE0, -, #Hcl⟩
+      wp_apply (hCTA w.auth w.lessor E.γ E.P E.f E.RD E.authMode E.RW a info dq r t none) $$ [Ha Hard]
+        as %cerr ⟨Ha, Hard, -, #HcE0, -, #Hcl⟩
       · iframe # Ha Hard
+        isplitr
+        · simp only [apply.lessorView_none]; ipureintro; trivial
+        ipureintro; intro _; exact hro
       ihave #HcE := authApplyErrIs_apply cerr $$ HcE0
       iapply HΦ'
       iframe Ha Hard HcE
-      iexact Hcl
+      iintro %Hn
+      ihave ⟨#Hc, -⟩ := Hcl $$ %Hn
+      iexact Hc
     isplitr
     · iintro !> %Φ' ⟨⟨Hresp, Herr, Hsr, Hlr⟩, Hown0⟩ HΦ'
       wp_auto

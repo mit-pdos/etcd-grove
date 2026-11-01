@@ -118,7 +118,7 @@ def srvReadBuilt (s : Loc) (E : apply.AEnv GF) (v : ReadFields) : IProp GF :=
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)
         #v.rv : GoInterface) ∗
     mvcc.isReadView v.rv E.s E.γ ∗
-    srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RW ∗
+    srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RO E.RW ∗
     srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.γ E.P E.f E.RD E.authMode E.RW ∗
     srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
@@ -147,13 +147,21 @@ instance srvRunBuilt_persistent (s : Loc) (v : RunFields) : Persistent (srvRunBu
 /-- **`isServerApplyAll`'s raft field** (persistent): the raft wrapper's `msgSnapC`, a bag of
 raft's `MsgSnap`s (2026-10-30, the repair: snapshots allowed; until then it never delivered, D19p:
 raft sent no `MsgSnap`). -/
-def srvApplyAllBuilt (s : Loc) : IProp GF :=
+def srvApplyAllBuilt (s : Loc) (γr : ReadNames) : IProp GF :=
   iprop(∃ msc : Loc, rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
-    (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P) ∗
+    -- (2026-10-31, S1) the raft node's bag (`isRNMsgSnapC`; until then any `P`)
+    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ isRNMsgSnapC γm msc) ∗
     -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`'s invariant
-    srvInflight s)
+    srvInflight s ∗
+    -- (2026-10-31, S1) the started transport, of the server's network
+    (∃ (tr : GoInterface) (γn : NetNames GF) (lid : w64) (S TS : IProp GF),
+      rnTransportAddr (srvRAddr s) ↦□ tr ∗ netTransport γn lid tr S TS ∗
+      ⌜γn.N = srvNet γr.raft.raft⌝) ∗
+    -- (2026-10-31, S1) the KV's start values (`NewServer.spec`'s)
+    ⌜γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]⌝)
 
-instance srvApplyAllBuilt_persistent (s : Loc) : Persistent (srvApplyAllBuilt (GF := GF) s) := by
+instance srvApplyAllBuilt_persistent (s : Loc) (γr : ReadNames) :
+    Persistent (srvApplyAllBuilt (GF := GF) s γr) := by
   unfold srvApplyAllBuilt; infer_instance
 
 /-- **`s.ClusterVersion()`** (names-only: a trust-boundary contract, in the premise as the
@@ -215,8 +223,8 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuilt s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗
     -- (M2, S4) the compactor's run, once (`start` spends it)
-    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun c) ∗
-    "#Hsab" ∷ srvApplyAllBuilt s ∗
+    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun s E c) ∗
+    "#Hsab" ∷ srvApplyAllBuilt s γr ∗
     -- the indices' invariants at the read names
     "#Hai" ∷ srvAppliedInv s E γr ∗
     -- the KV invariants (2026-10-14, unit T1)
@@ -230,9 +238,14 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
       (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
+    -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
+    -- `run` gives the raft loop with `raftNode.stop`) and the loop's (`raftNode.start`'s); the disk
+    -- cooperating (`storage.diskOk`, `NewServer`'s premise)
+    "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
+    "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
     -- the request path's read names (2026-10-14, unit C2a)
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
-    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀) ∗
+    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.id ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     -- the names-only parts' contracts and the packages' ghost facts
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗

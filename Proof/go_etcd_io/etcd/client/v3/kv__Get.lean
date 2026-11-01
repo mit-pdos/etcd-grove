@@ -130,7 +130,7 @@ theorem kv.Get.wp_proof
     ipureintro; exact Ht
   ihave Hout' : rangeCallOut (rangeStOk (rangeWireOf (opGetModel key gs)) Q) r.get' err
       $$ [Hout]
-  · have Heq : doOut (opGetModel key gs) (putStOk (putWireOf (opGetModel key gs)) Q)
+  · have Heq : doOut (opGetModel key gs) (putStOk γ (putWireOf (opGetModel key gs)) Q)
         (rangeStOk (rangeWireOf (opGetModel key gs)) Q)
         (delStOk (deleteWireOf (opGetModel key gs)) Q) r err =
         rangeCallOut (rangeStOk (rangeWireOf (opGetModel key gs)) Q) r.get' err := by

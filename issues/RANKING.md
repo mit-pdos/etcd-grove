@@ -53,6 +53,13 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
 
 ## Second tier: real, narrower or partly known
 
+- **[etcd-txn-check-intervals-sibling](etcd-txn-check-intervals-sibling.md)** (re-ranked
+  2026-11-01; was "declined": #16380 closed not planned when the only effect known was the check's
+  inconsistency): a revision such a transaction commits puts a key and then deletes it, and
+  compacting at that revision drops the put, so a watch from the compaction revision (what a client
+  re-watches from after `CompactRevision`) skips the `PUT` event, through gRPC with the default
+  configuration. Reproduced at the mvcc level. New evidence for the maintainers, with the earlier
+  fix (#16395) at hand.
 4. **[etcd-compact-past-raft-applied](etcd-compact-past-raft-applied.md)**: the apply loop
    snapshots and compacts raft's in-memory log before `Advance` has moved raft's `applied`, so a
    campaign in that window panics the member (`hasUnappliedConfChanges`: "unavailable due to
@@ -158,6 +165,23 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     2026-10-31: no duplicate. Candidate drafted locally, on hold for the user's security decision
     (etcd's `THREAT_MODEL.md` likely classes it a robustness defect): count nested txns' operations
     toward `--max-txn-ops` (`issues/upstream/etcd-txn-keysonly-reply-alloc-panic/`).
+16. **[etcd-lease-timetolive-keys-toctou](etcd-lease-timetolive-keys-toctou.md)** (2026-10-31):
+    with auth on, `LeaseTimeToLive` with `Keys` returns the names of keys attached to the lease after
+    its permission check (a second lookup, or the leader's over leasehttp), to a user who may not
+    read them; the revision re-check sees no auth change. An information leak of key names (not
+    values), across a permission line, so a candidate for etcd's private security process (the
+    user's decision, as item 1's). Reproduced with gofail on leader and follower; fix: check the
+    returned keys. Upstream not searched.
+16a. **[etcd-lease-renew-keys-follower-lag](etcd-lease-renew-keys-follower-lag.md)** (2026-11-01):
+    with auth on, a lease renewal through a lagging follower is checked against the follower's key
+    set, so a user keeps alive a lease holding a key it may not write. The same family as item 16
+    (a permission check over a stale or second lookup), narrower in effect (the lease is kept
+    alive, nothing leaks). Not reproduced yet; upstream not searched.
+17. **[etcd-leasehttp-timetolive-nil-response-panic](etcd-leasehttp-timetolive-nil-response-panic.md)**
+    (2026-10-31): a follower forwarding `LeaseTimeToLive` panics on a 200 reply without the
+    `LeaseTimeToLiveResponse` field (`leasehttp/http.go:274`); etcd's own handler always sets it, so
+    it takes a peer URL served by something else. A one-line nil check; low impact. Reproduced
+    (unit test). Upstream not searched.
 
 Also to file (2026-10-21, the last scan of the current batch):
 [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (a watch created with a
@@ -304,6 +328,11 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[etcd-watch-compacted-resent](etcd-watch-compacted-resent.md)** (2026-11-01): with more than
+  512 unsynced watchers, `chooseAll` deletes a compacted watcher from `choose`'s copy only, so it
+  stays unsynced and is sent the compaction response again each sync until the client cancels.
+  Reproduced at the mvcc level; the Go client tolerates it (it cancels the unknown id), so a
+  duplicate canceled response and a stale `slowWatcherGauge`; a small fix in `syncWatchers`.
 - **[etcd-restore-pending-compaction-unclosed](etcd-restore-pending-compaction-unclosed.md)**
   (2026-10-30): `store.Restore` drops a queued compaction job without closing its channel, so a
   `Physical` compaction RPC on a follower that installs a snapshot meanwhile hangs and leaks its
@@ -426,8 +455,6 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   [etcd-backend-put-value-too-large-fatal](etcd-backend-put-value-too-large-fatal.md) (the same
   cause, one size check covers all three). Cheap robustness fixes, not a priority for etcd.
 - **Declined, unreproduced or out of scope**:
-  [etcd-txn-check-intervals-sibling](etcd-txn-check-intervals-sibling.md) (maintainers declined:
-  #16380 closed not planned),
   [etcd-backend-read-buffer-cache-stale-after-commit](etcd-backend-read-buffer-cache-stale-after-commit.md)
   (deterministic, a one-line fix, but no wrong etcd result known),
   [etcd-watch-sync-ticker-reset-zero](etcd-watch-sync-ticker-reset-zero.md) (Windows only; known,

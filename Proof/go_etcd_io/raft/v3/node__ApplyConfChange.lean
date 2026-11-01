@@ -379,8 +379,8 @@ private theorem node.wp_ApplyConfChange_impl
   icases isNode_id_agree γn γn2 id1 id2 n $$ Hn1 Hn2 with %Hid
   subst Hid
   obtain ⟨h0, h1, Hmd1⟩ := Hmd0.mode
-  have Hmd : γn.mode = .dyn noDec (stOf c0) h0 h1 := by rw [Hnok.2.2.2, Hmd1]
-  have Hdy2 : γn2.mode.isDyn = true := by rw [Hnok2.2.2.2, Hmd1]; rfl
+  have Hmd : γn.mode = .dyn noDec (stOf c0) h0 h1 := by rw [Hnok.2.2, Hmd1]
+  have Hdy2 : γn2.mode.isDyn = true := by rw [Hnok2.2.2, Hmd1]; rfl
   icases Htab2 with (%Hc | #Htab2)
   · rw [Hdy2] at Hc; cases Hc
   icases nodeTabOk_agree γ id1 γn γn2 $$ Htab1 Htab2 with %Hnm

@@ -76,7 +76,7 @@ theorem cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : putget.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.dbOpensOk)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (nw nops : w64)
     (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
     (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
@@ -89,10 +89,11 @@ theorem cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([cachekvProgram nw nops], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 29) (Hwb : n + 7 ≤ backend.wbInit) :
+    (Hn : n + 2 ≤ 2 ^ 29) :
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+  have Hwb : n + 7 ≤ backend.wbInit := by unfold backend.wbInit; omega
   refine etcd_adequate (GF := putgetGF) github_com.mit_pdos.etcd_grove.examples.cachekv.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.cachekv.Main) #nw #nops)
     (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)

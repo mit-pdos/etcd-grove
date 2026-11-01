@@ -110,10 +110,10 @@ theorem apply.newApplierV3Corrupt.wp_proof
   isplitr
   · -- LeaseRevoke: the corrupt applier's
     imodintro
-    iintro %r %rq %id %log %Pre %Q %Post %info
+    iintro %r %rq %id %log %rs %Pre %Q %Post %info
     imodintro
     iintro %Φ' Hpre HΦ'
-    iapply (hRev E c (.ok bi) p r rq id log Pre Q Post info) $$ [Hpre] HΦ'
+    iapply (hRev E c (.ok bi) p r rq id log rs Pre Q Post info) $$ [Hpre] HΦ'
     iframe Hpre
     iunfold apply.corruptIs
     iframe #
@@ -237,7 +237,7 @@ theorem apply.newApplierV3Corrupt.wp_proof
     imodintro
     iintro %r %rq %skip %v3 %af %A %B
     imodintro
-    iintro %Φ' ⟨#Hw, HA, #Haf⟩ HΦ'
+    iintro %Φ' ⟨#Hw, HA, #Hlend, #Haf⟩ HΦ'
     rw [method_unfold (t := go.GoType.PointerType applierV3Corrupt.ty) (m := go!"Apply")]
     wp_call
     wp_auto

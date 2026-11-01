@@ -91,7 +91,14 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   the map), and the lock's acquisition is the step that strips the guard's agreement's later (a
   server whose guard is `False`, `srvGrantGuard`, finds no lease: `lookupNil_of_guard`).
 * The reader slots of `mu` (a `sync.RWMutex`, made by `newLessor`): one per reader (D14i,
-  2026-10-17: the store's and the apply thread's lease owner each hold one). -/
+  2026-10-17: the store's and the apply thread's lease owner each hold one).
+* (lease-keys Part B, 2026-10-31) **The readers' model** (`lessorRdInv`, in `lessorInv`), ghost
+  state only: allocated before `γl`'s element, which pins its names (`lessorPinR`), it is the
+  lessor's history at the single snapshot `(∅, ∅)` (the fresh `leaseMap` and `itemMap`, empty as
+  above), split a quarter to the invariant `lessorRdN`, a quarter to the lock (`lessorMu`, at the
+  whole lock's fraction) and a half to the owner (`leaseClosers`), and the item-sets map empty, its
+  authority halved between the invariant and the owner; the invariant's `setsOk [(∅, ∅)] ∅` and
+  `histOk [(∅, ∅)]` hold trivially (no lease, no key). No Go state is read or written for it. -/
 abbrev lease.NewLessor.spec : Prop :=
   ∀ (lg : Loc) (cl : GoInterface) (cfg : go_etcd_io.etcd.server.v3.lease.LessorConfig)
     (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (GA : w64 → IProp GF)

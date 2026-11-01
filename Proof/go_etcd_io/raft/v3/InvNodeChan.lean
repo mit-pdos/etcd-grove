@@ -720,7 +720,8 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
       [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
     (∃ h : HardStateM, hsOpt rd.HardState' h ∗ ⌜p' = phsNext p h⌝) ∗
-    hsWit γ.raft p' (d ++ ce).length ∗
+    -- (2026-10-31) bounding the committed log up to the snapshot (until then `d ++ ce`)
+    hsWit γ.raft p' l.dlv.length ∗
     softStateRO rd.SoftState' ∗
     readyIdx γ.raft d ce es ∗
     -- (raft-final, 2026-10-29, U9: until then at a node that takes snapshots, `⌜γ.snapIn = true ∧

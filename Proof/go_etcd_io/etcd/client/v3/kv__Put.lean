@@ -126,11 +126,11 @@ theorem kv.Put.wp_proof
     ileft
     iframe # Hrun
     ipureintro; exact ⟨Ht, Hl⟩
-  ihave Hout' : putCallOut (putStOk (putWireOf (opPutModel key val gs)) Q) r.put' err $$ [Hout]
-  · have Heq : doOut (opPutModel key val gs) (putStOk (putWireOf (opPutModel key val gs)) Q)
+  ihave Hout' : putCallOut (putStOk γ (putWireOf (opPutModel key val gs)) Q) r.put' err $$ [Hout]
+  · have Heq : doOut (opPutModel key val gs) (putStOk γ (putWireOf (opPutModel key val gs)) Q)
         (rangeStOk (rangeWireOf (opPutModel key val gs)) Q)
         (delStOk (deleteWireOf (opPutModel key val gs)) Q) r err =
-        putCallOut (putStOk (putWireOf (opPutModel key val gs)) Q) r.put' err := by
+        putCallOut (putStOk γ (putWireOf (opPutModel key val gs)) Q) r.put' err := by
       unfold doOut; rw [Ht]; simp only [show (W64 2 = W64 1) = False by decide, ↓reduceIte]
     rw [← Heq]; iexact Hout
   iunfold putCallOut at Hout'

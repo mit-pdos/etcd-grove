@@ -142,10 +142,10 @@ theorem apply.newApplierV3Backend.wp_proof
     iframe #
   isplitr
   · imodintro
-    iintro %r %rq %id %log %Pre %Q %Post %info
+    iintro %r %rq %id %log %rs %Pre %Q %Post %info
     imodintro
     iintro %Φ' Hpre HΦ'
-    iapply (hLeaseRevoke E p r rq id log Pre Q Post info) $$ [Hpre] HΦ'
+    iapply (hLeaseRevoke E p r rq id log rs Pre Q Post info) $$ [Hpre] HΦ'
     iframe Hpre
     iframe #
   isplitr
@@ -303,7 +303,7 @@ theorem apply.newApplierV3Backend.wp_proof
     imodintro
     iintro %r %rq %skip %v3 %af %A %B
     imodintro
-    iintro %Φ' ⟨#Hw, HA, #Haf⟩ HΦ'
+    iintro %Φ' ⟨#Hw, HA, #Hlend, #Haf⟩ HΦ'
     iapply (hApply p r v3 af (iprop(apply.chainRes .backend
         (.ok ⟨go.GoType.PointerType applierV3backend.ty, #p⟩) (apply.principalOf rq) ∗ A))
       (fun ar => iprop(apply.chainResAny .backend

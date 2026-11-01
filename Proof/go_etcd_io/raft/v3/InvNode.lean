@@ -361,13 +361,80 @@ theorem sentMsg_appFrom (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) 
 @[no_expose] def msgCredits (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=
   ApiImpl.msgCredits γ N st
 
+/-- **The snapshot directory the client chose for the node `id`** (2026-11-01, J8a; `cluster_alloc`'s
+`sl`): `some γd`, a ghost map `γd` of the indices of the snapshots saved there, or none. -/
+@[no_expose] def Cluster.snapLoc (γ : Cluster) : w64 → Option GName := γ.raft.reSnapLoc
+
+/-- (open) **A snapshot of index `i` local to the node `id`** (2026-11-01, J8a; raft's `snapLocal`):
+with a directory (`Cluster.snapLoc γ id = some γd`) the index saved there (`nodeSnapLocal_of_elem`,
+`nodeSnapLocal_elem`), and nothing otherwise (`nodeSnapLocal_none`). What `node.Step` takes of a
+message's snapshot (`snapLocalMsg`) and a snapshot `Ready` gives back (`readySnap`): raft installs only
+a snapshot it was stepped. -/
+@[no_expose] def nodeSnapLocal (γ : Cluster) (id i : w64) : IProp GF := snapLocal γ.raft id i
+
+instance nodeSnapLocal_persistent (γ : Cluster) (id i : w64) :
+    Persistent (nodeSnapLocal (GF := GF) γ id i) := by
+  unfold nodeSnapLocal; infer_instance
+
+/-- Without a directory for `id`, every snapshot is local. -/
+theorem nodeSnapLocal_none (γ : Cluster) (id : w64) (h : γ.snapLoc id = none) (i : w64) :
+    ⊢ nodeSnapLocal (GF := GF) γ id i := by
+  unfold nodeSnapLocal; exact snapLocal_none h i
+
+/-- With the directory `γd` for `id`, its saved index's element gives the fact. -/
+theorem nodeSnapLocal_of_elem (γ : Cluster) (id : w64) (γd : GName) (h : γ.snapLoc id = some γd)
+    (i : w64) :
+    ghostMapElem (GF := GF) (K := w64) (V := Unit) γd i DFrac.discard () ⊢ nodeSnapLocal γ id i := by
+  unfold nodeSnapLocal; exact snapLocal_of_elem h i
+
+/-- With the directory `γd` for `id`, the fact is its saved index's element. -/
+theorem nodeSnapLocal_elem (γ : Cluster) (id : w64) (γd : GName) (h : γ.snapLoc id = some γd)
+    (i : w64) :
+    nodeSnapLocal (GF := GF) γ id i ⊢ ghostMapElem (K := w64) (V := Unit) γd i DFrac.discard () := by
+  unfold nodeSnapLocal snapLocal
+  unfold Cluster.snapLoc at h
+  rw [h]
+
+/-- (open) **A `MsgSnap`'s snapshot local to the node `id`** (2026-11-01, J8a): what `node.Step` takes of
+a message beside its certificates (`stepIn_intro`; nothing of another type, `snapLocalMsg_notSnap`). -/
+@[no_expose] def snapLocalMsg (γ : Cluster) (id : w64) (st : MsgSt) : IProp GF :=
+  ApiImpl.snapLocalMsg γ id st
+
+instance snapLocalMsg_persistent (γ : Cluster) (id : w64) (st : MsgSt) :
+    Persistent (snapLocalMsg (GF := GF) γ id st) := by
+  unfold snapLocalMsg ApiImpl.snapLocalMsg; infer_instance
+
+/-- A `MsgSnap`'s snapshot local, the message's fact. -/
+theorem snapLocalMsg_intro (γ : Cluster) (id : w64) (st : MsgSt) :
+    (□ ∀ sv : SnapshotM, ⌜st.msg.Type' = MsgSnap ∧ st.snap = some sv⌝ -∗
+        nodeSnapLocal γ id sv.Metadata'.Index') ⊢
+      snapLocalMsg (GF := GF) γ id st := by
+  unfold snapLocalMsg ApiImpl.snapLocalMsg nodeSnapLocal; exact .rfl
+
+/-- A message of another type has the fact. -/
+theorem snapLocalMsg_notSnap (γ : Cluster) (id : w64) (st : MsgSt) (h : st.msg.Type' ≠ MsgSnap) :
+    ⊢ snapLocalMsg (GF := GF) γ id st := by
+  unfold snapLocalMsg ApiImpl.snapLocalMsg
+  iintro !> %sv %Hs
+  exact absurd Hs.1 h
+
+/-- Without a directory for `id`, every message has the fact. -/
+theorem snapLocalMsg_noDir (γ : Cluster) (id : w64) (h : γ.snapLoc id = none) (st : MsgSt) :
+    ⊢ snapLocalMsg (GF := GF) γ id st := by
+  unfold snapLocalMsg ApiImpl.snapLocalMsg
+  iintro !> %sv %-
+  have H := nodeSnapLocal_none (GF := GF) γ id h sv.Metadata'.Index'
+  unfold nodeSnapLocal at H
+  iapply H
+
 /-- (open) **A message `node.Step` takes** at the node `id` (today `stepP`): the message at `ml`. -/
 @[no_expose] def stepIn (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) : IProp GF :=
   ApiImpl.stepIn γ N id ml
 
 /-- **Stepping a sent message**: a copy of it (its fields, entries and snapshot; no local
 responses), owned with its entries slice fresh, addressed to `id`, with its credits (`msgCredits`:
-a forwarded proposal's tickets; nothing for another type, `msgCredits_intro`). Any sent message, of
+a forwarded proposal's tickets; nothing for another type, `msgCredits_intro`) and (2026-11-01, J8a)
+its snapshot, if any, local to `id` (`snapLocalMsg`). Any sent message, of
 any type: (raft-final, 2026-10-29, U7: candidate 12's form) no `NetMsgOk`, no leader-transfer
 exclusion (a stamped `MsgTransferLeader` carries its destination's leadership, `isRaftMsg`) and no
 `MsgSnap` index premise (`sentMsg` bounds it, `sentMsg_shape`); until then those three premises.
@@ -378,10 +445,10 @@ theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src :
     st.msg.To' = id →
     sentMsg (GF := GF) γ N src st ∗
       msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
-      msgCredits γ N st ⊢
+      msgCredits γ N st ∗ snapLocalMsg γ id st ⊢
     |==> stepIn γ N id ml := by
   intro H3
-  unfold sentMsg msgCredits stepIn
+  unfold sentMsg msgCredits stepIn snapLocalMsg
   exact ApiImpl.stepIn_intro_impl γ N id ml src st H3
 
 /-- (raft-final, 2026-10-29, U7: the design's §2.5, C12's `sentMsg_shape`) **A sent message has the
@@ -470,7 +537,8 @@ with the end; nothing for no entries) and the committed entries `ce` below them 
 (`ceFrozen`) -- or a snapshot (its loan `l`, `ce` empty): the committed log up to it (`strip l.dlv`,
 its entries at their positions), past what was delivered, half of the snapshot, its certificate
 (`snapshotCert`; its validity, `snapshotCert_valid`), every range of the storage from an index at
-most the snapshot's on, with the end, and the right to install it (`snapGiven`). (Until U8 v2 the
+most the snapshot's on, with the end, the right to install it (`snapGiven`), and (2026-11-01, J8a)
+the snapshot local to the node (`nodeSnapLocal`: one it was stepped, `snapLocalMsg`). (Until U8 v2 the
 old contract's `readyOut`: the storage itself.) -/
 def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) : Option SnapLoan → IProp GF
@@ -493,7 +561,9 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
       snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) ∗
       (∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
         storLog st.storage k (DFrac.own 1) old ∗ storEnd st.storage (k + old.length)) ∗
-      snapGiven γ id (uint.nat l.snap.Metadata'.Index'))
+      snapGiven γ id (uint.nat l.snap.Metadata'.Index') ∗
+      -- (2026-11-01, J8a) the snapshot local to the node: one it was stepped (`snapLocalMsg`)
+      nodeSnapLocal γ id l.snap.Metadata'.Index')
 
 /-- (open) **The rest of a `Ready`** after its committed entries `ce` and read states, at the loop's
 state `st` (today's `readyDataL` without them; the storage's part in the storage contract's
@@ -682,6 +752,18 @@ theorem committedAtTerm_committed (γ : Cluster) (N : Namespace) (t c : w64) :
     committedAtTerm (GF := GF) γ N t c ⊢
       ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat c⌝ := by
   unfold committedAtTerm isCommittedLogLb; exact ApiImpl.committedAtTerm_committed_impl γ N t c
+
+/-- (2026-10-31) **The `Ready` loop's hard state is committed**: the last non-empty hard state
+handed out (`st.hardState`, what etcd's raft loop records as `raftTerm`) is zero, or a leader of its
+term committed the log through its commit index (`committedAtTerm`), which bounds the committed log
+delivered, after a snapshot `Ready` the log up to the snapshot. -/
+theorem nodeDriver_hardStateCommitted (n : Loc) (γ : Cluster) (N : Namespace)
+    (st : NodeDriverState) :
+    nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗
+      (⌜st.hardState = hsZero⌝ ∨ committedAtTerm γ N st.hardState.Term' st.hardState.Commit' ∗
+        ⌜(st.delivered.length : Int) ≤ uint.Z st.hardState.Commit'⌝) := by
+  unfold nodeDriver committedAtTerm
+  exact ApiImpl.nodeDriver_hardStateCommitted_impl n γ N st
 
 /-! ### A snapshot the client builds (the snapshot track; open) -/
 

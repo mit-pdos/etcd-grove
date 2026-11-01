@@ -118,6 +118,11 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   in a module only that proof imports. (`pilot-review-5.md`)
 - **Every premise has a source the client sees**: a spec or a law of the API, never the
   implementation's internal lemmas.
+- **A client's certificate is the cluster's**: a persistent fact a client takes from one call's
+  reply into a later call (a revision reached) must hold at every member the later call may reach,
+  so build it from what the members share (the cluster's raft log, the KV model), never from one
+  member's ghost state (its store's certificate map); and check the tie it needs against the
+  multi-member allocation, not only today's single-member producers. (`compact-client.md`)
 - **A workload premise about a resource's later operations goes on the resource's only producer**,
   carried by the resource (as `apply.backendUnderQuota` on `storage.NewBackendQuota`, carried by the
   quota object; `grpcRepliesFit` on `grpc.start`, carried by the server tokens): the consumers'
@@ -158,6 +163,15 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   (`pilot-review-1.md`). A thread token is one such token (it bounds the live goroutines, as reader
   slots must be bounded); another is fine if all callers have it. Do not make callers thread a
   resource only the proof's bookkeeping needs. (`put.md`, critique 3)
+- **A bound is reasoned about where it is owned, not in the specs between** (`notes/bounds-plan.md`,
+  the user's, 2026-11-01): the adequacy theorem fixes the global constants (threads, steps, the
+  workload); the owner of a bounded object (the invariant allocating the `RWMutex`, `WaitGroup` or
+  counter) turns them into a protocol of unbounded use (a thread pool of reader slots, a wait group
+  backed by thread tokens, a counter ticked by receipts); a client takes its `threadTok`, the owner's
+  persistent handle, and one named size predicate per boundary. So a new spec mentions no
+  `threadBound`, `receiptBound`, `actualMaxReaders`, count of reader slots (`List.replicate 64 ...`)
+  or literal power-of-two size; `etc/bounds-check.py --check` refuses new ones. Where a goroutine holds
+  two read locks at once, the inner lock's slot is a counted stock at that call path only.
 - **A once-only resource is not spent per call**: check retry and loop paths; make the exception
   depend on the value (a persistent one-shot fact), not on the call. (`pilot-review-2.md`)
 - **Read the definitions of the resources a spec takes**, not only their names: a predicate chosen

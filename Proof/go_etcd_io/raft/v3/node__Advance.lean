@@ -237,7 +237,7 @@ private theorem node.wp_Advance_impl
   iunfold nodeDriver at Hdrv
   icases Hdrv with ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, %Hd, #Htb, #Hhc, Htok⟩
   obtain ⟨Hnok, Hγs, Hds⟩ := Hf
-  have Hmd : γn.mode = .dyn noDec (stOf c0) h0 h1 := by rw [Hnok.2.2.2, Hmd0]
+  have Hmd : γn.mode = .dyn noDec (stOf c0) h0 h1 := by rw [Hnok.2.2, Hmd0]
   -- (raft-final, the design's A1) the skips only after a `Ready` without a snapshot, A1 at raft's
   -- names; after one, the snapshot's certificate
   ihave ⟨#HA1, #HskS⟩ : iprop(□ (⌜L = none⌝ -∗ undecFree γn.raft γn.mode ds v.applied ds.length) ∗

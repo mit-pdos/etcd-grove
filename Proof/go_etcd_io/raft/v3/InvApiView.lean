@@ -199,6 +199,23 @@ theorem busy_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds es : List Entr
   iintro ⟨#Hn, #Hlb, Hr⟩
   iframe Hn Hlb Hr
 
+theorem nodeDriver_hardStateCommitted_impl (n : Loc) (γ : Cluster) (N : Namespace)
+    (st : NodeDriverState) :
+    nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗
+      hsCommitted γ N st.hardState st.delivered.length := by
+  unfold nodeDriver
+  iintro ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, %Hdyn, #Htab, #Hhc, Htok⟩
+  isplitl [Htok]
+  · iexists γn, id, ds
+    isplitr; · ipureintro; exact Hf
+    isplitr; · iexact Hci
+    isplitr; · iexact Hlb0
+    isplitr; · ipureintro; exact Hdyn
+    isplitr; · iexact Htab
+    isplitr; · iexact Hhc
+    iexact Htok
+  · iexact Hhc
+
 theorem nodeDriver_deliveredLogLb_impl (n : Loc) (γ : Cluster) (N : Namespace)
     (st : NodeDriverState) :
     nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗ deliveredLogLb n γ N st.delivered := by

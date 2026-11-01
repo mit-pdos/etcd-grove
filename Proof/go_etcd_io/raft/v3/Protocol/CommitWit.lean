@@ -120,6 +120,14 @@ theorem hsWit_of_phsWit (γ : RaftNames) (h : HardStateM) (n : Nat)
   · ileft; ipureintro; exact H
   · iright; iframe H; ipureintro; exact Hn
 
+/-- A witness bounds every shorter committed log. -/
+theorem hsWit_mono (γ : RaftNames) (h : HardStateM) (n m : Nat) (H : m ≤ n) :
+    hsWit (GF := GF) γ h n ⊢ hsWit γ h m := by
+  unfold hsWit
+  iintro (%Hz | ⟨#Hw, %Hn⟩)
+  · ileft; ipureintro; exact Hz
+  · iright; iframe Hw; ipureintro; omega
+
 /-- Every node holds the witness of its own term and commit index. -/
 theorem ownRaftGhost_commitWit (γ : RaftNames) (id : w64) (s : PState) {md : Bool} :
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗ commitWit γ s.term s.commit := by

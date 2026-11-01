@@ -1150,6 +1150,60 @@ def pbTxnResponse : ProtoMsg GF where
   own l := iprop(∃ v : etcdserverpb.TxnResponse, l ↦ v)
   blank_own l := by iintro H; iexists _; iexact H
 
+/-! ## The KV service's `Compact` (the client's `kv.Compact`, 2026-11-01) -/
+
+/-- **A `*pb.CompactionRequest` as the wire carries it**: its revision and its `Physical` flag. -/
+structure CompactReqM where
+  revision : w64
+  physical : Bool
+
+/-- **A `*pb.CompactionResponse` as the wire carries it**: its header. -/
+structure CompactRespM where
+  hdr : HdrM
+
+/-- **The `*pb.CompactionResponse` `l` holds the message `m`** (read-only, as `putRespMsg`). -/
+def compactRespMsg (l : Loc) (m : CompactRespM) : IProp GF :=
+  iprop(⌜l ≠ null⌝ ∗ ∃ h : Loc,
+    structFieldRef etcdserverpb.CompactionResponse go!"Header" l ↦□ h ∗ hdrFull h m.hdr)
+
+instance compactRespMsg_persistent (l : Loc) (m : CompactRespM) :
+    Persistent (compactRespMsg (GF := GF) l m) := by
+  unfold compactRespMsg; infer_instance
+
+/-- **A `*pb.CompactionRequest`** on the wire: the sender's whole message (no unknown fields), at
+most 13 bytes encoded (the `Revision` field's tag and varint, at most 1 + 10 bytes; `Physical`'s
+tag and byte, 2); the receiver owns the decoded message (`EtcdServer.Compact` hands it to the
+raft proposal: `compactReqIs`). -/
+def pbCompactionRequest : ProtoMsg GF where
+  ty := etcdserverpb.CompactionRequest.ty
+  M := CompactReqM
+  send inp o := iprop(∃ req : etcdserverpb.CompactionRequest, inp ↦ req ∗
+    ⌜o = ⟨req.Revision', req.Physical'⟩ ∧ req.unknownFields' = slice.nil⌝)
+  wireLen _ := 13
+  recv _ _ := iprop(True)
+  recv_persistent _ _ := inferInstance
+  recvOwn r o := iprop(∃ req : etcdserverpb.CompactionRequest, r ↦ req ∗
+    ⌜o = ⟨req.Revision', req.Physical'⟩⌝)
+  blank l := iprop(l ↦ (zero_val etcdserverpb.CompactionRequest))
+  own l := iprop(∃ v : etcdserverpb.CompactionRequest, l ↦ v)
+  blank_own l := by iintro H; iexists _; iexact H
+
+/-- **A `*pb.CompactionResponse`** on the wire. -/
+def pbCompactionResponse : ProtoMsg GF where
+  ty := etcdserverpb.CompactionResponse.ty
+  M := CompactRespM
+  send := compactRespMsg
+  recv := compactRespMsg
+  recv_persistent _ _ := inferInstance
+  blank l := iprop(l ↦ (zero_val etcdserverpb.CompactionResponse))
+  own l := iprop(∃ v : etcdserverpb.CompactionResponse, l ↦ v)
+  blank_own l := by iintro H; iexists _; iexact H
+
+/-- **What a unary `Compact` call returns** to the client (as `putCallOut`). -/
+def compactCallOut (Q : CompactRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
+  iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : CompactRespM, compactRespMsg resp m ∗ Q m) ∨
+    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err ∗ errCellOk err))
+
 /-! ## Call options -/
 
 /-- **A `retryOption`'s closure** `f` writes only the interceptor's `options`' `retryPolicy`

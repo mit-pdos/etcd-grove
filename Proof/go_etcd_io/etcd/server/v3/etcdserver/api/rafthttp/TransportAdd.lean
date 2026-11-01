@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats_
 public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Strings
+public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
 
 @[expose] public section
 
@@ -159,15 +160,15 @@ theorem rafthttp.Transport.AddPeer_core
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%vrtt, #Hrtt⟩, -⟩
-  repeat' (first
-    | (wp_apply hIDStringPtr _ _ _ $$ [id] as %_ ⟨id, -⟩; iexact id)
-    | (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
-    | (wp_apply hProber $$ [Hus] as Hus; iframe Hus)
-    | (wp_apply hZString as %_ -)
-    | (wp_apply hZStrings _ us as %_ -)
+  repeat' (first_callee
+    | "String" => (wp_apply hIDStringPtr _ _ _ $$ [id] as %_ ⟨id, -⟩; iexact id)
+    | "String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
+    | "rafthttp.addPeerToProber" => (wp_apply hProber $$ [Hus] as Hus; iframe Hus)
+    | "zap.String" => (wp_apply hZString as %_ -)
+    | "zap.Strings" => (wp_apply hZStrings _ us as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
     | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
     | wp_auto)
   -- the deferred unlock: the peer in the map, its facts
@@ -308,14 +309,14 @@ theorem rafthttp.Transport.AddRemote_core
   · iframe Hrm
   imod trStop_add_remote Rh R γs L γk γo pm rm PM RM (id :: T) id g hr $$ Hst Hg Hgstop with Hg
   (try wp_auto)
-  repeat' (first
-    | (wp_apply hIDStringPtr _ _ _ $$ [id] as %_ ⟨id, -⟩; iexact id)
-    | (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
-    | (wp_apply hZString as %_ -)
-    | (wp_apply hZStrings _ us as %_ -)
+  repeat' (first_callee
+    | "String" => (wp_apply hIDStringPtr _ _ _ $$ [id] as %_ ⟨id, -⟩; iexact id)
+    | "String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
+    | "zap.String" => (wp_apply hZString as %_ -)
+    | "zap.Strings" => (wp_apply hZStrings _ us as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
     | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
     | wp_auto)
   iunfold remotesOk at Hro

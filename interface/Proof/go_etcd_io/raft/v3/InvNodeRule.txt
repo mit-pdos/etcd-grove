@@ -50,13 +50,14 @@ def (sealed) nodeJoin (γ : Cluster) (N : Namespace) (id : w64) : IProp GF
 def (sealed) joinAuth (γ : Cluster) (U : GSet w64) : IProp GF
 
 theorem cluster_alloc [package_sem : Assumptions] (N : Namespace) (vs : List w64) (ctxs : List (List
-    w8)) (boot : List LogEntry) (dup : Bool) (E : CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] →
-    vs.Nodup → ¬W64 0 ∈ vs → ↑vs.length < 2 ^ 62 → (boot ≠ [] → BootLog vs ctxs boot) → ⊢ (if boot =
-    [] then emp else bootMarshal vs ctxs (LogEntry.toEntries boot 0)) ={E}=∗ ∃ γ, ⌜γ.dup = dup ∧
-    γ.bootLen = boot.length⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ isCluster γ N ∗
-    ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple (listToSet vs)) ∗ ownSnapsMade γ [] ∗ if
-    boot = [] then joinAuth γ (listToSet vs) ∗ [∗list] id ∈ vs, nodeFounder γ N vs id else
-    isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs id
+    w8)) (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (E : CoPset) : receiptBound
+    GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → ¬W64 0 ∈ vs → ↑vs.length < 2 ^ 62 → (boot ≠ [] → BootLog
+    vs ctxs boot) → ⊢ (if boot = [] then emp else bootMarshal vs ctxs (LogEntry.toEntries boot 0))
+    ={E}=∗ ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length⌝ ∗ ownCommittedOps γ boot ∗
+    ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple
+    (listToSet vs)) ∗ ownSnapsMade γ [] ∗ if boot = [] then joinAuth γ (listToSet vs) ∗ [∗list] id ∈
+    vs, nodeFounder γ N vs id else isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs
+    id
 
 theorem snapMade_elem [package_sem : Assumptions] (γ : Cluster) (S : List SnapRec) (s : SnapRec) :
     ownSnapsMade γ S ∗ snapMade γ s ⊢ ⌜s ∈ S⌝

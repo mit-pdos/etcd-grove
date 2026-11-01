@@ -31,9 +31,9 @@ theorem EtcdServer.NewUberApplier.wp_proof
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     (hNU : apply.NewUberApplier.spec (GF := GF) (hG := hG)) :
     EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG) := by
-  intro s lg a cl kv au le ci be fg quota wad RD dq T z Hbuq
+  intro s lg a cl kv au le ci be fg quota wad dq T z Hbuq
   wp_start as ⟨#Hlg, #Hkv, #Ha, #Hau, #Hle, #Hcl, #Hci, Hbe, #Hfg, #Hgate, #Hquota, #Hwad,
-    #Hal, HRD, #HGet, HT⟩
+    #Hal, #HGet, HT⟩
   ihave #Hgate' := Hgate
   iunfold isFeatureGate at Hgate'
   icases Hgate' with ⟨%fi, %Hfi, #HEn⟩
@@ -50,8 +50,8 @@ theorem EtcdServer.NewUberApplier.wp_proof
   ihave #Hvpkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm $$ []
   · iPkgInit
-  wp_apply hNU _ RD T z Hbuq $$ [HRD HT] as %ua ⟨HT, %p, %Hua, Hown⟩
-  · iframe HRD HT
+  wp_apply hNU _ T z Hbuq $$ [HT] as %ua ⟨HT, %p, %Hua, Hown⟩
+  · iframe HT
     iframe #
   iapply HΦ
   iframe Hbe HT

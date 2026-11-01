@@ -100,6 +100,42 @@ func TestProbeSiblingPutThenDelete(t *testing.T) {
   (`etcd-compaction-delete-then-put`), and the check rejects it.
 - **Expected**: the check's documented purpose ("puts and deletes overlap for a list of ops");
   the same verdict for the two orders of the siblings, as for the flat case.
+- **A consequence through compaction: a watch from the compaction revision misses the put**
+  (2026-11-01, reproduced at the mvcc level; found by the spec review of watches across a
+  compaction, `notes/watch-compaction-plan.md`). The revision such a transaction commits puts the key
+  and then deletes it (`(c, 0)` put, `(c, 1)` tombstone). Compacting at `c` keeps only the
+  tombstone (`keyIndex.doCompact` stops at the generation whose tombstone is at `c`, and the walk
+  keeps its latest revision at or below `c`), so `scheduleCompaction` deletes the put's bucket key,
+  and a watch from `c` (what a client re-watches from when told `CompactRevision = c`) gets the
+  `DELETE` alone, where an uncompacted store sends `PUT` then `DELETE`. Reachable through gRPC at
+  the fork pin (this issue's transaction, then a compaction at its revision). Test (package `mvcc`,
+  through mvcc's write transaction, which has no interval check; run with `go test -overlay`; fails
+  at the pin with 1 event, the `DELETE`):
+
+  ```go
+  func TestWatchFromCompactRevLosesPut(t *testing.T) {
+  	b, _ := betesting.NewDefaultTmpBackend(t)
+  	s := newWatchableStore(zaptest.NewLogger(t), b, &lease.FakeLessor{}, StoreConfig{})
+  	defer cleanup(s, b)
+  	s.Put([]byte("foo"), []byte("v1"), lease.NoLease) // rev 2
+  	txn := s.Write(traceutil.TODO())                   // rev 3: put then delete
+  	txn.Put([]byte("foo"), []byte("v2"), lease.NoLease)
+  	txn.DeleteRange([]byte("foo"), nil)
+  	txn.End()
+  	ch, err := s.Compact(traceutil.TODO(), 3)
+  	if err != nil {
+  		t.Fatal(err)
+  	}
+  	<-ch
+  	w := s.NewWatchStream()
+  	w.Watch(t.Context(), 0, []byte("foo"), nil, 3)
+  	s.syncWatchers()
+  	if wr := <-w.Chan(); len(wr.Events) != 2 {
+  		t.Fatalf("revision 3 has two changes of foo, the watch from 3 got %d", len(wr.Events))
+  	}
+  }
+  ```
+
 - **How the proof handles it**: `v3rpc.intervalsOkCheckStmt`
   (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Defs.lean`), what `checkIntervals`
   gives the txn package's `NoDupKeysPerRev` (`keys_nodup_iff_check`), is stated with the premise

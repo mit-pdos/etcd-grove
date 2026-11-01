@@ -451,8 +451,8 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuiltNK s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗
     -- (M2, S4) the compactor's run, once (`start` spends it)
-    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun c) ∗
-    "#Hsab" ∷ srvApplyAllBuilt s ∗
+    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun s E c) ∗
+    "#Hsab" ∷ srvApplyAllBuilt s γr ∗
     "#Hai" ∷ srvAppliedInvM on s E γr ∗
     "#Hkvi" ∷ srvKVInvsM on s E γr ∗
     "#Hti" ∷ inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
@@ -462,6 +462,11 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
       (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
+    -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
+    -- `run` gives the raft loop with `raftNode.stop`) and the loop's (`raftNode.start`'s); the disk
+    -- cooperating (`storage.diskOk`, `NewServer`'s premise)
+    "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
+    "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "#Hcci" ∷ context.isClosedchanInit ∗

@@ -54,6 +54,16 @@ theorem isServerReq_cmp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   iframe Hc
   ipureintro; exact h
 
+/-- The readers' view holds a certificate of the store's first two revisions (`srvReadFieldsAt`). -/
+theorem isServerRead_log0 (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    isServerRead (GF := GF) s E γr ⊢
+      ∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗ ⌜2 ≤ log₀.length⌝ := by
+  unfold isServerRead srvReadFieldsAt
+  iintro ⟨%v, ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%l, #H, %Hl⟩, -⟩⟩
+  iexists l
+  iframe H
+  ipureintro; exact Hl.1
+
 /-- The readers' view holds the KV invariants at its names (`srvReadFieldsAt`). -/
 theorem isServerRead_kvInvs (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     isServerRead (GF := GF) s E γr ⊢ srvKVInvs E γr := by
@@ -101,7 +111,7 @@ theorem compactResultIs_of (E : apply.AEnv GF) (γr : ReadNames) (rq rq' : apply
     · ipureintro; exact Hnn
     iexists v
     iframe Hv
-    icases Hc with (⟨%He, Hok⟩ | %Hrr)
+    icases Hc with (⟨%He, Hok⟩ | ⟨%Hrr, -⟩)
     · iunfold apply.resTrace at Htr
       icases Htr with (%h | ⟨%v', #Hv', Ht⟩)
       · exact absurd h Hnn
@@ -146,11 +156,11 @@ local macro "compact_ok_tail" : tactic => `(tactic| (
   · iPkgInit
   rw [Hkveq]
   imod ownToks_0 (GF := GF) E.γ.revs with Hnone
-  imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #Hc0
   wp_bind (App (Val #(methods kty _ kvv)) _)
   iapply mvcc.kvOver_rev_wp kty kvv E.s
   iframe Hko
-  wp_apply hRevS E.s v.rv E.γ 0 [] $$ [Hrdr Hnone] as %rev ⟨Hrdr, -, %log, #Hlc, -, %Hl⟩
+  -- (the client's `kv.Compact`, 2026-11-01) at the readers' first certificate, two revisions
+  wp_apply hRevS E.s v.rv E.γ 0 logS $$ [Hrdr Hnone] as %rev ⟨Hrdr, -, %log, #Hlc, -, %Hl⟩
   · iframe #; iframe
   (try wp_auto)
   -- `trace.AddField(response_revision)`
@@ -183,7 +193,8 @@ local macro "compact_ok_post" : tactic => `(tactic| (
   iframe Hhdr Hlc
   isplitl
   · iexact Header
-  ipureintro; exact ⟨Hl.2.2.1, by simp [Hl.2.2.2]⟩))
+  ipureintro
+  exact ⟨Hl.2.2.1, by have := Hl.1.length_le; omega, by simp [Hl.2.2.2]⟩))
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
@@ -207,6 +218,7 @@ theorem EtcdServer.Compact.wp_proof
   have hPIRRO := EtcdServer.processInternalRaftRequestOnce.spec_off hPIRRO0
   intro s E ρ ctx cd p r Hr1
   wp_start as ⟨#Hsrv, %Hcmp, #Hsrd, Hlt, Hlr, Hrd, Hrdr, #Hcred, #Hctx, #Htrc, #Hlb, Hreq⟩
+  ihave ⟨%logS, #Hc0, %HlogS⟩ := isServerRead_log0 s E ρ.rd $$ Hsrd
   -- (Perennial 25bd32450) the named results are allocated before the defer frame
   wp_auto
   wp_apply wp_with_defer as %defer defer
@@ -331,16 +343,12 @@ theorem EtcdServer.Compact.wp_proof
   (try wp_auto)
   -- the proposal, in compaction mode's form (`compactPropOk`)
   -- (review round 1, S2-3) the revision reached, at the request's value
-  ihave #Hlb' : srvRevLb E.γ (sint.Z rv.Revision') $$ []
-  · rw [Hrv.1]; iexact Hlb
+  ihave #Hreach : kvRevLb ρ.kv rv.Revision' $$ []
+  · have h : W64 r = rv.Revision' := by rw [← Hrv.1]; word
+    rw [← h]; iexact Hlb
   -- (M2's apply side, item 6) `reqPropOk`'s compaction form: the cluster's mode on (the request
-  -- view's tie), the revision reached as a KV certificate (`cmpReach_of_srvRevLb`, G2)
-  ihave ⟨%Hkcmp, #Hkci⟩ := isServerReq_cmp s E ρ $$ Hsrv
-  ihave #Hkvi := isServerRead_kvInvs s E ρ.rd $$ Hsrd
-  iunfold srvKVInvs at Hkvi
-  icases Hkvi with ⟨-, -, -, %Hcok, -⟩
-  imod (cmpReach_of_srvRevLb ρ.raft ρ.kv E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) rv.Revision')
-    $$ Hkci Hlb' with #Hreach
+  -- view's tie), the revision reached (the caller's `kvRevLb`)
+  ihave ⟨%Hkcmp, -⟩ := isServerReq_cmp s E ρ $$ Hsrv
   have hcp := compactPropOk_irrCompaction rv.Revision' (by rw [Hrv.1]; exact Hr1)
   have hsh := irrCompaction_shape rv.Revision'
   imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HcF0
@@ -417,7 +425,7 @@ theorem EtcdServer.Compact.wp_proof
           iunfold compactOutIs
           iright
           isplitr
-          · ipureintro; rfl
+          · ipureintro; exact ⟨rfl, by simp⟩
           iexact HaEi
         · exact absurd hae Haerr
     · -- the apply thread's trace: the request's from here on (`EnsureTrace`'s dropped), its log
@@ -489,7 +497,7 @@ theorem EtcdServer.Compact.wp_proof
           iunfold compactOutIs
           iright
           isplitr
-          · ipureintro; rfl
+          · ipureintro; exact ⟨rfl, by simp⟩
           iexact HaEi
         · exact absurd hae Haerr
   · -- not proposed, or no result: the error
@@ -505,7 +513,7 @@ theorem EtcdServer.Compact.wp_proof
       iunfold compactOutIs
       iright
       isplitr
-      · ipureintro; rfl
+      · ipureintro; exact ⟨rfl, by simp⟩
       iexact HaE
     · exact absurd rfl Hne
 end proof

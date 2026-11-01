@@ -72,6 +72,7 @@ public import Proof.context.TODO
 public import Proof.context.WithValue
 public import Proof.errors.Is
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType__String
+public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__Keys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.needAdminPermission
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3Backend
@@ -136,6 +137,10 @@ theorem zap.wp_Stringer :
 theorem zap.Logger.wp_Debug :
     EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Debug.wp_proof
+
+theorem lease.Lease.wp_Keys :
+    EtcdGrove.lease.Lease.Keys.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.Lease.Keys.wp_proof
 
 theorem semver.wp_MustParse :
     EtcdGrove.semver.MustParse.spec (GF := GF) (hG := hG) :=
@@ -231,7 +236,7 @@ theorem wp_Apply :
 
 theorem wp_checkLeasePutsKeys :
     EtcdGrove.apply.checkLeasePutsKeys.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.checkLeasePutsKeys.wp_proof
+  EtcdGrove.apply.checkLeasePutsKeys.wp_proof lease.Lease.wp_Keys
 
 theorem wp_checkLeasePuts :
     EtcdGrove.apply.checkLeasePuts.spec (GF := GF) (hG := hG) :=

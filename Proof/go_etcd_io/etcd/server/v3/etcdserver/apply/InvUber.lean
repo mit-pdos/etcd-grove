@@ -51,10 +51,11 @@ def preV3Kind : ReqKind → Bool
   | .clusterVersionSet | .clusterMemberAttrSet | .downgradeInfoSet | .downgradeVersionTest => true
   | _ => false
 
-/-- The requests whose outcome is the chain's (`chainStep`): the KV requests and the lease
-revocation (whose lessor deletes the lease's keys through the store). -/
+/-- The requests whose outcome is the chain's (`chainStep`): the KV requests, the lease
+revocation (whose lessor deletes the lease's keys through the store) and (M2's apply side,
+2026-10-31) the compaction (the corrupt applier rejects it). -/
 def storeKind : ReqKind → Bool
-  | .range | .put | .deleteRange | .txn | .leaseRevoke => true
+  | .range | .put | .deleteRange | .txn | .leaseRevoke | .compaction => true
   | _ => false
 
 /-- **The premise on the request's kind**: some field set (`dispatch` panics on a request with
@@ -291,7 +292,9 @@ at the response's pointer; a request of the first `switch`, no response and no e
 admin request the mode `on` admits (`adminKindOk`; E3w, 2026-10-27), a response of its type (what
 its entry point asserts); the others, nothing (the triples of `applierSpec` say nothing of their
 answers). A compaction's (M2's apply side, item 2): a `*pb.CompactionResponse`, owned without
-an error (`cmpRespOk`), or with one, no response and no trace `tr` (`backend.go`: `EtcdServer.Compact`
+an error (`cmpRespOk`), or with one, no response and no trace `tr`, the error mvcc's `ErrCompacted`
+or, with the corrupt applier's rejection, `ErrCorrupt` (so the apply thread's NOSPACE check fails)
+(`backend.go`: `EtcdServer.Compact`
 reads `result.Trace` before `result.Err`). -/
 def dispatchAnswer (rq : IRRModel) (log : mvcc.Log) (skip : Bool) (resp err : GoInterface)
     (tr : Loc) (o : Outcome) : IProp GF :=
@@ -299,7 +302,10 @@ def dispatchAnswer (rq : IRRModel) (log : mvcc.Log) (skip : Bool) (resp err : Go
   | .compaction => iprop(∃ rp : Loc,
       ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.CompactionResponse.ty) #rp⌝ ∗
       ((⌜err = GoInterface.nil⌝ ∗ cmpRespOk rp) ∨
-        ⌜rp = null ∧ err ≠ GoInterface.nil ∧ tr = null⌝))
+        (⌜rp = null ∧ err ≠ GoInterface.nil ∧ tr = null⌝ ∗
+          (txn.errVarIs go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted err ∨
+            (⌜o = .rejected .corrupt⌝ ∗
+              txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt err)))))
   | .put => iprop(∃ (op : OpFull) (r : Loc), ⌜rq.put = some op ∧
       resp = interface.mkOk (go.GoType.PointerType etcdserverpb.PutResponse.ty) #r⌝ ∗
       putAnswerIs log op r err o)
@@ -337,7 +343,7 @@ theorem dispatchAnswer_nil_tr (rq : IRRModel) (log : mvcc.Log) (skip : Bool) (re
       dispatchAnswer rq log skip resp GoInterface.nil tr' o := by
   unfold dispatchAnswer
   cases dispatchKind rq <;> simp only [] <;> try (iintro H; iexact H)
-  iintro ⟨%rp, %h, (⟨%he, Hr⟩ | %h')⟩
+  iintro ⟨%rp, %h, (⟨%he, Hr⟩ | ⟨%h', -⟩)⟩
   · iexists rp
     isplitr
     · ipureintro; exact h

@@ -69,7 +69,7 @@ theorem Main.wp_proof
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
-  ihave #Hb := common.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (putgetcDir id)
+  ihave #Hb := common.bootPremise_of (N + N) [id] (LogEntry.toEntries boot 0) ctxs (putgetcDir id)
       go!"putgetc" go!"putgetc"
       (common.urls1 go!"putgetc" go!"127.0.0.1:23801" go!"127.0.0.1:23791") id cfgOk urlsOk
       (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
@@ -102,7 +102,7 @@ theorem Main.wp_proof
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (putgetcDir id) (dirOne_member id _)
       (by omega) (by omega) (cmp := true)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog⟩ := Hal
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
   -- `StartCompactingServer("putgetc", "127.0.0.1:23801", clientAddr, retention, lg)`
@@ -137,7 +137,7 @@ theorem Main.wp_proof
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
     iapply (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23791" cid mid
-      R Hrb48 Hrf)
+      R Hrb48 Hrf rfl)
     iframe; iframe #
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv⟩)
   · cases serr with

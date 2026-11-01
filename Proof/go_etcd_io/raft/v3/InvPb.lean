@@ -443,6 +443,17 @@ theorem cellRO_alloc {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Lo
   unfold cellRO
   iright; iexact H
 
+/-- `cellRO_alloc`, keeping that the cell is set (2026-10-31: `MemoryStorage.CreateSnapshot`'s). -/
+theorem cellRO_alloc_nn {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v : V) :
+    (p ↦ v : IProp GF) ⊢ |==> (cellRO p v ∗ ⌜p ≠ null⌝) := by
+  iintro H
+  imod (typedPointsto_dfractional (GF := GF) p v).dfractional_persist _ $$ H with #H
+  ihave %Hn := typedPointsto_not_null $$ H
+  imodintro
+  isplitl
+  · unfold cellRO; iright; iexact H
+  · ipureintro; exact Hn
+
 /-- The hidden fields of a protobuf object made into its invariant (once, at allocation). -/
 theorem pbMsg_alloc (T : Type) (l : Loc) (st : google_golang_org.protobuf.internal.impl.MessageState)
     (sc : w32) (us : GoSlice) (uf : List w8) (E : CoPset) :

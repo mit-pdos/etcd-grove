@@ -172,7 +172,8 @@ the contexts `ctxs`, as raft's `Bootstrap` writes them (`BootLog`), whose bytes 
 cluster (with snapshots), the authority over its decisions, none recorded (a boot conf entry is decided
 as any other, `confDecide`: an `AddNode` of a voter keeps the voters' membership,
 `Membership.applyChange_addVoter`), the membership of no entry the voters', the registry of the
-snapshots made (empty), the bootstrap log's length (`Cluster.bootLen`, for `readyFits_intro`).
+snapshots made (empty), the bootstrap log's length (`Cluster.bootLen`, for `readyFits_intro`), and (2026-11-01, J8a) the nodes' snapshot directories the
+caller's `sl` (`Cluster.snapLoc`, `nodeSnapLocal`).
 Without a bootstrap log: the join authority at the voters (2026-10-29, stage U4) and one founder's
 token per voter, for `RestartNode`; with one: the bootstrap log committed and one start token per
 voter, for `StartNode` (no join authority: raft keeps the bootstrap log in every node's log, which a
@@ -181,23 +182,23 @@ the cluster's; so (U9) are the read requests' credits (raft takes them from its 
 until U9 the post's `readCredits γ (2^64-2)`), and leader transfer is on in every cluster (until U9 the
 post's `leaderTransferOn γ N`). -/
 theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (dup : Bool) (E : CoPset) :
+    (dup : Bool) (sl : w64 → Option GName) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     (boot ≠ [] → BootLog vs ctxs boot) →
     ⊢ (if boot = [] then emp else bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0)) ={E}=∗
-      ∃ γ, ⌜γ.dup = dup ∧ γ.bootLen = boot.length⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+      ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
         ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗
         confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMade γ [] ∗
         if boot = [] then joinAuth γ (GMap.listToSet vs) ∗ [∗list] id ∈ vs, nodeFounder γ N vs id
         else isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs id := by
   intro Hrb Hne Hnd Hnz Hlen HB
   unfold ownCommittedOps ownReadCtxs isCluster ownConfDecisions confAt ownSnapsMade
-    joinAuth nodeFounder nodeBoot Cluster.dup Cluster.bootLen isCommittedLogLb
+    joinAuth nodeFounder nodeBoot Cluster.dup Cluster.snapLoc Cluster.bootLen isCommittedLogLb
   by_cases hb : boot = []
   · subst hb
     rw [if_pos rfl]
     iintro -
-    imod ApiImpl.cluster_alloc_dec_impl (GF := GF) N vs dup E Hrb Hne Hnd Hnz Hlen
+    imod ApiImpl.cluster_alloc_dec_impl (GF := GF) N vs dup sl E Hrb Hne Hnd Hnz Hlen
       with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, Hja, Hfs⟩
     imodintro
     iexists γ
@@ -206,7 +207,7 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
     ipureintro; exact Hd
   · simp only [hb, ↓reduceIte]
     iintro Hm
-    imod ApiImpl.cluster_alloc_boot_impl (GF := GF) N vs ctxs boot dup E Hrb Hne Hnd Hnz Hlen (HB hb)
+    imod ApiImpl.cluster_alloc_boot_impl (GF := GF) N vs ctxs boot dup sl E Hrb Hne Hnd Hnz Hlen (HB hb)
       $$ Hm with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, #Hlb, Hbs⟩
     imodintro
     iexists γ

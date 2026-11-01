@@ -241,18 +241,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /- (Stage 4b: `cmpEntryOk`, `cmpLogOk` and their laws in place, `InvRequest.lean`.) -/
 
-/-- **The apply package's `cmpAdmit` from the entry's claims** (the glue at `applyEntryNormal`):
-the apply thread's log the model's of the applied log `A` (`kvApplied`), the store compacting in
-the cluster's compaction mode (`srvEnvOkD`'s `d.cm = E.cmp`, `envAgree`). -/
-theorem cmpAdmit_of_entry (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel)
-    (rq : apply.IRRModel) (kb : Option mvcc.KBReal) (log : mvcc.Log) (hl : log = kvModel γk A)
-    (hkb : cmp = true → mvcc.kbCmpM kb) (ht : m.typ = W32 0) (hd : m.data ≠ [])
-    (hdec : apply.irrDecode m.data = some rq) (h : cmpEntryOk γk cmp A m) :
-    apply.cmpAdmit kb log rq := by
-  intro hk r hr
-  obtain ⟨hc, -, hrl⟩ := h ht hd rq hdec hk
-  subst hl
-  exact ⟨hkb hc, hrl r hr⟩
+/- (`cmpAdmit_of_entry` moved to `ApplyCmpArm.lean`.) -/
 
 /-- **The scope `crevOf_step` needs, from the entry's claims** (review round 1's F-4: its `hok`). -/
 theorem compactPropOk_of_entry (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel)
@@ -280,7 +269,7 @@ def reqPropOkD (γk : KVNames) (cmp : Bool) (rq : apply.IRRModel)
   iprop(reqPropOk γk rq Qr ∨
     (⌜cmp = true ∧ compactPropOk rq ∧ rqShape rq ∧ irrNoZeroEnd rq ∧
         Qr = fun _ => iprop(True)⌝ ∗
-      ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ cmpReach γk r))
+      ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLb γk r))
 
 /-- At the mode off, today's. -/
 theorem reqPropOkD_off (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :

@@ -192,12 +192,15 @@ PROJECTS = [
         # `goose-lean-compactfix` (on a20f6760f): upstream's fixes of the compaction of a key deleted
         # and put again in the compacted revision (etcd-io/etcd#22377, `keyIndex.doCompact`,
         # e7bb9f2de; #22395, the gRPC txn overlap check, 249d76bea;
-        # issues/etcd-compaction-delete-then-put.md).
+        # issues/etcd-compaction-delete-then-put.md). Then (S1, the snapshot plan's #7, 2026-10-31)
+        # branch `goose-lean-snapguard` (on 249d76bea): the queued MsgSnap merged only if its
+        # snapshot is at or below the applied index (633036387; a guard for the proof, not a bug
+        # fix: notes/decisions.md, "The merged snapshot's index guard").
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="249d76bea78d0c8980251d5fa7b26c35ef21263a",
+        rev="633036387c667023e2d044735b1887f4b04b84a1",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -281,6 +284,9 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/errors",
             "go.etcd.io/etcd/server/v3/etcdserver/read",
             "go.etcd.io/etcd/server/v3/lease",
+            # names only (the lease-renew plan, 2026-11-01): `LeaseRenew`'s forwarding to the
+            # leader (`RenewHTTP`, `LeasePrefix`), a contract
+            "go.etcd.io/etcd/server/v3/lease/leasehttp",
             # types only: the lease's protobuf message (the lessor's persistTo, Revoke)
             "go.etcd.io/etcd/server/v3/lease/leasepb",
             "go.etcd.io/etcd/server/v3/auth",
@@ -582,6 +588,19 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putgetc")],
+    ),
+    Project(
+        name="compactkv",
+        # putgetc under compaction pressure (the client's `kv.Compact`, 2026-11-01): rounds of a
+        # client's Put, a Compact at the revision before it and a Get, on one member with the
+        # auto-compactor on.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "compactkv"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "compactkv")],
     ),
     Project(
         name="linkvtxn",

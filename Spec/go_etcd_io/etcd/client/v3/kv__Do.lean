@@ -56,7 +56,7 @@ abbrev kv.Do.spec : Prop :=
     (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Do"))
       (Val #(GoInterface.ok ctx))) (Val #op))
   {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
-      doOut op_m (putStOk (putWireOf op_m) Q) (rangeStOk (rangeWireOf op_m) Q)
+      doOut op_m (putStOk γ (putWireOf op_m) Q) (rangeStOk (rangeWireOf op_m) Q)
         (delStOk (deleteWireOf op_m) Q) r err }}
 
 end spec

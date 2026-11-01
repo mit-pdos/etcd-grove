@@ -10,7 +10,9 @@ a get (`isEtcdDoKV`), transactions with nested operations and owned responses (`
 what the monitors (unit 5) use of the client (`isLeasingClient`: its range watcher, its leases, a
 session client); its context (a `*cancelCtx`); the lease cache `lkv.leases` (`isLeaseCache`) with
 the KV's part of the cache's lock invariant (`leasingX`); and the wait group `lkv.wg`
-(`leasingWgInv`). `pfx` is not empty (a lease key `pfx ++ k` is never its data key `k`).
+(`leasingWgInv`), and the **pool of the cache's reader slots** (`threadPool.isThreadPool`,
+`notes/bounds-plan.md`, B2): every reader slot of `lkv.leases.mu`, from which a thread borrows one
+with its thread token (the exported methods do, at entry) and gives it back. `pfx` is not empty (a lease key `pfx ++ k` is never its data key `k`).
 
 **The KV's part of the cache's lock** (`leasingX lkv γ st q`, fractional, under `lkv.leases.mu`):
 the fields `session` and `sessionc`; the **log of the cache's states** (`γ.log`, a monotone list
@@ -23,8 +25,10 @@ false of the code (`get` adds the entry of an acquisition after a session reset 
 the session, see `notes/STATUS.md`); the entries' facts (`entryFacts`) are the cache's.
 
 **The wait group** (`leasingWgInv`, an invariant): as the cache's (`InvCache.lean`, `cacheWgInv`):
-the counter is the running goroutines, `k` of them with their thread token deposited
-(`leasingWgRunning`: `get`'s lease monitors), `d ≤ 2` keeping their own (`NewKV`'s session monitor
+the counter is the running goroutines, `k` of them with a loan receipt of the reader-slot pool
+deposited (`leasingWgRunning`: `get`'s lease monitors, each holding a slot borrowed for its life,
+for which the pool holds a thread token, so `k < threadBound GF`, `threadPool.loans_lt`), `d ≤ 2`
+keeping their own thread token (`NewKV`'s session monitor
 and `clearOldRevokes`), with at most one waiter (`Close`), which holds the whole "open" token
 (`leasingOpen`): `get` adds to the wait group with a fraction of it.
 
@@ -39,6 +43,7 @@ public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseEval
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSession
 public import Proof.go_etcd_io.etcd.cache.v3.InvEtcdTxnOwn
 public import Perennial.Proof.sync
+public import Perennial.Proof.ThreadPool
 
 @[expose] public section
 
@@ -64,6 +69,8 @@ structure LeasingNames where
   wo : GName
   wc : GName
   op : GName
+  /-- The pool of the cache's reader slots (`threadPool`; `isLeasingKV`). -/
+  rp : GName
 
 /-- The number of goroutines `NewKV` starts on the wait group keeping their own thread token (the
 session monitor and `clearOldRevokes`). -/
@@ -74,6 +81,9 @@ def leasingWgWGN : Namespace := nroot.@"leasingWaitGroup"
 
 /-- The namespace of the wait-group counter invariant (`leasingWgInv`). -/
 def leasingWgN : Namespace := nroot.@"leasingWgCounter"
+
+/-- The namespace of the pool of the cache's reader slots (`isLeasingKV`). -/
+def leasingPoolN : Namespace := nroot.@"leasingReaderPool"
 
 section addrs
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
@@ -186,7 +196,7 @@ def leasingOpen (γ : LeasingNames) (q : Qp) : IProp GF := ghostVar γ.op q ()
 /-- **The wait group's counter** (an invariant; see the module docstring and `cacheWgInv`). -/
 def leasingWgInv (γ : LeasingNames) : IProp GF :=
   iprop(∃ (ctr : w32) (w k d : Nat), sync.ownWaitGroup γ.wg ctr ∗ sync.ownWaitGroupWaiters γ.wg w ∗
-    ownTokAuth γ.wr k ∗ threadToks k ∗
+    ownTokAuth γ.wr k ∗ ownToks γ.rp k ∗
     ownTokAuth γ.wo d ∗ ownToks γ.wc d ∗ ownTokAuth γ.wc leasingWgOwedMax ∗
     ⌜0 ≤ sint.Z ctr⌝ ∗ ⌜sint.nat ctr = k + d⌝ ∗
     (⌜w = 0⌝ ∨ (⌜w = 1⌝ ∗ leasingOpen γ 1)))
@@ -194,8 +204,9 @@ def leasingWgInv (γ : LeasingNames) : IProp GF :=
 instance leasingWgInv_timeless (γ : LeasingNames) : Timeless (leasingWgInv (GF := GF) γ) := by
   unfold leasingWgInv leasingOpen; infer_instance
 
-/-- A goroutine started on the wait group whose thread token is deposited in `leasingWgInv` (a
-lease monitor of `get`): its `Done` returns the token. -/
+/-- A goroutine started on the wait group with a loan receipt of the reader-slot pool deposited in
+`leasingWgInv` (a lease monitor of `get`, which holds the borrowed slot): its `Done` returns the
+receipt, which with the slot gives the pool back for the thread token it exits with. -/
 def leasingWgRunning (γ : LeasingNames) : IProp GF := ownToks γ.wr 1
 
 /-- A goroutine started on the wait group keeping its own thread token (`NewKV`'s two). -/
@@ -244,8 +255,10 @@ def isLeasingKV (lkv : Loc) (γ : LeasingNames) (pfx : GoString) : IProp GF :=
     context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
     lkvCache lkv γ pfx ∗
     sync.isWaitGroup (lkvWg lkv) γ.wg leasingWgWGN ∗ inv leasingWgN (leasingWgInv γ) ∗
+    threadPool.isThreadPool leasingPoolN γ.rp (lkvReader lkv γ pfx) ∗
     ⌜threadBound GF + leasingWgOwedMax ≤ 2 ^ 31⌝)
 
+set_option synthInstance.maxSize 512 in
 instance isLeasingKV_persistent (lkv : Loc) (γ : LeasingNames) (pfx : GoString) :
     Persistent (isLeasingKV (GF := GF) lkv γ pfx) := by
   unfold isLeasingKV; infer_instance
@@ -295,18 +308,12 @@ abbrev lkvIface (lkv : Loc) : GoInterfaceOk :=
 def leasingCloseFn (cf : GoFunc) (γ : LeasingNames) : IProp GF :=
   iprop(□ ∀ Φ : val → IProp GF, leasingOpen γ 1 -∗ ▷ Φ #() -∗ WP (App (Val #cf) (Val #())) {{ Φ }})
 
-/-- The number of the reader slots of the lease cache's `RWMutex` (`sync.rwmutex.actualMaxReaders`,
-`2^30 - 1`), all of which `NewKV` hands out. -/
-abbrev leasingMaxReaders : Nat := Int.toNat sync.rwmutex.actualMaxReaders
-
 /-- **What `NewKV` returns** for the prefix `pfx`: the `KV` interface value of a leasing KV `lkv`
-(`isLeasingKV`) with its handles (every reader slot of the cache, `lkvReader`, and the whole
-"open" token), the close function's spec, and the error of `waitSession` (`nil`: a session was
-set). -/
+(`isLeasingKV`, whose pool holds the cache's reader slots) with the whole "open" token, the close
+function's spec, and the error of `waitSession` (`nil`: a session was set). -/
 def newKVResult (pfx : GoString) (kv : GoInterface) (cf : GoFunc) (err : GoInterface) : IProp GF :=
   iprop(∃ (lkv : Loc) (γ : LeasingNames), ⌜kv = GoInterface.ok (lkvIface lkv)⌝ ∗
-    isLeasingKV lkv γ pfx ∗ ([∗list] _x ∈ List.replicate leasingMaxReaders (), lkvReader lkv γ pfx) ∗
-    leasingOpen γ 1 ∗ leasingCloseFn cf γ ∗
+    isLeasingKV lkv γ pfx ∗ leasingOpen γ 1 ∗ leasingCloseFn cf γ ∗
     (⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ sessionReadyQ γ)))
 
 /-- **A lease key deleted** after `rev` (what `waitRescind` waits for): etcd's whole keyspace at a
@@ -422,18 +429,18 @@ def getNotAcquired (key : GoString) (lo : w64) (ret : Loc) : IProp GF :=
     structFieldRef etcdserverpb.RangeResponse go!"Header" ret ↦ hdr ∗ hdrFull hdr hm ∗
     rangeBodyOwn ret (OpFull.getInit key) (rangeSel s (OpFull.getInit key)) n)
 
-/-- **What `get` returns** for the get `o` (called knowing that etcd reached `lo`), and the monitor
-slot `slot` back unless a lease monitor was started: the client's answer (`kvGetResult`: the
-session is not ready, the cache does not serve `o`, `o` is serializable, or the key was revoked
-recently), the cache's (`getCached`), an acquisition's (`getAcquired`: the slot goes to the
-monitor), a failed acquisition's (`getNotAcquired`), or the acquisition's error. -/
+/-- **What `get` returns** for the get `o` (called knowing that etcd reached `lo`): the client's
+answer (`kvGetResult`: the session is not ready, the cache does not serve `o`, `o` is serializable,
+or the key was revoked recently), the cache's (`getCached`), an acquisition's (`getAcquired`: a
+lease monitor was started, with a reader slot of its own), a failed acquisition's
+(`getNotAcquired`), or the acquisition's error. -/
 def getOutcome (γ : LeasingNames) (pfx : GoString) (lo : w64) (o : OpFull) (ret : Loc)
-    (err : GoInterface) (slot : IProp GF) : IProp GF :=
-  iprop((kvGetResult [] lo o ret err ∗ slot) ∨
-    (⌜err = GoInterface.nil⌝ ∗ getCached γ pfx o.key o ret ∗ slot) ∨
+    (err : GoInterface) : IProp GF :=
+  iprop(kvGetResult [] lo o ret err ∨
+    (⌜err = GoInterface.nil⌝ ∗ getCached γ pfx o.key o ret) ∨
     (⌜err = GoInterface.nil⌝ ∗ getAcquired pfx o.key lo o ret) ∨
-    (⌜err = GoInterface.nil⌝ ∗ getNotAcquired o.key lo ret ∗ slot) ∨
-    (⌜err ≠ GoInterface.nil ∧ ret = null⌝ ∗ slot))
+    (⌜err = GoInterface.nil⌝ ∗ getNotAcquired o.key lo ret) ∨
+    ⌜err ≠ GoInterface.nil ∧ ret = null⌝)
 
 /-- **A transaction committed with its then-branch the single operation `top`**, as the leasing
 KV's writes are (`tryModifyOp`'s and `revoke`'s guarded transactions, when they succeed): at a

@@ -1123,11 +1123,18 @@ theorem lessor_server_contract (lp : Loc) (γl : GName) :
 
 /-- **The apply package's lessor contract, of the real lessor** (unit 9, 2026-10-13): the lessor
 at `lp` (`lease.lessorInv`, its configuration, its backend's contract for the `Lease` bucket,
-`lease.lessorBackend`) meets `apply.isApplyLessor`'s `isTxnLessor`, `Grant` and `Checkpoint`
-clauses, from their proofs; its `Revoke` and `Lookup` clauses are the premises
-(`apply.isApplyLessor_of_lessorInv`). -/
+`lease.lessorBackend`) meets `apply.isApplyLessor`'s `isTxnLessor`, `Grant`, `Checkpoint` and
+(the lease-revoke plan, 2026-10-31) `Revoke` clauses, from their proofs: the store watchable, its
+hook's facts, and the rest resource `RO` lending the store's right to the tracked buckets and the
+lessor's half of `le.b`; its `Lookup` clause is the premise (`apply.isApplyLessor_of_lessorInv`). -/
 theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
+    (RO : EtcdGrove.apply.RestM → IProp GF)
     (RW RW₀ : IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) :
+    ⌜γ.watchQ = true⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.hookOk γ P f ∗
+      □ (∀ rs : EtcdGrove.apply.RestM, RO rs -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗
+          mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d.be ∗
+          (∀ bk, mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗
       lease.lessorBackend lp P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb ∗
@@ -1136,10 +1143,11 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
         {{ True }} (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty
           @!! go!"Lookup")) (Val #id))
         {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ EtcdGrove.apply.leaseIs l id }}) ⊢
-      EtcdGrove.apply.isApplyLessor (lease.lessorIface lp) s γ P f RW :=
+      EtcdGrove.apply.isApplyLessor (lease.lessorIface lp) s γ P f RO RW :=
   EtcdGrove.apply.isApplyLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup
-    lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lp s γ P f RW RW₀ Rb
+    lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Revoke
+    lp s γ P f RO RW RW₀ Rb
 
 /-- **The auth store's admin side as model steps, of the real store** (the auth plan's S4, its
 apply part, 2026-10-24; `apply/AuthSteps.lean`): the store at `st` (`auth.authInv st R M`) has
@@ -1774,6 +1782,12 @@ theorem server_apply_all_on [EtcdGrove.ErrorStringLeaf] :
     (EtcdServer.applyEntries.spec_on EtcdServer.wp_applyEntries)
     EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency
     EtcdServer.wp_snapshotIfNeededAndCompactRaftLog
+    raftpb.Message.wp_GetTerm raftpb.Message.wp_GetSnapshot raftpb.Snapshot.wp_GetMetadata
+    raftpb.SnapshotMetadata.wp_GetIndex EtcdServer.wp_createMergedSnapshotMessage
+    EtcdServer.wp_sendMergedSnap mvcc.store.wp_Commit backend.backend.wp_Snapshot
+    storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave
+    backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID
+    schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
 
 /-- **`run` with auth on** (the auth plan's E3q, `EtcdServer__run.lean`'s `wp_proofOn`): from
 `isServerRunOn`, every scheduled job `server_apply_all_on` over the apply thread's mode-`on`
@@ -2109,7 +2123,7 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
     srvApi_wp_Step
     srvApi_wp_ReportUnreachable srvApi_wp_ReportSnapshot EtcdServer.wp_Process EtcdServer.wp_IsIDRemoved
     EtcdServer.wp_ReportUnreachable EtcdServer.wp_ReportSnapshot
-    backend.batchTxBuffered.wp_UnsafeDelete
+    backend.batchTxBuffered.wp_UnsafeDelete lease.lessor.wp_Revoke
 
 end serverAuth
 

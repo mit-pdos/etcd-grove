@@ -27,21 +27,21 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`newApplierV3(opts)`**: the base chain (`authApplierV3` over `quotaApplierV3` over
-`applierV3backend`) over the options `opts`, whose contracts hold in `E`; the auth layer's mutex
-takes the reader resource `E.RD` (2026-10-14, unit A2). -/
+`applierV3backend`) over the options `opts`, whose contracts hold in `E` (2026-11-01, J8a: no reader
+resource `E.RD`, which the auth layer's `Apply` borrows from its caller; until then its mutex took one). -/
 abbrev apply.newApplierV3.spec : Prop :=
-  ∀ (opts : ApplierOptions) (RD : IProp GF),
+  ∀ (opts : ApplierOptions),
   -- the backend stays under its quota (audit phase B3, D19h)
   apply.backendUnderQuota →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ RD }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3)) (Val #opts))
   {{ (a : GoInterface), RET #a;
       -- (the auth plan's E2m) its shape: auth over quota over the backend with `opts`
       apply.baseShape opts a ∗
-      □ (∀ E : AEnv GF, ⌜E.RD = RD⌝ -∗ apply.backendOptsOk E opts -∗
+      □ (∀ E : AEnv GF, apply.backendOptsOk E opts -∗
         apply.applierSpec E (apply.baseChain E.authOn) a) ∗
       -- (the auth plan's E3k) its auth layer (`baseAuth`)
-      □ (∀ E : AEnv GF, ⌜E.RD = RD⌝ -∗ apply.backendOptsOk E opts -∗ apply.baseAuth E opts a) }}
+      □ (∀ E : AEnv GF, apply.backendOptsOk E opts -∗ apply.baseAuth E opts a) }}
 
 end spec
 

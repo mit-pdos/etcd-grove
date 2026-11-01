@@ -2,7 +2,7 @@
 # The checks a branch passes before it lands on `lean`, in one run (the ones CI runs, plus the
 # trust base's and every generator's): the full build, every generated Link.lean, the trust base
 # and every collection, the translations (and the examples' go.mod pins), the generated
-# initializers, the issues' front matter. Prints one line per check and exits 1 if any fails.
+# initializers, the issues' front matter, the bounds check. Prints one line per check and exits 1 if any fails.
 #
 #   etc/gates.sh                     in a checkout whose .lake/packages holds the pinned Perennial
 #   LAKE_PACKAGES=.lake/manifest-stdinit.json PERENNIAL_CHECKOUT=/shared/perennial-std-init \
@@ -90,6 +90,14 @@ if python3 etc/issues-status.py --check > "$tmp/issues.log" 2>&1; then
   echo "issues: ok"
 else
   echo "issues: FAILED"; tail -10 "$tmp/issues.log"; fail=1
+fi
+
+# 7. the bound reasoning stays with its owners (notes/bounds-plan.md, B0; reads the sources only)
+if python3 etc/bounds-check.py --check > "$tmp/bounds.log" 2>&1; then
+  echo "$(tail -1 "$tmp/bounds.log")"
+  grep "down from" "$tmp/bounds.log" | head -5
+else
+  echo "bounds: FAILED"; grep -v "^bounds: ok" "$tmp/bounds.log" | head -20; fail=1
 fi
 
 [ "$fail" = 0 ] && echo "gates: all passed" || echo "gates: FAILED"

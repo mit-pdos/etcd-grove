@@ -59,6 +59,9 @@ def hsRO (p : Loc) (hs : HardStateM) : IProp GF :=
                       DFrac.discard ∗
                   "#cC" ∷ cellRO pc hs.Commit' ∗ "#Hpb" ∷ pbMsg raftpb.HardState p uf)
 
+theorem cellRO_alloc_nn {V : Type} [ZeroVal V] [TypedPointsto V] (p : Loc) (v : V) : typedPointsto p
+    v (DFrac.own 1) ⊢ |==> (cellRO p v ∗ ⌜p ≠ null⌝)
+
 theorem pbMsg_persistent (T : Type) (l : Loc) (uf : List w8) : Persistent (pbMsg T l uf)
 
 def CSLists.Bounded (a : CSLists) : Prop :=

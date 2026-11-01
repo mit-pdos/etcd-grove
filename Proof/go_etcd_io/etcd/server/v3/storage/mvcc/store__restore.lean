@@ -56,7 +56,7 @@ theorem mvcc.store.restore.wp_proof
     (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     mvcc.store.restore.spec (GF := GF) (hG := hG) := by
   intro s γ b le ti lg q P HF RT WT W Wi Dep NC Cmp PutOk Rb Bt MW SR SRh dqb dqi R RevP0 RevP RevK RevQ
-    dqc dql q1 q2 r ents Fin hR hq12 hrec hdq hcut hrcp
+    dqc dql q1 q2 r ents Fin hR hq12 hrec hdq hcut
   by_cases hR0 : R = []
   rotate_left
   · -- a bucket with data (the restore plan's R5c), thinned at the restored revision (item 18)
@@ -67,7 +67,7 @@ theorem mvcc.store.restore.wp_proof
     have hokE : mvcc.RestoreEntsOk ents := mvcc.restoreOk_sublist hok hsub
     have hRpos : 0 < R.length := List.length_pos_iff.2 hR0
     wp_start as ⟨Hb, #Hbk, Hrt, Hncmp, Hview, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, %Hlgnn, Hcur1, Hcmp,
-      HRevP0, HFw, HLk, HUl, HK⟩
+      HRevP0, HFw, HLk, HUl, HK, Hrcp⟩
     iunfold mvcc.restoreViewR at Hview
     simp only [hR0, ↓reduceIte] at *
     icases Hview with ⟨Hbv, Hcr⟩
@@ -493,13 +493,15 @@ theorem mvcc.store.restore.wp_proof
     wp_bind (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"Unlock"
       #(s.[store, go!"revMu"]))) (Val #()))
     icases (mvcc.typedPointsto_parts _ _ q1 q2 hq12).1 $$ Hcur with ⟨Hcur1, Hcur2⟩
-    icases persistent_entails_left (receipt_lt _) $$ Hlc with ⟨Hlc, %Hrb⟩
-    have Hrb' : mvcc.logCh ([[], []] ++ R) < receiptBound GF := by
-      rcases hrcp with h | h
-      · rw [h, mvcc.logEnts_length] at Hrb; exact Hrb
-      · exact h
+    -- the restored log's persistent receipt: the rebuild's (whole bucket), else the caller's (B2)
+    imod receipt_snapshot _ $$ Hlc with ⟨Hlc, #HpL⟩
+    ihave #Hrb' : iprop(⧖ (mvcc.logCh ([[], []] ++ R))) $$ [Hrcp]
+    · icases Hrcp with (%h | #Hp)
+      · have hl : ents.length = mvcc.logCh ([[], []] ++ R) := by rw [h, mvcc.logEnts_length]
+        rw [← hl]; iexact HpL
+      · iexact Hp
     iapply HUl $$ Hcur2 HRevK [Hbv Hrd]
-    · iframe Hbv Hrd; iframe Hti; ipureintro; exact Hrb'
+    · iframe Hbv Hrd; iframe Hti; iexact Hrb'
     inext
     iintro HRevQ
     (try wp_auto)
@@ -630,7 +632,7 @@ theorem mvcc.store.restore.wp_proof
     exact List.sublist_nil.1 h
   subst hents
   wp_start as ⟨Hb, #Hbk, Hrt, Hncmp, Hview, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, %Hlgnn, Hcur1, Hcmp,
-    HRevP0, HFw, HLk, HUl, HK⟩
+    HRevP0, HFw, HLk, HUl, HK, -⟩
   iunfold mvcc.restoreViewR at Hview
   simp only [↓reduceIte]
   icases Hview with ⟨Hbv, %Hmr⟩
@@ -791,9 +793,10 @@ theorem mvcc.store.restore.wp_proof
   wp_bind (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"Unlock"
     #(s.[store, go!"revMu"]))) (Val #()))
   icases (mvcc.typedPointsto_parts _ _ q1 q2 hq12).1 $$ Hcur with ⟨Hcur1, Hcur2⟩
+  imod preceipt_zero (GF := GF) with #H0
+  have h0 : mvcc.logCh ([[], []] ++ ([] : mvcc.Log)) = 0 := by simp [mvcc.logCh]
   iapply HUl $$ Hcur2 HRevK [Hbv Hrd]
-  · iframe Hbv Hrd; iframe Hti; ipureintro
-    exact receiptBound_pos (GF := GF)
+  · iframe Hbv Hrd; iframe Hti; rw [h0]; iexact H0
   inext
   iintro HRevQ
   (try wp_auto)

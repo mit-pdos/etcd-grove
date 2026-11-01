@@ -26,9 +26,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.ReportSnapshot(x, st)`** returns (raft's `node.ReportSnapshot`). -/
 abbrev EtcdServer.ReportSnapshot.spec : Prop :=
-  ∀ (γn : NetNames GF) (s : Loc) (id x : w64) (st : SnapshotStatus),
+  ∀ (γn : NetNames GF) (γd : GName) (s : Loc) (id x : w64) (st : SnapshotStatus),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvProcOk γn s id }}
+      srvProcOk γn s id γd }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"ReportSnapshot")) (Val #x))
       (Val #st))
   {{ RET #(); True }}
