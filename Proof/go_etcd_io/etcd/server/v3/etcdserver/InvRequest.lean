@@ -572,9 +572,11 @@ def kvRevLb (γk : KVNames) (r : w64) : IProp GF :=
   iprop(∃ L₀ : List EntryModel, monoListLbOwn γk.rlog L₀ ∗
     ⌜sint.Z r < (kvModel γk L₀).length⌝)
 
+omit raftAsm in
 instance kvRevLb_persistent (γk : KVNames) (r : w64) : Persistent (kvRevLb (GF := GF) γk r) := by
   unfold kvRevLb; infer_instance
 
+omit raftAsm in
 /-- A revision below a reached one is reached. -/
 theorem kvRevLb_mono (γk : KVNames) (r r' : w64) (h : sint.Z r' ≤ sint.Z r) :
     kvRevLb (GF := GF) γk r ⊢ kvRevLb γk r' := by
@@ -586,6 +588,7 @@ theorem kvRevLb_mono (γk : KVNames) (r r' : w64) (h : sint.Z r' ≤ sint.Z r) :
   iframe HL
   ipureintro; omega
 
+omit raftAsm in
 /-- The start log's revisions are reached (`log0 = [[], []]` in every cluster: `0` and `1`). -/
 theorem kvRevLb_start (γk : KVNames) (r : w64) (h : sint.Z r < γk.log0.length) :
     ⊢ |==> kvRevLb (GF := GF) γk r := by
@@ -598,6 +601,7 @@ theorem kvRevLb_start (γk : KVNames) (r : w64) (h : sint.Z r < γk.log0.length)
   ipureintro
   exact h
 
+omit raftAsm in
 /-- The same cluster's KV names agree on the revisions reached. -/
 theorem kvRevLb_same (γk γk' : KVNames) (h : kvSame γk γk') (r : w64) :
     kvRevLb (GF := GF) γk r ⊢ kvRevLb γk' r := by
