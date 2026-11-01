@@ -28,6 +28,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.CrashImg
+public import Spec.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__initCrash
 
 @[expose] public section
 
@@ -46,6 +47,70 @@ def dbCrashN : Namespace := nroot .@ "minibolt_crash"
 
 /-- minibolt's obligation on the states of its file: every image a crash may leave is good. -/
 abbrev dbOk [GooseExts] (p : GoString) : CState → Prop := CrashOkS (P1 p) p Good
+
+section pure
+variable [GooseExts]
+
+/-- `commitClean` does not look at the mappings or `ok`. -/
+theorem commitClean_meta {m m' : OsMeta} {bs : List (w8 × Bool)} (h : commitClean m bs)
+    (hhi : m'.hi = m.hi) (hlo : m'.lo = m.lo) : commitClean m' bs :=
+  ⟨hhi ▸ h.hi, hlo ▸ h.lo, h.ok, h.slot, hlo ▸ h.pg, h.boot, h.metas, h.root⟩
+
+/-- The writer's idle states while not failed are `dbOk`, whatever the mappings (`Mmap`'s and
+`Munmap`'s obligations). -/
+theorem writer_okS {p : GoString} {m : OsMeta} {bs : List (w8 × Bool)} (fa fb : Nat)
+    (hl : bs.length = m.size) (h : commitClean m bs) (M : GMap Loc Nat) :
+    dbOk p (some ⟨{ m with maps := M }, bs, fa, fb, .idle⟩) :=
+  commitClean_okS (p := p) ⟨{ m with maps := M }, bs, fa, fb, .idle⟩ hl rfl
+    (commitClean_meta h rfl rfl)
+
+/-- After `init` (`DB.init.specCrash`'s post), a commit may start: the writer's invariant. -/
+theorem init_commitClean {m : OsMeta} {xs : List (w8 × Bool)} (hsz : m.size ≤ 2 ^ 30) :
+    commitClean (initDoneMeta m xs) (initFile xs) := by
+  have hil := initBytes_length
+  simp only [pageBytes] at hil
+  have hfst : (initFile xs).map Prod.fst = initBytes ++ (xs.map Prod.fst).drop 16384 := by
+    unfold initFile; rw [List.map_map]; exact List.map_id _
+  have hmp : ((initFile xs).map Prod.fst).take 8192 = initBytes.take 8192 := by
+    rw [hfst, List.take_append_of_le_length (by omega)]
+  have hmp' : (((initFile xs).map Prod.fst).take 8192).take 8192 = initBytes.take 8192 := by
+    rw [List.take_take, Nat.min_self, hmp]
+  have hc := curMeta_init _ hmp'
+  have hroot : curRoot (((initFile xs).map Prod.fst).take 8192) = 3 := by
+    rw [curRoot, hc, initMeta_root]; decide
+  have hpg : curPgid (((initFile xs).map Prod.fst).take 8192) = 4 := by
+    rw [curPgid, hc, initMeta_pgid]; decide
+  have hcl : ∀ k < 16384, ∃ b, (initFile xs)[k]? = some (b, true) := by
+    intro k hk
+    unfold initFile
+    rw [List.getElem?_map, List.getElem?_append_left (by omega),
+      List.getElem?_eq_getElem (by omega)]
+    exact ⟨_, rfl⟩
+  have hlen : (((initFile xs).map Prod.fst).take 8192).length = 8192 := by
+    rw [hmp, List.length_take]; omega
+  refine ⟨by simp only [initDoneMeta]; omega, by simp only [initDoneMeta]; omega,
+    metaPagesOk_init _ hmp' hlen, ?_, ?_, ?_,
+    fun k hk => hcl k (by omega), fun k hk => hcl _ (by rw [hroot]; omega)⟩
+  · unfold curInSlot
+    rw [hc, initMeta_txid, show (W64 ((1 : Nat) : Int)).toNat % 2 = 1 by decide,
+      initMetas _ hmp' 1 (by decide)]
+  · rw [hpg]; simp only [initDoneMeta]; omega
+  · rw [hc, hroot, hfst, List.drop_append_of_le_length (by omega),
+      List.take_append_of_le_length (by simp only [List.length_drop]; omega)]
+    have : (initBytes.drop (4096 * 3)).take 4096 = emptyPageBytes (W64 3) (W16 2) := by
+      have h0 := metaPageBytes_length 0
+      have h1 := metaPageBytes_length 1
+      have h2 := emptyPageBytes_length (W64 2) (W16 16)
+      have h3 := emptyPageBytes_length (W64 3) (W16 2)
+      simp only [pageBytes] at h0 h1 h2 h3
+      unfold initBytes
+      rw [List.drop_append_of_le_length (by simp only [List.length_append]; omega)]
+      rw [List.drop_eq_nil_of_le (by simp only [List.length_append]; omega), List.nil_append,
+        List.take_of_length_le (by omega)]
+    rw [this, initRoot_val, initMeta_txid]
+    exact .inl ⟨by decide, rfl⟩
+
+end pure
 
 section preds
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
