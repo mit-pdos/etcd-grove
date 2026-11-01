@@ -616,6 +616,33 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   subst He
   unfold errnoErr; rw [if_pos rfl]
   (try wp_auto)
+  -- the data page is clean, and its cells hold it
+  have hysB : ys.map Prod.fst = dataPage mv.pgid' v := by
+    rw [hys']
+    have := pwBytes_inside m2.size (4096 * hwm) (dataPage mv.pgid' v) (List.take 4096 tail2)
+      (by rw [dataPage_length]; omega) (by omega)
+    rwa [dataPage_length] at this
+  have hsyn : syncedBytes { m2 with size := m2.size, hi := h } ys =
+      (dataPage mv.pgid' v).map (·, true) := by
+    unfold syncedBytes
+    rw [ite_eq_left (show ({ m2 with size := m2.size, hi := h } : OsMeta).ok = true from Hok2), ← hysB,
+      List.map_map]
+    rfl
+  rw [hsyn]
+  generalize hm4 : ({ m2 with size := m2.size, hi := h } : OsMeta).synced = m4
+  have hm4m : m4.maps = {[base := len]} := by rw [← hm4]; exact Hmaps
+  have hm4s : m4.size = m2.size := by rw [← hm4]; rfl
+  have hm4o : m4.ok = true := by rw [← hm4]; exact Hok2
+  have hb4 : m4.maps !! base = some len := by rw [hm4m]; exact GMap.lookup_insert _ _ _
+  iunfold cellsAny at Hpc
+  icases Hpc with ⟨%vf, Hpc⟩
+  iapply cellsR_agree _ rfl p _ m4 base len hb4 (DFrac.own 1) (by simp) _
+    ((dataPage mv.pgid' v).map (·, true)) (4096 * hwm) vf (by simp only [List.length_map, dataPage_length]; omega)
+    $$ Hos Hm Hpg [Hpc]
+  · rw [List.length_map, dataPage_length]; iexact Hpc
+  iintro Hm Hpg Hpc
+  rw [show ((dataPage mv.pgid' v).map (·, true)).map Prod.fst = dataPage mv.pgid' v by
+    rw [List.map_map]; exact List.map_id _]
   sorry
 
 end proof
