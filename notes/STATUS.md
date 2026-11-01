@@ -505,6 +505,49 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## kvdurable: Cluster.start's helpers (2026-11-01, branch `worktree-agent-kvd-callees`)
+
+Specs and proofs (no `sorry`, no axiom) of the kvdurable functions `Cluster.start` calls besides
+`openStorage`/`newReplica`/`decodeState`, and of the send chain its transport runs: `itoa` (`n` in
+decimal, `decimalB`), `Cluster.fileOf` (`kdFileName dir id`), `Cluster.config` (`kdCfgOk id st
+applied cv`, `Config.lean`: `RestartNode.spec`'s premises on the configuration but `Applied`'s bound,
+with `Applied = applied`; `qLogger_isLogger` from `quietLogger`'s four method specs), `Cluster.tick`,
+`Cluster.sender` (`sendSpec`, for a started id: `repKnown`), `Cluster.send`, `Cluster.replica`,
+`Cluster.deliver`, `Cluster.step`, `Cluster.dropped`, `copyMsg`. All but `itoa`/`fileOf` are kvreconf's
+specs and proofs at kvdurable's predicates (`isRep γ vs dir id r`: some incarnation in `c.replicas`,
+which may have crashed since: its node is stopped, so it takes nothing and its reports are no-ops).
+
+Vocabulary changes: `isClusterC` records the options (`#Hopts`, `%Ho`: `kdOptsOk o`, `vs =
+bootVoters o.Voters`), so `StartCluster.spec` takes `kdOptsOk o` (it had only the voter bounds;
+`Cluster.config` needs the window and sizes); `clusterLockInv`'s `Hreps` is over `isRep`;
+`Cluster.start.spec` and `Cluster.restart.spec` take `repKnown γ id` (`c.sender(id)` needs it: each
+send looks its sender up by `c.replica(id)`; `StartCluster`/`startNew` have it from the lock's
+`nextID`, `Crash` from the id it picked).
+
+Not done: kvdurable has no `Link.lean` (no `etc/gen-link.py` mode): the mode needs the durable
+extension's section variables (`[HasExt durableExt] [go.IntoValInj GoString]`), `[KdStor GF]` as a
+storage registry, `kdStorageModel` as a local instance, and `Replica.persist`'s two proofs
+(`wp_proof`/`wp_proofRun`, both taken by `Replica.run`). The new functions' lines, for its list
+(callees in the order of the proofs' hypotheses):
+
+```
+kvdurable_Cluster__config:
+kvdurable_Cluster__deliver: kvdurable_Cluster__replica kvdurable_Cluster__dropped kvdurable_Cluster__step kvdurable_copyMsg kvdurable_Stats__add kvdurable_oneIn kvdurable_below raftpb_Message__GetTo
+kvdurable_Cluster__dropped: kvdurable_Stats__add raftpb_Message__GetTo raftpb_Message__GetType node__ReportUnreachable node__ReportSnapshot
+kvdurable_Cluster__fileOf: kvdurable_itoa
+kvdurable_Cluster__replica:
+kvdurable_Cluster__send: kvdurable_Cluster__replica kvdurable_copyMsg kvdurable_Cluster__deliver
+kvdurable_Cluster__sender: kvdurable_Cluster__send
+kvdurable_Cluster__step: kvdurable_Stats__add kvdurable_oneIn raftpb_Message__GetTo raftpb_Message__GetType node__Step node__ReportUnreachable node__ReportSnapshot context_WithTimeoutBackground
+kvdurable_Cluster__tick: kvdurable_below
+kvdurable_copyMsg: proto_CloneSnapshot
+kvdurable_itoa:
+kvdurable_quietLogger__Debugf:
+kvdurable_quietLogger__Errorf:
+kvdurable_quietLogger__Infof:
+kvdurable_quietLogger__Warningf:
+```
+
 ## kvdurable's raft-independent pieces (2026-10-31, branch `kvdurable-ext-work`)
 
 What kvdurable's adequacy needs that does not wait for raft's node API
