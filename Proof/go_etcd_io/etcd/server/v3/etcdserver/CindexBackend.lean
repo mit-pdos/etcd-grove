@@ -38,6 +38,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Un
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeSave
 public import Perennial.Ghost.Token
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvHooks
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
 
 @[expose] public section
 
@@ -77,6 +78,36 @@ theorem ciKeys_hk {P : BParams} (hP : ciKeys P) {k : GoString}
   rcases hk with rfl | rfl
   · rw [hP.2.1, hP.2.2.2.1]
   · rw [hP.2.1, hP.2.2.2.2.1]
+
+/-- A data whose `Meta` bucket is absent or empty has no key in it. -/
+theorem dget_meta_of_empty {D : Data} (he : (D.lookup schema.metaName).getD ∅ = ∅) (k : GoString) :
+    dget D schema.metaName k = none := by
+  unfold dget
+  cases h : D.lookup schema.metaName with
+  | none => rfl
+  | some b =>
+    rw [h] at he
+    simp only [Option.getD_some] at he
+    subst he
+    simp [GMap.lookup_empty]
+
+/-- **A fresh file's meta keys** (2026-11-01, "bootOk's boot metadata"): with `Meta` absent or
+empty, the meta keys read as `(0, 0)` only (`bootOk`'s `HmEmpty` and `Hm0`). -/
+theorem m0_of_metaEmpty {D : Data} {m : MetaCI} (he : (D.lookup schema.metaName).getD ∅ = ∅)
+    (hm : metaIs D m) : m = (W64 0, W64 0) := by
+  have henc : ∀ x : w64, encMeta x = none → x = W64 0 := by
+    intro x hx; unfold encMeta at hx; split at hx
+    · assumption
+    · cases hx
+  obtain ⟨h1, h2⟩ := hm
+  rw [dget_meta_of_empty he] at h1 h2
+  exact Prod.ext (henc _ h1.symm) (henc _ h2.symm)
+
+/-- **A fresh file records no compaction** (2026-11-01, "bootOk's boot metadata"): `bootOk`'s
+`HmEmpty` gives what was its `HnoCmp`. -/
+theorem noCmpData_of_metaEmpty {D : Data} (he : (D.lookup schema.metaName).getD ∅ = ∅) :
+    mvcc.noCmpData D :=
+  ⟨dget_meta_of_empty he _, dget_meta_of_empty he _⟩
 
 /-- The hook's own keys determine the meta keys. -/
 theorem metaIs_of_hkData {P : BParams} (hP : ciKeys P) {S S' : Data} {m : MetaCI}

@@ -20,8 +20,9 @@ used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines t
     and the apply protocol's names and invariant (`consInv`, the apply thread's half at the start:
     the backend's batch lock's resource names them, so they exist before the backend; the
     protocol's allocation is `consInv_alloc`, `InvApply.lean`: since S7f its registry holds the boot
-    backend's physical names, `batchLockInv`'s `applyRegd`), the backend's meta keys at
-    `(0, 0)` (a new cluster's fresh backend);
+    backend's physical names, `batchLockInv`'s `applyRegd`), the boot data's meta keys at the
+    protocol's initial `γA.m0` (`Hm0`, which a restart keeps) and a fresh file's `Meta` empty
+    (`HmEmpty`, so `γA.m0 = (0, 0)`; 2026-11-01, "bootOk's boot metadata");
   - the backend of the real instance `d` with the server's hooks (`server_kv_backend_hooks`'s
     premises but the post-lock hook's, which `NewServer` sets: the hook's half, its open fraction,
     the write budget);
@@ -315,7 +316,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- entries' contexts are)
     "Hmem" ∷ membership.clusterMem bc.cl' (memBoot γ.boot) ∗
     -- the consistent index and the apply protocol
-    "%Hci" ∷ ⌜bk.ci' = ciIface cil ∧ γA.m0 = (W64 0, W64 0)⌝ ∗
+    -- (2026-11-01, the user's decision, "bootOk's boot metadata": until then also `γA.m0 = (0, 0)`,
+    -- a literal; now the data's facts `Hm0` and `HmEmpty`)
+    "%Hci" ∷ ⌜bk.ci' = ciIface cil⌝ ∗
     "#HisCI" ∷ isCI cil γA.ci ∗ "#Hcons" ∷ inv applyN (consInv γA) ∗
     -- (D43 M5e, 2026-10-26, the user's decision) the backend's hooks, as `NewBackendHooks(cfg.Logger,
     -- ci)` makes them (`bootstrapBackend`, `bootstrap.go:258`): the server's `s.beHooks`, whose
@@ -323,8 +326,13 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "#Hbh" ∷ (∃ lgh : Loc, storage.isBackendHooks bk.beHooks'
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
       lgh) ∗
-    "Hthr" ∷ applyThread γA ⟨W64 0, W64 0, W64 0, false⟩ ∗
+    -- (2026-11-01: `consInv_alloc`'s state, processed through the stored index `γA.m0.1`; until
+    -- then `⟨0, 0, 0, false⟩`, a hidden copy of the literal)
+    "Hthr" ∷ applyThread γA ⟨W64 0, γA.m0.1, W64 0, false⟩ ∗
     "Happ" ∷ ciApplying cil (W64 0) (W64 0) ∗ "Hown" ∷ ciOwner cil bk.be' ∗
+    -- the boot backend's meta reads: `#HmetaSnap`'s output at the boot open (`boot_create`,
+    -- `SnapApplyOpen.lean`: from the fresh keys and payment rights inside `OpenBackend`'s `openPre`,
+    -- with `Hm0`), which `bootstrap`, names-only, does not let `NewServer` derive
     "#Hmeta" ∷ isMetaBackend bk.be' (⊤ \ ↑applyN) (readView γA) ∗
     -- (J8a-4, 2026-11-01, the user's decision: `notes/decisions.md`, "J8a-4") the meta reads of a
     -- backend the apply thread opens (`applySnapshot`'s `OpenSnapshotBackend`) at the protocol's
@@ -365,6 +373,11 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- uses)
     "Hnew" ∷ backend.newPost d.γB d.P (fun _ => mvcc.lateW d.gx)
       (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D ∗
+    -- (2026-11-01, the user's decision, "bootOk's boot metadata") the boot data's meta keys are the
+    -- protocol's initial ones: the consistent index and term stored in `D`'s `Meta` bucket are
+    -- `γA.m0` (what `#Hmeta`'s reads return and `batchLockInv γA`'s mirror starts at; a restart's
+    -- `D` holds the last commit's)
+    "%Hm0" ∷ ⌜metaIs D γA.m0⌝ ∗
     "%HD" ∷ ⌜mvcc.keyView (backend.vData d.P (D, ⟨∅, W64 0⟩)) ∅⌝ ∗
     "%HN" ∷ ⌜N + 7 ≤ backend.wbInit⌝ ∗
     -- (D22 J1a, 2026-10-26: of every backend at these parameters, for the snapshot path's backends;
@@ -378,11 +391,15 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "%HDr" ∷ ⌜(∀ n ∈ mvcc.restBuckets, (D.lookup n).getD ∅ = ∅) ∧
       D.lookup go!"members" = some ∅ ∧ D.lookup go!"members_removed" = some ∅ ∧
       D.lookup go!"cluster" = some ∅⌝ ∗
-    -- (D22 S-g, D19l (v) (A); until then the opaque premise `mvcc.backendNoCompaction` of
-    -- `NewServer.spec`) the fresh bbolt file records no compaction (`mvcc.store.restore`'s); (the
-    -- backend-compaction stage, 2026-10-29, the user's decision: until then the token
-    -- `mvcc.bkNoCmp d.γB` beside `Hnew`, which now holds it: `bootBackend_of_newPost`) a fact of `D`
-    "%HnoCmp" ∷ ⌜mvcc.noCmpData D⌝ ∗
+    -- the fresh data directory's file (the environment assumption of `HD`/`HDr`) holds nothing in
+    -- `Meta` (absent, or empty as `bootstrapBackend`'s `CreateMetaBucket` leaves it; a new
+    -- cluster's bootstrap stores no meta key: `UnsafeSave` never stores index 0, nothing calls
+    -- `SetConfState`): no consistent index stored, so `γA.m0 = (0, 0)` (`m0_of_metaEmpty`), and no
+    -- compaction recorded (`noCmpData_of_metaEmpty`, `mvcc.store.restore`'s). (2026-11-01, the
+    -- user's decision, "bootOk's boot metadata": until then `"%HnoCmp" ∷ ⌜mvcc.noCmpData D⌝`; until
+    -- 2026-10-29 the token `mvcc.bkNoCmp d.γB` beside `Hnew`; until D22 S-g, D19l (v) (A), the
+    -- opaque premise `mvcc.backendNoCompaction` of `NewServer.spec`)
+    "%HmEmpty" ∷ ⌜(D.lookup go_etcd_io.etcd.server.v3.storage.schema.metaName).getD ∅ = ∅⌝ ∗
     -- (D22 S-j2, 2026-10-20; an environment assumption the user approved, "D22's environment
     -- assumptions approved") the backend file's directory entry is the server's: nothing else
     -- creates, renames or deletes a file at `<DataDir>/member/snap/db`. `applySnapshot`'s
@@ -432,6 +449,13 @@ instance bootstrapContract_persistent (cfg : go_etcd_io.etcd.server.v3.config.Se
     (dir : w64 → List GoString) :
     Persistent (bootstrapContract (GF := GF) cfg U γ id ctxs N dir) := by
   unfold bootstrapContract; infer_instance
+
+/-- **The boot apply thread on a fresh file** (2026-11-01, "bootOk's boot metadata"): `bootOk`'s
+`Hthr`, at `consInv_alloc`'s state, is at `⟨0, 0, 0, false⟩` when `γA.m0 = (0, 0)`. -/
+theorem thr_fresh (γA : ApplyNames) (h : γA.m0 = (W64 0, W64 0)) :
+    applyThread (GF := GF) γA ⟨W64 0, γA.m0.1, W64 0, false⟩ ⊢
+      applyThread γA ⟨W64 0, W64 0, W64 0, false⟩ := by
+  rw [h]
 
 end defs
 
