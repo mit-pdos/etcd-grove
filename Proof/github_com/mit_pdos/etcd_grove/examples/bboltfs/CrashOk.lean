@@ -110,6 +110,7 @@ theorem seen_writing {Q : OsState → OsState → Prop} {p : GoString} {m : OsMe
       f.durable.length ≤ m.durHi ∧
       (∀ j (hj : j < bs.length), (j < cfLo m off ∨ cfHi m off data.length ≤ j) → bs[j].2 = true →
         f.durable[j]? = some bs[j].1) ∧
+      (∀ j (hj : j < bs.length), bs[j].2 = true → f.dirty j = false ∧ f.lost j = false) ∧
       ∀ t' c, st.inflight !! t' = some c → c.path = p → c = ⟨p, .write off data⟩ := by
   obtain ⟨st, st', Γb, Γm, Γf, Γt, hcoh, hcr, hQ, hst', hm, hxs, hts, -⟩ := h
   simp only [cMeta, cRuns, cToks] at hm hxs hts
@@ -162,9 +163,23 @@ theorem seen_writing {Q : OsState → OsState → Prop} {p : GoString} {m : OsMe
       · exact (hb k hk (by omega)).1
     · rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by simp; omega)]
   refine ⟨st, st', f, hcr, hQ, hst', hf, hcur, fun j d h => hmo.dur j d h, hmo.durLen,
-    fun j hj hout hc => ?_, ?_⟩
+    fun j hj hout hc => ?_, fun j hj hc => ?_, ?_⟩
   · have h4 := ((hb j hj hout).2 hc).2.2.2
     rw [h4]; exact (hb j hj hout).1
+  · by_cases hr : cfLo m off ≤ j ∧ j < cfHi m off data.length
+    · have hcl : ((cfRange m bs off data.length).map Prod.snd)[j - cfLo m off]? = some true := by
+        simp only [List.getElem?_map, cfRange]
+        rw [List.getElem?_take, if_pos (by omega), List.getElem?_drop,
+          show cfLo m off + (j - cfLo m off) = j by omega, List.getElem?_eq_getElem hj]
+        simp [hc]
+      obtain ⟨-, f1, h1, c1, c2, -⟩ := hcoh.tok_clean _ _ hti _ hcl
+      simp only at h1 c1 c2
+      rw [hf] at h1; cases h1
+      simp only [affLo, hsize] at c1 c2
+      rw [show min off bs.length + (j - cfLo m off) = j by simp only [cfLo] at hr ⊢; omega] at c1 c2
+      exact ⟨c1, c2⟩
+    · obtain ⟨c1, c2, -⟩ := (hb j hj (by omega)).2 hc
+      exact ⟨c1, c2⟩
   · intro t' c ht' hcp
     by_cases he : t' = t
     · subst he
@@ -205,7 +220,8 @@ theorem crashOkQ_idle {p : GoString} {m : OsMeta} {bs : List (w8 × Bool)}
 /-- What a crash may leave of a file the client holds as `m`, `bs` with its write of `data` at
 `off` in flight (`writingImg`): an image within the write's size bounds, with the clean bytes of
 `bs` outside the write's range, whose valid meta slots are the durable image `D`'s (which agrees
-with `m.dur` and those clean bytes), or `bs`'s, or `bs`'s after the write. -/
+with `m.dur` and those clean bytes), or `bs`'s (if no byte of the slot is clean in `bs`: P1's
+second case, and a taken byte flagged clean is clean, `OsCoh.tok_clean`), or `bs`'s after the write. -/
 def writingImg (m : OsMeta) (bs : List (w8 × Bool)) (off : Nat) (data : List w8)
     (img D : List w8) : Prop :=
   m.lo ≤ img.length ∧ img.length ≤ max m.hi (off + data.length) ∧
@@ -215,7 +231,9 @@ def writingImg (m : OsMeta) (bs : List (w8 × Bool)) (off : Nat) (data : List w8
   (∀ j (hj : j < bs.length), (j < cfLo m off ∨ cfHi m off data.length ≤ j) → bs[j].2 = true →
     D[j]? = some bs[j].1) ∧
   ∀ i < 2, 4096 * i + 80 ≤ img.length → metaValid (fileMeta img i) →
-    metaSlot img i = metaSlot D i ∨ metaSlot img i = metaSlot (bs.map Prod.fst) i ∨
+    metaSlot img i = metaSlot D i ∨
+    ((∀ k < 64, ∀ x, bs[4096 * i + 16 + k]? = some x → x.2 = false) ∧
+      metaSlot img i = metaSlot (bs.map Prod.fst) i) ∨
     metaSlot img i = metaSlot (writeBytes (bs.map Prod.fst) off data) i
 
 /-- **The writing obligation**: a state with the client's write in flight is crash-safe under P1
@@ -227,7 +245,7 @@ theorem crashOkQ_writing {p : GoString} {m : OsMeta} {bs : List (w8 × Bool)} {t
   intro fo hfc hseen
   rcases hfc with ⟨rfl, -⟩ | ⟨img, rfl, hlo, hhi, hcl⟩
   · trivial
-  obtain ⟨st, st', f, -, hP, hst', hf, hcur, hdur, hdl, hclean, hone⟩ := seen_writing hwf hseen
+  obtain ⟨st, st', f, -, hP, hst', hf, hcur, hdur, hdl, hclean, hcp, hone⟩ := seen_writing hwf hseen
   refine H img f.durable ⟨hlo, hhi, fun k x hk hc hout => ?_, hdur, hdl, hclean,
     fun i hi hlen hv => ?_⟩
   · simp only [cRuns] at hcl
@@ -238,9 +256,18 @@ theorem crashOkQ_writing {p : GoString} {m : OsMeta} {bs : List (w8 × Bool)} {t
         (by rw [List.getElem?_drop, show cfHi m off data.length + (k - cfHi m off data.length) = k
           by omega]; exact hk) hc
       rwa [show cfHi m off data.length + (k - cfHi m off data.length) = k by omega] at this
-  rcases hP f img i hf hst' hi hlen hv with h1 | ⟨-, h2⟩ | ⟨t', off', data', ht, -, h3⟩
+  have hnc : ∀ k, f.dirty k = true ∨ f.lost k = true → ∀ x, bs[k]? = some x → x.2 = false := by
+    intro k hk x hx
+    obtain ⟨hkl, rfl⟩ := List.getElem?_eq_some_iff.1 hx
+    cases hc : bs[k].2
+    · rfl
+    · have := hcp k hkl hc
+      rcases hk with hk | hk
+      · rw [this.1] at hk; cases hk
+      · rw [this.2] at hk; cases hk
+  rcases hP f img i hf hst' hi hlen hv with h1 | ⟨hdl2, h2⟩ | ⟨t', off', data', ht, -, h3⟩
   · exact Or.inl h1
-  · exact Or.inr (Or.inl (by rw [h2, hcur]))
+  · exact Or.inr (Or.inl ⟨fun k hk => hnc _ (hdl2 k hk), by rw [h2, hcur]⟩)
   · have := hone t' _ ht rfl
     simp only [OsChange.mk.injEq, OsChangeKind.write.injEq] at this
     obtain ⟨-, rfl, rfl⟩ := this

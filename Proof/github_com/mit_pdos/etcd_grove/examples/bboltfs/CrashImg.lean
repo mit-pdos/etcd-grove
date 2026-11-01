@@ -2,8 +2,8 @@
 database file passes through during `init` and `commit`, every image a crash may leave
 (`idleImg`, `writingImg`, `CrashOk.lean`) is `goodImg`.
 
-**Slots.** A valid meta slot of the image is the durable image's, or the page cache's (idle: only
-if no byte of the slot is clean), or the write's in flight. `durOk m i P` says what the durable
+**Slots.** A valid meta slot of the image is the durable image's, or the page cache's (only
+if no byte of the slot is clean, in flight too), or the write's in flight. `durOk m i P` says what the durable
 copy of slot `i` may be (`m.dur` knows it, or the durable image is too short to hold it,
 `m.durHi`), `cacheOk bs i P` what the page cache's may be (a clean byte, or a meta satisfying
 `P`); `idleImg_slot`/`writingImg_slot` conclude that a valid slot of the image satisfies `P`.
@@ -177,19 +177,19 @@ theorem idleImg_slot {m : OsMeta} {bs : List (w8 × Bool)} {img D : List w8} {i 
 
 theorem writingImg_slot {m : OsMeta} {bs : List (w8 × Bool)} {off : Nat} {data : List w8}
     {img D : List w8} {i : Nat} {P : Meta → Prop} (h : writingImg m bs off data img D)
-    (hd : durOk m i P)
-    (hc : 4096 * i + 80 ≤ bs.length → metaValid (fileMeta (bs.map Prod.fst) i) →
-      P (fileMeta (bs.map Prod.fst) i))
+    (hd : durOk m i P) (hc : cacheOk bs i P)
     (hw : metaValid (fileMeta (writeBytes (bs.map Prod.fst) off data) i) →
       P (fileMeta (writeBytes (bs.map Prod.fst) off data) i))
     (hi : i < 2) (hl : 4096 * i + 80 ≤ img.length) (hv : metaValid (fileMeta img i)) :
     P (fileMeta img i) := by
   obtain ⟨-, -, -, hD, hDl, -, hs⟩ := h
-  rcases hs i hi hl hv with heq | heq | heq
+  rcases hs i hi hl hv with heq | ⟨hnc, heq⟩ | heq
   · exact durOk_slot hD hDl hd heq hl hv
   · have hb := slot_held heq hl
     rw [List.length_map] at hb
-    rw [fileMeta_of_slot heq] at hv ⊢; exact hc hb hv
+    rcases hc hb with ⟨k, hk, x, hx, hxc⟩ | hP
+    · rw [hnc k hk x hx] at hxc; cases hxc
+    · rw [fileMeta_of_slot heq] at hv ⊢; exact hP hv
   · rw [fileMeta_of_slot heq] at hv ⊢; exact hw hv
 
 /-- A clean byte of `bs` is the image's, idle... -/
@@ -362,14 +362,14 @@ theorem initIdle_wreach {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {data : Lis
 theorem initW1_good {m : OsMeta} {bs : List (w8 × Bool)} {data : List w8}
     (hhi : m.hi ≤ 2 ^ 30) (hdl : data.length ≤ 2 ^ 30)
     (hdur : ∀ i < 2, durOk m i (fun _ => False))
-    (hcache : ∀ i < 2, 4096 * i + 80 ≤ bs.length → ¬ metaValid (fileMeta (bs.map Prod.fst) i))
+    (hcache : ∀ i < 2, cacheOk bs i (fun _ => False))
     (hz : ∀ k < 8192, data[k]? = some 0) :
     ∀ img D, writingImg m bs 0 data img D → goodImg img := by
   intro img D hW
   have hne : data ≠ [] := by
     intro h; have := hz 0 (by omega); rw [h] at this; cases this
   refine goodImg_noValid (by have := hW.2.1; omega) fun i hi hl hv => ?_
-  refine writingImg_slot hW (hdur i hi) (fun hb hv' => hcache i hi hb hv') (fun hv' => ?_) hi hl hv
+  refine writingImg_slot hW (hdur i hi) (hcache i hi) (fun hv' => ?_) hi hl hv
   refine slot_zero_invalid (fun k hk => ?_) hv'
   unfold writeBytes
   rw [if_neg hne]
@@ -424,8 +424,7 @@ theorem initMid_idle_good {m : OsMeta} {bs : List (w8 × Bool)} (h : initMid m b
 
 theorem initW2_good {m : OsMeta} {bs : List (w8 × Bool)} {data : List w8} (h : initMid m bs)
     (hdl : data.length ≤ 4096 * 3) (hsz : 4 * 4096 ≤ m.size)
-    (hc : ∀ i < 2, 4096 * i + 80 ≤ bs.length → metaValid (fileMeta (bs.map Prod.fst) i) →
-      fileMeta (bs.map Prod.fst) i = bInitMeta i)
+    (hc : ∀ i < 2, cacheOk bs i (fun X => X = bInitMeta i))
     (hw : ∀ i < 2, metaValid (fileMeta (writeBytes (bs.map Prod.fst) 0 data) i) →
       fileMeta (writeBytes (bs.map Prod.fst) 0 data) i = bInitMeta i) :
     ∀ img D, writingImg m bs 0 data img D → goodImg img := by
@@ -633,9 +632,7 @@ theorem commitMetaW_good {m : OsMeta} {bs : List (w8 × Bool)} {mp : List w8} {N
     {data : List w8} (h : commitMeta m bs mp N s) (hdl : data.length = 4096)
     (hhi : 4096 * (1 - s) + 4096 ≤ 2 ^ 30)
     (hR : 2 ≤ curRoot mp)
-    (hc : 4096 * (1 - s) + 80 ≤ bs.length → metaValid (fileMeta (bs.map Prod.fst) (1 - s)) →
-      fileMeta (bs.map Prod.fst) (1 - s) = fileMeta mp (1 - s) ∨
-        fileMeta (bs.map Prod.fst) (1 - s) = N)
+    (hc : cacheOk bs (1 - s) (fun X => X = fileMeta mp (1 - s) ∨ X = N))
     (hw : fileMeta (writeBytes (bs.map Prod.fst) (4096 * (1 - s)) data) (1 - s) = N) :
     ∀ img D, writingImg m bs (4096 * (1 - s)) data img D → goodImg img := by
   intro img D hW
@@ -678,7 +675,7 @@ theorem initIdle_okS (hb : s.busy = .idle) (h : initIdle s.m s.bs) :
 theorem initW1_okS {t : Nat} {data : List w8} (hb : s.busy = .write t 0 data)
     (hhi : s.m.hi ≤ 2 ^ 30) (hdl : data.length ≤ 2 ^ 30)
     (hdur : ∀ i < 2, durOk s.m i (fun _ => False))
-    (hcache : ∀ i < 2, 4096 * i + 80 ≤ s.bs.length → ¬ metaValid (fileMeta (s.bs.map Prod.fst) i))
+    (hcache : ∀ i < 2, cacheOk s.bs i (fun _ => False))
     (hz : ∀ k < 8192, data[k]? = some 0) : CrashOkS (P1 p) p Good (some s) :=
   crashOkS_write s hb hl (crashOkQ_writing hl (initW1_good hhi hdl hdur hcache hz))
 
@@ -690,8 +687,7 @@ theorem initMid_okS (hb : s.busy = .idle) (h : initMid s.m s.bs)
 /-- `init`'s meta write in flight. -/
 theorem initW2_okS {t : Nat} {data : List w8} (hb : s.busy = .write t 0 data) (h : initMid s.m s.bs)
     (hdl : data.length ≤ 4096 * 3) (hsz : 4 * 4096 ≤ s.m.size)
-    (hc : ∀ i < 2, 4096 * i + 80 ≤ s.bs.length → metaValid (fileMeta (s.bs.map Prod.fst) i) →
-      fileMeta (s.bs.map Prod.fst) i = bInitMeta i)
+    (hc : ∀ i < 2, cacheOk s.bs i (fun X => X = bInitMeta i))
     (hw : ∀ i < 2, metaValid (fileMeta (writeBytes (s.bs.map Prod.fst) 0 data) i) →
       fileMeta (writeBytes (s.bs.map Prod.fst) 0 data) i = bInitMeta i) :
     CrashOkS (P1 p) p Good (some s) :=
@@ -727,9 +723,7 @@ theorem commitClean_trunc_okS {t sz : Nat} (hb : s.busy = .trunc t sz) (h : comm
 theorem commitMetaW_okS {t sl : Nat} {data : List w8} {mp : List w8} {N : Meta}
     (hb : s.busy = .write t (4096 * (1 - sl)) data) (h : commitMeta s.m s.bs mp N sl)
     (hdl : data.length = 4096) (hhi : 4096 * (1 - sl) + 4096 ≤ 2 ^ 30) (hR : 2 ≤ curRoot mp)
-    (hc : 4096 * (1 - sl) + 80 ≤ s.bs.length → metaValid (fileMeta (s.bs.map Prod.fst) (1 - sl)) →
-      fileMeta (s.bs.map Prod.fst) (1 - sl) = fileMeta mp (1 - sl) ∨
-        fileMeta (s.bs.map Prod.fst) (1 - sl) = N)
+    (hc : cacheOk s.bs (1 - sl) (fun X => X = fileMeta mp (1 - sl) ∨ X = N))
     (hw : fileMeta (writeBytes (s.bs.map Prod.fst) (4096 * (1 - sl)) data) (1 - sl) = N) :
     CrashOkS (P1 p) p Good (some s) :=
   crashOkS_write s hb hl (crashOkQ_writing hl (commitMetaW_good h hdl hhi hR hc hw))
