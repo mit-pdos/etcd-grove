@@ -111,7 +111,7 @@ theorem commitClean_of_prefix {m m' : OsMeta} {bs bs' : List (w8 × Bool)} (h : 
   have ht : (bs'.map Prod.fst).take 8192 = (bs.map Prod.fst).take 8192 :=
     take_congr' hpre' (by omega)
   refine ⟨hhi, hlo, by rw [ht]; exact h.ok, by rw [ht]; exact h.slot, by rw [ht]; exact hpg, ?_,
-    fun k hk => by rw [hpre k (by omega)]; exact h.metas k hk, fun k hk => ?_⟩
+    fun k hk => by rw [hpre k (by omega)]; exact h.metas k hk, fun k hk => ?_, by rw [ht]; exact h.tx⟩
   · rw [ht, take_drop_congr hpre' (by omega)]; exact h.boot
   · rw [ht, hpre _ (by omega)]; exact h.root k hk
 
@@ -221,16 +221,16 @@ theorem commitMetaSt_wreach {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {mp : L
   have hhi' := hN.hi
   refine ⟨hs2, h.sTx, by omega, by rw [hN.lo]; exact h.lo, h.ok, h.slot, by rw [hN.lo]; exact h.pg,
     by rw [hpage _ hR2]; exact h.boot, fun k hk => by rw [hout _ (.inr (by omega))]; exact h.root k hk,
-    fun k hk => by rw [hout _ (by omega)]; exact h.metaS k hk, h.nValid, h.nTx, h.nTxS, hNR,
-    h.nRootPg, h.nPg, by rw [hN.lo]; exact h.nPgLo, by rw [hpage _ hNR]; exact h.nBoot,
+    fun k hk => by rw [hout _ (by omega)]; exact h.metaS k hk, h.tx, h.nValid, h.nTx, h.nTxS, hNR,
+    h.nRootPg, h.nTxPg, h.nPg, by rw [hN.lo]; exact h.nPgLo, by rw [hpage _ hNR]; exact h.nBoot,
     fun k hk => by rw [hout _ (.inr (by omega))]; exact h.nPage k hk, durOk_congr hdur hdurHi h.dur⟩
 
 /-- `commitMetaSt` does not look at the mappings or `ok`. -/
 theorem commitMetaSt_meta {m m' : OsMeta} {bs : List (w8 × Bool)} {mp : List w8} {N : Meta}
     {s : Nat} (h : commitMetaSt m bs mp N s) (hhi : m'.hi = m.hi) (hlo : m'.lo = m.lo)
     (hdur : m'.dur = m.dur) (hdh : m'.durHi = m.durHi) : commitMetaSt m' bs mp N s :=
-  ⟨h.s2, h.sTx, hhi ▸ h.hi, hlo ▸ h.lo, h.ok, h.slot, hlo ▸ h.pg, h.boot, h.root, h.metaS, h.nValid,
-    h.nTx, h.nTxS, h.nRoot, h.nRootPg, h.nPg, hlo ▸ h.nPgLo, h.nBoot, h.nPage,
+  ⟨h.s2, h.sTx, hhi ▸ h.hi, hlo ▸ h.lo, h.ok, h.slot, hlo ▸ h.pg, h.boot, h.root, h.metaS, h.tx,
+    h.nValid, h.nTx, h.nTxS, h.nRoot, h.nRootPg, h.nTxPg, h.nPg, hlo ▸ h.nPgLo, h.nBoot, h.nPage,
     durOk_congr hdur hdh h.dur⟩
 
 /-- What the meta write (the page `D`, whose meta is `N`, at slot `1 - s`) reaches, from a state
@@ -314,7 +314,7 @@ theorem metaSynced_commitClean {m : OsMeta} {H F T : List (w8 × Bool)} {mp' B :
     (hpg : 4096 * curPgid mp' ≤ m.size) (h30 : m.size ≤ 2 ^ 30) (h16 : 4 * 4096 ≤ m.size)
     (hB : B.length = 4096)
     (hpage : ∀ k < 4096, (H ++ (F ++ T))[4096 * curRoot mp' + k]? = B[k]?.map (·, true))
-    (hboot : bootOk (curMeta mp').txid'.toNat (pageVal B)) :
+    (hboot : bootOk (curMeta mp').txid'.toNat (pageVal B)) (htx : txOk mp') :
     commitClean (m.synced 0 H) (syncedBytes m H ++ (F ++ T)) ∧
       (syncedBytes m H ++ (F ++ T)).length = (m.synced 0 H).size := by
   have hr2 := hmpok.2.2.1
@@ -340,7 +340,7 @@ theorem metaSynced_commitClean {m : OsMeta} {H F T : List (w8 × Bool)} {mp' B :
     rw [List.length_append, hsl]; rw [List.length_append, hH] at hl; exact hl
   refine ⟨⟨by show m.size ≤ _; exact h30, by show _ ≤ m.size; exact h16, by rw [hX]; exact hmpok,
     by rw [hX]; exact hslot, by rw [hX]; exact hpg, by rw [hX, hpB]; exact hboot, fun k hk => ?_,
-    fun k hk => ?_⟩, hl'⟩
+    fun k hk => ?_, by rw [hX]; exact htx⟩, hl'⟩
   · rw [List.getElem?_append_left (by omega), hsH, List.getElem?_map,
       List.getElem?_eq_getElem (by omega)]
     exact ⟨_, rfl⟩
@@ -576,6 +576,7 @@ theorem commitMetaSt_of {m : OsMeta} {bs : List (w8 × Bool)} {v : w64} (h : com
   have hpg := h.pg
   have hboot0 := h.boot
   have hroot := h.root
+  have htx0 := h.tx
   have hmpk : ∀ j < 8192, ((bs.map Prod.fst).take 8192)[j]? = (bs[j]?).map Prod.fst := by
     intro j hj; rw [List.getElem?_take, if_pos hj, List.getElem?_map]
   generalize hmp : (bs.map Prod.fst).take 8192 = mp at *
@@ -602,8 +603,10 @@ theorem commitMetaSt_of {m : OsMeta} {bs : List (w8 × Bool)} {v : w64} (h : com
     rw [hrtN, hnpg, hpgv]
     generalize curPgid mp = x at hb hlo hrp
     omega
-  refine ⟨hs2, rfl, hhi, hlo4, ⟨hl8, hv, hr2, hrp, hbd⟩, hslot, hpg, hboot0, hroot, ?_, hN,
-    ?_, htx, hnum.1, hnum.2.1, hnum.2.2.1, hnum.2.2.2,
+  have hnTxPg : (commitOf (curMeta mp)).txid'.toNat < (commitOf (curMeta mp)).pgid'.toNat := by
+    have := htx0.2; unfold curPgid at this; rw [htx, hnpg]; omega
+  refine ⟨hs2, rfl, hhi, hlo4, ⟨hl8, hv, hr2, hrp, hbd⟩, hslot, hpg, hboot0, hroot, ?_, htx0, hN,
+    ?_, htx, hnum.1, hnum.2.1, hnTxPg, hnum.2.2.1, hnum.2.2.2,
     ?_, ?_, ?_⟩
   · intro k hk
     obtain ⟨b, hb', -⟩ := hdur (4096 * ((curMeta mp).txid'.toNat % 2) + 16 + k) (by omega)
@@ -691,7 +694,7 @@ theorem metaS_facts {p : GoString} {M5 m6 : OsMeta} {B5 bs6 : List (w8 × Bool)}
     (hmp' : mp' = setPage mp i (metaPageOf mv))
     (hok' : metaPagesOk mp') (hcur' : curMeta mp' = commitOf mv) (hcr' : curRoot mp' = hwm)
     (hcp' : curPgid mp' = hwm + 1) (hct' : (curMeta mp').txid'.toNat = mv.txid'.toNat + 1)
-    (hboot : bootOk (mv.txid'.toNat + 1) (some v)) :
+    (hboot : bootOk (mv.txid'.toNat + 1) (some v)) (htxm : mv.txid'.toNat < hwm) :
     ∃ (M7 : OsMeta) (B7 H F T : List (w8 × Bool)),
       bs6 = H ++ (F ++ T) ∧ H.length = 8192 ∧ 8192 + F.length = 4096 * hwm ∧
       csSynced true m6 H F T 8192 (4096 * hwm) = ⟨M7, B7, 8192, 4096 * hwm, .idle⟩ ∧
@@ -735,6 +738,7 @@ theorem metaS_facts {p : GoString} {M5 m6 : OsMeta} {B5 bs6 : List (w8 × Bool)}
         fileMeta_setPage_same mp i _ hml hi2 hD, metaPageOf_meta])
     (by rw [hcp', hs6]; exact h5) (by rw [hs6]; exact h30) (by rw [hs6]; exact h16) hdp
     (by rw [hcr']; exact hpg6) (by rw [hct', dataPage_val]; exact hboot)
+    ⟨by rw [hct']; omega, by rw [hct', hcp']; omega⟩
   have hsH : syncedBytes m6 (bs6.take 8192) = (bs6.take 8192).map (fun x => (x.1, true)) := by
     unfold syncedBytes; rw [if_pos hok6]
   have hsl : (syncedBytes m6 (bs6.take 8192)).length = 8192 := by rw [syncedBytes_length, hH]
@@ -1655,6 +1659,7 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
     hok7', hok7M, hX⟩ := metaS_facts (p := p) (v := v) hl6 hs6 (by rw [ho6, ho5]) h2
       (by rw [hs5']; exact Hgrow) (by rw [hs5']; exact h30) hi (by rw [hi]; exact hout6) hd6 ht5 hml
       hpg5 hmp'.symm hok' hcur' hcr' hcp' hct' Hboot
+      (by have h := hcc4.tx.2; rw [hmp4, hmv, show curPgid mp = hwm from hhwm] at h; exact h)
   rw [hX]
   rw [hsplit6] at hok6F hok6F'
   rw [hsplit6]
