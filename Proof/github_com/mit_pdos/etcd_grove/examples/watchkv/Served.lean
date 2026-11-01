@@ -99,7 +99,7 @@ theorem wk_served (V : client.WEnv GF) (addr : GoString)
   · iframe; iframe #
   ihave %Hlink := client.watchSrvLink_of_server pw V.R $$ Hws
   ihave #Htok := client.watchTokPool_of_server pw V.R $$ Hws
-  ihave #Hnc := v3rpc.isWatchServer_noCompactor_env pw V.R hoff $$ Hws
+  ihave #Hnc := v3rpc.isWatchServer_watchNoDup_env pw V.R hoff $$ Hws
   ihave #Hsm : client.srvLogsSmall V.R $$ []
   · iapply client.srvLogsSmall_of_read V.R s γr Hlink
     rw [hE]; iexact Hsrd

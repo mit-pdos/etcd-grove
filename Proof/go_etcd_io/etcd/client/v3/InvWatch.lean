@@ -464,20 +464,20 @@ theorem watchLaws_srv [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (V : 
 
 /-- **A member's facts** (persistent; W3b): its watch-token pool, its logs small, no key written
 twice in a revision, its store's names its environment's, and its watched logs as the contract's
-model sees them (`watchLaws`); and (M2, the storage side, 2026-10-30: review round 1's F1, the
-user's: no watchers in compaction mode) its store's "no compactor" fact, which the client's create
-requests carry (`watchUp`). -/
+model sees them (`watchLaws`); and (M2, the storage side; watches across a compaction, D8,
+2026-11-01) its store's fact for watches (`mvcc.watchNoDup`: no compactor, or no revision writing a
+key twice), which the client's create requests carry (`watchUp`). -/
 def watchMemberFacts (V : WEnv GF) : IProp GF :=
   iprop(mvcc.watchTokPool V.R.γ ∗ srvLogsSmall V.R ∗
-    ⌜V.R.γ.st = V.R.E.γ⌝ ∗ watchLaws V ∗ srvKVFacts V ∗ mvcc.noCompactor V.R.γ.st)
+    ⌜V.R.γ.st = V.R.E.γ⌝ ∗ watchLaws V ∗ srvKVFacts V ∗ mvcc.watchNoDup V.R.γ.st)
 
 instance watchMemberFacts_persistent (V : WEnv GF) : Persistent (watchMemberFacts V) := by
   unfold watchMemberFacts; infer_instance
 
-/-- **The member's "no compactor" fact** (a projection, so no site destructures the facts by
+/-- **The member's fact for watches** (a projection, so no site destructures the facts by
 position). -/
-theorem watchMemberFacts_noCompactor (V : WEnv GF) :
-    watchMemberFacts V ⊢ mvcc.noCompactor V.R.γ.st := by
+theorem watchMemberFacts_noDup (V : WEnv GF) :
+    watchMemberFacts V ⊢ mvcc.watchNoDup V.R.γ.st := by
   iintro #H
   iunfold watchMemberFacts at H
   icases H with ⟨-, -, -, -, -, #Hf⟩
@@ -505,7 +505,7 @@ theorem watchUp_create (V : WEnv GF) (i : Nat) (c : v3rpc.CreateReqM)
     watchMemberFacts V ∗ mvcc.watchTok V.R.γ ∗ □ auth.authPubLbM V.R.E.authMode c.bound ⊢
       v3rpc.watchUp V.R i (.create c) := by
   iintro ⟨#Hm, Ht, #Hb⟩
-  ihave #Hf := watchMemberFacts_noCompactor V $$ Hm
+  ihave #Hf := watchMemberFacts_noDup V $$ Hm
   unfold v3rpc.watchUp
   dsimp only
   iframe Ht Hf Hb
