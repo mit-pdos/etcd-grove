@@ -199,48 +199,6 @@ theorem busy_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds es : List Entr
   iintro ⟨#Hn, #Hlb, Hr⟩
   iframe Hn Hlb Hr
 
-/-- (stage II helper) A certified term is raft's reading of the contract's `DL` (`raftDL`'s first
-disjunct). -/
-theorem raftDL_of_key (sn : StorNames) (i : Nat) (t : w64) :
-    (i ↪[sn.gd]□ t : IProp GF) ⊢ raftDL sn i t := by
-  unfold raftDL; iintro #H; ileft; iexact H
-
-/-- (stage II helper) The certified terms of a committed log `ds` give `raftDL` of each entry of
-what the client sees of it. -/
-theorem dlvKeys_raftDL (sn : StorNames) (ds : List EntryM) :
-    dlvKeys (GF := GF) sn ds ⊢
-      [∗list] j ↦ e ∈ LogEntry.toEntries (strip ds) 0, raftDL sn (j + 1) e.Term' := by
-  have Hm : (LogEntry.toEntries (strip ds) 0).map (fun e : EntryM => e.Term') =
-      ds.map (fun e : EntryM => e.Term') := by
-    apply List.ext_getElem?
-    intro k
-    rw [List.getElem?_map, List.getElem?_map, toEntries_getElem?]
-    unfold strip
-    rw [List.getElem?_map]
-    cases ds[k]? <;> rfl
-  have h1 := BigSepL.bigSepL_map (fun e : EntryM => e.Term')
-    (Φ := fun j (t : w64) => raftDL (GF := GF) sn (j + 1) t) (l := LogEntry.toEntries (strip ds) 0)
-  have h2 := BigSepL.bigSepL_map (fun e : EntryM => e.Term')
-    (Φ := fun j (t : w64) => raftDL (GF := GF) sn (j + 1) t) (l := ds)
-  rw [← h1, Hm, h2]
-  unfold dlvKeys dlvKeysAt
-  apply BigSepL.bigSepL_mono
-  intro k x _
-  rw [show 0 + k + 1 = k + 1 by omega]
-  exact raftDL_of_key sn (k + 1) x.Term'
-
-/-- (stage II helper) A committed log with raft's certified terms under the key's names is
-committed for the key's storage. -/
-theorem nodeCommitLbU_of_dlvLb (γ : Cluster) (K : GName) (γn : NodeNames) (ds : List EntryM) :
-    storKeyNames (GF := GF) K γn.sn ∗ dlvLb γn ds ∗ isCommittedLogLb γ (strip ds) ⊢
-      nodeCommitLbU γ K (strip ds).length := by
-  unfold nodeCommitLbU dlvLb
-  iintro ⟨#Hk, ⟨-, #Hd⟩, #Hc⟩
-  iright; iexists γn.sn, strip ds
-  iframe Hk Hc
-  isplitr; · ipureintro; exact Nat.le_refl _
-  iapply dlvKeys_raftDL $$ Hd
-
 theorem nodeDriver_deliveredLogLb_impl (n : Loc) (γ : Cluster) (N : Namespace)
     (st : NodeDriverState) :
     nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗ deliveredLogLb n γ N st.delivered := by
