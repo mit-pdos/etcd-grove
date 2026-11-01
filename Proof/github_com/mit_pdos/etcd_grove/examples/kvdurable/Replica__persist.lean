@@ -75,7 +75,7 @@ theorem Replica.persist.wp_proof
   cases crashed
   · -- not crashed: the image written
     simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, Hph⟩
+    icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, %Hfb, Hph⟩
     -- the new durable state, `M`'s, and the phase after the write: a pending batch is entered
     -- here and left `fired` for `run`
     ihave Hstep : iprop(∃ (S' : RaftState) (pz' : KdPhase), ⌜StorageHolds S' (kdContents (some M))⌝ ∗
@@ -169,28 +169,28 @@ theorem Replica.persist.wp_proof
     try wp_auto
     wp_apply wp_add sts _ $$ [$Hpkg $Hfw]
     try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hwr Hph]
+    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hcm Hwr Hph]
     · inext
       iunfold kdDmuInv
       iexists false, ip, M, fz
-      iframe Hcr Himg Himage Hmeta Hic Hfz His
+      iframe Hcr Himg Himage Hmeta Hic Hfz His Hcm
       isplitr
       · ipureintro; exact Hfzc
       simp only [Bool.false_eq_true, ↓reduceIte]
       iexists S', some M, pz'
       iunfold kdWriter
       iframe Hwr Hcert Hph
-      ipureintro; exact HMok
+      ipureintro; exact ⟨HMok, fun f hf => by cases hf; exact Nat.le_refl _⟩
     try wp_auto
     iapply HΦ
     iframe Hrun
   · -- crashed: nothing written
     try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hlive]
+    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hcm Hlive]
     · inext
       iunfold kdDmuInv
       iexists true, ip, M, fz
-      iframe Hcr Himg Himage Hmeta Hic Hfz His Hlive
+      iframe Hcr Himg Himage Hmeta Hic Hfz His Hcm Hlive
       ipureintro; exact Hfzc
     try wp_auto
     iapply HΦ
@@ -223,7 +223,7 @@ theorem Replica.persist.wp_proofRun
   cases crashed
   · -- not crashed: the image written, the batch's results to `run`
     simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, Hph⟩
+    icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, %Hfb, Hph⟩
     iunfold kdPhaseInv at Hph
     -- the new durable state, the file's, `M`'s; and the batch's results, as `run` saved them
     ihave Hstep : iprop(∃ S' : RaftState, ⌜StorageHolds S' (kdContents (some M)) ∧ S' = st'.durable⌝ ∗
@@ -329,11 +329,11 @@ theorem Replica.persist.wp_proofRun
     try wp_auto
     wp_apply wp_add sts _ $$ [$Hpkg $Hfw]
     try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hwr Hph]
+    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hcm Hwr Hph]
     · inext
       iunfold kdDmuInv
       iexists false, ip, M, fz
-      iframe Hcr Himg Himage Hmeta Hic Hfz His
+      iframe Hcr Himg Himage Hmeta Hic Hfz His Hcm
       isplitr
       · ipureintro; exact Hfzc
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -342,6 +342,8 @@ theorem Replica.persist.wp_proofRun
       iframe Hwr Hcert
       isplitr
       · ipureintro; exact HMok
+      isplitr
+      · ipureintro; intro f hf; cases hf; exact Nat.le_refl _
       simp only [kdPhaseInv]
       iframe Hph
       ipureintro; exact HSM
@@ -351,11 +353,11 @@ theorem Replica.persist.wp_proofRun
     iframe Hrun Hclaim HA
   · -- crashed: nothing written, the claim kept
     try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hlive]
+    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hcm Hlive]
     · inext
       iunfold kdDmuInv
       iexists true, ip, M, fz
-      iframe Hcr Himg Himage Hmeta Hic Hfz His Hlive
+      iframe Hcr Himg Himage Hmeta Hic Hfz His Hcm Hlive
       ipureintro; exact Hfzc
     try wp_auto
     iapply HΦ

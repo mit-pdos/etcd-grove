@@ -152,7 +152,7 @@ theorem Replica.snapshot.wp_proof
     wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hdmu] as ⟨Hlocked, HI⟩
     iunfold kdDmuInv at HI
     iNamed HI
-    icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert0, Hph⟩
+    icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert0, %Hfb, Hph⟩
     ihave %Hifz := monoNatLbOwn_valid ρ.ph.ic 1 fz (uint.nat q.index') $$ Hic Hicl
     ihave %Hgap : ⌜imgCreateStale M q.index' ∨
         (uint.nat q.index' ≤ uint.nat M.hs.Commit' ∧ imgTermAt M q.index' = e.Term')⌝ $$ []
@@ -182,7 +182,7 @@ theorem Replica.snapshot.wp_proof
     -- `dmu`'s record of the image kept; the error the image's
     ihave Hblk : iprop(|==> (⌜err = interface.nil ∨ err = interface.mkOk (go.GoType.PointerType
         _root_.Perennial.errors.errorString.ty) #xe⌝ ∗ ▷ kdDmuInv γ id r n st ρ.ms ρ.γs ρ.ph ∗
-        monoNatLbOwn ρ.ph.is (uint.nat q.index'))) $$ [Hres Hcr Hmeta Hwr Hph Hic His]
+        monoNatLbOwn ρ.ph.is (uint.nat q.index'))) $$ [Hres Hcr Hmeta Hwr Hph Hic His Hcm]
     · by_cases Hst : imgCreateStale M q.index'
       · imodintro
         simp only [Hst, ↓reduceIte]
@@ -194,12 +194,12 @@ theorem Replica.snapshot.wp_proof
         · inext
           iunfold kdDmuInv
           iexists crashed, ip, M, fz
-          iframe Hcr Himg Himage Hmeta Hic Hfz His
+          iframe Hcr Himg Himage Hmeta Hic Hfz His Hcm
           isplitr
           · ipureintro; exact Hfzc
           iexists S, o, pz
           iframe Hwr Hcert0 Hph
-          ipureintro; exact HMok
+          ipureintro; exact ⟨HMok, Hfb⟩
         unfold imgCreateStale at Hst
         iapply monoNatLbOwn_le (uint.nat q.index') (by word) $$ Hsl
       · simp only [Hst, ↓reduceIte]
@@ -220,7 +220,7 @@ theorem Replica.snapshot.wp_proof
           show (imgCreateSnapshot M q.index' (some cc) bs).prev = M.prev from rfl,
           show (imgCreateSnapshot M q.index' (some cc) bs).ents = M.ents from rfl,
           show (imgCreateSnapshot M q.index' (some cc) bs).snap.Metadata'.Index' = q.index' from rfl]
-        iframe Hcr Himg Himage Hmeta Hic Hfz His
+        iframe Hcr Himg Himage Hmeta Hic Hfz His Hcm
         isplitr
         · ipureintro; exact Hfzc
         iexists S, o, pz
@@ -229,6 +229,8 @@ theorem Replica.snapshot.wp_proof
         · ipureintro; exact Hok'.1
         isplitr
         · simp only [imgCreateSnapshot, Option.getD_some, Hti]; iexact Hcert
+        isplitr
+        · ipureintro; exact Hfb
         iapply kdPhaseInv_transport γ id n ρ.ph.ph S M _ pz Hok'.2 $$ Hph
     imod Hblk with ⟨%Herr, HI, #Hilb⟩
     wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked $HI]
@@ -279,7 +281,7 @@ theorem Replica.snapshot.wp_proof
       ihave %Hx61 := memLog_bound $$ Hex
       iunfold kdDmuInv at HI
       iNamed HI
-      icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert0, Hph⟩
+      icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert0, %Hfb, Hph⟩
       ihave %Hkg := monoNatLbOwn_valid ρ.ph.is 1 _ (uint.nat k1) $$ His Hkni1
       ihave ⟨%HhS, Hph⟩ := kdPhaseInv_holds γ id n ρ.ph.ph S M pz $$ Hph
       obtain ⟨S0, HhS⟩ := HhS
@@ -317,7 +319,7 @@ theorem Replica.snapshot.wp_proof
           $$ [$Hpkg $Hrec $Himg $Himage $ErrCompacted $Hraft $HmsInv $HB $Hex $Hxlb]
         as %err ⟨-, Hres⟩
       ihave ⟨%Herr, HI⟩ : iprop(⌜err = interface.nil ∨ err = errCompacted⌝ ∗
-          ▷ kdDmuInv γ id r n st ρ.ms ρ.γs ρ.ph) $$ [Hres Hcr Hmeta Hwr Hph Hic His]
+          ▷ kdDmuInv γ id r n st ρ.ms ρ.γs ρ.ph) $$ [Hres Hcr Hmeta Hwr Hph Hic His Hcm]
       · by_cases Hst : imgCompactStale M (fi + rb)
         · simp only [Hst, ↓reduceIte]
           icases Hres with ⟨%Herr, Himage⟩
@@ -326,12 +328,12 @@ theorem Replica.snapshot.wp_proof
           inext
           iunfold kdDmuInv
           iexists crashed, ip, M, fz
-          iframe Hcr Himg Himage Hmeta Hic Hfz His
+          iframe Hcr Himg Himage Hmeta Hic Hfz His Hcm
           isplitr
           · ipureintro; exact Hfzc
           iexists S, o, pz
           iframe Hwr Hcert0 Hph
-          ipureintro; exact HMok
+          ipureintro; exact ⟨HMok, Hfb⟩
         · simp only [Hst, ↓reduceIte]
           icases Hres with ⟨%Herr, Himage⟩
           have Hok' := compact_ok M (fi + rb) HMok Hst Hxs (by
@@ -350,7 +352,7 @@ theorem Replica.snapshot.wp_proof
             show (imgCompact M (fi + rb)).snap = M.snap from rfl,
             show (imgCompact M (fi + rb)).prev = fi + rb from rfl,
             show (imgCompact M (fi + rb)).ents = M.ents.drop (uint.nat (fi + rb) - uint.nat M.prev) from rfl]
-          iframe Hcr Himg Himage Hmeta Hic Hfz' His
+          iframe Hcr Himg Himage Hmeta Hic Hfz' His Hcm
           isplitr
           · ipureintro; rcases Hfzc with h | h
             · left; exact h
@@ -359,6 +361,8 @@ theorem Replica.snapshot.wp_proof
           iframe Hwr Hcert0
           isplitr
           · ipureintro; exact Hok'.1
+          isplitr
+          · ipureintro; exact Hfb
           iapply kdPhaseInv_transport γ id n ρ.ph.ph S M _ pz Hok'.2 $$ Hph
       wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked $HI]
       try wp_auto

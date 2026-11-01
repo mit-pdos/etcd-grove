@@ -49,7 +49,7 @@ attribute [local instance] kdStorageModel
 theorem Replica.request.wp_proof
     (wp_encodeState : encodeState.spec (GF := GF) (hG := hG)) :
     Replica.request.spec (GF := GF) (hG := hG) := by
-  intro γ vs dir id r n st sts sq ρ ap csp m mA A D cp snapIndex bound snap Hpre Hcp
+  intro γ vs dir id r n st sts sq ρ ap csp m mA A D cp snapIndex bound snap Hpre Hcp Hbd
   wp_start as ⟨#Hrr, Hown, #Hcpc, #Hfz0, #Hdl, #Hcl', #Hal, #Hic⟩
   ihave #Hfz : kvreconf.frozenTo ρ.γs cp D $$ []
   · unfold kvreconf.frozenTo; iexact Hfz0
@@ -96,7 +96,10 @@ theorem Replica.request.wp_proof
       as %sl ⟨HK, HA, %kvs, %ops, Hsl, %Hkv⟩
     -- the snapshot: its entry, its certificate, its delivered log
     have Hlt : uint.nat snapIndex < ap.length := by word
+    have Hpre := Hpre Hlt
     have HapD : ap.length ≤ D.length := Hpre.length_le
+    icases Hic with (%Hle | #Hic)
+    · exfalso; omega
     have Hne : ap ≠ [] := by intro h; subst h; simp at Hlt
     have Hlast : D[ap.length - 1]? = ap.getLast? := by
       rw [List.getLast?_eq_getElem?]
@@ -169,7 +172,7 @@ theorem Replica.request.wp_proof
     iexists cp, D
     iframe Hcpc Hfz0
     isplitr
-    · ipureintro; have := Hpre.length_le; omega
+    · ipureintro; have := Hcv.1; omega
     iapply nodeAppliedLb_mono γ.r.cluster ρ.key _ _ Hcv.1 $$ Hal
   -- nothing to ask for: `snapIndex`; otherwise the send, dropped if a request is pending
   wp_if_destruct

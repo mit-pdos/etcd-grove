@@ -121,6 +121,9 @@ structure KdDmuNames where
   ic : GName
   /-- the image's snapshot index (`monoNat`) -/
   is : GName
+  /-- the image's hard state (`ghostVar`, halves: `dmu`'s and `run`'s; only `run`'s `SetHardState`
+  moves it, so `run` knows it is its driver's: 2026-11-01, stage II (j), G12) -/
+  cm : GName
 
 /-- A replica incarnation's names (`DefsCluster`'s `RepNames`, with the storage's key and the
 `dmu` names). -/
@@ -433,6 +436,8 @@ def kdDmuInv (γ : KdNames) (id : w64) (r n st ms : Loc) (γs : MemStorNames) (p
     "#Hfz" ∷ memLog γs (uint.nat M.prev + 1) DFrac.discard (M.ents.take (fz - uint.nat M.prev)) ∗
     "%Hfzc" ∷ ⌜fz ≤ uint.nat M.hs.Commit' ∨ fz ≤ uint.nat M.prev⌝ ∗
     "His" ∷ monoNatAuthOwn ph.is 1 (uint.nat M.snap.Metadata'.Index') ∗
+    -- (2026-11-01, stage II (j), G12) half of the image's hard state (`run` holds the other)
+    "Hcm" ∷ ghostVar ph.cm (1 : Qp).half M.hs ∗
     -- (2026-11-01, stage II (h)) `M`'s shape, certificate and phase also after the crash (the run
     -- loop and the snapshotter go on changing the storage until `stop`, and their changes' premises
     -- are about `M`); the writer's half stays after the crash (`run` enters commit-only batches
@@ -443,6 +448,8 @@ def kdDmuInv (γ : KdNames) (id : w64) (r n st ms : Loc) (γs : MemStorNames) (p
       (if crashed then iprop(kdWriter γ id S o ∨
           ∃ v : Option GName × RaftState, ghostVar ph.ph (1 : Qp).half v)
         else kdWriter γ id S o) ∗ ⌜KdFileOk M⌝ ∗ kdSnapCert γ M.snap ∗
+      -- (2026-11-01, stage II (j), G12) the file's commit index at most the image's
+      ⌜∀ f, o = some f → uint.nat f.hs.Commit' ≤ uint.nat M.hs.Commit'⌝ ∗
       kdPhaseInv γ id n ph.ph S M pz))
 
 /-- **The reads' sequence numbers** (`readSeqs`'s lock invariant): the last one issued, at least
@@ -544,7 +551,8 @@ def repStop (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc)
 (at the committed log `l` of the applied index raft starts at, the stored hard state, the durable
 state `S`, the follower's role, the storage's key), its configuration view at `(a, m)`, `run`'s half
 of the running token, the replicated state at the stored snapshot's prefix (of length `a`),
-`runDone`'s producer. -/
+`runDone`'s producer, `run`'s half of the image's hard state (the stored one: the term and vote
+of `S`). -/
 def runStart (γ : KdNames) (id : w64) (r n st : Loc) (ρ : KdRepNames) (l : List LogEntry)
     (hs : HardStateM) (S : RaftState) (ap : List LogEntry) (m : Membership) : IProp GF :=
   iprop(∃ (csp mA : Loc) (A : GMap (List w8) (List w8)),
@@ -552,7 +560,10 @@ def runStart (γ : KdNames) (id : w64) (r n st : Loc) (ρ : KdRepNames) (l : Lis
     nodeConfig n γ.r.cluster kdRaftN ⟨ap.length, m⟩ ∗
     nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half ∗
     repOwn γ r ap (W64 ap.length) csp m mA A ∗
-    handoffProducer ρ.rd false ∗ ghostVar ρ.ph.ph (1 : Qp).half ((none : Option GName), S))
+    handoffProducer ρ.rd false ∗ ghostVar ρ.ph.ph (1 : Qp).half ((none : Option GName), S) ∗
+    -- (2026-11-01, stage II (j), G12) `run`'s half of the image's hard state, the stored one, whose
+    -- term and vote are the durable state's
+    ghostVar ρ.ph.cm (1 : Qp).half hs ∗ ⌜S.term = hs.Term' ∧ S.vote = hs.Vote'⌝)
 
 /-- **`f` is replica `id`'s transport** (persistent; kvreconf's `sendSpec`). -/
 def sendSpec (γ : KdNames) (id : w64) (f : GoFunc) : IProp GF :=

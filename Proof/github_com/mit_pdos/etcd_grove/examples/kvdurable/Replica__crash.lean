@@ -109,14 +109,14 @@ theorem Replica.crash.wp_proof (wp_stop : Replica.stop.spec (GF := GF) (hG := hG
   ihave ⟨%Hc, Hcr⟩ := typedPointsto_half_combine _ _ _ (1 : Qp) $$ [$Hcr $Htok]
   subst Hc
   simp only [Bool.false_eq_true, ↓reduceIte]
-  icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, Hph⟩
+  icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, %Hfb, Hph⟩
   try wp_auto
   ihave ⟨Hcr, Hcr2⟩ := (typedPointsto_half_split _ true (1 : Qp)).1 $$ Hcr
-  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hph Hwr]
+  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hcm Hph Hwr]
   · inext
     iunfold kdDmuInv
     iexists true, ip, M, fz
-    iframe Hcr Himg Himage Hmeta Hic Hfz His
+    iframe Hcr Himg Himage Hmeta Hic Hfz His Hcm
     isplitr
     · ipureintro; exact Hfzc
     iexists S, o, pz
@@ -124,7 +124,7 @@ theorem Replica.crash.wp_proof (wp_stop : Replica.stop.spec (GF := GF) (hG := hG
     iframe Hcert Hph
     isplitl [Hwr]
     · ileft; iexact Hwr
-    ipureintro; exact HMok
+    ipureintro; exact ⟨HMok, Hfb⟩
   try wp_auto
   wp_apply wp_stop γ vs dir id r $$ [Hpend Hrd Htd Hsd] as ⟨Hvac, %n2, %st2, %sts2, %sq2, %ρ2, #HR2, %v, Hclaim⟩
   · iunfold repStopper
@@ -146,14 +146,14 @@ theorem Replica.crash.wp_proof (wp_stop : Replica.stop.spec (GF := GF) (hG := hG
   subst Hc
   ihave ⟨Hcr, -⟩ := (typedPointsto_half_split _ true (1 : Qp)).1 $$ Hcr
   simp only [↓reduceIte]
-  icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, Hph⟩
+  icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, %Hfb, Hph⟩
   icases Hwr with (Hwr | ⟨%v', Hc'⟩)
   · try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hph Hclaim]
+    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hcm Hph Hclaim]
     · inext
       iunfold kdDmuInv
       iexists true, ip, M, fz
-      iframe Hcr Himg Himage Hmeta Hic Hfz His
+      iframe Hcr Himg Himage Hmeta Hic Hfz His Hcm
       isplitr
       · ipureintro; exact Hfzc
       iexists S, o, pz
@@ -161,7 +161,7 @@ theorem Replica.crash.wp_proof (wp_stop : Replica.stop.spec (GF := GF) (hG := hG
       iframe Hcert Hph
       isplitl [Hclaim]
       · iright; iexists v; iexact Hclaim
-      ipureintro; exact HMok
+      ipureintro; exact ⟨HMok, Hfb⟩
     try wp_auto
     iapply HΦ
     iframe Hvac

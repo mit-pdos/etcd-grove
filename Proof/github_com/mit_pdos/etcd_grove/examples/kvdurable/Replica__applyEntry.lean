@@ -159,6 +159,7 @@ theorem Replica.applyEntry.wp_proof
       intro h; apply Hif; word
     word
   subst Hkeq
+  have Hap : ap <+: l := Hap.resolve_left (Nat.lt_irrefl _)
   have Hpre : ap ++ [e] <+: l := by
     have Ht : l.take ap.length = ap := by
       obtain ⟨t, rfl⟩ := Hap; simp

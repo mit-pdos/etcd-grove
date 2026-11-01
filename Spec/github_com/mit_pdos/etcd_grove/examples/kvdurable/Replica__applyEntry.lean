@@ -7,7 +7,8 @@ delivered log `l` passes it (`appNode`'s view moves with the skipped entries: th
 hands back up to the view's index are the client's to skip, `skippedIn`). The applier's index field
 is the replicated state's (`idx = len ap`) and the entry is not past it (`k ≤ len ap`): the code
 decides `covered` on the field, and an entry past `len ap` would leave a gap (stage I fix,
-2026-11-01).
+2026-11-01). `ap` is a prefix of `l` only for an entry it does not cover (2026-11-01, stage II (j),
+G13: after a restart below the snapshot, a `Ready`'s delivered log may still end below `len ap`).
 -/
 module
 
@@ -39,7 +40,7 @@ abbrev Replica.applyEntry.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq ms : Loc)
     (γs : MemStorNames) (ph : KdDmuNames) (q : Qp) (ap : List LogEntry) (idx : w64) (csp : Loc) (m : Membership)
     (mA : Loc) (A : GMap (List w8) (List w8)) (l : List LogEntry) (k : Nat) (e : LogEntry) (ep : Loc),
-  l.take k ++ [e] <+: l → ap <+: l → ((ap.length : Int) + 1 < 2 ^ 61) → ((k : Int) + 1 < 2 ^ 61) →
+  l.take k ++ [e] <+: l → (k < ap.length ∨ ap <+: l) → ((ap.length : Int) + 1 < 2 ^ 61) → ((k : Int) + 1 < 2 ^ 61) →
   uint.Z idx = (ap.length : Int) → k ≤ ap.length →
   {{ isReplica γ vs dir id r n st sts sq ms γs ph ∗ repOwn γ r ap idx csp m mA A ∗
       appNode γ n l (max k ap.length) m ∗ entRO ep (e.toEntryM (W64 (k + 1))) ∗
