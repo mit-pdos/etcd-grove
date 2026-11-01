@@ -69,6 +69,7 @@ theorem openStorage.wp_proof
     openStorage.spec (GF := GF) (hG := hG) := by
   intro bp boot b f Hok Hsc
   obtain ⟨⟨Hswf, Hewf, Hnwf⟩, Hp61, Hn61, Hidx, Hpsi, Hsil, Hpc, Hcl, Hst0, Hsterm⟩ := Hok
+  have Hb61 : uint.nat f.prev + 1 + f.ents.length ≤ 2 ^ 61 := by word
   wp_start as ⟨#HsInv, #Hboot, Hb⟩
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
@@ -320,7 +321,10 @@ theorem openStorage.wp_proof
           iframe Hfresh Hend Hdum Hcomp Hslb
           ipureintro
           refine ⟨rfl, rfl, fun h => absurd h Hif⟩
-      · have Hp0 : f.prev = W64 0 := by word
+      · -- (`word` here leaves a proof the kernel rejects)
+        have Hp0 : f.prev = W64 0 := by
+          have h : ¬ (0 < (f.prev.toNat : Int)) := Hif
+          apply BitVec.eq_of_toNat_eq; show f.prev.toNat = 0; omega
         isplitr
         · ipureintro; trivial
         rw [Hp0, show uint.nat (W64 0) = 0 from rfl, Nat.zero_add]
@@ -338,6 +342,57 @@ theorem openStorage.wp_proof
         ipureintro
         refine ⟨rfl, fun h => ?_⟩
         rw [h, ite_eq_left rfl]
+    -- the entries after the log's start
+    ihave ⟨HA, HB⟩ : (if f.ents = [] then emp else
+        memLog γs (uint.nat f.prev + 1) (DFrac.own 1) [] ∗
+          memEnd γs (uint.nat f.prev + 1 + ([] : List EntryM).length)) ∗
+        (if f.ents = [] then memEnd γs (uint.nat f.prev + 1) else emp) $$ [Hend]
+    · by_cases Hne : f.ents = []
+      · simp only [Hne, ite_true]; iframe Hend
+      · simp only [Hne, ite_false, List.length_nil, Nat.add_zero]
+        iframe Hend
+        iapply memLog_nil
+    have Hidx1 : ∀ (j : Nat) (e : EntryM), f.ents[j]? = some e →
+        uint.nat e.Index' = uint.nat f.prev + 1 + j := fun j e h => Hidx j e h
+    wp_apply wp_Append ms γs (uint.nat f.prev + 1) [] f.ents sv DFrac.discard Hidx1 Hb61
+      $$ [HA] as ⟨-, HA⟩
+    · iframe HA HentsO Hlock
+    ihave ⟨Hlog, Hend⟩ : memLog γs (uint.nat f.prev + 1) (DFrac.own 1) f.ents ∗
+        memEnd γs (uint.nat f.prev + 1 + f.ents.length) $$ [HA HB]
+    · by_cases Hne : f.ents = []
+      · simp only [Hne, ite_true, List.length_nil, Nat.add_zero]
+        iframe HB
+        iapply memLog_nil
+      · simp only [Hne, ite_false]
+        iframe HA
+    try wp_auto
+    -- the snapshot taken again from the log above its start (`si > prev`)
+    wp_join iprop("prev" ∷ prev_ptr ↦ f.prev ∗ "snap" ∷ snap_ptr ↦ sp ∗
+        "si" ∷ si_ptr ↦ f.snap.Metadata'.Index' ∗ "s" ∷ s_ptr ↦ «$r0_ptr» ∗
+        "Hfresh" ∷ memStorFresh ms γs (uint.nat f.prev)
+          (if f.snap.Metadata'.Index' = W64 0 then memSnapEmpty else f.snap) ∗
+        "#Hfz" ∷ memLog γs (uint.nat f.prev + 1) DFrac.discard
+          (f.ents.take (uint.nat f.snap.Metadata'.Index' - uint.nat f.prev)) ∗
+        "Hown" ∷ memLog γs (uint.nat f.snap.Metadata'.Index' + 1) (DFrac.own 1)
+          (f.ents.drop (uint.nat f.snap.Metadata'.Index' - uint.nat f.prev)) ∗
+        "#Hslb" ∷ memSnapLb γs (uint.nat f.snap.Metadata'.Index'))
+      at (if: #(decide (uint.Z f.prev < uint.Z f.snap.Metadata'.Index')) then _ else _)
+      with [prev snap si s Hfresh Hlog]
+      as ⟨prev, snap, si, s, Hfresh, #Hfz, Hown, #Hslb⟩
+    · wp_if_destruct
+      · sorry
+      · have Hsp : f.snap.Metadata'.Index' = f.prev := by
+          apply BitVec.eq_of_toNat_eq
+          have h1 : ¬ ((f.prev.toNat : Int) < f.snap.Metadata'.Index'.toNat) := Hif
+          have h2 : (f.prev.toNat : Int) ≤ f.snap.Metadata'.Index'.toNat := Hpsi
+          omega
+        isplitr
+        · ipureintro; exact True.intro
+        obtain rfl := Hsv0e Hsp
+        iframe prev snap si s Hfresh
+        rw [Hsp, Nat.sub_self, List.take_zero, List.drop_zero]
+        iframe Hlog HslP
+        iapply memLog_nil
     sorry
 
 end proof

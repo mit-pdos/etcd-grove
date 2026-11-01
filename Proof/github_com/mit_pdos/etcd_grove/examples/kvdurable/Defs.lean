@@ -172,11 +172,13 @@ def KdSnapTermOk (f : StorFile) : Prop :=
     imgTermAt f f.snap.Metadata'.Index' = f.snap.Metadata'.Term'
 
 /-- **The contents `openStorage` accepts** (its checks): the entries consecutive from the log's
-start, the start below `maxIndex` and the entries within it, the snapshot and the commit index
+start, the start below `maxIndex` and the entries' indices below it too (raft's storage bound,
+`MemoryStorage.Append`'s premise; 2026-11-01, openStorage's proof: was `≤`, which let the last index
+be `maxIndex` itself, past what `fits` lets the log reach), the snapshot and the commit index
 within the log, the snapshot's term the entry's there (`KdSnapTermOk`); and the bytes decode back
 (`StorWf`). -/
 def KdFileOk (f : StorFile) : Prop :=
-  StorWf f ∧ uint.Z f.prev < 2 ^ 61 ∧ (f.ents.length : Int) ≤ 2 ^ 61 - uint.Z f.prev ∧
+  StorWf f ∧ uint.Z f.prev < 2 ^ 61 ∧ (f.ents.length : Int) < 2 ^ 61 - uint.Z f.prev ∧
   (∀ (i : Nat) (e : EntryM), f.ents[i]? = some e → uint.nat e.Index' = uint.nat f.prev + 1 + i) ∧
   uint.Z f.prev ≤ uint.Z f.snap.Metadata'.Index' ∧
   uint.nat f.snap.Metadata'.Index' ≤ uint.nat f.prev + f.ents.length ∧
