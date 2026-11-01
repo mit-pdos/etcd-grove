@@ -159,6 +159,176 @@ index `c`: a follower of `S.term`, with `S`'s vote, no leader, an empty tally an
 def restartP (S : RaftState) (b : entryID) (c : w64) : PState :=
   { initPState with term := S.term, vote := S.vote, base := b, log := S.entsFrom b, commit := c }
 
+/-- (stage II helper) Two cuts of one full log agree above both bases. -/
+private theorem plog_rebase_eq (b1 b2 : entryID) (fp1 es1 fp2 es2 : List EntryM) (i : w64) :
+    FullOk b1 fp1 → FullOk b2 fp2 → fp1 ++ es1 = fp2 ++ es2 →
+    uint.Z b1.index' ≤ uint.Z i → uint.Z b2.index' ≤ uint.Z i →
+    plogTermAt b1 es1 i = plogTermAt b2 es2 i ∧ plogLastIndexZ b1 es1 = plogLastIndexZ b2 es2 := by
+  intro H1 H2 He Hi1 Hi2
+  refine ⟨?_, ?_⟩
+  · rw [← full_term_at b1 fp1 es1 i H1 Hi1, ← full_term_at b2 fp2 es2 i H2 Hi2, He]
+  · rw [← full_last_index b1 fp1 es1 H1, ← full_last_index b2 fp2 es2 H2, He]
+
+/-- (stage II helper) **The durable invariants at the cut**, from the volatile ones: the cut
+state `S'` has the node's term, vote and commit, and its full log (`DurFull`), with its base at
+most the commit; the acknowledgements of the term above the commit agree with the log -- a
+non-leader's by `acksOk`, a leader's own from its own prefix (`ownLogGhost_lead_full`). -/
+theorem cut_durPers (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps)
+    (S' : RaftState) :
+    S'.term = s.term → S'.vote = s.vote → S'.commit = s.commit →
+    uint.Z S'.base.index' ≤ uint.Z s.commit → VoteHistOk W.voted s →
+    ⊢ (□ ∀ fp, ⌜FullOk s.base fp⌝ -∗ logRecs (GF := GF) γ base0 fp -∗ ⌜DurFull S' (fp ++ s.log)⌝) -∗
+      leaderWit γ id s -∗ ownLogGhost γ id s kl W -∗
+      ownLogGhost γ id s kl W ∗ durPers γ id S' W := by
+  intro Ht Hv Hc Hbc Hvh
+  iintro #Hdf #Hlw Hlg
+  -- a leader's own prefix, for its own acknowledgements
+  ihave HL : iprop((□ (⌜s.role = .leader⌝ -∗ ∃ fpL, leadPrefix (GF := GF) γ id s.term s.base s.log ∗
+      lpfull γ id s.term s.base s.log fpL)) ∗ ownLogGhost γ id s kl W) $$ [Hlg]
+  · by_cases Hr : s.role = .leader
+    · unfold leaderWit
+      rw [Hr]
+      icases ownLogGhost_lead_full γ id s kl W Hr $$ Hlw Hlg with ⟨⟨%fpL, #Hp, #Hpf, -⟩, Hlg⟩
+      iframe Hlg
+      imodintro; iintro -; iexists fpL; iframe Hp Hpf
+    · iframe Hlg
+      imodintro; iintro %h; exact absurd h Hr
+  icases HL with ⟨#HL, Hlg⟩
+  unfold ownLogGhost
+  icases Hlg with ⟨%γm, %terms, %fp, %γw, %wins, H⟩
+  iNamed H
+  obtain ⟨HfullB, HwfS, Htle⟩ := Hfull
+  ihave %HDF := Hdf $$ %fp %HfullB Hfrecs
+  obtain ⟨Hents, HfB'⟩ := HDF
+  have HwfF : PlogWf base0 (fp ++ s.log) := full_wf _ _ _ HfullB HwfS
+  ihave #HrF := logRecs_full γ s.base fp s.log HfullB $$ Hfrecs Hrecs
+  have Hm : (uint.nat S'.base.index' : Int) = uint.Z S'.base.index' := uint_nat_eq _
+  generalize Hmd : uint.nat S'.base.index' = m at Hents HfB' Hm
+  generalize HF : fp ++ s.log = F at HwfF Hents HfB' Htle
+  have Hfeq : F.take m ++ S'.ents = F := by rw [Hents, List.take_append_drop]
+  have HlastS : plogLastIndexZ S'.base S'.ents = plogLastIndexZ s.base s.log := by
+    rw [← full_last_index S'.base (F.take m) S'.ents HfB', Hfeq, ← HF,
+      full_last_index s.base fp s.log HfullB]
+  have HcI := Hlog_ok.2.1
+  have HcL := Hlog_ok.2.2
+  have Hsb : uint.Z s.base.index' ≤ uint.Z s.commit := HcI
+  -- the log's two cuts agree above both bases
+  have Hre : ∀ i : w64, uint.Z s.commit < uint.Z i →
+      plogTermAt s.base s.log i = plogTermAt S'.base S'.ents i ∧
+      plogLastIndexZ s.base s.log = plogLastIndexZ S'.base S'.ents := by
+    intro i hi
+    exact plog_rebase_eq s.base S'.base fp s.log (F.take m) S'.ents i HfullB HfB'
+      (by rw [HF, Hfeq]) (by omega) (by omega)
+  isplitl [Hterms Htlog Hwins]
+  · iexists γm, terms, fp, γw, wins
+    rw [HF]
+    iframe Hterms Htlog Hwins Htfrags Hacks_ok Hrecs Hmatched Hbase Hfrecs Hcown Hvlogs_ok Hhists
+      Hwfrags Hkl Hinv
+    isplitr; · ipureintro; exact Htname
+    isplitr; · ipureintro; exact Hterms_ok
+    isplitr; · ipureintro; exact Hacks_term
+    isplitr; · ipureintro; exact Hlog_ok
+    isplitr; · iexact Hcommit
+    isplitr; · ipureintro; exact ⟨HfullB, HwfS, Htle⟩
+    isplitr; · ipureintro; exact Hcamps_ok
+    isplitr; · ipureintro; exact Hwname
+    isplitr; · ipureintro; exact Hwins_ok
+    isplitr; · ipureintro; exact Hevs
+    isplitr; · iexact Hcmt
+    isplitr; · ipureintro; exact Hlacks
+    ipureintro; exact Hboot
+  unfold durPers
+  iexists kl, F.take m
+  rw [Hfeq]
+  isplitr
+  · ipureintro
+    refine ⟨?_, fun k hk => by rw [Ht]; exact Hacks_term k hk, fun T hT => by rw [Ht]; exact Hcamps_ok T hT,
+      by rw [Ht]; exact Hevs, HfB', ?_, fun j x Hx => by rw [Ht]; exact (Htle j x Hx).1,
+      by rw [Hc]; exact Hbc, by rw [HlastS, Hc]; exact HcL⟩
+    · unfold VoteHistOkD; rw [Ht, Hv]; exact Hvh
+    · rw [Hents]
+      intro k e Hk
+      rw [List.getElem?_drop] at Hk
+      have := HwfF _ _ Hk
+      rw [base0_index] at this
+      push_cast at this ⊢; omega
+  isplitr
+  · rw [Hents]; iapply logRecs_drop γ F S'.base m HfB' Hm.symm $$ HrF
+  isplitr
+  · unfold baseOk
+    by_cases H0 : uint.Z S'.base.index' = 0
+    · ileft; ipureintro; exact H0
+    · iright
+      have Hbt : plogTermAt base0 F S'.base.index' = some S'.base.term' := by
+        rw [← Hfeq, full_term_at _ _ _ _ HfB' (Int.le_refl _), plogTermAt_base]
+      obtain ⟨e, He, Hei, Het⟩ := plogTermAt_some_entry base0 F S'.base.index' S'.base.term'
+        (PlogWf_wfR _ _ HwfF) Hbt (by rw [base0_index]; have := uint_Z_nonneg S'.base.index'; omega)
+      rw [base0_index] at He
+      ihave ⟨%pt, -, #Her⟩ := logRecs_lookup γ F _ e He
+        (by have := uint_Z_lt S'.base.index'; omega) $$ HrF
+      unfold isSnapMeta
+      iexists e
+      isplitr
+      · unfold isEntry; iexists pt; iexact Her
+      ipureintro; exact ⟨Het, Hei⟩
+  isplitr; · iapply logRecs_take γ F m $$ HrF
+  isplitr; · iunfold vlogsOk at Hvlogs_ok; rw [Ht]; iexact Hvlogs_ok
+  isplitr
+  · iunfold histsOk at Hhists
+    have Hb : bndD S' kl = bnd s kl := by cases kl <;> simp [bnd, bndD, Ht]
+    rw [Hb]; iexact Hhists
+  isplitr
+  · cases kl with
+    | none => unfold klOkD; itrivial
+    | some ldr =>
+      unfold klOkD
+      iunfold klOk at Hkl
+      icases Hkl with ⟨#Hw, -⟩
+      rw [Ht, Hv]; iexact Hw
+  isplitr
+  · by_cases Hr : s.role = .leader
+    · iapply (BigSepM.bigSepM_forall (Φ := fun (k : w64 × w64) (_ : Unit) =>
+        iprop(∀ (_ : k.1 = S'.term ∧ uint.Z S'.commit < uint.Z k.2),
+          ackAgree (GF := GF) γ S'.base S'.ents k.1 k.2))).2
+      iintro %k %u %hk %Hk
+      obtain ⟨Hk1, Hk2⟩ := Hk
+      rw [Ht] at Hk1; rw [Hc] at Hk2
+      have Hli := Hlacks.2 Hr k.2 (by rw [← Hk1]; rw [show W.acks !! k = some u from hk]; rfl)
+      obtain ⟨Hte, Hle⟩ := Hre k.2 Hk2
+      icases HL $$ %Hr with ⟨%fpL, #Hp, #Hpf⟩
+      unfold ackAgree
+      isplitr; · ipureintro; rw [← Hle]; exact Hli
+      iexists id, s.base, s.log
+      rw [Hk1]
+      iframe Hp
+      isplitr
+      · ipureintro
+        refine ⟨plogTermAt_in_range _ _ _ ⟨by omega, Hli⟩, Hte⟩
+      iexists fpL; iexact Hpf
+    · have Hacks' : acksOk (GF := GF) γ s W.acks = iprop([∗map] k ↦ _u ∈ W.acks, ackOk γ s k) := by
+        unfold acksOk; split
+        · rename_i h; exact absurd h Hr
+        · rfl
+      ihave #Hao : ([∗map] k ↦ _u ∈ W.acks, ackOk (GF := GF) γ s k) $$ []
+      · rw [← Hacks']; iexact Hacks_ok
+      iapply BigSepM.bigSepM_impl $$ Hao
+      imodintro
+      iintro %k %u %_ #Hok %Hk
+      obtain ⟨Hk1, Hk2⟩ := Hk
+      rw [Ht] at Hk1; rw [Hc] at Hk2
+      unfold ackOk
+      ihave #Ha := Hok $$ %(And.intro Hk1 Hk2)
+      obtain ⟨Hte, Hle⟩ := Hre k.2 Hk2
+      unfold ackAgree
+      icases Ha with ⟨%Hi, %ldr, %bL, %l, #Hp, %Hag, #Hpf⟩
+      isplitr; · ipureintro; rw [← Hle]; exact Hi
+      iexists ldr, bL, l
+      iframe Hp Hpf
+      ipureintro; exact ⟨Hag.1, Hag.2.trans Hte⟩
+  isplitr; · rw [Hc, Ht]; iexact Hcommit
+  iframe Hinv
+  rw [Hc, ← HF]; iunfold cprefix at Hcmt; iexact Hcmt
+
 /-- **The cut** (at a `Ready`, `InvRawnodeReady`'s handout, beside `ownRaftGhost_drain`): the outbox
 drained to `o'`, its messages `out` with their read credits and tickets, and the promises made since
 the last cut queued in generation `g`'s free slot, as a batch entering `S'` -- the cut state's term,
@@ -169,14 +339,125 @@ theorem ownRaftGhost_cut (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {
     ↑(slotN γ id) ⊆ E →
     (o' ++ out).Perm s.outbox →
     S'.term = s.term → S'.vote = s.vote → S'.commit = s.commit →
+    -- (2026-11-01, stage II(d), approved stage-I repair) the cut state's base is at most the
+    -- commit (the storage's snapshot is), and every message left in the outbox is self-addressed
+    -- (synchronous mode: the `Ready` takes all of `r.msgs`; only self-addressed ones wait for
+    -- `Advance`)
+    uint.Z S'.base.index' ≤ uint.Z s.commit → (∀ m ∈ o', m.dst = id) →
     ⊢ (□ ∀ fp, ⌜FullOk s.base fp⌝ -∗ logRecs (GF := GF) γ base0 fp -∗ ⌜DurFull S' (fp ++ s.log)⌝) -∗
       slotLive γ id q g -∗ slotFree γ id g -∗ ownRaftGhost γ id s md ={E}=∗
       slotLive γ id q g ∗ ∃ W, pendBatch γ id g S' W ∗
         ownRaftGhost γ id { s with outbox := o' } md ∗
         ([∗list] m ∈ out, □ (durFrags γ id W -∗ isMessage γ m)) ∗
         rdCred γ (rdCount s.outbox - rdCount o') ∗ msgsTks γ out := by
-  -- PORT(durability stage II): proof (new lemma)
-  sorry
+  intro HE Hp Ht Hv Hc Hbc Hself
+  iintro #Hdf Hlive Hfree Hown
+  iunfold ownRaftGhost at Hown
+  icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
+  iNamed H
+  have Hsub : o'.Subperm s.outbox := (List.sublist_append_left o' out).subperm.trans Hp.subperm
+  have Hsub2 : out.Subperm s.outbox := (List.sublist_append_right o' out).subperm.trans Hp.subperm
+  -- the drained messages, behind the batch's fragments; the kept ones, self-addressed
+  ihave #Houtw : ([∗list] m ∈ out, □ (durFrags γ id (virt V πc) -∗ isMessage (GF := GF) γ m)) $$ []
+  · iapply BigSepL.bigSepL_forall_elim
+    iintro %k %x %Hk
+    obtain ⟨j, Hj⟩ := List.mem_iff_getElem?.mp (Hsub2.subset (List.mem_of_getElem? Hk))
+    iapply outMsgOk_wand
+    iapply BigSepL.bigSepL_lookup (Φ := fun _ m => outMsgOk (GF := GF) γ id s πc (virt V πc) m) Hj
+      $$ Hout
+  ihave #Ho' : ([∗list] m ∈ o', outMsgOk (GF := GF) γ id { s with outbox := o' } []
+      (virt (virt V πc) []) m) $$ []
+  · iapply BigSepL.bigSepL_forall_elim
+    iintro %k %x %Hk
+    have Hxd : x.dst = id := Hself x (List.mem_of_getElem? Hk)
+    obtain ⟨j, Hj⟩ := List.mem_iff_getElem?.mp (Hsub.subset (List.mem_of_getElem? Hk))
+    ihave #Hw := outMsgOk_wand γ id s πc (virt V πc) x $$ []
+    · iapply BigSepL.bigSepL_lookup (Φ := fun _ m => outMsgOk (GF := GF) γ id s πc (virt V πc) m) Hj
+        $$ Hout
+    unfold outMsgOk
+    iright
+    rw [virt_nil]
+    iframe Hw
+    ipureintro; intro h; exact absurd Hxd h
+  -- the batch's durable invariants
+  icases cut_durPers γ id s kl (virt V πc) S' Ht Hv Hc Hbc Hhist $$ Hdf Hlead Hlg with ⟨Hlg, #Hdp⟩
+  icases rdOwn_drain γ id s o' out Hp $$ Hrd with ⟨Hrd, Hcr, Htk⟩
+  -- the slot: the batch queued in the free generation
+  iunfold slotLive at Hlive
+  icases Hlive with ⟨%γs1, %H1, Hl⟩
+  rw [Hsname] at H1; cases H1
+  iunfold slotFree at Hfree
+  icases Hfree with ⟨%γs2, %H2, Hfr⟩
+  rw [Hsname] at H2; cases H2
+  ihave #Hsi := Hslot
+  iunfold slotInv at Hsi
+  iinv Hsi with H Hclose
+  iunfold slotBody at H
+  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
+  rw [Hsname] at Hγs'; cases Hγs'
+  icombine Hl Hg0 gives %Hgg
+  obtain ⟨-, Hgg⟩ := Hgg
+  subst Hgg
+  icombine Hq Hfr gives %HMq
+  have HMq' : Mq !! g = some none := HMq
+  icombine Hvirt Hv0 gives %HV
+  obtain ⟨-, HV⟩ := HV
+  rw [HMq'] at HV
+  simp only [virtQ] at HV
+  subst HV
+  imod ghost_map_update (some ((S', virt V πc, V) : RaftBatch)) $$ Hq Hfr with ⟨Hq, Hpf⟩
+  imod ghostVar_update_halves (virt V πc) γs.1 _ _ $$ Hvirt Hv0 with ⟨Hvirt, Hv0⟩
+  imod Hclose $$ [Hsh0 Hv0 Hg0 Hq] with -
+  · inext
+    unfold slotBody
+    iexists γs, V, g, Mq.insert g (some ((S', virt V πc, V) : RaftBatch))
+    have Hl0 : (Mq.insert g (some ((S', virt V πc, V) : RaftBatch))) !! g =
+        some (some ((S', virt V πc, V) : RaftBatch)) := GMap.lookup_insert _ _ _
+    rw [Hl0]
+    simp only [virtQ]
+    iframe Hsh0 Hfr0 Hv0 Hg0 Hq
+    ipureintro
+    refine ⟨Hsname, ?_, rfl, fun b hb => ?_⟩
+    · intro k hk
+      by_cases hkg : k = g
+      · omega
+      · have : (Mq.insert g (some ((S', virt V πc, V) : RaftBatch))) !! k = Mq !! k :=
+          GMap.lookup_insert_ne _ _ (Ne.symm hkg)
+        rw [this] at hk
+        exact Hdom k hk
+    · cases hb; exact ⟨rfl, DurLe_virt V πc Hfresh⟩
+  imodintro
+  isplitl [Hl]
+  · unfold slotLive; iexists γs; iframe Hl; ipureintro; exact Hsname
+  iexists virt V πc
+  iframe Hcr Htk Houtw
+  isplitl [Hpf]
+  · unfold pendBatch
+    iexists γs, V
+    iframe Hpf
+    isplitr; · ipureintro; exact Hsname
+    unfold batchOk
+    iexists πc
+    iframe Hpend Hdp
+    ipureintro; exact ⟨rfl, Hfresh⟩
+  iapply ownRaftGhost_intro γ id _ γs (virt V πc) [] kl Hsname Hidnz Hmode (PromsFresh_nil _)
+    $$ Hslot Hvirt [] [] [] [] [] [Hlg] [] [] [] [Hlcm] [Hrd]
+  · unfold promsJust; iapply (BigSepL.bigSepL_nil).2; iempintro
+  · ipureintro; rw [virt_nil]; exact Hhist
+  · iexact Ho'
+  · iexact Htally
+  · rw [show leaderWit (GF := GF) γ id { s with outbox := o' } = leaderWit γ id s from rfl]
+    iexact Hlead
+  · rw [virt_nil]
+    iapply ownLogGhost_mono γ id s _ kl _ (by rfl) (by rfl) (by rfl)
+      (by intro h; exact ⟨h, rfl, rfl⟩) (by intro h; exact ⟨h, rfl⟩) (by exact fun h => h) (by rfl)
+      (by exact fun h => h) $$ Hlg
+  · ipureintro; exact Hlead_ok
+  · ipureintro; exact Hfollower_votes
+  · ipureintro; exact Hrole_ok
+  · rw [show lcmOwn (GF := GF) γ id { s with outbox := o' } = lcmOwn γ id s from rfl]
+    iexact Hlcm
+  · iexact Hrd
 
 /-! ### Entering a batch: minting its promises (stage II helpers) -/
 
@@ -643,7 +924,18 @@ theorem durPers_restart_acks (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftS
     ⊢ durPers (GF := GF) γ id S Ed -∗ durFrags γ id Ed ={E}=∗
       [∗map] k ↦ _u ∈ Ed.acks, ∀ (_ : k.1 = S.term ∧ uint.Z c < uint.Z k.2),
         ackAgree γ b (S.entsFrom b) k.1 k.2 := by
-  -- PORT(durability stage II): proof (new lemma)
+  -- PORT(durability stage II): unprovable as stated, back to stage I (round 5: the cheap route,
+  -- Leader Completeness from `S.commit`'s certificate, fails). An acknowledgement `(S.term, i)`
+  -- with `c < i ≤ S.commit` needs `ackAgree`, which needs a `leadPrefix` (and an `lpfull`) of a
+  -- leader *of `S.term`*, with `i` inside that prefix (`(plogTermAt bL l i).isSome`). Leader
+  -- Completeness says every leader of a term at or above the certificate's contains the committed
+  -- prefix, but nothing in `durPers S Ed ∗ durFrags Ed` gives such a leader: (a) when the
+  -- certificate (`commitIn _ S.commit S.term`) is a commit fact of a term `t < S.term`, or the boot
+  -- arm, no leader of `S.term` is named at all (`isAcked` is a map fragment and an event; `klOkD`
+  -- gives at most `isWin`, no prefix; the histories at `bndD S kd` may rest on earlier commit
+  -- facts); (b) when `t = S.term`, the certificate's `leadFull` names the leader's prefix `(bL, l)`,
+  -- but its base `bL` may lie above `i`, so `(plogTermAt bL l i).isSome` fails. Acknowledgements
+  -- above `S.commit` are covered by `durPers`'s own conjunct.
   sorry
 
 /-- (stage II helper) Every key of a map whose fragments carry `campKey` is an entered campaign's
