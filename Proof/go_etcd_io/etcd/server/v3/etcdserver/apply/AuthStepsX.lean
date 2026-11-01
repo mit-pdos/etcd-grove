@@ -706,13 +706,13 @@ def authnOut (γa : auth.AuthNames) (name : GoString) (resp : Loc) (err : GoInte
 `Authenticate` (`isAuthStepsX`'s) at a context holding the consistent index `x` that
 `ConsistentIndex()` returns under the resource it borrows from the critical section's precondition
 (`ciSplitAt`) and the request's token prefix, with the right to issue `<prefix>.<x>`
-(`auth.tokFresh`); the authority, `X` and `W` back as they were (it writes nothing), the result
-`authnOut`. -/
+(`auth.tokFresh`), the prefix one the provider makes (`auth.tokPrefixOk`, 2026-10-30); the
+authority, `X` and `W` back as they were (it writes nothing), the result `authnOut`. -/
 abbrev applierV3backend.Authenticate.specX : Prop :=
   ∀ (E : AEnv GF) (γa : auth.AuthNames) (X : List auth.AuthState → IProp GF) (W : IProp GF)
     (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (hs : List auth.AuthState) (am : AuthenticateModel) (x : w64),
-    E.authMode = .on γa →
+    E.authMode = .on γa → auth.tokPrefixOk am.simpleToken →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ authenticateIs r am ∗
         ciSplitAt E Pre x ∗ auth.tokFresh γa (auth.simpleTok am.simpleToken x) ∗
@@ -1071,7 +1071,7 @@ theorem applierV3backend.Authenticate.wp_specX
     (hWV : context.WithValue.spec (GF := GF) (hG := hG))
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.Authenticate.specX (GF := GF) (hG := hG) := by
-  intro E γa X W p r log Pre Q Post info hs am x hM
+  intro E γa X W p r log Pre Q Post info hs am x hM hpre
   wp_start as ⟨#Hb, #Hs, #Hr, #HSplit, Hfr, Ho, HX, HW, Hpre⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
@@ -1153,7 +1153,7 @@ theorem applierV3backend.Authenticate.wp_specX
       · ipureintro; left; cases xk; rfl
       · ipureintro; intro _; rfl
       · iintro %hne; exfalso; cases xk; exact hne rfl
-    iunfold auth.freshOk; iexact Hfr
+    iunfold auth.freshOk; iframe Hfr; ipureintro; exact hpre
   rw [Hai]
   wp_apply HA $$ %hs %Pre %Q %Post %(GoInterface.ok c2') %am.name %am.password
       [$HRD $Ho $HX $HW $Hcs $Hctx] as %resp %err ⟨HPP, HRD, Ho, HX, HW, Hau, #He⟩

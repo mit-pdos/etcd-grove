@@ -60,17 +60,35 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **Two apply environments agree on the names** the raft contract's `E.C` reads (`srvC`: the
 store's index names, through the results' certificates `idxCert`; its certificate map, `certOk`;
-the revisions' tokens, `revMinted`). -/
+the revisions' tokens, `revMinted`), and (M2, the storage side, review round 2's N1, the
+approval's item 10) on the compaction mode, the first one's mode its store's (`E.γ.cm = E.cmp`:
+one reading of the mode, the store's logical one, which a restore keeps). -/
 def envAgree (E E' : apply.AEnv GF) : Prop :=
-  E.γ.idx = E'.γ.idx ∧ E.γ.cok = E'.γ.cok ∧ E.γrev = E'.γrev
+  E.γ.idx = E'.γ.idx ∧ E.γ.cok = E'.γ.cok ∧ E.γrev = E'.γrev ∧ E.cmp = E'.cmp ∧ E.γ.cm = E.cmp
+
+/-- **The mode, read at the stand-in** (N1): the server's store compacts exactly when the stand-in
+says so. -/
+theorem envAgree_mode (E E₀ : apply.AEnv GF) (h : envAgree E E₀) : E.γ.cm = E₀.cmp := by
+  rw [h.2.2.2.2, h.2.2.2.1]
+
+/-- **An off stand-in, an off server** (N1: what the watching examples read off `memberUp`'s
+`envAgree E E₀`, with `E₀.cmp = false` from the member's boot bundle). -/
+theorem envAgree_off (E E₀ : apply.AEnv GF) (h : envAgree E E₀) (h0 : E₀.cmp = false) :
+    E.γ.cm = false := by
+  rw [envAgree_mode E E₀ h, h0]
+
+/-- A compacting stand-in, a compacting server. -/
+theorem envAgree_on (E E₀ : apply.AEnv GF) (h : envAgree E E₀) (h0 : E₀.cmp = true) :
+    E.γ.cm = true := by
+  rw [envAgree_mode E E₀ h, h0]
 
 /-- **The start of a new cluster's apply thread** (`x₀`): `NewStore`'s two empty revisions, the
-base chain with auth disabled and no alarm. -/
-def bootKV : apply.ApplyKV := ⟨[[], []], apply.alarmChain false false false⟩
+base chain with auth disabled and no alarm, no compaction yet (`-1`). -/
+def bootKV : apply.ApplyKV := ⟨[[], []], apply.alarmChain false false false, -1⟩
 
 /-- **The start with auth on or off** (the auth plan's E2i, 2026-10-26): the base chain's auth
 layer enabled when `on` (`NewServer.specM`); `bootKV` is its mode off (`bootKVOf_false`). -/
-def bootKVOf (on : Bool) : apply.ApplyKV := ⟨[[], []], apply.alarmChain on false false⟩
+def bootKVOf (on : Bool) : apply.ApplyKV := ⟨[[], []], apply.alarmChain on false false, -1⟩
 
 theorem bootKVOf_false : bootKVOf false = bootKV := rfl
 
@@ -268,12 +286,13 @@ instance srvFieldsBuiltNA_persistent (s : Loc) (γ : ApplyNames) (ci : Loc)
 /-- `srvReadBuilt` without the KV rows (`srvKVAddr`, `txn.isKV`, the store's read view,
 `storeSmall`: `srvBuildGap`). -/
 def srvReadBuiltNK (s : Loc) (E : apply.AEnv GF) (v : ReadFields) : IProp GF :=
-  iprop(srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RW ∗
+  iprop(srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RO E.RW ∗
     srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.γ E.P E.f E.RD E.authMode E.RW ∗
     srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
-    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗ ⌜2 ≤ log₀.length⌝) ∗
+    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗
+      ⌜2 ≤ log₀.length ∧ mvcc.LogPutsLe etcdKeyMax log₀⌝) ∗
     srvFirstCommitAddr s ↦□ v.fc)
 
 instance srvReadBuiltNK_persistent (s : Loc) (E : apply.AEnv GF) (v : ReadFields) :
@@ -304,7 +323,7 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuiltNK s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗
     -- (M2, S4) the compactor's run, once (`start` spends it)
-    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun c) ∗
+    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun s E c) ∗
     "#Hsab" ∷ srvApplyAllBuilt s ∗
     "#Hai" ∷ srvAppliedInv s E γr ∗
     "#Hkvi" ∷ srvKVInvs E γr ∗
@@ -386,7 +405,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 raft contract's `E.C`. -/
 theorem srvC_agree (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (h : envAgree E E') : srvC ρ E ai₀ c₀ x₀ = srvC ρ E' ai₀ c₀ x₀ := by
-  obtain ⟨hi, hc, hr⟩ := h
+  obtain ⟨hi, hc, hr, -, -⟩ := h
   have hres : resultΨ (GF := GF) E = resultΨ E' := by
     funext ρ' rq F x
     unfold resultΨ resultIsW revMinted revTok mvcc.certOk

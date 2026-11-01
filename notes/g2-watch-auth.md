@@ -502,3 +502,16 @@ request's (`(if P.key = [] then [0] else P.key) = P.o.key`); `rangeExact key ed`
 whose key the server reads as `key`; `wsRow`, `wsRow_of_authed`, `wsIs_row` are over `P.key`/`P.ed`.
 New laws outside the client, in their packages: `mvcc.covers_from`, `adt.affLt_top_iff`,
 `adt.affLt_iff_of_ne`, the cache's `inRange_from`. No cross-package unfold added.
+
+## Repair: `srvKVFacts` in either auth mode (2026-10-30, branch `g2-kvfacts-on`)
+
+The frozen `watcher.Watch.spec` could not be used at an auth-on member: its premise's
+`client.srvKVFacts` was the auth-off `srvKVInvs` (`notes/decisions.md`, "G2's freeze: `srvKVFacts`
+in either auth mode", with the cause and the missed review criterion). Now `srvKVFacts V := ∃ on
+γr, srvKVCoreM on V.R.E γr ∗ idxSealed V.R.E.γ.idx [[], []] ∗ ⌜…⌝`, over the server's narrow KV
+core in either mode; the firing law is the server's `srvKVCoreM_fire`. The spec's text is
+unchanged and its premise only weaker; the auth-off callers (watchkv, cachekv, linkv3p) change by
+one line each (`srvKVFacts_of_off`). authkv's `Main` discharges it from `memberUpOn`'s
+`isServerReadM true` (`srvKVCoreM_of_readM`), `isWatchServer_start` and `memberBootOn`, and
+`watchAddrFacts`'s `srvLogsSmall` from the receipts' bound (`srvLogsSmall_of_receipts`). The
+design went through two spec reviews (draft rounds 0-2, the user's approval of all four choices).

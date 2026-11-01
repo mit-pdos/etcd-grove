@@ -30,7 +30,8 @@ create revision is below `rev`", retrying until it commits or `ctx` is done. It 
 abbrev leasingKV.rescind.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (key : GoString) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗
+      ⌜key.length ≤ 2 ^ 27⌝ }}
     (App (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"rescind")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #rev))
   {{ RET #(); True }}
 

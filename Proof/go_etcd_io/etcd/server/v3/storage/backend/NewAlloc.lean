@@ -497,21 +497,23 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   -- (the compaction keys' tracked absence) their flag, `0` if `D` has none; (question 4) the bit,
   -- `true` if `D`'s are well formed, discarded at once
   imod mono_nat_own_alloc (GF := GF) (fkInit D) with ⟨%gfk, Hfk, #Hfklb⟩
-  imod dghostVar_alloc (fkWInit P D) with ⟨%gfkv, Hfkv⟩
-  imod dghostVar_persist gfkv 1 (fkWInit P D) $$ Hfkv with #Hfkv
+  -- (items 27/29 of the M2 storage plan) with the flag's value and `D`'s compaction-key values
+  imod dghostVar_alloc ((fkWInit P D, fkInit D, fkVals D) : FkG) with ⟨%gfkv, Hfkv⟩
+  imod dghostVar_persist gfkv 1 ((fkWInit P D, fkInit D, fkVals D) : FkG) $$ Hfkv with #Hfkv
   let γ : BNames := ⟨γd, gview, grd, ghist, gcached, gcur, ghook, gopn, gwb, grdt, gtxa, gtxb,
     grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk, gcln, gdlg, gdlb, gfk, gfkv⟩
   icases (fk_halves γ (fkInit D)).1 $$ Hfk with ⟨Hfkb, Hfkc⟩
-  have Hok0 : fkOk P (fkInit D) (fkWInit P D) (st0 D wtx) := fkOk_init rfl rfl rfl rfl
+  have Hok0 : fkOkG P (fkInit D) (fkWInit P D, fkInit D, fkVals D) (st0 D wtx) :=
+    fkOkG_init rfl rfl rfl rfl
   ihave #Hfkr : fkRd γ P (rv0 D) $$ []
-  · unfold fkRd fkV
-    iexists fkInit D, fkWInit P D
+  · unfold fkRd fkVR
+    iexists fkInit D, (fkWInit P D, fkInit D, fkVals D)
     iframe Hfklb Hfkv
     ipureintro
-    exact fkOkRv_of Hok0
+    exact fkOkRvG_of Hok0
   ihave Hfkb : fkHalf γ P (st0 D wtx) $$ [Hfkb]
-  · unfold fkHalf fkV
-    iexists fkInit D, fkWInit P D
+  · unfold fkHalf fkVR
+    iexists fkInit D, (fkWInit P D, fkInit D, fkVals D)
     iframe Hfkb Hfkv
     ipureintro
     exact Hok0
@@ -646,7 +648,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     · unfold dlInit
       iframe Hdlg Hdlb
     isplitl [Hfkc]
-    · unfold fkCl fkOwn fkV
+    · unfold fkCl fkOwn fkVR
       iframe Hfkc Hfkv
     iexact Hsr
   unfold runTok

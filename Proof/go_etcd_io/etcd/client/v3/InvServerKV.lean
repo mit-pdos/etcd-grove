@@ -273,7 +273,7 @@ theorem kv_client_floor (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) (l : 
       ∃ n : Nat, monoNatLbOwn γm n ∗ ⌜l.length ≤ n + 1⌝ := by
   iintro #Hinvs #Hinv #Hc
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
   iunfold kvClientInv at Hinv
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%σ, Hσ, Hm⟩
@@ -390,27 +390,7 @@ theorem floor0_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
   icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%F0, #HF0, %HF02⟩, -⟩
   iexists F0
   iframe HF0
-  ipureintro; exact HF02
-
-/-- The server's KV invariants, of the read side (`isServerRead`'s). -/
-theorem srvKVInvs_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
-    isServerRead (GF := GF) s E γr ⊢ srvKVInvs E γr := by
-  iintro #Hsrd
-  iunfold isServerRead at Hsrd
-  icases Hsrd with ⟨%v, Hsrd⟩
-  iunfold srvReadFieldsAt at Hsrd
-  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hk, -⟩
-  iexact Hk
-
-/-- The store's size premise of the read path (`storeSmall`, the server's). -/
-theorem storeSmall_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
-    isServerRead (GF := GF) s E γr ⊢ storeSmall E.γ := by
-  iintro #Hsrd
-  iunfold isServerRead at Hsrd
-  icases Hsrd with ⟨%v, Hsrd⟩
-  iunfold srvReadFieldsAt at Hsrd
-  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hsm, -⟩
-  iexact Hsm
+  ipureintro; exact HF02.1
 
 end floor
 

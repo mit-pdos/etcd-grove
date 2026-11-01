@@ -146,7 +146,7 @@ theorem v3rpc.Server.wp_proof
   intro s C d gsl gvs Hbuq
   wp_start as ⟨#Hc, Hlr, Hbr, Hgo, Hd, %Hdb, #Hgvs, %Hgn⟩
   iunfold v3rpc.grpcCfgOk at Hc
-  icases Hc with ⟨#HKV, #Hws, #Hkv, #Hids, #Hlg0, %Hlg0n, #Hlg, %Hlgn, #Hqb, #Hmid, #Hn, #Hwd,
+  icases Hc with ⟨#HKV, #Hws, #Hkv, #Hids, #Hlg0, %Hlg0n, #Hlg, %Hlgn, #Hqb, #Hmid, #Hn, %Hmx, #Hwd,
     #Hlead, #Hcl, #Hrc, #Hlk, #Hch, #Hstop, #Htm, #Het, #Hm, #Hfg, #Hgate, #Hmt, #Htr, #Htsl,
     #Htos, #Hmcs, #Hnrl⟩
   -- the six `ServiceDesc`s: `v3rpc`'s package fact (item 8)
@@ -338,7 +338,7 @@ theorem v3rpc.Server.wp_proof
   ihave #HdC := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdC
   ihave #HdA := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdA
   ihave #HdM := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdM
-  wp_apply (hNewKV s C.A C.n C.lg C.qb Hbuq) $$ []
+  wp_apply (hNewKV s C.A C.n C.lg C.qb Hbuq Hmx) $$ []
     as %kv ⟨%q, %p, %cid, %mid', %Hkv, #Hq, #Hp⟩
   · iframe; iframe #; ipureintro; exact Hlgn
   subst Hkv

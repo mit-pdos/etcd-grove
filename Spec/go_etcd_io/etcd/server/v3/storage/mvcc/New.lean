@@ -29,7 +29,12 @@ scheduler's stop token: D19m (C), 2026-10-18), on a backend that records no comp
 (`kbNoCmp`, `NewStore`'s: D19l (v) (A), D22 S-g). The
 index's names `γi` and the certificate map's `γok` are the caller's, fresh, and the map's
 authority is handed back (2026-10-16, D13a: the etcd server chooses them before `newRaftNode`,
-and its KV certificates' invariant, `kvCertInv`, takes the authority). -/
+and its KV certificates' invariant, `kvCertInv`, takes the authority). (M2, the storage side, P3,
+2026-10-30) As `newWatchableStore`: the frozen fact by the mode, the compaction right's half of the
+revision's authority beside the closer in compaction mode (`crevRightM γ.st`: the caller makes
+the compaction right of it only after its last error return, Go's deferred `kv.Close()`, or
+freezes the store and watches, `noCompactor_of_new`), the logical mode the instance's, and no
+write-back supply. -/
 abbrev mvcc.New.spec : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (rd0 : GoFunc) (γi : mvcc.IdxNames) (γok γtag : GName),
@@ -38,7 +43,7 @@ abbrev mvcc.New.spec : Prop :=
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
         mvcc.storeBackend b s γ P) ∗
       mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
-      mvcc.kbSRM kb ∗ mvcc.kbWTSupplyM kb ∗
+      mvcc.kbSRM kb ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
       mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
@@ -46,12 +51,13 @@ abbrev mvcc.New.spec : Prop :=
       (Val #b)) (Val #le)) (Val #cfg))
   {{ (s : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStore.ty) #s);
       ∃ (st : Loc) (γ : mvcc.WsNames), ⌜γ.st.bucket = γb ∧ γ.st.leases = γl ∧ γ.st.kb = kb ∧
-        γ.st.idx = γi ∧ γ.st.cok = γok ∧ γ.tag = γtag⌝ ∗
+        γ.st.idx = γi ∧ γ.st.cok = γok ∧ γ.tag = γtag ∧ γ.st.cm = decide (mvcc.kbCmpM kb)⌝ ∗
         mvcc.isWatchableStore s st γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd s st γ) ∗ mvcc.hookInit γ.st P f ∗ mvcc.watchWriter γ [[], []] ∗
         mvcc.watchToks γ (2 ^ 63 - 3) ∗ ghostMapAuth γ.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - mvcc.nJobRd kb - 2) (),
           mvcc.watchReader s st γ) ∗
-        mvcc.wsCloser s st γ.st ∗ mvcc.writerFrag γ.st ∗ mvcc.retiredAt γ.st (mvcc.nJobRd kb) }}
+        mvcc.wsCloser s st γ.st ∗ mvcc.crevRightM γ.st ∗
+        mvcc.writerFrag γ.st ∗ mvcc.retiredAt γ.st (mvcc.nJobRd kb) }}
 
 end spec
 

@@ -144,8 +144,12 @@ theorem lessor.sendKeepAliveLoop.wp_proof
     (try wp_auto)
     ihave #HS := HSend $$ %L2 %«$r0_ptr» %(ids[sint.nat n]'Hlt)
     wp_apply HS $$ [Htok «$r0»] as %err ⟨-, Hres⟩
-    · iframe
-      try (ipureintro; rfl)
+    · iframe Htok
+      isplitl [«$r0»]
+      · iexists _; iframe «$r0»; ipureintro; exact ⟨rfl, rfl⟩
+      isplitl []
+      · itrivial
+      ipureintro; decide
     icases Hres with (⟨%Herr, Htok⟩ | ⟨#Hse, %L3, %HL3, Htok⟩)
     · subst Herr
       (try wp_auto)

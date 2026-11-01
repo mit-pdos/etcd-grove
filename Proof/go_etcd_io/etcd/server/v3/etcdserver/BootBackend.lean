@@ -76,7 +76,10 @@ bbolt's data with an empty key bucket gives the store's key view `∅`, and `N +
 `wbInit` write-backs; (D22, 2026-10-23) the client's half of the tracked buckets, at `D`'s;
 (the backend-compaction stage, 2026-10-29) over data with no compaction recorded, the backend's
 no-compaction token (`mvcc.bkNoCmp_of_fkCl`: until then a separate premise of `bootOk`); (question 5's
-core stage, part (1)) the safe-range slot (`srSlot`, kept for a compacting store: M2's). -/
+core stage, part (1)) the safe-range slot (`srSlot`, kept for a compacting store: M2's); (M2, the
+storage side, 2026-10-30; the backend-cmp Probe's S3) the compaction keys' values tracked
+(`backend.fkV γ true`, persistent: `mvcc.bkNoCmp_fkV_of_fkCl`), what a compacting store's `NewStore`
+takes. -/
 theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
     (W Pk : backend.BNames → IProp GF) (b : Loc) (D : backend.Data) (N : Nat)
     (hD : mvcc.keyView (backend.vData P (D, ⟨∅, W64 0⟩)) ∅) (hN : N + 7 ≤ backend.wbInit)
@@ -89,14 +92,16 @@ theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
         mvcc.bkRTx γ P b) ∗
       -- (the backend-compaction stage) the creator's deletable-keys registration, unfixed
       backend.dlInit γ ∗ mvcc.bkNoCmp γ ∗
+      -- (M2, the storage side) the compaction keys' values tracked, for a compacting store
+      backend.fkV γ true ∗
       -- (question 5's core stage, part (1)) the safe-range slot, for a compacting store (M2's)
       backend.srSlot b := by
   iintro Hnew
   ihave Hnew := backend.newPost_named γ P W Pk b D $$ Hnew
   iNamed Hnew
   iframe HnB HnSC HnH HnRB HnDl HnSr
-  ihave Hnc := mvcc.bkNoCmp_of_fkCl γ _ hnc $$ HnFk
-  iframe Hnc
+  ihave ⟨Hnc, Hfv⟩ := mvcc.bkNoCmp_fkV_of_fkCl γ _ hnc $$ HnFk
+  iframe Hnc Hfv
   icases (backend.bOpen_one_shares γ).1 $$ HnOpen with ⟨Ho, Hos⟩
   ihave Hrts := bkRTx_of_rdToks γ P b _ $$ [$HnRT $Hos]
   iframe Hrts Ho

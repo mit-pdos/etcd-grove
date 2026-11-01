@@ -31,12 +31,12 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
   wp_start as ⟨#Hm, Hst, #Hctx, #Hlo⟩
   ihave #Hm' := Hm
   iunfold isMutex at Hm'
-  icases Hm' with ⟨#Hms, #Hmpfx, %Hpfx, #Hsess, #Hcl⟩
+  icases Hm' with ⟨#Hms, #Hmpfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
   ihave Hci : (concurrencyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hci with ⟨-, -, ⟨%eL, #HeL⟩, -⟩
   unfold mutexState
-  icases Hst with ⟨Hk, Hrv, Hh⟩
+  icases Hst with ⟨Hk, Hrv, Hh, %Hkl⟩
   wp_auto
   wp_if_destruct
   · -- myKey == ""
@@ -46,7 +46,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
     · unfold isPkgErr; iframe HeL; ipureintro; simp
     iframe
     ipureintro
-    left; simpa using Hif
+    refine ⟨Hkl, ?_⟩; left; simpa using Hif
   wp_if_destruct
   · -- myRev <= 0
     iapply HΦ
@@ -55,7 +55,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
     · unfold isPkgErr; iframe HeL; ipureintro; simp
     iframe
     ipureintro
-    right; left; simpa using Hif
+    refine ⟨Hkl, ?_⟩; right; left; simpa using Hif
   wp_if_destruct
   · -- myKey == "\x00"
     iapply HΦ
@@ -64,7 +64,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
     · unfold isPkgErr; iframe HeL; ipureintro; simp
     iframe
     ipureintro
-    right; right; simpa using Hif
+    refine ⟨Hkl, ?_⟩; right; right; simpa using Hif
   rename_i Hk0 Hr0
   have Hnk : ¬ st.noKey := by
     unfold MutexSt.noKey
@@ -90,7 +90,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
     · ipureintro
       refine ⟨deleteOp_not_panics st.key, ?_⟩
       rw [(deleteOp_fields st.key).1, (deleteOp_fields st.key).2]
-      exact keyRangeUnder_key pfx st.key Hif
+      exact ⟨keyRangeUnder_key pfx st.key Hif, deleteOp_size Hkl⟩
     iunfold deleteResult at Hd
     icases Hd with (%Hne | ⟨%Heq, %r', %s', #Hr', %Hd, #Hts⟩)
     · obtain ⟨e, rfl⟩ : ∃ e, derr = GoInterface.ok e := by
@@ -103,6 +103,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
       isplitr
       · ipureintro; exact Hne
       iframe
+      ipureintro; exact Hkl
     subst Heq
     ihave #Habs := deleteTxn_absent pfx st.key r' s' $$ Hts
     wp_auto
@@ -111,11 +112,11 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
     isplitr
     · ipureintro; rfl
     iexists r'
-    unfold MutexSt.released
+    simp only [MutexSt.released]
     iframe
     iframe Hr' Habs
     ipureintro
-    exact ⟨Hnk, Hif, Hd.1⟩
+    exact ⟨by decide, Hnk, Hif, Hd.1⟩
   wp_apply wp_slice_literal
   isplitr
   · ipureintro; rfl
@@ -128,7 +129,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
   iapply HΦ
   iright; iright
   iframe
-  ipureintro; simp
+  ipureintro; exact ⟨by simp, Hkl⟩
 
 end proof
 

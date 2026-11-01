@@ -13,10 +13,11 @@
 - **the auth state fixed after the set-up** (S6, `akAuthFixed`): every auth state from the set-up's
   published index on, and every requested log extending the set-up's `Lset`, at `setupSt _`.
 
-S4 (the watch with auth on) is not here: `watcher.Watch.spec` covers prefix watches of a non-empty
-key, at the state's events, with nothing of auth. `Work`'s refused watch, `u`'s range watch and
-root's watch of every key need it generalized (the plan's S4). Until then `Work.spec` takes the
-watcher's facts as `Main` has them (`watchAddrFacts`).
+S4 (the watch with auth on) is G2's: `watcher.Watch.spec` covers range watches (an empty key read as
+`"\x00"`, `watchNorm`), and its stream's events carry the server's verdict (`watchCheckOk`, at the
+watcher's connection), which `watchCheckOk_tok` reads at the connection's tokens. `Work.spec` takes
+the watcher's facts as `Main` has them (`watchAddrFacts`; `client.watcher_of_clientTokAt` gives the
+watcher and its connection's tokens).
 
 `akAuthFixed`'s write half is over 5b's frozen history (`SetUp`'s post); its read half is an update
 over the server's tie (H5's read law, `authStateAt_setup`). `akAuthFixed_alloc` (S6) builds both

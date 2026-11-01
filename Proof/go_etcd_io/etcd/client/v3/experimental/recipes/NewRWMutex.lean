@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 theorem NewRWMutex.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (hG := hG)) :
     NewRWMutex.spec (GF := GF) (hG := hG) := by
   intro s γ client id pfx
-  wp_start as ⟨#Hs, #Hc, #Hcl⟩
+  wp_start as ⟨#Hs, #Hc, #Hcl, %Hpl⟩
   iapply wp_fupd
   wp_auto
   wp_apply hTODO
@@ -44,7 +44,7 @@ theorem NewRWMutex.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (hG 
   unfold isRWMutex
   iframe #
   isplitr
-  · ipureintro; simp
+  · ipureintro; exact ⟨by simp, by simp; omega⟩
   unfold rwMyKey
   iexists _
   iframe

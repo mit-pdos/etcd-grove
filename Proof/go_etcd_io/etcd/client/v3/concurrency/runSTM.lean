@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 theorem runSTM.wp_proof :
     runSTM.spec (GF := GF) (hG := hG) := by
-  intro lvl pfx p apply Q lo
+  intro lvl pfx p P apply Q lo
   wp_start as ⟨#Hm, Hst, #Hap, #Hlo⟩
   ihave #Hm' := Hm
   iunfold stmMethods at Hm'
@@ -55,6 +55,7 @@ theorem runSTM.wp_proof :
     wp_apply HReset $$ [$Hst] as Hst
     ihave #Happ := Hap' $$ %lvl %p %STMSt.empty Hm
     wp_apply Happ $$ [$Hst] as %r Hr
+    · ipureintro; exact Nat.zero_le _
     iunfold stmRet at Hr
     icases Hr with (⟨%err, %Hr, %st', Hst, %Herr⟩ | %Hab)
     rotate_left

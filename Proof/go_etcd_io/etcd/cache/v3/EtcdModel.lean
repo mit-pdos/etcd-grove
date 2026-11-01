@@ -40,6 +40,16 @@ open Iris Iris.BI
 
 /-! ## The pure vocabulary -/
 
+/-- **The longest key etcd's state holds** (`2 ^ 27` bytes, 128 MiB; 2026-10-30; also the longest
+value, 2026-10-31, `notes/vallen.md`;
+`notes/keylen.md`): etcd's server proposes no request whose encoding is longer than its
+configuration's `MaxRequestBytes` (`processInternalRaftRequestOnce`, `ErrRequestTooLarge`), a key
+is part of the request that writes it, and the server's configuration keeps `MaxRequestBytes`
+below this (`NewServer`'s premise, `v3rpc.etcdMaxRequestBytesOk`; etcd's default is 1.5 MiB).
+Chosen so that a few keys and prefixes fit a request's `2 ^ 30`-byte payload bound (`opSizeOk`,
+`watchSizeOk`). -/
+def etcdKeyMax : Nat := 2 ^ 27
+
 /-- A key-value as etcd stores it (`mvccpb.KeyValue`'s fields). -/
 structure EtcdKv where
   key : GoString
@@ -88,6 +98,15 @@ class EtcdModel (GF : BundledGFunctors) where
     etcdState r pfx s ⊢
       ⌜∀ v ∈ s, 0 < sint.Z v.createRev ∧ sint.Z v.createRev ≤ sint.Z v.modRev ∧
         sint.Z v.modRev ≤ sint.Z r ∧ 0 < sint.Z v.version⌝
+  /-- **Keys are short** (2026-10-30, `notes/keylen.md`): every key-value of etcd's state at any
+  revision has a key of at most `etcdKeyMax` bytes. -/
+  etcdState_keys : ∀ (r : w64) (pfx : GoString) (s : List EtcdKv),
+    etcdState r pfx s ⊢ ⌜∀ v ∈ s, v.key.length ≤ etcdKeyMax⌝
+  /-- **Values are short** (2026-10-31, `notes/vallen.md`): every key-value of etcd's state at
+  any revision has a value of at most `etcdKeyMax` bytes (the same `MaxRequestBytes` check: a
+  value is part of the request that writes it, or, for a put keeping the value, an earlier one). -/
+  etcdState_vals : ∀ (r : w64) (pfx : GoString) (s : List EtcdKv),
+    etcdState r pfx s ⊢ ⌜∀ v ∈ s, v.value.length ≤ etcdKeyMax⌝
   /-- **A key lives from its creation**: a key present at revision `r` with create revision `c`
   is present, with the same create revision, at every revision `a` in `[c, r]`. -/
   etcdState_create_persist : ∀ (r a : w64) (pfx : GoString) (s s' : List EtcdKv),
@@ -146,7 +165,8 @@ class EtcdModel (GF : BundledGFunctors) where
       ⌜∀ (i : Nat) (c : EtcdEv), cs[i]? = some c → c.typ = W32 1 →
         ∃ v ∈ applyEvsState s (cs.take i), v.key = c.kv.key⌝
 
-export EtcdModel (etcdState etcdState_agree etcdState_revs etcdState_create_persist
+export EtcdModel (etcdState etcdState_agree etcdState_revs etcdState_keys etcdState_vals
+  etcdState_create_persist
   etcdState_modrev_det etcdState_modrev_persist etcdReachedAt etcdReachedAt_timeless etcdReadAt
   etcdReadAt_persistent etcdReadAt_timeless etcdRevToken
   etcdRevToken_excl EtcdStep EtcdStep_persistent EtcdStep_timeless etcdStep_transfer

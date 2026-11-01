@@ -415,40 +415,7 @@ theorem EtcdServer.start.wp_proof
     isplitr
     · iapply isWait_waitOk $$ Hwait
     iexact HRD
-  -- `go s.run()`, with the write budget backed by time receipts (D19b)
-  imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
-  -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
-  -- `issues/etcd-compactor-started-before-start.md`): its run, once (`compactorRun`; M2, S4)
-  icases Hcrun with ⟨%cr, #Hcra, Hcr⟩
-  ihave %Hcreq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcra Hcpf
-  subst Hcreq
-  wp_join iprop(s_ptr ↦ s) at next with [s Hcr] as s
-  · iunfold compactorRun at Hcr
-    icases Hcr with (%Hcpn | ⟨%T, %P, #Hcp, HT, HP⟩)
-    · rw [Hcpn]
-      (try wp_auto)
-      wp_join_done
-    icases v3compactor.compactorOk_Run _ _ _ $$ Hcp with ⟨%ci, %Hci, #HRun⟩
-    rw [Hci]
-    (try wp_auto)
-    wp_apply HRun $$ [HT HP]
-    · iframe HT HP
-    (try wp_auto)
-    wp_join_done
-  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
-  · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
-      ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀
-      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
-    · iunfold isServerRun
-      iframe
-      iframe Hrf Hsa Hsrv Hrn
-      isplitr
-      · ipureintro; exact HEr
-      iexists γp
-      iframe HWB
-      rw [Hai0]; iexact HWA0
-    ipureintro; exact isPanic_intoVal ()
-  -- the views
+  -- the views (before the compactor's run, whose precondition `NewServer` makes from them)
   icases Hreqb with ⟨%vq, #Hvq⟩
   iunfold srvReqBuilt at Hvq
   icases Hvq with ⟨#Q1, #Q2, #Q3, #Q4, #Q5, #Q6, #Q7, #Q8, #Q9, #Q10, #Q11, #Q12, #Q13, #Q14,
@@ -479,7 +446,16 @@ theorem EtcdServer.start.wp_proof
     have hmint : srvMintInv (GF := GF) { ρ with wait := γw } = srvMintInv ρ := rfl
     rw [hmint]
     iframe Q17
-    ipureintro; exact Q19
+    -- (M2's apply side, item 19) the KV names' mode and the certificates' invariant, the apply
+    -- side's (`srvKVInvs`)
+    ihave #Hkvt := Hkvi
+    iunfold srvKVInvs at Hkvt
+    icases Hkvt with ⟨-, #HkcI, -, -, %Hktie⟩
+    have hkv : ({ ρ with wait := γw } : ReqNames).kv = γr.kv := by subst Hρrd; rfl
+    have hrf : ({ ρ with wait := γw } : ReqNames).raft = γr.raft := by subst Hρrd; rfl
+    rw [hkv, hrf]
+    iframe HkcI
+    ipureintro; exact ⟨Hktie.1, Q19⟩
   icases Hrdb with ⟨%vd, #Hvd⟩
   iunfold srvReadBuilt at Hvd
   icases Hvd with ⟨#R1, #R2, #R3, #R4, #R5, #R6, #R7, #R8, #R9, %R10, #R11, #R12, #R13, #R14, #R15⟩
@@ -499,6 +475,45 @@ theorem EtcdServer.start.wp_proof
     iintro !> %h
     have h' : E.authOn = true := h
     rw [hAuthOff] at h'; cases h'
+  -- `go s.run()`, with the write budget backed by time receipts (D19b)
+  imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
+  -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
+  -- `issues/etcd-compactor-started-before-start.md`): its run, once (`compactorRun`; M2, S4)
+  icases Hcrun with ⟨%cr, #Hcra, Hcr⟩
+  ihave %Hcreq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcra Hcpf
+  subst Hcreq
+  wp_join iprop(s_ptr ↦ s) at next with [s Hcr] as s
+  · iunfold compactorRun at Hcr
+    icases Hcr with (%Hcpn | ⟨-, %T, %P, #Hcp, HT, HP⟩)
+    · rw [Hcpn]
+      (try wp_auto)
+      wp_join_done
+    -- the run's precondition, from the views
+    ihave Hcred0 := HNR
+    imod Hcred0 with #Hcred
+    imod HP $$ %({ ρ with wait := γw } : ReqNames) [] with HP
+    · iframe Hpkg Hreq Hcred
+      subst Hρrd; iexact Hrd
+    icases v3compactor.compactorOk_Run _ _ _ $$ Hcp with ⟨%ci, %Hci, #HRun⟩
+    rw [Hci]
+    (try wp_auto)
+    wp_apply HRun $$ [HT HP]
+    · iframe HT HP
+    (try wp_auto)
+    wp_join_done
+  wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
+  · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
+      ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀
+      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
+    · iunfold isServerRun
+      iframe
+      iframe Hrf Hsa Hsrv Hrn
+      isplitr
+      · ipureintro; exact HEr
+      iexists γp
+      iframe HWB
+      rw [Hai0]; iexact HWA0
+    ipureintro; exact isPanic_intoVal ()
   -- what `Start`'s goroutines and the request path get
   ihave #Hrs := isReadServer_of_server hAW hDone hStop hLC hFC hNRID hRT hAI hLg s E
     { ρ with wait := γw } γr Hρrd $$ [$Hpkg $Hreq $Hrd]
@@ -947,17 +962,13 @@ theorem EtcdServer.start.wp_proofOn
   subst Hcreq
   wp_join iprop(s_ptr ↦ s) at next with [s Hcr] as s
   · iunfold compactorRun at Hcr
-    icases Hcr with (%Hcpn | ⟨%T, %P, #Hcp, HT, HP⟩)
+    icases Hcr with (%Hcpn | ⟨%Hoff, -⟩)
     · rw [Hcpn]
       (try wp_auto)
       wp_join_done
-    icases v3compactor.compactorOk_Run _ _ _ $$ Hcp with ⟨%ci, %Hci, #HRun⟩
-    rw [Hci]
-    (try wp_auto)
-    wp_apply HRun $$ [HT HP]
-    · iframe HT HP
-    (try wp_auto)
-    wp_join_done
+    -- auth on: no compactor (`compactorRun`'s run is auth off's)
+    have hon : E.authOn = true := by rw [apply.AEnv.authOn_eq, hM]; rfl
+    rw [hon] at Hoff; cases Hoff
   wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb Hrunh]
   · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀ γa hM hRB
@@ -1006,6 +1017,16 @@ theorem EtcdServer.start.wp_proofOn
     have hmint : srvMintInv (GF := GF) { ρ with wait := γw } = srvMintInv ρ := rfl
     rw [hmint]
     iframe Q17
+    -- (M2's apply side, item 19) no tie with auth on; the certificates' invariant, the apply
+    -- side's (`srvKVInvsOn`)
+    ihave #Hkvt := srvKVInvsM_true _ _ _ $$ Hkvi
+    iunfold srvKVInvsOn at Hkvt
+    icases Hkvt with ⟨-, #HkcI, -, -, -⟩
+    have hkv : ({ ρ with wait := γw } : ReqNames).kv = γr.kv := by subst Hρrd; rfl
+    have hrf : ({ ρ with wait := γw } : ReqNames).raft = γr.raft := by subst Hρrd; rfl
+    rw [hkv, hrf]
+    simp only [kvTieM, kvCertInvM]
+    iframe HkcI
     ipureintro; exact Q19
   icases Hrdb with ⟨%vd, #Hvd⟩
   iunfold srvReadBuilt at Hvd

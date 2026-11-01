@@ -53,13 +53,16 @@ Brief for the prover. Unfold `srvApplyKV` with `ua := mkOk up'`:
 - `revAuth E' ([[], []] ++ R)` from `revAuth E x.log` (`revAuth_snapE`): the bound
   `uint.nat k < x.log.length ≤ ([[], []] ++ R).length` (`hpre.length_le`).
 - `srvAuthApplyRes s E'`: the hypothesis (`snapE_authMode`; integration with the auth track's E2k).
-- `waitOk`: `srvWAddr s ↦□ w0`, `waitOk w0 RD0 …`, `RD0` the hypotheses. -/
+- `waitOk`: `srvWAddr s ↦□ w0`, `waitOk w0 RD0 …`, `RD0` the hypotheses.
+- (M2's apply side, A1, 2026-10-31) the compaction resources at `-1`: the new backend does not
+  compact (`hcm'`), so they are free (`apply.cmpOwn_of_off`). -/
 theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (π0 : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (d' : mvcc.KBReal)
     (p' : mvcc.PhysNames) (γw : mvcc.WsNames) (ws : Loc) (g : GoFunc) (up' : Loc)
     (opts' : apply.ApplierOptions) (w0 : GoInterface) (RD0 : IProp GF) (al ast lp cl : Loc)
     (x : apply.ApplyKV) (R : mvcc.Log) (zal : Bool)
-    (hγB : d'.γB = γB) (hkb' : p'.kb = some d') (hγw : γw.st = E.γ) (hwq : E.γ.watchQ = true)
+    (hγB : d'.γB = γB) (hkb' : p'.kb = some d') (hcm' : d'.cm = false) (hγw : γw.st = E.γ)
+    (hwq : E.γ.watchQ = true)
     (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
     (hrbw : receiptBound GF ≤ backend.wbInit - 6) :
     apply.backendOptsOk (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be)
@@ -95,7 +98,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     hγw hwq hRok hrb $$ [Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD]
   · iframe Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD
   imodintro
-  iexists ⟨[[], []] ++ R, apply.alarmChain E.authOn ns cr⟩
+  iexists ⟨[[], []] ++ R, apply.alarmChain E.authOn ns cr, -1⟩
   isplitr
   · ipureintro; exact ⟨rfl, ns, cr, rfl, hz⟩
   iunfold srvApplyKV
@@ -113,6 +116,9 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     · ipureintro; rfl
     simp only [snapE_authOn]
     iframe Huo Hkv
+    -- (M2's apply side, A1) the new backend does not compact: the compaction resources at `-1`
+    iapply apply.cmpOwn_of_off
+    simp [mvcc.kbCmpM, hkb', hcm']
   isplitl [Hbe Hγbe]
   · iunfold srvBeOwn
     iexists d'

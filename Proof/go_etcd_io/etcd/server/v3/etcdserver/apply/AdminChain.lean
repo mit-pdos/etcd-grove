@@ -61,14 +61,15 @@ inductive AdminReq where
   | .authEnable => go!"AuthEnable"
   | .authenticate _ _ => go!"Authenticate"
 
-/-- The request's name within bbolt's key bound (the step specs' premise; `AuthEnable` has none). -/
+/-- The request's name within bbolt's key bound (the step specs' premise; `AuthEnable` has none);
+(2026-10-30) an `Authenticate`'s token prefix one the provider makes (`auth.tokPrefixOk`). -/
 @[reducible] def AdminReq.nameOk : AdminReq → Prop
   | .userAdd n => n.length ≤ backend.maxKeySize
   | .roleAdd n => n.length ≤ backend.maxKeySize
   | .userGrantRole u _ => u.length ≤ backend.maxKeySize
   | .roleGrantPermission n _ => n.length ≤ backend.maxKeySize
   | .authEnable => True
-  | .authenticate _ _ => True
+  | .authenticate _ pre => auth.tokPrefixOk pre
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -411,7 +412,7 @@ theorem applierAdmin_backendX
     obtain ⟨rfl, rfl⟩ := Ham
     iunfold auth.authOwnFu at Ho
     icases Ho with ⟨Ho, Hfu⟩
-    iapply (hAu E γa X W p r log Pre Q Post info hs am x hM) $$ [Ho HX HW Hm Hfr]
+    iapply (hAu E γa X W p r log Pre Q Post info hs am x hM hn) $$ [Ho HX HW Hm Hfr]
     · rw [hM]; iframe Ho HX HW Hm Hfr; iframe #
     inext
     iintro %resp %err ⟨Hpost, #HeI, Ho, HX, HW, Hout⟩

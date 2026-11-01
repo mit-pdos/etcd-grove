@@ -618,7 +618,7 @@ theorem mvcc.wp_restoreChunk :
 
 theorem mvcc.store.wp_restore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.restore.spec (GF := GF) (hG := hG) :=
-  mvcc.store.restore.wp_proof mvcc.store.wp_setupMetricsReporter mvcc.wp_NewRevBytes mvcc.wp_RevToBytes mvcc.wp_UnsafeReadFinishedCompact mvcc.wp_UnsafeReadScheduledCompact mvcc.wp_restoreIntoIndex mvcc.wp_restoreChunk mvcc.wp_BytesToRev zap.wp_Int64 zap.Logger.wp_Info
+  mvcc.store.restore.wp_proof mvcc.store.wp_setupMetricsReporter mvcc.wp_NewRevBytes mvcc.wp_RevToBytes mvcc.wp_UnsafeReadFinishedCompact mvcc.wp_UnsafeReadScheduledCompact mvcc.wp_restoreIntoIndex mvcc.wp_restoreChunk mvcc.wp_BytesToRev zap.wp_Int64 zap.Logger.wp_Info zap.wp_String zap.wp_Error zap.Logger.wp_Warn
 
 theorem mvcc.wp_NewStore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.NewStore.spec (GF := GF) (hG := hG) :=

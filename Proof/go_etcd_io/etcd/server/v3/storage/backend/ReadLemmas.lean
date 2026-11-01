@@ -978,17 +978,30 @@ theorem fkRd_abs (γ : BNames) (P : BParams) (rv : RView) :
   ihave %Hv := monoNatLbOwn_valid γ.fk _ 0 f $$ Ho Hlb
   have hf : f = 0 := by have := Hv.2; omega
   iframe Ho
-  ipureintro; exact Hf0.1 hf
+  ipureintro; exact Hf0.1.1 hf
+
+/-- **The read law of the compaction keys' values at the open** (the M2 storage plan's items
+27/29, 2026-10-30): with the client's half of the flag still at its value `n` at the open (over
+data whose compaction keys held `v`, `fkOpen`), a reader's state holds `v` there. -/
+theorem fkRd_open (γ : BNames) (P : BParams) (rv : RView) (n : Nat) (v : FkVals) :
+    fkOwn (GF := GF) γ n ∗ fkOpen γ n v ∗ fkRd γ P rv ⊢ fkOwn γ n ∗ ⌜fkValRv P v rv⌝ := by
+  unfold fkRd fkOwn fkOpen fkVR
+  iintro ⟨Ho, ⟨%w, #Hv⟩, %f, %g, #Hlb, #Hg, %Hf⟩
+  ihave %Hle := monoNatLbOwn_valid γ.fk _ n f $$ Ho Hlb
+  ihave %Hag := dghostVar_agree γ.fkv ((w, n, v) : FkG) DFrac.discard g DFrac.discard $$ Hv Hg
+  subst Hag
+  iframe Ho
+  ipureintro; exact Hf.2 Hle.2
 
 /-- **The read law of the compaction keys' bit** (question 4, 2026-10-29): with the bit `true`, a
 reader's state holds only well-formed values at the compaction keys. -/
 theorem fkRd_wf (γ : BNames) (P : BParams) (rv : RView) :
     fkV (GF := GF) γ true ∗ fkRd γ P rv ⊢ ⌜fkWfRv P rv⌝ := by
-  unfold fkRd fkV
-  iintro ⟨#Ht, %f, %w, -, #Hw, %Hf⟩
-  ihave %Hag := dghostVar_agree γ.fkv true DFrac.discard w DFrac.discard $$ Ht Hw
+  unfold fkRd fkV fkVR
+  iintro ⟨⟨%n, %v, #Ht⟩, %f, %g, -, #Hw, %Hf⟩
+  ihave %Hag := dghostVar_agree γ.fkv ((true, n, v) : FkG) DFrac.discard g DFrac.discard $$ Ht Hw
   subst Hag
-  ipureintro; exact Hf.2 rfl
+  ipureintro; exact Hf.1.2 rfl
 
 /-- The two together: with the client's half at `0`, a held shared read transaction's state has
 no compaction key. -/

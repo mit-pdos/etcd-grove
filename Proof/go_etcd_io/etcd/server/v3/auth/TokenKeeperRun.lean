@@ -74,7 +74,10 @@ def tokenProviderOkCtx (tp : GoInterface) (M : AuthMode) (A : IProp GF) : IProp 
           (Val #user)) (Val #rev))
       {{ (t : GoString) (err : GoInterface), RET (PairV #t #err);
           (⌜err = GoInterface.nil⌝ ∗ tokOk M t user) ∨
-            (⌜err ≠ GoInterface.nil⌝ ∗ ∃ e : AuthErr, authErrOf e err) }}))
+            (⌜err ≠ GoInterface.nil⌝ ∗ ∃ e : AuthErr, authErrOf e err) }}) ∗
+    □ ({{ True }} (App (Val #(methods ti.ty go!"genTokenPrefix" ti.v)) (Val #()))
+      {{ (s : GoString) (err : GoInterface), RET (PairV #s #err);
+          ⌜err = GoInterface.nil ∧ tokPrefixOk s⌝ }}))
 
 end ctxpred
 
@@ -237,10 +240,11 @@ side's resource (S5d's `tokenSimple_okA`, its keeper hypothesis `RunSpec` discha
 `keeper_run`). -/
 theorem tokenSimple_okA_run (hValid : ValidSpec (GF := GF) (hG := hG))
     (h_Debug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
-    (h_String : zap.String.spec (GF := GF) (hG := hG)) (p : Loc) (γa : AuthNames) :
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_GTP : tokenSimple.genTokenPrefix.spec (GF := GF) (hG := hG)) (p : Loc) (γa : AuthNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleOk p γa.tok γa.fresh ⊢
       tokenProviderOkA (interface.mkOk (go.GoType.PointerType tokenSimple.ty) #p) (.on γa) (simpleAdmin p) :=
-  tokenSimple_okA hValid keeper_run h_Debug h_String p γa
+  tokenSimple_okA hValid keeper_run h_Debug h_String h_GTP p γa
 
 /-- **`newTokenProviderSimple(lg, indexWaiter, TokenTTL)`** (see the file header): for a positive
 TTL (`NewTokenProvider` passes the configured one, or `simpleTokenTTLDefault`) and an index waiter
@@ -268,7 +272,8 @@ theorem tokenSimple_new (h_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
 (`tokenSimple_info_ctx`), the keeper's goroutine over `keeper_run`. -/
 theorem tokenSimple_okCtx
     (h_Debug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
-    (h_String : zap.String.spec (GF := GF) (hG := hG)) (p : Loc) (γa : AuthNames) :
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_GTP : tokenSimple.genTokenPrefix.spec (GF := GF) (hG := hG)) (p : Loc) (γa : AuthNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleOk p γa.tok γa.fresh ∗
         simpleWaitOk p ⊢
       tokenProviderOkCtx (interface.mkOk (go.GoType.PointerType tokenSimple.ty) #p) (.on γa) (simpleAdmin p) := by
@@ -293,9 +298,13 @@ theorem tokenSimple_okCtx
   · iintro !> %name %Φ !> HA HΦ
     iapply (tokenSimple_invalidateUser p γa.tok γa.fresh name) $$ [HA] HΦ
     iframe #; iexact HA
+  isplitr
   · iintro !> %ctx %user %rev %Φ !> Hctx HΦ
     iapply (tokenSimple_assign p γa.tok γa.fresh γa rfl rfl ctx user rev) $$ [Hctx] HΦ
     iframe #; iexact Hctx
+  · iintro !> %Φ !> - HΦ
+    wp_apply h_GTP p as %s %err %Herr
+    iapply HΦ; ipureintro; exact Herr
 
 end proof
 

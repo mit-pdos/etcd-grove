@@ -123,7 +123,9 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "_Auth_UserAdd_Handler", "_Auth_UserGrantRole_Handler", "_Auth_RoleAdd_Handler",
   "_Auth_RoleGrantPermission_Handler", "_Auth_AuthEnable_Handler",
   # the auth plan's C1 phase 2 (2026-10-28): the stub's `Authenticate` (a user client's token)
-  "authClient.Authenticate", "Auth_Authenticate_FullMethodName"]
+  "authClient.Authenticate", "Auth_Authenticate_FullMethodName",
+  # C1's A5 (2026-10-31): the generated server-side handler of `Authenticate`
+  "_Auth_Authenticate_Handler"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
   "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc", "context"]

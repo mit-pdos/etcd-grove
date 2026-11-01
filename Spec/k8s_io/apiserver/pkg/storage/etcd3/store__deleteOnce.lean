@@ -48,7 +48,7 @@ abbrev store.deleteOnce.spec : Prop :=
     (rv0 : GoString) (st : Loc) (s : OState Obj) (σ0 : KVState) (kv0 : EtcdKv)
     (v : _root_.Perennial.reflect.Value) (p : Loc) (validate : Obj → Nat → Option E)
     (W : IProp GF) (Φ : KVState → IProp GF),
-  c.pfx <+: key →
+  c.pfx <+: key → key.length ≤ 2 ^ 27 →
   mvcc.findKey key σ0.kvs = some kv0 →
   stOfKv c kv0 s →
   validate s.o (uint.nat s.rev) = none →

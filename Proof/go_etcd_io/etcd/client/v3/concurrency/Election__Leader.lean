@@ -69,7 +69,7 @@ theorem Election.Leader.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
   wp_start as ⟨#He, #Hctx, #Hlo⟩
   ihave #He' := He
   iunfold isElection at He'
-  icases He' with ⟨#Hes, #Hepfx, %Hpfx, #Hsess, #Hcl⟩
+  icases He' with ⟨#Hes, #Hepfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
   wp_auto
   wp_apply hCl s γ client id $$ [$Hpkg $Hsess]
   iunfold isEtcdMutexClient at Hcl
@@ -84,7 +84,7 @@ theorem Election.Leader.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
   wp_apply HG $$ [] as %gresp %gerr #Hgres
   · iframe Hctx Hslf Hlo
     ipureintro
-    exact ⟨ownerOp_not_panics pfx, ownerOp_t pfx⟩
+    exact ⟨ownerOp_not_panics pfx, ownerOp_t pfx, ownerOp_size Hpl⟩
   iunfold kvGetResult at Hgres
   icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, #HgRev, -, #HRR, -, %HRle, Hgr⟩)
   · obtain ⟨g, rfl⟩ : ∃ g, gerr = GoInterface.ok g := by

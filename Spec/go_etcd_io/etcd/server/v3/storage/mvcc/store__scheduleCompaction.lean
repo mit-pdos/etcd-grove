@@ -30,17 +30,19 @@ of `CompactionBatchLimit` (positive: `isStore`) under the batch lock (`UnsafeRan
 written in the last batch: `nil` and the compaction finished (`compactedAt γ rev`); or the store
 stopped between two batches (its stop channel closed): `fmt.Errorf`'s error. The hash
 (`kvHasher`, crc32: an axiom) is any. The job's budgets (`compactJobResM`, in the token: question
-5's core stage, part (1)) are given back, for the next job. -/
+5's core stage, part (1)) are given back, for the next job. The fields are read through a share at
+the objects `o` (the running job's lease, `storeStopR_lease`; M2, the storage side, item 17),
+given back. -/
 abbrev mvcc.store.scheduleCompaction.spec : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (rev prev : w64),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (rev prev : w64) (q : Qp) (o : mvcc.StoreObjs),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.compactJobPre s γ rev ∗
-      mvcc.compactTok γ (sint.Z rev) }}
+      mvcc.fieldShareAt s γ q o ∗ mvcc.isStopChan o.sstop ∗ mvcc.compactTok γ (sint.Z rev) }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"scheduleCompaction")) (Val #rev))
       (Val #prev))
   {{ (h : KeyValueHash) (err : GoInterface), RET (PairV #h #err);
-      mvcc.idxCompactor γ.idx (sint.Z rev) ∗ mvcc.compactJobResM γ.kb ∗
+      mvcc.fieldShareAt s γ q o ∗ mvcc.idxCompactor γ.idx (sint.Z rev) ∗ mvcc.compactJobResM γ.kb ∗
       ((⌜err = GoInterface.nil⌝ ∗ mvcc.compactedAt γ (sint.Z rev)) ∨
-        (mvcc.errorfIs err ∗ mvcc.storeStopped s)) }}
+        (mvcc.errorfIs err ∗ mvcc.storeStopped γ)) }}
 
 end spec
 

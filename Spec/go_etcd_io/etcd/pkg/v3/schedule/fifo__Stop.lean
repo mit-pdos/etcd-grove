@@ -23,15 +23,18 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
 
 /-- **`f.Stop()`** on the `*fifo` `l`, with the stop token and the queue: it cancels the
 context (the scheduler now stopped) and waits for the worker to exit, which runs the pending jobs
-first: (2026-10-30, the repair, T1b) with the last tracked job's postcondition. -/
+first: (2026-10-30, the repair, T1b) with the last tracked job's postcondition; (M2, the storage
+side) taking the payload and returning the run token. -/
 abbrev schedule.fifo.Stop.spec : Prop :=
   ∀ (l : Loc) (γ : schedule.SchedNames) (F : schedule.FifoNames) (Ps : List GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗
-      schedule.fifoIs l γ F ∗ schedule.schedStopTok γ ∗ schedule.schedQueue γ Ps }}
+      schedule.fifoIs l γ F ∗ schedule.schedStopTok γ ∗ schedule.schedQueue γ Ps ∗
+      schedule.schedPay γ }}
     (App (Val (l @!! go.GoType.PointerType schedule.fifo.ty @!! go!"Stop")) (Val #()))
   {{ RET #(); (match Ps.getLast? with
       | none => iprop(True)
-      | some p => iprop(∃ P : IProp GF, schedule.savedProp p P ∗ ▷ P)) }}
+      | some p => iprop(∃ P : IProp GF, schedule.savedProp p P ∗ ▷ P)) ∗
+      schedule.schedDone γ }}
 
 end spec
 

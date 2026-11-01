@@ -62,6 +62,7 @@ local macro "monitor_watch" : tactic => `(tactic| (
     · iframe Hcctx Hopts
       ipureintro
       refine ⟨Hw1, Hw2, by word, ?_⟩
+      refine ⟨?_, keyWatch_size _ _ (by simp only [List.length_append]; omega)⟩
       rw [Hw3, Hw4]; intro k _; exact List.nil_prefix
     ihave IH2 : iprop(∃ (rcv : List go_etcd_io.etcd.client.v3.WatchResponse)
         (v : go_etcd_io.etcd.client.v3.WatchResponse),
@@ -150,6 +151,7 @@ local macro "monitor_watch" : tactic => `(tactic| (
             ({ Values := lcs.Values, Deadline := lcs.Deadline, Done_gn := γc,
                PDone := iprop(lcs.PDone ∨ True) } : context.ContextDesc (IProp GF)) key e.rev
             $$ [$(frameH `Hpkg) $(frameH `Hlkv) $(frameH `Hcctx)]
+          · ipureintro; assumption
           (try wp_auto)
           wp_for_post
           wp_for_post
@@ -189,6 +191,7 @@ theorem leasingKV.monitorLease.wp_proof
     leasingKV.monitorLease.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs key rev
   wp_start as ⟨#Hlkv, Hrd, #Hsr, #Hctx, %Hrev⟩
+  have Hkl := Hrev.2.2
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hcl, #Hkvf, #Hpfxf, #Hctxf,
@@ -213,13 +216,13 @@ theorem leasingKV.monitorLease.wp_proof
   · iexists rev
     simp only [named]
     iframe
-    ipureintro; exact Hrev
+    ipureintro; exact ⟨Hrev.1, Hrev.2.1⟩
   wp_for IH
   wp_apply HErrU as %cerr -
   cases cerr with
   | ok e =>
     wp_auto
-    simp only [false_neq_true, decide_false, Bool.false_eq_true, ↓reduceIte, decide_true]
+    simp only [false_neq_true, decide_false, Bool.false_eq_true, ↓reduceIte, _root_.decide_true]
     (try wp_auto)
     wp_apply Hcancel'
     · imodintro; itrivial
@@ -240,7 +243,9 @@ theorem leasingKV.monitorLease.wp_proof
     wp_apply HG $$ [] as %gresp %gerr #Hgres
     · iframe Hctx Hnil H0
       ipureintro
-      exact ⟨concurrency.keyOp_not_panics, (concurrency.keyOp_t (pfx ++ key)).1⟩
+      exact ⟨concurrency.keyOp_not_panics, (concurrency.keyOp_t (pfx ++ key)).1,
+        opSizeOk_opGetModel (K := 2 ^ 27 + 2 ^ 26) (E := 0) (V := 0) (optsKeep_nil _ _ _)
+          (by simp only [List.length_append]; omega) (by decide)⟩
     iunfold kvGetResult at Hgres
     icases Hgres with (%Hgne | ⟨%Hgnil, %r, %gm, #HgRev, -, -, -, %HRle, Hgr⟩)
     · -- an error: the next iteration
@@ -283,6 +288,7 @@ theorem leasingKV.monitorLease.wp_proof
         ({ Values := lcs.Values, Deadline := lcs.Deadline, Done_gn := γc,
            PDone := iprop(lcs.PDone ∨ True) } : context.ContextDesc (IProp GF)) key r
         $$ [$Hpkg $Hlkv $Hcctx]
+      · ipureintro; exact Hkl
       (try wp_auto)
       wp_for_post
       wp_apply Hcancel'
@@ -314,6 +320,7 @@ theorem leasingKV.monitorLease.wp_proof
         ({ Values := lcs.Values, Deadline := lcs.Deadline, Done_gn := γc,
            PDone := iprop(lcs.PDone ∨ True) } : context.ContextDesc (IProp GF)) key r
         $$ [$Hpkg $Hlkv $Hcctx]
+      · ipureintro; exact Hkl
       (try wp_auto)
       wp_for_post
       wp_apply Hcancel'

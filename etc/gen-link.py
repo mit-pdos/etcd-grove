@@ -497,6 +497,8 @@ REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
 EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
+                 # `Serve`'s auth-on spec, linked by hand (`=common.wp_ServeOn` callee)
+                 "--authkv": ["Proof.github_com.mit_pdos.etcd_grove.examples.common.LinkOn"],
                  # Perennial's linked results `sets.List`'s proof takes as terms (`=` callees)
                  "--k8scache": ["Perennial.Proof.slices.Link", "Perennial.Proof.cmp.Link"],
                  # the informer factory's package (its assumptions, the section's variable)
@@ -768,6 +770,40 @@ for fn in fns:
 
 if cache:
     listfile, opens, assumptions, what, _ = mode
+    # raft's assumptions as a section variable (`raftAsm`), in a mode whose package's are not
+    # raft's: when a linked function's spec or proof takes them (since server Stage F,
+    # `b1542227ac`, 2026-10-30, the files over raft's unified API declare `variable [raftAsm :
+    # go_etcd_io.raft.v3.Assumptions]`: mvcc's `store.scheduleCompaction`), or an `@` callee's
+    # `Link.lean` declares it (the txn and apply modes, through mvcc's results)
+    RAFT_ASM = "go_etcd_io.raft.v3.Assumptions"
+    RAFT_ASM_VAR = f"variable [raftAsm : {RAFT_ASM}]"
+
+    def mentions_raft_asm(fn):
+        if fn in reused or fn in external:
+            link = (os.path.join(root, *reused[fn].split(".")) + ".lean" if fn in reused else
+                    os.path.join(root, *external_link(fn).split(".")) + ".lean")
+            return os.path.exists(link) and RAFT_ASM_VAR in open(link).read()
+        files = [spec_file(fn), os.path.join(root, prefix[fn].rstrip("."), "Proof",
+                                             *where[fn].split(".")) + ".lean"]
+        return any(os.path.exists(f) and RAFT_ASM_VAR in open(f).read() for f in files)
+    def imports_assumptions(cls, target, seen=None):
+        """Whether the package assumptions `cls` include `target`'s: Goose's class has a field
+        `import_<p>_Assumption : _root_.Perennial.<pkg>.Assumptions` for each imported package (the
+        server's and v3rpc's reach raft's), an instance in the section."""
+        seen = set() if seen is None else seen
+        if cls == target:
+            return True
+        if cls in seen:
+            return False
+        seen.add(cls)
+        code = os.path.join(root, "Code", *cls.split(".")[:-1]) + ".lean"
+        if not os.path.exists(code):
+            return False
+        deps = re.findall(r"^  import_\w+_Assumption : _root_\.Perennial\.(\S+)$",
+                          open(code).read(), re.M)
+        return any(imports_assumptions(d, target, seen) for d in deps)
+    raft_var = (RAFT_ASM_VAR + "\n" if not imports_assumptions(assumptions, RAFT_ASM)
+                and any(mentions_raft_asm(fn) for fn in order) else "")
     out = [f"""/-
 {what}, every proof instantiated with its
 callees' results. All of them are Lean-first, listed with their callees in
@@ -803,7 +839,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : {assumptions}]
+{raft_var}variable [package_sem : {assumptions}]
 {em}""")
     def hyp(fn):
         return "h_" + fn
@@ -973,7 +1009,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : {assumptions}]
+{raft_var}variable [package_sem : {assumptions}]
 {em}""")
         out.extend(emit_cache(fn) for fn in special)
         out.append("end links_hasLC\n")
@@ -998,7 +1034,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : {assumptions}]
+{raft_var}variable [package_sem : {assumptions}]
 {em}{hyps}
 include {names}
 """)

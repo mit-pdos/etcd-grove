@@ -80,7 +80,7 @@ theorem WaitPrefixEvents.wp_proof (wp_WithPrefix : EtcdGrove.WithPrefix.spec (GF
   wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hcons, -⟩
   · iframe Hctx' Hopts
     ipureintro
-    exact ⟨Hw1, Hw2, Hp.2.2, Hw3⟩
+    exact ⟨Hw1, Hw2, Hp.2.2.1, Hw3, prefixWatchOp_size rev Hp.2.2.2⟩
   ihave %Hnn : ⌜wch ≠ null⌝ $$ [Hwch]
   · iunfold isSpsc at Hwch
     icases Hwch with ⟨#Hch, -⟩

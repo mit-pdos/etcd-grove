@@ -32,6 +32,7 @@ public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.GhostVar
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CompactIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndexCut
 public import Perennial.Ghost.GhostMap
 public import Perennial.IrisLib.BI
 
@@ -770,14 +771,14 @@ theorem reader_answerC (log₀ ilog : Log) (pend : List Change) (L : List IdxEnt
     (hcmp : histOf log₀ <+: histShape ilog pend ∨ histShape ilog pend <+: histOf log₀)
     (hcount : (evsOf log₀).length ≤ (evsOf (ilog ++ [pend])).length)
     (hwf0 : IdxWf ilog pend) (hwf : LogWf' log₀) (hcs : ∀ cs ∈ log₀, cs.length < 2 ^ 63)
-    (HLL : IdxCRep cmax (evsOf (ilog ++ [pend])) (idxOfEntries L))
+    (HLL : IdxCRepN cmax (evsOf (ilog ++ [pend])) (idxOfEntries L))
     (k : GoString) (r : Nat) (hr : r < log₀.length) (hlen0 : log₀.length < 2 ^ 63) (hc : cmax ≤ r) :
     kiGet ((idxGet (idxOfEntries L) k).getD kiEmpty) (W64 r) =
       kiGet (kiOfKey (evsOf log₀) k) (W64 r) := by
   have hz : cmax ≤ sint.Z (W64 r) := by
     have : sint.Z (W64 r) = r := by word
     omega
-  have := IdxCRep.kiAt (ilog ++ [pend]) hwf0.logB HLL (W64 r) hz k
+  have := IdxCRepN.kiAt (ilog ++ [pend]) hwf0.logB HLL (W64 r) hz k
   unfold kiAt at this
   rw [this]
   exact reader_answer log₀ ilog pend hcmp hcount (by have := hwf0.2.1; omega) hwf hcs k r hr
@@ -788,7 +789,7 @@ theorem rangeAnswers_entriesC (log₀ ilog : Log) (pend : List Change) (L : List
     (hcmp : histOf log₀ <+: histShape ilog pend ∨ histShape ilog pend <+: histOf log₀)
     (hcount : (evsOf log₀).length ≤ (evsOf (ilog ++ [pend])).length)
     (hwf0 : IdxWf ilog pend) (hwf : LogWf' log₀) (hcs : ∀ cs ∈ log₀, cs.length < 2 ^ 63)
-    (HLL : IdxCRep cmax (evsOf (ilog ++ [pend])) (idxOfEntries L))
+    (HLL : IdxCRepN cmax (evsOf (ilog ++ [pend])) (idxOfEntries L))
     (k e : GoString) (r : Nat) (hr : r < log₀.length) (hlen0 : log₀.length < 2 ^ 63) (hc : cmax ≤ r) :
     rangeAnswers log₀ false k e (W64 r) = entryAnswers (rangeEntries L k e) (W64 r) := by
   have hz : cmax ≤ sint.Z (W64 r) := by
@@ -797,12 +798,14 @@ theorem rangeAnswers_entriesC (log₀ ilog : Log) (pend : List Change) (L : List
   unfold rangeAnswers
   simp only [Bool.false_eq_true, ↓reduceIte]
   rw [← reader_range log₀ ilog pend hcmp hcount (by have := hwf0.2.1; omega) hwf hcs k e r hr,
-    ← IdxCRep.rangeAt (ilog ++ [pend]) hwf0.logB HLL (W64 r) hz, rangeAt_entries]
+    ← IdxCRepN.rangeAt (ilog ++ [pend]) hwf0.logB HLL (W64 r) hz, rangeAt_entries]
 
 /-- The `RWMutex`'s resource at fraction `q` (see the module docstring): the tree holds the
-events of `ilog ++ [pend]`, each key's index compacted at a level of its own, at most `cmax`, a
-lower bound of the compaction revision (`IdxCRep`, `Compact.lean`; the compaction job compacts
-key by key under the lock), below the length of a lower bound of the committed log (so below
+events of `ilog ++ [pend]`, each key's index cut at a full revision of its own, at or before what
+compaction at a level at most `cmax` keeps, up to the unread header of a tombstone-only generation
+(`IdxCRepN`, `InvIndexCut.lean`: the compaction job compacts key by key under the lock, and
+`restore()` over a bucket a job thinned rebuilds each key from its first surviving revision), `cmax` a
+lower bound of the compaction revision, below the length of a lower bound of the committed log (so below
 every writer's next revision). -/
 def idxLockInv (t : Loc) (γ : IdxNames) (q : Qp) : IProp GF :=
   iprop(∃ (ilog : Log) (pend : List Change) (L : List IdxEntry) (cmax : Int),
@@ -811,7 +814,7 @@ def idxLockInv (t : Loc) (γ : IdxNames) (q : Qp) : IProp GF :=
     "Htree" ∷ ownTree t L q ∗
     "#Hcrev" ∷ crevLb γ cmax ∗
     "#Hcl" ∷ (∃ log₀ : Log, monoListLbOwn γ.log log₀ ∗ ⌜cmax < log₀.length⌝) ∗
-    "%HL" ∷ ⌜IdxCRep cmax (evsOf (ilog ++ [pend])) (idxOfEntries L) ∧ -1 ≤ cmax⌝ ∗
+    "%HL" ∷ ⌜IdxCRepN cmax (evsOf (ilog ++ [pend])) (idxOfEntries L) ∧ -1 ≤ cmax⌝ ∗
     "%Hwf" ∷ ⌜IdxWf ilog pend⌝ ∗
     "Hcmp" ∷ idxCmpOwn γ q L cmax)
 

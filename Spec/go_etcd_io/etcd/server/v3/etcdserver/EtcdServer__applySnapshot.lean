@@ -46,7 +46,7 @@ cluster recover from it, `s.be` is swapped under `bemu`, the old backend is clos
 (with its stop channels and the constructors' half of its open token, W7, and the readers' and the
 monitor's shares the swap gathers), the transport's peers are removed and the members re-added
 (W8), and `NewUberApplier` rebuilds the applier: `srvSnapApplied`. Named premises (S-j1's to
-discharge): the image's facts (`hmeta`, `hkI`, `hRok`, `hpre`, `hlease`, `halarm`, `hauthb`,
+discharge): the image's facts (`hmeta`, `hkI`, `hRok`, `hpre`, `hlease`, `hlp`, `halarm`, `hauthb`,
 `hmemb`, `himg`, `hA'`), the auth store's mode `.off` (`hoff`), the auth store's `Recover` (`authRecoverOk`, the auth track's E
 stage), the members' directory (`srvMembersDir`) and `8·|ps|` reader slots of the transport's
 `lgMu`, the KV's closer, `NewUberApplier`'s fields and feature gate, the stores' contracts on
@@ -59,7 +59,8 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
     (d : mvcc.KBReal) (D : backend.Data) (lgh : Loc)
     (hkb : E.γ.kb = some d)
     -- (question 5's core stage, part (1); Q5-4, review round 16's M1) the store's backend does not
-    -- compact: no restore in compaction mode (`srvEnvOk`'s conjunct gives it)
+    -- compact: no restore in compaction mode (M2's apply side, 2026-10-31, the user's (a): an interim
+    -- restriction, `srvEnvOk` now giving `d.cm = E.cmp`; the caller's mode off gives it)
     (hcm : d.cm = false)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
@@ -73,6 +74,9 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
     (hwq : E.γ.watchQ = true)
     (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
     (hkI : mvcc.keyImage ([[], []] ++ R) D) (hbr : mvcc.bridgeParams d.P)
+    -- (the lease-revoke plan, 2026-10-31) the `Lease` bucket in the table, tracked, no hook keys
+    -- (the boot backend's, `bootOk`; the new backend's parameters are the old one's)
+    (hlp : mvcc.leaseParams d.P)
     (γp : GName) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
     (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat ai)

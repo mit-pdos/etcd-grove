@@ -43,7 +43,7 @@ abbrev Client.OptimisticPut.spec : Prop :=
     (V : client.WEnv GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (vsl : GoSlice) (val : GoString) (rev : w64)
     (opts : go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (Q : KVState → IProp GF),
-  opts.LeaseID' = W64 0 →
+  opts.LeaseID' = W64 0 → key.length ≤ 2 ^ 27 → val.length ≤ 2 ^ 28 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗
@@ -60,7 +60,7 @@ abbrev Client.OptimisticPut.spec : Prop :=
             (optPutTxn key val rev opts.GetOnFailure')).1 ∧
           resp.Revision' =
             W64 ((kvOpStep (.txn (optPutTxn key val rev opts.GetOnFailure')) σ).rev : Int) ∧
-          σ.rev + 3 < 2 ^ 63⌝ ∗
+          σ.rev + 3 < 2 ^ 63 ∧ ∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝ ∗
         (if opts.GetOnFailure' && !resp.Succeeded' then
           kvOut resp.KV' (single (σ.kvs.filter fun v => decide (v.key = key)))
         else iprop(⌜resp.KV' = null⌝))) ∨

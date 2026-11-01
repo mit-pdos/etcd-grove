@@ -46,12 +46,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- **The queue, end to end** (see the file header): `NewQueue(client, kp)` on a client over a
+/-- **The queue, end to end** (see the file header): `NewQueue(client, kp)` (`kp` at most
+`2 ^ 27` bytes; `Enqueue`'s value at most `2 ^ 28`: `notes/invoke-size-b.md`) on a client over a
 real `*kv` and etcd's server returns a queue whose `Enqueue` meets its spec, and whose `Dequeue`'s
 `(v, nil)` is an item `it` with the value `v`, taken by this call in the server's terms
 (`queueTaken`), at a revision at least the caller's `lo`, in order (`dequeueOrder`). -/
 theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (γ : client.KMNames) [client.KMWritable γ]
-    (kp : GoString) (hkp : kp ≠ [])
+    (kp : GoString) (hkp : kp ≠ []) (hkpl : kp.length ≤ 2 ^ 27)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -64,7 +65,7 @@ theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (γ : client.K
         (Val #kp))
     {{ (q : Loc), RET #q;
         (□ ∀ (val : GoString) (lo : w64),
-          {{ etcdReached (EM := client.etcdModelOfKV γ) lo }}
+          {{ etcdReached (EM := client.etcdModelOfKV γ) lo ∗ ⌜val.length ≤ 2 ^ 28⌝ }}
             (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Enqueue")) (Val #val))
           {{ (err : GoInterface), RET #err;
               (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (r : w64),
@@ -87,14 +88,15 @@ theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (γ : client.K
   · iframe #
   iapply (wp_NewQueue (EM := client.etcdModelOfKV γ) cl kp) $$ []
   · iframe #
-    ipureintro; exact hkp
+    ipureintro; exact ⟨hkp, hkpl⟩
   inext
   iintro %q #Hq
   iapply HΦ
   isplitl []
-  · iintro !> %val %lo %Ψ !> #Hlo HΨ
+  · iintro !> %val %lo %Ψ !> ⟨#Hlo, %Hv⟩ HΨ
     iapply (Queue.wp_Enqueue (EM := client.etcdModelOfKV γ) q cl kp val lo) $$ []
     · iframe #
+      ipureintro; exact Hv
     iexact HΨ
   · iintro !> %lo %Ψ !> ⟨#Hci, #Hlo, %Hl0⟩ HΨ
     iapply (Queue.wp_Dequeue (EM := client.etcdModelOfKV γ) q cl kp lo) $$ []

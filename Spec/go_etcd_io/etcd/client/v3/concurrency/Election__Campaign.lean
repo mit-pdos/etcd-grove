@@ -35,13 +35,14 @@ knowing etcd has reached `lo`:
   "Election"). The state holds `key`, `rev`, the session, and the transaction's header (revision
   `r`, `lo ≤ r ≤ R`);
 * an error, in some state (the transaction failed, the proclamation failed and `Resign` ran, or the
-  wait failed: then `Resign` ran if the context is done, otherwise the leader session is cleared). -/
+  wait failed: then `Resign` ran if the context is done, otherwise the leader session is cleared).
+The value is at most `2 ^ 28` bytes (2026-10-30: the requests carrying it fit a gRPC message). -/
 abbrev Election.Campaign.spec : Prop :=
   ∀ (e s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : ElectionSt)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (val : GoString) (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s γ client id pfx ∗
       electionState e s st ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
-      etcdReached lo }}
+      etcdReached lo ∗ ⌜val.length ≤ 2 ^ 28⌝ }}
     (App (App (Val (e @!! go.GoType.PointerType Election.ty @!! go!"Campaign"))
       (Val #(GoInterface.ok ctx))) (Val #val))
   {{ (err : GoInterface), RET #err;

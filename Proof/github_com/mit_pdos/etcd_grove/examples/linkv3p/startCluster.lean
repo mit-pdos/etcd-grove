@@ -52,7 +52,7 @@ theorem startCluster.wp_proof
     (wp_startBridge : startBridge.spec (GF := GF) (hG := hG))
     (wp_NewClients : common.NewClients.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
-  intro CS N id₁ id₂ id₃ ctxs boot lg pfx Hbf Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms
+  intro CS N id₁ id₂ id₃ ctxs boot lg pfx Hbf Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hmarsh, #Hcom⟩
@@ -143,7 +143,7 @@ theorem startCluster.wp_proof
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃)
       (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn
       Htb Hrb48 HrbN hvs hrule hboot hblen hγn1 hγn2
-      Hdok (by simp [dir3]) Hlg Hck Haf Hbuq Hdbo Hms) $$ [Ha₁ Hc₁ Htok Hmb₁ Ho₁] as %s₁ %err₁ Hr₁
+      Hdok (by simp [dir3]) Hlg Hck Haf Hbuq Hrf Hdbo Hms) $$ [Ha₁ Hc₁ Htok Hmb₁ Ho₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
   · cases err₁ with
@@ -167,7 +167,7 @@ theorem startCluster.wp_proof
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃)
       (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn
       Htb Hrb48 HrbN hvs hrule hboot hblen hγn1 hγn2
-      Hdok (by simp [dir3, Ne.symm hn12]) Hlg Hck Haf Hbuq Hdbo Hms)
+      Hdok (by simp [dir3, Ne.symm hn12]) Hlg Hck Haf Hbuq Hrf Hdbo Hms)
     $$ [Ha₂ Hc₂ Htok Hmb₂ Ho₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
@@ -192,7 +192,7 @@ theorem startCluster.wp_proof
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃)
       (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn
       Htb Hrb48 HrbN hvs hrule hboot hblen hγn1 hγn2
-      Hdok (by simp [dir3, Ne.symm hn13, Ne.symm hn23]) Hlg Hck Haf Hbuq Hdbo Hms)
+      Hdok (by simp [dir3, Ne.symm hn13, Ne.symm hn23]) Hlg Hck Haf Hbuq Hrf Hdbo Hms)
     $$ [Ha₃ Hc₃ Htok Hmb₃ Ho₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)
@@ -327,6 +327,10 @@ theorem startCluster.wp_proof
   iexists γ, γn, ρ₁, ρ₂, ρ₃, E₁', E₂', E₃', cid₁, cid₂, cid₃, mid₁, mid₂, mid₃, R₁, R₂, R₃,
     s₁, s₂, s₃, cl₁, cl₂, cl₃, br₁, br₂, br₃
   iframe Hetcd Hob₁ Hob₂ Hob₃ Hctl₁ Hctl₂ Hctl₃
+  -- (M2, the storage side, N1) each member's server off: its stand-in's mode, through `envAgree`
+  have off₁ : E₁'.γ.cm = false := envAgree_off E₁' E₁ HE₁.1 Hp₁.2.2.2.2.2.2.2.1
+  have off₂ : E₂'.γ.cm = false := envAgree_off E₂' E₂ HE₂.1 Hp₂.2.2.2.2.2.2.2.1
+  have off₃ : E₃'.γ.cm = false := envAgree_off E₃' E₃ HE₃.1 Hp₃.2.2.2.2.2.2.2.1
   obtain ⟨hr₁, hc₁, hch₁, hl₁, -⟩ := Hp₁
   obtain ⟨hr₂, hc₂, hch₂, hl₂, -⟩ := Hp₂
   obtain ⟨hr₃, hc₃, hch₃, hl₃, -⟩ := Hp₃
@@ -336,19 +340,19 @@ theorem startCluster.wp_proof
     · ipureintro; exact Hnr₁
     isplitr
     · ipureintro; exact HR₁
-    ipureintro; exact ⟨⟨reg₁, hr₁⟩, hc₁, hch₁, hl₁⟩
+    ipureintro; exact ⟨⟨reg₁, hr₁⟩, hc₁, hch₁, hl₁, off₁⟩
   isplitr
   · iunfold memberAt; iframe #; isplitr
     · ipureintro; exact Hnr₂
     isplitr
     · ipureintro; exact HR₂
-    ipureintro; exact ⟨⟨reg₂, hr₂⟩, hc₂, hch₂, hl₂⟩
+    ipureintro; exact ⟨⟨reg₂, hr₂⟩, hc₂, hch₂, hl₂, off₂⟩
   isplitr
   · iunfold memberAt; iframe #; isplitr
     · ipureintro; exact Hnr₃
     isplitr
     · ipureintro; exact HR₃
-    ipureintro; exact ⟨⟨reg₃, hr₃⟩, hc₃, hch₃, hl₃⟩
+    ipureintro; exact ⟨⟨reg₃, hr₃⟩, hc₃, hch₃, hl₃, off₃⟩
   ipureintro; exact ⟨hst₂, hst₃⟩
 
 end proof

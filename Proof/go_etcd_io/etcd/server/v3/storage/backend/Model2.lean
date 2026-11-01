@@ -461,6 +461,49 @@ only well-formed values. -/
 def fkWInit (P : BParams) (D : Data) : Bool := by
   classical exact decide (fkWfD P D)
 
+/-! ### The compaction keys' values at the open (items 27/29 of the M2 storage plan, 2026-10-30) -/
+
+/-- **A pair of compaction-key values** (finished, scheduled): what the two keys hold. -/
+abbrev FkVals := Option GoString × Option GoString
+
+/-- The value the pair `v` gives the compaction key `k` (`finishedCompactRev`, else
+`scheduledCompactRev`). -/
+def fkAt (v : FkVals) (k : GoString) : Option GoString :=
+  if k = go!"finishedCompactRev" then v.1 else v.2
+
+/-- bbolt's data's compaction-key values. -/
+def fkVals (D : Data) : FkVals :=
+  (dget D go!"meta" go!"finishedCompactRev", dget D go!"meta" go!"scheduledCompactRev")
+
+/-- bbolt's data holds `v` at the compaction keys. -/
+def fkValD (v : FkVals) (D : Data) : Prop := ∀ n k, fkKey n k → dget D n k = fkAt v k
+
+/-- A readers' state holds `v` at the compaction keys: its committed data does, and its read buffer
+has no entry at one. -/
+def fkValRv (P : BParams) (v : FkVals) (rv : RView) : Prop := fkValD v rv.1 ∧ fkAbsB P rv.2.bks
+
+/-- The batch state holds `v` at the compaction keys: its committed data and writer's contents
+do, its buffers have no entry at one. -/
+def fkValSt (P : BParams) (v : FkVals) (st : BSess) : Prop :=
+  fkValD v st.C ∧ fkAbsB P st.R.bks ∧ fkValD v st.S ∧ fkAbsB P st.W.bks
+
+/-- **The compaction keys' ghost value** (`γ.fkv`, discarded at allocation): the well-formedness
+bit, and the flag's value and the keys' values at the open. -/
+abbrev FkG := Bool × Nat × FkVals
+
+/-- **What the flag `f` and the ghost value `g` say of a batch state**: `fkOk` (the flag at `0`,
+no key; the bit, well-formed values), and the open's records clause: the flag never below its
+value at the open, and while it is there, the keys hold the open's values (a put of one raises the
+flag; nothing else changes them, `UnsafeDelete`/`UnsafeDeleteBucket` not taking a compaction key or
+the `meta` bucket). -/
+def fkOkG (P : BParams) (f : Nat) (g : FkG) (st : BSess) : Prop :=
+  fkOk P f g.1 st ∧ g.2.1 ≤ f ∧ (f = g.2.1 → fkValSt P g.2.2 st)
+
+/-- The same of a readers' state, at a lower bound `f` of the flag: at or below the open's value,
+the keys hold the open's values. -/
+def fkOkRvG (P : BParams) (f : Nat) (g : FkG) (rv : RView) : Prop :=
+  fkOkRv P f g.1 rv ∧ (f ≤ g.2.1 → fkValRv P g.2.2 rv)
+
 /-! ## Ranges -/
 
 /-- The limit `UnsafeRange` uses: 1 for a single key (no end key), else `limit` (all of them if

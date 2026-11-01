@@ -432,6 +432,13 @@ def watchReqSend (l : Loc) (m : WatchReqM) : IProp GF :=
     | .other => ⌜u = GoInterface.nil⌝ ∨ oneofCreate u null ∨ oneofCancel u null ∨
         oneofProgress u null)
 
+/-- **A bound on a `*pb.WatchRequest`'s encoding** (`pbWatchRequest.wireLen`; 2026-10-30): a
+create's key and range end, its filters (a packed enum, at most 10 bytes each), and the fixed part
+(`wireSlack`); a cancel's or a progress request's fixed part. -/
+def watchReqWireLen : WatchReqM → Nat
+  | .create c => c.key.length + c.rangeEnd.length + 10 * c.filters.length + wireSlack
+  | _ => wireSlack
+
 /-- **The watch requests on the wire** (a trusted wire model, as the unary ones): the client's
 message `watchReqSend`, the server's decoded copy `watchReqRecv` (owned), a message the receiver
 owns at any content (`own`: a fresh `new(WatchRequest)` is one). -/
@@ -440,6 +447,7 @@ abbrev pbWatchRequest : StreamMsg GF where
   M := WatchReqM
   cnt := inferInstance
   send := watchReqSend
+  wireLen := watchReqWireLen
   recv := watchReqRecv
   own l := iprop(∃ v : etcdserverpb.WatchRequest, l ↦ v)
 

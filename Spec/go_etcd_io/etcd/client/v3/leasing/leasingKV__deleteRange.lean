@@ -32,7 +32,7 @@ abbrev leasingKV.deleteRange.spec : Prop :=
     (cs : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
     (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ sessionReady γ ∗ context.isContext ctx cs ∗
-      context.isCancelCtxCtx ctx cs ∗ opFullAt opv o ∗ etcdReached lo }}
+      context.isCancelCtxCtx ctx cs ∗ opFullAt opv o ∗ etcdReached lo ∗ ⌜OpShape (2 ^ 27) (2 ^ 27) (2 ^ 28) o⌝ }}
     (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"deleteRange")) (Val #(GoInterface.ok ctx))) (Val #opv))
   {{ (dr : Loc) (err : GoInterface), RET (PairV #dr #err); lkvReader lkv γ pfx ∗
       (⌜err ≠ GoInterface.nil ∧ dr = null⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ deleteCommitted lo o dr)) }}

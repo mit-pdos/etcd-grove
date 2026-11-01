@@ -32,7 +32,8 @@ abbrev retryAuthClient.Authenticate.spec : Prop :=
     (inp : Loc) (m : (pbAuthenticateRequest (GF := GF)).M) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryAuthAt rac conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcs addr authnMethod Spec ∗ □ ▷ Spec m Φ ∗ ctxOk ctx cd ∗
-      (pbAuthenticateRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs }}
+      (pbAuthenticateRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
+      ⌜(pbAuthenticateRequest (GF := GF)).wireLen m < grpcMsgMax⌝ }}
     (App (App (App (Val (rac @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryAuthClient.ty @!!
         go!"Authenticate")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

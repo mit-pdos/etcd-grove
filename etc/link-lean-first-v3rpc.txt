@@ -73,6 +73,8 @@ _Auth_UserGrantRole_Handler:
 _Auth_RoleAdd_Handler:
 _Auth_RoleGrantPermission_Handler:
 _Auth_AuthEnable_Handler:
+# C1's A5 (2026-10-31): `Authenticate`'s (it clears its decoded request's `Password`).
+_Auth_Authenticate_Handler:
 # Unit W-W (the gRPC stream wire): the generated stream handler of the Watch service
 # (rpc_grpc.pb.go: `srv.(WatchServer).Watch(&grpc.GenericServerStream{ServerStream: stream})`),
 # over the generic server-stream wrapper's methods (stream_interfaces.go), axioms: Goose does not

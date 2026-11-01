@@ -137,6 +137,34 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     downgrade from `READWRITE` to `READ` leaves writes permitted). Needs two permissions sharing a
     key; admin-only with auth on; reproduced by a unit test at the pin; a small fix (match the
     range end too). Upstream not searched.
+14. **[etcd-txn-nested-depth-apply-panic](etcd-txn-nested-depth-apply-panic.md)** (2026-10-30): a
+    transaction nested 4999 deep passes gRPC's protobuf decoding (10000 levels) but its raft entry is
+    one level deeper, and every member panics applying it, again on every restart (as item 1, the
+    cluster down for good). Only with `--max-txn-ops` raised to about 5000 or more (the default
+    128 bounds the nesting); reproduced end to end; a small fix (a depth bound in
+    `checkTxnRequest`). Upstream not searched.
+15. **[etcd-txn-keysonly-reply-alloc-panic](etcd-txn-keysonly-reply-alloc-panic.md)** (2026-10-31): a
+    `Txn` of nested keys-only whole-range reads builds a reply whose encoding exceeds 2^48 bytes while
+    using only about 11 GiB of heap (keys-only aliases the index's key slices), and the gRPC codec's
+    `make([]byte, size)` panics (`makeslice`) marshalling it, exiting the member; `checkTxnRequest`
+    budgets `maxTxnOps` per nesting level, so nesting multiplies the leaf count. Any client with
+    read+write access (any client with auth off). Needs `--max-request-bytes` raised to about 10 MiB
+    (borderline at the 1.5 MiB default), and the clean crash needs a wide election timeout so the
+    handler waits for the apply to finish (at the default timing the client times out first, but the
+    apply loop still builds the multi-GB reply on every member and replays it on each restart);
+    reproduced end to end through `clientv3`. Same codec root cause as
+    [grpc-codec-alloc-before-size-check](grpc-codec-alloc-before-size-check.md) (the client send side)
+    and the known-false server reply-size axioms (`notes/audit.md:338`). Upstream searched
+    2026-10-31: no duplicate. Candidate drafted locally, on hold for the user's security decision
+    (etcd's `THREAT_MODEL.md` likely classes it a robustness defect): count nested txns' operations
+    toward `--max-txn-ops` (`issues/upstream/etcd-txn-keysonly-reply-alloc-panic/`).
+16. **[etcd-lease-timetolive-keys-toctou](etcd-lease-timetolive-keys-toctou.md)** (2026-10-31):
+    with auth on, `LeaseTimeToLive` with `Keys` returns the names of keys attached to the lease after
+    its permission check (a second lookup, or the leader's over leasehttp), to a user who may not
+    read them; the revision re-check sees no auth change. An information leak of key names (not
+    values), across a permission line, so a candidate for etcd's private security process (the
+    user's decision, as item 1's). Reproduced with gofail on leader and follower; fix: check the
+    returned keys. Upstream not searched.
 
 Also to file (2026-10-21, the last scan of the current batch):
 [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (a watch created with a
@@ -283,6 +311,17 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[etcd-restore-pending-compaction-unclosed](etcd-restore-pending-compaction-unclosed.md)**
+  (2026-10-30): `store.Restore` drops a queued compaction job without closing its channel, so a
+  `Physical` compaction RPC on a follower that installs a snapshot meanwhile hangs and leaks its
+  handler. Reproduced at the mvcc level with a test; a narrow window (a compaction queued behind
+  another, plus a snapshot install), a liveness effect only, and a one-line fix in
+  `compactBarrier`.
+- **[etcd-restore-scheduled-compact-zero](etcd-restore-scheduled-compact-zero.md)** (2026-10-30):
+  `restore()` ignores a scheduled, unfinished compaction at revision 0, so after a snapshot install
+  or a restart a member's compaction revision is `-1` where its peers have `0`. Reproduced at the
+  mvcc level; needs a client `Compact(0)` (the auto-compactors never issue it) and observable only
+  through a re-issued `Compact(0)` or `HashKV`.
 - **[etcd-watch-stream-key-collision](etcd-watch-stream-key-collision.md)** (2026-10-29): the
   client keys its watch streams by `%+v` of the outgoing metadata, which collides, so a watch can
   go out with another context's metadata (its token). Needs a metadata value with a space; etcd's

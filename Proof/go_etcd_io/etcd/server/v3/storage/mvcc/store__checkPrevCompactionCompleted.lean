@@ -31,14 +31,15 @@ theorem mvcc.store.checkPrevCompactionCompleted.wp_proof
     (h0 : mvcc.UnsafeReadScheduledCompact.spec (GF := GF) (hG := hG))
     (h1 : mvcc.UnsafeReadFinishedCompact.spec (GF := GF) (hG := hG)) :
     mvcc.store.checkPrevCompactionCompleted.spec (GF := GF) (hG := hG) := by
-  intro s γ hcmp
-  wp_start as ⟨#Hs, #Hstop, HRTok⟩
+  intro s γ q o hcmp
+  wp_start as ⟨#Hs, Hfs, HRTok⟩
   iunfold mvcc.isStore at Hs
   iNamed Hs
-  -- the compaction's objects, the current ones for good (D22 receiver epochs, S5b: until then
-  -- `isStore`'s, pinned)
-  icases mvcc.storeStop_open s γ $$ Hstop with
-    ⟨%b, %ti, %ssched, %sstop, #Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd, #Hph, #Hcurd⟩
+  -- the backend, read through the caller's share of the fields (M2, the storage side, item 17)
+  icases mvcc.fieldShareAt_acc s γ q o $$ Hfs with ⟨Hflds, #Hph, Hfclose⟩
+  iunfold mvcc.storeFields at Hflds
+  iNamed Hflds
+  obtain ⟨b, ti, ssched, sstop⟩ := o
   iunfold mvcc.physOk at Hph
   iNamed Hph
   try simp only
@@ -57,11 +58,11 @@ theorem mvcc.store.checkPrevCompactionCompleted.wp_proof
   (try wp_auto)
   wp_apply Hrt $$ [$HRTok] as ⟨%Rd, %Tok, Htok, #Hcap, #Hrd, #HRU⟩
   (try wp_auto)
-  wp_apply (h0 rt false Rd Tok) $$ [$Htok] as %x1 %f1 ⟨Htok, -⟩
-  · iframe #
+  wp_apply (h0 rt none Rd Tok) $$ [$Htok] as %x1 %f1 ⟨Htok, -⟩
+  · rw [mvcc.metaReadSpecR_none]; iframe #
   (try wp_auto)
-  wp_apply (h1 rt false Rd Tok) $$ [$Htok] as %x2 %f2 ⟨Htok, -⟩
-  · iframe #
+  wp_apply (h1 rt none Rd Tok) $$ [$Htok] as %x2 %f2 ⟨Htok, -⟩
+  · rw [mvcc.metaReadSpecR_none]; iframe #
   (try wp_auto)
   wp_if_destruct
   all_goals
@@ -69,7 +70,8 @@ theorem mvcc.store.checkPrevCompactionCompleted.wp_proof
     wp_apply HRU $$ [$Htok] as HRTok
     (try wp_auto)
     iapply HΦ
-    iexact HRTok
+    iframe HRTok
+    iapply Hfclose; iunfold mvcc.storeFields; simp only [named]; iframe
 
 end proof
 

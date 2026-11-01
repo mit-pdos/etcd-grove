@@ -59,7 +59,7 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
   ihave Hg := batchGhost_step γ P (st := st) (st' := (st.put bi kb vb true)) rfl rfl rfl
     (pend_succ_nat Hwf Hp) (fun i => put_W_le st bi kb vb true i)
     (hkData_put_other st bi kb vb true Hhk)
-    (rbData_put_other st bi kb vb true Hrb) (fkOk_put true HP Hhas Hfk) $$ Hg
+    (rbData_put_other st bi kb vb true Hrb) (fkOkG_put true HP Hhas Hfk) $$ Hg
   iframe Hg
   isplitl
   · iexists hk

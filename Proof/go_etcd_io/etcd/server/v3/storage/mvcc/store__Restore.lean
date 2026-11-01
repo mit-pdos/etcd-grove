@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreNC
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newTreeIndex
 public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Stop
 public import Spec.go_etcd_io.etcd.pkg.v3.schedule.NewFIFOScheduler
@@ -35,6 +36,8 @@ theorem mvcc.store.Restore.wp_proof
     (hFifo : schedule.NewFIFOScheduler.spec (GF := GF) (hG := hG))
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
     mvcc.store.Restore.spec (GF := GF) (hG := hG) := by
+  -- `store.restore` at no record and the whole bucket (its spec before M2's item 18)
+  have hRestore := mvcc.store.restore.specNC_of_spec hRestore
   intro s γ b' d' γb' P' L R hLR hR
   wp_start as ⟨#Hs, %Hkb, %Hcm', Hcl, Hfs, Hwsd, Hfrag, Hown, #Hfrz, #HcL, Htoks, HlogQ, #Hok', #HbkT,
     #HcrT, Hview, Hnc, Hrr, Hrts⟩
@@ -75,8 +78,10 @@ theorem mvcc.store.Restore.wp_proof
   -- `close(s.stopc)`
   iunfold mvcc.stopCloser at Hstcl
   icases Hstcl with ⟨%γc, Hstcl⟩
-  wp_apply wp_broadcast_chan_close _ γc iprop(True) $$ [$Hstcl] as -
+  wp_apply wp_broadcast_chan_close _ γc iprop(True) $$ [$Hstcl] as #Hdone
   · imodintro; itrivial
+  -- (M2, the storage side, item 34) the scheduler's payload: its stop channel closed
+  ihave #Hsp := mvcc.stopPay_of_done γ.sx γ.sch ⟨b, ti0, ssched, sstop⟩ γc $$ [$Hpay $Hdone]
   (try wp_auto)
   -- `s.fifoSched.Stop()`
   ihave #Hfifo' := HisSched
@@ -131,10 +136,14 @@ theorem mvcc.store.Restore.wp_proof
     iframe HcrL HcmL
   (try wp_auto)
   -- `s.fifoSched = schedule.NewFIFOScheduler(s.lg)`; `s.stopc = make(chan struct{})`
-  wp_apply hFifo $$ [] as %sc ⟨%γs, %n₀, %p₀, #HisFifo, HsStop, Hq0, #Hp0⟩
+  -- (M2, the storage side, item 34) the new scheduler's payload's name, fresh
+  imod (dghostVar_alloc (GF := GF) (null : Loc)) with ⟨%γx', Hx'⟩
+  wp_apply hFifo _ (mvcc.stopPay γx') $$ [] as %sc ⟨%γs, %n₀, %p₀, #HisFifo, HsStop, Hq0, #Hp0, #Hpi⟩
   · ipureintro; exact Hlgnn
   (try wp_auto)
   wp_apply +noauto chan.wp_make1 (V := Unit) as %stopc %γstop ⟨#Hstc', %Hstcap, Hstown⟩
+  imod dghostVar_update stopc γx' _ $$ Hx' with Hx'
+  imod dghostVar_persist γx' 1 stopc $$ Hx' with #Hx'
   wp_auto_lc 3
   imod alloc_broadcast_chan (E := ⊤) iprop(True) γstop stopc $$ Hstc' Hstown with Hstop
   ihave #Hstop0 := ownBroadcastChan_Unknown _ _ _ _ $$ Hstop
@@ -145,11 +154,11 @@ theorem mvcc.store.Restore.wp_proof
   imod ghostVar_alloc (GF := GF) ([[], []] ++ R) with ⟨%γwv', Hwv'⟩
   imod ghostVar_alloc (GF := GF) ((none, none) : Option w64 × Option w64) with ⟨%γm', Hmeta'⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γfin', Hfin', -⟩
-  obtain ⟨p', hnv, hcm, hb, hh, hk, hm, hfin, hs, hwk, hwv⟩ : ∃ p' : mvcc.PhysNames,
+  obtain ⟨p', hnv, hcm, hb, hh, hk, hm, hfin, hs, hwk, hwv, hsx⟩ : ∃ p' : mvcc.PhysNames,
       p'.nev = nv ∧ p'.cmp = cm ∧ p'.bucket = γb' ∧ p'.hook = γh' ∧ p'.kb = some d' ∧
-      p'.cmeta = γm' ∧ p'.fin = γfin' ∧ p'.sch = γs ∧ p'.wk = γwk' ∧ p'.wv = γwv' :=
-    ⟨⟨nv, cm, γb', γh', γ.hookFn, some d', γm', γfin', γs, γwk', γwv', γ.mwk⟩,
-      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+      p'.cmeta = γm' ∧ p'.fin = γfin' ∧ p'.sch = γs ∧ p'.wk = γwk' ∧ p'.wv = γwv' ∧ p'.sx = γx' :=
+    ⟨⟨nv, cm, γb', γh', γ.hookFn, some d', γm', γfin', γs, γwk', γwv', γ.mwk, γx'⟩,
+      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   have hpb : p'.bucket = γb' ∧ p'.kb = some d' := ⟨hb, hk⟩
   rw [← hnv, ← hcm, ← hh, ← hm, ← hfin, ← hs, ← hwk, ← hwv]
   rw [show (⟨γ.idx.hist, p'.nev, γ.idx.log, γ.idx.crev, p'.cmp⟩ : mvcc.IdxNames) =
@@ -184,8 +193,10 @@ theorem mvcc.store.Restore.wp_proof
   ihave Hnc : mvcc.kbNoCmp (GF := GF) (γ.withPhys p').kb (γ.withPhys p').bucket $$ [Hnc]
   · simp only [mvcc.StoreNames.withPhys_kb, mvcc.StoreNames.withPhys_bucket, hk, hb]; iexact Hnc
   -- the writer's old backend token, and its retired ticket
-  iunfold mvcc.writerOwn at Hown
-  icases Hown with ⟨HrtOld, Htkr⟩
+  have hj0 : mvcc.nJobRd γ.kb = 0 := by
+    obtain ⟨d0, hd0, hc0⟩ := Hkb
+    rw [hd0]; exact (mvcc.cmOff_res (GF := GF) d0 hc0).2.1
+  icases (mvcc.writerOwn_off γ hj0).1 $$ Hown with ⟨HrtOld, Htkr⟩
   -- `compactMainRev`: a quarter for `restore`, a quarter kept (the restoring lock's part agrees)
   icases (mvcc.typedPointsto_halves _ _ _).1 $$ Hcm with ⟨HcmR, HcmK⟩
   ihave #Hiwlb : mvcc.idxWriterLb (GF := GF) (γ.withPhys p').idx ([[], []] ++ R) $$ []
@@ -321,7 +332,20 @@ theorem mvcc.store.Restore.wp_proof
       iexact Hti'
     isplitl []
     · simp only [mvcc.StoreNames.withPhys_sch]; iexact HisFifo
-    iapply mvcc.physCmp_off _ _ hnc
+    isplitl []
+    · iapply mvcc.physCmp_off _ _ hnc
+    isplitl []
+    · iunfold mvcc.stopPayAt
+      simp only [mvcc.StoreNames.withPhys_sx, mvcc.StoreNames.withPhys_sch, hsx, hs]
+      iframe Hx' Hpi
+    ipureintro
+    simp only [mvcc.StoreNames.withPhys_kb, mvcc.StoreNames.withPhys_cm, hk]
+    obtain ⟨d0, hd0, hc0⟩ := Hkb
+    rw [hd0] at Hcmt
+    show d'.cm = true ↔ γ.cm = true
+    rw [Hcm']
+    have : ¬ (γ.cm = true) := fun h => by have := Hcmt.2 h; simp [mvcc.kbCmpM, hc0] at this
+    simpa using this
   ihave Hfs : mvcc.fieldShareAt (GF := GF) s (γ.withPhys p')
       ((1 : Qp).half + ((1 : Qp).half.half + (1 : Qp).half.half)) ⟨b', ti, sc, stopc⟩
       $$ [Hn1 Hrst' Hfb Hfidx Hfsch Hfstop]
@@ -385,7 +409,9 @@ theorem mvcc.store.Restore.wp_proof
   isplitl [HfsW]
   · iunfold mvcc.fieldShare; iexists p', ⟨b', ti, sc, stopc⟩; iexact HfsW
   isplitl [Hrt1 Htkr]
-  · unfold mvcc.writerOwn mvcc.retiredAt; simp only [mvcc.StoreNames.withPhys_tkr]
+  · iapply (mvcc.writerOwn_off (γ.withPhys p') (by
+      simp only [mvcc.StoreNames.withPhys_kb, hk]; exact (mvcc.cmOff_res (GF := GF) d' Hcm').2.1)).2
+    unfold mvcc.retiredAt; simp only [mvcc.StoreNames.withPhys_tkr]
     iframe Hrt1 Htkr
   isplitl []
   · iunfold mvcc.hookP; simp only [mvcc.StoreNames.withPhys_hook]; iexact Hh'

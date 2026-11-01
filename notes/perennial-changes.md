@@ -825,6 +825,20 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 
 ## Landed
 
+### `fmt.Sprintf`: `%x` of an integer, and named integer types (2026-10-31)
+
+- **Missing (at the pin `6da88b280`).** `fmt.wp_Sprintf` admitted arguments of predeclared basic
+  types only (`fmt.ArgsWf`), and its `SprintfOut` left `%x` arbitrary: concurrency's
+  `Sprintf("%s%x", pfx, s.Lease())` (a `LeaseID`, `type LeaseID int64` without methods) needed a
+  trust-boundary axiom here, `fmt.SprintfNamed.wp_proof` (`Spec/fmt/SprintfNamed.lean`), whose
+  output was arbitrary from the `%x` on.
+- **Landed** (2026-10-31) in the pin `d62b13ac1`: `21b7311b5` (`%x` of an integer,
+  `SprintfOut.hex`), `a4e2fb9e6` and `d62b13ac1` (a named integer type without formatting methods
+  formatted as its underlying integer, through `TypeAssertUnderlying2`: `fmt.IsIntArgType`,
+  `fmt.NoFmtMethods`, `SprintfOut.str_x_named_int64`). The axiom stays (still true, now with a
+  determined output); dropping it needs `fmt.NoFmtMethods` of `LeaseID`'s type, from a
+  `go.MethodSetIs` fact (`notes/STATUS.md`, "Perennial pin `d62b13ac1`").
+
 ### An interface embedding interfaces is an exact type set (2026-10-27, DaemonSet plan phase 3, gap C8)
 
 - **Missing (at the pin).** Goose writes an interface that embeds interfaces with the embedded
@@ -1339,3 +1353,25 @@ P -∗ P v -∗ ▷ Φ -∗ nonblockingSendAuInner γ v Φ` is proved locally
 (`Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/BagSend.lean`, generic). Proposed change:
 the lemma in `Bag.lean`, next to `bag_send_au`.
 
+
+## A typed points-to's fraction validity (2026-10-31, lease-keys Part B)
+
+`typedPointsto l v dq` has value agreement (`typedPointsto_combine_sep_gives`, `⌜v1 = v2⌝`) but
+not the fractions' validity that the heap points-to's `CombineSepGives` gives
+(`⌜✓ (dq1 • dq2) ∧ v1 = v2⌝`): so a points-to owned whole and a read-only one of the same field
+cannot be shown to exclude each other. The lessor's `Grant` needs it: a fresh `*Lease` (its `ID`
+owned whole) is not one the item sets' map already has (each with `ID ↦□`). Worked around locally
+for a `w64` field (`w64_own_discard_false`, `Proof/.../lease/InvLessor.lean`: through the first
+byte's heap points-to). Proposed change: `TypedPointsto` gains (or derives, for the byte and heap
+instances) `typedPointstoDef l v1 dq1 ∗ typedPointstoDef l v2 dq2 ⊢ ⌜✓ (dq1 • dq2)⌝` for a
+non-empty representation, and `typedPointsto`'s `CombineSepGives` returns it with the agreement.
+
+## Strictly sorted lists with the same members are equal (2026-10-31, lease-revoke)
+
+`go.GoStringLt` (Perennial's order on Go strings, which `sort.StringSlice.Sort`'s model sorts by)
+has no law that two lists strictly increasing for it, with the same members, are equal. The
+lessor's `Revoke` needs it: the sorted item set it deletes is the lease's keys in key order
+(`mvcc.leaseDelKeys_eq`). Worked around locally (`eq_of_lt_sorted_mem`,
+`Proof/.../storage/mvcc/LeaseItems.lean`, from irreflexivity and transitivity). Proposed change: a
+general `List.eq_of_pairwise_lt_mem` for a strict order (in Perennial's list lemmas, or the
+`GoStringLt` instance of one), so that the local copy goes.

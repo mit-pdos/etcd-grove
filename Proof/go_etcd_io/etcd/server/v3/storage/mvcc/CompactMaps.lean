@@ -50,7 +50,7 @@ theorem keepFold_append (A : GMap Revision Unit) (rev : w64) (L : List IdxEntry)
 /-- **The map `treeIndex.Keep` returns**, of the lock's entries (each key's index compacted at a
 level at most `rev`): every key's `kiKeep` at `rev` of the uncompacted index. -/
 theorem keepFold_spec (log : Log) (hb : LogB log) {cmax : Int} {L : List IdxEntry}
-    (h : IdxCRep cmax (evsOf log) (idxOfEntries L)) (rev : w64) (hc : cmax ≤ sint.Z rev) (r : Rev) :
+    (h : IdxCRepN cmax (evsOf log) (idxOfEntries L)) (rev : w64) (hc : cmax ≤ sint.Z rev) (r : Rev) :
     ((keepFold ∅ rev L).lookup (revVal r)).isSome ↔ ∃ k, kiKeep rev (kiOfKey (evsOf log) k) = some r := by
   have hs := h.1
   have hmemL : ∀ z ∈ L, idxGet (idxOfEntries L) z.2.1 = some z.2.2 := fun z hz =>
@@ -67,7 +67,7 @@ theorem keepFold_spec (log : Log) (hb : LogB log) {cmax : Int} {L : List IdxEntr
       have hPL : ∀ w ∈ P, w ∈ L := fun w hw => by rw [← hPS]; simp [hw]
       have hz := hmemL z hzL
       have hne : kiIsEmpty z.2.2 = false := by
-        obtain ⟨_, _, _, _, he⟩ := h.get_some hz; exact he
+        exact (h.get_facts hz).1
       -- no earlier entry keeps what `z` makes available
       have huniq : ∀ r0, kiAvail rev z.2.2 = some r0 → ¬ ∃ w ∈ P, kiKeep rev w.2.2 = some r0 := by
         rintro r0 hr0 ⟨w, hw, hkw⟩
@@ -160,7 +160,7 @@ theorem keepAt_keys (log₀ ilog : Log) (pend : List Change)
     (hcmp : histOf log₀ <+: histShape ilog pend ∨ histShape ilog pend <+: histOf log₀)
     (hcount : (evsOf log₀).length ≤ (evsOf (ilog ++ [pend])).length) (hb : LogB (ilog ++ [pend]))
     (hb0 : LogB log₀) {cmax : Int} {L : List IdxEntry}
-    (h : IdxCRep cmax (evsOf (ilog ++ [pend])) (idxOfEntries L)) (c : Int) (hc0 : -1 ≤ c)
+    (h : IdxCRepN cmax (evsOf (ilog ++ [pend])) (idxOfEntries L)) (c : Int) (hc0 : -1 ≤ c)
     (hc : cmax ≤ c) (hcl : c < log₀.length) (r : Rev) (hk : keepAt log₀ c r) :
     ∃ z ∈ L, kiAvail (W64 c) (kiOfKey (evsOf log₀) z.2.1) = some r := by
   obtain ⟨k, hk⟩ := hk

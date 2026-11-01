@@ -43,7 +43,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_WithLimit : WithLimit.spec (GF := GF) (hG := hG)) :
     Client.Get.spec (GF := GF) (hG := hG) := by
-  intro _ _ kc ms V ci cd key opts Q0 hrev
+  intro _ _ kc ms V ci cd key opts Q0 hrev hk
   wp_start as ⟨#Hcl, #Hregs, #Hctx, #Hce, Hau0⟩
   wp_auto
   wp_apply (linkv.wp_NewProph_typed (τ := w64) github_com.goose_lang.primitive.wp_NewProph)
@@ -95,7 +95,10 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
   ihave #Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
   wp_auto
   wp_apply (client.client_range_any api ms (W64 0) ci cd key optsSl
-      [withRevM (W64 0), withLimitM (W64 1)] iprop(True) Q) $$ []
+      [withRevM (W64 0), withLimitM (W64 1)] iprop(True) Q []
+      (opSizeOk_opGetModel (K := 2 ^ 27) (E := 0) (V := 0)
+        (optsKeep_cons (withRevM_keep _) (optsKeep_cons (withLimitM_keep _) (optsKeep_nil _ _ _)))
+        hk (by decide))) $$ []
     as %resp %err ⟨-, Hout⟩
   · iframe #
     isplitl []
@@ -110,7 +113,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
   · subst Herr
     ihave Hs := client.rangeReply_state_bnd x.E x.γr (W64 0) x.cid x.mid _ [] Q m rfl rfl $$ Hq
     icases Hs with ⟨%σ, #HQ, %Hσ⟩
-    obtain ⟨hsel, hrevσ, hb⟩ := Hσ
+    obtain ⟨hsel, hrevσ, hb, hvals⟩ := Hσ
     rw [rangeWireOf_getKey1] at hsel
     have hkvs := srvRangeOk_getKey1 key σ.kvs m.kvs m.more hsel
     iunfold rangeRespMsg at Hm
@@ -146,7 +149,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
         rw [e1, ← hrevσ]
         iframe HQ
         isplitl []
-        · ipureintro; exact ⟨rfl, hb⟩
+        · ipureintro; exact ⟨rfl, hb, hvals⟩
         rw [hk]
         simp only [kvOut]
         ipureintro; first | rfl | trivial
@@ -187,7 +190,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
           rw [e1, ← hrevσ]
           iframe HQ
           isplitl []
-          · ipureintro; exact ⟨rfl, hb⟩
+          · ipureintro; exact ⟨rfl, hb, hvals⟩
           rw [hk]
           iapply kvOut_some
           iexact Hkv

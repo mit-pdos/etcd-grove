@@ -41,8 +41,8 @@ theorem electionServer.Campaign.wp_proof
     (hER : concurrency.Election.Rev.spec (GF := GF) (hG := hG))
     (hSL : concurrency.Session.Lease.spec (GF := GF) (hG := hG)) :
     electionServer.Campaign.spec (GF := GF) (hG := hG) := by
-  intro es c req nsl vsl name val lease ctx cs
-  wp_start as ⟨#Hes, #Hok, #Hnf, #Hns, #Hlf, #Hvf, #Hvs, #Hctx, #Hcc⟩
+  intro es c req nsl vsl name val lease ctx cs maxReq
+  wp_start as ⟨#Hes, #Hok, %Hcfg, #Hnf, #Hns, #Hlf, #Hvf, #Hvs, %Hrecv, #Hctx, #Hcc⟩
   ihave #Hok' : iprop(v3lock.lockClientOk c) $$ []
   · iexact Hok
   iunfold v3lock.lockClientOk at Hok'
@@ -68,12 +68,14 @@ theorem electionServer.Campaign.wp_proof
   (try wp_auto)
   ihave #Hmc' := Hmc $$ %(name ++ go!"/")
   wp_apply hNE s γ c id name $$ [$Hcpkg $Hss $Hmc'] as %e ⟨#He, Hest⟩
+  · ipureintro; exact v3rpc.grpcRecvBytesOk.lt Hcfg Hrecv.1
   (try wp_auto)
   wp_apply wp_bytes_to_string vsl val DFrac.discard $$ [$Hvs] as -
   (try wp_auto)
   ihave #Hlo := etcdReached_zero (GF := GF)
   wp_apply hEC e s γ c id (name ++ go!"/") ElectionSt.init ctx cs val (W64 0) $$
       [$Hcpkg $He $Hest $Hctx $Hcc $Hlo] as %err Hc
+  · ipureintro; exact Nat.le_of_lt (Nat.lt_trans (v3rpc.grpcRecvBytesOk.lt Hcfg Hrecv.2) (by decide))
   icases Hc with (⟨%Herr, %key, %rev, %r, %rv, %R, %hdr, Hest, #Hhr, #HR, #Hkv, Hout, %Hp⟩ |
     ⟨%Hne, %st', Hest⟩)
   rotate_left

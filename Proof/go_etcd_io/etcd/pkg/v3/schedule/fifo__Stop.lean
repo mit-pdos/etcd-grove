@@ -27,7 +27,7 @@ token): the `stopped` flag set, the context cancelled (`cancel` with `stopped`),
 the worker has closed it. -/
 theorem schedule.fifo.Stop.wp_proof : schedule.fifo.Stop.spec (GF := GF) (hG := hG) := by
   intro l γ F Ps
-  wp_start as ⟨#Hf, Htok, HqS⟩
+  wp_start as ⟨#Hf, Htok, HqS, #Hpay⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold fifoIs at Hf
@@ -59,7 +59,7 @@ theorem schedule.fifo.Stop.wp_proof : schedule.fifo.Stop.spec (GF := GF) (hG := 
   · iunfold stopped; iexact Hstp
   iunfold _root_.Perennial.context.cancelSpec at Hcancel
   wp_apply Hcancel $$ [] as -
-  · iexact Hstp'
+  · iframe Hstp' Hpay
   (try wp_auto)
   iunfold schedQueue at HqS
   ihave %HPs := monoListAuthOwn_agree γ.jobs _ _ Ps L $$ HqS Hq
@@ -100,7 +100,7 @@ theorem schedule.fifo.Stop.wp_proof : schedule.fifo.Stop.spec (GF := GF) (hG := 
     dsimp only
     iintro Hch
     iunfold donecCarry at Hcar
-    icases Hcar with ⟨%L', %q', Hqa, (Hbt | Hm)⟩
+    icases Hcar with ⟨%L', %q', Hqa, (⟨Hbt, Hdone⟩ | Hm)⟩
     rotate_left
     · -- taken already: three parts of the `stopped` flag
       icombine Hmark Hm as Hst1
@@ -122,6 +122,7 @@ theorem schedule.fifo.Stop.wp_proof : schedule.fifo.Stop.spec (GF := GF) (hG := 
     have Hlast : Ps.getLast? = some p := by
       rw [List.getLast?_eq_getElem?]; exact Hp
     rw [Hlast]
+    iframe Hdone
     iexists Q
     iframe
     iframe #

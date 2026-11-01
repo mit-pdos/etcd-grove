@@ -44,9 +44,11 @@ abbrev StartCompactingServer.spec : Prop :=
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
       threadTok ∗
-      bootPremise N [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗ commonPremises ∗
+      -- (M2, 2026-10-31) at `N + N` write tokens: `N` more, the compaction's write-back stock
+      bootPremise (N + N) [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot γ ctxs ρ E₀ Φs id ∗
+      -- (M2, the storage side, N1) the member's boot bundle in compaction mode
+      memberBoot γ ctxs ρ E₀ Φs id true ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
       netHttpOk γn id }}

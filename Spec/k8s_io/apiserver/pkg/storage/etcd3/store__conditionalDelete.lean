@@ -42,7 +42,7 @@ abbrev store.conditionalDelete.spec : Prop :=
     (rv0 : GoString) (v : _root_.Perennial.reflect.Value) (p : Loc)
     (validate : Obj → Nat → Option E) (vf : GoFunc) (W : IProp GF) [Timeless W]
     (Φ : KVState → IProp GF),
-  c.pfx <+: key →
+  c.pfx <+: key → key.length ≤ 2 ^ 27 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt out o0 rv0 ∗
       ⌜reflectM.reflElem v c.S.objTy p⌝ ∗ W ∗

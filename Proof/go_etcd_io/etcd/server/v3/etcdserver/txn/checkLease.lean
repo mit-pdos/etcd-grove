@@ -49,6 +49,7 @@ theorem txn.checkLease.wp_proof : txn.checkLease.spec (GF := GF) (hG := hG) := b
   · -- a lease: the lessor's `Lookup`
     ihave #HL := HLookup $$ %lease %L
     wp_apply HL $$ [$Hu] as %l ⟨Hu, %Hlk⟩
+    ihave Hu := EtcdGrove.lease.lessorUserOpen_close γl L I lease l $$ Hu
     (try wp_auto)
     wp_if_destruct
     · -- not found

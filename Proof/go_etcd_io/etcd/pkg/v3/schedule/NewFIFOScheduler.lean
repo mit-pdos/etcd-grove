@@ -35,7 +35,7 @@ theorem schedule.NewFIFOScheduler.wp_proof
     (wp_Assert : verify.Assert.spec (GF := GF) (hG := hG))
     (wp_run : schedule.fifo.run.spec (GF := GF) (hG := hG)) :
     schedule.NewFIFOScheduler.spec (GF := GF) (hG := hG) := by
-  intro lg
+  intro lg Pay
   wp_start as %Hlg
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -56,8 +56,10 @@ theorem schedule.NewFIFOScheduler.wp_proof
   wp_apply sync.wp_NewCond (interface.mk (go.GoType.PointerType sync.Mutex.ty) #(fifoMu «$r0_ptr»))
     as %cnd #Hcnd
   imod dghostVar_alloc (A := Bool) false with ⟨%st, Hst⟩
+  imod savedProp_alloc (GF := GF) Pay with ⟨%pay, #Hpay⟩
   wp_apply context.wp_Background
-  wp_apply wp_WithCancel_Background_nn (dghostVar st DFrac.discard true) $$ []
+  wp_apply wp_WithCancel_Background_nn
+      iprop(dghostVar st DFrac.discard true ∗ ∃ P : IProp GF, savedProp pay P ∗ □ P) $$ []
     as %ctx %γc %cf ⟨%Hcfnn, #Hcancel, #Hisctx⟩
   · iframe #
     iapply _root_.Perennial.context.isClosedchanInit_of_init $$ Hctxp
@@ -82,7 +84,7 @@ theorem schedule.NewFIFOScheduler.wp_proof
   ipersist ctx
   ipersist finishCond
   ipersist lg
-  let γ : SchedNames := ⟨run, jobs⟩
+  let γ : SchedNames := ⟨run, jobs, pay⟩
   let F : FifoNames := ⟨w, st, rc, dc, dr, rch, γr, dch, γd, ctx, γc, cf, cnd, lg⟩
   imod inv_alloc resumeN ⊤ (resumeInv (GF := GF) F) $$ [Hroc] with #Hrinv
   · inext; iunfold resumeInv; iexists []; ileft; iexact Hroc
@@ -117,9 +119,9 @@ theorem schedule.NewFIFOScheduler.wp_proof
     simp only [named]
     iframe #
     isplitl []
-    · unfold fifoCtxDesc stopped; iexact Hisctx
+    · unfold fifoCtxDesc stopped schedPay; iexact Hisctx
     isplitl []
-    · unfold stopped; iexact Hcancel
+    · unfold stopped schedPay; iexact Hcancel
     ipureintro; exact Hcfnn
   -- `go f.run()`: the worker, with its resources and its own thread token
   wp_apply wp_fork_tok_body $$ [Hrun Hw2 Hrc Hdc Hdr]
@@ -154,6 +156,8 @@ theorem schedule.NewFIFOScheduler.wp_proof
   iunfold schedQueue
   iframe
   iframe #
+  iunfold schedPayIs
+  iexact Hpay
 
 end proof
 

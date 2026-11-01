@@ -33,7 +33,7 @@ abbrev newUniqueEphemeralKV.spec : Prop :=
   ∀ (s : Loc) (γ : concurrency.SessionNames) (client : Loc) (id : w64) (pfx kp val : GoString)
     (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ concurrency.isSession s γ client id ∗ isEtcdRecipesClient client pfx ∗
-      etcdReached lo ∗ ⌜pfx <+: kp⌝ }}
+      etcdReached lo ∗ ⌜pfx <+: kp ∧ kp.length ≤ 2 ^ 27 + 2 ^ 10 ∧ val.length ≤ 2 ^ 28⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newUniqueEphemeralKV))
       (Val #s)) (Val #kp)) (Val #val))
   {{ (ek : Loc) (err : GoInterface), RET (PairV #ek #err);

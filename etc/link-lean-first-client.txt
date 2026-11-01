@@ -87,8 +87,11 @@ kv__Delete: OpDelete kv__Do ContextError
 # the transaction builder (client/v3/txn.go; the operations' requests, op.go), unit V2
 kv__Txn:
 Op__isWrite:
-Op__toRequestOp: Op__toRangeRequest
+# `toRequestOp` proves its nested case (`toTxnRequest`) by Löb induction, unfolding `toTxnRequest`'s
+# body; `toTxnRequest`'s own proof takes `toRequestOp`'s spec (`notes/txn-nested.md`, S4)
+Op__toRequestOp: Op__toRangeRequest Cmp__Clone Cmp__GetCompare
 txn__If: Cmp__Clone Cmp__GetCompare
+Op__toTxnRequest: Op__toRequestOp Cmp__Clone Cmp__GetCompare
 txn__Then: Op__isWrite Op__toRequestOp
 txn__Else: Op__isWrite Op__toRequestOp
 txn__Commit: retryKVClient__Txn ContextError

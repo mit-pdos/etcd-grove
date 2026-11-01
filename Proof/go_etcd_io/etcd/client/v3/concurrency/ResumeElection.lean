@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 theorem ResumeElection.wp_proof : ResumeElection.spec (GF := GF) (hG := hG) := by
   intro s γ client id pfx leaderKey leaderRev
-  wp_start as ⟨#Hs, #Hc, %Hp⟩
+  wp_start as ⟨#Hs, #Hc, ⟨%Hp, %Hpl⟩, %Hkl⟩
   iapply wp_fupd
   wp_auto
   irename «$r0» => He
@@ -39,7 +39,7 @@ theorem ResumeElection.wp_proof : ResumeElection.spec (GF := GF) (hG := hG) := b
   iframe
   iframe #
   ipureintro
-  simp [Hp]
+  simp [Hp, Hpl, Hkl]
 
 end proof
 

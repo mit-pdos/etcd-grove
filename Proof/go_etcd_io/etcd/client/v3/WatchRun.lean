@@ -969,9 +969,9 @@ theorem cmpl_step (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM)
   · iframe Hcur HQ
   -- (D47) the caller's read update, fired at the response's watched log
   iunfold srvKVFacts at Hkf
-  icases Hkf with ⟨%γr, #Hinvs, #H0, %Hkr⟩
+  icases Hkf with ⟨%on, %γr, #Hinvs, #H0, %Hkr⟩
   iunfold wsAu at Hau
-  imod (raw_to_state V.R.E γr P.kv (by rw [hkst, Hkr.1]) Hkr.2.1 Hkr.2.2 P.o c2 c2' v r P.Q)
+  imod (raw_to_state on V.R.E γr P.kv (by rw [hkst, Hkr.1]) Hkr.2.1 Hkr.2.2 P.o c2 c2' v r P.Q)
     $$ Hinvs H0 Hau Hcp
     [Hok] with ⟨%σ, #HQσ, #Hsσ⟩
   · rw [← hst]; iexact Hok
@@ -1939,7 +1939,7 @@ def dummyWsPrm (G : WgsPrm GF) (γr : SpscNames) : WsPrm GF :=
     false false) (W64 0) G.ctx G.cd [] [] false false false slice.nil null G.γreq null
     (EtcdWatchNames.mk γr G.γws G.γws false) null null γr G.γws G.γws G.γws false G.γws
     ⟨G.γws, W64 0, apply.alarmChain false false false, [], G.γws, G.γws,
-      ⟨G.γws, G.γws, G.γws, W64 0, G.γws⟩, G.γws⟩ (fun _ => iprop(True)) 0 0
+      ⟨G.γws, G.γws, G.γws, W64 0, G.γws⟩, G.γws, false⟩ (fun _ => iprop(True)) 0 0
 
 /-- Some `donec` (for a dispatch with no target). -/
 def dummyDn (G : WgsPrm GF) : DnInfo GF := ⟨null, G.γreq, iprop(True)⟩

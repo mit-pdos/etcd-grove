@@ -25,17 +25,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 with no view, `metaReadTx`; racy with the job, which writes `finishedCompactRev`: the result only
 decides whether the next compaction's hash is stored, which the model ignores). Of a store whose
 backend supports the compaction (`storeCmp`: mvcc's assumed backend, or a real backend in
-compaction mode, `KBReal.cm`). The store's fields for its compaction (`storeStop`; D22 receiver epochs,
-S3: until then `isStore`'s `↦□`). Its `ReadTx`'s `RLock` takes the reader's token `storeRT γ` and
+compaction mode, `KBReal.cm`). It reads `s.b` through a share of the store's fields at the objects `o`
+(given back: the compaction right's closer's, `compactRightR`; M2, the storage side, item 17:
+until then the discarded `storeStop`). Its `ReadTx`'s `RLock` takes the reader's token `storeRT γ` and
 its `RUnlock` gives it back (question 5's switch, decision (i), 2026-10-29: the caller lends it,
 `store.Compact`'s from the apply thread's `writerOwn`). -/
 abbrev mvcc.store.checkPrevCompactionCompleted.spec : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (q : Qp) (o : mvcc.StoreObjs),
   mvcc.storeCmp γ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isStore s γ ∗
-      mvcc.storeStop s γ ∗ mvcc.storeRT γ }}
+      mvcc.fieldShareAt s γ q o ∗ mvcc.storeRT γ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"checkPrevCompactionCompleted")) (Val #()))
-  {{ (b : Bool), RET #b; mvcc.storeRT γ }}
+  {{ (b : Bool), RET #b; mvcc.fieldShareAt s γ q o ∗ mvcc.storeRT γ }}
 
 end spec
 

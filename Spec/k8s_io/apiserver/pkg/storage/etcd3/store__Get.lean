@@ -48,6 +48,7 @@ abbrev store.Get.spec : Prop :=
     (opts : k8s_io.apiserver.pkg.storage.GetOptions) (out : GoInterface) (o0 : Obj) (rv0 : GoString)
     (k : GoString) (Q : w64 → w64 → KVState → IProp GF),
   prepareKeyM c.resourcePrefix key false = some k →
+  (c.pathPrefix ++ k).length ≤ 2 ^ 27 →
   opts.ResourceVersion' = [] →
   (∀ R m σ, Q R m σ ⊢ ⌜kvWf c σ⌝) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗

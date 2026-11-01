@@ -27,7 +27,9 @@ for a metadata-indexed spec `Spec` the server registered for the method (since t
 merge's 5b, 2026-10-29) and the caller's persistent `Φ` at every metadata an attempt may deliver
 (`□ ▷ attemptPre`):
 `Invoke` of `"/etcdserverpb.Auth/UserGrantRole"` with `grpc.StaticMethod()` before the options, into a new
-response: the call's answer (`authCallOut`, the run's `Φ`); the request comes back. -/
+response: the call's answer (`authCallOut`, the run's `Φ`); the request comes back. Its
+encoding is below `grpcMsgMax` (2026-10-30: grpc marshals before it checks a size,
+`grpcInvokerOk`). -/
 abbrev etcdserverpb.authClient.UserGrantRole.spec : Prop :=
   ∀ (ac conn : Loc) (addr : List GoString)
     (Spec : GrpcSpecMd (GF := GF) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse) (Φ : Unit → IProp GF) (ctx : GoInterfaceOk)
@@ -36,7 +38,8 @@ abbrev etcdserverpb.authClient.UserGrantRole.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ authStubAt ac conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/UserGrantRole" Spec ∗
       □ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ ∗ ctxOk ctx cd ∗
-      (pbAuthUserGrantRoleRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs }}
+      (pbAuthUserGrantRoleRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
+      ⌜(pbAuthUserGrantRoleRequest (GF := GF)).wireLen m < grpcMsgMax⌝ }}
     (App (App (App (Val (ac @!! go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.authClient.ty @!! go!"UserGrantRole"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

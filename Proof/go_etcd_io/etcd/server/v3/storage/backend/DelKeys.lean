@@ -116,6 +116,30 @@ theorem thinV_exact (γ : BNames) (vd L : VData) :
       | none => rfl
       | some w => exact absurd ⟨nk, by simp [hL], hv⟩ hno
 
+/-- **With the registration not yet fixed, a thin view is exact** (M2's restore chain, item 30's
+D1, 2026-10-30): as `thinV_exact`, from the creator's unfixed registration (`dlInit`, kept), for a
+backend nothing has been made deletable on yet (the new backend `kv.Restore` reads before the store
+fixes its registration). -/
+theorem thinV_exact_init (γ : BNames) (vd L : VData) :
+    dlInit (GF := GF) γ ∗ thinV γ vd L ⊢ dlInit γ ∗ ⌜vd = L⌝ := by
+  iintro ⟨Hi, Hth⟩
+  iunfold thinV at Hth
+  icases Hth with ⟨%Hsub, #Hdel⟩
+  rcases Classical.em (∃ nk, L.lookup nk ≠ none ∧ vd.lookup nk = none) with ⟨nk, hnk⟩ | hno
+  · ihave Hd := Hdel $$ %nk %hnk
+    iexfalso
+    iapply dlInit_noDel γ nk $$ [$Hi $Hd]
+  · iframe Hi
+    ipureintro
+    apply GMap.ext
+    intro nk
+    cases hv : vd.lookup nk with
+    | some v => exact (Hsub nk v hv).symm
+    | none =>
+      cases hL : L.lookup nk with
+      | none => rfl
+      | some w => exact absurd ⟨nk, by simp [hL], hv⟩ hno
+
 end defs
 
 section slot

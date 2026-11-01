@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkTxnReques
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkIntervals
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckLemmas
 
 @[expose] public section
 
@@ -60,7 +61,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
   wp_start as ⟨#Hsrv, Hcall, #Hr, #Hwire, %Hpre⟩
   ihave #Hsrv' := Hsrv
   iunfold v3rpc.kvServerIs at Hsrv'
-  icases Hsrv' with ⟨%Hpn, #Hhdr, #Hkv, #Hn, #HKV⟩
+  icases Hsrv' with ⟨%Hpn, #Hhdr, #Hkv, #Hn, %Hmx, #HKV⟩
   iunfold v3rpc.raftKV at HKV
   icases HKV with ⟨-, -, -, #HTxn, -⟩
   iunfold v3rpc.kvTxnOk at HTxn
@@ -136,7 +137,8 @@ theorem v3rpc.kvServer.Txn.wp_proof
         wp_apply HTxn $$ [Hcall] as %resp %err' Hans
         · iframe; iframe #
           ipureintro
-          exact ⟨hc, by simp [v3rpc.intervalsOk, hts], by simp [v3rpc.intervalsOk, hes], Hpre⟩
+          exact ⟨hc, v3rpc.txnModelDepthOk_of_check hc Hmx, by simp [v3rpc.intervalsOk, hts],
+            by simp [v3rpc.intervalsOk, hes], Hpre⟩
         iunfold v3rpc.kvAnswer at Hans
         icases Hans with (⟨%Hok, %h, %rv, #Hhf, Hw, Hrev, HA⟩ | ⟨#Hse, HA⟩)
         · obtain ⟨He, Hrn⟩ := Hok

@@ -151,6 +151,38 @@ theorem lessorBeOn_lens (lp be : Loc) :
   iframe Hle
   iintro Hle; iexact Hle
 
+/-- **The server's rest resource lends the lessor's revocation its buckets** (the lease-revoke
+plan, 2026-10-31; `apply.isApplyLessor_of_lessorInv`'s lens): at the store's real backend `d` (its
+parameters naming the `Lease` bucket, tracked, with no hook keys: `leaseParams`, a boot fact), the
+tracked buckets' client half as the store's right `storeRb` and the lessor's half of `le.b`, given
+back at any buckets. -/
+theorem srvRestOwnH_lens_revoke (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = some d)
+    (hlp : mvcc.leaseParams d.P) (al ast lp cl : Loc) :
+    ⊢ □ (∀ rs : apply.RestM, srvRestOwnH (GF := GF) d.γB cl (srvObjsOn al ast lp cl d.be) rs -∗
+      ∃ d' : mvcc.KBReal, ⌜γ.kb = some d'⌝ ∗ mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d'.be ∗
+        (∀ bk, mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d'.be -∗
+          srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) { rs with bk := bk })) := by
+  iintro !> %rs Hro
+  iunfold srvRestOwnH at Hro
+  iunfold srvObjsOn at Hro
+  icases Hro with ⟨Hro, Hal, Hau, Hle, Hcb⟩
+  iunfold srvRestOwn at Hro
+  icases Hro with ⟨Hrb, Hmem⟩
+  iexists d
+  unfold mvcc.storeRb
+  rw [hk]
+  simp only [mvcc.kbRb]
+  isplitr
+  · ipureintro; trivial
+  iframe Hrb Hle
+  isplitr
+  · ipureintro; exact hlp
+  iintro %bk ⟨⟨Hrb, -⟩, Hle⟩
+  iunfold srvRestOwnH
+  iunfold srvObjsOn
+  iunfold srvRestOwn
+  iframe Hrb Hmem Hal Hau Hle Hcb
+
 /-- **The cluster `c`'s apply contract on whichever backend it is on** (persistent; D22 receiver
 epochs, S7e, 2026-10-23; `bootOk`'s, the bootstrap contract): for a real backend `d` (its
 contract at some `W`, `Pk`, its frozen post-lock hook `f`), the apply package's `isCluster` at `d`'s

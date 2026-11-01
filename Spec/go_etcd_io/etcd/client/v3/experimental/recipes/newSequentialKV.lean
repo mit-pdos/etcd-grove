@@ -39,7 +39,8 @@ and freshness hold under a premise on the keys under `kp` (`seqKeyPutAt_order`,
 abbrev newSequentialKV.spec : Prop :=
   ∀ (kv : GoInterfaceOk) (pfx kp val : GoString) (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
-      isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: kp ∧ pfx <+: baseKey kp⌝ }}
+      isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: kp ∧ pfx <+: baseKey kp ∧
+        kp.length ≤ 2 ^ 27 + 2 ^ 10 ∧ val.length ≤ 2 ^ 28⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newSequentialKV))
       (Val #(GoInterface.ok kv))) (Val #kp)) (Val #val))
   {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err);

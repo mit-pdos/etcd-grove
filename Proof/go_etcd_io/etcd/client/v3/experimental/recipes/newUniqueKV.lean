@@ -56,9 +56,9 @@ theorem newUniqueKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
   rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at Hkey
   simp only [List.set_cons_succ, List.set_cons_zero] at Hkey
   have Hkey' := _root_.Perennial.fmt.SprintfOut.str_slash_v_int64 kp x key Hkey
-  have Hpk : pfx <+: key := Hk.trans (by rw [Hkey', List.append_assoc]; exact List.prefix_append _ _)
+  have Hpk : pfx <+: key := Hk.1.trans (by rw [Hkey', List.append_assoc]; exact List.prefix_append _ _)
   wp_apply hPNK kv pfx key val (W64 0) lo $$ [$Hpkg $Hkv $Hlo] as %rev %err Hres
-  · ipureintro; exact Hpk
+  · ipureintro; exact ⟨Hpk, uniqueKey_length_le x Hk.2.1 Hkey', Hk.2.2⟩
   icases Hres with (⟨%Heq, #Hr, #Hc, -, %Hrr⟩ | ⟨#HerrK, %Hrev, -⟩ | ⟨⟨%Hne, %Hrev⟩, #Hce⟩)
   · -- created
     subst Heq
@@ -74,7 +74,7 @@ theorem newUniqueKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
     unfold ownRemoteKV RemoteKVSt.val'
     iframe Hrk Hr Hc
     ipureintro
-    refine ⟨by rw [Hkey']; exact List.prefix_append _ _, Hrr.1, Hrr.2, x, Hkey'⟩
+    refine ⟨uniqueKey_length_le x Hk.2.1 Hkey', by rw [Hkey']; exact List.prefix_append _ _, Hrr.1, Hrr.2, x, Hkey'⟩
   · -- `ErrKeyExists`: `errors.Is` holds, try again
     unfold concurrency.isPkgErr
     icases HerrK with ⟨#HerrK, %Hne⟩
