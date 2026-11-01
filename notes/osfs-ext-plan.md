@@ -739,3 +739,27 @@ Open, in order:
    (e) `Get`/`Snapshot` re-proved against `isDBC` (mechanical).
 6. `BootMinibolt`'s per-generation proof and `BootCrashSafety` (unchanged plan; at boot every byte
    is clean, `csStart`, which gives `slotsClean` and `Open.specCrash`'s premise).
+
+### minibolt's crash proof, round 7 (2026-11-01, branch `osfs-mbcrash`; in progress)
+
+`origin/lean` not merged (Perennial pin still `2130bdb99`).
+
+Done (no `sorryAx`; axioms `propext`, `Classical.choice`, `Quot.sound` plus goose's opaque types):
+- **`DB.mmap.specCrash`** (`DB__mmapCrash.lean`, Spec and Proof; `DB.mmap.wp_proof_crash`):
+  `DB.mmap.spec` with `writerFileC γc … st m bs` in place of `writerFile`, plus `csInv`; post
+  `writerFileC … st' m' bs` (same bytes) with `m'.size/ok/hi/lo` unchanged. Helpers:
+  `writer_thrBytes` (the writer's halves of its idle state: `bs.take 8192` at 0 and the tail),
+  `unmapRestC`, `mmap_prepC`, `mmap_unmappedC` (the state after munmap is `{ m with maps := M }`,
+  `M = ∅` on success). The new mapping's cells agree with the meta pages through `csOwn_idle` +
+  `writer_thrBytes` (osMeta ½, osBytes ½), folded back after.
+- **`Open.specCrash`** (`OpenCrash.lean`, Spec and Proof; `Open.wp_proof_crash`). Statement: for
+  `fo : Option OsFile` with `Good fo`, `freshTx ((startImg fo).map (·, true)) = (t, vo, n)`,
+  `vp t vo`, `∀ t vo, vp t vo → bootOk t vo`; pre `pkgFacts ∗ osInv ∗ csInv dbCrashN path γc (dbOk
+  path) ∗ csOwn path γc (csStart fo)`; post as `Open.spec`'s with `isDBC γ γc db`, or failure
+  `∃ s', csOwn path γc s'`. Pure lemmas there: `startMeta`, `csOpen_csStart`, `openStart`,
+  `noValid`/`committedImg`/`goodImg_cases`, `start_initIdle`, `start_commitClean`, `start_okS`,
+  `freshTx_noValid/committed`, `openReady` (the file after the init step: `commitClean`, all
+  clean, `lo = size`, txid/value/hwm), `ready_init`, `ready_committed`, `noValid_of_rps`,
+  `committed_of_rps`, `noValid_of_short`; ghost: `csOwn_idle00`, `ready_pages` (the frozen bytes
+  as `pageIs`), `open_ghostC` (`open_ghost` with `metaRC`). `Open.wp_proof_crash` needs
+  `set_option maxRecDepth 20000` (kernel deep recursion otherwise; cause not investigated).
