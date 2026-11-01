@@ -90,7 +90,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
   icases HM with ⟨%b, %mp, %mx, %hwm, %mxc, %T, Hfl, Hcur, Hmb, %Hmx, Hauth, Hout, Hrest⟩
   iunfold dbOwner at Hown
   iunfold rwR at HW
-  icases HW with (⟨%mp1, %fl, %hwm1, %st, %m, Hcur1, Hmap1, Hout1, Hflds1, Hw, Hcls1, Hst⟩ |
+  icases HW with (⟨%mp1, %fl, %hwm1, %st, %m, Hcur1, Hmap1, Hout1, Hflds1, Hw, Hcls1, -, Hst⟩ |
     ⟨⟨%x, Hown2⟩, Hcls1, %st, Hmap1, Hflds1⟩)
   rotate_left
   · -- closed: three halves of `own`
@@ -278,7 +278,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
       iexists m', mx, mxw, tail, B
       iframe; iframe #
       ipureintro
-      refine ⟨Hw.2.2.2.2 rfl, Hok, rfl, ?_, ?_⟩ <;> omega
+      refine ⟨(Hw.2.2.2.2 rfl).1, Hok, rfl, ?_, ?_⟩ <;> omega
 
 end proof
 

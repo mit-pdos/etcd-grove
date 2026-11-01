@@ -46,7 +46,7 @@ abbrev DB.mmap.spec : Prop :=
   {{ (err : GoInterface), RET #err; ∃ (st' : MapSt) (m' : OsMeta),
       ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ghostVar γ.map (1 : Qp).half st' ∗
       ghostVar γ.out (1 : Qp).half.half false ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st' ∗
-      writerFile (GF := GF) γ db f fd p mp fl hwm st' m' ∗ ⌜m'.size = m.size⌝ ∗
+      writerFile (GF := GF) γ db f fd p mp fl hwm st' m' ∗ ⌜m'.size = m.size ∧ m'.ok = m.ok⌝ ∗
       ((⌜err = interface.nil⌝ ∗ ∃ (base : Loc) (len : Nat) (γm : GName),
           ⌜st' = some (base, len, γm) ∧ m'.maps = {[base := len]} ∧ m.size ≤ len ∧
             sint.Z minsz ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗

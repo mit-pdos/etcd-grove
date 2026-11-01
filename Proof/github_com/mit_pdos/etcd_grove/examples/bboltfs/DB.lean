@@ -30,7 +30,8 @@ when it mapped the file, and no write touches them since).
 
 ## The locks (as in bbolt)
 - `rwlock` (`rwR`): the writer's. The whole `OsMeta` (`Truncate`, `Sync`, `Fdatasync`, `Mmap`,
-  `Munmap` all take it), the bytes from `hwm` on and half the meta pages' bytes, the client
+  `Munmap` all take it; no sync failed while not failed, `m.ok`, so that a sync makes bytes
+  clean), the bytes from `hwm` on and half the meta pages' bytes (clean while not failed), the client
   halves of the mapped cells it may write (the meta pages' header and tail, and the pages from
   `hwm` on), `filesz`, `datasz`, halves of the mapping fields, and half the file and its fd.
 - `metalock` (`metaR`): `failed`, half the meta pages' bytes until closed (a meta `WriteAt` takes
@@ -351,7 +352,7 @@ def writerFile (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List 
     osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
     osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail ∗
     ⌜2 ≤ hwm ∧ 4096 * hwm ≤ m.size ∧ mxc.length = 8192 ∧ tail.length = m.size - 4096 * hwm ∧
-      (fl = false → mxc.map Prod.fst = mp)⌝)
+      (fl = false → mxc.map Prod.fst = mp ∧ ∀ x ∈ mxc, x.2 = true)⌝)
 
 /-- What the writer holds besides `writerFile` while there is no mapping: the invariant's quarter
 of `cur`, and `mmaplock`'s halves of the file and its fd. -/
@@ -369,6 +370,7 @@ def rwR (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) : IProp GF :=
     ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ghostVar γ.map (1 : Qp).half st ∗
     ghostVar γ.out (1 : Qp).half.half false ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st ∗
     writerFile (GF := GF) γ db f fd p mp fl hwm st m ∗ ghostVar γ.cls (1 : Qp).half false ∗
+    ⌜fl = false → m.ok = true⌝ ∗
     match st with
     | some (base, len, γm) =>
       ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗

@@ -108,11 +108,11 @@ theorem errnoErr_ne_nil (e : w64) (h : e ≠ 0) : errnoErr e ≠ interface.nil :
 theorem mmap_unmapped (p : GoString) (m : OsMeta) (st : MapSt) (err : GoInterface) :
     unmappedRes (GF := GF) p m (mapSlice st) err ∗ unmapRest (GF := GF) p m st ⊢
       ∃ m', osMeta (GF := GF) p (DFrac.own 1) (some m') ∗
-        ⌜m'.size = m.size ∧ (err = interface.nil → m'.maps = ∅)⌝ := by
+        ⌜m'.size = m.size ∧ m'.ok = m.ok ∧ (err = interface.nil → m'.maps = ∅)⌝ := by
   rcases st with _ | ⟨base, len, γm⟩
   · dsimp only [unmapRest]
     iintro ⟨-, Hm, %Hmaps⟩
-    iexists m; iframe; ipureintro; exact ⟨rfl, fun _ => Hmaps⟩
+    iexists m; iframe; ipureintro; exact ⟨rfl, rfl, fun _ => Hmaps⟩
   · dsimp only [unmapRest, mapSlice]
     iintro ⟨Hu, %Hr⟩
     obtain ⟨Hmaps, Hbase⟩ := Hr
@@ -126,12 +126,12 @@ theorem mmap_unmapped (p : GoString) (m : OsMeta) (st : MapSt) (err : GoInterfac
       subst hb
       icases Hu with (⟨%He, Hm⟩ | ⟨%He, (Hm | ⟨Hm, -⟩)⟩)
       · iexists _; iframe; ipureintro
-        refine ⟨rfl, fun _ => ?_⟩
+        refine ⟨rfl, rfl, fun _ => ?_⟩
         simp only [Hmaps]; exact GMap.delete_singleton _ _
       · iexists _; iframe; ipureintro
-        exact ⟨rfl, fun h => absurd h (errnoErr_ne_nil e He)⟩
+        exact ⟨rfl, rfl, fun h => absurd h (errnoErr_ne_nil e He)⟩
       · iexists _; iframe; ipureintro
-        exact ⟨rfl, fun h => absurd h (errnoErr_ne_nil e He)⟩
+        exact ⟨rfl, rfl, fun h => absurd h (errnoErr_ne_nil e He)⟩
 
 theorem mapSlice_ite {α : Type} (st : MapSt)
     (h : ∀ base len γm, st = some (base, len, γm) → 0 < base.addr) (a : MapSt → α) (z : α)
@@ -203,12 +203,12 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; exact Hw
     isplitr
-    · ipureintro; rfl
+    · ipureintro; exact ⟨rfl, Hm1.2.1⟩
     iright
     iframe
     ipureintro; simp
   | nil =>
-  have Hmaps1 := Hm1.2 rfl
+  have Hmaps1 := Hm1.2.2 rfl
   (try wp_auto)
   wp_apply wp_Fd f fd p _ $$ [Hf] as Hf
   · iexact Hf
@@ -233,7 +233,7 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; exact Hw
     isplitr
-    · ipureintro; rfl
+    · ipureintro; exact ⟨rfl, Hm1.2.1⟩
     iright
     iframe
     ipureintro; simp [interface.mkOk]
@@ -261,9 +261,10 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     wp_apply wp_Munmap base sz p { m1 with maps := <[base := sz.toNat]> m1.maps } _ Hsz0
       (GMap.lookup_insert _ _ _) $$ [Hm Hcells] as %e3 Hm3
     · iframe; iframe #
-    ihave Hm : ∃ m2 : OsMeta, osMeta (GF := GF) p (DFrac.own 1) (some m2) ∗ ⌜m2.size = m.size⌝ $$ [Hm3]
+    ihave Hm : ∃ m2 : OsMeta, osMeta (GF := GF) p (DFrac.own 1) (some m2) ∗
+        ⌜m2.size = m.size ∧ m2.ok = m.ok⌝ $$ [Hm3]
     · icases Hm3 with (⟨-, Hm⟩ | ⟨-, (Hm | ⟨Hm, -⟩)⟩) <;>
-        (iexists _; iframe; ipureintro; exact Hm1.1)
+        (iexists _; iframe; ipureintro; exact ⟨Hm1.1, Hm1.2.1⟩)
     icases Hm with ⟨%m2, Hm, %Hm2⟩
     (try wp_auto)
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlocked Hmap0 Hflds0]
@@ -272,12 +273,12 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     iapply HΦ
     iexists none, m2
     iframe
-    rw [Hm2]
+    rw [Hm2.1]
     iframe
     isplitr
     · ipureintro; exact Hw
     isplitr
-    · ipureintro; rfl
+    · ipureintro; exact ⟨rfl, Hm2.2⟩
     iright
     iframe
     ipureintro; exact ⟨errnoErr_ne_nil e2 he2, rfl⟩
@@ -321,7 +322,7 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     iframe
     ipureintro
     refine ⟨by simp only [List.length_append, hw0, hw1], fun hfl => ?_⟩
-    rw [Hw.2.2.2.2 hfl]
+    rw [(Hw.2.2.2.2 hfl).1]
   ihave Hinv := mapInv_alloc γ p base sz.toNat $$ Hc
   imod Hinv with ⟨%γm, Htok, #Hinv⟩
   icases (ghostVar_split_half γm 1 ()).1 $$ Htok with ⟨Htok, Htok2⟩
@@ -358,7 +359,7 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro; exact Hw
   isplitr
-  · ipureintro; rfl
+  · ipureintro; exact ⟨rfl, Hm1.2.1⟩
   ileft
   isplitr
   · ipureintro; trivial
