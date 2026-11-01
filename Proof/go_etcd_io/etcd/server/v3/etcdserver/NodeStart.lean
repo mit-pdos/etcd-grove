@@ -244,9 +244,85 @@ theorem srvMem_bootStorage
       restartStorage γr.cl (memStorIface ms)
         ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
         memSnapEmpty.Metadata'.ConfState' 0 F := by
-  -- PORT(durability stage II): restated (durability layer 4: `restartStorage` with the client's
-  -- frame)
-  sorry
+  letI : MemStorReg GF := ⟨γr.reg⟩
+  letI := srvStor (GF := GF) γr
+  iintro ⟨#Hreg, #Hl, Hfresh, Hmeta, #Hlog, He, HF⟩
+  ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iunfold memStorLock at Hl; icases Hl with ⟨#H, -⟩; iexact H
+  unfold restartStorage
+  iexists (⟨MemoryStorage.ty.PointerType, intoVal ms⟩ : GoInterfaceOk)
+  iexists iprop(memStorFresh ms γs 0 memSnapEmpty ∗
+    memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗ memEnd γs 1 ∗
+    (∀ K : GName, memStorInv ms γs γr.cl K -∗
+      memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗ F K))
+  isplitr
+  · ipureintro; rfl
+  isplitl [Hfresh Hmeta He HF]
+  · iframe Hfresh Hmeta He HF
+  isplitr
+  · iintro !> %Φ ⟨Hfresh, Hmeta, He, HF⟩ HΦ
+    wp_apply wp_FirstIndex ms γs 0 $$ [$Hinit $Hl]
+      as %fi ⟨%Hfi, #Hc⟩
+    · iapply memCompacted_zero
+    icases memStorFresh_compacted ms γs _ _ _ $$ [$Hfresh $Hc] with ⟨%H0, Hfresh⟩
+    have Hfi1 : fi = W64 (StorContents.b ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ + 1) := by
+      simp only [StorContents.b]; word
+    rw [Hfi1]
+    iapply HΦ
+    iframe Hfresh Hmeta He HF
+  isplitr
+  · iintro !> %Φ ⟨Hfresh, Hmeta, He, HF⟩ HΦ
+    wp_apply wp_LastIndex ms γs 1 $$ [$Hinit $Hl $He]
+      as %li ⟨He, %Hli⟩
+    have Hli0 : li = W64 (StorContents.last ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩) := by
+      simp only [StorContents.last, StorContents.b, List.length_nil]; word
+    rw [Hli0]
+    iapply HΦ
+    iframe Hfresh Hmeta He HF
+  iintro !> %Φ ⟨Hfresh, Hmeta, He, HF⟩ HΦ
+  wp_apply wp_InitialState ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) 0 memSnapEmpty
+    $$ [$Hinit $Hmeta $Hfresh]
+    as %hp %cs ⟨#Hhs, Hmeta, Hfresh, #Hcs⟩
+  iapply HΦ $$ %hp %cs %true
+  iframe Hhs
+  isplitr
+  · have hce : memSnapEmpty.Metadata'.ConfState' = ConfStateM.mk [] [] [] [] false := rfl
+    rw [hce]
+    iexact Hcs
+  iintro %K #HA #HD
+  imod memStorInvP_alloc ms γs (memStorJ γr.cl K) ⊤ 0 memSnapEmpty $$ Hl Hfresh [] [] with #Hinv
+  · iintro !> %k %hk
+    have : k = 0 := by omega
+    subst this
+    unfold memStorJ
+    iapply nodeAppliedLb_zero γr.cl K
+  · ileft; ipureintro; rfl
+  ihave #Hinv' : memStorInv ms γs γr.cl K $$ []
+  · unfold memStorInv; iexact Hinv
+  ihave HFK := HF $$ %K Hinv' Hmeta
+  imodintro
+  isplitr
+  · iapply memStorage_isStorage wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
+      ms γs γr.cl K $$ Hinv' Hreg
+  iframe HFK
+  iunfold storHolds
+  have hb : (⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).b = 0 := by
+    simp [StorContents.b]
+  have hl : (⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).last = 0 := by
+    simp [StorContents.last, StorContents.b]
+  rw [hl, hb, Nat.zero_add]
+  iexists (zero_val EntryM)
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iapply memStorCompacted_of ms γs 0 $$ Hreg
+    iapply memCompacted_zero
+  isplitr
+  · iapply memStorLog_of ms γs 0 DFrac.discard [zero_val EntryM] $$ Hreg Hlog
+  isplitr
+  · iapply memStorLog_of ms γs 1 (DFrac.own 1) [] $$ Hreg
+    iapply memLog_nil
+  iapply memStorEnd_of ms γs 1 $$ Hreg He
 
 /-- **The composition's statement** (see the file header; 2026-10-27: over the node API, for the
 server's raft names `γr` and the cluster's storage model `srvStor γr`): for the receiver `b` and the
@@ -373,7 +449,14 @@ theorem raftNode_of_StartNode
     (wp_ApplyConfChange : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NodeStartSpec (GF := GF) := by
-  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
+  -- PORT(durability stage II): not provable against `bootstrappedRaft.newRaftNode.spec` as stated
+  -- (2026-11-01, stage II (l)). Its storage frame is key-independent (`restartStorage … (fun _ =>
+  -- Q)`, post `Q`), but `srvMem_bootStorage` allocates the storage's invariant at the key `K` raft
+  -- names (`memStorInv … K`), and this statement posts it at the wrapper's key (`memStorInv …
+  -- γw.key`); a `K`-independent `Q` cannot carry it, and no law ties a client-chosen name to the
+  -- driver's key. Fix (a statement change, stage I): `newRaftNode.spec`'s frame `Q : GName → IProp
+  -- GF`, `"Hbs"` at `restartStorage … Q`, post `Q γw.key` (its proof passes `Q` to `StartNode` and
+  -- `K` to `newRaftNode`, whose post gives `γw.key = K`).
   sorry
 
 end compose

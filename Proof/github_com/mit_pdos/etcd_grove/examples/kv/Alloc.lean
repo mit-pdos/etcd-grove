@@ -100,10 +100,12 @@ theorem rkvInv_alloc (E : CoPset) (γ : Cluster) (S0 : GMap w64 w64) :
 
 /-- **The store's cluster** (see the file header): from the time receipts' bound (`cluster_alloc`'s
 premise), the store's cluster `kvCluster`, its invariant, the client's half at the empty store, the
-sequence-number tokens of `S0`, `γ.dup = false`, and each voter's founder token. -/
+sequence-number tokens of `S0`, `γ.dup = false` and (2026-11-01, durability stage II (l):
+`RestartNode`'s scope premise) no bootstrap log (`γ.bootLen = 0`), and each voter's durable state at
+`RaftState.init` and its vacant id. -/
 theorem kvCluster_alloc (E : CoPset) (S0 : GMap w64 w64) (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) :
-    ⊢ |={E}=> ∃ γr : RKVNames, ⌜γr.cluster.dup = false⌝ ∗ kvCluster γr ∗ rkvInv γr ∗
-        rkvVal γr kvEmpty ∗ ([∗map] id ↦ s ∈ S0, id ↪[γr.seq] s) ∗
+    ⊢ |={E}=> ∃ γr : RKVNames, ⌜γr.cluster.dup = false ∧ γr.cluster.bootLen = 0⌝ ∗
+        kvCluster γr ∗ rkvInv γr ∗ rkvVal γr kvEmpty ∗ ([∗map] id ↦ s ∈ S0, id ↪[γr.seq] s) ∗
         [∗list] id ∈ kvVoters, raftState γr.cluster id RaftState.init ∗ nodeVacant γr.cluster id := by
   iintro
   imod cluster_alloc (GF := GF) kvRaftN kvVoters [] [] false E Hrb (by decide) (by decide)
@@ -117,7 +119,7 @@ theorem kvCluster_alloc (E : CoPset) (S0 : GMap w64 w64) (Hrb : receiptBound GF 
   imodintro
   iexists γr
   isplitr
-  · ipureintro; exact Hγ.1
+  · ipureintro; exact Hγ
   iframe Hinv Hval Hseqs Hslots
   unfold kvCluster
   iframe Hiscl Hpol Hca0 Hsinv

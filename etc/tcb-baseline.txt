@@ -784,15 +784,10 @@ sorry StartNode.wp_raw
 sorry authkv.Main.wp_proof
 sorry authkv.Work.wp_proof
 sorry authkv.newUserClient.wp_proof
-sorry bootstrappedRaft.newRaftNode.wp_proof
 sorry isRaftNodeIfc_of_isNode
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
-sorry kv.StartCluster.wp_proof
-sorry kvStorage_bootStorage
-sorry kvreconf.Cluster.startNew.wp_proof
-sorry kvreconf.StartCluster.wp_proof
 sorry newLogWithSize.wp_proof
 sorry newRaft.wp_proof
 sorry node.run.wp_proof
