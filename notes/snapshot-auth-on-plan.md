@@ -117,3 +117,36 @@ waits on #7/#8; the install spec is its callee. Recommended: `specSnapOn` beside
   mode on).
 - **Not in this stage**: the sender's mode-on image (#7-on), the two shared holes
   (`mergedCreate_window`, `merged_image`), step 4's merged specs.
+
+## Handoff (2026-11-01, etcd-grove-d0 → the session on `bootOk`/J8a)
+
+The user handed the rest of this stage to the session working on `bootOk` (J8a). State:
+
+- **Branch** `snap-auth-on` (worktree `/shared/etcd-grove-snapon`, off `lean` `f122faa440`): this note
+  and two Drafts imported by nothing, no `axiom`, no `sorry` (`#print axioms` checked):
+  `auth/CatchUpDraft.lean` (`authHist_appendL`, `authOwnF_revCur_appendL`/`appendN`, `capAtM`,
+  `setRevision.specN` and `wp_proofN`) and `etcdserver/SnapAuthOnDraft.lean`
+  (`authHistTie_catchup`, `catchup_list`). Not on `lean`; merge or cherry-pick it.
+- **Settled: Q1 (b)**, the tie `authHistTie` kept as stated; the catch-up is a list append in
+  `Recover`'s `setRevision` (not ghost-only: `revCur` ties the latest state to the `revision`
+  atomic). Above, "Tried".
+- **Open: Q2, the snapshot backend's auth read contract.** `Recover` reads the new backend before the
+  catch-up records the image's state `stI`, so it needs a read contract giving exactly `stI`; after
+  the catch-up, the store needs the existing mode-on contracts (`authBackendOk`, `authWBackendOkR`) on
+  the new backend, as `authSchemaSrv` gives them at boot from `authLockI (.on γa) bootState`. Where
+  the fact enters (the user's question, not decided):
+  1. a trusted premise `authSchemaSnap` in J8a-4's form (at the open's creation step, over the image
+     data `D`, carried in `bootOk` beside `#HmetaSnap`, taken by `specSnap`): changes
+     `NewServer.spec`'s premises, so every exported mode-on result;
+  2. a local trust-boundary axiom on schema's auth read side (`NewAuthBackend`, `ReadTx`,
+     `UnsafeReadAuth*`): `NewServer.spec` unchanged, one more axiom;
+  3. **proved** from schema's auth read side over the backend's verified `ReadTx` and the image's
+     buckets: no new trusted fact, and `authSchemaSrv` at boot (a premise only because that code is
+     not proved) possibly discharged too. My recommendation; first step a survey of which schema
+     auth functions are translated or names-only and what `ReadTx`'s spec gives of bucket contents.
+  Any of them needs a definition "the auth buckets hold `stI`" (no bucket-to-`AuthState` decoding
+  exists; S1's reads are at the message level over the `Unmarshal` axioms).
+- **Then**: `Recover`'s mode-on variant over `setRevision.specN` and Q2's contract;
+  `specSnapOn` (Q4: beside `specSnap`, merged in the auth-mode merge's step 4) over the mode-on image
+  (Q3: a Draft `srvImageOn`, switched with #7-on after durability); `run`'s mode-on job
+  (`EtcdServer__run.lean` ~:1413).
