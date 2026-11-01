@@ -5,7 +5,9 @@ bytes `encode` wrote of contents `f` that `openStorage` accepts (`KdFileOk`), `g
 registered storage, detached (`memStorFresh`: no node reads it yet) and holding `f`'s contents
 (`kdContents (some f)`: its compaction point at the log's start, the entries after it, the end, the
 snapshot, the hard state), whose image holds `f`, with its bootstrap conf state `boot`: what `Cluster.start`
-hands `RestartNode` (`restartStorage`, through the storage's frame).
+hands `RestartNode` (`restartStorage`, through the storage's frame). (2026-11-01, stage II (j), S3:
+the writers' lower bound of the stored snapshot at its index, which its detached `ApplySnapshot`/
+`CreateSnapshot` give.)
 -/
 module
 
@@ -46,7 +48,8 @@ abbrev openStorage.spec : Prop :=
         ⌜e0.Term' = f.prevTerm⌝ ∗ memLog γs (uint.nat f.prev) DFrac.discard [e0] ∗
         memLog γs (uint.nat f.prev + 1) (DFrac.own 1) f.ents ∗
         memEnd γs (uint.nat f.prev + f.ents.length + 1) ∗
-        memCompacted γs (uint.nat f.prev) ∗ b ↦*{dq} encStor f }}
+        memCompacted γs (uint.nat f.prev) ∗ memSnapLb γs (uint.nat f.snap.Metadata'.Index') ∗
+        b ↦*{dq} encStor f }}
 
 end spec
 
