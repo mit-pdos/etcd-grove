@@ -316,6 +316,11 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[etcd-mvcc-watch-negative-start-rev](etcd-mvcc-watch-negative-start-rev.md)** (2026-11-01):
+  `WatchStream.Watch`'s documentation says a start revision `<= 0` watches after the current
+  revision; a negative one replays the history or gets a compaction response with
+  `CompactRevision -1`. Documentation only for etcd (its gRPC watch rejects negatives); matters
+  to direct users of mvcc.
 - **[etcd-restore-pending-compaction-unclosed](etcd-restore-pending-compaction-unclosed.md)**
   (2026-10-30): `store.Restore` drops a queued compaction job without closing its channel, so a
   `Physical` compaction RPC on a follower that installs a snapshot meanwhile hangs and leaks its

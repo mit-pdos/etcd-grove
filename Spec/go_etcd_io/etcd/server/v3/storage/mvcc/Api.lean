@@ -246,7 +246,8 @@ def mvccLogOk (γ : MvccName) (L : Log) : IProp GF :=
 name `γl` (its owner's `lease.leaseOwn γl L I`: the live leases `L`, the item map `I`):
 `GetLease(item)` returns the item map's lease of `item` (`NoLease` if none), with the resource `R`
 (the real lessor's: a reader slot of its lock); `Attach(id, items)` of a live lease (`id ∈ L`) of
-items on no other lease, each key shorter than `2 ^ 63 - 1` (the real lessor's need), adds them to
+items on no other lease, each key shorter than `2 ^ 63 - 1` (the real lessor's proof's
+invariant `itemKeysShort`, not a need of its Go code), adds them to
 the item map; `Detach(id, items)` of items the item map puts on `id` removes them;
 `SetRangeDeleter(f)` sets the deleter, by its owner (`lease.rdOwn γl`). Today's `isLessor` with the
 real `*lessor`'s pin dropped and its reader slot a parameter. The generality is nominal for now:

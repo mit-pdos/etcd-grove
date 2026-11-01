@@ -100,6 +100,18 @@ unsound path); the module not sealed (E4); `isMvccLessor`'s generality nominal (
 write of the lease bucket inside the transaction (B7, the lease package's spec); whether v3rpc's
 send loop needs registration facts beyond `wsWatcher`'s `k` (B6, unchecked).
 
+## Round 3 (the review of round 2)
+
+Every round-1 finding in scope repaired, but round 2's `Cancel` without the live token (`!own`)
+took nothing, so a goroutine could cancel a watcher whose live token another kept, and the next
+stream-wide progress response falsified the progress law. Now `!own` takes a proof that the id is
+not live: an id the registrar's view does not have (ids are never reused) or one already
+cancelled. Two docstrings corrected: `Watch` does not clamp a negative start revision (it replays
+the history, or answers with a compaction response at `-1`: the premise `0 ≤ startRev` is needed;
+mvcc's documentation says otherwise: `issues/etcd-mvcc-watch-negative-start-rev.md`, found by the
+review, reproduced); `Attach`'s key bound is the real lessor's proof's invariant (`itemKeysShort`),
+not a need of its Go code.
+
 ## Decisions for the user (new client-owned ghost state and premises)
 
 The skill's policy: each new premise or client-owned ghost state on a spec with clients is the
@@ -125,7 +137,8 @@ user's decision. Today's statement beside the candidate's:
    `R := lease.lessorRd lp γl`; the generality is nominal while the owner's predicate is the real
    lessor's `lease.leaseOwn` (a `FakeLessor` would need its own: open).
 6. **The stream's registrar's view and a live token per watcher** (`wsWatchers ι S` from
-   `NewWatchStream`, threaded through `Watch`; `wsLive ι id` from `Watch`, taken by `Cancel`).
+   `NewWatchStream`, threaded through `Watch`; `wsLive ι id` from `Watch`, taken by `Cancel`, or
+   in its place a proof that the id is not live).
    Today: the stream's id map and per-id tokens (`idsInv`, `idTok`), internal names.
 7. **The store's open token** (`mvccOpen γ q`: `Compact` a share, `Close` the whole). Today: the
    closer (`storeCloser`, `wsCloser`) and the compaction right (`compactRight`).

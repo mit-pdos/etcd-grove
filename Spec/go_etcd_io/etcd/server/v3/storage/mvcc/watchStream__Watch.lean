@@ -58,7 +58,9 @@ abbrev mvcc.watchStream.Watch.spec : Prop :=
 /-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.Watch(ctx, 0, key, end, startRev, fcs...)`, by the stream's registrar (its view of
 the watchers, `wsWatchers`), with an id the stream chooses (`0`, `AutoWatchID`: a scope
 restriction, as etcd's client asks; an id of the caller's could be a duplicate), a start revision
-not negative (a scope restriction: the code clamps a negative one), filters implementing `fs`:
+not negative (needed: a negative one replays the history or gets a compaction response with
+revision `-1`, against the documentation, `issues/etcd-mvcc-watch-negative-start-rev.md`; v3rpc
+rejects it), filters implementing `fs`:
 * an empty range (`end` not empty and not above `key`): `ErrEmptyWatcherRange`, id `-1`, the
   caller's update back;
 * a closed stream (`wsClosed`; a holder of a share of the open token refutes it): the same;

@@ -35,16 +35,22 @@ abbrev mvcc.watchStream.Cancel.spec : Prop :=
       ⌜err = GoInterface.nil⌝ ∨ globalAddr ErrWatcherNotExist ↦□ err }}
 
 /-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.Cancel(id)`, by the holder of the watcher's live token (`own`: then the watcher is
-cancelled for good, `wsCanceled`, no longer covered by the stream's progress), or of none (an id
-the caller only names: v3rpc cancels the ids its client sends; nothing is stated of it); `nil` or
-`ErrWatcherNotExist`. -/
+cancelled for good, `wsCanceled`, no longer covered by the stream's progress), or (`!own`) of an
+id that is not a live watcher: one the registrar never registered (its view, given back: the
+stream never reuses an id, `nextID` only grows) or one already cancelled; nothing changes then
+(v3rpc's receive loop, the registrar, cancels the ids its client sends this way when it holds no
+live token for them). `nil` or `ErrWatcherNotExist`. (Round 2's `!own` arm took nothing, so it
+could cancel a watcher whose live token another holder kept, falsifying the stream's progress
+law: round 3.) -/
 abbrev mvcc.watchStream.Cancel.specC : Prop :=
-  ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName) (id : w64) (own : Bool),
+  ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName) (id : w64) (own : Bool) (S : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isMvccWatchStream st γ ι ∗ threadTok ∗
-      (if own then mvcc.wsLive ι id else iprop(True)) }}
+      (if own then mvcc.wsLive ι id
+       else iprop((mvcc.wsWatchers ι S ∗ ⌜id ∉ S⌝) ∨ mvcc.wsCanceled ι id)) }}
     (App (Val (st @!! go.GoType.PointerType watchStream.ty @!! go!"Cancel")) (Val #id))
   {{ (err : GoInterface), RET #err; threadTok ∗
-      (if own then mvcc.wsCanceled ι id else iprop(True)) ∗
+      (if own then mvcc.wsCanceled ι id
+       else iprop((mvcc.wsWatchers ι S ∗ ⌜id ∉ S⌝) ∨ mvcc.wsCanceled ι id)) ∗
       (⌜err = GoInterface.nil⌝ ∨ globalAddr ErrWatcherNotExist ↦□ err) }}
 
 end spec
