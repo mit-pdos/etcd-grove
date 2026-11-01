@@ -197,14 +197,15 @@ mode, and its claims vacuous). -/
 theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryModel)
     (e : EntryModel)
     (hok : plainLogM γk.cmp L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L)
+      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
+      γk.rlog = γ.raft.log)
     (hidx' : srvIdxOkW γ.ai0 (L ++ [e])) (hpl : plainEntry e) :
     plainLogM γk.cmp (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧
-      cmpLogOk γk γk.cmp (L ++ [e]) := by
-  obtain ⟨hplog, -, hc0, hch, h0, hcl⟩ := hok
-  refine ⟨?_, hidx', hc0, hch, h0, cmpLogOk_snoc γk _ L e hcl (cmpEntryOk_plain γk _ L e hpl)⟩
+      cmpLogOk γk γk.cmp (L ++ [e]) ∧ γk.rlog = γ.raft.log := by
+  obtain ⟨hplog, -, hc0, hch, h0, hcl, htie⟩ := hok
+  refine ⟨?_, hidx', hc0, hch, h0, cmpLogOk_snoc γk _ L e hcl (cmpEntryOk_plain γk _ L e hpl), htie⟩
   rw [plainLogM_append]
   refine ⟨hplog, fun m hm => ?_⟩
   rw [List.mem_singleton] at hm
@@ -233,18 +234,19 @@ theorem kvWork_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : E
   iapply BigSepL.bigSepL_snoc.2
   iframe Hcl He
 
-/-- **The commit step's leading step** (item 6, review rounds 5-6): a compaction's revision reached
-(`cmpReach`, a KV certificate) gives a lower bound `L₀` of the server's log of requested entries
-whose model has the revision (given the invariant's `c0 ≤ ai0`, which `kvModel_eqv` needs). At the
-caller's mask: it opens the certificates' invariant and the server's raft log's, never the KV
-invariant. -/
-theorem cmpReach_reqLb (γ : ServerRaftNames) (γk : KVNames) (E : CoPset)
+/-- **A KV certificate's revision, on the requested log** (item 6, review rounds 5-6; since the
+client's `kv.Compact`, 2026-10-31, the step from a member's certificate to `kvRevLb`,
+`kvRevLb_of_srvRevLb`): a KV certificate of a log longer than `r` gives a lower bound `L₀` of the
+server's log of requested entries whose model has the revision (given the invariant's
+`c0 ≤ ai0`, which `kvModel_eqv` needs). At the caller's mask: it opens the certificates' invariant
+and the server's raft log's, never the KV invariant. -/
+theorem kvCert_reqLb (γ : ServerRaftNames) (γk : KVNames) (E : CoPset)
     (hE1 : ↑kvcN ⊆ E) (hE2 : ↑srvRaftN ⊆ E) (r : w64) :
-    ⊢ kvCertInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ cmpReach γk r ={E}=∗
+    ⊢ kvCertInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗
+      iprop(∃ l : mvcc.Log, kvCert γk l ∗ ⌜sint.Z r < l.length⌝) ={E}=∗
       ∃ L₀, srvReqLogLb γ L₀ ∗
         ⌜uint.Z γk.c0 ≤ uint.Z γ.ai0 → sint.Z r < (kvModel γk L₀).length⌝ := by
   iintro #Hci #Hrl #Hr
-  iunfold cmpReach at Hr
   icases Hr with ⟨%l, #Hc, %Hl⟩
   ihave #Hci' := Hci
   iunfold kvCertInv at Hci'
@@ -295,11 +297,12 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
     (r : w64) (hr : rq.compaction = some r)
     (hform : γk.cmp = true ∧ compactPropOk rq ∧ rqShape rq) :
     ⊢ kvInv (GF := GF) γ γk -∗ kvCertInv γ γk -∗ srvRaftLogInv γ -∗
-      idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗ cmpReach γk r ={E}=∗
+      idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗ kvRevLb γk r ={E}=∗
       srvPropAu1 γ d (fun _ => iprop(True)) := by
   have Hdisj := kvN_raftN
   iintro #Hinv #Hci #Hrl #Hcl #Hreg #Hr
-  imod (cmpReach_reqLb γ γk E hE1 hE2 r) $$ Hci Hrl Hr with ⟨%L₀, #HL0, %HL0r⟩
+  iunfold kvRevLb at Hr
+  icases Hr with ⟨%L₀, #HL0, %HL0r⟩
   imodintro
   unfold srvPropAu1
   iauintro
@@ -307,8 +310,11 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
-  -- the leading step's bound is below the committed log
-  icases srvReqLogLb_prefix γ L L₀ $$ [$HL $HL0] with ⟨HL, %Hpre⟩
+  -- the revision's bound, on the cluster's requested log (the invariant's tie), below the log
+  have hrl : γk.rlog = γ.raft.log := Hok.2.2.2.2.2.2
+  ihave #HL0' : srvReqLogLb γ L₀ $$ []
+  · unfold srvReqLogLb; rw [← hrl]; iexact HL0
+  icases srvReqLogLb_prefix γ L L₀ $$ [$HL $HL0'] with ⟨HL, %Hpre⟩
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
@@ -340,7 +346,7 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
       refine ⟨hform.1, hform.2.1, fun r' hr' => ?_⟩
       rw [hr] at hr'
       cases hr'
-      have h1 := HL0r Hok.2.2.1
+      have h1 := HL0r
       have h2 := (kvRaftOf_prefix γk.c0 γk.ch0 γk.log0 L₀ L Hpre).length_le
       unfold kvModel at h1 ⊢
       omega
@@ -367,8 +373,8 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
       rw [hent]
       iframe HL Hσ Hw'
       ipureintro
-      obtain ⟨hpl, -, hc0, hch, h0, hcl⟩ := Hok
-      refine ⟨fun m hm => ?_, hidx', hc0, hch, h0, cmpLogOk_snoc γk γk.cmp L e hcl hclaim⟩
+      obtain ⟨hpl, -, hc0, hch, h0, hcl, htie⟩ := Hok
+      refine ⟨fun m hm => ?_, hidx', hc0, hch, h0, cmpLogOk_snoc γk γk.cmp L e hcl hclaim, htie⟩
       rw [List.mem_append, List.mem_singleton] at hm
       rcases hm with hm | hm
       · exact hpl m hm

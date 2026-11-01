@@ -6,7 +6,8 @@ compaction mode, and `reqPropOk` has their form).
 
 * `srvRevLb`: a revision the store has reached (a certified log longer than it): what a compaction's
   proposer holds of its revision (review round 1, S2-3), and the compactor's `RevLb` on the server;
-  read as a KV certificate by `cmpReach_of_srvRevLb` (G2, the user's (a')).
+  read as a KV certificate by `kvCert_of_srvRevLb` (G2, the user's (a')), and as the cluster's
+  revision reached by `kvRevLb_of_srvRevLb` (the client's `kv.Compact`, 2026-10-31).
 * `compactResultIs`: the apply thread's result of a compaction (`applierV3backend.Compaction`
   through the uber-applier), as `EtcdServer.Compact` reads it: the response, or the error the
   request path reports.
@@ -16,6 +17,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVLemmas
 
 @[expose] public section
 
@@ -51,7 +53,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **A revision the store has reached** (persistent): a certificate of a log longer than it,
 certified by the caller's map (`certOk`: `store.Rev` gives both; M2, the apply side, G2 by the
-user's (a'), 2026-10-31: the server reads it as a KV certificate, `cmpReach_of_srvRevLb`). -/
+user's (a'), 2026-10-31: the server reads it as the KV's revision reached, `kvRevLb_of_srvRevLb`). -/
 def srvRevLb (γ : mvcc.StoreNames) (n : Int) : IProp GF :=
   iprop(∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ mvcc.certOk γ log ∗ ⌜n < log.length⌝)
 
@@ -72,12 +74,13 @@ theorem srvRevLb_mono (γ : mvcc.StoreNames) (n m : Int) (h : n ≤ m) :
 
 /-- **G2, the proposer's reach** (Q3's (a'), the user's, 2026-10-31): a revision the server's store has
 reached (`srvRevLb`, the compactor's `RevLb` and `EtcdServer.Compact.spec`'s premise) is a
-compaction's revision reached (`cmpReach`): the log's `certOk` is a KV certificate, the store's free
+KV certificate of a log longer than it: the log's `certOk` is a KV certificate, the store's free
 one (`0 ↦ []`) excluded by the certificates' invariant (no model log is empty), as in
 `kv_cert_read`. -/
-theorem cmpReach_of_srvRevLb (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNames)
+theorem kvCert_of_srvRevLb (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNames)
     (hγ : γs.cok = γk.cok) (E : CoPset) (hE : ↑kvcN ⊆ E) (r : w64) :
-    ⊢ kvCertInv (GF := GF) γ γk -∗ srvRevLb γs (sint.Z r) ={E}=∗ cmpReach γk r := by
+    ⊢ kvCertInv (GF := GF) γ γk -∗ srvRevLb γs (sint.Z r) ={E}=∗
+      ∃ l : mvcc.Log, kvCert γk l ∗ ⌜sint.Z r < l.length⌝ := by
   iintro #Hinv #Hlb
   iunfold srvRevLb at Hlb
   icases Hlb with ⟨%l, -, #Hok, %Hl⟩
@@ -85,13 +88,11 @@ theorem cmpReach_of_srvRevLb (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.
   rw [hγ] at *
   icases Hok with (%h | #He | #He)
   · imodintro
-    iunfold cmpReach
     iexists l
     isplitr
     · iunfold kvCert; ileft; ipureintro; exact h
     ipureintro; exact Hl
   · imodintro
-    iunfold cmpReach
     iexists l
     isplitr
     · iunfold kvCert; iright; iexact He
@@ -107,6 +108,32 @@ theorem cmpReach_of_srvRevLb (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.
     have := h0.length_le
     simp only [List.length_nil] at this
     omega
+
+/-- **A revision the store has reached is the KV's** (the client's `kv.Compact`, 2026-10-31): a
+member's `srvRevLb` (its store's certificate, `store.Rev`'s; a `Put`'s reply's) is the cluster's
+`kvRevLb`: the certificate is the model of a committed raft log (`kvCert_of_srvRevLb`), read on the
+cluster's requested log (`kvCert_reqLb`), whose name the KV invariant ties to the KV's
+(`γk.rlog = γ.raft.log`) with the start index below the log's (`c0 ≤ ai0`, `kvCert_reqLb`'s gate). -/
+theorem kvRevLb_of_srvRevLb (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNames)
+    (hγ : γs.cok = γk.cok) (E : CoPset) (hE1 : ↑kvN ⊆ E) (hE2 : ↑kvcN ⊆ E) (hE3 : ↑srvRaftN ⊆ E)
+    (r : w64) :
+    ⊢ kvInv (GF := GF) γ γk -∗ kvCertInv γ γk -∗ srvRaftLogInv γ -∗ srvRevLb γs (sint.Z r) ={E}=∗
+      kvRevLb γk r := by
+  iintro #Hkv #Hci #Hrl #Hlb
+  imod (kvCert_of_srvRevLb γ γk γs hγ E hE2 r) $$ Hci Hlb with #Hc
+  imod (kvCert_reqLb γ γk E hE2 hE3 r) $$ Hci Hrl Hc with ⟨%L₀, #HL0, %HL0r⟩
+  iunfold kvInv at Hkv
+  iinv Hkv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  imod Hclose $$ [HL Hσ] with -
+  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  imodintro
+  iunfold kvRevLb
+  iexists L₀
+  isplitr
+  · rw [Hok.2.2.2.2.2.2]; iunfold srvReqLogLb at HL0; iexact HL0
+  ipureintro
+  exact HL0r Hok.2.2.1
 
 /-- **The result of a compaction** (S2-S3): the apply thread's `*apply.Result`, read-only, with
 its trace, if any, owned (`apply.traceRes`: `Compact` uses `result.Trace` before it checks

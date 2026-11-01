@@ -306,7 +306,7 @@ theorem Main.wp_proof
   -- the client's `KV`: a client of etcd's KV, sending a write at most once
   imod (client.isKv_of_newClient cl go!"127.0.0.1:23872"
       (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23872" [] null null wkPfx null ρ.rd.kv.st) R.E ρ.rd
-      cid mid ρ.rd.kv rfl (by omega)) $$ [Hnc Hwo HKV] with ⟨%api, #Hkvf, #Hkv⟩
+      cid mid ρ.rd.kv (kvSame_refl _) (by omega)) $$ [Hnc Hwo HKV] with ⟨%api, #Hkvf, #Hkv⟩
   · iframe #
   -- the client's `Watcher`, with the watch server's facts (D19f): a watcher of etcd's KV
   ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWf, #Hcw⟩ := isNewClient_watcher wp_ErrAny hAs cl

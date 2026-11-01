@@ -197,7 +197,7 @@ theorem startMember.wp_proof
     [Hgsn Hclis]
   · iframe Hgsn Hclis; iframe #
   imod (EtcdGrove.client.etcd_kv_started client gs q p srv clis E { ρ with wait := γw } ρ.rd
-      cid mid C.n il im iu ims is svcs regs sregs 1 Hregs.1 Hrf)
+      cid mid C.n il im iu ims is svcs regs sregs 1 Hregs.1 Hrf rfl)
     $$ [Hgsn Hclis Hslots] with ⟨Hserv, Hss, #HPut, #HRange, #HDel, #HTxn⟩
   · iframe Hgsn Hclis Hslots
     iframe Pv3 Psrv Hreq Hrd Hkva Hq Hil Him Hiu

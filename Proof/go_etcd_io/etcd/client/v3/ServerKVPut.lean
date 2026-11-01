@@ -353,7 +353,7 @@ theorem kv_put_result (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AE
   iunfold putCallOut at Hout
   icases Hout with (⟨%Herr, %m, -, Hq⟩ | ⟨%Herr, -⟩)
   · subst Herr
-    ihave Hq := putAns_srvsAt addr E γr cid mid F _ _ m $$ Hq
+    ihave ⟨Hq, -⟩ := putAns_srvsAt addr E γr cid mid F _ _ m $$ Hq
     ihave Hq := putReplied_mono E γr F _ (fun σ => iprop(□ ⌜lf.length ≤ σ.rev + 1⌝))
       (fun σ => iprop(⌜lf.length ≤ σ.rev + 1⌝)) cid mid m (fun _ => intuitionistically_elim) $$ Hq
     rw [← hw] at hu ⊢

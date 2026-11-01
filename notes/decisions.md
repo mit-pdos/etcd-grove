@@ -27926,6 +27926,32 @@ go ahead with item 14" (Q4: merge once the compaction-on case is proved, done th
 - Later (the user's): one token count for the write budget and the compaction's stock, in place of
   `N + N`.
 
+## The client's `kv.Compact`: the KV's revision reached, one for the cluster (2026-11-01 · accepted, the user's approval of candidate 3 · branch `m2-kvcompact`)
+
+For `examples/compactkv` (a client compacting at the revision before its `Put`'s). Candidates and
+reviews: `.claude/skills/spec/examples/compact-client.md` (the approved spec and its history).
+
+- **The user's design (a), 2026-10-31**: the server keeps excluding `ErrFutureRev` by a premise
+  that the revision is reached; the client gets a persistent certificate from a `Put`'s reply.
+  Rejected (b): the server models `ErrFutureRev` as a no-op and `Compact` takes no revision premise
+  (stronger, but it reverses M2's approved server design).
+- **Cluster-wide, the user's (a1)**: review 1 found the first candidate's certificate (a member's
+  store's map `cok`, tied by `isKv`) unsatisfiable for a client of several members (one map per
+  member). `kvRevLb γk r` is a lower bound of the cluster's requested raft log (`SrvRaft.log`, one
+  per cluster; the new `KVNames.rlog`, tied by `kvInv`'s `γk.rlog = γ.raft.log`) whose KV model is
+  longer than `r`. It replaces `cmpReach` (`reqPropOk`'s compaction form; the commit step had
+  reduced `cmpReach` to it first). `kvSame` (two names of one cluster's KV) replaces `isKv`'s
+  state-name tie.
+- **Stage 1 (server side)**: `EtcdServer.Compact.spec` takes `kvRevLb ρ.rd.kv (W64 r)` in place of
+  `srvRevLb E.γ r` (weaker, so stronger); the compactor's glue converts (`kvRevLb_of_srvRevLb`:
+  `kvCert_of_srvRevLb`, `kvCert_reqLb`, the KV invariant's tie and `c0 ≤ ai0`). The tie sits in
+  `kvInv`'s pure part, last (review 2's N1: no new `NewServer` premise).
+- **A deviation from candidate 3**: the auth-on reply does not carry `kvRevLb`. The auth-on server's
+  KV model is `kvModelOn` (the bound, over `kvModel`, would say nothing there), compaction is in
+  scope only with auth off, and an auth-on client reaches `Put` through `kv.Put.specG`, not
+  `kv.Put.spec`; so the auth-off registration (`etcdPutSpec`) hands `kvRevLb` beside `putReplied`,
+  which stays unchanged (and with it `kvInvOn` and the auth-on registrations).
+
 ## The lease read entry points: `LeaseTimeToLive` and `LeaseLeases` (2026-11-01 · accepted, the user's Freeze · `notes/lease-read-plan.md`)
 
 The user, at Freeze: "approved, freeze and start Prove". Frozen:

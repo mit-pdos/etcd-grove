@@ -331,16 +331,12 @@ theorem EtcdServer.Compact.wp_proof
   (try wp_auto)
   -- the proposal, in compaction mode's form (`compactPropOk`)
   -- (review round 1, S2-3) the revision reached, at the request's value
-  ihave #Hlb' : srvRevLb E.γ (sint.Z rv.Revision') $$ []
-  · rw [Hrv.1]; iexact Hlb
+  ihave #Hreach : kvRevLb ρ.kv rv.Revision' $$ []
+  · have h : W64 r = rv.Revision' := by rw [← Hrv.1]; word
+    rw [← h]; iexact Hlb
   -- (M2's apply side, item 6) `reqPropOk`'s compaction form: the cluster's mode on (the request
-  -- view's tie), the revision reached as a KV certificate (`cmpReach_of_srvRevLb`, G2)
-  ihave ⟨%Hkcmp, #Hkci⟩ := isServerReq_cmp s E ρ $$ Hsrv
-  ihave #Hkvi := isServerRead_kvInvs s E ρ.rd $$ Hsrd
-  iunfold srvKVInvs at Hkvi
-  icases Hkvi with ⟨-, -, -, %Hcok, -⟩
-  imod (cmpReach_of_srvRevLb ρ.raft ρ.kv E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) rv.Revision')
-    $$ Hkci Hlb' with #Hreach
+  -- view's tie), the revision reached (the caller's `kvRevLb`)
+  ihave ⟨%Hkcmp, -⟩ := isServerReq_cmp s E ρ $$ Hsrv
   have hcp := compactPropOk_irrCompaction rv.Revision' (by rw [Hrv.1]; exact Hr1)
   have hsh := irrCompaction_shape rv.Revision'
   imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HcF0

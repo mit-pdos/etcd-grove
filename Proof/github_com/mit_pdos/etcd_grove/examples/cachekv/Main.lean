@@ -352,7 +352,7 @@ theorem Main.wp_proof
   ihave #Hnc' := Hnc
   iunfold isNewClient at Hnc'
   icases Hnc' with ⟨-, -, ⟨%api, #HKVa, #Hkvo⟩, -⟩
-  imod (client.isKv_of_regs api [go!"127.0.0.1:23873"] R.E ρ.rd cid mid γk.kv (by rw [hγkv])
+  imod (client.isKv_of_regs api [go!"127.0.0.1:23873"] R.E ρ.rd cid mid γk.kv (by rw [hγkv]; exact kvSame_refl _)
       (by omega)) $$ [Hkvo] with #Hisk
   · iframe Hkvo
     iapply client.kvRegs_one
@@ -360,7 +360,7 @@ theorem Main.wp_proof
   -- the writers' client of the KV, sending a write at most once
   imod (client.isKv_of_newClient cl go!"127.0.0.1:23873"
       (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv.st) R.E ρ.rd
-      cid mid γk.kv (by rw [hγkv]) (by omega)) $$ [Hnc Hwo HKV] with ⟨%apiw, #Hkvfw, #Hkvw⟩
+      cid mid γk.kv (by rw [hγkv]; exact kvSame_refl _) (by omega)) $$ [Hnc Hwo HKV] with ⟨%apiw, #Hkvfw, #Hkvw⟩
   · iframe #
   ihave #Hkw : client.isKvWatcher w γk.kv $$ []
   · unfold client.isKvWatcher
