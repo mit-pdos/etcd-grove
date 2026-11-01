@@ -342,6 +342,14 @@ theorem metaSynced_commitClean {m : OsMeta} {H F T : List (w8 × Bool)} {mp' B :
     exact ⟨_, rfl⟩
 
 /-- The meta pages of a state whose bytes below `N ≥ 8192` are the same. -/
+theorem csSynced_false_eq (m : OsMeta) (H F T : List (w8 × Bool)) (fa fb : Nat) :
+    csSynced false m H F T fa fb = ⟨m.syncedKeep fb T 0 H, H ++ (F ++ syncedBytes m T), fa, fb, .idle⟩ :=
+  rfl
+
+theorem csSynced_true_eq (m : OsMeta) (H F T : List (w8 × Bool)) (fa fb : Nat) :
+    csSynced true m H F T fa fb = ⟨m.synced 0 H, syncedBytes m H ++ (F ++ T), fa, fb, .idle⟩ :=
+  rfl
+
 theorem take8192_congr {l l' : List (w8 × Bool)} {N : Nat} (h : ∀ k < N, l'[k]? = l[k]?)
     (hN : 8192 ≤ N) : (l'.map Prod.fst).take 8192 = (l.map Prod.fst).take 8192 :=
   take_congr' (fun k hk => by rw [List.getElem?_map, List.getElem?_map, h k hk]) hN
@@ -381,6 +389,78 @@ theorem syncK_facts {m : OsMeta} {bs : List (w8 × Bool)} {hwm : Nat} (h : commi
   rw [List.getElem_take]
   rw [List.getElem?_eq_getElem (by omega), Option.some.injEq] at hb
   rw [hb]
+
+/-- The grown state's sync (`Truncate` then `Sync` in `commit`): `syncK_facts` of it. -/
+theorem grow_sync_facts {m : OsMeta} {bs : List (w8 × Bool)} {hwm len : Nat} (h : commitClean m bs)
+    (hl : bs.length = m.size) (hpg : curPgid ((bs.map Prod.fst).take 8192) = hwm) (h2 : 2 ≤ hwm)
+    (h4 : 4096 * hwm ≤ m.size) (hsz : m.size ≤ len) (h30 : len ≤ 2 ^ 30) (h16 : 4 * 4096 ≤ m.size) :
+    commitClean (m.grown len) (bs ++ List.replicate (len - m.size) ((0 : w8), false)) ∧
+    (bs ++ List.replicate (len - m.size) ((0 : w8), false)).length = (m.grown len).size ∧
+    ((bs ++ List.replicate (len - m.size) ((0 : w8), false)).take 8192).length = 8192 ∧
+    8192 + (((bs ++ List.replicate (len - m.size) ((0 : w8), false)).drop 8192).take
+      (4096 * hwm - 8192)).length = 4096 * hwm ∧
+    (∀ y ∈ (bs ++ List.replicate (len - m.size) ((0 : w8), false)).take 8192, y.2 = true) ∧
+    commitClean ((m.grown len).syncedKeep (4096 * hwm)
+        ((bs ++ List.replicate (len - m.size) ((0 : w8), false)).drop (4096 * hwm)) 0
+        ((bs ++ List.replicate (len - m.size) ((0 : w8), false)).take 8192))
+      ((bs ++ List.replicate (len - m.size) ((0 : w8), false)).take 8192 ++
+        (((bs ++ List.replicate (len - m.size) ((0 : w8), false)).drop 8192).take (4096 * hwm - 8192) ++
+        syncedBytes (m.grown len) ((bs ++ List.replicate (len - m.size) ((0 : w8), false)).drop
+          (4096 * hwm)))) ∧
+    ((bs ++ List.replicate (len - m.size) ((0 : w8), false)).take 8192 ++
+        (((bs ++ List.replicate (len - m.size) ((0 : w8), false)).drop 8192).take (4096 * hwm - 8192) ++
+        syncedBytes (m.grown len) ((bs ++ List.replicate (len - m.size) ((0 : w8), false)).drop
+          (4096 * hwm)))).length = len ∧
+    (((bs ++ List.replicate (len - m.size) ((0 : w8), false)).take 8192 ++
+        (((bs ++ List.replicate (len - m.size) ((0 : w8), false)).drop 8192).take (4096 * hwm - 8192) ++
+        syncedBytes (m.grown len) ((bs ++ List.replicate (len - m.size) ((0 : w8), false)).drop
+          (4096 * hwm)))).map Prod.fst).take 8192 = (bs.map Prod.fst).take 8192 := by
+  obtain ⟨hccG, hblG⟩ := treach_commitClean (sz := len) h hl h30 hsz (by rw [hpg, hl]; exact h4)
+    .grown
+  have hpreG : ∀ k < 4096 * hwm,
+      (bs ++ List.replicate (len - m.size) ((0 : w8), false))[k]? = bs[k]? :=
+    fun k hk => List.getElem?_append_left (by omega)
+  have htG := take8192_congr hpreG (by omega)
+  have hsG : (m.grown len).size = len := rfl
+  obtain ⟨hH, hF, hHc, hccS, hblS, htkS, -⟩ := syncK_facts (m := m.grown len) hccG hblG
+    (by rw [htG, hpg]) h2 (by rw [hsG]; omega) (by rw [hsG]; exact h30) (by rw [hsG]; omega)
+  exact ⟨hccG, hblG, hH, hF, hHc, hccS, hblS.trans hsG, by rw [htkS, htG]⟩
+
+/-- `commit`'s growth (`Truncate` to `len`, then `Sync`), as obligations and the states it leaves,
+named. -/
+theorem grow_facts {p : GoString} {m : OsMeta} {bs : List (w8 × Bool)} {hwm len : Nat}
+    (h : commitClean m bs) (hl : bs.length = m.size)
+    (hpg : curPgid ((bs.map Prod.fst).take 8192) = hwm) (h2 : 2 ≤ hwm)
+    (h4 : 4096 * hwm ≤ m.size) (hsz : m.size ≤ len) (h30 : len ≤ 2 ^ 30) (h16 : 4 * 4096 ≤ m.size) :
+    ∃ (M3 : OsMeta) (B3 H F T : List (w8 × Bool)),
+      bs ++ List.replicate (len - m.size) ((0 : w8), false) = H ++ (F ++ T) ∧ H.length = 8192 ∧
+      8192 + F.length = 4096 * hwm ∧ (∀ y ∈ H, y.2 = true) ∧
+      csSynced false (m.grown len) H F T 8192 (4096 * hwm) = ⟨M3, B3, 8192, 4096 * hwm, .idle⟩ ∧
+      commitClean M3 B3 ∧ M3.size = len ∧ M3.maps = m.maps ∧ M3.ok = m.ok ∧
+      (B3.map Prod.fst).take 8192 = (bs.map Prod.fst).take 8192 ∧
+      (∀ M : GMap Loc Nat, dbOk p (some ⟨{ M3 with maps := M }, B3, 8192, 4096 * hwm, .idle⟩)) ∧
+      dbOk p (some ⟨M3, B3, 8192, 4096 * hwm, .idle⟩) ∧
+      dbOk p (some ⟨{ m.grown len with ok := false }, H ++ (F ++ T), 8192, 4096 * hwm, .idle⟩) ∧
+      (∀ M : GMap Loc Nat, dbOk p (some ⟨{ { m.grown len with ok := false } with maps := M },
+        H ++ (F ++ T), 8192, 4096 * hwm, .idle⟩)) ∧
+      (∀ M : GMap Loc Nat, dbOk p (some ⟨{ m.grown len with maps := M },
+        bs ++ List.replicate (len - m.size) ((0 : w8), false), 8192, 4096 * hwm, .idle⟩)) ∧
+      (∀ M : GMap Loc Nat, dbOk p (some ⟨{ ftMeta m len with maps := M }, bs, 8192, 4096 * hwm,
+        .idle⟩)) := by
+  obtain ⟨hccG, hblG, hH, hF, hHc, hccS, hblS, htkS⟩ :=
+    grow_sync_facts h hl hpg h2 h4 hsz h30 h16
+  have hccT := (treach_commitClean (sz := len) h hl h30 hsz (by rw [hpg, hl]; exact h4) .ft).1
+  have e := split3_eq (bs ++ List.replicate (len - m.size) ((0 : w8), false)) 8192 (4096 * hwm)
+    (by omega)
+  have hccF := commitClean_meta (m' := { m.grown len with ok := false }) hccG rfl rfl
+  refine ⟨_, _, _, _, _, e.symm, hH, hF, hHc, rfl, hccS, rfl, rfl, rfl, htkS,
+    writer_okS 8192 (4096 * hwm) (by rw [hblS]; rfl) hccS,
+    commitClean_okS _ (by rw [hblS]; rfl) rfl hccS,
+    commitClean_okS _ (by rw [e]; exact hblG) rfl (by rw [e]; exact hccF),
+    fun M => writer_okS (m := { m.grown len with ok := false }) 8192 (4096 * hwm)
+      (by rw [e]; exact hblG) (by rw [e]; exact hccF) M,
+    writer_okS (m := m.grown len) 8192 (4096 * hwm) hblG hccG,
+    writer_okS (m := ftMeta m len) 8192 (4096 * hwm) hl hccT⟩
 
 end pure
 
@@ -703,7 +783,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
 
-set_option maxHeartbeats 4000000 in
+set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 20000 in
 theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := hG))
     (wp_Truncate : os.File.Truncate.specCrashS (GF := GF) (hG := hG))
@@ -875,14 +955,11 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
     · iframe; iframe #
     simp only [hlen64]
     have h4 := Hwf.2.1
-    -- the grown state
-    obtain ⟨hccG, hblG⟩ := treach_commitClean (sz := len) hcc hbl hsz.2.2 Hsz
-      (by rw [hpgb, hbl]; exact h4) .grown
-    have hpreG : ∀ k < 4096 * hwm,
-        (bs ++ List.replicate (len - m'.size) ((0 : w8), false))[k]? = bs[k]? :=
-      fun k hk => List.getElem?_append_left (by omega)
-    have hpgG : curPgid (((bs ++ List.replicate (len - m'.size) ((0 : w8), false)).map Prod.fst).take
-        8192) = hwm := by rw [take8192_congr hpreG (by omega), hpgb]
+    have h4len : 4096 * hwm ≤ len := by omega
+    have h16len : 4 * 4096 ≤ len := Nat.le_trans hsz.1 Hsz
+    have hl30 : len ≤ 2 ^ 30 := hsz.2.2
+    obtain ⟨M3, B3, H, F, T, hsplit, hH, hF, hHc, hsyn, hcc3, hs3, hm3, ho3, ht3, hok3, hok3', hokF,
+      hokF', hokG, hokT⟩ := grow_facts (p := p) hcc hbl hpgb h2 h4 Hsz hsz.2.2 hsz.1
     have hcells : ∀ (Hc : IProp GF), (Hc ⊢ cellsR (GF := GF) base m'.size (len - m'.size) (fun _ => byteCell 0)) →
         (∃ vf, cellsR (GF := GF) base 0 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 80 4016 vf) ∗
           (∃ vf, cellsR (GF := GF) base 4096 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 4176 4016 vf) ∗
@@ -899,6 +976,8 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
       · unfold cellsAny; iexists vf; iexact Hlow
       rw [show 4096 * hwm + (m'.size - 4096 * hwm) = m'.size by omega]
       unfold cellsAny; iexists _; iexact Hc
+    have hgs : (m'.grown len).size = len := rfl
+    have hgm : (m'.grown len).maps = m'.maps := rfl
     icases Hres with (⟨%Herr, Hg⟩ | ⟨%Herr, (Hg | ⟨Hcs, Hmc⟩)⟩)
     · subst Herr
       iunfold csGrownOwn at Hg
@@ -908,40 +987,34 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
         $$ [Hwc4 Hlow Hc]
       · iframe
       (try wp_auto)
-      obtain ⟨hH, hF, hHc, hccS, hblS, htkS, -⟩ := syncK_facts (m := m'.grown len) hccG hblG hpgG h2
-        (by simp only [OsMeta.grown]; omega) (by simp only [OsMeta.grown]; exact hsz.2.2)
-        (by simp only [OsMeta.grown]; omega)
-      have hccF := commitClean_meta (m' := { m'.grown len with ok := false }) hccG rfl rfl
-      ihave Hcs := (csOwn_split3 p γc (m'.grown len) _ hwm h2).1 $$ Hcs
-      wp_apply wp_Sync f fd p _ _ ⟨p, true, true⟩ dbCrashN γc (dbOk p) (m'.grown len) _ _ _ 8192
-          (4096 * hwm) false hH hF (fun _ => hHc) dbCrashN_disj
-          (commitClean_okS _ hblS rfl hccS)
-          (commitClean_okS ⟨{ m'.grown len with ok := false }, _, 8192, 4096 * hwm, .idle⟩
-            (by rw [split3_eq _ _ _ (by omega)]; exact hblG) rfl
-            (by rw [split3_eq _ _ _ (by omega)]; exact hccF))
+      rw [hsplit]
+      wp_apply wp_Sync f fd p _ _ ⟨p, true, true⟩ dbCrashN γc (dbOk p) (m'.grown len) H F T 8192
+          (4096 * hwm) false hH hF (fun _ => hHc) dbCrashN_disj (by rw [hsyn]; exact hok3') hokF
         $$ [Hf Hfd Hcs] as %err2 ⟨Hf, Hfd, Hres2⟩
       · iframe; iframe #
       icases Hres2 with (⟨%Herr2, Hcs⟩ | ⟨%Herr2, Hcs⟩)
       · subst Herr2
         (try wp_auto)
-        dsimp only [csSynced]
+        rw [hsyn]
         ileft
         isplitr
-        · ipureintro; trivial
-        iexists _, _
-        ihave Hws := writerStC_mk γ γc db f fd p mp false hwm base len γm _ _ len
-            ⟨⟨h2, by simp only [OsMeta.syncedKeep, OsMeta.synced, OsMeta.grown]; omega,
-              writer_okS _ _ hblS hccS, fun _ => ⟨by rw [htkS, take8192_congr hpreG (by omega), hmp],
-                hccS, rfl, hfd, by simp only [OsMeta.syncedKeep, OsMeta.synced, OsMeta.grown]; omega,
-                by simp only [OsMeta.syncedKeep, OsMeta.synced, OsMeta.grown]; exact hsz.2.2,
-                hsz.2.2⟩⟩,
-              by simp only [OsMeta.syncedKeep, OsMeta.synced, OsMeta.grown]; exact Hmaps,
-              by simp only [OsMeta.syncedKeep, OsMeta.synced, OsMeta.grown]; omega, Hbase, Hl41⟩
+        · ipureintro; rfl
+        iexists M3, B3
+        have hA : 4096 * hwm ≤ M3.size := by rw [hs3]; exact h4len
+        have hB : 4 * 4096 ≤ M3.size := by rw [hs3]; exact h16len
+        have hC : M3.size ≤ 2 ^ 30 := by rw [hs3]; exact hl30
+        have hD : (B3.map Prod.fst).take 8192 = mp := by rw [ht3, hmp]
+        have hE : M3.maps = {[base := len]} := by rw [hm3]; exact Hmaps
+        have hF' : M3.size ≤ len := by rw [hs3]; exact Nat.le_refl _
+        have hG : M3.ok = true := by rw [ho3]; exact Hok'
+        have hH' : (hwm + 2) * 4096 ≤ M3.size := by rw [hs3]; exact Hlen
+        ihave Hws := writerStC_mk γ γc db f fd p mp false hwm base len γm M3 B3 len
+            ⟨⟨h2, hA, hok3, fun _ => ⟨hD, hcc3, hs3.symm, hfd, hB, hC, hl30⟩⟩, hE, hF', Hbase, Hl41⟩
           $$ [Hcur Hmap Hout Hflds Hfsz Hdsz Hf Hfd Hcs Hcls Htok Hwc]
-        · iframe; iframe #
+        · iframe Hcur Hmap Hout Hflds Hfsz Hdsz Hf Hfd Hcs Hcls Htok Hwc; iframe #
         iframe
         ipureintro
-        exact ⟨Hok', by simp only [OsMeta.syncedKeep, OsMeta.synced, OsMeta.grown]; omega⟩
+        exact ⟨hG, hH'⟩
       · cases err2 with
         | nil => exact absurd rfl Herr2
         | ok ie =>
@@ -951,10 +1024,9 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
         iframe
         isplitr
         · ipureintro; exact ⟨rfl, Herr2⟩
-        ihave Hcs := (csOwn_split3 p γc { m'.grown len with ok := false } _ hwm h2).2 $$ Hcs
-        iapply commitErrC_mk γ γc db f fd p mp hwm base len γm { m'.grown len with ok := false } _
-          m'.size _ hwm ⟨by simp only [OsMeta.grown]; exact Hmaps, by simp only [OsMeta.grown]; omega,
-            Hbase, Hl41, h2, by simp only [OsMeta.grown]; omega, writer_okS _ _ hblG hccF⟩
+        iapply commitErrC_mk γ γc db f fd p mp hwm base len γm { m'.grown len with ok := false }
+          (H ++ (F ++ T)) m'.size _ hwm ⟨by rw [← Hmaps]; rfl, Nat.le_refl len,
+            Hbase, Hl41, h2, h4len, hokF'⟩
         iframe; iframe #
     · cases err with
       | nil => exact absurd rfl Herr
@@ -971,9 +1043,9 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
       iframe
       isplitr
       · ipureintro; exact ⟨rfl, Herr⟩
-      iapply commitErrC_mk γ γc db f fd p mp hwm base len γm (m'.grown len) _
-        m'.size _ hwm ⟨by simp only [OsMeta.grown]; exact Hmaps, by simp only [OsMeta.grown]; omega,
-          Hbase, Hl41, h2, by simp only [OsMeta.grown]; omega, writer_okS _ _ hblG hccG⟩
+      iapply commitErrC_mk γ γc db f fd p mp hwm base len γm (m'.grown len)
+        (bs ++ List.replicate (len - m'.size) ((0 : w8), false)) m'.size _ hwm
+        ⟨by rw [hgm]; exact Hmaps, Nat.le_refl len, Hbase, Hl41, h2, h4len, hokG⟩
       iframe; iframe #
     · cases err with
       | nil => exact absurd rfl Herr
@@ -988,10 +1060,8 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
       iframe
       isplitr
       · ipureintro; exact ⟨rfl, Herr⟩
-      have hccT := (treach_commitClean (sz := len) hcc hbl hsz.2.2 Hsz
-        (by rw [hpgb, hbl]; exact h4) .ft).1
       iapply commitErrC_mk γ γc db f fd p mp hwm base len γm (ftMeta m' len) bs
-        m'.size _ hwm ⟨Hmaps, Hsz, Hbase, Hl41, h2, h4, writer_okS _ _ hbl hccT⟩
+        m'.size _ hwm ⟨Hmaps, Hsz, Hbase, Hl41, h2, h4, hokT⟩
       iframe; iframe #
   · -- no growth
     ileft
