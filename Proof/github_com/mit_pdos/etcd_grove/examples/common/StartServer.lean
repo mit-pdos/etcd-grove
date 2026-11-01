@@ -67,8 +67,9 @@ theorem StartServer.wp_proof
   · iapply (BigSepM.bigSepM_insert (GMap.lookup_empty _)).2
     isplitr; · iexact Hq
     iapply BigSepM.bigSepM_empty.2; itrivial
-  -- `newServer(name, peer, clientAddr, {name: peer}, name, lg)`
-  wp_apply (wp_newServer N name peerAddr client name (W64 0) (slice.mk peer (W64 1) (W64 1)) pm lg
+  -- `newServer(name, peer, clientAddr, {name: peer}, name, 0, NoSnapCount, NoSnapCatchUp, lg)`
+  wp_apply (wp_newServer N name peerAddr client name (W64 0) (W64 10000) (W64 281474976710656)
+      (slice.mk peer (W64 1) (W64 1)) pm lg
       (GMap.insert name (slice.mk peer (W64 1) (W64 1)) ∅) (fun _ => [httpURL peerAddr])
       (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN
       hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩ Hlg (by decide) Hck Haf Hbuq

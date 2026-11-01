@@ -68,6 +68,12 @@ attribute [irreducible] Writes.ty
 @[reducible] noncomputable def KeepAliveTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 6000000000)
 
+@[reducible] noncomputable def NoSnapCount [GooseExts] [GoGlobalContext] : val :=
+  #(W64 10000)
+
+@[reducible] noncomputable def NoSnapCatchUp [GooseExts] [GoGlobalContext] : val :=
+  #(W64 281474976710656)
+
 noncomputable def newServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.newServer"
 
@@ -115,9 +121,12 @@ noncomputable def Check [GooseExts] [GoGlobalContext] : GoString :=
 
 /-- newServer builds member name of a new cluster whose initial members' peer URLs are cluster and
     whose token is token: the member's peer URLs are peer, its one client URL http://client; the
-    auto-compactor in revision mode keeping retention revisions, or off if retention is zero.
+    auto-compactor in revision mode keeping retention revisions, or off if retention is zero; a disk
+    snapshot every snapCount applied entries, the log compacted to catchUp entries below a
+    snapshot's index (etcd's --snapshot-count and --experimental-snapshot-catchup-entries; etcd also
+    takes an in-memory snapshot, and compacts, every 100 applied entries).
 
-    go: common.go:47:6 -/
+    go: common.go:59:6 -/
 noncomputable def newServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -125,11 +134,15 @@ noncomputable def newServer.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "cluster"
   (Lam "token"
   (Lam "retention"
+  (Lam "snapCount"
+  (Lam "catchUp"
   (Lam "lg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "catchUp" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "catchUp"))
+  (Let "snapCount" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "snapCount"))
   (Let "retention" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "retention"))
   (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (Var "token"))
   (Let "cluster" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
@@ -147,8 +160,8 @@ noncomputable def newServer.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$v6" (Val #true)
   (Let "$v7" (Val #(W64 100))
   (Let "$v8" (Val #(W64 10))
-  (Let "$v9" (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.DefaultSnapshotCount))
-  (Let "$v10" (Val #(W64 281474976710656))
+  (Let "$v9" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapCount"))
+  (Let "$v10" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "catchUp"))
   (Let "$v11" (Val #(W64 128))
   (Let "$v12" (Val #(W64 1572864))
   (Let "$v13" (Val #(go!"revision"))
@@ -175,14 +188,14 @@ noncomputable def newServer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Pair (Var "cfg") (Var "$r0")))))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Pair (Var "cfg") (Var "$r0")))))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))))))))
 
 /-- StartServer starts the one member of a new cluster: member name, whose cluster token is its
     name, with the one peer URL http://peerAddr (not served: the cluster has no other member) and
     the one client URL http://clientAddr.
 
-    go: common.go:85:6 -/
+    go: common.go:94:6 -/
 noncomputable def StartServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peerAddr"
@@ -208,8 +221,10 @@ noncomputable def StartServer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v1")))]))))
   (Let "$a4" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (Let "$a5" (Val #(W64 0))
-  (Let "$a6" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve newServer []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")))))))))
+  (Let "$a6" (Val NoSnapCount)
+  (Let "$a7" (Val NoSnapCatchUp)
+  (Let "$a8" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve newServer []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")) (Var "$a7")) (Var "$a8")))))))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -256,7 +271,7 @@ noncomputable def StartServer.impl [GooseExts] [GoGlobalContext] : val :=
 /-- StartCompactingServer is StartServer with the auto-compactor on, in revision mode, keeping
     retention revisions (retention positive).
 
-    go: common.go:98:6 -/
+    go: common.go:108:6 -/
 noncomputable def StartCompactingServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peerAddr"
@@ -284,8 +299,10 @@ noncomputable def StartCompactingServer.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v1")))]))))
   (Let "$a4" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (Let "$a5" (App (Val (GoInstruction (GoLoad go.int64))) (Var "retention"))
-  (Let "$a6" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve newServer []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")))))))))
+  (Let "$a6" (Val NoSnapCount)
+  (Let "$a7" (Val NoSnapCatchUp)
+  (Let "$a8" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve newServer []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")) (Var "$a7")) (Var "$a8")))))))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -331,9 +348,10 @@ noncomputable def StartCompactingServer.impl [GooseExts] [GoGlobalContext] : val
 
 /-- NewMember builds member name of a new cluster whose initial members' peer URLs are cluster and
     whose token is token, its peer URLs peer (the one URL http://peerAddr) and its one client URL
-    http://client, and serves its raft handler on a listener at peerAddr; it does not start it.
+    http://client, with the snapshot settings snapCount and catchUp (newServer), and serves its raft
+    handler on a listener at peerAddr; it does not start it.
 
-    go: common.go:112:6 -/
+    go: common.go:124:6 -/
 noncomputable def NewMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -341,11 +359,15 @@ noncomputable def NewMember.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "client"
   (Lam "cluster"
   (Lam "token"
+  (Lam "snapCount"
+  (Lam "catchUp"
   (Lam "lg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "catchUp" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "catchUp"))
+  (Let "snapCount" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "snapCount"))
   (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (Var "token"))
   (Let "cluster" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
   (Let "client" (App (Val (GoInstruction (GoAlloc go.string))) (Var "client"))
@@ -358,8 +380,10 @@ noncomputable def NewMember.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
   (Let "$a4" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
   (Let "$a5" (Val #(W64 0))
-  (Let "$a6" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve newServer []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")))))))))
+  (Let "$a6" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapCount"))
+  (Let "$a7" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "catchUp"))
+  (Let "$a8" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve newServer []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")) (Var "$a7")) (Var "$a8")))))))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -430,12 +454,12 @@ noncomputable def NewMember.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "s") (Var "$r0"))))))))))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "s") (Var "$r0"))))))))))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))))))))
 
 /-- StartMember starts member name of a new cluster: NewMember, then the server started.
 
-    go: common.go:128:6 -/
+    go: common.go:141:6 -/
 noncomputable def StartMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -460,8 +484,10 @@ noncomputable def StartMember.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (Var "client"))
   (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
   (Let "$a5" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
-  (Let "$a6" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve NewMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")))))))))
+  (Let "$a6" (Val NoSnapCount)
+  (Let "$a7" (Val NoSnapCatchUp)
+  (Let "$a8" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve NewMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")) (Var "$a7")) (Var "$a8")))))))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -509,7 +535,7 @@ noncomputable def StartMember.impl [GooseExts] [GoGlobalContext] : val :=
     refuses a ping more often than every 5 minutes, which would close a keepalive client's
     connection).
 
-    go: common.go:143:6 -/
+    go: common.go:156:6 -/
 noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "addr"
@@ -571,7 +597,7 @@ noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
 /-- NewClient connects a client to the one endpoint addr (a plain host:port, clientv3.New's premise
     plainEndpoint): NewClients of it.
 
-    go: common.go:157:6 -/
+    go: common.go:170:6 -/
 noncomputable def NewClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "lg"
@@ -604,7 +630,7 @@ noncomputable def NewClient.impl [GooseExts] [GoGlobalContext] : val :=
     next endpoint; a write is retried only after a refusal (a learner's, an authentication error),
     which the examples' members never send, so it is sent at most once (notes/read-retry-plan.md).
 
-    go: common.go:166:6 -/
+    go: common.go:179:6 -/
 noncomputable def NewClients.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "eps"
   (Lam "lg"
