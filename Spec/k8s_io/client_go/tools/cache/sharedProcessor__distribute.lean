@@ -7,6 +7,7 @@ listeners).
 module
 
 public import Proof.k8s_io.client_go.tools.cache.ProcDefs
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -30,8 +31,7 @@ with a reader slot of the listeners' lock and the event's persistent contract `Q
 every listener has the event's notification sent (`addCh` is unbuffered: each `add` returns once
 the listener's `pop` received it). In an execution of fewer than `2^63` Go steps (`add`'s). -/
 abbrev sharedProcessor.distribute.spec : Prop :=
-  ∀ (p : Loc) (γp : ProcNames) (QP : Nat → Ev → IProp GF) (E : List Ev) (e : Ev) (sync : Bool),
-  receiptBound GF ≤ 2 ^ 63 →
+  ∀ [ReceiptBoundLe GF (2 ^ 63)] (p : Loc) (γp : ProcNames) (QP : Nat → Ev → IProp GF) (E : List Ev) (e : Ev) (sync : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isProc p ∗
       procReader p γp ∗ procSend γp QP E ∗ □ QP E.length e }}
     (App (App (Val (p @!! go.GoType.PointerType sharedProcessor.ty @!! go!"distribute"))

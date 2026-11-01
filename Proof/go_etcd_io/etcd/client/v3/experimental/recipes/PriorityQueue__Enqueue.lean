@@ -58,7 +58,7 @@ theorem PriorityQueue.Enqueue.wp_proof (hNSK : newSequentialKV.spec (GF := GF) (
     unfold _root_.Perennial.fmt.decimal
     rw [if_neg (by omega)]
     generalize _root_.Perennial.fmt.decimalNat (uint.Z pr).natAbs = D at this ⊢
-    simp [_root_.Perennial.fmt.length_padZeros]; omega
+    simp [_root_.Perennial.fmt.length_padZeros]; word
   icases Hres with (⟨%Heq, %k, %g, %r, -, #Hr, #Hc, %Hrr⟩ | %Hne)
   · subst Heq
     (try wp_auto)

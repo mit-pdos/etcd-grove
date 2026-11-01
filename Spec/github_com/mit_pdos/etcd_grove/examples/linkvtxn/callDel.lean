@@ -45,7 +45,7 @@ abbrev callDel.spec : Prop :=
   {{ (y : Output), RET #y; ⌜y = errOut⌝ ∨
       ∃ σ : KVState, Q σ ∗
         ⌜y = delOut (W64 ((kvOpStep (.deleteRange (linkv.delOp key)) σ).rev : Int))
-            (W64 ((rangeIn σ.kvs (linkv.delOp key)).length : Int)) ∧ σ.rev + 4 < 2 ^ 63⌝ }}
+            (W64 ((rangeIn σ.kvs (linkv.delOp key)).length : Int)) ∧ kvRevFits (σ.rev + 1)⌝ }}
 
 end spec
 

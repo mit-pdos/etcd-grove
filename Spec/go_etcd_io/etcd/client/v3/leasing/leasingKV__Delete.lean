@@ -35,7 +35,7 @@ abbrev leasingKV.Delete.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ threadTok ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
       optsAt sl gs ∗ etcdReached lo ∗
       ⌜¬ opDeletePanics key gs ∧ (opDeleteModel key gs).t = W64 3 ∧
-        OpShape (2 ^ 27) (2 ^ 27) (2 ^ 28) (opDeleteModel key gs)⌝ }}
+        OpShape opKeyMax opKeyMax opValMax (opDeleteModel key gs)⌝ }}
     (App (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"Delete")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
   {{ (dr : Loc) (err : GoInterface), RET (PairV #dr #err); threadTok ∗
       (⌜err ≠ GoInterface.nil ∧ dr = null⌝ ∨

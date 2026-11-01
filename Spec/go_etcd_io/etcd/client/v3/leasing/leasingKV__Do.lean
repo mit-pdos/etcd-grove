@@ -37,7 +37,7 @@ def doTxnPre (pfx : GoString) (opv : go_etcd_io.etcd.client.v3.Op) : IProp GF :=
 .Then(...).Else(...).Commit()` (`commitOutcome`); anything else, an empty `OpResponse` and `nil`.
 The thread's token is kept (a reader slot borrowed with it from the leasing KV's pool and given
 back); the context must be cancelable. A
-get, put or delete takes `OpShape (2 ^ 27) (2 ^ 27) (2 ^ 28)`, a transaction `LTxnBuild.sizeOk`
+get, put or delete takes `OpShape opKeyMax opKeyMax opValMax`, a transaction `LTxnBuild.sizeOk`
 ("Leasing's sizes"). -/
 abbrev leasingKV.Do.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
@@ -45,7 +45,7 @@ abbrev leasingKV.Do.spec : Prop :=
     (lo : w64) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
       opFullAt opv o ∗ etcdReached lo ∗ leasingOpen γ q ∗ threadTok ∗
-      ⌜(o.t = W64 2 → txnOpOf o ≠ none) ∧ (o.t ≠ W64 4 → OpShape (2 ^ 27) (2 ^ 27) (2 ^ 28) o)⌝ ∗
+      ⌜(o.t = W64 2 → txnOpOf o ≠ none) ∧ (o.t ≠ W64 4 → OpShape opKeyMax opKeyMax opValMax o)⌝ ∗
       (⌜o.t = W64 4⌝ -∗ doTxnPre pfx opv) }}
     (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"Do")) (Val #(GoInterface.ok ctx))) (Val #opv))
   {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);

@@ -74,7 +74,7 @@ theorem watcher.Watch.wp_proof
   ihave #Hw' := Hw
   iunfold isClientWatcher at Hw'
   icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, %Hlgb⟩
-  obtain ⟨Hlgnn, Hb⟩ := Hlgb
+  obtain ⟨Hlgnn, -⟩ := Hlgb
   wp_auto
   wp_apply wp_OpWatch key sl gs $$ [] as %op #Hop
   · iframe #; ipureintro; exact Hnp
@@ -214,7 +214,7 @@ theorem watcher.Watch.wp_proof
       ctxKey_ptr ↦ (streamKeyOf (metadata.outgoingOf (GoInterface.ok ctx))) ∗ watcherF w go!"streams" ↦ m)
     with [wgs HM w Hctxp ctxKey Hst] as ⟨%G, %M', wgs, HM, #HMs', %HGw, #HG, w, Hctxp, ctxKey, Hst⟩
   · wp_apply wp_newStream V w ctx cs $$ [] as %wgs' ⟨%G, %callSl', %HGeq, #Hco', #HG, %HGo⟩
-    · iframe #; ipureintro; exact Hb
+    · iframe #
     icombine Hco Hco' gives %Hcs
     obtain ⟨-, rfl⟩ := Hcs
     wp_apply wp_mapInsert go.string m M (streamKeyOf (metadata.outgoingOf (GoInterface.ok ctx))) wgs' $$ [$HM] as HM

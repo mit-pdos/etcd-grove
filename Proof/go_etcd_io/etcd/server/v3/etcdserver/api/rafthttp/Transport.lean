@@ -1,13 +1,16 @@
 /-
 **The transport and its peers' shared definitions** (rafthttp stage 6; D39). Lean-first.
 * `trFixed`: the transport's fields after `Start`, read-only (its logger, id, URLs, cluster id,
-  `Raft`, `ErrorC`, round trippers, dial-retry rate, stats), the network's stream registry, the
+  `Raft`, `ErrorC`, round trippers, dial-retry rate, stats), the pool of `R`s (`raftPool`, J8a-6),
+  the network's stream registry, the
   registration of every member's hosts (`pipeReg`), `RaftStreamPrefix`'s value and (stage 6d) that
   the transport's member is one of the network's (`Rh.member`, a request's sender): what the
   peers, remotes and handlers read.
 * `peerOk` (persistent): a started peer of `pid` (`startPeer`'s): its fields, its status, picker,
   stream writers, pipeline, snapshot sender, stream readers, receive channels and lock (`paused`);
   `peerStop`, the right to stop it once.
+* `remoteOk` (persistent): a started remote (`startRemote`'s), with its lock (`paused`, J8a-7);
+  `remoteStop`, the right to stop it once.
 -/
 module
 
@@ -57,7 +60,8 @@ instance trProbers_persistent (t : Loc) : Persistent (trProbers (GF := GF) t) :=
   unfold trProbers; infer_instance
 
 /-- **The transport `t`'s fixed fields** (persistent) of the member `lid`, whose `Raft` calls
-borrow an `R`: see the file header. -/
+borrow an `R`: see the file header; (J8a-6, 2026-11-01) the pool of `R`s its peers' receiving
+goroutines borrow from (`raftPool`). -/
 def trFixed (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) : IProp GF :=
   iprop(∃ (lg ls ss : Loc) (urls : GoSlice) (uvs : List net.url.URL)
       (cid : go_etcd_io.etcd.client.pkg.v3.types.ID) (r : GoInterface) (ec : GoChan)
@@ -77,10 +81,10 @@ def trFixed (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF
     t.[rafthttp.Transport, go!"streamProber"] ↦□ sp ∗
     streamRegInv Rh ∗ (□ ∀ pid : w64, ⌜Rh.member pid ∧ pid ≠ lid⌝ -∗ pipeReg Rh pid) ∗
     globalAddr rafthttp.RaftStreamPrefix ↦□ go!"/raft/stream" ∗
-    ⌜Rh.member lid ∧ trURLsOk Rh lid uvs⌝)
+    ⌜Rh.member lid ∧ trURLsOk Rh lid uvs⌝ ∗ raftPool R)
 
-set_option synthInstance.maxHeartbeats 8000000 in
-set_option synthInstance.maxSize 65536 in
+set_option synthInstance.maxHeartbeats 16000000 in
+set_option synthInstance.maxSize 131072 in
 instance trFixed_persistent (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) :
     Persistent (trFixed Rh t lid γd R) := by
   unfold trFixed; infer_instance
@@ -134,14 +138,22 @@ def peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) : IProp GF :=
     ⌜MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
       (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid) ∧ swMsgBound ml⌝)
 
+/-- What the remote `g`'s mutex guards: `paused` (J8a-7, 2026-11-01: the fork's
+`goose-lean-remotepause`, a remote paused by a flag as a peer). -/
+def remoteLockInv (g : Loc) : IProp GF :=
+  iprop(∃ b : Bool, g.[rafthttp.remote, go!"paused"] ↦ b)
+
 /-- **A started remote `g` of `pid` at the member `lid`** (persistent; `startRemote`'s): its logger,
-ids, status and started pipeline (never restarted: a remote is never paused, `CutPeer`'s premise). -/
+ids, status, started pipeline (never restarted: `Pause` and `Resume` only set `paused`; until
+J8a-7, 2026-11-01, `Pause` stopped the pipeline and `Resume` restarted it, so a remote was never
+to be paused, `CutPeer`'s premise) and lock. -/
 def remoteOk (Rh : RaftHttp GF) (lid pid : w64) (R : IProp GF) (g : Loc) : IProp GF :=
   iprop(∃ (lg ps pl : Loc),
     g.[rafthttp.remote, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
     g.[rafthttp.remote, go!"localID"] ↦□ lid ∗ g.[rafthttp.remote, go!"id"] ↦□ pid ∗
     g.[rafthttp.remote, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗
-    g.[rafthttp.remote, go!"pipeline"] ↦□ pl ∗ pipeHandleOk Rh pl pid R)
+    g.[rafthttp.remote, go!"pipeline"] ↦□ pl ∗ pipeHandleOk Rh pl pid R ∗
+    sync.isMutex (g.[rafthttp.remote, go!"mu"]) (remoteLockInv g))
 
 set_option synthInstance.maxHeartbeats 2000000 in
 set_option synthInstance.maxSize 16384 in

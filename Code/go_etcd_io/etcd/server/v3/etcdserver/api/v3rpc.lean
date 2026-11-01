@@ -4955,16 +4955,19 @@ noncomputable def NewWatchServer.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"WatchProgressNotifyInterval"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"WatchProgressNotifyInterval"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s")))))
+  (Let "interval" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "interval")) (Val #(W64 0)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"WatchProgressNotifyInterval"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s")))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "interval"))
   (App (App (Val (GoInstruction (FuncResolve SetProgressReportInterval []))) (Val #())) (Var "$a0"))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"WatchProgressNotifyInterval"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))))) (Val minWatchProgressInterval))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "interval")) (Val minWatchProgressInterval))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val minWatchProgressInterval)
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"WatchProgressNotifyInterval"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s")))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "interval") (Var "$r0")))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"adjusting watch progress notify interval to minimum period"))
   (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"min-watch-progress-notify-interval"))
@@ -4975,7 +4978,9 @@ noncomputable def NewWatchServer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))
   (App (Val doExecute)
-  (Val #()))))))
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "interval") (Var "$r0"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watchServer.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchServer.ty)))) (Var "srv")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil)))))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
   (App (Val doExecute)
@@ -4988,7 +4993,7 @@ noncomputable def NewWatchServer.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- GetProgressReportInterval returns the current progress report interval (for testing).
 
-    go: watch.go:99:6 -/
+    go: watch.go:101:6 -/
 noncomputable def GetProgressReportInterval.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
@@ -5020,7 +5025,7 @@ noncomputable def GetProgressReportInterval.impl [GooseExts] [GoGlobalContext] :
 
 /-- SetProgressReportInterval updates the current progress report interval (for testing).
 
-    go: watch.go:113:6 -/
+    go: watch.go:115:6 -/
 noncomputable def SetProgressReportInterval.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "newTimeout"
   (Seq (App (Val exceptionDo)
@@ -5036,7 +5041,7 @@ noncomputable def SetProgressReportInterval.impl [GooseExts] [GoGlobalContext] :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (GlobalVarAddr progressReportIntervalMu))) (Val #()))) (Val #()))))))
   (Val #())))
 
-/-- go: watch.go:163:24 -/
+/-- go: watch.go:165:24 -/
 noncomputable def watchServer.Watch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ws"
   (Lam "stream"
@@ -5170,7 +5175,7 @@ noncomputable def watchServer.Watch.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore serverWatchStream.ty))) (Pair (Var "sws") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: watch.go:237:31 -/
+/-- go: watch.go:239:31 -/
 noncomputable def serverWatchStream.isWatchPermitted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "sws"
   (Lam "wcr"
@@ -5220,7 +5225,7 @@ noncomputable def serverWatchStream.isWatchPermitted.impl [GooseExts] [GoGlobalC
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)))) (Pair (Var "authInfo") (Var "$r0")))))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: watch.go:249:31 -/
+/-- go: watch.go:251:31 -/
 noncomputable def serverWatchStream.recvLoop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "sws"
   (Lam BAnon
@@ -5609,7 +5614,7 @@ noncomputable def serverWatchStream.recvLoop.impl [GooseExts] [GoGlobalContext] 
   (Val #())))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: watch.go:411:31 -/
+/-- go: watch.go:413:31 -/
 noncomputable def serverWatchStream.sendLoop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "sws"
   (Lam BAnon
@@ -6195,7 +6200,7 @@ noncomputable def serverWatchStream.sendLoop.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty (go.GoType.StructType []))))) (Pair (Var "ids") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: watch.go:605:6 -/
+/-- go: watch.go:607:6 -/
 noncomputable def IsCreateEvent.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -6209,7 +6214,7 @@ noncomputable def IsCreateEvent.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: watch.go:609:6 -/
+/-- go: watch.go:611:6 -/
 noncomputable def sendFragments.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wr"
   (Lam "maxRequestBytes"
@@ -6322,7 +6327,7 @@ noncomputable def sendFragments.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: watch.go:665:31 -/
+/-- go: watch.go:667:31 -/
 noncomputable def serverWatchStream.close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "sws"
   (Lam BAnon
@@ -6339,7 +6344,7 @@ noncomputable def serverWatchStream.close.impl [GooseExts] [GoGlobalContext] : v
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchStream.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchStream.ty))) (App (Val (GoInstruction (StructFieldRef serverWatchStream.ty go!"watchStream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serverWatchStream.ty)))) (Var "sws"))))) (Val #()))))))
   (Val #()))))
 
-/-- go: watch.go:671:31 -/
+/-- go: watch.go:673:31 -/
 noncomputable def serverWatchStream.newResponseHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "sws"
   (Lam "rev"
@@ -6360,7 +6365,7 @@ noncomputable def serverWatchStream.newResponseHeader.impl [GooseExts] [GoGlobal
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Var "$res0"))))))
 
-/-- go: watch.go:681:6 -/
+/-- go: watch.go:683:6 -/
 noncomputable def filterNoDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -6374,7 +6379,7 @@ noncomputable def filterNoDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: watch.go:685:6 -/
+/-- go: watch.go:687:6 -/
 noncomputable def filterNoPut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -6390,7 +6395,7 @@ noncomputable def filterNoPut.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- FiltersFromRequest returns "mvcc.FilterFunc" from a given watch create request.
 
-    go: watch.go:690:6 -/
+    go: watch.go:692:6 -/
 noncomputable def FiltersFromRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "creq"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.FilterFunc.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.FilterFunc.ty)))) (Val #())))

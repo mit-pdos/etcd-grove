@@ -144,7 +144,7 @@ theorem srvRunTxn_km (σ : KVState) (t : TxnModel) (hp : TxnModel.plain t) (hok 
 theorem km_result_nowrite (γ : KMNames) [KMWritable γ] (lo : w64) (pfx : GoString) (t : TxnModel) (resp : Loc)
     (m : TxnRespM) (σ : KVState) (hp : TxnModel.plain t) (hu : t.Under pfx)
     (hg : ∀ o : OpFull, TxnOp.get o ∈ t.thenOps ++ t.elseOps → o.getExact)
-    (hok : kvLogOk σ) (h1 : 1 ≤ σ.rev) (h63 : σ.rev + 3 < 2 ^ 63)
+    (hok : kvLogOk σ) (h1 : 1 ≤ σ.rev) (h63 : kvRevFits σ.rev)
     (hlin : t.linearizable = true → sint.Z lo ≤ (σ.rev : Int))
     (hcs : (txn.srvRunTxn (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log) t).2.1 = [])
     (hsucc : m.succeeded = (txn.srvRunTxn (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log) t).1)
@@ -153,6 +153,7 @@ theorem km_result_nowrite (γ : KMNames) [KMWritable γ] (lo : w64) (pfx : GoStr
     (hrev : m.hdr.revision = W64 (σ.rev : Int)) :
     txnRespMsg (GF := GF) resp m ∗ monoListLbOwn γ.ch σ.changes ⊢
       txnCommitResultTok (EM := etcdModelOfKV γ) pfx lo t resp GoInterface.nil := by
+  replace h63 := h63.lt
   iintro ⟨#Hm, #Hlb⟩
   have hlen := (kvLogOk_log hok).2.2.2
   have hrc := kvLogOk_rev σ hok
@@ -210,7 +211,7 @@ revision, and the revision's token. -/
 theorem km_result_wrote (γ : KMNames) [KMWritable γ] (lo : w64) (pfx : GoString) (t : TxnModel) (resp : Loc)
     (m : TxnRespM) (σ σ' : KVState) (hp : TxnModel.plain t) (hu : t.Under pfx)
     (hng : ∀ o : OpFull, TxnOp.get o ∉ t.thenOps ++ t.elseOps)
-    (hok : kvLogOk σ) (h63 : σ.rev + 3 < 2 ^ 63) (hlo : sint.Z lo ≤ (σ.rev : Int))
+    (hok : kvLogOk σ) (h63 : kvRevFits σ.rev) (hlo : sint.Z lo ≤ (σ.rev : Int))
     (hcs : (txn.srvRunTxn (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log) t).2.1 ≠ [])
     (heq : σ' = σ.commit (txn.srvRunTxn (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log) t).2.1)
     (hok2 : kvLogOk σ')
@@ -223,6 +224,7 @@ theorem km_result_wrote (γ : KMNames) [KMWritable γ] (lo : w64) (pfx : GoStrin
           ghostMapElem (K := Nat) (V := Unit) γ.tok (σ.rev + 1) (DFrac.own 1) ()
          else iprop(True)) ⊢
       txnCommitResultTok (EM := etcdModelOfKV γ) pfx lo t resp GoInterface.nil := by
+  replace h63 := h63.lt
   subst heq
   have hlen := (kvLogOk_log hok).2.2.2
   have hrc := kvLogOk_rev σ hok

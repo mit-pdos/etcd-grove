@@ -47,8 +47,7 @@ abbrev EtcdServer.restoreAlarms.spec : Prop :=
           GoInterface) ∗
       ((⌜err ≠ GoInterface.nil⌝ ∗ srvAlarmStoreAddr s ↦ a0) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ a : Loc, ⌜a ≠ null⌝ ∗ srvAlarmStoreAddr s ↦ a ∗
-        isAlarmStore a ∗ alarmBeOn a d.be ∗ alarmFresh a ∗ apply.alarmGetIs a (alarmFresh a) true ∗
-        □ (alarmFresh a -∗ alarmApplyOk a))) }}
+        isAlarmStore a ∗ alarmEmpty a d.be ∗ alarmApplyOk a)) }}
 
 end spec
 

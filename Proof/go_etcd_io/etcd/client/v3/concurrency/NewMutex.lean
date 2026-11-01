@@ -39,7 +39,7 @@ theorem NewMutex.wp_proof : NewMutex.spec (GF := GF) (hG := hG) := by
   iframe
   iframe #
   ipureintro
-  simp; omega
+  simp; word
 end proof
 
 end concurrency

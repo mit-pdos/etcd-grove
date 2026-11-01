@@ -4,6 +4,7 @@
 module
 
 public import Proof.k8s_io.client_go.tools.cache.SIIDefs
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -26,8 +27,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 is the `evs.length`-th event, sent to every listener. In an execution of fewer than `2^63` Go
 steps. -/
 abbrev sharedIndexInformer.OnDelete.spec : Prop :=
-  ∀ (s p : Loc) (γp : ProcNames) (γe : GName) (evs : List Ev) (o : GoInterface),
-  receiptBound GF ≤ 2 ^ 63 →
+  ∀ [ReceiptBoundLe GF (2 ^ 63)] (s p : Loc) (γp : ProcNames) (γe : GName) (evs : List Ev) (o : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isSII s p ∗
       infH p γp γe evs }}
     (App (Val (s @!! go.GoType.PointerType sharedIndexInformer.ty @!! go!"OnDelete")) (Val #o))

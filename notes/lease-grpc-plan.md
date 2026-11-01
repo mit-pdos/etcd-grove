@@ -103,8 +103,7 @@ Nine findings; what each changes:
 2. **The not-found response carries no authentication**: `ErrLeaseNotFound` comes only from
    `leaseTimeToLive`, after `requireAuthInfo` and the key check, but the entry point's error post is
    `applyErrIs` alone. Stating it needs the error's identity through the chain (that the auth
-   errors are not `ErrLeaseNotFound`). **Open**: the margin stated in the docstrings and the auth
-   matrix's row; proposed to the user at Freeze.
+   errors are not `ErrLeaseNotFound`). Approved at Freeze (2026-11-01) as a margin, stated in the docstrings.
 3. **The bounds gate**: the handler specs inherited `threadBound`/`receiptBound` (+3). Fixed by the
    contract shape: the premises go to the discharge theorem, a Proof file.
 4. **S1's docstring**: the leader's header is `&pb.ResponseHeader{}` (revision 0, `// TODO: fill out
@@ -153,3 +152,8 @@ What the proofs needed:
 **For Freeze** (the user's): S1 (the trusted contract strengthened: the collections resting on it,
 `etc/tcb-report.py --roots`), S2 (the frozen `EtcdServer.LeaseTimeToLive.spec`'s post), the
 `leasesRespIs` split, and the not-found margin (finding 2). `applyErrIs` (exact tree) changed in meaning, not in the specs' text.
+
+**Freeze: approved by the user (2026-11-01)**, all five as proposed: S1 (the trusted
+`leaseTimeToLive` contract gives the header), S2 (`EtcdServer.LeaseTimeToLive.spec` passes it on), the
+not-found margin (no authentication on the `ErrLeaseNotFound` answer; stated in the docstrings), the
+`applyErrIs` exact tree, and the `leasesRespIs` split. Merged into `lean`.

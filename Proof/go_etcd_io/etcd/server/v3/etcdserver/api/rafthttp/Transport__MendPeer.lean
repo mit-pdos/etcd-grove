@@ -7,6 +7,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__MendPeer
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer__Resume
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote__Resume
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportSpecs
 
 @[expose] public section
@@ -28,9 +29,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
 theorem rafthttp.Transport.MendPeer.wp_proof
-    (hM : rafthttp.peer.Resume.spec (GF := GF) (hG := hG)) :
+    (hM : rafthttp.peer.Resume.spec (GF := GF) (hG := hG))
+    (hR : rafthttp.remote.Resume.spec (GF := GF) (hG := hG)) :
     rafthttp.Transport.MendPeer.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.MendPeer_ok hM
+  rafthttp.Transport.MendPeer_ok hM hR
 
 end proof
 

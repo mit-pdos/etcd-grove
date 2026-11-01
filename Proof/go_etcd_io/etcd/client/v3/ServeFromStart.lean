@@ -80,7 +80,7 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   iunfold srvWatchBuilt at Hwb
   icases Hwb with ⟨%wsl, %γ, #Hkvf, #Hws, %Hγ, #Hpool, #Htag⟩
   iunfold srvServeCfg at Hcf
-  icases Hcf with ⟨#Hlg0, #Hqb, #Hn, %Hmto, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs⟩
+  icases Hcf with ⟨#Hlg0, #Hqb, #Hn, %Hmto, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs, -⟩
   iunfold isServerReq at Hsrv
   icases Hsrv with ⟨⟨%v, #Hv⟩, -⟩
   iunfold srvReqFieldsAt at Hv
@@ -156,7 +156,7 @@ theorem grpcCfgOk_of_started_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
   iunfold srvWatchReaders at Hwb
   icases Hwb with ⟨%wsl, %γ, #Hkvf, #Hws, %Hγ, #Hpool, #Htag, Hrds⟩
   iunfold srvServeCfg at Hcf
-  icases Hcf with ⟨#Hlg0, #Hqb, #Hn, %Hmto, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs⟩
+  icases Hcf with ⟨#Hlg0, #Hqb, #Hn, %Hmto, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs, -⟩
   iunfold isServerReq at Hsrv
   icases Hsrv with ⟨⟨%v, #Hv⟩, -⟩
   iunfold srvReqFieldsAt at Hv
