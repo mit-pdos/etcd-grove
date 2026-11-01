@@ -5984,13 +5984,21 @@ noncomputable def image.append.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "last" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (Let "skip" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "entries"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.uint64))) (Var "skip"))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$s")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "entries")) (Val #(W64 0)))))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first"))))
   (Let "offset" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef image.ty go!"ents"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType image.ty)))) (Var "m"))))
-  (App (Val (GoInstruction (FullSlice (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "offset"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "offset")))))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Val UntypedNil))
+  (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef image.ty go!"ents"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType image.ty)))) (Var "m"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "offset")))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "entries"))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
@@ -6004,13 +6012,16 @@ noncomputable def image.append.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "offset") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "entries")) (Val #(W64 0)))))) (Val #())))))
-  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "entries"))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "entries")) (Val #(W64 0)))))) (Val #()))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$s")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Var "entries") (Var "$r0")))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Var "entries") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "entries")) (Val #(W64 0)))))) (Val #())))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "entries")) (Val #(W64 0)))))) (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "skip") (Var "$r0")))))
   (App (Val doExecute)
   (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "skip") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "last")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "first")))))
   (App (Val doReturn)
   (Val #()))
@@ -6034,7 +6045,7 @@ noncomputable def image.append.impl [GooseExts] [GoGlobalContext] : val :=
     configuration cs (the old snapshot's if cs is nil) and a copy of the data. It panics, as MemoryStorage
     does, if i is outside the log (below its start or past its last index).
 
-    go: storage.go:97:17 -/
+    go: storage.go:99:17 -/
 noncomputable def image.createSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "i"
@@ -6106,7 +6117,7 @@ noncomputable def image.createSnapshot.impl [GooseExts] [GoGlobalContext] : val 
     most the log's start; otherwise the log starts at i, with the entries after it. It panics, as
     MemoryStorage does, if i is past the log's last index.
 
-    go: storage.go:119:17 -/
+    go: storage.go:121:17 -/
 noncomputable def image.compact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "i"
@@ -6156,7 +6167,7 @@ noncomputable def image.compact.impl [GooseExts] [GoGlobalContext] : val :=
 /-- ApplySnapshot installs snap (not nil) in the MemoryStorage and the image; the image's answer
     (the MemoryStorage's is the same).
 
-    go: storage.go:134:19 -/
+    go: storage.go:136:19 -/
 noncomputable def Storage.ApplySnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "snap"
@@ -6179,7 +6190,7 @@ noncomputable def Storage.ApplySnapshot.impl [GooseExts] [GoGlobalContext] : val
 
 /-- SetHardState sets the hard state of the MemoryStorage and of the image.
 
-    go: storage.go:140:19 -/
+    go: storage.go:142:19 -/
 noncomputable def Storage.SetHardState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "hs"
@@ -6197,7 +6208,7 @@ noncomputable def Storage.SetHardState.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- Append appends entries to the MemoryStorage and the image.
 
-    go: storage.go:146:19 -/
+    go: storage.go:148:19 -/
 noncomputable def Storage.Append.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "entries"
@@ -6216,7 +6227,7 @@ noncomputable def Storage.Append.impl [GooseExts] [GoGlobalContext] : val :=
 /-- CreateSnapshot takes the snapshot (i, cs, data) in the MemoryStorage and the image; the image's
     answer (the MemoryStorage's is the same).
 
-    go: storage.go:153:19 -/
+    go: storage.go:155:19 -/
 noncomputable def Storage.CreateSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -6253,7 +6264,7 @@ noncomputable def Storage.CreateSnapshot.impl [GooseExts] [GoGlobalContext] : va
 /-- Compact compacts the MemoryStorage and the image up to i; the image's answer (the
     MemoryStorage's is the same).
 
-    go: storage.go:161:19 -/
+    go: storage.go:163:19 -/
 noncomputable def Storage.Compact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -6281,7 +6292,7 @@ noncomputable def Storage.Compact.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- snapIndex is the index of the storage's snapshot (0 if it has none).
 
-    go: storage.go:168:19 -/
+    go: storage.go:170:19 -/
 noncomputable def Storage.snapIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -6311,7 +6322,7 @@ noncomputable def Storage.snapIndex.impl [GooseExts] [GoGlobalContext] : val :=
 /-- InitialState is the MemoryStorage's hard state, with the snapshot's configuration, or the
     bootstrap one if the storage has no snapshot.
 
-    go: storage.go:175:19 -/
+    go: storage.go:177:19 -/
 noncomputable def Storage.InitialState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -6365,7 +6376,7 @@ noncomputable def Storage.InitialState.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- Snapshot is the MemoryStorage's, or, one time in four, ErrSnapshotTemporarilyUnavailable.
 
-    go: storage.go:184:19 -/
+    go: storage.go:186:19 -/
 noncomputable def Storage.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -6405,7 +6416,7 @@ noncomputable def Storage.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- putUint64 appends x to buf (8 bytes, little-endian).
 
-    go: storage.go:192:6 -/
+    go: storage.go:194:6 -/
 noncomputable def putUint64.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "buf"
   (Lam "x"
@@ -6434,7 +6445,7 @@ noncomputable def putUint64.impl [GooseExts] [GoGlobalContext] : val :=
 /-- getUint64 reads back what putUint64 wrote at the start of b, and the rest of b; ok is false if
     b is too short.
 
-    go: storage.go:200:6 -/
+    go: storage.go:202:6 -/
 noncomputable def getUint64.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "x" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -6484,7 +6495,7 @@ noncomputable def getUint64.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- putIDs appends ids to buf: their number, then each (putUint64).
 
-    go: storage.go:208:6 -/
+    go: storage.go:210:6 -/
 noncomputable def putIDs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "buf"
   (Lam "ids"
@@ -6526,7 +6537,7 @@ noncomputable def putIDs.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- getIDs reads back what putIDs wrote at the start of b.
 
-    go: storage.go:217:6 -/
+    go: storage.go:219:6 -/
 noncomputable def getIDs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "ids" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
@@ -6632,7 +6643,7 @@ noncomputable def getIDs.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- putEntry appends e to buf: its term, index and type (8 bytes each), then its data (putBytes).
 
-    go: storage.go:231:6 -/
+    go: storage.go:233:6 -/
 noncomputable def putEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "buf"
   (Lam "e"
@@ -6670,7 +6681,7 @@ noncomputable def putEntry.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- getEntry reads back what putEntry wrote at the start of b.
 
-    go: storage.go:239:6 -/
+    go: storage.go:241:6 -/
 noncomputable def getEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Val #())))
@@ -6821,7 +6832,7 @@ noncomputable def getEntry.impl [GooseExts] [GoGlobalContext] : val :=
     outgoing voters and next learners, each as putIDs writes them, then auto-leave, 1 byte), then
     its data (putBytes).
 
-    go: storage.go:256:6 -/
+    go: storage.go:258:6 -/
 noncomputable def putSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "buf"
   (Lam "snap"
@@ -6901,7 +6912,7 @@ noncomputable def putSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- getSnapshot reads back what putSnapshot wrote at the start of b.
 
-    go: storage.go:274:6 -/
+    go: storage.go:276:6 -/
 noncomputable def getSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "snap" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Val #())))
@@ -7133,7 +7144,7 @@ noncomputable def getSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
     that the contents are those of a moment between two groups of the replica's changes to the
     storage.
 
-    go: storage.go:301:19 -/
+    go: storage.go:303:19 -/
 noncomputable def Storage.encode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -7223,7 +7234,7 @@ noncomputable def Storage.encode.impl [GooseExts] [GoGlobalContext] : val :=
     consecutive from the log's start, a snapshot below the log's start or past its end, a commit
     index outside the log.
 
-    go: storage.go:324:6 -/
+    go: storage.go:326:6 -/
 noncomputable def openStorage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "boot"
   (Lam "b"

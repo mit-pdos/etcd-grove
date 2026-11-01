@@ -129,14 +129,16 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvdurable.Assump
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The image at `p` holds `I`** (exclusive): its fields owned; the hard state (`nil` before the
-first: the zero one), the snapshot and the entries they point to read-only. -/
+first: the zero one), the snapshot and the entries they point to read-only; the log's last index
+within a `uint64` (every change keeps it, `append` by its premise). -/
 def ownImage (p : Loc) (I : StorFile) : IProp GF :=
   iprop(∃ (hsp sp : Loc) (es : GoSlice),
     "Hhs" ∷ p.[KImage, go!"hs"] ↦ hsp ∗ "#HhsO" ∷ hsOpt hsp I.hs ∗
     "Hsnap" ∷ p.[KImage, go!"snap"] ↦ sp ∗ "#HsnapO" ∷ ownSnapM sp DFrac.discard I.snap ∗
     "Hprev" ∷ p.[KImage, go!"prev"] ↦ I.prev ∗
     "HprevTerm" ∷ p.[KImage, go!"prevTerm"] ↦ I.prevTerm ∗
-    "Hents" ∷ p.[KImage, go!"ents"] ↦ es ∗ "#HentsO" ∷ entsRO es I.ents)
+    "Hents" ∷ p.[KImage, go!"ents"] ↦ es ∗ "#HentsO" ∷ entsRO es I.ents ∗
+    "%Hwf" ∷ ⌜uint.nat I.prev + I.ents.length < 2 ^ 64⌝)
 
 end ghost
 

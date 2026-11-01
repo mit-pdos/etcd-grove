@@ -35,7 +35,7 @@ type Storage struct {
 // an empty one at index 0 before the first), the index and term of the log's start (prev and
 // prevTerm: the entry before its first index, the snapshot's or a compaction point), and the
 // entries after it, consecutive from prev+1. Nothing is written in place: a change sets new
-// snapshots and slices (append's full slice expression makes it copy).
+// snapshots and slices (append copies the entries it keeps).
 type image struct {
 	hs       *pb.HardState
 	snap     *pb.Snapshot
@@ -79,14 +79,16 @@ func (m *image) append(entries []*pb.Entry) {
 	if last < first {
 		return
 	}
+	skip := uint64(0)
 	if first > entries[0].GetIndex() {
-		entries = entries[first-entries[0].GetIndex():]
+		skip = first - entries[0].GetIndex()
 	}
+	entries = entries[skip:]
 	offset := entries[0].GetIndex() - first
 	if offset > uint64(len(m.ents)) {
 		panic("kvdurable: a gap in the log")
 	}
-	m.ents = append(m.ents[:offset:offset], entries...)
+	m.ents = append(append([]*pb.Entry(nil), m.ents[:offset]...), entries...)
 }
 
 // createSnapshot is MemoryStorage.CreateSnapshot of (i, cs, data) on the image:
