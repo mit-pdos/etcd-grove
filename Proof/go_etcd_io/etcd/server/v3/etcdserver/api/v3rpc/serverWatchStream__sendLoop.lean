@@ -924,7 +924,9 @@ local macro "watch_resp" : tactic => `(tactic| (
   irename «$r0» => Hwr
   ihave %Hwrn := typedPointsto_not_null _ _ _ $$ Hwr
   ipersist Hwr
-  have hCR : wv.CompactRevision' = W64 0 := HwvI.2.2
+  -- (watches across a compaction, D6) the compaction revision as mvcc's response has it, canceled
+  -- if set
+  have hCR : wv.CompactRevision' = x.compactRev := HwvI.2.2
   ihave #Hmsg : v3rpc.watchRespMsg «$r0_ptr»
       (v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩) $$ []
   · iapply (v3rpc.watchRespMsg_intro «$r0_ptr»
