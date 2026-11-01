@@ -458,7 +458,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         · unfold v3rpc.wParams mvcc.storeWatchParams
           isplitl [Htok]
           · iexact Htok
-          · iexact Hnoc
+          · iunfold mvcc.watchNoDup; ileft; iexact Hnoc
         wp_apply hWatch r.wsp (v3rpc.wsIface r.srv.wsl) (v3rpc.wParams r.srv) r.γo ctx'
           { r.cd with Values := vs } c.watchId ks' es2 fsl (if c.key = [] then [W8 0] else c.key)
           (if c.rangeEnd = [W8 0] then [] else c.rangeEnd) [] c.startRev $$ [$HR $Htok]

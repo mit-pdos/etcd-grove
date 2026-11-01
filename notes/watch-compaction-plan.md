@@ -151,3 +151,31 @@ The user approved candidate 4 (`.claude/skills/spec/examples/watch-compaction.md
 **Overlap with other work**: none of these files is on the snapshot branches (`snap-j8a-*`: the
 apply side and `NewServer`); `watchableStore.Restore` is theirs and stays as it is. The bounds track
 (`bounds-*`) works on lock and reader-slot counts: check `syncWatchers`' reader slot before W1.
+
+## Progress (2026-11-01, branch `watch-w1`, not landed)
+
+**W1 done** (every mvcc proof and mvcc's `Link.lean` build): the state model with compacted
+watchers (D5: a compacted watcher with an open channel is live, out of every group or, after
+`choose`'s copy branch, still unsynced; the unsynced `popFacts` records that a compacted one is
+behind a compaction revision, `crevLb`), `chooseAll`/`choose` sending the compaction response,
+`rangeEvents` from the compaction revision, `cancelWatcher`'s compacted branch, and `syncWatchers`
+(`SyncCompactLemmas.lean`: `choose`'s state `WsState.cmpSt`, the behind members skipped,
+`SyncLoop.skip`). `RestorePre`'s `isWatchableStore_withPhys` is no longer `rfl` (the sealed
+`noCompactor` inside `watchNoDup`): proved through `noCompactor_withPhys` (`BiEntails.to_eq` of
+its laws).
+
+**A refinement of the approved gate, to confirm with the user**: the create token carries
+`watchNoDup γ := noCompactor γ ∨ noDupKeys γ` instead of the approved `⌜cm⌝ → noDupKeys γ`. It is
+weaker for clients (a client of a store that does not compact keeps giving `noCompactor`, the
+create token's old fact), and it needs no case on the mode inside the store (a compaction-mode
+store frozen by its creator was the gate's one wrinkle).
+
+**Coupling**: W1 cannot land alone. The channel's facts now allow a compaction response
+(`respIs`'s `CompactRevision`), and `sendLoop` (W2) relied on there being none; so W1-W3 land
+together. Interim: `recvLoop` gives the create token the `noCompactor` arm (its stream's fact
+unchanged), so the server's watches are those of a store that does not compact until W2/W3 carry
+`watchNoDup` (D7, D8).
+
+**Left**: W2: `mvccResp` (D6: `canceled := compactRev ≠ 0`, `compactRev := r.compactRev`) and
+`sendLoop`'s `hCR`; then the client: `mvccOk_revLb` (an event-less response with
+`compactRev = 0`; its callers `WatchRun`), `run`'s handling of a compaction response; W4.

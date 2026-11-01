@@ -346,7 +346,7 @@ theorem v3rpc.mvccExtra_of_recv (γs : v3rpc.StreamNames) (γo : mvcc.WsStreamNa
     have hid : x.id = rr.id := by
       rcases hne with hne | hne
       · exact Hid.1 hne
-      · exact Hid.2.resolve_right hne
+      · exact Hid.2.1.resolve_right hne
     rw [h.1, hid, Hag]
     iexact Hida
   by_cases hx : x.id = W64 (-1)
