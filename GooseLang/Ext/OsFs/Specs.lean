@@ -445,6 +445,269 @@ theorem wp_Close (fd : w64) (d : OsFd) (hE : ↑osN ⊆ E) :
   iapply HΦ
   itrivial
 
+theorem readSees_exists {st : OsState} {p : GoString} {f : OsFile} (hf : st.file p = some f)
+    (off n : Nat) : ReadSees st p off n ((f.cur.drop off).take n) := by
+  refine ⟨⟨st.size p, Or.inl rfl, ?_⟩, fun i hi _ => ?_⟩
+  · rw [size_of_file hf]; simp
+  · simp only [hf, Option.map_some, Option.bind_some]
+    simp only [List.getElem_take, List.getElem_drop]
+    exact List.getElem?_eq_getElem _
+
+/-- The bytes a client holds are the file's, and under no change in flight. -/
+theorem osBytes_lookup {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (p : GoString)
+    (off : Nat) (dq : DFrac) (xs : List (w8 × Bool)) :
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb Γb -∗ tokRes (gooseOsGS (L := L)) st Γt -∗
+      osBytes (L := L) p off dq xs -∗
+      ⌜∀ k (hk : k < xs.length), ∃ f, st.file p = some f ∧ f.cur[off + k]? = some xs[k].1 ∧
+        ¬ InflightAt st p (off + k)⌝ := by
+  iintro HAb Htok Hbs
+  iapply pure_forall.2; iintro %k
+  iapply pure_forall.2; iintro %hk
+  unfold osBytes osByte
+  icases BigSepL.bigSepL_lookup (Φ := fun k (x : w8 × Bool) =>
+    gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb (p, off + k) dq x)
+    (List.getElem?_eq_getElem hk) $$ Hbs with Hb
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAb Hb with %Hx
+  icases tokRes_byte_free _ hcoh Hx $$ Htok Hb with %Hn
+  obtain ⟨f, hf, hb, -⟩ := hcoh.bytes p (off + k) _ Hx
+  ipureintro; exact ⟨f, hf, hb, Hn⟩
+
+theorem coh_meta {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {p : GoString}
+    {m : OsMeta} (h : Γm !! p = some (some m)) :
+    ∃ f, st.file p = some f ∧ MetaOk st p m f := by
+  obtain ⟨f, hf, hm⟩ := hcoh.meta_some p m h
+  exact ⟨f, file_eq_some.2 hf, hm⟩
+
+/-- `flock(fd, how)`: any errno. -/
+theorem wp_Flock (fd how : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗
+      (∀ e : w64, osFd (L := L) fd dq d -∗ Φ (#e)) -∗
+      WP (ExternalOp osFsExt.name "Flock" (Val (PairV (#fd) (#how)))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd HΦ
+  iapply wp_os_step "Flock" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h Hw
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  unfold osFd
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hfd : st.fds !! fd = some d := hcoh.fds ▸ Hfdl
+  imodintro
+  isplitr
+  · ipureintro
+    exact ⟨_, h, st, ⟨fd, how, 0, d, rfl, hfd, rfl, rfl⟩, mapsFresh_same rfl,
+      heapRendered_same hwf rfl rfl Hag⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨fd', how', e, d', hv, -, rfl, rfl⟩ := Hst
+  imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+  · iframe
+  imodintro
+  iexists Γb, Γm, Γf, Γt
+  iframe
+  isplitr
+  · ipureintro; exact ⟨hwf, hcoh⟩
+  iapply wp_value'
+  iapply HΦ $$ Hfd
+
+/-- `fstat(fd)`'s size, with a fraction of the file's `OsMeta`: its size, or an errno. -/
+theorem wp_Fstat (fd : w64) (dq dqm : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.path dqm (some m) -∗
+      (∀ sz : w64, ∀ e : w64, ⌜e = 0 ∧ sz = (W64 m.size) ∨ e ≠ 0 ∧ sz = 0⌝ -∗
+        osFd (L := L) fd dq d -∗ osMeta (L := L) d.path dqm (some m) -∗ Φ (PairV (#sz) (#e))) -∗
+      WP (ExternalOp osFsExt.name "Fstat" (Val (#fd))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd Hm HΦ
+  iapply wp_os_step "Fstat" _ Φ (by simp) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h Hw
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  unfold osFd osMeta
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
+  icases tokRes_meta_frac _ $$ Htok Hm with %Hq
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hfd : st.fds !! fd = some d := hcoh.fds ▸ Hfdl
+  obtain ⟨f, hf, hmo⟩ := coh_meta hcoh Hml
+  have hnr := noReach_of_frac hcoh Hq
+  imodintro
+  isplitr
+  · ipureintro
+    exact ⟨_, h, st, ⟨fd, d, st.size d.path, rfl, hfd, Or.inl rfl, rfl, Or.inl rfl⟩,
+      mapsFresh_same rfl, heapRendered_same hwf rfl rfl Hag⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨fd', d', sz, hv, hfd', hss, rfl, hres⟩ := Hst
+  cases go.intoVal_inj hv
+  simp only [FdOpen, hfd, Option.some.injEq] at hfd'; subst hfd'
+  have hsz := statSees_eq hnr hss
+  rw [size_of_file hf, ← hmo.size] at hsz
+  subst hsz
+  imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+  · iframe
+  imodintro
+  iexists Γb, Γm, Γf, Γt
+  iframe
+  isplitr
+  · ipureintro; exact ⟨hwf, hcoh⟩
+  rcases hres with rfl | ⟨e, he, rfl⟩
+  · iapply wp_value'
+    iapply HΦ $$ %_ %_ %(Or.inl ⟨rfl, rfl⟩) Hfd Hm
+  · iapply wp_value'
+    iapply HΦ $$ %_ %_ %(Or.inr ⟨he, rfl⟩) Hfd Hm
+
+/-- `pread(fd, n, off)` of bytes the client holds (any fractions), with a fraction of the file's
+`OsMeta`, so that the size is known: exactly the bytes from `off` up to `n` or the end of the
+file; on failure, a prefix of them. -/
+theorem wp_PRead (fd off n : w64) (dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta)
+    (xs : List (w8 × Bool)) (hE : ↑osN ⊆ E) (hrd : d.readable = true) (hoff : 0 ≤ off.toInt)
+    (hlen : xs.length = min n.toNat (m.size - off.toNat)) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.path dqm (some m) -∗
+      osBytes (L := L) d.path off.toNat dqb xs -∗
+      (∀ r : List w8, ∀ e : w64,
+        ⌜e = 0 ∧ r = xs.map Prod.fst ∨ e ≠ 0 ∧ ∃ k ≤ xs.length, r = (xs.map Prod.fst).take k⌝ -∗
+        osFd (L := L) fd dq d -∗ osMeta (L := L) d.path dqm (some m) -∗
+        osBytes (L := L) d.path off.toNat dqb xs -∗ Φ (PairV (#r) (#e))) -∗
+      WP (ExternalOp osFsExt.name "PRead" (Val (PairV (#fd) (PairV (#off) (#n))))) @ s; E
+        {{ Φ }} := by
+  iintro #Hinv Hfd Hm Hbs HΦ
+  iapply wp_os_step "PRead" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h Hw
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  icases osBytes_lookup hcoh d.path off.toNat dqb xs $$ HAb Htok Hbs with %Hbl
+  unfold osFd osMeta
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
+  icases tokRes_meta_frac _ $$ Htok Hm with %Hq
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hfd : st.fds !! fd = some d := hcoh.fds ▸ Hfdl
+  obtain ⟨f, hf, hmo⟩ := coh_meta hcoh Hml
+  have hnr := noReach_of_frac hcoh Hq
+  imodintro
+  isplitr
+  · ipureintro
+    exact ⟨_, h, st, ⟨fd, off, n, d, _, rfl, hfd, hrd, hoff, readSees_exists hf _ _, rfl,
+      Or.inl rfl⟩, mapsFresh_same rfl, heapRendered_same hwf rfl rfl Hag⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨fd', off', n', d', r, hv, hfd', -, -, hrs, rfl, hres⟩ := Hst
+  injection hv with h1 h2
+  injection h2 with h3 h4
+  cases go.intoVal_inj h1; cases go.intoVal_inj h3; cases go.intoVal_inj h4
+  simp only [FdOpen, hfd, Option.some.injEq] at hfd'; subst hfd'
+  -- the bytes read are the client's
+  have hr : r = xs.map Prod.fst := by
+    obtain ⟨⟨sz, hss, hrl⟩, hrb⟩ := hrs
+    have hsz := statSees_eq hnr hss
+    rw [size_of_file hf, ← hmo.size] at hsz
+    subst hsz
+    apply List.ext_getElem
+    · rw [hrl, List.length_map, hlen]
+    · intro i h1 h2
+      have hi : i < xs.length := by simpa using h2
+      obtain ⟨f', hf', hb, hn⟩ := Hbl i hi
+      rw [hf] at hf'; cases hf'
+      have := hrb i h1 hn
+      simp only [hf, Option.map_some, Option.bind_some] at this
+      rw [hb] at this
+      simp only [List.getElem_map]
+      exact (Option.some.inj this).symm
+  subst hr
+  imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+  · iframe
+  imodintro
+  iexists Γb, Γm, Γf, Γt
+  iframe
+  isplitr
+  · ipureintro; exact ⟨hwf, hcoh⟩
+  rcases hres with rfl | ⟨k, e, hk, he, rfl⟩
+  · iapply wp_value'
+    iapply HΦ $$ %_ %_ %(Or.inl ⟨rfl, rfl⟩) Hfd Hm Hbs
+  · iapply wp_value'
+    iapply HΦ $$ %_ %_ %(Or.inr ⟨he, k, by simpa using hk, rfl⟩) Hfd Hm Hbs
+
+/-- A racing `pread(fd, n, off)` (no `OsMeta`, as minibolt's `Snapshot`): where it reaches a
+byte the client holds (any fraction), it reads it; on success it reaches every such byte below
+`off + n`. Elsewhere the bytes, and how far past them it reads, are arbitrary. -/
+theorem wp_PRead_racy (fd off n : w64) (dq dqb : DFrac) (d : OsFd) (lo : Nat)
+    (xs : List (w8 × Bool)) (hE : ↑osN ⊆ E) (hrd : d.readable = true) (hoff : 0 ≤ off.toInt)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osBytes (L := L) d.path lo dqb xs -∗
+      (∀ r : List w8, ∀ e : w64,
+        ⌜∀ k (hk : k < xs.length), off.toNat ≤ lo + k → lo + k < off.toNat + n.toNat →
+          (e = 0 → lo + k - off.toNat < r.length) ∧
+          ∀ (h : lo + k - off.toNat < r.length), r[lo + k - off.toNat] = xs[k].1⌝ -∗
+        osFd (L := L) fd dq d -∗ osBytes (L := L) d.path lo dqb xs -∗ Φ (PairV (#r) (#e))) -∗
+      WP (ExternalOp osFsExt.name "PRead" (Val (PairV (#fd) (PairV (#off) (#n))))) @ s; E
+        {{ Φ }} := by
+  iintro #Hinv Hfd Hbs HΦ
+  iapply wp_os_step "PRead" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h Hw
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  icases osBytes_lookup hcoh d.path lo dqb xs $$ HAb Htok Hbs with %Hbl
+  unfold osFd
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hfd : st.fds !! fd = some d := hcoh.fds ▸ Hfdl
+  obtain ⟨f, hf⟩ := hwf.fds fd d hfd
+  imodintro
+  isplitr
+  · ipureintro
+    exact ⟨_, h, st, ⟨fd, off, n, d, _, rfl, hfd, hrd, hoff, readSees_exists hf _ _, rfl,
+      Or.inl rfl⟩, mapsFresh_same rfl, heapRendered_same hwf rfl rfl Hag⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨fd', off', n', d', r, hv, hfd', -, -, hrs, rfl, hres⟩ := Hst
+  injection hv with h1 h2
+  injection h2 with h3 h4
+  cases go.intoVal_inj h1; cases go.intoVal_inj h3; cases go.intoVal_inj h4
+  simp only [FdOpen, hfd, Option.some.injEq] at hfd'; subst hfd'
+  obtain ⟨⟨sz, hss, hrl⟩, hrb⟩ := hrs
+  have key : ∀ k (hk : k < xs.length), off.toNat ≤ lo + k → lo + k < off.toNat + n.toNat →
+      lo + k - off.toNat < r.length ∧
+      ∀ (h : lo + k - off.toNat < r.length), r[lo + k - off.toNat] = xs[k].1 := by
+    intro k hk h1 h2
+    obtain ⟨f', hf', hb, hn⟩ := Hbl k hk
+    rw [hf] at hf'; cases hf'
+    have hlt : lo + k < f.cur.length := (List.getElem?_eq_some_iff.1 hb).1
+    have hgt := statSees_gt hf hlt hn hss
+    refine ⟨by rw [hrl]; omega, fun hlt' => ?_⟩
+    have hn' : ¬ InflightAt st' d.path (off.toNat + (lo + k - off.toNat)) := by
+      rw [show off.toNat + (lo + k - off.toNat) = lo + k by omega]; exact hn
+    have := hrb _ hlt' hn'
+    simp only [hf, Option.map_some, Option.bind_some] at this
+    rw [show off.toNat + (lo + k - off.toNat) = lo + k by omega, hb] at this
+    exact (Option.some.inj this).symm
+  imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+  · iframe
+  imodintro
+  iexists Γb, Γm, Γf, Γt
+  iframe
+  isplitr
+  · ipureintro; exact ⟨hwf, hcoh⟩
+  rcases hres with rfl | ⟨k', e, hk', he, rfl⟩
+  · iapply wp_value'
+    iapply HΦ $$ %_ %_ %(fun k hk h1 h2 => ⟨fun _ => (key k hk h1 h2).1, (key k hk h1 h2).2⟩)
+      Hfd Hbs
+  · iapply wp_value'
+    iapply HΦ $$ %_ %_ %(fun k hk h1 h2 => ⟨fun h => absurd h he, fun hlt => by
+      have h' : lo + k - off.toNat < r.length := by simp at hlt; omega
+      simp only [List.getElem_take]; exact (key k hk h1 h2).2 h'⟩) Hfd Hbs
+
 end specs
 
 end Perennial
