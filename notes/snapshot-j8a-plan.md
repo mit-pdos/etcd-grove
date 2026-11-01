@@ -156,7 +156,8 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
       - `srvApRes`'s `ccMembRes` (`trLive`);
       - `E.cmp = false` and `authOn = false` (the run's mode off);
       - the payload (`isNotify2`, `ownSnapM`, `nodeSnapLocal` → `snapSaved`);
-      - open (J8a-4/J8a-6): `isMetaBackend`, `trPeersNoRem`, the `8·|ps|` `c.R`, `hdir`/`hdok`.
+      - open (J8a-4/J8a-6): `isMetaBackend`, `hdir`/`hdok` (`trPeersNoRem` gone in J8a-7, the
+        `8·|ps|` `c.R` in J8a-6).
     - **`applyEntries`**: `specNil`.
     - **`VerifyBackendConsistency`, the gauge**: as `wp_proof`, at `E'`.
     - **`applyWait.Trigger(i)`**: `applied_jump`. `kvLogAt γr i (kvModel A')` comes from
@@ -182,6 +183,10 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
     call `setAppliedIndex`, J5), `wp_notify2_receive2`, `specNoop`, the merge branch at `i`. Its
     premises that stay open: `srvCfgAddr s ↦□ cfg` (J8a-3; since done, from `srvSnapRO`'s rebuild
     applied to `isServerRun`'s `"#Hsncfg"`), the `isMetaBackend` family (J8a-4), the
-    transport's `trPeersNoRem` and `hdir`/`hdok` (the `8·|ps|` copies of `c.R` gone in J8a-6).
+    `hdir`/`hdok` (the `8·|ps|` copies of `c.R` gone in J8a-6, `trPeersNoRem` in J8a-7).
 - **J8a-6**: the `lgMu` pool in `rafthttp` (item 6). Done 2026-11-01 (branch `snap-j8a-6`) but
   for `trPeersNoRem` and `hdir`/`hdok` (design questions, item 6).
+- **J8a-7** (fork fix, the user's choice): `trPeersNoRem` gone. The fork's remote pauses by a flag
+  (`goose-lean-remotepause`, `ab3c28d9a`), so `CutPeer`/`MendPeer` need no no-remote token and every
+  token is gone (decisions, "A remote pauses by a flag"). Done 2026-11-01 (branch `snap-j8a-7`).
+  `hdir`/`hdok` next (into `ccMembRes`).

@@ -9,6 +9,8 @@
 * `peerOk` (persistent): a started peer of `pid` (`startPeer`'s): its fields, its status, picker,
   stream writers, pipeline, snapshot sender, stream readers, receive channels and lock (`paused`);
   `peerStop`, the right to stop it once.
+* `remoteOk` (persistent): a started remote (`startRemote`'s), with its lock (`paused`, J8a-7);
+  `remoteStop`, the right to stop it once.
 -/
 module
 
@@ -136,14 +138,22 @@ def peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) : IProp GF :=
     ⌜MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
       (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid) ∧ swMsgBound ml⌝)
 
+/-- What the remote `g`'s mutex guards: `paused` (J8a-7, 2026-11-01: the fork's
+`goose-lean-remotepause`, a remote paused by a flag as a peer). -/
+def remoteLockInv (g : Loc) : IProp GF :=
+  iprop(∃ b : Bool, g.[rafthttp.remote, go!"paused"] ↦ b)
+
 /-- **A started remote `g` of `pid` at the member `lid`** (persistent; `startRemote`'s): its logger,
-ids, status and started pipeline (never restarted: a remote is never paused, `CutPeer`'s premise). -/
+ids, status, started pipeline (never restarted: `Pause` and `Resume` only set `paused`; until
+J8a-7, 2026-11-01, `Pause` stopped the pipeline and `Resume` restarted it, so a remote was never
+to be paused, `CutPeer`'s premise) and lock. -/
 def remoteOk (Rh : RaftHttp GF) (lid pid : w64) (R : IProp GF) (g : Loc) : IProp GF :=
   iprop(∃ (lg ps pl : Loc),
     g.[rafthttp.remote, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
     g.[rafthttp.remote, go!"localID"] ↦□ lid ∗ g.[rafthttp.remote, go!"id"] ↦□ pid ∗
     g.[rafthttp.remote, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗
-    g.[rafthttp.remote, go!"pipeline"] ↦□ pl ∗ pipeHandleOk Rh pl pid R)
+    g.[rafthttp.remote, go!"pipeline"] ↦□ pl ∗ pipeHandleOk Rh pl pid R ∗
+    sync.isMutex (g.[rafthttp.remote, go!"mu"]) (remoteLockInv g))
 
 set_option synthInstance.maxHeartbeats 2000000 in
 set_option synthInstance.maxSize 16384 in

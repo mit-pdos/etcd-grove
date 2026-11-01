@@ -154,10 +154,10 @@ theorem trAddRemote_of_frozen (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GN
   iapply HΦ; itrivial
 
 /-- **On a live transport, the handlers' `AddRemote` returns** (D22 J-T, W8): every other member
-is one of the ids the pool budgets (`L`) and the transport is opened, so `AddRemote` of one with
-its peer URLs (the protocol's `X-PeerURLs`) does nothing, or starts its remote with the pool's
-four `R`s (`AddRemote_core`: a sender that is no peer, between the snapshot path's
-`RemoveAllPeers` and its `AddPeer`s). -/
+is one of the ids `L` a remote may be started for, so `AddRemote` of one with its peer URLs (the
+protocol's `X-PeerURLs`) does nothing, or starts its remote (`AddRemote_core`: a sender that is no
+peer, between the snapshot path's `RemoveAllPeers` and its `AddPeer`s). (Until J8a-7, 2026-11-01,
+also the transport opened, D22 J-T's.) -/
 theorem trAddRemote_of_state
     (hNewURLs : types.NewURLs.spec (GF := GF) (hG := hG))
     (hStartRemote : rafthttp.startRemote.spec (GF := GF) (hG := hG))
@@ -166,18 +166,18 @@ theorem trAddRemote_of_state
     (hZString : zap.String.spec (GF := GF) (hG := hG))
     (hZStrings : zap.Strings.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName)
-    (R : IProp GF) (γs γr : GName) (L : List w64) (γk γo : GName)
+    (R : IProp GF) (γs γr : GName) (L : List w64)
     (Hcov : ∀ f, Rh.member f → f ≠ lid → f ∈ L) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp -∗
-      trFixed Rh t lid γd R -∗ trStopInv Rh R γs L γk γo -∗
+      trFixed Rh t lid γd R -∗ trStopInv Rh R γs L -∗
       sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) -∗
-      trOpenedAt γo -∗ trAddRemote Rh t lid := by
-  iintro #Hpkg #Hfix #Hst #Hgd #Hop
+      trAddRemote Rh t lid := by
+  iintro #Hpkg #Hfix #Hst #Hgd
   iunfold trAddRemote
   iintro !> %pid %sl %us %Φ !> ⟨Hsl, %Hp⟩ HΦ
   obtain ⟨Hm, Hne, Hne', Hpl, Hown⟩ := Hp
   iapply (rafthttp.Transport.AddRemote_core hNewURLs hStartRemote hIDStringPtr hInfo hZString
-    hZStrings Rh t lid γd R γs γr L γk γo pid sl (DFrac.own 1) us Hne' Hpl Hown (Ne.symm Hne) Hm
+    hZStrings Rh t lid γd R γs γr L pid sl (DFrac.own 1) us Hne' Hpl Hown (Ne.symm Hne) Hm
     (Hcov pid Hm Hne)) $$ [Hsl]
   · iframe #; iframe Hsl
   iintro !> -

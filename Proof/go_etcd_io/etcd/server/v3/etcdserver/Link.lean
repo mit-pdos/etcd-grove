@@ -407,6 +407,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline__
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline__post
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline__start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline__stop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote__Pause
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote__Resume
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote__send
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote__stop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.reportCriticalError
@@ -1703,9 +1705,13 @@ theorem rafthttp.peer.wp_Pause :
     rafthttp.peer.Pause.spec (GF := GF) (hG := hG) :=
   rafthttp.peer.Pause.wp_proof rafthttp.streamReader.wp_pause
 
+theorem rafthttp.remote.wp_Pause :
+    rafthttp.remote.Pause.spec (GF := GF) (hG := hG) :=
+  rafthttp.remote.Pause.wp_proof
+
 theorem rafthttp.Transport.wp_CutPeer :
     rafthttp.Transport.CutPeer.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.CutPeer.wp_proof rafthttp.peer.wp_Pause
+  rafthttp.Transport.CutPeer.wp_proof rafthttp.peer.wp_Pause rafthttp.remote.wp_Pause
 
 theorem EtcdServer.wp_CutPeer :
     EtcdServer.CutPeer.spec (GF := GF) (hG := hG) :=
@@ -1823,9 +1829,13 @@ theorem rafthttp.peer.wp_Resume :
     rafthttp.peer.Resume.spec (GF := GF) (hG := hG) :=
   rafthttp.peer.Resume.wp_proof rafthttp.streamReader.wp_resume
 
+theorem rafthttp.remote.wp_Resume :
+    rafthttp.remote.Resume.spec (GF := GF) (hG := hG) :=
+  rafthttp.remote.Resume.wp_proof
+
 theorem rafthttp.Transport.wp_MendPeer :
     rafthttp.Transport.MendPeer.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.MendPeer.wp_proof rafthttp.peer.wp_Resume
+  rafthttp.Transport.MendPeer.wp_proof rafthttp.peer.wp_Resume rafthttp.remote.wp_Resume
 
 theorem EtcdServer.wp_MendPeer :
     EtcdServer.MendPeer.spec (GF := GF) (hG := hG) :=

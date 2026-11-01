@@ -198,12 +198,15 @@ PROJECTS = [
         # fix: notes/decisions.md, "The merged snapshot's index guard"). Then (#8's J8a-3,
         # 2026-11-01) branch `goose-lean-watchcfg` (on 633036387): `NewWatchServer` keeps the adjusted
         # progress interval local instead of writing `s.Cfg` (7cf3644ec,
-        # issues/etcd-cfg-watch-progress-interval-race.md).
+        # issues/etcd-cfg-watch-progress-interval-race.md). Then (#8's J8a-7, 2026-11-01) branch
+        # `goose-lean-remotepause` (on 7cf3644ec): a remote paused by a flag under its own mutex,
+        # as a peer, so that `CutPeer`/`MendPeer` may be repeated (ab3c28d9a; the nonissue
+        # issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="7cf3644ecf7cca97b65b34369b12aba368f98edb",
+        rev="ab3c28d9a12a41bff370b78791b9eafb14d07f60",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

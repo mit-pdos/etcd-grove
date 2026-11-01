@@ -60,9 +60,9 @@ theorem rafthttp.Transport.Stop_core
     (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
     (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
-    (L : List w64) (γk γo : GName) :
+    (L : List w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trFixed Rh t lid γd R ∗ trProbers t ∗ trStopInv Rh R γs L γk γo ∗
+        trFixed Rh t lid γd R ∗ trProbers t ∗ trStopInv Rh R γs L ∗
         sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) ∗
         (∀ (rs' : trIds) (sb : Bool), ghostVar γr (1 : Qp).half (rs', sb) ={⊤}=∗
           ghostVar γr (1 : Qp).half (rs', true)) }}
@@ -91,7 +91,7 @@ theorem rafthttp.Transport.Stop_core
   icases HP with ⟨%pm, %rm, %PM, %RM, %T, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro,
     Hts⟩
   wp_auto_lc 2
-  imod trStop_take Rh R γs L γk γo pm rm PM RM T $$ Hst Hg Hlc1 Hlc2 with ⟨Hg, HPs, HRs⟩
+  imod trStop_take Rh R γs L pm rm PM RM T $$ Hst Hg Hlc1 Hlc2 with ⟨Hg, HPs, HRs⟩
   imod HSF $$ %rs' %sb Hgr with Hgr
   -- the remotes' `stop`s
   wp_func_lits

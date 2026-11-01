@@ -505,7 +505,7 @@ abbrev SrvKey := Loc × Loc × w64 × GName × GName × GName
 
 /-- The transport's names of a key. -/
 abbrev SrvKey.trN (x : SrvKey) : TrN GF :=
-  ⟨x.2.2.1, x.2.2.2.1, srvLgReader x.1, x.2.2.2.2.1, x.2.2.2.2.2, [], x.2.2.2.2.1, x.2.2.2.2.1⟩
+  ⟨x.2.2.1, x.2.2.2.1, srvLgReader x.1, x.2.2.2.2.1, x.2.2.2.2.2, []⟩
 
 /-- **The raft loop's key to the transport's `Send`** (rafthttp stage 6d, 2026-10-24, the user's
 choice: the raft loop holds one of the transport's lock's reader tokens): the server's transport's
@@ -542,7 +542,7 @@ theorem srvTrKey_of_trTok (γn : NetNames GF) (γk : GName) (s t : Loc) (c : TrN
   iunfold srvTrKey
   iexists (s, t, c.lid, c.γd, c.γs, c.γr)
   iframe Hk
-  obtain ⟨lid, γd, R, γs, γr, L, γk', γo⟩ := c
+  obtain ⟨lid, γd, R, γs, γr, L⟩ := c
   simp only at hR
   subst hR
   iunfold trTok at Htok
@@ -570,7 +570,7 @@ theorem netTransport_of_key (γn : NetNames GF) (lid : w64) (tr : GoInterface) (
     ihave %Heq := ghostMapElem_agree () γk DFrac.discard DFrac.discard _ _ $$ Hk Hx
     subst Heq
     ihave Htok' : trTok γn t c $$ [Htok]
-    · obtain ⟨lid', γd, R, γs, γr, L, γk', γo⟩ := c
+    · obtain ⟨lid', γd, R, γs, γr, L⟩ := c
       simp only at hR
       subst hR
       iunfold trTok at Htok

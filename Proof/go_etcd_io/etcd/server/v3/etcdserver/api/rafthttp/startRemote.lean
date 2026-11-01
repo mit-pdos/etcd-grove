@@ -76,6 +76,10 @@ theorem rafthttp.startRemote.wp_proof
   generalize «$r0_ptr» = g at *
   iStructNamed Hg
   ipersist lg; ipersist localID; ipersist id; ipersist status; ipersist pipeline
+  -- (J8a-7) the remote's lock over `paused`
+  imod sync.init_Mutex (remoteLockInv g) ⊤ (g.[rafthttp.remote, go!"mu"]) $$ mu [paused]
+    with #Hgmu
+  · inext; iunfold remoteLockInv; iexists _; iframe
   imodintro
   iapply HΦ
   isplitr

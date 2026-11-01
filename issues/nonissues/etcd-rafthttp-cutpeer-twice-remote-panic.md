@@ -18,6 +18,12 @@ links:
 > second `CutPeer` without a `MendPeer` can panic on any member. Still a test hook's precondition
 > (the verdict stands); the reachability review above is to be redone with this path.
 
+> Fixed in the verified fork (2026-11-01, J8a-7, `notes/decisions.md`, "A remote pauses by a flag"):
+> branch `goose-lean-remotepause` of `upamanyus/etcd` (`ab3c28d9a`, the pin) gives `remote` a
+> mutex-guarded `paused` flag that `Pause`/`Resume` set and clear and `send` checks, so `CutPeer`
+> and `MendPeer` are idempotent for a remote and `Transport.Stop` after a `CutPeer` is fine; the Go
+> test `TestTransportCutPeerTwiceRemote` panics without it. Upstream unchanged.
+
 # server/etcdserver/api/rafthttp: a second `CutPeer` of a remote panics
 
 - **Status**: a test hook's undocumented precondition, not a bug any caller reaches (review of

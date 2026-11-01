@@ -126,7 +126,7 @@ theorem rafthttp.remote.send.wp_proof
   wp_start as ⟨#Hg, Hpay⟩
   ihave #Hg' := Hg
   iunfold remoteOk at Hg'
-  icases Hg' with ⟨%lg, %ps, %pl, #Hlg, %Hlgnn, #Hlid, #Hpid, #Hps, #Hpsok, #Hpl, #Hph⟩
+  icases Hg' with ⟨%lg, %ps, %pl, #Hlg, %Hlgnn, #Hlid, #Hpid, #Hps, #Hpsok, #Hpl, #Hph, #Hmu⟩
   ihave #Hph' := Hph
   iunfold pipeHandleOk at Hph'
   icases Hph' with ⟨-, %ps', %fs', %r, %id', %γd', %wc, %γ, -, -, -, -, -, #Hmc, #Hb⟩
@@ -137,6 +137,22 @@ theorem rafthttp.remote.send.wp_proof
   icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%vSF, #HSF, %HSFl⟩, -⟩
   ihave Hpay : pipeMsg Rh pid ml $$ [HO]
   · iunfold pipeMsg; iexists st; iframe; iframe #; ipureintro; exact Hst
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  wp_auto
+  -- (J8a-7) `paused`, read under the remote's lock: paused, the message is dropped
+  wp_apply sync.Mutex.wp_Lock _ (remoteLockInv g) $$ [] as ⟨Hlocked, Hinv⟩
+  · iexact Hmu
+  iunfold remoteLockInv at Hinv
+  icases Hinv with ⟨%b, Hb⟩
+  (try wp_auto)
+  wp_apply sync.Mutex.wp_Unlock $$ [Hlocked Hb]
+  · iframe Hmu Hlocked
+    inext; iunfold remoteLockInv; iexists _; iframe
+  (try wp_auto)
+  cases b
+  rotate_left
+  · (try wp_auto); iapply HΦ; itrivial
   wp_auto_lc 1
   send_sel
 

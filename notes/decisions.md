@@ -28552,3 +28552,39 @@ no-remote tokens of the members whose remotes `CutPeer`/`MendPeer` may start are
 apply thread, an exported change. And `hdir`/`hdok` (`γn.dir = dir`, `netDirOk dir`) stay
 `specSnap` premises: `srvSnapRO` has no `γn`, and `ccMembRes`'s `γn` is not tied to it by any
 ghost agreement, so they are not a field to add.
+
+## A remote pauses by a flag: the no-remote tokens gone (2026-11-01, J8a-7, the user's choice "Fork fix")
+
+**Before** (D22 J-T, 2026-10-27; D43 M5c): upstream's `remote.Pause` is `g.stop()`, which closes
+the pipeline's `stopc`, so a second `CutPeer` of a remote, or `Transport.Stop` after one, panics
+("close of closed channel", `issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`).
+`CutPeer`/`MendPeer` therefore took `trNoRemOr c id`: `id` not among the pool's ids `c.L`, or its
+no-remote token (`trNoRem`), which `trPoolE` handed out per id of `L` and `NewServer` gave to the
+examples in `srvTrTok`; the transport carried an opening flag (`trUnopened`/`trOpened`) so that no
+handler's `AddRemote` started a remote before the tokens were collected; `RemoveAllPeers` took
+the peers' tokens back and `applySnapshot`'s `specSnap` had to take `trPeersNoRem c rs`, which
+the apply thread had no way to get (the tokens were the examples', an exported change to route).
+
+**Now** (the user's choice of the three: a fork fix, over routing the tokens or a premise): the
+fork's `goose-lean-remotepause` (`ab3c28d9a`, on `goose-lean`; the pin in `etc/goose.py`) gives
+`remote` a mutex and a `paused` flag: `Pause`/`Resume` set and clear it under the mutex, `send`
+drops a message while it is set; `stop` (only `Transport.Stop`'s) is unchanged. Idempotent, and
+`Stop` after `CutPeer` is fine. (A first version, `90017de31`, kept `Pause` as `stop` made
+idempotent and restarted the pipeline in `Resume`; dropped: `pipeline.start` rewrites `p.msgc`
+and `p.stopc` while `send` reads them, a race upstream has too.) A Go test,
+`TestTransportCutPeerTwiceRemote` (`remote_pause_test.go`), panics without the fix and passes with
+it under `-race`.
+
+In the proof: `remoteOk` gains the mutex (`remoteLockInv g`: the flag's points-to), `startRemote`
+allocates it, `remote.send` reads the flag under it, and `remote.Pause`/`Resume` have specs
+(`remoteOk` in, nothing out). Every no-remote token is gone: `TrN`'s `γk`/`γo`, `trStopInv`'s pool
+tokens and opening flag (it keeps `T ⊆ L` and `L.Nodup`), `trPoolE`, `trPool`, `trTokAt`,
+`trNoRem`, `trNoRemOr`, `trPeersNoRem`, `trUnopened`, `trOpened`, `trNoRemAcc*`, `trOpen_state`.
+Restated (`rafthttp`'s specs, weaker premises): `CutPeer`/`MendPeer` take `trTok` only (any id,
+the remote paused or resumed if there is one) and their proofs the remote's `Pause`/`Resume`
+specs; `AddPeer`'s post loses its token disjunct; `AddRemote` and `Handler` lose `trOpened`;
+`RemovePeer` and `RemoveAllPeers` take no tokens (`RemoveAllPeers` loses `Q`); `Start`'s post
+loses `trUnopened`. In the server: `srvTrTok` is `trTok` (`NewServer.spec`'s post, the approved
+exported change, keeps its text), `srvNetMember` loses `trOpened`, and `applySnapshot`'s
+`specSnap` (and the walk) take `trLive` without `trPeersNoRem`. Supersedes the J-T tokens part of
+"The transport's `R`s from a thread pool"'s "Not done".

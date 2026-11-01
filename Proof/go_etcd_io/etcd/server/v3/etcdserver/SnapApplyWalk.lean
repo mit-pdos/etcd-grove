@@ -152,7 +152,7 @@ theorem applySnapshot_walk
        membership.isRaftCluster cl ∗
        rnTransportAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t : GoInterface) ∗
-       (trLive γn t c rs ∗ trPeersNoRem c rs) ∗ srvMemberIDAddr s ↦□ idm ∗
+       trLive γn t c rs ∗ srvMemberIDAddr s ↦□ idm ∗
        srvMembersDir cl ps dir ∗
        epMemSnapAddr ep ↦ msi ∗ epConfState ep cs0 ∗
        srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗
@@ -628,12 +628,10 @@ theorem applySnapshot_walk
   -- `s.r.transport.RemoveAllPeers()`
   ihave #Hrhpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp $$ []
   · iPkgInit
-  -- (D22 J-T) the peers' no-remote facts go back to the transport (J8a-6, 2026-11-01: no `R`s
-  -- come back, nor do the `AddPeer`s below take any: the peers borrow from the transport's pool)
-  icases Htlive with ⟨Htlive, Hpnr⟩
-  iunfold trPeersNoRem at Hpnr
-  icases Hpnr with ⟨%Q, %HQ, Htks⟩
-  wp_apply hRAP γn t c rs Q HQ.1 HQ.2 $$ [Htlive Htks] as Htlive
+  -- (J8a-6, 2026-11-01) no `R`s come back, nor do the `AddPeer`s below take any: the peers borrow
+  -- from the transport's pool (until J8a-7, 2026-11-01, the peers' no-remote facts went back to
+  -- the transport, D22 J-T)
+  wp_apply hRAP γn t c rs $$ [Htlive] as Htlive
   · iframe #; iframe
   (try wp_auto)
   wp_apply hInfo $$ []
@@ -714,7 +712,7 @@ theorem applySnapshot_walk
           addPeer_dir γn dir hdir hdok ps hps px.2 Hpxps mpus Hmok.2
         wp_apply (hAP γn t c L px.2 mpu (DFrac.own 1) mpus Hne Hpl Hown
             (by rw [hlid]; exact fun h => Hpid h.symm) Hpm) $$ [Htlive Hmpus]
-          as ⟨Htlive, Hmpus, -⟩
+          as ⟨Htlive, Hmpus⟩
         · iframe Htlive Hmpus
         (try wp_auto)
         ihave Hmso : iprop([∗list] p ∈ mps, memberDirIs (GF := GF) dir p.1 p.2)

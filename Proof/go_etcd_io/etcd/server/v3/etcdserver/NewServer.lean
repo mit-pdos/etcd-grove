@@ -969,7 +969,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     rw [Hid]
     iframe Hnro Hss Hsdir HpU Hnet Hlsi Hlsf HrPool
     ipureintro; refine ⟨Hlgnn, Hssnn, Hlsnn, ?_, Hdid, HLnd, Hturls⟩ <;> first | rfl | trivial
-  icases Htres with (%Hterr | ⟨%Hterr, %c, %Hc, Htlive, Hun, Htoks, #HtrNet, #Htrr, -⟩)
+  icases Htres with (%Hterr | ⟨%Hterr, %c, %Hc, Htlive, Htoks, #HtrNet, #Htrr, -⟩)
   · -- the transport could not start: the error returned, the store and `b` closed
     cases terr with
     | nil => exact absurd rfl Hterr
@@ -1022,14 +1022,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (rafthttp stage 6d) the loop's invariant: the ids `AddPeer` was called for (`L`, with the
   -- transport's live state), each other member's so far
   ihave IH2 : iprop(∃ (n : w64) (mm : Loc) (L : List w64), "i" ∷ i_ptr ↦ n ∗ "m" ∷ m_ptr ↦ mm ∗
-      "Htlive" ∷ trLive γn t c L ∗ "Hun" ∷ trUnopened c ∗ "Hnr" ∷ trNoRemAcc c L ∗
+      "Htlive" ∷ trLive γn t c L ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z msl.len ∧ L.length ≤ (sint.Z n).toNat⌝ ∗
       "%Hcov" ∷ ⌜∀ (k : Nat) (p : Loc × w64), k < (sint.Z n).toNat → mps[k]? = some p →
-        p.2 ≠ id → p.2 ∈ L⌝) $$ [i m Htlive Hun]
+        p.2 ≠ id → p.2 ∈ L⌝) $$ [i m Htlive]
   · iexists W64 0, _, []
-    iframe i m Htlive Hun
-    isplitr
-    · iapply trNoRemAcc_nil
+    iframe i m Htlive
     ipureintro
     refine ⟨⟨by decide, by have := Hmsll.2; word, by simp⟩, fun k p hk _ _ => ?_⟩
     exact absurd hk (by simp)
@@ -1042,10 +1040,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       "nodeID" ∷ bs.cluster'.[bootstrappedCluster, go!"nodeID"] ↦ bc.nodeID' ∗ "tr" ∷ tr_ptr ↦ t ∗
       "Hmsl" ∷ msl ↦* List.map Prod.fst mps ∗
       "Hmso" ∷ ([∗list] p ∈ mps, memberDirIs dir p.fst p.snd) ∗
-      "Htlive" ∷ trLive γn t c L ∗ "Hun" ∷ trUnopened c ∗ "Hnr" ∷ trNoRemAcc c L ∗
+      "Htlive" ∷ trLive γn t c L ∗
       "%Hcov" ∷ ⌜∀ f, (netRh γn).member f → f ≠ id → f ∈ L⌝))
     at (App (App (App (Val doFor) _) _) _) with [b Hb nodeID tr Hmsl Hmso IH2]
-    as ⟨%L, b, Hb, nodeID, tr, Hmsl, Hmso, Htlive, Hun, Hnr, %Hcov⟩
+    as ⟨%L, b, Hb, nodeID, tr, Hmsl, Hmso, Htlive, %Hcov⟩
   · wp_for IH2
     wp_if_destruct
     · obtain ⟨px, Hpx⟩ : ∃ px, mps[(sint.Z n).toNat]? = some px :=
@@ -1091,7 +1089,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
           addPeer_dir γn dir Hγn.2 Hdirok ps Hdirps.1 px.2 Hpxps mpus Hmok.2
         wp_apply (h41 γn t c L px.2 mpu (DFrac.own 1) mpus Hne Hpl Hown
             (by rw [Hcl]; exact fun h => Hpid h.symm) Hpm) $$ [Htlive Hmpus]
-          as ⟨Htlive, Hmpus, Hnr1⟩
+          as ⟨Htlive, Hmpus⟩
         · iframe Htlive Hmpus
         (try wp_auto)
         ihave Hmso : iprop([∗list] p ∈ mps, memberDirIs (GF := GF) dir p.1 p.2)
@@ -1104,7 +1102,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
             · ipureintro; exact Hmnn
             iexists mpu, mcu, mil, mnm, mpus, mcus
             iframe; ipureintro; exact Hmok
-        ihave ⟨Hun, Hnr⟩ := trNoRemAcc_snoc c L px.2 $$ Hun Hnr Hnr1
         wp_for_post
         iframe
         iexists n + W64 1, _, L ++ [px.2]
@@ -1136,20 +1133,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- the transport, started: (rafthttp stage 6d) frozen, every other member a peer; the network's
   -- transport, its `Send` with the raft loop's key (fixed to it now)
   -- (D22 J-T, 2026-10-27: until then frozen here, D41) the transport stays live, the apply
-  -- thread's (`srvApRes`); opened now that every other member is a peer, the no-remote tokens
-  -- collected (`srvTrTok`'s)
+  -- thread's (`srvApRes`). (Until J8a-7, 2026-11-01, opened here and the no-remote tokens
+  -- collected, `srvTrTok`'s.)
   ihave #Hst : trState γn t c $$ [Htlive]
   · iunfold trLive at Htlive; icases Htlive with ⟨#H, -⟩; iexact H
-  imod (trOpen_state γn t c) $$ Hst Hun with #Hop
-  have HcLnd : c.L.Nodup := by rw [HcL]; exact Hrnodup.filter _
   have HcLm : ∀ f, f ∈ c.L ↔ f ∈ ps ∧ f ≠ id := by
     intro f; rw [HcL, List.mem_filter]; simp
-  have HcLcov : ∀ f ∈ c.L, f ∈ L := by
-    intro f hf
-    rw [HcLm] at hf
-    apply Hcov f _ hf.2
-    rw [netRh_member, Hγn.2]; exact (Hdirps.1 f).2 hf.1
-  ihave Hnrs := trNoRemAcc_full c L HcLnd HcLcov $$ Hnr
   ihave #Htrall0 := HtrNet
   imod (srvSendKey_fix γk s t c) $$ Hk with #Hkx
   ihave #Htrall : netTransport γn id (transportIface t) (srvTrKey γn γk) iprop(False) $$ []
@@ -1535,14 +1524,14 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe Htrf
     isplitr
     · ipureintro; exact Hcl
-    iframe Hst Hop
+    iframe Hst
     ipureintro
     intro f hf hne
     rw [HcLm]
     refine ⟨?_, hne⟩
     rw [netRh_member, Hγn.2] at hf
     exact (Hdirps.1 f).1 hf
-  ihave HtokP : srvTrTok γn ⟨t, c⟩ $$ [HtokP Hnrs]
+  ihave HtokP : srvTrTok γn ⟨t, c⟩ $$ [HtokP]
   · iunfold srvTrTok; iframe
   -- (2026-10-23) `readych`, as a broadcast channel not yet closed: `publishV3`'s to close
   ipersist readych

@@ -31,10 +31,9 @@ removed, a log line), the remotes kept: the live transport with no peer id. (Unt
 2026-11-01, also four of each peer's `R`s back, its pipeline's; the peers' goroutines now borrow
 theirs from the transport's pool.) -/
 abbrev rafthttp.Transport.RemoveAllPeers.spec : Prop :=
-  ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (Q : List w64),
-  Q.Nodup → (∀ f, f ∈ Q ↔ f ∈ rs) →
+  ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      trLive γn t c rs ∗ [∗list] f ∈ Q, trNoRemOr c f }}
+      trLive γn t c rs }}
     (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"RemoveAllPeers"))
       (Val #()))
   {{ RET #(); trLive γn t c [] }}

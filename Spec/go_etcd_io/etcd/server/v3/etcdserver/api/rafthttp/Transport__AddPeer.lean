@@ -38,8 +38,7 @@ abbrev rafthttp.Transport.AddPeer.spec : Prop :=
       trLive γn t c rs ∗ us ↦*{dq} ss }}
     (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddPeer")) (Val #id))
       (Val #us))
-  {{ RET #(); trLive γn t c (rs ++ [id]) ∗ us ↦*{dq} ss ∗
-      (⌜id ∈ rs ∨ id ∉ c.L⌝ ∨ trNoRem c id ∨ trOpened c) }}
+  {{ RET #(); trLive γn t c (rs ++ [id]) ∗ us ↦*{dq} ss }}
 
 end spec
 

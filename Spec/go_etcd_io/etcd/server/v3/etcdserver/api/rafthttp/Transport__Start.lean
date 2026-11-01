@@ -59,7 +59,7 @@ abbrev rafthttp.Transport.Start.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       ⌜err ≠ GoInterface.nil⌝ ∨
       ⌜err = GoInterface.nil⌝ ∗ ∃ c : TrN GF, ⌜c.lid = tv.ID' ∧ c.γd = γd ∧ c.R = R ∧ c.L = L⌝ ∗
-        trLive γn t c [] ∗ trUnopened c ∗
+        trLive γn t c [] ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), trTok γn t c) ∗
         netTransport γn c.lid (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t)
           (trTok γn t c) iprop(∃ rs : trIds, trLive γn t c rs) ∗
