@@ -42,6 +42,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Lead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaderChanged
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseLeases
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseTimeToLive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LinearizableReadNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
@@ -95,6 +97,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getLead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getTerm
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getTxPostLockInsideApplyHook
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__isLeader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__leaseTimeToLive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__monitorClusterVersions
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__monitorCompactHash
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__monitorDowngrade
@@ -265,6 +268,7 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Less
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Push
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Swap
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__Keys
+public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__Remaining
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__TTL
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__forever
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__getRemainingTTL
@@ -273,6 +277,9 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__refresh
 public import Proof.go_etcd_io.etcd.server.v3.lease.NewLease
 public import Proof.go_etcd_io.etcd.server.v3.lease.NewLessor
 public import Proof.go_etcd_io.etcd.server.v3.lease.greaterOrEqual
+public import Proof.go_etcd_io.etcd.server.v3.lease.leasesByExpiry__Len
+public import Proof.go_etcd_io.etcd.server.v3.lease.leasesByExpiry__Less
+public import Proof.go_etcd_io.etcd.server.v3.lease.leasesByExpiry__Swap
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Attach
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Checkpoint
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Demote
@@ -280,6 +287,7 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Detach
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__ExpiredLeasesC
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__GetLease
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Grant
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Leases
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Lookup
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Promote
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Recover
@@ -288,6 +296,7 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__SetRangeDeleter
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__isPrimary
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__scheduleCheckpointIfNeeded
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__shouldPersistCheckpoints
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__unsafeLeases
 public import Proof.math.Ceil
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Recover
@@ -565,6 +574,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas
 public import Proof.bytes.Buffer__Write
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeApiLink
+public import Proof.sort.SortAnyLess
 public import Proof.context.Link
 public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
@@ -763,6 +773,42 @@ theorem membership.RaftCluster.wp_IsMemberExist :
     membership.RaftCluster.IsMemberExist.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.IsMemberExist.wp_proof
 
+theorem lease.lessor.wp_unsafeLeases :
+    lease.lessor.unsafeLeases.spec (GF := GF) (hG := hG) :=
+  lease.lessor.unsafeLeases.wp_proof
+
+theorem lease.leasesByExpiry.wp_Len :
+    lease.leasesByExpiry.Len.spec (GF := GF) (hG := hG) :=
+  lease.leasesByExpiry.Len.wp_proof
+
+theorem lease.Lease.wp_Remaining :
+    lease.Lease.Remaining.spec (GF := GF) (hG := hG) :=
+  lease.Lease.Remaining.wp_proof time.Time.wp_IsZero
+
+theorem lease.leasesByExpiry.wp_Less :
+    lease.leasesByExpiry.Less.spec (GF := GF) (hG := hG) :=
+  lease.leasesByExpiry.Less.wp_proof lease.Lease.wp_Remaining
+
+theorem lease.leasesByExpiry.wp_Swap :
+    lease.leasesByExpiry.Swap.spec (GF := GF) (hG := hG) :=
+  lease.leasesByExpiry.Swap.wp_proof
+
+theorem lease.lessor.wp_Leases :
+    lease.lessor.Leases.spec (GF := GF) (hG := hG) :=
+  lease.lessor.Leases.wp_proof lease.lessor.wp_unsafeLeases EtcdGrove.sort.«Sort».wp_anyLess lease.leasesByExpiry.wp_Len lease.leasesByExpiry.wp_Less lease.leasesByExpiry.wp_Swap
+
+theorem lease.Lease.wp_Keys :
+    lease.Lease.Keys.spec (GF := GF) (hG := hG) :=
+  lease.Lease.Keys.wp_proof
+
+theorem membership.RaftCluster.wp_ID :
+    membership.RaftCluster.ID.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.ID.wp_proof
+
+theorem lease.lessor.wp_Lookup :
+    lease.lessor.Lookup.spec (GF := GF) (hG := hG) :=
+  lease.lessor.Lookup.wp_proof
+
 theorem types.ID.wp_String :
     types.ID.String.spec (GF := GF) (hG := hG) :=
   types.ID.String.wp_proof
@@ -903,10 +949,6 @@ theorem proto.wp_Size :
     proto.Size.spec (GF := GF) (hG := hG) :=
   proto.Size.wp_proof
 
-theorem membership.RaftCluster.wp_ID :
-    membership.RaftCluster.ID.spec (GF := GF) (hG := hG) :=
-  membership.RaftCluster.ID.wp_proof
-
 theorem zap.wp_Stringer :
     zap.Stringer.spec (GF := GF) (hG := hG) :=
   zap.Stringer.wp_proof
@@ -1014,14 +1056,6 @@ theorem TxnRequest.wp_GetFailure :
 theorem bcrypt.wp_GenerateFromPassword :
     bcrypt.GenerateFromPassword.spec (GF := GF) (hG := hG) :=
   bcrypt.GenerateFromPassword.wp_proof
-
-theorem lease.Lease.wp_Keys :
-    lease.Lease.Keys.spec (GF := GF) (hG := hG) :=
-  lease.Lease.Keys.wp_proof
-
-theorem lease.lessor.wp_Lookup :
-    lease.lessor.Lookup.spec (GF := GF) (hG := hG) :=
-  lease.lessor.Lookup.wp_proof
 
 theorem io.wp_Pipe :
     io.Pipe.spec (GF := GF) (hG := hG) :=
@@ -1742,13 +1776,45 @@ theorem EtcdServer.wp_LeaderChanged :
     EtcdServer.LeaderChanged.spec (GF := GF) (hG := hG) :=
   EtcdServer.LeaderChanged.wp_proof notify.Notifier.wp_Receive
 
-theorem EtcdServer.wp_LinearizableReadNotify :
-    EtcdServer.LinearizableReadNotify.spec (GF := GF) (hG := hG) :=
-  EtcdServer.LinearizableReadNotify.wp_proof
+theorem EtcdServer.wp_checkLeaseLeases :
+    EtcdServer.checkLeaseLeases.spec (GF := GF) (hG := hG) :=
+  EtcdServer.checkLeaseLeases.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore lease.Lease.wp_Keys
+
+theorem EtcdServer.wp_getTerm :
+    EtcdServer.getTerm.spec (GF := GF) (hG := hG) :=
+  EtcdServer.getTerm.wp_proof
+
+theorem EtcdServer.wp_Term :
+    EtcdServer.Term.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Term.wp_proof EtcdServer.wp_getTerm
+
+theorem EtcdServer.wp_newHeader :
+    EtcdServer.newHeader.spec (GF := GF) (hG := hG) :=
+  EtcdServer.newHeader.wp_proof membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_KV mvcc.store.wp_Rev EtcdServer.wp_Term EtcdServer.wp_Leader
+
+theorem EtcdServer.wp_LeaseLeases :
+    EtcdServer.LeaseLeases.spec (GF := GF) (hG := hG) :=
+  EtcdServer.LeaseLeases.wp_proof lease.lessor.wp_Leases EtcdServer.wp_checkLeaseLeases EtcdServer.wp_newHeader
 
 theorem EtcdServer.wp_requireAuthInfo :
     EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
   EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx
+
+theorem EtcdServer.wp_checkLeaseTimeToLive :
+    EtcdServer.checkLeaseTimeToLive.spec (GF := GF) (hG := hG) :=
+  EtcdServer.checkLeaseTimeToLive.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore lease.lessor.wp_Lookup lease.Lease.wp_Keys
+
+theorem EtcdServer.wp_leaseTimeToLive :
+    EtcdServer.leaseTimeToLive.spec (GF := GF) (hG := hG) :=
+  EtcdServer.leaseTimeToLive.wp_proof
+
+theorem EtcdServer.wp_LeaseTimeToLive :
+    EtcdServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) :=
+  EtcdServer.LeaseTimeToLive.wp_proof EtcdServer.wp_requireAuthInfo EtcdServer.wp_checkLeaseTimeToLive EtcdServer.wp_leaseTimeToLive EtcdServer.wp_AuthStore
+
+theorem EtcdServer.wp_LinearizableReadNotify :
+    EtcdServer.LinearizableReadNotify.spec (GF := GF) (hG := hG) :=
+  EtcdServer.LinearizableReadNotify.wp_proof
 
 theorem EtcdServer.wp_MemberList :
     EtcdServer.MemberList.spec (GF := GF) (hG := hG) :=
@@ -2314,14 +2380,6 @@ theorem EtcdServer.wp_StoppingNotify :
     EtcdServer.StoppingNotify.spec (GF := GF) (hG := hG) :=
   EtcdServer.StoppingNotify.wp_proof
 
-theorem EtcdServer.wp_getTerm :
-    EtcdServer.getTerm.spec (GF := GF) (hG := hG) :=
-  EtcdServer.getTerm.wp_proof
-
-theorem EtcdServer.wp_Term :
-    EtcdServer.Term.spec (GF := GF) (hG := hG) :=
-  EtcdServer.Term.wp_proof EtcdServer.wp_getTerm
-
 theorem wp_firstCompareKey :
     firstCompareKey.spec (GF := GF) (hG := hG) :=
   firstCompareKey.wp_proof Compare.wp_GetKey
@@ -2370,17 +2428,9 @@ theorem EtcdServer.wp_Watchable :
     EtcdServer.Watchable.spec (GF := GF) (hG := hG) :=
   EtcdServer.Watchable.wp_proof EtcdServer.wp_KV
 
-theorem EtcdServer.wp_checkLeaseLeases :
-    EtcdServer.checkLeaseLeases.spec (GF := GF) (hG := hG) :=
-  EtcdServer.checkLeaseLeases.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore lease.Lease.wp_Keys
-
 theorem EtcdServer.wp_checkLeaseRenew :
     EtcdServer.checkLeaseRenew.spec (GF := GF) (hG := hG) :=
   EtcdServer.checkLeaseRenew.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore lease.lessor.wp_Lookup lease.Lease.wp_Keys
-
-theorem EtcdServer.wp_checkLeaseTimeToLive :
-    EtcdServer.checkLeaseTimeToLive.spec (GF := GF) (hG := hG) :=
-  EtcdServer.checkLeaseTimeToLive.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore lease.lessor.wp_Lookup lease.Lease.wp_Keys
 
 theorem wp_newSnapshotReaderCloser :
     newSnapshotReaderCloser.spec (GF := GF) (hG := hG) :=
@@ -2393,10 +2443,6 @@ theorem snap.wp_NewMessage :
 theorem EtcdServer.wp_createMergedSnapshotMessage :
     EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) :=
   EtcdServer.createMergedSnapshotMessage.wp_proof EtcdServer.wp_Logger EtcdServer.wp_KV wp_newSnapshotReaderCloser proto.wp_CloneConfState backend.snapshot.wp_Size snap.wp_NewMessage
-
-theorem EtcdServer.wp_newHeader :
-    EtcdServer.newHeader.spec (GF := GF) (hG := hG) :=
-  EtcdServer.newHeader.wp_proof membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_KV mvcc.store.wp_Rev EtcdServer.wp_Term EtcdServer.wp_Leader
 
 theorem v3alarm.wp_NewAlarmStore :
     v3alarm.NewAlarmStore.spec (GF := GF) (hG := hG) :=

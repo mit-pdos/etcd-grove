@@ -527,7 +527,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr",
                               # (2026-10-27) the node API's results at the server's storage model
                               # (`=srvApi_wp_*` callees)
-                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeApiLink"]}
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeApiLink",
+                              # (the lease-read plan, 2026-10-31) `sort.Sort` for any `Less`, the
+                              # axiom `lessor.Leases` takes (`=EtcdGrove.sort.«Sort».wp_anyLess`)
+                              "Proof.sort.SortAnyLess"]}
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}

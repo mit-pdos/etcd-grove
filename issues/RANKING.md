@@ -165,6 +165,11 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     values), across a permission line, so a candidate for etcd's private security process (the
     user's decision, as item 1's). Reproduced with gofail on leader and follower; fix: check the
     returned keys. Upstream not searched.
+17. **[etcd-leasehttp-timetolive-nil-response-panic](etcd-leasehttp-timetolive-nil-response-panic.md)**
+    (2026-10-31): a follower forwarding `LeaseTimeToLive` panics on a 200 reply without the
+    `LeaseTimeToLiveResponse` field (`leasehttp/http.go:274`); etcd's own handler always sets it, so
+    it takes a peer URL served by something else. A one-line nil check; low impact. Reproduced
+    (unit test). Upstream not searched.
 
 Also to file (2026-10-21, the last scan of the current batch):
 [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (a watch created with a

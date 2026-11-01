@@ -16,6 +16,107 @@ noncomputable section
 
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
+class DowngradeResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying DowngradeResponse.underlying DowngradeResponse
+  underlying : go.UnderlyingDirectedEq DowngradeResponse.ty DowngradeResponse.underlying
+  isUnderlying : go.IsUnderlying DowngradeResponse.underlying DowngradeResponse.underlying
+  method_set : go.MethodSetIs DowngradeResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DowngradeResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType ResponseHeader.ty)]))), (go!"GetVersion", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+
+attribute [instance] DowngradeResponse.TypeAssumptions.type_repr
+  DowngradeResponse.TypeAssumptions.underlying
+  DowngradeResponse.TypeAssumptions.isUnderlying
+  DowngradeResponse.TypeAssumptions.method_set
+  DowngradeResponse.TypeAssumptions.ptr_method_set
+
+class DowngradeVersionTestRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying DowngradeVersionTestRequest.underlying DowngradeVersionTestRequest
+  underlying : go.UnderlyingDirectedEq DowngradeVersionTestRequest.ty DowngradeVersionTestRequest.underlying
+  isUnderlying : go.IsUnderlying DowngradeVersionTestRequest.underlying DowngradeVersionTestRequest.underlying
+  method_set : go.MethodSetIs DowngradeVersionTestRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DowngradeVersionTestRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetVer", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+
+attribute [instance] DowngradeVersionTestRequest.TypeAssumptions.type_repr
+  DowngradeVersionTestRequest.TypeAssumptions.underlying
+  DowngradeVersionTestRequest.TypeAssumptions.isUnderlying
+  DowngradeVersionTestRequest.TypeAssumptions.method_set
+  DowngradeVersionTestRequest.TypeAssumptions.ptr_method_set
+
+class StatusRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying StatusRequest.underlying StatusRequest
+  underlying : go.UnderlyingDirectedEq StatusRequest.ty StatusRequest.underlying
+  isUnderlying : go.IsUnderlying StatusRequest.underlying StatusRequest.underlying
+  method_set : go.MethodSetIs StatusRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatusRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+
+attribute [instance] StatusRequest.TypeAssumptions.type_repr
+  StatusRequest.TypeAssumptions.underlying
+  StatusRequest.TypeAssumptions.isUnderlying
+  StatusRequest.TypeAssumptions.method_set
+  StatusRequest.TypeAssumptions.ptr_method_set
+
+class StatusResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying StatusResponse.underlying StatusResponse
+  underlying : go.UnderlyingDirectedEq StatusResponse.ty StatusResponse.underlying
+  isUnderlying : go.IsUnderlying StatusResponse.underlying StatusResponse.underlying
+  method_set : go.MethodSetIs StatusResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatusResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetDbSize", (some (go.signature.Signature [] false [go.int64]))), (go!"GetDbSizeInUse", (some (go.signature.Signature [] false [go.int64]))), (go!"GetDbSizeQuota", (some (go.signature.Signature [] false [go.int64]))), (go!"GetDowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType DowngradeInfo.ty)]))), (go!"GetErrors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType ResponseHeader.ty)]))), (go!"GetIsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"GetLeader", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRaftAppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRaftIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRaftTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetStorageVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetVersion", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+
+attribute [instance] StatusResponse.TypeAssumptions.type_repr
+  StatusResponse.TypeAssumptions.underlying
+  StatusResponse.TypeAssumptions.isUnderlying
+  StatusResponse.TypeAssumptions.method_set
+  StatusResponse.TypeAssumptions.ptr_method_set
+
+class DowngradeInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying DowngradeInfo.underlying DowngradeInfo
+  underlying : go.UnderlyingDirectedEq DowngradeInfo.ty DowngradeInfo.underlying
+  isUnderlying : go.IsUnderlying DowngradeInfo.underlying DowngradeInfo.underlying
+  method_set : go.MethodSetIs DowngradeInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DowngradeInfo.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"GetTargetVersion", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+
+attribute [instance] DowngradeInfo.TypeAssumptions.type_repr
+  DowngradeInfo.TypeAssumptions.underlying
+  DowngradeInfo.TypeAssumptions.isUnderlying
+  DowngradeInfo.TypeAssumptions.method_set
+  DowngradeInfo.TypeAssumptions.ptr_method_set
+
+class AuthEnableRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying AuthEnableRequest.underlying AuthEnableRequest
+  underlying : go.UnderlyingDirectedEq AuthEnableRequest.ty AuthEnableRequest.underlying
+  get_state : ∀ (x : AuthEnableRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthEnableRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : AuthEnableRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthEnableRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthEnableRequest)))
+  get_unknownFields : ∀ (x : AuthEnableRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthEnableRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : AuthEnableRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthEnableRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthEnableRequest)))
+  get_sizeCache : ∀ (x : AuthEnableRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthEnableRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : AuthEnableRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthEnableRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthEnableRequest)))
+  method_set : go.MethodSetIs AuthEnableRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthEnableRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+
+attribute [instance] AuthEnableRequest.TypeAssumptions.type_repr
+  AuthEnableRequest.TypeAssumptions.underlying
+  AuthEnableRequest.TypeAssumptions.get_state
+  AuthEnableRequest.TypeAssumptions.set_state
+  AuthEnableRequest.TypeAssumptions.get_unknownFields
+  AuthEnableRequest.TypeAssumptions.set_unknownFields
+  AuthEnableRequest.TypeAssumptions.get_sizeCache
+  AuthEnableRequest.TypeAssumptions.set_sizeCache
+  AuthEnableRequest.TypeAssumptions.method_set
+  AuthEnableRequest.TypeAssumptions.ptr_method_set
+
+class AuthDisableRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying AuthDisableRequest.underlying AuthDisableRequest
+  underlying : go.UnderlyingDirectedEq AuthDisableRequest.ty AuthDisableRequest.underlying
+  isUnderlying : go.IsUnderlying AuthDisableRequest.underlying AuthDisableRequest.underlying
+  method_set : go.MethodSetIs AuthDisableRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthDisableRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+
+attribute [instance] AuthDisableRequest.TypeAssumptions.type_repr
+  AuthDisableRequest.TypeAssumptions.underlying
+  AuthDisableRequest.TypeAssumptions.isUnderlying
+  AuthDisableRequest.TypeAssumptions.method_set
+  AuthDisableRequest.TypeAssumptions.ptr_method_set
+
 class AuthStatusRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthStatusRequest.underlying AuthStatusRequest
   underlying : go.UnderlyingDirectedEq AuthStatusRequest.ty AuthStatusRequest.underlying
@@ -1084,112 +1185,6 @@ attribute [instance] leaseClient.TypeAssumptions.type_repr
   leaseClient.TypeAssumptions.ptr_LeaseGrant_unfold
   leaseClient.TypeAssumptions.ptr_LeaseKeepAlive_unfold
   leaseClient.TypeAssumptions.ptr_LeaseRevoke_unfold
-
-class LeaseServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq LeaseServer.ty LeaseServer.underlying
-  method_set : go.MethodSetIs LeaseServer.ty [(go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseGrantRequest.ty)] false [(go.GoType.PointerType LeaseGrantResponse.ty), go.error]))), (go!"LeaseKeepAlive", (some (go.signature.Signature [(_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty LeaseKeepAliveRequest.ty LeaseKeepAliveResponse.ty)] false [go.error]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseLeasesRequest.ty)] false [(go.GoType.PointerType LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseRevokeRequest.ty)] false [(go.GoType.PointerType LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedLeaseServer", (some (go.signature.Signature [] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseServer.ty) []
-
-attribute [instance] LeaseServer.TypeAssumptions.underlying
-  LeaseServer.TypeAssumptions.method_set
-  LeaseServer.TypeAssumptions.ptr_method_set
-
-class UnimplementedLeaseServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying UnimplementedLeaseServer.underlying UnimplementedLeaseServer
-  underlying : go.UnderlyingDirectedEq UnimplementedLeaseServer.ty UnimplementedLeaseServer.underlying
-  method_set : go.MethodSetIs UnimplementedLeaseServer.ty [(go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseGrantRequest.ty)] false [(go.GoType.PointerType LeaseGrantResponse.ty), go.error]))), (go!"LeaseKeepAlive", (some (go.signature.Signature [(_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty LeaseKeepAliveRequest.ty LeaseKeepAliveResponse.ty)] false [go.error]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseLeasesRequest.ty)] false [(go.GoType.PointerType LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseRevokeRequest.ty)] false [(go.GoType.PointerType LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedLeaseServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnimplementedLeaseServer.ty) [(go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseGrantRequest.ty)] false [(go.GoType.PointerType LeaseGrantResponse.ty), go.error]))), (go!"LeaseKeepAlive", (some (go.signature.Signature [(_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty LeaseKeepAliveRequest.ty LeaseKeepAliveResponse.ty)] false [go.error]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseLeasesRequest.ty)] false [(go.GoType.PointerType LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseRevokeRequest.ty)] false [(go.GoType.PointerType LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedLeaseServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
-
-attribute [instance] UnimplementedLeaseServer.TypeAssumptions.type_repr
-  UnimplementedLeaseServer.TypeAssumptions.underlying
-  UnimplementedLeaseServer.TypeAssumptions.method_set
-  UnimplementedLeaseServer.TypeAssumptions.ptr_method_set
-
-class UnsafeLeaseServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq UnsafeLeaseServer.ty UnsafeLeaseServer.underlying
-  method_set : go.MethodSetIs UnsafeLeaseServer.ty [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedLeaseServer", (some (go.signature.Signature [] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnsafeLeaseServer.ty) []
-
-attribute [instance] UnsafeLeaseServer.TypeAssumptions.underlying
-  UnsafeLeaseServer.TypeAssumptions.method_set
-  UnsafeLeaseServer.TypeAssumptions.ptr_method_set
-
-class ClusterClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq ClusterClient.ty ClusterClient.underlying
-  method_set : go.MethodSetIs ClusterClient.ty [(go!"MemberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberAddRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType MemberAddResponse.ty), go.error]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberListRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType MemberListResponse.ty), go.error]))), (go!"MemberPromote", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberPromoteRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType MemberPromoteResponse.ty), go.error]))), (go!"MemberRemove", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberRemoveRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType MemberRemoveResponse.ty), go.error]))), (go!"MemberUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberUpdateRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType MemberUpdateResponse.ty), go.error])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterClient.ty) []
-
-attribute [instance] ClusterClient.TypeAssumptions.underlying
-  ClusterClient.TypeAssumptions.method_set
-  ClusterClient.TypeAssumptions.ptr_method_set
-
-class clusterClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying clusterClient.underlying clusterClient
-  underlying : go.UnderlyingDirectedEq clusterClient.ty clusterClient.underlying
-  get_cc : ∀ (x : clusterClient), go.IsGoStepPureDetTagged under (StructFieldGet clusterClient.underlying go!"cc") #x (Val #(x.cc'))
-  set_cc : ∀ (x : clusterClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet clusterClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : clusterClient)))
-  method_set : go.MethodSetIs clusterClient.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clusterClient.ty) [(go!"MemberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberAddRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType MemberAddResponse.ty), go.error]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberListRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType MemberListResponse.ty), go.error]))), (go!"MemberPromote", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberPromoteRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType MemberPromoteResponse.ty), go.error]))), (go!"MemberRemove", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberRemoveRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType MemberRemoveResponse.ty), go.error]))), (go!"MemberUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberUpdateRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType MemberUpdateResponse.ty), go.error])))]
-
-attribute [instance] clusterClient.TypeAssumptions.type_repr
-  clusterClient.TypeAssumptions.underlying
-  clusterClient.TypeAssumptions.get_cc
-  clusterClient.TypeAssumptions.set_cc
-  clusterClient.TypeAssumptions.method_set
-  clusterClient.TypeAssumptions.ptr_method_set
-
-class ClusterServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq ClusterServer.ty ClusterServer.underlying
-  method_set : go.MethodSetIs ClusterServer.ty [(go!"MemberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberAddRequest.ty)] false [(go.GoType.PointerType MemberAddResponse.ty), go.error]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberListRequest.ty)] false [(go.GoType.PointerType MemberListResponse.ty), go.error]))), (go!"MemberPromote", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberPromoteRequest.ty)] false [(go.GoType.PointerType MemberPromoteResponse.ty), go.error]))), (go!"MemberRemove", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberRemoveRequest.ty)] false [(go.GoType.PointerType MemberRemoveResponse.ty), go.error]))), (go!"MemberUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberUpdateRequest.ty)] false [(go.GoType.PointerType MemberUpdateResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedClusterServer", (some (go.signature.Signature [] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterServer.ty) []
-
-attribute [instance] ClusterServer.TypeAssumptions.underlying
-  ClusterServer.TypeAssumptions.method_set
-  ClusterServer.TypeAssumptions.ptr_method_set
-
-class UnimplementedClusterServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying UnimplementedClusterServer.underlying UnimplementedClusterServer
-  underlying : go.UnderlyingDirectedEq UnimplementedClusterServer.ty UnimplementedClusterServer.underlying
-  method_set : go.MethodSetIs UnimplementedClusterServer.ty [(go!"MemberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberAddRequest.ty)] false [(go.GoType.PointerType MemberAddResponse.ty), go.error]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberListRequest.ty)] false [(go.GoType.PointerType MemberListResponse.ty), go.error]))), (go!"MemberPromote", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberPromoteRequest.ty)] false [(go.GoType.PointerType MemberPromoteResponse.ty), go.error]))), (go!"MemberRemove", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberRemoveRequest.ty)] false [(go.GoType.PointerType MemberRemoveResponse.ty), go.error]))), (go!"MemberUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberUpdateRequest.ty)] false [(go.GoType.PointerType MemberUpdateResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedClusterServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnimplementedClusterServer.ty) [(go!"MemberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberAddRequest.ty)] false [(go.GoType.PointerType MemberAddResponse.ty), go.error]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberListRequest.ty)] false [(go.GoType.PointerType MemberListResponse.ty), go.error]))), (go!"MemberPromote", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberPromoteRequest.ty)] false [(go.GoType.PointerType MemberPromoteResponse.ty), go.error]))), (go!"MemberRemove", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberRemoveRequest.ty)] false [(go.GoType.PointerType MemberRemoveResponse.ty), go.error]))), (go!"MemberUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MemberUpdateRequest.ty)] false [(go.GoType.PointerType MemberUpdateResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedClusterServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
-
-attribute [instance] UnimplementedClusterServer.TypeAssumptions.type_repr
-  UnimplementedClusterServer.TypeAssumptions.underlying
-  UnimplementedClusterServer.TypeAssumptions.method_set
-  UnimplementedClusterServer.TypeAssumptions.ptr_method_set
-
-class UnsafeClusterServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq UnsafeClusterServer.ty UnsafeClusterServer.underlying
-  method_set : go.MethodSetIs UnsafeClusterServer.ty [(go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedClusterServer", (some (go.signature.Signature [] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnsafeClusterServer.ty) []
-
-attribute [instance] UnsafeClusterServer.TypeAssumptions.underlying
-  UnsafeClusterServer.TypeAssumptions.method_set
-  UnsafeClusterServer.TypeAssumptions.ptr_method_set
-
-class MaintenanceClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq MaintenanceClient.ty MaintenanceClient.underlying
-  method_set : go.MethodSetIs MaintenanceClient.ty [(go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType AlarmRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType AlarmResponse.ty), go.error]))), (go!"Defragment", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType DefragmentRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType DefragmentResponse.ty), go.error]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType DowngradeRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType DowngradeResponse.ty), go.error]))), (go!"Hash", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HashRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType HashResponse.ty), go.error]))), (go!"HashKV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HashKVRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType HashKVResponse.ty), go.error]))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MoveLeaderRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType MoveLeaderResponse.ty), go.error]))), (go!"Snapshot", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType SnapshotRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(_root_.Perennial.google_golang_org.grpc.ServerStreamingClient.ty SnapshotResponse.ty), go.error]))), (go!"Status", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StatusRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType StatusResponse.ty), go.error])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MaintenanceClient.ty) []
-
-attribute [instance] MaintenanceClient.TypeAssumptions.underlying
-  MaintenanceClient.TypeAssumptions.method_set
-  MaintenanceClient.TypeAssumptions.ptr_method_set
-
-class maintenanceClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying maintenanceClient.underlying maintenanceClient
-  underlying : go.UnderlyingDirectedEq maintenanceClient.ty maintenanceClient.underlying
-  get_cc : ∀ (x : maintenanceClient), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceClient.underlying go!"cc") #x (Val #(x.cc'))
-  set_cc : ∀ (x : maintenanceClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : maintenanceClient)))
-  method_set : go.MethodSetIs maintenanceClient.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType maintenanceClient.ty) [(go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType AlarmRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType AlarmResponse.ty), go.error]))), (go!"Defragment", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType DefragmentRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType DefragmentResponse.ty), go.error]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType DowngradeRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType DowngradeResponse.ty), go.error]))), (go!"Hash", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HashRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType HashResponse.ty), go.error]))), (go!"HashKV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HashKVRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType HashKVResponse.ty), go.error]))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MoveLeaderRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType MoveLeaderResponse.ty), go.error]))), (go!"Snapshot", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType SnapshotRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(_root_.Perennial.google_golang_org.grpc.ServerStreamingClient.ty SnapshotResponse.ty), go.error]))), (go!"Status", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StatusRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType StatusResponse.ty), go.error])))]
-
-attribute [instance] maintenanceClient.TypeAssumptions.type_repr
-  maintenanceClient.TypeAssumptions.underlying
-  maintenanceClient.TypeAssumptions.get_cc
-  maintenanceClient.TypeAssumptions.set_cc
-  maintenanceClient.TypeAssumptions.method_set
-  maintenanceClient.TypeAssumptions.ptr_method_set
 
 end go_etcd_io.etcd.api.v3.etcdserverpb
 

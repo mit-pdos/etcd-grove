@@ -13,6 +13,7 @@ public import Spec.go_etcd_io.etcd.server.v3.lease.Lease__persistTo
 public import Spec.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__RegisterOrUpdate
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__scheduleCheckpointIfNeeded
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorLemmas
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -118,12 +119,12 @@ theorem lease.lessor.Grant.wp_proof
   have hmax : sync.rwmutex.actualMaxReaders.toNat = (sync.rwmutex.actualMaxReaders.toNat - 1) + 1 := by
     rw [sync.rwmutex.actualMaxReaders_unseal]; decide
   rw [hmax, List.replicate_succ]
-  icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ HexRs with ⟨HexR, -⟩
+  icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ HexRs with ⟨HexR, HexRest⟩
   icases sync.ownRWMutex_guard _ _ $$ HexR with ⟨-, #HexG⟩
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
-  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L', Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hls, Hx, Hhist⟩
+  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L', Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx, Hhist⟩
   iunfold leaseOwn at Hown
   icases Hown with ⟨Hown, Hcls⟩
   ihave %Hag := leaseFrag_agree γl _ _ _ _ $$ [$Hown $Hg]
@@ -144,7 +145,7 @@ theorem lease.lessor.Grant.wp_proof
       iunfold lessorMu
       iexists lm, im, M, I, rd0, L
       iframe
-      iframe Hls
+      iframe Hsz Hls
       ipureintro; exact HL
     iapply HΦ
     iframe Hrtk
@@ -190,7 +191,7 @@ theorem lease.lessor.Grant.wp_proof
     -- the live set grows; the lessor's state and its history with the new lease
     iapply fupd_wp
     imod closers_grant γl lp L M id l rc I I0 sm ⊤ (fun _ _ => CoPset.mem_full) Hlnn hM HL
-      $$ [$Hrd $Ha $Hcls $Hrvk $Hhist $Hrc $Hrcl $HiS $Hsm $Hmu0 $HID] with ⟨Ha, Hcls, Hrvk, Hhist, #Hlo, #HID⟩
+      $$ [$Hrd $Ha $Hcls $Hrvk $Hhist $Hrc $Hrcl $HiS $Hsm $Hmu0 $HID $HexG $HexRest] with ⟨Ha, Hcls, Hrvk, Hhist, #Hlo, #HID⟩
     imod lessor_live_grant γl lp L (M.insert id l) id $$ [$Ha $Hg $Hown $Hgr] with ⟨Ha, Hg, Hown⟩
     imodintro
     -- (S7c) `le.b`, read with the write token's fraction
@@ -205,7 +206,9 @@ theorem lease.lessor.Grant.wp_proof
     (try wp_auto)
     iunfold go_etcd_io.etcd.server.v3.storage.backend.histSpec at Hhts
     icases Hhts with #Hhts
-    wp_apply Hhts
+    wp_apply +noauto Hhts
+    -- the map's receipt, raised for the lease it now holds (at `leaseGranted.Inc`'s resolution)
+    wp_raise_receipt Hsz
     (try wp_auto)
     iunfold counterSpec at Hcgs
     icases Hcgs with #Hcgs
@@ -250,8 +253,9 @@ theorem lease.lessor.Grant.wp_proof
       inext
       iunfold lessorMu
       iexists lm, im, (<[id := l]> M), I, rd0, (L ++ [id])
+      rw [GMap.map_size_insert_None M id l hM]
       iframe
-      iframe Hls'
+      iframe Hsz Hls'
       ipureintro
       intro x
       rw [GMap.lookup_insert_is_Some, List.mem_append, List.mem_singleton, HL x]

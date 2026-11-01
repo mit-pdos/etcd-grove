@@ -50,7 +50,7 @@ theorem lease.lessor.Checkpoint.wp_proof
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
-  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hls, Hx, Hhist⟩
+  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx, Hhist⟩
   iunfold lessorExtra at Hx
   icases Hx with ⟨%dc, %np, %h, %hx, %cp, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
   (try wp_auto)
@@ -67,7 +67,7 @@ theorem lease.lessor.Checkpoint.wp_proof
       iunfold lessorMu
       iexists lm, im, M, I, rd0, L
       iframe
-      iframe Hls
+      iframe Hsz Hls
       ipureintro; exact HL
     iapply HΦ
     iframe Hrtk
@@ -131,7 +131,7 @@ theorem lease.lessor.Checkpoint.wp_proof
       iunfold lessorMu
       iexists lm, im, M, I, rd0, L
       iframe
-      iframe Hls
+      iframe Hsz Hls
       ipureintro; exact HL
     iapply HΦ
     iframe Hrtk

@@ -872,15 +872,7 @@ axiom SnapshotRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 axiom SnapshotResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LeaseTimeToLiveRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-axiom LeaseTimeToLiveResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 axiom LeaseLeasesRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-axiom LeaseStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-axiom LeaseLeasesResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 axiom Member.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -6935,25 +6927,125 @@ noncomputable instance equals_unfold_LeaseKeepAliveResponse [GooseExts] [GoGloba
 @[reducible] noncomputable def LeaseKeepAliveResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LeaseKeepAliveResponse.fields)
 
-axiom LeaseTimeToLiveRequest : Type
-axiom LeaseTimeToLiveRequest.zero_val : ZeroVal LeaseTimeToLiveRequest
-attribute [instance] LeaseTimeToLiveRequest.zero_val
+structure LeaseTimeToLiveRequest [GooseExts] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  ID' : w64
+  Keys' : Bool
+  unknownFields' : GoSlice
+  sizeCache' : w32
 
-axiom LeaseTimeToLiveResponse : Type
-axiom LeaseTimeToLiveResponse.zero_val : ZeroVal LeaseTimeToLiveResponse
-attribute [instance] LeaseTimeToLiveResponse.zero_val
+noncomputable instance LeaseTimeToLiveRequest.zero_val [GooseExts] : ZeroVal LeaseTimeToLiveRequest :=
+  ⟨LeaseTimeToLiveRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def LeaseTimeToLiveRequest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"ID" go.int64),
+(go.field_decl.FieldDecl go!"Keys" go.bool),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def LeaseTimeToLiveRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  LeaseTimeToLiveRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_LeaseTimeToLiveRequest [GooseExts] [GoGlobalContext] :
+    EqualsUnfold LeaseTimeToLiveRequest.fields LeaseTimeToLiveRequest.fieldsUnsealed :=
+  ⟨by unfold LeaseTimeToLiveRequest.fields; rfl⟩
+
+@[reducible] noncomputable def LeaseTimeToLiveRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType LeaseTimeToLiveRequest.fields)
+
+structure LeaseTimeToLiveResponse [GooseExts] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Header' : Loc
+  ID' : w64
+  TTL' : w64
+  GrantedTTL' : w64
+  Keys' : GoSlice
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance LeaseTimeToLiveResponse.zero_val [GooseExts] : ZeroVal LeaseTimeToLiveResponse :=
+  ⟨LeaseTimeToLiveResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def LeaseTimeToLiveResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType ResponseHeader.ty)),
+(go.field_decl.FieldDecl go!"ID" go.int64),
+(go.field_decl.FieldDecl go!"TTL" go.int64),
+(go.field_decl.FieldDecl go!"GrantedTTL" go.int64),
+(go.field_decl.FieldDecl go!"Keys" (go.GoType.SliceType (go.GoType.SliceType go.byte))),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def LeaseTimeToLiveResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  LeaseTimeToLiveResponse.fieldsUnsealed
+
+noncomputable instance equals_unfold_LeaseTimeToLiveResponse [GooseExts] [GoGlobalContext] :
+    EqualsUnfold LeaseTimeToLiveResponse.fields LeaseTimeToLiveResponse.fieldsUnsealed :=
+  ⟨by unfold LeaseTimeToLiveResponse.fields; rfl⟩
+
+@[reducible] noncomputable def LeaseTimeToLiveResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType LeaseTimeToLiveResponse.fields)
 
 axiom LeaseLeasesRequest : Type
 axiom LeaseLeasesRequest.zero_val : ZeroVal LeaseLeasesRequest
 attribute [instance] LeaseLeasesRequest.zero_val
 
-axiom LeaseStatus : Type
-axiom LeaseStatus.zero_val : ZeroVal LeaseStatus
-attribute [instance] LeaseStatus.zero_val
+structure LeaseStatus [GooseExts] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  ID' : w64
+  unknownFields' : GoSlice
+  sizeCache' : w32
 
-axiom LeaseLeasesResponse : Type
-axiom LeaseLeasesResponse.zero_val : ZeroVal LeaseLeasesResponse
-attribute [instance] LeaseLeasesResponse.zero_val
+noncomputable instance LeaseStatus.zero_val [GooseExts] : ZeroVal LeaseStatus :=
+  ⟨LeaseStatus.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def LeaseStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"ID" go.int64),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def LeaseStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  LeaseStatus.fieldsUnsealed
+
+noncomputable instance equals_unfold_LeaseStatus [GooseExts] [GoGlobalContext] :
+    EqualsUnfold LeaseStatus.fields LeaseStatus.fieldsUnsealed :=
+  ⟨by unfold LeaseStatus.fields; rfl⟩
+
+@[reducible] noncomputable def LeaseStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType LeaseStatus.fields)
+
+structure LeaseLeasesResponse [GooseExts] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Header' : Loc
+  Leases' : GoSlice
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance LeaseLeasesResponse.zero_val [GooseExts] : ZeroVal LeaseLeasesResponse :=
+  ⟨LeaseLeasesResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def LeaseLeasesResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType ResponseHeader.ty)),
+(go.field_decl.FieldDecl go!"Leases" (go.GoType.SliceType (go.GoType.PointerType LeaseStatus.ty))),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def LeaseLeasesResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  LeaseLeasesResponse.fieldsUnsealed
+
+noncomputable instance equals_unfold_LeaseLeasesResponse [GooseExts] [GoGlobalContext] :
+    EqualsUnfold LeaseLeasesResponse.fields LeaseLeasesResponse.fieldsUnsealed :=
+  ⟨by unfold LeaseLeasesResponse.fields; rfl⟩
+
+@[reducible] noncomputable def LeaseLeasesResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType LeaseLeasesResponse.fields)
 
 axiom Member : Type
 axiom Member.zero_val : ZeroVal Member
