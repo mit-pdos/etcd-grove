@@ -16624,6 +16624,19 @@ over `permVerdict`'s first half; S1, `authpb` translated and schema's auth backe
   store's history (`histAuth_next`). The two marked `sorry`s are `revRoom`
   (`Proof/.../k8setcd3/InvSteps.lean`) and `clientErr_other` (`Calls.lean`); `Apply` is proved
   against `k8setcd3S g0` with them (`Apply.lean`).
+- **D30o: etcd's revision overflow stays an assumption, for now** (2026-11-01, the user's
+  decision, during the redesign of the store's specs with the `spec` skill). The store's write
+  updates keep `σ.rev + 2 < 2 ^ 63` in their precondition: etcd's revisions are `int64`s and its
+  model keeps a key's mod revision as a `w64` (`EtcdKv.modRev`), so a write past `2 ^ 63` would
+  reuse an old revision; the store's model step (`KWf_put`/`KWf_del`) needs the new one to fit.
+  The driver's `revRoom` stays a marked `sorry`. Not available from etcd today: the client's
+  updates fire at raft commit inside the KV invariant (`kv_prop_auW`), which bounds nothing; the
+  `< 2 ^ 63` facts etcd has are the applied log's (mvcc's writer budget, `idxWriter_lt`, D19c),
+  in the clients' postconditions only. Later: eliminate it with time receipts, either in etcd
+  (the KV invariant bounds the committed revisions by `receiptBound`: each revision comes from a
+  proposal, which took a step; then one law of the served KV, and every spec over `etcdKV` drops
+  the conjunct) or in the driver (its own calls made every revision, as the `lintest` examples
+  bound their steps).
 
 ## A1 of the auth plan: the class statement for the verified checks and API-layer handlers (2026-10-23 · `notes/auth-plan.md`, branch `auth-a1`)
 
