@@ -426,6 +426,52 @@ theorem Replica.run.wp_proof
       · iframe Hrange Hlock
       imod append_none_post st ρ.ms ρ.γs c D ce es k Hsi.2.2.1 Hin Hidx Hk
         $$ Hrec HfzD Hcef Hb with ⟨#HfzD', Hrcpt⟩
+      -- the image after the batch: its shape, the batch's durable state
+      have Hhead : es ≠ [] → ∃ e0, es.head? = some e0 := by
+        intro hne; cases es with
+        | nil => exact absurd rfl hne
+        | cons x xs => exact ⟨x, rfl⟩
+      have Hc0 : uint.nat M.hs.Commit' ≤ uint.nat (phsNext hd h).Commit' := by rw [Hcmeq]; exact G4
+      have G17' : es ≠ [] → uint.nat M.hs.Commit' < k := by
+        intro hne; obtain ⟨e0, he0⟩ := Hhead hne; rw [Hk e0 he0, Hcmeq]; exact G17 e0 he0
+      have G9' : es ≠ [] → k ≤ S.last + 1 := by
+        intro hne; obtain ⟨e0, he0⟩ := Hhead hne; rw [Hk e0 he0]; exact G9 e0 he0
+      obtain ⟨Hok3, Hh3⟩ := img_ready_ok M S (phsNext hd h) es k HSM HMok Hc0 h1 G20 (fun _ => h2) G8
+        G9' G17'
+      -- the frozen bound raised to the delivered log
+      have HpC : uint.nat M.prev ≤ uint.nat M.hs.Commit' := by have := HMok.2.2.2.2.2.2.1; word
+      have HcL : uint.nat M.hs.Commit' ≤ uint.nat M.prev + M.ents.length := HMok.2.2.2.2.2.2.2
+      have Hfz0c : max fz (uint.nat M.prev) ≤ uint.nat M.hs.Commit' := by
+        rcases Hfzc with h' | h' <;> omega
+      have Htk := imgAppend_take (imgSetHardState M (phsNext hd h)) k es
+        (max fz (uint.nat M.prev) - uint.nat M.prev)
+        (fun hne => by have := G17' hne; simp only [imgSetHardState]; omega)
+        (by simp only [imgSetHardState]; omega)
+      have HbS : uint.nat S.base.index' ≤ uint.nat M.prev := by
+        have := HSM.1; simp only [kdContents] at this; word
+      have Hent := img_frozen_facts (imgAppend (imgSetHardState M (phsNext hd h)) k es)
+        (readyDurable S (phsNext hd h) none es) (D ++ ce) (uint.nat M.prev) (max fz (uint.nat M.prev))
+        (max fz (uint.nat M.prev)) Hh3 (by simp [imgSetHardState]) (Nat.le_refl _) (by omega) (by
+          intro i hi1 hi2
+          have hj : i - D.length - 1 < ce.length := by simp only [List.length_append] at hi2; omega
+          obtain ⟨x, hx⟩ : ∃ x, ce[i - D.length - 1]? = some x := ⟨_, List.getElem?_eq_getElem hj⟩
+          refine ⟨x, ?_, ?_⟩
+          · rw [List.getElem?_append_right (by omega), show i - 1 - D.length = i - D.length - 1 by omega]
+            exact hx
+          · have Hg := G14 (i - D.length - 1) x hx (by rw [readyDurable_base_none]; omega)
+            rw [readyDurable_base_none] at Hg ⊢
+            rw [show ((D.length : Int) + 1 + ((i - D.length - 1 : Nat) : Int)) = (i : Int) by omega,
+              show D.length + (i - D.length - 1) - uint.nat S.base.index' =
+                i - 1 - uint.nat S.base.index' by omega] at Hg
+            exact Hg)
+      ihave #Hfzo : memLog ρ.γs (uint.nat M.prev + 1) DFrac.discard
+          (M.ents.take (max fz (uint.nat M.prev) - uint.nat M.prev)) $$ []
+      · rw [show max fz (uint.nat M.prev) - uint.nat M.prev = fz - uint.nat M.prev by omega]
+        iexact Hfz
+      ihave #Hfz3 := frozen_extend ρ.γs (uint.nat M.prev) M.ents
+        (imgAppend (imgSetHardState M (phsNext hd h)) k es).ents c (max fz (uint.nat M.prev)) (D ++ ce)
+        (by omega) (by omega) Htk Hent $$ [Hfzo HfzD']
+      · iframe Hfzo HfzD'
       sorry
     | some lo =>
       sorry

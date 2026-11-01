@@ -288,6 +288,50 @@ theorem holds_last (S : RaftState) (M : StorFile) (Hh : StorageHolds S (kdConten
   clear H2 H3
   word
 
+@[simp] theorem imgAppend_prev (I : StorFile) (k : Nat) (es : List EntryM) :
+    (imgAppend I k es).prev = I.prev := by unfold imgAppend; split <;> rfl
+@[simp] theorem imgAppend_hs (I : StorFile) (k : Nat) (es : List EntryM) :
+    (imgAppend I k es).hs = I.hs := by unfold imgAppend; split <;> rfl
+@[simp] theorem imgAppend_snap (I : StorFile) (k : Nat) (es : List EntryM) :
+    (imgAppend I k es).snap = I.snap := by unfold imgAppend; split <;> rfl
+
+/-- The batch's base, without a snapshot, is the durable state's. -/
+theorem readyDurable_base_none (S : RaftState) (h : HardStateM) (es : List EntryM) :
+    (readyDurable S h none es).base = S.base := rfl
+
+/-- The appended image's entries up to `fz0`, past the batch's start, are the old image's. -/
+theorem imgAppend_take (I : StorFile) (k : Nat) (es : List EntryM) (n : Nat)
+    (Hn : es ≠ [] → uint.nat I.prev + n < k) (Hn2 : n ≤ I.ents.length) :
+    (imgAppend I k es).ents.take n = I.ents.take n := by
+  by_cases hne : es = []
+  · subst hne; unfold imgAppend; rw [if_pos (Or.inl rfl)]
+  · have hk := Hn hne
+    rw [imgAppend_past I k es hne (by omega)]
+    simp only
+    rw [List.take_append_of_le_length (by rw [List.length_take]; omega), List.take_take]
+    congr 1; omega
+
+/-- **The image's entries past the old frozen bound are the delivered log's** (the image holds the
+batch's durable state, whose entries there are the delivered ones). -/
+theorem img_frozen_facts (M3 : StorFile) (S' : RaftState) (D' : List LogEntry) (p Dlen fz0 : Nat)
+    (Hh3 : StorageHolds S' (kdContents (some M3))) (Hprev : uint.nat M3.prev = p)
+    (Hfz0 : Dlen ≤ fz0) (Hpf : p ≤ fz0)
+    (HD' : ∀ i, Dlen < i → i ≤ D'.length → ∃ x, D'[i - 1]? = some x ∧
+      S'.ents[i - 1 - uint.nat S'.base.index']? = some (x.toEntryM (W64 i))) :
+    ∀ i, fz0 < i → i ≤ D'.length → ∃ x, D'[i - 1]? = some x ∧
+      M3.ents[i - p - 1]? = some (x.toEntryM (W64 i)) := by
+  intro i h1 h2
+  obtain ⟨x, hx, hs⟩ := HD' i (by omega) h2
+  refine ⟨x, hx, ?_⟩
+  obtain ⟨H1, -, H3, -⟩ := Hh3
+  simp only [kdContents] at H1 H3
+  rw [H3]
+  unfold RaftState.entsFrom
+  simp only
+  rw [List.getElem?_drop, ← hs]
+  congr 1
+  word
+
 end pure
 
 end kvdurable
