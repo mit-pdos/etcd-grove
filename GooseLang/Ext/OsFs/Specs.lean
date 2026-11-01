@@ -972,6 +972,214 @@ theorem wp_Mmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) 
     iframe
     ipureintro; exact ⟨he, rfl⟩
 
+/-- `munmap` of a whole mapping (`unix.Munmap(b)`), with the whole of the file's `OsMeta` and
+the client halves of all the mapping's cells. On success the mapping and its cells are gone; on
+failure, it may be gone, or still there, with its cells back. -/
+theorem wp_Munmap (base : Loc) (len cap : w64) (p : GoString) (m : OsMeta) (n : Nat)
+    (vf : Nat → val) (hE : ↑osN ⊆ E) (hb : m.maps !! base = some n) (hlen : len.toNat = n)
+    (hcap : cap.toNat = n) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osMeta (L := L) p (DFrac.own 1) (some m) -∗ cellsR base 0 n vf -∗
+      (∀ e : w64,
+        ((⌜e = 0⌝ ∗ osMeta (L := L) p (DFrac.own 1) (some { m with maps := GMap.delete base m.maps })) ∨
+         (⌜e ≠ 0⌝ ∗
+           (osMeta (L := L) p (DFrac.own 1) (some { m with maps := GMap.delete base m.maps }) ∨
+            (osMeta (L := L) p (DFrac.own 1) (some m) ∗ cellsR base 0 n vf)))) -∗ Φ (#e)) -∗
+      WP (ExternalOp osFsExt.name "Munmap" (Val (PairV (#base) (PairV (#len) (#cap))))) @ s; E
+        {{ Φ }} := by
+  iintro #Hinv Hm Hc HΦ
+  iapply wp_os_step "Munmap" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h Hw
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  unfold osMeta
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
+  icases tokRes_meta_whole _ $$ Htok Hm with %Hnt
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  obtain ⟨f, hf, hmo⟩ := coh_meta hcoh Hml
+  have hnt := noTok_of_whole hcoh Hnt
+  have hnoI : ∀ i, ¬ InflightAt st p i := by
+    rintro i ⟨t, c, ht, hcp, -⟩; exact hnt t c ht hcp
+  have hbase : st.maps !! base = some ⟨p, n⟩ := (hmo.maps base n).1 hb
+  imodintro
+  isplitr
+  · ipureintro
+    exact ⟨_, h, st, ⟨base, len, cap, ⟨p, n⟩, rfl, hbase, hlen, hcap,
+      .inr ⟨1, by decide, rfl, .inl rfl⟩⟩, mapsFresh_same rfl, heapRendered_same hwf rfl rfl Hag⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨base', len', cap', m0, hv, hm0, -, -, hres⟩ := Hst
+  injection hv with h1 h2; injection h2 with h3 h4
+  cases go.intoVal_inj h1
+  rw [hbase] at hm0; cases hm0
+  -- the state without the mapping
+  have hunmap : ∀ st1 : OsState, st1 = { st with maps := GMap.delete base st.maps } →
+      OsWf st1 ∧ OsCoh st1 Γb (<[p := some { m with maps := GMap.delete base m.maps }]> Γm) Γf Γt ∧
+      (HeapRendered st st1 h h' → MapsFresh st st1 h →
+        (naHeapCtx tls h ∗ cellsRes (GF := GF) (cellView st) ∗ cellsR base 0 n vf ⊢
+          |==> (naHeapCtx tls h' ∗ cellsRes (cellView st1)))) := by
+    intro st1 hst1
+    have hT : ((List.range n).map (fun (k : Nat) => base +ₗ (k : Int))).Nodup := by
+      unfold List.Nodup; rw [List.pairwise_map]
+      exact List.nodup_range.imp (fun {a b} hab he => hab (by have := loc_add_inj _ he; omega))
+    have hmemT : ∀ l, l ∈ (List.range n).map (fun (k : Nat) => base +ₗ (k : Int)) ↔
+        ∃ k, k < n ∧ l = base +ₗ (k : Int) := by
+      intro l; simp only [List.mem_map, List.mem_range]; constructor
+      · rintro ⟨k, hk, rfl⟩; exact ⟨k, hk, rfl⟩
+      · rintro ⟨k, hk, rfl⟩; exact ⟨k, hk, rfl⟩
+    have hwf1 : OsWf st1 := by
+      rw [hst1]
+      refine { hwf with maps := fun b m1 h1 => ?_, maps_disj := fun b1 m1 b2 m2 h1 h2 => ?_ }
+      · simp only [GMap.lookup_delete_iff] at h1; split at h1
+        · cases h1
+        · exact hwf.maps b m1 h1
+      · simp only [GMap.lookup_delete_iff] at h1 h2; split at h1
+        · cases h1
+        · split at h2
+          · cases h2
+          · exact hwf.maps_disj b1 m1 b2 m2 h1 h2
+    -- a cell of the mapping is mapped by no other
+    have hother : ∀ k, k < n → ∀ q j, ¬ MapsTo st1 (base +ₗ (k : Int)) q j := by
+      rintro k hk q j ⟨b, m1, h1, -, hj, he⟩
+      rw [hst1] at h1
+      simp only [GMap.lookup_delete_iff] at h1; split at h1
+      · cases h1
+      · rename_i hne
+        have hd := hwf.maps_disj b m1 base ⟨p, n⟩ h1 hbase (fun e => hne e.symm)
+        have : base.addr + k = b.addr + j := by simpa [Loc.add] using congrArg Loc.addr he
+        simp at hd; omega
+    refine ⟨hwf1, ?_, fun Hr Hfr => ?_⟩
+    · rw [hst1]
+      refine osCoh_setMaps hcoh _ _ ?_ ?_ ?_
+      · intro q; simp only [GMap.lookup_insert_eq_iff]; split
+        · subst_vars; simp [Hml]
+        · rfl
+      · intro q; simp only [GMap.lookup_insert_eq_iff]; split
+        · subst_vars; simp [Hml]
+        · rfl
+      · intro q m' hq
+        simp only [GMap.lookup_insert_eq_iff] at hq
+        split at hq
+        · subst_vars; cases hq
+          refine ⟨m, Hml, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
+          simp only [GMap.lookup_delete_iff]
+          split
+          · simp
+          · exact hmo.maps b len0
+        · rename_i hpq
+          refine ⟨m', hq, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
+          obtain ⟨f1, -, hmo1⟩ := hcoh.meta_some q m' hq
+          rw [hmo1.maps b len0]
+          simp only [GMap.lookup_delete_iff]
+          split
+          · subst_vars; rw [hbase]; simp only [reduceCtorEq, iff_false, Option.some.injEq]
+            intro h; cases h; exact hpq rfl
+          · rfl
+    · iintro ⟨Hσ, Hcells, Hc⟩
+      ihave Hc := (cellsR_halves base 0 vf n).1 $$ Hc
+      imod cells_step st st1 h h' _ (mkCellsR base vf 0 n) ∅ hwf hwf1 Hr Hfr
+        (fun b m1 h1 => by
+          rw [hst1] at h1; simp only [GMap.lookup_delete_iff] at h1; split at h1
+          · cases h1
+          · exact .inr h1)
+        hT
+        (fun l hl => by
+          obtain ⟨k, hk, rfl⟩ := (hmemT l).1 hl; exact .inl ⟨p, k, base, _, hbase, rfl, hk, rfl⟩)
+        (fun l v hl => by
+          have hl0 := hl
+          rw [lookup_mkCellsR] at hl0
+          split at hl0
+          · rename_i hc
+            obtain ⟨k, hk, rfl⟩ : ∃ k, k < n ∧ l = base +ₗ (k : Int) :=
+              ⟨(l.addr - base.addr).toNat, by omega,
+                by cases l; cases base; simp [Loc.add] at hc ⊢; omega⟩
+            refine ⟨(hmemT _).2 ⟨k, hk, rfl⟩, cellByte st p k, ?_⟩
+            rw [cellView_mapsTo hwf ⟨base, _, hbase, rfl, hk, rfl⟩]
+            simp [hnoI]
+          · cases hl0)
+        (fun l v h => by simp at h)
+        (fun l hl hc => by
+          obtain ⟨k, hk, rfl⟩ := (hmemT l).1 hl
+          rw [lookup_mkCellsR, dif_pos (by simp [Loc.add]; omega)] at hc; cases hc)
+        (fun l hl _ x hx => by
+          obtain ⟨k, hk, rfl⟩ := (hmemT l).1 hl
+          obtain ⟨q, j, hqj⟩ := mapped_of_cellView hx
+          exact absurd hqj (hother k hk q j))
+        (fun l hl => by
+          apply cellView_lookup_congr hwf hwf1 (by rw [hst1]) (by rw [hst1])
+          intro q i
+          constructor
+          · rintro ⟨b, m1, h1, hp, hi, rfl⟩
+            rw [hst1] at h1; simp only [GMap.lookup_delete_iff] at h1; split at h1
+            · cases h1
+            · exact ⟨b, m1, h1, hp, hi, rfl⟩
+          · rintro ⟨b, m1, h1, hp, hi, rfl⟩
+            refine ⟨b, m1, ?_, hp, hi, rfl⟩
+            rw [hst1]
+            by_cases hbb : base = b
+            · subst hbb; rw [hbase] at h1; cases h1
+              exact absurd ((hmemT _).2 ⟨i, hi, rfl⟩) hl
+            · exact (GMap.lookup_delete_ne _ hbb).trans h1)
+        $$ [Hσ Hcells Hc] with ⟨Hσ, Hcells, -⟩
+      · iframe
+      imodintro; iframe
+  have hdone : ∀ e : w64, ∀ st1 : OsState, st1 = { st with maps := GMap.delete base st.maps } →
+      HeapRendered st st1 h h' → MapsFresh st st1 h →
+      (gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb Γb ∗
+        gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm Γm ∗
+        gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γf Γf ∗
+        gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γt Γt ∗ tokRes (gooseOsGS (L := L)) st Γt ∗
+        cellsRes (cellView st) ∗ threadToks st.inflight.size ∗ naHeapCtx tls h ∗
+        gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm p (DFrac.own 1) (some m) ∗
+        cellsR base 0 n vf ∗
+        (gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm p (DFrac.own 1)
+          (some { m with maps := GMap.delete base m.maps }) -∗ Φ (#e)) ⊢
+      |==> ∃ Γb' Γm' Γf' Γt', osWorld (L := L) st1 Γb' Γm' Γf' Γt' h' ∗
+        WP (Val (#e)) @ s; E {{ Φ }}) := by
+    intro e st1 hst1 Hr Hfr
+    obtain ⟨hwf1, hcoh1, hheap⟩ := hunmap st1 hst1
+    iintro ⟨HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ, Hm, Hc, HΦe⟩
+    imod gAuth_update _ _ _ _ _ (some { m with maps := GMap.delete base m.maps }) $$ HAm Hm
+      with ⟨HAm, Hm⟩
+    imod hheap Hr Hfr $$ [Hσ Hcells Hc] with ⟨Hσ, Hcells⟩
+    · iframe
+    imodintro
+    iexists Γb, _, Γf, Γt
+    unfold osWorld
+    have htr : tokRes gooseOsGS st1 Γt = tokRes (gooseOsGS (L := L)) st Γt := by rw [hst1]; rfl
+    rw [htr, show st1.inflight = st.inflight by rw [hst1]]
+    iframe
+    isplitr
+    · ipureintro; exact ⟨hwf1, hcoh1⟩
+    iapply wp_value'
+    iapply HΦe $$ Hm
+  unfold osWorld at hdone
+  rcases hres with ⟨hst1, rfl⟩ | ⟨e, he, rfl, hst1 | hst1⟩
+  · iapply hdone 0 st' hst1 Hr Hfr
+    iframe
+    iintro Hm; iapply HΦ; ileft; iframe; ipureintro; rfl
+  · subst hst1
+    imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+    · iframe
+    imodintro
+    iexists Γb, Γm, Γf, Γt
+    iframe
+    isplitr
+    · ipureintro; exact ⟨hwf, hcoh⟩
+    iapply wp_value'
+    iapply HΦ
+    iright; iframe; isplitr
+    · ipureintro; exact he
+    iright; iframe
+  · iapply hdone e st' hst1 Hr Hfr
+    iframe
+    iintro Hm; iapply HΦ; iright
+    isplitr [Hm]
+    · ipureintro; exact he
+    ileft; iframe
+
 end specs
 
 end Perennial
