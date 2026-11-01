@@ -53,7 +53,7 @@ abbrev callTxn.spec : Prop :=
               (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (linkv.txnOf cs t e)).1)
             (((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
               (linkv.txnOf cs t e)).2.2.map linkv.resOf).map encRes) ∧
-          σ.rev + 3 < 2 ^ 63⌝ }}
+          kvRevFits σ.rev⌝ }}
 
 end spec
 

@@ -89,6 +89,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
   · -- the client read the state σ
     subst Hgerr
     obtain ⟨hrevσ, hb⟩ := Hσ
+    replace hb := And.intro hb.1.lt hb.2
     (try wp_auto)
     rw [hrevσ]
     by_cases h0 : σ.rev = 0

@@ -214,15 +214,22 @@ This deletes the counted stocks (70 places), `etcdGrpcSlots_of_started`, `watchR
 
 ### B4. Counters and stocks from receipts
 
-The receipts already are the single budget for lifetime counters. What leaks into specs:
+**Done (2026-11-01, the user's choice: "name it, then move on").**
 
-- **`receiptBound GF ≤ N + 1` and the `N + 7` write tokens.** This is the same work as "one token
-  count goes with restore in compaction mode" (`notes/decisions.md`). Do it there, owned by the
-  backend's stock (`srvWTStockInv`), not as a premise of `NewServer`. Not duplicated here.
-- **The client's `σ.rev + k < 2^63`.** State it once as a law of the client's model
-  (`etcdState_rev_lt`, from the server's receipt-backed revision bound) and delete the about 10
-  restatements.
-- **`boot.length ≤ 2^60`.** Moves into B5's configuration bundle.
+- **The client's revision bound is named.** `kvRevFits r` (`r + 3 < 2 ^ 63`, the reply's revision
+  and the three after it fit `int64`) is defined in `client/v3/KVService.lean`, with `kvRevFits.lt`,
+  `.of_lt` and `.mono`. The posts of `kv.Put`/`Get`/`Delete`, `txn.Commit`, the kubernetes client's
+  three methods, linkvtxn's six calls and k8setcd3's `seedOne` say `kvRevFits σ.rev` (a read's
+  reply) or `kvRevFits (σ.rev + 1)` (a write's) in place of the literal, at exactly the same
+  strength. `examples/common/Writer.lean` keeps the literal until the snapshot branches land (with
+  the four example proofs that feed it).
+- **Not a model law.** The bound is a guarantee the posts give their callers, not a premise anyone
+  threads. A law of the client model would need the server's invariant inside the client's atomic
+  update, which the masks exclude (`notes/decisions.md`, "B4: the revision bound named, not a
+  law").
+- **Routed elsewhere.** `receiptBound GF ≤ N + 1` and the `N + 7` write tokens go with "one token
+  count goes with restore in compaction mode" (`notes/decisions.md`; the snapshot track). The
+  bootstrap log's `boot.length ≤ 2 ^ 60` goes with B5's `cfgScopeOk`.
 
 ### B5. Sizes: one predicate per boundary (D3, D4)
 

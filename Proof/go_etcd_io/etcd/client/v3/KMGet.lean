@@ -94,6 +94,7 @@ theorem kv_get_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoString) (hpfx
   iunfold kmSeenQ at HQ
   icases HQ with ⟨#Hlb, %Hpre⟩
   obtain ⟨hrle, hsrv, -, hrev, h3, hok⟩ := Hs
+  replace h3 := h3.lt
   have hrc := kvLogOk_rev σ hok
   have hkvs := kvLogOk_kvs σ hok
   have hfl : sint.Z lo ≤ (σ.rev : Int) := by have := Hpre.length_le; omega

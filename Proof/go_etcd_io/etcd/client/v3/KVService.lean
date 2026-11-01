@@ -143,6 +143,27 @@ theorem txnWireOf_plain (t : TxnModel) (h : TxnModel.plain t) : TxnModel.plain (
     obtain ⟨op0, h0, rfl⟩ := hm
     exact opWire_plain op0 (h.2 op0 h0)
 
+end client
+
+/-- **A reply's revision fits** (`notes/bounds-plan.md`, B4): the revision `r` a reply carries,
+and the three after it, fit `int64` (`r + 3 < 2 ^ 63`), so a caller may compute `r + 1`, `r + 2`
+and `r + 3` (a revision to watch from, a guard's `ModRevision + 1`, ...). The server keeps its
+revisions far below this (they count its applied entries, bounded by the time receipts); the
+client's replies hand it on (a put's or delete's at `σ.rev + 1`, a read's at `σ.rev`) under one
+name instead of a restated literal. Use `kvRevFits.lt`, not the unfolded definition. -/
+def kvRevFits (r : Nat) : Prop := r + 3 < 2 ^ 63
+
+theorem kvRevFits.lt {r : Nat} (h : kvRevFits r) : r + 3 < 2 ^ 63 := h
+
+theorem kvRevFits.of_lt {r : Nat} (h : r + 3 < 2 ^ 63) : kvRevFits r := h
+
+theorem kvRevFits.mono {r s : Nat} (h : kvRevFits r) (hs : s ≤ r) : kvRevFits s := by
+  unfold kvRevFits at *; omega
+
+namespace client
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
+
 section reply
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -1252,7 +1273,7 @@ revision `σ`'s next, its previous key-value the key's record in `σ`'s current 
 def putStOk (γ : KVNames) (o : OpFull) (Q : KVState → IProp GF) (m : PutRespM) : IProp GF :=
   iprop(∃ σ : KVState, Q σ ∗ ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧
     m.prev = (if o.base.prevKV then (σ.store.lookup o.key).map (KVRec.toKv o.key) else none) ∧
-    σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ ∧ kvLogOk (kvOpStep (.put o) σ)⌝ ∗
+    kvRevFits (σ.rev + 1) ∧ kvLogOk σ ∧ kvLogOk (kvOpStep (.put o) σ)⌝ ∗
     kvRevLb γ m.hdr.revision)
 
 /-- **What a range's reply says**: a state `σ` (the one the read update fired at, `□ Q σ`, if
@@ -1265,7 +1286,7 @@ def rangeStOk (o : OpFull) (Q : KVState → IProp GF) (m : RangeRespM) : IProp G
     ⌜sint.Z o.base.rev ≤ (σ.rev : Int) ∧
       txn.srvRangeOk o (σ.at (σ.readRev o.base.rev)).kvs m.kvs m.more ∧
       m.count = txn.srvCount o (σ.at (σ.readRev o.base.rev)).kvs true ∧
-      m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63 ∧ kvLogOk σ⌝)
+      m.hdr.revision = W64 (σ.rev : Int) ∧ kvRevFits σ.rev ∧ kvLogOk σ⌝)
 
 /-- **What a delete's reply says**: the state `σ` the update fired at (`Q σ`), the reply's count
 the keys of the range, its previous key-values theirs if asked, its revision the state's after
@@ -1274,7 +1295,7 @@ the delete (`kvOpStep`); (D48) `σ` and the state after the delete well-formed s
 def delStOk (o : OpFull) (Q : KVState → IProp GF) (m : DelRespM) : IProp GF :=
   iprop(∃ σ : KVState, Q σ ∗ ⌜m.deleted = W64 ((rangeIn σ.kvs o).length : Int) ∧
     m.prevs = (if o.base.prevKV then rangeIn σ.kvs o else []) ∧
-    m.hdr.revision = W64 ((kvOpStep (.deleteRange o) σ).rev : Int) ∧ σ.rev + 4 < 2 ^ 63 ∧
+    m.hdr.revision = W64 ((kvOpStep (.deleteRange o) σ).rev : Int) ∧ kvRevFits (σ.rev + 1) ∧
     kvLogOk σ ∧ kvLogOk (kvOpStep (.deleteRange o) σ)⌝)
 
 /-- **What a transaction's reply says**: the state `σ` the update fired at (`Q σ` if writing;
@@ -1291,7 +1312,7 @@ def txnStOk (t : TxnModel) (Q : KVState → IProp GF) (m : TxnRespM) : IProp GF 
         (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.2 m.resps ∧
       m.hdr.revision = W64 ((if txn.txnReadonly t then σ.rev else
         (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1).rev : Nat) : Int) ∧
-      σ.rev + 3 < 2 ^ 63 ∧ kvLogOk σ ∧
+      kvRevFits σ.rev ∧ kvLogOk σ ∧
       (txn.txnReadonly t = false → kvLogOk (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1))⌝)
 
 /-! ### The specs' atomic updates, in the proofs' terms -/
@@ -1529,7 +1550,7 @@ theorem putAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (γ 
   refine ⟨?_, ?_, ?_, kvLogOk_of_step hst hlen Hl, ?_⟩
   · rw [hrev, kvStateOf_rev_succ _ hlen]
   · rw [hprev, ← findKey_kvs, ← kvStateOf_kvs]; rfl
-  · rw [kvStateOf_rev]; omega
+  · unfold kvRevFits; rw [kvStateOf_rev]; omega
   · -- (D48) the state after the put: the log after it
     have hlog := kvs_put_applied_log o hm y y' l skip hst
     simp only [kvOpStep]
@@ -1581,7 +1602,7 @@ theorem rangeAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c
   · rw [hrev, kvStateOf_rev]
     congr 1
     omega
-  · rw [kvStateOf_rev]; omega
+  · unfold kvRevFits; rw [kvStateOf_rev]; omega
 
 /-- Some member's delete reply says what `delStOk` says (a range end not `[0]`). -/
 theorem delAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (F : mvcc.Log)
@@ -1607,7 +1628,7 @@ theorem delAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (F :
   · rw [hrev]
     simp only [kvOpStep]
     rw [hs, kvStateOf_commit_rev _ _ hlen]
-  · rw [kvStateOf_rev]; omega
+  · unfold kvRevFits; rw [kvStateOf_rev]; omega
   · -- (D48) the state after the delete: the log after it
     simp only [kvOpStep]
     rw [hs]
@@ -1643,7 +1664,7 @@ theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c :
     rw [hr, hs]
     refine ⟨hok, hrel, ?_, ?_, kvLogOk_of_step hst hlen Hl, fun _ => ?_⟩
     · rw [hrev, ← hs, kvStateOf_commit_rev _ _ hlen]
-    · rw [kvStateOf_rev]; omega
+    · unfold kvRevFits; rw [kvStateOf_rev]; omega
     · -- (D48) the state after the transaction: the log after it
       refine kvLogOk_commit _ ?_ hne Hl
       rw [hlog]; try exact List.prefix_refl _
@@ -1663,7 +1684,7 @@ theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c :
     · rw [hrev, kvStateOf_rev]
       congr 1
       omega
-    · rw [kvStateOf_rev]; omega
+    · unfold kvRevFits; rw [kvStateOf_rev]; omega
 
 /-! ### The calls' outcomes, weakened -/
 
@@ -1723,7 +1744,7 @@ theorem putCallOut_st (γ : KVNames) (o : OpFull) (Q : KVState → IProp GF) (re
       (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
         ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧
           m.prev = (if o.base.prevKV then (σ.store.lookup o.key).map (KVRec.toKv o.key) else none) ∧
-          σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ ∧ kvLogOk (kvOpStep (.put o) σ)⌝ ∗
+          kvRevFits (σ.rev + 1) ∧ kvLogOk σ ∧ kvLogOk (kvOpStep (.put o) σ)⌝ ∗
         kvRevLb γ m.hdr.revision) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
   unfold putCallOut putStOk kvErr
@@ -1747,7 +1768,7 @@ theorem rangeCallOut_st (o : OpFull) (Q : KVState → IProp GF) (resp : Loc) (er
         ⌜sint.Z o.base.rev ≤ (σ.rev : Int) ∧
           txn.srvRangeOk o (σ.at (σ.readRev o.base.rev)).kvs m.kvs m.more ∧
           m.count = txn.srvCount o (σ.at (σ.readRev o.base.rev)).kvs true ∧
-          m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63 ∧ kvLogOk σ⌝) ∨
+          m.hdr.revision = W64 (σ.rev : Int) ∧ kvRevFits σ.rev ∧ kvLogOk σ⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
   unfold rangeCallOut rangeStOk kvErr
   iintro (⟨%He, %m, Hm, %σ, HQ, %Hs⟩ | ⟨%He, #Hs, #Hc⟩)
@@ -1768,7 +1789,7 @@ theorem deleteCallOut_st (o : OpFull) (Q : KVState → IProp GF) (resp : Loc) (e
       (⌜err = GoInterface.nil⌝ ∗ ∃ (m : DelRespM) (σ : KVState), delRespMsg resp m ∗ Q σ ∗
         ⌜m.deleted = W64 ((rangeIn σ.kvs o).length : Int) ∧
           m.prevs = (if o.base.prevKV then rangeIn σ.kvs o else []) ∧
-          m.hdr.revision = W64 ((kvOpStep (.deleteRange o) σ).rev : Int) ∧ σ.rev + 4 < 2 ^ 63 ∧
+          m.hdr.revision = W64 ((kvOpStep (.deleteRange o) σ).rev : Int) ∧ kvRevFits (σ.rev + 1) ∧
           kvLogOk σ ∧ kvLogOk (kvOpStep (.deleteRange o) σ)⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
   unfold deleteCallOut delStOk kvErr
@@ -1794,7 +1815,7 @@ theorem txnCallOut_st (t : TxnModel) (Q : KVState → IProp GF) (resp : Loc) (er
           opRespsRel false (t.branch m.succeeded) (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.2 m.resps ∧
           m.hdr.revision = W64 ((if txn.txnReadonly t then σ.rev else
             (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1).rev : Nat) : Int) ∧
-          σ.rev + 3 < 2 ^ 63 ∧ kvLogOk σ ∧
+          kvRevFits σ.rev ∧ kvLogOk σ ∧
           (txn.txnReadonly t = false → kvLogOk (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1))⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
   unfold txnCallOut txnStOk kvErr
