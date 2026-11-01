@@ -899,9 +899,7 @@ theorem isReadyChan_recvAu (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64
           ▷ (∀ rd : Ready, readyGot n γ N id st rd -∗ Φ rd true) -∗
           recvAu γc Ready Φ) := by
   intro Hh
-  -- PORT(durability stage II): the receive restated (`readyGot`: *enter* and the leader's
-  -- messages, the driver behind *enter*)
-  sorry
+  exact ApiImpl.isReadyChan_recvAu_impl n ch γ N id st Φ Hh
 
 end api
 
@@ -979,8 +977,7 @@ theorem node.wp_readyRecv :
   {{ (rd : Ready), RET (PairV #rd #true); readyGot n γ N id st rd }}
   := by
   intro n ch γ N id st Hh
-  -- PORT(durability stage II): the receive restated (`readyGot`)
-  sorry
+  exact ApiImpl.node.wp_readyRecv_impl n ch γ N id st Hh
 
 end readyRecv
 

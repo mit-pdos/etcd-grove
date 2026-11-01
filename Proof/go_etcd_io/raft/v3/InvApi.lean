@@ -2199,8 +2199,18 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
   sorry
 
 theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
-  -- PORT(durability stage II): the receive restated (I-3: the cut batch, *enter*)
-  sorry
+  intro n ch γ N id0 st Hh
+  iintro %Φ ⟨#Hrc, #Hnode0, Hdrv⟩ HΦ
+  icases readyRecv_open n ch γ N id0 st Hh $$ Hrc Hnode0 Hdrv
+    with ⟨%γn, %id, %ds, #Hrc', Htok, Hk⟩
+  iapply wp_fupd
+  iapply node_ready_receive γn id n ch ds st.hardState $$ [Htok]
+  · iframe Hrc' Htok
+  iintro !> %rd Hraw
+  imod Hk $$ %rd Hraw with Hpost
+  imodintro
+  iapply HΦ
+  iexact Hpost
 
 /-- Raft's `Ready` receive as a channel receive's update (`node_ready_receive`'s). -/
 theorem node_ready_recvAu (γn : NodeNames) (id : w64) (n ch : Loc) (ds : List EntryM)
@@ -2211,8 +2221,29 @@ theorem node_ready_recvAu (γn : NodeNames) (id : w64) (n ch : Loc) (ds : List E
           nodeDriverBusy γn id n (dlvAfter ds ce L) es p' L ∗ readyCut γn rd es ms p' L) -∗
           Φ rd true) -∗
       recvAu γn.readyc Ready Φ := by
-  -- PORT(durability stage II): the receive restated (I-3: the cut batch, *enter*)
-  sorry
+  iintro Hlc #Hrc Hdrv HΦ
+  iunfold EtcdGrove.nodeDriverChan at Hdrv
+  icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
+  unfold EtcdGrove.isReadyChanRaw
+  iapply handshake_receive_au γn.readyc ch (readyP γn) iprop(True) Φ
+    $$ Hlc Hrc [] [HΦ Hds Hreq]
+  · itrivial
+  inext
+  iintro %rd HP
+  unfold readyP
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld, Hcut⟩
+  ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
+  cases Heq
+  iapply HΦ
+  iexists ce, es, ms, p', L
+  iframe Hdata Hcut
+  unfold nodeDriverBusy
+  iframe Hnode Hld
+  isplitr
+  · unfold dlvLb; iframe Hlb Hk
+  iexists ds, ce, p
+  iframe Hd Hds Hrof Hreq
+  ipureintro; rfl
 
 /-- **Receiving a `Ready` as a channel's receive** (the draft's `isReadyChan_recvAu`). -/
 theorem isReadyChan_recvAu_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
@@ -2221,8 +2252,31 @@ theorem isReadyChan_recvAu_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id 
       ∃ γc : ChanNames, isChan ch γc Ready ∗
         (£ 1 ∗ £ 1 -∗ ▷ (∀ rd : Ready, readyPost n γ N id st rd -∗ Φ rd true) -∗
           recvAu γc Ready Φ) := by
-  -- PORT(durability stage II): the receive restated (I-3: the cut batch, *enter*)
-  sorry
+  iintro #Hrc #Hnode0 Hdrv
+  icases readyRecv_open n ch γ N id st Hh $$ Hrc Hnode0 Hdrv
+    with ⟨%γn, %id', %ds, #Hrc', Htok, Hk⟩
+  iexists γn.readyc
+  isplitr
+  · iunfold EtcdGrove.isReadyChanRaw at Hrc'
+    iunfold isHandshake at Hrc'
+    icases Hrc' with ⟨#Hc, -⟩
+    iexact Hc
+  iintro Hlc HΦ
+  iapply recvAu_wand_fupd γn.readyc Ready
+    (fun rd ok => iprop(⌜ok = true⌝ ∗ (∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM)
+          (L : Option SnapLoan), readyDataL γn rd ds ce es ms st.hardState p' L ∗
+          nodeDriverBusy γn id' n (dlvAfter ds ce L) es p' L ∗ readyCut γn rd es ms p' L) ∗
+        (∀ rd : Ready, readyPost n γ N id st rd -∗ Φ rd true))) Φ
+    $$ [Htok Hlc HΦ] [Hk]
+  · iapply node_ready_recvAu γn id' n ch ds st.hardState $$ Hlc Hrc' Htok
+    inext
+    iintro %rd Hraw
+    iframe Hraw HΦ
+    ipureintro; rfl
+  iintro %rd %ok ⟨%Hok, Hraw, HΦ⟩
+  subst Hok
+  imod Hk $$ %rd Hraw with Hpost
+  iapply HΦ $$ Hpost
 
 end node
 
