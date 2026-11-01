@@ -37,7 +37,7 @@ attribute [local instance] kdStorageModel
 /-- See the file header. -/
 abbrev Replica.applyEntry.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq ms : Loc)
-    (γs : MemStorNames) (ph : GName) (q : Qp) (ap : List LogEntry) (idx : w64) (csp : Loc) (m : Membership)
+    (γs : MemStorNames) (ph : KdDmuNames) (q : Qp) (ap : List LogEntry) (idx : w64) (csp : Loc) (m : Membership)
     (mA : Loc) (A : GMap (List w8) (List w8)) (l : List LogEntry) (k : Nat) (e : LogEntry) (ep : Loc),
   l.take k ++ [e] <+: l → ap <+: l → ((ap.length : Int) + 1 < 2 ^ 61) → ((k : Int) + 1 < 2 ^ 61) →
   uint.Z idx = (ap.length : Int) → k ≤ ap.length →

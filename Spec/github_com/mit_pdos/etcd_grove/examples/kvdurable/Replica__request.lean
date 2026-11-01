@@ -43,7 +43,9 @@ abbrev Replica.request.spec : Prop :=
   {{ isReplicaR γ vs dir id r n st sts sq ρ ∗ repOwn γ r ap (W64 ap.length) csp m mA A ∗
       memCompacted ρ.γs c ∗ memLog ρ.γs (c + 1) DFrac.discard ((LogEntry.toEntries D 0).drop c) ∗
       deliveredLogLb n γ.r.cluster kdRaftN D ∗ nodeCommitLb γ.r.cluster ρ.key D.length ∗
-      (⌜bound = W64 0⌝ ∨ nodeAppliedLb γ.r.cluster ρ.key (uint.nat bound)) }}
+      (⌜bound = W64 0⌝ ∨ nodeAppliedLb γ.r.cluster ρ.key (uint.nat bound)) ∗
+      -- (2026-11-01, stage II (h)) the applied index at most the image's frozen bound
+      monoNatLbOwn ρ.ph.ic ap.length }}
     (App (App (App (Val (r @!! go.GoType.PointerType kReplicaTy @!! go!"request")) (Val #snapIndex)) (Val #snap)) (Val #bound))
   {{ (ret : w64), RET #ret; repOwn γ r ap (W64 ap.length) csp m mA A ∗
       ⌜ret = snapIndex ∨ (ret = W64 ap.length ∧ uint.nat snapIndex < ap.length)⌝ }}

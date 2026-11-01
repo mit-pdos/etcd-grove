@@ -84,7 +84,7 @@ instance isReadSeqs_persistent (γ : KdNames) (s : Loc) : Persistent (isReadSeqs
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in
 instance isReplica_persistent (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64)
-    (r n st sts sq ms : Loc) (γs : MemStorNames) (ph : GName) :
+    (r n st sts sq ms : Loc) (γs : MemStorNames) (ph : KdDmuNames) :
     Persistent (isReplica (GF := GF) γ vs dir id r n st sts sq ms γs ph) := by
   unfold isReplica; infer_instance
 

@@ -18,6 +18,7 @@ changes keep both:
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.RunFrozen
 
 @[expose] public section
 
@@ -190,6 +191,52 @@ theorem kdPhaseInv_holds (γ : KdNames) (id : w64) (n : Loc) (ph : GName) (S : R
     isplitl [HR]
     · iexact HR
     ipureintro; exact Hh
+
+/-- **The image's term at a frozen index** (2026-11-01, stage II (h)): past the log's start, at most
+the frozen bound `fz` and the last index, the image's entry is the `MemoryStorage`'s frozen one. -/
+theorem frozen_term (γs : MemStorNames) (M : StorFile) (fz : Nat) (i : w64) (e : EntryM)
+    (hp : uint.nat M.prev < uint.nat i) (hf : uint.nat i ≤ fz)
+    (hl : uint.nat i ≤ uint.nat M.prev + M.ents.length) :
+    memLog (GF := GF) γs (uint.nat M.prev + 1) DFrac.discard (M.ents.take (fz - uint.nat M.prev)) ∗
+      memLog γs (uint.nat i) DFrac.discard [e] ⊢ ⌜imgTermAt M i = e.Term'⌝ := by
+  iintro ⟨Hf, He⟩
+  have hj : uint.nat i - uint.nat M.prev - 1 < M.ents.length := by omega
+  obtain ⟨x, hx⟩ : ∃ x, M.ents[uint.nat i - uint.nat M.prev - 1]? = some x :=
+    ⟨_, List.getElem?_eq_getElem hj⟩
+  have hx' : (M.ents.take (fz - uint.nat M.prev))[uint.nat i - uint.nat M.prev - 1]? = some x := by
+    rw [List.getElem?_take, if_pos (by omega), hx]
+  ihave Hx := kvreconf.memLog_elem γs _ _ _ _ x hx' $$ Hf
+  rw [show uint.nat M.prev + 1 + (uint.nat i - uint.nat M.prev - 1) = uint.nat i by omega]
+  unfold memLog
+  icases Hx with ⟨Hx, -⟩
+  icases He with ⟨He, -⟩
+  ihave %Hag := kdLogL_agree γs.log _ _ _ _ [x] [e] $$ [$Hx $He]
+  have hxe : x = e := Hag (uint.nat i) x e (Nat.le_refl _) (Nat.le_refl _) (by simp) (by simp)
+  subst hxe
+  ipureintro
+  exact imgTermAt_ent M i _ x hp rfl hx
+
+/-- **The frozen record after a compaction to `x`** (past the log's start, within it). -/
+theorem frozen_compact (γs : MemStorNames) (M : StorFile) (fz : Nat) (x : w64)
+    (hp : uint.nat M.prev < uint.nat x) (hl : uint.nat x ≤ uint.nat M.prev + M.ents.length) :
+    memLog (GF := GF) γs (uint.nat M.prev + 1) DFrac.discard (M.ents.take (fz - uint.nat M.prev)) ⊢
+      memLog γs (uint.nat x + 1) DFrac.discard
+        ((M.ents.drop (uint.nat x - uint.nat M.prev)).take (fz - uint.nat x)) := by
+  by_cases hfx : fz ≤ uint.nat x
+  · iintro -
+    rw [show fz - uint.nat x = 0 by omega, List.take_zero]
+    iapply memLog_nil
+  · have hsplit : M.ents.take (fz - uint.nat M.prev) =
+        M.ents.take (uint.nat x - uint.nat M.prev) ++
+          (M.ents.drop (uint.nat x - uint.nat M.prev)).take (fz - uint.nat x) := by
+      rw [show fz - uint.nat M.prev = (uint.nat x - uint.nat M.prev) + (fz - uint.nat x) by omega,
+        List.take_add]
+    rw [hsplit]
+    iintro H
+    icases (memLog_app γs _ _ _ _).1 $$ H with ⟨-, H⟩
+    rw [List.length_take_of_le (by omega),
+      show uint.nat M.prev + 1 + (uint.nat x - uint.nat M.prev) = uint.nat x + 1 by omega]
+    iexact H
 
 /-- A configuration's lists are of Go slices' lengths. -/
 theorem ownCSM_confWf (p : Loc) (dq : DFrac) (c : ConfStateM) :

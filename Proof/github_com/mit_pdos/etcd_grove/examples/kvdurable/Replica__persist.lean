@@ -81,7 +81,7 @@ theorem Replica.persist.wp_proof
     ihave Hstep : iprop(∃ (S' : RaftState) (pz' : KdPhase), ⌜StorageHolds S' (kdContents (some M))⌝ ∗
         (∀ (E : CoPset), ⌜↑kdRaftN ⊆ E⌝ -∗ raftState γ.r.cluster id S ={E}=∗
           raftState γ.r.cluster id S' ∗ nodeRunning n γ.r.cluster kdRaftN q ∗
-          kdPhaseInv γ id n ph S' M pz')) $$ [Hph Hrun]
+          kdPhaseInv γ id n ph.ph S' M pz')) $$ [Hph Hrun]
     · cases pz with
       | idle =>
         iunfold kdPhaseInv at Hph
@@ -169,11 +169,13 @@ theorem Replica.persist.wp_proof
     try wp_auto
     wp_apply wp_add sts _ $$ [$Hpkg $Hfw]
     try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hwr Hph]
+    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hwr Hph]
     · inext
       iunfold kdDmuInv
-      iexists false, ip, M
-      iframe Hcr Himg Himage Hmeta
+      iexists false, ip, M, fz
+      iframe Hcr Himg Himage Hmeta Hic Hfz His
+      isplitr
+      · ipureintro; exact Hfzc
       simp only [Bool.false_eq_true, ↓reduceIte]
       iexists S', some M, pz'
       iunfold kdWriter
@@ -184,11 +186,12 @@ theorem Replica.persist.wp_proof
     iframe Hrun
   · -- crashed: nothing written
     try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hlive]
+    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hlive]
     · inext
       iunfold kdDmuInv
-      iexists true, ip, M
-      iframe Hcr Himg Himage Hmeta Hlive
+      iexists true, ip, M, fz
+      iframe Hcr Himg Himage Hmeta Hic Hfz His Hlive
+      ipureintro; exact Hfzc
     try wp_auto
     iapply HΦ
     iframe Hrun
@@ -223,24 +226,29 @@ theorem Replica.persist.wp_proofRun
     icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, Hph⟩
     iunfold kdPhaseInv at Hph
     -- the new durable state, the file's, `M`'s; and the batch's results, as `run` saved them
-    ihave Hstep : iprop(∃ S' : RaftState, ⌜StorageHolds S' (kdContents (some M))⌝ ∗
-        ghostVar ph (1 : Qp).half (some γb) ∗ ghostVar ph (1 : Qp).half (some γb) ∗
+    ihave Hstep : iprop(∃ S' : RaftState, ⌜StorageHolds S' (kdContents (some M)) ∧ S' = st'.durable⌝ ∗
+        ghostVar ph.ph (1 : Qp).half (some γb, st'.durable) ∗
+        ghostVar ph.ph (1 : Qp).half (some γb, st'.durable) ∗
         (∀ (E : CoPset), ⌜↑kdRaftN ⊆ E⌝ -∗ £ 1 -∗ raftState γ.r.cluster id S ={E}=∗
           raftState γ.r.cluster id S' ∗ nodeRunning n γ.r.cluster kdRaftN q ∗
           kdBatchRes γ id n st' qs)) $$ [Hph Hclaim Hrun]
     · cases pz with
       | idle =>
         icases Hph with ⟨Hph, -⟩
-        ihave %Hag := ghostVar_agree ph _ _ _ _ $$ Hph Hclaim
-        cases Hag
+        ihave %Hag := ghostVar_agree ph.ph _ _ _ _ $$ Hph Hclaim
+        obtain ⟨h, -⟩ := Prod.mk.inj Hag
+        cases h
       | waiting st0 st0' ms0 γb0 =>
         icases Hph with ⟨Hph, #Hsv0, Henter, %Hst0⟩
-        ihave %Hag := ghostVar_agree ph _ _ _ _ $$ Hph Hclaim
-        obtain rfl := Option.some.inj Hag
-        iexists st0'.durable
+        ihave %Hag := ghostVar_agree ph.ph _ _ _ _ $$ Hph Hclaim
+        obtain ⟨h1, h2⟩ := Prod.mk.inj Hag
+        obtain rfl := Option.some.inj h1
+        iexists st'.durable
+        ihave Hph : ghostVar ph.ph (1 : Qp).half (some γb0, st'.durable) $$ [Hph]
+        · rw [← h2]; iexact Hph
         iframe Hph Hclaim
         isplitr
-        · ipureintro; exact Hst0.2
+        · ipureintro; exact ⟨h2 ▸ Hst0.2, rfl⟩
         iintro %E %HE Hlc HrS
         iunfold readyEnter at Henter
         ihave HrS : raftState γ.r.cluster id st0.durable $$ [HrS]
@@ -256,15 +264,19 @@ theorem Replica.persist.wp_proofRun
           iframe Hdrv Hmsgs
         imod lc_fupd_elim_later $$ Hlc HA with HA
         imodintro
+        ihave HrS : raftState γ.r.cluster id st'.durable $$ [HrS]
+        · rw [← h2]; iexact HrS
         iframe HrS Hrun HA
       | fired γb0 =>
         icases Hph with ⟨Hph, ⟨%R, #HsvR, HRR⟩, %HSM⟩
-        ihave %Hag := ghostVar_agree ph _ _ _ _ $$ Hph Hclaim
-        obtain rfl := Option.some.inj Hag
+        ihave %Hag := ghostVar_agree ph.ph _ _ _ _ $$ Hph Hclaim
+        obtain ⟨h1, h2⟩ := Prod.mk.inj Hag
+        obtain rfl := Option.some.inj h1
         iexists S
+        rw [← h2]
         iframe Hph Hclaim
         isplitr
-        · ipureintro; exact HSM
+        · ipureintro; exact ⟨HSM, rfl⟩
         iintro %E %HE Hlc HrS
         ihave #Heq := saved_prop_agree γb0 DFrac.discard DFrac.discard _ _ $$ HsvR HsvC
         ihave HA : ▷ kdBatchRes γ id n st' qs $$ [HRR]
@@ -275,7 +287,8 @@ theorem Replica.persist.wp_proofRun
         imod lc_fupd_elim_later $$ Hlc HA with HA
         imodintro
         iframe HrS Hrun HA
-    icases Hstep with ⟨%S', %HSM, Hph, Hclaim, Hstep⟩
+    icases Hstep with ⟨%S', ⟨%HSM, %HS'⟩, Hph, Hclaim, Hstep⟩
+    subst HS'
     try wp_auto
     wp_apply wp_encode st ip M $$ [$Hpkg $Himg $Himage] as %sl ⟨Hsl, -, Himage⟩
     wp_apply wp_bytes_to_string sl (encStor M) (DFrac.own 1) $$ [$Hsl] as -
@@ -292,8 +305,9 @@ theorem Replica.persist.wp_proofRun
     ihave %Hag := ghostVar_agree (γ.wr id) _ _ _ _ $$ Hwr Hwv
     obtain ⟨rfl, -⟩ := Prod.mk.inj Hag
     imod Hstep $$ %_ %(kdRaftN_sub id) Hlc2 HrS with ⟨HrS, Hrun, HA⟩
-    imod ghostVar_update_halves (S', kdFileVal (some M)) (γ.wr id) _ _ $$ Hwr Hwv with ⟨Hwr, Hwv⟩
-    imod ghostVar_update_halves (none : Option GName) ph _ _ $$ Hph Hclaim with ⟨Hph, Hclaim⟩
+    imod ghostVar_update_halves (st'.durable, kdFileVal (some M)) (γ.wr id) _ _ $$ Hwr Hwv with ⟨Hwr, Hwv⟩
+    imod ghostVar_update_halves ((none : Option GName), st'.durable) ph.ph _ _ $$ Hph Hclaim
+      with ⟨Hph, Hclaim⟩
     iapply fupd_mask_intro Std.LawfulSet.empty_subset
     iintro Hmask
     iexists kdFileVal o0
@@ -302,7 +316,7 @@ theorem Replica.persist.wp_proofRun
     imod Hmask with -
     imod Hclose $$ [HrS Hdf Hwv] with -
     · inext
-      iexists S', some M
+      iexists st'.durable, some M
       iframe HrS Hwv
       simp only [kdFileVal, Option.map_some]
       iframe Hdf
@@ -315,13 +329,15 @@ theorem Replica.persist.wp_proofRun
     try wp_auto
     wp_apply wp_add sts _ $$ [$Hpkg $Hfw]
     try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hwr Hph]
+    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hwr Hph]
     · inext
       iunfold kdDmuInv
-      iexists false, ip, M
-      iframe Hcr Himg Himage Hmeta
+      iexists false, ip, M, fz
+      iframe Hcr Himg Himage Hmeta Hic Hfz His
+      isplitr
+      · ipureintro; exact Hfzc
       simp only [Bool.false_eq_true, ↓reduceIte]
-      iexists S', some M, KdPhase.idle
+      iexists st'.durable, some M, KdPhase.idle
       iunfold kdWriter
       iframe Hwr Hcert
       isplitr
@@ -335,11 +351,12 @@ theorem Replica.persist.wp_proofRun
     iframe Hrun Hclaim HA
   · -- crashed: nothing written, the claim kept
     try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hlive]
+    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hlive]
     · inext
       iunfold kdDmuInv
-      iexists true, ip, M
-      iframe Hcr Himg Himage Hmeta Hlive
+      iexists true, ip, M, fz
+      iframe Hcr Himg Himage Hmeta Hic Hfz His Hlive
+      ipureintro; exact Hfzc
     try wp_auto
     iapply HΦ
     simp only [Bool.false_eq_true, ↓reduceIte]

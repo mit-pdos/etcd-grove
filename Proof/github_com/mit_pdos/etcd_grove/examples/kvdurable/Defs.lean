@@ -107,8 +107,21 @@ structure KdNames where
   files : GName
   wr : w64 → GName
 
+/-- **An incarnation's `dmu` names** (2026-11-01, stage II (h)): the pending batch's claim, and the
+monotone lower bounds of the image's frozen bound (`fz`: the image's entries up to it are frozen in
+the `MemoryStorage`, and it is at most the image's commit index) and of its snapshot's index, which
+the snapshot requests (`snapReqOk`) and the snapshotter's `known` cite. -/
+structure KdDmuNames where
+  /-- the pending batch's claim (`ghostVar` of `Option GName × RaftState`, halves: `dmu`'s and
+  `run`'s; the durable state is `dmu`'s once the batch, if any, is entered) -/
+  ph : GName
+  /-- the image's frozen bound (`monoNat`) -/
+  ic : GName
+  /-- the image's snapshot index (`monoNat`) -/
+  is : GName
+
 /-- A replica incarnation's names (`DefsCluster`'s `RepNames`, with the storage's key and the
-pending batch's variable). -/
+`dmu` names). -/
 structure KdRepNames where
   ms : Loc
   γs : MemStorNames
@@ -124,8 +137,8 @@ structure KdRepNames where
   sd : HandoffNames
   /-- the key raft named the storage by at the attach (`RestartNode`'s post) -/
   key : GName
-  /-- the pending batch's claim (`ghostVar` of `Option GName`, halves: `dmu`'s and `run`'s) -/
-  ph : GName
+  /-- the `dmu` names (the pending batch's claim, the image's lower bounds) -/
+  ph : KdDmuNames
 
 /-! ## The file's contents (pure) -/
 
@@ -390,34 +403,40 @@ def kdBatchRes (γ : KdNames) (id : w64) (n : Loc) (st' : NodeDriverState) (ms :
 the storage's contents `M`, for the node `n` of replica `id`, `ph` the claim's variable. -/
 def kdPhaseInv (γ : KdNames) (id : w64) (n : Loc) (ph : GName) (S : RaftState) (M : StorFile) :
     KdPhase → IProp GF
-  | .idle => iprop(ghostVar ph (1 : Qp).half (none : Option GName) ∗
+  | .idle => iprop(ghostVar ph (1 : Qp).half ((none : Option GName), S) ∗
       ⌜StorageHolds S (kdContents (some M))⌝)
-  | .waiting st st' ms γb => iprop(ghostVar ph (1 : Qp).half (some γb) ∗
+  | .waiting st st' ms γb => iprop(ghostVar ph (1 : Qp).half (some γb, st'.durable) ∗
       savedPropOwn γb DFrac.discard (kdBatchRes γ id n st' ms) ∗
       readyEnter n γ.r.cluster kdRaftN id st st' ms ∗
       ⌜st.durable = S ∧ StorageHolds st'.durable (kdContents (some M))⌝)
-  | .fired γb => iprop(ghostVar ph (1 : Qp).half (some γb) ∗
+  | .fired γb => iprop(ghostVar ph (1 : Qp).half (some γb, S) ∗
       (∃ R : IProp GF, savedPropOwn γb DFrac.discard R ∗ R) ∗
       ⌜StorageHolds S (kdContents (some M))⌝)
 
 /-- **An incarnation's `dmu` lock invariant** (see the file header): replica `id`'s incarnation at
 `r`, its node `n`, its storage `st` (the `MemoryStorage` `ms`, names `γs`), whose image holds `M`
 (also after a crash: `run` goes on changing the storage until it stops). -/
-def kdDmuInv (γ : KdNames) (id : w64) (r n st ms : Loc) (γs : MemStorNames) (ph : GName) :
+def kdDmuInv (γ : KdNames) (id : w64) (r n st ms : Loc) (γs : MemStorNames) (ph : KdDmuNames) :
     IProp GF :=
-  iprop(∃ (crashed : Bool) (ip : Loc) (M : StorFile),
+  iprop(∃ (crashed : Bool) (ip : Loc) (M : StorFile) (fz : Nat),
     -- half of `crashed`: the other half, at `false`, is the crasher's token (`repStop`) until
     -- `crash` sets it (and drops it, at `true`)
     "Hcr" ∷ r.[KReplica, go!"crashed"] ↦{DFrac.own (1 : Qp).half} crashed ∗
     "#Himg" ∷ st.[KStorage, go!"img"] ↦□ ip ∗
     "Himage" ∷ ownImage ip M ∗
     "Hmeta" ∷ memStorMeta ms γs M.hs ∗
+    -- (2026-11-01, stage II (h)) the image's entries up to `fz` frozen in the `MemoryStorage` (the
+    -- same entries), `fz` at most the commit index (or the log's start), and the lower bounds' authorities
+    "Hic" ∷ monoNatAuthOwn ph.ic 1 fz ∗
+    "#Hfz" ∷ memLog γs (uint.nat M.prev + 1) DFrac.discard (M.ents.take (fz - uint.nat M.prev)) ∗
+    "%Hfzc" ∷ ⌜fz ≤ uint.nat M.hs.Commit' ∨ fz ≤ uint.nat M.prev⌝ ∗
+    "His" ∷ monoNatAuthOwn ph.is 1 (uint.nat M.snap.Metadata'.Index') ∗
     -- (2026-11-01, stage II (h)) `M`'s shape, certificate and phase also after the crash (the run
     -- loop and the snapshotter go on changing the storage until `stop`, and their changes' premises
     -- are about `M`); only the writer's half leaves with the crash
     "Hlive" ∷ (∃ (S : RaftState) (o : Option StorFile) (pz : KdPhase),
       (if crashed then iprop(True) else kdWriter γ id S o) ∗ ⌜KdFileOk M⌝ ∗ kdSnapCert γ M.snap ∗
-      kdPhaseInv γ id n ph S M pz))
+      kdPhaseInv γ id n ph.ph S M pz))
 
 /-- **The reads' sequence numbers** (`readSeqs`'s lock invariant): the last one issued, at least
 every replica's last read sequence number (`γ.r.rseq`, the elements of the ids `0..9`), which
@@ -435,7 +454,7 @@ cluster's (`1 ≤ id ≤ 9`: at most `maxReplicas = 9` replicas are started, ids
 `readSeqs.next` takes), its fields read-only (with its file and the cluster's `readSeqs`), its node,
 the cluster, its `mu` and `dmu` locks, and its file's invariant. -/
 def isReplica (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq : Loc)
-    (ms : Loc) (γs : MemStorNames) (ph : GName) : IProp GF :=
+    (ms : Loc) (γs : MemStorNames) (ph : KdDmuNames) : IProp GF :=
   iprop(
     "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvdurable ∗
     "%Hidr" ∷ ⌜1 ≤ uint.nat id ∧ uint.nat id ≤ 9⌝ ∗
@@ -458,9 +477,12 @@ def isReplica (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st
 key `K`): for a snapshot, the frozen entry at its index, its validity and the node's committed
 index there, the configuration and the encoded state; for a compaction up to `q.compact`, a known
 compaction point with the delivered log frozen above it, and the node's applied index. -/
-def snapReqOk (γ : KdNames) (K : GName) (γs : MemStorNames) (q : KSnapReq) : IProp GF :=
+def snapReqOk (γ : KdNames) (K : GName) (γs : MemStorNames) (dn : KdDmuNames) (q : KSnapReq) :
+    IProp GF :=
   iprop((⌜q.data' = slice.nil⌝ ∨ ∃ (e : EntryM) (c : ConfStateM) (bs : List w8),
       memLog γs (uint.nat q.index') DFrac.discard [e] ∗
+      -- (2026-11-01, stage II (h)) the index at most the image's frozen bound
+      monoNatLbOwn dn.ic (uint.nat q.index') ∗
       (kdJ γ.r.cluster K).SV (memSnapMade q.index' e.Term' c bs) ∗
       (kdJ γ.r.cluster K).DL (uint.nat q.index') ∗
       kdSnapCert γ (memSnapMade q.index' e.Term' c bs) ∗
@@ -489,7 +511,7 @@ def isReplicaR (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n s
     "#HrdH" ∷ isHandoff (V := Unit) ρ.rd ρ.rdc
       (fun _ => nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half) iprop(True) iprop(False) ∗
     "#HtdH" ∷ isHandoff (V := Unit) ρ.td ρ.tdc (fun _ => iprop(True)) iprop(True) iprop(False) ∗
-    "#HsnB" ∷ isChanBag ρ.sn ρ.snc (snapReqOk γ ρ.key ρ.γs) ∗
+    "#HsnB" ∷ isChanBag ρ.sn ρ.snc (snapReqOk γ ρ.key ρ.γs ρ.ph) ∗
     "#HsdH" ∷ isHandoff (V := Unit) ρ.sd ρ.sdc
       (fun _ => nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half) iprop(True) iprop(False) ∗
     "#HmsInv" ∷ memStorInvP ρ.ms ρ.γs (kdJ γ.r.cluster ρ.key))
@@ -521,7 +543,7 @@ def runStart (γ : KdNames) (id : w64) (r n st : Loc) (ρ : KdRepNames) (l : Lis
     nodeConfig n γ.r.cluster kdRaftN ⟨ap.length, m⟩ ∗
     nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half ∗
     repOwn γ r ap (W64 ap.length) csp m mA A ∗
-    handoffProducer ρ.rd false ∗ ghostVar ρ.ph (1 : Qp).half (none : Option GName))
+    handoffProducer ρ.rd false ∗ ghostVar ρ.ph.ph (1 : Qp).half ((none : Option GName), S))
 
 /-- **`f` is replica `id`'s transport** (persistent; kvreconf's `sendSpec`). -/
 def sendSpec (γ : KdNames) (id : w64) (f : GoFunc) : IProp GF :=

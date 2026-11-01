@@ -34,16 +34,17 @@ attribute [local instance] kdStorageModel
 theorem Replica.snapshotter.wp_proof (wp_snapshot : Replica.snapshot.spec (GF := GF) (hG := hG)) :
     Replica.snapshotter.spec (GF := GF) (hG := hG) := by
   intro γ vs dir id r n st sts sq ρ known
-  wp_start as ⟨#HR, Hprod, #Hkn, Hrun⟩
+  wp_start as ⟨#HR, Hprod, #Hkn, #Hkni, Hrun⟩
   ihave #HR' := HR
   iunfold isReplicaR at HR'
   iNamed HR'
   try wp_auto
   ihave Hinv : iprop(∃ k : w64, "known" ∷ known_ptr ↦ k ∗ "#Hk" ∷ memSnapLb ρ.γs (uint.nat k) ∗
+      "#Hki" ∷ monoNatLbOwn ρ.ph.is (uint.nat k) ∗
       "Hprod" ∷ handoffProducer ρ.sd false ∗
       "Hrun" ∷ nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half) $$ [known Hprod Hrun]
   · iexists known
-    iframe known Hprod Hrun Hkn
+    iframe known Hprod Hrun Hkn Hkni
   wp_for_core
   iNamed Hinv
   try wp_auto
@@ -63,14 +64,14 @@ theorem Replica.snapshotter.wp_proof (wp_snapshot : Replica.snapshot.spec (GF :=
     inext
     iintro %q Hq
     wp_auto
-    wp_apply wp_snapshot γ vs dir id r n st sts sq ρ q k (1 : Qp).half $$ [$HR $Hq $Hk $Hrun]
-      as %k' ⟨#Hk', Hrun⟩
+    wp_apply wp_snapshot γ vs dir id r n st sts sq ρ q k (1 : Qp).half $$ [$HR $Hq $Hk $Hki $Hrun]
+      as %k' ⟨#Hk', #Hki', Hrun⟩
     try wp_auto
     wp_for_post
     iframe
     iexists k'
     iframe
-    iexact Hk'
+    iframe Hk' Hki'
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `stopc` closed: the snapshotter's half of `nodeRunning` sent on `snapDone`

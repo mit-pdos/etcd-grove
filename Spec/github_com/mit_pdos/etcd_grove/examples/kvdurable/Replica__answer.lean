@@ -33,7 +33,7 @@ attribute [local instance] kdStorageModel
 /-- See the file header. -/
 abbrev Replica.answer.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq ms : Loc)
-    (γs : MemStorNames) (ph : GName)
+    (γs : MemStorNames) (ph : KdDmuNames)
     (ap : List LogEntry) (idx : w64) (csp : Loc) (m : Membership) (mA : Loc)
     (A : GMap (List w8) (List w8)) (psl : GoSlice) (ps : List ReadState) (dq : DFrac),
   uint.Z idx = (ap.length : Int) →

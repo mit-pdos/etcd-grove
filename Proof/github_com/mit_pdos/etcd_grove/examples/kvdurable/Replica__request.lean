@@ -50,7 +50,7 @@ theorem Replica.request.wp_proof
     (wp_encodeState : encodeState.spec (GF := GF) (hG := hG)) :
     Replica.request.spec (GF := GF) (hG := hG) := by
   intro γ vs dir id r n st sts sq ρ ap csp m mA A D cp snapIndex bound snap Hpre Hcp
-  wp_start as ⟨#Hrr, Hown, #Hcpc, #Hfz0, #Hdl, #Hcl', #Hal⟩
+  wp_start as ⟨#Hrr, Hown, #Hcpc, #Hfz0, #Hdl, #Hcl', #Hal, #Hic⟩
   ihave #Hfz : kvreconf.frozenTo ρ.γs cp D $$ []
   · unfold kvreconf.frozenTo; iexact Hfz0
   ihave #Hrr' := Hrr
@@ -71,6 +71,7 @@ theorem Replica.request.wp_proof
       r.[KReplica, go!"kv"] ↦ mK ∗ r.[KReplica, go!"applied"] ↦{DFrac.own (1 : Qp).half} mA ∗
       (⌜dv = slice.nil⌝ ∨ ∃ (e : EntryM) (cc : ConfStateM) (bs : List w8),
         memLog ρ.γs (uint.nat (W64 ap.length)) DFrac.discard [e] ∗
+        monoNatLbOwn ρ.ph.ic (uint.nat (W64 ap.length)) ∗
         (kdJ γ.r.cluster ρ.key).SV (memSnapMade (W64 ap.length) e.Term' cc bs) ∗
         (kdJ γ.r.cluster ρ.key).DL (uint.nat (W64 ap.length)) ∗
         kdSnapCert γ (memSnapMade (W64 ap.length) e.Term' cc bs) ∗
@@ -122,7 +123,7 @@ theorem Replica.request.wp_proof
     · iright
       iexists e, c, encState kvs ops
       rw [show uint.nat (W64 (ap.length : Int)) = ap.length by word]
-      iframe He Hsl HcsM
+      iframe He Hsl HcsM Hic
       isplitl []
       · unfold kdJ; rw [← memSnapCreated_some memSnapEmpty]; iexact Hsv
       isplitl []
@@ -155,7 +156,7 @@ theorem Replica.request.wp_proof
   · iexists bound; iframe; ipureintro
     exact ⟨Nat.le_refl _, by word, fun h => h⟩
   -- what the request carries
-  ihave HP : snapReqOk γ ρ.key ρ.γs
+  ihave HP : snapReqOk γ ρ.key ρ.γs ρ.ph
       (github_com.mit_pdos.etcd_grove.examples.kvdurable.snapReq.mk (W64 ap.length) csp dv cv) $$ [Hdv]
   · unfold snapReqOk
     simp only

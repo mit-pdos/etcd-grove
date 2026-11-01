@@ -59,11 +59,13 @@ theorem Replica.crash.wp_proof (wp_stop : Replica.stop.spec (GF := GF) (hG := hG
   icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, Hph⟩
   try wp_auto
   ihave ⟨Hcr, -⟩ := (typedPointsto_half_split _ true (1 : Qp)).1 $$ Hcr
-  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hph]
+  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Hcr Himage Hmeta Hic His Hph]
   · inext
     iunfold kdDmuInv
-    iexists true, ip, M
-    iframe Hcr Himg Himage Hmeta
+    iexists true, ip, M, fz
+    iframe Hcr Himg Himage Hmeta Hic Hfz His
+    isplitr
+    · ipureintro; exact Hfzc
     iexists S, o, pz
     simp only [↓reduceIte]
     iframe Hcert Hph

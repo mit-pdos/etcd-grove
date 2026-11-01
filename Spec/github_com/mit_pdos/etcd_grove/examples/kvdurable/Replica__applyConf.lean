@@ -36,7 +36,7 @@ attribute [local instance] kdStorageModel
 /-- See the file header. -/
 abbrev Replica.applyConf.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq ms : Loc)
-    (γs : MemStorNames) (ph : GName) (q : Qp)
+    (γs : MemStorNames) (ph : KdDmuNames) (q : Qp)
     (ap : List LogEntry) (idx : w64) (csp : Loc) (m : Membership) (mA : Loc)
     (A : GMap (List w8) (List w8)) (l : List LogEntry) (e : LogEntry) (c : GoInterface)
     (o : ConfChangeIM),

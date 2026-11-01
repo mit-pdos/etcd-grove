@@ -12,23 +12,12 @@ and the stored snapshot reaches it. Under `dmu` the image changes with the `Memo
 `compact_ok`, `kdPhaseInv_transport`): its shape, its snapshot's certificate (the request's), the
 durable state each phase holds.
 
-SPEC-GAP (2026-11-01, stage II (h), reported): what the image must satisfy for the two changes is not
-derivable from `kdDmuInv`, `snapReqOk` and `memSnapLb`, which tie the image to the `MemoryStorage`
-only through the hard state:
-- `snap_create_gap`: the request's index `i` (unless the image already has a snapshot at `i` or
-  later) is at most the image's commit index (a stored snapshot is at most the stored commit,
-  `StorageHolds`), and the image's term at `i` is the frozen entry's that the request's certificate
-  is about;
-- `snap_known_gap`: the known stored index `known` (a lower bound of the `MemoryStorage`'s snapshot
-  index) is at most the image's snapshot index (a compaction past the image's snapshot breaks
-  `KdFileOk`/`StorageHolds`).
-Both hold in the program (the image and the `MemoryStorage` change together under `dmu`; the image's
-commit index is the driver's, which the applied index never passes; the stored snapshot's index is
-monotone and `ErrSnapOutOfDate` answers alike), but the client can bound neither the
-`MemoryStorage`'s snapshot index from above (its authority is the storage's lock's) nor its log above
-the commit index (raft's, between `Ready`s: API gap G2), and holds no per-incarnation ghost name in
-which `run` could record a lower bound of the image's commit, or the snapshotter one of the image's
-snapshot, for `snapReqOk`/`memSnapLb` to cite.
+What the image must satisfy for the two changes (2026-11-01, stage II (h)) comes from `dmu`'s record
+of it and the lower bounds the request and the snapshotter cite: the request's index is at most the
+image's frozen bound (`ρ.ph.ic`), which is at most its commit index unless at its log's start, and
+the image's entries up to it are the `MemoryStorage`'s frozen ones (`frozen_term`); `known` is at
+most the image's snapshot index (`ρ.ph.is`), which either answer of `CreateSnapshot` raises to the
+request's index. A compaction keeps the frozen record (`frozen_compact`).
 -/
 module
 
@@ -89,21 +78,6 @@ theorem Storage.wp_FirstIndex (wp : MemoryStorage.FirstIndex.spec (GF := GF) (hG
   iapply HΦ
   iexact HQ
 
-/-- SPEC-GAP (see the file header): **a snapshot request's index against the image**: unless the
-image has a snapshot at `i` or later, `i` is at most the image's commit index and the image's term
-there is the request's frozen entry's. -/
-private theorem snap_create_gap (γ : KdNames) (K : GName) (γs : MemStorNames) (M : StorFile)
-    (i : w64) (e : EntryM) :
-    memLog (GF := GF) γs (uint.nat i) DFrac.discard [e] ∗ (kdJ γ.r.cluster K).DL (uint.nat i) ⊢
-      ⌜imgCreateStale M i ∨ (uint.nat i ≤ uint.nat M.hs.Commit' ∧ imgTermAt M i = e.Term')⌝ := by
-  sorry
-
-/-- SPEC-GAP (see the file header): **the known stored snapshot index against the image**: at most
-the image's snapshot index. -/
-private theorem snap_known_gap (γs : MemStorNames) (M : StorFile) (k : Nat) :
-    memSnapLb (GF := GF) γs k ⊢ ⌜k ≤ uint.nat M.snap.Metadata'.Index'⌝ := by
-  sorry
-
 theorem Replica.snapshot.wp_proof
     (wp_add : Stats.add.spec (GF := GF) (hG := hG))
     (wp_below : below.spec (GF := GF) (hG := hG))
@@ -117,7 +91,7 @@ theorem Replica.snapshot.wp_proof
     (wp_Compact : MemoryStorage.Compact.spec (GF := GF) (hG := hG)) :
     Replica.snapshot.spec (GF := GF) (hG := hG) := by
   intro γ vs dir id r n st sts sq ρ q known qp
-  wp_start as ⟨#Hrr, Hreq, #Hkn, Hrun⟩
+  wp_start as ⟨#Hrr, Hreq, #Hkn, #Hkni, Hrun⟩
   iunfold snapReqOk at Hreq
   icases Hreq with ⟨Hsnap, Hcomp⟩
   ihave #Hrr' := Hrr
@@ -144,10 +118,10 @@ theorem Replica.snapshot.wp_proof
   ihave #Hc3 := isStats_field sts go!"Compactions" (by decide) $$ Hstats
   -- the snapshot part: afterwards, `known` is a lower bound of the stored index
   wp_join iprop(∃ (k1 : w64) (ch : Bool), known_ptr ↦ k1 ∗ changed_ptr ↦ ch ∗ req_ptr ↦ q ∗
-      r_ptr ↦ r ∗ memSnapLb ρ.γs (uint.nat k1))
-    with [known changed req r Hsnap] as ⟨%k1, %ch1, known, changed, req, r, #Hkn1⟩
-  · iexists known, false; iframe known changed req r; iexact Hkn
-  · icases Hsnap with (%Hnil | ⟨%e, %cc, %bs, #He, #HSV, #HDL, #Hcert, #Hcs, Hdata⟩)
+      r_ptr ↦ r ∗ memSnapLb ρ.γs (uint.nat k1) ∗ monoNatLbOwn ρ.ph.is (uint.nat k1))
+    with [known changed req r Hsnap] as ⟨%k1, %ch1, known, changed, req, r, #Hkn1, #Hkni1⟩
+  · iexists known, false; iframe known changed req r; iframe Hkn Hkni
+  · icases Hsnap with (%Hnil | ⟨%e, %cc, %bs, #He, #Hicl, #HSV, #HDL, #Hcert, #Hcs, Hdata⟩)
     · exfalso; exact Hif Hnil
     ihave %Hbs := ownSlice_len $$ Hdata
     ihave %Hcw := ownCSM_confWf $$ Hcs
@@ -179,8 +153,19 @@ theorem Replica.snapshot.wp_proof
     iunfold kdDmuInv at HI
     iNamed HI
     icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert0, Hph⟩
-    ihave %Hgap := snap_create_gap γ ρ.key ρ.γs M q.index' e $$ [He HDL]
-    · iframe He HDL
+    ihave %Hifz := monoNatLbOwn_valid ρ.ph.ic 1 fz (uint.nat q.index') $$ Hic Hicl
+    ihave %Hgap : ⌜imgCreateStale M q.index' ∨
+        (uint.nat q.index' ≤ uint.nat M.hs.Commit' ∧ imgTermAt M q.index' = e.Term')⌝ $$ []
+    · by_cases Hst : imgCreateStale M q.index'
+      · ipureintro; left; exact Hst
+      · have Hns := Hst
+        unfold imgCreateStale at Hns
+        obtain ⟨-, -, -, -, Hps, -, -, Hcl⟩ := HMok
+        have Hpi : uint.nat M.prev < uint.nat q.index' := by word
+        have Hci : uint.nat q.index' ≤ uint.nat M.hs.Commit' := by
+          rcases Hfzc with h | h <;> omega
+        ihave %Ht := frozen_term ρ.γs M fz q.index' e Hpi Hifz.2 (by omega) $$ [$Hfz $He]
+        ipureintro; right; exact ⟨Hci, Ht⟩
     have Hpre : imgCreateStale M q.index' ∨ (uint.nat M.prev ≤ uint.nat q.index' ∧
         uint.nat q.index' ≤ uint.nat M.prev + M.ents.length) := by
       by_cases Hst : imgCreateStale M q.index'
@@ -195,38 +180,57 @@ theorem Replica.snapshot.wp_proof
         Hpre (Hms _) $$ [$Hpkg $Hrec $Himg $Himage $Hcs $Hdata $Heood $Hraft $HmsInv $HSV $HDL $He $Hs0]
       as %err ⟨⟨%snap0, %e0, #Hlb⟩, Hres⟩
     -- `dmu`'s record of the image kept; the error the image's
-    ihave ⟨%Herr, HI⟩ : iprop(⌜err = interface.nil ∨ err = interface.mkOk (go.GoType.PointerType
-        _root_.Perennial.errors.errorString.ty) #xe⌝ ∗ ▷ kdDmuInv γ id r n st ρ.ms ρ.γs ρ.ph) $$ [Hres Hcr Hmeta Hwr Hph]
+    ihave Hblk : iprop(|==> (⌜err = interface.nil ∨ err = interface.mkOk (go.GoType.PointerType
+        _root_.Perennial.errors.errorString.ty) #xe⌝ ∗ ▷ kdDmuInv γ id r n st ρ.ms ρ.γs ρ.ph ∗
+        monoNatLbOwn ρ.ph.is (uint.nat q.index'))) $$ [Hres Hcr Hmeta Hwr Hph Hic His]
     · by_cases Hst : imgCreateStale M q.index'
-      · simp only [Hst, ↓reduceIte]
+      · imodintro
+        simp only [Hst, ↓reduceIte]
         icases Hres with ⟨%Herr, Himage⟩
+        ihave #Hsl := monoNatLbOwn_get ρ.ph.is 1 _ $$ His
         isplitr
         · ipureintro; right; exact Herr
-        inext
-        iunfold kdDmuInv
-        iexists crashed, ip, M
-        iframe Hcr Himg Himage Hmeta
-        iexists S, o, pz
-        iframe Hwr Hcert0 Hph
-        ipureintro; exact HMok
+        isplitl
+        · inext
+          iunfold kdDmuInv
+          iexists crashed, ip, M, fz
+          iframe Hcr Himg Himage Hmeta Hic Hfz His
+          isplitr
+          · ipureintro; exact Hfzc
+          iexists S, o, pz
+          iframe Hwr Hcert0 Hph
+          ipureintro; exact HMok
+        unfold imgCreateStale at Hst
+        iapply monoNatLbOwn_le (uint.nat q.index') (by word) $$ Hsl
       · simp only [Hst, ↓reduceIte]
         icases Hres with ⟨%Herr, Himage⟩
+        have Hns := Hst
+        unfold imgCreateStale at Hns
+        imod mono_nat_own_update (uint.nat q.index') (by word) $$ His with ⟨His, #Hsl⟩
+        imodintro
         obtain ⟨Hci, Hti⟩ := Hgap.resolve_left Hst
         have Hok' := create_ok M q.index' (some cc) bs HMok Hst Hci Hcw (by word)
         isplitr
         · ipureintro; left; exact Herr
+        iframe Hsl
         inext
         iunfold kdDmuInv
-        iexists crashed, ip, imgCreateSnapshot M q.index' (some cc) bs
-        rw [show (imgCreateSnapshot M q.index' (some cc) bs).hs = M.hs from rfl]
-        iframe Hcr Himg Himage Hmeta
+        iexists crashed, ip, imgCreateSnapshot M q.index' (some cc) bs, fz
+        rw [show (imgCreateSnapshot M q.index' (some cc) bs).hs = M.hs from rfl,
+          show (imgCreateSnapshot M q.index' (some cc) bs).prev = M.prev from rfl,
+          show (imgCreateSnapshot M q.index' (some cc) bs).ents = M.ents from rfl,
+          show (imgCreateSnapshot M q.index' (some cc) bs).snap.Metadata'.Index' = q.index' from rfl]
+        iframe Hcr Himg Himage Hmeta Hic Hfz His
+        isplitr
+        · ipureintro; exact Hfzc
         iexists S, o, pz
         iframe Hwr
         isplitr
         · ipureintro; exact Hok'.1
         isplitr
         · simp only [imgCreateSnapshot, Option.getD_some, Hti]; iexact Hcert
-        iapply kdPhaseInv_transport γ id n ρ.ph S M _ pz Hok'.2 $$ Hph
+        iapply kdPhaseInv_transport γ id n ρ.ph.ph S M _ pz Hok'.2 $$ Hph
+    imod Hblk with ⟨%Herr, HI, #Hilb⟩
     wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked $HI]
     try wp_auto
     rcases Herr with rfl | rfl
@@ -243,13 +247,13 @@ theorem Replica.snapshot.wp_proof
         try wp_apply wp_add sts _ $$ [$Hpkg $Hc2]
         try wp_auto
         wp_if_destruct
-        · wp_join_done; iexists q.index', true; iframe; iexact Hlb
-        · wp_join_done; iexists known, true; iframe; iexact Hkn
+        · wp_join_done; iexists q.index', true; iframe; iframe Hlb Hilb
+        · wp_join_done; iexists known, true; iframe; iframe Hkn Hkni
     · -- out of date
       try wp_auto
       wp_if_destruct
-      · wp_join_done; iexists q.index', false; iframe; iexact Hlb
-      · wp_join_done; iexists known, false; iframe; iexact Hkn
+      · wp_join_done; iexists q.index', false; iframe; iframe Hlb Hilb
+      · wp_join_done; iexists known, false; iframe; iframe Hkn Hkni
   -- the compaction part
   wp_join iprop(∃ ch2 : Bool, changed_ptr ↦ ch2 ∗ known_ptr ↦ k1 ∗ req_ptr ↦ q ∗ r_ptr ↦ r)
     with [changed known req r Hcomp] as ⟨%ch2, changed, known, req, r⟩
@@ -276,10 +280,10 @@ theorem Replica.snapshot.wp_proof
       iunfold kdDmuInv at HI
       iNamed HI
       icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert0, Hph⟩
-      ihave %Hkg := snap_known_gap ρ.γs M (uint.nat k1) $$ Hkn1
-      ihave ⟨%HhS, Hph⟩ := kdPhaseInv_holds γ id n ρ.ph S M pz $$ Hph
+      ihave %Hkg := monoNatLbOwn_valid ρ.ph.is 1 _ (uint.nat k1) $$ His Hkni1
+      ihave ⟨%HhS, Hph⟩ := kdPhaseInv_holds γ id n ρ.ph.ph S M pz $$ Hph
       obtain ⟨S0, HhS⟩ := HhS
-      have Hxs : uint.nat (fi + rb) ≤ uint.nat M.snap.Metadata'.Index' := by word
+      have Hxs : uint.nat (fi + rb) ≤ uint.nat M.snap.Metadata'.Index' := by have := Hkg.2; word
       have Hs0 : M.snap.Metadata'.Index' ≠ W64 0 := by intro h; rw [h] at Hxs; word
       have Hsc := holds_snap_commit S0 M HhS Hs0
       have Hxl : uint.nat (fi + rb) ≤ uint.nat M.prev + M.ents.length := by
@@ -313,7 +317,7 @@ theorem Replica.snapshot.wp_proof
           $$ [$Hpkg $Hrec $Himg $Himage $ErrCompacted $Hraft $HmsInv $HB $Hex $Hxlb]
         as %err ⟨-, Hres⟩
       ihave ⟨%Herr, HI⟩ : iprop(⌜err = interface.nil ∨ err = errCompacted⌝ ∗
-          ▷ kdDmuInv γ id r n st ρ.ms ρ.γs ρ.ph) $$ [Hres Hcr Hmeta Hwr Hph]
+          ▷ kdDmuInv γ id r n st ρ.ms ρ.γs ρ.ph) $$ [Hres Hcr Hmeta Hwr Hph Hic His]
       · by_cases Hst : imgCompactStale M (fi + rb)
         · simp only [Hst, ↓reduceIte]
           icases Hres with ⟨%Herr, Himage⟩
@@ -321,8 +325,10 @@ theorem Replica.snapshot.wp_proof
           · ipureintro; right; exact Herr
           inext
           iunfold kdDmuInv
-          iexists crashed, ip, M
-          iframe Hcr Himg Himage Hmeta
+          iexists crashed, ip, M, fz
+          iframe Hcr Himg Himage Hmeta Hic Hfz His
+          isplitr
+          · ipureintro; exact Hfzc
           iexists S, o, pz
           iframe Hwr Hcert0 Hph
           ipureintro; exact HMok
@@ -336,15 +342,24 @@ theorem Replica.snapshot.wp_proof
           · ipureintro; left; exact Herr
           inext
           iunfold kdDmuInv
-          iexists crashed, ip, imgCompact M (fi + rb)
+          have Hns := Hst
+          unfold imgCompactStale at Hns
+          ihave #Hfz' := frozen_compact ρ.γs M fz (fi + rb) (by word) Hxl $$ Hfz
+          iexists crashed, ip, imgCompact M (fi + rb), fz
           rw [show (imgCompact M (fi + rb)).hs = M.hs from rfl,
-            show (imgCompact M (fi + rb)).snap = M.snap from rfl]
-          iframe Hcr Himg Himage Hmeta
+            show (imgCompact M (fi + rb)).snap = M.snap from rfl,
+            show (imgCompact M (fi + rb)).prev = fi + rb from rfl,
+            show (imgCompact M (fi + rb)).ents = M.ents.drop (uint.nat (fi + rb) - uint.nat M.prev) from rfl]
+          iframe Hcr Himg Himage Hmeta Hic Hfz' His
+          isplitr
+          · ipureintro; rcases Hfzc with h | h
+            · left; exact h
+            · right; word
           iexists S, o, pz
           iframe Hwr Hcert0
           isplitr
           · ipureintro; exact Hok'.1
-          iapply kdPhaseInv_transport γ id n ρ.ph S M _ pz Hok'.2 $$ Hph
+          iapply kdPhaseInv_transport γ id n ρ.ph.ph S M _ pz Hok'.2 $$ Hph
       wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked $HI]
       try wp_auto
       rcases Herr with rfl | rfl
@@ -363,18 +378,18 @@ theorem Replica.snapshot.wp_proof
   cases ch2
   · try wp_auto
     iapply HΦ
-    iframe Hrun Hkn1
+    iframe Hrun Hkn1 Hkni1
   · try wp_auto
     wp_apply wp_oneIn (W64 2) (by decide) $$ [$Hpkg] as %b -
     cases b
     · try wp_auto
       iapply HΦ
-      iframe Hrun Hkn1
+      iframe Hrun Hkn1 Hkni1
     · try wp_auto
       wp_apply wp_persist γ vs dir id r n st sts sq ρ.ms ρ.γs ρ.ph qp $$ [$Hrep $Hrun] as %ok Hrun
       try wp_auto
       iapply HΦ
-      iframe Hrun Hkn1
+      iframe Hrun Hkn1 Hkni1
 
 end proof
 
