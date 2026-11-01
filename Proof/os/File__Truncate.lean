@@ -1,5 +1,5 @@
 /-
-The proof of `Spec/os/File__Truncate.lean`: the model's `EINTR` loop, by Löb induction, over `wp_FtruncateStart` and `wp_FtruncateFinish`.
+The proof of `Spec/os/File__Truncate.lean`: the model's `EINTR` loop, by Löb induction, over `wp_osFtruncateStart` and `wp_osFtruncateFinish`.
 -/
 module
 
@@ -43,9 +43,9 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
   · ileft; iframe
   iloeb as IH generalizing HS Hosfd Hfd HΦ
   icases HS with (⟨Hm, Hc⟩ | Hg)
-  · wp_apply wp_FtruncateStart fd sz dq d m hi CoPset.subseteq_top hwr hsz hgrow hhi
+  · wp_apply wp_osFtruncateStart fd sz dq d m hi CoPset.subseteq_top hwr hsz hgrow hhi
       $$ Hinv Hosfd Hm Hc as %t Hosfd Ht
-    wp_apply wp_FtruncateFinish t d.path sz.toNat m hi CoPset.subseteq_top hgrow hhi
+    wp_apply wp_osFtruncateFinish t d.path sz.toNat m hi CoPset.subseteq_top hgrow hhi
       $$ Hinv Ht as %e Hr
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
@@ -87,9 +87,9 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
       simp [OsMeta.grown]
     ihave Hc := (show mcellsAny (GF := GF) m.maps sz.toNat hi ⊢
       mcellsAny (m.grown sz.toNat).maps (m.grown sz.toNat).size hi by simp only [OsMeta.grown]; iintro H; iexact H) $$ Hc
-    wp_apply wp_FtruncateStart fd sz dq d (m.grown sz.toNat) hi CoPset.subseteq_top hwr hsz
+    wp_apply wp_osFtruncateStart fd sz dq d (m.grown sz.toNat) hi CoPset.subseteq_top hwr hsz
       (Nat.le_refl _) hhi $$ Hinv Hosfd Hm Hc as %t Hosfd Ht
-    wp_apply wp_FtruncateFinish t d.path sz.toNat (m.grown sz.toNat) hi CoPset.subseteq_top
+    wp_apply wp_osFtruncateFinish t d.path sz.toNat (m.grown sz.toNat) hi CoPset.subseteq_top
       (Nat.le_refl _) hhi $$ Hinv Ht as %e Hr0
     ihave Hr : (⌜e = 0⌝ ∗ osGrown d.path m sz.toNat hi) ∨
         (⌜e ≠ 0⌝ ∗ (osGrown d.path m sz.toNat hi ∨

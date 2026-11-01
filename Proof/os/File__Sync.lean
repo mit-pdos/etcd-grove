@@ -1,5 +1,5 @@
 /-
-The proof of `Spec/os/File__Sync.lean`: the model's `EINTR` loop, by Löb induction, over `wp_Fsync`.
+The proof of `Spec/os/File__Sync.lean`: the model's `EINTR` loop, by Löb induction, over `wp_osFsync`.
 -/
 module
 
@@ -36,7 +36,7 @@ theorem os.File.Sync.wp_proof : os.File.Sync.spec (GF := GF) (hG := hG) := by
   have hm2 : m' = m ∨ m' = { m with ok := false } := .inl hm'
   clear hm'
   iloeb as IH generalizing %m' %hm2 Hosfd Hm Hbs Hfd HΦ
-  wp_apply wp_Fsync fd dq d m' lo xs CoPset.subseteq_top $$ Hinv Hosfd Hm Hbs as %e Hr Hosfd
+  wp_apply wp_osFsync fd dq d m' lo xs CoPset.subseteq_top $$ Hinv Hosfd Hm Hbs as %e Hr Hosfd
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     wp_auto

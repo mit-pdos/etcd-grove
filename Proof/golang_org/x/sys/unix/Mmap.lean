@@ -1,5 +1,5 @@
 /-
-The proof of `Spec/golang_org/x/sys/unix/Mmap.lean`: the extension's `Mmap` (`wp_Mmap`), then
+The proof of `Spec/golang_org/x/sys/unix/Mmap.lean`: the extension's `Mmap` (`wp_osMmap`), then
 `unsafe.Slice` of the base, which neither panics nor overflows since the mapping lies in the
 address space.
 -/
@@ -31,7 +31,7 @@ theorem golang_org.x.sys.unix.Mmap.wp_proof : golang_org.x.sys.unix.Mmap.spec (G
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega
   rw [decide_eq_false hl]
   wp_auto
-  wp_apply wp_Mmap fd off len prot fl dq d m CoPset.subseteq_top hrd hoff hlen hprot hfl
+  wp_apply wp_osMmap fd off len prot fl dq d m CoPset.subseteq_top hrd hoff hlen hprot hfl
     $$ Hinv Hfd Hm as %base %e Hr Hfd
   icases Hr with (⟨%he, Hm, Hc⟩ | ⟨%he, Hm⟩)
   · obtain ⟨rfl, hpos, hmax⟩ := he

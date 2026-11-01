@@ -1,6 +1,6 @@
 /-
 `syscall.Fdatasync(fd)` (this repository's `syscall`, project `bboltfs`): the trusted model
-(`TrustedCode/syscall.lean`) is the Linux file extension's `Fsync`, so the spec is `wp_Fsync`'s:
+(`TrustedCode/syscall.lean`) is the Linux file extension's `Fsync`, so the spec is `wp_osFsync`'s:
 with the whole of the file's `OsMeta` and some of its bytes, whole. On success the size is durable
 and the bytes clean (unless a failed sync lost one, `m.ok`); on failure, bytes may be lost.
 Proved in `Proof/syscall/Fdatasync.lean`. Lean-first (no Rocq counterpart).

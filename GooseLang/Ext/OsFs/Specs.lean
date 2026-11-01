@@ -318,7 +318,7 @@ theorem osCoh_fds {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf 
       obtain ⟨f, hf, hm⟩ := hcoh.meta_some p m h; exact ⟨f, hf, hm.fds X⟩ }
 
 /-- `close(fd)`, with the whole fd. Whatever the errno, the fd is gone. -/
-theorem wp_Close (fd : w64) (d : OsFd) (hE : ↑osN ⊆ E) :
+theorem wp_osClose (fd : w64) (d : OsFd) (hE : ↑osN ⊆ E) :
     {{ osInv (L := L) ∗ osFd (L := L) fd (DFrac.own 1) d }}
       (ExternalOp osFsExt.name "Close" (Val (#fd))) @ s; E
     {{ (e : w64), RET #e; True }} := by
@@ -401,7 +401,7 @@ theorem coh_meta {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf �
   exact ⟨f, file_eq_some.2 hf, hm⟩
 
 /-- `flock(fd, how)`: any errno. -/
-theorem wp_Flock (fd how : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+theorem wp_osFlock (fd how : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗
       (∀ e : w64, osFd (L := L) fd dq d -∗ Φ (#e)) -∗
       WP (ExternalOp osFsExt.name "Flock" (Val (PairV (#fd) (#how)))) @ s; E {{ Φ }} := by
@@ -436,7 +436,7 @@ theorem wp_Flock (fd how : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ 
   iapply HΦ $$ Hfd
 
 /-- `fstat(fd)`'s size, with a fraction of the file's `OsMeta`: its size, or an errno. -/
-theorem wp_Fstat (fd : w64) (dq dqm : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN ⊆ E)
+theorem wp_osFstat (fd : w64) (dq dqm : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.path dqm (some m) -∗
       (∀ sz : w64, ∀ e : w64, ⌜e = 0 ∧ sz = (W64 m.size) ∨ e ≠ 0 ∧ sz = 0⌝ -∗
@@ -487,7 +487,7 @@ theorem wp_Fstat (fd : w64) (dq dqm : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑os
 /-- `pread(fd, n, off)` of bytes the client holds (any fractions), with a fraction of the file's
 `OsMeta`, so that the size is known: exactly the bytes from `off` up to `n` or the end of the
 file; on failure, a prefix of them. -/
-theorem wp_PRead (fd off n : w64) (dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta)
+theorem wp_osPRead (fd off n : w64) (dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta)
     (xs : List (w8 × Bool)) (hE : ↑osN ⊆ E) (hrd : d.readable = true) (hoff : 0 ≤ off.toInt)
     (hlen : xs.length = min n.toNat (m.size - off.toNat)) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.path dqm (some m) -∗
@@ -561,7 +561,7 @@ theorem wp_PRead (fd off n : w64) (dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta)
 /-- A racing `pread(fd, n, off)` (no `OsMeta`, as minibolt's `Snapshot`): where it reaches a
 byte the client holds (any fraction), it reads it; on success it reaches every such byte below
 `off + n`. Elsewhere the bytes, and how far past them it reads, are arbitrary. -/
-theorem wp_PRead_racy (fd off n : w64) (dq dqb : DFrac) (d : OsFd) (lo : Nat)
+theorem wp_osPRead_racy (fd off n : w64) (dq dqb : DFrac) (d : OsFd) (lo : Nat)
     (xs : List (w8 × Bool)) (hE : ↑osN ⊆ E) (hrd : d.readable = true) (hoff : 0 ≤ off.toInt)
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osBytes (L := L) d.path lo dqb xs -∗
@@ -641,7 +641,7 @@ def syncedBytes (m : OsMeta) (xs : List (w8 × Bool)) : List (w8 × Bool) :=
 flight on it, and some of its bytes, whole. On success the size is durable, and the bytes are
 clean unless a failed sync lost one (`m.ok`); on failure, nothing more is clean, and bytes may
 be lost (`ok := false`). -/
-theorem wp_Fsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
+theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
     (xs : List (w8 × Bool)) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.path (DFrac.own 1) (some m) -∗
       osBytes (L := L) d.path lo (DFrac.own 1) xs -∗
@@ -769,7 +769,7 @@ theorem wp_Fsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
 `OsMeta`, so that no change is in flight on it: on success, fresh cells at `base`, whose client
 halves hold the file's bytes, then holes past its end, inside the address space; on failure,
 `nil`. -/
-theorem wp_Mmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN ⊆ E)
+theorem wp_osMmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN ⊆ E)
     (hrd : d.readable = true) (hoff : off = 0) (hlen : 0 < len.toInt)
     (hprot : prot.toNat = PROT_READ)
     (hfl : fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) (Φ : val → IProp GF) :
@@ -976,7 +976,7 @@ theorem wp_Mmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) 
 /-- `munmap` of a whole mapping (`unix.Munmap(b)`), with the whole of the file's `OsMeta` and
 the client halves of all the mapping's cells. On success the mapping and its cells are gone; on
 failure, it may be gone, or still there, with its cells back. -/
-theorem wp_Munmap (base : Loc) (len cap : w64) (p : GoString) (m : OsMeta) (n : Nat)
+theorem wp_osMunmap (base : Loc) (len cap : w64) (p : GoString) (m : OsMeta) (n : Nat)
     (vf : Nat → val) (hE : ↑osN ⊆ E) (hb : m.maps !! base = some n) (hlen : len.toNat = n)
     (hcap : cap.toNat = n) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osMeta (L := L) p (DFrac.own 1) (some m) -∗ cellsR base 0 n vf -∗
@@ -1290,7 +1290,7 @@ theorem osWf_addFd {st : OsState} (hwf : OsWf st) (fd : w64) (d : OsFd)
 /-- `open(p, fl)` without `O_TRUNC`, with the file's `OsMeta` (whole if there is no file, so
 that the open may create it): on success a new fd, whole; on failure, `-1`, and the file may
 have been created. -/
-theorem wp_Open (p : GoString) (fl : w64) (q : DFrac) (mo : Option OsMeta) (hE : ↑osN ⊆ E)
+theorem wp_osOpen (p : GoString) (fl : w64) (q : DFrac) (mo : Option OsMeta) (hE : ↑osN ⊆ E)
     (hfl : OpenFlagsOk fl.toNat) (htr : fl.toNat / O_TRUNC % 2 = 0)
     (hq : mo = none → q = DFrac.own 1) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osMeta (L := L) p q mo -∗

@@ -2,7 +2,7 @@
 `unix.Munmap(b)` of a whole mapping (this repository's `golang.org/x/sys/unix`, project
 `bboltfs`): `b` is the slice `unix.Mmap` returned (`Spec/golang_org/x/sys/unix/Mmap.lean`), and
 its length positive (as `Mmap` requires), and the client gives back all of its cells' client halves, with the whole of the file's `OsMeta`. The
-model (`TrustedCode/golang_org/x/sys/unix.lean`) is the extension's `Munmap` (`wp_Munmap`). On
+model (`TrustedCode/golang_org/x/sys/unix.lean`) is the extension's `Munmap` (`wp_osMunmap`). On
 success the mapping is gone from the `OsMeta`; on failure it may be gone, or still there with its
 cells back. Proved in `Proof/golang_org/x/sys/unix/Munmap.lean`. Lean-first (no Rocq
 counterpart).

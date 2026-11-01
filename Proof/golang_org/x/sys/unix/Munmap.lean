@@ -1,5 +1,5 @@
 /-
-The proof of `Spec/golang_org/x/sys/unix/Munmap.lean`: `wp_Munmap`.
+The proof of `Spec/golang_org/x/sys/unix/Munmap.lean`: `wp_osMunmap`.
 -/
 module
 
@@ -66,7 +66,7 @@ theorem golang_org.x.sys.unix.Munmap.wp_proof : golang_org.x.sys.unix.Munmap.spe
     have hb0 : (base +ₗ (0 : Int)) = base := by simp
     rw [hb0]
     wp_auto
-    wp_apply wp_Munmap base len len p m len.toNat vf CoPset.subseteq_top hb rfl rfl
+    wp_apply wp_osMunmap base len len p m len.toNat vf CoPset.subseteq_top hb rfl rfl
       $$ Hinv Hm Hc as %e Hr
     iapply wp_errno
     iapply HΦ

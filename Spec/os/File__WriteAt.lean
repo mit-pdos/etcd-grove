@@ -2,8 +2,8 @@
 `f.WriteAt(b, off)` on an open `*os.File` (this repository's `os`, project `bboltfs`), for a
 non-negative offset and a non-empty `b` of at most `maxRW` (1 GiB) bytes, so that Go's
 `poll.FD.Pwrite` makes one `pwrite(2)` per attempt (retried on `EINTR`). The model
-(`TrustedCode/os.lean`) makes the extension's two steps per attempt (`wp_PWriteStart`,
-`wp_PWriteFinish`), so the spec takes what they take: the fd, writable; a fraction `q` of the
+(`TrustedCode/os.lean`) makes the extension's two steps per attempt (`wp_osPWriteStart`,
+`wp_osPWriteFinish`), so the spec takes what they take: the fd, writable; a fraction `q` of the
 file's `OsMeta` `m`, all of it if the write may extend the file; the bytes the write may change
 below the size, `[min off size, min (off + n) size)`, whole; and the client's halves of the cells
 of every mapping over `[min off size, off + n)`.
