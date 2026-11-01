@@ -778,3 +778,52 @@ Done (no `sorryAx`; axioms `propext`, `Classical.choice`, `Quot.sound` plus goos
   generation), proved; `unmappedC_own`.
 - **`DB.Get.specCrash`**, **`DB.Snapshot.specCrash`** (`DB__GetCrash.lean`, `DB__SnapshotCrash.lean`,
   over `isDBC`), proved by the mechanical copy (`metaRC` for `metaR`); `dbReaderC_borrow`.
+- **`DB.commit.specCrash` proved** (`Proof/.../DB__commitCrash.lean`, `DB.commit.wp_proof_crash`,
+  no `sorryAx`; file-level `set_option maxRecDepth 20000`, `maxHeartbeats 1000000` on the main
+  theorem). Deviations from the plan: the meta page's Fdatasync uses `hd = true` (the meta bytes are
+  dirty after the write, so `hd = false`'s premise fails; its success state gives the new
+  `commitClean`); `cs_freeze` to `4096 * (hwm + 1)` happens after the meta sync. Its helpers
+  (all in that file): `commitClean_of_prefix`, `treach_commitClean`, `trunc_obl`,
+  `synced_commitClean`, `dataW_obl/after`, `dataS_facts`, `commitMetaSt_of/_wreach/_meta`,
+  `metaW_obl/after`, `metaSynced_commitClean`, `metaS_facts`, `csOwn_split3`, `commitErrC*`,
+  `meta_failC`, `dataErrC`, `dataErrTC`, `frozen_page`, `rwRC_of`, list/sync lemmas
+  (`syncedKeep_dur`, `csSynced_false_eq/_true_eq`, ...). Notes: `omega` unfolds `curPgid` in a
+  hypothesis `curPgid mp = hwm` and blows up (hide it: `HideEq`); give `(m := …)` to
+  `writer_okS`/`commitClean_meta` (unification loops on `{ m with maps := M }`); use
+  `rw [csSynced_false_eq]`, not `dsimp only [csSynced]`.
+- **Item 6.** `wp_BootMinibolt` (`BootMinibolt.lean`): one generation of `BootMinibolt(dir)`, no
+  panic, over `Open/Get/Commit/Close.specCrash` with `vp := bootOk`, under an extra premise
+  `bootPremises fo` (`1 ≤ t`, `t + 1 < 2^64`, `(n + 2) * 4096 ≤ 2^30` for `freshTx`'s `t, n`).
+  `bootCrashSafety` (`BootResults.lean`): `BootCrashSafety dir` from `osFsQ_crash_adequacyT`,
+  `csInv_alloc` (`start_dbOk`), `csInv_crash_keep`, every spec linked to its proof, under the
+  hypotheses `Hinit_wp` (the package initializer, ending in `pkgFacts`), `Hprem : ∀ fo, Good fo →
+  bootPremises fo` (**false**, below), `Hlive` (fewer than `2^30` live threads in executions of
+  `≥ 2^30 - 2` steps: `Open.specCrash` needs `ThreadBoundLe GF (2^30)`), and the `os.file`/
+  `os.fileStat` field facts. `BootP1.lean`: the stray `[GoSemanticsFunctions]` binder of
+  `BootCrashSafety` was removed (it made `package_sem : Assumptions` resolve against it rather
+  than `go.Semantics`'s, so the statement was unprovable).
+- `#print axioms bootCrashSafety`, `DB.commit.wp_proof_crash`, `Open.wp_proof_crash`,
+  `DB.Snapshot.wp_proof_crash`, ...: `propext`, `Classical.choice`, `Quot.sound` and goose's type
+  declarations; no `sorryAx`.
+
+**Gaps (decisions for the user), in order:**
+1. **A reachable panic in `BootMinibolt`** (`bootPremises.1` false): `init` writes both metas in
+   one `WriteAt(buf[:2*pageSize], 0)`; a crash tearing it can leave slot 0 (txid 0) whole and
+   valid and slot 1 zero, which `goodImg` accepts (committed, `bootOk 0 none`, `curInSlot`).
+   That boot passes its check, commits txid 1 with value 1; the next boot reads txid 1 with a
+   value and panics ("init's root page holds a value"). Fixes: (a) `init` writes and syncs slot 1
+   (txid 1) before slot 0 (or writes only slot 1; slot 0 stays zero), so txid 0 is never current;
+   then strengthen `goodImg`'s committed case to `1 ≤ txid`; (b) change the check in
+   `BootMinibolt` (accept txid 1 holding 1) and widen `bootOk`. Either changes Go code (regoose).
+2. `(n + 2) * 4096 ≤ 2^30`: `metaPagesOk` gives only `(n + 1) * 4096 ≤ 2^30`. A full file makes the
+   Go `Commit` return an error (its `mmap` of `(n+2)` pages fails? check), but
+   `DB.Commit.spec(Crash)` requires the bound. Fix: drop the premise and allow the error result
+   (spec change in `DB__Commit.lean`/`DB__commit.lean` and their crash copies).
+3. `t + 1 < 2^64`: `goodImg` does not relate txid and pgid. Fix: add `txid < pgid` to `goodImg`'s
+   committed case (kept by `init`: 1 < 4, and each commit adds one to both), carried in
+   `commitClean`.
+4. `Hlive`: prove the boot program forks no thread, or add `n + 2 ≤ 2^30` to `BootCrashSafety`.
+5. `Hinit_wp`: the package initializer (as crashlog's).
+
+Next: decide gap 1, then fix 1–3 (`goodImg`, `commitClean`, the obligations, `Open.specCrash`'s
+`freshTx` facts), which discharges `Hprem`; then 4.
