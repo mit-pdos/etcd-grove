@@ -6,8 +6,8 @@
 # `<F>.spec<S>`/`<F>.wp_proof<S>`, linked as `wp_<M><S>` (`Replica.persist`'s `specRun`, the form
 # `Replica.run` calls it at).
 #
-# Not linked yet (a spec, no proof file): `Cluster.Crash`, `Cluster.restart`, `Cluster.start`,
-# `Cluster.startNew`, `StartCluster`, `openStorage`. Add each line here once its proof exists.
+# Not linked yet (a spec, no proof file): `Cluster.Crash`, `Cluster.restart`, `StartCluster`.
+# Add each line here once its proof exists. `openStorage`'s proof is not here yet (`?`).
 #
 # the callees outside the store
 IsEmptyHardState: @
@@ -21,6 +21,10 @@ MemoryStorage__InitialState: @
 MemoryStorage__SetHardState: @
 MemoryStorage__Snapshot: @
 MustSync: @
+RestartNode: @
+MemoryStorage__Term: @
+MemoryStorage__LastIndex: @
+MemoryStorage__Entries: @
 NewMemoryStorage: @
 node__Advance: @
 node__ApplyConfChange: @
@@ -64,6 +68,7 @@ raftpb_Snapshot__GetMetadata: @
 # kvreconf's list
 context_WithTimeoutBackground:
 # the durable files package (examples/durable): its trusted `Write`'s proved spec
+durable_Read:
 durable_Write:
 # the store (examples/kvdurable)
 kvdurable_Cluster__config:
@@ -71,6 +76,8 @@ kvdurable_Cluster__deliver: kvdurable_Cluster__replica kvdurable_Cluster__droppe
 kvdurable_Cluster__dropped: kvdurable_Stats__add raftpb_Message__GetTo raftpb_Message__GetType node__ReportUnreachable node__ReportSnapshot
 kvdurable_Cluster__fileOf: kvdurable_itoa
 kvdurable_Cluster__replica:
+kvdurable_Cluster__start: kvdurable_Cluster__fileOf durable_Read kvdurable_newStorage kvdurable_openStorage MemoryStorage__Snapshot raftpb_Snapshot__GetMetadata raftpb_Snapshot__GetData raftpb_SnapshotMetadata__GetIndex raftpb_SnapshotMetadata__GetConfState kvdurable_decodeState kvdurable_Stats__add kvdurable_oneIn kvdurable_below kvdurable_Cluster__config RestartNode kvdurable_Cluster__tick kvdurable_Cluster__sender kvdurable_newReplica kvdurable_Storage__InitialState kvdurable_Storage__Snapshot MemoryStorage__LastIndex MemoryStorage__FirstIndex MemoryStorage__Term MemoryStorage__Entries kvdurable_quietLogger__Debugf kvdurable_quietLogger__Errorf kvdurable_quietLogger__Infof kvdurable_quietLogger__Warningf
+kvdurable_Cluster__startNew: kvdurable_Cluster__start kvdurable_Stats__add
 kvdurable_Cluster__send: kvdurable_Cluster__replica kvdurable_copyMsg kvdurable_Cluster__deliver
 kvdurable_Cluster__sender: kvdurable_Cluster__send
 kvdurable_Cluster__step: kvdurable_Stats__add kvdurable_oneIn raftpb_Message__GetTo raftpb_Message__GetType node__Step node__ReportUnreachable node__ReportSnapshot context_WithTimeoutBackground
@@ -123,6 +130,7 @@ kvdurable_less:
 kvdurable_newReplica: kvdurable_Replica__run kvdurable_Replica__ticker kvdurable_Replica__snapshotter proto_CloneConfState
 kvdurable_newStorage: NewMemoryStorage
 kvdurable_oneIn:
+kvdurable_openStorage: ?
 kvdurable_putBytes:
 kvdurable_putEntry: kvdurable_putUint64 kvdurable_putBytes raftpb_Entry__GetTerm raftpb_Entry__GetIndex raftpb_Entry__GetType raftpb_Entry__GetData
 kvdurable_putIDs: kvdurable_putUint64
