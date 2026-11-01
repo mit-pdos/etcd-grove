@@ -28679,3 +28679,20 @@ image's log `A'`. The choices made:
   `lastTermIs_of_snap` compares it with `srvRLogLb A'` (`isCommittedLogLb_agree`, both of length `i`),
   and `epCsVoters_of_snap` reads the voters off `csOptA` (newly in `srvSnapApplied`).
 
+
+## Today's `authSchemaSrv` is false; the auth-on snapshot premise restated
+
+**2026-11-01 · the user's decisions · `notes/snapshot-auth-on-plan.md`, "The user's decisions"**
+
+`authSchemaSrv` (`AuthSrv.lean`, the trusted premise of `NewServer.specM true`) is false as stated: a
+bug in this repository's model, not in etcd (so recorded here, not in `issues/`). Review round 3 of
+the auth-on snapshot Draft refuted it five ways: the read contract's latest clause holds no
+write-batch guard and is false inside a batch; it takes no share of the published index's authority,
+so the client can publish past what the backend holds; it hands back the client's half of every
+tracked bucket, so the auth buckets can be written around the store; its guards carry no share of
+the backend's open token, so the client can `Close` it and read; and `beP`'s write token is not tied
+to the apply thread's. The user's decisions: split the tracked buckets' token by bucket set, move part
+of the published index's authority into the realization (publication needs the write token), per-
+backend ghost names carrying an open share, the history recorded before `Recover` (candidate (ii)),
+and one spec per function over the mode. The restated statements are in the Draft
+(`SnapAuthOnDraft.lean`), to be approved before they replace today's.

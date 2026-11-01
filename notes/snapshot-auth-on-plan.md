@@ -216,7 +216,8 @@ token and the currency guards), for every backend.
   `R` lent against the new backend's read token. **The same claim as boot's** (boot: `st =
   bootState`, empty buckets), so the trusted content is one fact at two kinds of backends.
 
-**(i) "Announced" (drafted as definitions and specs; not recommended).** The catch-up stays in
+**(i) "Announced" (dropped by the user's decision 4, 2026-11-01; its statements are gone from the
+Draft; kept here for the record).** The catch-up stays in
 `setRevision` (`setRevision.specN`); `stI` is announced by the cap's lower bound at the committed log's
 history (`authHistTie_catchup`'s `capLb (srvHist A')`: no new ghost state). Costs:
 - `authSnap (.on γa)` must be **redefined in place** to "a state of the cap" (`authSnapC`; recorded
@@ -447,6 +448,87 @@ today's specs stay untouched until the user picks the candidate.
   `run_snap_jobOn` (the twin of J8b's job), which wait on J8b's shape; the install walk's mode-on
   steps besides `Recover` (`srvApplyKVOn`'s row at the new backend needs the admin steps at the new
   hook, `authStepsAtHook` from `authWAtHook`, as `authApplyResB_of_pre` at boot).
+
+## The user's decisions (2026-11-01) and the restated Draft
+
+Round 3 refuted today's `authSchemaSrv` in five ways (a bug of this repository's model, recorded in
+`notes/decisions.md`, "Today's `authSchemaSrv` is false"): (1) its latest clause is false inside a
+batch; (2) freshness: it takes no share of the published index's authority; (3) it gives back `rbOwn`
+of every tracked bucket, so the client can write the auth buckets directly; (4) `Cu`/`T` carry no open
+share of the backend (`Close` then read); (5) `beP`'s `T` is not tied to the apply thread's.
+
+The decisions (all accepted; the ninth below, the tenth not about this repository):
+1. Split `rbOwn` by bucket set (or move the auth buckets' share into `T`): the mode-on `srvRest` holds
+   the auth buckets at the log's auth state (D22's decision).
+2. The published index's authority moves partly into the realization; publication requires `T`
+   (`authPublishM` needs it).
+3. Guards, also for today's `authSchemaSrv`: (a) `Cu`/`T` carry an open share of the backend, back
+   only when both are surrendered; (b) a ghost name ties `beP`'s `T` to the apply thread's;
+   (c) `Recover` returns the old backend's `Cu₀ 1` for the close goroutine.
+4. Q2: candidate (ii), "record first"; candidate (i)'s statements dropped.
+5. One spec per function: `authOwnPM M hs N`, one `Recover.spec` over `M` and `N`, the install's
+   `Recover` facts gated by `E.authMode`.
+6. `specSnapOn`'s packaging after J8b's review; standalone for now.
+7. Redefine in place: `authApplyResB` (the fuel at a base, the token's retirement, the hook clause;
+   a `stepOk_of_fuel` variant at `k + b + 1 < 2^63`), `srvSnapRO`'s image certificate by the mode,
+   `beP` holding the guarded contract.
+8. `NewServer`, `bootOk` and `isServerRunOn` carry `srvAuthSnapOk` as they carry `#HmetaSnap`.
+9. Check the model: `UserAdd` and long names; the grant step against `isValidPermissionRange`.
+
+### The restated Draft (`SnapAuthOnDraft.lean`, builds; `authRecoverOn_glue` proved)
+
+Redefinitions carry the prefix `AonDraft.` (the merge drops it). What each refutation becomes:
+- **(1)** `AonDraft.auth.authReadTxOk tx R M γc`, mode on: the readers' and the freshness clauses take
+  a part `authCur γc q` of the backend's currency; the latest clause takes the write token
+  `authWTok γc` with the history's half (no batch of the apply thread's is open). Off the mode: today's.
+- **(2)** `AonDraft.auth.revFresh` holds half the published index's authority (`authPubQ γa ½`); the
+  apply thread a quarter (`authPubTok`), the realization the last quarter. `authBkLife`'s publish
+  clause raises the index for `T`, the quarter and the history's half; `AonDraft.authPublishM` takes
+  `authBkLife`, `T` and `authPubTok`. Retiring `T` hands the quarter to the realization and the
+  release gives it back, so nothing is published while a retired backend can still be read.
+- **(3)** `backend.rbOwnIn γ S r` (opaque; the law `rbOwn_split_in`, a backend-level change: the
+  tracked-bucket token per bucket): the premise takes `rbOwn r` and gives back `rbOwnIn restNonAuth`.
+- **(4)** Every server backend's realization keeps `bOpen γB authOpenQ` (a quarter, out of the apply
+  thread's half): `authBkLife γa γc K`'s release gives `K` back only for `authRetired γc` (what
+  retiring `T` leaves) and `authCur γc 1`. Reads already begun need no guard: Go's `Close` waits for
+  the read transaction's holders (`batchTxBuffered.commit` takes `readTx.Lock()`), so only `RLock`
+  takes `Cu`.
+- **(5)** Per-backend names `γc : AuthBkNames` (`T`, `Cu`, the retired token are functions of them);
+  `beP` holds half of a ghost variable at the new name `γa.bk` with value `γc`, the apply thread the
+  other half beside `T` (`authWHeld`). **Deviation from decision 3b's wording**: the tie goes with `T`
+  in `authApplyResPre`, not in `authBeOn`, whose users never hold `T` (question for the user).
+- `authSchemaSnap γa R` (the snapshot clause) and `AonDraft.authSchemaSrv` (boot's, carrying the clause)
+  give, for fresh `γc`: the guarded read contract, `Cu 1`, the write contract at `T` (and at every
+  schema backend on the hook, `authWAtHook`), `T`, the lifecycle at `bOpen authOpenQ`; boot's also
+  `authPubTok`, `CreateAuthBuckets` at `T`, `csContract`, `actualMaxReaders` copies of `R`.
+- One spec each: `AonDraft.auth.authStore.setRevision.spec` (from `authOwnPM M hs N`, `opt` the
+  `AuthEnable` case, `N ≠ [] → opt = []`) and `AonDraft.auth.authStore.Recover.spec` (over `M`, `N`;
+  `recoverIn`/`recoverOut`/`recoverFit` by mode: on, the new backend's `T`, `Cu 1` and the old name's
+  half in, `T`, the new name's half and `Cu₀ 1` out; off, `N = []`).
+- `AonDraft.authApplyResPre`/`authApplyResB`: fuel at a base (`authFuelB`), `authWHeld`, `authPubTok`,
+  `authBkLife`, `authWAtHook`, `authStepsAny` (the admin steps at any hook). `stepOk_of_fuelB` proved.
+- Install: `srvImageM`, `AonDraft.srvRestOwn` (mode on: `rbOwnIn restNonAuth`), `AonDraft.srvSnapROAuth`
+  (the image certificate by mode, and `srvAuthSnapOk` gated by `E.authMode`); `srvAuthSnapOk s γa RD`
+  replaces `specSnapOn`'s premise.
+
+New findings of the restatement:
+25. **`authInv` at `E.RD`** (the earlier Draft's `specSnapOn` premise): wrong, `E.RD` is
+   `authRd ast R`; `srvAuthSnapOk` quantifies the store's `R` and states `RD = authRd ast R (.on γa)`.
+26. **The open share changes the mode-on `bOpen` accounting**: the apply thread's `bOpen d.γB ½`
+   (`specSnap`, the install walk's close goroutine, `NewServer`) is a quarter in mode on, the other
+   quarter with the realization.
+27. **The publication quarter must go with retirement** (else freshness is refutable on a retired,
+   unreleased backend whose readers read the old state after a publish on the new one).
+28. `authInv`'s text is kept and read under the redefined `beP`/`revFresh`; `authCatchUpFirst` and
+   `authOwn_capped` touch only `revCur`, so they keep their proofs. `authPublishM_of_authInv`
+   (restated) and boot's glue (`authStoreKit_on`/`newAuthStore_on`) are not drafted.
+
+Decision 9: the model's `userAddF`/`roleAddF` do **not** reject long names (only the empty name);
+the specs of `UserAdd`, `RoleAdd`, `RoleGrantPermission`, ... take `name.length ≤ backend.maxKeySize`
+as a premise (already in `issues/etcd-auth-useradd-long-name-fatal.md`). `roleGrantPermissionR`'s
+`rangeValid` mirrors `isValidPermissionRange` (`range_perm_cache.go:189`): empty key rejected, empty
+end accepted, `key < end` (the affine compare, for a non-empty end, is the byte order) or `end =
+"\x00"`.
 
 ## J8b's changes the Draft depends on (2026-11-01, from the J8b session)
 
