@@ -7,12 +7,14 @@ nothing proves them, and no proof uses them; today's specs and proofs are untouc
 
 - The vocabulary: `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean` (new).
 - The specs: `<F>.specC`, appended to each function's spec file next to today's `<F>.spec`
-  (27 functions: `New`, `store.Read`/`Write`/`Rev`/`Commit`/`Compact`, `watchableStore.Write`/
+  (28 functions: `New`, `store.Read`/`Rev`/`Commit`/`Compact`, `watchableStore.Write`/
   `Close`/`NewWatchStream`, `metricsTxnWrite.Range`/`Put`/`DeleteRange`/`Rev`/`FirstRev`/
   `Changes`/`End`, `watchableStoreTxnWrite.End`, `NewReadOnlyTxnWrite`,
-  `txnReadWrite.Range`/`Rev`/`End`, `watchStream.Watch`/`Chan`/`RequestProgress`/
+  `txnReadWrite.Range`/`Rev`/`Changes`/`End`, `watchStream.Watch`/`Chan`/`Rev`/`RequestProgress`/
   `RequestProgressAll`/`Cancel`/`Close`). Side by side rather than in place so that the build stays
   green while they are reviewed: adopting them replaces each `<F>.spec` (and its proof).
+- Rounds: round 1 (commit `8bd75f7cc2`), reviewed by the `spec-reviewer` agent; round 2 repairs
+  its findings (below, "Round 2").
 - Out of scope: the store's own `Put`/`DeleteRange`/`Range` (`writeView`, `readView`: no caller in
   etcd's proof or the tester), `Restore`, hashing, `NewStore` (etcd uses `New`), the internal
   functions.
@@ -60,6 +62,44 @@ the API's abstract state, owned by the client, and linearizability as the caller
   (`mvccHook γ P f`; `nil` allowed: `hookRun` is then the caller's update); `Write` runs it from
   the caller's `Pre` to `Q`, `End` takes `P` back.
 
+## Round 2 (the review of round 1)
+
+The reviewer found four statements false of the Go code; all repaired:
+
+- `metricsTxnWrite.FirstRev`: a write transaction's is `0` (`store.Write` sets none), not the
+  compaction revision.
+- `metricsTxnWrite.Changes`: it returned the change records' points-tos, which a second call
+  duplicates and which the watchable store's `End` writes; now only their number (what etcd's
+  `txn` and the tester inspect).
+- **A commit that skips the watchers**: round 1 gave a committing `End` to the store's own write
+  transactions (`store.Write`, `metricsTxnWrite.End`), so a client of the watchable store could
+  commit a revision no watcher sees, falsifying the watch laws. Now the store's own `Write` has no
+  candidate spec and `metricsTxnWrite.End` ends read transactions only: every write goes through
+  `watchableStore.Write`/`watchableStoreTxnWrite.End`.
+- `Compact` after `Close` panics (the stopped scheduler's `Schedule`): the store's open token
+  (`mvccOpen γ q`, fractional) replaces the closer; `Compact` takes a share, `Close` the whole.
+
+And the gaps for callers: `Commit` and `Compact` take the backend's commit request
+(`mvccCommitReq`, from `backend.commitReq` by `mvccCommitReq_of`, with `mvccBackendIs` from
+`New`); `Watch` no longer takes a share of the stream's open token (v3rpc closes the stream while
+its receive loop may still register: the closed stream's arm, `wsClosed`); a live token per
+watcher (`wsLive`, taken by `Cancel` when the caller has it) makes the progress law say something
+(round 1's `wsCanceled` could be read as `True`); the registrar's view of the watchers
+(`wsWatchers`, for "a response of a watcher the client registered"); specs of
+`txnReadWrite.Changes` and `watchStream.Rev`; laws for the trace while a transaction is open
+(`mvccTxn_trace`), the receive in Perennial's `recvAu` form (a plain receive or a `select`), the
+range deleter's triple (`mvccDeleter_spec`), every response's revision (`wsRecv_rev`), a compaction
+response's positive revision, `mvccAnn` and `mvccHook` agreement; the reachability law states the
+length bound, not the receipts. `Put`'s key bound found: it is the lessor's `Attach`'s (each item's
+key shorter than `2 ^ 63 - 1`, which round 1's `isMvccLessor` had dropped: restored), so `Put` takes
+it only with a lease.
+
+Not repaired (open, below): `New`'s backend internals (E1); the field laws rather than WP-transfer
+laws for the promoted methods (E2: they are enough to call the methods, and no longer reach an
+unsound path); the module not sealed (E4); `isMvccLessor`'s generality nominal (E6); `Revoke`'s
+write of the lease bucket inside the transaction (B7, the lease package's spec); whether v3rpc's
+send loop needs registration facts beyond `wsWatcher`'s `k` (B6, unchecked).
+
 ## Decisions for the user (new client-owned ghost state and premises)
 
 The skill's policy: each new premise or client-owned ghost state on a spec with clients is the
@@ -80,9 +120,15 @@ user's decision. Today's statement beside the candidate's:
 4. **`New`'s premise `□ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB)`** (write-backs paid from time receipts,
    M2's `kbWTSupply`, given by the backend's creator). Today: two write tokens to `NewStore`, then
    one per `Write` (`storeWT`) and `Commit`. Alternative: keep the per-call token.
-5. **The lessor generalized** (`isMvccLessor`, with its resource `R`). Today: `isLessor` (the real
-   `*lessor` only), which excludes `FakeLessor`. The real lessor meets the general contract with
-   `R := lease.lessorRd lp γl` (today's `isLessor` minus `lessorPin`).
+5. **The lessor's contract over any interface value** (`isMvccLessor`, with its resource `R`).
+   Today: `isLessor` (the real `*lessor` only). The real lessor meets it with
+   `R := lease.lessorRd lp γl`; the generality is nominal while the owner's predicate is the real
+   lessor's `lease.leaseOwn` (a `FakeLessor` would need its own: open).
+6. **The stream's registrar's view and a live token per watcher** (`wsWatchers ι S` from
+   `NewWatchStream`, threaded through `Watch`; `wsLive ι id` from `Watch`, taken by `Cancel`).
+   Today: the stream's id map and per-id tokens (`idsInv`, `idTok`), internal names.
+7. **The store's open token** (`mvccOpen γ q`: `Compact` a share, `Close` the whole). Today: the
+   closer (`storeCloser`, `wsCloser`) and the compaction right (`compactRight`).
 
 Dropped premises (each today's, none needed by the code under the candidate's ownership): the
 reader tags `Z` (always `True`), `crevLb` floors, `NoDelPutAt` (already gone in M2 on `lean`),
@@ -112,8 +158,6 @@ reader tags `Z` (always `True`), `crevLb` floors, `NoDelPutAt` (already gone in 
 
 ## Open
 
-- **The key's bound on `Put`** (`(k.length : Int) < 2 ^ 63 - 1`): kept from today's spec; its
-  reason is to be found (not obvious in `put`'s Go code).
 - **The backend boundary is unchanged**: `New` takes what today's `NewStore_backend` takes of the
   real backend (`isBackend` at `lateW`, `keySized`, `bkView`, `bkNoCmp`, `lateReg`, `bkRTx`), which
   names implementation ghost state (`lateW` registers the store's names); a design of its own.
@@ -123,7 +167,17 @@ reader tags `Z` (always `True`), `crevLb` floors, `NoDelPutAt` (already gone in 
   chooses one); a caller's id adds the `ErrWatcherDuplicateID` arm.
 - **Compaction responses** (`WResp.compactRev ≠ 0`): only that they carry no events and are at
   most the compaction revision; what follows them for the watcher is not stated.
-- **`Changes`' slice read-only** (`chs ↦*□ ps`): the transaction only appends later; to check
-  against the proof of `put` (today's spec hands the slice over and seals the transaction).
+- **The promoted methods**: the field laws (`isWatchableMvcc_store`, `mvccWatchTxnOf_field`) let a
+  client call `kv.Read`/`Rev`/`Compact`/`Commit` and the transaction's `Put`/... through Go's
+  promotion; WP-transfer laws over the abstract predicates (today's `kvOver_*`, `tw_wp*`) would hide
+  the fields (review E2).
+- **Sealing**: `Api.lean` publicly imports mvcc's proof modules; adopting it means non-public
+  imports and `@[no_expose]` (CLAUDE.md, "Package APIs"), the specs' pure vocabulary (`rangeOutcomeC`,
+  `delKeys`, `pendItems`, `writeRev`, `watchEvents`, ...) moved into the API module.
+- **Lease `Revoke`** (the lease package's spec, not here): restated over `mvccDeleter_spec`, the
+  announcement of its exact deletions, and a right to write the lease bucket inside the store's
+  write transaction (today's `storeRb`), which the candidate does not give yet (review B7).
+- **v3rpc's send loop**: whether it needs registration facts beyond `wsWatcher`'s `k` (today's
+  `idAssigned`, `chanRegFact`, `streamRegAt`) is unchecked (review B6).
 - **The laws are obligations**: an implementation proves each `<name>.law` over its definitions
   of the opaque predicates; until then nothing rests on them.

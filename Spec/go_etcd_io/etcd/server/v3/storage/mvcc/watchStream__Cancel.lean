@@ -34,13 +34,17 @@ abbrev mvcc.watchStream.Cancel.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       ⌜err = GoInterface.nil⌝ ∨ globalAddr ErrWatcherNotExist ↦□ err }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.Cancel(id)`: the watcher cancelled (no longer covered by the stream's progress),
-`nil` or `ErrWatcherNotExist`. -/
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.Cancel(id)`, by the holder of the watcher's live token (`own`: then the watcher is
+cancelled for good, `wsCanceled`, no longer covered by the stream's progress), or of none (an id
+the caller only names: v3rpc cancels the ids its client sends; nothing is stated of it); `nil` or
+`ErrWatcherNotExist`. -/
 abbrev mvcc.watchStream.Cancel.specC : Prop :=
-  ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isMvccWatchStream st γ ι ∗ threadTok }}
+  ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName) (id : w64) (own : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isMvccWatchStream st γ ι ∗ threadTok ∗
+      (if own then mvcc.wsLive ι id else iprop(True)) }}
     (App (Val (st @!! go.GoType.PointerType watchStream.ty @!! go!"Cancel")) (Val #id))
-  {{ (err : GoInterface), RET #err; threadTok ∗ mvcc.wsCanceled ι id ∗
+  {{ (err : GoInterface), RET #err; threadTok ∗
+      (if own then mvcc.wsCanceled ι id else iprop(True)) ∗
       (⌜err = GoInterface.nil⌝ ∨ globalAddr ErrWatcherNotExist ↦□ err) }}
 
 end spec

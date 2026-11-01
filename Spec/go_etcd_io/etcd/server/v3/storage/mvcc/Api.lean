@@ -150,8 +150,15 @@ opaque isMvcc (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
 /-- **`ws` (a `*watchableStore`) serves the store `γ`** (persistent). -/
 opaque isWatchableMvcc (ws : Loc) (γ : MvccName) : IProp GF := iprop(True)
 
-/-- **The right to close the watchable store `ws`** (exclusive). -/
-opaque mvccCloser (ws : Loc) (γ : MvccName) : IProp GF := iprop(True)
+/-- **A share `q` of the store's open token** (fractional): `Compact` takes a share (after
+`Close` the scheduler is stopped, and a compaction's `Schedule` panics); `watchableStore.Close`
+takes it whole. -/
+opaque mvccOpen (γ : MvccName) (q : Qp) : IProp GF := iprop(True)
+
+/-- **The store's backend is `b`, with parameters `P` and batch-lock resource `Pk`**
+(persistent; from `New`): what the backend's commit request (`backend.commitReq`) is over. -/
+opaque mvccBackendIs (γ : MvccName) (P : backend.BParams) (Pk : IProp GF) (b : Loc) : IProp GF :=
+  iprop(True)
 
 /-- **The store's batch lock has invariant `P`** (persistent; fixed by its backend's creator). -/
 opaque mvccHookInit (γ : MvccName) (P : IProp GF) : IProp GF := iprop(True)
@@ -193,9 +200,20 @@ opaque mvccCompactChan (ch : GoChan) : IProp GF := iprop(True)
 /-- **`ws` (a `*watchStream`) is a watch stream of the store `γ`, named `ι`** (persistent). -/
 opaque isMvccWatchStream (ws : Loc) (γ : MvccName) (ι : WsName) : IProp GF := iprop(True)
 
-/-- **A share `q` of the stream's open token** (fractional): `Close` takes it whole; `Watch`
-on an open stream fails only for an empty range. -/
+/-- **A share `q` of the stream's open token** (fractional): `Close` takes it whole; a holder of
+a share knows the stream is not closed (`wsOpen_closed`). -/
 opaque wsOpen (ι : WsName) (q : Qp) : IProp GF := iprop(True)
+
+/-- **The stream was closed** (persistent; from `Close`): `Watch` then fails. -/
+opaque wsClosed (ι : WsName) : IProp GF := iprop(True)
+
+/-- **The registrar's view of the stream's watchers**: the ids `S` of every watcher `Watch`
+registered on it (exclusive; the goroutine that calls `Watch`). -/
+opaque wsWatchers (ι : WsName) (S : List w64) : IProp GF := iprop(True)
+
+/-- **The watcher `id` is live** (exclusive; from `Watch`, taken by `Cancel`): a live watcher was
+not cancelled (`wsLive_canceled`). -/
+opaque wsLive (ι : WsName) (id : w64) : IProp GF := iprop(True)
 
 /-- **`ch` is the stream's channel** (persistent). -/
 opaque wsChan (ι : WsName) (ch : GoChan) : IProp GF := iprop(True)
@@ -224,14 +242,16 @@ def wrespIs (v : WatchResponse) (r : WResp) : IProp GF :=
 def mvccLogOk (γ : MvccName) (L : Log) : IProp GF :=
   iprop(⌜L <+: mvccStart.log⌝ ∨ mvccAnn γ (L.length - 1) L)
 
-/-- **The store's lessor** `le`, any implementation (`*lessor`, `*FakeLessor`, ...), with the
-lessor's ghost name `γl` (its owner's `lease.leaseOwn γl L I`: the live leases `L`, the item map
-`I`): `GetLease(item)` returns the item map's lease of `item` (`NoLease` if none), with the
-resource `R` (the real lessor's: a reader slot of its lock); `Attach(id, items)` of a live lease
-(`id ∈ L`) of items on no other lease adds them to the item map; `Detach(id, items)` of items the
-item map puts on `id` removes them; `SetRangeDeleter(f)` sets the deleter, by its owner
-(`lease.rdOwn γl`). The store's need of its lessor, generalizing `isLessor` (the real `*lessor`
-only). -/
+/-- **The store's lessor** `le`, at an interface value of any type, with the lessor's ghost
+name `γl` (its owner's `lease.leaseOwn γl L I`: the live leases `L`, the item map `I`):
+`GetLease(item)` returns the item map's lease of `item` (`NoLease` if none), with the resource `R`
+(the real lessor's: a reader slot of its lock); `Attach(id, items)` of a live lease (`id ∈ L`) of
+items on no other lease, each key shorter than `2 ^ 63 - 1` (the real lessor's need), adds them to
+the item map; `Detach(id, items)` of items the item map puts on `id` removes them;
+`SetRangeDeleter(f)` sets the deleter, by its owner (`lease.rdOwn γl`). Today's `isLessor` with the
+real `*lessor`'s pin dropped and its reader slot a parameter. The generality is nominal for now:
+`lease.leaseOwn` is the real lessor's state, so another implementation (`FakeLessor`) cannot meet
+it without its own owner predicate (open, `notes/mvcc-api-candidate.md`). -/
 def isMvccLessor (le : GoInterface) (γl : GName) (R : IProp GF) : IProp GF :=
   iprop(∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
     □ (∀ (item : go_etcd_io.etcd.server.v3.lease.LeaseItem) (L : List w64)
@@ -242,7 +262,8 @@ def isMvccLessor (le : GoInterface) (γl : GName) (R : IProp GF) : IProp GF :=
     □ (∀ (id : w64) (items : GoSlice) (l : List go_etcd_io.etcd.server.v3.lease.LeaseItem)
         (dq : DFrac) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
       {{ lease.leaseOwn γl L I ∗ ⌜id ∈ L⌝ ∗
-          ⌜∀ it ∈ l, I.lookup it = none ∨ I.lookup it = some id⌝ ∗ items ↦*{dq} l }}
+          ⌜∀ it ∈ l, I.lookup it = none ∨ I.lookup it = some id⌝ ∗
+          ⌜∀ it ∈ l, (it.Key'.length : Int) < 2 ^ 63 - 1⌝ ∗ items ↦*{dq} l }}
         (App (App (Val #(methods li.ty go!"Attach" li.v)) (Val #id)) (Val #items))
       {{ RET #(GoInterface.nil); lease.leaseOwn γl L (lease.insertAll I l id) ∗ items ↦*{dq} l }}) ∗
     □ (∀ (id : w64) (items : GoSlice) (l : List go_etcd_io.etcd.server.v3.lease.LeaseItem)
@@ -272,38 +293,50 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- The persistent and timeless predicates are. -/
+/-- The persistent, timeless and fractional predicates are. -/
 abbrev mvcc.persistent.law : Prop :=
   (∀ s γ, Persistent (isMvcc (GF := GF) s γ)) ∧ (∀ ws γ, Persistent (isWatchableMvcc (GF := GF) ws γ)) ∧
   (∀ γ P, Persistent (mvccHookInit (GF := GF) γ P)) ∧ (∀ γ P f, Persistent (mvccHook (GF := GF) γ P f)) ∧
+  (∀ γ P Pk b, Persistent (mvccBackendIs (GF := GF) γ P Pk b)) ∧
   (∀ γ r L, Persistent (mvccAnn (GF := GF) γ r L)) ∧ (∀ tw mw, Persistent (mvccWatchTxnOf (GF := GF) tw mw)) ∧
   (∀ rd ws γ, Persistent (mvccDeleter (GF := GF) rd ws γ)) ∧ (∀ ch, Persistent (mvccCompactChan (GF := GF) ch)) ∧
   (∀ ws γ ι, Persistent (isMvccWatchStream (GF := GF) ws γ ι)) ∧ (∀ ι ch, Persistent (wsChan (GF := GF) ι ch)) ∧
   (∀ ι id rg fs lo k, Persistent (wsWatcher (GF := GF) ι id rg fs lo k)) ∧
-  (∀ ι id, Persistent (wsCanceled (GF := GF) ι id)) ∧ (∀ γ σ, Timeless (mvccState (GF := GF) γ σ)) ∧
-  (∀ γ M, Timeless (mvccAnnAuth (GF := GF) γ M)) ∧ (∀ ι, Fractional (wsOpen (GF := GF) ι))
+  (∀ ι id, Persistent (wsCanceled (GF := GF) ι id)) ∧ (∀ ι, Persistent (wsClosed (GF := GF) ι)) ∧
+  (∀ γ σ, Timeless (mvccState (GF := GF) γ σ)) ∧ (∀ γ M, Timeless (mvccAnnAuth (GF := GF) γ M)) ∧
+  (∀ ι rs, Timeless (wsRecv (GF := GF) ι rs)) ∧ (∀ ι S, Timeless (wsWatchers (GF := GF) ι S)) ∧
+  (∀ ι, Fractional (wsOpen (GF := GF) ι)) ∧ (∀ γ, Fractional (mvccOpen (GF := GF) γ))
 
 /-- The state is exclusive. -/
 abbrev mvccState_excl.law : Prop :=
   ∀ γ σ σ', mvccState (GF := GF) γ σ ∗ mvccState γ σ' ⊢ False
 
-/-- **Every state of a store is reachable**, and its changes fewer than the time receipts (so
-its revisions fit an `int64`: with `NewStore`'s premise `receiptBound GF ≤ 2 ^ 48`). -/
+/-- **Every state of a store is reachable**, and its revisions fit an `int64` with room to spare
+(its changes are fewer than the time receipts, `New`'s `receiptBound GF ≤ 2 ^ 48`). -/
 abbrev mvccState_reachable.law : Prop :=
-  ∀ s γ σ, isMvcc (GF := GF) s γ ∗ mvccState γ σ ⊢ ⌜MvccReachable σ ∧ logCh σ.log < receiptBound GF⌝
+  ∀ s γ σ, isMvcc (GF := GF) s γ ∗ mvccState γ σ ⊢ ⌜MvccReachable σ ∧ σ.log.length < 2 ^ 62⌝
 
 /-- **A write transaction pins the state** it began at, until its `End`. -/
 abbrev mvccTxn_write_agree.law : Prop :=
   ∀ t γ trace σ pend σ', mvccTxn (GF := GF) t γ trace (.write σ pend) ∗ mvccState γ σ' ⊢ ⌜σ' = σ⌝
 
-/-- **The watchable store's store** (its embedded `*store`, which serves its `Read`, `Rev`,
-`Compact` and `Commit`). -/
+/-- **The caller's trace, while its transaction is open** (to step and annotate it). -/
+abbrev mvccTxn_trace.law : Prop :=
+  (∀ t γ trace k, mvccTxn (GF := GF) t γ trace k ⊢
+    (∃ te, traceutil.ownTrace trace te) ∗ ((∃ te, traceutil.ownTrace trace te) -∗ mvccTxn t γ trace k)) ∧
+  (∀ t γ trace σ, mvccRoTxn (GF := GF) t γ trace σ ⊢
+    (∃ te, traceutil.ownTrace trace te) ∗ ((∃ te, traceutil.ownTrace trace te) -∗ mvccRoTxn t γ trace σ))
+
+/-- **The watchable store's store** (its embedded `*store`, which serves its promoted `Read`,
+`Rev`, `Compact` and `Commit`; the store has no committing spec of its own: every write goes
+through the watchable store's, which notifies the watchers). -/
 abbrev isWatchableMvcc_store.law : Prop :=
   ∀ ws γ, isWatchableMvcc (GF := GF) ws γ ⊢
     ∃ s : Loc, ws.[watchableStore, go!"store"] ↦□ s ∗ isMvcc s γ
 
 /-- **The watchable store's write transaction `tw` over `mw`**: its embedded `TxnWrite` is `mw`
-(which serves its `Put`, `DeleteRange`, `Range`, `Rev` and `Changes`). -/
+(which serves its promoted `Put`, `DeleteRange`, `Range`, `Rev` and `Changes`; `mw`'s `End`, which
+would commit without notifying, has no write spec). -/
 abbrev mvccWatchTxnOf_field.law : Prop :=
   ∀ tw mw, mvccWatchTxnOf (GF := GF) tw mw ⊢
     tw.[watchableStoreTxnWrite, go!"TxnWrite"] ↦□
@@ -314,6 +347,26 @@ abbrev mvccWatchTxnOf_field.law : Prop :=
 abbrev mvccHook_of_init.law : Prop :=
   ∀ γ P f, mvccHookInit (GF := GF) γ P ∗ backend.plHookRO (mvccBackend γ) f ⊢ mvccHook γ P f
 
+/-- The hook is one. -/
+abbrev mvccHook_agree.law : Prop :=
+  ∀ γ P P' f f', mvccHook (GF := GF) γ P f ∗ mvccHook γ P' f' ⊢ ⌜f = f'⌝
+
+/-- **The commit request**: the backend's (`backend.commitReq` over the store's backend). For a
+backend without hooks, the backend gives it from a wand. -/
+abbrev mvccCommitReq_of.law : Prop :=
+  ∀ γ P Pk b X Y, mvccBackendIs (GF := GF) γ P Pk b ∗ backend.commitReq (mvccBackend γ) P Pk b X Y ⊢
+    mvccCommitReq γ X Y
+
+/-- **The range deleter** the store set on its lessor is `ws.Write(traceutil.TODO())`: a write
+transaction of the watchable store (as `watchableStore.Write.specC`, at a trace of its own). -/
+abbrev mvccDeleter_spec.law : Prop :=
+  ∀ rd ws γ (P Pre Q : IProp GF) (f : GoFunc), mvccDeleter (GF := GF) rd ws γ ⊢
+    {{ threadTok ∗ mvccHook γ P f ∗ Pre ∗ hookRun P f Pre Q }}
+      (App (Val #rd) (Val #()))
+    {{ (tw : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
+        (∃ (mw trace : Loc) (σ : MvccState), mvccWatchTxnOf tw mw ∗ mvccTxn mw γ trace (.write σ [])) ∗
+        Q }}
+
 /-- **Announcing**: a revision not yet announced. -/
 abbrev mvccAnn_alloc.law : Prop :=
   ∀ γ M r L, M.lookup r = none →
@@ -323,7 +376,12 @@ abbrev mvccAnn_alloc.law : Prop :=
 abbrev mvccAnn_lookup.law : Prop :=
   ∀ γ M r L, mvccAnnAuth (GF := GF) γ M ∗ mvccAnn γ r L ⊢ ⌜M.lookup r = some L⌝
 
-/-- **Receiving on a compaction's channel** returns. -/
+/-- A revision has one announcement. -/
+abbrev mvccAnn_agree.law : Prop :=
+  ∀ γ r L L', mvccAnn (GF := GF) γ r L ∗ mvccAnn γ r L' ⊢ ⌜L = L'⌝
+
+/-- **Receiving on a compaction's channel** does not panic (a partial triple: it says nothing of
+whether the receive returns). -/
 abbrev mvccCompactChan_recv.law : Prop :=
   ∀ ch, {{ mvccCompactChan (GF := GF) ch }}
     (App (Val (chan.receive (go.GoType.StructType []))) (Val #ch)) {{ (v : val), RET v; True }}
@@ -334,13 +392,29 @@ abbrev wsWatcher_agree.law : Prop :=
     wsWatcher (GF := GF) ι id rg fs lo k ∗ wsWatcher ι id rg' fs' lo' k' ⊢
       ⌜rg = rg' ∧ fs = fs' ∧ lo = lo' ∧ k = k'⌝
 
-/-- **Receiving on the stream's channel**: the next response sent (the consumer's view grown), or
-(`!ok`) the end of a closed and drained channel. -/
+/-- **The registrar knows every watcher.** -/
+abbrev wsWatchers_mem.law : Prop :=
+  ∀ ι S id rg fs lo k, wsWatchers (GF := GF) ι S ∗ wsWatcher ι id rg fs lo k ⊢ ⌜id ∈ S⌝
+
+/-- A live watcher was not cancelled; liveness is exclusive. -/
+abbrev wsLive_canceled.law : Prop :=
+  (∀ ι id, wsLive (GF := GF) ι id ∗ wsCanceled ι id ⊢ False) ∧
+  (∀ ι id, wsLive (GF := GF) ι id ∗ wsLive ι id ⊢ False)
+
+/-- An open stream is not closed. -/
+abbrev wsOpen_closed.law : Prop :=
+  ∀ ι q, wsOpen (GF := GF) ι q ∗ wsClosed ι ⊢ False
+
+/-- **Receiving on the stream's channel**, in the form Perennial's channel rules take (`recvAu`:
+a plain receive, `chan.wp_receive`, or one in a `select`): the next response sent (the consumer's
+view grown), or (`!ok`) the end of a closed and drained channel. -/
 abbrev wsChan_recv.law : Prop :=
-  ∀ ι ch rs, {{ wsChan (GF := GF) ι ch ∗ wsRecv ι rs }}
-    (App (Val (chan.receive WatchResponse.ty)) (Val #ch))
-    {{ (v : WatchResponse) (ok : Bool), RET (PairV #v #ok);
-        if ok then ∃ r : WResp, wsRecv ι (rs ++ [r]) ∗ wrespIs v r else wsRecv ι rs }}
+  ∀ ι ch, wsChan (GF := GF) ι ch ⊢ ∃ γch : ChanNames, isChan ch γch WatchResponse ∗
+    □ (∀ (rs : List WResp) (Φ : WatchResponse → Bool → IProp GF),
+      wsRecv ι rs -∗
+      (∀ (v : WatchResponse) (ok : Bool),
+        (if ok then ∃ r : WResp, wsRecv ι (rs ++ [r]) ∗ wrespIs v r else wsRecv ι rs) -∗ Φ v ok) -∗
+      recvAu γch WatchResponse Φ)
 
 /-- **A response's events**: of a registered watcher, each at or below the response's revision;
 a compaction response has none. -/
@@ -349,6 +423,11 @@ abbrev wsRecv_resp.law : Prop :=
     ⌜∀ r ∈ rs, (∀ ev ∈ r.evs, sint.Z ev.kv.modRev ≤ sint.Z r.rev) ∧
       (r.compactRev ≠ W64 0 → r.evs = [])⌝ ∗
     □ (∀ r : WResp, ⌜r ∈ rs ∧ r.evs ≠ []⌝ → ∃ rg fs lo k, wsWatcher ι r.id rg fs lo k)
+
+/-- **A response's revision** is one of a log the client may watch (committed or announced). -/
+abbrev wsRecv_rev.law : Prop :=
+  ∀ ws γ ι rs, isMvccWatchStream (GF := GF) ws γ ι ∗ wsRecv ι rs ⊢
+    □ (∀ r : WResp, ⌜r ∈ rs⌝ → ∃ L : Log, mvccLogOk γ L ∗ ⌜sint.nat r.rev + 1 ≤ L.length⌝)
 
 /-- **The watch guarantee**: the events received for a watcher are its range's events, filtered,
 of the revisions `[lo, hi)` of a log the client may watch. -/
@@ -359,8 +438,9 @@ abbrev wsRecv_events.law : Prop :=
         ⌜hi ≤ L.length ∧ recvEvs rs id = filtered fs (watchEvents L rg lo hi)⌝
 
 /-- **Progress**: a response without events, the `j`-th received, at revision `P`, for the
-watcher `id`, or for the whole stream (`-1`) and a watcher registered before it was sent and not
-cancelled, comes after every event of the watcher up to `P`. -/
+watcher `id`, or for the whole stream (`-1`) and a watcher registered before it was sent, comes
+after every event of the watcher up to `P`, unless the watcher was cancelled (which its live
+token refutes, `wsLive_canceled`). -/
 abbrev wsRecv_progress.law : Prop :=
   ∀ ws γ ι rs j r id rg fs lo k,
     isMvccWatchStream (GF := GF) ws γ ι ∗ wsRecv ι rs ∗ wsWatcher ι id rg fs lo k ∗
@@ -370,10 +450,11 @@ abbrev wsRecv_progress.law : Prop :=
         ⌜sint.nat r.rev + 1 ≤ L.length ∧
           recvEvs (rs.take (j + 1)) id = filtered fs (watchEvents L rg lo (sint.nat r.rev + 1))⌝
 
-/-- **A compaction response's revision** is at most the store's compaction revision. -/
+/-- **A compaction response's revision** is positive and at most the store's compaction
+revision (a watcher is compacted only when its next revision is below it). -/
 abbrev wsRecv_compact.law : Prop :=
   ∀ ws γ ι rs σ, isMvccWatchStream (GF := GF) ws γ ι ∗ wsRecv ι rs ∗ mvccState γ σ ⊢
-    ⌜∀ r ∈ rs, r.compactRev ≠ W64 0 → sint.Z r.compactRev ≤ σ.crev⌝
+    ⌜∀ r ∈ rs, r.compactRev ≠ W64 0 → 0 < sint.Z r.compactRev ∧ sint.Z r.compactRev ≤ σ.crev⌝
 
 end laws
 

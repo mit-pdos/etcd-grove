@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvRoTxn
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -28,6 +29,13 @@ abbrev mvcc.txnReadWrite.Changes.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc }}
     (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"Changes")) (Val #()))
   {{ RET #(slice.nil : GoSlice); True }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.Changes()` of a read-only write transaction: none. -/
+abbrev mvcc.txnReadWrite.Changes.specC : Prop :=
+  ∀ (trw : Loc) (γ : mvcc.MvccName) (trace : Loc) (σ : mvcc.MvccState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccRoTxn trw γ trace σ }}
+    (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"Changes")) (Val #()))
+  {{ RET #(slice.nil : GoSlice); mvcc.mvccRoTxn trw γ trace σ }}
 
 end spec
 

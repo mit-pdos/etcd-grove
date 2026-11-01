@@ -55,32 +55,39 @@ abbrev mvcc.watchStream.Watch.spec : Prop :=
           (∃ γc : mvcc.WatchChanNames, P.OC w γc ∗ ⌜γ.regi = γc.regi⌝) ∗ P.WS w) ∨
        (⌜id' = W64 (-1)⌝ ∗ globalAddr ErrEmptyWatcherRange ↦□ err)) ∗ P.R }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.Watch(ctx, 0, key, end, startRev, fcs...)` on an open stream (a share of its open
-token), with an id the stream chooses (`0`, `AutoWatchID`: a scope restriction, as etcd's client
-asks; an id of the caller's could be a duplicate), filters implementing `fs`:
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.Watch(ctx, 0, key, end, startRev, fcs...)`, by the stream's registrar (its view of
+the watchers, `wsWatchers`), with an id the stream chooses (`0`, `AutoWatchID`: a scope
+restriction, as etcd's client asks; an id of the caller's could be a duplicate), a start revision
+not negative (a scope restriction: the code clamps a negative one), filters implementing `fs`:
 * an empty range (`end` not empty and not above `key`): `ErrEmptyWatcherRange`, id `-1`, the
   caller's update back;
+* a closed stream (`wsClosed`; a holder of a share of the open token refutes it): the same;
 * else a watcher `id` of the range (`watchRangeOf`), registered after the responses sent so far
-  (`k`), by the caller's update at the store's state `σ`, unchanged: its first revision is the
-  start revision, or with none (`0`) the one after `σ`'s; `nil`. -/
+  (`k`), live, in the registrar's view, by the caller's update at the store's state `σ`,
+  unchanged: its first revision is the start revision, or with none (`0`) the one after `σ`'s;
+  `nil`. -/
 abbrev mvcc.watchStream.Watch.specC : Prop :=
-  ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName) (q : Qp) (ctx : GoInterfaceOk)
+  ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName) (S : List w64) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key endk fcs : GoSlice) (kk e : List w8)
     (fs : List (mvcc.EvM → Bool)) (startRev : w64) (Q : mvcc.MvccState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isMvccWatchStream st γ ι ∗ mvcc.wsOpen ι q ∗ threadTok ∗ context.isContext ctx cd ∗
+      mvcc.isMvccWatchStream st γ ι ∗ mvcc.wsWatchers ι S ∗ threadTok ∗ context.isContext ctx cd ∗
       key ↦*□ kk ∗ endk ↦*□ e ∗ mvcc.filtersImpl fcs fs ∗ ⌜0 ≤ sint.Z startRev⌝ ∗
       AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ }> @ ⊤ \ ↑mvcc.mvccN, ∅
         <{ mvcc.mvccState γ σ, COMM Q σ }> }}
     (App (App (App (App (App (App (Val (st @!! go.GoType.PointerType watchStream.ty @!! go!"Watch"))
       (Val #(GoInterface.ok ctx))) (Val #(W64 0))) (Val #key)) (Val #endk)) (Val #startRev)) (Val #fcs))
-  {{ (id : w64) (err : GoInterface), RET (PairV #id #err); mvcc.wsOpen ι q ∗ threadTok ∗
-      ((⌜err = GoInterface.nil ∧ (e = [] ∨ go.GoStringLt kk e)⌝ ∗
+  {{ (id : w64) (err : GoInterface), RET (PairV #id #err); threadTok ∗
+      ((⌜err = GoInterface.nil ∧ (e = [] ∨ go.GoStringLt kk e)⌝ ∗ mvcc.wsWatchers ι (S ++ [id]) ∗
+          mvcc.wsLive ι id ∗
           ∃ (σ : mvcc.MvccState) (k : Nat), Q σ ∗
             mvcc.wsWatcher ι id (mvcc.watchRangeOf kk e endk startRev id) fs
               (if startRev = W64 0 then σ.rev + 1 else sint.nat startRev) k) ∨
-       (⌜id = W64 (-1) ∧ e ≠ [] ∧ ¬ go.GoStringLt kk e⌝ ∗ globalAddr ErrEmptyWatcherRange ↦□ err ∗
-          AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ }> @ ⊤ \ ↑mvcc.mvccN, ∅
+       (⌜id = W64 (-1)⌝ ∗ ⌜e ≠ [] ∧ ¬ go.GoStringLt kk e⌝ ∗ mvcc.wsWatchers ι S ∗
+          globalAddr ErrEmptyWatcherRange ↦□ err ∗ AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ }> @ ⊤ \ ↑mvcc.mvccN, ∅
+          <{ mvcc.mvccState γ σ, COMM Q σ }>) ∨
+       (⌜id = W64 (-1)⌝ ∗ mvcc.wsClosed ι ∗ mvcc.wsWatchers ι S ∗
+          globalAddr ErrEmptyWatcherRange ↦□ err ∗ AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ }> @ ⊤ \ ↑mvcc.mvccN, ∅
           <{ mvcc.mvccState γ σ, COMM Q σ }>)) }}
 
 end spec

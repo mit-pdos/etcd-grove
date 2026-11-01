@@ -40,14 +40,14 @@ abbrev mvcc.metricsTxnWrite.Put.spec : Prop :=
 
 /-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.Put(key, value, lease)` in a write transaction begun at `σ`: the put appended to
 the pending changes, at the pending revision (returned); the lease (none, or a live one) attached
-in the lessor's item map, which the caller, the lease owner, holds at the pending state's. (The
-key's bound is today's spec's, kept: its reason to be found.) -/
+in the lessor's item map, which the caller, the lease owner, holds at the pending state's. With a
+lease, the key is shorter than `2 ^ 63 - 1` (the lessor's `Attach` needs it, `isMvccLessor`). -/
 abbrev mvcc.metricsTxnWrite.Put.specC : Prop :=
   ∀ (mw : Loc) (γ : mvcc.MvccName) (trace : Loc) (σ : mvcc.MvccState) (pend : List mvcc.Change)
     (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.mvccTxn mw γ trace (.write σ pend) ∗ key ↦*□ k ∗ value ↦*□ v ∗
-      ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
+      ⌜leaseID ≠ W64 0 → (k.length : Int) < 2 ^ 63 - 1⌝ ∗
       lease.leaseOwn (mvcc.mvccLeases γ) L (mvcc.pendItems σ.log pend) ∗
       ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ }}
     (App (App (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Put")) (Val #key))

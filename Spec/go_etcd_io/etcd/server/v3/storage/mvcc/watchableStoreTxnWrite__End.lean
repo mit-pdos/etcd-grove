@@ -42,7 +42,7 @@ abbrev mvcc.watchableStoreTxnWrite.End.spec : Prop :=
       mvcc.writerFrag γ.st }}
 
 /-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `tw.End()` ends the watchable store's write transaction begun at `σ`: its pending
-changes committed by the caller's update, as `metricsTxnWrite.End.specC`, and sent to the
+changes committed by the caller's update (none: no revision), the batch lock's invariant `P` back, and sent to the
 watchers before the revision is bumped; so the caller announces the log after the commit
 (`mvccAnn`, nothing for no change), of which the watchers' events may be until it is committed. -/
 abbrev mvcc.watchableStoreTxnWrite.End.specC : Prop :=

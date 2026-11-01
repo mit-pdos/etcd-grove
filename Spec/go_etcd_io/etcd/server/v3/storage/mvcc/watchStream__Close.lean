@@ -31,13 +31,13 @@ abbrev mvcc.watchStream.Close.spec : Prop :=
     (App (Val (ws @!! go.GoType.PointerType watchStream.ty @!! go!"Close")) (Val #()))
   {{ RET #(); True }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.Close()`, with the whole open token: its watchers cancelled, its channel closed
-(the consumer then drains it: `wsChan_recv`). -/
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.Close()`, with the whole open token: its watchers cancelled, its channel closed (the
+consumer then drains it: `wsChan_recv`), and the stream closed for good (`wsClosed`). -/
 abbrev mvcc.watchStream.Close.specC : Prop :=
   ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isMvccWatchStream st γ ι ∗ mvcc.wsOpen ι 1 ∗ threadTok }}
     (App (Val (st @!! go.GoType.PointerType watchStream.ty @!! go!"Close")) (Val #()))
-  {{ RET #(); threadTok }}
+  {{ RET #(); threadTok ∗ mvcc.wsClosed ι }}
 
 end spec
 

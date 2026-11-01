@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -28,6 +29,17 @@ abbrev mvcc.watchStream.Rev.spec : Prop :=
       mvcc.isWatchStream ws wa P γ ∗ P.R }}
     (App (Val (ws @!! go.GoType.PointerType watchStream.ty @!! go!"Rev")) (Val #()))
   {{ (r : w64), RET #r; P.R }}
+
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.Rev()`: the store's current revision, by the caller's update at the state,
+unchanged. -/
+abbrev mvcc.watchStream.Rev.specC : Prop :=
+  ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName) (Q : mvcc.MvccState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isMvccWatchStream st γ ι ∗ threadTok ∗
+      AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ }> @ ⊤ \ ↑mvcc.mvccN, ∅
+        <{ mvcc.mvccState γ σ, COMM Q σ }> }}
+    (App (Val (st @!! go.GoType.PointerType watchStream.ty @!! go!"Rev")) (Val #()))
+  {{ (v : w64), RET #v; threadTok ∗
+      ∃ σ : mvcc.MvccState, Q σ ∗ ⌜v = W64 (σ.rev : Int)⌝ }}
 
 end spec
 

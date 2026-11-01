@@ -40,8 +40,8 @@ abbrev mvcc.store.Commit.spec : Prop :=
   {{ RET #(); mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ Y }}
 
 /-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Commit()`: the backend's commit (`ForceCommit`, under `s.mu` held exclusively),
-serving the request `X ⇒ Y` of its hooks (`mvccCommitReq`: for the server, the consistent index
-saved); the store's state unchanged. -/
+serving the request `X ⇒ Y` of its hooks (`mvccCommitReq`, from the backend's `commitReq`:
+`mvccCommitReq_of`; for the server, the consistent index saved); the store's state unchanged. -/
 abbrev mvcc.store.Commit.specC : Prop :=
   ∀ (s : Loc) (γ : mvcc.MvccName) (X Y : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗

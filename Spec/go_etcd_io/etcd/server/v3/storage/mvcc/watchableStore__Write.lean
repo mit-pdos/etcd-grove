@@ -41,8 +41,13 @@ abbrev mvcc.watchableStore.Write.spec : Prop :=
       mvcc.isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) crev ∗ Q ∗
       mvcc.hookIs γ.st P f }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `ws.Write(trace)`: the store's write transaction (`store.Write.specC`), wrapped
-(`mvccWatchTxnOf`) so that its `End` notifies the watchers. -/
+/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `ws.Write(trace)` opens a write transaction, the store's writer until its `End`: at the
+store's state `σ`, which nothing else changes before then (`mvccTxn_write_agree`), no pending
+change. Under the batch lock, whose invariant is `P`, the post-lock hook `f` runs on the caller's
+`Pre` (`hookRun`: `f`'s triple, or with no hook the caller's update), giving `Q`; `End` takes `P`
+back. The transaction is `tw`, over the store's `mw` (`mvccWatchTxnOf`: `mw` serves its `Put`,
+`DeleteRange`, `Range`, `Rev` and `Changes`; its `End` is `tw`'s, which notifies the watchers).
+The caller's thread token is the transaction's until its `End`. -/
 abbrev mvcc.watchableStore.Write.specC : Prop :=
   ∀ (ws : Loc) (γ : mvcc.MvccName) (trace : Loc) (te : Bool) (P Pre Q : IProp GF) (f : GoFunc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗

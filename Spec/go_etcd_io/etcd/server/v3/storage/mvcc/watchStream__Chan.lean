@@ -33,8 +33,7 @@ abbrev mvcc.watchStream.Chan.spec : Prop :=
 /-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.Chan()`: the stream's channel. -/
 abbrev mvcc.watchStream.Chan.specC : Prop :=
   ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isMvccWatchStream st γ ι }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isMvccWatchStream st γ ι }}
     (App (Val (st @!! go.GoType.PointerType watchStream.ty @!! go!"Chan")) (Val #()))
   {{ (ch : GoChan), RET #ch; mvcc.wsChan ι ch }}
 
