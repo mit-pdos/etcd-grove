@@ -1,25 +1,20 @@
 /- Lean-first (no Rocq counterpart). The proof of `db.Snapshot()`.
 
-Proved: every error path (a failed handle; no mapping, `meta0 == nil`). Not proved (`sorry`):
-the success path, which needs changes in `DB.lean`:
-- the mapped cells the reader loads (the two metas in `db.meta()` and `*db.meta()`, the root
-  page's `count` and value) are in the mapping's invariant (`mapInv`, an `inv`), but a Go load
-  is not atomic: every byte is a `Read`, a `StartRead` and a `FinishRead` (two atomic steps,
-  `_internal_wp_untyped_read`), and a scalar or struct load reads byte after byte
-  (`wp_readBytes`), `db.meta()` many loads; so the invariant cannot be opened around a load. The
-  reader needs fractions of those cells for the duration of its loads (lent by the invariant
-  while it holds the read lock, and the meta cells while it also holds `metalock`);
-- `metaR` gives only `T !! txid = some (pageVal B)` with `ghostMapAuth γ.txs`, from which no
-  `dbTx γ txid _` (a fragment) can be made: `metaR` needs `dbTx` of the current transaction;
-- `dbReader` does not pin the path: its `mapR γ db f' fd' p'` may name another path than
-  `isDB`'s, and the root page's bytes in the invariant (`pageIs p' r B'`) cannot be related to
-  `metaR`'s (`pageIs p r B`) without `p = p'`.
-The racing `ReadAt` (`os.File.ReadAt.specRacy`) needs two more:
-- `io.EOF`'s value (`globalAddr io.EOF ↦□ eof`), which `err != io.EOF` compares with, and that it
-  is not a `*PathError` (so that a failure is not taken for the end of the file): `pkgFacts`
-  has neither;
-- `len(out) = (pgid+1)*4096 ≤ 2^30` (the spec's `maxRW`), but `metaPagesOk` bounds the file by
-  `2^40` only (`off + len < 2^63` follows from it).
+Proved: every error path (a failed handle; no mapping, `meta0 == nil`), and the success path up to
+the copy: the meta copied through the meta cells borrowed from the mapping's invariant
+(`meta_borrow`/`meta_return`, as in `DB__Get.lean`), `metalock` released, the deferred `RUnlock`
+pushed, with `pageIs` of the root page (`metaR`) and of the last committed page `pgid - 1`
+(`page_pageIs`) in hand. Not proved (`sorry`): from `make` on. What remains:
+- `make([]byte, (pgid+1)*4096)` (`wp_slice_make2`, `(pgid+1)*4096 ≤ 2^30` by `metaPagesOk`);
+- the racing `ReadAt` (`os.File.ReadAt.specRacy`) over the held ranges of those two pages' discarded
+  bytes, with the file and fd fractions of `mapRest`;
+- `err != nil && err != io.EOF`: comparing an `error` with `io.EOF` needs `eof`'s dynamic type to be
+  comparable, which `pkgFacts` does not say (an addition to `pkgFacts` may be needed);
+- `n ≥ pgid*4096`: the `io.EOF` clause at the last byte of page `pgid - 1`;
+- the root page's bytes in `out` are `B` (the held range), viewed from `out`'s slice points-to
+  (`bytesPointsto_ownSlice`) as a `Page` and a `uint64`, as in `Get`;
+- the deferred `RUnlock` with `mapR` rebuilt from the fields, `γm`'s share and the file fractions.
+-/
 -/
 module
 
