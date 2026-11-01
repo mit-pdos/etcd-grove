@@ -63,9 +63,10 @@ theorem putResult_of_km (γ : KMNames) [KMWritable γ] (pfx : GoString) (lo : w6
     (hw : putTxnOp w = op) (hu : op.Under pfx) (hnp : txn.needsPrev w = false)
     (hlz : w.leaseID = W64 0)
     (l0 : List (List Change)) (hlo : sint.Z lo ≤ l0.length) (σ : KVState) (hok : kvLogOk σ)
-    (h63 : σ.rev + 4 < 2 ^ 63) (hpost : kvLogOk (kvOpStep (.put w) σ)) :
+    (h63 : kvRevFits (σ.rev + 1)) (hpost : kvLogOk (kvOpStep (.put w) σ)) :
     kmWriteQ (GF := GF) γ l0 (.put w) σ ⊢
       putResult (EM := etcdModelOfKV γ) pfx lo op GoInterface.nil := by
+  replace h63 := h63.lt
   subst hw
   have hst := kvOpStep_put w σ hnp hlz
   have hkvs := kvLogOk_kvs σ hok
@@ -129,9 +130,10 @@ theorem deleteResult_of_km (γ : KMNames) [KMWritable γ] (pfx : GoString) (lo :
     (hu : KeyRangeUnder pfx o.key o.base.rangeEnd)
     (l0 : List (List Change)) (hlo : sint.Z lo ≤ l0.length) (h1 : 1 ≤ l0.length)
     (σ : KVState) (hok : kvLogOk σ)
-    (h63 : σ.rev + 4 < 2 ^ 63) (hpost : kvLogOk (kvOpStep (.deleteRange (deleteWireOf o)) σ)) :
+    (h63 : kvRevFits (σ.rev + 1)) (hpost : kvLogOk (kvOpStep (.deleteRange (deleteWireOf o)) σ)) :
     kmWriteQ (GF := GF) γ l0 (.deleteRange (deleteWireOf o)) σ ⊢
       deleteResult (EM := etcdModelOfKV γ) pfx lo o GoInterface.nil := by
+  replace h63 := h63.lt
   have hkvs := kvLogOk_kvs σ hok
   have hrc := kvLogOk_rev σ hok
   have hll := (kvLogOk_log hok).2.2.2

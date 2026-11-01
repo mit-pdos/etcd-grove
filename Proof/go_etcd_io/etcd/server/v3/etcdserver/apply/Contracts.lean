@@ -475,7 +475,8 @@ instance alarmGetOk_persistent (st : Loc) : Persistent (alarmGetOk (GF := GF) st
   unfold alarmGetOk; infer_instance
 
 /-- **The alarm store's `Get` under a resource `T`**, returning no alarm if `z` (D14i,
-2026-10-17: a fresh alarm store's, `alarmFresh`, during the uber-applier's construction;
+2026-10-17: a fresh alarm store's, during the uber-applier's construction, since 2026-11-01 the
+user's half at no alarm, `alarmEmpty`, `AlarmGet.lean`;
 `alarmGetOk` is `T = True`, `z = false`). -/
 def alarmGetIs (st : Loc) (T : IProp GF) (z : Bool) : IProp GF :=
   iprop(□ (∀ at' : w32,

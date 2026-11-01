@@ -141,7 +141,7 @@ theorem Main.wp_proof
   have Hdirok : netDirOk (akDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   -- `startServer(lg)`: the member with auth on
-  wp_apply (wp_startServer N lg (LogEntry.toEntries boot 0) ctxs (akDir id) id γ ρ E₀ Φs γn Htb31
+  wp_apply (wp_startServer N lg (LogEntry.toEntries boot 0) ctxs (akDir id) id γ ρ E₀ Φs γn Htb
       Hrb48 HrbN hvs hrule hboot hblen hγn1 hγn2 Hdirok (by simp [akDir, dirOne]) Hlg Hck Haf
       Hbuq Hdbo)
     $$ [Htok Hmb] as %srv %err Hr
@@ -155,7 +155,7 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   iunfold common.memberUpOn at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi,
+  icases Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
     Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, #Htls, #HBF⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
   have Hoff : E.γ.cm = false := envAgree_off E E₀ HEa Hcmp0
@@ -172,12 +172,12 @@ theorem Main.wp_proof
         isGrpcRpc go!"127.0.0.1:23916" authnMethod (client.etcdAuthenticateSpec γa) ∗
         watchAddrFacts (akV R) ∗ auth.modeTag R.γ.tag E.authMode))
       HEo (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
-    $$ [Haddr Hlg3 Hbemu Hgo Hwpi HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+    $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
     iunfold common.grpcUpOn at Hg
-    icases Hg with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %d',
-      %HC, #Hgc, Hgsn, #Hq, #Hkvs, #Hpa, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, -, HWRs,
+    icases Hg with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs,
+      %HC, #Hgc, Hgsn, #Hq, #Hkvs, #Hpa, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, HWRs,
       Hlis⟩
     obtain ⟨HCA, HCE, Hregs1, HregsA, Hregs2, hRs, hRE, hRw, hRγ⟩ := HC
     icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩

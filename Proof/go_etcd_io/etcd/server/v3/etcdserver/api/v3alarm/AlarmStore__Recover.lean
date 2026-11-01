@@ -43,9 +43,19 @@ theorem v3alarm.AlarmStore.Recover.wp_proof
   iunfold alarmLockInv at HR
   icases HR with ⟨%tm, %gm, %ab, Htypes, Hm, Hin, Hbe⟩
   iunfold alarmBeOn at Hon
-  icases Hon with ⟨%abl0, %lg0, %Hlg0, Hbe', #Hb0, #Hl0⟩
+  icases Hon with ⟨%gm0, Hon⟩
+  iunfold alarmBeOnM at Hon
+  icases Hon with ⟨%abl0, %lg0, %tm0, %Hlg0, Hbe', #Hb0, #Hl0, Htypes', -⟩
   icombine Hbe Hbe' gives %Hab
   subst Hab
+  icombine Htypes Htypes' gives %Htm
+  subst Htm
+  ihave Htypes : alarmTypesAddr a ↦ tm $$ [Htypes Htypes']
+  · have h := ((typedPointsto_dfractional (GF := GF) (alarmTypesAddr a) tm).dfractional
+      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)).2
+    rw [DFrac.op_own, Qp.half_add_half] at h
+    iapply h
+    iframe Htypes Htypes'
   ihave Hbe : alarmBeAddr a ↦ alarmBkIface abl0 $$ [Hbe Hbe']
   · have h := ((typedPointsto_dfractional (GF := GF) (alarmBeAddr a) (alarmBkIface abl0)).dfractional
       (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)).2
@@ -63,6 +73,12 @@ theorem v3alarm.AlarmStore.Recover.wp_proof
   icases ((typedPointsto_dfractional (GF := GF) (alarmBeAddr a) (alarmBkIface abl)).dfractional
       (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)).1 $$ [Hbe] with ⟨Hbe, Hbe'⟩
   · rw [DFrac.op_own, Qp.half_add_half]; iexact Hbe
+  icases ((typedPointsto_dfractional (GF := GF) (alarmTypesAddr a) tm').dfractional
+      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)).1 $$ [Htypes] with ⟨Htypes, Htypes'⟩
+  · rw [DFrac.op_own, Qp.half_add_half]; iexact Htypes
+  icases ((ownMap_fractional (GF := GF) (K := w32) (V := GoMap) tm' ∅).fractional
+      (1 : Qp).half (1 : Qp).half).1 $$ [Hm'] with ⟨Hm', Hm''⟩
+  · rw [Qp.half_add_half]; iexact Hm'
   (try wp_auto)
   wp_apply sync.Mutex.wp_Unlock $$ [$Ha $Hlocked Htypes Hm' Hbe]
   · inext
@@ -76,9 +92,10 @@ theorem v3alarm.AlarmStore.Recover.wp_proof
   iframe Ho Hrb
   isplitr
   · ipureintro; exact Herr
-  iunfold alarmBeOn
-  iexists abl, lg
-  iframe Hbe' Hbb Hbl
+  iunfold alarmEmpty
+  iunfold alarmBeOnM
+  iexists abl, lg, tm'
+  iframe Hbe' Hbb Hbl Htypes' Hm''
   ipureintro; exact Hlgnn
 
 end proof

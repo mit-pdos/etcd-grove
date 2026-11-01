@@ -26,19 +26,19 @@ variable [sem : go.Semantics]
 
 /-- **`t.AddPeer(id, us)`** on a live transport, of `id`'s URL strings (non-empty, plain
 `http://` URLs, `types.plainPeerURL`, of hosts the directory gives `id`), a member other than the
-transport's own, with eight `R`s (the peer's goroutines' calls into `Raft`): `id` among the peers'
-ids. -/
+transport's own: `id` among the peers' ids. The peer's goroutines that call into `Raft` borrow
+their `R`s from the transport's pool (`raftPool`, `trFixed`'s), so `AddPeer` takes none (until
+J8a-6, 2026-11-01: eight, of which `RemoveAllPeers` gave four back). -/
 abbrev rafthttp.Transport.AddPeer.spec : Prop :=
   ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (id : w64) (us : GoSlice) (dq : DFrac)
     (ss : List GoString),
   ss ≠ [] → (∀ s ∈ ss, types.plainPeerURL s) →
   (∀ h, go!"http://" ++ h ∈ ss → (netRh γn).owner h = id) → c.lid ≠ id → (netRh γn).member id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      trLive γn t c rs ∗ us ↦*{dq} ss ∗ [∗list] _x ∈ List.replicate 8 (), c.R }}
+      trLive γn t c rs ∗ us ↦*{dq} ss }}
     (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddPeer")) (Val #id))
       (Val #us))
-  {{ RET #(); trLive γn t c (rs ++ [id]) ∗ us ↦*{dq} ss ∗
-      (⌜id ∈ rs ∨ id ∉ c.L⌝ ∨ trNoRem c id ∨ trOpened c) }}
+  {{ RET #(); trLive γn t c (rs ++ [id]) ∗ us ↦*{dq} ss }}
 
 end spec
 

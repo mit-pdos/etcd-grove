@@ -174,8 +174,9 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   counter) turns them into a protocol of unbounded use (a thread pool of reader slots, a wait group
   backed by thread tokens, a counter ticked by receipts); a client takes its `threadTok`, the owner's
   persistent handle, and one named size predicate per boundary. So a new spec mentions no
-  `threadBound`, `receiptBound`, `actualMaxReaders`, count of reader slots (`List.replicate 64 ...`)
-  or literal power-of-two size; `etc/bounds-check.py --check` refuses new ones. Where a goroutine holds
+  `threadBound`, `receiptBound`, `actualMaxReaders` or count of reader slots (`List.replicate 64 ...`);
+  `etc/bounds-check.py --check` refuses new ones. (A library's exact precondition on its input's
+  length, `key.length ≤ 2 ^ 27`, is fine: B5.) Where a goroutine holds
   two read locks at once, the inner lock's slot is a counted stock at that call path only.
 - **A once-only resource is not spent per call**: check retry and loop paths; make the exception
   depend on the value (a persistent one-shot fact), not on the call. (`pilot-review-2.md`)

@@ -23,7 +23,7 @@ variable [sem : go.Semantics]
 
 /-- **`cw.closeUnlocked()`** with `mu` held (the fields whole: `run`'s halves and the lock's): if
 working, closes the connection, giving it `Q` (`closeRight`), and reports the peer unreachable if
-messages were queued (with one of the `Raft`'s resources `Rr`); then a fresh `msgc` (a new bag),
+messages were queued (needing none of the `Raft`'s resources `Rr`, J8a-6); then a fresh `msgc` (a new bag),
 not working; returns whether it was. -/
 abbrev rafthttp.streamWriter.closeUnlocked.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (Rr : IProp GF) (cw : Loc) (mc : GoChan)
@@ -32,9 +32,9 @@ abbrev rafthttp.streamWriter.closeUnlocked.spec : Prop :=
       swFixed Rh ty lid pid Rr cw ∗
       cw.[rafthttp.streamWriter, go!"msgc"] ↦ mc ∗ cw.[rafthttp.streamWriter, go!"working"] ↦ wk ∗
       cw.[rafthttp.streamWriter, go!"closer"] ↦ cl ∗ isChanBag γm mc (swMsg Rh ty lid pid) ∗
-      (if wk then iprop(closeRight cl Q ∗ Q) else iprop(True)) ∗ Rr }}
+      (if wk then iprop(closeRight cl Q ∗ Q) else iprop(True)) }}
     (App (Val (cw @!! go.GoType.PointerType rafthttp.streamWriter.ty @!! go!"closeUnlocked")) (Val #()))
-  {{ (b : Bool), RET #b; ⌜b = wk⌝ ∗ Rr ∗ ∃ (mc' : GoChan) (γm' : ChanNames),
+  {{ (b : Bool), RET #b; ⌜b = wk⌝ ∗ ∃ (mc' : GoChan) (γm' : ChanNames),
       cw.[rafthttp.streamWriter, go!"msgc"] ↦ mc' ∗ cw.[rafthttp.streamWriter, go!"working"] ↦ false ∗
       cw.[rafthttp.streamWriter, go!"closer"] ↦ cl ∗ isChanBag γm' mc' (swMsg Rh ty lid pid) }}
 

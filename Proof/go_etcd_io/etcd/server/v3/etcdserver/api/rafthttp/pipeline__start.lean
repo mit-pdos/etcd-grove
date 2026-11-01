@@ -38,7 +38,7 @@ theorem rafthttp.pipeline.start.wp_proof
     (wp_Add : sync.WaitGroup.Add.spec (GF := GF) (hG := hG)) :
     rafthttp.pipeline.start.spec (GF := GF) (hG := hG) := by
   intro Rh p to R
-  wp_start as ⟨#Hf, ⟨%sc0, Hsc⟩, ⟨%mc0, Hmc⟩, Had, HR1, HR2, HR3, HR4⟩
+  wp_start as ⟨#Hf, ⟨%sc0, Hsc⟩, ⟨%mc0, Hmc⟩, Had⟩
   iunfold pipeFixed at Hf
   icases Hf with ⟨%tr, %pk, %ec, %lg, %urls, %uvs, %lid, %cid, %rt, %ps, %fs, %r, %id, %γd,
     #Htr, #Hpk, #Hec, #Hto, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hlid, #Hcid, #Hrtf, #Hrt, #Hpick, #Hps,
@@ -77,13 +77,13 @@ theorem rafthttp.pipeline.start.wp_proof
       ipureintro; exact Hturls
     · iexists ps, fs, r, id, γd, mc, γm
       iframe #
-  wp_apply (wgJoin_wp_Add4_of wp_Add R _ _ _) $$ [$Had] as ⟨Had, Hd1, Hd2, Hd3, Hd4⟩
+  wp_apply (wgJoin_wp_Add4_of wp_Add iprop(True) _ _ _) $$ [$Had] as ⟨Had, Hd1, Hd2, Hd3, Hd4⟩
   · ipureintro; decide
   (try wp_auto)
   rw [show W32 0 + W32 4 = W32 4 by decide]
   ihave HI : (∃ (k : w64), "i" ∷ i_ptr ↦ k ∗ "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ 4⌝ ∗
       "Hds" ∷ ([∗list] _u ∈ List.replicate (4 - sint.nat k) (),
-        (sync.join.ownDone (p.[rafthttp.pipeline, go!"wg"]) R ∗ R))) $$ [i Hd1 Hd2 Hd3 Hd4 HR1 HR2 HR3 HR4]
+        (sync.join.ownDone (p.[rafthttp.pipeline, go!"wg"]) iprop(True)))) $$ [i Hd1 Hd2 Hd3 Hd4]
   · iexists (W64 0)
     simp only [named]
     iframe
@@ -97,10 +97,10 @@ theorem rafthttp.pipeline.start.wp_proof
   · have Hlt : sint.Z k < 4 := by have := Hif; word
     have hk : 4 - sint.nat k = (3 - sint.nat k) + 1 := by word
     rw [hk, List.replicate_succ]
-    icases BigSepL.bigSepL_cons.1 $$ Hds with ⟨⟨Hd, HR⟩, Hds⟩
-    wp_apply wp_fork $$ [Hd HR]
+    icases BigSepL.bigSepL_cons.1 $$ Hds with ⟨Hd, Hds⟩
+    wp_apply wp_fork $$ [Hd]
     · (try wp_auto)
-      wp_apply hHandle Rh p to R $$ [$HhOk $HR $Hd]
+      wp_apply hHandle Rh p to R $$ [$HhOk $Hd]
       ipureintro; exact isPanic_intoVal _
     (try wp_auto)
     wp_for_post
