@@ -183,7 +183,7 @@ Thread counts, `RWMutex` reader slots, lifetime counters and sizes are reasoned 
 are owned (`notes/bounds-plan.md`): the adequacy theorem fixes the constants, the owner of a lock,
 wait group or counter turns them into a protocol inside its invariant (a thread pool of reader
 slots, a wait group backed by thread tokens, receipts), and a spec in between takes only its
-`threadTok`, the owner's handle and a named size predicate. `etc/bounds-check.py` counts what does
+`threadTok` and the owner's handle. `etc/bounds-check.py` counts what does
 not yet follow this, per kind and package (`--kind KIND` lists the places); `--check` (in
 `etc/gates.sh` and CI) refuses a count above `etc/bounds-baseline.txt`, and `--check --update`
 records a decrease. An owner's own matches are listed in `etc/bounds-allow.txt`.
