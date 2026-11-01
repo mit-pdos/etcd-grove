@@ -189,4 +189,5 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
 - **J8a-7** (fork fix, the user's choice): `trPeersNoRem` gone. The fork's remote pauses by a flag
   (`goose-lean-remotepause`, `ab3c28d9a`), so `CutPeer`/`MendPeer` need no no-remote token and every
   token is gone (decisions, "A remote pauses by a flag"). Done 2026-11-01 (branch `snap-j8a-7`).
-  `hdir`/`hdok` next (into `ccMembRes`).
+  `hdir`/`hdok`: done 2026-11-01 (branch `snap-j8a-hdir`; decisions, "`applySnapshot`'s directory
+  facts in `ccMembRes`"): 5e's caller takes them from `srvApRes`'s `ccMembRes`.

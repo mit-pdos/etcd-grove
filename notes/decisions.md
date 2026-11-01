@@ -28588,3 +28588,15 @@ loses `trUnopened`. In the server: `srvTrTok` is `trTok` (`NewServer.spec`'s pos
 exported change, keeps its text), `srvNetMember` loses `trOpened`, and `applySnapshot`'s
 `specSnap` (and the walk) take `trLive` without `trPeersNoRem`. Supersedes the J-T tokens part of
 "The transport's `R`s from a thread pool"'s "Not done".
+
+## `applySnapshot`'s directory facts in `ccMembRes` (2026-11-01, J8a, `hdir`/`hdok`)
+
+`specSnap` takes `hdir : γn.dir = dir`, `hdok : netDirOk dir`, `hps` (the members `ps` are the
+directory's) and `srvMembersDir cl ps dir`: what the walk's `AddPeer`s need of the members' URLs
+(`addPeer_dir`). `srvSnapRO` has `ps`, `dir` and `srvMembersDir` but no `γn`, so it could not give
+`hdir`. Now `ccMembRes` (internal, `srvApRes`'s, where the apply thread's `γn` is) holds them for its
+`γn`: `∃ ps, srvMembersDir cl ps γn.dir ∗ ⌜netDirOk γn.dir ∧ ∀ f, γn.dir f ≠ [] ↔ f ∈ ps⌝`, all
+persistent, which `NewServer` gives from `bootOk` (`Hmembers`, `Hdirok`, `Hdirps`) and
+`applyConfChange` carries through unchanged. `specSnap`'s text is unchanged: its caller (5e) takes
+`dir := γn.dir` (so `hdir` is `rfl`) and `ps` from `ccMembRes`. `netDirOk` moved from `InvBoot.lean`,
+`memberDirIs` and `srvMembersDir` from `SnapRO.lean`, to `InvApRes.lean`, unchanged.
