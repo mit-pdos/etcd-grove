@@ -194,7 +194,9 @@ every change marks what it changes as dirty, but the trusted file does not state
    `Meta.sum64`, `Meta.validate`, `Meta.write`, `initPages`, `pickMeta`) are proved, over byte
    points-tos at any fraction (`Pages.lean`'s views), so that they apply to the mapped cells'
    client halves. Of `minibolt.go` (2026-11-01): `mmapSize`, `meta`, `readPageSize`, `munmap` and
-   `close` are proved (the last two over the statements of `Munmap` and `Close`); the
+   `close` are proved (the last two over the statements of `Munmap` and `Close`), and the write
+   transaction, `commit` and `Commit` (`DB.wp_Commit` free of `sorryAx`; publishing the new meta
+   pages and the committed page is `Publish.lean`'s `metas_publish`); the
    representation predicate and lock invariants are `DB.lean` (readers load committed bytes
    through cells held in a closable invariant per mapping, so they need no `OsMeta`), with the
    statements of `Get`, `Snapshot`, `Commit`, `Close` and `Open` over it. `Get`/`Snapshot` are not
