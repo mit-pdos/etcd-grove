@@ -13,7 +13,6 @@
 package crashlog
 
 import (
-	"io"
 	"os"
 	"syscall"
 )
@@ -38,48 +37,61 @@ func Boot(dir string) {
 	if err != nil {
 		return
 	}
-	flag := make([]byte, 1)
-	n, err := f.ReadAt(flag, 8)
-	if err != nil && err != io.EOF {
-		f.Close()
+	run(f)
+	f.Close()
+}
+
+// run is Boot on the open file. The flag exists only if the file is longer
+// than 8 bytes (Stat), so the flag's read never meets the end of the file.
+func run(f *os.File) {
+	fi, err := f.Stat()
+	if err != nil {
 		return
 	}
-	if n == 1 && flag[0] != 0 {
-		// committed: the data is durable
-		buf := make([]byte, 8)
-		if _, err := f.ReadAt(buf, 0); err != nil {
-			f.Close()
+	if fi.Size() > 8 {
+		flag := make([]byte, 1)
+		if _, err := f.ReadAt(flag, 8); err != nil {
 			return
 		}
-		if !dataOk(buf) {
-			panic("crashlog: the flag is set but the data is not there")
+		if flag[0] != 0 {
+			check(f)
+			return
 		}
-		f.Close()
+	}
+	commit(f)
+}
+
+// check is the committed case: the data is durable.
+func check(f *os.File) {
+	buf := make([]byte, 8)
+	if _, err := f.ReadAt(buf, 0); err != nil {
 		return
 	}
+	if !dataOk(buf) {
+		panic("crashlog: the flag is set but the data is not there")
+	}
+}
+
+// commit writes the data, makes it durable, then sets the flag and makes that
+// durable, and reads both back.
+func commit(f *os.File) {
 	if _, err := f.WriteAt(newData(), 0); err != nil {
-		f.Close()
 		return
 	}
 	if err := syscall.Fdatasync(int(f.Fd())); err != nil {
-		f.Close()
 		return
 	}
 	if _, err := f.WriteAt([]byte{1}, 8); err != nil {
-		f.Close()
 		return
 	}
 	if err := syscall.Fdatasync(int(f.Fd())); err != nil {
-		f.Close()
 		return
 	}
 	buf := make([]byte, 9)
 	if _, err := f.ReadAt(buf, 0); err != nil {
-		f.Close()
 		return
 	}
 	if !dataOk(buf) || buf[8] != 1 {
 		panic("crashlog: the commit did not read back")
 	}
-	f.Close()
 }

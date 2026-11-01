@@ -2,7 +2,6 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import Perennial.GeneratedProof.io
 public import GeneratedProof.os
 public import GeneratedProof.syscall
 public import Perennial.Golang.Theory
