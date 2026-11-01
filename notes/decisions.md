@@ -28911,3 +28911,79 @@ the compaction revision would miss an event; the compaction cannot know the earl
 watch client's workload can. Three spec-reviewer rounds; no axiom, no `sorry`, no exported
 statement changed. Next: the Probe (`KeyDel_lt_of_noDup`, `syncWatchers`' compaction branch).
 
+## bootOk's boot metadata: the opened data's meta keys explicit (2026-11-01 · the user's decision, candidate (a))
+
+**Before** (J8a-4 and earlier): `bootOk` (`InvBoot.lean`) stated the boot backend's metadata as a
+literal about the names, `%Hci`'s `γA.m0 = (W64 0, W64 0)`, and again hidden in `Hthr`'s
+`applyThread γA ⟨0, 0, 0, false⟩` (its `p` is the stored index's initial copy, `consInv_alloc`'s
+`m0.1`). That the boot data `D` holds those keys was stated nowhere, though `Hnew`'s lock resource
+(`batchLockInv γA (metaTM γB d.P)`, whose `metaTM` starts at `mm = γA.m0` while `wr` is false) is
+consistent only if it does.
+
+**Now:**
+- `"%Hm0" ∷ ⌜metaIs D γA.m0⌝`: the boot data's meta keys are the protocol's initial ones. True of
+  any open (`D` is what `OpenBackend` read, `γA` `bootstrap`'s choice).
+- `"%HmEmpty" ∷ ⌜(D.lookup schema.metaName).getD ∅ = ∅⌝` replaces `"%HnoCmp" ∷ ⌜mvcc.noCmpData D⌝`,
+  which it implies (`noCmpData_of_metaEmpty`): the fresh data directory's file has nothing in
+  `Meta`. It rests on the approved fresh-data-directory assumption, as `HD`/`HDr` do, not on Go:
+  `UnsafeCreateBucket` is `CreateBucketIfNotExists` and the new-cluster path never checks
+  `beExist`, so a leftover `member/snap/db` keeps its `Meta`. Within a fresh directory nothing in
+  a new cluster's bootstrap writes `Meta`: `UnsafeSave` never stores index 0
+  (`schema/cindex.go:69-73`), `confState` only when `SetConfState` made it dirty
+  (`storage/hooks.go:49`), `Finalize` only the membership buckets.
+- `%Hci` is `⌜bk.ci' = ciIface cil⌝`; `Hthr` is `applyThread γA ⟨0, γA.m0.1, 0, false⟩`,
+  `consInv_alloc`'s state.
+- Laws: `m0_of_metaEmpty`, `noCmpData_of_metaEmpty` (`CindexBackend.lean`); `thr_fresh`
+  (`InvBoot.lean`). `NewServer` restores its old hypotheses right after `iNamed Hb` (three lines),
+  so no later line changed.
+- `boot_create` (`SnapApplyOpen.lean`, beside `snap_create`): the boot open's creation step,
+  `snap_create` without the announcement. From `#HmetaSnap` at `π := γA.ph`, the fresh keys and
+  payment rights (`OpenBackend`'s `openPre` wand arguments), `metaIs D γA.m0`, the names
+  `γA.ph.bwb/bopn = γB.wb/opn` and `consInv_alloc`'s pieces (`token γ.pend`, the mirror half,
+  `applyRegd`), it makes `batchLockInv γA (metaTM γB P)` and the meta reads `#Hmeta` states.
+  `#Hmeta`'s comment cites it: the trusted clause is this proved step's output at `bootstrap`'s
+  open.
+
+**Why (crash recovery).** A restart opens an existing data directory whose `Meta` holds the last
+commit's (index, term) (the hooks store both, never index 0). The old literal mixed a fact of any
+open with a fact of a fresh file; now `Hm0` is the clause restart keeps and `HmEmpty` the one it
+drops, and the apply thread's state names no literal.
+
+**Why deriving `#Hmeta` from `#HmetaSnap` (candidate (b)) was deferred.** `#HmetaSnap` consumes, and
+gives back, the backend's hook keys `hkOwn d.γB (hkData d.P D)` and payment rights. At boot the
+keys are already inside the batch lock (`Hnew`'s resource), so `NewServer` cannot hold them; the
+names equality `γA.ph.bwb/bopn = d.γB.wb/opn` is stated nowhere and `consInv_alloc` does not export
+it. Moving the creation step out of `bootstrap` would be false of Go: `bootstrap` takes the batch
+lock before returning (`CreateMetaBucket`, `bootstrap.go:266`; `Finalize`'s
+`MustCreateBackendBuckets`, :496; defrag, :268) and the backend's `run` goroutine commits from the
+open. A real derivation needs `bootstrapContract` in `OpenBackend`'s `openPre` shape (the caller's
+creation wand at the open, running `boot_create`), `consInv_alloc` split (names before the open,
+registry and invariant at the creation step) and exporting `γ.ph.bwb/bopn`, and `ciIdx` handed to
+the step: a rewrite of `NewServer.spec`'s premise to save one clause of the same trusted `bootOk`.
+Two spec-reviewer rounds agreed.
+
+**What restart support changes.** `HmEmpty` goes (with `HD`, `HDr`, `Hrms0`, the fresh raft hard
+state); `Hm0` stays with `D` the existing file. `NewServer`: the apply thread starts processed
+through `γA.m0.1` (no `bootOk` text change), and `Happ` at the stored index (`bootstrap`'s log line
+`ci.ConsistentIndex()`, `bootstrap.go:273`, loads it into `ci`). `recoverSnapshot`'s
+`RecoverSnapshotBackend` → `OpenSnapshotBackend` (a WAL snapshot newer than the db) is the snapshot
+install's own open: the second backend takes `#HmetaSnap` as `applySnapshot` does, the first is
+retired as `ci_swap_au` retires one. Boot and snapshot then share one mechanism: open data `D` with
+`metaIs D π.m0`, creation step `boot_create`/`snap_create`.
+
+**Open items (not changed now):**
+- `bootOk` declares `"#Hbh"` twice (`InvBoot.lean:326` and `:353` as of this entry, the D43 M5e and the D22 J1a clauses, same
+  text).
+- Whether `Hnew`'s write-back tokens cover `bootstrap`'s later batch-lock sessions: `Hnew` gives
+  every token (`ownToks γ.wb wbInit`) and a clean read buffer at `D`, while Go's `bootstrap` runs two
+  or three batch-lock sessions with writes after the open (`CreateMetaBucket`,
+  `MustCreateBackendBuckets`, defrag), each of which `batchTxBuffered.Unlock`'s spec charges a
+  write-back; `bootOk` folds them into `D` at no cost. `#HmetaSnap`'s `bFresh` premise at boot
+  would rest on the same fiction.
+
+No axiom or `sorry` added or removed; `bootOk`'s text changed (a `NewServer.spec` premise, approved).
+
+**Checks.** Full `lake build` green; `etc/tcb-report.py --check` and every collection match (772
+axioms, 10 `sorry`s: no change); `etc/api-check.py` and `etc/gen-interface.py --check --layout` on
+`etc/api/raft.txt` pass (0 new layout violations); `etc/gen-link.py`: every mode matches but the known
+`--lintest-logkvcompact` and `--lintest-logkvsnap`; `etc/gen-btree-link.py` matches.

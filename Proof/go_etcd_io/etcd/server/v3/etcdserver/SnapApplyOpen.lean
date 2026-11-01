@@ -5,6 +5,8 @@
 * `snap_create`: `OpenSnapshotBackend`'s creation step (`openPre`'s wand) for the backend the apply
   thread opens: the store's late registration slot, the batch lock's resource at the announced
   physical names (`ci_announce`) and what `applySnapshot` keeps (`snapOpenK`).
+* `boot_create` (2026-11-01): the same step at the boot open, without the announcement: what
+  `bootOk`'s `#Hmeta` is the output of.
 -/
 module
 
@@ -84,6 +86,48 @@ theorem snap_create (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (
   iframe Hcls HmB
   iexists j, γc
   iframe Htc Hidx
+
+/-- **The boot open's creation step** (2026-11-01, the user's decision, `notes/decisions.md`,
+"bootOk's boot metadata"): `snap_create` without the announcement (the boot backend's names are the
+registry's first). At the open of data `D` whose meta keys are `γA.m0`, the fresh backend's own keys
+and payment rights (`OpenBackend`'s `openPre` wand arguments), with the protocol's pieces
+`consInv_alloc` gives (at `bwb := γB.wb`, `bopn := γB.opn`), make the batch lock's resource
+`batchLockInv γA (metaTM γB P)`, give the payment rights back, and through `bootOk`'s
+`#HmetaSnap` at `π := γA.ph` give the meta reads of every backend with that lock resource:
+`bootOk`'s `#Hmeta` is this step's output at `bootstrap`'s open (names-only, so `bootOk` states it). -/
+theorem boot_create (γA : ApplyNames) (γB : backend.BNames) (P : backend.BParams)
+    (D : backend.Data) (hP : ciKeys P) (hm : metaIs D γA.m0) (hwb : γA.ph.bwb = γB.wb)
+    (hopn : γA.ph.bopn = γB.opn) :
+    □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
+      ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
+      backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
+      backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ∗
+      □ ∀ (W : IProp GF) (b : Loc),
+        backend.isBackend γB P W (batchLockInv (γA.withPh π) (metaTM γB P)) b -∗
+        isMetaBackend (interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
+          (readView (γA.withPh π))) ⊢
+    token γA.pend -∗ ghostVar γA.mt (1 : Qp).half γA.m0.1 -∗ applyRegd γA -∗
+      backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
+      batchLockInv (GF := GF) γA (metaTM γB P) ∗ backend.bFresh γB ∗
+        □ ∀ (W : IProp GF) (b : Loc),
+          backend.isBackend γB P W (batchLockInv γA (metaTM γB P)) b -∗
+          isMetaBackend (interface.mkOk (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
+            (readView γA) := by
+  iintro #HmS Hpend Hmt #Hreg Hk Hfr
+  have hc : ciKeys P ∧ metaIs D γA.ph.m0 ∧ γA.ph.bwb = γB.wb ∧ γA.ph.bopn = γB.opn :=
+    ⟨hP, hm, hwb, hopn⟩
+  icases HmS $$ %γA.ph %γB %P %D %hc Hk Hfr with ⟨Hk, Hfr, #HmB⟩
+  iframe Hfr HmB
+  iunfold batchLockInv
+  iexists γA.m0
+  iframe Hmt Hpend
+  isplitl [Hk]
+  · iunfold metaTM; iexists D; iframe Hk; ipureintro; exact hm
+  isplitr
+  · iunfold applyRegdF; ileft; iexact Hreg
+  ileft; ipureintro; rfl
 
 /-- **Two watchable stores over one inner store are one** (persistent facts only): the inner store's
 `ReadView` field names one read view, whose `kv` names its watchable store. -/
