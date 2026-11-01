@@ -60,7 +60,7 @@ def writerStF (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w
 abbrev DB.commit.spec : Prop :=
   ∀ (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8) (st : MapSt)
     (m : OsMeta) (v : w64),
-  metaPagesOk mp → (curMeta mp).txid'.toNat + 1 < 2 ^ 64 → (curPgid mp + 2) * 4096 ≤ 2 ^ 30 →
+  metaPagesOk mp → (curMeta mp).txid'.toNat + 1 < 2 ^ 64 →
   m.ok = true → st ≠ none → γ.vp ((curMeta mp).txid'.toNat + 1) (some v) →
   {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ db.[DB, go!"file"] ↦□ f ∗
       sync.isMutex db.[DB, go!"metalock"] (metaR (GF := GF) γ db p) ∗

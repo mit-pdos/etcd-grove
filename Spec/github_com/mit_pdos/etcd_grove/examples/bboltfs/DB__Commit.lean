@@ -23,7 +23,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumpti
 /-- See the file header. -/
 abbrev DB.Commit.spec : Prop :=
   ∀ (γ : DBNames) (db : Loc) (t n : Nat) (v : w64),
-  t + 1 < 2 ^ 64 → (n + 2) * 4096 ≤ 2 ^ 30 → γ.vp (t + 1) (some v) →
+  t + 1 < 2 ^ 64 → γ.vp (t + 1) (some v) →
   {{ isDB (GF := GF) γ db ∗ dbOwner (GF := GF) γ t n }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Commit")) (Val #v))
   {{ (err : GoInterface), RET #err;

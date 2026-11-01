@@ -58,7 +58,7 @@ def writerStFC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoStrin
 abbrev DB.commit.specCrash : Prop :=
   ∀ (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8) (st : MapSt)
     (m : OsMeta) (bs : List (w8 × Bool)) (v : w64),
-  metaPagesOk mp → (curMeta mp).txid'.toNat + 1 < 2 ^ 64 → (curPgid mp + 2) * 4096 ≤ 2 ^ 30 →
+  metaPagesOk mp → (curMeta mp).txid'.toNat + 1 < 2 ^ 64 →
   m.ok = true → st ≠ none → γ.vp ((curMeta mp).txid'.toNat + 1) (some v) →
   bootOk ((curMeta mp).txid'.toNat + 1) (some v) →
   {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ csInv (GF := GF) dbCrashN p γc (dbOk p) ∗

@@ -63,7 +63,7 @@ theorem DB.Get.wp_reader_crash (wp_meta : DB.«meta».spec (GF := GF) (hG := hG)
   iunfold isDBC at Hdb
   icases Hdb with ⟨⟨%f, %fd, %p, #Hpkg, #Hos, #Hfile, #Hpath, #Hci, #Hrw, #Hmeta, #Hguard⟩, -, -⟩
   iunfold pkgFacts at Hpkg
-  icases Hpkg with ⟨#Hsync, %e1, %e2, #He1, #He2, %He, %eof, #Heof, %Heof⟩
+  icases Hpkg with ⟨#Hsync, %e1, %e2, #He1, #He2, %He, %eof, #Heof, %Heof, -⟩
   wp_auto
   iunfold dbReader at Hrd
   icases Hrd with ⟨%f', %fd', %p', #Hfile', #Hpath', Hrd⟩
