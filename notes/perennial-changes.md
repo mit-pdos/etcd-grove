@@ -227,6 +227,11 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   built over the other hypothesis). So a cached proof does leak between contexts, as the paragraph
   above feared, and fails at the kernel rather than silently. Workaround there: no `word` in sibling
   branches (`rfl`/`omega` and `BitVec.toInt_sdiv_of_ne_or_ne` instead), with a comment.
+- **Seen again** (2026-11-01, kvdurable's `openStorage`): `word` in a `prev = 0` branch of a
+  `wp_if_destruct` (hypothesis `¬ 0 < prev`) gave a proof the kernel rejected, built over the
+  sibling branch's `0 < prev`; and a `word` side goal later in the same proof failed with "unknown
+  free variable" (a cached term over a hypothesis of another goal). Workaround there: `omega` on
+  `BitVec.toNat` for the first, the `word` fact proved at the top of the proof for the second.
 - **Status.** Not started (found 2026-10-21, `raft-retarget`, now on `lean`).
 
 ### Specs: a law for `Done()` of an `isContext` context (2026-10-27, the compactor pilot)
