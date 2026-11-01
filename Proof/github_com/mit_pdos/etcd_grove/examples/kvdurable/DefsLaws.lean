@@ -33,6 +33,30 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
+instance kvCore_timeless (γ : KdNames) (ops : List LogEntry) (n : w64) (Mi : GMap w64 (List w8))
+    (RS : GMap w64 w64) (RMi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName))
+    (U : GSet (List w8)) : Timeless (kvCore (GF := GF) γ ops n Mi RS RMi O U) := by
+  unfold kvCore; infer_instance
+
+instance waitP_persistent (γ : KdNames) (d v : List w8) : Persistent (waitP (GF := GF) γ d v) := by
+  unfold waitP; infer_instance
+
+instance kvLb_persistent (γ : KdNames) (L : List (List w8)) : Persistent (kvLb (GF := GF) γ L) := by
+  unfold kvLb; infer_instance
+
+instance rsOk_persistent (γ : Cluster) (v : ReadState) : Persistent (rsOk (GF := GF) γ v) := by
+  unfold rsOk; infer_instance
+
+instance readAns_persistent (γ : KdNames) (c v : List w8) : Persistent (readAns (GF := GF) γ c v) := by
+  unfold readAns; infer_instance
+
+instance kdSnapRecOk_persistent (γ : KdNames) (s : SnapRec) :
+    Persistent (kdSnapRecOk (GF := GF) γ s) := by
+  unfold kdSnapRecOk; infer_instance
+
+instance repKnown_persistent (γ : KdNames) (id : w64) : Persistent (repKnown (GF := GF) γ id) := by
+  unfold repKnown; infer_instance
+
 instance rkvInv_persistent (γ : KdNames) : Persistent (rkvInv (GF := GF) γ) := by
   unfold rkvInv; infer_instance
 
@@ -74,6 +98,13 @@ instance isReplicaR_persistent (γ : KdNames) (vs : List w64) (dir : GoString) (
 instance sendSpec_persistent (γ : KdNames) (id : w64) (f : GoFunc) :
     Persistent (sendSpec (GF := GF) γ id f) := by
   unfold sendSpec; infer_instance
+
+/-- One counter of the statistics. -/
+theorem isStats_field (s : Loc) (f : GoString) (hf : f ∈ statsFields) :
+    isStats (GF := GF) s ⊢
+      inv kdStatsN iprop(∃ v : w64, sync.atomic.ownUint64 (s.[KStats, f]) (DFrac.own 1) v) := by
+  unfold isStats
+  exact BigSepL.bigSepL_mem hf
 
 end laws
 
