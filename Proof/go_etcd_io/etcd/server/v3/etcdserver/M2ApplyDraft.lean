@@ -269,7 +269,7 @@ def reqPropOkD (γk : KVNames) (cmp : Bool) (rq : apply.IRRModel)
   iprop(reqPropOk γk rq Qr ∨
     (⌜cmp = true ∧ compactPropOk rq ∧ rqShape rq ∧ irrNoZeroEnd rq ∧
         Qr = fun _ => iprop(True)⌝ ∗
-      ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ cmpReach γk r))
+      ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLb γk r))
 
 /-- At the mode off, today's. -/
 theorem reqPropOkD_off (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :

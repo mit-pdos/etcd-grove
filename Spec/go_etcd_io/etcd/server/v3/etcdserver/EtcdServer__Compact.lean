@@ -36,8 +36,10 @@ def compactOutIs (E : apply.AEnv GF) (resp : Loc) (err : GoInterface) : IProp GF
 
 /-- `s.Compact(ctx, r)` for a non-physical compaction request (the pilot's scope: the compactor never
 sets `Physical`; the physical wait, `Physc` and `ForceCommit`, is the gRPC caller's and not specified
-yet) at a revision the store has reached (`srvRevLb`: the apply's `store.Compact` needs its
-certificate, M2's review round 1, S2-3; the compactor's permit gives it), on a server in compaction
+yet) at a revision the KV has reached (`kvRevLb`: the apply's `store.Compact` needs it, M2's review
+round 1, S2-3; since the client's `kv.Compact`, 2026-10-31, the cluster's bound in place of the
+store's own certificate `srvRevLb`, weaker: a client's comes from another member's reply, the
+compactor's permit gives the store's, `kvRevLb_of_srvRevLb`), on a server in compaction
 mode (`isServerReq` with `⌜E.cmp = true⌝`: the KV invariant admits the compaction entry in the
 cluster's compaction mode, S2-1; M2's apply side, item 15, 2026-10-31: until then the compaction
 mode's own view, `isServerReqC`; the readers' names the request path's, `ρ.rd`, F5-2: the
@@ -74,7 +76,7 @@ abbrev EtcdServer.Compact.spec : Prop :=
       isServerReq s E ρ ∗ ⌜E.cmp = true⌝ ∗ isServerRead s E ρ.rd ∗ srvLeadTimeReader s ∗
       srvLgReader s ∗ E.RD ∗
       mvcc.storeReaderC E.s E.γ ∗ idCred ρ.ids 1 ∗
-      context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx none ∗ srvRevLb E.γ r ∗
+      context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx none ∗ kvRevLb ρ.rd.kv (W64 r) ∗
       compactReqIs p r }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Compact"))
       (Val #(GoInterface.ok ctx))) (Val #p))

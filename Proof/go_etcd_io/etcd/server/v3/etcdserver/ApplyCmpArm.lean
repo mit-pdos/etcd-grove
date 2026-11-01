@@ -237,7 +237,7 @@ theorem kv_entry_claim (γ : ServerRaftNames) (γk : KVNames)
   · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
   imodintro
   ipureintro
-  obtain ⟨-, -, hc0, -, -, hcl⟩ := Hok
+  obtain ⟨-, -, hc0, -, -, hcl, -⟩ := Hok
   exact cmpEntryOk_transfer γ γk γk.cmp A L m HBi Hp.1 Hp.2.1 Hp.2.2 hc0 hcl
 
 
