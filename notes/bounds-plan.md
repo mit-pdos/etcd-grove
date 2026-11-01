@@ -165,8 +165,14 @@ This deletes the counted stocks (70 places), `etcdGrpcSlots_of_started`, `watchR
 - **Order** (as the inventory recommends; it supersedes the order first written here).
   1. Pilot on the leasing client (`client/v3/leasing`: one lock, `lkvReader`, not touched by any
      active branch).
-  2. B2a: a `threadTok` for each gRPC run and stream and each `net/http` handler (a trust-boundary
-     change, for approval).
+  2. ~~B2a: a `threadTok` for each gRPC run~~ **replaced (2026-11-01, the user's choice): run slots
+     built in `NewServer`.** `grpc.serve` runs a handler in the calling client's thread, so the only
+     sound source of a handler's thread token is the caller's, which would put `threadTok` on
+     `Invoke`'s axiom, the 13 generated stubs, the client library and the examples' calls. Instead
+     `grpc.serve`'s `n` per-run slots stay, and `NewServer` builds them itself from its locks' stocks
+     (counted inside the one owner) and hands out `n` ready bundles: the examples' splits,
+     `etcdGrpcSlots_of_started` and `watchRunSlots_of` go. No trust-boundary change. Pools stay for
+     the unbounded goroutines (lease monitors, `GoAttach`, the watch loops). After `snap-j8a`.
   3. The auth store's `E.RD` (the most mentions).
   4. The server's own locks (`lg`, `leadTime`, `read`, `bemu`, `wg`, quota).
   5. mvcc's `storeReader`/`watchReader`, after `m2-b2-mvcc` lands.
