@@ -229,6 +229,115 @@ theorem openStorage.wp_proof
         iframe; ipureintro; rfl
       · wp_join_done
     try wp_auto
+    -- the restore: the storage registered, the stored snapshot opened for writes
+    iStructNamedPrefix «$r0» "S"
+    imod kdStor_register «$r0_ptr» ms γs ⊤ CoPset.subseteq_top $$ HsInv SMemoryStorage with #Hrec
+    imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Sboot with #Sboot
+    imod memSnapNone_open γs $$ Hnone with #Hlb0
+    ihave #Hinit := isInitialized_access $$ Hraft
+    iunfold isInitialized at Hinit
+    iNamed Hinit
+    iunfold errorsNewVar at ErrSnapOODNew
+    icases ErrSnapOODNew with ⟨%eood, #Heood, -⟩
+    ihave #Hmsf : «$r0_ptr».[KStorage, go!"MemoryStorage"] ↦□ ms $$ []
+    · iunfold kdStorRec at Hrec; icases Hrec with ⟨#H, -⟩; iexact H
+    -- the log's start: the snapshot applied there (`prev > 0`), or the dummy at `0`
+    wp_join iprop("prev" ∷ prev_ptr ↦ f.prev ∗ "snap" ∷ snap_ptr ↦ sp ∗
+        "si" ∷ si_ptr ↦ f.snap.Metadata'.Index' ∗ "prevTerm" ∷ prevTerm_ptr ↦ f.prevTerm ∗
+        "s" ∷ s_ptr ↦ «$r0_ptr» ∗
+        ∃ (sv0 : SnapshotM) (e0 : EntryM), "Hfresh" ∷ memStorFresh ms γs (uint.nat f.prev) sv0 ∗
+          "Hend" ∷ memEnd γs (uint.nat f.prev + 1) ∗
+          "#He0" ∷ memLog γs (uint.nat f.prev) DFrac.discard [e0] ∗ "%He0t" ∷ ⌜e0.Term' = f.prevTerm⌝ ∗
+          "#Hcomp" ∷ memCompacted γs (uint.nat f.prev) ∗ "#HslP" ∷ memSnapLb γs (uint.nat f.prev) ∗
+          "%Hsv0" ∷ ⌜uint.nat sv0.Metadata'.Index' = uint.nat f.prev⌝ ∗
+          "%Hsv0e" ∷ ⌜f.snap.Metadata'.Index' = f.prev →
+            sv0 = (if f.snap.Metadata'.Index' = W64 0 then memSnapEmpty else f.snap)⌝)
+      at (if: #(decide (uint.Z (W64 0) < uint.Z f.prev)) then _ else _)
+      with [prev snap si prevTerm s Hfresh Hend]
+      as ⟨prev, snap, si, prevTerm, s, %sv0, %e0, Hfresh, Hend, #He0, %He0t, #Hcomp, #HslP, %Hsv0,
+        %Hsv0e⟩
+    · wp_if_destruct
+      · have Hp0 : 0 < uint.nat f.prev := by word
+        wp_if_destruct
+        · -- `si = prev`: the file's snapshot
+          have Hsi61 : uint.nat f.snap.Metadata'.Index' < 2 ^ 61 := by rw [Hif]; word
+          ihave Hend1 : memEnd γs (1 + ([] : List EntryM).length) $$ [Hend]
+          · iexact Hend
+          wp_apply wp_ApplySnapshot ms γs trivJ (some (0, memSnapEmpty)) 1 [] sp DFrac.discard f.snap
+            _ (by rw [Hif]; omega) Hsi61 $$ [Hfresh Hend1]
+            as ⟨-, #Hcomp, #Hdum, Hend, #Hslb, Hfresh⟩
+          · rw [memStorAt_some]
+            iframe Hlock Hfresh Hend1 Hlb0 Heood
+            isplitl []
+            · iapply memLog_nil
+            iunfold snapArg; iright; iexact Hsnap
+          have Htp : f.snap.Metadata'.Term' = f.prevTerm := by
+            rw [← Hsterm]; unfold imgTermAt; rw [Hif, ite_eq_left (Nat.le_refl _)]
+          have Hp0' : f.prev ≠ W64 0 := by intro h; rw [h] at Hp0; exact absurd Hp0 (by decide)
+          rw [Nat.zero_max, Hif]
+          isplitr
+          · ipureintro; rfl
+          iframe prev snap si prevTerm s
+          iexists f.snap, memDummy f.snap
+          iframe Hfresh Hend Hdum Hcomp Hslb
+          ipureintro
+          refine ⟨Htp, by rw [Hif], fun _ => ?_⟩
+          rw [ite_eq_right Hp0']
+        · -- `si > prev`: a base snapshot at the log's start
+          rename_i pidx
+          irename : (pidx ↦ f.prev : IProp GF) => Hpi
+          imod cellRO_alloc _ _ $$ Hpi with #cI
+          imod cellRO_alloc _ _ $$ «$v1» with #cT
+          imod smPts_of_struct «$v0_ptr» ⟨zeroValDef, null, pidx, «$v1_ptr», slice.nil, 0⟩
+            (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) f.prev f.prevTerm) ⊤ rfl
+            $$ [«$v0»] with Hsm
+          · iframe «$v0»; iframe cI cT
+            iunfold csOpt; ileft; ipureintro; exact ⟨rfl, rfl⟩
+          ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+          · iapply ownSlice_nil
+          imod ownSnapM_of_struct «$r0_ptr» ⟨zeroValDef, slice.nil, «$v0_ptr», slice.nil, 0⟩
+            (SnapshotM.mk [] (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) f.prev f.prevTerm))
+            ⊤ rfl $$ [«$r0» Hnil Hsm] with Hbs
+          · iframe «$r0» Hnil
+            iunfold smOpt; iright; iexact Hsm
+          have Hp61' : uint.nat f.prev < 2 ^ 61 := by word
+          ihave Hend1 : memEnd γs (1 + ([] : List EntryM).length) $$ [Hend]
+          · iexact Hend
+          wp_apply wp_ApplySnapshot ms γs trivJ (some (0, memSnapEmpty)) 1 [] «$r0_ptr» (DFrac.own 1)
+            (SnapshotM.mk [] (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) f.prev f.prevTerm))
+            _ (by simp only; omega) (by simp only; omega) $$ [Hfresh Hend1 Hbs]
+            as ⟨-, #Hcomp, #Hdum, Hend, #Hslb, Hfresh⟩
+          · rw [memStorAt_some]
+            iframe Hlock Hfresh Hend1 Hlb0 Heood
+            isplitl []
+            · iapply memLog_nil
+            iunfold snapArg; ileft; iframe Hbs; ipureintro; rfl
+          simp only [Nat.zero_max]
+          isplitr
+          · ipureintro; trivial
+          iframe prev snap si prevTerm s
+          iexists _, _
+          iframe Hfresh Hend Hdum Hcomp Hslb
+          ipureintro
+          refine ⟨rfl, rfl, fun h => absurd h Hif⟩
+      · have Hp0 : f.prev = W64 0 := by word
+        isplitr
+        · ipureintro; trivial
+        rw [Hp0, show uint.nat (W64 0) = 0 from rfl, Nat.zero_add]
+        iframe prev snap si prevTerm s
+        iexists memSnapEmpty, zero_val EntryM
+        iframe Hfresh Hend
+        isplitl []
+        · iexact Hd0
+        isplitl []
+        · ipureintro; exact (Hst0 Hp0).symm
+        isplitl []
+        · iapply memCompacted_zero
+        isplitl []
+        · iexact Hlb0
+        ipureintro
+        refine ⟨rfl, fun h => ?_⟩
+        rw [h, ite_eq_left rfl]
     sorry
 
 end proof
