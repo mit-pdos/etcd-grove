@@ -108,6 +108,9 @@ func Main() {
 	// first response is the compaction's (ErrCompacted), which ends it without a check; a watch
 	// that sees events (no compaction passed revision 2: every compaction failed) sees only the
 	// rounds' Puts, each of value.
+	if prevRev == 0 {
+		return
+	}
 	wctx, wcancel := context.WithCancel(context.Background())
 	wch := cli.Watcher.Watch(wctx, prevKey, clientv3.WithRev(2))
 	evs, ok := common.Collect(wch, prevRev)
