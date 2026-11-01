@@ -440,7 +440,51 @@ theorem Cluster.start.wp_proof
     rw [← Haplen]; iexact Hcap
   subst Hnd HS'
   try wp_auto
-  sorry
+  wp_apply wp_tick γ vs dir c $$ [$Hc] as %tk %Htk
+  -- the borrowed durable state back: the writer's half for the new incarnation
+  imod kdFile_return γ dir id S' o' ⊤ (fun _ _ => CoPset.mem_full) HSHo Hoko $$ HfInv HrS Hdf [] Hlc2
+    with Hwr
+  · rw [HF]; iexact Hcert
+  try wp_auto
+  wp_apply wp_sender γ vs dir c id $$ [$Hc $Hknown] as %fs #Hf
+  try wp_auto
+  -- the delivered log: frozen in the storage, the stored entries (S1b)
+  have Hl0 : l.length = max (uint.nat F.prev) (uint.nat ap0) := by
+    rw [Hllen, HA]; rfl
+  have Hlsi : l.length ≤ uint.nat F.snap.Metadata'.Index' := by
+    rcases Hap0 with ⟨h1, -⟩ | ⟨h1, h2, -⟩
+    · rw [h1] at Hl0; simp at Hl0; word
+    · omega
+  have Hrafted : uint.nat rf = l.length := by
+    rcases Hap0 with ⟨h1, h2⟩ | ⟨h1, h2, h3⟩
+    · rw [h1] at Hl0; rw [h2, Hl0]; simp
+    · rw [h3, Hl0]; omega
+  ihave #Hfz : memLog γs (uint.nat F.prev + 1) DFrac.discard (F.ents.take (l.length - uint.nat F.prev))
+    $$ [Hfro]
+  · iapply memLog_take_le γs _ F.ents _ _ (by omega) $$ Hfro
+  ihave #Hfzt : kvreconf.frozenTo γs (uint.nat F.prev) l $$ []
+  · unfold kvreconf.frozenTo
+    have h := HS1b
+    simp only [kdContents_some_b, kdContents_some_ents] at h
+    rw [h]; iexact Hfz
+  have Hsiw : F.snap.Metadata'.Index' = W64 ap.length := by rw [Haplen]; word
+  rw [show (#(F.snap.Metadata'.Index') : val) = #(W64 ap.length) by rw [Hsiw]]
+  ihave #HisNode' : isNode n γ.r.cluster kdRaftN id $$ []
+  · rw [← HcID]; iexact HisNode
+  rw [← Hiface] at *
+  ihave Hncfg : nodeConfig n γ.r.cluster kdRaftN ⟨ap.length, m⟩ $$ [Hncfg]
+  · rw [Haplen]; iexact Hncfg
+  have Hl0' : uint.nat F.prev ≤ l.length := by rw [Hl0]; omega
+  wp_apply (wp_newReplica γ vs dir id n s (c.[KCluster, go!"Stats"]) sq ms γs K mK mA csp Kv A ap l m
+      cfg ip F.hs S' o' F rf tk fs Htk rfl HFok HFSH Hap61 Hrafted HFof (by omega) Hl0' (by omega)
+      Hid1 Hid9 Hmsz Haplen)
+    $$ [$Hpkg $Hcci $Hcl $Hstats $Hseqs $HfInv $HisNode' $Hdrv $Hncfg $Hrun $Hrec $HmsInv $Hmeta
+      $Himg $Himage $Hcert $Hwr $Hcmp $Hfz $Hfzt $Hslb $HK $HA $Hcso $Hap $Hcap $Hf]
+    as %r ⟨Hr, Hstop⟩
+  · ipureintro; exact ⟨Hcfgm, HKv, HAok⟩
+  try wp_auto
+  iapply HΦ
+  iframe Hr Hstop
 
 end proof
 
