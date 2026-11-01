@@ -1,19 +1,17 @@
 /- Lean-first (no Rocq counterpart). The proof of `db.Snapshot()`.
 
-Proved: every error path (a failed handle; no mapping, `meta0 == nil`), and the success path up to
-the copy: the meta copied through the meta cells borrowed from the mapping's invariant
-(`meta_borrow`/`meta_return`, as in `DB__Get.lean`), `metalock` released, the deferred `RUnlock`
-pushed, with `pageIs` of the root page (`metaR`) and of the last committed page `pgid - 1`
-(`page_pageIs`) in hand. Not proved (`sorry`): from `make` on. What remains:
-- `make([]byte, (pgid+1)*4096)` (`wp_slice_make2`, `(pgid+1)*4096 ≤ 2^30` by `metaPagesOk`);
-- the racing `ReadAt` (`os.File.ReadAt.specRacy`) over the held ranges of those two pages' discarded
-  bytes, with the file and fd fractions of `mapRest`;
-- `err != nil && err != io.EOF`: comparing an `error` with `io.EOF` needs `eof`'s dynamic type to be
-  comparable, which `pkgFacts` does not say (an addition to `pkgFacts` may be needed);
-- `n ≥ pgid*4096`: the `io.EOF` clause at the last byte of page `pgid - 1`;
-- the root page's bytes in `out` are `B` (the held range), viewed from `out`'s slice points-to
-  (`bytesPointsto_ownSlice`) as a `Page` and a `uint64`, as in `Get`;
-- the deferred `RUnlock` with `mapR` rebuilt from the fields, `γm`'s share and the file fractions.
+Under `metalock`, as in `DB__Get.lean`: the meta copied through the meta cells borrowed from the
+mapping's invariant (`meta_borrow`/`meta_return`), with `pageIs` of the root page (`metaR`) and of
+the last committed page `pgid - 1` (`page_pageIs`) in hand; then `metalock` released, and the
+deferred `RUnlock` pushed. The copy is a racing `ReadAt` (`os.File.ReadAt.specRacy`) of
+`[0, (pgid+1)*4096)` into a fresh buffer, over the held ranges of those two pages' discarded bytes
+and `mmaplock`'s fractions of the file and its fd. Its error is `nil`, `io.EOF` or a `*PathError`.
+`err != io.EOF` compares two interface values: `io.EOF` is a pointer error (`pkgFacts`), so the
+comparison does not panic, and a `*PathError` is never `io.EOF`. With `nil` the read is whole; with
+`io.EOF` it reaches every held byte, the last byte of page `pgid - 1` included, so `n ≥ pgid*4096`
+and the panic never fires. The root page's bytes in the buffer are then exactly `B` (the held-byte
+clause), viewed as a `Page` (its `count`) and a `uint64` (its value), so the result is `dbTx` of the
+current transaction. The deferred `RUnlock` gives back `mmaplock`'s resource.
 -/
 module
 
@@ -41,7 +39,18 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
 
-set_option maxHeartbeats 1600000 in
+theorem snap_mul4096 (x : w64) (hx : x.toNat * 4096 < 2 ^ 30) :
+    sint.Z (x * W64 4096) = ((4096 * x.toNat : Nat) : Int) := by
+  word
+
+theorem snap_sintZ (n : w64) (h : n.toNat ≤ 2 ^ 30) : sint.Z n = (n.toNat : Int) := by
+  word
+
+theorem snap_add16 (x : w64) (hx : x.toNat * 4096 < 2 ^ 30) :
+    sint.Z (x * W64 4096 + W64 16) = ((4096 * x.toNat + 16 : Nat) : Int) := by
+  word
+
+set_option maxHeartbeats 4000000 in
 theorem DB.Snapshot.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
     (wp_pageAt : pageAt.spec (GF := GF) (hG := hG))
     (wp_ReadAt : os.File.ReadAt.specRacy (GF := GF) (hG := hG)) :
@@ -193,7 +202,231 @@ theorem DB.Snapshot.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
       ihave Htok := ((ghostVar_fractional γm ()).fractional sync.rfrac.half.half (metaDep + metaDep)).2 $$ [Hq Htok]
       · iframe
       rw [← show sync.rfrac.half = sync.rfrac.half.half + (metaDep + metaDep) by unfold metaDep; qp_eq]
-      sorry
+      have hpg : curPgid mp = (curMeta mp).pgid'.toNat := rfl
+      have hsz : sint.Z (((curMeta mp).pgid' + W64 1) * W64 4096) =
+          (((curPgid mp + 1) * 4096 : Nat) : Int) := by
+        rw [hpg] at Hbound ⊢; word
+      wp_apply (wp_slice_make2 (V := w8) (((curMeta mp).pgid' + W64 1) * W64 4096)) as %buf ⟨Hbuf, -⟩
+      · ipureintro; rw [hsz]; omega
+      have hnat : sint.nat (((curMeta mp).pgid' + W64 1) * W64 4096) = (curPgid mp + 1) * 4096 := by
+        show (sint.Z _).toNat = _; omega
+      rw [hnat]
+      ihave #HBc := HB
+      ihave #HB2c := HB2
+      iunfold pageIs at HBc HB2c
+      icases HBc with ⟨%HBl, #HBb⟩
+      icases HB2c with ⟨%HB2l, #HB2b⟩
+      ihave Hrs : ([∗list] r ∈ [(4096 * curRoot mp, DFrac.discard, B.map (·, true)),
+          (4096 * (curPgid mp - 1), DFrac.discard, B2.map (·, true))],
+          osBytes (GF := GF) p r.1 r.2.1 r.2.2) $$ []
+      · iapply BigSepL.bigSepL_cons.2; isplitl; · iexact HBb
+        iapply BigSepL.bigSepL_singleton.2; iexact HB2b
+      wp_apply wp_ReadAt f' fd' p (DFrac.own sync.rfrac.half) buf
+          (List.replicate ((curPgid mp + 1) * 4096) (zero_val w8)) (W64 0) (DFrac.own sync.rfrac.half)
+          ⟨p, true, true⟩ _ eof rfl (by decide) (by simp; omega) (by simp; omega)
+        $$ [Hf Hbuf Hfd Hrs] as %n %err ⟨Hf, Hfd, Hrs, %vs', Hbuf, %Hres⟩
+      · iframe; iframe #
+      obtain ⟨-, Heofpe, T, l, rfl⟩ := Heof
+      obtain ⟨Hl', Hn, Hheld, Hcase⟩ := Hres
+      simp only [List.length_replicate] at Hl' Hn Hheld Hcase
+      have hlast : os.heldByte [(4096 * curRoot mp, DFrac.discard, B.map (·, true)),
+          (4096 * (curPgid mp - 1), DFrac.discard, B2.map (·, true))] (4096 * curPgid mp - 1) (B2[4095]!) := by
+        refine ⟨_, List.mem_cons_of_mem _ (List.mem_singleton_self _), ?_, ?_⟩
+        · dsimp only; omega
+        · dsimp only
+          rw [show 4096 * curPgid mp - 1 - 4096 * (curPgid mp - 1) = 4095 by omega]
+          rw [List.getElem?_map, List.getElem?_eq_getElem (by omega)]
+          simp [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem (show 4095 < B2.length by omega)]
+      have hcase : (err = interface.nil ∨ err = interface.mkOk (go.GoType.PointerType T) #l) ∧
+            4096 * curPgid mp ≤ n.toNat ∨
+          ∃ pe : Loc, err = interface.mkOk (go.GoType.PointerType _root_.Perennial.io.fs.PathError.ty) #pe := by
+        rcases Hcase with ⟨rfl, Hnlen⟩ | ⟨rfl, Hreach⟩ | ⟨pe, rfl⟩
+        · left; refine ⟨Or.inl rfl, ?_⟩; rw [Hnlen]; rw [Nat.add_mul]; omega
+        · left; refine ⟨Or.inr rfl, ?_⟩
+          have := Hreach _ _ hlast (by simp) (by simp; rw [Nat.add_mul]; omega)
+          simp at this; omega
+        · right; exact ⟨pe, rfl⟩
+      clear Hcase
+      rcases hcase with ⟨herr, hnge⟩ | ⟨pe, rfl⟩
+      · have hpgw : sint.Z ((curMeta mp).pgid' * W64 4096) = ((4096 * curPgid mp : Nat) : Int) := by
+          rw [hpg]; exact snap_mul4096 _ (by rw [← hpg]; rw [Nat.add_mul] at Hbound; omega)
+        have hnZ : sint.Z n = (n.toNat : Int) :=
+          snap_sintZ n (by rw [Nat.add_mul] at Hbound Hn; omega)
+        have hR : curRoot mp = (curMeta mp).root'.root'.toNat := rfl
+        have hrr : 4096 * curRoot mp + 4096 ≤ 4096 * curPgid mp := by
+          have := Nat.mul_le_mul_left 4096 (Nat.succ_le_of_lt Hrh); omega
+        have hoff : sint.Z ((curMeta mp).root'.root' * W64 4096) = ((4096 * curRoot mp : Nat) : Int) := by
+          rw [hR]; exact snap_mul4096 _ (by rw [← hR]; rw [Nat.add_mul] at Hbound; omega)
+        have hix : sint.Z ((curMeta mp).root'.root' * W64 4096 + W64 16) =
+            ((4096 * curRoot mp + 16 : Nat) : Int) := by
+          rw [hR]; exact snap_add16 _ (by rw [← hR]; rw [Nat.add_mul] at Hbound; omega)
+        have hget : ∀ j < 4096, vs'[4096 * curRoot mp + j]? = B[j]? := by
+          intro j hj
+          have hb := Hheld (4096 * curRoot mp + j) (B[j]'(by omega))
+            ⟨_, List.mem_cons_self .., by dsimp only; omega, by
+              dsimp only; rw [show 4096 * curRoot mp + j - 4096 * curRoot mp = j by omega]
+              simp [List.getElem?_eq_getElem (show j < B.length by omega)]⟩
+            (by simp) (by simp; omega)
+          simp only [show (W64 0).toNat = 0 from rfl, Nat.sub_zero] at hb
+          rw [hb, List.getElem?_eq_getElem (show j < B.length by omega)]
+        have h16 : (vs'.drop (4096 * curRoot mp)).take 16 = B.take 16 := by
+          apply List.ext_getElem?; intro j
+          simp only [List.getElem?_take, List.getElem?_drop]
+          split
+          · exact hget j (by omega)
+          · rfl
+        have h8 : (vs'.drop (4096 * curRoot mp + 16)).take 8 = (B.drop 16).take 8 := by
+          apply List.ext_getElem?; intro j
+          simp only [List.getElem?_take, List.getElem?_drop]
+          split
+          · rw [show 4096 * curRoot mp + 16 + j = 4096 * curRoot mp + (16 + j) by omega]
+            exact hget _ (by omega)
+          · rfl
+        rcases herr with rfl | rfl <;> wp_auto
+        all_goals
+          rw [decide_eq_false (by rw [hpgw, hnZ]; omega)]
+          wp_auto
+          ihave %Hbl := ownSlice_len $$ Hbuf
+          ihave %Hpos := ownSlice_ptr_pos buf vs' _ (by intro h; rw [h] at Hl'; simp at Hl') $$ Hbuf
+          have hlenZ : sint.Z buf.len = (vs'.length : Int) := by
+            have h1 : (sint.Z buf.len).toNat = vs'.length := Hbl.1.symm
+            have h2 := Hbl.2; omega
+          wp_apply wp_pageAt buf ((curMeta mp).root'.root' * W64 4096)
+          · ipureintro; refine ⟨Hpos, ?_, ?_⟩
+            · rw [hoff]; omega
+            · rw [hoff, hlenZ, Hl']; rw [Nat.add_mul]; omega
+          simp only
+          rw [hoff]
+          icases ownSlice_bytes_acc go.uint8 (.scalar _ _ .isPlainScalar_uint8) buf _ _ Hpos $$ Hbuf
+            with ⟨Hbytes, -⟩
+          simp only [flatMap_encode_w8]
+          have hl : 0 < (buf.ptr +ₗ ((4096 * curRoot mp : Nat) : Int)).addr := by
+            simp only [Loc.add]; omega
+          icases bytesPointsto_view_read (V := Page) buf.ptr _ vs' (4096 * curRoot mp)
+            (buf.ptr +ₗ ((4096 * curRoot mp : Nat) : Int)) rfl (by rw [Hl', Nat.add_mul]; omega) Hpos
+            $$ Hbytes with ⟨Hpg, Hpgb⟩
+          rw [h16, show (decode (List.take 16 B) : Page) = pageHdrOf B from rfl]
+          have hlnn : (buf.ptr +ₗ ((4096 * curRoot mp : Nat) : Int)) ≠ null := by
+            intro h; have := congrArg Loc.addr h; simp only [Loc.add, null] at this hl; omega
+          icases typedPointsto_split _ _ _ $$ Hpg with Hpg
+          simp only [TypedPointsto.typedPointstoDef]
+          icases Hpg with ⟨Hid, Hflags, Hcount, Hover, -⟩
+          wp_auto
+          ihave Hpg : (buf.ptr +ₗ ((4096 * curRoot mp : Nat) : Int)) ↦{DFrac.own 1} pageHdrOf B
+            $$ [Hid Hflags Hcount Hover]
+          · iapply typedPointsto_combine _ _ _ hlnn
+            simp only [TypedPointsto.typedPointstoDef]
+            iframe
+          ihave Hbytes := Hpgb $$ Hpg
+          have hcnt : (pageHdrOf B).count' = (decode (List.take 2 (List.drop 2 (List.drop 8 (List.take 16 B)))) : w16) := rfl
+          generalize (decode (List.take 2 (List.drop 2 (List.drop 8 (List.take 16 B)))) : w16) = cnt at hcnt ⊢
+          by_cases hc : cnt = W16 1
+          · rw [decide_eq_true hc]
+            wp_auto
+            rw [hix, ite_cond_eq_true _ _ (eq_true ⟨by omega, by rw [hlenZ, Hl', Nat.add_mul]; omega⟩),
+              sliceIndexRef_byte _ _ Hpos (by omega)]
+            (try simp only)
+            icases bytesPointsto_view_read (V := w64) buf.ptr _ vs' (4096 * curRoot mp + 16)
+              (buf.ptr +ₗ ((4096 * curRoot mp + 16 : Nat) : Int)) rfl (by rw [Hl', Nat.add_mul]; omega) Hpos
+              $$ Hbytes with ⟨Hv, -⟩
+            rw [h8]
+            wp_auto
+            wp_apply sync.RWMutex.wp_RUnlock db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f' fd' p)
+              $$ [$Hrl $Hsync Hmap Hd H0 H1 Htok Hf Hfd] as Hrd
+            · iunfold mapR; iexists (some (base, len, γm)); iunfold mapBody
+              dsimp only [mapFields, mapRest]
+              isplitl [Hmap]; · iexact Hmap
+              isplitl [Hd H0 H1]; · iframe
+              isplitr; · ipureintro; exact Hbase
+              isplitl [Htok]; · iexact Htok
+              isplitr
+              · iunfold mapInv
+                isplitr; · ipureintro; exact Hlen
+                iexists γl; iexact HinvL
+              iframe
+            (try wp_auto)
+            iapply HΦ
+            isplitl [Hrd]
+            · iunfold dbReader; iexists f', fd', p; iframe; iframe #
+            ileft
+            isplitr; · ipureintro; exact ⟨rfl, Hle⟩
+            have hpv : pageVal B = some (decode (List.take 8 (List.drop 16 B))) := by
+              unfold pageVal; rw [hcnt, if_pos hc]
+            rw [if_pos rfl, ← hpv]
+            iunfold dbLast
+            iframe #
+          · rw [decide_eq_false hc]
+            wp_auto
+            wp_apply sync.RWMutex.wp_RUnlock db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f' fd' p)
+              $$ [$Hrl $Hsync Hmap Hd H0 H1 Htok Hf Hfd] as Hrd
+            · iunfold mapR; iexists (some (base, len, γm)); iunfold mapBody
+              dsimp only [mapFields, mapRest]
+              isplitl [Hmap]; · iexact Hmap
+              isplitl [Hd H0 H1]; · iframe
+              isplitr; · ipureintro; exact Hbase
+              isplitl [Htok]; · iexact Htok
+              isplitr
+              · iunfold mapInv
+                isplitr; · ipureintro; exact Hlen
+                iexists γl; iexact HinvL
+              iframe
+            (try wp_auto)
+            iapply HΦ
+            isplitl [Hrd]
+            · iunfold dbReader; iexists f', fd', p; iframe; iframe #
+            ileft
+            isplitr; · ipureintro; exact ⟨rfl, Hle⟩
+            have hpv : pageVal B = none := by
+              unfold pageVal; rw [hcnt, if_neg hc]
+            rw [if_neg Bool.false_ne_true, ← hpv]
+            iunfold dbLast
+            iframe #
+      · wp_auto
+        by_cases hT : go.GoType.PointerType _root_.Perennial.io.fs.PathError.ty = go.GoType.PointerType T
+        · rw [ite_cond_eq_true _ _ (eq_true hT)]
+          have hpl : pe ≠ l := by
+            rintro rfl; exact Heofpe pe (by rw [hT])
+          wp_auto
+          rw [decide_eq_false hpl]
+          wp_auto
+          wp_apply sync.RWMutex.wp_RUnlock db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f' fd' p)
+            $$ [$Hrl $Hsync Hmap Hd H0 H1 Htok Hf Hfd] as Hrd
+          · iunfold mapR; iexists (some (base, len, γm)); iunfold mapBody
+            dsimp only [mapFields, mapRest]
+            isplitl [Hmap]; · iexact Hmap
+            isplitl [Hd H0 H1]; · iframe
+            isplitr; · ipureintro; exact Hbase
+            isplitl [Htok]; · iexact Htok
+            isplitr
+            · iunfold mapInv
+              isplitr; · ipureintro; exact Hlen
+              iexists γl; iexact HinvL
+            iframe
+          (try wp_auto)
+          iapply HΦ
+          isplitl [Hrd]
+          · iunfold dbReader; iexists f', fd', p; iframe; iframe #
+          iright; ipureintro; intro h; cases h
+        · rw [ite_cond_eq_false _ _ (eq_false hT)]
+          wp_auto
+          wp_apply sync.RWMutex.wp_RUnlock db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f' fd' p)
+            $$ [$Hrl $Hsync Hmap Hd H0 H1 Htok Hf Hfd] as Hrd
+          · iunfold mapR; iexists (some (base, len, γm)); iunfold mapBody
+            dsimp only [mapFields, mapRest]
+            isplitl [Hmap]; · iexact Hmap
+            isplitl [Hd H0 H1]; · iframe
+            isplitr; · ipureintro; exact Hbase
+            isplitl [Htok]; · iexact Htok
+            isplitr
+            · iunfold mapInv
+              isplitr; · ipureintro; exact Hlen
+              iexists γl; iexact HinvL
+            iframe
+          (try wp_auto)
+          iapply HΦ
+          isplitl [Hrd]
+          · iunfold dbReader; iexists f', fd', p; iframe; iframe #
+          iright; ipureintro; intro h; cases h
 
 end proof
 
