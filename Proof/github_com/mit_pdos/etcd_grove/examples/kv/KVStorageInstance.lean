@@ -176,7 +176,17 @@ theorem kvStorage.wp_ApplySnapshot (wp : MemoryStorage.ApplySnapshot.spec (GF :=
       memCompacted γs (uint.nat sv.Metadata'.Index') ∗
       memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
       memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗ memSnapLb γs (uint.nat sv.Metadata'.Index') }} := by
-  sorry -- durability stage I (I-5): broken by the MemoryStorage statement changes (mode o, memStorFresh c sv)
+  wp_start as ⟨#Hrec, #Hpkg, #Hsi, Hold, Hend, #HB, #HSV, #HDL, Hsnap, #Hlb, #Herr⟩
+  iunfold kvStorRec at Hrec
+  icases Hrec with ⟨#Hf, -⟩
+  try wp_auto
+  wp_apply wp ms γs J none j old sp dq sv eood h1 h2 $$ [Hold Hend Hsnap] as HQ
+  · iframe Hold Hend Hsnap Hlb Herr
+    iapply memStorAt_none_intro $$ Hsi
+    iframe HB HSV HDL
+  iapply HΦ
+  icases HQ with ⟨H1, H2, H3, H4, H5, -⟩
+  iframe H1 H2 H3 H4 H5
 
 theorem kvStorage.wp_SetHardState (wp : MemoryStorage.SetHardState.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) (hs : HardStateM) (st : Loc) (hs' : HardStateM) :
@@ -210,7 +220,18 @@ theorem kvStorage.wp_CreateSnapshot (wp : MemoryStorage.CreateSnapshot.spec (GF 
       ownCSM cs dq c ∗ memSnapLb γs (uint.nat i) ∗
       ((⌜err = interface.nil⌝ ∗ ownSnapM snap (DFrac.own 1) (memSnapMade i e.Term' c bs)) ∨
        (⌜snap = null ∧ err = eood⌝ ∗ data ↦* bs)) }} := by
-  sorry -- durability stage I (I-5): broken by the MemoryStorage statement changes (mode o, memStorFresh c sv)
+  wp_start as ⟨#Hrec, #Hpkg, #Hsi, #He, #HSV, #HDL, #Hlb, Hcs, Hdata, #Herr⟩
+  iunfold kvStorRec at Hrec
+  icases Hrec with ⟨#Hf, -⟩
+  try wp_auto
+  wp_apply wp ms γs J none i e cs dq c data bs eood $$ [Hcs Hdata] as %snap %err HQ
+  · iframe He Hlb Hcs Hdata Herr
+    iapply memStorAt_none_intro $$ Hsi
+    iframe HSV HDL
+  iapply HΦ
+  icases HQ with ⟨H1, H2, (⟨%H, H3, -⟩ | ⟨%H, H3, -⟩)⟩
+  · iframe H1 H2; ileft; iframe H3; ipureintro; exact H
+  · iframe H1 H2; iright; iframe H3; ipureintro; exact H
 
 theorem kvStorage.wp_Compact (wp : MemoryStorage.Compact.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) (J : MemJust GF) (x : w64) (ecomp : GoInterface) :
@@ -222,7 +243,18 @@ theorem kvStorage.wp_Compact (wp : MemoryStorage.Compact.spec (GF := GF) (hG := 
       rStorageTy @!! go!"Compact")) (Val #x))
   {{ (err : GoInterface), RET #err;
       ⌜err = interface.nil ∨ err = ecomp⌝ ∗ memCompacted γs (uint.nat x) }} := by
-  sorry -- durability stage I (I-5): broken by the MemoryStorage statement changes (mode o, memStorFresh c sv)
+  wp_start as ⟨#Hrec, #Hpkg, #Hsi, Hpre, #HB, #Hlb, #Herr⟩
+  iunfold kvStorRec at Hrec
+  icases Hrec with ⟨#Hf, -⟩
+  try wp_auto
+  wp_apply wp ms γs J none x ecomp $$ [Hpre] as %err HQ
+  · iframe Hpre Hlb Herr
+    iapply memStorAt_none_intro $$ Hsi
+    iframe HB
+  iapply HΦ
+  icases HQ with ⟨%H, H1, -⟩
+  iframe H1
+  ipureintro; exact H
 
 end promoted
 

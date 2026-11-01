@@ -87,6 +87,10 @@ def memstorageInv (ms : Loc) (γs : MemStorNames) : IProp GF :=
 def memJustInv (ms : Loc) (γs : MemStorNames) (J : MemJust GF) : IProp GF :=
   iprop((∃ L, monoListAuthOwn γs.jc 1 L ∗ [∗list] k ∈ L, J.B k) ∗ (memSnapHome ms γs J ∨ memKey γs.lk))
 
+theorem memStorAt_some [package_sem : Assumptions] (ms : Loc) (γs : MemStorNames) (J : MemJust GF)
+    (c : Nat) (sv : SnapshotM) (P : IProp GF) : memStorAt ms γs J (some (c, sv)) P =
+    iprop(memStorLock ms γs ∗ memStorFresh ms γs c sv)
+
 theorem memLogL_frac (γ : GName) (k : Nat) (dq1 dq2 : DFrac) (es : List EntryM) : memLogL γ k (dq1 •
     dq2) es ⊣⊢ memLogL γ k dq1 es ∗ memLogL γ k dq2 es
 
@@ -107,6 +111,9 @@ theorem memCompacted_persistent (γs : MemStorNames) (c : Nat) : Persistent (mem
 theorem memSnapNone_empty [package_sem : Assumptions] (γs : MemStorNames) (b : Bool) (sv :
     SnapshotM) : (if b = true then memSnapNone γs else emp) ∗ (⌜sv = memSnapEmpty⌝ ∨ monoNatLbOwn
     γs.pr 1) ⊢ (if b = true then memSnapNone γs else emp) ∗ ⌜b = true → sv = memSnapEmpty⌝
+
+theorem memJust_bigSepL_le (J : MemJust GF) (c : Nat) (L : List Nat) (hL : ∀ (k : Nat), k ∈ L → k ≤
+    c) : (□ ∀ k, ⌜k ≤ c⌝ -∗ J.B k) ⊢ [∗list] k ∈ L, J.B k
 
 theorem MemJust.SV_persistent.{u_1} (J : MemJust GF) (sv : SnapshotM) : Persistent (J.SV sv)
 
@@ -302,6 +309,9 @@ def memSnapHome (ms : Loc) (γs : MemStorNames) (J : MemJust GF) : IProp GF :=
             ghostVar γs.sx (Qp.half 1) sv ∗
               (⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')))
 
+theorem memStorAt_none [package_sem : Assumptions] (ms : Loc) (γs : MemStorNames) (J : MemJust GF)
+    (P : IProp GF) : memStorAt ms γs J none P = iprop(memStorInvP ms γs J ∗ P)
+
 theorem memLogL_persist (γ : GName) (k : Nat) (dq : DFrac) (es : List EntryM) : ⊢ memLogL γ k dq es
     ==∗ memLogL γ k DFrac.discard es
 
@@ -321,6 +331,9 @@ theorem memSnapLb_timeless (γs : MemStorNames) (i : Nat) : Timeless (memSnapLb 
 
 def memLog (γs : MemStorNames) (k : Nat) (dq : DFrac) (es : List EntryM) : IProp GF :=
   iprop(memLogL γs.log k dq es ∗ ⌜es = [] ∨ k + es.length ≤ 2 ^ 61⌝)
+
+theorem memStorAt_none_intro [package_sem : Assumptions] (ms : Loc) (γs : MemStorNames) (J : MemJust
+    GF) (P : IProp GF) : ⊢ memStorInvP ms γs J -∗ P -∗ memStorAt ms γs J none P
 
 theorem memSnapCreated_some (sv0 : SnapshotM) (i t : w64) (c : ConfStateM) (bs : List w8) :
     memSnapCreated sv0 i t (some c) bs = memSnapMade i t c bs
