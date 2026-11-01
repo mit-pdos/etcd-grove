@@ -169,7 +169,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   · iframe; iframe #
   icases Hs with (⟨%He, Hm, Hb⟩ | ⟨%He, Hm, -⟩)
   rotate_left
-  · unfold errnoErr; rw [if_neg He]
+  · unfold errnoErr; rw [if_neg He.1]
     (try wp_auto)
     iapply HΦ
     iframe Hf Hfd
@@ -257,7 +257,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   · iframe; iframe #
   icases Hs with (⟨%He, Hm, Hb⟩ | ⟨%He, Hm, -⟩)
   rotate_left
-  · unfold errnoErr; rw [if_neg He]
+  · unfold errnoErr; rw [if_neg He.1]
     (try wp_auto)
     iapply HΦ
     iframe Hf Hfd

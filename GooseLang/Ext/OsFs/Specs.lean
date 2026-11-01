@@ -734,8 +734,8 @@ def syncedBytes (m : OsMeta) (xs : List (w8 × Bool)) : List (w8 × Bool) :=
 
 /-- `fsync(fd)` (and `fdatasync`), with the whole of the file's `OsMeta`, so that no change is in
 flight on it, and some of its bytes, whole. On success the size is durable, and the bytes are
-clean unless a failed sync lost one (`m.ok`); on failure, nothing more is clean, and bytes may
-be lost (`ok := false`). -/
+clean unless an earlier failed sync lost one (`m.ok`); on failure, which is never `EINTR`, nothing
+more is clean, and bytes may be lost (`ok := false`). -/
 theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
     (xs : List (w8 × Bool)) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.path (DFrac.own 1) (some m) -∗
@@ -743,7 +743,8 @@ theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
       (∀ e : w64,
         ((⌜e = 0⌝ ∗ osMeta (L := L) d.path (DFrac.own 1) (some m.synced) ∗
             osBytes (L := L) d.path lo (DFrac.own 1) (syncedBytes m xs)) ∨
-         (⌜e ≠ 0⌝ ∗ osMeta (L := L) d.path (DFrac.own 1) (some { m with ok := false }) ∗
+         (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗
+            osMeta (L := L) d.path (DFrac.own 1) (some { m with ok := false }) ∗
             osBytes (L := L) d.path lo (DFrac.own 1) xs)) -∗
         osFd (L := L) fd dq d -∗ Φ (#e)) -∗
       WP (ExternalOp osFsExt.name "Fsync" (Val (#fd))) @ s; E {{ Φ }} := by
@@ -786,7 +787,7 @@ theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
   rw [hf] at hf'; cases hf'
   have hs := sizes_setFile_sameCur (f' := f.synced (InflightAt st d.path ·)) hf rfl
   have hsF := sizes_setFile_sameCur (f' := f.syncFailed (InflightAt st d.path ·)) hf rfl
-  rcases hres with ⟨rfl, rfl⟩ | ⟨e, he, _hEINTR, rfl, rfl⟩
+  rcases hres with ⟨rfl, rfl⟩ | ⟨e, he, hEINTR, rfl, rfl⟩
   · -- success
     have hkeep : ∀ i, CleanPhys f i → CleanPhys (f.synced (InflightAt st d.path ·)) i :=
       fun i hc => synced_clean f _ hcohf hnoI i (by have := hc.2.2.1; omega) hc.2.1
@@ -858,7 +859,7 @@ theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
         exact hkeep _ (hc1 hc).1
     iapply wp_value'
     iapply HΦ $$ [Hm Hbs] Hfd
-    iright; iframe; ipureintro; exact he
+    iright; iframe; ipureintro; exact ⟨he, hEINTR⟩
 
 /-- `mmap(nil, len, PROT_READ, MAP_SHARED[|MAP_POPULATE], fd, 0)`, with the whole of the file's
 `OsMeta`, so that no change is in flight on it: on success, fresh cells at `base`, whose client
