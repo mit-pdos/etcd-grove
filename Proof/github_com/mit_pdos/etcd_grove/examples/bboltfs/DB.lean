@@ -209,12 +209,13 @@ is a half of it). -/
 def metaDep : Qp := sync.rfrac.half.half.half
 
 /-- The meta cells holding `mc`: unlent, or lent whole to the one reader holding `metalock`, which
-deposits `metaR`'s quarter of `out` (so that the writer, holding `metalock` to take them out,
-finds them unlent) and `metaDep` of `γm` (so that the whole of `γm` does), and holds half of the
-loan token. -/
+deposits half of `metaR`'s authority over the transactions (so that whoever holds `metalock`,
+with the whole of it, finds them unlent: the writer taking them out, the next reader) and
+`metaDep` of `γm` (so that the whole of `γm` does), and holds half of the loan token. -/
 def metaLent (γ : DBNames) (γm γl : GName) (base : Loc) (mc : List w8) : IProp GF :=
   iprop((0 ↪[γl] mc ∗ metaBytes (GF := GF) base (DFrac.own (1 : Qp).half) mc) ∨
-    (ghostVar γ.out (1 : Qp).half.half false ∗ ghostVar γm metaDep () ∗ 0 ↪[γl]{#(1 : Qp).half} mc))
+    ((∃ T : GMap Nat (Option w64), ghostMapAuth γ.txs (1 : Qp).half T) ∗ ghostVar γm metaDep () ∗
+      0 ↪[γl]{#(1 : Qp).half} mc))
 
 /-- The mapping invariant's contents, as `mapCells` but with each group of cells lendable
 (`lentCells`, `metaLent`), and the authority `K` over the loan tokens: key 0 for the metas,

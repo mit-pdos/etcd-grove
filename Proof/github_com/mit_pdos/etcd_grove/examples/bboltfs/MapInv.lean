@@ -258,6 +258,8 @@ instance mapLend_timeless (γ : DBNames) (p : GoString) (base : Loc) (len : Nat)
   haveI : ∀ q : Qp, Timeless (ghostVar (GF := GF) γm q ()) := fun _ => inferInstance
   haveI : ∀ K : GMap Nat (List w8), Timeless (ghostMapAuth (GF := GF) γl 1 K) := fun _ => by
     unfold ghostMapAuth; infer_instance
+  haveI : ∀ T : GMap Nat (Option w64), Timeless (ghostMapAuth (GF := GF) γ.txs (1 : Qp).half T) := fun _ => by
+    unfold ghostMapAuth; infer_instance
   haveI : ∀ (dq : DFrac) (mc : List w8), Timeless (ghostMapElem (GF := GF) γl 0 dq mc) := fun _ _ => inferInstance
   haveI : ∀ (l : Loc) (dq : DFrac) (bs : List w8), Timeless (bytesPointsto (GF := GF) l dq bs) :=
     fun l dq bs => bytesPointsto_timeless l dq bs
