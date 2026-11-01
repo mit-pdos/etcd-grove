@@ -63,6 +63,58 @@ theorem cellsB_append (base : Loc) (lo : Nat) (B C : List w8) :
     rw [show lo + 1 + B.length = lo + (B.length + 1) by omega]
     refine (sep_assoc ..).symm.trans (sep_congr (cellsB_cons _ _ _ _).symm .rfl)
 
+/-- The client halves of the cells `[lo, lo + n)` of the mapping at `base`, holding anything. -/
+def cellsAny (base : Loc) (lo n : Nat) : IProp GF := iprop(∃ vf, cellsR (GF := GF) base lo n vf)
+
+theorem cellsAny_append (base : Loc) (lo n1 n2 : Nat) :
+    cellsAny (GF := GF) base lo n1 ∗ cellsAny base (lo + n1) n2 ⊢ cellsAny base lo (n1 + n2) := by
+  unfold cellsAny
+  iintro ⟨⟨%vf1, H1⟩, ⟨%vf2, H2⟩⟩
+  iexists (fun i => if i < lo + n1 then vf1 i else vf2 i)
+  iapply (cellsR_append _ _ _ _ _).2
+  isplitl [H1]
+  · iapply (cellsR_congr _ _ _ _ _ (fun i _ h => by simp [h])).1 $$ H1
+  · iapply (cellsR_congr _ _ _ _ _ (fun i h _ => by simp [show ¬ i < lo + n1 by omega])).1 $$ H2
+
+theorem cellsAny_split (base : Loc) (lo n1 n2 : Nat) :
+    cellsAny (GF := GF) base lo (n1 + n2) ⊢ cellsAny base lo n1 ∗ cellsAny base (lo + n1) n2 := by
+  unfold cellsAny
+  iintro ⟨%vf, H⟩
+  icases (cellsR_append _ _ _ _ _).1 $$ H with ⟨H1, H2⟩
+  isplitl [H1]
+  · iexists vf; iexact H1
+  · iexists vf; iexact H2
+
+theorem cellsAny_zero (base : Loc) (lo : Nat) : ⊢ cellsAny (GF := GF) base lo 0 := by
+  unfold cellsAny cellsR
+  iexists (fun _ => #())
+  simp only [List.range'_zero]
+  iapply BigSepL.bigSepL_nil.2; iempintro
+
+theorem cellsB_any (base : Loc) (lo : Nat) (B : List w8) :
+    cellsB (GF := GF) base lo B ⊢ cellsAny base lo B.length := by
+  unfold cellsB cellsAny
+  iintro H
+  iexists _; iexact H
+
+/-- Cells page by page, as one range. -/
+theorem pages_any (base : Loc) (P : Nat → IProp GF)
+    (h : ∀ r, P r ⊢ cellsAny (GF := GF) base (4096 * r) 4096) :
+    ∀ k s, ([∗list] r ∈ List.range' s k, P r) ⊢ cellsAny base (4096 * s) (4096 * k)
+  | 0, s => by
+    iintro _
+    iapply cellsAny_zero
+  | k + 1, s => by
+    iintro H
+    rw [List.range'_succ]
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H2⟩
+    ihave H1 := h s $$ H1
+    ihave H2 := pages_any base P h k (s + 1) $$ H2
+    rw [show 4096 * (k + 1) = 4096 + 4096 * k by omega]
+    iapply cellsAny_append
+    rw [show 4096 * s + 4096 = 4096 * (s + 1) by omega]
+    iframe
+
 end cells
 
 section agree

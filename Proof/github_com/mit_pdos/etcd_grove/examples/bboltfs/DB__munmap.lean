@@ -30,6 +30,7 @@ theorem DB.munmap.wp_proof (wp_Munmap : golang_org.x.sys.unix.Munmap.spec (GF :=
   · subst Hnil
     wp_auto
     iapply HΦ
+    simp only [↓reduceIte]
     iframe
     unfold unmappedRes
     ileft; ipureintro; exact ⟨rfl, rfl⟩
@@ -44,6 +45,7 @@ theorem DB.munmap.wp_proof (wp_Munmap : golang_org.x.sys.unix.Munmap.spec (GF :=
     · iframe; iframe #
     (try wp_auto)
     iapply HΦ
+    simp only [hne, ↓reduceIte]
     iframe
     unfold unmappedRes
     iright

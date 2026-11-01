@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart). `db.munmap()` (`examples/bboltfs/minibolt.go`, bolt_unix.go's `munmap` with `db.invalidate`): with no mapping (`dataref` nil), nil; with one, `unix.Munmap` of it (all its cells' client halves and the whole of the file's `OsMeta`), whose result it returns. Afterwards `dataref` is nil (and `datasz` and the meta pointers anything: 0 and nil after an unmap). -/
+/- Lean-first (no Rocq counterpart). `db.munmap()` (`examples/bboltfs/minibolt.go`, bolt_unix.go's `munmap` with `db.invalidate`): with no mapping (`dataref` nil), nil; with one, `unix.Munmap` of it (all its cells' client halves and the whole of the file's `OsMeta`), whose result it returns. Afterwards `dataref` is nil, and, after an unmap, `datasz` is 0 and the meta pointers nil. -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Store
@@ -47,8 +47,9 @@ abbrev DB.munmap.spec : Prop :=
       db.[DB, go!"meta1"] ↦ m1 ∗ mappingRes (GF := GF) sl }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"munmap")) (Val #()))
   {{ (err : GoInterface), RET #err; db.[DB, go!"dataref"] ↦ slice.nil ∗
-      (∃ (dsz' : w64) (m0' m1' : Loc), db.[DB, go!"datasz"] ↦ dsz' ∗ db.[DB, go!"meta0"] ↦ m0' ∗
-        db.[DB, go!"meta1"] ↦ m1') ∗
+      db.[DB, go!"datasz"] ↦ (if sl = slice.nil then dsz else W64 0) ∗
+      db.[DB, go!"meta0"] ↦ (if sl = slice.nil then m0 else null) ∗
+      db.[DB, go!"meta1"] ↦ (if sl = slice.nil then m1 else null) ∗
       unmappedRes (GF := GF) sl err }}
 
 end spec

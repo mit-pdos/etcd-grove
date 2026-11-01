@@ -261,6 +261,17 @@ instance mapR_fractional (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) :
       icombine H1 H2 gives % ⟨_, Heq⟩
       ipureintro; exact Heq)
 
+/-- What minibolt's code needs of the initialized program: `sync`'s initialization, and the
+package's error values, which are not nil. (The package's `isPkgInit` would give them, once
+`os`, `syscall` and `golang.org/x/sys/unix`, which it imports, have `IsPkgInit` instances.) -/
+def pkgFacts : IProp GF :=
+  iprop(isPkgInit (PROP := IProp GF) pkg_id.sync ∗ ∃ (e1 e2 : GoInterface),
+    globalAddr errFailed ↦□ e1 ∗ globalAddr errPageSize ↦□ e2 ∗
+    ⌜e1 ≠ interface.nil ∧ e2 ≠ interface.nil⌝)
+
+instance pkgFacts_persistent : Persistent (pkgFacts (GF := GF)) := by
+  unfold pkgFacts; infer_instance
+
 /-- `metalock`'s resource (see the file header). -/
 def metaR (γ : DBNames) (db : Loc) (p : GoString) : IProp GF :=
   iprop(∃ (b : Bool) (mp mx : List (w8)) (hwm : Nat) (mxc : List (w8 × Bool))
@@ -307,7 +318,7 @@ def rwR (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) : IProp GF :=
     writerFile (GF := GF) γ db f fd p mp fl hwm st m ∗
     match st with
     | some (base, len, γm) =>
-      ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 40⌝ ∗
+      ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗
       ghostVar γm (1 : Qp).half () ∗ writerCells (GF := GF) base hwm len
     | none => dbFailed (GF := GF) γ ∗ ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm)) ∨
    ((∃ x : Nat × Nat, ghostVar γ.own (1 : Qp).half x) ∗
@@ -317,7 +328,7 @@ def rwR (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) : IProp GF :=
 their resources. -/
 def isDB (γ : DBNames) (db : Loc) : IProp GF :=
   iprop(∃ (f : Loc) (fd : w64) (p : GoString),
-    osInv (GF := GF) ∗ db.[DB, go!"file"] ↦□ f ∗ db.[DB, go!"path"] ↦□ p ∗
+    pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ db.[DB, go!"file"] ↦□ f ∗ db.[DB, go!"path"] ↦□ p ∗
     sync.isMutex db.[DB, go!"rwlock"] (rwR (GF := GF) γ db f fd p) ∗
     sync.isMutex db.[DB, go!"metalock"] (metaR (GF := GF) γ db p) ∗
     sync.isRWMutexGuard db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f fd p))
