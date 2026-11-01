@@ -25,8 +25,8 @@ absent, no thread is stuck and none has an unrecovered panic, for executions of 
 bound: `Open` builds the reader pool of `mmaplock` for at most `2 ^ 30` live threads (Go's
 `rwmutexMaxReaders`), and the adequacy theorem takes the thread bound as a hypothesis on the
 executions (`RealCrashThreadsBelow`), which an execution of `n` steps meets with `n + 2`. A proof
-that the boot program forks no thread would lift the bound; see `BootResults.lean`. It is a `def`:
-`bootCrashSafety` (`BootResults.lean`) proves it under the hypotheses of package initialization
+that the boot program forks no thread would lift the bound; see `Results.lean`. It is a `def`:
+`bootCrashSafety` (`Results.lean`) proves it under the hypotheses of package initialization
 (`Hinit_wp`) and the `os.file`/`os.fileStat` field instances.
 -/
 module

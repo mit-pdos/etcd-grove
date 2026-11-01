@@ -794,7 +794,7 @@ Done (no `sorryAx`; axioms `propext`, `Classical.choice`, `Quot.sound` plus goos
 - **Item 6.** `wp_BootMinibolt` (`BootMinibolt.lean`): one generation of `BootMinibolt(dir)`, no
   panic, over `Open/Get/Commit/Close.specCrash` with `vp := bootOk`, under an extra premise
   `bootPremises fo` (`1 ≤ t`, `t + 1 < 2^64`, `(n + 2) * 4096 ≤ 2^30` for `freshTx`'s `t, n`).
-  `bootCrashSafety` (`BootResults.lean`): `BootCrashSafety dir` from `osFsQ_crash_adequacyT`,
+  `bootCrashSafety` (`Results.lean`): `BootCrashSafety dir` from `osFsQ_crash_adequacyT`,
   `csInv_alloc` (`start_dbOk`), `csInv_crash_keep`, every spec linked to its proof, under the
   hypotheses `Hinit_wp` (the package initializer, ending in `pkgFacts`), `Hprem : ∀ fo, Good fo →
   bootPremises fo` (**false**, below), `Hlive` (fewer than `2^30` live threads in executions of
