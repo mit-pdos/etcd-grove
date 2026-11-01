@@ -173,6 +173,36 @@ theorem metaPagesOk_commit (xs : List w8) (i : Nat) (PB : List w8) (h : metaPage
   · left; rw [hs]; exact hM
   · right; rw [hs]; exact hM
 
+theorem pwSize_full (sz off n : Nat) (h : 0 < n) : pwSize sz off n = max sz (off + n) := by
+  unfold pwSize; rw [if_neg (by omega)]
+
+/-- A whole `pwrite` of `data` at `off`: the range's bytes are the zero gap, then `data`. -/
+theorem pwBytes_full (sz off : Nat) (data : List w8) (xs : List (w8 × Bool)) (h : 0 < data.length) :
+    (pwBytes sz off data data.length xs).map Prod.fst =
+      List.replicate (off - min off sz) 0 ++ data := by
+  have hs := pwSize_full sz off data.length h
+  have hl : (pwBytes sz off data data.length xs).length = off - min off sz + data.length := by
+    rw [pwBytes_length, hs]; omega
+  apply List.ext_getElem
+  · simp only [List.length_map, hl, List.length_append, List.length_replicate]
+  · intro i h1 h2
+    simp only [List.getElem_map]
+    rw [pwBytes_getElem _ _ _ _ _ _ (by simpa using h1)]
+    simp only [List.length_map, hl] at h1
+    simp only [List.length_append, List.length_replicate] at h2
+    unfold pwByte
+    by_cases hi : min off sz + i < off
+    · rw [if_pos hi, List.getElem_append_left (by simp; omega)]; simp
+    · rw [if_neg hi, if_pos (by omega), List.getElem_append_right (by simp; omega)]
+      simp only [List.length_replicate, List.getD_eq_getElem?_getD]
+      rw [List.getElem?_eq_getElem (by omega)]
+      simp only [Option.getD_some]; congr 1; omega
+
+/-- A whole `pwrite` of `data` inside the file: its range's bytes are `data`. -/
+theorem pwBytes_inside (sz off : Nat) (data : List w8) (xs : List (w8 × Bool)) (h : 0 < data.length)
+    (hin : off ≤ sz) : (pwBytes sz off data data.length xs).map Prod.fst = data := by
+  rw [pwBytes_full _ _ _ _ h, show off - min off sz = 0 by omega]; rfl
+
 end pure
 
 section lemmas
@@ -396,6 +426,39 @@ theorem rwR_of_writerSt (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (m
   rcases st with _ | ⟨base, len, γm⟩
   · dsimp only; iframe
   · dsimp only; iexact Hst
+
+theorem gElem_persist {K V : Type} [DecidableEq K] [Pos.Countable K] [Pos.Countable V]
+    (hL : OsGS GF) (γ : GName) (k : K) (dq : DFrac) (v : V) :
+    gElem hL γ k dq v ⊢ |==> gElem hL γ k DFrac.discard v := by
+  unfold gElem; letI := hL.osAllG
+  exact wand_entails (ghostMapElem_persist k γ dq v)
+
+/-- Bytes of a file, persistent (discarded). -/
+theorem osBytes_persist (p : GoString) (dq : DFrac) :
+    ∀ (xs : List (w8 × Bool)) (off : Nat),
+    osBytes (GF := GF) p off dq xs ⊢ |==> osBytes (GF := GF) p off DFrac.discard xs
+  | [], off => by
+    iintro _; imodintro; iapply (osBytes_nil p off _).2; iempintro
+  | x :: xs, off => by
+    iintro H
+    icases (osBytes_cons p off _ x xs).1 $$ H with ⟨Hx, H⟩
+    imod osBytes_persist p dq xs (off + 1) $$ H with H
+    unfold osByte
+    imod gElem_persist _ _ _ _ _ $$ Hx with Hx
+    imodintro
+    iapply (osBytes_cons p off _ x xs).2
+    unfold osByte
+    iframe
+
+/-- A page's bytes, clean, as a committed page. -/
+theorem pageIs_of (p : GoString) (r : Nat) (dq : DFrac) (B : List w8) (hB : B.length = 4096) :
+    osBytes (GF := GF) p (4096 * r) dq (B.map (·, true)) ⊢ |==> pageIs (GF := GF) p r B := by
+  iintro H
+  imod osBytes_persist p dq _ _ $$ H with H
+  imodintro
+  unfold pageIs
+  iframe
+  ipureintro; exact hB
 
 end lemmas
 

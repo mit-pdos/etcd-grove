@@ -6,6 +6,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.bboltfs.initPages
 public import Spec.os.File__WriteAt
 public import Spec.os.File__Fd
 public import Spec.syscall.Fdatasync
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Writer
 
 @[expose] public section
 
@@ -16,31 +17,6 @@ namespace EtcdGrove
 namespace bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.bboltfs
-
-theorem pwSize_full (sz off n : Nat) (h : 0 < n) : pwSize sz off n = max sz (off + n) := by
-  unfold pwSize; rw [if_neg (by omega)]
-
-/-- A whole `pwrite` of `data` at `off`: the range's bytes are the zero gap, then `data`. -/
-theorem pwBytes_full (sz off : Nat) (data : List w8) (xs : List (w8 × Bool)) (h : 0 < data.length) :
-    (pwBytes sz off data data.length xs).map Prod.fst =
-      List.replicate (off - min off sz) 0 ++ data := by
-  have hs := pwSize_full sz off data.length h
-  have hl : (pwBytes sz off data data.length xs).length = off - min off sz + data.length := by
-    rw [pwBytes_length, hs]; omega
-  apply List.ext_getElem
-  · simp only [List.length_map, hl, List.length_append, List.length_replicate]
-  · intro i h1 h2
-    simp only [List.getElem_map]
-    rw [pwBytes_getElem _ _ _ _ _ _ (by simpa using h1)]
-    simp only [List.length_map, hl] at h1
-    simp only [List.length_append, List.length_replicate] at h2
-    unfold pwByte
-    by_cases hi : min off sz + i < off
-    · rw [if_pos hi, List.getElem_append_left (by simp; omega)]; simp
-    · rw [if_neg hi, if_pos (by omega), List.getElem_append_right (by simp; omega)]
-      simp only [List.length_replicate, List.getD_eq_getElem?_getD]
-      rw [List.getElem?_eq_getElem (by omega)]
-      simp only [Option.getD_some]; congr 1; omega
 
 section osbytes
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [GoGlobalContext]

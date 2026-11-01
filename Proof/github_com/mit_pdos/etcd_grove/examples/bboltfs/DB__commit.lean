@@ -125,6 +125,59 @@ theorem cells_back (base : Loc) (m' : OsMeta) (len hwm : Nat) (vf : Nat → val)
   rw [show 4096 * hwm + (m'.size - 4096 * hwm) = m'.size by omega]
   iexact Hc
 
+/-- A page's bytes holding a header and a `w64` after it (a leaf page of one value): a typed
+header, the typed value 16 bytes on, and the rest. -/
+theorem valPage_view (l : Loc) (dq : DFrac) (hdr : Page) (x : w64) (rest : List w8)
+    (hl : 0 < l.addr) :
+    bytesPointsto (GF := GF) l dq (encode hdr ++ encode x ++ rest) ⊣⊢
+      l ↦{dq} hdr ∗ (l +ₗ 16) ↦{dq} x ∗ bytesPointsto (l +ₗ 24) dq rest := by
+  have h16 : 0 < (l +ₗ 16).addr := by simp only [Loc.add]; omega
+  have hs1 := bytesPointsto_app (GF := GF) l dq (encode hdr ++ encode x) rest
+  have hs2 := bytesPointsto_app (GF := GF) l dq (encode hdr) (encode x)
+  have e1 : (((encode hdr).length : Nat) : Int) = 16 := by rw [ByteEncoding.encode_length]; rfl
+  have e2 : (((encode hdr ++ encode x).length : Nat) : Int) = 24 := by
+    simp only [List.length_append, ByteEncoding.encode_length]; rfl
+  rw [e2] at hs1
+  rw [e1] at hs2
+  have th := typedPointsto_bytes (GF := GF) l hdr dq hl
+  have tv := typedPointsto_bytes (GF := GF) (l +ₗ 16) x dq h16
+  constructor
+  · iintro H
+    icases hs1.1 $$ H with ⟨H1, H2⟩
+    icases hs2.1 $$ H1 with ⟨Hh, Hv⟩
+    iframe H2
+    isplitl [Hh]
+    · iapply th.2 $$ Hh
+    · iapply tv.2 $$ Hv
+  · iintro ⟨Hh, Hv, H2⟩
+    iapply hs1.2
+    iframe H2
+    iapply hs2.2
+    isplitl [Hh]
+    · iapply th.1 $$ Hh
+    · iapply tv.1 $$ Hv
+
+/-- The header of `commit`'s data page `pg`: a leaf page of one element. -/
+def dataHdr (pg : w64) : Page := ⟨pg, W16 2, W16 1, W32 0⟩
+
+/-- `commit`'s data page `pg`, holding `v`. -/
+def dataPage (pg v : w64) : List w8 := encode (dataHdr pg) ++ encode v ++ List.replicate 4072 0
+
+theorem dataPage_length (pg v : w64) : (dataPage pg v).length = 4096 := by
+  simp only [dataPage, List.length_append, ByteEncoding.encode_length, List.length_replicate]
+
+theorem dataPage_val (pg v : w64) : pageVal (dataPage pg v) = some v := by
+  unfold pageVal dataPage pageHdrOf
+  rw [List.append_assoc, List.take_left' (ByteEncoding.encode_length _), ByteEncoding.decode_encode]
+  simp only [dataHdr, if_pos]
+  rw [List.drop_left' (ByteEncoding.encode_length _), List.take_left' (ByteEncoding.encode_length _),
+    ByteEncoding.decode_encode]
+
+theorem zeroPage_val : List.replicate 4096 (0 : w8) =
+    encode (pageHdr (W64 0) (W16 0)) ++ encode (W64 0 : w64) ++ List.replicate 4072 0 := by
+  rw [encode_pageHdr_zero, show encode (W64 0 : w64) = List.replicate 8 0 from rfl]
+  simp only [zeroBytes, List.replicate_append_replicate]
+
 theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     (wp_Truncate : os.File.Truncate.spec (GF := GF) (hG := hG))
     (wp_Sync : os.File.Sync.spec (GF := GF) (hG := hG))
@@ -170,7 +223,8 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       writerSt (GF := GF) γ db f fd p mp false hwm (some (base', len', γm')) m' ∗
       ⌜m'.size = m.size ∧ m'.ok = true ∧ (hwm + 2) * 4096 ≤ len'⌝ ∗
       dbOwner (GF := GF) γ mv.txid'.toNat hwm ∗
-      db_ptr ↦ db ∗ minsz_ptr ↦ minsz ∗ «$res0_ptr» ↦ GoInterface.nil) ∨
+      db_ptr ↦ db ∗ minsz_ptr ↦ minsz ∗ «$res0_ptr» ↦ GoInterface.nil ∗
+      v_ptr ↦ v ∗ pg_ptr ↦ mv.pgid' ∗ m_ptr ↦ nextMeta mv) ∨
     (∃ e : GoInterface, ⌜bv = returnVal #() ∧ e ≠ interface.nil⌝ ∗ db_ptr ↦ db ∗
       «$res0_ptr» ↦ e ∗ commitErr (GF := GF) γ db f fd p mv.txid'.toNat hwm)))
     with [-HΦ]
@@ -232,7 +286,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; exact ⟨⟨Hwf.1, Hwf.2.1, Hwf.2.2.1, Hwf.2.2.2.1, fun _ => ⟨hmx, hclean, rfl, hfd⟩⟩, Hstp⟩
     · ipureintro; exact ⟨rfl, Hmok, by omega⟩
-  iintro (⟨%Hbv, %base, %len, %γm, %m', Hws, %Hm', Hown, db, minsz, «$res0»⟩ |
+  iintro (⟨%Hbv, %base, %len, %γm, %m', Hws, %Hm', Hown, db, minsz, «$res0», v, pg, m⟩ |
     ⟨%e, %Hbv, db, «$res0», Herr⟩)
   rotate_left
   · obtain ⟨rfl, He⟩ := Hbv
@@ -269,6 +323,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
       osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
       db.[DB, go!"datasz"] ↦ W64 len ∗ db_ptr ↦ db ∗ «$res0_ptr» ↦ GoInterface.nil ∗
+      v_ptr ↦ v ∗ pg_ptr ↦ mv.pgid' ∗ m_ptr ↦ nextMeta mv ∗
       dbOwner (GF := GF) γ mv.txid'.toNat hwm ∗ ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗
       ghostVar γ.map (1 : Qp).half (some (base, len, γm)) ∗ ghostVar γ.out (1 : Qp).half.half false ∗
       mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
@@ -374,7 +429,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     iexists m', tail
     iframe
     ipureintro; exact ⟨Hmaps, Hsz, by omega, Hok', Hwf.2.2.2.1⟩
-  iintro (⟨%Hbv, %m2, %tail2, %Hm2, Hm, Hfsz, Htail, Hwc, Hf, Hfd, Hdsz, db, «$res0», Hown, Hcur, Hmap,
+  iintro (⟨%Hbv, %m2, %tail2, %Hm2, Hm, Hfsz, Htail, Hwc, Hf, Hfd, Hdsz, db, «$res0», v, pg, m, Hown, Hcur, Hmap,
     Hout, Hflds, Hcls, Htok, Hmx⟩ | ⟨%e, %Hbv, db, «$res0», Herr⟩)
   rotate_left
   · obtain ⟨rfl, He⟩ := Hbv
@@ -389,23 +444,35 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   clear Hsize Hok' Hlen Hsz Hmaps hsZ
   obtain ⟨Hmaps, Hsz, Hgrow, Hok2, Htl2⟩ := Hm2
   (try wp_auto)
-  -- TODO: the rest of `commit`, after the grow. The file is `m2` (size at least the next high
-  -- water mark's end, `m2.ok`), the bytes from `hwm` on `tail2`, the mapping `(base, len, γm)`.
-  -- 1. the data page: `make` (`wp_slice_make2`), the header and `v` through `pageHdr_view` and a
-  --    `w64` byte view at offset 16; `WriteAt` at `4096 * hwm` over `tail2.take 4096` and the cells
-  --    `[4096 * hwm, 4096 * hwm + 4096)` of `writerCells`' top (`mcellsAny_single`); `Fdatasync`
-  --    (`m2.ok`: the page's bytes clean); `cellsR_agree` around the next step for its cells;
-  --    `osBytes` discarded into `pageIs p hwm B` (a lemma like `ghostMapElem_persist` for
-  --    `bytesG`). On an error: `commitErr_of`.
-  -- 2. the meta page: `make`, `pageAt`, `Meta.write` (the meta `commitOf mv`, page id
-  --    `txid % 2`); `metalock` (`metaR`, not failed: `fail_handle`-like ghost reasoning), the
-  --    meta cells out of the invariant (`metas_out`), `WriteAt` over page `i` of the meta pages
-  --    (both halves of `mxc`, `osBytes_join`, `osBytes_window`), `Fdatasync` (clean), on an error
-  --    `failed := true` under `metalock` (`fail_cur_inv`, `metaR`'s `own` into its failed branch)
-  --    and `commitErr` with `dbFailed`.
-  -- 3. publish: `setPage mp i PB` (`metaPagesOk_commit`), `cur` (three parts), page `hwm`'s cells
-  --    into the invariant, `metas_in`, `own` to `(t + 1, hwm + 1)`, `last` to `t + 1`, the
-  --    transaction map at `t + 1` (`HTn`: no entry yet), `dbTx (t + 1) (some v)`; `rwR`.
+  -- the data page
+  wp_apply (wp_slice_make2 (V := w8) (W64 4096)) as %buf ⟨Hbuf, -⟩
+  · ipureintro; decide
+  (try wp_auto)
+  ihave %Hblen := ownSlice_len $$ Hbuf
+  ihave %Hpos := ownSlice_ptr_pos buf _ _ (List.ne_nil_of_length_pos (by rw [List.length_replicate]; decide)) $$ Hbuf
+  have hbl : sint.Z buf.len = 4096 := by
+    have h1 := Hblen.1; have h2 := Hblen.2; simp only [List.length_replicate] at h1
+    have : sint.nat buf.len = (sint.Z buf.len).toNat := rfl
+    omega
+  wp_apply wp_pageAt
+  · ipureintro; rw [hbl]; exact ⟨Hpos, by decide, by decide⟩
+  rw [show sint.Z (W64 0) = 0 from rfl, loc_add_0]
+  icases ownSlice_bytes_acc go.uint8 (.scalar _ _ .isPlainScalar_uint8) buf _ _ Hpos $$ Hbuf
+    with ⟨Hb, Hclose⟩
+  simp only [flatMap_encode_w8, show zero_val w8 = (0 : w8) from rfl]
+  rw [zeroPage_val]
+  icases (valPage_view _ _ _ _ _ Hpos).1 $$ Hb with ⟨Hh, Hv, Hr⟩
+  (try wp_auto)
+  rw [ite_eq_left (by rw [hbl]; decide), show sliceIndexRef w8 (sint.Z (W64 16)) buf = buf.ptr +ₗ 16 from
+    sliceIndexRef_byte_W64 buf 16 Hpos (by decide)]
+  (try wp_auto)
+  ihave Hh : buf.ptr ↦ dataHdr mv.pgid' $$ [Hh]
+  · simp only [dataHdr, pageHdr]; iexact Hh
+  ihave Hb := (valPage_view buf.ptr _ _ v _ Hpos).2 $$ [Hh Hv Hr]
+  · iframe
+  ihave Hbuf := Hclose $$ %(dataPage mv.pgid' v) [] [Hb]
+  · ipureintro; rw [dataPage_length, ← zeroPage_val, List.length_replicate]
+  · simp only [flatMap_encode_w8, dataPage]; iexact Hb
   sorry
 
 end proof
