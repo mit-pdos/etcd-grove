@@ -104,15 +104,20 @@ All proved (over Perennial's `threadPool`). Glue, proved: `BksDraft.reader_RLock
 and `BksDraft.reader_RUnlock` (`{{ … ∗ rtHeld ∗ rdLoan }} RUnlock {{ threadTok }}`), over the
 draft `RLock` and today's `RUnlock`.
 
-Where the pool is built (Q2). Round 1's draft built it in the constructor (`newPostK` with the
-pool and a counted remainder, `New.spec` under `ThreadBoundLe GF (2 ^ 29)`). Round 2 found it has
-no consumer: every reader of `readTx` already holds its owner's read lock across `RLock` (auth's
-`lockedReadTx` holds `beMu.RLock()`, `auth/store.go:941-945`; mvcc's reads hold `s.mu`/`revMu`,
-`kvstore_txn.go:47-60`), and one thread token pays for one loan, so the pools belong to those
-owners, over bundles that contain a slot (as `notes/bounds-locks.md`'s B2 already places them),
-and a backend pool would take the slots they need. Now drafted: the constructor keeps giving
-counted slots, local to their owner (`newPostK`'s stock as today; `New.spec` today's, no thread
-bound); `rdPool`/`rdLoan` and the glue stay as the shape an owner's pool item takes for its slot.
+Where the pool is built (Q2, open). Drafted: the constructor builds it, `BksDraft.backend.newPostK`
+with `rdPool ∗ rdStock` in place of the replicated `rdTok`s, `rdStock` the counted remainder
+(`rdStockN := actualMaxReaders - 2^28`), and `BksDraft.backend.New.spec` under
+`∀ [ThreadBoundLe GF (2 ^ 28)]`, the bound J8a already gives the server's results (no weakening).
+The pool is for the readers that hold no lock of their owner's across the read
+(`MustReadMembersFromBackend`, `schema/membership.go:95`; the alarm store, `schema/alarm.go:85`;
+`authStore.Recover`, `auth/store.go:403`; the auth admin reads `UserGet`/`UserList`/`RoleGet`/
+`RoleList` through `as.be`; `monitorStorageVersion`), which today borrow mvcc's `bkRTx` (five
+trust-boundary specs take it: a counted partition in mvcc's vocabulary). The remainder is for the
+owners whose readers nest a slot under their own read lock at acquisition (auth's `lockedReadTx`
+takes `beMu.RLock()` around `tx.RLock()`; mvcc's reads under `s.mu`), which pool bundles that
+contain a slot (`notes/bounds-locks.md`, B2): their slots move to them, counted, at their
+constructors. (Round 2 dropped the pool on the premise that every reader holds an owner lock;
+round 3 showed the premise false and the pool restored.)
 
 ### Decision 3: the writer's part and the idle part, per bucket set
 
@@ -155,9 +160,10 @@ Restated statements (each today's, but):
   idle); the reader slots as today.
 
 The representation (the Prove phase's): `γ.rbk` a ghost map over the tracked names (the writer's
-halves) and a second over the readers' contents, whose client half is in `rbOwnIn` or deposited
-in the batch lock by the session's first write to the bucket, a receipt in its place, redeemed by
-`Unlock`. The tracked names must be finite (`⊆ P.BT`'s): perhaps a `P.Wf` conjunct.
+halves) and a second over the readers' contents. Per bucket, `rbPart` holds the readers' client
+half **or** a receipt for it deposited in the batch lock (round 3: so that `rbOwnIn_part`, an
+entailment, can forget idleness without an update, and `Unlock` can redeem the receipt); `rbOwnIn`
+holds the half itself. A session's first write to a bucket deposits the half, if the part has it. The tracked names must be finite (`⊆ P.BT`'s): perhaps a `P.Wf` conjunct.
 
 ## Impact (not applied)
 
@@ -168,8 +174,9 @@ must change; what does:
 | --- | --- | --- |
 | `readTx.UnsafeRange`, `RLock` restated | backend's own proofs (`readTx__RLock`, `readTx__UnsafeRange`) | `RLock`: `rtHeldF_of_open` before returning; `UnsafeRange`: the `live = false` branch goes (`rtHeldF`'s fact) |
 | callers of `UnsafeRange.spec` | 9 (applySnapshot, NewServer, SnapApplyWalk, BuildLemmas, StoreBackend, M2StorageDraft{,Restore}, BackendRecs, BackendBridge) | none (corollary); optionally drop the `bOpen` they thread |
-| `backend.Snapshot` (trusted axiom) | its spec, `SnapSendBranch` (`:216-230`, unfolds `rbOwn` and combines its half with the lock's) | the observation wand hands `rbLock γ r` in place of `rbOwn γ r`; `SnapSendBranch` uses `rbLock_agree` |
-| `mvcc.bkRTx := rdTok ∗ bOpen rdOpen`, `rdOpen`, `bOpen_one_shares` | `bkRTx` 8, `rdOpen` 5, `bOpen_one_shares` 2 | Q5: drop the `bOpen` (`bkRTx := rdTok`), then `rdOpen`/`bOpen_one_shares` go and `BootBackend`'s split of `bOpen 1` with them. Likely required, not optional (round 2): the auth realization's `R` is lent against `bkRTx`, so with its `bOpen rdOpen` a read in progress would still hold an open share the old backend's `Close` needs back |
+| `rtHeld`'s body (redefined) | `rtHeld_wf` (`BackendBridge.lean:633-641`, unfolds `rtHeld rtResAt rtRest rtCore` positionally) | moves to the backend as a law (it breaks at the merge otherwise) |
+| `backend.Snapshot` (trusted axiom) | its spec, `SnapSendBranch` (`:216-230`, unfolds `rbOwn` and combines its half with the lock's) | the observation wand hands `rbLock γ r` in place of `rbOwn γ r`; `SnapSendBranch` uses `rbLock_agree`. In mode on the server holds only `rbOwnIn restNonAuth`, so `snapObs_window`'s `r = rb` covers only those buckets: the auth buckets of a sent snapshot (the receiver's `authBucketsAt`) need an observation clause from the auth premise (gap, for the #7-on sender) |
+| `mvcc.bkRTx := rdTok ∗ bOpen rdOpen`, `rdOpen`, `bOpen_one_shares` | `bkRTx` 8, `rdOpen` 5, `bOpen_one_shares` 2 | Q5. Keeping `bOpen rdOpen` in `bkRTx` makes a read in flight hold a share of the old backend, so the closer's `bOpen 1` cannot be reassembled and the auth premise's release is not realizable (round 2). Dropping it leaves mvcc's readers no source for the share `RLock`/`ConcurrentReadTx` take at acquisition (round 3). So it is replaced, not dropped: an acquisition guard in mvcc's store, a currency in the store's invariant (with the store's open share inside) lent under `s.mu`'s read side and returned at `RLock` (`guarded_RLock`'s `G`), the closer collecting the whole currency; `bkRTx := rdTok`, `rdOpen`/`bOpen_one_shares` go, and the restore's count (`k + j + w + r = nReaders`, `RestoreMoves.lean`) loses its open-share part. Not drafted |
 | `rbOwn` (now `rbPart ⊤`) | 14 importing modules; 31 files mention it (13 outside the backend and mvcc are specs) | none by text. The specs taking the whole `rbOwn`: 10 trust-boundary axioms (membership `RaftCluster.Recover`/`SetBackend`, schema `MustSave`/`MustDelete`/`MustReadMembersFromBackend`, v3alarm `NewAlarmStore`/`AlarmStore.restore`, lease `NewLessor`/`lessor.Recover`, auth `NewAuthStore`) and 2 proved (`EtcdServer.restoreAlarms`, `AlarmStore.Recover`, which pass it through): restated over their own buckets (Q4), so that the mode-on server can hold only `rbOwnIn restNonAuth`. Those that **read** the buckets through `be.ReadTx()` (`MustReadMembersFromBackend`, and `RaftCluster.Recover` through it) take the **idle** part `rbOwnIn` of theirs, and give it back; those that lock the batch themselves and `Unlock` (`NewLessor`, `AlarmStore.restore`, `NewAuthStore`, the member writers `MustSave`/`MustDeleteMemberFromBackend`) take `rbPart` and give back `rbOwnIn` (so the member reads after them can be called). The carriers of the whole `rbOwn` shrink with them: mvcc's `kbRb`/`storeRb` (`InvStore.lean:1941-1943`, `BackendBridge.lean:3090,3272`), the lessor's `Rb` (`NewServer.lean:1293`, `SnapRO.lean:127`, `SnapApplyOptsLemmas.lean:191`). A part written through mvcc's bridge with `Unlock`'s `S := ⊥` (the lessor's `Revoke` delete) comes back not idle: the server's mode-on carrier is `rbPart` of the lessor's bucket and `rbOwnIn` of `members`, or the bridge passes the part to `Unlock` |
 | `rbPut` per bucket | 10 (InvBatch, `UnsafePut`/`UnsafeCreateBucket`/`UnsafeDelete`/`UnsafeDeleteBucket` specs and proofs, BackendBridge, CindexBackend, `OnPreCommitUnsafe`, `NewLessor` spec) | the 4 specs' proofs over the part; `NewLessor`'s (trusted) its bucket's part; the proved callers on untracked buckets (`rbPut_other`) unchanged, but `BackendBridge.lean:2050-2055` unfolds `rbPut` on the tracked `lease` bucket to `rbOwn` (the lessor's delete): it goes through `UnsafeDelete.spec_all`/`rbPutAll_split` instead |
 | `Unlock.spec` restated | 8 direct users + backend internals | none by text (corollary, `S := ⊥`); but a caller passing `⊥` gets no idle part back, so every server site whose part later reaches a reading axiom (the member reads after the apply's batch: `applyConfChange`, the snapshot install's `RaftCluster.Recover`) passes its buckets as `S`, and the auth premise's realization `authBkts` |
@@ -188,20 +195,26 @@ case today is not checked here.
 ## The mode-off auth contract (decision 6): who produces it
 
 The producers: the trusted `auth.NewAuthStore` spec (`Proof/go_etcd_io/etcd/server/v3/auth/
-NewAuthStore.lean:26`, an axiom) gives the store with `authRecoverOk` (`SnapRO.lean:216`), the
-mode-off `Recover` contract, consumed by the snapshot install's `Recover`. A mode-off
-`authSchemaSrv` does not exist (today's `AuthSrv.lean` one is mode on). In mode off the permission
-checks return early: readers never read the backend (`authReadTxOk` at `.off` names no read
-right a client uses). The backend is read only inside `NewAuthStore` (the boot thread, with
-`bOpen qo` held) and `Recover` (the apply thread; `bOpen qo` and `mvcc.bkRTx` lent per call and
-returned). Recommendation: no guard in mode off; the only change decision 2 brings is
-`authRecoverOk`'s `bkRTx` loan, replaced by the pool (`rdPool` ∗ the caller's `threadTok`) when
-mvcc moves off counted slots, kept until then.
+NewAuthStore.lean:26`, an axiom) gives the store, its reader bundles (`actualMaxReaders` copies
+of `RD`) and `authRecoverOk` (`SnapRO.lean:216`), the mode-off `Recover` contract, consumed by the
+snapshot install's `Recover`. A mode-off `authSchemaSrv` does not exist (today's `AuthSrv.lean`
+one is mode on). In mode off the permission checks return early: no client's read reaches the
+backend through them (`authReadTxOk` at `.off`). The backend is read inside `NewAuthStore` (the
+boot thread, `bOpen qo` held), `Recover` (the apply thread; `bOpen qo` and `mvcc.bkRTx` lent per
+call and returned), and the admin reads `UserGet`/`UserList`/`RoleGet`/`RoleList`, in every mode
+(`authStore__UserGet.lean`, `authInv st R M`, round 3), which run on the apply thread too, in
+sequence with `Recover` and before the closer. Recommendation: no guard in mode off (the apply
+thread's sequencing is the guard; not proved here); decision 2 replaces `authRecoverOk`'s `bkRTx`
+loan and the admin reads' bundle with a loan from the backend's pool (`rdPool` ∗ the apply
+thread's `threadTok`), when Q2 lands.
 
 ## The axiom check
 
-No trusted backend spec changes (the restated ones are proved; bbolt's `DB.Close_kv` is
-unchanged). The restated semantics were checked against Go anyway (the scratch fork at the pin,
+The restated backend specs of this Draft are proved ones (bbolt's `DB.Close_kv` unchanged); but the
+Impact restates trust-boundary axioms: `backend.Snapshot` (its observation over `rbLock`) and the
+10 specs taking `rbOwn` (Q4). Each of those is an axiom change for the user, with the collections
+resting on it (`etc/tcb-report.py --roots`), and gets its own axiom check when drafted (not done
+here). The restated semantics were checked against Go anyway (the scratch fork at the pin,
 `axiomcx/split_test.go` next to `close_test.go`/`pending_test.go`): a delete then `Unlock`, the
 readers no longer see the key (`TestUnlockIdleDelete`); a put below the batch limit then `Unlock`,
 seen (`TestUnlockIdlePut`); pending puts and a pending delete on other tracked buckets (lease,
@@ -261,4 +274,21 @@ Second tier, repaired: `guarded_RLock`'s guard law with updates; `rbPart_excl` t
 `isBackend`; the exact agreement `batchLocked_rbOwn` (agreement on all of `S`, untracked names
 absent); `UnsafeDelete.spec_all` drafted. Open: `reader_RLock`'s `£ 1` (the borrow's `▷`), moot
 while no client uses the backend-level glue.
+
+### Round 3 (fresh `spec-reviewer`, the same material)
+
+No statement false against Go (three more tests: a put into a bucket created in the session after
+a reader cached it missing, seen after `Unlock`; a written-back put deleted in the next session,
+gone; `UnsafeDeleteBucket` then `Unlock`, the bucket gone). Decision 1 judged ready. First tier:
+
+- **F1, round 2's repair wrong**: many readers hold no owner lock (above). Repaired: the pool
+  restored in the constructor at J8a's `2 ^ 28`, the remainder counted; Q2 left open.
+- **F2, Q5 a deletion with no replacement.** Repaired in the Impact: an acquisition guard in
+  mvcc's store (not drafted).
+
+Second tier, repaired: the axiom-check section corrected (the Impact restates axioms);
+`rtHeld_wf`'s row; the representation's per-bucket "half or receipt"; `batchLocked_rbOwnIn`
+(observation without spending idleness); the decision-6 trace (the admin reads); `rbPut_other`
+restated; the mode-on sender's auth-bucket gap in the `Snapshot` row. Open: `Close`'s docstring
+change (in the plan, not drafted); the pool glue's `£ 1`.
 

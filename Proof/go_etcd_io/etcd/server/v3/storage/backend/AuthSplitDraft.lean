@@ -15,13 +15,12 @@ user's decisions on the restated Draft's questions"), what this module drafts fo
    before it (a held `readTx`, a `ConcurrentReadTx`) finish first in Go (`commit` takes
    `readTx.Lock()`; bbolt's `Close` waits for the read transactions). Today's specs are corollaries
    (`BksDraft.readTx.RLock.spec_old`, `BksDraft.readTx.UnsafeRange.spec_old`).
-2. **Readers backed by thread tokens.** A pool of reader slots (`BksDraft.backend.rdPool`, a
-   `threadPool` of `rdTok`), from which a thread token borrows a slot for one read
-   (`rdTok_borrow`, `rdTok_giveBack`; the glue `BksDraft.reader_RLock`/`reader_RUnlock`): the shape,
-   not a backend predicate to export. Round 2: every reader of `readTx` already holds its owner's
-   read lock (mvcc's `s.mu`, auth's `beMu`), so the pools belong to those owners, over bundles
-   that contain a slot (`notes/bounds-locks.md`, B2); the constructor keeps giving counted slots
-   (`BksDraft.backend.newPostK`, as today; Q2).
+2. **Readers backed by thread tokens.** The backend's pool of reader slots
+   (`BksDraft.backend.rdPool`, a `threadPool` of `rdTok`), from which a thread token borrows a slot
+   for one read (`rdTok_borrow`, `rdTok_giveBack`; the glue `BksDraft.reader_RLock`/`reader_RUnlock`),
+   for the readers that hold no lock of their owner's; the constructor builds it
+   (`BksDraft.backend.newPostK`, under J8a's `ThreadBoundLe GF (2 ^ 28)`) and leaves the rest of
+   the slots counted (`rdStock`) for the owners that pool bundles nesting a slot (Q2).
 3. **Per-bucket idleness.** The client's part of the tracked buckets in a set `S`, possibly with a
    write of its own session pending (`BksDraft.backend.rbPart`: the writer's contents, what `rbOwn`
    is today), and the idle part (`BksDraft.backend.rbOwnIn`: no write to `S` pending, so the readers
@@ -430,6 +429,11 @@ callers pass. -/
 def BksDraft.backend.rbPutAll (γ : BNames) (P : BParams) (n : GoString) (S : Data) : IProp GF :=
   if P.RB n then BksDraft.backend.rbOwn γ (rbData P S) else iprop(True)
 
+/-- A write to an untracked bucket needs nothing of the tracked ones (today's `rbPut_other`). -/
+theorem BksDraft.backend.rbPut_other (γ : BNames) (P : BParams) (n : GoString) (S : Data)
+    (h : P.RB n = false) : ⊢ BksDraft.backend.rbPut (GF := GF) γ P n S := by
+  unfold BksDraft.backend.rbPut; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
+
 /-! ### The laws (the backend change's obligations; statements) -/
 
 /-- **The parts of disjoint bucket sets are the part of their union.** -/
@@ -524,6 +528,15 @@ theorem BksDraft.backend.batchLocked_rbOwn (γ : BNames) (P : BParams) (b : Loc)
   iframe Hl Hp
   ipureintro
   exact GMap.ext fun n => (Ha n trivial).symm
+
+/-- **The idle part agrees with the batch lock, and stays idle** (round 3: observing the lock's
+contents need not spend idleness). -/
+theorem BksDraft.backend.batchLocked_rbOwnIn (γ : BNames) (P : BParams) (b : Loc) (st : BSess)
+    (S : GoString → Prop) (r : GMap GoString BktData) :
+    batchLocked (GF := GF) γ P b st ∗ BksDraft.backend.rbOwnIn γ S r ⊢
+      batchLocked γ P b st ∗ BksDraft.backend.rbOwnIn γ S r ∗
+        ⌜∀ n, S n → (rbData P st.S).lookup n = r.lookup n⌝ := by
+  sorry
 
 /-- **The readers see the idle part's contents** (what `rbOwnIn` adds to `rbPart`): a held read's
 state agrees with it on every key of the part's tracked buckets. While the read is held its state
@@ -793,21 +806,32 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
+/-- The reader slots the constructor leaves counted (`actualMaxReaders - 2 ^ 28`), for the readers
+that nest a slot in a bundle of their owner's (auth's `beMu` over `readTx.mu`, mvcc's store under
+`s.mu`: their pools' items, `notes/bounds-locks.md`'s B2), moved to the owner at its constructor. -/
+def BksDraft.backend.rdStockN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - 2 ^ 28
+
+/-- The counted reader slots. -/
+def BksDraft.backend.rdStock (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
+  iprop([∗list] _x ∈ List.replicate BksDraft.backend.rdStockN (), rdTok γ P b)
+
 /-- **What the constructor gives, restated** (`newPostK`): today's, with the tracked buckets **idle**
-(`rbOwnIn γ ⊤ (rbData P D)`: a fresh backend has no session, its readers see bbolt's data). The
-reader slots stay counted, as today (round 2: no backend pool; the readers' owners, mvcc's store and
-auth's, pool bundles that contain a slot, `notes/bounds-locks.md`'s B2). -/
+(`rbOwnIn γ ⊤ (rbData P D)`: a fresh backend has no session, its readers see bbolt's data), and the
+reader slots as **the backend's pool** (`rdPool`, decision 2: for the readers that hold no lock of
+their owner's, the member, alarm and auth-admin reads, `Recover`s, the storage-version monitor:
+round 3) and the counted remainder (`rdStock`) for the owners that pool bundles. Q2. -/
 def BksDraft.backend.newPostK (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Loc)
     (D : Data) : IProp GF :=
   iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ b ∗ K γ ∗
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗
     BksDraft.backend.rbOwnIn γ (fun _ => True) (rbData P D) ∗
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b) ∗
+    BksDraft.backend.rdPool γ P b ∗ BksDraft.backend.rdStock γ P b ∗
     dlInit γ ∗ fkCl γ P D ∗ srSlot b)
 
-/-- **`New(bcfg)`, restated**: today's statement over the restated `newPostK`. -/
+/-- **`New(bcfg)`, restated** (the pool built by the constructor, which owns `readTx.mu`; the
+thread bound it needs as an instance, B1's form, at J8a's `2 ^ 28`). -/
 abbrev BksDraft.backend.New.spec : Prop :=
-  ∀ (cfg : BackendConfig) (P : BParams) (D : Data) (W Pk K : BNames → IProp GF),
+  ∀ [ThreadBoundLe GF (2 ^ 28)] (cfg : BackendConfig) (P : BParams) (D : Data) (W Pk K : BNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       fileHolds cfg.Path' D ∗ ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
       hooksOk P W Pk cfg.Hooks' ∗
