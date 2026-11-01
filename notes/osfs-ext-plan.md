@@ -255,3 +255,34 @@ in goose's form), a trust-base item. `OpenFile` and `Stat` take them as instance
   needs the database file's `OsMeta` fraction and meta-page bytes in an invariant across every
   step (logically atomic specs of the `os` wrappers, the extension's operations being single
   steps), and minibolt's proofs redone over it.
+
+### Crash-aware specs and the first end-to-end crash proof (2026-11-01, branch `osfs-crashex`)
+
+`examples/crashlog` (project `crashlog`): a flag byte at offset 8 guarding 8 bytes of data at 0,
+proved crash-safe end to end (`Proof/.../examples/crashlog/Results.lean`, `crash_safety`, no
+`sorryAx`). The flag is after the data: the first write to an empty file extends it over offset 0,
+and an unsynced extended byte is arbitrary after a crash (D1), so a flag at 0 could read nonzero
+with no data.
+
+- **The crash interpretation keeps the changes in flight** (`GooseLang/Ext/OsFs/CrashTok.lean`,
+  `os_crash_interpT`, `osFs_crash_adequacyT`). A `pwrite` past the end (or a truncate) holds the
+  file's whole `OsMeta` in `tokRes`, which `os_crash_interp` drops, so no invariant could take
+  such a file at a crash. `crashRestT` keeps the old map of changes; `osCrashT_take_tok_keep`
+  takes the file with the token's fragment. The `_keep` lemmas give the old resources back, so
+  that the crash part closes the invariant it opened.
+- **Crash-aware specs take an invariant** (`Proof/os/CrashFile.lean`, `CrashOps.lean`,
+  `Spec/os/Crash.lean`): `cfInv N p γ Good` holds the file's state (`CFile`: absent, idle, or a
+  `pwrite` in flight with its token), half of its resources and `CrashOk Good s` (every file a
+  crash may leave of `s` is `Good`); the caller holds the other half (`cfOwn`), so it reads with
+  the existing Hoare specs (`ReadAt`, `Stat` need only fractions). `OpenFile.specCrash`,
+  `File.WriteAt.specCrash`, `syscall.Fdatasync.specCrash` open it around each of the extension's
+  steps (atomic: `osOp_atomic`). A write's caller shows `CrashOk` of the first attempt in flight
+  only; every later state, retries included, is a narrowing (`Proof/os/CrashNarrow.lean`).
+  Chosen over atomic updates because the wrappers loop with two steps per attempt, and the
+  states between them are the extension's, not the caller's: one predicate of crash images
+  (`Good`) covers them all, and the lock-protected state of minibolt fits the same shape (the
+  lock holds `cfOwn`). Not covered yet: mappings (`CfWf` asks for none), truncate, fractional
+  `OsMeta` for concurrent readers.
+- **Not proved:** the package initializer. `crash_safety` takes `Hinit_wp` (the package's
+  `initialize'` runs from `ownGoState ∅`); `etc/gen-init.py` does not generate `wp_initialize'`
+  for this repository's `os`/`syscall`/`io/fs`.
