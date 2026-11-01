@@ -142,6 +142,64 @@ theorem mapCells_scatter (base : Loc) (hwm len : Nat) (h2 : 2 ≤ hwm) (hl : 409
   isplitl [H4176]; · iexists vf; iexact H4176
   iexists vf; iexact Htop
 
+
+/-- `db.dataref` in the state `st`. -/
+def mapSlice : MapSt → GoSlice
+  | some (base, len, _) => ⟨base, W64 len, W64 len⟩
+  | none => slice.nil
+
+/-- `db.meta0` in the state `st`. -/
+def mapPtr0 : MapSt → Loc
+  | some (base, _, _) => base +ₗ 16
+  | none => null
+
+/-- `db.meta1` in the state `st`. -/
+def mapPtr1 : MapSt → Loc
+  | some (base, _, _) => base +ₗ 4112
+  | none => null
+
+theorem pointsto_halves {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
+    typedPointsto (GF := GF) l v (DFrac.own 1) ⊣⊢
+      typedPointsto l v (DFrac.own (1 : Qp).half) ∗ typedPointsto l v (DFrac.own (1 : Qp).half) := by
+  conv => lhs; rw [← Qp.half_add_half 1]
+  exact (typedPointsto_frac l v).fractional _ _
+
+theorem mapFields_eq (db : Loc) (dq : DFrac) (st : MapSt) :
+    mapFields (GF := GF) db dq st ⊣⊢
+      db.[DB, go!"dataref"] ↦{dq} mapSlice st ∗ db.[DB, go!"meta0"] ↦{dq} mapPtr0 st ∗
+        db.[DB, go!"meta1"] ↦{dq} mapPtr1 st := by
+  rcases st with _ | ⟨base, len, γm⟩ <;> exact .rfl
+
+/-- The two halves of the mapping fields, as the whole fields. -/
+theorem mapFields_join (db : Loc) (st : MapSt) :
+    mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st ∗ mapFields db (DFrac.own (1 : Qp).half) st ⊣⊢
+      db.[DB, go!"dataref"] ↦ mapSlice st ∗ db.[DB, go!"meta0"] ↦ mapPtr0 st ∗
+        db.[DB, go!"meta1"] ↦ mapPtr1 st := by
+  refine (sep_congr (mapFields_eq db _ st) (mapFields_eq db _ st)).trans ?_
+  constructor
+  · iintro ⟨⟨A1, B1, C1⟩, ⟨A2, B2, C2⟩⟩
+    isplitl [A1 A2]
+    · iapply (pointsto_halves _ _).2; iframe
+    isplitl [B1 B2]
+    · iapply (pointsto_halves _ _).2; iframe
+    · iapply (pointsto_halves _ _).2; iframe
+  · iintro ⟨A, B, C⟩
+    icases (pointsto_halves _ _).1 $$ A with ⟨A1, A2⟩
+    icases (pointsto_halves _ _).1 $$ B with ⟨B1, B2⟩
+    icases (pointsto_halves _ _).1 $$ C with ⟨C1, C2⟩
+    isplitl [A1 B1 C1]
+    · iframe
+    · iframe
+
+theorem mapSlice_nil_iff (st : MapSt) (h : ∀ base len γm, st = some (base, len, γm) → 0 < base.addr) :
+    (mapSlice st = slice.nil ↔ st = none) := by
+  rcases st with _ | ⟨base, len, γm⟩
+  · simp [mapSlice]
+  · have := h base len γm rfl
+    simp only [mapSlice, reduceCtorEq, iff_false]
+    intro he; have := congrArg GoSlice.ptr he; simp [slice.nil] at this; subst this
+    simp [null] at *
+
 section agree
 variable [go.BasicIntoValInj] {s : Stuckness} {E : CoPset}
 

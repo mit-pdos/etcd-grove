@@ -10,6 +10,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__close
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__meta
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__mmap
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__munmap
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__readPageSize
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__sum64
@@ -20,11 +21,13 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.initPages
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.mmapSize
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pageAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pickMeta
+public import Proof.os.File__Close
 public import Proof.os.File__Fd
 public import Proof.os.File__ReadAt
 public import Proof.syscall.Flock
-public import Spec.os.File__Close
-public import Spec.golang_org.x.sys.unix.Munmap
+public import Proof.golang_org.x.sys.unix.Madvise
+public import Proof.golang_org.x.sys.unix.Mmap
+public import Proof.golang_org.x.sys.unix.Munmap
 
 @[expose] public section
 
@@ -43,6 +46,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
 
+theorem golang_org.x.sys.unix.wp_Munmap :
+    EtcdGrove.golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.golang_org.x.sys.unix.Munmap.wp_proof
+
+theorem DB.wp_munmap :
+    EtcdGrove.bboltfs.DB.munmap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.DB.munmap.wp_proof golang_org.x.sys.unix.wp_Munmap
+
 theorem os.File.wp_Fd :
     EtcdGrove.os.File.Fd.spec (GF := GF) (hG := hG) :=
   EtcdGrove.os.File.Fd.wp_proof
@@ -50,6 +61,14 @@ theorem os.File.wp_Fd :
 theorem syscall.wp_Flock :
     EtcdGrove.syscall.Flock.spec (GF := GF) (hG := hG) :=
   EtcdGrove.syscall.Flock.wp_proof
+
+theorem os.File.wp_Close :
+    EtcdGrove.os.File.Close.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.os.File.Close.wp_proof
+
+theorem DB.wp_close :
+    EtcdGrove.bboltfs.DB.close.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.DB.close.wp_proof DB.wp_munmap os.File.wp_Fd syscall.wp_Flock os.File.wp_Close
 
 theorem Meta.wp_sum64 :
     EtcdGrove.bboltfs.Meta.sum64.spec (GF := GF) (hG := hG) :=
@@ -67,6 +86,18 @@ theorem DB.wp_meta :
     EtcdGrove.bboltfs.DB.«meta».spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.DB.«meta».wp_proof wp_pickMeta
 
+theorem wp_mmapSize :
+    EtcdGrove.bboltfs.mmapSize.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.mmapSize.wp_proof
+
+theorem golang_org.x.sys.unix.wp_Mmap :
+    EtcdGrove.golang_org.x.sys.unix.Mmap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.golang_org.x.sys.unix.Mmap.wp_proof
+
+theorem golang_org.x.sys.unix.wp_Madvise :
+    EtcdGrove.golang_org.x.sys.unix.Madvise.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.golang_org.x.sys.unix.Madvise.wp_proof
+
 theorem wp_pageAt :
     EtcdGrove.bboltfs.pageAt.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.pageAt.wp_proof
@@ -74,6 +105,10 @@ theorem wp_pageAt :
 theorem Page.wp_meta :
     EtcdGrove.bboltfs.Page.«meta».spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.Page.«meta».wp_proof
+
+theorem DB.wp_mmap :
+    EtcdGrove.bboltfs.DB.mmap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.DB.mmap.wp_proof DB.wp_munmap wp_mmapSize os.File.wp_Fd golang_org.x.sys.unix.wp_Mmap golang_org.x.sys.unix.wp_Madvise golang_org.x.sys.unix.wp_Munmap wp_pageAt Page.wp_meta
 
 theorem os.File.wp_ReadAt :
     EtcdGrove.os.File.ReadAt.spec (GF := GF) (hG := hG) :=
@@ -91,33 +126,7 @@ theorem wp_initPages :
     EtcdGrove.bboltfs.initPages.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.initPages.wp_proof wp_pageAt Page.wp_meta Meta.wp_sum64
 
-theorem wp_mmapSize :
-    EtcdGrove.bboltfs.mmapSize.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bboltfs.mmapSize.wp_proof
-
 end links
-
-/-! The results that reach a function specified but not proved yet (a later unit's):
-its spec is a hypothesis (`h_<fn>`) of each of them. -/
-section links_pending
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
-variable (h_os_File__Close : EtcdGrove.os.File.Close.spec (GF := GF) (hG := hG))
-variable (h_unix_Munmap : EtcdGrove.golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG))
-include h_os_File__Close h_unix_Munmap
-
-theorem DB.wp_munmap :
-    EtcdGrove.bboltfs.DB.munmap.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bboltfs.DB.munmap.wp_proof h_unix_Munmap
-
-theorem DB.wp_close :
-    EtcdGrove.bboltfs.DB.close.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bboltfs.DB.close.wp_proof (DB.wp_munmap h_os_File__Close h_unix_Munmap) os.File.wp_Fd syscall.wp_Flock h_os_File__Close
-
-end links_pending
 
 end bboltfs
 end EtcdGrove
