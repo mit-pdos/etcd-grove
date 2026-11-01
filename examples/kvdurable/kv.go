@@ -524,7 +524,8 @@ type snapReq struct {
 }
 
 // request asks the snapshot goroutine, without waiting, for a snapshot of the replicated state at
-// the applied index if snap (unless the latest one asked for is already that recent), and for a
+// the applied index if snap (unless the latest one asked for is already that recent, or no
+// configuration is applied yet: a new replica's, before it catches up), and for a
 // compaction up to the least of the applied index and bound, unless bound is 0 (run passes raft's
 // applied index, after an Advance); a request is dropped if the goroutine has one pending. It
 // returns the index of the latest snapshot asked for.
@@ -533,7 +534,7 @@ func (r *Replica) request(snapIndex uint64, snap bool, bound uint64) uint64 {
 	index := r.index
 	cs := r.cs
 	var data []byte
-	if snap && index > snapIndex {
+	if snap && cs != nil && index > snapIndex {
 		data = encodeState(r.kv, r.applied)
 	}
 	r.mu.Unlock()

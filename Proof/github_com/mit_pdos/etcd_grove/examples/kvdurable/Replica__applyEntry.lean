@@ -116,20 +116,13 @@ theorem Replica.applyEntry.wp_proof
     (wp_Unmarshal2 : proto.UnmarshalConfChangeV2.spec (GF := GF) (hG := hG))
     (wp_add : Stats.add.spec (GF := GF) (hG := hG)) :
     Replica.applyEntry.spec (GF := GF) (hG := hG) := by
-  intro γ vs dir id r n st sts sq ms γs ph q ap idx csp m mA A l k e ep Htk Hap Hlen' Hk61
+  intro γ vs dir id r n st sts sq ms γs ph q ap idx csp m mA A l k e ep Htk Hap Hlen' Hk61 Hidxap Hkap
   wp_start as ⟨#Hrep, Hown, Hn, #Hent, #Hl, Hlive⟩
   ihave #Hrep' := Hrep
   iunfold isReplica at Hrep'
   iNamed Hrep'
   ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
-  -- SPEC-GAP (stage II (f), reported): the spec does not say that the applier's index field is
-  -- the replicated state's (`idx = len ap`) nor that the entry is not past it (`k ≤ len ap`): the
-  -- code decides `covered` on `idx`, and an entry past `len ap` would leave a gap. `run`, the only
-  -- caller, has both (`repOwn … (W64 ap.length)`, and the delivered log never passes `ap`).
-  by_cases Hgood : uint.Z idx = (ap.length : Int) ∧ k ≤ ap.length
-  case neg => sorry
-  obtain ⟨Hidxap, Hkap⟩ := Hgood
   have Hidx : idx = W64 ap.length := by word
   subst Hidx
   -- `covered := e.GetIndex() <= r.index`, read under `mu` with the applier's half

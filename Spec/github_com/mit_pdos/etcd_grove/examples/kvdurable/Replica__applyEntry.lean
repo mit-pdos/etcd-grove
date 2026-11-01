@@ -4,7 +4,10 @@
 restarted incarnation's snapshot covers it: raft hands entries back from `Config.Applied`, which may
 be below the snapshot's index) is skipped: the replicated state stays at `ap` while the node's
 delivered log `l` passes it (`appNode`'s view moves with the skipped entries: the conf entries raft
-hands back up to the view's index are the client's to skip, `skippedIn`).
+hands back up to the view's index are the client's to skip, `skippedIn`). The applier's index field
+is the replicated state's (`idx = len ap`) and the entry is not past it (`k ≤ len ap`): the code
+decides `covered` on the field, and an entry past `len ap` would leave a gap (stage I fix,
+2026-11-01).
 -/
 module
 
@@ -37,6 +40,7 @@ abbrev Replica.applyEntry.spec : Prop :=
     (γs : MemStorNames) (ph : GName) (q : Qp) (ap : List LogEntry) (idx : w64) (csp : Loc) (m : Membership)
     (mA : Loc) (A : GMap (List w8) (List w8)) (l : List LogEntry) (k : Nat) (e : LogEntry) (ep : Loc),
   l.take k ++ [e] <+: l → ap <+: l → ((ap.length : Int) + 1 < 2 ^ 61) → ((k : Int) + 1 < 2 ^ 61) →
+  uint.Z idx = (ap.length : Int) → k ≤ ap.length →
   {{ isReplica γ vs dir id r n st sts sq ms γs ph ∗ repOwn γ r ap idx csp m mA A ∗
       appNode γ n l (max k ap.length) m ∗ entRO ep (e.toEntryM (W64 (k + 1))) ∗
       isCommittedLogLb γ.r.cluster l ∗ nodeRunning n γ.r.cluster kdRaftN q }}

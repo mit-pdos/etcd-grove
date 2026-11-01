@@ -85,6 +85,8 @@ theorem Replica.request.wp_proof
     all_goals try wp_auto
     all_goals try wp_if_destruct
     all_goals try wp_auto
+    all_goals try wp_if_destruct
+    all_goals try wp_auto
     all_goals try (wp_join_done; iexists zero_val GoSlice; iframe
                    isplitl []
                    · ileft; ipureintro; rfl
@@ -109,11 +111,7 @@ theorem Replica.request.wp_proof
     rw [← encState_eq] at Hdat
     iunfold csOpt at HcsO
     icases HcsO with (%Hnull | #HcsM)
-    · -- SPEC-GAP (stage II (f), reported): kvdurable's `request` dropped kvreconf's `cs != nil`
-      -- guard; a `nil` configuration (the empty membership, `csOpt`'s first case) would send a
-      -- request with no `ConfState`, which `snapReqOk` cannot carry. Nothing exposed says a
-      -- configuration raft reached (`confAt`) is not the empty one.
-      sorry
+    · exact absurd Hnull.1 (by assumption)
     imod kd_snap_make γ vs ap (W64 ap.length) e.Term' (encState kvs ops) m c memSnapEmpty (by word)
         (by word) (by word) Hterm Hcsm Hsz Hdat $$ Hcl Hap Hcfg with #Hsv
     try wp_auto
