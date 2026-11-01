@@ -1,19 +1,13 @@
 /- Lean-first (no Rocq counterpart). The proof of `db.Get()`.
 
-Proved: every error path (a failed handle; no mapping, `meta0 == nil`). Not proved (`sorry`):
-the success path, which needs changes in `DB.lean`:
-- the mapped cells the reader loads (the two metas in `db.meta()` and `*db.meta()`, the root
-  page's `count` and value) are in the mapping's invariant (`mapInv`, an `inv`), but a Go load
-  is not atomic: every byte is a `Read`, a `StartRead` and a `FinishRead` (two atomic steps,
-  `_internal_wp_untyped_read`), and a scalar or struct load reads byte after byte
-  (`wp_readBytes`), `db.meta()` many loads; so the invariant cannot be opened around a load. The
-  reader needs fractions of those cells for the duration of its loads (lent by the invariant
-  while it holds the read lock, and the meta cells while it also holds `metalock`);
-- `metaR` gives only `T !! txid = some (pageVal B)` with `ghostMapAuth γ.txs`, from which no
-  `dbTx γ txid _` (a fragment) can be made: `metaR` needs `dbTx` of the current transaction;
-- `dbReader` does not pin the path: its `mapR γ db f' fd' p'` may name another path than
-  `isDB`'s, and the root page's bytes in the invariant (`pageIs p' r B'`) cannot be related to
-  `metaR`'s (`pageIs p r B`) without `p = p'`.
+A Go load is not atomic (every byte is a `StartRead` and a `FinishRead`), so the reader borrows
+the cells it loads from the mapping's invariant (`MapLoan.lean`): under `metalock`, the meta cells
+whole (`meta_borrow`), which it views as the two typed metas for `DB.meta`'s spec and the copy
+`*db.meta()`, and gives back before unlocking (`meta_return`); and a share of the root page's cells
+(`page_borrow`, still under `metalock`, where the meta pages name the root page), from which it
+loads the page's `count` (a typed `Page` view) and value (a `uint64` view), and which it gives back
+before `RUnlock` (`page_return`). The root page's bytes are those `metaR` records (`pageIs_agree`),
+so the result is `dbTx` of the current transaction.
 -/
 module
 
@@ -40,6 +34,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
 
+set_option maxHeartbeats 1600000 in
 theorem DB.Get.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
     (wp_pageAt : pageAt.spec (GF := GF) (hG := hG)) :
     DB.Get.spec (GF := GF) (hG := hG) := by
@@ -215,7 +210,97 @@ theorem DB.Get.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
       simp only [TypedPointsto.typedPointstoDef]
       icases Hpg with ⟨Hid, Hflags, Hcount, Hover, -⟩
       wp_auto
-      sorry
+      ihave Hpg : (base +ₗ ((4096 * curRoot mp : Nat) : Int)) ↦{DFrac.own metaDep.half.half} pageHdrOf B
+        $$ [Hid Hflags Hcount Hover]
+      · iapply typedPointsto_combine _ _ _ hlnn
+        simp only [TypedPointsto.typedPointstoDef]
+        iframe
+      ihave Hbr := Hpgb $$ Hpg
+      have hcnt : (pageHdrOf B).count' = (decode (List.take 2 (List.drop 2 (List.drop 8 (List.take 16 B)))) : w16) := rfl
+      generalize (decode (List.take 2 (List.drop 2 (List.drop 8 (List.take 16 B)))) : w16) = cnt at hcnt ⊢
+      by_cases hc : cnt = W16 1
+      · rw [decide_eq_true hc]
+        wp_auto
+        have hix : sint.Z ((curMeta mp).root'.root' * W64 4096 + W64 16) =
+            ((4096 * curRoot mp + 16 : Nat) : Int) := by
+          have h1 : (curMeta mp).root'.root'.toNat * 4096 < 2 ^ 30 := by
+            have : curRoot mp = (curMeta mp).root'.root'.toNat := rfl
+            omega
+          show _ = (((4096 * (curMeta mp).root'.root'.toNat + 16 : Nat)) : Int)
+          word
+        rw [hix, ite_cond_eq_true _ _ (eq_true ⟨by omega, by rw [hlenZ]; omega⟩), sliceIndexRef_byte _ _ Hbase (by omega)]
+        simp only
+        icases bytesPointsto_view_read (V := w64) (base +ₗ ((4096 * curRoot mp : Nat) : Int)) _ B 16
+          (base +ₗ ((4096 * curRoot mp + 16 : Nat) : Int)) (by rw [loc_add_assoc]; congr 1)
+          (by omega) hl $$ Hbr with ⟨Hv, Hvb⟩
+        wp_auto
+        ihave Hbr := Hvb $$ Hv
+        imod page_return γ p base len γm γl (curRoot mp) sync.rfrac.half.half metaDep B Hr2
+          $$ [HinvL Hq Hkr Hbr] with ⟨Hq, Hpd⟩
+        · iframe #; iframe
+        ihave Htok := ((ghostVar_fractional γm ()).fractional metaDep metaDep).2 $$ [Hmd Hpd]
+        · iframe
+        ihave Htok := ((ghostVar_fractional γm ()).fractional sync.rfrac.half.half (metaDep + metaDep)).2 $$ [Hq Htok]
+        · iframe
+        rw [← show sync.rfrac.half = sync.rfrac.half.half + (metaDep + metaDep) by unfold metaDep; qp_eq]
+        wp_apply sync.RWMutex.wp_RUnlock db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f' fd' p)
+          $$ [$Hrl $Hsync Hmap Hd H0 H1 Htok Hf Hfd] as Hrd
+        · iunfold mapR; iexists (some (base, len, γm)); iunfold mapBody
+          dsimp only [mapFields, mapRest]
+          isplitl [Hmap]; · iexact Hmap
+          isplitl [Hd H0 H1]; · iframe
+          isplitr; · ipureintro; exact Hbase
+          isplitl [Htok]; · iexact Htok
+          isplitr
+          · iunfold mapInv
+            isplitr; · ipureintro; exact Hlen
+            iexists γl; iexact HinvL
+          iframe
+        (try wp_auto)
+        iapply HΦ
+        isplitl [Hrd]
+        · iunfold dbReader; iexists f', fd', p; iframe; iframe #
+        ileft
+        isplitr; · ipureintro; exact ⟨rfl, Hle⟩
+        have hpv : pageVal B = some (decode (List.take 8 (List.drop 16 B))) := by
+          unfold pageVal; rw [hcnt, if_pos hc]
+        rw [if_pos rfl, ← hpv]
+        iunfold dbLast
+        iframe #
+      · rw [decide_eq_false hc]
+        wp_auto
+        imod page_return γ p base len γm γl (curRoot mp) sync.rfrac.half.half metaDep B Hr2
+          $$ [HinvL Hq Hkr Hbr] with ⟨Hq, Hpd⟩
+        · iframe #; iframe
+        ihave Htok := ((ghostVar_fractional γm ()).fractional metaDep metaDep).2 $$ [Hmd Hpd]
+        · iframe
+        ihave Htok := ((ghostVar_fractional γm ()).fractional sync.rfrac.half.half (metaDep + metaDep)).2 $$ [Hq Htok]
+        · iframe
+        rw [← show sync.rfrac.half = sync.rfrac.half.half + (metaDep + metaDep) by unfold metaDep; qp_eq]
+        wp_apply sync.RWMutex.wp_RUnlock db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f' fd' p)
+          $$ [$Hrl $Hsync Hmap Hd H0 H1 Htok Hf Hfd] as Hrd
+        · iunfold mapR; iexists (some (base, len, γm)); iunfold mapBody
+          dsimp only [mapFields, mapRest]
+          isplitl [Hmap]; · iexact Hmap
+          isplitl [Hd H0 H1]; · iframe
+          isplitr; · ipureintro; exact Hbase
+          isplitl [Htok]; · iexact Htok
+          isplitr
+          · iunfold mapInv
+            isplitr; · ipureintro; exact Hlen
+            iexists γl; iexact HinvL
+          iframe
+        (try wp_auto)
+        iapply HΦ
+        isplitl [Hrd]
+        · iunfold dbReader; iexists f', fd', p; iframe; iframe #
+        ileft
+        isplitr; · ipureintro; exact ⟨rfl, Hle⟩
+        have hpv : pageVal B = none := by
+          unfold pageVal; rw [hcnt, if_neg hc]
+        rw [if_neg Bool.false_ne_true, ← hpv]
+        iunfold dbLast
+        iframe #
 
 end proof
 
