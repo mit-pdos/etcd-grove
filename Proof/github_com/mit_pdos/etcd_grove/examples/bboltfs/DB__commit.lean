@@ -178,6 +178,32 @@ theorem zeroPage_val : List.replicate 4096 (0 : w8) =
   rw [encode_pageHdr_zero, show encode (W64 0 : w64) = List.replicate 8 0 from rfl]
   simp only [zeroBytes, List.replicate_append_replicate]
 
+theorem pwSize_inside (sz off k : Nat) (h : off + k ≤ sz) : pwSize sz off k = sz := by
+  unfold pwSize; split <;> omega
+
+/-- A page's bytes and cells back with the rest of the writer's, from the high water mark on. -/
+theorem page_rejoin (p : GoString) (base : Loc) (hwm len : Nat) (ys rest : List (w8 × Bool))
+    (hys : ys.length = 4096) (hl : 4096 * hwm + 4096 ≤ len) :
+    osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) ys ∗
+      osBytes (GF := GF) p (4096 * hwm + 4096) (DFrac.own 1) rest ∗
+      cellsAny (GF := GF) base (4096 * hwm) 4096 ∗
+      cellsAny (GF := GF) base (4096 * hwm + 4096) (len - 4096 * hwm - 4096) ⊢
+      osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) (ys ++ rest) ∗
+        cellsAny (GF := GF) base (4096 * hwm) (len - 4096 * hwm) := by
+  iintro ⟨H1, H2, C1, C2⟩
+  isplitl [H1 H2]
+  · iapply (osBytes_app p _ _ ys rest).2
+    rw [hys]
+    isplitl [H1]
+    · iexact H1
+    · iexact H2
+  · obtain ⟨k, hk⟩ : ∃ k, len - 4096 * hwm - 4096 = k := ⟨_, rfl⟩
+    rw [hk, show len - 4096 * hwm = 4096 + k by omega]
+    iapply (cellsAny_append base (4096 * hwm) 4096 k)
+    isplitl [C1]
+    · iexact C1
+    · iexact C2
+
 theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     (wp_Truncate : os.File.Truncate.spec (GF := GF) (hG := hG))
     (wp_Sync : os.File.Sync.spec (GF := GF) (hG := hG))
@@ -472,7 +498,38 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   · iframe
   ihave Hbuf := Hclose $$ %(dataPage mv.pgid' v) [] [Hb]
   · ipureintro; rw [dataPage_length, ← zeroPage_val, List.length_replicate]
-  · simp only [flatMap_encode_w8, dataPage]; iexact Hb
+  · simp only [dataPage]; iexact Hb
+  -- its write, at the high water mark (inside the file)
+  have hoff : (mv.pgid' * W64 4096).toNat = 4096 * hwm := by
+    rw [BitVec.toNat_mul, hpg]; show hwm * 4096 % 2 ^ 64 = _; omega
+  have hoffI : 0 ≤ (mv.pgid' * W64 4096).toInt := by
+    rw [BitVec.toInt_eq_toNat_cond, hoff]; split <;> omega
+  have hdl := dataPage_length mv.pgid' v
+  have hin : 4096 * hwm + 4096 ≤ m2.size := by omega
+  icases (osBytes_app p _ _ (tail2.take 4096) (tail2.drop 4096)).1 $$ [Htail] with ⟨Hpg, Hrest⟩
+  · rw [List.take_append_drop]; iexact Htail
+  have htk : (tail2.take 4096).length = 4096 := by rw [List.length_take]; omega
+  rw [htk]
+  icases (writerCells_top base hwm len).1 $$ Hwc with ⟨Hwc4, Htop⟩
+  rw [show len - 4096 * hwm = 4096 + (len - 4096 * hwm - 4096) by omega]
+  icases cellsAny_split _ _ _ _ $$ Htop with ⟨Hpc, Htop⟩
+  ihave Hpc := (mcellsAny_single (GF := GF) base len (4096 * hwm) (4096 * hwm + 4096) (by omega)
+    (by omega)).2 $$ [Hpc]
+  · rw [show 4096 * hwm + 4096 - 4096 * hwm = 4096 by omega]; iexact Hpc
+  rw [← Hmaps]
+  wp_apply wp_WriteAt f fd p _ buf (dataPage mv.pgid' v) (DFrac.own 1) (mv.pgid' * W64 4096) _
+      ⟨p, true, true⟩ 1 m2 (tail2.take 4096) rfl hoffI (by omega) (by omega)
+      (by rw [hoff, htk, hdl]; omega) (fun _ => rfl) $$ [Hf Hbuf Hfd Hm Hpg Hpc]
+    as %n %err ⟨Hf, Hbuf, Hfd, %j, %ys, %h, %Hres, Hm, Hpg, Hpc⟩
+  · rw [hoff, hdl, Nat.min_eq_left (by omega : 4096 * hwm ≤ m2.size)]; iframe; iframe #
+  rw [hoff, hdl, Nat.min_eq_left (by omega : 4096 * hwm ≤ m2.size)] at *
+  rw [hoff, hdl] at Hres
+  have hj : j ≤ 4096 := Hres.1
+  have hys : ys.length = 4096 := by
+    have h1 := congrArg List.length Hres.2.1
+    simp only [List.length_map, pwBytes_length] at h1
+    rw [pwSize_inside _ _ _ (by omega), hdl] at h1; omega
+  rw [pwSize_inside _ _ _ (by omega)]
   sorry
 
 end proof
