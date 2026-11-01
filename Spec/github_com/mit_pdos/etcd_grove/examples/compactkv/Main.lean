@@ -18,7 +18,7 @@ route, over the rounds: `compactkv.roundsInv`).
 
 **The pure premises:** the member id and bootstrap log Go computes (`compactkv.BootFacts`); the
 logic's thread bound and the time-receipt bounds (the adequacy theorem's choices: `threadBound GF ≤
-2 ^ 31`, `receiptBound GF ≤ 2 ^ 48` and `≤ N + 1`); the named workload and effect premises of the
+2 ^ 28`, `receiptBound GF ≤ 2 ^ 48` and `≤ N + 1`); the named workload and effect premises of the
 server's construction (`ckptEffectsOk`, `authRecordsFit`,
 `apply.backendUnderQuota`, `grpcRepliesFit`, `storage.diskOk`); Go's method sets of the gRPC service values
 (`v3rpc.ServerMethodSets`) and that `errors.As` takes `*rpctypes.EtcdError` as a target (both
@@ -60,7 +60,7 @@ abbrev Main.spec : Prop :=
     [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry),
   BootFacts id ctxs boot →
-  threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →

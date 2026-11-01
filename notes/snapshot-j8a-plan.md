@@ -82,6 +82,13 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
      `Transport.Start`, the stream readers') change from copies of `R` to the pool.
    - also: `c.R = srvLgReader s` (no tie today), `trPeersNoRem` after the `AddPeer`s (from the
      examples' `srvTrTok`).
+     *Done 2026-11-01* (J8a-6; decisions, "The transport's `R`s from a thread pool") but for
+     `trPeersNoRem`: `Transport.Start` takes `raftPool R` (`trFixed` holds it), `startPeer`'s two
+     receiving goroutines borrow from it (the writers and the pipeline need no `R`), so `AddPeer`
+     takes none and `RemoveAllPeers` gives none back; `NewServer`'s pool is `2 ^ 28` of `lgMu`'s
+     slots, `threadBound ≤ 2 ^ 28`; `srvSnapStock` gone, `specSnap`'s `8·|ps|` copies gone, the
+     `c.R` tie moot. `trPeersNoRem` and `hdir`/`hdok` stay `specSnap` premises (design
+     questions: the tokens are the examples', and `srvSnapRO` has no `γn`).
 7. **Environment facts not threaded** into `srvSnapRO` or `applyAll`: `E.cmp = false` (`hcm`),
    `storage.snapOpensOk` (`hsop`), `E.γ.watchQ` (`hwq`), `receiptBound ≤ wbInit - 6` (`hrbw`),
    `netDirOk`/`γn.dir = dir` (`hdok`, `hdir`), the backend parameters (`P.Wf`, `limit`, `ciKeys`,
@@ -175,5 +182,6 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
     call `setAppliedIndex`, J5), `wp_notify2_receive2`, `specNoop`, the merge branch at `i`. Its
     premises that stay open: `srvCfgAddr s ↦□ cfg` (J8a-3; since done, from `srvSnapRO`'s rebuild
     applied to `isServerRun`'s `"#Hsncfg"`), the `isMetaBackend` family (J8a-4), the
-    transport's `8·|ps|` copies of `c.R`, `trPeersNoRem`, `hdir`/`hdok` (J8a-6).
-- **J8a-6** (with the peer?): the `lgMu` pool in `rafthttp` (item 6).
+    transport's `trPeersNoRem` and `hdir`/`hdok` (the `8·|ps|` copies of `c.R` gone in J8a-6).
+- **J8a-6**: the `lgMu` pool in `rafthttp` (item 6). Done 2026-11-01 (branch `snap-j8a-6`) but
+  for `trPeersNoRem` and `hdir`/`hdok` (design questions, item 6).

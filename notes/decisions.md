@@ -28515,3 +28515,40 @@ with the other session's specifics):
   `srvSnapRO` is built without.
 Not changed: `NewServer.spec`'s forms, `start`'s, `run`'s, `Start`'s text (definition bodies only).
 No axiom, no `sorry`.
+
+## The transport's `R`s from a thread pool (2026-11-01, J8a-6, the user's decision)
+
+**Before** (D22 J-T, 2026-10-24): the transport's `R` (`srvLgReader s`, a reader slot of `lgMu`)
+was handed out in copies: `startPeer` took eight (`HR1`-`HR8`: its two stream writers, its
+pipeline's four goroutines, its two receiving goroutines), `startRemote` four, `Transport.Start`
+`4·|L|` for the remotes it may start, and `RemoveAllPeers` gave four of each peer's back. So every
+snapshot install (`RemoveAllPeers` then an `AddPeer` per member) leaked `4·|ps|` slots: J1b's
+`srvSnapStock` kept `2 ^ 28` of `lgMu`'s for them and `specSnap` took `8·|ps|` copies of `c.R`.
+
+**Now** (the user's choice, J8a's stocks, item 6): the slots are a pool, Perennial's `threadPool`
+(`Perennial/Proof/ThreadPool.lean`). `NewServer` makes it (`raftPool_init`, `threadPool.init`) of
+`2 ^ 28` of `lgMu`'s slots, so `threadBound GF ≤ 2 ^ 28` (was `2 ^ 31`, the approved change to
+`NewServer.spec` in all its forms and to the closed theorems' `n + 2 ≤ 2 ^ 31`; the examples at
+`2 ^ 29`, watchkv, cachekv, authkv, linkv3p, follow to `2 ^ 28` as well, since they start a
+server). The pool is persistent (`raftPool R`, `Net.lean`) and sits in `trFixed`; a goroutine that
+needs `R` borrows it with its thread token (`raftPool_borrow`, a later credit) and gives it back
+at exit (`raftLoan_giveBack`, returning the token). Only the two goroutines that call
+`Raft.Process` (`netRaftOk`) need `R`: the stream writers and the pipeline held theirs unused
+(`ReportUnreachable`/`ReportSnapshot` take `True`), so they now hold none, and `startPeer`'s two
+receiving goroutines are forked with `wp_fork_tok_body` and borrow for their life. Restated
+(internal): `startPeer`, `startRemote`, `pipeline.start`/`stop`/`handle`, `startStreamWriter`,
+`streamWriter.run`/`close`/`closeUnlocked`, `peer.stop`, `remote.stop`, `trPoolE`/`trPool` (no
+`R`s: the remotes' budget is their no-remote tokens), `removePeer_core`. Restated (`rafthttp`'s
+specs): `Transport.AddPeer` (takes no `R`), `Transport.RemoveAllPeers` (gives none back),
+`Transport.Start` (takes `raftPool R` in place of `[∗list] _ ∈ L, R ∗ R ∗ R ∗ R`). The stream
+readers never held `R` (the readers' goroutines are `startPeer`'s receiving ones): unchanged. Then
+`srvSnapStock` holds nothing and is gone (from `srvSnapBoot`, `srvSnapOwn`), `specSnap` and the
+walk lose the `8·|ps|` copies, and `InvBoot`'s `replicate_list4` is unused and gone. `c.R =
+srvLgReader s` is not needed by `specSnap` any more (the `AddPeer`s take nothing).
+
+Not done (design questions, for the user): `specSnap`'s `trPeersNoRem c rs` stays a premise. The
+no-remote tokens of the members whose remotes `CutPeer`/`MendPeer` may start are the examples'
+(`NewServer.spec`'s post, `srvTrTok`), so getting it from them means routing those tokens to the
+apply thread, an exported change. And `hdir`/`hdok` (`γn.dir = dir`, `netDirOk dir`) stay
+`specSnap` premises: `srvSnapRO` has no `γn`, and `ccMembRes`'s `γn` is not tied to it by any
+ghost agreement, so they are not a field to add.

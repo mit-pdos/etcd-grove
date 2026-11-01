@@ -1,7 +1,8 @@
 /-
 **The transport and its peers' shared definitions** (rafthttp stage 6; D39). Lean-first.
 * `trFixed`: the transport's fields after `Start`, read-only (its logger, id, URLs, cluster id,
-  `Raft`, `ErrorC`, round trippers, dial-retry rate, stats), the network's stream registry, the
+  `Raft`, `ErrorC`, round trippers, dial-retry rate, stats), the pool of `R`s (`raftPool`, J8a-6),
+  the network's stream registry, the
   registration of every member's hosts (`pipeReg`), `RaftStreamPrefix`'s value and (stage 6d) that
   the transport's member is one of the network's (`Rh.member`, a request's sender): what the
   peers, remotes and handlers read.
@@ -57,7 +58,8 @@ instance trProbers_persistent (t : Loc) : Persistent (trProbers (GF := GF) t) :=
   unfold trProbers; infer_instance
 
 /-- **The transport `t`'s fixed fields** (persistent) of the member `lid`, whose `Raft` calls
-borrow an `R`: see the file header. -/
+borrow an `R`: see the file header; (J8a-6, 2026-11-01) the pool of `R`s its peers' receiving
+goroutines borrow from (`raftPool`). -/
 def trFixed (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) : IProp GF :=
   iprop(∃ (lg ls ss : Loc) (urls : GoSlice) (uvs : List net.url.URL)
       (cid : go_etcd_io.etcd.client.pkg.v3.types.ID) (r : GoInterface) (ec : GoChan)
@@ -77,10 +79,10 @@ def trFixed (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF
     t.[rafthttp.Transport, go!"streamProber"] ↦□ sp ∗
     streamRegInv Rh ∗ (□ ∀ pid : w64, ⌜Rh.member pid ∧ pid ≠ lid⌝ -∗ pipeReg Rh pid) ∗
     globalAddr rafthttp.RaftStreamPrefix ↦□ go!"/raft/stream" ∗
-    ⌜Rh.member lid ∧ trURLsOk Rh lid uvs⌝)
+    ⌜Rh.member lid ∧ trURLsOk Rh lid uvs⌝ ∗ raftPool R)
 
-set_option synthInstance.maxHeartbeats 8000000 in
-set_option synthInstance.maxSize 65536 in
+set_option synthInstance.maxHeartbeats 16000000 in
+set_option synthInstance.maxSize 131072 in
 instance trFixed_persistent (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) :
     Persistent (trFixed Rh t lid γd R) := by
   unfold trFixed; infer_instance

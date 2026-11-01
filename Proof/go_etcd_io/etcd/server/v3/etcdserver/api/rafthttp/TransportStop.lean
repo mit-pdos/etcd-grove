@@ -73,7 +73,7 @@ theorem rafthttp.Transport.Stop_core
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
     #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
-    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU⟩
+    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU, #HrPool⟩
   obtain ⟨Hmem, Hturls⟩ := HmemU
   iunfold trProbers at Hprb
   icases Hprb with ⟨%pp, %sp, #Hppf, #Hppok, #Hspf, #Hspok⟩
@@ -105,7 +105,7 @@ theorem rafthttp.Transport.Stop_core
     iunfold remotesOk at Hro
     ihave #Hgok := BigSepM.bigSepM_lookup (Φ := fun id g => remoteOk Rh lid id R g) Hk $$ Hro
     (try wp_auto)
-    wp_apply hRemoteStop Rh lid k R g $$ [Hs] as -
+    wp_apply hRemoteStop Rh lid k R g $$ [Hs]
     · iframe; iframe #
     (try wp_auto)
     isplitr
@@ -134,7 +134,7 @@ theorem rafthttp.Transport.Stop_core
       exact GoGlobalContext.intoVal_inj_loc Hp'
     subst hpp
     (try wp_auto)
-    wp_apply hPeerStop Rh lid k γd R p $$ [Hs] as -
+    wp_apply hPeerStop Rh lid k γd R p $$ [Hs]
     · iframe; iframe #
     (try wp_auto)
     isplitr

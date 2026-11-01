@@ -153,7 +153,6 @@ theorem applySnapshot_walk
        rnTransportAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t : GoInterface) ∗
        (trLive γn t c rs ∗ trPeersNoRem c rs) ∗ srvMemberIDAddr s ↦□ idm ∗
-       ([∗list] _x ∈ List.replicate (8 * ps.length) (), c.R) ∗
        srvMembersDir cl ps dir ∗
        epMemSnapAddr ep ↦ msi ∗ epConfState ep cs0 ∗
        srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗
@@ -168,7 +167,7 @@ theorem applySnapshot_walk
         (Val #ap))
     {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A x R ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad ∗ notifyRcvN γnc 1 }} := by
-  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, HR8s, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, #HauR, #HmetaB⟩
+  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, #HauR, #HmetaB⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
   icases Hsrv' with ⟨-, -, ⟨%sfv, #Hfl⟩, -, -⟩
@@ -629,12 +628,12 @@ theorem applySnapshot_walk
   -- `s.r.transport.RemoveAllPeers()`
   ihave #Hrhpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp $$ []
   · iPkgInit
-  -- (D22 J-T) the peers' no-remote facts go back to the transport; four of each peer's `R`s come
-  -- back (dropped here: the `AddPeer`s below take the premise's eight each)
+  -- (D22 J-T) the peers' no-remote facts go back to the transport (J8a-6, 2026-11-01: no `R`s
+  -- come back, nor do the `AddPeer`s below take any: the peers borrow from the transport's pool)
   icases Htlive with ⟨Htlive, Hpnr⟩
   iunfold trPeersNoRem at Hpnr
   icases Hpnr with ⟨%Q, %HQ, Htks⟩
-  wp_apply hRAP γn t c rs Q HQ.1 HQ.2 $$ [Htlive Htks] as ⟨Htlive, -⟩
+  wp_apply hRAP γn t c rs Q HQ.1 HQ.2 $$ [Htlive Htks] as Htlive
   · iframe #; iframe
   (try wp_auto)
   wp_apply hInfo $$ []
@@ -652,15 +651,11 @@ theorem applySnapshot_walk
   ihave IH2 : iprop(∃ (n : w64) (mm : Loc) (L : List w64), "i" ∷ i_ptr ↦ n ∗ "m" ∷ m_ptr ↦ mm ∗
       "s" ∷ s_ptr ↦ s ∗
       "Htlive" ∷ trLive γn t c L ∗
-      "HR8s" ∷ ([∗list] _x ∈ List.replicate (8 * ps.length - 8 * L.length) (), c.R) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z msl.len ∧ L.length ≤ (sint.Z n).toNat⌝ ∗
       "%Hcov" ∷ ⌜∀ (k : Nat) (p : Loc × w64), k < (sint.Z n).toNat → mps[k]? = some p →
-        p.2 ≠ idm → p.2 ∈ L⌝) $$ [i m s Htlive HR8s]
+        p.2 ≠ idm → p.2 ∈ L⌝) $$ [i m s Htlive]
   · iexists W64 0, _, []
     iframe i m s Htlive
-    isplitl [HR8s]
-    · rw [show 8 * ps.length - 8 * ([] : List w64).length = 8 * ps.length by simp]
-      iexact HR8s
     ipureintro
     refine ⟨⟨by decide, by have := Hmsll.2; word, by simp⟩, fun k p hk _ _ => ?_⟩
     exact absurd hk (by simp)
@@ -717,17 +712,10 @@ theorem applySnapshot_walk
       · have Hpid : px.2 ≠ idm := by simpa using Hif
         obtain ⟨Hne, Hpl, Hown, Hpm⟩ :=
           addPeer_dir γn dir hdir hdok ps hps px.2 Hpxps mpus Hmok.2
-        have H8 : 8 ≤ 8 * ps.length - 8 * L.length := by
-          have h1 : mps.length = (sint.Z msl.len).toNat := Hmsll.1
-          have h2 := Hn.2.2
-          have h3 : mps.length = ps.length := by rw [← Hmps, List.length_map]
-          have h4 : L.length < ps.length := by omega
-          omega
-        icases replicate_takeN _ 8 _ H8 $$ HR8s with ⟨HR8, HR8s⟩
         wp_apply (hAP γn t c L px.2 mpu (DFrac.own 1) mpus Hne Hpl Hown
-            (by rw [hlid]; exact fun h => Hpid h.symm) Hpm) $$ [Htlive Hmpus HR8]
+            (by rw [hlid]; exact fun h => Hpid h.symm) Hpm) $$ [Htlive Hmpus]
           as ⟨Htlive, Hmpus, -⟩
-        · iframe Htlive Hmpus HR8
+        · iframe Htlive Hmpus
         (try wp_auto)
         ihave Hmso : iprop([∗list] p ∈ mps, memberDirIs (GF := GF) dir p.1 p.2)
             $$ [Hmso Hmid Hmpu Hmil Hmnm Hmcu Hmpus Hmcus]
@@ -743,10 +731,6 @@ theorem applySnapshot_walk
         iframe
         iexists n + W64 1, _, L ++ [px.2]
         iframe
-        isplitl [HR8s]
-        · rw [show 8 * ps.length - 8 * (L ++ [px.2]).length = 8 * ps.length - 8 * L.length - 8 by
-            simp only [List.length_append, List.length_singleton]; omega]
-          iexact HR8s
         ipureintro
         refine ⟨⟨by word, by word, by simp only [List.length_append, List.length_singleton]; omega⟩, ?_⟩
         rw [Hn1]

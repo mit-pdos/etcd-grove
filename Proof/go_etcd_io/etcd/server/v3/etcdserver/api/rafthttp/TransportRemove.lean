@@ -66,22 +66,22 @@ theorem trStop_remove_peer (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : 
   icases (BigSepM.bigSepM_delete (m := PM) hs).1 $$ Hps with ⟨Hp, Hps⟩
   iunfold trPool at Hpool
   icases Hpool with ⟨%HTL, Hpool⟩
-  have hPM : ∀ x ∈ L, x ≠ id → trPoolE (GF := GF) R γk rm PM T x ⊢
-      trPoolE R γk rm (GMap.delete id PM) T x := fun x _ hx =>
-    trPoolE_mono R γk rm rm PM _ T T x Iff.rfl
+  have hPM : ∀ x ∈ L, x ≠ id → trPoolE (GF := GF) γk rm PM T x ⊢
+      trPoolE γk rm (GMap.delete id PM) T x := fun x _ hx =>
+    trPoolE_mono γk rm rm PM _ T T x Iff.rfl
       (fun h => by rw [GMap.lookup_delete_ne _ (Ne.symm hx)]; exact h) (fun h => h)
-  ihave Hpool : iprop([∗list] x ∈ L, trPoolE R γk rm (GMap.delete id PM) T x) $$ [Hpool Htk]
+  ihave Hpool : iprop([∗list] x ∈ L, trPoolE γk rm (GMap.delete id PM) T x) $$ [Hpool Htk]
   · icases Htk with (%HnL | Htok)
     · iapply BigSepL.bigSepL_mono (fun {_ x} hk => hPM x (List.mem_of_getElem? hk)
         (fun e => HnL (e ▸ List.mem_of_getElem? hk))) $$ Hpool
     · by_cases hL : id ∈ L
-      · icases bigSepL_nodup_split (Φ := fun x => trPoolE R γk rm PM T x)
-            (Ψ := fun x => trPoolE R γk rm (GMap.delete id PM) T x) L HTL.2 id hL hPM $$ Hpool
+      · icases bigSepL_nodup_split (Φ := fun x => trPoolE γk rm PM T x)
+            (Ψ := fun x => trPoolE γk rm (GMap.delete id PM) T x) L HTL.2 id hL hPM $$ Hpool
           with ⟨He, Hpool⟩
         iapply Hpool
         iunfold trPoolE at He
         iunfold trPoolE
-        icases He with (⟨-, Htok'⟩ | ⟨%Hn, (⟨HR1, HR2, HR3, HR4, (Htok' | -)⟩ | %Hnull)⟩)
+        icases He with (⟨-, Htok'⟩ | ⟨%Hn, ((Htok' | -) | %Hnull)⟩)
         · iunfold trTokAt at Htok Htok'
           ihave %Hv := ghostMapElem_valid_2 id γk _ _ _ _ $$ Htok Htok'
           exact absurd Hv.1 (dfrac_own_one_op_invalid _)
@@ -134,14 +134,13 @@ theorem rafthttp.Transport.removePeer_core
         trStats t 1 ∗ (⌜id ∉ L ∨ PM !! id = none⌝ ∨ trTokAt γk id 1) }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"removePeer")) (Val #id))
     {{ RET #(); t.[rafthttp.Transport, go!"peers"] ↦ pm ∗ pm ↦$ (GMap.delete id PM) ∗
-        ghostVar γs (1 : Qp).half ((pm, rm, GMap.delete id PM, RM, T) : trRec) ∗ trStats t 1 ∗
-        (⌜PM !! id = none⌝ ∨ R ∗ R ∗ R ∗ R) }} := by
+        ghostVar γs (1 : Qp).half ((pm, rm, GMap.delete id PM, RM, T) : trRec) ∗ trStats t 1 }} := by
   wp_start as ⟨#Htr, #Hprb, #Hst, Hp, Hpm, Hg, #Hpo, Hts, Htk⟩
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
     #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
-    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU⟩
+    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU, #HrPool⟩
   obtain ⟨Hmem, Hturls⟩ := HmemU
   iunfold trProbers at Hprb
   icases Hprb with ⟨%pp, %sp, #Hppf, #Hppok, #Hspf, #Hspok⟩
@@ -177,9 +176,7 @@ theorem rafthttp.Transport.removePeer_core
     iapply HΦ
     rw [GMap.delete_notin _ _ hp]
     iframe
-    isplitl
-    · iunfold trStats; iexists ls; iframe; iframe #
-    ileft; ipureintro; first | exact hp | trivial
+    iunfold trStats; iexists ls; iframe; iframe #
   | some pi =>
     simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
     iunfold peersOk at Hpo
@@ -202,7 +199,7 @@ theorem rafthttp.Transport.removePeer_core
     subst hpp
     simp only [interface.mkOk]
     (try wp_auto)
-    wp_apply hPeerStop Rh lid id γd R p' $$ [Hps] as ⟨HR1, HR2, HR3, HR4⟩
+    wp_apply hPeerStop Rh lid id γd R p' $$ [Hps]
     · iframe; iframe #
     (try wp_auto)
     wp_apply wp_mapDelete $$ [Hpm] as Hpm
@@ -230,13 +227,11 @@ theorem rafthttp.Transport.removePeer_core
       | wp_auto)
     iapply HΦ
     iframe Hp Hpm Hg
-    isplitr [HR1 HR2 HR3 HR4]
-    · iunfold trStats; iexists ls; iframe #
-      iunfold v2stats.lsFollowers; iexists fm, _; iframe #; iframe
-      ipureintro
-      intro k v hk
-      exact Hfnn k v ((GMap.lookup_delete_Some FM ids k v).1 hk).2
-    iright; iframe
+    iunfold trStats; iexists ls; iframe #
+    iunfold v2stats.lsFollowers; iexists fm, _; iframe #; iframe
+    ipureintro
+    intro k v hk
+    exact Hfnn k v ((GMap.lookup_delete_Some FM ids k v).1 hk).2
 
 set_option maxRecDepth 8000 in
 set_option maxHeartbeats 8000000 in
@@ -279,7 +274,7 @@ theorem rafthttp.Transport.RemovePeer_core
   · exact absurd Hpn Hpmnn
   (try wp_auto)
   wp_apply (rafthttp.Transport.removePeer_core hPeerStop hIDStringPtr hInfo hWarn hZString Rh t lid
-      γd R γs L γk γo pm rm PM RM T id) $$ [Hp Hpm Hg Hts Htk] as ⟨Hp, Hpm, Hg, Hts, -⟩
+      γd R γs L γk γo pm rm PM RM T id) $$ [Hp Hpm Hg Hts Htk] as ⟨Hp, Hpm, Hg, Hts⟩
   · iframe; iframe #
     icases Htk with (%Hc | Htok)
     · ileft; ipureintro
@@ -319,9 +314,8 @@ set_option maxHeartbeats 8000000 in
 /-- **`t.RemoveAllPeers()`** on a live transport (its half of `γr`, not stopped) with the write
 lock's guard, (D22 J-T) the no-remote token of each peer id of `L` (`Q`, the peers' ids without
 repeats): it returns, every peer removed (`removePeer` on each key of the map it ranges over,
-which deletes it), no peer id left, and four of each peer's `R`s back (its pipeline's: `peer.stop`
-waits for them; the four of its stream readers and writers are not returned, `peer.stop` does
-not join the two `Process` goroutines). -/
+which deletes it), no peer id left. (Until J8a-6, 2026-11-01, with four of each peer's `R`s back,
+its pipeline's, the other four lost: the peers' goroutines now borrow from the transport's pool.) -/
 theorem rafthttp.Transport.RemoveAllPeers_core
     (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
     (hIDStringPtr : types.ID.String_ptr.spec (GF := GF) (hG := hG))
@@ -337,8 +331,7 @@ theorem rafthttp.Transport.RemoveAllPeers_core
         ghostVar γr (1 : Qp).half (rs, false) ∗ [∗list] f ∈ Q, (⌜f ∉ L⌝ ∨ trTokAt γk f 1) }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"RemoveAllPeers"))
         (Val #()))
-    {{ RET #(); ghostVar γr (1 : Qp).half ((([] : List w64) : trIds), false) ∗
-        [∗list] _f ∈ Q, R ∗ R ∗ R ∗ R }} := by
+    {{ RET #(); ghostVar γr (1 : Qp).half ((([] : List w64) : trIds), false) }} := by
   wp_start as ⟨#Htr, #Hprb, #Hst, #Hgd, Hlive, Htks⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -366,8 +359,7 @@ theorem rafthttp.Transport.RemoveAllPeers_core
       trStats t 1 ∗ t_ptr ↦ t ∗ (∃ x : w64, id_ptr ↦ x) ∗
       ⌜(∀ (j : Nat) (k : w64), i ≤ j → keys[j]? = some k → m' !! k = PM !! k) ∧
         ∀ k, (m' !! k).isSome → k ∈ keys.drop i⌝ ∗
-      ([∗list] k ∈ keys.drop i, (⌜k ∉ L⌝ ∨ trTokAt γk k 1)) ∗
-      [∗list] _k ∈ keys.take i, R ∗ R ∗ R ∗ R)) _ _ _ pm PM (DFrac.own 1) $$ Hpm
+      ([∗list] k ∈ keys.drop i, (⌜k ∉ L⌝ ∨ trTokAt γk k 1)))) _ _ _ pm PM (DFrac.own 1) $$ Hpm
   iintro %keys ⟨%Hkeys, %Hklen, %Hknd⟩
   have Hperm : keys.Perm Q := by
     rw [List.perm_ext_iff_of_nodup Hknd hQn]
@@ -380,14 +372,12 @@ theorem rafthttp.Transport.RemoveAllPeers_core
     · ipureintro
       refine ⟨fun _ _ _ _ => rfl, fun k hk => ?_⟩
       rw [List.drop_zero]; exact (Hkeys k).2 hk
-    simp only [List.drop_zero, List.take_zero]
-    isplitl [Htks]
-    · iapply (BigSepL.bigSepL_perm (Φ := fun k => iprop(⌜k ∉ L⌝ ∨ trTokAt γk k 1)) Hperm).2
-      iexact Htks
-    iapply BigSepL.bigSepL_nil.2; itrivial
+    simp only [List.drop_zero]
+    iapply (BigSepL.bigSepL_perm (Φ := fun k => iprop(⌜k ∉ L⌝ ∨ trTokAt γk k 1)) Hperm).2
+    iexact Htks
   isplitr
   · imodintro
-    iintro %i %key %v %m' %Hiv ⟨Hp, Hg, #Hpo', Hts, Ht, ⟨%x, Hid⟩, %Hags, Hdr, Htk⟩ Hpm
+    iintro %i %key %v %m' %Hiv ⟨Hp, Hg, #Hpo', Hts, Ht, ⟨%x, Hid⟩, %Hags, Hdr⟩ Hpm
     obtain ⟨Hagr, Hsub⟩ := Hags
     obtain ⟨hk, hv⟩ := Hiv
     obtain ⟨hlt, hget⟩ := List.getElem?_eq_some_iff.1 hk
@@ -397,13 +387,11 @@ theorem rafthttp.Transport.RemoveAllPeers_core
     icases BigSepL.bigSepL_cons.1 $$ Hdr with ⟨Hk, Hdr⟩
     (try wp_auto)
     wp_apply (rafthttp.Transport.removePeer_core hPeerStop hIDStringPtr hInfo hWarn hZString Rh t
-        lid γd R γs L γk γo pm rm m' RM T key) $$ [Hp Hpm Hg Hts Hk] as ⟨Hp, Hpm, Hg, Hts, HR⟩
+        lid γd R γs L γk γo pm rm m' RM T key) $$ [Hp Hpm Hg Hts Hk] as ⟨Hp, Hpm, Hg, Hts⟩
     · iframe; iframe #
       icases Hk with (%Hk | Hk)
       · ileft; ipureintro; exact Or.inl Hk
       · iright; iexact Hk
-    icases HR with (%Hn | HR)
-    · rw [hv] at Hn; cases Hn
     (try wp_auto)
     unfold forMapPostcondition
     iright; ileft
@@ -413,39 +401,32 @@ theorem rafthttp.Transport.RemoveAllPeers_core
     iframe
     isplitr
     · imodintro; iapply peersOk_delete $$ Hpo'
-    isplitr
-    · ipureintro
-      refine ⟨fun j k hj hkj => ?_, fun k hk' => ?_⟩
-      · have hne : k ≠ key := by
-          rintro rfl
-          have := list_nodup_getElem?_inj keys Hknd i j k hk hkj
-          omega
-        rw [GMap.lookup_delete_ne _ (Ne.symm hne)]
-        exact Hagr j k (by omega) hkj
-      · by_cases hne : k = key
-        · subst hne; simp at hk'
-        · rw [GMap.lookup_delete_ne _ (Ne.symm hne)] at hk'
-          have := Hsub k hk'
-          rw [hdrop] at this
-          rcases List.mem_cons.1 this with h | h
-          · exact absurd h hne
-          · exact h
-    rw [List.take_add_one, hk]
-    simp only [Option.toList_some]
-    iapply BigSepL.bigSepL_append.2
-    iframe Htk
-    iapply BigSepL.bigSepL_singleton.2
-    iexact HR
+    ipureintro
+    refine ⟨fun j k hj hkj => ?_, fun k hk' => ?_⟩
+    · have hne : k ≠ key := by
+        rintro rfl
+        have := list_nodup_getElem?_inj keys Hknd i j k hk hkj
+        omega
+      rw [GMap.lookup_delete_ne _ (Ne.symm hne)]
+      exact Hagr j k (by omega) hkj
+    · by_cases hne : k = key
+      · subst hne; simp at hk'
+      · rw [GMap.lookup_delete_ne _ (Ne.symm hne)] at hk'
+        have := Hsub k hk'
+        rw [hdrop] at this
+        rcases List.mem_cons.1 this with h | h
+        · exact absurd h hne
+        · exact h
   isplitr
   · imodintro
-    iintro %i %key %m' %Hin ⟨-, -, -, -, -, -, %Hags, -, -⟩
+    iintro %i %key %m' %Hin ⟨-, -, -, -, -, -, %Hags, -⟩
     obtain ⟨Hagr, -⟩ := Hags
     obtain ⟨hk, hnone⟩ := Hin
     exfalso
     have := (Hkeys key).1 (List.mem_of_getElem? hk)
     rw [← Hagr i key (Nat.le_refl _) hk, hnone] at this
     exact Bool.false_ne_true this
-  iintro %m' ⟨Hp, Hg, #Hpo', Hts, Ht, -, %Hags, -, HRs⟩ Hpm
+  iintro %m' ⟨Hp, Hg, #Hpo', Hts, Ht, -, %Hags, -⟩ Hpm
   obtain ⟨-, Hsub⟩ := Hags
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr Hts]
@@ -465,9 +446,6 @@ theorem rafthttp.Transport.RemoveAllPeers_core
     iframe #
   (try wp_auto)
   iapply HΦ; iframe
-  rw [List.take_length]
-  iapply (BigSepL.bigSepL_perm (Φ := fun _ => iprop(R ∗ R ∗ R ∗ R)) Hperm).1
-  iexact HRs
 
 end proof
 

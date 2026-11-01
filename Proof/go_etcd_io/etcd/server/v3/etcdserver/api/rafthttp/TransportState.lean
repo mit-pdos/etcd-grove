@@ -28,8 +28,8 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
 
 /-- **The transport's names** (stage 6d): its member `lid`, the receiver's snapshot directory
 `γd`, the resource `R` its `Raft`'s calls borrow, its lock's ghost records `γs` (the maps) and
-`γr` (the peers' ids, the stopped flag), and (D43 M5c) the ids `L` its pool has four `R`s for,
-the only ids a remote may be started for. -/
+`γr` (the peers' ids, the stopped flag), and (D43 M5c) the ids `L` its remotes' budget has (until
+J8a-6, 2026-11-01, four `R`s each), the only ids a remote may be started for. -/
 structure TrN (GF : BundledGFunctors) where
   lid : w64
   γd : GName
@@ -371,9 +371,10 @@ set_option maxHeartbeats 8000000 in
 /-- **`t.Start()`** on a transport the caller owns whole (`NewServer`'s literal, its mutex fresh),
 its logger and stats set, of a member `tv.ID` of the network `γn` (with peer URLs), its URLs'
 slice read-only, its `Raft` the member's (`netRaftOk`, borrowing `R`), its snapshotter and
-directory, the network's HTTP side ready, and (D43 M5c) four `R`s for each id of `L` (the pool
-the remotes started later take theirs from): an error, or the transport live with no peer or remote
-yet, and all its lock's reader tokens. -/
+directory, the network's HTTP side ready, the ids `L` a remote may be started for (D43 M5c), and
+(J8a-6, 2026-11-01; until then four `R`s for each id of `L`) the pool of `R`s its peers' receiving
+goroutines borrow from (`raftPool`): an error, or the transport live with no peer or remote yet, and
+all its lock's reader tokens. -/
 theorem rafthttp.Transport.Start_full
     (hNSRT : rafthttp.newStreamRoundTripper.spec (GF := GF) (hG := hG))
     (hNRT : rafthttp.NewRoundTripper.spec (GF := GF) (hG := hG))
@@ -390,14 +391,14 @@ theorem rafthttp.Transport.Start_full
         snap.isSnapshotter tv.Snapshotter' ∗
         inv snapDirN (snapDirInv tv.Snapshotter' γd γn.N.img Rm) ∗ netHttpOk γn tv.ID' ∗
         v2stats.isLeaderStats tv.LeaderStats' ∗ v2stats.lsFollowers tv.LeaderStats' 1 ∗
-        [∗list] _id ∈ L, R ∗ R ∗ R ∗ R }}
+        raftPool R }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Start")) (Val #()))
     {{ (err : GoInterface), RET #err;
         ⌜err ≠ GoInterface.nil⌝ ∨
         ⌜err = GoInterface.nil⌝ ∗ ∃ c : TrN GF, ⌜c.lid = tv.ID' ∧ c.γd = γd ∧ c.R = R ∧ c.L = L⌝ ∗
           trLive γn t c [] ∗ trUnopened c ∗
           [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), trTok γn t c }} := by
-  wp_start_folded as ⟨Ht, %Hpre, #Huvs, #Hraft, #Hss, #Hdir, #Hnet, #Hlsi, Hlsf, HRL⟩
+  wp_start_folded as ⟨Ht, %Hpre, #Huvs, #Hraft, #Hss, #Hdir, #Hnet, #Hlsi, Hlsf, #HrPool⟩
   iStructNamed Ht
   obtain ⟨Hlgnn, Hssnn, Hlsnn, Hmu0, Hmem, HLnd, Hturls⟩ := Hpre
   iapply wp_fupd
@@ -433,10 +434,10 @@ theorem rafthttp.Transport.Start_full
       ([∗map] id ↦ pi ∈ PM, ∃ p : Loc,
         ⌜pi = interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #p⌝ ∗
           peerStop (netRh γn) id R p) ∗
-      ([∗map] id ↦ g ∈ RM, remoteStop (netRh γn) id R g) ∗ trPool R γk rm' PM L T ∗
+      ([∗map] id ↦ g ∈ RM, remoteStop (netRh γn) id R g) ∗ trPool γk rm' PM L T ∗
       ghostMapAuth γk 1 (GMap.listToSet L) ∗ dghostVar γo (DFrac.own (1 : Qp).half) b ∗
       ⌜b = false → T = []⌝ ∗ (if b then dghostVar γo DFrac.discard true else iprop(True))))
-    $$ [Hgs2 HRL Hak Htks Hob1] with #Hstop
+    $$ [Hgs2 Hak Htks Hob1] with #Hstop
   · inext
     iexists pm, rm, ∅, ∅, [], false
     iframe Hgs2 Hak Hob1
@@ -444,19 +445,16 @@ theorem rafthttp.Transport.Start_full
     · iapply BigSepM.bigSepM_empty.2; itrivial
     isplitr
     · iapply BigSepM.bigSepM_empty.2; itrivial
-    isplitl [HRL Htks]
+    isplitl [Htks]
     · iunfold trPool
       isplitr
       · ipureintro; exact ⟨fun _ h => by simp at h, HLnd⟩
-      ihave H : iprop([∗list] x ∈ L, (R ∗ R ∗ R ∗ R) ∗ trTokAt γk x 1) $$ [HRL Htks]
-      · iapply BigSepL.bigSepL_sep_eqv.2
-        iframe
       iapply BigSepL.bigSepL_mono_of_forall
-        (fun {_ x} => (show iprop((R ∗ R ∗ R ∗ R) ∗ trTokAt γk x 1) ⊢ trPoolE R γk rm ∅ [] x by
-          iintro ⟨⟨H1, H2, H3, H4⟩, Ht⟩; iunfold trPoolE; iright
+        (fun {_ x} => (show iprop(trTokAt (GF := GF) γk x 1) ⊢ trPoolE γk rm ∅ [] x by
+          iintro Ht; iunfold trPoolE; iright
           isplitr
           · ipureintro; simp
-          ileft; iframe)) $$ H
+          ileft; ileft; iexact Ht)) $$ Htks
     isplitr
     · ipureintro; intro _; rfl
     simp only [Bool.false_eq_true, ↓reduceIte]

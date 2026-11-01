@@ -141,7 +141,7 @@ theorem Main.wp_proof
   have Hdirok : netDirOk (akDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   -- `startServer(lg)`: the member with auth on
-  wp_apply (wp_startServer N lg (LogEntry.toEntries boot 0) ctxs (akDir id) id γ ρ E₀ Φs γn Htb31
+  wp_apply (wp_startServer N lg (LogEntry.toEntries boot 0) ctxs (akDir id) id γ ρ E₀ Φs γn Htb
       Hrb48 HrbN hvs hrule hboot hblen hγn1 hγn2 Hdirok (by simp [akDir, dirOne]) Hlg Hck Haf
       Hbuq Hdbo)
     $$ [Htok Hmb] as %srv %err Hr
