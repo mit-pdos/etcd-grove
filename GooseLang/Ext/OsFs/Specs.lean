@@ -1451,7 +1451,8 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
     obtain ⟨f, hf, -⟩ := hcoh.tok_saved t ti hti
     rw [hcp, hn] at hf; cases hf
   refine ⟨fun q => ?_, fun q => ?_, fun q m hm => ?_, fun q i x hx => ?_, fun q f1 i h1 hi => ?_,
-    hcoh.fds, hcoh.toks, fun t ti h => ?_, hcoh.tok_alone, fun t ti h => ?_⟩
+    hcoh.fds, hcoh.toks, fun t ti h => ?_, hcoh.tok_alone, fun t ti h => ?_,
+    fun t ti h => ?_⟩
   · rw [files_setFile, GMap.lookup_insert_eq_iff]; split
     · simp
     · exact hcoh.meta_dom q
@@ -1484,6 +1485,15 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
     rw [affRange_congr hs, file_setFile]; split
     · subst_vars; rw [hn] at h1; cases h1
     · exact ⟨f1, h1, hsv⟩
+  · intro j hj
+    obtain ⟨hjl, f1, h1, hc⟩ := hcoh.tok_clean t ti h j hj
+    have hlo : affLo (st.setFile p newFile) ti.c = affLo st ti.c := by unfold affLo; rw [hs]
+    have hhi : affHi (st.setFile p newFile) ti.c = affHi st ti.c := by unfold affHi; rw [hs]
+    rw [hlo, hhi, file_setFile]
+    refine ⟨hjl, ?_⟩
+    split
+    · subst_vars; rw [hn] at h1; cases h1
+    · exact ⟨f1, h1, hc⟩
 
 end create
 

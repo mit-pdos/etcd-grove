@@ -108,8 +108,9 @@ def toks (p : GoString) (s : CSt) : List (Nat × TokInfo) :=
   match s.busy with
   | .idle => []
   | .write t off data => [(t, ⟨⟨p, .write off data⟩, 1,
-      (cfRange s.m s.bs off data.length).map Prod.fst, pwMeta s.m off data.length⟩)]
-  | .trunc t sz => [(t, ⟨⟨p, .truncate sz⟩, 1, [], ftMeta s.m sz⟩)]
+      (cfRange s.m s.bs off data.length).map Prod.fst, pwMeta s.m off data.length,
+        (cfRange s.m s.bs off data.length).map Prod.snd⟩)]
+  | .trunc t sz => [(t, ⟨⟨p, .truncate sz⟩, 1, [], ftMeta s.m sz, []⟩)]
 
 /-- What the specs keep of a state: all the bytes, the frozen ones inside, a write in flight
 misses them (and so does what it appends, which starts at the size), a truncate grows. -/
@@ -551,7 +552,8 @@ theorem csInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
     · unfold metaRes; rw [hbz]; iexact Hm
     iapply (invBytes_runs (L := L) p s).2; iexact Hb
   · ihave Ht := (show metaRes (L := L) p s ⊢ osTok (L := L) t ⟨⟨p, .write off data⟩, 1,
-        (cfRange s.m s.bs off data.length).map Prod.fst, pwMeta s.m off data.length⟩ by
+        (cfRange s.m s.bs off data.length).map Prod.fst, pwMeta s.m off data.length,
+        (cfRange s.m s.bs off data.length).map Prod.snd⟩ by
       unfold metaRes pwTok; rw [hbz]) $$ Hm
     icases osCrashQT_take_tok_keep Q L L' D t _ hp s.runs $$ Hr Ht Hb
       with ⟨%fo, %h, Hf, Hr, Ht, Hb⟩
@@ -564,7 +566,7 @@ theorem csInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
     · unfold metaRes pwTok; rw [hbz]; iexact Ht
     iapply (invBytes_runs (L := L) p s).2; iexact Hb
   · ihave Ht := (show metaRes (L := L) p s ⊢ osTok (L := L) t ⟨⟨p, .truncate sz⟩, 1, [],
-        ftMeta s.m sz⟩ by
+        ftMeta s.m sz, []⟩ by
       unfold metaRes ftTok; rw [hbz]) $$ Hm
     icases osCrashQT_take_tok_keep Q L L' D t _ hp s.runs $$ Hr Ht Hb
       with ⟨%fo, %h, Hf, Hr, Ht, Hb⟩

@@ -320,7 +320,8 @@ theorem osCoh_setFile_sameCur {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt
   have hI := inflightAt_setFile_sameCur hf hcur
   have hfp : st.files !! p = some (some f) := file_eq_some.1 hf
   refine ⟨fun q => ?_, fun q => ?_, fun q m hm => ?_, fun q i x hx => ?_, fun q f1 i h1 hi => ?_,
-    hcoh.fds, hcoh.toks, fun t ti h => ?_, hcoh.tok_alone, fun t ti h => ?_⟩
+    hcoh.fds, hcoh.toks, fun t ti h => ?_, hcoh.tok_alone, fun t ti h => ?_,
+    fun t ti h => ?_⟩
   · rw [files_setFile, GMap.lookup_insert_eq_iff]
     split
     · simp
@@ -369,6 +370,15 @@ theorem osCoh_setFile_sameCur {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt
     rw [file_setFile]; split
     · subst_vars; rw [hf] at h1; cases h1; exact ⟨f', rfl, by rw [hcur]; exact hsv⟩
     · exact ⟨f1, h1, hsv⟩
+  · intro j hj
+    obtain ⟨hjl, f1, h1, hc⟩ := hcoh.tok_clean t ti h j hj
+    have hlo : affLo (st.setFile p f') ti.c = affLo st ti.c := by unfold affLo; rw [hs]
+    have hhi : affHi (st.setFile p f') ti.c = affHi st ti.c := by unfold affHi; rw [hs]
+    rw [hlo, hhi]
+    refine ⟨hjl, ?_⟩
+    rw [file_setFile]; split
+    · subst_vars; rw [hf] at h1; cases h1; exact ⟨f', rfl, hkeep _ hc⟩
+    · exact ⟨f1, h1, hc⟩
 
 end sameCur
 

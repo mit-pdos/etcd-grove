@@ -29,7 +29,7 @@ with the whole `OsMeta`). -/
 def cToks (p : GoString) : CFile → List (Nat × TokInfo)
   | some (m, bs, some (t, off, data)) =>
       [(t, ⟨⟨p, .write off data⟩, 1, (cfRange m bs off data.length).map Prod.fst,
-        pwMeta m off data.length⟩)]
+        pwMeta m off data.length, (cfRange m bs off data.length).map Prod.snd⟩)]
   | _ => []
 
 /-- Every file a crash under the premise `Q` may leave of the state `s` of the file at `p` is

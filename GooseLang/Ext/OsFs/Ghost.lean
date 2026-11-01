@@ -69,6 +69,10 @@ structure TokInfo where
   saved : List w8
   /-- The file's `OsMeta`, as the first step left it. -/
   om : OsMeta
+  /-- The clean flags the taken bytes had (`OsCoh.tok_clean`: a byte flagged clean is still
+  clean on disk while the change is in flight), so that the bytes a write leaves untouched come
+  back clean (`pwBytes`). -/
+  cl : List Bool
 
 instance OsMeta.countable : Pos.Countable OsMeta :=
   Pos.Countable.ofInjective
@@ -106,11 +110,11 @@ instance OsChange.countable : Pos.Countable OsChange :=
       cases ka <;> cases kb <;> simp_all [OsChangeKind.enc])
 
 instance TokInfo.countable : Pos.Countable TokInfo :=
-  Pos.Countable.ofInjective (fun t => Pos.Countable.encode (t.c, t.q, t.saved, t.om))
+  Pos.Countable.ofInjective (fun t => Pos.Countable.encode (t.c, t.q, t.saved, t.om, t.cl))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4⟩ := h; subst h1 h2 h3 h4; rfl)
+      obtain ⟨h1, h2, h3, h4, h5⟩ := h; subst h1 h2 h3 h4 h5; rfl)
 
 /-! ## Derived facts about a state -/
 
@@ -191,6 +195,10 @@ structure OsCoh (Γb : GMap (GoString × Nat) (w8 × Bool)) (Γm : GMap GoString
     ∀ t' c', t' ≠ t → st.inflight !! t' = some c' → c'.path ≠ ti.c.path
   tok_saved : ∀ t ti, Γt !! t = some ti → ∃ f, st.file ti.c.path = some f ∧
     ti.saved = (affRange st ti.c).map (fun i => f.cur.getD i 0)
+  /-- A taken byte the token records as clean is clean on disk, even while in flight. -/
+  tok_clean : ∀ t ti, Γt !! t = some ti → ∀ j, ti.cl[j]? = some true →
+    j < affHi st ti.c - affLo st ti.c ∧
+    ∃ f, st.file ti.c.path = some f ∧ CleanPhys f (affLo st ti.c + j)
 
 end derived
 
@@ -614,7 +622,7 @@ theorem osInit_wf_coh {st : OsState} (h : OsInit st) :
     fun p f hf => hdisk p f (file_eq_some.1 hf)
   have hnoinfl : ∀ p i, ¬ InflightAt st p i := by
     rintro p i ⟨t, c, ht, -⟩; simp [hin] at ht
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
   · intro fd d h; simp [hfd] at h
   · intro b m h; simp [hmp] at h
   · intro b1 m1 _ _ h; simp [hmp] at h
@@ -666,6 +674,7 @@ theorem osInit_wf_coh {st : OsState} (h : OsInit st) :
     simp [bytesMap, hf, hi]
   · rw [hfd]
   · intro t; simp [hin]
+  · intro t ti h; simp at h
   · intro t ti h; simp at h
   · intro t ti h; simp at h
   · intro t ti h; simp at h
