@@ -104,11 +104,17 @@ def kdMask : CoPset :=
 
 /-- **The durable store's ghost names**: kvreconf's (raft's cluster, the store's history, the
 minted operations and reads, ...), the files' (`durableFilesInv`), and per replica id the file's
-writer variable (`kdWriter`). -/
+writer variable (`kdWriter`); the map of the current incarnations and the crasher's token
+(`curRep`, `crasher`: 2026-11-01, the crasher). -/
 structure KdNames where
   r : kvreconf.RNames
   files : GName
   wr : w64 → GName
+  /-- the current incarnation of each started replica (a `ghostMap` from ids to `Loc`s: its
+  authority in `clusterLockInv`, at `c.replicas`; its fragments `curRep`) -/
+  cur : GName
+  /-- the crasher's token (`token`: `crasher`) -/
+  crt : GName
 
 /-- **An incarnation's `dmu` names** (2026-11-01, stage II (h)): the pending batch's claim, and the
 monotone lower bounds of the image's frozen bound (`fz`: the image's entries up to it are frozen in
@@ -618,10 +624,22 @@ def isRep (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) :
 def repKnown (γ : KdNames) (id : w64) : IProp GF :=
   iprop(⌜id ≠ W64 0⌝ ∗ monoNatLbOwn γ.r.nid (uint.nat id + 1))
 
+/-- **Incarnation `r` is replica `id`'s current one** (exclusive; 2026-11-01, the crasher): the
+fragment of the map of the current incarnations (`γ.cur`), whose authority `clusterLockInv` keeps
+equal to `c.replicas`, so the holder alone can make another incarnation current. -/
+def curRep (γ : KdNames) (id : w64) (r : Loc) : IProp GF := id ↪[γ.cur] r
+
+/-- **The crasher's token** (exclusive; 2026-11-01): the right to crash the current incarnations
+(`Cluster.restart`, which `Crash` runs). `clusterLockInv` holds every current incarnation's
+`repStop` but the one the crasher is restarting, whose place holds this token: so two crashes of one
+incarnation (a double close of its channels) are excluded. -/
+def crasher (γ : KdNames) : IProp GF := token γ.crt
+
 /-- **The cluster's lock invariant** (kvreconf's `clusterLockInv`, with incarnations): the current
 incarnation of each started replica, the ids not started yet with their allocated durable state and
-vacant slot (`joinAuth`), and per started id either its current incarnation's stopper share or (while
-`Crash` restarts it) nothing. -/
+vacant slot (`joinAuth`), the map of the current incarnations (`γ.cur`) at `c.replicas`, and per
+started id either its current incarnation's fragment and stopper-and-crasher share (`repStop`) or
+(while `Crash` restarts it) the crasher's token. -/
 def clusterLockInv (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) : IProp GF :=
   iprop(∃ (mR : Loc) (R : GMap w64 Loc) (nid nop : w64) (U : GSet w64),
     "HmR" ∷ c.[KCluster, go!"replicas"] ↦ mR ∗
@@ -635,6 +653,9 @@ def clusterLockInv (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) : I
       (∀ i, i ∈ U ↔ 1 ≤ uint.nat i ∧ uint.nat i < uint.nat nid) ∧
       vs.length < uint.nat nid ∧ uint.nat nid ≤ 10⌝ ∗
     "Hreps" ∷ ([∗map] id ↦ r ∈ R, isRep γ vs dir id r) ∗
+    -- (2026-11-01, the crasher) the current incarnations' map, and their `repStop`s
+    "Hcur" ∷ ghostMapAuth γ.cur 1 R ∗
+    "Hstops" ∷ ([∗map] id ↦ r ∈ R, (curRep γ id r ∗ repStop γ vs dir id r) ∨ crasher γ) ∗
     "Hfiles" ∷ ([∗list] i ∈ kvreconf.freshIds (uint.nat nid), dfile γ.files (kdFileName dir i) none ∗
       ∃ g : RaftState × Option GoString, ghostVar (γ.wr i) (1 : Qp) g))
 

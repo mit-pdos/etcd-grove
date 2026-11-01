@@ -81,7 +81,8 @@ theorem Cluster.replica.wp_proof : Cluster.replica.spec (GF := GF) (hG := hG) :=
         have := (Hdom.1 id).2 ⟨by word, by omega⟩
         rw [HRid] at this
         exact absurd this (by simp)
-  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked HmR HR Hnid Hnop Hopn HnidA Hjoin Hfiles]
+  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked HmR HR Hnid Hnop Hopn HnidA Hjoin Hcur Hstops
+      Hfiles]
   · inext
     unfold clusterLockInv
     iexists mR, R, nid, nop, U
@@ -91,6 +92,58 @@ theorem Cluster.replica.wp_proof : Cluster.replica.spec (GF := GF) (hG := hG) :=
   try wp_auto
   iapply HΦ
   iexact Hans
+
+/-- `specPin`: under `c.mu`, the id is in the map (`repKnown` and the lock's `γ.r.nid` authority);
+its entry holds the current incarnation's fragment and `repStop`, not the crasher's token (which
+the caller holds), and the token takes their place. -/
+theorem Cluster.replica.wp_proofPin : Cluster.replica.specPin (GF := GF) (hG := hG) := by
+  intro γ vs dir c id
+  wp_start as ⟨Hc, Hk, Hcr⟩
+  iunfold isClusterC at Hc
+  iNamed Hc
+  wp_auto
+  wp_bind (App (Val wrapDefer) _)
+  wp_apply wp_with_defer as %defer defer
+  try wp_auto
+  wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HL⟩
+  iunfold clusterLockInv at HL
+  iNamed HL
+  try wp_auto
+  wp_apply wp_map_lookup1 go.uint64 _ mR R id (DFrac.own 1) $$ HR as HR
+  iunfold repKnown at Hk
+  icases Hk with ⟨%Hid0, #Hlb⟩
+  ihave %Hle := monoNatLbOwn_valid $$ HnidA Hlb
+  obtain ⟨r, HRid⟩ : ∃ r, R !! id = some r := by
+    have := (Hdom.1 id).2 ⟨by word, by omega⟩
+    cases h : R !! id with
+    | none => rw [h] at this; simp at this
+    | some r => exact ⟨r, rfl⟩
+  icases (BigSepM.bigSepM_delete
+    (Φ := fun id r => iprop((curRep (GF := GF) γ id r ∗ repStop γ vs dir id r) ∨ crasher γ))
+    (m := R) HRid).1 $$ Hstops with ⟨Hst, Hstops⟩
+  icases Hst with (⟨Hcur1, Hstop⟩ | Hcr2)
+  rotate_left
+  · iunfold crasher at Hcr Hcr2
+    iexfalso
+    iapply token_exclusive $$ Hcr Hcr2
+  ihave Hstops := (BigSepM.bigSepM_delete
+    (Φ := fun id r => iprop((curRep (GF := GF) γ id r ∗ repStop γ vs dir id r) ∨ crasher γ))
+    (m := R) HRid).2 $$ [Hcr Hstops]
+  · iframe Hstops
+    iright
+    iexact Hcr
+  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked HmR HR Hnid Hnop Hopn HnidA Hjoin Hreps Hcur
+      Hstops Hfiles]
+  · inext
+    unfold clusterLockInv
+    iexists mR, R, nid, nop, U
+    iframe
+    ipureintro; exact Hdom
+  try wp_auto
+  iapply HΦ
+  rw [HRid]
+  simp only [Option.getD_some]
+  iframe Hcur1 Hstop
 
 end proof
 

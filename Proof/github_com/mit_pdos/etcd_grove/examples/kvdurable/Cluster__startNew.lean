@@ -62,7 +62,8 @@ theorem Cluster.startNew.wp_proof
   wp_if_destruct
   · -- `maxReplicas` started: nothing changes
     try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked HmR HR Hnid Hnop Hopn HnidA Hjoin Hreps Hfiles]
+    wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked HmR HR Hnid Hnop Hopn HnidA Hjoin Hreps Hcur
+      Hstops Hfiles]
     · inext
       unfold clusterLockInv
       iexists mR, R, nid, nop, U
@@ -90,23 +91,25 @@ theorem Cluster.startNew.wp_proof
   ihave #Hknown : repKnown γ nid $$ []
   · unfold repKnown; iframe Hlb; ipureintro; exact Hnid0
   wp_apply wp_start γ vs dir c nid RaftState.init none (by word) (by word)
-    $$ [$Hc $HfInv $Hvac $Hwr $Hknown] as %r ⟨Hr, -⟩
+    $$ [$Hc $HfInv $Hvac $Hwr $Hknown] as %r ⟨Hr, Hstop⟩
   have HRn : R !! nid = none := by
     cases h : R !! nid with
     | none => rfl
     | some _ => have := (HdomR nid).1 (by simp [h]); omega
+  -- the new incarnation current: its fragment and `repStop` to the lock
+  imod ghost_map_insert nid r HRn $$ Hcur with ⟨Hcur, Hfrag⟩
   wp_apply wp_mapInsert go.uint64 mR R nid r $$ [$HR] as HR
   try wp_auto
   ihave #Hctr := isStats_field (c.[KCluster, go!"Stats"]) go!"ReplicasStarted" (by decide) $$ Hstats
   wp_apply wp_add (c.[KCluster, go!"Stats"]) _ $$ [$Hpkg $Hctr]
   try wp_auto
   wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked HmR HR Hnid Hnop Hopn HnidA Hjoin Hreps Hr
-      Hfiles]
+      Hcur Hstops Hstop Hfrag Hfiles]
   · inext
     unfold clusterLockInv
     iexists mR, <[nid := r]> R, nid + W64 1, nop, {nid} ∪ U
     rw [e2]
-    iframe Hnid Hnop Hopn HnidA Hjoin HmR HR Hfiles
+    iframe Hnid Hnop Hopn HnidA Hjoin HmR HR Hfiles Hcur
     isplitr
     · ipureintro
       refine ⟨?_, ?_, by omega, by omega⟩
@@ -125,10 +128,18 @@ theorem Cluster.startNew.wp_proof
           · left; exact hi
           · right; have : uint.nat i ≠ uint.nat nid := fun h => hi (by word)
             omega
-    iapply (BigSepM.bigSepM_insert (Φ := fun id r => isRep (GF := GF) γ vs dir id r) HRn).2
-    iframe Hreps
-    unfold isRep
-    iexact Hr
+    isplitl [Hreps Hr]
+    · iapply (BigSepM.bigSepM_insert (Φ := fun id r => isRep (GF := GF) γ vs dir id r) HRn).2
+      iframe Hreps
+      unfold isRep
+      iexact Hr
+    iapply (BigSepM.bigSepM_insert
+      (Φ := fun id r => iprop((curRep (GF := GF) γ id r ∗ repStop γ vs dir id r) ∨ crasher γ))
+      (m := R) HRn).2
+    iframe Hstops
+    ileft
+    unfold curRep
+    iframe Hfrag Hstop
   try wp_auto
   iapply HΦ
   iintro -

@@ -4,7 +4,11 @@
 files in the directory `dir`, holding none of them: from the files' entries at `none` (each voter's
 file invariant allocated at the empty storage, with the id's durable state at `RaftState.init` and
 its slot from the cluster's allocation, `cluster_alloc`), each voter started by `Cluster.start`
-(`RestartNode` on an empty storage at the bootstrap configuration) under `c.mu`.
+(`RestartNode` on an empty storage at the bootstrap configuration) under `c.mu`. The caller
+allocates the names `γ`, with the read-sequence elements of the ids `0..9` at `0` (the store's
+`readSeqs` lock holds them: `isReadSeqs`) and the empty map of the current incarnations (`γ.cur`;
+2026-11-01, the crasher: the crasher's token `crasher γ`, which `Crash` takes, is the caller's from
+the allocation too, as no incarnation is being restarted).
 -/
 module
 
@@ -43,7 +47,9 @@ abbrev StartCluster.spec : Prop :=
       joinAuth γ.r.cluster (GMap.listToSet vs) ∗
       ([∗list] i ∈ kvreconf.freshIds (vs.length + 1), dfile γ.files (kdFileName dir i) none ∗
         ∃ g : RaftState × Option GoString, ghostVar (γ.wr i) (1 : Qp) g) ∗
-      ghostVar γ.r.opn (1 : Qp).half (W64 0) ∗ monoNatAuthOwn γ.r.nid 1 0 }}
+      ghostVar γ.r.opn (1 : Qp).half (W64 0) ∗ monoNatAuthOwn γ.r.nid 1 0 ∗
+      ([∗list] i ∈ kvreconf.freshIds 0, i ↪[γ.r.rseq] W64 0) ∗
+      ghostMapAuth γ.cur 1 (∅ : GMap w64 Loc) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kvdurable.StartCluster)) (Val #o)) (Val #dir))
   {{ (c : Loc), RET #c; isClusterC γ vs dir c }}
 
