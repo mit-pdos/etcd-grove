@@ -1,14 +1,86 @@
-# mvccrand: a randomized tester of mvcc in isolation, and why its adequacy is not provable
+# mvccrand: a randomized tester of mvcc, used as etcd's server uses it
 
-2026-10-30, branch `worktree-mvcc-rand-tester`. The user asked for a top-level randomized tester of
+Branch `worktree-mvcc-rand-tester`. 2026-10-30: the user asked for a top-level randomized tester of
 etcd's mvcc package in isolation, its adequacy proved end to end from the existing mvcc specs, or,
-if that is impossible, why the specs are insufficient. The tester is written; the proof is not
-attempted: the specs on `lean` cannot carry it. This note is the reasons, checked against the
-specs at `lean` `b1712c2187`.
+if that is impossible, why the specs are insufficient. The first version (below, "The first
+version") exercised mvcc beyond what etcd's proof relies on; its adequacy is not provable from the
+specs on `lean` (`b1712c2187`), for the reasons listed there. 2026-11-01: rewritten, at the user's
+request, to exercise what etcd relies on; no proof attempted yet.
 
-## The tester (`examples/mvccrand`)
+## What etcd relies on mvcc for
 
-`Run(cfg)` opens a backend in a fresh file (`backend.New`), a store over it with no lessor
+From etcd's calls (non-test, at the pin) and the mvcc results its proofs link (the server's, the
+apply, txn and v3rpc `Link.lean`s):
+
+- **One writer, the apply thread**, through the txn package: `Put` and `DeleteRange` (a write
+  transaction, reading the previous key-values first: `checkAndGetPrevKV`); `Txn` (the compares
+  in a read transaction, shared-buffer mode when it writes and the feature is on, `End`, then a
+  write transaction, which must start at the read's revision: txn.go, "writes are serialized on
+  the raft loop", or `NewReadOnlyTxnWrite` of the read when it does not write; ranges in the write
+  transaction see its pending changes); lease `Grant`/`Revoke` (the revoke deletes the lease's keys
+  through mvcc's range deleter, `s.Write`, in one revision); `KV().Commit()`.
+- **The post-lock hook** (`getTxPostLockInsideApplyHook`, the consistent index's save), installed
+  on the backend after `mvcc.New`, run in every write's lock (`LockInsideApply`).
+- **Request goroutines reading concurrently with the writer**: `Read(ConcurrentReadTxMode)` with
+  the floor of a linearizable read (`store.Read`'s `log₀`), read-only `Txn`, `Rev` for headers.
+- **Watches** (v3rpc): a stream per connection, whose receive loop registers watchers (`Watch`,
+  `RequestProgress`, `RequestProgressAll`) and whose send loop drains `Chan()`.
+- The watchable store (`mvcc.New`) over the real backend and the real lessor.
+- **Not relied on** by the current proof: compaction (the store is never compacted), the store's
+  own `Put`/`DeleteRange`/`Range` (`Range`'s one caller, the watch server's previous key-value, is
+  behind `watchReqOk`), `Restore`, hashing.
+
+## The tester (`examples/mvccrand`, second version)
+
+`Run(cfg)` sets the store up as the server does (`backend.New` of a fresh file, `lease.NewLessor`
+over it, `mvcc.New`, then `be.SetTxPostLockInsideApplyHook` of a hook saving the index being
+applied, as `getTxPostLockInsideApplyHook`), then runs concurrently:
+
+- **the writer** (`cfg.Ops` operations, the only writer): `Put` and `DeleteRange` as txn's (a
+  range of the previous key-values in the write transaction first), `Txn` as txn's (a compare in a
+  read transaction, shared-buffer or concurrent, then a write transaction checked to start at the
+  read's revision, with 1-3 puts, deletes and ranges of the pending state; or a read-only
+  `NewReadOnlyTxnWrite`), lease grants, revokes (the lease's keys deleted in one revision) and puts
+  with a lease, `Commit`, the lessor's record of each key's lease and each lease's keys
+  (`GetLease`, `Lookup(...).Keys()`), and reads of its own at exactly its revision. After each write
+  it checks that the hook ran with its index, and the store's revision; it appends each revision to
+  the shared history before the transaction's `End` and publishes it after;
+- **readers** (`cfg.Readers` of `cfg.Reads`): read transactions, read-only transactions and `Rev`,
+  each at least at the revision published before it started (or with no floor, a serializable
+  read) and at a revision written, ranges checked exactly against the history (a single key, a
+  range, from-key; current, past, future; limits, count-only, keys-only, total count);
+- **a watch stream's two goroutines**: one registers `cfg.Watchers` watchers as the writer goes
+  (start revision from 1 to one past the published one, so most catch up through the unsynced
+  path; a range whose end is not above its key must fail with `ErrEmptyWatcherRange`) and asks for
+  progress; the other drains `Chan()`. Each event must be its watcher's next change in the history
+  (from its start revision, in order, all fields), at or below its response's revision; a
+  watcher's progress response at `P` must follow every change up to `P` (a stream-wide one only
+  checks `P`: it speaks for the watchers registered when it was made).
+
+`Main` is `Run` at seed 1: 1000 writer operations, 4 readers of 200 reads, 8 watchers; it checks
+only what arrived. `TestRun` (30 seeds of 2000 operations, 4 x 400 reads, 8 watchers) also waits
+(`Drain`) for every watcher to have every event, a liveness check outside `Main`. Results at the
+pin, `go test -race`: pass, about 70000 watch events checked and about 3100 reads above their
+floor (a write ended while they started), 16s.
+
+**It has teeth**: each of four bugs injected in a copy of the pinned etcd server module (2026-11-01)
+fails the first seed: a read transaction one revision stale every 7 revisions (`store.Read`: "the
+store's revision is not the writer's", through `Rev`), the last event of a multi-event revision
+not sent to watchers ("a watcher received an event it should not have, or missed one"), the hook
+not run by `LockInsideApply` ("the post-lock hook did not run in the write's lock"), and `put` not
+detaching a key from its old lease (the revoke then deletes a key no longer on it).
+
+**For a proof**: this version leaves out what blocked the first (compaction and `NoDelPutAt`, the
+store's own `Put`/`DeleteRange`/`Range`, `FakeLessor`, no hook). Still in the way: `backend.New`'s
+possible panic, the Iris environment premises and the refuted bbolt axioms (items 6-8 below). Not
+yet checked against the specs: what it uses beyond the first version (`NewLessor` with a `nil`
+cluster, `Grant`, `Revoke`, `GetLease`, `Lookup`, `Lease.Keys`, the watch stream's calls and the
+progress guarantee, `Commit`, `NewReadOnlyTxnWrite`), and the history shared through a mutex and
+atomics, which a proof would carry as an invariant.
+
+## The first version (2026-10-30)
+
+`Run(cfg)` opened a backend in a fresh file (`backend.New`), a store over it with no lessor
 (`mvcc.NewStore(lg, be, &lease.FakeLessor{}, mvcc.StoreConfig{})`, as mvcc's own tests), and runs
 `cfg.Ops` operations from a splitmix64 generator seeded with `cfg.Seed`, each checked against a
 model that keeps the state at every revision (`states[r]`); a failed check panics. `Main` is
@@ -33,7 +105,7 @@ seed dies (`rangeKeys`' `lg.Fatal("range failed to find revision pair")`,
 `issues/etcd-compaction-delete-then-put.md`): its transactions delete a key and put it again in
 one revision about once per 100 operations, and it compacts at such a revision several times a run.
 
-## Why its adequacy cannot be proved from the specs
+## Why the first version's adequacy cannot be proved from the specs
 
 ### In mvcc's own specs
 

@@ -1,28 +1,41 @@
-// Package mvccrand is a randomized differential tester of etcd's mvcc key-value store in
-// isolation: one store (mvcc.NewStore) over a backend in a fresh file and no lessor
-// (lease.FakeLessor, as mvcc's own tests), driven by a seeded pseudo-random sequence of
-// operations, each result checked against a reference model that keeps the state at every
-// revision. Run panics if a check fails.
+// Package mvccrand is a randomized tester of etcd's mvcc store, used the way etcd's server uses
+// it, each result checked against a reference model. Run panics if a check fails.
 //
-// The operations, through mvcc's public API (mvcc.KV):
-//   - write transactions (Write ... End) of one to three puts and range deletes, with range reads
-//     inside the transaction (which see its pending changes); the store's own Put and DeleteRange
-//     (a transaction each);
-//   - read transactions (Read ... End) and the store's own Range, at the current revision, a past
-//     one, a future one (ErrFutureRev) or one below the compaction revision (ErrCompacted), over a
-//     single key, a range or a from-key range, with a limit, count-only, keys-only and the total
-//     count, every field of every key-value checked (key, value, create and mod revisions,
-//     version, lease);
-//   - compactions (Compact, then a wait for the job), at a revision above the compaction revision
-//     (the current one half the time), at or below it (ErrCompacted) or above the current one
-//     (ErrFutureRev). A compacted revision may be one whose transaction deleted a key and put it
-//     again (issues/etcd-compaction-delete-then-put.md: fixed at the etcd pin, e7bb9f2de).
+// The configuration is the server's: the watchable store (mvcc.New) over a backend in a fresh
+// file, a real lessor (lease.NewLessor over the same backend), and a post-lock hook installed on
+// the backend after the store is made (the server's consistent-index save,
+// getTxPostLockInsideApplyHook: it records the index being applied).
 //
-// Main is the test whose adequacy would be proved: it panics if a check fails.
+// The goroutines are the server's:
+//   - one writer, the apply thread: write transactions as the server's txn package makes them
+//     (Put and DeleteRange, each reading the previous key-values in the write transaction first;
+//     Txn: its compares in a read transaction, shared-buffer or concurrent, then a write
+//     transaction, which must start at the revision the read saw, running ranges that see its
+//     pending changes, or a read-only transaction when it has no write), lease grants and revokes
+//     (the revoke deletes the lease's keys through mvcc's range deleter, in one revision), puts
+//     with a lease, Commit, and reads of its own; it publishes each revision it has written (the
+//     applied index). Being the only writer, it knows every revision exactly.
+//   - readers, the request goroutines: read transactions (Read in the concurrent mode),
+//     read-only transactions (NewReadOnlyTxnWrite) and Rev, at the current revision, a past one or
+//     a future one, each seeing at least the revision the writer had published before it started
+//     (a linearizable read's floor) or none (a serializable read).
+//   - a watch stream's two goroutines: one registers watchers (Watch, from an explicit start
+//     revision, past or future, over a key, a range or a from-key range) and asks for progress
+//     (RequestProgress, RequestProgressAll) as the writer goes on; the other receives the
+//     responses (Chan). Each watcher's events must be exactly the model's changes in its range
+//     from its start revision on, in order, each response's revision at least its events', and a
+//     progress response at P must come after every change up to P.
+//
+// Not exercised: compaction, the store's own Put/DeleteRange/Range, Restore and hashing, which
+// etcd's proof does not rely on (notes/mvccrand.md).
 package mvccrand
 
 import (
 	"context"
+	"sort"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -39,11 +52,32 @@ var keys = []string{"a", "aa", "b", "ba", "c", "d"}
 // The range ends besides the keys: past "ba" and below "c", and past every key.
 var extraEnds = []string{"bb", "z"}
 
-// A Config is a run's: the backend's file (fresh), the seed and the number of operations.
+// A Config is a run's: the backend's file (fresh), the seed, the writer's number of operations,
+// the readers and their reads each, the watchers, and how long to wait at the end for every
+// watcher to have received every event (0: not at all; the check is then only of what arrived).
 type Config struct {
-	Path string
-	Seed uint64
-	Ops  int
+	Path     string
+	Seed     uint64
+	Ops      int
+	Readers  int
+	Reads    int
+	Watchers int
+	Drain    time.Duration
+}
+
+// A Report is what a run observed beyond its checks: whether every watcher received every event
+// up to the last revision (checked only with Config.Drain), how many events arrived, and how many
+// reads saw a revision above the floor they started with (a write ended during the read's start).
+type Report struct {
+	WatchersComplete bool
+	Events           int
+	ReadsAboveFloor  int64
+}
+
+func check(ok bool, msg string) {
+	if !ok {
+		panic("mvccrand: " + msg)
+	}
 }
 
 // A rec is a key's key-value in the model.
@@ -52,22 +86,67 @@ type rec struct {
 	create int64
 	mod    int64
 	ver    int64
+	lease  int64
 }
 
-// A model is the store's expected history: states[r] is the state at revision r (the store
-// starts at revision 1, empty; states[0] is the empty state too, never read), and the compaction
-// revision.
-type model struct {
-	states    []map[string]rec
-	compacted int64
+// A change is one change of a revision, as a watcher sees it: a put of the key-value kv, or a
+// delete of key.
+type change struct {
+	del bool
+	key string
+	kv  rec
 }
 
-func newModel() *model {
-	return &model{states: []map[string]rec{{}, {}}, compacted: -1}
+// A history is the store's expected history, shared by the writer (which appends) and the other
+// goroutines: states[r] is the state at revision r (the store starts at revision 1, empty;
+// states[0] is empty too, never read) and changes[r] its changes in order. A revision is
+// appended before the transaction that makes it ends, so every revision the store shows is in
+// it. published is the last revision the writer has finished writing.
+type history struct {
+	mu         sync.RWMutex
+	states     []map[string]rec
+	changes    [][]change
+	published  atomic.Int64
+	aboveFloor atomic.Int64
 }
 
-// cur is the store's current revision.
-func (m *model) cur() int64 { return int64(len(m.states) - 1) }
+// seen checks that a read at revision cur is at least at its floor and at a revision written,
+// and counts it if it is above its floor.
+func (h *history) seen(floor, cur int64, what string) {
+	check(floor <= cur, what+" is below a revision already written")
+	check(cur < int64(len(h.snapshot())), what+" is at a revision not yet written")
+	if floor > 0 && cur > floor {
+		h.aboveFloor.Add(1)
+	}
+}
+
+func newHistory() *history {
+	h := &history{states: []map[string]rec{{}, {}}, changes: [][]change{nil, nil}}
+	h.published.Store(1)
+	return h
+}
+
+// snapshot returns the states so far (each state is never changed once appended).
+func (h *history) snapshot() []map[string]rec {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.states[:len(h.states):len(h.states)]
+}
+
+func (h *history) appendRev(st map[string]rec, chs []change) {
+	h.mu.Lock()
+	h.states = append(h.states, st)
+	h.changes = append(h.changes, chs)
+	h.mu.Unlock()
+}
+
+// changesAt returns revision r's changes; r must be in the history.
+func (h *history) changesAt(r int64) []change {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	check(r < int64(len(h.changes)), "the store showed a revision the writer has not made")
+	return h.changes[r]
+}
 
 // A rng is a splitmix64 generator.
 type rng struct{ s uint64 }
@@ -83,20 +162,6 @@ func (r *rng) next() uint64 {
 // intn returns a number in [0, n), n > 0.
 func (r *rng) intn(n int) int { return int(r.next() % uint64(n)) }
 
-func check(ok bool, msg string) {
-	if !ok {
-		panic("mvccrand: " + msg)
-	}
-}
-
-func copyState(st map[string]rec) map[string]rec {
-	c := make(map[string]rec, len(st))
-	for k, v := range st {
-		c[k] = v
-	}
-	return c
-}
-
 // A rangeReq is a range read's request: [key, end), end nil for the key alone, empty for every
 // key from key on.
 type rangeReq struct {
@@ -105,21 +170,21 @@ type rangeReq struct {
 	ro  mvcc.RangeOptions
 }
 
-// inRange says whether key k is in the request's range.
-func (q rangeReq) inRange(k string) bool {
-	if q.end == nil {
-		return k == string(q.key)
+// inRange says whether key k is in the range [key, end).
+func inRange(key, end []byte, k string) bool {
+	if end == nil {
+		return k == string(key)
 	}
-	if k < string(q.key) {
+	if k < string(key) {
 		return false
 	}
-	return len(q.end) == 0 || k < string(q.end)
+	return len(end) == 0 || k < string(end)
 }
 
 func (r *rng) genKey() []byte { return []byte(keys[r.intn(len(keys))]) }
 
-// genEnd returns a range end: nil (one key) half the time, else empty (from key) or a key or an
-// extra end.
+// genEnd returns a range end: nil (one key) half the time, else empty (from key), an extra end
+// or a key.
 func (r *rng) genEnd() []byte {
 	switch r.intn(6) {
 	case 0, 1, 2:
@@ -133,9 +198,8 @@ func (r *rng) genEnd() []byte {
 	}
 }
 
-// genRange returns a range read's request at a revision up to past revisions past the current
-// one cur: the current one (0), a revision from 0 to cur + 1 (cur + 1 is a future one), or a
-// negative one (the current one too).
+// genRange returns a range read's request for a transaction at revision cur: at the current
+// revision (0 or negative), a past one, or cur + 1 (a future one).
 func (r *rng) genRange(cur int64) rangeReq {
 	q := rangeReq{key: r.genKey(), end: r.genEnd()}
 	switch r.intn(4) {
@@ -153,9 +217,9 @@ func (r *rng) genRange(cur int64) rangeReq {
 	return q
 }
 
-// checkRange checks a range read's result (res, err) against the states (states[r] at revision
-// r), read at the revision cur (the read's), with the compaction revision compacted.
-func checkRange(states []map[string]rec, cur int64, compacted int64, q rangeReq, res *mvcc.RangeResult, err error) {
+// checkRange checks a range read's result (res, err) in a transaction at revision cur against
+// the states (states[r] at revision r, for r up to cur). The store is never compacted.
+func checkRange(states []map[string]rec, cur int64, q rangeReq, res *mvcc.RangeResult, err error) {
 	if q.ro.Rev > cur {
 		check(err == mvcc.ErrFutureRev, "a future revision's read did not fail with ErrFutureRev")
 		check(res != nil && len(res.KVs) == 0 && res.Count == -1 && res.Rev == cur,
@@ -166,18 +230,12 @@ func checkRange(states []map[string]rec, cur int64, compacted int64, q rangeReq,
 	if rev <= 0 {
 		rev = cur
 	}
-	if rev < compacted {
-		check(err == mvcc.ErrCompacted, "a compacted revision's read did not fail with ErrCompacted")
-		check(res != nil && len(res.KVs) == 0 && res.Count == -1 && res.Rev == 0,
-			"a compacted revision's read returned a result")
-		return
-	}
 	check(err == nil, "a read failed")
-	check(res != nil && res.Rev == cur, "a read's revision is not the store's")
+	check(res != nil && res.Rev == cur, "a read's revision is not its transaction's")
 	st := states[rev]
 	var match []string
 	for _, k := range keys {
-		if _, ok := st[k]; ok && q.inRange(k) {
+		if _, ok := st[k]; ok && inRange(q.key, q.end, k) {
 			match = append(match, k)
 		}
 	}
@@ -206,196 +264,508 @@ func checkKV(kv *mvccpb.KeyValue, k string, e rec, keysOnly bool) {
 	check(kv.CreateRevision == e.create, "a read returned the wrong create revision")
 	check(kv.ModRevision == e.mod, "a read returned the wrong mod revision")
 	check(kv.Version == e.ver, "a read returned the wrong version")
-	check(kv.Lease == 0, "a read returned a lease")
 	if keysOnly {
 		check(len(kv.Value) == 0, "a keys-only read returned a value")
 	} else {
 		check(string(kv.Value) == e.val, "a read returned the wrong value")
+		check(kv.Lease == e.lease, "a read returned the wrong lease")
 	}
 }
 
-// A pending transaction's model: its state and whether it changed anything.
-type pending struct {
-	st      map[string]rec
-	changed bool
+func copyState(st map[string]rec) map[string]rec {
+	c := make(map[string]rec, len(st))
+	for k, v := range st {
+		c[k] = v
+	}
+	return c
 }
 
-func (p *pending) put(rev int64, k, v string) {
+// A pending transaction's model: the revision it writes, its state and its changes.
+type pending struct {
+	rev     int64
+	st      map[string]rec
+	changes []change
+}
+
+func (p *pending) put(k, v string, l int64) {
 	e, ok := p.st[k]
 	if ok {
-		p.st[k] = rec{val: v, create: e.create, mod: rev, ver: e.ver + 1}
+		p.st[k] = rec{val: v, create: e.create, mod: p.rev, ver: e.ver + 1, lease: l}
 	} else {
-		p.st[k] = rec{val: v, create: rev, mod: rev, ver: 1}
+		p.st[k] = rec{val: v, create: p.rev, mod: p.rev, ver: 1, lease: l}
 	}
-	p.changed = true
+	p.changes = append(p.changes, change{key: k, kv: p.st[k]})
 }
 
-// del deletes the range's keys and returns how many it deleted.
-func (p *pending) del(q rangeReq) int64 {
+// del deletes the range's keys, in key order, and returns how many it deleted.
+func (p *pending) del(key, end []byte) int64 {
 	var n int64
 	for _, k := range keys {
-		if _, ok := p.st[k]; ok && q.inRange(k) {
+		if _, ok := p.st[k]; ok && inRange(key, end, k) {
 			delete(p.st, k)
+			p.changes = append(p.changes, change{del: true, key: k})
 			n++
 		}
-	}
-	if n > 0 {
-		p.changed = true
 	}
 	return n
 }
 
-// commit appends the transaction's revision, if it changed anything.
-func (m *model) commit(p *pending) {
-	if p.changed {
-		m.states = append(m.states, p.st)
+// The writer: the store, the lessor, the history, the model's live leases (the keys attached to
+// each), the index being applied and the one the hook saw.
+type writer struct {
+	kv       mvcc.WatchableKV
+	le       lease.Lessor
+	h        *history
+	r        *rng
+	leases   map[int64]bool
+	nextID   int64
+	vals     int
+	applying *atomic.Int64
+	saved    *atomic.Int64
+	ticks    chan int64
+}
+
+func (w *writer) cur() int64 { return w.h.published.Load() }
+
+func (w *writer) begin() *pending {
+	st := w.h.snapshot()
+	cur := int64(len(st) - 1)
+	check(cur == w.cur(), "the writer's history is ahead of its published revision")
+	return &pending{rev: cur + 1, st: copyState(st[cur])}
+}
+
+// end appends the pending revision to the history (if it changed anything), runs the store's
+// End, checks the store's revision and publishes it.
+func (w *writer) end(p *pending, end func()) {
+	if len(p.changes) > 0 {
+		w.h.appendRev(p.st, p.changes)
 	}
+	end()
+	want := p.rev - 1
+	if len(p.changes) > 0 {
+		want = p.rev
+	}
+	check(w.kv.Rev() == want, "the store's revision is not the writer's")
+	w.h.published.Store(want)
 }
 
-func (m *model) begin() *pending {
-	return &pending{st: copyState(m.states[m.cur()])}
+// view returns the states with the pending revision appended (once it has a change) and the
+// revision a read in the write transaction is at.
+func (w *writer) view(p *pending) ([]map[string]rec, int64) {
+	st := w.h.snapshot()
+	if len(p.changes) == 0 {
+		return st, p.rev - 1
+	}
+	return append(st, p.st), p.rev
 }
 
-// writeTxn runs a write transaction of one to three puts and range deletes, with range reads
-// between them.
-func (t *tester) writeTxn() {
-	m := t.m
-	beginRev := m.cur()
-	p := m.begin()
-	tw := t.s.Write(traceutil.TODO())
-	check(tw.Rev() == beginRev, "a write transaction's revision is not the store's")
-	nops := 1 + t.r.intn(3)
-	for i := 0; i < nops; i++ {
-		if t.r.intn(3) == 0 {
-			// a read of the pending state: the transaction's revision is the pending one once it
-			// has a change
-			cur := beginRev
-			states := m.states
-			if p.changed {
-				cur = beginRev + 1
-				states = append(m.states[:len(m.states):len(m.states)], p.st)
-			}
-			q := t.r.genRange(cur)
-			res, err := tw.Range(context.TODO(), q.key, q.end, q.ro)
-			checkRange(states, cur, m.compacted, q, res, err)
-		}
-		if t.r.intn(5) < 3 {
-			k := t.r.genKey()
-			t.vals++
-			v := "v" + itoa(t.vals)
-			p.put(beginRev+1, string(k), v)
-			rev := tw.Put(k, []byte(v), lease.NoLease)
-			check(rev == beginRev+1, "a put's revision is not the pending one")
+// checkHook checks that the post-lock hook ran with the index being applied.
+func (w *writer) checkHook(i int64) {
+	check(w.saved.Load() == i, "the post-lock hook did not run in the write's lock")
+}
+
+func (w *writer) newVal() string {
+	w.vals++
+	return "v" + itoa(w.vals)
+}
+
+// genLease returns no lease half the time, else a live lease, if any.
+func (w *writer) genLease() int64 {
+	if w.r.intn(2) == 0 || len(w.leases) == 0 {
+		return 0
+	}
+	var ids []int64
+	for id := range w.leases {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	return ids[w.r.intn(len(ids))]
+}
+
+// writeOp runs one write operation inside the write transaction tw: a put, a range delete or a
+// range read, each checked.
+func (w *writer) writeOp(tw mvcc.TxnWrite, p *pending) {
+	switch w.r.intn(3) {
+	case 0:
+		k := w.r.genKey()
+		v := w.newVal()
+		l := w.genLease()
+		p.put(string(k), v, l)
+		rev := tw.Put(k, []byte(v), lease.LeaseID(l))
+		check(rev == p.rev, "a put's revision is not the pending one")
+	case 1:
+		key, end := w.r.genKey(), w.r.genEnd()
+		n := p.del(key, end)
+		gotN, rev := tw.DeleteRange(key, end)
+		check(gotN == n, "a range delete deleted the wrong number of keys")
+		if len(p.changes) > 0 {
+			check(rev == p.rev, "a range delete's revision is not the pending one")
 		} else {
-			q := rangeReq{key: t.r.genKey(), end: t.r.genEnd()}
-			wantN := p.del(q)
-			n, rev := tw.DeleteRange(q.key, q.end)
-			check(n == wantN, "a range delete deleted the wrong number of keys")
-			if p.changed {
-				check(rev == beginRev+1, "a range delete's revision is not the pending one")
-			} else {
-				check(rev == beginRev, "a range delete of nothing has a revision")
-			}
+			check(rev == p.rev-1, "a range delete in a transaction without changes has a revision")
 		}
+	default:
+		states, cur := w.view(p)
+		q := w.r.genRange(cur)
+		res, err := tw.Range(context.TODO(), q.key, q.end, q.ro)
+		checkRange(states, cur, q, res, err)
 	}
-	check(len(tw.Changes()) > 0 == p.changed, "a write transaction's changes are wrong")
-	tw.End()
-	m.commit(p)
-	check(t.s.Rev() == m.cur(), "the store's revision is wrong after a write transaction")
 }
 
-// viewWrite runs the store's own Put or DeleteRange.
-func (t *tester) viewWrite() {
-	m := t.m
-	beginRev := m.cur()
-	p := m.begin()
-	if t.r.intn(2) == 0 {
-		k := t.r.genKey()
-		t.vals++
-		v := "v" + itoa(t.vals)
-		p.put(beginRev+1, string(k), v)
-		rev := t.s.Put(k, []byte(v), lease.NoLease)
-		check(rev == beginRev+1, "the store's put's revision is not the next one")
+// put is the server's txn.Put: a write transaction reading the key's previous key-value, then
+// putting it.
+func (w *writer) put(i int64) {
+	p := w.begin()
+	tw := w.kv.Write(traceutil.TODO())
+	w.checkHook(i)
+	check(tw.Rev() == p.rev-1, "a write transaction's revision is not the writer's")
+	k := w.r.genKey()
+	states, cur := w.view(p)
+	q := rangeReq{key: k}
+	res, err := tw.Range(context.TODO(), q.key, q.end, q.ro)
+	checkRange(states, cur, q, res, err)
+	v := w.newVal()
+	l := w.genLease()
+	p.put(string(k), v, l)
+	check(tw.Put(k, []byte(v), lease.LeaseID(l)) == p.rev, "a put's revision is not the next one")
+	w.end(p, tw.End)
+}
+
+// deleteRange is the server's txn.DeleteRange: a write transaction reading the range's previous
+// key-values, then deleting them.
+func (w *writer) deleteRange(i int64) {
+	p := w.begin()
+	tw := w.kv.Write(traceutil.TODO())
+	w.checkHook(i)
+	key, end := w.r.genKey(), w.r.genEnd()
+	states, cur := w.view(p)
+	q := rangeReq{key: key, end: end}
+	res, err := tw.Range(context.TODO(), q.key, q.end, q.ro)
+	checkRange(states, cur, q, res, err)
+	n := p.del(key, end)
+	gotN, rev := tw.DeleteRange(key, end)
+	check(gotN == n, "a range delete deleted the wrong number of keys")
+	if n > 0 {
+		check(rev == p.rev, "a range delete's revision is not the next one")
 	} else {
-		q := rangeReq{key: t.r.genKey(), end: t.r.genEnd()}
-		wantN := p.del(q)
-		n, rev := t.s.DeleteRange(q.key, q.end)
-		check(n == wantN, "the store's range delete deleted the wrong number of keys")
-		if p.changed {
-			check(rev == beginRev+1, "the store's range delete's revision is not the next one")
-		} else {
-			check(rev == beginRev, "the store's range delete of nothing has a revision")
-		}
+		check(rev == p.rev-1, "a range delete of nothing has a revision")
 	}
-	m.commit(p)
-	check(t.s.Rev() == m.cur(), "the store's revision is wrong after a write")
+	w.end(p, tw.End)
 }
 
-// read runs one to three range reads in a read transaction, or one through the store's Range.
-func (t *tester) read() {
-	m := t.m
-	if t.r.intn(3) == 0 {
-		q := t.r.genRange(m.cur())
-		res, err := t.s.Range(context.TODO(), q.key, q.end, q.ro)
-		checkRange(m.states, m.cur(), m.compacted, q, res, err)
-		return
-	}
+// txn is the server's txn.Txn: a compare in a read transaction (shared-buffer or concurrent),
+// ended; then, with a write in the chosen branch, a write transaction at the same revision, else
+// the read transaction made a read-only write transaction; the branch's operations in it.
+func (w *writer) txn(i int64) {
+	cur := w.cur()
+	isWrite := w.r.intn(4) != 0
 	mode := mvcc.ConcurrentReadTxMode
-	if t.r.intn(2) == 0 {
+	if isWrite && w.r.intn(2) == 0 {
 		mode = mvcc.SharedBufReadTxMode
 	}
-	tr := t.s.Read(mode, traceutil.TODO())
-	check(tr.Rev() == m.cur(), "a read transaction's revision is not the store's")
-	nr := 1 + t.r.intn(3)
-	for i := 0; i < nr; i++ {
-		q := t.r.genRange(m.cur())
-		res, err := tr.Range(context.TODO(), q.key, q.end, q.ro)
-		checkRange(m.states, m.cur(), m.compacted, q, res, err)
+	tr := w.kv.Read(mode, traceutil.TODO())
+	check(tr.Rev() == cur, "the writer's read transaction is not at its revision")
+	check(tr.FirstRev() == -1, "a read transaction of a store never compacted has a first revision")
+	k := w.r.genKey()
+	states := w.h.snapshot()
+	q := rangeReq{key: k}
+	res, err := tr.Range(context.TODO(), q.key, q.end, q.ro)
+	checkRange(states, cur, q, res, err)
+	if !isWrite {
+		tw := mvcc.NewReadOnlyTxnWrite(tr)
+		nr := 1 + w.r.intn(3)
+		for j := 0; j < nr; j++ {
+			q := w.r.genRange(cur)
+			res, err := tw.Range(context.TODO(), q.key, q.end, q.ro)
+			checkRange(states, cur, q, res, err)
+		}
+		check(tw.Rev() == cur && len(tw.Changes()) == 0, "a read-only transaction changed something")
+		tw.End()
+		return
 	}
+	tr.End()
+	p := w.begin()
+	tw := w.kv.Write(traceutil.TODO())
+	w.checkHook(i)
+	check(tw.Rev() == cur, "a write after a read of the only writer is not at the read's revision")
+	nops := 1 + w.r.intn(3)
+	for j := 0; j < nops; j++ {
+		w.writeOp(tw, p)
+	}
+	check((len(tw.Changes()) > 0) == (len(p.changes) > 0), "a write transaction's changes are wrong")
+	w.end(p, tw.End)
+}
+
+// grant grants a new lease.
+func (w *writer) grant(i int64) {
+	w.nextID++
+	id := w.nextID
+	_, err := w.le.Grant(lease.LeaseID(id), 3600)
+	check(err == nil, "a lease grant failed")
+	w.checkHook(i)
+	w.leases[id] = true
+	check(w.kv.Rev() == w.cur(), "a lease grant made a revision")
+}
+
+// revoke revokes a live lease: its keys deleted in one revision, in key order.
+func (w *writer) revoke(i int64) {
+	id := w.genLease()
+	if id == 0 {
+		return
+	}
+	p := w.begin()
+	var ks []string
+	for _, k := range keys {
+		if e, ok := p.st[k]; ok && e.lease == id {
+			ks = append(ks, k)
+		}
+	}
+	for _, k := range ks {
+		delete(p.st, k)
+		p.changes = append(p.changes, change{del: true, key: k})
+	}
+	w.end(p, func() {
+		check(w.le.Revoke(lease.LeaseID(id)) == nil, "a lease revoke failed")
+	})
+	w.checkHook(i)
+	delete(w.leases, id)
+	check(w.le.Lookup(lease.LeaseID(id)) == nil, "a revoked lease is still there")
+}
+
+// checkLeases checks the lessor's record of the keys on each lease, which mvcc's puts and
+// deletes keep: each key's lease is the model's, and each live lease has the model's keys.
+func (w *writer) checkLeases() {
+	st := w.h.snapshot()
+	cur := st[len(st)-1]
+	for _, k := range keys {
+		var l int64
+		if e, ok := cur[k]; ok {
+			l = e.lease
+		}
+		check(int64(w.le.GetLease(lease.LeaseItem{Key: k})) == l, "the lessor has the wrong lease of a key")
+	}
+	for id := range w.leases {
+		ls := w.le.Lookup(lease.LeaseID(id))
+		check(ls != nil, "a live lease is gone")
+		got := ls.Keys()
+		sort.Strings(got)
+		var want []string
+		for _, k := range keys {
+			if e, ok := cur[k]; ok && e.lease == id {
+				want = append(want, k)
+			}
+		}
+		check(len(got) == len(want), "a lease has the wrong number of keys")
+		for j := range got {
+			check(got[j] == want[j], "a lease has the wrong keys")
+		}
+	}
+}
+
+// read is the writer's own read: at exactly its revision (it is the only writer).
+func (w *writer) read() {
+	cur := w.cur()
+	tr := w.kv.Read(mvcc.ConcurrentReadTxMode, traceutil.TODO())
+	check(tr.Rev() == cur, "the only writer's read is not at its revision")
+	states := w.h.snapshot()
+	q := w.r.genRange(cur)
+	res, err := tr.Range(context.TODO(), q.key, q.end, q.ro)
+	checkRange(states, cur, q, res, err)
 	tr.End()
 }
 
-// compact runs a compaction and waits for its job: at a revision above the compaction revision,
-// at or below it, or past the current one.
-func (t *tester) compact() {
-	m := t.m
-	cur := m.cur()
-	switch t.r.intn(5) {
-	case 0:
-		if m.compacted < 0 {
-			return
-		}
-		rev := int64(t.r.intn(int(m.compacted) + 1))
-		ch, err := t.s.Compact(traceutil.TODO(), rev)
-		check(err == mvcc.ErrCompacted, "a compaction at or below the compaction revision did not fail")
-		<-ch
-	case 1:
-		rev := cur + 1 + int64(t.r.intn(3))
-		ch, err := t.s.Compact(traceutil.TODO(), rev)
-		check(err == mvcc.ErrFutureRev && ch == nil, "a compaction past the current revision did not fail")
-	default:
-		if m.compacted >= cur {
-			return
-		}
-		// the current revision half the time (as etcd's revision compactor's `Rev() -
-		// retention` with no retention), else a revision above the compaction revision
-		rev := cur
-		if t.r.intn(2) == 0 {
-			rev = m.compacted + 1 + int64(t.r.intn(int(cur-m.compacted)))
-		}
-		ch, err := t.s.Compact(traceutil.TODO(), rev)
-		check(err == nil, "a compaction failed")
-		<-ch
-		m.compacted = rev
+// run runs ops operations, the i-th applying index i + 1, sending the published revision on
+// ticks every ops / cap(ticks) operations (for the watch stream's registrations).
+func (w *writer) run(ops int) {
+	every := ops
+	if cap(w.ticks) > 0 {
+		every = ops/cap(w.ticks) + 1
 	}
-	check(t.s.Rev() == cur, "a compaction changed the store's revision")
+	for n := 0; n < ops; n++ {
+		i := int64(n + 1)
+		w.applying.Store(i)
+		switch w.r.intn(20) {
+		case 0, 1, 2, 3, 4:
+			w.put(i)
+		case 5, 6, 7:
+			w.deleteRange(i)
+		case 8, 9, 10, 11, 12, 13:
+			w.txn(i)
+		case 14:
+			w.grant(i)
+		case 15:
+			w.revoke(i)
+		case 16:
+			w.kv.Commit()
+		case 17:
+			w.checkLeases()
+		default:
+			w.read()
+		}
+		if n%every == 0 && len(w.ticks) < cap(w.ticks) {
+			w.ticks <- w.cur()
+		}
+	}
+	close(w.ticks)
 }
 
-type tester struct {
-	s    mvcc.KV
-	m    *model
-	r    *rng
-	vals int
+// reader runs reads concurrently with the writer: read transactions, read-only transactions and
+// Rev, each at least at the revision published before it started (a linearizable read), or with
+// no floor (a serializable read).
+func reader(kv mvcc.WatchableKV, h *history, r *rng, reads int) {
+	for n := 0; n < reads; n++ {
+		floor := h.published.Load()
+		if r.intn(4) == 0 {
+			floor = 0
+		}
+		switch r.intn(4) {
+		case 0:
+			h.seen(floor, kv.Rev(), "Rev")
+		case 1:
+			tr := kv.Read(mvcc.ConcurrentReadTxMode, traceutil.TODO())
+			tw := mvcc.NewReadOnlyTxnWrite(tr)
+			cur := tw.Rev()
+			h.seen(floor, cur, "a read-only transaction")
+			states := h.snapshot()
+			q := r.genRange(cur)
+			res, err := tw.Range(context.TODO(), q.key, q.end, q.ro)
+			checkRange(states, cur, q, res, err)
+			check(len(tw.Changes()) == 0, "a read-only transaction has changes")
+			tw.End()
+		default:
+			tr := kv.Read(mvcc.ConcurrentReadTxMode, traceutil.TODO())
+			cur := tr.Rev()
+			h.seen(floor, cur, "a read transaction")
+			states := h.snapshot()
+			check(tr.FirstRev() == -1, "a read transaction of a store never compacted has a first revision")
+			nr := 1 + r.intn(3)
+			for j := 0; j < nr; j++ {
+				q := r.genRange(cur)
+				res, err := tr.Range(context.TODO(), q.key, q.end, q.ro)
+				checkRange(states, cur, q, res, err)
+			}
+			tr.End()
+		}
+	}
+}
+
+// A watcher's expectation: its range, and the position of its next event (revision rev, the
+// index-th change of that revision in its range).
+type watcher struct {
+	key, end []byte
+	rev      int64
+	index    int
+}
+
+// A watchCheck holds the stream's watchers, by id, under a lock (the registering goroutine adds
+// one, Watch included, under it, so the receiving goroutine knows a watcher before its events).
+type watchCheck struct {
+	mu       sync.Mutex
+	h        *history
+	watchers map[mvcc.WatchID]*watcher
+	events   int
+}
+
+// expect returns the next change in w's range at or after its position, up to revision upto
+// (false if there is none).
+func (c *watchCheck) expect(w *watcher, upto int64) (change, int64, bool) {
+	for r := w.rev; r <= upto; r++ {
+		chs := c.h.changesAt(r)
+		seen := 0
+		for _, ch := range chs {
+			if !inRange(w.key, w.end, ch.key) {
+				continue
+			}
+			if r > w.rev || seen >= w.index {
+				return ch, r, true
+			}
+			seen++
+		}
+	}
+	return change{}, 0, false
+}
+
+// advance moves w past the change at revision r it just received.
+func (w *watcher) advance(r int64) {
+	if r > w.rev {
+		w.rev, w.index = r, 0
+	}
+	w.index++
+}
+
+// receive checks a response: each event is its watcher's next expected change, at or below the
+// response's revision; a response without events is progress, for one watcher after every
+// change up to its revision. (A progress response for the whole stream, id -1, speaks for the
+// watchers registered when it was made, which the receiver cannot tell apart from later ones:
+// only its revision is checked.)
+func (c *watchCheck) receive(resp mvcc.WatchResponse) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	check(resp.CompactRevision == 0, "a watch response reports a compaction")
+	if len(resp.Events) == 0 {
+		check(resp.Revision < int64(len(c.h.snapshot())), "a progress response is at a revision not yet written")
+		if w := c.watchers[resp.WatchID]; w != nil {
+			_, _, more := c.expect(w, resp.Revision)
+			check(!more, "a progress response came before a change at or below its revision")
+		}
+		return
+	}
+	w := c.watchers[resp.WatchID]
+	check(w != nil, "a watch response for an unknown watcher")
+	for _, ev := range resp.Events {
+		r := ev.Kv.ModRevision
+		check(r <= resp.Revision, "a watch response's revision is below its event's")
+		want, wr, ok := c.expect(w, r)
+		check(ok && wr == r, "a watcher received an event it should not have, or missed one")
+		check(string(ev.Kv.Key) == want.key, "a watch event has the wrong key")
+		if want.del {
+			check(ev.Type == mvccpb.Event_DELETE, "a watch event is not a delete")
+			check(ev.Kv.CreateRevision == 0 && ev.Kv.Version == 0 && len(ev.Kv.Value) == 0,
+				"a delete event carries a key-value")
+		} else {
+			check(ev.Type == mvccpb.Event_PUT, "a watch event is not a put")
+			checkKV(ev.Kv, want.key, want.kv, false)
+		}
+		w.advance(r)
+		c.events++
+	}
+}
+
+// complete says whether every watcher has received every change up to revision upto.
+func (c *watchCheck) complete(upto int64) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, w := range c.watchers {
+		if _, _, more := c.expect(w, upto); more {
+			return false
+		}
+	}
+	return true
+}
+
+// register registers a watcher on each tick (the writer's published revision), from a start
+// revision up to one past it, and asks for progress now and then.
+func (c *watchCheck) register(ws mvcc.WatchStream, r *rng, ticks chan int64) {
+	for pub := range ticks {
+		start := 1 + int64(r.intn(int(pub)+1))
+		w := &watcher{key: r.genKey(), end: r.genEnd(), rev: start}
+		c.mu.Lock()
+		// id 0: the stream assigns one (clientv3.AutoWatchID, as etcd's client asks)
+		id, err := ws.Watch(context.TODO(), mvcc.WatchID(0), w.key, w.end, start)
+		if len(w.end) != 0 && string(w.end) <= string(w.key) {
+			check(err == mvcc.ErrEmptyWatcherRange && id == -1, "a watch of an empty range did not fail")
+			c.mu.Unlock()
+			continue
+		}
+		check(err == nil, "a watch failed")
+		c.watchers[id] = w
+		c.mu.Unlock()
+		switch r.intn(3) {
+		case 0:
+			ws.RequestProgress(id)
+		case 1:
+			ws.RequestProgressAll()
+		}
+	}
 }
 
 // itoa is strconv.Itoa of a non-negative number.
@@ -411,34 +781,77 @@ func itoa(n int) string {
 	return string(b)
 }
 
-// Run runs cfg.Ops random operations against a store over a new backend at cfg.Path, checking
-// each against the model; it panics if a check fails.
-func Run(cfg Config) {
+// Run runs a test of cfg: the store set up as etcd's server does, the writer, the readers and
+// the watch stream concurrently; it panics if a check fails.
+func Run(cfg Config) Report {
 	lg := zap.NewNop()
 	bcfg := backend.DefaultBackendConfig(lg)
 	bcfg.Path = cfg.Path
 	be := backend.New(bcfg)
-	s := mvcc.NewStore(lg, be, &lease.FakeLessor{}, mvcc.StoreConfig{})
-	t := &tester{s: s, m: newModel(), r: &rng{s: cfg.Seed}}
-	check(s.Rev() == 1, "a new store's revision is not 1")
-	for i := 0; i < cfg.Ops; i++ {
-		switch t.r.intn(10) {
-		case 0, 1, 2:
-			t.writeTxn()
-		case 3:
-			t.viewWrite()
-		case 4, 5, 6, 7:
-			t.read()
-		default:
-			t.compact()
+	le := lease.NewLessor(lg, be, nil, lease.LessorConfig{MinLeaseTTL: 1})
+	kv := mvcc.New(lg, be, le, mvcc.StoreConfig{})
+	var applying, saved atomic.Int64
+	be.SetTxPostLockInsideApplyHook(func() {
+		if a := applying.Load(); a > saved.Load() {
+			saved.Store(a)
+		}
+	})
+	check(kv.Rev() == 1, "a new store's revision is not 1")
+
+	h := newHistory()
+	w := &writer{kv: kv, le: le, h: h, r: &rng{s: cfg.Seed}, leases: map[int64]bool{},
+		applying: &applying, saved: &saved, ticks: make(chan int64, cfg.Watchers)}
+	ws := kv.NewWatchStream()
+	c := &watchCheck{h: h, watchers: map[mvcc.WatchID]*watcher{}}
+
+	var recvDone sync.WaitGroup
+	recvDone.Add(1)
+	go func() {
+		for resp := range ws.Chan() {
+			c.receive(resp)
+		}
+		recvDone.Done()
+	}()
+	var wg sync.WaitGroup
+	wg.Add(2 + cfg.Readers)
+	go func() {
+		w.run(cfg.Ops)
+		wg.Done()
+	}()
+	go func() {
+		c.register(ws, &rng{s: cfg.Seed ^ 0x5bd1e995}, w.ticks)
+		wg.Done()
+	}()
+	for id := 0; id < cfg.Readers; id++ {
+		r := &rng{s: cfg.Seed + uint64(id+1)*0x632be59bd9b4e019}
+		go func() {
+			reader(kv, h, r, cfg.Reads)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+
+	last := h.published.Load()
+	complete := c.complete(last)
+	if cfg.Drain > 0 {
+		deadline := time.Now().Add(cfg.Drain)
+		for !complete && time.Now().Before(deadline) {
+			time.Sleep(10 * time.Millisecond)
+			complete = c.complete(last)
 		}
 	}
-	check(s.Close() == nil, "the store's close failed")
+	ws.Close()
+	recvDone.Wait()
+	check(kv.Close() == nil, "the store's close failed")
+	le.Stop()
 	check(be.Close() == nil, "the backend's close failed")
+	return Report{WatchersComplete: complete, Events: c.events, ReadsAboveFloor: h.aboveFloor.Load()}
 }
 
-// Main runs 2000 operations from seed 1 against a store over a backend in the file mvccrand.db
-// (which must not exist: the model starts empty), and panics if a check fails.
+// Main runs the writer's 1000 operations against 4 readers of 200 reads and 8 watchers, from seed
+// 1, over a backend in the file mvccrand.db (which must not exist: the model starts empty), and
+// panics if a check fails. It does not wait for the watchers to catch up (only what they
+// received is checked).
 func Main() {
-	Run(Config{Path: "mvccrand.db", Seed: 1, Ops: 2000})
+	Run(Config{Path: "mvccrand.db", Seed: 1, Ops: 1000, Readers: 4, Reads: 200, Watchers: 8})
 }
