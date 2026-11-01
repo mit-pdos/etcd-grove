@@ -8,9 +8,12 @@ copy of slot `i` may be (`m.dur` knows it, or the durable image is too short to 
 `m.durHi`), `cacheOk bs i P` what the page cache's may be (a clean byte, or a meta satisfying
 `P`); `idleImg_slot`/`writingImg_slot` conclude that a valid slot of the image satisfies `P`.
 
-**init** (`initIdle`, `initWriting`): every slot the image may take is invalid (the old slots
-were invalid, the first write zeroes them) or, once the metas are written, `init`'s meta (`P :=
-(· = bInitMeta i)`), whose root page 3 is synced: `goodImg_noValid`, `goodImg_init`.
+**init** (`initIdle`, then `initMid ph`): every slot the image may take is invalid (the old
+slots were invalid, the first write zeroes them) or, once the metas are written, `init`'s meta
+(`P := (· = bInitMeta i)`), whose root page 3 is synced: `goodImg_noValid`, `goodImg_init`. Meta 1
+is written and synced (phase `false`, slot 0 clean and zero) before meta 0 (phase `true`, slot 1
+clean and `init`'s): a valid slot 0 comes with a valid slot 1 (`initOrd`), so the current meta is
+meta 1, txid 1, never txid 0.
 
 **commit** (`commitClean`, `commitMetaSt`): while the metas and the current root page are clean,
 an image has them (`commit_clean`); while the meta slot `(T+1) % 2` is written, it is the old
@@ -256,10 +259,11 @@ theorem goodImg_cur {img : List w8} {X : Meta} (h16 : 4 * 4096 ≤ img.length)
     (hr : 2 ≤ X.root'.root'.toNat) (hrp : X.root'.root'.toNat < X.pgid'.toNat)
     (hp : (X.pgid'.toNat + 1) * 4096 ≤ 2 ^ 30) (hpi : 4096 * X.pgid'.toNat ≤ img.length)
     (hb : bootOk X.txid'.toNat (pageVal ((img.drop (4096 * X.root'.root'.toNat)).take 4096)))
-    (hs : fileMeta img (X.txid'.toNat % 2) = X) :
+    (hs : fileMeta img (X.txid'.toNat % 2) = X)
+    (ht1 : 1 ≤ X.txid'.toNat) (htp : X.txid'.toNat < X.pgid'.toNat) :
     goodImg img := by
   have hc' : curMeta (imgMetas img) = X := by simp only [imgMetas]; rw [curMeta_take, hc]
-  refine ⟨hl, Or.inr (Or.inr ⟨h16, ⟨by simp; omega, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?slot⟩)⟩
+  refine ⟨hl, Or.inr (Or.inr ⟨h16, ⟨by simp; omega, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?slot, ⟨?_, ?_⟩⟩)⟩
   case slot =>
     show curMeta (imgMetas img) = fileMeta (imgMetas img) _
     simp only [imgMetas]
@@ -272,53 +276,49 @@ theorem goodImg_cur {img : List w8} {X : Meta} (h16 : 4 * 4096 ≤ img.length)
 
 /-! ## init -/
 
-/-- `init`'s metas, read back from an image whose slots are invalid or `init`'s and whose page 3
-is `init`'s root page: a good image. -/
+/-- The current meta of an image whose slot 1 is `init`'s meta 1 and whose slot 0 is invalid or
+`init`'s meta 0 (txid 0 below 1): `init`'s meta 1. -/
+theorem curMeta_init1 {img : List w8} (h1 : fileMeta img 1 = bInitMeta 1)
+    (h0 : metaValid (fileMeta img 0) → fileMeta img 0 = bInitMeta 0) :
+    curMeta img = bInitMeta 1 := by
+  unfold curMeta
+  dsimp only
+  rw [h1]
+  split
+  · rw [if_pos (initMeta_valid 1)]
+  · rename_i hlt
+    split
+    · rename_i hv0
+      rw [h0 hv0, initMeta_txid, initMeta_txid] at hlt
+      exact absurd (by decide) hlt
+    · rfl
+
+/-- `init`'s metas, read back from an image whose slots are invalid or `init`'s, slot 0 valid only
+if slot 1 is (`init` writes meta 1 first), and whose page 3 is `init`'s root page: a good image,
+whose current meta, if any, is `init`'s meta 1 (txid 1). -/
 theorem goodImg_init {img : List w8} (h16 : 4 * 4096 ≤ img.length) (hl : img.length ≤ 2 ^ 30)
     (hs : ∀ i < 2, metaValid (fileMeta img i) → fileMeta img i = bInitMeta i)
+    (h01 : metaValid (fileMeta img 0) → metaValid (fileMeta img 1))
     (h3 : (img.drop (4096 * 3)).take 4096 = emptyPageBytes (W64 3) (W16 2)) : goodImg img := by
-  by_cases hv : metaValid (fileMeta img 0) ∨ metaValid (fileMeta img 1)
-  · have hX : ∃ i < 2, curMeta img = bInitMeta i := by
-      rcases curMeta_cases img hv with ⟨e, v⟩ | ⟨e, v⟩
-      · exact ⟨0, by omega, e.trans (hs 0 (by omega) v)⟩
-      · exact ⟨1, by omega, e.trans (hs 1 (by omega) v)⟩
-    obtain ⟨i, hi, hc⟩ := hX
-    have hne : bInitMeta 0 ≠ bInitMeta 1 := by
-      intro h
-      have := congrArg (fun x : Meta => x.txid'.toNat) h
-      simp only [initMeta_txid] at this
-      exact absurd this (by decide)
-    have hsl : fileMeta img i = bInitMeta i := by
-      rcases curMeta_cases img hv with ⟨e, v⟩ | ⟨e, v⟩
-      · rcases i with _ | _ | i
-        · exact hs 0 (by omega) v
-        · exact absurd ((hs 0 (by omega) v).symm.trans (e.symm.trans hc)) hne
-        · omega
-      · rcases i with _ | _ | i
-        · exact absurd ((hs 1 (by omega) v).symm.trans (e.symm.trans hc)).symm hne
-        · exact hs 1 (by omega) v
-        · omega
-    refine goodImg_cur h16 hl hc hv ?_ ?_ ?_ ?_ ?_ ?_ <;>
+  by_cases hv1 : metaValid (fileMeta img 1)
+  · have e1 := hs 1 (by omega) hv1
+    have hc := curMeta_init1 e1 (hs 0 (by omega))
+    refine goodImg_cur h16 hl hc (Or.inr hv1) ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ <;>
       simp only [initMeta_root, initMeta_pgid, initMeta_txid]
     · decide
     · decide
     · decide
     · show 4096 * 4 ≤ img.length; omega
     · rw [show (W64 3).toNat = 3 from rfl, h3, initRoot_val]
-      refine Or.inl ⟨?_, rfl⟩
+      exact Or.inl ⟨by decide, rfl⟩
+    · exact e1
+    · decide
+    · decide
+  · exact goodImg_noValid hl fun i hi _ hv' => by
       rcases i with _ | _ | i
-      · decide
-      · decide
+      · exact hv1 (h01 hv')
+      · exact hv1 hv'
       · omega
-    · rcases i with _ | _ | i
-      · exact hsl
-      · exact hsl
-      · omega
-  · exact goodImg_noValid hl fun i hi _ hv' => hv (by
-      rcases i with _ | _ | i
-      · exact Or.inl hv'
-      · exact Or.inr hv'
-      · omega)
 
 /-- The durable copy and the page cache of every slot are invalid (or not held whole, or with a
 clean byte): `init`'s states before its metas are written. -/
@@ -378,17 +378,65 @@ theorem initW1_good {m : OsMeta} {bs : List (w8 × Bool)} {data : List w8}
   rw [List.getElem?_append_left (List.getElem?_eq_some_iff.1 hk').1]
   exact hk'
 
-/-- After the first sync, before the metas are written: the slots are zero on disk, `m.dur`
-knows them, and `init`'s pages 2–3 are clean in the page cache. The meta write in flight, or
-after it (idle, with `cacheOk` for `init`'s metas), leaves good images. -/
-structure initMid (m : OsMeta) (bs : List (w8 × Bool)) : Prop where
+/-- The slot `init` writes in its phase `ph`: meta 1 first (`false`), then meta 0 (`true`). -/
+def initSlot : Bool → Nat
+  | false => 1
+  | true => 0
+
+/-- The bytes of the other slot (`1 - initSlot ph`) in phase `ph`: zero before meta 1 is synced,
+`init`'s meta 1 after. -/
+def initOrdByte : Bool → Nat → w8
+  | false, _ => 0
+  | true, j => initBytes.getD j 0
+
+/-- In phase `ph`, the slot `init` does not write is clean in the page cache, with `initOrdByte`. -/
+def initOrd (ph : Bool) (bs : List (w8 × Bool)) : Prop :=
+  ∀ k < 64, bs[4096 * (1 - initSlot ph) + 16 + k]? =
+    some (initOrdByte ph (4096 * (1 - initSlot ph) + 16 + k), true)
+
+/-- An image with the other slot's `initOrdByte`s has slot 0 valid only if slot 1 is. -/
+theorem initOrd_img {ph : Bool} {img : List w8}
+    (h : ∀ k < 64, img[4096 * (1 - initSlot ph) + 16 + k]? =
+      some (initOrdByte ph (4096 * (1 - initSlot ph) + 16 + k))) :
+    metaValid (fileMeta img 0) → metaValid (fileMeta img 1) := by
+  cases ph with
+  | false =>
+    intro hv
+    refine absurd hv (slot_zero_invalid (i := 0) fun k hk => ?_)
+    have := h k hk
+    simp only [initSlot, initOrdByte] at this
+    exact this
+  | true =>
+    intro _
+    have hil := initBytes_length
+    simp only [pageBytes] at hil
+    have e : fileMeta img 1 = fileMeta initBytes 1 := fileMeta_of_slot (metaSlot_ext fun k hk => by
+      have := h k hk
+      simp only [initSlot, initOrdByte] at this
+      rw [this, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]
+      rfl)
+    rw [e, initBytes_meta1]; exact initMeta_valid 1
+
+theorem initOrd_clean {ph : Bool} {bs : List (w8 × Bool)} {img : List w8} (h : initOrd ph bs)
+    (himg : ∀ k b, bs[k]? = some (b, true) → 4096 * (1 - initSlot ph) + 16 ≤ k →
+      k < 4096 * (1 - initSlot ph) + 80 → img[k]? = some b) :
+    metaValid (fileMeta img 0) → metaValid (fileMeta img 1) :=
+  initOrd_img fun k hk => himg _ _ (h k hk) (by omega) (by omega)
+
+/-- After the first sync, before the metas are written, in phase `ph`: the slots are zero or
+`init`'s on disk, `m.dur` knows them, `init`'s page 3 and the slot not being written
+(`initOrd`) are clean in the page cache. A meta write in flight, or after it (idle, with
+`cacheOk` for `init`'s metas), leaves good images. -/
+structure initMid (ph : Bool) (m : OsMeta) (bs : List (w8 × Bool)) : Prop where
   hi : m.hi ≤ 2 ^ 30
   lo : 4 * 4096 ≤ m.lo
   dur : ∀ i < 2, durOk m i (fun X => X = bInitMeta i)
   page3 : ∀ k < 4096, bs[4096 * 3 + k]? =
     some ((emptyPageBytes (W64 3) (W16 2))[k]?.getD 0, true)
+  ord : initOrd ph bs
 
-theorem initMid_page3 {m : OsMeta} {bs : List (w8 × Bool)} (h : initMid m bs) {img : List w8}
+theorem initMid_page3 {ph : Bool} {m : OsMeta} {bs : List (w8 × Bool)} (h : initMid ph m bs)
+    {img : List w8}
     (himg : ∀ k < 4096, bs[4096 * 3 + k]? = some ((emptyPageBytes (W64 3) (W16 2))[k]?.getD 0, true) →
       img[4096 * 3 + k]? = some ((emptyPageBytes (W64 3) (W16 2))[k]?.getD 0)) :
     (img.drop (4096 * 3)).take 4096 = emptyPageBytes (W64 3) (W16 2) := by
@@ -402,29 +450,49 @@ theorem initMid_page3 {m : OsMeta} {bs : List (w8 × Bool)} (h : initMid m bs) {
     rw [himg k hk (h.page3 k hk), List.getElem?_eq_getElem (by omega)]; rfl
   · rw [List.getElem?_eq_none (by omega)]
 
-/-- `init`'s meta write, retried (it misses page 3): every state it reaches is `initMid`. -/
-theorem initMid_wreach {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {data : List w8}
-    (h : initMid m bs) (hl : bs.length = m.size) (hR : WReach m bs 0 data m' bs')
-    (hdl : data.length ≤ 4096 * 3) (hsz : 4 * 4096 ≤ m.size) : initMid m' bs' := by
+/-- A meta write of phase `ph` (page `initSlot ph`, retried) keeps the bytes of the other slot
+and of page 3. -/
+theorem initW_keeps {ph : Bool} {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {data : List w8}
+    (hl : bs.length = m.size) (hR : WReach m bs (4096 * initSlot ph) data m' bs')
+    (hdl : data.length = 4096) (hsz : 4 * 4096 ≤ m.size) :
+    (∀ k < 64, bs'[4096 * (1 - initSlot ph) + 16 + k]? = bs[4096 * (1 - initSlot ph) + 16 + k]?) ∧
+    ∀ k, 8192 ≤ k → bs'[k]? = bs[k]? := by
+  have hN := hR.narrow hl
+  refine ⟨fun k hk => ?_, fun k hk => hN.suf (by cases ph <;> simp [initSlot] <;> omega) _
+    (by cases ph <;> simp [initSlot] <;> omega)⟩
+  cases ph with
+  | false => exact hN.pre _ (by simp only [cfLo, initSlot]; omega)
+  | true => exact hN.suf (by simp [initSlot]; omega) _ (by simp [initSlot]; omega)
+
+/-- `init`'s meta write of phase `ph`, retried: every state it reaches is `initMid ph`. -/
+theorem initMid_wreach {ph : Bool} {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {data : List w8}
+    (h : initMid ph m bs) (hl : bs.length = m.size)
+    (hR : WReach m bs (4096 * initSlot ph) data m' bs')
+    (hdl : data.length = 4096) (hsz : 4 * 4096 ≤ m.size) : initMid ph m' bs' := by
   obtain ⟨hd1, hd2⟩ := wreach_dur hR
   have hN := hR.narrow hl
-  refine ⟨by have := hN.hi; have := h.hi; omega, by rw [hN.lo]; exact h.lo,
-    fun i hi => durOk_congr hd1 hd2 (h.dur i hi), fun k hk => ?_⟩
-  rw [hN.suf (by omega) _ (by omega)]; exact h.page3 k hk
+  obtain ⟨ho, h3⟩ := initW_keeps hl hR hdl hsz
+  refine ⟨by have := hN.hi; have := h.hi; cases ph <;> simp [initSlot] at this ⊢ <;> omega,
+    by rw [hN.lo]; exact h.lo, fun i hi => durOk_congr hd1 hd2 (h.dur i hi), fun k hk => ?_,
+    fun k hk => ?_⟩
+  · rw [h3 _ (by omega)]; exact h.page3 k hk
+  · rw [ho k hk]; exact h.ord k hk
 
-/-- A successful sync of the whole file, with `init`'s page 3 and slots that are invalid or
-`init`'s metas (both of `init`'s syncs), leaves an `initMid` state, all clean. -/
-theorem initMid_synced {m : OsMeta} {bs : List (w8 × Bool)} (hok : m.ok = true)
+/-- A successful sync of the whole file, with `init`'s page 3, slots that are invalid or
+`init`'s metas, and the other slot of phase `ph` as `initOrd` says (all of `init`'s syncs), leaves
+an `initMid ph` state, all clean. -/
+theorem initMid_synced {ph : Bool} {m : OsMeta} {bs : List (w8 × Bool)} (hok : m.ok = true)
     (hl : bs.length = m.size) (hlo : 4 * 4096 ≤ m.size) (hhi : m.size ≤ 2 ^ 30)
     (hs : ∀ i < 2, metaValid (fileMeta (bs.map Prod.fst) i) →
       fileMeta (bs.map Prod.fst) i = bInitMeta i)
     (h3 : ∀ k < 4096, (bs[4096 * 3 + k]?).map Prod.fst =
-      some ((emptyPageBytes (W64 3) (W16 2))[k]?.getD 0)) :
-    initMid (m.synced 0 bs) (syncedBytes m bs) ∧
+      some ((emptyPageBytes (W64 3) (W16 2))[k]?.getD 0))
+    (hord : initOrd ph (bs.map fun x => (x.1, true))) :
+    initMid ph (m.synced 0 bs) (syncedBytes m bs) ∧
       ∀ i < 2, cacheOk (syncedBytes m bs) i (fun X => X = bInitMeta i) := by
   have hsb : syncedBytes m bs = bs.map (fun x => (x.1, true)) := by simp [syncedBytes, hok]
   refine ⟨⟨by simp [OsMeta.synced]; omega, by simp [OsMeta.synced]; omega, fun i hi => ?_,
-    fun k hk => ?_⟩, fun i hi hlen => ?_⟩
+    fun k hk => ?_, by rw [hsb]; exact hord⟩, fun i hi hlen => ?_⟩
   · refine durOk_of (bs.map Prod.fst) (fun j b hb _ => ?_) (by simp [OsMeta.synced, hl])
       (fun _ hv => hs i hi hv)
     simp only [OsMeta.synced, hok, if_true, durOf, List.replicate_zero, List.nil_append,
@@ -441,30 +509,35 @@ theorem initMid_synced {m : OsMeta} {bs : List (w8 × Bool)} (hok : m.ok = true)
     simp only [List.length_map] at hlen
     exact .inl ⟨0, by omega, _, by rw [List.getElem?_map, List.getElem?_eq_getElem (by omega)]; rfl, rfl⟩
 
-theorem initMid_idle_good {m : OsMeta} {bs : List (w8 × Bool)} (h : initMid m bs)
+theorem initMid_idle_good {ph : Bool} {m : OsMeta} {bs : List (w8 × Bool)} (h : initMid ph m bs)
     (hc : ∀ i < 2, cacheOk bs i (fun X => X = bInitMeta i)) :
     ∀ img D, idleImg m bs img D → goodImg img := by
   intro img D hI
   have hlo := hI.1
   have hlo' := h.lo
   refine goodImg_init (by have := h.lo; omega) (by have := hI.2.1; have := h.hi; omega)
-    (fun i hi hv => idleImg_slot hI (h.dur i hi) (hc i hi) hi (by omega) hv) ?_
+    (fun i hi hv => idleImg_slot hI (h.dur i hi) (hc i hi) hi (by omega) hv)
+    (initOrd_clean h.ord fun k b hb _ _ => idleImg_clean hI hb) ?_
   exact initMid_page3 h fun k _ hb => idleImg_clean hI hb
 
-theorem initW2_good {m : OsMeta} {bs : List (w8 × Bool)} {data : List w8} (h : initMid m bs)
-    (hdl : data.length ≤ 4096 * 3) (hsz : 4 * 4096 ≤ m.size)
+theorem initW_good {ph : Bool} {m : OsMeta} {bs : List (w8 × Bool)} {data : List w8}
+    (h : initMid ph m bs) (hdl : data.length = 4096) (hsz : 4 * 4096 ≤ m.size)
     (hc : ∀ i < 2, cacheOk bs i (fun X => X = bInitMeta i))
-    (hw : ∀ i < 2, metaValid (fileMeta (writeBytes (bs.map Prod.fst) 0 data) i) →
-      fileMeta (writeBytes (bs.map Prod.fst) 0 data) i = bInitMeta i) :
-    ∀ img D, writingImg m bs 0 data img D → goodImg img := by
+    (hw : ∀ i < 2, metaValid (fileMeta (writeBytes (bs.map Prod.fst) (4096 * initSlot ph) data) i) →
+      fileMeta (writeBytes (bs.map Prod.fst) (4096 * initSlot ph) data) i = bInitMeta i) :
+    ∀ img D, writingImg m bs (4096 * initSlot ph) data img D → goodImg img := by
   intro img D hW
   have hlo := hW.1
   have hlo' := h.lo
   refine goodImg_init (by have := h.lo; omega)
-    (by have := hW.2.1; have := h.hi; omega)
-    (fun i hi hv => writingImg_slot hW (h.dur i hi) (hc i hi) (hw i hi) hi (by omega) hv) ?_
+    (by have := hW.2.1; have := h.hi; cases ph <;> simp [initSlot] at this ⊢ <;> omega)
+    (fun i hi hv => writingImg_slot hW (h.dur i hi) (hc i hi) (hw i hi) hi (by omega) hv)
+    (initOrd_clean h.ord fun k b hb h1 h2 => writingImg_clean hW hb (by
+      cases ph
+      · exact .inl (by simp only [cfLo, initSlot] at h1 h2 ⊢; omega)
+      · exact .inr (by simp only [cfHi, initSlot] at h1 h2 ⊢; omega))) ?_
   exact initMid_page3 h fun k _ hb => writingImg_clean hW hb
-    (.inr (by simp only [cfHi]; omega))
+    (.inr (by simp only [cfHi]; cases ph <;> simp [initSlot] <;> omega))
 
 /-! ## commit -/
 
@@ -482,6 +555,7 @@ structure commitClean (m : OsMeta) (bs : List (w8 × Bool)) : Prop where
     (pageVal (((bs.map Prod.fst).drop (4096 * curRoot ((bs.map Prod.fst).take 8192))).take 4096))
   metas : ∀ k < 8192, ∃ b, bs[k]? = some (b, true)
   root : ∀ k < 4096, ∃ b, bs[4096 * curRoot ((bs.map Prod.fst).take 8192) + k]? = some (b, true)
+  tx : txOk ((bs.map Prod.fst).take 8192)
 
 theorem commit_clean_img {m : OsMeta} {bs : List (w8 × Bool)} (h : commitClean m bs)
     {img : List w8} (hlo : m.lo ≤ img.length) (hhi : img.length ≤ 2 ^ 30)
@@ -495,9 +569,10 @@ theorem commit_clean_img {m : OsMeta} {bs : List (w8 × Bool)} (h : commitClean 
   have hroot := h.root
   have hlo4 := h.lo
   have hslot := h.slot
+  have htx := h.tx
   have hlen : ((bs.map Prod.fst).take 8192).length = 8192 := hok.1
   have hbl : 8192 ≤ (bs.map Prod.fst).length := by rw [List.length_take] at hlen; omega
-  generalize hmp : (bs.map Prod.fst).take 8192 = mp at hok hpg hboot hroot hcl hslot
+  generalize hmp : (bs.map Prod.fst).take 8192 = mp at hok hpg hboot hroot hcl hslot htx
   have hmeta : ∀ k < 8192, img[k]? = (bs.map Prod.fst)[k]? := by
     intro k hk
     obtain ⟨b, hb⟩ := h.metas k hk
@@ -521,7 +596,7 @@ theorem commit_clean_img {m : OsMeta} {bs : List (w8 × Bool)} (h : commitClean 
     obtain ⟨b4, hb4⟩ := hroot 4095 (by omega)
     have h4 := (List.getElem?_eq_some_iff.1 hb4).1
     rw [take_drop_eq hR (by simp only [List.length_map]; omega)]
-    exact ⟨hboot, hslot⟩
+    exact ⟨hboot, hslot, htx⟩
 
 /-- The current meta of an image whose slot `s` is the old current meta `M` and whose other slot
 is invalid, the old one, or the new meta `N` (with a larger txid): `M` or `N`. -/
@@ -581,11 +656,13 @@ structure commitMetaSt (m : OsMeta) (bs : List (w8 × Bool)) (mp : List w8) (N :
     (pageVal (((bs.map Prod.fst).drop (4096 * curRoot mp)).take 4096))
   root : ∀ k < 4096, ∃ b, bs[4096 * curRoot mp + k]? = some (b, true)
   metaS : ∀ k < 64, ∃ b, mp[4096 * s + 16 + k]? = some b ∧ bs[4096 * s + 16 + k]? = some (b, true)
+  tx : txOk mp
   nValid : metaValid N
   nTx : uint.Z (curMeta mp).txid' < uint.Z N.txid'
   nTxS : N.txid'.toNat = (curMeta mp).txid'.toNat + 1
   nRoot : 2 ≤ N.root'.root'.toNat
   nRootPg : N.root'.root'.toNat < N.pgid'.toNat
+  nTxPg : N.txid'.toNat < N.pgid'.toNat
   nPg : (N.pgid'.toNat + 1) * 4096 ≤ 2 ^ 30
   nPgLo : 4096 * N.pgid'.toNat ≤ m.lo
   nBoot : bootOk N.txid'.toNat
@@ -628,7 +705,7 @@ theorem commitMeta_good {m : OsMeta} {bs : List (w8 × Bool)} {mp : List w8} {N 
           · exact Or.inl (hM ▸ hMv)
           · exact Or.inr (hM ▸ hMv)
           · omega) hok.2.2.1 hok.2.2.2.1 hok.2.2.2.2 (by have := h.pg; unfold curPgid at this; omega) ?_
-      (by rw [← h.sTx]; exact hM)
+      (by rw [← h.sTx]; exact hM) h.tx.1 (by have := h.tx.2; unfold curPgid at this; omega)
     show bootOk _ (pageVal ((img.drop (4096 * curRoot mp)).take 4096))
     rw [hpage _ h.root (fun k h1 h2 b hb => hcl k b hb (.inr (.inl ⟨h1, h2⟩)))]
     exact h.boot
@@ -652,7 +729,7 @@ theorem commitMeta_good {m : OsMeta} {bs : List (w8 × Bool)} {mp : List w8} {N 
     refine goodImg_cur (by have := h.lo; omega) hhi hc hvN h.nRoot h.nRootPg h.nPg
       (by have := h.nPgLo; omega) ?_ (by
         rw [h.nTxS, show ((curMeta mp).txid'.toNat + 1) % 2 = 1 - s by have := h.sTx; omega]
-        exact hN')
+        exact hN') (by rw [h.nTxS]; omega) h.nTxPg
     rw [hpage _ h.nPage (fun k h1 h2 b hb => hcl k b hb (.inr (.inr ⟨h1, h2⟩)))]
     exact h.nBoot
 
@@ -708,19 +785,21 @@ theorem initW1_okS {t : Nat} {data : List w8} (hb : s.busy = .write t 0 data)
     (hz : ∀ k < 8192, data[k]? = some 0) : CrashOkS (P1 p) p Good (some s) :=
   crashOkS_write s hb hl (crashOkQ_writing hl (initW1_good hhi hdl hdur hcache hz))
 
-/-- `init`'s idle states after S1 (the meta write's narrowings, S2, failures). -/
-theorem initMid_okS (hb : s.busy = .idle) (h : initMid s.m s.bs)
+/-- `init`'s idle states after S1 (the meta writes' narrowings, S2, S3, failures). -/
+theorem initMid_okS {ph : Bool} (hb : s.busy = .idle) (h : initMid ph s.m s.bs)
     (hc : ∀ i < 2, cacheOk s.bs i (fun X => X = bInitMeta i)) : CrashOkS (P1 p) p Good (some s) :=
   crashOkS_idle s hb (crashOkQ_idle hl (initMid_idle_good h hc))
 
-/-- `init`'s meta write in flight. -/
-theorem initW2_okS {t : Nat} {data : List w8} (hb : s.busy = .write t 0 data) (h : initMid s.m s.bs)
-    (hdl : data.length ≤ 4096 * 3) (hsz : 4 * 4096 ≤ s.m.size)
+/-- `init`'s meta write of phase `ph` in flight. -/
+theorem initW_okS {ph : Bool} {t : Nat} {data : List w8}
+    (hb : s.busy = .write t (4096 * initSlot ph) data) (h : initMid ph s.m s.bs)
+    (hdl : data.length = 4096) (hsz : 4 * 4096 ≤ s.m.size)
     (hc : ∀ i < 2, cacheOk s.bs i (fun X => X = bInitMeta i))
-    (hw : ∀ i < 2, metaValid (fileMeta (writeBytes (s.bs.map Prod.fst) 0 data) i) →
-      fileMeta (writeBytes (s.bs.map Prod.fst) 0 data) i = bInitMeta i) :
+    (hw : ∀ i < 2,
+      metaValid (fileMeta (writeBytes (s.bs.map Prod.fst) (4096 * initSlot ph) data) i) →
+      fileMeta (writeBytes (s.bs.map Prod.fst) (4096 * initSlot ph) data) i = bInitMeta i) :
     CrashOkS (P1 p) p Good (some s) :=
-  crashOkS_write s hb hl (crashOkQ_writing hl (initW2_good h hdl hsz hc hw))
+  crashOkS_write s hb hl (crashOkQ_writing hl (initW_good h hdl hsz hc hw))
 
 /-- A commit's idle states before the meta write. -/
 theorem commitClean_okS (hb : s.busy = .idle) (h : commitClean s.m s.bs) :
@@ -773,8 +852,8 @@ variable {p : GoString}
 theorem initIdle_notOk {m : OsMeta} {bs : List (w8 × Bool)} (h : initIdle m bs) :
     initIdle { m with ok := false } bs := ⟨h.hi, h.dur, h.cache⟩
 
-theorem initMid_notOk {m : OsMeta} {bs : List (w8 × Bool)} (h : initMid m bs) :
-    initMid { m with ok := false } bs := ⟨h.hi, h.lo, h.dur, h.page3⟩
+theorem initMid_notOk {ph : Bool} {m : OsMeta} {bs : List (w8 × Bool)} (h : initMid ph m bs) :
+    initMid ph { m with ok := false } bs := ⟨h.hi, h.lo, h.dur, h.page3, h.ord⟩
 
 /-- **`init`'s first write's obligation** (`os.File.WriteAt.specCrashS`): every state it reaches,
 idle or with the next attempt in flight, from an `initIdle` state whose slots are clean. -/
@@ -792,57 +871,112 @@ theorem initW1_obl {m : OsMeta} {xs : List (w8 × Bool)} {F : List w8} (h : init
   exact ⟨initIdle_okS ⟨m', bs', fa, fb, .idle⟩ hl' rfl hI, fun t =>
     initW1_okS ⟨m', bs', fa, fb, .write t 0 F⟩ hl' rfl hI.hi hF' hI.dur hI.cache hz⟩
 
-/-- `init`'s meta write, retried, from an `initMid` state whose slots are clean, with data `D`
-whose slots are `init`'s metas: every state it reaches is `initMid`, with `cacheOk` for `init`'s
-metas (a torn slot keeps a clean old byte). -/
-theorem initW2_reach {m : OsMeta} {bs : List (w8 × Bool)} {D : List w8} (h : initMid m bs)
-    (hl : bs.length = m.size)
-    (hcl : ∀ i < 2, ∀ k < 64, ∀ x, bs[4096 * i + 16 + k]? = some x → x.2 = true)
-    (hD : D.length = 8192) (hDs : ∀ i < 2, fileMeta D i = bInitMeta i)
-    (hsz : 4 * 4096 ≤ m.size) {m' : OsMeta} {bs' : List (w8 × Bool)}
-    (hR : WReach m bs 0 D m' bs') :
-    initMid m' bs' ∧ ∀ i < 2, cacheOk bs' i (fun X => X = bInitMeta i) := by
-  refine ⟨initMid_wreach h hl hR (by omega) hsz, fun i hi => ?_⟩
-  have hDslot : ∀ L : List w8, (∀ k < 64, L[4096 * i + 16 + k]? =
-      some (D.getD (4096 * i + 16 + k - 0) 0)) → fileMeta L i = fileMeta D i := by
-    intro L hL
-    refine fileMeta_of_slot (metaSlot_ext fun k hk => ?_)
-    rw [hL k hk, List.getD_eq_getElem?_getD, Nat.sub_zero, List.getElem?_eq_getElem (by omega)]; rfl
-  exact cacheOk_wreach hR hl (by omega) (by omega) (hcl i hi) fun L hL _ => by
-    rw [hDslot L hL, hDs i hi]
+/-- The slot `initSlot ph` of the data `D` of `init`'s meta write is `initBytes`'s. -/
+def initWData (ph : Bool) (D : List w8) : Prop :=
+  D.length = 4096 ∧ ∀ k < 64, D[16 + k]? = initBytes[4096 * initSlot ph + 16 + k]?
 
-/-- **`init`'s meta write's obligation**: every state it reaches, from an `initMid` state whose
-slots are clean, with data `D` whose slots are `init`'s metas. -/
-theorem initW2_obl {m : OsMeta} {bs : List (w8 × Bool)} {D : List w8} (h : initMid m bs)
-    (hl : bs.length = m.size)
-    (hcl : ∀ i < 2, ∀ k < 64, ∀ x, bs[4096 * i + 16 + k]? = some x → x.2 = true)
-    (hD : D.length = 8192) (hDs : ∀ i < 2, fileMeta D i = bInitMeta i)
-    (hsz : 4 * 4096 ≤ m.size) (fa fb : Nat) :
-    ∀ m' bs', WReach m bs 0 D m' bs' →
+/-- A slot equal to `initBytes`'s slot `initSlot ph` is `init`'s meta there. -/
+theorem initWData_meta {ph : Bool} {D : List w8} (hD : initWData ph D) {L : List w8}
+    (hL : ∀ k < 64, L[4096 * initSlot ph + 16 + k]? = D[16 + k]?) :
+    fileMeta L (initSlot ph) = bInitMeta (initSlot ph) := by
+  have e : fileMeta L (initSlot ph) = fileMeta initBytes (initSlot ph) :=
+    fileMeta_of_slot (metaSlot_ext fun k hk => by rw [hL k hk, hD.2 k hk])
+  rw [e]
+  cases ph
+  · exact initBytes_meta1
+  · exact initBytes_meta0
+
+/-- `init`'s meta write of phase `ph`, retried, from an `initMid ph` state whose slot
+`initSlot ph` is clean, with data `D` (`initWData`): every state it reaches is `initMid ph`, with
+`cacheOk` for `init`'s metas (a torn slot keeps a clean old byte; the other slot is clean). -/
+theorem initW_reach {ph : Bool} {m : OsMeta} {bs : List (w8 × Bool)} {D : List w8}
+    (h : initMid ph m bs) (hl : bs.length = m.size)
+    (hcl : ∀ k < 64, ∀ x, bs[4096 * initSlot ph + 16 + k]? = some x → x.2 = true)
+    (hD : initWData ph D) (hsz : 4 * 4096 ≤ m.size) {m' : OsMeta} {bs' : List (w8 × Bool)}
+    (hR : WReach m bs (4096 * initSlot ph) D m' bs') :
+    initMid ph m' bs' ∧ ∀ i < 2, cacheOk bs' i (fun X => X = bInitMeta i) := by
+  have hM := initMid_wreach h hl hR hD.1 hsz
+  refine ⟨hM, fun i hi => ?_⟩
+  have hw : cacheOk bs' (initSlot ph) (fun X => X = bInitMeta (initSlot ph)) :=
+    cacheOk_wreach hR hl (by omega) (by rw [hD.1]; omega) hcl fun L hL _ =>
+      initWData_meta hD fun k hk => by
+        rw [hL k hk, List.getD_eq_getElem?_getD,
+          show 4096 * initSlot ph + 16 + k - 4096 * initSlot ph = 16 + k by omega,
+          List.getElem?_eq_getElem (by rw [hD.1]; omega)]
+        rfl
+  have ho : cacheOk bs' (1 - initSlot ph) (fun X => X = bInitMeta (1 - initSlot ph)) :=
+    fun _ => .inl ⟨0, by omega, _, hM.ord 0 (by omega), rfl⟩
+  cases ph <;> rcases i with _ | _ | i
+  · exact ho
+  · exact hw
+  · omega
+  · exact hw
+  · exact ho
+  · omega
+
+/-- **`init`'s meta write's obligation** (phase `ph`): every state it reaches, from an
+`initMid ph` state whose slot `initSlot ph` is clean, with data `D` (`initWData`). -/
+theorem initW_obl {ph : Bool} {m : OsMeta} {bs : List (w8 × Bool)} {D : List w8}
+    (h : initMid ph m bs) (hl : bs.length = m.size)
+    (hcl : ∀ k < 64, ∀ x, bs[4096 * initSlot ph + 16 + k]? = some x → x.2 = true)
+    (hD : initWData ph D) (hsz : 4 * 4096 ≤ m.size) (fa fb : Nat) :
+    ∀ m' bs', WReach m bs (4096 * initSlot ph) D m' bs' →
       CrashOkS (P1 p) p Good (some ⟨m', bs', fa, fb, .idle⟩) ∧
-      ∀ t, CrashOkS (P1 p) p Good (some ⟨m', bs', fa, fb, .write t 0 D⟩) := by
+      ∀ t, CrashOkS (P1 p) p Good (some ⟨m', bs', fa, fb, .write t (4096 * initSlot ph) D⟩) := by
   intro m' bs' hR
-  obtain ⟨hM, hc⟩ := initW2_reach h hl hcl hD hDs hsz hR
+  obtain ⟨hM, hc⟩ := initW_reach h hl hcl hD hsz hR
   have hN := hR.narrow hl
+  have hsz' : 4 * 4096 ≤ m'.size := by have := hN.size; omega
   refine ⟨initMid_okS ⟨m', bs', fa, fb, .idle⟩ hN.len rfl hM hc, fun t =>
-    initW2_okS ⟨m', bs', fa, fb, .write t 0 D⟩ hN.len rfl hM (by omega) (by show 4 * 4096 ≤ m'.size; have := hN.size; omega)
-      hc fun i hi _ => ?_⟩
-  have e : fileMeta D i = fileMeta (writeBytes (bs'.map Prod.fst) 0 D) i :=
-    slot_data_write (by omega) (by omega) fun k hk => by
-      rw [List.getD_eq_getElem?_getD, Nat.sub_zero, List.getElem?_eq_getElem (by omega)]; rfl
-  rw [← e, hDs i hi]
+    initW_okS ⟨m', bs', fa, fb, .write t (4096 * initSlot ph) D⟩ hN.len rfl hM hD.1 hsz' hc
+      fun i hi hv => ?_⟩
+  have hne : D ≠ [] := by intro e; have := hD.1; rw [e] at this; cases this
+  have hlen : (bs'.map Prod.fst).length = m'.size := by rw [List.length_map, hN.len]
+  by_cases hi0 : i = initSlot ph
+  · subst hi0
+    exact initWData_meta hD fun k hk => by
+      rw [writeBytes_getElem? _ _ _ hne, if_neg (by omega), if_pos (by rw [hD.1]; omega),
+        show 4096 * initSlot ph + 16 + k - 4096 * initSlot ph = 16 + k by omega]
+  · have hi1 : i = 1 - initSlot ph := by cases ph <;> simp [initSlot] at hi0 ⊢ <;> omega
+    subst hi1
+    have hslot : ∀ k < 64, (writeBytes (bs'.map Prod.fst) (4096 * initSlot ph) D)[4096 * (1 - initSlot ph) + 16 + k]? =
+        some (initOrdByte ph (4096 * (1 - initSlot ph) + 16 + k)) := by
+      intro k hk
+      have ho := hM.ord k hk
+      rw [writeBytes_getElem? _ _ _ hne]
+      cases ph
+      · rw [if_pos (by simp only [initSlot]; omega),
+          if_pos (by rw [hlen]; simp only [initSlot]; omega), List.getElem?_map, ho]; rfl
+      · rw [if_neg (by simp only [initSlot]; omega),
+          if_neg (by rw [hD.1]; simp only [initSlot]; omega), List.getElem?_map, ho]; rfl
+    cases ph
+    · exact absurd hv (by
+        refine slot_zero_invalid (i := 0) fun k hk => ?_
+        have := hslot k hk; simp only [initSlot, initOrdByte] at this; exact this)
+    · have hil := initBytes_length
+      simp only [pageBytes] at hil
+      have e : fileMeta (writeBytes (bs'.map Prod.fst) (4096 * initSlot true) D) 1 =
+          fileMeta initBytes 1 := fileMeta_of_slot (metaSlot_ext fun k hk => by
+        have := hslot k hk
+        simp only [initSlot, initOrdByte] at this ⊢
+        rw [this, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]
+        rfl)
+      simp only [initSlot] at e ⊢
+      rw [e, initBytes_meta1]
 
 /-- **`init`'s syncs' obligation** (success; `syscall.Fdatasync.specCrashS` with `H = F = []`):
-the file synced whole, with `init`'s page 3 and slots invalid or `init`'s metas. On failure, the
-state is the write's last (`initIdle_notOk`, `initMid_notOk`). -/
-theorem initSync_ok {m : OsMeta} {bs : List (w8 × Bool)} (hok : m.ok = true)
+the file synced whole, with `init`'s page 3, slots invalid or `init`'s metas, and the other slot of
+phase `ph` as `initOrd` says. On failure, the state is the write's last (`initIdle_notOk`,
+`initMid_notOk`). -/
+theorem initSync_ok {ph : Bool} {m : OsMeta} {bs : List (w8 × Bool)} (hok : m.ok = true)
     (hl : bs.length = m.size) (hlo : 4 * 4096 ≤ m.size) (hhi : m.size ≤ 2 ^ 30)
     (hs : ∀ i < 2, metaValid (fileMeta (bs.map Prod.fst) i) →
       fileMeta (bs.map Prod.fst) i = bInitMeta i)
     (h3 : ∀ k < 4096, (bs[4096 * 3 + k]?).map Prod.fst =
-      some ((emptyPageBytes (W64 3) (W16 2))[k]?.getD 0)) :
+      some ((emptyPageBytes (W64 3) (W16 2))[k]?.getD 0))
+    (hord : initOrd ph (bs.map fun x => (x.1, true))) :
     CrashOkS (P1 p) p Good (some (csSynced false m [] [] bs 0 0)) := by
-  obtain ⟨hM, hc⟩ := initMid_synced hok hl hlo hhi hs h3
+  obtain ⟨hM, hc⟩ := initMid_synced hok hl hlo hhi hs h3 hord
   have e : m.syncedKeep 0 bs 0 [] = m.synced 0 bs := by
     simp only [OsMeta.syncedKeep, durOf, List.replicate_zero, List.nil_append, List.map_nil]
     rw [show ∀ a : List (Option w8), durOverlay a [] = a from fun a => by cases a <;> rfl]
