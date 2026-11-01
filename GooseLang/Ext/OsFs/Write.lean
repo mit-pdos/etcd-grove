@@ -694,4 +694,390 @@ theorem wp_PWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd) (
 
 end specs
 
+/-! ## The second step of a write -/
+
+/-- The size after a `pwrite` of `k` bytes at `off` of a file of size `sz`. -/
+def pwSize (sz off k : Nat) : Nat := if k = 0 then sz else max sz (off + k)
+
+/-- Byte `i` after a `pwrite` of the first `k` bytes of `data` at `off`, in the range its first
+step took, from `lo` on, whose bytes were `xs`: the zero gap, the data, then the old bytes. -/
+def pwByte (off : Nat) (data : List w8) (k lo : Nat) (xs : List (w8 × Bool)) (i : Nat) : w8 :=
+  if i < off then 0 else if i < off + k then data.getD (i - off) 0 else (xs.getD (i - lo) (0, false)).1
+
+/-- The file after a `pwrite` of the first `k` bytes of `data` at `off`. -/
+def pwFile (f : OsFile) (off : Nat) (data : List w8) (k : Nat) : OsFile :=
+  if k = 0 then f else f.change (writeBytes f.cur off (data.take k)) (min off f.cur.length) (off + k)
+
+section pwFile
+variable (f : OsFile) (off : Nat) (data : List w8) (k : Nat)
+
+theorem pwFile_length (hk : k ≤ data.length) :
+    (pwFile f off data k).cur.length = pwSize f.cur.length off k := by
+  unfold pwFile pwSize
+  split
+  · rfl
+  · rename_i h0
+    simp only [OsFile.change]
+    rw [writeBytes_length _ _ _ (List.ne_nil_of_length_pos (by rw [List.length_take]; omega)), List.length_take]; omega
+
+theorem pwFile_getElem? (hk : k ≤ data.length) (i : Nat) :
+    (pwFile f off data k).cur[i]? =
+      if i < off then (if i < f.cur.length then f.cur[i]? else if k = 0 then none else some 0)
+      else if i < off + k then data[i - off]? else f.cur[i]? := by
+  unfold pwFile
+  split
+  · rename_i h0; subst h0
+    by_cases h1 : i < off
+    · simp only [h1, ↓reduceIte]; split
+      · rfl
+      · rw [List.getElem?_eq_none (by omega)]
+    · simp [h1]
+  · rename_i h0
+    simp only [OsFile.change]
+    rw [writeBytes_getElem? _ _ _ (List.ne_nil_of_length_pos (by rw [List.length_take]; omega)), List.length_take, List.getElem?_take]
+    simp only [show min k data.length = k by omega, h0, ↓reduceIte]
+    by_cases h1 : i < off
+    · simp [h1]
+    · simp only [h1, ↓reduceIte]; split
+      · rw [if_pos (by omega)]
+      · rfl
+
+theorem pwFile_outside (hk : k ≤ data.length) (i : Nat)
+    (hi : i < min off f.cur.length ∨ off + data.length ≤ i) :
+    (pwFile f off data k).cur[i]? = f.cur[i]? := by
+  rw [pwFile_getElem? _ _ _ _ hk]
+  rcases hi with hi | hi
+  · simp only [show i < off by omega, show i < f.cur.length by omega, ↓reduceIte]
+  · simp only [show ¬ i < off by omega, show ¬ i < off + k by omega, ↓reduceIte]
+
+theorem pwFile_inside (hk : k ≤ data.length) (xs : List (w8 × Bool))
+    (hlen : xs.length = min (off + data.length) f.cur.length - min off f.cur.length)
+    (hxs : ∀ j (hj : j < xs.length), f.cur[min off f.cur.length + j]? = some xs[j].1)
+    (i : Nat) (h1 : min off f.cur.length ≤ i) (h2 : i < off + data.length) :
+    (pwFile f off data k).cur[i]? =
+      if i < pwSize f.cur.length off k then
+        some (pwByte off data k (min off f.cur.length) xs i) else none := by
+  rw [pwFile_getElem? _ _ _ _ hk]
+  unfold pwSize pwByte
+  by_cases hi1 : i < off
+  · have : f.cur.length ≤ i := by omega
+    simp only [hi1, show ¬ i < f.cur.length by omega, ↓reduceIte]
+    by_cases hk0 : k = 0
+    · simp [hk0, show ¬ i < f.cur.length by omega]
+    · simp only [hk0, ↓reduceIte, show i < max f.cur.length (off + k) by omega]
+  · simp only [hi1, ↓reduceIte]
+    by_cases hi2 : i < off + k
+    · have hk0 : k ≠ 0 := by omega
+      simp only [hi2, hk0, ↓reduceIte, show i < max f.cur.length (off + k) by omega,
+        List.getD_eq_getElem?_getD]
+      rw [List.getElem?_eq_getElem (by omega)]; rfl
+    · simp only [hi2, ↓reduceIte]
+      by_cases hi3 : i < f.cur.length
+      · have hj : i - min off f.cur.length < xs.length := by omega
+        have := hxs _ hj
+        rw [show min off f.cur.length + (i - min off f.cur.length) = i by omega] at this
+        rw [this, if_pos (by split <;> omega), List.getD_eq_getElem?_getD,
+          List.getElem?_eq_getElem hj]; rfl
+      · rw [List.getElem?_eq_none (by omega), if_neg (by split <;> omega)]
+
+theorem pwFile_durable : (pwFile f off data k).durable = f.durable := by
+  unfold pwFile; split <;> rfl
+theorem pwFile_lost : (pwFile f off data k).lost = f.lost := by
+  unfold pwFile; split <;> rfl
+theorem pwFile_named : (pwFile f off data k).named = f.named := by
+  unfold pwFile; split <;> rfl
+theorem pwFile_dirty (i : Nat) : (pwFile f off data k).dirty i = true ↔
+    f.dirty i = true ∨ (k ≠ 0 ∧ min off f.cur.length ≤ i ∧ i < off + k) := by
+  unfold pwFile; split
+  · simp_all
+  · rename_i h0; simp [OsFile.change, inRange, h0]
+theorem pwFile_sizeLo (hk : k ≤ data.length) (h : f.sizeLo ≤ f.cur.length) :
+    (pwFile f off data k).sizeLo = f.sizeLo := by
+  unfold pwFile; split
+  · rfl
+  · simp only [OsFile.change]
+    rw [writeBytes_length _ _ _ (List.ne_nil_of_length_pos (by rw [List.length_take]; omega)), List.length_take]; omega
+theorem pwFile_sizeHi (hk : k ≤ data.length) (h : f.cur.length ≤ f.sizeHi) :
+    (pwFile f off data k).sizeHi = max f.sizeHi (pwSize f.cur.length off k) := by
+  unfold pwFile pwSize; split
+  · omega
+  · simp only [OsFile.change]
+    rw [writeBytes_length _ _ _ (List.ne_nil_of_length_pos (by rw [List.length_take]; omega)), List.length_take]; omega
+
+end pwFile
+
+section finish
+variable {st : OsState} {Γb : GMap (GoString × Nat) (w8 × Bool)} {Γm : GMap GoString (Option OsMeta)}
+  {Γf : GMap w64 OsFd} {Γt : GMap Nat TokInfo} {t : Nat} {ti : TokInfo} {p : GoString} {off : Nat}
+  {data : List w8} {f : OsFile} {k : Nat}
+
+theorem affects_congr1 {st st' : OsState} (c : OsChange) (h : st'.size c.path = st.size c.path)
+    (i : Nat) : Affects st' c i = Affects st c i := by
+  unfold Affects; rw [h]
+
+theorem affRange_congr1 {st st' : OsState} (c : OsChange) (h : st'.size c.path = st.size c.path) :
+    affRange st' c = affRange st c := by
+  unfold affRange affLo affHi; rw [h]
+
+theorem target_congr1 {st st' : OsState} (c : OsChange) (h : st'.size c.path = st.size c.path) :
+    c.target st' = c.target st := by
+  unfold OsChange.target; rw [h]
+
+theorem reaches_congr1 {st st' : OsState} (c : OsChange) (h : st'.size c.path = st.size c.path) :
+    Reaches st' c = Reaches st c := by
+  unfold Reaches; rw [h]
+
+/-- The state and the ghost maps after the second step of a write that wrote `k` bytes. -/
+theorem pwFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) (hti : Γt !! t = some ti)
+    (hc : ti.c = ⟨p, .write off data⟩) (hf : st.file p = some f) (hk : k ≤ data.length)
+    (Hml : Γm !! p = some (some ti.om)) (xs : List (w8 × Bool)) (hxs : ti.saved = xs.map Prod.fst) :
+    let lo := min off f.cur.length
+    let stk := ({ st with inflight := GMap.delete t st.inflight } : OsState).setFile p
+      (pwFile f off data k)
+    let ys := (List.range (min (off + data.length) (pwSize f.cur.length off k) - lo)).map
+      (fun j => (pwByte off data k lo xs (lo + j), false))
+    (∀ q i, InflightAt stk q i ↔ InflightAt st q i ∧ ¬ (p = q ∧ Affects st ti.c i)) ∧
+    OsWf stk ∧
+    OsCoh stk (insertBytes p lo ys Γb)
+      (<[p := some { ti.om with size := pwSize f.cur.length off k }]> Γm) Γf (GMap.delete t Γt) := by
+  intro lo stk ys
+  have hct : st.inflight !! t = some ti.c := by
+    have := hcoh.toks t; rw [hti] at this; exact this.symm
+  have hcp : ti.c.path = p := by rw [hc]
+  have hsz := size_of_file hf
+  obtain ⟨f0, hf0, hsv⟩ := hcoh.tok_saved t ti hti
+  rw [hcp, hf] at hf0; cases hf0
+  obtain ⟨f1, hf1, hmo⟩ := hcoh.meta_some p ti.om Hml
+  rw [← file_eq_some, hf] at hf1; cases hf1
+  have hszf := hwf.sizes p f hf
+  have hlen := pwFile_length f off data k hk
+  have haff : ∀ i, Affects st ti.c i ↔ lo ≤ i ∧ i < off + data.length := by
+    intro i; rw [hc]; simp [Affects, inRange, hsz, lo]
+  have hxslen : xs.length = min (off + data.length) f.cur.length - lo := by
+    have := congrArg List.length hsv
+    rw [hxs] at this; simp only [List.length_map, affRange, List.length_range'] at this
+    rw [this, hc]; simp [affHi, affLo, hsz, lo]
+  have hxsv : ∀ j (hj : j < xs.length), f.cur[lo + j]? = some xs[j].1 := by
+    intro j hj
+    have h1 := congrArg (·[j]?) hsv
+    have hr : (affRange st ti.c)[j]? = some (affLo st ti.c + j) := by
+      have hj' : j < affHi st ti.c - affLo st ti.c := by
+        rw [hc]; simp only [affHi, affLo, hsz]; omega
+      unfold affRange; rw [List.getElem?_range' hj', Nat.one_mul]
+    simp only [hxs, List.getElem?_map, List.getElem?_eq_getElem hj, hr] at h1
+    simp only [Option.map_some, Option.some.injEq] at h1
+    rw [hc] at h1; simp only [affLo, hsz] at h1
+    rw [h1, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]; rfl
+  -- the sizes of the other changes' files do not change
+  have hsizes : ∀ t' c', t' ≠ t → st.inflight !! t' = some c' → stk.size c'.path = st.size c'.path := by
+    intro t' c' hne h'
+    show (({ st with inflight := GMap.delete t st.inflight } : OsState).setFile p _).size _ = _
+    rw [size_setFile]; split
+    · rename_i hp; subst hp
+      rw [hlen, hsz]
+      apply Classical.byContradiction; intro hne'
+      have hr : Reaches st ti.c := by
+        rw [hc]; unfold pwSize at hne'; simp only [Reaches, hsz]; split at hne' <;> omega
+      exact hcoh.tok_alone t ti hti (hcoh.tok_q t ti hti hr) t' c' hne h' (by rw [hcp])
+    · rfl
+  have hIk : ∀ q i, InflightAt stk q i ↔ InflightAt st q i ∧ ¬ (p = q ∧ Affects st ti.c i) := by
+    intro q i
+    constructor
+    · rintro ⟨t', c', h1, h2, h3⟩
+      have h1' : st.inflight !! t' = some c' ∧ t' ≠ t := by
+        change (GMap.delete t st.inflight) !! t' = some c' at h1
+        rw [GMap.lookup_delete_iff] at h1; split at h1
+        · cases h1
+        · rename_i hne; exact ⟨h1, fun e => hne e.symm⟩
+      rw [affects_congr1 c' (hsizes t' c' h1'.2 h1'.1)] at h3
+      refine ⟨⟨t', c', h1'.1, h2, h3⟩, fun ⟨hp, ha⟩ => ?_⟩
+      exact hwf.infl_disj t' c' t ti.c i h1'.1 hct h1'.2 (by rw [h2, hcp, hp]) h3 ha
+    · rintro ⟨⟨t', c', h1, h2, h3⟩, hn⟩
+      have hne : t' ≠ t := by
+        rintro rfl; rw [hct] at h1; cases h1; exact hn ⟨by rw [← h2, hcp], h3⟩
+      refine ⟨t', c', ?_, h2, ?_⟩
+      · change (GMap.delete t st.inflight) !! t' = some c'
+        rw [GMap.lookup_delete_ne _ (Ne.symm hne)]; exact h1
+      · rw [affects_congr1 c' (hsizes t' c' hne h1)]; exact h3
+  -- the bytes of the file that do not change
+  have hsame : ∀ i, ¬ (k ≠ 0 ∧ lo ≤ i ∧ i < off + k) → i < pwSize f.cur.length off k →
+      (pwFile f off data k).cur[i]? = f.cur[i]? ∧ i < f.cur.length := by
+    intro i hn hi
+    rw [pwFile_getElem? _ _ _ _ hk]
+    by_cases hk0 : k = 0
+    · subst hk0; unfold pwSize at hi; simp only [↓reduceIte] at hi
+      refine ⟨?_, hi⟩
+      by_cases h1 : i < off
+      · simp [h1, hi]
+      · simp [h1]
+    · have : i < lo ∨ off + k ≤ i := by omega
+      unfold pwSize at hi; simp only [hk0, ↓reduceIte] at hi
+      rcases this with h | h
+      · exact ⟨by simp [show i < off by omega, show i < f.cur.length by omega], by omega⟩
+      · exact ⟨by simp [show ¬ i < off by omega, show ¬ i < off + k by omega], by omega⟩
+  have hfk : stk.file p = some (pwFile f off data k) := file_setFile_eq _ _ _
+  have hfq : ∀ q, q ≠ p → stk.file q = st.file q := fun q hq => file_setFile_ne _ _ (Ne.symm hq)
+  have hex : ∀ q f0, st.file q = some f0 → ∃ f1, stk.file q = some f1 := by
+    intro q f0 h0
+    by_cases hq : q = p
+    · subst hq; exact ⟨_, hfk⟩
+    · exact ⟨f0, by rw [hfq q hq]; exact h0⟩
+  have hdel : ∀ t' c', stk.inflight !! t' = some c' → st.inflight !! t' = some c' ∧ t' ≠ t := by
+    intro t' c' h1
+    change (GMap.delete t st.inflight) !! t' = some c' at h1
+    rw [GMap.lookup_delete_iff] at h1; split at h1
+    · cases h1
+    · rename_i hne; exact ⟨h1, fun e => hne e.symm⟩
+  have hwfk : OsWf stk := by
+    refine ⟨fun fd d h => ?_, fun b m h => ?_, hwf.maps_disj, fun t' c' h => ?_,
+      fun t1 c1 t2 c2 i h1 h2 hne hp => ?_, fun q f1 h1 => ?_, fun q f1 i h1 => ?_⟩
+    · obtain ⟨f0, h0⟩ := hwf.fds fd d h; exact hex _ _ h0
+    · obtain ⟨⟨f0, h0⟩, h1, h2, h3⟩ := hwf.maps b m h; exact ⟨hex _ _ h0, h1, h2, h3⟩
+    · obtain ⟨f0, h0⟩ := hwf.infl t' c' (hdel t' c' h).1; exact hex _ _ h0
+    · obtain ⟨h1, n1⟩ := hdel t1 c1 h1; obtain ⟨h2, n2⟩ := hdel t2 c2 h2
+      rw [affects_congr1 c1 (hsizes t1 c1 n1 h1), affects_congr1 c2 (hsizes t2 c2 n2 h2)]
+      exact hwf.infl_disj t1 c1 t2 c2 i h1 h2 hne hp
+    · by_cases hq : q = p
+      · subst hq; rw [hfk] at h1; cases h1
+        rw [pwFile_sizeLo _ _ _ _ hk hszf.1, pwFile_sizeHi _ _ _ _ hk hszf.2, hlen]
+        unfold pwSize; split <;> omega
+      · rw [hfq q hq] at h1; exact hwf.sizes q f1 h1
+    · by_cases hq : q = p
+      · subst hq; rw [hfk] at h1; cases h1
+        intro hd hl hi hdl
+        rw [pwFile_durable, pwFile_lost] at *
+        have hn : ¬ (k ≠ 0 ∧ lo ≤ i ∧ i < off + k) := by
+          intro h; have := (pwFile_dirty f off data k i).2 (.inr h); rw [hd] at this; cases this
+        have hd0 : f.dirty i = false := by
+          cases h : f.dirty i
+          · rfl
+          · have := (pwFile_dirty f off data k i).2 (.inl h); rw [hd] at this; cases this
+        rw [hlen] at hi
+        obtain ⟨he, hil⟩ := hsame i hn hi
+        rw [he]
+        exact hwf.coherent q f i hf hd0 hl hil hdl
+      · rw [hfq q hq] at h1; exact hwf.coherent q f1 i h1
+  refine ⟨hIk, hwfk, ?_⟩
+  have hfp : st.files !! p = some (some f) := file_eq_some.1 hf
+  have hysl : ys.length = min (off + data.length) (pwSize f.cur.length off k) - lo := by simp [ys]
+  refine ⟨fun q => ?_, fun q => ?_, fun q m' hm => ?_, fun q i x hx => ?_, fun q f1 i h1 hi => ?_,
+    hcoh.fds, fun t' => ?_, fun t' ti' h => ?_, fun t' ti' h hq1 => ?_, fun t' ti' h => ?_⟩
+  · rw [GMap.lookup_insert_eq_iff]
+    show _ ↔ (({ st with inflight := GMap.delete t st.inflight } : OsState).setFile p _).files !! q = none
+    rw [files_setFile]; split
+    · simp
+    · exact hcoh.meta_dom q
+  · rw [GMap.lookup_insert_eq_iff]
+    show _ ↔ (({ st with inflight := GMap.delete t st.inflight } : OsState).setFile p _).files !! q = some none
+    rw [files_setFile]; split
+    · simp
+    · exact hcoh.meta_none q
+  · have htg : ∀ c', (∃ t', stk.inflight !! t' = some c') → c'.target stk = c'.target st := by
+      rintro c' ⟨t', h'⟩
+      obtain ⟨h1, n1⟩ := hdel t' c' h'
+      exact target_congr1 c' (hsizes t' c' n1 h1)
+    rw [GMap.lookup_insert_eq_iff] at hm
+    split at hm
+    · rename_i hpq; subst hpq; cases hm
+      refine ⟨pwFile f off data k, file_eq_some.1 hfk, ⟨by rw [hlen], by rw [pwFile_named, hmo.named],
+        by rw [pwFile_sizeLo _ _ _ _ hk hszf.1]; exact hmo.lo, ?_, fun hok i => by
+          rw [pwFile_lost]; exact hmo.ok hok i, hmo.maps, fun t' c' h1 h2 => ?_⟩⟩
+      · rw [pwFile_sizeHi _ _ _ _ hk hszf.2]
+        have ht1 := hmo.targets t ti.c hct hcp
+        have ht2 := hmo.hi
+        rw [hc] at ht1; simp only [OsChange.target, hsz] at ht1
+        unfold pwSize; split <;> simp only [Nat.max_le] at * <;> omega
+      · rw [htg c' ⟨t', h1⟩]; exact hmo.targets t' c' (hdel t' c' h1).1 h2
+    · rename_i hpq
+      obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
+      refine ⟨f1, ?_, ⟨hm1.size, hm1.named, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_⟩⟩
+      · show (({ st with inflight := GMap.delete t st.inflight } : OsState).setFile p _).files !! q = _
+        rw [files_setFile, if_neg hpq]; exact h1
+      · rw [htg c' ⟨t', h1⟩]; exact hm1.targets t' c' (hdel t' c' h1).1 h2
+  · rw [lookup_insertBytes] at hx
+    split at hx
+    · rename_i hr
+      obtain ⟨rfl, h1, h2⟩ := hr
+      rw [hysl] at h2
+      have hj : i - lo < ys.length := by rw [hysl]; omega
+      rw [List.getElem?_eq_getElem hj] at hx; cases hx
+      refine ⟨_, hfk, ?_, fun h => by simp [ys] at h⟩
+      rw [pwFile_inside f off data k hk xs hxslen hxsv i h1 (by omega), if_pos (by omega)]
+      simp [ys, show lo + (i - lo) = i by omega]; rfl
+    · rename_i hr
+      obtain ⟨f1, h1, hb, hcl⟩ := hcoh.bytes q i x hx
+      by_cases hq : q = p
+      · subst hq; rw [hf] at h1; cases h1
+        have hil : i < f.cur.length := (List.getElem?_eq_some_iff.1 hb).1
+        have hout : i < lo ∨ off + data.length ≤ i := by
+          rw [hysl] at hr; simp only [_root_.true_and, not_and, Nat.not_lt] at hr
+          unfold pwSize at hr; split at hr <;> omega
+        have he := pwFile_outside f off data k hk i hout
+        refine ⟨_, hfk, by rw [he]; exact hb, fun hx2 => ?_⟩
+        obtain ⟨⟨c1, c2, c3, c4⟩, c5⟩ := hcl hx2
+        refine ⟨⟨?_, by rw [pwFile_lost]; exact c2, by rw [pwFile_sizeLo _ _ _ _ hk hszf.1]; exact c3,
+          by rw [pwFile_durable, he]; exact c4⟩, fun h => c5 ((hIk _ _).1 h).1⟩
+        cases hd : (pwFile f off data k).dirty i
+        · rfl
+        · rcases (pwFile_dirty f off data k i).1 hd with h | ⟨-, h⟩
+          · rw [c1] at h; cases h
+          · omega
+      · refine ⟨f1, by rw [hfq q hq]; exact h1, hb, fun hx2 => ?_⟩
+        obtain ⟨c1, c2⟩ := hcl hx2
+        exact ⟨c1, fun h => c2 ((hIk _ _).1 h).1⟩
+  · rw [lookup_insertBytes]
+    split
+    · rename_i hr; rw [List.getElem?_eq_getElem (by omega)]; rfl
+    · rename_i hr
+      by_cases hq : q = p
+      · subst hq; rw [hfk] at h1; cases h1
+        rw [hlen] at hi
+        have hn : ¬ (k ≠ 0 ∧ lo ≤ i ∧ i < off + k) := by
+          rw [hysl] at hr; simp only [_root_.true_and, not_and, Nat.not_lt] at hr
+          unfold pwSize at hr hi; split at hr <;> omega
+        exact hcoh.bytes_full q f i hf (hsame i hn hi).2
+      · rw [hfq q hq] at h1; exact hcoh.bytes_full q f1 i h1 hi
+  · show (GMap.delete t Γt !! t').map TokInfo.c = (GMap.delete t st.inflight) !! t'
+    rw [GMap.lookup_delete_iff, GMap.lookup_delete_iff]; split
+    · rfl
+    · exact hcoh.toks t'
+  · rw [GMap.lookup_delete_iff] at h; split at h
+    · cases h
+    · rename_i hne
+      have h' : st.inflight !! t' = some ti'.c := by
+        have := hcoh.toks t'; rw [h] at this; exact this.symm
+      rw [reaches_congr1 ti'.c (hsizes t' ti'.c (fun e => hne e.symm) h')]
+      exact hcoh.tok_q t' ti' h
+  · intro t'' c'' hne h''
+    rw [GMap.lookup_delete_iff] at h; split at h
+    · cases h
+    · exact hcoh.tok_alone t' ti' h hq1 t'' c'' hne (hdel t'' c'' h'').1
+  · rw [GMap.lookup_delete_iff] at h; split at h
+    · cases h
+    · rename_i hne
+      have h' : st.inflight !! t' = some ti'.c := by
+        have := hcoh.toks t'; rw [h] at this; exact this.symm
+      have hne' : t' ≠ t := fun e => hne e.symm
+      obtain ⟨f1, h1, hsv1⟩ := hcoh.tok_saved t' ti' h
+      rw [affRange_congr1 ti'.c (hsizes t' ti'.c hne' h')]
+      by_cases hq : ti'.c.path = p
+      · rw [hq] at h1 ⊢; rw [hf] at h1; cases h1
+        refine ⟨_, hfk, ?_⟩
+        rw [hsv1]
+        apply List.map_congr_left
+        intro i hi
+        have hil : i < f.cur.length := by
+          have := List.mem_range'_1.1 hi
+          have : affHi st ti'.c ≤ f.cur.length := by
+            unfold affHi; rw [hq, hsz]; split <;> omega
+          omega
+        have ha : Affects st ti'.c i := (affects_iff_affRange st ti'.c i f (by rw [hq]; exact hf) hil).2 hi
+        have hna := hwf.infl_disj t' ti'.c t ti.c i h' hct hne' (by rw [hq, hcp]) ha
+        rw [haff] at hna
+        rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
+          pwFile_outside f off data k hk i (by omega)]
+      · exact ⟨f1, by rw [hfq _ hq]; exact h1, hsv1⟩
+
+end finish
+
 end Perennial
