@@ -27,6 +27,110 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.
 /-- The data the flag guards (`newData`). -/
 def dataC : List w8 := [W8 0xde, W8 0xad, W8 0xbe, W8 0xef, W8 0x01, W8 0x23, W8 0x45, W8 0x67]
 
+/-- **The crash invariant**, of a file image: a nonzero flag byte (offset 8) means the data is at
+offset 0. -/
+def GoodImg (img : List w8) : Prop := ∀ b, img[8]? = some b → b ≠ 0 → img.take 8 = dataC
+
+/-- The crash invariant of what a crash leaves at the path: no file, or a `GoodImg` one. -/
+def Good : Option OsFile → Prop
+  | none => True
+  | some f => GoodImg f.cur
+
+/-- The namespace of the file's invariant. -/
+def logN : Namespace := nroot .@ "crashlog"
+
+theorem take8_of {img : List w8} (h : ∀ i < 8, img[i]? = dataC[i]?) : img.take 8 = dataC := by
+  apply List.ext_getElem?; intro i
+  rw [List.getElem?_take]
+  split
+  · exact h i ‹_›
+  · rw [List.getElem?_eq_none (by simp [dataC]; omega)]
+
+/-- The first write, of the data at 0: a crash leaves no flag, or the flag as it was (clean). -/
+theorem crash_W1 (m : OsMeta) (bs : List (w8 × Bool)) (hhi : m.hi = m.size)
+    (hlen : bs.length = m.size) (hflag : m.size ≤ 8 ∨ bs[8]? = some (0, true)) :
+    CrashOk Good (cfWriting m bs 0 dataC) := by
+  intro fo h
+  rcases h with ⟨rfl, -⟩ | ⟨img, rfl, -, hhi', hb⟩
+  · trivial
+  change GoodImg img
+  intro b hb8 hb0
+  exfalso
+  have hl8 : 8 < img.length := (List.getElem?_eq_some_iff.1 hb8).1
+  simp only [pwMeta, dataC, List.length] at hhi'
+  rcases hflag with hs | hf
+  · omega
+  · have hs : 8 < m.size := by rw [← hlen]; exact (List.getElem?_eq_some_iff.1 hf).1
+    have hcf : cfHi m 0 dataC.length = 8 := by unfold cfHi; simp [dataC]; omega
+    have := hb _ (List.mem_cons_of_mem _ (List.mem_singleton_self _)) 0 (0, true)
+      (by simp only [List.getElem?_drop, hcf, Nat.add_zero]; exact hf) rfl
+    simp only [hcf, Nat.add_zero] at this
+    rw [this] at hb8
+    cases hb8
+    exact hb0 rfl
+
+/-- A sync after the data is written: a crash leaves the data. -/
+theorem crash_synced (m : OsMeta) (bs : List (w8 × Bool)) (hok : m.ok = true)
+    (hlen : bs.length = m.size) (hsz : 8 ≤ m.size) (hv : ∀ i < 8, (bs[i]?).map Prod.fst = dataC[i]?) :
+    CrashOk Good (some (m.synced, syncedBytes m bs, none)) := by
+  intro fo h
+  rcases h with ⟨rfl, -⟩ | ⟨img, rfl, -, -, hb⟩
+  · trivial
+  change GoodImg img
+  intro _ _ _
+  apply take8_of
+  intro i hi
+  have hbi : i < bs.length := by omega
+  have := hb _ (List.mem_singleton_self _) i (bs[i].1, true)
+    (by simp [syncedBytes, hok, List.getElem?_eq_getElem hbi]) rfl
+  simp only [Nat.zero_add] at this
+  rw [this, ← hv i hi, List.getElem?_eq_getElem hbi]; rfl
+
+/-- The second write, of the flag at 8: a crash leaves the data (clean). -/
+theorem crash_W2 (m : OsMeta) (bs : List (w8 × Bool)) (hsz : 8 ≤ m.size)
+    (hv : ∀ i < 8, ∃ b, bs[i]? = some (b, true) ∧ dataC[i]? = some b) :
+    CrashOk Good (cfWriting m bs 8 [W8 1]) := by
+  intro fo h
+  rcases h with ⟨rfl, -⟩ | ⟨img, rfl, -, -, hb⟩
+  · trivial
+  change GoodImg img
+  intro _ _ _
+  apply take8_of
+  intro i hi
+  obtain ⟨b, hbi, hd⟩ := hv i hi
+  have := hb _ List.mem_cons_self i (b, true)
+    (by rw [List.getElem?_take_of_lt (by unfold cfLo; omega)]; exact hbi) rfl
+  simp only [Nat.zero_add] at this
+  rw [this, hd]
+
+/-- A generation's file, opened: a crash leaves it as it was, or no file. -/
+theorem crash_open (fo : Option OsFile) (hg : Good fo) : CrashOk Good (openState (startState fo)) := by
+  intro fo' h
+  cases fo with
+  | none =>
+    rcases h with ⟨rfl, -⟩ | ⟨img, rfl, -, hhi, -⟩
+    · trivial
+    have h0 : img.length ≤ 0 := hhi
+    have : img = [] := List.eq_nil_of_length_eq_zero (by omega)
+    subst this
+    change GoodImg []
+    intro b hb; simp at hb
+  | some f =>
+    rcases h with ⟨rfl, -⟩ | ⟨img, rfl, hlo, hhi, hb⟩
+    · trivial
+    replace hlo : f.cur.length ≤ img.length := hlo
+    replace hhi : img.length ≤ f.cur.length := hhi
+    have : img = f.cur := by
+      apply List.ext_getElem?; intro k
+      by_cases hk : k < f.cur.length
+      · have := hb _ (List.mem_singleton_self _) k (f.cur[k], true)
+          (by simp [List.getElem?_eq_getElem hk]) rfl
+        simp only [Nat.zero_add] at this
+        rw [this, List.getElem?_eq_getElem hk]
+      · rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by omega)]
+    subst this
+    exact hg
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
 variable [go_gctx : GoGlobalContext]
@@ -94,6 +198,21 @@ theorem wp_dataOk (sl : GoSlice) (dq : DFrac) (vs : List w8) (h : vs.take 8 = da
   try wp_auto
   iapply HΦ
   iframe
+
+theorem wp_newData :
+    {{ (True : IProp GF) }}
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.crashlog.newData)) (Val #()))
+    {{ (sl : GoSlice), RET #sl; sl ↦* dataC }} := by
+  wp_start as -
+  wp_auto
+  wp_apply wp_slice_literal (V := w8) (l := dataC)
+  isplitr
+  · ipureintro; rfl
+  iintro %sl ⟨Hs, -⟩
+  simp only [go.arrayLiteralSize, List.foldl, Int.reduceAdd]
+  (try wp_auto)
+  iapply HΦ
+  iexact Hs
 
 end proof
 
