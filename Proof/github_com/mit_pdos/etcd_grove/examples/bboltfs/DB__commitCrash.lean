@@ -997,6 +997,38 @@ theorem dataErrC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoStr
     ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.1, by omega, h.2.2.2.2.2.2⟩
   iframe; iframe #
 
+/-- The data page out of the frozen pages up to the new high water mark. -/
+theorem frozen_page (p : GoString) (B : List (w8 × Bool)) (hwm : Nat) (h2 : 2 ≤ hwm)
+    (hl : 4096 * (hwm + 1) ≤ B.length) :
+    osBytes (GF := GF) p 8192 DFrac.discard ((B.drop 8192).take (4096 * (hwm + 1) - 8192)) ⊢
+      osBytes (GF := GF) p (4096 * hwm) DFrac.discard
+        ((B.drop (4096 * hwm)).take (4096 * (hwm + 1) - 4096 * hwm)) := by
+  have e : (B.drop 8192).take (4096 * (hwm + 1) - 8192) = (B.drop 8192).take (4096 * hwm - 8192) ++
+      (B.drop (4096 * hwm)).take (4096 * (hwm + 1) - 4096 * hwm) := by
+    rw [show 4096 * (hwm + 1) - 8192 = (4096 * hwm - 8192) + (4096 * (hwm + 1) - 4096 * hwm) by omega,
+      List.take_add, List.drop_drop, show 8192 + (4096 * hwm - 8192) = 4096 * hwm by omega]
+  rw [e]
+  iintro H
+  icases (osBytes_app p 8192 DFrac.discard _ _).1 $$ H with ⟨-, H2⟩
+  rw [List.length_take, List.length_drop, show 8192 + min (4096 * hwm - 8192) (B.length - 8192) =
+    4096 * hwm by omega]
+  iexact H2
+
+/-- `rwRC` from the writer's state with a mapping, not failed. -/
+theorem rwRC_of (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8)
+    (hwm : Nat) (base : Loc) (len : Nat) (γm : GName) (m : OsMeta) (bs : List (w8 × Bool))
+    (hok : m.ok = true) :
+    writerStC (GF := GF) γ γc db f fd p mp false hwm (some (base, len, γm)) m bs ⊢
+      rwRC (GF := GF) γ γc db f fd p := by
+  unfold writerStC rwRC
+  iintro ⟨Hcur, Hmap, Hout, Hflds, Hw, Hcls, Hst⟩
+  ileft
+  iexists mp, false, hwm, some (base, len, γm), m, bs
+  iframe Hcur Hmap Hout Hflds Hw Hcls
+  isplitr
+  · ipureintro; exact fun _ => hok
+  · dsimp only; iexact Hst
+
 end lemmas
 
 
@@ -1604,7 +1636,147 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
     · iframe Hown Hcur Hmap Hout Hflds Hcls Htok T0 T1 Hpc Htop Hfsz Hdsz Hf Hfd Hcs; iframe #
     iunfold commitErrC at Herr
     iexact Herr
-  sorry
+  (try wp_auto)
+  -- the meta write succeeded: `Fdatasync` the meta pages
+  wp_apply wp_Fd f fd p _ $$ [Hf] as Hf
+  · iexact Hf
+  (try wp_auto)
+  obtain ⟨hok', hcur', hcr', hcp', hct'⟩ := metaPagesOk_commit mp i (metaPageOf mv) Hok
+    (by rw [hmv]; exact Ht) (by rw [show curPgid mp = hwm from hhwm]; exact Hb) hi2
+    (metaPageOf_length mv) (by rw [metaPageOf_meta, commitMeta, hmv])
+  generalize hmp' : setPage mp i (metaPageOf mv) = mp' at hok' hcur' hcr' hcp' hct'
+  rw [commitMeta, hmv] at hcur'
+  rw [hmv] at hct'
+  rw [show curPgid mp = hwm from hhwm] at hcr' hcp'
+  have hmpl : mp'.length = 8192 := hok'.1
+  obtain ⟨M7, B7, H6, F6, T6, hsplit6, hH6, hF6, hsyn6, hok7, hcc7, hbl7, htk7, hpg7, hm7, hs7, ho7,
+    hok7', hok7M, hX⟩ := metaS_facts (p := p) (v := v) hl6 hs6 (by rw [ho6, ho5]) h2
+      (by rw [hs5']; exact Hgrow) (by rw [hs5']; exact h30) hi (by rw [hi]; exact hout6) hd6 ht5 hml
+      hpg5 hmp'.symm hok' hcur' hcr' hcp' hct' Hboot
+  rw [hX]
+  rw [hsplit6] at hok6F hok6F'
+  rw [hsplit6]
+  wp_apply wp_Fdatasync fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ dbCrashN γc (dbOk p) m6 H6 F6
+      T6 8192 (4096 * hwm) true hH6 hF6 (fun h => by cases h) dbCrashN_disj
+      (by rw [hsyn6]; exact hok7) hok6F' $$ [Hfd Hcs] as %e2 ⟨Hfd, Hs⟩
+  · iframe Hfd Hcs; iframe #
+  have hl1 : ((mp'.drop 16).take 64).length = 64 := by
+    simp only [List.length_take, List.length_drop, hmpl]; rfl
+  have hmc : ((mp'.drop 16).take 64 ++ (mp'.drop 4112).take 64).length = 128 := by
+    simp only [List.length_append, List.length_take, List.length_drop, hmpl]; rfl
+  icases Hs with (⟨%He2, Hcs⟩ | ⟨%He2, Hcs⟩)
+  rotate_left
+  · -- the meta's sync failed: fail the handle
+    unfold errnoErr; rw [if_neg He2]
+    (try wp_auto)
+    imod meta_failC γ db p base len γm mp hwm ((mp'.drop 16).take 64 ++ (mp'.drop 4112).take 64)
+        hmc T _ _ _ c $$ [Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hown Hcls2]
+      with ⟨HR, #Hfailed, Hown, Htok, Hcur, Hout⟩
+    · rw [List.take_left' hl1, List.drop_left' hl1]
+      iframe Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hown Hcls2; iframe #
+    wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaRC (GF := GF) γ db p)
+      $$ [$Hmeta $Hsync $Hlocked HR]
+    · iexact HR
+    (try wp_auto)
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; simp
+    ihave Herr := dataErrTC γ γc db f fd p mp hwm base len γm { m6 with ok := false } (H6 ++ (F6 ++ T6))
+      m2.size _ _
+      ⟨by show m6.maps = _; rw [hm6]; exact hm5', by show m6.size ≤ len; rw [hs6, hs5']; exact Hsz,
+        Hbase, Hl41, h2, by show _ ≤ m6.size; rw [hs6, hs5']; exact hin, hok6F⟩
+      $$ [Hown Hfailed Hcur Hmap Hout Hflds Hcls Htok T0 T1 Hpc Htop Hfsz Hdsz Hf Hfd Hcs]
+    · iframe Hown Hcur Hmap Hout Hflds Hcls Htok T0 T1 Hpc Htop Hfsz Hdsz Hf Hfd Hcs; iframe #
+    iunfold commitErrC at Herr
+    iexact Herr
+  subst He2
+  unfold errnoErr; rw [if_pos rfl]
+  (try wp_auto)
+  rw [hsyn6]
+  -- freeze the data page: its `pageIs`, its cells holding it
+  have hs7' : M7.size = m2.size := by rw [hs7, hs6, hs5']
+  have hm7' : M7.maps = {[base := len]} := by rw [hm7, hm6]; exact hm5'
+  have hfb7 : 4096 * (hwm + 1) ≤ M7.size := by
+    rw [hs7']; exact Nat.le_trans (by rw [Nat.mul_add, Nat.mul_one]; exact Nat.le_refl _) hin
+  imod cs_freeze dbCrashN p γc (dbOk p) M7 B7 8192 (4096 * hwm) 8192 (4096 * (hwm + 1)) ⊤
+      (fun _ _ => CoPset.mem_full) (Nat.le_trans h8 (Nat.mul_le_mul_left _ (Nat.le_succ _))) hfb7
+      (fun _ => ⟨Nat.le_refl _, Nat.mul_le_mul_left _ (Nat.le_succ _)⟩) hok7' $$ Hci Hcs
+    with ⟨Hcs, Hfr⟩
+  ihave Hpg := frozen_page p B7 hwm h2 (by rw [hbl7]; exact hfb7) $$ Hfr
+  rw [hpg7]
+  imod pageIs_of p hwm DFrac.discard (dataPage mv.pgid' v) (dataPage_length _ _) $$ Hpg with #HBp
+  icases (csOwn_idle _ _ _ rfl).1 $$ Hcs with ⟨Hv, ⟨Hm7, Hb7⟩, %Hwf7⟩
+  have hb7 : M7.maps !! base = some len := by rw [hm7']; exact GMap.lookup_insert _ _ _
+  iunfold pageIs at HBp
+  icases HBp with ⟨-, #Hpg⟩
+  iunfold cellsAny at Hpc
+  icases Hpc with ⟨%vf, Hpc⟩
+  have hplen : 4096 * hwm + ((dataPage mv.pgid' v).map (·, true)).length ≤ len := by
+    rw [List.length_map, dataPage_length]; exact Nat.le_trans hin Hsz
+  iapply cellsR_agree _ rfl p _ M7 base len hb7 DFrac.discard (by simp) _
+    ((dataPage mv.pgid' v).map (·, true)) (4096 * hwm) vf hplen $$ Hos Hm7 Hpg [Hpc]
+  · rw [List.length_map, dataPage_length]; iexact Hpc
+  iintro Hm7 - Hpc
+  rw [show ((dataPage mv.pgid' v).map (·, true)).map Prod.fst = dataPage mv.pgid' v by
+    rw [List.map_map]; exact List.map_id _]
+  ihave Hcs := (csOwn_idle (GF := GF) p γc ⟨M7, B7, 8192, 4096 * (hwm + 1), .idle⟩ rfl).2
+    $$ [Hv Hm7 Hb7]
+  · iframe Hv Hm7 Hb7; ipureintro; exact Hwf7
+  imod pageIs_of p hwm DFrac.discard (dataPage mv.pgid' v) (dataPage_length _ _) $$ Hpg with #HBp
+  -- publish: the meta pages, page `hwm` committed, the owner, the last txid, the transaction
+  imod metas_publish γ p base len γm mp mp' hwm (dataPage mv.pgid' v)
+    (by rw [hs7'] at hfb7; exact Nat.le_trans hfb7 Hsz) h2 hmpl
+    $$ [Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hpc] with ⟨Htok, Hcur, Hcm, Hout, Hout2⟩
+  · iframe Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hpc; iframe #
+  iunfold dbOwner at Hown
+  imod ghostVar_update_halves (mv.txid'.toNat + 1, hwm + 1) γ.own _ _ $$ Hown Hown2 with ⟨Hown, Hown2⟩
+  imod mono_nat_own_update (mv.txid'.toNat + 1) (by rw [hmv]; omega) $$ Hlast with ⟨Hlast, #Hlb⟩
+  imod ghost_map_insert_persist (mv.txid'.toNat + 1) (some v : Option w64) (HTn _ (by rw [hmv]; omega))
+    $$ Hauth with ⟨Hauth, #Htx⟩
+  wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaRC (GF := GF) γ db p)
+    $$ [$Hmeta $Hsync $Hlocked Hfl Hcm Hcls2 Hauth Hout2 Hfail Hlast Hown2]
+  · iunfold metaRC
+    iexists false, mp', hwm + 1, c, T.insert (mv.txid'.toNat + 1) (some v)
+    iframe Hfl Hcm Hcls2 Hauth Hout2
+    dsimp only
+    rw [hct']
+    iframe Hfail Hlast Hown2
+    isplitr
+    · ipureintro
+      refine ⟨hok', hcp'.symm, fun k hk => ?_⟩
+      rw [GMap.lookup_insert_ne _ _ (by omega)]
+      exact HTn k (by rw [hmv]; omega)
+    iexists dataPage mv.pgid' v
+    rw [hcr', dataPage_val]
+    iframe HBp
+    isplitr
+    · unfold dbTx; iframe Htx; ipureintro; exact Hvp
+    · ipureintro; exact GMap.lookup_insert _ _ _
+  (try wp_auto)
+  -- `rwlock`'s resource at the new meta pages, the high water mark one page on
+  iapply HΦ
+  ileft
+  isplitr
+  · ipureintro; rfl
+  ihave Hwc4 := (hdrTails base).2 $$ [T0 T1]
+  · iframe T0 T1
+  ihave Hwc := (writerCells_top base (hwm + 1) len).2 $$ [Hwc4 Htop]
+  · rw [show 4096 * (hwm + 1) = 4096 * hwm + 4096 by rw [Nat.mul_add, Nat.mul_one],
+      show len - (4096 * hwm + 4096) = len - 4096 * hwm - 4096 by rw [Nat.sub_sub]]
+    iframe Hwc4 Htop
+  isplitl [Hfsz Hdsz Hmap Hflds Hcls Hf Hfd Hcs Htok Hcur Hout Hwc]
+  · iapply rwRC_of γ γc db f fd p mp' (hwm + 1) base len γm M7 B7 ho7
+    iapply writerStC_mk γ γc db f fd p mp' false (hwm + 1) base len γm M7 B7 m2.size
+      ⟨⟨Nat.le_succ_of_le h2, hfb7, hok7M, fun _ => ⟨htk7, hcc7, hs7'.symm, hfd,
+          by rw [hs7']; exact h16, by rw [hs7']; exact h30, hl30⟩⟩,
+        hm7', by rw [hs7']; exact Hsz, Hbase, Hl41⟩
+    iframe; iframe #
+  isplitl [Hown]
+  · unfold dbOwner; iexact Hown
+  isplitr
+  · unfold dbTx; iframe Htx; ipureintro; exact Hvp
+  · unfold dbLast; iexact Hlb
 
 end proof
 
