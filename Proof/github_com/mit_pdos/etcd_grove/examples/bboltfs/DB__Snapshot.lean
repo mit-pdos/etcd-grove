@@ -193,6 +193,30 @@ theorem DB.Snapshot.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
       ihave Htok := ((ghostVar_fractional γm ()).fractional sync.rfrac.half.half (metaDep + metaDep)).2 $$ [Hq Htok]
       · iframe
       rw [← show sync.rfrac.half = sync.rfrac.half.half + (metaDep + metaDep) by unfold metaDep; qp_eq]
+      have hpg : curPgid mp = (curMeta mp).pgid'.toNat := rfl
+      have hsz : sint.Z (((curMeta mp).pgid' + W64 1) * W64 4096) =
+          (((curPgid mp + 1) * 4096 : Nat) : Int) := by
+        rw [hpg] at Hbound ⊢; word
+      wp_apply (wp_slice_make2 (V := w8) (((curMeta mp).pgid' + W64 1) * W64 4096)) as %buf ⟨Hbuf, -⟩
+      · ipureintro; rw [hsz]; omega
+      have hnat : sint.nat (((curMeta mp).pgid' + W64 1) * W64 4096) = (curPgid mp + 1) * 4096 := by
+        show (sint.Z _).toNat = _; omega
+      rw [hnat]
+      ihave #HBc := HB
+      ihave #HB2c := HB2
+      iunfold pageIs at HBc HB2c
+      icases HBc with ⟨%HBl, #HBb⟩
+      icases HB2c with ⟨%HB2l, #HB2b⟩
+      ihave Hrs : ([∗list] r ∈ [(4096 * curRoot mp, DFrac.discard, B.map (·, true)),
+          (4096 * (curPgid mp - 1), DFrac.discard, B2.map (·, true))],
+          osBytes (GF := GF) p r.1 r.2.1 r.2.2) $$ []
+      · iapply BigSepL.bigSepL_cons.2; isplitl; · iexact HBb
+        iapply BigSepL.bigSepL_singleton.2; iexact HB2b
+      wp_apply wp_ReadAt f' fd' p (DFrac.own sync.rfrac.half) buf
+          (List.replicate ((curPgid mp + 1) * 4096) (zero_val w8)) (W64 0) (DFrac.own sync.rfrac.half)
+          ⟨p, true, true⟩ _ eof rfl (by decide) (by simp; omega) (by simp; omega)
+        $$ [Hf Hbuf Hfd Hrs] as %n %err ⟨Hf, Hfd, Hrs, %vs', Hbuf, %Hres⟩
+      · iframe; iframe #
       sorry
 
 end proof
