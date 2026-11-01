@@ -1,0 +1,139 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/Link.lean`
+# (all Lean-first: no Rocq counterpart), read by `etc/gen-link.py --kvdurable`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`; `@`: linked in its package's
+# `Link.lean` (raft's); `=term`: a term given as is (Perennial's `time` results, raft's importable
+# `confchange`/`tracker` specs in `Linked.lean`); `<fn>+<S>`: the function's second spec and proof,
+# `<F>.spec<S>`/`<F>.wp_proof<S>`, linked as `wp_<M><S>` (`Replica.persist`'s `specRun`, the form
+# `Replica.run` calls it at).
+#
+# Not linked yet (a spec, no proof file): `Cluster.Crash`, `Cluster.restart`, `Cluster.start`,
+# `Cluster.startNew`, `StartCluster`, `openStorage`. Add each line here once its proof exists.
+#
+# the callees outside the store
+IsEmptyHardState: @
+IsEmptySnap: @
+MemoryStorage__Append: @
+MemoryStorage__ApplySnapshot: @
+MemoryStorage__Compact: @
+MemoryStorage__CreateSnapshot: @
+MemoryStorage__FirstIndex: @
+MemoryStorage__InitialState: @
+MemoryStorage__SetHardState: @
+MemoryStorage__Snapshot: @
+MustSync: @
+NewMemoryStorage: @
+node__Advance: @
+node__ApplyConfChange: @
+node__ReadIndex: @
+node__Ready: @
+node__ReportSnapshot: @
+node__ReportUnreachable: @
+node__Step: @
+node__Stop: @
+node__Tick: @
+proto_CloneConfState: @
+proto_CloneSnapshot: @
+proto_UnmarshalConfChange: @
+proto_UnmarshalConfChangeV2: @
+raftpb_ConfChangeV2__AsV2: @
+raftpb_ConfChangeV2__EnterJoint: @
+raftpb_ConfChangeV2__GetChanges: @
+raftpb_ConfChangeV2__LeaveJoint: @
+raftpb_ConfChange__AsV2: @
+raftpb_ConfState__GetAutoLeave: @
+raftpb_ConfState__GetLearners: @
+raftpb_ConfState__GetLearnersNext: @
+raftpb_ConfState__GetVoters: @
+raftpb_ConfState__GetVotersOutgoing: @
+raftpb_EntryType__Enum: @
+raftpb_Entry__GetData: @
+raftpb_Entry__GetIndex: @
+raftpb_Entry__GetTerm: @
+raftpb_Entry__GetType: @
+raftpb_HardState__GetCommit: @
+raftpb_HardState__GetTerm: @
+raftpb_HardState__GetVote: @
+raftpb_Message__GetTo: @
+raftpb_Message__GetType: @
+raftpb_SnapshotMetadata__GetConfState: @
+raftpb_SnapshotMetadata__GetIndex: @
+raftpb_SnapshotMetadata__GetTerm: @
+raftpb_Snapshot__GetData: @
+raftpb_Snapshot__GetMetadata: @
+# context's trust-boundary axiom (`Proof/context/WithTimeoutBackground.lean`), linked here as in
+# kvreconf's list
+context_WithTimeoutBackground:
+# the durable files package (examples/durable): its trusted `Write`'s proved spec
+durable_Write:
+# the store (examples/kvdurable)
+kvdurable_Cluster__config:
+kvdurable_Cluster__deliver: kvdurable_Cluster__replica kvdurable_Cluster__dropped kvdurable_Cluster__step kvdurable_copyMsg kvdurable_Stats__add kvdurable_oneIn kvdurable_below raftpb_Message__GetTo
+kvdurable_Cluster__dropped: kvdurable_Stats__add raftpb_Message__GetTo raftpb_Message__GetType node__ReportUnreachable node__ReportSnapshot
+kvdurable_Cluster__fileOf: kvdurable_itoa
+kvdurable_Cluster__replica:
+kvdurable_Cluster__send: kvdurable_Cluster__replica kvdurable_copyMsg kvdurable_Cluster__deliver
+kvdurable_Cluster__sender: kvdurable_Cluster__send
+kvdurable_Cluster__step: kvdurable_Stats__add kvdurable_oneIn raftpb_Message__GetTo raftpb_Message__GetType node__Step node__ReportUnreachable node__ReportSnapshot context_WithTimeoutBackground
+kvdurable_Cluster__tick: kvdurable_below
+kvdurable_Replica__answer: kvdurable_decodeReadCtx
+kvdurable_Replica__applyConf: node__ApplyConfChange kvdurable_validConf kvdurable_Stats__add raftpb_ConfChange__AsV2 raftpb_ConfChangeV2__AsV2 raftpb_ConfChangeV2__EnterJoint
+kvdurable_Replica__applyEntry: kvdurable_Replica__applyOp kvdurable_Replica__applyConf raftpb_Entry__GetType raftpb_Entry__GetData raftpb_Entry__GetIndex proto_UnmarshalConfChange proto_UnmarshalConfChangeV2 kvdurable_Stats__add
+kvdurable_Replica__applyOp: kvdurable_decode
+kvdurable_Replica__crash: kvdurable_Replica__stop
+kvdurable_Replica__install: kvdurable_Stats__add raftpb_SnapshotMetadata__GetConfState raftpb_SnapshotMetadata__GetIndex raftpb_ConfState__GetVotersOutgoing raftpb_ConfState__GetLearners raftpb_ConfState__GetLearnersNext proto_CloneConfState
+kvdurable_Replica__persist: kvdurable_Storage__encode durable_Write kvdurable_Stats__add
+kvdurable_Replica__persist+Run: kvdurable_Storage__encode durable_Write kvdurable_Stats__add
+kvdurable_Replica__read: kvdurable_readCtx kvdurable_readSeqs__next node__ReadIndex context_WithTimeoutBackground
+kvdurable_Replica__request: kvdurable_encodeState
+kvdurable_Replica__run: kvdurable_Replica__applyEntry kvdurable_Replica__install kvdurable_Replica__answer kvdurable_Replica__request kvdurable_Replica__persist kvdurable_Replica__persist+Run kvdurable_Stats__add kvdurable_fits kvdurable_oneIn kvdurable_decodeState kvdurable_Storage__Append kvdurable_Storage__ApplySnapshot kvdurable_Storage__SetHardState node__Ready node__Advance IsEmptySnap IsEmptyHardState MustSync raftpb_Snapshot__GetData raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex raftpb_Entry__GetIndex MemoryStorage__Append MemoryStorage__ApplySnapshot
+kvdurable_Replica__snapshot: kvdurable_Stats__add kvdurable_below kvdurable_oneIn kvdurable_Replica__persist raftpb_ConfState__GetVotersOutgoing kvdurable_Storage__CreateSnapshot kvdurable_Storage__Compact MemoryStorage__CreateSnapshot MemoryStorage__FirstIndex MemoryStorage__Compact
+kvdurable_Replica__snapshotter: kvdurable_Replica__snapshot
+kvdurable_Replica__stop: node__Stop
+kvdurable_Replica__ticker: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop node__Tick
+kvdurable_Stats__add:
+kvdurable_Storage__Append: kvdurable_image__append
+kvdurable_Storage__ApplySnapshot: kvdurable_image__applySnapshot
+kvdurable_Storage__Compact: kvdurable_image__compact
+kvdurable_Storage__CreateSnapshot: kvdurable_image__createSnapshot
+kvdurable_Storage__InitialState: MemoryStorage__InitialState kvdurable_Storage__snapIndex proto_CloneConfState
+kvdurable_Storage__SetHardState: MemoryStorage__SetHardState
+kvdurable_Storage__Snapshot: kvdurable_oneIn MemoryStorage__Snapshot
+kvdurable_Storage__encode: kvdurable_putUint64 kvdurable_putSnapshot kvdurable_putEntry raftpb_HardState__GetTerm raftpb_HardState__GetVote raftpb_HardState__GetCommit
+kvdurable_Storage__snapIndex: MemoryStorage__Snapshot raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
+kvdurable_below:
+kvdurable_copyMsg: proto_CloneSnapshot
+kvdurable_decode:
+kvdurable_decodeReadCtx: kvdurable_decode
+kvdurable_decodeState: kvdurable_getMap
+kvdurable_encode:
+kvdurable_encodeState: kvdurable_putMap
+kvdurable_fits: raftpb_Entry__GetIndex
+kvdurable_getBytes:
+kvdurable_getEntry: kvdurable_getUint64 kvdurable_getBytes raftpb_EntryType__Enum
+kvdurable_getIDs: kvdurable_getUint64
+kvdurable_getMap: kvdurable_getBytes
+kvdurable_getSnapshot: kvdurable_getUint64 kvdurable_getIDs kvdurable_getBytes
+kvdurable_getUint64:
+kvdurable_image__append: raftpb_Entry__GetIndex
+kvdurable_image__applySnapshot: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex raftpb_SnapshotMetadata__GetTerm proto_CloneSnapshot
+kvdurable_image__compact: raftpb_Entry__GetTerm
+kvdurable_image__createSnapshot: raftpb_Entry__GetTerm raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex raftpb_SnapshotMetadata__GetConfState
+kvdurable_itoa:
+kvdurable_less:
+kvdurable_newReplica: kvdurable_Replica__run kvdurable_Replica__ticker kvdurable_Replica__snapshotter proto_CloneConfState
+kvdurable_newStorage: NewMemoryStorage
+kvdurable_oneIn:
+kvdurable_putBytes:
+kvdurable_putEntry: kvdurable_putUint64 kvdurable_putBytes raftpb_Entry__GetTerm raftpb_Entry__GetIndex raftpb_Entry__GetType raftpb_Entry__GetData
+kvdurable_putIDs: kvdurable_putUint64
+kvdurable_putMap: kvdurable_putBytes kvdurable_sortStrings
+kvdurable_putSnapshot: kvdurable_putUint64 kvdurable_putIDs kvdurable_putBytes raftpb_Snapshot__GetMetadata raftpb_Snapshot__GetData raftpb_SnapshotMetadata__GetConfState raftpb_SnapshotMetadata__GetIndex raftpb_SnapshotMetadata__GetTerm raftpb_ConfState__GetVoters raftpb_ConfState__GetLearners raftpb_ConfState__GetVotersOutgoing raftpb_ConfState__GetLearnersNext raftpb_ConfState__GetAutoLeave
+kvdurable_putUint64:
+kvdurable_quietLogger__Debugf:
+kvdurable_quietLogger__Errorf:
+kvdurable_quietLogger__Infof:
+kvdurable_quietLogger__Warningf:
+kvdurable_readCtx: kvdurable_encode
+kvdurable_readSeqs__next:
+kvdurable_sortStrings: kvdurable_less
+kvdurable_validConf: =RaftLink.tracker.wp_MakeProgressTracker_api =RaftLink.confchange.wp_Restore_api =RaftLink.confchange.Changer.wp_Simple_api =RaftLink.confchange.Changer.wp_EnterJoint_api =RaftLink.confchange.Changer.wp_LeaveJoint_api raftpb_ConfChangeV2__LeaveJoint raftpb_ConfChangeV2__EnterJoint raftpb_ConfChangeV2__GetChanges
