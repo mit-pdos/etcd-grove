@@ -517,6 +517,8 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  "--apimodel": ["Perennial.Proof.sync.Link", "Perennial.Proof.errors.Link",
                                 "Perennial.Proof.time.Link"],
                  "--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base"],
+                 # Perennial's `time` results minibolt's proofs take as terms (`=` callees)
+                 "--bboltfs": ["Perennial.Proof.time.Link"],
                  # (2026-10-28, stage U4a) raft's `unifiedSpec` variants (`=RaftLink.*` callees)
                  "--kv": ["Proof.go_etcd_io.raft.v3.Linked"],
                  # raft's importable `confchange`/`tracker` specs (`=RaftLink.*` callees),

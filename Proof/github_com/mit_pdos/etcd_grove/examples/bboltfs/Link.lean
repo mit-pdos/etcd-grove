@@ -18,6 +18,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__sum64
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__validate
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Meta__write
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Page__meta
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.flock
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.initPages
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.mmapSize
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pageAt
@@ -31,6 +32,7 @@ public import Proof.syscall.Flock
 public import Proof.golang_org.x.sys.unix.Madvise
 public import Proof.golang_org.x.sys.unix.Mmap
 public import Proof.golang_org.x.sys.unix.Munmap
+public import Perennial.Proof.time.Link
 
 @[expose] public section
 
@@ -140,6 +142,10 @@ theorem DB.wp_readPageSize :
 theorem Meta.wp_write :
     EtcdGrove.bboltfs.Meta.write.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.Meta.write.wp_proof Meta.wp_sum64 Page.wp_meta
+
+theorem wp_flock :
+    EtcdGrove.bboltfs.flock.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.flock.wp_proof os.File.wp_Fd syscall.wp_Flock _root_.Perennial.time.wp_Sleep
 
 end links
 
