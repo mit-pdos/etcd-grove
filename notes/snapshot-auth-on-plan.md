@@ -365,7 +365,9 @@ itself and owns every part of it the premise does not take. Findings, all **of t
 - Not refuted: `authLockRetire` (the one lock quarter is only in `T`, in an open batch, or retired;
   cycling it across two backends did not give a `T` whose backend's committed state differs from the
   history's last), `R` lent against `bkRTx` (the count is preserved: redeeming the token spends an
-  `R`), `curFrac` (a definition).
+  `R`). (The check listed `curFrac` as "a definition, not refuted"; it ran before round 2 put the
+  currency on the first clause and did not try `Close`: review round 3's A refutes the guard,
+  finding 22.)
 
 ### Review round 2 (2026-11-01)
 
@@ -396,6 +398,28 @@ itself and owns every part of it the premise does not take. Findings, all **of t
    `isValidPermissionRange` (S10).
 - **A security-sensitive finding** (round 2's reviewer): recorded in `etcd-grove-private` (the
   user's decision, 2026-11-01), not here.
+
+### Review round 3 (2026-11-01; the third round on the premise's statements: to the user)
+
+22. **The guards carry no open share** (A, first tier; also today's `authSchemaSrv`): `Cu` and `T`
+   are minted from nothing; the client keeps all of `backend.bOpen` (boot's `Post` returns `bOpen qo`,
+   and the borrowed `bkRTx` can be redeemed with any `R`), so it can `Close` the backend
+   (`backend__Close` needs `bOpen 1`) and then read with `R ∗ Cu 1` (or `T`): Go dereferences a nil
+   bolt transaction. Repair proposed: the clause takes an open share `bOpen qc` that `Cu`/`T` carry,
+   back only when both are surrendered (`□ (Cu 1 ∗ T ==∗ bOpen qc)` beside `authLockRetire`);
+   `Recover.specP`/`authRecoverOn.spec` return the old backend's `Cu₀ 1` (out of `beP` under the
+   write lock), which `applySnapshot`'s close goroutine needs to reassemble `bOpen 1`.
+23. **`beP`'s `T` is not the apply thread's** (B, first tier): `lockedReadTx.specL` reads the contract
+   from `beP`, whose `T` is existential, while the apply thread's `T` is in `authApplyResOn`; no law
+   equates them. Repair proposed: the premise returns a ghost name `γc` with `T := authWTok γa γc`,
+   `Cu := authCur γc` fixed functions of it, carried by `beP` and `authBeOn` with `be`.
+24. Repaired: `authReadTxOkH`'s docstring (D: the latest clause is guarded by `T`, not `Cu`);
+   `run_snap_jobOn` marked a schematic outline (C: it lacks the fresh start's facts, the payload's
+   channels and the meta reads that `applyAll.specSnapOn` needs, which J8b's mode-off job takes from
+   `isServerRun`).
+- Round 3 found the round-2 repairs right otherwise (the image's bounds, `srvHist_wf`'s bound, the fuel
+  base, `SnapImageFactsOn`, `authApplyResOn`'s hook clause, `E.RD`, `run_snap_jobOn`'s `A'`, boot's
+  premise as a change in place), and `Recover.specP` true of Go's `Recover` but for A.
 
 ### Packaging and one spec per function (open)
 

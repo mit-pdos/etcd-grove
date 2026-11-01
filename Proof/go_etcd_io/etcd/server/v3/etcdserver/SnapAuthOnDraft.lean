@@ -346,11 +346,15 @@ them true of the code:
   under `beMu`'s read lock, `lockedReadTx`): once `Recover` has swapped the backend under the write
   lock it drops the old backend's currency with its `beP`, so a retired backend's freshness clause
   cannot be invoked (it would claim states it never received).
-- **every read** (review round 2's F2) takes the currency too: a retired backend is closed by
-  `applySnapshot` (in a goroutine), after which its read transaction dereferences a nil bolt
-  transaction (`issues/etcd-auth-snapshot-closed-backend-panic.md`), so even "a recorded state" is
-  false of it; readers under `beMu` hold `Cu q` through `beP` (ideally `Cu` also carries the
-  backend's open share, tying it to `Close`).
+- **the readers' first clause** (review round 2's F2) takes the currency too: a retired backend
+  is closed by `applySnapshot` (in a goroutine), after which its read transaction dereferences a
+  nil bolt transaction (`issues/etcd-auth-snapshot-closed-backend-panic.md`), so even "a recorded
+  state" is false of it; readers under `beMu` hold `Cu q` through `beP`. (The latest clause is
+  guarded by `T` instead.) **Not yet sound** (review round 3's A, for the user): `Cu` and `T` are
+  minted from nothing and carry no open share of the backend (`backend.bOpen`), which the client
+  keeps, so it can `Close` the backend and read with `Cu 1`/`T`: the guards must carry an open
+  share given back only when both are surrendered; and `beP`'s `T` must be the apply thread's
+  (round 3's B: a ghost name fixing `T` and `Cu`, carried by `beP` and `authBeOn`).
 `authReadTxOk`'s clause 2 is replaced by the guarded latest clause, which is **not** weaker: it
 takes `T`, and its users (`lockedReadTx.specL`, the four `…Permitted.specL` of `auth/Latest.lean`)
 must supply it (the apply thread holds it); the readers' clauses take `Cu q`. In the merge both
@@ -1128,8 +1132,12 @@ theorem kvRunAtOn_sa (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) 
   unfold srvAuthAtLog
   rw [← He]
 
-/-- **`run`'s auth-on snapshot-payload job** (`EtcdServer__run.lean` ~:1413, statement only; the
-auth-on twin of J8b's mode-off job): from the loop's resources at `A` (`applyResOn`) and the
+/-- **`run`'s auth-on snapshot-payload job** (`EtcdServer__run.lean` ~:1413, statement only, **a
+schematic outline**: it does not yet take what `applyAll.specSnapOn` needs beyond `applyResOn`
+(review round 3's C: the fresh start's facts `γr.raft = ⟨_, [], 0⟩`, `c0 = 0`, `ch0`, `log0`,
+`E.cmp = false`, `|boot| ≤ i`, the term bound; the payload's `notifyc`, `rnAdvChan`, `rnRtOk`; the
+meta reads), which J8b's mode-off job takes from `isServerRun` and the payload; the auth-on twin
+of J8b's mode-off job): from the loop's resources at `A` (`applyResOn`) and the
 payload's (`rnApplyTok_recv`'s snapshot branch, at a fresh start), with the store's snapshot clause
 (`srvAuthSnapOk`, which `isServerRunOn` does not carry today: a finding, the line `run` needs from
 `NewServer`), `applyAll.specSnapOn` gives the loop's resources at the image's log `A'`. Besides
