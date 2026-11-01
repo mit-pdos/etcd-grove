@@ -598,6 +598,47 @@ theorem Replica.run.wp_proof
         · try wp_auto
           wp_join_done
           iexists true; iframe; ipureintro; intro _; rfl
+      -- `first`: at role leader, a cut batch's messages sent before the write one time in two
+      wp_join (Q := fun v => iprop(⌜∃ fb : Bool, v = #fb ∧ (fb = true → syncb = true ∧ lead' = true)⌝ ∗
+          lead_ptr ↦ lead' ∗ sync_ptr ↦ syncb)) at (if: _ then _ else _) with [lead sync]
+        as ⟨%Hfv, lead, sync⟩
+      · cases lead' <;> cases syncb
+        all_goals try wp_auto
+        all_goals first
+          | (iframe; ipureintro; exact ⟨false, rfl, fun h' => by cases h'⟩)
+          | (wp_apply wp_oneIn (W64 2) (by decide) $$ [$Hpkg] as %b -
+             iframe; ipureintro; exact ⟨b, rfl, fun _ => ⟨rfl, rfl⟩⟩)
+      obtain ⟨fb, rfl, Hfb⟩ := Hfv
+      try wp_auto
+      -- sent first: at role leader (`readyLeaderMsgs`)
+      wp_join iprop((⌜fb = true⌝ ∨ (rdv.Messages' ↦* List.map QMsg.loc ms ∗
+            [∗list] q ∈ ms, iprop(msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ.r.cluster kdRaftN q.st))) ∗
+          r_ptr ↦ r ∗ rd_ptr ↦ rdv ∗ send_ptr ↦ f) at next with [Hmsl Hmsok Hlm r rd send]
+        as ⟨Hmq, r, rd, send⟩
+      · cases fb
+        · try wp_auto
+          wp_join_done
+          iframe
+          iright
+          iframe
+        · obtain ⟨-, Hl⟩ := Hfb rfl
+          have Hrole := Hlead' Hl
+          iunfold readyLeaderMsgs at Hlm
+          ihave #Hmsgs := Hlm $$ %Hrole
+          ihave #Hlsf := isStats_field sts go!"LeaderSentFirst" (by decide) $$ Hstats
+          try wp_auto
+          wp_apply wp_add sts _ $$ [$Hpkg $Hlsf]
+          try wp_auto
+          wp_bind (App (Val #f) _)
+          iunfold sendSpec at Hsend
+          iapply Hsend $$ [Hmsl Hmsok]
+          · iframe Hpkg Hmsl
+            iapply kd_readyMsgs_sent $$ [$Hmsok $Hmsgs]
+          iintro !> -
+          try wp_auto
+          wp_join_done
+          iframe
+          ileft; ipureintro; rfl
       sorry
     | some lo =>
       sorry
