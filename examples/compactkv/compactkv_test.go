@@ -26,33 +26,45 @@ func TestCompactKV(t *testing.T) {
 	defer cli.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	resp, err := cli.Get(ctx, key)
+	keys := []string{"k1", "k2", "k3", "k4", "k5"}
+	if len(keys) != rounds {
+		t.Fatalf("the test's keys are not Main's rounds")
+	}
+	for _, k := range keys {
+		r, err := cli.Get(ctx, k)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(r.Kvs) != 1 || string(r.Kvs[0].Value) != value {
+			t.Fatalf("Main's Put of %s did not take effect: %v", k, r.Kvs)
+		}
+	}
+	last := keys[len(keys)-1]
+	resp, err := cli.Get(ctx, last)
 	if err != nil {
 		t.Fatal(err)
 	}
-	last := values[len(values)-1]
-	if len(resp.Kvs) != 1 || string(resp.Kvs[0].Value) != last {
-		t.Fatalf("Main's last Put did not take effect: %v", resp.Kvs)
-	}
-	// The rounds wrote at revisions 2, 3, ...: the store's revision is 1 + len(values), and the
-	// last round compacted at the revision before it.
-	if got, want := resp.Header.Revision, int64(1+len(values)); got != want {
+	// The rounds wrote at revisions 2, 3, ...: the store's revision is 1 + rounds, and the last
+	// round compacted at the revision before it.
+	if got, want := resp.Header.Revision, int64(1+rounds); got != want {
 		t.Fatalf("store revision %d, want %d", got, want)
 	}
-	_, err = cli.Get(ctx, key, clientv3.WithRev(2))
+	// keys[0]'s write (revision 2) is below the last compaction: reading there fails
+	_, err = cli.Get(ctx, keys[0], clientv3.WithRev(2))
 	if !errors.Is(err, rpctypes.ErrCompacted) {
 		t.Fatalf("read at the first round's revision: %v, want ErrCompacted", err)
 	}
-	// The latest compaction is at the revision before the last write.
-	_, err = cli.Get(ctx, key, clientv3.WithRev(resp.Header.Revision-2))
-	if !errors.Is(err, rpctypes.ErrCompacted) {
-		t.Fatalf("read below the last compaction: %v, want ErrCompacted", err)
-	}
-	r, err := cli.Get(ctx, key, clientv3.WithRev(resp.Header.Revision-1))
+	// the last compaction's revision still reads: the next-to-last round's key is there
+	r, err := cli.Get(ctx, keys[len(keys)-2], clientv3.WithRev(resp.Header.Revision-1))
 	if err != nil {
 		t.Fatalf("read at the last compaction's revision: %v", err)
 	}
-	if len(r.Kvs) != 1 || string(r.Kvs[0].Value) != values[len(values)-2] {
-		t.Fatalf("read at the last compaction's revision: %v, want %s", r.Kvs, values[len(values)-2])
+	if len(r.Kvs) != 1 || string(r.Kvs[0].Value) != value {
+		t.Fatalf("read at the last compaction's revision: %v", r.Kvs)
+	}
+	// the last round's key did not exist at that revision
+	r, err = cli.Get(ctx, last, clientv3.WithRev(resp.Header.Revision-1))
+	if err != nil || len(r.Kvs) != 0 {
+		t.Fatalf("read of the last key before its round: %v, %v", r, err)
 	}
 }

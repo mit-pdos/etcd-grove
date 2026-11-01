@@ -567,6 +567,19 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putgetc")],
     ),
     Project(
+        name="compactkv",
+        # putgetc under compaction pressure (the client's `kv.Compact`, 2026-11-01): rounds of a
+        # client's Put, a Compact at the revision before it and a Get, on one member with the
+        # auto-compactor on.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "compactkv"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "compactkv")],
+    ),
+    Project(
         name="linkvtxn",
         # The lintest driver over etcd's KV API as its robustness tester drives it
         # (notes/linkv-txn-plan.md, stage D): one member started in-process and a client to it,

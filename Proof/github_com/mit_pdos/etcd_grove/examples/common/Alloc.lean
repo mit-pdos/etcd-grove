@@ -52,7 +52,7 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
       ∃ (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
         (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
       ⌜γ.vs = [id] ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧
-        γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ.rd.kv.log0 = [[], []]⌝ ∗
+        γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cmp = cmp⌝ ∗
       memberBoot γ ctxs ρ E₀ Φs id cmp ∗ netHttpOk γn id ∗
       etcdKV ρ.rd.kv (kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))) := by
   iintro #Hmarsh
@@ -81,7 +81,7 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
   iframe Hnet
   isplitr
   · ipureintro
-    exact ⟨hvs, hrule, hboot, Hγn.1, Hγn.2, by rw [hlog', hlog]⟩
+    exact ⟨hvs, hrule, hboot, Hγn.1, Hγn.2, by rw [hlog', hlog], by rw [hkc', hkc]⟩
   iunfold memberBoot
   simp only [env₀]
   rw [hiss', hcnt, hraft, hiss, hvs, hreg]

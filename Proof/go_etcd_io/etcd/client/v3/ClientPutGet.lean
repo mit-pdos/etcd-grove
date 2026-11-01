@@ -574,6 +574,29 @@ theorem client_Put_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfa
     · ipureintro; exact Herr.1
     · iexact Hke
 
+/-- **`cli.Compact(ctx, rev)` by `New`'s client `cl`** (the client's `kv.Compact`, 2026-11-01;
+`kv.Compact` through the `KV` field, as `client_Put_kv`): on a compacting cluster, at a revision
+past `0` the KV has reached (`kvRevLb`, a `Put`'s reply's), no options: `nil` and the reply's
+message, or a client error. -/
+theorem client_Compact_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (rev : w64) (hr : 1 ≤ sint.Z rev) (hc : γ.cmp = true) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□ GoInterface.ok (kvIfaceOf api) ∗
+        isKv api γ dup ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ kvRevLb γ rev }}
+      (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
+          go!"Compact")) (Val #(GoInterface.ok ci))) (Val #rev)) (Val #slice.nil))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        (⌜err = GoInterface.nil⌝ ∗ ∃ m : CompactRespM, compactRespMsg resp m) ∨
+          (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
+  iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hctx, #Hce, #Hrv⟩ HΦ
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Compact_unfold.method_unfold]
+  wp_pures
+  wp_auto
+  wp_apply (v3.kv.wp_Compact api γ dup ci cd rev hr hc) $$ [] as %resp %err Hout
+  · iframe #
+  iapply HΦ
+  iexact Hout
+
 end kv_api
 
 end client
