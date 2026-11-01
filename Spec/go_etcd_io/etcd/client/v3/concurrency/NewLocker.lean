@@ -30,7 +30,7 @@ client call allows (`lockerMutex.Lock.spec`, `lockerMutex.Unlock.spec`: a panic 
 abbrev NewLocker.spec : Prop :=
   ∀ (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isSession s γ client id ∗
-      isEtcdMutexClient client (pfx ++ go!"/") ∗ ⌜pfx.length < 2 ^ 27⌝ }}
+      isEtcdMutexClient client (pfx ++ go!"/") ∗ ⌜pfx.length < concPfxMax⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewLocker)) (Val #s)) (Val #pfx))
   {{ (l : GoInterface), RET #l; ∃ (lm m : Loc),
       ⌜l = interface.mkOk (go.GoType.PointerType lockerMutex.ty) #lm⌝ ∗

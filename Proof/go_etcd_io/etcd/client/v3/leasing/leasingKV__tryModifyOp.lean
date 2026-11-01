@@ -124,7 +124,7 @@ theorem leasingKV.tryModifyOp.wp_proof
     obtain ⟨h1, h2, h3⟩ := Hsh
     simp only [opWireLen, wireSlack] at hw
     simp [txnSizeOk, txnWireLen, cmpWireLen, TxnOp.wireLen, compareM, cmpKeyM, wireSlack]
-    omega
+    word
   ihave #Hstep : □ (∀ (st' : LeaseCacheSt) (tt : time.Time), leasingX lkv γ st' 1 ={⊤}=∗
       leasingX lkv γ (st'.evict o.key tt) 1 ∗ (fun _ => iprop(True)) st') $$ []
   · iintro !> %st' %tt HX

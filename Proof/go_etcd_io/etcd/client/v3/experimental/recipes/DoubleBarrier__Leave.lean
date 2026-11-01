@@ -70,7 +70,7 @@ local macro "leave_not_lowest" : tactic => `(tactic| (
     ipersist Hesl
     wp_apply wp_WaitEvents client (key ++ go!"/") wl.key wl.modRev _ [W32 1] (W32 1)
       $$ [$(frameH `Hclosed) $(frameH `Hcl) $(frameH `Hesl)] as %ev %werr Hwr
-    · ipureintro; exact ⟨rfl, Hwf'.2 wl Hwls, by have := (Hrevs wl Hwls).2.1; have := (Hrevs wl Hwls).1; have hk := Hkeys wl Hwls; unfold etcdKeyMax at hk; omega⟩
+    · ipureintro; exact ⟨rfl, Hwf'.2 wl Hwls, by have := (Hrevs wl Hwls).2.1; have := (Hrevs wl Hwls).1; have hk := Hkeys wl Hwls; unfold etcdKeyMax at hk; word⟩
     icases Hwr with (⟨%Hwnil, -⟩ | %Hwne)
     rotate_left
     · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
@@ -171,7 +171,7 @@ theorem DoubleBarrier.Leave.wp_proof
     ipureintro
     exact ⟨waitersOp_not_panics.2, (waitersOp_t _).2, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
-      leaveOp_size (by simp; omega)⟩
+      leaveOp_size (by simp; word)⟩
   iclear HG HKV
   have Hop : opGetModel (key ++ go!"/waiters") [withPrefixM] = leaveOp (key ++ go!"/waiters") := rfl
   rw [Hop]
@@ -387,7 +387,7 @@ theorem DoubleBarrier.Leave.wp_proof
       ipersist Hesl
       wp_apply wp_WaitEvents client (key ++ go!"/") wh.key wh.modRev _ [W32 1] (W32 1)
         $$ [$Hclosed $Hcl $Hesl] as %ev %werr Hwr
-      · ipureintro; exact ⟨rfl, Hwf'.2 wh Hwhs, by have := (Hrevs wh Hwhs).2.1; have := (Hrevs wh Hwhs).1; have hk := Hkeys wh Hwhs; unfold etcdKeyMax at hk; omega⟩
+      · ipureintro; exact ⟨rfl, Hwf'.2 wh Hwhs, by have := (Hrevs wh Hwhs).2.1; have := (Hrevs wh Hwhs).1; have hk := Hkeys wh Hwhs; unfold etcdKeyMax at hk; word⟩
       icases Hwr with (⟨%Hwnil, -⟩ | %Hwne)
       rotate_left
       · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by

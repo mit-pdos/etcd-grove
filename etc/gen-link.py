@@ -61,6 +61,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --k8scache > Proof/k8s_io/client_go/tools/cache/Link.lean
        etc/gen-link.py --k8sinformers > Proof/k8s_io/client_go/informers/Link.lean
        etc/gen-link.py --apimodel > Proof/github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/apimodel/Link.lean
+       etc/gen-link.py --bboltfs > Proof/github_com/mit_pdos/etcd_grove/examples/bboltfs/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -480,17 +481,25 @@ LEAN_FIRST = {
                    "github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel",
                    "github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Assumptions",
                    "The model API server's proofs (`examples/k8sdaemonset/apimodel`)", [""]),
+    # minibolt (examples/bboltfs): its page and meta helpers (page.go)
+    "--bboltfs": ("link-lean-first-bboltfs.txt",
+                  "github_com.mit_pdos.etcd_grove.examples.bboltfs",
+                  "github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions",
+                  "minibolt's proofs (`examples/bboltfs`: the page and meta helpers of `page.go`)",
+                  [""]),
     "--common": ("link-lean-first-common.txt",
                  "github_com.mit_pdos.etcd_grove.examples.common",
                  "github_com.mit_pdos.etcd_grove.examples.common.Assumptions",
                  "The examples' shared start's proofs (`examples/common`)", [""]),
 }
+# The GooseLang extensions a mode's specs assume (`[HasExt X]`, after the semantics variables).
+EXTS = {"--bboltfs": "osFsExt"}
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
               "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--authkv": "authkv", "--cachekv": "cachekv", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
               "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache", "--k8sinformers": "k8sinformers",
-              "--apimodel": "apimodel"}
+              "--apimodel": "apimodel", "--bboltfs": "bboltfs"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
@@ -507,7 +516,9 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  # Perennial's linked results the model's proofs take as terms (`=` callees)
                  "--apimodel": ["Perennial.Proof.sync.Link", "Perennial.Proof.errors.Link",
                                 "Perennial.Proof.time.Link"],
-                 "--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base"],
+                 "--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base", "Perennial.Proof.errors.Link"],
+                 # Perennial's `time` and `sync/atomic` results minibolt's proofs take as terms (`=` callees)
+                 "--bboltfs": ["Perennial.Proof.time.Link", "Perennial.Proof.sync.atomic.Link"],
                  # (2026-10-28, stage U4a) raft's `unifiedSpec` variants (`=RaftLink.*` callees)
                  "--kv": ["Proof.go_etcd_io.raft.v3.Linked"],
                  # raft's importable `confchange`/`tracker` specs (`=RaftLink.*` callees),
@@ -546,7 +557,12 @@ NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--lintest-logkv", 
 # `kvrStorageModel`, `KvrStorage.lean`): its specs are stated at it, and raft's results over any
 # `[StorageModel GF]` are instantiated there.
 LOCAL_INSTANCES = {"--kvreconf": ["kvreconf.kvrStorageModel"]}
-em = (("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
+# The trusted assumptions a mode's linked proofs need beyond its package's (minibolt's: the
+# layouts of `os.file` and `os.fileStat`, which `TrustedCode/os.lean` states and goose cannot
+# emit; `OpenFile`'s and `Stat`'s proofs take them).
+EXTRA_VARS = {"--bboltfs": "variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]\n"}
+em = ((EXTRA_VARS.get(sys.argv[1], ""))
+      + ("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else "")
       + "".join(f"\nattribute [local instance] {i}\n"
                 for i in LOCAL_INSTANCES.get(sys.argv[1], [])))
@@ -838,7 +854,7 @@ namespace EtcdGrove
 open Iris Iris.BI{(' ' + opens) if opens else ''}
 """)
     out.append(f"""section links
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp]{(" [HasExt " + EXTS[sys.argv[1]] + "]") if sys.argv[1] in EXTS else ""}
 variable [go_gctx : GoGlobalContext]
 variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -1008,7 +1024,7 @@ variable [sem : go.Semantics]
         out.append(f"""/-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
 `context` (Perennial states them there: their invariants need later credits). -/
 section links_hasLC
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp]{(" [HasExt " + EXTS[sys.argv[1]] + "]") if sys.argv[1] in EXTS else ""}
 variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1033,7 +1049,7 @@ variable [sem : go.Semantics]
         out.append(f"""/-! The results that reach a function specified but not proved yet (a later unit's):
 its spec is a hypothesis (`h_<fn>`) of each of them. -/
 section links_pending
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp]{(" [HasExt " + EXTS[sys.argv[1]] + "]") if sys.argv[1] in EXTS else ""}
 variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

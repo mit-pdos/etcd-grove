@@ -20,6 +20,7 @@ principles match your target.
 | [reply-size.md](reply-size.md) | two trust-boundary axioms false at huge replies, repaired by an opaque workload premise on the constructor of the tokens they consume | a workload premise on the resource's only producer, carried by the resource; take it where the proof reaches the producer, not beside a sibling premise; check fast paths for aliasing before a fresh-copies size argument |
 | [compact-client.md](compact-client.md) | a client operation needing a server-side certificate the client must carry between calls (the compaction's reached revision) | a client's certificate is the cluster's, built from what the members share; check a tie against the multi-member allocation |
 | [watch-compaction.md](watch-compaction.md) | a mode lifted for a stream (watches on a compacting store), a history fact the new mode needs | a history fact is not a later operation's premise: the writers' or the client workload's, gated by the mode; check a "reuse" option has a consumer; review again after each repair |
+| [lease-grpc.md](lease-grpc.md) | two gRPC handlers over a server's proved specs, and a library call (`errors.Is`) made twice on one error | a contract instead of callee specs when the callee's names and bounds would leak; ask for determinism where Go's code needs two answers to agree |
 
 Keep it small: an example is readable in one sitting; when a newer example shows the same principles
 better, remove the older one from this index (git keeps it).

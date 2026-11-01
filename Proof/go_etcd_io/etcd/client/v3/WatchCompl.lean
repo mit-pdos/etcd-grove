@@ -764,6 +764,7 @@ theorem cmpl_mono (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.
     (γc : mvcc.WatchChanNames) (pre : List mvcc.RespM) (γo : mvcc.WsStreamNames) (γa : GName)
     (Lc : mvcc.Log) (p : Nat) (hγ : γo.sentl = γc.sentl) (hidx : x.idx = pre.length)
     (hfi : v3rpc.fwdIdx Dm x) (hxid : x.id = W64 (-1) ∨ x.id = X) (hxe : x.evs = [])
+    (hxc : x.compactRev = W64 0)
     (hEc : evsOf Dm w = mvcc.watchEvents Lc rg lo (p + 1)) (hlop : lo ≤ p + 1)
     (hlo : lo = (sint.Z rr).toNat) (hrev : 1 ≤ sint.Z rr) (hpx : x.rev = W64 (p : Int))
     (hp63 : p < 2 ^ 63) :
@@ -809,8 +810,10 @@ theorem cmpl_mono (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.
     ihave %Hcmp := mono_list_lb_valid γc.sentl (pre' ++ [y]) (pre ++ [x]) $$ Hlb' Hlb
     have hy : y ∈ pre := lb_snoc_mem Hcmp (by omega)
     iunfold mvcc.respRev at Hrr
-    icases Hrr with (%hne | ⟨%Ln, -, %Hn⟩)
+    icases Hrr with (%hne | ⟨%Ln, -, %Hn⟩ | %hcr)
     · exact absurd hxe hne
+    rotate_left
+    · exact absurd hxc hcr.1
     have hle := Hn.2 y hy hye
     ipureintro
     refine ⟨q, Hq.1, ?_⟩

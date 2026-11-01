@@ -151,7 +151,7 @@ theorem ak_served_watch [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assum
   ihave ⟨%Hlink, #H0⟩ := client.isWatchServer_start pw V.R $$ Hws
   ihave #Htok := client.watchTokPool_of_server pw V.R $$ Hws
   ihave #Hsm := client.srvLogsSmall_of_receipts V.R Hlink hrb
-  ihave #Hnc := v3rpc.isWatchServer_noCompactor_env pw V.R hoff $$ Hws
+  ihave #Hnc := v3rpc.isWatchServer_watchNoDup_env pw V.R hoff $$ Hws
   ihave #Hcore := srvKVCoreM_of_readM true s E γr $$ Hrd
   ihave #Hkf := client.srvKVFacts_intro V true γr hst hlog hrb $$ [Hcore H0]
   · rw [← Hlink, hE]; iframe #

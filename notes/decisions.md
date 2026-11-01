@@ -29027,6 +29027,31 @@ how every caller extracts facts at the linearization point. Chosen: one name, `k
 a write), at exactly the old strength, with `kvRevFits.lt`/`.of_lt`/`.mono` so callers need not
 unfold it.
 
+## Shared size limits by name (2026-11-01 · the user's: "use the names for the shared limits" · `notes/bounds-plan.md`, B5)
+
+A length bound several specs share (`key.length ≤ 2 ^ 27`, 38 times in specs, though
+`etcdKeyMax = 2 ^ 27` existed) is written with a named constant defined next to the law that chose
+it: `opKeyMax`/`opValMax` (an operation a client library sends: `OpShape opKeyMax opKeyMax
+opValMax`), `etcdKeyMax` (etcd's stored keys and values), `leasingPfxMax`, `concPfxMax`/
+`concStrMax`, `recipesPfxMax`/`recipesStrMax`. Why: the name says why the bound is there, changing
+a limit is one edit, and a grep finds its uses. Each is a `def` tagged `@[word_unfold]`, so `word`
+sees through it; `omega` does not (nor through an `abbrev`), so the proofs that used `omega` on such
+a bound use `word`. *Rejected:* predicates (`keyOk k`) for a single `≤` (they hide the shape from
+`omega` and `word` alike); notation (no name in the elaborated statement, and `etcdKeyMax` is
+already a `def`). A literal stays for a bound local to one function. `opKeyMax` equals
+`etcdKeyMax` on purpose (a client re-sends keys it read); two names, two reasons.
+
+## Watches across a compaction: the create token's fact, a disjunction (2026-11-01 · accepted, the user's approval · branch `watch-w1`)
+
+The Draft (entry above) gated the create token's store fact on the mode: `⌜γ.st.cm⌝ → noDupKeys
+γ.st`. W1's proof of `syncWatchers` needs only that the compaction revision under `revMu` is `-1`
+or a revision of the committed log that writes no key twice (`watchNoDup_crev`), and each of
+`noCompactor` and `noDupKeys` gives that. So the token carries `watchNoDup γ := noCompactor γ ∨
+noDupKeys γ`: weaker for clients (one of a store that never compacts keeps giving
+`noCompactor`, the token's old fact), and without the gate's margin (a compaction-mode store
+frozen by its creator). Presented to the user side by side with the approved gate; approved.
+`wsWatchFrozen γ σ := ⌜σ.M = ∅⌝ ∨ watchNoDup γ.st`.
+
 
 ## A snapshot `Ready` is past the bootstrap log: `readySnap` gains `bootLen < index` (2026-11-01 · the user's approval, strict · branch `snap-bootlen`)
 

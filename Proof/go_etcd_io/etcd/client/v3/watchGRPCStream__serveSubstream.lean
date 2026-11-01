@@ -619,8 +619,34 @@ theorem watchGRPCStream.serveSubstream.wp_proof
     wp_apply wp_Err cw v0 DFrac.discard $$ [] as %err ⟨-, %Herr, -⟩
     · iframe Hvcw
       rw [Hv.2.1]; iapply statusErrOk_nil
+    rcases Hv.2.2.2.2.2 with hk | hk
+    rotate_left
+    · -- (watches across a compaction) a compaction response, delivered: its error
+      -- (`ErrCompacted`) stops the substream for good
+      have Herr1 : err ≠ interface.nil := by
+        intro h
+        have := (Herr.1 h).2.1
+        rw [Hv.2.2.1] at this
+        exact hk.1 this
+      obtain ⟨i, rfl⟩ : ∃ i, err = GoInterface.ok i := by
+        cases err with
+        | nil => exact absurd rfl Herr1
+        | ok i => exact ⟨i, rfl⟩
+      (try wp_auto)
+      have HC2 : (C ++ [hiA]).length = (sent ++ [v0]).length + 1 ∧
+          (C ++ [hiA]).getLast? = some hiA := ⟨by simp [HC.1], by simp⟩
+      irevert Hc2
+      rw [show sent.length + 1 = (sent ++ [v0]).length by simp]
+      iintro Hc2
+      clear HC
+      generalize sent ++ [v0] = sent' at HC2 ⊢
+      generalize C ++ [hiA] = C' at HC2 ⊢
+      obtain ⟨sent, rfl⟩ : ∃ s, s = sent' := ⟨_, rfl⟩
+      obtain ⟨C, rfl⟩ : ∃ c, c = C' := ⟨_, rfl⟩
+      have HC := HC2
+      ss_return
     have Herr0 : err = interface.nil :=
-      Herr.2 ⟨Hv.2.1, Hv.2.2.1.trans Hv.2.2.2.2.2.1, Hv.2.2.2.1.trans Hv.2.2.2.2.2.2⟩
+      Herr.2 ⟨Hv.2.1, Hv.2.2.1.trans hk.1, Hv.2.2.2.1.trans hk.2⟩
     subst Herr0
     (try wp_auto)
     rw [if_pos Hb0]
@@ -1051,7 +1077,8 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       ihave ⟨%h2A, #Hh2A, #Hw2⟩ := recvCmpl_at V P _ v r c20 $$ [Hcm Hc20']
       · iframe Hcm; simp only [Int.toNat_natCast]; iexact Hc20'
       ihave #Hrs' := resumeOk_step V P nr hiB c20 hiA h2A nr0 nr' r v HPws.2.1 HPws.2.2
-          ⟨Hcr, Hv.2.2.2.2.2.2, Hv.2.2.2.2.2.1⟩ ⟨Hv.2.1, Hv.2.2.1, Hv.2.2.2.1⟩ Hnr0 Hnr' $$
+          Hcr (respKind_err v r ⟨Hv.2.1, Hv.2.2.1, Hv.2.2.2.1⟩ Hv.2.2.2.2.2)
+          ⟨Hv.2.1, Hv.2.2.1, Hv.2.2.2.1⟩ Hnr0 Hnr' $$
           [Hrs Hok Hw2 Hrf]
       · iframe #
       simp only [Int.toNat_natCast] at *

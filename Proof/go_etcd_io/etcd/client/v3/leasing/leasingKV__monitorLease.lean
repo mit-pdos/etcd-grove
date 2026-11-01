@@ -62,7 +62,7 @@ local macro "monitor_watch" : tactic => `(tactic| (
     · iframe Hcctx Hopts
       ipureintro
       refine ⟨Hw1, Hw2, by word, ?_⟩
-      refine ⟨?_, keyWatch_size _ _ (by simp only [List.length_append]; omega)⟩
+      refine ⟨?_, keyWatch_size _ _ (by simp only [List.length_append]; word)⟩
       rw [Hw3, Hw4]; intro k _; exact List.nil_prefix
     ihave IH2 : iprop(∃ (rcv : List go_etcd_io.etcd.client.v3.WatchResponse)
         (v : go_etcd_io.etcd.client.v3.WatchResponse),
@@ -245,7 +245,7 @@ theorem leasingKV.monitorLease.wp_proof
       ipureintro
       exact ⟨concurrency.keyOp_not_panics, (concurrency.keyOp_t (pfx ++ key)).1,
         opSizeOk_opGetModel (K := 2 ^ 27 + 2 ^ 26) (E := 0) (V := 0) (optsKeep_nil _ _ _)
-          (by simp only [List.length_append]; omega) (by decide)⟩
+          (by simp only [List.length_append]; word) (by decide)⟩
     iunfold kvGetResult at Hgres
     icases Hgres with (%Hgne | ⟨%Hgnil, %r, %gm, #HgRev, -, -, -, %HRle, Hgr⟩)
     · -- an error: the next iteration

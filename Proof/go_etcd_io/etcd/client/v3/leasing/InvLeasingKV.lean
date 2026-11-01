@@ -240,6 +240,10 @@ abbrev lkvCache (lkv : Loc) (γ : LeasingNames) (pfx : GoString) : IProp GF :=
 abbrev lkvReader (lkv : Loc) (γ : LeasingNames) (pfx : GoString) : IProp GF :=
   leaseCacheReader (lkvLeases lkv) γ.lc pfx (leasingX lkv γ)
 
+/-- **The leasing KV's prefix bound** (`NewKV`'s premise, kept in `isLeasingKV`): `2 ^ 26` bytes, so
+that the prefixed key fits beside the user's key in leasing's requests ("Leasing's sizes"). -/
+@[word_unfold] def leasingPfxMax : Nat := 2 ^ 26
+
 /-- **The leasing KV** `lkv` of the lease prefix `pfx` (persistent; see the module docstring). -/
 def isLeasingKV (lkv : Loc) (γ : LeasingNames) (pfx : GoString) : IProp GF :=
   iprop(∃ (cl : Loc) (kv : GoInterfaceOk) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF))

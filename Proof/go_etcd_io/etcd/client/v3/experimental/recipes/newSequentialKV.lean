@@ -84,7 +84,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   · ipureintro
     exact ⟨lastKeyOp_not_panics, (lastKeyOp_fields kp).1, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
-      lastKeyOp_size (by omega)⟩
+      lastKeyOp_size (by word)⟩
   iunfold kvGetResultR at Hgr
   icases Hgr with (%Hgne | ⟨%Hgnil, %g, #HgRev, #Hg, %Hgle, Hgr⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, gerr = GoInterface.ok e := by

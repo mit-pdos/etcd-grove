@@ -11,8 +11,8 @@ token).
   read side: the cluster's id `cid`, the member's `mid`, the leader's invariant.
 - `srvHeaderAt E h cid mid`: `newHeader()`'s fresh header `h`, owned, its ids the cluster's and the
   member's, its revision the last of a certified log.
-- `leasesRespIs E resp cid mid ids`: `LeaseLeases`' response, owned: its header, and one
-  `LeaseStatus` per id of `ids`, in order.
+- `leasesListIs v ids`, `leasesRespIs E resp cid mid ids`: `LeaseLeases`' response, owned: its
+  header, and one `LeaseStatus` per id of `ids`, in order.
 -/
 module
 
@@ -54,13 +54,18 @@ def srvHeaderAt (E : apply.AEnv GF) (h : Loc) (cid mid : w64) : IProp GF :=
   iprop(∃ (v : etcdserverpb.ResponseHeader) (log : mvcc.Log), h ↦ v ∗ mvcc.idxCert E.γ.idx log ∗
     ⌜log ≠ [] ∧ v.ClusterId' = cid ∧ v.MemberId' = mid ∧ v.Revision' = W64 ((log.length : Int) - 1)⌝)
 
-/-- **`LeaseLeases`' response `resp` for the lease ids `ids`** (owned): its header
-(`srvHeaderAt`), and its `Leases` a slice of fresh `LeaseStatus`es, the `k`-th with the `k`-th id. -/
-def leasesRespIs (E : apply.AEnv GF) (resp : Loc) (cid mid : w64) (ids : List w64) : IProp GF :=
-  iprop(∃ (v : etcdserverpb.LeaseLeasesResponse) (ps : List Loc), resp ↦ v ∗
-    srvHeaderAt E v.Header' cid mid ∗ v.Leases' ↦* ps ∗ ⌜ps.length = ids.length⌝ ∗
+/-- **A `LeaseLeasesResponse` value's listing of the lease ids `ids`** (owned): its `Leases` a
+slice of fresh `LeaseStatus`es, the `k`-th with the `k`-th id. -/
+def leasesListIs (v : etcdserverpb.LeaseLeasesResponse) (ids : List w64) : IProp GF :=
+  iprop(∃ ps : List Loc, v.Leases' ↦* ps ∗ ⌜ps.length = ids.length⌝ ∗
     [∗list] k ↦ p ∈ ps, ∃ (st : etcdserverpb.LeaseStatus) (id : w64),
       ⌜ids[k]? = some id ∧ st.ID' = id⌝ ∗ p ↦ st)
+
+/-- **`LeaseLeases`' response `resp` for the lease ids `ids`** (owned): its header
+(`srvHeaderAt`) and its listing (`leasesListIs`). -/
+def leasesRespIs (E : apply.AEnv GF) (resp : Loc) (cid mid : w64) (ids : List w64) : IProp GF :=
+  iprop(∃ v : etcdserverpb.LeaseLeasesResponse, resp ↦ v ∗ srvHeaderAt E v.Header' cid mid ∗
+    leasesListIs v ids)
 
 end defs
 
