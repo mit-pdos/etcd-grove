@@ -67,6 +67,11 @@ one revision about once per 100 operations, and it compacts at such a revision s
    log: the tester's checks of these three calls (revision, count, key-values) are unprovable. The
    transaction-level checks are not blocked by this: `rangeOutcomeC`/`rangeKvs` are exact at the
    log the transaction read, and the sole writer knows that log.
+   This does not touch etcd's proofs: no proof outside mvcc uses these three specs (the server's
+   txn package calls only `kv.Write` and `kv.Read`). A linearizable read there is pinned by
+   `store.Read`'s two bounds: `log₀ <+: log` from the read-index round's applied log (`KVRead.lean`,
+   `readServed_logR`) and `idxCert γ.idx log`, a prefix of the log committed at the read. The
+   three view specs lack the lower bound only because no verified caller needed them.
 
 ### Outside mvcc (the backend the store needs)
 
