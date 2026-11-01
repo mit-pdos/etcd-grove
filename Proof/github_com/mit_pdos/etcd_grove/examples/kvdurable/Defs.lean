@@ -426,13 +426,15 @@ def readSeqsInv (γ : KdNames) (s : Loc) : IProp GF :=
 def isReadSeqs (γ : KdNames) (s : Loc) : IProp GF :=
   sync.isMutex (s.[KReadSeqs, go!"mu"]) (readSeqsInv γ s)
 
-/-- **Incarnation `r` of replica `id`** (persistent; kvreconf's `isReplica`): its fields read-only
-(with its file and the cluster's `readSeqs`), its node, the cluster, its `mu` and `dmu` locks, and
-its file's invariant. -/
+/-- **Incarnation `r` of replica `id`** (persistent; kvreconf's `isReplica`): its id among the
+cluster's (`1 ≤ id ≤ 9`: at most `maxReplicas = 9` replicas are started, ids from `1`; what
+`readSeqs.next` takes), its fields read-only (with its file and the cluster's `readSeqs`), its node,
+the cluster, its `mu` and `dmu` locks, and its file's invariant. -/
 def isReplica (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq : Loc)
     (ms : Loc) (γs : MemStorNames) (ph : GName) : IProp GF :=
   iprop(
     "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvdurable ∗
+    "%Hidr" ∷ ⌜1 ≤ uint.nat id ∧ uint.nat id ≤ 9⌝ ∗
     "#Hid" ∷ r.[KReplica, go!"id"] ↦□ id ∗
     "#Hfile" ∷ r.[KReplica, go!"file"] ↦□ kdFileName dir id ∗
     "#Hnode" ∷ r.[KReplica, go!"node"] ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n ∗

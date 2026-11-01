@@ -3,8 +3,9 @@ kvreconf's proof (the same Go text), ported. Proof of `Spec/github_com/mit_pdos/
 Rocq counterpart); kv's `KV.Read` (`Proof/github_com/mit_pdos/etcd_grove/examples/kv/KV__Read.lean`)
 with a timeout and without a read credit.
 
-Under the lock the replica's next read sequence number mints the read's context at `(id, seq)`
-(`kvr_mint_read`, committed to the read seeing at least the reader's committed log), and a handoff
+The cluster's next read sequence number (`readSeqs.next`, for the replica's id, in `1..9` by
+`isReplica`) mints the read's context at `(id, seq)`, committed to the read seeing at least the
+reader's committed log; under the lock a handoff
 channel is registered as its waiting read (`readWaiterOk`). The answer comes through the handoff
 (`readAns`), in the blocking `select` or, once the read is deleted, in the non-blocking one; it is the
 key's value in a history extending the reader's (`kvr_readAns_ok`).
@@ -42,19 +43,6 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
-/-- SPEC-GAP (stage II (f), reported): **the read's context committed after the reader's log**.
-kvreconf mints and commits the context at once (`kvr_mint_read`: the context is fresh in the
-store's used contexts because nothing was minted at its number). kvdurable's `readSeqs.next.spec`
-only mints it (`(id, seq) ↪[rmint]□ c`), so its freshness among the used contexts
-(`readCtx_commit_after`'s premise) is lost; `next` should commit it too (take the reader's
-committed log and give `isReadCtx`, `readCtxAfter`), or hand out an exclusive token for it. -/
-private theorem read_commit_gap (γ : KdNames) (id seq : w64) (key : List w8) (l0 : List LogEntry) :
-    ⊢ rkvInv (GF := GF) γ -∗ (id, seq) ↪[γ.r.rmint]□ readCtxB id seq key -∗
-      isCommittedLogLb γ.r.cluster l0 ={⊤}=∗
-      isReadCtx γ.r.cluster kdRaftN (readCtxB id seq key) (fun _ => iprop(True)) ∗
-      readCtxAfter γ.r.cluster kdRaftN (readCtxB id seq key) l0 := by
-  sorry
-
 theorem Replica.read.wp_proof
     (wp_readCtx : readCtx.spec (GF := GF) (hG := hG))
     (wp_next : readSeqs.next.spec (GF := GF) (hG := hG))
@@ -81,12 +69,8 @@ theorem Replica.read.wp_proof
   · ipureintro; decide
   ihave Hoc : ownChan γc GoString (.Buffered []) $$ Hoc
   try wp_auto
-  -- SPEC-GAP (stage II (f), reported): `readSeqs.next` takes the replica's id in `1..9`, which
-  -- nothing in `read`'s precondition (`isReplica`) says.
-  by_cases Hid : 1 ≤ uint.nat id ∧ uint.nat id ≤ 9
-  case neg => sorry
   have Hk64 : (key.length : Int) < 2 ^ 64 := by omega
-  wp_apply wp_next γ vs sq id (fun s => readCtxB id s key) Hid.1 Hid.2 $$ [$Hpkg $Hseqs $Hcl]
+  wp_apply wp_next γ vs sq id key l0 Hidr.1 Hidr.2 Hk64 $$ [$Hpkg $Hseqs $Hcl $Hl0]
     as %seq %ok Hmint
   cases ok
   case false =>
@@ -95,10 +79,9 @@ theorem Replica.read.wp_proof
     iapply HΦ
     simp only [Bool.false_eq_true, ↓reduceIte]
     itrivial
-  ihave #Hmint := Hmint $$ %rfl
-  try wp_auto
   -- the read's context, minted at `(id, seq)`, committed after the reader's log
-  imod read_commit_gap γ id seq key l0 $$ Hinv Hmint Hl0 with ⟨#Hrc, #Hra⟩
+  icases Hmint $$ %rfl with ⟨#Hmint, #Hrc, #Hra⟩
+  try wp_auto
   imod start_handoff ch (readAns γ (readCtxB id seq key)) iprop(True) iprop(False) γc
     $$ Hch Hoc with ⟨%γh, %Hγh, #Hho, Hprod, Hcons⟩
   try wp_auto
