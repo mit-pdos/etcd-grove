@@ -96,6 +96,21 @@ branch):
    with `ErrCompacted`; `Main` panics only on a wrong event), or (b) a new example `watchcmp`
    (`watchkv`'s workload on a compacting member). *Recommended: (a)*, one program and theorem fewer.
 
+## The Draft's review round 1 (2026-11-01) and the user's decision on its premise
+
+Candidate 2 (scratch, the spec skill's practice) repairs round 1's findings: `rangeEvents` was
+false at `minRev = c` when revision `c` changes one key twice (compaction keeps only the later
+change; `issues/etcd-compaction-delete-then-put.md`, its second symptom), `chooseAll`'s
+`0 ≤ compactRev` was unsatisfiable on a never-compacted store, the channel invariant had no arm for
+a compaction response, `choose`'s copy branch leaves compacted members in the source group
+(`issues/etcd-watch-compacted-resent.md`), the examples' and the cache's `cm = false` premises go
+with F1 (the exported `cache/v3/Results.lean`'s `hoff`: weaker premises), and the client's `run`
+uses `canceled = false` of forwarded responses. **The user's decision (2026-11-01): the fact
+"revision `c` changes each key at most once" (`oneChangePerKeyAt log c`) is a premise of
+`store.Compact`**, the compaction's producer, kept by the store with the compaction revision and
+proved at the server from the KV model; not a weaker watch guarantee, not a premise on the watch
+path.
+
 ## Stages (after the questions; each leaves the build green, committed, no push)
 
 - **W0, the Draft**: the changed statements (mvcc's response arm, the create token, `rangeEvents`
