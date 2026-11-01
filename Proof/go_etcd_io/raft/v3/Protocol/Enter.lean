@@ -952,10 +952,172 @@ theorem durPers_restart_commit (γ : RaftNames) (id : w64) (S : RaftState) (Ed :
   iframe Hr Hb Hfp Hci Hc
   ipureintro; exact Hp.2.2.2.2.1
 
+/-- (stage II helper) A cut of `S`'s full log at a base `b` within its log: the same full log. -/
+private theorem entsFrom_full (S : RaftState) (fp0 : List EntryM) (b : entryID) :
+    FullOk S.base fp0 → PlogWf S.base S.ents → uint.Z S.base.index' ≤ uint.Z b.index' →
+    plogTermAt S.base S.ents b.index' = some b.term' →
+    ∃ fpb, FullOk b fpb ∧ fpb ++ S.entsFrom b = fp0 ++ S.ents := by
+  intro HfullS HwfS Hb1 Hbt
+  have HwfF : PlogWf base0 (fp0 ++ S.ents) := full_wf _ _ _ HfullS HwfS
+  have Hbt' : plogTermAt base0 (fp0 ++ S.ents) b.index' = some b.term' := by
+    rw [full_term_at _ _ _ _ HfullS Hb1]; exact Hbt
+  generalize HF : fp0 ++ S.ents = F at HwfF Hbt'
+  have HbZ := uint_Z_nonneg b.index'
+  obtain ⟨m, Hm⟩ : ∃ m : Nat, (m : Int) = uint.Z b.index' := ⟨_, Int.toNat_of_nonneg HbZ⟩
+  have HfB : FullOk b (F.take m) := by
+    have := FullOk_take F b.term' b.index' HwfF Hbt'
+    rw [show (uint.Z b.index').toNat = m by omega] at this
+    cases b; exact this
+  have Hlen0 : (fp0.length : Int) = uint.Z S.base.index' := HfullS.1
+  have Hdrop : F.drop m = S.entsFrom b := by
+    unfold RaftState.entsFrom
+    rw [← HF, List.drop_append, List.drop_eq_nil_of_le (by omega), List.nil_append]
+    congr 1; omega
+  exact ⟨F.take m, HfB, by rw [← Hdrop, List.take_append_drop]⟩
+
+/-- (stage II helper) A resource threaded through a map of persistent facts, element by element. -/
+private theorem bigSepM_keep (R : IProp GF) (Φ Ψ : w64 × w64 → Unit → IProp GF)
+    [∀ k x, Persistent (Φ k x)] [∀ k x, Persistent (Ψ k x)] :
+    ∀ m : GMap (w64 × w64) Unit, (∀ k x, R ∗ Φ k x ⊢ R ∗ Ψ k x) →
+      R ∗ ([∗map] k ↦ x ∈ m, Φ k x) ⊢ R ∗ [∗map] k ↦ x ∈ m, Ψ k x := by
+  intro m Hstep
+  induction m using GMap.map_ind with
+  | h0 =>
+    iintro ⟨HR, -⟩
+    iframe HR
+    iapply (BigSepM.bigSepM_empty).2; iempintro
+  | hins k v m Hk IH =>
+    iintro ⟨HR, Hm⟩
+    icases (BigSepM.bigSepM_insert (Φ := Φ) Hk).1 $$ Hm with ⟨#H1, #Hm⟩
+    icases Hstep k v $$ [$HR $H1] with ⟨HR, #H1'⟩
+    icases IH $$ [$HR $Hm] with ⟨HR, #Hm'⟩
+    iframe HR
+    iapply (BigSepM.bigSepM_insert (Φ := Ψ) Hk).2
+    iframe H1' Hm'
+
+/-- (stage II helper) **One acknowledgement at a restart** (R4, repair 1): an acknowledgement
+`(S.term, i)` above the stored commit `c` agrees with the restarted log `(b, es)` (a cut of the full
+log `F`): above `S.commit` by `durPers`'s `ackAgree`; in `(c, S.commit]` because its leader's log
+(`ackInF`) holds the committed prefix up to `S.commit` -- by `S.commit`'s certificate: the
+bootstrap log; a commit fact of `S.term` (the same leader's log, `leadPrefix_agree`); or a commit
+fact of an earlier term, which Leader Completeness (`lc_core`, the vote table) puts in it. -/
+private theorem restart_ack_one (γ : RaftNames) (S : RaftState) (F : List EntryM) (b : entryID)
+    (es : List EntryM) (c : w64) (k : w64 × w64) :
+    PlogWf base0 F → uint.Z S.commit ≤ plogLastIndexZ base0 F →
+    uint.Z S.base.index' ≤ uint.Z S.commit →
+    (∀ j, uint.Z S.base.index' ≤ uint.Z j → plogTermAt S.base S.ents j = plogTermAt base0 F j) →
+    plogLastIndexZ S.base S.ents = plogLastIndexZ base0 F →
+    (∀ j, uint.Z b.index' ≤ uint.Z j → plogTermAt b es j = plogTermAt base0 F j) →
+    plogLastIndexZ b es = plogLastIndexZ base0 F →
+    uint.Z b.index' ≤ uint.Z c →
+    iprop(votesTbl (GF := GF) γ ∗ logRecs γ base0 F ∗ commitIn γ F S.commit S.term) ∗
+      iprop((∀ (_ : k.1 = S.term ∧ uint.Z S.commit < uint.Z k.2), ackAgree γ S.base S.ents k.1 k.2) ∗
+        ackInF γ k.1 k.2) ⊢
+    iprop(votesTbl γ ∗ logRecs γ base0 F ∗ commitIn γ F S.commit S.term) ∗
+      iprop(∀ (_ : k.1 = S.term ∧ uint.Z c < uint.Z k.2), ackAgree γ b es k.1 k.2) := by
+  intro HwF HcF HsC HtS HlS HtB HlB Hbc
+  iintro ⟨⟨Htbl, #HrF, #Hci⟩, ⟨#Hag, #Hai⟩⟩
+  by_cases Hk : ¬ (k.1 = S.term ∧ uint.Z c < uint.Z k.2)
+  · iframe Htbl HrF Hci
+    iintro %h; exact absurd h Hk
+  obtain ⟨Hk1, Hk2⟩ := Classical.not_not.mp Hk
+  by_cases Hhi : uint.Z S.commit < uint.Z k.2
+  · -- above `S.commit`: `durPers`'s own agreement, re-based
+    ihave #Ha := Hag $$ %(And.intro Hk1 Hhi)
+    iunfold ackAgree at Ha
+    icases Ha with ⟨%Hi, %ldr, %bL, %l, #Hp, %HagE, #Hpf⟩
+    iframe Htbl HrF Hci
+    iintro %_
+    unfold ackAgree
+    isplitr; · ipureintro; rw [HlB, ← HlS]; exact Hi
+    iexists ldr, bL, l
+    iframe Hp Hpf
+    ipureintro
+    refine ⟨HagE.1, ?_⟩
+    rw [HagE.2, HtS k.2 (by omega), HtB k.2 (by omega)]
+  -- in `(c, S.commit]`: the acknowledgement's leader
+  iunfold ackInF at Hai
+  icases Hai with (%H0 | ⟨%ldr, %bL, %l, %fpL, #Hp, #Hpf, %Hr⟩)
+  · exfalso; have := uint_Z_nonneg c; omega
+  icases lpfull_fp $$ Hpf with ⟨-, %HfL⟩
+  ihave #HLf := leadFull_intro $$ Hp Hpf
+  icases leadFull_wf γ _ _ $$ HLf with ⟨%HwL, #HrL⟩
+  have HiL : plogTermAt bL l k.2 = plogTermAt base0 (fpL ++ l) k.2 :=
+    (full_term_at bL fpL l k.2 HfL.1 Hr.1).symm
+  have HlastL : plogLastIndexZ base0 (fpL ++ l) = plogLastIndexZ bL l := full_last_index _ _ _ HfL.1
+  have HlenL : plogLastIndexZ base0 (fpL ++ l) = ((fpL ++ l).length : Int) := by
+    unfold plogLastIndexZ; rw [base0_index]; simp
+  have HlenF : plogLastIndexZ base0 F = (F.length : Int) := by
+    unfold plogLastIndexZ; rw [base0_index]; simp
+  -- the leader's full log agrees with `F` at the index, by `S.commit`'s certificate
+  ihave Hagr : iprop(votesTbl (GF := GF) γ ∗
+      ⌜plogTermAt base0 (fpL ++ l) k.2 = plogTermAt base0 F k.2⌝) $$ [Htbl]
+  · ihave #Hcj := commitIn_j γ F S.commit S.term $$ Hci
+    unfold commitJ
+    icases Hcj with (%Hb0 | ⟨%t', %n, %G, #Hq, %Hcn⟩)
+    · -- the bootstrap log, which both start with
+      iframe Htbl
+      icases logRecs_boot_termAt γ F HwF $$ HrF with %HbF
+      icases logRecs_boot_termAt γ _ HwL.1 $$ HrL with %HbL
+      ipureintro
+      rw [← HbL k.2 (by omega) (by omega), ← HbF k.2 (by omega) (by omega)]
+    obtain ⟨Hcn, Htt, HGF⟩ := Hcn
+    icases cq_base γ t' n G $$ Hq with ⟨%HGn, #HGl⟩
+    icases leadFull_wf γ t' G $$ HGl with ⟨%HwG, #HrG⟩
+    have Hn := (plogTermAt_some_range _ _ _ _ HGn).2
+    icases full_match γ G F S.commit HwG.1 HwF
+        (plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg _, by omega⟩) HGF
+        $$ HrG HrF with %HGFall
+    by_cases Hne : t' = S.term
+    · -- a commit fact of `S.term`: the same leader's log
+      have Ht' : t' = k.1 := Hne.trans Hk1.symm
+      subst Ht'
+      iunfold leadFull at HGl
+      icases HGl with ⟨%ldr', %bL', %l', %fp', #Hp2, #Hpf2, %HG⟩
+      subst HG
+      icases lpfull_fp $$ Hpf2 with ⟨-, %Hf2⟩
+      icases leadPrefix_base γ ldr ldr' k.1 bL bL' l l' $$ Hp Hp2 with %Hbb
+      subst Hbb
+      have Hn' : plogLastIndexZ base0 (fp' ++ l') = plogLastIndexZ bL l' := full_last_index _ _ _ Hf2.1
+      icases leadPrefix_agree γ ldr ldr' k.1 bL l l' k.2 (plogTermAt_in_range _ _ _ Hr)
+          (plogTermAt_in_range _ _ _ ⟨Hr.1, by omega⟩) $$ Hp Hp2 with %Hll
+      iframe Htbl
+      ipureintro
+      rw [← HiL, Hll, ← full_term_at bL fp' l' k.2 Hf2.1 Hr.1, HGFall k.2 (by omega)]
+    · -- a commit fact of an earlier term: Leader Completeness
+      have Hlt : uint.Z t' < uint.Z k.1 := by
+        have : uint.Z t' ≠ uint.Z S.term := fun h => Hne (uint_Z_inj.mp h)
+        rw [Hk1]; omega
+      icases leadFull_camp γ k.1 (fpL ++ l) $$ HLf with ⟨%ldr2, %F0, #Hl2, #Hc0, %Hpre⟩
+      icases isCamp_ok γ ldr2 k.1 F0 $$ Hc0 with %Hcok
+      have Hcl := camp_last k.1 F0 Hcok
+      icases lc_core γ ((uint.Z k.1).toNat + 1) k.1 t' n G ldr2 F0 (fpL ++ l)
+          (by have := uint_Z_nonneg k.1; omega) Hlt HwL.1
+          (by rw [plogTermAt_prefix _ F0 _ _ Hpre (by rw [Hcl]; rfl)]; exact Hcl)
+          $$ Htbl Hq Hl2 Hc0 HrL with %HnL
+      have Hnr := (plogTermAt_some_range _ _ _ _ HnL).2
+      icases full_match γ (fpL ++ l) G n HwL.1 HwG.1 (by rw [HnL]; rfl) (by rw [HnL, HGn])
+          $$ HrL HrG with %HLG
+      iframe Htbl
+      ipureintro
+      rw [HLG k.2 (by omega), HGFall k.2 (by omega)]
+  icases Hagr with ⟨Htbl, %Hagr⟩
+  iframe Htbl HrF Hci
+  iintro %_
+  unfold ackAgree
+  isplitr; · ipureintro; rw [HlB]; omega
+  iexists ldr, bL, l
+  iframe Hp
+  isplitr
+  · ipureintro
+    refine ⟨plogTermAt_in_range _ _ _ Hr, ?_⟩
+    rw [HiL, Hagr, HtB k.2 (by omega)]
+  iexists fpL; iexact Hpf
+
 /-- **R4, the acknowledgements at a restart**: every acknowledgement of `S.term` above a lower
 stored commit `c` agrees with the restarted log -- above `S.commit` by `durPers`, in
 `(c, S.commit]` by Leader Completeness (the committed prefix is in the log of `S.term`'s leader,
-whose log the acknowledgement's `ackIn` names). -/
+which the acknowledgement's `ackInF`, kept by `durPers`, names: repair 1, 2026-11-01). -/
 theorem durPers_restart_acks (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (Ed : DurMaps)
     (b : entryID) (c : w64) :
     ↑(raftN γ) ⊆ E →
@@ -965,19 +1127,54 @@ theorem durPers_restart_acks (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftS
     ⊢ durPers (GF := GF) γ id S Ed -∗ durFrags γ id Ed ={E}=∗
       [∗map] k ↦ _u ∈ Ed.acks, ∀ (_ : k.1 = S.term ∧ uint.Z c < uint.Z k.2),
         ackAgree γ b (S.entsFrom b) k.1 k.2 := by
-  -- PORT(durability stage II): unprovable as stated, back to stage I (round 5: the cheap route,
-  -- Leader Completeness from `S.commit`'s certificate, fails). An acknowledgement `(S.term, i)`
-  -- with `c < i ≤ S.commit` needs `ackAgree`, which needs a `leadPrefix` (and an `lpfull`) of a
-  -- leader *of `S.term`*, with `i` inside that prefix (`(plogTermAt bL l i).isSome`). Leader
-  -- Completeness says every leader of a term at or above the certificate's contains the committed
-  -- prefix, but nothing in `durPers S Ed ∗ durFrags Ed` gives such a leader: (a) when the
-  -- certificate (`commitIn _ S.commit S.term`) is a commit fact of a term `t < S.term`, or the boot
-  -- arm, no leader of `S.term` is named at all (`isAcked` is a map fragment and an event; `klOkD`
-  -- gives at most `isWin`, no prefix; the histories at `bndD S kd` may rest on earlier commit
-  -- facts); (b) when `t = S.term`, the certificate's `leadFull` names the leader's prefix `(bL, l)`,
-  -- but its base `bL` may lie above `i`, so `(plogTermAt bL l i).isSome` fails. Acknowledgements
-  -- above `S.commit` are covered by `durPers`'s own conjunct.
-  sorry
+  intro HE Hb1 Hb2 Hb3 Hbt
+  have HlE : (↑(raftLogN γ) : CoPset) ⊆ E := raftLogN_of HE
+  iintro #Hd #Hfr
+  iunfold durPers at Hd
+  icases Hd with ⟨%kd, %fp0, %Hp, #HrS, -, #Hfp0, -, -, -, #Hag, #Hci, -, #Hinv, #HaiW⟩
+  obtain ⟨-, -, -, -, HfullS, HwfS, -, HsC, HcL⟩ := Hp
+  ihave #Hai := HaiW $$ Hfr
+  obtain ⟨fpb, Hfb, Hfeq⟩ := entsFrom_full S fp0 b HfullS HwfS Hb1 Hbt
+  have HwF : PlogWf base0 (fp0 ++ S.ents) := full_wf _ _ _ HfullS HwfS
+  ihave #HrF := logRecs_full γ S.base fp0 S.ents HfullS $$ Hfp0 HrS
+  have HlS : plogLastIndexZ S.base S.ents = plogLastIndexZ base0 (fp0 ++ S.ents) :=
+    (full_last_index _ _ _ HfullS).symm
+  have HlB : plogLastIndexZ b (S.entsFrom b) = plogLastIndexZ base0 (fp0 ++ S.ents) := by
+    rw [← full_last_index _ _ _ Hfb, Hfeq]
+  have HtS : ∀ j, uint.Z S.base.index' ≤ uint.Z j →
+      plogTermAt S.base S.ents j = plogTermAt base0 (fp0 ++ S.ents) j :=
+    fun j hj => (full_term_at _ _ _ _ HfullS hj).symm
+  have HtB : ∀ j, uint.Z b.index' ≤ uint.Z j →
+      plogTermAt b (S.entsFrom b) j = plogTermAt base0 (fp0 ++ S.ents) j := by
+    intro j hj; rw [← full_term_at _ _ _ _ Hfb hj, Hfeq]
+  -- the vote table, for Leader Completeness
+  ihave #Hli := raftCommitInv_log γ $$ Hinv
+  unfold raftLogInv
+  iinv Hli with H Hclose
+  iunfold raftLogInvBody at H
+  icases H with ⟨%l, >Hauth, >Hjust, >Htbl, >Hwt, >Hrest⟩
+  icases bigSepM_keep (iprop(votesTbl (GF := GF) γ ∗ logRecs γ base0 (fp0 ++ S.ents) ∗
+      commitIn γ (fp0 ++ S.ents) S.commit S.term))
+      (fun k _ => iprop((∀ (_ : k.1 = S.term ∧ uint.Z S.commit < uint.Z k.2),
+        ackAgree (GF := GF) γ S.base S.ents k.1 k.2) ∗ ackInF γ k.1 k.2))
+      (fun k _ => iprop(∀ (_ : k.1 = S.term ∧ uint.Z c < uint.Z k.2),
+        ackAgree (GF := GF) γ b (S.entsFrom b) k.1 k.2))
+      Ed.acks (fun k _ => restart_ack_one γ S (fp0 ++ S.ents) b (S.entsFrom b) c k HwF
+        (by rw [← HlS]; exact HcL) HsC HtS HlS HtB HlB Hb2)
+      $$ [Htbl] with ⟨⟨Htbl, -, -⟩, #Hres⟩
+  · iframe Htbl HrF Hci
+    iapply BigSepM.bigSepM_forall.2
+    iintro %k %u %hk
+    isplitr
+    · iapply (BigSepM.bigSepM_lookup (Φ := fun (k : w64 × w64) (_ : Unit) =>
+        iprop(∀ (_ : k.1 = S.term ∧ uint.Z S.commit < uint.Z k.2),
+          ackAgree (GF := GF) γ S.base S.ents k.1 k.2)) hk) $$ Hag
+    · iapply (BigSepM.bigSepM_lookup (Φ := fun (k : w64 × w64) (_ : Unit) =>
+        ackInF (GF := GF) γ k.1 k.2) hk) $$ Hai
+  imod Hclose $$ [Hauth Hjust Htbl Hwt Hrest] with -
+  · inext; unfold raftLogInvBody; iexists l; iframe Hauth Hjust Htbl Hwt Hrest
+  imodintro
+  iexact Hres
 
 /-- (stage II helper) Every key of a map whose fragments carry `campKey` is an entered campaign's
 term. -/

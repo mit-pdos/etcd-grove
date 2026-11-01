@@ -71,6 +71,9 @@ theorem GMap.exists_fresh_nat {V : Type} (K : GMap Nat V) : ∃ k, K !! k = none
 theorem propIsAt_propIs [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (d : List w8) (γq : GName) (Q :
     List EntryM → IProp GF) : ⊢ propIsAt γ d γq -∗ savedPredOwn γq DFrac.discard Q -∗ propIs γ d Q
 
+theorem alloc_slots [ReceiptGS GF] [InvGS GF] (ids : GSet w64) : ⊢ |==> ∃ names, [∗map] x ↦ _u ∈
+    toMap ids, iprop(∃ γs, ⌜names !! x = some γs⌝ ∗ slotFresh γs)
+
 def propIsAt (γ : RaftNames) (d : List w8) (γq : GName) : IProp GF :=
   iprop(∃ γd, d ↪[γ.reProps]□ (γq, γd))
 
@@ -179,6 +182,10 @@ theorem ownRaftGhost_committed [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : 
 
 theorem prop_register_at [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (E : CoPset) (d : List w8) (γq :
     GName) : ↑(raftN γ) ⊆ E → ⊢ raftCommitInv γ -∗ propFresh γ d ={E}=∗ propIsAt γ d γq
+
+def slotFresh (γs : SlotNames) : IProp GF :=
+  iprop(ghostVar γs.fst 1 DurMaps.empty ∗
+      ghostMapAuth γs.snd.fst 1 <[0 := none]>∅ ∗ 0 ↪[γs.snd.fst] none ∗ ghostVar γs.snd.snd 1 0)
 
 theorem BootWf.data {L : List EntryM} (H : BootWf L) (e : EntryM) : e ∈ L → ¬Filler e.Type' e.Data'
     ∧ CCDecodes e.Type' e.Data' ∧ uint.Z e.Index' ≤ ↑L.length
