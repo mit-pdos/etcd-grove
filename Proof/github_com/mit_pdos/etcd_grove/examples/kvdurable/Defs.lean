@@ -552,7 +552,8 @@ def repStop (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc)
 state `S`, the follower's role, the storage's key), its configuration view at `(a, m)`, `run`'s half
 of the running token, the replicated state at the stored snapshot's prefix (of length `a`),
 `runDone`'s producer, `run`'s half of the image's hard state (the stored one: the term and vote
-of `S`). -/
+of `S`), the delivered log `l` at most `ap`, frozen above a known compaction point and at most the
+image's frozen bound. -/
 def runStart (γ : KdNames) (id : w64) (r n st : Loc) (ρ : KdRepNames) (l : List LogEntry)
     (hs : HardStateM) (S : RaftState) (ap : List LogEntry) (m : Membership) : IProp GF :=
   iprop(∃ (csp mA : Loc) (A : GMap (List w8) (List w8)),
@@ -563,7 +564,13 @@ def runStart (γ : KdNames) (id : w64) (r n st : Loc) (ρ : KdRepNames) (l : Lis
     handoffProducer ρ.rd false ∗ ghostVar ρ.ph.ph (1 : Qp).half ((none : Option GName), S) ∗
     -- (2026-11-01, stage II (j), G12) `run`'s half of the image's hard state, the stored one, whose
     -- term and vote are the durable state's
-    ghostVar ρ.ph.cm (1 : Qp).half hs ∗ ⌜S.term = hs.Term' ∧ S.vote = hs.Vote'⌝)
+    ghostVar ρ.ph.cm (1 : Qp).half hs ∗ ⌜S.term = hs.Term' ∧ S.vote = hs.Vote'⌝ ∗
+    -- (2026-11-01, stage II (j), G18-G19) the delivered log `l` raft starts at: at most the
+    -- replicated state (`Config.Applied` at most the snapshot's index), frozen in the `MemoryStorage`
+    -- above a known compaction point, and at most the image's frozen bound
+    ⌜l.length ≤ ap.length⌝ ∗
+    (∃ c : Nat, memCompacted ρ.γs c ∗ kvreconf.frozenTo ρ.γs c l ∗ ⌜c ≤ l.length⌝) ∗
+    monoNatLbOwn ρ.ph.ic l.length)
 
 /-- **`f` is replica `id`'s transport** (persistent; kvreconf's `sendSpec`). -/
 def sendSpec (γ : KdNames) (id : w64) (f : GoFunc) : IProp GF :=

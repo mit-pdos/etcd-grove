@@ -342,6 +342,17 @@ theorem append_none_post (st ms : Loc) (γs : MemStorNames) (c : Nat) (D ce : Li
     rw [Hk e0 he0] at this
     exact this
 
+/-- **A `Ready`'s messages with their `sentMsg`** (kvreconf's `readyMsgs_sent`). -/
+theorem kd_readyMsgs_sent (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) :
+    ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+      readyMsgs γ N id ms ⊢
+    [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗ msgCredits γ N q.st := by
+  unfold readyMsgs
+  refine BigSepL.bigSepL_sep_eqv_symm.1.trans (BigSepL.bigSepL_mono_of_forall ?_)
+  intro _ _
+  iintro ⟨⟨Ho, Hc⟩, Hs⟩
+  iframe
+
 end run
 
 end kvdurable
