@@ -21,6 +21,9 @@ bboltfs_DB__munmap: unix_Munmap
 bboltfs_DB__close: bboltfs_DB__munmap os_File__Fd syscall_Flock os_File__Close
 os_File__Fd:
 syscall_Flock:
-# the os/syscall/unix specs minibolt calls: `?` while their proofs are `sorry` (osfs-specs)
-unix_Munmap: ?
-os_File__Close: ?
+bboltfs_DB__mmap: bboltfs_DB__munmap bboltfs_mmapSize os_File__Fd unix_Mmap unix_Madvise unix_Munmap bboltfs_pageAt bboltfs_Page__meta
+# the os/syscall/unix specs minibolt calls (proved on osfs-specs)
+unix_Munmap:
+unix_Mmap:
+unix_Madvise:
+os_File__Close:

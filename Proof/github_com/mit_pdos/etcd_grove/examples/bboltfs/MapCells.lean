@@ -115,6 +115,26 @@ theorem pages_any (base : Loc) (P : Nat → IProp GF)
     rw [show 4096 * s + 4096 = 4096 * (s + 1) by omega]
     iframe
 
+
+/-- A non-empty range of mapped cells from the mapping's start lies in `(0, maxAddr]`. -/
+theorem cellsR_bounds (base : Loc) (n : Nat) (vf : Nat → val) (h : 0 < n) :
+    cellsR (GF := GF) base 0 n vf ⊢ ⌜0 < base.addr ∧ base.addr + n ≤ maxAddr⌝ := by
+  iintro H
+  rw [show n = (n - 1) + 1 by omega]
+  icases (cellsR_append _ _ _ _ _).1 $$ H with ⟨H1, H2⟩
+  icases (cellsR_cons _ _ _ _).1 $$ H2 with ⟨Hl, -⟩
+  icases heapPointsto_lt_maxAddr _ _ _ $$ Hl with %Hlt
+  icases heapPointsto_pos _ _ _ $$ Hl with %Hp
+  simp only [Loc.add] at Hlt Hp
+  rcases Nat.eq_zero_or_pos (n - 1) with h0 | h0
+  · ipureintro; rw [h0] at Hlt Hp ⊢; simp at Hlt Hp ⊢; omega
+  · rw [show n - 1 = 1 + (n - 1 - 1) by omega]
+    icases (cellsR_append _ _ _ _ _).1 $$ H1 with ⟨H0, -⟩
+    icases (cellsR_cons _ _ _ _).1 $$ H0 with ⟨H0, -⟩
+    icases heapPointsto_pos _ _ _ $$ H0 with %Hp0
+    simp only [Loc.add] at Hp0
+    ipureintro; omega
+
 end cells
 
 section agree

@@ -23,10 +23,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumpti
 
 theorem DB.munmap.wp_proof (wp_Munmap : golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG)) :
     DB.munmap.spec (GF := GF) (hG := hG) := by
-  intro db sl dsz m0 m1
+  intro db sl dsz m0 m1 p m
   wp_start as ⟨Hd, Hs, H0, H1, Hm⟩
   unfold mappingRes
-  icases Hm with (%Hnil | ⟨%base, %len, %p, %m, %vf, %Hsl, #Hinv, Hm, Hc⟩)
+  icases Hm with (%Hnil | ⟨%base, %len, %vf, %Hsl, #Hinv, Hm, Hc⟩)
   · subst Hnil
     wp_auto
     iapply HΦ
@@ -49,6 +49,6 @@ theorem DB.munmap.wp_proof (wp_Munmap : golang_org.x.sys.unix.Munmap.spec (GF :=
     iframe
     unfold unmappedRes
     iright
-    iexists base, len, p, m, vf, e
+    iexists base, len, vf, e
     iframe
     ipureintro; exact ⟨rfl, rfl⟩

@@ -24,16 +24,16 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumpti
 /-- See the file header. -/
 abbrev DB.close.spec : Prop :=
   ∀ (db : Loc) (sl : GoSlice) (dsz : w64) (m0 m1 f : Loc) (dqd : DFrac) (fd : w64)
-    (name : GoString) (d : OsFd),
+    (name : GoString) (d : OsFd) (p : GoString) (m : OsMeta),
   {{ osInv (GF := GF) ∗ db.[DB, go!"dataref"] ↦ sl ∗ db.[DB, go!"datasz"] ↦ dsz ∗
-      db.[DB, go!"meta0"] ↦ m0 ∗ db.[DB, go!"meta1"] ↦ m1 ∗ mappingRes (GF := GF) sl ∗
+      db.[DB, go!"meta0"] ↦ m0 ∗ db.[DB, go!"meta1"] ↦ m1 ∗ mappingRes (GF := GF) p m sl ∗
       db.[DB, go!"file"] ↦{dqd} f ∗ os.ownFile (GF := GF) f fd name (DFrac.own 1) ∗
       osFd (GF := GF) fd (DFrac.own 1) d }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"close")) (Val #()))
   {{ RET #(); db.[DB, go!"dataref"] ↦ slice.nil ∗
       (∃ (dsz' : w64) (m0' m1' : Loc), db.[DB, go!"datasz"] ↦ dsz' ∗ db.[DB, go!"meta0"] ↦ m0' ∗
         db.[DB, go!"meta1"] ↦ m1') ∗
-      (∃ err, unmappedRes (GF := GF) sl err) ∗
+      (∃ err, unmappedRes (GF := GF) p m sl err) ∗
       db.[DB, go!"file"] ↦{dqd} f ∗ os.ownFile f (-1 : w64) name (DFrac.own 1) }}
 
 end spec
