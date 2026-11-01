@@ -44,9 +44,11 @@ put's key is not empty for an alarm type other than `NONE` (the contract's premi
 
 Over an empty alarm bucket (the tracked buckets' half `backend.rbOwn d.γB r` says so, D22,
 2026-10-23; until then the opaque token `bkFresh d.γB "alarm"`, D14i, 2026-10-17: the creation
-needs the half, given back with the bucket present and empty), `restore` loads no alarm: the map is empty, and stays so until `Activate`, which only the apply contract calls; so the
-store is fresh (`alarmFresh a`), `Get` returning an empty slice under it, and the apply contract
-is given up for the token. `Activate`/`Deactivate` write a tracked bucket: they take and give back
+needs the half, given back with the bucket present and empty), `restore` loads no alarm: the map is empty (`alarmEmpty a d.be`, 2026-11-01, J8a-5: the user's
+half of `a.types` and of its map at `∅`, under which `Get` returns no alarm, `Get.spec`; until then
+the opaque token `alarmFresh a`, traded for the apply contract). The apply contract is given
+outright: `Activate`, the only writer of the map, needs the user's half (`alarmBeOn`, which the
+contract's write right lends), so it cannot run while the user holds `alarmEmpty`. `Activate`/`Deactivate` write a tracked bucket: they take and give back
 the tracked buckets' client half (`srvRestRW d.γB`, the contract's `RW`, D22).
 
 (D22 receiver epochs, S7c, 2026-10-23) The store's lock holds half of `a.be` (`alarmLockInv`), the
@@ -73,8 +75,7 @@ abbrev v3alarm.NewAlarmStore.spec : Prop :=
   {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); backend.bOpen d.γB qo ∗
       backend.rbOwn d.γB (r.insert go!"alarm" ∅) ∗
       (⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil ∧ a ≠ null⌝ ∗ isAlarmStore a ∗
-        alarmBeOn a d.be ∗ alarmFresh a ∗ apply.alarmGetIs a (alarmFresh a) true ∗
-        □ (alarmFresh a -∗ alarmApplyOk a)) }}
+        alarmEmpty a d.be ∗ alarmApplyOk a) }}
 
 end spec
 

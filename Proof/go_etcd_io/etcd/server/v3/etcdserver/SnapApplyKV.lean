@@ -60,7 +60,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     (π0 : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (d' : mvcc.KBReal)
     (p' : mvcc.PhysNames) (γw : mvcc.WsNames) (ws : Loc) (g : GoFunc) (up' : Loc)
     (opts' : apply.ApplierOptions) (w0 : GoInterface) (RD0 : IProp GF) (al ast lp cl : Loc)
-    (x : apply.ApplyKV) (R : mvcc.Log) (zal : Bool)
+    (x : apply.ApplyKV) (R : mvcc.Log)
     (hγB : d'.γB = γB) (hkb' : p'.kb = some d') (hcm' : d'.cm = false) (hγw : γw.st = E.γ)
     (hwq : E.γ.watchQ = true)
     (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
@@ -69,8 +69,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
         opts' ∗
       mvcc.isWatchableStore ws E.s γw ∗
       (∀ E1 : apply.AEnv GF, apply.backendOptsOk E1 opts' -∗
-        apply.uberIs E1 up' opts' ∗ ∃ ns cr, ⌜zal = true → ns = false ∧ cr = false⌝ ∗
-          apply.uberOwn E1 up' (apply.alarmChain E1.authOn ns cr)) ∗
+        apply.uberIs E1 up' opts' ∗ apply.uberOwn E1 up' (apply.alarmChain E1.authOn false false)) ∗
       srvUberApplyAddr s ↦ (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) ∗
       mvcc.storeReader E.s E.γ ∗ mvcc.writerFrag (γw.st.withPhys p') ∗
       mvcc.watchWriter γw ([[], []] ++ R) ∗
@@ -84,23 +83,22 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       waitOk w0 RD0 (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ∗
       RD0 ⊢
     |={⊤}=> ∃ x' : apply.ApplyKV,
-      ⌜x'.log = [[], []] ++ R ∧ ∃ ns cr, x'.chain = apply.alarmChain E.authOn ns cr ∧
-        (zal = true → ns = false ∧ cr = false)⌝ ∗
+      ⌜x'.log = [[], []] ++ R ∧ x'.chain = apply.alarmChain E.authOn false false⌝ ∗
       srvApplyKV s (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) ρ.wait x' := by
   have hrb : receiptBound GF ≤ 2 ^ 48 := by
     have : backend.wbInit = 2 ^ 40 - 1 := rfl
     omega
   iintro ⟨#Hopts, #Hws, Hube, Hua, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, Hrv, HRD, Hbe, Hγbe, Hra, Hauar, #Hw,
     #Hwok, HRD0⟩
-  ihave ⟨#Hub, %ns, %cr, %hz, Huo⟩ :=
+  ihave ⟨#Hub, Huo⟩ :=
     Hube $$ %(snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) Hopts
   ihave Hkv := kvOwn_snap E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d' γw ws R hkb'
     hγw hwq hRok hrb $$ [Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD]
   · iframe Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD
   imodintro
-  iexists ⟨[[], []] ++ R, apply.alarmChain E.authOn ns cr, -1⟩
+  iexists ⟨[[], []] ++ R, apply.alarmChain E.authOn false false, -1⟩
   isplitr
-  · ipureintro; exact ⟨rfl, ns, cr, rfl, hz⟩
+  · ipureintro; exact ⟨rfl, rfl⟩
   iunfold srvApplyKV
   iexists _
   iframe Hua

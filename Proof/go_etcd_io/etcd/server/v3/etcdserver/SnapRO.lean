@@ -483,16 +483,16 @@ theorem srvKVCloserW_off (s : Loc) (E : apply.AEnv GF) (h : ¬ mvcc.kbCmpM E.γ.
 /-- **The snapshot path's own resources at the current backend** (D22 J1b, 2026-10-31; spatial):
 what `applySnapshot.specSnap` takes of the backend `E` is on (`E.γ.kb = some d`) and gives back at
 the new one (`srvSnapApplied`): the backend's stop channels and the constructors' half of its open
-token (W7: the old backend's `Close` goroutine takes them), the alarm store's `Get` under a
-resource `Tal`, with `Tal` (`NewServer` gives `Tal = True`, `zal = false`: the store's `Get` from
-its apply contract); (2026-11-01, the user's decision) the KV's closer (`srvKVCloser`, for
+token (W7: the old backend's `Close` goroutine takes them), the alarm store's field (until
+2026-11-01, J8a-5, also its `Get` under a resource `Tal`, `zal`: `specSnap` now gets `Get` with no
+alarm from `Recover`'s `alarmEmpty`); (2026-11-01, the user's decision) the KV's closer (`srvKVCloser`, for
 `store.Restore`) and the backend file's directory entry at the configuration's data directory
 (`pathOwn (backendPathOf dd)`, `OpenSnapshotBackend`'s rename target, one for every install). -/
 def srvSnapRes (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ (d : mvcc.KBReal) (al : Loc) (Tal : IProp GF) (zal : Bool) (dd : GoString),
+  iprop(∃ (d : mvcc.KBReal) (al : Loc) (dd : GoString),
     ⌜E.γ.kb = some d⌝ ∗
     backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half ∗
-    srvAlarmStoreAddr s ↦□ al ∗ apply.alarmGetIs al Tal zal ∗ Tal ∗
+    srvAlarmStoreAddr s ↦□ al ∗
     srvKVCloserW s E ∗
     srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.pathOwn (config.backendPathOf dd))
 

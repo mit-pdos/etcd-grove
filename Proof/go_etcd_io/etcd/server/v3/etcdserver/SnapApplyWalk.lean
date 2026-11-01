@@ -5,6 +5,7 @@ premises to `snapWalkPost` (`SnapApplyDefs.lean`).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AlarmGet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyDefs
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InstanceLaws
@@ -118,7 +119,9 @@ theorem applySnapshot_walk
     (hlid : c.lid = idm)
     (hNUA : EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG))
     (msi : w64) (cs0 : Loc) (fg : GoInterface) (quota : w64) (wad : time.Duration)
-    (Tal : IProp GF) (zal : Bool) (hbuq : apply.backendUnderQuota) (γnc : NotifyNames) :
+    (hbuq : apply.backendUnderQuota) (γnc : NotifyNames)
+    -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, after its `Recover`
+    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        isServer s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
@@ -156,7 +159,6 @@ theorem applySnapshot_walk
        srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗
        srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ quota ∗
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
-       apply.alarmGetIs al Tal zal ∗ Tal ∗
        backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half ∗
        authRecoverOk ast ∗
        □ (∀ (π : ApplyPhys) (b : Loc), ⌜π.m0 = (sv.Metadata'.Index', tI)⌝ →
@@ -165,8 +167,8 @@ theorem applySnapshot_walk
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))
         (Val #ap))
     {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A x R ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
-        quota wad Tal zal ∗ notifyRcvN γnc 1 }} := by
-  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, HR8s, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HalG, HTal, #HoSC, HoOh, #HauR, #HmetaB⟩
+        quota wad ∗ notifyRcvN γnc 1 }} := by
+  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, HR8s, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, #HauR, #HmetaB⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
   icases Hsrv' with ⟨-, -, ⟨%sfv, #Hfl⟩, -, -⟩
@@ -776,9 +778,20 @@ theorem applySnapshot_walk
   icases Hcs0 with ⟨Hcs0, -⟩
   (try wp_auto)
   -- `s.uberApply = s.NewUberApplier()`
-  wp_apply hNUA s sfv.lg al cl _ _ _ _ _ fg quota wad (DFrac.own (1 : Qp).half) Tal zal hbuq
-    $$ [HbeA HTal] as %ua' ⟨HbeA, HTal, %up', %opts', %Hua', %Hopts', Hube⟩
-  · iframe #; iframe HbeA HTal
+  -- (2026-11-01, J8a-5) the store recovered has no alarm: `Get` returns none (`alarmEmpty`)
+  ihave #HalG := alarmGetIs_empty hAG al d'.be $$ [$Halpkg $HisAl]
+  wp_apply hNUA s sfv.lg al cl _ _ _ _ _ fg quota wad (DFrac.own (1 : Qp).half)
+      (alarmEmpty al d'.be) true hbuq
+    $$ [HbeA HnAl] as %ua' ⟨HbeA, HnAl, %up', %opts', %Hua', %Hopts', Hube⟩
+  · iframe #; iframe HbeA HnAl
+  ihave HnAl := alarmEmpty_beOn al d'.be $$ HnAl
+  ihave Hube : iprop(∀ E1 : apply.AEnv GF, apply.backendOptsOk E1 opts' -∗
+      apply.uberIs E1 up' opts' ∗ apply.uberOwn E1 up' (apply.alarmChain E1.authOn false false))
+      $$ [Hube]
+  · iintro %E1 Hbo
+    icases Hube $$ %E1 Hbo with ⟨Hu, %ns, %cr, %hz, Ho⟩
+    obtain ⟨rfl, rfl⟩ := hz trivial
+    iframe Hu Ho
   (try wp_auto)
   -- the deferred "applied snapshot" log and the gauge's `Dec`
   wp_apply hU64 as %fd1 -

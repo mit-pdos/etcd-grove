@@ -92,7 +92,7 @@ theorem srvSnapApplied_of_walk
     (hdir : γn.dir = dir) (hdok : netDirOk dir) (hps : ∀ f, dir f ≠ [] ↔ f ∈ ps)
     (hlid : c.lid = idm)
     (msi : w64) (cs0 : Loc) (fg : GoInterface) (quota : w64) (wad : time.Duration)
-    (Tal : IProp GF) (zal : Bool) (hbuq : apply.backendUnderQuota)
+    (hbuq : apply.backendUnderQuota)
     (A' : List EntryModel)
     (hA' : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk =
         <[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D)) ∧
@@ -107,16 +107,16 @@ theorem srvSnapApplied_of_walk
       srvClusterAddr s ↦□ cl ∗ membership.isRaftCluster cl ∗ mvcc.certOk E.γ ([[], []] ++ R) ∗
       srvWTPool E γp ∗
       snapWalkPost s ep sv γ ci E ρ γr d D A x R ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
-        quota wad Tal zal ⊢
-    |={⊤}=> srvSnapApplied s ep sv γ ci E ρ γr d R A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl Tal zal := by
+        quota wad ⊢
+    |={⊤}=> srvSnapApplied s ep sv γ ci E ρ γr d R A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl := by
   iintro ⟨#Hpkg, #Hsrv, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #Hlinv, #Hlpf, #Half,
     #HisAl, #Haustf, #Hclf, #Hirc, #Hcok, #HWP, Hw⟩
   iunfold snapWalkPost at Hw
   icases Hw with ⟨%γB, %d', %gx, %π0, %p', %γw, %ws, %g, %up', %opts', %L, %spc, %Ll, %jf, %γcf,
     %w0, %RD0, %up, %lg, %wsk, %stck, %Hpure, #HB, HSC, -, -, -, -, -, #HCI', #HhkS, -, -, -,
-    #Hws, -, -, #HhP, #Hkva, #Hwa, #Hlga, Hwok, HplH, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Halb, Haub, Hclb,
+    #Hws, -, -, #HhP, #Hkva, #Hwa, #Hlga, Hwok, HplH, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Haub, Hclb,
     Hleb, Hlo, Hlrd, Hlrv, Hrt, Hrb, Hcm, Hbo, Hsc, Hwf, Hww, HwOwn, Hsr, Htl, Hlgr, Hai, Hatt, Hds, Hms,
-    Hcsa, Hcso, Hpath, HTal, HRD2, Hube, Hua, -, Hra, Hauar, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
+    Hcsa, Hcso, Hpath, Halb, HRD2, Hube, Hua, -, Hra, Hauar, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
   obtain ⟨hγB, hP', -, hcm', hm0, -, hkb', hγw, -, hcov, hgnn, ho1, ho2, ho3, ho4, ho5, ho6, ho7, -, -, -,
     ho11, ho12⟩ := Hpure
   subst hγB
@@ -134,7 +134,7 @@ theorem srvSnapApplied_of_walk
   · iframe #
   -- step 4: the applier state
   ihave HKV' := snap_applyKV s γ ci E ρ π0 d'.γB d.P d' p' γw ws g up' opts' w0 RD0 al ast lp cl x R
-      zal rfl hkb' hcm' hγw hwq hpre hRok hrbw $$
+      rfl hkb' hcm' hγw hwq hpre hRok hrbw $$
       [Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hra Hauar Hwok HRD0]
   · iframe #; iframe Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hra Hauar Hwok HRD0
   imod HKV' with ⟨%x', %Hx', HKV'⟩
@@ -158,13 +158,9 @@ theorem srvSnapApplied_of_walk
   isplitr
   · ipureintro
     refine ⟨by apply snapE_beSucc, hkb', hcm', hP', rfl, snapSt_loopOk γ π0 d'.γB _ _ hm0, snapSt_ciEff γ π0 d'.γB _ _ hm0, Hx'.1,
-      ?_, hcov⟩
-    intro hz
-    obtain ⟨ns, cr, hch, hn⟩ := Hx'.2
-    obtain ⟨rfl, rfl⟩ := hn hz
-    exact hch
+      Hx'.2, hcov⟩
   iunfold epConfState
-  iframe Hsrv' Hai Hatt Hds Hms Hcsa Hcs Hat Hab Hlgr Hbmr HKV' HRest HKC HSC Hbo Hγt Hpath Htl HTal
+  iframe Hsrv' Hai Hatt Hds Hms Hcsa Hcs Hat Hab Hlgr Hbmr HKV' HRest HKC HSC Hbo Hγt Hpath Htl
   -- (J8a-1, item 5) the KV at the new environment: the walk's watchable store, its inner store's
   -- names at the new physical ones (`isWatchableStore_withPhys`)
   iexists _

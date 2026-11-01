@@ -24,6 +24,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NewUberApplier
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getTxPostLockInsideApplyHook
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__restoreAlarms
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AlarmGet
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.addFeatureGateMetrics
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NetBridge
@@ -322,6 +323,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (h94 : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
     -- (the lease-revoke plan, 2026-10-31) the lessor's `Revoke`, for `isApplyLessor`'s clause
     (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
+    -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, for the uber-applier's construction
+    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
     -- (M2, `NewServer.spec`'s compaction mode) what only the compacting server uses: the compacting store's
     -- backend contract's specs, and the compactor's run precondition's (the server's `Rev` and
     -- `Compact`, `CompactEnv.lean`)
@@ -812,7 +815,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- the rest buckets after the constructors: the boot state's
   rw [restBootBk_of_fresh d D HDr]
   clear hDl HDr
-  icases Hares with (⟨%Haerr, -⟩ | ⟨%Haerr, %alst, %Halnn, alarmStore, #HalS, HalOn, Hafr, #Hget, #HalAf⟩)
+  icases Hares with (⟨%Haerr, -⟩ | ⟨%Haerr, %alst, %Halnn, alarmStore, #HalS, HalOn, #HalA⟩)
   · -- the alarms could not be restored: the error returned, the store and `b` closed
     cases aerr with
     | nil => exact absurd rfl Haerr
@@ -836,12 +839,16 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ipersist consistIndex
   ipersist QuotaBackendBytesS
   ipersist WarningApplyDurationS
+  -- (2026-11-01, J8a-5) the store has no alarm: `Get` returns none under the user's half
+  ihave #Hv3apkg : isPkgInit (PROP := IProp GF)
+      pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm $$ []
+  · iPkgInit
+  ihave #Hget := alarmGetIs_empty hAG alst d.be $$ [$Hv3apkg $HalS]
   wp_apply (h33 s cfg.Logger' alst bc.cl' _ _ _ _ _ _ cfg.QuotaBackendBytes'
-      cfg.WarningApplyDuration' (DFrac.own 1) (alarmFresh alst) true Hbuq) $$ [be Hafr]
-    as %ua ⟨be, Hafr, %up, %uopts, %Hua, %Huopts, Hulate⟩
-  · iframe #; iframe be Hafr
-  -- the alarm store handed over: its apply contract (D14i)
-  ihave #HalA := HalAf $$ Hafr
+      cfg.WarningApplyDuration' (DFrac.own 1) (alarmEmpty alst d.be) true Hbuq) $$ [be HalOn]
+    as %ua ⟨be, HalOn, %up, %uopts, %Hua, %Huopts, Hulate⟩
+  · iframe #; iframe be HalOn
+  ihave HalOn := alarmEmpty_beOn alst d.be $$ HalOn
   (try wp_auto)
   -- the checkpointer, if the feature is on (`lessorCkptOk`; its later calls: `ckptEffectsOk`)
   ihave #Hlck' := Hlck
@@ -1416,27 +1423,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   have hMR3 : 2 ^ 29 + 2 ^ 28 + 2 ^ 23 + 2 ^ 22 + 200 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
     rw [sync.rwmutex.actualMaxReaders_unseal]; decide
   obtain ⟨stp, Hstp, Hstpss⟩ := Hrn15
-  -- (D22 J1b) the alarm store's `Get`, from its apply contract on the backend (`Tal = True`)
-  ihave #HalG : apply.alarmGetIs alst iprop(True) false $$ []
-  · iapply apply.alarmGetIs_of_ok
-    iapply apply.alarmGetOk_of _ γw.st (batchLockInv γA (metaTM d.γB d.P)) #hook
-      (srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be))
-    iunfold alarmApplyOk at HalA
-    iapply HalA $$ %({ d with cm := cmp } : mvcc.KBReal) %(mvcc.lateW ({ d with cm := cmp } : mvcc.KBReal).gx) %(batchLockInv γA (metaTM d.γB d.P)) %γw.st %hook
-      %(srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) [] HBs Hhooks [] []
-    · ipureintro; exact Hγw.2.2.1
-    · ipureintro; exact Hhknn
-    · iunfold rwLens
-      iintro !> Hrw
-      iunfold srvRestRWH at Hrw
-      iunfold srvObjsOn at Hrw
-      icases Hrw with ⟨Hrw, Hal, Hau, Hle, Hcb⟩
-      isplitl [Hrw Hal]
-      · iframe Hrw Hal
-      iintro ⟨Hrw, Hal⟩
-      iunfold srvRestRWH
-      iunfold srvObjsOn
-      iframe Hrw Hal Hau Hle Hcb
   ihave HsnapB : srvSnapBoot s cil
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF)
       ρ.rd $$ [Hγt Hlgstock Hopen Hcl Hpath]
@@ -1480,10 +1466,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       iframe Hlgstock
       ipureintro; omega
     -- (D22 J1b) the backend's stop channels and the constructors' half of its open token, the
-    -- alarm store's `Get`; (2026-11-01) the KV's closer, the backend file's directory entry
+    -- alarm store's field; (2026-11-01) the KV's closer, the backend file's directory entry
     iunfold srvSnapRes
-    iexists ({ d with cm := cmp } : mvcc.KBReal), alst, iprop(True), false, cfg.DataDir'
-    iframe HSC Hopen alarmStore HalG DataDirS Hpath
+    iexists ({ d with cm := cmp } : mvcc.KBReal), alst, cfg.DataDir'
+    iframe HSC Hopen alarmStore DataDirS Hpath
     isplitr
     · ipureintro; exact Hγw.2.2.1
     iexact Hcl
@@ -2243,9 +2229,11 @@ theorem NewServer.wp_proofM (on : Bool)
     -- (leases T3, 2026-10-25) the backend's delete, for the lessor's in the store's contract
     (h94 : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
     -- (the lease-revoke plan, 2026-10-31) the lessor's `Revoke`, for `isApplyLessor`'s clause
-    (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG)) :
+    (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
+    -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, for the uber-applier's construction
+    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG)) :
     NewServer.specM (GF := GF) (hG := hG) on := by
-  have h := NewServer.wp_proofG on false h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 hTP hKit h26 h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86 h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95
+  have h := NewServer.wp_proofG on false h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 hTP hKit h26 h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86 h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG
     (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h)
     (fun h => nomatch h)
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto Hacr Hcmp0
@@ -2371,7 +2359,9 @@ theorem NewServer.wp_proof
     (hRevS : mvcc.store.Rev.spec (GF := GF) (hG := hG))
     (hCmpS : EtcdServer.Compact.spec (GF := GF) (hG := hG))
     -- (the lease-revoke plan, 2026-10-31) the lessor's `Revoke`, for `isApplyLessor`'s clause
-    (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG)) :
+    (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
+    -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, for the uber-applier's construction
+    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hmrb Hmto
     Hacr Hcmp0 Hkcmp Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU
@@ -2380,7 +2370,7 @@ theorem NewServer.wp_proof
     h17 h18 h19 h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h26 h27 h28 h29 h31 h32 h33 h34 h35 h36
     h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
-    h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95
+    h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG
     (fun _ => hLSR) (fun _ => hUSR) (fun _ => hUP) (fun _ => hRevS) (fun _ => hCmpS)
   have Hmode : (if E₀.cmp = true then cfg.AutoCompactionMode' = go!"revision" ∧
       0 < sint.Z cfg.AutoCompactionRetention' ∧ false = false

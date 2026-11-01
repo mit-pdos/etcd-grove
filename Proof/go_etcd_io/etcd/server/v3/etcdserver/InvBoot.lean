@@ -213,11 +213,8 @@ instance memberRO_persistent (dir : w64 → List GoString) (m : Loc) :
 
 -- (D22 J1a, 2026-10-26) `memberDirIs` moved to `SnapRO.lean`.
 
-/-- **A fresh alarm store** `a` (opaque, exclusive; D14i, 2026-10-17): made by
-`v3alarm.NewAlarmStore` over a fresh alarm bucket and not yet handed to an applier, it has no
-alarm (`Activate`, the only writer of its map, is in its apply contract, which taking this token
-gives: the axiom's postcondition). -/
-opaque alarmFresh (a : Loc) : IProp GF
+-- (2026-11-01, J8a-5) the fresh alarm store's opaque token `alarmFresh` is gone: the store's user
+-- holds half of its map (`alarmEmpty`, `api/v3alarm/Defs.lean`).
 
 -- (D22 J1a) the stores' apply contracts (`alarmApplyOk`, `authApplyOkM`, `authApplyOk`,
 -- `lessorApplyOk`, `clusterApplyOk`) moved to `SnapRO.lean`.

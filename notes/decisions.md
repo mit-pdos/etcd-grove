@@ -28436,3 +28436,34 @@ post gives `Tal` back). And in the merge with `lean`'s M2 track the bundle's com
 `d.cm = E.cmp` (was `d.cm = false`, false in compaction mode): the snapshot case's mode off gives
 `specSnap`'s `hcm`; `srvSnapRes` holds `srvKVCloserW` (the closer without the compaction right,
 which is `srvKVCloser` with the mode off, `srvKVCloserW_off`).
+
+## The alarm store's alarms modelled: `alarmEmpty` replaces `alarmFresh` (2026-11-01 · accepted, the user's choice "Model the alarms" · J8a-5, `notes/snapshot-j8a-plan.md`)
+
+**2026-11-01 · accepted** (supersedes, in part, the alarm store's `alarmFresh` in the entry at
+"three constructor axioms strengthened" (D14i, 2026-10-17), the alarm parts of J1b's `srvSnapRes`
+and of "`srvSnapApplied`'s missing post" (J8a-1, item 5)).
+
+The problem: `run`'s snapshot case needs the new applier's alarm chain after `applySnapshot`
+(`kvApplied_of_jump` takes `x'.chain = γk.ch0`). The chain is fixed by the alarm store's `Get`
+when `NewUberApplier` runs, after `Recover`. But the walk only had `Get` under `Tal = True`
+(`zal = false`, from the apply contract), which says nothing about the result. The token
+`alarmFresh` was given only by `NewAlarmStore` and consumed by the first `NewUberApplier`, so the
+snapshot path had nothing at all.
+
+The model (`api/v3alarm/Defs.lean`):
+- The lock invariant holds half of `a.types` and half of its map.
+- The user's `alarmBeOnM a be gm` holds the other halves, beside half of `a.be`.
+- `alarmBeOn a be := ∃ gm, alarmBeOnM a be gm`, and `alarmEmpty a be := alarmBeOnM a be ∅`.
+
+What changes:
+- `Get.spec` takes an optional `be`. Under `alarmEmpty a be` the map is empty (`ownMap_agree`), so the result is empty.
+- `Recover` (proved) gives `alarmEmpty a be`: it writes a fresh map.
+- The `NewAlarmStore` axiom's post is now `isAlarmStore a ∗ alarmEmpty a d.be ∗ alarmApplyOk a`, and `restoreAlarms` passes this through. Before, it was `alarmBeOn ∗ alarmFresh ∗ alarmGetIs a (alarmFresh a) true ∗ □ (alarmFresh -∗ alarmApplyOk)`.
+- The apply contract is now given outright. This is sound because `Activate`/`Deactivate`, the map's only writers, need the user's half (`alarmBeOn`, which the contract's write right lends through `rwLens`), so they cannot run while the user holds `alarmEmpty`.
+- `alarmGetIs_empty` (`AlarmGet.lean`) derives `apply.alarmGetIs a (alarmEmpty a be) true` from `Get.spec`.
+- `NewServer` and the snapshot walk both build the applier at `T = alarmEmpty`, `z = true`.
+- `srvSnapRes`, `specSnap`, `snapWalkPost` and `srvSnapApplied` lose `Tal`/`zal`.
+- `srvSnapApplied`'s chain fact is now unconditional: `x'.chain = alarmChain E.authOn false false`.
+- `InvBoot`'s `opaque alarmFresh` is deleted.
+
+The `NewAlarmStore` axiom is the only trusted change. What it asserts: `restore` over an empty alarm bucket leaves the map empty, which is true of `alarms.go`'s `restore`, a range over the bucket.

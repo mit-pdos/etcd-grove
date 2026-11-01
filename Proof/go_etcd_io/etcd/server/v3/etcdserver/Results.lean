@@ -2123,7 +2123,7 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
     srvApi_wp_Step
     srvApi_wp_ReportUnreachable srvApi_wp_ReportSnapshot EtcdServer.wp_Process EtcdServer.wp_IsIDRemoved
     EtcdServer.wp_ReportUnreachable EtcdServer.wp_ReportSnapshot
-    backend.batchTxBuffered.wp_UnsafeDelete lease.lessor.wp_Revoke
+    backend.batchTxBuffered.wp_UnsafeDelete lease.lessor.wp_Revoke v3alarm.AlarmStore.wp_Get
 
 end serverAuth
 

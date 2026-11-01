@@ -118,7 +118,13 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
     `applySnapshot(i)` (a later credit; the removal fact refuted below the counter and the applied
     index, then given by the counter raised to `i`), so `specSnap`'s `hnt` is `nt ≤ i` (was `nt ≤ ai`:
     the file cannot leave the directory before the counter reaches `i`).
-  - *5d, open, blocked*: **the applier chain after the jump.** `kvApplied` at `A'` needs the new
+  - *5d, done (2026-11-01, the user's choice "Model the alarms")*: the alarm store's map is split
+    between the lock and the user (`alarmBeOnM`, `alarmEmpty`); `Get.spec` returns no alarm under
+    `alarmEmpty`, `Recover` gives it, the `NewAlarmStore` axiom's post gives it with the apply
+    contract outright (`alarmFresh` deleted); `alarmGetIs_empty` (`AlarmGet.lean`); `Tal`/`zal`
+    gone from `srvSnapRes`, `specSnap`, `snapWalkPost`, `srvSnapApplied` (its chain fact now
+    unconditional). `notes/decisions.md`, "The alarm store's alarms modelled". What it was:
+    **the applier chain after the jump.** `kvApplied` at `A'` needs the new
     chain to be the boot's (`alarmChain false false false`), i.e. the alarm store empty when
     `NewUberApplier` reads it. True in Go (`Recover` loads the image's empty alarm bucket,
     `halarm`), but not derivable: `AlarmStore.Get.spec` returns any slice, `Recover`'s post says
@@ -132,6 +138,8 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
     `nodeSnapLocal`, `nodeSnapLocal_elem`, `snapLoc`), `snapRecv_image`/`snapRecv_kv_jump` (the image
     facts, the KV jump), `specSnap`, `specNil`, `applied_jump` for `applyWait.Trigger(i)` (Go does not
     call `setAppliedIndex`, J5), `wp_notify2_receive2`, `specNoop`, the merge branch at `i`. Its
-    premises that stay open: `srvCfgAddr s ↦□ cfg` (J8a-3), the `isMetaBackend` family (J8a-4), the
+    premises that stay open: `srvCfgAddr s ↦□ cfg` (J8a-3, the peer's: from `srvSnapRO`'s rebuild
+    fact and `isServerRun`'s `srvSnapCountAddr s ↦□ sc ∗ srvSnapCatchUpAddr s ↦□ scu`, at
+    `{cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu}`), the `isMetaBackend` family (J8a-4), the
     transport's `8·|ps|` copies of `c.R`, `trPeersNoRem`, `hdir`/`hdok` (J8a-6).
 - **J8a-6** (with the peer?): the `lgMu` pool in `rafthttp` (item 6).
