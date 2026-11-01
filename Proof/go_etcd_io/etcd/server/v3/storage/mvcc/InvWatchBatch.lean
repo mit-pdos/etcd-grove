@@ -260,6 +260,17 @@ def rstClear (curRev : w64) (st : WatcherSt) : WatcherSt :=
 def chooseRst (curRev : w64) (D : GMap Loc Unit) (ST : GMap Loc WatcherSt) : GMap Loc WatcherSt :=
   gmapMapK (fun w st => if (D !! w).isSome then rstClear curRev st else st) ST
 
+/-- **`chooseAll`'s compacted members** (watches across a compaction, 2026-11-01): the members `Cm`
+sent their compaction response, marked compacted (`w.compacted = true`). -/
+def chooseCmp (Cm : GMap Loc Unit) (ST : GMap Loc WatcherSt) : GMap Loc WatcherSt :=
+  gmapMapK (fun w st => if (Cm !! w).isSome then { st with compacted := true } else st) ST
+
+/-- The members not behind the compaction revision `c` (`chooseAll`'s minimum is over them). -/
+def notBehind (ST : GMap Loc WatcherSt) (c : w64) (w : Loc) : Bool :=
+  match ST !! w with
+  | some st => decide (sint.Z c ≤ sint.Z st.minRev)
+  | none => true
+
 @[simp] theorem rstClear_minRev (curRev : w64) (st : WatcherSt) :
     (rstClear curRev st).minRev = st.minRev := by
   unfold rstClear; split <;> rfl

@@ -1,0 +1,81 @@
+/-
+**The server's lease reads meet the handlers' contract** (the lease rows at the gRPC level,
+`notes/lease-grpc-plan.md`): `raftLeaseRead s E γl S R` (`InvLeaseRead.lean`) from the server's
+proved `EtcdServer.LeaseTimeToLive.spec` and `EtcdServer.LeaseLeases.spec`, at the per-call
+resources `S := E.RD ∗ lessorRdOf γl ∗ threadTok` and the revision reader
+`R := mvcc.storeReader E.s E.γ` (`srvKVAns`'s `revR`, so that the handlers' `A.revR` is it). The
+two specs' bounds premises are this theorem's. Lean-first (no Rocq counterpart).
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLeaseRead
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseTimeToLive
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseLeases
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace v3rpc
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
+
+section proofs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **The server's lease reads, from its linked specs** (no premise but the server's facts and the
+bounds the two specs take): `raftLeaseRead` at `S := E.RD ∗ lessorRdOf γl ∗ threadTok` and
+`R := mvcc.storeReader E.s E.γ`; the server's header ids `cs ms` stay inside (`leasesAns`). -/
+theorem raftLeaseRead_of_server (hTTL : EtcdServer.LeaseTimeToLive.spec (GF := GF) (hG := hG))
+    (hLs : EtcdServer.LeaseLeases.spec (GF := GF) (hG := hG))
+    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName) (cs ms : w64)
+    (hT : threadBound GF ≤ 2 ^ 30 - 1) (hR : receiptBound GF ≤ 2 ^ 62) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthAt s E ∗
+        srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ srvHeaderFacts s cs ms ⊢
+      raftLeaseRead s E γl iprop(E.RD ∗ lease.lessorRdOf γl ∗ threadTok)
+        (mvcc.storeReader E.s E.γ) := by
+  iintro ⟨#Hpkg, #Hq, #Hrd, #Hat, #Hal, #Hlr, #Hhf⟩
+  iunfold raftLeaseRead
+  isplitr
+  · iunfold lessorTTLOk
+    iintro %ci %cd %r %dq %v %n %m !> %Φ ⟨⟨HRD, Hrdo, Htok⟩, HR, #Hctx, #Hpub, #Hllb, Hr⟩ HΦ
+    wp_apply (hTTL s E ρ γr γl ci cd r dq v n m) $$ [HRD Hrdo Htok Hr]
+      as %resp %err ⟨HRD, Hrdo, Htok, Hr, Hans⟩
+    · iframe; iframe #; ipureintro; exact hT
+    iapply HΦ
+    iframe
+    iunfold ttlAns
+    iexact Hans
+  · iunfold lessorLeasesOk
+    iintro %ci %cd %r %n %m !> %Φ ⟨⟨HRD, Hrdo, Htok⟩, HR, #Hctx, #Hpub, #Hllb⟩ HΦ
+    wp_apply (hLs s E γr γl ci cd r ms cs n m) $$ [HRD Hrdo Htok HR]
+      as %resp %err ⟨HR, HRD, Hrdo, Htok, Hans⟩
+    · iframe; iframe #; ipureintro; exact ⟨hT, hR⟩
+    iapply HΦ
+    iframe
+    iunfold leasesAns
+    icases Hans with (⟨%He, %i, %ids, %Hmi, #Hids, Hresp, #Hchk⟩ | Herr)
+    · ileft
+      iframe
+      isplitr
+      · ipureintro; exact He
+      iframe #
+      ipureintro; exact Hmi
+    · iright; iexact Herr
+
+end proofs
+
+end v3rpc
+end EtcdGrove
+end Perennial

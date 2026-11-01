@@ -283,7 +283,7 @@ theorem osCoh_addTok {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {p : Go
     {m om : OsMeta} {q : Qp} {xs : List (w8 × Bool)} (hcp : c.path = p)
     (hf : st.file p = some f) (Hml : Γm !! p = some (some m))
     (hom : om.size = m.size ∧ om.named = m.named ∧ om.ok = m.ok ∧ om.maps = m.maps ∧
-      om.lo ≤ m.lo ∧ m.hi ≤ om.hi ∧ om.lo ≤ c.target st ∧ c.target st ≤ om.hi)
+      om.lo ≤ m.lo ∧ m.hi ≤ om.hi ∧ om.lo ≤ c.target st ∧ c.target st ≤ om.hi ∧ (om.dur, om.durHi) = (m.dur, m.durHi))
     (ht : st.inflight !! t = none) (hfree : ∀ i, Affects st c i → ¬ InflightAt st p i)
     (hq : Reaches st c → q = 1)
     (hfrac : ∀ t ti, Γt !! t = some ti → ti.c.path = p → ti.q ≠ 1)
@@ -292,9 +292,9 @@ theorem osCoh_addTok {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {p : Go
     (hxs : ∀ k (hk : k < xs.length), Γb !! (p, affLo st c + k) = some xs[k]) :
     OsCoh { st with inflight := <[t := c]> st.inflight }
       (insertBytes p (affLo st c) (xs.map (fun x => (x.1, false))) Γb) (<[p := some om]> Γm) Γf
-      (<[t := ⟨c, q, xs.map Prod.fst, om⟩]> Γt) := by
+      (<[t := ⟨c, q, xs.map Prod.fst, om, xs.map Prod.snd⟩]> Γt) := by
   subst hcp
-  obtain ⟨hs1, hs2, hs3, hs4, hs5, hs6, hs7, hs8⟩ := hom
+  obtain ⟨hs1, hs2, hs3, hs4, hs5, hs6, hs7, hs8, hs9⟩ := hom
   have hΓt : Γt !! t = none := by
     have := hcoh.toks t; rw [ht] at this
     cases h : Γt !! t
@@ -304,7 +304,7 @@ theorem osCoh_addTok {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {p : Go
   have hfp : st.files !! c.path = some (some f) := file_eq_some.1 hf
   refine ⟨fun q' => ?_, fun q' => ?_, fun q' m' hm => ?_, fun q' i x hx => ?_,
     fun q' f1 i h1 hi => ?_, hcoh.fds, fun t' => ?_, fun t' ti h => ?_, fun t' ti h hq1 => ?_,
-    fun t' ti h => ?_⟩
+    fun t' ti h => ?_, fun t' ti h => ?_⟩
   · rw [GMap.lookup_insert_eq_iff]; split
     · subst_vars; simp [hfp]
     · exact hcoh.meta_dom q'
@@ -322,14 +322,16 @@ theorem osCoh_addTok {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {p : Go
     split at hm
     · subst_vars; cases hm; simp only [↓reduceIte] at hmo
       refine ⟨hs1 ▸ hmo.size, hs2 ▸ hmo.named, Nat.le_trans hs5 hmo.lo, Nat.le_trans hmo.hi hs6,
-        fun hok => hmo.ok (hs3 ▸ hok), fun b len => hs4 ▸ hmo.maps b len, fun t' c' h1 h2 => ?_⟩
+        fun hok => hmo.ok (hs3 ▸ hok), fun b len => hs4 ▸ hmo.maps b len, fun t' c' h1 h2 => ?_,
+        (Prod.mk.inj hs9).1 ▸ hmo.dur, (Prod.mk.inj hs9).2 ▸ hmo.durLen⟩
       by_cases he : t = t'
       · subst he; rw [GMap.lookup_insert] at h1; cases h1; exact ⟨hs7, hs8⟩
       · rw [GMap.lookup_insert_ne _ _ he] at h1
         have := hmo.targets t' c' h1 h2
         exact (show om.lo ≤ c'.target st ∧ c'.target st ≤ om.hi from ⟨by omega, by omega⟩)
     · rename_i hne; simp only [hne, ↓reduceIte] at hmo
-      refine ⟨hmo.size, hmo.named, hmo.lo, hmo.hi, hmo.ok, hmo.maps, fun t' c' h1 h2 => ?_⟩
+      refine ⟨hmo.size, hmo.named, hmo.lo, hmo.hi, hmo.ok, hmo.maps, fun t' c' h1 h2 => ?_, hmo.dur,
+        hmo.durLen⟩
       by_cases he : t = t'
       · subst he; rw [GMap.lookup_insert] at h1; cases h1; exact absurd h2 hne
       · rw [GMap.lookup_insert_ne _ _ he] at h1; exact hmo.targets t' c' h1 h2
@@ -392,6 +394,17 @@ theorem osCoh_addTok {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {p : Go
         rw [hb]; rfl
     · obtain ⟨f1, h1, hsv⟩ := hcoh.tok_saved t' ti h
       exact ⟨f1, h1, hsv⟩
+  · rw [GMap.lookup_insert_eq_iff] at h
+    split at h
+    · cases h
+      intro j hj
+      simp only [List.getElem?_map, Option.map_eq_some_iff] at hj
+      obtain ⟨x, hx, hx2⟩ := hj
+      have hk : j < xs.length := (List.getElem?_eq_some_iff.1 hx).1
+      have hxe : xs[j] = x := (List.getElem?_eq_some_iff.1 hx).2
+      obtain ⟨f1, hf1, -, hc⟩ := hcoh.bytes _ _ _ (hxs _ hk)
+      exact ⟨by show j < affHi st c - affLo st c; omega, f1, hf1, (hc (by rw [hxe]; exact hx2)).1⟩
+    · exact hcoh.tok_clean t' ti h
 
 end addTok
 
@@ -508,7 +521,7 @@ def mcells (M : GMap Loc Nat) (lo hi : Nat) (vf : Nat → val) : IProp GF :=
 took (a fraction `q` of the `OsMeta` `m`, the bytes `xs`). -/
 def pwTok (t : Nat) (p : GoString) (off : Nat) (data : List w8) (q : Qp) (m : OsMeta)
     (xs : List (w8 × Bool)) : IProp GF :=
-  osTok (L := L) t ⟨⟨p, .write off data⟩, q, xs.map Prod.fst, pwMeta m off data.length⟩
+  osTok (L := L) t ⟨⟨p, .write off data⟩, q, xs.map Prod.fst, pwMeta m off data.length, xs.map Prod.snd⟩
 
 theorem cellByte_eq (st : OsState) (p : GoString) (i : Nat) :
     cellByte st p i = if InflightAt st p i then none else (st.file p).bind (·.cur[i]?) := by
@@ -606,7 +619,7 @@ theorem wp_osPWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd)
       by rw [← hc]; simp only [OsChange.target, hsz, pwMeta]; have := hmo.lo; have := hmo.size
          omega,
       by rw [← hc]; simp only [OsChange.target, hsz, pwMeta]; have := hmo.hi; have := hmo.size
-         omega⟩
+         omega, rfl⟩
     ht (hcp ▸ hfree) (fun hr => hq (by rw [← hc] at hr; simpa [Reaches, hsz] using hr))
     Hfrac (fun h1 => noTok_of_whole hcoh (Hwhole h1)) (by rw [hlo, hhi, hlen])
     (fun k hk => by rw [hlo]; exact Hbl k hk)
@@ -675,7 +688,7 @@ theorem wp_osPWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd)
     cases h0 : Γt !! t
     · rfl
     · rw [h0] at this; cases this
-  imod gAuth_insert _ _ _ t ⟨c, q, xs.map Prod.fst, pwMeta m off.toNat data.length⟩ hΓt $$ HAt
+  imod gAuth_insert _ _ _ t ⟨c, q, xs.map Prod.fst, pwMeta m off.toNat data.length, xs.map Prod.snd⟩ hΓt $$ HAt
     with ⟨HAt, Ht⟩
   imodintro
   iexists _, _, Γf, _
@@ -684,8 +697,8 @@ theorem wp_osPWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd)
   · isplitr
     · ipureintro; rw [← hlo]; exact ⟨hwf1, hcoh1⟩
     rw [show tokRes (gooseOsGS (L := L)) { st with inflight := <[t := c]> st.inflight }
-        (<[t := ⟨c, q, xs.map Prod.fst, pwMeta m off.toNat data.length⟩]> Γt) =
-      tokRes gooseOsGS st (<[t := ⟨c, q, xs.map Prod.fst, pwMeta m off.toNat data.length⟩]> Γt)
+        (<[t := ⟨c, q, xs.map Prod.fst, pwMeta m off.toNat data.length, xs.map Prod.snd⟩]> Γt) =
+      tokRes gooseOsGS st (<[t := ⟨c, q, xs.map Prod.fst, pwMeta m off.toNat data.length, xs.map Prod.snd⟩]> Γt)
       from rfl]
     unfold tokRes
     iapply (BigSepM.bigSepM_insert (Φ := fun (_t : Nat) (ti : TokInfo) =>
@@ -839,12 +852,14 @@ theorem reaches_congr1 {st st' : OsState} (c : OsChange) (h : st'.size c.path = 
 /-- The state and the ghost maps after the second step of a write that wrote `k` bytes. -/
 theorem pwFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) (hti : Γt !! t = some ti)
     (hc : ti.c = ⟨p, .write off data⟩) (hf : st.file p = some f) (hk : k ≤ data.length)
-    (Hml : Γm !! p = some (some ti.om)) (xs : List (w8 × Bool)) (hxs : ti.saved = xs.map Prod.fst) :
+    (Hml : Γm !! p = some (some ti.om)) (xs : List (w8 × Bool)) (hxs : ti.saved = xs.map Prod.fst)
+    (hcl : ti.cl = xs.map Prod.snd) :
     let lo := min off f.cur.length
     let stk := ({ st with inflight := GMap.delete t st.inflight } : OsState).setFile p
       (pwFile f off data k)
     let ys := (List.range (min (off + data.length) (pwSize f.cur.length off k) - lo)).map
-      (fun j => (pwByte off data k lo xs (lo + j), false))
+      (fun j => (pwByte off data k lo xs (lo + j),
+        decide (off + k ≤ lo + j) && (xs.getD j (0, false)).2))
     (∀ t' c', t' ≠ t → st.inflight !! t' = some c' → stk.size c'.path = st.size c'.path) ∧
     (∀ q i, InflightAt stk q i ↔ InflightAt st q i ∧ ¬ (p = q ∧ Affects st ti.c i)) ∧
     OsWf stk ∧
@@ -971,7 +986,8 @@ theorem pwFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) (hti : Γ
   have hfp : st.files !! p = some (some f) := file_eq_some.1 hf
   have hysl : ys.length = min (off + data.length) (pwSize f.cur.length off k) - lo := by simp [ys]
   refine ⟨fun q => ?_, fun q => ?_, fun q m' hm => ?_, fun q i x hx => ?_, fun q f1 i h1 hi => ?_,
-    hcoh.fds, fun t' => ?_, fun t' ti' h => ?_, fun t' ti' h hq1 => ?_, fun t' ti' h => ?_⟩
+    hcoh.fds, fun t' => ?_, fun t' ti' h => ?_, fun t' ti' h hq1 => ?_, fun t' ti' h => ?_,
+    fun t' ti' h => ?_⟩
   · rw [GMap.lookup_insert_eq_iff]
     show _ ↔ (({ st with inflight := GMap.delete t st.inflight } : OsState).setFile p _).files !! q = none
     rw [files_setFile]; split
@@ -991,16 +1007,19 @@ theorem pwFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) (hti : Γ
     · rename_i hpq; subst hpq; cases hm
       refine ⟨pwFile f off data k, file_eq_some.1 hfk, ⟨by rw [hlen], by rw [pwFile_named, hmo.named],
         by rw [pwFile_sizeLo _ _ _ _ hk hszf.1]; exact hmo.lo, ?_, fun hok i => by
-          rw [pwFile_lost]; exact hmo.ok hok i, hmo.maps, fun t' c' h1 h2 => ?_⟩⟩
+          rw [pwFile_lost]; exact hmo.ok hok i, hmo.maps, fun t' c' h1 h2 => ?_,
+          fun i d h => by rw [pwFile_durable]; exact hmo.dur i d h, ?_⟩⟩
       · rw [pwFile_sizeHi _ _ _ _ hk hszf.2]
         have ht1 := hmo.targets t ti.c hct hcp
         have ht2 := hmo.hi
         rw [hc] at ht1; simp only [OsChange.target, hsz] at ht1
         unfold pwSize; split <;> simp only [Nat.max_le] at * <;> omega
       · rw [htg c' ⟨t', h1⟩]; exact hmo.targets t' c' (hdel t' c' h1).1 h2
+      · rw [pwFile_durable]; exact hmo.durLen
     · rename_i hpq
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
-      refine ⟨f1, ?_, ⟨hm1.size, hm1.named, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_⟩⟩
+      refine ⟨f1, ?_, ⟨hm1.size, hm1.named, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_,
+        hm1.dur, hm1.durLen⟩⟩
       · show (({ st with inflight := GMap.delete t st.inflight } : OsState).setFile p _).files !! q = _
         rw [files_setFile, if_neg hpq]; exact h1
       · rw [htg c' ⟨t', h1⟩]; exact hm1.targets t' c' (hdel t' c' h1).1 h2
@@ -1011,9 +1030,37 @@ theorem pwFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) (hti : Γ
       rw [hysl] at h2
       have hj : i - lo < ys.length := by rw [hysl]; omega
       rw [List.getElem?_eq_getElem hj] at hx; cases hx
-      refine ⟨_, hfk, ?_, fun h => by simp [ys] at h⟩
-      rw [pwFile_inside f off data k hk xs hxslen hxsv i h1 (by omega), if_pos (by omega)]
-      simp [ys, show lo + (i - lo) = i by omega]; rfl
+      refine ⟨_, hfk, ?_, fun h => ?_⟩
+      · rw [pwFile_inside f off data k hk xs hxslen hxsv i h1 (by omega), if_pos (by omega)]
+        simp [ys, show lo + (i - lo) = i by omega]; rfl
+      · simp only [ys, List.getElem_map, List.getElem_range, Bool.and_eq_true,
+          decide_eq_true_eq] at h
+        obtain ⟨hge, hcl1⟩ := h
+        rw [List.getD_eq_getElem?_getD] at hcl1
+        cases hx' : xs[i - lo]? with
+        | none => rw [hx'] at hcl1; cases hcl1
+        | some x =>
+          rw [hx'] at hcl1
+          have hclj : ti.cl[i - lo]? = some true := by
+            rw [hcl, List.getElem?_map, hx']; simp only [Option.map_some, Option.getD_some] at hcl1 ⊢
+            rw [hcl1]
+          obtain ⟨-, f2, hf2, hcp2⟩ := hcoh.tok_clean t ti hti _ hclj
+          rw [hcp, hf] at hf2; cases hf2
+          have hlo' : affLo st ti.c = lo := by rw [hc]; simp [affLo, hsz, lo]
+          rw [hlo', show lo + (i - lo) = i by omega] at hcp2
+          obtain ⟨c1, c2, c3, c4⟩ := hcp2
+          have hil : i < f.cur.length := by have := hszf.1; omega
+          have hn : ¬ (k ≠ 0 ∧ lo ≤ i ∧ i < off + k) := by omega
+          have he := (hsame i hn (by unfold pwSize; split <;> omega)).1
+          refine ⟨⟨?_, by rw [pwFile_lost]; exact c2, by rw [pwFile_sizeLo _ _ _ _ hk hszf.1]; exact c3,
+            by rw [pwFile_durable, he]; exact c4⟩,
+            fun hI => ((hIk _ _).1 hI).2 ⟨rfl, (haff i).2 ⟨h1, ?_⟩⟩⟩
+          · cases hd : (pwFile f off data k).dirty i
+            · rfl
+            · rcases (pwFile_dirty f off data k i).1 hd with h | h
+              · rw [c1] at h; cases h
+              · exact absurd h hn
+          · unfold pwSize at h2; split at h2 <;> omega
     · rename_i hr
       obtain ⟨f1, h1, hb, hcl⟩ := hcoh.bytes q i x hx
       by_cases hq : q = p
@@ -1087,6 +1134,40 @@ theorem pwFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) (hti : Γ
         rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
           pwFile_outside f off data k hk i (by omega)]
       · exact ⟨f1, by rw [hfq _ hq]; exact h1, hsv1⟩
+  · rw [GMap.lookup_delete_iff] at h; split at h
+    · cases h
+    · rename_i hne
+      intro j hj
+      have h' : st.inflight !! t' = some ti'.c := by
+        have := hcoh.toks t'; rw [h] at this; exact this.symm
+      have hne' : t' ≠ t := fun e => hne e.symm
+      have hs' := hsizes t' ti'.c hne' h'
+      obtain ⟨hjl, f1, h1, hcp1⟩ := hcoh.tok_clean t' ti' h j hj
+      have hlo1 : affLo stk ti'.c = affLo st ti'.c := by unfold affLo; rw [hs']
+      have hhi1 : affHi stk ti'.c = affHi st ti'.c := by unfold affHi; rw [hs']
+      rw [hlo1, hhi1]
+      refine ⟨hjl, ?_⟩
+      by_cases hq : ti'.c.path = p
+      · rw [hq] at h1 ⊢; rw [hf] at h1; cases h1
+        refine ⟨_, hfk, ?_⟩
+        obtain ⟨c1, c2, c3, c4⟩ := hcp1
+        have hil : affLo st ti'.c + j < f.cur.length := by have := hszf.1; omega
+        have hmem : affLo st ti'.c + j ∈ affRange st ti'.c := by
+          unfold affRange; exact List.mem_range'_1.2 ⟨by omega, by omega⟩
+        have ha : Affects st ti'.c (affLo st ti'.c + j) :=
+          (affects_iff_affRange st ti'.c _ f (by rw [hq]; exact hf) hil).2 hmem
+        have hna := hwf.infl_disj t' ti'.c t ti.c _ h' hct hne' (by rw [hq, hcp]) ha
+        rw [haff] at hna
+        have hout : affLo st ti'.c + j < lo ∨ off + data.length ≤ affLo st ti'.c + j := by omega
+        have he := pwFile_outside f off data k hk _ hout
+        refine ⟨?_, by rw [pwFile_lost]; exact c2, by rw [pwFile_sizeLo _ _ _ _ hk hszf.1]; exact c3,
+          by rw [pwFile_durable, he]; exact c4⟩
+        cases hd : (pwFile f off data k).dirty (affLo st ti'.c + j)
+        · rfl
+        · rcases (pwFile_dirty f off data k _).1 hd with h | ⟨-, h⟩
+          · rw [c1] at h; cases h
+          · omega
+      · exact ⟨f1, by rw [hfq _ hq]; exact h1, hcp1⟩
 
 theorem setFile_self {st : OsState} {p : GoString} {f : OsFile} (h : st.file p = some f) :
     st.setFile p f = st := by
@@ -1128,10 +1209,12 @@ variable {s : Stuckness} {E : CoPset}
 attribute [local instance] Classical.propDecidable
 
 /-- The bytes `[min off sz, min (off + n) (pwSize sz off k))` after a `pwrite` of the first `k`
-bytes of `data` (`n` bytes) at `off` of a file of size `sz`, whose bytes there were `xs`. -/
+bytes of `data` (`n` bytes) at `off` of a file of size `sz`, whose bytes there were `xs`. A byte
+past `off + k` is untouched and keeps its flag from `xs`; the others are not clean. -/
 def pwBytes (sz off : Nat) (data : List w8) (k : Nat) (xs : List (w8 × Bool)) : List (w8 × Bool) :=
   (List.range (min (off + data.length) (pwSize sz off k) - min off sz)).map
-    (fun j => (pwByte off data k (min off sz) xs (min off sz + j), false))
+    (fun j => (pwByte off data k (min off sz) xs (min off sz + j),
+      decide (off + k ≤ min off sz + j) && (xs.getD j (0, false)).2))
 
 /-- What a mapped cell at byte `i` shows after such a `pwrite`. -/
 def pwCell (sz off : Nat) (data : List w8) (k : Nat) (xs : List (w8 × Bool)) (i : Nat) : val :=
@@ -1140,7 +1223,8 @@ def pwCell (sz off : Nat) (data : List w8) (k : Nat) (xs : List (w8 × Bool)) (i
 /-- The second step of `pwrite(fd, data, off)`: it writes the first `k` bytes of `data`, all of
 them with errno 0, or a prefix with a nonzero errno. What the first step took comes back: the
 `OsMeta` with the new size, the bytes `[min off size, min (off + n) size')` (the zero gap, the data
-written, then the old bytes), not clean, and the client's halves of the mapped cells, which show
+written, then the old bytes), the bytes past the written prefix with the clean flags they had in
+`xs` (the write left them untouched), the others not clean, and the client's halves of the mapped cells, which show
 the new bytes. -/
 theorem wp_osPWriteFinish (t : Nat) (p : GoString) (off : Nat) (data : List w8) (q : Qp)
     (m : OsMeta) (xs : List (w8 × Bool)) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
@@ -1159,7 +1243,7 @@ theorem wp_osPWriteFinish (t : Nat) (p : GoString) (off : Nat) (data : List w8) 
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold pwTok osTok
-  generalize hti0 : (⟨⟨p, .write off data⟩, q, xs.map Prod.fst, pwMeta m off data.length⟩ :
+  generalize hti0 : (⟨⟨p, .write off data⟩, q, xs.map Prod.fst, pwMeta m off data.length, xs.map Prod.snd⟩ :
     TokInfo) = ti
   icases gAuth_lookup _ _ _ _ _ _ $$ HAt Ht with %Hti
   have hct : st.inflight !! t = some ti.c := by
@@ -1188,7 +1272,7 @@ theorem wp_osPWriteFinish (t : Nat) (p : GoString) (off : Nat) (data : List w8) 
     rw [hm0]; rfl
   have hxs : ti.saved = xs.map Prod.fst := by rw [← hti0]
   have hfin := fun k (hk : k ≤ data.length) =>
-    pwFinish_coh (k := k) hwf hcoh Hti hc hf hk Hml xs hxs
+    pwFinish_coh (k := k) hwf hcoh Hti hc hf hk Hml xs hxs (by rw [← hti0])
   imodintro
   isplitr
   · ipureintro
@@ -1371,7 +1455,8 @@ theorem wp_osPWriteFinish (t : Nat) (p : GoString) (off : Nat) (data : List w8) 
       rw [show min off f.cur.length = min off m.size by rw [hmsz]] at hcohk
       rw [hti_om, show pwSize f.cur.length off k = pwSize m.size off k by rw [hmsz]] at hcohk
       have hpb : (List.range (min (off + data.length) (pwSize m.size off k) - min off m.size)).map
-          (fun j => (pwByte off data k (min off m.size) xs (min off m.size + j), false)) =
+          (fun j => (pwByte off data k (min off m.size) xs (min off m.size + j),
+            decide (off + k ≤ min off m.size + j) && (xs.getD j (0, false)).2)) =
           pwBytes m.size off data k xs := rfl
       rw [hpb] at hcohk
       exact ⟨hwfk, hcohk⟩

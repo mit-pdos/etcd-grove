@@ -533,6 +533,19 @@ theorem prefixRangeEnd_length_le (p : GoString) : (prefixRangeEnd p).length ≤ 
     simp only [List.length_append, List.length_reverse, List.length_cons, List.length_nil] at h ⊢
     omega
 
+/-- **The key bound of an operation a client library sends** (`OpShape opKeyMax opKeyMax
+opValMax`, and the key inputs of the libraries built on it: leasing, kubernetes, the k8s store):
+its key and its range end at most `2 ^ 27` bytes, so that a few of them and a value fit a request's
+`2 ^ 30`-byte payload bound (`opSizeOk`; `notes/decisions.md`, "The encoded-size bound at grpc's
+send side", "Leasing's sizes"). Equal to etcd's key limit (`etcdKeyMax`), which is what lets a
+client re-send a key it read. A shared limit: write the name, not the number
+(`notes/bounds-plan.md`, B5). -/
+@[word_unfold] def opKeyMax : Nat := 2 ^ 27
+
+/-- **The value bound of an operation a client library sends** (`OpShape`'s third bound; see
+`opKeyMax`): `2 ^ 28` bytes. -/
+@[word_unfold] def opValMax : Nat := 2 ^ 28
+
 /-- **An `Op`'s payload within bounds**: its key at most `K` bytes, its range end at most `E`, its
 value at most `V`. -/
 def OpShape (K E V : Nat) (o : OpFull) : Prop :=

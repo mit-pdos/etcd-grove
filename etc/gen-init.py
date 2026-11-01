@@ -1513,7 +1513,7 @@ names) and the four
              'ihave #WIA := EtcdGrove.v3rpc.errVarLeaf_of_authErrVar _ $$ AIA',
              '-- mvcc\'s',
              'ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []',
-             '· iapply isPkgInit_access $$ Hd36',
+             '· iapply isPkgInit_access $$ Hd37',
              'icases Hmi with ⟨' + '-, ' * 32 + '#NEWR, #NWDI, -⟩',
              'ihave #WEWR := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NEWR',
              'ihave #WWDI := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NWDI',
@@ -1527,7 +1527,7 @@ names) and the four
              for i, x in enumerate(_V_HIST)] +
             ['-- `traceutil.Tracer`',
              'ihave Hti : (go_etcd_io.etcd.pkg.v3.traceutil.traceutilInit : IProp GF) $$ []',
-             '· iapply isPkgInit_access $$ Hd43',
+             '· iapply isPkgInit_access $$ Hd44',
              'icases Hti with #HTR',
              '-- the progress interval\'s lock and what it guards (`progressReportInterval`, `10 * time.Minute`)',
              'imod (sync.init_RWMutex EtcdGrove.v3rpc.intervalP EtcdGrove.v3rpc.intervalMu (E := ⊤)) $$ [HprogressReportInterval] HprogressReportIntervalMu with HIS',

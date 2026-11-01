@@ -95,13 +95,54 @@ theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc
   simp only [txn.soleBudget, mvcc.wBudget]
   iframe Hc Htoks Hwl
 
+/-- `noCompactor` reads only the logical names (its body sealed: by its laws). -/
+theorem mvcc.noCompactor_withPhys [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (γs : mvcc.StoreNames) (p : mvcc.PhysNames) :
+    mvcc.noCompactor (GF := GF) (γs.withPhys p) = mvcc.noCompactor γs :=
+  BIBase.BiEntails.to_eq ⟨(mvcc.noCompactor_frozen _).trans
+      (by rw [mvcc.crevFrozen_withPhys]; exact mvcc.noCompactor_of_frozen _),
+    (mvcc.noCompactor_frozen _).trans
+      (by rw [← mvcc.crevFrozen_withPhys γs p]; exact mvcc.noCompactor_of_frozen _)⟩
+
+/-- The create token's store fact reads only the logical names (watches across a compaction). -/
+theorem mvcc.watchNoDup_withPhys [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (γs : mvcc.StoreNames) (p : mvcc.PhysNames) :
+    mvcc.watchNoDup (GF := GF) (γs.withPhys p) = mvcc.watchNoDup γs := by
+  unfold mvcc.watchNoDup mvcc.noDupKeys mvcc.evLog
+  simp only [mvcc.noCompactor_withPhys, mvcc.idxSealed_withPhys, mvcc.certOk_withPhys]
+
+theorem mvcc.wsWatchFrozen_withPhys [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (γ : mvcc.WsNames) (p : mvcc.PhysNames) (σ : mvcc.WsState) :
+    mvcc.wsWatchFrozen (GF := GF) { γ with st := γ.st.withPhys p } σ = mvcc.wsWatchFrozen γ σ := by
+  unfold mvcc.wsWatchFrozen
+  simp only [mvcc.watchNoDup_withPhys]
+
+theorem mvcc.watchStoreBody_withPhys [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (s : Loc) (γ : mvcc.WsNames) (p : mvcc.PhysNames) (q : Qp) (σ : mvcc.WsState) :
+    mvcc.watchStoreBody (GF := GF) s { γ with st := γ.st.withPhys p } q σ =
+      mvcc.watchStoreBody s γ q σ := by
+  unfold mvcc.watchStoreBody
+  rw [mvcc.wsWatchFrozen_withPhys]
+  rfl
+
+theorem mvcc.watchStoreInv_withPhys [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (s : Loc) (γ : mvcc.WsNames) (p : mvcc.PhysNames) :
+    mvcc.watchStoreInv (GF := GF) s { γ with st := γ.st.withPhys p } = mvcc.watchStoreInv s γ := by
+  funext q
+  unfold mvcc.watchStoreInv
+  simp only [mvcc.watchStoreBody_withPhys]
+  rfl
+
 /-- **A watchable store reads only its inner store's logical names** (D22 receiver epochs, S6):
 after a restore, the watchable store's names with the inner store's at the new physical ones
 are the same watchable store (what S8's `txn.wlogOwn` at the new names takes). -/
 theorem mvcc.isWatchableStore_withPhys [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     (s st : Loc) (γ : mvcc.WsNames) (p : mvcc.PhysNames) :
     mvcc.isWatchableStore (GF := GF) s st { γ with st := γ.st.withPhys p } =
-      mvcc.isWatchableStore s st γ := rfl
+      mvcc.isWatchableStore s st γ := by
+  unfold mvcc.isWatchableStore
+  rw [mvcc.watchStoreInv_withPhys]
+  rfl
 
 end lemmas
 

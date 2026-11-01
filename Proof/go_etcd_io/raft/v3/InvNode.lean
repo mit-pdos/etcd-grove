@@ -563,7 +563,10 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
         storLog st.storage k (DFrac.own 1) old ∗ storEnd st.storage (k + old.length)) ∗
       snapGiven γ id (uint.nat l.snap.Metadata'.Index') ∗
       -- (2026-11-01, J8a) the snapshot local to the node: one it was stepped (`snapLocalMsg`)
-      nodeSnapLocal γ id l.snap.Metadata'.Index')
+      nodeSnapLocal γ id l.snap.Metadata'.Index' ∗
+      -- (2026-11-01, J8b) past the bootstrap log (`Cluster.bootLen`): `restore` takes only an index
+      -- above the commit index, which starts at the bootstrap log's length
+      ⌜(γ.bootLen : Int) < uint.Z l.snap.Metadata'.Index'⌝)
 
 /-- (open) **The rest of a `Ready`** after its committed entries `ce` and read states, at the loop's
 state `st` (today's `readyDataL` without them; the storage's part in the storage contract's
@@ -610,6 +613,18 @@ theorem readyRest_ceInBatch (γ : Cluster) (N : Namespace) (id : w64) (rd : Read
   ipureintro
   intro e0 he
   exact (Hb e0 he).2
+
+/-- (2026-11-01, J8b) **A `Ready`'s snapshot is past the bootstrap log** (pure): its index is above
+the bootstrap log's length (`Cluster.bootLen`, which `cluster_alloc` tells). -/
+theorem readySnap_bootLen (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (l : SnapLoan) :
+    readySnap (GF := GF) γ N id rd st ce es (some l) ⊢
+      ⌜(γ.bootLen : Int) < uint.Z l.snap.Metadata'.Index'⌝ ∗ readySnap γ N id rd st ce es (some l) := by
+  refine (persistent_entails_left ?_).trans sep_comm.1
+  unfold readySnap
+  iintro ⟨-, -, -, -, -, -, -, %H⟩
+  ipureintro
+  exact H
 
 /-- (raft-final phase 2, for kvreconf) **A `Ready`'s entries have consecutive indices** (pure):
 from its first index on (`LogIndicesOk` after a snapshot; `readySnap`'s clause otherwise). -/

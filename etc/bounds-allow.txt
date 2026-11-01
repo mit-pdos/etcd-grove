@@ -4,4 +4,6 @@
 
 # (The len-literal kind and its standard-library entry went on 2026-11-01: notes/bounds-plan.md, B5.)
 
+# The cache's prefix bound (`2 ^ 28`): one API pair (`New`, `newCache`), local (B5).
+shared-limit ^Spec/go_etcd_io/etcd/cache/v3/(New|newCache)\.lean$
 stock storage/backend/AuthSplitDraft\.lean  # a Draft imported by nothing (notes/backend-auth-split-plan.md): its pool's construction from the slots and the counted remainder are counted when applied

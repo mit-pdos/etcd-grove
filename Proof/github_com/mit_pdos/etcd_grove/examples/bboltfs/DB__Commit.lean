@@ -141,7 +141,7 @@ theorem fail_handle (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (t n :
 theorem DB.Commit.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
     (wp_commit : DB.commit.spec (GF := GF) (hG := hG)) :
     DB.Commit.spec (GF := GF) (hG := hG) := by
-  intro γ db t n v Ht Hn Hvp
+  intro γ db t n v Ht Hvp
   wp_start as ⟨Hdb, Hown⟩
   iunfold isDB at Hdb
   icases Hdb with ⟨⟨%f, %fd, %p, #Hpkg, #Hos, #Hfile, #Hpath, #Hrw, #Hmeta, #Hguard⟩, -⟩
@@ -278,7 +278,7 @@ theorem DB.Commit.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
       iframe
       iexists B; iframe #; ipureintro; exact HT
     (try wp_auto)
-    wp_apply wp_commit γ db f fd p mx (some (base, len, γm)) m v Hok Ht Hn (Hmok rfl) (by simp) Hvp
+    wp_apply wp_commit γ db f fd p mx (some (base, len, γm)) m v Hok Ht (Hmok rfl) (by simp) Hvp
       $$ [Hown Hcur1 Hmap1 Hout1 Hd H0 H1 Hw Hcls1 Htok1 Hwc] as %err Hr
     · iframe #
       unfold writerSt dbOwner

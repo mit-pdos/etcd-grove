@@ -177,7 +177,7 @@ theorem MetaOk.transfer {st st' : OsState} {q : GoString} {m : OsMeta} {f : OsFi
     (hs : ∀ p, st'.size p = st.size p) (hm : st'.maps = st.maps) (hin : st'.inflight = st.inflight)
     (h : MetaOk st q m f) : MetaOk st' q m f :=
   ⟨h.size, h.named, h.lo, h.hi, h.ok, by rw [hm]; exact h.maps,
-    by rw [hin]; intro t c ht hc; rw [target_congr hs]; exact h.targets t c ht hc⟩
+    by rw [hin]; intro t c ht hc; rw [target_congr hs]; exact h.targets t c ht hc, h.dur, h.durLen⟩
 
 theorem file_setFile_ne (st : OsState) {p q : GoString} (f : OsFile) (h : p ≠ q) :
     (st.setFile p f).file q = st.file q := by
@@ -320,7 +320,8 @@ theorem osCoh_setFile_sameCur {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt
   have hI := inflightAt_setFile_sameCur hf hcur
   have hfp : st.files !! p = some (some f) := file_eq_some.1 hf
   refine ⟨fun q => ?_, fun q => ?_, fun q m hm => ?_, fun q i x hx => ?_, fun q f1 i h1 hi => ?_,
-    hcoh.fds, hcoh.toks, fun t ti h => ?_, hcoh.tok_alone, fun t ti h => ?_⟩
+    hcoh.fds, hcoh.toks, fun t ti h => ?_, hcoh.tok_alone, fun t ti h => ?_,
+    fun t ti h => ?_⟩
   · rw [files_setFile, GMap.lookup_insert_eq_iff]
     split
     · simp
@@ -369,6 +370,15 @@ theorem osCoh_setFile_sameCur {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt
     rw [file_setFile]; split
     · subst_vars; rw [hf] at h1; cases h1; exact ⟨f', rfl, by rw [hcur]; exact hsv⟩
     · exact ⟨f1, h1, hsv⟩
+  · intro j hj
+    obtain ⟨hjl, f1, h1, hc⟩ := hcoh.tok_clean t ti h j hj
+    have hlo : affLo (st.setFile p f') ti.c = affLo st ti.c := by unfold affLo; rw [hs]
+    have hhi : affHi (st.setFile p f') ti.c = affHi st ti.c := by unfold affHi; rw [hs]
+    rw [hlo, hhi]
+    refine ⟨hjl, ?_⟩
+    rw [file_setFile]; split
+    · subst_vars; rw [hf] at h1; cases h1; exact ⟨f', rfl, hkeep _ hc⟩
+    · exact ⟨f1, h1, hc⟩
 
 end sameCur
 
@@ -408,17 +418,19 @@ theorem osCoh_setMaps {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm 
     (hnone : ∀ q, Γm' !! q = some none ↔ Γm !! q = some none)
     (hsome : ∀ q m', Γm' !! q = some (some m') → ∃ m, Γm !! q = some (some m) ∧
       m'.size = m.size ∧ m'.lo = m.lo ∧ m'.hi = m.hi ∧ m'.named = m.named ∧ m'.ok = m.ok ∧
+      (m'.dur, m'.durHi) = (m.dur, m.durHi) ∧
       ∀ b len, m'.maps !! b = some len ↔ X !! b = some ⟨q, len⟩) :
     OsCoh { st with maps := X } Γb Γm' Γf Γt :=
   { hcoh with
     meta_dom := fun q => (hdom q).trans (hcoh.meta_dom q)
     meta_none := fun q => (hnone q).trans (hcoh.meta_none q)
     meta_some := fun q m' h => by
-      obtain ⟨m, hm, h1, h2, h3, h4, h5, h6⟩ := hsome q m' h
+      obtain ⟨m, hm, h1, h2, h3, h4, h5, h7, h6⟩ := hsome q m' h
       obtain ⟨f, hf, hmo⟩ := hcoh.meta_some q m hm
       exact ⟨f, hf, ⟨h1 ▸ hmo.size, h4 ▸ hmo.named, h2 ▸ hmo.lo, h3 ▸ hmo.hi,
         fun hok => hmo.ok (h5 ▸ hok), h6,
-        fun t c ht hc => by rw [h2, h3]; exact hmo.targets t c ht hc⟩⟩ }
+        fun t c ht hc => by rw [h2, h3]; exact hmo.targets t c ht hc,
+        (Prod.mk.inj h7).1 ▸ hmo.dur, (Prod.mk.inj h7).2 ▸ hmo.durLen⟩⟩ }
 
 end maps
 

@@ -950,7 +950,8 @@ theorem node.run.wp_proof
     -- snapshot's certificate), and `rof` records it with its loan
     -- (2026-10-26, D22 J2, R-loc) a snapshot handed out is local to the node
     ihave #Hlloc : iprop(□ ∀ l : SnapLoan, ⌜L = some l⌝ -∗
-        snapLocal γ.raft id l.snap.Metadata'.Index') $$ [Hrn]
+        snapLocal γ.raft id l.snap.Metadata'.Index' ∗
+        ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) $$ [Hrn]
     · cases L with
       | none => imodintro; iintro %l %h; cases h
       | some l0 =>
@@ -1015,7 +1016,8 @@ theorem node.run.wp_proof
       | some l =>
         simp only [readyDataL, readySnapData, rdSnapOut]
         icases Hsnz with ⟨Hhalf, #Hdc, %Hlo⟩
-        ihave #Hll : snapLocal γ.raft γ.id l.snap.Metadata'.Index' $$ []
+        ihave ⟨#Hll, %Hbl⟩ : iprop(snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
+            ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) $$ []
         · rw [Hgid]; iapply Hlloc $$ %l %rfl
         ihave #Hcl : raftSnapCertD γ.raft (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) $$ []
         · iapply Hcert $$ %l %rfl
@@ -1024,6 +1026,8 @@ theorem node.run.wp_proof
         iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw' Hss Hri Hhalf Hdc Hll Hcl
         isplitr
         · iexists h; iframe Hhh; ipureintro; rfl
+        isplitr
+        · ipureintro; exact Hbl
         isplitr
         · ipureintro; exact Hllast l rfl
         isplitr

@@ -243,24 +243,30 @@ theorem WsOk.not_vic_of_ws {σ : WsState} (h : WsOk σ) {w : Loc} (hw : (σ.Ws !
 theorem WsOk.not_vic_of_wu {σ : WsState} (h : WsOk σ) {w : Loc} (hw : (σ.Wu !! w).isSome) :
     (σ.victimOf w).isSome = false := by rw [h.wu_v w hw]; rfl
 
-theorem takeState_live (σ : WsState) (vs : GoSlice) (w : Loc) :
-    (takeState σ vs).live w ↔ ((σ.Ws !! w).isSome ∨ (σ.Wu !! w).isSome) := by
-  unfold WsState.live; rw [takeState_victimOf]; simp [takeState]
+/-- The live watchers after the victims are taken out: the live ones that are not victims. -/
+theorem takeState_live {σ : WsState} (h : WsOk σ) (vs : GoSlice) (w : Loc) :
+    (takeState σ vs).live w ↔ (σ.live w ∧ (σ.victimOf w).isSome = false) := by
+  unfold WsState.live; rw [takeState_victimOf]
+  have hST : (takeState σ vs).ST !! w = (σ.ST !! w).filter (fun _ => !(σ.victimOf w).isSome) := rfl
+  have hWs : (takeState σ vs).Ws = σ.Ws := rfl
+  have hWu : (takeState σ vs).Wu = σ.Wu := rfl
+  rw [hST, hWs, hWu]
+  cases hv : (σ.victimOf w).isSome
+  · cases σ.ST !! w <;> simp
+  · constructor
+    · rintro (h1 | h1 | h1 | h1)
+      · rw [h.ws_v w h1] at hv; cases hv
+      · rw [h.wu_v w h1] at hv; cases hv
+      · cases h1
+      · cases σ.ST !! w <;> simp_all
+    · rintro ⟨-, h2⟩; cases h2
 
 theorem takeState_ok {σ : WsState} (h : WsOk σ) (vs : GoSlice) : WsOk (takeState σ vs) := by
-  have hlv := takeState_live σ vs
-  have hlive_of : ∀ w, (takeState σ vs).live w → σ.live w ∧ (σ.victimOf w).isSome = false := by
-    intro w hw
-    rcases (hlv w).1 hw with hw | hw
-    · exact ⟨Or.inl hw, h.not_vic_of_ws hw⟩
-    · exact ⟨Or.inr (Or.inl hw), h.not_vic_of_wu hw⟩
-  have hlive_to : ∀ w, σ.live w → (σ.victimOf w).isSome = false → (takeState σ vs).live w := by
-    intro w hw hv
-    rw [hlv]
-    rcases hw with hw | hw | hw
-    · exact Or.inl hw
-    · exact Or.inr hw
-    · rw [hv] at hw; cases hw
+  have hlv := takeState_live h vs
+  have hlive_of : ∀ w, (takeState σ vs).live w → σ.live w ∧ (σ.victimOf w).isSome = false :=
+    fun w hw => (hlv w).1 hw
+  have hlive_to : ∀ w, σ.live w → (σ.victimOf w).isSome = false → (takeState σ vs).live w :=
+    fun w hw hv => (hlv w).2 ⟨hw, hv⟩
   have hST : ∀ w, (takeState σ vs).ST !! w = (σ.ST !! w).filter (fun _ => !(σ.victimOf w).isSome) :=
     fun w => rfl
   have hE : ∀ w, (takeState σ vs).E !! w = (σ.E !! w).filter (fun _ => !(σ.victimOf w).isSome) :=
@@ -330,7 +336,7 @@ theorem takeState_ok {σ : WsState} (h : WsOk σ) (vs : GoSlice) : WsOk (takeSta
     · rw [hv] at hw
       have hs : σ.ST !! w = some st := by cases h' : σ.ST !! w <;> simp_all
       obtain ⟨h1, h3, h4⟩ := h.st_flags w st hs
-      refine ⟨h1, fun hl => ?_, ?_⟩
+      refine ⟨fun hc => ⟨(h1 hc).1, takeState_victimOf σ vs w⟩, fun hl => ?_, ?_⟩
       · rw [takeState_victimOf]
         obtain ⟨hl', -⟩ := hlive_of w hl
         rw [h3 hl', hv]; simp
@@ -355,8 +361,12 @@ theorem takeState_ok {σ : WsState} (h : WsOk σ) (vs : GoSlice) : WsOk (takeSta
           simp only [Option.none_or, Option.filter_some, ↓reduceIte, Option.some.injEq] at hw
           subst hw
           obtain ⟨h1, h3, h4⟩ := h.st_flags w _ hs
-          have hl : σ.live w := Or.inr (Or.inr hv)
-          refine ⟨h1, (h3 hl).2 hv, fun e => ?_⟩
+          have hl : σ.live w := Or.inr (Or.inr (Or.inl hv))
+          have hc0 : st0.compacted = false := by
+            cases hc : st0.compacted
+            · rfl
+            · have := (h1 hc).2; rw [this] at hv; cases hv
+          refine ⟨hc0, (h3 hl).2 hv, fun e => ?_⟩
           exact (h4.1 e) hl
   · intro w γw ed hw hm he
     rw [hE] at he
@@ -388,7 +398,7 @@ theorem WsOk.out {σ : WsState} (h : WsOk σ) {w : Loc} {st : WatcherSt} (hw : �
     | some _ => exact absurd (Or.inr (Or.inl (by rw [h']; rfl))) hl
   · cases h' : σ.victimOf w with
     | none => rfl
-    | some _ => exact absurd (Or.inr (Or.inr (by rw [h']; rfl))) hl
+    | some _ => exact absurd (Or.inr (Or.inr (Or.inl (by rw [h']; rfl)))) hl
   · cases h' : σ.E !! w with
     | none => rfl
     | some _ => exact absurd ((h.live_e w).1 (by rw [h']; rfl)) hl
@@ -479,15 +489,19 @@ theorem readdState_ok {σ : WsState} (h : WsOk σ) {w : Loc} {st0 : WatcherSt} (
     · subst hx
       have h1' : <[w' := { st0 with victim := false }]> σ.ST !! w' = some st' := h1
       rw [GMap.lookup_insert] at h1'; cases h1'
-      refine ⟨hc, fun _ => ?_, ?_⟩
+      refine ⟨(fun hcc => by simp only at hcc; rw [hc] at hcc; cases hcc), fun _ => ?_, ?_⟩
       · rw [hvo, hv]; simp
       · constructor
         · intro e'; exact absurd e' hch
         · intro hn; exact absurd ((hlv w').2 (Or.inl rfl)) hn
     · have h1' : <[w := { st0 with victim := false }]> σ.ST !! w' = some st' := h1
       rw [GMap.lookup_insert_ne _ _ (Ne.symm hx)] at h1'
-      obtain ⟨h1, h3, h4⟩ := h.st_flags w' st' h1'
-      refine ⟨h1, fun hl' => ?_, ?_⟩
+      obtain ⟨hf1, h3, h4⟩ := h.st_flags w' st' h1'
+      have hxx : w ≠ w' := fun e => hx e.symm
+      refine ⟨fun hcc => ⟨by have := (hf1 hcc).1; cases b <;>
+          simp [readdState, GMap.lookup_insert_ne _ _ hxx, this, hxx],
+          by rw [hvo]; exact (hf1 hcc).2⟩,
+        fun hl' => ?_, ?_⟩
       · rw [hvo]; exact h3 (((hlv w').1 hl').resolve_left hx)
       · rw [h4, hlv]; simp [hx]
   · intro w' st' h1
@@ -673,7 +687,7 @@ theorem appendState_settled {σ : WsState} (h : WsOk σ) (hs : σ.settled) (NV :
     cases hv : σ.victimOf k with
     | some _ =>
       obtain ⟨st1, hst1⟩ := Option.isSome_iff_exists.1
-        (h.live_st k (Or.inr (Or.inr (by rw [hv]; rfl))))
+        (h.live_st k (Or.inr (Or.inr (Or.inl (by rw [hv]; rfl)))))
       rw [hst1] at hst; simp at hst; subst hst
       exact hs.2.1 k _ (by rw [hv]; rfl) hst1
     | none =>
@@ -706,10 +720,11 @@ theorem appendState_ok {σ : WsState} (h : WsOk σ) (NV : GMap Loc NvEnt) (vs : 
     exact h.out (hNV w x hx)
   have hlv : ∀ w, (appendState σ NV vs nvm).live w ↔ (σ.live w ∨ (NV !! w).isSome) := by
     intro w
+    have hST' : (appendState σ NV vs nvm).ST !! w = (σ.ST !! w).or ((NV !! w).map NvEnt.st) := rfl
     unfold WsState.live
-    rw [hvo]
+    rw [hvo, hST']
     show (σ.Ws !! w).isSome = true ∨ (σ.Wu !! w).isSome = true ∨
-      ((σ.victimOf w).or ((NV !! w).map NvEnt.B)).isSome = true ↔ _
+      ((σ.victimOf w).or ((NV !! w).map NvEnt.B)).isSome = true ∨ _ ↔ _
     cases hn : NV !! w <;> cases hv : σ.victimOf w <;> simp
   have hnn : ∀ w, (NV !! w).isSome = false → (appendState σ NV vs nvm).victimOf w = σ.victimOf w := by
     intro w hn; rw [hvo]; cases h' : NV !! w <;> simp_all
@@ -835,7 +850,8 @@ theorem appendState_ok {σ : WsState} (h : WsOk σ) (NV : GMap Loc NvEnt) (vs : 
         | none => rfl
         | some _ => have := (hout w (by rw [h']; rfl)).1; rw [hs] at this; cases this
       obtain ⟨h1, h3, h4⟩ := h.st_flags w _ hs
-      refine ⟨h1, fun hl => ?_, ?_⟩
+      refine ⟨fun hcc => ⟨(h1 hcc).1, by rw [hnn w (by rw [hn]; rfl)]; exact (h1 hcc).2⟩,
+        fun hl => ?_, ?_⟩
       · rw [hnn w (by rw [hn]; rfl)]
         exact h3 (by rw [hlv, hn] at hl; simpa using hl)
       · rw [h4, hlv, hn]; simp
@@ -847,7 +863,7 @@ theorem appendState_ok {σ : WsState} (h : WsOk σ) (NV : GMap Loc NvEnt) (vs : 
         rw [hn] at h1; simp only [Option.none_or, Option.map_some, Option.some.injEq] at h1
         subst h1
         obtain ⟨h1, h3, h4⟩ := h.wo_flags w _ (hNV w x hn)
-        refine ⟨h1, fun _ => ?_, ?_⟩
+        refine ⟨(fun hcc => by rw [h1] at hcc; cases hcc), fun _ => ?_, ?_⟩
         · rw [hvo, hn, h3]; simp
         · constructor
           · intro e; exact absurd e h4
@@ -924,7 +940,7 @@ theorem mv_member_to_mover (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vs' : 
     (st : WatcherSt) (B : EventBatch) (hB : σ.victimOf w = some B) :
     memberRes (GF := GF) γ 1 σ w st ∗ watcherOwn w st (1 : Qp).half ⊢
       outRes γ (takeState σ vs') w st ∗ (moverRes γ w st B ∗ ⌜B.evs ≠ []⌝) := by
-  have hl : σ.live w := Or.inr (Or.inr (by rw [hB]; rfl))
+  have hl : σ.live w := Or.inr (Or.inr (Or.inl (by rw [hB]; rfl)))
   have hWs : (σ.Ws !! w).isSome = false := by
     cases h : σ.Ws !! w with
     | none => rfl
@@ -1017,6 +1033,8 @@ theorem body_take (s : Loc) (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vnil 
       · rw [takeState_victimOf]; cases h : σ.victimOf k <;> simp_all
       · show (σ.E !! k).filter (fun _ => !(σ.victimOf k).isSome) = σ.E !! k
         rw [hk']; cases σ.E !! k <;> rfl
+      · show (σ.ST !! k).filter (fun _ => !(σ.victimOf k).isSome) = σ.ST !! k
+        rw [hk']; cases σ.ST !! k <;> rfl
     isplitr
     · iapply (mv_bigSepM_union _ σ.Wo (vicSt σ) (fun k hk => by
         unfold vicSt; rw [GMap.lookup_filter, hok.wo_st k hk]; rfl)).2
@@ -1033,7 +1051,7 @@ theorem body_take (s : Loc) (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vnil 
   · intro i x w y hi hy
     rw [List.getElem?_zip_eq_some] at hi
     have hv := hok.victimOf_of_mem hi.2 hy
-    obtain ⟨st, hst⟩ := Option.isSome_iff_exists.1 (hok.live_st w (Or.inr (Or.inr (by rw [hv]; rfl))))
+    obtain ⟨st, hst⟩ := Option.isSome_iff_exists.1 (hok.live_st w (Or.inr (Or.inr (Or.inl (by rw [hv]; rfl)))))
     refine ⟨st, ?_, ?_⟩
     · unfold vicSt; rw [GMap.lookup_filter, hst, hv]; rfl
     · rw [hv]; simp only [Option.getD_some]; unfold outW; iintro H; iexists st; iexact H
@@ -1139,9 +1157,15 @@ theorem body_readd (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) (
         icases Hcrt with ⟨%Lc, #HLc, %hLc⟩
         isplitr
         · ipureintro; simp [hlo]
-        iexists Lc
-        iframe HLc
-        ipureintro; show (sint.Z st.minRev).toNat ≤ _; omega
+        isplitr
+        · iexists Lc
+          iframe HLc
+          ipureintro; show (sint.Z st.minRev).toNat ≤ _; omega
+        -- a victim is not compacted
+        iintro %hc
+        have hc0 := (hok.wo_flags w st hwo).1
+        have hc' : st.compacted = true := hc
+        rw [hc0] at hc'; cases hc'
       · have h1 : (σ'.Ws !! w).isSome = true := by rw [eWs]; simp [GMap.lookup_insert]
         simp only [h1, ↓reduceIte]
         iframe Hwf
@@ -1156,6 +1180,7 @@ theorem body_readd (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) (
       · rw [eWu]; cases b <;> simp [GMap.lookup_insert_ne _ _ (Ne.symm hk'), Ne.symm hk']
       · exact evo k
       · rw [eE, GMap.lookup_insert_ne _ _ (Ne.symm hk')]
+      · rw [eST, GMap.lookup_insert_ne _ _ (Ne.symm hk')]
   isplitr
   · icases (BigSepM.bigSepM_delete (m := σ.Wo) hwo).1 $$ Hout with ⟨-, Hrest⟩
     rw [mv_std_delete_eq]
@@ -1270,7 +1295,7 @@ theorem body_append (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
     have hk' : NV !! k = some x := hk
     obtain ⟨hST, hl, hWs, hWu, hv, hE⟩ := hout k x hk'
     apply mv_mover_to_member γ σ' k x.st x.B x.evsw
-    · exact Or.inr (Or.inr (by rw [hvo, hv, hk']; rfl))
+    · exact Or.inr (Or.inr (Or.inl (by rw [hvo, hv, hk']; rfl)))
     · rw [eWs, hWs]; rfl
     · rw [eWu, hWu]; rfl
     · rw [hvo, hv, hk']; rfl
@@ -1332,6 +1357,7 @@ theorem body_append (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
     · rw [eWu]
     · rw [hvo, hn]; cases σ.victimOf k <;> rfl
     · rw [eE, GMap.lookup_union, GMap.lookup_fmap, hn]; cases σ.E !! k <;> rfl
+    · rw [eST, GMap.lookup_union, GMap.lookup_fmap, hn]; cases σ.ST !! k <;> rfl
   isplitr
   · iapply (BigSepM.bigSepM_mono (fun {k v} _ => by unfold outRes; rw [eM])) $$ HoutR
   ipureintro; exact hok'

@@ -468,6 +468,10 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
+    -- (J8b, 2026-11-01) the server's member id is the raft node's (`srvBuilt`'s)
+    "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
+    -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
+    "#HmetaSnap" ∷ srvMetaSnap γ ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
     "#Hwci" ∷ waitClosecInit ∗

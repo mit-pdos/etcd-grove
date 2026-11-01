@@ -101,6 +101,24 @@ each member below `compactRev`, a `cmpSendPre` (the channel's access, liveness a
 exported result: unchanged. Margins (docstrings): the gate covers every revision where only
 compaction revisions matter, and keys on the mode, not on the store being frozen.
 
+## A refinement in the proof, approved (2026-11-01)
+
+Proving W1 (`syncWatchers`), the author replaced the gate by a disjunction, and the user approved
+it as presented, side by side:
+
+```lean
+-- approved Draft
+storeWatchParams.T := watchTok γ ∗ (⌜γ.st.cm⌝ → noDupKeys γ.st)
+-- implemented, approved
+storeWatchParams.T := watchTok γ ∗ watchNoDup γ.st
+watchNoDup γ := noCompactor γ ∨ noDupKeys γ
+```
+
+Weaker for every client (one of a store that never compacts keeps giving `noCompactor`, its old
+fact), and it removes the gate's margin (a compaction-mode store its creator froze): the gate read
+the mode, while the proof needs only "the compaction revision is `-1`, or its revision writes no
+key twice", which each arm gives.
+
 ## What it teaches
 
 - A premise on an operation must be provable by that operation's callers from what they hold: a
@@ -111,3 +129,6 @@ compaction revisions matter, and keys on the mode, not on the store being frozen
 - Before offering "reuse X, clients already carry it", check that X has a consumer.
 - Run the reviewer again after each repair: rounds 2 and 3 each found a hard-rule break that the
   previous repair introduced or exposed.
+- Gate a premise on what the proof consumes, not on a mode that only correlates with it: a
+  disjunction of the facts that each suffice (here the store never compacts, or no revision writes
+  a key twice) is weaker for clients than an implication from the mode, and has no margin.

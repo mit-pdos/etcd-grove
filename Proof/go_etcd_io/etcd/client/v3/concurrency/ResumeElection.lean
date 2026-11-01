@@ -39,7 +39,7 @@ theorem ResumeElection.wp_proof : ResumeElection.spec (GF := GF) (hG := hG) := b
   iframe
   iframe #
   ipureintro
-  simp [Hp, Hpl, Hkl]
+  simp only [concPfxMax, concStrMax] at Hpl Hkl; simp [Hp, Hpl, Hkl]
 
 end proof
 

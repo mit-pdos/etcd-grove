@@ -28724,6 +28724,33 @@ so `wp_applyAll`, `wp_run`, `wp_start` and `wp_Start` and their results in `Resu
 instance argument too. It adds no assumption to the closed results: `wp_NewServer`, under all of
 them, already took it.
 
+## J8b: `run`'s snapshot job, spec-first (2026-11-01 · the user's approval: drop both, split compaction)
+
+Supersedes D22 J5's `uint.Z ai ≤ w` (its entry: "J8a ... drops `applyAll.spec`'s premise `uint.Z ai ≤ w`")
+and the J8b candidate's `kvReach` restatement of `applyRes`'s `entriesStep`.
+
+The review read `applyAll.specSnap`'s pre and post against `run`'s loop invariant (`applyRes`) and
+`isServerRun`, conjunct by conjunct (`notes/snapshot-j8a-plan.md`, J8b). What did not fit, and the
+change:
+- `applyRes`'s `ai ≤ w`: false after the jump (`ai = i`, `w` unchanged). J5 kept it for the
+  compaction's bound through `srvWTPool_bound_n`, which nothing uses; `snapshotIfNeededAndCompactRaftLog`'s
+  proof took it (`haw`) and never read it. Dropped everywhere (the premise of five specs, two loop
+  invariants). The applied index's bounds come from raft (`srvIdxOk`, the payload's `< 2^61`).
+- `applyRes`'s `entriesStep C.c₀ A C.x₀ x` (the KV a fold of the log from `x₀`): false after the
+  jump; its only reader rebuilt it. Dropped rather than restated as `kvReach`: no client. A
+  run-level trace result, if wanted, states its own.
+- `E.cmp = false` (`specSnap`'s, for `srvKVCloserW`): `run.spec` covers both compaction modes. The
+  job cases on the mode; the mode on is `run_job_snap_cmp`, a named `sorry` (the user's choice).
+- The member id: `specSnap` takes `srvMemberIDAddr s ↦□ nid` and the payload's `nodeSnapLocal` is at
+  `γn.id`; `run` had no tie. `isServerRun` gains it (`NewServer` knows `γrn.id = id`).
+- The meta reads (`bootOk`'s `#HmetaSnap`): reached `run` nowhere. `isServerRun` gains them, by name
+  (`srvMetaSnap`), through `start`'s construction premise.
+- `|boot| ≤ i`: not derivable by the server (the payload says nothing of the boot log). It is per
+  payload, so not an `isServerRun` fact: `rnApSnap` gains it, from `rnReadySnap_bootLen`, a named
+  `sorry` whose proof is a `readySnap` conjunct proved in raft (to propose).
+Everything else `specSnap` takes is in `applyRes`, the payload, or `isServerRun`; its post rebuilds
+`applyRes` at raft's `A'` (`srvRLogLb_prefix` with the lengths ties the image's log to raft's).
+
 ## The lease checks' revision re-check is not stated (2026-11-01 · accepted, the user's choice · `notes/lease-revcheck-plan.md`)
 
 Item 3 of the lessor/auth list asked for the lease checks' `Revision()` re-check in their posts. The
@@ -29000,6 +29027,69 @@ how every caller extracts facts at the linearization point. Chosen: one name, `k
 a write), at exactly the old strength, with `kvRevFits.lt`/`.of_lt`/`.mono` so callers need not
 unfold it.
 
+## Shared size limits by name (2026-11-01 · the user's: "use the names for the shared limits" · `notes/bounds-plan.md`, B5)
+
+A length bound several specs share (`key.length ≤ 2 ^ 27`, 38 times in specs, though
+`etcdKeyMax = 2 ^ 27` existed) is written with a named constant defined next to the law that chose
+it: `opKeyMax`/`opValMax` (an operation a client library sends: `OpShape opKeyMax opKeyMax
+opValMax`), `etcdKeyMax` (etcd's stored keys and values), `leasingPfxMax`, `concPfxMax`/
+`concStrMax`, `recipesPfxMax`/`recipesStrMax`. Why: the name says why the bound is there, changing
+a limit is one edit, and a grep finds its uses. Each is a `def` tagged `@[word_unfold]`, so `word`
+sees through it; `omega` does not (nor through an `abbrev`), so the proofs that used `omega` on such
+a bound use `word`. *Rejected:* predicates (`keyOk k`) for a single `≤` (they hide the shape from
+`omega` and `word` alike); notation (no name in the elaborated statement, and `etcdKeyMax` is
+already a `def`). A literal stays for a bound local to one function. `opKeyMax` equals
+`etcdKeyMax` on purpose (a client re-sends keys it read); two names, two reasons.
+
+## Watches across a compaction: the create token's fact, a disjunction (2026-11-01 · accepted, the user's approval · branch `watch-w1`)
+
+The Draft (entry above) gated the create token's store fact on the mode: `⌜γ.st.cm⌝ → noDupKeys
+γ.st`. W1's proof of `syncWatchers` needs only that the compaction revision under `revMu` is `-1`
+or a revision of the committed log that writes no key twice (`watchNoDup_crev`), and each of
+`noCompactor` and `noDupKeys` gives that. So the token carries `watchNoDup γ := noCompactor γ ∨
+noDupKeys γ`: weaker for clients (one of a store that never compacts keeps giving
+`noCompactor`, the token's old fact), and without the gate's margin (a compaction-mode store
+frozen by its creator). Presented to the user side by side with the approved gate; approved.
+`wsWatchFrozen γ σ := ⌜σ.M = ∅⌝ ∨ watchNoDup γ.st`.
+
+
+## A snapshot `Ready` is past the bootstrap log: `readySnap` gains `bootLen < index` (2026-11-01 · the user's approval, strict · branch `snap-bootlen`)
+
+**The gap.** `applyAll.specSnap` takes `|boot| ≤ i` for the snapshot's index `i`. The server had it
+from the named `sorry` `rnReadySnap_bootLen` (J8b), because raft's `readySnap` did not say it.
+
+**Why it is true.** A `Ready` hands out a pending (unstable) snapshot, and only `restore` sets one.
+`restore` takes only an index above the commit index (`SnapLogStep`'s restore disjunct:
+`committed < index`). The commit index is at least the bootstrap log's length (`ownLogGhost`'s
+`%Hboot`). A node restarted from storage has no pending snapshot (`RestartNode`: `snapLocOk … none`),
+so restarts need nothing new.
+
+**Where.** The pending snapshot's fact `snapLocOk` (`InvRawnode.lean`) already holds the
+receiver-local `snapLocal`. It gains `⌜|reBoot| < index⌝`. Only the two places that set it from a
+`MsgSnap` (`RawNode.Step`, `InvNodeRun`'s network step) prove it: `ownStepGhost_bootCommit` gives
+`|reBoot| ≤ committed` at the pre-state, and the restore disjunct gives `committed < index`. Every
+other step keeps or clears the pending snapshot (`snapLocOk_keep`, unchanged). The fact goes out
+through `ownRawNodeReady_loanLoc` to `readySnapData` and the impl's `readySnap`, and from there to
+the API's `readySnap` as `⌜(γ.bootLen : Int) < index⌝`, with the law `readySnap_bootLen`. Strict,
+because `restore` is strict (the user's choice); the server uses `≤`.
+
+**The server.** `srvClusterOk` gains `cl.bootLen = boot.length`; both `NewServerAlloc`s have it
+from `cluster_alloc`. `rnReadySnap_bootLen` takes `rnEnvOk`, which holds `srvClusterOk`, and is
+proved. Its `sorry` is gone.
+
+**The raft API changed** (`interface/` diff): `readySnap`'s snapshot case, `readySnap_bootLen`
+new. It is a stronger postcondition of `node.readyRecv`, so no client loses anything.
+
+## Watches across a compaction, W4: `compactkv` with a watch (2026-11-01 · accepted, the user's question 3 (a) · branch `watch-w4`)
+
+The member's store gives the create token's `noDupKeys` arm from the example's own workload: the
+rounds' invariant keeps every revision one put of `v` (`oneValW`), a read update reads it at any
+state (`oneValAu`), and `srvKVCoreM_fire` fires it at every watched log, a prefix of a committed
+one. Two shared helpers changed shape for it: the served lemma takes the store's fact for watches
+as a premise (`watchkv.wk_served_nd`; `wk_served`, its `cm = false` form, is gone, its callers give
+the no-compactor arm), and `common.Collect.spec` takes the consumer at any start cursor `c0` with
+`I 0 c0` (until then `0`, a watch from revision 1). The watch is of the last round's key, guarded
+by `prevRev != 0` so that the key is a round's (`prevOk`, the request's size).
 
 ## The backend for the auth split: open shares at acquisition, a reader pool, idle parts (2026-11-01 · Draft, not frozen · `notes/backend-auth-split-plan.md`)
 

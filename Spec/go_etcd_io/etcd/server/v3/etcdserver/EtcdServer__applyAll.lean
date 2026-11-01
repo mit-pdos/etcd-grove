@@ -47,7 +47,7 @@ write budget** (the backend's unit 6, merged 2026-10-13): `applyEntries`' one wr
 store per entry above `ai`, from the budget `srvWTPool E` (D19b, 2026-10-18; until then
 `txn.storeWTs E.γ (unapplied ai ms).length`, handed in); (D22 J5, 2026-10-26) the count of tokens
 taken from `w` to `w` plus the entries applied (`srvWTTaken`; until J5 at the applied index,
-`srvWTAt γp ai`), with `uint.Z ai ≤ w` for the compaction's bound. **The KV model**
+`srvWTAt γp ai`; until J8b, 2026-11-01, with `uint.Z ai ≤ w`, which no proof read). **The KV model**
 (2026-10-14, unit T1): as `applyEntries` (`kvApplied`, `kvBatch`). (D22 S-h, 2026-10-20, S-0's
 amendment) The applied term: `ep.appliedt` the last applied entry's term, unchanged with none
 (`termAfter`), which the merged snapshot's metadata carries. **The merged snapshot** (2026-10-31,
@@ -70,9 +70,6 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
   loopOk γ st ai → logShape (unapplied ai ms) →
   -- (D43 M3, 2026-10-25) the driver's view, `apply`'s
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
-  -- (D22 J5, 2026-10-26) the applied index at most the write tokens taken (no snapshot installed;
-  -- `snapshotIfNeededAndCompactRaftLog`'s)
-  uint.Z ai ≤ w →
   -- (2026-10-31, the snapshot track: #11's S3) a fresh start's log: `A` the applied log through
   -- `ai`, `at0` its last term (the frozen terms' indices)
   uint.Z ai = A.length → lastTermIs A at0 →
@@ -169,9 +166,6 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
   loopOk γ st ai → logShapeOn (unapplied ai ms) →
   -- (D43 M3, 2026-10-25) the driver's view, `apply`'s
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
-  -- (D22 J5, 2026-10-26) the applied index at most the write tokens taken (no snapshot installed;
-  -- `snapshotIfNeededAndCompactRaftLog`'s)
-  uint.Z ai ≤ w →
   -- (2026-10-31, the snapshot track: #11's S3) a fresh start's log: `A` the applied log through
   -- `ai`, `at0` its last term (the frozen terms' indices)
   uint.Z ai = A.length → lastTermIs A at0 →

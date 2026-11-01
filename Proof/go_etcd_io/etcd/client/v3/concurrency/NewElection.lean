@@ -39,7 +39,7 @@ theorem NewElection.wp_proof : NewElection.spec (GF := GF) (hG := hG) := by
   iframe
   iframe #
   ipureintro
-  simp; omega
+  simp; word
 
 end proof
 

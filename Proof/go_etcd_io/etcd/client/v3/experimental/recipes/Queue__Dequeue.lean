@@ -109,7 +109,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
   · ipureintro
     intro v hv
     obtain ⟨h1, h2⟩ := Hgsub v hv
-    exact ⟨h2, by have := Hrevs v h1; have hk := Hkeys v h1; unfold etcdKeyMax at hk; omega⟩
+    exact ⟨h2, by have := Hrevs v h1; have hk := Hkeys v h1; unfold etcdKeyMax at hk; word⟩
   icases Hcres with (⟨%Hcnil, %n, #Hcb, Hcase⟩ | %Hcne)
   rotate_left
   · obtain ⟨Hcne, rfl⟩ := Hcne
@@ -194,7 +194,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
       wp_apply hWPE client kp kp R _ [evPut] evPut $$ [$Hpkg $Hcc $Hcl $HslT]
         as %ev %werr Hwr
       · ipureintro
-        exact ⟨rfl, List.prefix_refl kp, by omega, by omega⟩
+        exact ⟨rfl, List.prefix_refl kp, by omega, by word⟩
       icases Hwr with (⟨%Hwnil, #Hwev⟩ | %Hwne)
       rotate_left
       · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
@@ -223,7 +223,7 @@ theorem Queue.Dequeue.wp_proof (hWFR : EtcdGrove.WithFirstRev.spec (GF := GF) (h
       wp_apply hDRK kv kp e.key e.rev rd $$ [$Hpkg $Hkv $Hrd] as %ok %derr Hdres
       · ipureintro; exact ⟨Hin, Hepos, by
         have hk := Hkse v Hvse; unfold etcdKeyMax at hk
-        rw [Hvk] at hk; omega⟩
+        rw [Hvk] at hk; word⟩
       icases Hdres with (⟨%Hdnil, %r, #Hr, %Hrr, Hc⟩ | %Hdne)
       rotate_left
       · obtain ⟨Hdne, rfl⟩ := Hdne

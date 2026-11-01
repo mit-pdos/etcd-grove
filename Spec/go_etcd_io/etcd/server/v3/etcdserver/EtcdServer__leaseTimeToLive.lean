@@ -29,7 +29,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`s.leaseTimeToLive(ctx, r)`** (names-only, a contract; the lease-read plan's S1, the user's
 choice), any goroutine, at a context, with the request side's and the read side's server facts, its
 lessor (`srvLessorRd`), a reader slot of the lessor's lock and a thread token, reading `r`: on
-`nil`, a fresh response (owned) with a header (not nil); on an error, no response and one of the
+`nil`, a fresh response (owned) with a fresh header (owned, not nil: the leader's
+`&pb.ResponseHeader{}`, under `// TODO: fill out ResponseHeader`; a follower's decoded by
+`proto.Unmarshal` from the leader's reply, whose header etcd's lease handler sets, empty too;
+stated 2026-11-01 for the gRPC handler's `fill`, `notes/lease-grpc-plan.md`; a reply whose
+response has no header panics that `fill`, `issues/etcd-leasehttp-timetolive-nil-header-panic.md`); on an error, no response and one of the
 server's or the lessor's package errors (`applyErrIs`: `ErrStopped`, `ErrTimeoutWaitAppliedIndex`,
 `ErrLeaseNotFound`, `ErrLeaderChanged`, `ErrNoLeader`, `ErrTimeout`, `ErrCanceled`). Nothing is
 stated of the response's lease, TTL or keys: on the leader it looks the lease up again (`Lookup`,
@@ -52,7 +56,7 @@ abbrev EtcdServer.leaseTimeToLive.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); lease.lessorRdOf γl ∗ threadTok ∗
       r ↦{dq} v ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗
-          ⌜w.Header' ≠ null⌝) ∨
+          ⌜w.Header' ≠ null⌝ ∗ ∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec

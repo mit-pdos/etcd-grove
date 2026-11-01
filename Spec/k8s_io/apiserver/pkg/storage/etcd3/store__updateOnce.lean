@@ -47,7 +47,7 @@ abbrev store.updateOnce.spec : Prop :=
     (o0 : Obj) (rv0 : GoString) (st : Loc) (s : OState Obj) (x : GoInterface) (dsl : GoSlice)
     (σ0 : KVState) (kv0 : EtcdKv) (v : _root_.Perennial.reflect.Value) (p : Loc) (z : Obj)
     (f : Obj → Nat → Except E Obj) (o' : Obj) (W : IProp GF) (Φ : KVState → IProp GF),
-  c.pfx <+: key → key.length ≤ 2 ^ 27 →
+  c.pfx <+: key → key.length ≤ opKeyMax →
   mvcc.findKey key σ0.kvs = some kv0 →
   stOfKv c kv0 s →
   f s.o (uint.nat s.rev) = .ok o' → c.S.storedSizeOk o' →
@@ -66,7 +66,7 @@ abbrev store.updateOnce.spec : Prop :=
       (⌜ok = true ∧ err = GoInterface.nil⌝ ∗ ∃ σ, Φ σ ∗
         respIs c ((c.abs σ).update key false z (fun _ _ => none) f).2 err dest) ∨
       (⌜ok = false⌝ ∗ c.S.objAt dest o0 rv0 ∗ ∃ σ, rdFacts c σ ∗
-        ⌜∀ v ∈ σ.kvs, v.value.length ≤ 2 ^ 27⌝ ∗ stAt c key σ st' err ∗
+        ⌜∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝ ∗ stAt c key σ st' err ∗
         (if stepHand c (updStep key z f) σ then Φ σ else W)) }}
 
 end spec

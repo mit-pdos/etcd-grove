@@ -182,7 +182,8 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
   refine ⟨hsizes, hIk, hIp, hwfk, ?_⟩
   have hfp : st.files !! p = some (some f) := file_eq_some.1 hf
   refine ⟨fun q => ?_, fun q => ?_, fun q m' hm => ?_, fun q i x hx => ?_, fun q f1 i h1 hi => ?_,
-    hcoh.fds, fun t' => ?_, fun t' ti' h => ?_, fun t' ti' h hq1 => ?_, fun t' ti' h => ?_⟩
+    hcoh.fds, fun t' => ?_, fun t' ti' h => ?_, fun t' ti' h hq1 => ?_, fun t' ti' h => ?_,
+    fun t' ti' h => ?_⟩
   · rw [GMap.lookup_insert_eq_iff]
     show _ ↔ (({ st with inflight := GMap.delete t st.inflight } : OsState).setFile p _).files !! q = none
     rw [files_setFile]; split
@@ -203,12 +204,15 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
       refine ⟨f.truncate n, file_eq_some.1 hfk, ⟨hlen.symm, by rw [truncate_named]; exact hmo.named,
         by rw [truncate_sizeLo]; have := hmo.lo; dsimp only; omega,
         by rw [truncate_sizeHi]; have := hmo.hi; dsimp only; omega,
-        fun hok i => by rw [truncate_lost]; exact hmo.ok hok i, hmo.maps, fun t' c' h1 h2 => ?_⟩⟩
+        fun hok i => by rw [truncate_lost]; exact hmo.ok hok i, hmo.maps, fun t' c' h1 h2 => ?_,
+        fun i d h => by rw [truncate_durable]; exact hmo.dur i d h,
+        by rw [truncate_durable]; exact hmo.durLen⟩⟩
       obtain ⟨h1, n1⟩ := hdel t' c' h1
       exact absurd h2 (hother t' c' n1 h1)
     · rename_i hpq
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
-      refine ⟨f1, ?_, ⟨hm1.size, hm1.named, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_⟩⟩
+      refine ⟨f1, ?_, ⟨hm1.size, hm1.named, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_,
+        hm1.dur, hm1.durLen⟩⟩
       · show (({ st with inflight := GMap.delete t st.inflight } : OsState).setFile p _).files !! q = _
         rw [files_setFile, if_neg hpq]; exact h1
       · rw [htg' c' ⟨t', h1⟩]; exact hm1.targets t' c' (hdel t' c' h1).1 h2
@@ -272,6 +276,20 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
       have hq : ti'.c.path ≠ p := hother t' ti'.c hne' h'
       rw [affRange_congr1 ti'.c (hsizes t' ti'.c hne' h')]
       exact ⟨f1, by rw [hfq _ hq]; exact h1, hsv1⟩
+  · rw [GMap.lookup_delete_iff] at h; split at h
+    · cases h
+    · rename_i hne
+      intro j hj
+      have h' : st.inflight !! t' = some ti'.c := by
+        have := hcoh.toks t'; rw [h] at this; exact this.symm
+      have hne' : t' ≠ t := fun e => hne e.symm
+      have hs' := hsizes t' ti'.c hne' h'
+      obtain ⟨hjl, f1, h1, hc1⟩ := hcoh.tok_clean t' ti' h j hj
+      have hq : ti'.c.path ≠ p := hother t' ti'.c hne' h'
+      have hlo1 : affLo stn ti'.c = affLo st ti'.c := by unfold affLo; rw [hs']
+      have hhi1 : affHi stn ti'.c = affHi st ti'.c := by unfold affHi; rw [hs']
+      rw [hlo1, hhi1]
+      exact ⟨hjl, f1, by rw [hfq _ hq]; exact h1, hc1⟩
 
 end ftFinish
 
@@ -288,7 +306,7 @@ attribute [local instance] Classical.propDecidable
 /-- An `ftruncate` to `sz` of the file `p` between its two steps: its first step took the whole
 of the file's `OsMeta` `m`. -/
 def ftTok (t : Nat) (p : GoString) (sz : Nat) (m : OsMeta) : IProp GF :=
-  osTok (L := L) t ⟨⟨p, .truncate sz⟩, 1, [], ftMeta m sz⟩
+  osTok (L := L) t ⟨⟨p, .truncate sz⟩, 1, [], ftMeta m sz, []⟩
 
 /-- The file `p`, of `OsMeta` `m`, grown to `sz ≥ m.size`: the whole `OsMeta` (`m.grown sz`), the
 new bytes, zeros and dirty, whole, and the client's halves of the cells of every mapping over
@@ -375,7 +393,7 @@ theorem wp_osFtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (
     ⟨rfl, rfl, rfl, rfl, Nat.le_refl _, Nat.le_max_left _ _,
       by rw [← hc]; simp only [OsChange.target, ftMeta]; have := hmo.lo; have := hmo.size
          have := (hwf.sizes d.path f hf).1; omega,
-      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega⟩
+      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega, rfl⟩
     ht (hcp ▸ hfree) (fun _ => rfl)
     Hfrac (fun _ => hnot) (by rw [hlo, hhi']; simp) (fun k hk => by simp at hk)
   -- the cells: the client's halves of the cells past the size go to the invariant
@@ -439,7 +457,7 @@ theorem wp_osFtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (
     cases h0 : Γt !! t
     · rfl
     · rw [h0] at this; cases this
-  imod gAuth_insert _ _ _ t ⟨c, 1, [], ftMeta m sz.toNat⟩ hΓt $$ HAt with ⟨HAt, Ht⟩
+  imod gAuth_insert _ _ _ t ⟨c, 1, [], ftMeta m sz.toNat, []⟩ hΓt $$ HAt with ⟨HAt, Ht⟩
   imodintro
   iexists _, _, Γf, _
   iframe HAb HAm HAf HAt Hσ Hcells
@@ -447,8 +465,8 @@ theorem wp_osFtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (
   · isplitr
     · ipureintro; exact ⟨hwf1, hcoh1⟩
     rw [show tokRes (gooseOsGS (L := L)) { st with inflight := <[t := c]> st.inflight }
-        (<[t := ⟨c, 1, [], ftMeta m sz.toNat⟩]> Γt) =
-      tokRes gooseOsGS st (<[t := ⟨c, 1, [], ftMeta m sz.toNat⟩]> Γt) from rfl]
+        (<[t := ⟨c, 1, [], ftMeta m sz.toNat, []⟩]> Γt) =
+      tokRes gooseOsGS st (<[t := ⟨c, 1, [], ftMeta m sz.toNat, []⟩]> Γt) from rfl]
     unfold tokRes
     iapply (BigSepM.bigSepM_insert (Φ := fun (_t : Nat) (ti : TokInfo) =>
       iprop(gElem gooseOsGS gooseOsGS.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
@@ -512,7 +530,7 @@ theorem wp_osFtruncateFinish (t : Nat) (p : GoString) (sz : Nat) (m : OsMeta) (h
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold ftTok osTok
-  generalize hti0 : (⟨⟨p, .truncate sz⟩, 1, [], ftMeta m sz⟩ : TokInfo) = ti
+  generalize hti0 : (⟨⟨p, .truncate sz⟩, 1, [], ftMeta m sz, []⟩ : TokInfo) = ti
   icases gAuth_lookup _ _ _ _ _ _ $$ HAt Ht with %Hti
   have hct : st.inflight !! t = some ti.c := by
     have := hcoh.toks t; rw [Hti] at this; exact this.symm

@@ -478,7 +478,7 @@ theorem Main.wp_proof
     iframe Hhcons Hhcur
     ipureintro; rfl
   wp_apply (wp_Collect (common.stateOk _ (fun σ => iprop(⌜stateHistOk σ⌝))) (fun _ _ => True)
-      (fun _ e => iprop(⌜rootEvOk e⌝)) iprop(True) hch γh _ trivial (fun _ _ _ _ => inferInstance)
+      (fun _ e => iprop(⌜rootEvOk e⌝)) iprop(True) hch γh _ (W64 0) trivial (fun _ _ _ _ => inferInstance)
       (fun c c' v r => common.stateOk_closeErr _ _ c c' v r)
       (fun n c c' v r hne hI => root_resp _ n c c' v r hne hI))
     $$ [Hhcons] as %esl %eok Hcol
@@ -548,7 +548,7 @@ theorem Main.wp_proof
     iframe Hucons Hucur
     ipureintro; rfl
   wp_apply (wp_Collect (common.stateOk _ (fun σ => iprop(⌜stateHistOk σ⌝))) (fun _ _ => True)
-      (fun _ e => iprop(⌜permittedK go!"u" e.Key'⌝)) iprop(True) uch γu _ trivial
+      (fun _ e => iprop(⌜permittedK go!"u" e.Key'⌝)) iprop(True) uch γu _ (W64 0) trivial
       (fun _ _ _ _ => inferInstance)
       (fun c c' v r => common.stateOk_closeErr _ _ c c' v r)
       (fun n c c' v r hne hI => u_resp _ ⟨watch_ab_ok.2.1, watch_ab_ok.2.2⟩ _ n c c' v r hne hI))

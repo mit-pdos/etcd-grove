@@ -172,7 +172,7 @@ theorem leasingKV.revoke.wp_proof
     have hk := Htop.2.1
     simp only [opWireLen, wireSlack] at hw
     simp [txnSizeOk, txnWireLen, cmpWireLen, TxnOp.wireLen, compareM, cmpKeyM, wireSlack]
-    omega
+    word
   iunfold txnCommitResultO at Hres
   icases Hres with (⟨%Hne, -⟩ | ⟨%Heq, Hok⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by

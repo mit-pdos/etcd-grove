@@ -31,7 +31,7 @@ mutex on that prefix, in its initial state (`myKey = ""`, `myRev = -1`,
 abbrev NewMutex.spec : Prop :=
   ∀ (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isSession s γ client id ∗
-      isEtcdMutexClient client (pfx ++ go!"/") ∗ ⌜pfx.length < 2 ^ 27⌝ }}
+      isEtcdMutexClient client (pfx ++ go!"/") ∗ ⌜pfx.length < concPfxMax⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewMutex)) (Val #s)) (Val #pfx))
   {{ (m : Loc), RET #m; isMutex m s γ client id (pfx ++ go!"/") ∗ mutexState m MutexSt.init }}
 

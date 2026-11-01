@@ -714,7 +714,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h134 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h28, h95, h127, h42, h73, h4, h129, h72, h48, h18, h27, h130, h131, h38, h122, h124, h5, h132, h26, h41, h36, h47, h67, h83, h29, h35, h93, h121, h0, h12, h54, h61, h99, h92, h112, h133, h108, h111, h25, h89, h44, h103, True.intro⟩
+    exact ⟨h6, h28, h95, h127, h42, h73, h4, h129, h72, h48, h18, h27, h130, h131, h38, h122, h124, h5, h132, h26, h41, h36, h47, h67, h83, h29, h35, h93, h121, h0, h12, h106, h54, h61, h99, h92, h112, h133, h108, h111, h25, h89, h44, h103, True.intro⟩
   have h135 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.common (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
