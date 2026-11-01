@@ -49,8 +49,7 @@ only if `remainingTTL > 0`; the only checkpointer is `NewServer`'s, which propos
 **Its assumption**: that proposal bypasses the proposers' workload (`apply.rqOk` admits no
 `LeaseCheckpoint`, D14h); it is covered by the checkpointer's premise `ckptEffectsOk`
 (`etcdserver/InvBoot.lean`), which `NewLessor` takes and every closed result carries, whose
-docstring so far names only the lessor loop's calls (to be widened to this call, a change to an
-opaque premise: the user's decision). It is not exercised today: the server's grant guard is
+docstring names this call too (widened 2026-11-01, approved by the user). It is not exercised today: the server's grant guard is
 `False` (`srvGrantGuard`), so every lessor of the closed results has no lease and `Renew`
 returns before it reads `cp`. The lease-grant work must revisit this contract. -/
 abbrev lease.lessor.Renew.spec : Prop :=

@@ -28446,6 +28446,31 @@ statement would bound each verdict by the end read's state; `revCur` would then 
 last state (`hs.getLast? = some st` with its `authStateAt`), which the dropped Draft proved
 maintainable.
 
+## The lease keep-alive entry point: `LeaseRenew` over five contracts (2026-11-01 · accepted, the user's Freeze · `notes/lease-renew-plan.md`)
+
+The user, at Freeze: "Approve all", "Widen ckptEffectsOk's doc", "Keep premise, record open".
+Frozen and linked:
+- **Five contracts** (names-only callees, axioms): `lease.lessor.Renew` (C1: `nil`,
+  `ErrNotPrimary` or `ErrLeaseNotFound`; it takes the caller's `le.mu` reader slot and a thread
+  token for the lease's `expiryMu`), `EtcdServer.ensureLeadership` (C2: a boolean; it takes the
+  logger's and the read loop's reader slots and a thread token; **its assumption**: `r.tickMu`'s
+  read locks need no slot, which the model drops at node start, the thread bound limiting its
+  readers), `waitAppliedIndex` (C3) and `waitLeader` (C4: a cloned member with its peer URLs, or an
+  `applyErrIs` error), and `leasehttp.RenewHTTP` (C5: over a `*http.Transport`; **its assumption**:
+  a peer's reply small enough to buffer). And `LeasePrefix_init` (leasehttp's `LeasePrefix` holds
+  some string), with leasehttp's generated `opaqueInitsOk`: etcdserver now imports leasehttp, as
+  Go's does, so every closed result's initialization (cachekv, putget, m2, ...) runs its initializer.
+- **`ckptEffectsOk` covers `Renew`'s checkpointer call** too (its docstring widened; no statement
+  changes): the call proposes a `LeaseCheckpoint` outside the proposers' workload (`apply.rqOk`),
+  as the lessor loop's does. Not exercised while `srvGrantGuard` is `False`; the lease-grant work
+  must revisit C1.
+- **`peerRt` a premise of `LeaseRenew.spec`**, open: no construction spec states the field; the
+  stage wiring v3rpc's `LeaseKeepAlive` discharges it from `NewServer`'s contract.
+- `ErrNotPrimary` translated and in `leaseInit` (appended), `features.FastLeaseKeepAlive`
+  translated. The post: on `nil` the last `checkLeaseRenew`'s verdict (`leaseKeysVerdictFrom
+  .write`) at the caller's context; the margin: the local lessor may lag the renewing one
+  (`issues/etcd-lease-renew-keys-follower-lag.md`, a candidate), and the leader's re-lookup.
+
 ## D22 and bbolt are open to every session (2026-11-01 · accepted, the user's)
 
 Since 2026-10-19 two restrictions held: D22 (T-S, the snapshot path) was the user's collaborator's to

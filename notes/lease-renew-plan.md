@@ -124,3 +124,17 @@ forwarding loop's (the timeout context, `waitLeader`, the check, the range over 
   unreachable; the proof does not call `Logger`. `srvLgReader` stays for C2.
 - On `nil`, the check's `leaseCheckFrom` is over the span's context; `Tracer.Start` keeps the
   incoming metadata, so it moves to the caller's (`leaseCheckFrom_ctx`, by `infoBoundM_ctx`).
+
+## Freeze (2026-11-01, the user)
+
+"Approve all": C1-C5 and `LeasePrefix_init` linked as axioms, the TCB baseline updated, an entry in
+`notes/decisions.md` ("The lease keep-alive entry point"); C2's `tickMu` assumption stays in its
+docstring. "Widen ckptEffectsOk's doc": `InvBoot.lean`'s docstring names `Renew`'s checkpointer
+call (no statement changes). "Keep premise, record open": `peerRt` stays a premise of
+`LeaseRenew.spec`, open in `notes/STATUS.md`.
+
+## Prove (2026-11-01)
+
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__LeaseRenew.lean`, no `sorry`, linked in the
+server's `Link.lean`. Open: `peerRt` from `NewServer`'s contract; a `tickMu` pool (C2); C1 at the
+lease-grant work; a Go reproduction of `issues/etcd-lease-renew-keys-follower-lag.md`.
