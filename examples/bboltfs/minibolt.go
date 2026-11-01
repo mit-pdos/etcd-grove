@@ -68,14 +68,24 @@ func Open(path string) (*DB, error) {
 		return nil, err
 	}
 	db.filesz = int(info.Size())
+	// db.go's getPageSize, read before the file is mapped: is there a valid meta, and of
+	// which page size
+	valid := false
 	if db.filesz >= 4*pageSize {
-		// db.go's getPageSize: read before the file is mapped
-		if ps, ok := db.readPageSize(); ok && ps != pageSize {
+		ps, ok, err := db.readPageSize()
+		if err != nil {
+			db.close()
+			return nil, err
+		}
+		if ok && ps != pageSize {
 			db.close()
 			return nil, errPageSize
 		}
+		valid = ok
 	}
-	if db.filesz < 4*pageSize {
+	// a new file, or neither meta valid (a crash during init): initialize, before mapping, so
+	// that init never writes mapped pages
+	if !valid {
 		if err := db.init(); err != nil {
 			db.close()
 			return nil, err
@@ -85,12 +95,6 @@ func Open(path string) (*DB, error) {
 		db.close()
 		return nil, err
 	}
-	if !db.meta0.validate() && !db.meta1.validate() {
-		if err := db.init(); err != nil {
-			db.close()
-			return nil, err
-		}
-	}
 	return db, nil
 }
 
@@ -98,18 +102,19 @@ func Open(path string) (*DB, error) {
 var errPageSize = errors.New("minibolt: the database has another page size")
 
 // readPageSize is db.go's getPageSize: the page size in the first meta that
-// validates, read with ReadAt.
-func (db *DB) readPageSize() (int, bool) {
+// validates, read with ReadAt (the file has at least 4 pages). A failed read is an
+// error, never "no valid meta": Open would initialize over the database.
+func (db *DB) readPageSize() (int, bool, error) {
 	buf := make([]byte, pageSize)
 	for i := 0; i < 2; i++ {
-		n, err := db.file.ReadAt(buf, int64(i*pageSize))
-		if err == nil && n == len(buf) {
-			if m := pageAt(buf, 0).meta(); m.validate() {
-				return int(m.pageSize), true
-			}
+		if _, err := db.file.ReadAt(buf, int64(i*pageSize)); err != nil {
+			return 0, false, err
+		}
+		if m := pageAt(buf, 0).meta(); m.validate() {
+			return int(m.pageSize), true, nil
 		}
 	}
-	return 0, false
+	return 0, false, nil
 }
 
 // init writes db.go's four initial pages: the freelist and root pages, synced,
