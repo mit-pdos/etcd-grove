@@ -285,6 +285,88 @@ theorem Replica.run.wp_proof
             simp only [roleAfter, Option.map_some, Option.getD_some]
             have := (by simpa using hl : rs = (W64 2))
             rw [this]; rfl
+      wp_apply wp_IsEmptySnap rdv.Snapshot' DFrac.discard none $$ [$HrP] as %b2 ⟨%Hb2, -⟩
+      · unfold snapOpt; ipureintro; exact Hnull
+      subst Hb2
+      simp only [Option.elim]
+      try wp_auto
+      wp_apply wp_IsEmptyHardState rdv.HardState' h $$ [$HrP $Hhs]
+      try wp_auto
+      -- `sync`: entries, or the term or vote moved
+      wp_join (Q := fun v => iprop(⌜∃ b : Bool, v = #b ∧ (b = true ↔ (rdv.Entries'.len ≠ W64 0 ∨
+          (¬ (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0) ∧
+            (h.Vote' ≠ hd.Vote' ∨ h.Term' ≠ hd.Term'))))⌝ ∗ rd_ptr ↦ rdv ∗ hs_ptr ↦ hsp ∗
+          changed_ptr ↦ !decide (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0)))
+        at (if: _ then _ else _) with [rd hs changed] as ⟨%Hv, rd, hs, changed⟩
+      · wp_if_destruct
+        · try wp_auto
+          have Hlen0 := Hif
+          wp_if_destruct
+          · try wp_auto
+            iframe
+            ipureintro
+            refine ⟨false, rfl, ?_⟩
+            simp only [Bool.false_eq_true, false_iff, not_or, not_and]
+            refine ⟨fun h1 => h1 Hlen0, fun h1 => absurd h1 (by simpa using Hif)⟩
+          · have Hchg := Hif
+            try wp_auto
+            wp_apply wp_MustSync rdv.HardState' hsp h hd (W64 0) $$ [$HrP $Hhs $HhsO]
+            iframe
+            ipureintro
+            refine ⟨_, rfl, ?_⟩
+            simp only [decide_eq_true_eq]
+            constructor
+            · intro h1; right; exact ⟨by simpa using Hchg, by simpa using h1⟩
+            · intro h1; rcases h1 with h1 | ⟨-, h1⟩
+              · exact absurd Hlen0 h1
+              · rcases h1 with h1 | h1
+                · right; left; exact h1
+                · right; right; exact h1
+        · try wp_auto
+          iframe
+          ipureintro
+          exact ⟨true, rfl, by simp only [true_iff]; exact Or.inl Hif⟩
+      obtain ⟨syncb, rfl, Hsync⟩ := Hv
+      try wp_auto
+      -- `dmu`: the phase idle at the driver's durable state, the image's hard state the driver's
+      wp_apply (lc := 2) sync.Mutex.wp_Lock _ _ $$ [$Hdmu] as ⟨Hlocked, HI⟩
+      iunfold kdDmuInv at HI
+      iNamed HI
+      icases Hlive with ⟨%S1, %o, %pz, Hwr, %HMok, #Hcert, %Hfb, Hph⟩
+      ihave ⟨Hclaim, Hph, %Hidle⟩ := kd_claim_idle γ id n ρ.ph.ph S S1 M pz $$ [Hclaim Hph]
+      · iframe Hclaim Hph
+      obtain ⟨rfl, rfl, HSM⟩ := Hidle
+      ihave %Hcmeq := ghostVar_agree ρ.ph.cm _ _ _ _ $$ Hcm Hcmh
+      ihave %Hfzd := monoNatLbOwn_valid ρ.ph.ic 1 fz D.length $$ Hic Hicl
+      ihave #Hst' : st.[KStorage, go!"img"] ↦□ ip $$ []
+      · iexact Himg
+      try wp_auto
+      -- the hard state (if any): the image's set to the driver's next one (`phsNext`)
+      wp_join iprop(∃ hsp' : Loc, memStorMeta ρ.ms ρ.γs (phsNext hd h) ∗
+          ownImage ip (imgSetHardState M (phsNext hd h)) ∗ hs_ptr ↦ hsp' ∗ hsOpt hsp' (phsNext hd h) ∗
+          rd_ptr ↦ rdv ∗ r_ptr ↦ r) at next with [Hmeta Himage hs rd r] as
+          ⟨%hsp', Hmeta, Himage, hs, #HhsO', rd, r⟩
+      · try wp_auto
+        wp_if_destruct
+        · -- unchanged: `phsNext` keeps the driver's, which the image has
+          have Hpe := phsNext_empty hd h (by simpa using Hif)
+          rw [Hpe, show imgSetHardState M hd = M by rw [← Hcmeq]; cases M; rfl]
+          wp_join_done
+          iexists hsp
+          rw [← Hcmeq]
+          iframe
+          rw [Hcmeq]
+          iexact HhsO
+        · have Hpe := phsNext_ne hd h (by simpa using Hif)
+          rw [Hpe]
+          try wp_auto
+          wp_apply wp_SSetHardState st ρ.ms ρ.γs M.hs ip M rdv.HardState' h
+            $$ [$Hpkg $Hrec $Hmeta $Hst' $Himage $Hhs] as ⟨Hmeta, Himage⟩
+          try wp_auto
+          wp_join_done
+          iexists rdv.HardState'
+          iframe
+          iexact Hhs
       sorry
     | some lo =>
       sorry
