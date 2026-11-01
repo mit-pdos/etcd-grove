@@ -31,7 +31,7 @@ theorem DB.close.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   intro db sl dsz m0 m1 f dqd fd name d
   wp_start as ⟨#Hinv, Hd, Hs, H0, H1, Hm, Hfile, Hf, Hfd⟩
   (try wp_auto)
-  wp_apply wp_munmap db sl dsz m0 m1 $$ [Hd Hs H0 H1 Hm] as %err ⟨Hd, Hflds, Hun⟩
+  wp_apply wp_munmap db sl dsz m0 m1 $$ [Hd Hs H0 H1 Hm] as %err ⟨Hd, Hs, H0, H1, Hun⟩
   · iframe
   (try wp_auto)
   wp_apply wp_Fd f fd name _ $$ [Hf] as Hf
