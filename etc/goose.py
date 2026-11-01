@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, etcd, kv, kvreconf, durable, bboltfs, durablekv, putget, putgetc, putget3,
+  --project    only this project (raft, etcd, kv, kvreconf, durable, bboltfs, crashlog, durablekv, putget, putgetc, putget3,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver or
                k8s-daemonset; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -510,6 +510,21 @@ PROJECTS = [
         packages=[".", "os", "syscall", "golang.org/x/sys/unix", "io/fs"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "bboltfs"),
                "os", "syscall", os.path.join("golang_org", "x", "sys"), os.path.join("io", "fs")],
+    ),
+    Project(
+        name="crashlog",
+        # the smallest crash-safe program over the Linux file extension (`examples/crashlog`): a
+        # commit flag guarding 8 bytes of data, proved crash-safe end to end
+        # (Proof/github_com/mit_pdos/etcd_grove/examples/crashlog/). Its `os` and `syscall` are
+        # project bboltfs's translations (the same lean roots), which own them; only the package
+        # itself is translated here. A package of the examples' Go module (examples/go.mod).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "crashlog"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
+                    "io/fs="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "crashlog")],
     ),
     Project(
         name="durablekv",
