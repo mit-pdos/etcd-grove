@@ -204,6 +204,13 @@ This deletes the counted stocks (70 places), `etcdGrpcSlots_of_started`, `watchR
 - Retire the cache's own `cacheWgInv` arithmetic. Its premise `threadBound GF + cacheWgOwedMax ≤ 2^31`
   goes away under B1.
 - Low priority: few sites, and they are already local.
+- **Status (2026-11-01).** Inventory done (`notes/bounds-waitgroups.md`: 16 wait groups, twelve kept,
+  leasing done by the pilot, the client's watch stream by B1's first batch, `GoAttach` with B1's
+  server step). `sync.tokJoin` fits none of the hand-written schemes (one adder only); a shared-adder
+  wait group in Perennial is a separate proposal. **The cache done** (branch `bounds-b3-cache`):
+  `New.spec`/`newCache.spec` take `[ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax)]` (the exact bound:
+  `cache_end_to_end_client`/`_new` keep their premise and build the instance); the budget tokens
+  (`γwb`, `cacheWgSlot`) stay, since `cacheWatchSlot`, in `Cache.Watch.spec`, carries one.
 
 ### B4. Counters and stocks from receipts
 
