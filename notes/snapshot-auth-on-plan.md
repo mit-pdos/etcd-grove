@@ -447,3 +447,20 @@ today's specs stay untouched until the user picks the candidate.
   `run_snap_jobOn` (the twin of J8b's job), which wait on J8b's shape; the install walk's mode-on
   steps besides `Recover` (`srvApplyKVOn`'s row at the new backend needs the admin steps at the new
   hook, `authStepsAtHook` from `authWAtHook`, as `authApplyResB_of_pre` at boot).
+
+## J8b's changes the Draft depends on (2026-11-01, from the J8b session)
+
+To apply when the Draft is rebased onto J8b:
+1. `uint.Z ai ≤ w` is gone from `applyAll.specBatch`/`specOn`, `snapshotIfNeeded.specBatch`/`specOff`/`specOn`
+   and `applyRes`/`applyResOn`; `applyRes`/`applyResOn` lost `entriesStep`. `specSnapOn` and
+   `run_snap_jobOn` must not carry them (`kvRunAtOn_sa` already doesn't).
+2. `isServerRun` gains `srvMemberIDAddr s ↦□ γn.id` (the member id is the raft node's id): `specSnap`'s
+   `srvMemberIDAddr s ↦□ nid` must agree with the payload's `nodeSnapLocal … γn.id`; `run_snap_jobOn`'s
+   free `nid` needs the same tie.
+3. `|boot| ≤ i` is **not** an `isServerRun` fact (per payload): a named `sorry` lemma about raft's snapshot
+   payload (raft refuses a snapshot at or below committed; committed ≥ |boot| after bootstrap), for raft's
+   API later. The Draft's assumption list above is corrected by this.
+4. `E.cmp = false` is not an `isServerRun` fact: `run`'s snapshot job splits on `E.cmp`, the cmp-on branch
+   a named `sorry` (`run_job_snap_cmp`); `run_snap_jobOn` needs the same split.
+5. `run`'s auth-on site (`EtcdServer__run.lean`, the second SNAPSHOT-SORRY, ~:1400) is left to this track;
+   the mode-off lemma is `run_job_snap` (final statement from the J8b session once it builds).
