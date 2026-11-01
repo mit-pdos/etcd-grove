@@ -240,6 +240,56 @@ theorem dataErr (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List
   iframe Hown Hcur Hmap Hout Hflds Hcls Htok Hwc Hfsz Hdsz Hf Hfd Hm Hmx Htail
   iframe #
 
+/-- The writer's cells of meta page `i` besides its meta: its header and its tail. -/
+def hdrTail (base : Loc) (i : Nat) : IProp GF :=
+  iprop((∃ vf, cellsR (GF := GF) base (4096 * i) 16 vf) ∗
+    (∃ vf, cellsR (GF := GF) base (4096 * i + 80) 4016 vf))
+
+theorem hdrTails (base : Loc) :
+    ((∃ vf, cellsR (GF := GF) base 0 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 80 4016 vf) ∗
+      (∃ vf, cellsR (GF := GF) base 4096 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 4176 4016 vf)) ⊣⊢
+      hdrTail (GF := GF) base 0 ∗ hdrTail (GF := GF) base 1 := by
+  unfold hdrTail
+  rw [show 4096 * 0 = 0 from rfl, show 0 + 80 = 80 from rfl, show 4096 * 1 = 4096 from rfl,
+    show 4096 + 80 = 4176 from rfl]
+  exact ⟨by iintro ⟨H0, H1, H2, H3⟩; iframe H0 H1 H2 H3, by iintro ⟨⟨H0, H1⟩, H2, H3⟩; iframe H0 H1 H2 H3⟩
+
+/-- Meta page `i`'s cells, from its header, its meta and its tail. -/
+theorem metaPage_cells (base : Loc) (i : Nat) :
+    hdrTail (GF := GF) base i ∗ cellsAny (GF := GF) base (4096 * i + 16) 64 ⊢
+      cellsAny (GF := GF) base (4096 * i) 4096 := by
+  unfold hdrTail
+  iintro ⟨⟨⟨%v0, H0⟩, ⟨%v1, H1⟩⟩, Hm⟩
+  rw [show (4096 : Nat) = 16 + 4080 from rfl]
+  iapply (cellsAny_append base (4096 * i) 16 4080)
+  isplitl [H0]
+  · unfold cellsAny; iexists v0; iexact H0
+  rw [show (4080 : Nat) = 64 + 4016 from rfl]
+  iapply (cellsAny_append base (4096 * i + 16) 64 4016)
+  isplitl [Hm]
+  · iexact Hm
+  rw [show 4096 * i + 16 + 64 = 4096 * i + 80 by omega]
+  unfold cellsAny; iexists v1; iexact H1
+
+/-- Meta page `i`'s cells, as its header, its meta and its tail. -/
+theorem metaPage_cells_split (base : Loc) (i : Nat) :
+    cellsAny (GF := GF) base (4096 * i) 4096 ⊢
+      hdrTail (GF := GF) base i ∗ cellsAny (GF := GF) base (4096 * i + 16) 64 := by
+  unfold hdrTail
+  iintro H
+  rw [show (4096 : Nat) = 16 + 4080 from rfl]
+  icases (cellsAny_split base (4096 * i) 16 4080) $$ H with ⟨H0, H⟩
+  rw [show (4080 : Nat) = 64 + 4016 from rfl]
+  icases (cellsAny_split base (4096 * i + 16) 64 4016) $$ H with ⟨Hm, H1⟩
+  unfold cellsAny
+  icases H0 with ⟨%v0, H0⟩
+  icases H1 with ⟨%v1, H1⟩
+  rw [show 4096 * i + 16 + 64 = 4096 * i + 80 by omega]
+  iframe Hm
+  isplitl [H0]
+  · iexists v0; iexact H0
+  · iexists v1; iexact H1
+
 theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     (wp_Truncate : os.File.Truncate.spec (GF := GF) (hG := hG))
     (wp_Sync : os.File.Sync.spec (GF := GF) (hG := hG))
@@ -650,6 +700,46 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   iintro Hm Hpg Hpc
   rw [show ((dataPage mv.pgid' v).map (·, true)).map Prod.fst = dataPage mv.pgid' v by
     rw [List.map_map]; exact List.map_id _]
+  -- the meta page
+  wp_apply (wp_slice_make2 (V := w8) (W64 4096)) as %mbuf ⟨Hmb, -⟩
+  · ipureintro; decide
+  (try wp_auto)
+  ihave %Hmblen := ownSlice_len $$ Hmb
+  ihave %Hmbpos := ownSlice_ptr_pos mbuf _ _
+    (List.ne_nil_of_length_pos (by rw [List.length_replicate]; decide)) $$ Hmb
+  have hmbl : sint.Z mbuf.len = 4096 := by
+    have h1 := Hmblen.1; have h2 := Hmblen.2; simp only [List.length_replicate] at h1
+    have : sint.nat mbuf.len = (sint.Z mbuf.len).toNat := rfl
+    omega
+  wp_apply wp_pageAt
+  · ipureintro; rw [hmbl]; exact ⟨Hmbpos, by decide, by decide⟩
+  rw [show sint.Z (W64 0) = 0 from rfl, loc_add_0]
+  icases ownSlice_bytes_acc go.uint8 (.scalar _ _ .isPlainScalar_uint8) mbuf _ _ Hmbpos $$ Hmb
+    with ⟨Hb, Hmclose⟩
+  simp only [flatMap_encode_w8, show zero_val w8 = (0 : w8) from rfl]
+  icases (zeroPage_meta_view _ _ Hmbpos).1 $$ [Hb] with ⟨Hh, Hmm, Hr⟩
+  · iexact Hb
+  (try wp_auto)
+  wp_apply wp_write m_ptr mbuf.ptr (nextMeta mv) _ _ $$ [m Hh Hmm] as ⟨m, Hh, Hmm⟩
+  · iframe m Hh Hmm; ipureintro; exact ⟨Hmpos, Hmbpos⟩
+  (try wp_auto)
+  -- `metalock`: the handle is not failed (the writer's `cur`)
+  ihave #Hpkg2 := Hpkg
+  iunfold pkgFacts at Hpkg2
+  icases Hpkg2 with ⟨#Hsync, -⟩
+  wp_apply sync.Mutex.wp_Lock db.[DB, go!"metalock"] (metaR (GF := GF) γ db p) $$ [$Hmeta $Hsync]
+    as ⟨Hlocked, HR⟩
+  iunfold metaR at HR
+  icases HR with ⟨%b, %mpx, %mx, %hwmx, %mxc', %T, Hfl, Hcm, Hmb, %Hmx', Hauth, Hout2, Hrest⟩
+  icombine Hcur Hcm gives % ⟨_, Hceq⟩
+  cases Hceq
+  dsimp only
+  icases Hrest with ⟨Hfail, %Hmeta', Hlast, Hown2, %B0, #HB0, #Htx0, %HT0⟩
+  obtain ⟨rfl, -, -, HTn⟩ := Hmeta'
+  icases Hmb with (⟨Hmx2, Hcls2⟩ | Hcls2)
+  rotate_left
+  · icombine Hcls Hcls2 gives % ⟨_, Hbad⟩; cases Hbad
+  (try wp_auto)
   sorry
 
 end proof
