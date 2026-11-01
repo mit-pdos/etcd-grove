@@ -599,3 +599,64 @@ Open, in order:
      variants are new files; `Snapshot`/`Get` unchanged if `pageIs` stays.
 6. `BootMinibolt`'s per-generation proof and `BootCrashSafety` (`osFsQ_crash_adequacyT` with
    `P1`, `csInv_alloc`, `csInv_crash_keep`; `crashlog/Results.lean`'s shape with `Hinit_wp`).
+
+### minibolt's crash proof, round 5 (2026-11-01, branch `osfs-mbcrash`)
+
+Merged `origin/lean` (`b4274660d4`, the `etc/proof_roots.py` fix; Perennial pin still `2130bdb99`).
+
+Done (no `sorryAx`; `#print axioms` of `wp_osPWriteFinish`, `WReach.torn`, `cacheOk_wreach`,
+`initIdle_wreach`, `initMid_wreach`, `initW1_obl`, `initW2_obl`, `initSync_ok`, `commitMetaW_okS`:
+`propext`, `Classical.choice`, `Quot.sound`). Rebuilt: all of `GooseLang/Ext/OsFs`, `Proof/os`,
+`Spec/os`, crashlog's `Results`, every `bboltfs` module.
+- **Round 4's gap 1 fixed (the approved ghost change, untrusted)**: `TokInfo.cl : List Bool`, the
+  taken bytes' clean flags (`osCoh_addTok` records `xs.map Prod.snd`; truncate tokens `[]`), and
+  `OsCoh.tok_clean`: `ti.cl[j]? = some true → j < affHi - affLo ∧ CleanPhys f (affLo + j)`, kept by
+  `osCoh_addTok`, `pwFinish_coh` (other tokens' clean bytes are outside the finished write, by
+  `infl_disj`), `ftFinish_coh`, `osCoh_setFile_sameCur` (`hkeep`), `osCoh_create`; `osCoh_setMaps`
+  and the fd steps pass it through. `pwBytes` now flags a byte past `off + k` with its flag in `xs`
+  (`decide (off + k ≤ i) && xs[j].2`); `pwFinish_coh`/`wp_osPWriteFinish` prove those bytes clean
+  and not in flight. `cToks`/`CSt.toks` carry `cl`. Nothing downstream depended on the old `false`.
+- **`Proof/os/CrashWReach.lean`** (new, generic): `finBytes_mid`, `WReach.prefix` (a retried write
+  has written a prefix `K` of its data; the size is `pwSize m.size off K`; every other byte of the
+  range is untouched, flag included), `WReach.torn` (a part `[a, a + w)` of the range held by the
+  reached state: untouched, or first byte the data's and either an old byte left, inside the old
+  file, or all data).
+- **`writingImg`'s page-cache case now requires no clean byte in the slot** (as `idleImg`'s):
+  `seen_writing` returns `bs[j].2 = true → ¬dirty ∧ ¬lost` for all `j`, the write's range from
+  `tok_clean`. So `writingImg_slot`, `initW1_good`/`initW2_good`/`commitMetaW_good` and their
+  `_okS` take `cacheOk` (no longer "the page cache's slot is invalid / P"), which is what a torn slot
+  with a clean old byte satisfies. This replaces round 4's "partial alternative" (no decode of a
+  zero-prefixed magic is needed).
+- **`CrashImg.lean`**: `cacheOk_wreach` (the blocked lemma: from a state whose slot bytes are all
+  clean, every reached state has `cacheOk` if the all-data slot satisfies `P`), `slot_data_write`,
+  `wreach_dur`, `durOk_congr`, `initIdle_wreach` (the helper `initIdle_good` needed: W1's reached
+  states are `initIdle`, given the slots clean in Open's bytes), `initMid_wreach`, `initMid_synced`,
+  `initIdle_notOk`/`initMid_notOk`, and, ready to feed `WriteAt.specCrashS`/`Fdatasync.specCrashS`:
+  **`initW1_obl`**, **`initW2_obl`** (`∀ m' bs', WReach … → Ok idle ∧ ∀ t, Ok write`, any `fa fb`),
+  **`initSync_ok`** (`Ok (some (csSynced false m [] [] bs 0 0))`, i.e. `H = F = []`, `T` the file).
+
+Not started: the separation-logic re-proofs (item 5's resource rework and `DB.init.specCrash` on),
+item 6.
+
+Open, in order:
+5a. **`DB.init.specCrash`** (new Spec + Proof files, keep `DB.init.spec`). Proposed statement:
+   `DB.init.spec`'s, with `csInv N p γ (CrashOkS (P1 p) p Good)` and `↑osN ⊆ ⊤ \ ↑N`, and
+   `csOwn p γ (some ⟨m, xs, 0, 0, .idle⟩)` in place of `osMeta 1 m ∗ osBytes 0 1 xs`; extra
+   premises `initIdle m xs` (Open: no valid slot in the durable copy or page cache, `m.hi ≤ 2^30`)
+   and the slots clean in `xs` (`∀ i < 2, ∀ k < 64, ∀ x, xs[4096 i + 16 + k]? = some x → x.2`; at
+   boot every byte is clean). Post: success `csOwn p γ (some ⟨m2, initFile xs, 0, 0, .idle⟩)` with
+   `m2` as now (`dur := durOf 0 (initFile xs)`), failure `∃ s', csOwn p γ (some s')`. Proof: copy
+   `DB__init.lean`'s; `wp_WriteAt` → `os.File.WriteAt.specCrashS` (obligation `initW1_obl`, then
+   `initW2_obl` with `D = I.take 8192`, `hDs` from `initBytes_meta0/1` + `fileMeta_take`), whose post
+   gives `WReach` (use `WReach.narrow`/`finBytes_data` for the bytes, in place of `pwBytes_full`);
+   `wp_Fdatasync` → `syscall.Fdatasync.specCrashS` with `H = F = []`, `hd = false` (success:
+   `initSync_ok`; failure: `initIdle_okS ∘ initIdle_notOk` / `initMid_okS ∘ initMid_notOk` of the
+   write's last reached state). After S1 the slots are zero and clean (`syncedBytes`), as
+   `initW2_obl` needs. `csSynced false … = ⟨m.syncedKeep 0 T 0 [], syncedBytes m T⟩`;
+   `syncedKeep 0 T 0 [] = synced 0 T` (see `initSync_ok` for the proof without `[GooseSemantics]`).
+5b. The rest of item 5 as in round 4's handoff: `isDB` gains `csInv`, `rwR`/`metaR` rework,
+   `cs_freeze` after each commit, `curInSlot` into `fileOk`/`dbFresh`; crash-aware `Open`, `commit`
+   (its meta write: `commitMetaW_okS`/`commitMetaIdle_okS` with `cacheOk_wreach`, the old slot
+   `1 - s` clean: both meta slots stay clean between commits, as every meta write is followed by a
+   sync and no other write touches the metas; carry that in `rwR`), `Close`.
+6. `BootMinibolt`'s per-generation proof and `BootCrashSafety` (unchanged plan).
