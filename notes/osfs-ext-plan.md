@@ -460,3 +460,45 @@ Done:
     that the changed range misses them), `commitMeta` with `commitMetaW_good` (meta write in
     flight) and `commitMetaIdle_good` (after it, failed, or a failed meta sync), via `commit_cur`
     and `commitMeta_good`.
+- **`curInSlot`** (`CrashGood.lean`): `goodImg`'s committed case also asks that the current meta
+  be in slot `txid % 2` (`curMeta mp = fileMeta mp (txid % 2)`), so that the next commit, which
+  writes slot `(txid + 1) % 2`, never overwrites it. Without it a crash during the meta write
+  could leave the other slot, whose meta (if valid) the proof knows nothing of. `goodImg_cur`
+  takes it (`hs`); `init`'s images and both commit outcomes satisfy it (`commitMeta.sTx`,
+  `nTxS : N.txid = T + 1`).
+
+All of the above: no `sorryAx` (`#print axioms` of `wp_osFsync_keep`, `crashOkQ_idle`,
+`crashOkQ_writing`, `initIdle_good`, `initW1_good`, `initW2_good`, `initMid_idle_good`,
+`commit_clean_img`, `commitMetaW_good`, `commitMetaIdle_good`: `propext`, `Classical.choice`,
+`Quot.sound`). `CrashImg.lean` is not imported by any root (as `CrashOk.lean`); build it by name.
+
+Open, in order (items 5-7 not started; what round 3 learned of them):
+5. **Crash-aware specs over `cfInvQ`.** Plan: generalize `cfInv` to `cfInvP N p γ (Ok : CFile →
+   Prop)` (`cfInv = cfInvP (CrashOk Good)`, `cfInvQ = cfInvP (CrashOkQ Q p Good)`), and
+   `CrashOps.lean`'s four ops over `Ok`, the facts they use of `CrashOk` becoming hypotheses
+   (`crashOk_notOk`: the caller shows `Ok` of the failed sync's state; `crashOk_tok`). **Narrowing
+   does not carry over:** `crashOk_narrow` holds for `CrashOk`, not `CrashOkQ (P1s p)`, because P1
+   admits the page cache's slot of each narrowing (a partial write's mix) only by its cleanliness,
+   which differs between narrowings. So `File.WriteAt.specCrash` over `Ok` should ask `Ok` of every
+   state the loop passes through: each narrowing idle (`finBytes`, iterated) and with the next
+   attempt in flight. The image lemmas are shaped for that: idle narrowings need `cacheOk` of the
+   slot (a partially written slot keeps a clean old byte, or is the data's), writes in flight need
+   only the write's and the old slot. A lemma "`cacheOk` of iterated `finBytes`" (bytes outside the
+   written prefix keep their flags; written bytes are the data's, flagged not clean) is the missing
+   link. `syscall.Fdatasync.specCrash` posts `m.synced 0 bs` with all of `bs`, so `dur` knows the
+   whole file and `wp_osFsync_keep` is needed only if the client syncs part of it (next point).
+   Also needed: a `CFile` state for a truncate in flight (commit's growth: its crash images are
+   `idleImg` with `hi` widened to the target, P1's write case not applying), and mappings (`CfWf`
+   asks `m.maps = ∅`; minibolt maps the file).
+6. **`rwR` holding `cfOwn`** conflicts with `DB.lean`'s committed pages: `pageIs` keeps them as
+   persistent `osBytes ... DFrac.discard`, while `cfOwn`/`invRes` hold all of `bs` in halves.
+   Proposal: let the idle `CFile` hold runs (as `cRuns` already does) with any fractions, so
+   that committed pages sit in the invariant at a discarded fraction (readers' `ReadAt` and the
+   mapping take them from there); a sync then takes only the pages the writer holds whole
+   (`wp_osFsync_keep` records the committed and meta bytes, shown clean). `CrashSeenR`'s runs
+   already have arbitrary fractions, so `seen_file` generalizes to runs covering the file.
+   The DB invariant must also carry what `commitClean`/`commitMeta` ask: `curInSlot mp`, the meta
+   and current root pages clean, `4096 * curPgid mp ≤ m.lo`, and, between the data page's sync and
+   the meta write, `durOk m (1 - s) (old or new)` (from `wp_osFsync_keep` over the meta pages).
+   `Open` must carry `curInSlot` from `goodImg` (add it to `fileOk`/`dbFresh`).
+7. `BootCrashSafety`, once 5-6 are done; stated with `P1s` if the user agrees (above).

@@ -221,10 +221,16 @@ theorem goodImg_cur {img : List w8} {X : Meta} (h16 : 4 * 4096 ≤ img.length)
     (hv : metaValid (fileMeta img 0) ∨ metaValid (fileMeta img 1))
     (hr : 2 ≤ X.root'.root'.toNat) (hrp : X.root'.root'.toNat < X.pgid'.toNat)
     (hp : (X.pgid'.toNat + 1) * 4096 ≤ 2 ^ 30) (hpi : 4096 * X.pgid'.toNat ≤ img.length)
-    (hb : bootOk X.txid'.toNat (pageVal ((img.drop (4096 * X.root'.root'.toNat)).take 4096))) :
+    (hb : bootOk X.txid'.toNat (pageVal ((img.drop (4096 * X.root'.root'.toNat)).take 4096)))
+    (hs : fileMeta img (X.txid'.toNat % 2) = X) :
     goodImg img := by
   have hc' : curMeta (imgMetas img) = X := by simp only [imgMetas]; rw [curMeta_take, hc]
-  refine ⟨hl, Or.inr (Or.inr ⟨h16, ⟨by simp; omega, ?_, ?_, ?_, ?_⟩, ?_, ?_⟩)⟩
+  refine ⟨hl, Or.inr (Or.inr ⟨h16, ⟨by simp; omega, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?slot⟩)⟩
+  case slot =>
+    show curMeta (imgMetas img) = fileMeta (imgMetas img) _
+    simp only [imgMetas]
+    rw [hc', fileMeta_take _ _ _ (by omega)]
+    exact hs.symm
   · simp only [imgMetas]
     rw [fileMeta_take _ _ 0 (by omega), fileMeta_take _ _ 1 (by omega)]; exact hv
   all_goals simp only [curRoot, curPgid, hc']
@@ -243,7 +249,22 @@ theorem goodImg_init {img : List w8} (h16 : 4 * 4096 ≤ img.length) (hl : img.l
       · exact ⟨0, by omega, e.trans (hs 0 (by omega) v)⟩
       · exact ⟨1, by omega, e.trans (hs 1 (by omega) v)⟩
     obtain ⟨i, hi, hc⟩ := hX
-    refine goodImg_cur h16 hl hc hv ?_ ?_ ?_ ?_ ?_ <;>
+    have hne : bInitMeta 0 ≠ bInitMeta 1 := by
+      intro h
+      have := congrArg (fun x : Meta => x.txid'.toNat) h
+      simp only [initMeta_txid] at this
+      exact absurd this (by decide)
+    have hsl : fileMeta img i = bInitMeta i := by
+      rcases curMeta_cases img hv with ⟨e, v⟩ | ⟨e, v⟩
+      · rcases i with _ | _ | i
+        · exact hs 0 (by omega) v
+        · exact absurd ((hs 0 (by omega) v).symm.trans (e.symm.trans hc)) hne
+        · omega
+      · rcases i with _ | _ | i
+        · exact absurd ((hs 1 (by omega) v).symm.trans (e.symm.trans hc)).symm hne
+        · exact hs 1 (by omega) v
+        · omega
+    refine goodImg_cur h16 hl hc hv ?_ ?_ ?_ ?_ ?_ ?_ <;>
       simp only [initMeta_root, initMeta_pgid, initMeta_txid]
     · decide
     · decide
@@ -254,6 +275,10 @@ theorem goodImg_init {img : List w8} (h16 : 4 * 4096 ≤ img.length) (hl : img.l
       rcases i with _ | _ | i
       · decide
       · decide
+      · omega
+    · rcases i with _ | _ | i
+      · exact hsl
+      · exact hsl
       · omega
   · exact goodImg_noValid hl fun i hi _ hv' => hv (by
       rcases i with _ | _ | i
@@ -346,10 +371,6 @@ theorem initW2_good {m : OsMeta} {bs : List (w8 × Bool)} {data : List w8} (h : 
 
 /-! ## commit -/
 
-/-- The current meta of the meta pages `mp` is in slot `txid % 2`, where `commit` never writes. -/
-def curInSlot (mp : List w8) : Prop :=
-  curMeta mp = fileMeta mp ((curMeta mp).txid'.toNat % 2)
-
 /-- What a commit's crash images need of the state while the metas and the current root page are
 clean (every step before the meta write): `bs`'s meta pages `mp` are an open database's, whose
 current meta's root page holds what `BootMinibolt` checks, and the size since the last sync covers
@@ -358,6 +379,7 @@ structure commitClean (m : OsMeta) (bs : List (w8 × Bool)) : Prop where
   hi : m.hi ≤ 2 ^ 30
   lo : 4 * 4096 ≤ m.lo
   ok : metaPagesOk ((bs.map Prod.fst).take 8192)
+  slot : curInSlot ((bs.map Prod.fst).take 8192)
   pg : 4096 * curPgid ((bs.map Prod.fst).take 8192) ≤ m.lo
   boot : bootOk (curMeta ((bs.map Prod.fst).take 8192)).txid'.toNat
     (pageVal (((bs.map Prod.fst).drop (4096 * curRoot ((bs.map Prod.fst).take 8192))).take 4096))
@@ -375,9 +397,10 @@ theorem commit_clean_img {m : OsMeta} {bs : List (w8 × Bool)} (h : commitClean 
   have hboot := h.boot
   have hroot := h.root
   have hlo4 := h.lo
+  have hslot := h.slot
   have hlen : ((bs.map Prod.fst).take 8192).length = 8192 := hok.1
   have hbl : 8192 ≤ (bs.map Prod.fst).length := by rw [List.length_take] at hlen; omega
-  generalize hmp : (bs.map Prod.fst).take 8192 = mp at hok hpg hboot hroot hcl
+  generalize hmp : (bs.map Prod.fst).take 8192 = mp at hok hpg hboot hroot hcl hslot
   have hmeta : ∀ k < 8192, img[k]? = (bs.map Prod.fst)[k]? := by
     intro k hk
     obtain ⟨b, hb⟩ := h.metas k hk
@@ -401,7 +424,7 @@ theorem commit_clean_img {m : OsMeta} {bs : List (w8 × Bool)} (h : commitClean 
     obtain ⟨b4, hb4⟩ := hroot 4095 (by omega)
     have h4 := (List.getElem?_eq_some_iff.1 hb4).1
     rw [take_drop_eq hR (by simp only [List.length_map]; omega)]
-    exact hboot
+    exact ⟨hboot, hslot⟩
 
 /-- The current meta of an image whose slot `s` is the old current meta `M` and whose other slot
 is invalid, the old one, or the new meta `N` (with a larger txid): `M` or `N`. -/
@@ -451,6 +474,7 @@ the old meta pages `mp`, whose current meta `M` is in slot `s`, to the new meta 
 structure commitMeta (m : OsMeta) (bs : List (w8 × Bool)) (mp : List w8) (N : Meta)
     (s : Nat) : Prop where
   s2 : s < 2
+  sTx : s = (curMeta mp).txid'.toNat % 2
   hi : m.hi ≤ 2 ^ 30
   lo : 4 * 4096 ≤ m.lo
   ok : metaPagesOk mp
@@ -462,6 +486,7 @@ structure commitMeta (m : OsMeta) (bs : List (w8 × Bool)) (mp : List w8) (N : M
   metaS : ∀ k < 64, ∃ b, mp[4096 * s + 16 + k]? = some b ∧ bs[4096 * s + 16 + k]? = some (b, true)
   nValid : metaValid N
   nTx : uint.Z (curMeta mp).txid' < uint.Z N.txid'
+  nTxS : N.txid'.toNat = (curMeta mp).txid'.toNat + 1
   nRoot : 2 ≤ N.root'.root'.toNat
   nRootPg : N.root'.root'.toNat < N.pgid'.toNat
   nPg : (N.pgid'.toNat + 1) * 4096 ≤ 2 ^ 30
@@ -506,6 +531,7 @@ theorem commitMeta_good {m : OsMeta} {bs : List (w8 × Bool)} {mp : List w8} {N 
           · exact Or.inl (hM ▸ hMv)
           · exact Or.inr (hM ▸ hMv)
           · omega) hok.2.2.1 hok.2.2.2.1 hok.2.2.2.2 (by have := h.pg; unfold curPgid at this; omega) ?_
+      (by rw [← h.sTx]; exact hM)
     show bootOk _ (pageVal ((img.drop (4096 * curRoot mp)).take 4096))
     rw [hpage _ h.root (fun k h1 h2 b hb => hcl k b hb (.inr (.inl ⟨h1, h2⟩)))]
     exact h.boot
@@ -514,8 +540,22 @@ theorem commitMeta_good {m : OsMeta} {bs : List (w8 × Bool)} {mp : List w8} {N 
       · exact Or.inl (hM ▸ hMv)
       · exact Or.inr (hM ▸ hMv)
       · omega
+    have hN' : fileMeta img (1 - s) = N := by
+      rcases curMeta_cases img hvN with ⟨e, v⟩ | ⟨e, v⟩
+      · rcases s with _ | _ | s
+        · exact absurd (hM.symm.trans (e.symm.trans hc)) (fun e' => by
+            have := h.nTx; rw [e'] at this; omega)
+        · exact e.symm.trans hc
+        · omega
+      · rcases s with _ | _ | s
+        · exact e.symm.trans hc
+        · exact absurd (hM.symm.trans (e.symm.trans hc)) (fun e' => by
+            have := h.nTx; rw [e'] at this; omega)
+        · omega
     refine goodImg_cur (by have := h.lo; omega) hhi hc hvN h.nRoot h.nRootPg h.nPg
-      (by have := h.nPgLo; omega) ?_
+      (by have := h.nPgLo; omega) ?_ (by
+        rw [h.nTxS, show ((curMeta mp).txid'.toNat + 1) % 2 = 1 - s by have := h.sTx; omega]
+        exact hN')
     rw [hpage _ h.nPage (fun k h1 h2 b hb => hcl k b hb (.inr (.inr ⟨h1, h2⟩)))]
     exact h.nBoot
 

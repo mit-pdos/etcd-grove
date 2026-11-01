@@ -9,7 +9,8 @@ A crash image `img` of the database file is `Good` (`goodImg`) if it is at most 
 * **uninitialized** (four pages or more, neither meta valid): `Open` redoes `init`;
 * **committed**: the meta pages are an open database's (`metaPagesOk`), the high water mark is
   inside the file, and the current meta's root page holds what `BootMinibolt` checks of it
-  (`bootOk`: no value at transactions 0 and 1, `init`'s, and its txid at every later one).
+  (`bootOk`: no value at transactions 0 and 1, `init`'s, and its txid at every later one), and
+  it is in slot `txid % 2` (`curInSlot`), so that the next commit writes the other slot.
 
 `goodImg_fileOk` and `goodImg_freshTx` give `Open`'s precondition (`dbFresh`: `fileOk`, with all
 bytes clean, as after a crash) and `BootMinibolt`'s first check (`bootOk` of `freshTx`).
@@ -39,6 +40,11 @@ def bootOk (t : Nat) (vo : Option w64) : Prop :=
 /-- The meta pages of `img`. -/
 abbrev imgMetas (img : List w8) : List w8 := img.take 8192
 
+/-- The current meta of the meta pages `mp` is in slot `txid % 2`, which the next commit (writing
+slot `(txid + 1) % 2`) does not touch. -/
+def curInSlot (mp : List w8) : Prop :=
+  curMeta mp = fileMeta mp ((curMeta mp).txid'.toNat % 2)
+
 /-- A crash image `img` of the database file that a boot accepts (see the file header). -/
 def goodImg (img : List w8) : Prop :=
   img.length ≤ 2 ^ 30 ∧
@@ -48,7 +54,8 @@ def goodImg (img : List w8) : Prop :=
    (4 * 4096 ≤ img.length ∧ metaPagesOk (imgMetas img) ∧
       4096 * curPgid (imgMetas img) ≤ img.length ∧
       bootOk (curMeta (imgMetas img)).txid'.toNat
-        (pageVal ((img.drop (4096 * curRoot (imgMetas img))).take 4096))))
+        (pageVal ((img.drop (4096 * curRoot (imgMetas img))).take 4096)) ∧
+      curInSlot (imgMetas img)))
 
 /-- **minibolt's crash invariant**: the database file is absent, or a `Good` image. -/
 def Good : Option OsFile → Prop
@@ -75,7 +82,7 @@ theorem goodImg_freshTx (img : List w8) (h : goodImg img) :
     simp [List.map_map, Function.comp_def]
   unfold freshTx
   simp only [hfst, List.length_map]
-  obtain ⟨-, h | ⟨h4, h0, h1⟩ | ⟨h4, hok, -, hb⟩⟩ := h
+  obtain ⟨-, h | ⟨h4, h0, h1⟩ | ⟨h4, hok, -, hb, -⟩⟩ := h
   · split
     · rename_i hc; exact absurd hc.1 (by omega)
     · exact Or.inl ⟨by omega, rfl⟩
