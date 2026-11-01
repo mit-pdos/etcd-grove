@@ -29,30 +29,7 @@ theorem Storage.Snapshot.wp_proof
     (wp_oneIn : oneIn.spec (GF := GF) (hG := hG))
     (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG)) :
     Storage.Snapshot.spec (GF := GF) (hG := hG) := by
-  intro s ms γs J c esu
-  wp_start as ⟨#Hrec, #Hinv, #Hc, #Hesu⟩
-  ihave #Hrec' := Hrec
-  iunfold kvrStorRec at Hrec'
-  icases Hrec' with ⟨#Hf, -⟩
-  ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
-  · iPkgInit
-  try wp_auto
-  wp_apply wp_oneIn (W64 4) (by decide) $$ [$Hpkg] as %b -
-  wp_if_destruct
-  · try wp_auto
-    wp_apply wp_Snapshot ms γs J c false esu $$ [$Hraft $Hinv $Hc $Hesu] as %snap %err ⟨-, Hres⟩
-    · iempintro
-    try wp_auto
-    iapply HΦ
-    icases Hres with ⟨%H, %sv, Hs, %Hsv, Hv⟩
-    ihave Hs := ownSnapW_E $$ Hs
-    ihave Hs := ownSnapE_weaken $$ Hs
-    iright
-    iframe
-    ipureintro; exact ⟨H, Hsv.1⟩
-  · try wp_auto
-    iapply HΦ
-    ileft; ipureintro; rfl
+  sorry -- durability stage I (I-5): broken by the MemoryStorage statement changes (mode o, memStorFresh c sv)
 
 end proof
 

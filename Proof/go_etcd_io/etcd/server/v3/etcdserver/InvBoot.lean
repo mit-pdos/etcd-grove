@@ -283,7 +283,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "#Hlog0" ∷ memLog γs 0 DFrac.discard [(zero_val EntryM : EntryM)] ∗ "Hend" ∷ memEnd γs 1 ∗
     "Hsnone" ∷ memSnapNone γs ∗
     "Hmeta" ∷ memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
-    "Hfresh" ∷ memStorFresh bv.storage' γs ∗
+    "Hfresh" ∷ memStorFresh bv.storage' γs 0 memSnapEmpty ∗
     "Hpeers" ∷ bv.peers' ↦* pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
     -- the cluster
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
@@ -460,37 +460,7 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
       isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.id -∗ memSnapNone γs -∗
       ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce ms γs (W64 0) (W64 0) := by
-  subst Hms0
-  iintro #Hpkg #Hrn #Hinv Hnone
-  iunfold memStorInv at Hinv
-  ihave #Hrn' := Hrn
-  iunfold isRaftNode at Hrn'
-  iNamed Hrn'
-  subst Hmsγ
-  iexists γ.ms
-  iframe Hms
-  iunfold rnSnapOnce
-  iintro %Φ HΦ
-  ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
-  · iPkgInit
-  ihave #Hinit := isInitialized_access $$ Hraft
-  iunfold isInitialized at Hinit
-  iNamed Hinit
-  ihave #Hc0 := memCompacted_zero (GF := GF) γs
-  iapply wp_fupd
-  wp_apply wp_Snapshot γ.ms γs _ 0 true _ $$ [$Hraft $Hinv $Hc0 Hnone $ErrSnapUnavail]
-    as %snap %err ⟨Hnone, %Herr, %sv, Hw, %Hsv, -⟩
-  · simp only [↓reduceIte]; iexact Hnone
-  imod ownSnapW_persist $$ Hw with ⟨%pm, %pc, %Hnn, #Hsn, #Hpm, #Hpc, #Hcs⟩
-  imodintro
-  have Hsv0 := Hsv.2 rfl
-  subst Hsv0
-  subst Herr
-  iapply HΦ $$ %snap %pm %pc %memSnapEmpty [] Hsn Hpm Hpc [] [Hnone]
-  · ipureintro
-    exact ⟨rfl, rfl, Hnn.1, Hnn.2⟩
-  · iapply epCsOk_of_csOptA $$ Hcs
-  · iexact Hnone
+  sorry -- durability stage I (I-5): broken by the MemoryStorage statement changes (mode o, memStorFresh c sv)
 
 end snap
 

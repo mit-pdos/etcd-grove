@@ -58,13 +58,8 @@ instance memStorInv_persistent (ms : Loc) (γs : MemStorNames) (γ : Cluster) (i
 
 /-- Its allocation, from `NewMemoryStorage`'s fuel (`memStorFresh`) once `InitialState` returned. -/
 theorem memStorInv_alloc (ms : Loc) (γs : MemStorNames) (γ : Cluster) (id : w64) (E : CoPset) :
-    ⊢ memStorLock (GF := GF) ms γs -∗ memStorFresh ms γs ={E}=∗ memStorInv ms γs γ id := by
-  iintro #Hl Hf
-  unfold memStorInv
-  iapply memStorInvP_alloc ms γs (memStorJ γ id) E $$ Hl Hf
-  simp only [memStorJ]
-  ileft
-  iapply nodeAppliedLb_zero
+    ⊢ memStorLock (GF := GF) ms γs -∗ memStorFresh ms γs 0 memSnapEmpty ={E}=∗ memStorInv ms γs γ id := by
+  sorry -- durability stage I (I-5): memStorInvP_alloc generalized (arity fix only; re-keyed by K in a later layer)
 
 /-- **A registered `MemoryStorage` meets node `id`'s storage contract.** -/
 theorem memStorage_isStorage

@@ -134,7 +134,7 @@ theorem kv_bootStorage (s ms : Loc) (γs : MemStorNames) (vsl : GoSlice) (voters
     (γ : Cluster) (id : w64) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
       kvStorRec (GF := GF) s ms γs -∗ s.[RStorage, go!"voters"] ↦□ vsl -∗ vsl ↦*□ voters -∗
-      memStorLock ms γs -∗ memStorFresh ms γs -∗
+      memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty -∗
       memLog γs 0 DFrac.discard [zero_val EntryM] -∗ memEnd γs 1 -∗
       bootStorage γ id (kvStorIface s) (HardStateM.mk (W64 0) (W64 0) (W64 0))
         (kv.kvConfState voters) iprop(memStorInvP ms γs (kvJ γ id)) :=

@@ -175,14 +175,7 @@ theorem Storage.wp_ApplySnapshot (wp : MemoryStorage.ApplySnapshot.spec (GF := G
       memCompacted γs (uint.nat sv.Metadata'.Index') ∗
       memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
       memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗ memSnapLb γs (uint.nat sv.Metadata'.Index') }} := by
-  wp_start as ⟨#Hrec, HP⟩
-  iunfold kvrStorRec at Hrec
-  icases Hrec with ⟨#Hf, -⟩
-  try wp_auto
-  wp_apply wp ms γs J j old sp dq sv eood h1 h2 $$ [HP] as  HQ
-  · iexact HP
-  iapply HΦ
-  iexact HQ
+  sorry -- durability stage I (I-5): broken by the MemoryStorage statement changes (mode o, memStorFresh c sv)
 
 theorem Storage.wp_SetHardState (wp : MemoryStorage.SetHardState.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) (hs : HardStateM) (st : Loc) (hs' : HardStateM) :
@@ -216,14 +209,7 @@ theorem Storage.wp_CreateSnapshot (wp : MemoryStorage.CreateSnapshot.spec (GF :=
       ownCSM cs dq c ∗ memSnapLb γs (uint.nat i) ∗
       ((⌜err = interface.nil⌝ ∗ ownSnapM snap (DFrac.own 1) (memSnapMade i e.Term' c bs)) ∨
        (⌜snap = null ∧ err = eood⌝ ∗ data ↦* bs)) }} := by
-  wp_start as ⟨#Hrec, HP⟩
-  iunfold kvrStorRec at Hrec
-  icases Hrec with ⟨#Hf, -⟩
-  try wp_auto
-  wp_apply wp ms γs J i e cs dq c data bs eood  $$ [HP] as %snap %err HQ
-  · iexact HP
-  iapply HΦ
-  iexact HQ
+  sorry -- durability stage I (I-5): broken by the MemoryStorage statement changes (mode o, memStorFresh c sv)
 
 theorem Storage.wp_Compact (wp : MemoryStorage.Compact.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) (J : MemJust GF) (x : w64) (ecomp : GoInterface) :
@@ -235,14 +221,7 @@ theorem Storage.wp_Compact (wp : MemoryStorage.Compact.spec (GF := GF) (hG := hG
       github_com.mit_pdos.etcd_grove.examples.kvreconf.Storage.ty @!! go!"Compact")) (Val #x))
   {{ (err : GoInterface), RET #err;
       ⌜err = interface.nil ∨ err = ecomp⌝ ∗ memCompacted γs (uint.nat x) }} := by
-  wp_start as ⟨#Hrec, HP⟩
-  iunfold kvrStorRec at Hrec
-  icases Hrec with ⟨#Hf, -⟩
-  try wp_auto
-  wp_apply wp ms γs J x ecomp $$ [HP] as %err HQ
-  · iexact HP
-  iapply HΦ
-  iexact HQ
+  sorry -- durability stage I (I-5): broken by the MemoryStorage statement changes (mode o, memStorFresh c sv)
 
 end promoted
 
@@ -386,60 +365,11 @@ theorem kvr_bootStorage
     (γ : Cluster) (id : w64) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvreconf -∗
       kvrStorRec s ms γs -∗ kvrStorBoot s bp csm -∗
-      memStorLock ms γs -∗ memStorFresh ms γs -∗ memStorMeta ms γs hs -∗
+      memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty -∗ memStorMeta ms γs hs -∗
       memLog γs 0 DFrac.discard [zero_val EntryM] -∗ memEnd γs 1 -∗
       bootStorage γ id (kvrStorIface s) hs csm
         iprop(memStorMeta ms γs hs ∗ memStorInvP ms γs (kvrJ γ id)) := by
-  iintro #Hpkg #Hrec #Hboot #Hl Hfresh Hmeta #Hlog He
-  ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
-  · iunfold memStorLock at Hl; icases Hl with ⟨#H, -⟩; iexact H
-  unfold bootStorage
-  iexists (interface.mk (go.GoType.PointerType
-    github_com.mit_pdos.etcd_grove.examples.kvreconf.Storage.ty) #s)
-  iexists iprop(memStorFresh ms γs ∗ memStorMeta ms γs hs ∗ memEnd γs 1)
-  isplitr
-  · ipureintro; rfl
-  isplitl [Hfresh Hmeta He]
-  · iframe Hfresh Hmeta He
-  isplitr
-  · iintro !> %Φ ⟨Hfresh, Hmeta, He⟩ HΦ
-    wp_apply Storage.wp_FirstIndex wp_FirstIndex s ms γs 0 $$ [$Hrec $Hinit $Hl]
-      as %fi ⟨%Hfi, #Hc⟩
-    · iapply memCompacted_zero
-    icases memStorFresh_compacted ms γs _ $$ [$Hfresh $Hc] with ⟨%H0, Hfresh⟩
-    have Hfi1 : fi = W64 1 := by word
-    subst Hfi1
-    iapply HΦ
-    iframe Hfresh Hmeta He
-  isplitr
-  · iintro !> %Φ ⟨Hfresh, Hmeta, He⟩ HΦ
-    wp_apply Storage.wp_LastIndex wp_LastIndex s ms γs 1 $$ [$Hrec $Hinit $Hl $He]
-      as %li ⟨He, %Hli⟩
-    have Hli0 : li = W64 0 := by word
-    subst Hli0
-    iapply HΦ
-    iframe Hfresh Hmeta He
-  iintro !> %Φ ⟨Hfresh, Hmeta, He⟩ HΦ
-  iapply wp_fupd
-  wp_apply wp_InitialState s ms bp γs hs csm $$ [$Hpkg $Hrec $Hboot $Hmeta $Hfresh]
-    as %hp %cs ⟨#Hhs, Hmeta, Hfresh, Hcs⟩
-  imod csPts_persist cs (DFrac.own 1) csm false $$ Hcs with #Hcs
-  imodintro
-  iapply HΦ $$ %hp %cs %false
-  iframe Hhs Hcs Hmeta
-  imod memStorInvP_alloc ms γs (kvrJ γ id) ⊤ $$ Hl Hfresh [] with #Hinv
-  · iapply kvrJ_B0 γ id
-  imodintro
-  isplitr
-  · iapply kvrStorage_isStorage wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term wp_Entries
-      s ms γs γ id $$ Hpkg Hrec Hinv
-  iframe Hinv
-  iexists (zero_val EntryM)
-  isplitr
-  · ipureintro; rfl
-  isplitr
-  · iapply kvrStorLog_of s ms γs 0 DFrac.discard [zero_val EntryM] $$ Hrec Hlog
-  iapply kvrStorEnd_of s ms γs 1 $$ Hrec He
+  sorry -- durability stage I (I-5): broken by the MemoryStorage statement changes (mode o, memStorFresh c sv)
 
 /-- **A new wrapper's records** (`&Storage{MemoryStorage: ms, boot: bp}`, its two fields as
 allocated; the bootstrap conf state read-only): the registry's record (`kvr_register`) and the boot
