@@ -48,3 +48,4 @@ os_fileStat__Size:
 bboltfs_envFailure: =_root_.Perennial.sync.atomic.wp_AddUint64
 bboltfs_valueOk:
 bboltfs_testMinibolt: bboltfs_Open bboltfs_DB__Get bboltfs_DB__Snapshot bboltfs_DB__Commit bboltfs_DB__Close bboltfs_envFailure
+bboltfs_testMiniboltConcurrent: bboltfs_Open bboltfs_DB__Get bboltfs_DB__Snapshot bboltfs_DB__Commit bboltfs_DB__Close bboltfs_envFailure bboltfs_valueOk

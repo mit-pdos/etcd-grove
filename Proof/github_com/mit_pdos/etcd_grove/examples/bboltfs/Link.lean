@@ -31,6 +31,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.mmapSize
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pageAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.pickMeta
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.testMinibolt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.testMiniboltConcurrent
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.valueOk
 public import Proof.os.File__Close
 public import Proof.os.File__Fd
@@ -223,6 +224,10 @@ theorem wp_testMinibolt :
 theorem wp_valueOk :
     EtcdGrove.bboltfs.valueOk.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.valueOk.wp_proof
+
+theorem wp_testMiniboltConcurrent :
+    EtcdGrove.bboltfs.testMiniboltConcurrent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.testMiniboltConcurrent.wp_proof wp_Open DB.wp_Get DB.wp_Snapshot DB.wp_Commit DB.wp_Close wp_envFailure wp_valueOk
 
 end links
 

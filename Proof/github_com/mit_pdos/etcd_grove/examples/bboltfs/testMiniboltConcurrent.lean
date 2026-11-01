@@ -98,6 +98,53 @@ theorem sint_succ20 (i : w64) (h0 : 0 ≤ sint.Z i) (h : sint.Z i < 20) :
     0 ≤ sint.Z (i + W64 1) ∧ sint.Z (i + W64 1) ≤ 20 := by
   constructor <;> word
 
+theorem k_eq2 (k : w64) (h1 : sint.Z k ≤ 2) (h2 : ¬ sint.Z k < sint.Z (W64 2)) : sint.nat k = 2 := by
+  have h' : sint.nat k = (sint.Z k).toNat := rfl
+  have h3 : sint.Z (W64 2) = 2 := rfl
+  rw [h']; rw [h3] at h2; omega
+
+theorem le40 (x : w64) (h : uint.Z x ≤ uint.Z (W64 40)) : x.toNat ≤ 40 := by
+  have h' : uint.Z (W64 40) = 40 := rfl
+  simp only [uint.Z] at h h'; omega
+
+theorem eq41 (x : w64) (h1 : x.toNat ≤ 41) (h : ¬ uint.Z x ≤ uint.Z (W64 40)) : x.toNat = 41 := by
+  have h' : uint.Z (W64 40) = 40 := rfl
+  have h2 : uint.Z x = (x.toNat : Int) := rfl
+  rw [h', h2] at h; omega
+
+theorem succ_toNat (x : w64) (h : x.toNat ≤ 40) : (x + W64 1).toNat = x.toNat + 1 := by
+  rw [BitVec.toNat_add]; simp only [BitVec.toNat_ofInt]; omega
+
+set_option hygiene false in
+/-- `testMiniboltConcurrent` after its writer loop (either exit): `Wait`, `Close`, and the
+result. -/
+local macro "mb_finish" : tactic => `(tactic| (
+  (try wp_auto)
+  wp_apply (sync.join.WaitGroup.wp_Wait_of sync.WaitGroup.wp_Wait _ _ wg_ptr) $$ [Hwg] as ⟨Hres, -⟩
+  · iframe Hwg
+  (try wp_auto)
+  rw [show List.range 2 = [0, 1] from rfl]
+  icases BigSepL.bigSepL_cons.1 $$ Hres with ⟨Hd0, Hres⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hres with ⟨Hd1, -⟩
+  unfold readerDone
+  icases Hd0 with ⟨Hr0, Hc0⟩
+  icases Hd1 with ⟨Hr1, Hc1⟩
+  ihave Hrds := Hrds $$ Hr0 Hr1
+  wp_apply wp_Close γ db _ _ $$ [Hown Hrds] as %e -
+  · iframe; iframe #
+  (try wp_auto)
+  have hsl2 : sint.Z sl.len = 2 := slice_len2 sl Hsll
+  have hb0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z sl.len := by
+    rw [hsl2]; exact ⟨by decide, by decide⟩
+  have hb1 : 0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) < sint.Z sl.len := by
+    rw [hsl2]; exact ⟨by decide, by decide⟩
+  rw [ite_eq_left hb0, show sint.Z (W64 0) = ((0 : Nat) : Int) from rfl]
+  (try wp_auto)
+  rw [ite_eq_left hb1, show sint.Z (W64 1) = ((1 : Nat) : Int) from rfl]
+  (try wp_auto)
+  iapply HΦ
+  itrivial))
+
 /-- What reader `i` gives back through the `WaitGroup`: its reader token, and its cell of
 `results` holding true. -/
 def readerDone (γ : DBNames) (db : Loc) (sl : GoSlice) (i : Nat) : IProp GF :=
@@ -287,7 +334,41 @@ theorem testMiniboltConcurrent.wp_proof (wp_Open : Open.spec (GF := GF) (hG := h
       iframe
     ipureintro
     refine ⟨by word, by word, by word⟩
-  · sorry
+  · have hk2 : sint.nat k = 2 := k_eq2 k Hk.2.1 Hif
+    rw [hk2]
+    iclear Hcells Hrdl
+    ihave HW : (∃ x : w64, "v" ∷ v_ptr ↦ x ∗ "Hown" ∷ dbOwner (GF := GF) γ (x.toNat - 1) (x.toNat + 2) ∗
+        "%Hx" ∷ ⌜2 ≤ x.toNat ∧ x.toNat ≤ 41⌝ : IProp GF) $$ [v Hown]
+    · iexists W64 2
+      rw [show (W64 2 : w64).toNat = 2 from rfl]
+      iframe; unfold named; ipureintro; omega
+    wp_for HW
+    wp_if_destruct
+    · have hx40 : x.toNat ≤ 40 := le40 x Hif
+      wp_apply wp_Commit γ db (x.toNat - 1) (x.toNat + 2) x (by omega) (by omega)
+          (by rw [Hvp]; exact valueOkP_next x Hx.1) $$ [Hown]
+        as %e (⟨%He, Hown, -, -⟩ | ⟨%He, -, Hown⟩)
+      · iframe #; iframe
+      rotate_left
+      · cases e with
+        | nil => exact absurd rfl He
+        | ok ie =>
+        (try wp_auto)
+        wp_apply wp_envFailure $$ [Henv]
+        · iframe #
+        (try wp_auto)
+        wp_for_post
+        mb_finish
+      subst He
+      (try wp_auto)
+      wp_for_post
+      iframe
+      iexists (x + W64 1)
+      rw [succ_toNat x hx40, show x.toNat + 1 - 1 = x.toNat - 1 + 1 by omega,
+        show x.toNat + 1 + 2 = x.toNat + 2 + 1 by omega]
+      iframe; unfold named; ipureintro; omega
+    · have hx41 : x.toNat = 41 := eq41 x Hx.2 Hif
+      mb_finish
 
 end proof
 
