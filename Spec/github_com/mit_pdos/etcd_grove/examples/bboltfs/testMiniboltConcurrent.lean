@@ -1,7 +1,8 @@
-/- Lean-first (no Rocq counterpart). `testMiniboltConcurrent(dir)` (`examples/bboltfs/programs.go`): on a fresh database (no file at `dir/db`), two readers (one calling `Get`, one `Snapshot`, 20 times each) while the main thread commits 39 times; each reader sees a value `valueOk` accepts, never older than one it saw before. It returns true in every run. The precondition is `testMinibolt`'s. -/
+/- Lean-first (no Rocq counterpart). `testMiniboltConcurrent(dir)` (`examples/bboltfs/programs.go`): on a fresh database (no file at `dir/db`), two readers (one calling `Get`, one `Snapshot`, 20 times each) while the main thread commits 39 times; each reader sees a value `valueOk` accepts, never older than one it saw before. It returns true in every run. The precondition is `testMinibolt`'s; each reader goroutine reads with its own thread token, the one its `go` statement gives it. -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.bboltfs.envFailure
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -22,9 +23,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumpti
 
 /-- See the file header. -/
 abbrev testMiniboltConcurrent.spec : Prop :=
-  ∀ (dir : GoString),
+  ∀ [ThreadBoundLe GF (2 ^ 30)] (dir : GoString),
   {{ pkgFacts (GF := GF) ∗ envFacts (GF := GF) ∗ osInv (GF := GF) ∗
-      osMeta (GF := GF) (dir ++ go!"/db") (DFrac.own 1) none }}
+      osMeta (GF := GF) (dir ++ go!"/db") (DFrac.own 1) none ∗ threadTok }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.bboltfs.testMiniboltConcurrent)) (Val #dir))
   {{ RET #true; True }}
 

@@ -48,7 +48,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     (wp_init : DB.init.spec (GF := GF) (hG := hG))
     (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG)) :
     Open.spec (GF := GF) (hG := hG) := by
-  intro path t vo n vp hvp
+  intro _ path t vo n vp hvp
   wp_start as ⟨#Hpkg, #Hos, Hfile⟩
   imod dbFile_norm path t vo n $$ Hfile with ⟨%mo, Hm, Hst⟩
   ihave ⟨%e2, #He2, %He2⟩ := pkgFacts_errPageSize $$ Hpkg
@@ -337,6 +337,12 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
       dsimp only
       iframe; iframe #
       ipureintro; exact ⟨Hmaps'', by omega, Hbase, Hl41⟩
+    ihave Hrds := (BigSepL.bigSepL_impl (Ψ := fun _ _ => dbReader (GF := GF) γ db)) $$ Hrs []
+    · imodintro
+      iintro %_ %_ %_ Hr
+      unfold dbReader; iexists f, fd, path; iframe; iframe #
+    imod threadPool.init dbPoolN (dbReader (GF := GF) γ db) ⊤ _
+        (sync.threadBound_le_actualMaxReaders (ThreadBoundLe.le (GF := GF) (2 ^ 30))) $$ Hrds with ⟨%γp, #Hpool⟩
     (try wp_auto)
     iapply HΦ
     ileft
@@ -347,10 +353,10 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     · ipureintro; exact Hγvp
     iframe Hown Hlast Htx
     isplitr
-    · unfold isDB; iexists f, fd, path; iframe #
+    · unfold isDB; isplitr
+      · iexists f, fd, path; iframe #
+      · iexists γp; iframe #
     iframe Hpath
-    iapply readers_of γ db f fd path
-    iframe; iframe #
   · obtain ⟨Herr5, rfl⟩ := He5
     unfold writerExtra
     icases Hx with ⟨-, Hf2, Hfd2⟩

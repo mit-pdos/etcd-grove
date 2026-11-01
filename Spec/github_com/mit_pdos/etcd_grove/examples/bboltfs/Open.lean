@@ -1,7 +1,8 @@
-/- Lean-first (no Rocq counterpart). `Open(path)` (`examples/bboltfs/minibolt.go`): opens (or creates) the database at `path`, given the file there as `dbFile` describes it, whose current transaction is `t`, holding `vo`: no file, or a file of whole bytes that `fileOk` accepts (`dbFresh`: `init` lays out a file shorter than four pages or with no valid meta, at transaction 1 with no value; otherwise its current meta is read), or what a `Close` gives back (`dbStored`: committed pages as discarded `pageIs`, the meta pages clean, the current root page holding `vo`). Either way no mapping of the file, and no byte lost by a failed sync (`ok`). The client also gives `pkgFacts` (for the package's `isPkgInit`, see `DB.lean`). The client also gives the predicate `vp` the transactions' values must satisfy (`dbTx`, `Commit`), which `vo` does. On success, an open database (`isDB`) on `path` (`db.path`, which `Close` gives back) at transaction `t` holding `vo` (`dbTx`), whose predicate is `vp`, its committer token at `t` and the high water mark `n`, a lower bound of the txid, and every reader token. On an error, the file is closed, and its `OsMeta` is that of the path after an open (it may have been created); its bytes are lost to the caller (a crash proof would keep them). -/
+/- Lean-first (no Rocq counterpart). `Open(path)` (`examples/bboltfs/minibolt.go`): opens (or creates) the database at `path`, given the file there as `dbFile` describes it, whose current transaction is `t`, holding `vo`: no file, or a file of whole bytes that `fileOk` accepts (`dbFresh`: `init` lays out a file shorter than four pages or with no valid meta, at transaction 1 with no value; otherwise its current meta is read), or what a `Close` gives back (`dbStored`: committed pages as discarded `pageIs`, the meta pages clean, the current root page holding `vo`). Either way no mapping of the file, and no byte lost by a failed sync (`ok`). The client also gives `pkgFacts` (for the package's `isPkgInit`, see `DB.lean`). The client also gives the predicate `vp` the transactions' values must satisfy (`dbTx`, `Commit`), which `vo` does. On success, an open database (`isDB`) on `path` (`db.path`, which `Close` gives back) at transaction `t` holding `vo` (`dbTx`), whose predicate is `vp`, its committer token at `t` and the high water mark `n`, a lower bound of the txid. `isDB` holds the pool of `mmaplock`'s reader slots, which `Open` builds (with `threadBound GF ≤ 2 ^ 30`, `ThreadBoundLe`): a reader brings its thread token (`Get`, `Snapshot`). On an error, the file is closed, and its `OsMeta` is that of the path after an open (it may have been created); its bytes are lost to the caller (a crash proof would keep them). -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -80,16 +81,14 @@ def dbFile (p : GoString) (t : Nat) (vo : Option w64) (n : Nat) : IProp GF :=
 
 /-- See the file header. -/
 abbrev Open.spec : Prop :=
-  ∀ (path : GoString) (t : Nat) (vo : Option w64) (n : Nat) (vp : Nat → Option w64 → Prop),
+  ∀ [ThreadBoundLe GF (2 ^ 30)] (path : GoString) (t : Nat) (vo : Option w64) (n : Nat) (vp : Nat → Option w64 → Prop),
   vp t vo →
   {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ dbFile (GF := GF) path t vo n }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.bboltfs.Open)) (Val #path))
   {{ (db : Loc) (err : GoInterface), RET (PairV #db #err);
       (⌜err = interface.nil⌝ ∗ ∃ γ : DBNames, ⌜γ.vp = vp⌝ ∗
           isDB (GF := GF) γ db ∗ db.[DB, go!"path"] ↦□ path ∗ dbOwner (GF := GF) γ t n ∗ dbLast (GF := GF) γ t ∗
-          dbTx (GF := GF) γ t vo ∗
-          ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-            dbReader (GF := GF) γ db)) ∨
+          dbTx (GF := GF) γ t vo) ∨
       (⌜err ≠ interface.nil ∧ db = null⌝ ∗ ∃ mo', osMeta (GF := GF) path (DFrac.own 1) mo') }}
 
 end spec

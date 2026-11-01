@@ -27,9 +27,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
 
-instance isDB_persistent (γ : DBNames) (db : Loc) : Persistent (isDB (GF := GF) γ db) := by
-  unfold isDB; infer_instance
-
 theorem dbOwnerOpt_some (γ : DBNames) (t n : Nat) :
     dbOwnerOpt (GF := GF) γ (some (t, n)) = dbOwner (GF := GF) γ t n := rfl
 
@@ -69,22 +66,6 @@ theorem dbFile_absent (p : GoString) :
   refine ⟨fun _ => rfl, fun m h => absurd h (by simp), ?_⟩
   simp only [freshTx, List.length_nil]
   rw [if_neg (by omega)]
-
-/-- One of the reader tokens, and the way back. -/
-theorem reader_one (γ : DBNames) (db : Loc) :
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), dbReader (GF := GF) γ db) ⊢
-      dbReader (GF := GF) γ db ∗ (dbReader (GF := GF) γ db -∗
-        [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), dbReader (GF := GF) γ db) := by
-  have h : Int.toNat sync.rwmutex.actualMaxReaders = (Int.toNat sync.rwmutex.actualMaxReaders - 1) + 1 := by
-    have : 0 < Int.toNat sync.rwmutex.actualMaxReaders := by rw [sync.rwmutex.actualMaxReaders_unseal]; decide
-    omega
-  rw [h, List.replicate_succ]
-  iintro H
-  icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H2⟩
-  iframe H1
-  iintro H1
-  iapply BigSepL.bigSepL_cons.2
-  iframe
 
 end lemmas
 

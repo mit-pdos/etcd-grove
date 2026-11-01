@@ -1,7 +1,8 @@
-/- Lean-first (no Rocq counterpart). `testMinibolt(dir)` (`examples/bboltfs/programs.go`): on a fresh database (no file at `dir/db`), 39 commits, each visible to `Get` and `Snapshot`, then `Close`, `Open` and the last commit still there. It returns true in every run: on an environmental failure it stops through `envFailure` (true), and otherwise every check holds. The precondition: minibolt's package facts (`pkgFacts`), the programs' (`envFacts`), the file system's invariant, and no file at `dir/db`. -/
+/- Lean-first (no Rocq counterpart). `testMinibolt(dir)` (`examples/bboltfs/programs.go`): on a fresh database (no file at `dir/db`), 39 commits, each visible to `Get` and `Snapshot`, then `Close`, `Open` and the last commit still there. It returns true in every run: on an environmental failure it stops through `envFailure` (true), and otherwise every check holds. The precondition: minibolt's package facts (`pkgFacts`), the programs' (`envFacts`), the file system's invariant, no file at `dir/db`, and the main thread's thread token, with which it reads (`Get`, `Snapshot`), under `threadBound GF ≤ 2 ^ 30` (`Open`'s pool of reader slots). -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.bboltfs.envFailure
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -22,9 +23,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumpti
 
 /-- See the file header. -/
 abbrev testMinibolt.spec : Prop :=
-  ∀ (dir : GoString),
+  ∀ [ThreadBoundLe GF (2 ^ 30)] (dir : GoString),
   {{ pkgFacts (GF := GF) ∗ envFacts (GF := GF) ∗ osInv (GF := GF) ∗
-      osMeta (GF := GF) (dir ++ go!"/db") (DFrac.own 1) none }}
+      osMeta (GF := GF) (dir ++ go!"/db") (DFrac.own 1) none ∗ threadTok }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.bboltfs.testMinibolt)) (Val #dir))
   {{ RET #true; True }}
 

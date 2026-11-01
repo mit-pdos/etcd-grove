@@ -41,12 +41,12 @@ theorem testMinibolt.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
     (wp_Close : DB.Close.spec (GF := GF) (hG := hG))
     (wp_envFailure : envFailure.spec (GF := GF) (hG := hG)) :
     testMinibolt.spec (GF := GF) (hG := hG) := by
-  intro dir
-  wp_start as ⟨#Hpkg, #Henv, #Hos, Hm⟩
+  intro _ dir
+  wp_start as ⟨#Hpkg, #Henv, #Hos, Hm, Htok⟩
   ihave Hf := dbFile_absent (dir ++ go!"/db") $$ Hm
   wp_auto
   wp_apply wp_Open (dir ++ go!"/db") 1 none 4 valueOkP (by simp [valueOkP]) $$ [Hf]
-    as %db %err (⟨%Herr, %γ, %Hvp, #Hdb, #Hpath, Hown, #Hlast, #Htx, Hrds⟩ | ⟨%Herr, -⟩)
+    as %db %err (⟨%Herr, %γ, %Hvp, #Hdb, #Hpath, Hown, #Hlast, #Htx⟩ | ⟨%Herr, -⟩)
   · iframe #; iframe
   rotate_left
   · obtain ⟨Herr, rfl⟩ := Herr
@@ -61,11 +61,10 @@ theorem testMinibolt.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
     itrivial
   subst Herr
   (try wp_auto)
-  icases reader_one γ db $$ Hrds with ⟨Hrd, Hrds⟩
   ihave Hown' : dbOwnerOpt (GF := GF) γ (some (1, 4)) $$ [Hown]
   · rw [dbOwnerOpt_some]; iexact Hown
-  wp_apply wp_Get γ db 1 (some (1, 4)) $$ [Hrd Hown']
-    as %txid %v %has %err ⟨Hrd, Hown, Hres⟩
+  wp_apply wp_Get γ db 1 (some (1, 4)) $$ [Htok Hown']
+    as %txid %v %has %err ⟨Htok, Hown, Hres⟩
   · iframe; iframe #
   rw [dbOwnerOpt_some]
   icases Hres with (⟨%Hok, -, #Htx1⟩ | %Herr)
@@ -74,8 +73,7 @@ theorem testMinibolt.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
     | nil => exact absurd rfl Herr
     | ok ie =>
     (try wp_auto)
-    ihave Hrds := Hrds $$ Hrd
-    wp_apply wp_Close γ db 1 4 $$ [Hown Hrds] as %e -
+    wp_apply wp_Close γ db 1 4 $$ [Hown] as %e -
     · iframe; iframe #
     (try wp_auto)
     wp_apply wp_envFailure $$ [Henv]
@@ -117,8 +115,7 @@ theorem testMinibolt.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
       | nil => exact absurd rfl He
       | ok ie =>
       (try wp_auto)
-      ihave Hrds := Hrds $$ Hrd
-      wp_apply wp_Close γ db _ _ $$ [Hown Hrds] as %e2 -
+      wp_apply wp_Close γ db _ _ $$ [Hown] as %e2 -
       · iframe; iframe #
       (try wp_auto)
       wp_apply wp_envFailure $$ [Henv]
@@ -132,8 +129,8 @@ theorem testMinibolt.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
     rw [show x.toNat - 1 + 1 = x.toNat by omega]
     ihave Hown' : dbOwnerOpt (GF := GF) γ (some (x.toNat, x.toNat + 2 + 1)) $$ [Hown]
     · rw [dbOwnerOpt_some]; iexact Hown
-    wp_apply wp_Get γ db x.toNat (some (x.toNat, x.toNat + 2 + 1)) $$ [Hrd Hown']
-      as %txid %got %has %err ⟨Hrd, Hown, Hres⟩
+    wp_apply wp_Get γ db x.toNat (some (x.toNat, x.toNat + 2 + 1)) $$ [Htok Hown']
+      as %txid %got %has %err ⟨Htok, Hown, Hres⟩
     · iframe; iframe #
     rw [dbOwnerOpt_some]
     icases Hres with (⟨%Hok, -, #Htxg⟩ | %Herr)
@@ -142,8 +139,7 @@ theorem testMinibolt.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
       | nil => exact absurd rfl Herr
       | ok ie =>
       (try wp_auto)
-      ihave Hrds := Hrds $$ Hrd
-      wp_apply wp_Close γ db _ _ $$ [Hown Hrds] as %e2 -
+      wp_apply wp_Close γ db _ _ $$ [Hown] as %e2 -
       · iframe; iframe #
       (try wp_auto)
       wp_apply wp_envFailure $$ [Henv]
@@ -159,8 +155,8 @@ theorem testMinibolt.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
     (try wp_auto)
     ihave Hown' : dbOwnerOpt (GF := GF) γ (some (x.toNat, x.toNat + 2 + 1)) $$ [Hown]
     · rw [dbOwnerOpt_some]; iexact Hown
-    wp_apply wp_Snapshot γ db x.toNat (some (x.toNat, x.toNat + 2 + 1)) $$ [Hrd Hown']
-      as %stxid %sgot %shas %err ⟨Hrd, Hown, Hres⟩
+    wp_apply wp_Snapshot γ db x.toNat (some (x.toNat, x.toNat + 2 + 1)) $$ [Htok Hown']
+      as %stxid %sgot %shas %err ⟨Htok, Hown, Hres⟩
     · iframe; iframe #
     rw [dbOwnerOpt_some]
     icases Hres with (⟨%Hok, -, #Htxs⟩ | %Herr)
@@ -169,8 +165,7 @@ theorem testMinibolt.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
       | nil => exact absurd rfl Herr
       | ok ie =>
       (try wp_auto)
-      ihave Hrds := Hrds $$ Hrd
-      wp_apply wp_Close γ db _ _ $$ [Hown Hrds] as %e2 -
+      wp_apply wp_Close γ db _ _ $$ [Hown] as %e2 -
       · iframe; iframe #
       (try wp_auto)
       wp_apply wp_envFailure $$ [Henv]
@@ -197,8 +192,7 @@ theorem testMinibolt.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
       have h2 : uint.Z x = (x.toNat : Int) := rfl
       rw [h', h2] at h1; omega
     rw [hx41]
-    ihave Hrds := Hrds $$ Hrd
-    wp_apply wp_Close γ db 40 43 $$ [Hown Hrds] as %e ⟨%p, #Hp, Hres⟩
+    wp_apply wp_Close γ db 40 43 $$ [Hown] as %e ⟨%p, #Hp, Hres⟩
     · iframe; iframe #
     icombine Hpath Hp gives %Hpp
     subst Hpp
@@ -224,7 +218,7 @@ theorem testMinibolt.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
     ihave Hf : dbFile (GF := GF) (dir ++ go!"/db") 40 (some (W64 40)) 43 $$ [Hst]
     · unfold dbFile; iright; iexact Hst
     wp_apply wp_Open (dir ++ go!"/db") 40 (some (W64 40)) 43 valueOkP (by simp [valueOkP]) $$ [Hf]
-      as %db2 %err2 (⟨%Herr2, %γ2, %Hvp2, #Hdb2, -, Hown2, #Hlast2, -, Hrds2⟩ | ⟨%Herr2, -⟩)
+      as %db2 %err2 (⟨%Herr2, %γ2, %Hvp2, #Hdb2, -, Hown2, #Hlast2, -⟩ | ⟨%Herr2, -⟩)
     · iframe #; iframe
     rotate_left
     · obtain ⟨Herr2, rfl⟩ := Herr2
@@ -239,16 +233,14 @@ theorem testMinibolt.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
       itrivial
     subst Herr2
     (try wp_auto)
-    icases reader_one γ2 db2 $$ Hrds2 with ⟨Hrd2, Hrds2⟩
     ihave Hown2' : dbOwnerOpt (GF := GF) γ2 (some (40, 43)) $$ [Hown2]
     · rw [dbOwnerOpt_some]; iexact Hown2
-    wp_apply wp_Get γ2 db2 40 (some (40, 43)) $$ [Hrd2 Hown2']
-      as %txid2 %got2 %has2 %err3 ⟨Hrd2, Hown2, Hres2⟩
+    wp_apply wp_Get γ2 db2 40 (some (40, 43)) $$ [Htok Hown2']
+      as %txid2 %got2 %has2 %err3 ⟨Htok, Hown2, Hres2⟩
     · iframe; iframe #
     rw [dbOwnerOpt_some]
     (try wp_auto)
-    ihave Hrds2 := Hrds2 $$ Hrd2
-    wp_apply wp_Close γ2 db2 40 43 $$ [Hown2 Hrds2] as %e4 -
+    wp_apply wp_Close γ2 db2 40 43 $$ [Hown2] as %e4 -
     · iframe; iframe #
     icases Hres2 with (⟨%Hok, -, #Htxg⟩ | %Herr3)
     rotate_left
