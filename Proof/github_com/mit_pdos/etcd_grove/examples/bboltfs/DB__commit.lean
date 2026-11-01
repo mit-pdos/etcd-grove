@@ -313,6 +313,46 @@ theorem pick_page (P : Nat → IProp GF) (i : Nat) (hi : i < 2) :
   · exact .rfl
   · exact ⟨by iintro ⟨H0, H1⟩; iframe H0 H1, by iintro ⟨H1, H0⟩; iframe H0 H1⟩
 
+/-- A window of the meta pages' bytes, rewritten, back with the others. -/
+theorem window_join (p : GoString) (dq : DFrac) (xs ys : List (w8 × Bool)) (a n : Nat)
+    (h : a + n ≤ xs.length) (hy : ys.length = n) :
+    osBytes (GF := GF) p 0 dq (xs.take a) ∗ osBytes (GF := GF) p a dq ys ∗
+      osBytes (GF := GF) p (a + n) dq ((xs.drop a).drop n) ⊢
+      osBytes (GF := GF) p 0 dq (xs.take a ++ ys ++ (xs.drop a).drop n) := by
+  iintro ⟨H0, H1, H2⟩
+  iapply (osBytes_app p 0 dq _ _).2
+  rw [List.length_append, List.length_take, hy, show 0 + (min a xs.length + n) = a + n by omega]
+  iframe H2
+  iapply (osBytes_app p 0 dq _ _).2
+  rw [List.length_take, show 0 + min a xs.length = a by omega]
+  iframe H0 H1
+
+theorem window_join_length (xs ys : List (w8 × Bool)) (a n : Nat) (h : a + n ≤ xs.length)
+    (hy : ys.length = n) : (xs.take a ++ ys ++ (xs.drop a).drop n).length = xs.length := by
+  simp only [List.length_append, List.length_take, List.length_drop, hy]; omega
+
+/-- Bytes of a file, as two halves. -/
+theorem osBytes_halves (p : GoString) :
+    ∀ (xs : List (w8 × Bool)) (off : Nat),
+    osBytes (GF := GF) p off (DFrac.own 1) xs ⊢
+      osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) xs ∗
+        osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) xs
+  | [], off => by
+    iintro _
+    isplitl
+    · iapply (osBytes_nil p off _).2; iempintro
+    · iapply (osBytes_nil p off _).2; iempintro
+  | x :: xs, off => by
+    iintro H
+    icases (osBytes_cons p off _ x xs).1 $$ H with ⟨Hx, H⟩
+    icases osBytes_halves p xs (off + 1) $$ H with ⟨H1, H2⟩
+    unfold osByte
+    icases (gElem_split _ _ (p, off) (1 : Qp).half (1 : Qp).half x).1 $$ [Hx] with ⟨Hx1, Hx2⟩
+    · rw [Qp.half_add_half]; iexact Hx
+    isplitl [Hx1 H1]
+    · iapply (osBytes_cons p off _ x xs).2; unfold osByte; iframe Hx1 H1
+    · iapply (osBytes_cons p off _ x xs).2; unfold osByte; iframe Hx2 H2
+
 theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     (wp_Truncate : os.File.Truncate.spec (GF := GF) (hG := hG))
     (wp_Sync : os.File.Sync.spec (GF := GF) (hG := hG))
@@ -803,6 +843,36 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   · iframe T0 T1 Hc0 Hc1
   ihave Hpi := metaPage_cells base i $$ [Ti Hci]
   · iframe Ti Hci
+  -- its write
+  have hm4ge : 16384 ≤ m4.size := by rw [hm4s]; omega
+  icases (osBytes_window p _ mxc (4096 * i) 4096 (by omega)).1 $$ Hmxw with ⟨W0, Wi, W2⟩
+  ihave Hpi := (mcellsAny_single (GF := GF) base len (4096 * i) (4096 * i + 4096) (by omega)
+    (by omega)).2 $$ [Hpi]
+  · rw [show 4096 * i + 4096 - 4096 * i = 4096 by omega]; iexact Hpi
+  rw [← hm4m]
+  have hwl : ((mxc.drop (4096 * i)).take 4096).length = 4096 := by
+    simp only [List.length_take, List.length_drop, hmxl]; omega
+  wp_apply wp_WriteAt f fd p (DFrac.own (1 : Qp).half) mbuf (metaPageOf mv) (DFrac.own 1)
+      ((mv.txid' + W64 1) % W64 2 * W64 4096) (DFrac.own (1 : Qp).half)
+      ⟨p, true, true⟩ 1 m4 ((mxc.drop (4096 * i)).take 4096) rfl hoffmI
+      (by rw [metaPageOf_length]; omega) (by rw [metaPageOf_length]; omega)
+      (by rw [hoffm, metaPageOf_length, hwl]; omega) (fun _ => rfl)
+      $$ [Hf Hmb Hfd Hm Wi Hpi]
+    as %n2 %err2 ⟨Hf, Hmb, Hfd, %j2, %ys2, %h2, %Hres2, Hm, Wi, Hpi⟩
+  · rw [hoffm, metaPageOf_length, Nat.min_eq_left (by omega : 4096 * i ≤ m4.size)]
+    iframe Hf Hmb Hfd Hm Wi Hpi; iframe #
+  rw [hoffm, metaPageOf_length, Nat.min_eq_left (by omega : 4096 * i ≤ m4.size)] at *
+  have hj2 : j2 ≤ 4096 := Hres2.1
+  have hys2 : ys2.length = 4096 := by
+    have h1 := congrArg List.length Hres2.2.1
+    simp only [List.length_map, pwBytes_length] at h1
+    rw [pwSize_inside m4.size (4096 * i) j2 (by omega), metaPageOf_length] at h1; omega
+  rw [pwSize_inside m4.size (4096 * i) j2 (by omega)]
+  -- the meta pages' bytes whole again, and both metas' cells holding them
+  ihave Hmxw := window_join p _ mxc ys2 (4096 * i) 4096 (by omega) hys2 $$ [W0 Wi W2]
+  · iframe W0 Wi W2
+  generalize hX : mxc.take (4096 * i) ++ ys2 ++ (mxc.drop (4096 * i)).drop 4096 = X
+  have hXl : X.length = 8192 := by rw [← hX, window_join_length _ _ _ _ (by omega) hys2, hmxl]
   sorry
 
 end proof
