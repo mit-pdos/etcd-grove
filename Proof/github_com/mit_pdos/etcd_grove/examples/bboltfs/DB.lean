@@ -30,11 +30,14 @@ when it mapped the file, and no write touches them since).
 
 ## The locks (as in bbolt)
 - `rwlock` (`rwR`): the writer's. The whole `OsMeta` (`Truncate`, `Sync`, `Fdatasync`, `Mmap`,
-  `Munmap` all take it), the bytes from `hwm` on and half the meta pages' bytes, the client
+  `Munmap` all take it; no sync failed while not failed, `m.ok`, so that a sync makes bytes
+  clean), the bytes from `hwm` on and half the meta pages' bytes (clean while not failed), the client
   halves of the mapped cells it may write (the meta pages' header and tail, and the pages from
-  `hwm` on), `filesz`, `datasz`, halves of the mapping fields, and half the file and its fd.
+  `hwm` on), `filesz` (the file's size while not failed: a failed `Truncate` may grow the file),
+  `datasz`, halves of the mapping fields, and half the file and its fd.
 - `metalock` (`metaR`): `failed`, half the meta pages' bytes until closed (a meta `WriteAt` takes
-  both halves: it runs under both mutexes), the transaction map, and while not failed: the meta
+  both halves: it runs under both mutexes), the transaction map (no transaction after the current
+  one while not failed), and while not failed: the meta
   pages are valid (`metaPagesOk`), the current meta's root page `pageIs` its value, `dbTx` of it;
   once failed, its half of `own`.
 - `mmaplock` (`mapR γ db q`, Perennial's guarded `RWMutex`): the mapping, fractionally: the
@@ -209,12 +212,14 @@ is a half of it). -/
 def metaDep : Qp := sync.rfrac.half.half.half
 
 /-- The meta cells holding `mc`: unlent, or lent whole to the one reader holding `metalock`, which
-deposits half of `metaR`'s authority over the transactions (so that whoever holds `metalock`,
-with the whole of it, finds them unlent: the writer taking them out, the next reader) and
-`metaDep` of `γm` (so that the whole of `γm` does), and holds half of the loan token. -/
+deposits `metaR`'s quarter of `out` (so that the writer, with both mutexes' quarters, finds them
+unlent when it takes them out), half of `metaR`'s authority over the transactions (so that the next
+holder of `metalock`, with the whole of it, finds them unlent) and `metaDep` of `γm` (so that the
+whole of `γm` does), and holds half of the loan token. -/
 def metaLent (γ : DBNames) (γm γl : GName) (base : Loc) (mc : List w8) : IProp GF :=
   iprop((0 ↪[γl] mc ∗ metaBytes (GF := GF) base (DFrac.own (1 : Qp).half) mc) ∨
-    ((∃ T : GMap Nat (Option w64), ghostMapAuth γ.txs (1 : Qp).half T) ∗ ghostVar γm metaDep () ∗
+    (ghostVar γ.out (1 : Qp).half.half false ∗
+      (∃ T : GMap Nat (Option w64), ghostMapAuth γ.txs (1 : Qp).half T) ∗ ghostVar γm metaDep () ∗
       0 ↪[γl]{#(1 : Qp).half} mc))
 
 /-- The mapping invariant's contents, as `mapCells` but with each group of cells lendable
@@ -372,7 +377,8 @@ def metaR (γ : DBNames) (db : Loc) (p : GoString) : IProp GF :=
     match b with
     | true => monoNatAuthOwn γ.fail 1 1 ∗ ∃ x : Nat × Nat, ghostVar γ.own (1 : Qp).half x
     | false =>
-      monoNatAuthOwn γ.fail 1 0 ∗ ⌜mx = mp ∧ metaPagesOk mp ∧ hwm = curPgid mp⌝ ∗
+      monoNatAuthOwn γ.fail 1 0 ∗ ⌜mx = mp ∧ metaPagesOk mp ∧ hwm = curPgid mp ∧
+        ∀ k, (curMeta mp).txid'.toNat < k → T !! k = none⌝ ∗
       monoNatAuthOwn γ.last 1 (curMeta mp).txid'.toNat ∗
       ghostVar γ.own (1 : Qp).half ((curMeta mp).txid'.toNat, hwm) ∗
       ∃ B, pageIs (GF := GF) p (curRoot mp) B ∗ dbTx γ (curMeta mp).txid'.toNat (pageVal B) ∗
@@ -388,15 +394,16 @@ def writerCells (base : Loc) (hwm len : Nat) : IProp GF :=
 /-- The writer's part of the file, with the mapping in the state `st` (see `rwR`). -/
 def writerFile (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8) (fl : Bool)
     (hwm : Nat) (st : MapSt) (m : OsMeta) : IProp GF :=
-  iprop(∃ (mxc tail : List (w8 × Bool)),
-    db.[DB, go!"filesz"] ↦ W64 m.size ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen st) ∗
+  iprop(∃ (mxc tail : List (w8 × Bool)) (fsz : Nat),
+    db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen st) ∗
     os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
     osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
     osMeta (GF := GF) p (DFrac.own 1) (some m) ∗
     osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
     osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail ∗
     ⌜2 ≤ hwm ∧ 4096 * hwm ≤ m.size ∧ mxc.length = 8192 ∧ tail.length = m.size - 4096 * hwm ∧
-      (fl = false → mxc.map Prod.fst = mp)⌝)
+      (fl = false → mxc.map Prod.fst = mp ∧ (∀ x ∈ mxc, x.2 = true) ∧ fsz = m.size ∧
+        0 ≤ fd.toInt)⌝)
 
 /-- What the writer holds besides `writerFile` while there is no mapping: the invariant's quarter
 of `cur`, and `mmaplock`'s halves of the file and its fd. -/
@@ -414,10 +421,12 @@ def rwR (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) : IProp GF :=
     ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ghostVar γ.map (1 : Qp).half st ∗
     ghostVar γ.out (1 : Qp).half.half false ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st ∗
     writerFile (GF := GF) γ db f fd p mp fl hwm st m ∗ ghostVar γ.cls (1 : Qp).half false ∗
+    ⌜fl = false → m.ok = true⌝ ∗
     match st with
     | some (base, len, γm) =>
       ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗
-      ghostVar γm (1 : Qp).half () ∗ writerCells (GF := GF) base hwm len
+      ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ p base len γm ∗
+      writerCells (GF := GF) base hwm len
     | none => dbFailed (GF := GF) γ ∗ writerExtra (GF := GF) γ f fd p mp fl hwm) ∨
    ((∃ x : Nat × Nat, ghostVar γ.own (1 : Qp).half x) ∗ ghostVar γ.cls (1 : Qp).half true ∗
      ∃ st, ghostVar γ.map (1 : Qp).half st ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st))

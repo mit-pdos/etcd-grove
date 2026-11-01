@@ -103,14 +103,14 @@ theorem DB.Get.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
       iunfold mapInv at Hinv
       icases Hinv with ⟨%Hlen, %γl, #HinvL⟩
       icases Hrest with ⟨Hfail, %Hok, Hlauth, Hown, %B, #HB, #Htx, %HT⟩
-      obtain ⟨Hmx', Hmpok, Hhwm⟩ := Hok
+      obtain ⟨Hmx', Hmpok, Hhwm, HTn⟩ := Hok
       subst mx hwm
       obtain ⟨Hmpl, Hval, Hr2, Hrh, Hbound⟩ := Hmpok
       rw [show sync.rfrac.half = sync.rfrac.half.half + (metaDep + metaDep) by unfold metaDep; qp_eq] at *
       icases ((ghostVar_fractional γm ()).fractional _ _).1 $$ Htok with ⟨Hq, Htok⟩
       icases ((ghostVar_fractional γm ()).fractional _ _).1 $$ Htok with ⟨Hmd, Hpd⟩
       imod meta_borrow γ p base len γm γl mp (curPgid mp) T sync.rfrac.half.half $$ [HinvL Hq Hcur Hout Hauth Hmd]
-        with ⟨Hq, Hcur, Hout, Hauth, Hk0, Hmc⟩
+        with ⟨Hq, Hcur, Hauth, Hk0, Hmc⟩
       · iframe; iframe #
       imod page_borrow γ p base len γm γl mp (curPgid mp) (curRoot mp) sync.rfrac.half.half metaDep Hr2 Hrh
         $$ [HinvL Hq Hcur Hpd] with ⟨Hq, Hcur, %Hlen2, %B', #HB', Hkr, Hbr⟩
@@ -141,7 +141,7 @@ theorem DB.Get.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
           (pickMetaRes (base +ₗ 16) (fileMeta mp 0) (base +ₗ 4112) (fileMeta mp 1) ↦{DFrac.own (1 : Qp).half} curMeta mp -∗
             base +ₗ (16 : Int) ↦{DFrac.own (1 : Qp).half} fileMeta mp 0 ∗
             base +ₗ (4112 : Int) ↦{DFrac.own (1 : Qp).half} fileMeta mp 1) := by
-        rcases pick_cur mp (base +ₗ 16) (base +ₗ 4112) Hval with ⟨Hpk, Hcm⟩ | ⟨Hpk, Hcm⟩ <;> rw [Hpk, Hcm]
+        rcases pickMeta_cur mp (base +ₗ 16) (base +ₗ 4112) Hval with ⟨Hpk, Hcm⟩ | ⟨Hpk, Hcm⟩ <;> rw [Hpk, Hcm]
         · iintro ⟨H0, H1⟩; iframe H0; iintro H0; iframe
         · iintro ⟨H0, H1⟩; iframe H1; iintro H1; iframe
       have Hlv : (monoNatAuthOwn γ.last 1 (curMeta mp).txid'.toNat ∗ dbLast γ t : IProp GF) ⊢
@@ -168,7 +168,7 @@ theorem DB.Get.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
       icases Hb0 $$ Hc0 with Hc0
       icases Hb1 $$ Hc1 with Hc1
       imod meta_return γ p base len γm γl T sync.rfrac.half.half (metasOf mp)
-        $$ [HinvL Hq Hout Hauth Hk0 Hc0 Hc1] with ⟨Hq, Hout, Hauth, Hmd⟩
+        $$ [HinvL Hq Hauth Hk0 Hc0 Hc1] with ⟨Hq, Hout, Hauth, Hmd⟩
       · iframe #; iunfold metaBytes; iframe
       wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaR (GF := GF) γ db p)
         $$ [$Hmeta $Hsync $Hlocked Hfl Hcur Hmb Hauth Hout Hfail Hlauth Hown]
@@ -178,7 +178,7 @@ theorem DB.Get.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
         dsimp only
         isplitr; · ipureintro; exact Hmx
         iframe
-        isplitr; · ipureintro; exact ⟨rfl, ⟨Hmpl, Hval, Hr2, Hrh, Hbound⟩, rfl⟩
+        isplitr; · ipureintro; exact ⟨rfl, ⟨Hmpl, Hval, Hr2, Hrh, Hbound⟩, rfl, HTn⟩
         iframe
         iexists B; iframe #; ipureintro; exact HT
       iunfold pageIs at HB

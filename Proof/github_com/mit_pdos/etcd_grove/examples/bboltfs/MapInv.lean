@@ -353,7 +353,7 @@ theorem mapLend_full (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm
     isplitl [Hpages]; · iexact Hpages
     ileft; iexact Hout
   · unfold metaLent metaBytes
-    icases Hml with (⟨-, Hb0, Hb1⟩ | ⟨-, Hd, -⟩)
+    icases Hml with (⟨-, Hb0, Hb1⟩ | ⟨-, -, Hd, -⟩)
     · iframe Hm
       iexists mp, fl, hwm
       isplitl [Hcur]; · iexact Hcur

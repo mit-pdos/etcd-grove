@@ -99,7 +99,7 @@ theorem meta_borrow (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm 
       ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ∗ ghostVar γ.out (1 : Qp).half.half false ∗
       ghostMapAuth γ.txs 1 T ∗ ghostVar γm metaDep () ⊢
     |={⊤}=> ghostVar γm q () ∗ ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ∗
-      ghostVar γ.out (1 : Qp).half.half false ∗ ghostMapAuth γ.txs (1 : Qp).half T ∗
+      ghostMapAuth γ.txs (1 : Qp).half T ∗
       0 ↪[γl]{#(1 : Qp).half} (metasOf mp) ∗ metaBytes (GF := GF) base (DFrac.own (1 : Qp).half) (metasOf mp) := by
   iintro ⟨#Hinv, Hq, Hcur, Hout, Hauth, Hdep⟩
   imod inv_acc (by simp) $$ Hinv with ⟨Hi, Hclose⟩
@@ -112,12 +112,12 @@ theorem meta_borrow (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm 
     · icombine Hout Hout' gives % ⟨_, Hbad⟩
       cases Hbad
     unfold metaLent
-    icases Hml with (⟨Hk, Hb⟩ | ⟨⟨%T', Ha'⟩, -, -⟩)
+    icases Hml with (⟨Hk, Hb⟩ | ⟨-, ⟨%T', Ha'⟩, -, -⟩)
     · have hmc : mc = metasOf mp := Hmc.2 rfl
       subst hmc
       icases (ghostMapAuth_halves γ.txs T).1 $$ Hauth with ⟨Hauth, Hauth2⟩
       icases (ghostMapElem_halves γl 0 (metasOf mp)).1 $$ Hk with ⟨Hk, Hk2⟩
-      imod Hclose $$ [Hcur' Ha Hpages Hout' Hauth2 Hdep Hk2] with _
+      imod Hclose $$ [Hcur' Ha Hpages Hout' Hout Hauth2 Hdep Hk2] with _
       · inext; ileft
         iexists mp, false, hwm, K
         iframe
@@ -127,6 +127,7 @@ theorem meta_borrow (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm 
         iexists (metasOf mp)
         isplitr; · ipureintro; exact Hmc
         iright
+        iframe Hout
         isplitl [Hauth2]; · iexists T; iexact Hauth2
         iframe
       imodintro
@@ -143,20 +144,22 @@ theorem meta_borrow (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm 
 theorem meta_return (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName)
     (T : GMap Nat (Option w64)) (q : Qp) (mc : List w8) :
     mapInvL (GF := GF) γ p base len γm γl ∗ ghostVar γm q () ∗
-      ghostVar γ.out (1 : Qp).half.half false ∗ ghostMapAuth γ.txs (1 : Qp).half T ∗
+      ghostMapAuth γ.txs (1 : Qp).half T ∗
       0 ↪[γl]{#(1 : Qp).half} mc ∗ metaBytes (GF := GF) base (DFrac.own (1 : Qp).half) mc ⊢
     |={⊤}=> ghostVar γm q () ∗ ghostVar γ.out (1 : Qp).half.half false ∗ ghostMapAuth γ.txs 1 T ∗
       ghostVar γm metaDep () := by
-  iintro ⟨#Hinv, Hq, Hout, Hauth, Hk, Hb⟩
+  iintro ⟨#Hinv, Hq, Hauth, Hk, Hb⟩
   imod inv_acc (by simp) $$ Hinv with ⟨Hi, Hclose⟩
   icases Hi with (>Hc | >Htok)
   · unfold mapLend
     icases Hc with ⟨%mp', %fl, %hwm', %K, Hcur', %Hl, Ha, %HK, Hpages, Hmeta⟩
-    icases Hmeta with (⟨Hout', -⟩ | ⟨Hout', %mc', %Hmc, Hml⟩)
-    · icombine Hout Hout' gives % ⟨_, Hbad⟩
-      cases Hbad
+    icases Hmeta with (⟨Hout', %mc', Hk'⟩ | ⟨Hout', %mc', %Hmc, Hml⟩)
+    · icombine Hk Hk' gives % ⟨Hbad, _⟩
+      exfalso
+      have := DFrac.valid_op_own Hbad
+      simp at this
     unfold metaLent
-    icases Hml with (⟨Hk', -⟩ | ⟨⟨%T', Ha'⟩, Hdep, Hk'⟩)
+    icases Hml with (⟨Hk', -⟩ | ⟨Hout, ⟨%T', Ha'⟩, Hdep, Hk'⟩)
     · icombine Hk Hk' gives % ⟨Hbad, _⟩
       exfalso
       have := DFrac.valid_op_own Hbad
@@ -292,7 +295,7 @@ theorem metaLent_unlent (γ : DBNames) (γm γl : GName) (base : Loc) (mc : List
       (0 ↪[γl] mc ∗ metaBytes (GF := GF) base (DFrac.own (1 : Qp).half) mc) ∗ ghostMapAuth γ.txs 1 T := by
   iintro ⟨Hml, Hauth⟩
   unfold metaLent
-  icases Hml with (H | ⟨⟨%T', Ha'⟩, -, -⟩)
+  icases Hml with (H | ⟨-, ⟨%T', Ha'⟩, -, -⟩)
   · iframe
   · icases auth_gives γ.txs _ _ T T' $$ [Hauth Ha'] with ⟨-, %Hbad⟩
     · iframe
@@ -335,7 +338,7 @@ theorem pageIs_agree (p : GoString) (r : Nat) (B B' : List w8) :
 end loans
 
 /-- `pickMeta` of the meta pages picks the current meta. -/
-theorem pick_cur [GooseExts] (mp : List w8) (m0 m1 : Loc)
+theorem pickMeta_cur [GooseExts] (mp : List w8) (m0 m1 : Loc)
     (h : metaValid (fileMeta mp 0) ∨ metaValid (fileMeta mp 1)) :
     (pickMetaRes m0 (fileMeta mp 0) m1 (fileMeta mp 1) = m0 ∧ curMeta mp = fileMeta mp 0) ∨
       (pickMetaRes m0 (fileMeta mp 0) m1 (fileMeta mp 1) = m1 ∧ curMeta mp = fileMeta mp 1) := by

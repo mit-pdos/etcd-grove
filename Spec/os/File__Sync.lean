@@ -2,9 +2,9 @@
 `f.Sync()` on an open `*os.File` (this repository's `os`, project `bboltfs`): `fsync`, as
 `syscall.Fdatasync` (`Spec/syscall/Fdatasync.lean`, D3), with the whole of the file's `OsMeta`
 (no change in flight) and some of its bytes, whole. The model (`TrustedCode/os.lean`) is the
-extension's `Fsync` (`wp_osFsync`), retried on `EINTR`; a failed attempt may lose bytes (`ok :=
-false`) before a retry succeeds. On success the size is durable and the bytes clean unless a
-failed sync lost one; on failure, nothing more is clean, and bytes may be lost. Proved in
+extension's `Fsync` (`wp_osFsync`), retried on `EINTR`, which `Fsync` never returns, so the loop
+runs once. On success the size is durable and the bytes clean unless an earlier failed sync lost
+one (`m.ok`); on failure, nothing more is clean, and bytes may be lost. Proved in
 `Proof/os/File__Sync.lean`. Lean-first (no Rocq counterpart).
 -/
 module
@@ -36,11 +36,8 @@ abbrev os.File.Sync.spec : Prop :=
       osBytes (GF := GF) d.path lo (DFrac.own 1) xs }}
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Sync")) (Val #()))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
-      ((⌜err = interface.nil⌝ ∗
-          ((osMeta d.path (DFrac.own 1) (some m.synced) ∗
-              osBytes d.path lo (DFrac.own 1) (syncedBytes m xs)) ∨
-           (osMeta d.path (DFrac.own 1) (some (OsMeta.synced { m with ok := false })) ∗
-              osBytes d.path lo (DFrac.own 1) xs))) ∨
+      ((⌜err = interface.nil⌝ ∗ osMeta d.path (DFrac.own 1) (some m.synced) ∗
+          osBytes d.path lo (DFrac.own 1) (syncedBytes m xs)) ∨
        (⌜err ≠ interface.nil⌝ ∗ osMeta d.path (DFrac.own 1) (some { m with ok := false }) ∗
           osBytes d.path lo (DFrac.own 1) xs)) }}
 
