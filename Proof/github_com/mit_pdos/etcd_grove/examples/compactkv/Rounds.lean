@@ -41,13 +41,20 @@ section pure
 variable [GooseExts]
 open mvcc
 
+/-- **Every revision is one put of `val`, or empty** (watches across a compaction, W4,
+2026-11-01): the rounds' puts are the only writes. So no revision writes a key twice (the watch's
+`noDupKeys`), and every event is a put of `val`. -/
+def oneValW (val : GoString) (chs : List (List mvcc.Change)) : Prop :=
+  ∀ cs ∈ chs, cs = [] ∨ ∃ (k : GoString) (l : w64), cs = [.put k val l]
+
 /-- What the invariant keeps of the state after the rounds' puts whose first firings were at the
 revisions `L` fired: sorted by key, past revision `0` (`NewStore`'s two revisions), and round `j`'s
 key at `val` at every revision from `L[j]` to the current one. -/
 def roundsOk (keys : List GoString) (val : GoString) (σ : KVState) (L : List Nat) : Prop :=
   σ.kvs.Pairwise etcdKvLess ∧ 1 ≤ σ.rev ∧
-    ∀ (j : Nat) (k : GoString) (r0 : Nat), L[j]? = some r0 → keys[j]? = some k → r0 ≤ σ.rev ∧
-      ∀ r, r0 ≤ r → r ≤ σ.rev → (mvcc.findKey k (σ.at r).kvs).map EtcdKv.value = some val
+    (∀ (j : Nat) (k : GoString) (r0 : Nat), L[j]? = some r0 → keys[j]? = some k → r0 ≤ σ.rev ∧
+      ∀ r, r0 ≤ r → r ≤ σ.rev → (mvcc.findKey k (σ.at r).kvs).map EtcdKv.value = some val) ∧
+    oneValW val σ.changes
 
 /-- A put with no options writes its key and nothing else. -/
 theorem kvOpStep_putKey_kvs (key val : GoString) (σ : KVState) :
@@ -74,8 +81,20 @@ theorem roundsOk_put (keys : List GoString) (val : GoString) (σ : KVState) (L :
     roundsOk keys val (kvOpStep (.put (putKeyOp k val)) σ) (roundsL L i (σ.rev + 1)) ∧
       L <+: roundsL L i (σ.rev + 1) ∧ (roundsL L i (σ.rev + 1)).length = max L.length (i + 1) ∧
       ∃ r0, (roundsL L i (σ.rev + 1))[i]? = some r0 ∧ r0 ≤ σ.rev + 1 := by
-  obtain ⟨hs, hr, hv⟩ := h
+  obtain ⟨hs, hr, hv, hov⟩ := h
   have Hstep := kvOpStep_putKey k val σ hs
+  have hov' : oneValW val (kvOpStep (.put (putKeyOp k val)) σ).changes := by
+    rw [kvOpStep_putKey_eq]
+    unfold KVState.commit
+    simp only [List.cons_ne_nil, ↓reduceIte]
+    intro cs hcs
+    rcases List.mem_append.1 hcs with h | h
+    · exact hov cs h
+    · simp only [List.mem_singleton] at h
+      subst h
+      right
+      exact ⟨k, txn.putLeaseOf (putKeyOp k val) (mvcc.findKey k σ.kvs), by
+        simp [txn.putChangeOf, txn.putValOf, putKeyOp, txn.putOpOf]⟩
   have hrev : (kvOpStep (.put (putKeyOp k val)) σ).rev = σ.rev + 1 := by
     rw [kvOpStep_putKey_eq]; exact KVState.commit_rev _ _ (List.cons_ne_nil _ _)
   have hat : ∀ r, r ≤ σ.rev → (kvOpStep (.put (putKeyOp k val)) σ).at r = σ.at r := by
@@ -108,13 +127,13 @@ theorem roundsOk_put (keys : List GoString) (val : GoString) (σ : KVState) (L :
   by_cases hi : i < L.length
   · rw [if_pos hi]
     obtain ⟨r0, hr0⟩ : ∃ r0, L[i]? = some r0 := ⟨_, List.getElem?_eq_getElem hi⟩
-    refine ⟨⟨Hstep.1, by omega, hold⟩, List.prefix_refl _, by omega, r0, hr0, ?_⟩
+    refine ⟨⟨Hstep.1, by omega, hold, hov'⟩, List.prefix_refl _, by omega, r0, hr0, ?_⟩
     have := (hv i k r0 hr0 hk).1
     omega
   · rw [if_neg hi]
     have hil : i = L.length := by omega
-    refine ⟨⟨Hstep.1, by omega, fun j k' r0 hj hk' => ?_⟩, List.prefix_append _ _, by simp; omega,
-      σ.rev + 1, by rw [hil]; simp, Nat.le_refl _⟩
+    refine ⟨⟨Hstep.1, by omega, fun j k' r0 hj hk' => ?_, hov'⟩, List.prefix_append _ _,
+      by simp; omega, σ.rev + 1, by rw [hil]; simp, Nat.le_refl _⟩
     rcases Nat.lt_or_ge j L.length with hjl | hjl
     · rw [List.getElem?_append_left hjl] at hj
       exact hold j k' r0 hj hk'
@@ -155,7 +174,7 @@ instance roundsInv_persistent (γ : ReadNames) (γf γl : GName) (keys : List Go
 
 /-- The invariant at a start state (a log's, past revision `0`), no round's put fired. -/
 theorem roundsInv_alloc (γr : ReadNames) (l : mvcc.Log) (keys : List GoString) (val : GoString)
-    (Em : CoPset) (hl : 2 ≤ l.length) :
+    (Em : CoPset) (hl : 2 ≤ l.length) (hov : oneValW val (kvStateOf l).changes) :
     etcdKV (GF := GF) γr.kv (kvStateOf l) ⊢
       |={Em}=> ∃ γf γl : GName, roundsInv γr γf γl keys val := by
   iintro Hσ
@@ -166,7 +185,7 @@ theorem roundsInv_alloc (γr : ReadNames) (l : mvcc.Log) (keys : List GoString) 
       $$ [Hσ Hm HL] with #Hinv
   · inext; iexists kvStateOf l, 0, []; iframe Hσ Hm HL
     ipureintro
-    refine ⟨rfl, KVState.kvs_sorted _, ?_, fun _ _ _ h => by simp at h⟩
+    refine ⟨rfl, KVState.kvs_sorted _, ?_, fun _ _ _ h => by simp at h, hov⟩
     rw [kvStateOf_rev]; omega
   imodintro
   iexists γf, γl
@@ -264,7 +283,7 @@ theorem getAu_round (γ : ReadNames) (γf γl : GName) (keys : List GoString) (v
     iintro !>
     ipureintro
     have hi : i < L.length := by omega
-    obtain ⟨h0, hrg⟩ := Hok.2.2.2 i k _ (List.getElem?_eq_getElem hi) hk
+    obtain ⟨h0, hrg⟩ := Hok.2.2.2.1 i k _ (List.getElem?_eq_getElem hi) hk
     exact hrg σ.rev h0 (Nat.le_refl _)
 
 /-- **A get at a revision past round `i`'s put's first firing** (persistent): with round `i`'s first
@@ -306,7 +325,43 @@ theorem getAtAu_round (γ : ReadNames) (γf γl : GName) (keys : List GoString) 
     imodintro
     iintro !>
     ipureintro
-    exact (Hok.2.2.2 i k r0 Hl hk).2
+    exact (Hok.2.2.2.1 i k r0 Hl hk).2
+
+/-- **The rounds' writes, read** (persistent; watches across a compaction, W4): a read update
+whose result is that every revision is one put of `val`, or empty (`oneValW`). -/
+theorem oneValAu (γ : ReadNames) (γf γl : GName) (keys : List GoString) (val : GoString) :
+    roundsInv γ γf γl keys val ⊢
+      kvReadAu (GF := GF) γ.kv (fun σ => iprop(⌜oneValW val σ.changes⌝)) := by
+  have Hm := kvClientN_mask
+  iintro #Hinv
+  iunfold kvReadAu
+  iunfold kvAu
+  iintro !>
+  iauintro
+  unfold atomic_acc
+  iunfold roundsInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%σ, %n, %L, Hσ, Hmn, HL, %Hok⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hmask with -
+    imod Hclose $$ [Hσ Hmn HL] with -
+    · inext; iexists σ, n, L; iframe Hσ Hmn HL; ipureintro; exact Hok
+    imodintro
+    itrivial
+  · iintro Hσ
+    imod Hmask with -
+    imod Hclose $$ [Hσ Hmn HL] with -
+    · inext; iexists σ, n, L; iframe Hσ Hmn HL; ipureintro; exact Hok
+    imodintro
+    iintro !>
+    ipureintro
+    exact Hok.2.2.2.2
 
 end inv
 
