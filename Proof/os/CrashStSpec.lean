@@ -351,6 +351,151 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
         · ipureintro
           exact ⟨hR', .inr ⟨rfl, by intro h; cases h⟩⟩
 
+omit [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [go.Semantics] [os.Assumptions] in
+theorem ftMeta_grown (m : OsMeta) (sz : Nat) : (ftMeta m sz).grown sz = m.grown sz := by
+  cases m; simp only [ftMeta, OsMeta.grown, OsMeta.mk.injEq, _root_.and_true, _root_.true_and]; omega
+
+omit [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [go.Semantics] [os.Assumptions] in
+theorem ftMeta_ftMeta (m : OsMeta) (sz : Nat) : ftMeta (ftMeta m sz) sz = ftMeta m sz := by
+  cases m; simp only [ftMeta, OsMeta.mk.injEq, _root_.and_true, _root_.true_and]; omega
+
+omit [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [go.Semantics] [os.Assumptions] in
+theorem grown_grown (m : OsMeta) (sz : Nat) : (m.grown sz).grown sz = m.grown sz := by
+  simp [OsMeta.grown]
+
+omit [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [go.Semantics] [os.Assumptions] in
+theorem ftMeta_of_grown (m : OsMeta) (sz : Nat) : ftMeta (m.grown sz) sz = m.grown sz := by
+  cases m; simp only [ftMeta, OsMeta.grown, OsMeta.mk.injEq, _root_.and_true, _root_.true_and]; omega
+
+/-- A truncate attempt's outcome, as `wp_osFtruncateFinish_cs` gives it. -/
+def truncPost (p : GoString) (γ : GName) (m : OsMeta) (bs : List (w8 × Bool)) (fa fb sz hi : Nat)
+    (e : w64) : IProp GF :=
+  iprop((⌜e = 0⌝ ∗ csGrownOwn p γ m bs fa fb sz hi) ∨
+    (⌜e ≠ 0⌝ ∗ (csGrownOwn p γ m bs fa fb sz hi ∨
+      (csOwn p γ (some ⟨ftMeta m sz, bs, fa, fb, .idle⟩) ∗ mcellsAny m.maps m.size hi))))
+
+theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF) (hG := hG) := by
+  intro f fd name dqf sz dq d N γ Ok m bs fa fb hi hfd0 hwr hsz hgrow hhi hN hT
+  unfold os.ownFile
+  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hown, Hc⟩
+  unfold os.model.inner
+  rw [os.file_ty_eq, os.File_ty_eq]
+  ihave #Hf2 := Hf
+  iStructNamed Hf2
+  wp_auto
+  have h1 : ¬ (sint.Z fd < sint.Z (W64 0)) := by
+    rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd0
+  rw [decide_eq_false h1]
+  wp_auto
+  have h2 : ¬ (sint.Z sz < sint.Z (W64 0)) := by
+    rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hsz
+  rw [decide_eq_false h2]
+  wp_auto
+  have hrep : bs ++ List.replicate (sz.toNat - m.size) ((0 : w8), false) ++
+      List.replicate (sz.toNat - (m.grown sz.toNat).size) ((0 : w8), false) =
+      bs ++ List.replicate (sz.toNat - m.size) ((0 : w8), false) := by
+    simp [OsMeta.grown]
+  have hGo : csGrownOwn (GF := GF) d.path γ (ftMeta m sz.toNat) bs fa fb sz.toNat hi =
+      csGrownOwn d.path γ m bs fa fb sz.toNat hi := by
+    unfold csGrownOwn; rw [ftMeta_grown]; rfl
+  ihave HS : (∃ m0, ⌜m0 = m ∨ m0 = ftMeta m sz.toNat⌝ ∗
+      csOwn d.path γ (some ⟨m0, bs, fa, fb, .idle⟩) ∗ mcellsAny m.maps m.size hi) ∨
+      csGrownOwn d.path γ m bs fa fb sz.toNat hi $$ [Hown Hc]
+  · ileft; iexists m; iframe; ipureintro; exact .inl rfl
+  iloeb as IH generalizing HS Hosfd Hfd HΦ
+  -- the state the attempt starts from, and how its outcome is the spec's
+  ihave ⟨%m1, %bs1, %hR1, %hs1, %hmp1, Hown, Hc, Hnorm⟩ : ∃ m1 bs1,
+      ⌜TReach m bs sz.toNat m1 bs1⌝ ∗ ⌜m1.size ≤ sz.toNat⌝ ∗ ⌜m1.maps = m.maps⌝ ∗
+      csOwn d.path γ (some ⟨m1, bs1, fa, fb, .idle⟩) ∗ mcellsAny m1.maps m1.size hi ∗
+      (∀ e, truncPost d.path γ m1 bs1 fa fb sz.toNat hi e -∗
+        truncPost d.path γ m bs fa fb sz.toNat hi e) $$ [HS]
+  · icases HS with (⟨%m0, %hm0, Hown, Hc⟩ | Hg)
+    · rcases hm0 with rfl | rfl
+      · iexists m0, bs; iframe; isplitr; · ipureintro; exact .refl
+        isplitr; · ipureintro; exact hgrow
+        isplitr; · ipureintro; rfl
+        iintro %e H; iexact H
+      · iexists (ftMeta m sz.toNat), bs; iframe; isplitr; · ipureintro; exact .ft
+        isplitr; · ipureintro; exact hgrow
+        isplitr; · ipureintro; rfl
+        iintro %e H
+        unfold truncPost
+        rw [ftMeta_ftMeta, hGo, show (ftMeta m sz.toNat).maps = m.maps from rfl,
+          show (ftMeta m sz.toNat).size = m.size from rfl]
+        iexact H
+    · unfold csGrownOwn
+      icases Hg with ⟨Hown, Hz, Hc⟩
+      iexists (m.grown sz.toNat), (bs ++ List.replicate (sz.toNat - m.size) ((0 : w8), false))
+      iframe Hown
+      isplitr; · ipureintro; exact .grown
+      isplitr; · ipureintro; simp [OsMeta.grown]
+      isplitr; · ipureintro; rfl
+      isplitl [Hc]
+      · rw [show (m.grown sz.toNat).maps = m.maps from rfl,
+          show (m.grown sz.toNat).size = sz.toNat from rfl]; iexact Hc
+      iintro %e H
+      unfold truncPost csGrownOwn
+      rw [grown_grown, ftMeta_of_grown, hrep]
+      icases H with (⟨%he, Hown, -, Hc⟩ | ⟨%he, (⟨Hown, -, Hc⟩ | ⟨Hown, Hc⟩)⟩)
+      · ileft; iframe; ipureintro; exact he
+      · iright; isplitr; · ipureintro; exact he
+        ileft; iframe
+      · iright; isplitr; · ipureintro; exact he
+        ileft; iframe
+  have hhi1 : MapsBelow m1.maps hi := by rw [hmp1]; exact hhi
+  wp_apply wp_osFtruncateStart_cs fd sz dq d N γ Ok m1 bs1 fa fb hi hN hwr hsz hs1 hhi1
+    (hT _ _ hR1).2 $$ Hos Hinv Hosfd Hown Hc as %t Hosfd Hown
+  have hokG : Ok (some ⟨m1.grown sz.toNat, bs1 ++ List.replicate (sz.toNat - m1.size) ((0 : w8), false),
+      fa, fb, .idle⟩) := by
+    rcases hR1 with _ | _ | _
+    · exact (hT _ _ .grown).1
+    · rw [ftMeta_grown]; exact (hT _ _ .grown).1
+    · rw [grown_grown, hrep]; exact (hT _ _ .grown).1
+  have hokF : Ok (some ⟨ftMeta m1 sz.toNat, bs1, fa, fb, .idle⟩) := by
+    rcases hR1 with _ | _ | _
+    · exact (hT _ _ .ft).1
+    · rw [ftMeta_ftMeta]; exact (hT _ _ .ft).1
+    · rw [ftMeta_of_grown]; exact (hT _ _ .grown).1
+  wp_apply wp_osFtruncateFinish_cs t d.path sz.toNat N γ Ok m1 bs1 fa fb hi hN hhi1 hokG hokF
+    $$ Hos Hinv Hown as %e Hr0
+  ihave Hr := Hnorm $$ %e [Hr0]
+  · unfold truncPost; iexact Hr0
+  unfold truncPost
+  by_cases he4 : e = W64 4
+  · rw [decide_eq_true he4]
+    wp_auto
+    icases Hr with (⟨%he, -⟩ | ⟨-, HS⟩)
+    · exact absurd (he4 ▸ he) (by decide)
+    iapply IH $$ [HS] Hosfd Hfd HΦ
+    icases HS with (H | ⟨Hown, Hc⟩)
+    · iright; iexact H
+    · ileft; iexists (ftMeta m sz.toNat); iframe; ipureintro; exact .inr rfl
+  · rw [decide_eq_false he4]
+    wp_auto
+    icases Hr with (⟨%he, Hg⟩ | ⟨%he, HS⟩)
+    · subst he
+      rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
+      simp only [Bool.not_true]
+      wp_auto
+      iapply HΦ
+      iframe
+      isplitl []
+      · isplitl [] <;> iassumption
+      ileft
+      iframe
+      ipureintro; rfl
+    · have he0' : ¬ e = W64 0 := he
+      rw [decide_eq_false he0']
+      wp_auto
+      wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+      iapply HΦ
+      iframe
+      isplitl []
+      · isplitl [] <;> iassumption
+      iright
+      iframe
+      ipureintro; intro h; cases h
+
 end proof
 
 end EtcdGrove
