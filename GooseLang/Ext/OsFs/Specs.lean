@@ -765,6 +765,213 @@ theorem wp_Fsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
     iapply HΦ $$ [Hm Hbs] Hfd
     iright; iframe; ipureintro; exact he
 
+/-- `mmap(nil, len, PROT_READ, MAP_SHARED[|MAP_POPULATE], fd, 0)`, with the whole of the file's
+`OsMeta`, so that no change is in flight on it: on success, fresh cells at `base`, whose client
+halves hold the file's bytes, then holes past its end; on failure, `nil`. -/
+theorem wp_Mmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN ⊆ E)
+    (hrd : d.readable = true) (hoff : off = 0) (hlen : 0 < len.toInt)
+    (hprot : prot.toNat = PROT_READ)
+    (hfl : fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.path (DFrac.own 1) (some m) -∗
+      (∀ base : Loc, ∀ e : w64,
+        ((⌜e = 0⌝ ∗
+            osMeta (L := L) d.path (DFrac.own 1) (some { m with maps := <[base := len.toNat]> m.maps }) ∗
+            ∃ bs : List w8, ⌜bs.length = m.size⌝ ∗
+              cellsR base 0 len.toNat (fun i => toCellVal bs[i]?)) ∨
+         (⌜e ≠ 0 ∧ base = null⌝ ∗ osMeta (L := L) d.path (DFrac.own 1) (some m))) -∗
+        osFd (L := L) fd dq d -∗ Φ (PairV (#base) (#e))) -∗
+      WP (ExternalOp osFsExt.name "Mmap"
+        (Val (PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl))))))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd Hm HΦ
+  iapply wp_os_step "Mmap" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h Hw
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  unfold osFd osMeta
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
+  icases tokRes_meta_whole _ $$ Htok Hm with %Hnt
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hfd : st.fds !! fd = some d := hcoh.fds ▸ Hfdl
+  obtain ⟨f, hf, hmo⟩ := coh_meta hcoh Hml
+  have hnt := noTok_of_whole hcoh Hnt
+  have hnb : ¬ BusyAt st d.path := by rintro ⟨t, c, ht, hcp⟩; exact hnt t c ht hcp
+  have hnoI : ∀ i, ¬ InflightAt st d.path i := by
+    rintro i ⟨t, c, ht, hcp, -⟩; exact hnt t c ht hcp
+  imodintro
+  isplitr
+  · ipureintro
+    exact ⟨_, h, st, ⟨fd, off, len, prot, fl, d, rfl, hfd, hrd, hoff, hlen, hprot, hfl, hnb,
+      .inr ⟨1, by decide, rfl, rfl⟩⟩, mapsFresh_same rfl, heapRendered_same hwf rfl rfl Hag⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨fd', off', len', prot', fl', d', hv, hfd', -, -, hlen', -, -, -, hres⟩ := Hst
+  injection hv with h1 h2; injection h2 with h3 h4; injection h4 with h5 h6
+  injection h6 with h7 h8
+  cases go.intoVal_inj h1; cases go.intoVal_inj h5
+  simp only [FdOpen, hfd, Option.some.injEq] at hfd'; subst hfd'
+  have hn0 : 0 < len.toNat := by
+    have := BitVec.toInt_eq_toNat_cond len
+    split at this <;> omega
+  rcases hres with ⟨base, hpos, -, hnone, hst', rfl⟩ | ⟨e, he, rfl, rfl⟩
+  · -- success
+    generalize hn : len.toNat = n at hst' hn0 ⊢
+    have hfresh := Hfr base ⟨d.path, n⟩ (by rw [hst']; exact GMap.lookup_insert _ _ _) hnone
+    obtain ⟨hmax, hfree⟩ := hfresh
+    -- the new cells were not mapped
+    have hnotmapped : ∀ k, k < n → ¬ Mapped st (base +ₗ (k : Int)) := by
+      intro k hk hm
+      obtain ⟨x, hx⟩ := cellView_isSome hwf hm
+      obtain ⟨m0, hm0⟩ := Hag _ x hx
+      rw [hfree k (by simpa using hk)] at hm0; cases hm0
+    have hwf' : OsWf st' := by
+      rw [hst']
+      refine { hwf with maps := ?_, maps_disj := ?_ }
+      · intro b m0 hb
+        simp only [GMap.lookup_insert_eq_iff] at hb
+        split at hb
+        · rename_i heq; subst heq; cases hb; exact ⟨⟨f, hf⟩, hpos, by simpa using hmax, hn0⟩
+        · exact hwf.maps b m0 hb
+      · intro b1 m1 b2 m2 hb1 hb2 hne
+        simp only [GMap.lookup_insert_eq_iff] at hb1 hb2
+        have key : ∀ b m0, st.maps !! b = some m0 →
+            base.addr + n ≤ b.addr ∨ b.addr + m0.len ≤ base.addr := by
+          intro b m0 hb
+          obtain ⟨-, -, -, hl0⟩ := hwf.maps b m0 hb
+          apply Classical.byContradiction; intro hc
+          simp only [not_or, Int.not_le] at hc
+          by_cases hle : b.addr ≤ base.addr
+          · apply hnotmapped 0 hn0
+            exact ⟨m0.path, (base.addr - b.addr).toNat, b, m0, hb, rfl, by omega,
+              by cases b; cases base; simp [Loc.add] at *; omega⟩
+          · apply hnotmapped (b.addr - base.addr).toNat (by omega)
+            exact ⟨m0.path, 0, b, m0, hb, rfl, hl0, by cases b; cases base; simp [Loc.add] at *; omega⟩
+        split at hb1 <;> split at hb2
+        · subst_vars; exact absurd rfl hne
+        · subst_vars; cases hb1; exact key b2 m2 hb2
+        · subst_vars; cases hb2; exact (key b1 m1 hb1).symm
+        · exact hwf.maps_disj b1 m1 b2 m2 hb1 hb2 hne
+    have hI : ∀ q i, InflightAt st' q i = InflightAt st q i := fun q i => by rw [hst']; rfl
+    have hT : ((List.range n).map (fun (k : Nat) => base +ₗ (k : Int))).Nodup :=
+      by
+        unfold List.Nodup; rw [List.pairwise_map]
+        exact List.nodup_range.imp (fun {a b} hab he => hab (by have := loc_add_inj _ he; omega))
+    have hmemT : ∀ l, l ∈ (List.range n).map (fun (k : Nat) => base +ₗ (k : Int)) ↔
+        ∃ k, k < n ∧ l = base +ₗ (k : Int) := by
+      intro l; simp only [List.mem_map, List.mem_range]; constructor
+      · rintro ⟨k, hk, rfl⟩; exact ⟨k, hk, rfl⟩
+      · rintro ⟨k, hk, rfl⟩; exact ⟨k, hk, rfl⟩
+    have hmapsT : ∀ k, k < n → MapsTo st' (base +ₗ (k : Int)) d.path k :=
+      fun k hk => ⟨base, ⟨d.path, n⟩, by rw [hst']; exact GMap.lookup_insert _ _ _, rfl, hk, rfl⟩
+    let vf : Nat → val := fun i => toCellVal f.cur[i]?
+    have hcb : ∀ i, cellByte st' d.path i = f.cur[i]? := fun i => by
+      subst hst'; exact cellByte_noinfl (st := { st with maps := _ }) hf (hnoI i)
+    imod cells_step st st' h h' _ ∅ (mkCellsR base vf 0 n) hwf hwf' Hr Hfr
+      (fun b m0 hb => by
+        simp only [hst', GMap.lookup_insert_eq_iff] at hb
+        split at hb
+        · subst_vars; exact .inl hnone
+        · exact .inr hb)
+      hT
+      (fun l hl => by
+        obtain ⟨k, hk, rfl⟩ := (hmemT l).1 hl; exact .inr ⟨_, _, hmapsT k hk⟩)
+      (fun l v h => by simp at h)
+      (fun l v hl => by
+        rw [lookup_mkCellsR] at hl
+        split at hl
+        · rename_i hc
+          cases hl
+          have hl' : l = base +ₗ ((l.addr - base.addr).toNat : Int) := by
+            cases l; cases base; simp [Loc.add] at hc ⊢; omega
+          refine ⟨(hmemT l).2 ⟨_, by omega, hl'⟩, _, ?_, rfl⟩
+          rw [hl', cellView_mapsTo hwf' (hmapsT _ (by omega)), hI, hcb]
+          simp only [hnoI, decide_false, Option.some.injEq, Prod.mk.injEq, and_true]
+          congr 2; simp only [Loc.add]; omega
+        · cases hl)
+      (fun l hl _ x hx => absurd (mapped_of_cellView hx) (by
+        obtain ⟨k, hk, rfl⟩ := (hmemT l).1 hl; exact hnotmapped k hk))
+      (fun l hl hc => by
+        obtain ⟨k, hk, rfl⟩ := (hmemT l).1 hl
+        rw [lookup_mkCellsR, dif_pos (by simp [Loc.add]; omega)] at hc; cases hc)
+      (fun l hl => by
+        apply cellView_lookup_congr hwf hwf' (by rw [hst']) (by rw [hst'])
+        intro q i
+        constructor
+        · rintro ⟨b, m0, hb, hp, hi, rfl⟩
+          simp only [hst', GMap.lookup_insert_eq_iff] at hb
+          split at hb
+          · subst_vars; cases hb; exact absurd ((hmemT _).2 ⟨i, hi, rfl⟩) hl
+          · exact ⟨b, m0, hb, hp, hi, rfl⟩
+        · rintro ⟨b, m0, hb, hp, hi, rfl⟩
+          refine ⟨b, m0, ?_, hp, hi, rfl⟩
+          simp only [hst', GMap.lookup_insert_eq_iff]
+          split
+          · subst_vars; rw [hnone] at hb; cases hb
+          · exact hb)
+      $$ [Hσ Hcells] with ⟨Hσ, Hcells, Hout⟩
+    · iframe; unfold halves; iapply BigSepM.bigSepM_empty.2; iempintro
+    imod gAuth_update _ _ _ _ _ (some { m with maps := <[base := n]> m.maps }) $$ HAm Hm
+      with ⟨HAm, Hm⟩
+    imodintro
+    iexists Γb, _, Γf, Γt
+    have htr : tokRes gooseOsGS st' Γt = tokRes (gooseOsGS (L := L)) st Γt := by rw [hst']; rfl
+    rw [htr, show st'.inflight = st.inflight by rw [hst']]
+    iframe
+    isplitr
+    · ipureintro
+      rw [hst']
+      refine ⟨hst' ▸ hwf', osCoh_setMaps hcoh _ _ ?_ ?_ ?_⟩
+      · intro q; simp only [GMap.lookup_insert_eq_iff]; split
+        · subst_vars; simp [Hml]
+        · rfl
+      · intro q; simp only [GMap.lookup_insert_eq_iff]; split
+        · subst_vars; simp [Hml]
+        · rfl
+      · intro q m' hq
+        simp only [GMap.lookup_insert_eq_iff] at hq
+        split at hq
+        · subst_vars; cases hq
+          refine ⟨m, Hml, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
+          simp only [GMap.lookup_insert_eq_iff]
+          split
+          · simp
+          · exact hmo.maps b len0
+        · rename_i hpq
+          refine ⟨m', hq, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
+          obtain ⟨f1, -, hmo1⟩ := hcoh.meta_some q m' hq
+          rw [hmo1.maps b len0]
+          simp only [GMap.lookup_insert_eq_iff]
+          split
+          · subst_vars; rw [hnone]; simp only [reduceCtorEq, false_iff, Option.some.injEq]
+            intro h; cases h; exact hpq rfl
+          · rfl
+    iapply wp_value'
+    iapply HΦ $$ [Hm Hout] Hfd
+    ileft
+    iframe Hm
+    isplitr
+    · ipureintro; rfl
+    iexists f.cur
+    isplitr
+    · ipureintro; exact hmo.size.symm
+    iapply (cellsR_halves base 0 vf n).2 $$ Hout
+  · -- failure
+    imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+    · iframe
+    imodintro
+    iexists Γb, Γm, Γf, Γt
+    iframe
+    isplitr
+    · ipureintro; exact ⟨hwf, hcoh⟩
+    iapply wp_value'
+    iapply HΦ $$ [Hm] Hfd
+    iright
+    iframe
+    ipureintro; exact ⟨he, rfl⟩
+
 end specs
 
 end Perennial

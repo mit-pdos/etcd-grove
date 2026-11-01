@@ -145,7 +145,7 @@ state. -/
 structure OsWf : Prop where
   fds : ∀ fd d, st.fds !! fd = some d → ∃ f, st.file d.path = some f
   maps : ∀ b m, st.maps !! b = some m →
-    (∃ f, st.file m.path = some f) ∧ 0 < b.addr ∧ b.addr + m.len ≤ maxAddr
+    (∃ f, st.file m.path = some f) ∧ 0 < b.addr ∧ b.addr + m.len ≤ maxAddr ∧ 0 < m.len
   maps_disj : ∀ b1 m1 b2 m2, st.maps !! b1 = some m1 → st.maps !! b2 = some m2 → b1 ≠ b2 →
     b1.addr + m1.len ≤ b2.addr ∨ b2.addr + m2.len ≤ b1.addr
   infl : ∀ t c, st.inflight !! t = some c → ∃ f, st.file c.path = some f

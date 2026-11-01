@@ -275,7 +275,7 @@ theorem cells_step (st st' : OsState) (h h' : GMap Loc (NonAtomic val)) (T : Lis
     intro l hl hs
     by_cases hm' : Mapped st' l
     · obtain ⟨p, i, b, m, hm, -, hi, rfl⟩ := hm'
-      obtain ⟨-, h1, h2⟩ := hwf'.maps b m hm
+      obtain ⟨-, h1, h2, -⟩ := hwf'.maps b m hm
       simp only [Loc.add]; omega
     · by_cases hm : Mapped st l
       · rw [hr3 l hm' hm] at hs; cases hs
@@ -359,6 +359,55 @@ theorem cells_step (st st' : OsState) (h h' : GMap Loc (NonAtomic val)) (T : Lis
     iframe HoutT
     iapply BigSepM.bigSepM_empty.2
     iempintro
+
+/-- The cells `[lo, lo + n)` of the mapping at `base`, holding `vf i`. -/
+def mkCellsR (base : Loc) (vf : Nat → val) (lo : Nat) : Nat → GMap Loc val
+  | 0 => ∅
+  | n + 1 => <[base +ₗ ((lo + n : Nat) : Int) := vf (lo + n)]> (mkCellsR base vf lo n)
+
+theorem lookup_mkCellsR (base : Loc) (vf : Nat → val) (lo : Nat) :
+    ∀ (n : Nat) (l : Loc), mkCellsR base vf lo n !! l =
+      if h : base.addr ≤ l.addr ∧ lo ≤ (l.addr - base.addr).toNat ∧
+          (l.addr - base.addr).toNat < lo + n
+        then some (vf (l.addr - base.addr).toNat) else none
+  | 0, l => by simp [mkCellsR]
+  | n + 1, l => by
+    simp only [mkCellsR, GMap.lookup_insert_eq_iff, lookup_mkCellsR base vf lo n]
+    by_cases he : base +ₗ ((lo + n : Nat) : Int) = l
+    · subst he
+      rw [if_pos rfl, dif_pos (by simp only [Loc.add]; omega)]
+      congr 2; simp only [Loc.add]; omega
+    · rw [if_neg he]
+      have : ¬ (l.addr - base.addr).toNat = lo + n ∨ ¬ base.addr ≤ l.addr := by
+        by_cases h1 : base.addr ≤ l.addr
+        · left; intro h2; apply he; cases l; simp [Loc.add] at h1 h2 ⊢; omega
+        · right; exact h1
+      split <;> split <;> first | rfl | omega
+
+/-- The client's halves of the cells `[lo, lo + n)` of the mapping at `base`. -/
+def cellsR (base : Loc) (lo n : Nat) (vf : Nat → val) : IProp GF :=
+  [∗list] i ∈ List.range' lo n, heapPointsto (hG := hG) (base +ₗ ((i : Nat) : Int))
+    (DFrac.own (1 : Qp).half) (vf i)
+
+theorem cellsR_halves (base : Loc) (lo : Nat) (vf : Nat → val) :
+    ∀ n, cellsR (GF := GF) base lo n vf ⊣⊢ halves (mkCellsR base vf lo n)
+  | 0 => by
+    unfold cellsR halves; simp only [mkCellsR]
+    exact ⟨by iintro _; iapply BigSepM.bigSepM_empty.2; iempintro,
+      by iintro _; simp only [List.range'_zero]; iapply BigSepL.bigSepL_nil.2; iempintro⟩
+  | n + 1 => by
+    have IH := cellsR_halves base lo vf n
+    unfold cellsR halves at *
+    rw [List.range'_concat, Nat.one_mul]
+    simp only [mkCellsR]
+    refine BigSepL.bigSepL_append.trans ?_
+    refine BIBase.BiEntails.trans ?_ (BigSepM.bigSepM_insert (Φ := fun l (v : val) =>
+      heapPointsto (hG := hG) l (DFrac.own (1 : Qp).half) v) ?_).symm
+    · refine (sep_congr IH .rfl).trans ?_
+      refine (sep_congr .rfl BigSepL.bigSepL_singleton).trans ?_
+      exact ⟨by iintro ⟨H1, H2⟩; iframe, by iintro ⟨H1, H2⟩; iframe⟩
+    · show mkCellsR base vf lo n !! _ = none
+      rw [lookup_mkCellsR, dif_neg (by simp only [Loc.add]; omega)]
 
 end cells
 

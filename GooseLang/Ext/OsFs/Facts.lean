@@ -206,7 +206,7 @@ theorem osWf_setFile_sameCur {st : OsState} {p : GoString} {f f' : OsFile} (hwf 
     · exact ⟨_, h0⟩
   refine ⟨fun fd d h => ?_, fun b m h => ?_, hwf.maps_disj, fun t c h => ?_, ?_, ?_, ?_⟩
   · obtain ⟨f0, h0⟩ := hwf.fds fd d h; exact hex _ _ h0
-  · obtain ⟨⟨f0, h0⟩, h1, h2⟩ := hwf.maps b m h; exact ⟨hex _ _ h0, h1, h2⟩
+  · obtain ⟨⟨f0, h0⟩, h1, h2, h3⟩ := hwf.maps b m h; exact ⟨hex _ _ h0, h1, h2, h3⟩
   · obtain ⟨f0, h0⟩ := hwf.infl t c h; exact hex _ _ h0
   · intro t1 c1 t2 c2 i h1 h2 hne hp
     simp only [affects_congr hs]
@@ -371,5 +371,55 @@ theorem osCoh_setFile_sameCur {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt
     · exact ⟨f1, h1, hsv⟩
 
 end sameCur
+
+/-! ## Changing the mappings -/
+
+section maps
+
+theorem size_congr_files {st st' : OsState} (h : st'.files = st.files) :
+    ∀ p, st'.size p = st.size p := by
+  intro p; simp [OsState.size, OsState.file, h]
+
+theorem cellView_lookup_congr {st st' : OsState} (hwf : OsWf st) (hwf' : OsWf st')
+    (hfi : st'.files = st.files) (hin : st'.inflight = st.inflight) (l : Loc)
+    (hl : ∀ p i, MapsTo st' l p i ↔ MapsTo st l p i) : cellView st' !! l = cellView st !! l := by
+  have hs := size_congr_files hfi
+  have hI := inflightAt_congr hs hin
+  have hb : ∀ p i, cellByte st' p i = cellByte st p i :=
+    cellByte_congr (fun p => by simp [OsState.file, hfi]) hI
+  by_cases h : Mapped st l
+  · obtain ⟨p, i, hpi⟩ := h
+    rw [cellView_mapsTo hwf' ((hl p i).2 hpi), cellView_mapsTo hwf hpi, hb, hI]
+  · rw [cellView_none h, cellView_none (fun ⟨p, i, hpi⟩ => h ⟨p, i, (hl p i).1 hpi⟩)]
+
+theorem cellByte_noinfl {st : OsState} {p : GoString} {f : OsFile} {i : Nat}
+    (hf : st.file p = some f) (hn : ¬ InflightAt st p i) : cellByte st p i = f.cur[i]? := by
+  unfold cellByte
+  rw [hf]
+  dsimp only
+  split
+  · rename_i hi; rw [List.getElem?_eq_getElem hi]
+  · rename_i hi; rw [List.getElem?_eq_none (by omega)]
+
+/-- The ghost maps when only the mappings change, and the files' `OsMeta`s follow them. -/
+theorem osCoh_setMaps {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt)
+    (X : GMap Loc OsMap) (Γm' : GMap GoString (Option OsMeta))
+    (hdom : ∀ q, Γm' !! q = none ↔ Γm !! q = none)
+    (hnone : ∀ q, Γm' !! q = some none ↔ Γm !! q = some none)
+    (hsome : ∀ q m', Γm' !! q = some (some m') → ∃ m, Γm !! q = some (some m) ∧
+      m'.size = m.size ∧ m'.lo = m.lo ∧ m'.hi = m.hi ∧ m'.named = m.named ∧ m'.ok = m.ok ∧
+      ∀ b len, m'.maps !! b = some len ↔ X !! b = some ⟨q, len⟩) :
+    OsCoh { st with maps := X } Γb Γm' Γf Γt :=
+  { hcoh with
+    meta_dom := fun q => (hdom q).trans (hcoh.meta_dom q)
+    meta_none := fun q => (hnone q).trans (hcoh.meta_none q)
+    meta_some := fun q m' h => by
+      obtain ⟨m, hm, h1, h2, h3, h4, h5, h6⟩ := hsome q m' h
+      obtain ⟨f, hf, hmo⟩ := hcoh.meta_some q m hm
+      exact ⟨f, hf, ⟨h1 ▸ hmo.size, h4 ▸ hmo.named, h2 ▸ hmo.lo, h3 ▸ hmo.hi,
+        fun hok => hmo.ok (h5 ▸ hok), h6,
+        fun t c ht hc => by rw [h2, h3]; exact hmo.targets t c ht hc⟩⟩ }
+
+end maps
 
 end Perennial
