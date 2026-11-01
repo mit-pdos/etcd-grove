@@ -12,7 +12,7 @@ logs" Drafts are its unswitched design); `kvApplied`'s `crevOf` clause (deferred
 "stage 4c"); the compaction arm with auth on (`applyEntryNormal` applies compactions on the auth-off
 path only), with the auth-mode merge of `applyAll`/`run`'s `spec`/`specOn` (the apply plan's stage 5,
 which needs nothing of M2 and waits on SNAPSHOT-SORRY #7/#8); one token count in place of `bootstrap`'s
-`N + N` (the user's later); the Draft modules (`M2ApplyDraft*`, `M2StorageDraft*`, `M2ApplyProbe` under
+`N + N` (the user's later, moved to restore in compaction mode: `notes/decisions.md`, "One token count goes with restore in compaction mode"); the Draft modules (`M2ApplyDraft*`, `M2StorageDraft*`, `M2ApplyProbe` under
 `etcdserver/`, `apply/` and `mvcc/`; they import only each other) to delete or fold in.
 
 Earlier status (2026-10-30): **item 17 switched with the lease** ("Item 17 switched: the jobs' share
