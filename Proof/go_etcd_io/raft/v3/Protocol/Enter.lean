@@ -40,15 +40,13 @@ variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- The slot invariant is inside raft's namespace. -/
-theorem slotN_raftN (γ : RaftNames) (id : w64) : (↑(slotN γ id) : CoPset) ⊆ ↑(raftN γ) := by
-  -- PORT(durability stage II): proof (new lemma)
-  sorry
+theorem slotN_raftN (γ : RaftNames) (id : w64) : (↑(slotN γ id) : CoPset) ⊆ ↑(raftN γ) :=
+  fun p hp => nclose_subseteq (raftN γ) "slot" p (nclose_subseteq _ _ p hp)
 
 /-- The slot invariant opens inside a ghost step (the commit invariant's registry half open). -/
 theorem slotN_sub (γ : RaftNames) (id : w64) :
-    (↑(slotN γ id) : CoPset) ⊆ ⊤ \ ↑(raftRegN γ) := by
-  -- PORT(durability stage II): proof (new lemma)
-  sorry
+    (↑(slotN γ id) : CoPset) ⊆ ⊤ \ ↑(raftRegN γ) :=
+  slotN_sub_reg
 
 /-- The state a node restarts in from a storage holding `S` from the base `b` with the commit
 index `c`: a follower of `S.term`, with `S`'s vote, no leader, an empty tally and outbox. -/
@@ -155,8 +153,79 @@ with the generation bumped, so that a batch cut in it and not entered can no lon
 theorem raft_stop (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {md : Bool} (g : Nat) :
     ↑(raftN γ) ⊆ E →
     ⊢ slotLive (GF := GF) γ id 1 g -∗ ownRaftGhost γ id s md ={E}=∗ raftIdSlot γ id := by
-  -- PORT(durability stage II): proof (new lemma)
-  sorry
+  intro HE
+  have HsE : (↑(slotN γ id) : CoPset) ⊆ E := fun p hp => HE p (slotN_raftN γ id p hp)
+  iintro Hlive Hg
+  unfold ownRaftGhost
+  icases Hg with ⟨%γs, %V, %πc, %kl, %Hsname, #Hslot, Hvirt, -, -, %Hidnz, -, -, -, -, Hlg, -, -, -,
+    #Hlcamps, Hlcm, Hrd, -⟩
+  unfold ownLogGhost
+  icases Hlg with ⟨%γm, %terms, %fp, %γw, %wins, %Htname, Hterms, #Htfrags, -, -, -, -, -, -, -, -,
+    -, -, -, -, -, -, -, %Hwname, Hwins, #Hwfrags, -, -, -, #Hinv, -⟩
+  unfold lcmOwn
+  icases Hlcm with ⟨%γl, %lcm, %Hγl, Hlcma, #Hlcmf, -, -⟩
+  unfold rdOwn
+  icases Hrd with ⟨%γq, %rqm, %Hγq, Hrqa, #Hrqf, -, -, -, -, -, #Hcinv, -⟩
+  unfold slotLive
+  icases Hlive with ⟨%γs', %Hγs', Hgen⟩
+  rw [Hsname] at Hγs'; cases Hγs'
+  unfold slotInv
+  iinv Hslot with H Hclose
+  unfold slotBody
+  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh, #Hfr, >Hv', >Hg', >Hq, >%Hdom, >%Hcur, -⟩
+  rw [Hsname] at Hγs'; cases Hγs'
+  ihave %Hgg := ghostVar_agree _ _ _ _ _ $$ Hgen Hg'
+  subst Hgg
+  imod ghostVar_update_halves E0 γs.1 _ _ $$ Hvirt Hv' with ⟨Hvirt, Hv'⟩
+  imod ghostVar_update_halves (g + 1) γs.2.2 _ _ $$ Hgen Hg' with ⟨Hgen, Hg'⟩
+  have Hfresh : Mq.lookup (g + 1) = none := by
+    cases h : Mq.lookup (g + 1) with
+    | none => rfl
+    | some x =>
+      have := Hdom (g + 1) (by
+        show (Mq !! (g + 1)).isSome = true
+        rw [show Mq !! (g + 1) = Mq.lookup (g + 1) from rfl, h]; rfl)
+      omega
+  imod ghost_map_insert (g + 1) (none : Option RaftBatch) Hfresh $$ Hq with ⟨Hq, Hfree⟩
+  imod Hclose $$ [Hsh Hv' Hg' Hq] with -
+  · inext
+    iexists γs, E0, g + 1, Mq.insert (g + 1) none
+    have Hl : (Mq.insert (g + 1) (none : Option RaftBatch)) !! (g + 1) = some none :=
+      GMap.lookup_insert _ _ _
+    rw [Hl]
+    iframe Hsh Hfr Hg' Hq
+    isplitr; · ipureintro; exact Hsname
+    isplitl [Hv']; · simp only [virtQ]; iexact Hv'
+    isplitr
+    · ipureintro
+      intro k hk
+      by_cases hkg : k = g + 1
+      · omega
+      · have : (Mq.insert (g + 1) (none : Option RaftBatch)) !! k = Mq !! k :=
+          GMap.lookup_insert_ne _ _ (Ne.symm hkg)
+        rw [this] at hk
+        have := Hdom k hk
+        omega
+    isplitr; · ipureintro; rfl
+    iintro %b %hb
+    cases hb
+  imodintro
+  unfold raftIdSlot slotInv slotBody
+  iexists γs, E0, g + 1
+  iframe Hvirt Hslot Hinv Hcinv Hlcamps
+  isplitr; · ipureintro; exact Hsname
+  isplitr; · ipureintro; exact Hidnz
+  isplitl [Hgen]
+  · unfold slotLive; iexists γs; iframe Hgen; ipureintro; exact Hsname
+  isplitl [Hfree]
+  · unfold slotFree; iexists γs; iframe Hfree; ipureintro; exact Hsname
+  isplitl [Hterms]
+  · iexists γm, terms; iframe Hterms Htfrags; ipureintro; exact Htname
+  isplitl [Hwins]
+  · iexists γw, wins; iframe Hwins Hwfrags; ipureintro; exact Hwname
+  isplitl [Hlcma]
+  · iexists γl, lcm; iframe Hlcma Hlcmf; ipureintro; exact Hγl
+  · iexists γq, rqm; iframe Hrqa Hrqf; ipureintro; exact Hγq
 
 end enter
 

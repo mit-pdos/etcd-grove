@@ -834,18 +834,126 @@ private theorem tbl_of_ids (nv : GMap w64 GName) (P : w64 → GName → IProp GF
         · exact Hk'
         · rintro rfl; rw [Hk] at Hk'; cases Hk')) $$ H
 
-/-- A node's ghost state in the initial state, from its fresh resources. -/
-private theorem ownRaftGhost_init (γ : RaftNames) (id t : w64) (L : List EntryM)
-    (γv γm γa γc γl γw γe γlc γrq : GName) {md : Bool} (Hmode : γ.reDyn.isSome = md) :
-    id ≠ W64 0 →
+/-- (stage II helper) A fresh slot's resources: the virtual maps' variable at the empty maps, the
+queue with its generation-`0` element free, the generation at `0`. -/
+def slotFresh (γs : SlotNames) : IProp GF :=
+  iprop(ghostVar γs.1 1 DurMaps.empty ∗
+    ghostMapAuth γs.2.1 1 ((∅ : GMap Nat (Option RaftBatch)).insert 0 none) ∗
+    (0 ↪[γs.2.1] (none : Option RaftBatch)) ∗ ghostVar γs.2.2 1 (0 : Nat))
+
+/-- (stage II helper) Every id's slot names, fresh. -/
+theorem alloc_slots (ids : GSet w64) :
+    ⊢ |==> ∃ (names : GMap w64 SlotNames),
+        [∗map] x ↦ _u ∈ toMap ids, ∃ γs, ⌜names !! x = some γs⌝ ∗ slotFresh (GF := GF) γs := by
+  induction ids using GMap.map_ind with
+  | h0 =>
+    imodintro
+    iexists ∅
+    iapply (BigSepM.bigSepM_empty (Φ := fun (x : w64) (_u : Unit) =>
+      iprop(∃ γs, ⌜(∅ : GMap w64 SlotNames) !! x = some γs⌝ ∗ slotFresh (GF := GF) γs))).2
+    iempintro
+  | hins x u ids Hx IH =>
+    imod IH with ⟨%names, Hm⟩
+    imod ghostVar_alloc (GF := GF) DurMaps.empty with ⟨%γ1, Hv⟩
+    imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := Option RaftBatch) with ⟨%γ2, Hq⟩
+    imod ghost_map_insert (0 : Nat) (none : Option RaftBatch)
+      (GMap.lookup_empty (K := Nat) (V := Option RaftBatch) 0) $$ Hq with ⟨Hq, Hf⟩
+    imod ghostVar_alloc (GF := GF) (0 : Nat) with ⟨%γ3, Hg⟩
+    imodintro
+    iexists <[x := ((γ1, γ2, γ3) : SlotNames)]> names
+    iapply (BigSepM.bigSepM_insert (Φ := fun (y : w64) (_u : Unit) =>
+        iprop(∃ γs, ⌜(<[x := ((γ1, γ2, γ3) : SlotNames)]> names) !! y = some γs⌝ ∗
+          slotFresh (GF := GF) γs)) Hx).2
+    isplitl [Hv Hq Hf Hg]
+    · iexists ((γ1, γ2, γ3) : SlotNames)
+      isplitr
+      · ipureintro; exact GMap.lookup_insert _ _ _
+      · unfold slotFresh; iframe Hv Hq Hf Hg
+    ihave H := BigSepM.bigSepM_impl $$ Hm
+    iapply H
+    imodintro
+    iintro %y %uy %Hy ⟨%γy, %Hγy, Ha⟩
+    iexists γy
+    iframe Ha
+    ipureintro
+    rw [GMap.lookup_insert_ne]
+    · exact Hγy
+    · rintro rfl
+      have Hy' : ids !! x = some uy := Hy
+      rw [Hx] at Hy'; cases Hy'
+
+/-- (stage II helper; **not provable as stated**, `sorry`: durability stage I, R6) A fresh node's
+leader-side keys are campaigns' terms. `ledgerCamps` quantifies over every fragment of the four
+leader-side maps, with no relation to their authorities, so no allocation can establish it: a
+fragment `t ↪[γm]□ x` is compatible with the core of the fresh authority `ghostMapAuth γm 1 ∅`, and
+`isCampK γ id t F k` does not follow from it. The allocation of `raftIdSlot` (and so of every
+cluster) rests on this. -/
+private theorem ledgerCamps_fresh (γ : RaftNames) (id : w64) : ⊢ ledgerCamps (GF := GF) γ id := by
+  -- PORT(durability stage II): unprovable as stated (see the docstring); back to stage I
+  sorry
+
+/-- (stage II helper) The durable invariants of the initial state over no promise. -/
+private theorem durPers_init (γ : RaftNames) (id : w64) :
+    ⊢ raftCommitInv (GF := GF) γ -∗ isCommitted γ [] -∗ durPers γ id RaftState.init DurMaps.empty := by
+  iintro #Hinv #Hc0
+  have Hb : RaftState.init.base = base0 := rfl
+  have Hc : RaftState.init.commit = W64 0 := rfl
+  have He : RaftState.init.ents = [] := rfl
+  unfold durPers
+  simp only [DurMaps.empty]
+  iexists none, []
+  rw [Hb, He, Hc]
+  isplitr
+  · ipureintro
+    refine ⟨⟨fun t h => by simp at h, by simp [RaftState.init]⟩, fun k h => by simp at h,
+      fun T h => by simp at h,
+      ⟨fun p1 p2 e1 e2 _ H1 _ => by simp at H1, fun e He => by simp at He,
+        fun t i Hi => by simp at Hi⟩,
+      FullOk_base0, fun k e h => by simp at h, ?_, by rw [base0_index]; exact Int.le_refl _, ?_⟩
+    · intro j x Hx
+      rw [List.nil_append] at Hx
+      have Hr := plogTermAt_some_range _ _ _ _ Hx
+      unfold plogLastIndexZ at Hr
+      rw [base0_index] at Hr
+      have h2 : uint.Z j ≤ 0 := by have := Hr.2; simp only [List.length_nil] at this; omega
+      have := uint_Z_nonneg j
+      have Hj : j = base0.index' := uint_Z_inj.mp (by rw [base0_index]; omega)
+      subst Hj
+      rw [plogTermAt_base] at Hx
+      cases Hx
+      exact Int.le_refl _
+    · unfold plogLastIndexZ; rw [base0_index]; simp
+  isplitr; · unfold logRecs; iapply (BigSepL.bigSepL_nil).2; iempintro
+  isplitr; · unfold baseOk; ileft; ipureintro; rfl
+  isplitr; · unfold logRecs; iapply (BigSepL.bigSepL_nil).2; iempintro
+  isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
+  isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
+  isplitr; · unfold klOkD; itrivial
+  isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
+  isplitr
+  · unfold commitIn
+    isplitr
+    · unfold commitJ; ileft; ipureintro
+      refine ⟨by rw [show uint.Z (W64 0) = 0 from rfl]; omega, ?_⟩
+      rw [List.nil_append]
+      exact (plogTermAt_base base0 _).trans (plogTermAt_base base0 []).symm
+    · unfold dynOn
+      iright; unfold witsB; iintro %k %Hk %_; exfalso
+      have := Hk.2
+      simp at this
+  iframe Hinv
+  simp only [List.nil_append, List.take_nil]
+  iexact Hc0
+
+/-- (stage II helper) A fresh node's durable half at the initial state and its vacant slot, from
+its fresh authorities and slot: the slot invariant allocated with the other halves. -/
+private theorem slot_init (E : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames)
+    (γv γm γa γc γl γw γe γlc γrq : GName) :
+    id ≠ W64 0 → γ.reSlot !! id = some γs →
     γ.reVotes !! id = some γv → γ.reTerms !! id = some γm → γ.reAcks !! id = some γa →
     γ.reCamp !! id = some γc → γ.reVlogs !! id = some γl → γ.reWins !! id = some γw →
     γ.reEvs !! id = some γe → γ.reLcm !! id = some γlc → γ.reRdq !! id = some γrq →
-    γ.reBoot = L → PlogWf base0 L → (L.length : Int) < 2 ^ 64 →
-    (∀ e ∈ L, e.Term' = W64 1) → (L ≠ [] → 1 ≤ uint.Z t) →
-    ⊢ raftCommitInv (GF := GF) γ -∗ isCommitted γ L -∗ logRecs γ base0 L -∗
-      rdCredInv γ -∗ rdCred γ 0 -∗
-      ghostMapAuth γrq 1 (∅ : GMap w64 GName) -∗
+    ⊢ raftCommitInv (GF := GF) γ -∗ isCommitted γ [] -∗ rdCredInv γ -∗ slotFresh γs -∗
       ghostMapAuth γv (1 : Qp).half (∅ : GMap w64 w64) -∗
       ghostMapAuth γm 1 (∅ : GMap w64 TermRec) -∗
       ghostMapAuth γa 1 (∅ : GMap (w64 × w64) Unit) -∗
@@ -854,16 +962,105 @@ private theorem ownRaftGhost_init (γ : RaftNames) (id t : w64) (L : List EntryM
       ghostMapAuth γw 1 (∅ : GMap w64 (GSet w64)) -∗
       monoListAuthOwn γe 1 ([] : List Aev) -∗
       ghostMapAuth γlc 1 (∅ : GMap w64 GName) -∗
-      ownRaftGhost γ id (initPStateAt t L) md := by
-  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
-  sorry
+      ghostMapAuth γrq 1 (∅ : GMap w64 GName) ={E}=∗
+      ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id := by
+  intro Hnz Hγs Hγv Hγm Hγa Hγc Hγl Hγw Hγe Hγlc Hγrq
+  iintro #Hinv #Hc0 #Hcinv Hsl Hv Hm Ha Hc Hl Hw He Hlc Hrq
+  unfold slotFresh
+  icases Hsl with ⟨Hvirt, Hq, Hfree, Hgen⟩
+  icases (ghostVar_split_half (GF := GF) γs.1 1 DurMaps.empty).1 $$ Hvirt with ⟨Hvirt1, Hvirt2⟩
+  icases (ghostVar_split_half (GF := GF) γs.2.2 1 (0 : Nat)).1 $$ Hgen with ⟨Hgen1, Hgen2⟩
+  icases ((ghostMapAuth_fractional (GF := GF) γv (∅ : GMap w64 w64)).fractional
+      ((1 : Qp).half).half ((1 : Qp).half).half).1 $$ [Hv] with ⟨Hv1, Hv2⟩
+  · rw [Qp.half_add_half]; iexact Hv
+  icases (ghostMapAuth_halves (GF := GF) γa (∅ : GMap (w64 × w64) Unit)).1 $$ Ha with ⟨Ha1, Ha2⟩
+  icases (ghostMapAuth_halves (GF := GF) γc (∅ : GMap w64 (List EntryM × w64))).1 $$ Hc
+    with ⟨Hc1, Hc2⟩
+  icases (ghostMapAuth_halves (GF := GF) γl (∅ : GMap Nat ((w64 × Bool) × List EntryM))).1 $$ Hl
+    with ⟨Hl1, Hl2⟩
+  icases (persistent_entails_left (monoListLbOwn_get (GF := GF) γe 1 ([] : List Aev))) $$ He
+    with ⟨He, #Helb⟩
+  icases ((monoListAuthOwn_fractional (GF := GF) γe ([] : List Aev)).fractional
+      (1 : Qp).half (1 : Qp).half).1 $$ [He] with ⟨He1, He2⟩
+  · rw [Qp.half_add_half]; iexact He
+  ihave #Hfr : durFrags (GF := GF) γ id DurMaps.empty $$ []
+  · unfold durFrags
+    simp only [DurMaps.empty]
+    isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
+    isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
+    isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
+    isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
+    iexists γe; iframe Helb; ipureintro; exact Hγe
+  imod inv_alloc (slotN γ id) E (slotBody γ id) $$ [Hv2 Ha2 Hc2 Hl2 He2 Hvirt2 Hgen2 Hq]
+    with #Hslot
+  · inext
+    unfold slotBody
+    iexists γs, DurMaps.empty, 0, ((∅ : GMap Nat (Option RaftBatch)).insert 0 none)
+    have Hl0 : ((∅ : GMap Nat (Option RaftBatch)).insert 0 none) !! 0 = some none :=
+      GMap.lookup_insert _ _ _
+    rw [Hl0]
+    simp only [virtQ]
+    iframe Hfr Hvirt2 Hgen2 Hq
+    isplitr; · ipureintro; exact Hγs
+    isplitl [Hv2 Ha2 Hc2 Hl2 He2]
+    · unfold durShares
+      simp only [DurMaps.empty]
+      iexists γv, γa, γc, γl, γe
+      iframe Hv2 Ha2 Hc2 Hl2 He2
+      ipureintro; exact ⟨Hγv, Hγa, Hγc, Hγl, Hγe⟩
+    isplitr
+    · ipureintro
+      intro k hk
+      by_cases hk0 : k = 0
+      · omega
+      · have : ((∅ : GMap Nat (Option RaftBatch)).insert 0 none) !! k =
+            (∅ : GMap Nat (Option RaftBatch)) !! k := GMap.lookup_insert_ne _ _ (Ne.symm hk0)
+        rw [this, GMap.lookup_empty] at hk
+        cases hk
+    isplitr; · ipureintro; rfl
+    iintro %b %hb
+    cases hb
+  ihave #Hdp := durPers_init γ id $$ Hinv Hc0
+  ihave #Hlcs := ledgerCamps_fresh (GF := GF) γ id
+  imodintro
+  isplitl [Hv1 Ha1 Hc1 Hl1 He1]
+  · unfold ownDurGhost
+    iexists DurMaps.empty
+    iframe Hdp
+    unfold durShares
+    simp only [DurMaps.empty]
+    iexists γv, γa, γc, γl, γe
+    iframe Hv1 Ha1 Hc1 Hl1 He1
+    ipureintro; exact ⟨Hγv, Hγa, Hγc, Hγl, Hγe⟩
+  unfold raftIdSlot slotInv
+  iexists γs, DurMaps.empty, 0
+  iframe Hvirt1 Hslot Hinv Hcinv Hlcs
+  isplitr; · ipureintro; exact Hγs
+  isplitr; · ipureintro; exact Hnz
+  isplitl [Hgen1]
+  · unfold slotLive; iexists γs; iframe Hgen1; ipureintro; exact Hγs
+  isplitl [Hfree]
+  · unfold slotFree; iexists γs; iframe Hfree; ipureintro; exact Hγs
+  isplitl [Hm]
+  · iexists γm, ∅; iframe Hm
+    isplitr; · ipureintro; exact Hγm
+    iapply (BigSepM.bigSepM_empty).2; iempintro
+  isplitl [Hw]
+  · iexists γw, ∅; iframe Hw
+    isplitr; · ipureintro; exact Hγw
+    iapply (BigSepM.bigSepM_empty).2; iempintro
+  isplitl [Hlc]
+  · iexists γlc, ∅; iframe Hlc
+    isplitr; · ipureintro; exact Hγlc
+    iapply (BigSepM.bigSepM_empty).2; iempintro
+  · iexists γrq, ∅; iframe Hrq
+    isplitr; · ipureintro; exact Hγrq
+    iapply (BigSepM.bigSepM_empty).2; iempintro
 
-private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) (t : w64) (L : List EntryM)
-    {md : Bool} (Hmode : γ.reDyn.isSome = md) :
+private theorem alloc_nodes (E : CoPset) (γ : RaftNames) (ids : GSet w64) :
     W64 0 ∉ ids →
-    γ.reBoot = L → PlogWf base0 L → (L.length : Int) < 2 ^ 64 →
-    (∀ e ∈ L, e.Term' = W64 1) → (L ≠ [] → 1 ≤ uint.Z t) →
-    ⊢ raftCommitInv (GF := GF) γ -∗ isCommitted γ L -∗ logRecs γ base0 L -∗
+    ⊢ raftCommitInv (GF := GF) γ -∗ isCommitted γ [] -∗ rdCredInv γ -∗
+      ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜γ.reSlot !! x = some γx⌝ ∗ slotFresh γx) -∗
       ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜γ.reVotes !! x = some γx⌝ ∗
         ghostMapAuth γx (1 : Qp).half (∅ : GMap w64 w64)) -∗
       ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜γ.reTerms !! x = some γx⌝ ∗
@@ -881,17 +1078,17 @@ private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) (t : w64) (L : Lis
       ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜γ.reLcm !! x = some γx⌝ ∗
         ghostMapAuth γx 1 (∅ : GMap w64 GName)) -∗
       ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜γ.reRdq !! x = some γx⌝ ∗
-        ghostMapAuth γx 1 (∅ : GMap w64 GName)) -∗
-      rdCredInv γ -∗ rdCred γ 0 -∗
-      [∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) md := by
+        ghostMapAuth γx 1 (∅ : GMap w64 GName)) ={E}=∗
+      [∗map] id ↦ _u ∈ toMap ids, ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id := by
   induction ids using GMap.map_ind with
   | h0 =>
-    intro _ _ _ _ _ _
-    iintro - - - - - - - - - - - - - -
+    intro _
+    iintro - - - - - - - - - - - - -
+    imodintro
     iapply (BigSepM.bigSepM_empty).2
     iempintro
   | hins x u ids Hx IH =>
-    intro Hnz HL HwfL Hlen Hones Ht
+    intro Hnz
     have Hxm : x ∈ (<[x := u]> ids : GSet w64) :=
       (GMap.elem_of_gset _ _).mpr (by rw [GMap.lookup_insert])
     have Hsub : ∀ y, y ∈ ids → y ∈ (<[x := u]> ids : GSet w64) := by
@@ -900,8 +1097,8 @@ private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) (t : w64) (L : Lis
       by_cases Hxy : x = y
       · subst Hxy; rw [Hx] at Hy; cases Hy
       · rw [GMap.lookup_insert_ne _ _ Hxy]; exact Hy
-    iintro #Hinv #Hc0 #HrL Hv Hm Ha Hc Hl Hw He Hlc Hrq #Hcinv Hcr0
-    icases (rdCred_split γ 0 0).1 $$ Hcr0 with ⟨Hcr1, Hcr0⟩
+    iintro #Hinv #Hc0 #Hcinv Hsl Hv Hm Ha Hc Hl Hw He Hlc Hrq
+    icases (BigSepM.bigSepM_insert Hx).1 $$ Hsl with ⟨⟨%γs, %Hγs, Hsl1⟩, Hsl⟩
     icases (BigSepM.bigSepM_insert Hx).1 $$ Hrq with ⟨⟨%γrq, %Hγrq, Hrq1⟩, Hrq⟩
     icases (BigSepM.bigSepM_insert Hx).1 $$ Hlc with ⟨⟨%γlc, %Hγlc, Hlc1⟩, Hlc⟩
     icases (BigSepM.bigSepM_insert Hx).1 $$ Hv with ⟨⟨%γv, %Hγv, Hv1⟩, Hv⟩
@@ -911,13 +1108,13 @@ private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) (t : w64) (L : Lis
     icases (BigSepM.bigSepM_insert Hx).1 $$ Hl with ⟨⟨%γl, %Hγl, Hl1⟩, Hl⟩
     icases (BigSepM.bigSepM_insert Hx).1 $$ Hw with ⟨⟨%γw, %Hγw, Hw1⟩, Hw⟩
     icases (BigSepM.bigSepM_insert Hx).1 $$ He with ⟨⟨%γe, %Hγe, He1⟩, He⟩
+    imod slot_init E γ x γs γv γm γa γc γl γw γe γlc γrq (fun h => Hnz (h ▸ Hxm)) Hγs Hγv Hγm
+      Hγa Hγc Hγl Hγw Hγe Hγlc Hγrq
+      $$ Hinv Hc0 Hcinv Hsl1 Hv1 Hm1 Ha1 Hc1 Hl1 Hw1 He1 Hlc1 Hrq1 with ⟨Hd1, Hs1⟩
+    imod IH (fun h => Hnz (Hsub _ h)) $$ Hinv Hc0 Hcinv Hsl Hv Hm Ha Hc Hl Hw He Hlc Hrq with Hrest
+    imodintro
     iapply (BigSepM.bigSepM_insert Hx).2
-    isplitl [Hv1 Hm1 Ha1 Hc1 Hl1 Hw1 He1 Hlc1 Hrq1 Hcr1]
-    · iapply ownRaftGhost_init γ x t L γv γm γa γc γl γw γe γlc γrq Hmode
-        (fun h => Hnz (h ▸ Hxm)) Hγv Hγm Hγa Hγc Hγl Hγw Hγe Hγlc Hγrq HL HwfL Hlen Hones Ht
-        $$ Hinv Hc0 HrL Hcinv Hcr1 Hrq1 Hv1 Hm1 Ha1 Hc1 Hl1 Hw1 He1 Hlc1
-    · iapply IH (fun h => Hnz (Hsub _ h)) HL HwfL Hlen Hones Ht
-        $$ Hinv Hc0 HrL Hv Hm Ha Hc Hl Hw He Hlc Hrq Hcinv Hcr0
+    iframe Hd1 Hs1 Hrest
 
 /-- The fresh-data tokens `F` with the keys of the entries `L` added (2026-10-27). -/
 def bootFreshFrom (F : GMap (List w8) Unit) (L : List EntryM) : GMap (List w8) Unit :=
@@ -1194,8 +1391,174 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
         C γ ∗
         -- (2026-10-13) every read credit
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
-  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
-  sorry
+  intro Hcne Hnz HLok Ht
+  have HwfL := HLok.wf
+  have Hones := HLok.terms
+  have Hlen : (L.length : Int) < 2 ^ 64 := by have := HLok.1; omega
+  iintro Hcl
+  imod alloc_maps (GF := GF) (K := w64) (V := w64) ids with ⟨%nv, %Hnv, Hv⟩
+  imod alloc_maps (GF := GF) (K := w64) (V := TermRec) ids with ⟨%nt, -, Ht⟩
+  imod alloc_maps (GF := GF) (K := w64 × w64) (V := Unit) ids with ⟨%na, -, Ha⟩
+  imod alloc_maps (GF := GF) (K := w64) (V := List EntryM × w64) ids with ⟨%nc, -, Hc⟩
+  imod alloc_maps (GF := GF) (K := Nat) (V := (w64 × Bool) × List EntryM) ids
+    with ⟨%nl, -, Hl⟩
+  imod alloc_maps (GF := GF) (K := w64) (V := GSet w64) ids with ⟨%nw, -, Hw⟩
+  imod alloc_evs (GF := GF) ids with ⟨%ne, He⟩
+  imod alloc_maps (GF := GF) (K := w64) (V := GName) ids with ⟨%nlc, -, Hlc⟩
+  imod alloc_maps (GF := GF) (K := w64) (V := GName) ids with ⟨%nrq, -, Hrq⟩
+  imod alloc_slots (GF := GF) ids with ⟨%nsl, Hsl⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName × List EntryM)
+    with ⟨%γrd, Hrda⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γrf, Hrfa⟩
+  imod own_alloc ((● (2 ^ 64 - 2 : Nat) : Auth Nat) • (◯ (2 ^ 64 - 2 : Nat) : Auth Nat))
+    (Auth.auth_both_valid_discrete.mpr ⟨⟨0, (Nat.add_zero _).symm⟩, trivial⟩) with ⟨%γrc, HC⟩
+  icases (own_op γrc _ _).1 $$ HC with ⟨HCa, HCf⟩
+  imod ownCommitted_alloc_at (GF := GF) L with ⟨%γc, Hcauth, #Hclb⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := PropRec) with ⟨%γpr, Hpra⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γfr, Hfra⟩
+  imod ghostVar_alloc (GF := GF) L with ⟨%γcl, Hcl0⟩
+  -- (2026-10-14, reconfiguration stage B4) the winners table, empty
+  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := WinRec) with ⟨%γtb, Htba⟩
+  icases ghostVar_split γcl L (1 : Qp).half (1 : Qp).half $$ [Hcl0]
+    with ⟨Hcl1, Hcl2⟩
+  · rw [Qp.half_add_half]; iexact Hcl0
+  obtain ⟨γ0, Hγ0⟩ : ∃ γ0 : RaftNames,
+      γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
+        dyn, ccOk, L.map BootEntry.ofEntry, Hcne, trk, Htrk, ns,
+        fun h he => Hns h (List.map_eq_nil_iff.1 he), nx,
+        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl, nsN, certN, reg, rdec, dup, nsl⟩ :=
+    ⟨_, rfl⟩
+  have e1 : γ0.reVotes = nv := by rw [Hγ0]
+  have e2 : γ0.reTerms = nt := by rw [Hγ0]
+  have e3 : γ0.reAcks = na := by rw [Hγ0]
+  have e4 : γ0.reCamp = nc := by rw [Hγ0]
+  have e5 : γ0.reVlogs = nl := by rw [Hγ0]
+  have e6 : γ0.reWins = nw := by rw [Hγ0]
+  have e7 : γ0.reEvs = ne := by rw [Hγ0]
+  have e8 : γ0.reCommit = γc := by rw [Hγ0]
+  have e9 : γ0.reProps = γpr := by rw [Hγ0]
+  have e0 : γ0.reCfg = cfg := by rw [Hγ0]
+  have e11 : γ0.reRLog = γcl := by rw [Hγ0]
+  have e12 : γ0.reFresh = γfr := by rw [Hγ0]
+  have e13 : γ0.reLcm = nlc := by rw [Hγ0]
+  have e14 : γ0.reRdq = nrq := by rw [Hγ0]
+  have e15 : γ0.reReads = γrd := by rw [Hγ0]
+  have e15' : γ0.reRdFresh = γrf := by rw [Hγ0]
+  have e16 : γ0.reRdCred = γrc := by rw [Hγ0]
+  have e17 : γ0.reTbl = γtb := by rw [Hγ0]
+  have e18 : γ0.reSlot = nsl := by rw [Hγ0]
+  have eB : γ0.reBoot = L := by
+    unfold RaftNames.reBoot; rw [Hγ0]; exact BootEntry.map_toEntry_ofEntry L
+  have eD : γ0.reDyn = dyn := by rw [Hγ0]
+  have eCC : γ0.reCCOk = ccOk := by rw [Hγ0]
+  rw [← e1, ← e2, ← e3, ← e4, ← e5, ← e6, ← e7, ← e8, ← e9, ← e11, ← e12, ← e13, ← e14,
+    ← e15, ← e15', ← e16, ← e17, ← e18]
+  ihave #Hc0 : isCommitted (GF := GF) γ0 L $$ []
+  · rw [isCommitted_unseal]; unfold isCommittedDef; iexact Hclb
+  -- (2026-10-27) the bootstrap log's entries, registered as proposals already appended; their
+  -- data, and the records
+  imod saved_pred_alloc (fun _ : List EntryM => iprop(True : IProp GF)) DFrac.discard trivial
+    with ⟨%γT, #HspT⟩
+  imod boot_register γ0 L γT L ∅ ∅ HLok.2.2
+    (fun e He => by
+      obtain ⟨H1, H2, H3⟩ := HLok.data e He
+      exact ⟨H1, H2, H3, GMap.lookup_empty _, GMap.lookup_empty _⟩)
+    $$ HspT Hpra Hfra [] with ⟨%R0, Hpra, Hfra, Hs0, #Hents0, #Hpis0⟩
+  · iapply (BigSepM.bigSepM_empty (Φ := fun d (p : PropRec) =>
+      iprop(propSlot (GF := GF) γ0 d p L ∗ propFresh γ0 d))).2
+    iempintro
+  ihave ⟨#Hds, #Hents⟩ := entsData_keys γ0 L $$ Hents0
+  ihave #HrL : logRecs (GF := GF) γ0 base0 L $$ []
+  · iapply logRecs_boot_intro γ0 L eB HwfL Hlen Hones $$ Hents
+  -- the client's part: its standing update
+  iunfold allocClientGen at Hcl
+  iunfold bootFresh at Hcl
+  imod Hcl $$ %γ0 [] Hc0 [Hcl2] Hfra Hrfa [] with ⟨#Hnoop, HCl⟩
+  · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0]⟩
+  · unfold rLog; iexact Hcl2
+  · iexists γT; iframe HspT Hpis0
+  imod inv_alloc (rdCredN γ0) E iprop(∃ B : Nat, own γ0.reRdCred (● B : Auth Nat) ∗
+      ⌜B < 2 ^ 64 - 1⌝) $$ [HCa] with #Hcinv
+  · inext
+    iexists 2 ^ 64 - 2
+    iframe HCa
+    ipureintro; omega
+  ihave #Hcinv' : rdCredInv (GF := GF) γ0 $$ []
+  · unfold rdCredInv; iexact Hcinv
+  ihave Hcr : rdCred (GF := GF) γ0 (2 ^ 64 - 2) $$ [HCf]
+  · unfold rdCred; iexact HCf
+  -- each vote map: half to the node, half to the table
+  ihave Hv2 : ([∗map] x ↦ _u ∈ toMap ids,
+      iprop((∃ γx, ⌜γ0.reVotes !! x = some γx⌝ ∗
+          ghostMapAuth (GF := GF) γx (1 : Qp).half (∅ : GMap w64 w64)) ∗
+        (∃ γx, ⌜γ0.reVotes !! x = some γx⌝ ∗
+          ghostMapAuth (GF := GF) γx (1 : Qp).half (∅ : GMap w64 w64)))) $$ [Hv]
+  · iapply BigSepM.bigSepM_impl $$ Hv
+    imodintro
+    iintro %x %u %_ ⟨%γx, %Hx, Hax⟩
+    icases (ghostMapAuth_halves γx _).1 $$ Hax with ⟨Ha1, Ha2⟩
+    isplitl [Ha1]
+    · iexists γx
+      isplitr
+      · ipureintro; exact Hx
+      · iexact Ha1
+    · iexists γx
+      isplitr
+      · ipureintro; exact Hx
+      · iexact Ha2
+  rw [BigSepM.bigSepM_sep_eq (m := toMap ids)]
+  icases Hv2 with ⟨Hv, Hvt⟩
+  ihave Htbl : votesTbl (GF := GF) γ0 $$ [Hvt]
+  · unfold votesTbl
+    rw [← Hnv, e1]
+    ihave Ht' := tbl_of_ids nv
+      (fun _ γv => ghostMapAuth (GF := GF) γv (1 : Qp).half (∅ : GMap w64 w64))
+      nv (fun _ _ h => h) $$ Hvt
+    iapply BigSepM.bigSepM_impl $$ Ht'
+    imodintro
+    iintro %v %γv %_ Hav
+    iexists ∅
+    isplitl [Hav]
+    · iexact Hav
+    · iapply (BigSepM.bigSepM_empty).2; iempintro
+  icases rlq_split γ0 L $$ Hcl1 with ⟨Hq1, Hq2⟩
+  imod inv_alloc (raftLogN γ0) E (raftLogInvBody γ0) $$ [Hcauth Htbl Hq1 Htba] with #Hinv
+  · inext
+    unfold raftLogInvBody
+    iexists L
+    isplitl [Hcauth]
+    · rw [ownCommitted_unseal]; unfold ownCommittedDef; iexact Hcauth
+    isplitr
+    · unfold committedJust; ileft; ipureintro; rw [eB]; exact ⟨rfl, HwfL⟩
+    isplitl [Htbl]; · iexact Htbl
+    isplitl [Htba]
+    · unfold winTbl
+      iexists ∅
+      iframe Htba
+      iapply (BigSepM.bigSepM_empty).2; iempintro
+    unfold logRest
+    iframe Hq1 Hds
+  imod inv_alloc (raftRegN γ0) E (regsOwn γ0) $$ [Hq2 Hpra Hrda Hs0] with #Hreg
+  · inext
+    unfold regsOwn regsAt propsOwn readsReg
+    iexists L
+    iframe Hq2
+    iexists R0, ∅
+    iframe Hpra Hrda Hnoop Hs0
+    iapply (BigSepM.bigSepM_empty).2; iempintro
+  ihave #Hinv' : raftCommitInv (GF := GF) γ0 $$ []
+  · unfold raftCommitInv raftLogInv raftRegInv; iframe Hinv Hreg
+  ihave #Hc00 : isCommitted (GF := GF) γ0 [] $$ []
+  · iapply isCommitted_mono γ0 [] L (List.nil_prefix) $$ Hc0
+  imod alloc_nodes E γ0 ids Hnz $$ Hinv' Hc00 Hcinv' Hsl Hv Ht Ha Hc Hl Hw He Hlc Hrq with Hnodes
+  imodintro
+  iexists γ0
+  isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0],
+    by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0]⟩
+  isplitr; · iexact Hinv'
+  isplitr; · iexact Hc0
+  iframe HCl Hcr Hcinv' Hnodes
+
 
 /-- **The allocation's core**, with no registry of the snapshots made
 (`ownRaftGhost_alloc_core_reg` at `none`). -/
@@ -1256,8 +1619,18 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
         C γ ∗
         -- (2026-10-13) every read credit
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
-  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
-  sorry
+  intro Hcne Hnz
+  iintro Hcl
+  ihave Hcl' := allocClient_gen E cfg dyn ccOk C $$ Hcl
+  imod ownRaftGhost_alloc_core E cfg ids dyn ccOk [] (W64 0) C none (fun _ h => by cases h)
+    false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) (fun _ => none)
+    (nroot .@ "raft_commit") (nroot .@ "raft_snapcert") Hcne Hnz
+    BootWf_nil
+    (fun h => absurd rfl h) $$ Hcl' with ⟨%γ, %Hγ, H⟩
+  imodintro
+  iexists γ
+  isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.2.2.2.1⟩
+  iexact H
 
 /-- (2026-10-21, D22 S-r) **The static allocation of a cluster that takes snapshots**: as
 `ownRaftGhost_alloc_gen` in the static mode, at the empty log, with the snapshots' data the cluster
@@ -1278,8 +1651,18 @@ theorem ownRaftGhost_alloc_snap (E : CoPset) (cfg ids : GSet w64)
         ([∗map] id ↦ _u ∈ toMap ids, ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id) ∗
         C γ ∗
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
-  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
-  sorry
+  intro Hcne Hnz
+  iintro Hcl
+  ihave Hcl' := allocClient_gen E cfg none ccOk C $$ Hcl
+  imod ownRaftGhost_alloc_core E cfg ids none ccOk [] (W64 0) C none (fun _ h => by cases h)
+    false (fun h => by cases h) false (fun h => by cases h) sok (fun _ => none) (nroot .@ "raft_commit") (nroot .@ "raft_snapcert") Hcne Hnz
+    BootWf_nil
+    (fun h => absurd rfl h) $$ Hcl' with ⟨%γ, %Hγ, H⟩
+  imodintro
+  iexists γ
+  isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.1,
+    Hγ.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.2.1⟩
+  iexact H
 
 /-! ### A new cluster's bootstrap log (2026-10-16, stage R8b, D12) -/
 
@@ -1371,8 +1754,28 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
         ([∗map] id ↦ _u ∈ toMap ids, ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id) ∗
         C γ ∗
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
-  -- PORT(durability stage II): proof (a definition or a statement it uses changed (durability I-1))
-  sorry
+  intro Hcne Hnz Hcfg Hnd Hok
+  have Hbne : bootLog ≠ [] := by
+    intro h
+    rw [h] at Hok
+    have hps : ps = [] := List.eq_nil_of_length_eq_zero Hok.1.symm
+    apply Hcne
+    rw [Hcfg, hps]; rfl
+  iintro Hcl
+  ihave Hcl' : allocClientGen (GF := GF) E cfg none ccOk bootLog C $$ [Hcl]
+  · unfold allocClientGen allocClientBoot
+    iintro %γ %Hγ #Hc HrL Hf Hrf -
+    iapply Hcl $$ %γ %(⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1⟩) Hc HrL Hf Hrf
+  imod ownRaftGhost_alloc_core E cfg ids none ccOk bootLog (W64 1) C (some cfg)
+    (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) ns (fun _ => Hbne) nx (fun _ => Hbne)
+    (fun _ _ => True) sl (nroot .@ "raft_commit") (nroot .@ "raft_snapcert") Hcne Hnz (Hok.wf Hnd)
+    (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
+    $$ Hcl' with ⟨%γ, %Hγ, H⟩
+  imodintro
+  iexists γ
+  isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1, Hγ.2.2.2.2.1, Hγ.2.2.2.2.2.1,
+    Hγ.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.2.1⟩
+  iexact H
 
 end ghost
 

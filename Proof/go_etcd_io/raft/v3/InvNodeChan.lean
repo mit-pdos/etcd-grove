@@ -1091,11 +1091,45 @@ durability stage I-3, R8) with the same share of the node's generation of its id
 def nodeLiveRaw (γ : NodeNames) (q : Qp) : IProp GF :=
   iprop(dghostVar γ.live (DFrac.own q.half) false ∗ slotLive γ.raft γ.id q.half γ.gen)
 
+/-- (stage II helper) A share of the generation splits and combines. -/
+instance slotLive_fractional (γ : RaftNames) (id : w64) (g : Nat) :
+    Fractional (fun q => slotLive (GF := GF) γ id q g) where
+  fractional p q := by
+    unfold slotLive
+    constructor
+    · iintro ⟨%γs, %H, Hv⟩
+      icases ((ghostVar_half_fractional (GF := GF) γs.2.2 g).fractional p q).1 $$ Hv with ⟨H1, H2⟩
+      isplitl [H1]
+      · iexists γs; iframe H1; ipureintro; exact H
+      · iexists γs; iframe H2; ipureintro; exact H
+    · iintro ⟨⟨%γs, %H, H1⟩, ⟨%γs', %H', H2⟩⟩
+      rw [H] at H'; cases H'
+      iexists γs
+      isplitr
+      · ipureintro; exact H
+      iapply ((ghostVar_half_fractional (GF := GF) γs.2.2 g).fractional p q).2
+      iframe H1 H2
+
 instance nodeLiveRaw_fractional (γ : NodeNames) :
     Fractional (nodeLiveRaw (GF := GF) γ) where
   fractional p q := by
-    -- PORT(durability stage II): `nodeLiveRaw` holds the generation's share (I-3)
-    sorry
+    unfold nodeLiveRaw
+    rw [Qp_half_add]
+    constructor
+    · iintro ⟨Hl, Hs⟩
+      icases ((dghostVar_fractional (GF := GF) γ.live false).fractional p.half q.half).1 $$ Hl
+        with ⟨Hl1, Hl2⟩
+      icases ((slotLive_fractional (GF := GF) γ.raft γ.id γ.gen).fractional p.half q.half).1 $$ Hs
+        with ⟨Hs1, Hs2⟩
+      isplitl [Hl1 Hs1]
+      · iframe Hl1 Hs1
+      · iframe Hl2 Hs2
+    · iintro ⟨⟨Hl1, Hs1⟩, ⟨Hl2, Hs2⟩⟩
+      isplitl [Hl1 Hl2]
+      · iapply ((dghostVar_fractional (GF := GF) γ.live false).fractional p.half q.half).2
+        iframe Hl1 Hl2
+      · iapply ((slotLive_fractional (GF := GF) γ.raft γ.id γ.gen).fractional p.half q.half).2
+        iframe Hs1 Hs2
 
 instance nodeLiveRaw_timeless (γ : NodeNames) (q : Qp) : Timeless (nodeLiveRaw (GF := GF) γ q) := by
   unfold nodeLiveRaw slotLive; infer_instance
@@ -1131,8 +1165,10 @@ instance propErrRaw_persistent (γ : NodeNames) (cd : context.ContextDesc (IProp
 
 theorem nodeLiveRaw_stopped (γ : NodeNames) (q : Qp) :
     nodeLiveRaw (GF := GF) γ q ∗ nodeStoppedRaw γ ⊢ False := by
-  -- PORT(durability stage II): `nodeLiveRaw` holds the generation's share (I-3)
-  sorry
+  unfold nodeLiveRaw nodeStoppedRaw
+  iintro ⟨⟨H1, -⟩, H2⟩
+  ihave %H := dghostVar_agree _ _ _ _ _ $$ H1 H2
+  cases H
 
 /-- (2026-10-29, stage U9a) The closing side of a broadcast also gives its persistent side. -/
 theorem ownBroadcastChan_pending_unknown (ch : Loc) (γc : ChanNames) (Q : IProp GF) :

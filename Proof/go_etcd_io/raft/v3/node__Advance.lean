@@ -71,7 +71,11 @@ private abbrev node.Advance.specRaw : Prop :=
       -- index (`issues/raft-advance-before-applyconfchange.md`); (2026-10-28, the decision switch) or
       -- skipped, rejected over decisions recorded (`undecFree`); (raft-final, 2026-10-29, the
       -- design's A1) only after a `Ready` without a snapshot
-      □ (⌜L = none⌝ -∗ undecFree γ.raft γ.mode ds ca ds.length) }}
+      □ (⌜L = none⌝ -∗ undecFree γ.raft γ.mode ds ca ds.length) ∗
+      -- (2026-11-01, durability stage I-3/I-8) `run`'s halves of the recorded durable state and of
+      -- the batch's maps, with the fragments *enter* minted (`advanceP`)
+      (∃ (y : RaftState × StateType) (W : DurMaps), dghostVar γ.dur (DFrac.own (1 : Qp).half) y ∗
+        dghostVar γ.bw (DFrac.own (1 : Qp).half) W ∗ durFrags γ.raft γ.id W) }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
   {{ RET #(); (nodeDriverChan γ id n ds p ∗
       -- (2026-10-28, stage U3d) the view of the configuration: after a snapshot `Ready`,
@@ -99,8 +103,88 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- The `dlv` halves move on past the `Ready` (`run` will recognize its record), one goes
 with the receipt on `advancec`; (2026-10-29, stage U9a) or `n.done` fires: the node stopped. -/
 private theorem node.Advance.wp_raw : node.Advance.specRaw (GF := GF) (hG := hG) := by
-  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
-  sorry
+  intro γ id n ds es ca cfg p' L
+  wp_start as ⟨Hbusy, Hrcpt, Hcfg, #HA1, Hback0⟩
+  unfold nodeDriverBusy
+  icases Hbusy with ⟨#Hnode, #Hdlb, -, %d, %ce, %p, Hd1, Hd2, Hrof, %Hds, %q0, Hr1, Hr2⟩
+  ihave #Hcamlb : monoNatLbOwn γ.cam ca $$ [Hcfg]
+  · unfold nodeCfg; icases Hcfg with ⟨-, -, $⟩
+  subst Hds
+  ihave #Hnode' := Hnode
+  open_node Hnode'
+  imod dghostVar_update_halves (dlvAfter d ce L, p') γ.dlv (d, p) (d, p) $$ Hd1 Hd2 with ⟨Hd1, Hd2⟩
+  wp_auto_lc 3
+  wp_apply_core chan.wp_select_blocking
+  iapply BigAndL.bigAndL_cons.2
+  isplit
+  · -- `advancec <- struct{}{}` (D19i part 1: `advInv`, the floor raised at the rendezvous)
+    simp only [chan.blockingClausePre]
+    iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.advancec',
+      γ.advancec, ()
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl⟩
+    isplitr
+    · iapply isAdvChan_isChan $$ Hadvancec
+    -- (2026-10-28, stage U3d) after a snapshot `Ready` the view goes with the payload and comes
+    -- back moved (`capPay`, `capAns`)
+    ihave ⟨Hpay, Hback⟩ : capPay γ L (ca, cfg) ∗ (capAns γ (loanReq γ.mode L (ca, cfg)) -∗
+        nodeCfg γ (loanCfg γ.mode L (ca, cfg)).1 (loanCfg γ.mode L (ca, cfg)).2) $$ [Hcfg]
+    · cases L with
+      | none =>
+        isplitr
+        · simp only [capPay]; itrivial
+        iintro -
+        rw [loanCfg_none]
+        iframe Hcfg
+      | some l =>
+        unfold nodeCfg
+        icases Hcfg with ⟨Hcap, Hccq, -⟩
+        isplitl [Hcap]
+        · simp only [capPay]; iexact Hcap
+        iintro Hans
+        simp only [capAns, loanReq, Option.map_some]
+        icases Hans with ⟨Hcap, #Hlb⟩
+        iframe Hcap Hccq Hlb
+    iapply adv_send_au γ nv.rn' id nv.advancec' (dlvAfter d ce L) L (ca, cfg) q0
+      $$ [$Hlc1 $Hlc2 $Hlc3] Hadvancec [Hd1 Hrof Hrcpt Hpay Hback0] Hdlb Hr1 Hr2
+    · unfold advanceP
+      iexists d, ce, es, p'
+      iframe Hd1 Hrof Hrcpt Hpay Hback0
+      iexists ca
+      iframe Hcamlb
+      iexact HA1
+    inext
+    iintro Hfl Hans Hreq
+    ihave Hcfg := Hback $$ Hans
+    wp_auto
+    iapply HΦ
+    ileft
+    iframe Hcfg Hfl
+    unfold nodeDriverChan
+    iframe Hnode Hd2 Hdlb Hreq
+  iapply BigAndL.bigAndL_cons.2
+  isplit
+  · -- `<-n.done` (2026-10-29, stage U9a): the node stopped; the driver idle again, at the log
+    -- handed out (both `dlv` halves moved on above, one dropped)
+    simp only [chan.blockingClausePre]
+    iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.done', γ.done
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+    iapply node_done_recv_au γ nv.done' _ $$ Hdone
+    iintro #Hst
+    wp_auto
+    iapply HΦ
+    iright
+    iframe Hst Hcfg
+    unfold nodeDriverChan
+    iframe Hnode Hd2 Hdlb
+    iexists q0
+    iframe Hr1 Hr2
+  iapply BigAndL.bigAndL_nil.2
+  itrivial
+
 
 end proof
 
@@ -145,8 +229,231 @@ view is at `m`, and its lists report `m`. -/
 private theorem node.wp_Advance_impl
     (hA : EtcdGrove.node.Advance.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Advance.spec (GF := GF) (hG := hG) := by
-  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
-  sorry
+  unfold EtcdGrove.node.Advance.spec EtcdGrove.Cluster EtcdGrove.isCluster EtcdGrove.nodeConfig
+    EtcdGrove.nodeDriver EtcdGrove.snapshotCert EtcdGrove.confAt EtcdGrove.nodeStopped
+    EtcdGrove.isNode EtcdGrove.nodeAppliedLb
+  intro n γ N id0 st es L v Hh Hloan
+  iintro %Φ ⟨#Hinit, #Hdc, #Hisn, Hdrv, Hrc, Hcfg, Hsk⟩ HΦ
+  ihave #Hdc0 := Hdc
+  iunfold isClusterU at Hdc
+  icases Hdc with ⟨%Hu, -⟩
+  obtain ⟨⟨c0, gd, Hmr⟩, -, -⟩ := Hu
+  obtain ⟨h0, h1, Hmd0⟩ := Hmr.mode
+  iunfold nodeDriver at Hdrv
+  icases Hdrv with ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, %Hd, #Htb, #Hhc, #Hkey, Htok⟩
+  obtain ⟨Hnok, Hγs, Hds⟩ := Hf
+  have Hmd : γn.mode = .dyn noDec (stOf c0) h0 h1 := by rw [Hnok.2.2.2, Hmd0]
+  -- (raft-final, the design's A1) the skips only after a `Ready` without a snapshot, A1 at raft's
+  -- names; after one, the snapshot's certificate
+  ihave ⟨#HA1, #HskS⟩ : iprop(□ (⌜L = none⌝ -∗ undecFree γn.raft γn.mode ds v.applied ds.length) ∗
+      □ (∀ l, ⌜L = some l⌝ -∗ snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)))
+    $$ [Hsk]
+  · cases L with
+    | some l0 =>
+      ihave #Hsk : snapshotCert γ N (snapTrip l0.snap l0.snap.Metadata'.ConfState'.lists) $$ [Hsk]
+      · iexact Hsk
+      isplitr
+      · imodintro; iintro %h; cases h
+      · imodintro; iintro %l %h; cases h; iexact Hsk
+    | none =>
+      ihave Hsk : EtcdGrove.skippedIn (GF := GF) γ st.delivered v.applied st.delivered.length
+        $$ [Hsk]
+      · iexact Hsk
+      iunfold EtcdGrove.skippedIn at Hsk
+      simp only [EtcdGrove.confDecided]
+      icases skipped_range_decLb γ st.delivered v.applied st.delivered.length $$ Hsk
+        with ⟨%Mk, #HMk, %PMk⟩
+      isplitr
+      · imodintro
+        iintro -
+        unfold undecFree
+        iexists Mk
+        rw [Hnok.1]
+        iframe HMk
+        ipureintro
+        intro dec c0' h0' h1' hm
+        rw [Hmd] at hm
+        cases hm
+        intro k' e' hk1 hk2 he hc
+        have hl' : st.delivered[k']? = some (LogEntry.ofEntryM e') := by
+          rw [← Hds]; unfold strip; rw [List.getElem?_map, he]; rfl
+        have hlen : (ds.take k').length = k' := by
+          have := (List.getElem?_eq_some_iff.mp he).1
+          rw [List.length_take]; omega
+        have hk2' : k' < st.delivered.length := by rw [← Hds, strip_length]; exact hk2
+        show (Mk.lookup (ds.take k').length).map ccDecOf = some .reject
+        rw [hlen, PMk k' _ hk1 hk2' hl' hc]; rfl
+      · imodintro; iintro %l %h; cases h
+  icases Htok with (⟨%Hh', -, -⟩ | ⟨%es0, %L0, %W, %Hh', Htok, Hdur, Hbw, #Hfr, Hgiven⟩)
+  · rw [Hh] at Hh'; cases Hh'
+  rw [Hh] at Hh'
+  cases Hh'
+  ihave ⟨Htok, #Hn1, -⟩ := busy_isNode_lb γn id n ds es st.hardState L $$ Htok
+  -- the node's id is the driver's
+  iunfold isNode at Hisn
+  icases Hisn with ⟨%γi, -, #Hni, -⟩
+  icases isNode_id_agree γn γi id id0 n $$ Hn1 Hni with %Hid0
+  subst Hid0
+  ihave %Hdl : ⌜∀ l, L = some l → ds = l.dlv⌝ $$ [Htok]
+  · cases L with
+    | none => ipureintro; intro l h; cases h
+    | some l =>
+      icases busy_dlv γn id n ds es st.hardState l $$ Htok with ⟨-, %H⟩
+      ipureintro; intro l' h; cases h; exact H
+  -- (2026-10-28, the decision switch) the loan's decisions
+  ihave #Hld : iprop(∀ l, ⌜L = some l⌝ → decLb γ.raft l.decs ∗ ⌜∀ D, γ.raft.dyn = some D →
+      D.fold l.decs l.dlv = some (snapTrip l.snap l.snap.Metadata'.ConfState'.lists).cfgM⌝) $$ [Htok]
+  · cases L with
+    | none => iintro %l %h; cases h
+    | some l =>
+      icases nodeDriverBusy_loanDec γn id n ds es st.hardState l $$ Htok with ⟨-, #HlD, %HlDf⟩
+      iintro %l' %h
+      cases h
+      rw [← Hnok.1]
+      iframe HlD
+      ipureintro; exact HlDf
+  -- (durability stage I-3/I-8) the recorded durable state: a half stays with the idle driver, the
+  -- other goes to `run` with the batch's maps (`advanceP`)
+  icases (dghostVar_fractional (GF := GF) γn.dur (st.durable, st.role)).fractional
+      (1 : Qp).half (1 : Qp).half |>.1 $$ [Hdur] with ⟨Hdur, Hdur2⟩
+  · rw [Qp.half_add_half]; iexact Hdur
+  ihave %Hgid := EtcdGrove.isNode_id γn id n $$ Hn1
+  icases Hcfg with ⟨Hcfg, Hcat⟩
+  iunfold nodeConfig at Hcfg
+  icases Hcfg with ⟨%γn2, %id2, %Hf2, #Hn2, #Htab2, Hcf⟩
+  icases isNode_id_agree γn γn2 id id2 n $$ Hn1 Hn2 with %Hid
+  subst Hid
+  icases nodeTabOk_agree γ n γn γn2 $$ Htb Htab2 with %Hnm
+  ihave Hcf := nodeCfg_names γn2 γn Hnm.symm _ _ $$ Hcf
+  iapply (hA γn id n ds es v.applied (stOf v.membership) st.hardState L) $$ [Htok Hrc Hcf Hdur2 Hbw]
+  · iframe Hinit Htok Hcf HA1
+    isplitl [Hrc]
+    · rw [Hγs, ← Hds, strip_length]; iexact Hrc
+    iexists (st.durable, st.role), W
+    iframe Hdur2 Hbw
+    rw [Hgid, Hnok.1]; iexact Hfr
+  iintro !> Hpost
+  icases Hpost with (⟨Hdrv, Hcf, #Hw⟩ | ⟨#Hstp, Hdrv, -⟩)
+  rotate_left
+  · -- (2026-10-29, stage U9a) the node stopped
+    ihave ⟨Hdrv, #Hnc⟩ := nodeDriver_isNode γn id n ds st.hardState $$ Hdrv
+    iapply HΦ
+    iright
+    isplitr
+    · unfold nodeStopped
+      iexists γn, id
+      iframe Hnc Hstp Htb
+      ipureintro; exact Hnok
+    unfold nodeDriver
+    iexists γn, id, ds
+    isplitr
+    · ipureintro; exact ⟨Hnok, Hγs, Hds⟩
+    iframe Hci Hlb0 Htb Hhc Hkey
+    isplitr
+    · ipureintro; exact Hd
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iframe Hdrv Hdur
+  iapply HΦ
+  ileft
+  isplitl [Hdrv Hdur]
+  · unfold nodeDriver
+    iexists γn, id, ds
+    isplitr
+    · ipureintro; exact ⟨Hnok, Hγs, Hds⟩
+    iframe Hci Hlb0 Htb Hhc Hkey
+    isplitr
+    · ipureintro; exact Hd
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iframe Hdrv Hdur
+  cases L with
+  | none =>
+    simp only
+    rw [loanCfg_none]
+    isplitr
+    · -- (U8 v2) the floor raised to the committed log handed out
+      iunfold reqOf at Hw
+      iunfold reqWit at Hw
+      icases Hw with ⟨%x, #Hx, %Hle⟩
+      unfold nodeAppliedLbU
+      iright
+      iexists γn.sn
+      iframe Hkey
+      ileft
+      iunfold storFloor at Hx
+      iapply monoNatLbOwn_le _ (by rw [← Hds, strip_length]; word) $$ Hx
+    iframe Hcat
+    unfold nodeConfig
+    iexists γn, id
+    iframe Hn1 Htb Hcf
+    ipureintro; exact ⟨Hnok, Hd, Hf2.2.2⟩
+  | some l =>
+    simp only
+    have Hli := Hloan l rfl
+    have Hdsl := Hdl l rfl
+    subst Hdsl
+    isplitl [Hgiven]
+    · -- (U8 v2) the snapshot handed out (`storGiven`, in the busy token's)
+      unfold nodeAppliedLbU
+      iright
+      iexists γn.sn
+      iframe Hkey
+      iright
+      iunfold storGiven at Hgiven
+      rw [← Hds, strip_length, Hli]
+      iexact Hgiven
+    icases Hld $$ %l %rfl with ⟨#HlD, %HlDf⟩
+    ihave #Hcert := HskS $$ %l %rfl
+    icases ApiImpl.snapshotCert_made_impl γ N _ $$ [Hdc0 Hcert] with ⟨%L', %m, #HL', #Ha, -, %P⟩
+    · iframe Hdc0 Hcert
+    obtain ⟨HL'len, -, Hcl, Hal⟩ := P
+    ihave #Ha' := Ha
+    iunfold confAtU at Ha'
+    icases Ha' with ⟨%l1, %M1, #H1, #HM1, %P1⟩
+    obtain ⟨hk1, c1, g1, hm1, hf1⟩ := P1
+    icases isCommittedLogLb_agree_impl γ st.delivered l1 $$ [Hlb0 H1] with %Hcmp
+    · iframe Hlb0 H1
+    icases decLb_compat γ.raft l.decs M1 $$ [HlD HM1] with %Hcp
+    · iframe HlD HM1
+    have HD : γ.raft.dyn = some (DynCfg.ofFold noDec (stOf c0) h0) := Hmr.1.2.2.1
+    have Hf0 := HlDf _ HD
+    rw [Hmr.fold _ HD l.decs l.dlv] at Hf0
+    obtain ⟨x, Hx, -⟩ := Option.map_eq_some_iff.1 Hf0
+    have Hlen : st.delivered.length = L'.length := by
+      rw [← Hds, strip_length, Hli, HL'len]; rfl
+    have Hx' : decFold l.decs c0 (st.delivered.take L'.length) = some x := by
+      rw [← Hlen, List.take_length, ← Hds]; exact Hx
+    have Hxm : x = m := fold_agree Hmr hm1 Hcp Hcmp (by omega) hk1 Hx' hf1
+    subst Hxm
+    have Hfold : cfgFold (effDec noDec l.decs) (stOf c0) l.dlv = some (stOf x) := by
+      rw [cfgFold_decs l.decs c0 Hmr.valid l.dlv, Hx]; rfl
+    have Hlc : loanCfg γn.mode (some l) (v.applied, stOf v.membership) =
+        (uint.nat l.snap.Metadata'.Index', stOf x) := by
+      unfold loanCfg
+      simp only
+      rw [ite_eq_left Hd, Hmd]
+      simp only [RNMode.foldCfg, Hfold, Option.getD_some, Hli]
+    rw [Hlc]
+    have Hmv : x.Valid := decFold_valid M1 c1 x _ hm1.valid hf1
+    iexists x
+    isplitl [Hcf]
+    · isplitl [Hcf]
+      · unfold nodeConfig
+        iexists γn, id
+        iframe Hn1 Htb Hcf
+        ipureintro; exact ⟨Hnok, Hd, Hmv.2⟩
+      rw [show uint.nat l.snap.Metadata'.Index' = L'.length from HL'len.symm]
+      iexact Ha
+    isplitr
+    · rw [show uint.nat l.snap.Metadata'.Index' = L'.length from HL'len.symm]
+      iexact Ha
+    ipureintro
+    obtain ⟨c1', c2, c3, c4⟩ := Hcl
+    exact ⟨c1', c2, c3, c4, Hal⟩
+
 
 end wrap
 
