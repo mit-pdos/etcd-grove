@@ -13,7 +13,11 @@ delivered log (the delivered entries are the batch's durable log's: G14). A writ
 incarnation crashed) ends the loop, `run`'s claim sent with its `nodeRunning` on `runDone`.
 
 raft's facts on a `Ready` not yet in its API (being added to `readyRest`) are isolated below as
-private lemmas left `sorry` (`ready_*_G*`).
+private lemmas left `sorry` (`ready_*_G*`, `softState_ne_null_G21`).
+
+WORK IN PROGRESS (2026-11-01, stage II (j)): proved up to the messages' send of a `Ready` without a
+snapshot; the rest of that branch and the snapshot branch are the two `sorry`s marked WIP at the end
+(`/home/ubuntu/spec-scratch/raft-durability/stageII-j-report.md`, the addendum's handoff).
 -/
 module
 
@@ -639,8 +643,100 @@ theorem Replica.run.wp_proof
           wp_join_done
           iframe
           ileft; ipureintro; rfl
+      -- the write: `persist` enters a cut batch; a failed write (crashed) ends the loop
+      wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half ∗
+            ghostVar ρ.ph.ph (1 : Qp).half ((none : Option GName), readyDurable S (phsNext hd h) none es) ∗
+            kdBatchRes γ id n (
+                { storage := kdStorIface st, delivered := D ++ ce, hardState := phsNext hd h, handling := some (es, none), key := ρ.key, durable := readyDurable S (phsNext hd h) none es, role := roleAfter role ss } : NodeDriverState) ms ∗
+            r_ptr ↦ r ∗ handoffProducer ρ.rd false) ∨ ⌜v = returnVal #()⌝))
+        at next with [Hrun Hphase r Hprod]
+      · cases wb
+        · have hs : syncb = false := by
+            cases syncb
+            · rfl
+            · exact absurd (Hwb rfl) (by simp)
+          subst hs
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          icases Hphase with ⟨Hclaim, Hres⟩
+          try wp_auto
+          ileft; iframe; ipureintro; rfl
+        · cases syncb
+          · simp only [Bool.false_eq_true, ↓reduceIte]
+            icases Hphase with ⟨Hclaim, Hres⟩
+            try wp_auto
+            wp_apply wp_persist γ vs dir id r n st sts sq ρ.ms ρ.γs ρ.ph (1 : Qp).half $$ [$Hrep $Hrun]
+              as %ok Hrun
+            cases ok
+            · try wp_auto
+              wp_apply wp_handoff_send ρ.rd ρ.rdc (fun _ => iprop(nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half ∗
+                  ∃ v : Option GName × RaftState, ghostVar ρ.ph.ph (1 : Qp).half v)) iprop(True)
+                iprop(False) () $$ [$HrdH $Hprod Hrun Hclaim] as -
+              · isplitl [Hrun Hclaim]
+                · iframe Hrun; iexists _; iexact Hclaim
+                · itrivial
+              try wp_auto
+              iright; ipureintro; rfl
+            · try wp_auto
+              ileft; iframe; ipureintro; rfl
+          · simp only [↓reduceIte]
+            icases Hphase with ⟨Hclaim, #Hsv⟩
+            try wp_auto
+            wp_apply wp_persistRun γ vs dir id r n st sts sq ρ.ms ρ.γs ρ.ph (1 : Qp).half (
+                { storage := kdStorIface st, delivered := D ++ ce, hardState := phsNext hd h, handling := some (es, none), key := ρ.key, durable := readyDurable S (phsNext hd h) none es, role := roleAfter role ss } : NodeDriverState) ms γb
+              $$ [$Hrep $Hrun $Hclaim $Hsv] as %ok ⟨Hrun, Hpost⟩
+            cases ok
+            · simp only [Bool.false_eq_true, ↓reduceIte]
+              irename Hpost => Hclaim
+              try wp_auto
+              wp_apply wp_handoff_send ρ.rd ρ.rdc (fun _ => iprop(nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half ∗
+                  ∃ v : Option GName × RaftState, ghostVar ρ.ph.ph (1 : Qp).half v)) iprop(True)
+                iprop(False) () $$ [$HrdH $Hprod Hrun Hclaim] as -
+              · isplitl [Hrun Hclaim]
+                · iframe Hrun; iexists _; iexact Hclaim
+                · itrivial
+              try wp_auto
+              iright; ipureintro; rfl
+            · simp only [↓reduceIte]
+              icases Hpost with ⟨Hclaim, Hres⟩
+              try wp_auto
+              ileft; iframe; ipureintro; rfl
+      iintro Hq
+      icases Hq with (⟨%Hv, Hrun, Hclaim, Hres, r, Hprod⟩ | %Hv)
+      rotate_left
+      · subst Hv
+        try wp_auto
+        wp_for_post
+        try wp_auto
+        iapply HΦ
+        itrivial
+      subst Hv
+      iunfold kdBatchRes at Hres
+      icases Hres with ⟨Hdrv, #Hmsgs⟩
+      try wp_auto
+      -- sent after the write
+      wp_join iprop(r_ptr ↦ r ∗ rd_ptr ↦ rdv ∗ send_ptr ↦ f) at next with [Hmq r rd send]
+        as ⟨r, rd, send⟩
+      · cases fb
+        · icases Hmq with (%h' | ⟨Hmsl, Hmsok⟩)
+          · cases h'
+          try wp_auto
+          wp_bind (App (Val #f) _)
+          iunfold sendSpec at Hsend
+          iapply Hsend $$ [Hmsl Hmsok]
+          · iframe Hpkg Hmsl
+            iapply kd_readyMsgs_sent $$ [$Hmsok $Hmsgs]
+          iintro !> -
+          try wp_auto
+          wp_join_done
+        · try wp_auto
+          wp_join_done
+      -- WIP (stage II (j) handoff): the read states, the apply loop (`applyEntry`, `request`),
+      -- `answer`, `Advance`, the final `request` and `runInv` at `D ++ ce` -- kvreconf's, but for the
+      -- restart regime (`len D < len ap`), where the view's applied index must be kept at `len ap`
+      -- (G22 in stageII-j-report.md)
       sorry
     | some lo =>
+      -- WIP (stage II (j) handoff): a snapshot `Ready` (`RunImage.img_ready_snap_ok`, G7)
       sorry
   iapply BigAndL.bigAndL_cons.2
   isplit
