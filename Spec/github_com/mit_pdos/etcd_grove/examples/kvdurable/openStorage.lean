@@ -7,7 +7,8 @@ registered storage, detached (`memStorFresh`: no node reads it yet) and holding 
 snapshot, the hard state), whose image holds `f`, with its bootstrap conf state `boot`: what `Cluster.start`
 hands `RestartNode` (`restartStorage`, through the storage's frame). (2026-11-01, stage II (j), S3:
 the writers' lower bound of the stored snapshot at its index, which its detached `ApplySnapshot`/
-`CreateSnapshot` give.)
+`CreateSnapshot` give; 2026-11-01, start functions round 4: the bytes taken whole and kept, since the
+decoded snapshot's data and entries alias them.)
 -/
 module
 
@@ -35,10 +36,10 @@ attribute [local instance] kdStorageModel
 
 /-- See the file header. -/
 abbrev openStorage.spec : Prop :=
-  ∀ (bp : Loc) (boot : ConfStateM) (b : GoSlice) (dq : DFrac) (f : StorFile),
+  ∀ (bp : Loc) (boot : ConfStateM) (b : GoSlice) (f : StorFile),
   KdFileOk f →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvdurable ∗ kdStorInv ∗ ownCSM bp DFrac.discard boot ∗
-      b ↦*{dq} encStor f }}
+      b ↦* encStor f }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kvdurable.openStorage)) (Val #bp)) (Val #b))
   {{ (s : Loc) (good : Bool), RET (PairV #s #good); ⌜good = true⌝ ∗
       ∃ (ms ip : Loc) (γs : MemStorNames) (e0 : EntryM),
@@ -48,8 +49,7 @@ abbrev openStorage.spec : Prop :=
         ⌜e0.Term' = f.prevTerm⌝ ∗ memLog γs (uint.nat f.prev) DFrac.discard [e0] ∗
         memLog γs (uint.nat f.prev + 1) (DFrac.own 1) f.ents ∗
         memEnd γs (uint.nat f.prev + f.ents.length + 1) ∗
-        memCompacted γs (uint.nat f.prev) ∗ memSnapLb γs (uint.nat f.snap.Metadata'.Index') ∗
-        b ↦*{dq} encStor f }}
+        memCompacted γs (uint.nat f.prev) ∗ memSnapLb γs (uint.nat f.snap.Metadata'.Index') }}
 
 end spec
 

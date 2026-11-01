@@ -81,7 +81,7 @@ theorem img_ready_ok (M : StorFile) (S : RaftState) (hd' : HardStateM) (es : Lis
     KdFileOk (imgAppend (imgSetHardState M hd') k es) ∧
       StorageHolds (readyDurable S hd' none es)
         (kdContents (some (imgAppend (imgSetHardState M hd') k es))) := by
-  obtain ⟨⟨Hsw, Hew, Hel⟩, Hp61, Hlen, Hidxm, Hps, Hsl, Hpc, Hcl⟩ := Hok
+  obtain ⟨⟨Hsw, Hew, Hel⟩, Hp61, Hlen, Hidxm, Hps, Hsl, Hpc, Hcl, Htie⟩ := Hok
   obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9⟩ := Hh
   simp only [kdContents, StorContents.b, StorContents.commit] at H1 H2 H3 H4 H5 H6 H7 H8 H9
   have Hsc : uint.nat M.snap.Metadata'.Index' ≤ uint.nat M.hs.Commit' := by
@@ -119,7 +119,7 @@ theorem img_ready_ok (M : StorFile) (S : RaftState) (hd' : HardStateM) (es : Lis
     have HnL : (S.next hd'.Term' hd'.Vote' hd'.Commit' none []).last = S.last := by
       unfold RaftState.last; rw [Hn]; rfl
     rw [HnL] at G8
-    refine ⟨⟨⟨Hsw, Hew, Hel⟩, Hp61, Hlen, Hidxm, Hps, Hsl, ?_, ?_⟩, ?_⟩
+    refine ⟨⟨⟨Hsw, Hew, Hel⟩, Hp61, Hlen, Hidxm, Hps, Hsl, ?_, ?_, Htie⟩, ?_⟩
     · simp only [imgSetHardState]; wd
     · simp only [imgSetHardState]; wd
     · simp only [imgSetHardState]
@@ -148,7 +148,7 @@ theorem img_ready_ok (M : StorFile) (S : RaftState) (hd' : HardStateM) (es : Lis
     have Htl : (M.ents.take (k - (uint.nat M.prev + 1))).length = k - (uint.nat M.prev + 1) := by
       rw [List.length_take]; wd
     simp only [imgSetHardState]
-    refine ⟨⟨⟨Hsw, ?_, ?_⟩, Hp61, ?_, ?_, Hps, ?_, ?_, ?_⟩, ?_⟩
+    refine ⟨⟨⟨Hsw, ?_, ?_⟩, Hp61, ?_, ?_, Hps, ?_, ?_, ?_, ?_⟩, ?_⟩
     · intro e he
       rcases List.mem_append.1 he with h | h
       · exact Hew e (List.mem_of_mem_take h)
@@ -165,6 +165,14 @@ theorem img_ready_ok (M : StorFile) (S : RaftState) (hd' : HardStateM) (es : Lis
     · rw [List.length_append, Htl]; wd
     · wd
     · rw [List.length_append, Htl]; wd
+    · -- the snapshot's entry, at most the commit index, is below the batch
+      refine ⟨Htie.1, ?_⟩
+      rw [← Htie.2]
+      unfold imgTermAt
+      by_cases hsp : uint.nat M.snap.Metadata'.Index' ≤ uint.nat M.prev
+      · rw [if_pos hsp, if_pos hsp]
+      · rw [if_neg hsp, if_neg hsp,
+          List.getElem?_append_left (by rw [Htl]; wd), List.getElem?_take_of_lt (by wd)]
     · simp only [StorageHolds, kdContents, StorContents.b, StorContents.commit]
       refine ⟨H1, ?_, ?_, rfl, rfl, ?_, Nat.le_refl _, ?_, H9⟩
       · -- the term at the image's start: `S`'s, below the batch
@@ -253,7 +261,9 @@ theorem img_ready_snap_ok (M : StorFile) (S : RaftState) (hd' : HardStateM) (sv 
     unfold RaftState.last; rw [HnE, HnB]
   rw [HnL] at G8
   rw [Hap]
-  refine ⟨⟨⟨Hsw, Hwf, by word⟩, H61, by word, ?_, by word, by simp only; omega, by word, by simp only; omega⟩, ?_⟩
+  refine ⟨⟨⟨Hsw, Hwf, by word⟩, H61, by word, ?_, by word, by simp only; omega, by word, by simp only; omega,
+    ⟨fun h => by simp only at h; rw [h] at Hpos; word,
+      by unfold imgTermAt; simp only; rw [if_pos (Nat.le_refl _)]⟩⟩, ?_⟩
   · intro j e he; simp only at he ⊢; exact Hidx j e he
   · simp only [StorageHolds, kdContents, StorContents.b, StorContents.commit, Hi0, ↓reduceIte, HnB, HnE]
     refine ⟨by word, ?_, ?_, ?_, ?_, G7, Nat.le_refl _, ?_, ?_⟩

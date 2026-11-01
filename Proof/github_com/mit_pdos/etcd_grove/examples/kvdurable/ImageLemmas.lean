@@ -45,12 +45,13 @@ theorem create_ok (M : StorFile) (i : w64) (co : Option ConfStateM) (bs : List w
     KdFileOk (imgCreateSnapshot M i co bs) ∧ ∀ S, StorageHolds S (kdContents (some M)) →
       StorageHolds S (kdContents (some (imgCreateSnapshot M i co bs))) := by
   unfold imgCreateStale at Hns
-  obtain ⟨⟨Hsw, Hew, Hel⟩, Hp61, Hlen, Hidx, Hps, Hsl, Hpc, Hcl⟩ := Hok
+  obtain ⟨⟨Hsw, Hew, Hel⟩, Hp61, Hlen, Hidx, Hps, Hsl, Hpc, Hcl, Htie⟩ := Hok
   have Hi0 : i ≠ W64 0 := by intro h; subst h; word
   have Hpi : uint.nat M.prev ≤ uint.nat i := by word
-  refine ⟨⟨⟨⟨Hcw, Hbs⟩, Hew, Hel⟩, Hp61, Hlen, Hidx, ?_, ?_, Hpc, Hcl⟩, ?_⟩
+  refine ⟨⟨⟨⟨Hcw, Hbs⟩, Hew, Hel⟩, Hp61, Hlen, Hidx, ?_, ?_, Hpc, Hcl, ?_⟩, ?_⟩
   · simp only [imgCreateSnapshot, memSnapMade]; word
   · simp only [imgCreateSnapshot, memSnapMade]; omega
+  · exact ⟨Htie.1, rfl⟩
   · intro S Hh
     obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9⟩ := Hh
     simp only [kdContents, imgCreateSnapshot, memSnapMade, StorContents.b, StorContents.commit] at H1 H2 H3 H4 H5 H6 H7 ⊢
@@ -77,11 +78,11 @@ theorem compact_ok (M : StorFile) (x : w64)
     KdFileOk (imgCompact M x) ∧ ∀ S, StorageHolds S (kdContents (some M)) →
       StorageHolds S (kdContents (some (imgCompact M x))) := by
   unfold imgCompactStale at Hns
-  obtain ⟨⟨Hsw, Hew, Hel⟩, Hp61, Hlen, Hidx, Hps, Hsl, Hpc, Hcl⟩ := Hok
+  obtain ⟨⟨Hsw, Hew, Hel⟩, Hp61, Hlen, Hidx, Hps, Hsl, Hpc, Hcl, Htie⟩ := Hok
   have Hs0 : M.snap.Metadata'.Index' ≠ W64 0 := by intro h; rw [h] at Hx; word
   have Hpx : uint.nat M.prev < uint.nat x := by word
   have Hxl : uint.nat x ≤ uint.nat M.prev + M.ents.length := by omega
-  refine ⟨⟨⟨Hsw, fun e he => Hew e (List.mem_of_mem_drop he), ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_⟩
+  refine ⟨⟨⟨Hsw, fun e he => Hew e (List.mem_of_mem_drop he), ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_⟩
   · simp only [imgCompact, List.length_drop]; omega
   · simp only [imgCompact]; word
   · simp only [imgCompact, List.length_drop]; word
@@ -93,6 +94,17 @@ theorem compact_ok (M : StorFile) (x : w64)
   · simp only [imgCompact, List.length_drop]; omega
   · simp only [imgCompact]; word
   · simp only [imgCompact, List.length_drop]; omega
+  · refine ⟨fun h => by simp only [imgCompact] at h; rw [h] at Hpx; word, ?_⟩
+    simp only [imgCompact]
+    rw [← Htie.2]
+    unfold imgTermAt
+    by_cases hsx : uint.nat M.snap.Metadata'.Index' ≤ uint.nat x
+    · have hsx' : uint.nat M.snap.Metadata'.Index' = uint.nat x := by omega
+      rw [if_pos hsx, if_neg (by omega), if_neg (by omega), hsx']
+    · rw [if_neg hsx, List.getElem?_drop]
+      simp only
+      rw [if_neg (by omega)]
+      congr 3; omega
   · intro S Hh
     obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9⟩ := Hh
     simp only [kdContents, StorContents.b, StorContents.commit, Hs0, ↓reduceIte] at H1 H2 H3 H4 H5 H6 H7 H8 H9

@@ -508,7 +508,7 @@ theorem Replica.run.wp_proof
         G9' G17'
       -- the frozen bound raised to the delivered log
       have HpC : uint.nat M.prev ≤ uint.nat M.hs.Commit' := by have := HMok.2.2.2.2.2.2.1; word
-      have HcL : uint.nat M.hs.Commit' ≤ uint.nat M.prev + M.ents.length := HMok.2.2.2.2.2.2.2
+      have HcL : uint.nat M.hs.Commit' ≤ uint.nat M.prev + M.ents.length := HMok.2.2.2.2.2.2.2.1
       have Hfz0c : max fz (uint.nat M.prev) ≤ uint.nat M.hs.Commit' := by
         rcases Hfzc with h' | h' <;> omega
       have Htk := imgAppend_take (imgSetHardState M (phsNext hd h)) k es
