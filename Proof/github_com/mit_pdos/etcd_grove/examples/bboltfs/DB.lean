@@ -40,9 +40,17 @@ when it mapped the file, and no write touches them since).
 The mapping's invariant (`mapInv`, a closable invariant over `mapCells`) holds the committed
 pages' cells and, unless `out`, the meta cells, holding the metas while not failed.
 
-This is the design; the specs over it are stated (`DB__Get`, `DB__Commit`, ...). See
-`issues/bbolt-failed-remap-nil-meta-panic.md` for why `mmaplock`'s resource cannot promise a
-mapping after a failed remap: `Get`'s spec is not provable for the code as it is.
+The mapping has a state (`MapSt`): mapped, or unmapped (before the first `mmap`, after a failed
+remap, once closed). Unmapped, `mmaplock` guards only the nil fields (a reader that finds
+`meta0` nil refuses, `issues/bbolt-failed-remap-nil-meta-panic.md`), and the writer holds the
+whole file and fd and the invariant's quarter of `cur` (`writerExtra`); `rwlock`'s resource then
+records the failure (`dbFailed`). Once closed, `rwlock`'s resource is the committer's half of
+`own` (so that no `Commit` can follow) and halves of the mapping fields. The mapping's invariant
+is closed with the whole of its token: `mmaplock`'s resource has `q/2` of it, the writer the
+other half (`MapInv.lean`).
+
+`pkgFacts` stands for the package's `isPkgInit` (`sync`'s, and the error values), until the
+packages minibolt imports (`os`, `syscall`, `golang.org/x/sys/unix`) have `IsPkgInit` instances.
 -/
 module
 
@@ -190,11 +198,12 @@ def mapFields (db : Loc) (dq : DFrac) : MapSt → IProp GF
 
 /-- What `mmaplock` guards besides the fields at fraction `q`, in the state `st`: with a mapping,
 the fraction `q/2` of its invariant's token (the writer holds the other half), the invariant, and
-fractions of the file and its fd for `Snapshot`'s `ReadAt`. -/
+the fraction `q/2` of the file and its fd for `Snapshot`'s `ReadAt` (the writer holds the other
+half, and all of it while there is no mapping). -/
 def mapRest (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (q : Qp) : MapSt → IProp GF
   | some (base, len, γm) => iprop(ghostVar γm q.half () ∗ mapInv (GF := GF) γ p base len γm ∗
-      os.ownFile (GF := GF) f fd p (DFrac.own q.half.half) ∗
-      osFd (GF := GF) fd (DFrac.own q.half.half) ⟨p, true, true⟩)
+      os.ownFile (GF := GF) f fd p (DFrac.own q.half) ∗
+      osFd (GF := GF) fd (DFrac.own q.half) ⟨p, true, true⟩)
   | none => emp
 
 instance mapInv_persistent (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName) :
@@ -259,10 +268,10 @@ theorem mapBody_fractional (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString)
   · dsimp only [mapFields, mapRest]; infer_instance
   · dsimp only [mapFields, mapRest]
     haveI := ghostVar_half_fractional (GF := GF) γm ()
-    haveI : Fractional (fun q : Qp => os.ownFile (GF := GF) f fd p (DFrac.own q.half.half)) :=
-      fractional_half_of (fractional_half_of (ownFile_fractional (GF := GF) f fd p))
-    haveI : Fractional (fun q : Qp => osFd (GF := GF) fd (DFrac.own q.half.half) ⟨p, true, true⟩) :=
-      fractional_half_of (fractional_half_of (osFd_fractional (GF := GF) fd ⟨p, true, true⟩))
+    haveI : Fractional (fun q : Qp => os.ownFile (GF := GF) f fd p (DFrac.own q.half)) :=
+      fractional_half_of (ownFile_fractional (GF := GF) f fd p)
+    haveI : Fractional (fun q : Qp => osFd (GF := GF) fd (DFrac.own q.half) ⟨p, true, true⟩) :=
+      fractional_half_of (osFd_fractional (GF := GF) fd ⟨p, true, true⟩)
     haveI : Persistent (mapInv (GF := GF) γ p base len γm) := by unfold mapInv; infer_instance
     infer_instance
 
@@ -323,6 +332,14 @@ def writerFile (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List 
     ⌜2 ≤ hwm ∧ 4096 * hwm ≤ m.size ∧ mxc.length = 8192 ∧ tail.length = m.size - 4096 * hwm ∧
       (fl = false → mxc.map Prod.fst = mp)⌝)
 
+/-- What the writer holds besides `writerFile` while there is no mapping: the invariant's quarter
+of `cur`, and `mmaplock`'s halves of the file and its fd. -/
+def writerExtra (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List w8) (fl : Bool)
+    (hwm : Nat) : IProp GF :=
+  iprop(ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗
+    os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
+    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩)
+
 /-- `rwlock`'s resource (see the file header): the writer's part of an open database, with a
 mapping or, after a failed remap, without one (and the handle failed); or, once closed, the
 committer's half of `own` and halves of the mapping fields. -/
@@ -335,7 +352,7 @@ def rwR (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) : IProp GF :=
     | some (base, len, γm) =>
       ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗
       ghostVar γm (1 : Qp).half () ∗ writerCells (GF := GF) base hwm len
-    | none => dbFailed (GF := GF) γ ∗ ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm)) ∨
+    | none => dbFailed (GF := GF) γ ∗ writerExtra (GF := GF) γ f fd p mp fl hwm) ∨
    ((∃ x : Nat × Nat, ghostVar γ.own (1 : Qp).half x) ∗
      ∃ st, ghostVar γ.map (1 : Qp).half st ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st))
 
