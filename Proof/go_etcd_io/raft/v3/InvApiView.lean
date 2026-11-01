@@ -260,20 +260,20 @@ theorem deliveredLogLb_nodeCommitLb_core (n : Loc) (γ : Cluster) (N : Namespace
     rw [h2, ← h1, Hdyn] at Hnd
     cases Hnd
   ihave %Hn := nodeTabOk_agree γ n γn γn' $$ Htab Htab'
-  have Hsn : γn'.sn = γn.sn := by
+  -- (durability stage I-6) the table records the names, not the attach record: the certified
+  -- terms (`dlvKeys`) read only `gd`
+  have Hgd : γn'.sn.gd = γn.sn.gd := by
     simp only [cfgNamesOf, Prod.mk.injEq] at Hn
-    obtain ⟨-, -, -, -, -, h1, h2, h3, h4, h5, -⟩ := Hn
-    have e : ∀ s1 s2 : StorNames, s1.ga = s2.ga → s1.gg = s2.gg → s1.gsv = s2.gsv →
-        s1.gd = s2.gd → s1.gk = s2.gk → s1 = s2 := by
-      intro s1 s2 a b c d e
-      cases s1; cases s2
-      try simp only at a b c d e
-      subst a b c d e; rfl
-    exact (e _ _ h1 h2 h3 h4 h5).symm
+    obtain ⟨-, -, -, -, -, -, -, -, h4, -, -⟩ := Hn
+    exact h4.symm
   rw [← Hf'.2]
-  iapply nodeCommitLbU_of_dlvLb γ st.key γn' ds'
-  rw [Hsn]
-  iframe Hkey Hdl'
+  iapply nodeCommitLbU_of_dlvLb γ st.key { γn' with sn := γn.sn } ds'
+  iframe Hkey
+  isplitl []
+  · unfold dlvLb dlvKeys dlvKeysAt
+    simp only
+    rw [← Hgd]
+    iexact Hdl'
   rw [Hf'.2]; iexact Hc
 
 /-- (2026-11-01, durability stage I-4) The `Ready` loop's storage has its committed log

@@ -1544,7 +1544,7 @@ noncomputable instance Storage_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "MemoryStorage" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"MemoryStorage" l) v.MemoryStorage' dq ∗
     "boot" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"boot" l) v.boot' dq ∗
-    "hs" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"hs" l) v.hs' dq ∗
+    "img" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"img" l) v.img' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -1586,24 +1586,132 @@ noncomputable instance Storage_access_store_boot (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Storage_access_load_hs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage) (dq : DFrac) :
+noncomputable instance Storage_access_load_img (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"hs" l) v.hs' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"hs" l) v.hs' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"img" l) v.img' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"img" l) v.img' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Storage_access_store_hs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage) (hs' : Loc) :
+noncomputable instance Storage_access_store_img (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage) (img' : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"hs" l) v.hs' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"hs" l) hs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hs' := hs' } : github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"img" l) v.img' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage go!"img" l) img' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with img' := img' } : github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
 end def_
 end Storage
+
+namespace image
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.kvdurable.Assumptions]
+
+noncomputable instance image_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.kvdurable.image where
+  typedPointstoDef l v dq := iprop(
+    "hs" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"hs" l) v.hs' dq ∗
+    "snap" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"snap" l) v.snap' dq ∗
+    "prev" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"prev" l) v.prev' dq ∗
+    "prevTerm" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"prevTerm" l) v.prevTerm' dq ∗
+    "ents" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"ents" l) v.ents' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance image_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.kvdurable.image github_com.mit_pdos.etcd_grove.examples.kvdurable.image.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance image_access_load_hs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.image) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"hs" l) v.hs' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"hs" l) v.hs' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance image_access_store_hs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.image) (hs' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"hs" l) v.hs' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"hs" l) hs' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hs' := hs' } : github_com.mit_pdos.etcd_grove.examples.kvdurable.image) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance image_access_load_snap (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.image) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"snap" l) v.snap' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"snap" l) v.snap' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance image_access_store_snap (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.image) (snap' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"snap" l) v.snap' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"snap" l) snap' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snap' := snap' } : github_com.mit_pdos.etcd_grove.examples.kvdurable.image) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance image_access_load_prev (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.image) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"prev" l) v.prev' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"prev" l) v.prev' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance image_access_store_prev (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.image) (prev' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"prev" l) v.prev' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"prev" l) prev' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prev' := prev' } : github_com.mit_pdos.etcd_grove.examples.kvdurable.image) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance image_access_load_prevTerm (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.image) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"prevTerm" l) v.prevTerm' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"prevTerm" l) v.prevTerm' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance image_access_store_prevTerm (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.image) (prevTerm' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"prevTerm" l) v.prevTerm' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"prevTerm" l) prevTerm' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prevTerm' := prevTerm' } : github_com.mit_pdos.etcd_grove.examples.kvdurable.image) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance image_access_load_ents (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.image) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"ents" l) v.ents' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"ents" l) v.ents' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance image_access_store_ents (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kvdurable.image) (ents' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"ents" l) v.ents' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kvdurable.image go!"ents" l) ents' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ents' := ents' } : github_com.mit_pdos.etcd_grove.examples.kvdurable.image) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end image
 
 end github_com.mit_pdos.etcd_grove.examples.kvdurable
 end

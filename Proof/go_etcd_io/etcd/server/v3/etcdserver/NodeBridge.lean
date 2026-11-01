@@ -474,8 +474,127 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
       rnEnvOk E γ ∗ rnIsNode γ ∗ srvCommittedInv s E.γr ∗
       rnMemStorReg γ ∗ srvRdCtxInv E.γr.raft issued ⊢
       isRaftNodeIfc E γ (rnNodeIface γ) := by
-  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
-  sorry
+  letI := srvStor (GF := GF) γ.node
+  iintro ⟨#Hpkg, #Henv, #Hnode, #Hcinv, #Hreg, #Hci⟩
+  ihave #Hnode0 := Hnode
+  iunfold rnIsNode at Hnode0
+  ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iPkgInit
+  ihave #Henv' := Henv
+  iunfold rnEnvOk at Henv'
+  icases Henv' with ⟨%HT, %Hn, -, #Hinv, -, -, -, %HRQ⟩
+  obtain ⟨Hraft, Hpre, Hai0⟩ := Hn
+  ihave #Hcl : srvClusterOk γ.srv $$ []
+  · iunfold srvRaftLogInv at Hinv
+    icases Hinv with ⟨-, #H, -⟩
+    rw [srvClusterOk_congr γ.srv E.γr.raft (by rw [Hraft])]
+    iexact H
+  ihave #Hisc : isCluster γ.node.cl srvClusterN $$ []
+  · iunfold srvClusterOk at Hcl
+    icases Hcl with ⟨#H, -⟩
+    iexact H
+  iunfold isRaftNodeIfc
+  iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iapply raftApplyCC_of_isNode γ wp_ApplyConfChange
+    iframe Hpraft Hnode Hcl
+  isplitr
+  · -- `Ready`
+    iintro !> %Φ !> - HΦ
+    wp_apply wp_Ready γ.node.cl srvClusterN γ.id γ.nl $$ [] as %ch #Hch
+    · iframe #
+    iapply HΦ
+    iexact Hch
+  isplitr
+  · -- `Advance`, after a `Ready` without a snapshot
+    iintro !> %d %ce %es %p %Φ !> ⟨Hbusy, Hcv, Hrcpt, Hrun⟩ HΦ
+    iunfold rnBusyN at Hbusy
+    icases Hbusy with ⟨%S, %r, Hbusy, HrS⟩
+    iunfold rnAdvReceipt at Hrcpt
+    iunfold rnCfgAt at Hcv
+    iunfold srvCfgView at Hcv
+    icases Hcv with ⟨%v, Hcfg, %Hok⟩
+    have Hnc : NoConfChangeIn (srvLE γ.srv (d ++ ce)) v.applied (srvLE γ.srv (d ++ ce)).length := by
+      have h := Hok.2.1
+      simp only [srvLE, List.length_map] at h ⊢
+      exact h
+    ihave #Hsk := skippedIn_noConf γ.node.cl (srvLE γ.srv (d ++ ce)) v.applied _ Hnc
+    wp_apply (wp_Advance γ.nl γ.node.cl srvClusterN γ.id
+        ⟨memStorIface γ.ms, srvLE γ.srv (d ++ ce), p, some (es.map EntryModel.toM, none), γ.key, S, r⟩
+        (es.map EntryModel.toM) none v rfl (fun _ h => by cases h)) $$ [Hbusy Hrcpt Hcfg]
+      as Hres
+    · iframe #
+      iframe Hbusy Hrcpt Hcfg
+    icases Hres with (⟨Hdrv, #Hal, Hcfg⟩ | ⟨#Hst, -⟩)
+    · iapply HΦ
+      iframe Hrun
+      isplitl [Hdrv Hcfg HrS]
+      · iunfold rnDrv
+        iexists S, r
+        isplitl [Hdrv]
+        · iExactEq Hdrv; rfl
+        iframe HrS
+        iunfold rnCfgAt
+        iunfold srvCfgView
+        iexists v
+        iframe Hcfg
+        ipureintro; exact Hok
+      iapply nodeAppliedLb_mono γ.node.cl γ.key _ _ (by simp [srvLE]) $$ Hal
+    · iexfalso
+      iapply nodeRunning_stopped γ.nl γ.node.cl srvClusterN _ $$ [Hrun Hst]
+      iframe Hrun Hst
+  isplitr
+  · -- SNAPSHOT-SORRY: the snapshot `Advance` clause (`node.Advance.spec` at `L = some l`:
+    -- `snapReceipt`, `snapshotCert`; the view at the snapshot from `confAt`/`confStateIs`, D3)
+    sorry
+  isplitr
+  · -- `Tick`
+    iintro !> %Φ !> - HΦ
+    wp_apply wp_Tick γ.nl γ.node.cl srvClusterN γ.id $$ []
+    · iframe #
+    iapply HΦ
+    itrivial
+  isplitr
+  · -- `Stop`
+    iintro !> %Φ !> Hrun HΦ
+    wp_apply wp_Stop γ.nl γ.node.cl srvClusterN γ.id $$ [Hrun] as ⟨#Hst, -⟩
+    · iframe #; iframe Hrun
+    iapply HΦ
+    iexact Hst
+  isplitr
+  rotate_left
+  · iexact Hnode0
+  · -- `ReadIndex`
+    iintro !> %ctx %cd %sl %id %n %Qr %Φ !> ⟨#Hctx, #Hsl, #Hcal, #Hau, Hfresh⟩ HΦ
+    imod committedAtLeast_log s E.γr n ⊤ CoPset.subseteq_top $$ Hcinv Hcal with ⟨%L, #HL, %HnL⟩
+    ihave #HL0 : isCommittedLogLb E.γr.raft.raft.cl (srvLE E.γr.raft L) $$ []
+    · iunfold srvRLogLb at HL; icases HL with ⟨#H, -⟩; iexact H
+    imod srvReadCtx_commit E.γr.raft issued (beBytes id) Qr (srvLE E.γr.raft L) ⊤
+        (fun _ _ => CoPset.mem_full) $$ Hinv Hci Hfresh Hau HL0 with ⟨#Hrc, #Haft⟩
+    ihave #Hnctx : nodeCtx ctx cd $$ []
+    · iunfold nodeCtx
+      iright
+      iexact Hctx
+    ihave #Hrc' : isReadCtx γ.node.cl srvClusterN (beBytes id) (srvReadQ E.γr.raft Qr) $$ []
+    · rw [← Hraft]; iexact Hrc
+    wp_apply wp_ReadIndex γ.nl γ.node.cl srvClusterN γ.id sl (beBytes id)
+      (srvReadQ E.γr.raft Qr) ctx cd $$ [] as %err #Herr
+    · iframe #
+    iapply HΦ
+    isplitr
+    · ihave #Herr' := nodeErrS_nodeErr _ _ _ cd err $$ Herr
+      iapply applyErrIs_of_nodeErr cd err $$ Hpkg Herr'
+    · iintro %_
+      rw [HRQ]
+      iunfold srvRQ
+      iintro !>
+      iexists srvLE E.γr.raft L
+      iframe Hrc Haft
+      ipureintro
+      rw [srvLE_length, Hpre]
+      omega
 
 /-- **The node meets `rnStepIfc`** (D21 M2; 2026-10-27: the node API's `node.Step`,
 `ReportUnreachable`, `ReportSnapshot`). -/

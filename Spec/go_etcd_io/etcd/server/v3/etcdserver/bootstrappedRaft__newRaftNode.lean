@@ -85,17 +85,20 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
       -- (2026-10-30, the repair: raft's unified `StartNode.spec`) the storage `b.storage` as
-      -- `StartNode` boots it (`bootStorage` at the zero hard state and the empty conf state, with
-      -- the frame `Q` its `InitialState`'s update gives: for the server `srvMem_bootStorage`'s)
-      -- (2026-11-01, durability stage I-4; PORT(durability layer 4): `StartNode`'s new premises,
-      -- `nodeVacant` and the update over `raftState`, to add)
+      -- `StartNode` boots it (`restartStorage` at the empty contents: the zero hard state and the
+      -- empty conf state, with the frame `Q` its `InitialState`'s continuation gives: for the
+      -- server `srvMem_bootStorage`'s)
       "Hbs" ∷ restartStorage γr.cl (memStorIface bv.storage')
         ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
         memSnapEmpty.Metadata'.ConfState' 0 (fun _ => Q) ∗
       -- the peers and their contexts
       "Hpeers" ∷ bv.peers' ↦*{dq} pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
-      -- this node's boot token (the cluster's allocation's)
+      -- this node's boot token (the cluster's allocation's, persistent), and (2026-11-01,
+      -- durability layer 4: `StartNode`'s new premises) its id vacant and its durable state at
+      -- `RaftState.init` (allocation's), over which `StartNode`'s update fires at once
       "Hboot" ∷ nodeBoot γr.cl srvClusterN ps ctxs cv.ID' ∗
+      "Hvac" ∷ nodeVacant γr.cl cv.ID' ∗
+      "Hrst" ∷ raftState γr.cl cv.ID' RaftState.init ∗
       -- the contracts (`InvNodeStart.lean`)
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk E ∗ "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
@@ -106,9 +109,12 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       ∃ (n : Loc) (γw : RNNames) (f : GoFunc) (st : GoInterface),
         ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.nl = n ∧ γw.pre = pre ∧ γw.ms = bv.storage' ∧
           γw.γs = γs⌝ ∗
-        -- the node API's node
+        -- the node API's node, its driver at the storage's key (the wrapper's, `γw.key`: raft
+        -- names it at the attach), and (2026-11-01, durability layer 4) the node's durable state,
+        -- unchanged by the update
         isNode n γr.cl srvClusterN cv.ID' ∗
-        nodeDriver n γr.cl srvClusterN (NodeDriverState.init (memStorIface bv.storage') (srvKey γr.cl cv.ID')) ∗
+        nodeDriver n γr.cl srvClusterN (NodeDriverState.init (memStorIface bv.storage') γw.key) ∗
+        raftState γr.cl cv.ID' RaftState.init ∗
         nodeConfig n γr.cl srvClusterN ⟨0, Membership.simple (GMap.listToSet ps)⟩ ∗
         -- (2026-10-30, the repair) the node's whole running token (`StartNode`'s)
         nodeRunning n γr.cl srvClusterN 1 ∗

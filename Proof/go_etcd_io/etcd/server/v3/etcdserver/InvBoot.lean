@@ -458,7 +458,7 @@ reported): `Snapshot.spec` admits `ErrSnapshotTemporarilyUnavailable` for any st
 theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (E : RNEnv GF) (γ : RNNames) (r ms0 : Loc) (γs : MemStorNames) (Hms0 : γ.ms = ms0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
-      isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl (srvKey γ.node.cl γ.id) -∗ memSnapNone γs -∗
+      isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.key -∗ memSnapNone γs -∗
       ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce ms γs (W64 0) (W64 0) := by
   subst Hms0
   iintro #Hpkg #Hrn #Hinv Hnone
@@ -478,7 +478,7 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
   iNamed Hinit
   ihave #Hc0 := memCompacted_zero (GF := GF) γs
   iapply wp_fupd
-  wp_apply wp_Snapshot γ.ms γs (memStorJ γ.node.cl (srvKey γ.node.cl γ.id)) none 0 true _
+  wp_apply wp_Snapshot γ.ms γs (memStorJ γ.node.cl γ.key) none 0 true _
     $$ [$Hraft $Hc0 Hnone $ErrSnapUnavail] as %snap %err ⟨Hnone, %Herr, %sv, Hw, %Hsv, -⟩
   · isplitr [Hnone]
     · iapply memStorAt_none_intro $$ Hinv

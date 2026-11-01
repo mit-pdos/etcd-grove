@@ -171,28 +171,61 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
 []`): from the node API's driver at its start (`NodeDriverState.init`: nothing delivered, with
 `γ.pre = []`), its view of the configuration at index `0` (`StartNode`'s; 2026-10-30, the repair:
 in every cluster), the loop's half of the running token, and `applyc`'s halves with `cum` at
-`[[]]` (`newRaftNode`'s). (2026-10-27: over the node API.) -/
+`[[]]` (`newRaftNode`'s). (2026-10-27: over the node API. 2026-11-01, durability layer 4: the
+driver at the storage's key `γ.key`, and the node's durable state at `RaftState.init`, which goes
+into the loop's token beside the driver.) -/
 theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
     (hcfg : srvCfgOk γ.node.cfg [] ⟨0, Membership.simple γ.node.cfg⟩) :
     (letI := srvStor (GF := GF) γ.node;
       iprop(nodeDriver γ.nl γ.node.cl srvClusterN
-          (NodeDriverState.init (memStorIface γ.ms) (srvKey γ.node.cl γ.id)) ∗
+          (NodeDriverState.init (memStorIface γ.ms) γ.key) ∗
+        raftState γ.node.cl γ.id RaftState.init ∗
         nodeConfig γ.nl γ.node.cl srvClusterN ⟨0, Membership.simple γ.node.cfg⟩)) ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
       spscProducer γ.ap ([] : List toApply) ∗ spscConsumer γ.ap ([] : List toApply) ∗
       monoListAuthOwn γ.cum 1 [([] : List EntryModel)] ∗
       monoListIdxOwn γ.cum 0 ([] : List EntryModel) ⊢
       rnLoopTok γ [] ∗ rnApplyTok γ [] := by
-  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
-  sorry
+  letI := srvStor (GF := GF) γ.node
+  iintro ⟨⟨Hdrv, HrS, Hcfg⟩, Hrun, Hprod, Hcons, Hcum, Hcum0⟩
+  isplitl [Hdrv HrS Hcfg Hrun Hprod Hcum]
+  · iunfold rnLoopTok
+    iexists hsZero
+    iunfold rnLoopTokP
+    iexists [], [[]]
+    isplitl [Hdrv HrS Hcfg]
+    · iunfold rnDrv
+      iexists RaftState.init, W64 0
+      have h : rnDrvSt γ [] hsZero RaftState.init (W64 0) =
+          NodeDriverState.init (memStorIface γ.ms) γ.key := by
+        simp [rnDrvSt, NodeDriverState.init, srvLE, RNNames.srv, hpre]
+      rw [h]
+      iframe Hdrv HrS
+      unfold rnCfgAt srvCfgView
+      iexists ⟨0, Membership.simple γ.node.cfg⟩
+      iframe Hcfg
+      ipureintro
+      simp only [RNNames.srv, hpre, List.append_nil]
+      exact hcfg
+    iframe Hrun Hprod Hcum
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl⟩
+    ipureintro
+    exact ⟨W64 0, by rw [hpre]; rfl, fun n m h => by simp at h⟩
+  · iunfold rnApplyTok
+    iexists []
+    iframe Hcons
+    iexact Hcum0
 
 /-- **A fresh `MemoryStorage` boots a node** (2026-10-30, the repair: `StartNode.spec`'s
 `bootStorage`, at the empty conf state and hard state, over raft's two-writer `MemoryStorage`
-specs; until then the trusted `InitialState` closure and the old storage tokens): `FirstIndex` is
-`1` and `LastIndex` `0` (the storage fresh: `memStorFresh_compacted`), `InitialState` answers the
-zero hard state and the empty conf state (`memSnapEmpty`'s), and its update allocates the storage's
-invariant at the node's justifications (`memStorInv_alloc`), the storage `isStorage`
-(`memStorage_isStorage`), its dummy entry and end; the frame `Q` keeps the invariant and the hard
-state. -/
+specs; until then the trusted `InitialState` closure and the old storage tokens; 2026-11-01,
+durability layer 4: `restartStorage` at the empty contents): `FirstIndex` is `1` and `LastIndex` `0`
+(the storage fresh: `memStorFresh_compacted`), `InitialState` answers the zero hard state and the
+empty conf state (`memSnapEmpty`'s), and its continuation, at the key `K` raft names, allocates the
+storage's invariant at `K`'s justifications (`memStorInv_alloc`), the storage `isStorage`
+(`memStorage_isStorage`), its dummy entry and end; the client's frame `F` is made from the
+invariant and the hard state at the key (`HF`; 2026-11-01, stage-I fix G1-frame: the frame
+depends on the key). -/
 theorem srvMem_bootStorage
     (wp_InitialState : MemoryStorage.InitialState.spec (GF := GF) (hG := hG))
     (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
@@ -200,18 +233,19 @@ theorem srvMem_bootStorage
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
-    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (id : w64) :
+    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (F : GName → IProp GF) :
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
     memStorReg ms γs ∗ memStorLock ms γs ∗ memStorFresh ms γs 0 memSnapEmpty ∗
       memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
-      memLog (GF := GF) γs 0 DFrac.discard [(zero_val EntryM : EntryM)] ∗ memEnd (GF := GF) γs 1 ⊢
+      memLog (GF := GF) γs 0 DFrac.discard [(zero_val EntryM : EntryM)] ∗ memEnd (GF := GF) γs 1 ∗
+      (∀ K : GName, memStorInv ms γs γr.cl K -∗
+        memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗ F K) ⊢
       restartStorage γr.cl (memStorIface ms)
         ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
-        memSnapEmpty.Metadata'.ConfState' 0
-        (fun _ => iprop(memStorInv ms γs γr.cl (srvKey γr.cl id) ∗
-          memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))) := by
-  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
+        memSnapEmpty.Metadata'.ConfState' 0 F := by
+  -- PORT(durability stage II): restated (durability layer 4: `restartStorage` with the client's
+  -- frame)
   sorry
 
 /-- **The composition's statement** (see the file header; 2026-10-27: over the node API, for the
@@ -259,8 +293,10 @@ abbrev NodeStartSpec : Prop :=
         -- the peers, their contexts
         "Hpeers" ∷ bv.peers' ↦*{dq} pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
         -- the cluster's allocation's: this node's boot token (2026-10-30, the repair: raft's
-        -- unified `cluster_alloc` with the bootstrap log), the server's raft invariant
-        "Hboot" ∷ nodeBoot γr.cl srvClusterN ps ctxs cv.ID' ∗
+        -- unified `cluster_alloc` with the bootstrap log), with (2026-11-01, durability layer 4)
+        -- its vacant id and its durable state at `RaftState.init`; the server's raft invariant
+        "Hboot" ∷ (nodeBoot γr.cl srvClusterN ps ctxs cv.ID' ∗ raftState γr.cl cv.ID' RaftState.init ∗
+          nodeVacant γr.cl cv.ID') ∗
         "#Hlinv" ∷ srvRaftLogInv E.γr.raft ∗
         -- the names-only contracts
         "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
@@ -298,9 +334,10 @@ abbrev NodeStartSpec : Prop :=
             rnTransportAddr a ↦□ tr) ∗
           -- (2026-10-27) the peers' slice not back (the node API's `StartNode` keeps it)
           b ↦{dq} bv ∗
-          -- (2026-10-30, the repair) the storage's invariant at the node's justifications
-          -- (`memStorInv`, allocated by `InitialState`, `bootStorage`'s `Q`) and its hard state
-          memStorInv bv.storage' γs γr.cl (srvKey γr.cl cv.ID') ∗
+          -- (2026-10-30, the repair) the storage's invariant at the justifications of its key (the
+          -- wrapper's, `γw.key`; `memStorInv`, allocated by `InitialState`, `restartStorage`'s
+          -- frame) and its hard state
+          memStorInv bv.storage' γs γr.cl γw.key ∗
           memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) }}
 
 set_option maxHeartbeats 0 in

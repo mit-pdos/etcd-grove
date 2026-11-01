@@ -407,15 +407,6 @@ abbrev srvStor (γ : SrvRaft) : StorageModel GF :=
   letI : MemStorReg GF := ⟨γ.reg⟩
   inferInstance
 
-/-- (2026-11-01, durability stage I-4; **placeholder, PORT(durability layer 4)**) The storage key raft
-named node `id`'s storage by (`RestartNode`'s post, `restartStorage`'s continuation), and the
-durable state and role its `Ready` loop records: until layer 4 restates this client's invariants to
-carry them, its statements name them through these opaque constants (definitions, no axiom), so they
-are not provable as they stand and their proofs are `sorry`. -/
-noncomputable opaque srvKey (γ : Cluster) (id : w64) : GName := 0
-noncomputable opaque srvDur (γ : Cluster) (id : w64) : RaftState × StateType :=
-  (RaftState.init, W64 0)
-
 /-- Any storage model (the node API's laws take one, unused). -/
 abbrev srvAnyStor : StorageModel GF :=
   letI : MemStorReg GF := ⟨default⟩

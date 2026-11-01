@@ -47,7 +47,7 @@ theorem EtcdServer.compactRaftLog.wp_proof
     (hU64 : zap.Uint64.spec (GF := GF) (hG := hG))
     (hDebug : zap.Logger.Debug.spec (GF := GF) (hG := hG)) :
     EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG) := by
-  intro s snapi ms γs γr id scu l Hpos
+  intro s snapi ms γs γr K scu l Hpos
   letI : MemStorReg GF := ⟨γr.reg⟩
   wp_start as ⟨Hlr, #Hlgf, %Hlgn, #Hinf, #Hrs, ⟨#Hmsi, #Hapl⟩, #Hslb, #Hfr, #Hscu⟩
   ihave #Patm : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
@@ -111,7 +111,7 @@ theorem EtcdServer.compactRaftLog.wp_proof
            ihave #Hfr' : iprop((∃ e, memLog γs (uint.nat (snapi - scu)) DFrac.discard [e]) ∨
                memCompacted γs (uint.nat (snapi - scu))) $$ []
            · rw [H.1]; iexact Hfr
-           wp_apply hCompact ms γs (memStorJ γr.cl (srvKey γr.cl id)) none (snapi - scu) _ $$ [] as %err ⟨%Hor, -⟩
+           wp_apply hCompact ms γs (memStorJ γr.cl K) none (snapi - scu) _ $$ [] as %err ⟨%Hor, -⟩
            · rw [memStorAt_none]
              iframe #
              simp only [memStorJ]
@@ -122,7 +122,7 @@ theorem EtcdServer.compactRaftLog.wp_proof
            ihave #Hfr' : iprop((∃ e, memLog γs (uint.nat (W64 1)) DFrac.discard [e]) ∨
                memCompacted γs (uint.nat (W64 1))) $$ []
            · rw [H.1]; iexact Hfr
-           wp_apply hCompact ms γs (memStorJ γr.cl (srvKey γr.cl id)) none (W64 1) _ $$ [] as %err ⟨%Hor, -⟩
+           wp_apply hCompact ms γs (memStorJ γr.cl K) none (W64 1) _ $$ [] as %err ⟨%Hor, -⟩
            · rw [memStorAt_none]
              iframe #
              simp only [memStorJ]

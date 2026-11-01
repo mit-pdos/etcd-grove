@@ -7,6 +7,9 @@ state)
 At the top of `run`'s loop, for the delivered log `D` (the committed log applied):
 - the node's driver at `D`, handling no `Ready`, and the loop's whole `nodeRunning` (refuting
   `Advance`'s stopped answer, `nodeRunning_stopped`);
+- (2026-11-01, durability layer 4) the driver at the storage's key `K` (`runStor`'s), and the node's
+  durable state `S` (`raftState`), the driver's: the store persists nothing, so each `Ready`'s
+  *enter* (`readyEnter`) is applied at once, from this `raftState` and the loop's `nodeRunning`;
 - the replicated state at `D` (`runOwn`) and the node's view (`appNode`, at the voters'
   membership: the store's log has no conf entry, `kv_noConf`);
 - `applied` at `|D|`; a known compaction point `c` at most `snapIndex` (the latest snapshot taken or
@@ -41,16 +44,15 @@ variable [KVStor GF]
 
 /-- **`run`'s loop invariant** (see the file header); `rp`, `pp`, `ap`, `sp`, `cp` are its `rd`,
 `pending`, `applied`, `snapIndex` and `reconf`. -/
-def kvRunInv (γr : RKVNames) (r n st : Loc) (γs : MemStorNames) (rp pp ap sp cp : Loc) :
-    IProp GF :=
+def kvRunInv (γr : RKVNames) (id : w64) (K : GName) (r n st : Loc) (γs : MemStorNames)
+    (rp pp ap sp cp : Loc) : IProp GF :=
   iprop(∃ (D : List LogEntry) (hd : HardStateM) (rdv : Ready) (pv : GoSlice) (ps : List ReadState)
-      (a sI : w64) (c : Nat)
-      -- (2026-11-01, durability stage I-8; PORT(durability layer 4)) the driver's new fields
-      (K : GName) (S : RaftState) (ro : StateType),
+      (a sI : w64) (c : Nat) (S : RaftState) (ro : StateType),
     "Hrd" ∷ rp ↦ rdv ∗
     "Hdrv" ∷ nodeDriver n γr.cluster kvRaftN
       { storage := kvStorIface st, delivered := D, hardState := hd, handling := none,
         key := K, durable := S, role := ro } ∗
+    "Hraft" ∷ raftState γr.cluster id S ∗
     "Hrun" ∷ nodeRunning n γr.cluster kvRaftN 1 ∗
     "Hown" ∷ runOwn γr r D ∗
     "Hview" ∷ appNode γr n D D.length kvMembership ∗
@@ -64,6 +66,18 @@ def kvRunInv (γr : RKVNames) (r n st : Loc) (γs : MemStorNames) (rp pp ap sp c
     "#Hcp" ∷ memCompacted γs c ∗
     "#Hfz" ∷ frozenTo γs c D ∗
     "%Ha" ∷ ⌜uint.nat a = D.length ∧ c ≤ uint.nat sI ∧ uint.nat sI ≤ uint.nat a⌝)
+
+/-- (2026-11-01, durability stage II) **A `Ready`'s messages with their `sentMsg`**: the messages as
+`readyRest` owns them, with the sends *enter* gave (`readyMsgs`), are what a transport takes. -/
+theorem readyMsgs_sent (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) :
+    ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+      readyMsgs γ N id ms ⊢
+    [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗ msgCredits γ N q.st := by
+  unfold readyMsgs
+  refine BigSepL.bigSepL_sep_eqv_symm.1.trans (BigSepL.bigSepL_mono_of_forall ?_)
+  intro _ _
+  iintro ⟨⟨Ho, Hc⟩, Hs⟩
+  iframe
 
 end inv
 

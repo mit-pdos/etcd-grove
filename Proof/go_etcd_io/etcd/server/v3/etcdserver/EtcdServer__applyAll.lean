@@ -44,7 +44,7 @@ theorem EtcdServer.applyAll.wp_proof
     (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
     (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nid Hms Hai1
+  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nk Hms Hai1
     Hok hEok hdv haw
   simp only [srvRunH_applyAll_spec]
   have hAE := EtcdServer.applyEntries.spec_off hAE
@@ -235,7 +235,7 @@ theorem EtcdServer.applyAll.wp_proofOn
     (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
     (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specOn (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nid γa sa hM hRB
+  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nk γa sa hM hRB
     Hms Hai1 Hok hEok hdv haw
   simp only [srvRunH_applyAll_spec]
   unfold EtcdServer.applyEntries.specOn at hAE

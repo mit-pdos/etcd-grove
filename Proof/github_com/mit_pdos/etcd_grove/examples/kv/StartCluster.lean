@@ -7,12 +7,15 @@ unified API (2026-10-30, stage P of the client repair): raft's cluster of the vo
 with no boot log, its conf entries decided by the store's rule, the store's invariant and its
 registry of the snapshots made (`kvCluster_alloc`: `cluster_alloc`, `confPolicy_alloc` at
 `kvConfN`, `rkvInv_alloc`, `kvSnapInv_alloc`), then a first loop over the voters: each storage
-(`NewStorage`: its records and `NewMemoryStorage`'s tokens) gives `RestartNode`'s `bootStorage`
-(`kvStorage_bootStorage`), whose frame, the storage's invariant at `kvJ γ (kvKey γ id)`, comes back as
-`RestartNode`'s `Q`; with `memSnapNone_open`'s `memSnapLb γs 0` it makes `runStor`. `RestartNode`
-(its `nodeFounder` disjunct, `HardState{}`, the conf state `kvConfState clusterIds`: the voters,
-no `AutoLeave`) gives the node, its driver token, its configuration view and its running token
-`nodeRunning … 1`, into `peers` and `storages` (`drvRes`). Then the transfer budget and the `send`
+(`NewStorage`: its records and `NewMemoryStorage`'s tokens) gives `RestartNode`'s `restartStorage`
+at the empty contents (`kvStorage_bootStorage`), whose frame, the storage's invariant at `kvJ γ K` for
+the key `K` raft names, comes back in `RestartNode`'s post; with `memSnapNone_open`'s `memSnapLb γs 0`
+it makes `runStor`. `RestartNode` (2026-11-01, durability layer 4: from allocation's `raftState` at
+`RaftState.init` and `nodeVacant`, its update firing at once and leaving `raftState`; `HardState{}`,
+the conf state `kvConfState clusterIds`: the voters, no `AutoLeave`) gives the node, its driver token
+at the storage's key, its configuration view and its running token `nodeRunning … 1`, into `peers`
+and `storages` (`drvRes`). (Blocked on API gap G1, `stageI-5-clients.md`: the frame cannot carry the
+invariant at the key the driver records.) Then the transfer budget and the `send`
 closure (`deliver`), and a second loop that starts each replica (`New`), appends it to `kvs` and
 forks its `tick`.
 -/
@@ -191,17 +194,20 @@ section reg
 variable [KVStor GF]
 
 /-- What `StartCluster` holds of a replica between starting its node and starting its replica: the
-node (`isNode`), its driver token idle on the store's storage, its configuration view and (2026-10-30)
-its running token, the storage's record, the replica's sequence-number token, and what `run` holds
-of the storage (`runStor`, persistent; until 2026-10-30 the storage's snapshot token). -/
+node (`isNode`), its driver token idle on the store's storage at its key `K` (2026-11-01, durability
+layer 4), its durable state (`raftState`, at `RaftState.init`), its configuration view and
+(2026-10-30) its running token, the storage's record, the replica's sequence-number token, and what
+`run` holds of the storage (`runStor`, persistent, at the same key; until 2026-10-30 the storage's
+snapshot token). -/
 def drvRes (γr : RKVNames) (id : w64) (nd : GoInterface) (st : Loc) : IProp GF :=
-  iprop(∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+  iprop(∃ (n : Loc) (K : GName), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
     isNode n γr.cluster kvRaftN id ∗
-    nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st) (kvKey γr.cluster id)) ∗
+    nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st) K) ∗
+    raftState γr.cluster id RaftState.init ∗
     EtcdGrove.nodeConfig n γr.cluster kvRaftN ⟨0, kvMembership⟩ ∗
     (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
     nodeRunning n γr.cluster kvRaftN 1 ∗
-    id ↪[γr.seq] W64 0 ∗ runStor γr id st)
+    id ↪[γr.seq] W64 0 ∗ runStor γr K st)
 
 theorem StartCluster.wp_proof
     (wp_NewStorage : kv.NewStorage.spec (GF := GF) (hG := hG))

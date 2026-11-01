@@ -403,6 +403,7 @@ private theorem node.wp_Advance_impl
       iexists γn.sn
       iframe Hkey
       iright
+      ileft
       iunfold storGiven at Hgiven
       rw [← Hds, strip_length, Hli]
       iexact Hgiven
