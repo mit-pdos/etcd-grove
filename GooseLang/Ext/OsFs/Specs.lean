@@ -279,6 +279,12 @@ end step
 
 /-! ## Specs -/
 
+open Classical in
+/-- The fd an open with the flags `fl` gives (as `IsOsStep` builds it). -/
+def openFd (p : GoString) (fl : w64) : OsFd :=
+  let acc := fl.toNat % 4
+  ⟨p, acc ≠ O_WRONLY, acc ≠ O_RDONLY⟩
+
 section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [GoGlobalContext]
   [go.BasicIntoValInj]
@@ -1277,6 +1283,194 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
     · exact ⟨f1, h1, hsv⟩
 
 end create
+
+
+theorem osWf_addFd {st : OsState} (hwf : OsWf st) (fd : w64) (d : OsFd)
+    (hd : ∃ f, st.file d.path = some f) : OsWf { st with fds := <[fd := d]> st.fds } :=
+  osWf_fds hwf _ (fun fd' d' h => by
+    rw [GMap.lookup_insert_eq_iff] at h; split at h
+    · cases h; exact hd
+    · exact hwf.fds fd' d' h)
+
+/-- `open(p, fl)` without `O_TRUNC`, with the file's `OsMeta` (whole if there is no file, so
+that the open may create it): on success a new fd, whole; on failure, `-1`, and the file may
+have been created. -/
+theorem wp_Open (p : GoString) (fl : w64) (q : DFrac) (mo : Option OsMeta) (hE : ↑osN ⊆ E)
+    (hfl : OpenFlagsOk fl.toNat) (htr : fl.toNat / O_TRUNC % 2 = 0)
+    (hq : mo = none → q = DFrac.own 1) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osMeta (L := L) p q mo -∗
+      (∀ fd : w64, ∀ e : w64, ∀ mo' : Option OsMeta,
+        ⌜(e = 0 ∧ 0 ≤ fd.toInt ∧ mo' = openMeta mo (decide (fl.toNat / O_CREAT % 2 = 1)) ∧
+            mo' ≠ none) ∨
+          (e ≠ 0 ∧ fd = -1 ∧ (mo' = mo ∨ mo' = openMeta mo (decide (fl.toNat / O_CREAT % 2 = 1))))⌝ -∗
+        osMeta (L := L) p q mo' -∗
+        (if e = 0 then osFd (L := L) fd (DFrac.own 1) (openFd p fl) else emp) -∗
+        Φ (PairV (#fd) (#e))) -∗
+      WP (ExternalOp osFsExt.name "Open" (Val (PairV (#p) (#fl)))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hm HΦ
+  iapply wp_os_step "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h Hw
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hth, Hσ⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  unfold osMeta
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hpn : st.files !! p ≠ none := fun h0 => by rw [(hcoh.meta_dom p).2 h0] at Hml; cases Hml
+  have hpf : p ∈ st.files := by
+    have := hpn
+    show (st.files.lookup p).isSome
+    cases h' : st.files.lookup p
+    · exact absurd h' this
+    · rfl
+  imodintro
+  isplitr
+  · ipureintro
+    exact ⟨_, h, st, ⟨p, fl, rfl, hpf, hfl, .inr ⟨1, by decide, rfl, .inl rfl⟩⟩,
+      mapsFresh_same rfl, heapRendered_same hwf rfl rfl Hag⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨p', fl', hv, -, -, hres⟩ := Hst
+  injection hv with h1 h2
+  cases go.intoVal_inj h1; cases go.intoVal_inj h2
+  have htr' : ¬ (fl.toNat / O_TRUNC % 2 = 1) := by omega
+  -- the state after the open's effect, and its ghost maps
+  have heffect : ∀ st1, openEffect st p (decide (fl.toNat / O_CREAT % 2 = 1))
+      (decide (fl.toNat / O_TRUNC % 2 = 1)) = some st1 →
+      (st1 = st ∧ openMeta mo (decide (fl.toNat / O_CREAT % 2 = 1)) = mo ∧
+        ∃ f, st.file p = some f) ∨
+      (st1 = st.setFile p newFile ∧ mo = none ∧ st.file p = none ∧
+        st.files !! p = some none ∧
+        openMeta mo (decide (fl.toNat / O_CREAT % 2 = 1)) = some newMeta) := by
+    intro st1 he
+    unfold openEffect at he
+    cases hfp : st.file p with
+    | some f =>
+      rw [hfp] at he; simp only [htr', decide_false, Bool.false_eq_true, ↓reduceIte,
+        Option.some.injEq] at he
+      subst he; left; refine ⟨rfl, ?_, f, rfl⟩
+      cases mo with
+      | some m => rfl
+      | none =>
+        have := (hcoh.meta_none p).1 Hml
+        rw [file_eq_some.1 hfp] at this; cases this
+    | none =>
+      rw [hfp] at he
+      by_cases hc : fl.toNat / O_CREAT % 2 = 1
+      · simp only [hc, _root_.decide_true, ↓reduceIte, Option.some.injEq] at he
+        subst he
+        have hnone : st.files !! p = some none := by
+          cases hfo : st.files !! p with
+          | none => exact absurd hfo hpn
+          | some fo => cases fo with
+            | none => rfl
+            | some f => rw [file_eq_some.2 hfo] at hfp; cases hfp
+        have hmo : mo = none := by
+          have := (hcoh.meta_none p).2 hnone; rw [Hml] at this; cases this; rfl
+        right; refine ⟨rfl, hmo, rfl, hnone, by rw [hmo, hc]; rfl⟩
+      · simp [hc] at he
+  have hghost : ∀ st1, openEffect st p (decide (fl.toNat / O_CREAT % 2 = 1))
+      (decide (fl.toNat / O_TRUNC % 2 = 1)) = some st1 →
+      gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm Γm ∗
+        gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm p q mo ⊢ |==>
+      ∃ Γm', ⌜OsWf st1 ∧ OsCoh st1 Γb Γm' Γf Γt ∧ cellView st1 = cellView st ∧
+          st1.inflight = st.inflight ∧ st1.maps = st.maps ∧ st1.fds = st.fds ∧
+          (∀ p0 f0, st.file p0 = some f0 → ∃ f1, st1.file p0 = some f1) ∧
+          (∃ f1, st1.file p = some f1)⌝ ∗
+        gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm Γm' ∗
+        gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm p q
+          (openMeta mo (decide (fl.toNat / O_CREAT % 2 = 1))) ∗
+        ⌜tokRes (gooseOsGS (L := L)) st1 Γt = tokRes (gooseOsGS (L := L)) st Γt⌝ := by
+    intro st1 he
+    iintro ⟨HAm, Hm⟩
+    rcases heffect st1 he with ⟨rfl, hom, f, hf⟩ | ⟨rfl, hmo, hn, hnone, hom⟩
+    · rw [hom]
+      imodintro
+      iexists Γm
+      iframe
+      ipureintro
+      exact ⟨⟨hwf, hcoh, rfl, rfl, rfl, rfl, fun p0 f0 h0 => ⟨f0, h0⟩, ⟨f, hf⟩⟩, rfl⟩
+    · subst hmo
+      rw [hq rfl, hom]
+      imod gAuth_update _ _ _ _ _ (some newMeta) $$ HAm Hm with ⟨HAm, Hm⟩
+      imodintro
+      iexists _
+      iframe
+      ipureintro
+      refine ⟨⟨osWf_create hwf hn, osCoh_create hwf hcoh hn hnone, cellView_create hwf hn, rfl, rfl,
+        rfl, fun p0 f0 h0 => ?_, ⟨newFile, file_setFile_eq _ _ _⟩⟩, ?_⟩
+      · by_cases hpp : p = p0
+        · subst hpp; rw [hn] at h0; cases h0
+        · exact ⟨f0, by rw [file_setFile_ne _ _ hpp]; exact h0⟩
+      · unfold tokRes; simp only [affLo_congr (sizes_create hn)]
+  have hne : ∀ st1, openEffect st p (decide (fl.toNat / O_CREAT % 2 = 1))
+      (decide (fl.toNat / O_TRUNC % 2 = 1)) = some st1 →
+      openMeta mo (decide (fl.toNat / O_CREAT % 2 = 1)) ≠ none := by
+    intro st1 he
+    rcases heffect st1 he with ⟨-, hom, f, hf⟩ | ⟨-, -, -, -, hom⟩
+    · rw [hom]; intro hmo; subst hmo
+      have := (hcoh.meta_none p).1 Hml; rw [file_eq_some.1 hf] at this; cases this
+    · rw [hom]; simp
+  rcases hres with ⟨st1, fd, heff, hfd0, hfdn, hst, rfl⟩ | ⟨e, he, rfl, hst⟩
+  · have hst' : st' = { st1 with fds := <[fd := openFd p fl]> st1.fds } := hst
+    subst hst'
+    imod hghost st1 heff $$ [HAm Hm] with ⟨%Γm', %Hgh, HAm, Hm, %htr1⟩
+    · iframe
+    obtain ⟨hwf1, hcoh1, hcv, hin1, hmp1, hfds1, -, hex1⟩ := Hgh
+    have hΓf : Γf !! fd = none := by rw [hcoh.fds]; exact hfdn
+    imod gAuth_insert _ _ _ fd (openFd p fl) hΓf $$ HAf with ⟨HAf, Hfd⟩
+    have hwf' := osWf_addFd hwf1 fd (openFd p fl) hex1
+    have hcv' : cellView { st1 with fds := <[fd := openFd p fl]> st1.fds } = cellView st := by
+      exact (cellView_congr (st := st1) rfl rfl rfl).trans hcv
+    imod cells_same hwf hwf' Hr Hfr (by simp [hmp1]) hcv' $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+    · iframe
+    imodintro
+    iexists Γb, Γm', (<[fd := openFd p fl]> Γf), Γt
+    have htr' : tokRes gooseOsGS { st1 with fds := <[fd := openFd p fl]> st1.fds } Γt =
+        tokRes (gooseOsGS (L := L)) st Γt := by rw [← htr1]; rfl
+    have hth : (threadToks st.inflight.size : IProp GF) =
+        threadToks ({ st1 with fds := <[fd := openFd p fl]> st1.fds } : OsState).inflight.size := by
+      simp [hin1]
+    rw [htr', hth]
+    iframe
+    isplitr
+    · ipureintro
+      refine ⟨hwf', ?_⟩
+      have : Γf = st1.fds := by rw [hcoh.fds, hfds1]
+      rw [this]; exact osCoh_fds hcoh1 _
+    iapply wp_value'
+    iapply HΦ $$ %fd %0 %_ %(.inl ⟨rfl, hfd0, rfl, hne st1 heff⟩) Hm
+    rw [if_pos rfl]; unfold osFd; iexact Hfd
+  · rcases hst with rfl | heff
+    · imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+      · iframe
+      imodintro
+      iexists Γb, Γm, Γf, Γt
+      iframe
+      isplitr
+      · ipureintro; exact ⟨hwf, hcoh⟩
+      iapply wp_value'
+      iapply HΦ $$ %_ %e %mo %(.inr ⟨he, rfl, .inl rfl⟩) Hm
+      rw [if_neg he]; iempintro
+    · imod hghost st' heff $$ [HAm Hm] with ⟨%Γm', %Hgh, HAm, Hm, %htr1⟩
+      · iframe
+      obtain ⟨hwf1, hcoh1, hcv, hin1, hmp1, hfds1, -, -⟩ := Hgh
+      imod cells_same hwf hwf1 Hr Hfr hmp1 hcv $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+      · iframe
+      imodintro
+      iexists Γb, Γm', Γf, Γt
+      have hth : (threadToks st.inflight.size : IProp GF) = threadToks st'.inflight.size := by
+        simp [hin1]
+      rw [htr1, hth]
+      iframe
+      isplitr
+      · ipureintro; exact ⟨hwf1, hcoh1⟩
+      iapply wp_value'
+      iapply HΦ $$ %_ %e %_ %(.inr ⟨he, rfl, .inr rfl⟩) Hm
+      rw [if_neg he]; iempintro
+
 
 end specs
 
