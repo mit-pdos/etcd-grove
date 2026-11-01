@@ -227,8 +227,9 @@ def csOpen : CState → CState
 /-- The state after a successful sync of an idle state `H ++ (F ++ T)` (`F` frozen): of `T`,
 keeping `H` (shown clean) in the durable bytes known; or (`hd`) of `H`. -/
 def csSynced (hd : Bool) (m : OsMeta) (H F T : List (w8 × Bool)) (fa fb : Nat) : CSt :=
-  if hd then ⟨m.synced 0 H, syncedBytes m H ++ (F ++ T), fa, fb, .idle⟩
-  else ⟨m.syncedKeep fb T 0 H, H ++ (F ++ syncedBytes m T), fa, fb, .idle⟩
+  match hd with
+  | true => ⟨m.synced 0 H, syncedBytes m H ++ (F ++ T), fa, fb, .idle⟩
+  | false => ⟨m.syncedKeep fb T 0 H, H ++ (F ++ syncedBytes m T), fa, fb, .idle⟩
 
 section ops
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [GoGlobalContext]
@@ -405,6 +406,316 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : GoString) (off : Nat) (data : List w
   refine ⟨finBytes_length hl hk, hab, ?_, trivial⟩
   show fb ≤ pwSize m.size off k
   have := pwSize_ge m.size off k; omega
+
+/-! ### Truncate -/
+
+/-- Grown bytes: the old ones and the new zeros. -/
+theorem grow_bytes (p : GoString) (m m' : OsMeta) (bs : List (w8 × Bool)) (fa fb t sz : Nat)
+    (hfb : fb ≤ bs.length) :
+    osBytes (L := L) p bs.length (DFrac.own 1) (List.replicate (sz - m.size) (0, false)) ∗
+      invBytes (L := L) p ⟨m, bs, fa, fb, .trunc t sz⟩ ∗ thrBytes (L := L) p ⟨m, bs, fa, fb, .trunc t sz⟩ ⊢
+    invBytes (L := L) p ⟨m', bs ++ List.replicate (sz - m.size) (0, false), fa, fb, .idle⟩ ∗ thrBytes (L := L) p ⟨m', bs ++ List.replicate (sz - m.size) (0, false), fa, fb, .idle⟩ := by
+  iintro ⟨Hz, Hi, Ht⟩
+  icases (osBytes_halves (L := L) p _ _).1 $$ Hz with ⟨Hz1, Hz2⟩
+  ihave Hi := (show invBytes (L := L) p ⟨m, bs, fa, fb, .trunc t sz⟩ ⊢ cBytes (L := L) p (CSt.frac (⟨m', bs ++ List.replicate (sz - m.size) (0, false), fa, fb, .idle⟩ : CSt))
+    (fun k => !CSt.taken (⟨m', bs ++ List.replicate (sz - m.size) (0, false), fa, fb, .idle⟩ : CSt) k) 0 bs from .rfl) $$ Hi
+  ihave Ht := (show thrBytes (L := L) p ⟨m, bs, fa, fb, .trunc t sz⟩ ⊢ cBytes (L := L) p (fun _ => DFrac.own (1 : Qp).half)
+    (fun k => !CSt.taken (⟨m', bs ++ List.replicate (sz - m.size) (0, false), fa, fb, .idle⟩ : CSt) k && !CSt.frozen (⟨m', bs ++ List.replicate (sz - m.size) (0, false), fa, fb, .idle⟩ : CSt) k) 0 bs from .rfl) $$ Ht
+  ihave Hz1 := (cBytes_full (L := L) p (CSt.frac (⟨m', bs ++ List.replicate (sz - m.size) (0, false), fa, fb, .idle⟩ : CSt)) (fun k => !CSt.taken (⟨m', bs ++ List.replicate (sz - m.size) (0, false), fa, fb, .idle⟩ : CSt) k) _
+    bs.length _ fun k hk => ⟨rfl, CSt.frac_out _ _ (by dsimp only; omega)⟩).2 $$ Hz1
+  ihave Hz2 := (cBytes_full (L := L) p (fun _ => DFrac.own (1 : Qp).half)
+    (fun k => !CSt.taken (⟨m', bs ++ List.replicate (sz - m.size) (0, false), fa, fb, .idle⟩ : CSt) k && !CSt.frozen (⟨m', bs ++ List.replicate (sz - m.size) (0, false), fa, fb, .idle⟩ : CSt) k) _ bs.length _ fun k hk =>
+      ⟨by rw [CSt.frozen_out _ _ (by dsimp only; omega)]; rfl, rfl⟩).2 $$ Hz2
+  unfold invBytes thrBytes
+  isplitl [Hz1 Hi]
+  · iapply (cBytes_append (L := L) p _ _ 0 bs _).2; rw [Nat.zero_add]; iframe
+  · iapply (cBytes_append (L := L) p _ _ 0 bs _).2; rw [Nat.zero_add]; iframe
+
+/-- A growing truncate's first step on a file in a crash invariant, idle: the truncate is in
+flight, which the caller shows `Ok`. -/
+theorem wp_osFtruncateStart_cs (fd sz : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (γ : GName)
+    (Ok : CState → Prop) (m : OsMeta) (bs : List (w8 × Bool)) (fa fb hi : Nat)
+    (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N) (hwr : d.writable = true) (hsz0 : 0 ≤ sz.toInt)
+    (hgrow : m.size ≤ sz.toNat) (hhi : MapsBelow m.maps hi)
+    (hok : ∀ t, Ok (some ⟨m, bs, fa, fb, .trunc t sz.toNat⟩)) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ csInv (L := L) N d.path γ Ok -∗ osFd (L := L) fd dq d -∗
+      csOwn (L := L) d.path γ (some ⟨m, bs, fa, fb, .idle⟩) -∗ mcellsAny (L := L) m.maps m.size hi -∗
+      (∀ t : Nat, osFd (L := L) fd dq d -∗
+        csOwn (L := L) d.path γ (some ⟨m, bs, fa, fb, .trunc t sz.toNat⟩) -∗ Φ (osTokV t)) -∗
+      WP (ExternalOp osFsExt.name "FtruncateStart" (Val (PairV (#fd) (#sz)))) {{ Φ }} := by
+  iintro #Hos #Hinv Hfd Hown Hc HΦ
+  icases (csOwn_idle _ _ _ rfl).1 $$ Hown with ⟨Hv, ⟨Hm1, Hb1⟩, %Hwf⟩
+  obtain ⟨hl, hab, hfb, -⟩ := Hwf
+  dsimp only at hl hab hfb
+  iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑N))
+  unfold csInv
+  imod inv_acc (E := ⊤) (show ↑N ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
+    with ⟨Hi, Hclose⟩
+  icases Hi with ⟨%s', >Hv', >Hr, >%Hok'⟩
+  icases ghostVar_agree _ _ _ _ _ $$ Hv Hv' with %Heq
+  subst Heq
+  icases (invResS_idle _ _ rfl).1 $$ Hr with ⟨Hm2, Hb2⟩
+  ihave Hm := (osMeta_halves _ _).2 $$ [Hm1 Hm2]
+  · iframe
+  imodintro
+  iapply wp_osFtruncateStart fd sz dq d m hi hN hwr hsz0 hgrow hhi $$ Hos Hfd Hm Hc
+  iintro %t Hfd Ht
+  imod ghostVar_update_halves (some ⟨m, bs, fa, fb, .trunc t sz.toNat⟩ : CState) γ _ _
+    $$ Hv Hv' with ⟨Hv, Hv'⟩
+  imod Hclose $$ [Hv' Ht Hb2] with -
+  · inext; iexists (some ⟨m, bs, fa, fb, .trunc t sz.toNat⟩); iframe Hv'; isplitl
+    · dsimp only [invResS, metaRes]; isplitl [Ht]
+      · iexact Ht
+      · iapply (show invBytes (L := L) d.path ⟨m, bs, fa, fb, .idle⟩ ⊢
+          invBytes (L := L) d.path ⟨m, bs, fa, fb, .trunc t sz.toNat⟩ from .rfl)
+        iexact Hb2
+    ipureintro; exact hok t
+  imodintro
+  iapply HΦ $$ %t Hfd
+  iapply (csOwn_busy _ _ _ (by simp)).2
+  isplitl [Hv]
+  · iexact Hv
+  isplitl [Hb1]
+  · iapply (show thrBytes (L := L) d.path ⟨m, bs, fa, fb, .idle⟩ ⊢
+      thrBytes (L := L) d.path ⟨m, bs, fa, fb, .trunc t sz.toNat⟩ from .rfl)
+    iexact Hb1
+  ipureintro; exact ⟨hl, hab, hfb, hgrow⟩
+
+/-- The caller's part after a truncate grew the file: the file, and the mapped cells of the
+new bytes (zeros) and past them. -/
+def csGrownOwn (p : GoString) (γ : GName) (m : OsMeta) (bs : List (w8 × Bool)) (fa fb sz hi : Nat) :
+    IProp GF :=
+  iprop(csOwn (L := L) p γ (some ⟨m.grown sz, bs ++ List.replicate (sz - m.size) (0, false), fa, fb, .idle⟩) ∗
+    mcells (L := L) m.maps m.size sz (fun _ => byteCell 0) ∗ mcellsAny (L := L) m.maps sz hi)
+
+/-- A growing truncate's second step on a file in a crash invariant: grown, or, on failure,
+maybe not (with the size bound widened), each of which the caller shows `Ok`. -/
+theorem wp_osFtruncateFinish_cs (t : Nat) (p : GoString) (sz : Nat) (N : Namespace) (γ : GName)
+    (Ok : CState → Prop) (m : OsMeta) (bs : List (w8 × Bool)) (fa fb hi : Nat)
+    (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N) (hhi : MapsBelow m.maps hi)
+    (hokG : Ok (some ⟨m.grown sz, bs ++ List.replicate (sz - m.size) (0, false), fa, fb, .idle⟩))
+    (hokF : Ok (some ⟨ftMeta m sz, bs, fa, fb, .idle⟩)) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ csInv (L := L) N p γ Ok -∗
+      csOwn (L := L) p γ (some ⟨m, bs, fa, fb, .trunc t sz⟩) -∗
+      (∀ e : w64,
+        ((⌜e = 0⌝ ∗ csGrownOwn (L := L) p γ m bs fa fb sz hi) ∨
+         (⌜e ≠ 0⌝ ∗ (csGrownOwn (L := L) p γ m bs fa fb sz hi ∨
+           (csOwn (L := L) p γ (some ⟨ftMeta m sz, bs, fa, fb, .idle⟩) ∗
+             mcellsAny (L := L) m.maps m.size hi)))) -∗ Φ (#e)) -∗
+      WP (ExternalOp osFsExt.name "FtruncateFinish" (Val (osTokV t))) {{ Φ }} := by
+  iintro #Hos #Hinv Hown HΦ
+  icases (csOwn_busy _ _ _ (by simp)).1 $$ Hown with ⟨Hv, Hb1, %Hwf⟩
+  obtain ⟨hl, hab, hfb, hgrow⟩ := Hwf
+  dsimp only at hl hab hfb hgrow
+  iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑N))
+  unfold csInv
+  imod inv_acc (E := ⊤) (show ↑N ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
+    with ⟨Hi, Hclose⟩
+  icases Hi with ⟨%s', >Hv', >Hr, >%Hok'⟩
+  icases ghostVar_agree _ _ _ _ _ $$ Hv Hv' with %Heq
+  subst Heq
+  icases (show invResS (L := L) p (some ⟨m, bs, fa, fb, .trunc t sz⟩) ⊢ ftTok (L := L) t p sz m ∗
+    invBytes (L := L) p ⟨m, bs, fa, fb, .trunc t sz⟩ from .rfl) $$ Hr with ⟨Ht, Hb2⟩
+  imodintro
+  iapply wp_osFtruncateFinish t p sz m hi hN hgrow hhi $$ Hos Ht
+  iintro %e Hres
+  -- the two outcomes, as states
+  have hG : ∀ (Q : IProp GF), (csGrownOwn (L := L) p γ m bs fa fb sz hi -∗ Q) ⊢
+      ghostVar γ (1 : Qp).half (some ⟨m, bs, fa, fb, .trunc t sz⟩ : CState) -∗
+      ghostVar γ (1 : Qp).half (some ⟨m, bs, fa, fb, .trunc t sz⟩ : CState) -∗
+      invBytes (L := L) p ⟨m, bs, fa, fb, .trunc t sz⟩ -∗ thrBytes (L := L) p ⟨m, bs, fa, fb, .trunc t sz⟩ -∗
+      osGrown (L := L) p m sz hi -∗
+      (▷ (∃ s, ghostVar γ (1 : Qp).half s ∗ invResS (L := L) p s ∗ ⌜Ok s⌝) ={(⊤ : CoPset) \ ↑N, ⊤}=∗ True) -∗
+      |={(⊤ : CoPset) \ ↑N, ⊤}=> Q := by
+    intro Q
+    iintro HQ Hv Hv' Hb2 Hb1 Hg Hclose
+    unfold osGrown
+    icases Hg with ⟨Hm, Hz, Hc1, Hc2⟩
+    icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
+    ihave Hz := (show osBytes (L := L) p m.size (DFrac.own 1) (List.replicate (sz - m.size) (0, false)) ⊢
+      osBytes (L := L) p bs.length (DFrac.own 1) (List.replicate (sz - m.size) (0, false)) by
+        rw [hl]) $$ Hz
+    icases grow_bytes (L := L) p m (m.grown sz) bs fa fb t sz (by omega) $$ [Hz Hb2 Hb1] with ⟨Hb2, Hb1⟩
+    · iframe
+    imod ghostVar_update_halves
+      (some ⟨m.grown sz, bs ++ List.replicate (sz - m.size) (0, false), fa, fb, .idle⟩ : CState) γ _ _
+      $$ Hv Hv' with ⟨Hv, Hv'⟩
+    imod Hclose $$ [Hv' Hm2 Hb2] with -
+    · inext; iexists (some ⟨m.grown sz, bs ++ List.replicate (sz - m.size) (0, false), fa, fb, .idle⟩)
+      iframe Hv'; isplitl
+      · iapply (invResS_idle _ _ rfl).2; iframe
+      ipureintro; exact hokG
+    imodintro
+    iapply HQ
+    unfold csGrownOwn
+    iframe Hc1 Hc2
+    iapply (csOwn_idle _ _ _ rfl).2
+    iframe
+    ipureintro
+    refine ⟨by simp [OsMeta.grown, hl]; omega, hab, by simp only [OsMeta.grown]; omega, trivial⟩
+  icases Hres with (⟨%he, Hg⟩ | ⟨%he, (Hg | ⟨Hm, Hc⟩)⟩)
+  · iapply (hG _) $$ [HΦ] Hv Hv' Hb2 Hb1 Hg Hclose
+    iintro H; iapply HΦ; ileft; iframe; ipureintro; exact he
+  · iapply (hG _) $$ [HΦ] Hv Hv' Hb2 Hb1 Hg Hclose
+    iintro H; iapply HΦ; iright; isplitr; · ipureintro; exact he
+    ileft; iexact H
+  · icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
+    imod ghostVar_update_halves (some ⟨ftMeta m sz, bs, fa, fb, .idle⟩ : CState) γ _ _
+      $$ Hv Hv' with ⟨Hv, Hv'⟩
+    imod Hclose $$ [Hv' Hm2 Hb2] with -
+    · inext; iexists (some ⟨ftMeta m sz, bs, fa, fb, .idle⟩)
+      iframe Hv'; isplitl
+      · iapply (invResS_idle _ _ rfl).2; iframe Hm2
+        iapply (show invBytes (L := L) p ⟨m, bs, fa, fb, .trunc t sz⟩ ⊢
+          invBytes (L := L) p ⟨ftMeta m sz, bs, fa, fb, .idle⟩ from .rfl)
+        iexact Hb2
+      ipureintro; exact hokF
+    imodintro
+    iapply HΦ; iright; isplitr; · ipureintro; exact he
+    iright
+    iframe Hc
+    iapply (csOwn_idle _ _ _ rfl).2
+    iframe Hv Hm1
+    isplitl
+    · iapply (show thrBytes (L := L) p ⟨m, bs, fa, fb, .trunc t sz⟩ ⊢
+        thrBytes (L := L) p ⟨ftMeta m sz, bs, fa, fb, .idle⟩ from .rfl)
+      iexact Hb1
+    ipureintro; exact ⟨hl, hab, hfb, trivial⟩
+
+/-! ### Sync -/
+
+/-- `fsync`/`fdatasync` of a file in a crash invariant, idle (`H ++ (F ++ T)`, `F` frozen): on
+success `csSynced hd`, which the caller shows `Ok`; on failure, its `ok` is lost. -/
+theorem wp_osFsync_cs (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (γ : GName)
+    (Ok : CState → Prop) (m : OsMeta) (H F T : List (w8 × Bool)) (fa fb : Nat)
+    (hH : H.length = fa) (hF : fa + F.length = fb) (hd : Bool)
+    (hc : hd = false → ∀ y ∈ H, y.2 = true) (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N)
+    (hok : Ok (some (csSynced hd m H F T fa fb)))
+    (hokF : Ok (some ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩)) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ csInv (L := L) N d.path γ Ok -∗ osFd (L := L) fd dq d -∗
+      csOwn (L := L) d.path γ (some ⟨m, H ++ (F ++ T), fa, fb, .idle⟩) -∗
+      (∀ e : w64,
+        ((⌜e = 0⌝ ∗ csOwn (L := L) d.path γ (some (csSynced hd m H F T fa fb))) ∨
+         (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗
+           csOwn (L := L) d.path γ (some ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩))) -∗
+        osFd (L := L) fd dq d -∗ Φ (#e)) -∗
+      WP (ExternalOp osFsExt.name "Fsync" (Val (#fd))) {{ Φ }} := by
+  iintro #Hos #Hinv Hfd Hown HΦ
+  icases (csOwn_idle _ _ _ rfl).1 $$ Hown with ⟨Hv, ⟨Hm1, Hb1⟩, %Hwf⟩
+  obtain ⟨hl, hab, hfb, -⟩ := Hwf
+  dsimp only at hl hab hfb
+  iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑N))
+  unfold csInv
+  imod inv_acc (E := ⊤) (show ↑N ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
+    with ⟨Hi, Hclose⟩
+  icases Hi with ⟨%s', >Hv', >Hr, >%Hok'⟩
+  icases ghostVar_agree _ _ _ _ _ $$ Hv Hv' with %Heq
+  subst Heq
+  icases (invResS_idle _ _ rfl).1 $$ Hr with ⟨Hm2, Hb2⟩
+  ihave Hm := (osMeta_halves _ _).2 $$ [Hm1 Hm2]
+  · iframe
+  icases (idle_invBytes d.path m H F T fa fb hH hF).1 $$ Hb2 with ⟨HH2, HF, HT2⟩
+  icases (idle_thrBytes d.path m H F T fa fb hH hF).1 $$ Hb1 with ⟨HH1, HT1⟩
+  ihave HH := (osBytes_halves _ _ _).2 $$ [HH1 HH2]
+  · iframe
+  ihave HT := (osBytes_halves _ _ _).2 $$ [HT1 HT2]
+  · iframe
+  -- the bytes back, as a state
+  have hback : ∀ (m' : OsMeta) (H' T' : List (w8 × Bool)), H'.length = fa →
+      osMeta (L := L) d.path (DFrac.own 1) (some m') ∗ osBytes (L := L) d.path 0 (DFrac.own 1) H' ∗
+        osBytes (L := L) d.path fa DFrac.discard F ∗ osBytes (L := L) d.path fb (DFrac.own 1) T' ⊢
+      (osMeta (L := L) d.path (DFrac.own (1 : Qp).half) (some m') ∗
+        invBytes (L := L) d.path ⟨m', H' ++ (F ++ T'), fa, fb, .idle⟩) ∗
+      (osMeta (L := L) d.path (DFrac.own (1 : Qp).half) (some m') ∗
+        thrBytes (L := L) d.path ⟨m', H' ++ (F ++ T'), fa, fb, .idle⟩) := by
+    intro m' H' T' hH'
+    iintro ⟨Hm, HH, HF, HT⟩
+    icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
+    icases (osBytes_halves _ _ _).1 $$ HH with ⟨HH1, HH2⟩
+    icases (osBytes_halves _ _ _).1 $$ HT with ⟨HT1, HT2⟩
+    iframe Hm1 Hm2
+    isplitl [HH1 HF HT1]
+    · iapply (idle_invBytes d.path m' H' F T' fa fb hH' (by omega)).2; iframe
+    · iapply (idle_thrBytes d.path m' H' F T' fa fb hH' (by omega)).2; iframe
+  imodintro
+  cases hd
+  · iapply wp_osFsync_keep fd dq d m fb T 0 (DFrac.own 1) H (hc rfl) hN $$ Hos Hfd Hm HT HH
+    iintro %e Hres HH Hfd
+    icases Hres with (⟨%he, Hm, HT⟩ | ⟨%he, Hm, HT⟩)
+    · icases hback _ H (syncedBytes m T) hH $$ [Hm HH HF HT] with ⟨Hi, Ht⟩
+      · iframe
+      imod ghostVar_update_halves (some ⟨m.syncedKeep fb T 0 H, H ++ (F ++ syncedBytes m T), fa, fb, .idle⟩ : CState) γ _ _
+        $$ Hv Hv' with ⟨Hv, Hv'⟩
+      imod Hclose $$ [Hv' Hi] with -
+      · inext; iexists (some ⟨m.syncedKeep fb T 0 H, H ++ (F ++ syncedBytes m T), fa, fb, .idle⟩); iframe Hv'; isplitl
+        · iapply (invResS_idle _ _ rfl).2; iexact Hi
+        ipureintro; exact hok
+      imodintro
+      iapply HΦ $$ %e [Hv Ht] Hfd
+      ileft; isplitr; · ipureintro; exact he
+      iapply (show csOwn (L := L) d.path γ (some ⟨m.syncedKeep fb T 0 H, H ++ (F ++ syncedBytes m T), fa, fb, .idle⟩) ⊢
+        csOwn (L := L) d.path γ (some (csSynced false m H F T fa fb)) from .rfl)
+      iapply (csOwn_idle _ _ _ rfl).2
+      iframe
+      ipureintro
+      refine ⟨?_, hab, ?_, trivial⟩ <;>
+        simp only [csSynced, OsMeta.syncedKeep, OsMeta.synced, List.length_append, syncedBytes_length] at hl ⊢
+      · exact hl
+      · omega
+    · icases hback { m with ok := false } H T hH $$ [Hm HH HF HT] with ⟨Hi, Ht⟩
+      · iframe
+      imod ghostVar_update_halves (some ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩ : CState)
+        γ _ _ $$ Hv Hv' with ⟨Hv, Hv'⟩
+      imod Hclose $$ [Hv' Hi] with -
+      · inext; iexists (some ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩); iframe Hv'
+        isplitl
+        · iapply (invResS_idle _ _ rfl).2; iexact Hi
+        ipureintro; exact hokF
+      imodintro
+      iapply HΦ $$ %e [Hv Ht] Hfd
+      iright; isplitr; · ipureintro; exact he
+      iapply (csOwn_idle _ _ _ rfl).2
+      iframe
+      ipureintro; exact ⟨hl, hab, hfb, trivial⟩
+  · iapply wp_osFsync fd dq d m 0 H hN $$ Hos Hfd Hm HH
+    iintro %e Hres Hfd
+    icases Hres with (⟨%he, Hm, HH⟩ | ⟨%he, Hm, HH⟩)
+    · icases hback _ (syncedBytes m H) T (by rw [syncedBytes_length]; exact hH) $$ [Hm HH HF HT]
+        with ⟨Hi, Ht⟩
+      · iframe
+      imod ghostVar_update_halves (some ⟨m.synced 0 H, syncedBytes m H ++ (F ++ T), fa, fb, .idle⟩ : CState) γ _ _
+        $$ Hv Hv' with ⟨Hv, Hv'⟩
+      imod Hclose $$ [Hv' Hi] with -
+      · inext; iexists (some ⟨m.synced 0 H, syncedBytes m H ++ (F ++ T), fa, fb, .idle⟩); iframe Hv'; isplitl
+        · iapply (invResS_idle _ _ rfl).2; iexact Hi
+        ipureintro; exact hok
+      imodintro
+      iapply HΦ $$ %e [Hv Ht] Hfd
+      ileft; isplitr; · ipureintro; exact he
+      iapply (show csOwn (L := L) d.path γ (some ⟨m.synced 0 H, syncedBytes m H ++ (F ++ T), fa, fb, .idle⟩) ⊢
+        csOwn (L := L) d.path γ (some (csSynced true m H F T fa fb)) from .rfl)
+      iapply (csOwn_idle _ _ _ rfl).2
+      iframe
+      ipureintro
+      refine ⟨?_, hab, ?_, trivial⟩ <;>
+        simp only [csSynced, OsMeta.synced, List.length_append, syncedBytes_length] at hl ⊢
+      · exact hl
+      · omega
+    · icases hback { m with ok := false } H T hH $$ [Hm HH HF HT] with ⟨Hi, Ht⟩
+      · iframe
+      imod ghostVar_update_halves (some ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩ : CState)
+        γ _ _ $$ Hv Hv' with ⟨Hv, Hv'⟩
+      imod Hclose $$ [Hv' Hi] with -
+      · inext; iexists (some ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩); iframe Hv'
+        isplitl
+        · iapply (invResS_idle _ _ rfl).2; iexact Hi
+        ipureintro; exact hokF
+      imodintro
+      iapply HΦ $$ %e [Hv Ht] Hfd
+      iright; isplitr; · ipureintro; exact he
+      iapply (csOwn_idle _ _ _ rfl).2
+      iframe
+      ipureintro; exact ⟨hl, hab, hfb, trivial⟩
 
 end ops
 
