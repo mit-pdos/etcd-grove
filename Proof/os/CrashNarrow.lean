@@ -41,10 +41,12 @@ structure Narrow (m : OsMeta) (bs : List (w8 × Bool)) (off : Nat) (data : List 
   len : bs'.length = m'.size
   pre : ∀ i < cfLo m off, bs'[i]? = bs[i]?
   suf : off + data.length ≤ m.size → ∀ i, off + data.length ≤ i → bs'[i]? = bs[i]?
+  /-- The size grows only up to the write's end. -/
+  szhi : m'.size ≤ max m.size (off + data.length)
 
 theorem narrow_refl {m : OsMeta} {bs : List (w8 × Bool)} (off : Nat) (data : List w8)
     (hlen : bs.length = m.size) : Narrow m bs off data m bs :=
-  ⟨rfl, rfl, rfl, rfl, by omega, Nat.le_refl _, hlen, fun _ _ => rfl, fun _ _ _ => rfl⟩
+  ⟨rfl, rfl, rfl, rfl, by omega, Nat.le_refl _, hlen, fun _ _ => rfl, fun _ _ _ => rfl, by omega⟩
 
 section fin
 variable {m : OsMeta} {bs : List (w8 × Bool)} {off : Nat} {data : List w8} {k : Nat}
@@ -110,7 +112,7 @@ theorem narrow_fin {m' : OsMeta} {bs' : List (w8 × Bool)} (hN : Narrow m bs off
     (hk : k ≤ data.length) :
     Narrow m bs off data (finMeta m' off data k) (finBytes m' bs' off data k) := by
   have hs := hN.size
-  refine ⟨hN.lo, hN.named, hN.ok, hN.maps, ?_, ?_, finBytes_length hN.len hk, ?_, ?_⟩
+  refine ⟨hN.lo, hN.named, hN.ok, hN.maps, ?_, ?_, finBytes_length hN.len hk, ?_, ?_, ?_⟩
   · show max m'.hi (off + data.length) ≤ _
     have := hN.hi; omega
   · show m.size ≤ pwSize m'.size off k
@@ -121,6 +123,8 @@ theorem narrow_fin {m' : OsMeta} {bs' : List (w8 × Bool)} (hN : Narrow m bs off
   · intro hs' i hi
     rw [finBytes_suf hN.len hk (by omega) i hi]
     exact hN.suf hs' i hi
+  · show pwSize m'.size off k ≤ _
+    have := hN.szhi; unfold pwSize; split <;> omega
 
 end fin
 

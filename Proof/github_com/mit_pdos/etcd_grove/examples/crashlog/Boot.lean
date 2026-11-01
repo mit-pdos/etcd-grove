@@ -32,10 +32,11 @@ def dataC : List w8 := [W8 0xde, W8 0xad, W8 0xbe, W8 0xef, W8 0x01, W8 0x23, W8
 offset 0. -/
 def GoodImg (img : List w8) : Prop := ∀ b, img[8]? = some b → b ≠ 0 → img.take 8 = dataC
 
-/-- The crash invariant of what a crash leaves at the path: no file, or a `GoodImg` one. -/
+/-- The crash invariant of what a crash leaves at the path: no file, or a `GoodImg` one, of a size
+an `int64` holds (as `Stat` gives it). -/
 def Good : Option OsFile → Prop
   | none => True
-  | some f => GoodImg f.cur
+  | some f => GoodImg f.cur ∧ f.cur.length < 2 ^ 62
 
 /-- The namespace of the file's invariant. -/
 def logN : Namespace := nroot .@ "crashlog"
@@ -49,11 +50,12 @@ theorem take8_of {img : List w8} (h : ∀ i < 8, img[i]? = dataC[i]?) : img.take
 
 /-- The first write, of the data at 0: a crash leaves no flag, or the flag as it was (clean). -/
 theorem crash_W1 (m : OsMeta) (bs : List (w8 × Bool)) (hhi : m.hi = m.size)
-    (hlen : bs.length = m.size) (hflag : m.size ≤ 8 ∨ bs[8]? = some (0, true)) :
+    (hlen : bs.length = m.size) (hbd : m.size < 2 ^ 62) (hflag : m.size ≤ 8 ∨ bs[8]? = some (0, true)) :
     CrashOk Good (cfWriting m bs 0 dataC) := by
   intro fo h
   rcases h with ⟨rfl, -⟩ | ⟨img, rfl, -, hhi', hb⟩
   · trivial
+  refine ⟨?_, by simp only [pwMeta, dataC, List.length] at hhi'; show img.length < _; omega⟩
   change GoodImg img
   intro b hb8 hb0
   exfalso
@@ -72,11 +74,12 @@ theorem crash_W1 (m : OsMeta) (bs : List (w8 × Bool)) (hhi : m.hi = m.size)
 
 /-- A sync after the data is written: a crash leaves the data. -/
 theorem crash_synced (m : OsMeta) (bs : List (w8 × Bool)) (hok : m.ok = true)
-    (hlen : bs.length = m.size) (hsz : 8 ≤ m.size) (hv : ∀ i < 8, (bs[i]?).map Prod.fst = dataC[i]?) :
+    (hlen : bs.length = m.size) (hsz : 8 ≤ m.size) (hbd : m.size < 2 ^ 62) (hv : ∀ i < 8, (bs[i]?).map Prod.fst = dataC[i]?) :
     CrashOk Good (some (m.synced, syncedBytes m bs, none)) := by
   intro fo h
-  rcases h with ⟨rfl, -⟩ | ⟨img, rfl, -, -, hb⟩
+  rcases h with ⟨rfl, -⟩ | ⟨img, rfl, -, hhi', hb⟩
   · trivial
+  refine ⟨?_, by replace hhi' : img.length ≤ m.size := hhi'; show img.length < _; omega⟩
   change GoodImg img
   intro _ _ _
   apply take8_of
@@ -88,12 +91,13 @@ theorem crash_synced (m : OsMeta) (bs : List (w8 × Bool)) (hok : m.ok = true)
   rw [this, ← hv i hi, List.getElem?_eq_getElem hbi]; rfl
 
 /-- The second write, of the flag at 8: a crash leaves the data (clean). -/
-theorem crash_W2 (m : OsMeta) (bs : List (w8 × Bool)) (hsz : 8 ≤ m.size)
+theorem crash_W2 (m : OsMeta) (bs : List (w8 × Bool)) (hsz : 8 ≤ m.size) (hbd : m.hi < 2 ^ 62)
     (hv : ∀ i < 8, ∃ b, bs[i]? = some (b, true) ∧ dataC[i]? = some b) :
     CrashOk Good (cfWriting m bs 8 [W8 1]) := by
   intro fo h
-  rcases h with ⟨rfl, -⟩ | ⟨img, rfl, -, -, hb⟩
+  rcases h with ⟨rfl, -⟩ | ⟨img, rfl, -, hhi', hb⟩
   · trivial
+  refine ⟨?_, by simp only [pwMeta, List.length] at hhi'; show img.length < _; omega⟩
   change GoodImg img
   intro _ _ _
   apply take8_of
@@ -114,6 +118,7 @@ theorem crash_open (fo : Option OsFile) (hg : Good fo) : CrashOk Good (openState
     have h0 : img.length ≤ 0 := hhi
     have : img = [] := List.eq_nil_of_length_eq_zero (by omega)
     subst this
+    refine ⟨?_, by show ([] : List w8).length < _; simp⟩
     change GoodImg []
     intro b hb; simp at hb
   | some f =>
@@ -294,7 +299,8 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (wp_FdatasyncC : syscall.Fdatasync.specCrash (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (p : GoString) (γ : GName) (m : OsMeta) (bs : List (w8 × Bool))
-    (hhi : m.hi = m.size) (hok : m.ok = true) (hflag : m.size ≤ 8 ∨ bs[8]? = some (0, true)) :
+    (hhi : m.hi = m.size) (hok : m.ok = true) (hbd : m.size < 2 ^ 62)
+    (hflag : m.size ≤ 8 ∨ bs[8]? = some (0, true)) :
     {{ osInv (GF := GF) ∗ cfInv (GF := GF) logN p γ Good ∗ os.ownFile (GF := GF) f fd p (DFrac.own 1) ∗
         osFd (GF := GF) fd (DFrac.own 1) ⟨p, true, true⟩ ∗ cfOwn (GF := GF) p γ (some (m, bs, none)) }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.crashlog.commit)) (Val #f))
@@ -309,7 +315,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   (try wp_auto)
   wp_apply wp_WriteAtC f fd p (DFrac.own 1) sl dataC (DFrac.own 1) (W64 0) (DFrac.own 1)
       ⟨p, true, true⟩ logN γ Good m bs rfl (by decide) (by decide) (by decide) logN_disj
-      (crash_W1 m bs hhi hlen hflag) $$ [Hos Hinv Hf Hsl Hfd Hown]
+      (crash_W1 m bs hhi hlen (by omega) hflag) $$ [Hos Hinv Hf Hsl Hfd Hown]
     as %n %err ⟨Hf, Hsl, Hfd, %m1, %bs1, %Hres, Hown⟩
   · iframe; iframe #
   obtain ⟨hN1, ⟨rfl, rfl, hsz1, hv1⟩ | ⟨rfl, hne⟩⟩ := Hres
@@ -330,8 +336,9 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   -- the data made durable
   have hok1 : m1.ok = true := hN1.ok.trans hok
   have hlen1 : bs1.length = m1.size := hN1.len
+  have hbd1 : m1.size < 2 ^ 62 := by have := hN1.szhi; omega
   wp_apply wp_FdatasyncC fd (DFrac.own 1) ⟨p, true, true⟩ logN γ Good m1 bs1 logN_disj
-      (crash_synced m1 bs1 hok1 hlen1 hsz1 hv1) $$ [Hos Hinv Hfd Hown]
+      (crash_synced m1 bs1 hok1 hlen1 hsz1 (by omega) hv1) $$ [Hos Hinv Hfd Hown]
     as %e ⟨Hfd, Hs⟩
   · iframe; iframe #
   icases Hs with (⟨%He, Hown⟩ | ⟨%He, Hown⟩)
@@ -357,7 +364,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     have := hv1 i hi; rw [List.getElem?_eq_getElem hi'] at this; exact this.symm
   wp_apply wp_WriteAtC f fd p (DFrac.own 1) _ [W8 1] (DFrac.own 1) (W64 8) (DFrac.own 1)
       ⟨p, true, true⟩ logN γ Good m1.synced (syncedBytes m1 bs1) rfl (by decide) (by decide)
-      (by decide) logN_disj (crash_W2 _ _ hsz2 hv2) $$ [Hos Hinv Hf Hsl2 Hfd Hown]
+      (by decide) logN_disj (crash_W2 _ _ hsz2 (show m1.size < _ by omega) hv2) $$ [Hos Hinv Hf Hsl2 Hfd Hown]
     as %n2 %err2 ⟨Hf, Hsl2, Hfd, %m3, %bs3, %Hres, Hown⟩
   · iframe; iframe #
   obtain ⟨hN3, ⟨rfl, rfl, hsz3, hv3⟩ | ⟨rfl, hne⟩⟩ := Hres
@@ -377,12 +384,15 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   -- the flag made durable
   have hok3 : m3.ok = true := hN3.ok.trans hok1
   have hlen3 : bs3.length = m3.size := hN3.len
+  have hbd3 : m3.size < 2 ^ 62 := by
+    have h1 := hN3.szhi; have h2 : m1.synced.size = m1.size := rfl
+    simp only [List.length_singleton] at h1; omega
   have hv3' : ∀ i < 8, (bs3[i]?).map Prod.fst = dataC[i]? := by
     intro i hi
     rw [hN3.pre i (by unfold cfLo; show i < min 8 m1.size; omega), syncedBytes_fst]
     exact hv1 i hi
   wp_apply wp_FdatasyncC fd (DFrac.own 1) ⟨p, true, true⟩ logN γ Good m3 bs3 logN_disj
-      (crash_synced m3 bs3 hok3 hlen3 (by omega) hv3') $$ [Hos Hinv Hfd Hown]
+      (crash_synced m3 bs3 hok3 hlen3 (by omega) (by omega) hv3') $$ [Hos Hinv Hfd Hown]
     as %e ⟨Hfd, Hs⟩
   · iframe; iframe #
   icases Hs with (⟨%He, Hown⟩ | ⟨%He, Hown⟩)
