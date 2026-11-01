@@ -1134,7 +1134,11 @@ it and what the proofs changed.
   `cacheWgInv` while registered. Nothing comes back through the wait group (the loops'
   writers stay in the goroutines), so `Close`'s postcondition is the token. Go's own
   implementation would not panic here (a waiter registers only while the counter is positive
-  and the last `Done` clears it), so this is the spec's conservatism, not a finding.
+  and the last `Done` clears it), so this is the spec's conservatism, not a finding. *Wrong (corrected
+  2026-11-01):* Go's `WaitGroup` does panic when an `Add` from zero overlaps a pending `Wait`
+  ("Add called concurrently with Wait", or the waiter's "reused before previous Wait has
+  returned"), and `Close` cancels the loops, so the counter reaches zero while it waits: the token
+  is a real precondition of the code, `issues/etcd-cache-watch-during-close-waitgroup.md`.
 - **`NewDemux` takes the caller's wait group abstractly**: `wgSlotProtocol wg Pslot Prun Pret`
   (the triples of `Add(1)` and `Done()`), instantiated by `newCache` with the cache's slot and
   "open" token. *Rejected:* `NewDemux` stating `cacheWgInv` (the demux would depend on the
