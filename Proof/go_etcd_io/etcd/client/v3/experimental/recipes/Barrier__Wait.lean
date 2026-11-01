@@ -106,7 +106,7 @@ theorem Barrier.Wait.wp_proof (hWE : WaitEvents.spec (GF := GF) (hG := hG)) :
     wp_apply hWE client key key (R + W64 1) _ [evDelete] evDelete $$ [$Hpkg $Hcc $Hcl $HslT]
       as %ev %werr Hwr
     · ipureintro
-      refine ⟨rfl, List.prefix_refl key, ?_, by omega⟩
+      refine ⟨rfl, List.prefix_refl key, ?_, by word⟩
       have := HRle.2; word
     icases Hwr with (⟨%Hwnil, #Hwev⟩ | %Hwne)
     rotate_left

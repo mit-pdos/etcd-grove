@@ -182,6 +182,15 @@ def mutexState (m : Loc) (st : MutexSt) : IProp GF :=
   iprop(structFieldRef Mutex go!"myKey" m ↦ st.key ∗ structFieldRef Mutex go!"myRev" m ↦ st.rev ∗
     structFieldRef Mutex go!"hdr" m ↦ st.hdr ∗ ⌜st.key.length ≤ 2 ^ 28⌝)
 
+/-- **The prefix bound of a mutex or election** (`NewMutex`, `NewElection`, `ResumeElection`, kept in
+`isMutex`/the election's predicate): `2 ^ 27` bytes, so that `tryAcquire`'s transaction (the key
+three times, the prefix's range four times) fits a request's payload (`notes/invoke-size.md`). -/
+@[word_unfold] def concPfxMax : Nat := 2 ^ 27
+
+/-- **The value and held-key bound of an election** (`Campaign`, `Proclaim`, `ResumeElection`'s
+`leaderKey`): `2 ^ 28` bytes (`notes/invoke-size.md`). -/
+@[word_unfold] def concStrMax : Nat := 2 ^ 28
+
 /-- **The mutex** `m` (persistent): its session `s` (of `client`, with the lease `id`) and its
 prefix `pfx` (with `NewMutex`'s `/`), read-only, of at most `2 ^ 27` bytes (2026-10-30, so that
 the requests the mutex sends fit a gRPC message), and the client's contract for `pfx`. -/

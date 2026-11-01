@@ -240,6 +240,22 @@ This deletes the counted stocks (70 places), `etcdGrpcSlots_of_started`, `watchR
   - the length literals in specs (`key.length ≤ 2 ^ 27`, ...) are each library's exact precondition
     on its input, documented by the key- and value-length laws; names would add vocabulary without
     removing reasoning. The `len-literal` kind left `etc/bounds-check.py`.
+- **Shared size limits by name (2026-11-01, the user's: "use the names for the shared limits").**
+  A limit several specs share is a named constant next to the law that chose it, tagged
+  `@[word_unfold]` so that `word` sees through it; a literal stays for a bound local to one function.
+  The inventory of the `2 ^ 26`/`2 ^ 27`/`2 ^ 28` length bounds in specs (75 replaced):
+
+  | name (`= ...`) | where | what | replaced in |
+  |---|---|---|---|
+  | `opKeyMax` (`2 ^ 27`) | `client/v3/InvOp` | an operation's key and range end a client library sends | `OpShape`, leasing's keys, kubernetes, the k8s store's keys |
+  | `opValMax` (`2 ^ 28`) | `client/v3/InvOp` | an operation's value | `OpShape`, kubernetes' `OptimisticPut` |
+  | `etcdKeyMax` (`2 ^ 27`, existing) | `cache/v3/EtcdModel` | etcd's stored keys and values (the key- and value-length laws) | the k8s store's values read back |
+  | `leasingPfxMax` (`2 ^ 26`) | `leasing/InvLeasingKV` | the leasing prefix | `NewKV` |
+  | `concPfxMax` (`2 ^ 27`), `concStrMax` (`2 ^ 28`) | `concurrency/InvMutex` | a mutex's/election's prefix; an election's value and held key | concurrency's constructors, `Campaign`, `Proclaim`, `waitDeletes` |
+  | `recipesPfxMax` (`2 ^ 27`), `recipesStrMax` (`2 ^ 28`) | `recipes/InvRecipesClient` | the recipes' prefixes; their helpers' keys and values | every recipes spec |
+
+  Kept literal: the cache's prefix (`2 ^ 28`, one API pair). Out of scope until the snapshot
+  branches land: the `etcdserver` and `examples/common` specs.
 - **After the snapshot branches, with B1's server batch** (same files, one rebuild): D3's
   `cfgScopeOk` (`NewServer`'s configuration premises, restated by `spec`/`specCompact`/`specM`, and
   the `simp` blocks the examples copy to discharge them) and D4's `Workload` record (the closed

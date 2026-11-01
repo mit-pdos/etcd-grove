@@ -3,3 +3,6 @@
 # owner, or one predicate per boundary; an owner's own matches are not leaks.)
 
 # (The len-literal kind and its standard-library entry went on 2026-11-01: notes/bounds-plan.md, B5.)
+
+# The cache's prefix bound (`2 ^ 28`): one API pair (`New`, `newCache`), local (B5).
+shared-limit ^Spec/go_etcd_io/etcd/cache/v3/(New|newCache)\.lean$

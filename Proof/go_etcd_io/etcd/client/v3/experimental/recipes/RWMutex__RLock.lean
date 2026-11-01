@@ -38,7 +38,7 @@ theorem RWMutex.RLock.wp_proof
   wp_auto
   wp_apply wp_newUniqueEphemeralKey s γ client id pfx (pfx ++ go!"read") lo
     $$ [$Hsess $Hcl $Hlo] as %ek %err Hres
-  · ipureintro; exact ⟨List.prefix_append _ _, by simp; omega⟩
+  · ipureintro; exact ⟨List.prefix_append _ _, by simp; word⟩
   icases Hres with (⟨%Hnil, %kv, %key, %r, #HKVf, Hek, #Hr, #Hc, %Hkr⟩ | %Hne)
   rotate_left
   · obtain ⟨Hne, -⟩ := Hne
@@ -67,7 +67,7 @@ theorem RWMutex.RLock.wp_proof
   wp_for IH
   wp_apply wp_waitOnLastRev m s γ client id pfx (pfx ++ go!"write") ek _ r $$ [$Hm $Hmk $Hr]
     as %done %werr ⟨Hmk, Hw⟩
-  · ipureintro; exact ⟨List.prefix_append _ _, Hcp.1, by simp; omega⟩
+  · ipureintro; exact ⟨List.prefix_append _ _, Hcp.1, by simp; word⟩
   icases Hw with (⟨%Hd, %R, %s', #HR, #Hs', %HRs⟩ | %Hd)
   · obtain ⟨rfl, rfl⟩ := Hd
     wp_auto

@@ -48,6 +48,15 @@ open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd
 
 /-! ## The transactions (pure) -/
 
+/-- **The recipes' prefix bound** (the constructors' `key`/`pfx`, kept in each object's predicate):
+`2 ^ 27` bytes (`notes/invoke-size-b.md`, "recipes"). -/
+@[word_unfold] def recipesPfxMax : Nat := 2 ^ 27
+
+/-- **The recipes' key and value bound** (the helpers' keys and values, `ownRemoteKV`'s key):
+`2 ^ 28` bytes, room for a prefix within `recipesPfxMax`, `/` and a decimal suffix
+(`notes/invoke-size-b.md`, "recipes"). -/
+@[word_unfold] def recipesStrMax : Nat := 2 ^ 28
+
 /-- `putNewKV`'s transaction: `If(Version(key) = 0).Then(OpPut(key, val, WithLease(lease)))`. -/
 def newKeyTxn (key val : GoString) (lease : w64) : TxnModel :=
   { cmps := [compareM (cmpKeyM .version key) .eq (.num (W64 0))],

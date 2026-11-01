@@ -47,7 +47,7 @@ local macro "enter_wait" : tactic => `(tactic| (
     ipersist Hesl
     wp_apply wp_WaitEvents client (key ++ go!"/") (key ++ go!"/ready") r _ [W32 0] (W32 0)
       $$ [$(frameH `Hclosed) $(frameH `Hcl) $(frameH `Hesl)] as %ev %werr Hwr
-    · ipureintro; exact ⟨rfl, hpr, by word, by simp; omega⟩
+    · ipureintro; exact ⟨rfl, hpr, by word, by simp; word⟩
     icases Hwr with (⟨%Hwnil, #Hev⟩ | %Hwne)
     rotate_left
     · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
@@ -153,7 +153,7 @@ theorem DoubleBarrier.Enter.wp_proof
     exact List.prefix_append _ _
   wp_apply wp_newUniqueEphemeralKey s γ client id (key ++ go!"/") (key ++ go!"/waiters") lo
     $$ [$Hsess $Hcl $Hlo] as %ek %err Hres
-  · ipureintro; exact ⟨hpw, by simp; omega⟩
+  · ipureintro; exact ⟨hpw, by simp; word⟩
   icases Hres with (⟨%Hnil, %kv, %k, %r, #HKVf, Hek, #Hr, #Hc, %Hkr⟩ | %Hne)
   rotate_left
   · obtain ⟨Hne, -⟩ := Hne

@@ -20,7 +20,7 @@ premise"): the premise bounds `tryUpdate`'s result `o'` (`storedSizeOk`) only wh
 writes it, as Go does: `o'` from the object `o` decoded from a stored value `v` (the transformer's
 data `d`, stale or not), when that reading is stale or `o'`'s encoding differs from `d` (Go's
 no-op skip is `!origState.stale && bytes.Equal(data, origState.data)`). The value read is within
-etcd's limit (`v.length ≤ 2 ^ 27`, the server's `etcdState_vals`), which a caller whose result
+etcd's limit (`v.length ≤ etcdKeyMax`, the server's `etcdState_vals`), which a caller whose result
 grows the value boundedly uses.
 -/
 module
@@ -53,8 +53,8 @@ abbrev store.GuaranteedUpdate.spec : Prop :=
     (rv0 : GoString) (f : Obj → Nat → Except E Obj) (uf : GoFunc) (W : IProp GF)
     [Timeless W] (Φ : KVState → IProp GF) (k : GoString),
   prepareKeyM c.resourcePrefix key false = some k →
-  (c.pathPrefix ++ k).length ≤ 2 ^ 27 →
-  (∀ (v d : GoString) (stl : Bool) (o : Obj) (n : Nat) (o' : Obj), v.length ≤ 2 ^ 27 →
+  (c.pathPrefix ++ k).length ≤ opKeyMax →
+  (∀ (v d : GoString) (stl : Bool) (o : Obj) (n : Nat) (o' : Obj), v.length ≤ etcdKeyMax →
     c.S.fromS v = some (d, stl) → c.S.decode d = some o → f o n = .ok o' →
     (stl = true ∨ c.S.encode o' ≠ d) → c.S.storedSizeOk o') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗

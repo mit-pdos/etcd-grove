@@ -60,6 +60,7 @@ KINDS: list[tuple[str, re.Pattern[str], str]] = [
     ("spec-rev", re.compile(r"\brev\s*\+\s*\d+\s*<\s*2\s*\^\s*63\b"), "spec"),
     ("stock", re.compile(r"\[∗\s*list\]\s*\S+\s*∈\s*List\.replicate\s+(?:\([^()]*(?:\([^()]*\)[^()]*)*\)|\S+)"
                          r"\s*\(\),\s*(?!iprop\b)(?:\(\s*)?([A-Za-z_][\w.']*[\w'][\w.']*)"), "both"),
+    ("shared-limit", re.compile(r"\.length\s*(<|≤)\s*2\s*\^\s*2[678]\b"), "spec"),
     ("wire-unfold", re.compile(r"\b(unfold|simp|dsimp|rw)\b[^\n]*\b(wireSlack|grpcMsgMax)\b"), "proof"),
 ]
 KIND_NAMES = [k for k, _, _ in KINDS]
