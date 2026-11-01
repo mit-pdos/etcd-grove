@@ -118,7 +118,7 @@ func (db *DB) readPageSize() (int, bool, error) {
 }
 
 // init writes db.go's four initial pages: all four with the meta pages zero, synced,
-// then the two metas, synced.
+// then meta 1, synced, then meta 0, synced.
 func (db *DB) init() error {
 	buf := make([]byte, 4*pageSize)
 	initPages(buf, pageSize)
@@ -133,7 +133,16 @@ func (db *DB) init() error {
 	if err := syscall.Fdatasync(int(db.file.Fd())); err != nil {
 		return err
 	}
-	if _, err := db.file.WriteAt(buf[:2*pageSize], 0); err != nil {
+	// then meta 1 (txid 1), synced, before meta 0 (txid 0): a crash that keeps meta 0 has kept
+	// meta 1, so txid 0 is never the current meta (a torn write of both could keep meta 0 alone,
+	// and the commit after it would give txid 1 a value, which the boot check refuses)
+	if _, err := db.file.WriteAt(buf[pageSize:2*pageSize], pageSize); err != nil {
+		return err
+	}
+	if err := syscall.Fdatasync(int(db.file.Fd())); err != nil {
+		return err
+	}
+	if _, err := db.file.WriteAt(buf[:pageSize], 0); err != nil {
 		return err
 	}
 	if err := syscall.Fdatasync(int(db.file.Fd())); err != nil {

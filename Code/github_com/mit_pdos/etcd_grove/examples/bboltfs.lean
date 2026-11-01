@@ -463,7 +463,7 @@ noncomputable def DB.readPageSize.impl [GooseExts] [GoGlobalContext] : val :=
   (Pair (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2")))))))))
 
 /-- init writes db.go's four initial pages: all four with the meta pages zero, synced,
-    then the two metas, synced.
+    then meta 1, synced, then meta 0, synced.
 
     go: minibolt.go:122:15 -/
 noncomputable def DB.init.impl [GooseExts] [GoGlobalContext] : val :=
@@ -478,6 +478,8 @@ noncomputable def DB.init.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (Val #(W64 16384)))
   (Let "first" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -513,8 +515,47 @@ noncomputable def DB.init.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (Let "__p" (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf"))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (Val #(W64 8192)))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val pageSize)))))
   (Let "$a1" (Val #(W64 0))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"WriteAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.uintptr go.int))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Fd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.syscall.Fdatasync []))) (Val #())) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (Let "__p" (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val pageSize))) (Val #(W64 8192)))))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val pageSize))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"WriteAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))))) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -593,7 +634,7 @@ noncomputable def DB.init.impl [GooseExts] [GoGlobalContext] : val :=
 /-- mmapSize is db.mmapSize below 1 GiB: the smallest power of two from 32 KiB
     up that holds size.
 
-    go: minibolt.go:150:6 -/
+    go: minibolt.go:159:6 -/
 noncomputable def mmapSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "size"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -621,7 +662,7 @@ noncomputable def mmapSize.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- mmap is db.go's mmap: unmap, then map at least minsz and the file.
 
-    go: minibolt.go:159:15 -/
+    go: minibolt.go:168:15 -/
 noncomputable def DB.mmap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "minsz"
@@ -751,7 +792,7 @@ noncomputable def DB.mmap.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- munmap is bolt_unix.go's munmap with db.invalidate.
 
-    go: minibolt.go:187:15 -/
+    go: minibolt.go:196:15 -/
 noncomputable def DB.munmap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -801,7 +842,7 @@ noncomputable def DB.munmap.impl [GooseExts] [GoGlobalContext] : val :=
 /-- meta is db.go's meta, which panics when neither meta is valid. Its caller
     holds metalock.
 
-    go: minibolt.go:201:15 -/
+    go: minibolt.go:210:15 -/
 noncomputable def DB.«meta».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -833,7 +874,7 @@ noncomputable def DB.«meta».impl [GooseExts] [GoGlobalContext] : val :=
 /-- Get is a read transaction (beginTx, then the root page through the mapping):
     the current txid, and the value if the root page holds one.
 
-    go: minibolt.go:214:15 -/
+    go: minibolt.go:223:15 -/
 noncomputable def DB.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -960,7 +1001,7 @@ noncomputable def DB.Get.impl [GooseExts] [GoGlobalContext] : val :=
     holds, as Get does. Its assertion: the copy reaches every page of the
     transaction.
 
-    go: minibolt.go:246:15 -/
+    go: minibolt.go:255:15 -/
 noncomputable def DB.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -1141,7 +1182,7 @@ noncomputable def DB.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
     marks the handle failed instead, so that it never reads or builds on a
     commit that may not be durable.
 
-    go: minibolt.go:286:15 -/
+    go: minibolt.go:295:15 -/
 noncomputable def DB.Commit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "v"
@@ -1221,7 +1262,7 @@ noncomputable def DB.Commit.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- commit writes the transaction after m (a copy of the current meta).
 
-    go: minibolt.go:306:15 -/
+    go: minibolt.go:315:15 -/
 noncomputable def DB.commit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "m"
@@ -1468,7 +1509,7 @@ noncomputable def DB.commit.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Close is db.go's Close: all three locks, unmap, funlock, close; it returns the first error.
 
-    go: minibolt.go:367:15 -/
+    go: minibolt.go:376:15 -/
 noncomputable def DB.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -1517,7 +1558,7 @@ noncomputable def DB.Close.impl [GooseExts] [GoGlobalContext] : val :=
 /-- close is db.go's close: it reports a failed munmap (a mapping left behind) or close, as
     bbolt does.
 
-    go: minibolt.go:379:15 -/
+    go: minibolt.go:388:15 -/
 noncomputable def DB.close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -1562,7 +1603,7 @@ noncomputable def DB.close.impl [GooseExts] [GoGlobalContext] : val :=
     under the model's crash relation, however often the node crashes, given the
     premise of README.md. On an error it stops.
 
-    go: minibolt.go:394:6 -/
+    go: minibolt.go:403:6 -/
 noncomputable def BootMinibolt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dir"
   (Seq (App (Val exceptionDo)
