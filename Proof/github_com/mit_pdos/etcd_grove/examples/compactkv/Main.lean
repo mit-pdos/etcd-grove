@@ -1,7 +1,10 @@
 /-
 **`compactkv`** (the client's `kv.Compact`, 2026-11-01): putgetc's file, for putgetc under
 compaction pressure (`common.StartCompactingServer`, revision mode, retention 1; five rounds of a
-put of the round's key, a client compaction at the revision before it, a get of the key);
+put of the round's key, a client compaction at the revision before it, a get of the key, and
+from the second round a get of the previous round's key at that round's put's revision,
+`client.client_Get_kv` with `getAtAu_round`: if `nil`, the previous put's value, by the rounds'
+invariant's history; an error skips the check);
 putgetc's and putget's history below is the originals'.
 
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/compactkv/Main.lean` (item 9, stage 2,
@@ -27,6 +30,7 @@ public import Spec.go_uber_org.zap.NewNop
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.StartCompactingServer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Serve
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.NewClient
+public import Spec.go_etcd_io.etcd.client.v3.WithRev
 public import Perennial.Spec.context.Background
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Alloc
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Served
@@ -62,7 +66,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.compactkv.Assumptions]
 
+/-- **The previous round's key and put's revision** (`Main`'s `prevKey`, `prevRev`): none (`0`), or
+a round's key, at most 2 bytes, whose put first fired at a revision at most `pr`, past `0`. -/
+def prevOk (γl : GName) (pk : GoString) (pr : w64) : IProp GF :=
+  iprop(⌜pr = W64 0⌝ ∨ ∃ (j r0 : Nat), ⌜keysL[j]? = some pk ∧ (r0 : Int) ≤ sint.Z pr ∧
+    1 ≤ sint.Z pr ∧ pk.length ≤ 2⌝ ∗ monoListIdxOwn γl j r0)
+
+instance prevOk_persistent (γl : GName) (pk : GoString) (pr : w64) :
+    Persistent (prevOk (GF := GF) γl pk pr) := by
+  unfold prevOk; infer_instance
+
 set_option maxHeartbeats 800000 in
+set_option maxRecDepth 8192 in
 theorem Main.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (wp_StartCompactingServer : common.StartCompactingServer.spec (GF := GF) (hG := hG))
@@ -70,7 +85,8 @@ theorem Main.wp_proof
     (wp_NewClient : common.NewClient.spec (GF := GF) (hG := hG))
     (wp_Background : context.Background.spec (GF := GF) (hG := hG))
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
-    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    (wp_WithRev : WithRev.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem⟩
@@ -186,7 +202,7 @@ theorem Main.wp_proof
       go!"v" ⊤ (by
         have h := (kvRaftOf_extends ρ.rd.kv.c0 ρ.rd.kv.ch0 ρ.rd.kv.log0
           (bootEntries (LogEntry.toEntries boot 0))).length_le
-        unfold kvModel; rw [hlog] at h ⊢; simpa using h)) $$ Hetcd with ⟨%γf, #Hinv⟩
+        unfold kvModel; rw [hlog] at h ⊢; simpa using h)) $$ Hetcd with ⟨%γf, %γl, #Hinv⟩
   imod (monoNatLbOwn_0 (GF := GF) γf) with #Hlb0
   imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []
@@ -207,14 +223,20 @@ theorem Main.wp_proof
   (try wp_auto)
   ipersist Hksl
   -- the rounds: `for _, k := range keys { ... }`
-  ihave IH : (∃ (n : w64) (kv : GoString),
-      "i" ∷ i_ptr ↦ n ∗ "k" ∷ k_ptr ↦ kv ∗ "#Hlb" ∷ monoNatLbOwn γf (sint.nat n) ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ 5⌝ : IProp GF) $$ [i k]
-  · iexists W64 0, _
+  -- the previous round's key and put's revision: none (`0`), or a round's key whose first firing
+  -- is at most that revision
+  ihave IH : (∃ (n : w64) (kv pk : GoString) (pr : w64),
+      "i" ∷ i_ptr ↦ n ∗ "k" ∷ k_ptr ↦ kv ∗ "pk" ∷ prevKey_ptr ↦ pk ∗ "pr" ∷ prevRev_ptr ↦ pr ∗
+      "#Hlb" ∷ monoNatLbOwn γf (sint.nat n) ∗
+      "#Hprev" ∷ prevOk γl pk pr ∗
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ 5⌝ : IProp GF) $$ [i k prevKey prevRev]
+  · iexists W64 0, _, _, _
     simp only [named]
     iframe
     isplitl
     · iExactEq Hlb0; rfl
+    isplitl
+    · iunfold prevOk; ileft; ipureintro; rfl
     ipureintro; constructor <;> decide
   wp_for IH
   have hsz5 : (go.arrayLiteralSize
@@ -247,10 +269,11 @@ theorem Main.wp_proof
       as %pctx %pcd %pcancel ⟨#Hpcancel, #Hpctx, #Hpce, -⟩
     (try wp_auto)
     -- `presp, err := cli.Put(pctx, k, value)`: round `i`'s put
-    ihave #Hau := putAu_round ρ.rd γf keysL go!"v" (sint.nat n) kk hk $$ [Hinv Hlb]
+    ihave #Hau := putAu_round ρ.rd γf γl keysL go!"v" (sint.nat n) kk hk $$ [Hinv Hlb]
     · iframe #
     wp_apply (client.client_Put_kv cl api ρ.rd.kv true pctx pcd kk go!"v" slice.nil
-        (fun σ => iprop(□ (monoNatLbOwn γf (sint.nat n + 1) ∗ ⌜1 ≤ σ.rev⌝)))
+        (fun σ => iprop(□ (monoNatLbOwn γf (sint.nat n + 1) ∗
+          (∃ r0, monoListIdxOwn γl (sint.nat n) r0 ∗ ⌜r0 ≤ σ.rev + 1⌝) ∗ ⌜1 ≤ σ.rev⌝)))
         (opSizeOk_opPutModel (K := 2) (E := 0) (V := 1) (optsKeep_nil _ _ _) hkl (by decide)
           (by decide))) $$ [] as %presp %perr Hput
     · iframe #
@@ -271,12 +294,12 @@ theorem Main.wp_proof
       (try wp_auto)
       iapply HΦ; itrivial
     subst Hperr
-    icases HQ with ⟨#Hlb', %Hσ1⟩
+    icases HQ with ⟨#Hlb', ⟨%r0, #Hidx, %Hr0⟩, %Hσ1⟩
     (try wp_auto)
     -- `presp.Header.Revision - 1`: the revision before the put's, past `0`
     ihave #Hm' := Hm
     iunfold putRespMsg at Hm'
-    icases Hm' with ⟨%Hnn, %h, %pk, #Hh, #Hhf, -⟩
+    icases Hm' with ⟨%Hnn, %h, %ppk, #Hh, #Hhf, -⟩
     iunfold hdrFull at Hhf
     icases Hhf with ⟨%Hhn, -, -, #HrevF, -, -⟩
     (try wp_auto)
@@ -302,7 +325,7 @@ theorem Main.wp_proof
       as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -⟩
     (try wp_auto)
     imod monoNatLbOwn_0 (GF := GF) ρ.rd.committed with #Hc0
-    wp_apply (client_Get_round cl go!"127.0.0.1:23794" _ E ρ.rd γf keysL go!"v" (sint.nat n) kk hk
+    wp_apply (client_Get_round cl go!"127.0.0.1:23794" _ E ρ.rd γf γl keysL go!"v" (sint.nat n) kk hk
         (W64 0) cid mid gctx gcd slice.nil []
         (opSizeOk_opGetModel (K := 2) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide)))
         as %gresp %gerr Hget
@@ -365,14 +388,158 @@ theorem Main.wp_proof
     · iframe #
     rw [Hval0]
     wp_auto
+    -- the previous round's key and revision, for the next round: this round's
+    ihave #Hprev' : prevOk γl kk m.hdr.revision $$ []
+    · iunfold prevOk
+      iright
+      iexists sint.nat n, r0
+      iframe Hidx
+      ipureintro
+      refine ⟨hk, ?_, ?_, hkl⟩ <;> (rw [Hs.1]; have := Hs.2.1; word)
+    -- `if prevRev != 0`: the get of the previous round's key at its put's revision
+    iunfold prevOk at Hprev
+    icases Hprev with (%Hpr0 | ⟨%j, %rj, %Hj, #Hidxj⟩)
+    · subst Hpr0
+      wp_auto
+      -- the next round
+      wp_for_post
+      iframe
+      iexists n + W64 1, kk, kk, m.hdr.revision
+      simp only [named]
+      iframe
+      isplitl
+      · rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word]; iexact Hlb'
+      isplitl
+      · iexact Hprev'
+      ipureintro; constructor <;> word
+    obtain ⟨Hjk, Hrj, Hpr1, Hpkl⟩ := Hj
+    have Hpr : pr ≠ W64 0 := by intro h; rw [h] at Hpr1; exact absurd Hpr1 (by decide)
+    simp only [Hpr, decide_false]
+    wp_auto
+    -- `octx, ocancel := context.WithTimeout(...)`
+    wp_apply wp_Background
+    (try wp_auto)
+    wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
+      as %octx %ocd %ocancel ⟨#Hocancel, #Hoctx, #Hoce, -⟩
+    (try wp_auto)
+    -- `oresp, err := cli.Get(octx, prevKey, clientv3.WithRev(prevRev))`
+    wp_apply wp_WithRev pr as %fr #Hfr
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %osl ⟨Hosl, -⟩
+    ipersist Hosl
+    (try wp_auto)
+    generalize hosl : slice.mk osl _ _ = optsSl
+    ihave #Hopts : optsAt optsSl ([withRevM pr] : List (OpFull → OpFull)) $$ []
+    · iunfold optsAt
+      iexists _
+      iframe Hosl
+      isplitr
+      · ipureintro; rfl
+      imodintro
+      iintro %i %f %g %Hf %Hg
+      rcases i with _ | i
+      · cases Hf; cases Hg; iexact Hfr
+      · simp at Hf
+    ihave #Hau' := getAtAu_round ρ.rd γf γl keysL go!"v" j rj pk Hjk $$ [Hinv Hidxj]
+    · iframe #
+    wp_apply (client.client_Get_kv cl api ρ.rd.kv true octx ocd pk pr optsSl
+        (fun σ => iprop(⌜∀ r, rj ≤ r → r ≤ σ.rev →
+          (mvcc.findKey pk (σ.at r).kvs).map EtcdKv.value = some go!"v"⌝))
+        (opSizeOk_opGetModel (K := 2) (E := 0) (V := 0)
+          (optsKeep_cons (withRevM_keep pr) (optsKeep_nil _ _ _)) Hpkl (by decide))) $$ []
+      as %oresp %oerr Hog
+    · iframe #
+    (try wp_auto)
+    wp_apply Hocancel
+    icases Hog with (⟨%Hoerr, %mo, %σo, #Hmo, %HQo, %Hso⟩ | ⟨%Hoerr, -⟩)
+    rotate_left
+    · -- an error (`ErrCompacted` among them): no check
+      cases oerr with
+      | nil => exact absurd rfl Hoerr.1
+      | ok ei => ?_
+      wp_auto
+      -- the next round
+      wp_for_post
+      iframe
+      iexists n + W64 1, kk, kk, m.hdr.revision
+      simp only [named]
+      iframe
+      isplitl
+      · rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word]; iexact Hlb'
+      isplitl
+      · iexact Hprev'
+      ipureintro; constructor <;> word
+    subst Hoerr
+    (try wp_auto)
+    -- the reply is the previous key's at revision `prevRev`, at `v` (the invariant's history)
+    have Hvo : mo.kvs.head?.map EtcdKv.value = some go!"v" := by
+      obtain ⟨Hle, Hkvs⟩ := Hso
+      have hrr : σo.readRev pr = sint.nat pr := by
+        unfold KVState.readRev; rw [if_neg (by omega)]
+      have hpn : (sint.nat pr : Int) = sint.Z pr := by
+        show ((sint.Z pr).toNat : Int) = sint.Z pr; omega
+      have hv := HQo (sint.nat pr) (by omega) (by omega)
+      obtain ⟨kv, hkv, hval⟩ : ∃ kv, mvcc.findKey pk (σo.at (sint.nat pr)).kvs = some kv ∧
+          kv.value = go!"v" := by
+        cases h : mvcc.findKey pk (σo.at (sint.nat pr)).kvs with
+        | none => simp [h] at hv
+        | some x => simp [h] at hv; exact ⟨x, rfl, hv⟩
+      rw [Hkvs, hrr, client.filter_key_of_findKey pk _ (KVStore.kvs_sorted _) kv hkv]
+      simp [hval]
+    iunfold rangeRespMsg at Hmo
+    icases Hmo with ⟨%Hnno, %ho, %slo, %ps, #Hho, #Hhfo, #Hkvfo, #Hslo, #Hkvso, #Hmoreo, #Hcounto⟩
+    -- the reply's first key-value holds `v`
+    obtain ⟨kv1, Hkv1, Hval1⟩ : ∃ kv1, mo.kvs[0]? = some kv1 ∧ kv1.value = go!"v" := by
+      cases h : mo.kvs with
+      | nil => simp [h] at Hvo
+      | cons x xs => simp [h] at Hvo; exact ⟨x, rfl, Hvo⟩
+    iunfold txn.kvsIs at Hkvso
+    icases Hkvso with ⟨%Hleno, #Hallo⟩
+    obtain ⟨p1, Hp1⟩ : ∃ p1, ps[0]? = some p1 := by
+      have : 0 < ps.length := by
+        rw [Hleno]
+        cases h : mo.kvs with
+        | nil => simp [h] at Hkv1
+        | cons x xs => simp
+      exact ⟨ps[0], List.getElem?_eq_getElem this⟩
+    ihave #Hkv1' := Hallo $$ %0 %p1 %kv1 %Hp1 %Hkv1
+    iunfold txn.kvIs at Hkv1'
+    icases Hkv1' with ⟨%kSlo, %vSlo, -, -, -, -, -, #HvFo, #HvSo, -⟩
+    ihave %Hsllo := ownSlice_len _ _ _ $$ Hslo
+    have Hneo : decide (slo.len = W64 0) = false := by
+      rw [decide_eq_false_iff_not]
+      intro h
+      have hl := Hsllo.1
+      rw [h] at hl
+      have : 0 < ps.length := List.length_pos_of_mem (List.mem_of_getElem? Hp1)
+      rw [hl] at this
+      exact absurd this (by decide)
+    wp_auto
+    simp only [Hneo]
+    wp_auto
+    have Hbnd1 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z slo.len := by
+      have := Hsllo.1
+      have : 0 < ps.length := List.length_pos_of_mem (List.mem_of_getElem? Hp1)
+      constructor <;> word
+    simp only [Hbnd1, _root_.and_self, ↓reduceIte]
+    wp_apply wp_load_slice_index _ (sint.Z (W64 0)) _ DFrac.discard p1 Hbnd1.1 $$ [Hslo] as -
+    · iframe Hslo; ipureintro; exact Hp1
+    wp_apply wp_bytes_to_string vSlo kv1.value DFrac.discard $$ [HvSo] as -
+    · iframe #
+    rw [Hval1]
+    wp_auto
     -- the next round
     wp_for_post
     iframe
-    iexists n + W64 1, kk
+    iexists n + W64 1, kk, kk, m.hdr.revision
     simp only [named]
     iframe
     isplitl
     · rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word]; iexact Hlb'
+    isplitl
+    · iexact Hprev'
     ipureintro; constructor <;> word
   · -- the rounds are done
     (try wp_auto)

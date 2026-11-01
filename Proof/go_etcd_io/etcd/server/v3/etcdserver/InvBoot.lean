@@ -194,8 +194,12 @@ instance memberRO_persistent (dir : w64 → List GoString) (m : Loc) :
 /-- **The lessor's checkpointer's effects** (opaque, the named premise of D14g, 2026-10-17): the
 lessor's loop, once its lessor is promoted, calls the server's checkpointer (`NewServer`'s closure
 over `raftRequest`, installed when the `LeaseCheckpoint` feature is on), which proposes outside the
-request path's model. A premise of `lease.NewLessor`'s axiom and so of `NewServer.spec`; nothing in
-the model proves or refutes it. (Until D21 M2, 2026-10-19, it had a sibling, `transportEffectsOk`,
+request path's model; and so does `lessor.Renew` (`lessor.go:436-439`: a renewal of a lease whose
+`remainingTTL` is set proposes its checkpoint through it; the lease-renew plan, 2026-11-01,
+approved by the user: `lease.lessor.Renew.spec` cites this premise). A premise of
+`lease.NewLessor`'s axiom and so of `NewServer.spec`; nothing in the model proves or refutes it.
+Neither call is exercised while the server's grant guard is `False` (`srvGrantGuard`: no lessor has
+a lease); the lease-grant work must revisit both. (Until D21 M2, 2026-10-19, it had a sibling, `transportEffectsOk`,
 the transport's goroutines' effects, now the network contract: `rafthttp/Net.lean`.) -/
 opaque ckptEffectsOk : Prop
 

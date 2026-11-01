@@ -103,6 +103,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version),
    (pkg_id.go_etcd_io.etcd.server.v3.features, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features),
    (pkg_id.go_etcd_io.etcd.server.v3.lease, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease),
+   (pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp),
    (pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb),
    (pkg_id.go_etcd_io.etcd.server.v3.storage, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage),
    (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend),
@@ -674,55 +675,59 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h52, True.intro⟩
-  have h125 : GetIsPkgInitProp pkg_id.encoding.base64 (getIsPkgInit (GF := GF)) := by
+  have h125 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h126 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver (getIsPkgInit (GF := GF)) := by
+  have h126 : GetIsPkgInitProp pkg_id.encoding.base64 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h55, h28, h56, h57, h0, h13, h12, h45, h5, h58, h18, h41, h47, h59, h54, h67, h66, h88, h71, h97, h98, h99, h92, h100, h83, h65, h64, h4, h112, h72, h75, h37, h113, h73, h1, h52, h114, h60, h107, h103, h115, h95, h116, h84, h117, h119, h122, h123, h124, h106, h125, h108, h111, h94, h121, True.intro⟩
-  have h127 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.reflection (getIsPkgInit (GF := GF)) := by
+    exact True.intro
+  have h127 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h6, h55, h28, h56, h57, h0, h13, h12, h45, h5, h58, h18, h41, h47, h59, h54, h67, h66, h88, h71, h97, h98, h99, h92, h100, h83, h65, h64, h4, h112, h72, h75, h37, h113, h73, h1, h52, h114, h60, h107, h103, h115, h95, h116, h84, h117, h119, h122, h123, h124, h106, h125, h126, h108, h111, h94, h121, True.intro⟩
+  have h128 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.reflection (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h27, True.intro⟩
-  have h128 : GetIsPkgInitProp pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus (getIsPkgInit (GF := GF)) := by
+  have h129 : GetIsPkgInitProp pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h27, h127, True.intro⟩
-  have h129 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.health (getIsPkgInit (GF := GF)) := by
+    exact ⟨h27, h128, True.intro⟩
+  have h130 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.health (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h130 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.health.grpc_health_v1 (getIsPkgInit (GF := GF)) := by
+  have h131 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.health.grpc_health_v1 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h6, h27, True.intro⟩
-  have h131 : GetIsPkgInitProp pkg_id.unicode.utf8 (getIsPkgInit (GF := GF)) := by
+  have h132 : GetIsPkgInitProp pkg_id.unicode.utf8 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h132 : GetIsPkgInitProp pkg_id.math.rand (getIsPkgInit (GF := GF)) := by
+  have h133 : GetIsPkgInitProp pkg_id.math.rand (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h4, True.intro⟩
-  have h133 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc (getIsPkgInit (GF := GF)) := by
+  have h134 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h28, h95, h126, h42, h73, h4, h128, h72, h48, h18, h27, h129, h130, h38, h122, h124, h5, h131, h26, h41, h36, h47, h67, h83, h29, h35, h93, h121, h0, h12, h54, h61, h99, h92, h112, h132, h108, h111, h25, h89, h44, h103, True.intro⟩
-  have h134 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.common (getIsPkgInit (GF := GF)) := by
+    exact ⟨h6, h28, h95, h127, h42, h73, h4, h129, h72, h48, h18, h27, h130, h131, h38, h122, h124, h5, h132, h26, h41, h36, h47, h67, h83, h29, h35, h93, h121, h0, h12, h54, h61, h99, h92, h112, h133, h108, h111, h25, h89, h44, h103, True.intro⟩
+  have h135 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.common (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h30, h45, h5, h18, h27, h33, h47, h44, h54, h126, h133, h124, h6, h4, h16, h25, True.intro⟩
-  have h135 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest (getIsPkgInit (GF := GF)) := by
+    exact ⟨h30, h45, h5, h18, h27, h33, h47, h44, h54, h127, h134, h124, h6, h4, h16, h25, True.intro⟩
+  have h136 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h4, h1, h5, h15, True.intro⟩
-  have h136 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn (getIsPkgInit (GF := GF)) := by
+  have h137 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h5, h15, h16, h18, h28, h25, h44, h134, h135, True.intro⟩
-  exact h136
+    exact ⟨h6, h5, h15, h16, h18, h28, h25, h44, h135, h136, True.intro⟩
+  exact h137
 
 end table
 

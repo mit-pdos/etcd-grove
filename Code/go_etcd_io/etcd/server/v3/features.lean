@@ -39,7 +39,8 @@ axiom CompactHashCheck [GooseExts] [GoGlobalContext] : val
 
 axiom SetMemberLocalAddr [GooseExts] [GoGlobalContext] : val
 
-axiom FastLeaseKeepAlive [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def FastLeaseKeepAlive [GooseExts] [GoGlobalContext] : val :=
+  #(go!"FastLeaseKeepAlive")
 
 @[reducible] noncomputable def PriorityRequest [GooseExts] [GoGlobalContext] : val :=
   #(go!"PriorityRequest")

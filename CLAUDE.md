@@ -177,6 +177,17 @@ The `spec` skill (`.claude/skills/spec/`) is where the repository keeps what mak
 principle; and when the user approves a spec, an example (its first version, each critique with
 what it changed, the approved spec). A fix to the spec itself is not enough.
 
+## Bounds
+
+Thread counts, `RWMutex` reader slots, lifetime counters and sizes are reasoned about where they
+are owned (`notes/bounds-plan.md`): the adequacy theorem fixes the constants, the owner of a lock,
+wait group or counter turns them into a protocol inside its invariant (a thread pool of reader
+slots, a wait group backed by thread tokens, receipts), and a spec in between takes only its
+`threadTok`, the owner's handle and a named size predicate. `etc/bounds-check.py` counts what does
+not yet follow this, per kind and package (`--kind KIND` lists the places); `--check` (in
+`etc/gates.sh` and CI) refuses a count above `etc/bounds-baseline.txt`, and `--check --update`
+records a decrease. An owner's own matches are listed in `etc/bounds-allow.txt`.
+
 ## Trust base
 
 `etc/tcb-report.py` reports what the proof rests on (needs an up-to-date `lake

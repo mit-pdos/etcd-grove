@@ -31,9 +31,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 principal an admin at one or allowed to write (`IsPutPermitted(k)`) every key of the lease `id` at a
 lessor index no older than `m`; on an error, an error the gRPC layer can take. **The margin**: the
 revision re-check (`ErrAuthOldRevision` unless `Revision()` is the same after the keys' checks as
-before) is not stated: it makes Go check every key at one auth revision, but the verdicts
-(`auth.permVerdictFrom`) say only that each check's state is no older than `n`, not its revision, so
-a statement of it would need verdicts at a revision. -/
+before) is not stated, and does not make Go check every key at one auth state. Each verdict
+(`auth.permVerdictFrom`) is of a state no older than `n`, possibly older than both reads' states:
+`commitRevision` publishes the new revision before `refreshRangePermCache` replaces the permission
+cache (`auth/store.go:712-713`, `849-850`; `Recover` likewise, `407-408`), so a check can read the
+new revision twice around a key verdict of the old cache. Nor do two reads of one revision make one
+state: `AuthEnable` keeps the stored revision (`store.go:299`) and `Recover` installs the new
+backend's. What closes that window in Go is `isOpPermitted`'s own check of the token's revision
+(`ErrAuthOldRevision` when it is below the store's, `store.go:873`), with tokens minted on the
+apply thread between auth mutations, which the model does not record. A statement would need each
+verdict bounded by the end read's state, and would still be weak (`notes/lease-revcheck-plan.md`:
+a post with only the two reads' states is implied by the first read alone). -/
 abbrev EtcdServer.checkLeaseRenew.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),

@@ -50,11 +50,17 @@ theorem leasingKV.get.wp_proof
     (hML : leasingKV.monitorLease.spec (GF := GF) (hG := hG)) :
     leasingKV.get.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs opv o lo q
-  wp_start as ⟨#Hlkv, Hrd, Hslot, #Hctx, #Hop, #Hlo, %Ho, Hopen, Htok⟩
+  wp_start as ⟨#Hlkv, #Hctx, #Hop, #Hlo, %Ho, Hopen, Htok⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hclf, #Hkvf, #Hpfxf, #Hctxf,
-    #Hcancelf, #Hoslf, #HKV, #HDo, #HTxn, #HLC, #Hlctx, #Hlcc, #Hcache, #Hwg, #Hwginv, %Hbound⟩
+    #Hcancelf, #Hoslf, #HKV, #HDo, #HTxn, #HLC, #Hlctx, #Hlcc, #Hcache, #Hwg, #Hwginv, #Hpool, %Hbound⟩
+  -- a reader slot borrowed with the thread's token
+  iapply wp_fupd
+  iapply fupd_wp
+  imod lkv_borrow lkv γ pfx $$ [Hlkv Htok] with ⟨Hrd, Hloan⟩
+  · iframe #; iframe
+  imodintro
   wp_auto
   ipersist lkv
   ipersist op
@@ -72,6 +78,9 @@ theorem leasingKV.get.wp_proof
     try wp_auto
     wp_apply hRG $$ [$Hcv $r] as r
     try wp_auto
+    imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+    · iframe #; iframe
+    imodintro
     iapply HΦ
     iframe
     unfold getOutcome
@@ -94,6 +103,9 @@ theorem leasingKV.get.wp_proof
     try wp_auto
     wp_apply hRG $$ [$Hcv $r] as r
     try wp_auto
+    imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+    · iframe #; iframe
+    imodintro
     iapply HΦ
     iframe
     unfold getOutcome
@@ -121,6 +133,9 @@ theorem leasingKV.get.wp_proof
         try wp_auto
         wp_apply hRG $$ [$Hcv $resp] as resp
         try wp_auto
+        imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+        · iframe #; iframe
+        imodintro
         iapply HΦ
         iframe
         unfold getOutcome
@@ -143,6 +158,9 @@ theorem leasingKV.get.wp_proof
             | ok e => exact ⟨e, rfl⟩
           subst Hresp
           wp_auto
+          imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+          · iframe #; iframe
+          imodintro
           iapply HΦ
           iframe
           unfold getOutcome
@@ -171,6 +189,9 @@ theorem leasingKV.get.wp_proof
         cases ok
         · -- not acquired: the transaction's get
           wp_auto
+          imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+          · iframe #; iframe
+          imodintro
           iapply HΦ
           iframe
           unfold getOutcome
@@ -221,24 +242,31 @@ theorem leasingKV.get.wp_proof
         ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
         · iPkgInit
         try wp_auto
-        wp_apply wp_leasingWg_Add lkv γ q Hbound $$ [$Hsync $Hwg $Hwginv $Hopen $Htok] as ⟨Hrun, Hopen⟩
+        wp_apply wp_leasingWg_Add lkv γ q _ Hbound $$ [$Hsync $Hwg $Hwginv $Hpool $Hopen $Hloan]
+          as ⟨Hrun, Hopen⟩
         ipersist resp
         ipersist key
         try wp_auto
         ihave #Hhdr' := Hhdr
         iunfold hdrFull at Hhdr'
         icases Hhdr' with ⟨%Hhnn, -, -, #HRev, -, -⟩
-        wp_apply wp_fork_tok_self $$ [Hrun Hslot] as Htok
-        · try wp_auto
+        -- the lease monitor keeps the slot; the wait group holds its loan receipt
+        wp_apply wp_fork_tok_self $$ [Hrun Hrd] as Htok
+        · iapply wp_fupd
+          try wp_auto
           wp_apply wp_with_defer as %defer defer
           try wp_auto
-          wp_apply hML lkv γ pfx ctx cs o.key hm.revision $$ [$Hpkg $Hlkv $Hslot $Hsr $Hctx]
+          wp_apply hML lkv γ pfx ctx cs o.key hm.revision $$ [$Hpkg $Hlkv $Hrd $Hsr $Hctx] as Hrd
           · ipureintro; rw [Hrev]; refine ⟨?_, ?_, Ho.2.1⟩ <;> omega
           try wp_auto
-          wp_apply wp_leasingWg_Done lkv γ $$ [$Hsync $Hwg $Hwginv $Hrun] as Htok
-          try wp_auto
-          iexact Htok
+          wp_apply wp_leasingWg_Done lkv γ $$ [$Hsync $Hwg $Hwginv $Hrun] as Hloan
+          imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+          · iframe #; iframe
+          imodintro
+          iframe
+          ipureintro; simp
         try wp_auto
+        imodintro
         iapply HΦ
         iframe
         unfold getOutcome
@@ -259,6 +287,9 @@ theorem leasingKV.get.wp_proof
       try wp_auto
       wp_apply hRG $$ [$Hcv $r] as r
       try wp_auto
+      imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+      · iframe #; iframe
+      imodintro
       iapply HΦ
       iframe
       unfold getOutcome
@@ -269,6 +300,9 @@ theorem leasingKV.get.wp_proof
     icases Hfresh with ⟨%Hnn, Hfresh⟩
     rw [decide_eq_false Hnn]
     wp_auto
+    imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+    · iframe #; iframe
+    imodintro
     iapply HΦ
     iframe
     unfold getOutcome

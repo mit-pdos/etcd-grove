@@ -290,6 +290,9 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/errors",
             "go.etcd.io/etcd/server/v3/etcdserver/read",
             "go.etcd.io/etcd/server/v3/lease",
+            # names only (the lease-renew plan, 2026-11-01): `LeaseRenew`'s forwarding to the
+            # leader (`RenewHTTP`, `LeasePrefix`), a contract
+            "go.etcd.io/etcd/server/v3/lease/leasehttp",
             # types only: the lease's protobuf message (the lessor's persistTo, Revoke)
             "go.etcd.io/etcd/server/v3/lease/leasepb",
             "go.etcd.io/etcd/server/v3/auth",

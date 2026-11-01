@@ -157,7 +157,8 @@ theorem mvcc.NewStore_backend
       iexact Hreg
   imod Hbk with #Hbk
   imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok0⟩
-  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f rd0 false γi γok hcfg hrb)
+  haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
+  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f rd0 false γi γok hcfg)
     $$ %Φ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hifresh Hok0]
   · iframe Hpkg Hle Hro Hifresh Hok0 Hsrm
     isplitr

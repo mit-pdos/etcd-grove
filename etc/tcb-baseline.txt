@@ -5,6 +5,7 @@ axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
+axiom EtcdServer.ensureLeadership.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorCompactHash.wp_proof
@@ -13,6 +14,8 @@ axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.purgeFile.wp_proof
+axiom EtcdServer.waitAppliedIndex.wp_proof
+axiom EtcdServer.waitLeader.wp_proof
 axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
@@ -163,6 +166,8 @@ axiom Perennial.go_etcd_io.etcd.server.v3.lease.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leaseGranted_init
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leaseRevoked_init
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leaseTotalTTLs_init
+axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasehttp.LeasePrefix_init
+axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasehttp.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.opaqueInitsOk
@@ -551,7 +556,9 @@ axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
 axiom lease.lessor.Recover.wp_proof
+axiom lease.lessor.Renew.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
+axiom leasehttp.RenewHTTP.wp_proof
 axiom math.Ceil.wp_proof
 axiom math.Pow.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof

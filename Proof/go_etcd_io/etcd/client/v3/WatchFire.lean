@@ -67,7 +67,8 @@ theorem sealed_logOk (γ : mvcc.IdxNames) (log : mvcc.Log) (hrb : receiptBound G
     mvcc.idxSealed (GF := GF) γ log ⊢
       ⌜mvcc.LogWf' log ∧ log.length < 2 ^ 63 ∧ txn.LogSmall log⌝ := by
   unfold mvcc.idxSealed
-  iintro ⟨-, %Hp, %Hm⟩
+  iintro ⟨-, %Hp, Hr⟩
+  ihave %Hm := preceipt_lt _ $$ Hr
   ipureintro
   refine ⟨Hp.1, Hp.2.1, ?_⟩
   unfold txn.LogSmall txn.logChanges; unfold mvcc.logCh at Hm; omega

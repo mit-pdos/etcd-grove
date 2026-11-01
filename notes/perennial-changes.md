@@ -825,6 +825,20 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 
 ## Landed
 
+### The thread and receipt bounds as instances (2026-11-01, bounds plan B1; landed `6e3ca6ca3`)
+
+- **Limitation.** A proof needing `threadBound GF` or `receiptBound GF` small took the bound as a
+  premise, restated by every spec up to the adequacy theorem (46 Spec files for the thread bound,
+  the `threadBound`/`receiptBound` chain in 20; `notes/bounds-plan.md`).
+- **Change.** `Perennial/ProgramLogic/Bounds.lean`: the `Prop`-valued classes `ThreadBoundLe GF k`
+  and `ReceiptBoundLe GF k`, with `le`/`le_of`/`lt_of`/`weaken` and `of_eq` for the adequacy
+  theorem (an example in `ThreadTokensTest.lean`; the proof reference's thread-token section).
+  Nothing trusted. Landed as Perennial `6e3ca6ca3`; the pin moved to it on 2026-11-01.
+- **Follow-up, `pow_succ`** (branch `bound-classes-pow`): an instance at `2 ^ e` gives one at
+  `2 ^ (e + 1)` by instance search, so each spec states its own power of two.
+- **Use here.** B1: each spec's section takes the instance at the bound its proof needs, the specs
+  drop the premises, and each closed result builds its instances from its adequacy choice.
+
 ### `fmt.Sprintf`: `%x` of an integer, and named integer types (2026-10-31)
 
 - **Missing (at the pin `6da88b280`).** `fmt.wp_Sprintf` admitted arguments of predeclared basic
@@ -1401,3 +1415,17 @@ strict weak order. Not `wp_Sort`'s induction without the order: with any `Less`,
 (`zsortinterface.go:218`, `j >= 1`), so it moves elements below the segment and the per-segment
 "outside unchanged" invariant fails; the proof needs a whole-slice invariant (every index in
 `[0, n)`, the list a permutation). The local axiom goes when it lands.
+
+## A thread pool's loans are fewer than the live threads (2026-11-01, bounds B2's leasing pilot)
+
+`threadPool` (`Perennial/Proof/ThreadPool.lean`) lends a copy of its resource for a thread token
+and holds the token, but says nothing a client can use about the loans outstanding. A goroutine
+started on a wait group whose counter is bounded by thread tokens (`Add(1)` deposits the caller's
+token) has no token of its own, so it cannot borrow; if instead the wait group's running slots hold
+the pool's loan receipts (`ownThreadLoan`), the counter's bound needs "`k` loans are fewer than
+`threadBound GF`". Worked around locally (`Proof/go_etcd_io/etcd/client/v3/leasing/PoolLoans.lean`):
+`threadPool.loans_lt` (`isThreadPool N γ R ∗ ownToks γ k ⊢ |={E}=> ⌜k < threadBound GF⌝ ∗ ownToks γ k`,
+`↑N ⊆ E`: the invariant's `ownTokAuth γ b` bounds `k ≤ b`, its `threadToks b` gives
+`b < threadBound GF`) and `threadPool.init_named` (`init` under a name allocated beforehand,
+`ownTokAuth γ 0`, so that the name can be among the ghost names the pooled resource is defined
+over). Proposed change: both in `ThreadPool.lean` as they are.

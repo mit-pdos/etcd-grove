@@ -4,6 +4,7 @@ counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKVLemmas
 public import Spec.go_etcd_io.etcd.client.v3.leasing.leasingKV__Delete
 public import Spec.go_etcd_io.etcd.client.v3.leasing.leasingKV__delete
 public import Spec.go_etcd_io.etcd.client.v3.OpDelete
@@ -31,16 +32,25 @@ theorem leasingKV.Delete.wp_proof
     (hdel : leasingKV.delete.spec (GF := GF) (hG := hG)) :
     leasingKV.Delete.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs key sl gs lo
-  wp_start as ⟨#Hlkv, Hrd, #Hctx, #Hcc, #Hopts, #Hlo, %Hnp⟩
+  wp_start as ⟨#Hlkv, Htok, #Hctx, #Hcc, #Hopts, #Hlo, %Hnp⟩
+  iapply fupd_wp
+  imod lkv_borrow lkv γ pfx $$ [Hlkv Htok] with ⟨Hrd, Hloan⟩
+  · iframe #; iframe
+  imodintro
+  iapply wp_fupd
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   wp_auto
   wp_apply hDel key sl gs $$ [$Hcv $Hopts] as %opv #Hop
   · ipureintro; exact Hnp.1
   wp_apply (hdel lkv γ pfx ctx cs opv (opDeleteModel key gs) lo) $$ [$Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
-    as %dr %err H
+    as %dr %err ⟨Hrd, H⟩
   · ipureintro; exact Hnp.2
-  iapply HΦ $$ H
+  imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+  · iframe #; iframe
+  imodintro
+  iapply HΦ
+  iframe
 
 end proof
 

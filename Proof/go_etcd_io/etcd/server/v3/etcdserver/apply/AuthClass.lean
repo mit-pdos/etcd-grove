@@ -25,8 +25,8 @@ in `on γa`.
   transaction (`txnClass`): the read of each comparison's range, then both branches' operations,
   nested transactions recursively (`opClass`/`opsClass`, as `checkTxnReqsPermission` walks them).
   A nested put's `PrevKv` read is checked by the code (`checkPutAuth`) but not stated: `TxnOp`
-  does not carry it (`putTxnOp`); nor the lease of a `putKeep` or of a lease-keeping
-  `putIgnVal` (`opLeaseClass`).
+  does not carry it (`putTxnOp`). A `putKeep`'s or a lease-keeping `putIgnVal`'s lease class is
+  `True`, and complete: such a put attaches no lease (`opLeaseClass`).
 
 The method-level statement (the auth applier's `Put` etc. for the principal `Apply` set from the
 request's header) needs the principal threaded through `chainRes`'s auth case; it is not here
@@ -275,8 +275,12 @@ instance leaseKeysClass_persistent (M : auth.AuthMode)
 mutual
 /-- **The lease class of a transaction's operation** (`checkTxnReqsPermission`'s puts'
 `checkLeasePuts`): a put's lease's keys, for the puts whose lease `TxnOp` keeps (`put`, and
-`putIgnVal` with a lease); `putKeep`'s and a lease-keeping `putIgnVal`'s are not stated (`TxnOp`
-forgets their wire `Lease`, as their `PrevKv`); a nested transaction's two branches. -/
+`putIgnVal` with a lease); a nested transaction's two branches. A `putKeep`'s and a lease-keeping
+`putIgnVal`'s are `True`, which is complete: such a put attaches no lease (it keeps the key's,
+`txn/put.go:57-58`), and the wire `Lease` that Go still checks is `0` on every request the gRPC layer
+let through (`IgnoreLease` with a `Lease` is `ErrGRPCLeaseProvided`, `v3rpc/key.go:189`), which
+names no lease (`Grant` refuses `NoLease`). `TxnOp` forgets that field
+(`notes/lease-txnput-plan.md`). -/
 def opLeaseClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) : TxnOp → IProp GF
   | .get _ => iprop(True)

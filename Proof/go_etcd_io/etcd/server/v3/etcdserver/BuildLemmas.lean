@@ -148,7 +148,8 @@ theorem server_kv_watchable_of
   obtain ⟨-, hj, -, -, hsr⟩ := mvcc.cmOff_res (GF := GF) ({ d with cm := false } : mvcc.KBReal) rfl
   ihave Hsrm : mvcc.kbSRM (GF := GF) (some ({ d with cm := false } : mvcc.KBReal)) $$ []
   · iapply hsr.2; itrivial
-  iapply (hNew lg _ le cfg (some ({ d with cm := false } : mvcc.KBReal)) γb γl Pk f rd0 γi γok γtag hcfg hrb)
+  haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
+  iapply (hNew lg _ le cfg (some ({ d with cm := false } : mvcc.KBReal)) γb γl Pk f rd0 γi γok γtag hcfg)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hif Hok]
   · iframe Hpkg Hle Hro Hif Hok Hsrm
     isplitr
@@ -313,7 +314,8 @@ theorem server_kv_watchable_ofM (c : Bool)
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
   ihave Hsrm := mvcc.kbSRM_some ({ d with cm := c } : mvcc.KBReal) $$ Hsr
-  iapply (hNew lg _ le cfg (some ({ d with cm := c } : mvcc.KBReal)) γb γl Pk f rd0 γi γok γtag hcfg hrb)
+  haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
+  iapply (hNew lg _ le cfg (some ({ d with cm := c } : mvcc.KBReal)) γb γl Pk f rd0 γi γok γtag hcfg)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hif Hok]
   · iframe Hpkg Hle Hro Hif Hok Hsrm Hsb
     simp only [mvcc.kbView_some, mvcc.kbNoCmp_some, mvcc.kbRegRight_some, mvcc.kbWT_some,
