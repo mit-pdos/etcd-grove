@@ -1752,7 +1752,7 @@ theorem ownRawNode_slent_nil (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
 /-- (2026-11-01, durability stage II (n)) A node given up at the stop: its volatile protocol state
 (`ownRaftGhost`, which `raft_stop` takes; `stopAns`). -/
 theorem ownRawNode_ghost (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
-    ownRawNode (GF := GF) γ rn id rs ⊢ ∃ (s : PState) (md : Bool), ownRaftGhost γ id s md := by
+    ⊢ ownRawNode (GF := GF) γ rn id rs -∗ ∃ (s : PState) (md : Bool), ownRaftGhost γ id s md := by
   iintro H
   iNamed H
   iunfold ownStepGhost at Hghost
@@ -1839,6 +1839,52 @@ theorem durRest_congr (γ : NodeNames) {rs rs' : RNState} (b : Bool) (hd : rs'.d
     (hr : rs'.role = rs.role) (hw : rs'.bw = rs.bw) :
     ⊢ durRest (GF := GF) γ rs b -∗ durRest γ rs' b := by
   unfold durRest; rw [hd, hr, hw]; iintro H; iexact H
+
+theorem durRest_false_open (γ : NodeNames) (rs : RNState) :
+    ⊢ durRest (GF := GF) γ rs false -∗
+      dghostVar γ.dur (DFrac.own (1 : Qp).half) (rs.dur, rs.role) ∗
+      (∃ W : DurMaps × (RaftState × StateType), dghostVar γ.bw (DFrac.own 1) W) ∗
+      slotFree γ.raft γ.id γ.gen := by
+  unfold durRest; simp only [Bool.false_eq_true, ↓reduceIte]; iintro H; iexact H
+
+theorem durRest_false_intro (γ : NodeNames) (rs : RNState) :
+    ⊢ dghostVar (GF := GF) γ.dur (DFrac.own (1 : Qp).half) (rs.dur, rs.role) -∗
+      (∃ W : DurMaps × (RaftState × StateType), dghostVar γ.bw (DFrac.own 1) W) -∗
+      slotFree γ.raft γ.id γ.gen -∗ durRest γ rs false := by
+  unfold durRest; simp only [Bool.false_eq_true, ↓reduceIte]; iintro H1 H2 H3; iframe H1 H2 H3
+
+theorem durRest_true_open (γ : NodeNames) (rs : RNState) :
+    ⊢ durRest (GF := GF) γ rs true -∗
+      dghostVar γ.bw (DFrac.own (1 : Qp).half) (rs.bw, (rs.dur, rs.role)) := by
+  unfold durRest; simp only [↓reduceIte]; iintro H; iexact H
+
+theorem durRest_true_intro (γ : NodeNames) (rs : RNState) :
+    ⊢ dghostVar (GF := GF) γ.bw (DFrac.own (1 : Qp).half) (rs.bw, (rs.dur, rs.role)) -∗
+      durRest γ rs true := by
+  unfold durRest; simp only [↓reduceIte]; iintro H; iexact H
+
+omit [GooseInterp] [GooseSemantics] [StorageModel GF] in
+/-- The durable state after a `Ready` is at the term of the hard state after it. -/
+theorem readyDurable_term (S : RaftState) (h' : HardStateM) (L : Option SnapLoan)
+    (es : List EntryM) : (readyDurable S h' L es).term = h'.Term' := by
+  unfold readyDurable RaftState.next; cases L <;> rfl
+
+/-- (2026-11-01, durability stage II (n)) A fresh `Ready`'s hard state after it is at the node's term,
+within the term ceiling: the batch's entered term is covered by the budget (`readyCut`). -/
+theorem ownRawNodeReady_term_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
+    (ce es : List EntryM) (ms : List QMsg) (hb : Bool) (L : Option SnapLoan) (h : HardStateM) :
+    hsOpt rd.HardState' h ∗ ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms hb L ⊢
+      ⌜uint.Z (phsNext rs.phs h).Term' ≤ uint.Z rs.tc⌝ := by
+  iintro ⟨#Hh, H⟩
+  iunfold ownRawNodeReady at H
+  icases H with ⟨%s, %c, %fp, %ds, %rnv, %sv, %hprev, H⟩
+  iNamed H
+  icases Hrdhard with ⟨%hrd, #Hh', -, %Heq⟩
+  ihave %He := hsOpt_agree rd.HardState' h hrd $$ [$Hh $Hh']
+  subst He
+  ipureintro
+  rw [Heq, Hpvoff.2.1]
+  exact Hpvoff.2.2.1
 
 /-- Both halves of `rof`: no `Ready` handed out. -/
 def rofFull (γ : NodeNames) : IProp GF :=
