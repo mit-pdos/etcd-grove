@@ -282,6 +282,38 @@ theorem cfInv_crash (L L' : GooseLocalGS GF) (D : List GoString) (p : GoString) 
       iapply BigSepL.bigSepL_singleton.2; iexact Hb2
     imodintro; iexists fo; iframe; ipureintro; exact hok fo h
 
+/-- `cfInv_crash`, giving back the invariant's half, so that the invariant can be closed again. -/
+theorem cfInv_crash_keep (L L' : GooseLocalGS GF) (D : List GoString) (p : GoString) (hp : p ∉ D)
+    (Good : Option OsFile → Prop) (s : CFile) (hok : CrashOk Good s) :
+    ⊢ crashRestT (gooseOsGS (L := L)) (gooseOsGS (L := L')) D -∗ invRes (L := L) p s -∗
+      ∃ fo, ⌜Good fo⌝ ∗ osFileStart (L := L') p fo ∗
+        crashRestT (gooseOsGS (L := L)) (gooseOsGS (L := L')) (p :: D) ∗ invRes (L := L) p s := by
+  iintro Hr Hs
+  rcases s with _ | ⟨m, bs, _ | ⟨t, off, data⟩⟩
+  · dsimp only [invRes]
+    icases osCrashT_take_runs_keep L L' D p hp _ none [] $$ Hr Hs [] with ⟨%fo, %h, Hf, Hr, Hs, -⟩
+    · iapply BigSepL.bigSepL_nil.2; iempintro
+    iexists fo; iframe; ipureintro; exact hok fo h
+  · dsimp only [invRes]
+    icases Hs with ⟨Hm, Hb⟩
+    icases osCrashT_take_runs_keep L L' D p hp _ (some m) [(0, DFrac.own (1 : Qp).half, bs)]
+      $$ Hr Hm [Hb] with ⟨%fo, %h, Hf, Hr, Hm, Hb⟩
+    · iapply BigSepL.bigSepL_singleton.2; iexact Hb
+    icases BigSepL.bigSepL_singleton.1 $$ Hb with Hb
+    iexists fo; iframe; ipureintro; exact hok fo h
+  · dsimp only [invRes]
+    icases Hs with ⟨Ht, Hb1, Hb2⟩
+    dsimp only [pwTok]
+    icases osCrashT_take_tok_keep L L' D t _ hp (cRuns (some (m, bs, some (t, off, data))))
+      $$ Hr Ht [Hb1 Hb2] with ⟨%fo, %h, Hf, Hr, Ht, Hbs⟩
+    · unfold cRuns
+      iapply BigSepL.bigSepL_cons.2; iframe Hb1
+      iapply BigSepL.bigSepL_singleton.2; iexact Hb2
+    unfold cRuns
+    icases BigSepL.bigSepL_cons.1 $$ Hbs with ⟨Hb1, Hbs⟩
+    icases BigSepL.bigSepL_singleton.1 $$ Hbs with Hb2
+    iexists fo; iframe; ipureintro; exact hok fo h
+
 end crash
 
 end Perennial

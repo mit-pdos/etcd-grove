@@ -102,6 +102,32 @@ theorem crashRest_take_runs (hL' : OsGS GF) (D : List GoString) (p : GoString) (
   obtain ⟨fq, h1, h2⟩ := hrel q mq hq (fun h => hqD (List.mem_cons_of_mem _ h))
   exact ⟨fq, by rw [GMap.lookup_delete_ne _ (Ne.symm hqp)]; exact h1, h2⟩
 
+/-- `crashRest_take_runs`, giving back the old generation's resources it looks at (so that an
+invariant that held them can be closed again). -/
+theorem crashRest_take_runs_keep (hL' : OsGS GF) (D : List GoString) (p : GoString) (hp : p ∉ D)
+    (dq : DFrac) (mo : Option OsMeta) (rs : List (Nat × DFrac × List (w8 × Bool))) :
+    ⊢ crashRest hL hL' D -∗ gElem hL hL.γm p dq mo -∗
+      ([∗list] r ∈ rs, bytesG hL p r.1 r.2.1 r.2.2) -∗
+      ∃ fo, ⌜FileCrashedR mo rs fo⌝ ∗ fileStart hL' p fo ∗ crashRest hL hL' (p :: D) ∗
+        gElem hL hL.γm p dq mo ∗ ([∗list] r ∈ rs, bytesG hL p r.1 r.2.1 r.2.2) := by
+  unfold crashRest
+  iintro ⟨%Γb, %Γm, %F, %hrel, Hab, Ham, Hfs⟩ Hm Hbs
+  icases gAuth_lookup hL _ _ _ _ _ $$ Ham Hm with %hmo
+  icases bytesG_lookup_runs hL p Γb rs $$ Hab Hbs with %hxs
+  obtain ⟨fo, hF, hfc⟩ := hrel p mo hmo hp
+  icases (BigSepM.bigSepM_delete (Φ := fun p fo => fileStart hL' p fo) hF).1 $$ Hfs with ⟨Hf, Hfs⟩
+  iexists fo
+  iframe Hf Hm Hbs
+  isplitr
+  · ipureintro; exact fileCrashedR_of_g hfc hxs
+  iexists Γb, Γm, GMap.delete p F
+  iframe Hab Ham Hfs
+  ipureintro
+  intro q mq hq hqD
+  have hqp : q ≠ p := fun h => hqD (h ▸ List.mem_cons_self)
+  obtain ⟨fq, h1, h2⟩ := hrel q mq hq (fun h => hqD (List.mem_cons_of_mem _ h))
+  exact ⟨fq, by rw [GMap.lookup_delete_ne _ (Ne.symm hqp)]; exact h1, h2⟩
+
 end files
 
 /-! ## The crash interpretation -/
@@ -147,6 +173,73 @@ theorem crashRestT_tok (hL hL' : OsGS GF) (D : List GoString) (t : Nat) (ti : To
   imodintro
   iframe Hm Hr
   iexists st, GMap.delete t Γt
+  iframe
+
+theorem crashRestT_take_runs_keep (hL hL' : OsGS GF) (D : List GoString) (p : GoString)
+    (hp : p ∉ D) (dq : DFrac) (mo : Option OsMeta) (rs : List (Nat × DFrac × List (w8 × Bool))) :
+    ⊢ crashRestT hL hL' D -∗ gElem hL hL.γm p dq mo -∗
+      ([∗list] r ∈ rs, bytesG hL p r.1 r.2.1 r.2.2) -∗
+      ∃ fo, ⌜FileCrashedR mo rs fo⌝ ∗ fileStart hL' p fo ∗ crashRestT hL hL' (p :: D) ∗
+        gElem hL hL.γm p dq mo ∗ ([∗list] r ∈ rs, bytesG hL p r.1 r.2.1 r.2.2) := by
+  unfold crashRestT
+  iintro ⟨Hr, Ht⟩ Hm Hbs
+  icases crashRest_take_runs_keep hL hL' D p hp dq mo rs $$ Hr Hm Hbs with ⟨%fo, %h, Hf, Hr, Hm, Hbs⟩
+  iexists fo
+  iframe Hf Hr Ht Hm Hbs
+  ipureintro; exact h
+
+/-- `crashRestT_tok`, lending the fragment instead of taking it: the token is kept. -/
+theorem crashRestT_tok_lend (hL hL' : OsGS GF) (D : List GoString) (t : Nat) (ti : TokInfo) :
+    ⊢ crashRestT hL hL' D -∗ gElem hL hL.γt t (DFrac.own 1) ti -∗
+      gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
+      (gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) -∗ crashRestT hL hL' D) ∗
+      gElem hL hL.γt t (DFrac.own 1) ti := by
+  unfold crashRestT
+  iintro ⟨Hr, %st, %Γt, HAt, Htok⟩ Ht
+  icases gAuth_lookup hL _ _ _ _ _ $$ HAt Ht with %hti
+  unfold tokRes
+  icases (BigSepM.bigSepM_delete (Φ := fun _ (ti : TokInfo) => iprop(
+      gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
+      bytesG hL ti.c.path (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false)))) hti).1
+    $$ Htok with ⟨⟨Hm, Hb⟩, Htok⟩
+  iframe Hm Ht
+  iintro Hm
+  iframe Hr
+  iexists st, Γt
+  iframe HAt
+  iapply (BigSepM.bigSepM_delete (Φ := fun _ (ti : TokInfo) => iprop(
+      gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
+      bytesG hL ti.c.path (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false)))) hti).2
+  iframe
+
+/-- Taking the file a change in flight is on, with the fragment of `OsMeta` the change holds, and
+giving back the token. -/
+theorem crashRestT_take_tok_keep (hL hL' : OsGS GF) (D : List GoString) (t : Nat) (ti : TokInfo)
+    (hp : ti.c.path ∉ D) (rs : List (Nat × DFrac × List (w8 × Bool))) :
+    ⊢ crashRestT hL hL' D -∗ gElem hL hL.γt t (DFrac.own 1) ti -∗
+      ([∗list] r ∈ rs, bytesG hL ti.c.path r.1 r.2.1 r.2.2) -∗
+      ∃ fo, ⌜FileCrashedR (some ti.om) rs fo⌝ ∗ fileStart hL' ti.c.path fo ∗
+        crashRestT hL hL' (ti.c.path :: D) ∗ gElem hL hL.γt t (DFrac.own 1) ti ∗
+        ([∗list] r ∈ rs, bytesG hL ti.c.path r.1 r.2.1 r.2.2) := by
+  unfold crashRestT
+  iintro ⟨Hr, %st, %Γt, HAt, Htok⟩ Ht Hbs
+  icases gAuth_lookup hL _ _ _ _ _ $$ HAt Ht with %hti
+  unfold tokRes
+  icases (BigSepM.bigSepM_delete (Φ := fun _ (ti : TokInfo) => iprop(
+      gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
+      bytesG hL ti.c.path (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false)))) hti).1
+    $$ Htok with ⟨⟨Hm, Hb⟩, Htok⟩
+  icases crashRest_take_runs_keep hL hL' D ti.c.path hp _ _ rs $$ Hr Hm Hbs
+    with ⟨%fo, %h, Hf, Hr, Hm, Hbs⟩
+  iexists fo
+  iframe Hf Hr Ht Hbs
+  isplitr
+  · ipureintro; exact h
+  iexists st, Γt
+  iframe HAt
+  iapply (BigSepM.bigSepM_delete (Φ := fun _ (ti : TokInfo) => iprop(
+      gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
+      bytesG hL ti.c.path (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false)))) hti).2
   iframe
 
 /-- `os_local_crash`, keeping the changes in flight. -/
@@ -208,6 +301,48 @@ theorem osCrashT_tok (L L' : GooseLocalGS GF) (D : List GoString) (t : Nat) (ti 
   unfold osMeta osTok
   iintro Hr Ht
   iapply crashRestT_tok $$ Hr Ht
+
+theorem osCrashT_take_runs_keep (L L' : GooseLocalGS GF) (D : List GoString) (p : GoString)
+    (hp : p ∉ D) (dq : DFrac) (mo : Option OsMeta) (rs : List (Nat × DFrac × List (w8 × Bool))) :
+    ⊢ crashRestT (gooseOsGS (L := L)) (gooseOsGS (L := L')) D -∗ osMeta (L := L) p dq mo -∗
+      ([∗list] r ∈ rs, osBytes (L := L) p r.1 r.2.1 r.2.2) -∗
+      ∃ fo, ⌜FileCrashedR mo rs fo⌝ ∗ osFileStart (L := L') p fo ∗
+        crashRestT (gooseOsGS (L := L)) (gooseOsGS (L := L')) (p :: D) ∗
+        osMeta (L := L) p dq mo ∗ ([∗list] r ∈ rs, osBytes (L := L) p r.1 r.2.1 r.2.2) := by
+  unfold osMeta osBytes
+  iintro Hr Hm Hb
+  icases crashRestT_take_runs_keep _ _ D p hp dq mo rs $$ Hr Hm Hb with ⟨%fo, %h, Hf, Hr, Hm, Hb⟩
+  iexists fo
+  iframe Hr Hm Hb
+  isplitr
+  · ipureintro; exact h
+  iapply (fileStart_eq (L := L') p fo).1 $$ Hf
+
+theorem osCrashT_take_tok_keep (L L' : GooseLocalGS GF) (D : List GoString) (t : Nat)
+    (ti : TokInfo) (hp : ti.c.path ∉ D) (rs : List (Nat × DFrac × List (w8 × Bool))) :
+    ⊢ crashRestT (gooseOsGS (L := L)) (gooseOsGS (L := L')) D -∗ osTok (L := L) t ti -∗
+      ([∗list] r ∈ rs, osBytes (L := L) ti.c.path r.1 r.2.1 r.2.2) -∗
+      ∃ fo, ⌜FileCrashedR (some ti.om) rs fo⌝ ∗ osFileStart (L := L') ti.c.path fo ∗
+        crashRestT (gooseOsGS (L := L)) (gooseOsGS (L := L')) (ti.c.path :: D) ∗
+        osTok (L := L) t ti ∗ ([∗list] r ∈ rs, osBytes (L := L) ti.c.path r.1 r.2.1 r.2.2) := by
+  unfold osTok osBytes
+  iintro Hr Ht Hb
+  icases crashRestT_take_tok_keep _ _ D t ti hp rs $$ Hr Ht Hb with ⟨%fo, %h, Hf, Hr, Ht, Hb⟩
+  iexists fo
+  iframe Hr Ht Hb
+  isplitr
+  · ipureintro; exact h
+  iapply (fileStart_eq (L := L') _ fo).1 $$ Hf
+
+theorem osCrashT_tok_lend (L L' : GooseLocalGS GF) (D : List GoString) (t : Nat) (ti : TokInfo) :
+    ⊢ crashRestT (gooseOsGS (L := L)) (gooseOsGS (L := L')) D -∗ osTok (L := L) t ti -∗
+      osMeta (L := L) ti.c.path (DFrac.own ti.q) (some ti.om) ∗
+      (osMeta (L := L) ti.c.path (DFrac.own ti.q) (some ti.om) -∗
+        crashRestT (gooseOsGS (L := L)) (gooseOsGS (L := L')) D) ∗
+      osTok (L := L) t ti := by
+  unfold osMeta osTok
+  iintro Hr Ht
+  iapply crashRestT_tok_lend $$ Hr Ht
 
 end gen
 
