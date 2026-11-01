@@ -155,7 +155,7 @@ theorem startCluster.wp_proof
   wp_auto
   iunfold memberServed at Hup₁
   icases Hup₁ with ⟨%E₁', %γw₁, %cid₁, %mid₁, %HE₁, #Hreq₁, #Hrd₁, Hgo₁,
-    Hctl₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, ⟨%pw₁, %R₁, #Hws₁, %HR₁, #Hstr₁⟩, %Hnr₁⟩
+    Hctl₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, ⟨%pw₁, %R₁, #Hws₁, %HR₁, #Hstr₁⟩, %Hnr₁⟩
   iunfold srvGoRes at Hgo₁
   icases Hgo₁ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₂
@@ -180,7 +180,7 @@ theorem startCluster.wp_proof
   wp_auto
   iunfold memberServed at Hup₂
   icases Hup₂ with ⟨%E₂', %γw₂, %cid₂, %mid₂, %HE₂, #Hreq₂, #Hrd₂, Hgo₂,
-    Hctl₂, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, ⟨%pw₂, %R₂, #Hws₂, %HR₂, #Hstr₂⟩, %Hnr₂⟩
+    Hctl₂, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, ⟨%pw₂, %R₂, #Hws₂, %HR₂, #Hstr₂⟩, %Hnr₂⟩
   iunfold srvGoRes at Hgo₂
   icases Hgo₂ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₃
@@ -205,7 +205,7 @@ theorem startCluster.wp_proof
   wp_auto
   iunfold memberServed at Hup₃
   icases Hup₃ with ⟨%E₃', %γw₃, %cid₃, %mid₃, %HE₃, #Hreq₃, #Hrd₃, Hgo₃,
-    Hctl₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, ⟨%pw₃, %R₃, #Hws₃, %HR₃, #Hstr₃⟩, %Hnr₃⟩
+    Hctl₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, ⟨%pw₃, %R₃, #Hws₃, %HR₃, #Hstr₃⟩, %Hnr₃⟩
   iunfold srvGoRes at Hgo₃
   icases Hgo₃ with ⟨-, Htok⟩
   iclear Hb₁ Hb₂ Hb₃ Hcom Hq₁ Hq₂ Hq₃ Hu₁ Hu₂ Hu₃ Hcm Hpeer₁ Hpeer₂ Hpeer₃ Hpm

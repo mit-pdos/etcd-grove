@@ -94,9 +94,30 @@ theorem compactableOk_server (hC : EtcdServer.Compact.spec (GF := GF) (hG := hG)
   icases HR with ⟨Hlt, Hlr, Hrd, Hst⟩
   ihave #Hlb' : srvRevLb E.γ r $$ []
   · iapply srvRevLb_mono E.γ r (r + ret) (by omega); iexact Hlb
+  -- (the client's `kv.Compact`, 2026-10-31) the store's certificate as the KV's revision reached
+  -- (`kvRevLb_of_srvRevLb`, with the readers' view's invariants), at the request's revision
+  iunfold compactReqIs at Hreq
+  icases Hreq with ⟨%v, Hp, %Hv⟩
+  ihave #Hkvi := srvKVInvs_of_read s E ρ.rd $$ Hsrd
+  iunfold srvKVInvs at Hkvi
+  icases Hkvi with ⟨#Hkv, #Hci, #Hrl, %Hcok, -⟩
+  ihave #Hlbv : srvRevLb E.γ (sint.Z v.Revision') $$ []
+  · rw [Hv.1]; iexact Hlb'
+  imod (kvRevLb_of_srvRevLb ρ.rd.raft ρ.rd.kv E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full)
+      (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full) v.Revision') $$ Hkv Hci Hrl Hlbv
+    with #Hrev
+  ihave #Hrev' : kvRevLb ρ.rd.kv (W64 r) $$ []
+  · have h : W64 r = v.Revision' := by rw [← Hv.1]; word
+    rw [h]; iexact Hrev
   -- (M2, the storage side, item 35) the permit's revision is past `0`: the scope premise
-  iapply (hC s E ρ ctx cd p r (by omega)) $$ [Hlt Hlr Hrd Hst Hreq]
-  · iframe Hlt Hlr Hrd Hst Hreq; iframe #; ipureintro; exact hcmp
+  iapply (hC s E ρ ctx cd p r (by omega)) $$ [Hlt Hlr Hrd Hst Hp]
+  · iframe Hlt Hlr Hrd Hst; iframe #
+    isplitr
+    · ipureintro; exact hcmp
+    iunfold compactReqIs
+    iexists v
+    iframe Hp
+    ipureintro; exact Hv
   inext
   iintro %resp %err ⟨Hlt, Hlr, Hrd, Hst, Hout⟩
   iapply HΦ

@@ -26,6 +26,8 @@ public import Proof.go_etcd_io.etcd.client.v3.Client__unaryClientInterceptor
 public import Proof.go_etcd_io.etcd.client.v3.Cmp__Clone
 public import Proof.go_etcd_io.etcd.client.v3.Cmp__GetCompare
 public import Proof.go_etcd_io.etcd.client.v3.Cmp__ensureCompare
+public import Proof.go_etcd_io.etcd.client.v3.CompactOp__applyCompactOpts
+public import Proof.go_etcd_io.etcd.client.v3.CompactOp__toRequest
 public import Proof.go_etcd_io.etcd.client.v3.ContextError
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
@@ -39,6 +41,7 @@ public import Proof.go_etcd_io.etcd.client.v3.NewOp
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewWatchClient
 public import Proof.go_etcd_io.etcd.client.v3.NewWatchFromWatchClient
 public import Proof.go_etcd_io.etcd.client.v3.NewWatcher
+public import Proof.go_etcd_io.etcd.client.v3.OpCompact
 public import Proof.go_etcd_io.etcd.client.v3.OpDelete
 public import Proof.go_etcd_io.etcd.client.v3.OpGet
 public import Proof.go_etcd_io.etcd.client.v3.OpPut
@@ -107,11 +110,13 @@ public import Proof.go_etcd_io.etcd.client.v3.isSafeRetry
 public import Proof.go_etcd_io.etcd.client.v3.isSafeRetryImmutableRPC
 public import Proof.go_etcd_io.etcd.client.v3.isSafeRetryMutableRPC
 public import Proof.go_etcd_io.etcd.client.v3.isUnavailableErr
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Compact
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__DeleteRange
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Put
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Range
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Txn
 public import Proof.go_etcd_io.etcd.client.v3.keepAlive__close
+public import Proof.go_etcd_io.etcd.client.v3.kv__Compact
 public import Proof.go_etcd_io.etcd.client.v3.kv__Delete
 public import Proof.go_etcd_io.etcd.client.v3.kv__Do
 public import Proof.go_etcd_io.etcd.client.v3.kv__Get
@@ -135,6 +140,7 @@ public import Proof.go_etcd_io.etcd.client.v3.retryAuthClient__RoleAdd
 public import Proof.go_etcd_io.etcd.client.v3.retryAuthClient__RoleGrantPermission
 public import Proof.go_etcd_io.etcd.client.v3.retryAuthClient__UserAdd
 public import Proof.go_etcd_io.etcd.client.v3.retryAuthClient__UserGrantRole
+public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__Compact
 public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__DeleteRange
 public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__Put
 public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__Range
@@ -608,6 +614,14 @@ theorem v3.Client.wp_dialWithBalancer [go_etcd_io.etcd.client.v3.DialWithBalance
     EtcdGrove.Client.dialWithBalancer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Client.dialWithBalancer.wp_proof v3.Client.wp_Endpoints v3.Client.wp_credentialsForEndpoint grpc.wp_WithResolvers v3.Client.wp_dial
 
+theorem v3.CompactOp.wp_applyCompactOpts :
+    EtcdGrove.CompactOp.applyCompactOpts.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.CompactOp.applyCompactOpts.wp_proof
+
+theorem v3.CompactOp.wp_toRequest :
+    EtcdGrove.CompactOp.toRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.CompactOp.toRequest.wp_proof
+
 theorem LeaseGrantResponse.wp_GetHeader :
     EtcdGrove.LeaseGrantResponse.GetHeader.spec (GF := GF) (hG := hG) :=
   EtcdGrove.LeaseGrantResponse.GetHeader.wp_proof
@@ -647,6 +661,10 @@ theorem v3.wp_NewWatchFromWatchClient [go_etcd_io.etcd.server.v3.etcdserver.api.
 theorem v3.wp_NewWatcher [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.NewWatcher.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewWatcher.wp_proof wp_NewWatchClient v3.wp_NewWatchFromWatchClient
+
+theorem v3.wp_OpCompact :
+    EtcdGrove.OpCompact.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.OpCompact.wp_proof v3.CompactOp.wp_applyCompactOpts
 
 theorem v3.Op.wp_IsSortOptionValid :
     EtcdGrove.Op.IsSortOptionValid.spec (GF := GF) (hG := hG) :=
@@ -796,6 +814,10 @@ theorem v3.wp_isUnavailableErr [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.A
     EtcdGrove.isUnavailableErr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.isUnavailableErr.wp_proof status.wp_FromError
 
+theorem kVClient.wp_Compact :
+    EtcdGrove.kVClient.Compact.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.kVClient.Compact.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_Invoke
+
 theorem kVClient.wp_DeleteRange :
     EtcdGrove.kVClient.DeleteRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.kVClient.DeleteRange.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_Invoke
@@ -815,6 +837,14 @@ theorem kVClient.wp_Txn :
 theorem v3.keepAlive.wp_close :
     EtcdGrove.keepAlive.close.spec (GF := GF) (hG := hG) :=
   EtcdGrove.keepAlive.close.wp_proof
+
+theorem v3.retryKVClient.wp_Compact :
+    EtcdGrove.retryKVClient.Compact.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.retryKVClient.Compact.wp_proof kVClient.wp_Compact
+
+theorem v3.kv.wp_Compact :
+    EtcdGrove.kv.Compact.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.kv.Compact.wp_proof v3.wp_OpCompact v3.CompactOp.wp_toRequest v3.retryKVClient.wp_Compact v3.wp_ContextError
 
 theorem v3.wp_withRepeatablePolicy :
     EtcdGrove.withRepeatablePolicy.spec (GF := GF) (hG := hG) :=

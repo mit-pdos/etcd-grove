@@ -545,7 +545,8 @@ theorem client_Put_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfa
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
           ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧ σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ ∧
-            kvLogOk (kvOpStep (.put (putWireOf (opPutModel key val []))) σ)⌝) ∨
+            kvLogOk (kvOpStep (.put (putWireOf (opPutModel key val []))) σ)⌝ ∗
+          kvRevLb γ m.hdr.revision) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hctx, #Hce, #Hopts, Hau⟩ HΦ
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
@@ -561,12 +562,12 @@ theorem client_Put_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfa
       simp
     ipureintro; exact hsz
   iapply HΦ
-  icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs⟩ | ⟨%Herr, #Hke⟩)
+  icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs, #Hrv⟩ | ⟨%Herr, #Hke⟩)
   · ileft
     isplitl []
     · ipureintro; exact Herr
     iexists m, σ
-    iframe Hm HQ
+    iframe Hm HQ Hrv
     ipureintro; exact ⟨Hs.1, Hs.2.2.1, Hs.2.2.2⟩
   · iright
     isplitl []

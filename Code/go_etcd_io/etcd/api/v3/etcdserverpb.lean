@@ -193,6 +193,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   _KV_Put_Handler_unfold : FuncUnfold _KV_Put_Handler [] _KV_Put_Handler.impl
   _KV_DeleteRange_Handler_unfold : FuncUnfold _KV_DeleteRange_Handler [] _KV_DeleteRange_Handler.impl
   _KV_Txn_Handler_unfold : FuncUnfold _KV_Txn_Handler [] _KV_Txn_Handler.impl
+  _KV_Compact_Handler_unfold : FuncUnfold _KV_Compact_Handler [] _KV_Compact_Handler.impl
   NewWatchClient_unfold : FuncUnfold NewWatchClient [] NewWatchClient.impl
   RegisterWatchServer_unfold : FuncUnfold RegisterWatchServer [] RegisterWatchServer.impl
   _Watch_Watch_Handler_unfold : FuncUnfold _Watch_Watch_Handler [] _Watch_Watch_Handler.impl
@@ -390,6 +391,7 @@ attribute [instance] Assumptions.Metadata_instance
   Assumptions._KV_Put_Handler_unfold
   Assumptions._KV_DeleteRange_Handler_unfold
   Assumptions._KV_Txn_Handler_unfold
+  Assumptions._KV_Compact_Handler_unfold
   Assumptions.NewWatchClient_unfold
   Assumptions.RegisterWatchServer_unfold
   Assumptions._Watch_Watch_Handler_unfold

@@ -291,7 +291,7 @@ theorem isEtcdPutKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : 
   inext
   iintro %resp %err Hout
   iapply HΦ
-  icases Hout with (⟨%Herr, %m, %σ, -, HQ, %Hs⟩ | ⟨%Herr, -⟩)
+  icases Hout with (⟨%Herr, %m, %σ, -, HQ, %Hs, -⟩ | ⟨%Herr, -⟩)
   · subst Herr
     obtain ⟨-, -, h63, hok, hpost⟩ := Hs
     iapply (putResult_of_km γ pfx lo _ op hw hu hl.2 hl.1 l0 Hll σ hok h63 hpost) $$ HQ

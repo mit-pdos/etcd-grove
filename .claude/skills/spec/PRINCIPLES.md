@@ -118,6 +118,11 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   in a module only that proof imports. (`pilot-review-5.md`)
 - **Every premise has a source the client sees**: a spec or a law of the API, never the
   implementation's internal lemmas.
+- **A client's certificate is the cluster's**: a persistent fact a client takes from one call's
+  reply into a later call (a revision reached) must hold at every member the later call may reach,
+  so build it from what the members share (the cluster's raft log, the KV model), never from one
+  member's ghost state (its store's certificate map); and check the tie it needs against the
+  multi-member allocation, not only today's single-member producers. (`compact-client.md`)
 - **A workload premise about a resource's later operations goes on the resource's only producer**,
   carried by the resource (as `apply.backendUnderQuota` on `storage.NewBackendQuota`, carried by the
   quota object; `grpcRepliesFit` on `grpc.start`, carried by the server tokens): the consumers'

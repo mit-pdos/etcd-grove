@@ -316,7 +316,8 @@ def etcdPutSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
   fun (o : OpFull) (Φ : PutRespM → IProp GF) =>
     iprop(∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
       ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0⌝ ∗ kvOpAu1 γr.kv (.put o) Q ∗
-          ∀ m : PutRespM, putReplied E γr F o Q cid mid m -∗ Φ m)
+          ∀ m : PutRespM, putReplied E γr F o Q cid mid m -∗ kvRevLb γr.kv m.hdr.revision -∗
+            Φ m)
 
 /-- **etcd's spec of the KV service's `Range`**: a caller that knows the committed index `c`
 (`committedAtLeast γr c`; `0` is free) asking the range `o` gets a reply message `m` with
@@ -405,9 +406,21 @@ def etcdDeleteSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
       ∃ Q : KVState → IProp GF, ⌜o.base.rangeEnd ≠ [W8 0]⌝ ∗ kvOpAu1 γr.kv (.deleteRange o) Q ∗
       ∀ m : DelRespM, deleteReplied E γr F o Q cid mid m -∗ Φ m)
 
+/-- **etcd's spec of the KV service's `Compact`** (the client's `kv.Compact`, 2026-11-01): a caller
+asking a compaction at a revision past `0` (M2's scope) the KV has reached (`kvRevLb`), not
+physical, on a compacting server (`γr.kv.cmp`, M2's scope), gets a reply message with the
+member's header. A compaction is not a state change of the clients' KV (M2's A4): no update. -/
+def etcdCompactSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
+    GrpcSpec (GF := GF) pbCompactionRequest pbCompactionResponse :=
+  fun (o : CompactReqM) (Φ : CompactRespM → IProp GF) =>
+    iprop(⌜1 ≤ sint.Z o.revision ∧ o.physical = false ∧ γr.kv.cmp = true⌝ ∗
+      kvRevLb γr.kv o.revision ∗
+      ∀ m : CompactRespM, ⌜m.hdr.clusterId = cid ∧ m.hdr.memberId = mid⌝ -∗ Φ m)
+
 end defs
 
 /-! ## The members -/
+
 
 /-- **A member as its client sees it**: its client address and what etcd's specs it registers
 there are at (`etcd_kv_started`'s): its apply environment, read names, cluster and member ids. -/
@@ -556,14 +569,16 @@ instance clientWriteOnce_persistent (cl : Loc) (addrs : List GoString) :
 def txnWriteOnce (tp : Loc) (addrs : List GoString) : IProp GF :=
   iprop(⌜∀ a ∈ addrs, noRefusalAt a⌝)
 
-/-- **etcd's KV registrations at a member** (persistent): etcd's `Put`, `Range`, `DeleteRange` and
-`Txn` at its address, at its apply environment, read names and ids (`etcd_kv_started`'s). -/
+/-- **etcd's KV registrations at a member** (persistent): etcd's `Put`, `Range`, `DeleteRange`,
+`Txn` and (the client's `kv.Compact`, 2026-11-01) `Compact` at its address, at its apply
+environment, read names and ids (`etcd_kv_started`'s). -/
 def kvRegsAt (x : SrvAt GF) : IProp GF :=
   iprop(isGrpcRpc x.addr go!"/etcdserverpb.KV/Put" (etcdPutSpec x.E x.γr x.cid x.mid) ∗
     isGrpcRpc x.addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec x.E x.γr x.cid x.mid) ∗
     isGrpcRpc x.addr go!"/etcdserverpb.KV/DeleteRange"
       (etcdDeleteSpec x.E x.γr x.cid x.mid) ∗
-    isGrpcRpc x.addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec x.E x.γr x.γr x.cid x.mid))
+    isGrpcRpc x.addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec x.E x.γr x.γr x.cid x.mid) ∗
+    isGrpcRpc x.addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec x.E x.γr x.cid x.mid))
 
 instance kvRegsAt_persistent (x : SrvAt GF) : Persistent (kvRegsAt x) := by
   unfold kvRegsAt; infer_instance
@@ -599,14 +614,14 @@ theorem kvRegs_put (ms : List (SrvAt GF)) :
     ([∗list] x ∈ ms, kvRegsAt x) ⊢ [∗list] x ∈ ms,
       isGrpcRpc x.addr go!"/etcdserverpb.KV/Put" (etcdPutSpec x.E x.γr x.cid x.mid) :=
   BigSepL.bigSepL_mono fun _ => by
-    iintro #H; iunfold kvRegsAt at H; icases H with ⟨#H1, -, -, -⟩; iexact H1
+    iintro #H; iunfold kvRegsAt at H; icases H with ⟨#H1, -, -, -, -⟩; iexact H1
 
 /-- The registrations of `Range` at the members. -/
 theorem kvRegs_range (ms : List (SrvAt GF)) :
     ([∗list] x ∈ ms, kvRegsAt x) ⊢ [∗list] x ∈ ms,
       isGrpcRpc x.addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec x.E x.γr x.cid x.mid) :=
   BigSepL.bigSepL_mono fun _ => by
-    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, #H1, -, -⟩; iexact H1
+    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, #H1, -, -, -⟩; iexact H1
 
 /-- The registrations of `DeleteRange` at the members. -/
 theorem kvRegs_del (ms : List (SrvAt GF)) :
@@ -614,14 +629,21 @@ theorem kvRegs_del (ms : List (SrvAt GF)) :
       isGrpcRpc x.addr go!"/etcdserverpb.KV/DeleteRange"
         (etcdDeleteSpec x.E x.γr x.cid x.mid) :=
   BigSepL.bigSepL_mono fun _ => by
-    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, -, #H1, -⟩; iexact H1
+    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, -, #H1, -, -⟩; iexact H1
 
 /-- The registrations of `Txn` at the members. -/
 theorem kvRegs_txn (ms : List (SrvAt GF)) :
     ([∗list] x ∈ ms, kvRegsAt x) ⊢ [∗list] x ∈ ms,
       isGrpcRpc x.addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec x.E x.γr x.γr x.cid x.mid) :=
   BigSepL.bigSepL_mono fun _ => by
-    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, -, -, #H1⟩; iexact H1
+    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, -, -, #H1, -⟩; iexact H1
+
+/-- The registrations of `Compact` at the members. -/
+theorem kvRegs_compact (ms : List (SrvAt GF)) :
+    ([∗list] x ∈ ms, kvRegsAt x) ⊢ [∗list] x ∈ ms,
+      isGrpcRpc x.addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec x.E x.γr x.cid x.mid) :=
+  BigSepL.bigSepL_mono fun _ => by
+    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, -, -, -, #H1⟩; iexact H1
 
 /-- One member's registrations are its server's at its one address. -/
 theorem kvRegs_one (a : GoString) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
@@ -645,6 +667,17 @@ def kvDeleteSpec (ms : List (SrvAt GF)) :
 /-- **etcd's `Txn` at a connection to the members `ms`**. -/
 def kvTxnSpec (ms : List (SrvAt GF)) : GrpcSpec (GF := GF) pbTxnRequest pbTxnResponse :=
   anySpec ms fun x => etcdTxnSpec x.E x.γr x.γr x.cid x.mid
+
+/-- **etcd's `Compact` at a connection to the members `ms`**. -/
+def kvCompactSpec (ms : List (SrvAt GF)) :
+    GrpcSpec (GF := GF) pbCompactionRequest pbCompactionResponse :=
+  anySpec ms fun x => etcdCompactSpec x.E x.γr x.cid x.mid
+
+/-- The members' registrations of `Compact` register the conjunction at their addresses. -/
+theorem kvRegs_rpcCompact (ms : List (SrvAt GF)) :
+    kvRegs ms ⊢
+      isGrpcRpcs (ms.map SrvAt.addr) go!"/etcdserverpb.KV/Compact" (kvCompactSpec ms) :=
+  (kvRegs_compact ms).trans (isGrpcRpcs_anySpec ms SrvAt.addr _ _)
 
 /-- The members' registrations of `Put` register the conjunction at their addresses. -/
 theorem kvRegs_rpcPut (ms : List (SrvAt GF)) :
@@ -715,7 +748,8 @@ def txnUpd (ms : List (SrvAt GF)) (t : TxnModel) (Q : KVState → IProp GF) : IP
 /-- **A put's answer**: some member's `putReplied`. -/
 def putAns (ms : List (SrvAt GF)) (F : mvcc.Log) (o : OpFull) (Q : KVState → IProp GF)
     (m : PutRespM) : IProp GF :=
-  iprop(∃ x : SrvAt GF, ⌜x ∈ ms⌝ ∗ putReplied x.E x.γr F o Q x.cid x.mid m)
+  iprop(∃ x : SrvAt GF, ⌜x ∈ ms⌝ ∗ putReplied x.E x.γr F o Q x.cid x.mid m ∗
+    kvRevLb x.γr.kv m.hdr.revision)
 
 /-- **A range's answer**: some member's `rangeReplyOk`. -/
 def rangeAns (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (o : OpFull)
@@ -752,10 +786,10 @@ theorem putSpec_of (ms : List (SrvAt GF)) (F : mvcc.Log) (o : OpFull) (Q : KVSta
       isplitr
       · ipureintro; exact hl
       iframe Haux
-      iintro %m Hm
+      iintro %m Hm #Hr
       unfold putAns
       iexists x
-      iframe Hm
+      iframe Hm Hr
       ipureintro; exact hx)
 
 /-- **A range's request meets the members' spec**, with the answer `rangeAns`. -/
@@ -883,7 +917,8 @@ theorem txnUpd_srvsAt (addr : List GoString) (E : apply.AEnv GF) (γr : ReadName
 
 theorem putAns_srvsAt (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (cid mid : w64) (F : mvcc.Log) (o : OpFull) (Q : KVState → IProp GF) (m : PutRespM) :
-    putAns (srvsAt addr E γr cid mid) F o Q m ⊢ putReplied E γr F o Q cid mid m := by
+    putAns (srvsAt addr E γr cid mid) F o Q m ⊢
+      putReplied E γr F o Q cid mid m ∗ kvRevLb γr.kv m.hdr.revision := by
   unfold putAns
   iintro ⟨%x, %hx, H⟩
   obtain ⟨a, -, rfl⟩ := srvsAt_mem hx
@@ -1158,7 +1193,7 @@ theorem kvReadAu_names (γk γk' : KVNames) (hst : γk.st = γk'.st) (Q : KVStat
 /-- **The `*kv` `api` of the members `ms` at the KV `γ`** (persistent; see the section header). -/
 def isKvOf (api : Loc) (γ : KVNames) (dup : Bool) (ms : List (SrvAt GF)) : IProp GF :=
   iprop(kvObjAt api (ms.map SrvAt.addr) ∗ kvRegs ms ∗ ([∗list] x ∈ ms, srvStart x) ∗
-    ⌜(∀ x ∈ ms, x.γr.kv.st = γ.st) ∧ (dup = false → ∀ x ∈ ms, noRefusalAt x.addr) ∧
+    ⌜(∀ x ∈ ms, kvSame x.γr.kv γ) ∧ (dup = false → ∀ x ∈ ms, noRefusalAt x.addr) ∧
       receiptBound GF ≤ 2 ^ 62⌝)
 
 instance isKvOf_persistent (api : Loc) (γ : KVNames) (dup : Bool) (ms : List (SrvAt GF)) :
@@ -1177,7 +1212,7 @@ instance isKv_persistent (api : Loc) (γ : KVNames) (dup : Bool) :
 
 /-- A client of the members `ms` at `γ` is a client of `γ`. -/
 theorem isKv_intro (api : Loc) (γ : KVNames) (dup : Bool) (ms : List (SrvAt GF))
-    (hn : ∀ x ∈ ms, x.γr.kv.st = γ.st)
+    (hn : ∀ x ∈ ms, kvSame x.γr.kv γ)
     (hr : dup = false → ∀ x ∈ ms, noRefusalAt x.addr) (hrb : receiptBound GF ≤ 2 ^ 62) :
     kvObjAt api (ms.map SrvAt.addr) ∗ kvRegs ms ∗ ([∗list] x ∈ ms, srvStart x) ⊢
       isKv api γ dup := by
@@ -1214,10 +1249,11 @@ def txnUpdK (γ : KVNames) (t : TxnModel) (Q : KVState → IProp GF) : IProp GF 
 /-- **What a put's reply says** (`m`): the state `σ` the update fired at (`Q σ`), the reply's
 revision `σ`'s next, its previous key-value the key's record in `σ`'s current store if asked;
 (D48) `σ` and the state after the put well-formed small logs' (`kvLogOk`). -/
-def putStOk (o : OpFull) (Q : KVState → IProp GF) (m : PutRespM) : IProp GF :=
+def putStOk (γ : KVNames) (o : OpFull) (Q : KVState → IProp GF) (m : PutRespM) : IProp GF :=
   iprop(∃ σ : KVState, Q σ ∗ ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧
     m.prev = (if o.base.prevKV then (σ.store.lookup o.key).map (KVRec.toKv o.key) else none) ∧
-    σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ ∧ kvLogOk (kvOpStep (.put o) σ)⌝)
+    σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ ∧ kvLogOk (kvOpStep (.put o) σ)⌝ ∗
+    kvRevLb γ m.hdr.revision)
 
 /-- **What a range's reply says**: a state `σ` (the one the read update fired at, `□ Q σ`, if
 linearizable) at whose current revision the reply's header is, of whose store at the revision the
@@ -1472,11 +1508,14 @@ theorem kvLogOk_of_step {rq : apply.IRRModel} {v3 : Bool} {x x' : apply.ApplyKV}
     (by intro he; rw [he] at hl; simp at hl) hc.2.2.2
 
 /-- Some member's put reply says what `putStOk` says. -/
-theorem putAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (F : mvcc.Log)
+theorem putAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (γ : KVNames)
+    (hn : ∀ x ∈ ms, kvSame x.γr.kv γ) (F : mvcc.Log)
     (o : OpFull) (Q : KVState → IProp GF)
-    (m : PutRespM) : putAns ms F o Q m ⊢ putStOk o Q m := by
+    (m : PutRespM) : putAns ms F o Q m ⊢ putStOk γ o Q m := by
   unfold putAns putStOk
-  iintro ⟨%x, -, H⟩
+  iintro ⟨%x, %hx, H, #Hrv⟩
+  ihave #Hrv' := kvRevLb_same x.γr.kv γ (hn x hx) m.hdr.revision $$ Hrv
+  iframe Hrv'
   iunfold putReplied at H
   icases H with ⟨%hm, %y, %y', %l, %skip, %Hp, #Hc, -, -, -, %Hk, HQ⟩
   ihave %Hl0 := idxCert_logOk _ _ hrb $$ Hc
@@ -1677,20 +1716,22 @@ theorem txnCallOut_mono (Q Q' : TxnRespM → IProp GF) (resp : Loc) (err : GoInt
 
 /-! ### The specs' outcomes, in the proofs' terms -/
 
-theorem putCallOut_st (o : OpFull) (Q : KVState → IProp GF) (resp : Loc) (err : GoInterface) :
-    putCallOut (putStOk o Q) resp err ⊢
+theorem putCallOut_st (γ : KVNames) (o : OpFull) (Q : KVState → IProp GF) (resp : Loc)
+    (err : GoInterface) :
+    putCallOut (putStOk γ o Q) resp err ⊢
       (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
         ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧
           m.prev = (if o.base.prevKV then (σ.store.lookup o.key).map (KVRec.toKv o.key) else none) ∧
-          σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ ∧ kvLogOk (kvOpStep (.put o) σ)⌝) ∨
+          σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ ∧ kvLogOk (kvOpStep (.put o) σ)⌝ ∗
+        kvRevLb γ m.hdr.revision) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
   unfold putCallOut putStOk kvErr
-  iintro (⟨%He, %m, Hm, %σ, HQ, %Hs⟩ | ⟨%He, #Hs, #Hc⟩)
+  iintro (⟨%He, %m, Hm, %σ, HQ, %Hs, #Hrv⟩ | ⟨%He, #Hs, #Hc⟩)
   · ileft
     isplitl []
     · ipureintro; exact He
     iexists m, σ
-    iframe Hm HQ
+    iframe Hm HQ Hrv
     ipureintro; exact Hs
   · iright
     isplitl []

@@ -236,6 +236,27 @@ theorem grpcHandlerOk_own {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
   iapply Hh $$ %m %Φ %ci %cd %r [HS HSpec] HΨ
   iframe; iframe #
 
+/-- An owning service method's plain spec is its spec at every metadata (the client's
+`kv.Compact`, 2026-11-01; as `grpcHandlerOk_md`). -/
+theorem grpcHandlerOwnOk_md {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
+    (Spec : GrpcSpec Req Rep) :
+    grpcHandlerOwnOk h S Spec ⊣⊢ grpcHandlerOwnOkMd h S (GrpcSpec.md Spec) :=
+  .rfl
+
+/-- An owning service method meeting `Spec` with `S` meets it with more (as `grpcHandlerOk_frame`). -/
+theorem grpcHandlerOwnOk_frame {Req Rep : ProtoMsg GF} (h : val) (S R : IProp GF)
+    (Spec : GrpcSpec Req Rep) :
+    grpcHandlerOwnOk h S Spec ⊢ grpcHandlerOwnOk h iprop(S ∗ R) Spec := by
+  iintro #Hh
+  unfold grpcHandlerOwnOk
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, HR⟩, #Hctx, #Hrc, #Hr, Hown, HSpec⟩ HΨ
+  iapply Hh $$ %m %Φ %ci %cd %r [HS Hown HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, Hres⟩
+  iapply HΨ
+  iframe
+
 /-- A service method meeting `Spec` with `S` meets it with more (`S ∗ R`, `R` given back). -/
 theorem grpcHandlerOk_frame {Req Rep : ProtoMsg GF} (h : val) (S R : IProp GF)
     (Spec : GrpcSpec Req Rep) :

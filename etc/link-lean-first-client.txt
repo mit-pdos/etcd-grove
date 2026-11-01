@@ -46,6 +46,12 @@ watchClient__Watch: grpc_StaticMethod grpc_ClientConn__NewStream grpc_GenericCli
 # The retry client (client/v3/retry.go, retry_interceptor.go's `withRepeatablePolicy`).
 RetryKVClient: NewKVClient
 retryKVClient__Put: kVClient__Put
+# the client's `kv.Compact` (2026-11-01): the compaction request and its RPC
+CompactOp__applyCompactOpts:
+OpCompact: CompactOp__applyCompactOpts
+CompactOp__toRequest:
+kVClient__Compact: grpc_StaticMethod grpc_ClientConn__Invoke
+retryKVClient__Compact: kVClient__Compact
 withRepeatablePolicy:
 retryKVClient__Range: withRepeatablePolicy kVClient__Range
 retryKVClient__DeleteRange: kVClient__DeleteRange
@@ -82,6 +88,7 @@ Op__IsSortOptionValid:
 Op__toRangeRequest:
 kv__Do: Op__IsSortOptionValid Op__toRangeRequest retryKVClient__Range retryKVClient__Put retryKVClient__DeleteRange ContextError
 kv__Put: OpPut kv__Do ContextError
+kv__Compact: OpCompact CompactOp__toRequest retryKVClient__Compact ContextError
 kv__Get: NewOp kv__Do ContextError
 kv__Delete: OpDelete kv__Do ContextError
 # the transaction builder (client/v3/txn.go; the operations' requests, op.go), unit V2

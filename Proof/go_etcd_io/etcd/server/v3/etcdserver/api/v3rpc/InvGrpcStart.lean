@@ -87,6 +87,8 @@ def v3rpc.kvRegs (q : Loc) : List (GoString × val × GoInterface) :=
    (go!"/etcdserverpb.KV/DeleteRange", (@! etcdserverpb._KV_DeleteRange_Handler),
      interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q),
    (go!"/etcdserverpb.KV/Txn", (@! etcdserverpb._KV_Txn_Handler),
+     interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q),
+   (go!"/etcdserverpb.KV/Compact", (@! etcdserverpb._KV_Compact_Handler),
      interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q)]
 
 /-- The Watch service's stream `v3rpc.Server` registers, with the `*watchServer` `p`. -/
@@ -110,12 +112,14 @@ theorem v3rpc.kvRegs_sub (q : Loc) (mds : List google_golang_org.grpc.MethodDesc
   rw [v3rpc.descRegs_eq, h]
   simp only [v3rpc.kvRegs, List.mem_cons, List.not_mem_nil, or_false] at hx
   simp only [v3rpc.kvDescMethods, List.map_cons, List.map_nil]
-  rcases hx with rfl | rfl | rfl | rfl
+  rcases hx with rfl | rfl | rfl | rfl | rfl
   · exact List.mem_cons_of_mem _ (List.mem_cons_self ..)
   · exact List.mem_cons_self ..
   · exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..))
   · exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
       (List.mem_cons_self ..)))
+  · exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+      (List.mem_cons_of_mem _ (List.mem_cons_self ..))))
 
 /-- The KV descriptor's names are distinct. -/
 theorem v3rpc.kvDesc_nodup (mds : List google_golang_org.grpc.MethodDesc)
