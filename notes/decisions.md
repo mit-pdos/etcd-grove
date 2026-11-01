@@ -27984,3 +27984,16 @@ The user, at Freeze: "approved, freeze and start Prove". Frozen:
   `receiptBound GF ≤ 2^62` (the sort's bound). Not an axiom, and not a lease-count premise on the
   callers: the bound is the execution's, which the closed results already bound. `⧖`, not `⧗`: the
   lock's resource splits over read fractions, and only a persistent receipt does.
+
+## The lease checks' revision re-check is not stated (2026-11-01 · accepted, the user's choice · `notes/lease-revcheck-plan.md`)
+
+Item 3 of the lessor/auth list asked for the lease checks' `Revision()` re-check in their posts. The
+user chose, in turn, a strictly-increasing-revision invariant (false: `AuthEnable` keeps the
+revision, `Recover` installs the backend's) and then the posts with the two reads' states ordered
+(`revisionReread`), which the spec review showed vacuous (implied by the first read). Settled: no
+statement; `checkLeaseRenew.spec`'s margin says what the re-check does not give (one auth state for
+the verdicts: the permission cache lags the published revision) and what protects Go
+(`isOpPermitted`'s token-revision check with tokens minted between auth mutations). A later
+statement would bound each verdict by the end read's state; `revCur` would then need its quarter's
+last state (`hs.getLast? = some st` with its `authStateAt`), which the dropped Draft proved
+maintainable.
