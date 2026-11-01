@@ -618,6 +618,9 @@ def isClusterC (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) : IProp
     "#Hcl" ∷ kdCluster γ vs ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
     "%Hdup" ∷ ⌜γ.r.cluster.dup = true⌝ ∗
+    -- (2026-11-01, the start functions) the cluster has no bootstrap log (`cluster_alloc` at the
+    -- empty one): `RestartNode`'s `γ.bootLen ≤ σ.commit` (kvreconf's `%Hbl0`)
+    "%Hbl0" ∷ ⌜γ.r.cluster.bootLen = 0⌝ ∗
     "#HstorInv" ∷ kdStorInv ∗
     "#Hdir" ∷ c.[KCluster, go!"dir"] ↦□ dir ∗
     "#Hboot" ∷ c.[KCluster, go!"boot"] ↦□ bp ∗

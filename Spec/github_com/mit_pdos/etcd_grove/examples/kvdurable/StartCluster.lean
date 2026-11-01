@@ -36,7 +36,7 @@ abbrev StartCluster.spec : Prop :=
   1 ≤ uint.Z o.Voters' → uint.Z o.Voters' ≤ 5 →
   let vs := kvreconf.bootVoters (uint.nat o.Voters')
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvdurable ∗ context.isClosedchanInit ∗ kdCluster γ vs ∗
-      kdStorInv ∗ ⌜γ.r.cluster.dup = true⌝ ∗
+      kdStorInv ∗ ⌜γ.r.cluster.dup = true⌝ ∗ ⌜γ.r.cluster.bootLen = 0⌝ ∗
       ([∗list] id ∈ vs, raftState γ.r.cluster id RaftState.init ∗ nodeVacant γ.r.cluster id ∗
         dfile γ.files (kdFileName dir id) none ∗
         ∃ g : RaftState × Option GoString, ghostVar (γ.wr id) (1 : Qp) g) ∗
