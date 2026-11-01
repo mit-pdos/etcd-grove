@@ -67,11 +67,17 @@ one revision about once per 100 operations, and it compacts at such a revision s
    log: the tester's checks of these three calls (revision, count, key-values) are unprovable. The
    transaction-level checks are not blocked by this: `rangeOutcomeC`/`rangeKvs` are exact at the
    log the transaction read, and the sole writer knows that log.
-   This does not touch etcd's proofs: no proof outside mvcc uses these three specs (the server's
-   txn package calls only `kv.Write` and `kv.Read`). A linearizable read there is pinned by
-   `store.Read`'s two bounds: `log₀ <+: log` from the read-index round's applied log (`KVRead.lean`,
-   `readServed_logR`) and `idxCert γ.idx log`, a prefix of the log committed at the read. The
-   three view specs lack the lower bound only because no verified caller needed them.
+   This does not touch etcd's proofs: no proof outside mvcc uses these three specs. In etcd's Go
+   code (non-test, at the pin), `s.Put`/`s.DeleteRange` have no caller; the server's txn package
+   calls `kv.Write`/`kv.Read` (its `ReadView` arguments are the open transactions), and a
+   linearizable read there is pinned by `store.Read`'s two bounds: `log₀ <+: log` from the
+   read-index round's applied log (`KVRead.lean`, `readServed_logR`) and `idxCert γ.idx log`, a
+   prefix of the log committed at the read. `s.Range` has one caller, the watch server's
+   previous key-value (`v3rpc/watch.go`, `sendWatch`, `sws.watchable.Range` at `ModRevision - 1`),
+   which the proof leaves unreached by its restriction `watchReqOk` (no `prev_kv` request,
+   `InvWatchStream.lean`). The view `s.Rev` (`readView.Rev`, also unpinned) is called by the
+   server, which uses instead the promoted `store.Rev`'s pinned spec, proved directly over
+   `store.Read` (`store__Rev.lean`): the way to pin the other three.
 
 ### Outside mvcc (the backend the store needs)
 
