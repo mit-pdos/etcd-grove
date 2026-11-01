@@ -1,0 +1,231 @@
+/-
+minibolt's open `DB` (`examples/bboltfs/minibolt.go`): its representation predicate and the
+resources of its three locks, as in bbolt.
+
+## State
+
+The ghost names (`DBNames`) name:
+- `cur`, a ghost variable holding `(mp, failed, hwm)`: the bytes of the two meta pages, `failed`,
+  and the committed high water mark (in pages). While not failed, `hwm` is the current meta's
+  `pgid` (`curMeta mp`, `pickMeta`'s choice). Split 1/2 `metalock`, 1/4 `rwlock`, 1/4 the mapping's
+  invariant: changing it takes the writer holding both mutexes and opening the invariant.
+- `map`, a ghost variable holding `(base, len, γm)`: the mapping and the name of its invariant's
+  token. 1/2 `rwlock`, 1/2 `mmaplock`'s resource (`q/2` of it at fraction `q`).
+- `out`: the meta pages' meta cells are out of the mapping's invariant (with the writer, during
+  the meta `WriteAt`). 1/2 the invariant, 1/4 each mutex.
+- `txs`, a ghost map from txids to values (`dbTx γ t vo`, persistent: transaction `t`'s root page
+  holds `vo`, `pageVal`), `last` (a monotone counter: the current txid, `dbLast γ t` its lower
+  bounds), `fail` (a monotone counter, 1 once failed, `dbFailed γ`), and `own` (the committer's
+  token `dbOwner γ t n`: the current txid and high water mark; the other half in `metalock`).
+
+A committed page `r` (`2 ≤ r < hwm`) is never written again: its bytes are clean (synced) and its
+`osBytes` discarded (`pageIs`, persistent), and the client halves of its mapped cells live in the
+mapping's invariant, holding those bytes. A reader loads a committed byte by opening the invariant
+around the load: no `OsMeta` is needed (the writer proved the cells' values with `osCell_agree`
+when it mapped the file, and no write touches them since).
+
+## The locks (as in bbolt)
+- `rwlock` (`rwR`): the writer's. The whole `OsMeta` (`Truncate`, `Sync`, `Fdatasync`, `Mmap`,
+  `Munmap` all take it), the bytes from `hwm` on and half the meta pages' bytes, the client
+  halves of the mapped cells it may write (the meta pages' header and tail, and the pages from
+  `hwm` on), `filesz`, `datasz`, halves of the mapping fields, and half the file and its fd.
+- `metalock` (`metaR`): `failed`, half the meta pages' bytes (a meta `WriteAt` takes both
+  halves: it runs under both mutexes), the transaction map, and while not failed: the meta pages
+  are valid (`metaPagesOk`), the current meta's root page `pageIs` its value, `dbTx` of it.
+- `mmaplock` (`mapR γ db q`, Perennial's guarded `RWMutex`): the mapping, fractionally: the
+  mapping fields, a fraction `q` of the mapping invariant's token (`ghostVar γm q ()`: a remap,
+  with `q = 1`, closes the invariant and takes every cell back for `Munmap`), and fractions of the
+  file and its fd for `Snapshot`'s `ReadAt`.
+
+The mapping's invariant (`mapInv`, a closable invariant over `mapCells`) holds the committed
+pages' cells and, unless `out`, the meta cells, holding the metas while not failed.
+
+This is the design; the specs over it are stated (`DB__Get`, `DB__Commit`, ...). See
+`issues/bbolt-failed-remap-nil-meta-panic.md` for why `mmaplock`'s resource cannot promise a
+mapping after a failed remap: `Get`'s spec is not provable for the code as it is.
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.Store
+public import Proof.os.Base
+public import Perennial.Proof.sync.RWMutexGuard
+public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.GhostMap
+public import Perennial.Ghost.MonoNat
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std
+
+namespace github_com.mit_pdos.etcd_grove.examples.bboltfs
+
+section pure
+variable [GooseExts]
+
+/-- The meta `pickMeta` picks from the meta pages' bytes `mp`. -/
+def curMeta (mp : List w8) : Meta :=
+  let m0 := fileMeta mp 0
+  let m1 := fileMeta mp 1
+  if uint.Z m0.txid' < uint.Z m1.txid' then (if metaValid m1 then m1 else m0)
+  else (if metaValid m0 then m0 else m1)
+
+/-- The current meta's root page. -/
+def curRoot (mp : List w8) : Nat := (curMeta mp).root'.root'.toNat
+
+/-- The current meta's high water mark. -/
+def curPgid (mp : List w8) : Nat := (curMeta mp).pgid'.toNat
+
+/-- The meta pages of an open database: a valid meta, whose root page is committed (past the
+meta, freelist pages... from page 2) below its high water mark, small enough to map (`mmapSize`'s
+bound). -/
+def metaPagesOk (mp : List w8) : Prop :=
+  mp.length = 8192 ∧ (metaValid (fileMeta mp 0) ∨ metaValid (fileMeta mp 1)) ∧
+    2 ≤ curRoot mp ∧ curRoot mp < curPgid mp ∧ (curPgid mp + 2) * 4096 ≤ 2 ^ 40
+
+/-- What a root page holds: a value if its `count` is 1 (`Get`'s `has`). -/
+def pageVal (B : List w8) : Option w64 :=
+  if (pageHdrOf B).count' = W16 1 then some (decode ((B.drop 16).take 8)) else none
+
+/-- A file `Open` accepts (crash-free, as after a crash: all of it clean): shorter than four
+pages (`init` lays it out), or with no valid meta (`init` again), or an open database's meta pages
+whose high water mark is inside the file. -/
+def fileOk (xs : List (w8 × Bool)) : Prop :=
+  xs.length < 4 * 4096 ∨
+    ((∀ x ∈ xs, x.2 = true) ∧
+      let mp := (xs.map Prod.fst).take 8192
+      ((¬ metaValid (fileMeta mp 0) ∧ ¬ metaValid (fileMeta mp 1)) ∨
+       (metaPagesOk mp ∧ 4096 * curPgid mp ≤ xs.length)))
+
+end pure
+
+/-- The ghost names of an open database (see the file header). -/
+structure DBNames where
+  cur : GName
+  map : GName
+  out : GName
+  txs : GName
+  last : GName
+  fail : GName
+  own : GName
+
+section preds
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : Assumptions]
+
+/-- Committed page `r` of the file `p` holds `B`, clean (synced), forever. -/
+def pageIs (p : GoString) (r : Nat) (B : List w8) : IProp GF :=
+  iprop(⌜B.length = 4096⌝ ∗ osBytes (GF := GF) p (4096 * r) DFrac.discard (B.map (·, true)))
+
+/-- Transaction `t`'s root page holds `vo`. -/
+def dbTx (γ : DBNames) (t : Nat) (vo : Option w64) : IProp GF :=
+  ghostMapElem γ.txs t DFrac.discard vo
+
+/-- The current txid is at least `t`. -/
+def dbLast (γ : DBNames) (t : Nat) : IProp GF := monoNatLbOwn γ.last t
+
+/-- A commit failed: the handle refuses every later transaction. -/
+def dbFailed (γ : DBNames) : IProp GF := monoNatLbOwn γ.fail 1
+
+/-- The committer's token: the current txid is `t` and the high water mark `n`. -/
+def dbOwner (γ : DBNames) (t n : Nat) : IProp GF := ghostVar γ.own (1 : Qp).half (t, n)
+
+/-- The client halves of the cells `[lo, lo + B.length)` of the mapping at `base`, holding `B`. -/
+def cellsB (base : Loc) (lo : Nat) (B : List w8) : IProp GF :=
+  cellsR (GF := GF) base lo B.length (fun i => byteCell (B.getD (i - lo) 0))
+
+/-- The mapping invariant's contents: the committed pages' cells, and the meta cells unless the
+writer took them (`out`), holding the metas while not failed. -/
+def mapCells (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) : IProp GF :=
+  iprop(∃ (mp : List w8) (fl : Bool) (hwm : Nat),
+    ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ⌜4096 * hwm ≤ len⌝ ∗
+    ([∗list] r ∈ List.range' 2 (hwm - 2),
+      ∃ B, pageIs (GF := GF) p r B ∗ cellsB (GF := GF) base (4096 * r) B) ∗
+    (ghostVar γ.out (1 : Qp).half true ∨
+      (ghostVar γ.out (1 : Qp).half false ∗ ∃ mc : List w8,
+        cellsB (GF := GF) base 16 (mc.take 64) ∗ cellsB (GF := GF) base 4112 (mc.drop 64) ∗
+        ⌜mc.length = 128 ∧ (fl = false →
+          mc = (mp.drop 16).take 64 ++ (mp.drop 4112).take 64)⌝)))
+
+/-- The namespace of a mapping's invariant. -/
+def mapN : Namespace := nroot .@ "minibolt_map"
+
+/-- The invariant of the mapping at `base`, closable with the whole of `γm`'s token. -/
+def mapInv (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName) : IProp GF :=
+  inv mapN iprop(mapCells (GF := GF) γ p base len ∨ ghostVar γm 1 ())
+
+/-- `mmaplock`'s resource at fraction `q` (see the file header). -/
+def mapR (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (q : Qp) : IProp GF :=
+  iprop(∃ (base : Loc) (len : Nat) (γm : GName),
+    ghostVar γ.map q.half (base, len, γm) ∗
+    db.[DB, go!"dataref"] ↦{DFrac.own q.half} (⟨base, W64 len, W64 len⟩ : GoSlice) ∗
+    db.[DB, go!"meta0"] ↦{DFrac.own q.half} (base +ₗ 16) ∗
+    db.[DB, go!"meta1"] ↦{DFrac.own q.half} (base +ₗ 4112) ∗
+    ghostVar γm q () ∗ mapInv (GF := GF) γ p base len γm ∗
+    os.ownFile (GF := GF) f fd p (DFrac.own q.half.half) ∗
+    osFd (GF := GF) fd (DFrac.own q.half.half) ⟨p, true, true⟩)
+
+/-- `metalock`'s resource (see the file header). -/
+def metaR (γ : DBNames) (db : Loc) (p : GoString) : IProp GF :=
+  iprop(∃ (b : Bool) (mp mx : List (w8)) (hwm : Nat) (mxc : List (w8 × Bool))
+      (T : GMap Nat (Option w64)),
+    db.[DB, go!"failed"] ↦ b ∗ ghostVar γ.cur (1 : Qp).half (mp, b, hwm) ∗
+    osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗ ⌜mxc.length = 8192 ∧ mxc.map Prod.fst = mx⌝ ∗
+    ghostMapAuth γ.txs 1 T ∗ ghostVar γ.out (1 : Qp).half.half false ∗
+    match b with
+    | true => monoNatAuthOwn γ.fail 1 1
+    | false =>
+      monoNatAuthOwn γ.fail 1 0 ∗ ⌜mx = mp ∧ metaPagesOk mp ∧ hwm = curPgid mp⌝ ∗
+      monoNatAuthOwn γ.last 1 (curMeta mp).txid'.toNat ∗
+      ghostVar γ.own (1 : Qp).half ((curMeta mp).txid'.toNat, hwm) ∗
+      ∃ B, pageIs (GF := GF) p (curRoot mp) B ∗
+        ⌜T !! (curMeta mp).txid'.toNat = some (pageVal B)⌝)
+
+/-- `rwlock`'s resource (see the file header). -/
+def rwR (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) : IProp GF :=
+  iprop(∃ (mp : List w8) (fl : Bool) (hwm : Nat) (base : Loc) (len : Nat) (γm : GName)
+      (m : OsMeta) (mxc tail : List (w8 × Bool)),
+    ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ghostVar γ.map (1 : Qp).half (base, len, γm) ∗
+    ghostVar γ.out (1 : Qp).half.half false ∗
+    db.[DB, go!"dataref"] ↦{DFrac.own (1 : Qp).half} (⟨base, W64 len, W64 len⟩ : GoSlice) ∗
+    db.[DB, go!"meta0"] ↦{DFrac.own (1 : Qp).half} (base +ₗ 16) ∗
+    db.[DB, go!"meta1"] ↦{DFrac.own (1 : Qp).half} (base +ₗ 4112) ∗
+    db.[DB, go!"filesz"] ↦ W64 m.size ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
+    os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
+    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
+    osMeta (GF := GF) p (DFrac.own 1) (some m) ∗
+    ⌜m.maps = {[base := len]} ∧ 4096 * hwm ≤ m.size ∧ m.size ≤ len ∧ 0 < base.addr⌝ ∗
+    osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
+    osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail ∗
+    ⌜mxc.length = 8192 ∧ tail.length = m.size - 4096 * hwm⌝ ∗
+    (∃ vf, cellsR (GF := GF) base 0 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 80 4032 vf) ∗
+    (∃ vf, cellsR (GF := GF) base 4096 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 4176 4016 vf) ∗
+    (∃ vf, cellsR (GF := GF) base (4096 * hwm) (len - 4096 * hwm) vf))
+
+/-- The persistent part of an open database: the file, its path, and the three locks with
+their resources. -/
+def isDB (γ : DBNames) (db : Loc) : IProp GF :=
+  iprop(∃ (f : Loc) (fd : w64) (p : GoString),
+    osInv (GF := GF) ∗ db.[DB, go!"file"] ↦□ f ∗ db.[DB, go!"path"] ↦□ p ∗
+    sync.isMutex db.[DB, go!"rwlock"] (rwR (GF := GF) γ db f fd p) ∗
+    sync.isMutex db.[DB, go!"metalock"] (metaR (GF := GF) γ db p) ∗
+    sync.isRWMutexGuard db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f fd p))
+
+/-- A reader's token of an open database (one of `mmaplock`'s reader tokens). -/
+def dbReader (γ : DBNames) (db : Loc) : IProp GF :=
+  iprop(∃ (f : Loc) (fd : w64) (p : GoString), db.[DB, go!"file"] ↦□ f ∗
+    sync.ownRWMutex db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f fd p))
+
+end preds
+
+end github_com.mit_pdos.etcd_grove.examples.bboltfs
+
+end Perennial

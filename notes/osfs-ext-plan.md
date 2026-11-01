@@ -190,7 +190,13 @@ every change marks what it changes as dirty, but the trusted file does not state
    `etc/gen-link.py --bboltfs`): its page and meta helpers (`page.go`: `pageAt`, `Page.meta`,
    `Meta.sum64`, `Meta.validate`, `Meta.write`, `initPages`, `pickMeta`) are proved, over byte
    points-tos at any fraction (`Pages.lean`'s views), so that they apply to the mapped cells'
-   client halves. The rest of minibolt (`minibolt.go`) is not specified yet.
+   client halves. Of `minibolt.go` (2026-11-01): `mmapSize`, `meta`, `readPageSize`, `munmap` and
+   `close` are proved (the last two over the statements of `Munmap` and `Close`); the
+   representation predicate and lock invariants are `DB.lean` (readers load committed bytes
+   through cells held in a closable invariant per mapping, so they need no `OsMeta`), with the
+   statements of `Get`, `Snapshot`, `Commit`, `Close` and `Open` over it. `Get`/`Snapshot` are not
+   provable for the code as it is (`issues/bbolt-failed-remap-nil-meta-panic.md`), and a reader
+   racing a failed (partial) meta `WriteAt` needs a premise like P1 at run time.
 
 ### Program logic, as of 2026-11-01 (branch `osfs-specs`)
 
