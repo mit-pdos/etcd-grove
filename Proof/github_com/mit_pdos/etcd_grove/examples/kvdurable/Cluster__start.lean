@@ -243,7 +243,7 @@ theorem Cluster.start.wp_proof
     · simp only [Bool.false_eq_true, ↓reduceIte]; iempintro
   icases Hfr with ⟨%Hsveq, Hfresh⟩
   subst Hsveq
-  obtain ⟨HWf, Hp61, Hlen, Hidx, Hpsi, Hsil, Hpc, Hcl, Hterm⟩ := HFok
+  obtain ⟨HWf, Hp61, Hlen, Hidx, Hpsi, Hsil, Hpc, Hcl, Hterm⟩ := _root_.id HFok
   imod ownSnapW_persist snap _ _ $$ Hsn with ⟨%pm, %pc, %Hpmc, #Hsn, #Hpm, #Hpc, #Hcs⟩
   try wp_auto
   wp_apply wp_GetMetadata.1 snap DFrac.discard (kdFreshSnap F) $$ [$Hpb $Hsn] as %pm' ⟨#Hsm, -⟩
@@ -338,6 +338,107 @@ theorem Cluster.start.wp_proof
     %Hrs, Hval⟩
   subst Hv
   obtain ⟨Hcfgm, Haplen, HKv, HAok, Hmsz, Hinit, Hap61⟩ := Hrs
+  try wp_auto
+  -- `FirstIndex`: the log's start plus one (detached: compacted at most there)
+  wp_apply Storage.wp_FirstIndex wp_FirstIndex s ms γs (uint.nat F.prev)
+    $$ [$Hrec $Hraft $Hl $Hcmp] as %fi ⟨%Hfi, #Hcmp'⟩
+  ihave ⟨%Hfi', Hfresh⟩ := memStorFresh_compacted ms γs _ _ _ $$ [$Hfresh $Hcmp']
+  have Hfi1 : fi = F.prev + W64 1 := by word
+  subst Hfi1
+  have Hsi61 : uint.Z F.snap.Metadata'.Index' < 2 ^ 61 := by word
+  try wp_auto
+  -- `Applied`: `0`, or from the log's start to the snapshot's index
+  wp_bind (If _ _ _)
+  iapply (wp_wand_r (Φ := fun v => iprop(⌜v = executeVal⌝ ∗
+    ∃ (ap0 rf : w64), applied_ptr ↦ ap0 ∗ rafted_ptr ↦ rf ∗ index_ptr ↦ F.snap.Metadata'.Index' ∗
+      ⌜(ap0 = W64 0 ∧ rf = F.prev) ∨
+        (uint.nat F.prev ≤ uint.nat ap0 ∧ uint.nat ap0 ≤ uint.nat F.snap.Metadata'.Index' ∧
+          rf = ap0)⌝)))
+  isplitl [applied rafted first index]
+  · wp_apply wp_oneIn (W64 3) (by decide) $$ [$Hpkg] as %b -
+    cases b with
+    | true =>
+      try wp_auto
+      isplitr
+      · ipureintro; first | rfl | trivial
+      iexists _, _
+      iframe applied rafted index
+      ipureintro; left; constructor <;> word
+    | false =>
+      try wp_auto
+      wp_apply wp_below _ $$ [$Hpkg] as %r %Hr
+      try wp_auto
+      isplitr
+      · ipureintro; first | rfl | trivial
+      iexists _, _
+      iframe applied rafted index
+      ipureintro; right
+      have Hr' := Hr.2 (by intro h; word)
+      refine ⟨by word, by word, rfl⟩
+  iintro %v ⟨%Hv, %ap0, %rf, applied, rafted, index, %Hap0⟩
+  subst Hv
+  try wp_auto
+  wp_bind (If _ _ _)
+  iapply (wp_wand_r (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ c_ptr ↦ c)))
+  isplitl [c]
+  · wp_if_destruct
+    · ihave #Hc2 := isStats_field (c.[KCluster, go!"Stats"]) go!"RestartsAppliedBelow" (by decide)
+        $$ Hstats
+      try wp_auto
+      wp_apply wp_add (c.[KCluster, go!"Stats"]) _ $$ [$Hpkg $Hc2]
+      try wp_auto
+      iframe c; try (ipureintro; first | rfl | trivial)
+    · try wp_auto
+      iframe c; try (ipureintro; first | rfl | trivial)
+  iintro %v ⟨%Hv, c⟩
+  subst Hv
+  try wp_auto
+  -- the node restarted
+  have Hsc : uint.nat F.snap.Metadata'.Index' ≤ uint.nat F.hs.Commit' := by
+    by_cases h0 : F.snap.Metadata'.Index' = W64 0
+    · rw [h0]; simp
+    · exact (HFSH.2.2.2.2.2.2.2.1 F.snap (by simp only [kdContents]; rw [if_neg h0])).2
+  have Hnid0 : id ≠ W64 0 := by intro h; rw [h] at Hid1; simp at Hid1
+  wp_apply wp_config γ vs dir c id s ap0 Hnid0 (by word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
+  obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp⟩ := Hcfg
+  ihave Hrs := kd_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
+    wp_Entries s ms bp γs F (kvreconf.bootCS vs) e0 γ.r.cluster (uint.nat ap0)
+    (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K))) HFok He0 Hsc
+    $$ Hpkg Hrec Hsb Hl Hfresh Hmeta Hd0 Hfro Hents Hend Hcmp Hval []
+  · iintro %K Hm Hi; iframe Hm Hi
+  ihave Hrs := restartStorage_frozen_prefix γ.r.cluster _ _ _ _ _ _
+    (by simp only [kdContents_some_b]; word) (by simp only [kdContents_some_commit]; exact Hsc) $$ Hrs
+  ihave Hau := kd_restartAu (GF := GF) γ.r.cluster kdRaftN id (kdContents (some F)) S HFSH $$ HrS
+  ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
+  have Hiface : kdStorIface s =
+      GoInterface.ok ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage.ty, #s⟩ :=
+    rfl
+  have HA : uint.nat cv.Applied' = uint.nat ap0 := by rw [HcAp]
+  wp_apply (restart_delivered_stored_S1b wp_RestartNode γ.r.cluster kdRaftN cp cv qLogger
+      ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage.ty, #s⟩
+      (kdContents (some F)) (kdInitCS (kvreconf.bootCS vs) F) (uint.nat F.snap.Metadata'.Index') m
+      (fun S' => iprop(raftState γ.r.cluster id S' ∗ ⌜S' = S⌝))
+      (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K)))
+      HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS
+      (by rw [HA]; simp only [kdContents_some_b, kdContents_some_commit]
+          rcases Hap0 with ⟨h1, -⟩ | ⟨h1, h2, -⟩
+          · left; rw [h1]; rfl
+          · right; omega)
+      (by rw [HA]; simp only [kdContents_some_b]
+          rcases Hap0 with ⟨h1, -⟩ | ⟨h1, h2, -⟩
+          · rw [h1]; simp; word
+          · omega)
+      (by simp only [kdContents_some_commit]; exact Hsc)
+      (by rw [Hbl0]; omega) Hinit)
+    $$ [$Hraft $Hcv $Hlogger $HisC Hvac Hau Hrs]
+    as %nd ⟨%n, %S', %l, %K, %Hnd, #HisNode, #Hl', %Hllen, %HS1b, Hdrv, Hncfg, Hrun, ⟨HrS, %HS'⟩,
+      ⟨Hmeta, #HmsInv⟩⟩
+  · rw [HcID, ← Hiface, HA]
+    iframe Hvac Hrs
+    isplitl [Hau]
+    · iexact Hau
+    rw [← Haplen]; iexact Hcap
+  subst Hnd HS'
   try wp_auto
   sorry
 
