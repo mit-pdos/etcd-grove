@@ -42,7 +42,7 @@ abbrev mvcc.metricsTxnWrite.Put.spec : Prop :=
 the pending changes, at the pending revision (returned); the lease (none, or a live one) attached
 in the lessor's item map, which the caller, the lease owner, holds at the pending state's. With a
 lease, the key is shorter than `2 ^ 63 - 1` (the premise of the real lessor's `Attach` in `isMvccLessor`, which its proof
-needs, invariant `itemKeysShort`; the Go code uses no key length). -/
+needs, invariant `itemKeysShort`; the Go code needs no key bound). -/
 abbrev mvcc.metricsTxnWrite.Put.specC : Prop :=
   ∀ (mw : Loc) (γ : mvcc.MvccName) (trace : Loc) (σ : mvcc.MvccState) (pend : List mvcc.Change)
     (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64),

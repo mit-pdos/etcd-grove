@@ -508,6 +508,16 @@ In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R
 
 ## mvcc's randomized tester (2026-10-30, 2026-11-01, branch `worktree-mvcc-rand-tester`)
 
+**Candidate mvcc API (2026-11-01)**, at the user's request: specs good enough for etcd and the
+tester, designed with the `spec` skill (`notes/mvcc-api-candidate.md`). A vocabulary module
+(`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`: the client's abstract state
+`mvccState γ σ`, opaque predicates, laws stated as `<name>.law : Prop`) and 28 candidate specs
+`<F>.specC` beside today's `<F>.spec`: reads fire the caller's atomic update at the state they
+read, write transactions are pinned to their state and commit by the caller's update, watch events
+come from logs the client announced. Four rounds, three reviews (`spec-reviewer`); they typecheck,
+nothing proves them, no proof uses them; seven decisions are the user's (the note's list). Found on
+the way: `issues/etcd-mvcc-watch-negative-start-rev.md`.
+
 **Second version (2026-11-01)**, at the user's request: the tester exercises what etcd relies on
 (`notes/mvccrand.md`, "What etcd relies on mvcc for"): the watchable store with a real lessor and a
 post-lock hook set after it, as the server does; one writer making txn's `Put`, `DeleteRange` and

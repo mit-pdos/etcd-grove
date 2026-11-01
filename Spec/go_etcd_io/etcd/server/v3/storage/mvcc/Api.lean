@@ -100,6 +100,13 @@ def MTxn.readRev : MTxn → w64
   | .read σ => W64 (σ.rev : Int)
   | .write σ pend => W64 ((writeRev σ.log pend : Nat) : Int)
 
+/-- **What a `Cancel`'s caller knows of the id**: a live watcher whose token it holds, an id its
+registrar's view does not have, or a watcher already cancelled. -/
+inductive CancelBy where
+  | live
+  | unknown
+  | dead
+
 /-- **A watch response**, as the client sees it: its watcher's id (`-1`: the whole stream's
 progress), its events, its revision and its compaction revision (`0`: none). -/
 structure WResp where

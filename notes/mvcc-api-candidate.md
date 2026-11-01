@@ -112,6 +112,13 @@ mvcc's documentation says otherwise: `issues/etcd-mvcc-watch-negative-start-rev.
 review, reproduced); `Attach`'s key bound is the real lessor's proof's invariant (`itemKeysShort`),
 not a need of its Go code.
 
+## Round 4 (the review of round 3)
+
+Round 3's `Cancel` was sound but merged the caller's two cases in its post, so a caller that lent
+its registrar's view could get back only `wsCanceled` and lose the view (v3rpc's receive loop then
+could not register again). `Cancel` now takes the caller's case (`CancelBy`: `live`, `unknown`,
+`dead`), each with its own post. Not reviewed again (a split of an arm the review checked).
+
 ## Decisions for the user (new client-owned ghost state and premises)
 
 The skill's policy: each new premise or client-owned ghost state on a spec with clients is the

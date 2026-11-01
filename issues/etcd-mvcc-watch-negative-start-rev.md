@@ -8,7 +8,9 @@ links: []
 
 - **Status**: documentation the code contradicts. Not reachable through etcd's gRPC API, which
   rejects a negative start revision first; a client of mvcc's Go API (mvcc's own callers, tests,
-  embedders) gets a replay of the history, or a compaction response from a store never compacted.
+  embedders) gets a replay of the history, or a compaction response from a store never compacted;
+  on a store compacted at `c ≥ 0`, every negative start revision gets a compaction response at `c`
+  (no replay), where the documentation promises the events after the current revision.
 - **Where**: `server/storage/mvcc/watcher.go:44-45` at the etcd pin (`etc/goose.py`, `249d76bea`):
   `WatchStream.Watch`'s documentation, "If "startRev" <=0, watch observes events after
   currentRev." The code (`watchable_store.go`, `watch`, lines 139-153) treats only `0` that way:
