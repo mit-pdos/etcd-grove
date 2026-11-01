@@ -9,6 +9,11 @@ is the replicated state's (`idx = len ap`) and the entry is not past it (`k ≤ 
 decides `covered` on the field, and an entry past `len ap` would leave a gap (stage I fix,
 2026-11-01). `ap` is a prefix of `l` only for an entry it does not cover (2026-11-01, stage II (j),
 G13: after a restart below the snapshot, a `Ready`'s delivered log may still end below `len ap`).
+The view (`appNode`) is taken and returned only for an entry it does not cover (2026-11-01, stage II
+(j), G22: a covered entry leaves the node alone, and `run` keeps its view's applied index at `len ap`
+across the covered entries, which `appNode`'s existential would hide); for the same reason the bound
+`len ap + 1 < 2^61` is no longer a premise: it is needed only for an entry not covered, where it is
+`k + 1 < 2^61`.
 -/
 module
 
@@ -40,16 +45,16 @@ abbrev Replica.applyEntry.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq ms : Loc)
     (γs : MemStorNames) (ph : KdDmuNames) (q : Qp) (ap : List LogEntry) (idx : w64) (csp : Loc) (m : Membership)
     (mA : Loc) (A : GMap (List w8) (List w8)) (l : List LogEntry) (k : Nat) (e : LogEntry) (ep : Loc),
-  l.take k ++ [e] <+: l → (k < ap.length ∨ ap <+: l) → ((ap.length : Int) + 1 < 2 ^ 61) → ((k : Int) + 1 < 2 ^ 61) →
+  l.take k ++ [e] <+: l → (k < ap.length ∨ ap <+: l) → ((k : Int) + 1 < 2 ^ 61) →
   uint.Z idx = (ap.length : Int) → k ≤ ap.length →
   {{ isReplica γ vs dir id r n st sts sq ms γs ph ∗ repOwn γ r ap idx csp m mA A ∗
-      appNode γ n l (max k ap.length) m ∗ entRO ep (e.toEntryM (W64 (k + 1))) ∗
+      (if k < ap.length then emp else appNode γ n l ap.length m) ∗ entRO ep (e.toEntryM (W64 (k + 1))) ∗
       isCommittedLogLb γ.r.cluster l ∗ nodeRunning n γ.r.cluster kdRaftN q }}
     (App (Val (r @!! go.GoType.PointerType kReplicaTy @!! go!"applyEntry")) (Val #ep))
   {{ RET #(); ∃ (ap' : List LogEntry) (csp' : Loc) (m' : Membership) (A' : GMap (List w8) (List w8)),
       ⌜ap' = (if k < ap.length then ap else ap ++ [e])⌝ ∗
       repOwn γ r ap' (W64 ap'.length) csp' m' mA A' ∗
-      appNode γ n l (max (k + 1) ap'.length) m' ∗ nodeRunning n γ.r.cluster kdRaftN q }}
+      (if k < ap.length then emp else appNode γ n l ap'.length m') ∗ nodeRunning n γ.r.cluster kdRaftN q }}
 
 end spec
 

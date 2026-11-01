@@ -92,7 +92,7 @@ local macro "applyentry_tail" : tactic => `(tactic| (
     try wp_auto
     iapply HΦ
     iexists ap ++ [e], csp', m', A'
-    simp only [Nat.lt_irrefl, ↓reduceIte, List.length_append, List.length_singleton, Nat.max_self]
+    simp only [Nat.lt_irrefl, ↓reduceIte, List.length_append, List.length_singleton]
     isplitr
     · ipureintro; simp
     iframe Hn Hlive
@@ -116,7 +116,7 @@ theorem Replica.applyEntry.wp_proof
     (wp_Unmarshal2 : proto.UnmarshalConfChangeV2.spec (GF := GF) (hG := hG))
     (wp_add : Stats.add.spec (GF := GF) (hG := hG)) :
     Replica.applyEntry.spec (GF := GF) (hG := hG) := by
-  intro γ vs dir id r n st sts sq ms γs ph q ap idx csp m mA A l k e ep Htk Hap Hlen' Hk61 Hidxap Hkap
+  intro γ vs dir id r n st sts sq ms γs ph q ap idx csp m mA A l k e ep Htk Hap Hk61 Hidxap Hkap
   wp_start as ⟨#Hrep, Hown, Hn, #Hent, #Hl, Hlive⟩
   ihave #Hrep' := Hrep
   iunfold isReplica at Hrep'
@@ -151,20 +151,21 @@ theorem Replica.applyEntry.wp_proof
     iapply HΦ
     iexists ap, csp, m, A
     simp only [Hlt, ↓reduceIte]
-    rw [show max (k + 1) ap.length = max k ap.length by omega]
-    iframe Hown Hn Hlive
+    iframe Hown Hlive
   -- not covered: the entry is the next one
   have Hkeq : k = ap.length := by
     have : ¬ (uint.Z (W64 (k + 1)) ≤ uint.Z (W64 ap.length)) := by
       intro h; apply Hif; word
     word
   subst Hkeq
+  have Hlen' : (ap.length : Int) + 1 < 2 ^ 61 := Hk61
   have Hap : ap <+: l := Hap.resolve_left (Nat.lt_irrefl _)
   have Hpre : ap ++ [e] <+: l := by
     have Ht : l.take ap.length = ap := by
       obtain ⟨t, rfl⟩ := Hap; simp
     rw [← Ht]; exact Htk
-  rw [show max ap.length ap.length = ap.length from Nat.max_self _] at *
+  ihave Hn : appNode γ n l ap.length m $$ [Hn]
+  · simp only [Nat.lt_irrefl, ↓reduceIte]; iexact Hn
   have Hk : l[ap.length]? = some e := by
     obtain ⟨t, rfl⟩ := Hpre
     rw [List.append_assoc, List.getElem?_append_right (Nat.le_refl _)]; simp

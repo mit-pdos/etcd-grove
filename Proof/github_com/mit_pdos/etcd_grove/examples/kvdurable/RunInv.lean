@@ -8,7 +8,8 @@ kvreconf's (`kvreconf/RunInv.lean`) with the durable part: the loop's driver at 
 of `nodeRunning`, its claim on the pending batch at `(none, S)` (no batch pending between `Ready`s)
 and its half of the image's hard state at `hd` (G12), whose term and vote are `S`'s. The replicated
 state `ap` may be ahead of `D` after a restart below the snapshot (then `snapIndex` is at least
-`len ap`); the applier's view is at the larger of the two. `lead` is set only at role leader. The
+`len ap`); the applier's view is at `D` when `ap` is as long, else the node's configuration stays at
+`len ap` (G22: the covered entries leave it alone). `lead` is set only at role leader. The
 delivered log is frozen above the known compaction point `c` and at most the image's frozen bound.
 -/
 module
@@ -53,7 +54,11 @@ def runInv (γ : KdNames) (r n st : Loc) (ρ : KdRepNames) (pp lp sp hp rp : Loc
     "%Htie" ∷ ⌜S.term = hd.Term' ∧ S.vote = hd.Vote'⌝ ∗
     "Hprod" ∷ handoffProducer ρ.rd false ∗
     "Hown" ∷ repOwn γ r ap (W64 ap.length) csp m mA A ∗
-    "Hview" ∷ appNode γ n D (max D.length ap.length) m ∗
+    -- (G22) the applier's view: at `D` once the replicated state is `D`'s length, or, while it is
+    -- ahead (after a restart below the snapshot), the node's configuration at `len ap` itself
+    "Hview" ∷ ((⌜D.length = ap.length⌝ ∗ appNode γ n D D.length m) ∨
+      (⌜D.length < ap.length⌝ ∗ nodeConfig n γ.r.cluster kdRaftN ⟨ap.length, m⟩ ∗
+        deliveredLogLb n γ.r.cluster kdRaftN D)) ∗
     "snapIndex" ∷ sp ↦ snapIndex ∗
     "rafted" ∷ rp ↦ rafted ∗
     "hs" ∷ hp ↦ hsp ∗
@@ -103,14 +108,14 @@ theorem runInv_init (γ : KdNames) (id : w64) (r n st : Loc) (ρ : KdRepNames) (
   isplitr
   · ipureintro; exact Htie
   isplitl [Hcfg]
-  · unfold appNode
-    iexists ⟨ap.length, m⟩
-    iframe Hcfg Hdl
-    rw [show max l.length ap.length = ap.length by omega]
-    isplitl []
-    · iapply skippedIn_noConf
-      intro j e h1 h2; simp only at h1 h2; omega
-    ipureintro; exact ⟨rfl, Nat.le_refl _⟩
+  · rcases Nat.lt_or_eq_of_le Hla with hlt | heq
+    · iright
+      iframe Hcfg Hdl
+      ipureintro; exact hlt
+    · ileft
+      isplitr
+      · ipureintro; exact heq
+      iapply appNode_snap γ n l ap.length m heq $$ [$Hcfg $Hdl]
   isplitl []
   · ipureintro
     have Hsi' : ap.length ≤ uint.nat snapIndex := by
