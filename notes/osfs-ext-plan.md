@@ -763,3 +763,18 @@ Done (no `sorryAx`; axioms `propext`, `Classical.choice`, `Quot.sound` plus goos
   `committed_of_rps`, `noValid_of_short`; ghost: `csOwn_idle00`, `ready_pages` (the frozen bytes
   as `pageIs`), `open_ghostC` (`open_ghost` with `metaRC`). `Open.wp_proof_crash` needs
   `set_option maxRecDepth 20000` (kernel deep recursion otherwise; cause not investigated).
+- **`writerFileC` change**: it now also carries `∀ M, dbOk p (some ⟨{ m with maps := M }, bs, 8192,
+  4096 * hwm, .idle⟩)` (unconditionally, third conjunct), and `mappingResC` carries the same for
+  its state in place of `bs.length = m.size ∧ commitClean m bs`: a failed handle (no
+  `commitClean`) can still unmap (`Munmap.specCrashS`'s obligation) in `Close`.
+- **`DB.commit.specCrash`** statement (`Spec/.../DB__commitCrash.lean`: `writerStC`/`writerStFC`,
+  `metaRC`, `rwRC`, extra premise `bootOk (t + 1) (some v)`); its proof is being done separately
+  (see the section's end for status).
+- **`DB.Commit.specCrash`** (`DB__CommitCrash.lean`, over `isDBC`; `bootOk` from `isDBC`'s
+  `vpBoot`), proved from `DB.commit.specCrash`: `rwRC_of_writerStC`, `fail_handleC`.
+- **`DB.close.specCrash`** (`DB__closeCrash.lean`, `mappingResC`/`unmappedResC`) and
+  **`DB.Close.specCrash`** (`DB__CloseCrash.lean`, over `isDBC`; post `∃ p, db.path ↦□ p ∗ ∃ s,
+  csOwn p γc s`: the closed state's contents are not kept, a boot does not reopen in the same
+  generation), proved; `unmappedC_own`.
+- **`DB.Get.specCrash`**, **`DB.Snapshot.specCrash`** (`DB__GetCrash.lean`, `DB__SnapshotCrash.lean`,
+  over `isDBC`), proved by the mechanical copy (`metaRC` for `metaR`); `dbReaderC_borrow`.

@@ -703,6 +703,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
 
+set_option maxHeartbeats 4000000 in
 set_option maxRecDepth 20000 in
 theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := hG))
     (wp_Truncate : os.File.Truncate.specCrashS (GF := GF) (hG := hG))
@@ -810,6 +811,199 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
     · iframe; iframe #
     iframe
     ipureintro; exact ⟨Hmok, by omega⟩
+  iintro (⟨%Hbv, %base, %len, %γm, %m', Hws, %Hm', Hown, db, minsz, «$res0», v, pg, m⟩ |
+    ⟨%e, %Hbv, db, «$res0», Herr⟩)
+  rotate_left
+  · obtain ⟨rfl, He⟩ := Hbv
+    (try wp_auto)
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; exact He
+    iunfold commitErrC at Herr
+    iexact Herr
+  subst Hbv
+  clear hcc hmp Hwf hsz hfd Hstp
+  iunfold writerStC at Hws
+  icases Hws with ⟨Hcur, Hmap, Hout, Hflds, Hw, Hcls, %Hstp, Htok, #Hinv, Hwc⟩
+  iunfold writerFileC at Hw
+  icases Hw with ⟨%fsz, Hfsz, Hdsz, Hf, Hfd, Hcs, %Hwf⟩
+  obtain ⟨hmp, hcc, rfl, hfd, hsz⟩ := Hwf.2.2.2 rfl
+  obtain ⟨Hmaps, Hsz, Hbase, Hl41⟩ := Hstp
+  obtain ⟨Hok', Hlen⟩ := Hm'
+  icases csOwn_wf' _ _ _ $$ Hcs with ⟨Hcs, %Hcw⟩
+  have hbl : bs.length = m'.size := Hcw.1
+  have h2 := Hwf.1
+  have hpgb : curPgid ((bs.map Prod.fst).take 8192) = hwm := by rw [hmp, hhwm]
+  have hsZ : sint.Z (W64 (m'.size : Int)) = m'.size := by
+    show BitVec.toInt _ = _
+    rw [BitVec.toInt_eq_toNat_cond]; simp only [BitVec.toNat_ofInt]; split <;> omega
+  have hlen64 : (W64 (len : Int)).toNat = len := by simp only [BitVec.toNat_ofInt]; omega
+  have hlenI : 0 ≤ (W64 (len : Int)).toInt := by
+    rw [BitVec.toInt_eq_toNat_cond, hlen64]; split <;> omega
+  dsimp only [mapLen]
+  (try wp_auto)
+  simp only [hsZ, hmZ]
+  -- grow: Truncate and Sync
+  wp_join (Q := fun bv => iprop((⌜bv = executeVal⌝ ∗ ∃ (m2 : OsMeta) (bs2 : List (w8 × Bool)),
+      writerStC (GF := GF) γ γc db f fd p mp false hwm (some (base, len, γm)) m2 bs2 ∗
+      ⌜m2.ok = true ∧ (hwm + 2) * 4096 ≤ m2.size⌝ ∗
+      db_ptr ↦ db ∗ «$res0_ptr» ↦ GoInterface.nil ∗
+      v_ptr ↦ v ∗ pg_ptr ↦ mv.pgid' ∗ m_ptr ↦ nextMeta mv ∗
+      dbOwner (GF := GF) γ mv.txid'.toNat hwm) ∨
+    (∃ e : GoInterface, ⌜bv = returnVal #() ∧ e ≠ interface.nil⌝ ∗ db_ptr ↦ db ∗
+      «$res0_ptr» ↦ e ∗ commitErrC (GF := GF) γ γc db f fd p mv.txid'.toNat)))
+    with [-HΦ]
+  · (try wp_auto)
+    have hsz' : m'.size < (hwm + 2) * 4096 := by exact_mod_cast Hif
+    icases (writerCells_top base hwm len).1 $$ Hwc with ⟨Hwc4, Htop⟩
+    iunfold cellsAny at Htop
+    icases Htop with ⟨%vf, Htop⟩
+    rw [show len - 4096 * hwm = (m'.size - 4096 * hwm) + (len - m'.size) by omega]
+    icases (cellsR_append _ _ _ _ _).1 $$ Htop with ⟨Hlow, Hhigh⟩
+    rw [show 4096 * hwm + (m'.size - 4096 * hwm) = m'.size by omega]
+    ihave Hmc := (mcellsAny_single (GF := GF) base len m'.size len Hsz (Nat.le_refl _)).2 $$ [Hhigh]
+    · unfold cellsAny; iexists vf; iexact Hhigh
+    have hobl := trunc_obl (p := p) hcc hbl (show len ≤ 2 ^ 30 from hsz.2.2) Hsz
+      (by rw [hpgb, hbl]; exact Hwf.2.1) 8192 (4096 * hwm)
+    rw [← hlen64] at hobl
+    rw [← Hmaps]
+    wp_apply wp_Truncate f fd p _ (W64 (len : Int)) _ ⟨p, true, true⟩ dbCrashN γc (dbOk p) m' bs
+        8192 (4096 * hwm) len hfd rfl hlenI (by rw [hlen64]; exact Hsz)
+        (fun b l h => by rw [Hmaps] at h; simp at h; omega) dbCrashN_disj hobl
+        $$ [Hf Hfd Hcs Hmc] as %err ⟨Hf, Hfd, Hres⟩
+    · iframe; iframe #
+    simp only [hlen64]
+    have h4 := Hwf.2.1
+    -- the grown state
+    obtain ⟨hccG, hblG⟩ := treach_commitClean (sz := len) hcc hbl hsz.2.2 Hsz
+      (by rw [hpgb, hbl]; exact h4) .grown
+    have hpreG : ∀ k < 4096 * hwm,
+        (bs ++ List.replicate (len - m'.size) ((0 : w8), false))[k]? = bs[k]? :=
+      fun k hk => List.getElem?_append_left (by omega)
+    have hpgG : curPgid (((bs ++ List.replicate (len - m'.size) ((0 : w8), false)).map Prod.fst).take
+        8192) = hwm := by rw [take8192_congr hpreG (by omega), hpgb]
+    have hcells : ∀ (Hc : IProp GF), (Hc ⊢ cellsR (GF := GF) base m'.size (len - m'.size) (fun _ => byteCell 0)) →
+        (∃ vf, cellsR (GF := GF) base 0 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 80 4016 vf) ∗
+          (∃ vf, cellsR (GF := GF) base 4096 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 4176 4016 vf) ∗
+          cellsR (GF := GF) base (4096 * hwm) (m'.size - 4096 * hwm) vf ∗ Hc ⊢
+        writerCells (GF := GF) base hwm len := by
+      intro Hc hHc
+      iintro ⟨H0, H1, H2, H3, Hlow, Hc⟩
+      ihave Hc := hHc $$ Hc
+      iapply (writerCells_top base hwm len).2
+      iframe H0 H1 H2 H3
+      rw [show len - 4096 * hwm = (m'.size - 4096 * hwm) + (len - m'.size) by omega]
+      iapply cellsAny_append
+      isplitl [Hlow]
+      · unfold cellsAny; iexists vf; iexact Hlow
+      rw [show 4096 * hwm + (m'.size - 4096 * hwm) = m'.size by omega]
+      unfold cellsAny; iexists _; iexact Hc
+    icases Hres with (⟨%Herr, Hg⟩ | ⟨%Herr, (Hg | ⟨Hcs, Hmc⟩)⟩)
+    · subst Herr
+      iunfold csGrownOwn at Hg
+      icases Hg with ⟨Hcs, Hc, -⟩
+      rw [Hmaps]
+      ihave Hwc := hcells _ (mcells_single (GF := GF) base len m'.size len _ Hsz (Nat.le_refl _)).1
+        $$ [Hwc4 Hlow Hc]
+      · iframe
+      (try wp_auto)
+      obtain ⟨hH, hF, hHc, hccS, hblS, htkS, -⟩ := syncK_facts (m := m'.grown len) hccG hblG hpgG h2
+        (by simp only [OsMeta.grown]; omega) (by simp only [OsMeta.grown]; exact hsz.2.2)
+        (by simp only [OsMeta.grown]; omega)
+      have hccF := commitClean_meta (m' := { m'.grown len with ok := false }) hccG rfl rfl
+      ihave Hcs := (csOwn_split3 p γc (m'.grown len) _ hwm h2).1 $$ Hcs
+      wp_apply wp_Sync f fd p _ _ ⟨p, true, true⟩ dbCrashN γc (dbOk p) (m'.grown len) _ _ _ 8192
+          (4096 * hwm) false hH hF (fun _ => hHc) dbCrashN_disj
+          (commitClean_okS _ hblS rfl hccS)
+          (commitClean_okS ⟨{ m'.grown len with ok := false }, _, 8192, 4096 * hwm, .idle⟩
+            (by rw [split3_eq _ _ _ (by omega)]; exact hblG) rfl
+            (by rw [split3_eq _ _ _ (by omega)]; exact hccF))
+        $$ [Hf Hfd Hcs] as %err2 ⟨Hf, Hfd, Hres2⟩
+      · iframe; iframe #
+      icases Hres2 with (⟨%Herr2, Hcs⟩ | ⟨%Herr2, Hcs⟩)
+      · subst Herr2
+        (try wp_auto)
+        dsimp only [csSynced]
+        ileft
+        isplitr
+        · ipureintro; trivial
+        iexists _, _
+        ihave Hws := writerStC_mk γ γc db f fd p mp false hwm base len γm _ _ len
+            ⟨⟨h2, by simp only [OsMeta.syncedKeep, OsMeta.synced, OsMeta.grown]; omega,
+              writer_okS _ _ hblS hccS, fun _ => ⟨by rw [htkS, take8192_congr hpreG (by omega), hmp],
+                hccS, rfl, hfd, by simp only [OsMeta.syncedKeep, OsMeta.synced, OsMeta.grown]; omega,
+                by simp only [OsMeta.syncedKeep, OsMeta.synced, OsMeta.grown]; exact hsz.2.2,
+                hsz.2.2⟩⟩,
+              by simp only [OsMeta.syncedKeep, OsMeta.synced, OsMeta.grown]; exact Hmaps,
+              by simp only [OsMeta.syncedKeep, OsMeta.synced, OsMeta.grown]; omega, Hbase, Hl41⟩
+          $$ [Hcur Hmap Hout Hflds Hfsz Hdsz Hf Hfd Hcs Hcls Htok Hwc]
+        · iframe; iframe #
+        iframe
+        ipureintro
+        exact ⟨Hok', by simp only [OsMeta.syncedKeep, OsMeta.synced, OsMeta.grown]; omega⟩
+      · cases err2 with
+        | nil => exact absurd rfl Herr2
+        | ok ie =>
+        (try wp_auto)
+        iright
+        iexists GoInterface.ok ie
+        iframe
+        isplitr
+        · ipureintro; exact ⟨rfl, Herr2⟩
+        ihave Hcs := (csOwn_split3 p γc { m'.grown len with ok := false } _ hwm h2).2 $$ Hcs
+        iapply commitErrC_mk γ γc db f fd p mp hwm base len γm { m'.grown len with ok := false } _
+          m'.size _ hwm ⟨by simp only [OsMeta.grown]; exact Hmaps, by simp only [OsMeta.grown]; omega,
+            Hbase, Hl41, h2, by simp only [OsMeta.grown]; omega, writer_okS _ _ hblG hccF⟩
+        iframe; iframe #
+    · cases err with
+      | nil => exact absurd rfl Herr
+      | ok ie =>
+      iunfold csGrownOwn at Hg
+      icases Hg with ⟨Hcs, Hc, -⟩
+      rw [Hmaps]
+      ihave Hwc := hcells _ (mcells_single (GF := GF) base len m'.size len _ Hsz (Nat.le_refl _)).1
+        $$ [Hwc4 Hlow Hc]
+      · iframe
+      (try wp_auto)
+      iright
+      iexists GoInterface.ok ie
+      iframe
+      isplitr
+      · ipureintro; exact ⟨rfl, Herr⟩
+      iapply commitErrC_mk γ γc db f fd p mp hwm base len γm (m'.grown len) _
+        m'.size _ hwm ⟨by simp only [OsMeta.grown]; exact Hmaps, by simp only [OsMeta.grown]; omega,
+          Hbase, Hl41, h2, by simp only [OsMeta.grown]; omega, writer_okS _ _ hblG hccG⟩
+      iframe; iframe #
+    · cases err with
+      | nil => exact absurd rfl Herr
+      | ok ie =>
+      ihave Htop := cells_back base m' len hwm vf Hmaps Hsz h4 $$ [Hmc Hlow]
+      · iframe
+      ihave Hwc := (writerCells_top base hwm len).2 $$ [Hwc4 Htop]
+      · iframe
+      (try wp_auto)
+      iright
+      iexists GoInterface.ok ie
+      iframe
+      isplitr
+      · ipureintro; exact ⟨rfl, Herr⟩
+      have hccT := (treach_commitClean (sz := len) hcc hbl hsz.2.2 Hsz
+        (by rw [hpgb, hbl]; exact h4) .ft).1
+      iapply commitErrC_mk γ γc db f fd p mp hwm base len γm (ftMeta m' len) bs
+        m'.size _ hwm ⟨Hmaps, Hsz, Hbase, Hl41, h2, h4, writer_okS _ _ hbl hccT⟩
+      iframe; iframe #
+  · -- no growth
+    ileft
+    isplitr
+    · ipureintro; trivial
+    iexists m', bs
+    ihave Hws := writerStC_mk γ γc db f fd p mp false hwm base len γm m' bs m'.size
+        ⟨⟨Hwf.1, Hwf.2.1, Hwf.2.2.1, fun _ => ⟨hmp, hcc, rfl, hfd, hsz⟩⟩, Hmaps, Hsz, Hbase, Hl41⟩
+      $$ [Hcur Hmap Hout Hflds Hfsz Hdsz Hf Hfd Hcs Hcls Htok Hwc]
+    · iframe; iframe #
+    iframe
+    ipureintro; exact ⟨Hok', by omega⟩
   sorry
 
 end proof
