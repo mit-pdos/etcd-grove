@@ -974,20 +974,150 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     iunfold commitErr at Herr
     iexact Herr
   (try wp_auto)
-  -- TODO: the meta write succeeded (`ys2.map fst = metaPageOf mv`, `pwBytes_inside`). `Fd`, then
-  -- `Fdatasync` over `X` (lo 0): on an error, as the failed `WriteAt` above (with `ok := false`).
-  -- On success `X` is clean (`syncedBytes`, `m4.ok`); its bytes are `setPage mx i (metaPageOf mv)`
-  -- (`hX`, `hmx`); `metaPagesOk_commit` (`metaPageOf_meta`, `i = txid' % 2` of `commitOf mv`).
-  -- Publish, in one opening of the invariant (a new lemma beside `metas_in`, over `mapLend`):
-  -- `cur` (all three parts) to `(setPage .., false, hwm + 1)`, page `hwm` into the pages with
-  -- `pageIs_of` of `Hpg` and `lent_intro` of `Hpc` (`cellsB_bytes`), its loan key `hwm` inserted
-  -- into the `γl` authority (`ghost_map_insert`; fresh by the invariant's `∀ k > 0, hwm ≤ k → K !! k
-  -- = none`), the metas back unlent (`out` false, key 0 updated as in `metas_in`). Then `own` to
-  -- `(t + 1, hwm + 1)` (`ghostVar_update_halves` of `Hown`, `Hown2`), `last` (`mono_nat_own_update`,
-  -- `dbLast`), `T` at `t + 1` (`ghost_map_insert_persist`, `HTn`; `dataPage_val`), `metaR` (not
-  -- failed, half of `X` each, `osBytes_halves`), unlock, and `rwR_of_writerSt` at `hwm + 1`
-  -- (`Hrest`, `Htop`, `hdrTails`, `writerCells_top`, `filesz = m2.size`).
-  sorry
+  -- the meta write succeeded: `Fdatasync` the meta pages
+  have hys2B : ys2.map Prod.fst = metaPageOf mv := by
+    rw [hys2']
+    have := pwBytes_inside m4.size (4096 * i) (metaPageOf mv) ((mxc.drop (4096 * i)).take 4096)
+      (by rw [metaPageOf_length]; omega) (by omega)
+    rwa [metaPageOf_length] at this
+  wp_apply wp_Fd f fd p _ $$ [Hf] as Hf
+  · iexact Hf
+  (try wp_auto)
+  wp_apply wp_Fdatasync fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ { m4 with size := m4.size, hi := h2 }
+      0 X $$ [Hfd Hm Hmxw] as %e2 ⟨Hfd, Hs⟩
+  · iframe Hfd Hm Hmxw; iframe #
+  icases Hs with (⟨%He2, Hm, Hmxw⟩ | ⟨%He2, Hm, Hmxw⟩)
+  rotate_left
+  · -- the meta's sync failed: fail the handle
+    unfold errnoErr; rw [if_neg He2.1]
+    (try wp_auto)
+    have hl1 : ((X.map Prod.fst).drop 16 |>.take 64).length = 64 := by simp; omega
+    icases osBytes_halves p X 0 $$ Hmxw with ⟨Hx1, Hx2⟩
+    imod meta_fail γ db p base len γm mx hwm
+        (((X.map Prod.fst).drop 16).take 64 ++ ((X.map Prod.fst).drop 4112).take 64)
+        (by simp; omega) X hXl T _
+        $$ [Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hcls2 Hx1]
+      with ⟨HR, #Hfailed, Htok, Hcur, Hout⟩
+    · rw [List.take_left' hl1, List.drop_left' hl1]
+      iframe Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hcls2 Hx1; iframe #
+    wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaR (GF := GF) γ db p)
+      $$ [$Hmeta $Hsync $Hlocked HR]
+    · iexact HR
+    (try wp_auto)
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; simp
+    ihave Hpc := cellsB_any base _ _ $$ Hpc
+    rw [dataPage_length]
+    ihave Herr := dataErrT γ db f fd p mx hwm base len γm
+      { m4 with size := m4.size, hi := h2, ok := false } X
+      ((dataPage mv.pgid' v).map (·, true)) (tail2.drop 4096) m2.size _ _
+      ⟨hm4m, by rw [hm4s]; exact Hsz, Hbase, Hl41, Hwf.1, by show 4096 * hwm + 4096 ≤ m4.size; omega, hXl,
+        by simp only [List.length_map, dataPage_length],
+        by simp only [List.length_drop]; show _ = m4.size - _ - _; omega⟩
+      $$ [Hown Hcur Hmap Hout Hflds Hcls Htok T0 T1 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hx2 Hpg Hrest]
+    · iframe Hown Hcur Hmap Hout Hflds Hcls Htok T0 T1 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hx2 Hpg Hrest
+      iframe #
+    iunfold commitErr at Herr
+    iexact Herr
+  subst He2
+  unfold errnoErr; rw [if_pos rfl]
+  (try wp_auto)
+  -- the meta pages, clean, with the next meta current
+  have hXB : X.map Prod.fst = setPage mx i (metaPageOf mv) := by
+    rw [← hX, ← hmx]; unfold setPage
+    rw [show 4096 * (i + 1) = 4096 * i + 4096 by omega]
+    simp only [List.map_append, List.map_take, List.map_drop, hys2B, List.drop_drop]
+  have hsynX : syncedBytes { m4 with size := m4.size, hi := h2 } X =
+      (setPage mx i (metaPageOf mv)).map (·, true) := by
+    unfold syncedBytes
+    rw [ite_eq_left (show ({ m4 with size := m4.size, hi := h2 } : OsMeta).ok = true from hm4o), ← hXB,
+      List.map_map]
+    rfl
+  rw [hsynX, hXB]
+  obtain ⟨hok', -, hcr', hcp', hct'⟩ := metaPagesOk_commit mx i (metaPageOf mv) Hok
+    (by rw [hmv]; exact Ht) (by rw [hhwm]; exact Hb) hi2 (metaPageOf_length mv)
+    (by rw [metaPageOf_meta, commitMeta, hmv])
+  generalize hmp' : setPage mx i (metaPageOf mv) = mp' at hok' hcr' hcp' hct' ⊢
+  rw [hmv] at hct'
+  rw [hhwm] at hcr' hcp'
+  have hmpl : mp'.length = 8192 := hok'.1
+  generalize hm5 : ({ m4 with size := m4.size, hi := h2 } : OsMeta).synced = m5
+  have hm5m : m5.maps = {[base := len]} := by rw [← hm5]; exact hm4m
+  have hm5s : m5.size = m2.size := by rw [← hm5]; exact hm4s
+  have hm5o : m5.ok = true := by rw [← hm5]; exact hm4o
+  -- publish: the meta pages, page `hwm` committed, the owner, the last txid, the transaction
+  imod pageIs_of p hwm (DFrac.own 1) (dataPage mv.pgid' v) (dataPage_length _ _) $$ Hpg with #HBp
+  imod metas_publish γ p base len γm mx mp' hwm (dataPage mv.pgid' v) (by omega) Hwf.1 hmpl
+    $$ [Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hpc] with ⟨Htok, Hcur, Hcm, Hout, Hout2⟩
+  · iframe Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hpc; iframe #
+  iunfold dbOwner at Hown
+  imod ghostVar_update_halves (mv.txid'.toNat + 1, hwm + 1) γ.own _ _ $$ Hown Hown2 with ⟨Hown, Hown2⟩
+  imod mono_nat_own_update (mv.txid'.toNat + 1) (by rw [hmv]; omega) $$ Hlast with ⟨Hlast, #Hlb⟩
+  imod ghost_map_insert_persist (mv.txid'.toNat + 1) (some v : Option w64) (HTn _ (by rw [hmv]; omega))
+    $$ Hauth with ⟨Hauth, #Htx⟩
+  icases osBytes_halves p _ 0 $$ Hmxw with ⟨Hx1, Hx2⟩
+  wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaR (GF := GF) γ db p)
+    $$ [$Hmeta $Hsync $Hlocked Hfl Hcm Hx1 Hcls2 Hauth Hout2 Hfail Hlast Hown2]
+  · iunfold metaR
+    iexists false, mp', mp', hwm + 1, mp'.map (·, true), T.insert (mv.txid'.toNat + 1) (some v)
+    iframe Hfl Hcm Hauth Hout2
+    isplitl [Hx1 Hcls2]
+    · ileft; iframe
+    isplitr
+    · ipureintro; exact ⟨by simp [hmpl], by rw [List.map_map]; exact List.map_id _⟩
+    dsimp only
+    rw [hct']
+    iframe Hfail Hlast Hown2
+    isplitr
+    · ipureintro
+      refine ⟨rfl, hok', hcp'.symm, fun k hk => ?_⟩
+      rw [GMap.lookup_insert_ne _ _ (by omega)]
+      exact HTn k (by rw [hmv]; omega)
+    iexists dataPage mv.pgid' v
+    rw [hcr', dataPage_val]
+    iframe HBp
+    isplitr
+    · unfold dbTx; iexact Htx
+    · ipureintro; exact GMap.lookup_insert _ _ _
+  (try wp_auto)
+  -- `rwlock`'s resource at the new meta pages, the high water mark one page on
+  iapply HΦ
+  ileft
+  isplitr
+  · ipureintro; rfl
+  ihave Hwc4 := (hdrTails base).2 $$ [T0 T1]
+  · iframe T0 T1
+  ihave Hwc := (writerCells_top base (hwm + 1) len).2 $$ [Hwc4 Htop]
+  · rw [show 4096 * (hwm + 1) = 4096 * hwm + 4096 by omega,
+      show len - (4096 * hwm + 4096) = len - 4096 * hwm - 4096 by omega]
+    iframe Hwc4 Htop
+  isplitl [Hfsz Hdsz Hmap Hflds Hcls Hrest Hf Hfd Hm Htok Hcur Hout Hx2 Hwc]
+  · iapply rwR_of_writerSt γ db f fd p mp' false (hwm + 1) (some (base, len, γm)) m5 (fun _ => hm5o)
+    isplitl
+    · unfold writerSt writerFile
+      dsimp only [mapLen]
+      rw [show 4096 * (hwm + 1) = 4096 * hwm + 4096 by omega]
+      isplitl [Hcur]; · iexact Hcur
+      isplitl [Hmap]; · iexact Hmap
+      isplitl [Hout]; · iexact Hout
+      isplitl [Hflds]; · iexact Hflds
+      isplitl [Hfsz Hdsz Hf Hfd Hm Hx2 Hrest]
+      · iexists mp'.map (·, true), tail2.drop 4096, m2.size
+        iframe Hfsz Hdsz Hf Hfd Hm Hx2 Hrest
+        ipureintro
+        refine ⟨by omega, by omega, by simp [hmpl], by simp only [List.length_drop]; omega,
+          fun _ => ⟨by rw [List.map_map]; exact List.map_id _, by simp, hm5s.symm, hfd⟩⟩
+      isplitl [Hcls]; · iexact Hcls
+      iframe Htok Hwc; iframe #
+      ipureintro; exact ⟨hm5m, by omega, Hbase, Hl41⟩
+    · dsimp only; iempintro
+  isplitl [Hown]
+  · unfold dbOwner; iexact Hown
+  isplitr
+  · unfold dbTx; iexact Htx
+  · unfold dbLast; iexact Hlb
 
 end proof
 
