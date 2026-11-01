@@ -120,7 +120,7 @@ theorem stored_of_bytes (p : GoString) (m : OsMeta) (F : List w8) (hl : F.length
     (hok : m.ok = true) (hmaps : m.maps = ∅) (h16 : 4 * 4096 ≤ m.size) (h40 : m.size ≤ 2 ^ 30) :
     osBytes (GF := GF) p 0 (DFrac.own 1) (F.map (·, true)) ⊢
       |==> dbStoredAt (GF := GF) p (curMeta (F.take 8192)).txid'.toNat
-        (pageVal (pageOf F (curRoot (F.take 8192)))) m := by
+        (pageVal (pageOf F (curRoot (F.take 8192)))) (curPgid (F.take 8192)) m := by
   have hl8 := hmp.1
   have hr2 := hmp.2.2.1
   have hrp := hmp.2.2.2.1
@@ -153,7 +153,7 @@ theorem stored_of_bytes (p : GoString) (m : OsMeta) (F : List w8) (hl : F.length
   · iapply pages_ex p (pageOf F) (n - 2) 2 $$ Hps
   iframe Hr
   ipureintro
-  refine ⟨⟨?_, ?_, hmp, by rw [hn]; exact hpg, ?_, hok, hmaps, h16, h40⟩, rfl, rfl⟩
+  refine ⟨⟨?_, ?_, hmp, by rw [hn]; exact hpg, ?_, hok, hmaps, h16, h40⟩, rfl, rfl, rfl⟩
   · rw [List.map_map]; exact List.map_id _
   · intro x hx; simp only [List.mem_map] at hx; obtain ⟨_, _, rfl⟩ := hx; rfl
   · rw [hn, List.length_map, List.length_drop, hl]
@@ -166,13 +166,13 @@ def initAt (p : GoString) (m : OsMeta) : IProp GF :=
       (m.size < 4 * 4096 ∨ (¬ metaValid (fileMeta ((xs.map Prod.fst).take 8192) 0) ∧
         ¬ metaValid (fileMeta ((xs.map Prod.fst).take 8192) 1)))⌝)
 
-/-- The file once open, of `OsMeta` `m`: one `init` lays out (at transaction 1, with no value), or
-a stored database. -/
-def openSt (p : GoString) (t : Nat) (vo : Option w64) (m : OsMeta) : IProp GF :=
-  iprop((⌜t = 1 ∧ vo = none⌝ ∗ initAt (GF := GF) p m) ∨ dbStoredAt (GF := GF) p t vo m)
+/-- The file once open, of `OsMeta` `m`: one `init` lays out (at transaction 1, with no value,
+high water mark 4), or a stored database. -/
+def openSt (p : GoString) (t : Nat) (vo : Option w64) (n : Nat) (m : OsMeta) : IProp GF :=
+  iprop((⌜t = 1 ∧ vo = none ∧ n = 4⌝ ∗ initAt (GF := GF) p m) ∨ dbStoredAt (GF := GF) p t vo n m)
 
-theorem openSt_facts (p : GoString) (t : Nat) (vo : Option w64) (m : OsMeta) :
-    openSt (GF := GF) p t vo m ⊢ openSt (GF := GF) p t vo m ∗
+theorem openSt_facts (p : GoString) (t : Nat) (vo : Option w64) (n : Nat) (m : OsMeta) :
+    openSt (GF := GF) p t vo n m ⊢ openSt (GF := GF) p t vo n m ∗
       ⌜m.size ≤ 2 ^ 40 ∧ m.ok = true ∧ m.maps = ∅⌝ := by
   unfold openSt initAt dbStoredAt
   iintro (⟨%Ht, %xs, Hb, %H⟩ | ⟨%mp, %mxc, %tail, %B, H1, H2, H3, H4, %H⟩)
@@ -184,20 +184,21 @@ theorem openSt_facts (p : GoString) (t : Nat) (vo : Option w64) (m : OsMeta) :
     · ipureintro; obtain ⟨⟨_, _, _, _, _, hok, hmaps, _, h40⟩, _⟩ := H; exact ⟨by omega, hok, hmaps⟩
 
 /-- The file once open, as `Open` found it: a stored database (`valid`), or one for `init`. -/
-def validSt (p : GoString) (t : Nat) (vo : Option w64) (m : OsMeta) (b : Bool) : IProp GF :=
+def validSt (p : GoString) (t : Nat) (vo : Option w64) (n : Nat) (m : OsMeta) (b : Bool) : IProp GF :=
   match b with
-  | true => dbStoredAt (GF := GF) p t vo m
-  | false => iprop(⌜t = 1 ∧ vo = none⌝ ∗ initAt (GF := GF) p m)
+  | true => dbStoredAt (GF := GF) p t vo n m
+  | false => iprop(⌜t = 1 ∧ vo = none ∧ n = 4⌝ ∗ initAt (GF := GF) p m)
 
 /-- The meta pages of a file once open, of four pages or more: for `readPageSize`, with what
 they say (no valid meta: for `init`; a valid one: a stored database). -/
-theorem openSt_metas (p : GoString) (t : Nat) (vo : Option w64) (m : OsMeta) (h16 : 4 * 4096 ≤ m.size) :
-    openSt (GF := GF) p t vo m ⊢ ∃ X : List (w8 × Bool), osBytes (GF := GF) p 0 (DFrac.own 1) X ∗
+theorem openSt_metas (p : GoString) (t : Nat) (vo : Option w64) (n : Nat) (m : OsMeta)
+    (h16 : 4 * 4096 ≤ m.size) :
+    openSt (GF := GF) p t vo n m ⊢ ∃ X : List (w8 × Bool), osBytes (GF := GF) p 0 (DFrac.own 1) X ∗
       ⌜X.length = 2 * 4096⌝ ∗
       ((⌜∀ i < 2, ¬ metaValid (fileMeta (X.map Prod.fst) i)⌝ ∗
-          (osBytes (GF := GF) p 0 (DFrac.own 1) X -∗ validSt (GF := GF) p t vo m false)) ∨
+          (osBytes (GF := GF) p 0 (DFrac.own 1) X -∗ validSt (GF := GF) p t vo n m false)) ∨
        (⌜∃ i < 2, metaValid (fileMeta (X.map Prod.fst) i)⌝ ∗
-          (osBytes (GF := GF) p 0 (DFrac.own 1) X -∗ validSt (GF := GF) p t vo m true))) := by
+          (osBytes (GF := GF) p 0 (DFrac.own 1) X -∗ validSt (GF := GF) p t vo n m true))) := by
   unfold openSt
   iintro (⟨%Ht, Hi⟩ | Hs)
   · unfold initAt
@@ -263,9 +264,9 @@ theorem clean_of (xs : List (w8 × Bool)) (h : ∀ x ∈ xs, x.2 = true) :
   intro x hx; simp only [id, Function.comp_def]; rw [← h x hx]
 
 /-- `Open`'s precondition, as the file to open and what it will be once open. -/
-theorem dbFile_norm (p : GoString) (t : Nat) (vo : Option w64) :
-    dbFile (GF := GF) p t vo ⊢
-      |==> ∃ mo, osMeta (GF := GF) p (DFrac.own 1) mo ∗ openSt (GF := GF) p t vo (openMetaOf mo) := by
+theorem dbFile_norm (p : GoString) (t : Nat) (vo : Option w64) (n : Nat) :
+    dbFile (GF := GF) p t vo n ⊢
+      |==> ∃ mo, osMeta (GF := GF) p (DFrac.own 1) mo ∗ openSt (GF := GF) p t vo n (openMetaOf mo) := by
   unfold dbFile dbFresh dbStored openSt openMetaOf
   iintro (⟨%mo, %xs, Hm, Hb, %H⟩ | ⟨%m, Hm, Hs⟩)
   · obtain ⟨hnone, hsome, htx⟩ := H
@@ -276,7 +277,7 @@ theorem dbFile_norm (p : GoString) (t : Nat) (vo : Option w64) :
       ileft
       isplitr
       · ipureintro; simp only [freshTx, List.length_nil] at htx
-        rw [if_neg (by omega)] at htx; cases htx; exact ⟨rfl, rfl⟩
+        rw [if_neg (by omega)] at htx; cases htx; exact ⟨rfl, rfl, rfl⟩
       unfold initAt
       iexists []
       isplitl
@@ -287,8 +288,8 @@ theorem dbFile_norm (p : GoString) (t : Nat) (vo : Option w64) :
       by_cases hc : 4 * 4096 ≤ xs.length ∧ (metaValid (fileMeta ((xs.map Prod.fst).take 8192) 0) ∨
           metaValid (fileMeta ((xs.map Prod.fst).take 8192) 1))
       · simp only [freshTx] at htx
-        rw [if_pos hc] at htx
-        cases htx
+        rw [if_pos hc, Prod.mk.injEq, Prod.mk.injEq] at htx
+        obtain ⟨rfl, rfl, rfl⟩ := htx
         rcases hfok with hshort | ⟨hclean, hno | ⟨hmp, hpg⟩⟩
         · omega
         · exfalso; rcases hc.2 with h | h
@@ -309,7 +310,7 @@ theorem dbFile_norm (p : GoString) (t : Nat) (vo : Option w64) :
         iexists some m; iframe Hm
         ileft
         isplitr
-        · ipureintro; exact ⟨rfl, rfl⟩
+        · ipureintro; exact ⟨rfl, rfl, rfl⟩
         unfold initAt
         iexists xs; iframe Hb
         ipureintro
@@ -328,7 +329,7 @@ theorem dbFile_norm (p : GoString) (t : Nat) (vo : Option w64) :
 theorem stored_of_init (p : GoString) (m : OsMeta) (xs : List (w8 × Bool)) (hl : xs.length = m.size)
     (hok : m.ok = true) (hmaps : m.maps = ∅) (hsz : m.size ≤ 2 ^ 30) :
     osBytes (GF := GF) p 0 (DFrac.own 1) (initFile xs) ⊢
-      |==> dbStoredAt (GF := GF) p 1 none
+      |==> dbStoredAt (GF := GF) p 1 none 4
         { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384 } := by
   iintro Hb
   rw [initFile_clean xs]
@@ -349,7 +350,7 @@ theorem stored_of_init (p : GoString) (m : OsMeta) (xs : List (w8 × Bool)) (hl 
     ((initFile xs).map Prod.fst) hl' hmp
     (by rw [hpg]; simp only; omega) hok hmaps (by simp only; omega) (by simp only; omega)
   imod Hst $$ Hb with Hs
-  rw [htx, hrt, initFile_root]
+  rw [htx, hrt, hpg, initFile_root]
   iexact Hs
 
 /-- `errPageSize`'s value, from `pkgFacts`. -/
@@ -411,11 +412,12 @@ theorem osFd_halves (fd : w64) (d : OsFd) :
 /-- The ghost state of a database opened at the meta pages `mp` (bytes `mxc`), at transaction `t`
 holding `vo`: `metalock`'s resource, and the writer's, the mapping's and the client's parts. -/
 theorem open_ghost (db : Loc) (p : GoString) (mp : List w8) (mxc : List (w8 × Bool)) (B : List w8)
-    (t : Nat) (vo : Option w64) (hmx : mxc.map Prod.fst = mp) (hmp : metaPagesOk mp)
+    (t : Nat) (vo : Option w64) (vp : Nat → Option w64 → Prop) (hvp : vp t vo)
+    (hmx : mxc.map Prod.fst = mp) (hmp : metaPagesOk mp)
     (ht : (curMeta mp).txid'.toNat = t) (hvo : pageVal B = vo) :
     db.[DB, go!"failed"] ↦ false ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
       pageIs (GF := GF) p (curRoot mp) B ⊢
-      |==> ∃ γ : DBNames, metaR (GF := GF) γ db p ∗
+      |==> ∃ γ : DBNames, ⌜γ.vp = vp⌝ ∗ metaR (GF := GF) γ db p ∗
         ghostVar γ.cur (1 : Qp).half.half (mp, false, curPgid mp) ∗
         ghostVar γ.cur (1 : Qp).half.half (mp, false, curPgid mp) ∗
         ghostVar γ.map (1 : Qp).half (none : MapSt) ∗ ghostVar γ.map (1 : Qp).half (none : MapSt) ∗
@@ -434,7 +436,9 @@ theorem open_ghost (db : Loc) (p : GoString) (mp : List w8) (mxc : List (w8 × B
   imod ghostVar_alloc (GF := GF) (t, curPgid mp) with ⟨%γown, Hown⟩
   imod ghostVar_alloc (GF := GF) false with ⟨%γcls, Hcls⟩
   imodintro
-  iexists ⟨γcur, γmap, γout, γtxs, γlast, γfail, γown, γcls⟩
+  iexists ⟨γcur, γmap, γout, γtxs, γlast, γfail, γown, γcls, vp⟩
+  isplitr
+  · ipureintro; rfl
   icases (ghostVar_split_half γcur 1 _).1 $$ Hcur with ⟨Hcur, Hc2⟩
   icases (ghostVar_split_half γcur (1 : Qp).half _).1 $$ Hc2 with ⟨Hc3, Hc4⟩
   icases (ghostVar_split_half γmap 1 _).1 $$ Hmap with ⟨Hmap1, Hmap2⟩
@@ -446,6 +450,9 @@ theorem open_ghost (db : Loc) (p : GoString) (mp : List w8) (mxc : List (w8 × B
   unfold dbOwner dbLast dbTx
   dsimp only
   iframe Hc3 Hc4 Hmap1 Hmap2 Hout1 Hout2 Hcls1 Hown1 Hlb Htx
+  isplitl
+  rotate_left
+  · ipureintro; exact hvp
   unfold metaR
   iexists false, mp, mp, curPgid mp, mxc, (∅ : GMap Nat (Option w64)).insert t vo
   dsimp only
@@ -466,14 +473,14 @@ theorem open_ghost (db : Loc) (p : GoString) (mp : List w8) (mxc : List (w8 × B
   dsimp only
   iframe HB Htx
   ipureintro
-  exact GMap.lookup_insert _ _ _
+  exact ⟨by rw [ht, hvo]; exact hvp, GMap.lookup_insert _ _ _⟩
 
 /-- What `Close` gives back is a stored database, which `Open` accepts (`dbStored`). -/
-theorem dbClosed_reopen (γ : DBNames) (p : GoString) (t : Nat) :
-    dbClosed (GF := GF) γ p t ⊢ ∃ vo, dbTx (GF := GF) γ t vo ∗ dbStored (GF := GF) p t vo := by
+theorem dbClosed_reopen (γ : DBNames) (p : GoString) (t n : Nat) :
+    dbClosed (GF := GF) γ p t n ⊢ ∃ vo, dbTx (GF := GF) γ t vo ∗ dbStored (GF := GF) p t vo n := by
   unfold dbClosed
   iintro ⟨%m, %mp, %mxc, %tail, %B, Hm, Hmx, Hps, Htail, #HB, #Htx, %H⟩
-  obtain ⟨hmx, hclean, hmp, ht, hpg, htl, hok, Hm0, h16, h30⟩ := H
+  obtain ⟨hmx, hclean, hmp, ht, hn, hpg, htl, hok, Hm0, h16, h30⟩ := H
   iexists pageVal B
   iframe Htx
   unfold dbStored dbStoredAt
@@ -481,7 +488,7 @@ theorem dbClosed_reopen (γ : DBNames) (p : GoString) (t : Nat) :
   iexists mp, mxc, tail, B
   iframe; iframe #
   ipureintro
-  exact ⟨⟨hmx, hclean, hmp, hpg, htl, hok, Hm0, h16, h30⟩, ht, rfl⟩
+  exact ⟨⟨hmx, hclean, hmp, hpg, htl, hok, Hm0, h16, h30⟩, ht, rfl, hn⟩
 
 end lemmas
 

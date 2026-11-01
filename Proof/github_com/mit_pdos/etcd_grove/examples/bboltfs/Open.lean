@@ -48,9 +48,9 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     (wp_init : DB.init.spec (GF := GF) (hG := hG))
     (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG)) :
     Open.spec (GF := GF) (hG := hG) := by
-  intro path t vo
+  intro path t vo n vp hvp
   wp_start as ⟨#Hpkg, #Hos, Hfile⟩
-  imod dbFile_norm path t vo $$ Hfile with ⟨%mo, Hm, Hst⟩
+  imod dbFile_norm path t vo n $$ Hfile with ⟨%mo, Hm, Hst⟩
   ihave ⟨%e2, #He2, %He2⟩ := pkgFacts_errPageSize $$ Hpkg
   (try wp_auto)
   irename «$r0» => Hdb
@@ -121,7 +121,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     $$ file with #file
   imod (update_into_persistently (P := typedPointsto (GF := GF) db.[DB, go!"path"] path (DFrac.own 1)))
     $$ path with #Hpath
-  icases openSt_facts path t vo m $$ Hst with ⟨Hst, %Hmf⟩
+  icases openSt_facts path t vo n m $$ Hst with ⟨Hst, %Hmf⟩
   obtain ⟨Hsz40, Hmok, Hmaps⟩ := Hmf
   have hsZ : sint.Z (W64 (m.size : Int)) = m.size := by
     show BitVec.toInt _ = _
@@ -130,7 +130,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   rw [hsZ, show sint.Z (W64 16384) = 16384 from rfl]
   -- a stored database has a valid meta; any other file is for `init`
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ ∃ b : Bool, valid_ptr ↦ b ∗
-      validSt (GF := GF) path t vo m b ∗ db_ptr ↦ db ∗
+      validSt (GF := GF) path t vo n m b ∗ db_ptr ↦ db ∗
       os.ownFile (GF := GF) f fd path (DFrac.own 1) ∗
       osFd (GF := GF) fd (DFrac.own 1) ⟨path, true, true⟩ ∗ osMeta (GF := GF) path (DFrac.own 1) (some m) ∗
       db.[DB, go!"dataref"] ↦ (zero_val DB).dataref' ∗ db.[DB, go!"datasz"] ↦ (zero_val DB).datasz' ∗
@@ -139,7 +139,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     (∃ e : GoInterface, ⌜v = returnVal #() ∧ e ≠ interface.nil⌝ ∗ db_ptr ↦ db ∗
       «$res0_ptr» ↦ null ∗ «$res1_ptr» ↦ e ∗ ∃ mo', osMeta (GF := GF) path (DFrac.own 1) mo')))
     with [Hst valid db Hf Hfdo Hm dataref datasz meta0 meta1 «$res0» «$res1»]
-  · icases openSt_metas path t vo m (by omega) $$ Hst with ⟨%X, HX, %HXl, HXs⟩
+  · icases openSt_metas path t vo n m (by omega) $$ Hst with ⟨%X, HX, %HXl, HXs⟩
     wp_apply wp_readPageSize db f DFrac.discard fd path (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
         (DFrac.own 1) ⟨path, true, true⟩ m X rfl HXl (by omega) $$ [Hf Hfdo Hm HX]
       as %ps %ok %err3 ⟨-, Hf, Hfdo, Hm, HX, %Hrd⟩
@@ -226,7 +226,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   -- `init` when no meta is valid
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ ∃ m' : OsMeta,
       db.[DB, go!"filesz"] ↦ W64 (m'.size : Int) ∗ osMeta (GF := GF) path (DFrac.own 1) (some m') ∗
-      dbStoredAt (GF := GF) path t vo m' ∗ db_ptr ↦ db ∗
+      dbStoredAt (GF := GF) path t vo n m' ∗ db_ptr ↦ db ∗
       os.ownFile (GF := GF) f fd path (DFrac.own 1) ∗
       osFd (GF := GF) fd (DFrac.own 1) ⟨path, true, true⟩ ∗
       db.[DB, go!"dataref"] ↦ (zero_val DB).dataref' ∗ db.[DB, go!"datasz"] ↦ (zero_val DB).datasz' ∗
@@ -248,7 +248,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
       simp only [validSt, initAt]
       icases Hvs with ⟨%Ht, %xs, Hb, %Hxs⟩
       obtain ⟨Hxl, -, -, Hsz30, -⟩ := Hxs
-      obtain ⟨rfl, rfl⟩ := Ht
+      obtain ⟨rfl, rfl, rfl⟩ := Ht
       (try wp_auto)
       wp_apply wp_init db f fd path (DFrac.own 1) (DFrac.own 1) m xs Hmok Hmaps Hxl (by omega)
           $$ [filesz Hf Hfdo Hm Hb] as %err4 ⟨Hf, Hfdo, Hres⟩
@@ -290,10 +290,11 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   subst Hv
   iunfold dbStoredAt at Hs
   icases Hs with ⟨%mp, %mxc, %tail, %B, Hmx, Hps, Htail, #HB, %Hso⟩
-  obtain ⟨⟨hmx, hclean, hmp, hpg, htl, hok', hmaps', h16', h40'⟩, ht, hvo⟩ := Hso
+  obtain ⟨⟨hmx, hclean, hmp, hpg, htl, hok', hmaps', h16', h40'⟩, ht, hvo, hn⟩ := Hso
+  subst hn
   icases osBytes_split2 path mxc 0 $$ Hmx with ⟨Hmx1, Hmx2⟩
-  imod open_ghost db path mp mxc B t vo hmx hmp ht hvo $$ [failed Hmx2 HB]
-    with ⟨%γ, HM, Hcur1, Hcur2, Hmap1, Hmap2, Hout1, Hout2, Hcls, Hown, #Hlast, #Htx⟩
+  imod open_ghost db path mp mxc B t vo vp hvp hmx hmp ht hvo $$ [failed Hmx2 HB]
+    with ⟨%γ, %Hγvp, HM, Hcur1, Hcur2, Hmap1, Hmap2, Hout1, Hout2, Hcls, Hown, #Hlast, #Htx⟩
   · iframe; iframe #
   imod sync.init_Mutex (metaR (GF := GF) γ db path) ⊤ db.[DB, go!"metalock"] $$ metalock [HM] with #Hmeta
   · inext; iexact HM
@@ -341,7 +342,9 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     ileft
     isplitr
     · ipureintro; rfl
-    iexists γ, curPgid mp
+    iexists γ
+    isplitr
+    · ipureintro; exact Hγvp
     iframe Hown Hlast Htx
     isplitr
     · unfold isDB; iexists f, fd, path; iframe #

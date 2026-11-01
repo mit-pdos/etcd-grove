@@ -34,15 +34,17 @@ theorem fileMeta_cells0 (mp : List w8) : fileMeta mp 0 = decode ((mp.drop 16).ta
 theorem fileMeta_cells1 (mp : List w8) : fileMeta mp 1 = decode ((mp.drop 4112).take 64) := by
   simp [fileMeta, pageMeta, List.drop_drop]
 
-/-- Failing the handle under `metalock`, after a failed `commit`: `metaR` failed, and `rwR`. -/
+/-- Failing the handle under `metalock`, after a failed `commit`: `metaR` failed, `rwR`, and the
+committer's token at high water mark 0. -/
 theorem fail_handle (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (t n : Nat)
     (mp' : List w8) (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) :
     dbOwner (GF := GF) γ t n ∗ writerStF (GF := GF) γ db f fd p mp' fl hwm st m ∗
       (⌜fl = false⌝ ∨ (⌜fl = true⌝ ∗ dbFailed (GF := GF) γ)) ∗ metaR (GF := GF) γ db p ⊢
       |={⊤}=> ∃ b : Bool, db.[DB, go!"failed"] ↦ b ∗
         (db.[DB, go!"failed"] ↦ true -∗ metaR (GF := GF) γ db p ∗ rwR (GF := GF) γ db f fd p ∗
-          dbFailed (GF := GF) γ ∗ dbOwner (GF := GF) γ t n) := by
+          dbFailed (GF := GF) γ ∗ dbOwner (GF := GF) γ t 0) := by
   iintro ⟨Hown, Hws, Hfl, HM⟩
+  iunfold dbOwner at Hown
   iunfold metaR at HM
   icases HM with ⟨%b, %mp, %mx, %hwm0, %mxc, %T, Hfa, Hcur, Hmb, %Hmx, Hauth, Hout, Hrest⟩
   unfold writerStF
@@ -53,16 +55,23 @@ theorem fail_handle (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (t n :
   | true =>
     icases Hfl with (%Hbad | ⟨-, #Hfailed⟩)
     · cases Hbad
+    icases Hrest with ⟨Hfa0, %t3, Hown3⟩
+    icombine Hown Hown3 gives % ⟨_, Heq⟩
+    obtain ⟨rfl, rfl⟩ := Prod.mk.inj Heq
     imodintro
     iexists true
     iframe Hfa
     iintro Hfa
-    isplitl [Hfa Hcur Hmb Hauth Hout Hrest]
+    isplitl [Hfa Hcur Hmb Hauth Hout Hfa0 Hown3]
     · iunfold metaR
       iexists true, mp', mx, hwm, mxc, T
-      iframe
-      ipureintro; exact Hmx
-    iframe Hown
+      iframe Hfa Hcur Hmb Hauth Hout
+      isplitr
+      · ipureintro; exact Hmx
+      dsimp only
+      iframe Hfa0
+      iexists t; iexact Hown3
+    unfold dbOwner; iframe Hown
     isplitl
     · iapply rwR_of_writerSt γ db f fd p mp' true hwm st m (fun h => by cases h)
       unfold writerSt
@@ -71,6 +80,7 @@ theorem fail_handle (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (t n :
   | false =>
     iclear Hfl
     icases Hrest with ⟨Hfail, -, -, Hown3, -⟩
+    imod ghostVar_update_halves (t, 0) γ.own _ _ $$ Hown Hown3 with ⟨Hown, Hown3⟩
     imod mono_nat_own_update 1 (by omega) $$ Hfail with ⟨Hfail, #Hfailed⟩
     rcases st with _ | ⟨base, len, γm⟩
     · dsimp only
@@ -88,8 +98,8 @@ theorem fail_handle (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (t n :
         iframe
         isplitr
         · ipureintro; exact Hmx
-        dsimp only; iframe
-      iframe Hown
+        dsimp only; iframe Hfail; iexists t; iexact Hown3
+      unfold dbOwner; iframe Hown
       isplitl
       · iapply rwR_of_writerSt γ db f fd p mp' true hwm none m (fun h => by cases h)
         unfold writerSt; (try unfold writerFile)
@@ -115,8 +125,8 @@ theorem fail_handle (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (t n :
         iframe
         isplitr
         · ipureintro; exact Hmx
-        dsimp only; iframe
-      iframe Hown
+        dsimp only; iframe Hfail; iexists t; iexact Hown3
+      unfold dbOwner; iframe Hown
       isplitl
       · iapply rwR_of_writerSt γ db f fd p mp' true hwm (some (base, len, γm)) m (fun h => by cases h)
         unfold writerSt; (try unfold writerFile)
@@ -131,7 +141,7 @@ theorem fail_handle (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (t n :
 theorem DB.Commit.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
     (wp_commit : DB.commit.spec (GF := GF) (hG := hG)) :
     DB.Commit.spec (GF := GF) (hG := hG) := by
-  intro γ db t n v Ht Hn
+  intro γ db t n v Ht Hn Hvp
   wp_start as ⟨Hdb, Hown⟩
   iunfold isDB at Hdb
   icases Hdb with ⟨%f, %fd, %p, #Hpkg, #Hos, #Hfile, #Hpath, #Hrw, #Hmeta, #Hguard⟩
@@ -159,23 +169,25 @@ theorem DB.Commit.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
     cases b with
     | true =>
       icases Hrest with ⟨-, %x3, Hown3⟩
-      iapply ghostVar_halves3 γ.own (t, n) x x3; iframe
+      iapply ghostVar_halves3 γ.own (t, n) x _; iframe
     | false =>
       icases Hrest with ⟨-, -, -, Hown3, -⟩
       iapply ghostVar_halves3 γ.own (t, n) x _; iframe
   cases b with
   | true =>
-    icases Hrest with ⟨Hfa, Hrest⟩
+    icases Hrest with ⟨Hfa, %t3, Hrest⟩
+    icombine Hown Hrest gives % ⟨_, Heq⟩
+    obtain ⟨rfl, rfl⟩ := Prod.mk.inj Heq
     ihave #Hfailed := monoNatLbOwn_get γ.fail 1 1 $$ Hfa
     (try wp_auto)
     wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaR (GF := GF) γ db p)
       $$ [$Hmeta $Hsync $Hl2 Hfl Hcur Hmb Hauth Hout Hfa Hrest]
     · iunfold metaR
       iexists true, mp, mx, hwm, mxc, T
-      iframe
+      iframe Hfl Hcur Hmb Hauth Hout
       isplitr
       · ipureintro; exact Hmx
-      dsimp only; iframe
+      dsimp only; iframe Hfa; iexists t; iexact Hrest
     (try wp_auto)
     wp_apply sync.Mutex.wp_Unlock db.[DB, go!"rwlock"] (rwR (GF := GF) γ db f fd p)
       $$ [$Hrw $Hsync $Hl1 Hcur1 Hmap1 Hout1 Hflds1 Hw Hcls1 Hst]
@@ -266,7 +278,7 @@ theorem DB.Commit.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
       iframe
       iexists B; iframe #; ipureintro; exact HT
     (try wp_auto)
-    wp_apply wp_commit γ db f fd p mx (some (base, len, γm)) m v Hok Ht Hn (Hmok rfl) (by simp)
+    wp_apply wp_commit γ db f fd p mx (some (base, len, γm)) m v Hok Ht Hn (Hmok rfl) (by simp) Hvp
       $$ [Hown Hcur1 Hmap1 Hout1 Hd H0 H1 Hw Hcls1 Htok1 Hwc] as %err Hr
     · iframe #
       unfold writerSt dbOwner
@@ -274,7 +286,7 @@ theorem DB.Commit.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
       iframe; iframe #
       ipureintro; exact Hst
     icases Hr with (⟨%Herr, HW, Hown, #Htx', #Hlast'⟩ |
-      ⟨%Herr, Hown, %mp', %fl', %hwm', %st', %m', Hws, Hfl'⟩)
+      ⟨%Herr, ⟨%n', Hown⟩, %mp', %fl', %hwm', %st', %m', Hws, Hfl'⟩)
     · subst Herr
       (try wp_auto)
       wp_apply sync.Mutex.wp_Unlock db.[DB, go!"rwlock"] (rwR (GF := GF) γ db f fd p)

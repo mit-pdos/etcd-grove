@@ -93,7 +93,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
     cases b with
     | true =>
       icases Hrest with ⟨-, %x3, Hown3⟩
-      iapply ghostVar_halves3 γ.own (t, n) x x3; iframe
+      iapply ghostVar_halves3 γ.own (t, n) x _; iframe
     | false =>
       icases Hrest with ⟨-, -, -, Hown3, -⟩
       iapply ghostVar_halves3 γ.own (t, n) x _; iframe
@@ -111,7 +111,18 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
   imod ghostVar_update_halves true γ.cls false false $$ Hcls1 Hcls2 with ⟨Hcls1, Hcls2⟩
   rcases st with _ | ⟨base, len, γm⟩
   · -- no mapping: the handle failed
-    icases Hst with ⟨Hfailed, Hx⟩
+    icases Hst with ⟨#Hfailed, Hx⟩
+    cases b with
+    | false =>
+      iexfalso
+      icases Hrest with ⟨Hfa, -⟩
+      iunfold dbFailed at Hfailed
+      icases monoNatLbOwn_valid γ.fail 1 0 1 $$ Hfa Hfailed with %Hbad
+      omega
+    | true =>
+    icases Hrest with ⟨Hfa, %t3, Hown3⟩
+    icombine Hown Hown3 gives % ⟨_, Heq⟩
+    obtain ⟨rfl, rfl⟩ := Prod.mk.inj Heq
     iunfold writerExtra at Hx
     icases Hx with ⟨Hcurx, Hf2, Hfd2⟩
     icases (mapFields_join db none).1 $$ [Hflds1 Hflds0] with ⟨Hd, H0, H1⟩
@@ -133,13 +144,15 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
     · iframe #; inext; iexists none; iframe; unfold mapRest; iempintro
     (try wp_auto)
     wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaR (GF := GF) γ db p)
-      $$ [$Hmeta $Hsync $Hl2 Hfl Hcur Hcls2 Hauth Hout Hrest]
+      $$ [$Hmeta $Hsync $Hl2 Hfl Hcur Hcls2 Hauth Hout Hfa Hown3]
     · iunfold metaR
-      iexists b, mp, mx, hwm, mxc, T
-      iframe Hfl Hcur Hauth Hout Hrest
+      iexists true, mp, mx, hwm, mxc, T
+      iframe Hfl Hcur Hauth Hout
       isplitl [Hcls2]
       · iright; iexact Hcls2
+      isplitr
       · ipureintro; exact Hmx
+      dsimp only; iframe Hfa; iexists t; iexact Hown3
     (try wp_auto)
     wp_apply sync.Mutex.wp_Unlock db.[DB, go!"rwlock"] (rwR (GF := GF) γ db f fd p)
       $$ [$Hrw $Hsync $Hl1 Hown Hcls1 Hmap1 Hflds1]
@@ -150,7 +163,6 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
     iapply HΦ
     iexists p
     iframe #
-    iright; iright; iexact Hfailed
   · -- a mapping: close its invariant and gather its cells
     icases Hst with ⟨%Hst, Htok1, -, Hwc⟩
     obtain ⟨Hmaps, Hlen, Hbase, Hlen41⟩ := Hst
@@ -208,7 +220,9 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
     (try wp_auto)
     cases b with
     | true =>
-      icases Hrest with ⟨Hfa, Hrest⟩
+      icases Hrest with ⟨Hfa, %t3, Hrest⟩
+      icombine Hown Hrest gives % ⟨_, Heq⟩
+      obtain ⟨rfl, rfl⟩ := Prod.mk.inj Heq
       ihave #Hfailed := monoNatLbOwn_get γ.fail 1 1 $$ Hfa
       wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaR (GF := GF) γ db p)
         $$ [$Hmeta $Hsync $Hl2 Hfl Hcur Hcls2 Hauth Hout Hfa Hrest]
@@ -220,7 +234,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
         isplitr
         · ipureintro; exact Hmx
         dsimp only
-        iframe
+        iframe Hfa; iexists t; iexact Hrest
       (try wp_auto)
       wp_apply sync.Mutex.wp_Unlock db.[DB, go!"rwlock"] (rwR (GF := GF) γ db f fd p)
         $$ [$Hrw $Hsync $Hl1 Hown Hcls1 Hmap1 Hflds1]
@@ -232,6 +246,8 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
       iexists p
       iframe #
       iright; iright
+      isplitr
+      · ipureintro; rfl
       unfold dbFailed
       iexact Hfailed
     | false =>
@@ -276,7 +292,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
         iexists m', mx, mxw, tail, B
         iframe; iframe #
         ipureintro
-        refine ⟨(Hw.2.2.2.2 rfl).1, (Hw.2.2.2.2 rfl).2.1, Hok, rfl, by omega, by omega, ?_, Hm'.2.2,
+        refine ⟨(Hw.2.2.2.2 rfl).1, (Hw.2.2.2.2 rfl).2.1, Hok, rfl, rfl, by omega, by omega, ?_, Hm'.2.2,
           by have := (Hw.2.2.2.2 rfl).2.2.2.2.1; omega, by have := (Hw.2.2.2.2 rfl).2.2.2.2.2.1; omega⟩
         rw [Hm'.2.1]; exact Hok0 rfl
       · iright; ileft; ipureintro; exact herrc

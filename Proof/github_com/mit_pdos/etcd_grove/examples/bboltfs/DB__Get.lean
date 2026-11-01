@@ -38,8 +38,8 @@ set_option maxHeartbeats 1600000 in
 theorem DB.Get.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
     (wp_pageAt : pageAt.spec (GF := GF) (hG := hG)) :
     DB.Get.spec (GF := GF) (hG := hG) := by
-  intro γ db t
-  wp_start as ⟨Hdb, Hrd, Hlast⟩
+  intro γ db t o
+  wp_start as ⟨Hdb, Hrd, Hlast, Hoo⟩
   iunfold isDB at Hdb
   icases Hdb with ⟨%f, %fd, %p, #Hpkg, #Hos, #Hfile, #Hpath, #Hrw, #Hmeta, #Hguard⟩
   iunfold dbReader at Hrd
@@ -65,7 +65,7 @@ theorem DB.Get.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
     iapply HΦ
     isplitl [Hrd]
     · iunfold dbReader; iexists f', fd', p'; iframe; iframe #
-    iright; ipureintro; exact He.1
+    iframe Hoo; iright; ipureintro; exact He.1
   | false =>
     wp_auto
     wp_apply sync.RWMutex.wp_RLock db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f' fd' p')
@@ -94,7 +94,7 @@ theorem DB.Get.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
       iapply HΦ
       isplitl [Hrd]
       · iunfold dbReader; iexists f', fd', p'; iframe; iframe #
-      iright; ipureintro; exact He.1
+      iframe Hoo; iright; ipureintro; exact He.1
     · dsimp only [mapFields, mapRest]
       icases Hflds with ⟨Hd, H0, H1⟩
       icases Hmr with ⟨%Hbase, Htok, #Hinv, Hf, Hfd⟩
@@ -151,6 +151,8 @@ theorem DB.Get.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
           icases monoNatLbOwn_valid γ.last 1 _ _ $$ H1 H2 with %h
           ipureintro; exact h.2)
       icases Hlv $$ [Hlauth Hlast] with ⟨⟨Hlauth, -⟩, %Hle⟩
+      · iframe
+      icases dbOwnerOpt_agree γ o _ _ $$ [Hoo Hown] with ⟨⟨Hoo, Hown⟩, %Hoeq⟩
       · iframe
       ihave #Hlb := monoNatLbOwn_get γ.last 1 _ $$ Hlauth
       wp_auto
@@ -260,8 +262,9 @@ theorem DB.Get.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
         iapply HΦ
         isplitl [Hrd]
         · iunfold dbReader; iexists f', fd', p; iframe; iframe #
+        iframe Hoo
         ileft
-        isplitr; · ipureintro; exact ⟨rfl, Hle⟩
+        isplitr; · ipureintro; exact ⟨rfl, Hle, Hoeq⟩
         have hpv : pageVal B = some (decode (List.take 8 (List.drop 16 B))) := by
           unfold pageVal; rw [hcnt, if_pos hc]
         rw [if_pos rfl, ← hpv]
@@ -294,8 +297,9 @@ theorem DB.Get.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
         iapply HΦ
         isplitl [Hrd]
         · iunfold dbReader; iexists f', fd', p; iframe; iframe #
+        iframe Hoo
         ileft
-        isplitr; · ipureintro; exact ⟨rfl, Hle⟩
+        isplitr; · ipureintro; exact ⟨rfl, Hle, Hoeq⟩
         have hpv : pageVal B = none := by
           unfold pageVal; rw [hcnt, if_neg hc]
         rw [if_neg Bool.false_ne_true, ← hpv]

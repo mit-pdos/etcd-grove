@@ -38,8 +38,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions]
 
 /-- `commit`'s error result, besides the error (see the spec). -/
-def commitErr (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (t n : Nat) : IProp GF :=
-  iprop(dbOwner (GF := GF) γ t n ∗
+def commitErr (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (t : Nat) : IProp GF :=
+  iprop((∃ n, dbOwner (GF := GF) γ t n) ∗
     ∃ (mp' : List w8) (fl : Bool) (hwm : Nat) (st' : MapSt) (m' : OsMeta),
       writerStF (GF := GF) γ db f fd p mp' fl hwm st' m' ∗
       (⌜fl = false⌝ ∨ (⌜fl = true⌝ ∗ dbFailed (GF := GF) γ)))
@@ -60,8 +60,10 @@ theorem commitErr_of (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp :
       osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
       osMeta (GF := GF) p (DFrac.own 1) (some m2) ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
       osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail ⊢
-      commitErr (GF := GF) γ db f fd p t n := by
+      commitErr (GF := GF) γ db f fd p t := by
   iintro ⟨Hown, Hcur, Hmap, Hout, Hflds, Hcls, Htok, #Hinv, Hwc, Hfsz, Hdsz, Hf, Hfd, Hm, Hmx, Htail⟩
+  ihave Hown : ∃ n', dbOwner (GF := GF) γ t n' $$ [Hown]
+  · iexists n; iexact Hown
   unfold commitErr writerStF writerFile
   iframe
   dsimp only [mapLen]
@@ -228,7 +230,7 @@ theorem dataErr (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List
       osMeta (GF := GF) p (DFrac.own 1) (some m3) ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
       osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) ys ∗
       osBytes (GF := GF) p (4096 * hwm + 4096) (DFrac.own 1) rest ⊢
-      commitErr (GF := GF) γ db f fd p t n := by
+      commitErr (GF := GF) γ db f fd p t := by
   iintro ⟨Hown, Hcur, Hmap, Hout, Hflds, Hcls, Htok, #Hinv, Hwc4, Hpc, Htop, Hfsz, Hdsz, Hf, Hfd, Hm,
     Hmx, Hpg, Hrest⟩
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := h
@@ -313,9 +315,11 @@ theorem dataErrT (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : Lis
       osMeta (GF := GF) p (DFrac.own 1) (some m3) ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
       osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) ys ∗
       osBytes (GF := GF) p (4096 * hwm + 4096) (DFrac.own 1) rest ⊢
-      commitErr (GF := GF) γ db f fd p t n := by
+      commitErr (GF := GF) γ db f fd p t := by
   iintro ⟨Hown, #Hfailed, Hcur, Hmap, Hout, Hflds, Hcls, Htok, #Hinv, T0, T1, Hpc, Htop, Hfsz, Hdsz, Hf,
     Hfd, Hm, Hmx, Hpg, Hrest⟩
+  ihave Hown : ∃ n', dbOwner (GF := GF) γ t n' $$ [Hown]
+  · iexists n; iexact Hown
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := h
   icases page_rejoin p base hwm len ys rest h8 (by omega) $$ [Hpg Hrest Hpc Htop] with ⟨Htail, Htop⟩
   · iframe Hpg Hrest Hpc Htop
@@ -415,8 +419,8 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     (wp_pmeta : Page.«meta».spec (GF := GF) (hG := hG))
     (wp_write : Meta.write.spec (GF := GF) (hG := hG)) :
     DB.commit.spec (GF := GF) (hG := hG) := by
-  intro γ db f fd p mp st m v Hok Ht Hb Hmok Hst
-  generalize hmv : curMeta mp = mv at Ht ⊢
+  intro γ db f fd p mp st m v Hok Ht Hb Hmok Hst Hvp
+  generalize hmv : curMeta mp = mv at Ht Hvp ⊢
   generalize hhwm : curPgid mp = hwm at Hb ⊢
   have hpg : mv.pgid'.toNat = hwm := by rw [← hmv, ← hhwm]; rfl
   wp_start as ⟨#Hpkg, #Hos, #Hfile, #Hmeta, #Hguard, Hws, Hown⟩
@@ -460,7 +464,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       db_ptr ↦ db ∗ minsz_ptr ↦ minsz ∗ «$res0_ptr» ↦ GoInterface.nil ∗
       v_ptr ↦ v ∗ pg_ptr ↦ mv.pgid' ∗ m_ptr ↦ nextMeta mv) ∨
     (∃ e : GoInterface, ⌜bv = returnVal #() ∧ e ≠ interface.nil⌝ ∗ db_ptr ↦ db ∗
-      «$res0_ptr» ↦ e ∗ commitErr (GF := GF) γ db f fd p mv.txid'.toNat hwm)))
+      «$res0_ptr» ↦ e ∗ commitErr (GF := GF) γ db f fd p mv.txid'.toNat)))
     with [-HΦ]
   · -- remap
     have hsz40 : m.size ≤ 2 ^ 40 := by have := Hstp.2.1; have := Hstp.2.2.2; omega
@@ -564,7 +568,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
       osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc) ∨
     (∃ e : GoInterface, ⌜bv = returnVal #() ∧ e ≠ interface.nil⌝ ∗ db_ptr ↦ db ∗
-      «$res0_ptr» ↦ e ∗ commitErr (GF := GF) γ db f fd p mv.txid'.toNat hwm)))
+      «$res0_ptr» ↦ e ∗ commitErr (GF := GF) γ db f fd p mv.txid'.toNat)))
     with [-HΦ]
   · (try wp_auto)
     have hsz' : m'.size < (hwm + 2) * 4096 := by exact_mod_cast Hif
@@ -956,11 +960,11 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     icases osBytes_halves p X 0 $$ Hmxw with ⟨Hx1, Hx2⟩
     imod meta_fail γ db p base len γm mx hwm
         (((X.map Prod.fst).drop 16).take 64 ++ ((X.map Prod.fst).drop 4112).take 64)
-        (metas_length X hXl) X hXl T _
-        $$ [Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hcls2 Hx1]
-      with ⟨HR, #Hfailed, Htok, Hcur, Hout⟩
+        (metas_length X hXl) X hXl T _ _ _
+        $$ [Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hown Hcls2 Hx1]
+      with ⟨HR, #Hfailed, Hown, Htok, Hcur, Hout⟩
     · rw [List.take_left' hl1, List.drop_left' hl1]
-      iframe Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hcls2 Hx1; iframe #
+      iframe Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hown Hcls2 Hx1; iframe #
     wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaR (GF := GF) γ db p)
       $$ [$Hmeta $Hsync $Hlocked HR]
     · iexact HR
@@ -1003,11 +1007,11 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     icases osBytes_halves p X 0 $$ Hmxw with ⟨Hx1, Hx2⟩
     imod meta_fail γ db p base len γm mx hwm
         (((X.map Prod.fst).drop 16).take 64 ++ ((X.map Prod.fst).drop 4112).take 64)
-        (metas_length X hXl) X hXl T _
-        $$ [Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hcls2 Hx1]
-      with ⟨HR, #Hfailed, Htok, Hcur, Hout⟩
+        (metas_length X hXl) X hXl T _ _ _
+        $$ [Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hown Hcls2 Hx1]
+      with ⟨HR, #Hfailed, Hown, Htok, Hcur, Hout⟩
     · rw [List.take_left' hl1, List.drop_left' hl1]
-      iframe Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hcls2 Hx1; iframe #
+      iframe Htok Hcur Hcm Hout Hout2 Hc0 Hc1 Hfl Hfail Hauth Hown2 Hown Hcls2 Hx1; iframe #
     wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaR (GF := GF) γ db p)
       $$ [$Hmeta $Hsync $Hlocked HR]
     · iexact HR
@@ -1087,7 +1091,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     rw [hcr', dataPage_val]
     iframe HBp
     isplitr
-    · unfold dbTx; iexact Htx
+    · unfold dbTx; iframe Htx; ipureintro; exact Hvp
     · ipureintro; exact GMap.lookup_insert _ _ _
   (try wp_auto)
   -- `rwlock`'s resource at the new meta pages, the high water mark one page on
@@ -1125,7 +1129,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   isplitl [Hown]
   · unfold dbOwner; iexact Hown
   isplitr
-  · unfold dbTx; iexact Htx
+  · unfold dbTx; iframe Htx; ipureintro; exact Hvp
   · unfold dbLast; iexact Hlb
 
 end proof

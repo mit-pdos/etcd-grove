@@ -14,7 +14,7 @@ The ghost names (`DBNames`) name:
 - `out`: the meta pages' meta cells are out of the mapping's invariant (with the writer, during
   the meta `WriteAt`). 1/2 the invariant, 1/4 each mutex.
 - `txs`, a ghost map from txids to values (`dbTx γ t vo`, persistent: transaction `t`'s root page
-  holds `vo`, `pageVal`), `last` (a monotone counter: the current txid, `dbLast γ t` its lower
+  holds `vo`, `pageVal`, and the client's predicate `vp` allows it), `last` (a monotone counter: the current txid, `dbLast γ t` its lower
   bounds), `fail` (a monotone counter, 1 once failed, `dbFailed γ`), and `own` (the committer's
   token `dbOwner γ t n`: the current txid and high water mark; the other half in `metalock`,
   where it agrees with the meta pages while not failed; once closed, the committer's half is in
@@ -40,7 +40,9 @@ when it mapped the file, and no write touches them since).
   both halves: it runs under both mutexes), the transaction map (no transaction after the current
   one while not failed), and while not failed: the meta
   pages are valid (`metaPagesOk`), the current meta's root page `pageIs` its value, `dbTx` of it;
-  once failed, its half of `own`.
+  once failed, its half of `own`, at high water mark 0 (failing the handle sets the token to
+  `(t, 0)`, so that a client whose token has a positive high water mark knows the handle is not
+  failed).
 - `mmaplock` (`mapR γ db q`, Perennial's guarded `RWMutex`): the mapping, fractionally: the
   mapping fields, a fraction `q` of the mapping invariant's token (`ghostVar γm q ()`: a remap,
   with `q = 1`, closes the invariant and takes every cell back for `Munmap`), and fractions of the
@@ -132,6 +134,9 @@ structure DBNames where
   fail : GName
   own : GName
   cls : GName
+  /-- What the client allows transaction `t` to hold (`dbTx`): `Open` takes it, holding of the
+  transaction it opens at, and `Commit` requires it of the value it commits. -/
+  vp : Nat → Option w64 → Prop
 
 section preds
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
@@ -155,9 +160,9 @@ instance pageIs_persistent (p : GoString) (r : Nat) (B : List w8) :
     Persistent (pageIs (GF := GF) p r B) := by
   unfold pageIs; infer_instance
 
-/-- Transaction `t`'s root page holds `vo`. -/
+/-- Transaction `t`'s root page holds `vo`, which the client allows (`γ.vp`). -/
 def dbTx (γ : DBNames) (t : Nat) (vo : Option w64) : IProp GF :=
-  ghostMapElem γ.txs t DFrac.discard vo
+  iprop(ghostMapElem γ.txs t DFrac.discard vo ∗ ⌜γ.vp t vo⌝)
 
 /-- The current txid is at least `t`. -/
 def dbLast (γ : DBNames) (t : Nat) : IProp GF := monoNatLbOwn γ.last t
@@ -177,6 +182,25 @@ instance dbFailed_persistent (γ : DBNames) : Persistent (dbFailed (GF := GF) γ
 
 /-- The committer's token: the current txid is `t` and the high water mark `n`. -/
 def dbOwner (γ : DBNames) (t n : Nat) : IProp GF := ghostVar γ.own (1 : Qp).half (t, n)
+
+/-- The committer's token, if the caller holds it (`some (t, n)`): a reader that holds it learns
+that it reads transaction `t`. -/
+def dbOwnerOpt (γ : DBNames) : Option (Nat × Nat) → IProp GF
+  | none => emp
+  | some (t, n) => dbOwner γ t n
+
+/-- A caller's committer token agrees with `metalock`'s half of it. -/
+theorem dbOwnerOpt_agree (γ : DBNames) (o : Option (Nat × Nat)) (t n : Nat) :
+    dbOwnerOpt (GF := GF) γ o ∗ ghostVar γ.own (1 : Qp).half (t, n) ⊢
+      (dbOwnerOpt (GF := GF) γ o ∗ ghostVar γ.own (1 : Qp).half (t, n)) ∗
+        ⌜∀ x, o = some x → t = x.1⌝ := by
+  rcases o with _ | ⟨t', n'⟩
+  · iintro ⟨H1, H2⟩; iframe; ipureintro; intro x hx; cases hx
+  · iintro ⟨H1, H2⟩
+    unfold dbOwnerOpt dbOwner
+    icombine H1 H2 gives % ⟨_, Heq⟩
+    iframe
+    ipureintro; intro x hx; cases hx; cases Heq; rfl
 
 /-- The mapping invariant's contents: the committed pages' cells, and the meta cells unless the
 writer took them (`out`), holding the metas while not failed. -/
@@ -378,7 +402,7 @@ def metaR (γ : DBNames) (db : Loc) (p : GoString) : IProp GF :=
       ghostVar γ.cls (1 : Qp).half true) ∗ ⌜mxc.length = 8192 ∧ mxc.map Prod.fst = mx⌝ ∗
     ghostMapAuth γ.txs 1 T ∗ ghostVar γ.out (1 : Qp).half.half false ∗
     match b with
-    | true => monoNatAuthOwn γ.fail 1 1 ∗ ∃ x : Nat × Nat, ghostVar γ.own (1 : Qp).half x
+    | true => monoNatAuthOwn γ.fail 1 1 ∗ ∃ t : Nat, ghostVar γ.own (1 : Qp).half (t, 0)
     | false =>
       monoNatAuthOwn γ.fail 1 0 ∗ ⌜mx = mp ∧ metaPagesOk mp ∧ hwm = curPgid mp ∧
         ∀ k, (curMeta mp).txid'.toNat < k → T !! k = none⌝ ∗

@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart). `db.commit(m, v)` (`examples/bboltfs/minibolt.go`, a write transaction after `m`, the current meta): remap if the high water mark passes the mapping (`mmap`), grow the file (`Truncate`, `Sync`), write the data page at the high water mark and `Fdatasync` it (it is then a committed page, `pageIs`), then, under `metalock`, write the meta to slot `txid % 2` and `Fdatasync` it. Its caller (`Commit`) holds `rwlock` and found the handle not failed: it has the writer's part of the database (`writerSt`, `rwR`'s open branch) at the current meta pages `mp`, and the committer's token. On success, transaction `t + 1` is current, its root page holds `v`, and `rwlock`'s resource is whole again. On an error, the caller keeps its token and the writer's part (`writerStF`: the file without the facts of a handle not failed), failed (`dbFailed`) if `commit` failed the handle itself (the meta's write or sync), or not yet failed, for `Commit` to fail it. -/
+/- Lean-first (no Rocq counterpart). `db.commit(m, v)` (`examples/bboltfs/minibolt.go`, a write transaction after `m`, the current meta): remap if the high water mark passes the mapping (`mmap`), grow the file (`Truncate`, `Sync`), write the data page at the high water mark and `Fdatasync` it (it is then a committed page, `pageIs`), then, under `metalock`, write the meta to slot `txid % 2` and `Fdatasync` it. Its caller (`Commit`) holds `rwlock` and found the handle not failed: it has the writer's part of the database (`writerSt`, `rwR`'s open branch) at the current meta pages `mp`, the committer's token, and a value the client's predicate allows (`γ.vp`). On success, transaction `t + 1` is current, its root page holds `v`, and `rwlock`'s resource is whole again. On an error, the caller keeps its token (at high water mark 0 if `commit` failed the handle) and the writer's part (`writerStF`: the file without the facts of a handle not failed), failed (`dbFailed`) if `commit` failed the handle itself (the meta's write or sync), or not yet failed, for `Commit` to fail it. -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB
@@ -61,7 +61,7 @@ abbrev DB.commit.spec : Prop :=
   ∀ (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8) (st : MapSt)
     (m : OsMeta) (v : w64),
   metaPagesOk mp → (curMeta mp).txid'.toNat + 1 < 2 ^ 64 → (curPgid mp + 2) * 4096 ≤ 2 ^ 30 →
-  m.ok = true → st ≠ none →
+  m.ok = true → st ≠ none → γ.vp ((curMeta mp).txid'.toNat + 1) (some v) →
   {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ db.[DB, go!"file"] ↦□ f ∗
       sync.isMutex db.[DB, go!"metalock"] (metaR (GF := GF) γ db p) ∗
       sync.isRWMutexGuard db.[DB, go!"mmaplock"] (mapR (GF := GF) γ db f fd p) ∗
@@ -74,7 +74,7 @@ abbrev DB.commit.spec : Prop :=
           dbOwner (GF := GF) γ ((curMeta mp).txid'.toNat + 1) (curPgid mp + 1) ∗
           dbTx (GF := GF) γ ((curMeta mp).txid'.toNat + 1) (some v) ∗
           dbLast (GF := GF) γ ((curMeta mp).txid'.toNat + 1)) ∨
-      (⌜err ≠ interface.nil⌝ ∗ dbOwner (GF := GF) γ (curMeta mp).txid'.toNat (curPgid mp) ∗
+      (⌜err ≠ interface.nil⌝ ∗ (∃ n', dbOwner (GF := GF) γ (curMeta mp).txid'.toNat n') ∗
         ∃ (mp' : List w8) (fl : Bool) (hwm : Nat) (st' : MapSt) (m' : OsMeta),
           writerStF (GF := GF) γ db f fd p mp' fl hwm st' m' ∗
           (⌜fl = false⌝ ∨ (⌜fl = true⌝ ∗ dbFailed (GF := GF) γ))) }}
