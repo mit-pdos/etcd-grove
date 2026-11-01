@@ -105,11 +105,15 @@ change; `issues/etcd-compaction-delete-then-put.md`, its second symptom), `choos
 a compaction response, `choose`'s copy branch leaves compacted members in the source group
 (`issues/etcd-watch-compacted-resent.md`), the examples' and the cache's `cm = false` premises go
 with F1 (the exported `cache/v3/Results.lean`'s `hoff`: weaker premises), and the client's `run`
-uses `canceled = false` of forwarded responses. **The user's decision (2026-11-01): the fact
-"revision `c` changes each key at most once" (`oneChangePerKeyAt log c`) is a premise of
-`store.Compact`**, the compaction's producer, kept by the store with the compaction revision and
-proved at the server from the KV model; not a weaker watch guarantee, not a premise on the watch
-path.
+uses `canceled = false` of forwarded responses. The user first chose the fact "revision `c` changes each key at most
+once" as a premise of `store.Compact`; review round 2 showed it unprovable at the server (a
+revision can put a key and then delete it through gRPC at the fork pin, `checkIntervals`' sibling
+bug, `issues/etcd-txn-check-intervals-sibling.md`, with this consequence reproduced). **The user's
+decision (2026-11-01, superseding): the watch-create token carries, gated by the mode, "no sealed
+revision writes a key twice" (`mvcc.noDupKeys`), in place of `noCompactor`**; the store keeps "no
+watcher, or (in compaction mode) no duplicate keys"; `store.Compact` unchanged; the non-compacting
+examples untouched; the compacting example proves it from its workload. (The candidate in between
+said the client's `srvNoDupKeys` was an existing premise: it is an unused definition.)
 
 ## Stages (after the questions; each leaves the build green, committed, no push)
 
