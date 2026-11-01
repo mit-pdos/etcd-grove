@@ -11,6 +11,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__Close
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__Commit
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__Get
+public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__Snapshot
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__close
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__commit
 public import Proof.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__init
@@ -156,6 +157,10 @@ theorem DB.wp_Commit :
 theorem DB.wp_Get :
     EtcdGrove.bboltfs.DB.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bboltfs.DB.Get.wp_proof DB.wp_meta wp_pageAt
+
+theorem DB.wp_Snapshot :
+    EtcdGrove.bboltfs.DB.Snapshot.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bboltfs.DB.Snapshot.wp_proof DB.wp_meta wp_pageAt _root_.Perennial.EtcdGrove.os.File.ReadAt.wp_proofRacy
 
 theorem wp_initPages :
     EtcdGrove.bboltfs.initPages.spec (GF := GF) (hG := hG) :=

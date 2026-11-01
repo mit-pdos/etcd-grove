@@ -352,8 +352,9 @@ instance mapR_fractional (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) :
       ipureintro; exact Heq)
 
 /-- What minibolt's code needs of the initialized program: `sync`'s initialization, and the
-package's error values, which are not nil, and `io.EOF`, which is not nil and not a `*PathError`
-(`Snapshot` compares `ReadAt`'s error with it). (The package's `isPkgInit` would give them, once
+package's error values, which are not nil, and `io.EOF`, which is not nil, not a `*PathError`, and
+a pointer error (a `*T`, as `errors.New`'s `*errorString`): `Snapshot` compares `ReadAt`'s error with
+it, which takes its dynamic type to be comparable. (The package's `isPkgInit` would give them, once
 `os`, `syscall` and `golang.org/x/sys/unix`, which it imports, have `IsPkgInit` instances.) -/
 def pkgFacts : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.sync ∗ ∃ (e1 e2 : GoInterface),
@@ -361,7 +362,8 @@ def pkgFacts : IProp GF :=
     ⌜e1 ≠ interface.nil ∧ e2 ≠ interface.nil⌝ ∗
     ∃ eof : GoInterface, globalAddr _root_.Perennial.io.EOF ↦□ eof ∗
       ⌜eof ≠ interface.nil ∧
-        ∀ pe : Loc, eof ≠ interface.mkOk (go.GoType.PointerType _root_.Perennial.io.fs.PathError.ty) #pe⌝)
+        (∀ pe : Loc, eof ≠ interface.mkOk (go.GoType.PointerType _root_.Perennial.io.fs.PathError.ty) #pe) ∧
+        ∃ (T : go.GoType) (l : Loc), eof = interface.mkOk (go.GoType.PointerType T) #l⌝)
 
 instance pkgFacts_persistent : Persistent (pkgFacts (GF := GF)) := by
   unfold pkgFacts; infer_instance
