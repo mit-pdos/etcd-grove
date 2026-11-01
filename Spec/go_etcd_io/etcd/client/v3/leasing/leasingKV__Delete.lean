@@ -24,19 +24,20 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 /-- **`lkv.Delete(ctx, key, opts...)`**: `delete` of `OpDelete(key, opts...)` (`o := opDeleteModel
-key gs`). The context must be cancelable. The operation's key and range end are at most `2 ^ 27`
+key gs`). The context must be cancelable; the thread's token is kept (a reader slot
+borrowed with it from the leasing KV's pool and given back). The operation's key and range end are at most `2 ^ 27`
 bytes and its value `2 ^ 28` (`OpShape`: leasing's own requests carry it with the prefixed key;
 "Leasing's sizes"). -/
 abbrev leasingKV.Delete.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ threadTok ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
       optsAt sl gs ∗ etcdReached lo ∗
       ⌜¬ opDeletePanics key gs ∧ (opDeleteModel key gs).t = W64 3 ∧
         OpShape (2 ^ 27) (2 ^ 27) (2 ^ 28) (opDeleteModel key gs)⌝ }}
     (App (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"Delete")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
-  {{ (dr : Loc) (err : GoInterface), RET (PairV #dr #err); lkvReader lkv γ pfx ∗
+  {{ (dr : Loc) (err : GoInterface), RET (PairV #dr #err); threadTok ∗
       (⌜err ≠ GoInterface.nil ∧ dr = null⌝ ∨
        (⌜err = GoInterface.nil⌝ ∗ deleteCommitted lo (opDeleteModel key gs) dr)) }}
 

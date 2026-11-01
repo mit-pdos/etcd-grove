@@ -1401,3 +1401,17 @@ strict weak order. Not `wp_Sort`'s induction without the order: with any `Less`,
 (`zsortinterface.go:218`, `j >= 1`), so it moves elements below the segment and the per-segment
 "outside unchanged" invariant fails; the proof needs a whole-slice invariant (every index in
 `[0, n)`, the list a permutation). The local axiom goes when it lands.
+
+## A thread pool's loans are fewer than the live threads (2026-11-01, bounds B2's leasing pilot)
+
+`threadPool` (`Perennial/Proof/ThreadPool.lean`) lends a copy of its resource for a thread token
+and holds the token, but says nothing a client can use about the loans outstanding. A goroutine
+started on a wait group whose counter is bounded by thread tokens (`Add(1)` deposits the caller's
+token) has no token of its own, so it cannot borrow; if instead the wait group's running slots hold
+the pool's loan receipts (`ownThreadLoan`), the counter's bound needs "`k` loans are fewer than
+`threadBound GF`". Worked around locally (`Proof/go_etcd_io/etcd/client/v3/leasing/PoolLoans.lean`):
+`threadPool.loans_lt` (`isThreadPool N γ R ∗ ownToks γ k ⊢ |={E}=> ⌜k < threadBound GF⌝ ∗ ownToks γ k`,
+`↑N ⊆ E`: the invariant's `ownTokAuth γ b` bounds `k ≤ b`, its `threadToks b` gives
+`b < threadBound GF`) and `threadPool.init_named` (`init` under a name allocated beforehand,
+`ownTokAuth γ 0`, so that the name can be among the ghost names the pooled resource is defined
+over). Proposed change: both in `ThreadPool.lean` as they are.
