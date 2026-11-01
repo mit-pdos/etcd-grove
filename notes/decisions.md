@@ -29030,3 +29030,32 @@ decisions of 2026-11-01 (Draft in `AuthSplitDraft.lean`, imported by nothing).
   back and commits a pending delete, etcd-io/etcd#17119); a fresh backend's are idle. The split the
   premise needs is restated over `rbOwnIn ⊤`. The batch lock's own side is a third predicate
   (`rbLock`), so that `backend.Snapshot`'s observation no longer hands the lock's half as `rbOwn`.
+
+## The backend for the auth split, Freeze: decision 1 applied, decision 3 stopped (2026-11-01 · decision 1 frozen · `notes/backend-auth-split-plan.md`, "Freeze")
+
+Supersedes in part the entry above (its first bullet is now applied; its third is not).
+
+- **Decision 1 applied.** `rtHeld`/`rtHeldF` (`InvBackend.lean`) carry `rtx ≠ Loc.null` in their
+  existing pure conjunct (`⌜rd.rtx = rtx ∧ rtx ≠ Loc.null⌝`), not as a separate `∗ ⌜…⌝` outside
+  the existential as the draft wrote it: the same predicate, and the laws that destructure it keep
+  their patterns. `RLock` establishes it with the open share it takes (`rtResAt_live`, over
+  `rtIntv_live`); `readTx.UnsafeRange.spec` takes no open share. The share-free laws are
+  `rtHeldF_lend'`/`rtHeldF_read'` (`ReadLemmas.lean`); today's `rtHeldF_lend`/`rtHeldF_read`/
+  `rtHeld_read` (with `bOpen`) stay, as one-line corollaries, so that their callers are unchanged.
+  `rtHeld_wf` moved from mvcc's bridge to the backend (a law, `ReadLemmas.lean`). The two direct
+  users of `UnsafeRange.spec` (`rtUR_held`, `rt_rangeLimF`) frame the share; no other caller
+  changed. `guarded_RLock` is in `ClientLaws.lean`. `Close.spec`: docstring only (Q1).
+- **Decision 3 stopped: `rtHeldF_rbOwnIn` is not provable over the current read model.** The law
+  says a held read agrees with the idle part on its tracked buckets. On the server every tracked
+  bucket is a hook bucket (`bridgeParams`: `HB n = (n ≠ key)`), and the backend relates the
+  readers' state to the writer's contents only off the hook buckets (`sessWf`'s `agreeOff P.HB`,
+  `vData`, `viewSame`; `hookStep` constrains the write buffer only off them): nothing in today's
+  invariants says what a reader sees of a tracked bucket. The auth Q2 survey's finding (the
+  readers' model would have to be extended to the hook buckets; its estimate 2.5–10k lines). The
+  other laws (split/join, congruence, `batchLocked_rbPart`, `rbLock_agree`) are provable over a
+  per-bucket ghost map of the writer's halves, but without `rbOwnIn` they give no client anything
+  (`Unlock`'s restatement and `newPostK`'s idle part need it), and changing `rbOwn`'s
+  representation changes what `backend.Snapshot`'s axiom asserts (its observation hands the lock's
+  half as `rbOwn`). So nothing of decision 3 is applied; `AuthSplitDraft.lean` keeps it.
+- **Decision 2 held.** The pool in `newPostK` would make `storage.OpenBackend`'s axiom assert it
+  under any thread bound; the axiom's restatement is step 2's, to be approved.

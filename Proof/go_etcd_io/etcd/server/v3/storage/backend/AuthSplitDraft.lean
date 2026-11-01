@@ -6,15 +6,9 @@ glue and the compatibility corollaries are proved over them.
 The user's decisions of 2026-11-01 (`notes/snapshot-auth-on-plan.md` on `snap-auth-on-draft`, "The
 user's decisions on the restated Draft's questions"), what this module drafts for each:
 
-1. **A read in progress needs no open share; `Close` waits for the readers.** The guard is at the
-   acquisition: `readTx.RLock` (and `ConcurrentReadTx`, the batch locks) take an open share and give
-   it back at once, as today; the held read (`BksDraft.backend.rtHeldF`, today's `rtHeldF` and "the
-   read interval is live") needs none, so `readTx.UnsafeRange` takes none
-   (`BksDraft.backend.readTx.UnsafeRange.spec`). `Close`'s statement is today's (`bOpen γ 1`): with
-   no reader holding a share, the clients' whole open token is all it needs, and the reads begun
-   before it (a held `readTx`, a `ConcurrentReadTx`) finish first in Go (`commit` takes
-   `readTx.Lock()`; bbolt's `Close` waits for the read transactions). Today's specs are corollaries
-   (`BksDraft.readTx.RLock.spec_old`, `BksDraft.readTx.UnsafeRange.spec_old`).
+1. (**Applied**, 2026-11-01: section 1 below.) **A read in progress needs no open share; `Close`
+   waits for the readers.** The held read (`rtHeldF`) records that its interval is live, so
+   `readTx.UnsafeRange` takes no open share; the guard is at the acquisition (`RLock`).
 2. **Readers backed by thread tokens.** The backend's pool of reader slots
    (`BksDraft.backend.rdPool`, a `threadPool` of `rdTok`), from which a thread token borrows a slot
    for one read (`rdTok_borrow`, `rdTok_giveBack`; the glue `BksDraft.reader_RLock`/`reader_RUnlock`),
@@ -57,179 +51,11 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend backend
 
-/-! ## 1. The readers and `Close` (decision 1) -/
+/-! ## 1. The readers and `Close` (decision 1): applied
 
-section readers
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
-
-/-- **The shared read transaction held, its interval live** (`rtHeldF`, redefined: today's, and
-its bbolt transaction not nil; review round 1's T1). `RLock` takes an open share to know the backend
-has not stopped (a stopped interval's transaction is nil, `rtIntv`) and gives it back; from then on
-the interval stays live until `RUnlock`, since the stop's commit (`CommitAndStop` → `commit`) takes
-`readTx.Lock()`, which waits for every reader. So a read in progress needs no open share of its own
-(decision 1), and today's laws carry over by framing the fact. -/
-def BksDraft.backend.rtHeldF (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) (p : Qp) :
-    IProp GF :=
-  iprop(Perennial.EtcdGrove.backend.rtHeldF γ P b rtx rv p ∗ ⌜rtx ≠ Loc.null⌝)
-
-/-- `BksDraft.backend.rtHeldF` at the reader's own share of bbolt's transaction. -/
-abbrev BksDraft.backend.rtHeld (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) :
-    IProp GF :=
-  BksDraft.backend.rtHeldF γ P b rtx rv sync.rfrac.half
-
-/-- The live read is today's held read. -/
-theorem BksDraft.rtHeldF_old (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p : Qp) :
-    BksDraft.backend.rtHeldF (GF := GF) γ P b rtx rv p ⊢ Perennial.EtcdGrove.backend.rtHeldF γ P b rtx rv p := by
-  unfold BksDraft.backend.rtHeldF
-  iintro ⟨Hh, -⟩
-  iexact Hh
-
-/-- Today's held read, with an open share, is live (what `RLock`'s proof adds before returning;
-the corollaries' step). -/
-theorem BksDraft.rtHeldF_of_open (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p qo : Qp) :
-    Perennial.EtcdGrove.backend.rtHeldF (GF := GF) γ P b rtx rv p ∗ bOpen γ qo ⊢
-      BksDraft.backend.rtHeldF γ P b rtx rv p ∗ bOpen γ qo := by
-  iintro ⟨Hh, Ho⟩
-  have hp : p = p.half + p.half := (Qp.half_add_half p).symm
-  icases (Perennial.EtcdGrove.backend.rtHeldF_lend γ P b rtx rv qo p.half p.half) $$ [Hh Ho] with ⟨Hh, Ho, Hl⟩
-  · rw [← hp]; iframe Hh Ho
-  ihave %Hn := txLive_nonnull rtx p.half $$ Hl
-  iframe Ho
-  unfold BksDraft.backend.rtHeldF
-  isplitl
-  · have e := Perennial.EtcdGrove.backend.rtHeldF_return (GF := GF) γ P b rtx rv p.half p.half
-    rw [← hp] at e
-    iapply e $$ [$Hh $Hl]
-  ipureintro; exact Hn
-
-/-- **A live held read lends a share of bbolt's transaction, with no open share** (today's
-`rtHeldF_lend` without `bOpen`; review round 1's T1: the laws a reader without a share needs). -/
-theorem BksDraft.rtHeldF_lend (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p1 p2 : Qp) :
-    BksDraft.backend.rtHeldF (GF := GF) γ P b rtx rv (p1 + p2) ⊢
-      BksDraft.backend.rtHeldF γ P b rtx rv p1 ∗ txLive rtx p2 := by
-  unfold BksDraft.backend.rtHeldF
-  iintro ⟨Hh, %Hn⟩
-  unfold Perennial.EtcdGrove.backend.rtHeldF rtResAt rtRest rtCore rtIntv
-  icases Hh with ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
-    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩
-  cases hl : rd.live
-  · simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hiv with ⟨%Hnull, -⟩
-    exact absurd (Hrtx ▸ Hnull) Hn
-  simp only [↓reduceIte]
-  icases Hiv with ⟨Hlive, #Hsnap, #Hintv, #Hwgi, Hwo, Htk⟩
-  icases ((txLive_fractional rd.rtx).fractional p1 p2).1 $$ Hlive with ⟨Hl1, Hl2⟩
-  subst Hrtx
-  iframe Hl2
-  isplitl
-  · iexists rt, rd, H, L
-    iframe; iframe #
-    rw [hl]
-    simp only [↓reduceIte]
-    iframe; iframe #
-    isplitr
-    · ipureintro; exact Hok
-    ipureintro; exact Hf
-  ipureintro; exact Hn
-
-/-- The lent share back. -/
-theorem BksDraft.rtHeldF_return (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p1 p2 : Qp) :
-    BksDraft.backend.rtHeldF (GF := GF) γ P b rtx rv p1 ∗ txLive rtx p2 ⊢
-      BksDraft.backend.rtHeldF γ P b rtx rv (p1 + p2) := by
-  unfold BksDraft.backend.rtHeldF
-  iintro ⟨⟨Hh, %Hn⟩, Hl⟩
-  isplitl
-  · iapply Perennial.EtcdGrove.backend.rtHeldF_return γ P b rtx rv p1 p2 $$ [$Hh $Hl]
-  ipureintro; exact Hn
-
-/-- **A slice a live held read returned, read, with no open share** (today's `rtHeldF_read`
-without `bOpen`). -/
-theorem BksDraft.rtHeldF_read (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p : Qp)
-    (s : GoSlice) (v : GoString) :
-    BksDraft.backend.rtHeldF (GF := GF) γ P b rtx rv p ∗ rdB rtx s v ⊢
-      ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ BksDraft.backend.rtHeldF γ P b rtx rv p) := by
-  iintro ⟨Hh, #Hs⟩
-  have hp : p = p.half + p.half := (Qp.half_add_half p).symm
-  rw [hp]
-  icases BksDraft.rtHeldF_lend γ P b rtx rv p.half p.half $$ Hh with ⟨Hh, Hl⟩
-  unfold rdB
-  icases Hs with (#Hs | #Hs)
-  · iexists DFrac.discard
-    iframe #
-    iintro _
-    iapply BksDraft.rtHeldF_return γ P b rtx rv p.half p.half $$ [$Hh $Hl]
-  icases txBytes_acc rtx s v p.half $$ [$Hs $Hl] with ⟨%dq, Hsl, Hback⟩
-  iexists dq
-  iframe Hsl
-  iintro Hsl
-  ihave Hl := Hback $$ Hsl
-  iapply BksDraft.rtHeldF_return γ P b rtx rv p.half p.half $$ [$Hh $Hl]
-
-/-- **`rt.RLock()`, restated** (decision 1: the guard is here): an open share in and back at once,
-the read held over the readers' state now, its interval live. -/
-abbrev BksDraft.backend.readTx.RLock.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (rt : Loc) (qo : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
-      bF go!"readTx" b ↦□ rt ∗ rdTok γ P b ∗ bOpen γ qo }}
-    (App (Val (rt @!! go.GoType.PointerType readTx.ty @!! go!"RLock")) (Val #()))
-  {{ RET #(); ∃ (rtx : Loc) (rv : RView), BksDraft.backend.rtHeld γ P b rtx rv ∗ bOpen γ qo }}
-
-/-- **`rt.UnsafeRange(bucket, key, endKey, limit)`, restated** (decision 1): of the held, live read,
-with any share `p` of bbolt's transaction, and **no open share**: `rtRange` of the readers' state (an
-end key nil or not empty; no limit above 1 on a bucket that is not safe-range: that panics). Go: the
-interval's bbolt transaction stays open while `readTx.mu` is read-locked (the commit that would roll
-it back, and the stop's, take `readTx.Lock()`). -/
-abbrev BksDraft.backend.readTx.UnsafeRange.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (rt : Loc) (rtx : Loc) (rv : RView) (p : Qp)
-    (bk : GoInterface) (bi : BucketInfo) (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac)
-    (limit : w64),
-  (endKey = slice.nil ↔ eb = []) → (sint.Z (rangeLimit eb limit) ≤ 1 ∨ bi.safe = true) → P.has bi →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
-      bF go!"readTx" b ↦□ rt ∗ BksDraft.backend.rtHeldF γ P b rtx rv p ∗ isBucket bk bi ∗
-      key ↦*{dk} kb ∗ endKey ↦*{de} eb }}
-    (App (App (App (App (Val (rt @!! go.GoType.PointerType readTx.ty @!! go!"UnsafeRange")) (Val #bk))
-      (Val #key)) (Val #endKey)) (Val #limit))
-  {{ (keys vals : GoSlice), RET (PairV #keys #vals); BksDraft.backend.rtHeldF γ P b rtx rv p ∗
-      key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗ kvsOutRd rtx keys vals (rtRange rv bi kb eb limit) }}
-
-/-- **Today's `RLock` is a corollary** (the live read is today's held read). -/
-theorem BksDraft.readTx.RLock.spec_old (h : BksDraft.backend.readTx.RLock.spec (GF := GF) (hG := hG)) :
-    Perennial.EtcdGrove.backend.readTx.RLock.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b rt qo
-  iintro %Φ ⟨#Hpkg, #Hb, #Hrt, Hrd, Ho⟩ HΦ
-  iapply (h γ P W Pk b rt qo) $$ %Φ [Hrd Ho]
-  · iframe Hrd Ho; iframe #
-  inext
-  iintro ⟨%rtx, %rv, Hh, Ho⟩
-  iapply HΦ
-  iexists rtx, rv
-  iframe Ho
-  ihave Hh := BksDraft.rtHeldF_old γ P b rtx rv _ $$ Hh
-  rw [Perennial.EtcdGrove.backend.rtHeld_eq]
-  iexact Hh
-
-/-- **Today's `UnsafeRange` is a corollary** (spot-check 1: every caller of today's statement, mvcc's
-bridge `rtUR_held`, `rt_rangeLimF`, the restore's and the install's reads, goes through unchanged:
-the open share it passes makes today's held read live, `rtHeldF_of_open`, and is framed). -/
-theorem BksDraft.readTx.UnsafeRange.spec_old
-    (h : BksDraft.backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG)) :
-    Perennial.EtcdGrove.backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b rt rtx rv p qo bk bi key endKey kb eb dk de limit h1 h2 h3
-  iintro %Φ ⟨#Hpkg, #Hb, #Hrt, Hh, Ho, #Hbk, Hk, He⟩ HΦ
-  icases BksDraft.rtHeldF_of_open γ P b rtx rv p qo $$ [$Hh $Ho] with ⟨Hh, Ho⟩
-  iapply (h γ P W Pk b rt rtx rv p bk bi key endKey kb eb dk de limit h1 h2 h3) $$ %Φ [Hh Hk He]
-  · iframe Hh Hk He; iframe #
-  inext
-  iintro %keys %vals ⟨Hh, Hk, He, Hout⟩
-  iapply HΦ
-  iframe Hk He Hout Ho
-  iapply BksDraft.rtHeldF_old γ P b rtx rv p $$ Hh
-
-end readers
+Applied (2026-11-01, the Freeze of decision 1): `rtHeldF`/`rtHeld` with the interval live
+(`InvBackend.lean`), `readTx.UnsafeRange` with no open share, the share-free laws
+(`rtHeldF_lend'`, `rtHeldF_read'`, `ReadLemmas.lean`), `guarded_RLock` (`ClientLaws.lean`). -/
 
 /-! ## 2. The reader pool (decision 2) -/
 
@@ -313,13 +139,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- **A reader with a thread token begins a read** (glue, decisions 1 and 2): it borrows a slot from
 the backend's pool, `RLock`s with an open share it gets back at once, and holds the live read and
 the loan, no open share. -/
-theorem BksDraft.reader_RLock (hRL : BksDraft.backend.readTx.RLock.spec (GF := GF) (hG := hG))
+theorem BksDraft.reader_RLock (hRL : Perennial.EtcdGrove.backend.readTx.RLock.spec (GF := GF) (hG := hG))
     (γ : BNames) (P : BParams) (W Pk : IProp GF) (b rt : Loc) (qo : Qp) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ BksDraft.backend.rdPool γ P b ∗
         threadTok ∗ £ 1 ∗ bOpen γ qo }}
       (App (Val (rt @!! go.GoType.PointerType readTx.ty @!! go!"RLock")) (Val #()))
-    {{ RET #(); ∃ (rtx : Loc) (rv : RView), BksDraft.backend.rtHeld γ P b rtx rv ∗
+    {{ RET #(); ∃ (rtx : Loc) (rv : RView), Perennial.EtcdGrove.backend.rtHeld γ P b rtx rv ∗
         BksDraft.backend.rdLoan γ P b ∗ bOpen γ qo }} := by
   iintro %Φ ⟨#Hpkg, #Hb, #Hrt, #Hp, Ht, Hlc, Ho⟩ HΦ
   imod BksDraft.backend.rdTok_borrow γ P b ⊤ (fun _ _ => CoPset.mem_full) $$ [$Hp $Ht]
@@ -338,13 +164,11 @@ theorem BksDraft.reader_RUnlock
     (hRU : Perennial.EtcdGrove.backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
     (γ : BNames) (P : BParams) (W Pk : IProp GF) (b rt rtx : Loc) (rv : RView) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-        isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ BksDraft.backend.rtHeld γ P b rtx rv ∗
+        isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ Perennial.EtcdGrove.backend.rtHeld γ P b rtx rv ∗
         BksDraft.backend.rdLoan γ P b }}
       (App (Val (rt @!! go.GoType.PointerType readTx.ty @!! go!"RUnlock")) (Val #()))
     {{ RET #(); threadTok }} := by
   iintro %Φ ⟨#Hpkg, #Hb, #Hrt, Hh, Hl⟩ HΦ
-  ihave Hh := BksDraft.rtHeldF_old γ P b rtx rv _ $$ Hh
-  rw [← Perennial.EtcdGrove.backend.rtHeld_eq]
   iapply wp_fupd
   iapply (hRU γ P W Pk b rt rtx rv) $$ %(fun v => iprop(|={⊤}=> Φ v)) [Hh]
   · iframe Hh; iframe #
@@ -354,33 +178,6 @@ theorem BksDraft.reader_RUnlock
   imodintro
   iapply HΦ
   iexact Ht
-
-/-- **`RLock` under a guard that carries an open share** (the frame the auth realization's `RLock`
-clause uses, decision 1): a token `G q` that yields the open share `f q` and takes it back (the
-realization's currency `Cu q`). The guard comes back at `RLock`'s return; the read then needs no
-share (`BksDraft.backend.readTx.UnsafeRange.spec`), so the guard's holder can give the whole of it
-up (for `Close`) while reads begun before still run. A frame of `RLock`; what it shows is that the
-restated `RLock` leaves nothing of the guard with the reader. -/
-theorem BksDraft.guarded_RLock (hRL : BksDraft.backend.readTx.RLock.spec (GF := GF) (hG := hG))
-    (γ : BNames) (G : Qp → IProp GF) (f : Qp → Qp)
-    (hG1 : ∀ q, G q ⊢ |={⊤}=> bOpen γ (f q) ∗ (bOpen γ (f q) ={⊤}=∗ G q))
-    (P : BParams) (W Pk : IProp GF) (b rt : Loc) (q : Qp) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-        isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ rdTok γ P b ∗ G q }}
-      (App (Val (rt @!! go.GoType.PointerType readTx.ty @!! go!"RLock")) (Val #()))
-    {{ RET #(); ∃ (rtx : Loc) (rv : RView), BksDraft.backend.rtHeld γ P b rtx rv ∗ G q }} := by
-  iintro %Φ ⟨#Hpkg, #Hb, #Hrt, Hr, Hg⟩ HΦ
-  imod hG1 q $$ Hg with ⟨Ho, Hback⟩
-  iapply wp_fupd
-  iapply (hRL γ P W Pk b rt (f q)) $$ %(fun v => iprop(|={⊤}=> Φ v)) [Hr Ho]
-  · iframe Hr Ho; iframe #
-  inext
-  iintro ⟨%rtx, %rv, Hh, Ho⟩
-  imod Hback $$ Ho with Hg
-  imodintro
-  iapply HΦ
-  iexists rtx, rv
-  iframe Hh Hg
 
 end poolLC
 
@@ -406,7 +203,7 @@ opaque BksDraft.backend.rbPart (γ : BNames) (S : GoString → Prop) (r : GMap G
     IProp GF := iprop(True)
 
 /-- **The client's idle part of the tracked buckets in `S`**: `rbPart`, and no write to a bucket of
-`S` pending, so **the readers see `r` there too** (`BksDraft.backend.rtHeldF_rbOwnIn`) until the
+`S` pending, so **the readers see `r` there too** (`Perennial.EtcdGrove.backend.rtHeldF_rbOwnIn`) until the
 holder writes one. Go makes a part idle at `Unlock` (`batchTxBuffered.Unlock` writes the session's
 puts back into the read buffer and commits when a delete is pending: etcd-io/etcd#17119) and at the
 backend's creation; a session's write to `S` needs the holder's part, so no one else can make it
@@ -533,10 +330,10 @@ theorem BksDraft.backend.batchLocked_rbOwnIn (γ : BNames) (P : BParams) (b : Lo
 /-- **The readers see the idle part's contents** (what `rbOwnIn` adds to `rbPart`): a held read's
 state agrees with it on every key of the part's tracked buckets. While the read is held its state
 stays (a write-back and a commit take `readTx.Lock()`). -/
-theorem BksDraft.backend.rtHeldF_rbOwnIn (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView)
+theorem Perennial.EtcdGrove.backend.rtHeldF_rbOwnIn (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView)
     (p : Qp) (S : GoString → Prop) (r : GMap GoString BktData) :
-    BksDraft.backend.rtHeldF (GF := GF) γ P b rtx rv p ∗ BksDraft.backend.rbOwnIn γ S r ⊢
-      BksDraft.backend.rtHeldF γ P b rtx rv p ∗ BksDraft.backend.rbOwnIn γ S r ∗
+    Perennial.EtcdGrove.backend.rtHeldF (GF := GF) γ P b rtx rv p ∗ BksDraft.backend.rbOwnIn γ S r ⊢
+      Perennial.EtcdGrove.backend.rtHeldF γ P b rtx rv p ∗ BksDraft.backend.rbOwnIn γ S r ∗
         ⌜∀ n k, S n → P.RB n = true → vOf P rv n k = ((r.lookup n).getD ∅).lookup k⌝ := by
   sorry
 

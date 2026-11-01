@@ -4,8 +4,9 @@ Branch `backend-auth-split` (2026-11-01). What the restated auth-on snapshot ins
 (`snap-auth-on-draft`, `notes/snapshot-auth-on-plan.md`) needs of the storage backend, after the
 user's decisions of 2026-11-01 on that Draft's questions. Draft module:
 `Proof/go_etcd_io/etcd/server/v3/storage/backend/AuthSplitDraft.lean` (imported by nothing; the
-laws of the new opaque predicates `sorry`, the glue and the corollaries proved). Status: Draft and
-Impact done, review rounds below; stopped before Freeze.
+laws of the new opaque predicates `sorry`, the glue and the corollaries proved). Status: decision 1
+frozen and applied; decision 3 stopped (its law `rtHeldF_rbOwnIn` not provable over the backend's
+read model); decision 2 held with the trusted restatements ("Freeze", the end of this note).
 
 ## Scope
 
@@ -358,3 +359,39 @@ the auth premise (round 1's reviewer's Go finding is recorded outside this repos
 Next: Freeze of decisions 1–3 (the proved restatements, their corollaries, the callers), then the
 trusted restatements (Q4's 10, `OpenBackend`/`OpenSnapshotBackend`, `Snapshot`), each drafted with
 its axiom check and its text shown to the user before it changes.
+
+
+## Freeze (2026-11-01)
+
+**Applied: decision 1.** `rtHeld`/`rtHeldF` with `rtx ≠ Loc.null` (in their pure conjunct, the same
+predicate as the draft's); `readTx.RLock`'s proof establishes it (`rtResAt_live`); `readTx.UnsafeRange.spec`
+without the open share; the share-free laws `rtHeldF_lend'`/`rtHeldF_read'`, today's as corollaries;
+`rtHeld_wf` a backend law (from `BackendBridge.lean`); `guarded_RLock` (`ClientLaws.lean`);
+`Close.spec`'s docstring (Q1). Callers: `rtUR_held` and `rt_rangeLimF` frame the share, no other
+change. The draft module keeps decisions 2 and 3, over the applied `rtHeldF` and `RLock`.
+
+**Stopped: decision 3.** `rtHeldF_rbOwnIn` (a held read agrees with the idle part) is not provable
+over the current representation: on the server every tracked bucket is a hook bucket
+(`bridgeParams`), and the backend's invariants relate the readers' state to the writer's contents
+only off the hook buckets (`sessWf`'s `agreeOff P.HB`, `vData`, `viewSame`, `hookStep`'s write
+buffer clause): a reader's view of a tracked bucket is unconstrained. Proving it means extending the
+read model to the tracked hook buckets (round 1's second-tier note; the auth Q2 survey's 2.5–10k
+lines): `sessWf` and every batch operation's preservation, the write-back, the commit, the hook
+window, `Unlock`. The other laws are provable over a per-bucket ghost map, but `Unlock`'s
+restatement and the idle constructor need `rbOwnIn`, and `rbOwn`'s new representation changes
+what `backend.Snapshot`'s axiom asserts. Nothing of decision 3 applied.
+
+**Held: decision 2** (the pool in `newPostK` changes `storage.OpenBackend`'s axiom).
+
+**The trusted restatements** (Q4's ten, the two pass-throughs, `Snapshot`, `OpenBackend`/
+`OpenSnapshotBackend`): drafted with their axiom check outside the repository, for the user's
+approval of their text; not applied.
+
+**A defect of today's `MustReadMembersFromBackend.spec`, found by the axiom check** (this
+repository's, not Go's): its pre has no premise that the `members` and `members_removed` buckets
+decode, and Go panics on a key that is not a member id or a value that is not a member's JSON
+(`schema/membership.go:91-122`, `lg.Panic`; the scratch fork's `axiomcx`
+`TestBksReadUndecodableMember`: a put of key `zz` through the batch transaction, then the read
+panics). Its restatement adds the premise (`membership.membersDecode`). Not checked: whether a
+proved caller reaches it (the apply thread's members are `MustSaveMemberToBackend`'s encodings; a
+Lean counterexample would write the key through the proved `UnsafePut`).

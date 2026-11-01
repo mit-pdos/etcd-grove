@@ -3,3 +3,5 @@
 # owner, or one predicate per boundary; an owner's own matches are not leaks.)
 
 # (The len-literal kind and its standard-library entry went on 2026-11-01: notes/bounds-plan.md, B5.)
+
+stock storage/backend/AuthSplitDraft\.lean  # a Draft imported by nothing (notes/backend-auth-split-plan.md): its pool's construction from the slots and the counted remainder are counted when applied

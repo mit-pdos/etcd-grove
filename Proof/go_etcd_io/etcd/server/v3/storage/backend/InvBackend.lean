@@ -1056,19 +1056,24 @@ def crtSnap (γ : BNames) (P : BParams) (b crt : Loc) (rtx : Loc) (rv : RView) :
     □ wgInv γ rtx wg γw γo γt ∗ ⌜rv.2.Wf ∧ idsOk P rv.2.bks ∧ P.Wf⌝)
 
 /-- The shared read transaction held (`ReadTx().RLock()`), over the readers' state `rv` and
-bbolt's transaction `rtx`. -/
+bbolt's transaction `rtx`, **its interval live** (the transaction not nil: the backend-auth-split
+stage's decision 1, 2026-11-01). `RLock` takes an open share to know the backend has not stopped
+(a stopped interval's transaction is nil, `rtIntv`) and gives it back; from then on the interval
+stays live until `RUnlock`, since the stop's commit (`CommitAndStop` → `commit`) takes
+`readTx.Lock()`, which waits for every reader. So a read in progress needs no open share of its
+own (`UnsafeRange`, `rtHeldF_lend'`, `rtHeldF_read'`). -/
 def rtHeld (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) : IProp GF :=
   iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView) (L : VData), bF go!"readTx" b ↦□ rt ∗
     sync.ownRWMutexRLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
-    rtResAt γ P rt sync.rfrac rd rv H (L := L) ∗ ⌜rd.rtx = rtx⌝ ∗ crTok γ b)
+    rtResAt γ P rt sync.rfrac rd rv H (L := L) ∗ ⌜rd.rtx = rtx ∧ rtx ≠ Loc.null⌝ ∗ crTok γ b)
 
 /-- The shared read transaction held with the share `p` of bbolt's transaction (`rtHeld` holds
 `sync.rfrac.half`; a part lent to another reader of the same snapshot, `rtHeld_lend`: the restore
-plan's R5b). -/
+plan's R5b), its interval live (`rtHeld`). -/
 def rtHeldF (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) (p : Qp) : IProp GF :=
   iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView) (L : VData), bF go!"readTx" b ↦□ rt ∗
     sync.ownRWMutexRLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
-    rtResAt γ P rt sync.rfrac rd rv H p L ∗ ⌜rd.rtx = rtx⌝ ∗ crTok γ b)
+    rtResAt γ P rt sync.rfrac rd rv H p L ∗ ⌜rd.rtx = rtx ∧ rtx ≠ Loc.null⌝ ∗ crTok γ b)
 
 theorem rtHeld_eq (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) :
     rtHeld (GF := GF) γ P b rtx rv = rtHeldF γ P b rtx rv sync.rfrac.half := rfl

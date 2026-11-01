@@ -583,6 +583,17 @@ p.Term'` was already the tie, unchanged). Rests on `nodeDriver_hardStateCommitte
 with branch `snap-sorries` (not committed on `snap-rt`: it does not build alone). `applyAll`, its
 consumer, untouched.
 
+## The backend for the auth split (2026-11-01, branch `backend-auth-split`; decision 1 frozen)
+
+`notes/backend-auth-split-plan.md`, "Freeze". Applied: decision 1 (a held `readTx` records that its
+interval is live; `readTx.UnsafeRange` takes no open share; `guarded_RLock`; `Close.spec`'s
+docstring). Stopped: decision 3 (`rbPart`/`rbOwnIn`): its law `rtHeldF_rbOwnIn` is not provable
+over the backend's read model, which says nothing of a reader's view of a hook bucket, and every
+tracked bucket of the server's backend is one (`notes/decisions.md`, "The backend for the auth
+split, Freeze"). Held: decision 2's pool (it changes `storage.OpenBackend`'s axiom). The trusted
+restatements (Q4's specs, `OpenBackend`, `Snapshot`) are drafted for the user's approval, not
+applied.
+
 ## The lease keep-alive entry point (2026-11-01, branch `lease-renew`; frozen and proved)
 
 `EtcdServer.LeaseRenew` is translated and proved (`Proof/.../etcdserver/EtcdServer__LeaseRenew.lean`,

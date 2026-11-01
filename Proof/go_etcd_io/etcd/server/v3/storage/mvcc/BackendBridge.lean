@@ -629,18 +629,6 @@ theorem crtSnap_wf (γ : BNames) (P : BParams) (b crt rtx : Loc) (rv : RView) :
     ipureintro; exact Hwf
   · ipureintro; exact Hwf.1
 
-/-- The held shared read transaction's state is well formed. -/
-theorem rtHeld_wf (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) :
-    rtHeld (GF := GF) γ P b rtx rv ⊢ rtHeld γ P b rtx rv ∗ ⌜rv.2.Wf⌝ := by
-  unfold rtHeld rtResAt rtRest rtCore
-  iintro ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
-    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩
-  isplitl
-  · iexists rt, rd, H, L
-    iframe; iframe #
-    ipureintro; exact ⟨⟨Hok, Hf⟩, Hrtx⟩
-  · ipureintro; exact Hf.1
-
 /-- A concurrent read transaction's single-key read of the `Key` bucket (mvcc's
 `keyRangeSpec`). -/
 theorem crt_keyRange (hUR : backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG))
@@ -689,9 +677,15 @@ theorem rtUR_held (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
         (Val #bk)) (Val #key)) (Val #endKey)) (Val #limit))
     {{ (keys vals : GoSlice), RET (PairV #keys #vals); rtHeld γ P b rtx rv ∗ bOpen γ qo ∗
         key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗ kvsOutRd rtx keys vals (rtRange rv bi kb eb limit) }} := by
-  have h := hUR γ P W Pk b rt rtx rv sync.rfrac.half qo bk bi key endKey kb eb dk de limit h1 h2 h3
+  have h := hUR γ P W Pk b rt rtx rv sync.rfrac.half bk bi key endKey kb eb dk de limit h1 h2 h3
   rw [← rtHeld_eq] at h
-  exact h
+  iintro %Φ ⟨#Hpkg, #Hb, #Hrt, Hh, Ho, #Hbk, Hk, He⟩ HΦ
+  iapply h $$ %Φ [Hh Hk He]
+  · iframe Hh Hk He; iframe #
+  inext
+  iintro %keys %vals ⟨Hh, Hk, He, Hout⟩
+  iapply HΦ
+  iframe Hh Ho Hk He Hout
 
 /-- The held shared read transaction's single-key read of the `Key` bucket. -/
 theorem rt_keyRange (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
@@ -1388,8 +1382,8 @@ theorem rt_rangeLimF (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG
   ihave #Hbk := key_isBucket hID hName hSafe bk $$ [$Hsch $HK]
   ihave %Hiff := endKey_nil_iff hi khi dqhi Hne $$ Hhi
   iapply wp_fupd
-  wp_apply (hUR γ P W Pk b rt rtx rv p qo bk keyBI lo hi klo khi dqlo dqhi lim Hiff
-      (Or.inr rfl) hP.1) $$ [$Hb $Hrt $Hh $Ho $Hbk $Hlo $Hhi] as %ks %vs ⟨Hh, Ho, Hlo, Hhi, Hout⟩
+  wp_apply (hUR γ P W Pk b rt rtx rv p bk keyBI lo hi klo khi dqlo dqhi lim Hiff
+      (Or.inr rfl) hP.1) $$ [$Hb $Hrt $Hh $Hbk $Hlo $Hhi] as %ks %vs ⟨Hh, Hlo, Hhi, Hout⟩
   imod kvsOutRd_pairVals rtx ks vs _ $$ Hout with #Hkv
   imodintro
   iapply HΦ
