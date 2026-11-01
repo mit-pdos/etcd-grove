@@ -41,7 +41,10 @@ version, each critique with what it changed, the approved spec; one sitting to r
 - **A new premise or new client-owned ghost state on a spec that has clients is the user's
   decision**, even inside a candidate under review: present it on its own, the old and new statement
   side by side, with the alternatives; never only as a line in a round's summary (raft's
-  `node.Propose`, 2026-10-29).
+  `node.Propose`, 2026-10-29). Put to the user only what is theirs, and say which spec it changes
+  and how: a request to another track is not a decision, and an alternative resting on a claim
+  not checked in the code is not ready to offer (the etcd3 store, 2026-11-01: a "decision" that
+  changed no spec; a revision bound "etcd can supply at the commit" that it could not).
 - The trust base does not grow without that approval (no new axiom, `sorry`, or weaker check), and
   nothing verified becomes unverified (`etc/verified-code.py`).
 - CLAUDE.md's rules hold: layout, modules, "Package APIs" (seal with `@[no_expose]` and add laws;

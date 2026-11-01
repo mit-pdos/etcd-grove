@@ -105,6 +105,12 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   in a module only that proof imports. (`pilot-review-5.md`)
 - **Every premise has a source the client sees**: a spec or a law of the API, never the
   implementation's internal lemmas.
+- **Name the abstraction a definition exposes, not where its argument comes from**: a premise on
+  a cached object is not `cachedOk` but a fact about versions, `versionAt k r o` ("version `r` of
+  key `k` is `o`"), the persistent mapping the API's users already think in. Look for the
+  stable, persistent fact behind a state-relative condition; it is usually the better
+  vocabulary, with laws the user can carry. (The etcd3 store's specs, 2026-11-01:
+  `notes/k8s-etcd3-plan.md`, phase 7.)
 - **No constant or conjunct whose reason you do not know.** A numeric bound in a post is usually the
   proof's slack; a fact that holds of every reachable state is one law of the vocabulary, not a
   conjunct of each operation's post. Do not copy a conjunct from a sibling spec without knowing why it
@@ -137,6 +143,13 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   resource only the proof's bookkeeping needs. (`put.md`, critique 3)
 - **A once-only resource is not spent per call**: check retry and loop paths; make the exception
   depend on the value (a persistent one-shot fact), not on the call. (`pilot-review-2.md`)
+- **A pure fact over the state before new ghost state**: what a proof needs across states is
+  usually a lemma about the transition relation (a key whose mod revision is unchanged was not
+  rewritten), held as a pure invariant clause over the current state by whoever sees every
+  transition. Ghost state enters only for the one thing a pure fact cannot say (that a later
+  state extends an earlier one), and then reuse the monotone state the library already keeps (a
+  raft log's lower bound) before adding any. (The etcd3 store's specs, 2026-11-01: the caller's
+  history map `kvSeen` was bookkeeping for the store's proof.)
 - **Read the definitions of the resources a spec takes**, not only their names: a predicate chosen
   for the access it gives may also assert what the function breaks. (`pilot-review-2.md`)
 - **When only some clients need a resource the library hands back to be duplicable, let the client
