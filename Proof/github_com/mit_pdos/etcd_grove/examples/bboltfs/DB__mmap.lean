@@ -367,6 +367,7 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   · ipureintro; trivial
   iexists base, sz.toNat, γm
   iframe
+  iframe #
   ipureintro
   refine ⟨rfl, ?_, by omega, by omega, Hbd.1, by omega⟩
   simp only [Hmaps1]; rfl

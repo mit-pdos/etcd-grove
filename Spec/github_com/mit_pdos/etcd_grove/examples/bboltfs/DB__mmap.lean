@@ -50,7 +50,8 @@ abbrev DB.mmap.spec : Prop :=
       ((⌜err = interface.nil⌝ ∗ ∃ (base : Loc) (len : Nat) (γm : GName),
           ⌜st' = some (base, len, γm) ∧ m'.maps = {[base := len]} ∧ m.size ≤ len ∧
             sint.Z minsz ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗
-          ghostVar γm (1 : Qp).half () ∗ writerCells (GF := GF) base hwm len) ∨
+          ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ p base len γm ∗
+          writerCells (GF := GF) base hwm len) ∨
        (⌜err ≠ interface.nil ∧ st' = none⌝ ∗ writerExtra (GF := GF) γ f fd p mp fl hwm)) }}
 
 end spec

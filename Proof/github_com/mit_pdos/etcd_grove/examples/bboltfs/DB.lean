@@ -377,7 +377,8 @@ def rwR (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) : IProp GF :=
     match st with
     | some (base, len, γm) =>
       ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗
-      ghostVar γm (1 : Qp).half () ∗ writerCells (GF := GF) base hwm len
+      ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ p base len γm ∗
+      writerCells (GF := GF) base hwm len
     | none => dbFailed (GF := GF) γ ∗ writerExtra (GF := GF) γ f fd p mp fl hwm) ∨
    ((∃ x : Nat × Nat, ghostVar γ.own (1 : Qp).half x) ∗ ghostVar γ.cls (1 : Qp).half true ∗
      ∃ st, ghostVar γ.map (1 : Qp).half st ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st))

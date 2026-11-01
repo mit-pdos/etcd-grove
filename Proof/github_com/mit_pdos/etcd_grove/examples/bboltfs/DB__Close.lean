@@ -157,7 +157,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
     iframe #
     iright; iexact Hfailed
   · -- a mapping: close its invariant and gather its cells
-    icases Hst with ⟨%Hst, Htok1, Hwc⟩
+    icases Hst with ⟨%Hst, Htok1, -, Hwc⟩
     obtain ⟨Hmaps, Hlen, Hbase, Hlen41⟩ := Hst
     dsimp only [mapRest] at *
     icases Hrest0 with ⟨-, Htok0, #Hinv, Hf2, Hfd2⟩

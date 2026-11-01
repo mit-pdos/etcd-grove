@@ -37,7 +37,8 @@ def writerSt (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8
     match st with
     | some (base, len, γm) =>
       ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗
-      ghostVar γm (1 : Qp).half () ∗ writerCells (GF := GF) base hwm len
+      ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ p base len γm ∗
+      writerCells (GF := GF) base hwm len
     | none => writerExtra (GF := GF) γ f fd p mp fl hwm)
 
 /-- See the file header. -/
