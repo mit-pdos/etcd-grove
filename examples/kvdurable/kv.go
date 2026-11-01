@@ -7,8 +7,11 @@
 //
 //   - A replica's durable state is its raft storage, the hard state, the latest snapshot (which
 //     holds the store's replicated state) and the log, written whole to one file (Storage.encode)
-//     in one atomic durable.Write. Every write is of the storage's contents at a moment between
-//     two of the replica's groups of storage changes (Replica.dmu), so that the file always holds
+//     in one atomic durable.Write. The replica keeps its own image of those contents, changed
+//     with the storage by each of its storage changes, and writes the image, never reading the
+//     storage back: raft owns the uncommitted log between Readys, and the storage's Snapshot does
+//     not say which snapshot it returns. Every write is of the contents at a moment between two
+//     of the replica's groups of storage changes (Replica.dmu), so that the file always holds
 //     contents the storage had.
 //   - What raft requires is written before it is relied on: a Ready's snapshot, entries and a
 //     hard state that changes the term or the vote (raft.MustSync) are written before the Ready's
@@ -309,8 +312,9 @@ type Replica struct {
 	snapDone chan struct{}
 
 	// dmu orders the storage's changes and the file's writes: each group of changes (a Ready's, a
-	// snapshot, a compaction) and each write (persist) holds it, so that a write is of the contents
-	// between two groups. crashed, under it, is set by the crash: once it is, nothing writes the
+	// snapshot, a compaction: each to the MemoryStorage and to its image, Storage.img) and each
+	// write (persist, of the image) holds it, so that a write is of the contents between two
+	// groups. crashed, under it, is set by the crash: once it is, nothing writes the
 	// file, so the next incarnation reads what this one last wrote.
 	dmu     sync.Mutex
 	crashed bool
@@ -334,7 +338,7 @@ type Replica struct {
 func newReplica(id uint64, file string, node raft.Node, storage *Storage, kv map[string]string, applied map[string]string,
 	cs *pb.ConfState, index uint64, rafted uint64, tick time.Duration, stats *Stats, seqs *readSeqs,
 	send func([]*pb.Message)) *Replica {
-	hs := storage.hs
+	hs := storage.img.hs
 	r := &Replica{id: id, file: file, node: node, storage: storage, stats: stats, tick: tick, stopc: make(chan struct{}),
 		snapc:   make(chan snapReq, 1),
 		runDone: make(chan struct{}, 1), tickDone: make(chan struct{}, 1), snapDone: make(chan struct{}, 1),
@@ -385,8 +389,8 @@ func (r *Replica) crash() {
 	r.stop()
 }
 
-// persist writes the storage to the file; false if the incarnation has crashed, which then writes
-// nothing.
+// persist writes the storage's image to the file; false if the incarnation has crashed, which
+// then writes nothing.
 func (r *Replica) persist() bool {
 	r.dmu.Lock()
 	ok := !r.crashed
@@ -399,13 +403,13 @@ func (r *Replica) persist() bool {
 }
 
 // run handles the node's Readys, in the order raft documents: install the snapshot, if any (in
-// the storage, then as the replicated state: install); save the hard state and append the
-// entries; write the storage to the file if raft needs it durable, and send the messages; note
-// the read states; apply the committed entries in order (a configuration change to the node,
+// the storage and its image, then as the replicated state: install); save the hard state and
+// append the entries (in both); write the image to the file if raft needs it durable, and send
+// the messages; note the read states; apply the committed entries in order (a configuration change to the node,
 // Node.ApplyConfChange, before the Advance that acknowledges it); answer the reads whose index is
 // applied; Advance. A Ready whose entries would take the log past maxIndex stops the loop (it does
 // not happen). snapIndex is the index of the latest snapshot asked for (the stored one's, at
-// start), hs the storage's hard state, rafted raft's applied index (the last entry it handed back,
+// start), hs the storage's hard state (its image's), rafted raft's applied index (the last entry it handed back,
 // or snapshot it installed, before the last Advance: after a restart below the snapshot, below the
 // replicated state's index).
 //
@@ -566,19 +570,19 @@ func (r *Replica) snapshotter(known uint64) {
 	}
 }
 
-// snapshot does what req asks: it takes the snapshot, which may be out of date
-// (ErrSnapOutOfDate: the storage holds one at least as recent, which run installed), as etcd's
-// apply thread allows; and it compacts the log to a random index from its first one to the least
-// of the requested bound and the stored snapshot's index as known (compacting past the stored
-// snapshot, the leader would have no snapshot to send a follower that needs the compacted
-// entries: issues/raft-compact-past-snapshot.md), if there is one. Neither needs to be durable:
-// it writes the storage to the file afterwards one time in two (a later write, of a Ready, writes
-// it anyway). It returns what is known of the stored snapshot's index after it.
+// snapshot does what req asks: it takes the snapshot (in the storage and its image), which may be
+// out of date (ErrSnapOutOfDate: the storage holds one at least as recent, which run installed),
+// as etcd's apply thread allows; and it compacts the log (in both) to a random index from its
+// first one to the least of the requested bound and the stored snapshot's index as known
+// (compacting past the stored snapshot, the leader would have no snapshot to send a follower that
+// needs the compacted entries: issues/raft-compact-past-snapshot.md), if there is one. Neither
+// needs to be durable: it writes the image to the file afterwards one time in two (a later write,
+// of a Ready, writes it anyway). It returns what is known of the stored snapshot's index after it.
 func (r *Replica) snapshot(req snapReq, known uint64) uint64 {
 	changed := false
 	if req.data != nil {
 		r.dmu.Lock()
-		_, err := r.storage.CreateSnapshot(req.index, req.cs, req.data)
+		err := r.storage.CreateSnapshot(req.index, req.cs, req.data)
 		r.dmu.Unlock()
 		if err == nil {
 			changed = true

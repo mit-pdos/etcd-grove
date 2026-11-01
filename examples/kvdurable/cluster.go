@@ -184,7 +184,7 @@ func (c *Cluster) fileOf(id uint64) string {
 // snapshot's index are skipped, Replica.applyEntry).
 func (c *Cluster) start(id uint64) *Replica {
 	file := c.fileOf(id)
-	st := &Storage{MemoryStorage: raft.NewMemoryStorage(), boot: c.boot}
+	st := newStorage(c.boot)
 	if data, ok := durable.Read(file); ok {
 		s, good := openStorage(c.boot, []byte(data))
 		if !good {

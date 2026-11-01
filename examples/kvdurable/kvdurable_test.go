@@ -78,9 +78,11 @@ func (s *Storage) InitialStateConf() *pb.ConfState {
 	return cs
 }
 
-// TestStorageRoundTrip checks that openStorage restores what encode wrote: an empty storage, one
-// with entries and a hard state, one with a snapshot taken above its log's start, one compacted
-// below its snapshot, and one that installed a snapshot.
+// TestStorageRoundTrip checks that openStorage restores what encode wrote, and so that the image
+// encode writes holds the MemoryStorage's contents: an empty storage, one with entries and a hard
+// state, one with a snapshot taken above its log's start, one compacted below its snapshot, one
+// that installed a snapshot, and after appends that overwrite the log's tail or start below its
+// start; and that the image answers out-of-date snapshots and compactions as MemoryStorage does.
 func TestStorageRoundTrip(t *testing.T) {
 	boot := &pb.ConfState{Voters: []uint64{1, 2, 3}}
 	check := func(name string, s *Storage) {
@@ -90,9 +92,12 @@ func TestStorageRoundTrip(t *testing.T) {
 				t.Fatal("openStorage: not good")
 			}
 			sameStorage(t, s, r)
+			if string(r.encode()) != string(s.encode()) {
+				t.Fatal("the restored image differs")
+			}
 		})
 	}
-	fresh := func() *Storage { return &Storage{MemoryStorage: raft.NewMemoryStorage(), boot: boot} }
+	fresh := func() *Storage { return newStorage(boot) }
 	check("empty", fresh())
 
 	s := fresh()
@@ -102,7 +107,7 @@ func TestStorageRoundTrip(t *testing.T) {
 
 	joint := &pb.ConfState{Voters: []uint64{1, 4}, VotersOutgoing: []uint64{1, 2, 3}, LearnersNext: []uint64{2},
 		AutoLeave: new(true)}
-	if _, err := s.CreateSnapshot(3, joint, []byte("state")); err != nil {
+	if err := s.CreateSnapshot(3, joint, []byte("state")); err != nil {
 		t.Fatal(err)
 	}
 	check("snapshot", s)
@@ -121,6 +126,28 @@ func TestStorageRoundTrip(t *testing.T) {
 	s2.SetHardState(&pb.HardState{Term: new(uint64(4)), Commit: new(uint64(7))})
 	s2.Append([]*pb.Entry{ent(4, 8, "h")})
 	check("installed snapshot", s2)
+
+	s2.Append([]*pb.Entry{ent(4, 9, "i"), ent(4, 10, "j"), ent(4, 11, "k")})
+	s2.Append([]*pb.Entry{ent(5, 10, "J")})
+	check("tail overwritten", s2)
+	s2.Append([]*pb.Entry{ent(4, 6, ""), ent(4, 7, ""), ent(4, 8, "h"), ent(6, 9, "I")})
+	check("appended from below the start", s2)
+	s2.Append([]*pb.Entry{ent(3, 5, ""), ent(3, 6, "")})
+	check("appended below the start", s2)
+	if err := s2.CreateSnapshot(9, nil, []byte("y")); err != nil {
+		t.Fatal(err)
+	}
+	check("snapshot of the old configuration", s2)
+	if err := s2.CreateSnapshot(8, nil, nil); err != raft.ErrSnapOutOfDate {
+		t.Fatalf("CreateSnapshot below the snapshot: %v", err)
+	}
+	if err := s2.Compact(7); err != raft.ErrCompacted {
+		t.Fatalf("Compact at the log's start: %v", err)
+	}
+	if err := s2.ApplySnapshot(&pb.Snapshot{Metadata: &pb.SnapshotMetadata{Index: new(uint64(9)), Term: new(uint64(6))}}); err != raft.ErrSnapOutOfDate {
+		t.Fatalf("ApplySnapshot at the snapshot: %v", err)
+	}
+	check("after the refused changes", s2)
 
 	if _, good := openStorage(boot, []byte{1, 2, 3}); good {
 		t.Fatal("openStorage of garbage: good")
