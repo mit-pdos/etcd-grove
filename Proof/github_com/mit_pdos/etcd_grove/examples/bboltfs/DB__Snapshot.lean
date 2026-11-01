@@ -48,6 +48,10 @@ theorem snap_mul4096 (x : w64) (hx : x.toNat * 4096 < 2 ^ 30) :
 theorem snap_sintZ (n : w64) (h : n.toNat ≤ 2 ^ 30) : sint.Z n = (n.toNat : Int) := by
   word
 
+theorem snap_add16 (x : w64) (hx : x.toNat * 4096 < 2 ^ 30) :
+    sint.Z (x * W64 4096 + W64 16) = ((4096 * x.toNat + 16 : Nat) : Int) := by
+  word
+
 set_option maxHeartbeats 1600000 in
 theorem DB.Snapshot.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
     (wp_pageAt : pageAt.spec (GF := GF) (hG := hG))
@@ -250,10 +254,72 @@ theorem DB.Snapshot.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
           rw [hpg]; exact snap_mul4096 _ (by rw [← hpg]; rw [Nat.add_mul] at Hbound; omega)
         have hnZ : sint.Z n = (n.toNat : Int) :=
           snap_sintZ n (by rw [Nat.add_mul] at Hbound Hn; omega)
+        have hR : curRoot mp = (curMeta mp).root'.root'.toNat := rfl
+        have hrr : 4096 * curRoot mp + 4096 ≤ 4096 * curPgid mp := by
+          have := Nat.mul_le_mul_left 4096 (Nat.succ_le_of_lt Hrh); omega
+        have hoff : sint.Z ((curMeta mp).root'.root' * W64 4096) = ((4096 * curRoot mp : Nat) : Int) := by
+          rw [hR]; exact snap_mul4096 _ (by rw [← hR]; rw [Nat.add_mul] at Hbound; omega)
+        have hix : sint.Z ((curMeta mp).root'.root' * W64 4096 + W64 16) =
+            ((4096 * curRoot mp + 16 : Nat) : Int) := by
+          rw [hR]; exact snap_add16 _ (by rw [← hR]; rw [Nat.add_mul] at Hbound; omega)
+        have hget : ∀ j < 4096, vs'[4096 * curRoot mp + j]? = B[j]? := by
+          intro j hj
+          have hb := Hheld (4096 * curRoot mp + j) (B[j]'(by omega))
+            ⟨_, List.mem_cons_self .., by dsimp only; omega, by
+              dsimp only; rw [show 4096 * curRoot mp + j - 4096 * curRoot mp = j by omega]
+              simp [List.getElem?_eq_getElem (show j < B.length by omega)]⟩
+            (by simp) (by simp; omega)
+          simp only [show (W64 0).toNat = 0 from rfl, Nat.sub_zero] at hb
+          rw [hb, List.getElem?_eq_getElem (show j < B.length by omega)]
+        have h16 : (vs'.drop (4096 * curRoot mp)).take 16 = B.take 16 := by
+          apply List.ext_getElem?; intro j
+          simp only [List.getElem?_take, List.getElem?_drop]
+          split
+          · exact hget j (by omega)
+          · rfl
+        have h8 : (vs'.drop (4096 * curRoot mp + 16)).take 8 = (B.drop 16).take 8 := by
+          apply List.ext_getElem?; intro j
+          simp only [List.getElem?_take, List.getElem?_drop]
+          split
+          · rw [show 4096 * curRoot mp + 16 + j = 4096 * curRoot mp + (16 + j) by omega]
+            exact hget _ (by omega)
+          · rfl
         rcases herr with rfl | rfl <;> wp_auto
         all_goals
           rw [decide_eq_false (by rw [hpgw, hnZ]; omega)]
           wp_auto
+          ihave %Hbl := ownSlice_len $$ Hbuf
+          ihave %Hpos := ownSlice_ptr_pos buf vs' _ (by intro h; rw [h] at Hl'; simp at Hl') $$ Hbuf
+          have hlenZ : sint.Z buf.len = (vs'.length : Int) := by
+            have h1 : (sint.Z buf.len).toNat = vs'.length := Hbl.1.symm
+            have h2 := Hbl.2; omega
+          wp_apply wp_pageAt buf ((curMeta mp).root'.root' * W64 4096)
+          · ipureintro; refine ⟨Hpos, ?_, ?_⟩
+            · rw [hoff]; omega
+            · rw [hoff, hlenZ, Hl']; rw [Nat.add_mul]; omega
+          simp only
+          rw [hoff]
+          icases ownSlice_bytes_acc go.uint8 (.scalar _ _ .isPlainScalar_uint8) buf _ _ Hpos $$ Hbuf
+            with ⟨Hbytes, -⟩
+          simp only [flatMap_encode_w8]
+          have hl : 0 < (buf.ptr +ₗ ((4096 * curRoot mp : Nat) : Int)).addr := by
+            simp only [Loc.add]; omega
+          icases bytesPointsto_view_read (V := Page) buf.ptr _ vs' (4096 * curRoot mp)
+            (buf.ptr +ₗ ((4096 * curRoot mp : Nat) : Int)) rfl (by rw [Hl', Nat.add_mul]; omega) Hpos
+            $$ Hbytes with ⟨Hpg, Hpgb⟩
+          rw [h16, show (decode (List.take 16 B) : Page) = pageHdrOf B from rfl]
+          have hlnn : (buf.ptr +ₗ ((4096 * curRoot mp : Nat) : Int)) ≠ null := by
+            intro h; have := congrArg Loc.addr h; simp only [Loc.add, null] at this hl; omega
+          icases typedPointsto_split _ _ _ $$ Hpg with Hpg
+          simp only [TypedPointsto.typedPointstoDef]
+          icases Hpg with ⟨Hid, Hflags, Hcount, Hover, -⟩
+          wp_auto
+          ihave Hpg : (buf.ptr +ₗ ((4096 * curRoot mp : Nat) : Int)) ↦{DFrac.own 1} pageHdrOf B
+            $$ [Hid Hflags Hcount Hover]
+          · iapply typedPointsto_combine _ _ _ hlnn
+            simp only [TypedPointsto.typedPointstoDef]
+            iframe
+          ihave Hbytes := Hpgb $$ Hpg
           sorry
       · wp_auto
         by_cases hT : go.GoType.PointerType _root_.Perennial.io.fs.PathError.ty = go.GoType.PointerType T
