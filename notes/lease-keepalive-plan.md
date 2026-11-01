@@ -104,10 +104,11 @@ proofs unchanged), and the callers destructuring the post (`examples/authkv/star
 ## Margins (stated, not closed)
 
 - No header content is stated (the wire model's), so nothing about its revision. Go's comment says
-  the revision is no later than the renewal's; on a follower `fill` uses the local revision while
-  the forwarded renewal runs at the leader without waiting for its applied index
-  (`leasehttp/http.go:91`), so the comment may not hold (to check: finding 9; an `issues/` entry if
-  it reproduces).
+  the revision is no later than the renewal's. It holds (finding 9, checked 2026-11-01): on a
+  follower `fill` reads the local revision, of entries the leader had committed, and the forwarded
+  renewal waits at the leader for its applied index to reach its commit index
+  (`leasehttp/http.go:85`, `h.waitch()`, which is `EtcdServer.ApplyWaitCommit`, `server.go:634`)
+  before `Renew`; on the leader `LeaseRenew` waits too (`waitAppliedIndex`). No `issues/` entry.
 - A TTL of 0 (`ErrLeaseNotFound`) carries nothing, not even authentication (the unary margin).
 - Nothing of the renewal itself (that the lease was renewed, its TTL): `LeaseRenew.spec` states none.
 - The verdict is of the local member's lessor, which on a follower can lag the leader's
