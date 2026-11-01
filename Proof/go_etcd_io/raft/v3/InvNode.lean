@@ -564,6 +564,20 @@ instance readyMsgs_persistent (γ : Cluster) (N : Namespace) (id : w64) (ms : Li
     Persistent (readyMsgs (GF := GF) γ N id ms) := by
   unfold readyMsgs; infer_instance
 
+/-- (2026-11-01, durability stage II (i); until then a copy in each client: kvreconf `RunInv`, kv
+`KvRunInv`, the server's `rn_readyMsgs_sent`) **A `Ready`'s messages with their `sentMsg`**: the
+messages as `readyRest` owns them, with the sends *enter* gave (`readyMsgs`), are what a transport
+takes. -/
+theorem readyMsgs_sent (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) :
+    ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+      readyMsgs γ N id ms ⊢
+    [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗ msgCredits γ N q.st := by
+  unfold readyMsgs
+  refine BigSepL.bigSepL_sep_eqv_symm.1.trans (BigSepL.bigSepL_mono_of_forall ?_)
+  intro _ _
+  iintro ⟨⟨Ho, Hc⟩, Hs⟩
+  iframe
+
 /-- (2026-11-01, durability stage I-3; candidate 12 §3) **Entering a `Ready`'s batch** (the
 receive's update): when the client enters the batch's durable state `st'.durable` (a durable client:
 in the write that makes it durable; any other: at once), with a share of the node's liveness (so a
