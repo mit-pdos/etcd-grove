@@ -61,7 +61,7 @@ theorem os.OpenFile.wp_proof : os.OpenFile.spec (GF := GF) (hG := hG) := by
     ipersist f
     imodintro
     have hcr : decide ((W64 524354).toNat / O_CREAT % 2 = 1) = true := by decide
-    obtain ⟨-, -, hmo2, -⟩ := hres.resolve_right (fun h => h.1 rfl)
+    obtain ⟨-, hfd0, hmo2, -⟩ := hres.resolve_right (fun h => h.1 rfl)
     rw [hcr, hom] at hmo2
     subst hmo2
     iapply HΦ
@@ -69,7 +69,7 @@ theorem os.OpenFile.wp_proof : os.OpenFile.spec (GF := GF) (hG := hG) := by
     iexists fd
     iframe
     isplitr
-    · ipureintro; rfl
+    · ipureintro; exact ⟨rfl, hfd0⟩
     unfold os.ownFile
     iexists inner_ptr
     iframe

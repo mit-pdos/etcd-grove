@@ -44,6 +44,20 @@ def osGrown (p : GoString) (m : OsMeta) (sz : Nat) : IProp GF :=
     osBytes (L := L) p m.size (DFrac.own 1) (List.replicate (sz - m.size) (0, false)) ∗
     mcells m.maps m.size sz (fun _ => byteCell 0))
 
+/-- The client's halves of the (no) cells of an empty range. -/
+theorem mcellsAny_nil (M : GMap Loc Nat) (lo hi : Nat) (h : lo = hi) :
+    ⊢ mcellsAny (GF := GF) M lo hi := by
+  subst h
+  unfold mcellsAny
+  refine BigSepM.bigSepM_intro (P := iprop(emp)) (fun _ => ?_)
+  iintro -
+  iexists (fun _ => #())
+  rw [Nat.sub_self]
+  unfold cellsR
+  simp only [List.range'_zero]
+  iapply BigSepL.bigSepL_nil.2
+  iempintro
+
 /-- The first step of `ftruncate(fd, sz)` growing the file, with the whole of its `OsMeta`, which
 stays with the change until its second step (`wp_FtruncateFinish`). -/
 theorem wp_FtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN ⊆ E)
