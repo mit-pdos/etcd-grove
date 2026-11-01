@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart). The proof of `db.init()`: `initPages` into a fresh buffer, then each half of it written with `WriteAt` (the second half first, which may extend the file: a zero gap before it if the file is shorter than two pages) and the whole file synced with `Fdatasync`. -/
+/- Lean-first (no Rocq counterpart). The proof of `db.init()`: `initPages` into a fresh buffer `buf`; a second buffer `first`, zero, with `buf`'s last two pages copied in; `first` written at 0 with `WriteAt` (all four pages, the metas zero; it may extend the file), `Fdatasync`, then `buf`'s first two pages (the metas) at 0, `Fdatasync`. -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__init
@@ -27,30 +27,19 @@ theorem osBytes_append (p : GoString) (off : Nat) (dq : DFrac) (xs ys : List (w8
       osBytes (L := L) p off dq xs ∗ osBytes (L := L) p (off + xs.length) dq ys := by
   unfold osBytes; exact bytesG_append _ _ _ _ _ _
 
-/-- After the first write: the bytes before its range, its range, and those after it, as one. -/
-theorem init_join1 (p : GoString) (xs ys : List (w8 × Bool)) (sz : Nat) (hxs : xs.length = sz)
-    (hys : ys.length = 16384 - min 8192 sz) :
-    osBytes (L := L) p 0 (DFrac.own 1) (xs.take (min 8192 sz)) ∗
-      osBytes (L := L) p (min 8192 sz) (DFrac.own 1) ys ∗
-      osBytes (L := L) p (min 8192 sz + (min 16384 sz - min 8192 sz)) (DFrac.own 1)
-        ((xs.drop (min 8192 sz)).drop (min 16384 sz - min 8192 sz)) ⊢
-    osBytes (L := L) p 0 (DFrac.own 1) (xs.take (min 8192 sz) ++ ys ++ xs.drop 16384) := by
-  iintro ⟨H0, H1, H2⟩
-  ihave H2 : osBytes (L := L) p 16384 (DFrac.own 1) (xs.drop 16384) $$ [H2]
-  · by_cases h : 16384 ≤ sz
-    · rw [show min 8192 sz + (min 16384 sz - min 8192 sz) = 16384 by omega, List.drop_drop,
-        show min 8192 sz + (min 16384 sz - min 8192 sz) = 16384 by omega]
-      iexact H2
-    · rw [List.drop_eq_nil_of_le (show xs.length ≤ 16384 by omega)]
+/-- After the first write: its four pages, then the bytes after them, as one. -/
+theorem init_join1 (p : GoString) (xs ys : List (w8 × Bool)) (n : Nat) (hys : ys.length = n) :
+    osBytes (L := L) p 0 (DFrac.own 1) ys ∗
+      osBytes (L := L) p (0 + (xs.take n).length) (DFrac.own 1) (xs.drop n) ⊢
+    osBytes (L := L) p 0 (DFrac.own 1) (ys ++ xs.drop n) := by
+  iintro ⟨H1, H2⟩
+  ihave H2 : osBytes (L := L) p n (DFrac.own 1) (xs.drop n) $$ [H2]
+  · by_cases h : n ≤ xs.length
+    · rw [List.length_take, show 0 + min n xs.length = n by omega]; iexact H2
+    · rw [List.drop_eq_nil_of_le (show xs.length ≤ n by omega)]
       unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
   iapply (osBytes_append p 0 _ _ _).2
-  isplitl [H0 H1]
-  · iapply (osBytes_append p 0 _ _ _).2
-    rw [List.length_take, show min (min 8192 sz) xs.length = min 8192 sz by omega, Nat.zero_add]
-    iframe
-  · rw [List.length_append, List.length_take, hys,
-      show 0 + (min (min 8192 sz) xs.length + (16384 - min 8192 sz)) = 16384 by omega]
-    iexact H2
+  rw [hys, Nat.zero_add]; iframe
 
 end osbytes
 
@@ -69,14 +58,6 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   intro db f fd p dqf dq m xs hok hmaps hxs hsz
   have hil := initBytes_length
   simp only [pageBytes] at hil
-  have hw8 : (W64 8192).toNat = 8192 := by word
-  have hw0 : 0 ≤ (W64 8192).toInt := by word
-  have hd0 : 0 < (initBytes.drop 8192).length := by rw [List.length_drop]; omega
-  have hd1 : (initBytes.drop 8192).length ≤ 0x40000000 := by rw [List.length_drop]; omega
-  have hd2 : ((xs.drop (min 8192 m.size)).take (min 16384 m.size - min 8192 m.size)).length =
-      min ((W64 8192).toNat + (initBytes.drop 8192).length) m.size - min (W64 8192).toNat m.size := by
-    rw [List.length_take, List.length_drop, List.length_drop, show (W64 8192).toNat = 8192 from rfl]
-    omega
   wp_start as ⟨#Hinv, #Hfile, Hfsz, Hf, Hfd, Hm, Hb⟩
   wp_auto
   wp_apply (wp_slice_make2 (V := w8) (W64 16384)) as %buf ⟨Hbuf, -⟩
@@ -93,29 +74,67 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
     have : sint.Z buf.len = 16384 := by omega
     word
   ihave %Hwf := ownSlice_wf $$ Hbuf
+  wp_apply (wp_slice_make2 (V := w8) (W64 16384)) as %first ⟨Hfirst, -⟩
+  · ipureintro; decide
+  (try wp_auto)
+  ihave %Hfl := ownSlice_len $$ Hfirst
+  have hfl : first.len = W64 16384 := by
+    have h1 := Hfl.1; rw [List.length_replicate] at h1
+    have h2 := Hfl.2
+    have h3 : (sint.Z first.len).toNat = 16384 := h1.symm
+    have : sint.Z first.len = 16384 := by omega
+    word
+  ihave %Hfwf := ownSlice_wf $$ Hfirst
+  rw [ite_eq_left (by rw [hfl]; exact ⟨by decide, by decide, by rw [← hfl]; exact Hfwf.2⟩)]
+  (try wp_auto)
   rw [ite_eq_left (by rw [hbl]; exact ⟨by decide, by decide, by rw [← hbl]; exact Hwf.2⟩)]
   (try wp_auto)
   icases (ownSlice_split_all (W64 8192) buf _ _ ⟨by decide, by rw [hbl]; decide⟩).1 $$ Hbuf
     with ⟨Hbuf1, Hbuf2⟩
+  icases (ownSlice_split_all (W64 8192) first _ _ ⟨by decide, by rw [hfl]; decide⟩).1 $$ Hfirst
+    with ⟨Hfirst1, Hfirst2⟩
   have h8 : sint.nat (W64 8192) = 8192 := rfl
   rw [h8]
-  -- the file's bytes around the window `[a, b)` the first write takes
-  have hab : min 8192 m.size + (min 16384 m.size - min 8192 m.size) ≤ xs.length := by omega
-  icases (osBytes_window p _ xs (min 8192 m.size) (min 16384 m.size - min 8192 m.size) hab).1 $$ Hb
-    with ⟨Hb0, Hw, Hb2⟩
+  generalize hI : initBytes = I at hil ⊢
+  have hIl : (I.drop 8192).length = 8192 := by rw [List.length_drop]; omega
+  have hZ1 : (List.replicate 16384 (zero_val w8)).take 8192 = List.replicate 8192 (zero_val w8) := by
+    rw [List.take_replicate, show min 8192 16384 = 8192 from rfl]
+  have hZ2 : (List.replicate 16384 (zero_val w8)).drop 8192 = List.replicate 8192 (zero_val w8) := by
+    rw [List.drop_replicate, show 16384 - 8192 = 8192 from rfl]
+  rw [hZ1, hZ2]
+  generalize hZ : List.replicate 8192 (zero_val w8) = Z
+  have hZl : Z.length = 8192 := by rw [← hZ, List.length_replicate]
+  wp_apply wp_slice_copy (slice.slice first w8 (W64 8192) first.len) Z
+      (slice.slice buf w8 (W64 8192) buf.len) (I.drop 8192) (DFrac.own 1) $$ [Hfirst2 Hbuf2]
+    as %nc ⟨%_hnc, Hfirst2, Hbuf2⟩
+  · isplitl [Hfirst2]
+    · iexact Hfirst2
+    · iexact Hbuf2
+  rw [hZl, hIl, List.take_of_length_le (Nat.le_of_eq hIl), List.drop_of_length_le (Nat.le_of_eq hZl),
+    List.append_nil]
+  ihave Hfirst := (ownSlice_split_all (W64 8192) first (DFrac.own 1) (Z ++ I.drop 8192)
+      ⟨by decide, by rw [hfl]; decide⟩).2 $$ [Hfirst1 Hfirst2]
+  · rw [h8, List.take_left' hZl, List.drop_left' hZl]; iframe
+  have hF : (Z ++ I.drop 8192).length = 16384 := by rw [List.length_append, hZl, hIl]
+  generalize hFd : Z ++ I.drop 8192 = F at hF ⊢
+  have hw00 : (W64 0).toNat = 0 := rfl
+  have hw0' : 0 ≤ (W64 0).toInt := by word
   have hmc : ∀ lo hi, mcellsAny (GF := GF) m.maps lo hi ⊣⊢ emp := by
     intro lo hi; unfold mcellsAny; rw [hmaps]; exact BigSepM.bigSepM_empty
-  ihave Hc := (hmc (min (W64 8192).toNat m.size) ((W64 8192).toNat + (initBytes.drop 8192).length)).2 $$ []
+  ihave Hc := (hmc (min (W64 0).toNat m.size) ((W64 0).toNat + F.length)).2 $$ []
   · iempintro
-  generalize hI : initBytes = I at hil hd0 hd1 hd2 ⊢
-  wp_apply wp_WriteAt f fd p dqf (slice.slice buf w8 (W64 8192) buf.len) (I.drop 8192)
-      (DFrac.own 1) (W64 8192) dq ⟨p, true, true⟩ 1 m ((xs.drop (min 8192 m.size)).take
-        (min 16384 m.size - min 8192 m.size)) rfl hw0 hd0 hd1
-      hd2 (fun _ => rfl) $$ [Hinv Hf Hbuf2 Hfd Hm Hw Hc]
-    as %n %err ⟨Hf, Hbuf2, Hfd, %j, %ys, %h, %Hres, Hm, Hw, Hc⟩
-  · rw [hw8]; iframe Hf Hm Hw Hc Hbuf2 Hfd; iframe #
-  rw [hw8] at Hres
-  try rw [hw8]
+  icases (osBytes_append p 0 (DFrac.own 1) (xs.take 16384) (xs.drop 16384)).1 $$
+    [Hb] with ⟨Hw, Hb2⟩
+  · rw [List.take_append_drop]; iexact Hb
+  have he2 : (xs.take 16384).length =
+      min ((W64 0).toNat + F.length) m.size - min (W64 0).toNat m.size := by
+    rw [List.length_take, hw00, hF]; omega
+  wp_apply wp_WriteAt f fd p dqf first F (DFrac.own 1) (W64 0) dq ⟨p, true, true⟩ 1 m
+      (xs.take 16384) rfl hw0' (by omega) (by omega) he2 (fun _ => rfl)
+      $$ [Hinv Hf Hfirst Hfd Hm Hw Hc]
+    as %n %err ⟨Hf, Hfirst, Hfd, %j, %ys, %h, %Hres, Hm, Hw, Hc⟩
+  · rw [hw00, Nat.zero_min]; iframe Hf Hm Hw Hc Hfirst Hfd; iframe #
+  rw [hw00, Nat.zero_min] at *
   obtain ⟨hj, hys, hh, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
   rotate_left
   · cases err with
@@ -128,19 +147,18 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; exact hne
     · iexists _, _; iframe
-  have hdl : (I.drop 8192).length = 8192 := by rw [List.length_drop]; omega
-  have hys' := hys.trans (pwBytes_full _ _ _ _ hd0)
-  simp only [hdl] at hys ⊢
-  have hysl : ys.length = 16384 - min 8192 m.size := by
-    have := congrArg List.length hys'
-    simp only [List.length_map, List.length_append, List.length_replicate] at this; omega
-  ihave Hb := init_join1 p xs ys m.size hxs hysl $$ [Hb0 Hw Hb2]
+  have hys' := hys.trans (pwBytes_full _ _ _ _ (by omega : 0 < F.length))
+  simp only [Nat.zero_min, Nat.sub_self, List.replicate_zero, List.nil_append] at hys'
+  simp only [hF] at hys' ⊢
+  have hysl : ys.length = 16384 := by
+    have := congrArg List.length hys'; simp only [List.length_map, hF] at this; exact this
+  ihave Hb := init_join1 p xs ys 16384 hysl $$ [Hw Hb2]
   · iframe
   (try wp_auto)
   wp_apply wp_Fd f fd p dqf $$ [Hf] as Hf
   · iexact Hf
   (try wp_auto)
-  wp_apply wp_Fdatasync fd dq ⟨p, true, true⟩ { m with size := pwSize m.size 8192 8192, hi := h } 0
+  wp_apply wp_Fdatasync fd dq ⟨p, true, true⟩ { m with size := pwSize m.size 0 16384, hi := h } 0
       _ $$ [Hinv Hfd Hm Hb] as %e ⟨Hfd, Hs⟩
   · iframe; iframe #
   icases Hs with (⟨%He, Hm, Hb⟩ | ⟨%He, Hm, -⟩)
@@ -156,9 +174,9 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   subst He
   unfold errnoErr; rw [if_pos rfl]
   (try wp_auto)
-  -- the file after the first write and sync: `A`, of size `S`
-  have hS : pwSize m.size 8192 8192 = max m.size 16384 := by rw [pwSize_full _ _ _ (by decide)]
-  have hm1 : ({ m with size := pwSize m.size 8192 8192, hi := h } : OsMeta).synced =
+  -- the file after the first write and sync: `A`, of size `max m.size 16384`
+  have hS : pwSize m.size 0 16384 = max m.size 16384 := by rw [pwSize_full _ _ _ (by decide)]
+  have hm1 : ({ m with size := pwSize m.size 0 16384, hi := h } : OsMeta).synced =
       { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384 } := by
     simp only [OsMeta.synced, hS]
   rw [hm1]
@@ -168,15 +186,11 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   have hm1m : m1.maps = ∅ := by rw [← hm1']; exact hmaps
   have hm1ok : m1.ok = true := by rw [← hm1']; exact hok
   simp only [syncedBytes, hok, if_true]
-  generalize hA : List.map (fun x => (x.1, true))
-    (List.take (min 8192 m.size) xs ++ ys ++ List.drop 16384 xs) = A
+  generalize hA : List.map (fun x => (x.1, true)) (ys ++ List.drop 16384 xs) = A
   have hAl : A.length = max m.size 16384 := by
-    rw [← hA, List.length_map, List.length_append, List.length_append, List.length_take,
-      List.length_drop, hysl]; omega
-  have hAfst : A.map Prod.fst =
-      (xs.take (min 8192 m.size)).map Prod.fst ++ (List.replicate (8192 - min 8192 m.size) 0 ++
-        I.drop 8192) ++ (xs.drop 16384).map Prod.fst := by
-    rw [← hA, List.map_map, ← hys', List.map_append, List.map_append]; rfl
+    rw [← hA, List.length_map, List.length_append, List.length_drop, hysl]; omega
+  have hAfst : A.map Prod.fst = F ++ (xs.drop 16384).map Prod.fst := by
+    rw [← hA, List.map_map, ← hys', List.map_append]; rfl
   have hcap : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (W64 8192) ∧
       sint.Z (W64 8192) ≤ sint.Z buf.cap := by
     have := Hwf.2; rw [hbl, show sint.Z (W64 16384) = 16384 from rfl] at this
@@ -250,14 +264,9 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
     rw [show max (max m.size 16384) (0 + 8192) = max m.size 16384 by omega]
   have hfin : (ys2 ++ A.drop 8192).map (fun x => (x.1, true)) = initFile xs := by
     have key : (ys2 ++ A.drop 8192).map Prod.fst = I ++ (xs.map Prod.fst).drop 16384 := by
-      rw [List.map_append, hys2', List.map_drop, hAfst]
-      have hlen1 : ((xs.take (min 8192 m.size)).map Prod.fst ++
-          List.replicate (8192 - min 8192 m.size) (0 : w8)).length = 8192 := by
-        simp only [List.length_append, List.length_map, List.length_take, List.length_replicate]
-        omega
-      rw [show ∀ (X R D T : List w8), X ++ (R ++ D) ++ T = (X ++ R) ++ (D ++ T) by
-        intro X R D T; simp only [List.append_assoc]]
-      rw [List.drop_left' hlen1, ← List.append_assoc, List.take_append_drop, List.map_drop]
+      rw [List.map_append, hys2', List.map_drop, hAfst, ← hFd, List.append_assoc,
+        List.drop_left' hZl, ← List.append_assoc, List.take_append_drop,
+        List.map_drop]
     unfold initFile
     rw [hI, ← key, List.map_map]; rfl
   have hsz64 : sint.Z (W64 (m.size : Int)) = m.size := by
