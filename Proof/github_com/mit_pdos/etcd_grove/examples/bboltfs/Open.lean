@@ -105,7 +105,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     (try wp_auto)
     wp_apply wp_close db (DFrac.own 1) slice.nil (W64 0) null null f (DFrac.own 1) fd path _ path m
         (fun h => absurd rfl h) $$ [dataref datasz meta0 meta1 file Hf Hfdo]
-      as ⟨-, -, -, -, -, file, Hf⟩
+      as %_errc ⟨-, -, -, -, -, file, Hf⟩
     · iframe; iframe #; unfold mappingRes; ileft; ipureintro; rfl
     (try wp_auto)
     iapply HΦ
@@ -149,7 +149,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
       (try wp_auto)
       wp_apply wp_close db (DFrac.own 1) slice.nil (W64 0) null null f DFrac.discard fd path _ path m
           (fun h => absurd rfl h) $$ [dataref datasz meta0 meta1 Hf Hfdo]
-        as ⟨-, -, -, -, -, -, Hf⟩
+        as %_errc ⟨-, -, -, -, -, -, Hf⟩
       · iframe; iframe #; unfold mappingRes; ileft; ipureintro; rfl
       (try wp_auto)
       iright
@@ -189,7 +189,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
         (try wp_auto)
         wp_apply wp_close db (DFrac.own 1) slice.nil (W64 0) null null f DFrac.discard fd path _ path m
             (fun h => absurd rfl h) $$ [dataref datasz meta0 meta1 Hf Hfdo]
-          as ⟨-, -, -, -, -, -, Hf⟩
+          as %_errc ⟨-, -, -, -, -, -, Hf⟩
         · iframe; iframe #; unfold mappingRes; ileft; ipureintro; rfl
         (try wp_auto)
         iright
@@ -269,7 +269,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
         (try wp_auto)
         wp_apply wp_close db (DFrac.own 1) slice.nil (W64 0) null null f DFrac.discard fd path _ path m'
             (fun h => absurd rfl h) $$ [dataref datasz meta0 meta1 Hf Hfdo]
-          as ⟨-, -, -, -, -, -, Hf⟩
+          as %_errc ⟨-, -, -, -, -, -, Hf⟩
         · iframe; iframe #; unfold mappingRes; ileft; ipureintro; rfl
         (try wp_auto)
         iright
@@ -365,7 +365,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     (try wp_auto)
     wp_apply wp_close db (DFrac.own (1 : Qp).half) slice.nil (W64 0) null null f DFrac.discard fd path _ path
         m'' (fun h => absurd rfl h) $$ [Hd Hdsz H0 H1 Hf Hfd]
-      as ⟨-, -, -, -, -, -, Hf⟩
+      as %_errc ⟨-, -, -, -, -, -, Hf⟩
     · iframe; iframe #; unfold mappingRes; ileft; ipureintro; rfl
     (try wp_auto)
     iapply HΦ
@@ -373,24 +373,6 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; exact ⟨by simp, rfl⟩
     · iexists some m''; iexact Hm
-
-/-- TODO: `Open` of a stored database whose file still has a mapping (a failed `Munmap` in
-`Close`, `dbClosed_reopen`'s second case). The leftover mapping's cells must go to `init`'s and
-`WriteAt`'s `mcellsAny`, and `mmap` must map around it; but `rwR` (`m.maps = {[base := len]}` with
-a mapping, as `mmap`'s spec) and `init`'s and `mmap`'s specs (`m.maps = ∅`) admit one mapping at
-most, so this needs those definitions generalized to extra mappings whose cells the writer holds.
-Not used by `Link.lean`. -/
-theorem Open.wp_leftover_mapping : ∀ (path : GoString) (t : Nat) (vo : Option w64),
-  {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ dbStoredMapped (GF := GF) path t vo }}
-    (App (Val (@! github_com.mit_pdos.etcd_grove.examples.bboltfs.Open)) (Val #path))
-  {{ (db : Loc) (err : GoInterface), RET (PairV #db #err);
-      (⌜err = interface.nil⌝ ∗ ∃ (γ : DBNames) (n : Nat),
-          isDB (GF := GF) γ db ∗ dbOwner (GF := GF) γ t n ∗ dbLast (GF := GF) γ t ∗
-          dbTx (GF := GF) γ t vo ∗
-          ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-            dbReader (GF := GF) γ db)) ∨
-      (⌜err ≠ interface.nil ∧ db = null⌝ ∗ ∃ mo', osMeta (GF := GF) path (DFrac.own 1) mo') }} := by
-  sorry
 
 end proof
 

@@ -41,14 +41,13 @@ theorem osFd_join (fd : w64) (d : OsFd) :
 theorem errnoErr_ne_nil' (e : w64) (h : e ≠ 0) : errnoErr e ≠ interface.nil := by
   unfold errnoErr; rw [if_neg h]; simp
 
-/-- After `close`'s `Munmap` of the whole mapping: the file's `OsMeta`, of the same size, with
-no mapping, or with the mapping still there (a failed `Munmap`) and its cells. -/
+/-- After `close`'s successful `Munmap` of the whole mapping: the file's `OsMeta`, of the same
+size, with no mapping. -/
 theorem close_unmapped (p : GoString) (m : OsMeta) (base : Loc) (len : Nat) (err : GoInterface)
-    (hm : m.maps = {[base := len]}) (hlen : (W64 (len : Int)).toNat = len) (hb : 0 < base.addr) :
+    (hm : m.maps = {[base := len]}) (hb : 0 < base.addr) (herr : err = interface.nil) :
     unmappedRes (GF := GF) p m ⟨base, W64 len, W64 len⟩ err ⊢
-      ∃ m', osMeta (GF := GF) p (DFrac.own 1) (some m') ∗ ⌜m'.size = m.size ∧ m'.ok = m.ok⌝ ∗
-        (⌜m'.maps = ∅⌝ ∨ ∃ (base' : Loc) (len' : Nat) (vf : Nat → val),
-          ⌜m'.maps = {[base' := len']}⌝ ∗ cellsR (GF := GF) base' 0 len' vf) := by
+      ∃ m', osMeta (GF := GF) p (DFrac.own 1) (some m') ∗
+        ⌜m'.size = m.size ∧ m'.ok = m.ok ∧ m'.maps = ∅⌝ := by
   unfold unmappedRes
   iintro (%Hnil | ⟨%b, %l, %vf, %e, %Heq, Hu⟩)
   · exfalso
@@ -56,16 +55,12 @@ theorem close_unmapped (p : GoString) (m : OsMeta) (base : Loc) (len : Nat) (err
     simp [null] at hb
   · obtain ⟨Hsl, rfl⟩ := Heq
     cases Hsl
-    icases Hu with (⟨%He, Hm⟩ | ⟨%He, (Hm | ⟨Hm, Hc⟩)⟩)
-    · iexists _; iframe; isplit
-      · ipureintro; exact ⟨rfl, rfl⟩
-      · ileft; ipureintro; simp only [hm]; exact GMap.delete_singleton _ _
-    · iexists _; iframe; isplit
-      · ipureintro; exact ⟨rfl, rfl⟩
-      · ileft; ipureintro; simp only [hm]; exact GMap.delete_singleton _ _
-    · iexists m; iframe; isplit
-      · ipureintro; exact ⟨rfl, rfl⟩
-      · iright; iexists base, len, vf; rw [hlen]; iframe; ipureintro; exact hm
+    by_cases he : e = 0
+    · icases Hu with (⟨-, Hm⟩ | ⟨%He, -⟩)
+      · iexists _; iframe
+        ipureintro; refine ⟨rfl, rfl, ?_⟩; simp only [hm]; exact GMap.delete_singleton _ _
+      · exact absurd he He
+    · exact absurd herr (errnoErr_ne_nil' e he)
 
 theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
     DB.Close.spec (GF := GF) (hG := hG) := by
@@ -128,7 +123,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
     dsimp only [mapSlice, mapPtr0, mapPtr1, mapLen]
     wp_apply wp_close db (DFrac.own 1) slice.nil (W64 0) null null f DFrac.discard fd p
         ⟨p, true, true⟩ p m (fun _ => rfl) $$ [Hd Hdsz H0 H1 Hf Hfd]
-      as ⟨Hd, Hdsz, H0, H1, -, -, -⟩
+      as %errc ⟨Hd, Hdsz, H0, H1, -, -, -⟩
     · iframe; iframe #; unfold mappingRes; ileft; ipureintro; rfl
     (try simp only [↓reduceIte])
     icases (mapFields_join db none).2 $$ [Hd H0 H1] with ⟨Hflds1, Hflds0⟩
@@ -155,7 +150,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
     iapply HΦ
     iexists p
     iframe #
-    iright; iexact Hfailed
+    iright; iright; iexact Hfailed
   · -- a mapping: close its invariant and gather its cells
     icases Hst with ⟨%Hst, Htok1, -, Hwc⟩
     obtain ⟨Hmaps, Hlen, Hbase, Hlen41⟩ := Hst
@@ -195,7 +190,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
     wp_apply wp_close db (DFrac.own 1) ⟨base, W64 len, W64 len⟩ (W64 len) (base +ₗ 16)
         (base +ₗ 4112) f DFrac.discard fd p ⟨p, true, true⟩ p m (fun _ => rfl)
         $$ [Hd Hdsz H0 H1 Hf Hfd Hm Hcells]
-      as ⟨Hd, Hdsz, H0, H1, ⟨%err, Hun⟩, -, -⟩
+      as %errc ⟨Hd, Hdsz, H0, H1, ⟨%err, Hun, %Herr⟩, -, -⟩
     · iframe; iframe #
       unfold mappingRes; iright; iexists base, W64 len, vf
       rw [hlen]; iframe; iframe #
@@ -204,8 +199,6 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
       · rw [BitVec.toInt_eq_toNat_cond, hlen]; split <;> omega
       · rw [Hmaps]; simp
     rw [if_neg hne, if_neg hne, if_neg hne]
-    ihave Hm := close_unmapped p m base len err Hmaps hlen Hbase $$ Hun
-    icases Hm with ⟨%m', Hm, %Hm', Hmaps'⟩
     imod ghostVar_update_halves none γ.map _ _ $$ Hmap1 Hmap0 with ⟨Hmap1, Hmap0⟩
     icases (mapFields_join db none).2 $$ [Hd H0 H1] with ⟨Hflds1, Hflds0⟩
     · iframe
@@ -238,7 +231,7 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
       iapply HΦ
       iexists p
       iframe #
-      iright
+      iright; iright
       unfold dbFailed
       iexact Hfailed
     | false =>
@@ -273,13 +266,19 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
       iapply HΦ
       iexists p
       iframe #
-      ileft
-      unfold dbClosed
-      iexists m', mx, mxw, tail, B
-      iframe; iframe #
-      ipureintro
-      refine ⟨(Hw.2.2.2.2 rfl).1, (Hw.2.2.2.2 rfl).2.1, Hok, rfl, by omega, by omega, ?_⟩
-      rw [Hm'.2]; exact Hok0 rfl
+      by_cases herrc : errc = interface.nil
+      · ileft
+        isplitr
+        · ipureintro; exact herrc
+        ihave Hm := close_unmapped p m base len err Hmaps Hbase (Herr herrc) $$ Hun
+        icases Hm with ⟨%m', Hm, %Hm'⟩
+        unfold dbClosed
+        iexists m', mx, mxw, tail, B
+        iframe; iframe #
+        ipureintro
+        refine ⟨(Hw.2.2.2.2 rfl).1, (Hw.2.2.2.2 rfl).2.1, Hok, rfl, by omega, by omega, ?_, Hm'.2.2⟩
+        rw [Hm'.2.1]; exact Hok0 rfl
+      · iright; ileft; ipureintro; exact herrc
 
 end proof
 

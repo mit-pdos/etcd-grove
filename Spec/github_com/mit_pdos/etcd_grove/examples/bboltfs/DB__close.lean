@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart). `db.close()` (`examples/bboltfs/minibolt.go`): `munmap` (`DB__munmap.lean`), then `Flock(fd, LOCK_UN)` and `Close` of `db.file`, ignoring their errors. The mapping fields may be held at any fraction when there is no mapping (as `munmap`). With the whole of the file and its fd, it leaves the file closed (`fd` -1) and the mapping unmapped as `munmap` does. -/
+/- Lean-first (no Rocq counterpart). `db.close()` (`examples/bboltfs/minibolt.go`): `munmap` (`DB__munmap.lean`), then `Flock(fd, LOCK_UN)` and `Close` of `db.file`; it returns munmap's error, or else `Close`'s (`Flock`'s is ignored). The mapping fields may be held at any fraction when there is no mapping (as `munmap`). With the whole of the file and its fd, it leaves the file closed (`fd` -1) and the mapping unmapped as `munmap` does: on success, munmap succeeded (no mapping left behind). -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.bboltfs.DB__munmap
@@ -31,11 +31,11 @@ abbrev DB.close.spec : Prop :=
       db.[DB, go!"file"] ↦{dqd} f ∗ os.ownFile (GF := GF) f fd name (DFrac.own 1) ∗
       osFd (GF := GF) fd (DFrac.own 1) d }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"close")) (Val #()))
-  {{ RET #(); db.[DB, go!"dataref"] ↦{dq} slice.nil ∗
+  {{ (err : GoInterface), RET #err; db.[DB, go!"dataref"] ↦{dq} slice.nil ∗
       db.[DB, go!"datasz"] ↦{dq} (if sl = slice.nil then dsz else W64 0) ∗
       db.[DB, go!"meta0"] ↦{dq} (if sl = slice.nil then m0 else null) ∗
       db.[DB, go!"meta1"] ↦{dq} (if sl = slice.nil then m1 else null) ∗
-      (∃ err, unmappedRes (GF := GF) p m sl err) ∗
+      (∃ err', unmappedRes (GF := GF) p m sl err' ∗ ⌜err = interface.nil → err' = interface.nil⌝) ∗
       db.[DB, go!"file"] ↦{dqd} f ∗ os.ownFile f (-1 : w64) name (DFrac.own 1) }}
 
 end spec
