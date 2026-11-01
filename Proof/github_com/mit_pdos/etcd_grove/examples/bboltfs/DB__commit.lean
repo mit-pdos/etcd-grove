@@ -204,6 +204,42 @@ theorem page_rejoin (p : GoString) (base : Loc) (hwm len : Nat) (ys rest : List 
     · iexact C1
     · iexact C2
 
+/-- An error exit of `commit` while writing the data page (not yet failed): its bytes and cells
+back with the writer's. -/
+theorem dataErr (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8)
+    (hwm : Nat) (base : Loc) (len : Nat) (γm : GName) (m3 : OsMeta)
+    (mxc ys rest : List (w8 × Bool)) (fsz t n : Nat)
+    (h : m3.maps = {[base := len]} ∧ m3.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41 ∧ 2 ≤ hwm ∧
+      4096 * hwm + 4096 ≤ m3.size ∧ mxc.length = 8192 ∧ ys.length = 4096 ∧
+      rest.length = m3.size - 4096 * hwm - 4096) :
+    dbOwner (GF := GF) γ t n ∗ ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗
+      ghostVar γ.map (1 : Qp).half (some (base, len, γm)) ∗ ghostVar γ.out (1 : Qp).half.half false ∗
+      mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
+      ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
+      mapInv (GF := GF) γ p base len γm ∗
+      ((∃ vf, cellsR (GF := GF) base 0 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 80 4016 vf) ∗
+        (∃ vf, cellsR (GF := GF) base 4096 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 4176 4016 vf)) ∗
+      cellsAny (GF := GF) base (4096 * hwm) 4096 ∗
+      cellsAny (GF := GF) base (4096 * hwm + 4096) (len - 4096 * hwm - 4096) ∗
+      db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
+      os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
+      osMeta (GF := GF) p (DFrac.own 1) (some m3) ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
+      osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) ys ∗
+      osBytes (GF := GF) p (4096 * hwm + 4096) (DFrac.own 1) rest ⊢
+      commitErr (GF := GF) γ db f fd p t n := by
+  iintro ⟨Hown, Hcur, Hmap, Hout, Hflds, Hcls, Htok, #Hinv, Hwc4, Hpc, Htop, Hfsz, Hdsz, Hf, Hfd, Hm,
+    Hmx, Hpg, Hrest⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := h
+  icases page_rejoin p base hwm len ys rest h8 (by omega) $$ [Hpg Hrest Hpc Htop] with ⟨Htail, Htop⟩
+  · iframe Hpg Hrest Hpc Htop
+  ihave Hwc := (writerCells_top base hwm len).2 $$ [Hwc4 Htop]
+  · iframe Hwc4 Htop
+  iapply commitErr_of γ db f fd p mp hwm base len γm m3 mxc (ys ++ rest) fsz t n
+    ⟨h1, h2, h3, h4, h5, by omega, h7, by simp only [List.length_append]; omega⟩
+  iframe Hown Hcur Hmap Hout Hflds Hcls Htok Hwc Hfsz Hdsz Hf Hfd Hm Hmx Htail
+  iframe #
+
 theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     (wp_Truncate : os.File.Truncate.spec (GF := GF) (hG := hG))
     (wp_Sync : os.File.Sync.spec (GF := GF) (hG := hG))
@@ -531,6 +567,55 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     simp only [List.length_map, pwBytes_length] at h1
     rw [pwSize_inside m2.size (4096 * hwm) j (by omega), dataPage_length] at h1; omega
   rw [pwSize_inside m2.size (4096 * hwm) j (by omega)]
+  have hmp3 : ({ m2 with size := m2.size, hi := h } : OsMeta).maps = {[base := len]} := Hmaps
+  icases (mcellsAny_single (GF := GF) base len (4096 * hwm) (4096 * hwm + 4096) (by omega)
+    (by omega)).1 $$ [Hpc] with Hpc
+  · rw [Hmaps]; iexact Hpc
+  rw [show 4096 * hwm + 4096 - 4096 * hwm = 4096 by omega]
+  obtain ⟨-, hys', hh, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
+  rotate_left
+  · cases err with
+    | nil => exact absurd rfl hne
+    | ok ie =>
+    (try wp_auto)
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; exact hne
+    ihave Herr := dataErr γ db f fd p mp hwm base len γm { m2 with size := m2.size, hi := h } mxc ys
+      (tail2.drop 4096) m2.size _ _ ⟨Hmaps, Hsz, Hbase, Hl41, Hwf.1, hin, Hwf.2.2.1, hys,
+        by simp only [List.length_drop]; omega⟩
+      $$ [Hown Hcur Hmap Hout Hflds Hcls Htok Hwc4 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hmx Hpg Hrest]
+    · iframe Hown Hcur Hmap Hout Hflds Hcls Htok Hwc4 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hmx Hpg Hrest
+      iframe #
+    iunfold commitErr at Herr
+    iexact Herr
+  (try wp_auto)
+  wp_apply wp_Fd f fd p _ $$ [Hf] as Hf
+  · iexact Hf
+  (try wp_auto)
+  wp_apply wp_Fdatasync fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ { m2 with size := m2.size, hi := h }
+      (4096 * hwm) ys $$ [Hfd Hm Hpg] as %e ⟨Hfd, Hs⟩
+  · iframe Hfd Hm Hpg; iframe #
+  icases Hs with (⟨%He, Hm, Hpg⟩ | ⟨%He, Hm, Hpg⟩)
+  rotate_left
+  · unfold errnoErr; rw [if_neg He.1]
+    (try wp_auto)
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; simp
+    ihave Herr := dataErr γ db f fd p mp hwm base len γm { m2 with size := m2.size, hi := h, ok := false }
+      mxc ys (tail2.drop 4096) m2.size _ _ ⟨Hmaps, Hsz, Hbase, Hl41, Hwf.1, hin, Hwf.2.2.1, hys,
+        by simp only [List.length_drop]; omega⟩
+      $$ [Hown Hcur Hmap Hout Hflds Hcls Htok Hwc4 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hmx Hpg Hrest]
+    · iframe Hown Hcur Hmap Hout Hflds Hcls Htok Hwc4 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hmx Hpg Hrest
+      iframe #
+    iunfold commitErr at Herr
+    iexact Herr
+  subst He
+  unfold errnoErr; rw [if_pos rfl]
+  (try wp_auto)
   sorry
 
 end proof
