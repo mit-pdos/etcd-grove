@@ -90,11 +90,18 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
 8. **`specSnap` restated for the payload**: `isNotify2`'s first receive (item 4), `snapDirInv` at
    `srvSnapRm γt γr` (as `srvSnapRO` has it) in place of `snapTakenLb γt`, the image facts from
    `snapRecv_image` (`hch`, `|boot| ≤ i`: lemmas).
+   *Done 2026-11-01* but for the image facts: `specSnap` takes the payload's `isNotify2 γnc nc True
+   True ∗ notifyRcvN γnc 0` (its first receive, `wp_notify2_receive1`; the post gives back
+   `notifyRcvN γnc 1` for `applyAll`'s second) and `snapDirInv` at `srvSnapRm γt γr`
+   (`Release`'s obligation is its first disjunct). The image facts are `snapRecv_image`'s
+   premises about the run (the start values, `hch`, `|boot| ≤ i`): lemmas for J8a-5, where
+   `run`'s snapshot case calls it, not a restatement.
 
 ## Stages
 
 - **J8a-1** (no approval): the stocks' `E.RD` half (item 6), the environment facts (item 7), `specSnap`
-  over the payload's forms (item 8), the walk's missing post (item 5).
+  over the payload's forms (item 8), the walk's missing post (item 5). Done 2026-11-01 (but for
+  `hdir`/`hdok`, with J8a-6, and item 8's image lemmas, with J8a-5).
 - **J8a-2** (raft API, approved 2026-11-01): `snapLocal` through the API (item 1); done.
 - **J8a-3** (fork, approval): `NewWatchServer`'s config write (item 3).
 - **J8a-4**: the `isMetaBackend` restatement (item 2).

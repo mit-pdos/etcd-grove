@@ -118,11 +118,11 @@ theorem applySnapshot_walk
     (hlid : c.lid = idm)
     (hNUA : EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG))
     (msi : w64) (cs0 : Loc) (fg : GoInterface) (quota : w64) (wad : time.Duration)
-    (Tal : IProp GF) (zal : Bool) (hbuq : apply.backendUnderQuota) :
+    (Tal : IProp GF) (zal : Bool) (hbuq : apply.backendUnderQuota) (γnc : NotifyNames) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        isServer s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
-       taNotifycAddr ap ↦□ nc ∗ isUnitBag nc ∗
+       taNotifycAddr ap ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
        epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epDiskSnapAddr ep ↦ dsi ∗
        srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
        srvCfgAddr s ↦□ cfg ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
@@ -143,7 +143,7 @@ theorem applySnapshot_walk
        □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗ srvWTPool E γp ∗
        rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
-       inv snapDirN (snapDirInv ss γd img (snapTakenLb γt)) ∗ monoNatAuthOwn γt 1 nt ∗
+       inv snapDirN (snapDirInv ss γd img (srvSnapRm γt γr)) ∗ monoNatAuthOwn γt 1 nt ∗
        srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗
        srvAuthStoreAddr s ↦□ auth.authIface ast ∗ srvClusterAddr s ↦□ cl ∗
        membership.isRaftCluster cl ∗
@@ -165,8 +165,8 @@ theorem applySnapshot_walk
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))
         (Val #ap))
     {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A x R ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
-        quota wad Tal zal }} := by
-  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, HR8s, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HalG, HTal, #HoSC, HoOh, #HauR, #HmetaB⟩
+        quota wad Tal zal ∗ notifyRcvN γnc 1 }} := by
+  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, HR8s, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HalG, HTal, #HoSC, HoOh, #HauR, #HmetaB⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
   icases Hsrv' with ⟨-, -, ⟨%sfv, #Hfl⟩, -, -⟩
@@ -225,10 +225,8 @@ theorem applySnapshot_walk
   · exfalso; word
   (try wp_auto)
   -- `<-toApply.notifyc`: raft persisted the snapshot
-  iunfold isUnitBag at Hncb
-  icases Hncb with ⟨%γnc, #Hncb'⟩
-  wp_apply wp_bag_receive γnc nc (fun _ => iprop(True)) $$ [] as %u -
-  · iexact Hncb'
+  wp_apply wp_notify2_receive1 γnc nc iprop(True) iprop(True) $$ [Hrcv] as ⟨Hrcv, -⟩
+  · iframe #; iexact Hrcv
   (try wp_auto)
   -- `s.bemu.Lock()`: `bemu`'s whole lock invariant
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -470,10 +468,12 @@ theorem applySnapshot_walk
   (try wp_auto)
   -- `s.r.storage.Release(snapshot)`: the snapshot's index taken, the older files released
   imod (mono_nat_own_update (uint.nat sv.Metadata'.Index') (by word)) $$ Hγt with ⟨Hγt, #Htk⟩
-  wp_apply hRel stp ss sn smp DFrac.discard DFrac.discard sv.Metadata' γd img (snapTakenLb γt) hstp
+  wp_apply hRel stp ss sn smp DFrac.discard DFrac.discard sv.Metadata' γd img (srvSnapRm γt γr) hstp
     $$ [] as %rerr ⟨-, -, %Hrerr⟩
   · iframe #
     iintro !> %j %hj
+    iunfold srvSnapRm
+    ileft
     iunfold snapTakenLb
     iapply monoNatLbOwn_le (uint.nat j) (by word) $$ Htk
   have hrerr : rerr = GoInterface.nil := by
@@ -803,6 +803,7 @@ theorem applySnapshot_walk
   imodintro
   wp_pures
   iapply HΦ
+  iframe Hrcv
   iunfold snapWalkPost
   iexists γB, d', gx', π0, p', γw, ws, g, up', opts', L, spc, Ll, jf, γcf, w0, RD0, up, sfv.lg, ws, stck
   isplitr
