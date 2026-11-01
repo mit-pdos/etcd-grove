@@ -11,11 +11,15 @@ module
 public import Proof.context.WithTimeoutBackground
 public import Proof.github_com.mit_pdos.etcd_grove.examples.durable.Read
 public import Proof.github_com.mit_pdos.etcd_grove.examples.durable.Write
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__Crash
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__all
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__config
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__deliver
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__dropped
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__fileOf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__random
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__replica
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__restart
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__send
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__sender
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__start
@@ -36,6 +40,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__s
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__snapshotter
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__stop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__ticker
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.StartCluster
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Stats__add
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage__Append
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage__ApplySnapshot
@@ -81,6 +86,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.quietLogge
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.quietLogger__Warningf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.readCtx
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs__next
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.sleep
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.sortStrings
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.validConf
 public import Proof.go_etcd_io.raft.v3.Linked
@@ -133,41 +139,37 @@ theorem context.wp_WithTimeoutBackground :
     context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
   context.WithTimeoutBackground.wp_proof
 
-theorem kvdurable.Cluster.wp_config [AllG GF] [KdStor GF] :
-    kvdurable.Cluster.config.spec (GF := GF) (hG := hG) :=
-  kvdurable.Cluster.config.wp_proof
-
-theorem kvdurable.Cluster.wp_replica [AllG GF] [KdStor GF] :
-    kvdurable.Cluster.replica.spec (GF := GF) (hG := hG) :=
-  kvdurable.Cluster.replica.wp_proof
-
-theorem kvdurable.Stats.wp_add [AllG GF] [KdStor GF] :
-    kvdurable.Stats.add.spec (GF := GF) (hG := hG) :=
-  kvdurable.Stats.add.wp_proof
-
-theorem kvdurable.Cluster.wp_dropped [AllG GF] [KdStor GF] :
-    kvdurable.Cluster.dropped.spec (GF := GF) (hG := hG) :=
-  kvdurable.Cluster.dropped.wp_proof kvdurable.Stats.wp_add raftpb.Message.wp_GetTo raftpb.Message.wp_GetType node.wp_ReportUnreachable node.wp_ReportSnapshot
-
-theorem kvdurable.wp_oneIn :
-    kvdurable.oneIn.spec (GF := GF) (hG := hG) :=
-  kvdurable.oneIn.wp_proof
-
-theorem kvdurable.Cluster.wp_step [AllG GF] [KdStor GF] :
-    kvdurable.Cluster.step.spec (GF := GF) (hG := hG) :=
-  kvdurable.Cluster.step.wp_proof kvdurable.Stats.wp_add kvdurable.wp_oneIn raftpb.Message.wp_GetTo raftpb.Message.wp_GetType node.wp_Step node.wp_ReportUnreachable node.wp_ReportSnapshot context.wp_WithTimeoutBackground
-
-theorem kvdurable.wp_copyMsg :
-    kvdurable.copyMsg.spec (GF := GF) (hG := hG) :=
-  kvdurable.copyMsg.wp_proof proto.wp_CloneSnapshot
-
 theorem kvdurable.wp_below :
     kvdurable.below.spec (GF := GF) (hG := hG) :=
   kvdurable.below.wp_proof
 
-theorem kvdurable.Cluster.wp_deliver [AllG GF] [KdStor GF] :
-    kvdurable.Cluster.deliver.spec (GF := GF) (hG := hG) :=
-  kvdurable.Cluster.deliver.wp_proof kvdurable.Cluster.wp_replica kvdurable.Cluster.wp_dropped kvdurable.Cluster.wp_step kvdurable.wp_copyMsg kvdurable.Stats.wp_add kvdurable.wp_oneIn kvdurable.wp_below raftpb.Message.wp_GetTo
+theorem kvdurable.wp_sleep :
+    kvdurable.sleep.spec (GF := GF) (hG := hG) :=
+  kvdurable.sleep.wp_proof kvdurable.wp_below _root_.Perennial.time.wp_After
+
+theorem kvdurable.Cluster.wp_all [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.all.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.all.wp_proof
+
+theorem kvdurable.Cluster.wp_random [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.random.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.random.wp_proof kvdurable.Cluster.wp_all kvdurable.wp_below
+
+theorem kvdurable.Cluster.wp_replicaPin [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.replica.specPin (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.replica.wp_proofPin
+
+theorem kvdurable.Replica.wp_stop [AllG GF] [KdStor GF] :
+    kvdurable.Replica.stop.spec (GF := GF) (hG := hG) :=
+  kvdurable.Replica.stop.wp_proof node.wp_Stop
+
+theorem kvdurable.Replica.wp_crash [AllG GF] [KdStor GF] :
+    kvdurable.Replica.crash.spec (GF := GF) (hG := hG) :=
+  kvdurable.Replica.crash.wp_proof kvdurable.Replica.wp_stop
+
+theorem kvdurable.Stats.wp_add [AllG GF] [KdStor GF] :
+    kvdurable.Stats.add.spec (GF := GF) (hG := hG) :=
+  kvdurable.Stats.add.wp_proof
 
 theorem kvdurable.wp_itoa [AllG GF] [KdStor GF] :
     kvdurable.itoa.spec (GF := GF) (hG := hG) :=
@@ -176,14 +178,6 @@ theorem kvdurable.wp_itoa [AllG GF] [KdStor GF] :
 theorem kvdurable.Cluster.wp_fileOf [AllG GF] [KdStor GF] :
     kvdurable.Cluster.fileOf.spec (GF := GF) (hG := hG) :=
   kvdurable.Cluster.fileOf.wp_proof kvdurable.wp_itoa
-
-theorem kvdurable.Cluster.wp_send [AllG GF] [KdStor GF] :
-    kvdurable.Cluster.send.spec (GF := GF) (hG := hG) :=
-  kvdurable.Cluster.send.wp_proof kvdurable.Cluster.wp_replica kvdurable.wp_copyMsg kvdurable.Cluster.wp_deliver
-
-theorem kvdurable.Cluster.wp_sender [AllG GF] [KdStor GF] :
-    kvdurable.Cluster.sender.spec (GF := GF) (hG := hG) :=
-  kvdurable.Cluster.sender.wp_proof kvdurable.Cluster.wp_send
 
 theorem kvdurable.wp_newStorage :
     kvdurable.newStorage.spec (GF := GF) (hG := hG) :=
@@ -201,9 +195,45 @@ theorem kvdurable.wp_decodeState :
     kvdurable.decodeState.spec (GF := GF) (hG := hG) :=
   kvdurable.decodeState.wp_proof kvdurable.wp_getMap
 
+theorem kvdurable.wp_oneIn :
+    kvdurable.oneIn.spec (GF := GF) (hG := hG) :=
+  kvdurable.oneIn.wp_proof
+
+theorem kvdurable.Cluster.wp_config [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.config.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.config.wp_proof
+
 theorem kvdurable.Cluster.wp_tick [AllG GF] [KdStor GF] :
     kvdurable.Cluster.tick.spec (GF := GF) (hG := hG) :=
   kvdurable.Cluster.tick.wp_proof kvdurable.wp_below
+
+theorem kvdurable.Cluster.wp_replica [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.replica.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.replica.wp_proof
+
+theorem kvdurable.wp_copyMsg :
+    kvdurable.copyMsg.spec (GF := GF) (hG := hG) :=
+  kvdurable.copyMsg.wp_proof proto.wp_CloneSnapshot
+
+theorem kvdurable.Cluster.wp_dropped [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.dropped.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.dropped.wp_proof kvdurable.Stats.wp_add raftpb.Message.wp_GetTo raftpb.Message.wp_GetType node.wp_ReportUnreachable node.wp_ReportSnapshot
+
+theorem kvdurable.Cluster.wp_step [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.step.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.step.wp_proof kvdurable.Stats.wp_add kvdurable.wp_oneIn raftpb.Message.wp_GetTo raftpb.Message.wp_GetType node.wp_Step node.wp_ReportUnreachable node.wp_ReportSnapshot context.wp_WithTimeoutBackground
+
+theorem kvdurable.Cluster.wp_deliver [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.deliver.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.deliver.wp_proof kvdurable.Cluster.wp_replica kvdurable.Cluster.wp_dropped kvdurable.Cluster.wp_step kvdurable.wp_copyMsg kvdurable.Stats.wp_add kvdurable.wp_oneIn kvdurable.wp_below raftpb.Message.wp_GetTo
+
+theorem kvdurable.Cluster.wp_send [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.send.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.send.wp_proof kvdurable.Cluster.wp_replica kvdurable.wp_copyMsg kvdurable.Cluster.wp_deliver
+
+theorem kvdurable.Cluster.wp_sender [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.sender.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.sender.wp_proof kvdurable.Cluster.wp_send
 
 theorem kvdurable.wp_decode :
     kvdurable.decode.spec (GF := GF) (hG := hG) :=
@@ -377,14 +407,6 @@ theorem kvdurable.quietLogger.wp_Warningf :
     kvdurable.quietLogger.Warningf.spec (GF := GF) (hG := hG) :=
   kvdurable.quietLogger.Warningf.wp_proof
 
-theorem kvdurable.Replica.wp_stop [AllG GF] [KdStor GF] :
-    kvdurable.Replica.stop.spec (GF := GF) (hG := hG) :=
-  kvdurable.Replica.stop.wp_proof node.wp_Stop
-
-theorem kvdurable.Replica.wp_crash [AllG GF] [KdStor GF] :
-    kvdurable.Replica.crash.spec (GF := GF) (hG := hG) :=
-  kvdurable.Replica.crash.wp_proof kvdurable.Replica.wp_stop
-
 theorem kvdurable.wp_encode :
     kvdurable.encode.spec (GF := GF) (hG := hG) :=
   kvdurable.encode.wp_proof
@@ -438,9 +460,21 @@ theorem kvdurable.Cluster.wp_start [KdStor GF] :
     kvdurable.Cluster.start.spec (GF := GF) (hG := hG) :=
   kvdurable.Cluster.start.wp_proof kvdurable.Cluster.wp_fileOf github_com.mit_pdos.etcd_grove.examples.durable.wp_Read kvdurable.wp_newStorage h_kvdurable_openStorage MemoryStorage.wp_Snapshot raftpb.Snapshot.wp_GetMetadata raftpb.Snapshot.wp_GetData raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetConfState kvdurable.wp_decodeState kvdurable.Stats.wp_add kvdurable.wp_oneIn kvdurable.wp_below kvdurable.Cluster.wp_config wp_RestartNode kvdurable.Cluster.wp_tick kvdurable.Cluster.wp_sender kvdurable.wp_newReplica kvdurable.Storage.wp_InitialState kvdurable.Storage.wp_Snapshot MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term MemoryStorage.wp_Entries kvdurable.quietLogger.wp_Debugf kvdurable.quietLogger.wp_Errorf kvdurable.quietLogger.wp_Infof kvdurable.quietLogger.wp_Warningf
 
+theorem kvdurable.Cluster.wp_restart [KdStor GF] :
+    kvdurable.Cluster.restart.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.restart.wp_proof kvdurable.Cluster.wp_replicaPin kvdurable.Replica.wp_crash kvdurable.Stats.wp_add (kvdurable.Cluster.wp_start h_kvdurable_openStorage)
+
+theorem kvdurable.Cluster.wp_Crash [KdStor GF] :
+    kvdurable.Cluster.Crash.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.Crash.wp_proof kvdurable.wp_sleep kvdurable.Cluster.wp_random (kvdurable.Cluster.wp_restart h_kvdurable_openStorage)
+
 theorem kvdurable.Cluster.wp_startNew [KdStor GF] :
     kvdurable.Cluster.startNew.spec (GF := GF) (hG := hG) :=
   kvdurable.Cluster.startNew.wp_proof (kvdurable.Cluster.wp_start h_kvdurable_openStorage) kvdurable.Stats.wp_add
+
+theorem kvdurable.wp_StartCluster [KdStor GF] :
+    kvdurable.StartCluster.spec (GF := GF) (hG := hG) :=
+  kvdurable.StartCluster.wp_proof (kvdurable.Cluster.wp_start h_kvdurable_openStorage) kvdurable.Stats.wp_add
 
 end links_pending
 

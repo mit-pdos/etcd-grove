@@ -6,8 +6,7 @@
 # `<F>.spec<S>`/`<F>.wp_proof<S>`, linked as `wp_<M><S>` (`Replica.persist`'s `specRun`, the form
 # `Replica.run` calls it at).
 #
-# Not linked yet (a spec, no proof file): `Cluster.Crash`, `Cluster.restart`, `StartCluster`.
-# Add each line here once its proof exists. `openStorage`'s proof is not here yet (`?`).
+# Every kvdurable function with a spec is linked. `openStorage`'s proof is not here yet (`?`).
 #
 # the callees outside the store
 IsEmptyHardState: @
@@ -71,11 +70,16 @@ context_WithTimeoutBackground:
 durable_Read:
 durable_Write:
 # the store (examples/kvdurable)
+kvdurable_Cluster__Crash: kvdurable_sleep kvdurable_Cluster__random kvdurable_Cluster__restart
+kvdurable_Cluster__all:
 kvdurable_Cluster__config:
 kvdurable_Cluster__deliver: kvdurable_Cluster__replica kvdurable_Cluster__dropped kvdurable_Cluster__step kvdurable_copyMsg kvdurable_Stats__add kvdurable_oneIn kvdurable_below raftpb_Message__GetTo
 kvdurable_Cluster__dropped: kvdurable_Stats__add raftpb_Message__GetTo raftpb_Message__GetType node__ReportUnreachable node__ReportSnapshot
 kvdurable_Cluster__fileOf: kvdurable_itoa
+kvdurable_Cluster__random: kvdurable_Cluster__all kvdurable_below
 kvdurable_Cluster__replica:
+kvdurable_Cluster__replica+Pin:
+kvdurable_Cluster__restart: kvdurable_Cluster__replica+Pin kvdurable_Replica__crash kvdurable_Stats__add kvdurable_Cluster__start
 kvdurable_Cluster__start: kvdurable_Cluster__fileOf durable_Read kvdurable_newStorage kvdurable_openStorage MemoryStorage__Snapshot raftpb_Snapshot__GetMetadata raftpb_Snapshot__GetData raftpb_SnapshotMetadata__GetIndex raftpb_SnapshotMetadata__GetConfState kvdurable_decodeState kvdurable_Stats__add kvdurable_oneIn kvdurable_below kvdurable_Cluster__config RestartNode kvdurable_Cluster__tick kvdurable_Cluster__sender kvdurable_newReplica kvdurable_Storage__InitialState kvdurable_Storage__Snapshot MemoryStorage__LastIndex MemoryStorage__FirstIndex MemoryStorage__Term MemoryStorage__Entries kvdurable_quietLogger__Debugf kvdurable_quietLogger__Errorf kvdurable_quietLogger__Infof kvdurable_quietLogger__Warningf
 kvdurable_Cluster__startNew: kvdurable_Cluster__start kvdurable_Stats__add
 kvdurable_Cluster__send: kvdurable_Cluster__replica kvdurable_copyMsg kvdurable_Cluster__deliver
@@ -97,6 +101,7 @@ kvdurable_Replica__snapshot: kvdurable_Stats__add kvdurable_below kvdurable_oneI
 kvdurable_Replica__snapshotter: kvdurable_Replica__snapshot
 kvdurable_Replica__stop: node__Stop
 kvdurable_Replica__ticker: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop node__Tick
+kvdurable_StartCluster: kvdurable_Cluster__start kvdurable_Stats__add
 kvdurable_Stats__add:
 kvdurable_Storage__Append: kvdurable_image__append
 kvdurable_Storage__ApplySnapshot: kvdurable_image__applySnapshot
@@ -143,5 +148,6 @@ kvdurable_quietLogger__Infof:
 kvdurable_quietLogger__Warningf:
 kvdurable_readCtx: kvdurable_encode
 kvdurable_readSeqs__next:
+kvdurable_sleep: kvdurable_below =_root_.Perennial.time.wp_After
 kvdurable_sortStrings: kvdurable_less
 kvdurable_validConf: =RaftLink.tracker.wp_MakeProgressTracker_api =RaftLink.confchange.wp_Restore_api =RaftLink.confchange.Changer.wp_Simple_api =RaftLink.confchange.Changer.wp_EnterJoint_api =RaftLink.confchange.Changer.wp_LeaveJoint_api raftpb_ConfChangeV2__LeaveJoint raftpb_ConfChangeV2__EnterJoint raftpb_ConfChangeV2__GetChanges
