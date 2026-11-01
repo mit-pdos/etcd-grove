@@ -202,6 +202,14 @@ every change marks what it changes as dirty, but the trusted file does not state
    statements of `Get`, `Snapshot`, `Commit`, `Close` and `Open` over it. `Get`/`Snapshot` are not
    provable for the code as it is (`issues/bbolt-failed-remap-nil-meta-panic.md`), and a reader
    racing a failed (partial) meta `WriteAt` needs a premise like P1 at run time.
+   The client programs `testMinibolt` and `testMiniboltConcurrent` (`programs.go`) are proved and
+   linked (2026-11-01, branch `osfs-programs`; `wp_testMinibolt`, `wp_testMiniboltConcurrent` free
+   of `sorryAx`), from no file at `dir/db`, after four refinements of the specs: `Get`/`Snapshot`
+   take an optional committer token (`dbOwnerOpt`) and then read its txid; the file predicates are
+   indexed by the high water mark (`dbFile p t vo n`, `init` gives 4); a failed commit sets the
+   token to `(t, 0)`, so `Close` fails only for a token at 0; and `DBNames.vp`, the client's
+   predicate on transaction values, is carried by `dbTx` and required by `Commit` (the programs'
+   is `valueOkP`). `envFailure` needs `envFacts` (`envErrors` in an invariant).
 
 ### Program logic, as of 2026-11-01 (branch `osfs-specs`)
 
