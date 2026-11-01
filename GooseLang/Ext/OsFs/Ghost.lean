@@ -52,6 +52,13 @@ structure OsMeta where
   ok : Bool
   /-- The mappings of the file: base address to length. -/
   maps : GMap Loc Nat
+  /-- Durable bytes known: `some d` at `i` if byte `i` of the image on disk is `d`. Only a
+  successful sync changes the image on disk; it records the bytes it is given (`OsMeta.synced`).
+  At boot, all of the file is known. -/
+  dur : List (Option w8)
+  /-- A bound on the length of the image on disk: a successful sync makes it the size; nothing
+  else changes the image (`MetaOk.durLen`). Past it, a crash leaves arbitrary bytes. -/
+  durHi : Nat
 
 /-- An in-flight change, as the ghost state records it. -/
 structure TokInfo where
@@ -62,14 +69,18 @@ structure TokInfo where
   saved : List w8
   /-- The file's `OsMeta`, as the first step left it. -/
   om : OsMeta
+  /-- The clean flags the taken bytes had (`OsCoh.tok_clean`: a byte flagged clean is still
+  clean on disk while the change is in flight), so that the bytes a write leaves untouched come
+  back clean (`pwBytes`). -/
+  cl : List Bool
 
 instance OsMeta.countable : Pos.Countable OsMeta :=
   Pos.Countable.ofInjective
-    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.named, m.ok, m.maps))
+    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.named, m.ok, m.maps, m.dur, m.durHi))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; subst h1 h2 h3 h4 h5 h6; rfl)
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h; subst h1 h2 h3 h4 h5 h6 h7 h8; rfl)
 
 instance Qp.countable : Pos.Countable Qp :=
   Pos.Countable.ofInjective (fun q => Pos.Countable.encode (q.val.num, q.val.den))
@@ -99,11 +110,11 @@ instance OsChange.countable : Pos.Countable OsChange :=
       cases ka <;> cases kb <;> simp_all [OsChangeKind.enc])
 
 instance TokInfo.countable : Pos.Countable TokInfo :=
-  Pos.Countable.ofInjective (fun t => Pos.Countable.encode (t.c, t.q, t.saved, t.om))
+  Pos.Countable.ofInjective (fun t => Pos.Countable.encode (t.c, t.q, t.saved, t.om, t.cl))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4⟩ := h; subst h1 h2 h3 h4; rfl)
+      obtain ⟨h1, h2, h3, h4, h5⟩ := h; subst h1 h2 h3 h4 h5; rfl)
 
 /-! ## Derived facts about a state -/
 
@@ -164,6 +175,8 @@ structure MetaOk (p : GoString) (m : OsMeta) (f : OsFile) : Prop where
   ok : m.ok = true → ∀ i, f.lost i = false
   maps : ∀ b len, m.maps !! b = some len ↔ st.maps !! b = some ⟨p, len⟩
   targets : ∀ t c, st.inflight !! t = some c → c.path = p → m.lo ≤ c.target st ∧ c.target st ≤ m.hi
+  dur : ∀ (i : Nat) (d : w8), m.dur[i]? = some (some d) → f.durable[i]? = some d
+  durLen : f.durable.length ≤ m.durHi
 
 /-- The ghost maps mirror the state. -/
 structure OsCoh (Γb : GMap (GoString × Nat) (w8 × Bool)) (Γm : GMap GoString (Option OsMeta))
@@ -182,6 +195,10 @@ structure OsCoh (Γb : GMap (GoString × Nat) (w8 × Bool)) (Γm : GMap GoString
     ∀ t' c', t' ≠ t → st.inflight !! t' = some c' → c'.path ≠ ti.c.path
   tok_saved : ∀ t ti, Γt !! t = some ti → ∃ f, st.file ti.c.path = some f ∧
     ti.saved = (affRange st ti.c).map (fun i => f.cur.getD i 0)
+  /-- A taken byte the token records as clean is clean on disk, even while in flight. -/
+  tok_clean : ∀ t ti, Γt !! t = some ti → ∀ j, ti.cl[j]? = some true →
+    j < affHi st ti.c - affLo st ti.c ∧
+    ∃ f, st.file ti.c.path = some f ∧ CleanPhys f (affLo st ti.c + j)
 
 end derived
 
@@ -533,9 +550,9 @@ theorem bytesG_lookup (p : GoString) (off : Nat) (dq : DFrac) (xs : List (w8 × 
 
 end bytes
 
-/-- The ghost `OsMeta` of a file as on disk. -/
+/-- The ghost `OsMeta` of a file as on disk: all of it durable. -/
 def initMeta (f : OsFile) : OsMeta :=
-  ⟨f.cur.length, f.cur.length, f.cur.length, true, true, ∅⟩
+  ⟨f.cur.length, f.cur.length, f.cur.length, true, true, ∅, f.cur.map some, f.cur.length⟩
 
 /-- The bytes of the files of `st`, all clean. -/
 def bytesMap (st : OsState) : GMap (GoString × Nat) (w8 × Bool) :=
@@ -605,7 +622,7 @@ theorem osInit_wf_coh {st : OsState} (h : OsInit st) :
     fun p f hf => hdisk p f (file_eq_some.1 hf)
   have hnoinfl : ∀ p i, ¬ InflightAt st p i := by
     rintro p i ⟨t, c, ht, -⟩; simp [hin] at ht
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
   · intro fd d h; simp [hfd] at h
   · intro b m h; simp [hmp] at h
   · intro b1 m1 _ _ h; simp [hmp] at h
@@ -628,13 +645,18 @@ theorem osInit_wf_coh {st : OsState} (h : OsInit st) :
         simp only [hfo, Option.map_some, Option.some.injEq] at hm
         subst hm
         have hf := hdisk p f hfo
-        refine ⟨f, rfl, ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
+        refine ⟨f, rfl, ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
         · rw [hf]; rfl
         · rw [hf]; simp [initMeta, OsFile.ofDisk]
         · rw [hf]; simp [initMeta, OsFile.ofDisk]
         · intro _ i; rw [hf]; rfl
         · intro b len; simp [initMeta, hmp]
         · intro t c ht; simp [hin] at ht
+        · intro i d h
+          simp only [initMeta, List.getElem?_map, Option.map_eq_some_iff, Option.some.injEq] at h
+          obtain ⟨b, hb, rfl⟩ := h
+          rw [hf]; exact hb
+        · rw [hf]; simp [initMeta, OsFile.ofDisk]
   · intro p i x hx
     simp only [bytesMap, GMap.lookup_mk] at hx
     cases hf : st.file p with
@@ -652,6 +674,7 @@ theorem osInit_wf_coh {st : OsState} (h : OsInit st) :
     simp [bytesMap, hf, hi]
   · rw [hfd]
   · intro t; simp [hin]
+  · intro t ti h; simp at h
   · intro t ti h; simp at h
   · intro t ti h; simp at h
   · intro t ti h; simp at h

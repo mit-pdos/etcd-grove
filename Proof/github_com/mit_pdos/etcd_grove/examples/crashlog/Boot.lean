@@ -75,7 +75,7 @@ theorem crash_W1 (m : OsMeta) (bs : List (w8 × Bool)) (hhi : m.hi = m.size)
 /-- A sync after the data is written: a crash leaves the data. -/
 theorem crash_synced (m : OsMeta) (bs : List (w8 × Bool)) (hok : m.ok = true)
     (hlen : bs.length = m.size) (hsz : 8 ≤ m.size) (hbd : m.size < 2 ^ 62) (hv : ∀ i < 8, (bs[i]?).map Prod.fst = dataC[i]?) :
-    CrashOk Good (some (m.synced, syncedBytes m bs, none)) := by
+    CrashOk Good (some (m.synced 0 bs, syncedBytes m bs, none)) := by
   intro fo h
   rcases h with ⟨rfl, -⟩ | ⟨img, rfl, -, hhi', hb⟩
   · trivial
@@ -356,14 +356,14 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   iintro %sl2 ⟨Hsl2, -⟩
   simp only [go.arrayLiteralSize, List.foldl, Int.reduceAdd]
   (try wp_auto)
-  have hsz2 : 8 ≤ m1.synced.size := hsz1
+  have hsz2 : 8 ≤ (m1.synced 0 bs1).size := hsz1
   have hv2 : ∀ i < 8, ∃ b, (syncedBytes m1 bs1)[i]? = some (b, true) ∧ dataC[i]? = some b := by
     intro i hi
     have hi' : i < bs1.length := by omega
     refine ⟨bs1[i].1, syncedBytes_clean m1 bs1 hok1 i hi', ?_⟩
     have := hv1 i hi; rw [List.getElem?_eq_getElem hi'] at this; exact this.symm
   wp_apply wp_WriteAtC f fd p (DFrac.own 1) _ [W8 1] (DFrac.own 1) (W64 8) (DFrac.own 1)
-      ⟨p, true, true⟩ logN γ Good m1.synced (syncedBytes m1 bs1) rfl (by decide) (by decide)
+      ⟨p, true, true⟩ logN γ Good (m1.synced 0 bs1) (syncedBytes m1 bs1) rfl (by decide) (by decide)
       (by decide) logN_disj (crash_W2 _ _ hsz2 (show m1.size < _ by omega) hv2) $$ [Hos Hinv Hf Hsl2 Hfd Hown]
     as %n2 %err2 ⟨Hf, Hsl2, Hfd, %m3, %bs3, %Hres, Hown⟩
   · iframe; iframe #
@@ -385,7 +385,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   have hok3 : m3.ok = true := hN3.ok.trans hok1
   have hlen3 : bs3.length = m3.size := hN3.len
   have hbd3 : m3.size < 2 ^ 62 := by
-    have h1 := hN3.szhi; have h2 : m1.synced.size = m1.size := rfl
+    have h1 := hN3.szhi; have h2 : (m1.synced 0 bs1).size = m1.size := rfl
     simp only [List.length_singleton] at h1; omega
   have hv3' : ∀ i < 8, (bs3[i]?).map Prod.fst = dataC[i]? := by
     intro i hi
@@ -412,7 +412,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   icases (osBytes_take_drop p 0 9 _ (syncedBytes m3 bs3) (by omega)).1 $$ Hb with ⟨Hb9, Hbr⟩
   have h9 : sint.nat (W64 9) = 9 := rfl
   wp_apply wp_ReadAt f fd p (DFrac.own 1) buf (List.replicate (sint.nat (W64 9)) (zero_val w8)) (W64 0)
-      (DFrac.own 1) (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ m3.synced
+      (DFrac.own 1) (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ (m3.synced 0 bs3)
       ((syncedBytes m3 bs3).take 9) rfl (by decide)
       (by rw [List.length_replicate, h9]; decide)
       (by rw [List.length_replicate, h9]; show 0 + 9 ≤ m3.size; omega)

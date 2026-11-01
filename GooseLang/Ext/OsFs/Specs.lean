@@ -308,7 +308,7 @@ theorem osWf_fds {st : OsState} (hwf : OsWf st) (X : GMap w64 OsFd)
 
 theorem MetaOk.fds {st : OsState} {p : GoString} {m : OsMeta} {f : OsFile} (X : GMap w64 OsFd)
     (h : MetaOk st p m f) : MetaOk { st with fds := X } p m f :=
-  ⟨h.size, h.named, h.lo, h.hi, h.ok, h.maps, h.targets⟩
+  ⟨h.size, h.named, h.lo, h.hi, h.ok, h.maps, h.targets, h.dur, h.durLen⟩
 
 theorem osCoh_fds {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (X : GMap w64 OsFd) :
     OsCoh { st with fds := X } Γb Γm X Γt :=
@@ -725,30 +725,93 @@ theorem wp_osPRead_racy_list (fd off n : w64) (dq : DFrac) (d : OsFd)
       have h' : x.1 + k - off.toNat < r.length := by simp at hlt; omega
       simp only [List.getElem_take]; exact (key x hx k hk h1 h2).2 h'⟩) Hfd Hbs
 
-/-- The `OsMeta` after a successful sync: the size is durable. -/
-def OsMeta.synced (m : OsMeta) : OsMeta := { m with lo := m.size, hi := m.size }
+/-- The durable bytes a sync of the bytes `xs` from `lo` makes known: theirs. -/
+def durOf (lo : Nat) (xs : List (w8 × Bool)) : List (Option w8) :=
+  List.replicate lo none ++ xs.map (fun x => some x.1)
+
+theorem durOf_some {lo : Nat} {xs : List (w8 × Bool)} {i : Nat} {d : w8}
+    (h : (durOf lo xs)[i]? = some (some d)) :
+    ∃ k, ∃ hk : k < xs.length, i = lo + k ∧ xs[k].1 = d := by
+  unfold durOf at h
+  rw [List.getElem?_append] at h
+  split at h
+  · rw [List.getElem?_replicate] at h; split at h <;> simp at h
+  · rename_i hi
+    rw [List.length_replicate] at h hi
+    rw [List.getElem?_map] at h
+    cases hx : xs[i - lo]? with
+    | none => rw [hx] at h; cases h
+    | some x =>
+      rw [hx] at h; simp only [Option.map_some, Option.some.injEq] at h
+      obtain ⟨hk, hx'⟩ := List.getElem?_eq_some_iff.1 hx
+      exact ⟨i - lo, hk, by omega, by rw [hx']; exact h⟩
+
+/-- The `OsMeta` after a successful sync of the bytes `xs` from `lo`: the size is durable, and the
+durable bytes known are `xs`'s if no byte is lost (`m.ok`; then every byte is durable), none
+otherwise. -/
+def OsMeta.synced (m : OsMeta) (lo : Nat) (xs : List (w8 × Bool)) : OsMeta :=
+  { m with lo := m.size, hi := m.size, dur := if m.ok then durOf lo xs else [], durHi := m.size }
 
 /-- The bytes after a successful sync: clean, unless a failed sync may have lost one. -/
 def syncedBytes (m : OsMeta) (xs : List (w8 × Bool)) : List (w8 × Bool) :=
   if m.ok then xs.map (fun x => (x.1, true)) else xs
 
-/-- `fsync(fd)` (and `fdatasync`), with the whole of the file's `OsMeta`, so that no change is in
-flight on it, and some of its bytes, whole. On success the size is durable, and the bytes are
-clean unless an earlier failed sync lost one (`m.ok`); on failure, which is never `EINTR`, nothing
-more is clean, and bytes may be lost (`ok := false`). -/
-theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
-    (xs : List (w8 × Bool)) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+/-- The durable bytes known `a`, with those of `b` over them. -/
+def durOverlay : List (Option w8) → List (Option w8) → List (Option w8)
+  | a, [] => a
+  | [], b => b
+  | x :: a, y :: b => (y.or x) :: durOverlay a b
+
+theorem durOverlay_nil (a : List (Option w8)) : durOverlay a [] = a := by
+  cases a <;> rfl
+
+theorem length_durOverlay : ∀ (a b : List (Option w8)),
+    (durOverlay a b).length = max a.length b.length
+  | a, [] => by simp [durOverlay_nil]
+  | [], y :: b => by simp [durOverlay]
+  | x :: a, y :: b => by simp [durOverlay, length_durOverlay a b, Nat.succ_max_succ]
+
+theorem durOverlay_some : ∀ {a b : List (Option w8)} {i : Nat} {d : w8},
+    (durOverlay a b)[i]? = some (some d) → b[i]? = some (some d) ∨ a[i]? = some (some d)
+  | a, [], i, d, h => by rw [durOverlay_nil] at h; exact Or.inr h
+  | [], y :: b, i, d, h => by simp only [durOverlay] at h; exact Or.inl h
+  | x :: a, y :: b, 0, d, h => by
+      simp only [durOverlay, List.getElem?_cons_zero, Option.some.injEq] at h ⊢
+      cases y with
+      | some y' => exact Or.inl h
+      | none => exact Or.inr h
+  | x :: a, y :: b, i + 1, d, h => by
+      simp only [durOverlay, List.getElem?_cons_succ] at h ⊢
+      exact durOverlay_some h
+
+/-- `m.synced lo xs`, with the durable bytes known also recording the bytes `ys2` from `lo2`
+(clean bytes, which the sync leaves durable: `wp_osFsync_keep`). -/
+def OsMeta.syncedKeep (m : OsMeta) (lo : Nat) (xs : List (w8 × Bool)) (lo2 : Nat)
+    (ys2 : List (w8 × Bool)) : OsMeta :=
+  { m.synced lo xs with dur := durOverlay (m.synced lo xs).dur (durOf lo2 ys2) }
+
+theorem OsMeta.syncedKeep_nil (m : OsMeta) (lo : Nat) (xs : List (w8 × Bool)) :
+    m.syncedKeep lo xs 0 [] = m.synced lo xs := by
+  simp [OsMeta.syncedKeep, durOf, durOverlay_nil]
+
+/-- `fsync(fd)` (and `fdatasync`), as `wp_osFsync`, also given bytes `ys2` from `lo2`, at any
+fraction, that the caller shows clean: a clean byte is not dirty, so the sync keeps its durable
+byte, which is its page-cache byte; on success the durable bytes known include them
+(`OsMeta.syncedKeep`). -/
+theorem wp_osFsync_keep (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
+    (xs : List (w8 × Bool)) (lo2 : Nat) (dq2 : DFrac) (ys2 : List (w8 × Bool))
+    (hc2 : ∀ y ∈ ys2, y.2 = true) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.path (DFrac.own 1) (some m) -∗
-      osBytes (L := L) d.path lo (DFrac.own 1) xs -∗
+      osBytes (L := L) d.path lo (DFrac.own 1) xs -∗ osBytes (L := L) d.path lo2 dq2 ys2 -∗
       (∀ e : w64,
-        ((⌜e = 0⌝ ∗ osMeta (L := L) d.path (DFrac.own 1) (some m.synced) ∗
+        ((⌜e = 0⌝ ∗ osMeta (L := L) d.path (DFrac.own 1) (some (m.syncedKeep lo xs lo2 ys2)) ∗
             osBytes (L := L) d.path lo (DFrac.own 1) (syncedBytes m xs)) ∨
          (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗
             osMeta (L := L) d.path (DFrac.own 1) (some { m with ok := false }) ∗
             osBytes (L := L) d.path lo (DFrac.own 1) xs)) -∗
-        osFd (L := L) fd dq d -∗ Φ (#e)) -∗
+        osBytes (L := L) d.path lo2 dq2 ys2 -∗ osFd (L := L) fd dq d -∗ Φ (#e)) -∗
       WP (ExternalOp osFsExt.name "Fsync" (Val (#fd))) @ s; E {{ Φ }} := by
-  iintro #Hinv Hfd Hm Hbs HΦ
+  iintro #Hinv Hfd Hm Hbs Hys HΦ
   iapply wp_os_step "Fsync" _ Φ (by simp) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
@@ -756,6 +819,7 @@ theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd osMeta osBytes
   icases bytesG_lookup _ d.path lo _ xs Γb $$ HAb Hbs with %Hbl
+  icases bytesG_lookup _ d.path lo2 _ ys2 Γb $$ HAb Hys with %Hbl2
   icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
   icases tokRes_meta_whole _ $$ Htok Hm with %Hnt
@@ -791,7 +855,7 @@ theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
   · -- success
     have hkeep : ∀ i, CleanPhys f i → CleanPhys (f.synced (InflightAt st d.path ·)) i :=
       fun i hc => synced_clean f _ hcohf hnoI i (by have := hc.2.2.1; omega) hc.2.1
-    imod gAuth_update _ _ _ _ _ (some m.synced) $$ HAm Hm with ⟨HAm, Hm⟩
+    imod gAuth_update _ _ _ _ _ (some (m.syncedKeep lo xs lo2 ys2)) $$ HAm Hm with ⟨HAm, Hm⟩
     imod bytesG_update _ d.path lo xs (syncedBytes m xs) Γb
       (by unfold syncedBytes; split <;> simp) $$ [HAb Hbs] with ⟨HAb, Hbs⟩
     · iframe
@@ -810,14 +874,35 @@ theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
       refine ⟨hwfS, osCoh_setFile_sameCur (f' := f.synced (InflightAt st d.path ·)) hcoh hf rfl
         ?_ lo xs (syncedBytes m xs)
         (by unfold syncedBytes; split <;> simp) Hbl ?_ hkeep ?_ hnoI⟩
-      · exact ⟨by simp [OsMeta.synced, hmo.size]; rfl,
-          by simp [OsMeta.synced, OsFile.synced, hmo.named],
-          by simp [OsMeta.synced, OsFile.synced, hmo.size],
-          by simp [OsMeta.synced, OsFile.synced, hmo.size],
+      · refine ⟨by simp [OsMeta.syncedKeep, OsMeta.synced, hmo.size]; rfl,
+          by simp [OsMeta.syncedKeep, OsMeta.synced, OsFile.synced, hmo.named],
+          by simp [OsMeta.syncedKeep, OsMeta.synced, OsFile.synced, hmo.size],
+          by simp [OsMeta.syncedKeep, OsMeta.synced, OsFile.synced, hmo.size],
           (fun hok i => by
-            simp only [OsMeta.synced] at hok
+            simp only [OsMeta.syncedKeep, OsMeta.synced] at hok
             simp [OsFile.synced, hmo.ok hok i]),
-          hmo.maps, fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht)⟩
+          hmo.maps, fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht), ?_,
+          by simp only [OsMeta.syncedKeep, OsMeta.synced, OsFile.synced, List.length_map,
+               List.length_range]
+             exact Nat.le_of_eq hmo.size.symm⟩
+        intro i b hib0
+        simp only [OsMeta.syncedKeep] at hib0
+        rcases durOverlay_some hib0 with hib2 | hib
+        · obtain ⟨k, hk, rfl, rfl⟩ := durOf_some hib2
+          obtain ⟨f1, h1, hb, hc1⟩ := hcoh.bytes _ _ _ (Hbl2 k hk)
+          rw [hf] at h1; cases h1
+          have hc := hkeep _ (hc1 (hc2 _ (List.getElem_mem hk))).1
+          rw [hc.2.2.2]; exact hb
+        simp only [OsMeta.synced] at hib
+        split at hib
+        · rename_i hok
+          obtain ⟨k, hk, rfl, rfl⟩ := durOf_some hib
+          obtain ⟨f1, h1, hb, -⟩ := hcoh.bytes _ _ _ (Hbl k hk)
+          rw [hf] at h1; cases h1
+          have hi : lo + k < f.cur.length := (List.getElem?_eq_some_iff.1 hb).1
+          have hc := synced_clean f _ hcohf hnoI _ hi (hmo.ok hok _)
+          rw [hc.2.2.2]; exact hb
+        · simp at hib
       · intro k hk; unfold syncedBytes at hk ⊢; split <;> simp
       · intro k hk hc
         have hk' : k < xs.length := by unfold syncedBytes at hk; split at hk <;> simpa using hk
@@ -828,7 +913,7 @@ theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
           exact synced_clean f _ hcohf hnoI _ (List.getElem?_eq_some_iff.1 hb).1 (hmo.ok hok _)
         · exact hkeep _ (hc1 hc).1
     iapply wp_value'
-    iapply HΦ $$ [Hm Hbs] Hfd
+    iapply HΦ $$ [Hm Hbs] Hys Hfd
     ileft; iframe; ipureintro; rfl
   · -- failure
     have hkeep : ∀ i, CleanPhys f i → CleanPhys (f.syncFailed (InflightAt st d.path ·)) i :=
@@ -852,14 +937,40 @@ theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
         rfl ?_ lo xs xs rfl Hbl (fun _ _ => rfl)
         hkeep ?_ hnoI⟩
       · exact ⟨hmo.size, hmo.named, hmo.lo, hmo.hi, (fun h => by cases h), hmo.maps,
-          fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht)⟩
+          fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht), hmo.dur, hmo.durLen⟩
       · intro k hk hc
         obtain ⟨f1, h1, -, hc1⟩ := hcoh.bytes _ _ _ (Hbl k hk)
         rw [hf] at h1; cases h1
         exact hkeep _ (hc1 hc).1
     iapply wp_value'
-    iapply HΦ $$ [Hm Hbs] Hfd
+    iapply HΦ $$ [Hm Hbs] Hys Hfd
     iright; iframe; ipureintro; exact ⟨he, hEINTR⟩
+
+/-- `fsync(fd)` (and `fdatasync`), with the whole of the file's `OsMeta`, so that no change is in
+flight on it, and some of its bytes, whole. On success the size is durable, and the bytes are
+clean unless an earlier failed sync lost one (`m.ok`); on failure, which is never `EINTR`, nothing
+more is clean, and bytes may be lost (`ok := false`). -/
+theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat)
+    (xs : List (w8 × Bool)) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.path (DFrac.own 1) (some m) -∗
+      osBytes (L := L) d.path lo (DFrac.own 1) xs -∗
+      (∀ e : w64,
+        ((⌜e = 0⌝ ∗ osMeta (L := L) d.path (DFrac.own 1) (some (m.synced lo xs)) ∗
+            osBytes (L := L) d.path lo (DFrac.own 1) (syncedBytes m xs)) ∨
+         (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗
+            osMeta (L := L) d.path (DFrac.own 1) (some { m with ok := false }) ∗
+            osBytes (L := L) d.path lo (DFrac.own 1) xs)) -∗
+        osFd (L := L) fd dq d -∗ Φ (#e)) -∗
+      WP (ExternalOp osFsExt.name "Fsync" (Val (#fd))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd Hm Hbs HΦ
+  have hemp : osBytes (L := L) d.path 0 (DFrac.own 1) [] ⊣⊢ emp := by
+    unfold osBytes bytesG; simp
+  iapply wp_osFsync_keep fd dq d m lo xs 0 (DFrac.own 1) [] (by simp) hE Φ $$ Hinv Hfd Hm Hbs
+    [] [HΦ]
+  · iapply hemp.2; iempintro
+  iintro %e He - Hfd
+  rw [OsMeta.syncedKeep_nil]
+  iapply HΦ $$ He Hfd
 
 /-- `mmap(nil, len, PROT_READ, MAP_SHARED[|MAP_POPULATE], fd, 0)`, with the whole of the file's
 `OsMeta`, so that no change is in flight on it: on success, fresh cells at `base`, whose client
@@ -1031,13 +1142,13 @@ theorem wp_osMmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta
         simp only [GMap.lookup_insert_eq_iff] at hq
         split at hq
         · subst_vars; cases hq
-          refine ⟨m, Hml, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
+          refine ⟨m, Hml, rfl, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
           simp only [GMap.lookup_insert_eq_iff]
           split
           · simp
           · exact hmo.maps b len0
         · rename_i hpq
-          refine ⟨m', hq, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
+          refine ⟨m', hq, rfl, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
           obtain ⟨f1, -, hmo1⟩ := hcoh.meta_some q m' hq
           rw [hmo1.maps b len0]
           simp only [GMap.lookup_insert_eq_iff]
@@ -1160,13 +1271,13 @@ theorem wp_osMunmap (base : Loc) (len cap : w64) (p : GoString) (m : OsMeta) (n 
         simp only [GMap.lookup_insert_eq_iff] at hq
         split at hq
         · subst_vars; cases hq
-          refine ⟨m, Hml, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
+          refine ⟨m, Hml, rfl, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
           simp only [GMap.lookup_delete_iff]
           split
           · simp
           · exact hmo.maps b len0
         · rename_i hpq
-          refine ⟨m', hq, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
+          refine ⟨m', hq, rfl, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
           obtain ⟨f1, -, hmo1⟩ := hcoh.meta_some q m' hq
           rw [hmo1.maps b len0]
           simp only [GMap.lookup_delete_iff]
@@ -1278,7 +1389,7 @@ theorem wp_osMunmap (base : Loc) (len cap : w64) (p : GoString) (m : OsMeta) (n 
     ileft; iframe
 
 /-- The `OsMeta` of a file just created. -/
-def newMeta : OsMeta := ⟨0, 0, 0, false, true, ∅⟩
+def newMeta : OsMeta := ⟨0, 0, 0, false, true, ∅, [], 0⟩
 
 /-- A file just created. -/
 def newFile : OsFile := { OsFile.ofDisk [] with named := false }
@@ -1340,7 +1451,8 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
     obtain ⟨f, hf, -⟩ := hcoh.tok_saved t ti hti
     rw [hcp, hn] at hf; cases hf
   refine ⟨fun q => ?_, fun q => ?_, fun q m hm => ?_, fun q i x hx => ?_, fun q f1 i h1 hi => ?_,
-    hcoh.fds, hcoh.toks, fun t ti h => ?_, hcoh.tok_alone, fun t ti h => ?_⟩
+    hcoh.fds, hcoh.toks, fun t ti h => ?_, hcoh.tok_alone, fun t ti h => ?_,
+    fun t ti h => ?_⟩
   · rw [files_setFile, GMap.lookup_insert_eq_iff]; split
     · simp
     · exact hcoh.meta_dom q
@@ -1351,7 +1463,8 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
     split at hm
     · subst_vars; cases hm
       refine ⟨newFile, by rw [files_setFile, if_pos rfl], ⟨rfl, rfl, Nat.le_refl _, Nat.le_refl _,
-        fun _ _ => rfl, fun b len => ?_, fun t c ht hc => absurd hc (hnt t c ht)⟩⟩
+        fun _ _ => rfl, fun b len => ?_, fun t c ht hc => absurd hc (hnt t c ht),
+        fun i d h => by simp [newMeta] at h, by simp [newFile, newMeta, OsFile.ofDisk]⟩⟩
       simp only [newMeta, GMap.lookup_empty, reduceCtorEq, false_iff]
       intro hb
       obtain ⟨⟨f0, hf0⟩, -⟩ := hwf.maps b _ hb
@@ -1372,6 +1485,15 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
     rw [affRange_congr hs, file_setFile]; split
     · subst_vars; rw [hn] at h1; cases h1
     · exact ⟨f1, h1, hsv⟩
+  · intro j hj
+    obtain ⟨hjl, f1, h1, hc⟩ := hcoh.tok_clean t ti h j hj
+    have hlo : affLo (st.setFile p newFile) ti.c = affLo st ti.c := by unfold affLo; rw [hs]
+    have hhi : affHi (st.setFile p newFile) ti.c = affHi st ti.c := by unfold affHi; rw [hs]
+    rw [hlo, hhi, file_setFile]
+    refine ⟨hjl, ?_⟩
+    split
+    · subst_vars; rw [hn] at h1; cases h1
+    · exact ⟨f1, h1, hc⟩
 
 end create
 
