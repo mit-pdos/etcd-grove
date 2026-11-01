@@ -350,11 +350,13 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
           rw [show sint.nat st0.minRev = (sint.Z st0.minRev).toNat from rfl]; omega
         isplitr
         · iunfold mvcc.evsWf; iexists []; iframe Hlb Hrlb0; ipureintro; exact ⟨(hlb []).symm, Or.inr (Nat.le_refl _)⟩
-        iexists C
-        iframe HC
-        ipureintro
-        have h := hu rfl
-        show (sint.Z st0.minRev).toNat ≤ _; omega
+        isplitr
+        · iexists C
+          iframe HC
+          ipureintro
+          have h := hu rfl
+          show (sint.Z st0.minRev).toNat ≤ _; omega
+        iintro %hc; rw [hst.1] at hc; cases hc
       · simp only [mvcc.WsState.addW, GMap.lookup_insert, Option.isSome_some, ↓reduceIte]
         isplitr
         · ipureintro; omega
