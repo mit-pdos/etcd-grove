@@ -13,9 +13,9 @@ spec-thread github_com/mit_pdos/etcd_grove/examples/putget3 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/putgetc 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/watchkv 1
 spec-thread go_etcd_io/etcd/cache/v3 2
-spec-thread go_etcd_io/etcd/server/v3/etcdserver 9
+spec-thread go_etcd_io/etcd/server/v3/etcdserver 11
 spec-thread go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 1
-spec-thread go_etcd_io/etcd/server/v3/lease 3
+spec-thread go_etcd_io/etcd/server/v3/lease 4
 spec-receipt RaftWitness/github_com/mit_pdos/etcd_grove/examples/kvwitness 4
 spec-receipt github_com/mit_pdos/etcd_grove/examples/authkv 4
 spec-receipt github_com/mit_pdos/etcd_grove/examples/cachekv 2

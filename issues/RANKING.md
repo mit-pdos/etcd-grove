@@ -172,6 +172,11 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     values), across a permission line, so a candidate for etcd's private security process (the
     user's decision, as item 1's). Reproduced with gofail on leader and follower; fix: check the
     returned keys. Upstream not searched.
+16a. **[etcd-lease-renew-keys-follower-lag](etcd-lease-renew-keys-follower-lag.md)** (2026-11-01):
+    with auth on, a lease renewal through a lagging follower is checked against the follower's key
+    set, so a user keeps alive a lease holding a key it may not write. The same family as item 16
+    (a permission check over a stale or second lookup), narrower in effect (the lease is kept
+    alive, nothing leaks). Not reproduced yet; upstream not searched.
 17. **[etcd-leasehttp-timetolive-nil-response-panic](etcd-leasehttp-timetolive-nil-response-panic.md)**
     (2026-10-31): a follower forwarding `LeaseTimeToLive` panics on a 200 reply without the
     `LeaseTimeToLiveResponse` field (`leasehttp/http.go:274`); etcd's own handler always sets it, so

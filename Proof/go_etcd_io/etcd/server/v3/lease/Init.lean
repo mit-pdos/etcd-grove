@@ -2,8 +2,8 @@
 Package initialization of `go_etcd_io.etcd.server.v3.lease`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact (`leaseInit`, `Base.lean`): the error variables `ErrLeaseNotFound`,
-`ErrLeaseExists`, `ErrLeaseTTLTooLarge` (translated `errors.New` calls: leaf pointer errors
+Its fact (`leaseInit`, `Base.lean`): the error variables `ErrNotPrimary`,
+`ErrLeaseNotFound`, `ErrLeaseExists`, `ErrLeaseTTLTooLarge` (translated `errors.New` calls: leaf pointer errors
 without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose `Error()` returns), `forever` (the zero
 `time.Time`), the counters `leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`
 (`metrics.go`, untranslated: the trust-boundary axioms `<X>_init`); `opaqueInitsOk` states the
@@ -63,7 +63,6 @@ axiom opaqueInitsOk :
         defaultLeaseCheckpointInterval.init,
         maxLeaseCheckpointBatchSize.init,
         defaultExpiredleaseRetryInterval.init,
-        ErrNotPrimary.init,
         leaseRenewed.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
@@ -120,6 +119,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrLeaseTTLTooLarge _ as HErrLeaseTTLTooLarge
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrLeaseExists _ as HErrLeaseExists
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrLeaseNotFound _ as HErrLeaseNotFound
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrNotPrimary _ as HErrNotPrimary
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.time.Time) forever _ as Hforever
   wp_apply (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.version.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
@@ -146,10 +146,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk defaultLeaseCheckpointInterval.init (by mem_tac))
   wp_apply (opaqueInitsOk maxLeaseCheckpointBatchSize.init (by mem_tac))
   wp_apply (opaqueInitsOk defaultExpiredleaseRetryInterval.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrNotPrimary.init (by mem_tac))
+  -- translated initializer of ErrNotPrimary))
   -- translated initializer of ErrLeaseNotFound))
   -- translated initializer of ErrLeaseExists))
   -- translated initializer of ErrLeaseTTLTooLarge))
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xNP #MNP
   wp_apply EtcdGrove.wp_New_errorString_cell as %xNF ⟨#MNF, #CNF⟩
   wp_apply _root_.Perennial.context.wp_New_errorString as %xEx #MEx
   wp_apply _root_.Perennial.context.wp_New_errorString as %xTL #MTL
@@ -158,6 +159,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk leaseRenewed.init (by mem_tac))
   wp_apply leaseTotalTTLs_init as ⟨%hleaseTotalTTLs, HleaseTotalTTLs, #SleaseTotalTTLs⟩
   wp_apply (initFuncsOk init.«0» (by mem_tac))
+  ipersist HErrNotPrimary
   ipersist HErrLeaseNotFound
   ipersist HErrLeaseExists
   ipersist HErrLeaseTTLTooLarge
@@ -165,6 +167,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HleaseGranted
   ipersist HleaseRevoked
   ipersist HleaseTotalTTLs
+  ihave #TNP := EtcdGrove.errorMsg_triple _ _ _ $$ MNP
   ihave #TNF := EtcdGrove.errorMsg_triple _ _ _ $$ MNF
   ihave #TEx := EtcdGrove.errorMsg_triple _ _ _ $$ MEx
   ihave #TTL := EtcdGrove.errorMsg_triple _ _ _ $$ MTL
