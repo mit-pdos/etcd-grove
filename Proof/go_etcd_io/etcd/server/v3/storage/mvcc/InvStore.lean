@@ -562,6 +562,14 @@ theorem absCommit_ne (γ : StoreNames) (ilog : Log) (pend : List Change) (Q : IP
         absAt γ (1 : Qp).half (ilog ++ [pend]) ∗ pndAt γ (1 : Qp).half none ∗ Q := by
   unfold absCommit; rw [if_neg h]
 
+/-- **The caller's read update** (the abstract mode's `store.Read.specA`, mvcc's candidate API): run
+where the read's log is fixed (under `s.revMu` held shared), with `s.revMu`'s fraction of the
+abstract committed log and of the compaction revision's authority, which it gives back, with the
+caller's `Q` of the log read and the compaction revision. -/
+def absRead (γ : StoreNames) (Q : Log → Int → IProp GF) : IProp GF :=
+  iprop(∀ (q1 q2 : Qp) (log : Log) (c : Int), absAt γ q1 log ∗ crevUB γ.idx q2 c ={⊤}=∗
+    absAt γ q1 log ∗ crevUB γ.idx q2 c ∗ Q log c)
+
 /-- **The store's current objects and physical names are `o` and `γ`'s**, at the fraction `dq`
 (D22 receiver epochs, S5b: until then `objsPin`, a discarded pin of the objects): a part of the
 store's ghost variable `cur`, which every share of the locks guarding a reader of the objects holds
