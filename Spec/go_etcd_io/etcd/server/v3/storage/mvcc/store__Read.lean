@@ -54,12 +54,13 @@ abbrev mvcc.store.Read.spec : Prop :=
 
 /-- **`Read` with the caller's read update** (mvcc's candidate API, `notes/mvcc-api-proof-plan.md`,
 stage P2): `spec`'s, the caller's update (`absRead`) run where the log read is fixed, with the
-log read and the compaction revision the transaction observes. -/
+log read and the compaction revision the transaction observes; the reader's ticket after the
+call's first step (`£ 1`: the abstract mode borrows it from its readers' pool). -/
 abbrev mvcc.store.Read.specA : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (m : Nat) (log₀ : mvcc.Log) (te : Bool)
-    (c : Int) (Z : IProp GF) (oa : Option (Qp × mvcc.Log)) (Q : mvcc.Log → Int → IProp GF),
+    (c : Int) (Z : IProp GF) (oa : Option (Qp × mvcc.Log)) (Q : mvcc.Log → Int → IProp GF) (T : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.storeReaderC s γ ∗ □ Z ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
+      mvcc.isStore s γ ∗ (£ 1 ={⊤}=∗ mvcc.storeReaderC s γ ∗ T) ∗ □ Z ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
       mvcc.crevLb γ.idx c ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te ∗ mvcc.logLent γ.idx oa ∗
       mvcc.absRead γ Q }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
@@ -67,7 +68,8 @@ abbrev mvcc.store.Read.specA : Prop :=
       ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.isTxnRead mw s γ trace log rev crev Z ∗
         ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗ mvcc.certOk γ log ∗
         ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ c ≤ crev⌝ ∗ mvcc.logLent γ.idx oa ∗
-        ⌜∀ q L, oa = some (q, L) → log = L⌝ ∗ Q log crev }}
+        ⌜∀ q L, oa = some (q, L) → log = L⌝ ∗ Q log crev ∗ T ∗
+        ⌜rev = W64 ((log.length : Int) - 1)⌝ }}
 
 /-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Read(mode, trace)`, in either mode, opens a read transaction at the store's state
 `σ`: the caller's update fires at `σ`, unchanged (the snapshot of its committed revisions, taken

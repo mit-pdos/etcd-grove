@@ -27,6 +27,7 @@ update over the store's abstract state (`mvccState γ σ`, owned by the client):
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiImpl
 
 @[expose] public section
 
@@ -42,25 +43,29 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 /-! ## The vocabulary (an implementation defines it) -/
 
-/-- A store's name: what its abstract state and its handles are indexed by. -/
-opaque MvccName : Type := Unit
+/-- A store's name: what its abstract state and its handles are indexed by (`MvccImpl`,
+`ApiImpl.lean`). -/
+abbrev MvccName : Type := MvccImpl
 
 /-- A watch stream's name. -/
 opaque WsName : Type := Unit
 
 /-- **The store's lessor's ghost name** (its `lease.leaseOwn`). -/
-opaque mvccLeases (γ : MvccName) : GName := default
+def mvccLeases (γ : MvccName) : GName := γ.st.leases
 
 /-- Some backend names (for `mvccBackend`'s declaration only). -/
 local instance : Inhabited backend.BNames :=
   ⟨by constructor <;> first | exact default | (constructor <;> exact default)⟩
 
 /-- **The store's backend's ghost names** (its `backend.plHookRO`, `backend.commitReq`). -/
-opaque mvccBackend (γ : MvccName) : backend.BNames := default
+def mvccBackend (γ : MvccName) : backend.BNames :=
+  match γ.st.kb with
+  | some d => d.γB
+  | none => default
 
 /-- **Whether the store has watchers** (it is a watchable store's: `New`; or `NewStore` at the
 watched mode): its mode, fixed at its creation. -/
-opaque mvccWatched (γ : MvccName) : Bool := false
+def mvccWatched (γ : MvccName) : Bool := γ.watched
 
 /-- **The stream's channel** (fixed at its creation). -/
 opaque wsChanOf (ι : WsName) : GoChan := default
@@ -70,8 +75,6 @@ the history, `mvccHashOf_prefix`: crc32's over the revisions' keys and key-value
 compaction at `lo`). -/
 opaque mvccHashOf (log : Log) (lo hi : Int) : w32 := W32 0
 
-/-- The namespace an implementation reserves for its invariants. -/
-def mvccN : Namespace := nroot .@ "mvcc"
 
 section vocab
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -82,10 +85,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **The store's state is `σ`** (exclusive, timeless; the client's, what its atomic updates are
 over). -/
-opaque mvccState (γ : MvccName) (σ : MvccState) : IProp GF := iprop(True)
+def mvccState (γ : MvccName) (σ : MvccState) : IProp GF := mvccStateI γ σ
 
 /-- **`s` (a `*store`) serves the store `γ`** (persistent). -/
-opaque isMvcc (s : Loc) (γ : MvccName) : IProp GF := iprop(True)
+def isMvcc (s : Loc) (γ : MvccName) : IProp GF := isMvccI s γ
+
+instance isMvcc_persistent (s : Loc) (γ : MvccName) : Persistent (isMvcc (GF := GF) s γ) := by
+  unfold isMvcc; infer_instance
 
 /-- **`ws` (a `*watchableStore`) serves the store `γ`** (persistent). -/
 opaque isWatchableMvcc (ws : Loc) (γ : MvccName) : IProp GF := iprop(True)
@@ -121,7 +127,8 @@ theorem mvccHook_agree (γ : MvccName) (P P' : IProp GF) (f f' : GoFunc) :
 (exclusive): `t` the interface value the client holds, a `*metricsTxnWrite` (the store's
 transactions), a `*txnReadWrite` (`NewReadOnlyTxnWrite`'s) or a `*watchableStoreTxnWrite` (the
 watchable store's write transactions, over a `*metricsTxnWrite`: `mvccTxn_unwrap`). -/
-opaque mvccTxn (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn) : IProp GF := iprop(True)
+def mvccTxn (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn) : IProp GF :=
+  mvccTxnI t γ trace k
 
 /-- **`rd` is the range deleter the store set on its lessor**: `rd()` is the store's
 `Write(TODO)`, the watchable store's if it has watchers (persistent; `mvccDeleter_spec`). -/

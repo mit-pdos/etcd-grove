@@ -191,7 +191,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
 
 theorem mvcc.store.Read.wp_proofA (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) (hG := hG)) :
     mvcc.store.Read.specA (GF := GF) (hG := hG) := by
-  intro s γ mode trace m log₀ te clb Z oa Q
+  intro s γ mode trace m log₀ te clb Z oa Q T
   wp_start as ⟨#Hs, Hrd, #HZ, Hmine, #Hc0, #Hclb, %Htrnn, Htrc, HoA, Har⟩
   ihave Htrc : iprop(∃ te' : Bool, traceutil.ownTrace trace te') $$ [Htrc]
   · iexists te; iexact Htrc
@@ -201,6 +201,8 @@ theorem mvcc.store.Read.wp_proofA (hNew : mvcc.newMetricsTxnRead.spec (GF := GF)
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamed Hs
+  wp_auto_lc 1
+  imod Hrd $$ Hlc1 with ⟨Hrd, HT⟩
   iunfold mvcc.storeReaderC at Hrd
   iNamedSuffix Hrd "R"
   (try wp_auto)
@@ -245,7 +247,7 @@ theorem mvcc.store.Read.wp_proofA (hNew : mvcc.newMetricsTxnRead.spec (GF := GF)
   subst Hcc
   -- the caller's read update, where the log read is fixed
   iunfold mvcc.absRead at Har
-  imod Har $$ %_ %_ %log %_ [$Habs $Hcrev] with ⟨Habs, Hcrev, HQ⟩
+  imod Har $$ %_ %_ %log %_ %Hc.1 [$Habs $Hcrev] with ⟨Habs, Hcrev, HQ⟩
   -- the caller's tokens are among the budget's
   icombine Htoks Hmine gives %Hle
   -- the caller's certificate is below the committed log
@@ -328,10 +330,10 @@ theorem mvcc.store.Read.wp_proofA (hNew : mvcc.newMetricsTxnRead.spec (GF := GF)
     iStructNamedPrefix Htrw "W"
     iapply HΦ
     iexists log, (W64 ((log.length : Int) - 1)), cm
-    isplitr [Hmine HoA HQ]
+    isplitr [Hmine HoA HQ HT]
     rotate_left
-    · iframe Hmine Hlbc Hok HoA HQ
-      ipureintro; exact ⟨⟨Hpre.2, by omega, Hclbc⟩, HoaL⟩
+    · iframe Hmine Hlbc Hok HoA HQ HT
+      ipureintro; exact ⟨⟨Hpre.2, by omega, Hclbc⟩, HoaL, rfl⟩
     iunfold mvcc.isTxnRead
     iexists p, trw, tr, o.ti, rt, (W64 0)
     simp only [named]
@@ -356,6 +358,81 @@ theorem mvcc.store.Read.wp_proofA (hNew : mvcc.newMetricsTxnRead.spec (GF := GF)
     isplitr
     · iapply mvcc.keyReadLocked_weaken $$ Hsnap0
     ipureintro; exact fun _ _ h => h
+
+/-- **The candidate `Read`** (`specC`, mvcc's candidate API): `specA`'s, the reader's ticket borrowed
+from the store's readers' pool for the caller's thread token (after the call's first step), the
+caller's atomic update run where the log read is fixed, at the state: the client's half of the
+abstract committed log agrees with `s.revMu`'s part, its half of the compaction revision's
+authority with `s.revMu`'s. -/
+theorem mvcc.store.Read.wp_proofC (hA : mvcc.store.Read.specA (GF := GF) (hG := hG)) :
+    mvcc.store.Read.specC (GF := GF) (hG := hG) := by
+  intro s γ mode trace te Q
+  iintro %Φ ⟨#Hpkg, #Hs, Htt, %Htr, Htrc, Hau⟩ HΦ
+  ihave #Hs1 : mvcc.isMvccI s γ $$ []
+  · iunfold mvcc.isMvcc at Hs; iexact Hs
+  iunfold mvcc.isMvccI at Hs1
+  icases Hs1 with ⟨#Hst, %Hf, -, #Hpool, -, -⟩
+  obtain ⟨habs, -, -, -⟩ := Hf
+  imod ownToks_0 γ.st.revs with Hm0
+  imod mvcc.idxCert_nil γ.st.idx with #Hc0
+  imod mvcc.crevLb_neg γ.st.idx with #Hlb
+  iapply (hA s γ.st mode trace 0 [] te (-1) iprop(True) none
+    (fun log c => iprop(∃ σ : mvcc.MvccState, ⌜σ.log = log ∧ σ.crev = c ∧ 1 ≤ σ.log.length⌝ ∗ Q σ))
+    (threadPool.ownThreadLoan γ.tl)) $$ %Φ [Htt Hau Hm0 Htrc]
+  · iframe Hpkg Hst Hc0 Hlb Hm0 Htrc
+    isplitl [Htt]
+    · iintro Hlc
+      iapply threadPool.borrow_lc mvcc.tixN γ.tl (mvcc.storeReaderC s γ.st) ⊤ (by simp)
+      iframe Hlc Hpool Htt
+    isplitr
+    · iintro !>; itrivial
+    isplitr
+    · ipureintro; exact Htr
+    isplitr
+    · unfold mvcc.logLent; itrivial
+    iunfold mvcc.absRead
+    iintro %q1 %q2 %log %c %Hc ⟨Ha, Hcu⟩
+    ihave Hau := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvcc.mvccN) (Eo2 := ⊤) (by simp) $$ Hau
+    ihave Hacc := aupd_aacc $$ Hau
+    unfold atomic_acc
+    imod Hacc with Hacc
+    isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+    icases Hacc with ⟨%σ, Hσ, Hucl⟩
+    iunfold mvcc.mvccState at Hσ
+    iunfold mvcc.mvccStateI at Hσ
+    icases Hσ with ⟨Hga, Hgp, Hgc, #Hgi, HM, %Hreach⟩
+    icases mvcc.absAt_agree γ.st habs _ _ log σ.log $$ [$Ha $Hga] with ⟨Ha, Hga, %Hl⟩
+    ihave %Hcc := mvcc.crevUB_agree γ.st.idx _ _ c σ.crev Hc Hreach.1.crev_ge $$ Hcu Hgc
+    icases Hucl with ⟨-, Hcommit⟩
+    isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
+    imod Hcommit $$ [Hga Hgp Hgc HM] with HQ
+    · iunfold mvcc.mvccState
+      iunfold mvcc.mvccStateI
+      iframe Hga Hgp Hgc HM Hgi
+      ipureintro; exact Hreach
+    imodintro
+    iframe Ha Hcu
+    iexists σ
+    iframe HQ
+    ipureintro; exact ⟨Hl.symm, Hcc.symm, by have := Hreach.1.len_ge; omega⟩
+  inext
+  iintro %mw ⟨%log, %rev, %crev, Htx, -, -, -, -, -, -, ⟨%σ, ⟨%Hl, %Hc, %Hlen⟩, HQ⟩, Hloan, %Hrev⟩
+  iapply HΦ
+  iexists σ
+  iframe HQ
+  iunfold mvcc.mvccTxn
+  simp only [mvcc.mvccTxnI]
+  iexists mw, s
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iunfold mvcc.isMvcc at Hs; iexact Hs
+  iframe Hloan
+  subst Hl Hc Hrev
+  have hrev : (W64 ((σ.rev : Nat) : Int) : w64) = W64 ((σ.log.length : Int) - 1) := by
+    unfold mvcc.MvccState.rev; congr 1; omega
+  rw [hrev]
+  iexact Htx
 
 end proof
 

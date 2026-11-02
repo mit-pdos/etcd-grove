@@ -590,7 +590,7 @@ where the read's log is fixed (under `s.revMu` held shared), with `s.revMu`'s fr
 abstract committed log and of the compaction revision's authority, which it gives back, with the
 caller's `Q` of the log read and the compaction revision. -/
 def absRead (γ : StoreNames) (Q : Log → Int → IProp GF) : IProp GF :=
-  iprop(∀ (q1 q2 : Qp) (log : Log) (c : Int), absAt γ q1 log ∗ crevUB γ.idx q2 c ={⊤}=∗
+  iprop(∀ (q1 q2 : Qp) (log : Log) (c : Int), ⌜-1 ≤ c⌝ -∗ absAt γ q1 log ∗ crevUB γ.idx q2 c ={⊤}=∗
     absAt γ q1 log ∗ crevUB γ.idx q2 c ∗ Q log c)
 
 /-- **The store's current objects and physical names are `o` and `γ`'s**, at the fraction `dq`

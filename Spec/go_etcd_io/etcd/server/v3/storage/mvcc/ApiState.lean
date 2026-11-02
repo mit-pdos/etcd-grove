@@ -119,6 +119,9 @@ structure WInfo where
   k : Nat
   live : Bool
 
+/-- The namespace an implementation reserves for its invariants. -/
+def mvccN : Namespace := nroot .@ "mvcc"
+
 end mvcc
 end EtcdGrove
 end Perennial
