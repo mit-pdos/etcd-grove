@@ -196,6 +196,9 @@ theorem mvcc.NewStore.wp_proofA
   -- revision, half the caller's, half the store's (`s.revMu`'s, the writer's state's)
   imod ghostVar_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γab, Hab⟩
   icases ghostVar_halves γab _ $$ Hab with ⟨Hab1, Hab2⟩
+  icases ((ghostVar_fractional (GF := GF) γab ([[], []] : mvcc.Log)).fractional (1 : Qp).half.half
+    (1 : Qp).half.half).1 $$ [Hab1] with ⟨Hab1, Hab3⟩
+  · rw [Qp.half_add_half]; iexact Hab1
   imod ghostVar_alloc (GF := GF) (none : Option (List mvcc.Change)) with ⟨%γpn, Hpn⟩
   icases ghostVar_halves γpn _ $$ Hpn with ⟨Hpn1, Hpn2⟩
   imod ghostVar_alloc (GF := GF) () with ⟨%γwr, Hwr⟩
@@ -456,10 +459,10 @@ theorem mvcc.NewStore.wp_proofA
   ispecialize Hrts $$ Hrt1
   (try wp_auto)
   -- the writer's state, in the writer's invariant (D22 receiver epochs, S2)
-  ihave Hpnd : mvcc.pndAt (GF := GF) γ (1 : Qp).half none $$ [Hpn1]
-  · unfold mvcc.pndAt; split
-    · rw [hγpn]; iexact Hpn1
-    · itrivial
+  ihave Hpnd : mvcc.wrAt (GF := GF) γ [[], []] none $$ [Hpn1 Hab3]
+  · unfold mvcc.wrAt mvcc.pndAt mvcc.absAt; split
+    · rw [hγpn, hγab]; iframe Hpn1 Hab3
+    · isplit <;> itrivial
   ihave HL : mvcc.writerL «$r0_ptr» γ $$ [Hauth Hiw Hc1 Hwv1 HcurA Hlrd Hpnd]
   · iunfold mvcc.writerL
     iexists [[], []], 2 ^ 63 - 5
@@ -520,7 +523,7 @@ theorem mvcc.NewStore.wp_proofA
     · simp only [mvcc.revQ, hγw, Bool.false_eq_true, ↓reduceIte]; iframe Hil
     · simp only [mvcc.revQ, mvcc.logQ, mvcc.idxLogAuth, hγw, ↓reduceIte]; iapply hq.1 $$ Hil
   icases Hsplit with ⟨Hil, HlogQ⟩
-  ihave Habs : mvcc.absAt (GF := GF) γ (1 : Qp).half [[], []] $$ [Hab1]
+  ihave Habs : mvcc.absAt (GF := GF) γ (1 : Qp).half.half [[], []] $$ [Hab1]
   · unfold mvcc.absAt; split
     · rw [hγab]; iexact Hab1
     · itrivial

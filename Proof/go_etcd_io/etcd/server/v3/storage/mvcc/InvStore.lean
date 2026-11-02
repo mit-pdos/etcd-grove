@@ -479,21 +479,44 @@ instance pndAt_timeless (γ : StoreNames) (q : Qp) (p : Option (List Change)) :
     Timeless (pndAt (GF := GF) γ q p) := by
   unfold pndAt; split <;> infer_instance
 
-/-- **The pending revision's part of a write transaction ending with the changes `pend`**: the
-writer's half at `none`, or at `some pend` once its commit's first update notified it. -/
-def pndEnd (γ : StoreNames) (pend : List Change) : IProp GF :=
-  iprop(∃ p : Option (List Change), pndAt γ (1 : Qp).half p ∗ ⌜p = none ∨ (pend ≠ [] ∧ p = some pend)⌝)
+/-- **The writer's part of the abstract state** at its log `ilog` with the pending revision `p`
+(the abstract mode; `True` otherwise): a quarter of the abstract committed log (at the writer's log:
+so a write transaction pins the client's state, `mvccTxn_write_agree`) and half the pending
+revision. In the writer's state (`writerL`) and a write transaction's, at `none`. -/
+def wrAt (γ : StoreNames) (ilog : Log) (p : Option (List Change)) : IProp GF :=
+  iprop(absAt γ (1 : Qp).half.half ilog ∗ pndAt γ (1 : Qp).half p)
 
-/-- The pending revision's part of a write transaction's core, sealed (`sealed`: the watchable
-store seals the pending revision before it notifies) or not: notified only once sealed. -/
-def pndEndB (γ : StoreNames) (pend : List Change) (sealed : Bool) : IProp GF :=
-  if sealed then pndEnd γ pend else pndAt γ (1 : Qp).half none
+instance wrAt_timeless (γ : StoreNames) (ilog : Log) (p : Option (List Change)) :
+    Timeless (wrAt (GF := GF) γ ilog p) := by
+  unfold wrAt; infer_instance
 
-@[simp] theorem pndEndB_false (γ : StoreNames) (pend : List Change) :
-    pndEndB (GF := GF) γ pend false = pndAt γ (1 : Qp).half none := rfl
+@[simp] theorem wrAt_withPhys (γ : StoreNames) (q : PhysNames) (ilog : Log) (p : Option (List Change)) :
+    wrAt (GF := GF) (γ.withPhys q) ilog p = wrAt γ ilog p := rfl
 
-@[simp] theorem pndEndB_true (γ : StoreNames) (pend : List Change) :
-    pndEndB (GF := GF) γ pend true = pndEnd γ pend := rfl
+/-- Not in the abstract mode, the writer's part is nothing, at any log. -/
+theorem wrAt_off (γ : StoreNames) (h : γ.absQ = false) (L L' : Log) (p p' : Option (List Change)) :
+    wrAt (GF := GF) γ L p ⊢ wrAt γ L' p' := by
+  unfold wrAt absAt pndAt; simp only [h, Bool.false_eq_true, ↓reduceIte]; iintro _; isplit <;> itrivial
+
+theorem wrAt_off_intro (γ : StoreNames) (h : γ.absQ = false) (L : Log) (p : Option (List Change)) :
+    ⊢ wrAt (GF := GF) γ L p := by
+  unfold wrAt absAt pndAt; simp only [h, Bool.false_eq_true, ↓reduceIte]; isplit <;> itrivial
+
+/-- **The writer's part of a write transaction ending with the changes `pend`**: at `none`, or at
+`some pend` once its commit's first update notified it. -/
+def pndEnd (γ : StoreNames) (ilog : Log) (pend : List Change) : IProp GF :=
+  iprop(∃ p : Option (List Change), wrAt γ ilog p ∗ ⌜p = none ∨ (pend ≠ [] ∧ p = some pend)⌝)
+
+/-- The writer's part of a write transaction's core, sealed (`sealed`: the watchable store seals the
+pending revision before it notifies) or not: notified only once sealed. -/
+def pndEndB (γ : StoreNames) (ilog : Log) (pend : List Change) (sealed : Bool) : IProp GF :=
+  if sealed then pndEnd γ ilog pend else wrAt γ ilog none
+
+@[simp] theorem pndEndB_false (γ : StoreNames) (ilog : Log) (pend : List Change) :
+    pndEndB (GF := GF) γ ilog pend false = wrAt γ ilog none := rfl
+
+@[simp] theorem pndEndB_true (γ : StoreNames) (ilog : Log) (pend : List Change) :
+    pndEndB (GF := GF) γ ilog pend true = pndEnd γ ilog pend := rfl
 
 @[simp] theorem absAt_withPhys (γ : StoreNames) (p : PhysNames) (q : Qp) (log : Log) :
     absAt (GF := GF) (γ.withPhys p) q log = absAt γ q log := rfl
@@ -510,13 +533,13 @@ theorem pndAt_off (γ : StoreNames) (h : γ.absQ = false) (q : Qp) (p : Option (
     pndAt (GF := GF) γ q p = iprop(True) := by
   unfold pndAt; rw [h]; rfl
 
-theorem pndEndB_off (γ : StoreNames) (h : γ.absQ = false) (pend : List Change) (b : Bool) :
-    pndEndB (GF := GF) γ pend b ⊢ pndAt γ (1 : Qp).half none := by
-  rw [pndAt_off γ h]; iintro _; itrivial
+theorem pndEndB_off (γ : StoreNames) (h : γ.absQ = false) (ilog L : Log) (pend : List Change) (b : Bool) :
+    pndEndB (GF := GF) γ ilog pend b ⊢ wrAt γ L none := by
+  iintro _; iapply wrAt_off_intro γ h
 
-/-- A transaction's core with nothing pending has the pending part at `none`. -/
-theorem pndEndB_nil (γ : StoreNames) (b : Bool) :
-    pndEndB (GF := GF) γ [] b ⊢ pndAt γ (1 : Qp).half none := by
+/-- A transaction core with nothing pending has the writer's part at `none`. -/
+theorem pndEndB_nil (γ : StoreNames) (ilog : Log) (b : Bool) :
+    pndEndB (GF := GF) γ ilog [] b ⊢ wrAt γ ilog none := by
   cases b
   · simp only [pndEndB_false]; exact .rfl
   · simp only [pndEndB_true]
@@ -526,8 +549,8 @@ theorem pndEndB_nil (γ : StoreNames) (b : Bool) :
     · iexact H
     · exact absurd rfl h
 
-theorem pndEnd_none (γ : StoreNames) (pend : List Change) :
-    pndAt (GF := GF) γ (1 : Qp).half none ⊢ pndEnd γ pend := by
+theorem pndEnd_none (γ : StoreNames) (ilog : Log) (pend : List Change) :
+    wrAt (GF := GF) γ ilog none ⊢ pndEnd γ ilog pend := by
   iintro H
   unfold pndEnd
   iexists none
@@ -535,8 +558,8 @@ theorem pndEnd_none (γ : StoreNames) (pend : List Change) :
   ipureintro; left; rfl
 
 /-- A transaction core's pending part, at some value. -/
-theorem pndEndB_any (γ : StoreNames) (pend : List Change) (b : Bool) :
-    pndEndB (GF := GF) γ pend b ⊢ ∃ p, pndAt γ (1 : Qp).half p := by
+theorem pndEndB_any (γ : StoreNames) (ilog : Log) (pend : List Change) (b : Bool) :
+    pndEndB (GF := GF) γ ilog pend b ⊢ ∃ p, wrAt γ ilog p := by
   cases b
   · simp only [pndEndB_false]; iintro H; iexists none; iexact H
   · simp only [pndEndB_true]; unfold pndEnd; iintro ⟨%p, H, -⟩; iexists p; iexact H
@@ -548,8 +571,8 @@ and gets them back at the committed log and nothing pending, with the caller's `
 just `Q`. Not in the abstract mode, both parts are `True` (`absAt_off`): the update is `Q`'s. -/
 def absCommit (γ : StoreNames) (ilog : Log) (pend : List Change) (Q : IProp GF) : IProp GF :=
   if pend = [] then Q
-  else iprop(∀ p : Option (List Change), absAt γ (1 : Qp).half ilog ∗ pndAt γ (1 : Qp).half p ={⊤}=∗
-    absAt γ (1 : Qp).half (ilog ++ [pend]) ∗ pndAt γ (1 : Qp).half none ∗ Q)
+  else iprop(∀ p : Option (List Change), absAt γ (1 : Qp).half.half ilog ∗ wrAt γ ilog p ={⊤}=∗
+    absAt γ (1 : Qp).half.half (ilog ++ [pend]) ∗ wrAt γ (ilog ++ [pend]) none ∗ Q)
 
 theorem absCommit_nil (γ : StoreNames) (ilog : Log) (Q : IProp GF) :
     absCommit (GF := GF) γ ilog [] Q ⊢ Q := by
@@ -558,8 +581,8 @@ theorem absCommit_nil (γ : StoreNames) (ilog : Log) (Q : IProp GF) :
 theorem absCommit_ne (γ : StoreNames) (ilog : Log) (pend : List Change) (Q : IProp GF)
     (h : pend ≠ []) :
     absCommit (GF := GF) γ ilog pend Q ⊢ ∀ p : Option (List Change),
-      absAt γ (1 : Qp).half ilog ∗ pndAt γ (1 : Qp).half p ={⊤}=∗
-        absAt γ (1 : Qp).half (ilog ++ [pend]) ∗ pndAt γ (1 : Qp).half none ∗ Q := by
+      absAt γ (1 : Qp).half.half ilog ∗ wrAt γ ilog p ={⊤}=∗
+        absAt γ (1 : Qp).half.half (ilog ++ [pend]) ∗ wrAt γ (ilog ++ [pend]) none ∗ Q := by
   unfold absCommit; rw [if_neg h]
 
 /-- **The caller's read update** (the abstract mode's `store.Read.specA`, mvcc's candidate API): run
@@ -2655,7 +2678,7 @@ def writerL (s : Loc) (γ : StoreNames) : IProp GF :=
     "#Hcert" ∷ idxCert γ.idx ilog ∗
     "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
-    "Hpnd" ∷ pndAt γ (1 : Qp).half none)
+    "Hpnd" ∷ wrAt γ ilog none)
 
 /-! ### The batch lock's resource, late-bound (the real backend)
 
@@ -3087,7 +3110,7 @@ def revMuBody (s : Loc) (γ γp : StoreNames) (q : Qp) : IProp GF :=
     "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own q.half) ntok ∗
     "%Hbudget" ∷ ⌜log.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
     "Hlog" ∷ idxLogAuth γ.idx (revQ γ q) log ∗
-    "Habs" ∷ absAt γ q.half log ∗
+    "Habs" ∷ absAt γ q.half.half log ∗
     "Hcmp" ∷ (s.[store, go!"compactMainRev"] ↦{DFrac.own q.half} (W64 c : w64) : IProp GF) ∗
     "Hcrev" ∷ crevUB γ.idx q.half.half c ∗
     "%Hc" ∷ ⌜-1 ≤ c ∧ c < log.length⌝)
@@ -3116,7 +3139,7 @@ instance revMuBody_fractional (s : Loc) (γ γp : StoreNames) : Fractional (revM
       fun v => (typedPointsto_dfractional (GF := GF) _ v).dfractional (DFrac.own q1.half)
         (DFrac.own q2.half)
     have hcrev := fun (c : Int) => crevUB_split (GF := GF) γ.idx q1.half.half q2.half.half c
-    have habs := fun (log : Log) => absAt_split (GF := GF) γ q1.half q2.half log
+    have habs := fun (log : Log) => absAt_split (GF := GF) γ q1.half.half q2.half.half log
     unfold revMuBody
     rw [revQ_add, Qp_half_add, Qp_half_add]
     refine ⟨?_, ?_⟩
@@ -4630,7 +4653,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
     "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
     "Hcres" ∷ compactRes γ ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
-    "Hpnd" ∷ pndAt γ (1 : Qp).half none ∗
+    "Hpnd" ∷ wrAt γ ilog none ∗
     "%Hcrev" ∷ ⌜-1 ≤ crev ∧ crev < ilog.length⌝ ∗
     "#HZ" ∷ □ Z)
 
@@ -4677,7 +4700,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
     "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
     "Hcres" ∷ compactRes γ ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
-    "Hpnd" ∷ pndEndB γ pend sealed ∗
+    "Hpnd" ∷ pndEndB γ ilog pend sealed ∗
     "%Hcrev" ∷ ⌜-1 ≤ crev ∧ crev < ilog.length⌝ ∗
     "#HZ" ∷ □ Z)
 
@@ -4805,7 +4828,7 @@ theorem storeTxnWriteCore_seal (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend
   iframe Hlb
   iunfold storeTxnWriteCore
   iexists ti, bt, Locked, ntok, Pw, fw, Dep
-  ihave Hpnd := pndEnd_none γ pend $$ Hpnd
+  ihave Hpnd := pndEnd_none γ ilog pend $$ Hpnd
   simp only [named, idxWriterB_true, pndEndB_true]
   iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hpnd
   iframe #

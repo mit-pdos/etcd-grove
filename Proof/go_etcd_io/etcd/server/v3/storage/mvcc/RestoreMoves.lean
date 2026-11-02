@@ -227,6 +227,8 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
   iframe Hcm Hrst Hcur Hcur2 Hc HcrevB
   isplitl [Hcr]
   · iexists _; iexact Hcr
+  iunfold wrAt at Hpnd
+  icases Hpnd with ⟨-, Hpnd⟩
   isplitl [Hclog Hla Htoks Hcrev Hlrd Hpnd Hhist]
   · iunfold restoreHeld
     simp only [named]
@@ -272,7 +274,7 @@ def restoreWriter (γ : StoreNames) (L' : Log) : IProp GF :=
     "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own (1 : Qp).half) ntok ∗
     "%Hbudget" ∷ ⌜L'.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
-    "Hpnd" ∷ pndAt γ (1 : Qp).half none ∗
+    "Hpnd" ∷ wrAt γ L' none ∗
     "Hhist" ∷ monoListAuthOwn γ.idx.hist (1 : Qp).half (histOf L') ∗
     "#Hcert" ∷ idxCert γ.idx L')
 
@@ -440,7 +442,7 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
     rw [evsOf_append ([[], []] ++ R) []]; simp [evsOfRev]
   rw [hevs]
   ihave Hbv := restoreViewOut_bucketView (γ.withPhys p') _ R $$ Hview
-  ihave Habs : absAt (GF := GF) γ (1 : Qp).half ([[], []] ++ R) $$ []
+  ihave Habs : absAt (GF := GF) γ (1 : Qp).half.half ([[], []] ++ R) $$ []
   · rw [absAt_off γ Hoffw]; itrivial
   have Hoffw' : (γ.withPhys p').absQ = false := by simpa using Hoffw
   imodintro
@@ -466,6 +468,9 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
   iframe Hr2 Hn1 Hn4 Hrv HlogQ Hwsd Htkr
   isplitl [Hn3]
   · iunfold writerFrag; iframe %Hoffw'; iexists o'; iexact Hn3
+  iclear Hpnd
+  ihave Hpnd : wrAt (GF := GF) γ ([[], []] ++ R) none $$ []
+  · iapply wrAt_off_intro γ Hoffw
   isplitl [HclogW Hlw HtoksW Hlrd Hpnd Hhist]
   · iunfold restoreWriter
     iexists (2 ^ 63 - 3 - ([[], []] ++ R).length)
@@ -543,7 +548,7 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
       iexists L', ntok
       simp only [named]
       withPhys_simp
-      simp only [StoreNames.withPhys_wv, pndAt_withPhys]
+      simp only [StoreNames.withPhys_wv, wrAt_withPhys]
       iframe Htoks Hclog Hwv Hcur Hlrd Hpnd
       iframe #
       isplitr

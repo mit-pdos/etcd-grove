@@ -65,7 +65,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     -- the writer's state checked back in (D22 receiver epochs, S2): the batch lock's key and the
     -- transaction's part of `s.mu`'s deposit ghost back
     icases ghostVar_halves γ.wv ilog $$ Hwv with ⟨Hwv, HwvW⟩
-    ihave Hpnd := mvcc.pndEndB_nil γ sealed $$ Hpnd
+    ihave Hpnd := mvcc.pndEndB_nil γ ilog sealed $$ Hpnd
     ihave HL : mvcc.writerL s γ $$ [Htoks Hw Hclog Hwv Hcur Hlrd Hpnd]
     · iunfold mvcc.writerL
       iexists ilog, ntok
@@ -172,7 +172,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     -- the writer's state at the committed log, checked back in (D22 receiver epochs, S2)
     imod ghostVar_update (ilog ++ [pend]) γ.wv ilog $$ Hwv with Hwv
     icases ghostVar_halves γ.wv (ilog ++ [pend]) $$ Hwv with ⟨Hwv, HwvW⟩
-    ihave Hpnd := mvcc.pndEndB_off γ Hoff pend sealed $$ Hpnd
+    ihave Hpnd := mvcc.pndEndB_off γ Hoff ilog (ilog ++ [pend]) pend sealed $$ Hpnd
     ihave HL : mvcc.writerL s γ $$ [Htoks Hw Hclog Hwv Hcur Hlrd Hpnd]
     · iunfold mvcc.writerL
       iexists (ilog ++ [pend]), n
@@ -205,7 +205,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       exact hne' (hpend.2 Hif)
     · (try wp_auto)
       iclear HabsL
-      ihave HabsL : mvcc.absAt γ (1 : Qp).half (ilog ++ [pend]) $$ []
+      ihave HabsL : mvcc.absAt γ (1 : Qp).half.half (ilog ++ [pend]) $$ []
       · rw [mvcc.absAt_off γ Hoff]; itrivial
       wp_apply sync.RWMutex.wp_Unlock $$ [$Hlk HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL HabsL HrstR]
         as HrevMu
@@ -287,7 +287,7 @@ theorem mvcc.storeTxnWrite.End.wp_proofA : mvcc.storeTxnWrite.End.specA (GF := G
     -- the writer's state checked back in (D22 receiver epochs, S2): the batch lock's key and the
     -- transaction's part of `s.mu`'s deposit ghost back
     icases ghostVar_halves γ.wv ilog $$ Hwv with ⟨Hwv, HwvW⟩
-    ihave Hpnd := mvcc.pndEndB_nil γ sealed $$ Hpnd
+    ihave Hpnd := mvcc.pndEndB_nil γ ilog sealed $$ Hpnd
     ihave HL : mvcc.writerL s γ $$ [Htoks Hw Hclog Hwv Hcur Hlrd Hpnd]
     · iunfold mvcc.writerL
       iexists ilog, ntok
@@ -378,7 +378,7 @@ theorem mvcc.storeTxnWrite.End.wp_proofA : mvcc.storeTxnWrite.End.specA (GF := G
     icases mvcc.idxWriter_nevLb_nil γ.idx (ilog ++ [pend]) $$ Hw with ⟨Hw, #Hnev'⟩
     icases mvcc.revQ_commit_post γ ilog pend hne' $$ HlogH with ⟨HlogL, Hq⟩
     -- the caller's commit update: the abstract committed log, nothing pending
-    icases mvcc.pndEndB_any γ pend sealed $$ Hpnd with ⟨%p0, Hpnd⟩
+    icases mvcc.pndEndB_any γ ilog pend sealed $$ Hpnd with ⟨%p0, Hpnd⟩
     ihave Hac := mvcc.absCommit_ne γ ilog pend Q hne' $$ Hac
     imod Hac $$ %p0 [$HabsL $Hpnd] with ⟨HabsL, Hpnd, HQ⟩
     have hrev : (W64 ((ilog.length : Int) - 1) : w64) + W64 1 =
