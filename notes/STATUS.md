@@ -532,7 +532,7 @@ Report: `/home/ubuntu/spec-scratch/raft-durability/stageII-r-report.md`.
   `AutoLeave` only with outgoing voters -- `restoreM … = some cs'` alone admits a conf state with a
   repeated voter, on which `assertConfStatesEquivalent` panics, so the spec was false without it.
   Callers: `setupNode` (empty conf state), `RestartNode` (from `confStateIs`, `memValid`).
-- **Builds:** see the report.
+- **Builds:** raft's `Linked`/`Results`, kvreconf's, kv's and the server's `Link`/`NodeApiLink`; interfaces regenerated, `api-check` passes. `wp_newRaft` rests on no `sorry`; `wp_RestartNode` still reaches the older ones below it (`node.run`'s callees). `etc/tcb-report.py --check` not run (needs a full build).
 
 ## Durability stage II (p): the restart path (2026-11-02, branch `worktree-agent-raftrestart`)
 
