@@ -38,13 +38,12 @@ abbrev mvcc.watchStream.Cancel.spec : Prop :=
 longer live (no change for an id never registered, negative, or already cancelled: the stream
 never reuses an id); `nil` or `ErrWatcherNotExist`. Responses sent before may still arrive. -/
 abbrev mvcc.watchStream.Cancel.specC : Prop :=
-  ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName) (id : w64) (Q : List mvcc.WInfo → IProp GF),
+  ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName) (id : w64) (Q : GMap w64 mvcc.WInfo → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isMvccWatchStream st γ ι ∗ threadTok ∗
-      AU <{ ∃∃ (W : List mvcc.WInfo), mvcc.wsWatchers ι W }> @ ⊤ \ ↑mvcc.mvccN, ∅
-        <{ mvcc.wsWatchers ι (if 0 ≤ sint.Z id then W.modify (sint.nat id) (fun w => { w with live := false })
-              else W), COMM Q W }> }}
+      AU <{ ∃∃ (W : GMap w64 mvcc.WInfo), mvcc.wsWatchers ι W }> @ ⊤ \ ↑mvcc.mvccN, ∅
+        <{ mvcc.wsWatchers ι (mvcc.wsCancel W id), COMM Q W }> }}
     (App (Val (st @!! go.GoType.PointerType watchStream.ty @!! go!"Cancel")) (Val #id))
-  {{ (err : GoInterface), RET #err; threadTok ∗ (∃ W : List mvcc.WInfo, Q W) ∗
+  {{ (err : GoInterface), RET #err; threadTok ∗ (∃ W : GMap w64 mvcc.WInfo, Q W) ∗
       (⌜err = GoInterface.nil⌝ ∨ globalAddr ErrWatcherNotExist ↦□ err) }}
 
 end spec

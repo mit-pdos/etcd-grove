@@ -119,6 +119,12 @@ structure WInfo where
   k : Nat
   live : Bool
 
+/-- **The registrar's view after a cancel of `id`**: the watcher, if any, not live. -/
+def wsCancel (W : GMap w64 WInfo) (id : w64) : GMap w64 WInfo :=
+  match W !! id with
+  | some w => W.insert id { w with live := false }
+  | none => W
+
 /-- The namespace an implementation reserves for its invariants. -/
 def mvccN : Namespace := nroot .@ "mvcc"
 

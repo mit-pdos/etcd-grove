@@ -199,8 +199,10 @@ a share refutes `Watch`'s closed-stream arm. -/
 opaque wsOpen (ι : WsName) (q : Qp) : IProp GF := iprop(True)
 
 /-- **The registrar's view of the stream's watchers** (exclusive, timeless; the client's, what
-`Watch`'s and `Cancel`'s atomic updates are over): the watcher `id` is `W[id]`. -/
-opaque wsWatchers (ι : WsName) (W : List WInfo) : IProp GF := iprop(True)
+`Watch`'s and `Cancel`'s atomic updates are over): the watcher `id` is `W !! id` (2026-11-02: a
+map keyed by the stream's ids, not their positions: the stream does assign `0, 1, ...`, but its
+proof records no counter of them). -/
+opaque wsWatchers (ι : WsName) (W : GMap w64 WInfo) : IProp GF := iprop(True)
 
 /-- **The consumer has received the responses `rs`** from the stream's channel, in order
 (exclusive, timeless). -/
@@ -250,7 +252,7 @@ abbrev mvccState_excl.law : Prop :=
 /-- The registrar's view and the consumer's are exclusive (so the `W` and `rs` the watch laws
 take are the current ones). -/
 abbrev ws_excl.law : Prop :=
-  (∀ ι W W', wsWatchers (GF := GF) ι W ∗ wsWatchers ι W' ⊢ False) ∧
+  (∀ ι (W W' : GMap w64 WInfo), wsWatchers (GF := GF) ι W ∗ wsWatchers ι W' ⊢ False) ∧
   (∀ ι rs rs', wsRecv (GF := GF) ι rs ∗ wsRecv ι rs' ⊢ False)
 
 /-- **Every state of a store is reachable**, and its revisions fit an `int64` (with room for the
@@ -378,7 +380,7 @@ registrar registered; a compaction response has none. -/
 abbrev wsRecv_resp.law : Prop :=
   ∀ ι rs W, wsRecv (GF := GF) ι rs ∗ wsWatchers ι W ⊢
     ⌜∀ r ∈ rs, (∀ ev ∈ r.evs, sint.Z ev.kv.modRev ≤ sint.Z r.rev) ∧
-      (r.compactRev ≠ W64 0 → r.evs = []) ∧ (r.evs ≠ [] → sint.nat r.id < W.length)⌝
+      (r.compactRev ≠ W64 0 → r.evs = []) ∧ (r.evs ≠ [] → (W !! r.id).isSome)⌝
 
 /-- **The watch guarantee**: the events received for each watcher are its range's events,
 filtered, of the revisions `[lo, hi)` of the notified history; each response's revision is one of
@@ -386,8 +388,8 @@ it; a compaction response's revision is positive and at most the compaction revi
 abbrev wsRecv_events.law : Prop :=
   ∀ ws γ ι rs W σ,
     isMvccWatchStream (GF := GF) ws γ ι ∗ wsRecv ι rs ∗ wsWatchers ι W ∗ mvccState γ σ ⊢
-      ⌜(∀ (id : Nat) (w : WInfo), W[id]? = some w → ∃ hi, hi ≤ σ.notifiedLog.length ∧
-          recvEvs rs (W64 (id : Int)) = filtered w.fs (watchEvents σ.notifiedLog w.rg w.lo hi)) ∧
+      ⌜(∀ (id : w64) (w : WInfo), W !! id = some w → ∃ hi, hi ≤ σ.notifiedLog.length ∧
+          recvEvs rs id = filtered w.fs (watchEvents σ.notifiedLog w.rg w.lo hi)) ∧
         (∀ r ∈ rs, sint.nat r.rev < σ.notifiedLog.length) ∧
         (∀ r ∈ rs, r.compactRev ≠ W64 0 → 0 < sint.Z r.compactRev ∧ sint.Z r.compactRev ≤ σ.crev)⌝
 
@@ -397,11 +399,11 @@ comes after every event of the watcher up to `P`. -/
 abbrev wsRecv_progress.law : Prop :=
   ∀ ws γ ι rs W σ,
     isMvccWatchStream (GF := GF) ws γ ι ∗ wsRecv ι rs ∗ wsWatchers ι W ∗ mvccState γ σ ⊢
-      ⌜∀ (j id : Nat) (r : WResp) (w : WInfo), rs[j]? = some r → W[id]? = some w →
+      ⌜∀ (j : Nat) (id : w64) (r : WResp) (w : WInfo), rs[j]? = some r → W !! id = some w →
         r.evs = [] → r.compactRev = W64 0 →
-        (r.id = W64 (id : Int) ∨ (r.id = W64 (-1) ∧ w.k ≤ j ∧ w.live = true)) →
+        (r.id = id ∨ (r.id = W64 (-1) ∧ w.k ≤ j ∧ w.live = true)) →
         sint.nat r.rev + 1 ≤ σ.notifiedLog.length ∧
-        recvEvs (rs.take (j + 1)) (W64 (id : Int)) =
+        recvEvs (rs.take (j + 1)) id =
           filtered w.fs (watchEvents σ.notifiedLog w.rg w.lo (sint.nat r.rev + 1))⌝
 
 end laws

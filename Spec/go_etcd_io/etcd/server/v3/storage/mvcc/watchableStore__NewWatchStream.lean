@@ -53,7 +53,7 @@ abbrev mvcc.watchableStore.NewWatchStream.specC : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isWatchableMvcc ws γ }}
     (App (Val (ws @!! go.GoType.PointerType watchableStore.ty @!! go!"NewWatchStream")) (Val #()))
   {{ (st : Loc), RET #(interface.mkOk (go.GoType.PointerType watchStream.ty) #st);
-      ∃ ι : mvcc.WsName, mvcc.isMvccWatchStream st γ ι ∗ mvcc.wsOpen ι 1 ∗ mvcc.wsWatchers ι [] ∗
+      ∃ ι : mvcc.WsName, mvcc.isMvccWatchStream st γ ι ∗ mvcc.wsOpen ι 1 ∗ mvcc.wsWatchers ι ∅ ∗
         mvcc.wsRecv ι [] }}
 
 end spec
