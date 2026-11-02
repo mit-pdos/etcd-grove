@@ -57,11 +57,13 @@ pin: `MustDetectDowngrade(lg, MustParse(version.Version), cv)` compares
 `semver.New(sv.Major(), sv.Minor(), 0, "", "")` with `cv` and panics when it is less,
 `server/etcdserver/version/downgrade.go:42-54`). Opaque, as `semverValid`: the premise of a
 `ClusterVersionSet` request, which only the leader's monitor proposes, of the minimum of the
-members' server versions with patch `0` (`version.Monitor.UpdateClusterVersionIfNeeded`): the
-leader's own `version.Version` is among them (`getMembersVersions` records the local member's, the
-local member being in `c.members`), which bounds the proposal by the proposer's major.minor; the
-minimum is `nil`, no proposal, unless every member answers with its version, which bounds it by
-every member's, the applying one's among them.
+members' server versions with patch `0` (`version.Monitor.UpdateClusterVersionIfNeeded`), or
+`MinClusterVersion` (`3.0.0`) while the cluster has no version and a member does not answer: the
+leader's own `version.Version` is among the versions (`getMembersVersions` records the local
+member's, the local member being in `c.members`), which bounds the proposal by the proposer's
+major.minor. The applying member's bound is the proposer's because every member runs this binary
+(the model's deployment: one program, the verified one); a member restarted on an older binary
+between the proposal and its apply panics, by design (`MustDetectDowngrade`).
 Its axiom is `EtcdServer.monitorClusterVersions`'s, through `monitorReq`. -/
 opaque semverAtMostServer : GoString → Prop
 
@@ -146,7 +148,8 @@ variable [sem : go.Semantics]
 
 /-- **The `*membership.RaftCluster` `c`, restated** (the cluster-rows stage, 2026-11-02;
 `isCluster`'s text but for two rows): `SetVersion`'s `onSet` is `api.UpdateCapability` (until then
-any value: Go calls it) and its version not above the server's (`semverAtMostServer`: above it,
+any value: Go calls it), with `membership`'s and `api`'s package initialization (it writes
+`ClusterVersionMetrics` and `api`'s capability globals; as `RaftCluster.Recover`'s axiom, round 2) and its version not above the server's (`semverAtMostServer`: above it,
 `MustDetectDowngrade` panics); `UpdateAttributes`' member a member of `r.mem` (an id neither a
 member nor removed panics). The rest state's buckets present and the members' client URLs
 read-only are in `RO`'s meaning (`srvRestOwnD`, `memberAtD`, the server's draft), `SetDowngradeInfo`'s
@@ -165,7 +168,9 @@ def apply.isClusterD (c : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
           go!"ID")) (Val #()))
       {{ (id : w64), RET #id; True }}) ∗
     □ (∀ (v : Loc) (s : GoString) (b : Bool) (Pre Q Post : IProp GF) (r : apply.RestM),
-      {{ cPre b P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ ⌜v ≠ null⌝ ∗ semverIs v s ∗
+      {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
+          isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api ∗
+          cPre b P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ ⌜v ≠ null⌝ ∗ semverIs v s ∗
           ⌜apply.semverAtMostServer s⌝ ∗ RO r }}
         (App (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty
           @!! go!"SetVersion")) (Val #v))
@@ -344,7 +349,11 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proofD
   · exact absurd Hvalid.1 Hn.1
   obtain ⟨rfl, Hnv⟩ := Hnv
   wp_auto
-  wp_apply HSV $$ [$Hcs $Hwt $Hrt $Hsv $HRO] as ⟨HPP, Hrt, HRO⟩
+  ihave #Hpmb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
+  · iPkgInit
+  ihave #Hpapi : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api $$ []
+  · iPkgInit
+  wp_apply HSV $$ [$Hpmb $Hpapi $Hcs $Hwt $Hrt $Hsv $HRO] as ⟨HPP, Hrt, HRO⟩
   · isplitr
     · ipureintro; exact Hnv
     ipureintro; exact Hvalid.2

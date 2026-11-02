@@ -91,8 +91,8 @@ The restated statements (`…D` replaces the unsuffixed in place at the switch):
   `isRaftCluster(G)` carry it): `cu ↦*□ mm.clientURLs`. Laws `memberAtD_split`,
   `memberAtD_agree`, `memberAt_persistD` (today's to the restated, an update).
 - `srvRestOwnD` (trusted, through `clusterApplyOk`): §16's text over `clusterMemD`, with
-  `membership.clusterPresent r.bk`. `srvRestRWD` (trusted, the same): `∃ bk, rbOwn γB bk ∗
-  ⌜clusterPresent bk⌝` (round 1). `clusterApplyOkD`: its text over the three.
+  `restPresent r.bk` (every boot bucket present; round 2, until then the cluster's three).
+  `srvRestRWD` (trusted, the same): `∃ bk, rbOwn γB bk ∗ ⌜restPresent bk⌝` (rounds 1-2). `clusterApplyOkD`: its text over the three.
 - `apply.semverAtMostServer` (new, opaque, trusted vocabulary); `apply.rqOkD` (its
   `clusterVersionSet` row with it); `monitorReqD lid` (the attribute request's member `lid`, the
   version's bound); `srvMonitorPermitMD` (the server's id field, a voter, the permission for
@@ -209,6 +209,25 @@ not claimed). Not repaired, questions: `isPkgInit api` in `SetVersion`'s row (`U
 reads `api`'s globals); `clusterImageOk_restModel`'s axiom could take the version bound from the log
 instead of the deployment. Outside the targets: `RaftCluster__Recover.lean:43`'s docstring says
 `MustDetectDowngrade` rejects a version "below its minor by more than one"; Go has no lower bound.
+
+**Round 2** (fresh). First tier:
+
+- F1: `attrEntryOk` had no empty-data guard, and the committed log holds raft's empty no-op
+  entries (`BuildGap.lean:150-151`), for which `irrDecode []` (opaque) says nothing: `attrLogOk` was
+  unprovable for a real batch. Repaired: `attrEntryOk S m := m.typ = 0 → m.data ≠ [] → …` (as
+  `KVAuthModel.lean:611`), `attrEntryOk_empty`; `restReqOk_of_attr` takes `m.data ≠ []`, which
+  `applyEntryNormal` has after its empty-data return (`server.go:1989-1998`).
+- F2: the alarm and auth stores' writers lend the same `srvRestRW` and are fatal on their own
+  missing buckets (Go: `TestClrTodayMissingBucketFatal`'s `alarm` case). Repaired: the presence
+  predicate is every boot bucket (`restPresent`, `restBootBk`'s; was `clusterPresent`, the cluster's
+  three), in both `srvRestOwnD` and `srvRestRWD`; `restPresent_congr` takes the agreement off
+  `lease` with `lease` present.
+
+Second tier, repaired: `SetVersion`'s row takes `isPkgInit membership ∗ isPkgInit api` (as
+`Recover`'s axiom; the glue derives both with `iPkgInit`); `semverAtMostServer`'s docstring (the
+`MinClusterVersion` case; the one-binary deployment the applying member's bound rests on); the
+trusted `monitorReq` is the draft's `monitorReqD` exactly; the order of application (§16 first).
+Not traced, a question: the lessor's `lease` bucket through `lessorApplyOk`'s `Rb`.
 
 ## Questions for the user
 

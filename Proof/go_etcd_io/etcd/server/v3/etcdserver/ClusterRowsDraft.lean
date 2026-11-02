@@ -8,10 +8,10 @@ restatement of `srvRestOwn` (`bks-trusted.md` §16), which this branch's base ha
 
 The rows (`apply.isClusterD`, `apply/ClusterRowsDraft.lean`) need, besides their premises:
 
-* **the cluster's buckets present** (`members`, `members_removed`, `cluster`; Go's `UnsafePut`
-  on a missing bucket is fatal): `srvRestOwnD` holds `membership.clusterPresent r.bk`, which every
-  rest state of the model has (`clusterPresent_restModel`, from `restModel_present`) and the rows
-  and `applyConfChange` keep (`clusterPresent_restSetVersion`, `_restUpdateAttrs`, `_ccRest`);
+* **the rest buckets present** (every bucket of `restBootBk`; Go's `UnsafePut` on a missing
+  bucket is fatal): `srvRestOwnD` and `srvRestRWD` hold `restPresent`, which every
+  rest state of the model has (`restPresent_restModel`, from `restModel_present`) and the rows
+  and `applyConfChange` keep (`restPresent_restSetVersion`, `_restUpdateAttrs`, `_ccRest`);
 * **the members' client URLs read-only** (`UpdateAttributes` stores the request's slice in the
   member, `m.Attributes = attr`: the member's `ClientURLs` is the request's array, which the proof
   holds read-only, `↦*□`, and which no Go code writes): `membership.memberAtD`, `memberAt` with
@@ -55,68 +55,73 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
-/-! ## The cluster's buckets present -/
+/-! ## The rest buckets present -/
 
 section pure
 variable [GooseExts]
 
-/-- **The cluster's buckets are present in `bk`** (`members`, `members_removed`, `cluster`:
-`SetBackend`'s `MustCreateBackendBuckets` makes them; the rows' and `applyConfChange`'s writers
-`UnsafePut`/`UnsafeDelete` in them, fatal on a missing bucket). -/
-def membership.clusterPresent (bk : GMap GoString backend.BktData) : Prop :=
-  ∀ n, membership.clusterBkts n → (bk.lookup n).isSome = true
+/-- **The rest buckets are present in `bk`**: every bucket `NewServer`'s constructors make
+(`restBootBk`: `lease`, `alarm`, `auth`, `authUsers`, `authRoles`, `members`, `members_removed`,
+`cluster`). Their writers (the cluster's rows and `applyConfChange`; the alarm store's, the auth
+store's and the lessor's, through `RW`) `UnsafePut`/`UnsafeDelete` in them, fatal on a missing
+bucket (`batch_tx.go:169-173,229-237`); no writer of the apply thread deletes a bucket. -/
+def restPresent (bk : GMap GoString backend.BktData) : Prop :=
+  ∀ n, (restBootBk.lookup n).isSome = true → (bk.lookup n).isSome = true
 
-theorem clusterPresent_restBoot (bootLog : List EntryM) :
-    membership.clusterPresent (restBoot bootLog).bk := by
-  intro n hn
-  rcases hn with (rfl | rfl) | rfl <;> simp [restBoot, restBootBk]
+theorem restPresent_restBoot (bootLog : List EntryM) :
+    restPresent (restBoot bootLog).bk := fun _ h => h
 
 /-- **Every rest state of the model has them** (`restModel_present`). -/
-theorem clusterPresent_restModel (c0 : w64) (bootLog : List EntryM) (L : List EntryModel) :
-    membership.clusterPresent (restModel c0 bootLog L).bk :=
-  fun n hn => restModel_present c0 bootLog L n (clusterPresent_restBoot bootLog n hn)
+theorem restPresent_restModel (c0 : w64) (bootLog : List EntryM) (L : List EntryModel) :
+    restPresent (restModel c0 bootLog L).bk :=
+  fun n hn => restModel_present c0 bootLog L n (restPresent_restBoot bootLog n hn)
 
-theorem clusterPresent_putIn (r : apply.RestM) (n k v : GoString)
-    (h : membership.clusterPresent r.bk) : membership.clusterPresent (r.putIn n k v).bk :=
+theorem restPresent_putIn (r : apply.RestM) (n k v : GoString)
+    (h : restPresent r.bk) : restPresent (r.putIn n k v).bk :=
   fun n' hn => putIn_present r n k v n' (h n' hn)
 
-theorem clusterPresent_delIn (r : apply.RestM) (n k : GoString)
-    (h : membership.clusterPresent r.bk) : membership.clusterPresent (r.delIn n k).bk :=
+theorem restPresent_delIn (r : apply.RestM) (n k : GoString)
+    (h : restPresent r.bk) : restPresent (r.delIn n k).bk :=
   fun n' hn => delIn_present r n k n' (h n' hn)
 
-/-- **Buckets agreeing on the cluster's keep them** (the lessor's revocation lens, §16: it gives
-back `srvRestOwn` at buckets agreeing with `rs.bk` off `lease`, not a cluster bucket). -/
-theorem clusterPresent_congr (bk bk' : GMap GoString backend.BktData)
-    (h : ∀ n, membership.clusterBkts n → bk.lookup n = bk'.lookup n)
-    (hp : membership.clusterPresent bk) : membership.clusterPresent bk' :=
-  fun n hn => by rw [← h n hn]; exact hp n hn
+/-- **Buckets agreeing off `lease`, with `lease` present, keep them** (the lessor's revocation
+lens, §16 applied first: it gives back `srvRestOwn` at buckets agreeing with `rs.bk` off `lease`;
+the revocation's deletes keep the `lease` bucket, `delIn_present`). -/
+theorem restPresent_congr (bk bk' : GMap GoString backend.BktData)
+    (h : ∀ n, n ≠ go!"lease" → bk.lookup n = bk'.lookup n)
+    (hl : (bk'.lookup go!"lease").isSome = true)
+    (hp : restPresent bk) : restPresent bk' := by
+  intro n hn
+  by_cases hnl : n = go!"lease"
+  · subst hnl; exact hl
+  · rw [← h n hnl]; exact hp n hn
 
 /-- `SetVersion`'s row keeps them. -/
-theorem clusterPresent_restSetVersion (b : Bool) (s : GoString) (r : apply.RestM)
-    (h : membership.clusterPresent r.bk) :
-    membership.clusterPresent (apply.restSetVersion b s r).bk := by
+theorem restPresent_restSetVersion (b : Bool) (s : GoString) (r : apply.RestM)
+    (h : restPresent r.bk) :
+    restPresent (apply.restSetVersion b s r).bk := by
   unfold apply.restSetVersion; split
-  · exact clusterPresent_putIn _ _ _ _ h
+  · exact restPresent_putIn _ _ _ _ h
   · exact h
 
 /-- `UpdateAttributes`' row keeps them. -/
-theorem clusterPresent_restUpdateAttrs (b : Bool) (a : apply.MemberAttrModel) (r : apply.RestM)
-    (h : membership.clusterPresent r.bk) :
-    membership.clusterPresent (apply.restUpdateAttrs b a r).bk := by
+theorem restPresent_restUpdateAttrs (b : Bool) (a : apply.MemberAttrModel) (r : apply.RestM)
+    (h : restPresent r.bk) :
+    restPresent (apply.restUpdateAttrs b a r).bk := by
   unfold apply.restUpdateAttrs; split
   · exact h
   · split
-    · exact clusterPresent_putIn _ _ _ _ h
+    · exact restPresent_putIn _ _ _ _ h
     · exact h
 
 /-- `applyConfChange` keeps them. -/
-theorem clusterPresent_ccRest (v3 : Bool) (cm : ConfChangeM) (r : apply.RestM)
-    (h : membership.clusterPresent r.bk) : membership.clusterPresent (ccRest v3 cm r).bk := by
+theorem restPresent_ccRest (v3 : Bool) (cm : ConfChangeM) (r : apply.RestM)
+    (h : restPresent r.bk) : restPresent (ccRest v3 cm r).bk := by
   unfold ccRest; split
   · split
-    · exact clusterPresent_putIn _ _ _ _ h
+    · exact restPresent_putIn _ _ _ _ h
     · split
-      · exact clusterPresent_putIn _ _ _ _ (clusterPresent_delIn _ _ _ h)
+      · exact restPresent_putIn _ _ _ _ (restPresent_delIn _ _ _ h)
       · exact h
   · exact h
 
@@ -269,7 +274,7 @@ theorem attrIdOk_of_kind (S : GSet w64) (rq : apply.IRRModel)
 
 /-- A committed entry's: its request's (a normal entry that decodes). -/
 def attrEntryOk (S : GSet w64) (m : EntryModel) : Prop :=
-  m.typ = W32 0 → ∀ rq, apply.irrDecode m.data = some rq → attrIdOk S rq
+  m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq → attrIdOk S rq
 
 /-- **The committed log's attribute requests name members of `S`** (a new conjunct of the KV
 invariant's workload facts, `kvWorkD`). -/
@@ -285,10 +290,15 @@ theorem attrLogOk_append (S : GSet w64) (A B : List EntryModel) :
 theorem attrEntryOk_of (S : GSet w64) (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
     (hed : e.data = d) (hdec : apply.irrDecode d = some rq) (h : attrIdOk S rq) :
     attrEntryOk S e := by
-  intro _ rq' h'
+  intro _ _ rq' h'
   rw [hed, hdec] at h'
   cases h'
   exact h
+
+/-- An empty entry asks nothing (raft's no-op fillers, `BuildGap.lean:150-151`: `applyEntryNormal`
+returns on `len(e.Data) == 0`, `server.go:1989-1998`, before decoding; round 2). -/
+theorem attrEntryOk_empty (S : GSet w64) (e : EntryModel) (he : e.data = []) : attrEntryOk S e :=
+  fun _ hne => absurd he hne
 
 /-- A conf entry asks nothing (`kvWork_snoc`'s conf case). -/
 theorem attrEntryOk_conf (S : GSet w64) (e : EntryModel) (ht : e.typ ≠ W32 0) : attrEntryOk S e :=
@@ -299,10 +309,10 @@ entry's request, of a committed log whose attribute requests name voters, meets 
 premise at the applied log `A`, whose members include the voters. -/
 theorem restReqOk_of_attr (γs : ServerRaftNames) (c0 : w64) (A : List EntryModel) (m : EntryModel)
     (rq : apply.IRRModel) (hmo : srvMemOkD γs c0 A) (ha : attrEntryOk γs.raft.cfg m)
-    (ht : m.typ = W32 0) (hdec : apply.irrDecode m.data = some rq) :
+    (ht : m.typ = W32 0) (hne : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq) :
     apply.restReqOk rq (restModel c0 γs.raft.boot (γs.pre ++ A)) := by
   intro hk a ha'
-  exact hmo.2 _ ((ha ht rq hdec hk).2 a ha')
+  exact hmo.2 _ ((ha ht hne rq hdec hk).2 a ha')
 
 end pure3
 
@@ -382,18 +392,19 @@ def membership.clusterMemD (c : Loc) (mem : GMap w64 apply.MemberM) : IProp GF :
 
 /-- **The server's `AEnv.RO`, restated**: the backend-auth-split stage's `srvRestOwn` (§16: the
 cluster's buckets idle, the others a part, the members each under its own id) over `clusterMemD`,
-and **the cluster's buckets present** (`clusterPresent`: the rows' `UnsafePut`s, fatal on a
+and **the rest buckets present** (`restPresent`: the rows' `UnsafePut`s, fatal on a
 missing bucket). -/
 def srvRestOwnD (γB : backend.BNames) (c : Loc) (r : apply.RestM) : IProp GF :=
   iprop(backend.rbOwnIn γB membership.clusterBkts r.bk ∗
     backend.rbPart γB (fun n => ¬ membership.clusterBkts n) r.bk ∗ membership.clusterMemD c r.mem ∗
-    ⌜memIdOk r.mem ∧ membership.clusterPresent r.bk⌝)
+    ⌜memIdOk r.mem ∧ restPresent r.bk⌝)
 
-/-- **The server's `AEnv.RW`, restated**: the writer's half at some buckets, **the cluster's
-present** (`SetDowngradeInfo`'s `MustSaveDowngradeToBackend` puts in `cluster`, fatal on a missing
-bucket; review round 1). Until then `∃ r, rbOwn γB r`. -/
+/-- **The server's `AEnv.RW`, restated**: the writer's half at some buckets, **the rest buckets
+present** (`SetDowngradeInfo`'s `MustSaveDowngradeToBackend` puts in `cluster`, the alarm store's
+`MustPutAlarm` in `alarm`, the auth store's writers in theirs, each fatal on a missing bucket;
+review rounds 1-2). Until then `∃ r, rbOwn γB r`. -/
 def srvRestRWD (γB : backend.BNames) : IProp GF :=
-  iprop(∃ bk, backend.rbOwn γB bk ∗ ⌜membership.clusterPresent bk⌝)
+  iprop(∃ bk, backend.rbOwn γB bk ∗ ⌜restPresent bk⌝)
 
 /-- **The cluster's apply contract, restated** (`clusterApplyOk`'s text over `isClusterD`,
 `srvRestOwnD` and `srvRestRWD`). -/
