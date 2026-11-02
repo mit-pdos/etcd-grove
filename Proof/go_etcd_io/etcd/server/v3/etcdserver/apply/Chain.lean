@@ -404,6 +404,10 @@ structure AEnv (GF : BundledGFunctors) where
   store's logical mode (`E.γ.cm`) and the stand-in `E₀` carries to the examples; the apply package
   does not use it (as `γrev`) -/
   cmp : Bool := false
+  /-- (C3's server stage, 2026-11-02) the cluster's compaction retention (`KVNames.cret`, which
+  `srvKVInvs` ties it to): what the server's compactor's proposals must keep (`cret ≤` its
+  retention, `compactableOk_server`); the apply package does not use it -/
+  cret : Nat := 0
 
 /-- Whether the auth store may refuse (`Chain.auth E.authOn`; until the auth plan's A0 a field):
 `false` exactly in the mode `off`. -/
@@ -1214,13 +1218,9 @@ theorem ciSplit_of_at (E : AEnv GF) (Pre : IProp GF) (x : w64) :
 
 /-- **The store's compaction right at `c`, by the mode**: a compacting store's restorable right
 (`mvcc.compactRightR`: half the compaction revision's authority, the jobs' queue, the closer's and
-the jobs' shares of the fields), at least `-1`, with the store's compaction permit (C3's store
-law, 2026-11-02: `True` until the server fixes one, the next stage); a store that does not compact,
-none, at `-1`. -/
+the jobs' shares of the fields), at least `-1`; a store that does not compact, none, at `-1`. -/
 def cmpRight (E : AEnv GF) (c : Int) : IProp GF :=
-  if mvcc.kbCmpM E.γ.kb then
-    iprop(mvcc.compactRightR E.s E.γ c ∗ ⌜-1 ≤ c⌝ ∗ mvcc.crevPermIs E.γ (fun _ => iprop(True)))
-  else iprop(⌜c = -1⌝)
+  if mvcc.kbCmpM E.γ.kb then iprop(mvcc.compactRightR E.s E.γ c ∗ ⌜-1 ≤ c⌝) else iprop(⌜c = -1⌝)
 
 /-- **The apply thread's compaction resources at `c`**: the right by the mode and the compaction's
 write-back supply (persistent; `True` off). -/
@@ -1248,7 +1248,7 @@ theorem cmpOwn_of_off (E : AEnv GF) (h : ¬ mvcc.kbCmpM E.γ.kb) : ⊢ cmpOwn (G
 theorem cmpOwn_ge (E : AEnv GF) (c : Int) : cmpOwn (GF := GF) E c ⊢ ⌜-1 ≤ c⌝ := by
   unfold cmpOwn cmpRight
   split
-  · iintro ⟨⟨-, %h, -⟩, -⟩; ipureintro; exact h
+  · iintro ⟨⟨-, %h⟩, -⟩; ipureintro; exact h
   · iintro ⟨%h, -⟩; ipureintro; omega
 
 
@@ -1289,7 +1289,7 @@ Its proof for the backend rests on `store.Compact.spec` (F-1: no `ErrFutureRev` 
 def cmpTriple (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
   iprop(□ (∀ (cr : Loc) (rev : w64) (log : mvcc.Log) (crev : Int) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ compactionIs cr rev ∗ ⌜cmpAdmitRev E.γ.kb log rev⌝ ∗
+      {{ compactionIs cr rev ∗ ⌜cmpAdmitRev E.γ.kb log rev⌝ ∗ mvcc.crevPermAt E.γ (sint.Z rev) ∗
           mPre E c (.ok ai) info log Pre Q Post ∗ cmpOwn E crev }}
         (App (Val #(methods ai.ty go!"Compaction" ai.v)) (Val #cr))
       {{ (resp : Loc) (ch : GoChan) (trace : Loc) (err : GoInterface),
@@ -1297,6 +1297,24 @@ def cmpTriple (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
           kvOwn E log ∗ chainRes c (.ok ai) info ∗ (Post ∨ Pre) ∗
           cmpOwn E (if chainCompacts c then cmpRevAfter crev rev else crev) ∗
           cmpAnswerIs c crev rev resp ch trace err }}))
+
+/-- **A request's compactions are permitted** (C3's server stage, 2026-11-02; persistent): its
+revision is one the store's compaction permit holds of (`mvcc.crevPermAt`, what `store.Compact`
+takes), beside the pure facts `cmpAdmit`, as they gated by the kind. Free of a request of another
+kind. -/
+def cmpPermRq (E : AEnv GF) (rq : IRRModel) : IProp GF :=
+  iprop(□ (⌜dispatchKind rq = .compaction⌝ → ∀ r : w64, ⌜rq.compaction = some r⌝ →
+    mvcc.crevPermAt E.γ (sint.Z r)))
+
+instance cmpPermRq_persistent (E : AEnv GF) (rq : IRRModel) :
+    Persistent (cmpPermRq (GF := GF) E rq) := by
+  unfold cmpPermRq; infer_instance
+
+theorem cmpPermRq_nonCmp (E : AEnv GF) (rq : IRRModel) (h : dispatchKind rq ≠ .compaction) :
+    ⊢ cmpPermRq (GF := GF) E rq := by
+  iunfold cmpPermRq
+  iintro !> %hk
+  exact absurd hk h
 
 /-- A wrapper that passes `Compaction` on answers as its inner chain. -/
 theorem cmpAnswerIs_congr (c c' : Chain) (h : chainCompacts c = chainCompacts c') (crev : Int)

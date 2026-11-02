@@ -58,6 +58,15 @@ const (
 // takes an in-memory snapshot, and compacts, every 100 applied entries).
 func newServer(name string, peer types.URLs, client string, cluster types.URLsMap, token string,
 	retention int64, snapCount uint64, catchUp uint64, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
+	return newServerMode(name, peer, client, cluster, token, "revision", retention, snapCount,
+		catchUp, lg)
+}
+
+// newServerMode is newServer with the auto-compactor in mode (v3compactor.ModeRevision, retention
+// revisions, or v3compactor.ModePeriodic, retention nanoseconds), or off if retention is zero.
+func newServerMode(name string, peer types.URLs, client string, cluster types.URLsMap, token string,
+	mode string, retention int64, snapCount uint64, catchUp uint64,
+	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	cfg := config.ServerConfig{
 		Name:    name,
 		DataDir: name + ".etcd",
@@ -75,9 +84,10 @@ func newServer(name string, peer types.URLs, client string, cluster types.URLsMa
 		SnapshotCatchUpEntries: catchUp,
 		MaxTxnOps:              128,
 		MaxRequestBytes:        1536 * 1024,
-		// the auto-compactor (v3compactor.ModeRevision): in revision mode, the retention is a
-		// number of revisions, as a time.Duration (etcd's --auto-compaction-retention)
-		AutoCompactionMode:      "revision",
+		// the auto-compactor: in revision mode the retention is a number of revisions, as a
+		// time.Duration, in periodic mode a period (etcd's --auto-compaction-mode and
+		// --auto-compaction-retention)
+		AutoCompactionMode:      mode,
 		AutoCompactionRetention: time.Duration(retention),
 		// NewServer's premises: a logger, pre-vote off (PreVote false, its zero value), a
 		// non-negative compaction batch limit (zero), the server's feature gate (a
@@ -117,12 +127,26 @@ func StartCompactingServer(name string, peerAddr string, clientAddr string, rete
 	return s, nil
 }
 
-// NewServer builds member name of a new cluster whose initial members' peer URLs are cluster and
+// StartPeriodicServer is StartServer with the auto-compactor on, in periodic mode, keeping the
+// revisions of the last period (period at least 10ns: a shorter one busy-loops).
+func StartPeriodicServer(name string, peerAddr string, clientAddr string, period time.Duration,
+	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
+	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
+	s, err := newServerMode(name, peer, clientAddr, types.URLsMap{name: peer}, name, "periodic",
+		int64(period), NoSnapCount, NoSnapCatchUp, lg)
+	if err != nil {
+		return nil, err
+	}
+	s.Start()
+	return s, nil
+}
+
+// BuildServer builds member name of a new cluster whose initial members' peer URLs are cluster and
 // whose token is token, its peer URLs peer and its one client URL http://client, with the
 // snapshot settings snapCount and catchUp (newServer, the auto-compactor off), and serves nothing:
 // for an example that keeps its listeners, to close them when it stops the member
 // (examples/restart3).
-func NewServer(name string, peer types.URLs, client string, cluster types.URLsMap, token string,
+func BuildServer(name string, peer types.URLs, client string, cluster types.URLsMap, token string,
 	snapCount uint64, catchUp uint64, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	return newServer(name, peer, client, cluster, token, 0, snapCount, catchUp, lg)
 }

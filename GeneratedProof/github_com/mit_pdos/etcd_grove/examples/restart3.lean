@@ -7,13 +7,9 @@ public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.common
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
 public import GeneratedProof.go_etcd_io.etcd.client.v3
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver
-public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import GeneratedProof.go_uber_org.zap
-public import GeneratedProof.google_golang_org.grpc
-public import GeneratedProof.google_golang_org.grpc.keepalive
 public import GeneratedProof.net
 public import GeneratedProof.net.http
-public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.github_com.mit_pdos.etcd_grove.examples.restart3
 
@@ -41,7 +37,6 @@ noncomputable instance member_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "s" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.restart3.member go!"s" l) v.s' dq ∗
     "pl" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.restart3.member go!"pl" l) v.pl' dq ∗
-    "gs" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.restart3.member go!"gs" l) v.gs' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -80,22 +75,6 @@ noncomputable instance member_access_store_pl (l : Loc) (v : github_com.mit_pdos
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.restart3.member go!"pl" l) v.pl' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.restart3.member go!"pl" l) pl' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pl' := pl' } : github_com.mit_pdos.etcd_grove.examples.restart3.member) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance member_access_load_gs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.restart3.member) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.restart3.member go!"gs" l) v.gs' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.restart3.member go!"gs" l) v.gs' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance member_access_store_gs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.restart3.member) (gs' : Loc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.restart3.member go!"gs" l) v.gs' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.restart3.member go!"gs" l) gs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with gs' := gs' } : github_com.mit_pdos.etcd_grove.examples.restart3.member) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

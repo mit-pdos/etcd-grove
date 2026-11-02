@@ -1,6 +1,7 @@
 /-
 **`putgetc`** (M2, 2026-10-27, `notes/m2-plan.md`): putget's file, for putget with the
-auto-compactor on (`common.StartCompactingServer`, revision mode, retention 1); putget's history
+auto-compactor on (`common.StartPeriodicServer`, periodic mode, period 10ms, since 2026-11-02;
+until then `common.StartCompactingServer`, revision mode, retention 1); putget's history
 below is the original's.
 
 The adequacy example's results (`examples/putgetc/putgetc.go`; item 9), restated, with the trust

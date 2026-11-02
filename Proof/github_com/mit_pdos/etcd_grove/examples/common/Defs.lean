@@ -241,18 +241,19 @@ monitors off, `lgMu`'s reader slot of the downgrade monitor), and what `NewServe
 (`srvNetMember`, with its transport `τ`; 2026-10-24, rafthttp stage 6d: the raft loop's key to the
 transport's `Send`, `srvTrKey`, under `γk`, one of the transport's reader tokens, `srvTrTok`, and
 what `http.Serve`'s request goroutines borrow, `srvServeRes`, until the peer address is served:
-`served`). -/
+`served`). (2026-11-02, the restart plan) The apply thread's starting state `ai₀ at₀ c₀ x₀`, a
+first start's (`0` and the boot store) unless given: a restarted member's (`Restart.lean`). -/
 def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
-    (id : w64) (N : Nat) (served : Bool) : IProp GF :=
+    (id : w64) (N : Nat) (served : Bool) (ai₀ at₀ c₀ : w64 := W64 0)
+    (x₀ : apply.ApplyKV := bootKV) : IProp GF :=
   iprop(∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
       (γrn : RNNames) (b : GoInterface) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
       (γk : GName) (τ : SrvTr GF),
     ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
       cfg.WatchProgressNotifyInterval' = 0⌝ ∗
     srvWatchBuilt s E ∗
-    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk))
-      γrn b (W64 0)
-      (W64 0) (W64 0) bootKV N ∗
+    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ ai₀ c₀ x₀ id (srvTrKey γn γk))
+      γrn b ai₀ at₀ c₀ x₀ N ∗
     srvServeBuilt s E cfg 64 ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
     srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     (if served then True else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗

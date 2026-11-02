@@ -128,7 +128,7 @@ theorem kvRevLb_of_srvRevLb (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.S
   imod Hclose $$ [HL Hσ] with -
   · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
   imodintro
-  iunfold kvRevLb
+  unfold kvRevLb kvRevLbZ
   iexists L₀
   isplitr
   · rw [Hok.2.2.2.2.2.2]; iunfold srvReqLogLb at HL0; iexact HL0

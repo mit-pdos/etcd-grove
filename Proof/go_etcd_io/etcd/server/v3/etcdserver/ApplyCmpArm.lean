@@ -216,8 +216,56 @@ theorem cmpAdmit_of_entry (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m 
   intro hk r hr
   obtain ⟨hc, -, hrl⟩ := h ht hd rq hdec hk
   subst hl
-  exact ⟨hkb hc, hrl r hr⟩
+  exact ⟨hkb hc, by have := hrl r hr; omega⟩
 
+
+/-- **A revision of the KV model of a committed prefix is reached** (C3's server stage, 2026-11-02):
+the committed prefix `A` is equivalent to a prefix of the cluster's requested log
+(`srvReqLogLb_of_rlogLb`), whose KV model is `A`'s (`kvModel_eqv`, with `kvInv`'s `c0 ≤ ai0`), on
+the name the KV invariant ties to the KV's (`γk.rlog = γ.raft.log`). -/
+theorem kv_revLbZ_of_rlogLb (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) (n : Int)
+    (hn : n < (kvModel γk A).length) :
+    ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ A ={⊤}=∗ kvRevLbZ γk n := by
+  iintro #Hinv #Hr #HA
+  imod (srvReqLogLb_of_rlogLb γ ⊤ (fun _ _ => CoPset.mem_full) A) $$ Hr HA with ⟨%L₀, #HL0, %Heqv⟩
+  iunfold kvInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  imod Hclose $$ [HL Hσ] with -
+  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  imodintro
+  have hm := (kvModel_eqv γ γk A L₀ Heqv Hok.2.2.1).1
+  iunfold kvRevLbZ
+  iexists L₀
+  isplitr
+  · rw [Hok.2.2.2.2.2.2]; iunfold srvReqLogLb at HL0; iexact HL0
+  ipureintro; rw [← hm]; exact hn
+
+/-- **The apply package's `cmpPermRq` from the entry's claim** (C3's server stage): a compaction's
+claim (`cmpEntryOk`: its revision, positive, at least the cluster's retention below the model
+before it, which the cluster has reached, `kv_revLbZ_of_rlogLb`) is the cluster's permit
+(`kvCmpPermit`), which the store's permit is (`srvKVInvs`'s `crevPermIs`). -/
+theorem cmpPermRq_of_entry [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (E : apply.AEnv GF) (γk : KVNames)
+    (A : List EntryModel) (m : EntryModel) (rq : apply.IRRModel) (hcl : cmpEntryOk γk γk.cmp A m)
+    (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq) :
+    kvRevLbZ (GF := GF) γk ((kvModel γk A).length - 1) ∗ mvcc.crevPermIs E.γ (kvCmpPermit γk) ⊢
+      apply.cmpPermRq E rq := by
+  iintro ⟨#Hlb, #Hcp⟩
+  iunfold apply.cmpPermRq
+  iintro !> %hk %r %hr
+  obtain ⟨-, hc, hrl⟩ := hcl ht hd rq hdec hk
+  have h0 : 0 < sint.Z r := by
+    obtain ⟨⟨-, r', hr', h1⟩, -⟩ := hc
+    rw [hr] at hr'; cases hr'; omega
+  have h1 := hrl r hr
+  iapply mvcc.crevPermAt_of E.γ (kvCmpPermit γk) (sint.Z r)
+  iframe Hcp
+  iintro !>
+  iunfold kvCmpPermit
+  isplitr
+  · ipureintro; exact h0
+  iapply kvRevLbZ_mono γk (sint.Z r + γk.cret) ((kvModel γk A).length - 1) (by omega)
+  iexact Hlb
 
 /-- **The transfer (S3-3, item 8)**: an entry `m` of the committed log after `A` (a lower bound of
 it, as `applyEntryNormal`'s proof holds) gets its claim from the KV invariant's, at the invariant's

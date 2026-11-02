@@ -134,28 +134,36 @@ theorem server_kv_watchable_ofD
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw, Hsr, Hrts, Hlrd,
     #Hle, Hro, Hif, Hok⟩ HΦ
   -- the backend's deletable keys fixed by the mode, and the store's contract the bridge's of it
-  ihave Hsb : iprop(|==> □ ∀ (s : Loc) (γ : mvcc.StoreNames),
+  ihave Hsb : iprop(|==> ((□ ∀ (s : Loc) (γ : mvcc.StoreNames),
       ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
         mvcc.storeBackend (interface.mkOk (go.GoType.PointerType
-          go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be) s γ Pk) $$ [Hdl]
+          go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be) s γ Pk) ∗
+      mvcc.kbNoDelOff (some d))) $$ [Hdl]
   · by_cases hcm : d.cm = true
     · imod mvcc.storeDlReg_fix d.γB γi $$ Hdl with #Hreg
       ihave #Hfk := Hfv $$ %hcm
       ihave #Hsb := mvcc.storeBackend_of_backendC hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL
         hrRU hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe hLSR hUSR hUP d hP Pk γb γi $$ []
       · iframe #
-      imodintro; imodintro
-      iexact Hsb
+      imodintro
+      isplitl []
+      · imodintro
+        iexact Hsb
+      simp only [mvcc.kbNoDelOff, mvcc.kbCmpM, hcm, ↓reduceIte]; itrivial
     · have hcm' : d.cm = false := by simpa using hcm
       imod backend.dlNoDel_fix d.γB $$ Hdl with #Hnd
       ihave #Hsb := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL
         hrRU hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe d hP hcm' Pk γb $$ []
       · iframe #
-      imodintro; imodintro
-      iintro %s %γ %hγ
-      iapply Hsb
-      ipureintro; exact ⟨hγ.1, hγ.2.1⟩
-  imod Hsb with #Hsb
+      imodintro
+      isplitl []
+      · imodintro
+        iintro %s %γ %hγ
+        iapply Hsb
+        ipureintro; exact ⟨hγ.1, hγ.2.1⟩
+      simp only [mvcc.kbNoDelOff, mvcc.kbCmpM, mvcc.kbNoDel, hcm', Bool.false_eq_true, ↓reduceIte]
+      iexact Hnd
+  imod Hsb with ⟨#Hsb, #Hnd⟩
   imod auth.modeTag_alloc (GF := GF) M with ⟨%γtag, #Htag⟩
   rw [show N + 2 = (N + 1) + 1 by omega]
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
@@ -164,7 +172,7 @@ theorem server_kv_watchable_ofD
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
   iapply (hNew lg _ le cfg (some d) γb γl Pk f rd0 γi γok γtag (fun _ => iprop(True)) hcfg)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hif Hok]
-  · iframe Hpkg Hle Hro Hif Hok Hsrm Hsb
+  · iframe Hpkg Hle Hro Hif Hok Hsrm Hsb Hnd
     simp only [mvcc.kbView_some, mvcc.kbNoCmp_some, mvcc.kbRegRight_some, mvcc.kbWT_some,
       mvcc.kbRT_some]
     unfold backend.wbTok

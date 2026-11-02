@@ -173,7 +173,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     (hAlarm : apply.uberApplier.Alarm.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.dispatch.spec (GF := GF) (hG := hG) := by
   intro E p opts c a r rq skip v3 log F Pre Q Post rs info crev
-  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, %HcE, #HF, HFS, HSp, HRO, Hco⟩
+  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, #Hcpr, %HcE, #HF, HFS, HSp, HRO, Hco⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
   icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs, -⟩
@@ -490,6 +490,11 @@ theorem apply.uberApplier.dispatch.wp_proof
     · iframe HR
       isplitr
       · ipureintro; exact hadm
+      isplitr
+      · iunfold apply.cmpPermRq at Hcpr
+        iapply Hcpr
+        · ipureintro; exact hk
+        · ipureintro; exact hs
       iunfold apply.mPre
       iframe
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.cmpAnswerIs_errIs _ _ _ _ _ _ _) $$ [$Hev $Hans]

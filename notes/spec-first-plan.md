@@ -534,3 +534,47 @@ needs a weighting toward it, as here, or the tester's verdict on it is weak.
 **The comparison** (step 3's main metric): spec revisions after the freeze, 1 for the compactor (by
 M2's glue), against about 5 for the read-index baseline over two weeks; not yet fair (hours against
 weeks, and M2 not finished).
+
+## To revisit: the snapshot track as a data point (2026-11-02)
+
+The snapshot track was done proof-first on 2026-10-31 and 2026-11-01 (`snap-sorries`, `snap-j8a`), then spec-first
+(the auth-on install, `notes/snapshot-auth-on-plan.md` on `snap-auth-on-draft`; the backend auth
+split, `notes/backend-auth-split-plan.md` on `backend-auth-split`). A first pass, not strong evidence
+(the proof-first half finished an older bottom-up design; the install is not proved yet): the
+proof-first half had 30 commits in 35 hours, 29 restating an existing statement (10 trusted or exported),
+`applySnapshot`'s spec restated 8 times, CALLER 17 / false 7 / SCOPE 3; the backend split's
+post-freeze log had R 1, F 0. Write-up and table: branch `spec-first-snapshot-data`
+(`notes/spec-first-study/snapshot-proof-first.md`), not merged. To recompute: the track's commits in
+the window touching `Spec/` or `Proof/` (`git log --no-merges --since=2026-10-31 --until=2026-11-01T14:40
+-- Spec Proof`, the other tracks dropped), each classified with step 1's rubric, `git show --numstat`
+for the lines. **Revisit when the auth-on install is frozen and proved**: compare its
+"Change log after the freeze" (F and R per frozen statement, and their `Proof/` lines) with
+that table.
+
+## Spec churn from the git log (2026-11-02)
+
+`etc/spec-churn.py` (`python3 -I etc/spec-churn.py`, about a minute) measures, from the git log
+alone, how often a statement changes after a stage froze it. The unit is a public declaration
+of the statement surface (`Spec/` and the shared `Proof/` modules: `Inv*`, `Api*`, `Defs`, ...):
+a theorem's type, a definition's whole text. Stages and their freeze commits are listed in
+its `STAGES`: add a stage there when it freezes. The script's docstring defines the cohorts.
+
+First run (2026-11-02), within two days:
+- 17% of the stages' frozen definitions changed, and 7% of their theorem statements.
+- Proof-first declarations of the etcd packages changed less: 9-13% of definitions, 4-5% of
+  theorems. The proof-first point is a write that then stayed unchanged for 12 hours.
+- Only 15 of about 1200 frozen declarations (1.3%) were changed by their own stage. The
+  rest were changed by stages working in parallel or after on the same high-fan-in specs:
+  backend-cmp's repairs changed M2's mvcc contract, and M2's approved change-log items
+  changed backend-cmp's and G2's. C3, J8a and lease-src extended `NewServer.spec` and the
+  lease vocabulary.
+
+So the git log shows that the stage's own proof rarely revises what it froze. It does not show
+that spec-first lowers churn against proof-first: there is no proof-first point that matches a
+freeze, and the baseline is diluted by leaf declarations. Three stages froze a design in notes
+before writing Lean (raft unified, the decision switch, txn-nested) and are invisible to it.
+
+The cross-stage churn suggests ordering stages that share specs instead of running them in
+parallel, as M2 and backend-cmp did. **Revisit** when the lease stages' windows are complete
+(after 2026-11-04): rerun the script and compare the own-stage counts with the stages' "Change
+log after the freeze".

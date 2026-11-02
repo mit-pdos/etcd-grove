@@ -47,6 +47,7 @@ abbrev apply.uberApplier.dispatch.spec : Prop :=
       structFieldRef uberApplier go!"applyV3" p ↦ a ∗ apply.applierSpec E c a ∗
       apply.kvOwn E log ∗ apply.certPreV v3 E c rq log ∗ mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗
       ⌜apply.rqOk log rq ∧ apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb log rq⌝ ∗
+      apply.cmpPermRq E rq ∗
       ⌜c.authOn = E.authOn⌝ ∗ mvcc.idxCert E.γ.idx F ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E crev }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))

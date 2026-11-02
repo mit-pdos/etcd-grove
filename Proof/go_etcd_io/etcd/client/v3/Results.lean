@@ -1410,7 +1410,7 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
   -- the server's mode: compaction (the readers' view's tie)
   ihave #Hkvi := srvKVInvs_of_read s E γr $$ Hsrd
   iunfold srvKVInvs at Hkvi
-  icases Hkvi with ⟨-, -, -, -, %Htie⟩
+  icases Hkvi with ⟨-, -, -, -, %Htie, -⟩
   have hEc : E.cmp = true := by rw [← Htie.1, ← hρ]; exact Hkc
   -- the guard's facts: the admin guard `aa` and the server's auth fields
   ihave #Hau := srvAuthAt_of_views s E ρ γr $$ [Hsrv Hsrd]
@@ -1429,9 +1429,8 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
   iunfold etcdRunSlot at Hslot
   icases Hslot with ⟨Hlt, Hsr, Hlg, Hrr, Hrd⟩
   imod HNR with Hid
-  have hrev : W64 (sint.Z req.Revision') = req.Revision' := by word
-  ihave #Hrv' : kvRevLb ρ.rd.kv (W64 (sint.Z req.Revision')) $$ []
-  · rw [hrev]; iexact Hrv
+  ihave #Hrv' : kvRevLbZ ρ.rd.kv (sint.Z req.Revision' + ρ.rd.kv.cret) $$ []
+  · iexact Hrv
   -- the server's `Compact`, guarded: the caller's readers, credit and request in, back out
   let Pin : IProp GF := iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ mvcc.storeReader E.s E.γ ∗
     idCred ρ.ids 1 ∗ r ↦ req)
@@ -2838,6 +2837,41 @@ theorem client_get_value (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64)
   simp only [kvStateOf_rev, kvStateOf_kvs]
   congr 1
   omega
+
+/-- **What a linearizable `Get` returns, with its revision's bound** (the read-side law,
+2026-11-02): `client_get_value`'s, and the state's revision below `2 ^ 63` (the reply's log fits),
+so the header's signed revision is the state's. -/
+theorem client_get_value_rev (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64) (key : GoString)
+    (F : mvcc.Log) (Q : KVState → IProp GF) (m : RangeRespM) :
+    rangeReplyOk E γr c F (getKeyOp key) cid mid Q m ⊢
+      ∃ σ : KVState, □ Q σ ∗ ⌜m.kvs.head?.map EtcdKv.value = (mvcc.findKey key σ.kvs).map EtcdKv.value ∧
+        sint.Z m.hdr.revision = (σ.rev : Int)⌝ := by
+  iintro #H
+  iunfold rangeReplyOk at H
+  icases H with ⟨%l, -, -, -, %Hl, -, #HQ⟩
+  have hs : (getKeyOp key).base.serializable = false := rfl
+  have hk : (getKeyOp key).key = key := rfl
+  simp only [hs, hk, Bool.false_eq_true, ↓reduceIte]
+  obtain ⟨hlen, hlen', hrev, -, -, -, -, hsel, -⟩ := Hl
+  have hst : mvcc.stateAt l (sint.nat (mvcc.rangeRev m.hdr.revision (getKeyOp key).base.rev)) =
+      mvcc.stateAfter l := by
+    have h1 : mvcc.rangeRev m.hdr.revision (getKeyOp key).base.rev = m.hdr.revision := by
+      simp [mvcc.rangeRev, txn.rangeOpOf]
+    rw [h1, hrev]
+    have h2 : sint.nat (W64 ((l.length : Int) - 1)) = l.length - 1 := by
+      unfold sint.nat; word
+    rw [h2, mvcc.stateAt_last]
+  rw [hst] at hsel
+  iexists kvStateOf l
+  iframe HQ
+  ipureintro
+  try rw [kvStateOf_kvs]
+  refine ⟨getKey_value key l m.kvs m.more hsel, ?_⟩
+  rw [hrev]
+  simp only [kvStateOf_rev, kvStateOf_kvs]
+  have : ((l.length - 1 : Nat) : Int) = (l.length : Int) - 1 := by omega
+  rw [this]
+  word
 
 /-- **What a linearizable range returns** (2026-10-15, unit T2): for a range at the latest
 revision (`rev = 0`), the client's read update `Q` was fired at a state `σ` (`□ Q σ`) whose

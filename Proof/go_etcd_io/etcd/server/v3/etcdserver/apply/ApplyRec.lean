@@ -74,8 +74,8 @@ abbrev apply.Apply.specRec : Prop :=
        else iprop(True)) ∗ Pre ∗
       apply.applyKV E ua x ∗ mvcc.storeWT E.γ ∗ apply.certPreV v3 E x.chain rq x.log ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk x.log rq ∧
-        apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb x.log rq⌝ ∗ mvcc.idxCert E.γ.idx F ∗
-      E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs }}
+        apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb x.log rq⌝ ∗ apply.cmpPermRq E rq ∗
+      mvcc.idxCert E.γ.idx F ∗ E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
   {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗ E.FS ∗
@@ -103,7 +103,7 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     (hUA : apply.uberApplier.Apply.spec (GF := GF) (hG := hG)) :
     apply.Apply.specRec (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot F rs
-  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, Hwt, #Hcp, %Hprem, #HF, HFS, HSp, HRO⟩
+  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, Hwt, #Hcp, %Hprem, #Hcpr, #HF, HFS, HSp, HRO⟩
   obtain ⟨Hdec, Hid, Hrq, Hdk, Hca⟩ := Hprem
   ihave #Hpk : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
   · iPkgInit
@@ -148,7 +148,9 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     wp_apply (hUA E p opts x r rq sk v3 F Pre Q Post rs)
         $$ [Hown Hkv Hwt Hcs HFS HSp HRO Hco] as %ar HQ
     · iframe # Hown Hkv Hwt Hcs HFS HSp HRO Hco
-      ipureintro; exact ⟨⟨Hrq, Hdk, Hca⟩, Hskt⟩
+      isplitr
+      · ipureintro; exact ⟨Hrq, Hdk, Hca⟩
+      ipureintro; exact Hskt
     iapply HΦ; iexact HQ
   subst Hid'
   icases Hout with (⟨%sk, ⟨HFS, %x', %out, Hown, Hkv, HPP, HRO, Hco, %Hst, Htr, Hres, #Hauth⟩, Hwv⟩ |

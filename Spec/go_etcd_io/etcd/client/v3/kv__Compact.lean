@@ -30,7 +30,8 @@ for the physical deletion, which its spec does not cover): a compaction at `rev`
 `issues/etcd-restore-scheduled-compact-zero.md`) the KV has reached (`kvRevLb`, from a `Put`'s
 reply or at the start's revisions; the scope restriction that keeps `ErrFutureRev` out of the
 server's model: Go answers a future revision with that error and changes nothing), on a compacting
-cluster (`γ.cmp`, M2's scope). It changes nothing of `γ`'s state as clients see it (`KVState`: a
+cluster (`γ.cmp`, M2's scope); (C3's server stage, 2026-11-02, the user's) at least the cluster's
+retention (`γ.cret`) behind the revision reached (`kvRevLbZ`). It changes nothing of `γ`'s state as clients see it (`KVState`: a
 compaction is not a state change, M2's A4), so it takes no atomic update and may be delivered more
 than once. Returns `nil` and the reply's message (its header), or a client error (`kvErr`; among
 them the server's `ErrCompacted` when `rev` is at or below the compaction revision, the
@@ -45,7 +46,7 @@ abbrev kv.Compact.spec : Prop :=
     (ctx_desc : context.ContextDesc (IProp GF)) (rev : w64),
   1 ≤ sint.Z rev → γ.cmp = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv kv γ dup ∗
-      ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ kvRevLb γ rev }}
+      ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ kvRevLbZ γ (sint.Z rev + γ.cret) }}
     (App (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Compact")) (Val #(GoInterface.ok ctx))) (Val #rev)) (Val #slice.nil))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

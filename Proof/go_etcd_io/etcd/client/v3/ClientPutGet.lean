@@ -122,6 +122,38 @@ theorem client_Put_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
   · iright
     ipureintro; exact Herr
 
+/-- **`cli.Put(ctx, key', val')` of another key by `New`'s client `cl`** (2026-11-02, the restart
+plan's R2: `client_put_end_to_end` at `putOtherAu_of_putGetInv`, `key' ≠ key`): `nil`, or an error;
+`putGetInv`'s `key` keeps its value. -/
+theorem client_Put_other (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv GF)
+    (γr : ReadNames) (γf : GName) (cid mid : w64) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (key val key' val' : GoString) (hne : key' ≠ key)
+    (sl : GoSlice) (F : mvcc.Log) (hsz : opSizeOk (opPutModel key' val' [])) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
+        kvRegsAt (⟨ep, E, γr, cid, mid⟩ : SrvAt GF) ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
+        putGetInv γr γf key val ∗ mvcc.idxCert E.γ.idx F }}
+      (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
+          go!"Put")) (Val #(GoInterface.ok ci))) (Val #key')) (Val #val')) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        ⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
+  iintro %Φ ⟨#Pc, #Hcl, #Hrpc0, #Hctx, #Hce, #Hopts, #Hinv, #HF⟩ HΦ
+  ihave #Hrpc := kvRegs_one ep E γr cid mid $$ Hrpc0
+  iunfold isNewClient at Hcl
+  icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
+  wp_pures
+  wp_auto
+  ihave #Hau := putOtherAu_of_putGetInv γr γf key val key' val' hne $$ Hinv
+  ihave Hau' := putAuOk_of_box api [ep] γr.kv _ _ $$ Hau
+  wp_apply (client_put_end_to_end api [ep] E γr cid mid ci cd key' val' sl
+    (fun _ => iprop(□ True)) F hsz) $$ [Hau'] as %resp %err Hout
+  · iframe #
+  iapply HΦ
+  icases Hout with (⟨%Herr, -⟩ | %Herr)
+  · ileft; ipureintro; exact Herr
+  · iright; ipureintro; exact Herr
+
 /-- **`cli.Get(ctx, key)` by `New`'s client `cl`, after its put fired** (`client_get_end_to_end`
 at `getAu_of_putGetInv`, then `client_get_value`, through the `KV` field): `nil` and a reply whose first key-value's value is `val`; or an error. -/
 theorem client_Get_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv GF)
@@ -576,13 +608,14 @@ theorem client_Put_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfa
 
 /-- **`cli.Compact(ctx, rev)` by `New`'s client `cl`** (the client's `kv.Compact`, 2026-11-01;
 `kv.Compact` through the `KV` field, as `client_Put_kv`): on a compacting cluster, at a revision
-past `0` the KV has reached (`kvRevLb`, a `Put`'s reply's), no options: `nil` and the reply's
+past `0` at least the cluster's retention behind a revision the KV has reached (`kvRevLbZ`; at
+retention `0` a `Put`'s reply's `kvRevLb`), no options: `nil` and the reply's
 message, or a client error. -/
 theorem client_Compact_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (rev : w64) (hr : 1 ≤ sint.Z rev) (hc : γ.cmp = true) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□ GoInterface.ok (kvIfaceOf api) ∗
-        isKv api γ dup ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ kvRevLb γ rev }}
+        isKv api γ dup ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ kvRevLbZ γ (sint.Z rev + γ.cret) }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Compact")) (Val #(GoInterface.ok ci))) (Val #rev)) (Val #slice.nil))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -702,6 +735,7 @@ end Perennial
 
 #print axioms Perennial.EtcdGrove.client.putGetInv_alloc_log
 #print axioms Perennial.EtcdGrove.client.client_Put_own
+#print axioms Perennial.EtcdGrove.client.client_Put_other
 #print axioms Perennial.EtcdGrove.client.client_Get_own
 #print axioms Perennial.EtcdGrove.client.client_Get_st
 #print axioms Perennial.EtcdGrove.client.client_Put_rep

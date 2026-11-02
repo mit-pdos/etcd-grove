@@ -2110,7 +2110,14 @@ mvcc's Link equals the committed file, the previously hand-edited `store.restore
   `isKeyBackendGR`, or `store.restore.spec` with the contract's token separate: its generalized proof
   never uses the contract).
 
-### Task 4: item 37 (stopped; design and impact recorded)
+### Task 4: item 37 (done 2026-11-02: the writer's pin, branch `m2-item37`)
+
+**Done** (`notes/decisions.md`, "The writer's pin"): the two laws are proved over a quarter of the
+bucket view the writer holds itself (`writerPin`) and, with compaction off, the backend's
+no-compaction token and nothing-deletable fact; not through `writerRes`'s log (unreachable after a
+restore, `lateW` unregistered). `bucketViewL` below stays with item 15. The rest of this section is
+the design at the time.
+
 
 **Its consumers (2026-11-02, branch `snap-window`).** `etcdserver.mergedCreate_window` is proved over
 two laws stated with named `sorry`s in `Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/KeyObs.lean`,
