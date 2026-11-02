@@ -29391,3 +29391,19 @@ mvcc: no exported statement changes.
 
 **Rejected.** Registering in `Restore` by a lock/unlock of the new batch tx: not what Go does. A
 pending disjunct inside `physCmp` itself: `physOk` is persistent, the pending resource is not.
+
+## `physOk`'s backend contract without the records' resource (M2's item 15, step A2c)
+
+**2026-11-02 · accepted** (internal to mvcc)
+
+**Problem.** `physOk` kept the store's backend contract at the no-compaction token
+(`isKeyBackendG … (kbNoCmp γ.kb γ.bucket) …`): a `ReadTx` reader holding it reads the compaction keys
+as absent. A compacting store restored from a compacted image receives the contract only at the
+image's records (`storeBackendTR … r`, whose clause is under `kbRecs … r`), from which the clause
+under `kbNoCmp` does not follow, so `Restore` could not rebuild `physOk`.
+
+**Decision.** `physOk` (and `txReader`, `isKeyBackendG_cmpOn`) keep the contract with the records'
+resource `False`: no reader of the store holds a records' resource (only `restore()` reads the
+compaction keys, over its caller's contract, not `physOk`'s), so the clause was never used.
+`isKeyBackendGR_ncFalse` gives it from the contract at any records, `isKeyBackendG_ncFalse` from
+today's (`NewStore`, the off-mode `Restore`). No exported statement changes.

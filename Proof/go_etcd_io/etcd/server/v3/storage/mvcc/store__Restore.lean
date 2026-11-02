@@ -195,6 +195,11 @@ theorem mvcc.store.Restore.wp_proof
   ihave Hrts : [∗list] _x ∈ List.replicate (mvcc.nReaders - 1) (), mvcc.storeRT (GF := GF) (γ.withPhys p')
       $$ [Hrts]
   · simp only [mvcc.storeRT, mvcc.StoreNames.withPhys_kb, hk]; iexact Hrts
+  -- the new pool's tokens, and the writer's
+  rw [show mvcc.nReaders - 1 = (mvcc.nReaders - 2) + (2 - 1) by
+    have := sync.actualMaxReaders_ge_2; unfold mvcc.nReaders; omega]
+  icases (mvcc.rep_split _ _ _).1 $$ Hrts with ⟨Hrts, Hnew⟩
+  ihave Hnew := mvcc.rep_one _ $$ Hnew
   ihave Hnc : mvcc.kbNoCmp (GF := GF) (γ.withPhys p').kb (γ.withPhys p').bucket $$ [Hnc]
   · simp only [mvcc.StoreNames.withPhys_kb, mvcc.StoreNames.withPhys_bucket, hk, hb]; iexact Hnc
   -- the writer's old backend token, and its retired ticket
@@ -284,17 +289,20 @@ theorem mvcc.store.Restore.wp_proof
         mvcc.storeRT (γ.withPhys p') ∗
         (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half.half} (W64 (-1) : w64) : IProp GF) ∗
         mvcc.isTreeIndex ti (γ.withPhys p').idx)
-      $$ [Hcur Hfrag HcurR HcurW Htkr Hheld Hrts Hlc3 Hwsd]
+      $$ [Hcur Hfrag HcurR HcurW Htkr Hheld Hrts Hlc3 Hwsd Hnew]
   · iunfold mvcc.revUnlockW
     iintro %Ψ Hcur2 ⟨Hwl2, Hr, Hr2, Hcm2, HcmK, Hlc4⟩ ⟨Hv, #Hti', Hrd, #Hrc⟩ HΨ
     iunfold mvcc.wsDep at Hwsd
     imod (mvcc.restore_switch s γ ⟨b, ti0, GoInterface.ok fi, sstop⟩ ⟨b', ti, sc, stopc⟩ p' R (-1) (-1)
-        1 hR (by decide) (by simp; omega)) $$
+        1 2 hR (by decide) (by simp; omega) (Nat.le_refl 2)) $$
         Hlc4 Hlc3 Hwi Hwsd Hpool Hcur Hfrag HcurR HcurW Htkr Hr Hr2 Hheld Hcur2 Hcm2 [] [] Hnlb Hok'
-        Hv Hrd [] [] Hrts
-      with ⟨HR, Hrst', Hn1, Hfrag', Hn3, Htkr, Hwsd, Hw, Hrv', HlogQ, Hold, Hnew⟩
+        [Hv] Hrd [] [] Hrts
+      with ⟨HR, Hrst', Hn1, Hfrag', Hn3, Htkr, Hwsd, Hw, Hrv', HlogQ, Hold⟩
     · iunfold mvcc.lagTok; simp only [↓reduceIte]; itrivial
     · iapply mvcc.crevPermAt_none
+    · iintro -
+      iapply mvcc.bucketViewL_exact
+      iapply mvcc.restoreViewOut_bucketView $$ Hv
     · iexact Hrc
     · ipureintro; exact Hrb
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl2 HR]
@@ -333,7 +341,8 @@ theorem mvcc.store.Restore.wp_proof
     simp only [named]
     isplitl []
     · iunfold mvcc.hookP; simp only [mvcc.StoreNames.withPhys_hook]; iexact Hh'
-    iframe HbkT'
+    isplitl []
+    · iapply mvcc.isKeyBackendG_ncFalse $$ HbkT'
     isplitl []
     · imodintro; itrivial
     isplitl []
@@ -436,8 +445,7 @@ theorem mvcc.store.Restore.wp_proof
   · iunfold mvcc.hookP; simp only [mvcc.StoreNames.withPhys_hook]; iexact Hh'
   isplitl [HrtOld Hold]
   · have h2 := sync.actualMaxReaders_ge_2
-    rw [show mvcc.nReaders - 1 = (mvcc.nReaders - 2) + 1 by unfold mvcc.nReaders; omega,
-      List.replicate_succ]
+    rw [show mvcc.nReaders - 2 + (2 - 1) = (mvcc.nReaders - 2) + 1 from rfl, List.replicate_succ]
     iapply BigSepL.bigSepL_cons.2
     iframe HrtOld Hold
   iexact Hnew

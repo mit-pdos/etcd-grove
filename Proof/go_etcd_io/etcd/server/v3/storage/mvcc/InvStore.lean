@@ -2429,6 +2429,33 @@ theorem crevUB_split (γ : IdxNames) (q1 q2 : Qp) (c : Int) :
   unfold crevUB
   exact (monoNatAuthOwn_fractional (GF := GF) γ.crev (crevN c)).fractional q1 q2
 
+/-- The compaction revision's whole authority (the right's half, `s.mu`'s and `s.revMu`'s
+quarters) raised from `c` to `c2`, with a lower bound. -/
+theorem crevUB_raise (γ : IdxNames) (c c2 : Int) (h : c ≤ c2) :
+    ⊢ crevUB (GF := GF) γ (1 : Qp).half c -∗ crevUB γ (1 : Qp).half.half c -∗
+      crevUB γ (1 : Qp).half.half c ==∗
+      crevUB γ (1 : Qp).half c2 ∗ crevUB γ (1 : Qp).half.half c2 ∗
+        crevUB γ (1 : Qp).half.half c2 ∗ crevLb γ c2 := by
+  iintro H1 H2 H3
+  ihave H23 := (crevUB_split γ (1 : Qp).half.half (1 : Qp).half.half c).2 $$ [H2 H3]
+  · iframe
+  rw [Qp.half_add_half]
+  ihave H := (crevUB_split γ (1 : Qp).half (1 : Qp).half c).2 $$ [H1 H23]
+  · iframe
+  rw [Qp.half_add_half]
+  iunfold crevUB at H
+  imod mono_nat_own_update (crevN c2) (crevN_mono h) $$ H with ⟨H, #Hlb⟩
+  ihave H : crevUB γ ((1 : Qp).half + ((1 : Qp).half.half + (1 : Qp).half.half)) c2 $$ [H]
+  · rw [Qp.half_add_half, Qp.half_add_half]
+    iunfold crevUB
+    iexact H
+  icases (crevUB_split γ _ _ c2).1 $$ H with ⟨H1, H23⟩
+  icases (crevUB_split γ _ _ c2).1 $$ H23 with ⟨H2, H3⟩
+  imodintro
+  iframe H1 H2 H3
+  iunfold crevLb
+  iexact Hlb
+
 /-- A part of the authority bounds every lower bound (the part kept). -/
 theorem crevUB_lb_keep (γ : IdxNames) (q : Qp) (c c' : Int) (hc : -1 ≤ c) :
     crevUB (GF := GF) γ q c ∗ crevLb γ c' ⊢ crevUB γ q c ∗ ⌜c' ≤ c⌝ := by
@@ -3236,11 +3263,11 @@ compaction's proofs (`updateCompactRev`, the job, `checkPrevCompactionCompleted`
 backend. -/
 theorem isKeyBackendG_cmpOn (b : GoInterface) (s : Loc) (γ : StoreNames) (Dep P : IProp GF)
     (HF : val → IProp GF) (h : storeCmp γ) :
-    isKeyBackendG (GF := GF) b (bucketView γ) (storeRT γ) (storeWT γ) (kbNoCmp γ.kb γ.bucket)
+    isKeyBackendG (GF := GF) b (bucketView γ) (storeRT γ) (storeWT γ) iprop(False)
       (storePutOk γ) (delKey γ)
       (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P HF (storeReq γ) (storeRb γ) (storeBt γ)
       (kbSR γ.kb) (kbSRh γ.kb) (kbMW γ.kb γ.bucket) (kbHookNil γ.kb) ⊢
-    isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (kbNoCmp γ.kb γ.bucket)
+    isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) iprop(False)
       (storePutOk γ) (delKey γ)
       (storeW s γ) (kbWi γ.kb) Dep True P HF (storeReq γ) (storeRb γ) (storeBt γ)
       (kbSR γ.kb) (kbSRh γ.kb) (kbMW γ.kb γ.bucket) (kbHookNil γ.kb) := by
@@ -4025,7 +4052,7 @@ restored backend is registered only at its first writer's lock.) -/
 def physOk (s : Loc) (γ : StoreNames) (o : StoreObjs) : IProp GF :=
   iprop(∃ (Ph Dep : IProp GF),
     "#Hhook" ∷ hookP γ Ph ∗
-    "#Hbk" ∷ isKeyBackendG o.b (bucketView γ) (storeRT γ) (storeWT γ) (kbNoCmp γ.kb γ.bucket)
+    "#Hbk" ∷ isKeyBackendG o.b (bucketView γ) (storeRT γ) (storeWT γ) iprop(False)
       (storePutOk γ) (delKey γ)
       (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) Ph (hookFn γ) (storeReq γ) (storeRb γ) (storeBt γ)
       (kbSR γ.kb) (kbSRh γ.kb) (kbMW γ.kb γ.bucket) (kbHookNil γ.kb) ∗
@@ -4829,7 +4856,7 @@ reader token back), and the transaction's part of `s.mu`'s deposit ghost (given 
 with its part of `s.mu`'s resource; D22 receiver epochs, S2). -/
 def txReader (γ : StoreNames) (rt : GoInterfaceOk) (log : Log) : IProp GF :=
   iprop(∃ (m m' : Bucket) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF),
-    "#Hsnap" ∷ keyReadLocked (storeRT γ) (kbNoCmp γ.kb γ.bucket) false rt m' Rd Tok ∗
+    "#Hsnap" ∷ keyReadLocked (storeRT γ) iprop(False) false rt m' Rd Tok ∗
     "#Hthin" ∷ snapThin m m' (delKey γ) ∗
     "Htok" ∷ Tok ∗
     "Hwr" ∷ wDep γ ∗

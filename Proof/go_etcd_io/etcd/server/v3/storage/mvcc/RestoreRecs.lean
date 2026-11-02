@@ -245,6 +245,90 @@ theorem isKeyBackendGR_noNil (b : GoInterface) (View : Qp → Bucket → IProp G
   iapply HΦ
   iapply isBatchTxG_noNil $$ Hb'
 
+/-! ### The store's own contract: no records' resource (M2's item 15)
+
+`physOk` keeps the backend's contract with the records' resource `False` (no reader of the store
+holds one: only `restore()` reads the compaction keys, over its caller's contract), so that a store
+restored from records has it too (`isKeyBackendGR_ncFalse`). -/
+
+theorem keyReadLockedR_ncFalse (RT NC : IProp GF) (r : CmpRecs) (rng : Bool) (rt : GoInterfaceOk)
+    (m : Bucket) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool) :
+    keyReadLockedR (GF := GF) RT NC r rng rt m Rd Tok cl ⊢ keyReadLocked RT iprop(False) rng rt m Rd Tok cl := by
+  unfold keyReadLockedR keyReadLocked
+  cases rng
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro ⟨#H1, #H2, -, #H4⟩
+    iframe H1 H2 H4
+  · simp only [↓reduceIte]
+    iintro ⟨#H1, #H2, ⟨#H3, #H4, #H5, -⟩, #H6⟩
+    iframe H1 H2 H3 H4 H5 H6
+    iintro !> Hf
+    iexfalso; iexact Hf
+
+theorem keyReadSnapR_ncFalse (View : Qp → Bucket → IProp GF) (RT NC : IProp GF) (r : CmpRecs)
+    (Del : GoString → IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : Bucket) (L : IProp GF) :
+    keyReadSnapR (GF := GF) View RT NC r Del rng rt m L ⊢ keyReadSnap View RT iprop(False) Del rng rt m L := by
+  unfold keyReadSnapR keyReadSnap
+  iintro #H !> %q %Φ !> Hpre HΦ
+  iapply H $$ %q Hpre
+  inext
+  iintro ⟨Hv, %m', %Rd, %Tok, Ht, #Hl, #Hth⟩
+  iapply HΦ
+  iframe Hv
+  iexists m', Rd, Tok
+  iframe Ht Hth
+  iapply keyReadLockedR_ncFalse $$ Hl
+
+/-- **The contract at any records, with no records' resource.** -/
+theorem isKeyBackendGR_ncFalse (b : GoInterface) (View : Qp → Bucket → IProp GF)
+    (RT WT NC : IProp GF) (r : CmpRecs) (PutOk : Bucket → Puts → GoString → GoString → Prop)
+    (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
+    (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
+    (SR SRh MW HN : IProp GF) :
+    isKeyBackendGR (GF := GF) b View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ⊢
+    isKeyBackendG b View RT WT iprop(False) PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN := by
+  iintro #H
+  iunfold isKeyBackendGR at H
+  iunfold isKeyBackendG
+  icases H with ⟨%bi, %Hbi, #Hcrt, #Hrt, #Hbt, #Hfc, #Hsz, #Hszu, #Hcmp⟩
+  iexists bi
+  iframe Hbt Hfc Hsz Hszu Hcmp
+  isplitr
+  · ipureintro; exact Hbi
+  isplitr
+  · iintro !> %q %m %Φ !> Hpre HΦ
+    iapply Hcrt $$ %q %m Hpre
+    inext
+    iintro %rt ⟨Hv, %L, HL, #Hs⟩
+    iapply HΦ
+    iframe Hv
+    iexists L
+    iframe HL
+    iapply keyReadSnapR_ncFalse $$ Hs
+  iintro !> %q %m %Φ !> Hpre HΦ
+  iapply Hrt $$ %q %m Hpre
+  inext
+  iintro %rt ⟨Hv, %L, HL, #Hs⟩
+  iapply HΦ
+  iframe Hv
+  iexists L
+  iframe HL
+  iapply keyReadSnapR_ncFalse $$ Hs
+
+/-- The same at no record (today's contract, any records' resource). -/
+theorem isKeyBackendG_ncFalse (b : GoInterface) (View : Qp → Bucket → IProp GF)
+    (RT WT NC : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
+    (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
+    (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
+    (SR SRh MW HN : IProp GF) :
+    isKeyBackendG (GF := GF) b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ⊢
+    isKeyBackendG b View RT WT iprop(False) PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN := by
+  rw [← isKeyBackendGR_empty]
+  exact isKeyBackendGR_ncFalse b View RT WT NC CmpRecs.empty PutOk Del W Wi Dep Cmp P HF Req Rb Bt
+    SR SRh MW HN
+
 /-- **What `Restore` lends for the compaction `restore()` resumes** (item 31, switched 2026-10-30; the
 restore Draft's A2, in place of round 3's `resumeCsM`): on, when the records resume a compaction, the new backend's unset hook (lent,
 given back: `Restore.specM`'s post has it again); else nothing. -/

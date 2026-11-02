@@ -566,6 +566,7 @@ theorem mvcc.NewStore.wp_proof
   · iunfold mvcc.physOk
     iexists P, Dep
     simp only [named]
+    ihave #HbkF := mvcc.isKeyBackendG_ncFalse _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ $$ Hbk0
     iframe #
     ipureintro; rw [hγcm, hγk]; simp
   ihave Hfs : mvcc.fieldShareAt «$r0_ptr» γ ((1 : Qp).half + (1 : Qp).half) (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs)

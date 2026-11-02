@@ -29,33 +29,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- The compaction revision's whole authority (the right's half, `s.mu`'s and `s.revMu`'s
-quarters) raised from `c` to `c2`, with a lower bound. -/
-theorem crevUB_raise (γ : mvcc.IdxNames) (c c2 : Int) (h : c ≤ c2) :
-    ⊢ mvcc.crevUB (GF := GF) γ (1 : Qp).half c -∗ mvcc.crevUB γ (1 : Qp).half.half c -∗
-      mvcc.crevUB γ (1 : Qp).half.half c ==∗
-      mvcc.crevUB γ (1 : Qp).half c2 ∗ mvcc.crevUB γ (1 : Qp).half.half c2 ∗
-        mvcc.crevUB γ (1 : Qp).half.half c2 ∗ mvcc.crevLb γ c2 := by
-  iintro H1 H2 H3
-  ihave H23 := (mvcc.crevUB_split γ (1 : Qp).half.half (1 : Qp).half.half c).2 $$ [H2 H3]
-  · iframe
-  rw [Qp.half_add_half]
-  ihave H := (mvcc.crevUB_split γ (1 : Qp).half (1 : Qp).half c).2 $$ [H1 H23]
-  · iframe
-  rw [Qp.half_add_half]
-  iunfold mvcc.crevUB at H
-  imod mono_nat_own_update (mvcc.crevN c2) (mvcc.crevN_mono h) $$ H with ⟨H, #Hlb⟩
-  ihave H : mvcc.crevUB γ ((1 : Qp).half + ((1 : Qp).half.half + (1 : Qp).half.half)) c2 $$ [H]
-  · rw [Qp.half_add_half, Qp.half_add_half]
-    iunfold mvcc.crevUB
-    iexact H
-  icases (mvcc.crevUB_split γ _ _ c2).1 $$ H with ⟨H1, H23⟩
-  icases (mvcc.crevUB_split γ _ _ c2).1 $$ H23 with ⟨H2, H3⟩
-  imodintro
-  iframe H1 H2 H3
-  iunfold mvcc.crevLb
-  iexact Hlb
-
 theorem mvcc.store.updateCompactRev.wp_proof
     (h0 : schedule.NewJob.spec (GF := GF) (hG := hG))
     (h1 : mvcc.store.compactBarrier.spec (GF := GF) (hG := hG))
@@ -247,7 +220,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
         iapply ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).2
         iframe
       wp_auto
-      imod crevUB_raise γ.idx c' (sint.Z rev) (by omega) $$ Hcr HcrevM Hcrev
+      imod mvcc.crevUB_raise γ.idx c' (sint.Z rev) (by omega) $$ Hcr HcrevM Hcrev
         with ⟨Hcr, HcrevM, Hcrev, #Hlb⟩
       have hrw : (W64 (sint.Z rev) : w64) = rev := by word
       ihave Hcmpf2 : (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half}
