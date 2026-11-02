@@ -57,7 +57,7 @@ theorem NewRawNode.wp_proof
     NewRawNode.spec (GF := GF) (hG := hG) := by
   intro c cv lok si sn σ hs csm R R' cs' Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs Hasync
     Hidx Hpend Hfr1 Hfr2 Hfl Hsg Hdt Hwrap Hrec Hhs Happ Hres Hlen
-  wp_start as ⟨Hc, #Hlg, HR, #HFI, #HLI, #HInit⟩
+  wp_start as ⟨Hc, #Hlg, HR, HFI, HLI, HInit⟩
   wp_auto
   wp_apply wp_newRaft c cv lok si sn σ hs csm R R' cs' Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs
     Hidx Hpend Hfr1 Hfr2 Hfl Hsg Hdt Hwrap Hrec Hhs Happ Hres Hlen
