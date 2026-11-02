@@ -918,3 +918,11 @@ on every one.
    evaluates `&ch.clients[i]` afresh for each use (`client.lift`'s receiver; no chains helper
    runs while it is held); `checkSingle` holds no client pointer; `isComplete` is not called
    while one is held.
+
+## Proofs (2026-11-02): done
+
+Every spec of the frozen plan (with amendment 1) is proved and linked (`Link.lean`, no pending
+hypothesis); `lake build PorcupineDag` succeeds; `#print axioms` of the three public results
+(`Results.lean`) shows no `sorryAx` and no axiom of this repository. Workarounds kept local: field
+loads through fractional points-tos (`notes/perennial-changes.md`); `chains.lift`'s `nDeps` recount
+keeps client `i` out of the chains for the loop (`SearchLemmas.chainsRepr_open`/`chainsRest`).
