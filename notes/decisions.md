@@ -29163,3 +29163,42 @@ disjunct (vacuous at any follower).
 `kv_Read`/`Range` drop it (nothing needs it before the server's permit is not `True`); the client
 does not see `crevPermIs` (only the apply thread does). Both go with C3's client stage. Reviews: three
 `spec-reviewer` rounds (the Draft's candidates 2-5); the example `.claude/skills/spec/examples/c3-store-law.md`.
+
+## C3's server stage: the cluster's compaction retention and permit (2026-11-02 · the user's approval · branch `c3-server`)
+
+**What the user approved.** The cluster's retention `KVNames.cret` (default `0`); the client's
+`kv.Compact` (and the gRPC contract `etcdCompactSpec`) taking `kvRevLbZ γ (sint.Z rev + γ.cret)` in
+place of `kvRevLb γ rev`; `NewServer`'s premise, with the compactor on (revision mode),
+`ρ.rd.kv.cret ≤ AutoCompactionRetention`; the apply chain's persistent premise of a compaction
+request.
+
+**The statements.** `kvRevLbZ γk (n : Int)` (`kvRevLb` its alias at `sint.Z`: a revision plus the
+retention must not wrap, review round 1); `kvCmpPermit γk c := ⌜0 < c⌝ ∗ kvRevLbZ γk (c + γk.cret)`,
+the cluster's certificate, not a member's (round 1: it holds on every member and across a snapshot
+install, and a client uses it as it stands). `reqPropOk`'s compaction form carries
+`kvRevLbZ γk (r + cret)`; the KV invariant records `r + cret < (kvModel γk A).length`
+(`cmpEntryOk`). `NewServer` creates the store at `Perm := kvCmpPermit ρ.rd.kv`; `srvKVInvs` keeps
+`crevPermIs E.γ (kvCmpPermit γr.kv)` and `⌜γr.kv.cret = E.cret⌝` (both the apply thread and the
+readers hold it, round 3). The apply chain (`Apply` → `dispatch` → `cmpTriple` → the wrappers →
+`applierV3backend.Compaction`) takes `cmpPermRq E rq` (of a compaction request, `crevPermAt E.γ r`:
+`store.Compact`'s own premise, round 2), which `applyEntryNormal` builds from the entry's claim
+(`kv_revLbZ_of_rlogLb`, `cmpPermRq_of_entry`). `EtcdServer.Compact.spec` takes
+`kvRevLbZ ρ.rd.kv (r + ρ.rd.kv.cret)`; the compactor's proposals give it from its permit's
+`srvRevLb (r + ret)` when `E.cret ≤ ret` (`compactableOk_server`).
+
+**`AEnv.cret`, a departure from candidate 4.** The compactor's `Compact` call is made at request
+names `ρ'` the run chooses (`compactorRun`'s `∀ ρ`), not `NewServer`'s `ρ`, so `NewServer`'s premise
+on `ρ.rd.kv.cret` does not reach it. As the mode `cmp` does, the server's environment carries the
+retention (`AEnv.cret`, `NewServer` builds it at `ρ.rd.kv.cret`) and `srvKVInvs` ties every reader
+view's `γr.kv.cret` to it.
+
+**The examples.** `alloc1`/`srvClusterBoot_alloc` take `cret` (default `0`) and report it;
+`putgetc` and `compactkv` allocate at `cret := 1` (their retention); `StartCompactingServer` and
+`newServer.specCompact` take `ρ.rd.kv.cret ≤ retention`; `compactkv` compacts at the Put's revision
+minus one, which is `cret` behind the revision reached. At retention 1 the law adds only "below
+the head" (the configured retention is what it is as strong as).
+
+**Restores**, an open obligation: a compaction-mode restore's resumed compaction needs
+`kvCmpPermit γk sched` of the image's scheduled revision (the cluster's fact of every committed
+compaction entry); no link from an image to committed entries exists yet, and no compaction-mode
+restore runs at the pin. Reviews: three `spec-reviewer` rounds (candidates 2-4).

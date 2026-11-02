@@ -165,8 +165,10 @@ abbrev NewServer.spec : Prop :=
   -- (M2's scope: no periodic mode, which needs the clock's trust boundary); the stand-in's mode
   -- the configuration's (`E₀.cmp`: the store built at `cm := retention ≠ 0`, `envAgree`'s
   -- `E.γ.cm = E.cmp` reads it off the post); the KV names' mode the stand-in's (item 14')
+  -- (C3's server stage, 2026-11-02, the user's) on, the cluster's retention at most the compactor's
   (cfg.AutoCompactionRetention' = 0 ∨
-    (cfg.AutoCompactionMode' = go!"revision" ∧ 0 < sint.Z cfg.AutoCompactionRetention')) →
+    (cfg.AutoCompactionMode' = go!"revision" ∧ 0 < sint.Z cfg.AutoCompactionRetention' ∧
+      (ρ.rd.kv.cret : Int) ≤ sint.Z cfg.AutoCompactionRetention')) →
   E₀.cmp = decide (cfg.AutoCompactionRetention' ≠ 0) → ρ.rd.kv.cmp = E₀.cmp →
   -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice; J8a-6,
   -- 2026-11-01, the user's decision: `2 ^ 28` (until then `2 ^ 31`), the transport's pool of `lgMu`
@@ -515,9 +517,10 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- member's apply; etcd's default (128) meets it
   v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →
   -- the compactor by the mode: on, in revision mode at a positive retention (M2's phase 0), auth
-  -- off; off, not configured (`AutoCompactionRetention = 0`: `v3compactor.New` not reached)
+  -- off; off, not configured (`AutoCompactionRetention = 0`: `v3compactor.New` not reached);
+  -- (C3's server stage, 2026-11-02, the user's) on, the cluster's retention at most the compactor's
   (if cmp then cfg.AutoCompactionMode' = go!"revision" ∧ 0 < sint.Z cfg.AutoCompactionRetention' ∧
-      on = false
+      on = false ∧ (ρ.rd.kv.cret : Int) ≤ sint.Z cfg.AutoCompactionRetention'
     else cfg.AutoCompactionRetention' = 0) →
   -- the stand-in's mode the server's (`envAgree`'s `E.γ.cm = E.cmp` reads it off the post)
   E₀.cmp = cmp →

@@ -2206,6 +2206,11 @@ theorem crevPermAt_cperm (γ γ' : StoreNames) (h : γ'.cperm = γ.cperm) (c : I
     crevPermAt (GF := GF) γ c ⊢ crevPermAt γ' c := by
   unfold crevPermAt crevPermIs; rw [h]
 
+/-- `crevPermIs` at a name with the same permit name (a restore's `withPhys`). -/
+theorem crevPermIs_cperm (γ γ' : StoreNames) (h : γ'.cperm = γ.cperm) (Perm : Int → IProp GF) :
+    crevPermIs (GF := GF) γ Perm ⊢ crevPermIs γ' Perm := by
+  unfold crevPermIs; rw [h]
+
 /-- **The store's permit**, allocated (`NewStore`). -/
 theorem crevPermIs_alloc (Perm : Int → IProp GF) :
     ⊢ |==> ∃ g : GName, savedPredOwn g DFrac.discard (fun c => iprop(□ Perm c)) :=

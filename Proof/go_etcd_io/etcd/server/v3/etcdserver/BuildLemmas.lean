@@ -245,7 +245,7 @@ theorem server_kv_watchable_ofM (c : Bool)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : val)
     (rd0 : GoFunc) (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (M : auth.AuthMode)
     (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
-    (hrb : receiptBound GF ≤ 2 ^ 48) :
+    (hrb : receiptBound GF ≤ 2 ^ 48) (Perm : Int → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -280,7 +280,7 @@ theorem server_kv_watchable_ofM (c : Bool)
             mvcc.nJobRd (some ({ d with cm := c } : mvcc.KBReal)) - 2) (),
           mvcc.watchReader ws st γw) ∗
         mvcc.wsCloser ws st γw.st ∗ mvcc.crevRightM γw.st ∗
-        mvcc.crevPermIs γw.st (fun _ => iprop(True)) ∗
+        mvcc.crevPermIs γw.st Perm ∗
         mvcc.retiredAt γw.st (mvcc.nJobRd (some ({ d with cm := c } : mvcc.KBReal))) ∗
         (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd ws st γw) ∗ auth.modeTag γw.tag M }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hdl, Hv, Hncmp, Hrg, Hw, Hrts, Hlrd, #Hle, Hro, Hif,
@@ -318,7 +318,7 @@ theorem server_kv_watchable_ofM (c : Bool)
   ihave Hsrm := mvcc.kbSRM_some ({ d with cm := c } : mvcc.KBReal) $$ Hsr
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
   iapply (hNew lg _ le cfg (some ({ d with cm := c } : mvcc.KBReal)) γb γl Pk f rd0 γi γok γtag
-      (fun _ => iprop(True)) hcfg)
+      Perm hcfg)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hif Hok]
   · iframe Hpkg Hle Hro Hif Hok Hsrm Hsb
     simp only [mvcc.kbView_some, mvcc.kbNoCmp_some, mvcc.kbRegRight_some, mvcc.kbWT_some,

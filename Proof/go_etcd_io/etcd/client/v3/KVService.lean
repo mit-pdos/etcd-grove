@@ -428,14 +428,15 @@ def etcdDeleteSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
       ∀ m : DelRespM, deleteReplied E γr F o Q cid mid m -∗ Φ m)
 
 /-- **etcd's spec of the KV service's `Compact`** (the client's `kv.Compact`, 2026-11-01): a caller
-asking a compaction at a revision past `0` (M2's scope) the KV has reached (`kvRevLb`), not
+asking a compaction at a revision past `0` (M2's scope) at least the cluster's retention behind
+one the KV has reached (`kvRevLbZ`, C3's server stage, 2026-11-02), not
 physical, on a compacting server (`γr.kv.cmp`, M2's scope), gets a reply message with the
 member's header. A compaction is not a state change of the clients' KV (M2's A4): no update. -/
 def etcdCompactSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
     GrpcSpec (GF := GF) pbCompactionRequest pbCompactionResponse :=
   fun (o : CompactReqM) (Φ : CompactRespM → IProp GF) =>
     iprop(⌜1 ≤ sint.Z o.revision ∧ o.physical = false ∧ γr.kv.cmp = true⌝ ∗
-      kvRevLb γr.kv o.revision ∗
+      kvRevLbZ γr.kv (sint.Z o.revision + γr.kv.cret) ∗
       ∀ m : CompactRespM, ⌜m.hdr.clusterId = cid ∧ m.hdr.memberId = mid⌝ -∗ Φ m)
 
 end defs
