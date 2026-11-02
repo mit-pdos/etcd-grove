@@ -473,12 +473,16 @@ theorem EtcdServer.applyAll.wp_proofSnap
             · iframe Hcsom Hc0
             subst Hcc
             imod srv_merged_sent γr A' sv.Metadata'.Index' sv.Metadata'.Term' cm γm.id ct sm sn hpos
-                hi61 hmo.2 hlenZ hltA Hcs0 Hty hsn (by word)
+                hi61 hmo.2.1 hlenZ hltA Hcs0 Hty hsn (by word)
                 (by have := hnI; have := uint_nat_eq sv.Metadata'.Index'; omega)
               $$ [Hrli HA' Hsm Hct] with #Hsm'
             · iframe Hrli HA' Hsm Hct
             -- (S2's `merged_image`) the image's certificate
+            have hcmp' : E'.cmp = false := by
+              obtain ⟨-, p, P, f, cc, RO, RW, hE⟩ := hbs
+              rw [hE]; exact hcmp
             imod merged_image s γ' ci TM' E' ρ γr sv.Metadata'.Index' A' x' Dm hlenZ ⟨hc0, hlog0⟩
+                hcmp'
               $$ [Hka] with ⟨Hka, #Himg'⟩
             · iframe Hsrv1 Hka; ipureintro; exact HQd
             imod srvMerged_bundle γr.raft.raft m rc sm γm.id cm sv.Metadata'.Index'

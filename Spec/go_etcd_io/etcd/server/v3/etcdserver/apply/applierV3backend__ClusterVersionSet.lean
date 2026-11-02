@@ -26,13 +26,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`a.ClusterVersionSet(r, shouldApplyV3)`** for a version that parses (`semver.MustParse` panics otherwise): the cluster's `SetVersion` (a critical section, or none); a downgrade logged and a snapshot forced. -/
+/-- **`a.ClusterVersionSet(r, shouldApplyV3)`** for a version that parses (`semver.MustParse` panics otherwise) and is not above the server's (`semverAtMostServer`: the cluster's `SetVersion` panics above it; the cluster-rows stage, 2026-11-02): the cluster's `SetVersion` (a critical section, or none); a downgrade logged and a snapshot forced. -/
 abbrev apply.applierV3backend.ClusterVersionSet.spec : Prop :=
   ∀ (E : AEnv GF) (p r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF) (v : GoString)
     (rs : apply.RestM)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
-      apply.clusterVersionSetIs r v ∗ ⌜semverValid v⌝ ∗
+      apply.clusterVersionSetIs r v ∗ ⌜semverValid v ∧ apply.semverAtMostServer v⌝ ∗
       apply.mPreV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post ∗ mvcc.storeWT E.γ ∗
       E.FS ∗ E.RO rs }}
     (App (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"ClusterVersionSet")) (Val #r)) (Val #v3))

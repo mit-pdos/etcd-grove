@@ -850,7 +850,7 @@ theorem EtcdServer.Txn.wp_proof
     -- (2026-10-20, linkv-txn stage A) the token of the transaction's result
     imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
     wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn tw) (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L)))
-        F rfl (apply.irrDepthOk_irrTxn (Hdpt hro))
+        F rfl (apply.irrDepthOk_irrTxn (Hdpt hro)) (by simp [apply.dispatchKind, irrTxn, apply.irrEmpty])
         $$ [Hlt Hard Hcred Header Hnp] as %resp %err ⟨Hlt, Hard, Hres⟩
     · iframe # Hlt Hard Hcred
       isplitl [Hnp]

@@ -1839,6 +1839,16 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     have hidr : γrn.id = id := by rw [Hrn5, Hrid]
     rw [hidr, ← Hid]; iexact memberID
   isplitr
+  · -- (2026-11-02, the cluster-rows stage) the member id, a voter (`srvDynLog`'s)
+    ipureintro
+    have hidr : γrn.id = id := by rw [Hrn5, Hrid]
+    have hργ' : ρ.rd.raft.raft = γ := by rw [HρRaft]
+    rw [hidr]
+    try rw [hργ']
+    unfold SrvRaft.cfg
+    rw [Hrvs, GMap.elem_of_list_to_set, ← Hrid]
+    exact Hrmem
+  isplitr
   · -- (J8b) `bootOk`'s meta reads, by name
     unfold srvMetaSnap; iexact HmetaSnap
   isplitl [Hsend]
@@ -1933,7 +1943,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
         ihave Hrbn := backend.rbOwnIn_part (GF := GF) _ _ _ $$ Hrbn
         isplitl [Hrbc Hrbn Hmem]
         · iframe Hrbc Hrbn Hmem
-          ipureintro; exact memIdOk_memBoot _
+          ipureintro; exact ⟨memIdOk_memBoot _, restPresent_restBoot _⟩
         iframe HalOn HauthOn HleOn HclBe
       -- (D43 M5e) the apply thread's membership resource: the frozen transport's stop token
       have hργ : ρ.rd.raft.raft = γ := by rw [HρRaft]
