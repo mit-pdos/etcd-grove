@@ -324,3 +324,20 @@ change trusted texts (`monitorReq`, `memberAt`), A2 trusted `srvRestOwn`/`srvRes
 **Approved** (the user, 2026-11-02): revision 5, including the change to the exported
 `Results.lessor_apply_contract`. `lean` at `61ff3bfa32` merged before applying (Perennial's pin
 unchanged, `c4a24e323`).
+
+## Applied (2026-11-02)
+
+A1-A5 applied on `cluster-rows`; the departures from the plan are listed in `notes/decisions.md`
+(the cluster-rows entry, "Applied"): the attribute facts through `entryWaitOk`, not `attrLogOk`
+premises on the apply chain; `applyEntryNormal`'s spec and the exported `request_delivered` gain
+`⌜srvMemCover γr.raft γr.kv.c0 A⌝` (approved by the user, 2026-11-02); the off-mode
+`raftRequest`/`processInternalRaftRequestOnce` specs take a non-attribute kind; `rqOk` changed in
+place (no `rqOkD`); `srvMemCover` and `restReqOk_of_attr` in `InvRest.lean`; the drafts deleted
+in A4.
+
+## Follow-ups
+
+- **`request_delivered` back to its form**: derive `srvMemCover γr.raft γr.kv.c0 A` inside
+  `applyEntryNormal` (from the boot facts, `srvMemOk_boot`'s, and the committed log's `ccLogOk`
+  through `A`, `srvMemCover_append`, opened from the server's invariants) so that neither its spec
+  nor the exported `request_delivered` takes the premise.

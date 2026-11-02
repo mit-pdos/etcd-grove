@@ -138,7 +138,7 @@ def attrEntryOk (S : GSet w64) (m : EntryModel) : Prop :=
   m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq → attrIdOk S rq
 
 /-- **The committed log's attribute requests name members of `S`** (a new conjunct of the KV
-invariant's workload facts, `kvWorkD`). -/
+invariant's workload facts, `kvWork`; the cluster-rows stage, 2026-11-02). -/
 def attrLogOk (S : GSet w64) (L : List EntryModel) : Prop := ∀ m ∈ L, attrEntryOk S m
 
 theorem attrLogOk_append (S : GSet w64) (A B : List EntryModel) :

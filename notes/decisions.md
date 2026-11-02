@@ -29693,3 +29693,33 @@ revisit it"): the member premise is a row premise, `memIdOk` stays in `srvRestOw
 **Approved (the user, 2026-11-02):** revision 5 of the trusted texts (`notes/cluster-rows-plan.md`,
 "The Freeze"), including the change to the exported `Results.lessor_apply_contract` (the revocation
 lens's hypothesis gains `lease`'s presence carried over: a stronger result). Applied in stages A1-A5.
+
+**Approved change to an exported result (the user, 2026-11-02, during A4):**
+`Results.request_delivered` gains the premise `⌜srvMemCover γr.raft γr.kv.c0 A⌝` (the voters are
+members of the rest state at the applied log `A`): a weaker result. It restates
+`applyEntryNormal`'s precondition, which needs the cover for `dispatch`'s `restReqOk` of a member
+attributes request (`restReqOk_of_attr`: the member a voter, `entryWaitOk`'s `attrEntryOk`; every
+voter a member, the cover). The apply loop holds it (`srvApRes`'s `srvMemOk`, `srvApRes_cover`);
+`applyEntryNormal`'s premises did not. The alternative, deriving the cover inside
+`applyEntryNormal` from the server's invariants so that `request_delivered` regains its form, is a
+follow-up (`notes/cluster-rows-plan.md`, "Follow-ups").
+
+**Applied (A1-A5, branch `cluster-rows`), with these departures from the plan:**
+- The attribute facts reach `applyEntryNormal` through `entryWaitOk` (its normal case gains
+  `attrEntryOk ρ.raft.raft.cfg m` beside the entry's committed log; the batch facts
+  `batchWaitOk_of_work`/`_of_claims` take `attrLogOk`), not through `⌜attrLogOk⌝` premises on
+  `EtcdServer.apply`/`applyAll`/`applyEntries`/`run` or `srvC`/`clusterWorkloadOk`: none of those
+  specs changed. `applyEntryNormal`'s spec gains `⌜srvMemCover …⌝` instead (above), which
+  `EtcdServer.apply` takes from `srvApRes` (`srvApRes_cover`).
+- The off-mode `raftRequest`/`processInternalRaftRequestOnce` specs (`ModeSpecs`' `specOff`) take
+  the request's kind not `clusterMemberAttrSet` (their callers, `Put`/`DeleteRange`/`Txn`/`Compact`,
+  meet it by kind): the permission's `attrIdOk` comes from the kind there.
+- `rqOk`'s row was changed in place; the draft's `rqOkD` and `rqOkD_of_rqOk` were not needed (the
+  monitors are the only proposers of `ClusterVersionSet`, `rqShape_of_monitorReq`).
+- `apply.restReqOk` lives in `apply/Chain.lean` beside `rqOk`; `dispatch`, `uberApplier.Apply` and
+  `Apply.specRec` take `⌜restReqOk rq rs⌝`; `apply.Apply.spec` is unchanged (its method contract is
+  the caller's). The KV and admin dispatch paths (`kvSpecL`, `adminSpec`) need nothing: they exclude
+  the cluster kinds.
+- `srvMemCover` lives in `InvRest.lean` (with `restReqOk_of_attr`, which takes the cover rather than
+  `srvMemOk`), so that `applyEntryNormal`'s spec need not import `InvApRes`.
+- The draft modules were deleted in A4, not A5 (their names collided with the switched ones).
