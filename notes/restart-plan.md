@@ -536,3 +536,34 @@ The open questions:
    state the WAL image's correspondence to `S`.
 2. `RestartNode`'s scope: the stored commit covers the bootstrap log (`γ.bootLen ≤ σ.commit`). That
    holds for `restart3`, which stops a member only after a put has committed past the bootstrap.
+
+### R2c stage 2: the trusted `Next`, design (2026-11-02)
+
+- **The record: an extension.** `idutil` has no package variable whose initializer could allocate a
+  model-only map, and `go.GlobalAlloc` runs only from an initializer. So the issuers' record is a
+  GooseLang extension's local state, `idIssueExt` (`GooseLang/Ext/IdIssue/`): a map from id to
+  issuing generator.
+  - Its one operation, `"Issue"` of `(id, g)`, returns whether no other generator holds the id
+    (`M !! id = none ∨ M !! id = some g`), and records `id ↦ g` if so.
+  - The examples close their programs over it in place of `trivialExt`. It does nothing a Go
+    program can see.
+- **The model: `Generator.Next`, trusted.** It is the generated body with one step before the
+  return: `assume (ExternalOp "Issue" (id, g))`. Perennial's `assume` loops forever on `false`
+  (`wp_assume`), so the model excludes exactly the executions in which two generators issue one id.
+  Its faithfulness is the issue's precondition. It goes through the `axiom` skill's review before it
+  lands.
+- **The proof: two atomic steps.**
+  - The increment counts the id as pending in the generator's invariant (`idIssued` is the list
+    plus the pending ids).
+  - The issue step opens the cluster invariant. Its `assume` gives `M !! id ∈ {none, some g}`.
+    `some g` would put the id in the generator's own list, but a pending id is not there: the
+    receipts' bound keeps the suffix from wrapping. So `M !! id = none`, the id is in no key's
+    list, and it enters the maps.
+- **The cluster invariant:**
+  - The extension's record (the program's half). It agrees with the keys' lists through a map from
+    key to generator, `Gm`.
+  - `Gm` is injective. That is proved at registration: the new generator's fields are owned whole,
+    and every registered generator's prefix field is persistently readable, so the new address
+    differs from them.
+  - The stage-1 condition, one key per prefix, goes. `idIncarnation_alloc` becomes provable: a fresh
+    incarnation number, chosen from the finite maps.
