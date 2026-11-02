@@ -29224,7 +29224,7 @@ stock (`etc/bounds-allow.txt`). The trusted changes: the axioms `leaseTimeToLive
 Rejected: a slot held for the whole call (F1 of the review: a slot and the token held at once by
 one thread); a per-call slot handed down from `NewServer` (it would bound the number of calls).
 
-## The closed lease example: the TTL reply's ID, the lease peers' premise, the run's token (2026-11-02 · proposed for the user's Freeze · branch `lease-ex`)
+## The closed lease example: the TTL reply's ID, the lease peers' premise, the run's token (2026-11-02 · accepted, the user's Freeze · branch `lease-ex`)
 
 `examples/leasekv` checks that `TimeToLive(id)` answers about `id` and that `Leases()` lists no lease
 twice (`notes/lease-ex-plan.md`). Three changes to trusted or frozen statements, each the user's

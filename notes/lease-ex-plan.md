@@ -127,7 +127,7 @@ found or not-found); the trust-boundary `leaseTimeToLive`'s docstring stated its
 as "the lease handler serves the leader's peer URLs", false in the examples; restated to what the
 triple needs (no 200 without a response; a 404 is an allowed error).
 
-## Freeze list (so far)
+## Freeze list (frozen by the user, 2026-11-02)
 
 - Trusted: `EtcdServer.leaseTimeToLive.spec`'s `⌜w.ID' = v.ID'⌝` (D3). The `axiom` skill
   (`notes/axiom-review/lease-ttl-id.md`): the ID survives; the axiom as it stood since lease-grpc was
