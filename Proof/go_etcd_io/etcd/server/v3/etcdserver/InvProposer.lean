@@ -359,7 +359,7 @@ here). -/
 def srvPropMint (γ : ServerRaftNames) (γi : IdNames) : IProp GF :=
   inv srvMintN iprop(∃ F : GMap (List w8) Unit, ghostMapAuth γ.raft.fresh 1 F ∗
     [∗map] d ↦ _u ∈ F, ∃ (rq : apply.IRRModel) (id : w64),
-      ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ ∗ ∃ γf : GName, idClaim γi id d γf)
+      ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ ∗ ∃ γf : GName, idClaimAny γi id d γf)
 
 instance srvPropMint_persistent (γ : ServerRaftNames) (γi : IdNames) :
     Persistent (srvPropMint (GF := GF) γ γi) := by

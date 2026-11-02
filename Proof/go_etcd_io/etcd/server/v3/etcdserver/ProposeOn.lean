@@ -418,8 +418,9 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
   · iintro %e %hed
     iunfold entryClaim
     iright
-    iexists (apply.withHeader rq₀ hm), id, γf
+    iexists (apply.withHeader rq₀ hm), id, γf, γk.ids.key
     rw [hed]
+    iunfold idClaim at Hcl
     iframe Hcl Hreg
     ipureintro; exact ⟨hdec, hid⟩
   iunfold reqPropOkOn at Hok

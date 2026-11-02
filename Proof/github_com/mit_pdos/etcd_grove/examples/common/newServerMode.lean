@@ -52,7 +52,7 @@ theorem newServerMode.wp_proof
   iunfold commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   iunfold memberBoot at Hmb
-  icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #HNZ0, #Hpmint, #Hrdctx,
+  icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
   obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp⟩ := Hρ
   -- `NewServer`'s compactor premise and the store's mode, from the mode's

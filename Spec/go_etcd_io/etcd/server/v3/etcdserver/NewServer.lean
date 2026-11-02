@@ -222,7 +222,10 @@ abbrev NewServer.spec : Prop :=
       -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
       -- and the member's share: its prefix's entry and slots (`idShare`), `2 ^ 48` of raft's read
       -- credits (`srvMemberBoot_alloc`)
-      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
+      -- (R2c, 2026-11-02) by incarnation key: the cluster's claims at the server's facts' family,
+      -- the member's key registering its store's index (the claim facts' parameter)
+      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
       "Hids" ∷ idShare ρ.ids ∗
@@ -403,7 +406,10 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
       -- and the member's share: its prefix's entry and slots (`idShare`), `2 ^ 48` of raft's read
       -- credits (`srvMemberBoot_alloc`)
-      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
+      -- (R2c, 2026-11-02) by incarnation key: the cluster's claims at the server's facts' family,
+      -- the member's key registering its store's index (the claim facts' parameter)
+      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
       "Hids" ∷ idShare ρ.ids ∗
@@ -600,7 +606,10 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
       -- and the member's share: its prefix's entry and slots (`idShare`), `2 ^ 48` of raft's read
       -- credits (`srvMemberBoot_alloc`)
-      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
+      -- (R2c, 2026-11-02) by incarnation key: the cluster's claims at the server's facts' family,
+      -- the member's key registering its store's index (the claim facts' parameter)
+      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
       "Hids" ∷ idShare ρ.ids ∗
