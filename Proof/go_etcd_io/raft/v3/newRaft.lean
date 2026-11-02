@@ -15,13 +15,9 @@ public import Spec.go_etcd_io.raft.v3.newLogWithSize
 public import Spec.go_etcd_io.raft.v3.tracker.MakeProgressTracker
 public import Spec.go_etcd_io.raft.v3.newReadOnly
 public import Spec.go_etcd_io.raft.v3.traceInitState
-public import Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
 public import Spec.go_etcd_io.raft.v3.confchange.Restore
-public import Spec.go_etcd_io.raft.v3.raft__switchToConfig
 public import Spec.go_etcd_io.raft.v3.assertConfStatesEquivalent
 public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
-public import Spec.go_etcd_io.raft.v3.raft__loadState
-public import Spec.go_etcd_io.raft.v3.raftLog__appliedTo
 public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
 public import Proof.go_etcd_io.raft.v3.LemmasSnapCfg
 public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
@@ -158,74 +154,6 @@ theorem wp_Restore_voters (H : confchange.Restore.spec (GF := GF) (hG := hG))
         (by rw [Hcl, show GMap.listToSet ([] : List w64) = ∅ from rfl, GMap.map_union_empty]; exact Hcsz)
         $$ Hvref Hlm Hprsm Hprogs
     · ipureintro; exact Hprs'
-
-/-- `switchToConfig` at a follower, from the struct sealed at any configuration `cfg0` and the
-new configuration as `confchange.Restore` builds it (`ownConfig`), with no learners
-(`domSet prs = cfg`): its `spec` at the simple configuration `cfg`. (Until 2026-10-21
-`raft.switchToConfig.spec_nonleader_open`, through the simple-configuration `specS`.) -/
-theorem wp_switchToConfig_follower (H : raft.switchToConfig.spec (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (tv : tracker.ProgressTracker)
-    (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (Hrole : s.role = .follower)
-    (Hdom : domSet prs = cfg)
-    (Hmi : 0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        r.[raft, go!"trk"] ↦ tv ∗
-        (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
-           ownTrackerC (CfgM.simple cfg (domSet prs' \ cfg)) tv' ⟨s.votes, prs', pvs'⟩ -∗
-           ⌜PrvalsOk { s with progress := prs', prvals := pvs' }⌝ -∗
-           ownRaftPhys cfg r id { s with progress := prs', prvals := pvs' }) ∗
-        tv.Votes' ↦$ s.votes ∗
-        ownConfig cfg cfgv prsm prs }}
-      (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
-        (Val #cfgv)) (Val #prsm))
-    {{ (cs : Loc) (xs : List w64)
-        (pvs : GMap w64 Progress), RET #cs;
-        ownRaftPhys cfg r id { s with progress := prs, prvals := pvs, isLearner := false } ∗
-        csPts cs (DFrac.own 1) (ConfStateM.mk xs [] [] [] false) true ∗ ⌜xs ≡ₚ elements cfg⌝ }} := by
-  iintro %Φ ⟨#Hpkg, Htrkf, Hback, Hvotes, Hcfg⟩ HΦ
-  icases ownConfig_values $$ Hcfg with ⟨%pvs, Hcfg⟩
-  ihave Hcfg := ownConfigV_toC _ _ _ _ _ $$ Hcfg
-  have Hnl : ¬ s.role = .leader := by rw [Hrole]; decide
-  iapply H (CfgM.simple cfg (domSet prs \ cfg)) r id s tv cfgv prsm prs pvs
-      (fun h => absurd h Hnl) (fun h => absurd h Hnl)
-      (fun h => by rcases h with h | h <;> rw [Hrole] at h <;> cases h)
-      (fun h => absurd h Hnl)
-    $$ [$Hpkg $Htrkf Hback $Hvotes $Hcfg]
-  · isplitl [Hback]
-    · iintro %tv' %prs' %pvs' Hf Ht %Hok
-      icases ownTrackerC_simple_resimple _ _ _ _ _ _ $$ Ht with ⟨Ht, %HL⟩
-      ihave Hp := Hback $$ %tv' %prs' %pvs' Hf Ht %Hok
-      ihave Hp := ownRaftPhys_toC' $$ Hp
-      rw [HL]
-      iapply ownRaftPhysCV_widen _ _ _ _ _ ?_ $$ Hp
-      intro h hr hl
-      exact GMap.elem_of_union_l _ (h hr hl)
-    · ipureintro; exact Hmi
-  inext
-  iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hp, %Hsw⟩
-  ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  obtain ⟨H1, H2, H3, H4⟩ := Hp
-  have Hos0 : os = [] := perm_elements_empty _ H2
-  have Hlns0 : lns = [] := perm_elements_empty _ H4
-  have Hl0 : domSet prs \ cfg = (∅ : GSet w64) := by
-    rw [Hdom]
-    apply GMap.set_eq; intro k
-    rw [GMap.elem_of_difference]
-    exact ⟨fun h => absurd h.1 h.2, fun h => absurd h (GMap.not_elem_of_empty _)⟩
-  have Hls0 : ls = [] := perm_elements_empty _ (by simpa only [CfgM.simple, Hl0] using H3)
-  subst Hos0 Hlns0 Hls0
-  rw [learnerOfC_simple] at Hsw
-  unfold SwitchOkC at Hsw
-  rw [ite_eq_right Hnl] at Hsw
-  subst Hsw
-  have HL : learnerOf cfg prs id = false := by
-    unfold learnerOf; rw [Hdom]; simp
-  iapply HΦ $$ %cs %xs %pvs
-  rw [HL]
-  iframe Hphys
-  isplitl [Hcs]
-  · simp only [CfgM.simple]; iexact Hcs
-  ipureintro; exact H1
 
 /-! ### The window (2026-11-02, stage II (r))
 
@@ -803,6 +731,7 @@ theorem newRaft.wp_proof
     $$ [$H_trk $H_id $Hlgf $Hlg0 $H_isLearner $H_state $Hvotes $Hcfg]
     as %cs2 %xs2 %os2 %ls2 %lns2 %bl ⟨H_trk, Htrk, H_isLearner, H_state, Hcs2, %Hcs2p⟩
   obtain ⟨Hperm, Hal2⟩ := confStateOk_perm csm cs' Hcsok Hres xs2 os2 ls2 lns2 Hcs2p
+  icases ownTrackerC_progress_map _ _ _ $$ Htrk with ⟨-, %Hdom2, Htrk⟩
   ihave Hcs2v := csPts_weaken $$ Hcs2
   wp_apply wp_assertConfStatesEquivalent _ cs cs2 csm
       (ConfStateM.mk xs2 ls2 os2 lns2 cs'.cfg.autoLeave) DFrac.discard (DFrac.own 1) Hperm
@@ -823,7 +752,7 @@ theorem newRaft.wp_proof
     · rw [decide_eq_true (show hs.Term' = W64 0 ∧ hs.Vote' = W64 0 ∧ hs.Commit' = W64 0 from Hemp)]
       wp_auto
       have Hca : committedAfter σ.prev hs = σ.prev.index' := by
-        unfold committedAfter; rw [if_pos Hemp]
+        unfold committedAfter; rw [ite_eq_left Hemp]
       obtain ⟨HT, HV, HC⟩ := Hemp
       isplitr
       · ipureintro; rfl
@@ -840,7 +769,7 @@ theorem newRaft.wp_proof
       icases Hhsp with (⟨%Hn, %Hz⟩ | #Hhro)
       · exfalso; apply Hemp; rw [Hz]; exact ⟨rfl, rfl, rfl⟩
       have Hca : committedAfter σ.prev hs = hs.Commit' := by
-        unfold committedAfter; rw [if_neg Hemp]
+        unfold committedAfter; rw [ite_eq_right Hemp]
       have Hcr := Hhs.resolve_left Hemp
       wp_apply wp_loadState_w wp_HardState_GetCommit wp_HardState_GetTerm wp_HardState_GetVote
           «$r0_ptr» l lv0 _ _ si sn σ1 hp hs Hlst Hlsn Hlen0 Hpend
@@ -957,7 +886,7 @@ theorem newRaft.wp_proof
   ihave Hphys := ownRaftPhysCV_intro cs'.cfg cs'.cfg.voters «$r0_ptr» cv.ID' s2 rv2 [] [] lok
     HpID rfl rfl rfl rfl rfl ⟨HpPV, fun h => absurd h (by simp only [s2]; decide)⟩
     (by simp only [rv2]; rw [HpDPF, Hdpf]) (by simp only [rv2]; rw [HpDCC, Hdccv])
-    (by first | exact HpCQ | exact HpCQ.symm | (simp only [rv2, s2]; rw [HpCQ]))
+    HpCQ
     rfl ⟨rfl, fun h => HvID h.symm⟩ rfl rfl HvID
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by simp only [rv2]; rw [HpLg, Hlok])
     rfl (fun h => absurd h (by simp only [s2]; decide)) (fun _ h => absurd h List.not_mem_nil)
@@ -1044,7 +973,23 @@ theorem newRaft.wp_proof
   -- `becomeFollower(r.Term, None)` keeps the term, so `reset` keeps the
   -- vote: the state is the persisted `HardState`'s
   ipureintro
-  sorry
+  refine ⟨⟨rfl, rfl⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, rfl, rfl, rfl,
+    rfl, rfl, rfl, rfl, rfl, HpSDR, ?_, rfl⟩
+  · show (if s2.term = s2.term then s2.vote else W64 0) = hs.Vote'
+    simp only [↓reduceIte]
+    rfl
+  · show ap = w64Max σ.prev.index' ap
+    unfold w64Max
+    rw [ite_eq_right (by
+      by_cases h : cv.Applied' = W64 0
+      · simp only [ap, h, ↓reduceIte]; exact Int.lt_irrefl _
+      · simp only [ap, h, ↓reduceIte]; have := (Happ.resolve_left h).1; omega)]
+  · show domSet prs = domSet cs'.prs
+    rw [Hdom2, confStateOk_cfg csm cs' Hcsok Hres]
+    apply GMap.set_eq; intro k
+    rw [GMap.elem_of_dom']
+    simp only [cfgStateC, CfgM.ids]
+    rw [cfgFlags_mem, GMap.elem_of_union]
 
 end proof
 
