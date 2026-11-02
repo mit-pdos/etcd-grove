@@ -90,7 +90,7 @@ theorem mvcc.NewStore_backend
     (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (d : mvcc.KBReal)
     (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : GoFunc)
     (hf : f ≠ func.nil) (rd0 : GoFunc) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
-    (hrb : receiptBound GF ≤ 2 ^ 48) :
+    (hrb : receiptBound GF ≤ 2 ^ 48) (Perm : Int → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -125,7 +125,7 @@ theorem mvcc.NewStore_backend
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
         mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗
-        mvcc.retiredAt γ (mvcc.nJobRd (some d)) }} := by
+        mvcc.retiredAt γ (mvcc.nJobRd (some d)) ∗ mvcc.crevPermIs γ Perm }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm, Hrts, Hlrd, #Hle, Hro⟩ HΦ
   -- the index's names and the certificate map, fresh (D13a: `NewStore` takes them)
   imod mvcc.idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
@@ -158,7 +158,7 @@ theorem mvcc.NewStore_backend
   imod Hbk with #Hbk
   imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok0⟩
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
-  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f rd0 false γi γok hcfg)
+  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f rd0 false γi γok Perm hcfg)
     $$ %Φ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hifresh Hok0]
   · iframe Hpkg Hle Hro Hifresh Hok0 Hsrm
     isplitr
@@ -170,11 +170,11 @@ theorem mvcc.NewStore_backend
       show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
-  iintro %s ⟨%γ, %Hγ, Hs, Hro, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, -, Hfrag, Hcr, Hret⟩
+  iintro %s ⟨%γ, %Hγ, Hs, Hro, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, -, Hfrag, Hcr, Hret, #HcpIs⟩
   ihave Hh := mvcc.hookIs_of_init γ Pk #f d Hγ.2.2.1 f hf $$ [$Hh0 $Hhk $Hfrag]
   iapply HΦ
   iexists γ
-  iframe Hs Hro Hok Hh Hv Hr Ht Hc Hcl Hst Hcr Hret
+  iframe Hs Hro Hok Hh Hv Hr Ht Hc Hcl Hst Hcr Hret HcpIs
   ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1⟩
 
 /-- **`store.Write` over the real backend**: the generic `store.Write` at a store of the real

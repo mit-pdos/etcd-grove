@@ -46,15 +46,17 @@ handed to the loop the `Once` starts), `stopCtx` (a context), `lg` (non-nil),
 `lessorInv`, at some registry `γr`) and `firstKeepAliveOnce`.
 
 **The keep-alive stream** (`/etcdserverpb.Lease/LeaseKeepAlive`, `isGrpcStream`): requests carry
-their `ID` (`pbLeaseKeepAliveRequest`), responses their `ID` and `TTL` and a header
-(`pbLeaseKeepAliveResponse`); the lessor asks nothing of the server's stream specification and
-promises nothing with its requests (`Up` is `True`).
+their `ID` (`pbLeaseKeepAliveRequest`, shared with the server:
+`etcdserverpb/LeaseKeepAliveMsg.lean`), responses their `ID` and `TTL` and a header
+(`pbLeaseKeepAliveResponse`); the lessor asks nothing of the server's stream specification, and its
+requests carry ghost bounds `0`, whose content the registration's `Up` gives (`kaUpZero`).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvLease
 public import Proof.go_etcd_io.etcd.client.v3.InvRetry
 public import Proof.google_golang_org.grpc.InvGrpcStream
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveMsg
 public import Perennial.Proof.sync
 public import Perennial.Proof.time
 public import Perennial.Std.ListBasics
@@ -104,45 +106,23 @@ def chanTok (ch : Loc) : IProp GF :=
 
 /-! ## The keep-alive stream's messages -/
 
-/-- **The `*pb.LeaseKeepAliveResponse` `l` holds `(ID, TTL)`** (read-only, with some header). -/
-def keepAliveRespMsg (l : Loc) (m : w64 × w64) : IProp GF :=
-  iprop(⌜l ≠ null⌝ ∗ ∃ h : Loc,
-    structFieldRef etcdserverpb.LeaseKeepAliveResponse go!"Header" l ↦□ h ∗
-    structFieldRef etcdserverpb.LeaseKeepAliveResponse go!"ID" l ↦□ m.1 ∗
-    structFieldRef etcdserverpb.LeaseKeepAliveResponse go!"TTL" l ↦□ m.2)
+/-- **The client's content at zero bounds** (persistent): every request whose ghost bounds are
+`0` comes with `Up`'s content (the law a registration's `Up` meets, which the client's lessor, who
+knows nothing of the server's ghost state, uses: its requests carry bounds `0`). -/
+def kaUpZero (Up : Nat → KaReqM → IProp GF) : IProp GF :=
+  iprop(□ ∀ (j : Nat) (id : w64), Up j ⟨id, 0, 0⟩)
 
-instance keepAliveRespMsg_persistent (l : Loc) (m : w64 × w64) :
-    Persistent (keepAliveRespMsg (GF := GF) l m) := by
-  unfold keepAliveRespMsg; infer_instance
+instance kaUpZero_persistent (Up : Nat → KaReqM → IProp GF) :
+    Persistent (kaUpZero (GF := GF) Up) := by
+  unfold kaUpZero; infer_instance
 
-/-- **The keep-alive requests on the wire** (a trusted wire model): a request's `ID`, the owned
-struct on both ends. -/
-abbrev pbLeaseKeepAliveRequest : StreamMsg GF where
-  ty := etcdserverpb.LeaseKeepAliveRequest.ty
-  M := w64
-  cnt := inferInstance
-  send l m := iprop(∃ v : etcdserverpb.LeaseKeepAliveRequest, l ↦ v ∗
-    ⌜m = v.ID' ∧ v.unknownFields' = slice.nil⌝)
-  wireLen _ := wireSlack
-  recv l m := iprop(∃ v : etcdserverpb.LeaseKeepAliveRequest, l ↦ v ∗ ⌜m = v.ID'⌝)
-  own l := iprop(∃ v : etcdserverpb.LeaseKeepAliveRequest, l ↦ v)
-
-/-- **The keep-alive responses on the wire** (a trusted wire model): a response's `(ID, TTL)`,
-read-only on both ends (`keepAliveRespMsg`). -/
-abbrev pbLeaseKeepAliveResponse : StreamMsg GF where
-  ty := etcdserverpb.LeaseKeepAliveResponse.ty
-  M := w64 × w64
-  cnt := inferInstance
-  send := keepAliveRespMsg
-  recv := keepAliveRespMsg
-  own l := iprop(∃ v : etcdserverpb.LeaseKeepAliveResponse, l ↦ v)
-
-/-- **The keep-alive stream is served at `addr`** (persistent): some stream specification, no
-promise with a request. -/
+/-- **The keep-alive stream is served at `addr`** (persistent): some stream specification and some
+content of the requests, given at zero bounds (`kaUpZero`). -/
 def leaseKAStreamOk (addr : GoString) : IProp GF :=
-  iprop(∃ Spec : StreamSpec (GF := GF) pbLeaseKeepAliveResponse,
+  iprop(∃ (Up : Nat → (pbLeaseKeepAliveRequest (GF := GF)).M → IProp GF)
+      (Spec : StreamSpec (GF := GF) pbLeaseKeepAliveResponse),
     isGrpcStream (Req := pbLeaseKeepAliveRequest) (Rep := pbLeaseKeepAliveResponse) addr
-      go!"/etcdserverpb.Lease/LeaseKeepAlive" (fun _ _ => iprop(True)) Spec)
+      go!"/etcdserverpb.Lease/LeaseKeepAlive" Up Spec ∗ kaUpZero Up)
 
 instance leaseKAStreamOk_persistent (addr : GoString) :
     Persistent (leaseKAStreamOk (GF := GF) addr) := by

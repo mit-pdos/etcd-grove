@@ -1214,9 +1214,13 @@ theorem ciSplit_of_at (E : AEnv GF) (Pre : IProp GF) (x : w64) :
 
 /-- **The store's compaction right at `c`, by the mode**: a compacting store's restorable right
 (`mvcc.compactRightR`: half the compaction revision's authority, the jobs' queue, the closer's and
-the jobs' shares of the fields), at least `-1`; a store that does not compact, none, at `-1`. -/
+the jobs' shares of the fields), at least `-1`, with the store's compaction permit (C3's store
+law, 2026-11-02: `True` until the server fixes one, the next stage); a store that does not compact,
+none, at `-1`. -/
 def cmpRight (E : AEnv GF) (c : Int) : IProp GF :=
-  if mvcc.kbCmpM E.γ.kb then iprop(mvcc.compactRightR E.s E.γ c ∗ ⌜-1 ≤ c⌝) else iprop(⌜c = -1⌝)
+  if mvcc.kbCmpM E.γ.kb then
+    iprop(mvcc.compactRightR E.s E.γ c ∗ ⌜-1 ≤ c⌝ ∗ mvcc.crevPermIs E.γ (fun _ => iprop(True)))
+  else iprop(⌜c = -1⌝)
 
 /-- **The apply thread's compaction resources at `c`**: the right by the mode and the compaction's
 write-back supply (persistent; `True` off). -/
@@ -1244,7 +1248,7 @@ theorem cmpOwn_of_off (E : AEnv GF) (h : ¬ mvcc.kbCmpM E.γ.kb) : ⊢ cmpOwn (G
 theorem cmpOwn_ge (E : AEnv GF) (c : Int) : cmpOwn (GF := GF) E c ⊢ ⌜-1 ≤ c⌝ := by
   unfold cmpOwn cmpRight
   split
-  · iintro ⟨⟨-, %h⟩, -⟩; ipureintro; exact h
+  · iintro ⟨⟨-, %h, -⟩, -⟩; ipureintro; exact h
   · iintro ⟨%h, -⟩; ipureintro; omega
 
 

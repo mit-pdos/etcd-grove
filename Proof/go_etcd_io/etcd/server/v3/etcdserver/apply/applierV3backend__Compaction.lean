@@ -39,7 +39,7 @@ private theorem kvOver_Compact (hCompact : mvcc.store.Compact.spec (GF := GF) (h
     (ht : trace ≠ null) (hc : mvcc.storeCmp γ) (hc1 : -1 ≤ c) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         mvcc.kvOver (interface.mkOk ty v) s ∗
-        mvcc.isStore s γ ∗ mvcc.compactRightR s γ c ∗
+        mvcc.isStore s γ ∗ mvcc.compactRightR s γ c ∗ mvcc.crevPermAt γ (sint.Z rev) ∗
         mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length⌝ ∗
         mvcc.hookIs γ P f ∗
         mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗
@@ -53,7 +53,7 @@ private theorem kvOver_Compact (hCompact : mvcc.store.Compact.spec (GF := GF) (h
           (∃ ec : GoInterfaceOk, globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□
             GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
           mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True))) }} := by
-  iintro %Φ ⟨#Hpkg, #Hk, #Hs, Hr, #Hc, %Hl, Hhi, Hcs, Htrc, Hrt, #Hsup⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hk, #Hs, Hr, #Hperm, #Hc, %Hl, Hhi, Hcs, Htrc, Hrt, #Hsup⟩ HΦ
   iapply mvcc.kvOver_compact_wp ty v s trace rev
   iframe Hk
   iapply (hCompact s γ trace rev c P f Pre Q Post log te ht hc hc1) $$ [Hr Hhi Hcs Htrc Hrt] HΦ
@@ -77,6 +77,7 @@ private theorem kvOver_Range (hRange : mvcc.readView.Range.spec (GF := GF) (hG :
     {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
         ⌜todo = true → r ≠ null⌝ ∗ mvcc.storeReaderC s γ ∗
         ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.idxCert γ.idx log ∗ mvcc.crevLb γ.idx crev ∗
+          mvcc.crevPermAt γ crev ∗
           ⌜log ≠ [] ∧ rev = W64 ((log.length : Int) - 1) ∧ c ≤ crev ∧ -1 ≤ crev⌝ ∗
           mvcc.rangeOutcomeC r err log rev crev (decide (endk = slice.nil)) k e ro }} := by
   iintro %Φ ⟨#Hpkg, #Hk, #HrvA, #Hrv, Hrd, #Hc, #Hctx, #Hkey, #Hend⟩ HΦ
@@ -148,7 +149,7 @@ theorem apply.applierV3backend.Compaction.wp_proof
   ihave %Hkvok := mvcc.kvOver_ok _ E.s $$ Hko
   obtain ⟨kty, kvv, Hkveq⟩ := Hkvok
   ihave %Hcge := apply.cmpOwn_ge E crev $$ Hc
-  ihave ⟨Hr, %Hc1, #Hcert, Hhi, Hrt, #Hsup, Hback⟩ :=
+  ihave ⟨Hr, %Hc1, #Hperms, #Hcert, Hhi, Hrt, #Hsup, Hback⟩ :=
     apply.cmp_store_pre E log crev Hadm.1 $$ [$Hkvo $Hc $Hhk]
   rw [Hkveq]
   simp only [interface.mkOk]
@@ -156,7 +157,10 @@ theorem apply.applierV3backend.Compaction.wp_proof
   · iPkgInit
   wp_apply (kvOver_Compact hCompact kty kvv E.s E.γ trc rev crev E.P E.f Pre Q Post log false
       Htrcnn Hadm.1 Hc1) $$ [$Hr $Hhi $Hcs $Htrc $Hrt] as %ch %err ⟨Htrc, Hrt, Hhi, Hout⟩
-  · iframe #; ipureintro; exact Hadm.2
+  · iframe #
+    isplitr
+    · iapply Hperms
+    ipureintro; exact Hadm.2
   icases Hout with (⟨%Herr, Hr, #Hlb, HPost, -⟩ | ⟨%Hle, ⟨%ec, #Hec, %Herr⟩, Hr, HPre, -⟩)
   · -- compacted: `KV.Range(context.TODO(), "compaction", nil, {})` for the header
     obtain ⟨Herr, Hlt⟩ := Herr
@@ -187,7 +191,7 @@ theorem apply.applierV3backend.Compaction.wp_proof
     imod mvcc.crevLb_neg E.γ.idx with #Hlb0
     wp_apply (kvOver_Range hRange kty kvv E.s rv E.γ ctx2 _ true ksl slice.nil _ []
         (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) (-1)) $$ [$Hsr]
-      as %rr %rerr ⟨%Hrrn, Hsr, %rlog, %rrev, %rcrev, -, -, -, Hrout⟩
+      as %rr %rerr ⟨%Hrrn, Hsr, %rlog, %rrev, %rcrev, -, -, -, -, Hrout⟩
     · iframe #
     ihave ⟨%rv0, Hrr⟩ := rangeOutcomeC_res rr rerr rlog rrev rcrev _ _ _ _ rfl (Hrrn rfl) $$ Hrout
     ihave Hsr := mvcc.storeReader_of E.s E.γ $$ Hsr

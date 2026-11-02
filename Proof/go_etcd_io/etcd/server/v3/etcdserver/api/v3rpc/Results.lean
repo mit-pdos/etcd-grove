@@ -1741,7 +1741,48 @@ theorem raftLeaseRead_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   raftLeaseRead_of_server EtcdServer.wp_LeaseTimeToLive EtcdServer.wp_LeaseLeases
     s E ρ γr γl cs ms hT hR
 
+/-- **The server's header fields, from its request side** (`srvHeaderFacts_of_reqM`: the discharge's
+`srvHeaderFacts` premise needs no source of its own). -/
+theorem srvHeaderFacts_server (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isServerReqM (GF := GF) on s E ρ ⊢ ∃ cs ms : w64, srvHeaderFacts s cs ms :=
+  srvHeaderFacts_of_reqM on s E ρ
+
 end leaseRead
+
+/-! ## The lease keep-alive stream at the gRPC level (`notes/lease-keepalive-plan.md`, 2026-11-01)
+
+`LeaseServer.LeaseKeepAlive` (linked, over the contract `raftLeaseRenew`: the `j`th response answers
+the `j`th request and, unless its TTL is `0`, carries the renewal's key check at the request's ghost
+bounds for the stream's token, `kaStreamSpec`), and the contract discharged from the server's linked
+`EtcdServer.LeaseRenew` at `S' := E.RD ∗ lessorRdOf γl ∗ threadTok ∗ srvLgReader s ∗
+srvReadReader s γr`, its peer round tripper `srvPeerRt s` (which `NewServer` exports, with
+`srvLessorRd`). -/
+
+section leaseKeepAlive
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+open Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
+
+theorem leaseKeepAlive_handler :
+    EtcdGrove.v3rpc.LeaseServer.LeaseKeepAlive.spec (GF := GF) (hG := hG) :=
+  LeaseServer.wp_LeaseKeepAlive
+
+/-- **The renewal contract, discharged** (`raftLeaseRenew_of_server` at the linked result). -/
+theorem raftLeaseRenew_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (γl : GName) (hT : threadBound GF ≤ 2 ^ 30 - 1) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthAt s E ∗
+        srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ srvPeerRt s ⊢
+      raftLeaseRenew s E γl
+        iprop(E.RD ∗ lease.lessorRdOf γl ∗ threadTok ∗ srvLgReader s ∗ srvReadReader s γr) :=
+  raftLeaseRenew_of_server EtcdServer.wp_LeaseRenew s E ρ γr γl hT
+
+end leaseKeepAlive
 
 end v3rpc
 
@@ -1791,6 +1832,9 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.leaseTimeToLive_handler
 #print axioms Perennial.EtcdGrove.v3rpc.leaseLeases_handler
 #print axioms Perennial.EtcdGrove.v3rpc.raftLeaseRead_server
+#print axioms Perennial.EtcdGrove.v3rpc.srvHeaderFacts_server
+#print axioms Perennial.EtcdGrove.v3rpc.leaseKeepAlive_handler
+#print axioms Perennial.EtcdGrove.v3rpc.raftLeaseRenew_server
 
 end EtcdGrove
 end Perennial

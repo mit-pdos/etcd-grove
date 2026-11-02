@@ -638,7 +638,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       (batchLockInv γA (metaTM d.γB d.P)) #func.nil func.nil N E₀.γ.idx E₀.γ.cok M Hcbl Hrb)
     $$ [Hdl Hview Hncmp Hlate Hwkv Hrts Hlrd Hro Hidx Hcok HsrS]
     as %ws ⟨%kst, %γw, %Hγw0, #HisKV, ⟨%rv, #Hrvf, #Hrv⟩, #HhkI, Hkvw, Hwts, Hcok, #Hws, Hwtoks,
-      Hwrds, Hwcl, Hcr, Hret0, -, #Htag⟩
+      Hwrds, Hwcl, Hcr, #HcpIs, Hret0, -, #Htag⟩
   · ihave #Hsz0 : mvcc.keySized (GF := GF) d.γB d.P d.be $$ []
     · iapply Hsz
     iframe Hisl HB Hsz0 Hdl
@@ -1439,7 +1439,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       unfold apply.cmpRight
       simp only [show ¬ mvcc.kbCmpM γw.st.kb from Hkbw rfl, ↓reduceIte]
       ipureintro; trivial
-    · iapply srvKVCloserW_cmpRight_of_new s _ (Hkbon rfl) Hcmw $$ Hcl0 Hcr
+    · iapply srvKVCloserW_cmpRight_of_new s _ (Hkbon rfl) Hcmw $$ Hcl0 Hcr HcpIs
   imod HclR with ⟨Hcl, Hcmr⟩
   -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`srvSnapBoot`,
   -- `SnapRO.lean`): its persistent bundle, the snapshot-taken counter's authority (J8a-6: no stock
@@ -1615,6 +1615,18 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       iapply kbWTSupplyM_of_cmpStock
       iexact Hst
   imod HSup with HSup
+  -- (K7) the lease service's server facts: the peers' round tripper, the lessor's reader side
+  ipersist peerRt
+  ihave #HpeerRt : srvPeerRt s $$ []
+  · iunfold srvPeerRt
+    iexists _
+    iframe peerRt
+    ipureintro; exact Hprt
+  ihave #HlessRd : srvLessorRd s γw.st.leases $$ []
+  · iunfold srvLessorRd
+    iexists lp
+    iframe lessor
+    rw [Hγw.2.1]; iexact Hlinv
   imodintro
   wp_auto
   iapply HΦ
@@ -1627,7 +1639,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
   iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
-  iframe HLnil HBF ClientCertAuthEnabledS
+  iframe HLnil HBF ClientCertAuthEnabledS HpeerRt HlessRd
   isplitr
   · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2⟩
   isplitr
@@ -2432,7 +2444,7 @@ theorem NewServer.wp_proof
   iintro !> %srv %err Hpost
   iapply HΦ
   icases Hpost with (Hl | ⟨%He, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %H1, H2, H3, H4, H5, H6, H7,
-    H8, H9, H10, H11, H12, -⟩)
+    H8, H9, H10, H11, H12, -, -, -, #H13, #H14⟩)
   · ileft; iexact Hl
   iright
   isplitr
@@ -2440,7 +2452,7 @@ theorem NewServer.wp_proof
   iexists γA, ci, TM, E, γrn, b, γk, τ
   isplitr
   · ipureintro; exact ⟨H1.1, H1.2.1⟩
-  iframe H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12
+  iframe H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
 
 
 

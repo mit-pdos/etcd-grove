@@ -124,7 +124,7 @@ theorem startServer.wp_proof
     iapply Htk
     ipureintro; rfl
   icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #HLnil, #Hcca, #HBF⟩)
+    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #HLnil, #Hcca, #HBF, -, -⟩)
   · -- `NewServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr

@@ -37,7 +37,8 @@ revision `crev` (`s.compactMainRev`, read under both locks, `firstRev`; fixed un
 `store.Compact`'s `crevLb` after a compaction at `rev`: `rev ≤ crev`), a revision of `log` (or
 `-1`); the reader's tag `Z` (persistent) is carried to `End`. The readers' statement (a store
 never compacted, `storeReader`: `crev = -1`) is `specR`, a corollary (`spec_R`, `ReaderSpecs.lean`). A caller lending a fraction of the committed log's authority
-(`logLent`, unit W-K) learns the log read is the one it names. -/
+(`logLent`, unit W-K) learns the log read is the one it names. 
+The transaction's compaction revision is permitted (`crevPermAt`, C3's store law, 2026-11-02). -/
 abbrev mvcc.store.Read.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (m : Nat) (log₀ : mvcc.Log) (te : Bool)
     (c : Int) (Z : IProp GF) (oa : Option (Qp × mvcc.Log)),
@@ -47,7 +48,7 @@ abbrev mvcc.store.Read.spec : Prop :=
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
       ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.isTxnRead mw s γ trace log rev crev Z ∗
-        ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗ mvcc.certOk γ log ∗
+        ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗ mvcc.crevPermAt γ crev ∗ mvcc.certOk γ log ∗
         ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ c ≤ crev⌝ ∗ mvcc.logLent γ.idx oa ∗
         ⌜∀ q L, oa = some (q, L) → log = L⌝ }}
 

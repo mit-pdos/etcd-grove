@@ -54,9 +54,7 @@ abbrev EtcdServer.LeaseRenew.spec : Prop :=
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
       lease.lessorLb γl m ∗ context.isContext ctx cd ∗ E.RD ∗ lease.lessorRdOf γl ∗ threadTok ∗
       srvLgReader s ∗ srvReadReader s γr ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
-      (∃ (rt : GoInterface), structFieldRef EtcdServer go!"peerRt" s ↦□ rt ∗
-        ⌜∃ t : Loc,
-          rt = GoInterface.ok ⟨go.GoType.PointerType _root_.Perennial.net.http.Transport.ty, #t⟩⌝) }}
+      srvPeerRt s }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseRenew"))
       (Val #(GoInterface.ok ctx))) (Val #id))
   {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); E.RD ∗ lease.lessorRdOf γl ∗

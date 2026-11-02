@@ -170,6 +170,72 @@ def leaseLeasesOut (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfac
 
 end defs
 
+section lemmas
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+open Iris.ProofMode
+
+/-- The lessor's `ErrLeaseNotFound` (`leaseInit`): its value, a leaf error of the server's. -/
+theorem leaseNotFoundErr [_root_.Perennial.errors.Assumptions] :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ⊢
+      ∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□
+        GoInterface.ok e ∗ applyErrIs (GoInterface.ok e) ∗ ⌜errLeaf e⌝ := by
+  iintro #Hpkg
+  ihave Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hli with ⟨#Hnf, -⟩
+  iunfold go_etcd_io.etcd.server.v3.lease.leaseErrVar at Hnf
+  icases Hnf with ⟨%e, #He, %Hl, #Hm⟩
+  iexists e; iframe He; isplitl
+  · iapply applyErrIs_leaf e Hl; iunfold errMsgOk; iexact Hm
+  · ipureintro; exact Hl
+
+/-- The header's revision before `fill`: kept read-only if not `0` (the reader `R` kept), lent
+with `R` if `0`. -/
+theorem hdrRev_in (Em : CoPset) (R : IProp GF) (h : Loc) (r : w64) :
+    structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦ r ∗ R ⊢
+      |={Em}=> v3rpc.hdrRevIn R h r ∗ ((⌜r ≠ W64 0⌝ ∗ R) ∨ ⌜r = W64 0⌝) := by
+  iintro ⟨Hr, HR⟩
+  by_cases h0 : r = W64 0
+  · imodintro
+    iunfold v3rpc.hdrRevIn
+    isplitl [Hr HR]
+    · iright; iframe
+    iright; ipureintro; exact h0
+  · ipersist Hr
+    imodintro
+    iunfold v3rpc.hdrRevIn
+    isplitr
+    · ileft; iframe #; ipureintro; exact h0
+    ileft; iframe; ipureintro; exact h0
+
+/-- The header's revision after `fill`: the reader back, the revision `r'` (`r` unless `0`). -/
+theorem hdrRev_out (R : IProp GF) (h : Loc) (r r' : w64) :
+    ((⌜r ≠ W64 0⌝ ∗ R) ∨ ⌜r = W64 0⌝) ∗ v3rpc.hdrRevOut R h r r' ⊢
+      R ∗ ∃ dq : DFrac, structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦{dq} r' ∗
+        ⌜r ≠ W64 0 → r' = r⌝ := by
+  iunfold v3rpc.hdrRevOut
+  iintro ⟨(⟨%h0, HR⟩ | %h0), (⟨%Hr, #Hrev⟩ | ⟨%Hr, Hrev, HR'⟩)⟩
+  · obtain ⟨_, rfl⟩ := Hr
+    iframe HR
+    iexists _
+    iframe Hrev
+    ipureintro; intro; rfl
+  · iframe HR
+    iexists _
+    iframe Hrev
+    ipureintro; exact Hr
+  · exact absurd h0 Hr.1
+  · iframe HR'
+    iexists _
+    iframe Hrev
+    ipureintro; exact Hr
+
+end lemmas
+
 end v3rpc
 end EtcdGrove
 end Perennial

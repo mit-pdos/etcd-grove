@@ -41,7 +41,7 @@ theorem newServer.wp_proof
     (wp_NewServer : ∀ [go_etcd_io.etcd.cache.v3.Assumptions],
       NewServer.spec (GF := GF) (hG := hG)) :
     newServer.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token retention peer cluster lg M iu Uok ps bootLog ctxs dir id γ
+  intro CS N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ
     ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hret Hck Haf Hbuq
     Hdbo
   subst Hret
@@ -106,7 +106,7 @@ theorem newServer.wp_proof
     iapply Htk
     ipureintro; rfl
   icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR⟩)
+    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, -, -⟩)
   · -- `NewServer` failed: the error returned
     iapply HΦ; ileft; ipureintro; exact Herr
   subst Herr
@@ -142,7 +142,7 @@ theorem newServer.wp_proofCompact
     (wp_NewServer : ∀ [go_etcd_io.etcd.cache.v3.Assumptions],
       NewServer.spec (GF := GF) (hG := hG)) :
     newServer.specCompact (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token retention peer cluster lg M iu Uok ps bootLog ctxs dir id γ
+  intro CS N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ
     ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hret Hck Haf Hbuq
     Hdbo
   wp_start as ⟨#Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
@@ -207,7 +207,7 @@ theorem newServer.wp_proofCompact
     iapply Htk
     ipureintro; rfl
   icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR⟩)
+    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, -, -⟩)
   · -- `NewServer` failed: the error returned
     iapply HΦ; ileft; ipureintro; exact Herr
   subst Herr
