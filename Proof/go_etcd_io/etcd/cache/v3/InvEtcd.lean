@@ -385,6 +385,20 @@ instance evsMatch_persistent (evs : List EvModel) (cs : List EtcdEv) :
     Persistent (evsMatch (GF := GF) evs cs) := by
   unfold evsMatch; infer_instance
 
+/-- etcd's state is the same after a step without events. -/
+theorem isEtcdKvs_quiet (Y r : w64) (pfx : GoString) (m : KvMap) (hY : sint.Z Y < sint.Z r) :
+    EtcdStep (GF := GF) Y r pfx [] ∗ isEtcdKvs Y pfx m ⊢ isEtcdKvs r pfx m := by
+  unfold isEtcdKvs
+  iintro ⟨#Hstep, ⟨%s, #Hs, %Hk, %Hwf, #Hv⟩⟩
+  iexists s
+  isplitl []
+  · imodintro
+    have ht := etcdStep_transfer (GF := GF) Y Y r pfx s [] ⟨Int.le_refl _, hY⟩
+    rw [show applyEvsState s [] = s from rfl] at ht
+    iapply ht $$ [$Hstep $Hs]
+  iframe Hv
+  ipureintro; exact ⟨Hk, Hwf⟩
+
 /-- **The bridge**: a map that is etcd's state at `Y`, and a step `p → r` with `p ≤ Y < r` whose
 events the store's batch `evs` matches, give, when the store applies the batch without failing,
 etcd's state at `r` (puts under the prefix keep the map's keys under it). This certifies the
