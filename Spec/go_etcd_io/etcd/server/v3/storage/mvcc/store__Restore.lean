@@ -146,7 +146,10 @@ abbrev mvcc.store.Restore.spec : Prop :=
 
 /-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Restore(b)`, with the store's whole open token (it stops and replaces the compaction
 scheduler, which a concurrent `Compact` reads), from a backend `b` holding the state `σ'`
-(`mvccRestorable`): the store's state becomes `σ'` by the caller's update, `nil`. On a store with
+(`mvccRestorable`): the store's state becomes `σ'` by the caller's update, `nil`. `Restore` linearizes when it sets
+the new current revision (`kvstore.go:386`), before the leases are re-attached and an unfinished
+compaction resumed: a `HashByRev` during the rest of it sees the new state (its stored-hash path
+may also see the placeholder `1` before: the post's `cur = 1`). On a store with
 watchers, the watchers must be reset (`mvccWatchersOk`, free without watchers: only the watchable
 store's `Restore` resets them). The update gives that `σ'` extends the state's history and does not lower its
 compaction revision (the stored hashes survive a restore and stay hashes of the history,

@@ -197,14 +197,26 @@ replaces the scheduler a concurrent `Compact` reads) take it whole. -/
 opaque mvccOpen (γ : MvccName) (q : Qp) : IProp GF := iprop(True)
 
 /-- **The store's backend is `b`, with parameters `P` and batch-lock invariant `Pk`**
-(persistent; from `New`): what the backend's hook (`mvccHook_of_backend`) and commit request
+(persistent; from `New`): what the backend's hook (`mvccHook`) and commit request
 (`backend.commitReq` at `mvccBackend γ`) are over. -/
 opaque mvccBackendIs (γ : MvccName) (P : backend.BParams) (Pk : IProp GF) (b : Loc) : IProp GF :=
   iprop(True)
 
 /-- **The store's batch lock has invariant `P` and its post-lock hook is `f`, for good**
-(persistent; `f` may be `nil`: no hook). -/
-opaque mvccHook (γ : MvccName) (P : IProp GF) (f : GoFunc) : IProp GF := iprop(True)
+(persistent, as its parts are; `f` may be `nil`: no hook): the backend's own read-only share of
+its hook (`backend.plHookRO`, by `plHook_persist` after `SetTxPostLockInsideApplyHook`, or the new
+backend's `nil`), at the store's backend, whose lock invariant is `P`. A definition, not an
+abstraction: its only maker is the backend. -/
+def mvccHook (γ : MvccName) (P : IProp GF) (f : GoFunc) : IProp GF :=
+  iprop(∃ (BP : backend.BParams) (b : Loc), mvccBackendIs γ BP P b ∗
+    backend.plHookRO (mvccBackend γ) f)
+
+/-- The hook is one (the backend's hook is a ghost variable). -/
+theorem mvccHook_agree (γ : MvccName) (P P' : IProp GF) (f f' : GoFunc) :
+    mvccHook (GF := GF) γ P f ∗ mvccHook γ P' f' ⊢ ⌜f = f'⌝ := by
+  unfold mvccHook backend.plHookRO backend.plHookAt
+  iintro ⟨⟨%BP, %b, -, H1⟩, ⟨%BP', %b', -, H2⟩⟩
+  iapply dghostVar_agree $$ H1 H2
 
 /-- **`t` is a transaction of `γ`** with the view `k`, holding the caller's trace `trace`
 (exclusive): `t` the interface value the client holds, a `*metricsTxnWrite` (the store's
@@ -238,8 +250,12 @@ the backend's creator's resources, as today's `store.Restore` takes them; the ba
 open, `notes/mvcc-api-candidate.md`). -/
 opaque mvccRestorable (γ : MvccName) (b : Loc) (σ : MvccState) : IProp GF := iprop(True)
 
-/-- **`hs` (a `*hashStorage`) is the store `γ`'s hash storage** (persistent). -/
-opaque isHashStorage (hs : Loc) (γ : MvccName) : IProp GF := iprop(True)
+/-- **`hs` (a `*hashStorage`) is the store `γ`'s hash storage** (persistent, as its parts are):
+the hash storage in a store's `hashes` field (set by `NewStore`, for good). A definition: `isMvcc`
+carries what `hs`'s methods need. -/
+def isHashStorage (hs : Loc) (γ : MvccName) : IProp GF :=
+  iprop(∃ s : Loc, isMvcc s γ ∗
+    s.[store, go!"hashes"] ↦□ (interface.mkOk (go.GoType.PointerType hashStorage.ty) #hs : GoInterface))
 
 /-- **`h` is a hash of the store `γ`** (persistent): of the revisions `(h.CompactRevision,
 h.Revision]` of its history (`mvccHashOk_state`). -/
@@ -292,9 +308,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 abbrev persistent.law : Prop :=
   (∀ s γ, Persistent (isMvcc (GF := GF) s γ)) ∧ (∀ ws γ, Persistent (isWatchableMvcc (GF := GF) ws γ)) ∧
   (∀ γ P Pk b, Persistent (mvccBackendIs (GF := GF) γ P Pk b)) ∧
-  (∀ γ P f, Persistent (mvccHook (GF := GF) γ P f)) ∧ (∀ rd γ, Persistent (mvccDeleter (GF := GF) rd γ)) ∧
+  (∀ rd γ, Persistent (mvccDeleter (GF := GF) rd γ)) ∧
   (∀ γ op, Persistent (mvccWatchersOk (GF := GF) γ op)) ∧ (∀ v γ, Persistent (isMvccView (GF := GF) v γ)) ∧
-  (∀ hs γ, Persistent (isHashStorage (GF := GF) hs γ)) ∧ (∀ γ h, Persistent (mvccHashOk (GF := GF) γ h)) ∧
+  (∀ γ h, Persistent (mvccHashOk (GF := GF) γ h)) ∧
   (∀ ch, Persistent (mvccCompactChan (GF := GF) ch)) ∧
   (∀ ws γ ι, Persistent (isMvccWatchStream (GF := GF) ws γ ι)) ∧
   (∀ γ σ, Timeless (mvccState (GF := GF) γ σ)) ∧ (∀ ι W, Timeless (wsWatchers (GF := GF) ι W)) ∧
@@ -305,15 +321,25 @@ abbrev persistent.law : Prop :=
 abbrev mvccState_excl.law : Prop :=
   ∀ γ σ σ', mvccState (GF := GF) γ σ ∗ mvccState γ σ' ⊢ False
 
+/-- The registrar's view and the consumer's are exclusive (so the `W` and `rs` the watch laws
+take are the current ones). -/
+abbrev ws_excl.law : Prop :=
+  (∀ ι W W', wsWatchers (GF := GF) ι W ∗ wsWatchers ι W' ⊢ False) ∧
+  (∀ ι rs rs', wsRecv (GF := GF) ι rs ∗ wsRecv ι rs' ⊢ False)
+
 /-- **Every state of a store is reachable**, and its revisions fit an `int64` with room to spare
 (its changes are fewer than the time receipts, `New`'s `receiptBound GF ≤ 2 ^ 48`). -/
 abbrev mvccState_reachable.law : Prop :=
   ∀ s γ σ, isMvcc (GF := GF) s γ ∗ mvccState γ σ ⊢ ⌜MvccReachable σ ∧ σ.log.length < 2 ^ 62⌝
 
-/-- **A write transaction pins the state** it began at (nothing pending), until its `End`. -/
+/-- **A write transaction pins the state** it began at (nothing pending), until its `End`: the
+state is that one, or its notification of the transaction's changes (inside the watchable store's
+`End`, which notifies before it calls the store transaction's `End`; `notify` is idempotent, so
+that `End`'s first update is then no change). A sole writer refutes the second from its own
+invariant (it has not notified). -/
 abbrev mvccTxn_write_agree.law : Prop :=
   ∀ t γ trace σ pend σ', mvccTxn (GF := GF) t γ trace (.write σ pend) ∗ mvccState γ σ' ⊢
-    ⌜σ' = σ ∧ σ.pending = none⌝
+    ⌜σ.pending = none ∧ (σ' = σ ∨ σ' = σ.notify pend)⌝
 
 /-- **The caller's trace, while its transaction is open** (to step and annotate it). -/
 abbrev mvccTxn_trace.law : Prop :=
@@ -357,17 +383,6 @@ abbrev isMvcc_views.law : Prop :=
     isMvccView (interface.mkOk (go.GoType.PointerType readView.ty) #rv) γ ∗
     s.[store, go!"WriteView"] ↦□ (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
     isMvccView (interface.mkOk (go.GoType.PointerType writeView.ty) #wv) γ)
-
-/-- **The hook frozen** on the store's backend (`backend.plHookRO`, by `plHook_persist` after
-`SetTxPostLockInsideApplyHook`, or the new backend's `nil`) is the store's, at the backend's lock
-invariant. -/
-abbrev mvccHook_of_backend.law : Prop :=
-  ∀ γ P Pk b f, mvccBackendIs (GF := GF) γ P Pk b ∗ backend.plHookRO (mvccBackend γ) f ⊢
-    mvccHook γ Pk f
-
-/-- The hook is one. -/
-abbrev mvccHook_agree.law : Prop :=
-  ∀ γ P P' f f', mvccHook (GF := GF) γ P f ∗ mvccHook γ P' f' ⊢ ⌜f = f'⌝
 
 /-- **The range deleter** the store set on its lessor is the store's `Write(traceutil.TODO())`,
 the watchable store's if it has watchers: a write transaction (as `store.Write.specC` or

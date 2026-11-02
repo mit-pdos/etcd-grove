@@ -18,7 +18,8 @@ nothing proves them, and no proof uses them; today's specs and proofs are untouc
   adopting them replaces each `<F>.spec` (and its proof).
 - Rounds: 1 (`8bd75f7cc2`), 2 (`3f39b7e79d`), 3 (`a4cc4f33b8`), 4 (`e8bad5269e`), each after a
   `spec-reviewer` review of the previous; 5 (`78cde78acf`), after the user's critique; 6
-  (`057d769423`), 7 (`b044f1c5b1`); 8 (below), the user's decisions applied.
+  (`057d769423`), 7 (`b044f1c5b1`); 8 (`efa9b1e853`), the user's decisions applied; 9 (below), the
+  review of 8.
 - Out of scope: mvcc's internal functions (the key index, the tree index, the revision encoding,
   the compaction job, the sync loops): the `spec` skill's scope, an internal spec may mirror its
   code.
@@ -277,7 +278,8 @@ candidate block replaced). It builds. The vocabulary:
   free on a store without watchers (`mvccWatchersOk_unwatched`) and for a commit of nothing
   (`mvccWatchersOk_nil`); only the watchable store's own `End` and `Restore` have it otherwise.
 - **The backend's identity** `mvccBackendIs γ P Pk b` subsumes the hook's initialization
-  (`mvccHook_of_backend`); `Commit`, `Compact` and `Hash` take the backend's own `commitReq` at it.
+  (round 9: `mvccHook` defined over it); `Commit`, `Compact` and `Hash` take the backend's own
+  `commitReq` at it.
 - **The watch stream**: `wsChanOf ι` (pure; `Chan` returns it, `wsChan_recv` receives on it);
   closed is `□ ∀ q, wsOpen ι q -∗ False` (in `Watch`'s error arm); the registrar's view
   `wsWatchers ι W`, `W : List WInfo` (range, filters, first revision, registration stamp, live),
@@ -287,6 +289,33 @@ candidate block replaced). It builds. The vocabulary:
   `threadBound GF ≤ 2 ^ 30`); write-backs from receipts (`New`'s `□ (⧗ 1 ={⊤}=∗ wbTok)`); no
   open-token share on `HashByRev`, whose current revision is the state's or `1`; the real
   lessor (`isLessor`).
+
+## Round 9 (the review of round 8, 2026-11-02)
+
+The review (`spec-reviewer`) found round 8 sound against the Go code but for one law, and checked
+that a client can use it: the watchable transaction's `Put`/`Range` reach `metricsTxnWrite`'s specs
+through `mvccTxn_unwrap`; the server's apply loop commits with both steps (the first update records
+the entry being applied as pending; its commit gives the second). Applied:
+
+- **`mvccTxn_write_agree` contradicted `watchableStoreTxnWrite.End`'s proof**: that `End` notifies
+  (its first update fires), then calls the store transaction's `End`, whose spec needs the
+  transaction's `mvccTxn` at the state it began at while the state is notified: the law gave
+  `False` there. Now the state is the transaction's or its notification of the transaction's
+  changes (`notify` is idempotent: the inner `End`'s first update is no change); a sole writer
+  refutes the second from its own invariant.
+- **`Cancel` of a negative id** marked watcher `0` dead (`sint.nat` of a negative is `0`), which
+  the code does not: the update is guarded by `0 ≤ sint.Z id` (a v3rpc `CancelRequest` of `-1`
+  would have cost watcher `0` its progress guarantee).
+- **`Restore`'s linearization point** stated (`store.Restore`, `HashByRev`): when it sets the new
+  current revision (`kvstore.go:386`), before the leases are re-attached and an unfinished
+  compaction resumed; `HashByRev`'s `cur = σ.rev ∨ cur = 1` holds with it.
+- **`ws_excl.law`**: the registrar's view and the consumer's are exclusive (the `W` and `rs` the
+  watch laws take are the current ones).
+- **Two abstractions fewer** (17 opaque Iris predicates): `mvccHook γ P f` defined, `∃ BP b,
+  mvccBackendIs γ BP P b ∗ backend.plHookRO (mvccBackend γ) f` (its only maker is the backend;
+  `mvccHook_of_backend` gone, `mvccHook_agree` now a theorem from the hook's ghost variable);
+  `isHashStorage hs γ` defined, `∃ s, isMvcc s γ ∗ s.hashes ↦□ hs` (the field `NewStore` sets for
+  good).
 
 ## Decisions for the user (round 7's list; answered above, kept for the record)
 

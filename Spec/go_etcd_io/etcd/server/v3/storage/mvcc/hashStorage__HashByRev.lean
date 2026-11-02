@@ -31,7 +31,8 @@ store's state `σ`, unchanged:
   revision or a hash stored for revision `0` (`issues/etcd-mvcc-hashbyrev-zero-stored.md`), and
   the current revision, or `1` when a stored hash is answered during a `Restore`
   (`issues/etcd-mvcc-hashbyrev-restore-rev1.md`: the restore's placeholder; with the Go fix the
-  post loses that case), `nil`.
+  post loses that case), `nil`. `Restore`'s update fires when it sets the new current revision
+(before the leases are re-attached), so a `HashByRev` after it sees the new state.
 A stored hash short-cuts both checks. Its value rests on crc32's (`kvHasher`'s trust boundary). -/
 abbrev mvcc.hashStorage.HashByRev.specC : Prop :=
   ∀ (hs : Loc) (γ : mvcc.MvccName) (rev : w64) (Q : mvcc.MvccState → IProp GF),
