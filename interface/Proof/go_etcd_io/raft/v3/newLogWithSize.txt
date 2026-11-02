@@ -57,16 +57,17 @@ theorem newLogWithSize.wp_proof [package_sem : Assumptions] : newLogWithSize.spe
                                             b + σ.ents.length = last ∧
                                               LogIndicesOk σ.prev σ.ents ∧
                                                 σ.pend = [] ∧
-                                                  σ.fr = b ∧
-                                                    σ.sg ≤ b ∧
-                                                      b ≤ uint.nat a ∧
-                                                        uint.nat a ≤ uint.nat c ∧
-                                                          uint.nat c ≤ last ∧
-                                                            uint.nat σ.fl ≤ uint.nat a ∧
-                                                              ∀ (k : Nat) (t : w64),
-                                                                σ.dt !! k = some t →
-                                                                  k ≤ uint.nat c ∧
-                                                                    (b ≤ k → termAt σ.prev σ.ents (W64 ↑k) = some t)⌝ -∗
+                                                  b ≤ σ.fr ∧
+                                                    σ.fr ≤ uint.nat c ∧
+                                                      σ.sg ≤ b ∧
+                                                        b ≤ uint.nat a ∧
+                                                          uint.nat a ≤ uint.nat c ∧
+                                                            uint.nat c ≤ last ∧
+                                                              uint.nat σ.fl ≤ uint.nat a ∧
+                                                                ∀ (k : Nat) (t : w64),
+                                                                  σ.dt !! k = some t →
+                                                                    k ≤ uint.nat c ∧
+                                                                      (b ≤ k → termAt σ.prev σ.ents (W64 ↑k) = some t)⌝ -∗
                                         typedPointsto l
                                             { storage' := lv0.storage', unstable' := lv0.unstable', committed' := c,
                                               applying' := a, applied' := a, logger' := lv0.logger',
