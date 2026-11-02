@@ -160,7 +160,7 @@ structure KVNames where
 watches, `client.srvWEnv … default`). -/
 instance : Inhabited KVNames :=
   ⟨{ st := default, c0 := default, ch0 := apply.alarmChain false false false, log0 := [],
-     cok := default, hi := default, ids := ⟨default, default, default, default, default, default, default⟩ }⟩
+     cok := default, hi := default, ids := ⟨default, default, default, default, default, default, default, default⟩ }⟩
 
 /-- **Two KV names of one cluster's KV** (pure; the client's `kv.Compact`, 2026-10-31): the same
 state, the same model (its start index, chain and start log), the same requested log and the same

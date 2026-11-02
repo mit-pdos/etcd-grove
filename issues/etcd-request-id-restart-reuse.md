@@ -5,8 +5,12 @@ upstream: unchecked
 # etcdserver: a restarted member can reissue its previous incarnation's request ids
 
 - **Status**: an unstated precondition (request ids are unique only if the wall clock does not go
-  backwards across a member's restart, and the member issued fewer than 256 ids per millisecond on
-  average before it). Not reproduced yet. Same mechanism as
+  backwards across a member's restart, and the previous incarnation's generator, started at
+  millisecond t0, issues in all -- including after the restart, from handlers still running -- at
+  most 256·(t1 − t0) ids, t1 the restart's millisecond: the new generator's first id,
+  `prefix | (t1·256 + 1)`, is the old one's (256·(t1 − t0) + 1)-th. A restart within the
+  millisecond of the previous start collides at the old generator's first id; Go's comment on
+  `Generator` asks for a restart "after 1 ms", which is not enough by itself). Not reproduced yet. Same mechanism as
   [etcd-request-id-member-prefix](etcd-request-id-member-prefix.md), across one member's
   incarnations rather than two members.
 - **Where** (the fork at the pin of `etc/goose.py`, `ab3c28d9a`):
@@ -28,10 +32,11 @@ upstream: unchecked
   entry later triggers nothing.
 - **Expected**: request ids unique across a member's restarts, or the precondition documented.
 - **How the proof handles it**: as an assumption in the semantics, where it is used (the restart
-  plan's R2c, 2026-11-02; drafted, not yet in use): the cluster's id state is keyed by a member's
-  incarnation (`Proof/go_etcd_io/etcd/pkg/v3/idutil/Incarnations.lean`), and `Generator.Next` is to
-  be a trusted model whose Go body is followed by `primitive.Assume` that no other generator issued
-  the id -- this issue's precondition. A false `Assume` does not return, so the model excludes the
+  plan's R2c stage 2, 2026-11-02): the cluster's id state is keyed by a member's incarnation
+  (`Proof/go_etcd_io/etcd/pkg/v3/idutil/Defs.lean`), and `Generator.Next` is a trusted model
+  (`TrustedCode/go_etcd_io/etcd/pkg/v3/idutil.lean`) whose Go body is followed, before the return, by
+  Perennial's `assume` of the issue record's `"Issue"` (`GooseLang/Ext/IdIssue`, model-only state):
+  no other generator issued the id -- this issue's precondition. A false `Assume` does not return, so the model excludes the
   clashing executions; nothing in the logic states it (a first draft's logical statement was
   refutable). It is not a premise of the example's theorem: as for the read-write mutex's reader
   limit (`/shared/grove-paper/sosp26/rwmutex.tex`), the specs stay free of the limit. Across members,
