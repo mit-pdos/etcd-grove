@@ -333,7 +333,60 @@ theorem chains.lift.wp_proof
               rw [hk1, hinw, cnt_succ, if_neg (fun h0 => h0.1 rfl), Nat.add_zero]
               iframe
               ipureintro; exact hkv1
-            · sorry
+            · -- `k != i`: `opI.firstUnk[k] > ch.clients[k].head`
+              obtain ⟨kn, hkn⟩ : ∃ kn, sint.nat kv = kn := ⟨_, rfl⟩
+              rw [hkn] at hkl hk1
+              rw [hkn]
+              have hkz : sint.Z kv = (kn : Int) := by rw [← hkn, snat_eq]; omega
+              have hki : kn ≠ i := by
+                intro he; apply Hif; apply BitVec.eq_of_toInt_eq
+                have := hiz; simp only [sint.Z] at this hkz; omega
+              have hbf : 0 ≤ (kn : Int) ∧ (kn : Int) < sint.Z co2.firstUnk'.len := by
+                have := Hful; rw [snat_eq, hfu2l] at this; omega
+              repeat ((try simp only [hkz, hbf, _root_.and_self, ↓reduceIte]); wp_auto)
+              simp only [hkz, hbf, _root_.and_self, ↓reduceIte]
+              obtain ⟨fv, Hfv⟩ : ∃ fv, fu2[kn]? = some fv := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+              wp_apply wp_load_slice_index co2.firstUnk' (kn : Int) fu2 _ fv (by omega) $$ [Hfu] as Hfu
+              · iframe; ipureintro; simpa using Hfv
+              have hfv : sint.Z fv = FUe h cs i kn (st.head i + 1) := by
+                have := hfu2v kn hkl hki
+                rw [List.getD_eq_getElem?_getD, Hfv] at this; exact this
+              -- client `k`'s head
+              obtain ⟨cvk, Hcvk⟩ : ∃ cvk, cvs[kn]? = some cvk := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+              icases chainsRest_read chV2 h cs st3 i kn cvs cvk Hcvk hki $$ Hrest with ⟨Hek, Hck, Hrest⟩
+              icases clientOwn_facts h cs st3 kn cvk $$ Hck with ⟨%Hck', Hck⟩
+              have hbk' : 0 ≤ (kn : Int) ∧ (kn : Int) < sint.Z chV2.clients'.len := by omega
+              repeat ((try simp only [hkz, hbk', _root_.and_self, ↓reduceIte]); wp_auto)
+              ihave Hrest := Hrest $$ Hek Hck
+              have hhk : sint.Z cvk.head' = (st2.head kn : Int) := by rw [Hck'.2.1, h3head]
+              have htest : (sint.Z cvk.head' < sint.Z fv) ↔
+                  st2.heads.getD kn 0 < FUe h cs i kn (st2.heads.getD i 0) := by
+                rw [hhk, hfv]
+                have : st2.heads.getD i 0 = st.head i + 1 := hk2s
+                rw [this]
+                exact ⟨fun h0 => by exact_mod_cast h0, fun h0 => by exact_mod_cast h0⟩
+              have hil2 : st2.heads.getD i 0 < (chain cs i).length := by
+                have : st2.heads.getD i 0 = st.head i + 1 := hk2s
+                rw [this]; exact hk2l
+              wp_if_destruct
+              · -- `nDeps[i]++`
+                repeat ((try simp only [hiz, hbi2, _root_.and_self, ↓reduceIte]); wp_auto)
+                ihave He : (sliceIndexRef client (i : Int) chV2.clients' ↦
+                  (⟨cvi.id', cvi.cltOps', cvi.head', W64 (cnt h cs st2.heads i kn : Int) + W64 1⟩ : client)
+                  : IProp GF) $$ [He]
+                · iexact He
+                wp_for_post
+                iframe
+                iexists kv + W64 1
+                rw [hk1, cnt_succ, if_pos ⟨hki, hil2, htest.mp Hif⟩, hw1]
+                iframe
+                ipureintro; exact hkv1
+              · wp_for_post
+                iframe
+                iexists kv + W64 1
+                rw [hk1, cnt_succ, if_neg (fun h0 => Hif (htest.mpr h0.2.2)), Nat.add_zero]
+                iframe
+                ipureintro; exact hkv1
           · sorry
         · -- client `i` finished
           have hfin : ¬ st2.head i < (chain cs i).length := by
