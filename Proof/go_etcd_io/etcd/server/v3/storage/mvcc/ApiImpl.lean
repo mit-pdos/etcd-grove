@@ -86,7 +86,8 @@ def mvccStateI (γ : MvccImpl) (σ : MvccState) : IProp GF :=
   iprop(ghostVar γ.st.abs (1 : Qp).half σ.log ∗ ghostVar γ.st.pnd (1 : Qp).half σ.pending ∗
     crevUB γ.st.idx (1 : Qp).half σ.crev ∗ idxCert γ.st.idx σ.log ∗
     (∃ M : GMap w64 Log, ghostMapAuth γ.st.cok 1 M ∗ ⌜certMapOk M σ.notifiedLog⌝) ∗
-    ⌜MvccReachable σ ∧ σ.log.length < 2 ^ 62⌝)
+    (∀ x, ⌜σ.pending = some x⌝ -∗ certOk γ.st (σ.log ++ [x])) ∗
+    ⌜MvccReachable σ ∧ σ.log.length + 3 ≤ 2 ^ 63⌝)
 
 /-- **The revision tokens' pool**: `n` tokens and `a` time receipts, `receiptBound GF ≤ a + n + 1`
 (a writer pays a receipt for a token: so the pool never runs dry, `revPool_take`). -/

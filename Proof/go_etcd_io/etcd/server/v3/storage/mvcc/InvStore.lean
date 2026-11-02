@@ -559,31 +559,13 @@ theorem pndEnd_none (γ : StoreNames) (ilog : Log) (pend : List Change) :
 
 /-- A transaction core's pending part, at some value. -/
 theorem pndEndB_any (γ : StoreNames) (ilog : Log) (pend : List Change) (b : Bool) :
-    pndEndB (GF := GF) γ ilog pend b ⊢ ∃ p, wrAt γ ilog p := by
+    pndEndB (GF := GF) γ ilog pend b ⊢ ∃ p, wrAt γ ilog p ∗ ⌜p = none ∨ p = some pend⌝ := by
   cases b
-  · simp only [pndEndB_false]; iintro H; iexists none; iexact H
-  · simp only [pndEndB_true]; unfold pndEnd; iintro ⟨%p, H, -⟩; iexists p; iexact H
-
-/-- **The caller's commit update** (the abstract mode's `storeTxnWrite.End.specA`, mvcc's candidate
-API): with a change, `End` runs it at the commit (`currentRev++`, under `s.revMu` held exclusively),
-with `s.revMu`'s half of the abstract committed log and the writer's half of the pending revision,
-and gets them back at the committed log and nothing pending, with the caller's `Q`; with no change,
-just `Q`. Not in the abstract mode, both parts are `True` (`absAt_off`): the update is `Q`'s. -/
-def absCommit (γ : StoreNames) (ilog : Log) (pend : List Change) (Q : IProp GF) : IProp GF :=
-  if pend = [] then Q
-  else iprop(∀ p : Option (List Change), absAt γ (1 : Qp).half.half ilog ∗ wrAt γ ilog p ={⊤}=∗
-    absAt γ (1 : Qp).half.half (ilog ++ [pend]) ∗ wrAt γ (ilog ++ [pend]) none ∗ Q)
-
-theorem absCommit_nil (γ : StoreNames) (ilog : Log) (Q : IProp GF) :
-    absCommit (GF := GF) γ ilog [] Q ⊢ Q := by
-  unfold absCommit; rw [if_pos rfl]
-
-theorem absCommit_ne (γ : StoreNames) (ilog : Log) (pend : List Change) (Q : IProp GF)
-    (h : pend ≠ []) :
-    absCommit (GF := GF) γ ilog pend Q ⊢ ∀ p : Option (List Change),
-      absAt γ (1 : Qp).half.half ilog ∗ wrAt γ ilog p ={⊤}=∗
-        absAt γ (1 : Qp).half.half (ilog ++ [pend]) ∗ wrAt γ (ilog ++ [pend]) none ∗ Q := by
-  unfold absCommit; rw [if_neg h]
+  · simp only [pndEndB_false]; iintro H; iexists none; iframe H; ipureintro; left; rfl
+  · simp only [pndEndB_true]; unfold pndEnd; iintro ⟨%p, H, %hp⟩; iexists p; iframe H
+    ipureintro; rcases hp with h | ⟨-, h⟩
+    · left; exact h
+    · right; exact h
 
 /-- **The caller's read update** (the abstract mode's `store.Read.specA`, mvcc's candidate API): run
 where the read's log is fixed (under `s.revMu` held shared), with `s.revMu`'s fraction of the
@@ -3034,6 +3016,32 @@ instance certOkNext_persistent (γ : StoreNames) (ilog : Log) (pend : List Chang
     Persistent (certOkNext (GF := GF) γ ilog pend) := by
   unfold certOkNext; infer_instance
 
+/-- **The caller's commit update** (the abstract mode's `storeTxnWrite.End.specA`, mvcc's candidate
+API): with a change, `End` runs it at the commit (`currentRev++`, under `s.revMu` held exclusively),
+with `s.revMu`'s half of the abstract committed log and the writer's half of the pending revision,
+and gets them back at the committed log and nothing pending, with the caller's `Q`; with no change,
+just `Q`. Not in the abstract mode, both parts are `True` (`absAt_off`): the update is `Q`'s. -/
+def absCommit (γ : StoreNames) (ilog : Log) (pend : List Change) (Q : IProp GF) : IProp GF :=
+  if pend = [] then Q
+  else iprop(∀ p : Option (List Change), ⌜p = none ∨ p = some pend⌝ -∗
+    ⌜(ilog ++ [pend]).length + 3 ≤ 2 ^ 63⌝ -∗ idxCert γ.idx (ilog ++ [pend]) -∗
+    absAt γ (1 : Qp).half.half ilog ∗ wrAt γ ilog p ={⊤}=∗
+    absAt γ (1 : Qp).half.half (ilog ++ [pend]) ∗ wrAt γ (ilog ++ [pend]) none ∗
+    certOk γ (ilog ++ [pend]) ∗ Q)
+
+theorem absCommit_nil (γ : StoreNames) (ilog : Log) (Q : IProp GF) :
+    absCommit (GF := GF) γ ilog [] Q ⊢ Q := by
+  unfold absCommit; rw [if_pos rfl]
+
+theorem absCommit_ne (γ : StoreNames) (ilog : Log) (pend : List Change) (Q : IProp GF)
+    (h : pend ≠ []) :
+    absCommit (GF := GF) γ ilog pend Q ⊢ ∀ p : Option (List Change), ⌜p = none ∨ p = some pend⌝ -∗
+      ⌜(ilog ++ [pend]).length + 3 ≤ 2 ^ 63⌝ -∗ idxCert γ.idx (ilog ++ [pend]) -∗
+      absAt γ (1 : Qp).half.half ilog ∗ wrAt γ ilog p ={⊤}=∗
+        absAt γ (1 : Qp).half.half (ilog ++ [pend]) ∗ wrAt γ (ilog ++ [pend]) none ∗
+          certOk γ (ilog ++ [pend]) ∗ Q := by
+  unfold absCommit; rw [if_neg h]
+
 /-- **The outer quarter of the committed log's authority** (the watch slice's unit W-K):
 `s.revMu` holds a quarter (`revMuInv`), the index writer half (`idxWriter`), and the store's
 owner the last quarter: the watchable store's `s.mu` (`watchStoreBody`, at the notified log, so
@@ -5160,7 +5168,7 @@ caller's update (`absCommit`); of a read transaction, `Q` itself. -/
 def txnEndPreA (γ : StoreNames) (Q : IProp GF) : TxnKind → IProp GF
   | .read _ _ => Q
   | .write ilog pend _ _ _ => iprop(∃ (P : IProp GF) (f : val), hookOk γ P f ∗ (P ∗
-      certOkNext γ ilog pend ∗ logQPre γ ilog pend ∗ absCommit γ ilog pend Q))
+      logQPre γ ilog pend ∗ absCommit γ ilog pend Q))
 
 /-- What `End` leaves, in either mode: `txnEndPost`'s without the writer's fragment, and `Q`. -/
 def txnEndPostA (γ : StoreNames) (Q : IProp GF) : TxnKind → IProp GF

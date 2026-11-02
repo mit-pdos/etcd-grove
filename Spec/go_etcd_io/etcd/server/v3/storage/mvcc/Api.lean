@@ -233,10 +233,10 @@ abbrev ws_excl.law : Prop :=
   (∀ ι W W', wsWatchers (GF := GF) ι W ∗ wsWatchers ι W' ⊢ False) ∧
   (∀ ι rs rs', wsRecv (GF := GF) ι rs ∗ wsRecv ι rs' ⊢ False)
 
-/-- **Every state of a store is reachable**, and its revisions fit an `int64` with room to spare
-(its changes are fewer than the time receipts, `New`'s `receiptBound GF ≤ 2 ^ 48`). -/
+/-- **Every state of a store is reachable**, and its revisions fit an `int64` (with room for the
+next ones: the store's revision budget). -/
 abbrev mvccState_reachable.law : Prop :=
-  ∀ s γ σ, isMvcc (GF := GF) s γ ∗ mvccState γ σ ⊢ ⌜MvccReachable σ ∧ σ.log.length < 2 ^ 62⌝
+  ∀ s γ σ, isMvcc (GF := GF) s γ ∗ mvccState γ σ ⊢ ⌜MvccReachable σ ∧ σ.log.length + 3 ≤ 2 ^ 63⌝
 
 /-- **A write transaction pins the state** it began at (nothing pending), until its `End`: the
 state is that one, or its notification of the transaction's changes (inside the watchable store's

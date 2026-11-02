@@ -248,7 +248,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iframe Hcert' Hq Hfrag
 theorem mvcc.storeTxnWrite.End.wp_proofA : mvcc.storeTxnWrite.End.specA (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend chs ps sealed P f crev Z ld Q
-  wp_start as ⟨Htw, #HhookC, HP, #HokN, Hq, Hac⟩
+  wp_start as ⟨Htw, #HhookC, HP, Hq, Hac⟩
   -- the caller's hook: its facts, and the writer's fragment, given back (D22 receiver epochs, S5b)
   iunfold mvcc.storeTxnWriteCore at Htw
   iNamed Htw
@@ -378,9 +378,9 @@ theorem mvcc.storeTxnWrite.End.wp_proofA : mvcc.storeTxnWrite.End.specA (GF := G
     icases mvcc.idxWriter_nevLb_nil γ.idx (ilog ++ [pend]) $$ Hw with ⟨Hw, #Hnev'⟩
     icases mvcc.revQ_commit_post γ ilog pend hne' $$ HlogH with ⟨HlogL, Hq⟩
     -- the caller's commit update: the abstract committed log, nothing pending
-    icases mvcc.pndEndB_any γ ilog pend sealed $$ Hpnd with ⟨%p0, Hpnd⟩
+    icases mvcc.pndEndB_any γ ilog pend sealed $$ Hpnd with ⟨%p0, Hpnd, %Hp0⟩
     ihave Hac := mvcc.absCommit_ne γ ilog pend Q hne' $$ Hac
-    imod Hac $$ %p0 [$HabsL $Hpnd] with ⟨HabsL, Hpnd, HQ⟩
+    imod Hac $$ %p0 %Hp0 %(by simp; omega) Hcert' [$HabsL $Hpnd] with ⟨HabsL, Hpnd, #HokC, HQ⟩
     have hrev : (W64 ((ilog.length : Int) - 1) : w64) + W64 1 =
         W64 (((ilog ++ [pend]).length : Int) - 1) := by
       rw [← mvcc.W64_add_one]; simp
@@ -437,11 +437,6 @@ theorem mvcc.storeTxnWrite.End.wp_proofA : mvcc.storeTxnWrite.End.specA (GF := G
         simp only [named]
         iframe HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL HabsL
         iframe #
-        isplitl []
-        · iunfold mvcc.certOkNext at HokN
-          icases HokN with (%Hp0 | #Hok')
-          · exact absurd Hp0 hne'
-          · iexact Hok'
         ipureintro; simp; omega
       (try wp_auto)
       -- `tw.s.mu.RUnlock()`
