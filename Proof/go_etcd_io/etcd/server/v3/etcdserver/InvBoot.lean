@@ -367,6 +367,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
       -- (the lease-revoke plan, 2026-10-31) the `Lease` bucket in the table, tracked, no hook
       -- keys: what a revocation's deletions from it take (`mvcc.storeRb`)
       mvcc.leaseParams d.P⌝ ∗
+    -- (2026-11-02, the user's approval, branch `snap-window`) the backend's hooks are the server's
+    -- `s.beHooks` (`bootstrapBackend`'s `OpenBackend(cfg, beHooks)`: `bcfg.Hooks = hooks`, which
+    -- `New` stores in `b.hooks`): what the merged snapshot's window needs of its commit
+    "#HhkAt" ∷ backend.hooksAt d.be (storage.hooksIface bk.beHooks') ∗
 
     -- (the integration with `construct`, 2026-10-17) what `backend.New` gives (item 6's
     -- `newPost`, at the server's batch-lock resources: its hooks the server's, so its
