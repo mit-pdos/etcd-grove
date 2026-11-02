@@ -29286,3 +29286,33 @@ log (`srvRLogLb`) and a read-side law from a committed bound to a linearizable `
 (`committedAtLeast`, `readLogOk`), or the bound delivered by `Range`'s linearization. Both are
 larger than the stage and change the server's read specs. Recorded as C3's open client stage, after
 periodic mode (the plan's other open item, which has closed results to gain).
+
+## Periodic mode: `NewServer` with the periodic compactor, `putgetc` in periodic mode (2026-11-02 · my recommendation, under the user's "follow your recommendations" · branch `periodic`)
+
+**The compactor plan's C2 in periodic mode** (`notes/compactor-pilot-plan.md`): the closed results
+with the auto-compactor in either mode. Until now `NewServer` proved only revision mode.
+
+**`NewServer`'s premise** (both `spec` and `specG`) gains a third disjunct, the compactor on in
+periodic mode: `AutoCompactionMode = "periodic"`, a period of at least 10ns (`v3compactor.New`'s
+premise: a shorter one busy-loops) and the cluster's retention `ρ.rd.kv.cret = 0`. A period is no
+revision count, so the store's permit (`kvCmpPermit`, C3's server stage) can claim no retention
+beyond "a revision the store had": `cret = 0`. A weakening of the premise: no caller gains an
+obligation.
+
+**The compactor's contract.** `compactableOk_server_of` takes any permit `P` with
+`P r ⊢ ⌜0 < r⌝ ∗ srvRevLb E.γ (r + E.cret)`; revision mode (`compactableOk_server`, unchanged
+statement) and periodic mode (`compactableOk_server_periodic`, `cret = 0`) are its corollaries, and
+`compactableOk_server_mode` picks the mode's (`modePermit`). Periodic mode's permit gives the
+revision through the clock's stamp, `clockwork.stampAt_elim`: the clock's trust boundary (already in
+the trust base, `stampAt`, `clockLb`, `realClock`, ...); the results now rest on this law of it too
+(`etc/tcb-baseline.txt` and the collections, one line each).
+
+**The examples.** `common.newServer` is now `newServerMode(…, "revision", …)`, with the mode a
+parameter (`newServerMode.spec`, in the compaction mode `cmp`, as `NewServer`'s premise); the two
+`newServer` specs are proved over it. `StartPeriodicServer` starts a member in periodic mode.
+`putgetc` runs in periodic mode with a 10ms period (until now revision mode at retention 1, which
+`compactkv` covers): its test now also checks that the compactor compacts during a run (a read at
+the revision before the Put's fails with `ErrCompacted` within 5s). `putgetc_safe`'s statement is
+unchanged. The two new specs repeat their siblings' `threadBound`/`receiptBound` premises, raising
+`examples/common`'s bounds baseline (spec-thread 8 → 10, spec-receipt 12 → 16), as the family's
+others are until the bounds plan moves them.

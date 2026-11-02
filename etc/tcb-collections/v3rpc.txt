@@ -38,6 +38,7 @@ axiom backend.rtxSnap
 axiom backend.rtxStats
 axiom backend.txDB
 axiom backend.txLive
+axiom clockwork.stampAt_elim
 axiom bcrypt.GenerateFromPassword.wp_proof
 axiom context.ErrAny.wp_proof
 axiom context.ValueStartTime.wp_proof

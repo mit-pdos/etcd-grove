@@ -2,7 +2,8 @@
 
 Status: done (2026-10-27): Scope, Draft, Test, the freeze and Prove below; the server side as
 `notes/m2-plan.md`'s S1-S4. C3's store law and server stage done (2026-11-02, `notes/decisions.md`;
-the law in place of M2's S5). Left: a closed result in periodic mode, and C3's client stage (deferred 2026-11-02: it needs the
+the law in place of M2's S5). Periodic mode done (2026-11-02: `NewServer` with the periodic compactor, `putgetc` in periodic
+mode). Left: C3's client stage (deferred 2026-11-02: it needs the
 watch environment's KV names tied by `kvSame` and a law from a revision reached to a later `Get`'s;
 `notes/decisions.md`, "C3's client stage: deferred").
 Scope **(A)**, the compactor and the server's compaction path (the user, 2026-10-27).
