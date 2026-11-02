@@ -25,6 +25,29 @@ namespace github_com.anishathalye.porcupine
 
 open Theory
 
+/-- Erasing the first occurrence of `x`, found at `k`. -/
+theorem erase_eq_eraseIdx_of {l : List Nat} {x k : Nat} (hk : l[k]? = some x)
+    (hpre : ∀ j, j < k → l[j]? ≠ some x) : l.erase x = l.eraseIdx k := by
+  induction l generalizing k with
+  | nil => simp at hk
+  | cons y l ih =>
+    cases k with
+    | zero =>
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hk
+      subst hk
+      simp
+    | succ k =>
+      have hy : y ≠ x := fun h => hpre 0 (by omega) (by simp [h])
+      rw [List.erase_cons_tail (by simpa using hy), List.eraseIdx_cons_succ]
+      congr 1
+      exact ih (by simpa using hk) (fun j hj => by simpa using hpre (j + 1) (by omega))
+
+theorem eraseIdx_map {α β : Type} (f : α → β) :
+    ∀ (l : List α) (k : Nat), (l.map f).eraseIdx k = (l.eraseIdx k).map f
+  | [], _ => rfl
+  | _ :: _, 0 => rfl
+  | _ :: l, k + 1 => by simp [eraseIdx_map f l k]
+
 section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
