@@ -524,7 +524,7 @@ theorem srvKVCoreM_keys [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf HAi Hp.1 Hp.2.1 Hp.2.2
     rw [← hA, (kvModel_eqv γr.raft γr.kv A A' hA' Hok'.2.2.1).1]
     unfold kvModel
-    exact kvRaftOf_keys _ _ _ A' (fun m hm => Hws.2.2.1 m (hA'L.subset hm)) Hws.2.2.2
+    exact kvRaftOf_keys _ _ _ A' (fun m hm => Hws.2.2.1 m (hA'L.subset hm)) Hws.2.2.2.1
   · rw [srvKVCoreM_true]
     iintro #Hinvs #HB #Hl #Hc
     icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
@@ -552,7 +552,7 @@ theorem srvKVCoreM_keys [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     rw [← hA]
     unfold kvModelOn
     rw [hAL]
-    exact kvRaftOfOn_keys _ _ _ L' (fun m hm => Hws.2.2.1 m (hL'.subset hm)) Hws.2.2.2
+    exact kvRaftOfOn_keys _ _ _ L' (fun m hm => Hws.2.2.1 m (hL'.subset hm)) Hws.2.2.2.1
 
 /-- **A log the server certified has short keys** (2026-10-30, `notes/keylen.md`): what a request
 handler holds of the log it read or wrote (its `idxCert` and `certOk`), with the server's read

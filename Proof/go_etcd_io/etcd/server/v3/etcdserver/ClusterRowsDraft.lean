@@ -68,116 +68,6 @@ end pure
 section pure2
 variable [GooseExts]
 
-/-- **The boot members include every boot entry's node** (`memBoot_keys`' converse). -/
-theorem memBoot_cover (bootLog : List EntryM) (e : EntryM) (he : e ∈ bootLog) (cc : ConfChangeM)
-    (hd : ccDecodeV1 e.Data' = some cc) : ((memBoot bootLog) !! cc.nodeId).isSome = true := by
-  unfold memBoot
-  -- the fold only adds keys
-  have mono : ∀ (l : List EntryM) (acc : GMap w64 apply.MemberM) (k : w64),
-      (acc !! k).isSome = true →
-      ((l.foldl (fun mem e => match ccDecodeV1 e.Data' with
-        | some cc => mem.insert cc.nodeId (membership.ccMemberAt cc)
-        | none => mem) acc) !! k).isSome = true := by
-    intro l
-    induction l with
-    | nil => intro acc k h; exact h
-    | cons e l ih =>
-      intro acc k h
-      rw [List.foldl_cons]
-      apply ih
-      cases hd' : ccDecodeV1 e.Data' with
-      | none => exact h
-      | some cc' =>
-        simp only
-        by_cases hk : cc'.nodeId = k
-        · subst hk; rw [GMap.lookup_insert]; rfl
-        · rw [GMap.lookup_insert_ne _ _ hk]; exact h
-  suffices H : ∀ (l : List EntryM) (acc : GMap w64 apply.MemberM), e ∈ l →
-      ((l.foldl (fun mem e => match ccDecodeV1 e.Data' with
-        | some cc => mem.insert cc.nodeId (membership.ccMemberAt cc)
-        | none => mem) acc) !! cc.nodeId).isSome = true from H bootLog ∅ he
-  intro l
-  induction l with
-  | nil => intro acc h; cases h
-  | cons e' l ih =>
-    intro acc h
-    rw [List.foldl_cons]
-    rcases List.mem_cons.1 h with rfl | h
-    · apply mono
-      rw [hd]; simp only; rw [GMap.lookup_insert]; rfl
-    · exact ih _ h
-
-/-- **The voters are members of the rest state** at the applied log `A` (`srvMemOk`'s converse). -/
-def srvMemCover (γs : ServerRaftNames) (c0 : w64) (A : List EntryModel) : Prop :=
-  ∀ k, k ∈ γs.raft.cfg → ((restModel c0 γs.raft.boot (γs.pre ++ A)).mem !! k).isSome = true
-
-/-- **`srvMemOk`, restated**: the in-memory members are exactly the voters (until then only
-among them): what makes an attribute request of a voter's id a member's (`restReqOk_of_attr`). -/
-def srvMemOkD (γs : ServerRaftNames) (c0 : w64) (A : List EntryModel) : Prop :=
-  srvMemOk γs c0 A ∧ srvMemCover γs c0 A
-
-/-- At the start of a new cluster (`srvMemOk_boot`'s premises). -/
-theorem srvMemOkD_boot (γs : ServerRaftNames) (c0 : w64)
-    (ps : List w64) (hpre : γs.pre = []) (hcfg : γs.raft.cfg = GMap.listToSet ps)
-    (hnd : ps.Nodup) (hlen : (ps.length : Int) < 2 ^ 61) (hb : srvBootLogOk ps γs.raft.boot) :
-    srvMemOkD γs c0 [] := by
-  refine ⟨srvMemOk_boot γs c0 ps hpre hcfg hnd hlen hb, ?_⟩
-  intro k hk
-  rw [hpre, List.append_nil, restModel_nil]
-  show ((memBoot γs.raft.boot) !! k).isSome = true
-  rw [hcfg, GMap.elem_of_list_to_set] at hk
-  obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hk
-  have hlt : i < γs.raft.boot.length := by
-    rw [hb.1]; exact (List.getElem?_eq_some_iff.1 hi).1
-  obtain ⟨e, he⟩ : ∃ e, γs.raft.boot[i]? = some e := ⟨_, List.getElem?_eq_getElem hlt⟩
-  obtain ⟨-, -, -, ⟨m, hdm, -, hpk⟩⟩ := hb.2.2 i e he
-  rw [hi] at hpk
-  cases hpk
-  exact memBoot_cover _ e (List.mem_of_getElem? he) m hdm
-
-/-- A normal entry keeps it (`srvApRes_normal`'s step). -/
-theorem srvMemCover_normal (γs : ServerRaftNames) (c0 : w64) (A : List EntryModel) (m : EntryModel)
-    (ht : m.typ = W32 0) (h : srvMemCover γs c0 A) : srvMemCover γs c0 (A ++ [m]) := by
-  intro k hk
-  rw [← List.append_assoc, restModel_append, restEntry_normal_memKeys _ _ _ ht]
-  exact h k hk
-
-/-- **A conf change of the server's policy keeps the members** (an `AddNode`: `ccRest` inserts or
-leaves; no `RemoveNode`, `ccApplyOk`). -/
-theorem ccRest_memKeys_mono (v3 : Bool) (cm : ConfChangeM) (r : apply.RestM) (ht : cm.type = W32 0)
-    (k : w64) (h : (r.mem !! k).isSome = true) : ((ccRest v3 cm r).mem !! k).isSome = true := by
-  unfold ccRest
-  by_cases hc : v3 = true ∧ membership.ccValidOn r.bk cm = true
-  · rw [if_pos hc, if_pos ht, apply.RestM.putIn_mem]
-    simp only
-    by_cases hkk : cm.nodeId = k
-    · subst hkk; rw [GMap.lookup_insert]; rfl
-    · rw [GMap.lookup_insert_ne _ _ hkk]; exact h
-  · rw [if_neg hc]; exact h
-
-/-- Across committed entries `B` of the server's policy (`ccLogOk`; `srvMemOk_append`'s). -/
-theorem srvMemCover_append (γs : ServerRaftNames) (c0 : w64) (A B : List EntryModel)
-    (h : srvMemCover γs c0 A) (hB : ccLogOk γs.raft B) : srvMemCover γs c0 (A ++ B) := by
-  induction B generalizing A with
-  | nil => simpa using h
-  | cons m B ih =>
-    have h1 : srvMemCover γs c0 (A ++ [m]) := by
-      intro k hk
-      have e : γs.pre ++ (A ++ [m]) = (γs.pre ++ A) ++ [m] := by simp
-      rw [e, restModel_append]
-      by_cases ht : m.typ = W32 0
-      · rw [restEntry_normal_memKeys _ _ _ ht]; exact h k hk
-      · cases hdec : ccDecodeV1 m.data with
-        | none =>
-          unfold restEntry
-          rw [if_neg ht, hdec]
-          exact h k hk
-        | some cc =>
-          rw [restEntry_cc _ _ cc _ ht hdec]
-          exact ccRest_memKeys_mono _ cc _ (hB m (by simp) ht cc hdec).1 k (h k hk)
-    have := ih (A ++ [m]) h1 (fun e he => hB e (List.mem_cons_of_mem _ he))
-    simpa using this
-
 end pure2
 
 /-! ## The attribute requests' members -/
@@ -185,70 +75,15 @@ end pure2
 section pure3
 variable [GooseExts]
 
-/-- **An attribute request names a member of `S`** (the cluster-rows stage): a request `dispatch`
-sends to `ClusterMemberAttrSet` has its member in `S` (raft's configuration, the server's static
-membership), and it has no range end `[0]` (`irrNoZeroEnd`: the wire then decodes the request
-itself, `attrIdOk_wire`; a cluster kind wins `dispatchKind` over a range's). Any other request:
-nothing. -/
-def attrIdOk (S : GSet w64) (rq : apply.IRRModel) : Prop :=
-  apply.dispatchKind rq = .clusterMemberAttrSet →
-    irrNoZeroEnd rq ∧ ∀ a, rq.clusterMemberAttrSet = some a → a.memberID ∈ S
-
-/-- **The permission's fact carries to the request the wire decodes** (`reqPropOk_wire`'s). -/
-theorem attrIdOk_wire (S : GSet w64) (rq rq' : apply.IRRModel) (hm : apply.HeaderModel)
-    (hw : irrWireOf (apply.withHeader rq hm) rq') (h : attrIdOk S rq) : attrIdOk S rq' := by
-  intro hk'
-  have hk : apply.dispatchKind rq = .clusterMemberAttrSet := by
-    have := hw.2.2.1; rw [hk'] at this; exact this.symm
-  obtain ⟨hz, ha⟩ := h hk
-  have he : rq' = apply.withHeader rq hm := hw.2.2.2 hz
-  subst he
-  exact ⟨hz, ha⟩
-
-theorem attrIdOk_of_kind (S : GSet w64) (rq : apply.IRRModel)
-    (h : apply.dispatchKind rq ≠ .clusterMemberAttrSet) : attrIdOk S rq := fun hk => absurd hk h
-
-/-- A committed entry's: its request's (a normal entry that decodes). -/
-def attrEntryOk (S : GSet w64) (m : EntryModel) : Prop :=
-  m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq → attrIdOk S rq
-
-/-- **The committed log's attribute requests name members of `S`** (a new conjunct of the KV
-invariant's workload facts, `kvWorkD`). -/
-def attrLogOk (S : GSet w64) (L : List EntryModel) : Prop := ∀ m ∈ L, attrEntryOk S m
-
-theorem attrLogOk_append (S : GSet w64) (A B : List EntryModel) :
-    attrLogOk S (A ++ B) ↔ attrLogOk S A ∧ attrLogOk S B := by
-  unfold attrLogOk; simp only [List.mem_append]
-  exact ⟨fun h => ⟨fun m hm => h m (Or.inl hm), fun m hm => h m (Or.inr hm)⟩,
-    fun h m hm => hm.elim (h.1 m) (h.2 m)⟩
-
-/-- The entry a proposal of `d` commits, from its permission's `attrIdOk` (`kv_prop_auW`'s step). -/
-theorem attrEntryOk_of (S : GSet w64) (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
-    (hed : e.data = d) (hdec : apply.irrDecode d = some rq) (h : attrIdOk S rq) :
-    attrEntryOk S e := by
-  intro _ _ rq' h'
-  rw [hed, hdec] at h'
-  cases h'
-  exact h
-
-/-- An empty entry asks nothing (raft's no-op fillers, `BuildGap.lean:150-151`: `applyEntryNormal`
-returns on `len(e.Data) == 0`, `server.go:1989-1998`, before decoding; round 2). -/
-theorem attrEntryOk_empty (S : GSet w64) (e : EntryModel) (he : e.data = []) : attrEntryOk S e :=
-  fun _ hne => absurd he hne
-
-/-- A conf entry asks nothing (`kvWork_snoc`'s conf case). -/
-theorem attrEntryOk_conf (S : GSet w64) (e : EntryModel) (ht : e.typ ≠ W32 0) : attrEntryOk S e :=
-  fun h => absurd h ht
-
 /-- **The glue at `EtcdServer.apply`'s call of `apply.Apply`** (its `applyEntryNormal`): the next
 entry's request, of a committed log whose attribute requests name voters, meets the rest state's
 premise at the applied log `A`, whose members include the voters. -/
 theorem restReqOk_of_attr (γs : ServerRaftNames) (c0 : w64) (A : List EntryModel) (m : EntryModel)
-    (rq : apply.IRRModel) (hmo : srvMemOkD γs c0 A) (ha : attrEntryOk γs.raft.cfg m)
+    (rq : apply.IRRModel) (hmo : srvMemOk γs c0 A) (ha : attrEntryOk γs.raft.cfg m)
     (ht : m.typ = W32 0) (hne : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq) :
     apply.restReqOk rq (restModel c0 γs.raft.boot (γs.pre ++ A)) := by
   intro hk a ha'
-  exact hmo.2 _ ((ha ht hne rq hdec hk).2 a ha')
+  exact hmo.2.2 _ ((ha ht hne rq hdec hk).2 a ha')
 
 end pure3
 
@@ -257,31 +92,14 @@ end pure3
 section pure4
 variable [GooseExts]
 
-/-- **The requests the monitors propose, restated** (`monitorReq` with this stage's two facts):
-an attribute request's member is the server's own `lid` (`publishV3`: `Member_ID:
-uint64(s.MemberID())`), a version not above the server's (`monitorClusterVersions`: the members'
-minimum, the local member's among them, with patch `0`; `semverAtMostServer`). -/
-def monitorReqD (lid : w64) (rq : apply.IRRModel) : Prop :=
-  monitorReq rq ∧ (∀ a, rq.clusterMemberAttrSet = some a → a.memberID = lid) ∧
-    ∀ v, rq.clusterVersionSet = some v → apply.semverAtMostServer v
-
-theorem monitorReqD_monitorReq (lid : w64) (rq : apply.IRRModel) (h : monitorReqD lid rq) :
-    monitorReq rq := h.1
-
-/-- A monitor's request names the server's own id, a voter. -/
-theorem attrIdOk_of_monitorReqD (S : GSet w64) (lid : w64) (rq : apply.IRRModel)
-    (h : monitorReqD lid rq) (hl : lid ∈ S) : attrIdOk S rq := by
-  intro _
-  exact ⟨h.1.1, fun a ha => by rw [h.2.1 a ha]; exact hl⟩
-
 /-- **`rqShape` under the restated premise** (`rqShape`'s text read under `rqOkD`). -/
 def rqShapeD (rq : apply.IRRModel) : Prop :=
   (∀ on, apply.dispatchOk on rq) ∧ ∀ log, rqSmall log rq → apply.rqOkD log rq
 
 /-- A monitor's request has the restated shape (`rqShape_of_monitorReq`'s). -/
-theorem rqShapeD_of_monitorReqD (lid : w64) (rq : apply.IRRModel) (h : monitorReqD lid rq) :
+theorem rqShapeD_of_monitorReqD (lid : w64) (rq : apply.IRRModel) (h : monitorReq lid rq) :
     rqShapeD rq := by
-  have hs := rqShape_of_monitorReq rq h.1
+  have hs := rqShape_of_monitorReq lid rq h
   refine ⟨hs.1, fun log hl => ?_⟩
   have h0 := hs.2 log hl
   obtain ⟨-, -, -, hk⟩ := h.1
@@ -356,24 +174,6 @@ def clusterApplyOkD (c : Loc) : IProp GF :=
 instance clusterApplyOkD_persistent (c : Loc) : Persistent (clusterApplyOkD (GF := GF) c) := by
   unfold clusterApplyOkD; infer_instance
 
-/-- **The workload facts, restated** (`kvWork` and the attribute requests' members, `attrLogOk`). -/
-def kvWorkD (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) : IProp GF :=
-  iprop(kvWork cfg γk L ∗ ⌜attrLogOk cfg.cfg L⌝)
-
-/-- **The proposal's permission, restated** (`reqPropOkM` and `attrIdOk` at raft's
-configuration). -/
-def reqPropOkMD (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.HeaderModel → IProp GF)
-    (rq : apply.IRRModel) (Qh : apply.HeaderModel → List EntryModel → IProp GF) : IProp GF :=
-  iprop(reqPropOkM on γ γk Gb rq Qh ∗ ⌜attrIdOk γ.raft.cfg rq⌝)
-
-/-- **The monitors' permission, restated**: the server's own id `lid` (its `memberID` field,
-read-only) and the permission for the monitors' requests naming it (`monitorReqD`; that `lid` is a
-voter is the builder's, `srvMonitorPermitMD_of`, inside `reqPropOkMD`'s `attrIdOk`; review round 4). -/
-def srvMonitorPermitMD (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
-  iprop(isServerReqM on s E ρ ∗ ∃ lid : w64, srvMemberIDAddr s ↦□ lid ∗
-    □ ∀ (rq : apply.IRRModel) (Gb : apply.HeaderModel → IProp GF), ⌜monitorReqD lid rq⌝ -∗
-      reqPropOkMD on ρ.raft ρ.kv Gb rq (fun _ _ => iprop(True)))
-
 end defs
 
 /-! ## The laws -/
@@ -439,84 +239,6 @@ theorem membership.memberAtD_agree (m : Loc) (q1 q2 : Qp) (mm1 mm2 : apply.Membe
   ipureintro
   cases mm1; cases mm2
   simp_all
-
-/-- **The glue at the monitors' permission** (`srvMonitorPermitM_of`'s): from the request view,
-the server's id field and that it is a voter (`srvApRes`'s `srvMemberIDAddr` and `srvDynLog`, which
-`Start` builds the permission, `EtcdServer__Start.lean:103,133,248,278`: from `isServerBuilt`'s
-`#Hmid : srvMemberIDAddr s ↦□ γn.id` with a new conjunct `⌜γn.id ∈ γr.raft.raft.cfg⌝`, which
-`NewServer` proves, `NewServer.lean:1929-1931`; round 3, in place of destructuring `applyBuilt` for
-`srvApRes_lid`). -/
-theorem srvMonitorPermitMD_of (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (lid : w64)
-    (hl : lid ∈ ρ.raft.raft.cfg) :
-    isServerReqM (GF := GF) on s E ρ ∗ srvMemberIDAddr s ↦□ lid ⊢ srvMonitorPermitMD on s E ρ := by
-  iintro ⟨#H, #Hid⟩
-  ihave #HP := srvMonitorPermitM_of on s E ρ $$ H
-  iunfold srvMonitorPermitM at HP
-  icases HP with ⟨-, #HP⟩
-  iunfold srvMonitorPermitMD
-  iframe H
-  iexists lid
-  iframe Hid
-  iintro !> %rq %Gb %hrq
-  iunfold reqPropOkMD
-  isplitl
-  · iapply HP; ipureintro; exact hrq.1
-  ipureintro; exact attrIdOk_of_monitorReqD _ lid rq hrq hl
-
-/-- The request path's other permissions name no attribute request (each producer's one line). -/
-theorem reqPropOkMD_of_kind (on : Bool) (γ : ServerRaftNames) (γk : KVNames)
-    (Gb : apply.HeaderModel → IProp GF) (rq : apply.IRRModel)
-    (Qh : apply.HeaderModel → List EntryModel → IProp GF)
-    (h : apply.dispatchKind rq ≠ .clusterMemberAttrSet) :
-    reqPropOkM (GF := GF) on γ γk Gb rq Qh ⊢ reqPropOkMD on γ γk Gb rq Qh := by
-  iintro H
-  iunfold reqPropOkMD
-  iframe H
-  ipureintro; exact attrIdOk_of_kind _ rq h
-
-/-- **The workload facts, one entry on** (`kvWork_snoc`'s, with the entry's attribute fact). -/
-theorem kvWorkD_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
-    (hs : entryShape e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) (hk : entryPutsOk e)
-    (ha : attrEntryOk cfg.cfg e) :
-    ⊢ kvWorkD (GF := GF) cfg γk L -∗ entryClaim γk.ids e -∗ kvWorkD cfg γk (L ++ [e]) := by
-  iintro Hw #He
-  iunfold kvWorkD at Hw
-  icases Hw with ⟨Hw, %Ha⟩
-  iunfold kvWorkD
-  isplitl
-  · iapply (kvWork_snoc cfg γk L e hs hc hk) $$ Hw He
-  ipureintro
-  rw [attrLogOk_append]
-  exact ⟨Ha, fun m hm => by rw [List.mem_singleton] at hm; subst hm; exact ha⟩
-
-/-- **The server's id field, a voter** (`srvApRes`'s `srvMemberIDAddr` and `srvDynLog`): what
-`Start` extracts from `isServerBuilt`'s `srvApRes s γr []` to build the monitors' permission
-(`srvMonitorPermitMD_of`, `srvApRes_cfg_size`'s pattern). -/
-theorem srvApRes_lid (s : Loc) (γr : ReadNames) (A : List EntryModel) :
-    srvApRes (GF := GF) s γr A ⊢
-      srvApRes s γr A ∗ ∃ lid : w64, srvMemberIDAddr s ↦□ lid ∗ ⌜lid ∈ γr.raft.raft.cfg⌝ := by
-  unfold srvApRes
-  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, %H7, #H8,
-    Hmr, %Hp, #Hd⟩
-  iunfold srvDynLog at Hd
-  icases Hd with %Hd
-  isplitl
-  · iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
-    iframe H1 H2 H3 H4 H5 H6 H8
-    iframe
-    isplitr
-    · ipureintro; exact H7
-    isplitr
-    · ipureintro; exact Hp
-    iunfold srvDynLog; ipureintro; exact Hd
-  iexists lid
-  iframe H4
-  ipureintro; exact Hd
-
-/-- Across committed entries of the server's policy (`srvMemOk_append`'s). -/
-theorem srvMemOkD_append (γs : ServerRaftNames) (c0 : w64) (A B : List EntryModel)
-    (h : srvMemOkD γs c0 A) (hB : ccLogOk γs.raft B) : srvMemOkD γs c0 (A ++ B) :=
-  ⟨srvMemOk_append γs c0 A B h.1 hB, srvMemCover_append γs c0 A B h.2 hB⟩
 
 end lemmas
 

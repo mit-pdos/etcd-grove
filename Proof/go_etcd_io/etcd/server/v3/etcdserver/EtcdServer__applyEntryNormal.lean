@@ -516,16 +516,17 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
               ∃ (γf : GName) (k : IdKey),
                 id ↪[ρ.ids.issued]□ (some (m.data, γf, k) : Option IdClaimV) ∗
                 idRegdAt ρ.ids k id) ∗
-            ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝) := by
+            ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L ∧ attrEntryOk ρ.raft.raft.cfg m⌝) := by
         unfold entryWaitOk; rw [ite_eq_left Htyp]
       ihave #Hewo' : iprop((∀ (rq : apply.IRRModel) (id : w64),
             ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
               ∃ (γf : GName) (k : IdKey),
                 id ↪[ρ.ids.issued]□ (some (m.data, γf, k) : Option IdClaimV) ∗
                 idRegdAt ρ.ids k id) ∗
-            ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝) $$ []
+            ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L ∧ attrEntryOk ρ.raft.raft.cfg m⌝) $$ []
       · rw [← he]; iexact Hewo
-      icases Hewo' with ⟨#Hewc, %Lw, #HLw, %HmLw⟩
+      icases Hewo' with ⟨#Hewc, %Lw, #HLw, %HmLw'⟩
+      have HmLw := HmLw'.1
       ihave ⟨%γf, %k0, #Hcl0, -⟩ := Hewc $$ %rq %id0 %(⟨hdata, hdec, hid⟩)
       ihave #Hgen' := Hgen
       iunfold srvGenAt at Hgen'
@@ -1267,16 +1268,17 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
               ∃ (γf : GName) (k : IdKey),
                 id ↪[ρ.ids.issued]□ (some (m.data, γf, k) : Option IdClaimV) ∗
                 idRegdAt ρ.ids k id) ∗
-            ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝) := by
+            ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L ∧ attrEntryOk ρ.raft.raft.cfg m⌝) := by
         unfold entryWaitOk; rw [ite_eq_left Htyp]
       ihave #Hewo' : iprop((∀ (rq : apply.IRRModel) (id : w64),
             ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
               ∃ (γf : GName) (k : IdKey),
                 id ↪[ρ.ids.issued]□ (some (m.data, γf, k) : Option IdClaimV) ∗
                 idRegdAt ρ.ids k id) ∗
-            ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝) $$ []
+            ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L ∧ attrEntryOk ρ.raft.raft.cfg m⌝) $$ []
       · rw [← he]; iexact Hewo
-      icases Hewo' with ⟨#Hewc, %Lw, #HLw, %HmLw⟩
+      icases Hewo' with ⟨#Hewc, %Lw, #HLw, %HmLw'⟩
+      have HmLw := HmLw'.1
       ihave ⟨%γf, %k0, #Hcl0, -⟩ := Hewc $$ %rq %id0 %(⟨hdata, hdec, hid⟩)
       ihave #Hgen' := Hgen
       iunfold srvGenAt at Hgen'

@@ -195,10 +195,13 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
     iunfold kvWork
     iframe Hcl
     ipureintro
-    refine ⟨hshape, hccl, fun m hm => entryPutsOk_conf m ?_, hlk⟩
-    obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
-    obtain ⟨-, ht, -, -⟩ := hent' n m hn
-    rw [ht]; decide
+    have hconf : ∀ m ∈ bootEntries bootLog, m.typ ≠ W32 0 := by
+      intro m hm
+      obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+      obtain ⟨-, ht, -, -⟩ := hent' n m hn
+      rw [ht]; decide
+    exact ⟨hshape, hccl, fun m hm => entryPutsOk_conf m (hconf m hm), hlk,
+      fun m hm => attrEntryOk_conf _ m (hconf m hm)⟩
   imodintro
   iframe Hinv
   iunfold etcdKV; iexact Hv2

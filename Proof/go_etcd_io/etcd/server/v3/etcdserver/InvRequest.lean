@@ -116,6 +116,57 @@ in its own invariant (a per-key view, if it wants one, is its ghost map beside i
 also keeps `L` plain at the workload (`plainLog`, D19q): the only updates raft can fire
 over `L` are the ones built from it (`kv_prop_au`, `kv_noop_au`), which check. -/
 
+/-! ## The attribute requests' members (2026-11-02, the cluster-rows stage) -/
+
+section attrReq
+variable [GooseExts]
+
+/-- **An attribute request names a member of `S`** (the cluster-rows stage): a request `dispatch`
+sends to `ClusterMemberAttrSet` has its member in `S` (raft's configuration, the server's static
+membership), and it has no range end `[0]` (`irrNoZeroEnd`: the wire then decodes the request
+itself, `attrIdOk_wire`; a cluster kind wins `dispatchKind` over a range's). Any other request:
+nothing. -/
+def attrIdOk (S : GSet w64) (rq : apply.IRRModel) : Prop :=
+  apply.dispatchKind rq = .clusterMemberAttrSet →
+    irrNoZeroEnd rq ∧ ∀ a, rq.clusterMemberAttrSet = some a → a.memberID ∈ S
+
+theorem attrIdOk_of_kind (S : GSet w64) (rq : apply.IRRModel)
+    (h : apply.dispatchKind rq ≠ .clusterMemberAttrSet) : attrIdOk S rq := fun hk => absurd hk h
+
+/-- A committed entry's: its request's (a normal entry that decodes). -/
+def attrEntryOk (S : GSet w64) (m : EntryModel) : Prop :=
+  m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq → attrIdOk S rq
+
+/-- **The committed log's attribute requests name members of `S`** (a new conjunct of the KV
+invariant's workload facts, `kvWorkD`). -/
+def attrLogOk (S : GSet w64) (L : List EntryModel) : Prop := ∀ m ∈ L, attrEntryOk S m
+
+theorem attrLogOk_append (S : GSet w64) (A B : List EntryModel) :
+    attrLogOk S (A ++ B) ↔ attrLogOk S A ∧ attrLogOk S B := by
+  unfold attrLogOk; simp only [List.mem_append]
+  exact ⟨fun h => ⟨fun m hm => h m (Or.inl hm), fun m hm => h m (Or.inr hm)⟩,
+    fun h m hm => hm.elim (h.1 m) (h.2 m)⟩
+
+/-- The entry a proposal of `d` commits, from its permission's `attrIdOk` (`kv_prop_auW`'s step). -/
+theorem attrEntryOk_of (S : GSet w64) (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
+    (hed : e.data = d) (hdec : apply.irrDecode d = some rq) (h : attrIdOk S rq) :
+    attrEntryOk S e := by
+  intro _ _ rq' h'
+  rw [hed, hdec] at h'
+  cases h'
+  exact h
+
+/-- An empty entry asks nothing (raft's no-op fillers, `BuildGap.lean:150-151`: `applyEntryNormal`
+returns on `len(e.Data) == 0`, `server.go:1989-1998`, before decoding; round 2). -/
+theorem attrEntryOk_empty (S : GSet w64) (e : EntryModel) (he : e.data = []) : attrEntryOk S e :=
+  fun _ hne => absurd he hne
+
+/-- A conf entry asks nothing (`kvWork_snoc`'s conf case). -/
+theorem attrEntryOk_conf (S : GSet w64) (e : EntryModel) (ht : e.typ ≠ W32 0) : attrEntryOk S e :=
+  fun h => absurd h ht
+
+end attrReq
+
 section kvGhost
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -256,9 +307,11 @@ def ccLogOk (γ : SrvRaft) (L : List EntryModel) : Prop :=
 /-- **The workload facts of the committed log `L`** (persistent; D19c): every entry of a good
 shape (`logShape`: a request's premise at every log but for its size clauses; a conf change's id
 `0`), every conf change one `applyConfChange` takes at raft's configuration `cfg` (`ccLogOk`,
-audit phase B3), and every id claimed. -/
+audit phase B3), and every id claimed; (2026-11-02, the cluster-rows stage) every attribute
+request names a voter of `cfg` (`attrLogOk`). -/
 def kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) : IProp GF :=
-  iprop(⌜logShape L ∧ ccLogOk cfg L ∧ logPutsOk L ∧ mvcc.LogPutsLe etcdKeyMax γk.log0⌝ ∗
+  iprop(⌜logShape L ∧ ccLogOk cfg L ∧ logPutsOk L ∧ mvcc.LogPutsLe etcdKeyMax γk.log0 ∧
+      attrLogOk cfg.cfg L⌝ ∗
     [∗list] m ∈ L, entryClaim γk.ids m)
 
 instance kvWork_persistent (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
@@ -1321,14 +1374,16 @@ decode to a request with an id, were claimed under that id, and (linkv-txn stage
 registered (`idRegd`); a conf change's id (`ccIdOf`) is no
 KV request's registration (the conf change's proposer claimed it for the conf change: typed
 claims, unit 4), and the change is one `applyConfChange` takes (`ccPolOk` at raft's
-configuration; audit phase B3, 2026-10-18). -/
+configuration; audit phase B3, 2026-10-18); (2026-11-02, the cluster-rows stage) a normal entry's
+attribute request names a voter of raft's configuration (`attrEntryOk`, the KV invariant's
+`attrLogOk`). -/
 def entryWaitOk (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) : IProp GF :=
   if m.typ = W32 0 then
     iprop((∀ (rq : apply.IRRModel) (id : w64),
       ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
         ∃ (γf : GName) (k : IdKey),
           id ↪[ρ.ids.issued]□ (some (m.data, γf, k) : Option IdClaimV) ∗ idRegdAt ρ.ids k id) ∗
-      ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝)
+      ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L ∧ attrEntryOk ρ.raft.raft.cfg m⌝)
   else iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
     ⌜ccPolOk ρ.raft.raft m.data⌝)
 

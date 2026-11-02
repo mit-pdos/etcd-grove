@@ -214,7 +214,8 @@ theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryM
 
 /-- **The workload facts, one entry on** (D19c): the entry of a good shape, its id claimed. -/
 theorem kvWork_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
-    (hs : entryShape e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) (hk : entryPutsOk e) :
+    (hs : entryShape e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) (hk : entryPutsOk e)
+    (ha : attrEntryOk cfg.cfg e) :
     ⊢ kvWork (GF := GF) cfg γk L -∗ entryClaim γk.ids e -∗ kvWork cfg γk (L ++ [e]) := by
   iintro Hw #He
   iunfold kvWork at Hw
@@ -222,8 +223,9 @@ theorem kvWork_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : E
   iunfold kvWork
   isplitr
   · ipureintro
-    obtain ⟨hs0, hc0, hk0, hl0⟩ := Hsh
-    refine ⟨?_, fun m hm => ?_, logPutsOk_snoc L e hk0 hk, hl0⟩
+    obtain ⟨hs0, hc0, hk0, hl0, ha0⟩ := Hsh
+    refine ⟨?_, fun m hm => ?_, logPutsOk_snoc L e hk0 hk, hl0,
+      (attrLogOk_append _ _ _).2 ⟨ha0, fun m hm => by rw [List.mem_singleton] at hm; subst hm; exact ha⟩⟩
     · rw [logShape_append]
       refine ⟨hs0, fun m hm => ?_⟩
       rw [List.mem_singleton] at hm; subst hm; exact hs
@@ -293,7 +295,7 @@ committed log. The result is `True`. -/
 theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
     (rq : apply.IRRModel) (hdec : apply.irrDecode d = some rq) (hk : apply.irrPutsLe etcdKeyMax rq)
     (id : w64) (γf : GName) (hid : apply.irrId rq = some id)
-    (E : CoPset) (hE1 : ↑kvcN ⊆ E) (hE2 : ↑srvRaftN ⊆ E)
+    (ha : attrIdOk γ.raft.cfg rq) (E : CoPset) (hE1 : ↑kvcN ⊆ E) (hE2 : ↑srvRaftN ⊆ E)
     (r : w64) (hr : rq.compaction = some r)
     (hform : γk.cmp = true ∧ compactPropOk rq ∧ rqShape rq) :
     ⊢ kvInv (GF := GF) γ γk -∗ kvCertInv γ γk -∗ srvRaftLogInv γ -∗
@@ -367,7 +369,7 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
       iframe Hcl Hreg
       ipureintro; exact ⟨hdec, hid⟩
     ihave #Hw' := kvWork_snoc γ.raft γk L e hsh (fun h => absurd het h)
-      (entryPutsOk_of_data e d rq hed hdec hk) $$ Hw Hecl
+      (entryPutsOk_of_data e d rq hed hdec hk) (attrEntryOk_of _ e d rq hed hdec ha) $$ Hw Hecl
     imod Hclose $$ [HL Hσ] with -
     · inext
       iexists L ++ [e]
@@ -391,7 +393,7 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
     (Qr : List EntryModel → IProp GF) (hd : d ≠ []) (hdec : apply.irrDecode d = some rq)
     (hk : apply.irrPutsLe etcdKeyMax rq)
     (id : w64) (γf : GName) (hid : apply.irrId rq = some id)
-    (E : CoPset) (hE : ↑kvN ⊆ E) :
+    (ha : attrIdOk γ.raft.cfg rq) (E : CoPset) (hE : ↑kvN ⊆ E) :
     ⊢ kvInv (GF := GF) γ γk -∗ idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗ reqPropOkW γk rq Qr ={E}=∗
       srvPropAu1 γ d Qr := by
   have Hdisj := kvN_raftN
@@ -445,7 +447,7 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
         cases h
         exact hnw
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
-        (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) $$ Hw (Hecl $$ %e %hed)
+        (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) (attrEntryOk_of _ e d rq hed hdec ha) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ] with -
       · inext
         iexists L ++ [e]
@@ -505,7 +507,7 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
           (by rw [hed]; exact hdec) hidxe, Hag]
         unfold kvReqStep; rw [hop]
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
-        (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) $$ Hw (Hecl $$ %e %hed)
+        (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) (attrEntryOk_of _ e d rq hed hdec ha) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ] with -
       · inext
         iexists L ++ [e]
@@ -568,7 +570,7 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
           (by rw [hed]; exact hdec) hidxe, Hag]
         unfold kvReqStep; rw [hop]
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
-        (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) $$ Hw (Hecl $$ %e %hed)
+        (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) (attrEntryOk_of _ e d rq hed hdec ha) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ] with -
       · inext
         iexists L ++ [e]
@@ -589,16 +591,16 @@ invariant and the server's raft log's before the atomic update, so the mask hold
 theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : apply.IRRModel)
     (Qr : List EntryModel → IProp GF) (hd : d ≠ []) (hdec : apply.irrDecode d = some rq)
     (hk : apply.irrPutsLe etcdKeyMax rq) (id : w64) (γf : GName) (hid : apply.irrId rq = some id)
-    (E : CoPset) (hE : ↑kvN ⊆ E) (hE1 : ↑kvcN ⊆ E) (hE2 : ↑srvRaftN ⊆ E) :
+    (ha : attrIdOk γ.raft.cfg rq) (E : CoPset) (hE : ↑kvN ⊆ E) (hE1 : ↑kvcN ⊆ E) (hE2 : ↑srvRaftN ⊆ E) :
     ⊢ kvInv (GF := GF) γ γk -∗ kvCertInv γ γk -∗ srvRaftLogInv γ -∗ idClaim γk.ids id d γf -∗
       idRegd γk.ids id -∗ reqPropOk γk rq Qr ={E}=∗ srvPropAu1 γ d Qr := by
   iintro #Hinv #Hci #Hrl #Hcl #Hreg Hok
   iunfold reqPropOk at Hok
   icases Hok with (Hok | ⟨%Hc, %r, %hr, #Hr⟩)
-  · iapply (kv_prop_auW γ γk d rq Qr hd hdec hk id γf hid E hE) $$ Hinv Hcl Hreg Hok
+  · iapply (kv_prop_auW γ γk d rq Qr hd hdec hk id γf hid ha E hE) $$ Hinv Hcl Hreg Hok
   · obtain ⟨hc, hcp, hs, -, hQ⟩ := Hc
     subst hQ
-    iapply (kv_prop_au_cmp γ γk d rq hdec hk id γf hid E hE1 hE2 r hr ⟨hc, hcp, hs⟩)
+    iapply (kv_prop_au_cmp γ γk d rq hdec hk id γf hid ha E hE1 hE2 r hr ⟨hc, hcp, hs⟩)
       $$ Hinv Hci Hrl Hcl Hreg Hr
 
 /-- **A result predicate of the KV model of the log is one the server's two logs agree on**
@@ -831,6 +833,17 @@ theorem readQs_get (gs : List GName) (L : List EntryModel) (n : Nat) (g : GName)
 /-- `dispatchKind` ignores the header. -/
 theorem dispatchKind_withHeader (rq : apply.IRRModel) (hm : apply.HeaderModel) :
     apply.dispatchKind (apply.withHeader rq hm) = apply.dispatchKind rq := rfl
+
+/-- **The permission's fact carries to the request the wire decodes** (`reqPropOk_wire`'s). -/
+theorem attrIdOk_wire (S : GSet w64) (rq rq' : apply.IRRModel) (hm : apply.HeaderModel)
+    (hw : irrWireOf (apply.withHeader rq hm) rq') (h : attrIdOk S rq) : attrIdOk S rq' := by
+  intro hk'
+  have hk : apply.dispatchKind rq = .clusterMemberAttrSet := by
+    have := hw.2.2.1; rw [hk'] at this; exact this.symm
+  obtain ⟨hz, ha⟩ := h hk
+  have he : rq' = apply.withHeader rq hm := hw.2.2.2 hz
+  subst he
+  exact ⟨hz, ha⟩
 
 /-- **A proposal's permission carries to the request the wire decodes.** -/
 theorem reqPropOk_wire (γk : KVNames) (rq rq' : apply.IRRModel) (hm : apply.HeaderModel)

@@ -1839,6 +1839,16 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     have hidr : γrn.id = id := by rw [Hrn5, Hrid]
     rw [hidr, ← Hid]; iexact memberID
   isplitr
+  · -- (2026-11-02, the cluster-rows stage) the member id, a voter (`srvDynLog`'s)
+    ipureintro
+    have hidr : γrn.id = id := by rw [Hrn5, Hrid]
+    have hργ' : ρ.rd.raft.raft = γ := by rw [HρRaft]
+    rw [hidr]
+    try rw [hργ']
+    unfold SrvRaft.cfg
+    rw [Hrvs, GMap.elem_of_list_to_set, ← Hrid]
+    exact Hrmem
+  isplitr
   · -- (J8b) `bootOk`'s meta reads, by name
     unfold srvMetaSnap; iexact HmetaSnap
   isplitl [Hsend]

@@ -50,25 +50,6 @@ namespace apply
 
 /-! ## The premises -/
 
-/-- **Trust boundary (semver and the server's version).** The version `semver.MustParse(s)` is
-not above this server's: not greater (`semver.Version.LessThan`, SemVer's order, prerelease below
-release) than the major and minor version of `version.Version` with patch `0` (`3.8.0` at the fork
-pin: `MustDetectDowngrade(lg, MustParse(version.Version), cv)` compares
-`semver.New(sv.Major(), sv.Minor(), 0, "", "")` with `cv` and panics when it is less,
-`server/etcdserver/version/downgrade.go:42-54`). Opaque, as `semverValid`: the premise of a
-`ClusterVersionSet` request, which only the leader's monitor proposes, of the minimum of the
-members' server versions with patch `0` (`version.Monitor.UpdateClusterVersionIfNeeded`), or
-`MinClusterVersion` (`3.0.0`) while the cluster has no version and a member does not answer: the
-leader's own `version.Version` is among the versions (`getMembersVersions` records the local
-member's, the local member being in `c.members`), which bounds the proposal by the proposer's
-major.minor. The applying member's bound is the proposer's because every member runs this binary
-(the model's deployment: one program, the verified one); a member restarted on an older binary
-between the proposal and its apply panics, by design (`MustDetectDowngrade`). The monitor's
-downgrade branch (`monitor.go:80-99`, which could propose above the bound: `allowedDowngradeVersion`
-wraps `Minor()-1` at minor `0`) is not reached: no `DowngradeInfoSet` is admitted (`rqOk`), and the
-boot and snapshot images carry no enabled downgrade record.
-Its axiom is `EtcdServer.monitorClusterVersions`'s, through `monitorReq`. -/
-opaque semverAtMostServer : GoString → Prop
 
 /-- **The rest state's premise of `dispatch(rq)`** (the cluster-rows stage): a member attributes
 request's member is a member of the in-memory members (`UpdateAttributes` panics on an id that is
