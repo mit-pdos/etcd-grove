@@ -43,7 +43,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 
 section adequacy
 variable [go_gctx : GoGlobalContext]

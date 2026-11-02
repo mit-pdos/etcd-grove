@@ -104,7 +104,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
       idClusterInv issued cnt wn fs srvFloorFacts -∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) -∗
       srvPropMint ⟨γ, [], W64 0⟩ γk.ids -∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued -∗
       kvInv ⟨γ, [], W64 0⟩ γk -∗
-      ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([] : List w64) ∗
+      ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
         idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) x ∗
         (nodeBoot γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id RaftState.init ∗
           nodeVacant γ.cl id) ∗

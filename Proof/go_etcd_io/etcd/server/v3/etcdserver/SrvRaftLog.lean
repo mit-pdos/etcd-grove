@@ -1956,17 +1956,17 @@ theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
   -- the bound: the minted ids are issued ids
   iunfold idGen at Hg
   icases Hg with ⟨%s0, %Hgn, #Hpfx, %Hs0, #Hgi, -⟩
-  iinv Hgi with ⟨%k, %L, %S, >Hsuf, >Hcred, >Hcnt, >HS, >%HIS⟩ Hclose2
+  iinv Hgi with ⟨%k, %L, %S, %P, >Hsuf, >Hcred, >Hcnt, >HS, >HP, >%HIS⟩ Hclose2
   imod receipt_snapshot k $$ Hcred with ⟨Hcred, #Hpk⟩
   ihave %Hkb := preceipt_lt k $$ Hpk
   have Hk : k ≤ 2 ^ 48 - 1 := by omega
   ihave %Hiss := idSlots_issued γi S U $$ HS Hus
   have Hlen : U.length ≤ k := idIssued_length_le γi.pfx s0 k U Hnd
-    (fun id' hid' => (HIS id').2.1 (by rw [Hiss id' hid']; rfl))
-  imod Hclose2 $$ [Hsuf Hcred Hcnt HS] with -
+    (fun id' hid' => (HIS id').2.1.mp (by rw [Hiss id' hid']; rfl))
+  imod Hclose2 $$ [Hsuf Hcred Hcnt HS HP] with -
   · inext
-    iexists k, L, S
-    iframe Hsuf Hcred Hcnt HS
+    iexists k, L, S, P
+    iframe Hsuf Hcred Hcnt HS HP
     ipureintro
     exact HIS
   -- the token, in the cluster's read contexts

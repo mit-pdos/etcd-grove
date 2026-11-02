@@ -2,10 +2,12 @@ package cachekv
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"go.etcd.io/etcd/api/v3/mvccpb"
+	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 
@@ -36,6 +38,29 @@ func TestMainRun(t *testing.T) {
 		t.Fatalf("Main's Puts did not all take effect: revision %d", resp.Header.Revision)
 	}
 	t.Logf("revision %d after Main, keys %d", resp.Header.Revision, len(resp.Kvs))
+	// the auto-compactor ran during Main: the first write's revision (2) is already compacted when
+	// Main returns
+	if _, err := cli.Get(ctx, prefix, clientv3.WithPrefix(), clientv3.WithRev(2)); !errors.Is(err, rpctypes.ErrCompacted) {
+		t.Fatalf("a read at revision 2 right after Main: %v, want ErrCompacted", err)
+	}
+	// the auto-compactor runs: within a few periods it compacts the last revision (the store's a
+	// period before), so a read at the revision before it fails with ErrCompacted
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		rctx, rcancel := context.WithTimeout(context.Background(), 5*time.Second)
+		_, err := cli.Get(rctx, prefix, clientv3.WithPrefix(), clientv3.WithRev(resp.Header.Revision-1))
+		rcancel()
+		if errors.Is(err, rpctypes.ErrCompacted) {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the periodic compactor did not compact within 5s")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 }
 
 // TestCollect checks collect on hand-made channels: it stops at the first event at or above upTo,

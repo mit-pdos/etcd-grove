@@ -72,7 +72,7 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
         authHistView γk [srvAuthSt0] ∗
         idClusterInv issued cnt wn fs srvFloorFacts ∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
-        ([∗list] id ∈ ps, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([] : List w64) ∗
+        ([∗list] id ∈ ps, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
           idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) (xs (idPfxOf (W16 (uint.Z id)))) ∗
           -- (2026-11-01, durability layer 4) with its durable state at `RaftState.init` and its
           -- vacant id (`cluster_alloc`'s, `StartNode`'s premises)
@@ -177,7 +177,7 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
   -- the mode-`on` KV invariant at the bootstrap log
   imod (mono_list_own_alloc (GF := GF) [srvAuthSt0]) with ⟨%γh, Hh, -⟩
   let γk0 : KVNames := ⟨0, W64 0, apply.alarmChain true false false, [[], []], 0, 0,
-    ⟨issued, cnt, 0, 0, wn, 0, fs⟩, γh, false, γ.log, 0⟩
+    ⟨issued, cnt, 0, 0, wn, 0, fs, 0⟩, γh, false, γ.log, 0⟩
   imod ghostVar_alloc (GF := GF) (kvStateOf (kvModelOn γk0 srvAuthSt0 (bootEntries γ.boot)))
     with ⟨%γst, Hstv⟩
   let γk : KVNames := { γk0 with st := γst }
@@ -216,8 +216,8 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
       · iapply (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).2
         iframe Hboots Hslots
       iexact Hsd
-    have hm : ([∗list] p ∈ idPfxsOf ps, (p, 0) ↪[cnt] ([] : List w64)) =
-        ([∗list] id ∈ ps, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([] : List w64) : IProp GF)) := by
+    have hm : ([∗list] p ∈ idPfxsOf ps, (p, 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry)) =
+        ([∗list] id ∈ ps, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) : IProp GF)) := by
       unfold idPfxsOf; rw [BigSepL.bigSepL_map]
     rw [← hm]
     iframe Hps
@@ -249,7 +249,7 @@ invariant at its names, as `NewServer.specM true`'s `kvInvM true`. -/
 theorem srvMemberBootOn_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w64)
     (cok : GName) :
     ⊢ kvInvOn (GF := GF) ⟨γ, [], W64 0⟩ γk srvAuthSt0 -∗
-      (idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([] : List w64) -∗
+      (idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) -∗
       idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id)), 0) ==∗
       ∃ ρ : ReqNames,
         ⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧
@@ -261,6 +261,7 @@ theorem srvMemberBootOn_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id :
         srvReadNamesFreshNK ρ.rd ∗ idWaitTok ρ.ids := by
   iintro #Hkv Hp Hwt
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γsl, Hsl⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γpd, Hpend⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γa, Ha, -⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γc, Hc, -⟩
   imod ghostVar_alloc (GF := GF) ((null, ⟨γa, γa⟩) : Loc × NeedNames) with ⟨%γn, Hn⟩
@@ -270,19 +271,19 @@ theorem srvMemberBootOn_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id :
   imodintro
   iexists ⟨0, ⟨γa, γc, γn, γl, γp, ⟨γ, [], W64 0⟩,
     ⟨γk.st, γk.c0, γk.ch0, γk.log0, cok, γhi,
-      ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs⟩, γk.hist, γk.cmp, γk.rlog, γk.cret⟩⟩⟩
+      ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs, γpd⟩, γk.hist, γk.cmp, γk.rlog, γk.cret⟩⟩⟩
   isplitr
   · ipureintro
     exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   isplitr
   · dsimp only
     rw [kvInvM_true, kvInvOn_congr _ ⟨γk.st, γk.c0, γk.ch0, γk.log0, cok, γhi,
-      ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs⟩, γk.hist, γk.cmp, γk.rlog, γk.cret⟩ γk srvAuthSt0
+      ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs, γpd⟩, γk.hist, γk.cmp, γk.rlog, γk.cret⟩ γk srvAuthSt0
       ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩]
     iexact Hkv
-  isplitl [Hp Hsl]
+  isplitl [Hp Hsl Hpend]
   · iunfold idShare
-    iframe Hp Hsl
+    iframe Hp Hsl Hpend
   isplitr [Hwt]
   · iunfold srvReadNamesFreshNK
     iframe Ha Hc Hl Hpd Hhi
