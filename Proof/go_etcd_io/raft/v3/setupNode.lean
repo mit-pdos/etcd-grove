@@ -53,9 +53,11 @@ theorem setupNode.wp_proof
   have A4 : uint.Z σ.fl ≤ uint.Z σ.prev.index' := by rw [Hfl0, S1]; exact Int.le_refl _
   have A5 : σ.sg ≤ uint.nat σ.prev.index' := by rw [S5]; exact Nat.zero_le _
   have A10 : ConfStateOk csm := by
-    refine ⟨.inr ⟨Q1, Q2, Q3, Q4⟩, ?_, ?_, ?_, ?_, fun _ => Q5⟩ <;>
-      first | (rw [Q1]; exact List.nodup_nil) | (rw [Q2]; exact List.nodup_nil)
-        | (rw [Q3]; exact List.nodup_nil) | (rw [Q4]; exact List.nodup_nil)
+    refine ⟨.inr ⟨Q1, Q2, Q3, Q4⟩, ?_, ?_, ?_, ?_, fun _ => Q5⟩
+    · rw [Q1]; exact List.nodup_nil
+    · rw [Q2]; exact List.nodup_nil
+    · rw [Q3]; exact List.nodup_nil
+    · rw [Q4]; exact List.nodup_nil
   have A7 : uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 < 2 ^ 64 := by
     rw [S1, S2]; simp only [List.length_nil]; have : uint.Z (W64 0) = 0 := rfl; omega
   have A8 : restoreM csm.VotersOutgoing' csm.Voters' csm.Learners' csm.LearnersNext' csm.AutoLeave' =
