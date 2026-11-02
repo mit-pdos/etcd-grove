@@ -38,17 +38,17 @@ theorem mvcc.slots_take2 (Q : IProp GF) (n : Nat) (h : 2 ≤ n) :
   icases BigSepL.bigSepL_cons.1 $$ H with ⟨H2, H⟩
   iframe
 
-theorem mvcc.New.wp_proof
+theorem mvcc.New.wp_proofA
     (hNew : mvcc.newWatchableStore.spec (GF := GF) (hG := hG))
     (hSWL : mvcc.watchableStore.syncWatchersLoop.spec (GF := GF) (hG := hG))
     (hSVL : mvcc.watchableStore.syncVictimsLoop.spec (GF := GF) (hG := hG)) :
-    mvcc.New.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f rd0 γi γok γtag Hcfg0 Hrb0
+    mvcc.New.specA (GF := GF) (hG := hG) := by
+  intro lg b le cfg kb γb γl P f rd0 γi γok γtag aq Hcfg0 Hrb0
   wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
-  wp_apply (hNew _ _ _ _ _ _ _ _ f _ γi γok γtag Hcfg0 Hrb0)
+  wp_apply (hNew _ _ _ _ _ _ _ _ f _ γi γok γtag aq Hcfg0 Hrb0)
     $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hsrm $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0]
     as %s ⟨%st, %γ, %Hγ, #Hws, Hro, #Hhook, Hww, Htw, Hok, Hreaders,
     ⟨%stc, #Hstc, Hstop⟩, Hsclose, Hcr, Hfrag, Hret, Hwg⟩
@@ -97,6 +97,26 @@ theorem mvcc.New.wp_proof
   iunfold mvcc.wsWaiter
   iexists γwg, γd
   iframe HisWg Hinv Hwaiters
+
+/-- **`New` in the old mode**: `specA` at `aq = false`. -/
+theorem mvcc.New.wp_proof
+    (hNew : mvcc.newWatchableStore.spec (GF := GF) (hG := hG))
+    (hSWL : mvcc.watchableStore.syncWatchersLoop.spec (GF := GF) (hG := hG))
+    (hSVL : mvcc.watchableStore.syncVictimsLoop.spec (GF := GF) (hG := hG)) :
+    mvcc.New.spec (GF := GF) (hG := hG) := by
+  intro lg b le cfg kb γb γl P f rd0 γi γok γtag Hcfg0 Hrb0
+  iintro %Φ Hpre HΦ
+  iapply (mvcc.New.wp_proofA hNew hSWL hSVL lg b le cfg kb γb γl P f rd0 γi γok γtag false Hcfg0 Hrb0)
+    $$ %Φ Hpre
+  inext
+  iintro %s ⟨%st, %γ, %Hγ, Hrest⟩
+  iapply HΦ
+  iexists st, γ
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, -⟩ := Hγ
+  isplitr
+  · ipureintro; exact ⟨h1, h2, h3, h4, h5, h6, h7⟩
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  iexact Hrest
 
 end proof
 

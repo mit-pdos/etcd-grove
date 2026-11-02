@@ -162,7 +162,19 @@ invariants (in `isMvcc`):
   revision and write-back tokens paid by receipts of the call's resolution steps; the commit's
   certificate produced by the commit update (`absCommit` gives `certOk` of the next log), not taken
   beforehand.
-- **Next**: `FirstRev` (write), `Changes`, `NewReadOnlyTxnWrite`, `txnReadWrite.*`, `store.Commit`
+- **Since** (same day): `NewReadOnlyTxnWrite`, `txnReadWrite.Range/Rev/Changes/End`,
+  `metricsTxnWrite.FirstRev` (read; write: `sorry`) proved. `mvccTxn` of a read transaction is the
+  store's or its read-only write transaction's. `MvccImpl` is over the watchable store's names
+  (`ws : WsNames`, `γ.st := γ.ws.st`); the client's state holds, on a watched store, half of
+  `γ.wlog` (the watchers' synced log; the watchable store's commit update advances it with the
+  other half, `s.mu`'s). The client's compaction revision is by the store's mode: half of `crevUB`
+  when it compacts, else `-1` (the store's `crevFrozen`; `isMvcc` carries `wsFrozenM`; a write
+  transaction records it, `txn_crev_fact`). `NewStore.spec` and `newWatchableStore.spec` are now
+  stated at a mode `aq` (their callers, in mvcc, pass `false`); `New.specA` likewise, `New.spec` its
+  corollary (the etcd server's). In the abstract mode `newWatchableStore` gives the range deleter's
+  code (`rdCode`: its spec is any spec of the watchable `Write`'s), the deleter's contract
+  (`mvccDeleter`) being over the pools `New`'s candidate makes.
+- **Next**: `FirstRev` (write), `Changes`, `store.Commit`
   (a `specA` without the writer's fragment), `store.Rev`, `NewStore`/`New` (the pools made), the
   laws; then the watchable store (its commit's notification at `γ.rel`'s raise, the registrar's
   view, the watch laws), then the tester.

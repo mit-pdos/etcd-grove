@@ -83,14 +83,14 @@ theorem mvcc.ownToks_ones (γ : GName) : ∀ (n : Nat),
     iapply mvcc.ownToks_ones γ n
     iexact Hn
 
-theorem mvcc.NewStore.wp_proofA
+theorem mvcc.NewStore.wp_proof
     (hNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (hNewIdx : mvcc.newTreeIndex.spec (GF := GF) (hG := hG))
     (hFifo : schedule.NewFIFOScheduler.spec (GF := GF) (hG := hG))
     (hHash : mvcc.NewHashStorage.spec (GF := GF) (hG := hG))
     (hMeta : schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG))
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
-    mvcc.NewStore.specA (GF := GF) (hG := hG) := by
+    mvcc.NewStore.spec (GF := GF) (hG := hG) := by
   -- `store.restore` at no record and the whole bucket (its spec before M2's item 18)
   have hRestore := mvcc.store.restore.specNC_of_spec hRestore
   intro lg b le cfg kb γb γl P f rd0 wq γi γok aq Hcfg0 Hrb0
@@ -677,29 +677,6 @@ theorem mvcc.NewStore.wp_proofA
   iframe Hright
   iunfold mvcc.retiredAt
   iexact Hret0
-
-/-- **`NewStore` in the old mode**: `specA` at `aq = false`. -/
-theorem mvcc.NewStore.wp_proof
-    (hNop : zap.NewNop.spec (GF := GF) (hG := hG))
-    (hNewIdx : mvcc.newTreeIndex.spec (GF := GF) (hG := hG))
-    (hFifo : schedule.NewFIFOScheduler.spec (GF := GF) (hG := hG))
-    (hHash : mvcc.NewHashStorage.spec (GF := GF) (hG := hG))
-    (hMeta : schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG))
-    (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
-    mvcc.NewStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f rd0 wq γi γok Hcfg0 Hrb0
-  iintro %Φ Hpre HΦ
-  iapply (mvcc.NewStore.wp_proofA hNop hNewIdx hFifo hHash hMeta hRestore lg b le cfg kb γb γl P f rd0
-    wq γi γok false Hcfg0 Hrb0) $$ %Φ Hpre
-  inext
-  iintro %s ⟨%γ, %Hγ, Hrest⟩
-  iapply HΦ
-  iexists γ
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, -⟩ := Hγ
-  isplitr
-  · ipureintro; exact ⟨h1, h2, h3, h4, h5, h6, h7⟩
-  simp only [Bool.false_eq_true, ↓reduceIte]
-  iexact Hrest
 
 end proof
 
