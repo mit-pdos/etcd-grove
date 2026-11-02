@@ -29685,3 +29685,28 @@ compaction's write-back stock), a hypothesis of the closed theorem `cache_safe`,
 `compactkv_safe`'s. On the way, `common.StartCompactingServer` now calls `newServerMode(…, "revision", …)`
 (its Go and proof, as `StartPeriodicServer`'s), so both starters are in `common`'s generated
 `Link.lean`; compactkv's and putgetc's hand links use them.
+
+## cachekv's check of the cache's `Get`: proved, not wired; the cache's `Get` spec answers below the requested revision (2026-11-02 · the user's choices · branch `cachekv-get`)
+
+**The check** (`examples/cachekv`): after the watch is read gap-free from revision `2` up to
+`r = MaxRev(oks)`, a `Get` of the prefix at `r` (`WithRev(r)`) must answer each key's last
+watched value at or below `r`, and every key watched at or below `r` (`checkGet`, over `lastVal`
+and `hasKey`; `TestCheckGet` shows it rejects a stale value, a missing and an extra key). At `r`,
+not the latest revision, so that the answer is fixed by the events already read (a `Put` that
+returned an error may still apply above `r`). Proved: `checkGet` (`CheckGetOk evs r s` ⊢ no
+panic) and the pure law the call would rest on (`GetCheck.lean`: in a log of empty and single-put
+revisions the state at `n` is, key by key, the last put at or below `n`, `stateAt_lastPut`; with
+the events at revisions `2, 3, ...` that is the last event, `lastPut_of_events`; together
+`checkGetOk_of`).
+
+**Not wired: the cache's `Get` spec is weaker than its code.** `cacheGetOk` gives the snapshot
+`snapModel` picks, the newest at or below the requested revision `r`, as etcd's state at *its own*
+revision `r' ≤ r`. The code keeps a snapshot at every revision with an event under its prefix
+(`store.applyEventsLocked`) and moves its latest revision on a progress notification only when no
+event came (the watch's guarantee), so it answers etcd's state at `r` itself. The spec cannot say
+so: snapshots are certified one at a time (`isEtcdKvs` at their own revision) and a progress
+notification only as "etcd reached `r`" (`etcdStepCert.prog`). The user chose (2026-11-02) to
+strengthen `cache_Get`'s post (the answer etcd's state at the requested revision), starting with a
+Draft and a `spec-reviewer` round: the store's certificates over adjacent snapshots and the newest
+against the latest revision, the demux's progress certificate "no prefix event", the cache's watch
+path over both. `Main` does not call the `Get` meanwhile (its statement unchanged).

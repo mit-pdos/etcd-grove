@@ -375,7 +375,10 @@ removed, ..., adequacy coverage" below.
   (`client/v3/ServerKVPut.lean`), which the recipes' results take; needs `lessor.Revoke` proved
   (status-history.md, "Open work: the client→server path ...", item 1; `notes/decisions.md`,
   "Unit T3").
-- **cachekv.** A check of the cache's `Get` after the writers (not cheap: "cachekv" below).
+- **cachekv.** A check of the cache's `Get` after the writers: the check and its law proved
+  (2026-11-02, `checkGet`, `GetCheck.lean`), not wired: the cache's `Get` spec answers etcd's state at
+  a snapshot revision at or below the requested one, not at it; its strengthening is being drafted
+  (`notes/decisions.md`, "cachekv's check of the cache's `Get`").
 - **Initialization.** `os`'s and `strconv`'s four init axioms (`os.opaqueInitsOk`,
   `os.initFuncsOk`, `os.Stderr_init`, `strconv.opaqueInitsOk`) need a Perennial change
   ("Trusted initializers" below; deferred, the user's choice).

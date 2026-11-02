@@ -98,6 +98,17 @@ def lastValL (evs : List common.wev) (k : GoString) (r : w64) : Option GoString 
   ((evs.filter (fun e => decide (sint.Z e.Rev' ≤ sint.Z r ∧ e.Key' = k))).getLast?).map
     (fun e => e.Val')
 
+/-- One event more. -/
+theorem lastValL_snoc (evs : List common.wev) (e : common.wev) (k : GoString) (r : w64) :
+    lastValL (evs ++ [e]) k r =
+      if sint.Z e.Rev' ≤ sint.Z r ∧ e.Key' = k then some e.Val' else lastValL evs k r := by
+  unfold lastValL
+  rw [List.filter_append]
+  by_cases h : sint.Z e.Rev' ≤ sint.Z r ∧ e.Key' = k
+  · simp [h]
+  · simp only [List.filter_cons, List.filter_nil, decide_eq_true_eq, h, ↓reduceIte,
+      List.append_nil]
+
 /-- **What `checkGet(evs, r, kvs)` checks** of the answer's key-values `s`: each one's value its
 key's last event's at or below `r`, and each key with an event at or below `r` among them. -/
 def CheckGetOk (evs : List common.wev) (r : w64) (s : List EtcdKv) : Prop :=

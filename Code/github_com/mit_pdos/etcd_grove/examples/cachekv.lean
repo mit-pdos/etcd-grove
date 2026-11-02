@@ -49,9 +49,6 @@ namespace github_com.mit_pdos.etcd_grove.examples.cachekv
 @[reducible] noncomputable def WatchEnded [GooseExts] [GoGlobalContext] : val :=
   #(2 : Int)
 
-@[reducible] noncomputable def GetFailed [GooseExts] [GoGlobalContext] : val :=
-  #(3 : Int)
-
 noncomputable def collect [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/cachekv.collect"
 
@@ -73,7 +70,7 @@ noncomputable def checkGet [GooseExts] [GoGlobalContext] : GoString :=
     rejection, the compaction's), with Canceled set: their Err() is not nil because of it (the
     cache never sets a response's unexported closeErr), so collect tests the fields.
 
-    go: cachekv.go:71:6 -/
+    go: cachekv.go:70:6 -/
 noncomputable def collect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wch"
   (Lam "upTo"
@@ -181,7 +178,7 @@ noncomputable def collect.impl [GooseExts] [GoGlobalContext] : val :=
     prefix from revision 2, runs nw writers of nops Puts each, then reads the watch and checks it
     against the writes.
 
-    go: cachekv.go:99:6 -/
+    go: cachekv.go:98:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nw"
   (Lam "nops"
@@ -271,12 +268,9 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.PutRec.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.PutRec.ty)))) (Var "oks"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.MaxRev []))) (Val #())) (Var "$a0")))
-  (Let "r" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Var "wch"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (Var "r"))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.PutRec.ty)))) (Var "oks"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.MaxRev []))) (Val #())) (Var "$a0")))
   (App (App (App (Val (GoInstruction (FuncResolve collect []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -289,68 +283,12 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val Ok))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "r")) (Val #(W64 0))))))
-  (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
-  (Let "$a1" (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.RequestTimeout)
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithTimeout []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "gcancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
-  (Let "gctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "gctx"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val «prefix»))
-  (Let "$a2" (Let "$sl0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithPrefix []))) (Val #())) (Val #()))
-  (Let "$sl1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "r"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithRev []))) (Val #())) (Var "$a0")))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty (Var "$sl1")))]))))
-  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.cache.v3.Cache.ty) go!"Get"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.cache.v3.Cache.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "gresp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Var "evs"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (Var "r"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "gresp"))))
-  (App (App (App (App (Val (GoInstruction (FuncResolve checkGet []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val GetFailed))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "gcancel")) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "gresp") (Var "$r0"))))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "gcancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "gctx") (Var "$r0"))))))))))))
-  (App (Val doExecute)
-  (Val #()))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"cachekv"))
   (Let "$a1" (Val #(go!"Put"))
@@ -373,8 +311,6 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Pair (Var "evs") (Var "$r0"))))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "r") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Writes.ty go!"Mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Writes.ty)))) (Var "w")))) (Val #()))))))
   (App (Val doExecute)
@@ -492,7 +428,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
 /-- lastVal returns the value of the last of the events evs of key at or below revision r, and
     whether there is one.
 
-    go: cachekv.go:171:6 -/
+    go: cachekv.go:158:6 -/
 noncomputable def lastVal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
   (Lam "key"
@@ -549,7 +485,7 @@ noncomputable def lastVal.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- hasKey reports whether one of the key-values kvs has the key key.
 
-    go: cachekv.go:182:6 -/
+    go: cachekv.go:169:6 -/
 noncomputable def hasKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "kvs"
   (Lam "key"
@@ -588,9 +524,11 @@ noncomputable def hasKey.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- checkGet panics unless the key-values kvs, a Get of the prefix at revision r, are exactly the
     last values of the watch's events evs at or below r: each key-value's value its key's last
-    value, and each key with an event at or below r among them.
+    value, and each key with an event at or below r among them. Not called yet: Main's Get of the
+    cache at r waits on the cache's Get spec answering at the requested revision (notes/STATUS.md,
+    "cachekv").
 
-    go: cachekv.go:194:6 -/
+    go: cachekv.go:183:6 -/
 noncomputable def checkGet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
   (Lam "r"

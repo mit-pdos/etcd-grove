@@ -8,6 +8,10 @@
 # the program's own functions: its `collect`; the watch workload's other functions are the
 # examples' shared ones (`common`'s, linked in its `Link.lean`)
 cachekv_collect:
+# (2026-11-02) the check of the cache's Get, not called by Main yet: `lastVal`, `hasKey`, `checkGet`
+cachekv_lastVal:
+cachekv_hasKey:
+cachekv_checkGet: cachekv_lastVal cachekv_hasKey
 common_GenAll: @
 common_Writer: @
 common_MaxRev: @
