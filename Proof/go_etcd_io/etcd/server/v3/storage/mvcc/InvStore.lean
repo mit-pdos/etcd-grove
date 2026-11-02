@@ -5131,6 +5131,21 @@ def txnEndPre (γ : StoreNames) : TxnKind → IProp GF
   | .write ilog pend _ _ _ => iprop(∃ (P : IProp GF) (f : val), hookIs γ P f ∗ P ∗
       certOkNext γ ilog pend ∗ logQPre γ ilog pend)
 
+/-- **What `End` needs, in either mode, with the caller's commit update** (`metricsTxnWrite.End.specA`,
+mvcc's candidate API): `txnEndPre`'s with the hook's facts (`hookOk`, no writer's fragment) and the
+caller's update (`absCommit`); of a read transaction, `Q` itself. -/
+def txnEndPreA (γ : StoreNames) (Q : IProp GF) : TxnKind → IProp GF
+  | .read _ _ => Q
+  | .write ilog pend _ _ _ => iprop(∃ (P : IProp GF) (f : val), hookOk γ P f ∗ (P ∗
+      certOkNext γ ilog pend ∗ logQPre γ ilog pend ∗ absCommit γ ilog pend Q))
+
+/-- What `End` leaves, in either mode: `txnEndPost`'s without the writer's fragment, and `Q`. -/
+def txnEndPostA (γ : StoreNames) (Q : IProp GF) : TxnKind → IProp GF
+  | .read _ _ => Q
+  | .write ilog pend _ _ _ =>
+    iprop(idxCert γ.idx (commitLog ilog pend) ∗ ((if pend = [] then revToken γ else iprop(True)) ∗
+      logQPost γ ilog pend ∗ Q))
+
 theorem txnEndPre_write (γ : StoreNames) (P : IProp GF) (f : val) (ilog : Log)
     (pend : List Change) (puts deletes putSize : w64) :
     hookIs γ P f ∗ P ∗ certOkNext γ ilog pend ∗ logQPre γ ilog pend ⊢

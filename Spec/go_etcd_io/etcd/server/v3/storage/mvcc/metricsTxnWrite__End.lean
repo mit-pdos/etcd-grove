@@ -38,6 +38,18 @@ abbrev mvcc.metricsTxnWrite.End.spec : Prop :=
   {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.txnEndPost γ kind ∗
       (∃ te : Bool, traceutil.ownTrace trace te) }}
 
+/-- **`End` in either mode, with the caller's commit update** (mvcc's candidate API,
+`notes/mvcc-api-proof-plan.md`, stage P2): `spec`'s, over `txnEndPreA`/`txnEndPostA`
+(`storeTxnWrite.End.specA`'s). -/
+abbrev mvcc.metricsTxnWrite.End.specA : Prop :=
+  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int)
+    (Z : IProp GF) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isTxnEnd mw s γ trace kind crev Z ∗
+      mvcc.txnEndPreA γ Q kind }}
+    (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"End")) (Val #()))
+  {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.txnEndPostA γ Q kind ∗
+      (∃ te : Bool, traceutil.ownTrace trace te) }}
+
 /-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.End()` ends a transaction: a read one; or a write one begun at `σ`, its pending changes
 committed (none: no revision) by the caller's updates (the commit's two steps, both at the bump:
 this `End` notifies no watcher), the batch lock's invariant `P` given back, once its watchers were
