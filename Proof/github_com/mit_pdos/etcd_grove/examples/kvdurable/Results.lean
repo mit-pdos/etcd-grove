@@ -100,7 +100,7 @@ initialization, then `Main(dir)`: a cluster of random options with its files in 
 100 random `Put`s, `Get`s and `Read`s, one to three proposers of configuration changes, leadership
 disruptions, crashes with restarts from the files, porcupine's check of the trace, and a panic unless
 it answers `Ok` -- from a fresh state with one thread whose files hold none of the replicas' files in
-`dir`, of `n < 2^63` steps, has no stuck thread and no thread that ended in a panic: porcupine always
+`dir`, of `n < 2^61` steps, has no stuck thread and no thread that ended in a panic: porcupine always
 answers `Ok`. -/
 theorem kvdurable_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.kvdurable.Assumptions]
@@ -109,7 +109,7 @@ theorem kvdurable_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : σ.threads = 1)
     (Hfiles : ∀ i ∈ kvreconf.allIds,
       extLocal durableExt σ.world !! kvdurable.kdFileName dir i = none)
-    (n : Nat) (Hn : n < 2 ^ 63) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([kvdurableProgram dir], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧

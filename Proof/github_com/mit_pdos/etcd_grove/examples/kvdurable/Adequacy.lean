@@ -30,10 +30,12 @@ the program's table `PkgTable.lean`, both generated; `context`'s `isClosedchanIn
 (`kvdurable_adequate_of`); `AdequacyLinked.lean` applies it to the linked result `kvdurable.wp_Main`
 (`Link.lean`).
 
-- **The length bound.** `Main.spec` takes `receiptBound GF ≤ 2^63` (the counter clock does not
-  wrap; raft's step bound `2^64 - 2` holds), and `goose_adequacy`'s receipt bound `N` must exceed
-  the execution's length `n`: `N = n + 1 ≤ 2^63`, so the theorem is about executions of
-  `n < 2^63` steps.
+- **The length bound.** `Main.spec` takes `receiptBound GF ≤ 2^61` (the counter clock does not
+  wrap; raft's step bound `2^64 - 2` holds; (2026-11-02, stage II (t)) raft's `RestartNode` takes
+  `readyFits`, the receipts' bound within `2^61`, so that a restarted log's last index has room for
+  one more), and `goose_adequacy`'s receipt bound `N` must exceed the execution's length `n`:
+  `N = n + 1 ≤ 2^61`, so the theorem is about executions of `n < 2^61` steps (until stage II (t),
+  `2^63`).
 - **No crash of the node.** The semantics' crashes (`ExtSemantics.crash`: the whole node's) are not
   taken by `goose_adequacy`; the program's crashes are its own (a replica's incarnation abandoned and
   restarted from its file, `Cluster.Crash`), which the theorem covers.
@@ -85,7 +87,7 @@ def kvdurableProgram [GoSemanticsFunctions] (dir : GoString) : Expr :=
 `HeapGS` of `durableGF` and every semantics): every real execution of `kvdurableProgram dir` (the
 store package's initialization, then `Main(dir)`) from a fresh state -- no package initialized
 (`IsInit`), one live thread, and none of the replicas' files in `dir` among its files -- of
-`n < 2^63` steps: if the main thread has finished, its result is `#()`; no thread is stuck (each is
+`n < 2^61` steps: if the main thread has finished, its result is `#()`; no thread is stuck (each is
 a value or can step); no thread has ended in a panic. `Main` panics unless porcupine answers `Ok` on
 the trace of the randomized test against a cluster of random options under configuration changes,
 leadership disruptions and crashes with restarts from the files (see the file header), so porcupine
@@ -102,7 +104,7 @@ theorem kvdurable_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : σ.threads = 1)
     (Hfiles : ∀ i ∈ kvreconf.allIds,
       extLocal durableExt σ.world !! kvdurable.kdFileName dir i = none)
-    (n : Nat) (Hn : n < 2 ^ 63) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([kvdurableProgram dir], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
@@ -113,7 +115,7 @@ theorem kvdurable_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g Hlctx Hinit Hthreads n κs t2
     σ2 Hsteps fun hG HN _ => ?_
   letI : HeapGS .hasLC durableGF := heapWith hG lctx
-  have Hbound : receiptBound durableGF ≤ 2 ^ 63 := by rw [HN]; omega
+  have Hbound : receiptBound durableGF ≤ 2 ^ 61 := by rw [HN]; omega
   unfold progOkS
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.kvdurable.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.kvdurable.getIsPkgInit_wf, ?_⟩

@@ -15,8 +15,9 @@ names). Everything else (the files' invariant; the storage registry `kdStorInv`;
 the store's invariant; the clock) is allocated in the proof, from what package initialization
 provides (`isPkgInit` of the store's package, which holds its dependencies', raft's, lintest's,
 porcupine's and `durable`'s among them) and `context`'s `isClosedchanInit`. For executions of fewer
-than `2^63` steps (`receiptBound GF ≤ 2^63`: the counter clock does not wrap, and raft's step bound
-`2^64 - 2` holds), as kvreconf's `Main`.
+than `2^61` steps (`receiptBound GF ≤ 2^61`: the counter clock does not wrap, raft's step bound
+`2^64 - 2` holds, and raft's `RestartNode` has its `readyFits`; until 2026-11-02, stage II (t),
+`2^63`, as kvreconf's `Main`).
 -/
 module
 
@@ -43,7 +44,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvdurable.Assump
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
   ∀ (dir : GoString) (fs : DurableState),
-  receiptBound GF ≤ 2 ^ 63 → (∀ i ∈ kvreconf.allIds, fs !! kdFileName dir i = none) →
+  receiptBound GF ≤ 2 ^ 61 → (∀ i ∈ kvreconf.allIds, fs !! kdFileName dir i = none) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvdurable ∗
       context.isClosedchanInit ∗ durableOwn fs }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kvdurable.Main)) (Val #dir))

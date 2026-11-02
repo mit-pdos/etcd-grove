@@ -43,7 +43,7 @@ attribute [local instance] kdStorageModel
 abbrev Run.spec : Prop :=
   ∀ (cfg : github_com.mit_pdos.etcd_grove.examples.kvdurable.Config) (clockVal : w64 → IProp GF)
     (t0 : w64) (Eclk : CoPset) (clock : GoFunc) (dir : GoString) (γf : GName),
-  kdOptsOk cfg.Options' → receiptBound GF ≤ 2 ^ 64 - 2 →
+  kdOptsOk cfg.Options' → receiptBound GF ≤ 2 ^ 61 →
   (↑lintest.lintestN : CoPset) ⊆ ⊤ \ Eclk →
   0 ≤ sint.Z cfg.Clients' → sint.Z cfg.Clients' < 2 ^ 31 → 0 ≤ sint.Z cfg.Ops' →
   sint.Z cfg.Clients' * sint.Z cfg.Ops' < 2 ^ 60 → sint.Z cfg.Proposers' < 2 ^ 31 - 2 →

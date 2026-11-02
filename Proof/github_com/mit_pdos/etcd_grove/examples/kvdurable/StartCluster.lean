@@ -99,7 +99,7 @@ theorem StartCluster.wp_proof
     StartCluster.spec (GF := GF) (hG := hG) := by
   intro γ o dir Hok
   dsimp only
-  wp_start as ⟨#Hcci, #Hcl, #HstorInv, %Hdup, %Hbl0, Hvoters, Hjoin, Hfresh, Hopn, HnidA,
+  wp_start as ⟨#Hcci, #Hcl, #HstorInv, %Hdup, %Hbl0, #Hfits, Hvoters, Hjoin, Hfresh, Hopn, HnidA,
     Hrseqs, Hcur⟩
   obtain ⟨HV1, HV5, Hm1, Hm2, Hsz⟩ := Hok
   have HVn : uint.nat o.Voters' ≤ 5 := by word

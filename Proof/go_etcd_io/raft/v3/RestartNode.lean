@@ -842,6 +842,20 @@ private theorem wp_RestartNode_impl
       rw [Hsd]; show DurFull S (fp' ++ σ.ents); rw [Hse]; exact H.1
     · show uint.Z S.base.index' ≤ uint.Z s.logst.prev.index'
       rw [Hlp]; exact Hsb
+  -- (2026-11-02, stage II (t): stage II (m)'s `PhsOk`) `prevHardSt`'s record the node's hard state
+  -- (the stored one), the lower bound zero, the commit below the unstable entries' start, no snapshot
+  have HphsR : PhsOk rs0 s1 := by
+    have Hh : hsOf s1 = hprev := by
+      show HardStateM.mk s.term s.vote s.logst.committed = hprev
+      rw [Hhz, Ht, Hv, Hcm]
+    refine ⟨by show HsLe hprev (hsOf s1); rw [Hh]; exact HsLe.refl _, HsLe.zero _, fun _ => ?_,
+      fun sid hs _ => by change s.logst.snap = some sid at hs; rw [Hsn0] at hs; cases hs⟩
+    show uint.Z hprev.Commit' < uint.Z s.logst.inprogress
+    rw [Hhz]
+    show uint.Z (committedAfter σ.base σ.hs) < _
+    rw [Hca, Hsvr.2]
+    simp only [σv]
+    omega
   ihave Hrn : ownRawNode γ.raft rn cv.ID' rs0 $$ [Hrn Hphys Hghost Hsteps Hsteps_cap]
   · iapply ownRawNode_intro γ.raft rn cv.ID' rs0 s1 (stOf m).cfg fp (ds := MA) rnv sv hprev []
       Hrel.2 (fun h => by simp only [rs0] at h; rw [Hmd] at h; cases h) Hasync
@@ -862,7 +876,7 @@ private theorem wp_RestartNode_impl
           rw [HDlen] at hi1; rw [Hdtk1] at hi2
           obtain ⟨t, ht, -⟩ := restartCt_complete HcF (by omega) hi2
           exact ⟨hi2, t, ht⟩⟩
-      Hsvr.1.symm
+      Hsvr.1.symm HphsR
       $$ Hrn Hphys Hghost [] Hsoft Hph Hsteps Hsteps_cap [] HcD [] [] [] Hdurt
     · iunfold sdrOk; iexists _; iexact Hsd0
     · iapply pendList_nil

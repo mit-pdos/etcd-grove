@@ -82,8 +82,8 @@ theorem img_ready_ok (M : StorFile) (S : RaftState) (hd' : HardStateM) (es : Lis
       StorageHolds (readyDurable S hd' none es)
         (kdContents (some (imgAppend (imgSetHardState M hd') k es))) := by
   obtain ⟨⟨Hsw, Hew, Hel⟩, Hp61, Hlen, Hidxm, Hps, Hsl, Hpc, Hcl, Htie⟩ := Hok
-  obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9⟩ := Hh
-  simp only [kdContents, StorContents.b, StorContents.commit] at H1 H2 H3 H4 H5 H6 H7 H8 H9
+  obtain ⟨H1, H2, H3, H4, H5, H6, Hw, H7, H8, H9⟩ := Hh
+  simp only [kdContents, StorContents.b, StorContents.commit] at H1 H2 H3 H4 H5 H6 Hw H7 H8 H9
   have Hsc : uint.nat M.snap.Metadata'.Index' ≤ uint.nat M.hs.Commit' := by
     by_cases h0 : M.snap.Metadata'.Index' = W64 0
     · rw [h0]; exact Nat.zero_le _
@@ -124,10 +124,13 @@ theorem img_ready_ok (M : StorFile) (S : RaftState) (hd' : HardStateM) (es : Lis
     · simp only [imgSetHardState]; wd
     · simp only [imgSetHardState]
       simp only [StorageHolds, kdContents, StorContents.b, StorContents.commit]
-      refine ⟨H1, ?_, ?_, rfl, rfl, ?_, Nat.le_refl _, ?_, H9⟩
+      refine ⟨H1, ?_, ?_, rfl, rfl, ?_, ?_, Nat.le_refl _, ?_, H9⟩
       · rw [Hn]; exact H2
       · unfold RaftState.entsFrom at H3 ⊢; rw [Hn]; exact H3
       · wd
+      · -- (stage II (t)) no entries, no snapshot: `wcommit` kept, below the image's commit
+        have : (S.next hd'.Term' hd'.Vote' hd'.Commit' none []).wcommit = S.wcommit := rfl
+        rw [this]; wd
       · intro sv hsv
         obtain ⟨a, b⟩ := H8 sv hsv
         exact ⟨a, by wd⟩
@@ -174,7 +177,7 @@ theorem img_ready_ok (M : StorFile) (S : RaftState) (hd' : HardStateM) (es : Lis
       · rw [if_neg hsp, if_neg hsp,
           List.getElem?_append_left (by rw [Htl]; wd), List.getElem?_take_of_lt (by wd)]
     · simp only [StorageHolds, kdContents, StorContents.b, StorContents.commit]
-      refine ⟨H1, ?_, ?_, rfl, rfl, ?_, Nat.le_refl _, ?_, H9⟩
+      refine ⟨H1, ?_, ?_, rfl, rfl, ?_, ?_, Nat.le_refl _, ?_, H9⟩
       · -- the term at the image's start: `S`'s, below the batch
         rw [Hn]
         unfold plogTermAt at H2 ⊢
@@ -198,6 +201,13 @@ theorem img_ready_ok (M : StorFile) (S : RaftState) (hd' : HardStateM) (es : Lis
         congr 2
         wd
       · wd
+      · -- (stage II (t)) entries written with the hard state: `wcommit` the batch's commit
+        have : (S.next hd'.Term' hd'.Vote' hd'.Commit' none es).wcommit = hd'.Commit' := by
+          unfold RaftState.next
+          cases es with
+          | nil => exact absurd rfl hne
+          | cons _ _ => rfl
+        rw [this]; exact Nat.le_refl _
       · intro sv hsv
         obtain ⟨a, b⟩ := H8 sv hsv
         exact ⟨a, by wd⟩
@@ -266,11 +276,14 @@ theorem img_ready_snap_ok (M : StorFile) (S : RaftState) (hd' : HardStateM) (sv 
       by unfold imgTermAt; simp only; rw [if_pos (Nat.le_refl _)]⟩⟩, ?_⟩
   · intro j e he; simp only at he ⊢; exact Hidx j e he
   · simp only [StorageHolds, kdContents, StorContents.b, StorContents.commit, Hi0, ↓reduceIte, HnB, HnE]
-    refine ⟨by word, ?_, ?_, ?_, ?_, G7, Nat.le_refl _, ?_, ?_⟩
+    refine ⟨by word, ?_, ?_, ?_, ?_, G7, ?_, Nat.le_refl _, ?_, ?_⟩
     · unfold plogTermAt; rw [if_neg (by word), if_pos rfl]
     · unfold RaftState.entsFrom; rw [HnE, HnB]; simp
     · unfold readyDurable; simp only [RaftState.next]
     · unfold readyDurable; simp only [RaftState.next]
+    · -- (stage II (t)) a snapshot written with the hard state: `wcommit` the batch's commit
+      have : (readyDurable S hd' (some L) es).wcommit = hd'.Commit' := rfl
+      rw [this]; exact Nat.le_refl _
     · intro sv' hsv'; cases hsv'; exact ⟨Nat.le_refl _, G7⟩
     · intro h; exact absurd rfl h
 

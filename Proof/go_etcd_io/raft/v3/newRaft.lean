@@ -889,7 +889,8 @@ theorem newRaft.wp_proof
     HpCQ
     rfl ⟨rfl, fun h => HvID h.symm⟩ rfl rfl HvID
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by simp only [rv2]; rw [HpLg, Hlok])
-    rfl (fun h => absurd h (by simp only [s2]; decide)) (fun _ h => absurd h List.not_mem_nil)
+    rfl (fun h => absurd h (by simp only [s2]; decide))
+    ⟨fun _ h => absurd h List.not_mem_nil, fun _ h => absurd h List.not_mem_nil⟩
     (fun _ h => absurd h List.not_mem_nil) (Nat.zero_le _)
     ⟨fun h => absurd h Bool.false_ne_true,
       SnpOk.of_none rfl rfl rfl rfl, rfl⟩

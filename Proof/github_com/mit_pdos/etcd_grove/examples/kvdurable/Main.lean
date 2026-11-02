@@ -122,8 +122,8 @@ theorem Main.wp_proof
   ihave #Hlpkg : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest
     $$ []
   · iPkgInit
-  wp_apply wp_CounterClock kdClockN Hrb as %f ⟨%clockVal, #Hclk, Ht0⟩
-  wp_apply wp_Run cfg clockVal (W64 0) ↑kdClockN f dir γf Hopts (by omega) lintestN_kdClockN
+  wp_apply wp_CounterClock kdClockN (by omega) as %f ⟨%clockVal, #Hclk, Ht0⟩
+  wp_apply wp_Run cfg clockVal (W64 0) ↑kdClockN f dir γf Hopts Hrb lintestN_kdClockN
     (by rw [Hcl]; decide) (by rw [Hcl]; decide) (by rw [Hops]; decide)
     (by rw [Hcl, Hops]; decide) (by omega) $$ [Ht0 Hfs']
     as %res %c ⟨%Hres, %γr, %vs, Hcl, Hcr⟩

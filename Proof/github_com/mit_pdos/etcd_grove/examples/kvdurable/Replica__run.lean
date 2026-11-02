@@ -1250,7 +1250,7 @@ theorem Replica.run.wp_proof
       obtain ⟨Hok3, Hh3⟩ := img_ready_snap_ok M S (phsNext hd h) lo.snap lo es rfl Hsw Hpos H61 h1 G20 h2
         G7.2 G8
       have HMS : uint.nat M.hs.Commit' ≤ uint.nat S.commit := by
-        have H7 := HSM.2.2.2.2.2.2.1
+        have H7 := HSM.2.2.2.2.2.2.2.1
         simp only [kdContents, StorContents.commit] at H7
         exact H7
       have HpC : uint.nat M.prev ≤ uint.nat M.hs.Commit' := by have := HMok.2.2.2.2.2.2.1; word

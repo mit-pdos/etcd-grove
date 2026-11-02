@@ -38,10 +38,10 @@ theorem holds_commit_only (S : RaftState) (σ : StorContents) (h : HardStateM)
     (Hh : StorageHolds S σ) (Ht : h.Term' = S.term) (Hv : h.Vote' = S.vote)
     (Hc : σ.commit ≤ uint.nat h.Commit') :
     StorageHolds (readyDurable S h none []) σ := by
-  obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9⟩ := Hh
+  obtain ⟨H1, H2, H3, H4, H5, H6, Hw, H7, H8, H9⟩ := Hh
   unfold readyDurable
   simp only [Option.map_none, RaftState.next, appendEnts]
-  exact ⟨H1, H2, H3, H4.trans Ht.symm, H5.trans Hv.symm, H6, Hc, H8, H9⟩
+  exact ⟨H1, H2, H3, H4.trans Ht.symm, H5.trans Hv.symm, H6, by simpa using Hw, Hc, H8, H9⟩
 
 /-- The batch's durable state's term and vote are its hard state's. -/
 theorem readyDurable_tv (S : RaftState) (h : HardStateM) (L : Option SnapLoan) (es : List EntryM) :

@@ -76,10 +76,13 @@ theorem Run.wp_proof
   intro cfg clockVal t0 Eclk clock dir γf Hopts Hrb HN Hc0 Hc31 Hops Hmul Hprop
   wp_start as ⟨#Hcc, #Hstor, #Hclk, Ht0, #Hfiles, Hfs⟩
   -- the store's ghost state, over raft's cluster
-  imod kd_alloc cfg.Options' dir γf ⊤ Hrb Hopts $$ Hfiles Hfs with
+  imod kd_alloc cfg.Options' dir γf ⊤ (by omega) Hopts $$ Hfiles Hfs with
     ⟨%γr, %Hγ, #Hkc, Hvs, Hja, Hfresh, Hopn, Hnid, Hrseq, Hcur, Hcr, Hval⟩
   try wp_auto
-  wp_apply wp_StartCluster γr cfg.Options' dir Hopts $$ [$Hkc $Hstor $Hvs $Hja $Hfresh $Hopn $Hnid
+  -- (2026-11-02, stage II (t)) `RestartNode`'s `readyFits`: no bootstrap log, the receipts' bound
+  ihave #Hfits : readyFits (GF := GF) γr.r.cluster kdRaftN $$ []
+  · iapply readyFits_intro (GF := GF) γr.r.cluster kdRaftN (by rw [Hγ.2.2]; omega)
+  wp_apply wp_StartCluster γr cfg.Options' dir Hopts $$ [$Hkc $Hstor $Hfits $Hvs $Hja $Hfresh $Hopn $Hnid
       $Hrseq $Hcur] as %c #Hcl
   · iframe #
     ipureintro; exact ⟨Hγ.2.1, Hγ.2.2⟩

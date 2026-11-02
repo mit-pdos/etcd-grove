@@ -53,9 +53,9 @@ theorem create_ok (M : StorFile) (i : w64) (co : Option ConfStateM) (bs : List w
   · simp only [imgCreateSnapshot, memSnapMade]; omega
   · exact ⟨Htie.1, rfl⟩
   · intro S Hh
-    obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9⟩ := Hh
-    simp only [kdContents, imgCreateSnapshot, memSnapMade, StorContents.b, StorContents.commit] at H1 H2 H3 H4 H5 H6 H7 ⊢
-    refine ⟨H1, H2, H3, H4, H5, H6, H7, ?_, ?_⟩
+    obtain ⟨H1, H2, H3, H4, H5, H6, Hw, H7, H8, H9⟩ := Hh
+    simp only [kdContents, imgCreateSnapshot, memSnapMade, StorContents.b, StorContents.commit] at H1 H2 H3 H4 H5 H6 Hw H7 ⊢
+    refine ⟨H1, H2, H3, H4, H5, H6, Hw, H7, ?_, ?_⟩
     · intro sv hsv
       simp only [Hi0, ↓reduceIte, Option.some.injEq] at hsv
       rw [← hsv]
@@ -106,11 +106,11 @@ theorem compact_ok (M : StorFile) (x : w64)
       rw [if_neg (by omega)]
       congr 3; omega
   · intro S Hh
-    obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9⟩ := Hh
-    simp only [kdContents, StorContents.b, StorContents.commit, Hs0, ↓reduceIte] at H1 H2 H3 H4 H5 H6 H7 H8 H9
+    obtain ⟨H1, H2, H3, H4, H5, H6, Hw, H7, H8, H9⟩ := Hh
+    simp only [kdContents, StorContents.b, StorContents.commit, Hs0, ↓reduceIte] at H1 H2 H3 H4 H5 H6 Hw H7 H8 H9
     obtain ⟨H8a, H8b⟩ := H8 _ rfl
     simp only [kdContents, imgCompact, Hs0, ↓reduceIte]
-    refine ⟨by word, ?_, ?_, H4, H5, Hxc, H7, ?_, ?_⟩
+    refine ⟨by word, ?_, ?_, H4, H5, Hxc, Hw, H7, ?_, ?_⟩
     · -- the term at `x`: `S`'s entry there, which the image's entries are
       have HSb : uint.Z S.base.index' ≤ uint.Z M.prev := H1
       obtain ⟨e, he⟩ : ∃ e, M.ents[uint.nat x - uint.nat M.prev - 1]? = some e :=
@@ -138,7 +138,7 @@ theorem compact_ok (M : StorFile) (x : w64)
 theorem holds_snap_commit (S : RaftState) (M : StorFile) (Hh : StorageHolds S (kdContents (some M)))
     (h0 : M.snap.Metadata'.Index' ≠ W64 0) :
     uint.nat M.snap.Metadata'.Index' ≤ uint.nat M.hs.Commit' := by
-  have H8 := Hh.2.2.2.2.2.2.2.1
+  have H8 := Hh.2.2.2.2.2.2.2.2.1
   simp only [kdContents, h0, ↓reduceIte] at H8
   exact (H8 _ rfl).2
 

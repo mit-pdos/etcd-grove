@@ -677,6 +677,8 @@ def isClusterC (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) : IProp
     -- (2026-11-01, the start functions) the cluster has no bootstrap log (`cluster_alloc` at the
     -- empty one): `RestartNode`'s `γ.bootLen ≤ σ.commit` (kvreconf's `%Hbl0`)
     "%Hbl0" ∷ ⌜γ.r.cluster.bootLen = 0⌝ ∗
+    -- (2026-11-02, stage II (t)) the receipts' bound within `2^61` (`readyFits`): `RestartNode`'s
+    "#Hfits" ∷ readyFits γ.r.cluster kdRaftN ∗
     "#HstorInv" ∷ kdStorInv ∗
     "#Hdir" ∷ c.[KCluster, go!"dir"] ↦□ dir ∗
     "#Hboot" ∷ c.[KCluster, go!"boot"] ↦□ bp ∗

@@ -99,10 +99,11 @@ theorem kd_restartAu (γ : KdNames) (dir : GoString) (id : w64) (σ : StorConten
 /-- No file holds what a node at the initial state holds. -/
 theorem kdEmpty_holds : StorageHolds RaftState.init (kdContents none) := by
   unfold StorageHolds
-  refine ⟨Int.le_refl _, ?_, ?_, rfl, rfl, ?_, ?_, ?_, ?_⟩
+  refine ⟨Int.le_refl _, ?_, ?_, rfl, rfl, ?_, ?_, ?_, ?_, ?_⟩
   · simp [plogTermAt, RaftState.init, kdContents, kdEmpty]
   · rfl
   · simp [StorContents.b, StorContents.commit, kdContents, kdEmpty]
+  · simp [StorContents.commit, RaftState.init, kdContents, kdEmpty]
   · simp [StorContents.commit, RaftState.init, kdContents, kdEmpty]
   · intro sv h; simp [kdContents, kdEmpty] at h
   · intro h; exact absurd rfl h

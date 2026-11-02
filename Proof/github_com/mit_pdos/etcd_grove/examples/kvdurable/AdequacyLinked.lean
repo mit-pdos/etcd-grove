@@ -39,7 +39,7 @@ store package's initialization, then `Main(dir)`, which starts a cluster of rand
 files in `dir`, runs the randomized linearizability test under configuration changes, leadership
 disruptions and crashes with restarts from the files, panics unless porcupine answers `Ok`, and
 stops the cluster) from a fresh state with one thread whose files hold none of the replicas' files
-in `dir`, of `n < 2^63` steps: the main thread's result, if any, is `#()`; no thread is stuck; no
+in `dir`, of `n < 2^61` steps: the main thread's result, if any, is `#()`; no thread is stuck; no
 thread has ended in a panic. -/
 theorem kvdurable_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.kvdurable.Assumptions]
@@ -48,7 +48,7 @@ theorem kvdurable_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : σ.threads = 1)
     (Hfiles : ∀ i ∈ kvreconf.allIds,
       extLocal durableExt σ.world !! kvdurable.kdFileName dir i = none)
-    (n : Nat) (Hn : n < 2 ^ 63) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([kvdurableProgram dir], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
