@@ -1507,16 +1507,16 @@ private theorem boot_facts (E : CoPset) (γ : RaftNames) :
 /-- **A first start from the bootstrap log** (`StartNode`, I-7): a node that has stored nothing
 starts at the cluster's bootstrap state (`bootPState`: term `1`, the bootstrap log committed), which
 its first `Ready` writes. -/
-theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} :
+theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (R : IProp GF) :
     ↑(raftN γ) ⊆ E →
     γ.reDyn.isSome = md →
-    ⊢ ownDurGhost (GF := GF) γ id RaftState.init -∗ raftIdSlot γ id ={E}=∗
-      ownDurGhost γ id RaftState.init ∗ ownRaftGhost γ id (bootPState γ.reBoot) md ∗
+    ⊢ raftIdSlot (GF := GF) γ id -∗
+      (|={E \ ↑(slotN γ id), ∅}=> ownDurGhost γ id RaftState.init ∗
+        (ownDurGhost γ id RaftState.init ={∅, E \ ↑(slotN γ id)}=∗ R)) ={E}=∗
+      R ∗ ownRaftGhost γ id (bootPState γ.reBoot) md ∗
       ∃ g, slotLive γ id 1 g ∗ slotFree γ id g := by
   intro HE Hmd
-  iintro Hdur Hslot
-  unfold ownDurGhost
-  icases Hdur with ⟨%E1, Hsh1, #Hdp, -⟩
+  iintro Hslot Hacc
   unfold raftIdSlot
   icases Hslot with ⟨%γs, %V, %g, %Hγs, %Hnz, Hvirt, Hlive, Hfree, #Hsinv, #Hcinv, #Hrci,
     ⟨%γm, %terms, %Htm, Hterms, #Htf⟩, ⟨%γw, %wins, %Hwn, Hwins, #Hwf⟩,
@@ -1544,8 +1544,24 @@ theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} :
   rw [HMq'] at HV
   simp only [virtQ] at HV
   subst HV
+  -- the durable half, through the accessor (the client's update: `StartNode`'s), while the slot
+  -- is open
+  imod Hacc with ⟨Hdur, Hcl⟩
+  unfold ownDurGhost
+  icases Hdur with ⟨%E1, Hsh1, #Hdp, #Hsinv1⟩
   icases durShares_agree γ id _ _ V E1 $$ Hsh0 Hsh1 with ⟨Hsh0, Hsh1, %HE1⟩
   subst HE1
+  -- the leader-side keys: entered campaigns' terms
+  icases keys_camps γ id _ V (fun t (x : TermRec) => iprop(t ↪[γm]□ x)) terms $$ [$Hsh1 $Htf]
+    with ⟨Hsh1, %Ktm⟩
+  icases keys_camps γ id _ V (fun t (x : GSet w64) => iprop(t ↪[γw]□ x)) wins $$ [$Hsh1 $Hwf]
+    with ⟨Hsh1, %Kwn⟩
+  icases keys_camps γ id _ V (fun t (x : GName) => iprop(t ↪[γl]□ x)) lcm $$ [$Hsh1 $Hlf]
+    with ⟨Hsh1, %Kln⟩
+  icases keys_camps γ id _ V (fun t (x : GName) => iprop(t ↪[γq]□ x)) rqm $$ [$Hsh1 $Hqf]
+    with ⟨Hsh1, %Kqn⟩
+  imod Hcl $$ [Hsh1] with HR
+  · iexists V; iframe Hsh1 Hdp Hsinv1
   imod Hclose $$ [Hsh0 Hv0 Hg0 Hq] with -
   · inext
     unfold slotBody
@@ -1569,15 +1585,6 @@ theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} :
   have Hlenb : (γ.reBoot.length : Int) < 2 ^ 64 := by
     have := PlogWf_range _ _ Hwfb; unfold plogLastIndexZ at this; rw [base0_index] at this; omega
   have HWL : uint.Z (W64 (γ.reBoot.length : Int)) = γ.reBoot.length := uint_Z_W64 _ (by omega) Hlenb
-  -- the leader-side keys: entered campaigns' terms, so `0`
-  icases keys_camps γ id _ V (fun t (x : TermRec) => iprop(t ↪[γm]□ x)) terms $$ [$Hsh1 $Htf]
-    with ⟨Hsh1, %Ktm⟩
-  icases keys_camps γ id _ V (fun t (x : GSet w64) => iprop(t ↪[γw]□ x)) wins $$ [$Hsh1 $Hwf]
-    with ⟨Hsh1, %Kwn⟩
-  icases keys_camps γ id _ V (fun t (x : GName) => iprop(t ↪[γl]□ x)) lcm $$ [$Hsh1 $Hlf]
-    with ⟨Hsh1, %Kln⟩
-  icases keys_camps γ id _ V (fun t (x : GName) => iprop(t ↪[γq]□ x)) rqm $$ [$Hsh1 $Hqf]
-    with ⟨Hsh1, %Kqn⟩
   imod rdCred_zero (GF := GF) γ with Hcr0
   have Hterm : (bootPState γ.reBoot).term = W64 1 := rfl
   have Hrole : (bootPState γ.reBoot).role = .follower := rfl
@@ -1591,8 +1598,7 @@ theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} :
         (t = (bootPState γ.reBoot).term ∧ (bootPState γ.reBoot).role ≠ .candidate) := by
     intro t ht; left; have := Hcp t ht; rw [Hi0] at this; rw [Hterm, H1]; omega
   imodintro
-  isplitl [Hsh1]
-  · iexists V; iframe Hsh1 Hdp Hsinv
+  iframe HR
   isplitr [Hl Hfr]
   rotate_left
   · iexists g

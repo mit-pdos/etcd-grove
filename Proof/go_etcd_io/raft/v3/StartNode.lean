@@ -210,18 +210,72 @@ names. (2026-11-01, durability stage I-4: keyed by the storage's key.) -/
 private theorem storBnd_raftBnd (γ : Cluster) (K : GName) (sn : StorNames) (c : Nat) :
     ⊢ storKeyNames (GF := GF) K sn -∗ monoNatLbOwn sn.ga 0 -∗ EtcdGrove.storBnd γ K c -∗
       raftBnd sn c := by
-  -- PORT(durability stage II): restated (I-4: keyed by `K`, `snapGiven` merged)
-  sorry
+  iintro #Hsn #H0 Hb
+  unfold EtcdGrove.storBnd EtcdGrove.nodeAppliedLb nodeAppliedLbU raftBnd
+  icases Hb with ⟨%k, %Hk, (%Hk0 | ⟨%sn', #Hsn', (#Hl | #Hl | %Hl)⟩)⟩
+  · ileft
+    iexists 0
+    isplitr; · ipureintro; omega
+    ileft; iexact H0
+  · ihave %He := storKeyNames_agree K sn' sn $$ Hsn' Hsn
+    subst He
+    ileft
+    iexists k
+    isplitr; · ipureintro; exact Hk
+    ileft; iexact Hl
+  · ihave %He := storKeyNames_agree K sn' sn $$ Hsn' Hsn
+    subst He
+    ileft
+    iexists k
+    isplitr; · ipureintro; exact Hk
+    iright; iexact Hl
+  · ihave %He := storKeyNames_agree K sn' sn $$ Hsn' Hsn
+    subst He
+    iright
+    ipureintro; omega
 
 /-- Raft's reading of the contract's `DL` for a valid snapshot: the node on the storage committed
-up to its index, so raft certified the term there (or handed out a snapshot past it). (2026-11-01,
-durability stage I-4: `nodeCommitLb`, keyed by the storage's key.) -/
+up to its index, so raft certified the term there (or handed out a snapshot past it, or the attach
+recorded it). (2026-11-01, durability stage I-4: `nodeCommitLb`, keyed by the storage's key.) -/
 private theorem storDL_raftDL (γ : Cluster) (K : GName) (sn : StorNames) (sv : SnapshotM) :
     ⊢ storKeyNames (GF := GF) K sn -∗ EtcdGrove.snapshotValid γ sv -∗
       EtcdGrove.nodeCommitLb γ K (uint.nat sv.Metadata'.Index') -∗
       raftDL sn (uint.nat sv.Metadata'.Index') sv.Metadata'.Term' := by
-  -- PORT(durability stage II): restated (I-4: `nodeCommitLb` keyed by `K`)
-  sorry
+  iintro #Hsn Hv Hdl
+  unfold EtcdGrove.snapshotValid EtcdGrove.isCommittedLogLb EtcdGrove.nodeCommitLb nodeCommitLbU
+  icases Hv with ⟨%l1, %m, #Hlb1, -, -, %Hp⟩
+  obtain ⟨Hlen, Hpos, Hlast, -⟩ := Hp
+  icases Hdl with (%H0 | ⟨%sn', %l, #Hsn', #Hlb, %Hi, #Hdk⟩)
+  · exfalso; omega
+  ihave %He := storKeyNames_agree K sn' sn $$ Hsn' Hsn
+  subst He
+  icases isCommittedLogLb_agree_impl γ l1 l $$ [Hlb1 Hlb] with %Hcm
+  · iframe Hlb1 Hlb
+  have Hpre : l1 <+: l := by
+    rcases Hcm with h | h
+    · exact h
+    · have e := h.eq_of_length (by have := h.length_le; omega)
+      rw [e]
+      exact ⟨[], List.append_nil _⟩
+  obtain ⟨t, Ht⟩ := Hpre
+  have Hj : l1.length - 1 < l1.length := by omega
+  have Hl1j : l1[l1.length - 1]?.map LogEntry.term = some sv.Metadata'.Term' := by
+    rw [← List.getLast?_eq_getElem?]; exact Hlast
+  have Hlj : l[l1.length - 1]? = l1[l1.length - 1]? := by
+    rw [← Ht, List.getElem?_append_left Hj]
+  rw [← Hlj] at Hl1j
+  cases hde : l[l1.length - 1]? with
+  | none => rw [hde] at Hl1j; cases Hl1j
+  | some e =>
+    rw [hde] at Hl1j
+    simp only [Option.map_some, Option.some.injEq] at Hl1j
+    have hte : (LogEntry.toEntries l 0)[l1.length - 1]? =
+        some (e.toEntryM (W64 ((0 + (l1.length - 1) + 1 : Nat) : Int))) := by
+      rw [toEntries_getElem?, hde]; rfl
+    ihave #Hke := (BigSepL.bigSepL_lookup (Φ := fun j (e : EntryM) =>
+      raftDL (GF := GF) sn' (j + 1) e.Term') hte) $$ Hdk
+    rw [show uint.nat sv.Metadata'.Index' = l1.length - 1 + 1 by omega, ← Hl1j]
+    iExactEq Hke; rfl
 
 /-- **The certificate link of fresh storage names** (`certLink`): their `SV` pin the API's
 `snapshotValid`, their snapshot pin raft's certificate. -/
@@ -272,6 +326,64 @@ private theorem certLink_make (γ : Cluster) (N : Namespace) (HU : UniNames γ N
     iexists raftSnapCertD γ.raft
     iframe Hgk
     imodintro; iexact Hc
+
+/-- (2026-11-02, stage II (o)) A location owned whole is not also held read-only. -/
+private theorem loc_pts_excl (l a b : Loc) :
+    ⊢ (l ↦ a : IProp GF) -∗ l ↦□ b -∗ False := by
+  iintro H1 H2
+  rw [typedPointsto_unseal_eq l a, typedPointsto_unseal_eq l b]
+  icases H1 with ⟨H1, -⟩
+  icases H2 with ⟨H2, -⟩
+  ihave H1 := (show typedPointstoDef (GF := GF) l a (DFrac.own 1) ⊢ heapPointsto l (DFrac.own 1) #a
+    from .rfl) $$ H1
+  ihave H2 := (show typedPointstoDef (GF := GF) l b DFrac.discard ⊢ heapPointsto l DFrac.discard #b
+    from .rfl) $$ H2
+  icombine H1 H2 gives %Hv
+  obtain ⟨Hv, -⟩ := Hv
+  exfalso
+  have := DFrac.valid_own_op_discard.1 Hv
+  simp at this
+
+/-- (2026-11-02, stage II (o)) A node struct owned whole is not also held read-only (its `rn`
+field). -/
+private theorem node_pts_excl (n : Loc) (nv nv' : node) :
+    ⊢ (n ↦ nv : IProp GF) -∗ n ↦□ nv' -∗ False := by
+  iintro H1 H2
+  rw [typedPointsto_unseal_eq n nv, typedPointsto_unseal_eq n nv']
+  icases H1 with ⟨H1, -⟩
+  icases H2 with ⟨H2, -⟩
+  simp only [TypedPointsto.typedPointstoDef]
+  iNamed H1
+  icases H2 with ⟨-, -, -, -, -, -, -, -, -, -, ⟨H2, -⟩⟩
+  iapply loc_pts_excl _ nv.rn' nv'.rn' $$ rn H2
+
+/-- (2026-11-02, stage II (o)) **Registering a node in the cluster's table**, while its struct is
+owned whole (so it is not in the table yet): its entry, and the struct read-only from then on. -/
+private theorem nodeTab_insert (γ : Cluster) (N : Namespace) (n : Loc) (nv : node) (x : CfgNames) :
+    ⊢ nodeTabInv (GF := GF) γ N -∗ n ↦ nv ={⊤}=∗ n ↦□ nv ∗ n ↪[γ.nodeTab]□ x := by
+  iintro #Hinv Hn
+  unfold nodeTabInv
+  iinv Hinv with ⟨%M, >Hauth, >Hm⟩ Hclose
+  cases hM : M !! n with
+  | some y =>
+    ihave Hy := (BigSepM.bigSepM_lookup (Φ := fun (k : Loc) (_ : CfgNames) =>
+      iprop(∃ nv : node, k ↦□ nv : IProp GF)) hM) $$ Hm
+    icases Hy with ⟨%nv', Hy⟩
+    iexfalso
+    iapply node_pts_excl n nv nv' $$ Hn Hy
+  | none =>
+    imod ghost_map_insert_persist n x hM $$ Hauth with ⟨Hauth, #He⟩
+    ipersist Hn
+    imod Hclose $$ [Hauth Hm] with -
+    · inext
+      iexists (<[n := x]> M)
+      iframe Hauth
+      iapply (BigSepM.bigSepM_insert (Φ := fun (k : Loc) (_ : CfgNames) =>
+        iprop(∃ nv : node, k ↦□ nv : IProp GF)) hM).2
+      iframe Hm
+      iexists nv; iexact Hn
+    imodintro
+    iframe Hn He
 
 /-- `StartNode.spec` from the raw triple (2026-10-30, stage R5): the node in the cluster's dynamic
 mode of the client's decisions, taking `MsgSnap`s, its ghost state the dynamic one at the bootstrap
