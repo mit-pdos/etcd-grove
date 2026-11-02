@@ -5,6 +5,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnWrite
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -175,7 +176,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
 
 theorem mvcc.store.Write.wp_proofA (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF) (hG := hG)) :
     mvcc.store.Write.specA (GF := GF) (hG := hG) := by
-  intro s γ trace P Pre Q f te clb Z dq ow
+  intro s γ trace P Pre Q f te clb Z dq ow T
   wp_start as ⟨#Hs, Hrd, #HZ, #Hclb, Htok, Hwt, %Htrnn, #HhookC, Hpinw, Hpre, #Htriple, Htrc⟩
   -- the caller's hook: its facts and the writer's fragment (D22 receiver epochs, S5b: the caller's
   -- names are the current ones)
@@ -183,14 +184,23 @@ theorem mvcc.store.Write.wp_proofA (hNew : mvcc.newMetricsTxnWrite.spec (GF := G
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamed Hs
+  -- the first resolution step: its receipt (the write-back token) and later credit (the ticket)
+  wp_to_resolve
+  wp_bind (App (Val (GoInstruction (MethodResolve _ _))) (Val _))
+  iapply wp_go_step_receipt'
+  case hv => exact isPanic_intoVal _
+  inext
+  iintro Hrw Hlcr
+  iapply wp_value'
+  imod Hrd $$ Hlcr with ⟨Hrd, HT⟩
+  imod Hwt $$ Hrw with Hwt
   iunfold mvcc.storeReaderC at Hrd
   iNamedSuffix Hrd "R"
-  wp_auto_lc 1
-  ihave Hlc0 := Hlc1
   -- `s.mu.RLock()`: its part of `s.mu`'s resource, at the compaction revision `cm`, at or
   -- above the caller's lower bound
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HmuR] as ⟨Hmul, HmuP⟩
-  wp_auto_lc 3
+  wp_auto_lc 4
+  ihave Hlc0 := Hlc4
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ sync.rfrac)) $$ Hlc1 HmuP with HmuP
   iunfold mvcc.muInv at HmuP
   icases HmuP with ⟨%cm, HmuP, Hwr, Hfs⟩
@@ -232,7 +242,8 @@ theorem mvcc.store.Write.wp_proofA (hNew : mvcc.newMetricsTxnWrite.spec (GF := G
   iunfold mvcc.isKeyBackendG at Hbk
   icases Hbk with ⟨%bi, %Hbi, #HC, #HR, #HB, -⟩
   rw [Hbi]
-  (try wp_auto)
+  wp_take_receipt as Hrt
+  imod Htok $$ Hrt with Htok
   wp_apply HB as %bt #Hbt
   (try wp_auto)
   ihave Hfs : mvcc.fieldShareAt s γ sync.rfrac.half ow $$ [Hcur Hfb Hfidx Hfsch Hfstop Hfrst]
@@ -288,7 +299,7 @@ theorem mvcc.store.Write.wp_proofA (hNew : mvcc.newMetricsTxnWrite.spec (GF := G
   wp_apply (hNew _) as %mw Hmw
   (try wp_auto)
   iapply HΦ
-  iframe HQ
+  iframe HQ HT
   isplitr [Hpinw]
   rotate_left
   · iframe HhookC Hpinw
