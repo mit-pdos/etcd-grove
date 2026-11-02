@@ -97,6 +97,23 @@ def revPool (γ : StoreNames) : IProp GF :=
 instance revPool_persistent (γ : StoreNames) : Persistent (revPool (GF := GF) γ) := by
   unfold revPool; infer_instance
 
+open Iris.ProofMode in
+/-- **A revision token for a receipt**: the pool's receipts and tokens are more than the bound, so
+with one more receipt (fewer than the bound) it has a token. -/
+theorem revPool_take (γ : StoreNames) : revPool (GF := GF) γ ∗ ⧗ 1 ⊢ |={⊤}=> revToken γ := by
+  iintro ⟨#Hinv, Hr⟩
+  unfold revPool
+  iinv Hinv with Hi Hclose
+  icases Hi with ⟨%a, %n, >Ha, >Hn, >%Hb⟩
+  icases receipt_add_one_lt a $$ [Hr Ha] with ⟨%Hlt, Ha⟩
+  · iframe
+  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
+  icases (ownToks_add 1 n' γ.revs).1 $$ Hn with ⟨Hn, H1⟩
+  imod Hclose $$ [Ha Hn] with _
+  · inext; iexists a + 1, n'; iframe; ipureintro; omega
+  imodintro
+  unfold revToken; iframe
+
 /-- **The store `s` of the names `γ`** (`isMvcc`): see the file's header. -/
 def isMvccI (s : Loc) (γ : MvccImpl) : IProp GF :=
   iprop(isStore s γ.st ∗

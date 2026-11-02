@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnWrite
 public import Proof.ReceiptTactics
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLemmas
 
 @[expose] public section
 
@@ -329,6 +330,56 @@ theorem mvcc.store.Write.wp_proofA (hNew : mvcc.newMetricsTxnWrite.spec (GF := G
     iapply BigSepL.bigSepL_nil_intro
     iempintro
   ipureintro; exact ⟨Hne, Htrnn, HcM, by have := Hpre0.length_le; omega⟩
+
+/-- **The candidate `Write`** (`specC`, mvcc's candidate API): `specA`'s, the reader's ticket
+borrowed from the readers' pool for the thread token, the revision token from the revision tokens'
+pool and the write-back token from the supply, each for a receipt; the hook's facts from the API's
+(`mvccHook_hookOk`), its triple from the caller's (`hookRun`, the hook not `nil`); the pin of the
+store's objects, the store's. The transaction is at the state its log and compaction revision are,
+nothing pending. -/
+theorem mvcc.store.Write.wp_proofC (hA : mvcc.store.Write.specA (GF := GF) (hG := hG)) :
+    mvcc.store.Write.specC (GF := GF) (hG := hG) := by
+  intro s γ trace te P Pre Q f
+  iintro %Φ ⟨#Hpkg, #Hs, Htt, %Htr, Htrc, #Hhook, Hpre, Hrun⟩ HΦ
+  ihave #Hs1 : mvcc.isMvccI s γ $$ []
+  · iunfold mvcc.isMvcc at Hs; iexact Hs
+  iunfold mvcc.isMvccI at Hs1
+  icases Hs1 with ⟨#Hst, %Hf, ⟨%o, #Hpin⟩, #Hpool, #Hrev, #Hwb⟩
+  ihave #Hhk := mvcc.mvccHook_hookOk γ P f $$ Hhook
+  ihave #Hhook0 := Hhook
+  iunfold mvcc.mvccHook at Hhook0
+  icases Hhook0 with ⟨%BP, %b, -, -, %Hnn⟩
+  iunfold mvcc.hookRun at Hrun
+  isimp only [Hnn, ↓reduceIte] at Hrun
+  icases Hrun with #Htriple
+  imod mvcc.crevLb_neg γ.st.idx with #Hlb
+  iapply (hA s γ.st trace P Pre Q #f te (-1) iprop(True) DFrac.discard o
+    (threadPool.ownThreadLoan γ.tl)) $$ %Φ [Htt Hpre Htrc]
+  · iframe Hpkg Hst Hlb Hhk Hpin Htriple Hpre Htrc
+    isplitl [Htt]
+    · iintro Hlc
+      iapply threadPool.borrow_lc mvcc.tixN γ.tl (mvcc.storeReaderC s γ.st) ⊤ (by simp)
+      iframe Hlc Hpool Htt
+    isplitr
+    · iintro !>; itrivial
+    isplitr
+    · iintro Hr; iapply mvcc.revPool_take γ.st; iframe Hrev Hr
+    isplitr
+    · iintro Hr; iapply Hwb; iexact Hr
+    ipureintro; exact Htr
+  inext
+  iintro %mw ⟨⟨%ilog, %crev, Htx, -, %Hc⟩, HQ, -, -, Hloan⟩
+  iapply HΦ
+  iframe HQ
+  iexists ⟨ilog, crev, none⟩
+  iunfold mvcc.mvccTxn
+  simp only [mvcc.mvccTxnI]
+  iexists mw, s, W64 0, W64 0, W64 0
+  isplitr
+  · ipureintro; simp
+  isplitr
+  · iunfold mvcc.isMvcc at Hs; iexact Hs
+  iframe Htx Hloan
 
 end proof
 
