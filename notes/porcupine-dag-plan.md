@@ -228,6 +228,241 @@ premise on event histories), `Check*Consistency` with a general `Consistency` (o
 arbitrary specs; the DAG search's correctness then needs properties of the oracles, e.g. a hard
 order that is a strict partial order compatible with the chains), the visualizer.
 
+## Spec plan (candidate 2, 2026-11-02)
+
+After the first spec review (fresh `spec-reviewer`; its findings F1-F6, each taken or answered
+below). Candidate 1 stays above for the record; this section is the whole spec plan.
+
+### Review round 1: what changed and why
+
+- **F1 (taken): the size bound admitted a Go panic.** Candidate 1 bounded `(ClientId + 1) * n` by
+  `2^63` and said the size itself was no premise. But gc refuses an allocation above `maxAlloc`
+  (2^48 bytes on 64-bit platforms) with a recoverable `makeslice: len out of range` panic, and
+  Perennial does not model it (its `docs/KNOWN_LIMITATIONS.md`, "Allocation"). v1.3.1 has the
+  same gap only for inputs over 128 TiB; the PR's allocations grow with the *client id*, so a
+  single operation with `ClientId` 2^50 panics in Go while the model runs it. The premise now
+  bounds the PR's id-dependent allocations by `maxAlloc` (below).
+- **F2 (taken, in a weaker form than proposed): a stronger spec under a weaker premise.** What
+  the PR decides is linearizability that respects, besides real time, each client's listed order
+  (`LinearizableCO`); for that the code needs only that along a client's listed order the
+  *returns* do not decrease (`MonoRet`). The reviewer proposed calls and returns non-decreasing;
+  the calls are not needed: `computeFirstUnk` starts from the previous operation's bound, which
+  may then over-count the operations preceding the head, but those precede the previous
+  operation, which the head follows in the client order, so they are forced anyway. Checked: 300000
+  random register histories with returns non-decreasing per client and calls arbitrary (call at
+  most return), the PR against a brute-force checker of `LinearizableCO`: no disagreement (100738
+  accepted). The reviewer's runs: 300000 with `ret_i ≤ call_j`, and 300000 with calls and returns
+  non-decreasing, no disagreement. Candidate 1's strict premise (sequential clients) becomes the
+  condition of a law that turns the post into v1.3.1's (`linCO_iff_lin`), so the v1.3.1-shaped
+  spec is a corollary (`Results.lean`). This also covers lintest-like callers whose clocks give
+  only `ret_i ≤ call_{i+1}`.
+- **F3 (taken): `makeEntries` with `nc < 0` and no operation panics.** Premise `0 ≤ nc` added.
+- **F4 (taken): `checkParallel`'s `css` constrained nothing.** Dropped (each partition has `∃ cs`).
+  `CoFresh` no longer requires `firstUnk = nil` (overwritten by `newChains`); it keeps
+  `visited = false` (`computeFirstUnk` reads it).
+- **F5 (taken, the alternative): the package fact names the closures.** The closures capture
+  nothing, so the fact states the stored values (`linV`, the oracles slice holding `rtV`, `glV`,
+  `RVal`'s `rvInitV`, `rvStepV`: the translation's func literals, generated from it), and their
+  specs are lemmas. No quantification over model specs inside `isPkgInit`, and no `hasLC`
+  specialization of the instance.
+- **F6 (answered): margins.** (a) The caller's slice `sl ↦*{dq} ops` could be returned (the
+  goroutines read only copies); v1.3.1's specs do not return it either; kept as v1.3.1's, said in
+  the docstrings. (b) The PR never calls the model's `Hash` (its cache hashes the bitset only), so
+  `isModel`'s `Hash` disjunct is not needed; kept to share v1.3.1's `isModel`, said in `Defs.lean`.
+- Not an issue: the PR prints `Total_pop: N` to stdout from `checkSingle` (debug output; Perennial's
+  `fmt.Printf` model, output not modelled).
+
+### Premises
+
+    /-- gc's largest allocation, in bytes (`maxAlloc` on 64-bit platforms): a larger `make`
+    panics. -/
+    def maxAllocBytes : Int := 2 ^ 48
+
+    /-- The PR's premise on a history: client ids are non-negative and small enough that the
+    allocations sized by them fit (`numClients = maxClientId + 1`: `8·n·numClients` bytes of
+    `firstUnk`s, `48·numClients` of clients, `24·numClients` of per-client slices,
+    `8·numClients` of frontier), and along each client's listed order the returns do not
+    decrease. -/
+    def ClientsOk (ops : List Operation) : Prop :=
+      (∀ o ∈ ops, 0 ≤ sint.Z o.ClientId' ∧
+        (sint.Z o.ClientId' + 1) * (ops.length + 6) * 8 ≤ maxAllocBytes) ∧
+      ∀ i j oi oj, i < j → ops[i]? = some oi → ops[j]? = some oj →
+        oi.ClientId' = oj.ClientId' → sint.Z oi.Return' ≤ sint.Z oj.Return'
+
+    /-- The client order: `i` listed before `j`, with the same client id. -/
+    def clientOrder (ops : List Operation) (i j : Nat) : Prop :=
+      i < j ∧ ∃ oi oj, ops[i]? = some oi ∧ ops[j]? = some oj ∧ oi.ClientId' = oj.ClientId'
+
+    /-- Sequential clients (candidate 1's premise): of two operations of one client, the one
+    listed first returns strictly before the other is called. -/
+    def ClientsSeq (ops : List Operation) : Prop :=
+      ∀ i j oi oj, i < j → ops[i]? = some oi → ops[j]? = some oj →
+        oi.ClientId' = oj.ClientId' → sint.Z oi.Return' < sint.Z oj.Call'
+
+Why each part, with the counterexample without it (register model, `Init` 0):
+
+1. **Returns non-decreasing per client (`MonoRet`).** `computeFirstUnk` finds the first operation of
+   another client's chain that does not precede the head in real time, and takes those before it
+   to precede: that is right only if the preceding operations are a prefix of the chain, which
+   non-decreasing returns give. Without it, unsound (for `Linearizable` as for
+   `LinearizableCO`): client 1 lists `{write 1, [0,10]}, {write 2, [1,2]}`, client 0
+   `{read → 0, [5,6]}`. The read follows `write 2` in real time, so no linearization has it see
+   0; v1.3.1 answers `false`, the PR `true`: the read's `firstUnk` on client 1 stops at index 0
+   (`write 1` does not precede the read), so the read is linearized first. Weakest: any client
+   whose returns decrease somewhere (`ret_i > ret_j`, `i < j`) gives such a history, with a read
+   of another client called between `ret_j` and `ret_i`.
+2. **`0 ≤ ClientId`.** `makeEntries` indexes `operationHistory[ClientId]`: a negative id panics.
+3. **The allocation bound.** Without it, `makeslice: len out of range` (F1) or, past 2^63, an
+   overflow (`n * numClients` wraps: a negative `make` length or slice bound, a panic). Exact up to
+   the constant 6 (it bounds the three per-client allocations together: `48 + 24 + 8 ≤ 6 · 8 + 8·n`
+   only once `n ≥ 4`; the conjunct is sufficient, slightly stronger than the four bounds separately
+   for `n < 4`, which a caller does not notice).
+
+The post is about `LinearizableCO`; `ClientsSeq` is not a premise of any spec, only of the law
+giving v1.3.1's post. Under `ClientsSeq` (strict), `ClientsOk`'s second part holds
+(`ret_i < call_j ≤ ret_j`).
+
+### The vocabulary (`Theory.lean`, generalized)
+
+v1.3.1's `Completes`/`Good` with the order to respect as a parameter:
+
+    def CompletesR (M h) (R : Nat → Nat → Prop) (S t π) : Prop :=
+      π.Nodup ∧ (∀ k, k ∈ π ↔ k < h.length ∧ ¬ S k) ∧ (run M t (vals h π)).isSome ∧
+        π.Pairwise fun a b => ¬ R b a
+    def GoodR (M h R S t) : Prop := ∃ π, CompletesR M h R S t π
+    /-- v1.3.1's, unchanged in meaning. -/
+    def Linearizable (M h) : Prop := GoodR M h (Prec h) (fun _ => False) M.init
+    /-- Linearizable by an order that also respects `co` (the client order). -/
+    def LinearizableCO (M h) (co : Nat → Nat → Prop) : Prop :=
+      GoodR M h (fun a b => Prec h a b ∨ co a b) (fun _ => False) M.init
+
+Laws (`Defs.lean`):
+
+    theorem linearizable_of_co : LinearizableCO M h co → Linearizable M h
+    theorem linCO_iff_lin (hwf : HistOk ops) (hseq : ClientsSeq ops) :
+        LinearizableCO M (histOf ops) (clientOrder ops) ↔ Linearizable M (histOf ops)
+      -- under ClientsSeq the client order is contained in Prec
+    theorem checkResult_complete  -- v1.3.1's, unchanged
+
+### The package fact
+
+    /-- The closures the translation's `initialize'` stores (func literals, capturing nothing):
+    `RealTime`, `GeneralLikely`, `RVal.Init`, `RVal.Step`; generated from the translation
+    (`Closures.lean`, by `etc/gen-init.py`). -/
+    def rtV : GoFunc := …; def glV : GoFunc := …; def rvInitV : GoFunc := …; def rvStepV : GoFunc := …
+
+    /-- A consistency value that is linearizability: its oracles slice holds `RealTime` and
+    `GeneralLikely` (read-only), and its validity is `RVal`. -/
+    def isLinearizability (v : Consistency.t) : IProp GF :=
+      v.Oracles' ↦*□ [rtV, glV] ∗ ⌜v.Valid' = { Init' := rvInitV, Step' := rvStepV }⌝
+
+    /-- `isPkgInit`'s fact: `Linearizability` holds such a value, read-only. -/
+    def linInit : IProp GF := ∃ v, globalAddr Linearizability ↦□ v ∗ isLinearizability v
+
+    -- lemmas (proved on the closures' bodies):
+    theorem wp_rtV : {{ pa ↦{qa} a ∗ pb ↦{qb} b }} rtV #pa #pb
+        {{ RET (#(rtOrder a b), #interface.nil); pa ↦{qa} a ∗ pb ↦{qb} b }}
+      -- rtOrder a b = HardBefore if a.Return < b.Call, HardAfter if a.Call > b.Return, else DontKnow
+    theorem wp_glV : likewise, glOrder (SoftBefore / SoftAfter / DontKnow by a.Call vs b.Call)
+    theorem wp_rvInitV : {{ initSpec S m.Init' }} rvInitV #m {{ v, RET #v; S.rep 0 v S.M.init }}
+    theorem wp_rvStepV : {{ stepCtxSpec S m.StepContext' ∗ isContext c cs ∗ ⌜k < 2^60⌝ ∗
+        S.rep k v s ∗ S.ioOk i o }} rvStepV #c #v #i #o #m {{ stepCtxSpec's post }}
+
+A client holding `isPkgInit` cannot write `Linearizability` or its oracles array (read-only
+points-to): a Go client assigning `porcupine.Linearizability` or `LinearizabilityOracles[k]`
+(which shares the array) is outside the spec. Assigning `RealTime`, `GeneralLikely` or `RVal`
+does not matter (copied at initialization).
+
+### Public results (exported, `Link.lean`: `porcupine.wp_CheckOperations*`)
+
+    CheckOperations.spec : ∀ σ (S : ModelSpec GF σ) m sl ops dq,
+      HistOk ops → ClientsOk ops →
+      {{ isPkgInit porcupine ∗ context.isClosedchanInit ∗ isModel S m ∗ sl ↦*{dq} ops ∗
+          opsIoOk S ops }}
+        CheckOperations #m #sl
+      {{ (b : Bool), RET #b; ⌜b = true ↔ LinearizableCO S.M (histOf ops) (clientOrder ops)⌝ }}
+
+    CheckOperationsTimeout.spec : ∀ σ S m sl ops dq dur, HistOk ops → ClientsOk ops →
+      {{ same }} CheckOperationsTimeout #m #sl #dur
+      {{ (r : GoString), RET #r;
+          ⌜(r = go!"Ok" ∧ LinearizableCO S.M (histOf ops) (clientOrder ops)) ∨
+           (r = go!"Illegal" ∧ ¬ LinearizableCO S.M (histOf ops) (clientOrder ops)) ∨
+           (r = go!"Unknown" ∧ 0 < sint.Z dur)⌝ }}
+
+    CheckOperationsVerbose.spec : the same, returning (r, info), no claim on info.
+
+Corollaries (`Results.lean`, from the specs and `linCO_iff_lin`, `linearizable_of_co`): under
+`HistOk`, `ClientsOk` and `ClientsSeq`, v1.3.1's posts verbatim (`b = true ↔ Linearizable …`; the
+three outcomes with `Linearizable`); under `HistOk` and `ClientsOk` alone, `true`/`Ok` implies
+`Linearizable` (soundness for plain linearizability).
+
+### Internal
+
+    checkOperations.spec : ∀ σ S m (c : Consistency.t) sl ops dq verbose dur,
+      HistOk ops → ClientsOk ops →
+      {{ isPkgInit ∗ context.isClosedchanInit ∗ isModel S m ∗ isLinearizability c ∗
+          sl ↦*{dq} ops ∗ opsIoOk S ops }}
+        checkOperations #m #c #sl #verbose #dur
+      {{ (r, info), RET; ⌜the three outcomes, with LinearizableCO S.M (histOf ops) (clientOrder ops)⌝ }}
+
+The partitions: an `operationHistory` (one slice of `clientOperation`s per client), abstractly
+the chains `cs : List (List Nat)` over the history `h` (`Chains.lean`):
+
+    /-- The chains hold every operation once; along each, the returns do not decrease. -/
+    def ChainsOk (h) (cs) : Prop :=
+      (∀ c, (chain cs c).Nodup ∧ (chain cs c).Pairwise (fun a b => ret a ≤ ret b)) ∧
+      (∀ y, y < h.length ↔ ∃ c, c < cs.length ∧ y ∈ chain cs c) ∧
+      (∀ y c c', y ∈ chain cs c → y ∈ chain cs c' → c = c')
+    /-- The chain order. -/
+    def chainOrder (cs) (a b : Nat) : Prop := ∃ c i j, i < j ∧ (chain cs c)[i]? = some a ∧ (chain cs c)[j]? = some b
+
+    def ohistOwn (ohsl) (h) (cs) : IProp GF :=
+      ∃ sls, ohsl ↦* sls ∗ ⌜sls.length = cs.length⌝ ∗
+        [∗list] c ↦ sl ∈ sls, ∃ cos, sl ↦* cos ∗ ⌜CoFresh h (chain cs c) cos⌝
+      -- CoFresh: cos[k].id = cos[k].globalId = chain[k], cos[k].Op's input/output/times are
+      -- h[chain[k]]'s, visited = false
+
+    /-- The allocation bound, per partition (`nc` clients, `n` operations). -/
+    def AllocOk (nc n : Nat) : Prop := (nc : Int) * (n + 6) * 8 ≤ maxAllocBytes
+
+    makeEntries.spec : ∀ sl ops dq (nc : w64), HistOk ops → 0 ≤ sint.Z nc →
+      (∀ o ∈ ops, 0 ≤ sint.Z o.ClientId' < sint.Z nc) →
+      {{ isPkgInit ∗ sl ↦*{dq} ops }} makeEntries #sl #nc
+      {{ (esl ohsl), RET; (∃ es, esl ↦* es) ∗
+          ohistOwn ohsl (histOf ops) (chainsOf ops (sint.nat nc)) ∗ sl ↦*{dq} ops }}
+      -- chainsOf ops k: client c ↦ the ids of the operations with ClientId c, in order
+
+    checkParallel.spec : ∀ σ S m c hsl ohsls (hs : List (List (Op OpV))) (cos : List (Nat → Nat → Prop)) cp dur esl,
+      ohsls.length = hs.length → cos.length = hs.length → hs.length < 2^32 →
+      {{ isPkgInit ∗ context.isClosedchanInit ∗ isModelFilled S m ∗ isLinearizability c ∗
+          hsl ↦*□ ohsls ∗
+          [∗list] i ↦ ohsl ∈ ohsls, ∃ h cs, ⌜hs[i]? = some h ∧ cos[i]? = some (chainOrder cs) ∧
+            ChainsOk h cs ∧ HistWf h ∧ AllocOk cs.length h.length⌝ ∗
+            ohistOwn ohsl h cs ∗ histIoOk S h }}
+        checkParallel #m #c #hsl #esl #cp #dur
+      {{ (r, info), RET; ⌜(r = Ok ∧ ∀ i h co, hs[i]? = some h → cos[i]? = some co → LinearizableCO S.M h co) ∨
+          (r = Illegal ∧ ¬ (that)) ∨ (r = Unknown ∧ 0 < dur)⌝ }}
+      -- (the partitions' client orders are an index of the spec: the post is about them)
+
+    checkSingle.spec : ∀ σ S m (ctx : GoInterfaceOk) cs_ctx c ohsl h cs cp,
+      ChainsOk h cs → HistWf h → AllocOk cs.length h.length →
+      {{ isPkgInit ∗ context.isContext ctx cs_ctx ∗ isModelFilled S m ∗ isLinearizability c ∗
+          ohistOwn ohsl h cs ∗ histIoOk S h }}
+        checkSingle #ctx #m #c #ohsl #cp
+      {{ (b longest), RET; (⌜b = true ∧ LinearizableCO S.M h (chainOrder cs)⌝ ∨
+            (⌜b = false⌝ ∗ (⌜¬ LinearizableCO S.M h (chainOrder cs)⌝ ∨ □ cs_ctx.PDone))) ∗
+          longestOwn longest h.length }}
+
+Bridge (`checkOperations`): `chainOrder (chainsOf ops nc) = clientOrder ops` (as relations) and
+`ChainsOk (histOf ops) (chainsOf ops nc)` from `HistOk`, `ClientsOk`.
+
+The helpers (`Consistency.Check`, `newclientOperation`, `newChains`, `chains.*`, `client.*`):
+the invariant plan. `fillDefault`, `noPartition`, the bitset's, `byTime.*`: v1.3.1's.
+
+### Callers, out of scope
+
+As candidate 1: nothing calls the part; `CheckEvents*` and a general `Consistency` out of scope.
+
 ## Invariant plan (candidate 1, 2026-11-02)
 
 Against the spec plan. Notation: `h : List (Op OpV)` the partition's history (`n = h.length`),

@@ -2,7 +2,7 @@
 upstream: unchecked
 ---
 
-# porcupine PR #46: a client's operations must be sequential and listed in real-time order
+# porcupine PR #46: a client's listed order is imposed on the linearization
 
 **Status**: a bug in an unmerged pull request (anishathalye/porcupine#46, "Support
 system-specific consistency models via DAG-based execution", head `29a6b8e6c` of
@@ -19,6 +19,13 @@ search (`dag.go`, `client.lift`) linearizes a chain only in that order (`head` m
 one operation at a time), and the dependency search (`computeFirstUnk`) assumes that along a
 chain both the call and the return times increase (its exponential and binary searches, and
 its start from the previous operation's bound).
+
+What the PR decides, precisely (checked against a brute-force checker on 300000 random register
+histories): linearizability by an order that respects real time *and* each client's listed order
+(the proof's `LinearizableCO`), provided that along each client's listed order the returns do not
+decrease. When a client's operations are sequential (each returns strictly before the next is
+called) the two notions agree; otherwise the PR is incomplete (overlapping operations, or a
+return at the same time as the next call) or, when a client's returns decrease, unsound.
 
 **What happens**: with a register model (`Init` 0, a write sets the value, a read must
 return it), both operations with `ClientId` 0 (the default):
@@ -73,7 +80,18 @@ func TestSameClientOutOfOrder(t *testing.T) {
 }
 ```
 
-Both tests fail on the PR and pass on v1.3.1 (checked 2026-11-02 with copies of both side
+Two more, same model:
+
+- incomplete with a non-strict clock: client 0 lists `{read → 1, [0, 5]}, {write 1, [5, 6]}`
+  (the read returns at the time the write is called; porcupine's intervals are closed, so they
+  overlap): linearizable (write, then read), v1.3.1 `true`, the PR `false`. A tracer whose clock
+  gives `ret_i ≤ call_{i+1}` (not `<`) meets this.
+- unsound with decreasing returns: client 1 lists `{write 1, [0, 10]}, {write 2, [1, 2]}`,
+  client 0 `{read → 0, [5, 6]}`: not linearizable (the read follows `write 2`), v1.3.1 `false`,
+  the PR `true` (`computeFirstUnk` stops at `write 1`, which does not precede the read, and takes
+  `write 2` not to precede it either).
+
+The two tests above fail on the PR and pass on v1.3.1 (checked 2026-11-02 with copies of both side
 by side; random small register histories agree with v1.3.1 whenever each client's
 operations are sequential in the order listed, 200000 of them).
 
@@ -82,10 +100,14 @@ must not overlap or must be listed in time order (v1.3.1 sorts the entries by ti
 Either the PR documents the precondition (each client's operations are sequential: listed
 in order, each returning strictly before the next is called), or it does not depend on it.
 
-**How the proof handles it**: a premise of the PR's specs (`ClientsOk`, in
-`PorcupineDag/Proof/github_com/anishathalye/porcupine/Defs.lean`): for operations `i < j`
-of the history with the same `ClientId`, `ops[i].Return < ops[j].Call`. The premise is also
-what makes the dependency search exact (`notes/porcupine-dag-plan.md`, spec plan, "Premises").
+**How the proof handles it**: the PR's specs have the premise that along each client's listed
+order the returns do not decrease (`ClientsOk`, in
+`PorcupineDag/Proof/github_com/anishathalye/porcupine/Defs.lean`), and say that the answer is
+`true` exactly when the history is linearizable respecting the client order
+(`LinearizableCO`), which implies linearizable. v1.3.1's statement (`true` exactly when
+linearizable) is a corollary under the stronger condition that each client is sequential
+(`ClientsSeq`: `ops[i].Return < ops[j].Call` for `i < j` of one client;
+`notes/porcupine-dag-plan.md`, spec plan, "Premises").
 
 **Possible fixes**: sort each chain by call time and split a client's overlapping operations
 into separate chains (virtual clients); or check the precondition and fall back to one chain

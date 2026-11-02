@@ -20,9 +20,11 @@ of the task that verified it (`notes/porcupine-dag-plan.md`).
 - a negative `ClientId`: `index out of range [-1]` in `makeEntries`;
 - `ClientId = math.MaxInt`: `maxClientId + 1` overflows to a negative length, and `make`
   panics (`len out of range`);
-- `(maxClientId + 1) * n` beyond `math.MaxInt` overflows in `newChains`; and short of that, a
-  large sparse `ClientId` allocates `n * (maxClientId + 1)` integers (a single operation with
-  `ClientId` 2^40 asks for 8 TiB).
+- `(maxClientId + 1) * n` beyond `math.MaxInt` overflows in `newChains`;
+- short of that, a large sparse `ClientId` allocates by it: a single operation with `ClientId`
+  2^50 panics (`makeslice: len out of range`: `make(operationHistory, numClients)` and
+  `make([]client, numClients)` exceed gc's `maxAlloc`, 2^48 bytes); with 2^40 the run dies out of
+  memory.
 
 ```go
 func TestNegativeClientId(t *testing.T) {
@@ -37,8 +39,9 @@ func TestNegativeClientId(t *testing.T) {
 
 **How the proof handles it**: a premise of the PR's specs (`ClientsOk`, in
 `PorcupineDag/Proof/github_com/anishathalye/porcupine/Defs.lean`): every `ClientId` is
-non-negative and `(ClientId + 1) * len(history) < 2^63`. (The model has no memory limit, so
-the allocation size is not a premise.)
+non-negative and `(ClientId + 1) * (len(history) + 6) * 8 ≤ 2^48`, which keeps every allocation
+sized by the client ids within `maxAlloc` (Perennial does not model the limit, so the premise
+is there to keep the spec true of Go).
 
 **Possible fixes**: renumber the client ids densely (a map from `ClientId` to `0..k-1`)
 before building the chains.
