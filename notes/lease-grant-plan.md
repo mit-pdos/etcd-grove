@@ -57,3 +57,10 @@ grant is applied (a single member is never sent a snapshot, but `run`'s proof is
   as `leasePeersOk`, a hypothesis of `leasegrant_safe`, under which `lessorOk`'s `ExpiredLeasesC`
   carries nothing (a restated trust-boundary contract). (b) The same as an unconditional trusted
   change to `lessorOk` (no premise in the result).
+
+**Decided (the user, 2026-11-02):** S1 (a), narrow; S2 (a), the named premise `leasesNoExpiry`.
+
+## Stages
+
+Draft → Review (an independent spec reviewer) → Test (the Go test) → the `axiom` skill on every new
+or restated trusted statement → Probe → Freeze (the user) → Prove.
