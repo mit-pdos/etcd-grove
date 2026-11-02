@@ -534,6 +534,34 @@ theorem pndEnd_none (γ : StoreNames) (pend : List Change) :
   iframe H
   ipureintro; left; rfl
 
+/-- A transaction core's pending part, at some value. -/
+theorem pndEndB_any (γ : StoreNames) (pend : List Change) (b : Bool) :
+    pndEndB (GF := GF) γ pend b ⊢ ∃ p, pndAt γ (1 : Qp).half p := by
+  cases b
+  · simp only [pndEndB_false]; iintro H; iexists none; iexact H
+  · simp only [pndEndB_true]; unfold pndEnd; iintro ⟨%p, H, -⟩; iexists p; iexact H
+
+/-- **The caller's commit update** (the abstract mode's `storeTxnWrite.End.specA`, mvcc's candidate
+API): with a change, `End` runs it at the commit (`currentRev++`, under `s.revMu` held exclusively),
+with `s.revMu`'s half of the abstract committed log and the writer's half of the pending revision,
+and gets them back at the committed log and nothing pending, with the caller's `Q`; with no change,
+just `Q`. Not in the abstract mode, both parts are `True` (`absAt_off`): the update is `Q`'s. -/
+def absCommit (γ : StoreNames) (ilog : Log) (pend : List Change) (Q : IProp GF) : IProp GF :=
+  if pend = [] then Q
+  else iprop(∀ p : Option (List Change), absAt γ (1 : Qp).half ilog ∗ pndAt γ (1 : Qp).half p ={⊤}=∗
+    absAt γ (1 : Qp).half (ilog ++ [pend]) ∗ pndAt γ (1 : Qp).half none ∗ Q)
+
+theorem absCommit_nil (γ : StoreNames) (ilog : Log) (Q : IProp GF) :
+    absCommit (GF := GF) γ ilog [] Q ⊢ Q := by
+  unfold absCommit; rw [if_pos rfl]
+
+theorem absCommit_ne (γ : StoreNames) (ilog : Log) (pend : List Change) (Q : IProp GF)
+    (h : pend ≠ []) :
+    absCommit (GF := GF) γ ilog pend Q ⊢ ∀ p : Option (List Change),
+      absAt γ (1 : Qp).half ilog ∗ pndAt γ (1 : Qp).half p ={⊤}=∗
+        absAt γ (1 : Qp).half (ilog ++ [pend]) ∗ pndAt γ (1 : Qp).half none ∗ Q := by
+  unfold absCommit; rw [if_neg h]
+
 /-- **The store's current objects and physical names are `o` and `γ`'s**, at the fraction `dq`
 (D22 receiver epochs, S5b: until then `objsPin`, a discarded pin of the objects): a part of the
 store's ghost variable `cur`, which every share of the locks guarding a reader of the objects holds

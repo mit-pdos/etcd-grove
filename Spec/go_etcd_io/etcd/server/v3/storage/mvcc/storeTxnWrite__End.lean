@@ -42,6 +42,21 @@ abbrev mvcc.storeTxnWrite.End.spec : Prop :=
       (if pend = [] then mvcc.revToken γ else iprop(True)) ∗ mvcc.logQPost γ ilog pend ∗
       mvcc.writerFrag γ }}
 
+/-- **`End` in either mode, with the caller's commit update** (mvcc's candidate API,
+`notes/mvcc-api-proof-plan.md`, stage P2): `spec`'s, but with the hook's facts (`hookOk`, no
+writer's fragment: the abstract mode has none) and the caller's update (`absCommit`: run at the
+commit, under `s.revMu`, on the abstract committed log and pending revision), giving `Q`. -/
+abbrev mvcc.storeTxnWrite.End.specA : Prop :=
+  ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+    (chs : GoSlice) (ps : List Loc) (sealed : Bool) (P : IProp GF) (f : val) (crev : Int)
+    (Z : IProp GF) (ld : Bool) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps sealed crev Z ld ∗ mvcc.hookOk γ P f ∗ P ∗
+      mvcc.certOkNext γ ilog pend ∗ mvcc.logQPre γ ilog pend ∗ mvcc.absCommit γ ilog pend Q }}
+    (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"End")) (Val #()))
+  {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
+      (if pend = [] then mvcc.revToken γ else iprop(True)) ∗ mvcc.logQPost γ ilog pend ∗ Q }}
+
 end spec
 
 end EtcdGrove

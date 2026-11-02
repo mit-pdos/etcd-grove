@@ -78,7 +78,41 @@ invariant (released length, sealed notified log) against the client's halves.
    `Checkpoint` needs: the tester passes a `nil` cluster); the backend's opening (a premise, as
    the examples' `dbOpensOk`); the closed theorem.
 
+## P1 as built (`cad9d508e3`)
+
+- `StoreNames.absQ/abs/pnd`; `absAt γ q log`, `pndAt γ q p` (`True` when `γ.absQ = false`,
+  `absAt_off`, `pndAt_off`); `revMuBody` holds `absAt γ q.half log` (`"Habs"`, before its pure
+  conjuncts: a plain `iframe` reaches it); `writerL` and `storeTxnWriteIs` hold `pndAt γ ½ none`
+  (`"Hpnd"`, after `"Hlrd"`); `storeTxnWriteCore` holds `pndEndB γ pend sealed` (`none`, or once
+  sealed `some pend`: `pndEnd`; `storeTxnWriteIs_join` needs the unsealed one at `none`).
+- **The gate**: `writerFrag γ` (the caller's eighth of `γ.cur`, which today's `Write`, `End`,
+  `Commit` and `Restore` take) carries `⌜γ.absQ = false⌝` (`writerFrag_off`); `writerFragA` is the
+  fragment without it. So today's specs are of old-mode stores and their proofs collapse the new
+  conjuncts (`storeTxnWrite.End`'s commit, `restore_switch`); the client of an old-mode store holds
+  `writerFrag`, made by `NewStore` (`γ.absQ = false` by construction).
+- The abstract share was moved out of `restoreHeld` (dropped at the takeover, `True` in the old
+  mode) and rebuilt at the switch; `restoreHeld`/`restoreWriter` carry `Hpnd`.
+
+## P2's resource plan (what today's per-call client resources become in the abstract mode)
+
+Today's specs take, per call, resources the new specs do not: the caller's reader ticket
+(`storeReaderC`), revision token (`revToken`), write-back token (`storeWT`), the writer's fragment
+(`hookIs`' `writerFrag`), a compaction lower bound (`crevLb`) and tag (`Z`); the watchable
+store's writer pin (`watchWriter`). In the abstract mode they come from the store's own
+invariants (in `isMvcc`):
+
+- **reader tickets**: a pool holding the tickets and the deposited thread tokens of the calls that
+  hold one (`threadToks k ⊢ k < T ≤ 2 ^ 30`: enough tickets);
+- **write-back tokens**: `New`'s receipt-paid supply (persistent);
+- **revision tokens**: a pool; or none, the overflow bound from the receipts (`idxCert`'s
+  `logCh log < receiptBound`), in the abstract mode's commit;
+- **the writer's fragment**: in the abstract mode, without `Restore` (stage P6 redesigns it), the
+  store's objects are fixed: the fragment can be discarded into a persistent pin, which every
+  writer reads (the pin agrees with every share; only `Restore` gathers the owned fractions);
+- **`crevLb`/`Z`**: `crevLb (-1)` (persistent, free) and `Z := True`.
+
 ## Log
 
 - 2026-11-02: plan; the tester translated (`etc/goose.py` project `mvccrand`; its type `rec`
   renamed `kvRec`, Lean's recursor's name).
+- 2026-11-02: P1 built and committed (`cad9d508e3`; full `lake build` green, 11331 jobs).
