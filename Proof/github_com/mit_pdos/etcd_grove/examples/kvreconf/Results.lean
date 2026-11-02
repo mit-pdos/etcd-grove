@@ -89,7 +89,7 @@ end main
 #print axioms kvreconf_Main
 
 section closed
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 variable [go_gctx : GoGlobalContext]
 
 /-- **The reconfiguring store's randomized linearizability test never fails**
