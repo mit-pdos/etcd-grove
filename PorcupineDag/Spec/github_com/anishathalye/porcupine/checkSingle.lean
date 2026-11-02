@@ -1,11 +1,10 @@
 /- Lean-first (no Rocq counterpart).
 
-`checkSingle(ctx, model, history, computePartial)` (checker.go): the search of one
-partition. Given the entries `es` of a history `h` (`EntriesFor`, what `makeEntries` returns)
-and a filled model, it returns `true` and the history is linearizable (soundness), or `false`
-and the history is not linearizable or the context is done (its Done proposition holds:
-`isContext`'s `Err()`). So it never answers `false` on a linearizable history unless cancelled
-(completeness), and never `true` on one that is not, cancelled or not.
+`checkSingle(ctx, model, consistency, history, computePartial)` (dag.go, PR #46): the DAG search
+over one partition (an `operationHistory` holding the chains `cs` of `h`). It answers `true` only
+on a partition linearizable respecting the chains' order, and `false` only on one that is not,
+or once its context is done. `longest` (for the visualizer) is memory only. The partition's memory
+is not given back (the search writes `firstUnk`/`visited` into it).
 -/
 module
 
@@ -30,17 +29,17 @@ variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 
 /-- See the file header. -/
 abbrev checkSingle.spec : Prop :=
-  ∀ (σ : Type) (S : ModelSpec GF σ) (m : Model) (c : GoInterfaceOk)
-    (cs : context.ContextDesc (IProp GF)) (hsl : GoSlice) (es : List entry) (dq : DFrac)
-    (h : List (Theory.Op OpV)) (cp : Bool),
-  EntriesFor h es → (h.length : Int) < 2 ^ 60 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine ∗ context.isContext c cs ∗ isModelFilled S m ∗
-      hsl ↦*{dq} es ∗ histIoOk S h }}
-    (App (App (App (App (Val (@! github_com.anishathalye.porcupine.checkSingle))
-      (Val #(GoInterface.ok c))) (Val #m)) (Val #hsl)) (Val #cp))
+  ∀ (σ : Type) (S : ModelSpec GF σ) (m : Model) (ctx : GoInterfaceOk)
+    (ctxd : context.ContextDesc (IProp GF)) (c : Consistency) (ohsl : GoSlice)
+    (h : List (Theory.Op OpV)) (cs : List (List Nat)) (cp : Bool),
+  ChainsOk h cs → HistWf h → AllocOk cs.length h.length →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine ∗ context.isContext ctx ctxd ∗
+      isModelFilled S m ∗ isLinearizability c ∗ ohistOwn ohsl h cs ∗ histIoOk S h }}
+    (App (App (App (App (App (Val (@! github_com.anishathalye.porcupine.checkSingle))
+      (Val #(GoInterface.ok ctx))) (Val #m)) (Val #c)) (Val #ohsl)) (Val #cp))
   {{ (b : Bool) (longest : GoSlice), RET (PairV #b #longest);
-      (⌜b = true ∧ Linearizable S.M h⌝ ∨
-        (⌜b = false⌝ ∗ (⌜¬ Linearizable S.M h⌝ ∨ □ cs.PDone))) ∗
+      (⌜b = true ∧ LinearizableCO S.M h (chainOrder cs)⌝ ∨
+        (⌜b = false⌝ ∗ (⌜¬ LinearizableCO S.M h (chainOrder cs)⌝ ∨ □ ctxd.PDone))) ∗
       longestOwn longest h.length }}
 
 end spec

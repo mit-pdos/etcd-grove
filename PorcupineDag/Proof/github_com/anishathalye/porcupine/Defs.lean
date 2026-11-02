@@ -306,6 +306,16 @@ def ClientsSeq (ops : List Operation) : Prop :=
   ∀ (i j : Nat) (oi oj : Operation), i < j → ops[i]? = some oi → ops[j]? = some oj →
     oi.ClientId' = oj.ClientId' → sint.Z oi.Return' < sint.Z oj.Call'
 
+/-- `Consistency.Check` on linearizability (`RealTime`, then `GeneralLikely`): `HardBefore` if
+`a` returns before `b` is called, `HardAfter` if `a` is called after `b` returns, else
+`SoftBefore`/`SoftAfter`/`DontKnow` as `a`'s call is before, after or at `b`'s. -/
+def linOrder (a b : Operation) : w64 :=
+  if sint.Z a.Return' < sint.Z b.Call' then W64 (-2)
+  else if sint.Z b.Return' < sint.Z a.Call' then W64 2
+  else if sint.Z a.Call' < sint.Z b.Call' then W64 (-1)
+  else if sint.Z b.Call' < sint.Z a.Call' then W64 1
+  else W64 0
+
 /-- A partition's well-formedness (`HistOk` in pure terms). -/
 def HistWf (h : List (Theory.Op OpV)) : Prop := (h.length : Int) < 2 ^ 60 ∧ Theory.CallLeRet h
 

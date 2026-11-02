@@ -1,12 +1,11 @@
 /- Lean-first (no Rocq counterpart).
 
-`checkParallel(model, history, computeInfo, timeout)` (checker.go): one `checkSingle`
-goroutine per partition, under a context cancelled when a partition fails (unless
-`computeInfo`) or at the timeout. Given each partition's entries (`EntriesFor`, read-only), it
-answers `Ok` only if every partition is linearizable, `Illegal` only if one is not, and
-`Unknown` only with a timeout (`timeout > 0`): with no timeout it decides linearizability.
-`LinearizationInfo` (for the visualizer) has no claim.
-`context.isClosedchanInit` is what `context.WithCancel(context.Background())` needs.
+`checkParallel(model, consistency, history, entries, computeInfo, timeout)` (checker.go, PR #46):
+one `checkSingle` goroutine per partition (an `operationHistory`, with its chains `cs`), under a
+context cancelled when a partition fails (unless `computeInfo`) or at the timeout. It answers `Ok`
+only if every partition is linearizable respecting its chains' order, `Illegal` only if one is
+not, `Unknown` only with a timeout. The partitions' memory is handed to the goroutines (not given
+back); `entries` is not read; `LinearizationInfo` has no claim.
 -/
 module
 
@@ -31,19 +30,23 @@ variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 
 /-- See the file header. -/
 abbrev checkParallel.spec : Prop :=
-  ∀ (σ : Type) (S : ModelSpec GF σ) (m : Model) (hsl : GoSlice) (sls : List GoSlice)
-    (hs : List (List (Theory.Op OpV))) (cp : Bool) (dur : w64),
-  sls.length = hs.length → (hs.length : Int) < 2 ^ 32 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine ∗
-      context.isClosedchanInit ∗ isModelFilled S m ∗ hsl ↦*□ sls ∗
-      ([∗list] i ↦ sl ∈ sls, ∃ (h : List (Theory.Op OpV)) (es : List entry),
-        ⌜hs[i]? = some h ∧ EntriesFor h es ∧ (h.length : Int) < 2 ^ 60⌝ ∗
-        sl ↦*□ es ∗ histIoOk S h) }}
-    (App (App (App (App (Val (@! github_com.anishathalye.porcupine.checkParallel))
-      (Val #m)) (Val #hsl)) (Val #cp)) (Val #dur))
+  ∀ (σ : Type) (S : ModelSpec GF σ) (m : Model) (c : Consistency) (hsl : GoSlice)
+    (ohsls : List GoSlice) (hs : List (List (Theory.Op OpV))) (css : List (List (List Nat)))
+    (esl : GoSlice) (cp : Bool) (dur : w64),
+  ohsls.length = hs.length → css.length = hs.length → (hs.length : Int) < 2 ^ 32 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine ∗ context.isClosedchanInit ∗
+      isModelFilled S m ∗ isLinearizability c ∗ hsl ↦*□ ohsls ∗
+      ([∗list] i ↦ ohsl ∈ ohsls, ∃ (h : List (Theory.Op OpV)) (cs : List (List Nat)),
+        ⌜hs[i]? = some h ∧ css[i]? = some cs ∧ ChainsOk h cs ∧ HistWf h ∧
+          AllocOk cs.length h.length⌝ ∗
+        ohistOwn ohsl h cs ∗ histIoOk S h) }}
+    (App (App (App (App (App (App (Val (@! github_com.anishathalye.porcupine.checkParallel))
+      (Val #m)) (Val #c)) (Val #hsl)) (Val #esl)) (Val #cp)) (Val #dur))
   {{ (r : GoString) (info : LinearizationInfo), RET (PairV #r #info);
-      ⌜(r = go!"Ok" ∧ ∀ h ∈ hs, Linearizable S.M h) ∨
-        (r = go!"Illegal" ∧ ¬ ∀ h ∈ hs, Linearizable S.M h) ∨
+      ⌜(r = go!"Ok" ∧ ∀ (i : Nat) h cs, hs[i]? = some h → css[i]? = some cs →
+          LinearizableCO S.M h (chainOrder cs)) ∨
+        (r = go!"Illegal" ∧ ¬ ∀ (i : Nat) h cs, hs[i]? = some h → css[i]? = some cs →
+          LinearizableCO S.M h (chainOrder cs)) ∨
         (r = go!"Unknown" ∧ 0 < sint.Z dur)⌝ }}
 
 end spec
