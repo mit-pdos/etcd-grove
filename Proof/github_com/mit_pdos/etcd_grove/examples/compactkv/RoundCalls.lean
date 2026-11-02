@@ -25,7 +25,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v
   client
 
 section e2e
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

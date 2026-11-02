@@ -161,6 +161,7 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
       □ (∀ rs : RestM, RO rs -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗
           mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d.be ∗
           (∀ bk, ⌜∀ n, n ≠ mvcc.leaseName → bk.lookup n = rs.bk.lookup n⌝ -∗
+            ⌜(rs.bk.lookup mvcc.leaseName).isSome → (bk.lookup mvcc.leaseName).isSome⌝ -∗
             mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ⊢
       revokeClause ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty, #lp⟩ s γ P f RO := by
   iintro ⟨%hw, #Hpkg, #Hmpkg, #Hinv, #Hhok, #Hlens⟩
@@ -213,7 +214,7 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
     iframe HPre Hwt Hown Hrvk HK
     isplitl [Hww Hfrag Hclose]
     · iapply Hclose $$ %log %hsl Hww Hfrag
-    iapply Hcl $$ %rs.bk %(fun _ _ => rfl) [$Hrb $Hbe]
+    iapply Hcl $$ %rs.bk %(fun _ _ => rfl) %(fun h => h) [$Hrb $Hbe]
   · -- live: the keys deleted, the record deleted
     obtain ⟨hid, rfl⟩ := Hok
     iapply HΦ
@@ -234,7 +235,7 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
       from rfl]
     iapply Hcl $$ %(mvcc.rbDel rs.bk mvcc.leaseName (u64Le id).reverse)
       %(fun n hn => by unfold mvcc.rbDel; rw [GMap.lookup_insert_ne _ _ (Ne.symm hn)])
-      [$Hrb $Hbe]
+      %(fun _ => by simp [mvcc.rbDel]) [$Hrb $Hbe]
 
 
 /-- **The apply package's lessor contract, of the real lessor** at `lp`, for a store whose lessor
@@ -260,6 +261,7 @@ theorem isApplyLessor_of_lessorInv
       □ (∀ rs : RestM, RO rs -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗
           mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d.be ∗
           (∀ bk, ⌜∀ n, n ≠ mvcc.leaseName → bk.lookup n = rs.bk.lookup n⌝ -∗
+            ⌜(rs.bk.lookup mvcc.leaseName).isSome → (bk.lookup mvcc.leaseName).isSome⌝ -∗
             mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗

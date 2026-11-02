@@ -1491,3 +1491,15 @@ carry it. Done here: `applyErrIs` with an exact tree (its three leaf constructor
 `errors.Is.spec` proved by `errors.wp_Is_tree`, the two handlers' `sorry`s closed. **Follow-up**
 (small, open): `errorIsTree_of_walk` (and the other `Base.lean` lemmas) take the section's
 `errors.Assumptions` though their proofs do not use it; an `omit package_sem in` would drop it.
+
+## A cell owned whole is no cell's read-only points-to (2026-11-02, restart plan R2c stage 2)
+
+`typedPointsto l v (own 1) ∗ typedPointsto l w discard ⊢ False`: Perennial has the fractions'
+validity at the non-atomic heap (`naHeapPointsto`'s `CombineSepGives`, `naHeapPointstoSt_valid_2`) but
+no typed-level form. `idutil`'s `NewGenerator` needs it, for a `uint64` field, to show that a new
+generator is no registered key's. Its prefix field is owned whole until it is persisted, and every
+registered generator's is persistently readable.
+
+Local: `w64_pointsto_excl` (`Proof/go_etcd_io/etcd/pkg/v3/idutil/Defs.lean`), for `w64`, through the
+first byte's heap points-to. The general change: `typedPointsto_valid_2` for any `TypedPointsto` type
+whose points-to owns at least one byte, giving `✓ (dq1 • dq2)`.

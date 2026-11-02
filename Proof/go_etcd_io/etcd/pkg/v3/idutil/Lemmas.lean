@@ -36,7 +36,7 @@ theorem idClaim_make (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName �
   icases Hg with ⟨%s0, %Hgn, #Hpfx, %Hs0, #Hinv, %X, %hX, %Φs, %x, %HΦx, #Hkf, #Hcl⟩
   iunfold idClusterInv at Hcl
   iinv Hcl with Hi Hclose
-  icases Hi with ⟨%I, %C, %R, %Fm, >HI, >HC, >HR, >HF, >%Hok, #HFs⟩
+  icases Hi with ⟨%I, %C, %R, %Fm, >HI, >HC, >HR, >HF, >%Hok, #HFs, #HG⟩
   iunfold idUnclaimed at Hu
   icombine HI Hu gives %Hlk
   have Hlk' : I.lookup id = some none := Hlk
@@ -45,7 +45,7 @@ theorem idClaim_make (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName �
   imod Hclose $$ [HI HC HR HF] with -
   · inext
     iexists (I.insert id (some (d, γf, γi.key))), C, R, Fm
-    iframe HI HC HR HF
+    iframe HI HC HR HF HG
     isplitr
     · ipureintro
       refine ⟨fun id' => ?_, Hok.2⟩
@@ -80,7 +80,7 @@ theorem idClaim_fact (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName �
   icases Hg with ⟨%s0, %Hgn, #Hpfx, %Hs0, #Hinv, %X, %hX, %Φs, %x, %HΦx, #Hkf, #Hcl⟩
   iunfold idClusterInv at Hcl
   iinv Hcl with Hi Hclose
-  icases Hi with ⟨%I, %C, %R, %Fm, >HI, >HC, >HR, >HF, >%Hok, #HFs⟩
+  icases Hi with ⟨%I, %C, %R, %Fm, >HI, >HC, >HR, >HF, >%Hok, #HFs, #HG⟩
   iunfold idClaim at Hc
   ihave %Hlk := ghost_map_lookup $$ HI Hc
   ihave #Hf : iprop(▷ □ Φ id d γf) $$ []
@@ -98,7 +98,7 @@ theorem idClaim_fact (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName �
   imod Hclose $$ [HI HC HR HF] with -
   · inext
     iexists I, C, R, Fm
-    iframe HI HC HR HF HFs
+    iframe HI HC HR HF HFs HG
     ipureintro; exact Hok
   imodintro
   iexact Hf

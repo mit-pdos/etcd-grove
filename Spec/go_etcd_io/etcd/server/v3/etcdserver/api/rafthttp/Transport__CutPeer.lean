@@ -28,7 +28,7 @@ returns the token. It pauses the peer of `id` (`peer.Pause`, if one is added) an
 (`remote.Pause`, if one is started): the transport
 drops every message to and from member `id` (etcd's partition injection, its integration tests' `InjectPartition`), until `MendPeer`; a dropped message is one the network may lose. A remote's
 `Pause` sets its paused flag (the fork's fix, J8a-7, 2026-11-01: upstream's `remote.Pause` stops the
-pipeline and a second one panics, `issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`;
+pipeline and a second one panics, `nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`;
 until then `id` had to be no remote, `trNoRemOr`). The method set's premise `PeerPausable`
 (`*peer` implements `Pausable`). -/
 abbrev rafthttp.Transport.CutPeer.spec : Prop :=

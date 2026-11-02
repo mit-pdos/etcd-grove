@@ -49,8 +49,8 @@ members and removed members (`MustReadMembersFromBackend`, which panics on a key
 cannot decode) and the downgrade info (`DowngradeInfoFromBackend`). `clusterImageOk c r` says the
 three buckets of `r` decode, hold `c`'s local member (`c.localID`, among the members) and no removed
 member (a static cluster: `rcLockInv`'s empty `removed`), a cluster version that
-`MustDetectDowngrade` accepts for this server's version (no downgrade: not above it, and not below
-its minor by more than one) and, if present, a valid downgrade record; so nothing panics, and the
+`MustDetectDowngrade` accepts for this server's version (not above it: `MustDetectDowngrade` has
+no lower bound, `downgrade.go:42-54`) and, if present, a valid downgrade record; so nothing panics, and the
 new members map (fresh `*Member`s, owned) and removed map re-establish `rcLockInv c` (its size: the
 bucket's entries, a handful); `c.members` now holds the members the buckets decode to, `mem'`
 (`clusterMem c mem'`). `buildMembershipMetric` and the logs read the members under the lock; `onSet

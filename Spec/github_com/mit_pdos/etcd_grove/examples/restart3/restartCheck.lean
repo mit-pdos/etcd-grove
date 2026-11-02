@@ -56,7 +56,7 @@ abbrev restartCheck.spec : Prop :=
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.restart3 ∗
-      memberStop m s pl γ id peerAddr γn ∗ isServerReq s E ρ ∗
+      memberStop m s pl γ id peerAddr γn (name ++ go!".etcd") ∗ isServerReq s E ρ ∗
       isNewClient cl [ep] V ∗ client.kvRegsAt (⟨ep, E₁, γr, cid, mid⟩ : client.SrvAt GF) ∗
       client.putGetInv γr γf go!"k" go!"v2" ∗
       netAddrFree (GF := GF) caddr ∗ threadTok ∗

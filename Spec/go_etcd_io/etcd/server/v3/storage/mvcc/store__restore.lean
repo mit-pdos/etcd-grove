@@ -37,7 +37,7 @@ included), returning `nil`. It reads with a `ReadTx` (a reader's token `RT`, giv
 image's bucket `bucketOfEnts ents` and the backend's clean-view `ReadTx` at the records,
 `keyCleanReadR`; the backend's contract is not needed there, so `RT` may lend what the clean read
 needs: a compacting store's unfixed registration), where a limited range returns the range's first
-entries (`issues/etcd-unsafe-range-limit-buffer.md`).
+entries (`nonissues/etcd-unsafe-range-limit-buffer.md`).
 
 * **The image** (`entsCutAt L' r.crev ents`): the log's entries but, per key, a prefix deletable by
   the compaction at the restored revision `r.crev` (`CmpRecs.crev`: the scheduled record if

@@ -59,7 +59,7 @@ theorem store_getSnapshot_first (rev : w64) (h : List (w64 × KvMap)) (hs : RevS
 theorem store.getSnapshot.wp_proof
     (wp_DescendLessOrEqual : ringBuffer.DescendLessOrEqual.spec (GF := GF) (hG := hG)) :
     store.getSnapshot.spec (GF := GF) (hG := hG) := by
-  intro s γ cap E R r0 rev
+  intro s γ cap E R G r0 rev
   wp_start as ⟨#HS, Hrd, #Hlb⟩
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
@@ -208,7 +208,16 @@ theorem store.getSnapshot.wp_proof
     · ipureintro; trivial
     isplitr
     · ipureintro; trivial
-    iexact Hp
+    isplitr
+    · iexact Hp
+    obtain ⟨b, hb, hle⟩ := snapModel_gap cap st rev _ _ Hinv Hm
+    iexists b
+    isplitr
+    · ipureintro; exact hle
+    imodintro
+    unfold gapList
+    ispecialize HG $$ %(v.1, b) %hb
+    iexact HG
   · -- compacted
     have Hm : snapModel st rev = .compacted := by
       rw [Hbase, ← Hfirst, List.getElem?_eq_none (by omega)]

@@ -248,6 +248,9 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     -- (J8b, 2026-11-01) the server's member id is the raft node's (`applyAll.specSnap`'s member id
     -- against the snapshot payload's `nodeSnapLocal … γn.id`)
     "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
+    -- (2026-11-02, the cluster-rows stage) the member id a voter (the monitors' permission,
+    -- `srvMonitorPermitM_of`: its attribute requests name it)
+    "%Hmidc" ∷ ⌜γn.id ∈ γr.raft.raft.cfg⌝ ∗
     -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
     "#HmetaSnap" ∷ srvMetaSnap γ ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗

@@ -1,7 +1,8 @@
 // Package cachekv is watchkv (examples/watchkv) with the watch read through etcd's cache: one etcd
-// member started in-process (as examples/putget starts it), a client connected to it, a cache of
-// the prefix over the client (cache.New), a cache watch of the prefix from revision 2 opened before
-// any write, writer goroutines putting random keys under the prefix, and watchkv's check that the
+// member started in-process with the auto-compactor on (periodic mode, keeping 10ms of revisions,
+// as examples/putgetc starts it), a client connected to it, a cache of the prefix over the client
+// (cache.New), a cache watch of the prefix from revision 2 opened before any write, writer
+// goroutines putting random keys under the prefix, and watchkv's check that the
 // watch reported exactly the writes: Main panics if the check fails; the theorem to prove is that
 // it does not (notes/STATUS.md, "cachekv").
 //
@@ -17,7 +18,7 @@
 // reports an error (a cancel, a compaction), before that, Main returns WatchEnded without a check.
 //
 // Main calls only what the proofs specify: the examples' shared start (examples/common's
-// StartServer, Serve and NewClient: etcdserver.NewServer, Start, v3rpc.Server, net.Listen,
+// StartPeriodicServer, Serve and NewClient: etcdserver.NewServer, Start, v3rpc.Server, net.Listen,
 // (*grpc.Server).Serve on a goroutine, clientv3.New), the client's Put,
 // cache.New, the cache's Watch and context.WithCancel. An error from a step of the start ends Main
 // with Failed.
@@ -26,6 +27,7 @@ package cachekv
 import (
 	"context"
 	"sync"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -42,6 +44,12 @@ const (
 	clientAddr = "127.0.0.1:23873"
 	peerAddr   = "127.0.0.1:23883"
 )
+
+// The auto-compactor's period (periodic mode, since 2026-11-02: it compacts, during a run, every
+// revision the store had a period before; a compaction of the cache's watch's next revision ends
+// the cache's watch with ErrCompacted, and the cache re-lists and watches again from the revision
+// after its Get's).
+const period = 10 * time.Millisecond
 
 // The prefix every writer's key is under, and the one the watch covers.
 const prefix = "ck/"
@@ -92,7 +100,7 @@ func Main(nw int, nops int) int {
 	tried := common.GenAll(nw*nops, []string{"ck/k0", "ck/k1", "ck/k2"})
 
 	lg := zap.NewNop()
-	s, err := common.StartServer("cachekv", peerAddr, clientAddr, lg)
+	s, err := common.StartPeriodicServer("cachekv", peerAddr, clientAddr, period, lg)
 	if err != nil {
 		return Failed
 	}
@@ -143,4 +151,45 @@ func Main(nw int, nops int) int {
 	}
 	common.Check("cachekv", "Put", evs, tried, oks)
 	return Ok
+}
+
+// lastVal returns the value of the last of the events evs of key at or below revision r, and
+// whether there is one.
+func lastVal(evs []common.Event, key string, r int64) (string, bool) {
+	v, ok := "", false
+	for _, e := range evs {
+		if e.Rev <= r && e.Key == key {
+			v, ok = e.Val, true
+		}
+	}
+	return v, ok
+}
+
+// hasKey reports whether one of the key-values kvs has the key key.
+func hasKey(kvs []*mvccpb.KeyValue, key string) bool {
+	for _, kv := range kvs {
+		if string(kv.Key) == key {
+			return true
+		}
+	}
+	return false
+}
+
+// checkGet panics unless the key-values kvs, a Get of the prefix at revision r, are exactly the
+// last values of the watch's events evs at or below r: each key-value's value its key's last
+// value, and each key with an event at or below r among them. Not called yet: Main's Get of the
+// cache at r waits on the cache's Get spec answering at the requested revision (notes/STATUS.md,
+// "cachekv").
+func checkGet(evs []common.Event, r int64, kvs []*mvccpb.KeyValue) {
+	for _, kv := range kvs {
+		v, ok := lastVal(evs, string(kv.Key), r)
+		if !ok || v != string(kv.Value) {
+			panic("cachekv: the cache's Get disagrees with the watch")
+		}
+	}
+	for _, e := range evs {
+		if e.Rev <= r && !hasKey(kvs, e.Key) {
+			panic("cachekv: the cache's Get misses a watched key")
+		}
+	}
 }

@@ -76,60 +76,69 @@ theorem idIssued_succ (pfx s0 : w64) (k : Nat) (id : w64) :
     · exact ⟨j, hj1, by omega, heq⟩
     · exact ⟨k + 1, by omega, Nat.le_refl _, heq⟩
 
-/-- Issuing `nid` under the key `k` keeps the cluster's ids well formed (by key since R2c). -/
-theorem idClusterOk_issue {X : Type} (I : GMap w64 (Option IdClaimV)) (C : GMap IdKey (List w64))
+/-- Issuing `nid` under the key `k`, whose generator is `g`, keeps the cluster's ids well formed (by
+key since R2c; the key's entry a pair since stage 2). -/
+theorem idClusterOk_issue {X : Type} (I : GMap w64 (Option IdClaimV)) (C : GMap IdKey IdKeyEntry)
     (R : GMap IdKey GName) (Fm : GMap IdKey X)
-    (k : IdKey) (nid : w64) (L : List w64) (Hok : idClusterOk I C R Fm) (HC : C !! k = some L)
-    (Hpn : idPfx nid = k.1) (HIn : I !! nid = none) :
-    idClusterOk (I.insert nid none) (C.insert k (nid :: L)) R Fm := by
-  obtain ⟨h1, h2, h3, h4, h5⟩ := Hok
-  have hsome : ∀ k', ((C.insert k (nid :: L)) !! k').isSome = (C !! k').isSome := by
+    (k : IdKey) (nid : w64) (L : List w64) (g : Loc) (Hok : idClusterOk I C R Fm)
+    (HC : C !! k = some (L, some g)) (Hpn : idPfx nid = k.1) (HIn : I !! nid = none) :
+    idClusterOk (I.insert nid none) (C.insert k (nid :: L, some g)) R Fm := by
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hok
+  have hsome : ∀ k', ((C.insert k (nid :: L, some g)) !! k').isSome = (C !! k').isSome := by
     intro k'
     by_cases hk : k = k'
     · subst hk; rw [GMap.lookup_insert, HC]; rfl
     · rw [GMap.lookup_insert_ne _ _ hk]
-  refine ⟨?_, ?_, ?_, fun k' => by rw [hsome]; exact h4 k', fun k' => by rw [hsome]; exact h5 k'⟩
+  refine ⟨?_, ?_, ?_, ?_, fun k' => by rw [hsome]; exact h5 k', fun k' => by rw [hsome]; exact h6 k'⟩
   · intro id
     rw [GMap.lookup_insert_is_Some]
     by_cases h : nid = id
     · subst h
       simp only [true_or, true_iff]
-      exact Or.inr ⟨k, nid :: L, GMap.lookup_insert _ _ _, List.mem_cons_self ..⟩
+      exact Or.inr ⟨k, (nid :: L, some g), GMap.lookup_insert _ _ _, List.mem_cons_self ..⟩
     · simp only [h, false_or, ne_eq, not_false_eq_true, true_and]
       rw [h1 id]
       apply or_congr Iff.rfl
       constructor
-      · rintro ⟨p, L', hp, hid⟩
+      · rintro ⟨p, e, hp, hid⟩
         by_cases hpp : k = p
         · subst hpp
           rw [HC] at hp; cases hp
-          exact ⟨k, nid :: L, GMap.lookup_insert _ _ _, List.mem_cons_of_mem _ hid⟩
-        · exact ⟨p, L', by rw [GMap.lookup_insert_ne _ _ hpp]; exact hp, hid⟩
-      · rintro ⟨p, L', hp, hid⟩
+          exact ⟨k, (nid :: L, some g), GMap.lookup_insert _ _ _, List.mem_cons_of_mem _ hid⟩
+        · exact ⟨p, e, by rw [GMap.lookup_insert_ne _ _ hpp]; exact hp, hid⟩
+      · rintro ⟨p, e, hp, hid⟩
         by_cases hpp : k = p
         · subst hpp
           rw [GMap.lookup_insert] at hp; cases hp
           rcases List.mem_cons.1 hid with h' | h'
           · exact absurd h'.symm h
-          · exact ⟨k, L, HC, h'⟩
-        · exact ⟨p, L', by rw [GMap.lookup_insert_ne _ _ hpp] at hp; exact hp, hid⟩
-  · intro p L' hp
+          · exact ⟨k, (L, some g), HC, h'⟩
+        · exact ⟨p, e, by rw [GMap.lookup_insert_ne _ _ hpp] at hp; exact hp, hid⟩
+  · intro p e hp
     by_cases hpp : k = p
     · subst hpp
       rw [GMap.lookup_insert] at hp; cases hp
-      obtain ⟨g1, g2⟩ := h2 k L HC
+      obtain ⟨g1, g2⟩ := h2 k (L, some g) HC
       refine ⟨g1, fun id hid => ?_⟩
       rcases List.mem_cons.1 hid with rfl | h'
       · exact Hpn
       · exact g2 id h'
     · rw [GMap.lookup_insert_ne _ _ hpp] at hp
-      exact h2 p L' hp
-  · intro a b La Lb ha hb hab
-    have ha' : (C !! a).isSome := by rw [← hsome, ha]; rfl
-    have hb' : (C !! b).isSome := by rw [← hsome, hb]; rfl
-    obtain ⟨La', ha''⟩ := Option.isSome_iff_exists.1 ha'
-    obtain ⟨Lb', hb''⟩ := Option.isSome_iff_exists.1 hb'
-    exact h3 a b La' Lb' ha'' hb'' hab
+      exact h2 p e hp
+  · intro a b ea eb g' ha hb hga hgb
+    have fix : ∀ c ec, (C.insert k (nid :: L, some g)) !! c = some ec →
+        ∃ ec', C !! c = some ec' ∧ ec'.2 = ec.2 := by
+      intro c ec hc
+      by_cases hk : k = c
+      · subst hk; rw [GMap.lookup_insert] at hc; cases hc; exact ⟨_, HC, rfl⟩
+      · rw [GMap.lookup_insert_ne _ _ hk] at hc; exact ⟨ec, hc, rfl⟩
+    obtain ⟨ea', ha', hea⟩ := fix a ea ha
+    obtain ⟨eb', hb', heb⟩ := fix b eb hb
+    exact h3 a b ea' eb' g' ha' hb' (by rw [hea]; exact hga) (by rw [heb]; exact hgb)
+  · intro p e hp hne
+    by_cases hpp : k = p
+    · subst hpp; rw [GMap.lookup_insert] at hp; cases hp; rfl
+    · rw [GMap.lookup_insert_ne _ _ hpp] at hp; exact h4 p e hp hne
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -138,10 +147,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.idutil.Assumptions]
 
-theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := hG)) :
+theorem idutil.Generator.Next.wp_proof [HasExt idIssueExt]
+    (hL : idutil.lowbit.spec (GF := GF) (hG := hG)) :
     idutil.Generator.Next.spec (GF := GF) (hG := hG) := by
   intro γi g Φc
   wp_start as ⟨#Hg, Hc⟩
+  -- the trusted model names the translation's struct type by its name (`idutil.model.Generator`)
+  have hty : (idutil.model.Generator : go.GoType) = idutil.Generator.ty := by
+    with_unfolding_all rfl
+  have hlb : (idutil.model.lowbit : GoString) = idutil.lowbit := by with_unfolding_all rfl
+  have hsl : (idutil.model.suffixLen : val) = idutil.suffixLen := by with_unfolding_all rfl
+  simp only [hty, hlb, hsl]
   ihave #Hat : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
   iunfold idGen at Hg
@@ -167,14 +183,11 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
   inext
   iintro Hr -
   iapply wp_value'
+  -- (R2c stage 2) step A, the increment: the id counted, pending, its wait slot taken
   wp_apply_core sync.atomic.wp_AddUint64 $$ [] [HΦ Hc Hgl Hr Hres]
   · iexact Hat
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%k, %L, %S, >Hsuf, >Hcr, >Hcnt, >HS, >%Hdom⟩
-  -- (D21e (A)) the cluster's claims: the issued ids' map and the member's prefix's entry
-  iunfold idClusterInv at Hcl
-  iinv Hcl with Hci Hclose2
-  icases Hci with ⟨%I, %C, %R, %Fm, >HI, >HC, >HR, >HF, >%Hok, HFs⟩
+  icases Hi with ⟨%k, %L, %S, %P, >Hsuf, >Hcr, >Hcnt, >HS, >HP, >%Hdom⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -182,7 +195,6 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
   iframe Hsuf
   iintro Hsuf
   imod Hmask with -
-  -- count the id: its receipt and the `k` of the invariant bound `k + 1` (`receipt_add_one_lt`)
   icases receipt_add_one_lt k $$ [Hr Hcr] with ⟨%Hlt, Hcr⟩
   · iframe
   iunfold idCred at Hc
@@ -192,56 +204,39 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
   generalize hid : γi.pfx ||| ((s0 + W64 ((k + 1 : Nat) : Int)) &&& W64 (2 ^ 48 - 1)) = nid
     at Hnew
   have Hpn : idPfx nid = γi.pfx := by rw [← hid]; exact idPfx_or _ _ Hpl
-  ihave %HCk := ghost_map_lookup $$ HC Hcnt
-  have HCk' : C !! γi.key = some L := HCk
-  have Hpok := (Hok.2.1 γi.key L HCk').1
-  -- (R2c, stage 1) an issued id of the prefix is in a key of the prefix, which is this one
-  have HIn : I !! nid = none := by
-    cases h : I !! nid with
-    | none => rfl
-    | some _ =>
-      rcases (Hok.1 nid).1 (by simp [h]) with h0 | ⟨p, L', hp, hin⟩
-      · rw [← hid] at h0
-        exact absurd h0 (idutil_or_ne_zero γi.pfx _ Hpok.1)
-      · have hpp : p.1 = γi.key.1 := by rw [← (Hok.2.1 p L' hp).2 nid hin, Hpn]
-        have hpk := Hok.2.2.1 p γi.key L' L hp HCk' hpp
-        subst hpk
-        rw [HCk'] at hp; cases hp
-        exact absurd ((Hdom nid).1.1 hin) Hnew
   have HSn : S !! nid = none := by
     cases h : S !! nid with
     | none => rfl
-    | some _ => exact absurd ((Hdom nid).2.mp (by simp [h])) Hnew
-  imod ghost_map_insert nid (none : Option IdClaimV) HIn $$ HI with ⟨HI, Hu⟩
-  imod ghost_map_update (nid :: L) $$ HC Hcnt with ⟨HC, Hcnt⟩
+    | some _ => exact absurd ((Hdom nid).2.1.mp (by simp [h])) Hnew
+  have HPn : P !! nid = none := by
+    cases h : P !! nid with
+    | none => rfl
+    | some _ => exact absurd ((Hdom nid).1.mp (Or.inr (by simp [h]))) Hnew
   imod ghost_map_insert nid () HSn $$ HS with ⟨HS, Hsl⟩
-  imod Hclose2 $$ [HI HC HR HF HFs] with -
+  imod ghost_map_insert nid () HPn $$ HP with ⟨HP, Hpd⟩
+  imod Hclose $$ [Hsuf Hcr Hcnt HS HP] with -
   · inext
-    iexists (I.insert nid none), (C.insert γi.key (nid :: L)), R, Fm
-    iframe HI HC HR HF
-    isplitr
-    · ipureintro; exact idClusterOk_issue I C R Fm γi.key nid L Hok HCk' Hpn HIn
-    iunfold idClaimsFacts at HFs
-    iunfold idClaimsFacts
-    have HIn' : I.lookup nid = none := HIn
-    iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := I)
-      (Φ := fun id v => idClaimFact Φs γi.fs id v) HIn').2
-    iframe HFs
-    iunfold idClaimFact
-    itrivial
-  imod Hclose $$ [Hsuf Hcr Hcnt HS] with -
-  · inext
-    iexists (k + 1), (nid :: L), (S.insert nid ())
+    iexists (k + 1), L, (S.insert nid ()), (P.insert nid ())
     have hsuf : s0 + W64 (k : Int) + W64 1 = s0 + W64 ((k + 1 : Nat) : Int) := by
       push_cast; word
     rw [hsuf]
-    iframe Hsuf
-    iframe Hcr Hcnt HS
+    iframe Hsuf Hcr Hcnt HS HP
     ipureintro
-    refine fun id' => ⟨?_, ?_⟩
-    · rw [List.mem_cons, idIssued_succ, (Hdom id').1, hid]
-      exact Or.comm
-    · rw [GMap.lookup_insert_is_Some, idIssued_succ, ← (Hdom id').2, hid]
+    intro id'
+    refine ⟨?_, ?_, ?_⟩
+    · rw [idIssued_succ, ← (Hdom id').1, hid, GMap.lookup_insert_is_Some]
+      by_cases h : nid = id'
+      · subst h; simp
+      · simp only [h, false_or, ne_eq, not_false_eq_true, true_and]
+        constructor
+        · rintro (h' | h')
+          · exact Or.inl (Or.inl h')
+          · exact Or.inl (Or.inr h')
+        · rintro ((h' | h') | h')
+          · exact Or.inl h'
+          · exact Or.inr h'
+          · exact absurd h'.symm h
+    · rw [GMap.lookup_insert_is_Some, idIssued_succ, ← (Hdom id').2.1, hid]
       by_cases h : nid = id'
       · subst h; simp
       · constructor
@@ -251,6 +246,10 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
         · rintro (h' | h')
           · exact Or.inr ⟨h, h'⟩
           · exact absurd h'.symm h
+    · intro hin
+      rw [GMap.lookup_insert_ne _ _ (fun h => Hnew (by
+        subst h; exact (Hdom nid).1.mp (Or.inl hin)))]
+      exact (Hdom id').2.2 hin
   imodintro
   wp_auto
   wp_apply hL (s0 + W64 (k : Int) + W64 1) (W64 48) (by word)
@@ -259,17 +258,144 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
     congr 2
     push_cast; word
   rw [hres]
-  iapply HΦ
-  iunfold idFresh
-  iunfold idUnclaimed
-  iunfold idSlot
-  iframe Hu Hsl
-  isplitr
-  · ipureintro; exact Hpn
-  iexists γi.pfx, s0, (k + 1)
-  iframe Hpfx
-  ipureintro
-  exact ⟨by omega, Hk1, hid.symm⟩
+  (try wp_auto)
+  -- (R2c stage 2) step B, the issue: the record's `"Issue"` with both invariants open
+  wp_bind (ExternalOp _ _ (Val _))
+  iapply (wp_IdIssue nid g)
+  iinv Hinv with Hi Hclose
+  icases Hi with ⟨%k', %L', %S', %P', >Hsuf, >Hcr, >Hcnt, >HS, >HP, >%Hdom'⟩
+  iunfold idClusterInv at Hcl
+  iinv Hcl with Hci Hclose2
+  icases Hci with ⟨%I, %C, %R, %Fm, >HI, >HC, >HR, >HF, >%Hok, #HFs, >#HG⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iintro %b #Hfr
+  imod Hmask with -
+  cases b with
+  | false =>
+    -- another generator issued the id: nothing changes, and `assume` does not return
+    imod Hclose2 $$ [HI HC HR HF] with -
+    · inext
+      iexists I, C, R, Fm
+      iframe HI HC HR HF HFs HG
+      ipureintro; exact Hok
+    imod Hclose $$ [Hsuf Hcr Hcnt HS HP] with -
+    · inext
+      iexists k', L', S', P'
+      iframe Hsuf Hcr Hcnt HS HP
+      ipureintro; exact Hdom'
+    imodintro
+    wp_apply_core wp_assume
+    iintro %h
+    cases h
+  | true =>
+    ihave #Hf := Hfr $$ %rfl
+    ihave #HfD : idIssueFragD nid g $$ []
+    · rw [idIssueFragD_eq]; iexact Hf
+    icombine HC Hcnt gives %HlkC
+    have HlkC' : C !! γi.key = some (L', some g) := HlkC
+    icombine HP Hpd gives %HlkP
+    have HlkP' : P' !! nid = some () := HlkP
+    -- the id is not yet issued: in no key's list, so in no map
+    have HnL : nid ∉ L' := fun h => by rw [(Hdom' nid).2.2 h] at HlkP'; cases HlkP'
+    have Hpok := (Hok.2.1 γi.key (L', some g) HlkC').1
+    ihave %HIn : ⌜I !! nid = none⌝ $$ []
+    · cases hI : I !! nid with
+      | none => ipureintro; rfl
+      | some v =>
+        rcases (Hok.1 nid).1 (by simp [hI]) with h0 | ⟨k2, e2, hk2, hin⟩
+        · exfalso
+          rw [← hid] at h0
+          exact idutil_or_ne_zero γi.pfx _ Hpok.1 h0
+        · have hg2 := Hok.2.2.2.1 k2 e2 hk2 (List.ne_nil_of_mem hin)
+          rcases e2 with ⟨L2, og2⟩
+          cases og2 with
+          | none => simp at hg2
+          | some g2 =>
+            icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := C)
+              (Φ := fun k e => idKeyGenFacts (GF := GF) k e) hk2).1 $$ HG with ⟨Hk2, -⟩
+            iunfold idKeyGenFacts at Hk2
+            icases Hk2 with ⟨-, #Hl2⟩
+            obtain ⟨n, hn⟩ := List.getElem?_of_mem hin
+            ihave #Hf2 := (BigSepL.bigSepL_lookup (PROP := IProp GF)
+              (Φ := fun _ id => idIssueFragD (L := hG.goose_localGS) id g2) hn) $$ Hl2
+            ihave %Hgg := idIssueFragD_agree nid g2 g $$ Hf2 HfD
+            subst Hgg
+            have hkk := Hok.2.2.1 k2 γi.key (L2, some g2) (L', some g2) g2 hk2 HlkC' rfl rfl
+            subst hkk
+            rw [HlkC'] at hk2
+            cases hk2
+            exact absurd hin HnL
+    imod ghost_map_insert nid (none : Option IdClaimV) HIn $$ HI with ⟨HI, Hu⟩
+    imod ghost_map_update ((nid :: L', some g) : IdKeyEntry) $$ HC Hcnt with ⟨HC, Hcnt⟩
+    imod ghost_map_delete $$ HP Hpd with HP
+    imod Hclose2 $$ [HI HC HR HF] with -
+    · inext
+      iexists (I.insert nid none), (C.insert γi.key (nid :: L', some g)), R, Fm
+      iframe HI HC HR HF
+      isplitr
+      · ipureintro
+        exact idClusterOk_issue I C R Fm γi.key nid L' g Hok HlkC' Hpn HIn
+      isplitl
+      · iunfold idClaimsFacts at HFs
+        iunfold idClaimsFacts
+        have HIn' : I.lookup nid = none := HIn
+        iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := I)
+          (Φ := fun id v => idClaimFact Φs γi.fs id v) HIn').2
+        iframe HFs
+        iunfold idClaimFact
+        itrivial
+      · ihave ⟨Hk, HkC⟩ := (BigSepM.bigSepM_insert_acc (PROP := IProp GF) (m := C)
+          (Φ := fun k e => idKeyGenFacts (GF := GF) k e) HlkC') $$ HG
+        iapply HkC
+        iunfold idKeyGenFacts at Hk
+        iunfold idKeyGenFacts
+        icases Hk with ⟨#Hpf, #Hl⟩
+        simp only
+        iframe Hpf
+        iapply BigSepL.bigSepL_cons.2
+        iframe HfD Hl
+    imod Hclose $$ [Hsuf Hcr Hcnt HS HP] with -
+    · inext
+      iexists k', (nid :: L'), S', (P'.delete nid)
+      iframe Hsuf Hcr Hcnt HS HP
+      ipureintro
+      intro id'
+      refine ⟨?_, (Hdom' id').2.1, ?_⟩
+      · rw [← (Hdom' id').1, List.mem_cons]
+        by_cases h : nid = id'
+        · subst h; simp [HlkP']
+        · rw [GMap.lookup_delete_ne _ h]
+          constructor
+          · rintro ((h' | h') | h')
+            · exact absurd h'.symm h
+            · exact Or.inl h'
+            · exact Or.inr h'
+          · rintro (h' | h')
+            · exact Or.inl (Or.inr h')
+            · exact Or.inr h'
+      · intro hin
+        by_cases h : nid = id'
+        · subst h; exact GMap.lookup_delete _ _
+        · rw [GMap.lookup_delete_ne _ h]
+          rcases List.mem_cons.1 hin with h' | h'
+          · exact absurd h'.symm h
+          · exact (Hdom' id').2.2 h'
+    imodintro
+    wp_apply_core wp_assume
+    iintro -
+    wp_auto
+    iapply HΦ
+    iunfold idFresh
+    iunfold idUnclaimed
+    iunfold idSlot
+    iframe Hu Hsl
+    isplitr
+    · ipureintro; exact Hpn
+    iexists γi.pfx, s0, (k + 1)
+    iframe Hpfx
+    ipureintro
+    exact ⟨by omega, Hk1, hid.symm⟩
 
 end proof
 

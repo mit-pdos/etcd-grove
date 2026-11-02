@@ -33,7 +33,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -48,7 +48,7 @@ theorem watchkv_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Seman
 end results
 
 section adequacy
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 variable [go_gctx : GoGlobalContext]
 
 /-- **The watch example is safe, in the operational semantics** (`watch_adequate`, see the file

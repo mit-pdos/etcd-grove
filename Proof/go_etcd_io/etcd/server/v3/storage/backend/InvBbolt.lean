@@ -23,7 +23,7 @@ as ownership of or knowledge about bbolt's memory is):
   (`ownWTxG_fill`). `DeleteBucket` bumps the name's generation, so a handle of a deleted bucket
   is not current: `Put`/`Delete`/`Cursor` take a handle at the current generation only (bbolt
   frees a deleted bucket's nodes, and its old handle panics or misses the data even once the name
-  is re-created: `issues/bbolt-deleted-bucket-handle.md`; until 2026-10-27 `wBkt tx b n` had no
+  is re-created: `nonissues/bbolt-deleted-bucket-handle.md`; until 2026-10-27 `wBkt tx b n` had no
   generation, which made `Tx.DeleteBucket_kv` false, `notes/audit.md`).
 - `ownCur tx c es pos`: a cursor of `tx` over the entries `es`, at `pos` (`none`: not
   positioned; `some i`: at the `i`-th, `es.length` past the end).

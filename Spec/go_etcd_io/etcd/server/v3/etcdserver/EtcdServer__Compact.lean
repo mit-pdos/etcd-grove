@@ -61,7 +61,7 @@ caller picks it (round 3 of the review); C3 needs a server-wide permit, fixed at
 recorded by the compaction form of the proposal permit, designed with the model step.) 
 
 **M2's scope restriction** (2026-10-30, the user's Q7 (a), the approval's item 35): the revision is
-at least `1`, no compaction at revision `0` (`issues/etcd-restore-scheduled-compact-zero.md`: a
+at least `1`, no compaction at revision `0` (`nonissues/etcd-restore-scheduled-compact-zero.md`: a
 member that applied `Compact(0)` and installs an image with that compaction scheduled but unfinished
 goes from compaction revision `0` back to `-1`). A client's `Compact(0)` RPC is out of M2's scope;
 M2's compactor never issues it (both of its permits carry `0 < r`: `compactableOk_server`). The

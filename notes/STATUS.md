@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-11-02 (M2's item 15, stage B3: one write-token count: `NewServer` makes the write budget (`srvWTPool`, made by `start` until then; handed on as `srvWTBudget`) and the compaction's write-back supply comes from its stock (`kbWTSupplyM_of_stock`); `srvCmpStock` gone; `bootstrap`'s contract at `N` in both modes (`N + N` in compaction mode before): `NewServer`'s specs, `common`'s starters, compactkv, putgetc (premises weakened); branch `m2-item15`, `notes/decisions.md`, "One write-token count"). 2026-11-02 (M2's item 15, stage B2: the server restores a snapshot in either mode: `applySnapshot.specSnap` drops `d.cm = false` and takes the image's records `r` (`keyImageM d.cm L r D`, `d.cm = true → x.crev ≤ r.crev`), the receipt `restoreRcptM` and the permits `crevPermAt` as premises, its post `d'.cm = d.cm`, `x'.crev = r.crev`, the closer `srvKVCloserW`; the walk by the mode (`SnapRestoreM.lean`, `restorePre_of_applyW`); `applyAll` calls it with the mode off; branch `m2-item15`, `notes/decisions.md`, "Restore in compaction mode at the server"). 2026-11-02 (M2's item 15, stage B1: the server's write budget as one stock per backend: `srvWTStockInv γp d` (persistent; the backend's write-back tokens and a lower bound of the budget's count) in place of the tokens in `srvWTPool`'s invariant; a take costs a later credit (`srvWTStock_take`, `srvWTPool_stockOf`), every caller has one from its step; `srv_be_swap` takes the new backend's stock fact and hands out no old tokens, the walk makes the stock (`srvWTStock_alloc`); no statement of a linked result changed; branch `m2-item15`, `notes/decisions.md`, "The write budget: one stock per backend"). 2026-11-02 (M2's item 15, stage A: `store.Restore.spec` and `watchableStore.Restore.spec` switched to the approved mode-general statement (candidate 1 with the permits), proved in either mode (on over `RestoreCmp`/`RestoreOn`, off as before over `store.restore.specNCc`); the vocabulary in `mvcc/RestoreVocab.lean`; the server restores with the mode off through `watchableStore.Restore.specOff_of_spec` until stage B; branch `m2-item15`, see `notes/decisions.md`, "`store.Restore` and `watchableStore.Restore` in either mode"). 2026-11-02 (the closed lease example: `examples/leasekv`, a member served and a client calling `Leases` (no ID listed twice) and `TimeToLive(7)` (the reply about lease 7), `leasekv_safe` proved, resting on the server's two `sorry`s only (`merged_image`, `run_job_snap_cmp`); the run's thread token from a goroutine `Main` forks (`holdToken`; D1, an axiom giving grpc's runs tokens, was unsound and reverted); `EtcdServer.leaseTimeToLive`'s success arms state the asked `ID` (the user's Freeze), its cluster assumption the premise `leasePeersOk` after the axiom review refuted it as prose (`notes/axiom-review/lease-ttl-id.md`); `kv_served` generalized over extra methods (`client.etcd_kv_served_with`), its stocks one definition (`common.kvServeStocks`); `notes/lease-ex-plan.md`, `notes/decisions.md`, "The closed lease example"). 2026-11-02 (restart plan R2c stage 1: the request-id ghost state keyed by incarnation in place, `idutil`, the server and the examples: claims record their claimer's key, the apply thread cases on the key (another key's claim, another member's or an earlier incarnation's, has no waiter here), the claims' facts first-order per key (`srvFloorFacts` at the key's store index); one key per prefix until stage 2's trusted `Next`; no `sorry`, no axiom; `notes/restart-plan.md`, "R2c stage 1"). 2026-11-02 (C3's watch side: a client watch's compaction response's revision is the cluster's permit (`cmpOkOf`, in `watcher.Watch.spec`'s elements at `V.kv`, made at `reg_pre_cmp` from the server's `cmpPermOf`); `WEnv.kst` replaced by the KV names `WEnv.kv` (`kvSame` in `srvKVFacts`, linkv3p's members carry it); the store's permit in both auth modes; `compactkv` checks in Go that a watch's compaction revision plus the retention is at most a later latest `Get`'s (`checkCompactRev`, `common.CompactRev`; tight in a run); C3 done; branch `c3-watch`, `notes/decisions.md`). 2026-11-02 (the durability branch landed on `lean` (fast-forward of `worktree-kvdurable`): stage II (l)'s start proofs (branch `worktree-agent-a09ffa1a9b805d40b`, never merged until now: `notes/raft-durable-backtracking.md` E112) merged and adapted to the node API since -- `restartStorage`'s freeze point, `StorageHolds`' `wcommit`, `RestartNode`'s AU over `▷ raftState`, its `readyFits` and S1b, `cluster_alloc`'s `sl`, the server's `walReady` and `stopped` bag; the six PORT(durability stage II) stubs proved (`kv.StartCluster`, `kvStorage_bootStorage`, `kvreconf.StartCluster`, `kvreconf.Cluster.startNew`, `bootstrappedRaft.newRaftNode`, `raftNode_of_StartNode`); `readyFits` narrows kv's and kvreconf's `StartCluster`/`Run`/`Main` and adequacy to `receiptBound ≤ 2^61`, executions of `n < 2^61` steps (was `2^63`), as kvdurable's; kvreconf's `isClusterC` records `bootLen = 0` and `readyFits`; trust base 9 `sorry`s, every collection's the same as `lean`'s before the landing, kvdurable's none). 2026-11-02 (restart plan R2c, design: a stopped incarnation keeps its id share, its wait-registry cell and its store's index for good, so the cluster's id state is to be keyed by incarnation (`idutil/Incarnations.lean`, drafted beside the current definitions, each key's claim facts a saved predicate given at its allocation); the ids' freshness across incarnations an `Assume` in a trusted model of `Next`, following the SOSP'26 paper's treatment of `idutil`'s 256-per-millisecond limit (a first, logical statement of it was refutable: review round 1); no `sorry`, no axiom; `notes/restart-plan.md`, "R2c"). 2026-11-02 (issue `etcd-leader-advance-before-applyconfchange` reproduced end to end on an etcd cluster: two concurrent `MemberAdd`s through different members while the leader's apply loop is behind (a failpoint), then a partition; the old leader acknowledges a put the new majority never sees, 5 of 5 runs at upstream `main` `a2e3642bc`; the leader-waits fix refuses the second change; `issues/etcd-leader-advance-before-applyconfchange/{repro,fix}.patch`, RANKING item 7; branch `issue-leader-advance-repro`). (The ten newest entries; the older ones are in `notes/status-history.md`, "Last updated entries, 2026-10-22 to 2026-11-02". Add a new entry at the front and move the oldest one there, so that this line keeps ten.)
+**Last updated:** 2026-11-02 (M2's item 15, stage B3: one write-token count: `NewServer` makes the write budget (`srvWTPool`, made by `start` until then; handed on as `srvWTBudget`) and the compaction's write-back supply comes from its stock (`kbWTSupplyM_of_stock`); `srvCmpStock` gone; `bootstrap`'s contract at `N` in both modes (`N + N` in compaction mode before): `NewServer`'s specs, `common`'s starters, compactkv, putgetc (premises weakened); branch `m2-item15`, `notes/decisions.md`, "One write-token count"). 2026-11-02 (M2's item 15, stage B2: the server restores a snapshot in either mode: `applySnapshot.specSnap` drops `d.cm = false` and takes the image's records `r` (`keyImageM d.cm L r D`, `d.cm = true → x.crev ≤ r.crev`), the receipt `restoreRcptM` and the permits `crevPermAt` as premises, its post `d'.cm = d.cm`, `x'.crev = r.crev`, the closer `srvKVCloserW`; the walk by the mode (`SnapRestoreM.lean`, `restorePre_of_applyW`); `applyAll` calls it with the mode off; branch `m2-item15`, `notes/decisions.md`, "Restore in compaction mode at the server"). 2026-11-02 (M2's item 15, stage B1: the server's write budget as one stock per backend: `srvWTStockInv γp d` (persistent; the backend's write-back tokens and a lower bound of the budget's count) in place of the tokens in `srvWTPool`'s invariant; a take costs a later credit (`srvWTStock_take`, `srvWTPool_stockOf`), every caller has one from its step; `srv_be_swap` takes the new backend's stock fact and hands out no old tokens, the walk makes the stock (`srvWTStock_alloc`); no statement of a linked result changed; branch `m2-item15`, `notes/decisions.md`, "The write budget: one stock per backend"). 2026-11-02 (M2's item 15, stage A: `store.Restore.spec` and `watchableStore.Restore.spec` switched to the approved mode-general statement (candidate 1 with the permits), proved in either mode (on over `RestoreCmp`/`RestoreOn`, off as before over `store.restore.specNCc`); the vocabulary in `mvcc/RestoreVocab.lean`; the server restores with the mode off through `watchableStore.Restore.specOff_of_spec` until stage B; branch `m2-item15`, see `notes/decisions.md`, "`store.Restore` and `watchableStore.Restore` in either mode"). 2026-11-02 (porcupine sound and complete: the `Check*` specs characterize the result (`CheckOperations`: `true` iff linearizable; the `CheckResult` ones: `Ok` and linearizable, `Illegal` and not, or `Unknown` with a timeout; `checkSingle`, `checkParallel` likewise), proved over a new pure invariant `Theory.Sound` carried beside `⌜Inv⌝ ∨ □ Done` (`Soundness.lean`, `sound_done`) and verdicts that carry soundness in `checkParallel`; preconditions unchanged; `lintest.Run`'s spec unchanged (`checkResult_complete`); a fresh spec review found no false statement; no `sorry`, no axiom; supersedes "Completeness only", `notes/decisions.md`, "Porcupine: sound and complete"). 2026-11-02 (the cache's `Get` at the requested revision, stages 1 and 2a: `cachekv`'s check of the cache's `Get` (`checkGet`, `lastVal`, `hasKey`, the pure law `GetCheck.lean`) proved and linked, not called by `Main` yet (the cache's `Get` spec answers at a snapshot revision at or below the one asked for); `EtcdModel.etcdStep_restrict` (the quiet part of a step is a quiet step), proved at its three instances; the cache's store takes a gap certificate `G` (the user's choice: kept in its lock invariant over the history's gaps, `gapsOf`; `Restore` asks for its empty gap, `Apply` for the gaps it makes, `applyRespGaps`; `getSnapshot`/`Get` return the picked snapshot's, covering the revision asked for, `snapModel_gap`), the cache's instance trivial until the demux's quiet certificate (stage 3); no `sorry`, no axiom; `notes/decisions.md`). 2026-11-02 (restart plan R2c, the image's content drafted and reviewed: `srvDiskImage` (raft's part for `RestartNode`: `nodeVacant`, `raftState`, the WAL's records holding it; the backend's image through its consistent index `i`, the snapshot path's `imageAt`; `σ.b ≤ i ≤ σ.commit`, which a fresh reviewer confirmed of etcd's graceful stop; the configuration point at `i`, as `bootstrap` takes the backend's `ConfState`; the storage registry's authority; the files, a trust-boundary token), `bootOkR` (`bootOk`'s restart case) and `bootstrapRestartContract`; the review's five first-tier findings fixed, among them the data directory now recorded by the right to stop and the bootstrap log applied as a scope restriction on the stop; no `sorry`, no axiom; `notes/restart-plan.md`). 2026-11-02 (the findings split into `issues/`, bugs with a valid failing Go test written as the reports to file, and `nonissues/`: see "The findings: issues and non-issues"). 2026-11-02 (the cluster contract's rows: `isCluster`'s `SetVersion` with `api.UpdateCapability`, its package initializations and the version not above the server's (`semverAtMostServer`), `UpdateAttributes`' member in `r.mem`; the rest buckets present (`restPresent`) in `srvRestOwn`/`srvRestRW`; members' client URLs read-only (`memberAt`); the facts from the monitors' requests (`monitorReq lid`) through `reqPropOkM`'s `attrIdOk`, `kvWork`'s `attrLogOk` and `entryWaitOk` to `dispatch`'s `restReqOk`, with `srvMemOk`'s cover; the exported `request_delivered` takes `srvMemCover` (approved), `lessor_apply_contract` stronger; no axiom or `sorry` added; branch `cluster-rows`, `notes/cluster-rows-plan.md`, `notes/decisions.md`). 2026-11-02 (`merged_image` proved with compaction off: false as stated with compaction on, so it takes `E.cmp = false`; the compaction-mode side `merged_image_cmp`, a named `sorry` false as stated (#7-cmp; `compactkv`, `m2`, `cachekv` rest on it), its repair in place a later stage with #7-on's; `srvRaftLogInv_fresh`; no spec changes; trust base: `merged_image` → `merged_image_cmp`; branch `merged-image`, `notes/merged-image-plan.md`). (The ten newest entries; the older ones are in `notes/status-history.md`, "Last updated entries, 2026-10-22 to 2026-11-02". Add a new entry at the front and move the oldest one there, so that this line keeps ten.)
 
 This file is where the port is now: a summary checked against the repository, then the
 sections that still describe the current design or state, by area. Its history -- the
@@ -148,6 +148,12 @@ own check never failed), and the main thread's result, if any, is as stated. The
 - **`logkv_adequate`** (`examples/lintest/logkv/Adequacy.lean`, 2026-10-28): the same for a
   register whose writes go through a log applied by an apply goroutine (`Put` linearizes in the
   apply goroutine: helping through the lock invariant, `notes/logkv-eval.md`); `n < 2^63`.
+- **porcupine's `Check*`** (`Proof/github_com/anishathalye/porcupine/Link.lean`, the exported
+  `porcupine.wp_CheckOperations*`; 2026-11-02): sound and complete. `CheckOperations` answers
+  `true` iff the history is linearizable; `CheckOperationsTimeout`/`Verbose` answer `Ok` only on a
+  linearizable history, `Illegal` only on one that is not, `Unknown` only with a timeout. Partial
+  correctness (no termination). PR #46 upstream (unmerged) would break completeness
+  (`notes/decisions.md`, "Porcupine: sound and complete").
 - **`putget_safe`** (`examples/putget/Results.lean`): one etcd member in process, its gRPC
   server, a client, a `Put` then a `Get` of the key; returns `#()` (the `Get` saw the `Put`).
   Premises (D19a's kinds; `notes/decisions.md`, D19r): the package assumptions (the method-set
@@ -277,7 +283,7 @@ removed, ..., adequacy coverage" below.
     the backend hooks; `isRNWal`'s `SaveSnap`/`Sync`; `NewStorage`'s `storageSnap`;
     `NewAuthStore`'s axiom restated with `authRecoverOk`. Not done (false or racy as planned):
     `specSnap`'s `isMetaBackend` family and the whole `s.Cfg` read-only
-    (`issues/etcd-cfg-watch-progress-interval-race.md`), J8a's to restate. No axiom, no `sorry`.
+    (`nonissues/etcd-cfg-watch-progress-interval-race.md`), J8a's to restate. No axiom, no `sorry`.
     `notes/decisions.md`, "D22 J1a".
   - **J8a-4 done (2026-11-01)**: `specSnap`'s `isMetaBackend` premise (false: any names, any
     backend) restated at the open of the snapshot's backend and carried in `bootOk`
@@ -375,7 +381,13 @@ removed, ..., adequacy coverage" below.
   (`client/v3/ServerKVPut.lean`), which the recipes' results take; needs `lessor.Revoke` proved
   (status-history.md, "Open work: the client→server path ...", item 1; `notes/decisions.md`,
   "Unit T3").
-- **cachekv.** A check of the cache's `Get` after the writers (not cheap: "cachekv" below).
+- **cachekv.** A check of the cache's `Get` after the writers: the check and its law proved
+  (2026-11-02, `checkGet`, `GetCheck.lean`), not wired: the cache's `Get` spec answers etcd's state at
+  a snapshot revision at or below the requested one, not at it; its strengthening in stages:
+  `etcdStep_restrict` (stage 1) and the store's gap certificate (stage 2a, the cache's instance
+  trivial) done, the demux's quiet certificate for progress notifications next (stage 3), then
+  `cache_Get`'s post and the wiring in `Main` (`notes/decisions.md`, "cachekv's check of the
+  cache's `Get`", "The cache store's gap certificate `G`").
 - **Initialization.** `os`'s and `strconv`'s four init axioms (`os.opaqueInitsOk`,
   `os.initFuncsOk`, `os.Stderr_init`, `strconv.opaqueInitsOk`) need a Perennial change
   ("Trusted initializers" below; deferred, the user's choice).
@@ -457,7 +469,7 @@ store's `GetList` is still names-only.
   (64 sampled spec revisions: 23 caller needs, 20 scope, 3 false behavior, two of them trust-boundary
   axioms; data in `notes/spec-first-study/`). Step 2: 31 of the 44 axioms known false have a refuting
   Go execution; the prototype `etc/spec-test/bbolt` (spec-guided call sequences) refutes all three
-  false bbolt rows, among them the `wBkt` trio (since fixed, generations) (`issues/bbolt-deleted-bucket-handle.md`), with
+  false bbolt rows, among them the `wBkt` trio (since fixed, generations) (`nonissues/bbolt-deleted-bucket-handle.md`), with
   no false alarm in 10 000 runs of the corrected specs; the widened `Bucket.Delete_kv` (backend-cmp F3, a key the same
   write transaction's cursor returned) survives 30 000 runs (2026-10-30).
 
@@ -470,7 +482,7 @@ store's `GetList` is still names-only.
   `sorry`), with `btreeStore.Replace`, `Cacher.get` (unlinked: `Cacher`'s type is axiomatized),
   `apierrors.NewTimeoutError` and the etcd3 store's `GetCurrentResourceVersion`; tying the
   published states to etcd's next (blocked on Goose's G3 for `processEvent`); a bug found
-  (`issues/k8s-watchcache-index-error-partial-update.md`).
+  (`nonissues/k8s-watchcache-index-error-partial-update.md`).
 
 - `auth-plan.md`: etcd's authentication and authorization (the auth store, RBAC at the API
   layer, an auth-enabled closed theorem; etcd-io/etcd#22595, #22540). **Active**: A0 done
@@ -543,6 +555,31 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 # Raft and the witness part
 
 In status-history.md: "Durability stage II (p)", "Durability stage II (s)" (2026-11-02), the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
+
+## The findings: issues and non-issues (2026-11-02, branch `worktree-issues-schema`)
+
+`issues/` holds only bugs with a Go test that fails at current upstream `main` (etcd `1573d5941`,
+or `a2e3642bc` for the findings added since; raft `c51f010c8`, bbolt `a4ef19710`; Kubernetes
+v1.37.2, grpc-go v1.85.0, Go 1.27.3) and reaches the bug the way etcd, or a documented user of a
+public package, uses the code: 68 of them, each written as the report we would file (title, what
+happens, Expected, Impact, Reproduction with the pasted failing output, Cause; `issues/README.md`),
+its test in `issues/<slug>/`. The other 87 findings (code reading, preconditions etcd meets,
+documentation, tests only through internals, absurd configurations) are in `nonissues/`, each with
+its reason. Every
+file says whether it blocks the proof (`blocks-proof:`, 39 issues and 5 non-issues): `yes` when the bug
+makes false the property a top-level adequacy test over the code checks, for a workload such a test
+may use, whether the goosed fork carries the fix the proof needed or the proof sidesteps it with a
+weaker spec or a premise on valid requests (the leasing KV; the user's definition, 2026-11-02); the three
+findings that were on hold for etcd's private security process are not security reports under
+etcd's `THREAT_MODEL.md` (`issues/README.md`, "Reporting privately"). The upstream drafts (`issues/upstream/`) are
+folded into the files' `## Fix` sections, which the `upstream-report` skill's `check.py` renders
+into the texts to file (`--print issue|pr`); `INDEX-reviewed.md` and `RANKING.md` are gone, and the
+indexes are generated (`etc/issues-status.py --index`, `--check` in `etc/gates.sh`).
+`issues/raft-conf-lag-model/` moved to `notes/raft-conf-lag-model/`. A bug only in the unmerged
+etcd-io/etcd#22377 is in `notes/pr-verify/etcd-22377.md`. The examples' translated Go files keep the old paths in their comments
+(`examples/{bboltfs,k8setcd3,kv,kvdurable,kvreconf,kvwitness,linkv3p}/*.go`, e.g.
+`issues/nonissues/etcd-bridge-blackhole-twice-panic.md`), since goose copies comments into `Code/`:
+change them with the next regeneration.
 
 ## Durability stage II (u): `RestartNode` at the `ConfState`'s point, the list bound derived (2026-11-02, branch `worktree-kvdurable`)
 
@@ -622,7 +659,7 @@ Report: `/home/ubuntu/spec-scratch/raft-durability/stageII-t-report.md`. (Stages
   `etc/gen-interface.py etc/api/raft.txt` (no change), `api-check` (0 errors), `etc/gen-init.py --check`;
   `etc/gates.sh`: two stale `lintest` Link docstrings regenerated, 12 stale TCB collections updated
   (stages I-4..II (s); `raft.txt` now lists no `sorry`), new collection `kvdurable.txt` (18 axioms, the
-  2 `sorry`s); its `issues` gate still fails on `issues/INDEX-reviewed.md` (no front matter, from
+  2 `sorry`s); its `issues` gate still fails on `issues/INDEX.md` (no front matter, from
   `589f3d9583`).
 
 ## Durability stage II (r): `newRaft`'s window, `RestartNode` at the applied point (2026-11-02, branch `worktree-agent-newraft`)
@@ -632,7 +669,7 @@ Report: `/home/ubuntu/spec-scratch/raft-durability/stageII-r-report.md`.
 - **`RestartNode.spec`** (API; reverted in II (u)): the parameter `a` (with `max σ.b A ≤ a ≤ σ.commit`, `confAt γ a m`,
   `nodeConfig ⟨a, m⟩`) is gone; the configuration point is `max σ.b A` (the client's `ConfState`
   is the configuration at the applied index; one above it would have raft re-deliver, and the
-  client re-apply, the conf changes in between: `issues/raft-applied-above-snapshot-confstate.md`).
+  client re-apply, the conf changes in between: `nonissues/raft-applied-above-snapshot-confstate.md`).
   `RestartNode.wp_proof` has no `sorry` left (the `a > max b A` case went with the parameter).
   Clients (kvreconf, kv, the server) take the spec as a hypothesis: unchanged.
 - **`newRaft.wp_proof` proved.** The window (from `InitialState` to `appliedTo`): right after
@@ -829,7 +866,7 @@ reproduced it, so it is unconfirmed and not fixed here.
 None was hit by the plain random tests: B3 only by the race detector, in full rounds. That gives a
 measure of what the proof adds.
 
-**Found in raft:** `issues/raft-applied-above-snapshot-confstate.md`. `Config.Applied`'s
+**Found in raft:** `nonissues/raft-applied-above-snapshot-confstate.md`. `Config.Applied`'s
 documentation does not say that `InitialState`'s `ConfState` must be the configuration at
 `Applied`. Above a `MemoryStorage`'s snapshot, raft skips the conf changes in between (reproduced:
 a node elects itself alone). etcd leaves `Applied` unset.
@@ -896,7 +933,7 @@ The reviews' main findings, in the order they shaped the design:
 - **Unbound or stale incarnations are not inert** (review 1). A restart from a stale or concurrent
   state can win with delayed vote grants and commit with delayed acks, without sending anything.
 - **`Applied` above the snapshot is unsafe** (review 1). Filed as
-  `issues/raft-applied-above-snapshot-confstate.md`.
+  `nonissues/raft-applied-above-snapshot-confstate.md`.
 - **The per-node keys are unsound after a restart.** They would let the next incarnation's storage
   compact entries raft still hands back.
 - **The restart's configuration is the client's to name** (reviews 2-3). A bootstrapped node
@@ -1025,8 +1062,8 @@ driver's hard-state witness after a snapshot `Ready`"); the server's `rnRtOk` ov
 (branch `snap-rt`, merged). #7's merge branch (auth off) is proved behind the fork's index guard
 (`goose-lean-snapguard`) up to two named holes, `mergedCreate_window` (proved 2026-11-02, branch
 `snap-window`, over the writer's laws `txn.kvWriter_keyObs` and `txn.kvWriter_noCmp`, proved
-2026-11-02 by M2's item 37 over the writer's pin, branch `m2-item37`) and `merged_image` (the certificate: `srvImageR`, durability);
-the mode-on branch is open (a design question). **#8's J1b done (2026-10-31, branch `snap-j1b`)**: the snapshot path's spatial resources (`srvSnapOwn`: the counter's authority, the `E.RD`/`lgMu` stocks, the backend's stop channels and `bOpen ½`, the alarm store's `Get` with `Tal`) from `NewServer` through `applyStart` into `applyRes`, passed through `applyAll` (its spec and `specOn` changed, the user's (A)); `trLive` already in `srvApRes`. Since 2026-11-01 (the user's decision) also `srvKVCloser` and the backend file's `pathOwn`, moved into `NewServer`'s built part (`NewServer.spec`/`specM`/`specCompact` lose the two conjuncts; `notes/decisions.md`, "D22 J1b"). `os.Rename` restated (J8a's item 5, the user's approval): on success the program keeps `pathOwn dst` (the backend's path), no longer `pathOwn src`; `OpenSnapshotBackend.spec`, `snapWalkPost` and `srvSnapApplied` (a new `bp`, the backend path) follow (`notes/decisions.md`, "`os.Rename` keeps the destination's entry"). **#7's merge branch proved (S1, 2026-10-31, branch `snap-s1`)** over the fork's index guard
+2026-11-02 by M2's item 37 over the writer's pin, branch `m2-item37`) and `merged_image` (proved 2026-11-02 with compaction off, below);
+the mode-on branch is open (a design question). **`merged_image` proved with compaction off** (2026-11-02, branch `merged-image`, the user's approval; `notes/decisions.md`, "`merged_image` is false with compaction on"): as stated it was false with compaction on (`Meta`'s `scheduledCompactRev` in the snapshot), so it takes `E.cmp = false`; the fresh start's raft names from `isServer` (`srvRaftLogInv_fresh`); the compaction-mode side is `merged_image_cmp`, a named `sorry` (SNAPSHOT-SORRY #7-cmp), **false as stated**, on which the compaction-mode results rest (`compactkv`, `m2`'s `putgetc_safe`, `cachekv`); its repair in place (`keyImageM γk.cmp`) is a stage of its own with #7-on's (`notes/merged-image-plan.md`). **#8's J1b done (2026-10-31, branch `snap-j1b`)**: the snapshot path's spatial resources (`srvSnapOwn`: the counter's authority, the `E.RD`/`lgMu` stocks, the backend's stop channels and `bOpen ½`, the alarm store's `Get` with `Tal`) from `NewServer` through `applyStart` into `applyRes`, passed through `applyAll` (its spec and `specOn` changed, the user's (A)); `trLive` already in `srvApRes`. Since 2026-11-01 (the user's decision) also `srvKVCloser` and the backend file's `pathOwn`, moved into `NewServer`'s built part (`NewServer.spec`/`specM`/`specCompact` lose the two conjuncts; `notes/decisions.md`, "D22 J1b"). `os.Rename` restated (J8a's item 5, the user's approval): on success the program keeps `pathOwn dst` (the backend's path), no longer `pathOwn src`; `OpenSnapshotBackend.spec`, `snapWalkPost` and `srvSnapApplied` (a new `bp`, the backend path) follow (`notes/decisions.md`, "`os.Rename` keeps the destination's entry"). **#7's merge branch proved (S1, 2026-10-31, branch `snap-s1`)** over the fork's index guard
 (`notes/decisions.md`, "The merged snapshot's index guard", "`applyAll`'s merge branch (S1)"): in
 mode off its `sorry` is replaced by two named holes for S2 in `SnapSendBranch.lean`,
 `mergedCreate_window` (the commit and snapshot window of `createMergedSnapshotMessage`) and
@@ -1132,7 +1169,7 @@ identical to lean's: the branch adds or removes none); every collection but v3rp
 names, `leaseTimeToLive.wp_proof`, `lessor.Renew.wp_proof`, ..., are all lean's); bounds; api-check
 and `gen-interface --check --layout` for `backend` and `raft`; `import-all-check`; `gen-link` for
 every mode (the two lintest docstring diffs are lean's); the gates (failing only on lean's own
-three: v3rpc, the lintest links, `issues/INDEX-reviewed.md`).
+three: v3rpc, the lintest links, `issues/INDEX.md`).
 
 ## The lease results' sources in a `NewServer`-built server (2026-11-02, branch `lease-src`; frozen and proved)
 
@@ -1168,7 +1205,7 @@ approved (`notes/decisions.md`, "The lease keep-alive entry point"): `lessor.Ren
 - **`r.tickMu`'s reader slots** (C2's assumption): a pool, as `lgMu`'s, would remove it.
 - **C1 and lease grants**: `ckptEffectsOk` covers `Renew`'s checkpointer proposal, unexercised
   while `srvGrantGuard` is `False`.
-- **`issues/etcd-lease-renew-keys-follower-lag.md`**: a candidate, not yet reproduced.
+- **`nonissues/etcd-lease-renew-keys-follower-lag.md`**: a candidate, not yet reproduced.
 - **Three `threadBound` premises** (`LeaseRenew.spec`, C1, C2) raised the bounds baseline by 3
   (the user's choice); they go in the lease package's bounds stage.
 
@@ -1744,7 +1781,7 @@ exported or trusted switched:
   `kbWTSupplyM_of_poolR`, a logical mode field in `StoreNames` decided for the switch, laws in place
   of unfolds, sealed bodies). **Q7 for the user**: Q5 (a)'s `c ≤ c'` is false when a member applied
   a client's `Compact(0)` and installs an image with that compaction unfinished; Go issue
-  `issues/etcd-restore-scheduled-compact-zero.md` (reproduced). Full `lake build` passed (11209
+  `nonissues/etcd-restore-scheduled-compact-zero.md` (reproduced). Full `lake build` passed (11209
   jobs).
 
 - **Review round 4 repaired** (2026-10-30; the plan's "After review round 4"; step 2's second round,
@@ -2053,7 +2090,7 @@ The server's and kv's statements in final form over raft's unified API (D1-D5), 
 allowed, the server registers them, the snapshot-only branches closed by marked
 `SNAPSHOT-SORRY`s (to prove after the merge into `lean`), `EtcdServer.snapshot` a theorem (no
 longer an axiom), `NewServer` without run-length premises. Found on the way:
-`issues/etcd-cluster-version-stale-proposal-downgrade.md`. The statement changes, the findings
+`nonissues/etcd-cluster-version-stale-proposal-downgrade.md`. The statement changes, the findings
 and the sorries by stage P track: `notes/raft-unified-plan.md`, "Repair: Stage F statements",
 "Repair: Stage F sorries", "Repair: Stage F revision, snapshots allowed", "Repair: snapshot
 sorries".
@@ -2211,7 +2248,7 @@ The `axiom` skill, run from the backend-compaction stage (`backend-cmp`):
   `MaxMapSize` makes `newBackend` panic in any environment. **Fixed:** `openPre` takes
   `openMmapOk cfg`, a new pure premise of `NewServer.spec`/`specCompact`/`specM` and passed through
   D22's `applySnapshot.specSnap`/`applySnapshot_walk`/`srvSnapRO`. The examples discharge it (quota 0).
-  The etcd side is in `issues/etcd-quota-backend-bytes-mmap-panic.md`.
+  The etcd side is in `nonissues/etcd-quota-backend-bytes-mmap-panic.md`.
 
 ## Two bbolt axioms refuted (2026-10-29, on `lean`)
 
@@ -2219,7 +2256,7 @@ The `axiom` skill's review of the bbolt axioms (`notes/axiom-review/bbolt.md`): 
 is false**, with a counterexample proved: `examples/axiomcx/bboltnan`'s `Run` sets a bucket's
 `FillPercent` to NaN, puts 70000 keys and commits; the axioms prove it returns
 (`Proof/.../examples/axiomcx/bboltnan/Run.lean`, no `sorry`), Go panics in `Commit`
-(`inode overflow`, amd64; `issues/bbolt-fillpercent-nan.md`). **`bbolt.Bucket.Put_kv` is false**
+(`inode overflow`, amd64; `nonissues/bbolt-fillpercent-nan.md`). **`bbolt.Bucket.Put_kv` is false**
 too (with `Commit_kv` and the cursor specs), by two earlier `issues/` reproductions
 (`bbolt-max-value-size-unusable`, `bbolt-large-values-leaf-unreadable`) not yet reflected in the
 axiom. Neither reaches etcd (it writes `FillPercent = 0.9` and bounds requests at 1.5 MiB), but
@@ -2619,7 +2656,7 @@ for the same owner") is a resource: the store is built for caller-chosen fractio
 `nil` only with `readyRec`: per recorded version, a registered store returned a non-empty `readRV`
 with the caller's contract `G` and, if `readRV` is well formed, at least the recorded one (the
 fail-open on a malformed `readRV`, `"0"`, stated; judged unreachable over kube-apiserver,
-`issues/nonissues/k8s-consistency-malformed-rv-ready.md`). `LastSyncRVGetter` is an abstract
+`nonissues/k8s-consistency-malformed-rv-ready.md`). `LastSyncRVGetter` is an abstract
 contract (`getterOk`). Trust boundary: `resourceversion.isWellFormed` (gap C1) and
 `schema.GroupResource.String` (names only), both axioms; `CompareResourceVersion` proved as the
 comparison of decimal values (`lexCmp_eq_cmpNat`). Callers need one of the map lock's reader slots
@@ -3119,12 +3156,12 @@ Found while writing it:
 
 - [issues/raft-snapshot-during-apply-stale-confchange](../issues/raft-snapshot-during-apply-stale-confchange.md)
   reached in a full cluster: raft panics in `applyConfChange` (1 of 17 rounds on the pinned raft).
-  With the issue's fix ported to the fork (`issues/raft-conf-lag-model/fork-v3.7-applied-snap-config.patch`,
+  With the issue's fix ported to the fork (`notes/raft-conf-lag-model/fork-v3.7-applied-snap-config.patch`,
   `patch -p1` on `raft37-goose-lean-a1`; raft's tests and the fix's regression test pass), 15 rounds
   passed. A local fork branch, `raft37-goose-lean-a2` (`565c2bd`, on `c8217eb9`), in a checkout
   at `.lake/raft-fork` of the worktree (not pushed; the patch is its `format-patch`); the raft pin is
   unchanged (`etc/goose.py --src raft=.lake/raft-fork` translates from it).
-- [issues/raft-snapshot-without-recipient-livelock](../issues/raft-snapshot-without-recipient-livelock.md):
+- [nonissues/raft-snapshot-without-recipient-livelock](../nonissues/raft-snapshot-without-recipient-livelock.md):
   a newcomer added after the storage's latest snapshot is sent it forever once the log is
   compacted (with random snapshots, a later one ends it).
 - Stopping a removed voter as soon as some replica applied its removal can leave the remaining
@@ -3134,7 +3171,7 @@ Found while writing it:
   loop before it handled the Ready persisting its own vote (fixed there with a 5ms step timeout).
   `kv`'s is the same pattern (partial correctness: a hang is no violation; not observed).
 - `MaxSizePerMsg: 0` with `MaxCommittedSizePerReady: 0` panics
-  (`issues/nonissues/raft-zero-max-size-per-msg.md`); the random options avoid the pair.
+  (`issues/raft-zero-max-size-per-msg.md`); the random options avoid the pair.
 
 
 ## The node API's specs in the per-function files (2026-10-28, branch `node-api-cleanup`)
@@ -3414,7 +3451,7 @@ proposal:
   - Nine `RawNode` specs are used by no proof.
   - No restart from persisted state.
 - **Low:** a list of headers whose prose has drifted from the statements.
-- **Filed:** `issues/raft-compact-past-snapshot.md`, with a reproduction.
+- **Filed:** `nonissues/raft-compact-past-snapshot.md`, with a reproduction.
 
 ## watchkv over the KV's specs, without the adapter (2026-10-26, branch `watchkv-no-adapter`)
 
@@ -3813,7 +3850,7 @@ to the fork's `goose-lean-getproph2` (`bc9c3868c`: `goose-lean`'s `188113160` wi
 `kubernetes.Client.Get`).
 
 - **A finding**: `correctness.Model` rejects the store's intended rewrite of non-canonical or stale
-  data on a no-op update (`issues/k8s-correctness-model-noop-rewrite.md`, Go reproduction). D30g
+  data on a no-op update (`nonissues/k8s-correctness-model-noop-rewrite.md`, Go reproduction). D30g
   (decided): the generic specs use a model with a canonical bit per item; the driver keeps its
   non-canonical codec and checks against a fixed copy of the Model in `examples/k8setcd3/`.
 - **The model** (`Proof/k8s_io/apiserver/pkg/storage/etcd3/Model.lean`, sorry-free): `create`,
@@ -4284,7 +4321,7 @@ decided" and "D22 receiver epochs, S8c carried out"): W3, the transport's peers 
 W1's decided `Rm` is not establishable at `Release` (a variant proposed); new axioms
 `lessor.Recover`, `authStore.Recover`, `RaftCluster.SetBackend`, the gauge's initializer;
 `NewMembershipBackend` proved; S8d's lemmas `kv_cert_jump` (W4) and `srv_be_swap`. Axioms 615 ->
-620. Issue filed: `issues/nonissues/etcd-rafthttp-leaderstats-followers-race.md`. Then W1 and W5
+620. Issue filed: `nonissues/etcd-rafthttp-leaderstats-followers-race.md`. Then W1 and W5
 (`notes/decisions.md`, "D22 S8d's premises"): `snapTakenLb`, `storage.Release`'s axiom (620 -> 621),
 the opaque `snap.dirReadOk`, `backend.renameOk`, `storage.releaseOk`, `storageSnap` and the bundle
 `storage.snapOpensOk`; `os.Rename`, `DBFilePath` (now over the held file) and `OpenSnapshotBackend`
@@ -4624,7 +4661,7 @@ sorries). The network model already let every attempt fail, so the theorem cover
 failures before the bridge; the bridge makes the test produce them. (A first K1, a relay's 16
 axioms over `net`'s connections with the bridge's 11 functions proved, K2, was carried out and
 then removed: D26, the branch's history.) Findings: a second `Blackhole` of a bridge panics
-(`issues/nonissues/etcd-bridge-blackhole-twice-panic.md`; `clientStep` skips it, `Blackhole`'s spec takes
+(`nonissues/etcd-bridge-blackhole-twice-panic.md`; `clientStep` skips it, `Blackhole`'s spec takes
 the bridge not blackholed); the test's occasional minutes-long runs were porcupine's check, not
 the network (a failed write stays pending in linkvtxn's model: `TestMainRun` and `TestClientCuts`
 run 3 clients; the plan's K0). `go test -race` passes. **K4, failover (2026-10-21, branch

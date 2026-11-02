@@ -69,7 +69,7 @@ section proof
 abbrev keysL [GooseExts] : List GoString :=
   [go!"k1", go!"k2", go!"k3", go!"k4", go!"k5"]
 
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

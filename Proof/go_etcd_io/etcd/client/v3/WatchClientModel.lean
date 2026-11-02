@@ -8,7 +8,7 @@ Lean-first, no Rocq counterpart.
   `reg X` (registered at the watch id `X`, in `substreams`), `closedRun X` (registered, its `recvc`
   closed by `run` on the server's cancel, in `closing`, out of `substreams`: `run` drops it there,
   the fix of `issues/etcd-watch-progress-closed-substream.md`; at `X` in the ghost map `CI`; its
-  `id` field reset to `-1`, D25's F1, `issues/etcd-watch-resume-stale-canceled-id.md`), `orphan` (its create refused: `recvc`
+  `id` field reset to `-1`, D25's F1, `nonissues/etcd-watch-resume-stale-canceled-id.md`), `orphan` (its create refused: `recvc`
   closed, in no map).
 * `RunSt`: the requests sent (`L`), the responses received (`Dm`), the pending create (`pend`),
   the answered positions (`ansd`), the registered ids (`regs`), `substreams` (`M`), `resuming`

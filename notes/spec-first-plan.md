@@ -353,7 +353,7 @@ trust-boundary axioms, which no proof will ever check):
 - `bfaa9ce45c`: the axiom said `pbutil.MustUnmarshalMessage` returns on any bytes; on malformed
   bytes it panics (a byte fuzzer finds it at once).
 - `072b026b16`: rafthttp's `CutPeer` taken twice after `AddRemote` panics
-  (`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`; a fuzzer over call sequences finds it).
+  (`nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`; a fuzzer over call sequences finds it).
 - `68ceb46a40`: a key created in a txn at sub-revision 1 has sub-revision 0 after a restore (only if
   the traces record sub-revisions).
 
@@ -385,7 +385,7 @@ trust-boundary axioms, which no proof will ever check):
   links mutually recursive); liveness, which no phase sees (`c01f2275b8`: the kv example's replica
   never answered requests a snapshot covered, found by a Go test).
 - **Writing specs finds Go bugs before any proof**: the compaction specs (`3f2263f694`) found
-  `issues/etcd-compaction-delete-then-put.md` and `issues/etcd-compaction-negative-batch-limit.md`.
+  `issues/etcd-compaction-delete-then-put.md` and `nonissues/etcd-compaction-negative-batch-limit.md`.
 
 **Limits.** 64 of 605 (for the large classes, about ±12 points at 95%); one agent per commit, no
 second opinion; "would have found it earlier" is a counterfactual judgment. Sampling by "modifies
@@ -451,7 +451,7 @@ blocking). Each axiom is transcribed by hand from its Lean statement. Runs of 60
   outliving `Close`, a persistent `wBkt` outliving `DeleteBucket`), which the paper replay calls
   observable only because tracking the predicates lets the tester make the call Go does not
   survive. One of them (`wBkt`) is still false in the current specs; the tester found it without
-  being told, along with a Go documentation issue (`issues/bbolt-deleted-bucket-handle.md`).
+  being told, along with a Go documentation issue (`nonissues/bbolt-deleted-bucket-handle.md`).
 - **No false alarms**: with `wBkt` corrected, 10 000 runs refute nothing, though every axiom ran.
 - **Opaque predicates need no test interpretation when the specs produce them**: `isDB`, `wBkt`,
   `ownCur` are tokens a post hands out and a pre consumes. Only the environment's predicates

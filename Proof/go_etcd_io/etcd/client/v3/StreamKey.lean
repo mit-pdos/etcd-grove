@@ -4,7 +4,7 @@
 which the watcher uses to share one gRPC stream among the watches whose contexts carry the same
 metadata. Opaque, with two trusted laws: a faithful `fmt.Sprintf("%+v", ...)` of a map needs its
 sorted finite key set, which the function-valued `GrpcMd` does not carry. The key collides
-(`issues/etcd-watch-stream-key-collision.md`); the laws hold only where it does not. Lean-first
+(`nonissues/etcd-watch-stream-key-collision.md`); the laws hold only where it does not. Lean-first
 (no Rocq counterpart).
 -/
 module

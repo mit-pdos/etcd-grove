@@ -5,8 +5,8 @@
 constant is the cache's exact bound, `[ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax)]`, not `2 ^ 30`:
 `cache_end_to_end_client`/`_new` (`cache/v3/Results.lean`) restate the premise, and `2 ^ 30` would
 weaken them; `cachekv` builds the instance from its `2 ^ 29` (`ThreadBoundLe.weaken`). The Go
-finding is now `issues/etcd-cache-watch-during-close-waitgroup.md` and
-`issues/etcd-leasing-get-during-close-waitgroup.md`.
+finding is now `nonissues/etcd-cache-watch-during-close-waitgroup.md` and
+`nonissues/etcd-leasing-get-during-close-waitgroup.md`.
 
 Every Go `sync.WaitGroup` whose `Add` the proofs reason about, for B3 of `notes/bounds-plan.md`
 (wait groups backed by thread tokens). Perennial's `WaitGroup.Add` spec
@@ -141,7 +141,7 @@ examples in this repository (`examples/`), k8s in the module cache
 ### 4. `waitCancelSubstreams`' local `wg` (`client/v3`)
 
 - **Go.** `client/v3/watch.go:989` (local). Add `:994`, one per resuming substream. Done `:996`.
-  Wait `:1021`, in a goroutine. This is the fork's F4 (`issues/etcd-watch-resume-waitgroup-overflow.md`).
+  Wait `:1021`, in a goroutine. This is the fork's F4 (`nonissues/etcd-watch-resume-waitgroup-overflow.md`).
 - **Counts.** One per resuming substream (per watcher).
 - **Scheme.** `sync.tokJoin` with lending (`InvWcJoin.lean`, namespace `wcjN`). A goroutine that
   adds to the stream's wait group (3) lends its slot's token there. The receipt is the stream's

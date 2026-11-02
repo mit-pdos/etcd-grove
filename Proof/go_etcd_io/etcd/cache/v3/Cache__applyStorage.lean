@@ -654,7 +654,7 @@ theorem Cache.applyStorage.wp_proof
       iunfold respSent at Hsent
       icases Hsent with ⟨#Hresp, -⟩
       -- `Apply`'s certificate, for whatever state the store is in
-      ihave #Hcert : storeApplyCert cf.scap (etcdCert cf.pfx) (cacheRev cf) Y r $$ []
+      ihave #Hcert : storeApplyCert cf.scap (etcdCert cf.pfx) (cacheRev cf) (cacheGap cf.pfx) Y r $$ []
       · unfold storeApplyCert
         imodintro
         iintro %st %Y' %Hst #HY'
@@ -682,8 +682,10 @@ theorem Cache.applyStorage.wp_proof
           icases applyResp_certs cf.pfx cf.scap st r Y' $$ [$HY'' $Hch''] with ⟨#Hsnaps, -⟩
           ihave %Hok := applyEvents_ok cf.pfx cf.scap r.events st Y' $$ [$HY'' $Hch'']
           iframe Hsnaps Hrevs
-          ipureintro
-          exact applyResp_ok_or_same cf.scap st r (fun _ _ _ => Hok)
+          isplitr
+          · ipureintro
+            exact applyResp_ok_or_same cf.scap st r (fun _ _ _ => Hok)
+          · iapply cacheGap_all
         · -- an event at or below the newest snapshot, so at or below the latest revision:
           -- `validateRevisions` rejects the response
           have hstale : ∃ e ∈ r.events, sint.Z e.rev ≤ sint.Z Y' := by
@@ -696,9 +698,11 @@ theorem Cache.applyStorage.wp_proof
           · ipureintro
             right
             exact applyResp_stale_same cf.scap st r Y' hstale hY'l
-          unfold snapCerts; imodintro; iintro %x %hx; simp at hx
+          isplitl []
+          · unfold snapCerts; imodintro; iintro %x %hx; simp at hx
+          · iapply cacheGap_all
       wp_auto
-      wp_apply wp_Apply cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) Y resp r
+      wp_apply wp_Apply cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (cacheGap cf.pfx) Y resp r
         $$ [$HisStore $HisStoreW $Hresp $HYc $Hcert] as %err ⟨#HeAp, Hres⟩
       · ipureintro; exact ⟨hsorted, hY0⟩
       icases Hres with (%Hcanc | ⟨%st, %Hst, #Hlb, #Hslb, %Herr⟩)

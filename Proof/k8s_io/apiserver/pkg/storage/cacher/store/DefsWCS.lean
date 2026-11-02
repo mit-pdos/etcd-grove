@@ -20,7 +20,7 @@ variable `γ.st` holds it, split three ways:
   at the load, against the invariant's quarter).
 
 The indexer's index functions never fail (`isIndexFn`): a premise of the store's specs, the
-store's update being half done when one does (`issues/k8s-watchcache-index-error-partial-update.md`).
+store's update being half done when one does (`nonissues/k8s-watchcache-index-error-partial-update.md`).
 -/
 module
 

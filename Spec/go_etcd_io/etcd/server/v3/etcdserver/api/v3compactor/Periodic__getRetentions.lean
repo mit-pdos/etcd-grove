@@ -22,7 +22,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- `pc.getRetentions()`: `period / retry + 1` (`retentionsOf`; `retry` is not `0` from `10ns` on:
-`issues/etcd-compactor-periodic-tiny-retention.md`). -/
+`nonissues/etcd-compactor-periodic-tiny-retention.md`). -/
 abbrev v3compactor.Periodic.getRetentions.spec : Prop :=
   ∀ (pc : Loc) (pd : time.Duration) (dq : DFrac),
   10 ≤ sint.Z pd →

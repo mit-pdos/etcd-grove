@@ -57,7 +57,7 @@ theorem Cache.waitTillRevision.wp_proof
   imod monoNatLbOwn_0 (GF := GF) cf.γs.rev with #Hlb0
   wp_auto
   unfold cacheReader
-  wp_apply wp_LatestRev cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (W64 0) $$ [$HisStore $Hrd]
+  wp_apply wp_LatestRev cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (cacheGap cf.pfx) (W64 0) $$ [$HisStore $Hrd]
     as %lr ⟨Hrd, %st, #Hseen, #-, %Hlr⟩
   · unfold storeRevLb; rw [show sint.nat (W64 0) = 0 from rfl]; iexact Hlb0
   iunfold storeSeen at Hseen
@@ -120,7 +120,7 @@ theorem Cache.waitTillRevision.wp_proof
   iunfold storeReader at Hrd
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hrl, HP⟩
   ihave #Hlocker := sync.rlocker_isLockerWith (storeMuAddr cf.store)
-    (storeLockInv cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf)) $$ Hsync
+    (storeLockInv cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (cacheGap cf.pfx)) $$ Hsync
   wp_auto
   -- the loop invariant: the context (`HP : ▷ P rfrac` from `RLock` and from `Wait`)
   wp_for_core
@@ -171,10 +171,10 @@ theorem Cache.waitTillRevision.wp_proof
       wp_auto
       -- `revCond.Wait()`
       wp_apply +noauto sync.Cond.wp_Wait_with _ (sync.rlockerOf (storeMuAddr cf.store))
-        (sync.ownRWMutex (storeMuAddr cf.store) (storeLockInv cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf)))
+        (sync.ownRWMutex (storeMuAddr cf.store) (storeLockInv cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (cacheGap cf.pfx)))
         iprop(sync.ownRWMutexRLocked (storeMuAddr cf.store)
-          (storeLockInv cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf)) ∗
-          ▷ storeLockInv cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) sync.rfrac)
+          (storeLockInv cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (cacheGap cf.pfx)) ∗
+          ▷ storeLockInv cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (cacheGap cf.pfx) sync.rfrac)
         $$ [$Hcond $Hlocker Hrl Hst Hrev HlatestRev Hhist Hrest] as ⟨Hrl, HP⟩
       · iframe Hrl
         inext; iunfold storeLockInv; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv

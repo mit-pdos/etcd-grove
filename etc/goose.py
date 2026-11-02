@@ -152,11 +152,11 @@ PROJECTS = [
         # as ea78ec948 (issues/etcd-backend-duplicate-put-stale-read.md; D19i (A)), and
         # `raftAdvancedC` (issues/etcd-compact-past-raft-applied.md; D19i part 1) as 06aa6e6e, and
         # (D19l) etcd-io/etcd#22297 cherry-picked as 5615016f6 (`syncWatchersLoop`'s ticker reset,
-        # issues/etcd-watch-sync-ticker-reset-zero.md) and `AuthInfoFromTLS`'s checked assertion
-        # as 17c88a667 (issues/nonissues/etcd-auth-tls-info-assert.md), and the client's
+        # nonissues/etcd-watch-sync-ticker-reset-zero.md) and `AuthInfoFromTLS`'s checked assertion
+        # as 17c88a667 (nonissues/etcd-auth-tls-info-assert.md), and the client's
         # `closeRequireLeader` context alignment (a7bd9a16e,
         # issues/etcd-lease-close-require-leader-ctx-misaligned.md) and the retry interceptor's
-        # non-repeatable context-error return (8a24be2a3, issues/etcd-client-retry-put-ctx-error.md),
+        # non-repeatable context-error return (8a24be2a3, nonissues/etcd-client-retry-put-ctx-error.md),
         # and the gRPC quota's current backend (8f793b820,
         # issues/etcd-quota-stale-backend-after-snapshot.md; D22g (A)) and the auth store's move
         # before the old backend's close (d52eec43e,
@@ -165,11 +165,11 @@ PROJECTS = [
         # D22a), and (D25, the watch client's reconnection) the four fixes of branch
         # `watch-resume-fixes` (04375baaa..b3c29bc17, made on 8a24be2a3) cherry-picked on top: a
         # server-canceled substream's id reset (cafce83d8,
-        # issues/etcd-watch-resume-stale-canceled-id.md) and no nil channel on `retc`
-        # (c15c7dda8, issues/etcd-watch-resume-nil-watch-chan.md) and the resume revision only
+        # nonissues/etcd-watch-resume-stale-canceled-id.md) and no nil channel on `retc`
+        # (c15c7dda8, nonissues/etcd-watch-resume-nil-watch-chan.md) and the resume revision only
         # moving forward (2e2dc077c, issues/etcd-watch-resume-below-start-revision.md) and
         # `waitCancelSubstreams` adding one goroutine at a time to its wait group (2aed163b1,
-        # issues/etcd-watch-resume-waitgroup-overflow.md), and (D22, the snapshot path) the alarm
+        # nonissues/etcd-watch-resume-waitgroup-overflow.md), and (D22, the snapshot path) the alarm
         # store recovered in place (8fd98af04, issues/etcd-alarm-store-snapshot-race.md) and a
         # snapshot's older files released only after `applySnapshot` opens it (188113160,
         # issues/etcd-release-snapdb-before-open.md). Then (D30n, 2026-10-23) branch
@@ -188,7 +188,7 @@ PROJECTS = [
         # on the range (acafa0317, issues/etcd-auth-grant-permission-same-key.md). Then (the
         # spec-first pilot, 2026-10-27) branch `goose-lean-grantfix-compactorstart` (on acafa0317):
         # the auto-compactor run by `start()`, not by `NewServer` (a20f6760f, the cherry-pick of
-        # 964dccdb4; issues/etcd-compactor-started-before-start.md). Then (M2, 2026-10-28) branch
+        # 964dccdb4; nonissues/etcd-compactor-started-before-start.md). Then (M2, 2026-10-28) branch
         # `goose-lean-compactfix` (on a20f6760f): upstream's fixes of the compaction of a key deleted
         # and put again in the compacted revision (etcd-io/etcd#22377, `keyIndex.doCompact`,
         # e7bb9f2de; #22395, the gRPC txn overlap check, 249d76bea;
@@ -198,10 +198,10 @@ PROJECTS = [
         # fix: notes/decisions.md, "The merged snapshot's index guard"). Then (#8's J8a-3,
         # 2026-11-01) branch `goose-lean-watchcfg` (on 633036387): `NewWatchServer` keeps the adjusted
         # progress interval local instead of writing `s.Cfg` (7cf3644ec,
-        # issues/etcd-cfg-watch-progress-interval-race.md). Then (#8's J8a-7, 2026-11-01) branch
+        # nonissues/etcd-cfg-watch-progress-interval-race.md). Then (#8's J8a-7, 2026-11-01) branch
         # `goose-lean-remotepause` (on 7cf3644ec): a remote paused by a flag under its own mutex,
         # as a peer, so that `CutPeer`/`MendPeer` may be repeated (ab3c28d9a; the nonissue
-        # issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md).
+        # nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.

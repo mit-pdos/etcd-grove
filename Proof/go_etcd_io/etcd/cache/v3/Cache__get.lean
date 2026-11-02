@@ -200,7 +200,7 @@ theorem Cache.get.wp_proof
       iframe Hreach
       iright; iexact Hlbr
     wp_auto
-    wp_apply wp_Restore cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf)
+    wp_apply wp_Restore cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (cacheGap cf.pfx)
       (monoNatAuthOwn cf.γb 1 (sint.nat r)) kvsSl m DFrac.discard r
       $$ [$HisStore $HisStoreW $HKsl $HkvsAt $Ha] as ⟨-, Ha, #Hlb, #Hslb⟩
     · isplitr
@@ -210,7 +210,9 @@ theorem Cache.get.wp_proof
         unfold etcdCert
         rw [restoreMap_sorted m Hsorted]
         iexact Hm
-      iexact HRr
+      isplitr
+      · iexact HRr
+      · imodintro; unfold cacheGap; ipureintro; trivial
     iapply HΦ
     iright
     isplitr

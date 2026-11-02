@@ -62,7 +62,8 @@ backend's batch lock has invariant `E.P` and runs the post-lock hook `E.f`.
   `Unlock` over the real backend may cost a write-back; 2026-10-13, unit 6). The caller certifies
   the logs the request may commit (`certPre`: the store's `txnEndPre` asks it of every commit;
   2026-10-14, unit T1). The applier state holds the apply thread's compaction resources at
-  `x.crev` (`cmpOwn`; M2's apply side, A1, 2026-10-31: item 21), which `applyStep` moves. -/
+  `x.crev` (`cmpOwn`; M2's apply side, A1, 2026-10-31: item 21), which `applyStep` moves. The rest
+  state's premise `restReqOk`, `dispatch`'s (the cluster-rows stage, 2026-11-02). -/
 abbrev apply.Apply.specRec : Prop :=
   ∀ (lg e : Loc) (m : EntryModel) (ua w : GoInterface) (v3 : Bool) (E : AEnv GF)
     (Pre Q Post : IProp GF) (x : apply.ApplyKV) (rq : IRRModel) (id : w64) (RD : IProp GF)
@@ -74,7 +75,8 @@ abbrev apply.Apply.specRec : Prop :=
        else iprop(True)) ∗ Pre ∗
       apply.applyKV E ua x ∗ mvcc.storeWT E.γ ∗ apply.certPreV v3 E x.chain rq x.log ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk x.log rq ∧
-        apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb x.log rq⌝ ∗ apply.cmpPermRq E rq ∗
+        apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb x.log rq ∧ apply.restReqOk rq rs⌝ ∗
+      apply.cmpPermRq E rq ∗
       mvcc.idxCert E.γ.idx F ∗ E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
@@ -104,7 +106,7 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     apply.Apply.specRec (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot F rs
   wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, Hwt, #Hcp, %Hprem, #Hcpr, #HF, HFS, HSp, HRO⟩
-  obtain ⟨Hdec, Hid, Hrq, Hdk, Hca⟩ := Hprem
+  obtain ⟨Hdec, Hid, Hrq, Hdk, Hca, Hrr⟩ := Hprem
   ihave #Hpk : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
   · iPkgInit
   iunfold apply.applierFor at Hfor
@@ -150,7 +152,9 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     · iframe # Hown Hkv Hwt Hcs HFS HSp HRO Hco
       isplitr
       · ipureintro; exact ⟨Hrq, Hdk, Hca⟩
-      ipureintro; exact Hskt
+      isplitr
+      · ipureintro; exact Hskt
+      ipureintro; exact Hrr
     iapply HΦ; iexact HQ
   subst Hid'
   icases Hout with (⟨%sk, ⟨HFS, %x', %out, Hown, Hkv, HPP, HRO, Hco, %Hst, Htr, Hres, #Hauth⟩, Hwv⟩ |

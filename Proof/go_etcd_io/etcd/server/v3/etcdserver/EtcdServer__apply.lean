@@ -432,11 +432,12 @@ theorem EtcdServer.apply.wp_proofOff
         -- (linkv-txn stage B1) the entry's registration, for the member's own ids
         ihave ⟨%ot, #Hreg⟩ := entryRegd_of_wait ρ E m h0 $$ [Hewo]
         · iframe Hewo; iapply isServer_waitIs $$ Hsrv0
+        icases srvApRes_cover s γr (A ++ ms.take (sint.nat j)) $$ HAR with ⟨HAR, %Hmc⟩
         wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') true xj γr ot aw
             (A ++ ms.take (sint.nat j)) hAuthOff) $$ [Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hka HRS]
           as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, HKV, %Hstep1, -, Hpre, Hka, HRS⟩, Hpost⟩
         · rw [ite_eq_left rfl]
-          iframe Hsrv0 Hewo He Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HRS HlbJ
+          iframe Hsrv0 Hewo He Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HRS %Hmc HlbJ
           isplitr
           · iexact Hreg
           isplitr
@@ -768,11 +769,12 @@ theorem EtcdServer.apply.wp_proofOff
         -- (linkv-txn stage B1) the entry's registration, for the member's own ids
         ihave ⟨%ot, #Hreg⟩ := entryRegd_of_wait ρ E m h0 $$ [Hewo]
         · iframe Hewo; iapply isServer_waitIs $$ Hsrv0
+        icases srvApRes_cover s γr (A ++ ms.take (sint.nat j)) $$ HAR with ⟨HAR, %Hmc⟩
         wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') false xj γr ot aw
             (A ++ ms.take (sint.nat j)) hAuthOff) $$ [Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hka HRS]
           as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, HKV, %Hstep1, -, Hpre, Hka, HRS⟩, Hst⟩
         · simp only [Bool.false_eq_true, ↓reduceIte]
-          iframe Hsrv0 Hewo He Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HRS HlbJ
+          iframe Hsrv0 Hewo He Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HRS %Hmc HlbJ
           isplitr
           · iexact Hreg
           isplitr
@@ -1289,12 +1291,13 @@ theorem EtcdServer.apply.wp_proofOn
         · iframe Hewo; iapply isServerM_waitIs $$ Hsrv0
         ihave HtokR : srvTokRights E (ciEff γ (stLoaded γ st').k) $$ [HtokR]
         · rw [hlc]; iexact HtokR
+        icases srvApRes_cover s γr (A ++ ms.take (sint.nat j)) $$ HAR with ⟨HAR, %Hmc⟩
         wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') true xj γr ot aw
             (A ++ ms.take (sint.nat j)) γa saj hM)
             $$ [Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hka HRS Hr2 HtokR]
           as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, %sa1, HKV, %Hstep1, -, Hpre, Hka, HRS⟩, Hpost, HtokR⟩
         · rw [ite_eq_left rfl]
-          iframe Hsrv0 Hlnil Hewo He Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hr2 Hao Hlog Hcm Hka HRS HlbJ HtokR
+          iframe Hsrv0 Hlnil Hewo He Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hr2 Hao Hlog Hcm Hka HRS %Hmc HlbJ HtokR
           isplitr
           · iexact Hreg
           isplitr
@@ -1642,11 +1645,12 @@ theorem EtcdServer.apply.wp_proofOn
         · iframe Hewo; iapply isServerM_waitIs $$ Hsrv0
         ihave HtokR : srvTokRights E (ciEff γ (stLoaded γ st').k) $$ [HtokR]
         · rw [hlc]; iexact HtokR
+        icases srvApRes_cover s γr (A ++ ms.take (sint.nat j)) $$ HAR with ⟨HAR, %Hmc⟩
         wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') false xj γr ot aw
             (A ++ ms.take (sint.nat j)) γa saj hM) $$ [Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hka HRS Hr2 HtokR]
           as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, %sa1, HKV, %Hstep1, -, Hpre, Hka, HRS⟩, Hst, HtokR⟩
         · simp only [Bool.false_eq_true, ↓reduceIte]
-          iframe Hsrv0 Hlnil Hewo He Hst Hbe Hlr Hgr Hfs HKV Hwt Hr2 Hao Hlog Hcm Hka HRS HlbJ HtokR
+          iframe Hsrv0 Hlnil Hewo He Hst Hbe Hlr Hgr Hfs HKV Hwt Hr2 Hao Hlog Hcm Hka HRS %Hmc HlbJ HtokR
           isplitr
           · iexact Hreg
           isplitr

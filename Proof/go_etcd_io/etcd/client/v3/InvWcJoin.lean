@@ -3,7 +3,7 @@
 reconnection). Lean-first, no Rocq counterpart.
 
 `waitCancelSubstreams` starts one goroutine per resuming substream, each after a `wg.Add(1)` on a
-local `sync.WaitGroup` (the fork's F4, `issues/etcd-watch-resume-waitgroup-overflow.md`), and a
+local `sync.WaitGroup` (the fork's F4, `nonissues/etcd-watch-resume-waitgroup-overflow.md`), and a
 goroutine that closes the returned channel after `wg.Wait()`. A goroutine whose watch's context is
 done posts the substream on `closingc` from a goroutine of its own, after a `w.wg.Add(1)` on the
 stream's wait group (`InvWatchWg.lean`), concurrently with the others.

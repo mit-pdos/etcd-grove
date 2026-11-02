@@ -764,7 +764,8 @@ theorem kvModelOn_nil (γk : KVNames) (st₀ : auth.AuthState) : kvModelOn γk s
 
 /-- **The workload facts of the committed log in the mode `on`** (`kvWork` with `logShapeOn`). -/
 def kvWorkOn (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) : IProp GF :=
-  iprop(⌜logShapeOn L ∧ ccLogOk cfg L ∧ logPutsOk L ∧ mvcc.LogPutsLe etcdKeyMax γk.log0⌝ ∗
+  iprop(⌜logShapeOn L ∧ ccLogOk cfg L ∧ logPutsOk L ∧ mvcc.LogPutsLe etcdKeyMax γk.log0 ∧
+      attrLogOk cfg.cfg L⌝ ∗
     [∗list] m ∈ L, entryClaim γk.ids m)
 
 instance kvWorkOn_persistent (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
@@ -961,7 +962,8 @@ theorem kvInvOn_alloc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
   · iunfold kvWorkOn
     isplitr
     · ipureintro
-      exact ⟨fun m hm => by simp at hm, fun m hm => by simp at hm, fun m hm => by simp at hm, hlk⟩
+      exact ⟨fun m hm => by simp at hm, fun m hm => by simp at hm, fun m hm => by simp at hm, hlk,
+        fun m hm => by simp at hm⟩
     · iapply BigSepL.bigSepL_nil.2
       iempintro
 

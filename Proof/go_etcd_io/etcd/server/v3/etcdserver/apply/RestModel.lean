@@ -16,14 +16,15 @@ environment's `AEnv.RO` its resource. Of the writers the apply path reaches:
 * the cluster's `UpdateAttributes(id, attr, v3)` (`ClusterMemberAttrSet`): for a member of the
   in-memory list, its attributes replaced in memory (whatever `v3`) and, with `v3`, the member
   saved (`members/<id> := json(member)`, `MustSaveMemberToBackend`: the **in-memory** member,
-  exception 7, which is why the in-memory list is part of the state); for another id nothing
-  (a removed member's: a warning; neither: a panic the contract does not model, as before);
+  exception 7, which is why the in-memory list is part of the state); another id is excluded by
+  the contract's member premise (in Go: a removed member's a warning, neither a panic; the server
+  removes no member);
 * the server's `applyConfChange` (`AddNode`, `RemoveNode`: `ccRest`, server-level).
 
 The writers the workload does not reach (the alarm store's `Activate`/`Deactivate`, the auth
 store's writes, the lessor's `Grant`/`Checkpoint`, the cluster's `SetDowngradeInfo`) take the
-environment's write right `AEnv.RW` instead, which leaves `RO`'s state alone: the server's is
-`False` (their requests are not admitted: `rqOk`).
+environment's write right `AEnv.RW` instead, which leaves `RO`'s state alone: the server's,
+`srvRestRWH`, is never lent (their requests are not admitted: `rqOk`).
 
 `memberKey`, `memberEnc` and `semverNorm` are opaque pure functions, each named in one writer's
 statement (`schema.BackendMemberKey`'s hex id, `json.Marshal` of a member, `semver.MustParse(v)

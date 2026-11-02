@@ -16,7 +16,7 @@ schema_UnsafeUpdateConsistentIndexForce: schema_unsafeUpdateConsistentIndex
 # proto.Unmarshal on authpb.User and authpb.Role (the encodings opaque, auth/Buckets.lean).
 # bytes.Equal is Perennial's. Not linked: unsafeGetAllUsers (backend.UnsafeForEach has no spec),
 # unsafeGetAllRoles (a range of a non-safe bucket: only a batch transaction may do it,
-# issues/etcd-auth-readtx-getallroles-panics.md), the batch-transaction methods (the admin side, S4).
+# nonissues/etcd-auth-readtx-getallroles-panics.md), the batch-transaction methods (the admin side, S4).
 proto_UnmarshalUser:
 proto_UnmarshalRole:
 schema_unsafeReadAuthEnabled:

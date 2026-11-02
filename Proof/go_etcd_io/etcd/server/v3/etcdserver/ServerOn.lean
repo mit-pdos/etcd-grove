@@ -470,6 +470,9 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     -- (J8b, 2026-11-01) the server's member id is the raft node's (`srvBuilt`'s)
     "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
+    -- (2026-11-02, the cluster-rows stage) the member id a voter (the monitors' permission,
+    -- `srvMonitorPermitM_of`: its attribute requests name it)
+    "%Hmidc" ∷ ⌜γn.id ∈ γr.raft.raft.cfg⌝ ∗
     -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
     "#HmetaSnap" ∷ srvMetaSnap γ ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
@@ -670,7 +673,8 @@ theorem rnTickerOk_srvErM_S (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai�
 what both modes' shapes give, `logShapeM_cc`). -/
 theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryModel)
     (hcc : ∀ m ∈ L, m.typ ≠ W32 0 → ccIdOf m.data = W64 0)
-    (hcl : ccLogOk ρ.raft.raft L) :
+    (hcl : ccLogOk ρ.raft.raft L)
+    (ha : attrLogOk ρ.raft.raft.cfg L) :
     ⊢ ([∗list] m ∈ L, entryClaim ρ.ids m) -∗ idNoZero ρ.ids -∗ srvRLogLb ρ.raft L -∗
       batchWaitOk ρ E L := by
   iintro #Hcl #HNZ #HL
@@ -698,7 +702,7 @@ theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List Entr
         iframe Hcl' Hreg
     · iexists L
       iframe HL
-      ipureintro; exact hm
+      ipureintro; exact ⟨hm, ha m hm⟩
   · rename_i ht
     have h0 := hcc m hm ht
     rw [h0]
@@ -756,7 +760,7 @@ theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth
   · inext; iexists L'; iframe HL' Hσ Hh Hw; ipureintro; exact Hok
   iunfold kvWorkOn at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
-  obtain ⟨Hsh, Hccl, -⟩ := Hsh
+  obtain ⟨Hsh, Hccl, -, -, Hatt⟩ := Hsh
   -- (2026-10-27) the committed log's entries are the server's log's or fillers
   have HshL : logShapeOn L := srv_entry_transfer_nv _ L L' entryShapeOn
     (fun m m' he h => by
@@ -773,11 +777,19 @@ theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth
       simp only [EntryModel.toLE] at h1 h2
       rw [h1, h2]; exact h)
     (fun m ht _ h => absurd ht h) HLi Hp.2.2 Hccl hnv
+  -- (2026-11-02, the cluster-rows stage) the attribute requests' members: the fillers ask nothing
+  have HatL : attrLogOk ρ.raft.raft.cfg L := srv_entry_transfer_nv _ L L' (attrEntryOk ρ.raft.raft.cfg)
+    (fun m m' he h => by
+      have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      unfold attrEntryOk at h ⊢; rw [h1, h2]; exact h)
+    (fun m _ hd => attrEntryOk_empty _ m hd) HLi Hp.2.2 Hatt hnv
   ihave #HclL := entryClaims_transfer ρ.ids _ L L' HLi Hp.2.2 $$ Hcl
   imodintro
   isplitr
   · ipureintro; exact HshL
-  iapply batchWaitOk_of_claims ρ E L (logShapeM_cc true L HshL) HcclL $$ HclL HNZ HL
+  iapply batchWaitOk_of_claims ρ E L (logShapeM_cc true L HshL) HcclL HatL $$ HclL HNZ HL
 
 /-- **The workload clause in the auth mode `on`**, from the mode's KV invariant. -/
 theorem clusterWorkloadOkM_of (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) :
@@ -996,7 +1008,8 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     iunfold kvWorkOn
     iframe Hcl
     ipureintro
-    exact ⟨hshape, hccl, fun m hm => entryPutsOk_conf m (by rw [hty m hm]; decide), hlk⟩
+    exact ⟨hshape, hccl, fun m hm => entryPutsOk_conf m (by rw [hty m hm]; decide), hlk,
+      fun m hm => attrEntryOk_conf _ m (by rw [hty m hm]; decide)⟩
   imodintro
   iframe Hinv Hhv
   iunfold etcdKV; iexact Hv2

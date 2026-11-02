@@ -4,7 +4,10 @@
 search of `Theory` (`searchInv`, `Search.lean`; one `Theory` lemma per branch). The loop also
 carries `⌜Inv …⌝ ∨ □ cs.PDone`: `StepContext` may answer `false` wrongly once the context is
 done (`stepCtxSpec`), after which the search is no longer the abstract one, and an exit on
-`len(calls) == 0` then answers `false` with the context done (which the spec allows).
+`len(calls) == 0` then answers `false` with the context done (which the spec allows). Beside it,
+unconditionally, `⌜Sound …⌝` (soundness: a wrong `false` only skips a call, and `StepContext`
+never answers a wrong `true`), which gives linearizability at the exit with the list empty
+(`sound_done`).
 
 The state values are shared in a pool `np` of non-atomic invariants allocated at the start
 (`Shared.lean`), whose token the loop keeps: `Init`'s value is shared right after `Init`, a new
@@ -20,6 +23,7 @@ an operation not on the stack, so `|fs|` is below the history's length, below `2
 module
 
 public import Spec.github_com.anishathalye.porcupine.checkSingle
+public import Proof.github_com.anishathalye.porcupine.Soundness
 public import Spec.github_com.anishathalye.porcupine.makeLinkedEntries
 public import Spec.github_com.anishathalye.porcupine.insertBefore
 public import Spec.github_com.anishathalye.porcupine.newBitset
@@ -62,7 +66,10 @@ macro "ctx_check" : tactic => `(tactic| (
     wp_for_post
     iapply HΦ
     iframe
-    iright; iright; iexact HPD
+    iright
+    isplitr
+    · ipureintro; rfl
+    iright; iexact HPD
   iclear Herr
   wp_auto))
 
@@ -266,6 +273,7 @@ theorem checkSingle.wp_proof
   · iframe
   -- the loop invariant
   ihave HI : (∃ (fs : List (Frame σ)) (s : σ) (p : Nat) (cache : List ((Nat → Prop) × σ)),
+      "%Hsnd" ∷ ⌜Sound S.M h (es.map entryOf) fs s p⌝ ∗
       "#Hgood" ∷ (⌜Inv S.M h (es.map entryOf) fs s p cache⌝ ∨ □ cs.PDone) ∗
       "Htok" ∷ NonAtomicInvariant.own np ⊤ ∗
       "Hs" ∷ searchInv S np h (es.map entryOf) hd loc entry_ptr state_ptr linearized_ptr cm
@@ -273,6 +281,8 @@ theorem checkSingle.wp_proof
       "Hlongest" ∷ longestOwn lgst h.length : IProp GF)
       $$ [entry Hnodes state linearized Hlsl Hcm calls Hlgst Htok]
   · iexists [], S.M.init, 0, []
+    isplitr
+    · ipureintro; exact sound_init _ _ _
     isplitl []
     · ileft; ipureintro; exact inv_init _ _ _
     isplitl [Htok]
@@ -403,6 +413,8 @@ theorem checkSingle.wp_proof
         iframe
         unfold searchInv
         simp only [named]
+        isplitr
+        · ipureintro; exact sound_skip Hsnd he
         isplitl []
         · iexact Hgood'
         iexists sv, lsl, ws, csl, ces
@@ -533,6 +545,8 @@ theorem checkSingle.wp_proof
           iframe
           unfold searchInv
           simp only [named]
+          isplitr
+          · ipureintro; exact sound_push Hsnd he ho (by simpa using hst)
           isplitl []
           · iexact Hgood'
           iexists nsv, lsl, bsSet ws (W64 y), csl', ces ++ [⟨loc ⟨false, y⟩, sv⟩]
@@ -592,6 +606,8 @@ theorem checkSingle.wp_proof
           iframe
           unfold searchInv
           simp only [named]
+          isplitr
+          · ipureintro; exact sound_skip Hsnd he
           isplitl []
           · iexact Hgood'
           iexists sv, lsl, _, csl, ces
@@ -623,10 +639,12 @@ theorem checkSingle.wp_proof
         wp_for_post
         iapply HΦ
         iframe
+        iright
+        isplitr
+        · ipureintro; rfl
         icases Hgood with (%Hinv | #HPD)
-        · iright; ileft; ipureintro
-          exact inv_fail hok Hinv he rfl
-        · iright; iright; iexact HPD
+        · ileft; ipureintro; exact inv_fail hok Hinv he rfl
+        · iright; iexact HPD
       -- `if computePartial { ... }`: memory safety only
       wp_join iprop(longestOwn lgst h.length ∗ csl ↦* ces ∗
           nodesG hd loc (valOf h) (es.map entryOf) (layout (es.map entryOf) (ids fs)) ∗
@@ -800,6 +818,8 @@ theorem checkSingle.wp_proof
       iframe
       unfold searchInv
       simp only [named]
+      isplitr
+      · ipureintro; exact sound_pop Hsnd
       isplitl []
       · iexact Hgood'
       iexists ce.state', lsl, bsClear ws (W64 f.id), _, ces'
@@ -819,6 +839,14 @@ theorem checkSingle.wp_proof
       have : ¬ ((!decide (curLoc loc (rem (es.map entryOf) (ids fs)) 0 = null)) = true) :=
         fun h' => Hif (by rw [h'])
       simpa using this
+    have hrem0 : rem (es.map entryOf) (ids fs) = [] := by
+      cases hr : rem (es.map entryOf) (ids fs) with
+      | nil => rfl
+      | cons e l =>
+        exfalso
+        have he0 : (rem (es.map entryOf) (ids fs))[0]? = some e := by rw [hr]; rfl
+        rw [curLoc_some he0] at hnull
+        exact Hlocnn e (rem_get_mem he0) hnull
     rw [hnull]
     simp only [_root_.decide_true, Bool.not_true, ↓reduceIte]
     wp_auto
@@ -915,7 +943,7 @@ theorem checkSingle.wp_proof
         refine ⟨by word, by word, by simp [Hk3]⟩
       · iapply HΦ
         isplitl []
-        · ileft; ipureintro; rfl
+        · ileft; ipureintro; exact ⟨rfl, sound_done hok Hsnd hrem0⟩
         iunfold longestOwn
         iexists ps'
         iframe Hps Hpse

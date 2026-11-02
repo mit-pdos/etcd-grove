@@ -340,6 +340,25 @@ theorem kmStep_transfer (γ : KMNames) (r0 a r1 : w64) (pfx : GoString) (s : Lis
   exact (step_transfer L1 pfx (sint.Z a).toNat (sint.Z r1).toNat (by omega) (by omega)
     (fun x hx1 hx2 => h1q x (by omega) (by omega))).symm
 
+/-- **Restriction** (`EtcdModel.etcdStep_restrict`): the quiet part of a step is a quiet step, over
+the same log. -/
+theorem kmStep_restrict (γ : KMNames) (p a x b : w64) (pfx : GoString) (evs : List EtcdEv) :
+    sint.Z p ≤ sint.Z a → sint.Z a < sint.Z x → (sint.Z x < sint.Z b ∨ (x = b ∧ evs = [])) →
+    kmStep (GF := GF) γ p b pfx evs ⊢ kmStep (GF := GF) γ a x pfx [] := by
+  intro hpa hax hxb
+  unfold kmStep
+  iintro ⟨%L, #H, %h⟩
+  iexists L
+  isplitr
+  · iexact H
+  ipureintro
+  obtain ⟨h0, h1, h2, hq, he⟩ := h
+  have hxb' : sint.Z x ≤ sint.Z b := by rcases hxb with h | ⟨rfl, -⟩ <;> omega
+  refine ⟨by omega, by omega, by omega, fun y hy1 hy2 => hq y (by omega) (by omega), ?_⟩
+  rcases hxb with hxb | ⟨rfl, rfl⟩
+  · exact hq _ (by omega) (by omega)
+  · exact he
+
 theorem kmStep_compose (γ : KMNames) (a b c : w64) (pfx : GoString) (evs : List EtcdEv) :
     kmStep (GF := GF) γ a b pfx [] ∗ kmStep γ b c pfx evs ⊢ kmStep γ a c pfx evs := by
   unfold kmStep
@@ -418,6 +437,7 @@ def etcdModelOfKV (γ : KMNames) : EtcdModel GF where
   EtcdStep_timeless := kmStep_timeless γ
   etcdStep_transfer := kmStep_transfer γ
   etcdStep_compose := kmStep_compose γ
+  etcdStep_restrict := kmStep_restrict γ
   etcdStep_delete_present := kmStep_delete_present γ
 
 theorem etcdModelOfKV_etcdState (γ : KMNames) :

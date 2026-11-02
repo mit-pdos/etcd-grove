@@ -19,7 +19,7 @@ returns (an error at worst, never a panic).
 **Why it is false.** `node.splitTwo` (bbolt `node.go`) clamps `FillPercent` with `<` and `>`,
 both false for NaN; `int(float64(pageSize) * NaN)` is `MinInt64` on amd64, which `splitIndex`
 compares as the `uintptr` `2^63`, so a leaf of `N` entries is split only into `N-3` and `3`, and
-`node.write` panics on a page of `0xFFFF` entries or more (`issues/bbolt-fillpercent-nan.md`).
+`node.write` panics on a page of `0xFFFF` entries or more (`nonissues/bbolt-fillpercent-nan.md`).
 
 **The counterexample**:
 

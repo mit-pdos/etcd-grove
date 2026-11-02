@@ -290,7 +290,7 @@ taking `P`; on the server's backend the auth buckets are hook buckets (`bridgePa
 the readers' view `vData`, so `rtHeldF_rbOwnIn` for them needs the readers' model extended (the
 auth Draft's Q2 survey: 2.5–10k lines); `UnsafeCreateBucket`/`UnsafeDeleteBucket`/`newPost`
 not restated; `ConcurrentReadTx` has no pool glue, and must get no idle law (its cache serves
-stale reads after a commit: `issues/etcd-backend-read-buffer-cache-stale-after-commit.md`);
+stale reads after a commit: `nonissues/etcd-backend-read-buffer-cache-stale-after-commit.md`);
 `rdStock` and `ThreadBoundLe (2^29)` are transitional counted stock.
 
 ### Round 2 (fresh `spec-reviewer`, the same material; the round-1 record read last)

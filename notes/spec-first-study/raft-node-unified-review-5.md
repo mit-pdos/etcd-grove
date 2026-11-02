@@ -22,7 +22,7 @@ Reviewer: a fresh spec reviewer, 2026-10-28. Read-only: nothing in the repositor
 
 Candidate 5 fixes review 4's findings in substance. The C1 race is gone in kvreconf's Go
 (`cluster.go:255-275`: the duplicate is cloned and the type and target are read before `Step`), and the
-kept-message contract is recorded in `issues/nonissues/raft-step-writes-caller-message.md`.
+kept-message contract is recorded in `nonissues/raft-step-writes-caller-message.md`.
 
 What is left:
 
@@ -56,7 +56,7 @@ What is left:
 - the `ownCommittedOps` text.
 
 **Go defects**: none new. The C1 race is fixed. The raft documentation gap is recorded as a non-issue
-(`issues/nonissues/raft-step-writes-caller-message.md`).
+(`nonissues/raft-step-writes-caller-message.md`).
 
 ---
 
@@ -338,7 +338,7 @@ unnecessary if receipts pay for them (D2).
 ## Go defects
 
 None new. The review-4 race in kvreconf is fixed at `HEAD`. Raft keeping and writing the stepped message is
-recorded in `issues/nonissues/raft-step-writes-caller-message.md`.
+recorded in `nonissues/raft-step-writes-caller-message.md`.
 
 ## Uncertain
 

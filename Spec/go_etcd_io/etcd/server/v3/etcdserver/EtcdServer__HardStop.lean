@@ -36,11 +36,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- See the file header. -/
 abbrev EtcdServer.HardStop.spec : Prop :=
-  ∀ (s : Loc) (γ : SrvRaft) (id : w64) (E : apply.AEnv GF) (ρ : ReqNames),
+  ∀ (s : Loc) (γ : SrvRaft) (id : w64) (dd : GoString) (E : apply.AEnv GF) (ρ : ReqNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvStopRight s γ id ∗ isServerReq s E ρ }}
+      srvStopRight s γ id dd ∗ isServerReq s E ρ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"HardStop")) (Val #()))
-  {{ RET #(); srvDiskImage γ ρ id }}
+  {{ RET #(); srvDiskImage γ ρ id dd }}
 
 end spec
 

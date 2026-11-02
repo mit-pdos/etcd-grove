@@ -183,7 +183,7 @@ theorem entryStep_rejected_no_write (m : EntryModel) (v3 : Bool) (y y' : apply.A
 /-! ## The apply loop -/
 
 section triples
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -423,7 +423,7 @@ uber-applier's chain (`alarmChain`), the outcome is `alarmPut`/`alarmDelete` (th
 (`apply.apply_kv`). The writing `Txn` and the read side: unit 3b's, below. -/
 
 section request
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -455,7 +455,9 @@ at `v = m.index - 1` (`srvAppliedOwn`, the log `appliedLogAt γr v x.log`) and t
 (`committedAtLeast γr m.index`): the KV log after the entry is deposited ahead as the log applied
 through `m.index` (`srvAppliedPre`), the witness the result carries. (D22 S8d, 2026-10-26: with
 `v3`, the state loaded, `stLoaded γ st = st`, as `apply`'s `ConsistentIndex` leaves it:
-`applyEntryNormal`'s premise, `notes/decisions.md`.) -/
+`applyEntryNormal`'s premise, `notes/decisions.md`.) (2026-11-02, the cluster-rows stage, the
+user's approval: the voters members of the rest state at `A`, `srvMemCover`, which `dispatch`'s
+`restReqOk` needs of a member attributes request; the apply loop's `srvApRes` holds it.) -/
 theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (b : GoInterface) (e : Loc) (m : EntryModel)
     (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV) (γr : ReadNames) (rq : apply.IRRModel)
@@ -466,7 +468,8 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
         applyThread γ st ∗ applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗
         srvApplyKV s E ρ.wait x ∗ mvcc.storeWT E.γ ∗ srvFS s ∗
         srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
-        kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ srvRLogLb γr.raft (A ++ [m]) ∗
+        kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
+        ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
         ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)⌝ ∗
         ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
         ⌜st.pending = false ∧ entryOk x m ∧ m.typ = W32 0⌝ ∗
@@ -485,7 +488,7 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
             ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩)
          else applyThread γ st) }} := by
   iintro %Φ ⟨#Hpkg, #Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hao, #HLv, #Hcm, Hka,
-    HRS, #HAm, %HkA, %Hvi, %Hpo, Hv3⟩ HΦ
+    HRS, %Hmc, #HAm, %HkA, %Hvi, %Hpo, Hv3⟩ HΦ
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A $$ [$Hsrv $HKV $Hka] with ⟨%hoff, HKV, Hka⟩
   iapply (EtcdServer.applyEntryNormal.spec_off EtcdServer.wp_applyEntryNormal
       s γ ci TM E ρ b e m st v3 x γr (some t) v A hoff)
@@ -503,7 +506,7 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
       iunfold waitRegdOpt
       iframe Hreg
       iintro %h; cases h
-    ipureintro; exact ⟨HkA, Hvi, Hpo⟩
+    ipureintro; exact ⟨Hmc, HkA, Hvi, Hpo⟩
   inext
   iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre, Hka, HRS⟩, Hpost⟩
   iapply HΦ
@@ -605,7 +608,7 @@ error. **`txn_applied_model`** (pure): through the uber-applier's chain the outc
 (the txn package's `txnModel` or a layer's rejection), the log after the outcome's. -/
 
 section read
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -811,7 +814,7 @@ reader back for a compaction job and needs none of its budgets; M2 turns the ser
 on.) -/
 
 section backend
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1136,6 +1139,7 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
       □ (∀ rs : EtcdGrove.apply.RestM, RO rs -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗
           mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d.be ∗
           (∀ bk, ⌜∀ n, n ≠ mvcc.leaseName → bk.lookup n = rs.bk.lookup n⌝ -∗
+            ⌜(rs.bk.lookup mvcc.leaseName).isSome → (bk.lookup mvcc.leaseName).isSome⌝ -∗
             mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗
@@ -1300,7 +1304,7 @@ end backend
 #print axioms Perennial.EtcdGrove.server_kv_watchable
 
 section latest
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1341,7 +1345,7 @@ end latest
 #print axioms Perennial.EtcdGrove.auth_delete_range_permitted_latest
 
 section readLb
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1404,7 +1408,7 @@ end readLb
 #print axioms Perennial.EtcdGrove.auth_admin_permitted_lb
 
 section latestApply
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1584,7 +1588,7 @@ end latestApply
 #print axioms Perennial.EtcdGrove.auth_role_revoke_permission_tie
 
 section userAddSure
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1604,7 +1608,7 @@ end userAddSure
 #print axioms Perennial.EtcdGrove.auth_user_add_sure
 
 section kvLatest
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1720,7 +1724,7 @@ theorem kv_outcome_on_latest [GooseExts] (c₀ : w64) (s : auth.AuthState × mvc
 #print axioms Perennial.EtcdGrove.kv_outcome_on_latest
 
 section adminLatest
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1902,7 +1906,7 @@ theorem admin_state_auth_enable [GooseExts] (γa : auth.AuthNames) (rq : EtcdGro
 #print axioms Perennial.EtcdGrove.admin_state_of_latest
 
 section userAddHandler
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1922,7 +1926,7 @@ end userAddHandler
 #print axioms Perennial.EtcdGrove.server_user_add_sure
 
 section tokens
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2031,7 +2035,7 @@ end tokens
 #print axioms Perennial.EtcdGrove.srv_auth_bound_of_inv
 
 section serverAuth
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2142,7 +2146,7 @@ end serverAuth
 #print axioms Perennial.EtcdGrove.server_Start_on
 
 section serverAuthAlloc
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2173,7 +2177,7 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
         authHistView γk [srvAuthSt0] ∗
         idClusterInv issued cnt wn fs srvFloorFacts ∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
-        ([∗list] id ∈ ps, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([] : List w64) ∗
+        ([∗list] id ∈ ps, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
           idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) (xs (idPfxOf (W16 (uint.Z id)))) ∗
           -- (2026-11-01, durability layer 4) with its durable state at `RaftState.init` and its
           -- vacant id (`cluster_alloc`'s, `StartNode`'s premises)
@@ -2190,7 +2194,7 @@ its names, as `NewServer.specM true`'s `kvInvM true`. -/
 theorem server_member_alloc_on (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w64)
     (cok : GName) :
     ⊢ kvInvOn (GF := GF) ⟨γ, [], W64 0⟩ γk srvAuthSt0 -∗
-      (idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([] : List w64) -∗
+      (idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) -∗
       idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id)), 0) ==∗
       ∃ ρ : ReqNames,
         ⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧
@@ -2219,7 +2223,7 @@ end serverAuthAlloc
 #print axioms Perennial.EtcdGrove.server_built_gap_on
 
 section goroutines
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2312,7 +2316,7 @@ end goroutines
 #print axioms Perennial.EtcdGrove.idutil_next
 
 section serverProposeOn
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2383,7 +2387,7 @@ theorem server_authenticate_on : EtcdServer.Authenticate.spec (GF := GF) (hG := 
 end serverProposeOn
 
 section applyEntryOn
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2429,7 +2433,7 @@ theorem apply_kv_after_on (c₀ : w64) (st : auth.AuthState) (x x' : EtcdGrove.a
 end applyEntryOn
 
 section applyStateOn
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2487,7 +2491,7 @@ theorem server_apply_admin_not_nospace_on
 end applyStateOn
 
 section readTxnLb
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -28,7 +28,7 @@ high water mark, remapping and growing the file when needed. It fdatasyncs, then
 meta to slot `txid % 2` under `metalock`, then fdatasyncs again. `Get` and `Snapshot` are read
 transactions under bbolt's locks. It differs from bbolt in two places, both bbolt bugs:
 - **init.** bbolt makes the metas and the pages they point at durable with one `fdatasync`
-  (`issues/bbolt-init-not-crash-safe.md`). minibolt syncs pages 2–3 first, then the metas, and
+  (`nonissues/bbolt-init-not-crash-safe.md`). minibolt syncs pages 2–3 first, then the metas, and
   redoes init when neither meta is valid.
 - **A failed commit.** After a failed fdatasync, the commit's meta is in the page cache, and so
   in the mapping, without being durable. bbolt goes on serving it (the second consequence of

@@ -33,8 +33,8 @@ adversarial review" and "Parallel tasks 1, 2, 4, 5".**
 Each is self-contained; pick one or more. They avoid the files above.
 
 1. **Upstream drafts for the two safety findings.** `issues/raft-advance-before-applyconfchange.md`
-   (reproduced: `issues/raft-conf-lag-model/leaderlag_test.go`) and
-   `issues/nonissues/raft-commit-lost-with-entries-kept.md` (abstract model only). Write issue texts
+   (reproduced: `notes/raft-conf-lag-model/leaderlag_test.go`) and
+   `nonissues/raft-commit-lost-with-entries-kept.md` (abstract model only). Write issue texts
    for etcd-io/raft in the format of the etcd drafts listed in `issues/README.md`
    (summary, what happens, how to reproduce, expected, the fix): one asking to document
    the precondition (apply a `Ready`'s conf changes before `Advance`; persist entries and
@@ -49,7 +49,7 @@ Each is self-contained; pick one or more. They avoid the files above.
    `leaderlag_test.go` no longer reproduces the violation (flip its assertion), that
    `go test ./...` passes, and think through async-storage mode
    (`MsgStorageApplyResp`). Deliverable: a patch file and notes under
-   `issues/raft-conf-lag-model/`, linked from the issue file.
+   `notes/raft-conf-lag-model/`, linked from the issue file.
 3. **Adversarial review of B1's paper proof** (`notes/reconfiguration-safety.md`, merged
    2026-10-14 as `bfa867336`; its five repairs and B2's first steps end its report). Read it
    against the Go code (`.lake/go-src/etcd-raft`) and try to break it: the winners table
@@ -57,7 +57,7 @@ Each is self-contained; pick one or more. They avoid the files above.
    the generalized leader-completeness case analysis, read index with joint quorums,
    snapshots/compaction (`base > applied`), pre-vote and `MsgTimeoutNow` campaigns,
    auto-leave, a leader's step-down on removal. A counterexample (ideally a Go test, else
-   an extension of `issues/raft-conf-lag-model/model.py`) is the most valuable outcome.
+   an extension of `notes/raft-conf-lag-model/model.py`) is the most valuable outcome.
    Deliverable: `notes/reconfiguration-safety-review.md`.
 4. **Diagnose the flaky parallel build of `stepLeader.lean`.** Under a parallel full
    build it sometimes fails ("unknown free variable", at varying lines around 436/711/813)
@@ -66,12 +66,12 @@ Each is self-contained; pick one or more. They avoid the files above.
    worktree and build cache. Deliverable: a diagnosis and a proposed fix in
    `notes/` — do not edit `stepLeader.lean` while A3 runs (hand the fix back).
 5. **Model-check the reconfiguration design more deeply.** The Python model
-   (`issues/raft-conf-lag-model/model.py`) only searched to depth 10–11, too shallow to
+   (`notes/raft-conf-lag-model/model.py`) only searched to depth 10–11, too shallow to
    separate the faithful and lagging modes. A faster checker (Go, or TLC on etcd-raft's
    `tla/etcdraft.tla` extended with an applied index distinct from the configuration
    switch) that reaches the depth of the known counterexamples (~22–26 steps) and then
    searches the faithful mode exhaustively at small bounds would back B1's paper proof.
-   Deliverable: the checker under `issues/raft-conf-lag-model/` and results in a notes file.
+   Deliverable: the checker under `notes/raft-conf-lag-model/` and results in a notes file.
 
 ## Tasks open since A3 merged (avoid B2's files above; these are in the code layer)
 

@@ -185,7 +185,7 @@ nothing (`kbNoCmp`), so `compactMainRev` stays `-1` and no compaction is resumed
      (`takeLimit`); the bridge's cursor lemmas already have the limit (`cursorRange_window`).
      *But* the real read is a prefix only when the read buffer has no entry in the range: with
      `n` buffered entries it returns bbolt's first `limit - n`, then the buffer's
-     (`issues/etcd-unsafe-range-limit-buffer.md`). So the limited contract needs a premise the
+     (`nonissues/etcd-unsafe-range-limit-buffer.md`). So the limited contract needs a premise the
      backend's abstraction does not have yet ("nothing buffered in the `Key` bucket", true at
      `restore`: `NewStore` wrote no key, a snapshot's backend is fresh), e.g. a token of the
      store's backend that the batch lock's first `Unlock` with puts consumes.

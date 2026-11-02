@@ -4,7 +4,7 @@ being processed (it is dirty), it is queued again (`QState.done`). Lean-first.
 
 The token is the precondition: `Done(k)` for an item that is not being processed, but dirty
 (queued), pushes a second copy of `k` (two `Get`s can then hand `k` out at once:
-`issues/k8s-workqueue-done-without-get-duplicates.md`); `QState.wf` would not be preserved.
+`nonissues/k8s-workqueue-done-without-get-duplicates.md`); `QState.wf` would not be preserved.
 -/
 module
 

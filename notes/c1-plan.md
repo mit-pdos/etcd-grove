@@ -216,7 +216,7 @@ written). Five statements false or unprovable as written, checked against the so
 - **F1** `pbAuthenticateRequest` reads the request read-only, but `EtcdServer.Authenticate` clears
   `r.Password` in a `defer` (CVE-2021-28235's fix; `v3_server.go`): `Password` goes to `recvOwn`.
 - **F2** `grpcAttemptMd` makes a key the context carries with no values visible to the handler as
-  `some []`; grpc sends no header for it (as `issues/etcd-auth-token-md-empty.md` relies on):
+  `some []`; grpc sends no header for it (as `nonissues/etcd-auth-token-md-empty.md` relies on):
   compare value lists up to empty ones.
 - **F3** grpc lowercases the credentials' keys: `credsMapIs` with lower-case keys.
 - **F4** `NewClient` calls the credentials' `RequireTransportSecurity()` on an insecure

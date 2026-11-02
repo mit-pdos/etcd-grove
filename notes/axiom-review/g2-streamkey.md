@@ -167,6 +167,6 @@ proof conclude `mdVals m "É" = ["v"]` of a stream whose Go metadata has no key 
 
 ## Other findings
 
-- `issues/etcd-watch-stream-key-collision.md` extended: the collision needs no space (an empty
+- `nonissues/etcd-watch-stream-key-collision.md` extended: the collision needs no space (an empty
   value list and `[""]` key alike). No new `issues/` file: grpc's lower-casing is documented.
 - The fault is the repository's (`metadata.lowerKey`'s reading of "lower-case"), not Perennial's.

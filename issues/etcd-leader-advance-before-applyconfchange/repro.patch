@@ -16,10 +16,10 @@ index a5e55b1756..3313871e39 100644
  			removedSelf, err := s.applyConfChange(&cc, ep, shouldApplyV3)
 diff --git a/tests/integration/leader_advance_confchange_test.go b/tests/integration/leader_advance_confchange_test.go
 new file mode 100644
-index 0000000000..e3fc9d274d
+index 000000000..0368a3254
 --- /dev/null
 +++ b/tests/integration/leader_advance_confchange_test.go
-@@ -0,0 +1,182 @@
+@@ -0,0 +1,185 @@
 +// Copyright 2026 The etcd Authors
 +//
 +// Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,6 +62,9 @@ index 0000000000..e3fc9d274d
 +// put of x with {L, F2} and acknowledges it once its apply loop catches up.
 +// A and B start (cut off from L and F2) and with F3 form {F3, A, B}, a
 +// majority of {L, F2, F3, A, B}, which elects a leader that never sees x.
++//
++// The test fails when the acknowledged x is lost. It passes when L refuses C2
++// while C1 is unapplied (the fixed behavior).
 +func TestLeaderAdvanceBeforeApplyConfChangeLosesWrite(t *testing.T) {
 +	integration.BeforeTest(t)
 +	integration.SkipIfNoGoFail(t)
@@ -124,7 +127,10 @@ index 0000000000..e3fc9d274d
 +	ctxb, cancelb := context.WithTimeout(context.Background(), 10*time.Second)
 +	respB, err := cliF3.MemberAdd(ctxb, []string{peerURL(B)})
 +	cancelb()
-+	require.NoError(t, err, "C2 refused")
++	if err != nil {
++		t.Logf("C2 refused while L has not applied C1 (%v): no overlapping membership change", err)
++		return
++	}
 +	b := types.ID(respB.Member.ID)
 +	require.False(t, has(L, a), "L applied C1 before C2 was proposed: no window")
 +	t.Logf("A=%s B=%s; C1 committed by index %d; C2 applied on F3 (applied %d) while L has applied neither (applied %d)",
@@ -193,12 +199,9 @@ index 0000000000..e3fc9d274d
 +	require.NoError(t, err)
 +	t.Logf("put y acknowledged by the new leader at revision %d", yresp.Header.Revision)
 +
-+	// A linearizable read through the new majority does not see the acknowledged x.
++	// A linearizable read through the new majority must see the acknowledged x.
 +	g, err := cliF3.Get(ctx, "x")
 +	require.NoError(t, err)
-+	if len(g.Kvs) == 0 {
-+		t.Logf("LOST ACKNOWLEDGED WRITE: x acknowledged at revision %d by %s, absent in a linearizable read at revision %d through %s",
-+			xrev, L.ID(), g.Header.Revision, F3.ID())
-+	}
-+	require.Emptyf(t, g.Kvs, "x reached the new majority: no violation this run")
++	require.NotEmptyf(t, g.Kvs, "lost acknowledged write: x acknowledged at revision %d by %s, absent in a linearizable read at revision %d through %s",
++		xrev, L.ID(), g.Header.Revision, F3.ID())
 +}

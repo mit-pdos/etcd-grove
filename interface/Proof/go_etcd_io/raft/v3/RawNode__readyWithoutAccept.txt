@@ -65,6 +65,4 @@ def readyVal (sp hp : Loc) (rs ents : GoSlice) (sn : Loc) (ce msgs : GoSlice) (m
   { SoftState' := sp, HardState' := hp, ReadStates' := rs, Entries' := ents, Snapshot' := sn, CommittedEntries' := ce,
     Messages' := msgs, MustSync' := ms }
 
-theorem stateW64_leader {r : PRole} (h : stateW64 r = StateLeader) : r = PRole.leader
-
 theorem hsOpt_of_hsRO [package_sem : Assumptions] (p : Loc) (h : HardStateM) : hsRO p h ⊢ hsOpt p h

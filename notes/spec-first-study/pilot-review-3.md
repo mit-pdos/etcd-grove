@@ -17,7 +17,7 @@ any of the claims below; the walks are by hand.
    so the statement equals the one with `Pc := fun _ => True`. C1's permit still never gets past the boundary,
    and C3 cannot be derived from a permit each caller picks for itself.
 3. **`New`'s `Run` contract cannot be met by `NewServer` at server.go:388.** This comes from the Go bug
-   already in `issues/etcd-compactor-started-before-start.md`, not from a flaw in the spec. No spec can fix
+   already in `nonissues/etcd-compactor-started-before-start.md`, not from a flaw in the spec. No spec can fix
    it. Recording the decision (a fork fix, or the compactor off) is now on the critical path for scope (A).
 4. **`Compact.spec` cannot serve the gRPC caller, and its callee cannot accept a compaction.** Expected for
    phase 1, but these are open sufficiency failures, listed so they are not mistaken for done.
@@ -121,7 +121,7 @@ is written in `start()` (server.go:570). The proofs build `isServerReq` in `Etcd
 - in both cases the call races with, or nil-dereferences, `s.w`.
 
 So no `R` makes this sound. The plan's option 3b ("a contract whose resource waits for `Start`") is
-impossible. This is `issues/etcd-compactor-started-before-start.md`, whose "How the proof handles it" section
+impossible. This is `nonissues/etcd-compactor-started-before-start.md`, whose "How the proof handles it" section
 is now stale (it describes N0's `{True} Run {True}`). Restatement: none inside these specs. The choices are:
 - (a) a fork fix: move `srv.compactor.Run()` into `start()`, as the raft fixes are carried in the fork;
 - (b) `NewServer` keeps `AutoCompactionRetention = 0`, and C2 is dropped from scope (A).
@@ -131,7 +131,7 @@ Decide before the `NewServer` glue, and update the issue's proof section.
 **F2.2 (Tier 1, minor: no unneeded premise / premise stricter than the parser).** `mode = "periodic" → 10 ≤ ret`
 (New.lean). etcd accepts negative periods (`time.ParseDuration`, embed/etcd.go:940), and the code runs with
 them without panicking. It busy-loops with zero effective retention, but a WP is partial correctness.
-- `issues/etcd-compactor-periodic-tiny-retention.md` itself says the true statement needs only
+- `nonissues/etcd-compactor-periodic-tiny-retention.md` itself says the true statement needs only
   `ret ≤ -10 ∨ 10 ≤ ret`.
 - Phase 0's C2 draft says "for any accepted retention", so this premise excludes configurations C2 claims.
 - With a negative period, `perPermit`'s full-window clause is trivial (`clockLb T` from `stampAt_clockLb`,
@@ -336,6 +336,6 @@ embedded `*store`, which needs the promoted-method dispatch to have a spec.
 - F4.4: the promoted `watchableStore.Rev` dispatch spec, and `isServerReq`'s link from `s.kv` to `E.s`.
 - The New glue (the periodic/revision branches matching `modePermit` by `if` reduction on `GoString`
   equality) was walked by hand only.
-- Go bugs: none new. F2.1 is `issues/etcd-compactor-started-before-start.md`, whose "How the proof handles it"
+- Go bugs: none new. F2.1 is `nonissues/etcd-compactor-started-before-start.md`, whose "How the proof handles it"
   section is stale. The negative-revision-retention behavior (Target 3) is a misconfiguration covered in
   spirit by the tiny-retention issue's link to #22396. I did not create an entry.

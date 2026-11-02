@@ -1,11 +1,11 @@
 # Model checking the reconfiguration design (2026-10-14)
 
 Task 5 of `notes/parallel-work.md`: search the abstract membership model
-(`issues/raft-conf-lag-model/model.py`) far deeper than its Python BFS (depth 10-11), find
+(`notes/raft-conf-lag-model/model.py`) far deeper than its Python BFS (depth 10-11), find
 the lagging-mode counterexamples by search rather than by hand, and search the faithful
 mode (the precondition of `issues/raft-advance-before-applyconfchange.md` respected)
 exhaustively at small bounds, as evidence for the B1 paper proof
-(`notes/reconfiguration-safety.md`). Checker: `issues/raft-conf-lag-model/checker/`
+(`notes/reconfiguration-safety.md`). Checker: `notes/raft-conf-lag-model/checker/`
 (Go, no dependencies; its README says how to run it and lists every flag); the runs below
 are `checker/runs.sh`.
 
@@ -25,7 +25,7 @@ are `checker/runs.sh`.
   need only 3 nodes and two removals (`trace-check-lag3-sms.txt`: depth 20 with every node
   allowed to lag, in `model.py`'s own terms). The crash mode gives an SMS violation at depth 16
   (`trace-crash.txt`: 20). All replay in `model.py` (UNSAFE at the last step).
-- **Guard-fix mode** (`issues/raft-conf-lag-model/guard-fix.md`'s semantics, every node's
+- **Guard-fix mode** (`notes/raft-conf-lag-model/guard-fix.md`'s semantics, every node's
   application allowed to lag): no violation. Exhaustive at 3 nodes (terms ≤ 3, logs ≤ 5,
   2 conf changes: 5.0·10^8 states, diameter 51), where the unfixed lag mode fails at
   depth 20; at 4 nodes complete to depths 22-25 (1.6-1.7·10^9 states), past the depths
@@ -101,7 +101,7 @@ All bounds are `-n 4 -init 3` unless stated; "states" are distinct up to symmetr
 violation beyond what fits in 25 GB: depth 17 alone adds 1.2·10^8 states. Restricting the
 lag to one node, as the Go test does, brings it to depth 17; at 3 nodes it is depth 20.)
 
-**`lag-all-lc`** (`issues/raft-conf-lag-model/trace-check-lag-lc.txt`): the leader-lag
+**`lag-all-lc`** (`notes/raft-conf-lag-model/trace-check-lag-lc.txt`): the leader-lag
 class. Node 1 leads term 1, commits `add 4` (index 2) with `{1,3}`, applies indices 1-2
 without `ApplyConfChange` (still on `C0`), proposes `rem 3` (index 3; `pendingConfIndex` 2
 `≤` applied 2) and `x` (index 4), commits index 4 with `{1,3}` under `C0`. Node 4 receives
@@ -201,12 +201,12 @@ Does not cover:
   then learns entries before the candidate wins; pre-vote equals vote. `MsgTimeoutNow`
   (leader transfer) is not modelled.
 - **Snapshots, compaction, learners, restarts** (outside the crash mode, which is
-  `issues/nonissues/raft-commit-lost-with-entries-kept.md`'s fault): none. So
+  `nonissues/raft-commit-lost-with-entries-kept.md`'s fault): none. So
   `issues/raft-snapshot-during-apply-stale-confchange.md` is out of scope.
 - **Joining nodes start from `C0`.** An addable node starts with an empty log and the
   initial configuration `C0` (it is not a member of it, so it cannot campaign until it has
   applied its own `add`). This is the bootstrap assumption B1 makes and the fix that
-  `issues/nonissues/raft-joiner-empty-confstate.md` asks for; that issue's execution (a joiner whose
+  `nonissues/raft-joiner-empty-confstate.md` asks for; that issue's execution (a joiner whose
   configuration is the fold of the changes onto an empty one, winning alone) is excluded
   by construction.
 - **Conf change shapes**: `add`/`rem` of one voter (simple), or entering a joint
@@ -227,7 +227,7 @@ Does not cover:
 
 ## Reproducing
 
-    cd issues/raft-conf-lag-model/checker && go build -o /tmp/rcc .
+    cd notes/raft-conf-lag-model/checker && go build -o /tmp/rcc .
     ./runs.sh /tmp/rcc /tmp/runs                          # all of the above, hours
     ONLY="lag-1-sms crash-sms" ./runs.sh /tmp/rcc /tmp/runs
     /tmp/rcc -n 4 -mode lag -replay ../trace-leaderlag.txt

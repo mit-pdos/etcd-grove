@@ -393,8 +393,8 @@ can supply it: lend `rbOwn` and `srvObjsOn`'s `lessorBeOn`, keep `clusterMem` in
 ## Bugs in the Go code
 
 None new. Go's behaviours the clause relies on, or rules out, are already filed:
-- `le.rd == nil` with a double revoke: `issues/nonissues/etcd-lessor-revoke-twice-no-deleter.md`;
-- `le.rd` read outside the lock: `issues/nonissues/etcd-lessor-revoke-rd-unlocked.md`.
+- `le.rd == nil` with a double revoke: `nonissues/etcd-lessor-revoke-twice-no-deleter.md`;
+- `le.rd` read outside the lock: `nonissues/etcd-lessor-revoke-rd-unlocked.md`.
 
 The false statement of this repository's `lessor.Recover` axiom (the plan's F2) is in
 `notes/audit.md`, correctly in `notes/` rather than `issues/`.

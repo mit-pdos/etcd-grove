@@ -57,7 +57,7 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
 * A `nil` logger is replaced by `zap.NewNop()`'s; of the configuration `cfg`, a zero
   `CompactionBatchLimit` is replaced by the default (1000): a negative one is excluded by the
   premise `0 ≤ cfg.CompactionBatchLimit` (`NewStore` keeps it, and the compaction job would
-  loop forever: `issues/etcd-compaction-negative-batch-limit.md`), so `isStore`'s limit is
+  loop forever: `nonissues/etcd-compaction-negative-batch-limit.md`), so `isStore`'s limit is
   positive.
 * A quarter of the four fields `store.Restore` writes (`fieldShare`; D22 receiver epochs, S3,
   2026-10-22: until then `isStore` held them `↦□`, and `NewStore` returned the stop channel's,

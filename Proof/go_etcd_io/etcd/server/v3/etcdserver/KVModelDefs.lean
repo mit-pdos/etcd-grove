@@ -147,7 +147,7 @@ def plainLog (A : List EntryModel) : Prop := ∀ m ∈ A, plainEntry m
 /-- **A compaction request in M2's scope**, as `EtcdServer.Compact` proposes it
 (`&pb.InternalRaftRequest{Compaction: r}`): of the kind `compaction`, at a revision `≥ 1` (M2, the
 storage side, 2026-10-30: **M2's scope restriction**, the user's Q7 (a), the approval's item 35: no
-compaction at revision `0`, `issues/etcd-restore-scheduled-compact-zero.md`; `EtcdServer.Compact.spec`'s
+compaction at revision `0`, `nonissues/etcd-restore-scheduled-compact-zero.md`; `EtcdServer.Compact.spec`'s
 premise `1 ≤ r`), with no side-effect-free field (`Apply` would skip it without a waiter) and no admin
 field (the auth layer's admin check would reject it) beside it (M2's apply side, item 5, review round
 1's F-4: so `Apply` dispatches it on every member). `Compact`'s request has nothing else set. -/

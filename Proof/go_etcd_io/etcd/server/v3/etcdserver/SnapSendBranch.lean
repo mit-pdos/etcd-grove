@@ -738,21 +738,75 @@ theorem mergedCreate_window
       ipureintro; exact Hmi
     ipureintro; exact ⟨hok, rfl⟩
 
-/-- **(S2, open) The merged snapshot's image** (the network's image certificate, `srvNet`'s `img`,
-which the bundle carries): an observation `mergedObs` at the applied index `ai` of the applied log
-`A` (`kvApplied`: the KV log the model's, `kvModel`) of the server, with the KV's start values
-(`isServerApplyAll`'s). The image is exact at `ai` (the consistent index the applied index:
-`mergedCreate_window`'s `ciEff γ st.k = ai`). With the auth mode off: with auth on, the KV log is
-the mode-on model's (`kvModelOn`), not the image `srvNet` carries (`srvImage`, mode off), so the
-on-mode branch is open (`notes/decisions.md`, "applyAll's merge branch (S1)"). Reach the image only
-through this lemma (`srvImage`, `srvImageR` change with the durability work). -/
+/-- **(S2) The merged snapshot's image** (the network's image certificate, `srvNet`'s `img`, which
+the bundle carries): an observation `mergedObs` at the applied index `ai` of the applied log `A`
+(`kvApplied`: the KV log the model's, `kvModel`) of the server, with the KV's start values
+(`isServerApplyAll`'s), with the compaction mode off (`hcmp`; 2026-11-02, the user's approval:
+false without it, `merged_image_cmp`). The image is `srvImage` of the apply thread's KV names:
+`mergedObs`'s exact `Key` clause and `noCmpData` give `keyImage`, its `Meta` and rest clauses the
+rest of `imageAt`; the KV invariant gives the start chain (`kvInv_ch0_off`), the raft log's invariant
+the fresh start's names (`srvRaftLogInv_fresh`). The image is exact at `ai` (the consistent index the
+applied index: `mergedCreate_window`'s `ciEff γ st.k = ai`). With the auth mode off: with auth on,
+the KV log is the mode-on model's (`kvModelOn`), not the image `srvNet` carries (`srvImage`, mode
+off), so the on-mode branch is open (`notes/decisions.md`, "applyAll's merge branch (S1)"). Reach
+the image only through this lemma. -/
 theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai : w64) (A : List EntryModel)
     (x : apply.ApplyKV) (D : backend.Data) (hlen : uint.Z ai = A.length)
-    (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]) :
+    (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]) (hcmp : E.cmp = false) :
     ⌜mergedObs γr E.cmp ai A x.log D⌝ ∗ isServer s γ ci TM E ρ γr ∗ kvApplied γr.raft γr.kv A x ⊢
       |={⊤}=> kvApplied γr.raft γr.kv A x ∗ □ (srvNet (GF := GF) γr.raft.raft).img ai D := by
-  sorry
+  iintro ⟨%hobs, #Hsrv, Hka⟩
+  rw [hcmp] at hobs
+  obtain ⟨-, hkey, hnc, hci, hterm, hrest, hwf⟩ := hobs
+  iunfold isServer at Hsrv
+  icases Hsrv with ⟨-, -, -, Hat, -, -⟩
+  iunfold srvAtomics at Hat
+  icases Hat with ⟨-, -, Hki⟩
+  iunfold srvKVInvs at Hki
+  icases Hki with ⟨#Hki, -, #Hrl, -⟩
+  ihave %hraft := srvRaftLogInv_fresh γr.raft $$ Hrl
+  imod (kvInv_ch0_off γr.raft γr.kv) $$ Hki with %hch
+  iunfold kvApplied at Hka
+  icases Hka with ⟨Hka, %hx⟩
+  iunfold kvAppliedL at Hka
+  icases Hka with ⟨#HA, Hhi, Hcert, %hlog⟩
+  imodintro
+  isplitl [Hhi Hcert]
+  · iunfold kvApplied
+    iunfold kvAppliedL
+    iframe HA Hhi Hcert
+    ipureintro; exact ⟨hlog, hx⟩
+  ihave #HA' : srvRLogLb (GF := GF) ⟨γr.raft.raft, [], W64 0⟩ A $$ []
+  · rw [← hraft]; iexact HA
+  iintro !>
+  simp only [srvNet]
+  iapply (srvImage_of_dbImage (γk := γr.kv) h0.1 hch h0.2)
+  iunfold dbImage
+  iexists A
+  iframe HA'
+  ipureintro
+  have hpre : γr.raft.pre = [] := by rw [hraft]
+  rw [hlog] at hkey hwf
+  have hz : uint.Z (W64 0) = 0 := rfl
+  refine ⟨by simp only []; omega, ⟨⟨hkey rfl, (hnc rfl).1, (hnc rfl).2⟩, hci, hterm, ?_, hwf⟩⟩
+  simpa [hpre] using hrest
+
+/-- **(open, false as stated) The merged snapshot's image with the compaction mode on**
+(SNAPSHOT-SORRY #7-cmp; 2026-11-02, the user's approval, `notes/merged-image-plan.md`):
+`merged_image`'s statement at `E.cmp = true`. **False**: `srvImage`'s `keyImage` says `Meta` holds
+no compaction key and the `Key` bucket is the whole log, while a snapshot taken after a compaction
+was applied holds `scheduledCompactRev` (`updateCompactRev` commits it before the job deletes keys)
+and can lack compacted keys. The compaction-mode collections (`compactkv`, `m2`'s `putgetc_safe`,
+`cachekv`) rest on it. The repair, its own stage with #7-on's: the image in the cluster's mode, in
+place (`imageAt`'s `keyImage` as `mvcc.keyImageM γk.cmp`, `keyImageM_off`). -/
+theorem merged_image_cmp (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai : w64) (A : List EntryModel)
+    (x : apply.ApplyKV) (D : backend.Data) (hlen : uint.Z ai = A.length)
+    (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]) (hcmp : E.cmp = true) :
+    ⌜mergedObs γr E.cmp ai A x.log D⌝ ∗ isServer s γ ci TM E ρ γr ∗ kvApplied γr.raft γr.kv A x ⊢
+      |={⊤}=> kvApplied γr.raft γr.kv A x ∗ □ (srvNet (GF := GF) γr.raft.raft).img ai D := by
+  sorry -- SNAPSHOT-SORRY #7-cmp
 
 end proof
 

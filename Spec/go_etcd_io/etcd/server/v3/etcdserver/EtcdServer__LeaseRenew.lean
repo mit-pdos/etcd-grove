@@ -43,7 +43,7 @@ of the TTL.
 reads the lessor and `Renew` looks the lease up again, so a key attached in between is renewed
 unchecked (as `LeaseTimeToLive`'s, `issues/etcd-lease-timetolive-keys-toctou.md`); the check reads
 the local lessor, which may lag the lessor that renews: a follower's, the leader's
-(`issues/etcd-lease-renew-keys-follower-lag.md`), and the leader's own with `FastLeaseKeepAlive`
+(`nonissues/etcd-lease-renew-keys-follower-lag.md`), and the leader's own with `FastLeaseKeepAlive`
 and the lease found, which skips `waitAppliedIndex` (entries committed but not yet applied). The
 revision re-check is not stated (`checkLeaseRenew.spec`'s margin). -/
 abbrev EtcdServer.LeaseRenew.spec : Prop :=

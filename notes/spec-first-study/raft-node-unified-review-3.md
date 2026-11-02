@@ -359,7 +359,7 @@ input matches `nodeConfig`'s membership.
 ### B13. Smaller points carried over (Tier 3)
 
 - **No workload note.** `ConfRule.Ok` has no docstring note that etcd's own validation can remove the last
-  voter (`issues/raft-remove-last-voter-panic.md`), so etcd's rule is `Ok` only after filtering (review 2,
+  voter (`nonissues/raft-remove-last-voter-panic.md`), so etcd's rule is `Ok` only after filtering (review 2,
   A8).
 - **`bootedCluster` in a `c0` cluster.** `stepIn_intro` still takes `⌜≠ MsgPreVote⌝ ∨ bootedCluster γ`
   (`InvNode.txt:302`), and `bootedCluster` comes from `nodeBoot_booted` only. A `c0` cluster (`boot = []`)

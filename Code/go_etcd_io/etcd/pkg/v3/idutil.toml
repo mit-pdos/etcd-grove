@@ -1,7 +1,12 @@
-# The request id generator (id.go), with bodies: NewGenerator, Next, lowbit.
+# The request id generator (id.go), with bodies: NewGenerator, lowbit; Next trusted (below).
 translate = ["!*", "tsLen", "cntLen", "suffixLen", "Generator", "NewGenerator",
-  "Generator.Next", "lowbit"]
+  "lowbit"]
 imports = ["!*", "math", "sync/atomic", "time"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# (the restart plan's R2c stage 2, 2026-11-02) `Next` modeled: its Go body and an assumption that no
+# other generator issued the id (TrustedCode/go_etcd_io/etcd/pkg/v3/idutil.lean, the issue record
+# GooseLang/Ext/IdIssue)
+trusted = ["Generator.Next"]

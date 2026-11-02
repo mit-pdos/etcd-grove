@@ -224,7 +224,7 @@ and the docstring should say so, or the definitions should use `Int.tdiv`.
 
 **F3.1 (Tier 1, sufficient for `NewServer`: `compactableOk` is demanded at `New` time, which the server cannot meet; the cause is a real Go bug).**
 - Evidence: `NewServer` calls `New(..., srv.kv, srv)` and then `Run()` at `server.go:383-388`,
-  before `start()` sets `s.w` (`issues/etcd-compactor-started-before-start.md`). `Compact.spec`
+  before `start()` sets `s.w` (`nonissues/etcd-compactor-started-before-start.md`). `Compact.spec`
   needs `isServerReq`, which includes `w ↦□ v.w ∗ waitInv` (`InvProposer.lean:405`).
 - No restatement of `New` makes `NewServer` provable while the code races: the issue's panic is
   real. But `New` never calls `Compact` or `Rev`, so demanding `revGetterOk ∗ compactableOk` in
@@ -393,7 +393,7 @@ docstring is package-internal, I note only that it exposes fields, which is fine
     baseInterval` with a negative `baseInterval` is false, which is always), it compacts at a sample
     taken microseconds earlier. The retention is effectively zero, and the loop burns CPU.
   - It is not a panic. Upstream PR etcd-io/etcd#22396 (open) would reject it.
-  - It is mentioned only as a sibling in `issues/etcd-compactor-periodic-tiny-retention.md`. It
+  - It is mentioned only as a sibling in `nonissues/etcd-compactor-periodic-tiny-retention.md`. It
     deserves its own file if the spec keeps excluding it (F3.2).
 - I did not reproduce it with a Go test.
 

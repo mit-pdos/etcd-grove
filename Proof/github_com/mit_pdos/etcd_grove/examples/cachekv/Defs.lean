@@ -94,7 +94,9 @@ def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
       ⌜cfgOk cfg ∧ urlsOk U ∧ γ.vs = [id] ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
         γ.boot = LogEntry.toEntries boot 0⌝ -∗
-      letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N (ckDir id)) ∗
+      -- (the cache over a compacting member, 2026-11-02, as `compactkv`'s) at `N + N` write tokens:
+      -- `N` more, the compaction's write-back stock
+      letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs (N + N) (ckDir id)) ∗
     bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
     rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     (□ ∀ E : RNEnv GF, ⌜E.T = iprop(True)⌝ -∗ rnTickerOk E) ∗

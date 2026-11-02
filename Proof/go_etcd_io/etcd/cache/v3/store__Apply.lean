@@ -76,7 +76,7 @@ theorem store.Apply.wp_proof
     (wp_applyProgressNotifyLocked : store.applyProgressNotifyLocked.spec (GF := GF) (hG := hG))
     (wp_applyEventsLocked : store.applyEventsLocked.spec (GF := GF) (hG := hG)) :
     store.Apply.spec (GF := GF) (hG := hG) := by
-  intro s γ cap E R lo resp r
+  intro s γ cap E R G lo resp r
   wp_start as ⟨#Hs, #Hguard, #Hresp, %Hsorted, #Hlo, %Hlo0, #Hcert⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
@@ -111,7 +111,14 @@ theorem store.Apply.wp_proof
     iunfold storeApplyCert at Hcert
     have hpre : StoreInv cap st ∧ st.history.getLast? = some (Y, st.latest) ∧
         sint.Z lo ≤ sint.Z Y := ⟨Hinv, hY, hloY⟩
-    icases Hcert $$ %st %Y %hpre HEY with ⟨%Hok, #Hcerts, #Hrevs⟩
+    icases Hcert $$ %st %Y %hpre HEY with ⟨%Hok, #Hcerts, #Hrevs, #Hgaps⟩
+    -- the gaps of the state `Apply` leaves: old ones, or the caller's
+    ihave #HGn : gapList G (gapsOf (applyResp cap st r).1.history
+        (applyResp cap st r).1.latestRev) $$ []
+    · iapply gapList_of_or G _ _ _ (fun g hg => gapsOf_applyResp cap st r _ hY g hg)
+      isplitl []
+      · iexact HG
+      · iexact Hgaps
     have Hsync' : (applyResp cap st r).1.Synced := by
       rcases Hok with h | h
       · exact applyResp_synced cap st r Hsynced h
@@ -201,6 +208,7 @@ theorem store.Apply.wp_proof
           ihave #Hcerts' : snapCerts E (applyEventsSnaps st.latest r.events) $$ []
           · rw [← Hsnaps]; iexact Hcerts
           rw [Happ] at Hsync' Hkey
+          rw [Happ]
           wp_apply wp_applyEventsLocked s γ cap E st resp.Events' r.events
             $$ [HlatestRev Hhist Htr] as %err ⟨#HeA, Hphys, % ⟨Hinv', Hmono'⟩, %Herr⟩
           · iunfold storeLockedPhys; iframe; iframe Hs HevsAt Hcerts'; ipureintro
@@ -259,6 +267,7 @@ theorem store.Apply.wp_proof
             simp [applyRespRevs, hc, hv, hpn]
         rw [Hlr]
         rw [Happ] at Hsync' Hkey
+        rw [Happ]
         generalize (if st.latestRev = W64 0 then st else { st with latestRev := r.hdrRev }) = st'
           at Happ Hinv' Hmono' Hhs Hlt Hsync' Hkey
         have Hkeq : storeSnapKey st' = storeSnapKey st := by simp [storeSnapKey, Hhs]

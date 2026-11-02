@@ -32,7 +32,7 @@ namespace common
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -82,7 +82,7 @@ theorem Serve.wp_proof
     isplitr
     · ipureintro; rw [Hwpi]; simp
     ipureintro; intro v hv
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
+    simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
     subst hv; exact Hkv
   -- `net.Listen("tcp", addr)`
   wp_apply (wp_Listen go!"tcp" addr) $$ [Haddr] as %lis %lerr Hlis
@@ -164,7 +164,7 @@ theorem Serve.wp_proofOn
     isplitr
     · ipureintro; rw [Hwpi]; simp
     ipureintro; intro v hv
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
+    simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
     subst hv; exact Hkv
   -- `net.Listen("tcp", addr)`
   wp_apply (wp_Listen go!"tcp" addr) $$ [Haddr] as %lis %lerr Hlis

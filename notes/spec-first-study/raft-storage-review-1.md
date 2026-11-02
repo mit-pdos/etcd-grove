@@ -40,7 +40,7 @@ There are also three statement-level errors and two simplifications.
 - **`storLink_createSnapshot` asks for no term.** That answers the user's `storTermsAt` point.
 - **The certificate argument is right.** "Compacted ⇒ a certified snapshot at or past the boundary"
   (`offset ≤ snap.Index`, the cert in the invariant) is exactly what `maybeSendSnapshot` needs
-  (`issues/raft-compact-past-snapshot.md`).
+  (`nonissues/raft-compact-past-snapshot.md`).
 - **Two writers (open point 5) are fine.** The laws rest on a persistent link, so etcd's raft
   goroutine and apply goroutine can each use them.
   - etcd sends `notifyc` before its `ApplySnapshot` (`raft.go:272-277`). The apply goroutine's

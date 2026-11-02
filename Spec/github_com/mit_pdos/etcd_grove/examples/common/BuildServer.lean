@@ -100,7 +100,7 @@ abbrev BuildServer.specStop : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false ∗
-          srvStopRight s γ id) }}
+          srvStopRight s γ id (name ++ go!".etcd")) }}
 
 /-- See the file header (`specRestart`). -/
 abbrev BuildServer.specRestart : Prop :=
@@ -121,7 +121,7 @@ abbrev BuildServer.specRestart : Prop :=
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      srvDiskImage γ ρ id ∗ netHttpOk γn id }}
+      srvDiskImage γ ρ id (name ++ go!".etcd") ∗ netHttpOk γn id }}
     (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.common.BuildServer))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token))
@@ -129,7 +129,7 @@ abbrev BuildServer.specRestart : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ ∃ (ρ' : ReqNames) (E₀' : apply.AEnv GF),
-          ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvStopRight s γ id) }}
+          ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvStopRight s γ id (name ++ go!".etcd")) }}
 
 end spec
 

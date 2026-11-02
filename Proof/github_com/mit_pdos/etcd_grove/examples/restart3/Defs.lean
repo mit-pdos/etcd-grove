@@ -125,9 +125,9 @@ instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (L
 `s`, its peer listener `pl`), the right to stop `s` once started, and the right to close `pl`,
 served at `peerAddr` with member `id`'s raft protocol in the network `γn`. -/
 def memberStop (m s : Loc) (pl : GoInterface) (γ : SrvRaft) (id : w64) (peerAddr : GoString)
-    (γn : NetNames GF) : IProp GF :=
+    (γn : NetNames GF) (dd : GoString) : IProp GF :=
   iprop(m ↦ (github_com.mit_pdos.etcd_grove.examples.restart3.member.mk s pl) ∗
-    srvStopRight s γ id ∗ ⌜∃ li : GoInterfaceOk, pl = GoInterface.ok li⌝ ∗
+    srvStopRight s γ id dd ∗ ⌜∃ li : GoInterfaceOk, pl = GoInterface.ok li⌝ ∗
     http.httpListenerCloser pl peerAddr (raftProto (netRh γn)))
 
 end defs

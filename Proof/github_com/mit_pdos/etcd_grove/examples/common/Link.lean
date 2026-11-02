@@ -20,7 +20,9 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.common.NewClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.NewClients
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.NewMember
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Serve
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.StartCompactingServer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.StartMember
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.StartPeriodicServer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.StartServer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Writer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.newServer
@@ -46,7 +48,7 @@ namespace common
 open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.common
 
 section links
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -77,7 +79,7 @@ end links
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
 `context` (Perennial states them there: their invariants need later credits). -/
 section links_hasLC
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -135,9 +137,17 @@ theorem wp_Serve :
     EtcdGrove.common.Serve.spec (GF := GF) (hG := hG) :=
   EtcdGrove.common.Serve.wp_proof grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server net.wp_Listen grpc.Server.wp_Serve
 
+theorem wp_StartCompactingServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
+    EtcdGrove.common.StartCompactingServer.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.common.StartCompactingServer.wp_proof wp_newServerMode EtcdServer.wp_Start
+
 theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.common.StartMember.spec (GF := GF) (hG := hG) :=
   EtcdGrove.common.StartMember.wp_proof wp_NewMember EtcdServer.wp_Start
+
+theorem wp_StartPeriodicServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
+    EtcdGrove.common.StartPeriodicServer.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.common.StartPeriodicServer.wp_proof wp_newServerMode EtcdServer.wp_Start
 
 theorem wp_StartServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.common.StartServer.spec (GF := GF) (hG := hG) :=

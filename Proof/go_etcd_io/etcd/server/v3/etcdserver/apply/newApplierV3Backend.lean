@@ -278,11 +278,12 @@ theorem apply.newApplierV3Backend.wp_proof
       iframe
     | attr a =>
       iunfold apply.clusterFacts at HR
-      icases HR with ⟨%Hmv, #HR⟩
+      icases HR with ⟨%Hmv, #HR, %Hmem⟩
       subst Hmv
       iapply (hClusterMemberAttrSet E p r v3 log Pre Q Post a rs info) $$ [Hm Hwt HRO] [HΦ' HFS]
       · iframe
         iframe #
+        ipureintro; exact Hmem
       inext
       iintro ⟨Hpost, HRO⟩
       iapply HΦ'

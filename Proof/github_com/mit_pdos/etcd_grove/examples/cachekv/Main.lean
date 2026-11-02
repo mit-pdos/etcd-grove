@@ -6,7 +6,8 @@ watchkv's `Main` (`Proof/.../watchkv/Main.lean`, before 2026-10-26, when watchkv
 adapter) with the watch through etcd's cache: `genAll`
 picks the writers' Puts `trs` first; the server's start is watchkv's, the examples' shared one
 (`common.alloc1`; D48: the adapter's invariant over the KV state's half, `client.kmInv_alloc` at
-the plan's fact `watchkv.wkW (trs.map pairOf)`; `common.StartServer`, `common.Serve` with one
+the plan's fact `watchkv.wkW (trs.map pairOf)`; `common.StartPeriodicServer` (since 2026-11-02;
+the store's fact for watches from the plan, `noDupKeys_of_wk`), `common.Serve` with one
 watch run slot, `etcd_noRefusal` and `watchkv.wk_served_nd` as the ghost step, D33). Then
 `common.NewClient` (etcd's default configuration; the member refusal-free, so `clientWriteOnce`,
 D29); the cache's client at the adapter's model (`client.isEtcdClient_of_km`: its `KV` a client of
@@ -34,7 +35,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.Writes
 public import Proof.go_etcd_io.etcd.client.v3.KvOfNew
 public import Spec.go_uber_org.zap.NewNop
-public import Spec.github_com.mit_pdos.etcd_grove.examples.common.StartServer
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.StartPeriodicServer
+public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.NoDup
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Serve
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.NewClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Alloc
@@ -72,7 +74,7 @@ namespace cachekv
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -111,7 +113,7 @@ theorem Main.wp_proof
     (wp_collect : collect.spec (GF := GF) (hG := hG))
     (wp_Check : common.Check.spec (GF := GF) (hG := hG))
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
-    (wp_StartServer : common.StartServer.spec (GF := GF) (hG := hG))
+    (wp_StartPeriodicServer : common.StartPeriodicServer.spec (GF := GF) (hG := hG))
     (wp_Serve : common.Serve.spec (GF := GF) (hG := hG))
     (wp_NewClient : common.NewClient.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
@@ -201,10 +203,9 @@ theorem Main.wp_proof
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (ckDir id) (dirOne_member id _)
-      (by omega) (by omega)) $$ Hmarsh with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -⟩ := Hal
-  -- (M2, the storage side, N1) the member's mode, off (read before `StartServer` takes the bundle)
-  ihave ⟨%Hcmp0, Hmb⟩ := common.memberBoot_cmp γ ctxs ρ E₀ Φs id false $$ Hmb
+      (by omega) (by omega) (cmp := true)) $$ Hmarsh
+    with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -, hkr⟩ := Hal
   -- (D48) the adapter's invariant over the KV state's half, at the plan's fact: the bootstrap log
   -- changes no KV state (`linkv.kvRaftOf_boot`), so the start state's changes are `[[]]`
   have hσ0 : (kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))).changes = [[]] := by
@@ -218,20 +219,22 @@ theorem Main.wp_proof
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
   -- `Main`'s premises in the shared start's form
-  ihave #Hb := common.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (ckDir id) go!"cachekv" go!"cachekv"
+  ihave #Hb := common.bootPremise_of (N + N) [id] (LogEntry.toEntries boot 0) ctxs (ckDir id) go!"cachekv" go!"cachekv"
       (common.urls1 go!"cachekv" go!"127.0.0.1:23883" go!"127.0.0.1:23873") id cfgOk urlsOk
       (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
       (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) $$ Hboot
   ihave #Hcom : common.commonPremises (GF := GF) $$ []
   · iunfold common.commonPremises; iframe #
-  -- `StartServer("cachekv", peerAddr, clientAddr, lg)`
+  -- `StartPeriodicServer("cachekv", peerAddr, clientAddr, period, lg)` (the cache over a
+  -- compacting member, 2026-11-02: periodic mode at 10ms, the cluster's retention `0`)
   -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
   have Hdirok : netDirOk (ckDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
-  wp_apply (wp_StartServer N go!"cachekv" go!"127.0.0.1:23883" go!"127.0.0.1:23873" lg (LogEntry.toEntries boot 0) ctxs
+  wp_apply (wp_StartPeriodicServer N go!"cachekv" go!"127.0.0.1:23883" go!"127.0.0.1:23873"
+      (W64 10000000) lg (LogEntry.toEntries boot 0) ctxs
       (ckDir id) id γ ρ E₀ Φs γn Htb
       Hrb48 HrbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [ckDir, dirOne]) (by decide) Hlg Hck Haf Hbuq Hdbo)
+      (by simp [ckDir, dirOne]) (by decide) Hlg (by decide) hkr Hck Haf Hbuq Hdbo)
     $$ [Htok Hmb] as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
@@ -246,7 +249,6 @@ theorem Main.wp_proof
   icases Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
     Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
-  have Hoff : E.γ.cm = false := envAgree_off E E₀ HEa Hcmp0
   -- `Serve(s, clientAddr)`, with the ghost step `wk_served_nd` (the KV specs and the watch server's
   -- facts at the address), the member refusal-free (D29) first
   haveI := Hms
@@ -300,8 +302,15 @@ theorem Main.wp_proof
       [Hgsn Hlis]
     · iframe Hgsn Hlis; iframe #
     ihave %Hlk := client.watchSrvLink_of_server pw R $$ Hws
+    -- (the cache over a compacting member, 2026-11-02) the store's fact for watches: no revision
+    -- writes a key twice (the writers' plan, `kmInv`'s `wkW`)
     ihave #HwnD : mvcc.watchNoDup R.E.γ $$ []
-    · rw [← Hlk]; iapply v3rpc.isWatchServer_watchNoDup_env pw R Hoff $$ Hws
+    · iunfold mvcc.watchNoDup; iright
+      ihave #HWau : kvReadAu ρ.rd.kv (fun σ => iprop(⌜watchkv.wkW (trs.map pairOf) σ.changes⌝)) $$ []
+      · rw [← hγW, ← hγkv]; iapply kmWAu γk $$ Hkm
+      iapply (noDupKeys_of_wk (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv)
+        ρ.rd.kv rfl (trs.map pairOf))
+      iframe Hkf HWau
     imod (watchkv.wk_served_nd (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv) go!"127.0.0.1:23873"
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
         1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl Hrf)

@@ -1016,7 +1016,7 @@ hand to the store instead of consuming `kbNoCmp`).
 The `axiom` skill (branch `axiom/openbackend`, `notes/axiom-review/openbackend.md`): the restated part
 (`fkOwn γ (fkInit D)` in `newPostK`) survives; the axiom was false as documented by an older gap, the
 quota's mmap size (a quota above about 2.5·10^14 makes `newBackend` panic in any environment;
-`issues/etcd-quota-backend-bytes-mmap-panic.md`). Fixed, the user's decision: `openPre` takes
+`nonissues/etcd-quota-backend-bytes-mmap-panic.md`). Fixed, the user's decision: `openPre` takes
 `storage.openMmapOk cfg`, and it reaches `NewServer.spec`/`specCompact`/`specM` (`"%Hmmap"`, kept in
 `srvSnapRO`) and `applySnapshot.specSnap`/`applySnapshot_walk` (`hmmap`). `OpenSnapshotBackend`'s
 statement takes it through `openPre`.

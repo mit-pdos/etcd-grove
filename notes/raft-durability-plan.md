@@ -16,7 +16,7 @@
 >   `HardState` change is not fsynced;
 > - the open questions (§7).
 >
-> The issue it found, `issues/nonissues/raft-doc-send-before-same-batch-persist.md`, stands on
+> The issue it found, `nonissues/raft-doc-send-before-same-batch-persist.md`, stands on
 > its own.
 
 This is a plan only. No proof work starts until the raft cleanup in progress (snapshots and
@@ -61,7 +61,7 @@ It ends with the open questions to settle before proving anything (§7).
 - **Found while planning:** raft's `doc.go` lets any node send its messages while the same
   batch's entries are being persisted, against `Ready.Messages`' own documentation. Read
   literally, a follower could then acknowledge an entry that a crash loses.
-  `issues/nonissues/raft-doc-send-before-same-batch-persist.md`, parked as documentation.
+  `nonissues/raft-doc-send-before-same-batch-persist.md`, parked as documentation.
 
 ## 1. What exists
 
@@ -596,7 +596,7 @@ Track D2–D6 with a TCB collection each (`etc/tcb-collections/`), as for the ot
   - a crash mid-`Save` can keep the entry records without the state record, if the WAL's
     repair keeps such a prefix.
 
-  `issues/nonissues/raft-commit-lost-with-entries-kept.md` was parked because "atomic
+  `nonissues/raft-commit-lost-with-entries-kept.md` was parked because "atomic
   persistence of entries and `HardState` is part of the storage contract". If etcd's WAL does
   not provide that atomicity, the scenario may be reachable in etcd. Check:
   - whether either path reaches its trace's step 2, where the node receives indices 1–3 with
