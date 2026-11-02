@@ -495,7 +495,7 @@ theorem reqWaitRM_none (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (id : w64
 /-- The member's registry, from the server's view in the mode (`isServer_waitIs`'s). -/
 theorem isServerM_waitIs (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)
     (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
-    isServerM (GF := GF) on s γ ci TM E ρ γr ⊢ idWaitIs ρ.ids ρ.ids.pfx ρ.wait := by
+    isServerM (GF := GF) on s γ ci TM E ρ γr ⊢ idWaitIs ρ.ids ρ.ids.key ρ.wait := by
   iintro #H
   iunfold isServerM at H
   icases H with ⟨-, -, ⟨%v, #Hf⟩, -⟩

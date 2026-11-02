@@ -54,7 +54,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
   E.authMode ≠ .any →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ srvLessorNilM E.authOn s ∗ entryWaitOk ρ E m ∗
-      entryRegd ρ.wait ρ.ids.pfx m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
+      entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗ mvcc.storeWT E.γ ∗
       srvFS s ∗ (if E.authOn then iprop(⧗ 1) else iprop(True)) ∗ srvAppliedOwn γr v ∗
       appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
