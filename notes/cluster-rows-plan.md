@@ -71,7 +71,7 @@ cannot give the owned `½` the post's `clusterMem` holds (`memberAt`, `api/membe
 2. (b) **A row premise on the version** (`semverAtMostServer s`, opaque as `semverValid`), a
    request premise (`rqOk`'s `ClusterVersionSet` row), from the monitor's requests (`monitorReq`
    narrowed, which `monitorClusterVersions`' axiom claims).
-3. (c) **`srvRestOwn` holds the cluster's buckets present** (`clusterPresent r.bk`, as decided):
+3. (c) **`srvRestOwn` holds the rest buckets present** (`restPresent r.bk`, every boot bucket since round 2, and `srvRestRW` too):
    every model rest state has them (`restModel_present`), the rows and `applyConfChange` keep them.
 4. (d) **The members' client URLs read-only** (`memberAt` with `cu ↦*□`): true of Go (no writer of
    a member's `ClientURLs` elements: `Clone` copies, the writers replace the slice); the rows'
@@ -112,8 +112,8 @@ The glue proved against them (no `sorry`): `ClusterVersionSet.wp_proofD` (the pr
 is the row's value; the bound passed), `ClusterMemberAttrSet.wp_proofD`; `rqOk_of_rqOkD`,
 `rqOkD_ver`, `restReqOk_attr` (dispatch's two call sites, into `clusterFactsD`), `rqOkD_of_rqOk`
 (the other producers of `rqShape`), `apply.clusterRow_backendD` (`newApplierV3Backend`'s cluster row
-over `clusterFactsD` from the restated specs); `clusterPresent_congr` (the revocation lens);
-`attrIdOk_wire` (beside `reqPropOk_wire`); `srvApRes_lid` (`Start`'s permit); `clusterPresent_restBoot`,
+over `clusterFactsD` from the restated specs); `restPresent_congr` (the revocation lens);
+`attrIdOk_wire` (beside `reqPropOk_wire`); `srvApRes_lid` (`Start`'s permit); `restPresent_restBoot`,
 `_restModel`, `_restSetVersion`, `_restUpdateAttrs`, `_ccRest`; `memBoot_cover`,
 `srvMemOkD_boot`, `srvMemCover_normal`, `ccRest_memKeys_mono`, `srvMemOkD_append`;
 `restReqOk_of_attr` (EtcdServer.apply's premise for `apply.Apply`); `attrEntryOk_of`,
@@ -141,8 +141,8 @@ Trusted texts (for the user's approval, `clr-trusted.md`):
    `setIsLearnerMetric`, `SetBackend`, `String`, `updateMembershipMetric`,
    `SetVersionChangedNotifier` (through `isRaftCluster`'s lock invariant), the v3rpc interceptors'
    `IsMemberExist`/`IsLearner`; `bootOk`'s `Hmem` (text unchanged).
-3. `srvRestOwn` (§16's, `InvRest.lean:414`): `clusterPresent r.bk`; `srvRestRW`
-   (`InvRest.lean:420`): `clusterPresent` of its buckets. Through them `clusterApplyOk` and `bootOk`
+3. `srvRestOwn` (§16's, `InvRest.lean:414`): `restPresent r.bk`; `srvRestRW`
+   (`InvRest.lean:420`): `restPresent` of its buckets. Through them `clusterApplyOk` and `bootOk`
    (texts unchanged), and the alarm and auth stores' contracts, whose `rwLens` lend `srvRestRW`
    (they now claim their writers keep the cluster's buckets: they write only their own).
 4. `apply.semverAtMostServer` (new opaque, `apply/InvRequest.lean` beside `semverValid`);
@@ -178,10 +178,10 @@ Untrusted, the changes each needs:
   `srvApRes_cc` with the cover), `ApplyAllSnap`, `NewServer` (`srvMemOkD_boot`).
 - `srvRestRW`'s lenses (`SnapApplyOptsLemmas.lean:41-82`, `srvRestRWH_lens_*`: the pure conjunct
   carried; no producer of `srvRestRW` exists, the write right is never owned in the workload).
-- `srvRestOwn`'s producers and destructurings (`clusterPresent`; the revocation lens
-  `srvRestOwnH_lens_revoke` with `clusterPresent_congr`): `NewServer` (`restBoot`),
-  `SnapApplyRest.snap_srvRest` (`clusterPresent_restModel`), `EtcdServer__applyConfChange`
-  (`clusterPresent_ccRest`), `SnapRO` (the lenses), `SnapRecvFacts`, `SnapApplyWalk`,
+- `srvRestOwn`'s producers and destructurings (`restPresent`; the revocation lens
+  `srvRestOwnH_lens_revoke` with `restPresent_congr`): `NewServer` (`restBoot`),
+  `SnapApplyRest.snap_srvRest` (`restPresent_restModel`), `EtcdServer__applyConfChange`
+  (`restPresent_ccRest`), `SnapRO` (the lenses), `SnapRecvFacts`, `SnapApplyWalk`,
   `SnapApplyDefs`, `SnapApplyOptsLemmas` (the positional destructurings §16 already lists).
 - `memberAt`'s users: `Member__Clone`, `RaftCluster__AddMember`, `__Members`, `__RemoveMember`,
   `__IsLocalMemberLearner` (proofs reopen the member: the client URLs persistent),
