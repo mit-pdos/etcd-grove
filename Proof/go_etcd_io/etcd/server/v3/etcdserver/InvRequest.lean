@@ -582,6 +582,10 @@ instance kvRevLbZ_persistent (γk : KVNames) (n : Int) : Persistent (kvRevLbZ (G
   unfold kvRevLbZ; infer_instance
 
 omit raftAsm in
+instance kvRevLbZ_timeless (γk : KVNames) (n : Int) : Timeless (kvRevLbZ (GF := GF) γk n) := by
+  unfold kvRevLbZ; infer_instance
+
+omit raftAsm in
 /-- A revision below a reached one is reached. -/
 theorem kvRevLbZ_mono (γk : KVNames) (n m : Int) (h : n ≤ m) :
     kvRevLbZ (GF := GF) γk m ⊢ kvRevLbZ γk n := by
@@ -618,6 +622,27 @@ omit raftAsm in
 instance kvCmpPermit_persistent (γk : KVNames) (c : Int) :
     Persistent (kvCmpPermit (GF := GF) γk c) := by
   unfold kvCmpPermit; infer_instance
+
+omit raftAsm in
+instance kvCmpPermit_timeless (γk : KVNames) (c : Int) :
+    Timeless (kvCmpPermit (GF := GF) γk c) := by
+  unfold kvCmpPermit; infer_instance
+
+omit raftAsm in
+/-- The same cluster's KV names have one compaction permit (C3's watch side). -/
+theorem kvCmpPermit_same (γk γk' : KVNames) (h : kvSame γk γk') :
+    kvCmpPermit (GF := GF) γk = kvCmpPermit γk' := by
+  have hc : γk.cret = γk'.cret := h.2.2.2.2.2.2
+  obtain ⟨-, h2, h3, h4, h5, -, -⟩ := h
+  funext c
+  unfold kvCmpPermit kvRevLbZ kvModel
+  rw [h2, h3, h4, h5, hc]
+
+omit raftAsm in
+/-- **A permit's revision reached** (C3's watch side): the revision plus the retention. -/
+theorem kvCmpPermit_revLb (γk : KVNames) (c : Int) :
+    kvCmpPermit (GF := GF) γk c ⊢ ⌜0 < c⌝ ∗ kvRevLbZ γk (c + γk.cret) := by
+  unfold kvCmpPermit; exact .rfl
 
 omit raftAsm in
 /-- A revision below a reached one is reached. -/
