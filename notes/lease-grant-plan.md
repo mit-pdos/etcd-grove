@@ -315,12 +315,54 @@ what changed.
 
 ## B1/B2 in place, with the tie: the work, in commits that each build (2026-11-02; next)
 
-**Where it stopped** (2026-11-02, commit after `762e0e8bfa`): the decisions are recorded (here and
-`notes/decisions.md`, "The lease-grant stage's choices"), S6 is done (the client contracts
-replaced, the old derived). Nothing of B1/B2's in-place admission is in code yet: the commits below
-are the plan, from the survey of the definitions (sites counted 2026-11-02). Every commit: full
-build, `etc/tcb-report.py --check` (only `runSnapLgOk_open`, `leasegrant.Main.wp_proof` new) and
-every collection `--reuse --check` unchanged.
+**Where it stopped** (2026-11-02): commits 1 and 2 done (checks after 2: full build, `tcb-report.py --check` new only `srvGrantOpen_open` and `leasegrant.Main.wp_proof`, every collection `--reuse --check` unchanged, `gen-init.py --check`, `gen-interface.py --check` backend and raft unchanged) (`75676e772c`, `7a83c345aa`), each a full
+build; commit 3 not started (below, what it needs, found by the survey of its consumers). Every
+commit: full build, `etc/tcb-report.py --check` (only `srvGrantOpen_open`, until commit 1
+`runSnapLgOk_open`, and `leasegrant.Main.wp_proof` new) and every collection `--reuse --check`
+unchanged.
+
+**Done, with the deviations:**
+
+- *Commit 1* (`75676e772c`): `apply.AEnv.lg : Bool := false` (the server's `E`: `ρ.rd.kv.lg`).
+  Deviation: tied in `srvKVInvs` beside the retention (`⌜γr.kv.cret = E.cret ∧ γr.kv.lg = E.lg⌝`),
+  not `srvEnvOk`, which has no names. `runSnapLgOk` renamed the bundle `srvGrantOpen` (one field
+  so far, `srvGrantOpen_snap`; `srvGrantOpen_open` the `sorry`). Deviation: **not carried into
+  `isServerApplyAll`**: the snapshot field's triple (`runSnapLgOkBody`) mentions
+  `isServerApplyAll` (`InvRun` imports `InvApplyAll`), so the bundle inside it is circular; and
+  `applyEntryNormal.spec` sees `isServerM`, not `isServerApplyAll`. The apply thread's grant fields
+  need a bundle of their own (commit 3, below).
+- *Commit 2* (`7a83c345aa`): `rqOk (lg : Bool) log rq`, the grant arm `match lg with | true =>
+  grantKindOk rq | false => False` (`grantKindOk`: dispatched to `LeaseGrant`, no admin or
+  side-effect-free field, id `≠ 0`), every other arm unchanged; laws `rqOk_false_leaseGrant`,
+  `rqOk_of_false`, `rqOk_leaseGrant`. Deviation: **every statement site passes `false`**, not
+  `E.lg` (`dispatch.spec`, `uberApplier.Apply.spec`, `applyFnKVL`/`ApplyKVL`/`ApplyRec`,
+  `InvApplier`'s and `ApplyNormalOn`'s entry facts, `rqShape`, `DispatchKVL`): `dispatch`'s proof
+  cannot take a grant until its grant arm (commit 4: `leaseGranted`, `E.RW`), so a site at `E.lg`
+  would be unprovable at `lg = true`. `rqOkM` keeps its signature, over `rqOk false`. The proofs
+  are unchanged (the arm reduces to `False` at the literal). `plainCover` not changed (commit 3,
+  where its grant arm gets a meaning).
+
+**Commit 3, what it needs** (the survey of `reqPropOk`'s consumers, 2026-11-02; larger than planned):
+
+- `reqPropOk`'s consumer `kv_prop_au` (`KVLemmas.lean`) puts the entry into the KV invariant, whose
+  per-entry facts exclude a grant: `plainLogM γk.cmp` (`plainCover`'s grant arm `False`),
+  `logShape`'s `rqShape` (`∀ log, rqSmall log rq → rqOk false log rq`), `entryClaim`, and the KV
+  state `ghostVar γk.st (kvModelSt γk L)`. So the grant disjunct needs, in the same commit:
+  `plainCover`/`plainReq`/`plainEntryM`/`plainLogM` and `rqShape`/`entryShape`/`logShape` at
+  `γk.lg` (95 + 33 + 32 sites; every KV-model lemma over a plain log at `lg = false` or stepping
+  `backendTable`), `kvModelSt` of a grant entry (the table's step, `leaseGrantOk`).
+- The KV state's step: if a grant changes `kvModelSt` (its lease table), the invariant needs the
+  clients' half of `etcdKV`, so the disjunct carries an update, `kvOpAu γk (.leaseGrant id ttl) Q`
+  (as the write forms; `KVOp.leaseGrant` exists), its `Qr` the client's result; if the table is
+  not in `KVState`, a step of the model only. To decide before the edit.
+- The apply thread: a grant entry at `lg = true` reaches `applyEntryNormal`, whose `entryOkM` gives
+  `rqOk false` (commit 2) to `dispatch`: its grant case is an open field until commit 4, in a
+  sealed bundle **not** mentioning `isServerApplyAll` (say `srvGrantOpenApply`, before
+  `InvApplier`; `srvGrantOpen := srvGrantOpenApply ∧ runSnapLgOkBody`), carried by what
+  `applyEntryNormal` sees (`isServerM`'s fields or a premise of its spec, gated on `γr.kv.lg`), and
+  `entryOkM`/`InvApplier`'s entry fact at `γr.kv.lg`.
+- The request path (`processInternalRaftRequestOnce`, `raftRequest`, `reqPropOkM`/`On`/`D`) carries
+  the disjunct; at `lg = false` it is refuted (`reqPropOk_off`'s pattern).
 
 1. **`AEnv.lg` and the bundled row.** Add `lg : Bool := false` to `apply.AEnv` (`Chain.lean:372`, as
    `cmp := false`); `srvEnvOk` ties it to `ρ.rd.kv.lg`. Replace `runSnapLgOk` by one sealed bundle
