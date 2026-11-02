@@ -156,6 +156,12 @@ structure KVNames where
   (`reqPropOk`'s compaction form, `kvCmpPermit`); `0`, no more than the store's own check. -/
   cret : Nat := 0
 
+/-- Some KV names (C3's watch side, 2026-11-02: the watch environment of an example that never
+watches, `client.srvWEnv … default`). -/
+instance : Inhabited KVNames :=
+  ⟨{ st := default, c0 := default, ch0 := apply.alarmChain false false false, log0 := [],
+     cok := default, hi := default, ids := ⟨default, default, default, default, default⟩ }⟩
+
 /-- **Two KV names of one cluster's KV** (pure; the client's `kv.Compact`, 2026-10-31): the same
 state, the same model (its start index, chain and start log), the same requested log and the same
 mode and retention; a member's own names (its certificates' map `cok`, `hi`, `ids`) aside. -/
@@ -582,6 +588,10 @@ instance kvRevLbZ_persistent (γk : KVNames) (n : Int) : Persistent (kvRevLbZ (G
   unfold kvRevLbZ; infer_instance
 
 omit raftAsm in
+instance kvRevLbZ_timeless (γk : KVNames) (n : Int) : Timeless (kvRevLbZ (GF := GF) γk n) := by
+  unfold kvRevLbZ; infer_instance
+
+omit raftAsm in
 /-- A revision below a reached one is reached. -/
 theorem kvRevLbZ_mono (γk : KVNames) (n m : Int) (h : n ≤ m) :
     kvRevLbZ (GF := GF) γk m ⊢ kvRevLbZ γk n := by
@@ -618,6 +628,27 @@ omit raftAsm in
 instance kvCmpPermit_persistent (γk : KVNames) (c : Int) :
     Persistent (kvCmpPermit (GF := GF) γk c) := by
   unfold kvCmpPermit; infer_instance
+
+omit raftAsm in
+instance kvCmpPermit_timeless (γk : KVNames) (c : Int) :
+    Timeless (kvCmpPermit (GF := GF) γk c) := by
+  unfold kvCmpPermit; infer_instance
+
+omit raftAsm in
+/-- The same cluster's KV names have one compaction permit (C3's watch side). -/
+theorem kvCmpPermit_same (γk γk' : KVNames) (h : kvSame γk γk') :
+    kvCmpPermit (GF := GF) γk = kvCmpPermit γk' := by
+  have hc : γk.cret = γk'.cret := h.2.2.2.2.2.2
+  obtain ⟨-, h2, h3, h4, h5, -, -⟩ := h
+  funext c
+  unfold kvCmpPermit kvRevLbZ kvModel
+  rw [h2, h3, h4, h5, hc]
+
+omit raftAsm in
+/-- **A permit's revision reached** (C3's watch side): the revision plus the retention. -/
+theorem kvCmpPermit_revLb (γk : KVNames) (c : Int) :
+    kvCmpPermit (GF := GF) γk c ⊢ ⌜0 < c⌝ ∗ kvRevLbZ γk (c + γk.cret) := by
+  unfold kvCmpPermit; exact .rfl
 
 omit raftAsm in
 /-- A revision below a reached one is reached. -/

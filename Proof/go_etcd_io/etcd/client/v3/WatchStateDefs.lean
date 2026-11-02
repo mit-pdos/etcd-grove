@@ -154,15 +154,58 @@ theorem hdrAt_of_hdrOwn (h : Loc) (r : RespModel) :
     iframe H
     ipureintro; exact hn
 
+/-- **A watch response's compaction revision is the cluster's permit** (persistent; C3's watch side,
+2026-11-02): none (`0`), or a positive revision at least the cluster's retention behind one its KV
+has reached (`kvCmpPermit`). Margin: the code also gives that a compaction response's revision is
+past the watch's next revision (mvcc sends one only when `w.minRev < compactRev`); not stated. -/
+def cmpOkOf (γk : KVNames) (c : w64) : IProp GF :=
+  iprop(⌜c = W64 0⌝ ∨ kvCmpPermit γk (sint.Z c))
+
+instance cmpOkOf_persistent (γk : KVNames) (c : w64) : Persistent (cmpOkOf (GF := GF) γk c) := by
+  unfold cmpOkOf; infer_instance
+
+/-- No compaction revision is permitted. -/
+theorem cmpOkOf_zero (γk : KVNames) : ⊢ cmpOkOf (GF := GF) γk (W64 0) := by
+  iintro; iunfold cmpOkOf; ileft; ipureintro; rfl
+
+/-- **A compaction revision's permit** (C3's watch side): a non-zero one is positive and its
+revision plus the cluster's retention is reached. -/
+theorem cmpOkOf_permit (γk : KVNames) (c : w64) (hc : c ≠ W64 0) :
+    cmpOkOf (GF := GF) γk c ⊢ ⌜0 < sint.Z c⌝ ∗ kvRevLbZ γk (sint.Z c + γk.cret) := by
+  iintro #H
+  iunfold cmpOkOf at H
+  icases H with (%h | #Hp)
+  · exact absurd h hc
+  iapply kvCmpPermit_revLb γk (sint.Z c) $$ Hp
+
+/-- The same cluster's KV names agree on the permit. -/
+theorem cmpOkOf_same (γk γk' : KVNames) (h : kvSame γk γk') (c : w64) :
+    cmpOkOf (GF := GF) γk c ⊢ cmpOkOf γk' c := by
+  unfold cmpOkOf; rw [kvCmpPermit_same γk γk' h]
+
 /-- **The `i`-th response `v` of a watch of `o` with the read update's `Q`**: modelled by some `r`
 (`respAt`: its events, header and flags), the update's `□ Q σ` at the state `σ` it fired at, and
 `watchStateRespOk` at the positions `i` and `i + 1` of the watch's cursor, and (G2, 2026-10-30)
-`Au` when the response has events (the caller's auth fact: `watcher.Watch.spec`'s gated row). -/
-def watchStateElem (γw : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) (Au : IProp GF)
-    (i : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse) : IProp GF :=
+`Au` when the response has events (the caller's auth fact: `watcher.Watch.spec`'s gated row);
+(C3's watch side, 2026-11-02) its compaction revision the permit of the cluster's KV names `γk`
+(`cmpOkOf`). -/
+def watchStateElem (γk : KVNames) (γw : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF)
+    (Au : IProp GF) (i : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse) : IProp GF :=
   iprop(∃ (r : RespModel) (σ : KVState) (c c' : w64), respAt v r ∗ □ Q σ ∗
     monoListIdxOwn γw.cur i.toNat c ∗ monoListIdxOwn γw.cur (i.toNat + 1) c' ∗
-    watchStateRespOk o σ c c' v r ∗ □ (⌜r.events ≠ []⌝ → Au))
+    watchStateRespOk o σ c c' v r ∗ □ (⌜r.events ≠ []⌝ → Au) ∗ cmpOkOf γk v.CompactRevision')
+
+/-- **A delivered response's compaction revision is the cluster's permit** (C3's watch side). -/
+theorem watchStateElem_cmp (γk : KVNames) (γw : EtcdWatchNames) (o : OpFull)
+    (Q : KVState → IProp GF) (Au : IProp GF) (i : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse) :
+    watchStateElem (GF := GF) γk γw o Q Au i v ⊢
+      watchStateElem γk γw o Q Au i v ∗ cmpOkOf γk v.CompactRevision' := by
+  iintro H
+  ihave #Hc : cmpOkOf γk v.CompactRevision' $$ [H]
+  · iunfold watchStateElem at H
+    icases H with ⟨%r, %σ, %c, %c', -, -, -, -, -, -, #Hc⟩
+    iexact Hc
+  iframe H Hc
 
 /-- **A position of a watch of `o` with the read update's `Q`** (persistent; D48): the watch's start
 (`c + 1` its revision), or a revision of a state the update fired at, well formed through it. -/

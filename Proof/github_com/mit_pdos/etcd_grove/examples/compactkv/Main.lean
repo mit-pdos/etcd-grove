@@ -47,6 +47,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.compactkv.NoDup
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Served
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Collect
 public import Spec.go_etcd_io.etcd.client.v3.watcher__Watch
+public import Spec.github_com.mit_pdos.etcd_grove.examples.compactkv.checkCompactRev
 
 @[expose] public section
 
@@ -96,7 +97,8 @@ theorem Main.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
-    (wp_Collect : common.Collect.spec (GF := GF) (hG := hG)) :
+    (wp_Collect : common.Collect.spec (GF := GF) (hG := hG))
+    (wp_checkCompactRev : checkCompactRev.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem⟩
@@ -189,7 +191,7 @@ theorem Main.wp_proof
   wp_apply (wp_Serve srv go!"127.0.0.1:23794" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid R => iprop(⌜R.E = E ∧ noRefusalAt go!"127.0.0.1:23794"⌝ ∗
         client.kvRegsAt (⟨go!"127.0.0.1:23794", E, ρ.rd, cid, mid⟩ : client.SrvAt GF) ∗
-        watchAddrFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv.st) ∗
+        watchAddrFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) ∗
         mvcc.idxCert R.E.γ.idx [[], []]))
       (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
@@ -220,14 +222,14 @@ theorem Main.wp_proof
       omega
     ihave #Hinvs := srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
     ihave #H00 := watchkv.cert0_of_server pw R $$ Hws
-    ihave #Hkf : client.srvKVFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv.st) $$ []
-    · iapply client.srvKVFacts_of_off _ ρ.rd rfl hlog (by omega)
+    ihave #Hkf : client.srvKVFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) $$ []
+    · iapply client.srvKVFacts_of_off _ ρ.rd (kvSame_refl _) hlog (by omega)
       iframe Hinvs
       iapply mvcc.idxCert_sealed; iexact H00
     -- (W4) the store's fact for watches: no revision writes a key twice (the rounds' puts)
     ihave #HwnD : mvcc.watchNoDup R.E.γ $$ []
     · iunfold mvcc.watchNoDup; iright
-      iapply (noDupKeys_of_rounds (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv.st) ρ.rd.kv rfl go!"v")
+      iapply (noDupKeys_of_rounds (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) ρ.rd.kv rfl go!"v")
       iframe Hkf
       iapply oneValAu $$ Hinv
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
@@ -236,7 +238,7 @@ theorem Main.wp_proof
         { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo) $$
       [Hgsn Hlis]
     · iframe Hgsn Hlis; iframe #
-    imod (watchkv.wk_served_nd (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv.st) go!"127.0.0.1:23794"
+    imod (watchkv.wk_served_nd (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) go!"127.0.0.1:23794"
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
         1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl Hrf)
       $$ [Hgsn Hlis Hslots Hwslots] with ⟨Hserv, #HKV, #HWF⟩
@@ -260,7 +262,7 @@ theorem Main.wp_proof
   ihave #Hregs := HKV
   -- `NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient go!"127.0.0.1:23794" lg
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv.st) Hlg
+      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) Hlg
       (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
@@ -653,7 +655,7 @@ theorem Main.wp_proof
     obtain ⟨hkj, -, -, hpkl⟩ := Hj
     -- the client's `Watcher`, with the watch server's facts (D19f)
     ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWf, #Hcw⟩ := isNewClient_watcher wp_ErrAny hAs cl
-      [go!"127.0.0.1:23794"] (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv.st) rfl rfl rfl $$ [Pcli Ppb Pctx Hnc HWF]
+      [go!"127.0.0.1:23794"] (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) rfl rfl rfl $$ [Pcli Ppb Pctx Hnc HWF]
     · iframe #
     (try wp_auto)
     -- `wctx, wcancel := context.WithCancel(context.Background())`
@@ -706,7 +708,7 @@ theorem Main.wp_proof
           omega
       iintro !> %h
       exact absurd h.2 (Nat.lt_irrefl 0)
-    ihave #Hwch := common.isRespChan_of_state wch γw _ (fun σ => iprop(⌜oneValW go!"v" σ.changes⌝)) _
+    ihave #Hwch := common.isRespChan_of_state wch _ γw _ (fun σ => iprop(⌜oneValW go!"v" σ.changes⌝)) _
       $$ Hsp
     (try wp_auto)
     ihave Hcons : etcdWatchConsumer γw 0 (W64 2 - W64 1) $$ [Hcons Hcur]
@@ -739,6 +741,13 @@ theorem Main.wp_proof
     (try wp_auto)
     cases ok
     · (try wp_auto)
+      -- (C3's watch side) `checkCompactRev(cli, prevKey)`
+      wp_apply (wp_checkCompactRev cl pk R E ρ.rd cid mid γf γl γv keysL go!"v" hpkl hkr hAs) $$ []
+      · iframe #
+        ihave #Hkvs := srvKVInvs_of_read srv E ρ.rd $$ Hrd
+        iunfold srvKVInvs at Hkvs
+        icases Hkvs with ⟨#Hkvi, -⟩
+        iexact Hkvi
       iapply HΦ; itrivial
     ihave ⟨%evs, Hes, -, #Hall⟩ := Hcol $$ %rfl
     (try wp_auto)
@@ -772,6 +781,13 @@ theorem Main.wp_proof
       iframe
       ipureintro; word
     · (try wp_auto)
+      -- (C3's watch side) `checkCompactRev(cli, prevKey)`
+      wp_apply (wp_checkCompactRev cl pk R E ρ.rd cid mid γf γl γv keysL go!"v" hpkl hkr hAs) $$ []
+      · iframe #
+        ihave #Hkvs := srvKVInvs_of_read srv E ρ.rd $$ Hrd
+        iunfold srvKVInvs at Hkvs
+        icases Hkvs with ⟨#Hkvi, -⟩
+        iexact Hkvi
       iapply HΦ; itrivial
 
 end proof

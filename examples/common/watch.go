@@ -116,6 +116,20 @@ func Collect(wch clientv3.WatchChan, upTo int64) ([]Event, bool) {
 	return evs, false
 }
 
+// CompactRev reads the first response of the watch channel wch: its compaction revision and true
+// if it is a compaction's (ErrCompacted: a non-zero CompactRevision); 0 and false if the channel
+// closed or the response is another.
+func CompactRev(wch clientv3.WatchChan) (int64, bool) {
+	wresp, ok := <-wch
+	if !ok {
+		return 0, false
+	}
+	if wresp.CompactRevision != 0 {
+		return wresp.CompactRevision, true
+	}
+	return 0, false
+}
+
 // Attempted reports whether (key, val) is one of the Puts tried.
 func Attempted(tried []KV, key string, val string) bool {
 	for _, p := range tried {

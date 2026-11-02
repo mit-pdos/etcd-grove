@@ -741,7 +741,7 @@ theorem Work.wp_proof
   simp only [↓reduceIte]
   icases Hv with ⟨Hel, Hcons⟩
   iunfold watchStateElem at Hel
-  icases Hel with ⟨%r, %σ, %c, %c', #Hresp, -, -, -, -, #Hau'⟩
+  icases Hel with ⟨%r, %σ, %c, %c', #Hresp, -, -, -, -, #Hau', -⟩
   iunfold respAt at Hresp
   icases Hresp with ⟨#Hevs, -, -⟩
   iunfold eventsAt at Hevs

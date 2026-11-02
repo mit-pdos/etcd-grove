@@ -126,9 +126,13 @@ structure WEnv (GF : BundledGFunctors) where
   watch server (`addr` and `R` are the current one's: the epoch's, in `run`) -/
   mem : Nat → GoString × v3rpc.WSrv GF
   nm : Nat
-  /-- (D47) the cluster's KV state variable (`KVNames.st`): every member's KV invariants are at
-  it (`srvKVFacts`), and the watches' read updates are of it (`wsIs`) -/
-  kst : GName
+  /-- (C3's watch side, 2026-11-02; until then its state variable `kst` only, D47) the cluster's
+  KV names: every member's KV invariants are at names the same as these (`srvKVFacts`'s `kvSame`),
+  and the watches' read updates are of their state variable (`kst`, `wsIs`) -/
+  kv : KVNames
+
+/-- (D47) the cluster's KV state variable (`KVNames.st`, the KV names' `V.kv.st`). -/
+abbrev WEnv.kst (V : WEnv GF) : GName := V.kv.st
 
 /-- **`V` at its member `i`** (W3b): the member's address and watch server. A predicate that reads
 neither `R` nor `addr` is the same at every member, by definition. A `def`, so that `run`'s
@@ -248,9 +252,9 @@ instance srvWL_persistent (R : v3rpc.WSrv GF) (L : mvcc.Log) : Persistent (srvWL
 
 /-- **A client of one server** (the watch contract at the server's model). -/
 abbrev srvWEnv (R : v3rpc.WSrv GF) (addr : GoString) (ics : List GoFunc) (conn wc : Loc)
-    (pfx : GoString) (lg : Loc) (kst : GName) : WEnv GF :=
+    (pfx : GoString) (lg : Loc) (kv : KVNames) : WEnv GF :=
   ⟨R, addr, ics, conn, wc, pfx, lg, v3rpc.etcdModelOfServer R.E, srvWL R, fun _ => (addr, R), 1,
-    kst⟩
+    kv⟩
 
 /-! ## The premises about the server and the transport -/
 
@@ -377,28 +381,42 @@ nothing else of it, and a premise with the mode free is weaker than one fixing i
 def srvKVFacts (V : WEnv GF) : IProp GF :=
   iprop(∃ (on : Bool) (γr : ReadNames), srvKVCoreM on V.R.E γr ∗
     mvcc.idxSealed V.R.E.γ.idx [[], []] ∗
-    ⌜γr.kv.st = V.kst ∧ γr.kv.log0 = [[], []] ∧ receiptBound GF ≤ 2 ^ 62⌝)
+    ⌜γr.kv.st = V.kst ∧ γr.kv.log0 = [[], []] ∧ receiptBound GF ≤ 2 ^ 62⌝ ∗
+    ⌜kvSame γr.kv V.kv⌝)
 
 instance srvKVFacts_persistent (V : WEnv GF) : Persistent (srvKVFacts V) := by
   unfold srvKVFacts; infer_instance
 
 /-- **A member's KV facts, from its server's KV core in a mode** (`srvKVCoreM_of_readM`). -/
 theorem srvKVFacts_intro (V : WEnv GF) (on : Bool) (γr : ReadNames)
-    (hst : γr.kv.st = V.kst) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) :
+    (hs : kvSame γr.kv V.kv) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) :
     srvKVCoreM on V.R.E γr ∗ mvcc.idxSealed V.R.E.γ.idx [[], []] ⊢ srvKVFacts V := by
   iintro ⟨#Hc, #H0⟩
   iunfold srvKVFacts
   iexists on, γr
   iframe Hc H0
-  ipureintro; exact ⟨hst, hlog, hrb⟩
+  isplitl
+  · ipureintro; exact ⟨hs.1, hlog, hrb⟩
+  ipureintro; exact hs
+
+/-- **The members' store's compaction permit is the cluster's** (C3's watch side, 2026-11-02):
+the member's KV core's `crevPermIs` (`srvKVCoreM_cperm`), at the environment's KV names
+(`kvCmpPermit_same`). -/
+theorem srvKVFacts_cperm (V : WEnv GF) :
+    srvKVFacts V ⊢ mvcc.crevPermIs V.R.E.γ (kvCmpPermit V.kv) := by
+  iintro #H
+  iunfold srvKVFacts at H
+  icases H with ⟨%on, %γr, #Hc, -, -, %Hs⟩
+  rw [← kvCmpPermit_same γr.kv V.kv Hs]
+  iapply srvKVCoreM_cperm on V.R.E γr $$ Hc
 
 /-- **… with auth off** (`srvKVFacts_intro … false`): from the auth-off read view's KV invariants
 (`srvKVInvs_of_read`). -/
 theorem srvKVFacts_of_off (V : WEnv GF) (γr : ReadNames)
-    (hst : γr.kv.st = V.kst) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) :
+    (hs : kvSame γr.kv V.kv) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) :
     srvKVInvs V.R.E γr ∗ mvcc.idxSealed V.R.E.γ.idx [[], []] ⊢ srvKVFacts V := by
   rw [← srvKVCoreM_false]
-  exact srvKVFacts_intro V false γr hst hlog hrb
+  exact srvKVFacts_intro V false γr hs hlog hrb
 
 /-- **The watch laws of a client of one server** (`watchLaws` at `etcdModelOfServer`, `srvWL`):
 the server model's facts of a certified log (`etcdReached_of_certOk`, `srvEtcdState`, `srvStep`),
@@ -407,7 +425,7 @@ member's KV facts (`srvKVFacts`, `srvKVCoreM_keys`). -/
 theorem watchLaws_srv [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (V : WEnv GF)
     (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
     (hWL : V.WL = srvWL V.R) (hst : V.R.γ.st = V.R.E.γ) : srvKVFacts V ⊢ watchLaws V := by
-  obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kst⟩ := V
+  obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kv⟩ := V
   simp only at hWM hWL hst ⊢
   subst hWM hWL
   iintro #Hfacts
@@ -537,7 +555,7 @@ theorem watchConnFacts_cur (V : WEnv GF) :
   obtain ⟨hp, -, i, hi, he⟩ := Hp
   ihave #Hmi := Hm $$ %i %hi
   have hV : V.atIdx i = V := by
-    obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kst⟩ := V
+    obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kv⟩ := V
     simp only at he ⊢
     simp [WEnv.atIdx, he]
   irevert Hmi; rw [hV]; iintro #Hmi
@@ -805,17 +823,18 @@ theorem wsRow_of_authed (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (c 
 
 /-- **The caller's channel's element** (D47): a response as one firing of the read update
 `Q`, at the watch's second cursor (`watchStateElem`, at `γ.cur2`: the cursor of a watch that
-promises completeness), with the row `Au` when it has events (G2: `wsRow`). -/
-def outcElem (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) (Au : IProp GF) :
-    Int → go_etcd_io.etcd.client.v3.WatchResponse → IProp GF :=
-  watchStateElem { γ with cur := γ.cur2 } o Q Au
+promises completeness), with the row `Au` when it has events (G2: `wsRow`); (C3's watch side)
+its compaction revision the permit of the KV names `γk`. -/
+def outcElem (γk : KVNames) (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF)
+    (Au : IProp GF) : Int → go_etcd_io.etcd.client.v3.WatchResponse → IProp GF :=
+  watchStateElem γk { γ with cur := γ.cur2 } o Q Au
 
 /-- **What a watch's `retc` carries** (the bag's value predicate): the substream's `outc`, the
 contract's SPSC channel (its row `Au`), with the consumer's resources (`Watch` returns them). -/
 def retcP (V : WEnv GF) (o : OpFull) (rev : w64) (sr : Bool) (Q : KVState → IProp GF)
     (Au : IProp GF) (outc : Loc) : IProp GF :=
   iprop(∃ γ : EtcdWatchNames,
-    isSpsc γ.spsc outc (outcElem γ o Q Au) (fun _ => iprop(True)) ∗
+    isSpsc γ.spsc outc (outcElem V.kv γ o Q Au) (fun _ => iprop(True)) ∗
     spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
     monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ monoListIdxOwn γ.cur2 0 (rev - W64 1) ∗
     ⌜γ.cpl = cplCond sr o rev⌝)
@@ -973,7 +992,8 @@ satisfying the contract from the dispatch cursor's position `k` to `k + 1` (`γh
 `run` extends); a created response has no events and `run`'s half of
 the request's `rev` field (the substream writes it from then on); another is at no goroutine's
 start (`notStart`, D25: a goroutine's first response is its create's) and gives its resume fact
-(`resumeF`). Or the
+(`resumeF`), and (C3's watch side) its compaction revision is the cluster's permit
+(`cmpOkOf`; a created one has none, `respKindOk`). Or the
 substream's goroutine has stopped for good (`γx` set: what its `donec` publishes): `run`'s dispatch
 to it after a failed one (the select took `donec`), which the stopped goroutine never receives. -/
 def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
@@ -987,7 +1007,8 @@ def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
     (if r.created then
       iprop(⌜r.events = []⌝ ∗
         ∃ rv : w64, wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} rv)
-    else iprop(notStart P k.toNat ∗ resumeF V P r ∗ □ (⌜r.events ≠ []⌝ → wsRow V P)))) ∨
+    else iprop(notStart P k.toNat ∗ resumeF V P r ∗ □ (⌜r.events ≠ []⌝ → wsRow V P) ∗
+      cmpOkOf V.kv r.compactRev))) ∨
     dghostVar P.γx DFrac.discard true)
 
 /-- **A watch's read update** (persistent; D47): the caller's, of the KV state `P.kv` reads, its
@@ -1007,7 +1028,7 @@ each lifetime of the goroutine has its own `donec`: owned fields, `LifePrm`.) -/
 def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
   iprop(wrRO (wsF P.ws go!"initReq") P ∗
     wsF P.ws go!"recvc" ↦□ P.recvc ∗
-    isSpsc P.γ.spsc P.outc (outcElem P.γ P.o P.Q (wsRow V P)) (fun _ => iprop(True)) ∗
+    isSpsc P.γ.spsc P.outc (outcElem V.kv P.γ P.o P.Q (wsRow V P)) (fun _ => iprop(True)) ∗
     isSspsc P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) ∗
     context.isContext P.ctx P.cs ∗
     isChanBag P.γret P.retc (retcP V P.o P.rev P.sr P.Q (wsRow V P)) ∗
@@ -1461,7 +1482,8 @@ def recvLive (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
     (if r.created then
       iprop(⌜r.events = []⌝ ∗
         ∃ rv : w64, wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} rv)
-    else iprop(notStart P k.toNat ∗ resumeF V P r ∗ □ (⌜r.events ≠ []⌝ → wsRow V P))))
+    else iprop(notStart P k.toNat ∗ resumeF V P r ∗ □ (⌜r.events ≠ []⌝ → wsRow V P) ∗
+      cmpOkOf V.kv r.compactRev)))
 
 /-- **The dispatch cursors do not move from `recvc`'s position `a` to `b`** (persistent; D25): the
 responses between were created ones the goroutine skipped (a resumed create keeps both cursors). -/

@@ -1008,7 +1008,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
   · iapply srvKVInvsM_true; iexact Hkvi
   ihave #Hkvi' := Hkvi
   iunfold srvKVInvsOn at Hkvi'
-  icases Hkvi' with ⟨-, -, -, #Htie0, %Hcok⟩
+  icases Hkvi' with ⟨-, -, -, #Htie0, %Hcok, -⟩
   icases srvApplyKVOn_idxCert s E ρ.wait x sa $$ HKV with ⟨HKV, #Hcx, %HaOn⟩
   ihave %Hlx := idxCert_len E.γ.idx x.log $$ Hcx
   -- the mode-`on` model before the entry: `(sa, x.log)`, the start's chain

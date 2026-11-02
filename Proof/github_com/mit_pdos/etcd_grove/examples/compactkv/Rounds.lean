@@ -375,6 +375,44 @@ theorem oneValAu (γ : ReadNames) (γf γl γv : GName) (keys : List GoString) (
     ipureintro
     exact Hok.2.2.2.2
 
+/-- **A read at a revision at least the counter's bound** (persistent; C3's watch side,
+2026-11-02): a read update whose result is that the state's revision is at least `r`. -/
+theorem getRevAu_round (γ : ReadNames) (γf γl γv : GName) (keys : List GoString) (val : GoString)
+    (r : Nat) :
+    roundsInv γ γf γl γv keys val ∗ monoNatLbOwn γv r ⊢
+      kvReadAu (GF := GF) γ.kv (fun σ => iprop(⌜r ≤ σ.rev⌝)) := by
+  have Hm := kvClientN_mask
+  iintro ⟨#Hinv, #Hrlb⟩
+  iunfold kvReadAu
+  iunfold kvAu
+  iintro !>
+  iauintro
+  unfold atomic_acc
+  iunfold roundsInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%σ, %n, %L, Hσ, Hmn, HL, Hrv, %Hok⟩
+  ihave %Hrr := monoNatLbOwn_valid γv 1 σ.rev r $$ Hrv Hrlb
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hmask with -
+    imod Hclose $$ [Hσ Hmn HL Hrv] with -
+    · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
+    imodintro
+    itrivial
+  · iintro Hσ
+    imod Hmask with -
+    imod Hclose $$ [Hσ Hmn HL Hrv] with -
+    · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
+    imodintro
+    iintro !>
+    ipureintro
+    exact Hrr.2
+
 /-- **A revision the cluster has reached is a lower bound of the rounds' state** (the read-side
 law, 2026-11-02, `kv_revLbZ_le`): with the KV invariant, a reached revision `n` gives the counter's
 lower bound, so every later read of the rounds reads at a revision at least `n`. -/

@@ -29562,3 +29562,33 @@ revisions); what is new is the route through a reached revision a client did not
 route C3's watch permit (`kvCmpPermit`) needs. Left of C3's client stage: the watch environment's
 KV names tied by `kvSame`, and the permit carried through the client's watch to
 `watchStateElem` (the deferral entry's reason (1)).
+
+## C3's watch side: a delivered watch response's compaction revision is the cluster's permit (2026-11-02 · the user's "do the watch side"; my recommendations otherwise · branch `c3-watch`)
+
+**Done.** C3's client stage: a client's watch states that its compaction response's revision is
+the cluster's permit, and `compactkv` checks in Go that the revision plus the retention is at most
+a later latest `Get`'s revision (`checkCompactRev`; tight at retention `1` in a run, which its
+test asserts). The Draft (scratch, candidate 1) had one `spec-reviewer` round; its findings and
+what came of them:
+- W1 (the store's permit in both auth modes): `srvKVInvsOn`, `srvKVCoreM true` gain `crevPermIs`
+  (`NewServer` creates the store at `kvCmpPermit` in both); `srvKVCoreM_cperm`.
+- W2, the reviewer's finding 1, taken: `WEnv.kst` replaced by `WEnv.kv : KVNames` (`kst` an
+  `abbrev` of `kv.st`, so the existing `V.kst` text stands); `srvKVFacts` ties each member's names
+  to it by `kvSame`. Finding 2 (linkv3p's members): `alloc3` reports `kvSame` between its members,
+  `clusterUp` and `memberWatch` carry it. `Inhabited KVNames` for the examples that never watch.
+- W3: `cmpOkOf γk c := ⌜c = 0⌝ ∨ kvCmpPermit γk (sint.Z c)` in `recvElem`/`recvLive` (made at
+  `reg_pre_cmp` from `mvccOk`'s `cmpPermOf` and the members' `crevPermIs`, `cmpOkOf_of_mvccOk`;
+  the saved predicates' agreement's later stripped without a credit, `kvCmpPermit` being timeless:
+  `crevPermAt_elim_timeless`), in `watchStateElem` and `outcElem` (a new parameter, the KV names).
+  **`watcher.Watch.spec`'s post** states its elements at `V.kv` (a strengthening of the post, no
+  new premise). The reviewer's finding 3 proposed the caller's `γ` with the premise `kvSame V.kv γ`
+  in place of `V.kst = γ.st`: not taken, to keep the spec's premises (every caller builds `V`, so
+  knows `V.kv`; a caller holding `V` only existentially, `isKvWatcher`, cannot use the fact: none
+  needs it). Margin, stated in `cmpOkOf`'s docstring (finding 6): a compaction response's revision
+  is also past the watch's next revision; not stated.
+- W4 (finding 5's second option): `common.CompactRev` (a watch channel's first response's
+  compaction revision, over an abstract `Ok`), `compactkv`'s own channel predicate
+  `common.stateCmpOk` (`stateOk` and the permit; watchkv's and cachekv's `Collect` untouched), and
+  `checkCompactRev` (a function of its own, so that `Main`'s two branches after its first watch
+  call it once each): the permit's `kvRevLbZ (c + 1)`, the read-side law's counter bound
+  (`roundsInv_revLb`), a latest `Get` at least it (`client_Get_rev`, `getRevAu_round`).

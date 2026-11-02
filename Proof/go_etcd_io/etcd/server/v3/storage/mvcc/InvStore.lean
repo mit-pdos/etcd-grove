@@ -5340,6 +5340,29 @@ theorem crevPermAt_elim_lc (E : CoPset) (γ : StoreNames) (Perm : Int → IProp 
   iapply Hf
   iexact HP
 
+/-- **A permitted revision's permit, for a timeless permit** (C3's watch side, 2026-11-02): as
+`crevPermAt_elim_lc`, with no later credit (the agreement's later stripped by `Perm c`'s
+timelessness). -/
+theorem crevPermAt_elim_timeless (E : CoPset) (γ : StoreNames) (Perm : Int → IProp GF) (c : Int)
+    [Timeless (Perm c)] :
+    crevPermIs γ Perm ∗ crevPermAt γ c ⊢ |={E}=> ⌜c = -1⌝ ∨ □ Perm c := by
+  iintro ⟨#H1, #H2⟩
+  iunfold crevPermAt at H2
+  icases H2 with (%h | ⟨%Perm', #H2, #HP⟩)
+  · imodintro; ileft; ipureintro; exact h
+  iunfold crevPermIs at H1 H2
+  ihave Heq := saved_pred_agree γ.cperm DFrac.discard DFrac.discard
+    (fun c => iprop(□ Perm' c)) (fun c => iprop(□ Perm c)) c $$ H2 H1
+  ihave HL : iprop(▷ □ Perm c) $$ [Heq]
+  · inext
+    ihave #Hiff := internalEq_iff _ _ $$ Heq
+    icases Hiff with ⟨#Hf, -⟩
+    iapply Hf
+    iexact HP
+  imod HL with #HP'
+  imodintro; iright
+  iexact HP'
+
 /-- **The caller's hook against the store's recorded invariant** (`isStore`'s `hookP`; unit N4,
 D14b: the store records no hook), one later credit. -/
 theorem hookP_agree_lc (E : CoPset) (γ : StoreNames) (P P' : IProp GF) (f : val) :

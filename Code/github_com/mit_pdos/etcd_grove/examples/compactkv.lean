@@ -39,12 +39,15 @@ namespace github_com.mit_pdos.etcd_grove.examples.compactkv
 noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/compactkv.Main"
 
+noncomputable def checkCompactRev [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/compactkv.checkCompactRev"
+
 /-- Main starts one member of a new cluster with the auto-compactor on and, for each of the rounds'
     keys k: puts k with value, compacts at the revision before the Put's, gets k and panics if the
     value is not value; then gets the previous round's key at the previous round's Put revision and
     panics if the Get succeeds with another value.
 
-    go: compactkv.go:50:6 -/
+    go: compactkv.go:52:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -122,6 +125,11 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "prevKey"))
+  (App (App (App (Val (GoInstruction (FuncResolve checkCompactRev []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Var "evs"))
   (Let "e" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (Val #())))
@@ -141,7 +149,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty))) (Pair (Var "e") (Var "$value"))))))))))
   (App (Val doExecute)
-  (Val #())))))
+  (Val #()))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "wcancel")) (Val #()))))))
   (App (Val doExecute)
@@ -392,6 +400,108 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))
   (Val #())))
 
+/-- checkCompactRev checks C3, the compaction retention: a watch of key from revision 2, whose first
+    response is the compaction's in a run. Its compaction revision is at least the retention behind
+    a revision the cluster has reached, so a latest Get after it reads at a revision at least the
+    compaction revision plus the retention (in a run, the last round's compaction is at the last
+    Put's revision minus one, and the Get reads at the last Put's: equal). It panics if not.
+
+    go: compactkv.go:140:6 -/
+noncomputable def checkCompactRev.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cli"
+  (Lam "key"
+  (Seq (App (Val exceptionDo)
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
+  (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithCancel []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ccancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
+  (Let "cctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "cctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (Let "$a2" (Let "$sl0" (Let "$a0" (Val #(W64 2))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithRev []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty (Var "$sl0")))])))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Watcher.ty go!"Watch"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Watcher.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty go!"Watcher"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "cch" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Var "cch"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.CompactRev []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "cok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "crev" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
+  (Let "$a1" (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.RequestTimeout)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithTimeout []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "lcancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
+  (Let "lctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "lctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (Let "$a2" (Val #slice.nil)
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Get"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "lresp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))) (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "lresp")))))) (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "crev")) (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val retention)))))) (Val #false)))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"compactkv: a compaction revision within the retention of the latest revision")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "lcancel")) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "lresp") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "lcancel") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "lctx") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "cok")))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "ccancel")) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "cok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "crev") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Pair (Var "cch") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "ccancel") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "cctx") (Var "$r0")))))))))))))))
+  (Val #()))))
+
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.compactkv where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_uber_org.zap, pkg_id.github_com.mit_pdos.etcd_grove.examples.common]
 
@@ -413,12 +523,14 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Main_unfold : FuncUnfold Main [] Main.impl
+  checkCompactRev_unfold : FuncUnfold checkCompactRev [] checkCompactRev.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_common_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Assumptions
 
 attribute [instance] Assumptions.Main_unfold
+  Assumptions.checkCompactRev_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_clientv3_Assumption
   Assumptions.import_zap_Assumption
