@@ -130,7 +130,30 @@ kind of change as the KV's and Auth's registrations.
   (`lessorRdPool_init` of `NewLessor`'s `2^30 - 2` spare slots) and its callers' patterns; the
   `v3rpc.Server` proof's export (`leaseRegs_sub`, `leaseSReg_mem`).
 
+## Review (2026-11-02; `notes/lease-src-review.md`)
+
+An independent spec reviewer, given the targets, their Go code and callers. No Go bug found.
+
+- **F1 (fixed).** `lessor.Leases` (`lessor.go:472-477`) and `lessor.Renew` (`lessor.go:396-414`)
+  take `le.mu` and then the lease locks, under one token: a slot held for the call and the token at
+  once was a second thread's resource. Both now take the pool (`lessorRdPool γl`) and return
+  nothing of it; `Renew` is an axiom, so this is a trusted restatement (Freeze).
+- **F2 (fixed in the Probe).** The source is over `isServerReadM`, with the mode premise `hM`.
+- **F3 (fixed).** The pool's `init` is a `threadBound` stock: `lessorRdPool_init` moved to
+  `RdPool.lean`, an owner's match in `etc/bounds-allow.txt` (bounds 390, at the baseline).
+- **F4 (open, the served stage).** The grpc model gives a served lease call no `threadTok` of its
+  own; the run goroutine's token in `grpcHandlerOk` is the likely source.
+- **F5 (fixed).** `leaseTimeToLive`'s docstring: the three lessor calls (`Remaining`, `Keys`,
+  `Demoted`, `v3_server.go:636-675`) take the token one after another; a follower takes no lessor
+  lock. The old and new premises are incomparable: a different trusted claim, not a weaker one.
+- **F6 (fixed).** `checkLeaseLeases` takes no pool (it calls no lessor method under a slot).
+- **F7 (partly).** `leaseDesc_nodup` added; merging `etcdserverpbDescs`' stream clause with the old
+  `ClientStreams` one not done.
+- **F8 (noted).** `AuthSrv`'s Draft `sorry` sits under every auth-on result until Prove threads the
+  `specLb`s: no merge and no baseline update with it.
+- **F9 (optional, not done).**
+
 ## Stages
 
 Draft → Review (an independent spec reviewer) → Test → Probe (the hard proof: one check's borrow
-and give-back around `Lookup`; the easy one: `srvAuthLeaseLb_off`) → Freeze (the user) → Prove.
+and give-back around `Lookup`; the easy one: `srvAuthLeaseLb_off`) → Freeze (the user) → Prove. Draft, Review, Probe: done.
