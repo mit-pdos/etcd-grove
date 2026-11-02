@@ -103,7 +103,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"leasekv" go!"127.0.0.1:23946" go!"127.0.0.1:23936" lg
       (LogEntry.toEntries boot 0) ctxs (leasekvDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [leasekvDir, dirOne]) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
+      (by simp [leasekvDir, dirOne]) (by decide) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
