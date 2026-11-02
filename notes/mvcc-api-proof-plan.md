@@ -234,10 +234,35 @@ invariants (in `isMvcc`):
   nothing (the facts come at the receive). The old guarantee theorems cited by `WatchRecv.lean`'s
   docs (`watchRecvOk_cert`, ...) do not exist; `recv_unfiltered`
   (`Proof/go_etcd_io/etcd/client/v3/WatchContent.lean:412`) is the closest.
-- **Next**: the watch stream (`NewWatchStream`, `Watch`, `RequestProgress`, `Chan`, `Close` and the
-  watch laws, over the design inputs above); then the lessor's `Grant`/`Revoke` over the API (today's
-  are over the old mode's resources: `rdIs`, `watchWriter`, `storeReader`) and `NewLessor` without
-  `clusterOk`; then the tester.
+- **The watch stream, as built** (`cde8dc6545`..`1930c006e7`, `ApiWatchImpl.lean`): `WsName` the old
+  stream's and channel's names with the API's (`reg`, `rcv` tokens; `op`, the open token's shares;
+  `cl`, a closed mark); `isMvccWatchStream` the old stream at `storeWatchParams` (progress fact and
+  cancel reason `True`), its channel and invariant, and the open invariant (`op` whole with `cl`
+  persistent, or the old open token with `cl` whole); `wsWatchers ι W` its token, each id's `idTok`
+  and `wInfoOk` (the id's watcher, `watcherIs` at the view's range, filters, first revision);
+  `wsRecv ι rs` its token, the channel's consumer half at `ms` (`rs = ms.map respView`) and each
+  received response's `rcvFact` (`watchRecvResult`'s facts). Proved: `NewWatchStream`, `Chan`,
+  `Close` (the old open token from the open invariant), `RequestProgress(All)` (the watchable store's
+  reader borrowed, `mvccBorrowW`, for a credit of the body's first steps), `Watch` (the reader
+  borrowed; the watch token from `watchTokPool` for the receipt of the store `watch`'s resolution;
+  the caller's update fired once the store's `watch` returned, the id fresh by its `idTok`), and the
+  law `wsChan_recv` (`ApiWatchLaws.lean`, `watch_recv_au`).
+- **Changes to the candidate API found by the watch stream's proof**: the registrar's view is a map
+  keyed by the stream's ids (`GMap w64 WInfo`; the old stream's proof records no counter of the ids
+  it assigns: `idsInv` bounds them by `nextID` only); `Watch` at a positive start revision (at `0`
+  the first revision is the state's at the registration, inside the store's `watch`, which the
+  late-fired update cannot see); `Watch`'s closed arm refutes a share of the open token under a fancy
+  update (`□ (∀ q, wsOpen ι q ={⊤}=∗ False)`: the old open token is then in the stream's mutex
+  invariant, out of reach). **Open**: `wsRecv_resp`'s third conjunct (`r.evs ≠ [] → (W !! r.id).isSome`)
+  is false for the late-fired update (a watcher's events can be sent and received while its `Watch`
+  is in flight, before the view has it); the events and progress laws only speak of ids the view
+  has, so they hold. A client (the tester's receiver, under the lock its registrar holds across
+  `Watch`) needs "every id with events is in the view" when no `Watch` is in flight: either fire the
+  update inside the store's `watch` at the registration (a fancy update in its `Hreg` callback, in
+  the 1277-line proof), or give the law a premise no `Watch` holds.
+- **Next**: the watch laws `wsRecv_events`, `wsRecv_progress`, `wsRecv_resp` (as above); the lessor's
+  `Grant`/`Revoke` over the API (today's are over the old mode's resources: `rdIs`, `watchWriter`,
+  `storeReader`) and `NewLessor` without `clusterOk`; then the tester.
 
 ## Log
 
