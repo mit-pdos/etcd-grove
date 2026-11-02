@@ -597,14 +597,27 @@ no open share; `guarded_RLock`; `Close.spec`'s docstring); decision 3's untruste
 pending flag) over the pure domain `γ.rbD`, not tied to the readers' model (`InvBackend.lean`,
 laws in `TrackedLemmas.lean`); `rbOwn = rbPart ⊤`; the four batch writers take their bucket's part
 only; `Unlock` takes any part and returns it idle (`Unlock.bare`, `UnlockBare.lean`, the old
-statement); `rbSide` sealed and `rbSide_idle` private, so only `Unlock` clears a flag (no
-`etc/api/backend.txt` gate yet). Held for the trusted step: the readers' axioms taking `rbOwnIn`, `New`/`OpenBackend`
-giving the idle token, decision 2's pool, `premise_buckets`' consumer (`AuthSplitDraft.lean`).
+statement); `rbSide` sealed and `rbSide_idle` private, so only `Unlock` clears a flag (gated since stage 1 of the apply: `etc/import-all-check.py`). Held for the trusted step: the readers' axioms taking `rbOwnIn`, `New`/`OpenBackend`
+giving the idle token, `premise_buckets`' consumer (`AuthSplitDraft.lean`).
 Also applied: `restModel_memIdOk` (`RestMemId.lean`, Q1's strong `membersDecode`: the members'
 ids are their keys along the log). The revised trusted restatements (revision 4: the user's
 decisions of 2026-11-02, §2–§12 in full, §18 `memBoot` with `ccMemberAt`, the `import all` gate) are
-drafted for the user's approval, not applied. Later stage:
+approved (revision 4.3, 2026-11-02); being applied in stages. Later stage:
 option (a), the read model over the tracked hook buckets (the plan note).
+
+**Stage 1 of the apply (2026-11-02): the foundations**, no axiom's text changed, no caller of the
+restated axioms touched. The reader pool in the backend (`RdPool.lean`: `backend.rdPool`,
+`rdLoan`, `rdPool_init`, `rdTok_borrow`/`rdTok_giveBack`, `reader_RLock`/`reader_RUnlock`,
+`rdPoolN := 2 ^ 28`, `rdStockN`, `rdStock`, `bkRPool`, `bOpen_one_pool`, `bkRPool_intro`,
+`newPost_pool`/`newPostP`, `newPostK_pool`/`newPostKP`). `newPostKP` holds `rdPool`, not
+`bkRPool`: `newPostK` has no open token (its `K γ` took `bFresh γ`), so the snapshot path builds
+`bkRPool` where it gets `bOpen γ 1` back (`bOpen_one_pool`, `bkRPool_intro`), as it splits the
+readers' shares today (`SnapApplyWalk.lean`). The membership vocabulary (`InvRest.lean`:
+`membership.memberBkts`, `clusterBkts`, `membersDecode` and its five laws; `RestMemId.lean`:
+`membersDecode_restModel`, `memIdOk_memBoot`, `restModel_memIdOk'`), §18's `memBoot` with
+`ccMemberAt` (trusted, approved), the bucket infos `mvcc.alarmBI`/`authBI`/`authUsersBI`/
+`authRolesBI` (`InvStore.lean`), and Q6's gate: `etc/api/backend.txt` (57 importable modules,
+with `RdPool`) and `etc/import-all-check.py` (`etc/import-all.txt`), in `etc/gates.sh` and CI.
 
 ## The lease keep-alive entry point (2026-11-01, branch `lease-renew`; frozen and proved)
 

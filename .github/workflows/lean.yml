@@ -91,6 +91,11 @@ jobs:
             case "$c" in *-layout.txt) continue ;; esac
             ./etc/api-check.py "$c" --check
           done
+      # Only the listed modules `import all` a module whose sealed definitions or private laws
+      # are part of the trust base (`etc/import-all.txt`: the backend's tracked buckets). Reads
+      # the sources only.
+      - name: Check the sealed modules' importers
+        run: ./etc/import-all-check.py --check
       # The bound reasoning stays with its owners (`notes/bounds-plan.md`, B0): no new
       # thread-bound, receipt-bound or reader-slot premise in a spec. Reads the sources only.
       - name: Check the bounds baseline

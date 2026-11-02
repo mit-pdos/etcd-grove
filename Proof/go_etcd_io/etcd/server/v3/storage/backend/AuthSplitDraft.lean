@@ -10,8 +10,8 @@ user's decisions on the restated Draft's questions"), what this module drafts fo
    waits for the readers.** The held read (`rtHeldF`) records that its interval is live, so
    `readTx.UnsafeRange` takes no open share; the guard is at the acquisition (`RLock`).
 2. **Readers backed by thread tokens.** The backend's pool of reader slots
-   (`BksDraft.backend.rdPool`, a `threadPool` of `rdTok`), from which a thread token borrows a slot
-   for one read (`rdTok_borrow`, `rdTok_giveBack`; the glue `BksDraft.reader_RLock`/`reader_RUnlock`),
+   (`backend.rdPool`, a `threadPool` of `rdTok`, applied: `RdPool.lean`), from which a thread token
+   borrows a slot for one read (`rdTok_borrow`, `rdTok_giveBack`; the glue `reader_RLock`/`reader_RUnlock`),
    for the readers that hold no lock of their owner's; the constructor builds it
    (`BksDraft.backend.newPostK`, under J8a's `ThreadBoundLe GF (2 ^ 28)`) and leaves the rest of
    the slots counted (`rdStock`) for the owners that pool bundles nesting a slot (Q2).
@@ -25,15 +25,12 @@ Definitions redefining an existing one carry its name under `BksDraft.` (the mer
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RLock
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafePut
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeDelete
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.New
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadLemmas
-public import Perennial.Proof.ThreadPool
-public import Perennial.ProgramLogic.Bounds
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RdPool
 
 @[expose] public section
 
@@ -52,129 +49,11 @@ Applied (2026-11-01, the Freeze of decision 1): `rtHeldF`/`rtHeld` with the inte
 (`InvBackend.lean`), `readTx.UnsafeRange` with no open share, the share-free laws
 (`rtHeldF_lend'`, `rtHeldF_read'`, `ReadLemmas.lean`), `guarded_RLock` (`ClientLaws.lean`). -/
 
-/-! ## 2. The reader pool (decision 2) -/
+/-! ## 2. The reader pool (decision 2): applied
 
-section pool
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
-
-/-- The namespace of a backend's pool of reader slots. -/
-def BksDraft.backend.rdPoolN : Namespace := nroot .@ "backend_readers"
-
-/-- **The backend's pool of reader slots** (persistent; decision 2, the Bounds rule): a thread
-token borrows one slot (`rdTok`: a slot of `readTx.mu`, of `txMu`, and a reader's budget token)
-for one read and gives it back after (`rdTok_borrow`, `rdTok_giveBack`), so a reader holds its
-thread token between reads and no pre-split share of the slots. -/
-def BksDraft.backend.rdPool (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
-  iprop(∃ γp : GName, threadPool.isThreadPool BksDraft.backend.rdPoolN γp (rdTok (GF := GF) γ P b))
-
-instance BksDraft.backend.rdPool_persistent (γ : BNames) (P : BParams) (b : Loc) :
-    Persistent (BksDraft.backend.rdPool (GF := GF) γ P b) := by
-  unfold BksDraft.backend.rdPool; infer_instance
-
-/-- A reader slot lent out by the backend's pool, for which the pool holds the borrower's thread
-token. -/
-def BksDraft.backend.rdLoan (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
-  iprop(∃ γp : GName, threadPool.isThreadPool BksDraft.backend.rdPoolN γp (rdTok (GF := GF) γ P b) ∗
-    threadPool.ownThreadLoan γp)
-
-/-- **A pool from `n` reader slots**, enough for every thread but one (`threadBound GF ≤ n + 1`):
-what the owner of the slots (the candidate: `New`) builds. -/
-theorem BksDraft.backend.rdPool_init (γ : BNames) (P : BParams) (b : Loc) (E : CoPset) (n : Nat)
-    (hn : threadBound GF ≤ n + 1) :
-    ([∗list] _x ∈ List.replicate n (), rdTok (GF := GF) γ P b) ⊢
-      |={E}=> BksDraft.backend.rdPool γ P b := by
-  iintro Hs
-  imod threadPool.init BksDraft.backend.rdPoolN (rdTok (GF := GF) γ P b) E n hn $$ Hs with
-    ⟨%γp, #Hp⟩
-  imodintro
-  unfold BksDraft.backend.rdPool
-  iexists γp
-  iexact Hp
-
-/-- **Borrow a reader slot with a thread token.** -/
-theorem BksDraft.backend.rdTok_borrow (γ : BNames) (P : BParams) (b : Loc) (E : CoPset)
-    (hE : ↑BksDraft.backend.rdPoolN ⊆ E) :
-    BksDraft.backend.rdPool (GF := GF) γ P b ∗ threadTok ⊢
-      |={E}=> ▷ rdTok γ P b ∗ BksDraft.backend.rdLoan γ P b := by
-  iintro ⟨Hp, Ht⟩
-  unfold BksDraft.backend.rdPool
-  icases Hp with ⟨%γp, #Hp⟩
-  imod threadPool.borrow BksDraft.backend.rdPoolN γp (rdTok (GF := GF) γ P b) E hE $$ [Hp Ht]
-    with ⟨Hr, Hl⟩
-  · iframe Ht; iframe #
-  imodintro
-  iframe Hr
-  unfold BksDraft.backend.rdLoan
-  iexists γp
-  iframe Hl; iframe #
-
-/-- **Give a borrowed reader slot back, for the thread token.** -/
-theorem BksDraft.backend.rdTok_giveBack (γ : BNames) (P : BParams) (b : Loc) (E : CoPset)
-    (hE : ↑BksDraft.backend.rdPoolN ⊆ E) :
-    BksDraft.backend.rdLoan (GF := GF) γ P b ∗ rdTok γ P b ⊢ |={E}=> threadTok := by
-  iintro ⟨Hl, Hr⟩
-  unfold BksDraft.backend.rdLoan
-  icases Hl with ⟨%γp, #Hp, Hl⟩
-  iapply threadPool.giveBack BksDraft.backend.rdPoolN γp (rdTok (GF := GF) γ P b) E hE
-  iframe Hl Hr; iframe #
-
-end pool
-
-section poolLC
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
-
-/-- **A reader with a thread token begins a read** (glue, decisions 1 and 2): it borrows a slot from
-the backend's pool, `RLock`s with an open share it gets back at once, and holds the live read and
-the loan, no open share. -/
-theorem BksDraft.reader_RLock (hRL : Perennial.EtcdGrove.backend.readTx.RLock.spec (GF := GF) (hG := hG))
-    (γ : BNames) (P : BParams) (W Pk : IProp GF) (b rt : Loc) (qo : Qp) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-        isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ BksDraft.backend.rdPool γ P b ∗
-        threadTok ∗ £ 1 ∗ bOpen γ qo }}
-      (App (Val (rt @!! go.GoType.PointerType readTx.ty @!! go!"RLock")) (Val #()))
-    {{ RET #(); ∃ (rtx : Loc) (rv : RView), Perennial.EtcdGrove.backend.rtHeld γ P b rtx rv ∗
-        BksDraft.backend.rdLoan γ P b ∗ bOpen γ qo }} := by
-  iintro %Φ ⟨#Hpkg, #Hb, #Hrt, #Hp, Ht, Hlc, Ho⟩ HΦ
-  imod BksDraft.backend.rdTok_borrow γ P b ⊤ (fun _ _ => CoPset.mem_full) $$ [$Hp $Ht]
-    with ⟨Hr, Hl⟩
-  imod lc_fupd_elim_later (E := ⊤) $$ Hlc Hr with Hr
-  iapply (hRL γ P W Pk b rt qo) $$ %Φ [Hr Ho]
-  · iframe Hr Ho; iframe #
-  inext
-  iintro ⟨%rtx, %rv, Hh, Ho⟩
-  iapply HΦ
-  iexists rtx, rv
-  iframe Hh Hl Ho
-
-/-- **The reader ends its read** (glue): `RUnlock` gives the slot back, the pool the thread token. -/
-theorem BksDraft.reader_RUnlock
-    (hRU : Perennial.EtcdGrove.backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
-    (γ : BNames) (P : BParams) (W Pk : IProp GF) (b rt rtx : Loc) (rv : RView) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-        isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ Perennial.EtcdGrove.backend.rtHeld γ P b rtx rv ∗
-        BksDraft.backend.rdLoan γ P b }}
-      (App (Val (rt @!! go.GoType.PointerType readTx.ty @!! go!"RUnlock")) (Val #()))
-    {{ RET #(); threadTok }} := by
-  iintro %Φ ⟨#Hpkg, #Hb, #Hrt, Hh, Hl⟩ HΦ
-  iapply wp_fupd
-  iapply (hRU γ P W Pk b rt rtx rv) $$ %(fun v => iprop(|={⊤}=> Φ v)) [Hh]
-  · iframe Hh; iframe #
-  inext
-  iintro Hr
-  imod BksDraft.backend.rdTok_giveBack γ P b ⊤ (fun _ _ => CoPset.mem_full) $$ [$Hl $Hr] with Ht
-  imodintro
-  iapply HΦ
-  iexact Ht
-
-end poolLC
+Applied (2026-11-02, the backend-auth-split stage): `backend.rdPool`, `rdLoan`, `rdPool_init`,
+`rdTok_borrow`, `rdTok_giveBack`, `reader_RLock`/`reader_RUnlock`, `rdStockN`, `rdStock`, with
+`bkRPool`, `newPost_pool` and `newPostK_pool` (`RdPool.lean`). -/
 
 /-! ## 3. The tracked buckets by bucket set (decision 3): applied
 
@@ -232,15 +111,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- The reader slots the constructor leaves counted (`actualMaxReaders - 2 ^ 28`), for the readers
-that nest a slot in a bundle of their owner's (auth's `beMu` over `readTx.mu`, mvcc's store under
-`s.mu`: their pools' items, `notes/bounds-locks.md`'s B2), moved to the owner at its constructor. -/
-def BksDraft.backend.rdStockN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - 2 ^ 28
-
-/-- The counted reader slots. -/
-def BksDraft.backend.rdStock (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
-  iprop([∗list] _x ∈ List.replicate BksDraft.backend.rdStockN (), rdTok γ P b)
-
 /-- **What the constructor gives, restated** (`newPostK`): today's, with the tracked buckets **idle**
 (`rbOwnIn γ ⊤ (rbData P D)`: a fresh backend has no session, its readers see bbolt's data), and the
 reader slots as **the backend's pool** (`rdPool`, decision 2: for the readers that hold no lock of
@@ -252,7 +122,7 @@ def BksDraft.backend.newPostK (γ : BNames) (P : BParams) (W Pk K : BNames → I
   iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ b ∗ K γ ∗
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗
     rbOwnIn γ (fun _ => True) (rbData P D) ∗
-    BksDraft.backend.rdPool γ P b ∗ BksDraft.backend.rdStock γ P b ∗
+    backend.rdPool γ P b ∗ backend.rdStock γ P b ∗
     dlInit γ ∗ fkCl γ P D ∗ srSlot b)
 
 /-- **`New(bcfg)`, restated** (the pool built by the constructor, which owns `readTx.mu`; the

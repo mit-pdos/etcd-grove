@@ -1113,6 +1113,24 @@ abbrev leaseName : GoString := go_etcd_io.etcd.server.v3.storage.schema.leaseNam
 safeRangeBucket: false}`). -/
 def leaseBI : backend.BucketInfo := ⟨W64 3, leaseName, false⟩
 
+/-- schema's `Alarm` bucket, as the backend names it (`bucket{id: 4, name: "alarm",
+safeRangeBucket: false}`; 2026-11-02, the backend-auth-split stage). -/
+def alarmBI : backend.BucketInfo := ⟨W64 4, go!"alarm", false⟩
+
+/-- schema's `Auth` bucket, as the backend names it (`bucket{id: 20, name: "auth",
+safeRangeBucket: false}`; 2026-11-02, the backend-auth-split stage). -/
+def authBI : backend.BucketInfo := ⟨W64 20, go_etcd_io.etcd.server.v3.storage.schema.authName, false⟩
+
+/-- schema's `AuthUsers` bucket, as the backend names it (`bucket{id: 21, name: "authUsers",
+safeRangeBucket: false}`; 2026-11-02, the backend-auth-split stage). -/
+def authUsersBI : backend.BucketInfo :=
+  ⟨W64 21, go_etcd_io.etcd.server.v3.storage.schema.authUsersName, false⟩
+
+/-- schema's `AuthRoles` bucket, as the backend names it (`bucket{id: 22, name: "authRoles",
+safeRangeBucket: false}`; 2026-11-02, the backend-auth-split stage). -/
+def authRolesBI : backend.BucketInfo :=
+  ⟨W64 22, go_etcd_io.etcd.server.v3.storage.schema.authRolesName, false⟩
+
 /-- **The backend's parameters let the lessor delete from `Lease`**: the bucket in the table, a
 tracked one (`RB`, D22), none of its keys a hook's own (leases T3, 2026-10-25). -/
 def leaseParams (P : backend.BParams) : Prop :=

@@ -172,7 +172,7 @@ theorem memBoot_keys (bootLog : List EntryM) (S : GSet w64)
       (∀ k, (acc !! k).isSome = true → k ∈ S) →
       (∀ e ∈ l, ∀ cc, ccDecodeV1 e.Data' = some cc → cc.nodeId ∈ S) →
       ∀ k, ((l.foldl (fun mem e => match ccDecodeV1 e.Data' with
-        | some cc => mem.insert cc.nodeId (membership.ccMemberOf cc.context)
+        | some cc => mem.insert cc.nodeId (membership.ccMemberAt cc)
         | none => mem) acc) !! k).isSome = true → k ∈ S from
     H bootLog ∅ (fun k hk => by simp at hk) h
   intro l

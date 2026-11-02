@@ -1,0 +1,72 @@
+# The backend's importable modules (the backend-auth-split stage's Q6, 2026-11-02): what proofs
+# outside the backend's tree may import (`etc/api-check.py etc/api/backend.txt --check`). Every
+# other module of the tree is internal; in particular `TrackedLemmas`' private ghost steps and
+# `InvBackend`'s sealed `rbSide` are reachable only with
+# `import all`, which rule 1 forbids outside the tree and `etc/import-all-check.py` limits inside it.
+#
+# Started from what clients imported on 2026-11-02 and its public-import closure, with the reader
+# pool (`RdPool`: `bkRPool`, `reader_RLock`/`reader_RUnlock`, `newPost_pool`), the readers'
+# vocabulary of the trusted step.
+
+inside Proof/go_etcd_io/etcd/server/v3/storage/backend/
+inside Spec/go_etcd_io/etcd/server/v3/storage/backend/
+exempt (^|/)(Link|MainLinked|Results|Adequacy\w*)\.lean$
+root go_etcd_io.etcd.server.v3.storage.backend
+
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.BatchLemmas
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptions
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.Init
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvNew
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.RdPool
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadLemmas
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.UnlockBare
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__BatchTx
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Close
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ConcurrentReadTx
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ForceCommit
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__LockForSafeRangeDelete
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ReadTx
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__SetTxPostLockInsideApplyHook
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Size
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__SizeInUse
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Snapshot
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__UnlockForSafeRangeDelete
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__LockInsideApply
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__LockOutsideApply
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeCreateBucket
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeDelete
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafePut
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeRange
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeSeqPut
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__RLock
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__RUnlock
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__UnsafeRange
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RLock
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Close
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Size
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptsDefs
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.BksLemmas
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.FkLemmas
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvStop
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.Model2
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.RangeLemmas
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.Model
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.ModelLemmas
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.WritebackLemmas
