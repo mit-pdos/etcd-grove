@@ -30,7 +30,7 @@ theorem apply.uberApplier.Apply.wp_proof
     (hD : apply.uberApplier.dispatch.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.Apply.spec (GF := GF) (hG := hG) := by
   intro E p opts x r rq skip v3 F Pre Q Post rs
-  wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, Hwt, Hcs, %Hok, %Hskip, #HF, HFS, HSp, HRO, Hco⟩
+  wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, Hwt, Hcs, %Hok, #Hcpr, %Hskip, #HF, HFS, HSp, HRO, Hco⟩
   iunfold apply.uberOwn at Hown
   icases Hown with ⟨%a, Ha, #Hs, %HcE, #Hsh⟩
   ihave #Hs' := Hs

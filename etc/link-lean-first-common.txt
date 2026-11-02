@@ -10,6 +10,9 @@ EtcdServer__Start: @
 features_NewDefaultServerFeatureGate:
 common_newServer: features_NewDefaultServerFeatureGate etcdserver_NewServer
 common_StartServer: common_newServer EtcdServer__Start
+# (the restart plan's R2a, 2026-11-02) `BuildServer`: `newServer` with the compactor off, serving
+# nothing (`examples/restart3` keeps its listeners)
+common_BuildServer: common_newServer
 # (M2, notes/m2-plan.md) `StartCompactingServer`, over `newServer`'s compacting variant
 # (`specCompact`), is linked by hand in putgetc's `MainLinked.lean`
 # `NewMember` and `StartMember`: a cluster's member, its raft handler served (`net.Listen`'s,

@@ -44,11 +44,13 @@ theorem kv.Compact.wp_proof
   icases Hco with ⟨%vs, #Hsl, %Hcap, #Hok, %Hsc⟩
   -- the members' spec of `Compact`: each member has reached `rev`, in compaction mode
   have hmem : ∀ k (x : SrvAt GF), ms[k]? = some x →
-      (iprop(□ kvRevLb γ rev) : IProp GF) ⊢ kvRevLb x.γr.kv rev := fun k x hk =>
-    intuitionistically_elim.trans
-      (kvRevLb_same γ x.γr.kv (kvSame_symm (Hns x (List.mem_of_getElem? hk))) rev)
-  ihave #HC := (BigSepL.bigSepL_intro (Φ := fun _ (x : SrvAt GF) => kvRevLb x.γr.kv rev) hmem) $$ Hrv
-  ihave #HR := (BigAndL.bigAndL_intro (Φ := fun _ (x : SrvAt GF) => kvRevLb x.γr.kv rev) hmem) $$ Hrv
+      (iprop(□ kvRevLbZ γ (sint.Z rev + γ.cret)) : IProp GF) ⊢
+        kvRevLbZ x.γr.kv (sint.Z rev + x.γr.kv.cret) := fun k x hk => by
+    have hs := Hns x (List.mem_of_getElem? hk)
+    rw [hs.2.2.2.2.2.2]
+    exact intuitionistically_elim.trans (kvRevLbZ_same γ x.γr.kv (kvSame_symm hs) _)
+  ihave #HC := (BigSepL.bigSepL_intro (Φ := fun _ (x : SrvAt GF) => kvRevLbZ x.γr.kv (sint.Z rev + x.γr.kv.cret)) hmem) $$ Hrv
+  ihave #HR := (BigAndL.bigAndL_intro (Φ := fun _ (x : SrvAt GF) => kvRevLbZ x.γr.kv (sint.Z rev + x.γr.kv.cret)) hmem) $$ Hrv
   wp_auto
   wp_apply wp_OpCompact rev $$ []
   wp_apply wp_toRequest _ $$ [] as %p ⟨%req, Hreq, %Hrq⟩
@@ -65,14 +67,14 @@ theorem kv.Compact.wp_proof
       (GoInterface.ok ci) (kvCompactSpec ms) ⟨rev, false⟩ (fun _ => iprop(True)))
     unfold kvCompactSpec
     iapply (anySpec_intro ms (fun x => etcdCompactSpec x.E x.γr x.cid x.mid) ⟨rev, false⟩
-      (fun _ => iprop(True)) (fun x => kvRevLb x.γr.kv rev) (fun x => kvRevLb x.γr.kv rev)
+      (fun _ => iprop(True)) (fun x => kvRevLbZ x.γr.kv (sint.Z rev + x.γr.kv.cret)) (fun x => kvRevLbZ x.γr.kv (sint.Z rev + x.γr.kv.cret))
       (fun x hx => by
         iintro ⟨#Hx, -⟩
         unfold etcdCompactSpec
         isplitr
         · ipureintro
           refine ⟨Hr1, rfl, ?_⟩
-          rw [(Hns x hx).2.2.2.2.2]; exact Hcmp
+          rw [(Hns x hx).2.2.2.2.2.1]; exact Hcmp
         iframe Hx
         iintro %m -
         itrivial))

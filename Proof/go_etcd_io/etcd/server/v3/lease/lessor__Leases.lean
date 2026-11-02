@@ -131,13 +131,23 @@ theorem lease.lessor.Leases.wp_proof
     (hSwap : lease.leasesByExpiry.Swap.spec (GF := GF) (hG := hG)) :
     lease.lessor.Leases.spec (GF := GF) (hG := hG) := by
   intro lp γl m
-  wp_start as ⟨#Hinv, Hrd, #Hlb, Htt, %Hb, %Hrb⟩
+  wp_start as ⟨#Hinv, #Hpool, #Hlb, Htt, %Hb, %Hrb⟩
   iunfold lessorInv at Hinv
   icases Hinv with ⟨%Hlp, #Hpin, #Hmu, #Hrdi⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
-  iunfold lessorRd at Hrd
+  -- a reader slot borrowed from the pool with the token, for the read lock (the lease-src plan)
+  iapply fupd_wp
+  imod lease.lessorRdPool_borrow γl ⊤ (fun _ _ => CoPset.mem_full) $$ [Hpool Htt]
+    with ⟨Hrdo, Hback⟩
+  · iframe #; iframe
+  imodintro
   wp_auto
+  iunfold lessorRdOf at Hrdo
+  icases Hrdo with ⟨%lp', #Hpin', Hrd⟩
+  ihave %Heq := lessorPin_agree γl lp lp' $$ [$Hpin $Hpin']
+  subst Heq
+  iunfold lessorRd at Hrd
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
   icases HR with ⟨%lm, %im, %M, %I', %rd0, %L', Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx,
@@ -182,6 +192,11 @@ theorem lease.lessor.Leases.wp_proof
     iexists γr, hs
     iframe Hpr Hhl
     ipureintro; exact Hlast
+  -- the slot back, for the token (`Less` reads the clock with it)
+  iapply fupd_wp
+  imod Hback $$ [Hrd] with Htt
+  · iunfold lessorRdOf; iexists lp; iframe Hpin; iunfold lessorRd; iexact Hrd
+  imodintro
   -- the sort: a permutation of the pairs
   (try wp_auto)
   ihave #Hpsort : isPkgInit (PROP := IProp GF) pkg_id.sort $$ []
@@ -200,8 +215,7 @@ theorem lease.lessor.Leases.wp_proof
   icases HR with ⟨⟨Hsl, Htt, %Hp⟩, %Hp'⟩
   (try wp_auto)
   iapply HΦ
-  iunfold lessorRd
-  iframe Hrd Htt Hsl
+  iframe Htt Hsl
   isplitr
   · iexists hs.length - 1
     isplitr

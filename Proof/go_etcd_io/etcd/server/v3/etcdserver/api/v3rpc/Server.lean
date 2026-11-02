@@ -327,9 +327,8 @@ theorem v3rpc.Server.wp_proof
     SrvOptKind.unary, SrvOptKind.stream, List.nil_append, List.append_nil]
   (try wp_auto)
   iunfold v3rpc.svcDescsOk at Hdescs
-  icases Hdescs with ⟨⟨%kmds, %ksds, #HdKV, %HkvD⟩, ⟨%wsds, #HdW, %HwD⟩, HdL, HdC, ⟨%amds, %asds, #HdA, %HaD⟩, HdM⟩
-  iunfold v3rpc.descOk at HdL HdC HdM
-  icases HdL with ⟨%lmds, %lsds, #HdL, %HlD⟩
+  icases Hdescs with ⟨⟨%kmds, %ksds, #HdKV, %HkvD⟩, ⟨%wsds, #HdW, %HwD⟩, ⟨%lmds, %lsds, #HdL, %HlD⟩, HdC, ⟨%amds, %asds, #HdA, %HaD⟩, HdM⟩
+  iunfold v3rpc.descOk at HdC HdM
   icases HdC with ⟨%cmds, %csds, #HdC, %HcD⟩
   icases HdM with ⟨%mmds, %msds, #HdM, %HmD⟩
   ihave #HdKV := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdKV
@@ -362,15 +361,15 @@ theorem v3rpc.Server.wp_proof
       v3rpc.watchDesc_nodup wsds HwD, ⟨_, rfl, v3rpc.ServerMethodSets.watch_te⟩⟩
     exact v3rpc.ServerMethodSets.watch_impl
   (try wp_auto)
-  wp_apply (hNewL s C.A C.lg0 C.lg C.qb Hbuq) $$ [] as %lv ⟨%ql, %lp, %lcid, %lmid, %Hlv, -, -⟩
+  wp_apply (hNewL s C.A C.lg0 C.lg C.qb Hbuq) $$ [] as %lv ⟨%ql, %lp, %lcid, %lmid, %Hlv, #Hql, #Hlps⟩
   · iframe; iframe #; ipureintro; exact Hlgn
   subst Hlv
   (try wp_auto)
   wp_apply (hRegL gs _ _ _ _ _ _ _ _ lmds lsds) $$ [Hgs] as Hgs
   · iframe; iframe #
     ipureintro
-    refine ⟨by decide, ⟨etcdserverpb.LeaseServer.ty, ⟨_, _⟩, rfl, rfl, ?_⟩, HlD,
-      ⟨_, rfl, v3rpc.ServerMethodSets.lease_te⟩⟩
+    refine ⟨by decide, ⟨etcdserverpb.LeaseServer.ty, ⟨_, _⟩, rfl, rfl, ?_⟩,
+      v3rpc.leaseDesc_nodup lmds lsds HlD, ⟨_, rfl, v3rpc.ServerMethodSets.lease_te⟩⟩
     exact v3rpc.ServerMethodSets.lease_impl
   (try wp_auto)
   wp_apply (hNewC s C.c) as %pc -
@@ -416,7 +415,7 @@ theorem v3rpc.Server.wp_proof
   · iframe; iframe #
   (try wp_auto)
   iapply HΦ
-  iexists q, p, pw, pa, il, im, iu, ims, is, _, _, _, cid, mid',
+  iexists q, p, pw, pa, ql, lp, il, im, iu, ims, is, _, _, _, cid, mid', lcid, lmid,
     ⟨s, C.E, C.wsl, C.γ, cidw, midw, lgw, C.m + W64 (512 * 1024)⟩
   iframe Hgs
   isplitr
@@ -428,8 +427,15 @@ theorem v3rpc.Server.wp_proof
     constructor
     · have := v3rpc.watchSReg_mem pw wsds HwD
       simp [List.mem_append, this]
+    constructor
     · intro x hx
       have := v3rpc.authRegs_sub pa amds HaD.1 x hx
+      simp [List.mem_append, this]
+    constructor
+    · intro x hx
+      have := v3rpc.leaseRegs_sub ql lmds HlD.1 x hx
+      simp [List.mem_append, this]
+    · have := v3rpc.leaseSReg_mem ql lsds HlD.2
       simp [List.mem_append, this]
   iframe
   iframe #

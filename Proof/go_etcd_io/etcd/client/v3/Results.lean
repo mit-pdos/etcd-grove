@@ -1410,7 +1410,7 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
   -- the server's mode: compaction (the readers' view's tie)
   ihave #Hkvi := srvKVInvs_of_read s E γr $$ Hsrd
   iunfold srvKVInvs at Hkvi
-  icases Hkvi with ⟨-, -, -, -, %Htie⟩
+  icases Hkvi with ⟨-, -, -, -, %Htie, -⟩
   have hEc : E.cmp = true := by rw [← Htie.1, ← hρ]; exact Hkc
   -- the guard's facts: the admin guard `aa` and the server's auth fields
   ihave #Hau := srvAuthAt_of_views s E ρ γr $$ [Hsrv Hsrd]
@@ -1429,9 +1429,8 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
   iunfold etcdRunSlot at Hslot
   icases Hslot with ⟨Hlt, Hsr, Hlg, Hrr, Hrd⟩
   imod HNR with Hid
-  have hrev : W64 (sint.Z req.Revision') = req.Revision' := by word
-  ihave #Hrv' : kvRevLb ρ.rd.kv (W64 (sint.Z req.Revision')) $$ []
-  · rw [hrev]; iexact Hrv
+  ihave #Hrv' : kvRevLbZ ρ.rd.kv (sint.Z req.Revision' + ρ.rd.kv.cret) $$ []
+  · iexact Hrv
   -- the server's `Compact`, guarded: the caller's readers, credit and request in, back out
   let Pin : IProp GF := iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ mvcc.storeReader E.s E.γ ∗
     idCred ρ.ids 1 ∗ r ↦ req)

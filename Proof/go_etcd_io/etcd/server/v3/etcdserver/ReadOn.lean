@@ -151,8 +151,8 @@ theorem srvAuthLb_rangeCheck (s : Loc) (E : apply.AEnv GF) (ai : GoInterfaceOk) 
     icombine Hf Hf2 gives %Hau
     subst Hau
     rw [hM]
-    iunfold authStoreLbM at HLbM
-    ihave #HR := HLbM $$ Hpub
+    ihave #HLbR := authStoreLbM_range γa _ E.RD $$ HLbM
+    ihave #HR := HLbR $$ Hpub
     iapply apply.rangeCheckFrom_of_isAuthStoreRangeLb $$ HR
   | _ =>
     iapply apply.rangeCheckFrom_of_permCheck3 $$ HP3
