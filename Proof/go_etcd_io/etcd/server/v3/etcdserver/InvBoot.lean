@@ -374,7 +374,13 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
       d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧
       -- (the lease-revoke plan, 2026-10-31) the `Lease` bucket in the table, tracked, no hook
       -- keys: what a revocation's deletions from it take (`mvcc.storeRb`)
-      mvcc.leaseParams d.P⌝ ∗
+      mvcc.leaseParams d.P ∧
+      -- (2026-11-02, the backend-auth-split stage, item E of the approved restatements) the alarm
+      -- and auth buckets in the table (schema's `Alarm`, `Auth`, `AuthUsers`, `AuthRoles`, of
+      -- `MustCreateBackendBuckets`' `AllBuckets`): what `NewAlarmStore` and `NewAuthStore` take of
+      -- the buckets they create, so that they are among the backend's ghost names
+      d.P.has mvcc.alarmBI ∧ d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧
+      d.P.has mvcc.authRolesBI⌝ ∗
     -- (2026-11-02, the user's approval, branch `snap-window`) the backend's hooks are the server's
     -- `s.beHooks` (`bootstrapBackend`'s `OpenBackend(cfg, beHooks)`: `bcfg.Hooks = hooks`, which
     -- `New` stores in `b.hooks`): what the merged snapshot's window needs of its commit

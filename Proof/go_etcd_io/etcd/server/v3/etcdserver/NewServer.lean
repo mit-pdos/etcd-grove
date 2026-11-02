@@ -545,7 +545,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iframe TickMsS ElectionTicksS
   (try wp_auto)
   -- the backend, from `backend.New`'s postcondition (`bootBackend_of_newPost`)
-  obtain ⟨Hbe0, HbP, Hci0, HhP, HPwf, HPlim, HlP⟩ := Hbe
+  obtain ⟨Hbe0, HbP, Hci0, HhP, HPwf, HPlim, HlP, HalB, HauB, HauUB, HauRB⟩ := Hbe
   ihave #Hstpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
   ihave #Hbkpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
@@ -576,11 +576,14 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   have hDl : ∀ n ∈ mvcc.restBuckets, ((backend.rbData d.P D).lookup n).getD ∅ = ∅ :=
     fun n hn => by rw [rbData_real_lookup d D n hn]; exact HDr.1 n hn
   wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
-      (srvGrantGuard) (backend.rbData d.P D))
+      (srvGrantGuard) (fun _ => True) (backend.rbData d.P D) trivial HlP)
     $$ [Hopen Hwl Hrbo]
     as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, #Hllk'⟩
   · iframe HB Hclok
     unfold backend.wbTok
+    -- (2026-11-02, the backend-auth-split stage) at every bucket: `rbOwn` is `rbPart ⊤`, and the
+    -- lessor gives the boot its tracked buckets idle (`rbOwnIn ⊤`)
+    iunfold backend.rbOwn at Hrbo
     iframe Hopen Hwl Hrbo
     ipureintro; exact ⟨Hlgnn, Hckok, by simp, hDl go!"lease" (by decide)⟩
   -- (the auth plan's E3zb) its `Lookup` at the guard `False`: no lease, and the weaker clause
@@ -733,6 +736,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   (try wp_auto)
   rw [show (4 : Nat) = 2 + 2 from rfl]
   icases (ownToks_add 2 2 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwa⟩
+  ihave Hrbo : backend.rbOwn (GF := GF) d.γB _ $$ [Hrbo]
+  · iunfold backend.rbOwn; iapply backend.rbOwnIn_part $$ Hrbo
   ihave HKt' := HKt $$ %cfg.Logger' %ab %abl %d %(mvcc.lateW d.gx)
     %(batchLockInv γA (metaTM d.γB d.P)) %(1 : Qp).half %((backend.rbData d.P D).insert go!"lease" ∅)
   wp_apply HKt'
@@ -742,7 +747,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iframe Habbe Hablg HB
     iframe Hapkg HK Hopen Hhook Hwa Hrbo
     ipureintro
-    refine ⟨Hlgnn, Htpnn, Haufit, Hab, ?_, ?_, ?_⟩
+    refine ⟨Hlgnn, Htpnn, Haufit, Hab, ⟨?_, ?_, ?_⟩, HauB, HauUB, HauRB⟩
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"auth" (by decide)
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"authUsers" (by decide)
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"authRoles" (by decide)
@@ -820,13 +825,17 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   rw [show (2 : Nat) = 1 + 1 from rfl]
   icases (ownToks_add 1 1 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwal⟩
   wp_apply (h32 s cfg.Logger' d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half _
-      (DFrac.own 1) (((((backend.rbData d.P D).insert go!"lease" ∅).insert go!"auth" authBoot).insert
-        go!"authUsers" ∅).insert go!"authRoles" ∅))
-    $$ [Hopen Hwal alarmStore be Hrbo] as %aerr ⟨Hopen, Hrbo, be, Hares⟩
+      (DFrac.own 1) (fun _ => True) (((((backend.rbData d.P D).insert go!"lease" ∅).insert go!"auth" authBoot).insert
+        go!"authUsers" ∅).insert go!"authRoles" ∅) trivial HalB)
+    $$ [Hopen Hwal alarmStore be Hrbo HbkP Htok]
+    as %aerr ⟨%Haerr, Hopen, HbkP, Htok, Hrbo, be, %alst, %Halnn, alarmStore, #HalS, HalOn, #HalA⟩
   · iframe #
     unfold backend.wbTok
     rw [← Hbe0]
-    iframe Hopen Hwal alarmStore be Hrbo
+    -- (2026-11-02, the backend-auth-split stage) at every bucket, with the backend's reader pool
+    -- and the constructing thread's token, given back
+    iunfold backend.rbOwn at Hrbo
+    iframe Hopen Hwal alarmStore be Hrbo HbkP Htok
     ipureintro
     refine ⟨Hlgnn, ?_⟩
     rw [GMap.lookup_insert_ne _ _ (by decide), GMap.lookup_insert_ne _ _ (by decide),
@@ -835,21 +844,11 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- the rest buckets after the constructors: the boot state's
   rw [restBootBk_of_fresh d D HDr]
   clear hDl HDr
-  icases Hares with (⟨%Haerr, -⟩ | ⟨%Haerr, %alst, %Halnn, alarmStore, #HalS, HalOn, #HalA⟩)
-  · -- the alarms could not be restored: the error returned, the store and `b` closed
-    cases aerr with
-    | nil => exact absurd rfl Haerr
-    | ok ei => ?_
-    wp_auto
-    imod wsCloserM_of_new _ _ γw.st Hkbiff $$ Hwcl Hcr with Hwcl
-    wp_apply (h42 _ _ _ (-1)) $$ [Hwcl]
-    · iframe Hws Hwcl
-    (try wp_auto)
-    wp_apply Hclose
-    iapply HΦ
-    ileft
-    iframe Htok
-    ipureintro; exact ⟨rfl, by simp⟩
+  -- (2026-11-02, the backend-auth-split stage) `NewAlarmStore` returns no error (the alarm bucket
+  -- is empty), so `restoreAlarms` does not; the tracked buckets idle, as the rest resource holds
+  -- them below
+  ihave Hrbo : backend.rbOwn (GF := GF) d.γB _ $$ [Hrbo]
+  · iunfold backend.rbOwn; iapply backend.rbOwnIn_part $$ Hrbo
   subst Haerr
   (try wp_auto)
   -- `srv.uberApply = srv.NewUberApplier()`: its contract given once the hook is installed
@@ -1304,7 +1303,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       (srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) $$ []
   · iapply apply.isApplyLessor_of_lessorInv h49 h50 h51 h52 h53 h54 h55 h56 h95 lp kst γw.st _ _
       (srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be)) _
-      (lease.lessorBeOn lp d.be) (backend.rbOwn d.γB)
+      (lease.lessorBeOn lp d.be) (backend.rbPart d.γB (· = go!"lease"))
     rw [Hγw.2.1]
     iframe Hllk Hlcfg Hlinv Hlspkg Hmvpkg
     isplitr
@@ -1485,7 +1484,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       isplitr
       · ipureintro
         refine ⟨Hγw.2.2.1, Hlgnn, Hstpss, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2.1, Hcmp0.symm, HbP,
-          Hci0, HhP, HPwf, HPlim, HlP, Hwq, trivial, by omega⟩
+          Hci0, HhP, HPwf, HPlim, HlP, HalB, Hwq, trivial, by omega⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
       · iExactEq Hsdir

@@ -100,6 +100,11 @@ def membership.memberBkts [GooseExts] (n : GoString) : Prop :=
 /-- The buckets `RaftCluster.Recover` reads (`UnsafeLoad`): the members' and `cluster`. -/
 def membership.clusterBkts [GooseExts] (n : GoString) : Prop :=
   membership.memberBkts n ∨ n = go!"cluster"
+/-- The auth buckets (`auth`, `authUsers`, `authRoles`: schema's `Auth`, `AuthUsers`, `AuthRoles`),
+which `NewAuthStore` creates and the auth store's `Recover` reads (2026-11-02, the
+backend-auth-split stage). -/
+def auth.authBkts [GooseExts] (n : GoString) : Prop :=
+  n = go!"auth" ∨ n = go!"authUsers" ∨ n = go!"authRoles"
 
 /-- **The membership buckets of `bk` are as the apply thread writes them** (defined, 2026-11-01:
 the backend-auth-split stage's review, in place of an opaque decoding premise): every entry of

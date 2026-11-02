@@ -97,7 +97,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
     #Hdinv, #Half, #Hauf, #Hlpf, #Hclf, #Hal, #HalOk, #HauOk, #HauR, #HlpOk, #HlpCfg, #HlpL, #Hrc,
     #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #Hws, #Hcfg⟩
   obtain ⟨hkb, hlg, hstp, hdbo, hmm, hbuq, hsl, hdirps, hsop, hcm, hbr, hci, hhk, hwf, hlim, hlp,
-    hwq, hRO, hrb⟩ := Hp
+    halbi, hwq, hRO, hrb⟩ := Hp
   icombine Hnid Hidm gives %Hidn
   subst Hidn
   -- the snapshot saved in the member's directory (`nodeSnapLocal` at the cluster's directories,
@@ -172,7 +172,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
       { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai d D lgh hkb
       (by rw [hcm, hcmp]) hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hlg hmm tI hmeta st b (by omega)
       al ast lp cl x A hRO Hif.hlease hwq R Hif.hpre Hif.hRok Hif.hkI hbr hlp γp hrb stp γd γt
-      (srvImage γr.raft.raft) (uint.nat sv.Metadata'.Index') hstp (Nat.le_refl _) Hif.halarm
+      (srvImage γr.raft.raft) (uint.nat sv.Metadata'.Index') hstp (Nat.le_refl _) Hif.halarm halbi
       Hif.hauthb Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
       cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq A' Hif.hA' hoff
       γnc)

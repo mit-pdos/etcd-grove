@@ -31,8 +31,8 @@ instance (priority := high) alarmStore_typeRepr_u' :
 theorem v3alarm.AlarmStore.Recover.wp_proof
     (hR : v3alarm.AlarmStore.restore.spec (GF := GF) (hG := hG)) :
     v3alarm.AlarmStore.Recover.spec (GF := GF) (hG := hG) := by
-  intro a be0 abl lg be γB P W Pk qo r
-  wp_start as ⟨#Ha, Hon, #Hbb, #Hbl, %Hlgnn, #HB, Ho, Hwb, Hrb, %Hr⟩
+  intro a be0 abl lg be γB P W Pk qo S r hS hRB hhas
+  wp_start as ⟨#Ha, Hon, #Hbb, #Hbl, %Hlgnn, #HB, Ho, Hwb, Hpl, Htk, Hrb, %Hr⟩
   iunfold isAlarmStore at Ha
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -66,9 +66,9 @@ theorem v3alarm.AlarmStore.Recover.wp_proof
   wp_apply (wp_map_make1 (K := w32) (V := GoMap)
     go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty v3alarm.alarmSet.ty) as %tm' Hm'
   (try wp_auto)
-  wp_apply hR a abl lg be (DFrac.own 1) γB P W Pk qo r tm' ∅
-    $$ [Hbe Htypes Hm' Ho Hwb Hrb] as %err ⟨%Herr, Hbe, Htypes, Hm', Ho, Hrb⟩
-  · iframe #; iframe Hbe Htypes Hm' Ho Hwb Hrb
+  wp_apply hR a abl lg be (DFrac.own 1) γB P W Pk qo S r tm' ∅ hS hRB hhas
+    $$ [Hbe Htypes Hm' Ho Hwb Hpl Htk Hrb] as %err ⟨%Herr, Hbe, Htypes, Hm', Ho, Hpl, Htk, Hrb⟩
+  · iframe #; iframe Hbe Htypes Hm' Ho Hwb Hpl Htk Hrb
     ipureintro; exact ⟨Hlgnn, Hr⟩
   icases ((typedPointsto_dfractional (GF := GF) (alarmBeAddr a) (alarmBkIface abl)).dfractional
       (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)).1 $$ [Hbe] with ⟨Hbe, Hbe'⟩
@@ -89,7 +89,7 @@ theorem v3alarm.AlarmStore.Recover.wp_proof
     itrivial
   (try wp_auto)
   iapply HΦ
-  iframe Ho Hrb
+  iframe Ho Hpl Htk Hrb
   isplitr
   · ipureintro; exact Herr
   iunfold alarmEmpty

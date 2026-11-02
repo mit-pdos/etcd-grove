@@ -83,7 +83,10 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗
         backend.plHook d.γB func.nil ∗ ownToks d.γB.wb 2 ∗ backend.rbOwn d.γB r ∗
         ⌜(r.lookup go!"auth").getD ∅ = ∅ ∧ (r.lookup go!"authUsers").getD ∅ = ∅ ∧
-          (r.lookup go!"authRoles").getD ∅ = ∅⌝ }}
+          (r.lookup go!"authRoles").getD ∅ = ∅⌝ ∗
+        -- (2026-11-02, the backend-auth-split stage) the auth buckets in the backend's table, as
+        -- `NewAuthStore`'s axiom now takes them
+        ⌜d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI⌝ }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
     {{ (st : GoInterface), RET #st; backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil ∗
@@ -218,11 +221,19 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   iexists iprop(True)
   isplitr
   · itrivial
-  iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨-, Hpre⟩ HΦ
-  iapply (h30 lg ab tp cost abl d W Pk qo r) $$ Hpre
+  iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨-, #Hpkg, %Hlg, %Htp, %Hfit, %Hab, #Habbe,
+    #Hablg, #HB, Ho, Hh, Hwb, Hrb, %Hr, %Hhas⟩ HΦ
+  -- (2026-11-02, the backend-auth-split stage) the axiom at every bucket (`rbOwn` is `rbPart ⊤`)
+  iunfold backend.rbOwn at Hrb
+  iapply (h30 lg ab tp cost abl d W Pk qo (fun _ => True) r (fun _ _ => trivial) Hhas.1 Hhas.2.1
+    Hhas.2.2) $$ [Ho Hh Hwb Hrb]
+  · iframe Hpkg Habbe Hablg HB Ho Hh Hwb Hrb
+    ipureintro; exact ⟨Hlg, Htp, Hfit, Hab, Hr⟩
   iintro !> %st ⟨Ho, Hh, Hr, %RD, %stl, %Hst, Hbe, Hsl, #Hreq, #Hok, #HauR⟩
   iapply HΦ
-  iframe Ho Hh Hr
+  iframe Ho Hh
+  isplitl [Hr]
+  · iunfold backend.rbOwn; iapply backend.rbOwnIn_part $$ Hr
   iexists RD, stl
   iframe Hbe Hsl Hreq
   isplitr
@@ -318,7 +329,7 @@ theorem authStoreKit_on
     auth.capAuth γa [auth.bootState, auth.bump auth.bootState])
   iframe HA Hown Hcur HI Hfr Hcap
   iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨⟨HA, Hown, Hcur, HI, Hfr, Hcap⟩, #Hpkg, %Hlg, %Htp,
-    %Hfit, %Hab, #Habbe, #Hablg, #HB, Hopen, Hhook, Hwb, Hrbo, %Hr⟩ HΦ
+    %Hfit, %Hab, #Habbe, #Hablg, #HB, Hopen, Hhook, Hwb, Hrbo, %Hr, -⟩ HΦ
   ihave #HD := hD22
   -- (E2k) the fuel at the history the store starts at (`[bootState, bump bootState]`)
   ihave Hfu := auth.authFuel_boot (GF := GF)
