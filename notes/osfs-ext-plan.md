@@ -905,3 +905,13 @@ bound `n + 2 ≤ 2 ^ 30` and P1 (the strengthened crash relation).
 Left: the step bound (a thread-count proof device or an adequacy theorem deriving the bound from
 thread tokens, see round 8), and `Hinit_wp` (needs `wp_initialize'` for `os`, `syscall` and their
 imports).
+
+### The thread bound as a hypothesis (2026-11-02, the user's call)
+
+`BootCrashSafety` no longer has the step bound `n + 2 ≤ 2 ^ 30`. It takes the thread bound as
+Perennial's adequacy theorems do, a hypothesis on the execution:
+`RealCrashThreadsBelow (boot dir) (2 ^ 30) n ...` (fewer than `2 ^ 30` live threads along it), and
+`bootCrashSafety` passes it to `bootCrashSafety_bounded` at `T = 2 ^ 30`, with the time-receipt
+bound `N = n + 1` chosen per execution. The rounds-8/9 notes above that call the step bound open
+are superseded: the remaining hypotheses are `Hinit_wp` (package initialization), the
+`os.file`/`os.fileStat` field instances, P1 (the crash relation) and the thread bound.
