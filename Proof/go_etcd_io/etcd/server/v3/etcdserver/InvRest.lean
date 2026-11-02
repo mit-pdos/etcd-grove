@@ -422,6 +422,22 @@ right, drawn from `RW` without this fact, is a separate follow-up. -/
 def restPresent (bk : GMap GoString backend.BktData) : Prop :=
   ∀ n, (restBootBk.lookup n).isSome = true → (bk.lookup n).isSome = true
 
+/-- **The voters are members of the rest state** at the applied log `A` (`srvMemOk`'s converse;
+the cluster-rows stage, 2026-11-02). -/
+def srvMemCover (γs : ServerRaftNames) (c0 : w64) (A : List EntryModel) : Prop :=
+  ∀ k, k ∈ γs.raft.cfg → ((restModel c0 γs.raft.boot (γs.pre ++ A)).mem !! k).isSome = true
+
+/-- **The glue at `applyEntryNormal`'s call of `apply.Apply`**: the next entry's request, of a
+committed log whose attribute requests name voters (`attrEntryOk`, `entryWaitOk`'s), meets the
+rest state's premise at the applied log `A`, whose members include the voters (`srvMemCover`,
+`srvApRes`'s `srvMemOk`). -/
+theorem restReqOk_of_attr (γs : ServerRaftNames) (c0 : w64) (A : List EntryModel) (m : EntryModel)
+    (rq : apply.IRRModel) (hmc : srvMemCover γs c0 A) (ha : attrEntryOk γs.raft.cfg m)
+    (ht : m.typ = W32 0) (hne : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq) :
+    apply.restReqOk rq (restModel c0 γs.raft.boot (γs.pre ++ A)) := by
+  intro hk a ha'
+  exact hmc _ ((ha ht hne rq hdec hk).2 a ha')
+
 end present
 
 section defs

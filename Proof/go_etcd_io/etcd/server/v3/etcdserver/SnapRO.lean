@@ -236,9 +236,12 @@ lock the batch (`LockInsideApply`), put, and `Unlock`, which writes the put back
 without `shouldApplyV3` they write nothing; so after either, the readers see the writer's contents
 on the cluster's buckets, `TestBks2WriterAnySIdle`. `UpdateAttributes` saves under
 `BackendMemberKey(m.ID)`, which is the model's `memberKey a.memberID` because `srvRestOwn` holds
-`memIdOk`, kept by both rows (`restModel_memIdOk`'s steps). Not modelled, as before
-(`RestModel.lean:19`): `UpdateAttributes` of an id that is neither a member nor removed panics in
-Go; the row claims a return there, a gap of the contract this stage leaves as it is.) -/
+`memIdOk`, kept by both rows (`restModel_memIdOk`'s steps).) (2026-11-02, the cluster-rows stage:
+the rows' premises, the version not above the server's and `UpdateAttributes`' member in `r.mem`,
+`SetVersion`'s callback fixed with its package initializations; the rest resource and the write
+right hold the rest buckets present, and the members' client URLs are read-only. Until then the
+rows claimed a return where Go panics or is fatal; they still do above bbolt's `MaxValueSize`, as
+`isCluster` says.) -/
 def clusterApplyOk (c : Loc) : IProp GF :=
   iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ' : mvcc.StoreNames) (f : GoFunc)
       (RO : apply.RestM → IProp GF) (RW : IProp GF),

@@ -521,7 +521,21 @@ buckets and the in-memory members through the environment's resource `RO` (`Rest
 `SetVersion` of the version `MustParse(s)` (`semverIs`) saves `semverNorm s` with `b`
 (`restSetVersion`); `UpdateAttributes` replaces the in-memory member's attributes and, with `b`,
 saves that member (`restUpdateAttrs`: exception 7, the in-memory member); `SetDowngradeInfo`, which
-the workload does not reach, takes the write right `RW`. -/
+the workload does not reach, takes the write right `RW`. (2026-11-02, the cluster-rows stage:
+`SetVersion`'s callback is `api.UpdateCapability`, the one Go passes, until then any value, which
+Go calls (`cluster.go:623`), with `membership`'s and `api`'s package initialization (it writes
+`ClusterVersionMetrics` and `api`'s capability globals; as `RaftCluster.Recover`'s axiom); its
+version is not above the server's (`semverAtMostServer s`: `MustDetectDowngrade` panics above it,
+before the `shouldApplyV3` test, `cluster.go:609-611`). `UpdateAttributes`' id is a member of `r.mem`
+(an id neither a member nor removed panics, `cluster.go:479-486`; a removed id only warns, but the
+server removes no member, its configuration changes being `AddNode`s of the boot configuration,
+so the removed case is not claimed). The rest buckets present and the members' client URLs
+read-only are in `RO`'s meaning (`srvRestOwn`, `memberAt`); for `SetDowngradeInfo`, the buckets
+present in `RW`'s (`srvRestRW`). Claimed, and false, as before this stage: a saved value above
+bbolt's `MaxValueSize` (a member's attributes, or a version string with a huge prerelease tag,
+which sorts below the bound) is fatal in `unsafePut` (`batch_tx.go:183-188`); no caller makes one
+(the monitor proposes `Major.Minor.0`, the attributes come from the configuration;
+`issues/etcd-backend-put-value-too-large-fatal.md`).) -/
 def isCluster (c : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RO : RestM → IProp GF)
     (RW : IProp GF) : IProp GF :=
   iprop(⌜c ≠ null⌝ ∗
@@ -533,16 +547,19 @@ def isCluster (c : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RO : Re
         (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty @!!
           go!"ID")) (Val #()))
       {{ (id : w64), RET #id; True }}) ∗
-    □ (∀ (v : Loc) (s : GoString) (onSet : val) (b : Bool) (Pre Q Post : IProp GF) (r : RestM),
-      {{ cPre b P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ ⌜v ≠ null⌝ ∗ semverIs v s ∗
-          RO r }}
+    □ (∀ (v : Loc) (s : GoString) (b : Bool) (Pre Q Post : IProp GF) (r : RestM),
+      {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
+          isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api ∗
+          cPre b P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ ⌜v ≠ null⌝ ∗ semverIs v s ∗
+          ⌜semverAtMostServer s⌝ ∗ RO r }}
         (App (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty
-          @!! go!"SetVersion")) (Val #v)) (Val onSet)) (Val #b))
+          @!! go!"SetVersion")) (Val #v))
+          (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.UpdateCapability))) (Val #b))
       {{ RET #(); cPost b Pre Post ∗ mvcc.storeRT γ ∗ RO (restSetVersion b s r) }}) ∗
     □ (∀ (id : w64) (attr : etcdserver.api.membership.Attributes) (cus : List GoString) (b : Bool)
         (Pre Q Post : IProp GF) (r : RestM),
       {{ cPre b P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗
-          attr.ClientURLs' ↦*□ cus ∗ RO r }}
+          attr.ClientURLs' ↦*□ cus ∗ ⌜(r.mem.lookup id).isSome = true⌝ ∗ RO r }}
         (App (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty
           @!! go!"UpdateAttributes")) (Val #id)) (Val #attr)) (Val #b))
       {{ RET #(); cPost b Pre Post ∗ mvcc.storeRT γ ∗

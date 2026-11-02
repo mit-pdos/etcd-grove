@@ -1391,6 +1391,14 @@ instance entryWaitOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryMo
     Persistent (entryWaitOk (GF := GF) ρ E m) := by
   unfold entryWaitOk; split <;> infer_instance
 
+/-- A normal entry's attribute fact (the cluster-rows stage, 2026-11-02: `applyEntryNormal`'s
+`restReqOk`). -/
+theorem entryWaitOk_attr (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) (ht : m.typ = W32 0) :
+    entryWaitOk (GF := GF) ρ E m ⊢ ⌜attrEntryOk ρ.raft.raft.cfg m⌝ := by
+  unfold entryWaitOk; rw [if_pos ht]
+  iintro ⟨-, %L, -, %H⟩
+  ipureintro; exact H.2
+
 /-- `entryWaitOk` of every entry of a batch (persistent). -/
 def batchWaitOk (ρ : ReqNames) (E : apply.AEnv GF) (ms : List EntryModel) : IProp GF :=
   iprop(□ ∀ m, ⌜m ∈ ms⌝ -∗ entryWaitOk ρ E m)

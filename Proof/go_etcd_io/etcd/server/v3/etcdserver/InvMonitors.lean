@@ -70,14 +70,14 @@ def monitorReq (lid : w64) (rq : apply.IRRModel) : Prop :=
 /-- A monitor's request has a good shape. -/
 theorem rqShape_of_monitorReq (lid : w64) (rq : apply.IRRModel) (h : monitorReq lid rq) :
     rqShape rq := by
-  obtain ⟨⟨-, -, -, hk⟩, -⟩ := h
+  obtain ⟨⟨-, -, -, hk⟩, -, hsv⟩ := h
   refine ⟨fun on => ?_, fun log _ => ?_⟩
   · unfold apply.dispatchOk
     rcases hk with hk | ⟨hk, -⟩ <;> rw [hk] <;> exact ⟨by decide, fun h => by cases h⟩
   · unfold apply.rqOk
     rcases hk with hk | ⟨hk, hv⟩ <;> rw [hk]
     · trivial
-    · exact hv
+    · exact fun v hv' => ⟨hv v hv', hsv v hv'⟩
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]

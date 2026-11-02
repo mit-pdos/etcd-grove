@@ -67,10 +67,6 @@ entries were applied). -/
 def srvPeersCover (γs : ServerRaftNames) (lid : w64) (_A : List EntryModel) (prs : trIds) : Prop :=
   ∀ f, f ∈ γs.raft.cfg → f ≠ lid → f ∈ prs
 
-/-- **The voters are members of the rest state** at the applied log `A` (`srvMemOk`'s converse). -/
-def srvMemCover (γs : ServerRaftNames) (c0 : w64) (A : List EntryModel) : Prop :=
-  ∀ k, k ∈ γs.raft.cfg → ((restModel c0 γs.raft.boot (γs.pre ++ A)).mem !! k).isSome = true
-
 /-- **The in-memory members stay among the boot configuration's** (D43 M5e: what keeps
 `AddMember`'s bound, `size ≤ 2 ^ 62`): the members of the rest model at the applied log are
 members of raft's boot configuration, of fewer than `2 ^ 61` members (2026-10-31, the snapshot
@@ -459,6 +455,21 @@ theorem srvApRes_cfg_size (s : Loc) (γr : ReadNames) (A : List EntryModel) :
     · ipureintro; exact H7
     ipureintro; exact Hp
   ipureintro; exact Hp.2.2.1
+
+/-- The voters members of the rest state (`srvMemOk`'s cover; `applyEntryNormal`'s premise). -/
+theorem srvApRes_cover (s : Loc) (γr : ReadNames) (A : List EntryModel) :
+    srvApRes (GF := GF) s γr A ⊢ srvApRes s γr A ∗ ⌜srvMemCover γr.raft γr.kv.c0 A⌝ := by
+  unfold srvApRes
+  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, %H7, #H8,
+    Hmr, %Hp, #Hd⟩
+  isplitl
+  · iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
+    iframe H1 H2 H3 H4 H5 H6 H8 Hd
+    iframe
+    isplitr
+    · ipureintro; exact H7
+    ipureintro; exact Hp
+  ipureintro; exact Hp.2.2.2
 
 /-- A normal entry keeps it (`srvApRes_normal`'s step). -/
 theorem srvMemCover_normal (γs : ServerRaftNames) (c0 : w64) (A : List EntryModel) (m : EntryModel)

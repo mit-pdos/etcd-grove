@@ -28,7 +28,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 `ClusterVersionSet` requests of a version it decided (`semver.Version.String()`, which parses
 back: `semverValid`), with the permission `srvMonitorPermitM` gives (in either auth mode, `MonitorsOn.lean`, E3zb) (D19c, 2026-10-18,
 `InvMonitors.lean`; until then the contract took only the package's initialization, and its
-proposals were outside the model). -/
+proposals were outside the model). (2026-11-02, the cluster-rows stage: its versions are not above
+the server's, `Major.Minor.0` of the members' minimum with the local member's among them, or
+`3.0.0`; `monitorReq lid`.) -/
 abbrev EtcdServer.monitorClusterVersions.spec : Prop :=
   ∀ (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗

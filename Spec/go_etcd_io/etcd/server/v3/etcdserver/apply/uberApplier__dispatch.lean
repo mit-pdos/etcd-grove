@@ -37,7 +37,8 @@ warnings) return. A write token of the store (`mvcc.storeWT E.γ`) is handed to 
 that may open a store write transaction (2026-10-13, unit 6). The certificates of the logs the
 request may commit (`certPre`; 2026-10-14, unit T1). The apply thread's compaction resources
 (`cmpOwn`), at `crev` before and at `dispatchCrev` after (M2's apply side, 2026-10-31: the compaction
-arm, item 11). -/
+arm, item 11). The rest state's premise `restReqOk` (the cluster-rows stage, 2026-11-02: a member
+attributes request's member a member of `rs.mem`, `UpdateAttributes`' row). -/
 abbrev apply.uberApplier.dispatch.spec : Prop :=
   ∀ (E : AEnv GF) (p : Loc) (opts : ApplierOptions) (c : apply.Chain) (a : GoInterface)
     (r : Loc) (rq : IRRModel) (skip v3 : Bool) (log F : mvcc.Log) (Pre Q Post : IProp GF)
@@ -49,7 +50,8 @@ abbrev apply.uberApplier.dispatch.spec : Prop :=
       ⌜apply.rqOk log rq ∧ apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb log rq⌝ ∗
       apply.cmpPermRq E rq ∗
       ⌜c.authOn = E.authOn⌝ ∗ mvcc.idxCert E.γ.idx F ∗
-      E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E crev }}
+      E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ ⌜apply.restReqOk rq rs⌝ ∗ E.RO rs ∗
+      apply.cmpOwn E crev }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; apply.chainResAny c a ∗ E.FS ∗ E.RO (apply.restAfter rq v3 rs) ∗
       apply.cmpOwn E (apply.dispatchCrev c rq v3 crev) ∗
