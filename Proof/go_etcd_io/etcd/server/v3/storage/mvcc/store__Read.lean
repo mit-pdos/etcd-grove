@@ -372,7 +372,7 @@ theorem mvcc.store.Read.wp_proofC (hA : mvcc.store.Read.specA (GF := GF) (hG := 
   ihave #Hs1 : mvcc.isMvccI s γ $$ []
   · iunfold mvcc.isMvcc at Hs; iexact Hs
   iunfold mvcc.isMvccI at Hs1
-  icases Hs1 with ⟨#Hst, %Hf, -, #Hpool, -, -⟩
+  icases Hs1 with ⟨#Hst, %Hf, -, #Hpool, -, -, #Hfz⟩
   obtain ⟨habs, -, -, -⟩ := Hf
   imod ownToks_0 γ.st.revs with Hm0
   imod mvcc.idxCert_nil γ.st.idx with #Hc0
@@ -393,6 +393,7 @@ theorem mvcc.store.Read.wp_proofC (hA : mvcc.store.Read.specA (GF := GF) (hG := 
     · unfold mvcc.logLent; itrivial
     iunfold mvcc.absRead
     iintro %q1 %q2 %log %c %Hc ⟨Ha, Hcu⟩
+    imod mvcc.crev_frozen_pre γ.st q2 c Hc $$ [$Hfz $Hcu] with ⟨Hcu, %Hfr⟩
     ihave Hau := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvcc.mvccN) (Eo2 := ⊤) (by simp) $$ Hau
     ihave Hacc := aupd_aacc $$ Hau
     unfold atomic_acc
@@ -403,7 +404,9 @@ theorem mvcc.store.Read.wp_proofC (hA : mvcc.store.Read.specA (GF := GF) (hG := 
     iunfold mvcc.mvccStateI at Hσ
     icases Hσ with ⟨Hga, Hgp, Hgc, #Hgi, HM, #Hpe, Hwl, %Hreach⟩
     icases mvcc.absAt_agree γ.st habs _ _ log σ.log $$ [$Ha $Hga] with ⟨Ha, Hga, %Hl⟩
-    ihave %Hcc := mvcc.crevUB_agree γ.st.idx _ _ c σ.crev Hc Hreach.1.crev_ge $$ Hcu Hgc
+    -- the compaction revision: the client's half of its authority, or frozen at `-1`
+    icases mvcc.crev_client_agree γ.st q2 c σ.crev Hc Hreach.1.crev_ge Hfr $$ [$Hgc $Hcu]
+      with ⟨Hgc, Hcu, %Hcc⟩
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     imod Hcommit $$ [Hga Hgp Hgc HM Hwl] with HQ

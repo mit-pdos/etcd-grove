@@ -89,7 +89,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- **The client's state is `σ`** (`mvccState`): see the file's header. -/
 def mvccStateI (γ : MvccImpl) (σ : MvccState) : IProp GF :=
   iprop(ghostVar γ.st.abs (1 : Qp).half σ.log ∗ ghostVar γ.st.pnd (1 : Qp).half σ.pending ∗
-    crevUB γ.st.idx (1 : Qp).half σ.crev ∗ idxCert γ.st.idx σ.log ∗
+    (if γ.st.cm then crevUB γ.st.idx (1 : Qp).half σ.crev else iprop(⌜σ.crev = -1⌝)) ∗
+    idxCert γ.st.idx σ.log ∗
     (∃ M : GMap w64 Log, ghostMapAuth γ.st.cok 1 M ∗ ⌜certMapOk M σ.notifiedLog⌝) ∗
     □ (∀ x, ⌜σ.pending = some x⌝ -∗ certOk γ.st (σ.log ++ [x])) ∗
     (if γ.watched then monoListAuthOwn γ.ws.wlog (1 : Qp).half σ.log else iprop(True)) ∗
@@ -127,7 +128,7 @@ def isMvccI (s : Loc) (γ : MvccImpl) : IProp GF :=
       threadBound GF ≤ 2 ^ 30⌝ ∗
     (∃ o : StoreObjs, curAt γ.st DFrac.discard o) ∗
     threadPool.isThreadPool tixN γ.tl (storeReaderC s γ.st) ∗ revPool γ.st ∗
-    □ (⧗ 1 ={⊤}=∗ storeWT γ.st))
+    □ (⧗ 1 ={⊤}=∗ storeWT γ.st) ∗ wsFrozenM γ.st)
 
 instance isMvccI_persistent (s : Loc) (γ : MvccImpl) : Persistent (isMvccI (GF := GF) s γ) := by
   unfold isMvccI; infer_instance
@@ -170,7 +171,7 @@ def mvccTxnI (t : GoInterface) (γ : MvccImpl) (trace : Loc) : MTxn → IProp GF
           isRoTxnWrite trw s γ.st trace σ.log (W64 (σ.rev : Int)) σ.crev)))
   | .write σ pend => iprop(∃ (mw s : Loc) (puts deletes putSize : w64),
       ⌜t = interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw ∧ σ.pending = none ∧
-        1 ≤ σ.log.length⌝ ∗
+        1 ≤ σ.log.length ∧ (γ.st.cm = false → σ.crev = -1)⌝ ∗
       isMvccI s γ ∗
       isTxnWrite mw s γ.st trace σ.log pend puts deletes putSize σ.crev ∗
       threadPool.ownThreadLoan γ.tl)

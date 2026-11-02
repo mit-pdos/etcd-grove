@@ -4925,6 +4925,39 @@ theorem isTxnWrite_ne (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
   ipureintro; exact Hne
 
+/-- **A write transaction of a store that does not compact** observed the compaction revision `-1`
+(the frozen part of its authority agrees with `s.mu`'s, which the transaction holds). -/
+theorem isTxnWrite_frozenOf (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)
+    (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) (ld : Bool) :
+    crevFrozen (GF := GF) γ ∗ isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ld ={⊤}=∗
+      isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ld ∗ ⌜crev = -1⌝ := by
+  iintro ⟨#Hf, H⟩
+  iunfold isTxnWrite at H
+  icases H with ⟨%tw, %ranges, Hmw, Hst, Htrc⟩
+  iunfold storeTxnWriteIs at Hst
+  icases Hst with ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, %Pw, %fw, %Dep, Hst⟩
+  iNamed Hst
+  iunfold muHeld at Hmu
+  icases Hmu with ⟨Hmul, Hmua, Hfs⟩
+  iunfold muInvAt at Hmua
+  iNamed Hmua
+  imod crevFrozen_agree γ _ crev Hcrev.1 $$ Hf HcrevM with ⟨HcrevM, %Hc1⟩
+  ihave Hmu : muHeld s γ crev ti $$ [Hmul HcmpM HcrevM Hfs]
+  · iunfold muHeld; iframe Hmul Hfs; iunfold muInvAt; iframe HcmpM HcrevM; iframe #
+    ipureintro; exact HcM
+  imodintro
+  isplitl
+  · iunfold isTxnWrite
+    iexists tw, ranges
+    iframe Hmw Htrc
+    iunfold storeTxnWriteIs
+    iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
+    simp only [named]
+    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hpnd
+    iframe #
+    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
+  ipureintro; exact Hc1
+
 /-- **A write transaction's compaction revision** (`muHeld`'s part of its authority): with
 another part, it agrees. -/
 theorem isTxnWrite_crev (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)

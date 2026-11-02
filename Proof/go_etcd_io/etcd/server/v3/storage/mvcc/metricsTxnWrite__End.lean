@@ -194,7 +194,7 @@ theorem mvcc.metricsTxnWrite.End.wp_proofC (hA : mvcc.metricsTxnWrite.End.specA 
     icases (mvcc.mvccTxn_read_eq mw γ trace σ).1 $$ Htx with ⟨%s, -, #Hs, Hrd, Hloan⟩
     ihave #Hs1 := Hs
     iunfold mvcc.isMvccI at Hs1
-    icases Hs1 with ⟨-, -, -, #Hpool, -, -⟩
+    icases Hs1 with ⟨-, -, -, #Hpool, -, -, -⟩
     wp_apply (hA trace mw s γ.st (.read σ.log (W64 (σ.rev : Int))) σ.crev iprop(True) iprop(True))
       $$ [Hrd] as ⟨Hrdr, -, -, Htrc⟩
     · simp only [mvcc.isTxnEnd, mvcc.txnEndPreA]
@@ -214,7 +214,7 @@ theorem mvcc.metricsTxnWrite.End.wp_proofC (hA : mvcc.metricsTxnWrite.End.specA 
     subst hmw
     ihave #Hs1 := Hs
     iunfold mvcc.isMvccI at Hs1
-    icases Hs1 with ⟨-, %Hf, -, #Hpool, -, -⟩
+    icases Hs1 with ⟨-, %Hf, -, #Hpool, -, -, -⟩
     obtain ⟨habs, hwq, -, -⟩ := Hf
     ihave #Hhk := mvcc.mvccHook_hookOk γ P f $$ Hhook
     by_cases hp : pend = []

@@ -52,7 +52,7 @@ theorem mvcc.txnReadWrite.End.wp_proofC (hO : mvcc.txnReadWrite.End.spec (GF := 
   icases (mvcc.mvccTxn_ro_eq trw γ trace σ).1 $$ Htx with ⟨%s, %Hl, #Hs, Hro, Hloan⟩
   ihave #Hs1 := Hs
   iunfold mvcc.isMvccI at Hs1
-  icases Hs1 with ⟨-, -, -, #Hpool, -, -⟩
+  icases Hs1 with ⟨-, -, -, #Hpool, -, -, -⟩
   iapply wp_fupd
   wp_apply (hO trace trw s γ.st σ.log (W64 (σ.rev : Int)) σ.crev iprop(True)) $$ [Hro]
     as ⟨Hrd, -, Htrc⟩

@@ -344,7 +344,7 @@ theorem mvcc.store.Write.wp_proofC (hA : mvcc.store.Write.specA (GF := GF) (hG :
   ihave #Hs1 : mvcc.isMvccI s γ $$ []
   · iunfold mvcc.isMvcc at Hs; iexact Hs
   iunfold mvcc.isMvccI at Hs1
-  icases Hs1 with ⟨#Hst, %Hf, ⟨%o, #Hpin⟩, #Hpool, #Hrev, #Hwb⟩
+  icases Hs1 with ⟨#Hst, %Hf, ⟨%o, #Hpin⟩, #Hpool, #Hrev, #Hwb, #Hfz⟩
   ihave #Hhk := mvcc.mvccHook_hookOk γ P f $$ Hhook
   ihave #Hhook0 := Hhook
   iunfold mvcc.mvccHook at Hhook0
@@ -353,8 +353,9 @@ theorem mvcc.store.Write.wp_proofC (hA : mvcc.store.Write.specA (GF := GF) (hG :
   isimp only [Hnn, ↓reduceIte] at Hrun
   icases Hrun with #Htriple
   imod mvcc.crevLb_neg γ.st.idx with #Hlb
+  iapply wp_fupd
   iapply (hA s γ.st trace P Pre Q #f te (-1) iprop(True) DFrac.discard o
-    (threadPool.ownThreadLoan γ.tl)) $$ %Φ [Htt Hpre Htrc]
+    (threadPool.ownThreadLoan γ.tl)) $$ %_ [Htt Hpre Htrc]
   · iframe Hpkg Hst Hlb Hhk Hpin Htriple Hpre Htrc
     isplitl [Htt]
     · iintro Hlc
@@ -370,6 +371,9 @@ theorem mvcc.store.Write.wp_proofC (hA : mvcc.store.Write.specA (GF := GF) (hG :
   inext
   iintro %mw ⟨⟨%ilog, %crev, Htx, -, %Hc⟩, HQ, -, -, Hloan⟩
   icases mvcc.isTxnWrite_ne mw s γ.st trace ilog [] _ _ _ crev _ _ $$ Htx with ⟨Htx, %Hne⟩
+  imod mvcc.txn_crev_fact γ.st mw s trace ilog [] (W64 0) (W64 0) (W64 0) crev $$ [$Hfz $Htx]
+    with ⟨Htx, %Hcr⟩
+  imodintro
   iapply HΦ
   iframe HQ
   iexists ⟨ilog, crev, none⟩
@@ -377,7 +381,7 @@ theorem mvcc.store.Write.wp_proofC (hA : mvcc.store.Write.specA (GF := GF) (hG :
   simp only [mvcc.mvccTxnI]
   iexists mw, s, W64 0, W64 0, W64 0
   isplitr
-  · ipureintro; have := List.length_pos_iff.2 Hne; simp; omega
+  · ipureintro; have := List.length_pos_iff.2 Hne; exact ⟨rfl, trivial, by omega, Hcr⟩
   isplitr
   · iunfold mvcc.isMvcc at Hs; iexact Hs
   iframe Htx Hloan

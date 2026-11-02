@@ -343,22 +343,69 @@ theorem mvccTxn_ro_eq (trw : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState)
 theorem mvccTxn_write_eq (mw : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) (pend : List Change) :
     mvccTxn (GF := GF) (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace
         (.write σ pend) ⊣⊢
-      ∃ (s : Loc) (puts deletes putSize : w64), ⌜σ.pending = none ∧ 1 ≤ σ.log.length⌝ ∗ isMvccI s γ ∗
+      ∃ (s : Loc) (puts deletes putSize : w64),
+        ⌜σ.pending = none ∧ 1 ≤ σ.log.length ∧ (γ.st.cm = false → σ.crev = -1)⌝ ∗ isMvccI s γ ∗
         isTxnWrite mw s γ.st trace σ.log pend puts deletes putSize σ.crev ∗
         threadPool.ownThreadLoan γ.tl := by
   unfold mvccTxn mvccTxnI
   constructor
-  · iintro ⟨%mw', %s, %puts, %deletes, %putSize, ⟨%Ht, %Hp, %Hl⟩, #Hs, Hr, Hl'⟩
+  · iintro ⟨%mw', %s, %puts, %deletes, %putSize, ⟨%Ht, %Hp, %Hl, %Hc⟩, #Hs, Hr, Hl'⟩
     simp only [interface_mkOk_inj, _root_.true_and] at Ht
     have hmw : mw' = mw := (GoGlobalContext.intoVal_inj_loc Ht).symm
     subst hmw
     iexists s, puts, deletes, putSize
     iframe Hs Hr Hl'
-    ipureintro; exact ⟨Hp, Hl⟩
-  · iintro ⟨%s, %puts, %deletes, %putSize, ⟨%Hp, %Hl⟩, #Hs, Hr, Hl'⟩
+    ipureintro; exact ⟨Hp, Hl, Hc⟩
+  · iintro ⟨%s, %puts, %deletes, %putSize, ⟨%Hp, %Hl, %Hc⟩, #Hs, Hr, Hl'⟩
     iexists mw, s, puts, deletes, putSize
     iframe Hs Hr Hl'
-    ipureintro; exact ⟨rfl, Hp, Hl⟩
+    ipureintro; exact ⟨rfl, Hp, Hl, Hc⟩
+
+/-- **A store that does not compact has its compaction revision at `-1`** (`wsFrozenM`'s frozen
+part, opened before the caller's update). -/
+theorem crev_frozen_pre (γs : StoreNames) (q : Qp) (c : Int) (hc : -1 ≤ c) :
+    wsFrozenM (GF := GF) γs ∗ crevUB γs.idx q c ={⊤}=∗ crevUB γs.idx q c ∗ ⌜γs.cm = false → c = -1⌝ := by
+  iintro ⟨#Hfz, Hcu⟩
+  cases hcm : γs.cm
+  · iunfold wsFrozenM at Hfz
+    isimp only [hcm, Bool.false_eq_true, ↓reduceIte] at Hfz
+    imod crevFrozen_agree γs q c hc $$ Hfz Hcu with ⟨Hcu, %Hc1⟩
+    imodintro; iframe Hcu; ipureintro; intro _; exact Hc1
+  · imodintro; iframe Hcu; ipureintro; intro h; cases h
+
+/-- **The client's compaction revision agrees** with a part of its authority: by the half the client
+holds, or frozen at `-1`. -/
+theorem crev_client_agree (γs : StoreNames) (q : Qp) (c σc : Int) (hc : -1 ≤ c) (hσ : -1 ≤ σc)
+    (hfr : γs.cm = false → c = -1) :
+    (if γs.cm then crevUB (GF := GF) γs.idx (1 : Qp).half σc else iprop(⌜σc = -1⌝)) ∗ crevUB γs.idx q c ⊢
+      (if γs.cm then crevUB γs.idx (1 : Qp).half σc else iprop(⌜σc = -1⌝)) ∗ crevUB γs.idx q c ∗
+        ⌜c = σc⌝ := by
+  iintro ⟨Hg, Hcu⟩
+  cases hcm : γs.cm
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Hg with %Hg
+    iframe Hcu
+    ipureintro; exact ⟨Hg, by rw [hfr hcm, Hg]⟩
+  · simp only [eq_self_iff_true, ite_true, ↓reduceIte]
+    have hag : crevUB (GF := GF) γs.idx q c ∗ crevUB γs.idx (1 : Qp).half σc ⊢ ⌜c = σc⌝ := by
+      iintro ⟨H1, H2⟩; iapply crevUB_agree γs.idx _ _ c σc hc hσ $$ H1 H2
+    icases persistent_entails_right hag $$ [$Hcu $Hg] with ⟨%Hcc, Hcu, Hg⟩
+    iframe Hg Hcu
+    ipureintro; exact Hcc
+
+/-- **A write transaction's compaction revision**, of a store that does not compact: `-1`. -/
+theorem txn_crev_fact (γs : StoreNames) (mw s : Loc) (trace : Loc) (ilog : Log) (pend : List Change)
+    (puts deletes putSize : w64) (crev : Int) :
+    wsFrozenM (GF := GF) γs ∗ isTxnWrite mw s γs trace ilog pend puts deletes putSize crev ={⊤}=∗
+      isTxnWrite mw s γs trace ilog pend puts deletes putSize crev ∗ ⌜γs.cm = false → crev = -1⌝ := by
+  iintro ⟨#Hfz, Htx⟩
+  cases hcm : γs.cm
+  · iunfold wsFrozenM at Hfz
+    isimp only [hcm, Bool.false_eq_true, ↓reduceIte] at Hfz
+    imod isTxnWrite_frozenOf mw s γs trace ilog pend puts deletes putSize crev iprop(True) false
+      $$ [$Hfz $Htx] with ⟨Htx, %Hc1⟩
+    imodintro; iframe Htx; ipureintro; intro _; exact Hc1
+  · imodintro; iframe Htx; ipureintro; intro h; cases h
 
 end lemmas
 
