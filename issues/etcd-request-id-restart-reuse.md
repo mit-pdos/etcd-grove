@@ -27,10 +27,13 @@ upstream: unchecked
   type assertion in the request path panics, as in the cross-member case. The new request's own
   entry later triggers nothing.
 - **Expected**: request ids unique across a member's restarts, or the precondition documented.
-- **How the proof handles it**: not yet; found while drafting the restart example
-  (`notes/restart-plan.md`, R2). The cluster's one map of issued ids (`idClusterInv`,
-  `Proof/go_etcd_io/etcd/pkg/v3/idutil/Defs.lean`) cannot take a reissued id, so a restarted member's
-  generator needs a premise that its first suffix is past the ids its prefix already issued.
+- **How the proof handles it**: as an assumption, where it is used (the restart plan's R2c,
+  2026-11-02; drafted, not yet in use): the cluster's id state is keyed by a member's incarnation
+  (`Proof/go_etcd_io/etcd/pkg/v3/idutil/Incarnations.lean`), and `idNoClash` assumes the id a
+  generator's `Next` makes is in no other incarnation's list -- this issue's precondition. It is
+  not a premise of the example's theorem: as for the read-write mutex's reader limit
+  (`/shared/grove-paper/sosp26/rwmutex.tex`), the specs stay free of the limit and the assumption is
+  named and reviewed at the trust boundary. Across members, ids stay distinct by prefix, proved.
 - **Possible fixes**: seed the suffix from the WAL (the highest id of the member's own entries, or
   a persisted high-water mark) instead of the clock; or take `max(now, last persisted)`.
 - **Found**: 2026-11-02, drafting `examples/restart3`'s specs (the restart plan's R2).

@@ -371,3 +371,71 @@ are still the R2a placeholders and hypotheses (`HardStop.spec`, `BuildServer.spe
 member's store is new), the id generator's start past the old ids
 (`issues/etcd-request-id-restart-reuse.md`), and what the image holds of raft (R2e) and of the
 backend (L5).
+
+### R2c: what a restart needs of the cluster's id state (2026-11-02, design)
+
+Drafting the image's content found that three pieces of a member's ghost state, shared with the
+cluster, stay with the stopped incarnation for good, so the restarted one cannot be handed them:
+
+1. **Its prefix's entry of the cluster's issued-ids map** (`γi.pfx ↪[γi.cnt] L`): inside the old
+   generator's invariant (`idGen`'s `inv idN`). In-flight handlers of the old incarnation can still
+   call `Next` after `HardStop` (`gs.Stop` does not wait for them), so the entry keeps growing.
+2. **Its prefix's cell of the registries' map** (`idWaitIs γi pfx W`): set once, persistently, to the
+   old wait registry.
+3. **Its store's index** (`IdxNames`): the authorities are in the old store's lock invariant
+   (`store.Close` does not take the lock), and old handlers can still read the store. The restarted
+   store's index must be fresh. But the cluster's claim facts are per prefix (`Φs pfx = srvFloorFact
+   E₀`, certificates in the first incarnation's index), so a fresh index cannot satisfy the restarted
+   generator's `idGen γi g (srvFloorFact E₀')`.
+
+**The fix: key the cluster's per-member id state by incarnation**, a key `(pfx, inc)` in place of the
+prefix: the issued-ids entry, the registry cell and the claim facts `Φs` per key, and a claim
+records its key. The apply thread already reads a claim's floor only for its own prefix, and uses
+the empty floor for another member's ids ("no waiter here", `reqWaitR`); with keys, "own" becomes
+"own incarnation", and an old incarnation's replayed entry gets the empty floor the same way. The
+store's index, the wait registry and the generator's entry are then new per incarnation, and the
+image carries none of them.
+
+**What the keys cannot give: fresh ids.** Two incarnations of one member issue ids under the same
+16-bit prefix; the cluster's map must not see one twice. The old generator may keep issuing after
+the stop (item 1), so no ghost bound on its suffix exists when the new one starts. Disjointness is
+the issue's precondition (`issues/etcd-request-id-restart-reuse.md`): the clock does not step back
+and a member issues fewer than 256 ids per millisecond on average. It is an assumption about the
+environment, and has to enter as a trust-boundary statement or a premise:
+- **(a) a spec of the generator's start time** (`time.Now` in `NewGenerator`'s call): the suffix it
+  starts from is past every suffix issued under the prefix so far (a per-prefix high-water mark in
+  the cluster's invariant), and the old generators stay below the new start. An axiom, refutable in
+  a real execution where the clock steps back; recorded with the issue.
+- **(b) a premise of the restart** (`bootstrapRestartContract` or a named hypothesis of
+  `restart3_safe`): the same, stated over the run's generators.
+
+**Decided (2026-11-02, with the user, after the paper's treatment of `idutil`'s 256-per-millisecond
+limit, `/shared/grove-paper/sosp26/case.tex` and `rwmutex.tex`: assume the limit is never reached
+where it is reached, keep the specs free of it):** incarnation keys, and the freshness across
+incarnations as an assumption at `Next` (`idNoClash`), not a premise of `restart3_safe`. Drafted,
+beside the current definitions (nothing uses them yet; no `sorry`, no axiom):
+
+- `idutil/Incarnations.lean`: `IdKey` (prefix, incarnation), `IdNamesK`, the keyed cluster
+  invariant `idClusterInvK` (an id in one key's list; a claim records its incarnation; the
+  latest-incarnation map, half the member's, `idIncLatest`; the registries' map's authority, so that
+  a restart can add its key's cell), `idShareK`, `idWaitTokK`, `idGenK`, `idFreshK`; the assumption
+  `idNoClash` (a `Prop`: the id `Next` makes is in no other key's list); the allocations
+  `idClusterK_alloc` and `idIncarnation_alloc` (statements); `idClaim_factK` and `idClaimK_own_or`
+  (proved); `NewGenerator_specK`, `Next_specK` (statements: `Next` from `idNoClash`).
+- `etcdserver/InvRestart.lean`: the claim facts by key, `srvFloorFactK`. They are chosen when the
+  cluster is allocated, before a restarted incarnation's store exists, so a key's fact looks its
+  store up through a persistent registration (`srvKeyStore`); `srvFloorFactK_own` (proved): of its
+  own key's claim, an incarnation reads its own store's floor. `srvDiskImage` carries the member's
+  latest incarnation number.
+
+**Next in R2c:**
+1. A review of the drafts (`spec-reviewer`), and `idNoClash` through the `axiom` skill. It is false of
+   a program that makes two generators with one prefix and one time, so it should speak only of
+   generators the server makes, from `time.Now()`.
+2. The refactor: `IdNames` gains the key, `idClusterInv`/`idGen`/`idClaim` become the keyed ones,
+   `NewGenerator`/`Next` re-proved (`Next` over `idNoClash`), the apply thread's case on the claim's
+   key in place of the id's prefix (`applyEntryNormal`, two places), the server's `Φs` becomes
+   `srvFloorFactK` with `srvKeyStore` registered by `NewServer`, the examples' allocations
+   (`alloc3`, `memberBoot_of`) at key `(p, 0)`.
+3. Then the image's content proper (`bootstrapRestartContract`'s restart case: the WAL, the backend,
+   raft's durable state, R2e).

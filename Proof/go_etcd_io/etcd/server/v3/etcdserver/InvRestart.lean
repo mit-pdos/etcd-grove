@@ -16,7 +16,10 @@ until then, so that no statement over them can be proved by unfolding them.
   Q4). It holds what the restarted member's `NewServer` takes of the ghost state in place of a
   first start's `memberBoot` (`examples/common/Defs.lean`): the node API's restart token in place
   of `nodeBoot` (R2e, raft's restart from a durable state), the cluster's invariants at the
-  recorded names, and the id generator's freshness across the restart
+  recorded names, and (R2c, 2026-11-02) the member's latest incarnation number (`idIncLatest`,
+  `idutil/Incarnations.lean`), from which the restart makes the next incarnation's id share
+  (`idIncarnation_alloc`: its key's issued-ids entry, wait slots and registry cell). The ids'
+  freshness across incarnations is not the image's: it is the assumption `idNoClash`, at `Next`
   (`issues/etcd-request-id-restart-reuse.md`). R2c and R2d split it between the image and
   `NewServer`'s restart premise. (2026-11-02, `Run`'s glue: until then a separate `srvRestartBoot`
   bundle the example supplied; the restarted member's own names, its wait registry and its store's
@@ -24,7 +27,12 @@ until then, so that no statement over them can be proved by unfolding them.
 * `restartNames ρ ρ'` (pure, defined): the restarted incarnation's names `ρ'` agree with the stopped
   one's `ρ` on what the rest of the cluster and its clients see: raft's names, the KV state's ghost
   variable (`etcdKV`, the clients' invariants), the KV model of the committed log, the cluster's
-  map of issued request ids and the member's id prefix. Its other names are its own.
+  map of issued request ids and the member's id prefix. Its other names are its own. (Once the
+  id state is keyed by incarnation, R2c, its key is the prefix with the next incarnation number.)
+* `srvKeyStore`, `srvFloorFactK` (R2c, DRAFT): the cluster's claim facts by incarnation key, each
+  key's store looked up through a persistent registration made when the incarnation is built, since
+  a restarted incarnation's store does not exist when the cluster's facts are chosen;
+  `srvFloorFactK_own` (proved): of its own key's claim, an incarnation reads its own store's floor.
 * `bootstrapRestartContract cfg U γ id ctxs N dir`: `bootstrap`'s contract on a data directory that
   holds member `id`'s image (`bootstrapContract`'s restart case, L3): with the image, an error or
   the record of a restart (`bootOk`'s restart case). R2c.
@@ -32,6 +40,7 @@ until then, so that no statement over them can be proved by unfolding them.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStart
+public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Incarnations
 
 @[expose] public section
 
@@ -60,6 +69,44 @@ header). -/
 opaque bootstrapRestartContract [MemStorReg GF] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (U : BootURLs) (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat)
     (dir : w64 → List GoString) : IProp GF
+
+/-! ### The claim facts by incarnation key (R2c, DRAFT; `idutil/Incarnations.lean`)
+
+The cluster's claim facts `Φs` are chosen once, when the cluster is allocated, but a restarted
+incarnation's store (its index names) is made at the restart. So the fact at a key does not name a
+store: it looks up the store the key registered (`srvKeyStore`, persistent, set when the
+incarnation is built), and an incarnation reads, of a claim of its own key, its own store's floor
+(`srvFloorFactK_own`). -/
+
+/-- **The incarnation of key `k` keeps its store's index at `idx`** (persistent): the element of
+the cluster's map of keys' stores at `γs`. -/
+def srvKeyStore (γs : GName) (k : IdKey) (idx : mvcc.IdxNames) : IProp GF := k ↪[γs]□ idx
+
+instance srvKeyStore_persistent (γs : GName) (k : IdKey) (idx : mvcc.IdxNames) :
+    Persistent (srvKeyStore (GF := GF) γs k idx) := by
+  unfold srvKeyStore; infer_instance
+
+/-- **The server's claim facts, by key** (the cluster's `Φs` of `idClusterInvK`, in place of a
+member's `srvFloorFact E₀`): a claim's ghost name records a floor certified in the store its key
+registered. -/
+def srvFloorFactK (γs : GName) (k : IdKey) (_id : w64) (_d : List w8) (γf : GName) : IProp GF :=
+  iprop(∃ (idx : mvcc.IdxNames) (F : mvcc.Log), srvKeyStore γs k idx ∗ floorAt γf F ∗
+    mvcc.idxCert idx F)
+
+/-- **Of its own key's claim, an incarnation reads its own store's floor** (the apply thread's
+`idClaim_fact` step, by key). -/
+theorem srvFloorFactK_own (γs : GName) (k : IdKey) (E : apply.AEnv GF) (id : w64) (d : List w8)
+    (γf : GName) :
+    ⊢ srvKeyStore (GF := GF) γs k E.γ.idx -∗ srvFloorFactK γs k id d γf -∗ srvFloorFact E id d γf := by
+  iintro #Hk Hff
+  iunfold srvFloorFactK at Hff
+  icases Hff with ⟨%idx, %F, #Hk', #Hf, #Hc⟩
+  iunfold srvKeyStore at Hk Hk'
+  ihave %He := ghostMapElem_agree $$ Hk Hk'
+  subst He
+  iunfold srvFloorFact
+  iexists F
+  iframe Hf Hc
 
 end defs
 
