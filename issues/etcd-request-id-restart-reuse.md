@@ -27,13 +27,15 @@ upstream: unchecked
   type assertion in the request path panics, as in the cross-member case. The new request's own
   entry later triggers nothing.
 - **Expected**: request ids unique across a member's restarts, or the precondition documented.
-- **How the proof handles it**: as an assumption, where it is used (the restart plan's R2c,
-  2026-11-02; drafted, not yet in use): the cluster's id state is keyed by a member's incarnation
-  (`Proof/go_etcd_io/etcd/pkg/v3/idutil/Incarnations.lean`), and `idNoClash` assumes the id a
-  generator's `Next` makes is in no other incarnation's list -- this issue's precondition. It is
-  not a premise of the example's theorem: as for the read-write mutex's reader limit
-  (`/shared/grove-paper/sosp26/rwmutex.tex`), the specs stay free of the limit and the assumption is
-  named and reviewed at the trust boundary. Across members, ids stay distinct by prefix, proved.
+- **How the proof handles it**: as an assumption in the semantics, where it is used (the restart
+  plan's R2c, 2026-11-02; drafted, not yet in use): the cluster's id state is keyed by a member's
+  incarnation (`Proof/go_etcd_io/etcd/pkg/v3/idutil/Incarnations.lean`), and `Generator.Next` is to
+  be a trusted model whose Go body is followed by `primitive.Assume` that no other generator issued
+  the id -- this issue's precondition. A false `Assume` does not return, so the model excludes the
+  clashing executions; nothing in the logic states it (a first draft's logical statement was
+  refutable). It is not a premise of the example's theorem: as for the read-write mutex's reader
+  limit (`/shared/grove-paper/sosp26/rwmutex.tex`), the specs stay free of the limit. Across members,
+  ids stay distinct by prefix, proved.
 - **Possible fixes**: seed the suffix from the WAL (the highest id of the member's own entries, or
   a persisted high-water mark) instead of the clock; or take `max(now, last persisted)`.
 - **Found**: 2026-11-02, drafting `examples/restart3`'s specs (the restart plan's R2).
