@@ -1,35 +1,15 @@
 /-
 Lean-first (no Rocq counterpart).
 
-# Porcupine's search, in pure terms (2026-10-14)
+# Histories and linearizability, in pure terms (2026-11-02, from v1.3.1's `Theory.lean`)
 
-Porcupine (`checker.go`, `checkSingle`) decides linearizability of a history by the
-depth-first search of Wing & Gong with Lowe's memoization: the history's call and return
-entries, sorted by time (`makeEntries`), are a doubly-linked list; the search *lifts* a call
-(and its return) out of the list when the model can take its step from the current state,
-and backtracks (*unlifts* the most recent one) when it reaches a return whose call is not
-lifted; a configuration (the set of lifted operations, the model's state) already in the
-cache is not explored again.
-
-This file is the search's correctness argument, independent of the heap: what a history
-and its linearizability are (`Linearizable`, porcupine's definition: closed intervals, an
-operation precedes another iff it returns strictly before the other is called), the
-search's abstract state (`Frame`s for the stack `calls`, the cursor `p` into the list of
-entries not lifted, `rem es (ids fs)`, the cache as a list of configurations), and the
-invariant `Inv` with one lemma per branch of the loop. What the checker needs for
-*completeness* (a linearizable history is accepted):
-
-- `inv_fail`: when the loop reaches a return with nothing to backtrack, the history is not
-  linearizable;
-- `inv_pop`: when it reaches a return with something to backtrack, the configuration it
-  leaves had no completion (`Good`), and the invariant holds where it resumes;
-- `inv_skip`, `inv_push`: the call branches.
-
-Soundness (an accepted history is linearizable) is in `Soundness.lean`. Both are partial
-correctness: nothing says the search terminates.
-
-The cache is sound for any hash function: a cached configuration is on the stack or has no
-completion (`CacheOk`), whichever bucket it is in; a missed hit only re-explores.
+What a history and its linearizability are (`Linearizable`, porcupine's definition: closed
+intervals, an operation precedes another iff it returns strictly before the other is called),
+copied from v1.3.1's proof (`Proof/github_com/anishathalye/porcupine/Theory.lean`) with the
+order a linearization must respect as a parameter `R` of `Completes`/`Good`: PR #46's search
+respects, besides real time, each client's listed order (`LinearizableCO`). The search's frames,
+their chain of model steps and the abstract cache (`CacheOk`) are v1.3.1's; a frame also records
+the candidate list it was lifted from (`DagTheory.lean`). v1.3.1's entry list is gone.
 -/
 module
 
@@ -72,32 +52,52 @@ def vals (h : List (Op α)) (π : List Nat) : List α :=
   π.filterMap fun k => (h[k]?).map Op.val
 
 /-- `π` orders the operations of `h` outside `S` so that the model can run them from `t`, and
-no operation of `π` precedes in real time one earlier in `π`. -/
-def Completes (M : SeqModel σ α) (h : List (Op α)) (S : Nat → Prop) (t : σ) (π : List Nat) :
-    Prop :=
+respects the order `R` (`R a b`: `a` must come before `b`): no operation of `π` must come
+before one earlier in `π`. -/
+def Completes (M : SeqModel σ α) (h : List (Op α)) (R : Nat → Nat → Prop) (S : Nat → Prop)
+    (t : σ) (π : List Nat) : Prop :=
   π.Nodup ∧ (∀ k, k ∈ π ↔ k < h.length ∧ ¬ S k) ∧ (run M t (vals h π)).isSome ∧
-    π.Pairwise fun a b => ¬ Prec h b a
+    π.Pairwise fun a b => ¬ R b a
 
 /-- A configuration of the search (the operations `S` linearized, the model's state `t`) has
-a completion. -/
-def Good (M : SeqModel σ α) (h : List (Op α)) (S : Nat → Prop) (t : σ) : Prop :=
-  ∃ π, Completes M h S t π
+a completion respecting `R`. -/
+def Good (M : SeqModel σ α) (h : List (Op α)) (R : Nat → Nat → Prop) (S : Nat → Prop) (t : σ) :
+    Prop :=
+  ∃ π, Completes M h R S t π
 
 /-- Porcupine's linearizability: some order of all of `h`'s operations is allowed by the
 model from its initial state and respects real time. -/
 def Linearizable (M : SeqModel σ α) (h : List (Op α)) : Prop :=
-  Good M h (fun _ => False) M.init
+  Good M h (Prec h) (fun _ => False) M.init
 
-theorem good_congr {M : SeqModel σ α} {h : List (Op α)} {S S' : Nat → Prop} {t : σ}
-    (hS : ∀ i, S i ↔ S' i) (hg : Good M h S t) : Good M h S' t := by
+/-- Linearizability by an order that also respects `co` (PR #46's client order: an operation
+listed before another of the same client comes first). -/
+def LinearizableCO (M : SeqModel σ α) (h : List (Op α)) (co : Nat → Nat → Prop) : Prop :=
+  Good M h (fun a b => Prec h a b ∨ co a b) (fun _ => False) M.init
+
+/-- Respecting more is respecting less. -/
+theorem good_mono {M : SeqModel σ α} {h : List (Op α)} {R R' : Nat → Nat → Prop}
+    {S : Nat → Prop} {t : σ} (hRR : ∀ a b, R' a b → R a b) (hg : Good M h R S t) :
+    Good M h R' S t := by
+  obtain ⟨π, hnd, hmem, hrun, hpw⟩ := hg
+  exact ⟨π, hnd, hmem, hrun, hpw.imp fun hn hr => hn (hRR _ _ hr)⟩
+
+theorem linearizable_of_co {M : SeqModel σ α} {h : List (Op α)} {co : Nat → Nat → Prop}
+    (hl : LinearizableCO M h co) : Linearizable M h :=
+  good_mono (fun _ _ hp => Or.inl hp) hl
+
+theorem good_congr {M : SeqModel σ α} {h : List (Op α)} {R : Nat → Nat → Prop}
+    {S S' : Nat → Prop} {t : σ}
+    (hS : ∀ i, S i ↔ S' i) (hg : Good M h R S t) : Good M h R S' t := by
   obtain ⟨π, hnd, hmem, hrun, hpw⟩ := hg
   exact ⟨π, hnd, fun k => by rw [hmem k, hS k], hrun, hpw⟩
 
 
 /-! ## The search's abstract state -/
 
-/-- A frame of the stack `calls`: the operation lifted, the state before it (`callsEntry.state`)
-and where its call was in the list it was lifted from (where the search resumes). -/
+/-- A frame of the stack: the operation lifted, the state before it (`stackEntry.state`), the
+candidate list it was lifted from (`fr`) and its position there (`frontierIdx`: the search
+resumes below it). -/
 structure Frame (σ : Type) where
   id : Nat
   pre : σ
@@ -119,8 +119,9 @@ theorem chain_det {M : SeqModel σ α} {h : List (Op α)} :
     rw [ho] at ho'; cases ho'; rw [hs] at hs'; cases hs'; rfl
 
 /-- Lifting `y` from `(B, t)` leads only to configurations without completion. -/
-def SuccBad (M : SeqModel σ α) (h : List (Op α)) (B : List Nat) (t : σ) (y : Nat) : Prop :=
-  ∀ o t', h[y]? = some o → M.step t o.val = some t' → ¬ Good M h (· ∈ y :: B) t'
+def SuccBad (M : SeqModel σ α) (h : List (Op α)) (R : Nat → Nat → Prop) (B : List Nat) (t : σ)
+    (y : Nat) : Prop :=
+  ∀ o t', h[y]? = some o → M.step t o.val = some t' → ¬ Good M h R (· ∈ y :: B) t'
 
 /-- A cached configuration is one of the stack's. -/
 def OnStack (M : SeqModel σ α) (h : List (Op α)) (fs : List (Frame σ))
@@ -128,9 +129,9 @@ def OnStack (M : SeqModel σ α) (h : List (Op α)) (fs : List (Frame σ))
   ∃ fs', fs' <:+ fs ∧ (∀ i, c.1 i ↔ i ∈ ids fs') ∧ Chain M h fs' c.2
 
 /-- Every cached configuration is on the stack or has no completion. -/
-def CacheOk (M : SeqModel σ α) (h : List (Op α)) (fs : List (Frame σ))
+def CacheOk (M : SeqModel σ α) (h : List (Op α)) (R : Nat → Nat → Prop) (fs : List (Frame σ))
     (cache : List ((Nat → Prop) × σ)) : Prop :=
-  ∀ c ∈ cache, OnStack M h fs c ∨ ¬ Good M h c.1 c.2
+  ∀ c ∈ cache, OnStack M h fs c ∨ ¬ Good M h R c.1 c.2
 
 theorem ids_suffix {fs fs' : List (Frame σ)} (hs : fs' <:+ fs) {i : Nat} (hi : i ∈ ids fs') :
     i ∈ ids fs :=

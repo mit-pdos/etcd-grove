@@ -41,9 +41,9 @@ def callOf (h : List (Op α)) (y : Nat) : Int := ((h[y]?).map Op.call).getD 0
 def clientOf (cs : List (List Nat)) (y : Nat) : Nat := cs.findIdx (fun c => decide (y ∈ c))
 
 /-- `y` may be linearized after the operations `B`: it is not linearized, and every operation
-that precedes it in real time is. -/
-def Cand (h : List (Op α)) (B : List Nat) (y : Nat) : Prop :=
-  y < h.length ∧ y ∉ B ∧ ∀ z, Prec h z y → z ∈ B
+that must come before it (`R`: real time, and for the DAG search the client order) is. -/
+def Cand (h : List (Op α)) (R : Nat → Nat → Prop) (B : List Nat) (y : Nat) : Prop :=
+  y < h.length ∧ y ∉ B ∧ ∀ z, R z y → z ∈ B
 
 /-- The frontier's order (`addToFrontier`): a later call first, then a larger client. -/
 def KeyGt (h : List (Op α)) (cs : List (List Nat)) (y z : Nat) : Prop :=
@@ -54,8 +54,9 @@ theorem keyGt_asymm {h : List (Op α)} {cs : List (List Nat)} {y z : Nat}
   unfold KeyGt at h1 h2; omega
 
 /-- `l` is the candidates of `B`, sorted by `KeyGt`. -/
-def CandList (h : List (Op α)) (cs : List (List Nat)) (B : List Nat) (l : List Nat) : Prop :=
-  l.Pairwise (KeyGt h cs) ∧ ∀ y, y ∈ l ↔ Cand h B y
+def CandList (h : List (Op α)) (cs : List (List Nat)) (R : Nat → Nat → Prop) (B : List Nat)
+    (l : List Nat) : Prop :=
+  l.Pairwise (KeyGt h cs) ∧ ∀ y, y ∈ l ↔ Cand h R B y
 
 /-- Two lists sorted by an asymmetric relation with the same members are equal. -/
 theorem pairwise_eq_of_mem {R : Nat → Nat → Prop} (hR : ∀ a b, R a b → R b a → False) :
@@ -90,8 +91,8 @@ theorem pairwise_eq_of_mem {R : Nat → Nat → Prop} (hR : ∀ a b, R a b → R
       · exact h
 
 /-- The candidate list is a function of the set of operations linearized. -/
-theorem candList_unique {h : List (Op α)} {cs : List (List Nat)} {B B' l l' : List Nat}
-    (hl : CandList h cs B l) (hl' : CandList h cs B' l') (hB : ∀ y, y ∈ B ↔ y ∈ B') : l = l' := by
+theorem candList_unique {h : List (Op α)} {cs : List (List Nat)} {R : Nat → Nat → Prop} {B B' l l' : List Nat}
+    (hl : CandList h cs R B l) (hl' : CandList h cs R B' l') (hB : ∀ y, y ∈ B ↔ y ∈ B') : l = l' := by
   refine pairwise_eq_of_mem (fun a b => keyGt_asymm) hl.1 hl'.1 fun y => ?_
   rw [hl.2 y, hl'.2 y]
   unfold Cand
@@ -106,68 +107,69 @@ theorem prec_irrefl {h : List (Op α)} (hwf : CallLeRet h) (y : Nat) : ¬ Prec h
   have := hwf o (List.mem_of_getElem? ho)
   omega
 
-/-- Two candidates are unrelated in real time. -/
-theorem cand_not_prec {h : List (Op α)} {B : List Nat} {y z : Nat}
-    (hy : Cand h B y) (hz : Cand h B z) : ¬ Prec h y z :=
+/-- Two candidates are unrelated by `R`. -/
+theorem cand_not_prec {h : List (Op α)} {R : Nat → Nat → Prop} {B : List Nat} {y z : Nat}
+    (hy : Cand h R B y) (hz : Cand h R B z) : ¬ R y z :=
   fun hp => hy.2.1 (hz.2.2 y hp)
 
 /-! ## The search's invariant -/
 
 /-- Lifting the candidates at positions above `p` (`p = -1`: all) leads only to configurations
 without completion. -/
-def PrefixBad (M : SeqModel σ α) (h : List (Op α)) (B : List Nat) (t : σ) (fr : List Nat)
-    (p : Int) : Prop :=
-  ∀ (q : Nat) y, p < q → fr[q]? = some y → SuccBad M h B t y
+def PrefixBad (M : SeqModel σ α) (h : List (Op α)) (R : Nat → Nat → Prop) (B : List Nat) (t : σ)
+    (fr : List Nat) (p : Int) : Prop :=
+  ∀ (q : Nat) y, p < q → fr[q]? = some y → SuccBad M h R B t y
 
 /-- Each frame lifted the candidate at `pos` of the candidate list below it (kept in every
 branch). -/
-def FramesStruct (h : List (Op α)) (cs : List (List Nat)) : List (Frame σ) → Prop
+def FramesStruct (h : List (Op α)) (cs : List (List Nat)) (R : Nat → Nat → Prop) :
+    List (Frame σ) → Prop
   | [] => True
-  | f :: fs => FramesStruct h cs fs ∧ CandList h cs (ids fs) f.fr ∧ f.fr[f.pos]? = some f.id
+  | f :: fs => FramesStruct h cs R fs ∧ CandList h cs R (ids fs) f.fr ∧ f.fr[f.pos]? = some f.id
 
 /-- Each frame was lifted after the candidates above its position were tried. -/
-def FramesBad (M : SeqModel σ α) (h : List (Op α)) : List (Frame σ) → Prop
+def FramesBad (M : SeqModel σ α) (h : List (Op α)) (R : Nat → Nat → Prop) : List (Frame σ) → Prop
   | [] => True
-  | f :: fs => FramesBad M h fs ∧ PrefixBad M h (ids fs) f.pre f.fr f.pos
+  | f :: fs => FramesBad M h R fs ∧ PrefixBad M h R (ids fs) f.pre f.fr f.pos
 
 /-- The search's structure: the stack is a chain of model steps to `s`, each frame lifted a
 candidate, `fr` is the current candidate list and the cursor `p` is in `[-1, |fr|)`. -/
-def Struct (M : SeqModel σ α) (h : List (Op α)) (cs : List (List Nat)) (fs : List (Frame σ))
-    (s : σ) (fr : List Nat) (p : Int) : Prop :=
-  Chain M h fs s ∧ FramesStruct h cs fs ∧ CandList h cs (ids fs) fr ∧ -1 ≤ p ∧ p < fr.length
+def Struct (M : SeqModel σ α) (h : List (Op α)) (cs : List (List Nat)) (R : Nat → Nat → Prop)
+    (fs : List (Frame σ)) (s : σ) (fr : List Nat) (p : Int) : Prop :=
+  Chain M h fs s ∧ FramesStruct h cs R fs ∧ CandList h cs R (ids fs) fr ∧ -1 ≤ p ∧ p < fr.length
 
 /-- The completeness invariant: the candidates tried lead nowhere, at every frame and at the
 cursor, and the cache is sound. -/
-def Bad (M : SeqModel σ α) (h : List (Op α)) (fs : List (Frame σ)) (s : σ) (fr : List Nat)
-    (p : Int) (cache : List ((Nat → Prop) × σ)) : Prop :=
-  FramesBad M h fs ∧ PrefixBad M h (ids fs) s fr p ∧ CacheOk M h fs cache
+def Bad (M : SeqModel σ α) (h : List (Op α)) (R : Nat → Nat → Prop) (fs : List (Frame σ)) (s : σ)
+    (fr : List Nat) (p : Int) (cache : List ((Nat → Prop) × σ)) : Prop :=
+  FramesBad M h R fs ∧ PrefixBad M h R (ids fs) s fr p ∧ CacheOk M h R fs cache
 
-theorem struct_init {M : SeqModel σ α} {h : List (Op α)} {cs : List (List Nat)} {fr : List Nat}
-    (hfr : CandList h cs [] fr) : Struct M h cs [] M.init fr ((fr.length : Int) - 1) :=
+theorem struct_init {M : SeqModel σ α} {h : List (Op α)} {R : Nat → Nat → Prop} {cs : List (List Nat)} {fr : List Nat}
+    (hfr : CandList h cs R [] fr) : Struct M h cs R [] M.init fr ((fr.length : Int) - 1) :=
   ⟨rfl, trivial, hfr, by omega, by omega⟩
 
-theorem prefixBad_top {M : SeqModel σ α} {h : List (Op α)} {B : List Nat} {t : σ}
-    {fr : List Nat} : PrefixBad M h B t fr ((fr.length : Int) - 1) := by
+theorem prefixBad_top {M : SeqModel σ α} {h : List (Op α)} {R : Nat → Nat → Prop} {B : List Nat} {t : σ}
+    {fr : List Nat} : PrefixBad M h R B t fr ((fr.length : Int) - 1) := by
   intro q y hq hy
   have := (List.getElem?_eq_some_iff.mp hy).1
   omega
 
-theorem bad_init {M : SeqModel σ α} {h : List (Op α)} {s : σ} {fr : List Nat} :
-    Bad M h [] s fr ((fr.length : Int) - 1) [] :=
+theorem bad_init {M : SeqModel σ α} {h : List (Op α)} {R : Nat → Nat → Prop} {s : σ} {fr : List Nat} :
+    Bad M h R [] s fr ((fr.length : Int) - 1) [] :=
   ⟨trivial, prefixBad_top, fun _ hc => by cases hc⟩
 
 /-- A refused step leads nowhere. -/
-theorem succBad_of_none {M : SeqModel σ α} {h : List (Op α)} {B : List Nat} {t : σ} {y : Nat}
-    (hst : ∀ o, h[y]? = some o → M.step t o.val = none) : SuccBad M h B t y := by
+theorem succBad_of_none {M : SeqModel σ α} {h : List (Op α)} {R : Nat → Nat → Prop} {B : List Nat} {t : σ} {y : Nat}
+    (hst : ∀ o, h[y]? = some o → M.step t o.val = none) : SuccBad M h R B t y := by
   intro o t' ho hs
   rw [hst o ho] at hs; cases hs
 
 /-- A step to a cached configuration, with the candidate not on the stack, leads nowhere. -/
-theorem succBad_of_cached {M : SeqModel σ α} {h : List (Op α)} {fs : List (Frame σ)} {t : σ}
-    {cache : List ((Nat → Prop) × σ)} {y : Nat} (hc : CacheOk M h fs cache) (hy : y ∉ ids fs)
+theorem succBad_of_cached {M : SeqModel σ α} {h : List (Op α)} {R : Nat → Nat → Prop} {fs : List (Frame σ)} {t : σ}
+    {cache : List ((Nat → Prop) × σ)} {y : Nat} (hc : CacheOk M h R fs cache) (hy : y ∉ ids fs)
     (hcached : ∀ o t', h[y]? = some o → M.step t o.val = some t' →
       ∃ c ∈ cache, (∀ i, c.1 i ↔ i ∈ y :: ids fs) ∧ c.2 = t') :
-    SuccBad M h (ids fs) t y := by
+    SuccBad M h R (ids fs) t y := by
   intro o t' ho hst hg
   obtain ⟨c, hcm, hset, hst'⟩ := hcached o t' ho hst
   rcases hc c hcm with ⟨fs', hsuf, hids, _⟩ | hbad
@@ -175,41 +177,41 @@ theorem succBad_of_cached {M : SeqModel σ α} {h : List (Op α)} {fs : List (Fr
   · exact hbad (hst' ▸ good_congr (fun i => (hset i).symm) hg)
 
 /-- The cursor moves down past a candidate that leads nowhere. -/
-theorem prefixBad_down {M : SeqModel σ α} {h : List (Op α)} {B : List Nat} {t : σ}
-    {fr : List Nat} {p : Nat} {y : Nat} (hb : PrefixBad M h B t fr p) (hy : fr[p]? = some y)
-    (hs : SuccBad M h B t y) : PrefixBad M h B t fr ((p : Int) - 1) := by
+theorem prefixBad_down {M : SeqModel σ α} {h : List (Op α)} {R : Nat → Nat → Prop} {B : List Nat} {t : σ}
+    {fr : List Nat} {p : Nat} {y : Nat} (hb : PrefixBad M h R B t fr p) (hy : fr[p]? = some y)
+    (hs : SuccBad M h R B t y) : PrefixBad M h R B t fr ((p : Int) - 1) := by
   intro q z hq hz
   rcases Nat.lt_or_ge p q with h1 | h1
   · exact hb q z (by omega) hz
   · have : q = p := by omega
     subst this; rw [hy] at hz; cases hz; exact hs
 
-theorem bad_down {M : SeqModel σ α} {h : List (Op α)} {fs : List (Frame σ)} {s : σ}
+theorem bad_down {M : SeqModel σ α} {h : List (Op α)} {R : Nat → Nat → Prop} {fs : List (Frame σ)} {s : σ}
     {fr : List Nat} {p : Nat} {cache : List ((Nat → Prop) × σ)} {y : Nat}
-    (hb : Bad M h fs s fr p cache) (hy : fr[p]? = some y) (hs : SuccBad M h (ids fs) s y) :
-    Bad M h fs s fr ((p : Int) - 1) cache :=
+    (hb : Bad M h R fs s fr p cache) (hy : fr[p]? = some y) (hs : SuccBad M h R (ids fs) s y) :
+    Bad M h R fs s fr ((p : Int) - 1) cache :=
   ⟨hb.1, prefixBad_down hb.2.1 hy hs, hb.2.2⟩
 
-theorem struct_down {M : SeqModel σ α} {h : List (Op α)} {cs : List (List Nat)}
+theorem struct_down {M : SeqModel σ α} {h : List (Op α)} {R : Nat → Nat → Prop} {cs : List (List Nat)}
     {fs : List (Frame σ)} {s : σ} {fr : List Nat} {p : Nat}
-    (hs : Struct M h cs fs s fr p) : Struct M h cs fs s fr ((p : Int) - 1) :=
+    (hs : Struct M h cs R fs s fr p) : Struct M h cs R fs s fr ((p : Int) - 1) :=
   ⟨hs.1, hs.2.1, hs.2.2.1, by omega, by have := hs.2.2.2.2; omega⟩
 
 /-- A candidate lifted: the frame records the position and the list; the new cursor is the new
 list's top. -/
-theorem struct_push {M : SeqModel σ α} {h : List (Op α)} {cs : List (List Nat)}
+theorem struct_push {M : SeqModel σ α} {h : List (Op α)} {R : Nat → Nat → Prop} {cs : List (List Nat)}
     {fs : List (Frame σ)} {s t' : σ} {fr fr' : List Nat} {p : Int} {q y : Nat} {o : Op α}
-    (hs : Struct M h cs fs s fr p) (hy : fr[q]? = some y) (ho : h[y]? = some o)
-    (hst : M.step s o.val = some t') (hfr' : CandList h cs (y :: ids fs) fr') :
-    Struct M h cs (⟨y, s, q, fr⟩ :: fs) t' fr' ((fr'.length : Int) - 1) :=
+    (hs : Struct M h cs R fs s fr p) (hy : fr[q]? = some y) (ho : h[y]? = some o)
+    (hst : M.step s o.val = some t') (hfr' : CandList h cs R (y :: ids fs) fr') :
+    Struct M h cs R (⟨y, s, q, fr⟩ :: fs) t' fr' ((fr'.length : Int) - 1) :=
   ⟨⟨hs.1, o, ho, hst⟩, ⟨hs.2.1, hs.2.2.1, hy⟩, hfr', by omega, by omega⟩
 
-theorem bad_push {M : SeqModel σ α} {h : List (Op α)} {cs : List (List Nat)}
+theorem bad_push {M : SeqModel σ α} {h : List (Op α)} {R : Nat → Nat → Prop} {cs : List (List Nat)}
     {fs : List (Frame σ)} {s t' : σ} {fr fr' : List Nat} {p : Int} {q y : Nat} {o : Op α}
     {cache : List ((Nat → Prop) × σ)}
-    (hs : Struct M h cs fs s fr p) (hb : Bad M h fs s fr q cache) (ho : h[y]? = some o)
+    (hs : Struct M h cs R fs s fr p) (hb : Bad M h R fs s fr q cache) (ho : h[y]? = some o)
     (hst : M.step s o.val = some t') :
-    Bad M h (⟨y, s, q, fr⟩ :: fs) t' fr' ((fr'.length : Int) - 1)
+    Bad M h R (⟨y, s, q, fr⟩ :: fs) t' fr' ((fr'.length : Int) - 1)
       ((fun i => i ∈ y :: ids fs, t') :: cache) := by
   have hch' : Chain M h (⟨y, s, q, fr⟩ :: fs) t' := ⟨hs.1, o, ho, hst⟩
   refine ⟨⟨hb.1, hb.2.1⟩, prefixBad_top, ?_⟩
@@ -221,10 +223,11 @@ theorem bad_push {M : SeqModel σ α} {h : List (Op α)} {cs : List (List Nat)}
     · exact Or.inr hbad
 
 /-- Every candidate tried, and some operation not linearized: no completion. -/
-theorem bad_here {M : SeqModel σ α} {h : List (Op α)} {cs : List (List Nat)} {B : List Nat}
-    {s : σ} {fr : List Nat} (hwf : CallLeRet h) (hfr : CandList h cs B fr)
-    (hall : PrefixBad M h B s fr (-1)) (hinc : ∃ y, y < h.length ∧ y ∉ B) :
-    ¬ Good M h (· ∈ B) s := by
+theorem bad_here {M : SeqModel σ α} {h : List (Op α)} {R : Nat → Nat → Prop} {cs : List (List Nat)} {B : List Nat}
+    {s : σ} {fr : List Nat} (hirr : ∀ y, ¬ R y y) (hdom : ∀ a b, R a b → a < h.length)
+    (hfr : CandList h cs R B fr)
+    (hall : PrefixBad M h R B s fr (-1)) (hinc : ∃ y, y < h.length ∧ y ∉ B) :
+    ¬ Good M h R (· ∈ B) s := by
   rintro ⟨π, hnd, hmem, hrun, hpw⟩
   cases π with
   | nil =>
@@ -242,7 +245,7 @@ theorem bad_here {M : SeqModel σ α} {h : List (Op α)} {cs : List (List Nat)} 
       cases M.step s o.val with
       | none => simp
       | some t' => intro hr; exact ⟨t', rfl, hr⟩
-    have hgood' : Good M h (· ∈ x :: B) t' := by
+    have hgood' : Good M h R (· ∈ x :: B) t' := by
       refine ⟨π', (List.nodup_cons.mp hnd).2, fun k => ?_, hrun', (List.pairwise_cons.mp hpw).2⟩
       have hk := hmem k
       constructor
@@ -255,32 +258,31 @@ theorem bad_here {M : SeqModel σ α} {h : List (Op α)} {cs : List (List Nat)} 
         have := hk.mpr ⟨h1, fun h3 => h2 (List.mem_cons_of_mem _ h3)⟩
         exact (List.mem_cons.mp this).resolve_left hkx
     -- `x` is a candidate: its predecessors not in `B` would be later in `π`
-    have hcand : Cand h B x := by
+    have hcand : Cand h R B x := by
       refine ⟨hx.1, hx.2, fun z hz => ?_⟩
       refine Classical.byContradiction fun hzB => ?_
-      obtain ⟨oz, ox, hoz, hox, _⟩ := id hz
-      have hzlt : z < h.length := (List.getElem?_eq_some_iff.mp hoz).1
+      have hzlt : z < h.length := hdom z x hz
       have hzπ := (hmem z).mpr ⟨hzlt, hzB⟩
       have hzx : z ≠ x := by
-        rintro rfl; exact prec_irrefl hwf z hz
+        rintro rfl; exact hirr z hz
       exact (List.pairwise_cons.mp hpw).1 z ((List.mem_cons.mp hzπ).resolve_left hzx) hz
     obtain ⟨q, hq, hqe⟩ := List.getElem_of_mem ((hfr.2 x).mpr hcand)
     exact hall q x (by omega) (by rw [List.getElem?_eq_getElem hq, hqe]) o t' ho hst hgood'
 
 /-- Backtracking: the frame's configuration had no completion; the search resumes in the frame's
 list, below its position. -/
-theorem struct_pop {M : SeqModel σ α} {h : List (Op α)} {cs : List (List Nat)} {f : Frame σ}
+theorem struct_pop {M : SeqModel σ α} {h : List (Op α)} {R : Nat → Nat → Prop} {cs : List (List Nat)} {f : Frame σ}
     {fs : List (Frame σ)} {s : σ} {fr : List Nat} {p : Int}
-    (hs : Struct M h cs (f :: fs) s fr p) : Struct M h cs fs f.pre f.fr ((f.pos : Int) - 1) := by
+    (hs : Struct M h cs R (f :: fs) s fr p) : Struct M h cs R fs f.pre f.fr ((f.pos : Int) - 1) := by
   obtain ⟨⟨hch, _⟩, ⟨hfs, hfr, hpos⟩, _⟩ := hs
   exact ⟨hch, hfs, hfr, by omega, by have := (List.getElem?_eq_some_iff.mp hpos).1; omega⟩
 
-theorem bad_pop {M : SeqModel σ α} {h : List (Op α)} {cs : List (List Nat)} {f : Frame σ}
+theorem bad_pop {M : SeqModel σ α} {h : List (Op α)} {R : Nat → Nat → Prop} {cs : List (List Nat)} {f : Frame σ}
     {fs : List (Frame σ)} {s : σ} {fr : List Nat} {p : Int} {cache : List ((Nat → Prop) × σ)}
-    (hwf : CallLeRet h) (hs : Struct M h cs (f :: fs) s fr p)
-    (hb : Bad M h (f :: fs) s fr (-1) cache) (hinc : ∃ y, y < h.length ∧ y ∉ ids (f :: fs)) :
-    Bad M h fs f.pre f.fr ((f.pos : Int) - 1) cache := by
-  have hbad := bad_here hwf hs.2.2.1 hb.2.1 hinc
+    (hirr : ∀ y, ¬ R y y) (hdom : ∀ a b, R a b → a < h.length) (hs : Struct M h cs R (f :: fs) s fr p)
+    (hb : Bad M h R (f :: fs) s fr (-1) cache) (hinc : ∃ y, y < h.length ∧ y ∉ ids (f :: fs)) :
+    Bad M h R fs f.pre f.fr ((f.pos : Int) - 1) cache := by
+  have hbad := bad_here hirr hdom hs.2.2.1 hb.2.1 hinc
   obtain ⟨⟨hch, o, ho, hst⟩, ⟨_, _, hpos⟩, _⟩ := hs
   obtain ⟨⟨hfb, hpre⟩, _, hcache⟩ := hb
   refine ⟨hfb, prefixBad_down hpre hpos ?_, fun c hc => ?_⟩
@@ -294,12 +296,13 @@ theorem bad_pop {M : SeqModel σ α} {h : List (Op α)} {cs : List (List Nat)} {
       · exact Or.inl ⟨fs', hsuf, hids, hch2⟩
     · exact Or.inr hb'
 
-/-- Nothing to backtrack: the history is not linearizable. -/
-theorem bad_fail {M : SeqModel σ α} {h : List (Op α)} {cs : List (List Nat)} {s : σ}
-    {fr : List Nat} {p : Int} {cache : List ((Nat → Prop) × σ)} (hwf : CallLeRet h)
-    (hs : Struct M h cs [] s fr p) (hb : Bad M h [] s fr (-1) cache)
-    (hinc : ∃ y, y < h.length) : ¬ Linearizable M h := by
-  have hbad := bad_here hwf hs.2.2.1 hb.2.1 (by
+/-- Nothing to backtrack: the history is not linearizable (respecting `R`). -/
+theorem bad_fail {M : SeqModel σ α} {h : List (Op α)} {R : Nat → Nat → Prop} {cs : List (List Nat)} {s : σ}
+    {fr : List Nat} {p : Int} {cache : List ((Nat → Prop) × σ)} (hirr : ∀ y, ¬ R y y)
+    (hdom : ∀ a b, R a b → a < h.length)
+    (hs : Struct M h cs R [] s fr p) (hb : Bad M h R [] s fr (-1) cache)
+    (hinc : ∃ y, y < h.length) : ¬ Good M h R (fun _ => False) M.init := by
+  have hbad := bad_here hirr hdom hs.2.2.1 hb.2.1 (by
     obtain ⟨y, hy⟩ := hinc; exact ⟨y, hy, List.not_mem_nil⟩)
   have hs0 : s = M.init := hs.1
   subst hs0
@@ -307,33 +310,43 @@ theorem bad_fail {M : SeqModel σ α} {h : List (Op α)} {cs : List (List Nat)} 
 
 /-! ## Soundness -/
 
-theorem framesStruct_cand {h : List (Op α)} {cs : List (List Nat)} :
-    ∀ {f : Frame σ} {fs'}, FramesStruct h cs (f :: fs') → Cand h (ids fs') f.id
+theorem framesStruct_cand {h : List (Op α)} {R : Nat → Nat → Prop} {cs : List (List Nat)} :
+    ∀ {f : Frame σ} {fs'}, FramesStruct h cs R (f :: fs') → Cand h R (ids fs') f.id
   | _, _, ⟨_, hfr, hpos⟩ => (hfr.2 _).mp (List.mem_of_getElem? hpos)
 
-theorem framesStruct_nodup {h : List (Op α)} {cs : List (List Nat)} :
-    ∀ {fs : List (Frame σ)}, FramesStruct h cs fs → (ids fs).Nodup
+theorem framesStruct_nodup {h : List (Op α)} {R : Nat → Nat → Prop} {cs : List (List Nat)} :
+    ∀ {fs : List (Frame σ)}, FramesStruct h cs R fs → (ids fs).Nodup
   | [], _ => List.nodup_nil
   | f :: fs, hfs => by
-    have hc : Cand h (ids fs) f.id := framesStruct_cand hfs
+    have hc : Cand h R (ids fs) f.id := framesStruct_cand hfs
     exact List.nodup_cons.mpr ⟨hc.2.1, framesStruct_nodup hfs.1⟩
 
-theorem framesStruct_lt {h : List (Op α)} {cs : List (List Nat)} :
-    ∀ {fs : List (Frame σ)}, FramesStruct h cs fs → ∀ y ∈ ids fs, y < h.length
+theorem framesStruct_lt {h : List (Op α)} {R : Nat → Nat → Prop} {cs : List (List Nat)} :
+    ∀ {fs : List (Frame σ)}, FramesStruct h cs R fs → ∀ y ∈ ids fs, y < h.length
   | [], _, _, hy => by cases hy
   | f :: fs, hfs, y, hy => by
     rcases List.mem_cons.mp hy with rfl | hy
     · exact (framesStruct_cand hfs).1
     · exact framesStruct_lt hfs.1 y hy
 
-/-- The frames' order (oldest first) respects real time: a later frame's operation does not
-precede an earlier one's. -/
-theorem framesStruct_pairwise {h : List (Op α)} {cs : List (List Nat)} :
-    ∀ {fs : List (Frame σ)}, FramesStruct h cs fs →
-      (ids fs).reverse.Pairwise (fun a b => ¬ Prec h b a)
+/-- What must come before an operation on the stack is below it on the stack: the operations
+linearized are closed under `R`. -/
+theorem framesStruct_below {h : List (Op α)} {R : Nat → Nat → Prop} {cs : List (List Nat)} :
+    ∀ {fs : List (Frame σ)}, FramesStruct h cs R fs → ∀ a ∈ ids fs, ∀ z, R z a → z ∈ ids fs
+  | [], _, _, ha, _, _ => by cases ha
+  | g :: gs, hgs, a, ha, z, hz => by
+    rcases List.mem_cons.mp ha with rfl | ha
+    · exact List.mem_cons_of_mem _ ((framesStruct_cand hgs).2.2 z hz)
+    · exact List.mem_cons_of_mem _ (framesStruct_below hgs.1 a ha z hz)
+
+/-- The frames' order (oldest first) respects `R`: a later frame's operation need not come
+before an earlier one's. -/
+theorem framesStruct_pairwise {h : List (Op α)} {R : Nat → Nat → Prop} {cs : List (List Nat)} :
+    ∀ {fs : List (Frame σ)}, FramesStruct h cs R fs →
+      (ids fs).reverse.Pairwise (fun a b => ¬ R b a)
   | [], _ => List.Pairwise.nil
   | f :: fs, hfs => by
-    have hc : Cand h (ids fs) f.id := framesStruct_cand hfs
+    have hc : Cand h R (ids fs) f.id := framesStruct_cand hfs
     simp only [ids, List.map_cons, List.reverse_cons]
     refine List.pairwise_append.mpr ⟨framesStruct_pairwise hfs.1, List.pairwise_singleton _ _, ?_⟩
     intro a ha b hb hp
@@ -342,15 +355,6 @@ theorem framesStruct_pairwise {h : List (Op α)} {cs : List (List Nat)} :
     rw [List.mem_reverse] at ha
     -- `a` is below `f`; `f.id` preceding `a` would put `f.id` below `a`, so among `ids fs`
     exact hc.2.1 (framesStruct_below hfs.1 a ha f.id hp)
-where
-  /-- An operation preceding one on the stack is below it on the stack. -/
-  framesStruct_below : ∀ {fs : List (Frame σ)}, FramesStruct h cs fs →
-      ∀ a ∈ ids fs, ∀ z, Prec h z a → z ∈ ids fs
-    | [], _, _, ha, _, _ => by cases ha
-    | g :: gs, hgs, a, ha, z, hz => by
-      rcases List.mem_cons.mp ha with rfl | ha
-      · exact List.mem_cons_of_mem _ ((framesStruct_cand hgs).2.2 z hz)
-      · exact List.mem_cons_of_mem _ (framesStruct_below hgs.1 a ha z hz)
 
 theorem run_append (M : SeqModel σ α) :
     ∀ (s : σ) (l1 l2 : List α), run M s (l1 ++ l2) = (run M s l1).bind (fun t => run M t l2)
@@ -370,11 +374,11 @@ theorem chain_run {M : SeqModel σ α} {h : List (Op α)} :
     rw [hv, run_append, chain_run hc]
     simp [run, hst]
 
-/-- Every operation lifted: the stack, oldest first, is a linearization. -/
-theorem sound_done {M : SeqModel σ α} {h : List (Op α)} {cs : List (List Nat)}
+/-- Every operation lifted: the stack, oldest first, is a linearization (respecting `R`). -/
+theorem sound_done {M : SeqModel σ α} {h : List (Op α)} {R : Nat → Nat → Prop} {cs : List (List Nat)}
     {fs : List (Frame σ)} {s : σ} {fr : List Nat} {p : Int}
-    (hs : Struct M h cs fs s fr p) (hall : ∀ y, y < h.length → y ∈ ids fs) :
-    Linearizable M h := by
+    (hs : Struct M h cs R fs s fr p) (hall : ∀ y, y < h.length → y ∈ ids fs) :
+    Good M h R (fun _ => False) M.init := by
   refine ⟨(ids fs).reverse, List.pairwise_reverse.mpr ((framesStruct_nodup hs.2.1).imp fun h e => h e.symm), fun k => ?_,
     ?_, framesStruct_pairwise hs.2.1⟩
   · rw [List.mem_reverse]
