@@ -364,7 +364,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   iunfold srvRestOwnH at Hrest
   icases Hrest with ⟨Hro, HH⟩
   iunfold srvRestOwn at Hro
-  icases Hro with ⟨Hrb, Hmem⟩
+  icases Hro with ⟨Hrb, Hrn, Hmem, %Hmi⟩
   ihave #HA'' : srvRLogLb γr.raft (γr.raft.pre ++ A') $$ []
   · rw [hpre0, List.nil_append]; iexact HA'
   have hLL : γr.raft.pre ++ A <+: γr.raft.pre ++ A' := (List.prefix_append_right_inj _).2 hAA'
@@ -383,13 +383,14 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     iunfold kvAppliedL
     iframe HA Hhi Hc
     ipureintro; exact ⟨Hl, Hch'⟩
-  isplitl [Hrb Hmem HH]
+  isplitl [Hrb Hrn Hmem HH]
   · iunfold srvRest
     rw [hRO]
     iunfold srvRestOwnH
     iframe HH
     iunfold srvRestOwn
-    iframe Hrb Hmem
+    iframe Hrb Hrn Hmem
+    ipureintro; exact Hmi
   iexists A', (kvModel γr.kv A').drop 2
   iframe HA'
   ipureintro

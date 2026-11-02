@@ -62,7 +62,8 @@ had to) meets raft's premise (`DynCCPreOp`, the view `(ca, cfg)` to `(k + 1, cs'
 them (`membership.membersDecode rs.bk`: its caller's `rs` is an applied log's,
 `membersDecode_restModel`), and the current backend's reader pool and the apply thread's token
 (`backend.bkRPool`, `threadTok`), which it gives back: for the member backend's reads (the next
-stage's pooled readers). -/
+stage's pooled readers); and the backend's facts (`srvBeRO d`: its `isBackend`, which the member
+backend's read and writes take; 2026-11-02, the backend-auth-split stage). -/
 abbrev EtcdServer.applyConfChange.spec : Prop :=
   ∀ (s cc ep : Loc) (m : ConfChangeM) (cs : Loc) (v3 : Bool) (ci : Loc) (ua : GoInterface)
     (E : apply.AEnv GF) (γs : ServerRaftNames) (Pre Q Post Adv : IProp GF) (i t : w64)
@@ -93,7 +94,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
       srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
       srvTransportAddr s ↦□ srvTrIface tl ∗
       srvMemberIDAddr s ↦□ lid ∗ ccMembRes γs cl tl lid prs ∗ mvcc.storeRT E.γ ∗
-      ⌜membership.membersDecode rs.bk⌝ ∗ backend.bkRPool d.γB d.P d.be ∗ threadTok ∗
+      ⌜membership.membersDecode rs.bk⌝ ∗ backend.bkRPool d.γB d.P d.be ∗ threadTok ∗ srvBeRO d ∗
       (if v3 then iprop(mvcc.storeWT E.γ ∗
           □ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
           (Q ={⊤}=∗ E.P ∗ Post) ∗

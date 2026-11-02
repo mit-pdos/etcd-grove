@@ -404,6 +404,11 @@ theorem restBootBk_of_fresh [GooseExts] (d : mvcc.KBReal) (D : backend.Data)
     simp [Ne.symm h1, Ne.symm h2, Ne.symm h3, Ne.symm h4, Ne.symm h5, Ne.symm h6, Ne.symm h7,
       Ne.symm h8]
 
+/-- **Every member the model keeps has its key as its id** (moved here from `RestMemId.lean`
+2026-11-02, the backend-auth-split stage: `srvRestOwn` holds it). -/
+def memIdOk (mem : GMap w64 apply.MemberM) : Prop :=
+  ∀ id m, mem.lookup id = some m → m.id = id
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -414,10 +419,23 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 /- `membership.clusterMem` (the cluster's in-memory members) is defined in the membership
 package's `Defs.lean` since D43 M5b (2026-10-26; opaque here until then). -/
 
-/-- **The server's `AEnv.RO`**: the backend `γB`'s tracked buckets' client half and the cluster
-`c`'s in-memory members, at `r`. -/
+/-- **The server's `AEnv.RO`** (restated 2026-11-01, the backend-auth-split stage): the backend
+`γB`'s tracked buckets at `r.bk` — **the cluster's buckets idle** (`rbOwnIn γB
+membership.clusterBkts`: `members`, `members_removed`, `cluster`, which the apply thread's readers
+`MustReadMembersFromBackend` and `RaftCluster.Recover` read through read transactions) and the
+others as a part (`rbPart γB (¬ clusterBkts ·)`: the lessor's, the auth store's, the alarm store's;
+the alarm and auth stores write them through `RW`, only the lessor's revocation through this part,
+inside sessions whose contracts give back a part) — and the cluster `c`'s in-memory members
+at `r.mem`, each member under its own id (`memIdOk r.mem`, 2026-11-02, round 5: Go saves a member
+under `BackendMemberKey(m.ID)`, the model's `restUpdateAttrs` under `memberKey a.memberID`; they
+agree because the member under `a.memberID` has that id; true of Go: `c.members` is keyed by each
+member's `ID`). Until 2026-11-01 the whole writer's half
+`rbOwn γB r.bk`. -/
 def srvRestOwn (γB : backend.BNames) (c : Loc) (r : apply.RestM) : IProp GF :=
-  iprop(backend.rbOwn γB r.bk ∗ membership.clusterMem c r.mem)
+  iprop(backend.rbOwnIn γB membership.clusterBkts r.bk ∗
+    backend.rbPart γB (fun n => ¬ membership.clusterBkts n) r.bk ∗ membership.clusterMem c r.mem ∗
+    ⌜memIdOk r.mem⌝)
+
 
 /-- **The server's `AEnv.RW`**: the backend's tracked buckets' client half at some value (what
 the stores' writers the workload does not reach would need; the apply thread holds it at its
@@ -478,8 +496,12 @@ def clusterBeOn (c be : Loc) : IProp GF :=
 
 /-- **The membership buckets of an image good for the cluster `c`** (opaque, a premise about the
 images a member applies; D22 receiver epochs, S8d, W6, 2026-10-25): the `members`,
-`members_removed` and `cluster` buckets (`mem`, `rem`, `cl`) decode (`MustReadMembersFromBackend`'s
-keys and JSON values, the cluster version, the downgrade record), the members include `c`'s local
+`members_removed` and `cluster` buckets (`mem`, `rem`, `cl`) are as the apply thread writes them:
+every `members` entry a member's key and encoding under its own id (`memberKey mm.id ↦ memberEnc
+mm`, a JSON object, as `membersDecode`; so `mem'` keeps each member under its id, `json.Unmarshal`
+setting `ID` from the JSON: so `UnsafeLoad`'s `MustReadMembersFromBackend` gives a non-nil member
+per key, which `Recover`'s loop dereferences), every `members_removed` key a member's key,
+`cluster` the version `semverNorm` writes and no downgrade record; the members include `c`'s local
 member and are the static cluster's (those of `bootOk`'s `Members()` contract, with the directory's
 peer URLs), none removed, and the cluster version is one `MustDetectDowngrade` accepts for this
 server (no downgrade); (2026-10-25, the user's decision) the members it decodes to are `ms`

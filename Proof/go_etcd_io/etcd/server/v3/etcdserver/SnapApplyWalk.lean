@@ -344,7 +344,12 @@ theorem applySnapshot_walk
   iunfold srvRestOwnH at HRS
   icases HRS with ⟨HoRO, HoObj⟩
   iunfold srvRestOwn at HoRO
-  icases HoRO with ⟨HoRB, HoMem⟩
+  icases HoRO with ⟨HoRC, HoRN, HoMem, -⟩
+  -- (2026-11-02, the backend-auth-split stage) the old backend's buckets, whole again
+  ihave HoRB := (backend.rbOwn_split (GF := GF) d.γB membership.clusterBkts _).2 $$ [HoRC HoRN]
+  · isplitl [HoRC]
+    · iapply backend.rbOwnIn_part $$ HoRC
+    iexact HoRN
   iunfold srvObjsOn at HoObj
   icases HoObj with ⟨HoAl, HoAu, HoLe, HoCl⟩
   -- the apply thread's KV resources
@@ -591,10 +596,11 @@ theorem applySnapshot_walk
   ihave #Hmempkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
   wp_apply hCSB cl d.be mbl sfv.lg d' (mvcc.lateW gx') (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))
-      (1 : Qp).half ((((backend.rbData d.P D).insert go!"lease" ∅).insert go!"alarm" ∅))
+      (1 : Qp).half (fun _ => True) ((((backend.rbData d.P D).insert go!"lease" ∅).insert go!"alarm" ∅))
+      (fun _ _ => trivial)
     $$ [HoCl HnOh Hwbm HnRB] as ⟨HnCl, HnOh, HnRB⟩
-  · ihave HnRB : backend.rbOwn (GF := GF) γB _ $$ [HnRB]
-    · iunfold backend.rbOwn; iapply backend.rbOwnIn_part $$ HnRB
+  · -- (2026-11-02, the backend-auth-split stage) at every bucket, given back idle
+    ihave HnRB := backend.rbOwnIn_part (GF := GF) _ (fun _ => True) _ $$ HnRB
     rw [hγ', hP', hgx']; iframe #; iframe HoCl HnOh HnRB
     isplitr
     · ipureintro; exact Hlgnn
@@ -665,10 +671,14 @@ theorem applySnapshot_walk
       GMap.lookup_insert_ne _ _ (by decide), GMap.lookup_insert_ne _ _ (by decide),
       GMap.lookup_insert_ne _ _ (by decide), GMap.lookup_insert_ne _ _ (by decide)]
     exact himg
+  -- (2026-11-02, the backend-auth-split stage) the cluster's buckets idle, for its read
+  icases (backend.rbOwnIn_split_compl (GF := GF) d'.γB membership.clusterBkts _).1 $$ HnRB
+    with ⟨HnRC, HnRB⟩
+  ihave HnRB := backend.rbOwnIn_part (GF := GF) _ _ _ $$ HnRB
   wp_apply hCRec cl d' (mvcc.lateW gx') (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))
       ((((backend.rbData d.P D).insert go!"lease" ∅).insert go!"alarm" ∅)) _ memI himg'
-    $$ [HnCl HwRT HnRB HoMem] as ⟨HnCl, HwRT, HnRB, HnMem⟩
-  · rw [hγ', hP', hgx']; iframe #; iframe HnCl HwRT HnRB HoMem
+    $$ [HnCl HnPl HthT HnRC HoMem] as ⟨HnCl, HnPl, HthT, HnRC, HnMem⟩
+  · rw [hγ', hP', hgx']; iframe #; iframe HnCl HnPl HthT HnRC HoMem
   (try wp_auto)
   wp_apply hInfo $$ []
   · ipureintro; exact Hlgnn

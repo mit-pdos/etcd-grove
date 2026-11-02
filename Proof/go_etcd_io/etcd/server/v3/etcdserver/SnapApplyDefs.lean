@@ -140,7 +140,11 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ∗
     lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗
     mvcc.bkRTx d'.γB d'.P d'.be ∗
-    backend.rbOwn d'.γB (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))) ∗
+    -- (2026-11-02, the backend-auth-split stage) the cluster's buckets idle, the others a part
+    backend.rbOwnIn d'.γB membership.clusterBkts
+      (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))) ∗
+    backend.rbPart d'.γB (fun n => ¬ membership.clusterBkts n)
+      (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))) ∗
     membership.clusterMem cl memI ∗ backend.bOpen d'.γB (1 : Qp).half ∗
     -- (2026-11-02, the backend-auth-split stage) the new backend's pool of readers
     backend.bkRPool d'.γB d'.P d'.be ∗

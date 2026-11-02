@@ -1968,12 +1968,15 @@ def kbCmp (kb : Option KBReal) : Prop := kbCmpM kb
 abbrev storeCmp (γ : StoreNames) : Prop := kbCmp γ.kb
 
 /-- **The right to write the tracked buckets** (`batchTxSpecG`'s `Rb`, at the buckets `r`) of the
-instance `kb`: the real backend's client half of them (`backend.rbOwn`, D22), with its parameters
-letting the lessor delete from `Lease` (`leaseParams`: the holder knows the table); nothing for
-mvcc's assumed backend (leases T3, 2026-10-25: what the lessor's delete in `Revoke` takes). -/
+instance `kb`: the real backend's client part of the `Lease` bucket (`backend.rbPart`, D22), with
+its parameters letting the lessor delete from `Lease` (`leaseParams`: the holder knows the table);
+nothing for mvcc's assumed backend (leases T3, 2026-10-25: what the lessor's delete in `Revoke`
+takes). (2026-11-02, the backend-auth-split stage: until then the whole client half `rbOwn`; the
+revocation's delete writes `Lease` only, and the server's rest resource holds the cluster's buckets
+idle, which the whole half could not give back.) -/
 def kbRb : Option KBReal → GMap GoString backend.BktData → IProp GF
   | none => fun _ => iprop(True)
-  | some d => fun r => iprop(backend.rbOwn d.γB r ∗ ⌜leaseParams d.P⌝)
+  | some d => fun r => iprop(backend.rbPart d.γB (· = leaseName) r ∗ ⌜leaseParams d.P⌝)
 
 /-- The store's right to write the tracked buckets (`kbRb`). -/
 abbrev storeRb (γ : StoreNames) : GMap GoString backend.BktData → IProp GF := kbRb γ.kb

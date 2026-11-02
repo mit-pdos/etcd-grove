@@ -9,6 +9,7 @@ before the call: N1).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewServer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestMemId
 public import Spec.github_com.prometheus.client_golang.prometheus.GaugeVec__With
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String_ptr
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.URLs__StringSlice
@@ -847,8 +848,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (2026-11-02, the backend-auth-split stage) `NewAlarmStore` returns no error (the alarm bucket
   -- is empty), so `restoreAlarms` does not; the tracked buckets idle, as the rest resource holds
   -- them below
-  ihave Hrbo : backend.rbOwn (GF := GF) d.γB _ $$ [Hrbo]
-  · iunfold backend.rbOwn; iapply backend.rbOwnIn_part $$ Hrbo
   subst Haerr
   (try wp_auto)
   -- `srv.uberApply = srv.NewUberApplier()`: its contract given once the hook is installed
@@ -1908,7 +1907,14 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       · unfold srvRestOwnH srvRestOwn restBoot srvObjsOn
         have hb0 : ρ.rd.raft.raft.boot = γ.boot := by rw [HρRaft]
         rw [hb0]
-        iframe Hrbo Hmem HalOn HauthOn HleOn HclBe
+        -- (2026-11-02, the backend-auth-split stage) the cluster's buckets idle, the others a part
+        icases (backend.rbOwnIn_split_compl (GF := GF) d.γB membership.clusterBkts _).1 $$ Hrbo
+          with ⟨Hrbc, Hrbn⟩
+        ihave Hrbn := backend.rbOwnIn_part (GF := GF) _ _ _ $$ Hrbn
+        isplitl [Hrbc Hrbn Hmem]
+        · iframe Hrbc Hrbn Hmem
+          ipureintro; exact memIdOk_memBoot _
+        iframe HalOn HauthOn HleOn HclBe
       -- (D43 M5e) the apply thread's membership resource: the frozen transport's stop token
       have hργ : ρ.rd.raft.raft = γ := by rw [HρRaft]
       iunfold srvApRes

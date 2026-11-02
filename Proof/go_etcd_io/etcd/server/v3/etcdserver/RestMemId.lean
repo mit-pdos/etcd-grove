@@ -26,9 +26,8 @@ namespace EtcdGrove
 
 open go_etcd_io.raft.v3
 
-/-- **Every member the model keeps has its key as its id.** -/
-def memIdOk (mem : GMap w64 apply.MemberM) : Prop :=
-  ∀ id m, mem.lookup id = some m → m.id = id
+/- `memIdOk` (every member the model keeps has its key as its id) is defined in `InvRest.lean`
+since 2026-11-02 (the backend-auth-split stage: `srvRestOwn` holds it). -/
 
 theorem memIdOk_empty : memIdOk ∅ := by
   intro id m h; simp at h

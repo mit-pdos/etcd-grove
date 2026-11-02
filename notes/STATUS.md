@@ -634,8 +634,25 @@ by `bkRPool_intro` and the old one's shares go to its `Close`. The token: `apply
 merge of lean's item 37 `BuildServer`'s three specs) take
 `threadTok` and give it back; the apply thread's is `srvGoRes`'s. `applyConfChange.spec` takes
 `membersDecode rs.bk` (Q) and `bkRPool` (discharged in `EtcdServer.apply` by
-`membersDecode_restModel` and `srvApplyKV(On)_ua_rt_pool`). Next: stage 3, the restated axioms'
-callers (§1-§2, §4, §6-7, §10).
+`membersDecode_restModel` and `srvApplyKV(On)_ua_rt_pool`).
+
+**Stage 3 of the apply (2026-11-02): the trusted restatements and their callers.** Applied as
+approved (revision 4.3): §1 `MustReadMembersFromBackend`, §2 `RaftCluster.Recover` (and
+`memBucketsOk`'s docstring, strong form), §3 `SetBackend`, §4 `MustSaveMemberToBackend`, §5
+`MustDeleteMemberFromBackend`, §6 `NewAlarmStore`, §7 `AlarmStore.restore`, §8 `NewLessor` and
+`lessorApplyOk`, §9 `lessor.Recover`, §10 `NewAuthStore` and `authRecoverOk`, §16 `srvRestOwn`
+(the cluster's buckets idle, the others a part, `memIdOk`; `memIdOk` moved to `InvRest.lean`) and
+`clusterApplyOk`'s docstring, §17's UTF-8 sentence; the proved §11-12 (`AlarmStore.Recover`,
+`restoreAlarms`, no error arm). `bootOk`'s backend facts gained the table's alarm and auth entries
+(`d.P.has mvcc.alarmBI`, `authBI`, `authUsersBI`, `authRolesBI`: item E's boot fact, which the
+draft names but does not spell out); `srvSnapRO` the alarm entry. Untrusted consequences: mvcc's
+`kbRb` is the `Lease` bucket's part (`bt_leaseDel` over `batchLocked_rbPart`), the revocation lens
+(`srvRestOwnH_lens_revoke`) and its consumers (`revokeClause_of_lessorInv`,
+`isApplyLessor_of_lessorInv`, `Results.lean`'s `lessor_apply_contract`) give back at buckets
+agreeing off `lease`; `applyConfChange.spec` takes `srvBeRO d` (from `srvApplyKV(On)_ua_rt_pool`);
+`snapWalkPost` and `snap_srvRest` hold the new backend's buckets as `srvRestOwn`'s two parts; the
+snapshot observation (`snapObs_window`, `srvBeSnapOk_window`) takes them and agrees part by part.
+Next: stage 4 (§19, `bootPremise`'s UTF-8 premise).
 
 ## The lease results' sources in a `NewServer`-built server (2026-11-02, branch `lease-src`; frozen and proved)
 

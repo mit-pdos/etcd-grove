@@ -220,7 +220,8 @@ theorem snapObs_window (γA : ApplyNames) (γ : backend.BNames) (P : backend.BPa
     □ (∀ vd, F -∗ W -∗ backend.viewAt γ vd -∗ ⌜QF vd⌝) ⊢
       □ (∀ (vd : backend.VData) (d : GMap (GoString × GoString) GoString)
           (r : GMap GoString backend.BktData),
-        iprop(freezeY γA s ∗ backend.rbOwn γ rb ∗ F) -∗ W -∗ batchLockInv γA (metaTM γ P) -∗
+        iprop(freezeY γA s ∗ iprop(backend.rbOwnIn γ membership.clusterBkts rb ∗
+          backend.rbPart γ (fun n => ¬ membership.clusterBkts n) rb) ∗ F) -∗ W -∗ batchLockInv γA (metaTM γ P) -∗
           backend.viewAt γ vd -∗ backend.hkOwn γ d -∗ backend.rbOwn γ r -∗
           ⌜(ciObs (ciEff γA s.k) d ∧ r = rb) ∧ QF vd⌝) := by
   iintro #HQF !> %vd %d %r ⟨HY, Hrb, HF⟩ HW Hbl Hv Hhk Hr
@@ -234,7 +235,18 @@ theorem snapObs_window (γA : ApplyNames) (γ : backend.BNames) (P : backend.BPa
   icases HTM with ⟨%S, Hk, %HmS⟩
   iunfold backend.hkOwn at Hk Hhk
   icombine Hk Hhk gives %Hd
-  icases backend.rbOwn_agree γ rb r $$ [$Hrb $Hr] with ⟨-, -, %Hrr⟩
+  -- (2026-11-02, the backend-auth-split stage) the cluster's buckets idle, the others a part:
+  -- each agrees with the batch lock's
+  icases Hrb with ⟨Hrc, Hrn⟩
+  iunfold backend.rbOwn at Hr
+  icases backend.rbOwnIn_agree γ membership.clusterBkts (fun _ => True) rb r $$ [$Hrc $Hr]
+    with ⟨-, Hr, %Hr1⟩
+  icases backend.rbPart_agree γ (fun n => ¬ membership.clusterBkts n) (fun _ => True) rb r $$ [$Hrn $Hr]
+    with ⟨-, -, %Hr2⟩
+  have Hrr : rb = r := GMap.ext fun n => by
+    by_cases h : membership.clusterBkts n
+    · exact Hr1 n h trivial
+    · exact Hr2 n h trivial
   ipureintro
   obtain ⟨-, Hm1⟩ := Hm1
   obtain ⟨-, Hd⟩ := Hd
@@ -262,13 +274,16 @@ theorem srvBeSnapOk_window (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG
       srvBeSnapOk
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
           #bl)
-        iprop(backend.bOpen γ qo ∗ backend.wbTok γ ∗ (freezeY γA s ∗ backend.rbOwn γ rb ∗ F))
-        iprop(backend.bOpen γ qo ∗ (freezeY γA s ∗ backend.rbOwn γ rb ∗ F))
+        iprop(backend.bOpen γ qo ∗ backend.wbTok γ ∗ (freezeY γA s ∗ iprop(backend.rbOwnIn γ
+          membership.clusterBkts rb ∗ backend.rbPart γ (fun n => ¬ membership.clusterBkts n) rb) ∗ F))
+        iprop(backend.bOpen γ qo ∗ (freezeY γA s ∗ iprop(backend.rbOwnIn γ membership.clusterBkts rb ∗
+          backend.rbPart γ (fun n => ¬ membership.clusterBkts n) rb) ∗ F))
         (fun D => ((ciObs (ciEff γA s.k) (backend.hkData P D) ∧ backend.rbData P D = rb) ∧
           QF (backend.sData P D)) ∧ QR D) := by
   iintro ⟨#Hpkg, #Hb, #HQF, #HQR⟩
   iapply srvBeSnapOk_of_backend hSnap γ P W (batchLockInv γA (metaTM γ P)) bl qo
-    iprop(freezeY γA s ∗ backend.rbOwn γ rb ∗ F)
+    iprop(freezeY γA s ∗ iprop(backend.rbOwnIn γ membership.clusterBkts rb ∗
+      backend.rbPart γ (fun n => ¬ membership.clusterBkts n) rb) ∗ F)
     (fun vd d r => (ciObs (ciEff γA s.k) d ∧ r = rb) ∧ QF vd) QR
   iframe Hpkg Hb
   isplitl
@@ -600,7 +615,12 @@ theorem mergedCreate_window
   iunfold srvRestOwnH at HRs
   icases HRs with ⟨Hro, HH⟩
   iunfold srvRestOwn at Hro
-  icases Hro with ⟨Hrb, Hcl⟩
+  icases Hro with ⟨Hrc, Hrn, Hcl, %Hmi⟩
+  ihave Hrb : iprop(backend.rbOwnIn (GF := GF) d.γB membership.clusterBkts
+      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
+    backend.rbPart d.γB (fun n => ¬ membership.clusterBkts n)
+      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk) $$ [Hrc Hrn]
+  · iframe Hrc Hrn
   have hRT : mvcc.storeRT (GF := GF) E.γ =
       iprop(backend.rdTok d.γB d.P d.be ∗ backend.bOpen d.γB backend.rdOpen) := by
     show mvcc.kbRT E.γ.kb = _
@@ -613,11 +633,17 @@ theorem mergedCreate_window
       mvcc.storeReq E.γ (applyThread γ st) (freezeY γ st) ∗ emp)
   iexists iprop(mvcc.writerFrag E.γ ∗ mvcc.writerOwn E.γ ∗ freezeY γ st ∗ emp)
   iexists iprop(backend.bOpen d.γB backend.rdOpen ∗ backend.wbTok d.γB ∗ (freezeY γ st ∗
-      backend.rbOwn d.γB (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
+      iprop(backend.rbOwnIn d.γB membership.clusterBkts
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
+        backend.rbPart d.γB (fun n => ¬ membership.clusterBkts n)
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk) ∗
       (txn.kvWriter E.s E.γ x.log ∗ backend.rdTok d.γB d.P d.be ∗
         mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb))))
   iexists iprop(backend.bOpen d.γB backend.rdOpen ∗ (freezeY γ st ∗
-      backend.rbOwn d.γB (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
+      iprop(backend.rbOwnIn d.γB membership.clusterBkts
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
+        backend.rbPart d.γB (fun n => ¬ membership.clusterBkts n)
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk) ∗
       (txn.kvWriter E.s E.γ x.log ∗ backend.rdTok d.γB d.P d.be ∗
         mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb))))
   isplitr
@@ -707,7 +733,9 @@ theorem mergedCreate_window
       iunfold srvRestOwnH
       iframe HH
       iunfold srvRestOwn
-      iframe Hrb Hcl
+      icases Hrb with ⟨Hrc, Hrn⟩
+      iframe Hrc Hrn Hcl
+      ipureintro; exact Hmi
     ipureintro; exact ⟨hok, rfl⟩
 
 /-- **(S2, open) The merged snapshot's image** (the network's image certificate, `srvNet`'s `img`,

@@ -157,37 +157,68 @@ theorem lessorBeOn_lens (lp be : Loc) :
   iframe Hle
   iintro Hle; iexact Hle
 
+/-- The `Lease` bucket is not one of the cluster's (2026-11-02, the backend-auth-split stage). -/
+theorem lease_not_clusterBkts : ¬ membership.clusterBkts mvcc.leaseName := by
+  simp [membership.clusterBkts, membership.memberBkts, mvcc.leaseName,
+    go_etcd_io.etcd.server.v3.storage.schema.leaseName]
+
 /-- **The server's rest resource lends the lessor's revocation its buckets** (the lease-revoke
 plan, 2026-10-31; `apply.isApplyLessor_of_lessorInv`'s lens): at the store's real backend `d` (its
 parameters naming the `Lease` bucket, tracked, with no hook keys: `leaseParams`, a boot fact), the
-tracked buckets' client half as the store's right `storeRb` and the lessor's half of `le.b`, given
-back at any buckets. -/
-theorem srvRestOwnH_lens_revoke (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = some d)
+`Lease` bucket's part as the store's right `storeRb` and the lessor's half of `le.b`, given back at
+any buckets agreeing with the model's off `lease`. (2026-11-02, the backend-auth-split stage: the
+part of `Lease`, split off `srvRestOwn`'s part of the non-cluster buckets; until then the whole
+client half, given back at any buckets.) -/
+theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+    (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = some d)
     (hlp : mvcc.leaseParams d.P) (al ast lp cl : Loc) :
     ⊢ □ (∀ rs : apply.RestM, srvRestOwnH (GF := GF) d.γB cl (srvObjsOn al ast lp cl d.be) rs -∗
       ∃ d' : mvcc.KBReal, ⌜γ.kb = some d'⌝ ∗ mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d'.be ∗
-        (∀ bk, mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d'.be -∗
+        (∀ bk, ⌜∀ n, n ≠ mvcc.leaseName → bk.lookup n = rs.bk.lookup n⌝ -∗
+          mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d'.be -∗
           srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) { rs with bk := bk })) := by
+  have hlc := lease_not_clusterBkts
+  have hset : ∀ n, (¬ membership.clusterBkts n) ↔
+      (n = mvcc.leaseName ∨ (¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName)) := by
+    intro n
+    by_cases h : n = mvcc.leaseName
+    · subst h; exact ⟨fun _ => Or.inl rfl, fun _ => hlc⟩
+    · exact ⟨fun hc => Or.inr ⟨hc, h⟩, fun hx => hx.elim (fun e => absurd e h) And.left⟩
+  have hd : ∀ n, n = mvcc.leaseName →
+      (¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName) → False := fun _ h1 h2 => h2.2 h1
   iintro !> %rs Hro
   iunfold srvRestOwnH at Hro
   iunfold srvObjsOn at Hro
   icases Hro with ⟨Hro, Hal, Hau, Hle, Hcb⟩
   iunfold srvRestOwn at Hro
-  icases Hro with ⟨Hrb, Hmem⟩
+  icases Hro with ⟨Hcl, Hnc, Hmem, %Hmi⟩
+  ihave Hnc := (backend.rbPart_set (GF := GF) d.γB _ _ rs.bk hset).1 $$ Hnc
+  icases (backend.rbPart_split (GF := GF) d.γB (· = mvcc.leaseName)
+    (fun n => ¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName) rs.bk hd).1 $$ Hnc with ⟨Hl, Hnc⟩
   iexists d
   unfold mvcc.storeRb
   rw [hk]
   simp only [mvcc.kbRb]
   isplitr
   · ipureintro; trivial
-  iframe Hrb Hle
+  iframe Hl Hle
   isplitr
   · ipureintro; exact hlp
-  iintro %bk ⟨⟨Hrb, -⟩, Hle⟩
+  iintro %bk %hbk ⟨⟨Hl, -⟩, Hle⟩
   iunfold srvRestOwnH
   iunfold srvObjsOn
   iunfold srvRestOwn
-  iframe Hrb Hmem Hal Hau Hle Hcb
+  iframe Hmem Hal Hau Hle Hcb
+  isplitl [Hcl]
+  · iapply (backend.rbOwnIn_congr (GF := GF) d.γB _ rs.bk bk
+      (fun n hn => (hbk n (fun e => hlc (e ▸ hn))).symm)).1 $$ Hcl
+  isplitl [Hl Hnc]
+  · iapply (backend.rbPart_set (GF := GF) d.γB _ _ bk hset).2
+    iapply (backend.rbPart_split (GF := GF) d.γB (· = mvcc.leaseName)
+      (fun n => ¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName) bk hd).2
+    iframe Hl
+    iapply (backend.rbPart_congr (GF := GF) d.γB _ rs.bk bk (fun n hn => (hbk n hn.2).symm)).1 $$ Hnc
+  · ipureintro; exact Hmi
 
 /-- **The cluster `c`'s apply contract on whichever backend it is on** (persistent; D22 receiver
 epochs, S7e, 2026-10-23; `bootOk`'s, the bootstrap contract): for a real backend `d` (its
@@ -197,7 +228,16 @@ half and the cluster's in-memory members with its `be` field at a membership bac
 (`clusterBeOn`, `roLens`), and a write right `RW` lending the half and the field (`rwLens`). The
 field (`c.be`: no lock guards it, the apply thread is its only reader and writer) pins the
 cluster's writes to `d`; `SetBackend` replaces it. Until S7e the contract was for the boot
-backend's batch lock only, false once `applySnapshot` calls `SetBackend`. -/
+backend's batch lock only, false once `applySnapshot` calls `SetBackend`. (2026-11-01, the
+backend-auth-split stage: the rest resource holds the cluster's buckets idle. True of the Go code:
+`SetVersion`'s `MustSaveClusterVersionToBackend` and `UpdateAttributes`' `MustSaveMemberToBackend`
+lock the batch (`LockInsideApply`), put, and `Unlock`, which writes the put back, the Go basis;
+without `shouldApplyV3` they write nothing; so after either, the readers see the writer's contents
+on the cluster's buckets, `TestBks2WriterAnySIdle`. `UpdateAttributes` saves under
+`BackendMemberKey(m.ID)`, which is the model's `memberKey a.memberID` because `srvRestOwn` holds
+`memIdOk`, kept by both rows (`restModel_memIdOk`'s steps). Not modelled, as before
+(`RestModel.lean:19`): `UpdateAttributes` of an id that is neither a member nor removed panics in
+Go; the row claims a return there, a gap of the contract this stage leaves as it is.) -/
 def clusterApplyOk (c : Loc) : IProp GF :=
   iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ' : mvcc.StoreNames) (f : GoFunc)
       (RO : apply.RestM → IProp GF) (RW : IProp GF),

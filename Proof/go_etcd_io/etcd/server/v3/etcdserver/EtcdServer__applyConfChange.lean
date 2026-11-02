@@ -23,6 +23,7 @@ public import Spec.go_uber_org.zap.Logger__Error
 public import Spec.go_uber_org.zap.Bool
 public import Spec.go_uber_org.zap.Error
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportFull
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestMemId
 
 @[expose] public section
 
@@ -97,6 +98,30 @@ theorem ownConfChange_nodeId_acc (p : Loc) (m : ConfChangeM) :
   · ipureintro; exact Hnn
   iframe
   iframe #
+
+/-- The members' buckets and `cluster` are disjoint (2026-11-02, the backend-auth-split stage). -/
+private theorem memberBkts_not_cluster :
+    ∀ n, membership.memberBkts n → n = go!"cluster" → False := by
+  rintro n (rfl | rfl) h <;> simp at h
+
+/-- The idle part of the cluster's buckets is that of the members' and of `cluster` (the
+backend-auth-split stage). -/
+private theorem clusterBkts_split (γB : backend.BNames) (r : GMap GoString backend.BktData) :
+    backend.rbOwnIn (GF := GF) γB membership.clusterBkts r ⊣⊢
+      iprop(backend.rbOwnIn γB membership.memberBkts r ∗ backend.rbOwnIn γB (· = go!"cluster") r) :=
+  (backend.rbOwnIn_set (GF := GF) γB membership.clusterBkts
+      (fun n => membership.memberBkts n ∨ n = go!"cluster") r (fun _ => Iff.rfl)).trans
+    (backend.rbOwnIn_split (GF := GF) γB membership.memberBkts (· = go!"cluster") r
+      memberBkts_not_cluster)
+
+/-- A put into `members` leaves the buckets outside the cluster's (the backend-auth-split stage). -/
+private theorem bkPut_members_off (bk : GMap GoString backend.BktData) (k v : GoString) :
+    ∀ n, ¬ membership.clusterBkts n → bk.lookup n = (apply.bkPut bk go!"members" k v).lookup n := by
+  intro n hn
+  have hne : go!"members" ≠ n := fun e =>
+    hn (e ▸ (Or.inl (Or.inl rfl) : membership.clusterBkts go!"members"))
+  unfold apply.bkPut
+  rw [GMap.lookup_insert_ne _ _ hne]
 
 set_option hygiene false in
 /-- `s.r.ApplyConfChange(cc)` of the change `cm` (`cc` read-only at it): the node's conf-change
@@ -184,9 +209,21 @@ local macro "fail_tail" : tactic => `(tactic| (
     iright
     ipureintro; exact ⟨by simpa using hv, rfl⟩
   try simp only [↓reduceIte]
-  isplitl [Hrb Hcm Hal Hau Hle Hbef]
-  · iunfold srvRestOwnH; iunfold srvRestOwn; iunfold srvObjsOn; iunfold clusterBeOn
-    iframe Hrb Hcm Hal Hau Hle
+  isplitl [Hmb Hcv Hnc Hcm Hal Hau Hle Hbef]
+  · iunfold srvRestOwnH; iunfold srvObjsOn; iunfold clusterBeOn
+    isplitl [Hmb Hcv Hnc Hcm]
+    · iunfold srvRestOwn
+      isplitl [Hmb Hcv]
+      · iapply (clusterBkts_split d.γB rs.bk).2
+        isplitl [Hmb]
+        · iexact Hmb
+        iexact Hcv
+      isplitl [Hnc]
+      · iexact Hnc
+      isplitl [Hcm]
+      · iexact Hcm
+      ipureintro; exact Hmi
+    iframe Hal Hau Hle
     iexists mbl, lgm
     iframe Hbef Hmbe Hmlg
     ipureintro; exact Hlgmnn
@@ -243,12 +280,12 @@ local macro "succ_tail" : tactic => `(tactic| (
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
       («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (membership.ccMemberAt m)
       iprop(Pre ∗ (Q ={⊤}=∗ E.P ∗ Post) ∗ mvcc.storeWT E.γ ∗ mvcc.storeRT E.γ ∗
-        backend.rbOwn d.γB rs.bk)
-      iprop(Post ∗ mvcc.storeRT E.γ ∗ backend.rbOwn d.γB (apply.bkPut rs.bk go!"members"
+        backend.rbPart d.γB membership.clusterBkts rs.bk)
+      iprop(Post ∗ mvcc.storeRT E.γ ∗ backend.rbOwnIn d.γB membership.clusterBkts (apply.bkPut rs.bk go!"members"
         (apply.memberKey m.nodeId) (apply.memberEnc (membership.ccMemberAt m)))) $$ []
   · iunfold membership.beSaveOk
     iintro !> %Φ' !> ⟨⟨Hp, Hu, Hw, Ht, Hb⟩, Hmm⟩ HΦ'
-    wp_apply (hSave mbl lgm E.γ d E.P E.f Pre Q Post rs.bk («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (membership.ccMemberAt m) Hkb Hmem)
+    wp_apply (hSave mbl lgm E.γ d E.P E.f Pre Q Post membership.clusterBkts rs.bk («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (membership.ccMemberAt m) (mvcc.lateW d.gx) Pk Hkb (Or.inl (Or.inl rfl)) Hmem)
       $$ [Hp Hu Hw Ht Hb Hmm] as ⟨Hpo, Ht, Hb, Hmm⟩
     · iframe #; iframe
       isplitr
@@ -261,11 +298,16 @@ local macro "succ_tail" : tactic => `(tactic| (
   simp only [ccMembRes]
   icases Hmr with ⟨#Hrc, %γn, %c, %ps, %Hcl, Hlive, #Hmd, %Hdk⟩
   ihave #HrcG := (membership.isRaftCluster_static cl).1 $$ Hrc
+  ihave Hrb := (clusterBkts_split d.γB rs.bk).2 $$ [Hmb Hcv]
+  · isplitl [Hmb]
+    · iexact Hmb
+    iexact Hcv
+  ihave Hrb := backend.rbOwnIn_part (GF := GF) _ _ _ $$ Hrb
   wp_apply (hAdd cl membership.rcStatic rs.mem _ (DFrac.own 1) (membership.ccMemberAt m) true lgc cid
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
     iprop(Pre ∗ (Q ={⊤}=∗ E.P ∗ Post) ∗ mvcc.storeWT E.γ ∗ mvcc.storeRT E.γ ∗
-      backend.rbOwn d.γB rs.bk)
-    iprop(Post ∗ mvcc.storeRT E.γ ∗ backend.rbOwn d.γB (apply.bkPut rs.bk go!"members"
+      backend.rbPart d.γB membership.clusterBkts rs.bk)
+    iprop(Post ∗ mvcc.storeRT E.γ ∗ backend.rbOwnIn d.γB membership.clusterBkts (apply.bkPut rs.bk go!"members"
       (apply.memberKey m.nodeId) (apply.memberEnc (membership.ccMemberAt m)))) (rcStatic_insert _ _) (Hsz hty0)) $$ [Hcm Hm Hbef Hpre Hupd Hwt Hrt Hrb]
     as ⟨Hbef, Hpost⟩
   · iframe #; iframe
@@ -329,13 +371,20 @@ local macro "succ_tail" : tactic => `(tactic| (
       iexists csm
       iframe Hcsok
       ipureintro; rw [← Hmb]; exact Hcsm
-    isplitl [Hrb Hcm Hal Hau Hle Hbef]
-    · iunfold srvRestOwnH; iunfold srvRestOwn; iunfold srvObjsOn; iunfold clusterBeOn
+    isplitl [Hrb Hnc Hcm Hal Hau Hle Hbef]
+    · iunfold srvRestOwnH; iunfold srvObjsOn; iunfold clusterBeOn
+      isplitl [Hrb Hnc Hcm]
+      · iunfold srvRestOwn
+        simp only [apply.RestM.putIn_bk]
+        isplitl [Hrb]
+        · iexact Hrb
+        isplitl [Hnc]
+        · iapply (backend.rbPart_congr (GF := GF) d.γB _ rs.bk _
+            (bkPut_members_off rs.bk _ _)).1 $$ Hnc
+        isplitl [Hcm]
+        · iexact Hcm
+        ipureintro; exact memIdOk_insert _ _ _ Hmi rfl
       iframe Hal Hau Hle
-      isplitl [Hrb Hcm]
-      · simp only [apply.RestM.putIn_bk]
-        iframe Hrb
-        iexact Hcm
       iexists mbl, lgm
       iframe Hbef Hmbe Hmlg
       ipureintro; exact Hlgmnn
@@ -396,13 +445,20 @@ local macro "succ_tail" : tactic => `(tactic| (
       iexists csm
       iframe Hcsok
       ipureintro; rw [← Hmb]; exact Hcsm
-    isplitl [Hrb Hcm Hal Hau Hle Hbef]
-    · iunfold srvRestOwnH; iunfold srvRestOwn; iunfold srvObjsOn; iunfold clusterBeOn
+    isplitl [Hrb Hnc Hcm Hal Hau Hle Hbef]
+    · iunfold srvRestOwnH; iunfold srvObjsOn; iunfold clusterBeOn
+      isplitl [Hrb Hnc Hcm]
+      · iunfold srvRestOwn
+        simp only [apply.RestM.putIn_bk]
+        isplitl [Hrb]
+        · iexact Hrb
+        isplitl [Hnc]
+        · iapply (backend.rbPart_congr (GF := GF) d.γB _ rs.bk _
+            (bkPut_members_off rs.bk _ _)).1 $$ Hnc
+        isplitl [Hcm]
+        · iexact Hcm
+        ipureintro; exact memIdOk_insert _ _ _ Hmi rfl
       iframe Hal Hau Hle
-      isplitl [Hrb Hcm]
-      · simp only [apply.RestM.putIn_bk]
-        iframe Hrb
-        iexact Hcm
       iexists mbl, lgm
       iframe Hbef Hmbe Hmlg
       ipureintro; exact Hlgmnn
@@ -445,7 +501,7 @@ theorem EtcdServer.applyConfChange.wp_proof
       membership.ccContextOf m.context = some (m.nodeId, false) := Hok
   clear Hdyn Hdv Hloc
   wp_start as ⟨#Hlg, %Hlgnn, Hlr, #Hci, Hua, #Happ, #Hrn, #Hcl, HRS, #Hclg, %Hclgnn, #Hcid, Hdvp, Hcc, Hcs, #Hbh, #Hbhi,
-    #Htr, #Hmid, Hmr, Hrt, -, Hpl, Htk, Hv3, Hpre⟩
+    #Htr, #Hmid, Hmr, Hrt, %HmD, Hpl, Htk, #HbeRO, Hv3, Hpre⟩
   wp_method_call
   wp_call
   wp_auto
@@ -458,7 +514,11 @@ theorem EtcdServer.applyConfChange.wp_proof
   iunfold srvRestOwn at HRS
   iunfold srvObjsOn at HRS
   iunfold clusterBeOn at HRS
-  icases HRS with ⟨⟨Hrb, Hcm⟩, Hal, Hau, Hle, %mbl, %lgm, %Hlgmnn, Hbef, #Hmbe, #Hmlg⟩
+  icases HRS with ⟨⟨Hcl, Hnc, Hcm, %Hmi⟩, Hal, Hau, Hle, %mbl, %lgm, %Hlgmnn, Hbef, #Hmbe, #Hmlg⟩
+  -- (2026-11-02, the backend-auth-split stage) the members' buckets idle, for the read
+  icases (clusterBkts_split d.γB rs.bk).1 $$ Hcl with ⟨Hmb, Hcv⟩
+  iunfold srvBeRO at HbeRO
+  icases HbeRO with ⟨%Pk, #HisB⟩
   ihave #Pmem : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
@@ -467,11 +527,13 @@ theorem EtcdServer.applyConfChange.wp_proof
   -- the backend's read, by its contract
   ihave #HbeRead : membership.beReadOk
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
-      iprop(backend.rbOwn d.γB rs.bk ∗ mvcc.storeRT E.γ)
+      iprop(backend.rbOwnIn d.γB membership.memberBkts rs.bk ∗ backend.bkRPool d.γB d.P d.be ∗
+        threadTok)
       (membership.membersOfBk rs.bk).1 (membership.membersOfBk rs.bk).2 $$ []
   · iunfold membership.beReadOk
-    iintro !> %Φ' !> ⟨Hrb, Hrt⟩ HΦ'
-    wp_apply (hRead mbl lgm E.γ d rs.bk Hkb) $$ [Hrb Hrt] as %mp %rp ⟨Hrt, Hrb, Hmr, Hrm⟩
+    iintro !> %Φ' !> ⟨Hmb, Hpl, Htk⟩ HΦ'
+    wp_apply (hRead mbl lgm d (mvcc.lateW d.gx) Pk rs.bk HmD) $$ [Hmb Hpl Htk]
+      as %mp %rp ⟨Hpl, Htk, Hmb, Hmr, Hrm⟩
     · iframe #; iframe; ipureintro; exact Hlgmnn
     iapply HΦ'
     iframe
@@ -498,12 +560,13 @@ theorem EtcdServer.applyConfChange.wp_proof
     iexact Hh
   wp_apply (hValid cl cc (DFrac.own 1) (DFrac.own 1) m true
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
-    iprop(backend.rbOwn d.γB rs.bk ∗ mvcc.storeRT E.γ)
+    iprop(backend.rbOwnIn d.γB membership.memberBkts rs.bk ∗ backend.bkRPool d.γB d.P d.be ∗
+      threadTok)
     (membership.membersOfBk rs.bk).1 (membership.membersOfBk rs.bk).2 Hty Hctx)
-    $$ [Hbef Hcc Hrb Hrt] as %err ⟨Hbef, Hcc, Hres⟩
+    $$ [Hbef Hcc Hmb Hpl Htk] as %err ⟨Hbef, Hcc, Hres⟩
   · simp only [↓reduceIte]; iframe #; iframe
   try simp only [↓reduceIte]
-  icases Hres with ⟨⟨Hrb, Hrt⟩, %Herr⟩
+  icases Hres with ⟨⟨Hmb, Hpl, Htk⟩, %Herr⟩
   have Herr' : err = GoInterface.nil ↔ membership.ccValidOn rs.bk m = true := by
     rw [Herr]; unfold membership.ccValidOn; simp
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
