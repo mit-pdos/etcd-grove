@@ -505,24 +505,28 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
-## Durability stage II (o): the start path (2026-11-02, branch `worktree-agent-raftstart`)
+## Durability stage II (p): the restart path (2026-11-02, branch `worktree-agent-raftrestart`)
 
-Report: `/home/ubuntu/spec-scratch/raft-durability/stageII-o-report.md`.
+Report: `/home/ubuntu/spec-scratch/raft-durability/stageII-p-report.md`. (Stage II (o)'s section is in
+`status-history.md`.)
 
-- **Proved:** `StartNode.wp_proof` (over `setupNode.spec`; its raw triple folded into the proof:
-  the client's update fires at the call's start, inside the id's slot), `NewRawNode.wp_proof`
-  (`rawNodeAt`), `rawNodeAt_fresh`, the keyed `storBnd_raftBnd`/`storDL_raftDL` (both files).
-- **Restated (internal):** `raft_start_boot`, `raft_restart` take an accessor of the durable half
-  (the client's update opens inside the slot invariant: an AU's inner mask is `∅`);
-  `newRaft`/`NewRawNode`/`newLogWithSize` accept the freeze point (`b ≤ σ.fr ≤` the restored
-  commit), require the base's certified term to be its own, and `newRaft`'s post gives
-  `applied = applying`.
-- **Still `sorry`, blocked:** `RestartNode.wp_raw`/wrapper — `RestartNode.spec` is false for a
-  stored commit lagging below the last written one (the dynamic `RInv.i1` at the restored commit;
-  a real raft hazard, the report's scenario) and `SdtTie` contradicts `rawNodeAt`'s `dtk` at the
-  stored commit; `newRaft.wp_proof` — no `ownRaftLog` can exist between `InitialState` and
-  `appliedTo` (the window), so its four callees there need window variants. `newLogWithSize`,
-  `setupNode` untouched (`sorry`).
+- **Proved:** `RestartNode.wp_proof` (one triple, as `StartNode`'s; one `sorry` left, below),
+  `newLogWithSize.wp_proof`, `setupNode.wp_proof`; `StartNode.wp_proof` still proved.
+- **`wcommit`** (`notes/decisions.md`, "The restart's lowest commit: `wcommit`"):
+  `RaftState.wcommit`, `StorageHolds`' new lower bound `S.wcommit ≤ σ.commit`, the durable half's
+  and the batch's I1 (`durI1`), `raft_enter`'s premise, `raft_restart`'s I1 and `DurFull` outputs.
+- **`SdtTie` relaxed** to the attach record's gap, the record's terms committed (`ctCommitted` in
+  `certLink`), a `Ready`'s certification over the gap (`ownRaftLog_certify_gap`); `AttachRec`
+  records every index `1..c0` (`notes/raft-durability-proof-plan.md`, "Stage II (p)").
+- **API statement changes:** `RestartNode.spec` takes `readyFits γ N` and the conf state lists'
+  bound `≤ 2^62` (scope); `StorageHolds` (above); `raftState`'s sealed body gains the budget's
+  invariant.
+- **Still `sorry`:** `newRaft.wp_proof` (the window, not attempted: the cascade is at the `sorry`);
+  `RestartNode` at a configuration point above the applied index it starts at (`run`'s `runCfg`,
+  I-9).
+- **Builds:** raft's `Linked`, kvreconf's, kv's and the server's `Link`/`NodeApiLink`. Interfaces
+  regenerated; `etc/api-check.py etc/api/raft.txt --check` passes (older warnings).
+  `etc/tcb-report.py --check` not run (needs a full build).
 
 ## kvdurable's raft-independent pieces (2026-10-31, branch `kvdurable-ext-work`)
 

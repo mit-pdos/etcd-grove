@@ -18406,3 +18406,23 @@ libraries, the informers, the model API server, the controller's first round) fo
   merge into `lean` as is.
 - `lake build` (10749 jobs) passes; `etc/gen-init.py --check` passes; every generated `Link.lean`
   is current.
+
+## Durability stage II (o): the start path (2026-11-02, branch `worktree-agent-raftstart`)
+
+Report: `/home/ubuntu/spec-scratch/raft-durability/stageII-o-report.md`.
+
+- **Proved:** `StartNode.wp_proof` (over `setupNode.spec`; its raw triple folded into the proof:
+  the client's update fires at the call's start, inside the id's slot), `NewRawNode.wp_proof`
+  (`rawNodeAt`), `rawNodeAt_fresh`, the keyed `storBnd_raftBnd`/`storDL_raftDL` (both files).
+- **Restated (internal):** `raft_start_boot`, `raft_restart` take an accessor of the durable half
+  (the client's update opens inside the slot invariant: an AU's inner mask is `∅`);
+  `newRaft`/`NewRawNode`/`newLogWithSize` accept the freeze point (`b ≤ σ.fr ≤` the restored
+  commit), require the base's certified term to be its own, and `newRaft`'s post gives
+  `applied = applying`.
+- **Still `sorry`, blocked:** `RestartNode.wp_raw`/wrapper — `RestartNode.spec` is false for a
+  stored commit lagging below the last written one (the dynamic `RInv.i1` at the restored commit;
+  a real raft hazard, the report's scenario) and `SdtTie` contradicts `rawNodeAt`'s `dtk` at the
+  stored commit; `newRaft.wp_proof` — no `ownRaftLog` can exist between `InitialState` and
+  `appliedTo` (the window), so its four callees there need window variants. `newLogWithSize`,
+  `setupNode` untouched (`sorry`).
+

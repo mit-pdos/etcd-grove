@@ -239,7 +239,18 @@ theorem newRaft.wp_proof
     (wp_fmt_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
-  -- PORT(durability stage II): a definition or statement it uses changed (durability stage I-2..I-8)
+  -- PORT(durability stage II, the window; 2026-11-02, stage II (p): blocked, not attempted in full):
+  -- from `InitialState` to `appliedTo` no `ownRaftLog` exists when `A > b` or the stored commit is
+  -- above `b`: the client may compact up to `max b A` from the attach on (`raftBnd`'s attach
+  -- reading), so the view needs its floor there (`storCaught`), while `ownRaftLog`'s `FlOk` wants the
+  -- floor at most `applying`, which is `b` until `appliedTo`; and its `DtOk` wants the attach record's
+  -- certified terms at most `committed`, `b` until `loadState`. The decision (coordinator, 2026-11-02):
+  -- window variants of `lastEntryID`, `switchToConfig`, `loadState`, `appliedTo` over the raw log
+  -- (`newLogWithSize`'s `l ↦ lv0`, closed by its wand at the end), or their bodies inlined. They
+  -- cascade: `lastEntryID` reads through `raftLog.lastIndex`/`raftLog.term` (both over `ownRaftLog`,
+  -- 90 + 273 lines), `switchToConfig` (589 lines) returns through a wand that must seal
+  -- `ownRaftPhys` (so a struct variant over the raw log too). See
+  -- `notes/raft-durability-proof-plan.md`, "Stage II (p)".
   sorry
 
 end proof
