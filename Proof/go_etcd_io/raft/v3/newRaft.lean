@@ -853,6 +853,68 @@ theorem newRaft.wp_proof
       iframe HSto hs r H_raftLog H_Term H_Vote
       iExactEq Hl
       rw [Hca]
+  -- `if c.Applied > 0 { raftlog.appliedTo(c.Applied, 0) }`: both arms at the applied index `ap`
+  let ap : w64 := if cv.Applied' = W64 0 then σ.prev.index' else cv.Applied'
+  rw [HpAp]
+  wp_join iprop(l ↦ ({ lv0 with committed' := committedAfter σ.prev hs, applied' := ap, applying' := ap } : raftLog) ∗ c_ptr ↦ c ∗ c ↦ cv' ∗ raftlog_ptr ↦ l)
+    with [Hl c Hc raftlog] as ⟨Hl, c, Hc, raftlog⟩
+  · have Ha0 : cv.Applied' ≠ W64 0 := by intro h; rw [h] at Hif; exact absurd Hif (by decide)
+    have Har := Happ.resolve_left Ha0
+    wp_apply wp_appliedTo_w l { lv0 with committed' := committedAfter σ.prev hs } cv'.Applied'
+        (by simp only; rw [Hlap, HbW, HpAp]; exact Har)
+        (by simp only; rw [Hlapg, HbW, HpAp]; exact Har.1)
+        Hlasz (by rw [Hlamx]; exact Hmcs') Hlpz $$ [$Hl] as Hl
+    try wp_auto
+    try (isplitr; · ipureintro; rfl)
+    iframe c Hc raftlog
+    iExactEq Hl
+    simp only [ap, Ha0, ↓reduceIte, HpAp]
+  · have Ha0 : cv.Applied' = W64 0 := by word
+    iframe c Hc raftlog
+    iExactEq Hl
+    simp only [ap, Ha0, ↓reduceIte]
+    rw [Hlapg, Hlap, HbW]
+  -- the window closes: the log at the restored commit and applied index (`newLogWithSize`'s wand)
+  have HAap : uint.nat ap = sn.a0 := by
+    rw [Ha0]
+    by_cases h : cv.Applied' = W64 0
+    · simp only [ap, h, ↓reduceIte]; have : uint.nat (W64 0) = 0 := rfl; omega
+    · simp only [ap, h, ↓reduceIte]
+      have := Happ.resolve_left h; have := uint_nat_eq cv.Applied'; omega
+  have HCn := uint_nat_eq (committedAfter σ.prev hs)
+  ihave HL := HLback $$ %σ1 %(committedAfter σ.prev hs) %ap
+    %(by exact ⟨rfl, rfl, Hidx, Hpend, Hfr1, Hfr2, Hsg0, by omega, by omega, by omega, by omega, HMk⟩)
+    Hl HisSto HSto
+  -- the struct, sealed at `Restore`'s configuration
+  ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil ({} : RdState) $$ [Hro]
+  · unfold ownRaftMisc
+    simp only [named]
+    isplitr
+    · iunfold readStatesPts
+      iexists []
+      isplitr
+      · iapply ownSlice_nil
+      iapply BigSepL2.bigSepL2_nil.2; iempintro
+    isplitr
+    · iapply ownSliceCap_nil
+    isplitl [Hro]
+    · iexact Hro
+    isplitr
+    · iexists []
+      isplitr
+      · iapply ownSlice_nil
+      iapply BigSepL2.bigSepL2_nil.2; iempintro
+    iapply ownSliceCap_nil
+  ihave Hnil1 : (slice.nil ↦* (([] : List QMsg).map QMsg.loc) : IProp GF) $$ []
+  · rw [List.map_nil]; iapply ownSlice_nil
+  ihave Hnil2 : (slice.nil ↦* (([] : List QMsg).map QMsg.loc) : IProp GF) $$ []
+  · rw [List.map_nil]; iapply ownSlice_nil
+  ihave Hcap1 := ownSliceCap_nil (V := Loc) (GF := GF)
+  ihave Hcap2 := ownSliceCap_nil (V := Loc) (GF := GF)
+  ihave Hob := outboxRel_nil (GF := GF)
+  ihave #Hns0 := NsCap.off (GF := GF) (interface.ok si)
+  ihave #Hsc0 : qSrcs (GF := GF) sn ([] ++ []) $$ []
+  · rw [List.append_nil]; iapply qSrcs_nil
   sorry
 
 end proof
