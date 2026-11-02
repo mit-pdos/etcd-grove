@@ -440,8 +440,12 @@ store's `GetList` is still names-only.
   receipts over a compacted image).
 
 - `compactor-pilot-plan.md`: the spec-first pilot (step 3 of `spec-first-plan.md`) on etcd's
-  auto-compactor (`v3compactor`). **Phase 0 done** (scope and top-level statements C1-C3);
-  scope (A), the compactor and the server's compaction path (the user's). Next: phase 1.
+  auto-compactor (`v3compactor`). **Done** (2026-10-27: the 14 functions specified, reviewed,
+  tested, frozen and proved, no spec revision after the freeze; the server side as M2, S1-S4,
+  `EtcdServer.Compact` proved, `putgetc_safe`/`compactkv_safe` with the compactor on in revision
+  mode). Left: C3 (a server-wide bound on the compaction revision, at most what the compactor's
+  permit allows; needs M2's S5, mvcc's atomic `store.Compact`; deferred, the user's), and a closed
+  result in periodic mode.
 
 - `spec-first-plan.md`: discover and test the specs (internal and trust-boundary) before the bulk of
   the proofs: scope and top-level statement first, a top-down spec skeleton with glue proofs, trace
