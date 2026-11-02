@@ -143,7 +143,7 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     permission with its key; else it appends a duplicate and the old type stays in effect (a
     downgrade from `READWRITE` to `READ` leaves writes permitted). Needs two permissions sharing a
     key; admin-only with auth on; reproduced by a unit test at the pin; a small fix (match the
-    range end too). Upstream not searched.
+    range end too). Known upstream: open PR etcd-io/etcd#21845 (same fix, stale, unreviewed).
 14. **[etcd-txn-nested-depth-apply-panic](etcd-txn-nested-depth-apply-panic.md)** (2026-10-30): a
     transaction nested 4999 deep passes gRPC's protobuf decoding (10000 levels) but its raft entry is
     one level deeper, and every member panics applying it, again on every restart (as item 1, the
@@ -171,12 +171,12 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     read them; the revision re-check sees no auth change. An information leak of key names (not
     values), across a permission line, so a candidate for etcd's private security process (the
     user's decision, as item 1's). Reproduced with gofail on leader and follower; fix: check the
-    returned keys. Upstream not searched.
+    returned keys. Upstream: nothing found (searched 2026-11-02).
 16a. **[etcd-lease-renew-keys-follower-lag](etcd-lease-renew-keys-follower-lag.md)** (2026-11-01):
     with auth on, a lease renewal through a lagging follower is checked against the follower's key
     set, so a user keeps alive a lease holding a key it may not write. The same family as item 16
     (a permission check over a stale or second lookup), narrower in effect (the lease is kept
-    alive, nothing leaks). Not reproduced yet; upstream not searched.
+    alive, nothing leaks). Not reproduced yet; upstream: nothing found (searched 2026-11-02).
 17. **[etcd-leasehttp-timetolive-nil-response-panic](etcd-leasehttp-timetolive-nil-response-panic.md)**
     (2026-10-31): a follower forwarding `LeaseTimeToLive` panics on a 200 reply without the
     `LeaseTimeToLiveResponse` field (`leasehttp/http.go:274`); etcd's own handler always sets it, so

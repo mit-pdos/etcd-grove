@@ -107,6 +107,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
 
 @[expose] public section
 
@@ -284,7 +285,10 @@ abbrev NewServer.spec : Prop :=
           ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
           -- (2026-10-20, watchkv) 64 reader slots of the watchable store, for the watch
           -- service's run slots (`v3rpc.watchRunSlot`)
-          srvWatchReaders srv E 64 }}
+          srvWatchReaders srv E 64 ∗
+          -- (the keep-alive stage's K7, 2026-11-01, the user's decision) the lease service's server
+          -- facts: the peers' round tripper (`LeaseRenew`'s forwarding) and the lessor's reader side
+          srvPeerRt srv ∗ srvLessorRd srv E.γ.leases }}
 
 /-- **`NewServer(cfg)` with auth on or off** (the auth plan's E2i, 2026-10-26; see the file header):
 as `NewServer.spec` (its mode off, `NewServer.spec_of_specM`), the start's chain with the auth
@@ -466,7 +470,10 @@ abbrev NewServer.specM (on : Bool) : Prop :=
           -- auth on the auth store's cost field (`BcryptCost()`'s) and (C1's A4, 2026-10-31) its
           -- `Authenticate` side at the server's reader resource (`srvAuthStoreOn`)
           srvCfgFieldAddr srv go!"ClientCertAuthEnabled" ↦□ cfg.ClientCertAuthEnabled' ∗
-          □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) }}
+          □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) ∗
+          -- (the keep-alive stage's K7, 2026-11-01, the user's decision) the lease service's server
+          -- facts: the peers' round tripper (`LeaseRenew`'s forwarding) and the lessor's reader side
+          srvPeerRt srv ∗ srvLessorRd srv E.γ.leases }}
 
 
 /-- **`NewServer(cfg)` in either auth mode and either compaction mode** (M2, 2026-10-31; what
@@ -646,7 +653,10 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- auth on the auth store's cost field (`BcryptCost()`'s) and (C1's A4, 2026-10-31) its
           -- `Authenticate` side at the server's reader resource (`srvAuthStoreOn`)
           srvCfgFieldAddr srv go!"ClientCertAuthEnabled" ↦□ cfg.ClientCertAuthEnabled' ∗
-          □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) }}
+          □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) ∗
+          -- (the keep-alive stage's K7, 2026-11-01, the user's decision) the lease service's server
+          -- facts: the peers' round tripper (`LeaseRenew`'s forwarding) and the lessor's reader side
+          srvPeerRt srv ∗ srvLessorRd srv E.γ.leases }}
 
 end spec
 

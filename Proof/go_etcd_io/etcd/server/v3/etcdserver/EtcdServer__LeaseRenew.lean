@@ -351,7 +351,9 @@ theorem EtcdServer.LeaseRenew.wp_proof
     EtcdServer.LeaseRenew.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr γl ctx cd id n m
   wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, HRD, Hrdo, Htok, Hlgr, Hrrd,
-    %Hbound, ⟨%rt, #Hrtf, %Hrt⟩⟩
+    %Hbound, #Hprt⟩
+  iunfold srvPeerRt at Hprt
+  icases Hprt with ⟨%rt, #Hrtf, %Hrt⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []

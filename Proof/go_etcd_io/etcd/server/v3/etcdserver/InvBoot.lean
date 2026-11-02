@@ -56,6 +56,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
+public import Code.net.http
 
 @[expose] public section
 
@@ -228,6 +229,12 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- the records
     "Hb" ∷ b ↦ bs ∗ "Hsto" ∷ bs.storage' ↦ sto ∗ "Hbk" ∷ sto.backend' ↦ bk ∗
     "Hbw" ∷ sto.wal' ↦ bw ∗ "Hbc" ∷ bs.cluster' ↦ bc ∗ "Hbv" ∷ bs.raft' ↦ bv ∗
+    -- (the keep-alive stage's K7, 2026-11-01, the user's decision) the peers' round tripper a
+    -- `*http.Transport` (`bootstrap`'s `prt`, from `rafthttp.NewRoundTripper`, `bootstrap.go:72`:
+    -- `transport.NewTimeoutTransport`'s), which `NewServer` stores in `peerRt` and `LeaseRenew`
+    -- forwards a follower's renewal through (`srvPeerRt`)
+    "%Hprt" ∷ ⌜∃ t : Loc, bs.prt' =
+      GoInterface.ok ⟨go.GoType.PointerType _root_.Perennial.net.http.Transport.ty, #t⟩⌝ ∗
     -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`bootstrapWAL`'s `ReadAll`),
     -- which `NewStorage`'s contract takes
     "%HwalR" ∷ ⌜storage.walReady bw.w'⌝ ∗
