@@ -25,6 +25,9 @@ invariant `Inv` with one lemma per branch of the loop. What the checker needs fo
   leaves had no completion (`Good`), and the invariant holds where it resumes;
 - `inv_skip`, `inv_push`: the call branches.
 
+Soundness (an accepted history is linearizable) is in `Soundness.lean`. Both are partial
+correctness: nothing says the search terminates.
+
 The cache is sound for any hash function: a cached configuration is on the stack or has no
 completion (`CacheOk`), whichever bucket it is in; a missed hit only re-explores.
 -/

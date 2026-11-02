@@ -102,8 +102,10 @@ theorem checkOperations.wp_proof
         · iapply BigSepL.bigSepL_nil.2; iempintro
       iapply HΦ
       ipureintro
-      intro Hlin
-      exact Hr (fun h hh => by simp at hh; subst hh; exact Hlin)
+      have Hone : (∀ h ∈ [histOf ops], Linearizable S.M h) ↔ Linearizable S.M (histOf ops) := by
+        simp
+      rw [Hone] at Hr
+      exact Hr
 
 end proof
 

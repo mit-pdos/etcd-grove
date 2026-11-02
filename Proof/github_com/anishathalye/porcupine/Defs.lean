@@ -41,7 +41,8 @@ shape: `Init`, `StepContext`, `Equal`; no `Partition`, no `Hash`):
 
 `isModelFilled S m` is the model after `fillDefault`: `StepContext` as above (steps as `M` does,
 or answers `false` on a done context), and `Equal`, `Hash` as above. A wrong `false` only makes
-`checkSingle` answer `false` with its context done, which its spec allows.
+`checkSingle` answer `false` with its context done, which its spec allows; a `true` is never
+wrong, so an answer `true` stays sound.
 
 ## A history
 

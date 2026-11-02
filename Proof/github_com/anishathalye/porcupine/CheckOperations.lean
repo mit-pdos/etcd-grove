@@ -35,10 +35,10 @@ theorem CheckOperations.wp_proof
   · iframe #
   iapply HΦ
   ipureintro
-  intro Hlin
-  have := (Hr Hlin).2 (by decide)
-  subst this
-  simp
+  rcases Hr with ⟨rfl, Hlin⟩ | ⟨rfl, Hnl⟩ | ⟨-, Hd⟩
+  · simpa using Hlin
+  · exact ⟨fun h => absurd h (by decide), fun h => absurd h Hnl⟩
+  · exact absurd Hd (by decide)
 
 end proof
 

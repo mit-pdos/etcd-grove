@@ -2,8 +2,9 @@
 
 `checkOperations(model, history, verbose, timeout)` (checker.go): `fillDefault`, the model's
 `Partition` (`noPartition`: the one partition `[history]`), `makeEntries` per partition,
-`checkParallel`. On a linearizable history it never answers `Illegal`, and with no timeout
-(`timeout <= 0`) it answers `Ok`. `context.isClosedchanInit` is what `checkParallel`'s
+`checkParallel`. It answers `Ok` only on a linearizable history, `Illegal` only on one that is
+not, and `Unknown` only with a timeout (`timeout > 0`): with no timeout it decides
+linearizability. `context.isClosedchanInit` is what `checkParallel`'s
 `context.WithCancel(context.Background())` needs.
 -/
 module
@@ -37,8 +38,9 @@ abbrev checkOperations.spec : Prop :=
     (App (App (App (App (Val (@! github_com.anishathalye.porcupine.checkOperations))
       (Val #m)) (Val #sl)) (Val #verbose)) (Val #dur))
   {{ (r : GoString) (info : LinearizationInfo), RET (PairV #r #info);
-      ⌜Linearizable S.M (histOf ops) →
-        r ≠ go!"Illegal" ∧ (sint.Z dur ≤ 0 → r = go!"Ok")⌝ }}
+      ⌜(r = go!"Ok" ∧ Linearizable S.M (histOf ops)) ∨
+        (r = go!"Illegal" ∧ ¬ Linearizable S.M (histOf ops)) ∨
+        (r = go!"Unknown" ∧ 0 < sint.Z dur)⌝ }}
 
 end spec
 
