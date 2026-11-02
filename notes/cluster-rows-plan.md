@@ -28,7 +28,8 @@ trusted contract asserts of the real `*membership.RaftCluster`:
 |---|---|---|
 | `SetVersion(v, onSet, b)`, any `onSet`, any version `s`, any `r` | `c.version = ver`; `MustDetectDowngrade(lg, MustParse(version.Version), ver)` (`:609-611`); with `b` `MustSaveClusterVersionToBackend` (`UnsafePut(Cluster, …)`); `onSet(lg, ver)` (`:623`) | (b) `s` above `3.8.0` (the server's major.minor, patch 0): `lg.Panic` (`version/downgrade.go:48-53`); also `3.8.1`; (e) a panicking `onSet`; (c) with `b`, `cluster` bucket missing: `lg.Fatal` (`backend/batch_tx.go:169-173`) |
 | `UpdateAttributes(id, attr, b)`, any `id`, any `r` | member: `m.Attributes = attr` (`:472`), with `b` `MustSaveMemberToBackend(m)`; removed: a warning; else `lg.Panic` (`:479-486`) | (a) `id` neither member nor removed (with or without `b`); (c) with `b`, `members` bucket missing: fatal; (d) the post's members own halves of the client URLs' elements (`memberAt`'s `cu ↦*{own ½}`) while Go stores the request's slice itself, which the caller holds read-only (`↦*□`, `memberAttrSetIs`): an ownership claim the heap does not have (not refutable by a panic; shown by aliasing) |
-| `Version`, `ID`, `SetDowngradeInfo` | | not this stage's (no defect found) |
+| `SetDowngradeInfo(d, b)`, `RW` only | with `b`, `MustSaveDowngradeToBackend` (`UnsafePut(Cluster, …)`, `:809-818`) | (c) with `b`, `cluster` bucket missing: fatal (found in review round 1; `RW` lends `srvRestRW = ∃ r, rbOwn γB r`, no presence). Unreached by the workload (`rqOk`'s `downgradeInfoSet` is `False`) but a conjunct of `bootOk` |
+| `Version`, `ID` | | no defect |
 
 (d) is confirmed (it was "unconfirmed" in the decision): the pre's `attr.ClientURLs' ↦*□ cus`
 cannot give the owned `½` the post's `clusterMem` holds (`memberAt`, `api/membership/Defs.lean:99`).
@@ -90,26 +91,35 @@ The restated statements (`…D` replaces the unsuffixed in place at the switch):
   `isRaftCluster(G)` carry it): `cu ↦*□ mm.clientURLs`. Laws `memberAtD_split`,
   `memberAtD_agree`, `memberAt_persistD` (today's to the restated, an update).
 - `srvRestOwnD` (trusted, through `clusterApplyOk`): §16's text over `clusterMemD`, with
-  `membership.clusterPresent r.bk`. `clusterApplyOkD`: its text over the two.
+  `membership.clusterPresent r.bk`. `srvRestRWD` (trusted, the same): `∃ bk, rbOwn γB bk ∗
+  ⌜clusterPresent bk⌝` (round 1). `clusterApplyOkD`: its text over the three.
 - `apply.semverAtMostServer` (new, opaque, trusted vocabulary); `apply.rqOkD` (its
   `clusterVersionSet` row with it); `monitorReqD lid` (the attribute request's member `lid`, the
   version's bound); `srvMonitorPermitMD` (the server's id field, a voter, the permission for
   `monitorReqD lid`). These change what `publishV3`'s and `monitorClusterVersions`' axioms
   claim, their texts unchanged.
 - Untrusted: `ClusterVersionSet.specD` (premise `semverValid v ∧ semverAtMostServer v`),
-  `ClusterMemberAttrSet.specD` (premise the member in `rs.mem`), `apply.restReqOk rq rs` (the
-  dispatch's premise), `attrIdOk`/`attrEntryOk`/`attrLogOk`, `kvWorkD` (with `attrLogOk`),
+  `ClusterMemberAttrSet.specD` (premise the member in `rs.mem`), `apply.clusterFactsD E m cr r rs`
+  (the applier contract's cluster facts with the rest state: the version's bound, the member; round
+  1: `dispatch` reaches the methods through the contract, not the specs), `apply.restReqOk rq rs`
+  (the dispatch's premise), `attrIdOk` (with `irrNoZeroEnd` for an attribute request, so that the
+  wire decodes the request itself: a cluster kind wins `dispatchKind` over a range with a zero end,
+  round 1)/`attrEntryOk`/`attrLogOk`, `kvWorkD` (with `attrLogOk`),
   `reqPropOkMD` (with `attrIdOk`), `srvMemOkD` (with `srvMemCover`), `rqShapeD` (rqShape read under
   `rqOkD`).
 
 The glue proved against them (no `sorry`): `ClusterVersionSet.wp_proofD` (the program's `onSet`
 is the row's value; the bound passed), `ClusterMemberAttrSet.wp_proofD`; `rqOk_of_rqOkD`,
-`rqOkD_ver`, `restReqOk_attr` (dispatch's two call sites); `clusterPresent_restBoot`,
+`rqOkD_ver`, `restReqOk_attr` (dispatch's two call sites, into `clusterFactsD`), `rqOkD_of_rqOk`
+(the other producers of `rqShape`), `apply.clusterRow_backendD` (`newApplierV3Backend`'s cluster row
+over `clusterFactsD` from the restated specs); `clusterPresent_congr` (the revocation lens);
+`attrIdOk_wire` (beside `reqPropOk_wire`); `srvApRes_lid` (`Start`'s permit); `clusterPresent_restBoot`,
 `_restModel`, `_restSetVersion`, `_restUpdateAttrs`, `_ccRest`; `memBoot_cover`,
 `srvMemOkD_boot`, `srvMemCover_normal`, `ccRest_memKeys_mono`, `srvMemOkD_append`;
 `restReqOk_of_attr` (EtcdServer.apply's premise for `apply.Apply`); `attrEntryOk_of`,
 `kvWorkD_snoc` (the KV acceptance); `rqShapeD_of_monitorReqD`, `attrIdOk_of_monitorReqD`,
-`srvMonitorPermitMD_of` (the permit from the request view, the id field and `srvDynLog`),
+`srvMonitorPermitMD_of` (the permit from the request view, the id field and `srvDynLog`, which
+`Start` extracts from `isServerBuilt`'s `srvApRes s γr []` with `srvApRes_lid`),
 `reqPropOkMD_of_kind` (the request path's other permissions).
 
 Not proved in the Draft (mechanical at the switch, listed in Impact): `dispatch`'s proof with the
@@ -131,8 +141,10 @@ Trusted texts (for the user's approval, `clr-trusted.md`):
    `setIsLearnerMetric`, `SetBackend`, `String`, `updateMembershipMetric`,
    `SetVersionChangedNotifier` (through `isRaftCluster`'s lock invariant), the v3rpc interceptors'
    `IsMemberExist`/`IsLearner`; `bootOk`'s `Hmem` (text unchanged).
-3. `srvRestOwn` (§16's, `InvRest.lean:414`): `clusterPresent r.bk`. Through it `clusterApplyOk`
-   and `bootOk` (texts unchanged).
+3. `srvRestOwn` (§16's, `InvRest.lean:414`): `clusterPresent r.bk`; `srvRestRW`
+   (`InvRest.lean:420`): `clusterPresent` of its buckets. Through them `clusterApplyOk` and `bootOk`
+   (texts unchanged), and the alarm and auth stores' contracts, whose `rwLens` lend `srvRestRW`
+   (they now claim their writers keep the cluster's buckets: they write only their own).
 4. `apply.semverAtMostServer` (new opaque, `apply/InvRequest.lean` beside `semverValid`);
    `apply.rqOk`'s `clusterVersionSet` row (`apply/Chain.lean:267`).
 5. `monitorReq` (`InvMonitors.lean:54`) gains `lid`; `srvMonitorPermit` (`InvMonitors.lean:81`) and
@@ -143,8 +155,11 @@ Trusted texts (for the user's approval, `clr-trusted.md`):
 Untrusted, the changes each needs:
 
 - `apply/applierV3backend__ClusterVersionSet` (spec, proof: as `…D`); `…ClusterMemberAttrSet`
-  (as `…D`); `apply/uberApplier__dispatch` (spec gains `⌜restReqOk rq rs⌝`; proof: the two call
-  sites, `rqOkD_ver`/`restReqOk_attr`); `uberApplier__Apply`, `apply/Apply` (spec gains the premise,
+  (as `…D`); `apply/Chain.lean` (`clusterFacts` as `clusterFactsD`, the applier contract's cluster row
+  passes `rs`); `apply/newApplierV3Backend` (its cluster row: `clusterRow_backendD`); the wrappers
+  `newAuthApplierV3`, `newQuotaApplierV3`, the capped and corrupt appliers (pass-through: the new
+  argument); `apply/uberApplier__dispatch` (spec gains `⌜restReqOk rq rs⌝`; proof: the two call
+  sites build `clusterFactsD` from `rqOkD_ver`/`restReqOk_attr`); `uberApplier__Apply`, `apply/Apply` (spec gains the premise,
   passed); `apply/ApplyKVL`, `DispatchKVL`, `ApplyAdmin`, `ApplyRec`, `InvUber` (users of the rest
   effects: unchanged unless they call `dispatch`'s spec, then pass the premise).
 - `EtcdServer__applyEntryNormal`, `EtcdServer__apply` (spec gains `⌜attrLogOk ρ.raft.raft.cfg ms⌝`;
@@ -155,11 +170,16 @@ Untrusted, the changes each needs:
   `kvWorkD_snoc`, `kv_prop_auW`'s three cases with `attrEntryOk_of`), `ProposeOn` (the mode-on
   acceptance), `ReqOn` (`reqPropOkM` with `attrIdOk`; its producers `reqPropOkMD_of_kind`),
   `EtcdServer__Put`/`Txn`/`DeleteRange`/`Compact` and the admin requests' proofs (one line each),
-  `MonitorsOn`/`InvMonitors` (`srvMonitorPermitMD_of`), `NewServer`/`StartOn`/`InvStart` (build the
-  permit with `srvApRes`'s id and `srvDynLog`).
+  `KVLemmas.reqPropOk_wire`'s users (`attrIdOk_wire`), `InvProposer`/`ReqOn`/`EtcdServer__Compact`/
+  `KVAuthModel`/`ProposeOn` (`rqShape` under `rqOkD`: `rqOkD_of_rqOk`),
+  `MonitorsOn`/`InvMonitors` (`srvMonitorPermitMD_of`), `EtcdServer__Start` (`:103,133,248,278`:
+  `srvApRes_lid` from `isServerBuilt`, then the permit).
 - `InvApRes` (`srvMemOk` as `srvMemOkD`; `srvMemOk_boot`, `srvApRes_normal`, `srvMemOk_append`,
   `srvApRes_cc` with the cover), `ApplyAllSnap`, `NewServer` (`srvMemOkD_boot`).
-- `srvRestOwn`'s producers and destructurings (`clusterPresent`): `NewServer` (`restBoot`),
+- `srvRestRW`'s lenses (`SnapApplyOptsLemmas.lean:41-82`, `srvRestRWH_lens_*`: the pure conjunct
+  carried; no producer of `srvRestRW` exists, the write right is never owned in the workload).
+- `srvRestOwn`'s producers and destructurings (`clusterPresent`; the revocation lens
+  `srvRestOwnH_lens_revoke` with `clusterPresent_congr`): `NewServer` (`restBoot`),
   `SnapApplyRest.snap_srvRest` (`clusterPresent_restModel`), `EtcdServer__applyConfChange`
   (`clusterPresent_ccRest`), `SnapRO` (the lenses), `SnapRecvFacts`, `SnapApplyWalk`,
   `SnapApplyDefs`, `SnapApplyOptsLemmas` (the positional destructurings §16 already lists).
@@ -170,7 +190,25 @@ Untrusted, the changes each needs:
 
 ## Review
 
-See the end of this note (rounds, findings, repairs).
+**Round 1** (a fresh `spec-reviewer`, given the targets, the Go code and the callers). First tier:
+
+- F1: `SetDowngradeInfo`'s row has defect (c) (fatal on a missing `cluster` bucket), and `RW`'s
+  `srvRestRW` holds no presence. Repaired: `srvRestRWD` (presence), `clusterApplyOkD` over it; Go:
+  `TestClrTodayMissingBucketFatal`'s `downgrade` case.
+- F2: `dispatch` reaches the cluster methods through the applier contract's row (`Chain.lean:1368`,
+  `clusterFacts`), not the two specs; `newApplierV3Backend` could not feed the restated specs.
+  Repaired: `apply.clusterFactsD` (with `rs`), `apply.clusterRow_backendD` (proved); Impact gains
+  `Chain`, `newApplierV3Backend`, the wrappers.
+
+Second and third tier, repaired: `Start` (not `NewServer`) builds the monitors' permit
+(`srvApRes_lid`, the docstring); the revocation lens's congruence (`clusterPresent_congr`); the
+converse `rqOkD_of_rqOk`; `attrIdOk` across the wire (found while repairing: the wire law needs
+`irrNoZeroEnd`, now in `attrIdOk`; `attrIdOk_wire`); the misnamed and duplicate presence lemmas
+removed; docstrings (`semverAtMostServer`'s argument, `rcLockInv` in `memberAtD`'s, the value size
+not claimed). Not repaired, questions: `isPkgInit api` in `SetVersion`'s row (`UpdateCapability`
+reads `api`'s globals); `clusterImageOk_restModel`'s axiom could take the version bound from the log
+instead of the deployment. Outside the targets: `RaftCluster__Recover.lean:43`'s docstring says
+`MustDetectDowngrade` rejects a version "below its minor by more than one"; Go has no lower bound.
 
 ## Questions for the user
 
