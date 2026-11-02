@@ -696,6 +696,97 @@ theorem idCluster_alloc {X : Type} [Pos.Countable X] (ps : List w64)
   iunfold idClusterInv
   iexact Hinv
 
+/-- An incarnation number above every key's of a finite map. -/
+theorem idKey_fresh_inc {V : Type} (C : GMap IdKey V) : ∃ n : Nat, ∀ k v, C !! k = some v → k.2 < n := by
+  have hmax : ∀ (l : List Nat) (x : Nat), x ∈ l → x ≤ l.foldr max 0 := by
+    intro l
+    induction l with
+    | nil => intro x hx; simp at hx
+    | cons a l ih =>
+      intro x hx
+      rcases List.mem_cons.1 hx with rfl | hx
+      · simp only [List.foldr_cons]; omega
+      · have := ih x hx; simp only [List.foldr_cons]; omega
+  refine ⟨(C.toList.map (fun kv : IdKey × V => kv.1.2)).foldr max 0 + 1, fun k v h => ?_⟩
+  have hm := (GMap.mem_toList C k v).2 h
+  have hmem : k.2 ∈ C.toList.map (fun kv : IdKey × V => kv.1.2) :=
+    List.mem_map.2 ⟨(k, v), hm, rfl⟩
+  have := hmax _ k.2 hmem
+  omega
+
+/-- **A new incarnation's key** (the restart plan's R2c stage 2: a member's restart): for the good
+prefix `p`, a key `(p, inc)` no key of the cluster has, with its empty entry, its unset registry cell
+and its facts' parameter `x`. The number is chosen above every key's: nothing is handed from one
+incarnation to the next. -/
+theorem idIncarnation_alloc {X : Type} [Pos.Countable X] (issued cnt wn fs : GName)
+    (Φs : X → w64 → List w8 → GName → IProp GF) (p : w64) (x : X) (E : CoPset)
+    (HE : ↑idClusterN ⊆ E) (Hp : idPfxOk p) :
+    ⊢ idClusterInv (GF := GF) issued cnt wn fs Φs ={E}=∗ ∃ inc : Nat,
+      (p, inc) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
+      idWaitTokAt wn (p, inc) ∗ idKeyFactAt fs (p, inc) x := by
+  iintro #Hcl
+  iunfold idClusterInv at Hcl
+  iinv Hcl with Hi Hclose
+  icases Hi with ⟨%I, %C, %R, %Fm, >HI, >HC, >HR, >HF, >%Hok, #HFs, >#HG⟩
+  obtain ⟨n, hn⟩ := idKey_fresh_inc C
+  have hC : C !! (p, n) = none := by
+    cases h : C !! (p, n) with
+    | none => rfl
+    | some v => exact absurd (hn _ v h) (Nat.lt_irrefl n)
+  have hR : R !! (p, n) = none := by
+    cases h : R !! (p, n) with
+    | none => rfl
+    | some _ => have := (Hok.2.2.2.2.1 (p, n)).2 (by simp [h]); simp [hC] at this
+  have hF : Fm !! (p, n) = none := by
+    cases h : Fm !! (p, n) with
+    | none => rfl
+    | some _ => have := (Hok.2.2.2.2.2 (p, n)).2 (by simp [h]); simp [hC] at this
+  imod (idKey_insert cnt wn fs C R Fm (p, n) x hC hR hF) $$ HC HR HF
+    with ⟨%γp, HC, HR, HF, Hk, Hw, Hf⟩
+  imod Hclose $$ [HI HC HR HF] with -
+  · inext
+    iexists I, (C.insert (p, n) ([], none)), (R.insert (p, n) γp), (Fm.insert (p, n) x)
+    iframe HI HC HR HF HFs
+    obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hok
+    isplitr
+    · ipureintro
+      refine ⟨fun id => ?_, fun k e hke => ?_, fun k k' e e' g hke hke' he he' => ?_,
+        fun k e hke hne => ?_, fun k => ?_, fun k => ?_⟩
+      · rw [h1 id]
+        apply or_congr Iff.rfl
+        constructor
+        · rintro ⟨k, e, hke, hid⟩
+          exact ⟨k, e, by
+            rw [GMap.lookup_insert_ne _ _ (fun h => by subst h; rw [hC] at hke; cases hke)]
+            exact hke, hid⟩
+        · rintro ⟨k, e, hke, hid⟩
+          by_cases hk : (p, n) = k
+          · subst hk; rw [GMap.lookup_insert] at hke; cases hke; simp at hid
+          · exact ⟨k, e, by rw [GMap.lookup_insert_ne _ _ hk] at hke; exact hke, hid⟩
+      · by_cases hk : (p, n) = k
+        · subst hk; rw [GMap.lookup_insert] at hke; cases hke; exact ⟨Hp, by simp⟩
+        · rw [GMap.lookup_insert_ne _ _ hk] at hke; exact h2 k e hke
+      · by_cases hk : (p, n) = k
+        · subst hk; rw [GMap.lookup_insert] at hke; cases hke; cases he
+        · by_cases hk' : (p, n) = k'
+          · subst hk'; rw [GMap.lookup_insert] at hke'; cases hke'; cases he'
+          · rw [GMap.lookup_insert_ne _ _ hk] at hke
+            rw [GMap.lookup_insert_ne _ _ hk'] at hke'
+            exact h3 k k' e e' g hke hke' he he'
+      · by_cases hk : (p, n) = k
+        · subst hk; rw [GMap.lookup_insert] at hke; cases hke; exact absurd rfl hne
+        · rw [GMap.lookup_insert_ne _ _ hk] at hke; exact h4 k e hke hne
+      · rw [GMap.lookup_insert_is_Some, GMap.lookup_insert_is_Some, h5 k]
+      · rw [GMap.lookup_insert_is_Some, GMap.lookup_insert_is_Some, h6 k]
+    iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := C)
+      (Φ := fun k e => idKeyGenFacts (GF := GF) k e) hC).2
+    iframe HG
+    iunfold idKeyGenFacts
+    itrivial
+  imodintro
+  iexists n
+  iframe Hk Hw Hf
+
 end ghost
 
 end EtcdGrove

@@ -588,17 +588,29 @@ The open questions:
    - `idIssueFragD` reads the fact without the instance: `if h : HasExt idIssueExt then … else
      False`, rewritten by `idIssueFragD_eq` under the instance. `idIssueFragD_agree` holds either
      way.
-2. **`idutil`:**
-   - `IdNames` gains the pending map's name and the generator map's name.
-   - The generator's invariant splits `idIssued` into the list plus pending ids.
-   - The cluster invariant gains, for every listed id, the record's fact at its key's generator, and
-     the key-to-generator map `Gm`. `Gm`'s values are `Option Loc`: `none` at the key's allocation
-     (the element in `idShare`), set by `NewGenerator`. It is injective by the persistent
-     prefix-field points-to.
-   - The definitions read the record's fact through `idIssueFragD` (item 1), so they need no
-     extension instance.
-   - `Next` proved in two steps over the model; `NewGenerator` registers the generator.
-   - The one-key-per-prefix condition goes; `idIncarnation_alloc` is proved.
+2. ~~**`idutil`**~~: done within the package, and it checks (`Defs`, `Lemmas`, `NewGenerator`,
+   `Generator__Next`):
+   - `IdNames` gains `pend`. A key's entry of the keys' map is a pair: issued ids, and the generator
+     once `NewGenerator` registers it. That replaces the separate key-to-generator map.
+   - The cluster invariant keeps, per registered key, its generator's persistent prefix field and
+     the record's fact for every listed id (`idKeyGenFacts`). One key per generator (`idClusterOk`).
+     The one-key-per-prefix condition is gone.
+   - `NewGenerator` registers its generator. It is no registered key's: its prefix field is owned
+     whole, and `w64_pointsto_excl` is a local lemma, recorded in `notes/perennial-changes.md`.
+   - `Next` is proved over the trusted model in two steps:
+     - the increment counts the id as pending and takes its wait slot;
+     - the issue step opens both invariants around `"Issue"`. With the record's fact, the
+       generators' facts, the injectivity and the pending token, the id is in no key's list, so in
+       no map.
+
+     The proof depends only on Lean's standard axioms (`#print axioms`).
+   - `idIncarnation_alloc` is proved: a key `(p, inc)` with `inc` above every key's
+     (`idKey_fresh_inc`), its empty entry, registry cell and facts' parameter.
+   - **Not yet adapted** (the branch does not build past `idutil`):
+     - the `IdNames` literals (`pend`);
+     - the server's allocations: `srvMemberBoot_alloc` and its twin allocate the pending map, and
+       the entries are pairs in `srvClusterBoot_alloc`'s statements;
+     - the examples' allocations.
 3. **The instance.** `Next.wp_proof` takes `[HasExt idIssueExt]`, and the linked results that
    include it take it too. That means `etc/gen-link.py` (the server's `Link.lean` and its
    downstream links), and each server example's closure: `TrivialExt.lean`'s closure becomes the
