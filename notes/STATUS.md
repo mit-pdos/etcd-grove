@@ -533,9 +533,14 @@ the open token's invariant holding the closer) and these candidate specs proved:
 `NewReadOnlyTxnWrite`, `txnReadWrite.Range`/`Rev`/`Changes`/`End`; and seven of the laws
 (`ApiLaws.lean`). The proof changed the candidate API in places (each in the plan's notes: `New`'s
 premises, `mvccTxn_unwrap` restricted to write views, `mvccHook`'s non-nil hook, `Put`'s key
-bound). Next: the watch stream (the old stream gives no next-id fact: a counter mode in its
-invariant; `Watch`'s update fired after the call at a positive start revision, the tester's), the
-lessor's `Grant`/`Revoke` over the API, then the tester's proof. Found on the way: `issues/etcd-mvcc-watch-negative-start-rev.md`,
+bound). Then the watch stream (`ApiWatchImpl.lean`): `NewWatchStream`, `Watch`, `Chan`, `Close`,
+`RequestProgress(All)` and the laws `wsChan_recv`, `wsRecv_events`, `wsRecv_progress`,
+`wsRecv_resp` proved, with the API changed where the proof required it (the registrar's view keyed
+by the stream's ids; `Watch` at a positive start revision, its update fired once the store's `watch`
+returned; the guarantees for watchers without filters; per-watcher progress only). Open: the
+registrar's completeness the tester's receiver needs ("every id with events is in the view when no
+`Watch` is in flight"), the lessor's `Grant`/`Revoke` over the API, then the tester's proof
+(`notes/mvcc-api-proof-plan.md`). Found on the way: `issues/etcd-mvcc-watch-negative-start-rev.md`,
 `etcd-mvcc-hash-currentrev-race.md`, `etcd-mvcc-hashbyrev-zero-stored.md`,
 `etcd-mvcc-hashbyrev-restore-rev1.md` (each reproduced).
 
