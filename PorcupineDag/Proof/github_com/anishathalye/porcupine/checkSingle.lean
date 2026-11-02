@@ -108,11 +108,11 @@ theorem checkSingle.wp_proof
       "Htok" ∷ NonAtomicInvariant.own np ⊤ ∗ "Hlongest" ∷ longestOwn lgst h.length ∗
       "%Hst" ∷ ⌜Struct S.M h cs (Before h cs) fs s fr (sint.Z lf)⌝ ∗
       "#Hgood" ∷ (⌜Bad S.M h (Before h cs) fs s fr (sint.Z lf) cache⌝ ∨ □ ctxd.PDone) : IProp GF)
-    $$ [ch Hr serialized Hlsl cache Hcm stack Hssl0 Hscap0 state liftFrom pops Htok Hlgst]
+    $$ [ch Hr serialized Hlsl Hcm stack Hssl0 Hscap0 state liftFrom pops Htok Hlgst]
   · iexists [], S.M.init, frOf cs st, [], sv0, chV.frontier'.len - W64 1, W64 0
     iframe
     iframe Hsv0
-    isplitl [ch Hr serialized Hlsl cache Hcm stack Hssl0 Hscap0]
+    isplitl [ch Hr serialized Hlsl Hcm stack Hssl0 Hscap0]
     · iunfold searchOwn
       iexists st, slice.mk ssl0 (W64 (go.arrayLiteralSize [])) (W64 (go.arrayLiteralSize [])), [], lsl,
         List.replicate (bsChunks h.length) (W64 0)
@@ -188,7 +188,20 @@ theorem checkSingle.wp_proof
       iright; iexact HPD
     iclear Herr
     wp_auto
-    sorry
+    -- `ch.lift(...)`
+    ihave Hs : searchOwn S np h cs ch_ptr stack_ptr serialized_ptr cm fs fr cache
+      $$ [Hch Hstk Hstack Hscap Hlinp Hlin Hcache]
+    · iunfold searchOwn; iexists st, ssl, ses, lsl, ws; simp only [named]
+      iframe; iframe Hses; ipureintro; exact ⟨⟨Hci, Hfr⟩, Hws1, Hws2⟩
+    wp_apply wp_lift σ S m ctx ctxd cons np h cs ch_ptr stack_ptr serialized_ptr cm fs fr cache sv s lf
+      hok hwf halloc Hst hinc $$ [$Hctx $Hm $Hcons $Hio $Hs $Hsv $Htok $Hgood] as %nsv %ok ⟨Htok, Hres⟩
+    icases Hres with (⟨%Hok, Hs, #Hb⟩ | ⟨%Hok, %y, %q, %t', %fr', Hs, #Hnsv, %Hst', #Hb'⟩)
+    · -- not lifted
+      subst Hok
+      sorry
+    · -- lifted
+      subst Hok
+      sorry
 
 end proof
 
