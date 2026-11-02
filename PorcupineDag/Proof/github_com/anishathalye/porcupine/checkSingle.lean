@@ -251,12 +251,111 @@ theorem checkSingle.wp_proof
   · -- every operation linearized: the loop's end
     have hft : ¬ ((#false : val) = #true) := fun h0 => by
       have := go.intoVal_inj h0; simp at this
-    simp only [eq_true hcomp, decide_true, Bool.not_true, hft, decide_false, Bool.false_eq_true,
+    simp only [eq_true hcomp, _root_.decide_true, Bool.not_true, hft, _root_.decide_false, Bool.false_eq_true,
       ↓reduceIte]
-    sorry
+    have hall := complete_all hok Hci hcomp
+    have hlin : LinearizableCO S.M h (chainOrder cs) := sound_done Hst hall
+    ihave %Hsesl := stackRep_length S np cs ses fs $$ Hses
+    ihave %Hssl := ownSlice_len $$ Hstack
+    iunfold chainsOwn at Hch
+    icases Hch with ⟨%chV2, Hchp, Hr⟩
+    icases chainsRepr_facts chV2 h cs st $$ Hr with ⟨%Hf2, Hr⟩
+    wp_auto
+    -- `seq := make([]int, len(stack)); for i, v := range stack { seq[i] = v.opId }`
+    wp_apply wp_slice_make2 (V := w64) $$ [] as %sq ⟨Hsq, -⟩
+    try (· ipureintro; exact Hssl.2)
+    rename_i iu_ptr
+    irename : (iu_ptr ↦ zero_val w64 : IProp GF) => Hiu
+    ihave HF : (∃ (k iv : w64) (vv : stackEntry) (xs : List w64),
+        "i" ∷ i_ptr ↦ k ∗ "Hiu" ∷ iu_ptr ↦ iv ∗ "v" ∷ v_ptr ↦ vv ∗ "Hsq" ∷ sq ↦* xs ∗
+        "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z ssl.len ∧ xs.length = ses.length⌝ : IProp GF)
+      $$ [i Hiu v Hsq]
+    · iexists W64 0, _, _, _
+      iframe
+      ipureintro
+      refine ⟨by decide, by word, ?_⟩
+      rw [List.length_replicate, Hssl.1]
+    wp_for HF
+    obtain ⟨Hk1, Hk2, Hk3⟩ := Hk
+    (try simp only [if_decide_bool_eq_true, if_decide_bool_eq_false])
+    wp_if_destruct
+    · have Hb : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z ssl.len := ⟨Hk1, Hif⟩
+      simp only [Hb, _root_.and_self, ↓reduceIte]
+      list_elem ses (sint.nat k) as ce
+      wp_apply wp_load_slice_index ssl (sint.Z k) ses (DFrac.own 1) ce Hk1 $$ [Hstack] as Hstack
+      · iframe; ipureintro; exact Hce_lookup
+      ihave %Hsql := ownSlice_len $$ Hsq
+      obtain ⟨Hsql1, Hsql2⟩ := Hsql
+      have Hb' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z sq.len := by
+        constructor
+        · exact Hk1
+        · have : xs.length = ses.length := Hk3
+          word
+      simp only [Hb', _root_.and_self, ↓reduceIte]
+      wp_apply wp_store_slice_index $$ [Hsq] as Hsq
+      · iframe; ipureintro; constructor <;> word
+      wp_for_post
+      iframe
+      iexists k + W64 1, k, ce, _
+      iframe
+      ipureintro
+      refine ⟨by word, by word, by simp [Hk3]⟩
+    · -- the copy is made: read-only from now on; every `longest[i]` points to it
+      ipersist seq
+      ipersist Hsq
+      iunfold longestOwn at Hlongest
+      icases Hlongest with ⟨%ps, Hps, %Hpsl, #Hpse⟩
+      ihave HL : (∃ (k : w64) (ps' : List Loc),
+          "i" ∷ i_ptr ↦ k ∗ "Hps" ∷ lgst ↦* ps' ∗ "#Hpse" ∷ ([∗list] p ∈ ps', longestElem (GF := GF) p) ∗
+          "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ h.length ∧ ps'.length = h.length⌝ : IProp GF)
+        $$ [i Hps]
+      · iexists W64 0, ps
+        iframe
+        iframe Hpse
+        ipureintro
+        exact ⟨by decide, by word, Hpsl⟩
+      wp_for HL
+      obtain ⟨Hk1, Hk2, Hk3⟩ := Hk
+      ihave %Hpsl' := ownSlice_len $$ Hps
+      obtain ⟨Hpsl1, Hpsl2⟩ := Hpsl'
+      (try simp only [if_decide_bool_eq_true, if_decide_bool_eq_false])
+      wp_if_destruct
+      · have Hb : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z lgst.len := by
+          constructor
+          · exact Hk1
+          · rw [Hf2.1] at Hif; rw [Hk3, snat_eq] at Hpsl1; omega
+        simp only [Hb, _root_.and_self, ↓reduceIte]
+        wp_apply wp_store_slice_index $$ [Hps] as Hps
+        · iframe; ipureintro; constructor <;> word
+        wp_for_post
+        iframe
+        iexists k + W64 1, _
+        iframe
+        isplitl []
+        · iapply longestElems_set ps' (sint.Z k).toNat seq_ptr (by word)
+          iframe Hpse
+          iright
+          iexists sq, xs
+          iframe seq Hsq
+        ipureintro
+        refine ⟨by word, by rw [Hf2.1] at Hif; word, by simp [Hk3]⟩
+      · wp_apply wp_slice_literal
+        isplitr
+        · ipureintro; rfl
+        iintro %psl ⟨Hpsl, -⟩
+        wp_apply wp_Printf _ _ _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int pv) fmt.ArgsWf.nil)
+          $$ [Hpsl] as %n %e2 -
+        · iframe
+        iapply HΦ
+        isplitl []
+        · ileft; ipureintro; exact ⟨rfl, hlin⟩
+        iunfold longestOwn
+        iexists ps'
+        iframe Hps Hpse
+        ipureintro; exact Hk3
   · -- some operation not linearized: the loop's body
     have hinc := incomplete_some hok Hci hcomp
-    simp only [eq_false hcomp, decide_false, Bool.not_false, decide_true, ↓reduceIte]
+    simp only [eq_false hcomp, _root_.decide_false, Bool.not_false, _root_.decide_true, ↓reduceIte]
     -- `if ctx.Err() != nil { fmt.Printf(...); return false, longest }`
     try wp_auto
     wp_apply HErrU as %err Herr
