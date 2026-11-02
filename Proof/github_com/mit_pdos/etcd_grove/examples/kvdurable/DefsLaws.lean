@@ -133,14 +133,13 @@ theorem ghostVar_three_halves {A : Type} [Pos.Countable A] (γv : GName) (a b c 
   have := ((1 : Qp).half).2
   grind
 
-/-- (2026-11-01, the start functions) A writer refutes the file's lent case (`kdFileInv`): its half,
-the invariant's and the lent one are three. -/
-theorem kdWriter_lent_absurd (γ : KdNames) (id : w64) (S : RaftState) (o : Option StorFile)
-    (a b : RaftState × Option GoString) :
-    kdWriter (GF := GF) γ id S o ∗ ghostVar (γ.wr id) (1 : Qp).half a ∗
-      ghostVar (γ.wr id) (1 : Qp).half b ⊢ False := by
-  unfold kdWriter
-  exact ghostVar_three_halves _ _ _ _
+/-- The replica's file's namespace is not the files'. -/
+theorem kdRepN_files (id : w64) : (↑(kdRepN .@ uint.nat id) : CoPset) ⊆ ⊤ \ ↑kdFilesN :=
+  nclose_subseteq' _ (mask_ndot_ne' nroot "kvdurable_rep" "kvdurable_files" (by decide))
+
+/-- The replica's file's namespace is not raft's. -/
+theorem kdRepN_raft (id : w64) : (↑(kdRepN .@ uint.nat id) : CoPset) ⊆ ⊤ \ ↑kdRaftN :=
+  nclose_subseteq' _ (mask_ndot_ne' nroot "kvdurable_rep" "kvdurable_raft" (by decide))
 
 end laws
 

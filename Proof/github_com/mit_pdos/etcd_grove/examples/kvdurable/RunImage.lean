@@ -202,14 +202,14 @@ theorem img_ready_ok (M : StorFile) (S : RaftState) (hd' : HardStateM) (es : Lis
         obtain ⟨a, b⟩ := H8 sv hsv
         exact ⟨a, by wd⟩
 
-/-- A snapshot past the durable commit index is not refused by the image. -/
+/-- A snapshot past the image's commit index is not refused by the image. (2026-11-02, stage II (s):
+until then past the durable commit index `S.commit`, kvdurable's first G7; raft's `readyRest_snap`
+bounds it by the hard state's, the image's.) -/
 theorem img_snap_fresh (M : StorFile) (S : RaftState) (sv : SnapshotM)
     (Hh : StorageHolds S (kdContents (some M)))
-    (G7 : uint.nat S.commit < uint.nat sv.Metadata'.Index') : ¬ imgSnapStale M sv := by
+    (G7 : uint.nat M.hs.Commit' < uint.nat sv.Metadata'.Index') : ¬ imgSnapStale M sv := by
   intro ⟨h0, hle⟩
   have := holds_snap_commit S M Hh h0
-  have H7 := Hh.2.2.2.2.2.2.1
-  simp only [kdContents, StorContents.commit] at H7
   word
 
 /-- **The image after a `Ready` with a snapshot** (the snapshot applied, the hard state set, the

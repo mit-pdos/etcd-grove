@@ -22,8 +22,8 @@ storages take it under `dmu` (the image does not refuse it: G7), its batch is cu
 the replicated state takes it (`install`), and `Advance` gives the node's configuration at it: the
 invariant at the snapshot's log, compacted and frozen at its index.
 
-raft's facts on a `Ready` not yet in its API (being added to `readyRest`) are isolated below as
-private lemmas left `sorry` (`ready_*_G*`, `softState_ne_null_G21`). (G23: `MemoryStorage.ApplySnapshot`'s
+raft's facts on a `Ready` are its `readyRest` laws (G4, G7-G10, G14, G17, G20, G21; G7's in the hard
+state's commit index, the image's: `img_snap_fresh_hs`). (G23: `MemoryStorage.ApplySnapshot`'s
 `memSnapLb γs 0` is `isReplicaR`'s `#HsnLb`.)
 -/
 module
@@ -79,87 +79,52 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
-/-! ## raft's facts on a `Ready`, not yet in its API (being added to `readyRest`) -/
+/-! ## raft's facts on a `Ready`
 
-/-- (G4) A `Ready`'s hard state's commit index is at least the driver's previous one. -/
-private theorem ready_commit_mono_G4 (γc : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
-    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg)
-    (ss : Option (w64 × StateType)) :
-    readyRest (GF := GF) γc N rd st ce es h L ms ss ⊢ readyRest γc N rd st ce es h L ms ss ∗
-      ⌜uint.nat st.hardState.Commit' ≤ uint.nat (phsNext st.hardState h).Commit'⌝ := by
-  sorry
+raft's `readyRest` laws (`InvNode.lean`: `readyRest_commit_mono` (G4), `_snap` (G7), `_commit_le_last`
+(G8), `_ents_start` (G9), `_delivered_le_commit` (G10), `_durable_has_delivered` (G14),
+`_ents_above_commit` (G17), `readyRest_ents_type` (G20's type half), `softStateIs_ne_null` (G21)). -/
 
-/-- (G7) A `Ready`'s snapshot is past the durable commit index, and the `Ready`'s commit index is at
-least its index. -/
-private theorem ready_snap_G7 (γc : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
-    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (l : SnapLoan) (ms : List QMsg)
-    (ss : Option (w64 × StateType)) :
-    readyRest (GF := GF) γc N rd st ce es h (some l) ms ss ⊢
-      readyRest γc N rd st ce es h (some l) ms ss ∗
-      ⌜uint.nat st.durable.commit < uint.nat l.snap.Metadata'.Index' ∧
-        uint.nat l.snap.Metadata'.Index' ≤ uint.nat (phsNext st.hardState h).Commit'⌝ := by
-  sorry
-
-/-- (G8) A `Ready`'s commit index is at most the last index of the durable log after its batch. -/
-private theorem ready_commit_le_last_G8 (γc : Cluster) (N : Namespace) (rd : Ready)
-    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
-    (L : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) :
-    readyRest (GF := GF) γc N rd st ce es h L ms ss ⊢ readyRest γc N rd st ce es h L ms ss ∗
-      ⌜uint.nat (phsNext st.hardState h).Commit' ≤
-        (readyDurable st.durable (phsNext st.hardState h) L es).last⌝ := by
-  sorry
-
-/-- (G9) A `Ready`'s entries (without a snapshot) start at most one past the durable log's end. -/
-private theorem ready_ents_start_G9 (γc : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
-    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (ms : List QMsg)
-    (ss : Option (w64 × StateType)) :
-    readyRest (GF := GF) γc N rd st ce es h none ms ss ⊢ readyRest γc N rd st ce es h none ms ss ∗
-      ⌜∀ e0, es.head? = some e0 → uint.nat e0.Index' ≤ st.durable.last + 1⌝ := by
-  sorry
-
-/-- (G10) The delivered log after a `Ready` (without a snapshot) is at most its commit index. -/
-private theorem ready_delivered_le_commit_G10 (γc : Cluster) (N : Namespace) (rd : Ready)
-    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (ms : List QMsg)
-    (ss : Option (w64 × StateType)) :
-    readyRest (GF := GF) γc N rd st ce es h none ms ss ⊢ readyRest γc N rd st ce es h none ms ss ∗
-      ⌜(st.delivered ++ ce).length ≤ uint.nat (phsNext st.hardState h).Commit'⌝ := by
-  sorry
-
-/-- (G14) The committed entries a `Ready` (without a snapshot) delivers are in the durable log after
-its batch, above its base. -/
-private theorem ready_durable_has_delivered_G14 (γc : Cluster) (N : Namespace) (rd : Ready)
-    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (ms : List QMsg)
-    (ss : Option (w64 × StateType)) :
-    readyRest (GF := GF) γc N rd st ce es h none ms ss ⊢ readyRest γc N rd st ce es h none ms ss ∗
-      ⌜∀ (j : Nat) (e : LogEntry), ce[j]? = some e →
-        uint.nat (readyDurable st.durable (phsNext st.hardState h) none es).base.index' <
-          st.delivered.length + 1 + j →
-        (readyDurable st.durable (phsNext st.hardState h) none es).ents[st.delivered.length + j -
-          uint.nat (readyDurable st.durable (phsNext st.hardState h) none es).base.index']? =
-          some (e.toEntryM (W64 (st.delivered.length + 1 + j)))⌝ := by
-  sorry
-
-/-- (G17) A `Ready`'s entries (without a snapshot) start past the driver's previous commit index. -/
-private theorem ready_ents_above_commit_G17 (γc : Cluster) (N : Namespace) (rd : Ready)
-    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (ms : List QMsg)
-    (ss : Option (w64 × StateType)) :
-    readyRest (GF := GF) γc N rd st ce es h none ms ss ⊢ readyRest γc N rd st ce es h none ms ss ∗
-      ⌜∀ e0, es.head? = some e0 → uint.nat st.hardState.Commit' < uint.nat e0.Index'⌝ := by
-  sorry
+/-- An entry slice's entries have data of a Go slice's length. -/
+private theorem entsRO_data_len (s : GoSlice) (es : List EntryM) :
+    entsRO (GF := GF) s es ⊢ ⌜∀ e ∈ es, (e.Data'.length : Int) < 2 ^ 63⌝ := by
+  have key : ∀ (l : Loc) (e : EntryM), entRO (GF := GF) l e ⊢ ⌜(e.Data'.length : Int) < 2 ^ 63⌝ := by
+    intro l e
+    unfold entRO entPts
+    iintro H
+    iNamed H
+    ihave %h := ownSlice_len $$ Hd
+    ipureintro; word
+  unfold entsRO entsPts
+  iintro H
+  icases H with ⟨%ls, -, Hb⟩
+  ihave %Hp := (BigSepL2.bigSepL2_mono_of_forall (fun {_ x1 x2} => key x1 x2)).trans
+    BigSepL2.bigSepL2_pure_intro $$ Hb
+  ihave %Hl := entsBig_length $$ Hb
+  ipureintro
+  intro e he
+  obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem he
+  exact Hp k ls[k] es[k] (List.getElem?_eq_getElem (by omega)) (List.getElem?_eq_getElem hk)
 
 /-- (G20) A `Ready`'s entries decode back from the file (`EntWf`: a type of raft's, `EntryNormal`,
-`EntryConfChange` or `EntryConfChangeV2`, and data of a Go slice's length). -/
+`EntryConfChange` or `EntryConfChangeV2` (raft's `readyRest_ents_type`), and data of a Go slice's
+length (`entsRO`)). -/
 private theorem ready_ents_wf_G20 (γc : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg)
     (ss : Option (w64 × StateType)) :
     readyRest (GF := GF) γc N rd st ce es h L ms ss ⊢ readyRest γc N rd st ce es h L ms ss ∗
       ⌜∀ e ∈ es, EntWf e⌝ := by
-  sorry
-
-/-- (G21) A non-`nil` `SoftState` pointer (raft's `softStateIs` of a soft state). -/
-private theorem softState_ne_null_G21 (p : Loc) (x : w64 × StateType) :
-    softStateIs (GF := GF) p (some x) ⊢ ⌜p ≠ null⌝ := by
-  sorry
+  iintro H
+  icases readyRest_ents_type γc N rd st ce es h L ms ss $$ H with ⟨H, %Hty⟩
+  ihave #Hes : entsRO rd.Entries' es $$ [H]
+  · iunfold readyRest at H
+    icases H with ⟨#Hes, -⟩
+    iexact Hes
+  ihave %Hd := entsRO_data_len _ _ $$ Hes
+  iframe H
+  ipureintro
+  intro e he
+  exact ⟨Hty e he, Hd e he⟩
 
 /-- The applier's view at `i` from the node's configuration at `i` (nothing to skip). -/
 private theorem appNode_at (γr : KdNames) (n : Loc) (L : List LogEntry) (i : Nat) (m : Membership) :
@@ -295,21 +260,21 @@ theorem Replica.run.wp_proof
     iunfold readyGot at Hgot
     icases Hgot with ⟨%ce, %es, %h, %L, %ms, %ss, #Hce, #Hcomm, Hrs, Hrest, Hlm, Henter⟩
     ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ $$ Hrest
-    ihave ⟨Hrest, %G4⟩ := ready_commit_mono_G4 _ _ _ _ _ _ _ _ _ _ $$ Hrest
-    ihave ⟨Hrest, %G8⟩ := ready_commit_le_last_G8 _ _ _ _ _ _ _ _ _ _ $$ Hrest
+    ihave ⟨Hrest, %G4⟩ := readyRest_commit_mono _ _ _ _ _ _ _ _ _ _ $$ Hrest
+    ihave ⟨Hrest, %G8⟩ := readyRest_commit_le_last _ _ _ _ _ _ _ _ _ _ $$ Hrest
     ihave ⟨Hrest, %G20⟩ := ready_ents_wf_G20 _ _ _ _ _ _ _ _ _ _ $$ Hrest
     simp only at Hidx G4 G8 G20
     try wp_auto
     cases L with
     | none =>
-      ihave ⟨Hrest, %G9⟩ := ready_ents_start_G9 _ _ _ _ _ _ _ _ _ $$ Hrest
-      ihave ⟨Hrest, %G10⟩ := ready_delivered_le_commit_G10 _ _ _ _ _ _ _ _ _ $$ Hrest
-      ihave ⟨Hrest, %G14⟩ := ready_durable_has_delivered_G14 _ _ _ _ _ _ _ _ _ $$ Hrest
-      ihave ⟨Hrest, %G17⟩ := ready_ents_above_commit_G17 _ _ _ _ _ _ _ _ _ $$ Hrest
+      ihave ⟨Hrest, %G9⟩ := readyRest_ents_start _ _ _ _ _ _ _ _ _ $$ Hrest
+      ihave ⟨Hrest, %G10⟩ := readyRest_delivered_le_commit _ _ _ _ _ _ _ _ _ $$ Hrest
+      ihave ⟨Hrest, %G14⟩ := readyRest_durable_has_delivered _ _ _ _ _ _ _ _ _ $$ Hrest
+      ihave ⟨Hrest, %G17⟩ := readyRest_ents_above_commit _ _ _ _ _ _ _ _ _ $$ Hrest
       ihave ⟨%Hin, Hrest⟩ := readyRest_ceInBatch _ _ _ _ _ _ _ _ $$ Hrest
       simp only at G9 G10 G14 G17 Hin
       iunfold readyRest at Hrest
-      icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap⟩
+      icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
       iunfold readySnap at Hsnap
       icases Hsnap with ⟨%Hnull, Happ, #Hcef, -⟩
       ihave %Hesl := entsPts_len _ _ _ $$ Hes
@@ -338,9 +303,9 @@ theorem Replica.run.wp_proof
           simp only [roleAfter, Option.map_none, Option.getD_none]; exact Hsi.1 hl
         | some x =>
           obtain ⟨ld, rs⟩ := x
-          ihave %Hnn := softState_ne_null_G21 _ _ $$ Hss
+          ihave %Hnn := softStateIs_ne_null _ _ $$ Hss
           iunfold softStateIs at Hss
-          icases Hss with ⟨#Hld, #Hrs⟩
+          icases Hss with ⟨-, #Hld, #Hrs⟩
           try wp_auto
           wp_if_destruct
           · exfalso; exact Hnn Hif
@@ -1073,10 +1038,10 @@ theorem Replica.run.wp_proof
           · rw [h']; omega
           · left; rw [h']; word
     | some lo =>
-      ihave ⟨Hrest, %G7⟩ := ready_snap_G7 _ _ _ _ _ _ _ _ _ _ $$ Hrest
+      ihave ⟨Hrest, %G7⟩ := readyRest_snap _ _ _ _ _ _ _ _ _ _ $$ Hrest
       simp only at G7
       iunfold readyRest at Hrest
-      icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap⟩
+      icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
       iunfold readySnap at Hsnap
       icases Hsnap with ⟨%Hl, Hss4, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HclS⟩
       obtain ⟨Hdlv, Hptr, Hce0, Hpre, Hlt, Hdlen, Hpos, H61, -, Hli⟩ := Hl
@@ -1107,9 +1072,9 @@ theorem Replica.run.wp_proof
           simp only [roleAfter, Option.map_none, Option.getD_none]; exact Hsi.1 hl
         | some x =>
           obtain ⟨ld, rs⟩ := x
-          ihave %Hnn := softState_ne_null_G21 _ _ $$ Hss
+          ihave %Hnn := softStateIs_ne_null _ _ $$ Hss
           iunfold softStateIs at Hss
-          icases Hss with ⟨#Hld, #Hrs⟩
+          icases Hss with ⟨-, #Hld, #Hrs⟩
           try wp_auto
           wp_if_destruct
           · exfalso; exact Hnn Hif
@@ -1210,7 +1175,7 @@ theorem Replica.run.wp_proof
           iframe Hgiven Hsv HclS
         unfold snapArg
         iright; iexact Hs2
-      simp only [img_snap_fresh M S lo.snap HSM G7.1, ↓reduceIte]
+      simp only [img_snap_fresh M S lo.snap HSM (by rw [Hcmeq]; exact G7.1), ↓reduceIte]
       icases Hres with ⟨-, Himage⟩
       -- the hard state (if any): the image's set to the driver's next one (`phsNext`)
       wp_join iprop(∃ hsp' : Loc, memStorMeta ρ.ms ρ.γs (phsNext hd h) ∗
@@ -1293,7 +1258,9 @@ theorem Replica.run.wp_proof
           (phsNext hd h)) (uint.nat lo.snap.Metadata'.Index' + 1) es).hs.Commit' := by
         rw [imgAppend_hs]; simp only [imgSetHardState]; rw [Hcmeq]; exact G4
       have Hfzi : fz ≤ uint.nat lo.snap.Metadata'.Index' := by
-        have := G7.1; rcases Hfzc with h' | h' <;> omega
+        have h7 : uint.nat M.hs.Commit' < uint.nat lo.snap.Metadata'.Index' := by
+          rw [Hcmeq]; exact G7.1
+        rcases Hfzc with h' | h' <;> omega
       have Hfzc3 : uint.nat lo.snap.Metadata'.Index' ≤ uint.nat (imgAppend (imgSetHardState
             (imgApplySnapshot M lo.snap) (phsNext hd h)) (uint.nat lo.snap.Metadata'.Index' + 1) es).hs.Commit' ∨
           uint.nat lo.snap.Metadata'.Index' ≤ uint.nat (imgAppend (imgSetHardState
@@ -1305,7 +1272,10 @@ theorem Replica.run.wp_proof
         rw [imgAppend_snap]; simp only [imgSetHardState, imgApplySnapshot]
         by_cases h0 : M.snap.Metadata'.Index' = W64 0
         · rw [h0]; simp
-        · have := holds_snap_commit S M HSM h0; have := G7.1; omega
+        · have := holds_snap_commit S M HSM h0
+          have h7 : uint.nat M.hs.Commit' < uint.nat lo.snap.Metadata'.Index' := by
+            rw [Hcmeq]; exact G7.1
+          omega
       ihave #Hfz3' : memLog ρ.γs (uint.nat (imgAppend (imgSetHardState (imgApplySnapshot M lo.snap)
             (phsNext hd h)) (uint.nat lo.snap.Metadata'.Index' + 1) es).prev + 1) DFrac.discard
           ((imgAppend (imgSetHardState (imgApplySnapshot M lo.snap) (phsNext hd h))

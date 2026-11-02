@@ -2,19 +2,17 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvdurable/Cluster__start.lean`. Lean-first
 (no Rocq counterpart).
 
-The file's durable state is borrowed first (`kdFile_lend`: the writer's half pins it; `RestartNode`'s
-update has no step to take the invariant's later off). The storage: `newStorage` always, then the
-file read (`durable.Read`, the entry in hand) and, if there is one, `openStorage` of its bytes;
+The storage: `newStorage` always, then the file read (`durable.Read`, inside the file's invariant,
+whose contents the writer's half pins) and, if there is one, `openStorage` of its bytes;
 both give the storage of the contents `F = kdImgOf o` (`imgEmpty` for no file) detached, its log
 split at the stored snapshot's index (frozen below, owned above). `MemoryStorage.Snapshot`, detached,
 returns the stored snapshot (`kdFreshSnap F`); its index `si` is `F`'s snapshot's. The replicated
 state: the snapshot's (`decodeState` of its data, its conf state; the certificate's committed prefix
 `L` of length `si`), or the empty state at the bootstrap configuration at index `0`. `FirstIndex` is
 `F.prev + 1` (detached: compacted at most there). `Applied`: `0`, or `F.prev + below(si - F.prev + 1)`.
-`RestartNode` (with S1b, `restart_delivered_stored_S1b`) on the storage's `restartStorage` (from
-`kd_restartStorage`, through the bridge `restartStorage_frozen_prefix`), its update fired at once over
-the borrowed state (`kd_restartAu`); then the borrowed state goes back (`kdFile_return`), and
-`newReplica` gets the node, the storage attached at the driver's key, the frozen prefix up to the
+`RestartNode` on the storage's `restartStorage` (from `kd_restartStorage`, frozen at the stored
+snapshot's index), its update fired at once over the file invariant's durable state
+(`kd_restartAu`, the invariant opened inside it), and `newReplica` gets the node, the storage attached at the driver's key, the frozen prefix up to the
 delivered log (`memLog_take_le`, S1b for `frozenTo`), the replicated state and the transport.
 -/
 module
@@ -146,18 +144,47 @@ theorem Cluster.start.wp_proof
   have Hvnd : vs.Nodup := by rw [Ho.2]; exact kvreconf.bootVoters_nodup _ (by have := Ho.1.2.1; word)
   try wp_auto
   wp_apply (lc := 2) wp_fileOf γ vs dir c id $$ [$Hc]
-  -- the file's durable state borrowed
-  imod kdFile_lend γ dir id S fo ⊤ (fun _ _ => CoPset.mem_full) $$ HfInv Hwr Hlc1
-    with ⟨%o', %Hval, HrS, Hdf, %Hfacts, #Hcert⟩
-  obtain ⟨HSHo, Hoko⟩ := Hfacts
   try wp_auto
   wp_apply wp_newStorage bp $$ [$Hpkg] as %s0 ⟨%ms0, %ip0, %γs0, HmsF0, #Hsb0, #Himg0, Himage0,
     #Hl0, #Hd00, Hend0, Hsn0, Hmeta0, Hfresh0⟩
   try wp_auto
   wp_bind (App (Val (@! github_com.mit_pdos.etcd_grove.examples.durable.Read)) _)
-  iapply github_com.mit_pdos.etcd_grove.examples.durable.Read.wp_file wp_Read γ.files kdFilesN
-    _ _ _ $$ Hfiles Hdf
+  iapply github_com.mit_pdos.etcd_grove.examples.durable.Read.wp_file_au wp_Read γ.files kdFilesN
+    _ _ $$ Hfiles
+  -- the file read inside its invariant (the writer's half pins it): its contents `o'`, their facts
+  -- and the stored snapshot's certificate
+  ihave #HfInv' := HfInv
+  iunfold kdFileInv at HfInv'
+  iinv HfInv' with HI Hclose
+  · exact kdRepN_files id
+  imod lc_fupd_elim_later $$ Hlc1 HI with HI
+  icases HI with ⟨%S0, %o', ⟨HrS, Hdf⟩, Hwv, %Hfacts, HcF⟩
+  ihave %Hag := ghostVar_agree (γ.wr id) _ _ _ _ $$ [Hwr] Hwv
+  · unfold kdWriter; iexact Hwr
+  obtain ⟨h1, Hvalo⟩ := Prod.mk.inj Hag
+  subst h1
+  obtain ⟨HSHo, Hoko⟩ := Hfacts
+  ihave #Hcert : kdSnapCert γ (kdImgOf o').snap $$ [HcF]
+  · cases o' with
+    | none =>
+      unfold kdImgOf kdSnapCert
+      ileft; ipureintro; rfl
+    | some f =>
+      unfold kdImgOf
+      simp only [Option.getD_some]
+      iapply HcF $$ %f %rfl
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iexists kdFileVal o'
+  iframe Hdf
   iintro Hdf
+  imod Hmask with -
+  imod Hclose $$ [HrS Hdf Hwv HcF] with -
+  · inext
+    iexists S, o'
+    iframe HrS Hdf Hwv HcF
+    ipureintro; exact ⟨HSHo, Hoko⟩
+  imodintro
   simp only [durableReadVal]
   try wp_auto
   ihave #Hsb0' : kdStorBoot s0 bp (kvreconf.bootCS vs) $$ []
@@ -403,21 +430,20 @@ theorem Cluster.start.wp_proof
   obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp⟩ := Hcfg
   ihave Hrs := kd_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
     wp_Entries s ms bp γs F (kvreconf.bootCS vs) e0 γ.r.cluster (uint.nat ap0)
-    (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K))) HFok He0 Hsc
+    (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K))) HFok He0
+    (by word) Hsc
     $$ Hpkg Hrec Hsb Hl Hfresh Hmeta Hd0 Hfro Hents Hend Hcmp Hval []
   · iintro %K Hm Hi; iframe Hm Hi
-  ihave Hrs := restartStorage_frozen_prefix γ.r.cluster _ _ _ _ _ _
-    (by simp only [kdContents_some_b]; word) (by simp only [kdContents_some_commit]; exact Hsc) $$ Hrs
-  ihave Hau := kd_restartAu (GF := GF) γ.r.cluster kdRaftN id (kdContents (some F)) S HFSH $$ HrS
+  ihave Hau := kd_restartAu (GF := GF) γ dir id (kdContents (some F)) S fo HFSH $$ [$HfInv $Hwr]
   ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
   have Hiface : kdStorIface s =
       GoInterface.ok ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage.ty, #s⟩ :=
     rfl
   have HA : uint.nat cv.Applied' = uint.nat ap0 := by rw [HcAp]
-  wp_apply (restart_delivered_stored_S1b wp_RestartNode γ.r.cluster kdRaftN cp cv qLogger
+  wp_apply (wp_RestartNode γ.r.cluster kdRaftN cp cv qLogger
       ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage.ty, #s⟩
       (kdContents (some F)) (kdInitCS (kvreconf.bootCS vs) F) (uint.nat F.snap.Metadata'.Index') m
-      (fun S' => iprop(raftState γ.r.cluster id S' ∗ ⌜S' = S⌝))
+      (fun S' => iprop(kdWriter γ id S fo ∗ ⌜S' = S⌝))
       (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K)))
       HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS
       (by rw [HA]; simp only [kdContents_some_b, kdContents_some_commit]
@@ -431,7 +457,7 @@ theorem Cluster.start.wp_proof
       (by simp only [kdContents_some_commit]; exact Hsc)
       (by rw [Hbl0]; omega) Hinit)
     $$ [$Hraft $Hcv $Hlogger $HisC Hvac Hau Hrs]
-    as %nd ⟨%n, %S', %l, %K, %Hnd, #HisNode, #Hl', %Hllen, %HS1b, Hdrv, Hncfg, Hrun, ⟨HrS, %HS'⟩,
+    as %nd ⟨%n, %S', %l, %K, %Hnd, #HisNode, #Hl', %Hllen, %HS1b, Hdrv, Hncfg, Hrun, ⟨Hwr, %HS'⟩,
       ⟨Hmeta, #HmsInv⟩⟩
   · rw [HcID, ← Hiface, HA]
     iframe Hvac Hrs
@@ -441,10 +467,9 @@ theorem Cluster.start.wp_proof
   subst Hnd HS'
   try wp_auto
   wp_apply wp_tick γ vs dir c $$ [$Hc] as %tk %Htk
-  -- the borrowed durable state back: the writer's half for the new incarnation
-  imod kdFile_return γ dir id S' o' ⊤ (fun _ _ => CoPset.mem_full) HSHo Hoko $$ HfInv HrS Hdf [] Hlc2
-    with Hwr
-  · rw [HF]; iexact Hcert
+  -- the writer's half for the new incarnation, at the contents `o'` the file holds
+  ihave Hwr : kdWriter γ id S' o' $$ [Hwr]
+  · unfold kdWriter; rw [← Hvalo]; iexact Hwr
   try wp_auto
   wp_apply wp_sender γ vs dir c id $$ [$Hc $Hknown] as %fs #Hf
   try wp_auto

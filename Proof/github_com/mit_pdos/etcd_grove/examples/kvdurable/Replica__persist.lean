@@ -38,10 +38,6 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
-/-- The replica's file's namespace is not the files'. -/
-theorem kdRepN_files (id : w64) : (↑(kdRepN .@ uint.nat id) : CoPset) ⊆ ⊤ \ ↑kdFilesN :=
-  nclose_subseteq' _ (mask_ndot_ne' nroot "kvdurable_rep" "kvdurable_files" (by decide))
-
 /-- raft's namespace is open inside the file's update. -/
 theorem kdRaftN_sub (id : w64) :
     (↑kdRaftN : CoPset) ⊆ (⊤ \ ↑kdFilesN) \ ↑(kdRepN .@ uint.nat id) := by
@@ -143,11 +139,7 @@ theorem Replica.persist.wp_proof
     · exact kdRepN_files id
     imod lc_fupd_elim_later $$ Hlc1 HI with HI
     icases HI with ⟨%S0, %o0, HD, Hwv, %HSH, HcF⟩
-    icases HD with (⟨HrS, Hdf⟩ | Hlent)
-    rotate_left
-    · iexfalso
-      iapply kdWriter_lent_absurd γ id _ _ _ _
-      iframe Hwr Hwv Hlent
+    icases HD with ⟨HrS, Hdf⟩
     iunfold kdWriter at Hwr
     ihave %Hag := ghostVar_agree (γ.wr id) _ _ _ _ $$ Hwr Hwv
     obtain ⟨rfl, -⟩ := Prod.mk.inj Hag
@@ -164,7 +156,7 @@ theorem Replica.persist.wp_proof
       iexists S', some M
       simp only [kdFileVal, Option.map_some]
       isplitl [HrS Hdf]
-      · ileft; iframe HrS Hdf
+      · iframe HrS Hdf
       iframe Hwv
       isplitl []
       · ipureintro; exact ⟨HSM, fun f hf => by cases hf; exact HMok⟩
@@ -307,11 +299,7 @@ theorem Replica.persist.wp_proofRun
     · exact kdRepN_files id
     imod lc_fupd_elim_later $$ Hlc1 HI with HI
     icases HI with ⟨%S0, %o0, HD, Hwv, %HSH, HcF⟩
-    icases HD with (⟨HrS, Hdf⟩ | Hlent)
-    rotate_left
-    · iexfalso
-      iapply kdWriter_lent_absurd γ id _ _ _ _
-      iframe Hwr Hwv Hlent
+    icases HD with ⟨HrS, Hdf⟩
     iunfold kdWriter at Hwr
     ihave %Hag := ghostVar_agree (γ.wr id) _ _ _ _ $$ Hwr Hwv
     obtain ⟨rfl, -⟩ := Prod.mk.inj Hag
@@ -330,7 +318,7 @@ theorem Replica.persist.wp_proofRun
       iexists st'.durable, some M
       simp only [kdFileVal, Option.map_some]
       isplitl [HrS Hdf]
-      · ileft; iframe HrS Hdf
+      · iframe HrS Hdf
       iframe Hwv
       isplitl []
       · ipureintro; exact ⟨HSM, fun f hf => by cases hf; exact HMok⟩

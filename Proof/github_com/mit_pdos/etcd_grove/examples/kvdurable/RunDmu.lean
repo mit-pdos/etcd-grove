@@ -219,11 +219,7 @@ theorem dmu_close_enter (γ : KdNames) (dir : GoString) (id : w64) (r n st ms : 
   iinv HfInv with HI Hclose
   imod lc_fupd_elim_later $$ Hlc HI with HI
   icases HI with ⟨%S0, %o0, HD, Hwv, %HSH, HcF⟩
-  icases HD with (⟨HrS, Hdf⟩ | Hlent)
-  rotate_left
-  · iexfalso
-    iapply kdWriter_lent_absurd γ id _ _ _ _
-    iframe Hwr Hwv Hlent
+  icases HD with ⟨HrS, Hdf⟩
   iunfold kdWriter at Hwr
   ihave %Hag := ghostVar_agree (γ.wr id) _ _ _ _ $$ Hwr Hwv
   obtain ⟨h1, h2⟩ := Prod.mk.inj Hag
@@ -239,7 +235,7 @@ theorem dmu_close_enter (γ : KdNames) (dir : GoString) (id : w64) (r n st ms : 
     iexists stI'.durable, o0
     rw [h2]
     isplitl [HrS Hdf]
-    · ileft; iframe HrS Hdf
+    · iframe HrS Hdf
     iframe Hwv HcF
     ipureintro
     refine ⟨Hfile _ HSH.1 ?_, HSH.2⟩

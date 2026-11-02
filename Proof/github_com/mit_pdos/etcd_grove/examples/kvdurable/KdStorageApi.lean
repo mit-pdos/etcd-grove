@@ -19,7 +19,8 @@ kvreconf's `KvrStorageApi.lean` at kvdurable's wrapper (`KdStorage.lean`'s vocab
   (or `newStorage`) gives, detached: the frame `R` holds the detached token, the hard state's
   metadata and the log; `InitialState`'s continuation, at the key `K` raft names the storage by,
   allocates the storage's invariant `memStorInvP ms γs (kdJ γ K)` (`memStorInvP_alloc`, from raft's
-  bounds at the attach and the stored snapshot's validity), builds the contract and gives the log,
+  bounds at the attach and the stored snapshot's validity), builds the contract and gives the log
+  (frozen up to the stored snapshot's index, `restartStorage`'s freeze point),
   and the client's frame `F K` from the metadata and the invariant.
 -/
 module
@@ -251,40 +252,6 @@ theorem kdStorage_isStorage
   iframe H
   ipureintro; exact Hb
 
-/-- (2026-11-01, round 5; to be deleted when raft's `restartStorage` takes a freeze point) **The
-storage `st` holds `σ`, frozen up to `fz`**: `storHolds` with the entries in `(σ.b, fz]` given frozen
-and only those above `fz` owned (the form raft's `storHolds` is getting). -/
-def storHoldsF (st : Storage) (σ : StorContents) (fz : Nat) : IProp GF :=
-  iprop(∃ e0 : EntryM, ⌜e0.Term' = σ.base.term'⌝ ∗ storCompacted st σ.b ∗
-    storLog st σ.b DFrac.discard [e0] ∗ storLog st (σ.b + 1) DFrac.discard (σ.ents.take (fz - σ.b)) ∗
-    storLog st (fz + 1) (DFrac.own 1) (σ.ents.drop (fz - σ.b)) ∗ storEnd st (σ.last + 1))
-
-/-- (2026-11-01, round 5; to be deleted with `storHoldsF`) **`restartStorage` with the freeze point
-`fz`**: raft's `restartStorage` with `storHoldsF … fz` in place of `storHolds` (the form it is
-getting: `σ.b ≤ fz ≤ σ.commit`). -/
-def restartStorageF (γ : Cluster) (st : Storage) (σ : StorContents) (csm : ConfStateM) (A : Nat)
-    (fz : Nat) (F : GName → IProp GF) : IProp GF :=
-  iprop(∃ (i : GoInterfaceOk) (R : IProp GF), ⌜st = interface.ok i⌝ ∗ R ∗
-    ({{ R }} (App (Val #(methods i.ty go!"FirstIndex" i.v)) (Val #()))
-       {{ RET (PairV #(W64 (σ.b + 1)) #interface.nil); R }}) ∗
-    ({{ R }} (App (Val #(methods i.ty go!"LastIndex" i.v)) (Val #()))
-       {{ RET (PairV #(W64 σ.last) #interface.nil); R }}) ∗
-    ({{ R }} (App (Val #(methods i.ty go!"InitialState" i.v)) (Val #()))
-       {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
-          hsOpt hp σ.hs ∗ csPts cs DFrac.discard csm al ∗
-          ∀ K : GName, nodeAppliedLb γ K (max σ.b A) -∗ nodeCommitLb γ K σ.commit -∗
-            |={⊤}=> isStorage γ K st ∗ storHoldsF st σ fz ∗ F K }}))
-
-/-- **The bridge to raft's `restartStorage` with a freeze point** (2026-11-01, round 5): the new form
-(`restartStorageF`, entries up to `fz` given frozen) stated in terms of the current one. Not true of
-today's `restartStorage` (whose `storHolds` takes every entry owned); raft's change makes
-`RestartNode` take `restartStorageF`, and the merge deletes this lemma. -/
-theorem restartStorage_frozen_prefix (γ : Cluster) (st : Storage) (σ : StorContents)
-    (csm : ConfStateM) (A fz : Nat) (F : GName → IProp GF) :
-    σ.b ≤ fz → fz ≤ σ.commit →
-    restartStorageF γ st σ csm A fz F ⊢ restartStorage γ st σ csm A F := by
-  sorry
-
 /-- The stored snapshot `openStorage` gives `memStorFresh` at: the file's, or the empty one at
 index `0`. -/
 def kdFreshSnap (f : StorFile) : SnapshotM :=
@@ -335,6 +302,7 @@ theorem kd_restartStorage
     (s ms bp : Loc) (γs : MemStorNames) (f : StorFile) (boot : ConfStateM) (e0 : EntryM)
     (γ : Cluster) (A : Nat) (F : GName → IProp GF)
     (Hok : KdFileOk f) (He0 : e0.Term' = f.prevTerm)
+    (Hbf : uint.nat f.prev ≤ uint.nat f.snap.Metadata'.Index')
     (Hsc : uint.nat f.snap.Metadata'.Index' ≤ uint.nat f.hs.Commit') :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvdurable -∗
       kdStorRec s ms γs -∗ kdStorBoot s bp boot -∗
@@ -349,8 +317,7 @@ theorem kd_restartStorage
       memCompacted γs (uint.nat f.prev) -∗
       (⌜f.snap.Metadata'.Index' = W64 0⌝ ∨ snapshotValid γ f.snap) -∗
       (∀ K : GName, memStorMeta ms γs f.hs -∗ memStorInvP ms γs (kdJ γ K) -∗ F K) -∗
-      restartStorageF γ (kdStorIface s) (kdContents (some f)) (kdInitCS boot f) A
-        (uint.nat f.snap.Metadata'.Index') F := by
+      restartStorage γ (kdStorIface s) (kdContents (some f)) (kdInitCS boot f) A F := by
   iintro #Hpkg #Hrec #Hboot #Hl Hfresh Hmeta #He0 #Hfro Hents Hend #Hc Hval HF
   obtain ⟨-, Hp61, Hlen, -, -, -, -, -⟩ := Hok
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
@@ -358,7 +325,7 @@ theorem kd_restartStorage
   ihave #Hrec' := Hrec
   iunfold kdStorRec at Hrec'
   icases Hrec' with ⟨#Hf, -⟩
-  unfold restartStorageF storHoldsF
+  unfold restartStorage storHolds
   simp only [kdContents_some_hs, kdContents_some_b, kdContents_some_ents, kdContents_some_last,
     kdContents_some_commit, kdContents_some_base_term]
   iexists (interface.mk (go.GoType.PointerType kStorageTy) #s)
@@ -368,8 +335,12 @@ theorem kd_restartStorage
     memEnd γs (uint.nat f.prev + f.ents.length + 1) ∗
     (⌜f.snap.Metadata'.Index' = W64 0⌝ ∨ snapshotValid γ f.snap) ∗
     (∀ K : GName, memStorMeta ms γs f.hs -∗ memStorInvP ms γs (kdJ γ K) -∗ F K))
+  -- the freeze point: the stored snapshot's index
+  iexists uint.nat f.snap.Metadata'.Index'
   isplitr
   · ipureintro; rfl
+  isplitr
+  · ipureintro; exact ⟨Hbf, Hsc⟩
   isplitl [Hfresh Hmeta Hents Hend Hval HF]
   · iframe
   isplitr
