@@ -198,7 +198,39 @@ theorem checkSingle.wp_proof
     icases Hres with (⟨%Hok, Hs, #Hb⟩ | ⟨%Hok, %y, %q, %t', %fr', Hs, #Hnsv, %Hst', #Hb'⟩)
     · -- not lifted
       subst Hok
-      sorry
+      wp_auto
+      iunfold searchOwn at Hs
+      icases Hs with ⟨%st1, %ssl1, %ses1, %lsl1, %ws1, Hch, %Hci1, Hstk, Hstack, Hscap, #Hses, Hlinp, Hlin,
+        %Hws1', Hcache⟩
+      simp only [named]
+      ihave %Hsesl := stackRep_length S np cs ses1 fs $$ Hses
+      ihave %Hssl := ownSlice_len $$ Hstack
+      wp_auto
+      wp_if_destruct
+      · -- the stack is empty: no linearization
+        have hfs : fs = [] := by
+          apply List.eq_nil_of_length_eq_zero
+          obtain ⟨h1, h2⟩ := Hssl; rw [← Hsesl, h1]; rw [snat_eq]; simp [Hif]
+        subst hfs
+        wp_apply wp_slice_literal
+        isplitr
+        · ipureintro; rfl
+        iintro %psl ⟨Hpsl, -⟩
+        wp_apply wp_Printf _ _ _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int pv) fmt.ArgsWf.nil)
+          $$ [Hpsl] as %n %e2 -
+        · iframe
+        wp_for_post
+        iapply HΦ
+        iframe
+        iright
+        isplitr
+        · ipureintro; rfl
+        icases Hb with (%Hb | #HPD)
+        · ileft; ipureintro
+          obtain ⟨y, hy, -⟩ := hinc
+          exact bad_fail hirr hdom Hst Hb ⟨y, hy⟩
+        · iright; iexact HPD
+      · sorry
     · -- lifted
       subst Hok
       sorry
