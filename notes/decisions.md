@@ -30141,3 +30141,27 @@ Found on the way (the user's question, 2026-11-02): porcupine's open PR #46 (a D
 github.com/anishathalye/porcupine/pull/46) breaks completeness when two overlapping operations
 share a `ClientId` (a linearizable register history it rejects), so the old spec would be false
 of it; soundness likely survives there. Not filed: the PR is unmerged and not what we verify.
+
+## The image certificate by the mode (#7-cmp) (2026-11-02 · Draft, awaiting the user · `notes/image-cmp-plan.md`)
+
+**2026-11-02 · proposed**
+
+The repair of SNAPSHOT-SORRY #7-cmp in place (the user's direction, "`merged_image` is false with
+compaction on", accepted 4). Drafted in `ImageCmpDraft.lean`:
+
+- `imageAt`'s key view becomes `∃ r, mvcc.keyImageM γk.cmp (kvModel γk A) r D ∧ r.crev = crevOf γk A`.
+  The `crevOf` conjunct ties the records to the model (the store's `compactMainRev` is the latest
+  compaction applied); without it the receiver's `hcc` (`x.crev ≤ r.crev`) has no ground. Off, at a
+  log with no compaction, today's (`imageAtD_off`).
+- `dbImage` carries the receipt `⧖ (logCh (kvModel γk A))` (B2's `dbImageR`, adopted in place: one
+  certificate, not `srvImage` and `srvImageR`).
+- No mode in `srvNet`/`SrvRaft`: `srvImage`'s existential KV names leave `cmp` free; a receiver moves
+  the image to its mode by `keyImageM_mode`, the mode off needing `crevOf = -1`, which the
+  receiver's own committed log gives (`crevOf_off`).
+- The compaction permits are not in the certificate: a permit names the receiver's KV ghost (`cret`,
+  revision lower bound), which the network's existential names cannot; the receiver derives them
+  from its store's `crevPermIs` and a law `CrevPermitLaw` (to prove from `cmpLogOk`).
+- Findings: `keyImageM`-on's `NoDelPutAt` is false of a legitimate image (a del-then-put revision
+  compacted at itself) and unused by `store.Restore`'s proof; the sender's mode-on observation needs
+  mvcc tracking of the records and the job's cut and a restated `backend.Snapshot` observation of hook
+  keys (an axiom check); `kvApplied`'s deferred `x.crev = crevOf γk A` becomes needed.
