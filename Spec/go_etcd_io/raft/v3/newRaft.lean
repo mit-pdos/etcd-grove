@@ -111,12 +111,18 @@ def committedAfter (prev : entryID) (hs : HardStateM) : w64 :=
 /-- (2026-11-01, durability stage I-6) **The storage names `sn` carry the attach record of a
 storage holding the log `prev :: ents`**, with the commit `c0` and the applied bound `a0` raft
 restores: what `restartStorage`'s continuation hands out (`nodeAppliedLb γ K a0`, `nodeCommitLb γ
-K c0`), recorded in the key (`storKeyNames`). Every recorded term is the log's at its index, from
-the base up to `c0`: so raft's view, once its commit reaches `c0`, certifies them (`storCaught`). -/
+K c0`), recorded in the key (`storKeyNames`). Every recorded term from the base up to `c0` is the
+log's at its index: so raft's view, once its commit reaches `c0`, certifies them (`storCaught`).
+(2026-11-02, stage II (p)) Every index from `1` up to `c0` is recorded, once: below the base too
+(raft certifies those terms, which its log does not hold, as the record's: the record's terms are
+the committed log's, `ctCommitted`). A restarted node hands out the committed log up to `a0` with
+the recorded terms (`dlvKeys`), and certified up to `c0` (`SdtTie`). (Until then only the indices
+from the base, of the view's terms.) -/
 def AttachRec (sn : StorNames) (prev : entryID) (ents : List EntryM) (c0 a0 : Nat) : Prop :=
   sn.a0 = a0 ∧ sn.c0 = c0 ∧
-  ∀ (i : Nat) (t : w64), (i, t) ∈ sn.ct → i ≤ c0 →
-    uint.nat prev.index' ≤ i ∧ termAt prev ents (W64 (i : Int)) = some t
+  (∀ (i : Nat) (t : w64), (i, t) ∈ sn.ct → i ≤ c0 →
+    1 ≤ i ∧ (uint.nat prev.index' ≤ i → termAt prev ents (W64 (i : Int)) = some t)) ∧
+  ∀ (i : Nat), 1 ≤ i → i ≤ c0 → ∃ t, (i, t) ∈ sn.ct ∧ ∀ t', (i, t') ∈ sn.ct → t' = t
 
 end defs
 

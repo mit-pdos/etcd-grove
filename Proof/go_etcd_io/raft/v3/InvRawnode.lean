@@ -968,30 +968,48 @@ def sdtLen (rs : RNState) : Nat :=
   | none => rs.delivered.length
 
 def SdtTie (rs : RNState) (s : NState) : Prop :=
-  s.logst.dtk = sdtLen rs
+  sdtLen rs ≤ s.logst.dtk ∧
+  -- (2026-11-02, stage II (p)) above the committed log handed out, only the attach record's terms
+  -- (`rawNodeAt`: a restarted node certified the stored committed log, up to the stored commit,
+  -- beyond the applied index it hands out from); `acceptReady` hands them out again
+  -- (`ownRaftLog_certify_gap`, the record's terms the committed log's: `ctCommitted`)
+  ∀ i, sdtLen rs < i → i ≤ s.logst.dtk → i ≤ rs.sn.c0 ∧ ∃ t, (i, t) ∈ rs.sn.ct
+
+/-- `SdtTie` at the exact height. -/
+theorem SdtTie.of_eq {rs : RNState} {s : NState} (h : s.logst.dtk = sdtLen rs) : SdtTie rs s :=
+  ⟨by omega, fun i h1 h2 => by omega⟩
 
 /-- `SdtTie` without a loan. -/
 theorem SdtTie.of_none {rs : RNState} {s : NState}
     (h : s.logst.dtk = rs.delivered.length) (hsl : rs.slent = none := by rfl) : SdtTie rs s := by
-  unfold SdtTie sdtLen; rw [hsl]; exact h
+  apply SdtTie.of_eq; unfold sdtLen; rw [hsl]; exact h
+
+/-- (2026-11-02, stage II (p)) `SdtTie` across a step that keeps the certified height, the height
+handed out (`sdtLen`) and the storage names. -/
+theorem SdtTie.of_sdtLen {rs rs' : RNState} {s s' : NState} (H : SdtTie rs s)
+    (hk : s'.logst.dtk = s.logst.dtk) (hl : sdtLen rs' = sdtLen rs)
+    (hsn : rs'.sn = rs.sn := by rfl) : SdtTie rs' s' := by
+  unfold SdtTie at H ⊢; rw [hk, hl, hsn]; exact H
 
 /-- `SdtTie` across a step that keeps the certified height, `delivered`'s length and the loan. -/
 theorem SdtTie.keep {rs rs' : RNState} {s s' : NState} (H : SdtTie rs s)
     (hk : s'.logst.dtk = s.logst.dtk)
     (hdl : rs'.delivered.length = rs.delivered.length)
-    (hsl : rs'.slent = rs.slent := by rfl) : SdtTie rs' s' := by
-  unfold SdtTie sdtLen at H ⊢; rw [hk, hsl]
-  cases h : rs.slent with
-  | none => rw [h] at H; rw [hdl]; exact H
-  | some l => rw [h] at H; exact H
+    (hsl : rs'.slent = rs.slent := by rfl) (hsn : rs'.sn = rs.sn := by rfl) : SdtTie rs' s' := by
+  apply SdtTie.of_sdtLen H hk _ hsn
+  unfold sdtLen; rw [hsl]
+  cases rs.slent with
+  | none => exact hdl
+  | some l => rfl
 
 /-- `SdtTie` across a frame step (`NetFrame`, `LocalFrame`: the record kept, `delivered`
 unchanged). -/
 theorem SdtTie.ofRec {rs rs' : RNState} {s s' : NState} (H : SdtTie rs s)
     (_hsn : s'.logst.snap = s.logst.snap) (hr : logStoreRec s'.logst = logStoreRec s.logst)
-    (hdl : rs'.delivered = rs.delivered := by rfl) (hsl : rs'.slent = rs.slent := by rfl) :
+    (hdl : rs'.delivered = rs.delivered := by rfl) (hsl : rs'.slent = rs.slent := by rfl)
+    (hsn : rs'.sn = rs.sn := by rfl) :
     SdtTie rs' s' :=
-  SdtTie.keep H (logStoreRec_dtk hr) (by rw [hdl]) hsl
+  SdtTie.keep H (logStoreRec_dtk hr) (by rw [hdl]) hsl hsn
 
 /-- `SdtTie` across a `MsgSnap`'s step (`SnapLogStep`: the certified height kept). -/
 theorem SdtTie.snap {rs rs' : RNState} {s s' : NState} {sv : SnapshotM} {m : MessageM}
@@ -999,9 +1017,9 @@ theorem SdtTie.snap {rs rs' : RNState} {s s' : NState} {sv : SnapshotM} {m : Mes
     (_Hdag : ∀ k t, (logTermsTo s.logst)[k]? = some t →
       (rs.delivered.map (·.Term'))[uint.nat s.logst.prev.index' + k]? = some t)
     (Hsl : SnapLogStep sv m s s') (hdl : rs'.delivered = rs.delivered := by rfl)
-    (hsl : rs'.slent = rs.slent := by rfl) :
+    (hsl : rs'.slent = rs.slent := by rfl) (hsn : rs'.sn = rs.sn := by rfl) :
     SdtTie rs' s' := by
-  apply SdtTie.keep H _ (by rw [hdl]) hsl
+  apply SdtTie.keep H _ (by rw [hdl]) hsl hsn
   rcases Hsl with h | h
   · exact h.2.2.2.2.2.2
   · exact h.2.2.2.2.2.2.2.2

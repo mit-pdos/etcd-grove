@@ -2343,7 +2343,10 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
     (S' : RaftState) (W : DurMaps)
     (Hnok : NodeOk γ γn) (HU : UniNames γ N) (HNs : γ.raft.reNs = N .@ "raft")
     (Hγs : γn.stor = st'.storage) (Hds : strip ds' = st'.delivered) (Hdyn : γn.mode.isDyn = true)
-    (Hh : st'.handling = some (es, L)) (HS : st'.durable = S') :
+    (Hh : st'.handling = some (es, L)) (HS : st'.durable = S')
+    -- (2026-11-02, stage II (p)) the batch moves `wcommit` to its commit or writes nothing
+    (HwS : S'.wcommit = S'.commit ∨
+      (S'.wcommit = st.durable.wcommit ∧ S'.base = st.durable.base ∧ S'.ents = st.durable.ents)) :
     ⊢ clusterInv (GF := GF) γ N -∗ rdPool γ N -∗ isCommittedLogLb γ st'.delivered -∗
       nodeTabOk γ n γn -∗ storKeyNames st'.key γn.sn -∗ EtcdGrove.isNodeChan γn γn.id n -∗
       nodeDriverBusy γn γn.id n ds' es st'.hardState L -∗
@@ -2384,7 +2387,7 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
     exact HE p (nclose_subseteq N "raft" p hp)
   ihave Hpend : pendBatch γ.raft γn.id γn.gen S' W $$ [Hpend]
   · rw [← Hnok.1]; iexact Hpend
-  imod raft_enter E γ.raft γn.id st.durable q.half γn.gen S' W HrE $$ Hdg Hsl Hpend
+  imod raft_enter E γ.raft γn.id st.durable q.half γn.gen S' W HrE HwS $$ Hdg Hsl Hpend
     with ⟨Hdg, Hsl, Hfree, #Hfr⟩
   ihave #HtS' : termLB γ.bud S'.term $$ []
   · rw [← Hnok.2.1]; iexact HtS'0
@@ -2515,7 +2518,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     · rw [← Hds, ← strip_append]; iexact Hlb
     ihave Henter := api_enter n γ N γn st (st.afterReady (strip ce) es h none ss) (ds ++ ce) es none
       ms S' W Hnok HU HNs Hγs (by rw [strip_append, Hds]; rfl) Hdyn rfl
-      (by rw [HS', Hp']; rfl) $$ Hci Hpool [] Htab [] Hnode [Hbusy] [] Hdur Hdx [Hbw] Hpend HtS' Hmw Htl
+      (by rw [HS', Hp']; rfl) (by rw [HS']; exact RaftState.next_wcommit _ _ _ _ _ _) $$ Hci Hpool [] Htab [] Hnode [Hbusy] [] Hdur Hdx [Hbw] Hpend HtS' Hmw Htl
     · iExactEq Hlb'; rfl
     · iExactEq Hkey; rfl
     · rw [show (st.afterReady (strip ce) es h none ss).hardState = p' from Hp'.symm,
@@ -2611,7 +2614,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
       iframe Hkey Hdlb Hlbd
     ihave Henter := api_enter n γ N γn st (st.afterReady [] es h (some l) ss) l.dlv es (some l)
       ms S' W Hnok HU HNs Hγs rfl Hdyn rfl
-      (by rw [HS', Hp']; rfl) $$ Hci Hpool [] Htab [] Hnode [Hbusy] [] Hdur Hdx [Hbw] Hpend HtS' Hmw Htl
+      (by rw [HS', Hp']; rfl) (by rw [HS']; exact RaftState.next_wcommit _ _ _ _ _ _) $$ Hci Hpool [] Htab [] Hnode [Hbusy] [] Hdur Hdx [Hbw] Hpend HtS' Hmw Htl
     · iExactEq Hlbd; rfl
     · iExactEq Hkey; rfl
     · rw [show (st.afterReady [] es h (some l) ss).hardState = p' from Hp'.symm]

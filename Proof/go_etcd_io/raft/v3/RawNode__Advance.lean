@@ -548,6 +548,7 @@ private theorem wp_step_snapack
   icases Hrest with ⟨%Hnlk, Hrm, #Hlink, #Hlw, #Hxw⟩
   ihave #Hok' := Hlink
   iunfold certLink at Hok'
+  icases Hok' with ⟨#Hok', -⟩
   iunfold storCertOk at Hok'
   -- (U8 v2) the log's storage names are the ghost state's (`GhLogOk`)
   ihave #Hsc' : ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) $$ []
@@ -1572,11 +1573,8 @@ theorem RawNode.Advance.wp_proof
           (by show uint.Z rs.clb ≤ _
               have := Hs0f.2.2.2.2.2.2.2.1; rw [this] at Hc1; exact Int.le_trans Hrs_clb Hc1)
           HrnflA HloanA
-          (by
-            unfold SdtTie sdtLen
-            show s1.logst.dtk = l.dlv.length
-            rw [logStoreRec_dtk Hs1.2.2.1, Hs0dtk]
-            have H := Hsdt; unfold SdtTie sdtLen at H; rw [hsl] at H; exact H)
+          (SdtTie.of_sdtLen Hsdt (by rw [logStoreRec_dtk Hs1.2.2.1, Hs0dtk])
+            (by unfold sdtLen; rw [hsl]))
           Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdl Hstr1 [] Hsloc' [Hdur]
         · iapply lentPend_none rfl; iapply pendList_nil
         · iapply loanCom_none γ rfl

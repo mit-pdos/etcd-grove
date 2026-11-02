@@ -365,6 +365,73 @@ theorem cut_durPers (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (
   iframe Hinv Hai
   rw [Hc, ← HF]; iunfold cprefix at Hcmt; iexact Hcmt
 
+/-- (2026-11-02, stage II (p)) `durI1` reads only the state's base and entries, and the commit. -/
+theorem durI1_congr (γ : RaftNames) {S S' : RaftState} {c c' : w64} (hb : S'.base = S.base)
+    (he : S'.ents = S.ents) (hc : c' = c) : durI1 (GF := GF) γ S c ⊢ durI1 γ S' c' := by
+  unfold durI1; rw [hb, he, hc]
+
+/-- (2026-11-02, stage II (p)) `ConfI1` is monotone in the commit. -/
+theorem ConfI1.mono {l : List EntryM} {c c' : Nat} (H : ConfI1 l c) (h : c ≤ c') : ConfI1 l c' :=
+  fun k1 k2 e1 e2 hlt h1 h2 c1 c2 => Nat.lt_of_lt_of_le (H k1 k2 e1 e2 hlt h1 h2 c1 c2) h
+
+/-- (2026-11-02, stage II (p)) **`durI1` of a state whose full log is `F`** (`DurFull`), from I1 of
+`F` and `F`'s records: every full prefix of the state's base with records is `F`'s
+(`FullOk_unique`). -/
+theorem durI1_of_full (γ : RaftNames) (S : RaftState) (F : List EntryM) (c : w64) :
+    DurFull S F → (γ.reDyn.isSome = true → ConfI1 F (uint.nat c)) →
+    ⊢ logRecs (GF := GF) γ base0 F -∗ durI1 γ S c := by
+  intro Hdf HI
+  iintro #HrF
+  unfold durI1
+  iintro !> %fp %Hfp #Hr
+  obtain ⟨He, Hfo⟩ := Hdf
+  ihave #Ht := logRecs_take γ F (uint.nat S.base.index') $$ HrF
+  icases FullOk_unique γ S.base fp _ Hfp Hfo $$ Hr Ht with %Hfe
+  ipureintro
+  rw [Hfe, He, List.take_append_drop]
+  exact HI
+
+/-- (2026-11-02, stage II (p)) **I1 at a restart**: the durable half's I1 at `S.wcommit`
+(`durI1`), re-based at a base `b` within `S`'s log, at a commit `c ≥ S.wcommit` (`ConfI1.mono`). -/
+theorem durI1_rebase (γ : RaftNames) (id : w64) (S : RaftState) (Ed : DurMaps) (b : entryID)
+    (c : w64) :
+    uint.Z S.base.index' ≤ uint.Z b.index' → plogTermAt S.base S.ents b.index' = some b.term' →
+    uint.nat S.wcommit ≤ uint.nat c →
+    ⊢ durPers (GF := GF) γ id S Ed -∗ durI1 γ S S.wcommit -∗
+      □ ∀ fp, ⌜FullOk b fp⌝ -∗ logRecs γ base0 fp -∗
+        ⌜γ.reDyn.isSome = true → ConfI1 (fp ++ S.entsFrom b) (uint.nat c)⌝ := by
+  intro Hb1 Hbt Hwc
+  iintro #Hd #HI
+  unfold durPers
+  icases Hd with ⟨%kd, %fp0, %Hp, #HrS, -, #Hfp0, -⟩
+  obtain ⟨-, -, -, -, HfullS, HwfS, -⟩ := Hp
+  have HwfF : PlogWf base0 (fp0 ++ S.ents) := full_wf _ _ _ HfullS HwfS
+  iunfold durI1 at HI
+  ihave %HI0 := HI $$ %fp0 %HfullS Hfp0
+  have Hbt' : plogTermAt base0 (fp0 ++ S.ents) b.index' = some b.term' := by
+    rw [full_term_at _ _ _ _ HfullS Hb1]; exact Hbt
+  generalize HF : fp0 ++ S.ents = F at HwfF Hbt' HI0
+  ihave #HrF : logRecs γ base0 F $$ []
+  · rw [← HF]; iapply logRecs_full γ S.base fp0 S.ents HfullS $$ Hfp0 HrS
+  have HbZ := uint_Z_nonneg b.index'
+  obtain ⟨m, Hm⟩ : ∃ m : Nat, (m : Int) = uint.Z b.index' := ⟨_, Int.toNat_of_nonneg HbZ⟩
+  have HfB : FullOk b (F.take m) := by
+    have := FullOk_take F b.term' b.index' HwfF Hbt'
+    rw [show (uint.Z b.index').toNat = m by omega] at this
+    cases b; exact this
+  have Hlen0 : (fp0.length : Int) = uint.Z S.base.index' := HfullS.1
+  have Hdrop : F.drop m = S.entsFrom b := by
+    unfold RaftState.entsFrom
+    rw [← HF, List.drop_append, List.drop_eq_nil_of_le (by omega), List.nil_append]
+    congr 1; omega
+  iintro !> %fp %Hfp #Hr
+  ihave #Ht := logRecs_take γ F m $$ HrF
+  icases FullOk_unique γ b fp _ Hfp HfB $$ Hr Ht with %Hfe
+  ipureintro
+  intro hd
+  rw [Hfe, ← Hdrop, List.take_append_drop]
+  exact (HI0 hd).mono Hwc
+
 /-- **The cut** (at a `Ready`, `InvRawnodeReady`'s handout, beside `ownRaftGhost_drain`): the outbox
 drained to `o'`, its messages `out` with their read credits and tickets, and the promises made since
 the last cut queued in generation `g`'s free slot, as a batch entering `S'` -- the cut state's term,
@@ -381,13 +448,15 @@ theorem ownRaftGhost_cut (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {
     -- `Advance`)
     uint.Z S'.base.index' ≤ uint.Z s.commit → (∀ m ∈ o', m.dst = id) →
     ⊢ (□ ∀ fp, ⌜FullOk s.base fp⌝ -∗ logRecs (GF := GF) γ base0 fp -∗ ⌜DurFull S' (fp ++ s.log)⌝) -∗
+      -- (2026-11-02, stage II (p)) I1 of the batch's log at its commit
+      durI1 γ S' S'.commit -∗
       slotLive γ id q g -∗ slotFree γ id g -∗ ownRaftGhost γ id s md ={E}=∗
       slotLive γ id q g ∗ ∃ W, pendBatch γ id g S' W ∗
         ownRaftGhost γ id { s with outbox := o' } md ∗
         ([∗list] m ∈ out, □ (durFrags γ id W -∗ isMessage γ m)) ∗
         rdCred γ (rdCount s.outbox - rdCount o') ∗ msgsTks γ out := by
   intro HE Hp Ht Hv Hc Hbc Hself
-  iintro #Hdf Hlive Hfree Hown
+  iintro #Hdf #HI1 Hlive Hfree Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
@@ -478,7 +547,7 @@ theorem ownRaftGhost_cut (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {
     isplitr; · ipureintro; exact Hsname
     unfold batchOk
     iexists πc
-    iframe Hpend Hdp
+    iframe Hpend Hdp HI1
     ipureintro; exact ⟨rfl, Hfresh⟩
   iapply ownRaftGhost_intro γ id _ γs (virt V πc) [] kl Hsname Hidnz Hmode (PromsFresh_nil _)
     $$ Hslot Hvirt [] [] [] [] [] [Hlg] [] [] [] [Hlcm] [Hrd]
@@ -753,9 +822,12 @@ messages' wands; the generation's queue free again. -/
 theorem raft_enter (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (q : Qp) (g : Nat)
     (S' : RaftState) (W : DurMaps) :
     ↑(raftN γ) ⊆ E →
+    -- (2026-11-02, stage II (p)) the batch moves `wcommit` to its commit, or writes nothing
+    -- (`RaftState.next_wcommit`)
+    (S'.wcommit = S'.commit ∨ (S'.wcommit = S.wcommit ∧ S'.base = S.base ∧ S'.ents = S.ents)) →
     ⊢ ownDurGhost (GF := GF) γ id S -∗ slotLive γ id q g -∗ pendBatch γ id g S' W ={E}=∗
       ownDurGhost γ id S' ∗ slotLive γ id q g ∗ slotFree γ id g ∗ durFrags γ id W := by
-  intro HE
+  intro HE HwS
   have HsE : (↑(slotN γ id) : CoPset) ⊆ E := fun p hp => HE p (slotN_raftN γ id p hp)
   have HlE : (↑(raftLogN γ) : CoPset) ⊆ E \ ↑(slotN γ id) := by
     intro p hp
@@ -765,7 +837,7 @@ theorem raft_enter (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (q :
     exact ndot_ne_disjoint (raftN γ) (show "log" ≠ "slot" by decide) p ⟨hp, h1⟩
   iintro Hdur Hlive Hpend
   unfold ownDurGhost
-  icases Hdur with ⟨%E1, Hsh1, #Hdp, #Hsinv⟩
+  icases Hdur with ⟨%E1, Hsh1, #Hdp, #Hsinv, #HI1⟩
   iunfold slotLive at Hlive
   icases Hlive with ⟨%γs, %Hγs, Hl⟩
   iunfold pendBatch at Hpend
@@ -786,7 +858,7 @@ theorem raft_enter (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (q :
   simp only at HEp
   subst Ep
   iunfold batchOk at Hbo
-  icases Hbo with ⟨%π, %Hπ, #Hj, #Hdp'⟩
+  icases Hbo with ⟨%π, %Hπ, #Hj, #Hdp', #HI1'⟩
   obtain ⟨HW, Hfresh⟩ := Hπ
   simp only at HW Hfresh
   icases durShares_agree γ id _ _ E0 E1 $$ Hsh0 Hsh1 with ⟨Hsh0, Hsh1, %HE1⟩
@@ -829,6 +901,9 @@ theorem raft_enter (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (q :
   imodintro
   isplitl [Hsh1]
   · iexists W; iframe Hsh1 Hdp' Hsinv
+    rcases HwS with hw | ⟨hw, hb, he⟩
+    · iapply durI1_congr γ rfl rfl hw $$ HI1'
+    · iapply durI1_congr γ hb he hw $$ HI1
   isplitl [Hl]
   · unfold slotLive; iexists γs; iframe Hl; ipureintro; exact Hγs
   isplitl [Hfree]
@@ -1213,13 +1288,18 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool}
     ↑(raftN γ) ⊆ E →
     γ.reDyn.isSome = md →
     (∀ S, Φ S → uint.Z S.base.index' ≤ uint.Z b.index' ∧ uint.Z b.index' ≤ uint.Z c ∧
-      uint.Z c ≤ uint.Z S.commit ∧ plogTermAt S.base S.ents b.index' = some b.term') →
+      uint.Z c ≤ uint.Z S.commit ∧ plogTermAt S.base S.ents b.index' = some b.term' ∧
+      -- (2026-11-02, stage II (p)) at or above the commit of the last batch that wrote the log
+      uint.nat S.wcommit ≤ uint.nat c) →
     (γ.reBoot.length : Int) ≤ uint.Z c →
     ⊢ raftIdSlot (GF := GF) γ id -∗
       (|={E \ ↑(slotN γ id), ∅}=> ∃ S, ownDurGhost γ id S ∗ ⌜Φ S⌝ ∗
         (ownDurGhost γ id S ={∅, E \ ↑(slotN γ id)}=∗ R S)) ={E}=∗
       ∃ S, ⌜Φ S⌝ ∗ R S ∗ ownRaftGhost γ id (restartP S b c) md ∗
-        ∃ g, slotLive γ id 1 g ∗ slotFree γ id g := by
+        ∃ g, slotLive γ id 1 g ∗ slotFree γ id g ∗
+        -- (2026-11-02, stage II (p)) I1 of the restarted log at the commit (`durI1_rebase`)
+        □ (∀ fp, ⌜FullOk b fp⌝ -∗ logRecs γ base0 fp -∗
+          ⌜md = true → ConfI1 (fp ++ S.entsFrom b) (uint.nat c)⌝) := by
   intro HE Hmd HΦ Hboot
   iintro Hslot Hacc
   unfold raftIdSlot
@@ -1253,9 +1333,9 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool}
   -- the durable half, through the accessor (the client's update: `RestartNode`'s), while the slot
   -- is open
   imod Hacc with ⟨%S, Hdur, %HS, Hcl⟩
-  obtain ⟨Hb1, Hb2, Hb3, Hbt⟩ := HΦ S HS
+  obtain ⟨Hb1, Hb2, Hb3, Hbt, Hwc⟩ := HΦ S HS
   unfold ownDurGhost
-  icases Hdur with ⟨%E1, Hsh1, #Hdp, #Hsinv1⟩
+  icases Hdur with ⟨%E1, Hsh1, #Hdp, #Hsinv1, #HI1⟩
   icases durShares_agree γ id _ _ V E1 $$ Hsh0 Hsh1 with ⟨Hsh0, Hsh1, %HE1⟩
   subst HE1
   -- the leader-side keys: entered campaigns' terms
@@ -1267,8 +1347,9 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool}
     with ⟨Hsh1, %Kln⟩
   icases keys_camps γ id _ V (fun t (x : GName) => iprop(t ↪[γq]□ x)) rqm $$ [$Hsh1 $Hqf]
     with ⟨Hsh1, %Kqn⟩
+  ihave #HI1r := durI1_rebase γ id S V b c Hb1 Hbt Hwc $$ Hdp HI1
   imod Hcl $$ [Hsh1] with HR
-  · iexists V; iframe Hsh1 Hdp Hsinv1
+  · iexists V; iframe Hsh1 Hdp Hsinv1 HI1
   imod Hclose $$ [Hsh0 Hv0 Hg0 Hq] with -
   · inext
     unfold slotBody
@@ -1297,7 +1378,9 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool}
   · iexists g
     isplitl [Hl]
     · unfold slotLive; iexists γs; iframe Hl; ipureintro; exact Hγs
+    isplitl [Hfr]
     · unfold slotFree; iexists γs; iframe Hfr; ipureintro; exact Hγs
+    rw [← Hmd]; iexact HI1r
   unfold ownRaftGhost
   iexists γs, V, [], kd
   simp only [virt_nil]
@@ -1557,7 +1640,7 @@ theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (R 
   -- is open
   imod Hacc with ⟨Hdur, Hcl⟩
   unfold ownDurGhost
-  icases Hdur with ⟨%E1, Hsh1, #Hdp, #Hsinv1⟩
+  icases Hdur with ⟨%E1, Hsh1, #Hdp, #Hsinv1, #HI1⟩
   icases durShares_agree γ id _ _ V E1 $$ Hsh0 Hsh1 with ⟨Hsh0, Hsh1, %HE1⟩
   subst HE1
   -- the leader-side keys: entered campaigns' terms
@@ -1570,7 +1653,7 @@ theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (R 
   icases keys_camps γ id _ V (fun t (x : GName) => iprop(t ↪[γq]□ x)) rqm $$ [$Hsh1 $Hqf]
     with ⟨Hsh1, %Kqn⟩
   imod Hcl $$ [Hsh1] with HR
-  · iexists V; iframe Hsh1 Hdp Hsinv1
+  · iexists V; iframe Hsh1 Hdp Hsinv1 HI1
   imod Hclose $$ [Hsh0 Hv0 Hg0 Hq] with -
   · inext
     unfold slotBody

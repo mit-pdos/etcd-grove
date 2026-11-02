@@ -340,10 +340,13 @@ private theorem storDL_raftDL (γ : Cluster) (K : GName) (sn : StorNames) (sv : 
 private theorem certLink_make (γ : Cluster) (N : Namespace) (HU : UniNames γ N) (sn : StorNames) :
     ⊢ clusterInv (GF := GF) γ N -∗
       savedPredOwn sn.gsv DFrac.discard (EtcdGrove.snapshotValid (GF := GF) γ) -∗
-      savedPredOwn sn.gk DFrac.discard (raftSnapCertD (GF := GF) γ.raft) -∗ certLink γ.raft sn := by
-  iintro #Hci #Hsv #Hgk
+      savedPredOwn sn.gk DFrac.discard (raftSnapCertD (GF := GF) γ.raft) -∗
+      ctCommitted γ.raft sn -∗ certLink γ.raft sn := by
+  iintro #Hci #Hsv #Hgk #Hct
   have HcN : raftCertN γ.raft = N := HU.2.2.1
-  unfold certLink storCertOk
+  unfold certLink
+  iframe Hct
+  unfold storCertOk
   isplitr
   · iintro !> %sv %E %HE Hc
     rw [HcN] at HE

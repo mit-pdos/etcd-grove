@@ -389,6 +389,7 @@ theorem ownRawNodeReady_loanCert (γ : RaftNames) (rn : Loc) (id : w64) (rs : RN
     iexact Hl
   icases Hk with ⟨%sn, #Hk, #Hl⟩
   iunfold certLink at Hl
+  icases Hl with ⟨#Hl, -⟩
   iunfold storCertOk at Hl
   icases Hl with ⟨-, #Hks, -⟩
   imod Hks $$ %_ %⊤ %CoPset.subseteq_top Hk with #Hc

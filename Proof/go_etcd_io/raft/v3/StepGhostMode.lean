@@ -268,6 +268,19 @@ instance storCertOk_persistent (γ : RaftNames) (sn : StorNames) :
     Persistent (storCertOk (GF := GF) γ sn) := by
   unfold storCertOk; infer_instance
 
+/-- (2026-11-02, durability stage II (p)) **The attach record's terms are the committed log's**:
+every term the storage names record (`sn.ct`, up to `sn.c0`) is the one at its index of a committed
+log. What a restarted node needs to hand the recorded terms out again as the committed log's
+(`SdtTie`, `ownRaftLog_certify_gap`); vacuous without a record (`StartNode`, `ct = []`). -/
+def ctCommitted (γ : RaftNames) (sn : StorNames) : IProp GF :=
+  iprop(∃ Lc : List EntryM, isCommitted γ Lc ∗
+    ⌜∀ (i : Nat) (t : w64), (i, t) ∈ sn.ct → i ≤ sn.c0 →
+      1 ≤ i ∧ (Lc[i - 1]?).map EntryM.Term' = some t⌝)
+
+instance ctCommitted_persistent (γ : RaftNames) (sn : StorNames) :
+    Persistent (ctCommitted (GF := GF) γ sn) := by
+  unfold ctCommitted; infer_instance
+
 end certLink
 
 section ghost
@@ -310,7 +323,8 @@ snapshot certificates are tied to the cluster's (`storCertOk`): a `Ready` certif
 it hands out from them, a `MsgSnap`'s `raft.Step` pins its snapshot's. Until U8 v2 the no-snapshot
 mode needed no link (`⌜γ.reNoSnap = true⌝ ∨ …`); the mode is dropped at raft's level (a node's
 `NGhost.ns` is off, `ownRaftPhys`'s `Hnsoff`). -/
-def certLink (γ : RaftNames) (sn : StorNames) : IProp GF := storCertOk γ sn
+def certLink (γ : RaftNames) (sn : StorNames) : IProp GF :=
+  iprop(storCertOk γ sn ∗ ctCommitted γ sn)
 
 instance certLink_persistent (γ : RaftNames) (sn : StorNames) :
     Persistent (certLink (GF := GF) γ sn) := by
@@ -392,6 +406,17 @@ theorem ghostRest_certLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (
 def ownStepGhost (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : IProp GF :=
   iprop(ownRaftGhost γ id (toPState s) md.isDyn ∗ ghostRest γ md c id s)
 
+/-- (2026-11-02, stage II (p)) The certificate link, read out of the ghost state. -/
+theorem ownStepGhost_certLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ownStepGhost (GF := GF) γ md c id s ⊢ certLink γ s.gh.sn ∗ ownStepGhost γ md c id s := by
+  iintro H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, Hr⟩
+  icases ghostRest_certLink γ md c id s $$ Hr with ⟨#Hl, Hr⟩
+  iframe Hl
+  iunfold ownStepGhost
+  iframe Hg Hr
+
 /-- (2026-10-19, D21 M2r) The node's modes are the cluster's (`NsLink`), read out. -/
 theorem ownStepGhost_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
     ownStepGhost (GF := GF) γ md c id s ⊢ ⌜NsLink γ s⌝ ∗ ownStepGhost γ md c id s := by
@@ -403,6 +428,46 @@ theorem ownStepGhost_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
   · ipureintro; exact Hnl
   iunfold ownStepGhost
   iframe Hg Hr
+
+/-- (2026-11-02, durability stage II (p)) **I1 at the node's commit** over any full prefix with
+records (`RInv.i1` in the dynamic mode; vacuous in the static one, `ownRaftGhost_mode`): what the
+cut gives the batch's state (`durI1`). -/
+theorem ownStepGhost_i1 (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ownStepGhost (GF := GF) γ md c id s ⊢
+      (□ ∀ fp, ⌜FullOk (toPState s).base fp⌝ -∗ logRecs γ base0 fp -∗
+        ⌜γ.reDyn.isSome = true → ConfI1 (fp ++ (toPState s).log) (uint.nat (toPState s).commit)⌝) ∗
+      ownStepGhost γ md c id s := by
+  iintro H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, Hr⟩
+  ihave %Hm := ownRaftGhost_mode (md := md.isDyn) γ id (toPState s) $$ Hg
+  cases md with
+  | static =>
+    isplitr
+    · iintro !> %fp %_ #_
+      ipureintro; intro h
+      simp only [GMode.isDyn] at Hm; rw [Hm] at h; cases h
+    iunfold ownStepGhost; iframe Hg Hr
+  | dyn dec c0 h0 g =>
+    iunfold ghostRest at Hr
+    icases Hr with ⟨%Hn, Hm', #Hl, Hw, Hx⟩
+    simp only [ghostRestM]
+    icases Hm' with ⟨%Hp, #Hd, #Hfr⟩
+    obtain ⟨Hp1, Hp2, HI⟩ := Hp
+    isplitr
+    · iintro !> %fp %Hfp #Hrc
+      icases FullOk_unique γ _ fp g.fp Hfp HI.full $$ Hrc Hfr with %He
+      subst He
+      ipureintro; intro _
+      exact HI.i1
+    iunfold ownStepGhost
+    iframe Hg
+    iunfold ghostRest
+    iframe Hl Hw Hx
+    isplitr; · ipureintro; exact Hn
+    simp only [ghostRestM]
+    iframe Hd Hfr
+    ipureintro; exact ⟨Hp1, Hp2, HI⟩
 
 /-- `LeadOk` and the leader's own witness, read out of `ownRaftGhost`. -/
 private theorem ownRaftGhost_leadInfo (γ : RaftNames) (id : w64) (ps : PState) (md : Bool) :

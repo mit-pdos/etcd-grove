@@ -179,10 +179,13 @@ private theorem storDL_raftDL (γ : Cluster) (K : GName) (sn : StorNames) (sv : 
 private theorem certLink_make (γ : Cluster) (N : Namespace) (HU : UniNames γ N) (sn : StorNames) :
     ⊢ clusterInv (GF := GF) γ N -∗
       savedPredOwn sn.gsv DFrac.discard (EtcdGrove.snapshotValid (GF := GF) γ) -∗
-      savedPredOwn sn.gk DFrac.discard (raftSnapCertD (GF := GF) γ.raft) -∗ certLink γ.raft sn := by
-  iintro #Hci #Hsv #Hgk
+      savedPredOwn sn.gk DFrac.discard (raftSnapCertD (GF := GF) γ.raft) -∗
+      ctCommitted γ.raft sn -∗ certLink γ.raft sn := by
+  iintro #Hci #Hsv #Hgk #Hct
   have HcN : raftCertN γ.raft = N := HU.2.2.1
-  unfold certLink storCertOk
+  unfold certLink
+  iframe Hct
+  unfold storCertOk
   isplitr
   · iintro !> %sv %E %HE Hc
     rw [HcN] at HE
@@ -373,7 +376,16 @@ private theorem wp_StartNode_impl
   imod saved_pred_alloc (raftSnapCertD (GF := GF) γ.raft) DFrac.discard trivial with ⟨%gk, #Hgk⟩
   let sn : StorNames := { ga := ga, gg := gg, gsv := gsv, gd := gdd, gk := gk }
   let σv : StorState := { prev := entryID.mk (W64 0) (W64 0), ents := [], pend := [] }
-  ihave #Hlink := certLink_make γ N HU sn $$ Hci Hsv Hgk
+  -- (2026-11-02, stage II (p)) no attach record: its terms are vacuously the committed log's
+  icases (entails_wand (persistent_entails_left (ownRaftGhost_cmt γ.raft cv.ID' _))) $$ Hg
+    with ⟨Hg, %fpc, -, -, #Hcmt⟩
+  ihave #Hct : ctCommitted (GF := GF) γ.raft sn $$ []
+  · unfold ctCommitted
+    iexists []
+    isplitr
+    · iapply isCommitted_mono γ.raft [] _ (List.nil_prefix) $$ Hcmt
+    ipureintro; intro i t h; simp [sn] at h
+  ihave #Hlink := certLink_make γ N HU sn $$ Hci Hsv Hgk Hct
   ihave HA : storAuths (GF := GF) sn σv $$ [Hga Hgg Hgd]
   · unfold storAuths storCaught
     iframe Hgg

@@ -464,6 +464,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   icases ghostRest_nsLink γ md c id s $$ Hrest with ⟨%Hnlk, Hrest⟩
   icases ghostRest_certLink γ md c id s $$ Hrest with ⟨#Hlink, Hrest⟩
   iunfold certLink at Hlink
+  icases Hlink with ⟨#Hlink, -⟩
   iunfold storCertOk at Hlink
   icases Hlink with ⟨-, -, #Hreg⟩
   imod Hreg $$ %_ %⊤ %CoPset.subseteq_top HcrD with #Hcert

@@ -579,6 +579,7 @@ theorem qCert_of_src (γ : RaftNames) (sn : StorNames) (q : QMsg)
   iintro #Hok #Hs
   unfold qCert
   iunfold certLink at Hok
+  icases Hok with ⟨#Hok, -⟩
   iunfold qSrc at Hs
   iunfold tsSrc at Hs
   icases Hs with (%Hn | ⟨%sv, %Hsv, #Hc⟩)
@@ -646,6 +647,7 @@ theorem ksnCerts_of_link (γ : RaftNames) (sn : StorNames) (ks : List SnapTrip)
       ⌜γ.reNoSnap = true⌝ ∨ [∗list] k ∈ ks, raftSnapCert γ k := by
   iintro #Hl #Hs
   iunfold certLink at Hl
+  icases Hl with ⟨#Hl, -⟩
   imod ksnCerts_of_ok γ sn ks E hE $$ Hl Hs with #Hr
   imodintro; iright; iexact Hr
 
@@ -1276,7 +1278,7 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
       (hprev : HardStateM),
   "Hrn" ∷ rawNodeOwn rn rnv ∗
   "Hphys" ∷ ownRaftPhysReady cf rnv.raft' id s rd.Messages' ms h L.isSome
-    (dlvAfter rs.delivered ce L).length ∗
+    (max s.logst.dtk (dlvAfter rs.delivered ce L).length) ∗
   "Hghost" ∷ ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id
     (if h then { s with outbox := [] } else s) ∗
   "#Hsdrf" ∷ sdrOk rnv.raft' rs.mode ∗
@@ -1624,6 +1626,60 @@ theorem ownRaftLog_certify_list (l : Loc) (L : List EntryM) :
     rw [← hf]
     iexact Hks
 
+/-- (2026-11-02, stage II (p)) **Certifying the terms of the entries `L`** at the indices
+`n + 1, …` from at most the certified height (`n ≤ dtk`): those at or below it are given certified
+(after a restart, the attach record's: `SdtTie`), the rest certified one by one
+(`ownRaftLog_certify_list`); the height is raised to the last index, if it is above. -/
+theorem ownRaftLog_certify_gap (l : Loc) (L : List EntryM) (ls : LogState) (n : Nat)
+    (Hn : n ≤ ls.dtk)
+    (Hc : ((n + L.length : Nat) : Int) ≤ uint.Z ls.committed)
+    (Ht : ∀ (k : Nat) (e : EntryM), L[k]? = some e → ls.dtk < n + k + 1 →
+      uint.Z ls.prev.index' ≤ ((n + k + 1 : Nat) : Int) →
+      plogTermAt ls.prev (ls.sents ++ ls.uents) (W64 ((n + k + 1 : Nat) : Int)) = some e.Term') :
+    ⊢ (□ ∀ (k : Nat) (e : EntryM), ⌜L[k]? = some e ∧ n + k + 1 ≤ ls.dtk⌝ -∗
+        (n + k + 1) ↪[ls.sn.gd]□ e.Term') -∗
+      ownRaftLog (GF := GF) l ls ==∗
+        ownRaftLog l { ls with dtk := max ls.dtk (n + L.length) } ∗ dlvKeysAt ls.sn n L := by
+  iintro #Hg H
+  by_cases hA : n + L.length ≤ ls.dtk
+  · -- every index at or below the height: given
+    rw [Nat.max_eq_left hA]
+    imodintro
+    iframe H
+    unfold dlvKeysAt
+    iapply BigSepL.bigSepL_forall_elim
+    iintro %k %x %Hk
+    have hk := (List.getElem?_eq_some_iff.1 Hk).1
+    iapply Hg $$ %k %x %(And.intro Hk (by omega))
+  · -- the part at or below the height given, the rest certified
+    have hm : ls.dtk - n ≤ L.length := by omega
+    ihave #H1 : dlvKeysAt (GF := GF) ls.sn n (L.take (ls.dtk - n)) $$ []
+    · unfold dlvKeysAt
+      iapply BigSepL.bigSepL_forall_elim
+      iintro %k %x %Hk
+      rw [List.getElem?_take] at Hk
+      by_cases hkm : k < ls.dtk - n
+      · rw [ite_eq_left hkm] at Hk
+        iapply Hg $$ %k %x %(And.intro Hk (by omega))
+      · rw [ite_eq_right hkm] at Hk; cases Hk
+    imod ownRaftLog_certify_list l (L.drop (ls.dtk - n)) ls ls.dtk rfl
+      (by rw [List.length_drop]; push_cast at Hc ⊢; omega)
+      (fun k e hk hp => by
+        rw [List.getElem?_drop] at hk
+        have := Ht (ls.dtk - n + k) e hk (by omega) (by push_cast at hp ⊢; omega)
+        rw [show n + (ls.dtk - n + k) + 1 = ls.dtk + k + 1 by omega] at this
+        exact this) $$ H
+      with ⟨H, #H2⟩
+    imodintro
+    rw [show ls.dtk + (L.drop (ls.dtk - n)).length = max ls.dtk (n + L.length) by
+      rw [List.length_drop]; omega]
+    iframe H
+    ihave H12 := (dlvKeysAt_app ls.sn n (L.take (ls.dtk - n)) (L.drop (ls.dtk - n))).2 $$ [H1 H2]
+    · iframe H1
+      rw [List.length_take, Nat.min_eq_left hm, show n + (ls.dtk - n) = ls.dtk by omega]
+      iexact H2
+    iExactEq H12; rw [List.take_append_drop]
+
 /-- (D22 S-d3a; U8 v2) The log's part of a `Ready`'s hand-out (`readyOut`): the right to write the
 batch, with the committed entries below it frozen (`ownRaftLog_handout`), or with a snapshot the
 ranges above raft's frozen prefix and the snapshot handed out (`ownRaftLog_lend`). -/
@@ -1665,6 +1721,36 @@ theorem ownRaftLog_rdy_out (l : Loc) (ls : LogState) (es : List EntryM) (L : Opt
         ipureintro; exact Hk
       · iExactEq Hg; rw [Hpv]; rfl
     ileft; ipureintro; simp
+
+/-- (2026-11-02, stage II (p)) A snapshot `Ready`'s committed log, read out. -/
+theorem rdSnapRel_cmt (γ : RaftNames) (rs : RNState) (rd : Ready) (ce : List EntryM)
+    (L : Option SnapLoan) (s : NState) :
+    rdSnapRel (GF := GF) γ rs rd ce L s ⊢
+      (∀ l, ⌜L = some l⌝ → isCommitted γ l.dlv) ∗
+        rdSnapRel γ rs rd ce L s := by
+  cases L with
+  | none =>
+    simp only [rdSnapRel]
+    iintro %H
+    isplitr
+    · iintro %l %h; cases h
+    ipureintro; exact H
+  | some l =>
+    simp only [rdSnapRel]
+    iintro ⟨Hs, #Hc, Hd, %Hp⟩
+    isplitr
+    · iintro %l' %h; cases h; iexact Hc
+    iframe Hs Hd Hc
+    ipureintro; exact Hp
+
+/-- (2026-11-02, stage II (p)) Two prefix-comparable lists agree where both are defined. -/
+theorem pfx_agree {α : Type} {l1 l2 : List α} {j : Nat} {a b : α} (H : l1 <+: l2 ∨ l2 <+: l1)
+    (h1 : l1[j]? = some a) (h2 : l2[j]? = some b) : a = b := by
+  rcases H with ⟨t, rfl⟩ | ⟨t, rfl⟩
+  · rw [List.getElem?_append_left (List.getElem?_eq_some_iff.1 h1).1] at h2
+    rw [h1] at h2; exact Option.some.inj h2
+  · rw [List.getElem?_append_left (List.getElem?_eq_some_iff.1 h2).1] at h1
+    rw [h1] at h2; exact Option.some.inj h2
 
 /-- (D22 S-d3a) The pure facts of a computed `Ready`'s snapshot. -/
 theorem rdSnapRel_facts (γ : RaftNames) (rs : RNState) (rd : Ready) (ce : List EntryM)
@@ -1709,14 +1795,14 @@ theorem ownRawNodeReady_loanLast (γ : RaftNames) (rn : Loc) (id : w64) (rs : RN
     have hdl : l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat := hsr.2.2.2.2.2.2.2.1
     iunfold ownRaftPhysReady at Hphys
     iNamed Hphys
-    icases ownRaftLog_pure s.log (rdyLog h (some l).isSome s.logst (dlvAfter rs.delivered ce (some l)).length)
+    icases ownRaftLog_pure s.log (rdyLog h (some l).isSome s.logst (max s.logst.dtk (dlvAfter rs.delivered ce (some l)).length))
       (s.logst.prev = snapId l.snap ∧ uint.Z s.logst.prev.index' ≤ uint.Z s.logst.committed)
       (fun lv σ _ _ Hst _ Happ _ _ _ _ => by
-        have e1 : (rdyLog h (some l).isSome s.logst (dlvAfter rs.delivered ce (some l)).length).snap = s.logst.snap := by
+        have e1 : (rdyLog h (some l).isSome s.logst (max s.logst.dtk (dlvAfter rs.delivered ce (some l)).length)).snap = s.logst.snap := by
           unfold rdyLog logHanded lendLog; split <;> simp
-        have e2 : (rdyLog h (some l).isSome s.logst (dlvAfter rs.delivered ce (some l)).length).prev = s.logst.prev := by
+        have e2 : (rdyLog h (some l).isSome s.logst (max s.logst.dtk (dlvAfter rs.delivered ce (some l)).length)).prev = s.logst.prev := by
           unfold rdyLog logHanded lendLog; split <;> simp
-        have e3 : (rdyLog h (some l).isSome s.logst (dlvAfter rs.delivered ce (some l)).length).committed = s.logst.committed := by
+        have e3 : (rdyLog h (some l).isSome s.logst (max s.logst.dtk (dlvAfter rs.delivered ce (some l)).length)).committed = s.logst.committed := by
           unfold rdyLog logHanded lendLog; split <;> simp
         rw [e1, hsn, e2] at Hst
         rw [e2, e3] at Happ
@@ -1941,17 +2027,59 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
         rw [Hpv l rfl, hlast]; apply BitVec.eq_of_toNat_eq
         simp only [snapId]; word
       rw [hw, plogTermAt_base, Hpv l rfl, ht]; rfl
-  imod ownRaftLog_certify_list s.log ((dlvAfter rs.delivered ce L).drop rs.delivered.length)
-    s.logst rs.delivered.length
-    (by have h := Hsdt; unfold SdtTie sdtLen at h; rw [Hloan.2] at h; exact h) HKc HKt $$ Hlog
+  -- (2026-11-02, stage II (p)) the indices above the committed log handed out and at or below the
+  -- certified height are the attach record's (`SdtTie`), whose terms are certified (`storCaught`)
+  -- and the committed log's (`ctCommitted`): handed out again
+  have Hsdl : sdtLen rs = rs.delivered.length := by unfold sdtLen; rw [Hloan.2]
+  have Hsdt1 : rs.delivered.length ≤ s.logst.dtk := Hsdl ▸ Hsdt.1
+  have Hsdt2 := Hsdt.2
+  rw [Hsdl, Hstor.2] at Hsdt2
+  icases ownRaftLog_caught _ _ $$ Hlog with ⟨#Hcu, Hlog⟩
+  icases ownStepGhost_certLink γ _ c id s $$ Hghost with ⟨#Hcl, Hghost⟩
+  iunfold certLink at Hcl
+  icases Hcl with ⟨-, Hcl⟩
+  iunfold ctCommitted at Hcl
+  icases Hcl with ⟨%Lc, #HLc, %HLct⟩
+  rw [← Hgh_unst.1.2.2] at HLct
+  icases rdSnapRel_cmt γ rs rd ce L s $$ Hrdz with ⟨#HcL, Hrdz⟩
+  ihave #HcD : isCommitted γ (dlvAfter rs.delivered ce L) $$ []
+  · cases L with
+    | none => simp only [dlvAfter]; iexact Hcommitted
+    | some l => simp only [dlvAfter]; iapply HcL $$ %l %rfl
+  ihave #Hgap : iprop(□ ∀ (k : Nat) (e : EntryM),
+      ⌜((dlvAfter rs.delivered ce L).drop rs.delivered.length)[k]? = some e ∧
+        rs.delivered.length + k + 1 ≤ s.logst.dtk⌝ -∗
+      (rs.delivered.length + k + 1) ↪[s.logst.sn.gd]□ e.Term') $$ []
+  · iintro !> %k %e %Hke
+    obtain ⟨Hk, Hle⟩ := Hke
+    obtain ⟨Hc0, t, Hct⟩ := Hsdt2 (rs.delivered.length + k + 1) (by omega) Hle
+    obtain ⟨-, HLt⟩ := HLct _ t Hct Hc0
+    rw [show rs.delivered.length + k + 1 - 1 = rs.delivered.length + k by omega] at HLt
+    rw [List.getElem?_drop] at Hk
+    icases isCommitted_agree γ Lc (dlvAfter rs.delivered ce L) $$ HLc HcD with %Hpre
+    have Hte : t = e.Term' := by
+      cases hL : Lc[rs.delivered.length + k]? with
+      | none => rw [hL] at HLt; cases HLt
+      | some x =>
+        rw [hL] at HLt
+        simp only [Option.map_some, Option.some.injEq] at HLt
+        rw [← HLt, pfx_agree Hpre hL Hk]
+    subst Hte
+    iunfold storCaught at Hcu
+    icases Hcu with ⟨-, #Hcu'⟩
+    iapply Hcu' $$ %_ %_ %(And.intro Hc0 Hct)
+  imod ownRaftLog_certify_gap s.log ((dlvAfter rs.delivered ce L).drop rs.delivered.length)
+    s.logst rs.delivered.length Hsdt1 HKc (fun k e hk _ hp => HKt k e hk hp) $$ Hgap Hlog
     with ⟨Hlog, #Hkeys⟩
   rw [HKlen]
-  imod ownRaftLog_rdy_out s.log { s.logst with dtk := (dlvAfter rs.delivered ce L).length } es L
+  imod ownRaftLog_rdy_out s.log
+    { s.logst with dtk := max s.logst.dtk (dlvAfter rs.delivered ce L).length } es L
     rs.storage Hunp Hes Hstor.1
     (fun h => (Hrdp.1 h).2)
     (fun l h => ⟨(Hrdp.2 l h).2.1, (Hrdp.2 l h).2.2.1⟩) Hlt0 $$ Hlog
     with ⟨Hlog, Hout, #Hfrz⟩
-  ihave Hlog : ownRaftLog s.log (rdyLog true L.isSome s.logst (dlvAfter rs.delivered ce L).length)
+  ihave Hlog : ownRaftLog s.log
+      (rdyLog true L.isSome s.logst (max s.logst.dtk (dlvAfter rs.delivered ce L).length))
     $$ [Hlog]
   · iExactEq Hlog; rfl
   -- (U8 v2) the committed entries below the batch, frozen (`ceFrozen_pure`)
@@ -1973,6 +2101,8 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       rcases Hdisj with h | ⟨e0, he0, h⟩
       · left; exact h
       · right; refine ⟨e0, by rw [Hes]; exact he0, by rw [Hdl]; exact h⟩
+  -- (2026-11-02, stage II (p)) I1 at the commit, for the batch's `durI1`
+  icases ownStepGhost_i1 γ _ c id s $$ Hghost with ⟨#HI1n, Hghost⟩
   iunfold ownStepGhost at Hghost
   icases Hghost with ⟨Hghost, Hrest⟩
   ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
@@ -2039,8 +2169,21 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
   have Hp' := congrArg HardStateM.Term' Hhseq
   have Hv' := congrArg HardStateM.Vote' Hhseq
   have Hc' := congrArg HardStateM.Commit' Hhseq
+  -- (2026-11-02, stage II (p)) the batch's log has I1 at its commit: the node's (`ownStepGhost_i1`)
+  icases (entails_wand (persistent_entails_left (wand_entails
+    (ownRaftGhost_logRecs γ id (toPState s) _)))) $$ Hghost with ⟨Hghost, -, #Hlrs⟩
+  have HcS : (readyDurable rs.dur (phsNext rs.phs hrd0) L es).commit = (toPState s).commit := by
+    rw [show (readyDurable rs.dur (phsNext rs.phs hrd0) L es).commit = (phsNext rs.phs hrd0).Commit'
+      from by unfold readyDurable RaftState.next; cases L <;> rfl]
+    exact Hc'
+  ihave #HI1b : durI1 γ (readyDurable rs.dur (phsNext rs.phs hrd0) L es)
+      (readyDurable rs.dur (phsNext rs.phs hrd0) L es).commit $$ []
+  · ihave %Hdf0 := Hdf $$ %fp0 %Hfp0 Hfr0
+    ihave %Hi1 := HI1n $$ %fp0 %Hfp0 Hfr0
+    ihave #HrF := logRecs_full γ (toPState s).base fp0 (toPState s).log Hfp0 $$ Hfr0 Hlrs
+    iapply durI1_of_full γ _ _ _ Hdf0 (by rw [HcS]; exact Hi1) $$ HrF
   imod ownRaftGhost_cut E γ id (toPState s) qf g (readyDurable rs.dur (phsNext rs.phs hrd0) L es)
-    [] (toPState s).outbox HE (by simp) Hp' Hv' Hc' Hbc (by simp) $$ Hdf Hlive Hfree Hghost
+    [] (toPState s).outbox HE (by simp) Hp' Hv' Hc' Hbc (by simp) $$ Hdf HI1b Hlive Hfree Hghost
     with ⟨Hlive, %W, Hpb, Hghost, #Hout', Hcr, Htk⟩
   -- the messages handed out: behind the batch's fragments, and at role leader at once
   ihave #Hmw : iprop([∗list] q ∈ ms, □ (durFrags γ id W -∗ isRaftMsg γ id q.st)) $$ []
