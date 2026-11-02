@@ -254,3 +254,15 @@ The first tier is clear; the review stops here (Freeze is the user's).
 ## Questions for the user
 
 See `clr-trusted.md` (the scratch file of the trusted texts) and the stage report.
+
+## The user's decisions (2026-11-02)
+
+All ten recommendations accepted: (1) the member premise names members only; (2) `onSet` fixed to
+`api.UpdateCapability`; (3) `semverAtMostServer` opaque for now; (4) `memberAt` changed in place to
+read-only client URLs (today's row is unsound: owned halves of a `↦*□` slice); (5) `attrLogOk` in
+`kvWork`, `attrIdOk` in the proposal permission; (6) the narrowed meanings of the `publishV3` and
+`monitorClusterVersions` axioms accepted; (7) every boot bucket present in `srvRestOwn` and
+`srvRestRW`; (8) the value-size gap: the wording now, a size premise in a later value-size stage;
+(9) the lessor's `lease`-bucket presence a separate follow-up; (10) backend-auth-split's §16 applied
+first. The trusted texts (revision 4 of the scratch draft `clr-trusted.md`, revised for (1)) go to the user
+for approval of the text at the Freeze, which follows once backend-auth-split lands.
