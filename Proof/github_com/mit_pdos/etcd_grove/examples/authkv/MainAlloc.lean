@@ -56,16 +56,22 @@ theorem ak_alloc (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
   have Hid0 : id ≠ W64 0 := by
     intro h; apply Hlow; rw [h]; decide
   let Φs : w64 → w64 → List w8 → GName → IProp GF := fun _ => srvFloorFact (common.env₀ idx cok rev)
-  imod (srvClusterBootOn_alloc (GF := GF) [id] ctxs boot Φs reg Hrb Hrb2 HB (by simp) (by simp)
-      (by simpa using Hid0.symm) Hcc (by simp) (by simpa using Hlow)) $$ Hmarsh
-    with ⟨%γ, %issued, %cnt, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc, Hms,
-      Hwns⟩
-  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, hkc⟩ := Hγ
-  icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, Hnb, Hsd⟩, -⟩
+  imod (srvClusterBootOn_alloc (GF := GF) [id] ctxs boot (fun _ => idx) reg Hrb Hrb2 HB (by simp)
+      (by simp) (by simpa using Hid0.symm) Hcc (by simp) (by simpa using Hlow)) $$ Hmarsh
+    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
+      Hms, Hwns⟩
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc⟩ := Hγ
+  icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, #Hkf, Hnb, Hsd⟩, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hwns with ⟨Hwn, -⟩
-  imod (srvMemberBootOn_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp Hwn
+  imod (srvMemberBootOn_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp [Hwn]
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
-  obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hhist, hkc'⟩ := Hρ
+  · rw [hwn]; iexact Hwn
+  obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hhist, hkc', hwn', hfs', hinc'⟩ := Hρ
+  -- (R2c) the member's first key, its store's index registered, at its names
+  ihave #Hkf' : idKeyFactAt ρ.ids.fs ρ.ids.key idx $$ []
+  · simp only [IdNames.key]; rw [hpfx, hinc', hfs', hfs]; iexact Hkf
+  ihave #Hcl' : idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts $$ []
+  · rw [hiss', hcnt, hwn', hfs', hiss, hwn, hfs]; iexact Hcl
   imod (netNames_alloc (srvNet γ) (akDir id) (∅ : GMap w64 Unit) ⊤) with ⟨%γn, %Hγn, -, #HregN⟩
   ihave #Hnet := netHttpOk_single γn id
     (fun f hf => dirOne_member id _ f (by rw [Hγn.2] at hf; exact hf)) $$ HregN
@@ -83,7 +89,7 @@ theorem ak_alloc (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     simp only [common.env₀]
     rw [hiss', hcnt, hraft, hiss, hvs, hreg]
     rw [← srvPropMint_congr _ γk.ids ρ.ids (by rw [hiss', hiss])]
-    iframe Hnb Hsrl Hcl Hpm Hrc Hsh Hidx Hcok Hrev Hnk Hkvρ Hwt Hsd Hreg
+    iframe Hnb Hsrl Hcl' Hkf' Hpm Hrc Hsh Hidx Hcok Hrev Hnk Hkvρ Hwt Hsd Hreg
     isplitr
     · ipureintro
       exact ⟨rfl, by rw [hc0', hc0], by rw [hch', hch], by rw [hlog', hlog], hcok,

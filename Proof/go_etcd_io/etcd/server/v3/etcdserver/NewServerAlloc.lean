@@ -73,7 +73,7 @@ theorem kvInv_congr (γs : ServerRaftNames) (γk γk' : KVNames)
       γk.rlog = γk'.rlog ∧ γk.cret = γk'.cret) :
     kvInv (GF := GF) γs γk = kvInv γs γk' := by
   obtain ⟨h1, h2, h3, h4, h6, h7, h8, h9, h10⟩ := h
-  unfold kvInv kvWork entryClaim idClaim kvModelSt kvLeases kvModel idRegd idWaitIs cmpLogOk
+  unfold kvInv kvWork entryClaim kvModelSt kvLeases kvModel idRegdAt idWaitIs cmpLogOk
     cmpEntryOk kvModel
   rw [h1, h2, h3, h4, h6, h7, h8, h9, h10]
 
@@ -85,7 +85,7 @@ theorem etcdKV_congr (γk γk' : KVNames) (h : γk.st = γk'.st) (σ : KVState) 
 /-- The proposals' mint reads only the claims' map. -/
 theorem srvPropMint_congr (γs : ServerRaftNames) (γi γi' : IdNames) (h : γi.issued = γi'.issued) :
     srvPropMint (GF := GF) γs γi = srvPropMint γs γi' := by
-  unfold srvPropMint idClaim; rw [h]
+  unfold srvPropMint idClaimAny; rw [h]
 
 /-- A list whose image is without repeats is without repeats. -/
 theorem nodup_of_map {α β : Type} (f : α → β) : ∀ {l : List α}, (l.map f).Nodup → l.Nodup

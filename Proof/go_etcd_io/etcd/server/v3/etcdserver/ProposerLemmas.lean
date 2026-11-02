@@ -35,6 +35,10 @@ instance idClaim_timeless (γi : IdNames) (id : w64) (d : List w8) (γf : GName)
     Timeless (idClaim (GF := GF) γi id d γf) := by
   unfold idClaim; infer_instance
 
+instance idClaimAny_timeless (γi : IdNames) (id : w64) (d : List w8) (γf : GName) :
+    Timeless (idClaimAny (GF := GF) γi id d γf) := by
+  unfold idClaimAny; infer_instance
+
 /-- **Claiming a fresh id for the proposal's data mints the data's fresh token**: the data
 decode to a request whose id is `id`, unclaimed until now, so no token of the data exists (every
 token is of data claimed under their id). The claim records the proposer's floor `F` (a certified
@@ -60,14 +64,13 @@ theorem srv_claim_mint (ρ : ReqNames) (E : apply.AEnv GF) (g : Loc) (id : w64) 
   | some u =>
     ihave Hd' := (BigSepM.bigSepM_lookup_acc (Φ := fun d (_u : Unit) => iprop(∃ (rq : apply.IRRModel) (id : w64),
         ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ ∗
-        ∃ γf : GName, idClaim (GF := GF) ρ.ids id d γf)) hF).1 $$ HFs
+        ∃ γf : GName, idClaimAny (GF := GF) ρ.ids id d γf)) hF).1 $$ HFs
     icases Hd' with ⟨⟨%rq', %id', %Hdec, %γ', #Hc⟩, -⟩
     obtain ⟨h1, h2⟩ := Hdec
     rw [Hd] at h1; cases h1
     rw [Hid] at h2; cases h2
     iexfalso
-    ihave #Hca := idClaimAny_of ρ.ids id d γ' $$ Hc
-    iapply idClaim_unclaimed $$ Hca Hu
+    iapply idClaim_unclaimed $$ Hc Hu
   | none =>
     imod idClaim_make ρ.ids g (srvFloorFact E) id d γf (⊤ \ ↑srvMintN) idClusterN_mintN
       $$ Hg Hu %Hp [] with #Hc
@@ -83,12 +86,13 @@ theorem srv_claim_mint (ρ : ReqNames) (E : apply.AEnv GF) (g : Loc) (id : w64) 
       iframe HF'
       iapply (BigSepM.bigSepM_insert (Φ := fun d (_u : Unit) => iprop(∃ (rq : apply.IRRModel) (id : w64),
         ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ ∗
-        ∃ γf : GName, idClaim (GF := GF) ρ.ids id d γf)) hF).2
+        ∃ γf : GName, idClaimAny (GF := GF) ρ.ids id d γf)) hF).2
       iframe HFs
       iexists rq, id
       isplitr
       · ipureintro; exact ⟨Hd, Hid⟩
       iexists γf
+      iapply idClaimAny_of
       iexact Hc
     imodintro
     iexists γf

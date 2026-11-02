@@ -502,7 +502,7 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
       subst this
       iunfold waitRegdOpt
       iframe Hreg
-      ipureintro; intro h; cases h
+      iintro %h; cases h
     ipureintro; exact ⟨HkA, Hvi, Hpo⟩
   inext
   iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre, Hka, HRS⟩, Hpost⟩
@@ -2150,8 +2150,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 `srvClusterBoot_alloc`'s, with the mode-`on` KV invariant `kvInvOn _ _ srvAuthSt0` (and, 5b, the client's
 view of the auth history, `authHistView`) at the start
 chain with auth on; with `server_member_alloc_on`, what `server_new_auth_on`'s caller allocates. -/
-theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) (Φs : w64 → w64 → List w8 → GName → IProp GF) (reg : GName)
+theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (xs : w64 → mvcc.IdxNames) (reg : GName)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
     (HB : BootLog ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps)
     (hcc : ∀ e ∈ LogEntry.toEntries boot 0,
@@ -2159,35 +2159,40 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8))
     (Hpd : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup)
     (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
-      ∃ (γ : SrvRaft) (issued cnt : GName) (γk : KVNames),
-        ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
-          γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
+      ∃ (γ : SrvRaft) (issued cnt wn fs : GName) (γk : KVNames),
+        ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
-          γk.ids.issued = issued ∧ γk.cmp = false⌝ ∗
+          γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧
+          γk.cmp = false⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
         kvInvOn ⟨γ, [], W64 0⟩ γk srvAuthSt0 ∗
         etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries γ.boot))) ∗
+        -- (5b) the client's view of the auth history, at the start
         authHistView γk [srvAuthSt0] ∗
-        idClusterInv issued cnt Φs ∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
+        idClusterInv issued cnt wn fs srvFloorFacts ∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
-        ([∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗
+        ([∗list] id ∈ ps, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([] : List w64) ∗
+          idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) (xs (idPfxOf (W16 (uint.Z id)))) ∗
           nodeBoot γ.cl srvClusterN ps ctxs id ∗
+          -- (2026-10-26, D22 J2) and its snapshot directory, empty (`SrvRaft.snapLoc`)
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
-        [∗list] id ∈ ps, idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) :=
-  srvClusterBootOn_alloc ps ctxs boot Φs reg Hrb Hrb2 HB Hnd Hne Hnz hcc Hpd Hp0
+        -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
+        [∗list] id ∈ ps, idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) :=
+  srvClusterBootOn_alloc ps ctxs boot xs reg Hrb Hrb2 HB Hnd Hne Hnz hcc Hpd Hp0
 
 /-- **A member's names with auth on** (`srvMemberBootOn_alloc`): the mode-`on` KV invariant at
 its names, as `NewServer.specM true`'s `kvInvM true`. -/
 theorem server_member_alloc_on (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w64)
     (cok : GName) :
     ⊢ kvInvOn (GF := GF) ⟨γ, [], W64 0⟩ γk srvAuthSt0 -∗
-      idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) -∗
-      idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) ==∗
+      (idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([] : List w64) -∗
+      idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id)), 0) ==∗
       ∃ ρ : ReqNames,
         ⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧
           ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧
           ρ.rd.kv.cok = cok ∧ ρ.ids.issued = γk.ids.issued ∧ ρ.ids.cnt = cnt ∧
-          ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.hist = γk.hist ∧ ρ.rd.kv.cmp = γk.cmp⌝ ∗
+          ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.hist = γk.hist ∧ ρ.rd.kv.cmp = γk.cmp ∧
+          ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0⌝ ∗
         kvInvM true ⟨γ, [], W64 0⟩ ρ.rd.kv srvAuthSt0 ∗ idShare ρ.ids ∗
         srvReadNamesFreshNK ρ.rd ∗ idWaitTok ρ.ids :=
   srvMemberBootOn_alloc γ cnt γk id cok

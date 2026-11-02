@@ -190,7 +190,8 @@ def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
     -- (2026-10-27, the server port) the node API's boot token of the member and the server's raft
     -- invariant (until then raft's ghost state, its committed bootstrap log and the term budget)
     nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ srvRaftLogInv ρ.rd.raft ∗
-    idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
+    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+    idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
     idShare ρ.ids ∗ idWaitTok ρ.ids ∗
     mvcc.idxFresh E₀.γ.idx ∗
@@ -316,7 +317,8 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
       ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = cmp ∧
       ρ.rd.kv.cmp = cmp⌝ ∗
     nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ srvRaftLogInv ρ.rd.raft ∗
-    idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
+    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+    idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
     idShare ρ.ids ∗ idWaitTok ρ.ids ∗
     mvcc.idxFresh E₀.γ.idx ∗
