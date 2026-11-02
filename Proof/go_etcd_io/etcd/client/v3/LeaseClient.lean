@@ -5,7 +5,7 @@
 `isEtcdLease_of_lessor`: a `*lessor` (`lessorAt l addr`, what `NewLease` returns over a connection
 to `addr`) meets the clients' lease contract (`isEtcdLease`, `cache/v3/InvEtcdTxn.lean`) at any
 etcd model `EM`, given that the server at `addr` registers etcd's specs of `LeaseGrant` and
-`LeaseRevoke` at `EM` (`etcdLeaseGrantSpec`, `etcdLeaseRevokeSpec`: that etcd's server does is the
+`LeaseRevoke` at `EM` (`etcdLeaseGrantSpecAny`, `etcdLeaseRevokeSpec`: that etcd's server does is the
 client lease's stage (c), not done) and serves the keep-alive stream (`leaseKAStreamOk`), and the
 error facts the keep-alive loop's checks need (`eofOk`, `ctxErrClientAll`, `ctxErrTargets`).
 `isEtcdLeaseClient_of_new`: `clientv3.New`'s client (`isNewClient`) has such a `Lease`.
@@ -50,7 +50,7 @@ theorem isEtcdLease_of_lessor
     (wp_KeepAlive : lessor.KeepAlive.spec (GF := GF) (hG := hG))
     (l : Loc) (addr : GoString) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
-      isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant" etcdLeaseGrantSpec ∗
+      isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant" etcdLeaseGrantSpecAny ∗
       isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseRevoke" etcdLeaseRevokeSpec ∗
       leaseKAStreamOk addr ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ⊢
     isEtcdLease (lessorIfaceOf l) := by
@@ -66,10 +66,10 @@ theorem isEtcdLease_of_lessor
     ihave #Hok := ctxOk_of_isContext ctx cs $$ Hctx
     iunfold client.ctxErrClientAll at Hall
     ihave #Hce := Hall $$ %ctx %cs Hctx
-    iapply (wp_Grant l [addr] etcdLeaseGrantSpec
+    iapply (wp_Grant l [addr] etcdLeaseGrantSpecAny
       (fun m => iprop(⌜m.id ≠ W64 0⌝ ∗ etcdReached m.hdr.revision)) ctx cs ttl) $$ []
     · iframe #
-      unfold etcdLeaseGrantSpec
+      unfold etcdLeaseGrantSpecAny
       iintro !> !> %m %Hid #Hr
       simp only
       iframe #
@@ -130,7 +130,7 @@ theorem isEtcdLeaseClient_of_new
     (wp_KeepAlive : lessor.KeepAlive.spec (GF := GF) (hG := hG))
     (cl : Loc) (ep : GoString) (V : client.WEnv GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
-      isGrpcRpc ep go!"/etcdserverpb.Lease/LeaseGrant" etcdLeaseGrantSpec ∗
+      isGrpcRpc ep go!"/etcdserverpb.Lease/LeaseGrant" etcdLeaseGrantSpecAny ∗
       isGrpcRpc ep go!"/etcdserverpb.Lease/LeaseRevoke" etcdLeaseRevokeSpec ∗
       leaseKAStreamOk ep ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ⊢
     isEtcdLeaseClient cl := by

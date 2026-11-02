@@ -11,7 +11,7 @@ triples of `*EtcdServer`'s `LeaseGrant(ctx, r)` and `LeaseRevoke(ctx, r)` (the
 `le: s`), called with the run's resource `S` (given back with every answer), the context of a
 gRPC run (`isContext`, `grpcRunCtx`) and the decoded request (its fields read-only, as the gRPC
 runtime hands it: `leaseGrantReqIs`, `leaseRevokeReqIs`, `pbLeaseGrantRequest.recv`'s form).
-Its answers are fixed, not parameters: what the client's specs (`etcdLeaseGrantSpec`,
+Its answers are fixed, not parameters: what the client's specs (`etcdLeaseGrantSpecAny`,
 `etcdLeaseRevokeSpec`, `client/v3/InvLease.lean`) need and the server's applier gives
 (`leaseGrantAns`, `leaseRevokeAns`): an error `togRPCError` can take (`srvErrIs`), or a non-nil
 response whose header (`leaseHdrAns`) has its four id fields owned (`hdrW`: the handler's

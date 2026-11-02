@@ -257,6 +257,12 @@ what changed.
   update); `dispatchAnswer`'s arm the grant's `leaseGrantedAt E.γ.leases i id` and its header; every
   open case an `lg`-gated row of `NewServer` (`%Hslg`'s pattern), so `lg = false` results keep their
   trust base.
+- **B2, the user's decision (2026-11-02): tie the lessor to the table.** A revision of S1: the
+  narrow stage plus the leases plan's L3b invariant brought forward, the lessor's live set equal to
+  the KV model's lease table (`L = lt.ids`, `leasesLive`), so a grant's success is a function of the
+  applied log and the rest model steps exactly by `restGrant`; leased puts and the results at
+  `kvModelSt γk Lq` stay later. (`notes/decisions.md`, "The lease-grant stage's choices".) The
+  analysis before the decision:
 - **B2 (where the apply thread's grant facts come from). Partly done.** `leasesNoExpiry` now comes
   from `NewServer` (the gated row `%Hslg`, carried to `run`; S1). Not done: the rest model's step on
   a grant entry (`restGrant`, as `restRevoke`), `E.RW`'s accounting against `isApplyLessor`'s Grant
@@ -287,9 +293,13 @@ what changed.
   header and `etcdLeaseGrantAt`: per member because `LeaseLeases` is a member-local read
   (`v3_server.go:737-749`); several endpoints would need the contracts at every member. `γl` not
   hidden behind the address (optional; left).
-- **S6.** Done for the server-side siblings (B1). The client contracts `etcdLeaseGrantSpecL`/
-  `etcdLeaseLeasesSpecL` beside the frozen ones remain: the review asks the user to choose (derive
-  the frozen ones from them, or a gated row in the frozen reply). **Open, for the user.**
+- **S6.** Done for the server-side siblings (B1). The client contracts: **the user's decision
+  (2026-11-02): replace, derive the old.** Done: `etcdLeaseGrantSpec γl`/`etcdLeaseLeasesSpec γl`
+  (`client/v3/InvLeaseGrant.lean`) are the former `…L` contracts; the old statements are renamed
+  `etcdLeaseGrantSpecAny`/`etcdLeaseLeasesSpecAny` (frozen: text unchanged, a name change) with
+  `etcdLeaseGrantSpec_any`, `etcdLeaseLeasesSpec_any`, `isGrpcRpc_leaseGrant_any`,
+  `isGrpcRpc_leaseLeases_any` (a registration at the new is one at the old). Callers (leasekv,
+  `LeaseClient`, the client's `Results`, `LeaseReadServed`) renamed only.
 - **M1.** Done: `lessorOk`'s `ExpiredLeasesC` payload is `False` (`InvApplier.lean`); derived by
   `isChanBag_iff` (`LessorOk.lean`, a local law of Perennial's `isChanBag`,
   `notes/perennial-changes.md`); `run`'s two receives use it directly.
@@ -302,4 +312,58 @@ what changed.
 - **M5.** Left for Freeze (the coordinator's instruction): the three `bounds-check` matches of
   `examples/leasegrant`.
 - **M6.** Done: `lessorLb_max`, `leaseGrantedAt_lb_max` (`InvLessor.lean`).
+
+## B1/B2 in place, with the tie: the work, in commits that each build (2026-11-02; next)
+
+**Where it stopped** (2026-11-02, commit after `762e0e8bfa`): the decisions are recorded (here and
+`notes/decisions.md`, "The lease-grant stage's choices"), S6 is done (the client contracts
+replaced, the old derived). Nothing of B1/B2's in-place admission is in code yet: the commits below
+are the plan, from the survey of the definitions (sites counted 2026-11-02). Every commit: full
+build, `etc/tcb-report.py --check` (only `runSnapLgOk_open`, `leasegrant.Main.wp_proof` new) and
+every collection `--reuse --check` unchanged.
+
+1. **`AEnv.lg` and the bundled row.** Add `lg : Bool := false` to `apply.AEnv` (`Chain.lean:372`, as
+   `cmp := false`); `srvEnvOk` ties it to `ρ.rd.kv.lg`. Replace `runSnapLgOk` by one sealed bundle
+   `@[no_expose] def srvGrantOpen : Prop` (`InvRun.lean`): `runSnapLgOkBody` ∧ the open grant cases
+   of commits 3-5 as they are added (each a named field, `srvGrantOpen_snap`, ...), the row
+   `%Hslg : ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen`, carried as now
+   (`isServerBuilt(On)`, `isServerRun(On)`, `memberBoot(On)`), and in addition into `isServerApplyAll`
+   (the apply thread's `applyEntryNormal`, which needs it for a grant entry). `runSnapLgOk_open`
+   becomes `srvGrantOpen_open` (one `sorry`, leasegrant only).
+2. **`rqOk` in place** (126 sites, 26 files, most in `uberApplier__dispatch.lean` (44),
+   `DispatchKVL.lean` (23), `DispatchAdmin.lean` (13)): `rqOk (lg : Bool) log rq`, the
+   `.leaseGrant` arm `lg = true ∧ grantKindOk rq` (`dispatchKind = .leaseGrant`, no admin permission,
+   the grant's `id ≠ 0`; the id's freshness and the TTL bound are not premises: the tie makes the
+   outcome a function of the table), every other arm unchanged; `rqOk false log rq ↔` the old
+   (`rqOk_false`, by `rfl` per arm). Mechanical: every site passes `E.lg` (or `false` where it has
+   no `E`); the proofs' `.leaseGrant` case was `False.elim`, now `hlg ▸` on `E.lg = false`, except in
+   `dispatch` (commit 4). `plainCover`'s grant arm likewise behind `lg` (`KVModelDefs.lean:72`), its
+   lemmas (`backendTable_plain`) take `lg = false` or are restated to `backendTable` stepping.
+3. **`reqPropOk(W)` in place** (`InvRequest.lean:574, 733`; and `reqPropOkOn`/`reqPropOkM`/`D`):
+   a disjunct `⌜γk.lg = true ∧ grantKindOk rq⌝ ∗ Qr = (the grant's table step)`; the request path
+   (`raftRequest`, `processInternalRaftRequestOnce`) carries it unchanged for `lg = false`.
+4. **`dispatchAnswer` with the lessor's name** (143 sites of `dispatchAnswer`/`dispatchResult`/
+   `applyResultIs`; `InvUber.lean:299`): a parameter `γl`, the `.leaseGrant` arm (was `_ => True`)
+   `∃ r, resp = *LeaseGrantResponse r ∗ (err = nil ∗ grant's fields ∗ leaseGrantedAt γl i id ∨
+   err ≠ nil ∗ (the table refuses it, ¬ leaseGrantOk lt id ttl, or the quota's ErrNoSpace))`.
+   **`ErrNoSpace`**: the quota applier answers `ErrNoSpace` after a successful grant when the
+   backend's size is over the quota (`quota.go`'s `Available` checked after the call); the server's
+   `apply.backendUnderQuota` premise is what makes that branch dead, so the arm states
+   `granted ↔ err = nil` *under* `backendUnderQuota` (the fact the proof has, through `isQuota`'s
+   `Available` premise), and the disjunct is otherwise `err = ErrNoSpace ∧ granted`. Proof: the five
+   layers' `LeaseGrant` triples exact (`applierTriples`), `isApplyLessor`'s Grant clause (already
+   exact) at `L = lt.ids` (the tie, 5). Open case in a granting cluster: a field of `srvGrantOpen`.
+5. **The tie (B2).** In the apply thread's invariant (`applyRes`/`srvApplyInv`), the lessor's live
+   set is the table: `leaseOwn γl L I ∗ ⌜L = (kvLeases γk A).ids⌝` (the leases plan's `leasesLive`),
+   true at boot (both empty). The grant entry steps the rest model by `restGrant mt id ttl`
+   (`RestLease.lean:31`, with `minLeaseTTL` named in `ReqNames`) exactly when `leaseGrantOk` (the
+   table's step `backendTable`), and `E.RW`: the Grant clause consumes the lease bucket's write
+   right; in a granting cluster the apply thread lends it per grant from `srvRestRW` and gets it
+   back after the batch (`lessorBackend`'s `T` split: `storeWT` ∗ `lessorBeOn`), which needs
+   `lease.lessor.Grant.spec` to return `lessorBeOn` (a change to a proved spec; its proof gives it
+   back already after `Unlock`). `revokeClause`'s `restRevoke` is the pattern.
+6. **The specs carrying the grant.** `dispatch.spec`, `processInternalRaftRequestOnce.spec`,
+   `raftRequest.spec`: their result's `dispatchAnswer` at `E.γ.leases` gives the grant's
+   `leaseGrantedAt` (no second spec). Then `EtcdServer.LeaseGrant.wp_proof` over `raftRequest.spec`,
+   `lessorGrantOkL_of_server`, `kv_lease_grant_served`, `leasegrant.Main.wp_proof` (the Prove stage).
 

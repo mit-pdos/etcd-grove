@@ -18,7 +18,7 @@ conn` (a `*retryLeaseClient` over one), `lessorRemoteAt l addr` (what `Grant`, `
 keep-alive loop read of a `*lessor`: its `remote`, a retry lease client over a connection to
 `addr`, and its call options, both fixed since `NewLeaseFromLeaseClient`).
 
-**etcd's specs** (`etcdLeaseGrantSpec`, `etcdLeaseRevokeSpec`; predicate transformers, at any etcd
+**etcd's specs** (`etcdLeaseGrantSpecAny`, `etcdLeaseRevokeSpec`; predicate transformers, at any etcd
 model `EM`): whatever the request, a reply message whose header revision etcd has reached
 (`etcdReached`), and for a grant a lease ID other than `NoLease` (`0`): what `isEtcdLease`
 promises of `Grant` and `Revoke`. That etcd's server registers them (`EtcdServer.LeaseGrant`,
@@ -201,9 +201,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [EM : EtcdModel GF]
 
-/-- **etcd's spec of `LeaseGrant`** (see the file header): any request gets a reply whose lease ID
-is not `NoLease` and whose header revision etcd has reached. -/
-def etcdLeaseGrantSpec : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
+/-- **etcd's old spec of `LeaseGrant`** (see the file header): any request gets a reply whose lease
+ID is not `NoLease` and whose header revision etcd has reached. Since the lease-grant review's S6
+(2026-11-02) a corollary of the contract `etcdLeaseGrantSpec` (`client/v3/InvLeaseGrant.lean`, which
+adds the grant's fact: `isGrpcRpc_leaseGrant_any`); kept for its callers. -/
+def etcdLeaseGrantSpecAny : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
   fun (_ : w64 × w64) (Φ : LeaseGrantRespM → IProp GF) =>
     iprop(∀ m : LeaseGrantRespM, ⌜m.id ≠ W64 0⌝ -∗ etcdReached m.hdr.revision -∗ Φ m)
 

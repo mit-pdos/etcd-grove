@@ -175,11 +175,11 @@ theorem Main.wp_proof
     as %lctx %lcd %lcancel ⟨#Hlcancel, #Hlctx, #Hlce, -⟩
   (try wp_auto)
   -- `cli.Lease.Leases(lctx)`, `Q`: the IDs have no duplicate
-  wp_apply (wp_Leases lp [go!"127.0.0.1:23936"] etcdLeaseLeasesSpec
+  wp_apply (wp_Leases lp [go!"127.0.0.1:23936"] etcdLeaseLeasesSpecAny
       (fun m => iprop(⌜m.ids.Nodup⌝)) lctx lcd) as %lsr %lerr Hls
   · iframe #
     imodintro; inext
-    iunfold etcdLeaseLeasesSpec
+    iunfold etcdLeaseLeasesSpecAny
     iintro %m %Hm
     ipureintro; exact Hm
   -- `lcancel()`

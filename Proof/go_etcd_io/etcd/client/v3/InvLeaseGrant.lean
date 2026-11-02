@@ -2,8 +2,11 @@
 **etcd's specs of `LeaseGrant` and `LeaseLeases` at the lessor's history** (the lease-grant plan's
 D5, 2026-11-02, `notes/lease-grant-plan.md`). Lean-first (no Rocq counterpart).
 
-Siblings of `etcdLeaseGrantSpec` and `etcdLeaseLeasesSpec` (left as they are: the examples that use
-them need no more), for a server whose lessor `γl` is monotone (it grants leases and revokes none,
+The contracts of the two methods (the user's decision on the review's S6, 2026-11-02: replace, and
+derive the old): stronger than the ones before (now `etcdLeaseGrantSpecAny`, `etcdLeaseLeasesSpecAny`,
+`InvLease.lean`/`InvLeaseRead.lean`), which follow (`isGrpcRpc_leaseGrant_any`,
+`isGrpcRpc_leaseLeases_any`: a registration at these is one at those), so their callers keep
+them. For a server whose lessor `γl` is monotone (it grants leases and revokes none,
 `lease.lessorModeIs γl true`, under the deployment premise `lease.leasesNoExpiry`):
 
 * `LeaseGrant`'s reply carries the persistent fact that its lease was granted at some index of the
@@ -50,7 +53,7 @@ variable [EM : EtcdModel GF]
 /-- **etcd's spec of `LeaseGrant` at the lessor `γl`** (see the file header): any request gets a
 reply whose lease ID is not `NoLease`, whose header revision etcd has reached, and whose lease was
 granted at some index of the lessor's history (one member's: see the file header). -/
-def etcdLeaseGrantSpecL (γl : GName) :
+def etcdLeaseGrantSpec (γl : GName) :
     GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
   fun (_ : w64 × w64) (Φ : LeaseGrantRespM → IProp GF) =>
     iprop(∀ m : LeaseGrantRespM, ⌜m.id ≠ W64 0⌝ -∗ etcdReached m.hdr.revision -∗
@@ -67,11 +70,42 @@ variable [sem : go.Semantics]
 /-- **etcd's spec of `LeaseLeases` at the lessor `γl`** (see the file header): the caller's grants
 `G` (each granted at some index of this member's lessor: the listing is member-local, see the file
 header) are all listed, and no lease twice. -/
-def etcdLeaseLeasesSpecL (γl : GName) :
+def etcdLeaseLeasesSpec (γl : GName) :
     GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse :=
   fun (_ : Unit) (Φ : LeaseLeasesRespM → IProp GF) =>
     iprop(∃ G : List w64, ([∗list] id ∈ G, ∃ i : Nat, lease.leaseGrantedAt γl i id) ∗
       ∀ m : LeaseLeasesRespM, ⌜m.ids.Nodup ∧ ∀ id ∈ G, id ∈ m.ids⌝ -∗ Φ m)
+
+/-- (S6) The old `LeaseGrant` contract is weaker. -/
+theorem etcdLeaseGrantSpec_any [EM : EtcdModel GF] (γl : GName) (m : w64 × w64)
+    (Φ : LeaseGrantRespM → IProp GF) :
+    etcdLeaseGrantSpecAny (GF := GF) m Φ ⊢ etcdLeaseGrantSpec γl m Φ := by
+  unfold etcdLeaseGrantSpecAny etcdLeaseGrantSpec
+  iintro H %r Hid Hr -
+  iapply H $$ Hid Hr
+
+/-- (S6) The old `LeaseLeases` contract is weaker (the caller hands in no grant). -/
+theorem etcdLeaseLeasesSpec_any (γl : GName) (m : Unit) (Φ : LeaseLeasesRespM → IProp GF) :
+    etcdLeaseLeasesSpecAny (GF := GF) m Φ ⊢ etcdLeaseLeasesSpec γl m Φ := by
+  unfold etcdLeaseLeasesSpecAny etcdLeaseLeasesSpec
+  iintro H
+  iexists ([] : List w64)
+  isplitr
+  · iapply BigSepL.bigSepL_nil.2; iempintro
+  iintro %r %h
+  iapply H; ipureintro; exact h.1
+
+/-- (S6) **A registration of `LeaseGrant` at the contract is one at the old contract.** -/
+theorem isGrpcRpc_leaseGrant_any [EM : EtcdModel GF] (addr : GoString) (γl : GName) :
+    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant" (etcdLeaseGrantSpec (GF := GF) γl) ⊢
+      isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant" etcdLeaseGrantSpecAny :=
+  isGrpcRpc_mono _ _ _ _ (etcdLeaseGrantSpec_any γl)
+
+/-- (S6) **A registration of `LeaseLeases` at the contract is one at the old contract.** -/
+theorem isGrpcRpc_leaseLeases_any (addr : GoString) (γl : GName) :
+    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec (GF := GF) γl) ⊢
+      isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" etcdLeaseLeasesSpecAny :=
+  isGrpcRpc_mono _ _ _ _ (etcdLeaseLeasesSpec_any γl)
 
 end specsL
 

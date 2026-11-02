@@ -5,7 +5,7 @@ Lean-first (no Rocq counterpart).
 The `*quotaLeaseServer`'s `LeaseTimeToLive` and `LeaseLeases` (the embedded `*LeaseServer`'s,
 promoted: `v3rpc.quotaLease_ttlHandlerOk`, `quotaLease_leasesHandlerOk`), `LeaseServer`'s (the
 server's call, then the header filled; linked over the contract `v3rpc.raftLeaseRead`), meet the
-client's specs `etcdLeaseTTLSpec`/`etcdLeaseLeasesSpec` (`InvLeaseRead.lean`), as the grant's and
+client's specs `etcdLeaseTTLSpec`/`etcdLeaseLeasesSpecAny` (`InvLeaseRead.lean`), as the grant's and
 revoke's meet theirs (`Results.lean`, `etcd_leaseGrantHandlerOk`):
 
 * `etcd_leaseTTLHandlerOk`: the handler's answer (`leaseTTLOut`) is about the asked lease (its
@@ -168,7 +168,7 @@ theorem etcd_leaseLeasesHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
         auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ⊢
       grpcHandlerOk (lp @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseLeases")
-        iprop(S ∗ A.revR) etcdLeaseLeasesSpec := by
+        iprop(S ∗ A.revR) etcdLeaseLeasesSpecAny := by
   iintro ⟨#Pv, #Hat, #HL, #Hn, #Hm⟩
   unfold grpcHandlerOk
   iintro %req %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hrev⟩, #Hctx, #Hrc, -, Hspec⟩ HΨ
@@ -215,7 +215,7 @@ theorem etcd_leaseLeasesHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
         iexists w.Header', w.Leases', ps
         iframe #
         ipureintro; exact ⟨Hhn, Hlen⟩
-      · iunfold etcdLeaseLeasesSpec at Hspec
+      · iunfold etcdLeaseLeasesSpecAny at Hspec
         iapply Hspec
         ipureintro; exact Hnd
     · iunfold v3rpc.leaseHdrDone at Hh
@@ -246,7 +246,7 @@ theorem etcd_leaseLeasesHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
         · ipureintro; rfl
         iapply BigSepL.bigSepL_nil.2
         itrivial
-      · iunfold etcdLeaseLeasesSpec at Hspec
+      · iunfold etcdLeaseLeasesSpecAny at Hspec
         iapply Hspec
         ipureintro; exact List.nodup_nil
   · imodintro
@@ -344,7 +344,7 @@ def etcdLeaseReadMethods (q : Loc) : List (GrpcMethod GF) :=
      interface.mkOk (go.GoType.PointerType
        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q⟩,
    ⟨go!"/etcdserverpb.Lease/LeaseLeases", pbLeaseLeasesRequest, pbLeaseLeasesResponse,
-     GrpcSpec.md etcdLeaseLeasesSpec, (@! etcdserverpb._Lease_LeaseLeases_Handler),
+     GrpcSpec.md etcdLeaseLeasesSpecAny, (@! etcdserverpb._Lease_LeaseLeases_Handler),
      interface.mkOk (go.GoType.PointerType
        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q⟩]
 
@@ -398,12 +398,12 @@ theorem etcd_leaseReadMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   ihave #Hl := etcd_leaseLeasesHandlerOk lp s A cid mid E γl iprop(E.RD ∗ threadTok) 0 0 $$ []
   · iframe #
   ihave #Ht' := grpcHandlerOk_slot _ _ _ _ etcdLeaseTTLSpec h1 h2 $$ Ht
-  ihave #Hl' := grpcHandlerOk_slot _ _ _ _ etcdLeaseLeasesSpec h1 h2 $$ Hl
+  ihave #Hl' := grpcHandlerOk_slot _ _ _ _ etcdLeaseLeasesSpecAny h1 h2 $$ Hl
   ihave #Hqt := v3rpc.quotaLease_ttlHandlerOk etcdLeaseTTLSpec q s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩
     iprop((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ threadTok) $$ [Hq Ht']
   · iframe #
-  ihave #Hql := v3rpc.quotaLease_leasesHandlerOk etcdLeaseLeasesSpec q s
+  ihave #Hql := v3rpc.quotaLease_leasesHandlerOk etcdLeaseLeasesSpecAny q s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩
     iprop((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ threadTok) $$ [Hq Hl']
   · iframe #
@@ -429,7 +429,7 @@ theorem etcd_leaseReadMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
 calls. -/
 def etcdLeaseReadAt (addr : GoString) : IProp GF :=
   iprop(isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseTimeToLive" etcdLeaseTTLSpec ∗
-    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" etcdLeaseLeasesSpec)
+    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" etcdLeaseLeasesSpecAny)
 
 instance etcdLeaseReadAt_persistent (addr : GoString) :
     Persistent (etcdLeaseReadAt (GF := GF) addr) := by

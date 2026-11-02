@@ -6,8 +6,8 @@ lease-grant plan's D5, 2026-11-02, `notes/lease-grant-plan.md`). Lean-first (no 
 (`srvGrantsLeases`: the KV names' `lg` and auth off, two scope restrictions; conditional, through
 `NewServer`'s gated row, on the deployment premise `lease.leasesNoExpiry`), with also `LeaseGrant`
 and `LeaseLeases` registered at the specs at the lessor's history (`etcdLeaseGrantAt`): a grant's
-reply carries its lease's grant (`etcdLeaseGrantSpecL`), and a listing lists every grant the caller
-hands in (`etcdLeaseLeasesSpecL`). The Lease service's `LeaseGrant` handler calls the server's
+reply carries its lease's grant (`etcdLeaseGrantSpec`), and a listing lists every grant the caller
+hands in (`etcdLeaseLeasesSpec`). The Lease service's `LeaseGrant` handler calls the server's
 (`v3rpc.lessorGrantOkL_of_server`). Not proved (Draft).
 
 Why one member's lessor (review S5): the contracts name `E.γ.leases`, this member's, not a
@@ -50,8 +50,8 @@ history** (persistent). Per member, not per cluster: `LeaseLeases` is a member-l
 the file header). -/
 def etcdLeaseGrantAt (addr : GoString) (E : apply.AEnv GF) : IProp GF :=
   iprop(isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant"
-      (etcdLeaseGrantSpecL (EM := v3rpc.etcdModelOfServer E) E.γ.leases) ∗
-    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpecL E.γ.leases))
+      (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E) E.γ.leases) ∗
+    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec E.γ.leases))
 
 instance etcdLeaseGrantAt_persistent (addr : GoString) (E : apply.AEnv GF) :
     Persistent (etcdLeaseGrantAt addr E) := by

@@ -8,8 +8,8 @@ takes, at KV names that grant leases (`KVNames.lg = true`: a variant of `common.
 `common.StartServer`; `go holdToken()` (`wp_fork_tok_self`); `common.Serve` with the ghost step
 `common.kv_lease_grant_served` (the lease reads and grants registered at the address);
 `common.NewClient`; each call's context with the request timeout (`client.wp_WithTimeout_bg`);
-`cli.Lease.Grant(600)` (at `etcdLeaseGrantSpecL`: `Q` keeps the reply's lease granted at an index
-of the lessor's history, `leaseGrantedAt`); `cli.Lease.Leases()` (at `etcdLeaseLeasesSpecL`, handing
+`cli.Lease.Grant(600)` (at `etcdLeaseGrantSpec`: `Q` keeps the reply's lease granted at an index
+of the lessor's history, `leaseGrantedAt`); `cli.Lease.Leases()` (at `etcdLeaseLeasesSpec`, handing
 in `[g.ID]` with its grant: `Q`, the reply lists it) and the loop's check. Every step's error ends
 `Main` (`return`).
 -/

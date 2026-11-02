@@ -29660,3 +29660,32 @@ what came of them:
   `checkCompactRev` (a function of its own, so that `Main`'s two branches after its first watch
   call it once each): the permit's `kvRevLbZ (c + 1)`, the read-side law's counter bound
   (`roundsInv_revLb`), a latest `Get` at least it (`client_Get_rev`, `getRevAu_round`).
+
+## The lease-grant stage's choices (2026-11-02 · the user's decisions · branch `lease-grant`)
+
+`examples/leasegrant` (Grant, then Leases; `notes/lease-grant-plan.md`). The user's decisions, in
+order:
+
+- **S1 (scope): the narrow stage, then the tie.** The grant through the request path and the apply
+  thread, the client's grant fact, the listing; not leased puts, nor the results at the committed
+  model `kvModelSt γk Lq` (both later, the leases plan's L3b part 2). Revised by the tie below.
+- **S2 (expiry): a deployment premise.** `lease.leasesNoExpiry` (no lease the cluster grants
+  expires while the program runs), taken by `Main.spec` and, since the review, by `NewServer` in its
+  row gated on `KVNames.lg = true`; the expiry loop's payload refutes it, so `run`'s receive is dead.
+- **B1 (the review): in place, gated.** No mode-indexed sibling predicates or second specs: `rqOk`,
+  `reqPropOk(W)` and `dispatchAnswer` are redefined in place, the grant admitted only in a cluster
+  that grants (`lg = true`), `False`/unchanged otherwise, so a non-granting server's statements mean
+  what they did (the compaction stage's precedent). An open case of a granting cluster is a named
+  hypothesis of `NewServer`'s gated row (`runSnapLgOk`'s pattern), so no other result's trust base
+  moves.
+- **B2 (the review): tie the lessor to the table.** The leases plan's L3b invariant brought
+  forward: the lessor's live set is the KV model's lease table (`L = lt.ids`), so a grant's success
+  is a function of the applied log and the server's rest model steps exactly by `restGrant`.
+  (Rejected: the lease bucket out of the exact rest model in a granting cluster, which would lose the
+  rest image's exactness there.)
+- **S6 (the review): replace, derive the old.** `etcdLeaseGrantSpec`/`etcdLeaseLeasesSpec` are the
+  stronger contracts (the grant's `leaseGrantedAt`; the listing of the caller's grants), the old
+  statements kept as `etcdLeaseGrantSpecAny`/`etcdLeaseLeasesSpecAny` with laws deriving them from a
+  registration at the new ones (`isGrpcRpc_leaseGrant_any`, `isGrpcRpc_leaseLeases_any`); their
+  callers (leasekv, the client's results) keep the old contracts under the new names.
+

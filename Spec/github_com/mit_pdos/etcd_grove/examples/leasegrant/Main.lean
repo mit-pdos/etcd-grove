@@ -9,7 +9,7 @@ Rocq counterpart).
 (`Start` forks the server's goroutines) and `Main`'s named premises (`leasegrant.premises`,
 `Proof/github_com/mit_pdos/etcd_grove/examples/leasegrant/Defs.lean`), `Main()` returns: it does not
 panic: the lease `Grant` returns was granted at an index of the lessor's history
-(`etcdLeaseGrantSpecL`), and `Leases()` lists every lease granted before it (`etcdLeaseLeasesSpecL`:
+(`etcdLeaseGrantSpec`), and `Leases()` lists every lease granted before it (`etcdLeaseLeasesSpec`:
 the lessor of a cluster that grants leases is monotone).
 
 **The pure premises:** as `leasekv`'s (`Spec/github_com/mit_pdos/etcd_grove/examples/leasekv/Main.lean`):
