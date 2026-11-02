@@ -51,6 +51,52 @@ theorem mvccState_reachable_proof : mvccState_reachable.law (GF := GF) := by
   icases H with ⟨-, -, -, -, -, -, -, %Hr⟩
   ipureintro; exact Hr
 
+/-- A write transaction pins the state (here always to its own: the writer's halves of the abstract
+log and the pending revision agree with the client's, its compaction revision with the client's). -/
+theorem mvccTxn_write_agree_proof : mvccTxn_write_agree.law (GF := GF) := by
+  intro t γ trace σ pend σ'
+  iintro ⟨Ht, Hs⟩
+  iunfold mvccTxn at Ht
+  iunfold mvccTxnI at Ht
+  icases Ht with ⟨%mw, %s, %puts, %deletes, %putSize, %Hpl, #Hmv, Htx, -, -⟩
+  obtain ⟨hp, -, hc⟩ := Hpl
+  ihave #Hmv1 := Hmv
+  iunfold isMvccI at Hmv1
+  icases Hmv1 with ⟨-, %Hf, -⟩
+  obtain ⟨habs, -⟩ := Hf
+  iunfold mvccState at Hs
+  iunfold mvccStateI at Hs
+  icases Hs with ⟨Hga, Hgp, Hgc, -, -, -, -, %Hreach⟩
+  icases isTxnWrite_wrAt mw s γ.st trace σ.log pend puts deletes putSize σ.crev iprop(True) false
+    $$ Htx with ⟨Hwr, Htx⟩
+  iunfold wrAt at Hwr
+  icases Hwr with ⟨HaW, HpW⟩
+  isimp only [absAt, habs, ↓reduceIte] at HaW
+  isimp only [pndAt, habs, ↓reduceIte] at HpW
+  ihave %Hl := ghostVar_agree γ.st.abs _ _ _ _ $$ HaW Hga
+  ihave %Hp := ghostVar_agree γ.st.pnd _ _ _ _ $$ HpW Hgp
+  have hcr : -1 ≤ σ'.crev := Hreach.1.crev_ge
+  have hfin : σ.crev = σ'.crev → σ.pending = none ∧ (σ' = σ ∨ σ' = σ.notify pend) := by
+    intro h
+    refine ⟨hp, Or.inl ?_⟩
+    cases σ with
+    | mk l c p =>
+      cases σ' with
+      | mk l' c' p' =>
+        simp only at Hl Hp h hp ⊢
+        subst Hl h hp
+        rw [← Hp]
+  ihave Htx := Htx $$ [HaW HpW]
+  · simp only [wrAt, absAt, pndAt, habs, ↓reduceIte]; iframe HaW HpW
+  cases hcm : γ.st.cm
+  · isimp only [hcm, Bool.false_eq_true, ↓reduceIte] at Hgc
+    icases Hgc with %Hgc
+    ipureintro; exact hfin (by rw [hc hcm, Hgc])
+  · isimp only [hcm, ↓reduceIte] at Hgc
+    ihave %Hcc := isTxnWrite_crev mw s γ.st trace σ.log pend puts deletes putSize σ.crev iprop(True)
+      false _ σ'.crev hcr $$ [$Htx $Hgc]
+    ipureintro; exact hfin Hcc
+
 /-- The watchable store's store. -/
 theorem isWatchableMvcc_store_proof : isWatchableMvcc_store.law (GF := GF) := by
   intro ws γ
