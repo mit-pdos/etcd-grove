@@ -29249,3 +29249,23 @@ opening the store's invariant at names the restore is changing.
   the unmarshal error). The server's callers are at `KBReal.P` (alarm tracked). The fix, in the
   trusted step's draft (J): `P.RB "alarm" = true` and `P.has mvcc.alarmBI`, also on the proved
   `AlarmStore.Recover`.
+
+## The backend for the auth split: the user's decisions on the second questions (2026-11-02 · the user's · `notes/backend-auth-split-plan.md`, "The user's decisions on the Freeze's second questions")
+
+- **An applied change in meaning of trusted axioms** (Q3, accepted until the trusted step): since
+  decision 3's representation, `rbOwn γ r` also says every tracked bucket of `r` is among `γ.rbD`
+  (the backend's tracked names, fixed at `New`: the table's tracked buckets and the opened data's).
+  `lease.NewLessor`, `v3alarm.NewAlarmStore` and `auth.NewAuthStore` (applied, text unchanged)
+  return `rbOwn` of `r` with their bucket inserted, so they now also assert that bucket is among
+  `γ.rbD`: false for a backend whose table lacks it. Harmless: (1) no law of the vocabulary lets a
+  client derive that a name is outside `γ.rbD`, nor anything from a name's being in it beyond what
+  the lock's side agrees with, so nothing false follows from the extra claim; (2) the dependence was
+  there in substance before (the lock's side only ever reaches a created bucket through
+  `UnsafeCreateBucket.spec`, which needs `P.has`); (3) every caller is at a server backend, whose
+  table has the rest buckets (the lease's by `leaseParams`, the others by the schema's bucket list).
+  The trusted step adds the premise (`P.has` of each created bucket).
+- **The strong `membersDecode`** (Q1): the model's members have their keys as ids along the applied
+  log (`restModel_memIdOk`, proved); the boot's do not as `memBoot` stands (`ccMemberOf`'s id is
+  opaque), so the trusted step proposes `memBoot` with `ccMemberAt`, as Go's bootstrap members are.
+  The weak form is not needed: Go never stores a member under another id's key.
+- Q2, Q4–Q7 as the plan note lists them.

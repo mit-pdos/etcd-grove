@@ -438,3 +438,20 @@ forgeable flag, round 3 unpinned ghost names in the membership texts, round 4 `r
 untracked bucket, each fixed in the draft; the last not re-reviewed). With the trusted step: the
 `import all` gate on the backend's modules (part of the readers' trust base), the creators' table
 premises, the pool's stock counts, `New`/`OpenBackend` giving `rbOwnIn`.
+
+## The user's decisions on the Freeze's second questions (2026-11-02)
+
+1. **Q1, `membersDecode`: the strong form**, with the invariant `memIdOk` (a member's id is its
+   key) proved. Applied: `RestMemId.lean`, `restModel_memIdOk` (the applied log keeps it, from a
+   boot that has it). The boot does not, as the model stands: `memBoot` keeps `ccMemberOf cc.context`,
+   whose `id` is opaque; the trusted step proposes `memBoot` with `ccMemberAt` (Go's bootstrap
+   members are keyed by their own id), a trusted-text change (`bks-trusted.md` §18).
+2. **Q2**: `threadTok` threaded through the apply-thread specs (`applyAll`, `applySnapshot`,
+   `applyConfChange`, `NewServer`).
+3. **Q3**: the applied creators' dependence on `γ.rbD` accepted until the trusted step adds the
+   table premises (`notes/decisions.md`).
+4. **Q4**: the stock's consumers restated over `rdStockN`; the slot count left in specs between is
+   a later Bounds cleanup (`notes/bounds-plan.md`).
+5. **Q5**: `backend.Snapshot` unchanged.
+6. **Q6**: `etc/api/backend.txt` and the `import all` gate land with the trusted step (drafted now).
+7. **Q7**: §2–§10's docstrings written in full in the draft.
