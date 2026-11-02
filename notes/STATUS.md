@@ -527,6 +527,9 @@ porcupine has to return its linearization.
   data with the model's own error, a cached object held by the key at its revision, Get's minimum),
   errors through laws. Found: the store trusts a cached object at the current resource version
   (`issues/k8s-etcd3-cached-object-trusted-at-current-rv.md`).
+- (2026-11-02) Prophecies added in Lean only, proved sound: Perennial branch `proph-erasure`
+  (`withProph`, `goose_adequacy_withProph`, the example `prophkv`); `notes/perennial-changes.md`,
+  "Prophecies in Lean only". Whole-program prophecies only, so far.
 
 ## M2, the storage side (2026-10-30, branch `m2-storage`)
 

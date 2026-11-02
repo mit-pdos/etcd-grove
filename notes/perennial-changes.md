@@ -1339,3 +1339,30 @@ P -∗ P v -∗ ▷ Φ -∗ nonblockingSendAuInner γ v Φ` is proved locally
 (`Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/BagSend.lean`, generic). Proposed change:
 the lemma in `Bag.lean`, next to `bag_send_au`.
 
+
+### Prophecies in Lean only: `withProph` and `goose_adequacy_withProph` (2026-11-02)
+
+- **Missing.** A proof that needs a prophecy variable the Go code does not have (the etcd3 store's
+  `Get`, whose read update fires at several states; `notes/k8s-etcd3-plan.md`, phase 7) had to
+  instrument the Go code (the etcd fork's `goose-lean-getproph`, `Apply`'s `ResolveU64`s), with
+  an informal argument that `primitive.NewProph`/`ResolveU64` are no-ops.
+- **Done (Perennial branch `proph-erasure`, pushed, not landed).** `withProph e`
+  (`Perennial/GooseLang/ProphInstrument.lean`) runs the program `e` unchanged under a prophecy of
+  its result; `goose_adequacy_withProph` gives `goose_adequacy`'s conclusions about the real
+  executions of `e` from a WP of `withProph e`, same bounds, proved (standard axioms only), no
+  change to the semantics (`etc/trusted-delta.py`: the new modules are tier 2). `wp_withProph`
+  (`Golang/Theory/WithProph.lean`) hands the proof of `e` the prophesied list. End-to-end example
+  `goose/testdata/examples/prophkv` (`GetAny` reads twice and returns one answer chosen afterwards;
+  its logically atomic spec takes a prediction; `prog_safe` is about the program without the
+  prophecy).
+- **Limitation.** The prophecy is the *whole program's* result, resolved at its end; a function
+  that needs its own prophecy (one per call, as `kubernetes.Client.Get` would) takes the
+  prediction as a ghost argument of its spec, supplied from a top-level prophecy, which works only
+  when the program's result determines what each call's prophecy must predict. Per-call
+  instrumentation of a function's body is not covered: instrumented closures (from the function
+  table) would reach Go instructions, whose semantics is an axiomatized relation over all models
+  (`GoLocalContext.is_go_step_pure` with the `go.Semantics` axioms, some deterministic over
+  arbitrary values), so their steps on instrumented and erased values cannot be related in
+  general. Making that work needs either a value-bijection argument over every `go.Semantics`
+  axiom, or prophecy values (and instrumented closures) kept out of Go instructions by the
+  semantics; neither is attempted.
