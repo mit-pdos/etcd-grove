@@ -1,0 +1,30 @@
+# github.com/anishathalye/porcupine at PR #46 (third_party/porcupine-dag): the checker
+# (checker.go, dag.go, bitset.go), the consistency vocabulary (consistency.go), the models
+# (model.go) and the CheckOperations entry points (porcupine.go), with bodies; not the
+# event-history entry points (CheckEvents*, checkEvents, renumber, convertEntries), the
+# general `Check*Consistency` entry points, nor the visualizer (visualization.go), whose types
+# only are translated (Annotation is a field of LinearizationInfo).
+translate = ["!*",
+  "entryKind", "callEntry", "returnEntry", "entry", "entries", "LinearizationInfo", "Annotation",
+  "byTime", "byTime.Len", "byTime.Swap", "byTime.Less", "makeEntries", "cacheEntry",
+  "fillDefault", "checkParallel", "checkOperations",
+  "operationHistory", "clientOperation", "newclientOperation", "client",
+  "chains", "chains.computeFirstUnk", "chains.addToFrontier", "chains.removeFromFrontier",
+  "chains.isComplete", "newChains", "stackEntry", "client.lift", "client.unlift",
+  "chains.lift", "chains.unlift", "checkSingle",
+  "prime", "bitset", "newBitset", "bitset.clone", "bitsetIndex", "bitset.set",
+  "bitset.clear", "bitset.hash", "bitset.equal",
+  "OperationKind", "Read", "Write", "RMW", "UnknownOp",
+  "Operation", "EventKind", "CallEvent", "ReturnEvent", "Event", "Model",
+  "NondeterministicModel", "merge", "NondeterministicModel.ToModel", "noPartition",
+  "noPartitionEvent", "shallowEqual", "defaultDescribeOperation", "defaultDescribeState",
+  "defaultDescribeOperationMetadata", "CheckResult", "Unknown", "Ok", "Illegal",
+  "OrderKind", "DontKnow", "HardBefore", "SoftBefore", "Concurrent", "SoftAfter", "HardAfter",
+  "Oracle", "Validity", "Consistency", "Consistency.Check", "GeneralLikely", "RealTime",
+  "LinearizabilityOracles", "RealTimeWrites", "OrderedSequentialConsistencyOracles", "RVal",
+  "Linearizability", "OrderedSequentialConsistency",
+  "CheckOperations", "CheckOperationsTimeout", "CheckOperationsVerbose"]
+imports = ["!*", "context", "errors", "fmt", "sort", "strings", "time"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

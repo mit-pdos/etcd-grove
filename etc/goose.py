@@ -777,6 +777,22 @@ PROJECTS = [
         owned=[os.path.join("github_com", "anishathalye")],
     ),
     Project(
+        name="porcupine-dag",
+        # porcupine's open pull request #46 (practical-systems-iitd/porcupine 29a6b8e6c, "Support
+        # system-specific consistency models via DAG-based execution"), vendored beside v1.3.1
+        # with the one change that makes it translatable (third_party/porcupine-dag/UPSTREAM.md).
+        # Translated into the parallel tree PorcupineDag (modules PorcupineDag.Code.github_com.
+        # anishathalye.porcupine, ...), which nothing outside it imports: the same Go path as
+        # project porcupine; configured by PorcupineDag/Code/**.toml.
+        repo=None,
+        rev=None,
+        local=os.path.join("third_party", "porcupine-dag"),
+        root="PorcupineDag",
+        lean_roots=["github.com/anishathalye/porcupine=PorcupineDag"],
+        packages=["."],
+        owned=[os.path.join("github_com", "anishathalye")],
+    ),
+    Project(
         name="bridge",
         # etcd's integration tests' TCP bridge between a client and a member (tests/framework/
         # integration/bridge.go at the etcd pin), vendored with an exported constructor
