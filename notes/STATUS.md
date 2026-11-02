@@ -597,7 +597,10 @@ only; `Unlock` takes any part and returns it idle (`Unlock.bare`, `UnlockBare.le
 statement); `rbSide` sealed and `rbSide_idle` private, so only `Unlock` clears a flag (no
 `etc/api/backend.txt` gate yet). Held for the trusted step: the readers' axioms taking `rbOwnIn`, `New`/`OpenBackend`
 giving the idle token, decision 2's pool, `premise_buckets`' consumer (`AuthSplitDraft.lean`).
-The revised trusted restatements are drafted for the user's approval, not applied. Later stage:
+Also applied: `restModel_memIdOk` (`RestMemId.lean`, Q1's strong `membersDecode`: the members'
+ids are their keys along the log). The revised trusted restatements (revision 4: the user's
+decisions of 2026-11-02, §2–§12 in full, §18 `memBoot` with `ccMemberAt`, the `import all` gate) are
+drafted for the user's approval, not applied. Later stage:
 option (a), the read model over the tracked hook buckets (the plan note).
 
 ## The lease keep-alive entry point (2026-11-01, branch `lease-renew`; frozen and proved)
