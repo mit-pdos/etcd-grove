@@ -66,6 +66,36 @@ theorem candList_init (hok : ChainsOk h cs) (hwf : CallLeRet h) {fr : List Nat}
   · rintro ⟨x, h1, h2, rfl, h3⟩
     exact ⟨x, (hmem x).mpr ⟨h1, h2, h3⟩, rfl⟩
 
+theorem chain_eq_getElem {i : Nat} (hi : i < cs.length) : chain cs i = cs[i] := by
+  unfold chain; simp [List.getD_eq_getElem?_getD, hi]
+
+/-- The chains hold the partition's operations: their lengths add up to its size (`numOps`). -/
+theorem chains_length_sum (hok : ChainsOk h cs) : (cs.map List.length).sum = h.length := by
+  have hnd : cs.flatten.Nodup := by
+    unfold List.Nodup
+    rw [List.pairwise_flatten]
+    refine ⟨fun l hl => ?_, ?_⟩
+    · obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hl
+      have := (hok.1 i).1
+      rw [chain_eq_getElem hi] at this
+      exact this
+    · rw [List.pairwise_iff_getElem]
+      intro i j hi hj hij x hx y hy hxy
+      subst hxy
+      have := hok.2.2 x i j (by rw [chain_eq_getElem hi]; exact hx)
+        (by rw [chain_eq_getElem hj]; exact hy)
+      omega
+  have hperm : cs.flatten.Perm (List.range h.length) := by
+    refine (List.perm_ext_iff_of_nodup hnd List.nodup_range).mpr fun y => ?_
+    rw [List.mem_flatten, List.mem_range, hok.2.1 y]
+    constructor
+    · rintro ⟨l, hl, hy⟩
+      obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hl
+      exact ⟨i, hi, by rw [chain_eq_getElem hi]; exact hy⟩
+    · rintro ⟨i, hi, hy⟩
+      exact ⟨cs[i], List.getElem_mem hi, by rw [chain_eq_getElem hi] at hy; exact hy⟩
+  rw [← List.length_flatten, hperm.length_eq, List.length_range]
+
 /-- `nDeps` at no operation linearized: the clients whose operations precede the first. -/
 theorem deps_init {c : Nat} (hl : 0 < (chain cs c).length) :
     deps h cs (List.replicate cs.length 0) c =
@@ -119,6 +149,44 @@ theorem chainsInv_init [GooseExts] {h : List (Op OpV)} {cs : List (List Nat)} (h
     exact ⟨h1, by rw [hhd]; exact h2⟩
   · rw [hfr]
     exact candList_init hok hwf (by rw [← hfr]; exact hpw) hmem
+
+section heap
+open Iris Iris.BI Iris.ProofMode
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
+
+/-- `firstUnks` cut into `n` pieces of `nc` ints, one per operation id. -/
+theorem ownSlice_pieces (s : GoSlice) (nc n : Nat) (hb : ((n * nc : Nat) : Int) < 2 ^ 63) :
+    (slice.slice s w64 (W64 0) (W64 ((n * nc : Nat) : Int)) ↦*
+        List.replicate (n * nc) (W64 0) : IProp GF) ⊢
+      ([∗list] y ∈ List.range n,
+        slice.slice s w64 (W64 ((y * nc : Nat) : Int)) (W64 (((y + 1) * nc : Nat) : Int)) ↦*
+          List.replicate nc (W64 0) : IProp GF) := by
+  induction n with
+  | zero =>
+    simp only [List.range_zero]
+    exact BigSepL.bigSepL_nil_intro
+  | succ n ih =>
+    have hle : n * nc ≤ (n + 1) * nc := Nat.mul_le_mul_right _ (Nat.le_succ n)
+    have hb' : ((n * nc : Nat) : Int) < 2 ^ 63 := by omega
+    iintro H
+    have hn : sint.nat (W64 ((n * nc : Nat) : Int)) = n * nc := by word
+    have hz : sint.nat (W64 0) = 0 := rfl
+    icases (ownSlice_split (W64 ((n * nc : Nat) : Int)) s (DFrac.own 1) _ (W64 0)
+      (W64 (((n + 1) * nc : Nat) : Int)) ⟨by word, by word, by word⟩).1 $$ H with ⟨H1, H2⟩
+    rw [hn, hz, Nat.sub_zero, List.take_replicate, List.drop_replicate,
+      Nat.min_eq_left hle,
+      show (n + 1) * nc - n * nc = nc by rw [Nat.succ_mul]; omega]
+    rw [List.range_succ]
+    iapply BigSepL.bigSepL_snoc.2
+    isplitl [H1]
+    · iapply (ih hb') $$ H1
+    · iexact H2
+
+end heap
 
 end github_com.anishathalye.porcupine
 end Perennial
