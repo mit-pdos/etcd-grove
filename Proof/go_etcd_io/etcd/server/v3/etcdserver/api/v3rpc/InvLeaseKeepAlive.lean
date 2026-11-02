@@ -21,7 +21,7 @@ token (`leaseCheckT`, the check over a token, as the watch stream's `watchAuthed
 the stream's metadata). **Margins**: the response's header is not stated (the shared wire model
 keeps none of it, so nothing of its revision); a TTL of `0` carries nothing; nothing of the
 renewal itself (that the lease was renewed, its TTL); the verdict is the local member's lessor's,
-which on a follower can lag the leader's (`issues/etcd-lease-renew-keys-follower-lag.md`); a failed
+which on a follower can lag the leader's (`nonissues/etcd-lease-renew-keys-follower-lag.md`); a failed
 `Send` may have delivered its response.
 -/
 module

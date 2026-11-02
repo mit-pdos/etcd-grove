@@ -8,7 +8,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// TestStaleSnapshotLivelock reproduces issues/raft-snapshot-without-recipient-livelock.md with
+// TestStaleSnapshotLivelock reproduces nonissues/raft-snapshot-without-recipient-livelock.md with
 // raft alone (RawNode, MemoryStorage, a lossless in-memory network, run step by step): a
 // one-voter cluster takes a snapshot and compacts its log, then adds a second voter. The
 // newcomer needs the log from index 1, which is compacted away, so the leader sends it its

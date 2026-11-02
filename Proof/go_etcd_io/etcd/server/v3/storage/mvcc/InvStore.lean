@@ -657,7 +657,7 @@ def keyRangeReadSpec (rt : GoInterfaceOk) (m : Bucket) (Rd : GoSlice → GoStrin
 `lo` holding `klo` and `hi` a non-empty `khi`, under the reader's token `Tok`: entries of the
 snapshot `m` with a key in `[klo, khi)`, in key order, some of them: a sublist of the range (with
 `n` entries in the read buffer the real read returns bbolt's first `limit - n`, then the buffer's,
-`issues/etcd-unsafe-range-limit-buffer.md`; all of them with no limit, `keyRangeReadSpec`). -/
+`nonissues/etcd-unsafe-range-limit-buffer.md`; all of them with no limit, `keyRangeReadSpec`). -/
 def keyRangeLimSpec (rt : GoInterfaceOk) (m : Bucket) (Rd : GoSlice → GoString → IProp GF)
     (Tok : IProp GF) (cl : Bool := false) : IProp GF :=
   iprop(∀ (b : GoInterface) (lo hi : GoSlice) (klo khi : GoString) (dqlo dqhi : DFrac) (lim : w64),
@@ -757,7 +757,7 @@ records no compaction, `kbNoCmp`) its reads of the `Meta` bucket's compaction ke
 (`metaReadSpec … true`; given back: the backend-compaction stage, 2026-10-29, in place of the axiom
 `kbNoCmp_metaNone`). (`rng` is false for a `ConcurrentReadTx`, whose range
 of a safe-range bucket can return a key twice over a stale cached read buffer: 2026-10-13, unit 5,
-`issues/etcd-backend-read-buffer-cache-stale-after-commit.md`.) -/
+`nonissues/etcd-backend-read-buffer-cache-stale-after-commit.md`.) -/
 def keyReadLocked (RT NC : IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : Bucket)
     (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool := false) : IProp GF :=
   iprop(□ ({{ Tok }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); RT }}) ∗
@@ -1189,7 +1189,7 @@ one `Meta` put after a start below the backend's `P.limit ≤ 2^57`) stays withi
 abbrev rangeLimitMax : Int := 2 ^ 56
 
 /-- **The store's batch limit** (the configuration's `CompactionBatchLimit`; `NewStore`'s premise): not
-negative (`issues/etcd-compaction-negative-batch-limit.md`: `NewStore` replaces `0` by the default,
+negative (`nonissues/etcd-compaction-negative-batch-limit.md`: `NewStore` replaces `0` by the default,
 and a negative one makes the job's loop run forever: its range then reads nothing and the
 loop never reaches its end condition), and at most `rangeLimitMax` (the
 backend-compaction stage's scope premise, decision O3 and review round 2: the job's range then
@@ -1432,7 +1432,7 @@ session (the backend's bound on a session's operations), a key of `1..MaxKeySize
 every key of the bucket `m` and of the session's puts `l` (the safe-range discipline of the
 `Key` bucket, and `UnsafeSeqPut`'s order check). (No bound on the value: bbolt refuses one above
 `MaxValueSize` and the backend's `lg.Fatal` exits:
-`issues/etcd-backend-put-value-too-large-fatal.md`.) -/
+`nonissues/etcd-backend-put-value-too-large-fatal.md`.) -/
 def keyPutOk (m : Bucket) (l : Puts) (k _v : GoString) : Prop :=
   l.length < 2 ^ 56 ∧ 0 < k.length ∧ k.length ≤ backend.maxKeySize ∧
     (∀ k' v', m.lookup k' = some v' → go.GoStringLt k' k) ∧ ∀ p ∈ l, go.GoStringLt p.1 k
@@ -3999,7 +3999,7 @@ theorem muHeld_cmp_idx (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
 
 /-- A store (persistent): its lessor, logger, and the two locks' guards; and what compaction uses:
 the configuration (a positive `CompactionBatchLimit`: the job's loop needs it to end,
-`issues/etcd-compaction-negative-batch-limit.md`), the hash storage. **Nothing of its objects and
+`nonissues/etcd-compaction-negative-batch-limit.md`), the hash storage. **Nothing of its objects and
 physical names** (D22 receiver epochs, S5b, 2026-10-22: until then the backend of its instance
 `γ.kb`, registered, with the batch lock's deposit witness, the batch lock's invariant `hookP`, the
 index, the scheduler, at the pinned objects): they are the current ones, which `store.Restore`

@@ -1,153 +1,54 @@
 ---
 upstream: known
-checked: 2026-10-26
+checked: 2026-11-01
 links:
-  - etcd-io/etcd#21969 issue closed: same bug (progress broadcast sends on a canceled substream's closed recvc); closed as stale (not planned), not fixed
-  - etcd-io/etcd#22191 pr open: same bug, fix (delete the substream from substreams after close(recvc)); no review, needs ok-to-test
-  - etcd-io/etcd#21981 pr closed: same fix, closed unmerged
+  - etcd-io/etcd#21969 issue closed: this bug (progress broadcast sends on a canceled watch's closed channel); closed as stale (not planned), not fixed
+  - etcd-io/etcd#22191 pr open: the fix (drop the watch from the stream's map when its channel is closed); no review, needs-ok-to-test, labeled stale
+  - etcd-io/etcd#21981 pr closed: the same fix, closed unmerged
+blocks-proof: yes
 ---
 
-# The watch client's progress broadcast can send on a canceled substream's closed `recvc`
+# clientv3: a progress notification right after a watch is canceled can crash the client with "send on closed channel"
 
-- **Status**: fixed in the verified fork (known upstream, not fixed there: see the front matter;
-  etcd-io/etcd#22191 proposes the same fix): `goose-lean` `107edf7e4`, the
-  cherry-pick of `1ac646214` (signed off since as `57d502f38`) (branch `watch-progress-closed-substream` of the fork, on upstream
-  `f061acd09`): `run`'s `Canceled` case removes the substream from `substreams` when it closes its
-  `recvc`, so `broadcastResponse` never reaches it; the commit adds the regression test
-  `TestWatchProgressBroadcastAfterServerCancel` (`client/v3/watch_progress_cancel_test.go`), which
-  panics on every run without the fix. The reproduction below (3000 trials) no longer panics with it
-  (731 trials reached the broadcast).
-- **Where**: `client/v3/watch.go` at `upamanyus/etcd` `bc8b52a50` (the same code as upstream
-  `main`; the pinned `457b8d1b6` adds one line at 868, shifting the later lines by one):
-  `watchGRPCStream.run` (the `Canceled` case, lines 620–629: `close(ws.recvc)` for a substream
-  still in `substreams`), `dispatchEvent` (724–742: a response with no events, watch id `-1` and
-  a revision is broadcast), `broadcastResponse` (745–753: `select { case ws.recvc <- wr: case
-  <-ws.donec: }` for every substream in `substreams`), `watcher.RequestProgress` (413–444).
-- **What happens**: a substream whose watch context was canceled exits (`serveSubstream`
-  returns, closes `donec`, and blocks on `closingc`) but stays in `substreams` until `run` takes
-  it from `closingc`. Meanwhile:
-  1. an event for its id cannot be dispatched (`donec` is closed), so `run` sends a cancel
-     request for the id;
-  2. the server answers it with a `Canceled` response (etcd's `recvLoop` does), and `run`, finding
-     the id in `substreams`, closes the substream's `recvc`; the substream is still in
-     `substreams`;
-  3. the application calls `RequestProgress` (on any context with the same outgoing metadata, so
-     on the same gRPC stream); etcd answers with a progress response of watch id `-1` (when every
-     watcher of the stream is synced), which `run` broadcasts to every substream:
-     `broadcastResponse` selects between a send on the closed `recvc` and a receive on the
-     closed `donec`: if Go picks the send, **`panic: send on closed channel`** in `run`'s
-     goroutine, which is not recovered: the process crashes.
+The Go client panics (`send on closed channel` in its watch goroutine, not recovered: the process
+exits) when a progress notification for the stream arrives after the member has answered the cancel
+of a watch whose context was canceled with an event in flight, and before the client has torn that
+watch down. No stream failure is needed: canceling watches and calling `RequestProgress` on the same
+client (Kubernetes' API server does both) is enough, given the scheduling.
 
-  No stream failure is needed: a watch canceled with events in flight, followed closely by a
-  progress request (Kubernetes' API server, for one, requests progress on its watch streams
-  periodically), is enough, given the select choices of steps 1–3.
+**Reproduction:** `TestWatchProgressAfterServerCancel` in
+[`issues/etcd-watch-progress-closed-substream/watch_progress_cancel_test.go`](etcd-watch-progress-closed-substream/watch_progress_cancel_test.go),
+copied into `client/v3` at etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28),
+go1.27.3 linux/amd64. A fake `pb.WatchClient` (through the public `NewWatchFromWatchClient`) plays
+the member as etcd answers: the created response, an event after the watch's context is canceled, the
+`Canceled` answer to the client's cancel request, then a progress response (watch ID -1); up to 3000
+trials.
 
-  Reproduction (a test of the package with the fake `pb.WatchClient` of
-  `etcd-watch-resume-closing-substream.md`, whose test file must be in the same overlay: it
-  defines the fake). Run without touching the tree with `go test -overlay overlay.json -run
-  TestWatchProgressAfterServerCancel .` from `client/v3/`, the overlay mapping
-  `client/v3/zz_watch_resume_closing_test.go` and `client/v3/zz_watch_progress_cancel_test.go`
-  to the two files:
+```
+$ go test . -run '^TestWatchProgressAfterServerCancel$' -count=1
+panic: send on closed channel
+goroutine 756 [running]:
+go.etcd.io/etcd/client/v3.(*watchGRPCStream).broadcastResponse(...)
+	client/v3/watch.go:747
+go.etcd.io/etcd/client/v3.(*watchGRPCStream).dispatchEvent(0x14d0bebcc270, 0x14d0bebc4c00)
+	client/v3/watch.go:738 +0x26b
+go.etcd.io/etcd/client/v3.(*watchGRPCStream).run(0x14d0bebcc270)
+	client/v3/watch.go:638 +0x62c
+FAIL	go.etcd.io/etcd/client/v3	7.208s
+```
 
-  ```go
-package clientv3
+## Proof
 
-import (
-	"context"
-	"testing"
-	"time"
+yes: the verified fork carries the fix (`upamanyus/etcd` `107edf7e4`, from `7fc17d0aa` on the fork's
+branch `watch-progress-closed-substream`, the same change as #22191); `run`'s invariant needs a
+watch whose channel is closed to be out of the broadcast set
+(`Proof/go_etcd_io/etcd/client/v3/InvWatch.lean`, `WatchClientModel.lean`).
 
-	"go.uber.org/zap"
+## Notes
 
-	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
-	"go.etcd.io/etcd/api/v3/mvccpb"
-)
-
-// One trial: a watch is canceled with an event in flight, the server answers the cancel
-// request run() sends (run() closes the substream's recvc, the substream still registered),
-// and a progress request's broadcast response (watch id -1) reaches run() before the closing
-// substream does: broadcastResponse selects between a send on the closed recvc and the
-// closed donec.
-func progressTrial() (int, error) {
-	fc := &fakeWatchClient{streams: make(chan *fakeWatchStream, 4)}
-	c := &Client{}
-	c.lg.Store(zap.NewNop())
-	w := NewWatchFromWatchClient(fc, c)
-	ctx, cancel := context.WithCancel(context.Background())
-	chc := make(chan WatchChan, 1)
-	go func() { chc <- w.Watch(ctx, "a") }()
-	s1 := <-fc.streams
-	if _, err := waitSent(s1); err != nil {
-		return 0, err
-	}
-	s1.recv <- fakeRecv{resp: &pb.WatchResponse{Header: &pb.ResponseHeader{Revision: 1}, WatchId: 1, Created: true}}
-	s1.gate <- struct{}{}
-	<-chc
-	go w.RequestProgress(context.Background())
-	if _, err := waitSent(s1); err != nil {
-		return 1, err
-	}
-	cancel()
-	ev := &mvccpb.Event{Kv: &mvccpb.KeyValue{Key: []byte("a"), ModRevision: 2}}
-	s1.recv <- fakeRecv{resp: &pb.WatchResponse{Header: &pb.ResponseHeader{Revision: 2}, WatchId: 1, Events: []*mvccpb.Event{ev}}}
-	time.Sleep(settle)
-	s1.gate <- struct{}{}
-	r, err := waitSent(s1)
-	if err != nil || r.GetCancelRequest() == nil {
-		return 2, errTrialLost
-	}
-	// The server answers the cancel; a progress request waits on reqc.
-	s1.recv <- fakeRecv{resp: &pb.WatchResponse{Header: &pb.ResponseHeader{Revision: 2}, WatchId: 1, Canceled: true}}
-	go w.RequestProgress(context.Background())
-	time.Sleep(settle)
-	s1.gate <- struct{}{}
-	if r, err := waitSent(s1); err != nil || r.GetProgressRequest() == nil {
-		return 3, errTrialLost
-	}
-	// The server answers the progress request as etcd's does when every watcher is synced:
-	// a response with watch id -1 and no events, broadcast by the client.
-	s1.recv <- fakeRecv{resp: &pb.WatchResponse{Header: &pb.ResponseHeader{Revision: 2}, WatchId: -1}}
-	time.Sleep(settle)
-	s1.gate <- struct{}{}
-	time.Sleep(settle)
-	return 4, errTrialLost
-}
-
-// TestWatchProgressAfterServerCancel crashes the test binary with "panic: send on closed
-// channel" (watch.go, broadcastResponse) once the scheduler picks the interleaving above.
-func TestWatchProgressAfterServerCancel(t *testing.T) {
-	var lost [8]int
-	for i := 0; i < 3000; i++ {
-		st, err := progressTrial()
-		lost[st]++
-		if err != errTrialLost {
-			t.Fatal(err)
-		}
-	}
-	t.Logf("no panic; trials lost at each stage: %v", lost)
-}
-  ```
-
-  Output at the pinned revision (three runs of three crashed, each in its first trials):
-
-  ```
-  panic: send on closed channel
-  	/shared/etcd/client/v3/watch.go:747
-  	/shared/etcd/client/v3/watch.go:738 +0x26b
-  ```
-  (`watch.go:747` is `broadcastResponse`'s send, `738` `dispatchEvent`'s call of it.)
-- **Expected**: `RequestProgress` is safe to call at any time (its documentation states no
-  restriction); a canceled substream is never sent to.
-- **How the proof handles it** (before the fix; the watch slice's unit W-K verifies the fixed
-  code): `watcher.RequestProgress` is not verified (its calls can make `run` panic, so no spec of it
-  holds), and the derived watcher contract
-  (`isEtcdRangeWatcher`, `notes/status-history.md`, "W-C") is for a watcher on which no progress request
-  is sent: `run`'s invariant keeps every request it sent a create or a cancel, and the server's
-  stream specification sends a response of watch id `-1` only in answer to a progress request.
-- **Possible fixes**: in the `Canceled` case, remove the substream from `substreams` when its
-  `recvc` is closed (`closeSubstream` then finds nothing to delete), or do not close `recvc` there
-  for a substream that is already `closing`; or have `broadcastResponse`/`unicastResponse` skip a
-  substream marked closed.
-- **Found**: 2026-10-15, the watch slice's unit W-C (`run`'s invariant: a substream in
-  `substreams` whose `recvc` is closed must receive nothing more; the per-id case is the server's
-  (no response for an id after its `Canceled`), the broadcast case is not).
+With #22191 applied at the base (head 34aa7c606), the test no longer panics (4 runs, 3000 trials
+each); the package's goroutine-leak check then fails the run on the trials' leftover fake streams,
+which the test does not clean up (a cleanup to add before the test goes upstream). #22191's
+fix introduces [etcd-watch-resume-stale-canceled-id](../nonissues/etcd-watch-resume-stale-canceled-id.md)
+unless it also resets the watch's ID. Same root cause, second trigger:
+[etcd-watch-resume-closing-substream](etcd-watch-resume-closing-substream.md).

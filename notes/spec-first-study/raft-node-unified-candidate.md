@@ -20,7 +20,7 @@ Changes from candidate 9 (review 9): H1 `CreateSnapshot` over a persistent `stor
 from `Advance`), its triple written out, the term fixed in the post; H2 `applyChange` is Go's, `WellFormed`
 for the empty membership, `ownCfgPairM` and the assembly law; H3 the server's re-certification an
 obligation in the plan (U10); H4 the `MsgSnap` index bound in `SentMsgShape`; H5 the plan's text; H6 nits:
-reviews 1..9, `nodeStorage` gone (not needed); H7 filed (`issues/raft-committedentries-stable-storage-doc.md`).
+reviews 1..9, `nodeStorage` gone (not needed); H7 filed (`nonissues/raft-committedentries-stable-storage-doc.md`).
 
 Changes from candidate 8 (review 8): G1/G2/G5 today's storage specs kept, `CreateSnapshot` bounded by the
 node's delivered log instead of the floor (`storWriter`/`storCommittedAt` withdrawn); G3 the length law
@@ -256,7 +256,7 @@ Common premises as today, each citing its reason in the file's docstring: `Confi
 `AsyncStorageWrites = false` (asynchronous writes unverified: `issues/raft-async-snapshot-during-apply-divergence.md`);
 `ReadOnlyOption = 0` (lease reads assume bounded clock drift); `DisableConfChangeValidation = false`;
 `DisableProposalForwarding = false`; `MaxCommittedSizePerReady ≠ 0 ∨ MaxSizePerMsg ≠ 0`
-(`issues/nonissues/raft-zero-max-size-per-msg.md`); `Applied = 0` (no restart: durability out of scope);
+(`issues/raft-zero-max-size-per-msg.md`); `Applied = 0` (no restart: durability out of scope);
 `MaxInflightMsgs < 2^62`. `PreVote`, `CheckQuorum`, `StepDownOnRemoval` free. No credits.
 
 - `StartNode.spec`: storage empty with an empty initial `ConfState`; `nodeBoot γ N ps ctxs cv.ID'`;
@@ -315,7 +315,7 @@ goroutines keeps its proof; a client that is the storage's sole writer keeps the
 snapshot index, which rules the error out), with one change to `CreateSnapshot`'s bound:
 
 - (Candidate 10, review 9's H1: a delivered entry is not necessarily appended: in the synchronous mode a
-  `Ready` hands out committed entries of its own `Entries`, `issues/raft-committedentries-stable-storage-doc.md`.)
+  `Ready` hands out committed entries of its own `Entries`, `nonissues/raft-committedentries-stable-storage-doc.md`.)
   A persistent storage-level witness:
   ```lean
   /-- (A new field of `class StorageModel`, which every storage instance proves; candidate 11, J4.) The

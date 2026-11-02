@@ -919,7 +919,7 @@ D14f) and the mode `M`:
 This is the store's view of the backend's contract (`authBatchTxLkR`, which states `Lock()` and
 `Unlock()` without the admin side's authority: `authBatchTxLk_of_R`).
 The records' sizes are not bounded here (the real backend's put of a record above bbolt's value
-bound is fatal: `issues/etcd-auth-record-too-large-fatal.md`, the premise `authRecordsFit` of
+bound is fatal: `nonissues/etcd-auth-record-too-large-fatal.md`, the premise `authRecordsFit` of
 `NewAuthStore`'s axiom, which the derivation of this contract from the real backend will take). -/
 def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
     (Lk : AuthState → IProp GF → IProp GF) : IProp GF :=
@@ -1060,7 +1060,7 @@ keeps the token and the authority.
   thread, whose batch transactions write back at `Unlock` (D22 discharges it).
 - `GetAllRoles()` is schema's batch transaction (`BatchTx()`, `Lock()`, `UnsafeGetAllRoles`,
   `Unlock()`: `LockInsideApply` runs the hook, so the hook's post `Post`): its read
-  transaction's twin panics (`issues/etcd-auth-readtx-getallroles-panics.md`), the batch
+  transaction's twin panics (`nonissues/etcd-auth-readtx-getallroles-panics.md`), the batch
   transaction's range of the roles' bucket does not. -/
 def authBackendReads (bi : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) :
     IProp GF :=

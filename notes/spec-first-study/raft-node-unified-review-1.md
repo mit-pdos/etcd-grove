@@ -4,7 +4,7 @@ Reviewer: a fresh reviewer (`spec-repair --review-only` rubric), 2026-10-28.
 
 Commit under review: `kv-snap-reconf` at `08b9b323b0`, the `HEAD` of the worktree
 `.claude/worktrees/raft-spec-review`. The only commit after `c495edc0e1` (kvreconf's Go) is `08b9b323b0`.
-It touches only `issues/raft-conf-lag-model/fork-v3.7-applied-snap-config.patch` and `notes/STATUS.md`, so no
+It touches only `notes/raft-conf-lag-model/fork-v3.7-applied-snap-config.patch` and `notes/STATUS.md`, so no
 finding below is stale. (Written in the reviewer's own worktree, which the isolation allowed; the brief's
 path is `notes/spec-first-study/raft-node-unified-review-1.md` in `raft-spec-review`.)
 
@@ -143,7 +143,7 @@ This is D1's announced next step (`notes/STATUS.md`, "Kept for now (D1)").
   dynamic mode takes no `MsgSnap`.
 - kvreconf's `startNew` calls `raft.RestartNode` on a fresh `MemoryStorage` with an empty `ConfState`.
 - Go accepts this: `Restore` of an empty `ConfState`, and the node is not promotable. See also
-  `issues/raft-conf-lag-model/joiner_empty_confstate_test.go`.
+  `notes/raft-conf-lag-model/joiner_empty_confstate_test.go`.
 
 **Restatement**
 
@@ -334,7 +334,7 @@ none⌝ ⊢ |==> nodeConfig n γ N {v with applied := k+1}`.
 
 **Configuration premises.** `StartNode`'s and `RestartNode`'s 10 configuration premises are labelled
 "`NewRawNode`'s premises (unchanged)". Only `MaxCommittedSizePerReady ≠ 0 ∨ MaxSizePerMsg ≠ 0` has a source
-(`issues/nonissues/raft-zero-max-size-per-msg.md`). The uncited ones:
+(`issues/raft-zero-max-size-per-msg.md`). The uncited ones:
 - `DisableProposalForwarding = false`;
 - `ReadOnlyOption = 0`;
 - `DisableConfChangeValidation = false`;
@@ -419,7 +419,7 @@ proof concession. It is uncited too.
 
 ### `MemoryStorage.*`, `InvMemstorage`, `MemstorageAU`, `InvStorage`
 
-- **Keep:** `Compact`'s `ci ≤ ss.index` (cited: `issues/raft-compact-past-snapshot.md`); the registry
+- **Keep:** `Compact`'s `ci ≤ ss.index` (cited: `nonissues/raft-compact-past-snapshot.md`); the registry
   certificates.
 - **Findings:** F10, F11, F13 (`cap`, `γs.ak`); F1 (cap 1).
 - `MemstorageAU`'s second triples are the STATUS D4 follow-up.
@@ -478,7 +478,7 @@ kvreconf meets the configuration premises (F14).
 
 - **`doc.go:94-99` versus `node.go:179-183`.** `doc.go` says `ApplyConfChange` "must be called one way or
   the other"; `node.go` says it "must not be called" for a rejected change. This is noted only inside
-  `issues/upstream/raft-advance-before-applyconfchange/meta.md:202-204` ("left alone"), and there is **no
+  `issues/raft-advance-before-applyconfchange.md:202-204` ("left alone"), and there is **no
   `issues/` file of its own**. One should be written; this review did not write it.
 - **Nothing new otherwise.** kvreconf's exposures are all recorded:
   - `raft-snapshot-during-apply-stale-confchange` (with the a2 fix);

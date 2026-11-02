@@ -10,7 +10,7 @@ model `M` (`Theory.SeqModel`) over abstract states `σ`, whose operations are th
 `(input, output)` pairs of interface values, with what a Go state value represents
 (`rep k v s`, not necessarily persistent: the model's closures may write to a state value, as
 etcd's robustness model sorts its states in place in `Equal`,
-`issues/etcd-robustness-model-equal-mutates.md`; each closure is given the `rep`s it reads and
+`nonissues/etcd-robustness-model-equal-mutates.md`; each closure is given the `rep`s it reads and
 gives them back, of the same abstract states) and what an operation's input and output own
 (`ioOk i o`, persistent: the model's `Step` may read memory they point to, e.g. etcd's requests
 and responses). The checker keeps a state value in several places (its stack, its cache): it

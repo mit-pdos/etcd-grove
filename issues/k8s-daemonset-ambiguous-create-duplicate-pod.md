@@ -4,113 +4,96 @@ checked: 2026-10-26
 links:
   - kubernetes/kubernetes#86140 pr merged: removed the timeout special case (so a timed-out create lowers the expectation); its review accepted "an extra pod will be created and healed on the next sync"
   - kubernetes/kubernetes#138181 pr merged: the same assumption for deletes ("any failure to delete the pod means that we will never observe the delete"); not this bug
-  - kubernetes/kubernetes#139657 pr open: the robustness framework whose MaxOnePodPerNode this breaks; its injected faults never reach the server
+  - kubernetes/kubernetes#139657 pr open: the controller robustness framework whose MaxOnePodPerNode this breaks; its injected faults never reach the server (still open 2026-11-01, head now 806c3e93)
   - kubernetes/enhancements#5647 issue open: KEP-5647, which tracks only successful writes; does not discuss writes with unknown outcome
-candidate: issues/upstream/k8s-daemonset-ambiguous-create-duplicate-pod/
+blocks-proof: no
 ---
 
-# The DaemonSet controller creates a second pod on a node after a pod create that failed but committed
+# DaemonSet controller creates a second pod on a node after a pod create that is committed but returns an error
 
-- **Status**: a bug. Two pods of one DaemonSet exist on one node for a while, a transient safety
-  violation. It needs a pod create that the API server committed but whose call returned an error:
-  a 504 from the apiserver's request timeout, a 500 wrapping etcd's "request timed out", or a lost
-  response.
-  - The KEP-5647 consistency store (`StaleControllerConsistencyDaemonSet`, on by default since
-    1.36) stops the controller from acting on a pod cache that is behind its own writes, but it
-    records only writes that succeeded.
-  - The expectations are lowered on the error, so they do not guard the next sync either.
-  - The controller deletes the extra pod once its cache sees both, so the window is one cache lag,
-    plus the extra pod's graceful deletion.
-  - Reproduced deterministically on the real kube-apiserver and etcd (below).
-- **Where**: kubernetes/kubernetes at `13ecb9cc` (the head of kubernetes/kubernetes#139657 on
-  2026-10-26; these lines are the same on master, the PR does not change them):
-  - `pkg/controller/controller_utils.go:618-628`, `RealPodControl.createPods`: on the create's
-    error it returns before `OnWrite`. `OnWrite` is the callback through which the DaemonSet
-    controller records the written resource version in its consistency store
-    (`pkg/controller/daemon/daemon_controller.go:176-188`, `podWriteCallback`).
-  - `pkg/controller/daemon/daemon_controller.go:1095-1110`, `syncNodes`: on the error it calls
-    `dsc.expectations.CreationObserved` ("Failed creation, decrementing expectations"), as if the
-    pod will never be seen, and returns the error, so the DaemonSet is requeued.
-  - `daemon_controller.go:1302`, `syncDaemonSet`: the next sync's `EnsureReady` has no record of
-    the pod's write and the expectations are satisfied. `manage` then reads the pod cache, which
-    has not seen the committed pod yet, finds no daemon pod on the node, and `syncNodes` creates
-    one.
-  - `daemon_controller.go:906-917`, `podsShouldBeOnNode`: once the cache has both, a later sync
-    deletes all but the oldest.
-  - Ambiguous errors that really occur:
-    - `staging/src/k8s.io/apiserver/pkg/endpoints/handlers/finisher/finisher.go:83-148`,
-      `finishRequest`: on the request's deadline it returns a 504 Timeout ("request did not
-      complete within requested timeout") while the goroutine running the create goes on and may
-      commit. `server/filters/timeout.go` likewise answers 504 while the handler keeps running.
-      `NewTimeoutError(..., 0)` sets no Retry-After, so client-go does not retry the POST
-      (`rest/with_retry.go:309`, `checkWait`).
-    - etcd's "request timed out" for a proposal that is later applied.
-    - A connection lost after the commit: client-go does not retry non-GET requests.
-      kube-controller-manager sets no client-side timeout on its clients.
-- **What happens**: two pods of the DaemonSet exist for one node until the controller sees both
-  and deletes the newer one. The deletion is graceful (30s by default), so a running duplicate
-  overlaps the original for the cache lag plus that grace period. With a host port the scheduler
-  keeps the duplicate Pending. Without one, both instances run: node agents with host paths,
-  sockets or exclusive devices contend.
-  - **Reproduction, real API server**: `issues/upstream/k8s-daemonset-ambiguous-create-duplicate-pod/01-repro-commit-then-fail.diff`
-    (against 13ecb9cc). It adds a commit-then-fail transport fault (`robustness.CommitThenFail`:
-    forward the request, discard the response, return the injected error) and six scenarios in
-    `TestDaemonSetReconcileRobustnessMatrix`.
-    - "First pod POST commits and returns 504 (or 500); the pod watch stalls 2s at its first
-      event": MaxOnePodPerNode is violated in 10 of 10 runs for each code.
-    - The same stall with the error not committed (the existing behavior) passes 11 of 11.
-    - Commit-then-fail with no added stall, on the loopback integration server's natural watch
-      lag, passes 200 of 200 for each code. The duplicate needs the watch to lag behind the 5ms
-      requeue, which an idle server does not.
-    - The existing 8 scenarios pass.
-    - Commands, logs and the per-run counts are in `meta.md` there.
-  - **Reproduction, model**: `examples/k8sdaemonset/smoke/smoke_test.go`, `TestAmbiguousWrites`,
-    runs the real controller and informers over the model API server (`examples/k8sdaemonset/apimodel`)
-    with `Config.AmbiguousWrites` and the other failures at 20%. 4 of 50 runs had two pods at
-    once, each after exactly one ambiguous pod create. With no ambiguous writes
-    (`TestNoEffectFailures`), 0 of 30 did. The robustness matrix over the model
-    (`02-model-backend.diff`, `KUBE_ROBUSTNESS_BACKEND=model`) agrees with the real server on all
-    14 scenarios but `StaleChildWatch`. That one exposed a model bug (an empty store's list at
-    resource version "0" turns the consistency check off, `03-model-empty-store-rv1.diff`) and a
-    harness race (the settle check can run before a stall releases); details in `meta.md`.
-- **Expected**: `MaxOnePodPerNode`, the safety invariant of the robustness test in
-  kubernetes/kubernetes#139657 (`test/integration/daemonset/robustness_test.go:123`): at no time
-  more than one pod of the DaemonSet per node. A client cannot tell a create that failed after its
-  commit from one that never happened, so an error must not be read as "the pod will never appear".
-- **How the proof handles it**: not yet proved (`notes/k8s-daemonset-plan.md`). The planned
-  theorem takes the model with `AmbiguousWrites` off (a failed write had no effect); that premise
-  records this issue (`examples/k8sdaemonset/apimodel/doc.go`, "Failures").
-- **Possible fixes**:
-  - Tested and proposed (`04-fix-record-unknown-pod-writes.diff`, about 50 lines). On a create
-    error that may have committed (anything but a 4xx status), after the batch, list the
-    DaemonSet's pods from the API server (a consistent read) and record the resource versions of
-    the pods it controls in the consistency store, then lower the expectations. If the list fails,
-    keep the expectations.
-    - Results: it fixes the repro (the matrix passes 11 of 11 runs, all 14 scenarios), keeps
-      uncommitted 5xx errors retried promptly (`FlakyAPIServer`, `Failed*StaleChildWatch`), and
-      passes `go test ./pkg/controller/daemon/...` and the whole `test/integration/daemonset`
-      package.
-    - Cost: one LIST per sync with an ambiguous create error.
-    - Residual: a create that the server's request timeout lets commit after that list is not
-      covered.
-    - With `StaleControllerConsistencyDaemonSet` off it changes nothing.
-  - Tested and rejected (`05-alt-fix-keep-expectations.diff`): keep the expectation on an
-    ambiguous error. It fixes the repro, but an uncommitted 5xx then stalls the node until
-    `ExpectationsTimeout` (5 minutes). It fails `FlakyAPIServer`, both `Failed*StaleChildWatch`
-    scenarios and the unit test `TestDaemonSetPodCreateExpectationsError`.
-  - Complete but larger: name daemon pods so that a retry is recognizable, for example a name the
-    controller chooses and reuses on retry for that node. A second create then fails with
-    AlreadyExists, as StatefulSet's deterministic names do.
-- **Other controllers** (read, not reproduced):
-  - ReplicaSet (`pkg/controller/replicaset/replica_set.go:695-700`: `skippedPods := diff -
-    successfulCreations` lowers the expectation for failed creates too) and Job
-    (`pkg/controller/job/job_controller.go:1938-1942`) follow the same pattern with
-    `generateName`, so they can over-create in the same way.
-  - For a ReplicaSet the extra pod is surplus that gets scaled down, the case #86140's review
-    accepted.
-  - StatefulSet's pod names are deterministic, so it is immune.
-- **Found**: 2026-10-26, running the DaemonSet controller over the model API server written for
-  its verification (`examples/k8sdaemonset`), while checking the premise the plan had flagged.
-  Confirmed the same day on the real API server with the commit-then-fail fault. The upstream
-  search found no report: kubernetes/kubernetes issues and PRs, KEP-5647 and its implementation
-  PRs (front matter; `meta.md`).
+The DaemonSet controller can briefly run two of a DaemonSet's pods on one node. It happens when a
+pod create is committed by the API server but the controller gets an error back: a 504 from the
+apiserver's request timeout (the handler goes on and commits), a 500 wrapping etcd's "request
+timed out" for a proposal later applied, or a connection lost after the commit. The requeued sync,
+whose pod cache has not yet seen the committed pod, creates a second one; the controller deletes
+the extra pod once its cache sees both.
+
+**Expected:** at most one pod of the DaemonSet per node (`MaxOnePodPerNode`, the safety invariant
+of the controller robustness test in #139657), the guarantee KEP-5647's consistency check
+(`StaleControllerConsistencyDaemonSet`, on by default since 1.36) was meant to give against acting
+on a pod cache behind the controller's own writes.
+
+**Impact:** clusters whose API server returns a timeout for a pod create that commits (a slow etcd,
+an overloaded apiserver), with the default feature gates. The window is one cache lag after the
+error, plus the extra pod's graceful deletion (30 s by default). Without a host port both instances
+run, so node agents using host paths, sockets or exclusive devices contend; with one the scheduler
+keeps the duplicate Pending. ReplicaSet and Job follow the same pattern (read, not reproduced),
+where an extra pod is surplus; StatefulSet's deterministic names make it immune.
+
+**Reproduction:** [`issues/k8s-daemonset-ambiguous-create-duplicate-pod/repro-commit-then-fail.patch`](k8s-daemonset-ambiguous-create-duplicate-pod/repro-commit-then-fail.patch),
+applied to kubernetes/kubernetes at 13ecb9cc (the head of #139657 on 2026-10-26; the controller
+code is the same on master), on the real kube-apiserver and etcd of the integration framework,
+2026-10-26 (not rerun 2026-11-01: it needs a Kubernetes checkout at #139657 and its etcd). It adds
+a commit-then-fail fault to the framework's transport (`robustness.CommitThenFail`: forward the
+request, discard the response, return the injected error) and six scenarios:
+
+```
+$ go test ./test/integration/daemonset -run 'TestDaemonSetReconcileRobustnessMatrix' -count=1 -v
+AmbiguousChildCreate504StaleChildWatch   FAIL 10/10: safety invariant "MaxOnePodPerNode" failed: detected 2 Pod objects, maximum allowed is 1
+AmbiguousChildCreate500StaleChildWatch   FAIL 10/10 (same)
+FailedChildCreate{504,500}StaleChildWatch (same stall, not committed)   PASS 11/11
+AmbiguousChildCreate{504,500} (no stall: loopback watch lag only)       PASS 200/200
+the existing 8 scenarios                                                PASS 10/10
+```
+
+The controller's log in a failing run:
+
+```
+daemon_controller.go:1109] "Unhandled Error" err="Timeout: request did not complete within requested timeout ..."
+daemon_controller.go:414]  "Unhandled Error" err="default/ds-1 failed with : read version: 191 is not as new as written version: 199 for group resource pods"
+[Invariant Safety Violation] safety invariant "MaxOnePodPerNode" failed: ... detected 2 Pod objects
+```
+
+**Cause:** on the create's error,
+[`RealPodControl.createPods`](https://github.com/kubernetes/kubernetes/blob/13ecb9cc55221a87f549ed8fc2dad758f22f0883/pkg/controller/controller_utils.go#L618-L628)
+returns before `OnWrite`, through which the controller records the written resource version in its
+consistency store, so the store records nothing; and
+[`syncNodes`](https://github.com/kubernetes/kubernetes/blob/13ecb9cc55221a87f549ed8fc2dad758f22f0883/pkg/controller/daemon/daemon_controller.go#L1095-L1110)
+calls `expectations.CreationObserved` ("Failed creation, decrementing expectations") as if the pod
+will never appear. The next sync's `EnsureReady` has nothing to wait for, its expectations are
+satisfied, and `manage` creates a pod on a node whose committed pod the cache has not seen.
+
+## Proof
+
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the planned DaemonSet theorem takes the model API server with `AmbiguousWrites` off (a failed
+write had no effect), a premise real API servers do not meet
+(`examples/k8sdaemonset/apimodel/doc.go`, "Failures"; `ambiguous_create_breaks_S1` in
+`Proof/k8s_io/kubernetes/pkg/controller/daemon/S1Model.lean`).
+
+## Fix
+
+On a create error that may have committed (anything but a 4xx), `syncNodes` would list the
+DaemonSet's pods from the API server and record the versions of the pods it controls in the
+consistency store before lowering the expectations
+([`fix.patch`](k8s-daemonset-ambiguous-create-duplicate-pod/fix.patch), against 13ecb9cc, about 50
+lines, no fix branch).
+
+## Notes
+
+The fix keeps the expectations if the list fails. It makes the whole matrix pass (11 of 11
+runs), keeps uncommitted 5xx retried promptly, and passes `go test ./pkg/controller/daemon/...` and
+`test/integration/daemonset`; cost one LIST per sync that saw such an error. Residual: a server-side
+504 whose handler commits after the list. Rejected: keeping the expectation on an ambiguous error
+stalls the node for the 5-minute `ExpectationsTimeout` when the 5xx did not commit (fails
+`FlakyAPIServer`, `Failed*StaleChildWatch`, `TestDaemonSetPodCreateExpectationsError`). Complete but
+larger: a pod name the controller reuses on retry, so a second create gets AlreadyExists.
+
+Found 2026-10-26 running the controller over the model API server (`examples/k8sdaemonset`,
+`smoke/smoke_test.go`'s `TestAmbiguousWrites`: 4 of 50 runs had two pods, each after one ambiguous
+create; 0 of 30 without). The model backend for #139657's matrix (`KUBE_ROBUSTNESS_BACKEND=model`)
+agreed with the real server on 13 of 14 scenarios; it found a model bug (an empty store's list at
+resource version "0" turns the consistency check off: `nonissues/k8s-consistency-malformed-rv-ready.md`)
+and a harness race (the settle check can run before a 2 s stall releases; suggested: do not declare
+settled before `BlockingFaultDeadline()`). Those diffs and the alternative fix are in git history
+(`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`, removed 2026-11-01). The draft
+issue was addressed to sig-apps, cc the KEP-5647 authors (michaelasp; approvers liggitt, deads2k).

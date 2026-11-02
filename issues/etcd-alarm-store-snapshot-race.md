@@ -1,67 +1,66 @@
 ---
-upstream: none
-checked: 2026-10-26
+upstream: reported
+checked: 2026-11-01
 links:
+  - etcd-io/etcd#22653 issue open: this bug
+  - etcd-io/etcd#22654 pr open: the fix (`AlarmStore.Recover`), ok-to-test, reviewed by serathius
   - etcd-io/etcd#22609 pr merged: the same class (mvcc `Hash` racing with `Restore`'s backend swap); a different field
   - etcd-io/etcd#10874 pr closed: `s.be` read outside `bemu` in `applySnapshot`; not the alarm store
-candidate: issues/upstream/etcd-alarm-store-snapshot-race/
+blocks-proof: yes
 ---
 
-# `applySnapshot` replaces `s.alarmStore` while gRPC and health goroutines read it (a data race)
+# server: data race on a member's alarms between Status and applying a leader's snapshot
 
-- **Status**: a bug: a data race (Go memory model) between the apply goroutine and every reader of
-  `EtcdServer.Alarms()`, reported by the race detector in normal operation (a follower installs a
-  leader's snapshot while a client calls `Maintenance/Status`). Reproduced (below). The observable
-  effect is small: during the window a reader can see the old alarm store (the alarms from before
-  the snapshot) or, with no happens-before edge to `NewAlarmStore`'s initialization, a store whose
-  fields it sees partly initialized (an empty alarm map: no alarm). So `Status` and the `/health`
-  checks can report a stale or empty alarm list for that moment. No crash found. The race itself
-  is the bug: etcd's tests run with `-race`, and the code has no synchronization at all here.
-- **Where** (the etcd fork's `goose-lean` at `de825d8c6`, where this was found; the same code at the pin of `etc/goose.py`, `2aed163b1`; upstream `main` has the same code):
-  - `server/etcdserver/server.go:2409-2416` (`restoreAlarms`): `s.alarmStore = as`, with no lock,
-    called by `applySnapshot` (`server.go:1102`) on the apply goroutine after `s.bemu.Unlock()`.
-  - `server/etcdserver/server.go:2440-2442` (`Alarms`): `return s.alarmStore.Get(...)`, with no lock.
-    It is called from other goroutines: `v3rpc/maintenance.go:301` (`maintenanceServer.Status`),
-    `api/etcdhttp/health.go:186` (`checkAlarms`, the `/health` handler) and `:422`
-    (`activeAlarmCheck`, `/livez`/`/readyz`).
-  - (`server.go:1991`, `s.alarmStore.Get(pb.AlarmType_NOSPACE)` in `apply`, runs on the apply
-    goroutine itself: no race.)
-- **What happens**: reproduction `issues/etcd-alarm-store-snapshot-race/repro_test.go`: copy it into
-  `tests/integration/` and run `go test -race ./integration -run TestV3AlarmsDuringSnapshotInstall
-  -count=1 -v` from `tests/` (Go 1.27.1). Three members, `SnapshotCount: 10`,
-  `SnapshotCatchUpEntries: 5`; a follower is cut off, the leader takes 40 puts, eight goroutines
-  call `Status` on the follower, and the partition heals; the test checks that the follower
-  installed a snapshot (`Server.Backend()` changed). At the pin, 4 of 5 runs fail with `race
-  detected during execution of test`: `Write at ... (*EtcdServer).restoreAlarms() server.go:2414 ←
-  applySnapshot server.go:1102` against `Previous read at ... (*EtcdServer).Alarms() server.go:2441
-  ← (*maintenanceServer).Status() maintenance.go:301`. (The fifth installed the snapshot without
-  the race being caught.)
-- **Expected**: installing a snapshot is internal to the member; `Alarms()` returns the alarms of
-  the store before or after the swap, with the read synchronized with the write.
-- **How the proof handles it**: not reached today. The server's persistent invariants hold the
-  field read-only for good (`srvAlarmStoreAddr s ↦□`,
-  `Proof/go_etcd_io/etcd/server/v3/etcdserver/InvApplier.lean:489`, `InvBuild.lean:243`,
-  `InvStart.lean:77`), which is true while no member installs a snapshot (`applySnapshot`'s spec
-  covers only the empty snapshot, `bootOk`'s `"%Hnosnap"`); `EtcdServer.Alarms` is not verified.
-  `restoreAlarms`'s own spec takes the field owned (`Spec/.../EtcdServer__restoreAlarms.lean`).
-  Stage S-j2 of track T-S (`notes/decisions.md`, "D22 S-j2 carried out") found it: the snapshot
-  path must give the field to the apply thread, and then no concurrent reader can be verified
-  (Perennial's semantics make a racy load undefined), so a verified `Alarms` needs the fix.
-- **Possible fixes**: (1) hold the alarm store in an `atomic.Pointer[v3alarm.AlarmStore]`
-  (`restoreAlarms` stores, `Alarms`, `NewUberApplier` and `apply` load); or (2) swap it under
-  `s.bemu` (build the new store before `s.bemu.Unlock()`, assign it inside the critical section, and
-  have `Alarms()` read the field under `s.bemu.RLock()`), at the cost of holding `bemu` across
-  `NewAlarmStore`'s `ForceCommit`.
-- **Fix chosen upstream** (2026-10-21, `issues/upstream/etcd-alarm-store-snapshot-race/`): neither of the
-  above: `AlarmStore.Recover(be)` reloads the store in place under its own mutex, as `lessor.Recover` does, and
-  `applySnapshot` calls it instead of `restoreAlarms`, so `s.alarmStore` is written only by `NewServer` (the
-  comparison is in the candidate's `meta.md`; branch rebuilt 2026-10-23 off `main` 3aaab3479, fix 7569d2bbd). For the proof this makes the field read-only for good again
-  (`srvAlarmStoreAddr s ↦□` holds through the snapshot path); `Recover` needs a spec on the store's lock invariant.
-- **Fixed in the fork** (2026-10-22, `goose-lean` `8fd98af04`, under `188113160`, the pin of
-  `etc/goose.py`): the upstream candidate's fix (`d396a0fc7`, `AlarmStore.Recover` called by
-  `applySnapshot`, the two unit tests given an alarm store) with its test `TestV3AlarmsDuringSnapshotInstall`
-  (`tests/integration/v3_alarm_test.go`) in one commit. With `-race`, the test fails 5 of 5 without
-  the fix (two or three `DATA RACE` reports each: `restoreAlarms` against `Alarms`, and `Get` against
-  `NewAlarmStore`'s initialization) and passes 15 of 15 with it.
-- **Found**: 2026-10-20, stage S-j2 of track T-S, listing the server fields `applySnapshot` writes
-  against the proof's read-only facts of them.
+Reading a member's alarms, as the maintenance `Status` RPC and the `/health`, `/livez` and
+`/readyz` handlers do, races with the member applying a snapshot sent by the leader:
+`applySnapshot` replaces the alarm store with a new one, unlocked, while those goroutines read it.
+A reader can see a stale or empty alarm list for a moment; no crash found.
+
+**Reproduction:** `TestV3AlarmsDuringSnapshotInstall` in
+[`issues/etcd-alarm-store-snapshot-race/alarms_snapshot_test.go`](etcd-alarm-store-snapshot-race/alarms_snapshot_test.go),
+copied into `tests/integration` at etcd-io/etcd@1573d5941 (2026-10-28), go1.27.3 linux/amd64. A
+follower is partitioned while the leader commits 20 puts (`SnapshotCount: 10`,
+`SnapshotCatchUpEntries: 5`); a goroutine reads the follower's `Server.Alarms()` while the
+partition heals and the follower applies the snapshot:
+
+```
+$ go test -race ./integration -run '^TestV3AlarmsDuringSnapshotInstall$' -count=1
+WARNING: DATA RACE
+Write at 0x00c00105daa8 by goroutine 627:
+  sync/atomic.CompareAndSwapInt32()
+  go.etcd.io/etcd/server/v3/etcdserver.(*EtcdServer).Alarms()
+      server/etcdserver/server.go:2426 +0xdd
+  go.etcd.io/etcd/tests/v3/integration.TestV3AlarmsDuringSnapshotInstall.func1()
+Previous write at 0x00c00105daa8 by goroutine 343:
+  go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm.NewAlarmStore()
+      server/etcdserver/api/v3alarm/alarms.go:48 +0xb3
+  go.etcd.io/etcd/server/v3/etcdserver.(*EtcdServer).restoreAlarms()
+      server/etcdserver/server.go:2395 +0x128
+  go.etcd.io/etcd/server/v3/etcdserver.(*EtcdServer).applySnapshot()
+      server/etcdserver/server.go:1102 +0x1679
+...
+--- FAIL: TestV3AlarmsDuringSnapshotInstall (0.51s)
+    testing.go:1867: race detected during execution of test
+FAIL	go.etcd.io/etcd/tests/v3/integration	1.141s
+```
+
+## Proof
+
+yes: the verified fork carries the PR's fix (`8fd98af04`, `AlarmStore.Recover`, `etc/goose.py`);
+without it the server's invariant that the alarm-store field is read-only
+(`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvApplier.lean`) fails once a member installs a
+snapshot, and a racy reader cannot be verified.
+
+## Fix
+
+**Branch**: `fix/etcd-alarm-store-snapshot-race` in `~/etcd-fixes/etcd-alarm-store-snapshot-race` (upamanyus/etcd, pushed): 9e75921f5 test, 8938e98c2 fix
+**Base**: etcd-io/etcd@3aaab3479b6c4f5fe1b2b8f33437093c2caae88a
+
+The PR (#22654) is open with those two commits. The local branch has a newer, unpushed revision of
+the test commit (8ca29584f; fix 098754afe): it drops the `NotSame` backend check and rewords the
+comments, apparently in answer to serathius's open review question on the test ("What this test
+validates?"); push it with a reply, or drop it.
+
+## Notes
+
+The 2026-10-23 review's plan: upstream (done).

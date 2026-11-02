@@ -19,7 +19,7 @@ with **one step added before the return**: `assume` of the issue record's `"Issu
 records `id ↦ g`. Perennial's `assume` does not return when its argument is `false` (`wp_assume`), so
 the model excludes the executions in which two generators issue one id, and is Go's in every other.
 
-**Why the model is faithful** (the issue's precondition, `issues/etcd-request-id-restart-reuse.md`):
+**Why the model is faithful** (the issue's precondition, `nonissues/etcd-request-id-restart-reuse.md`):
 generators of distinct members differ in the prefix (the member ids' 16 low bits distinct, a premise
 of the examples, `TestMemberIDs`); a member's generators -- one per start of the member -- issue
 distinct ids if the wall clock does not step back across a restart and the earlier generator, started

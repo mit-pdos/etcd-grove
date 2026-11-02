@@ -36,6 +36,6 @@ new writer, `Begin` of a reader (up to 4 open), a reader's scan, and `Rollback` 
   every operation; a writer's are dropped at its `Commit`, a reader's at its `Rollback`).
 
 **What it does not reach.** Buckets stay at hundreds of keys, so the NaN `FillPercent` panic
-(65538 entries in one leaf; `issues/bbolt-fillpercent-nan.md`, counterexample
+(65538 entries in one leaf; `nonissues/bbolt-fillpercent-nan.md`, counterexample
 `examples/axiomcx/bboltnan`) and the huge-value panics (`issues/bbolt-max-value-size-unusable.md`)
 are out of its range; one database, one goroutine, no `Close` or reopen, no I/O errors.

@@ -189,7 +189,7 @@ Candidate 1 is not on disk. It is reconstructed from r1's quotes and c2's change
   - Old: `Applied = 0 ∨ prev ≤ Applied ≤ D.hs.Commit`.
   - What broke: the reviewer showed that conf changes in `(snap, Applied]` are skipped, giving two
     leaders.
-  - Fix (c2): `Applied ≤ snapIndex`. Filed as `issues/raft-applied-above-snapshot-confstate.md`.
+  - Fix (c2): `Applied ≤ snapIndex`. Filed as `nonissues/raft-applied-above-snapshot-confstate.md`.
   - Cost: the bound was lost again in c4 (E19). **[cat d] [stage S]**
   - Avoid: yes. Read `newRaft`/`appliedTo` for safety conditions as well as panics.
 
@@ -1124,7 +1124,7 @@ Candidate 1 is not on disk. It is reconstructed from r1's quotes and c2's change
   - Fix: a premise `ConfStateOk csm` on `newRaft.spec` and `NewRawNode.spec` (well-formed, `Nodup`,
     `AutoLeave` only when joint). `RestartNode` gets it from `confStateIs`'s `CSWf`, which until
     then had been discarded; the API is unchanged. Filed as
-    `issues/raft-restore-malformed-confstate-panic.md`.
+    `nonissues/raft-restore-malformed-confstate-panic.md`.
   - Cost: 2 specs and 3 proofs. **[cat d] [stage II-R]**
   - Avoid: yes. Walk every `panic` and assertion on the Go path of a spec before stating it
     (section 0, pattern 5).
@@ -1162,7 +1162,7 @@ Candidate 1 is not on disk. It is reconstructed from r1's quotes and c2's change
 - **E108 · `RestartNode`'s configuration point narrowed wrongly (the coordinator's decision).**
   - Where: coordinator decision after II(p); found in II(t) (`7d0415929f`, `kd_RestartNode_at`).
   - Old (II(r), decided by the coordinator): `a := max σ.b A`. A configuration above the applied
-    point was judged a misuse, by analogy with `issues/raft-applied-above-snapshot-confstate.md`.
+    point was judged a misuse, by analogy with `nonissues/raft-applied-above-snapshot-confstate.md`.
     That analogy had the inequality backwards: the issue is about a configuration older than
     `Applied`.
   - What broke: kvdurable's storage keeps entries below its snapshot (`σ.b = prev < si`), and its

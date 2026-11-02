@@ -140,7 +140,7 @@ The BFS depths are shallow (a witness write after a reconfiguration takes 10-14 
 exhaustive runs cover the first changes only; the walks reach the deep interleavings
 (elections, conf changes, replication-set changes, witness writes from the store and the
 caches, joint configurations, the witness removed and re-added) but are not exhaustive. A
-Go-checker transcription (as `issues/raft-conf-lag-model/checker/` did for `model.py`) would push
+Go-checker transcription (as `notes/raft-conf-lag-model/checker/` did for `model.py`) would push
 the exhaustive bounds; not done.
 
 What the model does not cover: two witness identities (the replaced-witness joint case,

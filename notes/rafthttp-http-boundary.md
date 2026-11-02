@@ -60,7 +60,7 @@ sender proved about those bytes.
    reported as `errMemberRemoved` on `Transport.ErrorC`, which stops the member, and today's
    contract promises nothing on `ErrorC`. The handlers answer `403`/`410` only when `IsIDRemoved`
    holds of the sender, never in the static clusters proved:
-   `issues/etcd-rafthttp-misaddressed-403-member-removed.md`.)
+   `nonissues/etcd-rafthttp-misaddressed-403-member-removed.md`.)
 5. **Failures.** Any `RoundTrip`, body read or `Write` may fail at any time; a cancelled request
    context makes them fail. `Flush` returns; it does not matter for safety. A handler's panic is
    recovered by `Serve` (the pipeline handler panics on a `Process` error that is not a
