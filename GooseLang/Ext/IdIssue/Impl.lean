@@ -7,8 +7,9 @@ the trusted model of `idutil`'s `(*Generator).Next` (`TrustedCode/go_etcd_io/etc
 can assume what etcd's code relies on and does not check: two generators never issue one id. A
 member restarted under its old 16-bit prefix starts a second generator of that prefix, from the wall
 clock, while its stopped incarnation's in-flight handlers may still call the first one's `Next`. Their
-ids are distinct only if the clock does not step back and the member issues fewer than 256 ids per
-millisecond on average (`issues/etcd-request-id-restart-reuse.md`). The model assumes it
+ids are distinct only if the clock does not step back and the first generator, started at millisecond
+t0, issues in all at most 256·(t1 − t0) ids, t1 the second one's start (its first id is the first
+one's (256·(t1 − t0) + 1)-th; `issues/etcd-request-id-restart-reuse.md`). The model assumes it
 (`assume`, which does not return when false), following the approach of the SOSP'26 paper for this
 limit (`/shared/grove-paper/sosp26/case.tex`, `rwmutex.tex`).
 
@@ -16,7 +17,13 @@ limit (`/shared/grove-paper/sosp26/case.tex`, `rwmutex.tex`).
   other generator issued `id` (the record has no entry for it, or `g`'s), with `id ↦ g` recorded;
   `false` (record unchanged) if another generator did.
 * It does not fail and does not change the heap. Crashes keep the record (there are none: the
-  examples' theorems are crash-free).
+  examples' theorems are crash-free). If crashes are ever modeled, a generator allocated after one
+  may get a stopped one's address, and the record would take the two for one: still sound (it
+  excludes fewer executions), but `Next`'s proof would then need the record cleared or keyed by
+  something else.
+* The extension's name is not a Go package's (as an extension's usually is, `CLAUDE.md`): it
+  implements none; the record is model-only, and only the trusted `Next` calls it. It is per node
+  (GooseLang's local state): generators on different nodes are told apart by their prefixes, proved.
 
 The extension is the examples' one (it replaces `trivialExt`, which had no operations): a program
 that never calls `"Issue"` sees GooseLang's semantics.

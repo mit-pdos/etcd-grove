@@ -196,7 +196,7 @@ end main
 #print axioms kv_Main
 
 section closed
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 variable [go_gctx : GoGlobalContext]
 
 /-- **The store's randomized linearizability test never fails** (`kv_adequate`,

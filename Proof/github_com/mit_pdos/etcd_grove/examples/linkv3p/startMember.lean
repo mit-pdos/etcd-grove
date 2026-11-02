@@ -47,7 +47,7 @@ set_option synthInstance.maxSize 4096
 set_option synthInstance.maxHeartbeats 400000
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -167,7 +167,7 @@ theorem startMember.wp_proof
     isplitr
     · ipureintro; rw [HEw]; simp
     ipureintro; intro v hv
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
+    simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
     subst hv; exact Hkv
   -- the ghost step between `Listen` and `go gs.Serve(l)`: etcd's KV specs at the address
   haveI := Hms

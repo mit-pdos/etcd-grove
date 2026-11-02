@@ -400,7 +400,9 @@ image carries none of them.
 16-bit prefix; the cluster's map must not see one twice. The old generator may keep issuing after
 the stop (item 1), so no ghost bound on its suffix exists when the new one starts. Disjointness is
 the issue's precondition (`issues/etcd-request-id-restart-reuse.md`): the clock does not step back
-and a member issues fewer than 256 ids per millisecond on average. It is an assumption about the
+and the earlier generator, started at millisecond t0, issues in all at most 256·(t1 − t0) ids, t1
+the later one's start (2026-11-02 review: the earlier "fewer than 256 per millisecond on average" was
+imprecise). It is an assumption about the
 environment, and has to enter as a trust-boundary statement or a premise:
 - **(a) a spec of the generator's start time** (`time.Now` in `NewGenerator`'s call): the suffix it
   starts from is past every suffix issued under the prefix so far (a per-prefix high-water mark in
@@ -568,7 +570,7 @@ The open questions:
   - The stage-1 condition, one key per prefix, goes. `idIncarnation_alloc` becomes provable: a fresh
     incarnation number, chosen from the finite maps.
 
-### R2c stage 2, where it stands (2026-11-02, branch `r2c-stage2`, not landed)
+### R2c stage 2, where it stands (2026-11-02)
 
 **Done, and it checks:**
 - The extension: `GooseLang/Ext/IdIssue/Impl.lean` (`"Issue"` of `(id, g)`) and `Specs.lean`
@@ -578,18 +580,17 @@ The open questions:
 - The Goose configuration marks `Generator.Next` trusted; the translation was regenerated, with its
   `ManualProof` module.
 
-**Not done** (the branch does not build: `Next`'s proof is the old one, over the old body):
-1. ~~**The record's ghost state, in a form that needs no `Main` changes.**~~ Done
-   (`GooseLang/Ext/IdIssue/Specs.lean`):
-   - The state interpretation holds the record's authority and every entry's persistent element.
-   - The program starts with `True`, so no `Main` takes anything for it.
+**Then, in order** (all done 2026-11-02):
+1. **The record's ghost state, in a form that needs no `Main` changes** (`GooseLang/Ext/IdIssue/Specs.lean`):
+   - The state interpretation holds a ghost record contained in the physical one (any initial
+     record is allowed; the ghost one starts empty), its authority and every entry's persistent
+     element. The program starts with `True`, so no `Main` takes anything for it.
    - `wp_IdIssue` gives, with `b = true`, the fact `idIssueFrag id g`, with the mask open around the
      step for an invariant. `idIssueFrag_agree`: one issuer per id.
    - `idIssueFragD` reads the fact without the instance: `if h : HasExt idIssueExt then … else
      False`, rewritten by `idIssueFragD_eq` under the instance. `idIssueFragD_agree` holds either
-     way.
-2. ~~**`idutil`**~~: done within the package, and it checks (`Defs`, `Lemmas`, `NewGenerator`,
-   `Generator__Next`):
+     way. So no spec mentions the instance; only proofs that run `Next` take it.
+2. **`idutil`** (`Defs`, `Lemmas`, `NewGenerator`, `Generator__Next`):
    - `IdNames` gains `pend`. A key's entry of the keys' map is a pair: issued ids, and the generator
      once `NewGenerator` registers it. That replaces the separate key-to-generator map.
    - The cluster invariant keeps, per registered key, its generator's persistent prefix field and
@@ -604,18 +605,33 @@ The open questions:
        no map.
 
      The proof depends only on Lean's standard axioms (`#print axioms`).
-   - `idIncarnation_alloc` is proved: a key `(p, inc)` with `inc` above every key's
-     (`idKey_fresh_inc`), its empty entry, registry cell and facts' parameter.
-   - **Not yet adapted** (the branch does not build past `idutil`):
-     - the `IdNames` literals (`pend`);
-     - the server's allocations: `srvMemberBoot_alloc` and its twin allocate the pending map, and
-       the entries are pairs in `srvClusterBoot_alloc`'s statements;
-     - the examples' allocations.
-3. **The instance.** `Next.wp_proof` takes `[HasExt idIssueExt]`, and the linked results that
-   include it take it too. That means `etc/gen-link.py` (the server's `Link.lean` and its
-   downstream links), and each server example's closure: `TrivialExt.lean`'s closure becomes the
-   issue record's.
-   - The 16 adequacy files' `goosePreGExts := ((), PUnit.unit)` take the universal camera they
-     already have (`…GF_allG`).
-   - Their `attribute [local instance]` lines gain the closure's `HasExt`.
-4. **Review.** The trusted model and the extension go through the `axiom` skill before landing.
+   - `idIncarnation_alloc`: a key `(p, inc)` with `inc` above every key's (`idKey_fresh_inc`), its
+     empty entry, registry cell and facts' parameter. R2c's restart allocation will use it.
+3. **The allocations**: the `IdNames` literals take `pend`; the server's member allocations
+   (`NewServerAlloc`, `NewServerAllocOn`) allocate the pending map; the boot statements' entries are
+   pairs. `SrvRaftLog`'s `srvRdFresh_mint`, which opens the generator's invariant, has its new shape.
+4. **The instance.**
+   - `Next.wp_proof` takes `[HasExt idIssueExt]`, and so does every result that reaches it:
+     `etc/gen-link.py` adds it to the modes linking over the server (`EXTS`: server, v3rpc, common,
+     linkv3p, linkvtxn, watchkv, authkv, cachekv, k8setcd3, k8s, k8s-etcd3), and the hand-written
+     sections using those results (`Results` files, the examples' `Main`s, ...) have it as a
+     section variable. A file was given it only where the build asked for it.
+   - The examples' closure (`TrivialExt.lean`, names kept) is `[idIssueExt]`, with
+     `trivialExts_hasExt`. The adequacy files take the universal camera they already had as the
+     extension's pre-ghost state (`goosePreGExts := (⟨…GF_allG⟩, ())`) and the closure's `HasExt`
+     as a local instance.
+5. **Review** (a fresh agent, the trusted-base and `axiom` skills' method): verdict OK, nothing
+   unsound. The trusted `Next` is the generated body plus the one `assume` step; the record's step
+   is deterministic, heap-preserving, and stuck only off its one call site; the assumption yields
+   only "two generator addresses never issue one id", and the proof does not use the record against
+   a single generator's repeats (those are excluded by the receipts' bound). Documentation fixes,
+   applied:
+   - The precondition was stated imprecisely ("fewer than 256 ids per millisecond on average"): the
+     exact one is that the earlier generator, started at millisecond t0, issues in all at most
+     256·(t1 − t0) ids, t1 the later one's start. Corrected in the issue, the model, the extension
+     and this plan.
+   - The issue file's "How the proof handles it" was stale (pointed to `Incarnations.lean` and
+     `primitive.Assume`); `TrivialExt.lean`'s header said the closure does nothing.
+   - The crash rule's limit (a generator after a crash could take a stopped one's address: still
+     sound, but `Next`'s proof would need the record cleared) and the extension's non-package name
+     are documented in `Impl.lean`.

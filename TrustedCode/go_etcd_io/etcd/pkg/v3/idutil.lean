@@ -22,8 +22,11 @@ the model excludes the executions in which two generators issue one id, and is G
 **Why the model is faithful** (the issue's precondition, `issues/etcd-request-id-restart-reuse.md`):
 generators of distinct members differ in the prefix (the member ids' 16 low bits distinct, a premise
 of the examples, `TestMemberIDs`); a member's generators -- one per start of the member -- issue
-distinct ids if the wall clock does not step back across a restart and the member issues fewer than
-256 ids per millisecond on average, which etcd assumes and does not check. One generator never issues
+distinct ids if the wall clock does not step back across a restart and the earlier generator, started
+at millisecond t0, issues in all (handlers of the stopped incarnation may still call it) at most
+256·(t1 − t0) ids, t1 the later one's start: the later one's first id is the earlier one's
+(256·(t1 − t0) + 1)-th. etcd assumes this and does not check it (Go's comment asks for a restart
+"after 1 ms", which is not enough by itself). One generator never issues
 an id twice before its 48-bit suffix wraps, which the receipts' bound excludes (`idCred`). Where the
 precondition fails (a clock stepped back), Go would hand a new request an old entry's result; the
 model excludes that execution instead (the SOSP'26 paper's treatment of such limits,

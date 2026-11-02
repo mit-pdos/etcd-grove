@@ -51,23 +51,28 @@ instance idIssueFragAt_persistent (hL : IdIssueGS GF) (id : w64) (g : Loc) :
     Persistent (idIssueFragAt hL id g) := by
   unfold idIssueFragAt; infer_instance
 
-/-- The interpretation of the record: the map's authority, and every entry's persistent element (so
-that an `"Issue"` that finds its own entry hands it out again). -/
+/-- The interpretation of the record `M`: a ghost record `Mg`, part of it (the entries made during
+the run: any initial record is allowed, and the ghost one starts empty), its authority and every
+entry's persistent element. -/
 def idIssueCtx (hL : IdIssueGS GF) (M : IdIssueState) : IProp GF :=
   letI := hL.idIssueAllG
-  iprop(ghostMapAuth hL.idIssueName 1 M ∗ [∗map] id ↦ g ∈ M, idIssueFragAt hL id g)
+  iprop(∃ Mg : IdIssueState, ghostMapAuth hL.idIssueName 1 Mg ∗
+    ([∗map] id ↦ g ∈ Mg, idIssueFragAt hL id g) ∗ ⌜∀ id g, Mg !! id = some g → M !! id = some g⌝)
 
-theorem idIssue_local_init (hPre : IdIssueGpreS GF) (M : IdIssueState) (hM : M = ∅) :
+theorem idIssue_local_init (hPre : IdIssueGpreS GF) (M : IdIssueState) :
     ⊢@{IProp GF} |==> ∃ hL : IdIssueGS GF, idIssueCtx hL M ∗ iprop(True) := by
   letI := hPre.idIssuePreAllG
-  subst hM
   imod (ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc)) with ⟨%γ, H⟩
   imodintro
   iexists (⟨hPre.idIssuePreAllG, γ⟩ : IdIssueGS GF)
   unfold idIssueCtx
-  iframe H
-  iapply BigSepM.bigSepM_empty.2
-  itrivial
+  isplitl
+  · iexists ∅
+    iframe H
+    isplitl
+    · iapply BigSepM.bigSepM_empty.2; itrivial
+    · ipureintro; intro id g h; simp [GMap.lookup_empty] at h
+  · itrivial
 
 /-- **The record's step** (ghost): the record after an `"Issue"` of `(id, g)`, and, if it is
 allowed, the id's element. -/
@@ -77,41 +82,71 @@ theorem idIssue_ghost_step (hL : IdIssueGS GF) (M : IdIssueState) (id : w64) (g 
   letI := hL.idIssueAllG
   iintro HM
   iunfold idIssueCtx at HM
-  icases HM with ⟨HA, #HE⟩
-  unfold idIssueNext idIssueOk
-  cases hlk : M !! id with
-  | none =>
-    simp only [_root_.decide_true, ↓reduceIte]
-    imod ghost_map_insert_persist id g hlk $$ HA with ⟨HA, #He⟩
+  icases HM with ⟨%Mg, HA, #HE, %Hsub⟩
+  by_cases hok : idIssueOk M id g = true
+  · -- allowed: the physical record has no other generator's entry, so the ghost one has none
+    have hM : M !! id = none ∨ M !! id = some g := by
+      unfold idIssueOk at hok
+      cases h : M !! id with
+      | none => exact Or.inl rfl
+      | some g' => rw [h] at hok; simp at hok; exact Or.inr (by rw [hok])
+    have hnext : idIssueNext M id g = M.insert id g := by unfold idIssueNext; rw [hok]; rfl
+    rw [hnext]
+    cases hg : Mg !! id with
+    | none =>
+      imod ghost_map_insert_persist id g hg $$ HA with ⟨HA, #He⟩
+      imodintro
+      isplitl [HA]
+      · iunfold idIssueCtx
+        iexists (Mg.insert id g)
+        iframe HA
+        isplitl
+        · iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := Mg)
+            (Φ := fun i g' => idIssueFragAt hL i g') hg).2
+          iframe HE
+          iunfold idIssueFragAt; iexact He
+        · ipureintro
+          intro i g' h
+          rw [GMap.lookup_insert_eq_iff] at h ⊢
+          by_cases hi : id = i
+          · simp only [hi, ite_true] at h ⊢; exact h
+          · simp only [hi, ite_false] at h ⊢; exact Hsub i g' h
+      · iintro -; iunfold idIssueFragAt; iexact He
+    | some g' =>
+      have hg' : g' = g := by
+        have := Hsub id g' hg
+        rcases hM with h | h <;> rw [h] at this <;> cases this; rfl
+      subst hg'
+      icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := Mg)
+        (Φ := fun i g' => idIssueFragAt hL i g') hg).1 $$ HE with ⟨#He, -⟩
+      imodintro
+      isplitl [HA]
+      · iunfold idIssueCtx
+        iexists Mg
+        iframe HA HE
+        ipureintro
+        intro i g'' h
+        rw [GMap.lookup_insert_eq_iff]
+        by_cases hi : id = i
+        · subst hi; rw [hg] at h; cases h; simp
+        · simp only [hi, ite_false]; exact Hsub i g'' h
+      · iintro -; iexact He
+  · -- refused: nothing changes
+    have hnext : idIssueNext M id g = M := by
+      unfold idIssueNext; rw [if_neg hok]
+    rw [hnext]
     imodintro
     isplitl [HA]
     · iunfold idIssueCtx
-      iframe HA
-      iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := M)
-        (Φ := fun i g' => idIssueFragAt hL i g') hlk).2
-      iframe HE
-      iunfold idIssueFragAt; iexact He
-    · iintro -; iunfold idIssueFragAt; iexact He
-  | some g' =>
-    by_cases hg : g' = g
-    · subst hg
-      simp only [_root_.decide_true, ↓reduceIte, GMap.insert_id M id g' hlk]
-      icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := M)
-        (Φ := fun i g' => idIssueFragAt hL i g') hlk).1 $$ HE with ⟨#He, -⟩
-      imodintro
-      isplitl [HA]
-      · iunfold idIssueCtx; iframe HA HE
-      · iintro -; iexact He
-    · simp only [hg, decide_false, Bool.false_eq_true, ↓reduceIte]
-      imodintro
-      isplitl [HA]
-      · iunfold idIssueCtx; iframe HA HE
-      · iintro %h; cases h
+      iexists Mg
+      iframe HA HE
+      ipureintro; exact Hsub
+    · iintro %h; exact absurd h hok
 
 end ghost
 
-/-- The ghost state of the issue record. The program starts with nothing: the record is empty, and
-its facts come from `"Issue"`. -/
+/-- The ghost state of the issue record. The program starts with nothing, whatever the initial
+record: its facts come from `"Issue"`. -/
 instance idIssue_interp : ExtInterp idIssueExt where
   LocalGS := IdIssueGS
   GlobalGS _ := Unit
@@ -119,12 +154,12 @@ instance idIssue_interp : ExtInterp idIssueExt where
   globalCtx _ _ := iprop(True)
   PreG := IdIssueGpreS
   initgP _ := True
-  initP M _ := M = ∅
+  initP _ _ := True
   globalStart _ _ := iprop(True)
   localStart _ _ := iprop(True)
   global_init _ _ _ _ := by
     iapply bupd_intro; iexists (); isplitl [] <;> itrivial
-  local_init _ hPre M _ hM := idIssue_local_init hPre M hM
+  local_init _ hPre M _ _ := idIssue_local_init hPre M
 
 /-! ## Specs -/
 
