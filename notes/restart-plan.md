@@ -501,3 +501,38 @@ The refactor's logic, in place (the drafts of `idutil/Incarnations.lean` folded 
     extension's instance, which each example's adequacy provides.
   - Drop the one-key-per-prefix condition, and prove `idIncarnation_alloc` (a fresh incarnation
     number chosen from the finite maps).
+
+### R2e: raft's restart, now that the durability work has landed (2026-11-02)
+
+The durability branch landed on `lean` (stage II (u)), so R2e can be built on proved raft specs,
+not a named `sorry`:
+
+- **`RestartNode.spec`** (`Spec/go_etcd_io/raft/v3/RestartNode.lean`, proved). It restarts node
+  `id` of the cluster from three things:
+  - the id vacant (`nodeVacant`: no node of it runs);
+  - a storage holding raft's stored contents `σ` (`restartStorage`), at a configuration point `a`
+    the storage's `ConfState` reports, between the applied index and the stored commit;
+  - the client's update `AU`, which fires when raft reads the storage. It checks the storage holds
+    the client's durable state `S` (`raftState`, `StorageHolds`).
+
+  Its post gives the `Ready` loop's token at the committed log from `max σ.b Applied`. It also gives
+  the configuration view at `(a, m)` and the storage's key.
+- **`node.Stop`** gives the id's vacancy back (`nodeStopped`, `nodeVacant`).
+- **`examples/kvdurable`** is the pattern for a stop and a restart:
+  - `Replica.stop` returns `nodeVacant` and the replica's durable-state ghost variable (`raftState`).
+  - `Cluster.restart` restarts from them, with the crash token held by the cluster.
+
+For the server, this fixes what the image (`srvDiskImage`) holds of raft:
+- `HardStop`'s `run` shutdown calls `raftNode.stop`, which calls `node.Stop`, which returns
+  `nodeVacant`.
+- The WAL's hard state, snapshot and entries are the durable state `S`. etcd's `bootstrappedWAL`
+  rebuilds its `MemoryStorage` from them, so bootstrap's restart contract (L3) must produce
+  `restartStorage σ` with `StorageHolds σ S`.
+- The configuration point is the WAL snapshot's `ConfState`, the snapshot's index.
+
+The open questions:
+1. The server's raft node is not `kvdurable`'s. It runs through `raftNode` and its `Ready` loop, and
+   `bootstrap` reads the WAL, not a durable file of the client's. So the restart contract has to
+   state the WAL image's correspondence to `S`.
+2. `RestartNode`'s scope: the stored commit covers the bootstrap log (`γ.bootLen ≤ σ.commit`). That
+   holds for `restart3`, which stops a member only after a put has committed past the bootstrap.
