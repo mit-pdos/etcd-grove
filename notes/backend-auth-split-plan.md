@@ -464,3 +464,9 @@ Right after this stage, on its own: the rows of `bootOk`'s `clusterApplyOk`
 id in `r.mem` or removed, from the workload), `SetVersion` above the server's version (a premise on
 the version), a missing `members`/`cluster` bucket (`srvRestOwn` holding them present,
 `restModel_present`), and the attribute row's read-only `ClientURLs` slice (to check in Lean).
+
+## Approval (2026-11-02)
+
+The user approved revision 4.3 of the trusted restatements (§1–§19, with T), no further review
+round; the apply step follows (the texts: the scratch draft `bks-trusted.md`, copied into the
+repository as they are applied).

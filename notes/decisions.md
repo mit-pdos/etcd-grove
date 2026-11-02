@@ -29289,3 +29289,5 @@ opening the store's invariant at names the restore is changing.
   `applyConfChange` has no `isBackend` for the restated member read and save; repaired in the draft
   (revision 4.3, T: `srvBeOwn` carries `srvBeRO d`), not re-reviewed. Per the user's rule nothing
   trusted is applied.
+- **Approved** (the user, 2026-11-02): revision 4.3 of the trusted restatements as it stands, with
+  T, §18 and §19, no further review round. Applied by the apply step (below in STATUS.md).
