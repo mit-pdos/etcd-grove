@@ -19,6 +19,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
 public import Perennial.Proof.ThreadPool
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvRoTxn
 
 @[expose] public section
 
@@ -157,10 +158,11 @@ today's read transaction at the state's log, revision and compaction revision, o
 transaction at the log the state is, nothing pending; and the reader's loan of the readers' pool
 (the caller's thread token is in the pool until `End`). -/
 def mvccTxnI (t : GoInterface) (γ : MvccImpl) (trace : Loc) : MTxn → IProp GF
-  | .read σ => iprop(∃ (mw s : Loc),
-      ⌜t = interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw ∧ 1 ≤ σ.log.length⌝ ∗
-      isMvccI s γ ∗
-      isTxnRead mw s γ.st trace σ.log (W64 (σ.rev : Int)) σ.crev ∗ threadPool.ownThreadLoan γ.tl)
+  | .read σ => iprop(∃ s : Loc, ⌜1 ≤ σ.log.length⌝ ∗ isMvccI s γ ∗ threadPool.ownThreadLoan γ.tl ∗
+      ((∃ mw : Loc, ⌜t = interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw⌝ ∗
+          isTxnRead mw s γ.st trace σ.log (W64 (σ.rev : Int)) σ.crev) ∨
+       (∃ trw : Loc, ⌜t = interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw⌝ ∗
+          isRoTxnWrite trw s γ.st trace σ.log (W64 (σ.rev : Int)) σ.crev)))
   | .write σ pend => iprop(∃ (mw s : Loc) (puts deletes putSize : w64),
       ⌜t = interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw ∧ σ.pending = none ∧
         1 ≤ σ.log.length⌝ ∗

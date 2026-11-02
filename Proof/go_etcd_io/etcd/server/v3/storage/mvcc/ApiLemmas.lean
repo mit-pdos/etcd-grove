@@ -287,17 +287,49 @@ theorem mvccTxn_read_eq (mw : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState
         isTxnRead mw s γ.st trace σ.log (W64 (σ.rev : Int)) σ.crev ∗ threadPool.ownThreadLoan γ.tl := by
   unfold mvccTxn mvccTxnI
   constructor
-  · iintro ⟨%mw', %s, ⟨%Ht, %Hl⟩, #Hs, Hr, Hl'⟩
-    simp only [interface_mkOk_inj, _root_.true_and] at Ht
-    have hmw : mw' = mw := (GoGlobalContext.intoVal_inj_loc Ht).symm
-    subst hmw
-    iexists s
-    iframe Hs Hr Hl'
-    ipureintro; exact Hl
+  · iintro ⟨%s, %Hl, #Hs, Hl', (⟨%mw', %Ht, Hr⟩ | ⟨%trw, %Ht, -⟩)⟩
+    · simp only [interface_mkOk_inj, _root_.true_and] at Ht
+      have hmw : mw' = mw := (GoGlobalContext.intoVal_inj_loc Ht).symm
+      subst hmw
+      iexists s
+      iframe Hs Hr Hl'
+      ipureintro; exact Hl
+    · simp [interface_mkOk_inj, metricsTxnWrite.ty, txnReadWrite.ty] at Ht
   · iintro ⟨%s, %Hl, #Hs, Hr, Hl'⟩
-    iexists mw, s
-    iframe Hs Hr Hl'
-    ipureintro; exact ⟨rfl, Hl⟩
+    iexists s
+    iframe Hs Hl'
+    isplitr
+    · ipureintro; exact Hl
+    ileft
+    iexists mw
+    iframe Hr
+    ipureintro; rfl
+
+/-- **A store's read-only write transaction** (`NewReadOnlyTxnWrite`'s), as `mvccTxn` holds it. -/
+theorem mvccTxn_ro_eq (trw : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) :
+    mvccTxn (GF := GF) (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) γ trace (.read σ) ⊣⊢
+      ∃ s : Loc, ⌜1 ≤ σ.log.length⌝ ∗ isMvccI s γ ∗
+        isRoTxnWrite trw s γ.st trace σ.log (W64 (σ.rev : Int)) σ.crev ∗
+        threadPool.ownThreadLoan γ.tl := by
+  unfold mvccTxn mvccTxnI
+  constructor
+  · iintro ⟨%s, %Hl, #Hs, Hl', (⟨%mw, %Ht, -⟩ | ⟨%trw', %Ht, Hr⟩)⟩
+    · simp [interface_mkOk_inj, metricsTxnWrite.ty, txnReadWrite.ty] at Ht
+    · simp only [interface_mkOk_inj, _root_.true_and] at Ht
+      have hmw : trw' = trw := (GoGlobalContext.intoVal_inj_loc Ht).symm
+      subst hmw
+      iexists s
+      iframe Hs Hr Hl'
+      ipureintro; exact Hl
+  · iintro ⟨%s, %Hl, #Hs, Hr, Hl'⟩
+    iexists s
+    iframe Hs Hl'
+    isplitr
+    · ipureintro; exact Hl
+    iright
+    iexists trw
+    iframe Hr
+    ipureintro; rfl
 
 /-- **A store's write transaction**, as `mvccTxn` holds it. -/
 theorem mvccTxn_write_eq (mw : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) (pend : List Change) :

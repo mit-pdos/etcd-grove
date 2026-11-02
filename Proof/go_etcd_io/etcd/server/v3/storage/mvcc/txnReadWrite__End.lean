@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__End
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLemmas
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
 
 @[expose] public section
@@ -41,6 +42,26 @@ theorem mvcc.txnReadWrite.End.wp_proof
   (try wp_auto)
   iapply HΦ
   iframe Hrd HZ Htrc
+
+/-- **The candidate `End`** of a read-only write transaction (`specC`): `spec`'s, the reader's ticket
+back to the readers' pool for the thread token. -/
+theorem mvcc.txnReadWrite.End.wp_proofC (hO : mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG)) :
+    mvcc.txnReadWrite.End.specC (GF := GF) (hG := hG) := by
+  intro trw γ trace σ
+  iintro %Φ ⟨#Hpkg, Htx⟩ HΦ
+  icases (mvcc.mvccTxn_ro_eq trw γ trace σ).1 $$ Htx with ⟨%s, %Hl, #Hs, Hro, Hloan⟩
+  ihave #Hs1 := Hs
+  iunfold mvcc.isMvccI at Hs1
+  icases Hs1 with ⟨-, -, -, #Hpool, -, -⟩
+  iapply wp_fupd
+  wp_apply (hO trace trw s γ.st σ.log (W64 (σ.rev : Int)) σ.crev iprop(True)) $$ [Hro]
+    as ⟨Hrd, -, Htrc⟩
+  · iframe Hro
+    try iframe #
+  imod threadPool.giveBack mvcc.tixN γ.tl _ ⊤ (by simp) $$ [$Hpool $Hloan $Hrd] with Htt
+  imodintro
+  iapply HΦ
+  iframe Htt Htrc
 
 end proof
 

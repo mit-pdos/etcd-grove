@@ -5,6 +5,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnRead
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLemmas
 
 @[expose] public section
 
@@ -420,11 +421,10 @@ theorem mvcc.store.Read.wp_proofC (hA : mvcc.store.Read.specA (GF := GF) (hG := 
   iapply HΦ
   iexists σ
   iframe HQ
-  iunfold mvcc.mvccTxn
-  simp only [mvcc.mvccTxnI]
-  iexists mw, s
+  iapply (mvcc.mvccTxn_read_eq mw γ trace σ).2
+  iexists s
   isplitr
-  · ipureintro; exact ⟨rfl, Hlen⟩
+  · ipureintro; exact Hlen
   isplitr
   · iunfold mvcc.isMvcc at Hs; iexact Hs
   iframe Hloan

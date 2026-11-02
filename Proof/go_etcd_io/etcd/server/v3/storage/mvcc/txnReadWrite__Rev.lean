@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Rev
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLemmas
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Rev
 
 @[expose] public section
@@ -58,6 +59,20 @@ theorem mvcc.txnReadWrite.Rev.wp_proof
     iframe #
   ipureintro
   exact ⟨HneT, HrevT⟩
+
+/-- **The candidate `Rev`** of a read-only write transaction (`specC`): `spec`'s, at the state. -/
+theorem mvcc.txnReadWrite.Rev.wp_proofC (hO : mvcc.txnReadWrite.Rev.spec (GF := GF) (hG := hG)) :
+    mvcc.txnReadWrite.Rev.specC (GF := GF) (hG := hG) := by
+  intro trw γ trace σ
+  iintro %Φ ⟨#Hpkg, Htx⟩ HΦ
+  icases (mvcc.mvccTxn_ro_eq trw γ trace σ).1 $$ Htx with ⟨%s, %Hl, #Hs, Hro, Hloan⟩
+  iapply (hO trace trw s γ.st σ.log (W64 (σ.rev : Int)) σ.crev iprop(True)) $$ %Φ [Hro]
+  · iframe Hpkg Hro
+  inext
+  iintro ⟨Hro, -⟩
+  iapply HΦ
+  iapply (mvcc.mvccTxn_ro_eq trw γ trace σ).2
+  iexists s; iframe Hs Hro Hloan; ipureintro; exact Hl
 
 end proof
 

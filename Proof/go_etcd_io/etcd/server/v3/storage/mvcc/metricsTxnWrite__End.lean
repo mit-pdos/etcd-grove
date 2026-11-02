@@ -191,16 +191,11 @@ theorem mvcc.metricsTxnWrite.End.wp_proofC (hA : mvcc.metricsTxnWrite.End.specA 
   iapply wp_fupd
   cases k with
   | read σ =>
-    iunfold mvcc.mvccTxn at Htx
-    simp only [mvcc.mvccTxnI]
-    icases Htx with ⟨%mw', %s, ⟨%Ht, -⟩, #Hs, Hrd, Hloan⟩
-    simp only [interface_mkOk_inj, _root_.true_and] at Ht
-    have hmw : mw' = mw := (GoGlobalContext.intoVal_inj_loc Ht).symm
-    subst hmw
+    icases (mvcc.mvccTxn_read_eq mw γ trace σ).1 $$ Htx with ⟨%s, -, #Hs, Hrd, Hloan⟩
     ihave #Hs1 := Hs
     iunfold mvcc.isMvccI at Hs1
     icases Hs1 with ⟨-, -, -, #Hpool, -, -⟩
-    wp_apply (hA trace mw' s γ.st (.read σ.log (W64 (σ.rev : Int))) σ.crev iprop(True) iprop(True))
+    wp_apply (hA trace mw s γ.st (.read σ.log (W64 (σ.rev : Int))) σ.crev iprop(True) iprop(True))
       $$ [Hrd] as ⟨Hrdr, -, -, Htrc⟩
     · simp only [mvcc.isTxnEnd, mvcc.txnEndPreA]
       iframe Hrd

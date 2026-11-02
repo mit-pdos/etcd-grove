@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Range
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLemmas
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Range
 
 @[expose] public section
@@ -45,6 +46,24 @@ theorem mvcc.txnReadWrite.Range.wp_proof
   iunfold mvcc.isRoTxnWrite
   iexists mw
   iframe
+
+/-- **The candidate `Range`** of a read-only write transaction (`specC`): `spec`'s, at the state. -/
+theorem mvcc.txnReadWrite.Range.wp_proofC (hO : mvcc.txnReadWrite.Range.spec (GF := GF) (hG := hG)) :
+    mvcc.txnReadWrite.Range.specC (GF := GF) (hG := hG) := by
+  intro trw γ trace σ ctx cd todo key endk kk e ro
+  iintro %Φ ⟨#Hpkg, Htx, Hctx, #Hk, #He⟩ HΦ
+  icases (mvcc.mvccTxn_ro_eq trw γ trace σ).1 $$ Htx with ⟨%s, %Hl, #Hs, Hro, Hloan⟩
+  iapply (hO trace trw s γ.st σ.log (W64 (σ.rev : Int)) ctx cd todo key endk kk e ro σ.crev iprop(True))
+    $$ %Φ [Hro Hctx]
+  · iframe Hpkg Hro Hctx Hk He
+  inext
+  iintro %r %err ⟨%Hr, Hro, Hout⟩
+  iapply HΦ
+  iframe Hout
+  isplitr
+  · ipureintro; exact Hr
+  iapply (mvcc.mvccTxn_ro_eq trw γ trace σ).2
+  iexists s; iframe Hs Hro Hloan; ipureintro; exact Hl
 
 end proof
 
