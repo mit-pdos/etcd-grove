@@ -823,11 +823,10 @@ theorem cacheBoundLb_mono (cf : CacheFields) (r r' : w64) (h : sint.Z r' ≤ sin
       iapply monoNatLbOwn_le (sint.nat r') (Int.toNat_le_toNat h) $$ H
 
 /-- **The store's gap certificate** in the cache (its `G`): etcd had no event under the prefix
-after the snapshot's revision `a` up to `b`: every revision `x` of the gap ends a step without
-events from `a`. With it, a `Get` answers etcd's state at the revision asked for, not only at
-the snapshot's (`cacheGetOk`). -/
-def cacheGap (pfx : GoString) (a : w64) (b : Int) : IProp GF :=
-  iprop(□ ∀ x : w64, ⌜sint.Z a < sint.Z x ∧ sint.Z x ≤ b⌝ -∗ EtcdStep a x pfx [])
+after the snapshot's revision `a` up to `b` (`etcdQuiet`, the demux's quiet certificate). With
+it, a `Get` answers etcd's state at the revision asked for, not only at the snapshot's
+(`cacheGetOk`). -/
+def cacheGap (pfx : GoString) (a : w64) (b : Int) : IProp GF := etcdQuiet pfx (sint.Z a) b
 
 instance cacheGap_persistent (pfx : GoString) (a : w64) (b : Int) :
     Persistent (cacheGap (GF := GF) pfx a b) := by
@@ -836,24 +835,22 @@ instance cacheGap_persistent (pfx : GoString) (a : w64) (b : Int) :
 /-- An empty gap. -/
 theorem cacheGap_nil (pfx : GoString) (a : w64) (b : Int) (h : b ≤ sint.Z a) :
     ⊢ cacheGap (GF := GF) pfx a b := by
-  unfold cacheGap
-  imodintro; iintro %x %hx; exfalso; omega
+  unfold cacheGap; exact etcdQuiet_nil pfx _ b h
 
 /-- A quiet interval from at or below the snapshot's revision is a gap (`etcdStep_restrict`). -/
 theorem cacheGap_of_quiet (pfx : GoString) (a' : Int) (a : w64) (b : Int) (h : a' ≤ sint.Z a) :
     etcdQuiet (GF := GF) pfx a' b ⊢ cacheGap pfx a b := by
-  unfold etcdQuiet cacheGap
-  iintro #H; imodintro; iintro %x %hx
-  icases H $$ %x %(⟨by omega, hx.2⟩ : a' < sint.Z x ∧ sint.Z x ≤ b) with ⟨%q, %hq, #Hs⟩
-  iapply (etcdStep_restrict q a x x pfx [] (by omega) hx.1 (Or.inr ⟨rfl, rfl⟩))
-  iexact Hs
+  unfold cacheGap; exact etcdQuiet_mono pfx a' (sint.Z a) b b h (Int.le_refl _)
 
 /-- A batch's step from at or below the snapshot's revision makes the gap up to the batch. -/
 theorem cacheGap_of_step (pfx : GoString) (p a B : w64) (cs : List EtcdEv) (h : sint.Z p ≤ sint.Z a) :
     EtcdStep (GF := GF) p B pfx cs ⊢ cacheGap pfx a (sint.Z B - 1) := by
-  unfold cacheGap
+  unfold cacheGap etcdQuiet
   iintro #H; imodintro; iintro %x %hx
-  iapply (etcdStep_restrict p a x B pfx cs h hx.1 (Or.inl (by omega)))
+  iexists p
+  isplitr
+  · ipureintro; exact h
+  iapply (etcdStep_restrict p p x B pfx cs (Int.le_refl _) (by omega) (Or.inl (by omega)))
   iexact H
 
 /-- **The store's revision certificate** in the cache (its `R`): etcd has reached `r`, and `r` is
@@ -1476,9 +1473,8 @@ caller) whose header revision is the store's latest revision in some state `st` 
 caller's `r0`), listing, in key order, the `*KeyValue`s of the snapshot `(r, m)` that
 `getSnapshot(o.rev)` picks in `st` (`snapModel`: the greatest cached revision at most `o.rev`,
 or at most `st.latestRev` for `o.rev = 0`) in the range `[key, o.rangeEnd)` (`kvRange`), with
-its count; and `m` is etcd's state at `r` (`isEtcdKvs`), and at the revision asked for itself
-(`o.rev`, or `st.latestRev` for `o.rev = 0`: etcd had no event under the prefix in between, the
-store's gap certificate). A linearizable request (not
+its count; and `m` is etcd's state under the prefix at the revision asked for (`o.rev`, or
+`st.latestRev` for `o.rev = 0`; `isEtcdKvs`). A linearizable request (not
 `WithSerializable`) is moreover at least as fresh as etcd was when it started: etcd had a
 state at a revision `serverRev`, at least the requested one, that the store's latest revision
 has reached. -/
@@ -1489,7 +1485,7 @@ def cacheGetOk (cf : CacheFields) (r0 : w64) (key : GoString) (o : OpModel) (res
     hdr ↦ respHeaderVal st.latestRev ∗
     kvsSl ↦* ((kvRange key o.rangeEnd m).map Prod.snd) ∗ ownSliceCap Loc kvsSl (DFrac.own 1) ∗
     kvsAt (kvRange key o.rangeEnd m) ∗
-    isEtcdKvs r cf.pfx m ∗ isEtcdKvs (if o.rev = W64 0 then st.latestRev else o.rev) cf.pfx m ∗
+    isEtcdKvs (if o.rev = W64 0 then st.latestRev else o.rev) cf.pfx m ∗
     storeSeen cf.γs cf.scap r0 st ∗
     ⌜snapModel st o.rev = .ok r m ∧ o.getUnsupported = false ∧
       validRange cf.pfx key o.rangeEnd = true⌝ ∗

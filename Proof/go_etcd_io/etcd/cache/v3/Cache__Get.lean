@@ -281,15 +281,16 @@ theorem Cache.Get.wp_proof
           · unfold respHeaderVal; iexact «$v0»
           iframe Hkvs Hcap HkvsAt
           isplitr
-          · iunfold etcdCert at HE; iexact HE
-          isplitr
           · -- at the revision asked for: the snapshot's gap covers it
             iunfold etcdCert at HE
             have hle := snapModel_ok_le st of.base.rev r m Hm
             generalize hv : (if of.base.rev = W64 0 then st.latestRev else of.base.rev) = v at hle Hb ⊢
             rcases Int.lt_or_eq_of_le hle with hlt | heq
             · iunfold cacheGap at Hgap
-              ihave #Hs := Hgap $$ %v %(⟨hlt, Hb⟩ : sint.Z r < sint.Z v ∧ sint.Z v ≤ b)
+              iunfold etcdQuiet at Hgap
+              icases Hgap $$ %v %(⟨hlt, Hb⟩ : sint.Z r < sint.Z v ∧ sint.Z v ≤ b)
+                with ⟨%q, %hq, #Hs0⟩
+              ihave #Hs := (etcdStep_restrict q r v v cf.pfx [] hq hlt (Or.inr ⟨rfl, rfl⟩)) $$ Hs0
               iapply isEtcdKvs_quiet r v cf.pfx m hlt $$ [$Hs $HE]
             · have : r = v := by word
               subst this; iexact HE

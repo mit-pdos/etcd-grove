@@ -29854,3 +29854,34 @@ over `gapsOf_ringAppend`, `gapsOf_latest`, `gapsOf_applyEvents`).
   (stage 3, the demux's quiet certificate), since `applyStorage` sees only what the demux
   publishes. Stage 3 then gives it the body and `cache_Get` its stronger post. A strengthening
   of the store's API only: no client outside `cache/v3`.
+
+## The cache's `Get` at the revision asked for: the demux's quiet certificate (2026-11-02 · stage 3 · supersedes "Not wired: the cache's `Get` spec is weaker than its code")
+
+`cache_Get`'s post (`cacheGetOk`) is now etcd's state under the prefix at the revision asked
+for (`o.rev`, or the header revision for `o.rev = 0`), the user's choice of 2026-11-02 (a
+strengthening, no new premise); the snapshot-revision conjunct `isEtcdKvs r` is gone (internal,
+the spec-reviewer's round 2: no client sees `r`). The last piece was the gap after the newest
+snapshot, which a progress notification moves: the store's `Apply` sees only what the demux
+publishes, so the demux carries it.
+
+- `DemuxCert.quiet a b` ("no event the user cares about in `(a, b]`"), with `quiet_mono`,
+  `quiet_nil`, `cert_quiet` (a batch's certificate is quiet before the batch). The cache's is
+  `etcdQuiet pfx a b` (every `x` in the interval ends an event-less step from at or below `a`);
+  the store's gap certificate at the cache, `cacheGap pfx a b`, is `etcdQuiet pfx a b` (one notion,
+  round 2).
+- The lock holds `⌜maxRev = 0⌝ ∨ □ quiet lastRev maxRev`: a batch resets it (`lastRev = maxRev`), a
+  progress notification brings it (`respCert`'s progress arm; the cache's writer from its `TailOk`
+  and the client watch's progress step, `tailOk_quiet`). The `maxRev = 0` disjunct because `Init`
+  takes any `minRev`, a non-positive one included (`lastRev = minRev - 1 < 0`); harmless to a
+  consumer at a non-negative revision.
+- An open watcher's publication (`demuxPubBody`) gives one quiet tail, from its segment's end to
+  the first batch still owed (`quietEnd`), not a fact per response: an earlier progress
+  notification is covered by the next delivered batch's certificate (`etcdStep_restrict`), the
+  newest by the tail. Built in `pub_send` from the lock (`certChain_seg_open`, over a three-way
+  split of the sorted stream). The candidate 2 Draft had one fact per progress response; the tail
+  needs no change to `Delivered`.
+- `applyStorage` certifies `Apply`'s gaps: the batch chain's steps (`applyEvents_gaps`), a progress
+  notification's from the store watcher's tail (`storeW_quiet`, by unfolding the publication).
+  Open (round 2, not needed now): export the per-notification fact as a law beside
+  `demuxPubBody_prog` (`demuxPubBody_quiet`), so that `storeW_quiet` and a `Watch` client need no
+  unfold; and closed logs keep no quiet fact (`oc ≠ none`).

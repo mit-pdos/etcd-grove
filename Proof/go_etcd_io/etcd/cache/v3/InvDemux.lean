@@ -437,7 +437,11 @@ And a certificate for the revisions between the stream's batches that have none,
 (the cache's: etcd had no event under the prefix after `a` up to `b`, `etcdQuiet`): monotone
 (a sub-interval of a quiet interval is quiet), true of an empty interval, and implied by a
 batch's certificate for the revisions before the batch. The lock holds `□ quiet lastRev maxRev`
-(a progress notification's comes with it, `respCert`), and an open watcher's publication gives
+unless `maxRev = 0` (`Init` takes any `minRev`, a non-positive one included, after which
+`lastRev = minRev - 1` may be below `0`; a progress notification at or below `0` is stale to any
+consumer at a non-negative revision); a progress notification's comes with it (`respCert`). Like
+the other certificates, the laws hold of `True`: the parameter is the user's (the cache's says
+something). An open watcher's publication gives
 it from its last delivered batch to the first batch still owed (`quietEnd`), so that its
 consumer knows a progress notification sent leaves nothing undelivered below it. -/
 structure DemuxCert (GF : BundledGFunctors) where
@@ -610,7 +614,8 @@ delivery facts for some start `s` (the one `Register` was given, `sr`, unless th
 view `v` (a compaction cancel at `v.n`), and **the certificates** of the delivered stream
 segment, chained from a revision `p₀` below `s` (for `s ≠ 0`), and the certificate of the view's
 `maxRev` (`C.prog`), which is at or above every progress notification sent; and, while it is
-open (`oc = none`) and has sent something (and `maxRev ≠ 0`), the quiet certificate from the segment's end to the first batch still owed
+open (`oc = none`) and has sent something (and `maxRev ≠ 0`), the quiet certificate from the
+segment's end (its last batch's revision, `p₀` for an empty segment) to the first batch still owed
 (`quietEnd`), which is at or above every progress notification sent. -/
 def demuxPubBody (C : DemuxCert GF) (pred : Option (GoString → Bool)) (sr : w64)
     (oc : Option (Option w64)) (L : List RespModel) : IProp GF :=
