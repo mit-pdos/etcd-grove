@@ -1652,7 +1652,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- since D22 J1b (`srvSnapBoot`)
   -- (2026-11-02, branch `snap-window`) the server's backend with its hooks (`srvBeHooked`):
   -- `bootOk`'s hooks and `hooksAt`, the backend at the protocol's batch-lock resource
-  ihave #HbeHk : srvBeHooked s γA cil (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF) $$ []
+  ihave #HbeHk : srvBeHooked s γA cil (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret⟩ : apply.AEnv GF) $$ []
   · icases Hbh with ⟨%lgh0, #Hbh0⟩
     iunfold srvBeHooked
     iexists ({ d with cm := cmp } : mvcc.KBReal), bk.beHooks', lgh0
