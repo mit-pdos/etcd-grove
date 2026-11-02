@@ -666,3 +666,15 @@ All seven recommendations accepted:
 
 Next: the backend stage (1, 2 as it touches the backend, 4), spec-first, before the auth premise is
 applied.
+
+## Change log after the freeze
+
+Empty until the Freeze. From then on, every change to a frozen statement gets one entry here, tagged
+when it is made (`notes/spec-first-plan.md`, "The change log after the freeze, classified"):
+
+    - `[F|R|W|E|D|A|C, proof|Go|test|user|check, public|trusted|internal, approved|awaits user]`
+      old → new, why (commit).
+
+F (false or unprovable) and R (redesign) are the review's misses. This log is the spec-first half of
+the comparison in `notes/spec-first-study/snapshot-proof-first.md`: its F and R entries per frozen
+statement, and the `Proof/` lines they cost, against the proof-first half's table there.
