@@ -181,3 +181,5 @@ invariant from `srvLeaseRd`'s `lessorInv`) and `lessorLb_le`, the auth store's `
   `txn.kvWriter_noCmp`). The collections `leasekv` and `v3rpc` updated: the axioms they now reach were
   behind the stage's `sorry`s, none new to `etc/tcb-baseline.txt`. Bounds: 393 against 390, the three
   `examples/leasekv` entries of the Freeze list.
+- After merging `lean` (its sole-writer laws proved): `leasekv_safe` rests on two `sorry`s,
+  `merged_image` and `run_job_snap_cmp`.
