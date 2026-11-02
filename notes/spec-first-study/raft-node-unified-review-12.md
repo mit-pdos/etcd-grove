@@ -240,7 +240,7 @@ once.**
   store" invariant. This is the main gain of the TaDa design for the server, so §13.3 should say so.
 - If a multi-server proof is planned, determinism is needed there, and L5's layer provides it.
 - Still an obligation either way: etcd's checks must imply that confchange accepts the change. This is the
-  existing scope of `issues/raft-remove-last-voter-panic.md` (`StrictReconfigCheck`).
+  existing scope of `nonissues/raft-remove-last-voter-panic.md` (`StrictReconfigCheck`).
 
 **L8 [spec text].**
 - **The `ApplyConfChange` explanation.** "The change passed may differ … etcd zeroes `NodeID` for a rejection,

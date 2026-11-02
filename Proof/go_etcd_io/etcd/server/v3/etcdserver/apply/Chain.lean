@@ -246,7 +246,7 @@ def rangeOk (log : mvcc.Log) (o : OpFull) : Prop :=
 /-- **The per-request premise** of `rq` at the sole writer's log `log`, by what `dispatch` does
 with it: the txn package's for a KV request (`TxnPre` for a transaction); a lease checkpoint
 request with at most one checkpoint (each checkpoint is its own critical section of the batch
-lock: `issues/etcd-apply-lease-checkpoint-sections.md`; until 2026-10-17); a cluster version that
+lock: `nonissues/etcd-apply-lease-checkpoint-sections.md`; until 2026-10-17); a cluster version that
 parses and is not above the server's (`semverAtMostServer`, the cluster-rows stage, 2026-11-02:
 `isCluster`'s `SetVersion` row panics above it). **No lease request** (D14h, 2026-10-17, the user's decision): the workload has no
 `LeaseGrant`, `LeaseRevoke` or `LeaseCheckpoint` (with no lease granted none expires, so the

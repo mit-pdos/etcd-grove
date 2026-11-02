@@ -13,7 +13,7 @@ the client closed if that fails, `Client.Close`), no
 context of the caller's (`Context` nil: the client's context is `context.TODO()`'s child), a
 logger of the caller's (`Logger` non-nil: no default logger is built, `logutil`), the default call
 options (`MaxCallSendMsgSize`, `MaxCallRecvMsgSize` not positive), no dial options of the caller's (`DialOptions` empty:
-`issues/nonissues/etcd-client-dialoptions-unary-interceptor.md`, a `WithUnaryInterceptor` there would
+`nonissues/etcd-client-dialoptions-unary-interceptor.md`, a `WithUnaryInterceptor` there would
 replace the retry interceptor), no version check (`RejectOldCluster` false: `checkVersion`'s
 `Status` calls) and no auto-sync (`AutoSyncInterval` zero: the `autoSync` goroutine returns at
 once). `DialTimeout`, `MaxUnaryRetries`, `BackoffWaitBetween`, `BackoffJitterFraction` and

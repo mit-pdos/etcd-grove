@@ -46,7 +46,7 @@ def CmpRecs.schedRev (r : CmpRecs) : Int := (r.sched.map sint.Z).getD 0
 
 /-- **`restore()` resumes the scheduled compaction**: the scheduled record (read as above) is not
 `0` and is past the finished one (`kvstore.go:389-391`, `:411`). A scheduled record of `0` is never
-resumed (`issues/etcd-restore-scheduled-compact-zero.md`). -/
+resumed (`nonissues/etcd-restore-scheduled-compact-zero.md`). -/
 def CmpRecs.resumes (r : CmpRecs) : Bool := decide (r.schedRev ≠ 0 ∧ r.finRev < r.schedRev)
 
 /-- **The compaction revision `restore()` leaves** (`compactMainRev` after it): the scheduled one if
@@ -87,7 +87,7 @@ theorem recsOk_crev_lt (L : Log) (r : CmpRecs) (h : recsOk L r) (hL : 2 ≤ L.le
 
 /-- **The records are past revision `0`** (pure; M2's scope restriction, Q7 (a): every committed
 compaction is at a revision `≥ 1`, so the image's records, written by applying them, are;
-`issues/etcd-restore-scheduled-compact-zero.md`). -/
+`nonissues/etcd-restore-scheduled-compact-zero.md`). -/
 def recsPos (r : CmpRecs) : Prop :=
   (∀ x, r.fin = some x → 1 ≤ sint.Z x) ∧ (∀ x, r.sched = some x → 1 ≤ sint.Z x)
 

@@ -279,7 +279,7 @@ one freezes:
 What drafting has found so far:
 
 - **Request ids across incarnations.** A restarted member's id generator starts again at its old
-  prefix, from the wall clock (`issues/etcd-request-id-restart-reuse.md`). The cluster's map of
+  prefix, from the wall clock (`nonissues/etcd-request-id-restart-reuse.md`). The cluster's map of
   issued ids (`idClusterInv`) cannot take a reissued id, so the restart boot takes a premise: the
   new generator's first suffix is past the ids the member's prefix issued (a time premise, as the
   issue's precondition). Named in R2c.
@@ -369,7 +369,7 @@ are still the R2a placeholders and hypotheses (`HardStop.spec`, `BuildServer.spe
 **Open in R2c** (the content of the placeholders): the floor fact of the member's id prefix
 (`Φs pfx = srvFloorFact E₀` names the first incarnation's stand-in environment; the restarted
 member's store is new), the id generator's start past the old ids
-(`issues/etcd-request-id-restart-reuse.md`), and what the image holds of raft (R2e) and of the
+(`nonissues/etcd-request-id-restart-reuse.md`), and what the image holds of raft (R2e) and of the
 backend (L5).
 
 ### R2c: what a restart needs of the cluster's id state (2026-11-02, design)
@@ -399,7 +399,7 @@ image carries none of them.
 **What the keys cannot give: fresh ids.** Two incarnations of one member issue ids under the same
 16-bit prefix; the cluster's map must not see one twice. The old generator may keep issuing after
 the stop (item 1), so no ghost bound on its suffix exists when the new one starts. Disjointness is
-the issue's precondition (`issues/etcd-request-id-restart-reuse.md`): the clock does not step back
+the issue's precondition (`nonissues/etcd-request-id-restart-reuse.md`): the clock does not step back
 and the earlier generator, started at millisecond t0, issues in all at most 256·(t1 − t0) ids, t1
 the later one's start (2026-11-02 review: the earlier "fewer than 256 per millisecond on average" was
 imprecise). It is an assumption about the

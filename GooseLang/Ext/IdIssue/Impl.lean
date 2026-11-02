@@ -9,7 +9,7 @@ member restarted under its old 16-bit prefix starts a second generator of that p
 clock, while its stopped incarnation's in-flight handlers may still call the first one's `Next`. Their
 ids are distinct only if the clock does not step back and the first generator, started at millisecond
 t0, issues in all at most 256·(t1 − t0) ids, t1 the second one's start (its first id is the first
-one's (256·(t1 − t0) + 1)-th; `issues/etcd-request-id-restart-reuse.md`). The model assumes it
+one's (256·(t1 − t0) + 1)-th; `nonissues/etcd-request-id-restart-reuse.md`). The model assumes it
 (`assume`, which does not return when false), following the approach of the SOSP'26 paper for this
 limit (`/shared/grove-paper/sosp26/case.tex`, `rwmutex.tex`).
 

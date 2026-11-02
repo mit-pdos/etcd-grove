@@ -73,7 +73,7 @@ caller of the same Go method.
   it), with `revLb` as one instance. Or drop it, and let the model's compaction step take effect
   only at `r ≤` the current revision (which is what mvcc does).
 - If `revLb` stays, `NewServer` needs a premise `mode = revision → 0 ≤ retention` that the
-  configuration does not guarantee. Record it in `issues/etcd-compactor-periodic-tiny-retention.md`'s
+  configuration does not guarantee. Record it in `nonissues/etcd-compactor-periodic-tiny-retention.md`'s
   sibling list, or in a new issue (#22396 would fix it upstream).
 
 **F1.4 (requirement: sufficiency for an auth-on server).**

@@ -1644,7 +1644,7 @@ eight server-based ones) are repaired after, as planned.
 The user's final D2 decision (after D2(i), (a) and (D′) were each found false of the Go or too
 narrow: the in-memory snapshot every `memorySnapshotCount = 100` entries, `ForceSnapshot` on a
 cluster-version downgrade, which the request model reaches,
-`issues/etcd-cluster-version-stale-proposal-downgrade.md`, and `compactRaftLog`'s `Compact(1)`):
+`nonissues/etcd-cluster-version-stale-proposal-downgrade.md`, and `compactRaftLog`'s `Compact(1)`):
 **snapshots are allowed**. The server registers its snapshots; the code paths that run only with a
 snapshot are each closed by one marked `-- SNAPSHOT-SORRY` (list below), to be proved after the
 merge into `lean`; every other path is proved. No run-length premise, no new trust-boundary axiom,

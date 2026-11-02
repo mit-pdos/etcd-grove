@@ -23,7 +23,7 @@ variable [sem : go.Semantics]
 
 /-- `New(lg, mode, retention, rg, c)`: for mode `"periodic"` (a retention of at least `10ns`: the
 pilot's configuration, `notes/compactor-pilot-plan.md`, phase 0; the code runs with
-`|retention| ≥ 10ns`, `issues/etcd-compactor-periodic-tiny-retention.md`, but a negative period
+`|retention| ≥ 10ns`, `nonissues/etcd-compactor-periodic-tiny-retention.md`, but a negative period
 busy-loops with an effective retention of zero, the misconfiguration that issue's etcd-io/etcd#22396
 rejects) or `"revision"`, a compactor (`compactorOk`)
 with its run token, whose `Run` takes the environment's contracts (`runPre`: the caller's

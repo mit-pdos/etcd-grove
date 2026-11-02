@@ -19,7 +19,7 @@ until then, so that no statement over them can be proved by unfolding them.
   recorded names. (R2c, 2026-11-02: no id state. A restart makes its incarnation's id share anew,
   at a fresh incarnation key, `idutil/Incarnations.lean`'s `idIncarnation_alloc`, with its new
   store's floor `srvFloorFact E₀'` as the key's claim facts; the ids' freshness across incarnations
-  is the trusted `Next`'s assumption, `issues/etcd-request-id-restart-reuse.md`.) R2c and R2d split it between the image and
+  is the trusted `Next`'s assumption, `nonissues/etcd-request-id-restart-reuse.md`.) R2c and R2d split it between the image and
   `NewServer`'s restart premise. (2026-11-02, `Run`'s glue: until then a separate `srvRestartBoot`
   bundle the example supplied; the restarted member's own names, its wait registry and its store's
   index, are new, so the server allocates them, not the example.)

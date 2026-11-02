@@ -1,73 +1,46 @@
 ---
 upstream: known
-checked: 2026-10-26
+checked: 2026-11-01
 links:
-  - etcd-io/etcd#21829 pr open: same root cause and fix (`serverVersion`/`minClusterVersion` fall back to 2.0.0 on a parse error), by someone else; framed as the handler side, not the dialer's crash; needs-rebase since 2026-08-05, no review
-  - etcd-io/etcd#22261 pr open: related, different: a `v`-prefixed `X-Server-Version` from a new build fails to parse at older (coreos/go-semver) peers, so the parse failure is reachable between etcd builds
-  - etcd-io/etcd#21839 pr merged: the switch to Masterminds/semver/v3 (9d5720273, in the pin): `MustParse` still panics on a non-version
+  - etcd-io/etcd#21829 pr open: same root cause and fix (`serverVersion`/`minClusterVersion` tolerate a malformed header), by someone else; framed as the handler side, not the dialer's crash; needs a rebase, no review
+  - etcd-io/etcd#22261 pr open: related: a `v`-prefixed `X-Server-Version` from a custom build fails to parse at release-3.6/3.5 peers (coreos/go-semver), so the parse failure is reachable between etcd builds there
+  - etcd-io/etcd#21839 pr merged: the switch to Masterminds/semver/v3, whose `MustParse` still panics on a non-version
+blocks-proof: no
 ---
 
-# rafthttp: a peer's malformed `X-Server-Version` panics the dialing member
+# rafthttp: a peer's response with a malformed `X-Server-Version` crashes the member that dialed it
 
-**Status**: a reachable panic (a robustness bug): a response to a stream dial whose
-`X-Server-Version` header does not parse as a semantic version crashes the member that dialed.
-Between etcd members the header is always `version.Version`, so only a non-etcd (or misbehaving)
-server at a peer URL, or a proxy rewriting the header, reaches it. Between etcd builds the parse
-can fail too: etcd-io/etcd#22261 (open) reports that a `v`-prefixed version from a custom build
-does not parse at release-3.6/3.5 peers, which still use coreos/go-semver's
-`semver.Must(semver.NewVersion(...))` (`util.go:154`, `:164`) and so panic the same way; `main` and
-the pin use Masterminds/semver/v3 (etcd-io/etcd#21839), whose `MustParse` accepts the prefix but
-still panics on a non-version. Same code on upstream `main` `f3221acd1` (rechecked 2026-10-26);
-etcd-io/etcd#21829 (open, unreviewed) has the fix.
+When a member dials a peer's raft stream and the response carries an `X-Server-Version` header
+that is not a semantic version, the dialing member panics and exits. Between etcd members on
+`main` the header is always valid, so it takes a non-etcd server (or a proxy rewriting the header)
+at a peer URL; on release-3.6/3.5 a custom build's `v`-prefixed version also triggers it
+(etcd-io/etcd#22261).
 
-**Where** (`upamanyus/etcd` `188113160d`, upstream's code unchanged):
-`server/etcdserver/api/rafthttp/stream.go:612`, `streamReader.dial`:
-`rv := serverVersion(resp.Header)`; `util.go:148-155`, `serverVersion` returns
-`semver.MustParse(verStr)`, which panics on a string that does not parse. `dial` runs on the
-stream reader's goroutine (`streamReader.run`, started by `start`), outside any HTTP handler, so
-nothing recovers the panic and the process exits. (The server side's
-`checkClusterCompatibilityFromHeader` calls `serverVersion` on a *request's* headers too, but in
-a handler, whose panic `net/http`'s server recovers: the connection is dropped, the member stays up.)
+**Reproduction:** `TestStreamReaderDialBadServerVersion` in
+[`issues/etcd-rafthttp-stream-dial-bad-server-version-panic/stream_dial_bad_version_test.go`](etcd-rafthttp-stream-dial-bad-server-version-panic/stream_dial_bad_version_test.go),
+copied into `server/etcdserver/api/rafthttp` at
+etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28), go1.27.3 linux/amd64. It
+dials through the package's own harness, as `TestStreamReaderDialHttpError` does:
 
-**What happens**: a test in package `rafthttp` (as `TestStreamReaderDialHttpError`, whose
-`respRoundTripper` it uses), passing at the pinned revision:
-
-```go
-func TestStreamReaderDialBadServerVersion(t *testing.T) {
-	h := http.Header{}
-	h.Add("X-Server-Version", "not-a-version")
-	sr := &streamReader{
-		peerID: types.ID(2),
-		tr:     &Transport{streamRt: &respRoundTripper{code: http.StatusOK, header: h}, ClusterID: types.ID(1)},
-		picker: mustNewURLPicker(t, []string{"http://localhost:2380"}),
-		errorc: make(chan error, 1),
-		ctx:    t.Context(),
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			t.Logf("dial panicked: %v", r) // "invalid semantic version"
-		} else {
-			t.Errorf("dial did not panic")
-		}
-	}()
-	sr.dial(streamTypeMessage)
-}
+```
+$ go test ./etcdserver/api/rafthttp -run TestStreamReaderDialBadServerVersion -count=1
+--- FAIL: TestStreamReaderDialBadServerVersion (0.00s)
+    zz_dial_test.go:30: dial panicked: invalid semantic version
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp	0.017s
 ```
 
-**Expected**: a peer's bad response is a failed dial (`dial` already returns errors for bad
-statuses, unsupported stream types and unparsable precondition bodies), not a crash.
+**Cause:** [`streamReader.dial`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/api/rafthttp/stream.go#L612)
+calls [`serverVersion`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/api/rafthttp/util.go#L148-L155),
+which is `semver.MustParse` of the header. `dial` runs on the stream reader's goroutine, outside
+any HTTP handler, so nothing recovers the panic.
 
-**How the proof handles it**: the HTTP boundary's protocol constrains the headers a handler
-commits (`rhdr`, `Proof/net/http/Boundary.lean`, rafthttp stage 5e); a raft member's
-(`raftProto`'s `verHdrOk`) has `X-Server-Version` unset or a version that parses, which the stream
-handler's proof establishes (it sets `version.Version`, `"3.8.0-alpha.0"`). `dial`'s proof (stage
-5e-3) reads the header through `RoundTrip`'s view of the committed headers, so `serverVersion`'s
-`MustParse` does not panic: the proof excludes the panic for peers that are members of the
-program, and the bug stays reachable from anything else at a peer URL.
+## Proof
 
-**Possible fixes**: parse with `semver.NewVersion` in `serverVersion` (and `minClusterVersion`),
-returning an error that `dial` turns into a failed dial (`cr.picker.unreachable(u)`), or treat an
-unparsable header as `2.0.0`, as an absent one.
+no: the proof constrains the headers a member's handler commits (a parsable version,
+`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/streamReader__dial.lean`), which etcd's
+own members meet; only a non-member at a peer URL reaches the panic.
 
-**Found**: 2026-10-23, scoping rafthttp stage 5 (the stream reader's `dial`), while stating what
-the client side of the HTTP boundary knows of a response's headers.
+## Fix
+
+`serverVersion` (and `minClusterVersion`) parse with `semver.NewVersion` and `dial` turns an error
+into a failed dial, as etcd-io/etcd#21829 does.

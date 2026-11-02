@@ -34,7 +34,7 @@ bucket, `rbPut` (since decision 3, 2026-11-01, of its bucket only; a holder of `
 2026-10-29) with the client's half of their flag, `fkPut`, given back at some value: the code
 raises it to at least `1`, which the post does not say, no caller needing it), and a well-formed
 value (`P.FV`, question 4, 2026-10-29: so the backend's bit `fkV` stays true). A value above `MaxValueSize` makes bbolt fail and the backend's `lg.Fatal`
-exit: the call does not return (`issues/etcd-backend-put-value-too-large-fatal.md`). A key may be put
+exit: the call does not return (`nonissues/etcd-backend-put-value-too-large-fatal.md`). A key may be put
 again in one session: the write-back keeps the last value (the fork's fix, etcd-io/etcd#21987;
 until 2026-10-18 the premise `kb ∉ … ∨ wbDupOk st bi.id` excluded it,
 `issues/etcd-backend-duplicate-put-stale-read.md`). -/

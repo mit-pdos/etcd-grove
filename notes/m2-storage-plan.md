@@ -1055,7 +1055,7 @@ Each drafted in `etcdserver/M2StorageDraftRestore.lean` (Lean) or as text here:
   `snap_closer_after`, `srv_be_swapR`, `snap_supply_before`, `srvWTPoolR_take_extra_d` and
   `srvKVCloserM_of_new`: no `sorryAx`.
 - The full `lake build` of `c826174109` passed (11208 jobs, no error).
-- Go: the reproduction test (`issues/etcd-restore-pending-compaction-unclosed/repro_test.go`) fails
+- Go: the reproduction test (`issues/etcd-restore-pending-compaction-unclosed/`) fails
   as the issue says, in 6 runs, 5 of them with `-race`.
 
 **The user's answers on step 2 (2026-10-30).** Q4 (a): one write-token stock per backend, sharing
@@ -1151,7 +1151,7 @@ exclusively), but `compactLockfree.spec` asks for the lock's normal invariant (`
 client's `Compact(0)` (accepted on a fresh cluster: `0 > -1`; the RPC passes any revision,
 `key.go:139`) and the image's compaction at `0` was scheduled but not finished (a leader's snapshot
 mid-job, or a leader that restarted in that window and so never finishes it). Then `restore()`
-leaves `-1`. Reproduced at the pin (`issues/etcd-restore-scheduled-compact-zero.md`, with
+leaves `-1`. Reproduced at the pin (`nonissues/etcd-restore-scheduled-compact-zero.md`, with
 `repro_test.go`: after `Restore`, `compactMainRev = -1` and a re-issued `Compact(0)` succeeds where
 the member that applied it answers `ErrCompacted`). No other corner: a scheduled record `≠ 0` past
 the finished one is resumed, and every member that applied `Compact(r)` holds `sched ≥ r` in its
@@ -1346,12 +1346,12 @@ would be, if its re-proof needed a new bbolt fact).
 - `#print axioms` of `kbWTSupplyM_of_poolR`, both `Restore.spec_of_specM`, `Close.spec_of_specM`,
   `kbRecs_MW`, `jobIsD_of`, `jobFnSpecD_of`, `schedPay_elim`, `restorePre_of_applyM`: no `sorryAx`.
 - Full `lake build` of `214ba8a864` passed (11209 jobs, no error).
-- Go: `issues/etcd-restore-scheduled-compact-zero/repro_test.go` fails at the pin as the issue says.
+- Go: `nonissues/etcd-restore-scheduled-compact-zero/` fails at the pin as the issue says.
 
 **The user's answers after round 3's repair (2026-10-30).**
 - **Q7 (a):** keep Q5 (a) (`c ≤ c'` across a restore) and make "no compaction at revision 0" a stated
   scope limit of M2 (M2's auto-compactor never issues 0; a client's `Compact(0)` RPC is out of scope).
-  `issues/etcd-restore-scheduled-compact-zero.md` goes upstream separately. To draft: where the premise
+  `nonissues/etcd-restore-scheduled-compact-zero.md` goes upstream separately. To draft: where the premise
   sits (the compaction arm's request, or the apply model) and how #8 discharges `c ≤ c'` from it.
 - **The snapshot track's statements** (Q2 items 15, 16, 21, 22, 25) stay drafts: the collaborator
   switches them, ideally when proving SNAPSHOT-SORRY #8. Everything else M2 switches itself once approved.
@@ -1550,7 +1550,7 @@ round 3's list. None is axiom-backed unless said.
     `irrNoDelPut`). Snapshot track's `specSnap`. **[now]** (the premise; its source is the apply side's)
 34. `γx`'s home: `PhysNames.sx`, `physOk`'s `stopPayAt` (mvcc R; internal). **[now]**
 35. **The Q7 premise** (Scope): `EtcdServer.Compact.spec`'s `1 ≤ r`, `compactPropOkD` in `plainLogC`,
-    `recsPos` in `keyImageM`. M2's scope restriction (`issues/etcd-restore-scheduled-compact-zero.md`).
+    `recsPos` in `keyImageM`. M2's scope restriction (`nonissues/etcd-restore-scheduled-compact-zero.md`).
     **[now]**
 36. `restoreBoundM` (mvcc R): **[waits]** on Q8.
 37. `kbView_widen` (backend, at the open): not drafted. **[waits]**
@@ -2159,7 +2159,7 @@ check the shape against; best done with item 15.
   entries) give `srvChBound`; `restoreBoundM_of_len` then `Restore.specM`'s `restoreBoundM`.
 - **The user's `logCh ≤ 2·MaxTxnOps·|entries|` is not a fact of the KV model**: the apply side checks
   no `--max-txn-ops` (the model applies any decoded request: one entry may put any number of keys),
-  `checkTxnRequest`'s budget is per level (`issues/nonissues/etcd-max-txn-ops-nested.md`: nesting
+  `checkTxnRequest`'s budget is per level (`nonissues/etcd-max-txn-ops-nested.md`: nesting
   multiplies it), and the start log's changes count. What holds of the cluster's entries (argued, not
   proved): changes are puts and deletes, a delete removes a key an earlier put or the start log made
   live, so `logCh ≤ 2·logCh log₀ + 2·puts`; a proposal's data is at most `MaxRequestBytes`

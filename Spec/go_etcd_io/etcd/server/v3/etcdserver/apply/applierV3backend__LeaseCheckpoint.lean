@@ -26,7 +26,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`a.LeaseCheckpoint(lc)`** with at most one checkpoint: the lessor's `Checkpoint` of it (a critical section of the batch lock, or none); a fresh response with `newHeader()`. A request with several checkpoints writes in several critical sections (`issues/etcd-apply-lease-checkpoint-sections.md`): out of this triple. -/
+/-- **`a.LeaseCheckpoint(lc)`** with at most one checkpoint: the lessor's `Checkpoint` of it (a critical section of the batch lock, or none); a fresh response with `newHeader()`. A request with several checkpoints writes in several critical sections (`nonissues/etcd-apply-lease-checkpoint-sections.md`): out of this triple. -/
 abbrev apply.applierV3backend.LeaseCheckpoint.spec : Prop :=
   ∀ (E : AEnv GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),

@@ -1,113 +1,81 @@
 ---
 upstream: reported
-checked: 2026-10-26
+checked: 2026-11-01
 links:
-  - etcd-io/etcd#20704 issue closed: same bug for cases 3 and 4 (its bugs 3 and 1: Update increments Version, Update after Delete); cases 1-2 (WithIgnoreValue, WithLease) not in it; closed by the stale bot as not planned, unfixed
+  - etcd-io/etcd#20704 issue closed: this bug for cases 3 and 4 (its bugs 3 and 1: Update increments Version, Update after Delete); cases 1-2 (WithIgnoreValue, WithLease) not in it; closed by the stale bot as not planned, unfixed
+blocks-proof: yes
 ---
 
-# clientv3/leasing: after a put of a cached key, the cache can hold a key-value etcd does not have
+# clientv3/leasing: after a put of a cached key, the leasing KV serves a key-value etcd does not have
 
-## Summary
+After a `Put` (or a transaction's put) of a key it has cached, the leasing KV updates its cache
+with a key-value computed from the put's arguments instead of the one etcd stores, and its `Get`
+then returns that key-value. It is wrong in four cases: (1) a put `WithIgnoreValue` caches the empty
+value; (2) a put `WithLease` caches the key without the lease, and once the lease ends and etcd
+deletes the key, the cache keeps returning it; (3) two concurrent puts whose responses arrive in the
+reverse order of their commits cache, in between, a version/value pair etcd never had; (4) a put and
+a delete whose responses arrive in reverse order leave the put's value cached for a key etcd has
+deleted. Cases 3 and 4 were reported in etcd-io/etcd#20704; cases 1 and 2 are not on GitHub.
 
-After a `Put` (or a transaction's put) of a key it has cached, the leasing KV (`client/v3/leasing`) updates its cache with a key-value computed from the put's arguments, not the one etcd stores. That computed key-value is wrong in four cases:
-
-1. a put with `WithIgnoreValue` caches the empty value;
-2. a put with `WithLease` caches the key without the lease. Once the lease ends, etcd deletes the key, but the cache keeps returning it;
-3. two concurrent puts whose responses arrive in the reverse order of their commits cache, in between, a version/value pair etcd never had;
-4. a put and a delete whose responses arrive in the reverse order of their commits leave the put's value cached for a key etcd has deleted.
-
-The cached `Get` returns these key-values. I found this while formally verifying the leasing package (the proofs characterize exactly when the update tracks etcd: only for a put that keeps the key's lease, with no `WithIgnoreValue`, applied in revision order).
-
-## What happens
-
-References are to `main` at f061acd0902d489041448cdd19d71a345d27b9f5.
-
-After a successful put, `leasingKV.put` (`client/v3/leasing/kv.go:236-263`, line 250) and `txnLeasing.commitToCache` (`txn.go:159-179`, line 175) call `leaseCache.Update(key, op.ValueBytes(), header)` (`cache.go:132-152`):
-
-- if the cached response has no key-value, it creates one with `CreateRevision` = the response's revision;
-- it increments `Version` unconditionally;
-- if `ModRevision < header.Revision`, it sets `ModRevision` and `Value` to the put's.
-
-```go
-// client/v3/leasing/cache.go:132-152 (etcd main f061acd09)
-func (lc *leaseCache) Update(key, val []byte, respHeader *v3pb.ResponseHeader) {
-	li := lc.entries[string(key)]
-	if li == nil {
-		return
-	}
-	cacheResp := li.response
-	if len(cacheResp.Kvs) == 0 {
-		kv := &mvccpb.KeyValue{
-			Key:            key,
-			CreateRevision: respHeader.Revision,
-		}
-		cacheResp.Kvs = append(cacheResp.Kvs, kv)
-		cacheResp.Count = 1
-	}
-	cacheResp.Kvs[0].Version++ // <- even for an older response
-	if cacheResp.Kvs[0].ModRevision < respHeader.Revision {
-		cacheResp.Header = respHeader
-		cacheResp.Kvs[0].ModRevision = respHeader.Revision
-		cacheResp.Kvs[0].Value = val // <- the op's bytes; no lease
-	}
-}
-```
-
-```go
-// client/v3/leasing/kv.go:248-251 (etcd main f061acd09)
-		if resp.Succeeded {
-			lkv.leases.mu.Lock()
-			lkv.leases.Update(op.KeyBytes(), op.ValueBytes(), resp.Header) // <-
-			lkv.leases.mu.Unlock()
-```
-
-`Update` sees only the put's value bytes, so:
-
-1. **`WithIgnoreValue`**: `op.ValueBytes()` is empty, so the cache stores `""`. etcd keeps the old value.
-2. **`WithLease`**: the lease is not recorded, and a put without a lease does not clear a cached one. Worse, the key now has a lease. When the lease ends, etcd deletes the key, and nothing tells the cache: no leasing key changes, so no client revokes this one's lease. `acquire` refuses to cache keys that have a lease for exactly this reason (`kv.go:271-273`, `Compare(LeaseValue(key), "=", 0)`). The owner's put bypasses that check, and so does `acquire`'s already-owner path (`kv.go:282-286`), which re-caches the key after an eviction without looking at its lease.
-3. **Out-of-order puts**: two puts by the same leasing KV commit at `r1 < r2`, and `r2`'s response is applied first. The cache then has `r2`'s value at the version `r1` left (one increment). etcd had `r1`'s value at that version, and `r2`'s value one version later. When `r1`'s response arrives, the version is incremented again and the value kept, so the final state matches etcd. Only a `Get` between the two responses sees the pair etcd never had.
-4. **A put and a delete out of order**: a put commits at `r1` and a delete of the same key at `r2`, and the delete's response is applied first (`leaseCache.delete`, `cache.go:160-165`, clears the key-value). `Update` then finds no key-value and creates one with the put's value. The key stays cached as present until the lease is revoked or the session ends. This is the case of the earlier, non-deterministic `TestLeasingConcurrentPutDelete` on a fork (2025).
-
-Concurrent writes of a key from one leasing KV are allowed: `leaseCache.Lock` only replaces the key's wait channel, it does not serialize writers.
-
-## How to reproduce
-
-The branch below adds these tests to `tests/integration/clientv3/lease/leasing_test.go`. Each compares the leasing KV's `Get` with a plain client's, and all of them fail on `main`:
-
-| test | symptom | on `main` |
-|---|---|---|
-| `TestLeasingOwnerPutIgnoreValue` | 1 | the cached value is `""`, etcd has `"abc"` |
-| `TestLeasingTxnOwnerPutIgnoreValue` | 1, through `Txn` | same |
-| `TestLeasingOwnerPutWithLease` | 2 | the cached key has no lease; after a 3 s wait (past the eviction backoff) and after the lease is revoked, the leasing KV still returns the key, which etcd has deleted |
-| `TestLeasingOwnerPutsOutOfOrder` | 3 | between the responses: value `"ghi"` at version 2, etcd has version 3 (after both, they agree) |
-| `TestLeasingOwnerPutDeleteOutOfOrder` | 4 | after both: `key:"k" create_revision:4 mod_revision:4 version:1 value:"def"`; etcd has no `k` |
-
-The two out-of-order tests are deterministic: the leasing KV's `cl.KV` is wrapped so that the first put's transaction, once committed, returns only after the second operation has returned.
+**Reproduction:** five tests in
+[`issues/leasing-update-stale/leasing_update_stale_test.go`](leasing-update-stale/leasing_update_stale_test.go)
+(`TestLeasingOwnerPutIgnoreValue`, `TestLeasingTxnOwnerPutIgnoreValue`: case 1;
+`TestLeasingOwnerPutWithLease`: case 2; `TestLeasingOwnerPutsOutOfOrder`: case 3;
+`TestLeasingOwnerPutDeleteOutOfOrder`: case 4, the last two holding the first put's response
+until the second operation returned), copied into `tests/integration/clientv3/lease` at
+etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28), go1.27.3; each compares the
+leasing KV's `Get` with a plain client's (`-etcd +leasing`):
 
 ```
-cd tests && go test ./integration/clientv3/lease/ -run 'TestLeasingOwnerPut|TestLeasingTxnOwnerPutIgnoreValue' -v
+$ go test ./integration/clientv3/lease -run '^TestLeasing(OwnerPut|TxnOwnerPutIgnoreValue)' -count=1
+--- FAIL: TestLeasingOwnerPutIgnoreValue (0.21s)
+    leasing_update_stale_test.go:51: leasing KV's "k" differs from etcd's (-etcd +leasing):
+        - 		"value":        []uint8("abc"),
+--- FAIL: TestLeasingOwnerPutWithLease (3.22s)
+    leasing_update_stale_test.go:76: leasing KV's "k" differs from etcd's (-etcd +leasing):
+        - 		"lease":           int64(9063108962769662215),
+    leasing_update_stale_test.go:84: leasing KV's "k" differs from etcd's (-etcd +leasing):
+        - 	nil,
+        + 	{s`key:"k"  create_revision:2  mod_revision:4  version:2  value:"def"`},
+--- FAIL: TestLeasingTxnOwnerPutIgnoreValue (0.20s)
+        - 		"value":        []uint8("abc"),
+--- FAIL: TestLeasingOwnerPutsOutOfOrder (0.17s)
+    leasing_update_stale_test.go:143: leasing KV's "k" differs from etcd's (-etcd +leasing):
+          		"value":        []uint8("ghi"),
+        - 		"version":      int64(3),
+        + 		"version":      int64(2),
+--- FAIL: TestLeasingOwnerPutDeleteOutOfOrder (0.23s)
+    leasing_update_stale_test.go:187: leasing KV's "k" differs from etcd's (-etcd +leasing):
+        - 	nil,
+        + 	{s`key:"k"  create_revision:4  mod_revision:4  version:1  value:"def"`},
+FAIL
 ```
 
-No existing test encodes the old behaviour; the suite passes unchanged with the fix.
+**Cause:** `put` and `txnLeasing.commitToCache` call
+[`leaseCache.Update(key, op.ValueBytes(), header)`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/client/v3/leasing/cache.go#L132-L152),
+which increments the version unconditionally and sets the value to the op's bytes (no lease) if the
+response is newer than the cached mod revision; it never sees the put's options or etcd's result.
 
-The other 2025 test, `TestLeasingConcurrentPutGet` (a `Put` whose response is lost through a partition, with a concurrent `Get`), concerns a write's unknown outcome, not `Update`. It is not covered here.
+## Proof
 
-## Expected
+yes: it makes the property a top-level adequacy test over this code checks false for a workload such a test may use, and no fix is in the goosed fork yet; the proof sidesteps it: the leasing KV's intended spec is false here; the proof characterizes when `Update` tracks
+etcd (`leasing_update_tracks_put`) and states the divergences (`leasing_update_ignoreValue`,
+`leasing_update_out_of_order`, `Proof/go_etcd_io/etcd/client/v3/leasing/Results.lean`); the
+verified fork carries no fix.
 
-The cache holds, for each key, a key-value etcd had at the cached revision, and never one that does not reflect a later write the client has seen. A key whose lease can delete it is not cached.
+## Fix
 
-## The fix
+**Branch**: `leasing-update-stale` (upamanyus/etcd, pushed): d97e455c2 test and fix (one commit)
+**Base**: etcd-io/etcd@f061acd0902d489041448cdd19d71a345d27b9f5
 
-Branch `leasing-update-stale` (one commit, with the tests). Rather than compute the new key-value, the leasing KV reads it in the same transaction as the put:
+The put reads the key in the same transaction (`Then(op, OpGet(key))`; a transaction's
+`serverTxn` appends an `OpGet` of every key it puts), and `Update` caches that read only if its
+revision is above the cached one (out-of-order responses become no-ops); a key read back with a
+lease is evicted instead, and `acquire`'s already-owner path does not count a key with a lease as
+acquired.
 
-- `put` commits `Then(op, OpGet(key))`. `tryModifyOp` and `revoke` take the extra ops. A transaction's `serverTxn` appends an `OpGet` of every key it puts after the user's nested `OpTxn`. The user's responses are unchanged.
-- `Update(key, kvs, header)` caches that read only if `header.Revision` is above the cached response's revision, which makes out-of-order responses no-ops. `Delete` already ignores an older response (`cache.go:161`).
-- If the read shows a lease, `Update` evicts the key instead (marking it revoked, like `Evict`).
-- `acquire`'s already-owner path does not count as acquired when the key has a lease, so the key is not re-cached after the backoff. This change is needed: without it, `TestLeasingOwnerPutWithLease` fails after the lease is revoked.
+## Notes
 
-The read gives the exact key-value etcd has at the put's revision (value, lease, version, create revision), so the fix does not need to know the put's options. The leasing package cannot see them: `Op` has no exported accessors for `ignoreValue`, `ignoreLease` or the lease.
-
-Alternatives:
-
-- **`WithPrevKV`** on the put, with the response's `PrevKv` stripped when the user did not ask for it, as the 2025 fork attempt did. It gives the version and create revision, but not the value under `WithIgnoreValue` or the lease, without new `Op` accessors in `client/v3`. It also changes the user's nested transaction ops.
-- **Evicting the key after every put.** That is simpler, but it gives up the cache for written keys during the 2 s revoke backoff.
+One root cause (the cache computes the key-value instead of reading it), two triggers: put options
+(cases 1-2, unreported) and response order (cases 3-4, #20704). If the leasing findings are filed
+again, as one umbrella issue with small PRs (the 2026-10-18 ranking (`issues/INDEX.md`, in git history)), cases 1-2 could be a file of their own.

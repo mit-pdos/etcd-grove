@@ -106,7 +106,7 @@ def diskOk : Prop :=
 
 /-- **The configuration's mmap size is one the process can map** (2026-10-29, the `axiom` skill's
 `notes/axiom-review/openbackend.md`; 2026-10-30, `notes/axiom-review/openbackend-post.md`;
-`issues/etcd-quota-backend-bytes-mmap-panic.md`): `newBackend` (`server/storage/backend.go:53-56`) sets
+`nonissues/etcd-quota-backend-bytes-mmap-panic.md`): `newBackend` (`server/storage/backend.go:53-56`) sets
 the backend's `MmapSize` to `q + q/10` for a quota `q = cfg.QuotaBackendBytes` that is positive and not
 `DefaultQuotaBytes` (`quota.go:30`, 2 GiB), and `backend.New` passes it to bbolt as `InitialMmapSize`
 (`backend/backend.go:225`). bbolt's `Open` fails with "mmap too large" above `maxMapSize`

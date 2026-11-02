@@ -18,7 +18,7 @@ make (`List Change`: a put's `putChangeOf`, a delete's keys) rather than the sta
 transaction's pending changes are named; the state is `applyChanges r s` of them
 (`srvOps_state`). The two runs agree when every nested transaction's verdict is the same at
 `s0` and at the state it runs at (`OpsStable`, `srvRunTxn_runTxn`), in particular when there is
-no nested transaction (`opsFlat`); they differ otherwise (`issues/etcd-txn-nested-compare-
+no nested transaction (`opsFlat`); they differ otherwise (`nonissues/etcd-txn-nested-compare-
 snapshot.md`).
 
 **The premises of a run** (`OpsOk`): every get reads the transaction's state (revision `0`), with

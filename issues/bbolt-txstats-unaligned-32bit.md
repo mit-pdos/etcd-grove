@@ -1,36 +1,59 @@
 ---
 upstream: none
-checked: 2026-10-26
+checked: 2026-11-01
 links:
-  - etcd-io/bbolt#577 issue closed: the same panic on arm32 (an earlier field layout), fixed then; this is a new regression of it
-  - etcd-io/bbolt@4bfc851: the commit that introduced it ("Prevent Bucket from being copied by value", 2026-10-15; on main only, in no release)
+  - etcd-io/bbolt#1300 pr merged: introduced it ("Prevent Bucket from being copied by value", commit 4bfc851, 2026-10-16; on main only, in no release)
+  - etcd-io/bbolt#577 issue closed: the same panic on arm32 with an earlier field layout, fixed then; this is a new regression of it
+blocks-proof: no
 ---
 
-# On 32-bit platforms every transaction panics: `Tx.stats` is no longer 64-bit aligned
+# bbolt: on 32-bit platforms every transaction panics with "unaligned 64-bit atomic operation"
 
-- **Status**: a bug (a regression on upstream `main`, not in any release): on 386 (and, by the same
-  layout, every 32-bit platform: arm, mips, ppc), the first statistics update of a transaction panics
-  with `unaligned 64-bit atomic operation`. Reproduced with bbolt's own tests under `GOARCH=386` on
-  linux/amd64 (go1.26.9): `TestBucket_Put` passes at 4bfc851's parent and panics (then hangs until the
-  test timeout) at 4bfc851 and at `main` a4ef197. Not in v1.5.0 (the version the bbolt proof pins).
-  Not reachable through etcd on 64-bit platforms.
-- **Where**: upstream `main` a4ef197, `tx.go:27-44` (`type Tx struct`): `TxStats` (int64 fields updated with
-  `atomic.AddInt64`, `tx.go:698-` and `IncCursorCount` at `tx.go:803-805`) is the field `stats`, after
-  `writable`, `managed` (padded to 4 bytes), `db`, `meta`, `root` and `pages` (4 bytes each on 386): offset
-  20, not a multiple of 8. 4bfc851 changed `root Bucket` to `root *Bucket`, which moved `stats` from an
-  aligned offset. `sync/atomic` requires 64-bit alignment of 64-bit words on 32-bit platforms, guaranteed
-  only for the first word of an allocated struct.
-- **What happens**: `GOARCH=386 go test -run 'TestBucket_Put$' .` at a4ef197:
-  `panic: unaligned 64-bit atomic operation` in `internal/runtime/atomic.Xadd64` ←
-  `TxStats.IncCursorCount` (and `TxStats.IncSplit` in `TestNode_split`); the deferred rollback then
-  panics or deadlocks, and the test binary hangs until its timeout. bbolt's cross-arch CI
-  (`.github/workflows/cross-arch-template.yaml`) only runs `go build ./...`, so the tests do not catch it.
-- **Expected**: bbolt works on the 32-bit platforms it builds for (`bolt_386.go`, `bolt_arm.go`, ...), as
-  at 4bfc851's parent.
-- **How the proof handles it**: not in the verified code (the proof pins v1.5.0, before 4bfc851, and
-  models no platform alignment); found while running the `bbolt-large-values-leaf-unreadable`
-  candidate's tests under `GOARCH=386`.
-- **Possible fixes**: make `stats` the first field of `Tx` (or put it after a field that keeps it aligned),
-  or use `atomic.Int64` fields in `TxStats` (aligned automatically; but its exported fields are part of the
-  API); and run the tests, not only the build, on a 32-bit platform in CI (386 runs on amd64 runners).
-- **Found**: 2026-10-23, by the `GOARCH=386` run above (upstream-report of bbolt-large-values-leaf-unreadable).
+On `main`, every transaction on a 32-bit platform (386, arm, mips) panics on its first statistics
+update with `unaligned 64-bit atomic operation`; the deferred rollback then panics again or
+deadlocks. The smallest program (open, put one key in an `Update`) hits it. A regression from
+#1300, on `main` only, in no release.
+
+**Expected:** bbolt should work on the 32-bit platforms it builds for (`bolt_386.go`,
+`bolt_arm.go`, ...), as it did before #1300; `sync/atomic` requires the 64-bit words it updates to
+be 64-bit aligned on those platforms ([bugs section](https://pkg.go.dev/sync/atomic#pkg-note-BUG)).
+
+**Impact:** every user of bbolt on a 32-bit platform once a release includes #1300 (v1.5.0 is not
+affected), etcd on 32-bit platforms included. bbolt's cross-arch CI only builds, so it does not
+catch it.
+
+**Reproduction:** `TestTx_Stats_Aligned32Bit` in
+[`issues/bbolt-txstats-unaligned-32bit/txstats_386_test.go`](bbolt-txstats-unaligned-32bit/txstats_386_test.go),
+copied into the root of etcd-io/bbolt@a4ef19710eb7ddc41fd1155336baf331b5c57ba8 (2026-10-16),
+go1.27.3 linux/amd64 running `GOARCH=386` (it passes at 4bfc851's parent, 7f68b29):
+
+```
+$ GOARCH=386 go test . -run TestTx_Stats_Aligned32Bit -count=1 -timeout 60s
+--- FAIL: TestTx_Stats_Aligned32Bit (0.00s)
+panic: unaligned 64-bit atomic operation
+internal/runtime/atomic.panicUnaligned()
+	/usr/local/go/src/internal/runtime/atomic/unaligned.go:8 +0x2d
+internal/runtime/atomic.Load64(0xc8b240c)
+	/usr/local/go/src/internal/runtime/atomic/atomic_386.s:235 +0x10
+go.etcd.io/bbolt.(*TxStats).GetPageCount(...)
+	tx.go:779
+go.etcd.io/bbolt.(*TxStats).add(0xc8c6180, 0xc8b240c)
+	tx.go:743 +0x75
+go.etcd.io/bbolt.(*Tx).close(0xc8b23f8)
+	tx.go:366 +0x10c
+```
+
+**Cause:** the `int64` fields of [`TxStats`](https://github.com/etcd-io/bbolt/blob/a4ef19710eb7ddc41fd1155336baf331b5c57ba8/tx.go#L27-L44)
+are updated with `atomic.AddInt64`, and `stats` is no longer at an 8-byte-aligned offset of `Tx`
+on 32-bit platforms: #1300 changed `root Bucket` to `root *Bucket`, which put `stats` at offset 20
+(after `writable`, `managed`, `db`, `meta`, `root` and `pages`, 4 bytes each with padding).
+
+## Proof
+
+no: not in the verified code (the bbolt proof, branch `bbolt`, pins v1.5.0, before #1300, and its
+model is 64-bit).
+
+## Fix
+
+Make `stats` the first field of `Tx` (or use `atomic.Int64` fields, aligned automatically, though
+`TxStats`'s fields are exported), and run the tests, not only the build, under `GOARCH=386` in CI.

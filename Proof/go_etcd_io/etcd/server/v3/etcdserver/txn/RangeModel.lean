@@ -27,7 +27,7 @@ no order (`SortOrder = NONE`: the server sorts ascending) and a positive limit (
 filter) sorts only the first `limit + 1` keys of the range, since `rangeLimit` tests the
 request's raw order (`IsDefaultOrdering(target, NONE)` is true) while `sortRangeResults` tests
 the adjusted one (`cutEarly`): the response is not the first `limit` of the sorted range
-(`issues/etcd-range-sort-limit.md`). Outside these, the response is `rangeKvsOk` of `rangeSel`.
+(`issues/etcd-range-sort-none-limit.md`). Outside these, the response is `rangeKvsOk` of `rangeSel`.
 
 **The sort's premises**: `sort.Sort`'s axiom wants at most `2 ^ 62` elements and a strict weak
 order; the comparators `(a - b) < 0` on versions and revisions are the signed order only for
@@ -141,7 +141,7 @@ def srvCount (o : OpFull) (s : List EtcdKv) (withTotal : Bool) : w64 :=
 def countOp (k re : GoString) (rev : w64) : OpFull :=
   rangeOpOf k re rev (W64 0) (W32 0) (W32 0) false false true (W64 0) (W64 0) (W64 0) (W64 0)
 
-/-- A sort that is cut early (`issues/etcd-range-sort-limit.md`): the server sorts and mvcc
+/-- A sort that is cut early (`issues/etcd-range-sort-none-limit.md`): the server sorts and mvcc
 read with a positive limit (the request's target is not the key, its order `NONE`, its limit
 positive, no revision filter). -/
 def cutEarly (o : OpFull) : Prop :=
