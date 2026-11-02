@@ -787,5 +787,5 @@ sorry Perennial.reflect.Type'.Type'_typed_pointsto
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
-sorry merged_image
+sorry merged_image_cmp
 sorry run_job_snap_cmp
