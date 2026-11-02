@@ -199,6 +199,125 @@ theorem chainsRepr_frontier (chV : chains) (h : List (Op OpV)) (cs : List (List 
   iframe
   ipureintro; exact Hcvs
 
+/-- The clients slice as its elements' points-tos (and the way back, for a list of the same
+length). -/
+theorem clients_elems (sl : GoSlice) (cvs : List client) :
+    sl ↦* cvs ⊢ ([∗list] j ↦ cv ∈ cvs, sliceIndexRef client (j : Int) sl ↦ cv) ∗
+      (∀ cvs' : List client, ⌜cvs'.length = cvs.length⌝ -∗
+        ([∗list] j ↦ cv ∈ cvs', sliceIndexRef client (j : Int) sl ↦ cv) -∗ sl ↦* cvs' : IProp GF) := by
+  rw [ownSlice_unseal]; unfold ownSliceDef
+  iintro (%H | ⟨Harr, %Hcap⟩)
+  · obtain ⟨rfl, rfl⟩ := H
+    isplitl []
+    · iapply BigSepL.bigSepL_nil.2; iempintro
+    iintro %cvs' %Hl _
+    ileft; ipureintro
+    exact ⟨rfl, List.eq_nil_of_length_eq_zero (by simpa using Hl)⟩
+  · icases typedPointsto_not_null_dup _ _ _ $$ Harr with ⟨Harr, %Hnn⟩
+    icases typedPointsto_split _ _ _ $$ Harr with Harr
+    simp only [TypedPointsto.typedPointstoDef]
+    icases Harr with ⟨%Hlen, Harr⟩
+    unfold arrayElems
+    simp only [sliceIndexRef]
+    iframe Harr
+    iintro %cvs' %Hl Hel
+    iright
+    isplitl
+    · iapply typedPointsto_combine _ _ _ Hnn
+      simp only [TypedPointsto.typedPointstoDef]
+      isplitr
+      · ipureintro; rw [Hl]; exact Hlen
+      · unfold arrayElems; iexact Hel
+    · ipureintro; exact Hcap
+
+/-- The clients of a chains value but client `i`: their elements' points-tos and structs. -/
+def othersOwn (cl : GoSlice) (h : List (Op OpV)) (cs : List (List Nat)) (st : ChSt) (i : Nat)
+    (cvs : List client) : IProp GF :=
+  iprop([∗list] j ↦ cv ∈ cvs,
+    if j = i then emp else (sliceIndexRef client (j : Int) cl ↦ cv ∗ clientOwn h cs st j cv))
+
+/-- A chains value with client `i` taken out (`chainsRepr_open`). -/
+def chainsRest (chV : chains) (h : List (Op OpV)) (cs : List (List Nat)) (st : ChSt) (i : Nat)
+    (cvs : List client) : IProp GF :=
+  iprop(⌜cvs.length = cs.length ∧ sint.Z chV.numOps' = h.length⌝ ∗
+    chV.frontier' ↦* (st.frontier.map (fun (c : Nat) => (W64 (c : Int) : w64))) ∗
+    ownSliceCap w64 chV.frontier' (DFrac.own 1) ∗ othersOwn chV.clients' h cs st i cvs ∗
+    (∀ cvs' : List client, ⌜cvs'.length = cvs.length⌝ -∗
+      ([∗list] j ↦ cv ∈ cvs', sliceIndexRef client (j : Int) chV.clients' ↦ cv) -∗
+      chV.clients' ↦* cvs'))
+
+/-- Client `i` taken out of a chains value, the others kept apart (`chainsRest`): the other
+clients can then be read while client `i` stays out. -/
+theorem chainsRepr_open (chV : chains) (h : List (Op OpV)) (cs : List (List Nat)) (st : ChSt)
+    (i : Nat) (hi : i < cs.length) :
+    chainsRepr chV h cs st ⊢ ∃ (cvs : List client) (cv : client),
+      ⌜cvs[i]? = some cv ∧ cvs.length = cs.length ∧ sint.Z chV.clients'.len = cs.length⌝ ∗
+      sliceIndexRef client (i : Int) chV.clients' ↦ cv ∗ clientOwn (GF := GF) h cs st i cv ∗
+      chainsRest chV h cs st i cvs := by
+  unfold chainsRepr chainsRest othersOwn
+  iintro ⟨%cvs, Hcl, %Hcvs, Hfr, Hcap, Hcls⟩
+  ihave %Hlen := ownSlice_len $$ Hcl
+  icases clients_elems _ cvs $$ Hcl with ⟨Hel, Hshell⟩
+  obtain ⟨cv, hcv⟩ : ∃ cv, cvs[i]? = some cv := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+  ihave Hall := BigSepL.bigSepL_sep_eqv.2 $$ [Hel Hcls]
+  · iframe
+  icases (BigSepL.bigSepL_delete_cond hcv).1 $$ Hall with ⟨⟨He, Hc⟩, Hall⟩
+  iexists cvs, cv
+  iframe He Hc Hfr Hcap Hshell Hall
+  isplitl []
+  · ipureintro; obtain ⟨h1, h2⟩ := Hlen; refine ⟨hcv, Hcvs.1, ?_⟩; rw [← Hcvs.1]; word
+  ipureintro; exact Hcvs
+
+/-- Another client read while client `i` is out. -/
+theorem chainsRest_read (chV : chains) (h : List (Op OpV)) (cs : List (List Nat)) (st : ChSt)
+    (i k : Nat) (cvs : List client) (cvk : client) (hk : cvs[k]? = some cvk) (hki : k ≠ i) :
+    chainsRest chV h cs st i cvs ⊢ sliceIndexRef client (k : Int) chV.clients' ↦ cvk ∗
+      clientOwn (GF := GF) h cs st k cvk ∗
+      (sliceIndexRef client (k : Int) chV.clients' ↦ cvk -∗ clientOwn h cs st k cvk -∗
+        chainsRest chV h cs st i cvs) := by
+  unfold chainsRest othersOwn
+  iintro ⟨%Hp, Hfr, Hcap, Hoth, Hshell⟩
+  icases (BigSepL.bigSepL_lookup_acc hk).1 $$ Hoth with ⟨Hk, Hoth⟩
+  simp only [hki, ↓reduceIte]
+  icases Hk with ⟨He, Hc⟩
+  iframe He Hc
+  iintro He Hc
+  iframe Hfr Hcap Hshell
+  isplitr
+  · ipureintro; exact Hp
+  ihave Hoth := Hoth $$ %cvk [He Hc]
+  · (try simp only [hki, ↓reduceIte]); iframe
+  have hset : cvs.set k cvk = cvs := by
+    obtain ⟨hl, he⟩ := List.getElem?_eq_some_iff.mp hk
+    rw [← he]; exact List.set_getElem_self hl
+  rw [hset]
+  iexact Hoth
+
+/-- Client `i` put back, at a state that agrees with `st` at the other clients. -/
+theorem chainsRest_close (chV : chains) (h : List (Op OpV)) (cs : List (List Nat)) (st st' : ChSt)
+    (i : Nat) (cvs : List client) (cv cv' : client) (hcv : cvs[i]? = some cv)
+    (hag : ∀ c, c ≠ i → ChAgree st st' c) (hfr : st'.frontier = st.frontier) :
+    sliceIndexRef client (i : Int) chV.clients' ↦ cv' ∗ clientOwn h cs st' i cv' ∗
+      chainsRest chV h cs st i cvs ⊢ chainsRepr (GF := GF) chV h cs st' := by
+  unfold chainsRest othersOwn chainsRepr
+  iintro ⟨He, Hc, %Hp, Hfr, Hcap, Hoth, Hshell⟩
+  ihave Hall := bigSepL_set_change (Ψ := fun j cv =>
+      iprop(sliceIndexRef client (j : Int) chV.clients' ↦ cv ∗ clientOwn (GF := GF) h cs st' j cv))
+    cv' hcv $$ Hoth [] [He Hc]
+  · imodintro
+    iintro %k %z %Hk ⟨He, Hc⟩
+    iframe He
+    iapply clientOwn_agree h cs z (hag k Hk) $$ Hc
+  · iframe
+  icases BigSepL.bigSepL_sep_eqv.1 $$ Hall with ⟨Hel, Hcls⟩
+  iexists cvs.set i cv'
+  ihave Hcl := Hshell $$ %(cvs.set i cv') [] Hel
+  · ipureintro; simp
+  iframe Hcl Hcls
+  rw [hfr]
+  iframe Hfr Hcap
+  ipureintro; simpa using Hp
+
 /-- A client's struct, with its head or `nDeps` changed. -/
 theorem clientOwn_upd (h : List (Op OpV)) (cs : List (List Nat)) {st st' : ChSt} {c : Nat}
     (cv cv' : client) (hcl : cv'.cltOps' = cv.cltOps') (hid : cv'.id' = cv.id')
