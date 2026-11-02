@@ -29262,3 +29262,27 @@ stock (`etc/bounds-allow.txt`). The trusted changes: the axioms `leaseTimeToLive
 `lessor.Renew` are restated over the pool (their old premises are incomparable with the new ones).
 Rejected: a slot held for the whole call (F1 of the review: a slot and the token held at once by
 one thread); a per-call slot handed down from `NewServer` (it would bound the number of calls).
+
+## C3's client stage: deferred, a survey's finding (2026-11-02 · my recommendation, under the user's "follow your recommendations" · branch `periodic`)
+
+**What the stage was to do** (`notes/compactor-pilot-plan.md`): carry the store's permit
+(`kvCmpPermit γk c`: `0 < c` and `kvRevLbZ γk (c + cret)`) up to the client and state C3 in
+`compactkv`. **Surveyed, not started.** Where a client can see a compaction revision:
+- a read's `ErrCompacted`: a gRPC error, about which the gRPC model (`GrpcSpec`, a `Φ` of the reply
+  only) says nothing; a fact there would be a change to the trusted gRPC model;
+- a watch's compaction response: a message, and the server sends the permit already (`watchDn`'s
+  `mvccOk` → `mvccCov` → `respCov` → `respRev`'s `cmpPermOf γ`, over the store's names); the client
+  side (`watchGRPCStream.run`'s `recvElem`, `serveSubstream`, `watchStateElem`) drops it.
+
+**Why deferred.** (1) The client's watch environment ties its KV names to the members' only by
+the state variable (`WEnv.kst`, `isKvWatcher`'s `V.kst = γ.st`, `srvKVFacts`' existential `γr`), not
+by `kvSame`, so `kvCmpPermit γr.kv` does not give `kvCmpPermit γ`: the stage needs the environment's
+KV names first (every `WEnv` construction). (2) Its only consumer would be another `kv.Compact`
+(the one premise written in `kvRevLbZ`): `kvRevLbZ` bounds the KV model of the cluster's *requested*
+log (`γk.rlog`), and no law turns it into a bound on a later `Get`'s revision. A Go-observable C3
+check in `compactkv` (the watch's compaction revision plus the retention at most a later latest
+`Get`'s revision, tight at retention 1) needs that law: the permit restated over the committed
+log (`srvRLogLb`) and a read-side law from a committed bound to a linearizable `Range`'s log
+(`committedAtLeast`, `readLogOk`), or the bound delivered by `Range`'s linearization. Both are
+larger than the stage and change the server's read specs. Recorded as C3's open client stage, after
+periodic mode (the plan's other open item, which has closed results to gain).
