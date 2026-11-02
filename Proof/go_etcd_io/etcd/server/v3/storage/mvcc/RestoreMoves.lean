@@ -96,13 +96,13 @@ state and `s.revMu`'s body to `restore`'s last unlock of `s.revMu` (the restore 
 restored log `L'`: the committed log's ghost variable and its authority, whole; the revision
 budget's authority, no token out (the tokens of the old log deleted: the restored log's are made at
 the unlock, when its length is known to be small); `s.revMu`'s quarter of the compaction
-revision's authority, at `-1`; the writer's reader slot of the lessor; the lower bounds of the
-history and the committed log at `L'`. -/
-def restoreHeld (γ : StoreNames) (L' : Log) : IProp GF :=
+revision's authority, at the compaction revision `c` (M2's item 15: `-1` off); the writer's reader
+slot of the lessor; the lower bounds of the history and the committed log at `L'`. -/
+def restoreHeld (γ : StoreNames) (L' : Log) (c : Int) : IProp GF :=
   iprop("Hclog" ∷ ghostVar γ.clog 1 L' ∗
     "Hlog" ∷ idxLogAuth γ.idx 1 L' ∗
     "Htoks" ∷ ownTokAuth γ.revs 0 ∗
-    "Hcrev" ∷ crevUB γ.idx (1 : Qp).half.half (-1) ∗
+    "Hcrev" ∷ crevUB γ.idx (1 : Qp).half.half c ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
     "Hhist" ∷ monoListAuthOwn γ.idx.hist (1 : Qp).half (histOf L') ∗
     "#Hhlb" ∷ monoListLbOwn γ.idx.hist (histOf L') ∗
@@ -115,26 +115,27 @@ restoring state) taken out; the committed log is the caller's certified `L` (the
 `L` it holds are all the budget leaves); the committed log, its authority and the index's history
 moved to `L'`; the writer's invariant left in its restoring state, with the deposit ghost and the
 history's authority. Returned: `currentRev` and `compactMainRev` whole (the latter at `-1`, the
-store never compacted), the restoring flag whole and down, `s.revMu`'s and the writer's eighths of
-the current objects and names, and `restoreHeld`. -/
-theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log)
-    (hLL : L <+: L') :
+store never compacted; M2's item 15: at the compaction revision `c`), the restoring flag whole and
+down, `s.revMu`'s and the writer's eighths of the current objects and names, and `restoreHeld`. -/
+theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log) (c : Int)
+    (hLL : L <+: L') (hc : -1 ≤ c) :
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ revMuInv s γ 1 -∗
       dghostVar γ.rst (DFrac.own (1 : Qp).half) false -∗ curAt γ (DFrac.own (1 : Qp).half) o -∗
       ghostVar γ.wr 1 () -∗ idxCert γ.idx L -∗ ownToks γ.revs (2 ^ 63 - 3 - L.length) -∗
       (if γ.watchQ then logQ γ L else iprop(True)) -∗
-      crevUB γ.idx (1 : Qp).half.half (-1) -∗
-      (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half} (W64 (-1) : w64) : IProp GF) ={⊤}=∗
+      crevUB γ.idx (1 : Qp).half.half c -∗
+      (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half} (W64 c : w64) : IProp GF) ={⊤}=∗
       (∃ v : w64, (s.[store, go!"currentRev"] ↦{DFrac.own 1} v : IProp GF)) ∗
-      (s.[store, go!"compactMainRev"] ↦{DFrac.own 1} (W64 (-1) : w64) : IProp GF) ∗
+      (s.[store, go!"compactMainRev"] ↦{DFrac.own 1} (W64 c : w64) : IProp GF) ∗
       dghostVar γ.rst (DFrac.own 1) false ∗ curAt γ (DFrac.own (1 : Qp).half) o ∗
       curAt γ (DFrac.own (1 : Qp).half.half.half) o ∗ curAt γ (DFrac.own (1 : Qp).half.half.half) o ∗
-      crevUB γ.idx (1 : Qp).half.half (-1) ∗ restoreHeld γ L' ∗
+      crevUB γ.idx (1 : Qp).half.half c ∗ restoreHeld γ L' c ∗
       monoListLbOwn γ.idx.hist (histShape L' []) := by
   iintro Hlc #Hwi HR Hrst Hcur Hwr #HcL Hrv HlogQ Hcrev Hcmp
   -- `s.revMu`'s body, at the current names
   icases revMuInv_open_cur s γ 1 _ _ o $$ [HR Hrst Hcur] with ⟨HB, HT, Hrst, Hcur⟩
   · iframe HR Hrst Hcur
+  icases revMuBodyL_mu s γ γ 1 _ _ c hc $$ [$HB $Hcmp $Hcrev] with ⟨HB, Hcmp, Hcrev⟩
   iunfold revMuTok at HT
   icases HT with ⟨Hrst2, ⟨%o2, Hcur2⟩, -⟩
   ihave %Ho2 := curAt_agree_o γ _ _ o o2 $$ [Hcur Hcur2]
@@ -197,11 +198,11 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
   -- the revision budget: the caller's tokens are all of it
   imod ownTokAuth_sub (2 ^ 63 - 3 - L.length) γ.revs ntb $$ Htoks Hrv with Htoks
   rw [show ntb - (2 ^ 63 - 3 - L.length) = 0 by omega]
-  -- the compaction revision: `-1`
-  ihave %Hcb := crevUB_agree γ.idx _ _ cb (-1) HcB1 (by decide) $$ HcrevB Hcrev
+  -- the compaction revision: `c`
+  ihave %Hcb := crevUB_agree γ.idx _ _ cb c HcB1 hc $$ HcrevB Hcrev
   subst Hcb
   -- `currentRev` and `compactMainRev`, whole
-  ihave Hcm : (s.[store, go!"compactMainRev"] ↦{DFrac.own 1} (W64 (-1) : w64) : IProp GF)
+  ihave Hcm : (s.[store, go!"compactMainRev"] ↦{DFrac.own 1} (W64 cb : w64) : IProp GF)
       $$ [HcmpB Hcmp]
   · iapply (typedPointsto_parts (GF := GF) _ _ (1 : Qp).half (1 : Qp).half (Qp.half_add_half 1)).2
     iframe HcmpB Hcmp
@@ -292,35 +293,39 @@ holding `s.mu` exclusively): `cur`'s eight parts gathered (the shares' half, the
 `s.revMu`'s and the writer's invariant's eighths from the takeover, the readers' pool's) and moved to
 the new objects `o'` and names `p'`; the readers' pool refilled with `k` slots of the new index and
 backend (the old ones' backend tokens returned; D22 receiver epochs, S8d, W7, 2026-10-25: exactly
-`nReaders - 2`, the pool's retired count being `2`, `retiredAt`, and no slot out: none under the
+`nReaders - rt`, the pool's retired count being `rt`, `retiredAt`: `2 + nJobRd`, the writer's and
+the compaction job's, and no slot out: none under the
 watchable store's lock, whose deposit the caller holds, none under `s.mu`, whose deposit ghost the
 writer's invariant holds whole in its restoring state, a second later credit); the restoring flag
 down; `s.revMu`'s resource at the new names, with the restored log's
 bucket view (`restoreViewOut`), its certificate (its changes below the receipts' bound, which the
 rebuild's receipts give) and the revision budget's tokens of `L'` made. -/
 theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : PhysNames) (R : Log)
-    (hR : restoreLogOk R) :
-    ⊢ £ 1 -∗ £ 1 -∗ writerInv (GF := GF) s γ -∗ wsDep γ -∗ readerPool (GF := GF) γ -∗
+    (c cp : Int) (qw : Qp) (rt : Nat) (hR : restoreLogOk R) (hcp : -1 ≤ cp ∧ cp ≤ c)
+    (hcl : c < ([[], []] ++ R).length) (hrt : 2 ≤ rt) :
+    ⊢ £ 1 -∗ £ 1 -∗ writerInv (GF := GF) s γ -∗ ghostVar γ.wsd qw () -∗ readerPool (GF := GF) γ -∗
       curAt γ (DFrac.own (1 : Qp).half) o -∗ writerFrag γ -∗
       curAt γ (DFrac.own (1 : Qp).half.half.half) o -∗ curAt γ (DFrac.own (1 : Qp).half.half.half) o -∗
-      retiredAt γ 2 -∗
+      retiredAt γ rt -∗
       dghostVar γ.rst (DFrac.own (1 : Qp).half) true -∗ dghostVar γ.rst (DFrac.own (1 : Qp).half) true -∗
-      restoreHeld γ ([[], []] ++ R) -∗
+      restoreHeld γ ([[], []] ++ R) c -∗
       (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half}
         (W64 ((([[], []] ++ R).length : Int) - 1) : w64) : IProp GF) -∗
-      (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half} (W64 (-1) : w64) : IProp GF) -∗
+      (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half} (W64 cp : w64) : IProp GF) -∗
+      lagTok γ c cp -∗ crevPermAt γ c -∗
       monoNatLbOwn p'.nev (evsOf (([[], []] ++ R) ++ [[]])).length -∗ certOk γ ([[], []] ++ R) -∗
-      restoreViewOut (γ.withPhys p') (1 : Qp).half R -∗
+      (idxCert γ.idx ([[], []] ++ R) -∗ bucketViewL (γ.withPhys p') (1 : Qp).half ([[], []] ++ R)) -∗
       ([∗list] _x ∈ List.replicate nReaders (), idxReader o'.ti (γ.withPhys p').idx) -∗
       ⧖ (logCh ([[], []] ++ R)) -∗ ⌜receiptBound GF ≤ 2 ^ 48⌝ -∗
-      ([∗list] _x ∈ List.replicate (nReaders - 1) (), storeRT (γ.withPhys p')) ={⊤}=∗
+      ([∗list] _x ∈ List.replicate (nReaders - rt) (), storeRT (γ.withPhys p')) ={⊤}=∗
       revMuInv s γ 1 ∗ dghostVar γ.rst (DFrac.own (1 : Qp).half) false ∗
       curAt (γ.withPhys p') (DFrac.own (1 : Qp).half) o' ∗ writerFrag (γ.withPhys p') ∗
-      curAt (γ.withPhys p') (DFrac.own (1 : Qp).half.half.half) o' ∗ retiredAt γ 2 ∗ wsDep γ ∗
+      curAt (γ.withPhys p') (DFrac.own (1 : Qp).half.half.half) o' ∗ retiredAt γ rt ∗
+      ghostVar γ.wsd qw () ∗
       restoreWriter γ ([[], []] ++ R) ∗ ownToks γ.revs (2 ^ 63 - 3 - ([[], []] ++ R).length) ∗
       (if γ.watchQ then logQ γ ([[], []] ++ R) else iprop(True)) ∗
-      ([∗list] _x ∈ List.replicate (nReaders - 2) (), storeRT γ) ∗ storeRT (γ.withPhys p') := by
-  iintro Hlc Hlc' #Hwi Hwsd #Hpool Hc1 Hfrag Hc2 Hc3 Htkr Hr1 Hr2 Hheld Hrev Hcmp #Hnv #Hok Hview
+      ([∗list] _x ∈ List.replicate (nReaders - rt) (), storeRT γ) ∗ idxCert γ.idx ([[], []] ++ R) := by
+  iintro Hlc Hlc' #Hwi Hwsd #Hpool Hc1 Hfrag Hc2 Hc3 Htkr Hr1 Hr2 Hheld Hrev Hcmp Hlt #Hperm #Hnv #Hok Hview
     Hrds #Hrc %Hrb Hrts
   ihave %Hrclt := preceipt_lt _ $$ Hrc
   have hlen := restoreLogOk_len hR
@@ -383,17 +388,17 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
   -- the readers' pool refilled: `k` slots of the new index and backend
   iunfold poolBody at HP
   icases HP with ⟨%k, %j, %w, %r, Ha, Hao, Haw, Har, Hs, Hds, Hws, %Hk⟩
-  -- (W7) the retired count is the caller's `2`
+  -- (W7) the retired count is the caller's `rt`
   iunfold retiredAt at Htkr
-  ihave %Hr := ghostVar_agree (GF := GF) γ.tkr r _ 2 _ $$ Har Htkr
+  ihave %Hr := ghostVar_agree (GF := GF) γ.tkr r _ rt _ $$ Har Htkr
   subst Hr
   -- no slot out under the watchable store's lock: its deposit is the caller's
   obtain ⟨w', rfl⟩ | rfl : (∃ w', w = w' + 1) ∨ w = 0 := by cases w <;> simp
   · rw [List.replicate_succ]
     icases BigSepL.bigSepL_cons.1 $$ Hws with ⟨Hw1, -⟩
-    iunfold wsDep at Hw1 Hwsd
-    ihave %Hv := ghostVar_valid_2 (GF := GF) γ.wsd () 1 () 1 $$ Hw1 Hwsd
-    exact absurd Hv.1 (Qp_one_add_not_le 1)
+    iunfold wsDep at Hw1
+    ihave %Hv := ghostVar_valid_2 (GF := GF) γ.wsd () 1 () qw $$ Hw1 Hwsd
+    exact absurd Hv.1 (Qp_one_add_not_le qw)
   -- none under `s.mu`: its deposit ghost is whole in the writer's invariant
   obtain ⟨j', rfl⟩ | rfl : (∃ j', j = j' + 1) ∨ j = 0 := by cases j <;> simp
   · rw [List.replicate_succ]
@@ -406,17 +411,16 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
   have hk1 : k + 1 ≤ nReaders := by omega
   icases idxSlots_out γ o k $$ Hs with ⟨-, Hold⟩
   obtain ⟨m, hm⟩ : ∃ m, nReaders = k + 1 + m := ⟨nReaders - (k + 1), by omega⟩
-  rw [hm, show k + 1 + m - 1 = k + m by omega, show k + 1 + m = k + (1 + m) by omega]
+  rw [hm, show k + 1 + m - r = k by omega, show k + 1 + m = k + (1 + m) by omega]
   icases (rep_split _ k (1 + m)).1 $$ Hrds with ⟨Hrk, -⟩
-  icases (rep_split _ k m).1 $$ Hrts with ⟨Htk, Hrts⟩
-  ihave Hnew := idxSlots_of (γ.withPhys p') o' k $$ [Hrk Htk]
-  · iframe Hrk Htk
+  ihave Hnew := idxSlots_of (γ.withPhys p') o' k $$ [Hrk Hrts]
+  · iframe Hrk Hrts
   imod Hclose $$ [Hn5 Ha Hao Haw Har Hnew Hds Hws] with -
   · inext
     iexists p', o'
     iframe Hn5
     iunfold poolBody
-    iexists k, 0, 0, 2
+    iexists k, 0, 0, r
     withPhys_simp
     iframe Ha Hao Haw Har Hnew Hds Hws
     ipureintro; omega
@@ -438,27 +442,32 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
   have hevs : (evsOf (([[], []] ++ R) ++ [[]])).length = (evsOf ([[], []] ++ R)).length := by
     rw [evsOf_append ([[], []] ++ R) []]; simp [evsOfRev]
   rw [hevs]
-  ihave Hbv := restoreViewOut_bucketView (γ.withPhys p') _ R $$ Hview
+  ihave Hbv := Hview $$ Hcert
   imodintro
-  isplitl [Hr1 Hn2 Hrev HclogB Hbv HtoksB HlogB Hcmp Hcrev]
-  · iapply revMuInv_close s γ (γ.withPhys p') 1
-    isplitl [Hrev HclogB Hbv HtoksB HlogB Hcmp Hcrev]
-    · iunfold revMuBody
-      iexists ([[], []] ++ R), (2 ^ 63 - 3 - ([[], []] ++ R).length), (-1)
+  isplitl [Hr1 Hn2 Hrev HclogB Hbv HtoksB HlogB Hcmp Hcrev Hlt]
+  · iapply revMuInv_closeL s γ (γ.withPhys p') 1
+    isplitl [Hrev HclogB Hbv HtoksB HlogB Hcmp Hcrev Hlt]
+    · iunfold revMuBodyL
+      iexists ([[], []] ++ R), (2 ^ 63 - 3 - ([[], []] ++ R).length), c, cp
       simp only [named]
       iframe Hrev HclogB Hbv HtoksB HlogB Hcmp Hcrev
-      ihave #Hp0 := crevPermAt_none (GF := GF) γ
       iframe #
       isplitl []
       · iunfold idxNevLb; simp only [StoreNames.withPhys_idx_nev]; iexact Hnv
+      isplitl []
+      · ipureintro; simp
+      isplitl []
+      · ipureintro; omega
+      isplitl [Hlt]
+      · iunfold revLag; iunfold lagTok at Hlt; iframe Hlt; ipureintro; exact hcp
       ipureintro
-      refine ⟨by simp, by omega, by decide, by simp; omega⟩
+      exact ⟨by omega, hcl⟩
     · iunfold revMuTok
       iframe Hr1
       isplitl [Hn2]
       · iexists o'; iexact Hn2
       ipureintro; rfl
-  ihave Htkr : retiredAt (GF := GF) γ 2 $$ [Htkr]
+  ihave Htkr : retiredAt (GF := GF) γ r $$ [Htkr]
   · iunfold retiredAt; iexact Htkr
   iframe Hr2 Hn1 Hn4 Hrv HlogQ Hwsd Htkr
   isplitl [Hn3]
@@ -469,16 +478,11 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
     simp only [named]
     iframe HclogW Hlw HtoksW Hlrd Hhist Hcert
     ipureintro; omega
-  have hm1 : m = 1 := by omega
-  subst hm1
-  rw [show k + (1 + 1) - 2 = k by omega]
-  iframe Hold
-  simp only [List.replicate]
-  icases BigSepL.bigSepL_cons.1 $$ Hrts with ⟨H, -⟩
-  iexact H
+  iframe Hold Hcert
 
 /-- **The writer's state checked in at the restored log** (one later credit; after `restore`, which
-gives `currentRev`'s other half and the rebuild's receipts): the writer's invariant is in its
+gives `currentRev`'s other half, with the restored log's persistent receipt: off, the rebuild's,
+snapshotted; on, the image's, `restoreRcptM`): the writer's invariant is in its
 restoring state (a writer's state at the new names would have half the new view log's ghost, a
 writer's deposit the new batch lock's key: `store.Restore` holds both whole), whose half of the
 history's authority is at `L'`; the writer's state at `L'` and the new names goes in, with the new
@@ -490,13 +494,11 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗
       curAt (γ.withPhys p') (DFrac.own (1 : Qp).half.half.half) o' -∗ restoreWriter γ L' -∗
       (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 ((L'.length : Int) - 1) : w64) :
-        IProp GF) -∗ ⧗ (logCh L') -∗ monoNatLbOwn p'.nev (evsOf (L' ++ [[]])).length -∗
+        IProp GF) -∗ ⧖ (logCh L') -∗ monoNatLbOwn p'.nev (evsOf (L' ++ [[]])).length -∗
       ghostVar p'.wk 1 () -∗ ghostVar p'.wv 1 L' -∗
-      bucketView (γ.withPhys p') (1 : Qp).half.half (bucketMap L') -∗ compactRes (γ.withPhys p') -∗
-      kbRegRight p'.kb ={⊤}=∗ ghostVar γ.wr 1 () ∗ idxCert γ.idx L' := by
-  iintro Hlc #Hwi Hc Hw Hcur Hrc #Hnv Hwk Hwv Hbv Hcres Hrr
-  -- the rebuild's receipts, as the writer's persistent one (M2's B2)
-  imod receipt_snapshot _ $$ Hrc with ⟨-, #Hrc⟩
+      bucketViewL (γ.withPhys p') (1 : Qp).half.half L' -∗ compactRes (γ.withPhys p') -∗
+      kbRegRight p'.kb ={⊤}=∗ ghostVar γ.wr 1 () ∗ idxCert γ.idx L' ∗ writerReg s (γ.withPhys p') := by
+  iintro Hlc #Hwi Hc Hw Hcur #Hrc #Hnv Hwk Hwv Hbv Hcres Hrr
   iunfold restoreWriter at Hw
   icases Hw with ⟨%ntok, Hw⟩
   iNamed Hw
@@ -530,7 +532,21 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
   ihave Hhist := hh.2 $$ [Hh Hhist]
   · iframe Hh Hhist
   icases ghostVar_halves p'.wv L' $$ Hwv with ⟨Hwv, HwvR⟩
-  imod Hclose $$ [Hc Htoks Hhist Hlw Hclog Hwv Hcur Hlrd Hwk HwvR Hbv Hcres Hrr] with -
+  -- the registration, pending (M2's item 15: an invariant, `storeW_open`)
+  imod writerReg_allocP s (γ.withPhys p') _ $$ [Hwk HwvR Hbv Hcres Hrr] with #Hrg
+  · isplitl [Hrr]
+    · simp only [StoreNames.withPhys_kb]; iexact Hrr
+    iunfold writerRes
+    iexists L'
+    simp only [named, idxCert_withPhys]
+    iframe Hbv Hcres
+    iframe #
+    isplitl [Hwk]
+    · iunfold writerKey; simp only [StoreNames.withPhys_wk]; iexact Hwk
+    isplitl [HwvR]
+    · simp only [StoreNames.withPhys_wv]; iexact HwvR
+    ipureintro; exact hne
+  imod Hclose $$ [Hc Htoks Hhist Hlw Hclog Hwv Hcur Hlrd] with -
   · inext
     iunfold writerInvBody
     ileft
@@ -555,22 +571,9 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
         iframe Hhist Hlw Hrc Hnv
         ipureintro; exact hwf
       ipureintro; exact hne
-    · iunfold writerReg
-      iright
-      isplitl [Hrr]
-      · simp only [StoreNames.withPhys_kb]; iexact Hrr
-      iunfold writerRes
-      iexists L'
-      simp only [named, idxCert_withPhys]
-      iframe Hbv Hcres
-      iframe #
-      isplitl [Hwk]
-      · iunfold writerKey; simp only [StoreNames.withPhys_wk]; iexact Hwk
-      isplitl [HwvR]
-      · simp only [StoreNames.withPhys_wv]; iexact HwvR
-      ipureintro; exact hne
+    · iexact Hrg
   imodintro
-  iframe Hwr Hcert
+  iframe Hwr Hcert Hrg
 
 /-- The clean view of a bucket, in two halves (`restore`'s and the new batch lock's). -/
 theorem kbViewC_halves (kb : Option KBReal) (γb : GName) (m : Bucket) :
@@ -625,6 +628,13 @@ theorem rep_take1 (P : IProp GF) :
   iintro H
   icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, Hs⟩
   iframe H1 Hs
+
+/-- The one copy of `2 - 1`. -/
+theorem rep_one (P : IProp GF) : ([∗list] _x ∈ List.replicate (2 - 1) (), P) ⊢ P := by
+  rw [show (2 : Nat) - 1 = 0 + 1 from rfl, List.replicate_succ]
+  iintro H
+  icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, -⟩
+  iexact H1
 
 /-- A points-to, in two halves. -/
 theorem typedPointsto_halves {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) (q : Qp) :

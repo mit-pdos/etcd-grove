@@ -105,7 +105,7 @@ theorem Main.wp_proof
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
-  ihave #Hb := common.bootPremise_of (N + N) [id] (LogEntry.toEntries boot 0) ctxs (compactkvDir id)
+  ihave #Hb := common.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (compactkvDir id)
       go!"compactkv" go!"compactkv"
       (common.urls1 go!"compactkv" go!"127.0.0.1:23804" go!"127.0.0.1:23794") id cfgOk urlsOk
       (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)

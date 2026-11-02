@@ -872,17 +872,17 @@ theorem mvcc.store.wp_Compact [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.Compact.spec (GF := GF) (hG := hG) :=
   mvcc.store.Compact.wp_proof mvcc.store.wp_checkPrevCompactionCompleted mvcc.store.wp_updateCompactRev traceutil.Trace.wp_Step mvcc.store.wp_compact
 
+theorem mvcc.store.wp_compactLockfree [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) :=
+  mvcc.store.compactLockfree.wp_proof mvcc.store.wp_checkPrevCompactionCompleted mvcc.store.wp_updateCompactRev traceutil.wp_TODO mvcc.store.wp_compact
+
 theorem mvcc.store.wp_Restore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.Restore.spec (GF := GF) (hG := hG) :=
-  mvcc.store.Restore.wp_proof schedule.Scheduler.wp_Stop mvcc.wp_newTreeIndex schedule.wp_NewFIFOScheduler mvcc.store.wp_restore
+  mvcc.store.Restore.wp_proof schedule.Scheduler.wp_Stop mvcc.wp_newTreeIndex schedule.wp_NewFIFOScheduler mvcc.store.wp_restore mvcc.store.wp_compactLockfree
 
 theorem mvcc.store.wp_Rev :
     mvcc.store.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.store.Rev.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.storeTxnCommon.wp_Rev mvcc.metricsTxnWrite.wp_End
-
-theorem mvcc.store.wp_compactLockfree [go_etcd_io.etcd.cache.v3.Assumptions] :
-    mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) :=
-  mvcc.store.compactLockfree.wp_proof mvcc.store.wp_checkPrevCompactionCompleted mvcc.store.wp_updateCompactRev traceutil.wp_TODO mvcc.store.wp_compact
 
 theorem trace.wp_SpanFromContext :
     trace.SpanFromContext.spec (GF := GF) (hG := hG) :=

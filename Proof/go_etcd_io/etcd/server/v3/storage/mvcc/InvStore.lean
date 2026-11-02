@@ -722,6 +722,63 @@ theorem snapThin_refl (m : Bucket) (Del : GoString → IProp GF) : ⊢ snapThin 
   obtain ⟨h1, h2⟩ := h
   rw [h1] at h2; cases h2
 
+/-- Thinning composes (M2's item 15: the store's view thin of its log's bucket, a snapshot thin
+of the view). -/
+theorem snapThin_trans (m1 m2 m3 : Bucket) (Del : GoString → IProp GF) :
+    snapThin (GF := GF) m1 m2 Del ∗ snapThin m2 m3 Del ⊢ snapThin m1 m3 Del := by
+  iintro ⟨H12, H23⟩
+  iunfold snapThin at H12 H23
+  icases H12 with ⟨%Hs12, #Hd12⟩
+  icases H23 with ⟨%Hs23, #Hd23⟩
+  iunfold snapThin
+  isplitr
+  · ipureintro; intro k v h; exact Hs12 k v (Hs23 k v h)
+  iintro !> %k %v %h
+  obtain ⟨h1, h3⟩ := h
+  cases h2 : m2.lookup k with
+  | none =>
+    iapply Hd12 $$ %k %v
+    ipureintro; exact ⟨h1, h2⟩
+  | some v2 =>
+    have hv : v2 = v := by have := Hs12 k v2 h2; rw [h1] at this; cases this; rfl
+    subst hv
+    iapply Hd23 $$ %k %v2
+    ipureintro; exact ⟨h2, h3⟩
+
+/-- Thinning survives a put to both buckets. -/
+theorem snapThin_insert (m m' : Bucket) (k v : GoString) (Del : GoString → IProp GF) :
+    snapThin (GF := GF) m m' Del ⊢ snapThin (GMap.insert k v m) (GMap.insert k v m') Del := by
+  iintro H
+  iunfold snapThin at H
+  icases H with ⟨%Hs, #Hd⟩
+  iunfold snapThin
+  isplitr
+  · ipureintro; intro k' v' h
+    simp only [GMap.lookup_insert_eq_iff] at h ⊢
+    by_cases hk : k = k'
+    · simp only [hk, ↓reduceIte] at h ⊢; exact h
+    · simp only [hk, ↓reduceIte] at h ⊢; exact Hs k' v' h
+  iintro !> %k' %v' %h
+  obtain ⟨h1, h2⟩ := h
+  simp only [GMap.lookup_insert_eq_iff] at h1 h2
+  by_cases hk : k = k'
+  · simp only [hk, ↓reduceIte] at h2; cases h2
+  · simp only [hk, ↓reduceIte] at h1 h2
+    iapply Hd $$ %k' %v'
+    ipureintro; exact ⟨h1, h2⟩
+
+/-- Thinning survives a list of puts to both buckets. -/
+theorem snapThin_foldl_insert (l : List (GoString × GoString)) (m m' : Bucket)
+    (Del : GoString → IProp GF) :
+    snapThin (GF := GF) m m' Del ⊢
+      snapThin (l.foldl (fun m p => GMap.insert p.1 p.2 m) m)
+        (l.foldl (fun m p => GMap.insert p.1 p.2 m) m') Del := by
+  induction l generalizing m m' with
+  | nil => exact .rfl
+  | cons p l ih =>
+    simp only [List.foldl_cons]
+    exact (snapThin_insert m m' p.1 p.2 Del).trans (ih _ _)
+
 /-- A `ReadTx` as the compaction's `checkPrevCompactionCompleted` uses it, with no view of the
 bucket (it holds neither of the store's locks that hold the view): `RLock` gives a reader's token
 `Tok`, under which its reads of the `Meta` bucket's compaction keys (`metaReadSpec`) lend their
@@ -928,6 +985,51 @@ theorem keyReadLocked_readerD (RT NC : IProp GF) (rng : Bool) (rt : GoInterfaceO
       iframe Hks Hvs
       iapply Hdel $$ %k %v
       ipureintro; exact ⟨hm, hm'⟩
+
+/-- **A reader of a bucket is a reader of any bucket it thins** (M2's item 15: the store's view is
+thin of its log's bucket after a restore in compaction mode): a key the view lacks but the wider
+bucket has is deletable. -/
+theorem keyReaderD_thin (rt : GoInterfaceOk) (mv m : Bucket) (R : IProp GF)
+    (Del : GoString → IProp GF) :
+    keyReaderD (GF := GF) rt m R Del ∗ snapThin mv m Del ⊢ keyReaderD rt mv R Del := by
+  iintro ⟨#H, #Ht⟩
+  iunfold snapThin at Ht
+  icases Ht with ⟨%Hsub, #Hdel⟩
+  iunfold keyReaderD at H
+  iunfold keyReaderD
+  iintro %b %key %k %dq !> %Φ Hpre HΦ
+  iapply H $$ %b %key %k %dq %Φ Hpre
+  inext
+  iintro %ks %vs ⟨%Rd, %T, HT, HTR, Hcap, Hkey, Hor⟩
+  iapply HΦ
+  iexists Rd, T
+  iframe HT HTR Hcap Hkey
+  icases Hor with (#Hkv | Hd)
+  · have hkv : ∀ (m1 m2 : Bucket), m1.lookup k = m2.lookup k →
+        keyVals (GF := GF) Rd ks vs m1 k = keyVals Rd ks vs m2 k := by
+      intro m1 m2 h; unfold keyVals; rw [h]
+    cases hm : m.lookup k with
+    | some v =>
+      ileft
+      rw [hkv mv m (by rw [Hsub k v hm, hm])]
+      iexact Hkv
+    | none =>
+      cases hmv : mv.lookup k with
+      | none =>
+        ileft
+        rw [hkv mv m (by rw [hm, hmv])]
+        iexact Hkv
+      | some v =>
+        iright
+        ihave ⟨#Hks, #Hvs⟩ : iprop(ks ↦*□ ([] : List GoSlice) ∗ vs ↦*□ ([] : List GoSlice)) $$ [Hkv]
+        · have : keyVals (GF := GF) Rd ks vs m k =
+              iprop(ks ↦*□ ([] : List GoSlice) ∗ vs ↦*□ ([] : List GoSlice)) := by
+            unfold keyVals; rw [hm]
+          rw [← this]; iexact Hkv
+        iframe Hks Hvs
+        iapply Hdel $$ %k %v
+        ipureintro; exact ⟨hmv, hm⟩
+  · iright; iexact Hd
 
 /-- What a reader of the index knows makes its log well formed and bounded (kept). -/
 theorem idxKnows_wf (γ : IdxNames) (kn : IdxKnow) :
@@ -2041,6 +2143,21 @@ theorem storePutOk_next (γ : StoreNames) (ilog : Log) (pend : List Change) (t :
     · intro p hp'
       exact RevOrder.pendPuts_lt_next ilog pend t (by omega) hp'
 
+/-- The backend's put condition holds of a bucket with fewer entries (M2's item 15: the view's
+bucket, thin of the log's). -/
+theorem storePutOk_mono (γ : StoreNames) (M m : Bucket) (l : Puts) (k d : GoString)
+    (hm : ∀ k v, m.lookup k = some v → M.lookup k = some v) (h : storePutOk γ M l k d) :
+    storePutOk γ m l k d := by
+  unfold storePutOk kbPutOk at *
+  cases hkb : γ.kb with
+  | none => trivial
+  | some _ =>
+    rw [hkb] at h
+    simp only at h ⊢
+    unfold keyPutOk at *
+    obtain ⟨a, b, c, e, f⟩ := h
+    exact ⟨a, b, c, fun k' v' h' => e k' v' (hm _ _ h'), f⟩
+
 instance bucketView_fractional (γ : StoreNames) (m : Bucket) :
     Fractional (fun q => bucketView (GF := GF) γ q m) where
   fractional q1 q2 := by
@@ -2341,6 +2458,33 @@ theorem crevUB_split (γ : IdxNames) (q1 q2 : Qp) (c : Int) :
   unfold crevUB
   exact (monoNatAuthOwn_fractional (GF := GF) γ.crev (crevN c)).fractional q1 q2
 
+/-- The compaction revision's whole authority (the right's half, `s.mu`'s and `s.revMu`'s
+quarters) raised from `c` to `c2`, with a lower bound. -/
+theorem crevUB_raise (γ : IdxNames) (c c2 : Int) (h : c ≤ c2) :
+    ⊢ crevUB (GF := GF) γ (1 : Qp).half c -∗ crevUB γ (1 : Qp).half.half c -∗
+      crevUB γ (1 : Qp).half.half c ==∗
+      crevUB γ (1 : Qp).half c2 ∗ crevUB γ (1 : Qp).half.half c2 ∗
+        crevUB γ (1 : Qp).half.half c2 ∗ crevLb γ c2 := by
+  iintro H1 H2 H3
+  ihave H23 := (crevUB_split γ (1 : Qp).half.half (1 : Qp).half.half c).2 $$ [H2 H3]
+  · iframe
+  rw [Qp.half_add_half]
+  ihave H := (crevUB_split γ (1 : Qp).half (1 : Qp).half c).2 $$ [H1 H23]
+  · iframe
+  rw [Qp.half_add_half]
+  iunfold crevUB at H
+  imod mono_nat_own_update (crevN c2) (crevN_mono h) $$ H with ⟨H, #Hlb⟩
+  ihave H : crevUB γ ((1 : Qp).half + ((1 : Qp).half.half + (1 : Qp).half.half)) c2 $$ [H]
+  · rw [Qp.half_add_half, Qp.half_add_half]
+    iunfold crevUB
+    iexact H
+  icases (crevUB_split γ _ _ c2).1 $$ H with ⟨H1, H23⟩
+  icases (crevUB_split γ _ _ c2).1 $$ H23 with ⟨H2, H3⟩
+  imodintro
+  iframe H1 H2 H3
+  iunfold crevLb
+  iexact Hlb
+
 /-- A part of the authority bounds every lower bound (the part kept). -/
 theorem crevUB_lb_keep (γ : IdxNames) (q : Qp) (c c' : Int) (hc : -1 ≤ c) :
     crevUB (GF := GF) γ q c ∗ crevLb γ c' ⊢ crevUB γ q c ∗ ⌜c' ≤ c⌝ := by
@@ -2602,6 +2746,144 @@ theorem wDep_halves (γ : StoreNames) :
     ghostVar (GF := GF) γ.wr sync.rfrac () ⊣⊢ wDep γ ∗ wDep γ := by
   unfold wDep; exact ghostVar_split_half γ.wr sync.rfrac ()
 
+/-- **The bucket `m` the store's view holds, of the log `L`** (persistent; M2's item 15,
+2026-11-02, `notes/decisions.md`, "The writer's relation thin"): `m` is `bucketMap L` but for keys
+compaction may delete (`snapThin … (delKey γ)`), and `bucketMap L` itself when the store does not
+compact. A restore in compaction mode installs a bucket thinned at the image's compaction revision
+(`restoreImageM`); compaction itself deletes only physically (the backend's logical view stays
+whole). -/
+def bucketLog (γ : StoreNames) (L : Log) (m : Bucket) : IProp GF :=
+  iprop(snapThin (bucketMap L) m (delKey γ) ∗ ⌜¬ kbCmpM γ.kb → m = bucketMap L⌝)
+
+instance bucketLog_persistent (γ : StoreNames) (L : Log) (m : Bucket) :
+    Persistent (bucketLog (GF := GF) γ L m) := by
+  unfold bucketLog; infer_instance
+
+/-- **The store's part `q` of the bucket's view, of the log `L`** (M2's item 15): a view at a
+bucket of `L` (`bucketLog`). What the writer's pieces (`writerRes`, `writerPin`, the write
+transaction) and `s.revMu`'s resource hold. -/
+def bucketViewL (γ : StoreNames) (q : Qp) (L : Log) : IProp GF :=
+  iprop(∃ m, bucketView γ q m ∗ bucketLog γ L m)
+
+/-- The whole bucket of `L` is of `L`. -/
+theorem bucketLog_exact (γ : StoreNames) (L : Log) : ⊢ bucketLog (GF := GF) γ L (bucketMap L) := by
+  iunfold bucketLog
+  isplitl
+  · iapply snapThin_refl
+  · ipureintro; intro _; rfl
+
+theorem bucketViewL_exact (γ : StoreNames) (q : Qp) (L : Log) :
+    bucketView (GF := GF) γ q (bucketMap L) ⊢ bucketViewL γ q L := by
+  iintro H
+  iunfold bucketViewL
+  iexists bucketMap L
+  iframe H
+  iapply bucketLog_exact
+
+/-- A store that does not compact holds the whole bucket. -/
+theorem bucketLog_off (γ : StoreNames) (L : Log) (m : Bucket) (h : ¬ kbCmpM γ.kb) :
+    bucketLog (GF := GF) γ L m ⊢ ⌜m = bucketMap L⌝ := by
+  iintro H
+  iunfold bucketLog at H
+  icases H with ⟨-, %Hx⟩
+  ipureintro; exact Hx h
+
+/-- What the bucket of `L` gives a reader: thin of `bucketMap L`. -/
+theorem bucketLog_thin (γ : StoreNames) (L : Log) (m : Bucket) :
+    bucketLog (GF := GF) γ L m ⊢ snapThin (bucketMap L) m (delKey γ) := by
+  iintro H
+  iunfold bucketLog at H
+  icases H with ⟨H, -⟩
+  iexact H
+
+/-- A commit's puts keep the bucket of the log (the new revisions' keys go to both). -/
+theorem bucketLog_append (γ : StoreNames) (ilog : Log) (pend : List Change) (m : Bucket)
+    (hne : ilog ≠ []) :
+    bucketLog (GF := GF) γ ilog m ⊢
+      bucketLog γ (ilog ++ [pend]) ((pendPuts ilog pend).foldl (fun m p => GMap.insert p.1 p.2 m) m) := by
+  iintro H
+  iunfold bucketLog at H
+  icases H with ⟨Ht, %Hx⟩
+  iunfold bucketLog
+  rw [bucketMap_append ilog pend hne]
+  isplitl
+  · iapply snapThin_foldl_insert; iexact Ht
+  · ipureintro; intro h; rw [Hx h]
+
+/-- The bucket of `L` has only `bucketMap L`'s entries. -/
+theorem bucketLog_sub (γ : StoreNames) (L : Log) (m : Bucket) :
+    bucketLog (GF := GF) γ L m ⊢ ⌜∀ k v, m.lookup k = some v → (bucketMap L).lookup k = some v⌝ := by
+  iintro H
+  iunfold bucketLog at H
+  icases H with ⟨Ht, -⟩
+  iunfold snapThin at Ht
+  icases Ht with ⟨%Hs, -⟩
+  ipureintro; exact Hs
+
+/-- The bucket of `L` at other physical names of the same mode. -/
+theorem bucketLog_withPhys (γ : StoreNames) (p : PhysNames) (L : Log) (m : Bucket)
+    (h : kbCmpM p.kb ↔ kbCmpM γ.kb) :
+    bucketLog (GF := GF) γ L m ⊢ bucketLog (γ.withPhys p) L m := by
+  iintro H
+  iunfold bucketLog at H
+  icases H with ⟨Ht, %Hx⟩
+  iunfold bucketLog
+  isplitl
+  · rw [show delKey (GF := GF) (γ.withPhys p) = delKey γ from rfl]; iexact Ht
+  · ipureintro; intro h'; exact Hx (fun hc => h' (h.2 hc))
+
+/-- The view's parts at a log: any two fractions. -/
+theorem bucketViewL_split (γ : StoreNames) (q1 q2 : Qp) (L : Log) :
+    bucketViewL (GF := GF) γ (q1 + q2) L ⊣⊢ bucketViewL γ q1 L ∗ bucketViewL γ q2 L := by
+  have hf := fun m => (bucketView_fractional (GF := GF) γ m).fractional q1 q2
+  unfold bucketViewL
+  constructor
+  · iintro ⟨%m, Hv, #Hl⟩
+    icases (hf m).1 $$ Hv with ⟨H1, H2⟩
+    isplitl [H1]
+    · iexists m; iframe H1; iexact Hl
+    · iexists m; iframe H2; iexact Hl
+  · iintro ⟨⟨%m1, H1, #Hl1⟩, ⟨%m2, H2, -⟩⟩
+    ihave %Heq := bucketView_agree γ _ _ m1 m2 $$ [H1 H2]
+    · iframe H1 H2
+    subst Heq
+    iexists m1
+    iframe Hl1
+    iapply (hf m1).2
+    iframe H1 H2
+
+/-- The view's parts at a log: halves. -/
+theorem bucketViewL_halves (γ : StoreNames) (q : Qp) (L : Log) :
+    bucketViewL (GF := GF) γ q L ⊣⊢ bucketViewL γ q.half L ∗ bucketViewL γ q.half L := by
+  unfold bucketViewL
+  constructor
+  · iintro ⟨%m, Hv, #Hl⟩
+    icases (bucketView_halves γ q m).1 $$ Hv with ⟨H1, H2⟩
+    isplitl [H1]
+    · iexists m; iframe H1; iexact Hl
+    · iexists m; iframe H2; iexact Hl
+  · iintro ⟨⟨%m1, H1, #Hl1⟩, ⟨%m2, H2, -⟩⟩
+    ihave %Heq := bucketView_agree γ _ _ m1 m2 $$ [H1 H2]
+    · iframe H1 H2
+    subst Heq
+    iexists m1
+    iframe Hl1
+    iapply (bucketView_halves γ q m1).2
+    iframe H1 H2
+
+/-- Two parts of the view, at any logs, join at the first's (they hold one bucket). -/
+theorem bucketViewL_join (γ : StoreNames) (q : Qp) (L1 L2 : Log) :
+    bucketViewL (GF := GF) γ q.half L1 ∗ bucketViewL γ q.half L2 ⊢ bucketViewL γ q L1 := by
+  unfold bucketViewL
+  iintro ⟨⟨%m1, H1, #Hl1⟩, ⟨%m2, H2, -⟩⟩
+  ihave %Heq := bucketView_agree γ _ _ m1 m2 $$ [H1 H2]
+  · iframe H1 H2
+  subst Heq
+  iexists m1
+  iframe Hl1
+  iapply (bucketView_halves γ q m1).2
+  iframe H1 H2
+
 /-- The batch lock's resource for the store (`W` of `isKeyBackend`; physical, per backend: D22
 receiver epochs, S2, 2026-10-22, until then also the writer's state, now `writerL`): the batch
 lock's key, half the ghost of the log `L` the bucket's view is of (the other half is the
@@ -2614,7 +2896,7 @@ def writerRes (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ L : Log,
     "Hwk" ∷ writerKey γ ∗
     "Hwv" ∷ ghostVar γ.wv (1 : Qp).half L ∗
-    "Hbv" ∷ bucketView γ (1 : Qp).half.half (bucketMap L) ∗
+    "Hbv" ∷ bucketViewL γ (1 : Qp).half.half L ∗
     "#Hcert" ∷ idxCert γ.idx L ∗
     "%Hne" ∷ ⌜L ≠ []⌝ ∗
     "Hcres" ∷ compactRes γ)
@@ -2650,7 +2932,7 @@ log), and its loan (`writerLoan`). What the writer's observations of a backend s
 the snapshot's physical view is thin of the view (`backend.viewAt_bView`), and exact with nothing
 deletable; no compaction key with the no-compaction token. Not persistent. -/
 def writerPin (γ : StoreNames) (log : Log) : IProp GF :=
-  iprop(bucketView γ (1 : Qp).half.half (bucketMap log) ∗ writerLoan γ)
+  iprop(bucketViewL γ (1 : Qp).half.half log ∗ writerLoan γ)
 
 /-- **The writer's state** (D22 receiver epochs, S2, 2026-10-22; until then in the batch lock's
 resource, which `store.Restore` never takes): the index writer's handle at the committed log
@@ -2749,13 +3031,78 @@ theorem kbWTSupplyM_on (kb : Option KBReal) (h : kbCmpM kb) :
     kbWTSupplyM (GF := GF) kb ⊣⊢ kbWTSupply kb := by
   unfold kbWTSupplyM; simp only [h, ↓reduceIte]; exact .rfl
 
+/-- The right to register a store in the instance `kb`. -/
+def kbRegRight (kb : Option KBReal) : IProp GF :=
+  match kb with
+  | none => iprop(True)
+  | some d => lateReg d.gx
+
+/-! ### The writer's resource is timeless (M2's item 15: the registration's invariant opens without a
+later credit, inside the backend's lock contracts) -/
+
+instance crevLb_timeless (γ : IdxNames) (c : Int) : Timeless (crevLb (GF := GF) γ c) := by
+  unfold crevLb; infer_instance
+instance idxCert_timeless (γ : IdxNames) (L : Log) : Timeless (idxCert (GF := GF) γ L) := by
+  unfold idxCert; infer_instance
+instance snapThin_timeless (m m' : Bucket) (D : GoString → IProp GF) [∀ k, Timeless (D k)] :
+    Timeless (snapThin m m' D) := by
+  unfold snapThin; infer_instance
+instance kbView_timeless (kb : Option KBReal) (g : GName) (q : Qp) (m : Bucket) :
+    Timeless (kbView (GF := GF) kb g q m) := by
+  unfold kbView; split <;> (try unfold bkView) <;> infer_instance
+instance bucketViewL_timeless (γ : StoreNames) (q : Qp) (L : Log) :
+    Timeless (bucketViewL (GF := GF) γ q L) := by
+  unfold bucketViewL bucketLog bucketView; infer_instance
+instance compactRes_timeless (γ : StoreNames) : Timeless (compactRes (GF := GF) γ) := by
+  unfold compactRes metaCompact mwSlot mwKey; split <;> infer_instance
+instance writerRes_timeless (s : Loc) (γ : StoreNames) : Timeless (writerRes (GF := GF) s γ) := by
+  unfold writerRes writerKey; simp only [named]; infer_instance
+instance kbRegRight_timeless (kb : Option KBReal) : Timeless (kbRegRight (GF := GF) kb) := by
+  unfold kbRegRight; split <;> (try unfold lateReg) <;> infer_instance
+instance storeRegd_timeless (s : Loc) (γ : StoreNames) : Timeless (storeRegd (GF := GF) s γ) := by
+  unfold storeRegd; split <;> infer_instance
+
+/-- The registration's invariant's name. -/
+abbrev regN : Namespace := nroot.@"mvcc_reg"
+
+/-- **The store's registration in its backend, done or pending** (persistent; D22 receiver epochs,
+S6, 2026-10-22; an invariant since M2's item 15, 2026-11-02): the store `(s, γ)` registered in its
+backend's late-bound lock slot (`storeRegd`), or not yet, with the right to register it and the
+batch lock's resource to deposit (`kbRegRight`, `writerRes`): after `store.Restore`, whose new
+backend's batch lock holds its unregistered `lateW` (`Restore` does not take the batch lock), until
+the first holder of the batch lock registers it (`storeW_open`: a writer's `LockInsideApply`,
+`writerInv_checkout`, or in compaction mode the resumed or next compaction's). `NewStore`
+registers at its first `Unlock`. In the writer's state and, in compaction mode, in `physOk`
+(`physCmp`). -/
+def writerReg (s : Loc) (γ : StoreNames) : IProp GF :=
+  inv regN iprop(storeRegd s γ ∨ kbRegRight γ.kb ∗ writerRes s γ)
+
+instance writerReg_persistent (s : Loc) (γ : StoreNames) : Persistent (writerReg (GF := GF) s γ) := by
+  unfold writerReg; infer_instance
+
+/-- The registration's invariant, of a registered store. -/
+theorem writerReg_alloc (s : Loc) (γ : StoreNames) (E : CoPset) :
+    storeRegd (GF := GF) s γ ={E}=∗ writerReg s γ := by
+  iintro #H
+  iunfold writerReg
+  iapply inv_alloc regN E
+  inext; ileft; iexact H
+
+/-- The registration's invariant, pending (`store.Restore`'s, at the new names). -/
+theorem writerReg_allocP (s : Loc) (γ : StoreNames) (E : CoPset) :
+    kbRegRight (GF := GF) γ.kb ∗ writerRes s γ ={E}=∗ writerReg s γ := by
+  iintro H
+  iunfold writerReg
+  iapply inv_alloc regN E
+  inext; iright; iexact H
+
 /-- **The store's compaction facts in `physOk`** (the Draft's `physCmpW`, review round 15's N3, gated
 by the mode): the write right's invariant and the store's registration in its backend (the swap from
 `storeW`, which for the real backend reaches `writerRes` through it). (M2, the storage side, Q1 (a),
 2026-10-30: the write-back supply is no longer here: `store.Compact` takes it per compaction, and
 hands it to the job, `compactJobPre`.) -/
 def physCmp (s : Loc) (γ : StoreNames) : IProp GF :=
-  if kbCmpM γ.kb then iprop(mwInv γ ∗ storeRegd s γ) else iprop(True)
+  if kbCmpM γ.kb then iprop(mwInv γ ∗ writerReg s γ) else iprop(True)
 
 instance physCmp_persistent (s : Loc) (γ : StoreNames) : Persistent (physCmp (GF := GF) s γ) := by
   unfold physCmp; split <;> infer_instance
@@ -2766,7 +3113,7 @@ theorem physCmp_off (s : Loc) (γ : StoreNames) (h : ¬ kbCmpM γ.kb) : ⊢ phys
 
 /-- A compacting store's compaction facts. -/
 theorem physCmp_on (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) :
-    physCmp (GF := GF) s γ ⊣⊢ iprop(mwInv γ ∗ storeRegd s γ) := by
+    physCmp (GF := GF) s γ ⊣⊢ iprop(mwInv γ ∗ writerReg s γ) := by
   unfold physCmp; rw [if_pos h]; exact .rfl
 
 /-- **The key's other half, by the mode** (what `NewStore` keeps of the key's ghost variable for the
@@ -2789,7 +3136,7 @@ theorem mwSlot_alloc (γ : StoreNames) :
 invariant at `true` with the right, and the registration. -/
 theorem physCmp_alloc (s : Loc) (γ : StoreNames) :
     mwRest (GF := GF) γ ∗ (if kbCmpM γ.kb then kbMW γ.kb γ.bucket else iprop(True)) ∗
-      storeRegd s γ ={⊤}=∗ physCmp s γ := by
+      writerReg s γ ={⊤}=∗ physCmp s γ := by
   unfold mwRest physCmp
   by_cases hc : kbCmpM γ.kb
   · simp only [hc, ↓reduceIte]
@@ -2806,12 +3153,6 @@ theorem physCmp_alloc (s : Loc) (γ : StoreNames) :
     iframe Hi Hr
   · simp only [hc, ↓reduceIte]
     iintro -; imodintro; itrivial
-
-/-- The right to register a store in the instance `kb`. -/
-def kbRegRight (kb : Option KBReal) : IProp GF :=
-  match kb with
-  | none => iprop(True)
-  | some d => lateReg d.gx
 
 /-- The registered store's lock resource is its writer's resource. -/
 theorem storeW_get (s : Loc) (γ : StoreNames) :
@@ -2869,15 +3210,6 @@ theorem storeW_register (s : Loc) (γ : StoreNames) :
 /-- The writer's invariant's name. -/
 abbrev writerN : Namespace := nroot.@"mvcc_writer"
 
-/-- **The writer's registration in its backend** (D22 receiver epochs, S6, 2026-10-22): the store
-`(s, γ)` registered in its backend's late-bound lock slot (`storeRegd`), or not yet, with the right
-to register it and the batch lock's resource to deposit (`kbRegRight`, `writerRes`): after
-`store.Restore`, whose new backend's batch lock holds its unregistered `lateW` (`Restore` does not
-take the batch lock), until the next writer's `LockInsideApply` registers it
-(`writerInv_checkout`). `NewStore` registers at its first `Unlock`. -/
-def writerReg (s : Loc) (γ : StoreNames) : IProp GF :=
-  iprop(storeRegd s γ ∨ kbRegRight γ.kb ∗ writerRes s γ)
-
 /-- **The writer's invariant** (persistent; D22 receiver epochs, S2, 2026-10-22): the writer's
 state checked in, or the batch lock's key with a reader's part of `s.mu`'s deposit ghost (a writer,
 holding the batch lock and `s.mu` shared, has the state out). A writer finds the state in (it
@@ -2929,6 +3261,29 @@ theorem storeW_pending (s : Loc) (γ : StoreNames) :
     · ihave %Hc := dghostVar_agree d.gx _ _ _ _ $$ Hr' H2
       cases Hc
 
+/-- **A holder of the batch lock finds the writer's resource** (M2's item 15): with the
+registration's invariant, the lock's resource gives the writer's, the store registered (if the
+registration was pending, it is made now: `storeW_pending`). No later credit: the invariant's
+contents are timeless. -/
+theorem storeW_open (s : Loc) (γ : StoreNames) (E : CoPset) (h : ↑regN ⊆ E) :
+    writerReg (GF := GF) s γ ⊢ storeW s γ ={E}=∗ writerRes s γ ∗ storeRegd s γ := by
+  iintro #Hi HW
+  iunfold writerReg at Hi
+  imod inv_acc (E := E) (N := regN) (P := iprop(storeRegd (GF := GF) s γ ∨ kbRegRight γ.kb ∗
+    writerRes s γ)) h $$ Hi with ⟨HP, Hclose⟩
+  ihave HP : ◇ iprop(storeRegd (GF := GF) s γ ∨ kbRegRight γ.kb ∗ writerRes s γ) $$ [HP]
+  · iapply Timeless.timeless; iexact HP
+  imod HP with HP
+  icases HP with (#Hreg | ⟨Hrr, HWr⟩)
+  · ihave HWr := storeW_get s γ $$ [$Hreg $HW]
+    imod Hclose $$ [] with -
+    · inext; ileft; iexact Hreg
+    imodintro; iframe HWr Hreg
+  · imod storeW_pending s γ $$ [$HW $Hrr $HWr] with ⟨HWr, #Hreg⟩
+    imod Hclose $$ [] with -
+    · inext; ileft; iexact Hreg
+    imodintro; iframe HWr Hreg
+
 /-- **The store's backend contract with its compaction on** (question 5's core stage, parts
 (2)-(4), decided by the agent; until then `isKeyBackendG_cmp`, which reduced it to mvcc's assumed
 backend: no tokens, the lock resource the writer's): the store's contract at its tokens, put
@@ -2937,11 +3292,11 @@ compaction's proofs (`updateCompactRev`, the job, `checkPrevCompactionCompleted`
 backend. -/
 theorem isKeyBackendG_cmpOn (b : GoInterface) (s : Loc) (γ : StoreNames) (Dep P : IProp GF)
     (HF : val → IProp GF) (h : storeCmp γ) :
-    isKeyBackendG (GF := GF) b (bucketView γ) (storeRT γ) (storeWT γ) (kbNoCmp γ.kb γ.bucket)
+    isKeyBackendG (GF := GF) b (bucketView γ) (storeRT γ) (storeWT γ) iprop(False)
       (storePutOk γ) (delKey γ)
       (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P HF (storeReq γ) (storeRb γ) (storeBt γ)
       (kbSR γ.kb) (kbSRh γ.kb) (kbMW γ.kb γ.bucket) (kbHookNil γ.kb) ⊢
-    isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (kbNoCmp γ.kb γ.bucket)
+    isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) iprop(False)
       (storePutOk γ) (delKey γ)
       (storeW s γ) (kbWi γ.kb) Dep True P HF (storeReq γ) (storeRb γ) (storeBt γ)
       (kbSR γ.kb) (kbSRh γ.kb) (kbMW γ.kb γ.bucket) (kbHookNil γ.kb) := by
@@ -3099,7 +3454,7 @@ def revMuBody (s : Loc) (γ γp : StoreNames) (q : Qp) : IProp GF :=
     "#Hnev" ∷ idxNevLb γp.idx log ∗
     "#Hok" ∷ certOk γ log ∗
     "%Hne" ∷ ⌜log ≠ []⌝ ∗
-    "Hbucket" ∷ bucketView γp q.half (bucketMap log) ∗
+    "Hbucket" ∷ bucketViewL γp q.half log ∗
     "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own q.half) ntok ∗
     "%Hbudget" ∷ ⌜log.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
     "Hlog" ∷ idxLogAuth γ.idx (revQ γ q) log ∗
@@ -3119,8 +3474,7 @@ instance revMuBody_fractional (s : Loc) (γ γp : StoreNames) : Fractional (revM
         (DFrac.own q2.half)
     have hclog := fun (log : Log) =>
       (ghostVar_fractional (GF := GF) γ.clog log).fractional q1.half q2.half
-    have hbv := fun (m : Bucket) =>
-      (bucketView_fractional (GF := GF) γp m).fractional q1.half q2.half
+    have hbv := fun (L : Log) => bucketViewL_split (GF := GF) γp q1.half q2.half L
     have htk : ∀ n : Nat, ownTokAuthDfrac (GF := GF) γ.revs (DFrac.own (q1.half + q2.half)) n ⊣⊢
         ownTokAuthDfrac γ.revs (DFrac.own q1.half) n ∗ ownTokAuthDfrac γ.revs (DFrac.own q2.half) n :=
       fun n => ownTokAuthDfrac_split (GF := GF) γ.revs (DFrac.own q1.half) (DFrac.own q2.half) n
@@ -3194,6 +3548,247 @@ instance revMuBody_fractional (s : Loc) (γ γp : StoreNames) : Fractional (revM
       · iexact Hperm1
       ipureintro; exact Hc1
 
+/-- **The compaction revision's physical lag** (M2's item 15, the lag state, 2026-11-02): `s.revMu`'s
+part of `compactMainRev` holds `cp`, at most the compaction revision `c`; below it only in
+`restore()`'s resumed compaction, from the restored finished record to `compactLockfree`'s
+`updateCompactRev` (`store.Restore` holding `s.mu` and the watchable store's lock), with a quarter of
+the lock's fraction of the watchable store's deposit ghost (`StoreNames.wsd`). That excludes every
+other opener of `s.revMu`: a holder of `s.mu` has a part of `compactMainRev` at `c`
+(`revMuBodyL_mu`), one of the watchable store's lock its deposit ghost whole (`revMuBodyL_wsd`). -/
+def revLag (γ : StoreNames) (q : Qp) (c cp : Int) : IProp GF :=
+  iprop(⌜-1 ≤ cp ∧ cp ≤ c⌝ ∗ if cp = c then iprop(True) else ghostVar γ.wsd q.half.half ())
+
+theorem revLag_split (γ : StoreNames) (q1 q2 : Qp) (c cp : Int) :
+    revLag (GF := GF) γ (q1 + q2) c cp ⊣⊢ revLag γ q1 c cp ∗ revLag γ q2 c cp := by
+  have hw := (ghostVar_fractional (GF := GF) γ.wsd ()).fractional q1.half.half q2.half.half
+  unfold revLag
+  rw [Qp_half_add, Qp_half_add]
+  by_cases h : cp = c
+  · simp only [h, ↓reduceIte]
+    constructor
+    · iintro ⟨%Hp, -⟩
+      isplitl []
+      · isplitl [] <;> ipureintro <;> trivial
+      · isplitl [] <;> ipureintro <;> trivial
+    · iintro ⟨⟨%Hp, -⟩, -⟩
+      isplitl [] <;> ipureintro <;> trivial
+  · simp only [h, ↓reduceIte]
+    constructor
+    · iintro ⟨%Hp, Hw⟩
+      icases hw.1 $$ Hw with ⟨H1, H2⟩
+      isplitl [H1]
+      · iframe H1; ipureintro; exact Hp
+      · iframe H2; ipureintro; exact Hp
+    · iintro ⟨⟨%Hp, H1⟩, ⟨-, H2⟩⟩
+      isplitl []
+      · ipureintro; exact Hp
+      iapply hw.2; iframe H1 H2
+
+/-- **`s.revMu`'s resource with the compaction revision's physical lag** (M2's item 15, the lag
+state, 2026-11-02): `revMuBody` but for `compactMainRev`, at `cp`, at most the compaction revision
+`c` and below it only with the lag's token (`revLag`). The lock holds it (`revMuCur`); an opener
+finds `revMuBody` (`revMuBodyL_mu`, `revMuBodyL_wsd`) but `updateCompactRev`, which ends the lag. -/
+def revMuBodyL (s : Loc) (γ γp : StoreNames) (q : Qp) : IProp GF :=
+  iprop(∃ (log : Log) (ntok : Nat) (c cp : Int),
+    "Hrev" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own q.half} (W64 ((log.length : Int) - 1) : w64) :
+      IProp GF) ∗
+    "Hclog" ∷ ghostVar γ.clog q.half log ∗
+    "#Hcert" ∷ idxCert γ.idx log ∗
+    "#Hnev" ∷ idxNevLb γp.idx log ∗
+    "#Hok" ∷ certOk γ log ∗
+    "%Hne" ∷ ⌜log ≠ []⌝ ∗
+    "Hbucket" ∷ bucketViewL γp q.half log ∗
+    "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own q.half) ntok ∗
+    "%Hbudget" ∷ ⌜log.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
+    "Hlog" ∷ idxLogAuth γ.idx (revQ γ q) log ∗
+    "Hcmp" ∷ (s.[store, go!"compactMainRev"] ↦{DFrac.own q.half} (W64 cp : w64) : IProp GF) ∗
+    "Hcrev" ∷ crevUB γ.idx q.half.half c ∗
+    "#Hperm" ∷ crevPermAt γ c ∗
+    "Hlag" ∷ revLag γ q c cp ∗
+    "%Hc" ∷ ⌜-1 ≤ c ∧ c < log.length⌝)
+
+instance revMuBodyL_fractional (s : Loc) (γ γp : StoreNames) :
+    Fractional (revMuBodyL (GF := GF) s γ γp) where
+  fractional q1 q2 := by
+    have hcur : ∀ v : w64, (s.[store, go!"currentRev"] ↦{DFrac.own (q1.half + q2.half)} v :
+        IProp GF) ⊣⊢ s.[store, go!"currentRev"] ↦{DFrac.own q1.half} v ∗
+          s.[store, go!"currentRev"] ↦{DFrac.own q2.half} v :=
+      fun v => (typedPointsto_dfractional (GF := GF) _ v).dfractional (DFrac.own q1.half)
+        (DFrac.own q2.half)
+    have hclog := fun (log : Log) =>
+      (ghostVar_fractional (GF := GF) γ.clog log).fractional q1.half q2.half
+    have hbv := fun (L : Log) => bucketViewL_split (GF := GF) γp q1.half q2.half L
+    have htk : ∀ n : Nat, ownTokAuthDfrac (GF := GF) γ.revs (DFrac.own (q1.half + q2.half)) n ⊣⊢
+        ownTokAuthDfrac γ.revs (DFrac.own q1.half) n ∗ ownTokAuthDfrac γ.revs (DFrac.own q2.half) n :=
+      fun n => ownTokAuthDfrac_split (GF := GF) γ.revs (DFrac.own q1.half) (DFrac.own q2.half) n
+    have hlg := fun (log : Log) =>
+      (monoListAuthOwn_fractional (GF := GF) γ.idx.log log).fractional (revQ γ q1) (revQ γ q2)
+    have hcmp : ∀ v : w64, (s.[store, go!"compactMainRev"] ↦{DFrac.own (q1.half + q2.half)} v :
+        IProp GF) ⊣⊢ s.[store, go!"compactMainRev"] ↦{DFrac.own q1.half} v ∗
+          s.[store, go!"compactMainRev"] ↦{DFrac.own q2.half} v :=
+      fun v => (typedPointsto_dfractional (GF := GF) _ v).dfractional (DFrac.own q1.half)
+        (DFrac.own q2.half)
+    have hcrev := fun (c : Int) => crevUB_split (GF := GF) γ.idx q1.half.half q2.half.half c
+    have hlag := fun (c cp : Int) => revLag_split (GF := GF) γ q1 q2 c cp
+    unfold revMuBodyL
+    rw [revQ_add, Qp_half_add, Qp_half_add]
+    refine ⟨?_, ?_⟩
+    · iintro H
+      icases H with ⟨%log, %ntok, %c, %cp, H⟩
+      iNamed H
+      icases (hcur _).1 $$ Hrev with ⟨Hr1, Hr2⟩
+      icases (hclog log).1 $$ Hclog with ⟨Hc1, Hc2⟩
+      icases (hbv _).1 $$ Hbucket with ⟨Hb1, Hb2⟩
+      icases (htk ntok).1 $$ Htoks with ⟨Ht1, Ht2⟩
+      icases (hlg log).1 $$ Hlog with ⟨Hl1, Hl2⟩
+      icases (hcmp _).1 $$ Hcmp with ⟨Hm1, Hm2⟩
+      icases (hcrev c).1 $$ Hcrev with ⟨Hv1, Hv2⟩
+      icases (hlag c cp).1 $$ Hlag with ⟨Hg1, Hg2⟩
+      isplitl [Hr1 Hc1 Hb1 Ht1 Hl1 Hm1 Hv1 Hg1]
+      · iexists log, ntok, c, cp; simp only [named]; iframe Hr1 Hc1 Hb1 Ht1 Hl1 Hm1 Hv1 Hg1
+        iframe #
+        ipureintro
+        exact ⟨Hne, Hbudget, Hc⟩
+      · iexists log, ntok, c, cp; simp only [named]; iframe Hr2 Hc2 Hb2 Ht2 Hl2 Hm2 Hv2 Hg2
+        iframe #
+        ipureintro
+        exact ⟨Hne, Hbudget, Hc⟩
+    · iintro ⟨H1, H2⟩
+      icases H1 with ⟨%log, %ntok, %c, %cp, H1⟩
+      icases H2 with ⟨%log2, %ntok2, %c2, %cp2, H2⟩
+      iNamedSuffix H1 "1"
+      iNamedSuffix H2 "2"
+      ihave %Hlog := ghostVar_agree γ.clog _ _ _ _ $$ Hclog1 Hclog2
+      subst Hlog
+      icombine Htoks1 Htoks2 gives %Hn
+      obtain ⟨-, Hn⟩ := Hn
+      subst Hn
+      ihave %Hcc := crevUB_agree γ.idx _ _ c c2 Hc1.1 Hc2.1 $$ Hcrev1 Hcrev2
+      subst Hcc
+      icombine Hcmp1 Hcmp2 gives %Hv
+      have Hv : (W64 cp : w64) = W64 cp2 := by first | exact Hv.2 | exact Hv
+      iunfold revLag at Hlag1 Hlag2
+      icases Hlag1 with ⟨%Hp1, Hlag1⟩
+      icases Hlag2 with ⟨%Hp2, Hlag2⟩
+      have Hpp : cp = cp2 := by
+        obtain ⟨-, Hc'⟩ := Hc1
+        word
+      subst Hpp
+      iexists log, ntok, c, cp
+      simp only [named]
+      isplitl [Hrev1 Hrev2]
+      · iapply (hcur _).2; iframe Hrev1 Hrev2
+      isplitl [Hclog1 Hclog2]
+      · iapply (hclog log).2; iframe Hclog1 Hclog2
+      isplitr
+      · iexact Hcert1
+      isplitr
+      · iexact Hnev1
+      isplitr
+      · iexact Hok1
+      isplitr
+      · ipureintro; exact Hne1
+      isplitl [Hbucket1 Hbucket2]
+      · iapply (hbv _).2; iframe Hbucket1 Hbucket2
+      isplitl [Htoks1 Htoks2]
+      · iapply (htk ntok).2; iframe Htoks1 Htoks2
+      isplitl []
+      · ipureintro; exact Hbudget1
+      isplitl [Hlog1 Hlog2]
+      · iapply (hlg log).2; iframe Hlog1 Hlog2
+      isplitl [Hcmp1 Hcmp2]
+      · iapply (hcmp _).2; iframe Hcmp1 Hcmp2
+      isplitl [Hcrev1 Hcrev2]
+      · iapply (hcrev c).2; iframe Hcrev1 Hcrev2
+      isplitr
+      · iexact Hperm1
+      isplitl [Hlag1 Hlag2]
+      · iapply (hlag c cp).2
+        iunfold revLag
+        isplitl [Hlag1]
+        · iframe Hlag1; ipureintro; exact Hp1
+        · iframe Hlag2; ipureintro; exact Hp1
+      ipureintro; exact Hc1
+
+/-- The lock's body without a lag is `revMuBody`. -/
+theorem revMuBodyL_of (s : Loc) (γ γp : StoreNames) (q : Qp) :
+    revMuBody (GF := GF) s γ γp q ⊢ revMuBodyL s γ γp q := by
+  iintro H
+  iunfold revMuBody at H
+  icases H with ⟨%log, %ntok, %c, H⟩
+  iNamed H
+  iunfold revMuBodyL
+  iexists log, ntok, c, c
+  simp only [named]
+  iunfold revLag
+  simp only [↓reduceIte]
+  iframe Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev
+  iframe #
+  ipureintro; exact ⟨Hne, Hbudget, ⟨⟨Hc.1, Int.le_refl c⟩, trivial⟩, Hc⟩
+
+/-- The lock's body is `revMuBody`, or it lags with the lag's token. -/
+theorem revMuBodyL_noLag (s : Loc) (γ γp : StoreNames) (q : Qp) :
+    revMuBodyL (GF := GF) s γ γp q ⊢ ghostVar γ.wsd q.half.half () ∨ revMuBody s γ γp q := by
+  iintro H
+  iunfold revMuBodyL at H
+  icases H with ⟨%log, %ntok, %c, %cp, H⟩
+  iNamed H
+  iunfold revLag at Hlag
+  icases Hlag with ⟨%Hp, Hlag⟩
+  by_cases h : cp = c
+  · subst h
+    iright
+    iunfold revMuBody
+    iexists log, ntok, cp
+    simp only [named]
+    iframe Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev
+    iframe #
+    ipureintro; exact ⟨Hne, Hbudget, Hc⟩
+  · simp only [h, ↓reduceIte]
+    ileft
+    iexact Hlag
+
+/-- **A holder of `s.mu` finds no lag** (M2's item 15): its part of `compactMainRev` and of the
+compaction revision's authority agree with the lock's, at `c`. -/
+theorem revMuBodyL_mu (s : Loc) (γ γp : StoreNames) (q q' : Qp) (dq : DFrac) (cm : Int)
+    (hcm : -1 ≤ cm) :
+    revMuBodyL (GF := GF) s γ γp q ∗
+      (s.[store, go!"compactMainRev"] ↦{dq} (W64 cm : w64) : IProp GF) ∗ crevUB γ.idx q' cm ⊢
+      revMuBody s γ γp q ∗
+        (s.[store, go!"compactMainRev"] ↦{dq} (W64 cm : w64) : IProp GF) ∗ crevUB γ.idx q' cm := by
+  iintro ⟨H, Hm, Hu⟩
+  iunfold revMuBodyL at H
+  icases H with ⟨%log, %ntok, %c, %cp, H⟩
+  iNamed H
+  ihave %Hcc := crevUB_agree γ.idx _ _ c cm Hc.1 hcm $$ Hcrev Hu
+  subst Hcc
+  icombine Hcmp Hm gives %Hv
+  have Hv : (W64 cp : w64) = W64 c := by first | exact Hv.2 | exact Hv
+  iunfold revLag at Hlag
+  icases Hlag with ⟨%Hp, Hlag⟩
+  have Hpp : cp = c := by
+    obtain ⟨-, Hc'⟩ := Hc
+    word
+  subst Hpp
+  iframe Hm Hu
+  iunfold revMuBody
+  iexists log, ntok, cp
+  simp only [named]
+  iframe Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev
+  iframe #
+  ipureintro; exact ⟨Hne, Hbudget, Hc⟩
+
+/-- **A holder of the watchable store's lock finds no lag** (M2's item 15): its deposit ghost,
+whole, excludes the lag's part of it. -/
+theorem revMuBodyL_wsd (s : Loc) (γ γp : StoreNames) (q : Qp) :
+    revMuBodyL (GF := GF) s γ γp q ∗ ghostVar γ.wsd 1 () ⊢
+      revMuBody s γ γp q ∗ ghostVar γ.wsd 1 () := by
+  iintro ⟨H, Hw⟩
+  icases revMuBodyL_noLag s γ γp q $$ H with (Hl | H)
+  · ihave %Hv := ghostVar_valid_2 γ.wsd () 1 () q.half.half $$ Hw Hl
+    exact absurd Hv.1 (Qp_one_add_not_le _)
+  · iframe H Hw
+
 /-- **`s.revMu`'s resource while `store.Restore` restores** (D22 receiver epochs, S3, 2026-10-22):
 `Restore` sets `currentRev = 1` and `compactMainRev = -1` under `s.revMu` and releases it before the
 restored revision is known (`kvstore.go:302-307`), so the lock holds only its parts of the two
@@ -3240,7 +3835,7 @@ S5b): an eighth of the fraction of the store's current objects and names, at `p`
 `revMuBody` with the bucket's view and the index's count of `p`'s names. -/
 def revMuCur (s : Loc) (γ : StoreNames) (q : Qp) : IProp GF :=
   iprop(∃ (p : PhysNames) (o : StoreObjs), curAt (γ.withPhys p) (DFrac.own q.half.half.half) o ∗
-    revMuBody s γ (γ.withPhys p) q)
+    revMuBodyL s γ (γ.withPhys p) q)
 
 theorem curAt_withPhys_agree (γ : StoreNames) (p1 p2 : PhysNames) (dq1 dq2 : DFrac)
     (o1 o2 : StoreObjs) :
@@ -3257,7 +3852,7 @@ instance revMuCur_fractional (s : Loc) (γ : StoreNames) : Fractional (revMuCur 
     constructor
     · iintro ⟨%p, %o, Hc, H⟩
       icases (curAt_fractional (GF := GF) (γ.withPhys p) o).fractional _ _ |>.1 $$ Hc with ⟨Hc1, Hc2⟩
-      icases (revMuBody_fractional (GF := GF) s γ (γ.withPhys p)).fractional q1 q2 |>.1 $$ H
+      icases (revMuBodyL_fractional (GF := GF) s γ (γ.withPhys p)).fractional q1 q2 |>.1 $$ H
         with ⟨H1, H2⟩
       isplitl [Hc1 H1]
       · iexists p, o; iframe Hc1 H1
@@ -3269,7 +3864,7 @@ instance revMuCur_fractional (s : Loc) (γ : StoreNames) : Fractional (revMuCur 
       iexists p1, o1
       isplitl [Hc1 Hc2]
       · iapply (curAt_fractional (GF := GF) (γ.withPhys p1) o1).fractional _ _ |>.2; iframe Hc1 Hc2
-      iapply (revMuBody_fractional (GF := GF) s γ (γ.withPhys p1)).fractional q1 q2 |>.2
+      iapply (revMuBodyL_fractional (GF := GF) s γ (γ.withPhys p1)).fractional q1 q2 |>.2
       iframe H1 H2
 
 /-- **`s.revMu`'s resource** at fraction `q` (D22 receiver epochs, S3, 2026-10-22): half its
@@ -3325,7 +3920,7 @@ def revMuTok (γ γp : StoreNames) (q : Qp) : IProp GF :=
 or a watchable store's share of the fields) finds the lock's body, at some physical names. -/
 theorem revMuInv_open (s : Loc) (γ : StoreNames) (q : Qp) (dq : DFrac) :
     revMuInv (GF := GF) s γ q ∗ dghostVar γ.rst dq false ⊢
-      (∃ γp : StoreNames, revMuBody s γ γp q ∗ revMuTok γ γp q) ∗ dghostVar γ.rst dq false := by
+      (∃ γp : StoreNames, revMuBodyL s γ γp q ∗ revMuTok γ γp q) ∗ dghostVar γ.rst dq false := by
   unfold revMuInv
   iintro ⟨⟨%m, Hf, H⟩, Hr⟩
   icombine Hf Hr gives %Hm
@@ -3347,7 +3942,7 @@ current objects and names at `γ.withPhys p`'s, the lock's body is at them. -/
 theorem revMuInv_open_pin (s : Loc) (γ : StoreNames) (p : PhysNames) (q : Qp) (dq dq' : DFrac)
     (o : StoreObjs) :
     revMuInv (GF := GF) s γ q ∗ dghostVar γ.rst dq false ∗ curAt (γ.withPhys p) dq' o ⊢
-      revMuBody s γ (γ.withPhys p) q ∗ revMuTok γ (γ.withPhys p) q ∗ dghostVar γ.rst dq false ∗
+      revMuBodyL s γ (γ.withPhys p) q ∗ revMuTok γ (γ.withPhys p) q ∗ dghostVar γ.rst dq false ∗
         curAt (γ.withPhys p) dq' o := by
   unfold revMuInv
   iintro ⟨⟨%m, Hf, H⟩, Hr, Hpin⟩
@@ -3369,11 +3964,12 @@ theorem revMuInv_open_pin (s : Loc) (γ : StoreNames) (p : PhysNames) (q : Qp) (
 /-- `revMuInv_open_pin` at the current names `γ` themselves (the writer's, a compaction's). -/
 theorem revMuInv_open_cur (s : Loc) (γ : StoreNames) (q : Qp) (dq dq' : DFrac) (o : StoreObjs) :
     revMuInv (GF := GF) s γ q ∗ dghostVar γ.rst dq false ∗ curAt γ dq' o ⊢
-      revMuBody s γ γ q ∗ revMuTok γ γ q ∗ dghostVar γ.rst dq false ∗ curAt γ dq' o :=
+      revMuBodyL s γ γ q ∗ revMuTok γ γ q ∗ dghostVar γ.rst dq false ∗ curAt γ dq' o :=
   revMuInv_open_pin s γ γ.phys q dq dq' o
 
-theorem revMuInv_close (s : Loc) (γ γp : StoreNames) (q : Qp) :
-    revMuBody (GF := GF) s γ γp q ∗ revMuTok γ γp q ⊢ revMuInv s γ q := by
+/-- `s.revMu`'s resource closed, with a lag (M2's item 15: `restore()`'s, `updateCompactRev`'s). -/
+theorem revMuInv_closeL (s : Loc) (γ γp : StoreNames) (q : Qp) :
+    revMuBodyL (GF := GF) s γ γp q ∗ revMuTok γ γp q ⊢ revMuInv s γ q := by
   unfold revMuInv revMuTok
   iintro ⟨H, Hf, ⟨%o, Hc⟩, %Hp⟩
   iexists false
@@ -3384,9 +3980,22 @@ theorem revMuInv_close (s : Loc) (γ γp : StoreNames) (q : Qp) :
   rw [← Hp]
   iframe H Hc
 
+theorem revMuInv_close (s : Loc) (γ γp : StoreNames) (q : Qp) :
+    revMuBody (GF := GF) s γ γp q ∗ revMuTok γ γp q ⊢ revMuInv s γ q := by
+  iintro ⟨H, Ht⟩
+  iapply revMuInv_closeL s γ γp q
+  iframe Ht
+  iapply revMuBodyL_of s γ γp q $$ H
+
 /-- The initial log's bucket is empty. -/
 theorem bucketMap_init : bucketMap [[], []] = (∅ : Bucket) := by
   simp [bucketMap, bucketOf, bucketOfRev]; rfl
+
+/-- The empty view is of the initial log. -/
+theorem bucketViewL_init (γ : StoreNames) (q : Qp) :
+    bucketView (GF := GF) γ q ∅ ⊢ bucketViewL γ q [[], []] := by
+  rw [← bucketMap_init]
+  exact bucketViewL_exact γ q _
 
 /-- **The four fields `store.Restore` writes, at the objects `o`**, at the fraction `dq`
 (D22 receiver epochs, S3: until then `↦□` in `isStore`). -/
@@ -3472,7 +4081,7 @@ restored backend is registered only at its first writer's lock.) -/
 def physOk (s : Loc) (γ : StoreNames) (o : StoreObjs) : IProp GF :=
   iprop(∃ (Ph Dep : IProp GF),
     "#Hhook" ∷ hookP γ Ph ∗
-    "#Hbk" ∷ isKeyBackendG o.b (bucketView γ) (storeRT γ) (storeWT γ) (kbNoCmp γ.kb γ.bucket)
+    "#Hbk" ∷ isKeyBackendG o.b (bucketView γ) (storeRT γ) (storeWT γ) iprop(False)
       (storePutOk γ) (delKey γ)
       (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) Ph (hookFn γ) (storeReq γ) (storeRb γ) (storeBt γ)
       (kbSR γ.kb) (kbSRh γ.kb) (kbMW γ.kb γ.bucket) (kbHookNil γ.kb) ∗
@@ -3723,6 +4332,33 @@ def muInvAt (s : Loc) (γ : StoreNames) (q : Qp) (c : Int) : IProp GF :=
     "#HpM" ∷ crevPermAt γ c ∗
     "%HcM" ∷ ⌜-1 ≤ c⌝)
 
+/-- **`s.mu`'s resource held exclusively, with the compaction revision's physical lag** (M2's item
+15, the lag state, 2026-11-02): `muInvAt s γ 1 c` (`muInvLag_at`) but for `compactMainRev`, at `cp`,
+at most `c`: `restore()`'s, from its restore of the finished record to its resumed compaction
+(`revLag`). -/
+def muInvLag (s : Loc) (γ : StoreNames) (c cp : Int) : IProp GF :=
+  iprop("HcmpM" ∷ (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half} (W64 cp : w64) :
+      IProp GF) ∗
+    "HcrevM" ∷ crevUB γ.idx (1 : Qp).half.half c ∗
+    "#HclM" ∷ crevSafe γ c ∗
+    "#HpM" ∷ crevPermAt γ c ∗
+    "%HcM" ∷ ⌜-1 ≤ cp ∧ cp ≤ c⌝)
+
+/-- **The lag's token** (M2's item 15): what `s.revMu`'s resource holds of the watchable store's
+deposit ghost while the compaction revision's physical value `cp` lags `c` (`revLag`), which
+`updateCompactRev` gives back when it ends the lag. -/
+def lagTok (γ : StoreNames) (c cp : Int) : IProp GF :=
+  iprop(if cp = c then iprop(True) else ghostVar γ.wsd (1 : Qp).half.half ())
+
+theorem muInvLag_at (s : Loc) (γ : StoreNames) (c : Int) :
+    muInvLag (GF := GF) s γ c c ⊣⊢ muInvAt s γ 1 c := by
+  unfold muInvLag muInvAt
+  constructor
+  · iintro ⟨H1, H2, #H3, #H4, %H5⟩
+    iframe H1 H2 H3 H4; ipureintro; exact H5.1
+  · iintro ⟨H1, H2, #H3, #H4, %H5⟩
+    iframe H1 H2 H3 H4; ipureintro; exact ⟨H5, Int.le_refl c⟩
+
 /-- `s.mu`'s resource at fraction `q`: at some compaction revision, and the writer's deposit
 ghost at the fraction (D22 receiver epochs, S2: a holder of `s.mu` exclusively has all of it, so
 no writer has the writer's state out, `writerInv`). -/
@@ -3919,9 +4555,14 @@ theorem revMuInv_open_held (s : Loc) (γ : StoreNames) (q : Qp) (c : Int) (ti : 
   iNamed Hf
   icases revMuInv_open_cur s γ q _ _ o $$ [H Hfrst Hcur] with ⟨H, Htk, Hfrst, Hcur⟩
   · iframe H Hfrst Hcur
+  iunfold muInvAt at Ha
+  iNamed Ha
+  icases revMuBodyL_mu s γ γ q _ _ c HcM $$ [$H $HcmpM $HcrevM] with ⟨H, HcmpM, HcrevM⟩
   iframe H Htk
   iunfold muHeld
-  iframe Hl Ha
+  iframe Hl
+  isplitl [HcmpM HcrevM]
+  · iunfold muInvAt; iframe HcmpM HcrevM; iframe #; ipureintro; exact HcM
   iexists o
   isplitl []
   · ipureintro; exact Ho
@@ -4258,7 +4899,7 @@ reader token back), and the transaction's part of `s.mu`'s deposit ghost (given 
 with its part of `s.mu`'s resource; D22 receiver epochs, S2). -/
 def txReader (γ : StoreNames) (rt : GoInterfaceOk) (log : Log) : IProp GF :=
   iprop(∃ (m m' : Bucket) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF),
-    "#Hsnap" ∷ keyReadLocked (storeRT γ) (kbNoCmp γ.kb γ.bucket) false rt m' Rd Tok ∗
+    "#Hsnap" ∷ keyReadLocked (storeRT γ) iprop(False) false rt m' Rd Tok ∗
     "#Hthin" ∷ snapThin m m' (delKey γ) ∗
     "Htok" ∷ Tok ∗
     "Hwr" ∷ wDep γ ∗
@@ -4651,7 +5292,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
     "Hclog" ∷ ghostVar γ.clog (1 : Qp).half ilog ∗
     "Hcur" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half}
       (W64 ((ilog.length : Int) - 1) : w64) : IProp GF) ∗
-    "Hbv" ∷ bucketView γ (1 : Qp).half (bucketMap ilog) ∗
+    "Hbv" ∷ bucketViewL γ (1 : Qp).half ilog ∗
     "Hwv" ∷ ghostVar γ.wv 1 ilog ∗
     "Htko" ∷ ownToks γ.tko 1 ∗
     "#Hcert" ∷ idxCert γ.idx ilog ∗
@@ -4697,7 +5338,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
     "Hclog" ∷ ghostVar γ.clog (1 : Qp).half ilog ∗
     "Hcur" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half}
       (W64 ((ilog.length : Int) - 1) : w64) : IProp GF) ∗
-    "Hbv" ∷ bucketView γ (1 : Qp).half (bucketMap ilog) ∗
+    "Hbv" ∷ bucketViewL γ (1 : Qp).half ilog ∗
     "Hwv" ∷ ghostVar γ.wv 1 ilog ∗
     "Htko" ∷ ownToks γ.tko 1 ∗
     "#Hcert" ∷ idxCert γ.idx ilog ∗
@@ -5387,14 +6028,10 @@ theorem hookP_agree_lc (E : CoPset) (γ : StoreNames) (P P' : IProp GF) (f : val
 
 /-- The batch lock's resource and the registration (done or pending) give the writer's resource,
 the store registered (S6). -/
-theorem writerReg_get (s : Loc) (γ : StoreNames) :
-    storeW (GF := GF) s γ ∗ writerReg s γ ==∗ writerRes s γ ∗ storeRegd s γ := by
-  iintro ⟨HW, Hrg⟩
-  iunfold writerReg at Hrg
-  icases Hrg with (#Hreg | ⟨Hrr, HWr⟩)
-  · ihave HWr := storeW_get s γ $$ [$Hreg $HW]
-    imodintro; iframe HWr Hreg
-  · iapply storeW_pending s γ $$ [$HW $Hrr $HWr]
+theorem writerReg_get (s : Loc) (γ : StoreNames) (E : CoPset) (h : ↑regN ⊆ E) :
+    storeW (GF := GF) s γ ∗ writerReg s γ ={E}=∗ writerRes s γ ∗ storeRegd s γ := by
+  iintro ⟨HW, #Hrg⟩
+  iapply storeW_open s γ E h $$ Hrg HW
 
 /-- **A writer checks the writer's state out** (one later credit), with the batch lock's resource
 (`storeW`, from its `LockInsideApply`) and its part of `s.mu`'s deposit ghost, at its pin (S5b: the
@@ -5405,7 +6042,7 @@ which it deposits with its part of the deposit ghost. -/
 theorem writerInv_checkout (s : Loc) (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ curAt γ dq o -∗ storeW s γ -∗ wDep γ ={⊤}=∗
       writerL s γ ∗ storeRegd s γ ∗
-      (∃ L : Log, ghostVar γ.wv (1 : Qp).half L ∗ bucketView γ (1 : Qp).half.half (bucketMap L) ∗
+      (∃ L : Log, ghostVar γ.wv (1 : Qp).half L ∗ bucketViewL γ (1 : Qp).half.half L ∗
         idxCert γ.idx L ∗ ⌜L ≠ []⌝ ∗ compactRes γ) ∗ curAt γ dq o := by
   iintro Hlc #Hi Hpin HW Hd
   iunfold writerInv at Hi
@@ -5423,7 +6060,7 @@ theorem writerInv_checkout (s : Loc) (γ : StoreNames) (dq : DFrac) (o : StoreOb
   obtain ⟨rfl, rfl⟩ := Hv
   rw [StoreNames.withPhys_self]
   icases HP with (⟨HL, Hrg⟩ | ⟨Hk', -, #Hreg'⟩)
-  · imod writerReg_get s γ $$ [$HW $Hrg] with ⟨HWr, #Hreg⟩
+  · imod writerReg_get s γ _ (by solve_ndisj) $$ [$HW $Hrg] with ⟨HWr, #Hreg⟩
     iunfold writerRes at HWr
     icases HWr with ⟨%L, Hwk, Hwv, Hbv, #Hcert, %Hne, Hcres⟩
     imod Hclose $$ [Hc Hwk Hd] with -
@@ -5478,10 +6115,10 @@ theorem writerInv_checkin (s : Loc) (γ : StoreNames) (L : Log) (dq : DFrac) (o 
     · iframe Hwv1 Hwv2
     ihave %Hv3 := ghostVar_valid_2 γ.wv l1 1 L (1 : Qp).half $$ Hwv12 Hv
     exact absurd Hv3.1 (Qp_one_add_not_le _)
-  · imod Hclose $$ [Hc HL] with -
+  · imod writerReg_alloc s γ _ $$ Hreg with #Hrg
+    imod Hclose $$ [Hc HL] with -
     · inext; iunfold writerInvBody; ileft; iexists γ.phys, o'; rw [StoreNames.withPhys_self]
-      iframe Hc; ileft; iframe HL
-      iunfold writerReg; ileft; iexact Hreg
+      iframe Hc; ileft; iframe HL Hrg
     imodintro; iframe Hk Hd Hv Hpin
 
 /-- **A transaction checks a slot out of the readers' pool** (one later credit), with an idle
@@ -5853,17 +6490,18 @@ of the fields at `γ.withPhys p`'s names (the watchable store's, a reader's) fin
 them, the logical parts of `γ`. -/
 theorem revMuInv_open_share (s : Loc) (γ : StoreNames) (p : PhysNames) (q q' : Qp)
     (o : StoreObjs) :
-    revMuInv (GF := GF) s γ q ∗ fieldShareAt s (γ.withPhys p) q' o ⊢
+    revMuInv (GF := GF) s γ q ∗ fieldShareAt s (γ.withPhys p) q' o ∗ ghostVar γ.wsd 1 () ⊢
       revMuBody s γ (γ.withPhys p) q ∗ revMuTok γ (γ.withPhys p) q ∗
-        fieldShareAt s (γ.withPhys p) q' o := by
-  iintro ⟨H, Hf⟩
+        fieldShareAt s (γ.withPhys p) q' o ∗ ghostVar γ.wsd 1 () := by
+  iintro ⟨H, Hf, Hw⟩
   iunfold fieldShareAt at Hf
   iNamed Hf
   ihave Hfrst : dghostVar (GF := GF) γ.rst (DFrac.own q'.half) false $$ [Hfrst]
   · withPhys_simp; iexact Hfrst
   icases revMuInv_open_pin s γ p q _ _ o $$ [H Hfrst Hcur] with ⟨H, Htk, Hfrst, Hcur⟩
   · iframe H Hfrst Hcur
-  iframe H Htk
+  icases revMuBodyL_wsd s γ (γ.withPhys p) q $$ [$H $Hw] with ⟨H, Hw⟩
+  iframe H Htk Hw
   iunfold fieldShareAt
   simp only [named]
   withPhys_simp
@@ -5938,6 +6576,20 @@ theorem mwSwap_frame (K W MW : IProp GF) :
   imodintro
   iapply Hb $$ Hk
 
+/-- `mwSwap_frame` with the frame's two directions updates (the registration, `storeW_open`). -/
+theorem mwSwap_frameU (K W MW : IProp GF) :
+    □ (W ={⊤}=∗ K ∗ (K ={⊤}=∗ W)) ∗ mwSwap (GF := GF) K MW ⊢ mwSwap W MW := by
+  unfold mwSwap
+  iintro ⟨#Hf, #Hs⟩ !> ⟨HW, Hlc⟩
+  imod Hf $$ HW with ⟨Hk, Hb⟩
+  imod Hs $$ [Hk Hlc] with ⟨Hm, Hr⟩
+  · iframe Hk Hlc
+  imodintro
+  iframe Hm
+  iintro Hm
+  imod Hr $$ Hm with Hk
+  iapply Hb $$ Hk
+
 /-- A compacting store's batch lock's resource holds the key. -/
 theorem writerRes_key (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) :
     writerRes (GF := GF) s γ ⊢ mwKey γ.mwk ∗ (mwKey γ.mwk -∗ writerRes s γ) := by
@@ -5980,14 +6632,16 @@ theorem mwSwap_of_physOk (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) :
   unfold physCmp
   rw [if_pos h]
   iintro ⟨#Hi, #Hr⟩
-  iapply mwSwap_frame (writerRes s γ)
+  iapply mwSwap_frameU (writerRes s γ)
   isplitr
   · iintro !> HW
-    ihave HW := storeW_get s γ $$ [$Hr $HW]
+    imod storeW_open s γ ⊤ (by solve_ndisj) $$ Hr HW with ⟨HW, #Hreg⟩
+    imodintro
     iframe HW
     iintro HW
+    imodintro
     iapply storeW_put s γ
-    iframe Hr HW
+    iframe Hreg HW
   iapply mwSwap_writerRes s γ h $$ Hi
 
 /-- A compacting store's slot is the key. -/

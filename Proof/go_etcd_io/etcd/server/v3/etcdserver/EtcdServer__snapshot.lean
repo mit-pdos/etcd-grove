@@ -215,7 +215,7 @@ theorem EtcdServer.snapshot.wp_proof
     iapply wp_go_step_receipt'
     case hv => first | rfl | simp [val.isPanic] | decide | exact isPanic_intoVal _
     inext
-    iintro Hr -
+    iintro Hr Hlc
     iapply wp_value'
     wp_apply hStr as %f0 -
     (try wp_auto)
@@ -240,7 +240,7 @@ theorem EtcdServer.snapshot.wp_proof
     wp_apply hKV s kv $$ []
     · iframe #
     -- (S6) `Commit()`: the writer's tokens lent by the row, a write token from the budget
-    imod srvApplyKVCore_commit s E γw x ua γp $$ Hwp Hr HKV with ⟨Hwf, Hwo, Hwt, HKVc⟩
+    imod srvApplyKVCore_commit s E γw x ua γp $$ Hwp Hr Hlc HKV with ⟨Hwf, Hwo, Hwt, HKVc⟩
     ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
     · iPkgInit
     ihave Hkc := srvKVCommitOk_of_kv hC kv E.s E.γ iprop(True) iprop(True) iprop(True)

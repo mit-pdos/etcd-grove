@@ -80,7 +80,6 @@ theorem StartPeriodicServer.wp_proof
       (by simp only [↓reduceIte]; exact Or.inr ⟨trivial, Hper, Hcret⟩) Hck Haf Hbuq
       Hdbo) $$ [Htok Hmb] as %s %err Hres
   · iframe; iframe #
-    iExactEq Hboot; simp
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
   · -- `newServer` failed: the error returned, with the thread token
     cases err with

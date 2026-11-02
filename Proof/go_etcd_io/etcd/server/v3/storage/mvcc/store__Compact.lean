@@ -70,8 +70,8 @@ theorem mvcc.store.Compact.wp_of_le
   icases mvcc.compactRightR_crev s γ c $$ Hright with ⟨Hcr, Hrclose⟩
   ihave %Hcc := mvcc.crevUB_agree γ.idx _ _ c' c HcM hc $$ HcrevM Hcr
   subst Hcc
-  ihave Hmu1 : mvcc.muInvAt s γ 1 c' $$ [HcmpM HcrevM]
-  · iunfold mvcc.muInvAt; iframe HcmpM HcrevM; iframe #; ipureintro; exact HcM
+  ihave Hmu1 : mvcc.muInvLag s γ c' c' $$ [HcmpM HcrevM]
+  · iunfold mvcc.muInvLag; iframe HcmpM HcrevM; iframe #; ipureintro; exact ⟨HcM, Int.le_refl c'⟩
   ihave Hright := Hrclose $$ Hcr
   -- `s.b`, read through the right's closer's eighth (M2, the storage side, item 17)
   icases mvcc.compactRightR_take s γ c' $$ Hright with ⟨%o, Hfs, Hq, Hrclose⟩
@@ -79,7 +79,7 @@ theorem mvcc.store.Compact.wp_of_le
   · iframe #
   ihave Hright := Hrclose $$ Hfs Hq
   (try wp_auto)
-  wp_apply (h1 s γ rev c' P (some f) Pre Q Post log hcmp) $$ [$Hmu1 $Hright $HRTok Hcs HhookW] as %ch %prev %err ⟨HRTok, HhookW, Hres⟩
+  wp_apply (h1 s γ rev c' c' P (some f) Pre Q Post log hcmp (fun h => absurd h (Int.lt_irrefl c'))) $$ [$Hmu1 $Hright $HRTok Hcs HhookW] as %ch %prev %err ⟨HRTok, HhookW, Hres⟩
   · rw [mvcc.lockCtxM_some]
     iframe #; iframe Hcs HhookW; ipureintro; exact HrevC
   rw [mvcc.lockBackM_some]
@@ -87,7 +87,7 @@ theorem mvcc.store.Compact.wp_of_le
   wp_apply (h2 trace te _ slice.nil) $$ [Htrc] as Htrc
   · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
   (try wp_auto)
-  icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt⟩, Hmu, Hright, HPost, #Hjob⟩ |
+  icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt, %Hle0⟩, Hmu, Hright, HPost, #Hjob, -⟩ |
     ⟨⟨%Hle, %Hprev⟩, ⟨%ec, #Hec, %Herr⟩, Hmu, Hright, HPre, #Hch⟩)
   · subst Herr
     (try wp_auto)

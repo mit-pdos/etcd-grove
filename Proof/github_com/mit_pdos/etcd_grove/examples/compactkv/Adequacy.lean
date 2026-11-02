@@ -29,7 +29,7 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
   `apply.backendUnderQuota`, `grpcRepliesFit` (the replies' encoded size, `grpc.start`'s, 2026-10-31),
   `storage.diskOk` (D22 S-j2), `namesUnclaimed`/`addrsUnclaimed` (D19d),
   and the execution's length (`n + 2 ≤ 2 ^ 28`: the thread bound and, with `N = n + 1`, the
-  time-receipt bounds; it also gives `n + n + 7 ≤ backend.wbInit`, the backend's write-back budget
+  time-receipt bounds; it also gives `n + 7 ≤ backend.wbInit`, the backend's write-back budget
   `bootstrap`'s contract takes, since 2026-11-01 derived instead of assumed);
 * the semantics: `go.Semantics`, the package assumptions (`compactkv`'s, the cache's), and the
   model classes the proofs take (`Float64ToInt64Semantics`, `DialWithBalancerBody`,
@@ -143,7 +143,7 @@ theorem compactkv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  have Hwb : n + n + 7 ≤ backend.wbInit := by unfold backend.wbInit; omega
+  have Hwb : n + 7 ≤ backend.wbInit := by unfold backend.wbInit; omega
   refine etcd_adequate (GF := compactkvGF) github_com.mit_pdos.etcd_grove.examples.compactkv.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.compactkv.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23794"] (by decide) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs

@@ -46,7 +46,6 @@ theorem newServer.wp_proof
       hboot hblen Hγn1 Hγn2 Hdirok Hdir HU HU8 Hlg (by simpa using Hret) Hck Haf Hbuq Hdbo)
     $$ [Htok Hmb] as %s %err Hres
   · iframe; iframe #
-    iExactEq Hboot; simp
   (try wp_auto)
   iapply HΦ
   iexact Hres
@@ -66,7 +65,6 @@ theorem newServer.wp_proofCompact
       hboot hblen Hγn1 Hγn2 Hdirok Hdir HU HU8 Hlg (by simp only [↓reduceIte]; exact Or.inl ⟨trivial, Hret, Hcret⟩) Hck Haf Hbuq Hdbo)
     $$ [Htok Hmb] as %s %err Hres
   · iframe; iframe #
-    iExactEq Hboot; simp
   (try wp_auto)
   iapply HΦ
   iexact Hres
