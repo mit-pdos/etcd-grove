@@ -35,10 +35,12 @@ and its KV certificates' invariant, `kvCertInv`, takes the authority). (M2, the 
 revision's authority beside the closer in compaction mode (`crevRightM γ.st`: the caller makes
 the compaction right of it only after its last error return, Go's deferred `kv.Close()`, or
 freezes the store and watches, `noCompactor_of_new`), the logical mode the instance's, and no
-write-back supply. -/
+write-back supply. (C3's store law, 2026-11-02) The store's compaction permit is the caller's
+`Perm` (`crevPermIs`). -/
 abbrev mvcc.New.spec : Prop :=
   ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
-    (P : IProp GF) (f : val) (rd0 : GoFunc) (γi : mvcc.IdxNames) (γok γtag : GName),
+    (P : IProp GF) (f : val) (rd0 : GoFunc) (γi : mvcc.IdxNames) (γok γtag : GName)
+    (Perm : Int → IProp GF),
   mvcc.batchLimitOk cfg.CompactionBatchLimit' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
@@ -58,7 +60,7 @@ abbrev mvcc.New.spec : Prop :=
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - mvcc.nJobRd kb - 2) (),
           mvcc.watchReader s st γ) ∗
         mvcc.wsCloser s st γ.st ∗ mvcc.crevRightM γ.st ∗
-        mvcc.writerFrag γ.st ∗ mvcc.retiredAt γ.st (mvcc.nJobRd kb) }}
+        mvcc.writerFrag γ.st ∗ mvcc.retiredAt γ.st (mvcc.nJobRd kb) ∗ mvcc.crevPermIs γ.st Perm }}
 
 end spec
 

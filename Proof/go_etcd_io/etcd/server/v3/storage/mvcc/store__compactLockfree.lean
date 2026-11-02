@@ -35,7 +35,7 @@ theorem mvcc.store.compactLockfree.wp_proof
     (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG)) :
     mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) := by
   intro s γ rev c P hk Pre Q Post log hcmp
-  wp_start as ⟨#Hs, Hmu, Hright, #HcertC, %HrevC, Hctx, HRTok, #HsupM⟩
+  wp_start as ⟨#Hs, Hmu, Hright, #HpermR, #HcertC, %HrevC, Hctx, HRTok, #HsupM⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   (try wp_auto)

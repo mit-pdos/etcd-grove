@@ -214,7 +214,7 @@ theorem kvOver_Read (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
       (App (App (Val #(methods ty go!"Read" v)) (Val #mode)) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
         ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.isTxnRead mw s γ trace log rev crev Z ∗
-          ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗ mvcc.certOk γ log ∗
+          ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗ mvcc.crevPermAt γ crev ∗ mvcc.certOk γ log ∗
           ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ c ≤ crev⌝ ∗ mvcc.logLent γ.idx oa ∗
           ⌜∀ q L, oa = some (q, L) → log = L⌝ }} := by
   iintro %Φ ⟨#Hpkg, #Hk, #Hs, Hrd, #HZ, Hm, #Hc0, #Hlb, %Ht, Htrc, Hla⟩ HΦ

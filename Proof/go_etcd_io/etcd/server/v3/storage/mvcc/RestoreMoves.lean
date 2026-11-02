@@ -447,6 +447,7 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
       iexists ([[], []] ++ R), (2 ^ 63 - 3 - ([[], []] ++ R).length), (-1)
       simp only [named]
       iframe Hrev HclogB Hbv HtoksB HlogB Hcmp Hcrev
+      ihave #Hp0 := crevPermAt_none (GF := GF) γ
       iframe #
       isplitl []
       · iunfold idxNevLb; simp only [StoreNames.withPhys_idx_nev]; iexact Hnv

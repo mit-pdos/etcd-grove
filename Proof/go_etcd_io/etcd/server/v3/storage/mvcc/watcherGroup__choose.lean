@@ -33,7 +33,7 @@ theorem mvcc.watcherGroup.choose.wp_proof
     mvcc.watcherGroup.choose.spec (GF := GF) (hG := hG) := by
   have hAdd := mvcc.watcherGroup.add.spec_group hAdd
   intro γ ql wg W ST maxWatchers curRev compactRev
-  wp_start as ⟨Hg, HST, Hsp, %HdomSt, %HWsz⟩
+  wp_start as ⟨Hg, HST, #Hperm, Hsp, %HdomSt, %HWsz⟩
   obtain ⟨Hdom, Hst⟩ := HdomSt
   icases mvcc.ownWatcherGroup_fixed wg W $$ Hg with ⟨Hg, #Hfixed⟩
   icases mvcc.ownWatcherGroup_watchers wg W $$ Hg with ⟨%v, Hwg, Hws, Hback⟩
@@ -48,7 +48,7 @@ theorem mvcc.watcherGroup.choose.wp_proof
   wp_if_destruct
   · ihave Hg := Hback $$ Hwg [Hws]
     · iunfold mvcc.ownWatcherSet; iexact Hws
-    wp_apply (hAll γ ql wg W ST curRev compactRev) $$ [$Hg $HST $Hsp] as %m ⟨%Cm, %HCm, Hg, HST, Hsp, %Hm⟩
+    wp_apply (hAll γ ql wg W ST curRev compactRev) $$ [$Hg $HST $Hperm $Hsp] as %m ⟨%Cm, %HCm, Hg, HST, Hsp, %Hm⟩
     · ipureintro; exact ⟨Hdom, Hst⟩
     (try wp_auto)
     iapply HΦ
@@ -148,7 +148,7 @@ theorem mvcc.watcherGroup.choose.wp_proof
   iintro %bv ⟨%Hbv, Hws, %W', %mw, %wv, Hmw, Hw, Hret, %HW'⟩
   subst Hbv
   wp_auto
-  wp_apply (hAll γ ql ret_ptr W' ST curRev compactRev) $$ [$Hret $HST $Hsp] as %m ⟨%Cm, %HCm, Hret, HST, Hsp, %Hm⟩
+  wp_apply (hAll γ ql ret_ptr W' ST curRev compactRev) $$ [$Hret $HST $Hperm $Hsp] as %m ⟨%Cm, %HCm, Hret, HST, Hsp, %Hm⟩
   · ipureintro
     refine ⟨fun w hw => ?_, Hst⟩
     obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 hw

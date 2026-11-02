@@ -1,7 +1,8 @@
 # Plan: the spec-first pilot, etcd's auto-compactor
 
 Status: done (2026-10-27): Scope, Draft, Test, the freeze and Prove below; the server side as
-`notes/m2-plan.md`'s S1-S4. Left: C3 (M2's S5, deferred) and a closed result in periodic mode.
+`notes/m2-plan.md`'s S1-S4. C3's store law done (2026-11-02, `notes/decisions.md`, in place of
+M2's S5). Left: C3's server and client stages, and a closed result in periodic mode.
 Scope **(A)**, the compactor and the server's compaction path (the user, 2026-10-27).
 Step 3 of `notes/spec-first-plan.md` ("Testing the plan").
 

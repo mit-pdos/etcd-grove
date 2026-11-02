@@ -57,7 +57,7 @@ theorem mvcc.watchableStore.rev.wp_proof
   iNamedSuffix Hs' "S"
   imod mvcc.crevLb_neg γ.st.idx with #Hlbn
   wp_apply (hRead st γ.st _ t 0 [[], []] true (-1) iprop(True) oa) $$ [$Hs $Hrd $Hnone $Hc0S $Hlbn $Htrc $HoA]
-    as %mw ⟨%log, %rev, %crev, Htx, -, -, -, %Hpre0, HoA, %HoaL⟩
+    as %mw ⟨%log, %rev, %crev, Htx, -, -, -, -, %Hpre0, HoA, %HoaL⟩
   · isplitr
     · iintro !>; itrivial
     ipureintro; exact Ht
