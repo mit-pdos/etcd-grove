@@ -275,16 +275,21 @@ abbrev mvccTxn_trace.law : Prop :=
 /-- **The watchable store's write transaction `tw` is over a store's `mw`**: its embedded
 `TxnWrite` is `mw`, which serves its promoted `Put`, `DeleteRange`, `Range`, `Rev`, `FirstRev` and
 `Changes` (`mw`'s `End`, which would commit without notifying, needs `mvccWatchersOk`, which a
-watched store's client does not have); the client gets `tw`'s back from `mw`'s, at any view. -/
+watched store's client does not have); the client gets `tw`'s back from `mw`'s, at any write view
+(the wrapper is only ever a write transaction: 2026-11-02, the proof found the law false at a read
+view). -/
 abbrev mvccTxn_unwrap.law : Prop :=
-  ∀ tw γ trace k,
-    mvccTxn (GF := GF) (interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw) γ trace k ⊢
+  ∀ tw γ trace σ pend,
+    mvccTxn (GF := GF) (interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw) γ trace
+        (.write σ pend) ⊢
       ∃ mw : Loc,
         tw.[watchableStoreTxnWrite, go!"TxnWrite"] ↦□
           (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface) ∗
-        mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace k ∗
-        (∀ k', mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace k' -∗
-          mvccTxn (interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw) γ trace k')
+        mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace (.write σ pend) ∗
+        (∀ σ' pend', mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace
+            (.write σ' pend') -∗
+          mvccTxn (interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw) γ trace
+            (.write σ' pend'))
 
 /-- **The watchable store's store** (its embedded `*store`, which serves its promoted `Read`,
 `Rev`, `Compact`, `Commit` and `HashStorage`), and its mode. -/

@@ -97,6 +97,48 @@ theorem mvccTxn_write_agree_proof : mvccTxn_write_agree.law (GF := GF) := by
       false _ σ'.crev hcr $$ [$Htx $Hgc]
     ipureintro; exact hfin Hcc
 
+/-- The watchable store's write transaction is over a store's: its fields' persistent points-to,
+the store's transaction, and the wrapper back from it (the watchable store, persistent, over the
+transaction's store, which the names pin). -/
+theorem mvccTxn_unwrap_proof : mvccTxn_unwrap.law (GF := GF) := by
+  intro tw γ trace σ pend
+  iintro Ht
+  iunfold mvccTxn at Ht
+  iunfold mvccTxnI at Ht
+  icases Ht with ⟨%mw, %s, %puts, %deletes, %putSize, %Hpl, #Hmv, Htx, Hloan,
+    (%Ht | ⟨%tw', ⟨%Ht, %hw⟩, #Htw, #Hws⟩)⟩
+  · exfalso
+    simp [interface_mkOk_inj, metricsTxnWrite.ty, watchableStoreTxnWrite.ty] at Ht
+  simp only [interface_mkOk_inj, _root_.true_and] at Ht
+  have htw : tw' = tw := (GoGlobalContext.intoVal_inj_loc Ht).symm
+  subst htw
+  ihave %Hsl := isMvccI_loc s γ $$ Hmv
+  iexists mw
+  ihave #Htw1 := Htw
+  iStructNamed Htw1
+  iframe TxnWrite
+  isplitl [Htx Hloan]
+  · iapply (mvccTxn_write_eq mw γ trace σ pend).2
+    iexists s, puts, deletes, putSize
+    iframe Hmv Htx Hloan
+    ipureintro; exact Hpl
+  iintro %σ' %pend' Ht'
+  icases (mvccTxn_write_eq mw γ trace σ' pend').1 $$ Ht' with
+    ⟨%s', %puts', %deletes', %putSize', %Hpl', #Hmv', Htx', Hloan'⟩
+  ihave %Hsl' := isMvccI_loc s' γ $$ Hmv'
+  have hs : s' = s := Hsl'.symm.trans Hsl
+  subst hs
+  iunfold mvccTxn
+  iunfold mvccTxnI
+  iexists mw, s', puts', deletes', putSize'
+  iframe Hmv' Htx' Hloan'
+  isplitr
+  · ipureintro; exact Hpl'
+  iright
+  iexists tw'
+  iframe Htw Hws
+  ipureintro; exact ⟨rfl, hw⟩
+
 /-- The watchable store's store. -/
 theorem isWatchableMvcc_store_proof : isWatchableMvcc_store.law (GF := GF) := by
   intro ws γ
