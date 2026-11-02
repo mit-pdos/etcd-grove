@@ -5,6 +5,9 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart): `readView.
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Rev
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.KVView
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.KVView
@@ -96,6 +99,70 @@ theorem mvcc.store.Rev.wp_proof
   iframe HcertT Hrok
   ipureintro
   exact ⟨Hpin.1, Hpin.2.1, HneT, HrevT⟩
+
+/-- **`store.Read`'s candidate at a KV over the store** (`kvOver_read_wp`). -/
+theorem mvcc.kvOver_ReadC (hRead : mvcc.store.Read.specC (GF := GF) (hG := hG))
+    (ty : go.GoType) (v : val) (s : Loc) (γ : mvcc.MvccName) (mode : w32) (trace : Loc) (te : Bool)
+    (Q : mvcc.MvccState → IProp GF) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+        mvcc.kvOver (interface.mkOk ty v) s ∗
+        mvcc.isMvcc s γ ∗ threadTok ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te ∗
+        AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ }> @ ⊤ \ ↑mvcc.mvccN, ∅
+          <{ mvcc.mvccState γ σ, COMM Q σ }> }}
+      (App (App (Val #(methods ty go!"Read" v)) (Val #mode)) (Val #trace))
+    {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
+        ∃ σ : mvcc.MvccState, mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace (.read σ) ∗ Q σ }} := by
+  iintro %Φ ⟨#Hpkg, #Hk, Hrest⟩ HΦ
+  iapply mvcc.kvOver_read_wp ty v s mode trace
+  iframe Hk
+  iapply (hRead s γ mode trace te Q) $$ [Hrest] HΦ
+  iframe Hpkg Hrest
+
+/-- **The candidate `Rev`** (`specC`): the store's read view's (`readView.Rev`): a read transaction
+(`store.Read.specC`, at the caller's update: its log is the state's), its `Rev`, its `End`. On a
+store with watchers, the view is the watchable store's (`isMvccI`'s `isWatchableStore`); a store
+without watchers' views are not yet in `isMvccI`. -/
+theorem mvcc.store.Rev.wp_proofC
+    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
+    (hRead : mvcc.store.Read.specC (GF := GF) (hG := hG))
+    (hRev : mvcc.metricsTxnWrite.Rev.specC (GF := GF) (hG := hG))
+    (hEnd : mvcc.metricsTxnWrite.End.specC (GF := GF) (hG := hG)) :
+    mvcc.store.Rev.specC (GF := GF) (hG := hG) := by
+  intro s γ Q
+  wp_start as ⟨#Hmv, Htt, Hau⟩
+  ihave #Hs1 : mvcc.isMvccI s γ $$ []
+  · iunfold mvcc.isMvcc at Hmv; iexact Hmv
+  iunfold mvcc.isMvccI at Hs1
+  icases Hs1 with ⟨-, -, -, -, -, -, -, -, #Hwsi⟩
+  cases hw : γ.watched with
+  | false => sorry
+  | true =>
+  simp only [hw, ↓reduceIte] at *
+  iunfold mvcc.isWatchableStore at Hwsi
+  iNamed Hwsi
+  (try wp_auto)
+  wp_method_call; unfold readView.Rev.impl; wp_call
+  ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply wp_with_defer as %defer defer
+  (try wp_auto)
+  wp_apply hTODO as %t ⟨%Ht, Htrc⟩
+  (try wp_auto)
+  ihave #Hko : mvcc.kvOver (interface.mkOk (go.GoType.PointerType watchableStore.ty) #γ.wl) s $$ []
+  · iunfold mvcc.kvOver; iright; iexists γ.wl; iframe Hst; ipureintro; rfl
+  wp_apply (mvcc.kvOver_ReadC hRead _ _ s γ _ t true Q) $$ [$Hko $Hmv $Htt $Htrc $Hau] as %mw ⟨%σ, Htx, HQ⟩
+  · ipureintro; exact Ht
+  (try wp_auto)
+  wp_apply (hRev mw γ t (.read σ)) $$ [$Htx] as Htx
+  (try wp_auto)
+  wp_apply (hEnd mw γ t (.read σ) iprop(True) func.nil iprop(True)) $$ [$Htx] as ⟨Htt, -, -⟩
+  (try wp_auto)
+  iapply HΦ
+  iframe Htt
+  iexists σ
+  iframe HQ
+  ipureintro; rfl
 
 end proof
 

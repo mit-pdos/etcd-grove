@@ -162,7 +162,8 @@ def isMvccI (s : Loc) (γ : MvccImpl) : IProp GF :=
     (∃ o : StoreObjs, curAt γ.st DFrac.discard o) ∗
     threadPool.isThreadPool tixN γ.tl (poolR s γ) ∗ revPool γ.st ∗
     □ (⧗ 1 ={⊤}=∗ storeWT γ.st) ∗ wsFrozenM γ.st ∗
-    (if γ.watched then wtPool γ.ws else iprop(True)))
+    (if γ.watched then wtPool γ.ws else iprop(True)) ∗
+    (if γ.watched then isWatchableStore γ.wl s γ.ws else iprop(True)))
 
 instance isMvccI_persistent (s : Loc) (γ : MvccImpl) : Persistent (isMvccI (GF := GF) s γ) := by
   unfold isMvccI; infer_instance

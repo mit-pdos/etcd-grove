@@ -250,7 +250,9 @@ theorem mvcc.New.wp_proofC
     · iunfold mvcc.revPool; iexact Hrev
     isplitr
     · iexact Hwb
-    iunfold mvcc.wtPool; iexact Hwtp
+    isplitr
+    · iunfold mvcc.wtPool; iexact Hwtp
+    iexact Hws
   isplitl [Hab Hpn Hok Hwl]
   · iunfold mvcc.mvccState
     iunfold mvcc.mvccStateI
