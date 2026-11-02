@@ -615,7 +615,89 @@ theorem chains.lift.wp_proof
                 omega
             wp_if_destruct
             · -- the test holds: `nDeps[j]--`, and `addToFrontier(j)` at `0`
-              sorry
+              have hfu' : FUe h cs jn i (st2.head jn) = st2.head i := by rw [hk0n]; exact htest.mp rfl
+              have hjh : st2.head jn < (chain cs jn).length := by rw [hk0n, ← hcosjl]; exact hk0l
+              obtain ⟨hdec, hjnot⟩ := hlc2.hit_val Hinv hji hjl hjh hfu' (by omega)
+              icases chainsRepr_acc chV4 h cs stj jn hjl $$ Hr with ⟨-, %cvj2, Hej, Hcj, Hbackj⟩
+              icases clientOwn_facts h cs stj jn cvj2 $$ Hcj with ⟨%Hcj', Hcj⟩
+              repeat ((try simp only [hjz, hbj, hbj4, _root_.and_self, ↓reduceIte, Int.natCast_nonneg]); wp_auto)
+              obtain ⟨nd, hnd⟩ : ∃ nd, stj.nDeps.getD jn 0 = nd := ⟨_, rfl⟩
+              have hcvnd : cvj2.nDeps' = nd := by rw [Hcj'.2.2, hnd]
+              rw [hnd] at hdec
+              obtain ⟨stj', hstj'⟩ : ∃ stj' : ChSt, stj' = ChSt.mk stj.heads (stj.nDeps.set jn (nd - W64 1))
+                  stj.frontier stj.vis stj.fu := ⟨_, rfl⟩
+              have hjn' : jn < stj.nDeps.length := by rw [Hinv.2.2.2.1, Hci.1.2.1]; exact hjl
+              have hndj : cvj2.nDeps' - W64 1 = stj'.nDeps.getD jn 0 := by
+                rw [hstj', hcvnd]; simp [List.getD_eq_getElem?_getD, List.getElem?_set_self hjn']
+              ihave Hc := clientOwn_upd (st := stj) (st' := stj') h cs cvj2
+                ⟨cvj2.id', cvj2.cltOps', cvj2.head', cvj2.nDeps' - W64 1⟩ rfl rfl
+                (by rw [Hcj'.2.1]; unfold ChSt.head; rw [hstj']) hndj (by rw [hstj']) (by rw [hstj']) $$ Hcj
+              ihave Hej : (sliceIndexRef client (jn : Int) chV4.clients' ↦
+                  (⟨cvj2.id', cvj2.cltOps', cvj2.head', cvj2.nDeps' - W64 1⟩ : client) : IProp GF) $$ [Hej]
+              · iexact Hej
+              ihave Hr := Hbackj $$ %stj' %_ [] Hej Hc
+              · ipureintro
+                refine ⟨fun c' hc' => ⟨by unfold ChSt.head; rw [hstj'], ?_, by rw [hstj'], by rw [hstj']⟩,
+                  by rw [hstj']⟩
+                rw [hstj']; simp [List.getD_eq_getElem?_getD, List.getElem?_set_ne (Ne.symm hc')]
+              ihave Hch := chainsOwnCl_fold ch chV4 cl h cs stj' Hcl4 $$ [Hchp Hr]
+              · iframe
+              rw [hcvnd]
+              have hh' : stj'.heads = stj.heads := by rw [hstj']
+              have hv' : stj'.vis = stj.vis := by rw [hstj']
+              have hf' : stj'.fu = stj.fu := by rw [hstj']
+              have hn' : stj'.nDeps = stj.nDeps.set jn (stj.nDeps.getD jn 0 - W64 1) := by rw [hstj', hnd]
+              have hfrj : frOf cs stj' = frOf cs stj := by unfold frOf hdOp ChSt.head; rw [hstj']
+              wp_if_destruct
+              · -- `nDeps[j]` reached `0`: `addToFrontier(j)`
+                have hd0 : deps h cs st2.heads jn = 0 := by rw [Hif] at hdec; simp at hdec; omega
+                have hstjh : stj'.heads = st2.heads := by rw [hh', Hinv.1]
+                obtain ⟨hah, hamem⟩ := hlc2.add_pre hstjh hjl hjh hd0
+                  (by rw [show stj'.frontier = stj.frontier by rw [hstj']]; exact Hinv.members)
+                wp_apply wp_addToFrontier ch cl h cs stj' jv cons hok
+                  (hlc2.shape_of hstjh (by rw [hv', Hinv.2.1]) (by rw [hf', Hinv.2.2.1])
+                    (by rw [hn', List.length_set, Hinv.2.2.2.1])) (by omega) Hj1
+                  (by rw [hjn]; exact hjl) (by rw [hjn]; exact hah)
+                  (by rw [hjn, show stj'.frontier = stj.frontier by rw [hstj']]; exact hjnot)
+                  (by rw [hjn]; exact hamem) (by rw [hfrj]; exact Hinv.2.2.2.2.2.2.2.1)
+                  $$ [Hch] as ⟨%fr6, Hch, %Hfr6⟩
+                · iframe; iframe Hcons
+                rw [hjn] at Hfr6
+                wp_for_post
+                iframe
+                iexists jv + W64 1, _
+                iframe
+                ipureintro
+                refine ⟨hjv1.1, hjv1.2, ?_⟩
+                rw [hj1]
+                refine hlc2.inv_hit (stc' := ChSt.mk stj'.heads stj'.nDeps fr6 stj'.vis stj'.fu) Hinv hji hjl
+                  hjh hfu' (by omega) hh' hv' hf' hn' ?_ ?_
+                · have : frOf cs (ChSt.mk stj'.heads stj'.nDeps fr6 stj'.vis stj'.fu) =
+                      fr6.map (hdOp cs stj') := by unfold frOf hdOp ChSt.head; rfl
+                  rw [this]; exact Hfr6.1
+                · intro x
+                  show x ∈ fr6 ↔ _
+                  rw [Hfr6.2 x, show stj'.frontier = stj.frontier by rw [hstj'], hnd, Hif]
+                  constructor
+                  · rintro (rfl | hx); exact Or.inl ⟨rfl, rfl⟩; exact Or.inr hx
+                  · rintro (⟨rfl, -⟩ | hx); exact Or.inl rfl; exact Or.inr hx
+              · -- `nDeps[j]` still positive
+                wp_for_post
+                iframe
+                iexists jv + W64 1, stj'
+                iframe
+                ipureintro
+                refine ⟨hjv1.1, hjv1.2, ?_⟩
+                rw [hj1]
+                refine hlc2.inv_hit Hinv hji hjl hjh hfu' (by omega) hh' hv' hf' hn'
+                  (by rw [hfrj]; exact Hinv.2.2.2.2.2.2.2.1) ?_
+                intro x
+                rw [show stj'.frontier = stj.frontier by rw [hstj'], hnd]
+                constructor
+                · exact Or.inr
+                · rintro (⟨-, h0⟩ | hx)
+                  · exact absurd h0 Hif
+                  · exact hx
             · -- the test fails
               wp_for_post
               iframe
