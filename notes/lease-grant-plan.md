@@ -315,7 +315,7 @@ what changed.
 
 ## B1/B2 in place, with the tie: the work, in commits that each build (2026-11-02; next)
 
-**Where it stopped** (2026-11-02, second agent): commit 3a done (the `lg` parameters at `false`, COMMIT3A); commit 3b blocked on a decision (below, "The blocker"). Before that: commits 1 and 2 done (checks after 2: full build, `tcb-report.py --check` new only `srvGrantOpen_open` and `leasegrant.Main.wp_proof`, every collection `--reuse --check` unchanged, `gen-init.py --check`, `gen-interface.py --check` backend and raft unchanged) (`75676e772c`, `7a83c345aa`), each a full
+**Where it stopped** (2026-11-02, second agent): commit 3a done (the `lg` parameters at `false`, `e410475e10`); commit 3b blocked on a decision (below, "The blocker"). Before that: commits 1 and 2 done (checks after 2: full build, `tcb-report.py --check` new only `srvGrantOpen_open` and `leasegrant.Main.wp_proof`, every collection `--reuse --check` unchanged, `gen-init.py --check`, `gen-interface.py --check` backend and raft unchanged) (`75676e772c`, `7a83c345aa`), each a full
 build; commit 3 not started (below, what it needs, found by the survey of its consumers). Every
 commit: full build, `etc/tcb-report.py --check` (only `srvGrantOpen_open`, until commit 1
 `runSnapLgOk_open`, and `leasegrant.Main.wp_proof` new) and every collection `--reuse --check`
@@ -348,7 +348,7 @@ model's table steps on it (`kvTable`, L3a, done; `kvOpStep`'s grant checks `leas
 grant entry changes the clients' state `kvModelSt γk L` (its `leases`), and the KV invariant fires
 the grant's update at the commit.
 
-**Commit 3a (done, COMMIT3A):** the `lg` parameters, every site at `false` (meaning unchanged):
+**Commit 3a (done, `e410475e10`; checks: full build, `tcb-report.py --check` new only `srvGrantOpen_open` and `leasegrant.Main.wp_proof`, every collection `--reuse --check` unchanged, `gen-init.py --check`, `gen-interface.py --check` backend and raft unchanged):** the `lg` parameters, every site at `false` (meaning unchanged):
 
 - `plainEntryM (cmp lg : Bool)`, `plainLogM (cmp lg : Bool)` (`KVModelDefs.lean`): a third disjunct
   `grantPropOk lg rq` (new: `lg = true ∧ apply.grantKindOk rq`), the compaction form's pattern;
