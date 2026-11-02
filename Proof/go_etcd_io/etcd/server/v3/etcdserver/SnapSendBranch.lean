@@ -644,7 +644,7 @@ theorem mergedCreate_window
       iframe Hbpkg HB
       isplitr
       · iintro !> %vd ⟨Hkw, -, -⟩ HW Hv
-        iapply txn.kvWriter_keyObs E.s E.γ d hkb x.log vd $$ [Hkw HW Hv]
+        iapply txn.kvWriter_keyObs E.s E.γ d hkb x.log vd $$ [Hkw Hv]
         iframe
       · iintro !> %D ⟨Hkw, Hrt, Hret⟩ #Hfk
         ihave ⟨%h, Hkw⟩ := txn.kvWriter_noCmp E.s E.γ d hkb x.log (D, ⟨∅, W64 0⟩) $$ [Hkw Hfk]

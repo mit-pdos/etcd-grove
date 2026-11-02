@@ -95,7 +95,7 @@ theorem mvcc.NewStore.wp_proof
   have hRestore := mvcc.store.restore.specNC_of_spec hRestore
   intro _ lg b le cfg kb γb γl P f rd0 wq γi γok Perm Hcfg0
   have Hrb0 : receiptBound GF ≤ 2 ^ 48 := ReceiptBoundLe.le (GF := GF) _
-  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok⟩
+  wp_start as ⟨Hbk, Hbv, Hncmp, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok⟩
   have hnr : 1 ≤ mvcc.nReaders := Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos)
   have hjr : mvcc.nJobRd kb ≤ mvcc.nReaders := Nat.le_trans (mvcc.nJobRd_le kb) hnr
   -- package facts: the configuration defaults, the `Key` bucket, zap, schedule, schema
@@ -287,6 +287,8 @@ theorem mvcc.NewStore.wp_proof
   · iunfold mvcc.bucketView; rw [hγb, hγk]; iexact Hbv
   rw [← hγk]
   icases (mvcc.bucketView_halves γ 1 _).1 $$ Hbv with ⟨Hbv1, Hbv2⟩
+  -- the writer's half: `writerRes`'s quarter and the writer's pin's (M2's item 37)
+  icases (mvcc.bucketView_quarters γ _).1 $$ Hbv1 with ⟨Hbv1, HbvP⟩
   -- the compaction revision's authority: half the compaction right's, a quarter for each lock
   icases (mvcc.crevUB_split γ.idx (1 : Qp).half (1 : Qp).half (-1)).1 $$ [Hcu] with ⟨Hright, Hcu⟩
   · rw [Qp.half_add_half]; iexact Hcu
@@ -538,6 +540,22 @@ theorem mvcc.NewStore.wp_proof
   -- `restore` (lent), then a quarter each to the right to close and the watchable store's share
   -- (question 5's core stage, part (1)) the write right back from `restore`: its invariant, with the
   -- registration and the write-back supply, when the store compacts
+  -- the no-compaction token: a compacting store's write right (in `mwInv`), else the writer's loan
+  -- (M2's item 37)
+  ihave HpinW : mvcc.writerPin (GF := GF) γ [[], []] ∗
+      (if mvcc.kbCmpM γ.kb then mvcc.kbMW γ.kb γ.bucket else iprop(True)) $$ [HbvP Hmw]
+  · iunfold mvcc.writerPin; iunfold mvcc.writerLoan
+    rw [mvcc.bucketMap_init]
+    by_cases hcm : mvcc.kbCmpM γ.kb
+    · simp only [hcm, ↓reduceIte]
+      iframe HbvP
+      iapply mvcc.kbNoCmp_MW _ _ $$ Hmw
+    · simp only [hcm, ↓reduceIte]
+      iframe HbvP Hmw
+      rw [hγk] at hcm ⊢
+      iapply (show mvcc.kbNoDelOff (GF := GF) kb ⊢ mvcc.kbNoDel kb from by
+        unfold mvcc.kbNoDelOff; rw [if_neg hcm]) $$ Hnd
+  icases HpinW with ⟨HpinW, Hmw⟩
   imod mvcc.physCmp_alloc «$r0_ptr» γ $$ [$Hmrest $Hmw $Hregd] with #HmwP
   -- what the objects are (D22 receiver epochs, S5b: until then `isStore`'s)
   ihave #Hpay : mvcc.stopPayAt γ.sx γ.sch (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs) $$ []
@@ -597,7 +615,7 @@ theorem mvcc.NewStore.wp_proof
   iexists γ
   isplitr
   · ipureintro; refine ⟨hγb, hγl, rfl, hγw, ?_, ?_, ?_⟩ <;> first | rfl | assumption | simp [hγcm, hγk]
-  iframe Hs Hro Hok' Hhook Htoks Hcert HlogQ
+  iframe Hs Hro Hok' Hhook Htoks Hcert HlogQ HpinW
   isplitl [ReadView WriteView]
   · iexists rv, wv
     iunfold mvcc.isReadView

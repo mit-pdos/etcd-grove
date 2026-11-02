@@ -298,7 +298,7 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
         mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗
-        mvcc.crevPermIs γ Perm }} := by
+        mvcc.crevPermIs γ Perm ∗ mvcc.writerPin γ [[], []] }} := by
   iintro %Φ H HΦ
   iapply (mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
       backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
@@ -315,10 +315,10 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
       lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb Perm) $$ %Φ [H]
   · iexact H
   inext
-  iintro %s ⟨%γ, %Hγ, Hs, Hrd, Hcok, Hh, Hv, Hr, Ht, Hc, Hcl, Hfs, Hcr, -, #HcpIs⟩
+  iintro %s ⟨%γ, %Hγ, Hs, Hrd, Hcok, Hh, Hv, Hr, Ht, Hc, Hcl, Hfs, Hcr, -, #HcpIs, Hpin⟩
   iapply HΦ
   iexists γ
-  iframe Hs Hrd Hcok Hh Hv Hr Ht Hc Hcl Hfs Hcr HcpIs
+  iframe Hs Hrd Hcok Hh Hv Hr Ht Hc Hcl Hfs Hcr HcpIs Hpin
   ipureintro; exact Hγ
 
 /-- **`NewStore` over a compacting real backend, linked** (question 5's stage 6, the close):
@@ -373,7 +373,7 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
         mvcc.compactRightR s γ (-1) ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗
-        mvcc.retiredAt γ 1 ∗ mvcc.crevPermIs γ Perm }} := by
+        mvcc.retiredAt γ 1 ∗ mvcc.crevPermIs γ Perm ∗ mvcc.writerPin γ [[], []] }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfk, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm,
     Hrts, Hlrd, #Hle, Hro⟩ HΦ
   iapply wp_fupd
@@ -391,7 +391,8 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
         backend.backend.wp_UnlockForSafeRangeDelete backend.batchTxBuffered.wp_UnsafePut
         lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb Perm)
       $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro]
-    as %s ⟨%γ, %Hγ, #Hst, Hrd, Hcok, Hhk', Hviews, Hrds, Htoks, #Hc, Hcl, Hfs, Hright, Hret, #HcpIs⟩
+    as %s ⟨%γ, %Hγ, #Hst, Hrd, Hcok, Hhk', Hviews, Hrds, Htoks, #Hc, Hcl, Hfs, Hright, Hret, #HcpIs,
+      Hpin⟩
   · iframe #; iframe Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro
     iintro !> %_; itrivial
   have hj : mvcc.nJobRd (some d) = 1 := by unfold mvcc.nJobRd; simp [hcm]
@@ -405,7 +406,7 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
     refine ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2, ?_⟩
     show mvcc.kbCmpM γ.kb
     rw [Hγ.2.2.1]; exact hcm
-  iframe Hrd Hcok Hhk' Hviews Hrds Htoks Hcr Hfs Hret
+  iframe Hrd Hcok Hhk' Hviews Hrds Htoks Hcr Hfs Hret Hpin
   iframe #
 
 /-- **The store's backend contract of the real backend, linked** (`storeBackend_of_backend` with
@@ -437,10 +438,10 @@ theorem mvcc_storeBackend_of_backend (d : mvcc.KBReal) (hP : mvcc.bridgeParams d
 
 /-- **`store.Write` over the real backend, linked**. -/
 theorem mvcc_store_Write_backend (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal)
-    (hk : γ.kb = some d) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool) :
+    (hk : γ.kb = some d) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool) (log : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ backend.wbTok d.γB ∗
-        ⌜trace ≠ null⌝ ∗ mvcc.hookIs γ P f ∗ Pre ∗
+        ⌜trace ≠ null⌝ ∗ mvcc.hookIs γ P f ∗ mvcc.writerPin γ log ∗ Pre ∗
         □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗ traceutil.ownTrace trace te }}
       (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.store.ty @!!
         go!"Write")) (Val #trace))
@@ -448,7 +449,7 @@ theorem mvcc_store_Write_backend (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBRe
           go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty) #mw);
         (∃ (ilog : mvcc.Log) (crev : Int),
           mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev) ∗ Q }} :=
-  mvcc.store_Write_backend mvcc.store.wp_Write s γ d hk trace P Pre Q f te
+  mvcc.store_Write_backend mvcc.store.wp_Write s γ d hk trace P Pre Q f te log
 
 end store
 

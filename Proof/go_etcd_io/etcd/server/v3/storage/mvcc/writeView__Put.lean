@@ -36,8 +36,8 @@ theorem mvcc.writeView.Put.wp_proof
     mvcc.writeView.Put.spec (GF := GF) (hG := hG) := by
   have hWrite := mvcc.store.Write.spec_R hWrite
   have hEnd := mvcc.metricsTxnWrite.End.spec_R hEnd
-  intro wv s γ P Pre Q Post f key value k v leaseID L I
-  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, Hhook, Hcs, #Hfree, #Hkey, #Hval, %Hklen, Hown, #HI, %Hlease, %Hwq⟩
+  intro wv s γ P Pre Q Post f key value k v leaseID L I log
+  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, Hhook, Hpin, Hcs, #Hfree, #Hkey, #Hval, %Hklen, Hown, #HI, %Hlease, %Hwq⟩
   iunfold mvcc.isWriteView at Hwv
   iNamed Hwv
   iunfold mvcc.csContract at Hcs
@@ -50,7 +50,7 @@ theorem mvcc.writeView.Put.wp_proof
   wp_apply hTODO as %t ⟨%Ht, Htrc⟩
   (try wp_auto)
   -- `wv.kv.Write(t)`
-  wp_apply (hWrite s γ t P Pre Q f true) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr $Htrc]
+  wp_apply (hWrite s γ t P Pre Q f true log) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpin $Hpre $Htr $Htrc]
     as %mw ⟨⟨%ilog, %crev, Htx, -⟩, HQ, Hhook⟩
   · ipureintro; exact Ht
   -- the writer's hook back: its facts kept (D22 receiver epochs, S5b)
@@ -81,11 +81,11 @@ theorem mvcc.writeView.Put.wp_proof
     isplitl; · iapply mvcc.certFree_certOkNext $$ Hfree
     itrivial
   simp only [mvcc.txnEndPost, mvcc.commitLog, List.cons_ne_self, ↓reduceIte]
-  icases Hcert with ⟨Hcert, -, -, -⟩
+  icases Hcert with ⟨Hcert, -, -, -, Hpin⟩
   iapply HΦ
   iframe Hrd HPost
   iexists ilog
-  iframe Hcert Hown
+  iframe Hcert Hown Hpin
   try (ipureintro; rfl)
 
 end proof

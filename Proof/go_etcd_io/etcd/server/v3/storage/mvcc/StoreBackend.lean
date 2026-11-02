@@ -125,42 +125,49 @@ theorem mvcc.NewStore_backend
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
         mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗
-        mvcc.retiredAt γ (mvcc.nJobRd (some d)) ∗ mvcc.crevPermIs γ Perm }} := by
+        mvcc.retiredAt γ (mvcc.nJobRd (some d)) ∗ mvcc.crevPermIs γ Perm ∗
+        mvcc.writerPin γ [[], []] }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm, Hrts, Hlrd, #Hle, Hro⟩ HΦ
   -- the index's names and the certificate map, fresh (D13a: `NewStore` takes them)
   imod mvcc.idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
   -- the deletable keys fixed by the mode (question 5's core stage, part (4)): a compacting store's
   -- (`storeDlReg`, over the index's names), and its contract with the compaction (the new bridge);
   -- else nothing deletable (`dlNoDel`) and the old bridge
-  ihave Hbk : iprop(|==> □ ∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
+  ihave Hbk : iprop(|==> ((□ ∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
       mvcc.storeBackend (interface.mkOk (go.GoType.PointerType
-        go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be) s γ Pk) $$ [Hdl]
+        go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be) s γ Pk) ∗
+      mvcc.kbNoDelOff (some d))) $$ [Hdl]
   · cases hc : d.cm with
     | false =>
       imod backend.dlNoDel_fix d.γB $$ Hdl with #Hnd
       ihave #Hbk := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
         hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe d hP hc Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz $Hnd]
       imodintro
-      iintro !> %s %γ %hγ
-      iapply Hbk
-      ipureintro; exact ⟨hγ.1, hγ.2.1⟩
+      isplitl []
+      · iintro !> %s %γ %hγ
+        iapply Hbk
+        ipureintro; exact ⟨hγ.1, hγ.2.1⟩
+      simp only [mvcc.kbNoDelOff, mvcc.kbCmpM, mvcc.kbNoDel, hc, Bool.false_eq_true, ↓reduceIte]
+      iexact Hnd
     | true =>
       imod backend.dlReg_fix d.γB _ $$ Hdl with #Hreg
       ihave #Hfv' := Hfv $$ [] 
       · ipureintro; first | exact hc | rfl
       imodintro
-      iintro !>
-      iapply mvcc.storeBackend_of_backendC hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
-        hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe hLSR hUSR hUP d hP Pk γb γi
-      iframe Hbpkg Hsch Hb Hsz Hfv'
-      iunfold mvcc.storeDlReg
-      iexact Hreg
-  imod Hbk with #Hbk
+      isplitl []
+      · iintro !>
+        iapply mvcc.storeBackend_of_backendC hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
+          hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe hLSR hUSR hUP d hP Pk γb γi
+        iframe Hbpkg Hsch Hb Hsz Hfv'
+        iunfold mvcc.storeDlReg
+        iexact Hreg
+      simp only [mvcc.kbNoDelOff, mvcc.kbCmpM, hc, ↓reduceIte]; itrivial
+  imod Hbk with ⟨#Hbk, #Hnd⟩
   imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok0⟩
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
   iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f rd0 false γi γok Perm hcfg)
     $$ %Φ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hifresh Hok0]
-  · iframe Hpkg Hle Hro Hifresh Hok0 Hsrm
+  · iframe Hpkg Hle Hro Hifresh Hok0 Hsrm Hnd
     isplitr
     · iexact Hbk
     rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,
@@ -170,21 +177,22 @@ theorem mvcc.NewStore_backend
       show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
-  iintro %s ⟨%γ, %Hγ, Hs, Hro, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, -, Hfrag, Hcr, Hret, #HcpIs⟩
+  iintro %s ⟨%γ, %Hγ, Hs, Hro, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, -, Hfrag, Hpin, Hcr, Hret,
+    #HcpIs⟩
   ihave Hh := mvcc.hookIs_of_init γ Pk #f d Hγ.2.2.1 f hf $$ [$Hh0 $Hhk $Hfrag]
   iapply HΦ
   iexists γ
-  iframe Hs Hro Hok Hh Hv Hr Ht Hc Hcl Hst Hcr Hret HcpIs
+  iframe Hs Hro Hok Hh Hv Hr Ht Hc Hcl Hst Hcr Hret HcpIs Hpin
   ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1⟩
 
 /-- **`store.Write` over the real backend**: the generic `store.Write` at a store of the real
 instance `d`, its write token the backend's write-back budget. -/
 theorem mvcc.store_Write_backend (hWrite : mvcc.store.Write.spec (GF := GF) (hG := hG))
     (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = some d) (trace : Loc)
-    (P Pre Q : IProp GF) (f : val) (te : Bool) :
+    (P Pre Q : IProp GF) (f : val) (te : Bool) (log : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ backend.wbTok d.γB ∗
-        ⌜trace ≠ null⌝ ∗ mvcc.hookIs γ P f ∗ Pre ∗
+        ⌜trace ≠ null⌝ ∗ mvcc.hookIs γ P f ∗ mvcc.writerPin γ log ∗ Pre ∗
         □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗ traceutil.ownTrace trace te }}
       (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
@@ -196,7 +204,7 @@ theorem mvcc.store_Write_backend (hWrite : mvcc.store.Write.spec (GF := GF) (hG 
     unfold mvcc.storeWT mvcc.kbWT; rw [hk]
   rw [← hwt]
   iintro %Φ H HΦ
-  iapply (hWrite s γ trace P Pre Q f te) $$ %Φ [H]
+  iapply (hWrite s γ trace P Pre Q f te log) $$ %Φ [H]
   · iexact H
   inext
   iintro %mw ⟨⟨%ilog, %crev, Htx, -⟩, HQ, -⟩
