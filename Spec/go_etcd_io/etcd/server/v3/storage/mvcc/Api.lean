@@ -104,8 +104,8 @@ opaque mvccOpen (γ : MvccName) (q : Qp) : IProp GF := iprop(True)
 /-- **The store's backend is `b`, with parameters `P` and batch-lock invariant `Pk`**
 (persistent; from `New`): what the backend's hook (`mvccHook`) and commit request
 (`backend.commitReq` at `mvccBackend γ`) are over. -/
-opaque mvccBackendIs (γ : MvccName) (P : backend.BParams) (Pk : IProp GF) (b : Loc) : IProp GF :=
-  iprop(True)
+def mvccBackendIs (γ : MvccName) (P : backend.BParams) (Pk : IProp GF) (b : Loc) : IProp GF :=
+  mvccBackendIsI γ P Pk b
 
 /-- **The store's batch lock has invariant `P` and its post-lock hook is `f`, for good**
 (persistent, as its parts are; `f` may be `nil`: no hook): the backend's own read-only share of
@@ -114,13 +114,13 @@ backend's `nil`), at the store's backend, whose lock invariant is `P`. A definit
 abstraction: its only maker is the backend. -/
 def mvccHook (γ : MvccName) (P : IProp GF) (f : GoFunc) : IProp GF :=
   iprop(∃ (BP : backend.BParams) (b : Loc), mvccBackendIs γ BP P b ∗
-    backend.plHookRO (mvccBackend γ) f)
+    backend.plHookRO (mvccBackend γ) f ∗ ⌜f ≠ func.nil⌝)
 
 /-- The hook is one (the backend's hook is a ghost variable). -/
 theorem mvccHook_agree (γ : MvccName) (P P' : IProp GF) (f f' : GoFunc) :
     mvccHook (GF := GF) γ P f ∗ mvccHook γ P' f' ⊢ ⌜f = f'⌝ := by
   unfold mvccHook backend.plHookRO backend.plHookAt
-  iintro ⟨⟨%BP, %b, -, H1⟩, ⟨%BP', %b', -, H2⟩⟩
+  iintro ⟨⟨%BP, %b, -, H1, -⟩, ⟨%BP', %b', -, H2, -⟩⟩
   iapply dghostVar_agree $$ H1 H2
 
 /-- **`t` is a transaction of `γ`** with the view `k`, holding the caller's trace `trace`
@@ -139,7 +139,7 @@ reset for a restore; what a write transaction's own `End` and the store's own `R
 store without watchers gives it freely (`mvccWatchersOk_unwatched`); a watched store's is made only
 by the watchable store's `End` and `Restore`, which notify and reset: so a client of a watched store
 commits and restores through them. -/
-opaque mvccWatchersOk (γ : MvccName) (op : MvccOp) : IProp GF := iprop(True)
+def mvccWatchersOk (γ : MvccName) (op : MvccOp) : IProp GF := mvccWatchersOkI γ op
 
 /-- **The right to wrap the store `s` in a watchable store** (exclusive; `NewStore` at the watched
 mode gives it, `New`'s watchable store takes it): it holds the store's `ReadView` and `WriteView`

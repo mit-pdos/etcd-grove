@@ -4876,6 +4876,51 @@ def isTxnWrite (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend :
     "Htw" ∷ storeTxnWriteIs tw s γ trace ilog pend crev Z ld ∗
     "Htrc" ∷ (∃ te : Bool, traceutil.ownTrace trace te))
 
+/-- **The writer's part of a write transaction** (the abstract mode's `mvccTxn_write_agree`, the
+commit's first update): out, and back. -/
+theorem isTxnWrite_wrAt (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)
+    (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) (ld : Bool) :
+    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev Z ld ⊢
+      wrAt γ ilog none ∗
+        (wrAt γ ilog none -∗ isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ld) := by
+  iintro H
+  iunfold isTxnWrite at H
+  icases H with ⟨%tw, %ranges, Hmw, Hst, Htrc⟩
+  iunfold storeTxnWriteIs at Hst
+  icases Hst with ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, %Pw, %fw, %Dep, Hst⟩
+  iNamed Hst
+  isplitl [Hpnd]
+  · iexact Hpnd
+  iintro Hpnd
+  iunfold isTxnWrite
+  iexists tw, ranges
+  iframe Hmw Htrc
+  iunfold storeTxnWriteIs
+  iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
+  simp only [named]
+  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hpnd
+  iframe #
+  ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
+
+/-- **A write transaction's compaction revision** (`muHeld`'s part of its authority): with
+another part, it agrees. -/
+theorem isTxnWrite_crev (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)
+    (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) (ld : Bool) (q : Qp) (c : Int)
+    (hc : -1 ≤ c) :
+    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev Z ld ∗ crevUB γ.idx q c ⊢
+      ⌜crev = c⌝ := by
+  iintro ⟨H, Hc⟩
+  iunfold isTxnWrite at H
+  icases H with ⟨%tw, %ranges, -, Hst, -⟩
+  iunfold storeTxnWriteIs at Hst
+  icases Hst with ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, %Pw, %fw, %Dep, Hst⟩
+  iNamed Hst
+  iunfold muHeld at Hmu
+  icases Hmu with ⟨-, Hmua, -⟩
+  iunfold muInvAt at Hmua
+  iNamed Hmua
+  iapply crevUB_agree γ.idx _ _ crev c Hcrev.1 hc $$ HcrevM Hc
+
 open Iris.ProofMode in
 /-- **A write transaction's changes are fewer than the receipts' bound** (D19c), keeping it. -/
 theorem isTxnWrite_small (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log)

@@ -400,12 +400,12 @@ theorem mvcc.store.Read.wp_proofC (hA : mvcc.store.Read.specA (GF := GF) (hG := 
     icases Hacc with ⟨%σ, Hσ, Hucl⟩
     iunfold mvcc.mvccState at Hσ
     iunfold mvcc.mvccStateI at Hσ
-    icases Hσ with ⟨Hga, Hgp, Hgc, #Hgi, HM, Hpe, %Hreach⟩
+    icases Hσ with ⟨Hga, Hgp, Hgc, #Hgi, HM, #Hpe, %Hreach⟩
     icases mvcc.absAt_agree γ.st habs _ _ log σ.log $$ [$Ha $Hga] with ⟨Ha, Hga, %Hl⟩
     ihave %Hcc := mvcc.crevUB_agree γ.st.idx _ _ c σ.crev Hc Hreach.1.crev_ge $$ Hcu Hgc
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
-    imod Hcommit $$ [Hga Hgp Hgc HM Hpe] with HQ
+    imod Hcommit $$ [Hga Hgp Hgc HM] with HQ
     · iunfold mvcc.mvccState
       iunfold mvcc.mvccStateI
       iframe Hga Hgp Hgc HM Hgi Hpe

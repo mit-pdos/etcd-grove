@@ -86,7 +86,7 @@ def mvccStateI (γ : MvccImpl) (σ : MvccState) : IProp GF :=
   iprop(ghostVar γ.st.abs (1 : Qp).half σ.log ∗ ghostVar γ.st.pnd (1 : Qp).half σ.pending ∗
     crevUB γ.st.idx (1 : Qp).half σ.crev ∗ idxCert γ.st.idx σ.log ∗
     (∃ M : GMap w64 Log, ghostMapAuth γ.st.cok 1 M ∗ ⌜certMapOk M σ.notifiedLog⌝) ∗
-    (∀ x, ⌜σ.pending = some x⌝ -∗ certOk γ.st (σ.log ++ [x])) ∗
+    □ (∀ x, ⌜σ.pending = some x⌝ -∗ certOk γ.st (σ.log ++ [x])) ∗
     ⌜MvccReachable σ ∧ σ.log.length + 3 ≤ 2 ^ 63⌝)
 
 /-- **The revision tokens' pool**: `n` tokens and `a` time receipts, `receiptBound GF ≤ a + n + 1`
@@ -108,6 +108,32 @@ def isMvccI (s : Loc) (γ : MvccImpl) : IProp GF :=
 
 instance isMvccI_persistent (s : Loc) (γ : MvccImpl) : Persistent (isMvccI (GF := GF) s γ) := by
   unfold isMvccI; infer_instance
+
+/-- **The store's backend is `b`** (`mvccBackendIs`): the real backend, of the parameters `BP`,
+batch-lock invariant `Pk`, and the store's record of that invariant (`hookP`, `NewStore`'s). -/
+def mvccBackendIsI (γ : MvccImpl) (BP : backend.BParams) (Pk : IProp GF) (b : Loc) : IProp GF :=
+  iprop(∃ (d : KBReal) (W : IProp GF), ⌜γ.st.kb = some d ∧ d.P = BP ∧ d.be = b⌝ ∗
+    backend.isBackend d.γB BP W Pk b ∗ hookP γ.st Pk)
+
+instance mvccBackendIsI_persistent (γ : MvccImpl) (BP : backend.BParams) (Pk : IProp GF) (b : Loc) :
+    Persistent (mvccBackendIsI (GF := GF) γ BP Pk b) := by
+  unfold mvccBackendIsI; infer_instance
+
+/-- **The watchers were taken care of** (`mvccWatchersOk`): a store without watchers has none;
+with watchers, a commit of nothing needs nothing, and nothing else is taken care of outside the
+watchable store's own `End` and `Restore` (which do not go through this predicate). -/
+def mvccWatchersOkI (γ : MvccImpl) (op : MvccOp) : IProp GF :=
+  if γ.watched then
+    match op with
+    | .commit _ pend => iprop(⌜pend = []⌝)
+    | .restore => iprop(False)
+  else iprop(True)
+
+instance mvccWatchersOkI_persistent (γ : MvccImpl) (op : MvccOp) :
+    Persistent (mvccWatchersOkI (GF := GF) γ op) := by
+  unfold mvccWatchersOkI; split
+  · split <;> infer_instance
+  · infer_instance
 
 /-- **A transaction of the store** (`mvccTxn`, of a store's own transaction, a `*metricsTxnWrite`):
 today's read transaction at the state's log, revision and compaction revision, or today's write
