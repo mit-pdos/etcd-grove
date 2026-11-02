@@ -185,8 +185,9 @@ candidate: issues/upstream/raft-advance-before-applyconfchange/
   (`etcdserver/raft.go:297-324`, whose comment names this hazard) but not on the leader
   (`raft.go:325-331`; the conf change is applied later, `server.go:1917-1925`), and its
   membership checks do not serialize concurrent changes: the leader-lag execution may be
-  reachable in etcd (slow apply loop, a concurrent membership change, a partition; not
-  demonstrated): [etcd-leader-advance-before-applyconfchange](etcd-leader-advance-before-applyconfchange.md).
+  reachable in etcd (slow apply loop, a concurrent membership change, a partition), and it is:
+  reproduced on an etcd cluster 2026-11-02 (an acknowledged put lost, with a failpoint slowing the
+  leader's apply loop): [etcd-leader-advance-before-applyconfchange](etcd-leader-advance-before-applyconfchange.md).
 - **Found**: 2026-10-13, analysing the reconfiguration stage B0 (apply-time configurations)
   for the protocol model; checked by replay in the abstract model and reproduced by the Go
   test above (the model's exhaustive search covered only depth 10–11: no evidence beyond the
