@@ -29291,6 +29291,11 @@ opening the store's invariant at names the restore is changing.
   trusted is applied.
 - **Approved** (the user, 2026-11-02): revision 4.3 of the trusted restatements as it stands, with
   T, §18 and §19, no further review round. Applied by the apply step (below in STATUS.md).
+- **Applied** (2026-11-02, four stages, STATUS.md): as approved, with one text the draft names but does
+  not spell out: item E's boot fact for alarm and auth is four conjuncts of `bootOk`'s `%Hbe`
+  beside `leaseParams`, `d.P.has mvcc.alarmBI`, `authBI`, `authUsersBI`, `authRolesBI` (the
+  table's entries, per bucket as item I asks); `srvSnapRO` gains the alarm entry. `newPostKP`
+  holds `rdPool`, not `bkRPool` (untrusted; the snapshot path builds `bkRPool` by `bkRPool_intro`).
 
 
 ## The merged snapshot's window: the writer's observations, the freeze at `ci` 0, the snapshot's compaction keys (2026-11-02 · the user's approvals · branch `snap-window`)

@@ -652,7 +652,23 @@ draft names but does not spell out); `srvSnapRO` the alarm entry. Untrusted cons
 agreeing off `lease`; `applyConfChange.spec` takes `srvBeRO d` (from `srvApplyKV(On)_ua_rt_pool`);
 `snapWalkPost` and `snap_srvRest` hold the new backend's buckets as `srvRestOwn`'s two parts; the
 snapshot observation (`snapObs_window`, `srvBeSnapOk_window`) takes them and agrees part by part.
-Next: stage 4 (§19, `bootPremise`'s UTF-8 premise).
+
+**Stage 4 of the apply (2026-11-02): §19.** `common.bootPremise` asks `bootstrapContract` only for
+configurations whose initial cluster's names are valid UTF-8 (`utf8Valid` of every key of
+`U.initMap`; the approved text). `newServer`'s two specs, `NewMember`, `StartMember` and
+`BuildServer.spec` take the cluster map's keys valid, `StartServer`/`StartCompactingServer`
+`utf8Valid name`; every example's `Main` discharges it for its ASCII names (`decide`,
+`common.utf8Keys_empty`/`utf8Keys_insert`): no closed result's statement changed.
+
+**The apply step is complete** (revision 4.3 in full). No axiom added or removed; the restated
+axioms' statements changed (§1-§10); the trusted definitions `memBoot`, `srvRestOwn`, `bootOk`
+(its `%Hbe` table entries, `clusterApplyOk`/`lessorApplyOk`/`authRecoverOk`) and `bootPremise`
+changed as approved. Checks at the final commit: `lake build`; `etc/tcb-report.py --check`
+(780 axioms, 9 sorries, the baseline; its drop from 10 sorries is lean's item 37, merged); every
+collection but v3rpc (whose 7 new names, `leaseTimeToLive.wp_proof`, `lessor.Renew.wp_proof`, ...,
+are all lean's: its collection predates lean's lease work); bounds (384); api-check and
+`gen-interface --check --layout` for `backend` and `raft`; `import-all-check`; `gen-link` for every
+mode (the two lintest docstring diffs are lean's). Not merged into lean.
 
 ## The lease results' sources in a `NewServer`-built server (2026-11-02, branch `lease-src`; frozen and proved)
 
