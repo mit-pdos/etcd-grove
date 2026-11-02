@@ -29351,7 +29351,9 @@ through the proposal permission (`reqPropOkM` gains `attrIdOk`), the KV invarian
 membership being static after boot) to `dispatch`'s new premise `restReqOk`. The member premise
 names members only, not "or removed": the server removes none, and the removed case would need the
 contract to model Go's `c.removed`. The facts of the apply thread's state go in `srvRestOwn`
-(`clusterPresent r.bk`, kept by every row and by `applyConfChange`, true of every model rest state)
+and the write right `srvRestRW` (`restPresent`: every boot bucket present, kept by every writer, true
+of every model rest state; the review rounds found the same fatal in `SetDowngradeInfo` and the
+alarm and auth stores' writers, which lend `srvRestRW`)
 and in `memberAt` (client URLs `↦*□`: no Go code writes a member's client URLs' elements). `onSet`
 is fixed to `api.UpdateCapability`, the one value passed, rather than given a callback contract,
 which would need a trust-boundary spec of `UpdateCapability`. Supersedes, in part, §16's parenthesis
