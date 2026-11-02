@@ -539,6 +539,48 @@ The open questions:
 2. `RestartNode`'s scope: the stored commit covers the bootstrap log (`γ.bootLen ≤ σ.commit`). That
    holds for `restart3`, which stops a member only after a put has committed past the bootstrap.
 
+### R2c: the image's content (2026-11-02, draft, `InvRestart.lean`)
+
+What a stopped member's data directory holds, and what `bootstrap` makes of it, read from etcd's
+code (`bootstrap.go` at the pin):
+
+- On an existing WAL, `bootstrapRaftFromWAL` gives raft no peers, so `newRaftNode` calls
+  `RestartNode`; `raftConfig` leaves `Applied` at 0. The storage is `bootstrappedWAL.MemoryStorage`:
+  `ApplySnapshot` of the WAL's last snapshot record, `SetHardState`, `Append` of its entries.
+- `bootstrap` then **replaces the WAL snapshot's `ConfState` by the backend's**
+  (`buildConfStateFromV3store`). So raft restarts with the membership the backend holds at its
+  consistent index `i`, not at the WAL snapshot's index. `RestartNode` allows this: its
+  configuration point may be anywhere from the storage's base to its stored commit.
+- `bootstrapClusterWithWAL` builds the cluster from its ids only; `Finalize`'s `cl.Recover` reads
+  the members from the backend's buckets. No remotes, as on a first start.
+- `recoverSnapshot` keeps the backend file unless its consistent index is below the WAL snapshot's
+  (then a `.snap.db` replaces it). A graceful stop never leaves it below: a snapshot is of the
+  applied state.
+
+**The draft** (statements only; the opaque parts are R2d's or the trust boundary's):
+
+- `srvDiskImage γ ρ id`: raft's part (`nodeVacant`, `raftState S`, the WAL's records `σ` with
+  `StorageHolds S σ`, what `RestartNode` takes); the backend's part (the file's data `D` is the
+  image of a committed prefix `A` through `i`, the snapshot path's `imageAt`, reused); the order
+  `σ.b ≤ i ≤ σ.commit`; the configuration point `confAt γ.cl i m`, `m` the backend's members at
+  `A` (`v3ConfState`, opaque until R2d); the files (`srvFiles dd σ D`, a trust-boundary token, and
+  the backend path's `pathOwn`).
+- `bootOkR`: `bootOk` with five changes marked `[R2c]`: no peers; the storage rebuilt at `σ`
+  (`memStorRestarted`, opaque until R2d derives `restartStorage` from it, as kvdurable's
+  `kd_restartStorage`); the members `(restModel 0 γ.boot L).mem`; the consistent index loaded at
+  `i`; the backend's data the image, the fresh file's facts gone.
+- `bootstrapRestartContract`: for every image whose facts hold, `bootstrap` on the files gives an
+  error or `bootOkR`. A premise, as `bootstrapContract`.
+
+**What R2b must prove of the stop** (`HardStop` to the image): the raft loop's `raftState` and
+`node.Stop`'s `nodeVacant`; the backend's certificate at its consistent index (as the snapshot
+sender's, from the store's view and the index's meta keys); the order `σ.b ≤ i ≤ σ.commit` as an
+invariant of the raft loop and the apply thread; `confAt` at `i`; and the closes' trust-boundary
+axioms giving `srvFiles`.
+
+**Scope:** a static cluster (`Hmembers`, `Hdirps` as a first start's); graceful stops in one
+process (no crash: writes are visible to the next open, synced or not).
+
 ### R2c stage 2: the trusted `Next`, design (2026-11-02)
 
 - **The record: an extension.** `idutil` has no package variable whose initializer could allocate a
