@@ -2,8 +2,8 @@
 // started in-process with the auto-compactor in revision mode keeping one revision, a client
 // connected to it, and rounds of a Put of the round's key, an explicit compaction through the
 // client at the revision before the Put's, and a Get of the round's key, checking that the Get
-// returns the value; then (from the second round) a Get of the previous round's key at the previous
-// round's Put revision, the revision the round compacted at, checking that, if it succeeds, it
+// returns the value at a revision at least the Put's; then (from the second round) a Get of the
+// previous round's key at the previous round's Put revision, the revision the round compacted at, checking that, if it succeeds, it
 // returns that Put's value. Main panics if a check fails; the theorem to prove is that it does not,
 // whatever the compactions (the client's and the auto-compactor's, racing) did meanwhile: a latest
 // read is never compacted, and a read at an old revision returns the store at that revision or fails
@@ -86,6 +86,11 @@ func Main() {
 		}
 		if len(resp.Kvs) == 0 || string(resp.Kvs[0].Value) != value {
 			panic("compactkv: Get did not return the round's Put")
+		}
+		// a latest read reads at a revision at least the Put's: a revision the cluster has
+		// reached is at most the revision of every later read
+		if resp.Header.Revision < presp.Header.Revision {
+			panic("compactkv: Get read below the round's Put's revision")
 		}
 		// The previous round's Put revision is the one this round compacted at (each round writes
 		// one revision), which the compaction keeps: in a run this Get returns the previous Put's

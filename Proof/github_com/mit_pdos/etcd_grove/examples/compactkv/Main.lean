@@ -155,7 +155,7 @@ theorem Main.wp_proof
         rw [kvModel_boot _ _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
         intro cs hcs
         simp [kvStateOf] at hcs
-        left; exact hcs)) $$ Hetcd with ⟨%γf, %γl, #Hinv⟩
+        left; exact hcs)) $$ Hetcd with ⟨%γf, %γl, %γv, #Hinv⟩
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
   -- `StartCompactingServer("compactkv", "127.0.0.1:23804", clientAddr, retention, lg)`
@@ -347,7 +347,7 @@ theorem Main.wp_proof
       as %pctx %pcd %pcancel ⟨#Hpcancel, #Hpctx, #Hpce, -⟩
     (try wp_auto)
     -- `presp, err := cli.Put(pctx, k, value)`: round `i`'s put
-    ihave #Hau := putAu_round ρ.rd γf γl keysL go!"v" (sint.nat n) kk hk $$ [Hinv Hlb]
+    ihave #Hau := putAu_round ρ.rd γf γl γv keysL go!"v" (sint.nat n) kk hk $$ [Hinv Hlb]
     · iframe #
     wp_apply (client.client_Put_kv cl api ρ.rd.kv true pctx pcd kk go!"v" slice.nil
         (fun σ => iprop(□ (monoNatLbOwn γf (sint.nat n + 1) ∗
@@ -373,6 +373,16 @@ theorem Main.wp_proof
       iapply HΦ; itrivial
     subst Hperr
     icases HQ with ⟨#Hlb', ⟨%r0, #Hidx, %Hr0⟩, %Hσ1⟩
+    -- (the read-side law, 2026-11-02) the put's revision, reached, is a lower bound of the rounds'
+    -- state (`roundsInv_revLb`, with the readers' view's KV invariant)
+    ihave #Hkvs := srvKVInvs_of_read srv E ρ.rd $$ Hrd
+    iunfold srvKVInvs at Hkvs
+    icases Hkvs with ⟨#Hkvi, -⟩
+    have Hrz : ((sint.nat m.hdr.revision : Nat) : Int) = sint.Z m.hdr.revision := by
+      rw [Hs.1]; have := Hs.2.1.lt; unfold sint.nat; word
+    imod (roundsInv_revLb ρ.rd γf γl γv keysL go!"v" (sint.nat m.hdr.revision)) $$ Hkvi Hinv []
+      with #HrvLb
+    · rw [Hrz]; iunfold kvRevLb at Hrv; iexact Hrv
     (try wp_auto)
     -- `presp.Header.Revision - 1`: the revision before the put's, past `0`
     ihave #Hm' := Hm
@@ -406,8 +416,8 @@ theorem Main.wp_proof
       as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -⟩
     (try wp_auto)
     imod monoNatLbOwn_0 (GF := GF) ρ.rd.committed with #Hc0
-    wp_apply (client_Get_round cl go!"127.0.0.1:23794" _ E ρ.rd γf γl keysL go!"v" (sint.nat n) kk hk
-        (W64 0) cid mid gctx gcd slice.nil []
+    wp_apply (client_Get_round cl go!"127.0.0.1:23794" _ E ρ.rd γf γl γv keysL go!"v" (sint.nat n) kk hk
+        (sint.nat m.hdr.revision) (W64 0) cid mid gctx gcd slice.nil []
         (opSizeOk_opGetModel (K := 2) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide)))
         as %gresp %gerr Hget
     · iframe #
@@ -415,7 +425,7 @@ theorem Main.wp_proof
       iExactEq Hc0; rfl
     (try wp_auto)
     wp_apply Hgcancel
-    icases Hget with (⟨%Hgerr, %mg, #Hmg, %Hv⟩ | %Hgfail)
+    icases Hget with (⟨%Hgerr, %mg, #Hmg, ⟨%Hv, %Hgrev⟩⟩ | %Hgfail)
     rotate_left
     · obtain ⟨Hgerr, -⟩ := Hgfail
       cases gerr with
@@ -468,6 +478,14 @@ theorem Main.wp_proof
     wp_apply wp_bytes_to_string vSl kv0.value DFrac.discard $$ [HvS] as -
     · iframe #
     rw [Hval0]
+    -- (the read-side law, 2026-11-02) `resp.Header.Revision < presp.Header.Revision` is false: the
+    -- get read at a revision at least the put's (`client_Get_round`'s bound)
+    iunfold hdrFull at Hhf'
+    icases Hhf' with ⟨%Hhn', -, -, #HrevF', -, -⟩
+    have Hnlt : ¬ sint.Z mg.hdr.revision < sint.Z m.hdr.revision := by
+      rw [← Hrz]; omega
+    wp_auto
+    try simp only [Hnlt, decide_false, ↓reduceIte]
     wp_auto
     -- the previous round's key and revision, for the next round: this round's
     ihave #Hprev' : prevOk γl kk m.hdr.revision $$ []
@@ -523,7 +541,7 @@ theorem Main.wp_proof
       rcases i with _ | i
       · cases Hf; cases Hg; iexact Hfr
       · simp at Hf
-    ihave #Hau' := getAtAu_round ρ.rd γf γl keysL go!"v" j rj pk Hjk $$ [Hinv Hidxj]
+    ihave #Hau' := getAtAu_round ρ.rd γf γl γv keysL go!"v" j rj pk Hjk $$ [Hinv Hidxj]
     · iframe #
     wp_apply (client.client_Get_kv cl api ρ.rd.kv true octx ocd pk pr optsSl
         (fun σ => iprop(⌜∀ r, rj ≤ r → r ≤ σ.rev →
@@ -664,7 +682,7 @@ theorem Main.wp_proof
       · cases Hf; cases Hg; iexact Hf2
       · simp at Hf
     -- the rounds' read update: every revision one put of `v`
-    ihave #Hau := oneValAu ρ.rd γf γl keysL go!"v" $$ Hinv
+    ihave #Hau := oneValAu ρ.rd γf γl γv keysL go!"v" $$ Hinv
     iunfold kvReadAu at Hau
     iunfold kvAu at Hau
     -- `wch := cli.Watcher.Watch(wctx, prevKey, clientv3.WithRev(2))`

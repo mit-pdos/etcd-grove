@@ -29397,3 +29397,31 @@ half and nothing of the data, so the law as stated was not provable in that wind
 **Not chosen.** The pin hidden in `writerFrag`, tied to `kvWriter`'s log by fractions of the
 revision tokens' and the log's authorities: fewer spec diffs, but a harder refactor of `revMuBody`'s
 and `writerL`'s fractions and a less direct contract.
+
+## The read-side law: a revision reached is at most every later read's (2026-11-02 · the user's "go ahead with the read-side law" · branch `read-law`)
+
+**The question** (C3's client stage, "deferred" above): `kvRevLbZ γk n` is a lower bound of the KV
+model of `γk.rlog`, which the deferral entry read as the *requested* (possibly uncommitted) log.
+It is not: `γk.rlog = γ.raft.log` (`kvInv`), and the log invariant (`srvLogCore`) keeps
+`γ.raft.log`'s authority at exactly the committed requested entries (`ownCommittedOps γ.raft.cl
+(opsOf (srvLE γ Lf))` at the same `Lf`). So `kvRevLbZ` bounds the committed KV, and `kvInv` keeps
+the clients' state (`etcdKV`'s other half) at that log's model. The deferral entry's reason (2) is
+superseded: no restatement over the committed log is needed.
+
+**The law** (`InvRequest.lean`, `kv_revLbZ_le`): `kvInv γ γk -∗ kvRevLbZ γk n -∗ etcdKV γk σ ={E}=∗
+etcdKV γk σ ∗ ⌜n ≤ σ.rev⌝` (`kvN ⊆ E`). A client applies it where it owns `etcdKV` (its own
+invariant, outside the server's atomic updates, which exclude `kvN`) and turns the bound into a
+lower bound of a monotone counter of its state's revision (as `client.kvClientInv`'s), which every
+later read update then sees.
+
+**A Go check** (the user asked for one): `compactkv` now panics if a round's latest `Get` reads at a
+revision below the round's `Put`'s (`resp.Header.Revision < presp.Header.Revision`). Its proof uses
+the law: the `Put`'s reply's `kvRevLb` (not the put's own update) is turned into a lower bound of
+the rounds' counter (`roundsInv` gains `monoNatAuthOwn γv 1 σ.rev`, `roundsInv_revLb`), and the
+round's read update (`getAu_round`) reports it; the reply's revision is the state's
+(`client_get_value_rev`, a sibling of `client_get_value` with the revision's signed value). Its
+observable content was already implied by `linkvtxn`'s porcupine check (linearizability with
+revisions); what is new is the route through a reached revision a client did not make itself, the
+route C3's watch permit (`kvCmpPermit`) needs. Left of C3's client stage: the watch environment's
+KV names tied by `kvSame`, and the permit carried through the client's watch to
+`watchStateElem` (the deferral entry's reason (1)).
