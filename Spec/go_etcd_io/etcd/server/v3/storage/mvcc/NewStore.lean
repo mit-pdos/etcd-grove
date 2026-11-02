@@ -126,6 +126,46 @@ abbrev mvcc.NewStore.spec : Prop :=
       mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗ mvcc.writerFrag γ ∗
       mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗ mvcc.retiredAt γ (mvcc.nJobRd kb) }}
 
+/-- **`NewStore` at the mode `aq`** (mvcc's candidate API, `notes/mvcc-api-proof-plan.md`, stage
+P2): `spec`'s (which is this at `aq = false`, `NewStore.wp_proof`), the store in the abstract mode
+when `aq`: the caller gets the writer's fragment without the old mode's gate (`writerFragA`) and
+the client's halves of the abstract committed log and of the pending revision. -/
+abbrev mvcc.NewStore.specA : Prop :=
+  ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
+    (P : IProp GF) (f : val) (rd0 : GoFunc) (wq : Bool) (γi : mvcc.IdxNames) (γok : GName)
+    (aq : Bool),
+  mvcc.batchLimitOk cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
+        mvcc.storeBackend b s γ P) ∗
+      mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
+      mvcc.kbSRM kb ∗
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), mvcc.kbRT kb) ∗
+      lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
+      mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
+      (Val #b)) (Val #le)) (Val #cfg))
+  {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
+      ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = kb ∧ γ.watchQ = wq ∧ γ.idx = γi ∧ γ.cok = γok ∧
+        γ.cm = decide (mvcc.kbCmpM kb) ∧ γ.absQ = aq⌝ ∗
+      mvcc.isStore s γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd) ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookInit γ P f ∗
+      (∃ rv wv : Loc,
+        s.[store, go!"ReadView"] ↦
+          (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
+        mvcc.isReadView rv s γ ∗
+        s.[store, go!"WriteView"] ↦
+          (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
+        mvcc.isWriteView wv s γ) ∗
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - mvcc.nJobRd kb) (),
+        mvcc.storeReaderC s γ) ∗
+      ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
+      (if wq then mvcc.logQ γ [[], []] else iprop(True)) ∗ mvcc.storeCloser s γ ∗
+      mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗
+      (if aq then iprop(mvcc.writerFragA γ ∗ ghostVar γ.abs (1 : Qp).half ([[], []] : mvcc.Log) ∗
+          ghostVar γ.pnd (1 : Qp).half (none : Option (List mvcc.Change)))
+       else mvcc.writerFrag γ) ∗
+      mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗ mvcc.retiredAt γ (mvcc.nJobRd kb) }}
+
 /-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `NewStore(lg, b, le, cfg)` over a fresh real backend `d` (what its creator holds, as `NewStore_backend` takes it:
 the backend boundary is unchanged in this candidate), the write-backs paid from time receipts
 (`□ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB)`, so that no write takes a token), the real lessor (today's

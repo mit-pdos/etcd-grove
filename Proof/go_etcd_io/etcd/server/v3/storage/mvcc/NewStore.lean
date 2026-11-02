@@ -83,17 +83,17 @@ theorem mvcc.ownToks_ones (γ : GName) : ∀ (n : Nat),
     iapply mvcc.ownToks_ones γ n
     iexact Hn
 
-theorem mvcc.NewStore.wp_proof
+theorem mvcc.NewStore.wp_proofA
     (hNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (hNewIdx : mvcc.newTreeIndex.spec (GF := GF) (hG := hG))
     (hFifo : schedule.NewFIFOScheduler.spec (GF := GF) (hG := hG))
     (hHash : mvcc.NewHashStorage.spec (GF := GF) (hG := hG))
     (hMeta : schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG))
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
-    mvcc.NewStore.spec (GF := GF) (hG := hG) := by
+    mvcc.NewStore.specA (GF := GF) (hG := hG) := by
   -- `store.restore` at no record and the whole bucket (its spec before M2's item 18)
   have hRestore := mvcc.store.restore.specNC_of_spec hRestore
-  intro lg b le cfg kb γb γl P f rd0 wq γi γok Hcfg0 Hrb0
+  intro lg b le cfg kb γb γl P f rd0 wq γi γok aq Hcfg0 Hrb0
   wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok⟩
   have hnr : 1 ≤ mvcc.nReaders := Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos)
   have hjr : mvcc.nJobRd kb ≤ mvcc.nReaders := Nat.le_trans (mvcc.nJobRd_le kb) hnr
@@ -192,6 +192,12 @@ theorem mvcc.NewStore.wp_proof
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γfin, Hfin, -⟩
   -- the writer's (D22 receiver epochs, S2): `s.mu`'s deposit ghost, the batch lock's key, the
   -- ghost of the log the bucket's view is of
+  -- the abstract mode's (mvcc's candidate API): the abstract committed log and the pending
+  -- revision, half the caller's, half the store's (`s.revMu`'s, the writer's state's)
+  imod ghostVar_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γab, Hab⟩
+  icases ghostVar_halves γab _ $$ Hab with ⟨Hab1, Hab2⟩
+  imod ghostVar_alloc (GF := GF) (none : Option (List mvcc.Change)) with ⟨%γpn, Hpn⟩
+  icases ghostVar_halves γpn _ $$ Hpn with ⟨Hpn1, Hpn2⟩
   imod ghostVar_alloc (GF := GF) () with ⟨%γwr, Hwr⟩
   imod ghostVar_alloc (GF := GF) () with ⟨%γwk, Hwk⟩
   imod ghostVar_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γwv, Hwvg⟩
@@ -223,17 +229,17 @@ theorem mvcc.NewStore.wp_proof
   imod ghostVar_alloc (GF := GF) (mvcc.nJobRd kb) with ⟨%γtkr, Htkr0⟩
   icases ghostVar_halves γtkr _ $$ Htkr0 with ⟨Htkra, Hret0⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
-      hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk, hγcm, hγsx, hγabsQ⟩ :
+      hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk, hγcm, hγsx, hγabsQ, hγab, hγpn⟩ :
       ∃ γ : mvcc.StoreNames,
       γ.idx = γi ∧ γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
       γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs ∧ γ.cok = γok ∧
       γ.watchQ = wq ∧ γ.wr = γwr ∧ γ.wk = γwk ∧ γ.wv = γwv ∧ γ.cur = γcur ∧ γ.rst = γrst ∧
       γ.tk = γtk ∧ γ.tko = γtko ∧ γ.wsd = γwsd ∧ γ.tkw = γtkw ∧ γ.tkr = γtkr ∧ γ.mwk = γmk ∧
-      γ.cm = decide (mvcc.kbCmpM kb) ∧ γ.sx = γx ∧ γ.absQ = false :=
+      γ.cm = decide (mvcc.kbCmpM kb) ∧ γ.sx = γx ∧ γ.absQ = aq ∧ γ.abs = γab ∧ γ.pnd = γpn :=
     ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γwr, γwk, γwv, γcur, γrst, γtk, γtko,
-        γwsd, γtkw, γtkr, γmk, decide (mvcc.kbCmpM kb), γx, false, 0, 0⟩,
+        γwsd, γtkw, γtkr, γmk, decide (mvcc.kbCmpM kb), γx, aq, γab, γpn⟩,
       rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   rw [← hγrst] at *
   rw [← hγtk, ← hγtko, ← hγtkw, ← hγtkr]
   ihave Hwsd : mvcc.wsDep γ $$ [Hwsd]
@@ -450,8 +456,10 @@ theorem mvcc.NewStore.wp_proof
   ispecialize Hrts $$ Hrt1
   (try wp_auto)
   -- the writer's state, in the writer's invariant (D22 receiver epochs, S2)
-  ihave Hpnd : mvcc.pndAt (GF := GF) γ (1 : Qp).half none $$ []
-  · rw [mvcc.pndAt_off γ hγabsQ]; itrivial
+  ihave Hpnd : mvcc.pndAt (GF := GF) γ (1 : Qp).half none $$ [Hpn1]
+  · unfold mvcc.pndAt; split
+    · rw [hγpn]; iexact Hpn1
+    · itrivial
   ihave HL : mvcc.writerL «$r0_ptr» γ $$ [Hauth Hiw Hc1 Hwv1 HcurA Hlrd Hpnd]
   · iunfold mvcc.writerL
     iexists [[], []], 2 ^ 63 - 5
@@ -512,8 +520,10 @@ theorem mvcc.NewStore.wp_proof
     · simp only [mvcc.revQ, hγw, Bool.false_eq_true, ↓reduceIte]; iframe Hil
     · simp only [mvcc.revQ, mvcc.logQ, mvcc.idxLogAuth, hγw, ↓reduceIte]; iapply hq.1 $$ Hil
   icases Hsplit with ⟨Hil, HlogQ⟩
-  ihave Habs : mvcc.absAt (GF := GF) γ (1 : Qp).half [[], []] $$ []
-  · rw [mvcc.absAt_off γ hγabsQ]; itrivial
+  ihave Habs : mvcc.absAt (GF := GF) γ (1 : Qp).half [[], []] $$ [Hab1]
+  · unfold mvcc.absAt; split
+    · rw [hγab]; iexact Hab1
+    · itrivial
   imod sync.init_RWMutex (mvcc.revMuInv «$r0_ptr» γ) (mvcc.revMuAddr «$r0_ptr»)
     $$ [HcurB Hc2 Hbv2 HauthR Hil HcmpB HcuR HrstR HcurRev Habs] revMu with Hrevs
   · inext
@@ -592,7 +602,7 @@ theorem mvcc.NewStore.wp_proof
   iapply HΦ
   iexists γ
   isplitr
-  · ipureintro; refine ⟨hγb, hγl, rfl, hγw, ?_, ?_, ?_⟩ <;> first | rfl | assumption | simp [hγcm, hγk]
+  · ipureintro; refine ⟨hγb, hγl, rfl, hγw, ?_, ?_, ?_, ?_⟩ <;> first | rfl | assumption | simp [hγcm, hγk]
   iframe Hs Hro Hok' Hhook Htoks Hcert HlogQ
   isplitl [ReadView WriteView]
   · iexists rv, wv
@@ -651,13 +661,42 @@ theorem mvcc.NewStore.wp_proof
   · iapply mvcc.fieldShare_of_at «$r0_ptr» γ _ _; iexact Hfw
   isplitl [Hwsd]
   · iexact Hwsd
-  isplitl [HcurFrag]
-  · iunfold mvcc.writerFrag; isplitl; · iexists _; iexact HcurFrag
-    ipureintro; exact hγabsQ
+  isplitl [HcurFrag Hab2 Hpn2]
+  · cases aq
+    · simp only [Bool.false_eq_true, ↓reduceIte]
+      iunfold mvcc.writerFrag; isplitl [HcurFrag]; · iexists _; iexact HcurFrag
+      ipureintro; exact hγabsQ
+    · simp only [↓reduceIte]
+      rw [hγab, hγpn]
+      iframe Hab2 Hpn2
+      iunfold mvcc.writerFragA; iexists _; iexact HcurFrag
   -- the compaction right's half of the revision's authority at `-1`
   iframe Hright
   iunfold mvcc.retiredAt
   iexact Hret0
+
+/-- **`NewStore` in the old mode**: `specA` at `aq = false`. -/
+theorem mvcc.NewStore.wp_proof
+    (hNop : zap.NewNop.spec (GF := GF) (hG := hG))
+    (hNewIdx : mvcc.newTreeIndex.spec (GF := GF) (hG := hG))
+    (hFifo : schedule.NewFIFOScheduler.spec (GF := GF) (hG := hG))
+    (hHash : mvcc.NewHashStorage.spec (GF := GF) (hG := hG))
+    (hMeta : schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG))
+    (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
+    mvcc.NewStore.spec (GF := GF) (hG := hG) := by
+  intro lg b le cfg kb γb γl P f rd0 wq γi γok Hcfg0 Hrb0
+  iintro %Φ Hpre HΦ
+  iapply (mvcc.NewStore.wp_proofA hNop hNewIdx hFifo hHash hMeta hRestore lg b le cfg kb γb γl P f rd0
+    wq γi γok false Hcfg0 Hrb0) $$ %Φ Hpre
+  inext
+  iintro %s ⟨%γ, %Hγ, Hrest⟩
+  iapply HΦ
+  iexists γ
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, -⟩ := Hγ
+  isplitr
+  · ipureintro; exact ⟨h1, h2, h3, h4, h5, h6, h7⟩
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  iexact Hrest
 
 end proof
 
