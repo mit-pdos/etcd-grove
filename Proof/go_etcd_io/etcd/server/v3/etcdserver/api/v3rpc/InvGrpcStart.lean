@@ -200,6 +200,54 @@ theorem v3rpc.watchSReg_mem (p : Loc) (sds : List google_golang_org.grpc.StreamD
   rw [e, h]
   exact List.mem_cons_self ..
 
+/-- The Lease service's methods `v3rpc.Server` registers, with the `*quotaLeaseServer` `q` (the
+lease-src plan, 2026-11-02): `LeaseGrant`, `LeaseRevoke`, `LeaseTimeToLive`, `LeaseLeases`. -/
+def v3rpc.leaseRegs (q : Loc) : List (GoString × val × GoInterface) :=
+  [(go!"/etcdserverpb.Lease/LeaseGrant", (@! etcdserverpb._Lease_LeaseGrant_Handler),
+     interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q),
+   (go!"/etcdserverpb.Lease/LeaseRevoke", (@! etcdserverpb._Lease_LeaseRevoke_Handler),
+     interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q),
+   (go!"/etcdserverpb.Lease/LeaseTimeToLive", (@! etcdserverpb._Lease_LeaseTimeToLive_Handler),
+     interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q),
+   (go!"/etcdserverpb.Lease/LeaseLeases", (@! etcdserverpb._Lease_LeaseLeases_Handler),
+     interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q)]
+
+/-- The Lease service's stream `v3rpc.Server` registers, with the `*quotaLeaseServer` `q`. -/
+def v3rpc.leaseSReg (q : Loc) : GoString × val × GoInterface :=
+  (go!"/etcdserverpb.Lease/LeaseKeepAlive", (@! etcdserverpb._Lease_LeaseKeepAlive_Handler),
+    interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q)
+
+/-- **The Lease service's registration contains `leaseRegs`** (from the descriptor's methods). -/
+theorem v3rpc.leaseRegs_sub (q : Loc) (mds : List google_golang_org.grpc.MethodDesc)
+    (h : mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.leaseDescMethods) :
+    ∀ x ∈ v3rpc.leaseRegs q, x ∈ descRegs go!"etcdserverpb.Lease" mds
+      (interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q) := by
+  intro x hx
+  rw [v3rpc.descRegs_eq, h]
+  simp only [v3rpc.leaseRegs, List.mem_cons, List.not_mem_nil, or_false] at hx
+  simp only [v3rpc.leaseDescMethods, List.map_cons, List.map_nil]
+  rcases hx with rfl | rfl | rfl | rfl
+  · exact List.mem_cons_self ..
+  · exact List.mem_cons_of_mem _ (List.mem_cons_self ..)
+  · exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..))
+  · exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+      (List.mem_cons_self ..)))
+
+/-- **The Lease service's registration contains `leaseSReg`**. -/
+theorem v3rpc.leaseSReg_mem (q : Loc) (sds : List google_golang_org.grpc.StreamDesc)
+    (h : sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
+      [(go!"LeaseKeepAlive", @! etcdserverpb._Lease_LeaseKeepAlive_Handler)]) :
+    v3rpc.leaseSReg q ∈ descSRegs go!"etcdserverpb.Lease" sds
+      (interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q) := by
+  have e : descSRegs go!"etcdserverpb.Lease" sds
+      (interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q) =
+      (sds.map fun sd => (sd.StreamName', (#sd.Handler' : val))).map
+        (fun x => (grpcFullName go!"etcdserverpb.Lease" x.1, x.2,
+          interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q)) := by
+    simp only [descSRegs, List.map_map]; rfl
+  rw [e, h]
+  exact List.mem_cons_self ..
+
 /-- The Watch descriptor's names are distinct. -/
 theorem v3rpc.watchDesc_nodup (sds : List google_golang_org.grpc.StreamDesc)
     (h : sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =

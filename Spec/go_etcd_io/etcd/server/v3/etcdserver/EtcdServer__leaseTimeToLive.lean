@@ -28,7 +28,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.leaseTimeToLive(ctx, r)`** (names-only, a contract; the lease-read plan's S1, the user's
 choice), any goroutine, at a context, with the request side's and the read side's server facts, its
-lessor (`srvLessorRd`), a reader slot of the lessor's lock and a thread token, reading `r`: on
+lessor (`srvLessorRd`), the lessor's reader pool (`lessorRdPool`; a reader slot of the lessor's
+lock until the lease-src plan, 2026-11-02: on the leader the slot is borrowed for `Lookup` and given
+back before `Keys()`, which takes the token) and a thread token, reading `r`: on
 `nil`, a fresh response (owned) with a fresh header (owned, not nil: the leader's
 `&pb.ResponseHeader{}`, under `// TODO: fill out ResponseHeader`; a follower's decoded by
 `proto.Unmarshal` from the leader's reply, whose header etcd's lease handler sets, empty too;
@@ -49,11 +51,11 @@ abbrev EtcdServer.leaseTimeToLive.spec : Prop :=
     (v : etcdserverpb.LeaseTimeToLiveRequest),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvLessorRd s γl ∗
-      context.isContext ctx cd ∗ lease.lessorRdOf γl ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
+      context.isContext ctx cd ∗ lease.lessorRdPool γl ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
       r ↦{dq} v }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"leaseTimeToLive"))
       (Val #(GoInterface.ok ctx))) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); lease.lessorRdOf γl ∗ threadTok ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗
       r ↦{dq} v ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗
           ⌜w.Header' ≠ null⌝ ∗ ∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∨

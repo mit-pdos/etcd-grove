@@ -1212,10 +1212,8 @@ theorem EtcdServer.Txn.wp_proofOnR
     subst Hau2
     ihave #HLb' : iprop(□ ∀ n : Nat, auth.authPubLbM (.on γa) n -∗
         apply.isAuthStoreRangeLb w.auth E.RD (.on γa) n) $$ []
-    · have hLb : authStoreLbM (GF := GF) E.authMode w.auth E.RD = iprop(□ ∀ n : Nat,
-          auth.authPubLbM (.on γa) n -∗ apply.isAuthStoreRangeLb w.auth E.RD (.on γa) n) := by
-        rw [hM]; rfl
-      rw [← hLb]; iexact HLb
+    · iapply authStoreLbM_range γa w.auth E.RD
+      rw [← hM]; iexact HLb
     ihave #Hpub' : auth.authPubLbM (GF := GF) (.on γa) n $$ []
     · rw [← hM]; iexact Hpub
     ipersist s

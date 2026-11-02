@@ -356,7 +356,11 @@ theorem authStoreKit_on
   ihave #HstLb : authStoreLbM (.on γa) (auth.authIface stp) (auth.authRd stp R (.on γa)) $$ []
   · unfold authStoreLbM
     iintro !> %n #Hlb
-    iapply apply.isAuthStoreRangeLb_of_authInv hRangeLb stp R (.on γa) n $$ [$Hpkg $Hinv $Hlb]
+    isplitr
+    · iapply apply.isAuthStoreRangeLb_of_authInv hRangeLb stp R (.on γa) n $$ [$Hpkg $Hinv $Hlb]
+    -- (the lease-src plan, Draft) `isAuthStoreLeaseLb_of_authInv`, its five `specLb`s threaded at
+    -- Prove
+    sorry
   -- (E3t) publication, of its invariant
   ihave #HstPub := authPublishM_of_authInv stp R γa $$ Hinv
   -- (E3zb) the request side bound to the request context's token, of its invariant
