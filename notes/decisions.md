@@ -29233,3 +29233,12 @@ opening the store's invariant at names the restore is changing.
   bucket inserted, so they rely on the bucket being in the table (as they did in substance before,
   through `UnsafeCreateBucket.spec`'s `P.has`); no law lets a client derive a name outside `γ.rbD`.
   The trusted step's draft adds the premise (`leaseParams`, a new `restParams`).
+- **A defect of the applied membership texts** (round 3 of the trusted set's review, 2026-11-02):
+  `MustReadMembersFromBackend`, `MustSaveMemberToBackend` and `MustDeleteMemberFromBackend` (the
+  applied axioms) take `rbOwn d.γB bk` (or the store's `storeRT`/`storeWT`) but no
+  `isBackend d.γB …`, and none of their other premises mentions `γB.rbk` (or, since decision 3,
+  `γB.rbD`): a caller may pick ghost names of its own for `d.γB` (plain fields), allocate a fresh
+  map, and meet the premise with made-up contents, so the axioms assert reads and writes Go does not
+  do (a `members` bucket read as empty; a put to a missing bucket, fatal in Go, proved safe). No
+  current proof does so. The fix, in the trusted step's draft (G): `isBackend d.γB d.P W Pk d.be`
+  in each pre (its batch mutex holds `rbSide d.γB`, which only the real backend's names have).

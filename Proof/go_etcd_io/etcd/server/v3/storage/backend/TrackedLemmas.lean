@@ -195,7 +195,7 @@ private theorem els_update (g : GName) (S : GoString → Prop) (D : GMap GoStrin
       · iexact Hs
 
 /-- **The whole elements, updated** (the ghost map's authority with them). -/
-theorem rbEls_update (γ : BNames) (S : GoString → Prop) (v w : GoString → Option BktData × Bool) :
+private theorem rbEls_update (γ : BNames) (S : GoString → Prop) (v w : GoString → Option BktData × Bool) :
     iprop((∃ M : GMap GoString (Option BktData × Bool), ghostMapAuth (GF := GF) γ.rbk 1 M) ∗
       rbEls γ S 1 v) ⊢
       |==> iprop((∃ M : GMap GoString (Option BktData × Bool), ghostMapAuth γ.rbk 1 M) ∗
@@ -490,7 +490,7 @@ theorem rbOwn_split (γ : BNames) (S : GoString → Prop) (r : GMap GoString Bkt
 
 /-- Two halves of a part, at the authority, updated to new contents and flags (whole elements
 in between). -/
-theorem rbPartF_update (γ : BNames) (S : GoString → Prop) (r r' : GMap GoString BktData)
+private theorem rbPartF_update (γ : BNames) (S : GoString → Prop) (r r' : GMap GoString BktData)
     (F F' G : GoString → Bool)
     (hp : ∀ n, S n → γ.rbD.lookup n = none → r.lookup n = none → r'.lookup n = none) :
     iprop((∃ M : GMap GoString (Option BktData × Bool), ghostMapAuth (GF := GF) γ.rbk 1 M) ∗
