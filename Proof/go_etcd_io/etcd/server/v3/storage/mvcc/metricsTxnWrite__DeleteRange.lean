@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__DeleteRange
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLemmas
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__DeleteRange
 
 @[expose] public section
@@ -43,6 +44,31 @@ theorem mvcc.metricsTxnWrite.DeleteRange.wp_proof
     iframe Htw Htrc
     iexact Hmw
   ipureintro; exact Hnr
+
+/-- **The candidate `DeleteRange`** (`specC`): `spec`'s, the counters existential. -/
+theorem mvcc.metricsTxnWrite.DeleteRange.wp_proofC
+    (hO : mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG)) :
+    mvcc.metricsTxnWrite.DeleteRange.specC (GF := GF) (hG := hG) := by
+  intro mw γ trace σ pend key endk k e L
+  iintro %Φ ⟨#Hpkg, Htx, #Hk, #He, Hown⟩ HΦ
+  icases (mvcc.mvccTxn_write_eq mw γ trace σ pend).1 $$ Htx
+    with ⟨%s, %puts, %deletes, %putSize, %Hl, #Hs, Hwr, Hloan⟩
+  iapply (hO trace mw s γ.st σ.log pend puts deletes putSize key endk k e L σ.crev iprop(True))
+    $$ %Φ [Hwr Hown]
+  · iframe Hpkg Hwr Hk He
+    simp only [mvcc.mvccLeases]
+    iexact Hown
+  inext
+  iintro %n %rev ⟨Hwr, Hown, %Hn⟩
+  iapply HΦ
+  simp only [mvcc.mvccLeases]
+  iframe Hown
+  isplitl
+  · iapply (mvcc.mvccTxn_write_eq mw γ trace σ _).2
+    iexists s, puts, deletes + W64 1, putSize
+    iframe Hs Hloan Hwr
+    ipureintro; exact Hl
+  ipureintro; exact Hn
 
 end proof
 

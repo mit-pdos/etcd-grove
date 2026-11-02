@@ -280,6 +280,46 @@ theorem commitAU_nil (γ : MvccName) (habs : γ.st.absQ = true) (Q : IProp GF) :
   imodintro
   iframe HQ HpW
 
+/-- **A store's read transaction**, as `mvccTxn` holds it. -/
+theorem mvccTxn_read_eq (mw : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) :
+    mvccTxn (GF := GF) (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace (.read σ) ⊣⊢
+      ∃ s : Loc, ⌜1 ≤ σ.log.length⌝ ∗ isMvccI s γ ∗
+        isTxnRead mw s γ.st trace σ.log (W64 (σ.rev : Int)) σ.crev ∗ threadPool.ownThreadLoan γ.tl := by
+  unfold mvccTxn mvccTxnI
+  constructor
+  · iintro ⟨%mw', %s, ⟨%Ht, %Hl⟩, #Hs, Hr, Hl'⟩
+    simp only [interface_mkOk_inj, _root_.true_and] at Ht
+    have hmw : mw' = mw := (GoGlobalContext.intoVal_inj_loc Ht).symm
+    subst hmw
+    iexists s
+    iframe Hs Hr Hl'
+    ipureintro; exact Hl
+  · iintro ⟨%s, %Hl, #Hs, Hr, Hl'⟩
+    iexists mw, s
+    iframe Hs Hr Hl'
+    ipureintro; exact ⟨rfl, Hl⟩
+
+/-- **A store's write transaction**, as `mvccTxn` holds it. -/
+theorem mvccTxn_write_eq (mw : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) (pend : List Change) :
+    mvccTxn (GF := GF) (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace
+        (.write σ pend) ⊣⊢
+      ∃ (s : Loc) (puts deletes putSize : w64), ⌜σ.pending = none ∧ 1 ≤ σ.log.length⌝ ∗ isMvccI s γ ∗
+        isTxnWrite mw s γ.st trace σ.log pend puts deletes putSize σ.crev ∗
+        threadPool.ownThreadLoan γ.tl := by
+  unfold mvccTxn mvccTxnI
+  constructor
+  · iintro ⟨%mw', %s, %puts, %deletes, %putSize, ⟨%Ht, %Hp, %Hl⟩, #Hs, Hr, Hl'⟩
+    simp only [interface_mkOk_inj, _root_.true_and] at Ht
+    have hmw : mw' = mw := (GoGlobalContext.intoVal_inj_loc Ht).symm
+    subst hmw
+    iexists s, puts, deletes, putSize
+    iframe Hs Hr Hl'
+    ipureintro; exact ⟨Hp, Hl⟩
+  · iintro ⟨%s, %puts, %deletes, %putSize, ⟨%Hp, %Hl⟩, #Hs, Hr, Hl'⟩
+    iexists mw, s, puts, deletes, putSize
+    iframe Hs Hr Hl'
+    ipureintro; exact ⟨rfl, Hp, Hl⟩
+
 end lemmas
 
 end mvcc

@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Range
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLemmas
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Range
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Range
 
@@ -79,6 +80,52 @@ theorem mvcc.metricsTxnWrite.Range.wp_proof
     iunfold mvcc.isTxnWrite
     iexists tw, (ranges + W64 1)
     iframe
+
+/-- **The candidate `Range`** (`specC`): `spec`'s, at the transaction's kind. -/
+theorem mvcc.metricsTxnWrite.Range.wp_proofC (hO : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG)) :
+    mvcc.metricsTxnWrite.Range.specC (GF := GF) (hG := hG) := by
+  intro mw γ trace k ctx cd todo key endk kk e ro
+  iintro %Φ ⟨#Hpkg, Htx, Hctx, #Hk, #He⟩ HΦ
+  cases k with
+  | read σ =>
+    icases (mvcc.mvccTxn_read_eq mw γ trace σ).1 $$ Htx with ⟨%s, %Hl, #Hs, Hrd, Hloan⟩
+    iapply (hO trace mw s γ.st (.read σ.log (W64 (σ.rev : Int))) ctx cd todo key endk kk e ro σ.crev
+      iprop(True)) $$ %Φ [Hrd Hctx]
+    · iframe Hpkg Hctx Hk He
+      simp only [mvcc.isTxn]
+      iexact Hrd
+    inext
+    iintro %r %err ⟨%Hr, Hrd, Hout⟩
+    iapply HΦ
+    simp only [mvcc.isTxn] at *
+    isplitr
+    · ipureintro; exact Hr
+    isplitr [Hout]
+    · iapply (mvcc.mvccTxn_read_eq mw γ trace σ).2
+      iexists s; iframe Hs Hloan Hrd; ipureintro; exact Hl
+    simp only [mvcc.TxnKind.readLog, mvcc.TxnKind.readRev, mvcc.MTxn.readLog, mvcc.MTxn.readRev,
+      mvcc.MTxn.state]
+    iexact Hout
+  | write σ pend =>
+    icases (mvcc.mvccTxn_write_eq mw γ trace σ pend).1 $$ Htx
+      with ⟨%s, %puts, %deletes, %putSize, %Hl, #Hs, Hwr, Hloan⟩
+    iapply (hO trace mw s γ.st (.write σ.log pend puts deletes putSize) ctx cd todo key endk kk e ro
+      σ.crev iprop(True)) $$ %Φ [Hwr Hctx]
+    · iframe Hpkg Hctx Hk He
+      simp only [mvcc.isTxn]
+      iexact Hwr
+    inext
+    iintro %r %err ⟨%Hr, Hwr, Hout⟩
+    iapply HΦ
+    simp only [mvcc.isTxn] at *
+    isplitr
+    · ipureintro; exact Hr
+    isplitr [Hout]
+    · iapply (mvcc.mvccTxn_write_eq mw γ trace σ pend).2
+      iexists s, puts, deletes, putSize; iframe Hs Hloan Hwr; ipureintro; exact Hl
+    simp only [mvcc.TxnKind.readLog, mvcc.TxnKind.readRev, mvcc.MTxn.readLog, mvcc.MTxn.readRev,
+      mvcc.MTxn.state]
+    iexact Hout
 
 end proof
 

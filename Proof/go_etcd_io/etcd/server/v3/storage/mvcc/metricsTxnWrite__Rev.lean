@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Rev
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLemmas
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Rev
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Rev
 
@@ -64,6 +65,42 @@ theorem mvcc.metricsTxnWrite.Rev.wp_proof
     iexists tw, ranges
     iframe Hmw Htrc
     iapply mvcc.storeTxnWriteIs_join tw s γ ilog pend chs ps crev Z $$ [$Htw $Hchs $Hkvs]
+
+/-- **The candidate `Rev`** (`specC`): `spec`'s, at the transaction's kind (a write transaction's
+revision is its log's last, the state's). -/
+theorem mvcc.metricsTxnWrite.Rev.wp_proofC (hO : mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := hG)) :
+    mvcc.metricsTxnWrite.Rev.specC (GF := GF) (hG := hG) := by
+  intro mw γ trace k
+  iintro %Φ ⟨#Hpkg, Htx⟩ HΦ
+  cases k with
+  | read σ =>
+    icases (mvcc.mvccTxn_read_eq mw γ trace σ).1 $$ Htx with ⟨%s, %Hl, #Hs, Hrd, Hloan⟩
+    iapply (hO trace mw s γ.st (.read σ.log (W64 (σ.rev : Int))) σ.crev iprop(True)) $$ %Φ [Hrd]
+    · iframe Hpkg
+      simp only [mvcc.isTxn]
+      iexact Hrd
+    inext
+    iintro Hrd
+    simp only [mvcc.isTxn, mvcc.TxnKind.beginRev, mvcc.MTxn.state]
+    iapply HΦ
+    iapply (mvcc.mvccTxn_read_eq mw γ trace σ).2
+    iexists s; iframe Hs Hloan Hrd; ipureintro; exact Hl
+  | write σ pend =>
+    icases (mvcc.mvccTxn_write_eq mw γ trace σ pend).1 $$ Htx
+      with ⟨%s, %puts, %deletes, %putSize, %Hl, #Hs, Hwr, Hloan⟩
+    iapply (hO trace mw s γ.st (.write σ.log pend puts deletes putSize) σ.crev iprop(True)) $$ %Φ [Hwr]
+    · iframe Hpkg
+      simp only [mvcc.isTxn]
+      iexact Hwr
+    inext
+    iintro Hwr
+    have hrev : (W64 ((σ.log.length : Int) - 1) : w64) = W64 ((σ.rev : Nat) : Int) := by
+      unfold mvcc.MvccState.rev; congr 1; omega
+    simp only [mvcc.isTxn, mvcc.TxnKind.beginRev, mvcc.MTxn.state]
+    rw [hrev]
+    iapply HΦ
+    iapply (mvcc.mvccTxn_write_eq mw γ trace σ pend).2
+    iexists s, puts, deletes, putSize; iframe Hs Hloan Hwr; ipureintro; exact Hl
 
 end proof
 
