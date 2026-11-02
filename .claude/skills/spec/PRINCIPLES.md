@@ -193,6 +193,14 @@ renders it), or in its callers' proofs. Each is a cost; lower is better among sp
 hard rules. (`notes/spec-first-plan.md`,
 Review)
 
+- **Abstractions**: the opaque predicates (and the resources) an API introduces, counted over the
+  whole API, not per spec. The goal is that future proofs over the API succeed quickly: each
+  abstraction is something every client proof must learn, thread and combine. Prefer one
+  abstraction that subsumes several (the client-owned `mvccState` replaced the log's
+  certificates, the revision tokens and the reader's floor), and a field of an existing state or a
+  resource clients already hold (a thread token) over a new predicate. Judge each candidate
+  abstraction by two questions: is the API strong enough for its reasonable users without it, and
+  can an existing one carry it? (The user, 2026-11-02, on the mvcc candidate API's decisions.)
 - **Coupling**: the other packages' predicates and definitions the statement mentions. Each is a
   place where a change in that package forces this spec, and its callers' proofs, to change: in this
   repository's history the main cause of spec revisions.

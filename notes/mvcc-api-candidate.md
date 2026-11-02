@@ -195,6 +195,63 @@ on the history up to its revision, which `mvccHashOk_state` needs of whatever de
 showed `HashByRev`'s open-token share cuts three of etcd's callers off from concurrent restores:
 decision 10 below. Not reviewed again (two laws and a docstring).
 
+## The decisions by the user's criteria (2026-11-02; proposed, not applied)
+
+The user's criteria: future proofs over the API should succeed quickly, so (a) the specs are strong
+enough for reasonable users, and (b) the API has as few abstractions (opaque predicates,
+resources) as possible, one abstraction subsuming several where it can (`mvccState` subsumed the
+log's certificates, the revision tokens and the reader's floor). Now a principle of the `spec`
+skill ("Abstractions", under "Preferences: measures").
+
+**Is the watch-ahead behavior real?** Yes, at mvcc's level, and narrow. `watchableStoreTxnWrite.End`
+sends the events (`notify`) before `storeTxnWrite.End` takes `revMu` and bumps the revision; a read
+takes `s.mu` shared (the writer holds it shared too) and `revMu`. A test (2026-11-02, not kept: a
+writer putting one key 5000 times, a consumer reading with `Read`/`Rev` and `Range` as soon as an
+event arrives, and 2000 other synced watchers of the key, which `notify` serves before the bump,
+widening the window) saw a read below the event's revision 4573 times out of 5000 (`event at
+revision 3, then Range read revision 2 with a's mod revision 2`); without the other watchers, 0 in
+60000. Not reachable through etcd's linearizable reads: a linearizable `Range` waits for the
+applied index, which advances after the entry's `End` returned; a serializable one may see it. No
+issue filed: mvcc documents no order between watch events and reads.
+
+The answers:
+
+1. **The client-owned state**: yes (it subsumes three abstractions).
+2. **The watch-ahead revision**: neither announcements nor linearizing at the notification, but a
+   field of `mvccState`: `σ.pending : Option (List Change)`, the revision notified and not yet
+   committed. A watchable commit is two atomic steps of the client's state (notify: `pending :=
+   some pend`; bump: `log ++ [pend]`, `pending := none`), so its `End` takes two updates; reads
+   answer from `σ.log` (exact); the watch laws relate events to `σ.log ++ pending` (no announcement).
+   Removes `mvccAnnAuth`, `mvccAnn`, `mvccLogOk` and every announcement premise (End, the views,
+   Restore). Strength: the tester relates `pending` to its history directly; etcd's floor is on
+   `σ.log`.
+3. **Thread tokens**: yes (an existing resource, no new one).
+4. **Write-backs from receipts**: yes (removes a resource from every write).
+5. **`HashByRev` and `Restore`**: no open-token share (it cuts three of etcd's callers); the weaker,
+   true post (the current revision is the state's, or `1` during a restore), and the one-line Go
+   fix proposed (`issues/etcd-mvcc-hashbyrev-restore-rev1.md`), which would strengthen it back.
+6. **The lessor**: the real lessor only, today's `isLessor` reused (no new definition; a reasonable
+   user, etcd or a tester, can use the real lessor; the nominal generality goes).
+
+And the same criteria on the rest of the vocabulary (32 opaque predicates in round 7; about 19
+after):
+
+- `mvccHookInit` into `mvccBackendIs` (which already carries the lock's invariant `Pk`).
+- `mvccRoTxn` and `mvccWatchTxnOf` into `mvccTxn` (one predicate at the location the client holds,
+  with WP-transfer laws for the promoted methods in place of the field laws).
+- `mvccNotified` and `mvccRestoreOk` into one (the watchers taken care of, for a commit or a
+  restore).
+- `isReadViewOf` and `isWriteViewOf` into one view predicate.
+- `mvccCommitReq` dropped: the specs take the backend's `commitReq` at `mvccBackendIs`'s backend.
+- The watch stream's nine into four: `wsChan` into the stream's handle; `wsClosed` into the closed
+  arm's `wsOpen ι q -∗ False`; `wsWatcher`, `wsLive` and `wsCanceled` into the registrar's view
+  `wsWatchers ι W` (each watcher's range, filters, first revision, registration stamp and
+  liveness), which the laws take with the consumer's `wsRecv`.
+- Kept: `mvccState`, `isMvcc`, `isWatchableMvcc`, `mvccOpen`, `mvccBackendIs`, `mvccHook`,
+  `mvccTxn`, `mvccDeleter`, the watchers-taken-care-of token, `mvccWrapRight`, the view predicate,
+  `mvccRestorable`, `isHashStorage`, `mvccHashOk`, `mvccCompactChan`, `isMvccWatchStream`,
+  `wsOpen`, `wsWatchers`, `wsRecv`.
+
 ## Decisions for the user (new client-owned ghost state and premises)
 
 The skill's policy: each new premise or client-owned ghost state on a spec with clients is the
