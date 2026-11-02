@@ -26,7 +26,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 for a spec `Spec` registered for `LeaseTimeToLive` and the caller's `Q`: the request for `id` (its
 `Keys` as the options `gs` leave it, `toLeaseTimeToLiveRequest`) through the retry lease client; on
 success a new `*LeaseTimeToLiveResponse` whose header, `ID`, `TTL`, `GrantedTTL` are the reply's
-(`resp.GetHeader()`; read-only) and whose `Keys` is the reply's slice, with `Q` of the reply;
+(`resp.GetHeader()`; read-only, though Go's struct is fresh and owned, as `lessor.Grant.spec`'s)
+and whose `Keys` is the reply's slice, with `Q` of the reply;
 otherwise `nil` and `ContextError(ctx, err)`, a client error grpc's `status` accepts (as
 `lessor.Grant.spec`). -/
 abbrev lessor.TimeToLive.spec : Prop :=

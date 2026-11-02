@@ -94,7 +94,12 @@ instance leaseLeasesRespMsg_persistent (l : Loc) (m : LeaseLeasesRespM) :
     Persistent (leaseLeasesRespMsg (GF := GF) l m) := by
   unfold leaseLeasesRespMsg; infer_instance
 
-/-- **A `*pb.LeaseTimeToLiveRequest`** on the wire: its `(ID, Keys)`. -/
+/-- **A `*pb.LeaseTimeToLiveRequest`** on the wire: its `(ID, Keys)`. The server's decoded copy is
+read-only as a whole (`LeaseServer.LeaseTimeToLive` takes `r ↦{dq} v`; grant's `recv` is two
+fields), which claims that protobuf's internal fields are not written after decoding either: true of
+the server, where no `proto.Size` or `Marshal` reaches a lease request (the log interceptor sizes
+only the KV requests, `v3rpc/interceptor.go:111-175`; a follower forwards a new request,
+`leasehttp/http.go:229`). -/
 def pbLeaseTimeToLiveRequest : ProtoMsg GF where
   ty := etcdserverpb.LeaseTimeToLiveRequest.ty
   M := w64 × Bool
@@ -193,12 +198,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **etcd's spec of `LeaseTimeToLive`** (see the file header): the reply is about the lease the
-request asks about. -/
+request asks about. The weakest spec `leasekv` needs: nothing of the header, `TTL` or `GrantedTTL`
+(the server's answer, `v3rpc.leaseTTLOut`, gives more; a stronger spec of the method can be
+registered beside it). -/
 def etcdLeaseTTLSpec : GrpcSpec (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse :=
   fun (req : w64 × Bool) (Φ : LeaseTTLRespM → IProp GF) =>
     iprop(∀ m : LeaseTTLRespM, ⌜m.id = req.1⌝ -∗ Φ m)
 
-/-- **etcd's spec of `LeaseLeases`**: the reply lists no lease twice. -/
+/-- **etcd's spec of `LeaseLeases`**: the reply lists no lease twice. The weakest spec `leasekv`
+needs: nothing of which leases (the server's answer, `v3rpc.leaseLeasesOut`, gives the lessor's at an
+index of its history). -/
 def etcdLeaseLeasesSpec : GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse :=
   fun (_ : Unit) (Φ : LeaseLeasesRespM → IProp GF) =>
     iprop(∀ m : LeaseLeasesRespM, ⌜m.ids.Nodup⌝ -∗ Φ m)

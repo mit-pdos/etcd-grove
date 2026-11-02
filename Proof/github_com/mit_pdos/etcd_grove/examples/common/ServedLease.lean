@@ -43,7 +43,7 @@ server specs take (`threadBound GF ≤ 2 ^ 30 - 1`, `receiptBound GF ≤ 2 ^ 48`
 theorem kv_lease_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64)
     (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (HT : threadBound GF ≤ 2 ^ 30 - 1)
-    (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr) (HEo : E.authOn = false) :
+    (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeaseRd s E ∗

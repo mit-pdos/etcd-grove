@@ -1,6 +1,6 @@
 /-
-`(*clientv3.retryLeaseClient).LeaseTimeToLive(ctx, in, opts...)` (`client/v3/retry.go`; item 1, the
-client lease). Lean-first (no Rocq counterpart).
+`(*clientv3.retryLeaseClient).LeaseTimeToLive(ctx, in, opts...)` (`client/v3/retry.go`; the closed lease
+example, notes/lease-ex-plan.md). Lean-first (no Rocq counterpart).
 -/
 module
 

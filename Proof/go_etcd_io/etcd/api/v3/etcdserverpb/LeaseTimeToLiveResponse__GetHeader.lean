@@ -1,6 +1,6 @@
 /-
-Proof of `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/LeaseTimeToLiveResponse__GetHeader.lean` (item 1, the
-client lease). Lean-first (no Rocq counterpart).
+Proof of `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/LeaseTimeToLiveResponse__GetHeader.lean` (the closed lease
+example, notes/lease-ex-plan.md). Lean-first (no Rocq counterpart).
 -/
 module
 

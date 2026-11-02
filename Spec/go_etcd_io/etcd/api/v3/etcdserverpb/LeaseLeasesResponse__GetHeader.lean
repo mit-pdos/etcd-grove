@@ -1,6 +1,6 @@
 /-
-`(*etcdserverpb.LeaseLeasesResponse).GetHeader()` (`api/etcdserverpb/rpc.pb.go`; item 1, the client
-lease). Lean-first (no Rocq counterpart).
+`(*etcdserverpb.LeaseLeasesResponse).GetHeader()` (`api/etcdserverpb/rpc.pb.go`; the closed lease example,
+notes/lease-ex-plan.md). Lean-first (no Rocq counterpart).
 -/
 module
 
