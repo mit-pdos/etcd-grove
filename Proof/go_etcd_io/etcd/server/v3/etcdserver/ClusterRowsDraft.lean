@@ -63,9 +63,11 @@ variable [GooseExts]
 
 /-- **The rest buckets are present in `bk`**: every bucket `NewServer`'s constructors make
 (`restBootBk`: `lease`, `alarm`, `auth`, `authUsers`, `authRoles`, `members`, `members_removed`,
-`cluster`). Their writers (the cluster's rows and `applyConfChange`; the alarm store's, the auth
-store's and the lessor's, through `RW`) `UnsafePut`/`UnsafeDelete` in them, fatal on a missing
-bucket (`batch_tx.go:169-173,229-237`); no writer of the apply thread deletes a bucket. -/
+`cluster`). Their writers (the cluster's rows and `applyConfChange`; the alarm store's and the
+auth store's, through `RW`; the lessor's revocation, an `UnsafeDelete` in `lease`, through `RO`'s
+lens) `UnsafePut`/`UnsafeDelete` in them, fatal on a missing bucket
+(`batch_tx.go:169-173,229-237`); no Go code deletes a rest bucket at run time. The lessor's put
+right, drawn from `RW` without this fact, is a separate follow-up. -/
 def restPresent (bk : GMap GoString backend.BktData) : Prop :=
   ∀ n, (restBootBk.lookup n).isSome = true → (bk.lookup n).isSome = true
 
@@ -97,6 +99,17 @@ theorem restPresent_congr (bk bk' : GMap GoString backend.BktData)
   by_cases hnl : n = mvcc.leaseName
   · subst hnl; exact hl
   · rw [← h n hnl]; exact hp n hn
+
+/-- **The revocation lens's form** (review round 4: the lens's hypothesis gains
+`⌜(rs.bk.lookup leaseName).isSome → (bk.lookup leaseName).isSome⌝`, which both call sites,
+`LessorDerive.lean:213,235`, discharge: at `rs.bk` trivially, at `rbDel` by its insert). -/
+theorem restPresent_lens (bk bk' : GMap GoString backend.BktData)
+    (h : ∀ n, n ≠ mvcc.leaseName → bk'.lookup n = bk.lookup n)
+    (hl : (bk.lookup mvcc.leaseName).isSome = true → (bk'.lookup mvcc.leaseName).isSome = true)
+    (hp : restPresent bk) : restPresent bk' :=
+  restPresent_congr bk bk' (fun n hn => (h n hn).symm)
+    (hl (hp _ (by simp [restBootBk, mvcc.leaseName,
+      go_etcd_io.etcd.server.v3.storage.schema.leaseName]))) hp
 
 /-- **A delete keeps them** (`rbDel` inserts its bucket): the revocation lens's call sites,
 `LessorDerive.lean:213,235`, give back `rs.bk` or `rbDel rs.bk leaseName k` (round 3: the lens's
@@ -444,9 +457,10 @@ def reqPropOkMD (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.H
   iprop(reqPropOkM on γ γk Gb rq Qh ∗ ⌜attrIdOk γ.raft.cfg rq⌝)
 
 /-- **The monitors' permission, restated**: the server's own id `lid` (its `memberID` field,
-read-only), a voter, and the permission for the monitors' requests naming it (`monitorReqD`). -/
+read-only) and the permission for the monitors' requests naming it (`monitorReqD`; that `lid` is a
+voter is the builder's, `srvMonitorPermitMD_of`, inside `reqPropOkMD`'s `attrIdOk`; review round 4). -/
 def srvMonitorPermitMD (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
-  iprop(isServerReqM on s E ρ ∗ ∃ lid : w64, srvMemberIDAddr s ↦□ lid ∗ ⌜lid ∈ ρ.raft.raft.cfg⌝ ∗
+  iprop(isServerReqM on s E ρ ∗ ∃ lid : w64, srvMemberIDAddr s ↦□ lid ∗
     □ ∀ (rq : apply.IRRModel) (Gb : apply.HeaderModel → IProp GF), ⌜monitorReqD lid rq⌝ -∗
       reqPropOkMD on ρ.raft ρ.kv Gb rq (fun _ _ => iprop(True)))
 
@@ -546,8 +560,6 @@ theorem srvMonitorPermitMD_of (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : Re
   iframe H
   iexists lid
   iframe Hid
-  isplitr
-  · ipureintro; exact hl
   iintro !> %rq %Gb %hrq
   iunfold reqPropOkMD
   isplitl

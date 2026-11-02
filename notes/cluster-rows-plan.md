@@ -9,12 +9,13 @@ conjunct of `bootPremise` makes the closed results vacuous there, not unsound. D
 `Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/ClusterRowsDraft.lean` (the rows, their two
 callers' specs and proofs, the request premises) and
 `Proof/go_etcd_io/etcd/server/v3/etcdserver/ClusterRowsDraft.lean` (the rest resource, the
-members' vocabulary, the workload facts, the glue). Status: Draft and Review done, stopped before
-Freeze; the trusted texts for the user's approval are in the session's scratch `clr-trusted.md`.
+members' vocabulary, the workload facts, the glue). Status: the Freeze; the trusted texts,
+revision 5 (the session's scratch `clr-trusted.md`), reviewed, await the user's approval of the
+text; nothing applied.
 
-Built on backend-auth-split's approved trusted restatements (its `bks-trusted.md`, revision 4.3,
-§16: `srvRestOwn` over `rbOwnIn`/`rbPart` with `memIdOk`), which this base has not applied yet:
-`srvRestOwnD` is §16's text with this stage's conjunct.
+Built on backend-auth-split's §16 (`srvRestOwn` over `rbOwnIn`/`rbPart` with `memIdOk`), applied on
+`lean` at `a43af91055` and merged here: `srvRestOwnD` is the applied text over `clusterMemD` with
+this stage's conjunct.
 
 ## Scope
 
@@ -135,20 +136,20 @@ Trusted texts (for the user's approval, `clr-trusted.md`):
 
 1. `apply.isCluster` (`apply/Contracts.lean:509-544`): the two rows; docstring.
 2. `membership.memberAt` (`api/membership/Defs.lean:99`): `cu ↦*□`; its laws
-   (`memberAt_split`, `memberAt_agree`; `memberIs_iff_memberAt` keeps only `→`, unused). The axioms
+   (`memberAt_split`, `memberAt_agree`; `memberIs_iff_memberAt`, unused, deleted). The axioms
    whose meaning changes through it, each weaker in a post or reading only in a pre:
    `RaftCluster.Recover`, `clusterImageOk_restModel`, `MustSaveMemberToBackend`,
    `setIsLearnerMetric`, `SetBackend`, `String`, `updateMembershipMetric`,
    `SetVersionChangedNotifier` (through `isRaftCluster`'s lock invariant), the v3rpc interceptors'
    `IsMemberExist`/`IsLearner`; `bootOk`'s `Hmem` (text unchanged).
-3. `srvRestOwn` (§16's, `InvRest.lean:414`): `restPresent r.bk`; `srvRestRW`
-   (`InvRest.lean:420`): `restPresent` of its buckets. Through them `clusterApplyOk` and `bootOk`
+3. `srvRestOwn` (§16's, `InvRest.lean:434`): `restPresent r.bk`; `srvRestRW`
+   (`InvRest.lean:443`): `restPresent` of its buckets. Through them `clusterApplyOk` and `bootOk`
    (texts unchanged), and the alarm and auth stores' contracts, whose `rwLens` lend `srvRestRW`
    (they now claim their writers keep the cluster's buckets: they write only their own).
 4. `apply.semverAtMostServer` (new opaque, `apply/InvRequest.lean` beside `semverValid`);
    `apply.rqOk`'s `clusterVersionSet` row (`apply/Chain.lean:267`).
 5. `monitorReq` (`InvMonitors.lean:54`) gains `lid`; `srvMonitorPermit` (`InvMonitors.lean:81`) and
-   `srvMonitorPermitM` (`MonitorsOn.lean:62`): the id field, a voter. The axioms
+   `srvMonitorPermitM` (`MonitorsOn.lean:62`): the id field (the voter fact is the builder's, inside `reqPropOkM`'s `attrIdOk`; `srvMonitorPermit`, unused, deleted). The axioms
    `EtcdServer.publishV3` and `EtcdServer.monitorClusterVersions` (texts unchanged) now claim
    their proposals name the server's id and a version not above the server's.
 
@@ -251,9 +252,6 @@ missing `lease` bucket; with `restPresent` it can take `lease` present (a questi
 
 The first tier is clear; the review stops here (Freeze is the user's).
 
-## Questions for the user
-
-See `clr-trusted.md` (the scratch file of the trusted texts) and the stage report.
 
 ## The user's decisions (2026-11-02)
 
@@ -266,3 +264,60 @@ read-only client URLs (today's row is unsound: owned halves of a `↦*□` slice
 (9) the lessor's `lease`-bucket presence a separate follow-up; (10) backend-auth-split's §16 applied
 first. The trusted texts (revision 4 of the scratch draft `clr-trusted.md`, revised for (1)) go to the user
 for approval of the text at the Freeze, which follows once backend-auth-split lands.
+
+## The Freeze (2026-11-02)
+
+`lean` at `a43af91055` (backend-auth-split landed, §16 applied) merged; the drafts build on it
+(`restPresent_congr` over the applied lens's `mvcc.leaseName`). Revision 5 of the trusted texts
+(`clr-trusted.md`): the full texts, decision 1 carried through every docstring that described the
+gap (`isCluster`, `clusterApplyOk`, `RestModel.lean`'s header), decision 8's wording.
+
+**Review round 4** (fresh, on revision 5): no first tier. Second tier, applied: the docstrings of
+`restPresent` and `srvRestRW` name the lessor (its revocation through `RO`'s lens, its put right a
+follow-up); the revocation lens's restated hypothesis written out (`⌜(rs.bk.lookup leaseName).isSome
+→ (bk.lookup leaseName).isSome⌝`, which both call sites discharge; the plan's "takes `lease` present"
+could not be discharged at `LessorDerive.lean:213`; draft `restPresent_lens`); `srvMonitorPermitM`
+loses `⌜lid ∈ cfg⌝`, which no axiom's claim uses (the builder's hypothesis); `clusterApplyOk`'s
+docstring keeps the value-size caveat. Third tier: line references, the dangling docstrings of the
+deleted `srvMonitorPermit` (`InvMonitors.lean:15`, `MonitorsOn.lean:3,28,59`), `RestModel.lean`'s
+`:20` and `:22-26`.
+
+## The apply plan (after the user's approval of revision 5)
+
+Each stage in its own commit on `cluster-rows`, the full `lake build` green, then `etc/gates.sh`
+(api check, interfaces regenerated and committed, `etc/tcb-report.py --check`, bounds). The drafts'
+`…D` definitions replace the unsuffixed ones in place; the draft modules shrink stage by stage and
+go at A5.
+
+- **A1, the request facts (untrusted but `monitorReq`/`srvMonitorPermitM`, whose texts are
+  trusted).** `monitorReq lid`, `srvMonitorPermitM` (id field), `reqPropOkM` with `attrIdOk`
+  (`attrIdOk_wire` beside `reqPropOk_wire`; the request path's producers `reqPropOkMD_of_kind`),
+  `kvWork` with `attrLogOk` (`kvWorkD_snoc`, `kv_prop_auW`'s cases, `ProposeOn`, `KVAuthModel`),
+  `isServerBuilt(On)` with `⌜γn.id ∈ γr.raft.raft.cfg⌝` (`NewServer.lean:1929-1931`), `Start`'s
+  permits, `srvMemOk` with the cover (`srvMemOkD_boot`, `_append`, `srvApRes_normal`/`_cc`),
+  `EtcdServer.apply`/`applyEntryNormal`/`applyAll`/`applyEntries`/`run` taking `attrLogOk` from
+  InvBuild's batch facts (`attrEntryOk_empty` for the fillers). Adds facts only; nothing consumes
+  them yet. `srvMonitorPermit` deleted.
+- **A2, presence.** `restPresent`, `srvRestOwn`/`srvRestRW` conjuncts; producers `NewServer`
+  (`restPresent_restBoot`), `snap_srvRest` (`_restModel`), `applyConfChange` (`_ccRest`), the
+  revocation lens's hypothesis (`SnapRO`, `LessorDerive`, `Results.lessor_apply_contract`;
+  `restPresent_lens`, `restPresent_rbDel`), the positional destructurings (`SnapRecvFacts`,
+  `SnapApplyWalk`, `SnapApplyDefs`, `SnapApplyOptsLemmas`, `EtcdServer__applyConfChange`).
+  `isCluster`'s rows keep it (`restPresent_restSetVersion`, `_restUpdateAttrs`).
+- **A3, `memberAt`.** Read-only client URLs; `memberAt_split`/`_agree` as the drafts'; users
+  `Member__Clone`, `RaftCluster__AddMember` (`memberAt_persistD` at `applyConfChange`), `__Members`,
+  `__RemoveMember`, `__IsLocalMemberLearner`; `memberIs_iff_memberAt` deleted.
+- **A4, the rows.** `isCluster` (rows and docstring), `semverAtMostServer`, `rqOk`'s row,
+  `clusterFacts` with `rs`, `ClusterVersionSet`/`ClusterMemberAttrSet` (specs and proofs, as the
+  drafts'), `newApplierV3Backend` (`clusterRow_backendD`), the wrappers, `dispatch` (premise
+  `restReqOk`, the call sites `rqOkD_ver`/`restReqOk_attr`), `uberApplier.Apply`, `apply.Apply`,
+  `EtcdServer.applyEntryNormal` (`restReqOk_of_attr` from A1's facts), `rqShape`'s other producers
+  (`rqOkD_of_rqOk`, then dropped), `clusterApplyOk`'s docstring, the axioms' docstrings.
+- **A5, cleanup.** The draft modules deleted; `Recover`'s and `RestModel.lean`'s docstrings;
+  `etc/tcb-report.py --check` (no axiom or `sorry` added: the trusted changes are definitions);
+  `notes/STATUS.md`, the decisions entry marked applied.
+
+A1, A2, A3 are independent of one another; A4 needs A1 (the premise's source) and A2 (presence in
+the rows' meaning) and A3 (the row's post at `↦*□`). None is applied before the approval: A1 and A3
+change trusted texts (`monitorReq`, `memberAt`), A2 trusted `srvRestOwn`/`srvRestRW`.
+

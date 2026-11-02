@@ -64,7 +64,7 @@ member's, the local member being in `c.members`), which bounds the proposal by t
 major.minor. The applying member's bound is the proposer's because every member runs this binary
 (the model's deployment: one program, the verified one); a member restarted on an older binary
 between the proposal and its apply panics, by design (`MustDetectDowngrade`). The monitor's
-downgrade branch (`monitor.go:79-98`, which could propose above the bound: `allowedDowngradeVersion`
+downgrade branch (`monitor.go:80-99`, which could propose above the bound: `allowedDowngradeVersion`
 wraps `Minor()-1` at minor `0`) is not reached: no `DowngradeInfoSet` is admitted (`rqOk`), and the
 boot and snapshot images carry no enabled downgrade record.
 Its axiom is `EtcdServer.monitorClusterVersions`'s, through `monitorReq`. -/
@@ -160,7 +160,7 @@ in `RW`'s (`srvRestRWD`). Claimed, and false, as before this stage: a saved valu
 `MaxValueSize` (a member's attributes, or a version string with a huge prerelease tag, which sorts
 below the bound) is fatal in `unsafePut` (`batch_tx.go:183-188`); no caller makes one (the monitor
 proposes `Major.Minor.0`, the attributes come from the configuration),
-`issues/etcd-backend-put-value-too-large-fatal.md`; a size premise is the user's question. -/
+`issues/etcd-backend-put-value-too-large-fatal.md`; a size premise is a later value-size stage's. -/
 def apply.isClusterD (c : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RO : apply.RestM → IProp GF) (RW : IProp GF) : IProp GF :=
   iprop(⌜c ≠ null⌝ ∗
