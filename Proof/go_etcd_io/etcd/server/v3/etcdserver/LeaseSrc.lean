@@ -3,10 +3,11 @@
 `notes/lease-src-plan.md`). Lean-first (no Rocq counterpart).
 
 `srvAuthLeaseLb s E`, a premise of the lease discharges (`v3rpc.raftLeaseRead_of_server`,
-`raftLeaseRenew_of_server`), from what `NewServer` and `Start` give: with auth off, the request side's
-store (`isServerReqM false`'s `isAuthStore … .off`, whose verdicts are the lower-bound ones: auth
-disabled, every check passing); with auth on, the read side's (`srvAuthLb`, whose `authStoreLbM`
-carries the lease checks' methods since this plan).
+`raftLeaseRenew_of_server`), from what `NewServer` and `Start` give, in the two modes a server runs in (`off`, `on γa`; the
+generic mode `any` promises no verdict, so no lower bound): with auth off, the read side's store
+(`isServerReadM`'s `isAuthStore … .off`, whose verdicts are the lower-bound ones: auth disabled,
+every check passing; the request side, `isServerReqM`, has only `AuthInfoFromCtx`); with auth on,
+`srvAuthLb`, whose `authStoreLbM` carries the lease checks' methods since this plan.
 -/
 module
 
@@ -32,8 +33,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **The lease checks' auth store, in the server's mode** (see the file header). -/
-theorem srvAuthLeaseLb_of_reqM (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
-    isServerReqM (GF := GF) E.authOn s E ρ ∗ srvAuthLb s E ⊢ srvAuthLeaseLb s E := by
+theorem srvAuthLeaseLb_of_server (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
+    (hM : E.authMode = .off ∨ ∃ γa, E.authMode = .on γa) :
+    isServerReadM (GF := GF) E.authOn s E γr ∗ srvAuthLb s E ⊢ srvAuthLeaseLb s E := by
   sorry
 
 end proof

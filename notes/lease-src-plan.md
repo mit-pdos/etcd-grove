@@ -62,7 +62,7 @@ Alternative rejected: `srvLessorRd` absorbing the pool (one fewer premise), beca
 the server's view of its lessor field, and the pool is the lease package's.
 
 **`srvAuthLeaseLb`'s source.**
-- *Auth off*: from `isServerReq`'s `isAuthStore … .off` (the exact triples): `enabledVerdictFrom
+- *Auth off*: from `isServerReadM`'s `isAuthStore … .off` (the exact triples): `enabledVerdictFrom
   .off` is `b = false`, `adminVerdictFrom .off` is `err = nil` (`isAuthStore`'s `M.isOn = false →
   err = nil`), the permission checks the same. A lemma `srvAuthLeaseLb_off`, as `srvAuthLb_off`.
 - *Auth on*: as `authStoreLbM` (E3s) comes from `IsRangePermitted.specLb` in `EtcdServer.start`
@@ -94,8 +94,11 @@ kind of change as the KV's and Auth's registrations.
   `isAuthStoreLeaseLb_of_authInv` (from the five `specLb`s).
 - `StoreLatest.lean`: `authStoreLbM`'s mode-on body gains `isAuthStoreLeaseLb st RD (.on γa) n`.
   `srvAuthLb` (which `Start.specOn` exports) carries it, so no spec of `Start` changes.
-- `etcdserver/LeaseSrc.lean` (new): `srvAuthLeaseLb_of_reqM : isServerReqM E.authOn s E ρ ∗ srvAuthLb s
-  E ⊢ srvAuthLeaseLb s E`.
+- `etcdserver/LeaseSrc.lean` (new): `srvAuthLeaseLb_of_server (hM : E.authMode = .off ∨ ∃ γa,
+  E.authMode = .on γa) : isServerReadM E.authOn s E γr ∗ srvAuthLb s E ⊢ srvAuthLeaseLb s E`. (Drafted
+  over `isServerReqM`, whose fields have only `AuthInfoFromCtx`: the store's exact triples are the
+  read view's `isAuthStore`. Not in the mode `any`, whose checks may fail with errors that are not
+  the auth package's: `isAuthStoreLeaseLb` asks `authApplyErrIs`.)
 - The registration: `etcdserverpbDescs` (`cache/v3/Base.lean`) and `svcDescsOk` (`BaseStart.lean`)
   state the Lease descriptor's methods and stream exactly (`v3rpc.leaseDescMethods`, the
   generated literal of `rpc_grpc.pb.go:695-725`), as the Auth service's (E3zb); `InvGrpcStart.lean`:
@@ -105,6 +108,27 @@ kind of change as the KV's and Auth's registrations.
 - Left to the served stage: the generated `_Lease_LeaseTimeToLive_Handler` and
   `_Lease_LeaseLeases_Handler` are names only (`etcdserverpb.toml` translates Grant, Revoke and
   KeepAlive's), so a served client cannot run them yet.
+
+## Probe (2026-11-02)
+
+- **The hard one, `checkLeaseTimeToLive`** (proved over the restated spec): the slot borrowed from
+  the pool before the steps that resolve `s.lessor.Lookup` (they strip the borrow's later), `Lookup`
+  at it, the slot given back for the token, then `Keys()` with the token. The three returns no
+  longer frame a slot. The pattern the other five proofs take.
+- **The easy one, `srvAuthLeaseLb_of_server` with auth off**, by inspection: the lower-bound
+  verdicts' mode-off bodies are the exact verdicts' (`enabledVerdictFrom .off` is `⌜b = false⌝`, as
+  `enabledVerdict .off`; `permVerdictFrom`, `adminVerdictFrom` likewise), the permission checks
+  already give `authApplyErrIs`, and `IsAdminPermitted`'s mode-off `err = nil` gives it by
+  `authApplyErrIs_nil`. It found the Draft's premise wrong: the store's triples are the read view's
+  (`isServerReadM`), not the request view's (restated above).
+- **Cross-package unfolds**: `lease.lessorRdPool` (the lease package's, unfolded only in
+  `InvLessor.lean`'s two lemmas; the checks use the lemma), `authStoreLbM` (two projection lemmas,
+  `authStoreLbM_range`/`_lease`, replace the `rfl` unfolds in `Range`, `Txn`, `ReadOn`).
+- **What remains for Prove**: the other five proofs (as the hard one); `IsAdminPermitted.wp_lb`;
+  `isAuthStoreLeaseLb_of_authInv` and its five `specLb`s threaded through `AuthSrv`'s construction
+  (its Draft `sorry`) up to the linking files; `srvAuthLeaseLb_of_server`; `NewServer`'s pool
+  (`lessorRdPool_init` of `NewLessor`'s `2^30 - 2` spare slots) and its callers' patterns; the
+  `v3rpc.Server` proof's export (`leaseRegs_sub`, `leaseSReg_mem`).
 
 ## Stages
 
