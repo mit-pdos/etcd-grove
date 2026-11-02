@@ -29242,3 +29242,10 @@ opening the store's invariant at names the restore is changing.
   do (a `members` bucket read as empty; a put to a missing bucket, fatal in Go, proved safe). No
   current proof does so. The fix, in the trusted step's draft (G): `isBackend d.γB d.P W Pk d.be`
   in each pre (its batch mutex holds `rbSide d.γB`, which only the real backend's names have).
+- **A defect of the applied `AlarmStore.restore` text** (round 4, 2026-11-02): it quantifies over
+  any `γB`, `P`; for a backend whose `alarm` bucket is untracked (`P.RB "alarm" = false`, which
+  `backend.New.spec` allows) `alarm ∉ γ.rbD` and `rbData` has no `alarm` entry, so its premise
+  "the alarm bucket is empty" holds whatever is stored, while Go loads the stored alarms (or returns
+  the unmarshal error). The server's callers are at `KBReal.P` (alarm tracked). The fix, in the
+  trusted step's draft (J): `P.RB "alarm" = true` and `P.has mvcc.alarmBI`, also on the proved
+  `AlarmStore.Recover`.

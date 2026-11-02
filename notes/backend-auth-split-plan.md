@@ -426,3 +426,15 @@ relates the readers' state to the writer's contents only off the hook buckets (`
 every batch operation's preservation, the write-back, the commit, the hook window, `Unlock` (the auth
 Q2 survey's estimate: 2.5–10k lines). With it, the trusted readers' axioms that take `rbOwnIn` could
 become proofs over `readTx` (their bodies are `RLock`/`UnsafeRange`/`RUnlock` loops).
+
+## State after the Freeze's step 1 (2026-11-02)
+
+Applied (untrusted, no axiom or sorry added; TCB at its baseline): decision 1; decision 3's option (b)
+(`rbPart`/`rbOwnIn`/`rbOwn` over a per-bucket ghost map with pending flags; the writers per bucket;
+`Unlock` any part to idle; `Unlock.bare`); the seal (`rbSide` `@[no_expose]`, the flag-clearing and
+raw update laws private). Drafted for the user (trusted, not applied): the revised restatements,
+revision 3 with round 4's fix (scratch `bks-trusted.md`, four spec-reviewer rounds: round 2 the
+forgeable flag, round 3 unpinned ghost names in the membership texts, round 4 `restore` over an
+untracked bucket, each fixed in the draft; the last not re-reviewed). With the trusted step: the
+`import all` gate on the backend's modules (part of the readers' trust base), the creators' table
+premises, the pool's stock counts, `New`/`OpenBackend` giving `rbOwnIn`.

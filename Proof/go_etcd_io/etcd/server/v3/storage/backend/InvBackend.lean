@@ -499,8 +499,9 @@ theorem fkPut_eq (γ : BNames) (n k : GoString) (h : ¬ fkKey n k) :
 the other halves of its elements (the shape of the client's `rbOwn`, so that a snapshot's
 observation is handed one), and every tracked bucket of the table among its names (a session's
 write goes to one). Sealed (`@[no_expose]`): its authority is what clears the pending flags, which
-only `Unlock`'s proof may do (`rbSide_idle`, private to `TrackedLemmas.lean`); the backend's own
-proofs `import all` this module. -/
+only `Unlock`'s proof may do (`rbSide_idle`, private to `TrackedLemmas.lean`, which
+`batchTxBuffered__Unlock.lean` imports with `import all`); `TrackedLemmas.lean` and `NewAlloc.lean`
+`import all` this module. By convention only: no gate checks the `import all`s yet. -/
 @[no_expose] def rbSide (γ : BNames) (P : BParams) (r : GMap GoString BktData) : IProp GF :=
   iprop((∃ M : GMap GoString (Option BktData × Bool), ghostMapAuth γ.rbk 1 M) ∗ rbOwn γ r ∗
     ⌜∀ n i, P.BT.lookup n = some i → P.RB n = true → γ.rbD.lookup n ≠ none⌝)
