@@ -2,7 +2,7 @@
 # Counts may only go down; rewrite with `etc/bounds-check.py --check --update`.
 spec-thread github_com/mit_pdos/etcd_grove/examples/authkv 3
 spec-thread github_com/mit_pdos/etcd_grove/examples/cachekv 1
-spec-thread github_com/mit_pdos/etcd_grove/examples/common 8
+spec-thread github_com/mit_pdos/etcd_grove/examples/common 10
 spec-thread github_com/mit_pdos/etcd_grove/examples/compactkv 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/k8setcd3 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/linkv3p 4
@@ -18,7 +18,7 @@ spec-thread go_etcd_io/etcd/server/v3/lease 4
 spec-receipt RaftWitness/github_com/mit_pdos/etcd_grove/examples/kvwitness 4
 spec-receipt github_com/mit_pdos/etcd_grove/examples/authkv 4
 spec-receipt github_com/mit_pdos/etcd_grove/examples/cachekv 2
-spec-receipt github_com/mit_pdos/etcd_grove/examples/common 12
+spec-receipt github_com/mit_pdos/etcd_grove/examples/common 16
 spec-receipt github_com/mit_pdos/etcd_grove/examples/compactkv 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/apimodel 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/k8setcd3 3

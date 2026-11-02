@@ -638,6 +638,44 @@ theorem kvRevLb_start (γk : KVNames) (r : w64) (h : sint.Z r < γk.log0.length)
   ipureintro
   exact h
 
+open Iris.ProofMode in
+/-- **The read-side law: a revision reached is at most the KV's revision** (2026-11-02, C3's
+client stage): with the KV invariant, a revision `n` the cluster's KV has reached (`kvRevLbZ`, a
+lower bound of the committed log of requested entries, `γk.rlog = γ.raft.log`) is at most the
+revision of the clients' KV state (`etcdKV`, which the invariant keeps at that log's model). So
+every linearizable read whose update fires after the bound was known reads at a revision at
+least `n`. -/
+theorem kv_revLbZ_le (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : ↑kvN ⊆ E) (n : Int)
+    (σ : KVState) :
+    ⊢ kvInv (GF := GF) γ γk -∗ kvRevLbZ γk n -∗ etcdKV γk σ ={E}=∗
+      etcdKV γk σ ∗ ⌜n ≤ (σ.rev : Int)⌝ := by
+  iintro #Hinv #Hlb Hc
+  iunfold kvInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  iunfold etcdKV at Hc
+  ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ Hc
+  iunfold kvRevLbZ at Hlb
+  icases Hlb with ⟨%L₀, #H0, %Hn⟩
+  have hrl := Hok.2.2.2.2.2.2
+  iunfold srvRLog at HL
+  ihave #H0' : monoListLbOwn γ.raft.log L₀ $$ []
+  · iExactEq H0; rw [hrl]
+  ihave %Hp := mono_list_auth_lb_valid γ.raft.log _ L L₀ $$ HL H0'
+  imod Hclose $$ [HL Hσ] with -
+  · inext; iexists L; iunfold srvRLog; iframe HL Hσ Hw; ipureintro; exact Hok
+  imodintro
+  iunfold etcdKV
+  iframe Hc
+  ipureintro
+  have hpre : kvModel γk L₀ <+: kvModel γk L := kvRaftOf_prefix _ _ _ _ _ Hp.2
+  have hlen := hpre.length_le
+  have hσ : σ = kvModelSt γk L := Hag.symm
+  rw [hσ]
+  unfold kvModelSt
+  rw [kvStateOf_rev]
+  omega
+
 omit raftAsm in
 /-- The same cluster's KV names agree on the revisions reached. -/
 theorem kvRevLb_same (γk γk' : KVNames) (h : kvSame γk γk') (r : w64) :

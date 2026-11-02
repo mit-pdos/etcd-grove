@@ -11,7 +11,8 @@ base of each printed in the build log (`#print axioms`). Lean-first (no Rocq cou
   process (`NewServer`, `Start`), its gRPC server (`v3rpc.Server`) listening at `127.0.0.1:23794`
   (`net.Listen`, `go gs.Serve(l)`), a client (`clientv3.New`), five rounds of a `Put` of the
   round's key with value `v`, a `Compact` at the revision before it and a `Get` of the key, each with
-  a panic unless the `Get` returned `v` -- returns: it does not panic. From
+  a panic unless the `Get` returned `v` (since 2026-11-02, the read-side law: at a revision at
+  least the `Put`'s) -- returns: it does not panic. From
   `isPkgInit compactkv`, the right to listen on the address, the main thread's token and `Main`'s
   named premises (`Spec/github_com/mit_pdos/etcd_grove/examples/compactkv/Main.lean`).
 * **`compactkv_safe`** (stage 3, 2026-10-18; `Adequacy.lean`'s `compactkv_adequate`): the closed

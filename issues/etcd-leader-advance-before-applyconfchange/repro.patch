@@ -1,0 +1,204 @@
+diff --git a/server/etcdserver/server.go b/server/etcdserver/server.go
+index a5e55b1756..3313871e39 100644
+--- a/server/etcdserver/server.go
++++ b/server/etcdserver/server.go
+@@ -1916,6 +1916,11 @@ func (s *EtcdServer) apply(
+ 
+ 		case raftpb.EntryConfChange:
+ 			// gofail: var beforeApplyOneConfChange struct{}
++
++			// gofail: var beforeApplyOneConfChangeOnMember string
++			// if s.MemberID().String() == beforeApplyOneConfChangeOnMember {
++			// 	time.Sleep(2 * time.Second)
++			// }
+ 			var cc raftpb.ConfChange
+ 			pbutil.MustUnmarshalMessage(&cc, e.Data)
+ 			removedSelf, err := s.applyConfChange(&cc, ep, shouldApplyV3)
+diff --git a/tests/integration/leader_advance_confchange_test.go b/tests/integration/leader_advance_confchange_test.go
+new file mode 100644
+index 0000000000..e3fc9d274d
+--- /dev/null
++++ b/tests/integration/leader_advance_confchange_test.go
+@@ -0,0 +1,182 @@
++// Copyright 2026 The etcd Authors
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//     http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++
++package integration
++
++import (
++	"context"
++	"fmt"
++	"testing"
++	"time"
++
++	"github.com/stretchr/testify/require"
++
++	"go.etcd.io/etcd/client/pkg/v3/types"
++	"go.etcd.io/etcd/tests/v3/framework/integration"
++	gofail "go.etcd.io/gofail/runtime"
++)
++
++// TestLeaderAdvanceBeforeApplyConfChangeLosesWrite: the leader's raft loop
++// calls Advance before its apply loop has applied a committed conf change
++// (server/etcdserver/raft.go, the leader branch), so raft's guard against a
++// second pending conf change (pendingConfIndex > applied) passes while the
++// leader still uses the old configuration.
++//
++// Voters {L, F2, F3}. With the leader's apply loop slow on conf changes (the
++// failpoint beforeApplyOneConfChangeOnMember, on L only): a client adds A (C1,
++// through L), another adds B (C2, through F3) once C1 is committed. L accepts
++// C2 while it still uses {L, F2, F3}. Partition {L, F2} | {F3}: L commits a
++// put of x with {L, F2} and acknowledges it once its apply loop catches up.
++// A and B start (cut off from L and F2) and with F3 form {F3, A, B}, a
++// majority of {L, F2, F3, A, B}, which elects a leader that never sees x.
++func TestLeaderAdvanceBeforeApplyConfChangeLosesWrite(t *testing.T) {
++	integration.BeforeTest(t)
++	integration.SkipIfNoGoFail(t)
++
++	clus := integration.NewCluster(t, &integration.ClusterConfig{Size: 3})
++	defer clus.Terminate(t)
++	li := clus.WaitLeader(t)
++	// Strict reconfiguration checks (the default) want peers connected for
++	// etcdserver.HealthInterval (5s) before a membership change.
++	time.Sleep(6 * time.Second)
++
++	var others []int
++	for i := 0; i < 3; i++ {
++		if i != li {
++			others = append(others, i)
++		}
++	}
++	L, F2, F3 := clus.Members[li], clus.Members[others[0]], clus.Members[others[1]]
++	t.Logf("leader L=%s F2=%s F3=%s", L.ID(), F2.ID(), F3.ID())
++
++	cliL, err := integration.NewClientV3(L)
++	require.NoError(t, err)
++	defer cliL.Close()
++	cliF3, err := integration.NewClientV3(F3)
++	require.NoError(t, err)
++	defer cliF3.Close()
++
++	// Two new members, added below, started later.
++	A, B := clus.MustNewMember(t), clus.MustNewMember(t)
++	peerURL := func(m *integration.Member) string { return "unix://" + m.PeerListeners[0].Addr().String() }
++
++	require.NoError(t, gofail.Enable("beforeApplyOneConfChangeOnMember", fmt.Sprintf(`return(%q)`, L.ID().String())))
++	defer gofail.Disable("beforeApplyOneConfChangeOnMember") //nolint:errcheck // may already be disabled
++
++	has := func(m *integration.Member, id types.ID) bool { return m.Server.Cluster().Member(id) != nil }
++
++	// C1: add A through L. L's configure waits for its own apply (slow), so in a goroutine.
++	go func() {
++		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
++		defer cancel()
++		_, perr := cliL.MemberAdd(ctx, []string{peerURL(A)})
++		t.Logf("member add A: %v", perr)
++	}()
++	// F3 applies C1; find A's id there.
++	var a types.ID
++	require.Eventually(t, func() bool {
++		for _, m := range F3.Server.Cluster().Members() {
++			if len(m.PeerURLs) > 0 && m.PeerURLs[0] == peerURL(A) {
++				a = m.ID
++				return true
++			}
++		}
++		return false
++	}, 5*time.Second, time.Millisecond)
++	ci1 := L.Server.CommittedIndex()
++	require.False(t, has(L, a), "L applied C1 already: no window")
++	time.Sleep(100 * time.Millisecond) // L's raft loop calls Advance for the Ready with C1
++
++	// C2: another client adds B through F3 (which has applied C1), while L has not applied C1.
++	ctxb, cancelb := context.WithTimeout(context.Background(), 10*time.Second)
++	respB, err := cliF3.MemberAdd(ctxb, []string{peerURL(B)})
++	cancelb()
++	require.NoError(t, err, "C2 refused")
++	b := types.ID(respB.Member.ID)
++	require.False(t, has(L, a), "L applied C1 before C2 was proposed: no window")
++	t.Logf("A=%s B=%s; C1 committed by index %d; C2 applied on F3 (applied %d) while L has applied neither (applied %d)",
++		a, b, ci1, F3.Server.AppliedIndex(), L.Server.AppliedIndex())
++
++	// Partition {L, F2} | {F3}.
++	L.InjectPartition(t, F3)
++	F2.InjectPartition(t, F3)
++	ci2 := L.Server.CommittedIndex()
++	term0 := L.Server.Term()
++
++	// L, still on {L, F2, F3}, commits x with {L, F2}, and acknowledges it once its apply loop catches up.
++	xres := make(chan error, 1)
++	var xrev int64
++	go func() {
++		ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
++		defer cancel()
++		resp, perr := cliL.Put(ctx, "x", "from-old-leader")
++		if perr == nil {
++			xrev = resp.Header.Revision
++		}
++		xres <- perr
++	}()
++	require.Eventually(t, func() bool { return L.Server.CommittedIndex() > ci2 }, 5*time.Second, time.Millisecond,
++		"L committed nothing after the partition")
++	t.Logf("L commits index %d (was %d) with {L, F2} at term %d", L.Server.CommittedIndex(), ci2, L.Server.Term())
++
++	err = <-xres
++	require.NoError(t, err, "the put of x was not acknowledged")
++	t.Logf("put x acknowledged by L at revision %d", xrev)
++
++	// L has now applied C1 and C2. Keep L and F2 away from A and B, then start A and B.
++	require.Eventually(t, func() bool { return has(L, a) && has(L, b) }, 15*time.Second, 10*time.Millisecond)
++	for _, m := range []*integration.Member{L, F2} {
++		m.Server.CutPeer(a)
++		m.Server.CutPeer(b)
++	}
++	for _, m := range []*integration.Member{A, B} {
++		m.InitialPeerURLsMap = types.URLsMap{}
++		for _, mm := range []*integration.Member{L, F2, F3, A, B} {
++			m.InitialPeerURLsMap[mm.Name] = mm.PeerURLs
++		}
++		m.NewCluster = false
++	}
++	// The members launch in parallel: each join waits for its server to start.
++	launched := make(chan error, 2)
++	for _, m := range []*integration.Member{A, B} {
++		go func() { launched <- m.Launch() }()
++	}
++	require.NoError(t, <-launched)
++	require.NoError(t, <-launched)
++	clus.Members = append(clus.Members, A, B)
++	// (L's and F2's cuts suffice: they send A and B nothing. A CutPeer on A or B
++	// would pause a rafthttp remote, which Transport.Stop then stops twice.)
++
++	// {F3, A, B} elects a leader among themselves.
++	require.Eventually(t, func() bool {
++		ld := F3.Server.Leader()
++		return F3.Server.Term() > term0 && (ld == F3.ID() || ld == a || ld == b)
++	}, 20*time.Second, 10*time.Millisecond, "{F3, A, B} elected no leader")
++	t.Logf("{F3, A, B} elected %s at term %d", F3.Server.Leader(), F3.Server.Term())
++
++	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
++	defer cancel()
++	yresp, err := cliF3.Put(ctx, "y", "from-new-leader")
++	require.NoError(t, err)
++	t.Logf("put y acknowledged by the new leader at revision %d", yresp.Header.Revision)
++
++	// A linearizable read through the new majority does not see the acknowledged x.
++	g, err := cliF3.Get(ctx, "x")
++	require.NoError(t, err)
++	if len(g.Kvs) == 0 {
++		t.Logf("LOST ACKNOWLEDGED WRITE: x acknowledged at revision %d by %s, absent in a linearizable read at revision %d through %s",
++			xrev, L.ID(), g.Header.Revision, F3.ID())
++	}
++	require.Emptyf(t, g.Kvs, "x reached the new majority: no violation this run")
++}
