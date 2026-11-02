@@ -26,6 +26,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Snapshot
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Commit
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.KVView
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KeyObs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.HooksBackend
 public import Spec.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitUnsafe
@@ -124,7 +125,7 @@ keys (`snapObs_window`): the image's index half (`imageAt_of_snap`'s `hci`, `htm
 /-- **The apply thread's request over the server's backend** (`backend.commitReq`): the backend
 whose hooks are the server's `BackendHooks` `bh` over the consistent index `ci` (as
 `backend_server_hooks` makes it) serves `applyThread γA s ⇒ freezeY γA s` for a state `s` with
-`ci` not 0 and nothing in flight. -/
+nothing in flight. -/
 theorem commitReq_freeze
     (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
     (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
@@ -135,7 +136,7 @@ theorem commitReq_freeze
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (γA : ApplyNames) (ci : Loc) (γ : backend.BNames) (P : backend.BParams) (W : IProp GF)
     (b bh lgh : Loc) (hP : ciKeys P) (hH : storage.hooksParams P) (s : ApplyState)
-    (hk0 : s.k ≠ W64 0) (hps : s.pending = false) :
+    (hps : s.pending = false) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -157,7 +158,7 @@ theorem commitReq_freeze
   iframe Ht Hhk
   iapply hooksReq_backendHooks hOn γ P W _ b t bh _ lgh hH
   iframe Hspkg Hbpkg Hsch Hh Hb Ht
-  iapply ci_saveFreeze hSave hPut hUR hID hName hSafe γA ci γ P W _ b t hP hH s hk0 hps
+  iapply ci_saveFreeze hSave hPut hUR hID hName hSafe γA ci γ P W _ b t hP hH s hps
   iframe #
 
 /-- The apply thread's request as the store's (`mvcc.storeReq`), over the real instance `d`
@@ -172,7 +173,7 @@ theorem storeReq_freeze
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (γA : ApplyNames) (ci : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = some d)
     (W : IProp GF) (bh lgh : Loc) (hP : ciKeys d.P) (hH : storage.hooksParams d.P)
-    (s : ApplyState) (hk0 : s.k ≠ W64 0) (hps : s.pending = false) :
+    (s : ApplyState) (hps : s.pending = false) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -195,7 +196,7 @@ theorem storeReq_freeze
   icases H2 with ⟨-, -, -, -, -, -, #Hb, -⟩
   iframe Hb
   iapply commitReq_freeze hOn hSave hPut hUR hID hName hSafe γA ci d.γB d.P W d.be bh lgh hP hH s
-    hk0 hps $$ H
+    hps $$ H
 
 /-- What the snapshot's observation finds of the committed meta keys in the window at `k`: the
 consistent index `k` and some term. -/
@@ -207,16 +208,21 @@ def ciObs (k : w64) (d : GMap (GoString × GoString) GoString) : Prop :=
 
 /-- **The snapshot's observation in the window** (`backend.Snapshot.spec`'s `Q`): with the
 server's batch-lock resource as the hooks' (`batchLockInv`), the window's `freezeY γA s` and the
-apply thread's half of the tracked buckets at `rb`, a commit's hook keys hold `s.k` (`ciObs`) and
-its tracked buckets are `rb`. -/
+apply thread's half of the tracked buckets at `rb`, a commit's hook keys hold `ciEff γA s.k`
+(`ciObs`; `s.k` itself unless `ci` is 0, then the keys the backend was opened with) and its tracked
+buckets are `rb`; with what the frame `F` observes of the view with the batch lock's resource
+`W` (`QF`, 2026-11-02: the writer's key observation, `txn.kvWriter_keyObs`). -/
 theorem snapObs_window (γA : ApplyNames) (γ : backend.BNames) (P : backend.BParams)
-    (hP : ciKeys P) (W F : IProp GF) (s : ApplyState) (rb : GMap GoString backend.BktData) :
-    ⊢ □ (∀ (vd : backend.VData) (d : GMap (GoString × GoString) GoString)
+    (hP : ciKeys P) (W F : IProp GF) (s : ApplyState) (rb : GMap GoString backend.BktData)
+    (QF : backend.VData → Prop) :
+    □ (∀ vd, F -∗ W -∗ backend.viewAt γ vd -∗ ⌜QF vd⌝) ⊢
+      □ (∀ (vd : backend.VData) (d : GMap (GoString × GoString) GoString)
           (r : GMap GoString backend.BktData),
         iprop(freezeY γA s ∗ backend.rbOwn γ rb ∗ F) -∗ W -∗ batchLockInv γA (metaTM γ P) -∗
           backend.viewAt γ vd -∗ backend.hkOwn γ d -∗ backend.rbOwn γ r -∗
-          ⌜ciObs s.k d ∧ r = rb⌝) := by
-  iintro !> %vd %d %r ⟨HY, Hrb, -⟩ - Hbl - Hhk Hr
+          ⌜(ciObs (ciEff γA s.k) d ∧ r = rb) ∧ QF vd⌝) := by
+  iintro #HQF !> %vd %d %r ⟨HY, Hrb, HF⟩ HW Hbl Hv Hhk Hr
+  ihave %hQF := HQF $$ %vd HF HW Hv
   iunfold freezeY at HY
   icases HY with ⟨-, Hmq, -⟩
   iunfold batchLockInv at Hbl
@@ -233,7 +239,7 @@ theorem snapObs_window (γA : ApplyNames) (γ : backend.BNames) (P : backend.BPa
   obtain ⟨-, Hd⟩ := Hd
   obtain ⟨-, Hrr⟩ := Hrr
   subst Hd
-  refine ⟨⟨?_, mm.2, ?_⟩, Hrr.symm⟩
+  refine ⟨⟨⟨?_, mm.2, ?_⟩, Hrr.symm⟩, hQF⟩
   · rw [backend.hkData_lookup, ciKeys_hk hP (Or.inl rfl)]
     simp only [↓reduceIte]
     rw [HmS.1, Hm1]
@@ -242,25 +248,29 @@ theorem snapObs_window (γA : ApplyNames) (γ : backend.BNames) (P : backend.BPa
     exact HmS.2
 
 /-- **`s.be.Snapshot()` in the window**: `srvBeSnapOk_of_backend` with the window's observation
-(`snapObs_window`): the snapshot's data holds the consistent index `s.k` and the tracked buckets
-`rb` (`imageAt_of_snap`'s `hci`, `htm`, `hrb`). -/
+(`snapObs_window`): the snapshot's data holds the consistent index `ciEff γA s.k` and the tracked
+buckets `rb` (`imageAt_of_snap`'s `hci`, `htm`, `hrb`), and the frame's observation `QF` of its
+view. -/
 theorem srvBeSnapOk_window (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
     (γA : ApplyNames) (γ : backend.BNames) (P : backend.BParams) (hP : ciKeys P) (W : IProp GF)
-    (bl : Loc) (qo : Qp) (s : ApplyState) (rb : GMap GoString backend.BktData) (F : IProp GF) :
+    (bl : Loc) (qo : Qp) (s : ApplyState) (rb : GMap GoString backend.BktData) (F : IProp GF)
+    (QF : backend.VData → Prop) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-      backend.isBackend γ P W (batchLockInv γA (metaTM γ P)) bl ⊢
+      backend.isBackend γ P W (batchLockInv γA (metaTM γ P)) bl ∗
+      □ (∀ vd, F -∗ W -∗ backend.viewAt γ vd -∗ ⌜QF vd⌝) ⊢
       srvBeSnapOk
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
           #bl)
         iprop(backend.bOpen γ qo ∗ backend.wbTok γ ∗ (freezeY γA s ∗ backend.rbOwn γ rb ∗ F))
         iprop(backend.bOpen γ qo ∗ (freezeY γA s ∗ backend.rbOwn γ rb ∗ F))
-        (fun D => ciObs s.k (backend.hkData P D) ∧ backend.rbData P D = rb) := by
-  iintro ⟨#Hpkg, #Hb⟩
+        (fun D => (ciObs (ciEff γA s.k) (backend.hkData P D) ∧ backend.rbData P D = rb) ∧
+          QF (backend.sData P D)) := by
+  iintro ⟨#Hpkg, #Hb, #HQF⟩
   iapply srvBeSnapOk_of_backend hSnap γ P W (batchLockInv γA (metaTM γ P)) bl qo
     iprop(freezeY γA s ∗ backend.rbOwn γ rb ∗ F)
-    (fun _ d r => ciObs s.k d ∧ r = rb)
+    (fun vd d r => (ciObs (ciEff γA s.k) d ∧ r = rb) ∧ QF vd)
   iframe Hpkg Hb
-  iapply snapObs_window γA γ P hP W F s rb
+  iapply snapObs_window γA γ P hP W F s rb QF $$ HQF
 
 /-- **The sender's KV log is well formed as a store's committed log** (D22 J7b, 2026-10-26;
 `imageAt_of_snap`'s `hwf`): the apply thread's sole writer (`apply.kvOwn`'s `txn.kvWriter`) at its
@@ -432,7 +442,10 @@ theorem srvMerged_bundle (γ : SrvRaft) (ml : Loc) (rc : GoInterface) (st : MsgS
   exact ⟨by simp only [mergedSt]; exact hty, rfl, Hsh.1.2.2.2.2.2.2.2⟩
 
 /-- **What the merged snapshot's image observes** (`createMergedSnapshotMessage`'s `Qd`): the
-backend's data `D` holds the KV log `log` in its `Key` bucket, the consistent index `ai` and some
+backend's data `D` holds at most the KV log `log` in its `Key` bucket (every key it has is `log`'s,
+at its value), exactly `log` with the compaction mode `cmp` off (2026-11-02: with compaction on,
+the compaction job deletes keys physically, so the snapshot can lack keys of `log`; the writer's
+observation `txn.kvWriter_keyObs`), the consistent index `ai` and some
 term in `Meta`, the other buckets of the committed log `A` (`bkRestAt`), and `log` is a well-formed
 committed log (`IdxWf`): `imageAt`'s clauses, over the apply thread's KV log in place of the model
 (`merged_image` relates them). (2026-10-31, the user's decision) No compaction key in `Meta` only
@@ -441,7 +454,8 @@ which is false of a snapshot taken with compactions applied): a compacted image 
 certificate's to state (`merged_image`, the durability work's `srvImageR`). -/
 def mergedObs (γr : ReadNames) (cmp : Bool) (ai : w64) (A : List EntryModel) (log : mvcc.Log)
     (D : backend.Data) : Prop :=
-  (∀ k, backend.dget D mvcc.keyName k = (mvcc.bucketMap log).lookup k) ∧
+  (∀ k v, backend.dget D mvcc.keyName k = some v → (mvcc.bucketMap log).lookup k = some v) ∧
+    (cmp = false → ∀ k, backend.dget D mvcc.keyName k = (mvcc.bucketMap log).lookup k) ∧
     (cmp = false → mvcc.noCmpData D) ∧
     backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
       go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes = encMeta ai ∧
