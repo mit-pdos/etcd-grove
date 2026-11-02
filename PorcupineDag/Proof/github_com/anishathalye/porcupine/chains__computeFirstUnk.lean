@@ -315,11 +315,138 @@ theorem chains.computeFirstUnk.wp_proof
                   have := HI.1
                   have : ((sint.nat iv : Nat) : Int) = sint.Z iv := Int.toNat_of_nonneg hbi.1
                   omega) hPi⟩
-            · wp_if_destruct
+            · have hnP := fun hP => Hif (hPiff.mpr hP)
+              wp_if_destruct
               · exact absurd Hif (linOrder_ne_conc _ _)
-              · sorry
-          · sorry
-        sorry
+              · wp_for_post
+                wp_join_done
+                iexists iv, stepv, iv, m
+                iframe
+                ipureintro
+                exact ⟨HI.1, HI.2.1, HI.2.2.1, HI.2.2.2, Or.inr ⟨rfl, hiL, hnP⟩⟩
+          · wp_join_done
+            iexists iv, stepv, W64 (-1), m
+            iframe
+            ipureintro
+            exact ⟨HI.1, HI.2.1, HI.2.2.1, HI.2.2.2, Or.inl ⟨rfl, by rw [hLZ]; exact Int.not_lt.mp Hif⟩⟩
+        iNamed HE
+        wp_auto
+        wp_join iprop(∃ hv : w64, "high" ∷ high_ptr ↦ hv ∗
+            "%Hhv" ∷ ⌜sint.Z hv = min (sint.Z iv) ((chain cs (sint.nat dv)).length : Int)⌝ ∗
+            "cltOps_cd" ∷ (sliceIndexRef client (sint.Z dv) chV.clients').[client, go!"cltOps"]
+              ↦{DFrac.own (1 : Qp).half} cvd.cltOps' ∗
+            "clients_ch" ∷ ch.[chains, go!"clients"] ↦ chV.clients' ∗
+            "ch" ∷ ch_ptr ↦ ch ∗ "d" ∷ d_ptr ↦ dv) at next
+          with [high cltOps_cd clients_ch ch d] as HH
+        · idx_auto [hbd']
+          wp_if_destruct
+          · idx_auto [hbd']
+            wp_join_done
+            iexists _
+            iframe
+            ipureintro
+            rw [← hLZ] at Hif ⊢
+            omega
+          · wp_join_done
+            iexists _
+            iframe
+            ipureintro
+            rw [← hLZ] at Hif
+            omega
+        iNamed HH
+        obtain ⟨HEs, HEi, HEl, HEp, HEx⟩ := HE
+        have h2m : (1 : Int) ≤ 2 ^ m := by
+          have := Nat.one_le_two_pow (n := m); exact_mod_cast this
+        have hm2 : (2 : Int) ^ m / 2 ≤ 2 ^ m - 1 := by omega
+        have hstepL : sint.Z stepv ≤ 2 * ((chain cs (sint.nat dv)).length : Int) + 2 := by omega
+        have hq := sint_sdiv_two (a := stepv) (by omega)
+        generalize BitVec.sdiv stepv (W64 2) = q at hq ⊢
+        have hlow : sint.Z (iv - q) = sint.Z iv - 2 ^ m / 2 := by rw [← HEs, ← hq]; word
+        rw [hlow]
+        wp_if_destruct
+        · exfalso; omega
+        -- the binary search
+        ihave IHB : iprop(∃ (lv hv fdkv : w64), "low" ∷ low_ptr ↦ lv ∗ "high" ∷ high_ptr ↦ hv ∗
+            "firstDontKnow" ∷ firstDontKnow_ptr ↦ fdkv ∗
+            "%HB" ∷ ⌜(start : Int) ≤ sint.Z lv ∧ sint.Z lv ≤ sint.Z hv ∧
+              sint.Z hv ≤ ((chain cs (sint.nat dv)).length : Int) ∧
+              (∀ j : Nat, start ≤ j → (j : Int) < sint.Z lv →
+                PAt h cs (sint.nat c) (st.head (sint.nat c)) (sint.nat dv) j) ∧
+              ((fdkv = W64 (-1) ∧ sint.Z hv = ((chain cs (sint.nat dv)).length : Int)) ∨
+               (fdkv = hv ∧ sint.Z hv < ((chain cs (sint.nat dv)).length : Int) ∧
+                ¬ PAt h cs (sint.nat c) (st.head (sint.nat c)) (sint.nat dv) (sint.nat hv)))⌝)
+          $$ [low high firstDontKnow]
+        · iexists iv - q, hv, fdkv
+          iframe
+          ipureintro
+          refine ⟨by omega, by omega, by omega, fun j h1 h2 => HEp j h1 (by omega), ?_⟩
+          rcases HEx with ⟨h1, h2⟩ | ⟨h1, h2, h3⟩
+          · exact Or.inl ⟨h1, by omega⟩
+          · refine Or.inr ⟨by subst h1; word, by omega, ?_⟩
+            have : hv = fdkv := by subst h1; word
+            rw [this, h1]; exact h3
+        wp_for IHB
+        obtain ⟨HBs, HBlh, HBh, HBp, HBx⟩ := HB
+        wp_if_destruct
+        · have hq2 := sint_sdiv_two (a := hv - lv) (by word)
+          generalize BitVec.sdiv (hv - lv) (W64 2) = q2 at hq2 ⊢
+          have hmid : sint.Z (lv + q2) = sint.Z lv + (sint.Z hv - sint.Z lv) / 2 := by
+            have : sint.Z (hv - lv) = sint.Z hv - sint.Z lv := by word
+            rw [this] at hq2; rw [← hq2]; word
+          generalize lv + q2 = mv at hmid ⊢
+          have hml : sint.Z lv ≤ sint.Z mv := by omega
+          have hmh : sint.Z mv < sint.Z hv := by omega
+          have hbm : 0 ≤ sint.Z mv ∧ sint.Z mv < sint.Z cvd.cltOps'.len := by
+            constructor <;> omega
+          have hmn : ((sint.nat mv : Nat) : Int) = sint.Z mv := Int.toNat_of_nonneg hbm.1
+          have hmLn : sint.nat mv < (chain cs (sint.nat dv)).length := by omega
+          obtain ⟨a, ha⟩ : ∃ a, cosd[sint.nat mv]? = some a :=
+            ⟨_, List.getElem?_eq_getElem (by omega)⟩
+          idx_auto [hbd', hbm]
+          wp_apply (wp_check_elems wp_Check consistency_ptr cons cvd.cltOps' cvc.cltOps' cosd cosc
+            (sint.Z mv) (sint.Z cvc.head') a co (DFrac.own 1) (DFrac.own 1) hbm.1 hbh.1 ha hco)
+            $$ [$consistency $Hcosd $Hcosc] as ⟨consistency, Hcosd, Hcosc⟩
+          · iframe #
+          have hPiff := pAt_iff_linOrder Hcod Hcoc hmLn hhl ha hco'
+          wp_if_destruct
+          · -- `HardBefore`: the bound is above `mid`
+            have hPm := hPiff.mp Hif
+            wp_for_post
+            iframe
+            iexists mv + W64 1, hv, fdkv
+            iframe
+            ipureintro
+            have e : sint.Z (mv + W64 1) = sint.Z mv + 1 := by word
+            refine ⟨by omega, by omega, HBh, fun j h1 h2 => pAt_down hok hmLn (by omega) hPm, HBx⟩
+          · have hnP := fun hP => Hif (hPiff.mpr hP)
+            wp_if_destruct
+            · exact absurd Hif (linOrder_ne_conc _ _)
+            · have hleaf : (start : Int) ≤ sint.Z lv ∧ sint.Z lv ≤ sint.Z mv ∧
+                  sint.Z mv ≤ ((chain cs (sint.nat dv)).length : Int) ∧
+                  (∀ j : Nat, start ≤ j → (j : Int) < sint.Z lv →
+                    PAt h cs (sint.nat c) (st.head (sint.nat c)) (sint.nat dv) j) ∧
+                  ((mv = W64 (-1) ∧ sint.Z mv = ((chain cs (sint.nat dv)).length : Int)) ∨
+                   (mv = mv ∧ sint.Z mv < ((chain cs (sint.nat dv)).length : Int) ∧
+                    ¬ PAt h cs (sint.nat c) (st.head (sint.nat c)) (sint.nat dv) (sint.nat mv))) :=
+                ⟨HBs, hml, by omega, HBp, Or.inr ⟨rfl, by omega, hnP⟩⟩
+              wp_if_destruct
+              · wp_for_post
+                iframe
+                iexists lv, mv, mv
+                iframe
+                ipureintro; exact hleaf
+              · wp_if_destruct
+                · wp_for_post
+                  iframe
+                  iexists lv, mv, mv
+                  iframe
+                  ipureintro; exact hleaf
+                · exfalso
+                  rename_i hfd
+                  rcases HBx with ⟨h1, -⟩ | ⟨h1, -, -⟩
+                  · subst h1; exact hfd (by decide)
+                  · subst h1; omega
+        · sorry
     · sorry
 
 end proof

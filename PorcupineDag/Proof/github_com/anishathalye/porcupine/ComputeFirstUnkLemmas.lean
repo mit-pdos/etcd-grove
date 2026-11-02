@@ -84,6 +84,15 @@ theorem prec_iff_linOrder {h : List (Op OpV)} {cs : List (List Nat)} {c d j k : 
     rw [hob] at h2; cases h2
     exact hlt
 
+/-- Go's `x / 2` on a non-negative `int`. -/
+theorem sint_sdiv_two {a : w64} (ha : 0 ≤ sint.Z a) :
+    sint.Z (BitVec.sdiv a (W64 2)) = sint.Z a / 2 := by
+  have h1 := BitVec.toInt_sdiv_of_ne_or_ne a (W64 2) (Or.inr (by decide))
+  have h2 : (W64 2).toInt = 2 := by decide
+  show (BitVec.sdiv a (W64 2)).toInt = a.toInt / 2
+  rw [h1, h2]
+  exact Int.tdiv_eq_ediv_of_nonneg ha
+
 theorem linOrder_ne_conc (a b : Operation) : linOrder a b ≠ W64 3 := by
   unfold linOrder
   repeat (first | decide | split)
