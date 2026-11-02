@@ -16,15 +16,19 @@ until then, so that no statement over them can be proved by unfolding them.
   Q4). It holds what the restarted member's `NewServer` takes of the ghost state in place of a
   first start's `memberBoot` (`examples/common/Defs.lean`): the node API's restart token in place
   of `nodeBoot` (R2e, raft's restart from a durable state), the cluster's invariants at the
-  recorded names, and the id generator's freshness across the restart
-  (`issues/etcd-request-id-restart-reuse.md`). R2c and R2d split it between the image and
+  recorded names. (R2c, 2026-11-02: no id state. A restart makes its incarnation's id share anew,
+  at a fresh incarnation key, `idutil/Incarnations.lean`'s `idIncarnation_alloc`, with its new
+  store's floor `srvFloorFact E₀'` as the key's claim facts; the ids' freshness across incarnations
+  is the trusted `Next`'s assumption, `issues/etcd-request-id-restart-reuse.md`.) R2c and R2d split it between the image and
   `NewServer`'s restart premise. (2026-11-02, `Run`'s glue: until then a separate `srvRestartBoot`
   bundle the example supplied; the restarted member's own names, its wait registry and its store's
   index, are new, so the server allocates them, not the example.)
 * `restartNames ρ ρ'` (pure, defined): the restarted incarnation's names `ρ'` agree with the stopped
   one's `ρ` on what the rest of the cluster and its clients see: raft's names, the KV state's ghost
   variable (`etcdKV`, the clients' invariants), the KV model of the committed log, the cluster's
-  map of issued request ids and the member's id prefix. Its other names are its own.
+  map of issued request ids and the member's id prefix. Its other names are its own. (Once the
+  id state is keyed by incarnation, R2c, the agreement is on the cluster's id maps and the prefix,
+  and the key is the one `idIncarnation_alloc` gives.)
 * `bootstrapRestartContract cfg U γ id ctxs N dir`: `bootstrap`'s contract on a data directory that
   holds member `id`'s image (`bootstrapContract`'s restart case, L3): with the image, an error or
   the record of a restart (`bootOk`'s restart case). R2c.
