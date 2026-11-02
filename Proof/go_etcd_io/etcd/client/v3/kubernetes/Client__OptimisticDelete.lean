@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.etcd.client.v3.ModRevision
 public import Spec.go_etcd_io.etcd.client.v3.Compare
 public import Spec.go_etcd_io.etcd.client.v3.OpDelete
 public import Spec.go_etcd_io.etcd.client.v3.OpGet
+public import Proof.go_etcd_io.etcd.client.v3.TxnPlain
 
 @[expose] public section
 
@@ -45,7 +46,7 @@ theorem Client.OptimisticDelete.wp_proof
     (wp_Compare : EtcdGrove.Compare.spec (GF := GF) (hG := hG))
     (wp_kvFromTxnResponse : kvFromTxnResponse.spec (GF := GF) (hG := hG)) :
     Client.OptimisticDelete.spec (GF := GF) (hG := hG) := by
-  intro _ _ kc ms V ci cd key rev opts Q
+  intro _ _ kc ms V ci cd key rev opts Q hk
   wp_start as ⟨#Hcl, #Hone, #Hregs, #Hctx, #Hce, Hau⟩
   wp_auto
   ihave #Hnil0 := optsAt_nil (GF := GF)
@@ -114,7 +115,7 @@ theorem Client.OptimisticDelete.wp_proof
     iframe Hobj
     ipureintro; simp [TxnBuild.empty]
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Then tp (ms.map client.SrvAt.addr) ci cd _ tsl
+  wp_apply (client.v3.txn.wp_Then_plain tp (ms.map client.SrvAt.addr) ci cd _ tsl
       [opDeleteModel key []] [.delete (opDeleteModel key [])]) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
@@ -129,14 +130,15 @@ theorem Client.OptimisticDelete.wp_proof
       simp [TxnModel.empty, clientTxn, linkv.cmpOf, compareM, cmpKeyM, clientTOp]
     (try wp_auto)
     wp_apply (txn_Commit_st tp ms ci cd ⟨clientTxn [.mod key rev] [.del key] [], true, true, false⟩
-        Q [.mod key rev] [.del key] [] rfl (by simp)) $$ [Hobj Hau Htwo]
+        Q [.mod key rev] [.del key] [] rfl (by simp)
+        (clientTxn_size (val := []) rev rfl (Or.inr rfl) (Or.inl rfl) hk (by simp))) $$ [Hobj Hau Htwo]
       as %resp %err Hout
     · iframe #
       iframe
       done
     icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, #Hke⟩)
     · subst Herr
-      obtain ⟨hok, -, hrev, hb⟩ := Hσ
+      obtain ⟨hok, -, hrev, hb, -⟩ := Hσ
       iunfold txnRespMsg at Hm
       icases Hm with ⟨%Hnn, %h, %rsl, %ps, #Hh, #Hhf, #Hsucc, #Hrs, #Hrsl, #Hms⟩
       iunfold hdrFull at Hhf
@@ -194,7 +196,7 @@ theorem Client.OptimisticDelete.wp_proof
       rcases i with _ | i
       · cases Ho; cases Hm; iexact Hop2
       · simp at Ho
-    wp_apply (client.v3.txn.wp_Else tp (ms.map client.SrvAt.addr) ci cd _ esl
+    wp_apply (client.v3.txn.wp_Else_plain tp (ms.map client.SrvAt.addr) ci cd _ esl
         [opGetModel key []] [.get (opGetModel key [])]) $$ [Hobj] as Hobj
     · iframe #
       iframe Hobj
@@ -207,13 +209,14 @@ theorem Client.OptimisticDelete.wp_proof
     (try wp_auto)
     wp_apply (txn_Commit_st tp ms ci cd
         ⟨clientTxn [.mod key rev] [.del key] [.get key], true, true, true⟩
-        Q [.mod key rev] [.del key] [.get key] rfl (by simp)) $$ [Hobj Hau Htwo]
+        Q [.mod key rev] [.del key] [.get key] rfl (by simp)
+        (clientTxn_size (val := []) rev rfl (Or.inr rfl) (Or.inr rfl) hk (by simp))) $$ [Hobj Hau Htwo]
       as %resp %err Hout
     · iframe #
       iframe
     icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, #Hke⟩)
     · subst Herr
-      obtain ⟨hok, hrel, hrev, hb⟩ := Hσ
+      obtain ⟨hok, hrel, hrev, hb, -⟩ := Hσ
       iunfold txnRespMsg at Hm
       icases Hm with ⟨%Hnn, %h, %rsl, %ps, #Hh, #Hhf, #Hsucc, #Hrs, #Hrsl, #Hms⟩
       iunfold hdrFull at Hhf

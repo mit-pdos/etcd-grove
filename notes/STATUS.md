@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-11-02 (durability stage II (u): `RestartNode.spec` at a configuration point `a ∈ [max σ.b A, σ.commit]` again (candidate 12's form) and proved there -- the `RawNode` keeps the configuration index below the commit index and below a pending or lent snapshot (`CapOk`, in `LoanOk`), `run`'s `runCfg` lets the index pass the committed log handed out when the driver's view is at it; the conf state's list-length premise gone (`newRaft`/`NewRawNode` take the listed ids' count, which `RestartNode` gets from the membership's `CfgOk`); kvdurable's two `sorry`s gone, `kvdurable_porcupine_safe` rests on no `sorry`; see "Durability stage II (u)"). 2026-11-02 (durability stage II (t): the final merge -- `worktree-agent-newraft` (II (o)/(p)/(r): `StartNode`, `RestartNode`, `newRaft`, `NewRawNode`, `newLogWithSize`, `setupNode` proved; `wcommit`; `SdtTie` relaxed) merged into this branch's `PhsOk`/`QOk`/`ReadyFacts`; raft's start/restart path and node API rest on no `sorry`; kvdurable adapted (`StorageHolds`' `wcommit`, `readyFits`, adequacy now for `n < 2^61` steps) and rests on 2 isolated `sorry`s, both a mismatch with raft's `RestartNode.spec`: its configuration point (`kd_RestartNode_at`) and its conf-state list bound (`kd_confAt_lists_le`); see "Durability stage II (t)"). 2026-11-02 (durability stage II (s): kvdurable merged (restart, start, link, callees, `openStorage`, adequacy; branch `worktree-agent-kvd-adequacy`) and its stand-in `sorry`s replaced by raft's laws -- the nine `Ready` facts (`readyRest_*`, `softStateIs_ne_null`; G7 at the image's commit index), `restartStorage`'s freeze point (the bridge gone), `RestartNode`'s S1b, `kdFileInv` without its lent case; see "Durability stage II (s)"). 2026-11-02 (durability stage II (q): `node.run` merged and adapted, its `sorry` gone; G20, every `Ready` entry of a type of raft's, `CCDecodes`' new `uint.Z ty ≤ 2`, law `readyRest_ents_type`; see "Durability stage II (q)"). 2026-11-02 (durability stage II (m): the three gaps of II (k) closed -- `prevHardSt`'s record below the node's hard state (`PhsOk`, from the model's `PVoteLe`: the term never back, a vote never taken back within a term), `RNState.hlb` raised by `ownRawNodeReady_abandon_keep` for a stale `Ready`, `r.msgs` never self-addressed (`QOk` in `ownRaftPhys`); the `Ready` facts G4, G7 (at the hard state's commit, not the durable one), G8, G9, G10, G14, G17 as raft laws on `readyRest` (`ReadyRestFacts`, from `ReadyFacts` at the cut through `readyCut`), G21 as `softStateIs_ne_null`; G20 not done (no invariant bounds entry types); `node.run` still `sorry` (the other agent's); see "Durability stage II (m)" and `/home/ubuntu/spec-scratch/raft-durability/stageII-m-report.md`). 2026-11-02 (durability stage II (r): `RestartNode.spec`'s configuration point narrowed to the applied index it starts at, its last `sorry` gone; `newRaft.wp_proof` proved over the window (raw struct beside the caught-up view); see "Durability stage II (r)"). 2026-11-01 (durability stage II (n): `node.run.wp_proof` proved under the durability design -- `run`'s durable share in its loop invariant (`durRest`: idle, its half of `dur`, `bw` whole, the free queue; busy, its half of `bw`, which now travels in `advDep`/`advRet`), the cut (`ownRawNodeReady_handout`) inside the `readyc` send's update with the batch's `readyCut`, `advancec`'s fragments for `RawNode.Advance`; the stop by option (c): `stop`'s handshake carries only the client's half of `live` and `run` answers with its generation share and `ownRaftGhost` (`stopAns`), `node.Stop` does `raft_stop` itself (spec unchanged); see `/home/ubuntu/spec-scratch/raft-durability/stageII-n-report.md`).. 2026-11-01 (durability stage II (k): fix C on the `RawNode` layer -- `RNState.bw`, the self-addressed responses behind the cut batch's fragments (`pendingRel`/`pendList` over `W`, `RawNode.Advance.spec`'s `durFrags γ id rs.bw`), `ownRawNodeReady_handout` is the cut (`ownRaftGhost_cut`), `readyWithoutAccept`/`ownRawNodeIdle_ready` proved but for three gaps (the hard state's monotonicity ×2, `r.msgs` not self-addressed), `RawNode.Ready.spec` restated like the node API (*enter*, leader messages) and proved; `node.run` and item 3 (G4..G21) not done, the stop arm blocked (`stop`'s handshake answers before it receives); S1b in `RestartNode`'s post, a freeze point in `restartStorage`/`storHolds` in place of S1; see `/home/ubuntu/spec-scratch/raft-durability/stageII-k-report.md`). 2026-11-01 (durability stage II (i): `durTie` tied to the storage, the 16 G2 sites proved, `readyMsgs_sent` in raft; see "Durability stage II (i)"). 2026-11-01 (durability stage I-6: fix G1 made as amended, the attach record in the storage names (`StorNames.a0/c0/ct`, recorded by `storKeyNames`), `raftBnd`/`raftDL`/`nodeAppliedLbU` read it, raft's view carries the catch-up (`storCaught` in `storAuths`) so `view_bound`/`view_dl`/`isStorage_of_V` keep their statements and proofs; `newLogWithSize` (the struct out, the log completed at the loaded counters), `newRaft`/`NewRawNode` (`AttachRec`, the view without the record `sn.unrec`), `RestartNode`'s raw triple (storage side) restated for a non-empty storage; G2: `Bootstrap`'s four and `acceptReady`'s two obligations proved, the sixteen step obligations (`durTie` across a step) unprovable as stated -- the step specs do not keep `offsetInProgress` from rising and `durTie` says nothing of the recorded log past it -- see `/home/ubuntu/spec-scratch/raft-durability/stageI-6-attach.md`). 2026-11-01 (durability stage I-4 fixes: the merge of layer 3 with stage II (a) (protocol) and (c) (storage) built in full, two mechanical repairs; fix G2, `ownRawNode`/`ownRawNodeReady`/`ownRawNodeIdle` tie the recorded role to `prevSoftSt` and the recorded durable state to the log (`durTie`), `acceptReady`/`RawNode.Ready` record the batch's durable state and role, the new obligations `sorry` (`PORT(durability stage II): G2`); fix G1, the attach record, not made: as decided it gives raft no term for a snapshot certified by the attach (`view_dl`), see `/home/ubuntu/spec-scratch/raft-durability/stageI-4-fixes.md`). 2026-11-01 (durability stage I, layer 3: the node API and start/stop statements -- `raftState`, `nodeVacant`, `nodeAppliedLb`/`nodeCommitLb` keyed by the storage key, the receive with *enter* (`readyGot`), `RestartNode`/`StartNode`/`Stop`/`Advance`/`run`, `newLogWithSize`/`newRaft`/`NewRawNode` from a non-empty storage, the allocation; proofs `sorry`, worklist `/home/ubuntu/spec-scratch/raft-durability/stageI-3-worklist.md`; the clients kv, kvreconf and etcd's server name the storage key and durable state through placeholders `kvKey`/`kvrKey`/`srvKey` (`PORT(durability layer 4)`) until layer 4 restates them). 2026-11-01 (kvdurable writes its file from its own image of it, `Storage.img`, changed under `dmu` with each storage change by `Storage` wrappers that mirror `MemoryStorage`, never reading the `MemoryStorage` back: API gaps G2/G3 no longer apply to kvdurable; `kdDmuInv` holds the image (`Image.lean`: `ownImage`, the pure changes `imgAppend`/...); proved: `image.{applySnapshot,append,createSnapshot,compact}`, the `Storage` wrappers, `SetHardState`, `encode`, `newStorage`; report `/home/ubuntu/spec-scratch/raft-durability/kvdurable-image-report.md`). 2026-11-01 (durability stage I, layer 4: the clients' statements over the new node API -- kvreconf, kv, etcd's server restated with the storage key in their names (`RepNames.key`, `RNNames.key`, `runStor γr K`), `raftState` beside each driver, `nodeCommitLb` threaded to kvreconf's snapshotter; placeholders deleted; kvdurable's invariants (`kvdurable/Defs.lean`: `kdFileInv`, `kdDmuInv`) and 22 spec files; API gaps G1 (the restart frame must depend on the key), G2 (no client share of the uncommitted log), G3 (attached `Snapshot` names no snapshot) in `/home/ubuntu/spec-scratch/raft-durability/stageI-5-clients.md`; trusted `kv_bootStorage`, `kv_storage_isStorage`, `server_cluster_alloc_on` changed). 2026-11-01 (durability stage II (j), start functions round 4: openStorage's Go fixes (data copied before CreateSnapshot; terms checked: index 0 at term 0, the snapshot's term the log's at its index), `KdFileOk` gains `KdSnapTermOk` (kept by every image change), `openStorage.spec` takes the bytes whole; openStorage still blocked when `si > prev`: `CreateSnapshot` needs the entry at `si` frozen while `restartStorage`'s `storHolds` takes every stored entry at `own 1` (proposed raft API change: own only above `max σ.b si`); report's Addendum 6). 2026-11-01 (kvdurable: `Cluster.restart`, `Cluster.Crash`, `StartCluster` proved and linked, with the crasher design: `clusterLockInv` keeps the map of the current incarnations (`γ.cur`, `curRep`) and their `repStop`s, the crasher's token `crasher` in the place of the one being restarted; `Cluster.replica.specPin`; `sleep`, `Cluster.all`, `Cluster.random` ported; section "kvdurable: restart, Crash, StartCluster"). 2026-11-01 (kvdurable: `Cluster.start` and `Cluster.startNew` proved and linked; `kdFileInv` may lend the durable state to the writer (for `RestartNode`'s update); S1b an isolated `sorry`; `restart`/`Crash` blocked by their specs, `StartCluster` not started; section "kvdurable: the start functions"). 2026-11-01 (kvdurable: `Cluster.start`'s helpers specified and proved -- `Cluster.{fileOf, config, tick, sender, send, replica, deliver, step, dropped}`, `itoa`, `copyMsg`, `quietLogger`'s methods; `isClusterC` records the options, `StartCluster.spec` takes `kdOptsOk`, `Cluster.start`/`restart` take `repKnown`; kvdurable's `Link.lean`, `etc/gen-link.py --kvdurable`; section "kvdurable: Cluster.start's helpers"). 2026-11-01 (durability stage II (j), start functions round 3: S4 done (`Storage.Snapshot` spec and proof, `KdStorageApi.lean`: the promoted read methods, `kdStorage_isStorage`, `kd_restartStorage` building `restartStorage` of a file's contents and allocating `memStorInvP` at raft's key); `newReplica` proved (its spec gains three premises S2 missed: `1 ≤ id ≤ 9`, `GMap.size m.ids < 2^61`, `ap.length` = the image's snapshot index); `isClusterC` gains `%Hbl0` (`bootLen = 0`, approved), `StartCluster.spec` takes it; `openStorage` unprovable as stated (snapshot data aliased by `CreateSnapshot`, the snapshot's term not tied to the entry's, `getSnapshot` consumes the bytes); `Cluster.start` and the wrappers not started: kvdurable has no specs of `Cluster.{fileOf, config, tick, sender}`/`itoa`; report's Addendum 5). 2026-11-01 (durability stage II (j), start functions round 2: S2/S3 restated (`newReplica.spec` with the file/image tie, G18, the image's frozen record, `frozenTo` of the delivered log, `memSnapLb` at the snapshot's index; `openStorage.spec` posts `memSnapLb`); the start proofs not started (capacity); one more raft fact proposed, S1b (the restarted delivered log agrees with the stored entries); handoff in the report's Addendum 4). 2026-11-01 (durability stage II (j), start functions: G23 done (`isReplicaR` carries `memSnapLb ρ.γs 0`; `run` rests only on the raft-fact lemmas); integration branch `worktree-kvdurable` merged (restartStorage's frame `F K`); `Replica.ticker` spec and proof ported from kvreconf; the start functions (`openStorage`, `newReplica`, `Cluster.start`, `restart`, `startNew`, `StartCluster`, `Crash`) not proved: S1 raft API gap (the restarted delivered log `(σ.b, Applied]` is never frozen: runStart's G19 and kdDmuInv's `fz ≥ len l` unprovable when `Applied > σ.b`), S2 `newReplica.spec` premises missing (o/M tie, `len l ≤ len ap`, the frozen record, `memSnapLb`), S3 `openStorage` post lacks `memSnapLb`, S4 no `isStorage` instance for kvdurable's storage (its `Snapshot`/`InitialState` overrides); report's Addendum 3). 2026-11-01 (durability stage II (j), finished: kvdurable `Replica.run` proved, both branches; G22 done (`applyEntry` takes and returns its `appNode` only for an entry it does not cover, and no longer takes `len ap + 1 < 2^61`, which only an uncovered entry needs, where it is `k + 1 < 2^61`; `runInv`'s view: `appNode` at `D` once `ap` is as long, else the node's configuration at `len ap`); new callee spec `raftpb.Entry.GetIndex` in `run`'s proof; one more isolated gap, a missing premise: `run_memSnapLb_G23` (`MemoryStorage.ApplySnapshot` takes `memSnapLb γs 0`; kvdurable's `isReplicaR` has none, kvreconf's has `#HsnLb`); `run`'s sorrys: G4/G7-G10/G14/G17/G20/G21 (raft facts) and G23; all 125 kvdurable modules build; report's second addendum). 2026-11-01 (durability stage II (j), after the decisions: G12 as an exact `cm` ghostVar of the image's hard state halved between `dmu` and `run`, with the file's commit at most the image's and `runStart`'s term/vote tie; G13 (`applyEntry`: `ap <+: l` only uncovered); G15 (`request`: prefix and `ic` bound only past `snapIndex`, plus `bound <= len D`); G18-G19 (`runStart`: the delivered log at most `ap`, frozen above a compaction point, at most `ic`; for review); `crash`/`persist`/`snapshot`/`applyEntry`/`request` re-proved; `Replica.run` WIP: `RunLemmas`, `RunImage`, `RunInv`, `RunDmu`, and `run` proved through the `dmu` section, `persist` and the sends of a `Ready` without a snapshot; raft facts G4/G7-G10/G14/G17/G20/G21 isolated; left: the apply tail (blocked in the restart regime by G22: the view's applied index lost through `applyEntry`) and the snapshot branch; report's addendum). 2026-11-01 (durability stage II (j): kvdurable G6 done -- `crash` locks `dmu` once more after `stop` (Go, retranslated), the writer stays in `dmu` after the crash until that section takes it out, `run`'s claim (now `runDone`'s payload, returned by `stop`) left in its place, which `run` refutes with its own half; `crash` and `stop` re-proved; `Replica.run` not started: beyond G4/G7-G10 it needs statement changes (G12: `dmu`'s image hard state untied to the driver's -- term/vote of an empty batch, the file's lagging commit at the first batch, `fz`'s raise when a `Ready` has committed entries but no hard state; G13: `applyEntry`'s `ap <+: l` for covered entries after a restart below the snapshot; G15: `request`'s `ap <+: D`/`ic` bound when it asks no snapshot) and two more raft facts (G14: the delivered entries are in the batch's durable log; G17: a `Ready`'s entries start above the durable commit); report `/home/ubuntu/spec-scratch/raft-durability/stageII-j-report.md`). 2026-11-01 (durability stage II (h), after the coordinator's decisions: kvdurable `KdDmuNames` (the claim, the image's frozen bound `ic` and snapshot index `is`), cited by `snapReqOk`, `request` and the snapshotter; the claim records the durable state (G5: `runStart`, `persist.specRun`); `Replica.snapshot` fully proved; no kvdurable `sorry` left; G6 as decided needs a `dmu` lock after `stop` that the Go code lacks (open); `Replica.run` not started; report's addendum). 2026-11-01 (durability stage II (h): kvdurable -- stage-I fixes 1-3 made: `applyEntry` takes `idx = len ap`, `k ≤ len ap`; `request` has kvreconf's `cs != nil` guard back (Go, retranslated); `readSeqs.next` takes the key and the reader's committed log and mints and commits the read context (`kd_mint_next`, kvreconf's `kvr_mint_read`); `isReplica` records `1 ≤ id ≤ 9`: `applyEntry`, `request`, `readSeqs.next`, `read` proved; fix 4 (tie the image to the `MemoryStorage`) not possible as stated -- the client cannot bound the `MemoryStorage`'s snapshot index from above nor hold its log above the commit (G2), and has no per-incarnation ghost name for a lower bound the requests could cite; `kdDmuInv` now keeps the image's shape, certificate and phase after a crash (only the writer leaves); `Replica.snapshot` proved but for two isolated gaps (`snap_create_gap`: request index ≤ image commit and the image's term there; `snap_known_gap`: `known` ≤ image's snapshot index), `ImageLemmas.lean`; `Replica.run` not attempted: blocked beyond G4 (G5: `run` cannot know `dmu`'s durable state is its driver's; G6: after a crash `run` cannot enter a commit-only batch, the writer having left; and raft facts on a batch against the stored log); report `/home/ubuntu/spec-scratch/raft-durability/stageII-h-report.md`). 2026-11-01 (durability stage II (f): kvdurable -- stage-I fixes made (`persist.spec` without `run`'s claim, entering a pending batch and leaving it `fired`; the crasher token, `repStop` = `repStopper` (what `stop` takes) ∗ half of `crashed` at `false`, `kdDmuInv` the other half); `run`'s/`applyEntry`'s callee specs ported from kvreconf and proved (`install`, `answer`, `applyOp`, `applyConf`, `fits`, `oneIn`, `below`, `decode`, `encode`, `readCtx`, `decodeReadCtx`, `validConf`; `ApplyLemmas.lean`, `SnapMake.lean`); proved `Replica.crash`, `Storage.{InitialState,snapIndex}`; proved but for an isolated `sorry` each (spec gaps): `applyEntry` (`idx = len ap`, `k ≤ len ap` missing), `request` (a `nil` configuration: the `cs != nil` guard kvdurable dropped), `readSeqs.next` (what it mints must be a read context), `read` (the id range for `next`; the context's commit, which `next` no longer does); not proved: `Replica.snapshot` and `Replica.run` (`kdDmuInv` relates the image to the `MemoryStorage` only by its hard state; the snapshotter's request index, its entry's term, the commit bound and `known` say nothing about the image); report `/home/ubuntu/spec-scratch/raft-durability/stageII-f-report.md`). 2026-11-01 (durability stage II (e): the clients over raft's durable node API -- proved kvreconf `Replica.{run,request,snapshot}`, `runInv_init`; kv `KV.run`, `kvCluster_alloc`; the server's `rn_ready_recv` (snapshot branch still SNAPSHOT-SORRY), `raftNode.start`, `isRaftNodeIfc_of_isNode`, `rnToks_of_start`, `srvClusterBoot_alloc(On)`; each `Ready`'s *enter* applied at once from the loop's `raftState` and `nodeRunning`; kvdurable `Replica.{stop,snapshotter,persist}` (both specs), `Stats.add` (new spec); not provable as stated: kvdurable `Replica.snapshot` (`persist.spec` takes `run`'s claim, which the snapshotter lacks), `Replica.crash` (nothing ties `crashed = true` to a spent stopper token); kvdurable `run`/`applyEntry` lack callee specs (`install`, `answer`, `applyOp`, `applyConf`), and `run`'s at-once *enter* of a commit-only batch needs a commit-monotonicity fact raft's API does not give; report `/home/ubuntu/spec-scratch/raft-durability/stageII-e-report.md`). 2026-11-01 (durability stage II (k): fix C on the `RawNode` layer -- `RNState.bw`, the self-addressed responses behind the cut batch's fragments (`pendingRel`/`pendList` over `W`, `RawNode.Advance.spec`'s `durFrags γ id rs.bw`), `ownRawNodeReady_handout` is the cut (`ownRaftGhost_cut`), `readyWithoutAccept`/`ownRawNodeIdle_ready` proved but for three gaps (the hard state's monotonicity ×2, `r.msgs` not self-addressed), `RawNode.Ready.spec` restated like the node API (*enter*, leader messages) and proved; `node.run` and item 3 (G4..G21) not done, the stop arm blocked (`stop`'s handshake answers before it receives); S1b in `RestartNode`'s post, a freeze point in `restartStorage`/`storHolds` in place of S1; see `/home/ubuntu/spec-scratch/raft-durability/stageII-k-report.md`). Older entries: `notes/status-history.md`, "Last updated entries (all 164, until 2026-10-22)" and "Last updated entries (2026-10-22 to 2026-10-31)".
+**Last updated:** 2026-11-02 (`lean` merged into `worktree-kvdurable` (`origin/lean` `ad589a858d`, 637 commits; Perennial pin `c4a24e323`): raft's node API carries lean's J8a/J8b and #7 additions over the durable API -- `readySnap`/`readyRest` take the node id again and give `nodeSnapLocal` and `bootLen < index` beside `nodeAppliedLb`/`nodeCommitLb`; `hsCommitted` without the no-snapshot escape, `api_enter` takes the witness; `CreateSnapshot` returns `ownSnapV`; `NodeOk`/`UniNames` without the snapshot-directory conjunct; lean's server snapshot-track proofs ported to `readyGot` and the keyed bounds (`rn_ready_recv`'s snapshot branch, `raftNode.start`, NodeBridge's snapshot `Advance`; `rn_storDL` from the driver); kvdurable without snapshot directories (`isClusterC`'s `%Hsl`). Trust base: 17 `sorry`s, lean's 11 and this branch's 6 PORT(durability stage II) ones (`kv.StartCluster`, `kvStorage_bootStorage`, `kvreconf.StartCluster`, `kvreconf.Cluster.startNew`, `bootstrappedRaft.newRaftNode`, `raftNode_of_StartNode`), which kv's, kvreconf's and the server examples' results now reach; not landed on `lean` for that reason). 2026-11-02 (durability stage II (u): `RestartNode.spec` at a configuration point `a ∈ [max σ.b A, σ.commit]` again (candidate 12's form) and proved there -- the `RawNode` keeps the configuration index below the commit index and below a pending or lent snapshot (`CapOk`, in `LoanOk`), `run`'s `runCfg` lets the index pass the committed log handed out when the driver's view is at it; the conf state's list-length premise gone (`newRaft`/`NewRawNode` take the listed ids' count, which `RestartNode` gets from the membership's `CfgOk`); kvdurable's two `sorry`s gone, `kvdurable_porcupine_safe` rests on no `sorry`; see "Durability stage II (u)"). 2026-11-02 (durability stage II (t): the final merge -- `worktree-agent-newraft` (II (o)/(p)/(r): `StartNode`, `RestartNode`, `newRaft`, `NewRawNode`, `newLogWithSize`, `setupNode` proved; `wcommit`; `SdtTie` relaxed) merged into this branch's `PhsOk`/`QOk`/`ReadyFacts`; raft's start/restart path and node API rest on no `sorry`; kvdurable adapted (`StorageHolds`' `wcommit`, `readyFits`, adequacy now for `n < 2^61` steps) and rests on 2 isolated `sorry`s, both a mismatch with raft's `RestartNode.spec`: its configuration point (`kd_RestartNode_at`) and its conf-state list bound (`kd_confAt_lists_le`); see "Durability stage II (t)"). 2026-11-02 (durability stage II (s): kvdurable merged (restart, start, link, callees, `openStorage`, adequacy; branch `worktree-agent-kvd-adequacy`) and its stand-in `sorry`s replaced by raft's laws -- the nine `Ready` facts (`readyRest_*`, `softStateIs_ne_null`; G7 at the image's commit index), `restartStorage`'s freeze point (the bridge gone), `RestartNode`'s S1b, `kdFileInv` without its lent case; see "Durability stage II (s)"). 2026-11-02 (durability stage II (q): `node.run` merged and adapted, its `sorry` gone; G20, every `Ready` entry of a type of raft's, `CCDecodes`' new `uint.Z ty ≤ 2`, law `readyRest_ents_type`; see "Durability stage II (q)"). 2026-11-02 (durability stage II (m): the three gaps of II (k) closed -- `prevHardSt`'s record below the node's hard state (`PhsOk`, from the model's `PVoteLe`: the term never back, a vote never taken back within a term), `RNState.hlb` raised by `ownRawNodeReady_abandon_keep` for a stale `Ready`, `r.msgs` never self-addressed (`QOk` in `ownRaftPhys`); the `Ready` facts G4, G7 (at the hard state's commit, not the durable one), G8, G9, G10, G14, G17 as raft laws on `readyRest` (`ReadyRestFacts`, from `ReadyFacts` at the cut through `readyCut`), G21 as `softStateIs_ne_null`; G20 not done (no invariant bounds entry types); `node.run` still `sorry` (the other agent's); see "Durability stage II (m)" and `/home/ubuntu/spec-scratch/raft-durability/stageII-m-report.md`). 2026-11-02 (durability stage II (r): `RestartNode.spec`'s configuration point narrowed to the applied index it starts at, its last `sorry` gone; `newRaft.wp_proof` proved over the window (raw struct beside the caught-up view); see "Durability stage II (r)"). 2026-11-01 (durability stage II (n): `node.run.wp_proof` proved under the durability design -- `run`'s durable share in its loop invariant (`durRest`: idle, its half of `dur`, `bw` whole, the free queue; busy, its half of `bw`, which now travels in `advDep`/`advRet`), the cut (`ownRawNodeReady_handout`) inside the `readyc` send's update with the batch's `readyCut`, `advancec`'s fragments for `RawNode.Advance`; the stop by option (c): `stop`'s handshake carries only the client's half of `live` and `run` answers with its generation share and `ownRaftGhost` (`stopAns`), `node.Stop` does `raft_stop` itself (spec unchanged); see `/home/ubuntu/spec-scratch/raft-durability/stageII-n-report.md`).. 2026-11-01 (durability stage II (k): fix C on the `RawNode` layer -- `RNState.bw`, the self-addressed responses behind the cut batch's fragments (`pendingRel`/`pendList` over `W`, `RawNode.Advance.spec`'s `durFrags γ id rs.bw`), `ownRawNodeReady_handout` is the cut (`ownRaftGhost_cut`), `readyWithoutAccept`/`ownRawNodeIdle_ready` proved but for three gaps (the hard state's monotonicity ×2, `r.msgs` not self-addressed), `RawNode.Ready.spec` restated like the node API (*enter*, leader messages) and proved; `node.run` and item 3 (G4..G21) not done, the stop arm blocked (`stop`'s handshake answers before it receives); S1b in `RestartNode`'s post, a freeze point in `restartStorage`/`storHolds` in place of S1; see `/home/ubuntu/spec-scratch/raft-durability/stageII-k-report.md`). 2026-11-01 (durability stage II (i): `durTie` tied to the storage, the 16 G2 sites proved, `readyMsgs_sent` in raft; see "Durability stage II (i)"). 2026-11-01 (durability stage I-6: fix G1 made as amended, the attach record in the storage names (`StorNames.a0/c0/ct`, recorded by `storKeyNames`), `raftBnd`/`raftDL`/`nodeAppliedLbU` read it, raft's view carries the catch-up (`storCaught` in `storAuths`) so `view_bound`/`view_dl`/`isStorage_of_V` keep their statements and proofs; `newLogWithSize` (the struct out, the log completed at the loaded counters), `newRaft`/`NewRawNode` (`AttachRec`, the view without the record `sn.unrec`), `RestartNode`'s raw triple (storage side) restated for a non-empty storage; G2: `Bootstrap`'s four and `acceptReady`'s two obligations proved, the sixteen step obligations (`durTie` across a step) unprovable as stated -- the step specs do not keep `offsetInProgress` from rising and `durTie` says nothing of the recorded log past it -- see `/home/ubuntu/spec-scratch/raft-durability/stageI-6-attach.md`). 2026-11-01 (durability stage I-4 fixes: the merge of layer 3 with stage II (a) (protocol) and (c) (storage) built in full, two mechanical repairs; fix G2, `ownRawNode`/`ownRawNodeReady`/`ownRawNodeIdle` tie the recorded role to `prevSoftSt` and the recorded durable state to the log (`durTie`), `acceptReady`/`RawNode.Ready` record the batch's durable state and role, the new obligations `sorry` (`PORT(durability stage II): G2`); fix G1, the attach record, not made: as decided it gives raft no term for a snapshot certified by the attach (`view_dl`), see `/home/ubuntu/spec-scratch/raft-durability/stageI-4-fixes.md`). 2026-11-01 (durability stage I, layer 3: the node API and start/stop statements -- `raftState`, `nodeVacant`, `nodeAppliedLb`/`nodeCommitLb` keyed by the storage key, the receive with *enter* (`readyGot`), `RestartNode`/`StartNode`/`Stop`/`Advance`/`run`, `newLogWithSize`/`newRaft`/`NewRawNode` from a non-empty storage, the allocation; proofs `sorry`, worklist `/home/ubuntu/spec-scratch/raft-durability/stageI-3-worklist.md`; the clients kv, kvreconf and etcd's server name the storage key and durable state through placeholders `kvKey`/`kvrKey`/`srvKey` (`PORT(durability layer 4)`) until layer 4 restates them). 2026-11-01 (kvdurable writes its file from its own image of it, `Storage.img`, changed under `dmu` with each storage change by `Storage` wrappers that mirror `MemoryStorage`, never reading the `MemoryStorage` back: API gaps G2/G3 no longer apply to kvdurable; `kdDmuInv` holds the image (`Image.lean`: `ownImage`, the pure changes `imgAppend`/...); proved: `image.{applySnapshot,append,createSnapshot,compact}`, the `Storage` wrappers, `SetHardState`, `encode`, `newStorage`; report `/home/ubuntu/spec-scratch/raft-durability/kvdurable-image-report.md`). 2026-11-01 (durability stage I, layer 4: the clients' statements over the new node API -- kvreconf, kv, etcd's server restated with the storage key in their names (`RepNames.key`, `RNNames.key`, `runStor γr K`), `raftState` beside each driver, `nodeCommitLb` threaded to kvreconf's snapshotter; placeholders deleted; kvdurable's invariants (`kvdurable/Defs.lean`: `kdFileInv`, `kdDmuInv`) and 22 spec files; API gaps G1 (the restart frame must depend on the key), G2 (no client share of the uncommitted log), G3 (attached `Snapshot` names no snapshot) in `/home/ubuntu/spec-scratch/raft-durability/stageI-5-clients.md`; trusted `kv_bootStorage`, `kv_storage_isStorage`, `server_cluster_alloc_on` changed). 2026-11-01 (durability stage II (j), start functions round 4: openStorage's Go fixes (data copied before CreateSnapshot; terms checked: index 0 at term 0, the snapshot's term the log's at its index), `KdFileOk` gains `KdSnapTermOk` (kept by every image change), `openStorage.spec` takes the bytes whole; openStorage still blocked when `si > prev`: `CreateSnapshot` needs the entry at `si` frozen while `restartStorage`'s `storHolds` takes every stored entry at `own 1` (proposed raft API change: own only above `max σ.b si`); report's Addendum 6). 2026-11-01 (kvdurable: `Cluster.restart`, `Cluster.Crash`, `StartCluster` proved and linked, with the crasher design: `clusterLockInv` keeps the map of the current incarnations (`γ.cur`, `curRep`) and their `repStop`s, the crasher's token `crasher` in the place of the one being restarted; `Cluster.replica.specPin`; `sleep`, `Cluster.all`, `Cluster.random` ported; section "kvdurable: restart, Crash, StartCluster"). 2026-11-01 (kvdurable: `Cluster.start` and `Cluster.startNew` proved and linked; `kdFileInv` may lend the durable state to the writer (for `RestartNode`'s update); S1b an isolated `sorry`; `restart`/`Crash` blocked by their specs, `StartCluster` not started; section "kvdurable: the start functions"). 2026-11-01 (kvdurable: `Cluster.start`'s helpers specified and proved -- `Cluster.{fileOf, config, tick, sender, send, replica, deliver, step, dropped}`, `itoa`, `copyMsg`, `quietLogger`'s methods; `isClusterC` records the options, `StartCluster.spec` takes `kdOptsOk`, `Cluster.start`/`restart` take `repKnown`; kvdurable's `Link.lean`, `etc/gen-link.py --kvdurable`; section "kvdurable: Cluster.start's helpers"). 2026-11-01 (durability stage II (j), start functions round 3: S4 done (`Storage.Snapshot` spec and proof, `KdStorageApi.lean`: the promoted read methods, `kdStorage_isStorage`, `kd_restartStorage` building `restartStorage` of a file's contents and allocating `memStorInvP` at raft's key); `newReplica` proved (its spec gains three premises S2 missed: `1 ≤ id ≤ 9`, `GMap.size m.ids < 2^61`, `ap.length` = the image's snapshot index); `isClusterC` gains `%Hbl0` (`bootLen = 0`, approved), `StartCluster.spec` takes it; `openStorage` unprovable as stated (snapshot data aliased by `CreateSnapshot`, the snapshot's term not tied to the entry's, `getSnapshot` consumes the bytes); `Cluster.start` and the wrappers not started: kvdurable has no specs of `Cluster.{fileOf, config, tick, sender}`/`itoa`; report's Addendum 5). 2026-11-01 (durability stage II (j), start functions round 2: S2/S3 restated (`newReplica.spec` with the file/image tie, G18, the image's frozen record, `frozenTo` of the delivered log, `memSnapLb` at the snapshot's index; `openStorage.spec` posts `memSnapLb`); the start proofs not started (capacity); one more raft fact proposed, S1b (the restarted delivered log agrees with the stored entries); handoff in the report's Addendum 4). 2026-11-01 (durability stage II (j), start functions: G23 done (`isReplicaR` carries `memSnapLb ρ.γs 0`; `run` rests only on the raft-fact lemmas); integration branch `worktree-kvdurable` merged (restartStorage's frame `F K`); `Replica.ticker` spec and proof ported from kvreconf; the start functions (`openStorage`, `newReplica`, `Cluster.start`, `restart`, `startNew`, `StartCluster`, `Crash`) not proved: S1 raft API gap (the restarted delivered log `(σ.b, Applied]` is never frozen: runStart's G19 and kdDmuInv's `fz ≥ len l` unprovable when `Applied > σ.b`), S2 `newReplica.spec` premises missing (o/M tie, `len l ≤ len ap`, the frozen record, `memSnapLb`), S3 `openStorage` post lacks `memSnapLb`, S4 no `isStorage` instance for kvdurable's storage (its `Snapshot`/`InitialState` overrides); report's Addendum 3). 2026-11-01 (durability stage II (j), finished: kvdurable `Replica.run` proved, both branches; G22 done (`applyEntry` takes and returns its `appNode` only for an entry it does not cover, and no longer takes `len ap + 1 < 2^61`, which only an uncovered entry needs, where it is `k + 1 < 2^61`; `runInv`'s view: `appNode` at `D` once `ap` is as long, else the node's configuration at `len ap`); new callee spec `raftpb.Entry.GetIndex` in `run`'s proof; one more isolated gap, a missing premise: `run_memSnapLb_G23` (`MemoryStorage.ApplySnapshot` takes `memSnapLb γs 0`; kvdurable's `isReplicaR` has none, kvreconf's has `#HsnLb`); `run`'s sorrys: G4/G7-G10/G14/G17/G20/G21 (raft facts) and G23; all 125 kvdurable modules build; report's second addendum). 2026-11-01 (durability stage II (j), after the decisions: G12 as an exact `cm` ghostVar of the image's hard state halved between `dmu` and `run`, with the file's commit at most the image's and `runStart`'s term/vote tie; G13 (`applyEntry`: `ap <+: l` only uncovered); G15 (`request`: prefix and `ic` bound only past `snapIndex`, plus `bound <= len D`); G18-G19 (`runStart`: the delivered log at most `ap`, frozen above a compaction point, at most `ic`; for review); `crash`/`persist`/`snapshot`/`applyEntry`/`request` re-proved; `Replica.run` WIP: `RunLemmas`, `RunImage`, `RunInv`, `RunDmu`, and `run` proved through the `dmu` section, `persist` and the sends of a `Ready` without a snapshot; raft facts G4/G7-G10/G14/G17/G20/G21 isolated; left: the apply tail (blocked in the restart regime by G22: the view's applied index lost through `applyEntry`) and the snapshot branch; report's addendum). 2026-11-01 (durability stage II (j): kvdurable G6 done -- `crash` locks `dmu` once more after `stop` (Go, retranslated), the writer stays in `dmu` after the crash until that section takes it out, `run`'s claim (now `runDone`'s payload, returned by `stop`) left in its place, which `run` refutes with its own half; `crash` and `stop` re-proved; `Replica.run` not started: beyond G4/G7-G10 it needs statement changes (G12: `dmu`'s image hard state untied to the driver's -- term/vote of an empty batch, the file's lagging commit at the first batch, `fz`'s raise when a `Ready` has committed entries but no hard state; G13: `applyEntry`'s `ap <+: l` for covered entries after a restart below the snapshot; G15: `request`'s `ap <+: D`/`ic` bound when it asks no snapshot) and two more raft facts (G14: the delivered entries are in the batch's durable log; G17: a `Ready`'s entries start above the durable commit); report `/home/ubuntu/spec-scratch/raft-durability/stageII-j-report.md`). 2026-11-01 (durability stage II (h), after the coordinator's decisions: kvdurable `KdDmuNames` (the claim, the image's frozen bound `ic` and snapshot index `is`), cited by `snapReqOk`, `request` and the snapshotter; the claim records the durable state (G5: `runStart`, `persist.specRun`); `Replica.snapshot` fully proved; no kvdurable `sorry` left; G6 as decided needs a `dmu` lock after `stop` that the Go code lacks (open); `Replica.run` not started; report's addendum). 2026-11-01 (durability stage II (h): kvdurable -- stage-I fixes 1-3 made: `applyEntry` takes `idx = len ap`, `k ≤ len ap`; `request` has kvreconf's `cs != nil` guard back (Go, retranslated); `readSeqs.next` takes the key and the reader's committed log and mints and commits the read context (`kd_mint_next`, kvreconf's `kvr_mint_read`); `isReplica` records `1 ≤ id ≤ 9`: `applyEntry`, `request`, `readSeqs.next`, `read` proved; fix 4 (tie the image to the `MemoryStorage`) not possible as stated -- the client cannot bound the `MemoryStorage`'s snapshot index from above nor hold its log above the commit (G2), and has no per-incarnation ghost name for a lower bound the requests could cite; `kdDmuInv` now keeps the image's shape, certificate and phase after a crash (only the writer leaves); `Replica.snapshot` proved but for two isolated gaps (`snap_create_gap`: request index ≤ image commit and the image's term there; `snap_known_gap`: `known` ≤ image's snapshot index), `ImageLemmas.lean`; `Replica.run` not attempted: blocked beyond G4 (G5: `run` cannot know `dmu`'s durable state is its driver's; G6: after a crash `run` cannot enter a commit-only batch, the writer having left; and raft facts on a batch against the stored log); report `/home/ubuntu/spec-scratch/raft-durability/stageII-h-report.md`). 2026-11-01 (durability stage II (f): kvdurable -- stage-I fixes made (`persist.spec` without `run`'s claim, entering a pending batch and leaving it `fired`; the crasher token, `repStop` = `repStopper` (what `stop` takes) ∗ half of `crashed` at `false`, `kdDmuInv` the other half); `run`'s/`applyEntry`'s callee specs ported from kvreconf and proved (`install`, `answer`, `applyOp`, `applyConf`, `fits`, `oneIn`, `below`, `decode`, `encode`, `readCtx`, `decodeReadCtx`, `validConf`; `ApplyLemmas.lean`, `SnapMake.lean`); proved `Replica.crash`, `Storage.{InitialState,snapIndex}`; proved but for an isolated `sorry` each (spec gaps): `applyEntry` (`idx = len ap`, `k ≤ len ap` missing), `request` (a `nil` configuration: the `cs != nil` guard kvdurable dropped), `readSeqs.next` (what it mints must be a read context), `read` (the id range for `next`; the context's commit, which `next` no longer does); not proved: `Replica.snapshot` and `Replica.run` (`kdDmuInv` relates the image to the `MemoryStorage` only by its hard state; the snapshotter's request index, its entry's term, the commit bound and `known` say nothing about the image); report `/home/ubuntu/spec-scratch/raft-durability/stageII-f-report.md`). 2026-11-01 (durability stage II (e): the clients over raft's durable node API -- proved kvreconf `Replica.{run,request,snapshot}`, `runInv_init`; kv `KV.run`, `kvCluster_alloc`; the server's `rn_ready_recv` (snapshot branch still SNAPSHOT-SORRY), `raftNode.start`, `isRaftNodeIfc_of_isNode`, `rnToks_of_start`, `srvClusterBoot_alloc(On)`; each `Ready`'s *enter* applied at once from the loop's `raftState` and `nodeRunning`; kvdurable `Replica.{stop,snapshotter,persist}` (both specs), `Stats.add` (new spec); not provable as stated: kvdurable `Replica.snapshot` (`persist.spec` takes `run`'s claim, which the snapshotter lacks), `Replica.crash` (nothing ties `crashed = true` to a spent stopper token); kvdurable `run`/`applyEntry` lack callee specs (`install`, `answer`, `applyOp`, `applyConf`), and `run`'s at-once *enter* of a commit-only batch needs a commit-monotonicity fact raft's API does not give; report `/home/ubuntu/spec-scratch/raft-durability/stageII-e-report.md`). 2026-11-01 (durability stage II (k): fix C on the `RawNode` layer -- `RNState.bw`, the self-addressed responses behind the cut batch's fragments (`pendingRel`/`pendList` over `W`, `RawNode.Advance.spec`'s `durFrags γ id rs.bw`), `ownRawNodeReady_handout` is the cut (`ownRaftGhost_cut`), `readyWithoutAccept`/`ownRawNodeIdle_ready` proved but for three gaps (the hard state's monotonicity ×2, `r.msgs` not self-addressed), `RawNode.Ready.spec` restated like the node API (*enter*, leader messages) and proved; `node.run` and item 3 (G4..G21) not done, the stop arm blocked (`stop`'s handshake answers before it receives); S1b in `RestartNode`'s post, a freeze point in `restartStorage`/`storHolds` in place of S1; see `/home/ubuntu/spec-scratch/raft-durability/stageII-k-report.md`). Older entries: `notes/status-history.md`, "Last updated entries (all 164, until 2026-10-22)" and "Last updated entries (2026-10-22 to 2026-10-31)". 2026-11-02 (restart plan R1: `examples/restart3`, putget3 with a follower stopped (`HardStop`, whose shutdown calls `Cleanup`) and started again on its data directory, at linkv3p's snapshot settings; its test fails unless the member restarts from its WAL, finds a snapshot there and is sent and installs a snapshot after the restart (15 of 15 runs); translated, `common.NewServer` added; Q1-Q6 decided as recommended; branch `restart-r1`, `notes/restart-plan.md`). 2026-11-02 (snapshots: `mergedCreate_window` proved, branch `snap-window`, over two named-`sorry` laws of the sole writer, `txn.kvWriter_keyObs` (the `Key` bucket as its log) and `txn.kvWriter_noCmp` (no compaction key with compaction off), both M2's item 37; `mergedObs`'s `Key` clause thin, exact with compaction off; the creation specs, `bootOk` and the server's fields keep the backend's `hooks` field (`hooksAt`, `srvBeHooked`); the stored-index window at `ci` 0; `backend.Snapshot`'s post a reader's bound of the compaction-key flag (`fkRd`, reviewed: survives); `notes/decisions.md`, "The merged snapshot's window").2026-11-02 (restarting a member: `notes/restart-plan.md`, Scope drafted for `examples/restart3`, putget3 with member 3 stopped and started again on its data directory; layers L0-L7 (the stop is the membership plan's M6, the boot from disk a restart case of `bootstrapContract`, raft's restart from durable state the durability work's); Q1-Q6 open, the user's).2026-11-02 (C3's store law: mvcc's store keeps a compaction permit fixed at creation (`crevPermIs`, a saved predicate) of its compaction revision in both locks' resources; `store.Compact`/`updateCompactRev`/`compactLockfree` take it of their revision; transactions (`store.Read`/`Write`, `readView.Range`) and the watch's compaction response (`respRev`'s `cmpPermOf`) give it; `NewStore`/`New`/`newWatchableStore` take the predicate, the server passes `True`; the user's approval, `notes/decisions.md`). 2026-11-02 (restarting a member: `notes/restart-plan.md`, Scope drafted for `examples/restart3`, putget3 with member 3 stopped and started again on its data directory; layers L0-L7 (the stop is the membership plan's M6, the boot from disk a restart case of `bootstrapContract`, raft's restart from durable state the durability work's); Q1-Q6 open, the user's). 2026-11-02 (linkv3p takes snapshots often: `common.newServer`/`NewMember` take the snapshot settings (`snapCount`, `catchUp`; the other examples keep `NoSnapCount`/`NoSnapCatchUp`, 10000 and `2^48`), linkv3p runs at `SnapCount = SnapCatchUp = 1`, so that `linkv3p_safe` and `linkv3p_watch_safe` cover runs in which members install snapshots (no statement changed: `NewServer.spec` has no premise on them since 2026-10-30); `TestMainRun` counts, with a counting logger, the elections, the followers caught up by entries, the compactions and the snapshots sent and installed, and fails without a leader change, a catch-up by entries, a log compaction or a snapshot sent (typically 2-3 leaders, 7-65 rejected appends, 1-2 snapshots sent and installed; `TestFailover`, 36000 operations, did not finish porcupine's check on the heavily loaded machine with either the new or the old settings, the workload alike, 13-16 failed operations; rerun at low load, it passed (251s, 2026-11-02)); branch `snap-config`). 2026-11-01 (snapshots: `restorePre_of_apply`'s `sorry` (the frozen fact) closed from the watchable store, `srvEnvOk` gaining `E.γ.cm = E.cmp` (the user's option A; branch `snap-restorepre`, `notes/decisions.md`)). 2026-11-01 (watches across a compaction W4: `compactkv` with a watch from revision 2, its store's `noDupKeys` from the rounds' invariant; W1–W3 and D7/D8 merged earlier: mvcc sends the compaction response, v3rpc forwards it canceled, the client delivers `ErrCompacted`, the create token carries `watchNoDup`). 2026-11-01 (J8b: `rnReadySnap_bootLen` proved (raft API: `readySnap` gains `bootLen < index`, from a pending snapshot's `snapLocOk`; the user's approval; branch `snap-bootlen`, `notes/decisions.md`)). 2026-11-01 (J8b: `run_job_snap` proved in the mode off (no `sorry` of its own; three ties added as premises, `run` gives them); left in J8b: `run_job_snap_cmp`, `rnReadySnap_bootLen`, the auth-on twin). 2026-11-01 (J8b spec-first round: `ai ≤ w` and `applyRes`'s `entriesStep` dropped (unused; the jump breaks them); `isServerRun` gains the member id and `srvMetaSnap` (proved in `NewServer`); `run`'s mode-off snapshot case scheduled over `run_job_snap` (built), whose proof is a `sorry` (next) and whose compaction mode is `run_job_snap_cmp` (`sorry`, the user's choice); the payload's `|boot| ≤ i` from `rnReadySnap_bootLen` (`sorry`, a raft API gap). `run.wp_proof`'s inline `sorry` gone). 2026-11-01 (watches across a compaction W1–W3 and D7/D8 merged: mvcc sends the compaction response, v3rpc forwards it canceled, the client delivers `ErrCompacted`, the create token carries `watchNoDup`; W4 next. bounds B5, the shared size limits by name: `opKeyMax`/`opValMax` (`client/v3/InvOp`), `leasingPfxMax`, `concPfxMax`/`concStrMax`, `recipesPfxMax`/`recipesStrMax`, `@[word_unfold]`, and `etcdKeyMax` for the k8s store's values, in place of 75 literals in the client libraries' and the k8s store's specs; `etc/bounds-check.py`'s `shared-limit` kind; `notes/bounds-plan.md`, B5). (The ten newest entries; the older ones are in `notes/status-history.md`, "Last updated entries, 2026-10-22 to 2026-11-02". Add a new entry at the front and move the oldest one there, so that this line keeps ten.)
 
 This file is where the port is now: a summary checked against the repository, then the
 sections that still describe the current design or state, by area. Its history -- the
@@ -15,7 +15,9 @@ record is `notes/decisions.md`; the Rocq development's notes are on branch `main
 
 ### Pins
 
-- **Perennial** `6da88b2802cc6229aef703242d83e21b4adbf044`, branch `lean` (`wp_slice_literal_nonnull`;
+- **Perennial** `c4a24e323c0527b8532e51e84d3d8d16d3c96b04`, branch `lean` (`errors.Is` over relations for the methods, deterministic for exact ones, 2026-11-01; before it, `2130bdb99`; before it, `d62b13ac1`: `fmt.Sprintf`'s `%x` of an
+  integer and named integer types without formatting methods, section "Perennial pin `d62b13ac1`";
+  before it, `6da88b280`: `wp_slice_literal_nonnull`;
   integers and floats as little-endian bytes, integer atomics as byte atomics, plain types with
   gc layout, a bounded heap, unsafe conversions; before it, `ad74ee4f6`: uniform function
   results, range over functions and over strings, extensions named in the syntax; goose's `defer`
@@ -28,8 +30,10 @@ record is `notes/decisions.md`; the Rocq development's notes are on branch `main
   - `raft`: `upamanyus/etcd` `c8217eb91ae5948182c1035ff0464b1e54b8f1d0`, branch
     `raft37-goose-lean-a1` (raft v3.7.0 `b867cf13` plus the single-voter read-index fix and the
     probe-to-replicate fix at `pr.Next == pr.Match+1`).
-  - `etcd`: `upamanyus/etcd` `bc9c3868ced67e518fb2fecba44ce0fa70b7303b`, branch
-    `goose-lean-getproph2`: `goose-lean`'s `188113160` (upstream main of 2026-10, the commits that
+  - `etcd`: `upamanyus/etcd` `7cf3644ecf7cca97b65b34369b12aba368f98edb`, branch
+    `goose-lean-watchcfg` (since 2026-11-01, J8a-3: `NewWatchServer` keeps the adjusted progress
+    interval local; `etc/goose.py`'s comment has the branches between); until then
+    `bc9c3868ced67e518fb2fecba44ce0fa70b7303b`, branch `goose-lean-getproph2`: `goose-lean`'s `188113160` (upstream main of 2026-10, the commits that
     make it translatable, and the bug fixes `etc/goose.py`'s comment lists, each with its `issues/`
     file; the latest two, `8fd98af04` and `188113160`, are "D22 fork fixes" below) plus the
     prophetic `kubernetes.Client.Get` (D30n, verification only; `goose-lean-getproph`'s `942601555`
@@ -151,7 +155,8 @@ own check never failed), and the main thread's result, if any, is as stated. The
   request timeouts (2026-10-23, D-T4), `ContextErrsClient`, the boot facts (`BootFacts`), the
   environment premises `ckptEffectsOk`, `authRecordsFit`, `apply.backendUnderQuota`,
   `storage.dbOpensOk`, unclaimed prometheus names and addresses, `putget.premises`,
-  `n + 2 ≤ 2^31`, `n + 7 ≤ backend.wbInit`.
+  `n + 2 ≤ 2^28` (J8a-6, 2026-11-01: the transport's thread pool; was `2^31`; the write-back budget
+  `n + 7 ≤ backend.wbInit` derived from it since 2026-11-01).
 - **`putget3_safe`** (`examples/putget3/Results.lean`): putget's with three members, each serving
   raft on its peer listener; putget's premises for three members.
 - **`linkvtxn_safe`** (`examples/linkvtxn/Results.lean`): one member, the robustness tester's KV
@@ -161,8 +166,11 @@ own check never failed), and the main thread's result, if any, is as stated. The
 - **`linkv3p_safe`** (`examples/linkv3p/Results.lean`): three members whose peer links a schedule
   cuts and mends, and whose client links (through copies of etcd's test bridge) it blackholes,
   unblackholes and drops; three clients each of every member (failover, default retries);
-  linkvtxn's workload; `Ok` or `Unknown`, **for every schedule**. putget3's premises, `Run`'s
-  bounds, the schedule's length `< 2^63`, `n + 2 ≤ 2^29`.
+  linkvtxn's workload; `Ok` or `Unknown`, **for every schedule**. The members take a snapshot
+  every other entry and keep one entry below it (`SnapCount = SnapCatchUp = 1`, 2026-11-01), so
+  that a member a cut or a late start left behind is caught up by a snapshot (`TestMainRun`
+  reports how often). putget3's premises, `Run`'s
+  bounds, the schedule's length `< 2^63`, `n + 2 ≤ 2^28` (was `2^29`).
 - **`linkv3p_watch_safe`** (same file): watchkv's workload over the partitioned cluster, a prefix
   watch through the first client, resumed at any member after a cut; result `0`, `1` or `2`
   (`WatchOk`/`WatchFailed`/`WatchEnded`), for every schedule. `linkv3p_safe`'s premises but
@@ -171,7 +179,7 @@ own check never failed), and the main thread's result, if any, is as stated. The
   from revision 1; the check that the watched events are exactly the writes (revisions `2, 3,
   ...`, every successful put at its revision) never fails; result `0`, `1` or `2`. putget's
   premises, the client watcher's classes (`ErrorStringNoGRPCStatus`, `ContextErrsClient`, the
-  `errors`/`fmt`/`rpctypes` assumptions), `0 ≤ nw < 2^31`, `nw * nops < 2^62`, `n + 2 ≤ 2^29`.
+  `errors`/`fmt`/`rpctypes` assumptions), `0 ≤ nw < 2^31`, `nw * nops < 2^62`, `n + 2 ≤ 2^28` (was `2^29`).
 - **`cache_safe`** (`examples/cachekv/Results.lean`): watchkv's program with the watch through
   etcd's `cache` (from revision 2); the same result; `watch_safe`'s premises at cachekv's
   configuration.
@@ -271,6 +279,23 @@ removed, ..., adequacy coverage" below.
     `specSnap`'s `isMetaBackend` family and the whole `s.Cfg` read-only
     (`issues/etcd-cfg-watch-progress-interval-race.md`), J8a's to restate. No axiom, no `sorry`.
     `notes/decisions.md`, "D22 J1a".
+  - **J8a-4 done (2026-11-01)**: `specSnap`'s `isMetaBackend` premise (false: any names, any
+    backend) restated at the open of the snapshot's backend and carried in `bootOk`
+    (`"#HmetaSnap"`, the approved `NewServer.spec` premise); `snap_create` applies it, `snapOpenK`
+    keeps the result for the walk. Repairs, no statement text changed: the stored term in
+    `batchLockInv`/`hookDone` (`⌜mm.2 = γ.m0.2⌝ ∨ wrDone γ`), `wr` a `dghostVar` (`wrOwn`,
+    `wrDone`; retired backends' written). Open for 5e: the carrier to `applyAll.specSnap`. No
+    axiom, no `sorry`. `notes/decisions.md`, "J8a-4".
+  - **J8a-3 done (2026-11-01)**: the whole `s.Cfg` read-only, after the fork's fix of
+    `NewWatchServer` (`7cf3644ec`): from `start` on (it writes `SnapshotCount`/`SnapshotCatchUpEntries`),
+    `srvSnapRO`'s last conjunct (the rebuild, at its `cfg`) applied to `isServerRun`'s `"#Hsncfg"`
+    gives `specSnap`'s `srvCfgAddr s ↦□ cfg'`. `NewWatchServer.spec` (`new_watch_server`) restated,
+    approved. No axiom, no `sorry`. `notes/decisions.md`, "J8a-3".
+  - **J1b done (2026-10-31)**: `srvSnapOwn` (`SnapRO.lean`) in `applyStart`/`applyRes` and
+    through `applyAll.spec`/`specOn` (the user's decision (A): `applyAll_model`'s and
+    `server_apply_all_on`'s statements changed); since 2026-11-01 also `srvKVCloser` and `pathOwn`,
+    in `NewServer`'s built part (its three specs' text changed, the user's decision;
+    `notes/decisions.md`, "D22 J1b"). No axiom, no `sorry`.
   - **The rest of D22 after S8d** (`notes/snapshot-sj-plan.md`, stages J*/L*): J0 (design) done;
     **J3 done (2026-10-26)**: the storage's three snapshot methods logically atomic over
     `memSnapTokG` (the application's key `ak` stays with `CreateSnapshot`'s caller, not in the
@@ -390,6 +415,10 @@ store's `GetList` is still names-only.
 
 ### Plan files (`notes/*-plan.md`)
 
+- `restart-plan.md`: stopping a member and starting it again on its data directory
+  (`examples/restart3`). Scope decided (Q1-Q6 as recommended, 2026-11-02); **R1 done** (the Go
+  program, its test, the translation); next R2, the Draft.
+
 - `k8s-daemonset-plan.md`: the Kubernetes DaemonSet controller (`pkg/controller/daemon`): prove
   `MaxOnePodPerNode` (kubernetes/kubernetes#139657's robustness test) of the real controller over a
   model API server, client-go's informers and leaf libraries verified (D49). **Active**: phase 0
@@ -408,8 +437,15 @@ store's `GetList` is still names-only.
   receipts over a compacted image).
 
 - `compactor-pilot-plan.md`: the spec-first pilot (step 3 of `spec-first-plan.md`) on etcd's
-  auto-compactor (`v3compactor`). **Phase 0 done** (scope and top-level statements C1-C3);
-  scope (A), the compactor and the server's compaction path (the user's). Next: phase 1.
+  auto-compactor (`v3compactor`). **Done** (2026-10-27: the 14 functions specified, reviewed,
+  tested, frozen and proved, no spec revision after the freeze; the server side as M2, S1-S4,
+  `EtcdServer.Compact` proved, `putgetc_safe`/`compactkv_safe` with the compactor on in revision
+  mode). C3's store law done (2026-11-02, in place of M2's S5: the store's compaction permit
+  `crevPermIs`, fixed at creation, kept of the compaction revision by both locks' resources,
+  `store.Compact`'s premise, learnt by transactions and the watch's compaction response;
+  `notes/decisions.md`). Left: C3's server and client stages (the server fixes the compactor's C1
+  permit, compaction proposals carry it, a client statement in `compactkv`), and a closed result in
+  periodic mode.
 
 - `spec-first-plan.md`: discover and test the specs (internal and trust-boundary) before the bulk of
   the proofs: scope and top-level statement first, a top-down spec skeleton with glue proofs, trace
@@ -963,6 +999,580 @@ every proof that no longer compiles, and every new or restated lemma, is `sorry`
   and `raftIdSlot` per node) and `raft_dyn_alloc(_boot)`.
 - Deviations from the plan's text are listed in the worklist's header.
 
+## The snapshot sorries, first round (2026-10-31, branch `snap-sorries`)
+
+`notes/raft-unified-plan.md`'s "Repair: snapshot sorries", as found in
+`notes/snapshot-sorries-plan.md`. Proved: #1 `rn_ready_recv`'s snapshot `Ready` (`rnBusyS` carries
+the snapshot's facts, a change inside the exported node contract, for the user to approve), #2
+`rnApplyTok_recv`'s snapshot payload, #6 the node contract's snapshot `Advance` clause (the view
+at the snapshot the voters', D3), #9 `EtcdServer.snapshot` (`SnapCert.lean`: the snapshot
+registered in the cluster's registry, `srv_snap_make`, then `CreateSnapshot`,
+`wp_srv_createSnapshot`); #10 gone (`SnapTakeProof.lean` deleted). `snapshot.spec` and
+`snapshotIfNeededAndCompactRaftLog.spec` (then `specFull`) take `0 < ai`, fewer than `2^61` voters, `ep.confState`
+the voters' (`epCsCfg`) and the entry at `ai` of term `at'` (`srvFrozenTerm`). Proved too: #11 (`applyAll` calls the snapshot spec, the former `specFull`; the no-snapshot spec and its
+`sorry` gone; S1-S7 as in the plan file's "#11 progress"; `releaseOk` and `walSaveOk` from the
+exported results' `storage.diskOk`). Proved too: #3 (`raftNode.start`'s snapshot `Ready`:
+`SaveSnap`, `Save`, `Sync`, `ApplySnapshot`, `Append`, `Advance`'s snapshot clause, `rnApSnap` on
+`applyc`; the two-receive notify `NotifyC2.lean`; `notes/decisions.md`, "The raft loop's snapshot
+`Ready`"). Left: #7/#8 (the apply side's two receives; with auth on, an `applySnapshot` spec in the
+mode `on`). For #7's merge branch, raft's driver now carries its hard state's commit witness in
+snapshot mode too (`nodeDriver_hardStateCommitted`, a new API law; `notes/decisions.md`, "The
+driver's hard-state witness after a snapshot `Ready`"); the server's `rnRtOk` over it is in progress
+(branch `snap-rt`, merged). #7's merge branch (auth off) is proved behind the fork's index guard
+(`goose-lean-snapguard`) up to two named holes, `mergedCreate_window` (proved 2026-11-02, branch
+`snap-window`, over the writer's laws `txn.kvWriter_keyObs` and `txn.kvWriter_noCmp`, named `sorry`s
+for M2's item 37) and `merged_image` (the certificate: `srvImageR`, durability);
+the mode-on branch is open (a design question). **#8's J1b done (2026-10-31, branch `snap-j1b`)**: the snapshot path's spatial resources (`srvSnapOwn`: the counter's authority, the `E.RD`/`lgMu` stocks, the backend's stop channels and `bOpen ½`, the alarm store's `Get` with `Tal`) from `NewServer` through `applyStart` into `applyRes`, passed through `applyAll` (its spec and `specOn` changed, the user's (A)); `trLive` already in `srvApRes`. Since 2026-11-01 (the user's decision) also `srvKVCloser` and the backend file's `pathOwn`, moved into `NewServer`'s built part (`NewServer.spec`/`specM`/`specCompact` lose the two conjuncts; `notes/decisions.md`, "D22 J1b"). `os.Rename` restated (J8a's item 5, the user's approval): on success the program keeps `pathOwn dst` (the backend's path), no longer `pathOwn src`; `OpenSnapshotBackend.spec`, `snapWalkPost` and `srvSnapApplied` (a new `bp`, the backend path) follow (`notes/decisions.md`, "`os.Rename` keeps the destination's entry"). **#7's merge branch proved (S1, 2026-10-31, branch `snap-s1`)** over the fork's index guard
+(`notes/decisions.md`, "The merged snapshot's index guard", "`applyAll`'s merge branch (S1)"): in
+mode off its `sorry` is replaced by two named holes for S2 in `SnapSendBranch.lean`,
+`mergedCreate_window` (the commit and snapshot window of `createMergedSnapshotMessage`) and
+`merged_image` (the merged image at `ai'`); in mode on, besides these, the image itself stays open
+(`sorry -- SNAPSHOT-SORRY #7-on`: `srvNet`'s image is the mode-off model); the user chose one image
+per cluster in the cluster's mode, done after the durability work (`notes/decisions.md`, "The merged
+snapshot's image with auth on").
+
+**The WAL contract repaired** (2026-10-31, `notes/axiom-review/savesnap.md`, the user's decisions;
+`notes/decisions.md`, "The WAL's readiness and one disk premise"): `rnNewStorageOk`, a premise of
+every exported result over the server, was false (any WAL, nil included; no token excluding a write
+after `Close`). Now over a WAL `bootstrap` read (`walReady`), with the WAL's open token keyed by the
+WAL (`storage.walOpen`, `bootOk`'s), split between the raft loop and the apply thread and joined
+back for `onStop`'s `Close`; `isRNWal`'s `SaveSnap` over a well-formed snapshot (no axiom); the
+exported results take one disk premise, `storage.diskOk` (`dbOpensOk`, `snapOpensOk`, `walSaveOk`,
+`walCloseOk`) in place of `dbOpensOk`. The trust base is unchanged (769 axioms, 14 `sorry`s).
+
+**A batch's raft term made real** (2026-10-31, branch `snap-rt`): `rnRtOk γ t n`, `True` since
+2026-10-27, is again `t = 0` or `∃ c, committedAtTerm γ.node.cl srvClusterN t c ∗ ⌜n ≤ uint.Z c⌝`
+(`InvRaftNode.lean`), proved where `raftNode.start` builds both payloads (`rn_rtOk_busyN`,
+`rn_rtOk_busyS`, over `rn_rtOk_st`: the busy driver after the `Ready`, through the node API's
+`nodeDriver_hardStateCommitted`, at `prevHardSt` `p'`; the loop invariant's `uint.Z rt = 0 ∨ rt =
+p.Term'` was already the tie, unchanged). Rests on `nodeDriver_hardStateCommitted`, which lands
+with branch `snap-sorries` (not committed on `snap-rt`: it does not build alone). `applyAll`, its
+consumer, untouched.
+
+## The lease results' sources in a `NewServer`-built server (2026-11-02, branch `lease-src`; frozen and proved)
+
+Follow-on 1 of the lessor/auth list (`notes/lease-src-plan.md`; decisions entry "The lessor's
+reader slots as a pool"). The lease discharges' premises now come from what a server built with
+`NewServer` and started has:
+- **Reader slots as a pool.** `NewServer`'s posts export `lease.lessorRdPool E.γ.leases` (a
+  Perennial thread pool of `NewLessor`'s spare `lessorRdOf` slots, `RdPool.lean`). The lease
+  checks, the entry points (`LeaseTimeToLive`, `LeaseLeases`, `LeaseRenew`), `lessor.Leases` and the
+  axioms `leaseTimeToLive` and `lessor.Renew` (restated, the user's Freeze) take the pool and the
+  caller's `threadTok`, and borrow a slot around each lessor call.
+- **`srvAuthLeaseLb`** (`LeaseSrc.lean`, `srvAuthLeaseLb_of_server`): with auth off, from the read
+  view's exact store triples; with auth on, from `srvAuthLb`, whose `authStoreLbM` now carries the
+  lease checks' methods (`isAuthStoreLeaseLb_of_authInv`, over the new
+  `IsAdminPermitted.specLb`, proved in `auth/FreshAdmin.lean`, linked as `auth_admin_permitted_lb`).
+- **Registration.** `v3rpc.Server.spec` registers the Lease service (`leaseRegs`, `leaseSReg`, the
+  `quotaLeaseServer`/`leaseServer` facts); `etcdserverpbDescs`/`svcDescsOk` state its methods exactly.
+
+Open: the closed client example (next stage); **F4**: the grpc model gives a served lease call no
+`threadTok` of its own (the run goroutine's in `grpcHandlerOk` is the likely source), needed when
+the served handlers are linked to the entry points.
+
+## The lease keep-alive entry point (2026-11-01, branch `lease-renew`; frozen and proved)
+
+`EtcdServer.LeaseRenew` is translated and proved (`Proof/.../etcdserver/EtcdServer__LeaseRenew.lean`,
+linked): on `nil`, the last key check's verdict (`leaseCheckFrom` with `leaseKeysVerdictFrom
+.write`) at the caller's context; on an error, an `applyErrIs` error. Over five contracts the user
+approved (`notes/decisions.md`, "The lease keep-alive entry point"): `lessor.Renew`,
+`ensureLeadership`, `waitAppliedIndex`, `waitLeader`, `leasehttp.RenewHTTP`, and leasehttp's
+`LeasePrefix_init`. Open:
+- **`peerRt`**: a premise of the spec (a `*http.Transport` in the field); `NewServer`'s contract
+  must state it before v3rpc's `LeaseKeepAlive` can call `LeaseRenew`.
+- **`r.tickMu`'s reader slots** (C2's assumption): a pool, as `lgMu`'s, would remove it.
+- **C1 and lease grants**: `ckptEffectsOk` covers `Renew`'s checkpointer proposal, unexercised
+  while `srvGrantGuard` is `False`.
+- **`issues/etcd-lease-renew-keys-follower-lag.md`**: a candidate, not yet reproduced.
+- **Three `threadBound` premises** (`LeaseRenew.spec`, C1, C2) raised the bounds baseline by 3
+  (the user's choice); they go in the lease package's bounds stage.
+
+## The lease checks' revision re-check (2026-11-01, branch `lease-revcheck`; not stated)
+
+`notes/lease-revcheck-plan.md`, item 3 of the lessor/auth list. The specs stay `lean`'s: a stated
+re-check is either false or vacuous. The first form proposed, revisions strictly increasing along
+the auth history, is false in Go: `AuthEnable` keeps the revision and `Recover` installs the
+backend's. A post with only the two reads' states (`i ≤ j`, both of revision `rev`) follows from
+the first read (the spec review). A useful form would bound every key verdict by the end read's
+state, and it would still be weak. `checkLeaseRenew.spec`'s margin now says why: the cache lags the
+published revision, and Go is protected by `isOpPermitted`'s token-revision check. No new axioms or
+sorries.
+
+
+
+## The lease read entry points (2026-11-01, branch `lease-read`; frozen and proved)
+
+`notes/lease-read-plan.md`. `EtcdServer.LeaseTimeToLive` and `EtcdServer.LeaseLeases` are proved,
+the read-side rows of the lessor/auth list. `LeaseTimeToLive`: `requireAuthInfo`, the key check
+`checkLeaseTimeToLive` (with `Keys`), the trust-boundary contract `EtcdServer.leaseTimeToLive`
+(names-only: a fresh response with a header, or an `applyErrIs` error; nothing of the lease, so the
+TOCTOU is the spec's stated gap, `issues/etcd-lease-timetolive-keys-toctou.md`; its peers
+assumption, `issues/etcd-leasehttp-timetolive-nil-response-panic.md`, new), and the revision
+re-check (its verdict not stated). `LeaseLeases`: `lessor.Leases` (proved: read-locked
+`unsafeLeases`, sorted by `leasesByExpiry` over the axiom `sort.«Sort».wp_anyLess`, a `Less` that
+answers anything, `Proof/sort/SortAnyLess.lean`, until Perennial proves it,
+`notes/perennial-changes.md`), `checkLeaseLeases` at the listing's index, the `LeaseStatus` loop
+and `newHeader`. The lessor's model grew: `isLeaseObj` holds the lease's `expiryMu` guard and a pool
+of its reader slots (`Lease.Remaining`, proved), and `lessorMu` the persistent receipt `⧖ |M|`
+(raised by `Grant`), so the lease map is shorter than the execution: `Leases.spec` and
+`LeaseLeases.spec` take `receiptBound GF ≤ 2^62` (the sort's bound; `notes/decisions.md`).
+`newHeader.spec` holds in either auth mode. Two new axioms (771 axioms and 15 sorries in the
+baseline), the `server` collection's baseline updated; no other collection reaches the new entry points
+(nothing calls them yet: the gRPC lease server is not linked).
+
+## LeaseRevoke through the apply chain (2026-10-31, branch `lease-revoke`; frozen at `46726f0b33`, proved)
+
+`notes/lease-revoke-plan.md`. Scope: the apply chain (the server's `plainCover`, rest model and
+entry point stay out, L3c/L4). `lease.lessor.Revoke.spec` is restated at its actual deletions
+(`mvcc.leaseDels`, re-proved; `notes/decisions.md`). The backend's `LeaseRevoke` is no longer
+vacuous: `backendStep .leaseRevoke` is the lease's deletions committed (`apply.revokeLog`), the
+not-found case `ErrLeaseNotFound`; the auth layer's `checkLeasePuts` gives the lease's class
+(`reqLeaseClass .leaseRevoke`, `leaseKeysClass`); the corrupt, capped and quota layers pass it on.
+`apply/Results.lean`'s `chain_revoke` states it through the uber-applier's chain, with the rest
+after it (`revokeResAfter`: `E.RO` at `restRevoke`). `isApplyLessor` takes `RO`, and its `Revoke`
+clause (`revokeClause`) is derived of the real lessor (`apply.revokeClause_of_lessorInv`). The
+server builds it (`NewServer`, the snapshot path's `snap_isApplyLessor`) from the store watchable,
+its hook and a lens over its rest resource (`srvRestOwnH_lens_revoke`), which needs a new boot fact,
+`mvcc.leaseParams d.P` (`bootOk`; a named premise `hlp` of `applySnapshot.specSnap`; the user's
+choice, `notes/decisions.md`). `lease.rdAt` (the range deleter held, `lease/RangeDeleter.lean`)
+and `txn.kvWriter_open` moved to their packages. No new axiom or `sorry` (769 axioms, 16 sorries,
+as before); the nine collections over the server (authkv, cachekv, k8setcd3, linkv3p, linkvtxn, m2,
+putget, putget3, watchkv) now reach `lessor.Revoke`'s two trust-boundary axioms,
+`schema.UnsafeDeleteLease` and `sort.StringSlice.Sort` (their baselines updated).
+
+Found: `lease.lessor.Recover`'s axiom is false about `le.rd` (Go stores the new deleter, the model
+keeps the old one; a Go test shows `Revoke` calls `Recover`'s; `notes/audit.md`), the fix deferred
+to L3c (the user's choice: the range deleter a premise). Open: nothing gives `rdAt` yet (mvcc's
+constructors give the deleter's contract at their own names only; L3c), so no server result
+reaches a revocation; `rqOk .leaseRevoke` stays `False` (the dispatch's KV path excludes it).
+
+## Perennial pin `c4a24e323` (2026-11-01)
+
+`errors.Is.spec` and `errors.is.spec` take the tree's method specs as relations
+(`errorWalkTree S I U target`) and return an answer of Go's walk (`IsWalk`); `isWalk_det` for exact
+relations. `errorIsTree S M` is the over-approximating instance, unchanged in meaning (the axioms
+stated over it, `Spec/errors/IsDeadlineExceeded.lean`, `IsCtxErr`, ..., mean what they did).
+`errors.wp_Is_tree` gives the old postcondition, which this repository's `errors.Is.spec` restates.
+`errorIsTree_of_walk` takes `errors.Assumptions` though its proof does not use it (Perennial's
+section variable), so `applyErrIs_tree` does too.
+
+## The lease keep-alive stream at the gRPC level (2026-11-01, branch `lease-keepalive`; frozen and proved)
+
+Item 6's second stage (`notes/lease-keepalive-plan.md`, K1-K7, frozen by the user).
+- **The wire model, shared** (K2): `LeaseKeepAliveMsg.lean` (moved out of the client's `InvLessor`):
+  a request's model `KaReqM` is its `ID` plus two ghost bounds, `nb` (the auth store's published
+  index) and `mb` (the lessor's history index), as watch's create `bound`. The client sends them at
+  `0` (`kaUpZero`, in `leaseKAStreamOk` and the lessor's specs).
+- **`LeaseServer.leaseKeepAlive`** (the loop) and **`LeaseServer.LeaseKeepAlive`** (the handler: the
+  loop on a goroutine, an SPSC error channel, a `select` with the context's `Done`) are proved over
+  `raftLeaseRenew s E γl S'` (`InvLeaseKeepAlive.lean`). The `j`th response answers the `j`th
+  request; unless its TTL is `0` it carries the key check's verdict at the request's bounds for the
+  stream's token (`kaStreamSpec`, `kaDn`, `leaseCheckT`). `leaseServerAt` gained the logger.
+- **The discharge** `raftLeaseRenew_of_server` (`ServerLeaseRead.lean`, linked in `Results.lean` as
+  `raftLeaseRenew_server`) is at `S' := E.RD ∗ lessorRdOf γl ∗ threadTok ∗ srvLgReader s ∗
+  srvReadReader s γr`, with `srvPeerRt s` (K6: `EtcdServer.LeaseRenew.spec`'s inline premise,
+  named). `srvHeaderFacts_of_reqM` derives `raftLeaseRead_of_server`'s `srvHeaderFacts` premise.
+- **K7**: `bootOk` gains `%Hprt` (the boot's `prt` a `*http.Transport`), an approved strengthening
+  of the trusted bootstrap contract. `NewServer.spec`/`specM`/`specG` export `srvPeerRt srv ∗
+  srvLessorRd srv E.γ.leases` (at the end of each post).
+- **Finding 9** (the Go comment on the header's revision) holds: the leader's HTTP renew handler
+  waits for its applied index (`ApplyWaitCommit`). No issue.
+- **Gaps, for a later stage**: `srvAuthLeaseLb s E` (a premise of both lease discharges) has no
+  source; `NewServer` drops `NewLessor`'s remaining `lessorRdOf` slots (`NewServer.lean`, after
+  `NewLessor`'s call), so no run slot supplies the renewal's `lessorRdOf γl` yet.
+
+## The lease rows at the gRPC level (2026-11-01; frozen, merged into `lean`)
+
+Item 6 of the lessor/auth list (`notes/lease-grpc-plan.md`). The unary lease reads of
+`v3rpc/lease.go` are translated and proved:
+- **`LeaseServer.LeaseTimeToLive`**, **`LeaseServer.LeaseLeases`** (`Spec/.../v3rpc/LeaseServer__*.lean`)
+  are over a contract, `raftLeaseRead s E γl S R` (`InvLeaseRead.lean`: the server's two entry points
+  at per-call resources `S` and the revision reader `R`). The answers (`leaseTTLOut`,
+  `leaseLeasesOut`) are the server's response with its header filled and the key check's verdicts.
+  On `ErrLeaseNotFound` the answer is the handler's own response, which carries no verdict and no
+  authentication (review finding 2, a margin approved at Freeze). Otherwise it is `togRPCError`'s error.
+- **`raftLeaseRead_of_server`** (`ServerLeaseRead.lean`) discharges the contract from the proved
+  `EtcdServer.LeaseTimeToLive`/`LeaseLeases` at `S := E.RD ∗ lessorRdOf γl ∗ threadTok`,
+  `R := mvcc.storeReader E.s E.γ`, with the two specs' bounds premises. It is linked in `Results.lean`
+  as `raftLeaseRead_server`; `leaseTimeToLive_handler` and `leaseLeases_handler` are its results.
+- **`errors.Is` twice.** Go calls `errors.Is(err, ErrLeaseNotFound)` twice; a model answering `true`,
+  then `false` would reach `fill(resp.Header)` with a nil `resp`. The user's choice was a Perennial
+  change, landed as `c4a24e323` (the pin, section "Perennial pin `c4a24e323`" below): `errors.Is`
+  returns an answer of Go's walk of the tree over relations for the methods (`IsWalk`),
+  deterministic for exact relations (`isWalk_det`). Here `applyErrIs` carries an exact tree
+  (`exactRels`; its three leaf constructors in `apply/Base.lean` are the only ones), read by
+  `applyErrIs_walk`; `applyErrIs_tree` weakens it for the other callers, and this repository's own
+  `errors.Is.spec` is proved by `errors.wp_Is_tree`. The handlers take Perennial's spec
+  (`=_root_.Perennial.errors.wp_Is` in the link list) and have no `sorry`.
+- **Trusted statement S1**: `leaseTimeToLive`'s contract now gives the response header's ownership,
+  and the frozen `EtcdServer.LeaseTimeToLive.spec` passes it on (S2). The user approved both at
+  Freeze, with the margin, the exact `applyErrIs` tree and the `leasesRespIs` split. The reachable nil-header panic is recorded in
+  `issues/etcd-leasehttp-timetolive-nil-header-panic.md`.
+- `etc/gen-init.py`'s v3rpc entry: the dependency indices moved (`Hd37`, `Hd44`) with the new
+  `lease` import.
+
+The keep-alive stream (`LeaseKeepAlive`): the section above.
+
+## The lease rows' key checks, Part A: the apply layer (2026-10-31, branch `lease-keys`; frozen at `97c2e6d92d`, the user's approval)
+
+`notes/lease-keys-plan.md` (spec-first; the user's scope: A then B, the lessor's item map, lower
+bounds). The auth applier's lease-key checks now state what they check: `checkLeasePutsKeys`/
+`checkLeasePuts` give `apply.leaseKeysClass on info I id` (admin, or the write of every key the
+lessor's item map `I` attaches to the lease), `checkPutAuth` with the put's lease, the transaction
+walk (`checkTxnReqsPermission`, `checkTxnPermission`, `CheckTxnAuth`) the puts' leases'
+(`txnLeaseClass`, under a lease view `U`: the read path has none and walks only read-only
+transactions). `chainLeaseClass` is a conjunct of `kvPost`/`kvPostF` (not of the auth-on track's
+`kvPostFL`), and `apply/Results.lean`'s `chain_put`/`chain_txn` state `reqLeaseClass` beside
+`reqClass`. The lessor keeps its keys short (`itemKeysShort`, in `leaseClosers`; `Attach` takes
+the key-length premise, which mvcc's put path passes from the request). Every statement proved;
+no new axiom or `sorry`; etcd's own tests of the checks pass.
+
+Gaps (recorded in the plan): a revocation's class reaches no chain result (`rqOk` excludes
+it); the dispatch (`uberApplier.dispatch`, `Apply`) drops the lease class. Next: Part B, the API layer (`LeaseTimeToLive`, `LeaseLeases`, `LeaseKeepAlive`).
+
+**Part B, the API layer (proved, 2026-10-31).** The user's scope: the checks only
+(`checkLeaseRenew`, `checkLeaseTimeToLive`, `checkLeaseLeases`; the entry points stay names-only),
+a reader-side model of the lessor (a monotone history of its (lease map, item map) snapshots, lower
+bounds), and the restated `NewLessor`/`Recover` axioms (text unchanged, definitions grown; the
+user's approval with an axiom review, `axiom/lessor-reader`, `881a927f93`: survives). Frozen at
+`211662f7ba`; every statement proved since (the plan's "Prove"): the lessor's proofs carry the
+history (`LessorHist.lean`, `hist_append`), the three checks are linked in the server's
+`Link.lean`. A passed check says, of the request's principal: auth off, or admin, or the
+permission of every key of the lease at a lessor index no older than the caller's lower bound,
+each at an auth state no older than its own. No new axiom or `sorry`. Found:
+`issues/etcd-lease-timetolive-keys-toctou.md` (LeaseTimeToLive returns keys it did not check).
+Perennial: a typed points-to's fraction validity (`notes/perennial-changes.md`). Next: the entry
+points (`LeaseRenew`, `LeaseTimeToLive`, `LeaseLeases`), which would give the checks their lower
+bounds.
+
+
+## Watches across a compaction (W1–W3, D7/D8 merged into `lean` 2026-11-01; W4 on `watch-w4`)
+
+`notes/watch-compaction-plan.md`. The user lifted M2's F1 (no watchers in compaction mode), kept
+the client's `watcher.Watch.spec` (a compaction response is an error), chose to extend
+`compactkv`, and approved the token's fact `mvcc.watchNoDup γ := noCompactor γ ∨ noDupKeys γ`
+(refining the Draft's mode gate; `decisions.md`). Done:
+- **W1, mvcc**: compacted watchers in the state model (live by their open channel; behind a
+  compaction revision, `crevLb`); `chooseAll`/`choose` send the compaction response; `rangeEvents`
+  from the compaction revision; `cancelWatcher`'s compacted branch; `syncWatchers` over the store's
+  compaction revision (`SyncCompactLemmas.lean`: the state after `choose`, the behind members
+  skipped).
+- **W2, v3rpc**: `mvccResp` carries the compaction revision, canceled if set (D6); `sendLoop`.
+- **W3, client**: the substream's channel carries compaction responses (`respKindOk`), `run`
+  dispatches one as an error (`reg_pre_cmp`), `serveSubstream` delivers it and stops.
+- **D7/D8**: v3rpc's create token and the client's member facts carry `watchNoDup`; every server
+  so far gives its no-compactor arm (`isWatchServer_watchNoDup_env`).
+- **W4** (branch `watch-w4`): `compactkv` watches the last round's key from revision 2 after the
+  rounds; its member's store gives `noDupKeys` from the rounds' invariant (each revision one put,
+  `oneValW`), `compactkv_safe` unchanged.
+
+## M2, the apply side (branch `m2-apply`, merged into `lean` 2026-10-31)
+
+**Done (2026-11-01).** Compaction is in the server's model: the request path (`EtcdServer.Compact`),
+the apply side (the backend's `Compaction`, the chain's triple, `dispatch`/`Apply`, `applyEntryNormal`'s
+compaction arm), the storage side and `NewServer` in both compaction modes are proved; the client's
+`kv.Compact` is proved; `examples/compactkv`'s closed theorem `compactkv_safe` is proved and `putgetc`
+rests on the same proofs (both still on the server's snapshot-track `sorry`s). The entries below are its history.
+
+What is left, none of it M2's goal: restore in compaction mode (the interim restriction "a snapshot
+installed only with the mode off", `specSnap`'s `d.cm = false`; of the storage plan's "B2 by sealed
+logs", the mvcc half is switched (2026-11-01, `notes/decisions.md`, "M2's B2, the mvcc half
+switched"), the snapshot half is its unswitched design); `kvApplied`'s `crevOf` clause (deferred, `notes/decisions.md`,
+"stage 4c"); the compaction arm with auth on (`applyEntryNormal` applies compactions on the auth-off
+path only), with the auth-mode merge of `applyAll`/`run`'s `spec`/`specOn` (the apply plan's stage 5,
+which needs nothing of M2 and waits on SNAPSHOT-SORRY #7/#8); one token count in place of `bootstrap`'s
+`N + N` (the user's later, moved to restore in compaction mode: `notes/decisions.md`, "One token count goes with restore in compaction mode"); the Draft modules (`M2ApplyDraft*`, `M2StorageDraft*`, `M2ApplyProbe` under
+`etcdserver/`, `apply/` and `mvcc/`; they import only each other) to delete or fold in.
+
+**The client's `kv.Compact` (2026-11-01, branch `m2-kvcompact`; the user's approved candidate 3,
+`.claude/skills/spec/examples/compact-client.md`)**: `kv.Compact.spec` (a reached revision `kvRevLb`,
+past `0`, compaction mode, no options; no update: a compaction is not a client-visible state
+change) proved over the new translation (`OpCompact`, `CompactOp.toRequest`, the retry client's and
+the stub's `Compact`). `kvRevLb γk r`: the cluster's requested raft log reaches revision `r`
+(`KVNames.rlog`, `kvSame`), in place of `cmpReach`; `kv.Put.spec`'s post gives it. The server side:
+`EtcdServer.Compact.spec` takes `kvRevLb` (weaker), every server registers `Compact` (the handler
+glue `etcd_compactHandlerOk`; `NewKVServer` exports the admin guard). **`examples/compactkv` verified (2026-11-01, branch
+`compactkv-proof`)**: the closed theorem `compactkv_safe` (`Results.lean`; collection
+`etc/tcb-collections/compactkv.txt`): five rounds, round `i` puts `k_i ↦ v` (distinct keys, the
+user's choice), compacts at the revision before the put's (`client_Compact_kv`, the `kvRevLb` the
+put's reply gives) and gets `k_i`, panicking unless it reads `v`. The rounds' invariant
+(`compactkv/Rounds.lean`: a monotone count of the rounds whose put fired, putgetc's monotone route
+over a list of keys); `common.alloc1` exports the KV names' mode. Decisions: `notes/decisions.md`,
+"The client's `kv.Compact`". **Step 3, a get at an old revision (2026-11-01, branch
+`compactkv-oldrev`)**: from the second round, `Main` also gets the previous round's key at that
+round's put's revision (the revision the round compacts at; `clientv3.WithRev`) and panics if the
+get succeeds with another value; an error (`ErrCompacted` once a compaction passed the revision)
+skips the check. In a run every such get succeeds (checked by hand with the error made a panic). The
+wrapper `client_Get_kv` (`kv.Get.spec` with `WithRev`: the key's key-values of the store at the
+revision read; `srvRangeOk_getKeyRev`); the rounds' invariant keeps, besides the count, the list of
+the rounds' first firings' revisions (a mono list at `γl`; a put's update may fire more than once,
+so the reply's revision is a firing's, at or after the first) and the history fact that round `j`'s
+key holds `v` from `L[j]` on (`roundsOk`, a commit keeps earlier revisions: `KVState.commit_at`);
+`getAtAu_round`. No new axiom.
+
+**`examples/compactkv` (2026-10-31, branch `compactkv`; Go only, steps 1-2 of the user's)**: putgetc
+under compaction pressure, since putgetc's run compacts nothing (the revision compactor polls every
+5 minutes). Five rounds of a `Put`, a client `Compact` at the revision before it (its error ignored:
+the auto-compactor may be ahead) and a `Get` that must return the round's value. Its test checks the
+compactions happened (reads at old revisions fail with `ErrCompacted`, the last compaction's revision
+still reads). Not translated (no `etc/goose.py` project yet) nor specified. Next, spec-first: the
+client's `kv.Compact` spec and the contract from the `Put` response's revision to
+`EtcdServer.Compact.spec`'s `srvRevLb` (G2's gap again), then optionally a `Get` at an old revision
+(the old value or `ErrCompacted`). Aside: `putget3`'s test fails ("failed to create WAL") when run in
+one `go test` with other examples, also without `compactkv`; alone it passes.
+
+**Item 14 (2026-10-31, branch `m2-specd`)**: `NewServer.spec` is the merged statement (the mode the
+configuration's: `E₀.cmp = decide (retention ≠ 0)`; `bootstrap` at `N + if E₀.cmp then N else 0`);
+`specCompact`/`wp_proofCompact` gone, `wp_NewServer` (generated) covers both modes, putgetc uses it.
+Later (the user's): one token count in place of `N + N`, with restore in compaction mode (`notes/decisions.md`,
+"One token count goes with restore in compaction mode"); the examples' `Hwb` premise dropped (derived from `Hn`).
+
+**`NewServer.specCompact` proved (2026-10-31, branch `m2-newsc`)**: `NewServer.wp_proofG on cmp`
+(`NewServer.specG`) is `NewServer`'s proof in both auth modes and both compaction modes; `wp_proofM`
+and `wp_proofCompact` its instances, `wp_proofCompact`'s `sorry` gone. In compaction mode: the store
+at the compacting instance (`server_kv_watchable_ofM`), `v3compactor.New` (revision mode), the post's
+closer without the right (`srvKVCloserW`), the apply thread's right and write-back stock
+(`CmpSupply.lean`: `srvCmpStock` from `N` more of `bootstrap`'s tokens, so the compaction chain takes
+`bootstrap`'s contract at `N + N`), and the compactor's run contract built in `start` from its views
+(`compactorRun`'s wand; `revGetterOk_server`). putgetc rests on it (linked by hand in `MainLinked`).
+Next: item 14 (`NewServer.specD`, read off `specG`), restore in compaction mode, stage 5.
+
+**`srvEnvOkD` in place, the compaction arm (2026-10-31, branch `m2-envok`, the user's (a))**: the
+store's backend at the server's mode (`srvEnvOk`'s `d.cm = E.cmp`); a snapshot installed only with
+the mode off (interim, `specSnap`'s `d.cm = false`); `applyEntryNormal` (auth off) applies a
+compaction entry (`ApplyCmpArm.lean`: `plainOrCmp`, `kv_entry_claim`, the NOSPACE check by the
+compaction's named error); the compaction a `storeKind`, its answer `ErrCompacted`/`ErrCorrupt`. Left:
+restore in compaction mode, `kvApplied`'s `crevOf` clause, stage 5.
+
+**Merged into `lean`** (2026-10-31, after lean's request-size, depth and key-length work: their premises
+and the mode's ties combined in `srvReqFieldsAt(M)`, `kv_prop_au(_M)`, the boot allocations with auth
+on, `CompactMode.lean`'s `irrDepthOk_of_compactPropOk` over the scoped `compactPropOk`). Gates: build,
+trust base (769 axioms, 16 `sorry`s), translations, initializers pass; 9 collections updated (the
+servers now reach `store.Compact`'s callees through the backend's `Compaction`: existing axioms,
+newly reached); the `lintest-logkvcompact`/`-logkvsnap` link headers and `issues/INDEX-reviewed`
+fail on `lean` as before.
+
+**Draft** (2026-10-30, `0a88a357f8`; plan and statements: `notes/m2-apply-plan.md`). Three Draft
+modules, imported by nothing (no `axiom`, no `sorry`, nothing switched):
+`etcdserver/apply/M2ApplyDraft.lean` (the apply package's compaction arm: `dispatchOkD`,
+`cmpOwn`, the chain's `Compaction` triple, `applierV3backend.Compaction.specD`,
+`uberApplier.dispatch.specD`/`Apply.specD`; glue `cmp_store_pre`, the backend's `Compaction` meeting
+`store.Compact.spec`'s precondition), `etcdserver/M2ApplyDraft.lean` (the one KV invariant `kvInvD`
+in the cluster's mode, `kvInvD_off` today's at `cmp = false`; `reqPropOkD`; the compaction revision
+of the committed log `crevOf`, monotone, `-1` or `≥ 1`, its apply step `crevOf_step`),
+`etcdserver/M2ApplyDraftSpecs.lean` (`NewServer.specD`: `spec` merged with `specCompact`;
+`EtcdServer.Compact.specD` over the general `isServerReq`). Agent's decisions A1-A7 (the revision a
+field of `ApplyKV`, the right in the apply state, `NoDelPutAt` from the admitted writes until the
+fork fix, ...); gaps G1-G5; `applyAll`/`run`: `run` unchanged, `applyAll`/`applyEntries`/
+`applyEntryNormal` one pure conjunct each; the 3-member `putgetc` scoped. For the user: Q1-Q5 (one
+batch). Next: review round 1 (`spec-reviewer`) on the Drafts. Checked: full `lake build` of the base
+(11247 jobs), `lean-check -a` and a targeted build (3816 jobs) of the Drafts.
+**Checkpoint (2026-10-30, for a session handoff):** the user's Q1-Q4 recorded; review round 1 done
+(`notes/spec-first-study/m2-apply-review-1.md`: F-1..F-6). Resume at `notes/m2-apply-plan.md`,
+"Resume here" (next: the round-1 repair).
+**Round-1 repair (2026-10-30):** F-1..F-6 repaired in the Drafts (`m2-apply-plan.md`, "Review round 1:
+the repair"): `store.Compact`/`updateCompactRev` drafted without the unreachable `ErrFutureRev` arm
+(`cmp_not_future`: the store's log authority extends the caller's certificate), the compaction's
+error arm with no trace, `isServerReqD` (the KV invariant in the server's mode), `compactPropOkD` in
+the entry's claim, every item in the fork fix's form (no `NoDelPutAt`: dropping it from mvcc's specs
+now gates the switch), `srvKVCloserW` and `srvKVCloserM_split`; `dispatchOkM` in place of redefining
+`dispatchOk`; `Apply.specRecD`. Four new items (18-21).
+**Round-2 repair (2026-10-30):** N-1 (the shapes by the mode: `rqShapeD cmp`, `kvWorkD`, `entryOkMD`,
+today's off by `rfl`) and N-2 (`srvReqFieldsAtD`, the switch's text, in place of a second invariant
+copy), both caused by round 1's repairs (`notes/spec-first-study/m2-apply-review-2.md`). Review round 3 (`m2-apply-review-3.md`): two
+more first-tier findings of the same kind (R3-1, R3-2: other carriers of the off `logShape`/`kvInv`);
+the user's Q6: (a), the switch stated in place (`dispatchOk`, `kvInv` redefined, carriers'
+texts kept; the ties `srvReqFieldsAtD`/`srvKVInvsD`; off laws `kvInvD_off` ⊣⊢,
+`logShapeD_plain`); Drafts restated and built; consolidated item list in `m2-apply-plan.md`,
+"The switch in place". Review round 4: one first-tier finding (R4-1, the mode tie needs
+`ρ.rd.kv.cmp = E₀.cmp` in the interim `NewServer` texts: item 14'), repaired in the list. Round 5: F5-1 (the
+commit step needs `kvCertInv` in the request path's view) and F5-2 (`Compact.specD` at `ρ.rd`),
+repaired; items 8/12/13 unchanged in text (the claim derived in `applyEntryNormal`'s proof). Round 6: R6-1 (the tie in
+the auth-on arm had no producer), repaired by `kvTieM` (`True` on). Round 7: nothing in the first tier; the
+review rounds end (first-tier findings per round 6, 2, 2, 1, 2, 1, 0). Next: the user's approval
+batch (Q5, the consolidated items of `m2-apply-plan.md`'s "The switch in place"; Q3 open).
+**Approved (2026-10-31):** the user approved the batch (Q5: items 1-15, 17-21, 14'). **The Probe,
+item 18 (done, 2026-10-31):** mvcc's `store.Compact`, `compactLockfree` and `updateCompactRev` without
+the `ErrFutureRev` arm (`78024e8cd9`: the branch is contradictory in `updateCompactRev`'s proof, the
+store's log authority extending the caller's certificate) and without `NoDelPutAt` (the model's
+`kiGet_avail` re-proved over the fixed loop's `genRecreatedAt`; `named_not_del`,
+`rangeAnswers_not_del`, `delKey`, `compactJobPre` without it, `crevSafe` only the certificate);
+`mvcc_store_Compact` proved of the new statement, the Draft's `specD`s `rfl`-equal and retired.
+Not changed: `CompactMode.lean`'s interim `irrNoDelPut` (the switch replaces that family), v3rpc's
+`check_gives_nodup` (its `noFromKeyDelL` no longer needed by compaction; a separate cleanup).
+`NoDelPutAt` itself is kept (`M2StorageDraftRestore`'s Draft names it). **G2 (done, 2026-10-31):** Q3's (a) as an invariant
+law is not available (`certOk` of the committed log lives only under `revMu`); the user approved the
+variant (a'): `store.Rev.spec` returns `certOk` of the log it read (as `store.Read`), `srvRevLb` carries
+it, and `cmpReach_of_srvRevLb` (server Draft, proved) turns it into the compaction's KV certificate.
+**The commit step's compaction arm (done, 2026-10-31):**
+`kv_prop_au_cmp` (`etcdserver/M2ApplyProbe.lean`, imported by nothing, no `axiom`/`sorry`): a
+compaction proposal's update over `kvInvD`, its claim from `cmpReach` through `kvCertInv`
+(`cmpReach_reqLb`, before the update) and `srvReqLogLb_prefix` (inside it); today's three arms over
+`kvInvD` and the auth-on twin are left for the switch (mechanical). **S3-3's transfer lemma (done,
+2026-10-31):** `kv_entry_claim` (`M2ApplyProbe.lean`): an entry of the committed log gets its
+compaction claim from the KV invariant's (`cmpEntryOk_transfer`: `srv_eqv_prefix`, `kvModel_eqv` at
+the prefix before it), with the hypotheses `applyEntryNormal`'s proof already passes to
+`kv_log_plain`. **G1 (done, 2026-10-31):** only the shapes remained (S3-3 dropped item 8's
+`cmpLogOk` clause): `clusterWorkloadOk_ofD`, `clusterWorkloadOk_of`'s proof over `kvInvD` and
+`logShapeD`. **The Probe is done**, no surprise; next the switch (its remaining work:
+`m2-apply-plan.md`, the end of "The Probe"). **The switch (started 2026-10-31, the user offline: "keep
+going"):** five stages (`m2-apply-plan.md`, "The switch"). Stage 1 done: `applierV3backend.Compaction`
+specified, proved and linked (vocabulary in `apply/CompactArm.lean`); three repairs to the approved
+draft, the agent's (`notes/decisions.md`, "M2 apply side, the switch's stage 1"): `watchableStore.Compact`
+added to the mvcc Goose configuration (translation regenerated), `mvcc.readView.Range.spec`
+strengthened with `todo` (no `nil` result at a never-done context), `cmpRespOk` without the
+header's revision. Stage 2 done: `applierTriples` gains the chain's `Compaction` triple (`cmpTriple`), proved by the five chain constructions. Stage 3 done (the user chose (b)): `dispatchOk` admits a compaction, the answers carry its case and the trace, A1 (`ApplyKV.crev`, `applyKV`'s `cmpOwn`, `applyStep`'s crev clause), the uber's `dispatch`/`Apply` specs and `Apply.specRec` with `cmpAdmit`, `dispatch`'s compaction arm proved; the snapshot track's `snap_applyKV` takes the received backend's `d'.cm = false` (state at `-1`). Full build green, tcb unchanged. Stage 4 in part (2026-10-31: 4a `6453326ef2`, 4b `f37812d9da`, 4c (1) `689aac745d`): `KVNames.cmp` and the
+ties; `kvInv` in place over `plainLogM γk.cmp` with the compactions' claims; `reqPropOk` with the
+compaction form and the commit step's compaction arm. The tie in `srvKVInvs` carries S-5's law
+`kbCmpM E.γ.kb ↔ E.cmp`, so the apply thread (D22's `srvEnvOk`: `d.cm = false`) derives the mode off:
+`applyEntryNormal`'s compaction arm waits on the snapshot track's `srvEnvOkD` (since done, `m2-envok`).
+4c (2): `EtcdServer.Compact` over the general request-path spec (`specCompact`'s `sorry` retired:
+19 `sorry`s), `CompactMode.lean`'s family retired. Left, waiting on `srvEnvOkD`: the compaction arm
+and `kvApplied`'s `crevOf` clause (deferred, `notes/decisions.md`, "stage 4c"); stage 5 blocked (Q4).
+## A depth premise for `proto.MarshalIRR` (2026-10-31, branch `irr-depth`)
+
+The repair of `proto.MarshalIRR.wp_proof`, false of a request deeper than protobuf-go's recursion
+limit (`axiom/txn-nested-wire`'s attack 9, `issues/etcd-txn-nested-depth-apply-panic.md`): the
+user's approved design (`notes/decisions.md`, "A depth premise for `proto.MarshalIRR`"), built as
+drafted, every statement proved; no new axiom or `sorry` (the axiom keeps its name, restated).
+
+- The axiom takes `apply.irrDepthOk rq` (`apply/IrrDepth.lean`: the transaction at most 9999
+  messages deep), its post unchanged; the axiom review of the restatement survives
+  (`notes/axiom-review/marshalirr-depth.md`; Go checks of the depth accounting at the boundary).
+- The server's proposer (`processInternalRaftRequestOnce`, `raftRequest`) and a writing
+  `EtcdServer.Txn` take the depth premise; `txn_applied` takes `hd`.
+- v3rpc discharges it: `v3rpc.txnCheck_msgDepth` (a checked transaction at budget `n` is at most
+  `2n + 1` deep), the `*kvServer` keeps `maxTxnOpsOk (sint.Z n)` (`n ≤ 4999`), `kvTxnOk` is over the
+  model's depth.
+- **Scope restriction**: `NewServer.spec`/`specCompact`/`specM` take `v3rpc.maxTxnOpsOk (sint.Z
+  cfg.MaxTxnOps')` (etcd accepts any budget; the default 128 meets it; the examples discharge it).
+
+Details: `notes/irr-depth.md`.
+
+## Nested transactions in the client: proved (2026-10-31, branch `txn-nested`)
+
+The approved design (`notes/txn-nested.md`; the user's decisions there) is frozen and proved:
+`Then`/`Else` take operation trees (`opsTAt`, `OpT.txnOps`), `Op.toRequestOp`/`isWrite` take a tree,
+the new `Op.toTxnRequest.spec` is linked; the trusted wire model of `*pb.TxnRequest` sends nested
+requests (`reqOpAt`'s nested case, structural `reqOpsAt`) and the decoded copy's delete facts reach
+every depth (`txnWireOk` over `delWiresAtT`); with auth on, `etcdTxnSpecOn`/`txnUpdAtOn`/
+`client_txn_on` admit writing transactions with nested ones under `txnNestOk`. The auth-off `Commit`
+stays plain-only, a recorded scope restriction (`notes/decisions.md`, "Nested transactions with auth
+on only"). The ten plain `Then`/`Else` calls use the corollaries `v3.txn.wp_Then_plain`/
+`wp_Else_plain` (`client/v3/TxnPlain.lean`). The wire model's axiom review (grpc `Invoke`'s send side)
+was resolved by invoke-size's encoded-size premise, folded in at the merge (`a095a3b5e5`); the
+freeze (`3c15ab5252`, `notes/txn-nested.md`, "The freeze") and the proofs ("Proved" there): no
+`txn-nested` stub left, no new axiom, the trust baseline back to `lean`'s `sorry`s.
+
+## The encoded-size bound at grpc's send side (2026-10-30, branch `invoke-size`; partial)
+
+The repair of `Invoke`'s and `NewStream`'s refuted axioms (`notes/decisions.md`, "The encoded-size
+bound at grpc's send side").
+
+- **Done:** the gRPC layer, the wire models, the client's specs and results, cache/v3's client
+  contracts with their adapters, and the cache (`New` takes `pfx.length ≤ 2 ^ 28`). These
+  build.
+- **Left:** concurrency (with STM), leasing, recipes, k8s, the examples and the checks. The build
+  is red from these on.
+- **v3lock and v3election:** decided, (a): the receive-size fact (`v3rpc.grpcRecvBytesOk`,
+  `v3rpc/RecvLimit.lean`; `notes/decisions.md`, "The receive-size fact") is a premise of their
+  specs, with the configuration premise `etcdMaxRequestBytesOk` (true at the 1.5 MiB default). It
+  is not yet used: their proofs need `concurrency`'s bounds first.
+- **Server side:** repaired (2026-10-31, branch `reply-size`) under the named workload premise
+  `grpcRepliesFit`, a premise of `grpc.start` carried by the server tokens; false of etcd under a
+  client sending nested keys-only transactions (`issues/etcd-txn-keysonly-reply-alloc-panic.md`).
+  `notes/reply-size.md`. The axiom review survives (`notes/axiom-review/grpc-start-replies.md`).
+  Its four docstring corrections are applied (docstrings only).
+
+Details, the departures from the draft and what `txn-nested` must fold: `notes/invoke-size.md`.
+
+## The key-length law (2026-10-31, branch `invoke-size`)
+
+`EtcdModel.etcdState_keys`: every key of etcd's state is at most `etcdKeyMax = 2 ^ 27` bytes, from
+etcd's `MaxRequestBytes` check (`NewServer` takes `v3rpc.etcdMaxRequestBytesOk`) and one trusted
+conjunct of `proto.MarshalIRR`'s post (commit `0d43bc2dd8`, for an axiom review before landing).
+`notes/keylen.md`; `notes/decisions.md`, "The key-length law".
+
+- **Done:** the server (the KV invariant, the read view's floor, `readM_keys`), the client's
+  instances and reply predicates, and its users: recipes' `Queue`/`PriorityQueue.Dequeue`,
+  `RWMutex.waitOnLastRev`, `DoubleBarrier.Leave`; concurrency's `waitDelete` (premise
+  `key.length ≤ 2 ^ 30`), `waitDeletes` (premise `pfx.length ≤ 2 ^ 27`, its own get),
+  `Election.observe`'s watch.
+- **Leasing:** `revokeLeaseKvs` and `revokeFallback` (internal) take the bound of the keys they
+  revoke, which `revokeRange` and `serverTxn` prove from their responses; leasing builds.
+- **Pass 4, the examples** (`notes/invoke-size.md`, "Pass 4"): done but for k8setcd3's `call`
+  (the Update branch: `GuaranteedUpdate`'s premise on a no-op update). No closed theorem's
+  statement changes; linkvtxn's and k8setcd3's `GenIn` bound their inputs' strings.
+- **Concurrency** (2026-10-31, `d7df00b610`): done. The held key is bounded by Perennial's
+  `SprintfOut.str_x_named_int64` (`pfx.length + 17`), kept in `mutexState`/`electionState`
+  (`2 ^ 28`); `ResumeElection` takes the bound on its `leaderKey`; the transactions' sizes are exact
+  (`acquireTxn_size`, ...). Every `concurrency` module and v3lock's and v3election's build.
+- **The value-length law** (2026-10-31, the user's choice; `notes/vallen.md`): every value of
+  etcd's state is at most `etcdKeyMax` (`EtcdModel.etcdState_vals`, three instances), threaded as
+  the keys (the `*KeysLe` predicates now bound keys and values, renamed `*PutsLe`). The trusted
+  change is commit `f5c9aceb9a` (`proto.MarshalIRR`'s `irrPutsLe`; its axiom review to be redone).
+  `store.GuaranteedUpdate.spec`'s premise is Go's write condition (stale or the encoding differs),
+  with the read value bounded; k8setcd3's no-op update closes from it. Pass 4 is done: the full
+  build is green.
+
+## C1's A4 and A5: the served `Authenticate` with auth on (2026-10-31, branch `auth-a4`)
+
+`EtcdServer.Authenticate` specified and proved in the mode `on γa`
+(`Spec/.../etcdserver/EtcdServer__Authenticate.lean`; linked in the server's `Results.lean`,
+`server_authenticate_on`, over `server_raft_request_on`): the read index, the revision loop of
+`CheckPassword`, `GenTokenPrefix` and one proposal (`AuthnOn.lean`: `irrAuthenticate`, admitted by
+`reqPropOkOn`, its answer `appliedOkM_authn`), the `defer` clearing the password; the auth store's
+side is `authnStoreOk` (`AuthnStore.lean`), of its invariant (`authnStoreOk_of_authInv`), exported
+by the start chain (`authStoreKit`, `NewServer.specM`'s and `memberUpOn`'s `srvAuthStoreOn`). The
+gRPC side (A5): `_Auth_Authenticate_Handler` translated and proved, `Authenticate` in
+`v3rpc.authRegs`, the handler `etcd_authenticateHandlerOk` and the stub `etcd_kv_auth_served_onA` proved
+(`client/v3/AuthnServedOn.lean`; it replaces the old `etcd_kv_auth_served_on`, taking its name), its new
+premise `authnStoreOk` from `memberUpOn`. Trust base: `tokenSimple.genTokenPrefix`'s axiom
+strengthened (no error, a prefix with no space; decisions.md, "C1's A4 and A5"); the `sorry` of the
+served `Authenticate` gone. authkv's `Main` now rests on `startServer` (pending), `Work`'s T4 (proved 2026-10-31) and the
+server's apply/raft-node `sorry`s.
+
+## Perennial pin `d62b13ac1` (2026-10-31, branch `pin-d62b`)
+
+The pin `6da88b280` -> `d62b13ac1` (Perennial `lean`, 3 commits): `fmt.Sprintf`'s model formats
+`%x` of an integer (`21b7311b5`: `SprintfOut.hex`, `fmt.hexadecimal`), and formats a value of a
+named integer type without formatting methods as its underlying integer (`a4e2fb9e6`, `d62b13ac1`:
+a GooseLang instruction `TypeAssertUnderlying2`, at integer underlying types only;
+`fmt.IntArgValue.named`, `fmt.NoFmtMethods`, `fmt.IsIntArgType`, which `fmt.ArgWf` now admits).
+For concurrency's `Sprintf("%s%x", pfx, s.Lease())` with a `LeaseID`, Perennial has
+`SprintfOut.str_x_named_int64` (`out = pfx ++ hexadecimal n`, at most 17 bytes more).
+
+- **Translations.** `etc/goose.py --check --perennial` with the new translator: no file changed
+  in any project. `etc/gen-init.py --check`: 199 files up to date.
+- **What broke**: the fmt API's new instance arguments, three files. `ArgsWf`, `ArgWf`,
+  `SprintfOut`, `IntArgValue` and `SimpleDirective` take `[GoSemanticsFunctions]`, which a pure
+  section without `HeapGS` does not get from `go.Semantics`; `ArgsWf.cons_string`/`cons_int` take
+  `[go.string ↓u go.string]`, and `cons_other` takes `¬ IsIntArgType t`. Repairs:
+  `traceutil.fieldsWf` and its seven lemmas (`traceutil/Defs.lean`) take `[GoSemanticsFunctions]`
+  (and `[go.string ↓u go.string]` for `cons_string`/`cons_int`, `[go.bool ↓u go.bool]` for
+  `cons_bool`, whose `¬ IsIntArgType go.bool` case rewrites by `go.is_underlying`); k8s's
+  `argWf_string` (`storage/PrepareKey.lean`) takes the same two and uses
+  `fmt.not_isIntArgType_string`; `recipes/InvRecipesSeq.lean`'s `sprintf` section has
+  `[GoSemanticsFunctions]`. Only instance arguments were added (at every use they are
+  `go.Semantics`'s); no statement changed.
+- **The `SprintfNamed` axiom** (`Proof/fmt/SprintfNamed.lean`, `LeaseID` arguments) stays true:
+  its conclusion `SprintfOut format xs s` now determines `%x`/`%d`/`%v` of a `LeaseID` (as Go
+  formats it) where it was arbitrary. Its docstrings are updated. It is now redundant in principle:
+  `fmt.wp_Sprintf` admits `LeaseID` once `fmt.NoFmtMethods LeaseID.ty` is proved
+  (`NoFmtMethods.of_methodSetIs_nil`, from a `go.MethodSetIs LeaseID.ty []` fact, which the
+  generated proof of `client/v3` does not state today), so
+  `Mutex.tryAcquire` and `Election.Campaign` could drop it (a follow-up, not done here).
+- **Checks.** Full `lake build` green. `etc/tcb-report.py --check` and every collection
+  match (766 axioms, 20 `sorry`s: no change; no `--update`). `etc/api-check.py` and `etc/gen-interface.py
+  --check --layout` on `etc/api/raft.txt` pass (no interface change). `etc/gen-link.py`: every
+  mode matches its `Link.lean` but `--lintest-logkvcompact` and `--lintest-logkvsnap` (a docstring
+  wording, predating the bump; the four `raftAsm` differences of the last bump are gone);
+  `etc/gen-btree-link.py` matches.
+- **Tooling.** `etc/lean-check.py` with `LAKE_OPTS=--packages=...` is still unsafe (section
+  "Perennial pin `6da88b280`", "Tooling note"): this time its server's `lake setup-file` did check
+  out the worktree's pin in the shared `.lake/packages/perennial` (and another session's moved it
+  back minutes later). Use `lake build --packages=...` on the modules.
+
 ## M2, the storage side (2026-10-30, branch `m2-storage`)
 
 **Merged with G2's freeze** (`lean` `51b0f7adad`): v3rpc's `upOk γ M Up`/`watchUp R` create arm is `mvcc.watchTok ∗ □ auth.authPubLbM … c.bound ∗ mvcc.noCompactor ….st` (G2's bound, then step 1's conjunct; text in `notes/m2-storage-plan.md`, "Merge of lean at 51b0f7adad"); `recvLoop` and `watchGRPCStream.run` repaired for it.
@@ -1257,6 +1867,30 @@ proved in `Hist.lean` (`revEvents_setupPut_put` under `kvLogOkTo`, `stateHistOk_
 mask a server definition (`authTieReadMask`, `authStateAt_setup` restated over it). Open before
 the freeze: the watch spec (G2), the other round-2 items.
 The trust base gains the stubs' two `sorry`s (`Work.wp_proof`, `newUserClient.wp_proof`).
+
+Proving the stubs (2026-10-30, branch `authkv-hist`; the plan: `notes/authkv-main-plan.md`, "Proving
+the stubs"): `newUserClient` proved (its `sorry` gone). For `Work`: `WorkAuth.lean` (the principal of
+an attempt, `akOut`/`akTokSeen`; a write told its grant was granted at `setupSt`,
+`akOpGranted_of_grant`; reads and the refused watch at `setupSt`, `akRead_granted`,
+`akWatch_c_refused`). The auth model's simple token now has a prefix with no space
+(`auth.tokPrefixOk`, decisions.md "The simple token's prefix has no space"): the server's
+`TrimPrefix(token, "Bearer ")` leaves an issued token unchanged (`tokIssued_trim`); the served
+`Authenticate` owes it (C1's A4-A5). `Work.spec` gains `auth.modeTag V.R.γ.tag (.on γa)` (the watch's
+verdict is at the tagged mode; `Main` has it from the member's start), and `Work.wp_proof` takes the
+builders' and the watch's specs and `WithTimeoutBackgroundMd` (Link regenerated). **`Work` proved**
+(2026-10-30), T4 included since 2026-10-31: `then_commit_nested_refused` (`WorkCalls.lean`) states
+that `Then(OpTxn(nil, [OpPut(c/who/t3)], nil))` returns the builder and its `Commit` replies with an
+error, proved over `txn.Then.spec`'s nested operations (`opTAtC_opTxn`), `client_txn_on` and
+`reqPerms_irrTxn_nestedPut` (`t4M_not_granted`: the nested put needs a write on `c/...`, which no
+principal has). Its statement gained `hwho : who ∈ principals` (2026-10-31): `Commit`'s size premise
+(`txnSizeOk`, 2026-10-30) postdates T4's statement, and without a bound on `who` the key `c/who/t3`
+is unbounded; T1-T3 get their bound from `hwho` the same way (`keyOfK_principal_le`, moved to
+`WorkCalls.lean`). `Work.spec` gains `errors.AsTarget EtcdError` (as `Main.spec`).
+The per-call lemmas are in `WorkCalls.lean` (`work_put`/`_delete`/`_get`/`_commit`, the last now also
+giving the reply's responses, `txnReplied_facts`; T1's reads in `[a, b)`, `t1_reads`); the refused
+watch's events refuted by `akWatch_c_refused`. The authkv results now reach G2's `streamKeyOf_none`
+and `streamKeyOf_single` (reviewed, approved axioms; `notes/audit.md`), through the watch. **`Main`** (2026-10-30): `ak_alloc` proved (`MainAlloc.lean`); the started member now exports its auth store's cost field and the TLS fallback off (`memberUpOn`; blockers 3, 4), and the serve step's KV and Auth half is proved (`ak_served_kv`, `MainServe.lean`, over `etcd_kv_auth_served_on`, proved 2026-10-31: see "C1's A4 and A5"); `Main.wp_proof` is proved up to the workloads (`SetUp`, `newUserClient` for root, u and v, the four `Work`s under a wait group, root's last write (`client_Put_on`, `akHist_endAu`), root's watch, `Collect` and `CheckHistory` (`RootWatch.lean`: `root_resp`, `histOk_of_collected`), u's watch and its `Permitted` checks (`u_resp`); **`Main.wp_proof` proved (2026-10-31)**, the result resting on `startServer` (pending), `etcd_kv_auth_served_on` (A5) and the server's apply/raft-node `sorry`s; `authkv_Main` now takes `authkv_startServer`'s premises, `auth.ValidSpec` and `authSchemaSrv`); the serve step's watch half too (`ak_served_watch`: `watchAddrFacts` with auth on, over G2's mode-generic `srvKVFacts`); T4 proved (2026-10-31); `Authenticate`'s registration is C1's A5; `notes/authkv-main-plan.md`, "Main: what blocks it". Open:
+`Main`.
 
 ## Repair, Stage P: the clients' proofs (2026-10-30, branch `repair`; final)
 
@@ -4533,6 +5167,35 @@ lock that both `lean-check` and `etc/timed-build.py`/`lake build` respect (Lake 
 own), so that the server's rebuild waits for the build or vice versa; or have `lean-check` detect
 a running `lake build` in the worktree and refuse (or only elaborate against the `.olean`s as
 they are, reporting the stale imports instead of rebuilding them).
+
+## Build performance (2026-10-30, branch `perf/2026-10-30`)
+
+On the Perennial `6da88b280` pin. Cold full builds (`LAKE_ARTIFACT_CACHE=false`, 24 cores, Perennial's
+included) of the base `51b0f7adad` and of the branch: wall 55m03s -> 53m09s, CPU 15h12m -> 14h40m;
+the 19 modules the branch touches 1757s -> 1193s CPU, the rest is the noise of the untouched modules.
+The fingerprint of every root statement, the definitions they reach and the axioms is the same;
+`etc/tcb-report.py --check` and every collection pass. What changed, each commit with its A/B
+measurement (base and branch versions elaborated interleaved on an idle machine):
+
+- **`first_callee`** (`Proof/github_com/mit_pdos/etcd_grove/FirstCallee.lean`): `first` whose
+  alternatives are tagged by the callee they are for (`| "Warn" => (wp_apply hWarn …)`); when the
+  next redex is a call, the alternatives tagged with another callee are skipped. The rafthttp proofs'
+  log macros (`zap_log`, `dl_dropped`, `send_drop`, ...) were `repeat' (first | wp_apply spec₁ … |
+  … | wp_auto)`; their last round, where every spec fails, was 75% of a `zap_log`. The 16 rafthttp
+  modules: 1402s -> 1000s (decodeLoop 282 -> 184, snapshotHandler.ServeHTTP 216 -> 138);
+  `RaftCluster.AddMember` 45s -> 27s.
+- **`indexer.updateElem`**: the loop body's two `if obj != nil` joined (`wp_join`) at the slice
+  each fills, so the index lookup and the add/delete loops run on two goals, not eight: 100s -> 31s.
+
+Tried and dropped: `first_callee` looking past pure redexes (a speculative `wp_pures` to find the
+callee when the next redex is no call) cost what it saved. Found, not changed: the k8sdaemonset
+`Server.{remove,create,update,watch}` prove their 770-line body twice, once per key form
+(`mkKey "" name`, `mkKey ns name`), joinable at the `if t.namespaced` (~45s each);
+`Reflector.list`'s page-size `if` chain (~18s); `Refinement`'s `lcm_mono`/`rd_mono` `first`
+searches (23s of failed `simp_all`); `wp_auto_lc` (~1s a call, `SnapApplyWalk`'s 52 calls 101s)
+stays Perennial's. A profile's backtracked time (failed tactics under a succeeding parent, the
+`trace.profiler` output at a 100ms threshold) finds such searches: over the 62 other modules above
+40s, more than 10s only in these, `checkIntervals` (10s) and rafthttp modules changed here.
 
 ## Build performance (2026-10-24, Perennial `9f296e8cc`: `wp_auto`'s simp by `Lean.Meta.Sym`)
 

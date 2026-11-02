@@ -26,19 +26,28 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- What `Compact` returns: `nil` and a response whose header holds a revision the store has reached
-(`s.kv.Rev()`, the call's last line), or an error the server's request path can report
+(`s.kv.Rev()`, the call's last line; past the store's start, so not `0`: since the client's
+`kv.Compact`, 2026-11-01, which needs the header's revision set, `v3rpc.hdrRevIn`), or an error the server's request path can report
 (`applyErrIs`, which `errors.Is` can test: the compactor's `ErrCompacted` check). -/
 def compactOutIs (E : apply.AEnv GF) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (v : etcdserverpb.ResponseHeader)
       (log : mvcc.Log), structFieldRef etcdserverpb.CompactionResponse go!"Header" resp ↦ h ∗ h ↦ v ∗
-      mvcc.idxCert E.γ.idx log ∗ ⌜log ≠ [] ∧ v.Revision' = W64 ((log.length : Int) - 1)⌝) ∨
-    (⌜resp = null⌝ ∗ applyErrIs err))
+      mvcc.idxCert E.γ.idx log ∗
+      ⌜log ≠ [] ∧ 2 ≤ log.length ∧ v.Revision' = W64 ((log.length : Int) - 1)⌝) ∨
+    (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err))
 
 /-- `s.Compact(ctx, r)` for a non-physical compaction request (the pilot's scope: the compactor never
 sets `Physical`; the physical wait, `Physc` and `ForceCommit`, is the gRPC caller's and not specified
-yet) at a revision the store has reached (`srvRevLb`: the apply's `store.Compact` needs its
-certificate, M2's review round 1, S2-3; the compactor's permit gives it), on a server in compaction
-mode (`isServerReqC`: its KV invariant admits the compaction entry, S2-1): it proposes the
+yet) at a revision the KV has reached (`kvRevLb`: the apply's `store.Compact` needs it, M2's review
+round 1, S2-3; since the client's `kv.Compact`, 2026-10-31, the cluster's bound in place of the
+store's own certificate `srvRevLb`, weaker: a client's comes from another member's reply, the
+compactor's permit gives the store's, `kvRevLb_of_srvRevLb`), on a server in compaction
+mode (`isServerReq` with `⌜E.cmp = true⌝`: the KV invariant admits the compaction entry in the
+cluster's compaction mode, S2-1; M2's apply side, item 15, 2026-10-31: until then the compaction
+mode's own view, `isServerReqC`; the readers' names the request path's, `ρ.rd`, F5-2: the
+proposal's reached revision from the certificates `isServerRead` reaches. Go serves a client's
+`Compact` RPC with the auto-compactor off too; such a server's invariant admits no compaction entry,
+so a client compaction at an off server stays outside the model, review round 2's S-6): it proposes the
 compaction through raft and returns `compactOutIs`, under a context carrying no trace (`traceutil.ctxTraceIs ctx
 none`: `traceutil.EnsureTrace` reads `ctx.Value(TraceKey{})` and writes to a trace it finds; M2's
 freeze repair, `notes/decisions.md`, "The compactor's contract after the freeze"),
@@ -60,15 +69,16 @@ premise is stricter than the decision by a margin (review round 5's S4): it also
 negative revisions, which Go handles harmlessly (`updateCompactRev` answers `ErrCompacted` for
 `rev ≤ compactMainRev`, which is at least `-1`, and writes no record); no caller issues one. -/
 abbrev EtcdServer.Compact.spec : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (p : Loc) (r : Int),
   -- (M2, the storage side, 2026-10-30: M2's scope restriction, the user's Q7 (a), the approval's
   -- item 35) a revision past `0`
   1 ≤ r →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReqC s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ srvLgReader s ∗ E.RD ∗
+      isServerReq s E ρ ∗ ⌜E.cmp = true⌝ ∗ isServerRead s E ρ.rd ∗ srvLeadTimeReader s ∗
+      srvLgReader s ∗ E.RD ∗
       mvcc.storeReaderC E.s E.γ ∗ idCred ρ.ids 1 ∗
-      context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx none ∗ srvRevLb E.γ r ∗
+      context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx none ∗ kvRevLb ρ.rd.kv (W64 r) ∗
       compactReqIs p r }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Compact"))
       (Val #(GoInterface.ok ctx))) (Val #p))

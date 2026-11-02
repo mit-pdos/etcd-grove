@@ -64,7 +64,8 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   axioms in place, list for each the collections that now rest on the stronger claim (`--check` does
   not flag a same-name change), and put it to the user. Before strengthening, check what the axiom
   admits beyond the code's own uses: a stronger claim can be false on an input the old one covered
-  harmlessly. (`watcher.Watch` with auth on, G2, 2026-10-30: `examples/watch-auth.md`.)
+  harmlessly. A post that says a call returns claims it returns on every input the premise admits:
+  check Go's stack and memory there too (a recursion per level of a deep message). (`irr-depth.md`) (`watcher.Watch` with auth on, G2, 2026-10-30: `examples/watch-auth.md`.)
 
 ## Preferences: strength
 
@@ -85,10 +86,22 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   what the caller already holds can never be chained with another. (`pilot-review-1.md`)
 - **Know the margin**: where the postcondition is weaker than what the code guarantees, say what the
   code guarantees. (`notes/spec-first-plan.md`, Review)
+- **A size argument from fresh copies checks every path for aliasing**: an encoding counts each
+  reference, a heap counts each allocation; one fast path that reuses a buffer (etcd's keys-only
+  ranges reuse the index's key slices) turns "Go runs out of memory first" into a reachable panic.
+  (`reply-size.md`, critique 2)
 - **One spec, a gated row, not two specs**: a stronger variant that holds only under a condition the
   caller knows (the auth mode) is a row `□ (⌜cond⌝ → …)` of the one spec, not a second spec; when
   the condition is there only because a trust-boundary axiom is too weak to give the row
   unconditionally, the docstring names that axiom as the margin. (`authinfo.md`)
+- **A new mode redefines the shared predicates in place, not mode-indexed copies**: when a mode widens
+  what a family of predicates admits (compaction entries in the KV invariant), redefine the few that
+  change, keep the text of the specs and predicates that carry them (read under the redefinition), and
+  prove that the old mode means the old statements (laws, not `rfl`). Copies indexed by the mode must
+  cover every carrier, and each review round finds one more that was missed. (`compaction-in-place.md`)
+- **No arm the precondition excludes**: an error case of the code that the caller's premises rule out
+  (`ErrFutureRev` under a certificate of the revision) is a sentence in the docstring, not a disjunct
+  every caller must discharge; its proof branch is a contradiction. (`compaction-in-place.md`)
 
 ## Preferences: abstraction
 
@@ -105,6 +118,28 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   in a module only that proof imports. (`pilot-review-5.md`)
 - **Every premise has a source the client sees**: a spec or a law of the API, never the
   implementation's internal lemmas.
+- **A client's certificate is the cluster's**: a persistent fact a client takes from one call's
+  reply into a later call (a revision reached) must hold at every member the later call may reach,
+  so build it from what the members share (the cluster's raft log, the KV model), never from one
+  member's ghost state (its store's certificate map); and check the tie it needs against the
+  multi-member allocation, not only today's single-member producers. (`compact-client.md`)
+- **A workload premise about a resource's later operations goes on the resource's only producer**,
+  carried by the resource (as `apply.backendUnderQuota` on `storage.NewBackendQuota`, carried by the
+  quota object; `grpcRepliesFit` on `grpc.start`, carried by the server tokens): the consumers'
+  statements stay, and the premise is taken where a proof reaches the producer, not beside a sibling
+  premise wherever that one sits. No law extracts the premise back from the resource; the docstrings
+  of the results consuming it say they are conditional on it. (`reply-size.md`)
+  The other way round: a premise on an operation must be provable by its callers from what they
+  hold. A property of the whole earlier history (no revision so far writes a key twice) is not a
+  later operation's premise (the compaction's): its callers cannot know it; it is the writers', or
+  that of whoever already reasons about them (a watch client's workload, gated by the mode where
+  only that mode needs it). (`watch-compaction.md`)
+- **A contract between packages states the receiver's need, not the supplier's mechanism**: the
+  server's `Txn` takes the depth of the request's model, not the gRPC handler's budget bound that
+  implies it; the supplier proves the law from its mechanism to the need. The need is weaker to
+  supply and names nothing of the supplier. (`irr-depth.md`, critique 2; the gRPC lease reads' contract keeps the
+  server's header ids inside its answer and leaves the server's bounds premises to the theorem that
+  discharges it, so the handlers' specs inherit neither (`lease-grpc.md`).
 - **No constant or conjunct whose reason you do not know.** A numeric bound in a post is usually the
   proof's slack; a fact that holds of every reachable state is one law of the vocabulary, not a
   conjunct of each operation's post. Do not copy a conjunct from a sibling spec without knowing why it
@@ -119,6 +154,10 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   receiving one gives a witness that it is in the set), and the client keeps whatever invariant it
   wants over it (one client: every snapshot's data is empty; a client that makes none: the set stays
   empty).
+  The departure the user approved: a persistent predicate fixed when the object is created (a saved
+  predicate, `crevPermIs`), which every value of a field satisfies, when the object's own locks
+  already hold the shares a logically atomic spec would hand back and a client only reads the fact;
+  it costs one premise on the writer and no client state. Say that it departs. (`c3-store-law.md`)
 - **Linearizability is the caller's atomic update, written in the triple**, not behind a helper
   definition, and in the shape of the closest sibling spec (a server operation and the client
   operation that calls it). (`put.md`, critique 4)
@@ -151,6 +190,21 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   (`pilot-review-1.md`). A thread token is one such token (it bounds the live goroutines, as reader
   slots must be bounded); another is fine if all callers have it. Do not make callers thread a
   resource only the proof's bookkeeping needs. (`put.md`, critique 3)
+- **A bound is reasoned about where it is owned, not in the specs between** (`notes/bounds-plan.md`,
+  the user's, 2026-11-01): the adequacy theorem fixes the global constants (threads, steps, the
+  workload); the owner of a bounded object (the invariant allocating the `RWMutex`, `WaitGroup` or
+  counter) turns them into a protocol of unbounded use (a thread pool of reader slots, a wait group
+  backed by thread tokens, a counter ticked by receipts); a client takes its `threadTok`, the owner's
+  persistent handle, and named size bounds. So a new spec mentions no
+  `threadBound`, `receiptBound`, `actualMaxReaders` or count of reader slots (`List.replicate 64 ...`);
+  `etc/bounds-check.py --check` refuses new ones.
+- **A size bound shared between specs is written with its named constant, not the number**
+  (`opKeyMax`, `etcdKeyMax`, `leasingPfxMax`, ...; the user's, 2026-11-01): the name says why the
+  bound is there, a change of the limit is one edit, and a caller composes named quantities. Define
+  it next to the law that chose it, `@[word_unfold]` so that `word` sees through it. A literal is
+  for a bound local to one function (a library's own overflow precondition, `< 2 ^ 63` for an
+  `int64`). Not a predicate (`keyOk k`) for a single `≤`: `omega` and `word` do not see through one. Where a goroutine holds
+  two read locks at once, the inner lock's slot is a counted stock at that call path only.
 - **A once-only resource is not spent per call**: check retry and loop paths; make the exception
   depend on the value (a persistent one-shot fact), not on the call. (`pilot-review-2.md`)
 - **Read the definitions of the resources a spec takes**, not only their names: a predicate chosen

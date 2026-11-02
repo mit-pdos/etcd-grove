@@ -31,7 +31,8 @@ abbrev txnLeasing.fallback.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗ isLeasingKV lkv γ pfx ∗ opsAt sl os }}
     (App (Val (txn @!! go.GoType.PointerType txnLeasing.ty @!! go!"fallback")) (Val #sl))
   {{ (fb : GoSlice), RET #fb; structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
-      ∃ fos : List OpFull, opsAt fb fos ∗ ⌜∀ o ∈ fos, txnOpOf o = some (.get o)⌝ }}
+      ∃ fos : List OpFull, opsAt fb fos ∗ ⌜(∀ o ∈ fos, txnOpOf o = some (.get o)) ∧
+        fos.length ≤ os.length ∧ ∀ f ∈ fos, guardOf pfx os f.key f.base.rangeEnd f.val⌝ }}
 
 end spec
 

@@ -145,7 +145,7 @@ theorem EtcdServer.Put.wp_proof
   · -- auth off
     have hRR := EtcdServer.raftRequest.spec_off hRR
     wp_apply hRR s E ρ ctx2 _ «$a1_ptr» (irrPut op)
-        (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L))) F rfl
+        (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L))) F rfl (apply.irrDepthOk_of_txnW_none rfl)
         $$ [Hrd Hard Hcred Header Hperm] as %resp %err ⟨Hrd, Hard, Hres⟩
     · iframe # Hrd Hard Hcred
       isplitr
@@ -223,7 +223,7 @@ theorem EtcdServer.Put.wp_proof
   · -- auth on
     have hRR := EtcdServer.raftRequest.spec_M hRR true
     wp_apply hRR s E ρ ctx2 _ «$a1_ptr» (irrPut op)
-        (putQhOn ρ.kv op γc Q) F rfl
+        (putQhOn ρ.kv op γc Q) F rfl (apply.irrDepthOk_of_txnW_none rfl)
         $$ [Hrd Hard Hcred Header Hperm] as %resp %err ⟨Hrd, Hard, Hres⟩
     · iframe # Hrd Hard Hcred
       isplitl [Hperm]

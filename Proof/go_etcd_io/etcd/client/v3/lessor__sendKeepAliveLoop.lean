@@ -33,8 +33,8 @@ theorem lessor.sendKeepAliveLoop.wp_proof
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     lessor.sendKeepAliveLoop.spec (GF := GF) (hG := hG) := by
-  intro l addr st γ Dn cd L
-  wp_start as ⟨#Hl, #Hst, Htok⟩
+  intro l addr st γ Up Dn cd L
+  wp_start as ⟨#Hl, #Hst, #Hz, Htok⟩
   iunfold lessorAt at Hl
   icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
     #Hrem, #Hmu, #Honce⟩
@@ -46,7 +46,7 @@ theorem lessor.sendKeepAliveLoop.wp_proof
   wp_auto
   ipersist l
   ipersist stream
-  ihave IH : iprop(∃ L' : List w64, "Htok" ∷ cliSendTok (Req := pbLeaseKeepAliveRequest) γ L') $$ [Htok]
+  ihave IH : iprop(∃ L' : List KaReqM, "Htok" ∷ cliSendTok (Req := pbLeaseKeepAliveRequest) γ L') $$ [Htok]
   · iexists L; iframe
   wp_for IH
   (try wp_auto)
@@ -124,7 +124,7 @@ theorem lessor.sendKeepAliveLoop.wp_proof
   · inext; unfold lessorInv; iexists mref, mm, stv, scf, e; iframe; iframe #
   (try wp_auto)
   ihave %Hsll := ownSlice_len $$ Htsl
-  ihave IH2 : iprop(∃ (n i0 : w64) (L2 : List w64),
+  ihave IH2 : iprop(∃ (n i0 : w64) (L2 : List KaReqM),
       "i" ∷ i_ptr ↦ n ∗ "id" ∷ id_ptr ↦ i0 ∗ "Htsl" ∷ tsl ↦* ids ∗
       "Htok" ∷ cliSendTok (Req := pbLeaseKeepAliveRequest) γ L2 ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ ids.length⌝) $$ [i id Htsl Htok]
@@ -142,10 +142,14 @@ theorem lessor.sendKeepAliveLoop.wp_proof
       $$ [Htsl] as Htsl
     · iframe; ipureintro; exact Hc
     (try wp_auto)
-    ihave #HS := HSend $$ %L2 %«$r0_ptr» %(ids[sint.nat n]'Hlt)
+    ihave #HS := HSend $$ %L2 %«$r0_ptr» %(⟨ids[sint.nat n]'Hlt, 0, 0⟩ : KaReqM)
     wp_apply HS $$ [Htok «$r0»] as %err ⟨-, Hres⟩
-    · iframe
-      try (ipureintro; rfl)
+    · iframe Htok
+      isplitl [«$r0»]
+      · iexists _; iframe «$r0»; ipureintro; exact ⟨rfl, rfl⟩
+      isplitl []
+      · iunfold kaUpZero at Hz; iapply Hz
+      ipureintro; decide
     icases Hres with (⟨%Herr, Htok⟩ | ⟨#Hse, %L3, %HL3, Htok⟩)
     · subst Herr
       (try wp_auto)

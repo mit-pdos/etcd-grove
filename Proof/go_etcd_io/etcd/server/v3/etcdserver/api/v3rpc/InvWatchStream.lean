@@ -194,11 +194,13 @@ def createRangeOk (c : CreateReqM) (id : w64) (r : mvcc.WatchRange) : Prop :=
    else r.end? = some c.rangeEnd)
 
 /-- **The response the send loop makes of the mvcc response `r`** with the header `h` (its
-revision `r.rev`): `r`'s watch id and events, not created, not canceled (mvcc's responses never
-carry a compaction: `respIs`), no reason, not fragmented, `r` as its ghost source. -/
+revision `r.rev`): `r`'s watch id, events and compaction revision, canceled if that is set (a
+watch behind the compaction revision: `chooseAll`'s response; watches across a compaction, D6,
+2026-11-01; until then never), not created, no reason, not fragmented, `r` as its ghost source. -/
 def mvccResp (r : mvcc.RespM) (h : HdrM) : WatchRespM :=
-  { hdr := h, watchId := r.id, created := false, canceled := false, compactRev := W64 0,
-    cancelReason := [], fragment := false, evs := r.evs, src := some r }
+  { hdr := h, watchId := r.id, created := false, canceled := decide (r.compactRev ≠ W64 0),
+    compactRev := r.compactRev, cancelReason := [], fragment := false, evs := r.evs,
+    src := some r }
 
 /-- **The watch id `X` is live after the responses `L`** (pure; the watch slice's unit W-C): the
 last control response for `X` among `L` is a created, not canceled, one. The send loop sends an
@@ -432,6 +434,13 @@ def watchReqSend (l : Loc) (m : WatchReqM) : IProp GF :=
     | .other => ⌜u = GoInterface.nil⌝ ∨ oneofCreate u null ∨ oneofCancel u null ∨
         oneofProgress u null)
 
+/-- **A bound on a `*pb.WatchRequest`'s encoding** (`pbWatchRequest.wireLen`; 2026-10-30): a
+create's key and range end, its filters (a packed enum, at most 10 bytes each), and the fixed part
+(`wireSlack`); a cancel's or a progress request's fixed part. -/
+def watchReqWireLen : WatchReqM → Nat
+  | .create c => c.key.length + c.rangeEnd.length + 10 * c.filters.length + wireSlack
+  | _ => wireSlack
+
 /-- **The watch requests on the wire** (a trusted wire model, as the unary ones): the client's
 message `watchReqSend`, the server's decoded copy `watchReqRecv` (owned), a message the receiver
 owns at any content (`own`: a fresh `new(WatchRequest)` is one). -/
@@ -440,6 +449,7 @@ abbrev pbWatchRequest : StreamMsg GF where
   M := WatchReqM
   cnt := inferInstance
   send := watchReqSend
+  wireLen := watchReqWireLen
   recv := watchReqRecv
   own l := iprop(∃ v : etcdserverpb.WatchRequest, l ↦ v)
 

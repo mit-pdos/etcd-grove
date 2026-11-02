@@ -46,7 +46,7 @@ theorem store.conditionalDelete.wp_proof
     (wp_deleteOnce : store.deleteOnce.spec (GF := GF) (hG := hG))
     (wp_refresh : refreshOnError.spec (GF := GF) (hG := hG)) :
     store.conditionalDelete.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ E _ sp c ci cd key out o0 rv0 v p validate vf W _ Φu hk
+  intro _ _ Obj _ E _ sp c ci cd key out o0 rv0 v p validate vf W _ Φu hk hkl
   wp_start as ⟨#Hst, #Hctx, #Hce, Hout, %Hv, HW, #Hau, #Hval⟩
   -- the first read's invariant, with the caller's token, and the maker `Get` takes
   imod (rwInv_alloc c key (stepHand c (delStep key validate)) W Φu ⊤) $$ HW
@@ -64,14 +64,14 @@ theorem store.conditionalDelete.wp_proof
     ipureintro; exact h.1
   wp_auto_lc 1
   wp_apply (wp_getCur Obj sp c ci cd go!"deleteGet" key v p
-      (rdQ γc γp c key (stepHand c (delStep key validate))) hk hR) $$ [] as %f #Hf
+      (rdQ γc γp c key (stepHand c (delStep key validate))) hk hkl hR) $$ [] as %f #Hf
   · iframe #
     ipureintro; exact Hv
   (try wp_auto)
   iunfold getStateOk at Hf
   wp_apply Hf $$ [Hmk] as %st %err Hr
   · iexact Hmk
-  icases Hr with (#Herr | ⟨%σ, #Hrq, Hat⟩)
+  icases Hr with (#Herr | ⟨%σ, #Hrq, -, Hat⟩)
   · ihave %Hne := unkErr_ne c err $$ Herr
     cases err with
     | nil => exact absurd rfl Hne
@@ -194,7 +194,7 @@ theorem store.conditionalDelete.wp_proof
         have hh := hand_false c (delStep key validate) σ (by simp only [delStep, hdel]; exact KSt.ne_of_rv)
         isimp only [hh, Bool.false_eq_true, ↓reduceIte] at HT
         (try wp_auto)
-        wp_apply (wp_deleteOnce Obj E sp c ci cd key out o0 rv0 st s σ kv v p validate W Φu hk hkv
+        wp_apply (wp_deleteOnce Obj E sp c ci cd key out o0 rv0 st s σ kv v p validate W Φu hk hkl hkv
             hs hvd) $$ [$Hos $Hout $HT] as %st' %ok %derr Hd
         · iframe #
           ipureintro; exact Hv

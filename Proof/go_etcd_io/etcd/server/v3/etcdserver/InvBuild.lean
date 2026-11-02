@@ -83,12 +83,12 @@ theorem envAgree_on (E E₀ : apply.AEnv GF) (h : envAgree E E₀) (h0 : E₀.cm
   rw [envAgree_mode E E₀ h, h0]
 
 /-- **The start of a new cluster's apply thread** (`x₀`): `NewStore`'s two empty revisions, the
-base chain with auth disabled and no alarm. -/
-def bootKV : apply.ApplyKV := ⟨[[], []], apply.alarmChain false false false⟩
+base chain with auth disabled and no alarm, no compaction yet (`-1`). -/
+def bootKV : apply.ApplyKV := ⟨[[], []], apply.alarmChain false false false, -1⟩
 
 /-- **The start with auth on or off** (the auth plan's E2i, 2026-10-26): the base chain's auth
 layer enabled when `on` (`NewServer.specM`); `bootKV` is its mode off (`bootKVOf_false`). -/
-def bootKVOf (on : Bool) : apply.ApplyKV := ⟨[[], []], apply.alarmChain on false false⟩
+def bootKVOf (on : Bool) : apply.ApplyKV := ⟨[[], []], apply.alarmChain on false false, -1⟩
 
 theorem bootKVOf_false : bootKVOf false = bootKV := rfl
 
@@ -145,23 +145,6 @@ def srvMsgNet (γ : SrvRaft) (id : w64) (m : Loc) : IProp GF :=
   letI := srvStor (GF := GF) γ
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ sentMsg γ.cl srvClusterN id st ∗
     msgCredits γ.cl srvClusterN st)
-
-/-- **What the server's messages carry over the network** (D21 M2, 2026-10-19; the network's
-payload, `NetPayload`; 2026-10-27: the node API's): persistently, the protocol facts
-(`sentMsg`); once, the credits of a `MsgReadIndex` or a forwarded `MsgProp`, delivered at most
-once; any other message may be duplicated, its credits made anew (`msgCredits_intro`, any but a
-`MsgProp`'s; 2026-10-30, the repair: until then `msgCredits_none`). (2026-10-19,
-D22 S-i) A snapshot's database image carries `srvImage` (`dbImage` at the fresh cluster's start;
-the server's clusters send no snapshot). -/
-def srvNet (γ : SrvRaft) : NetPayload GF :=
-  letI := srvStor (GF := GF) γ
-  { P := fun st => iprop(∃ sid, sentMsg γ.cl srvClusterN sid st)
-    O := fun st => msgCredits γ.cl srvClusterN st
-    once := fun st => st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgProp
-    P_pers := fun st => by infer_instance
-    dup := fun st h => msgCredits_intro γ.cl srvClusterN st (fun e => h (Or.inr e))
-    img := fun i D => srvImage γ i D
-    img_pers := fun i D => by infer_instance }
 
 /-- Two read-only views of a message agree on its type. -/
 theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :
@@ -276,7 +259,7 @@ def srvFieldsBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
       srvLgMuAddr s ↦□ v.lgMu ∗ srvMemberIDAddr s ↦□ v.memberID ∗ srvLeadInv s ∗
       cfgElectionTicksAddr (srvCfgAddr s) ↦□ v.electionTicks ∗
       cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗
-      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore)
+      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci E)
 
 instance srvFieldsBuiltNA_persistent (s : Loc) (γ : ApplyNames) (ci : Loc)
     (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (v : SrvFields) :
@@ -286,12 +269,13 @@ instance srvFieldsBuiltNA_persistent (s : Loc) (γ : ApplyNames) (ci : Loc)
 /-- `srvReadBuilt` without the KV rows (`srvKVAddr`, `txn.isKV`, the store's read view,
 `storeSmall`: `srvBuildGap`). -/
 def srvReadBuiltNK (s : Loc) (E : apply.AEnv GF) (v : ReadFields) : IProp GF :=
-  iprop(srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RW ∗
+  iprop(srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RO E.RW ∗
     srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.γ E.P E.f E.RD E.authMode E.RW ∗
     srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
-    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗ ⌜2 ≤ log₀.length⌝) ∗
+    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗
+      ⌜2 ≤ log₀.length ∧ mvcc.LogPutsLe etcdKeyMax log₀⌝) ∗
     srvFirstCommitAddr s ↦□ v.fc)
 
 instance srvReadBuiltNK_persistent (s : Loc) (E : apply.AEnv GF) (v : ReadFields) :
@@ -322,8 +306,8 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuiltNK s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗
     -- (M2, S4) the compactor's run, once (`start` spends it)
-    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun c) ∗
-    "#Hsab" ∷ srvApplyAllBuilt s ∗
+    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun s E c) ∗
+    "#Hsab" ∷ srvApplyAllBuilt s γr ∗
     "#Hai" ∷ srvAppliedInv s E γr ∗
     "#Hkvi" ∷ srvKVInvs E γr ∗
     "#Hti" ∷ inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
@@ -336,7 +320,16 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     -- (2026-10-30, the repair) the apply side's half of the node's running token (`dvRun`), which
     -- `run` gives the raft loop with `raftNode.stop` (`rnStopBag`)
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
+    -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
+    -- `run` gives the raft loop with `raftNode.stop`) and the loop's (`raftNode.start`'s); the disk
+    -- cooperating (`storage.diskOk`, `NewServer`'s premise)
+    "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
+    "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
+    -- (J8b, 2026-11-01) the server's member id is the raft node's (`isServerBuilt`'s)
+    "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
+    -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
+    "#HmetaSnap" ∷ srvMetaSnap γ ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
     "#Hwci" ∷ waitClosecInit ∗
@@ -389,7 +382,7 @@ read view and the write budget `txn.storeWTs` were rows here until unit N4's `Ne
 `clusterVersionOk` and the thread bound until D17, the same day: `srvBuilt`, from
 `NewServer.spec`'s workload premises and the cluster's `Version` contract.) -/
 def srvBuildGap (s : Loc) (γn : RNNames) (ai₀ at₀ : w64) : IProp GF :=
-  iprop("Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀))
+  iprop("Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀))
 
 end defs
 

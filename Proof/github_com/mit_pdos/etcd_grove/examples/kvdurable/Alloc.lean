@@ -162,7 +162,8 @@ theorem kd_alloc (o : KOptions) (dir : GoString) (γf : GName) (E : CoPset)
     ⊢ durableFilesInv (GF := GF) γf kdFilesN -∗
       ([∗list] i ∈ kvreconf.allIds, dfile γf (kdFileName dir i) none) ={E}=∗
       ∃ γ : KdNames,
-        ⌜γ.files = γf ∧ γ.r.cluster.dup = true ∧ γ.r.cluster.bootLen = 0⌝ ∗ kdCluster γ (kvreconf.bootVoters (uint.nat o.Voters')) ∗
+        ⌜γ.files = γf ∧ γ.r.cluster.dup = true ∧ γ.r.cluster.snapLoc = (fun _ => none) ∧
+          γ.r.cluster.bootLen = 0⌝ ∗ kdCluster γ (kvreconf.bootVoters (uint.nat o.Voters')) ∗
         ([∗list] id ∈ kvreconf.bootVoters (uint.nat o.Voters'), raftState γ.r.cluster id RaftState.init ∗ nodeVacant γ.r.cluster id ∗
           dfile γ.files (kdFileName dir id) none ∗
           ∃ g : RaftState × Option GoString, ghostVar (γ.wr id) (1 : Qp) g) ∗
@@ -177,7 +178,7 @@ theorem kd_alloc (o : KOptions) (dir : GoString) (γf : GName) (E : CoPset)
   have Hlen := kvreconf.bootVoters_length (uint.nat o.Voters')
   iintro #Hfiles Hfs
   -- raft's cluster, with no bootstrap log
-  imod cluster_alloc (GF := GF) kdRaftN (kvreconf.bootVoters (uint.nat o.Voters')) [] [] true E
+  imod cluster_alloc (GF := GF) kdRaftN (kvreconf.bootVoters (uint.nat o.Voters')) [] [] true (fun _ => none) E
     Hrb (by intro h; rw [h] at Hlen; simp at Hlen; word)
     (kvreconf.bootVoters_nodup _ (by omega)) (kvreconf.bootVoters_zero _ (by omega))
     (by rw [Hlen]; word) (fun h => absurd rfl h) $$ [] with
@@ -204,7 +205,7 @@ theorem kd_alloc (o : KOptions) (dir : GoString) (γf : GName) (E : CoPset)
   rw [Hlen]
   iframe Hja Hopn Hn Hrseq Hcur Hval
   isplitr
-  · ipureintro; exact ⟨rfl, Hd.1, Hd.2⟩
+  · ipureintro; exact ⟨rfl, Hd.1, Hd.2.1, Hd.2.2⟩
   isplitl [Hsnap Hinv]
   · unfold kdCluster
     rw [Hγc, Hγf]

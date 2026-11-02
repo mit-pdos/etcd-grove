@@ -64,12 +64,12 @@ theorem Main.wp_proof
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
+  intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
-  ihave #Hb := common.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (putgetcDir id)
+  ihave #Hb := common.bootPremise_of (N + N) [id] (LogEntry.toEntries boot 0) ctxs (putgetcDir id)
       go!"putgetc" go!"putgetc"
       (common.urls1 go!"putgetc" go!"127.0.0.1:23801" go!"127.0.0.1:23791") id cfgOk urlsOk
       (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
@@ -102,7 +102,7 @@ theorem Main.wp_proof
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (putgetcDir id) (dirOne_member id _)
       (by omega) (by omega) (cmp := true)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog⟩ := Hal
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
   -- `StartCompactingServer("putgetc", "127.0.0.1:23801", clientAddr, retention, lg)`
@@ -125,7 +125,7 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   iunfold common.memberUp at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi,
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
     Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `Serve(s, clientAddr)`, with etcd's KV calls registered at the address
@@ -133,11 +133,11 @@ theorem Main.wp_proof
   wp_apply (wp_Serve srv go!"127.0.0.1:23791" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid _ => common.etcdKVAt go!"127.0.0.1:23791" E { ρ with wait := γw } ρ.rd cid mid)
       (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
-    $$ [Haddr Hlg3 Hbemu Hgo Hwpi HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+    $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
     iapply (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23791" cid mid
-      R Hrb48)
+      R Hrb48 Hrf rfl)
     iframe; iframe #
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv⟩)
   · cases serr with
@@ -152,7 +152,7 @@ theorem Main.wp_proof
   -- `NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient go!"127.0.0.1:23791" lg
       (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23791" [] null null [] null default) Hlg
-      (by unfold plainEndpoint; decide) Htb) as %cl %cerr Hcl
+      (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
@@ -186,7 +186,9 @@ theorem Main.wp_proof
     simp at Hf
   -- `cli.Put(ctx, "k", "v")`
   wp_apply (client.client_Put_own cl go!"127.0.0.1:23791" _ E ρ.rd γf cid mid
-      pctx pcd go!"k" go!"v" slice.nil []) as %presp %perr Hput
+      pctx pcd go!"k" go!"v" slice.nil []
+      (opSizeOk_opPutModel (K := 1) (E := 0) (V := 1) (optsKeep_nil _ _ _) (by decide) (by decide)
+        (by decide))) as %presp %perr Hput
   · iframe #
   -- `pcancel()`
   (try wp_auto)
@@ -210,7 +212,8 @@ theorem Main.wp_proof
   -- `cli.Get(gctx, "k")`
   imod monoNatLbOwn_0 (GF := GF) ρ.rd.committed with #Hc0
   wp_apply (client.client_Get_own cl go!"127.0.0.1:23791" _ E ρ.rd γf (W64 0) cid mid
-      gctx gcd go!"k" go!"v" slice.nil []) as %gresp %gerr Hget
+      gctx gcd go!"k" go!"v" slice.nil []
+      (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide))) as %gresp %gerr Hget
   · iframe #
     iunfold committedAtLeast
     iExactEq Hc0; rfl

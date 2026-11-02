@@ -144,6 +144,56 @@ def plainEntry (m : EntryModel) : Prop :=
 /-- **A plain log**: every entry plain. -/
 def plainLog (A : List EntryModel) : Prop := ∀ m ∈ A, plainEntry m
 
+/-- **A compaction request in M2's scope**, as `EtcdServer.Compact` proposes it
+(`&pb.InternalRaftRequest{Compaction: r}`): of the kind `compaction`, at a revision `≥ 1` (M2, the
+storage side, 2026-10-30: **M2's scope restriction**, the user's Q7 (a), the approval's item 35: no
+compaction at revision `0`, `issues/etcd-restore-scheduled-compact-zero.md`; `EtcdServer.Compact.spec`'s
+premise `1 ≤ r`), with no side-effect-free field (`Apply` would skip it without a waiter) and no admin
+field (the auth layer's admin check would reject it) beside it (M2's apply side, item 5, review round
+1's F-4: so `Apply` dispatches it on every member). `Compact`'s request has nothing else set. -/
+def compactPropOk (rq : apply.IRRModel) : Prop :=
+  (apply.dispatchKind rq = .compaction ∧ ∃ r : w64, rq.compaction = some r ∧ 1 ≤ sint.Z r) ∧
+    apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false
+
+/-- A plain request is no compaction. -/
+theorem plainReq_nonCmp (rq : apply.IRRModel) (h : plainReq rq) :
+    apply.dispatchKind rq ≠ .compaction := by
+  intro hk
+  have := h.2
+  rw [hk] at this
+  simp [putgetKind] at this
+
+/-- **A plain entry in the cluster's compaction mode `cmp`** (M2's apply side, item 5): a plain
+request, or, in compaction mode, a compaction in M2's scope. -/
+def plainEntryM (cmp : Bool) (m : EntryModel) : Prop :=
+  m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
+    plainReq rq ∨ (cmp = true ∧ compactPropOk rq)
+
+/-- **A plain log in the mode `cmp`**: every entry plain in the mode. -/
+def plainLogM (cmp : Bool) (A : List EntryModel) : Prop := ∀ m ∈ A, plainEntryM cmp m
+
+theorem plainEntryM_false (m : EntryModel) : plainEntryM false m ↔ plainEntry m := by
+  unfold plainEntryM plainEntry
+  simp
+
+/-- **Off, a plain log** (the law callers with the mode off need, `kv_log_plain_off`). -/
+theorem plainLogM_false (A : List EntryModel) : plainLogM false A ↔ plainLog A := by
+  unfold plainLogM plainLog
+  simp only [plainEntryM_false]
+
+theorem plainEntryM_of (cmp : Bool) (m : EntryModel) (h : plainEntry m) : plainEntryM cmp m :=
+  fun ht hd rq hrq => Or.inl (h ht hd rq hrq)
+
+theorem plainLogM_of (cmp : Bool) (A : List EntryModel) (h : plainLog A) : plainLogM cmp A :=
+  fun m hm => plainEntryM_of cmp m (h m hm)
+
+theorem plainLogM_append (cmp : Bool) (A B : List EntryModel) :
+    plainLogM cmp (A ++ B) ↔ plainLogM cmp A ∧ plainLogM cmp B := by
+  unfold plainLogM
+  simp only [List.mem_append]
+  exact ⟨fun h => ⟨fun m hm => h m (Or.inl hm), fun m hm => h m (Or.inr hm)⟩,
+    fun h m hm => hm.elim (h.1 m) (h.2 m)⟩
+
 theorem plainLog_append (A B : List EntryModel) :
     plainLog (A ++ B) ↔ plainLog A ∧ plainLog B := by
   unfold plainLog
@@ -691,16 +741,48 @@ theorem kvTable_plain (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (m : Ent
       · rfl
   · rfl
 
-/-- A plain log changes no table. -/
-theorem kvTableOf_plain (c₀ : w64) (ch : apply.Chain) (A : List EntryModel) (hp : plainLog A) :
-    ∀ lt, kvTableOf c₀ ch lt A = lt := by
+/-- A compaction is no write (M2's apply side). -/
+theorem compactPropOk_nonwrite (rq : apply.IRRModel) (h : compactPropOk rq) :
+    ¬ writeKind (apply.dispatchKind rq) := by
+  rw [h.1.1]
+  unfold writeKind
+  simp
+
+/-- **An entry plain in the mode changes no table** (a compaction is no write). -/
+theorem kvTable_plainM (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (cmp : Bool)
+    (m : EntryModel) (hp : plainEntryM cmp m) : kvTable c₀ ch lt m = lt := by
+  unfold kvTable
+  split
+  · rename_i ht
+    split
+    · rfl
+    · rename_i hd
+      split
+      · rename_i rq hdec
+        unfold dispatchTable
+        split
+        · rfl
+        · rcases hp ht hd rq hdec with h | ⟨-, h⟩
+          · exact chainTable_plain rq lt h.1 ch
+          · exact chainTable_nonwrite rq lt (compactPropOk_nonwrite rq h) ch
+      · rfl
+  · rfl
+
+/-- A log plain in the mode changes no table. -/
+theorem kvTableOf_plainM (c₀ : w64) (ch : apply.Chain) (cmp : Bool) (A : List EntryModel)
+    (hp : plainLogM cmp A) : ∀ lt, kvTableOf c₀ ch lt A = lt := by
   induction A with
   | nil => intro lt; rfl
   | cons m A ih =>
     intro lt
     show kvTableOf c₀ ch (kvTable c₀ ch lt m) A = lt
-    rw [kvTable_plain c₀ ch lt m (hp m (List.mem_cons_self ..))]
+    rw [kvTable_plainM c₀ ch lt cmp m (hp m (List.mem_cons_self ..))]
     exact ih (fun m' hm' => hp m' (List.mem_cons_of_mem _ hm')) lt
+
+/-- A plain log changes no table. -/
+theorem kvTableOf_plain (c₀ : w64) (ch : apply.Chain) (A : List EntryModel) (hp : plainLog A) :
+    ∀ lt, kvTableOf c₀ ch lt A = lt :=
+  kvTableOf_plainM c₀ ch false A ((plainLogM_false A).2 hp)
 
 /-- **An entry's table above the consistent index, through the base chain**: its request's
 backend table (unit T3, L3a). -/

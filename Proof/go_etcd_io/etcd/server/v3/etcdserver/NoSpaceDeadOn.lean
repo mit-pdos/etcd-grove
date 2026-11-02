@@ -88,15 +88,15 @@ variable [errors_sem : _root_.Perennial.errors.Assumptions]
 /-- **The answer's error at the start's chain with auth on** (given back): not `ErrNoSpace`'s
 (`dispatchAnswer_notNoSpace`'s, and the auth layer's refusal). -/
 theorem dispatchAnswer_notNoSpaceOn (rq : apply.IRRModel) (log : mvcc.Log) (skip : Bool)
-    (resp err : GoInterface) (o : apply.Outcome) (hp : plainCover rq)
+    (resp err : GoInterface) (tr : Loc) (o : apply.Outcome) (hp : plainCover rq)
     (ho : o = .rejected .auth ∨ o = .rejected .backend ∨ ∃ l, o = .applied l false) :
     go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
-      apply.dispatchAnswer rq log skip resp err o -∗
-      apply.dispatchAnswer rq log skip resp err o ∗ notNoSpaceErr err := by
+      apply.dispatchAnswer rq log skip resp err tr o -∗
+      apply.dispatchAnswer rq log skip resp err tr o ∗ notNoSpaceErr err := by
   iintro #Hv H
   rcases ho with rfl | ho
   rotate_left
-  · iapply dispatchAnswer_notNoSpace rq log skip resp err o hp ho $$ Hv H
+  · iapply dispatchAnswer_notNoSpace rq log skip resp err tr o hp ho $$ Hv H
   icases Hv with ⟨-, -, -, -, -, -, -, -, -, -, #Hap⟩
   have hnil : ⊢ notNoSpaceErr (GF := GF) GoInterface.nil := by
     iunfold notNoSpaceErr; iintro; ileft; ipureintro; rfl
@@ -179,7 +179,7 @@ theorem applyResultIs_notNoSpaceOn (rq : apply.IRRModel) (x x' : apply.ApplyKV) 
       · exact Or.inr (dispatchStep_start rq x.log o hp h)
     simp only [apply.applyResultIs, apply.dispatchResult, or_true, ↓reduceIte]
     icases H with ⟨%hnn, %v, #Hvv, Hans, #HeI⟩
-    ihave ⟨Hans, #Hn⟩ := dispatchAnswer_notNoSpaceOn rq x.log skip v.Resp' v.Err' o hp ho $$ Hv Hans
+    ihave ⟨Hans, #Hn⟩ := dispatchAnswer_notNoSpaceOn rq x.log skip v.Resp' v.Err' v.Trace' o hp ho $$ Hv Hans
     isplitl [Hans]
     · isplitr
       · ipureintro; exact hnn

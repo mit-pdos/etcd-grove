@@ -67,7 +67,8 @@ theorem sealed_logOk (γ : mvcc.IdxNames) (log : mvcc.Log) (hrb : receiptBound G
     mvcc.idxSealed (GF := GF) γ log ⊢
       ⌜mvcc.LogWf' log ∧ log.length < 2 ^ 63 ∧ txn.LogSmall log⌝ := by
   unfold mvcc.idxSealed
-  iintro ⟨-, %Hp, %Hm⟩
+  iintro ⟨-, %Hp, Hr⟩
+  ihave %Hm := preceipt_lt _ $$ Hr
   ipureintro
   refine ⟨Hp.1, Hp.2.1, ?_⟩
   unfold txn.LogSmall txn.logChanges; unfold mvcc.logCh at Hm; omega
@@ -115,6 +116,9 @@ theorem raw_to_state (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (γ : KVN
     · iapply mvcc.evLog_certOk $$ HL
     ihave #HLs := mvcc.evLog_sealed _ _ $$ HL
     ihave %Hlk := sealed_logOk _ _ hrb $$ HLs
+    ihave #HLc := mvcc.evLog_certOk _ _ $$ HL
+    imod srvKVCoreM_keys on E γr [[], []] L (by decide) (mvcc.LogPutsLe.empties _)
+      $$ Hinvs H0 HLs HLc with %Hk
     imodintro; iexists kvStateOf C; iframe HQ
     unfold watchStateRespOk; iright; iright; ileft; ipureintro
     obtain ⟨hv, hpn, hc0, hcl, hc', -⟩ := Hp
@@ -125,7 +129,7 @@ theorem raw_to_state (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (γ : KVN
     · rw [rangeEvents_kvStateOf C o _ _ (by omega) (by simp only [hn]; omega),
         ← rangeLogEvents_prefix HLC o (by simp only [hn]; omega)]
       exact hnone
-    · exact kvLogOkTo_of_prefix HLC Hlk.1 Hlk.2.2 Hlk.2.1 (by simp only [hn]; omega)
+    · exact kvLogOkTo_of_prefix HLC Hlk.1 Hlk.2.2 Hlk.2.1 (by simp only [hn]; omega) Hk
   · imod srvKVCoreM_fire on E γr γ hst hlog L Q $$ Hinvs H0 [HL] [HL] Hau with ⟨%C, #HQ, %HLC⟩
     · iapply mvcc.evLog_sealed $$ HL
     · iapply mvcc.evLog_certOk $$ HL
@@ -138,12 +142,15 @@ theorem raw_to_state (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (γ : KVN
         ← rangeLogEvents_prefix HLC o (by simp only [hn]; omega)]
     ihave #HLs := mvcc.evLog_sealed _ _ $$ HL
     ihave %Hlk := sealed_logOk _ _ hrb $$ HLs
+    ihave #HLc := mvcc.evLog_certOk _ _ $$ HL
+    imod srvKVCoreM_keys on E γr [[], []] L (by decide) (mvcc.LogPutsLe.empties _)
+      $$ Hinvs H0 HLs HLc with %Hk
     imodintro; iexists kvStateOf C; iframe HQ
     unfold watchStateRespOk; iright; iright; iright
     isplitr
     · ipureintro
       refine ⟨hv, hne, hc0, hcc, ?_, hlast,
-        kvLogOkTo_of_prefix HLC Hlk.1 Hlk.2.2 Hlk.2.1 (by simp only [hn]; omega)⟩
+        kvLogOkTo_of_prefix HLC Hlk.1 Hlk.2.2 Hlk.2.1 (by simp only [hn]; omega) Hk⟩
       rw [kvStateOf_rev]; omega
     rw [hevs, hre]
     iapply eventsIs_of_fixed _ kvs hkl $$ Hkv

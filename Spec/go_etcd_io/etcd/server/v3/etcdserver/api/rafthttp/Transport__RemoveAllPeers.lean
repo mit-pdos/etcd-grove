@@ -27,15 +27,16 @@ variable [sem : go.Semantics]
 /-- **`t.RemoveAllPeers()`** on a live transport whose ids are `rs`: it returns, every peer
 removed (`transport.go:333-339`: under the write lock, `removePeer` of each key of `t.peers`: the
 peer's `stop`, its map entry deleted, its `LeaderStats.Followers` entry and its probers' entries
-removed, a log line), the remotes kept: the live transport with no peer id. -/
+removed, a log line), the remotes kept: the live transport with no peer id. (Until J8a-6,
+2026-11-01, also four of each peer's `R`s back, its pipeline's; the peers' goroutines now borrow
+theirs from the transport's pool.) -/
 abbrev rafthttp.Transport.RemoveAllPeers.spec : Prop :=
-  ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (Q : List w64),
-  Q.Nodup → (∀ f, f ∈ Q ↔ f ∈ rs) →
+  ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      trLive γn t c rs ∗ [∗list] f ∈ Q, trNoRemOr c f }}
+      trLive γn t c rs }}
     (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"RemoveAllPeers"))
       (Val #()))
-  {{ RET #(); trLive γn t c [] ∗ [∗list] _f ∈ Q, c.R ∗ c.R ∗ c.R ∗ c.R }}
+  {{ RET #(); trLive γn t c [] }}
 
 end spec
 

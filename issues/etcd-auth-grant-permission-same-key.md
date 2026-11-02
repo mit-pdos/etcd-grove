@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked: 2026-10-27
-links: []
+upstream: known
+checked: 2026-11-02
+links:
+  - etcd-io/etcd#21845 pr open: same bug and fix (scan the same-key entries for the exact `(Key, RangeEnd)` pair before appending), by an outside contributor, 2026-05-29; labeled `stale` and `needs-ok-to-test`, no review; no regression test of the downgrade
 ---
 
 # `RoleGrantPermission` appends instead of updating when another permission with the same key sorts first

@@ -93,7 +93,8 @@ theorem mvcc.NewStore.wp_proof
     mvcc.NewStore.spec (GF := GF) (hG := hG) := by
   -- `store.restore` at no record and the whole bucket (its spec before M2's item 18)
   have hRestore := mvcc.store.restore.specNC_of_spec hRestore
-  intro lg b le cfg kb γb γl P f rd0 wq γi γok Hcfg0 Hrb0
+  intro _ lg b le cfg kb γb γl P f rd0 wq γi γok Perm Hcfg0
+  have Hrb0 : receiptBound GF ≤ 2 ^ 48 := ReceiptBoundLe.le (GF := GF) _
   wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok⟩
   have hnr : 1 ≤ mvcc.nReaders := Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos)
   have hjr : mvcc.nJobRd kb ≤ mvcc.nReaders := Nat.le_trans (mvcc.nJobRd_le kb) hnr
@@ -222,18 +223,23 @@ theorem mvcc.NewStore.wp_proof
   -- at the readers kept back for the compaction job (`nJobRd`)
   imod ghostVar_alloc (GF := GF) (mvcc.nJobRd kb) with ⟨%γtkr, Htkr0⟩
   icases ghostVar_halves γtkr _ $$ Htkr0 with ⟨Htkra, Hret0⟩
+  -- (C3's store law) the compaction permit, fixed
+  imod mvcc.crevPermIs_alloc Perm with ⟨%γcp, #Hcp⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
-      hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk, hγcm, hγsx⟩ :
+      hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk, hγcm, hγsx, hγcp⟩ :
       ∃ γ : mvcc.StoreNames,
       γ.idx = γi ∧ γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
       γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs ∧ γ.cok = γok ∧
       γ.watchQ = wq ∧ γ.wr = γwr ∧ γ.wk = γwk ∧ γ.wv = γwv ∧ γ.cur = γcur ∧ γ.rst = γrst ∧
       γ.tk = γtk ∧ γ.tko = γtko ∧ γ.wsd = γwsd ∧ γ.tkw = γtkw ∧ γ.tkr = γtkr ∧ γ.mwk = γmk ∧
-      γ.cm = decide (mvcc.kbCmpM kb) ∧ γ.sx = γx :=
+      γ.cm = decide (mvcc.kbCmpM kb) ∧ γ.sx = γx ∧ γ.cperm = γcp :=
     ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γwr, γwk, γwv, γcur, γrst, γtk, γtko,
-        γwsd, γtkw, γtkr, γmk, decide (mvcc.kbCmpM kb), γx⟩,
+        γwsd, γtkw, γtkr, γmk, decide (mvcc.kbCmpM kb), γx, γcp⟩,
       rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  ihave #HcpIs : mvcc.crevPermIs γ Perm $$ []
+  · iunfold mvcc.crevPermIs; rw [hγcp]; iexact Hcp
+  ihave #Hperm0 := mvcc.crevPermAt_none (GF := GF) γ
   rw [← hγrst] at *
   rw [← hγtk, ← hγtko, ← hγtkw, ← hγtkr]
   ihave Hwsd : mvcc.wsDep γ $$ [Hwsd]
@@ -406,7 +412,7 @@ theorem mvcc.NewStore.wp_proof
         «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64) ∗
         iprop(mvcc.restoreViewOut γ (1 : Qp).half [] ∗ mvcc.isTreeIndex ti γ.idx ∗
           ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-            mvcc.idxReader ti γ.idx) ∗ ⌜mvcc.logCh ([[], []] : mvcc.Log) < receiptBound GF⌝))
+            mvcc.idxReader ti γ.idx) ∗ ⧖ (mvcc.logCh ([[], []] : mvcc.Log))))
       (DFrac.own 1) (1 : Qp).half (1 : Qp).half mvcc.restoreLogOk_nil (Qp.half_add_half 1)
   simp only [List.append_nil] at hR
   icases mvcc.idxWriter_lb γ.idx [[], []] $$ Hiw with ⟨Hiw, #Hiwlb⟩
@@ -427,12 +433,12 @@ theorem mvcc.NewStore.wp_proof
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ rwW)
       iprop(mvcc.restoreViewOut γ (1 : Qp).half [] ∗ mvcc.isTreeIndex ti γ.idx ∗
           ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-            mvcc.idxReader ti γ.idx) ∗ ⌜mvcc.logCh ([[], []] : mvcc.Log) < receiptBound GF⌝)
+            mvcc.idxReader ti γ.idx) ∗ ⧖ (mvcc.logCh ([[], []] : mvcc.Log)))
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
         «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64) ∗
         iprop(mvcc.restoreViewOut γ (1 : Qp).half [] ∗ mvcc.isTreeIndex ti γ.idx ∗
           ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-            mvcc.idxReader ti γ.idx) ∗ ⌜mvcc.logCh ([[], []] : mvcc.Log) < receiptBound GF⌝)) $$ []
+            mvcc.idxReader ti γ.idx) ∗ ⧖ (mvcc.logCh ([[], []] : mvcc.Log)))) $$ []
   · iunfold mvcc.revUnlockW
     rw [show (W64 ((([[], []] : mvcc.Log).length : Int) - 1) : w64) = W64 1 from rfl]
     iintro %Ψ Hc HrevMu Hv HΨ
@@ -569,6 +575,8 @@ theorem mvcc.NewStore.wp_proof
     iframe HcmpA HcuM
     isplitl []
     · iapply mvcc.crevSafe_neg γ (-1) [[], []] (by decide) (by simp) $$ Hcert
+    isplitr
+    · iexact Hperm0
     ipureintro; decide
   icases sync.ownRWMutex_slots_guard _ _ $$ Hmus with ⟨Hmus, #Hmug⟩
   (try wp_auto)
@@ -651,6 +659,7 @@ theorem mvcc.NewStore.wp_proof
   · iunfold mvcc.writerFrag; iexists _; iexact HcurFrag
   -- the compaction right's half of the revision's authority at `-1`
   iframe Hright
+  iframe HcpIs
   iunfold mvcc.retiredAt
   iexact Hret0
 

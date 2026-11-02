@@ -14,6 +14,8 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ForceSnapshot
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
 
+public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Revoke
+
 @[expose] public section
 
 set_option linter.unusedSectionVars false
@@ -168,21 +170,31 @@ theorem snap_isApplyLessor
     (hGrant : lease.lessor.Grant.spec (GF := GF) (hG := hG))
     (hCk : lease.lessor.Checkpoint.spec (GF := GF) (hG := hG))
     (hTTL : lease.Lease.TTL.spec (GF := GF) (hG := hG))
+    (hRv : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
     (al ast lp cl sst : Loc) (d' : mvcc.KBReal)
     (γs : mvcc.StoreNames) (hk : γs.kb = some d') (Pk : IProp GF) (g : GoFunc)
-    (hgnn : g ≠ func.nil) :
+    (hgnn : g ≠ func.nil) (hwq : γs.watchQ = true) (hlp : mvcc.leaseParams d'.P) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       lessorApplyOk lp ∗ lease.lessorCfg lp ∗ lessorLookupOk lp ∗ lease.lessorInv lp γs.leases ∗
-      backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx) Pk d'.be ∗ backend.plHookRO d'.γB g ⊢
+      backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx) Pk d'.be ∗ backend.plHookRO d'.γB g ∗
+      mvcc.hookOk γs Pk #g ⊢
     apply.isApplyLessor (lease.lessorIface lp) sst γs Pk #g
+      (srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be))
       (srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) := by
-  iintro ⟨#Hpkg, #Hlbe, #Hlcfg, #Hllk, #Hlinv, #HB, #Hhook⟩
+  iintro ⟨#Hpkg, #Hlbe, #Hlcfg, #Hllk, #Hlinv, #HB, #Hhook, #Hhok⟩
   ihave #Hlspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
-  iapply apply.isApplyLessor_of_lessorInv hGL hAt hDt hSRD hLk hGrant hCk hTTL lp sst γs _ _ _
+  ihave #Hmvpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
+  · iPkgInit
+  iapply apply.isApplyLessor_of_lessorInv hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv lp sst γs _ _
+    (srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be)) _
     (lease.lessorBeOn lp d'.be) (backend.rbOwn d'.γB)
   iunfold lessorLookupOk at Hllk
-  iframe Hllk Hlcfg Hlinv Hlspkg
+  iframe Hllk Hlcfg Hlinv Hlspkg Hmvpkg Hhok
+  isplitr
+  · ipureintro; exact hwq
+  isplitr
+  · iapply (srvRestOwnH_lens_revoke γs d' hk hlp al ast lp cl)
   isplitl []
   · unfold mvcc.storeWT mvcc.storeRT
     rw [hk, show mvcc.kbWT (GF := GF) (some d') = backend.wbTok d'.γB from rfl,
@@ -292,7 +304,7 @@ theorem snap_isSnapshotServer
   icases HS with ⟨-, -, ⟨%v, #Hf⟩, -⟩
   iunfold srvFieldsAt at Hf
   icases Hf with ⟨-, -, -, -, -, %Henv, -⟩
-  rw [Henv.1]
+  rw [Henv.2.1]
   iunfold apply.isSnapshotServer
   iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
   isplitr

@@ -385,6 +385,95 @@ theorem wp_SnapshotMetadata_GetTerm_S (pm : Loc) (dq : DFrac) (md : SnapshotMeta
   · ipureintro; exact Hnn
   iframe HC Hc HI HT cI cT Hpb
 
+/-! ## A snapshot whose metadata's pointer fields are set (2026-10-31)
+
+What the WAL's `SaveSnapshot` checks of the record it writes (`walpb.ValidateSnapshotForWrite`,
+`walpb/record.go:45-57`: the index and term pointers set, the conf state set for a non-initial
+snapshot): `MemoryStorage.CreateSnapshot` sets all three (`storage.go:255-260`) and `proto.Clone`
+keeps them set. Unlike `smPtsS`, the conf state's `AutoLeave` need not be set. -/
+
+/-- A `*pb.SnapshotMetadata` at `p` holding `md`, at `dq`, with its `ConfState`, `Index` and `Term`
+pointers set (`smPtsV_smPts` forgets it). -/
+def smPtsV (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) : IProp GF :=
+  iprop(∃ (pc pi pt : Loc) (uf : List w8),
+    "%Hnn" ∷ ⌜p ≠ null ∧ pc ≠ null ∧ pi ≠ null ∧ pt ≠ null⌝ ∗
+    "HC" ∷ p.[raftpb.SnapshotMetadata, go!"ConfState"] ↦{dq} pc ∗ "Hc" ∷ csOptA pc dq md.ConfState' ∗
+    "HI" ∷ p.[raftpb.SnapshotMetadata, go!"Index"] ↦{dq} pi ∗ "#cI" ∷ cellRO pi md.Index' ∗
+    "HT" ∷ p.[raftpb.SnapshotMetadata, go!"Term"] ↦{dq} pt ∗ "#cT" ∷ cellRO pt md.Term' ∗
+    "#Hpb" ∷ pbMsg raftpb.SnapshotMetadata p uf)
+
+/-- A `*pb.Snapshot` at `p` holding `s`, at `dq`, whose `Metadata` is set with its pointer fields
+set (`smPtsV`; `ownSnapV_M` forgets it): what `MemoryStorage.CreateSnapshot` returns. -/
+def ownSnapV (p : Loc) (dq : DFrac) (s : SnapshotM) : IProp GF :=
+  iprop(∃ (ds : GoSlice) (pm : Loc) (uf : List w8),
+    "%Hnn" ∷ ⌜p ≠ null⌝ ∗
+    "HD" ∷ p.[raftpb.Snapshot, go!"Data"] ↦{dq} ds ∗ "Hd" ∷ ds ↦*{dq} s.Data' ∗
+    "HM" ∷ p.[raftpb.Snapshot, go!"Metadata"] ↦{dq} pm ∗ "Hm" ∷ smPtsV pm dq s.Metadata' ∗
+    "#Hpb" ∷ pbMsg raftpb.Snapshot p uf)
+
+theorem smPtsV_smPts (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) :
+    smPtsV (GF := GF) p dq md ⊢ smPts p dq md := by
+  iintro H
+  iNamed H
+  iunfold smPts
+  iexists pc, pi, pt, uf
+  isplitr
+  · ipureintro; exact Hnn.1
+  iframe HC HI HT cI cT Hpb Hc
+
+theorem ownSnapV_M (p : Loc) (dq : DFrac) (s : SnapshotM) :
+    ownSnapV (GF := GF) p dq s ⊢ ownSnapM p dq s := by
+  iintro H
+  iNamed H
+  ihave Hm := smPtsV_smPts _ _ _ $$ Hm
+  iunfold ownSnapM
+  iexists ds, pm, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HD Hd HM Hpb
+  iunfold smOpt
+  iright; iexact Hm
+
+set_option synthInstance.maxSize 1024 in
+instance smPtsV_persistent (p : Loc) (md : SnapshotMetadataM) :
+    Persistent (smPtsV (GF := GF) p DFrac.discard md) := by
+  unfold smPtsV; infer_instance
+
+set_option synthInstance.maxSize 1024 in
+instance ownSnapV_persistent (p : Loc) (s : SnapshotM) :
+    Persistent (ownSnapV (GF := GF) p DFrac.discard s) := by
+  unfold ownSnapV; infer_instance
+
+theorem smPtsV_persist (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) :
+    smPtsV (GF := GF) p dq md ⊢ |==> smPtsV p DFrac.discard md := by
+  iintro H
+  iNamed H
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HC with #HC
+  imod csOptA_persist _ _ _ $$ Hc with #Hc
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HI with #HI
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HT with #HT
+  imodintro
+  iunfold smPtsV
+  iexists pc, pi, pt, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HC Hc HI cI HT cT Hpb
+
+theorem ownSnapV_persist (p : Loc) (dq : DFrac) (s : SnapshotM) :
+    ownSnapV (GF := GF) p dq s ⊢ |==> ownSnapV p DFrac.discard s := by
+  iintro H
+  iNamed H
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HD with #HD
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hd with #Hd
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HM with #HM
+  imod smPtsV_persist _ _ _ $$ Hm with #Hm
+  imodintro
+  iunfold ownSnapV
+  iexists ds, pm, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HD Hd HM Hm Hpb
+
 end defs
 
 end EtcdGrove

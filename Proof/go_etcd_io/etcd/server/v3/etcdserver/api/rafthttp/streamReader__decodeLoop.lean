@@ -20,6 +20,7 @@ public import Spec.github_com.prometheus.client_golang.prometheus.CounterVec__Wi
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Bool
+public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
 
 @[expose] public section
 
@@ -61,21 +62,21 @@ set_option hygiene false in
 /-- A dropped message's logs (`select`'s `default`: the receive channel full), its failure counted. -/
 local macro "dl_dropped" : tactic => `(tactic| (
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-  repeat' (first
-    | (wp_apply hGetType.1 ml _ _ _ st $$ [Hm] as Hm; iframe)
-    | (wp_apply hGetFrom.1 ml _ _ _ st $$ [Hm] as Hm; iframe)
-    | (wp_apply hGetTo.1 ml _ _ _ st $$ [Hm] as Hm; iframe)
-    | (ihave #HT := hTypeString st.msg.Type'
-       iunfold fmt.stringMethodSpec at HT
-       wp_apply HT as %_)
-    | (wp_apply hIDString as %ids %Hids)
-    | (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
-    | (wp_apply hIsActive ps $$ [] as %_ -; iframe #)
-    | (wp_apply hZString as %_ -)
-    | (wp_apply hZBool as %_ -)
+  repeat' (first_callee
+    | "GetType" => (wp_apply hGetType.1 ml _ _ _ st $$ [Hm] as Hm; iframe)
+    | "GetFrom" => (wp_apply hGetFrom.1 ml _ _ _ st $$ [Hm] as Hm; iframe)
+    | "GetTo" => (wp_apply hGetTo.1 ml _ _ _ st $$ [Hm] as Hm; iframe)
+    | "String" => (ihave #HT := hTypeString st.msg.Type'
+                   iunfold fmt.stringMethodSpec at HT
+                   wp_apply HT as %_)
+    | "String" => (wp_apply hIDString as %ids %Hids)
+    | "String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
+    | "isActive" => (wp_apply hIsActive ps $$ [] as %_ -; iframe #)
+    | "zap.String" => (wp_apply hZString as %_ -)
+    | "zap.Bool" => (wp_apply hZBool as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
     | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
     | wp_auto)))
 

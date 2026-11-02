@@ -81,11 +81,11 @@ theorem Run.wp_proof
   try wp_auto
   -- (2026-11-02, stage II (t)) `RestartNode`'s `readyFits`: no bootstrap log, the receipts' bound
   ihave #Hfits : readyFits (GF := GF) γr.r.cluster kdRaftN $$ []
-  · iapply readyFits_intro (GF := GF) γr.r.cluster kdRaftN (by rw [Hγ.2.2]; omega)
+  · iapply readyFits_intro (GF := GF) γr.r.cluster kdRaftN (by rw [Hγ.2.2.2]; omega)
   wp_apply wp_StartCluster γr cfg.Options' dir Hopts $$ [$Hkc $Hstor $Hfits $Hvs $Hja $Hfresh $Hopn $Hnid
       $Hrseq $Hcur] as %c #Hcl
   · iframe #
-    ipureintro; exact ⟨Hγ.2.1, Hγ.2.2⟩
+    ipureintro; exact ⟨Hγ.2.1, Hγ.2.2.2, Hγ.2.2.1⟩
   try wp_auto
   -- the `stop` broadcast
   wp_apply chan.wp_make1 (V := Unit) as %sc %γsc ⟨#Hsc, %_, Hsoc⟩

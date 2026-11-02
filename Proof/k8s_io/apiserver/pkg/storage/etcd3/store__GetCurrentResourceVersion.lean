@@ -45,7 +45,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
     (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG))
     (wp_Errorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
     store.GetCurrentResourceVersion.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd k Q hk
+  intro _ _ Obj _ sp c ci cd k Q hk hkl
   wp_start as ⟨#Hst, #Hctx, #Hce, Hau⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
@@ -89,6 +89,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
   · -- the client read the state σ
     subst Hgerr
     obtain ⟨hrevσ, hb⟩ := Hσ
+    replace hb := And.intro hb.1.lt hb.2
     (try wp_auto)
     rw [hrevσ]
     by_cases h0 : σ.rev = 0

@@ -1187,6 +1187,44 @@ Candidate 1 is not on disk. It is reconstructed from r1's quotes and c2's change
   - Avoid: yes. A premise about raft's own data structures should come from raft's invariants,
     not from the client.
 
+- **E110 · The restart's configuration index needed a `RawNode` invariant nobody recorded (`CapOk`).**
+  - Where: II(u) (`e01568867a`); the report's Backtracking 1-3.
+  - Old (II(p)): the case `a > max σ.b A` of `RestartNode` (the configuration index above the
+    committed log handed out) left `sorry`, with the plan to "generalize `run`'s invariant" (I-9).
+  - What broke: the node layer alone cannot do it. The loan rendezvous raises the monotone `cam`
+    to the lent snapshot's index, which needs that snapshot past the restart's configuration index:
+    a `RawNode`-level fact nothing recorded (the protocol's `applySnap` rule even lets the index go
+    down). Separately, II(p)'s list-length premise was the wrong quantity (the lengths' sum, where
+    raft needs the listed ids' count; E109).
+  - Fix: `CapOk` (configuration index below the commit, below a lent snapshot's log, and with no
+    loan below a pending snapshot's index), a fourth conjunct of `LoanOk`, kept by every step (new
+    premise `hcap` on `LoanOk.step*`, from `raft.restore`'s `committed < index`); `runCfg`'s outer
+    conjunct relaxed to `ca ≤ capplied ∧ (ca < capplied → capplied ≤ |rsDlv rs|)`;
+    `wp_applyConf_dyn` takes the conf entry within the committed log handed out. The list bound
+    derived in `RestartNode` from the membership's `CfgOk`.
+  - Cost: three stages of churn on one parameter (II(p) `sorry`, II(r) narrowed, II(t) re-widened
+    with a client `sorry`, II(u) proved); 12 `LoanOk` projection sites, 6 constructions, 3 step
+    lemmas' signatures. **[cat a, with b] [stage II-R]**
+  - Avoid: yes. When a plan says "generalize the invariant of layer X", check which facts the new
+    case reads and whether layer X can see them; a fact about a lower layer's state needs that
+    layer's invariant first.
+
+- **E111 · The merge of `lean` (2026-11-02): parallel changes to the node API.**
+  - Where: the merge commit "Merge branch 'lean' into worktree-kvdurable".
+  - Old: stage I-4 dropped `readySnap`/`readyRest`'s node `id` (its only use, `snapGiven`, became
+    `nodeAppliedLb`/`nodeCommitLb` keyed by the storage); `lean` meanwhile added `nodeSnapLocal γ id`
+    (J8a), `bootLen < index` (J8b) to the same clause, made `hsCommitted` hold after a snapshot
+    `Ready` (#7), and proved the server's snapshot track against the old driver state and
+    `deliveredLogLb ⊢ storDL` (driver-free).
+  - What broke: 57 conflicted files; `readySnap` needed the id back (15 client call sites, one more
+    `_`); `api_enter` had built the driver's `hsCommitted` from the deleted escape (now a premise);
+    the server's `rn_storDL` had no driver-free counterpart (restated over `rnDrv`; `ApplySnapshot`'s
+    bounds taken from `readySnap`); `NodeOk`'s fourth conjunct gone (7 projection sites);
+    kvdurable needed lean's no-directory fact (`%Hsl`).
+  - Cost: the merge, one agent round for the server port. No new `sorry`. **[cat i] [merge]**
+  - Avoid: partly. A long-lived branch that reshapes a shared API should merge `lean` often; and
+    dropping a parameter nobody used *yet* invites a parallel change to re-add it.
+
 ---
 
 ## 2. Counts

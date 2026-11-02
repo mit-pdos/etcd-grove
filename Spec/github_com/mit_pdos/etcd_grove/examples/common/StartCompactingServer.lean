@@ -37,14 +37,15 @@ abbrev StartCompactingServer.spec : Prop :=
     (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString) (id : w64)
     (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
-  threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   γ.vs = [id] → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   lg ≠ null → 0 < sint.Z retention →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
       threadTok ∗
-      bootPremise N [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗ commonPremises ∗
+      -- (M2, 2026-10-31) at `N + N` write tokens: `N` more, the compaction's write-back stock
+      bootPremise (N + N) [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗ commonPremises ∗
       context.isClosedchanInit ∗
       -- (M2, the storage side, N1) the member's boot bundle in compaction mode
       memberBoot γ ctxs ρ E₀ Φs id true ∗

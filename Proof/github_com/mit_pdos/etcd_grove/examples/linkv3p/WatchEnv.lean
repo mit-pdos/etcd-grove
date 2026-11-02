@@ -81,7 +81,7 @@ theorem memberWatch_facts (V : client.WEnv GF) (γr : ReadNames) (s : Loc) (E : 
   subst hE
   ihave %Hlink := client.watchSrvLink_of_server pw V.R $$ Hws
   ihave #Htok := client.watchTokPool_of_server pw V.R $$ Hws
-  ihave #Hnc := v3rpc.isWatchServer_noCompactor_env pw V.R hoff $$ Hws
+  ihave #Hnc := v3rpc.isWatchServer_watchNoDup_env pw V.R hoff $$ Hws
   ihave #Hsm := client.srvLogsSmall_of_read V.R s ρ.rd Hlink $$ Hrd
   ihave #Hinvs := srvKVInvs_of_read s V.R.E ρ.rd $$ Hrd
   ihave #Hlaws := client.watchLaws_hist V γr.raft γr.kv ρ.rd pw hWM hWL hm hlog0 $$ [Hinvs Hws]

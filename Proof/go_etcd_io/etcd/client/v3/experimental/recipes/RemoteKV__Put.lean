@@ -31,8 +31,8 @@ theorem RemoteKV.Put.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (h
   intro rk st kv pfx val lo
   rcases st with ⟨kv', key, rev, v0⟩
   unfold ownRemoteKV RemoteKVSt.val'
-  wp_start as ⟨Hrk, %Hkv', #Hkv, #Hlo, %Hk⟩
-  simp only at Hkv' Hk
+  wp_start as ⟨⟨Hrk, %Hkl⟩, %Hkv', #Hkv, #Hlo, %Hk⟩
+  simp only at Hkv' Hk Hkl
   subst Hkv'
   iunfold isRecipesKV at Hkv
   icases Hkv with ⟨-, -, -, #HPut⟩
@@ -43,11 +43,11 @@ theorem RemoteKV.Put.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (h
   iunfold isEtcdPutKVTodo at HPut
   wp_apply HPut $$ %key %val %slice.nil %([] : List (OpFull → OpFull)) %(TxnOp.put key val (W64 0)) %lo [$Hnil $Hlo] as %resp %err Hres
   · ipureintro
-    exact ⟨putOp_not_panics' key val, putOp_txnOpOf' key val, Hk, rfl⟩
+    exact ⟨putOp_not_panics' key val, putOp_txnOpOf' key val, Hk.1, rfl, putOp_size Hkl Hk.2⟩
   (try wp_auto)
   iapply HΦ
-  iframe Hrk
-  iexact Hres
+  iframe Hrk Hres
+  ipureintro; exact Hkl
 
 end proof
 

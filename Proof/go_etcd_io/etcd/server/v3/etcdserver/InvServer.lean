@@ -96,7 +96,8 @@ def applyBackend (γ : ApplyNames) (ci : Loc) (b : GoInterface) : IProp GF :=
 /-- The batch lock's resources but its token: what the post-lock hook leaves, the entry's
 writes in flight. -/
 def hookDone (γ : ApplyNames) (TM : MetaCI → IProp GF) : IProp GF :=
-  iprop(∃ mm : MetaCI, ghostVar γ.mt (1 : Qp).half mm.1 ∗ TM mm ∗ applyRegdF γ)
+  iprop(∃ mm : MetaCI, ghostVar γ.mt (1 : Qp).half mm.1 ∗ TM mm ∗ applyRegdF γ ∗
+    (⌜mm.2 = γ.m0.2⌝ ∨ wrDone γ))
 
 /-- The post-lock hook's contract (persistent). -/
 def hookSpec (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (f : val) : IProp GF :=

@@ -109,13 +109,13 @@ private theorem entsRO_data_len (s : GoSlice) (es : List EntryM) :
 /-- (G20) A `Ready`'s entries decode back from the file (`EntWf`: a type of raft's, `EntryNormal`,
 `EntryConfChange` or `EntryConfChangeV2` (raft's `readyRest_ents_type`), and data of a Go slice's
 length (`entsRO`)). -/
-private theorem ready_ents_wf_G20 (γc : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
+private theorem ready_ents_wf_G20 (γc : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg)
     (ss : Option (w64 × StateType)) :
-    readyRest (GF := GF) γc N rd st ce es h L ms ss ⊢ readyRest γc N rd st ce es h L ms ss ∗
+    readyRest (GF := GF) γc N id rd st ce es h L ms ss ⊢ readyRest γc N id rd st ce es h L ms ss ∗
       ⌜∀ e ∈ es, EntWf e⌝ := by
   iintro H
-  icases readyRest_ents_type γc N rd st ce es h L ms ss $$ H with ⟨H, %Hty⟩
+  icases readyRest_ents_type γc N id rd st ce es h L ms ss $$ H with ⟨H, %Hty⟩
   ihave #Hes : entsRO rd.Entries' es $$ [H]
   · iunfold readyRest at H
     icases H with ⟨#Hes, -⟩
@@ -259,19 +259,19 @@ theorem Replica.run.wp_proof
     iintro %rdv Hgot
     iunfold readyGot at Hgot
     icases Hgot with ⟨%ce, %es, %h, %L, %ms, %ss, #Hce, #Hcomm, Hrs, Hrest, Hlm, Henter⟩
-    ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ $$ Hrest
-    ihave ⟨Hrest, %G4⟩ := readyRest_commit_mono _ _ _ _ _ _ _ _ _ _ $$ Hrest
-    ihave ⟨Hrest, %G8⟩ := readyRest_commit_le_last _ _ _ _ _ _ _ _ _ _ $$ Hrest
-    ihave ⟨Hrest, %G20⟩ := ready_ents_wf_G20 _ _ _ _ _ _ _ _ _ _ $$ Hrest
+    ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ _ $$ Hrest
+    ihave ⟨Hrest, %G4⟩ := readyRest_commit_mono _ _ _ _ _ _ _ _ _ _ _ $$ Hrest
+    ihave ⟨Hrest, %G8⟩ := readyRest_commit_le_last _ _ _ _ _ _ _ _ _ _ _ $$ Hrest
+    ihave ⟨Hrest, %G20⟩ := ready_ents_wf_G20 _ _ _ _ _ _ _ _ _ _ _ $$ Hrest
     simp only at Hidx G4 G8 G20
     try wp_auto
     cases L with
     | none =>
-      ihave ⟨Hrest, %G9⟩ := readyRest_ents_start _ _ _ _ _ _ _ _ _ $$ Hrest
-      ihave ⟨Hrest, %G10⟩ := readyRest_delivered_le_commit _ _ _ _ _ _ _ _ _ $$ Hrest
-      ihave ⟨Hrest, %G14⟩ := readyRest_durable_has_delivered _ _ _ _ _ _ _ _ _ $$ Hrest
-      ihave ⟨Hrest, %G17⟩ := readyRest_ents_above_commit _ _ _ _ _ _ _ _ _ $$ Hrest
-      ihave ⟨%Hin, Hrest⟩ := readyRest_ceInBatch _ _ _ _ _ _ _ _ $$ Hrest
+      ihave ⟨Hrest, %G9⟩ := readyRest_ents_start _ _ _ _ _ _ _ _ _ _ $$ Hrest
+      ihave ⟨Hrest, %G10⟩ := readyRest_delivered_le_commit _ _ _ _ _ _ _ _ _ _ $$ Hrest
+      ihave ⟨Hrest, %G14⟩ := readyRest_durable_has_delivered _ _ _ _ _ _ _ _ _ _ $$ Hrest
+      ihave ⟨Hrest, %G17⟩ := readyRest_ents_above_commit _ _ _ _ _ _ _ _ _ _ $$ Hrest
+      ihave ⟨%Hin, Hrest⟩ := readyRest_ceInBatch _ _ _ _ _ _ _ _ _ $$ Hrest
       simp only at G9 G10 G14 G17 Hin
       iunfold readyRest at Hrest
       icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
@@ -1038,12 +1038,12 @@ theorem Replica.run.wp_proof
           · rw [h']; omega
           · left; rw [h']; word
     | some lo =>
-      ihave ⟨Hrest, %G7⟩ := readyRest_snap _ _ _ _ _ _ _ _ _ _ $$ Hrest
+      ihave ⟨Hrest, %G7⟩ := readyRest_snap _ _ _ _ _ _ _ _ _ _ _ $$ Hrest
       simp only at G7
       iunfold readyRest at Hrest
       icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
       iunfold readySnap at Hsnap
-      icases Hsnap with ⟨%Hl, Hss4, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HclS⟩
+      icases Hsnap with ⟨%Hl, Hss4, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HclS, -, -⟩
       obtain ⟨Hdlv, Hptr, Hce0, Hpre, Hlt, Hdlen, Hpos, H61, -, Hli⟩ := Hl
       subst Hce0
       ihave ⟨Hss4, %Hsw⟩ := persistent_entails_left (ownSnapS_wf _ _ _) $$ Hss4

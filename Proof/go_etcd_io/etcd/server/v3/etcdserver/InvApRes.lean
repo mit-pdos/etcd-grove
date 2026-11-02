@@ -7,7 +7,10 @@ transport's peers. What it needs beyond the apply environment:
 * `ccMembRes γs cl t lid rs`: in raft's static mode the cluster's static instance
   (`isRaftCluster`) and (D22 J-T, 2026-10-27: until then frozen, with its stop token) the live
   transport (`trLive`, the peers' ids `rs`: `AddPeer` of a known peer returns, `AddPeer_known`,
-  and the snapshot path's `RemoveAllPeers` and `AddPeer`s take it); in the dynamic mode the live
+  and the snapshot path's `RemoveAllPeers` and `AddPeer`s take it), and (2026-11-01, J8a) the
+  network's directory, well formed (`netDirOk`, moved here from `InvBoot.lean`), with the
+  cluster's `Members()` of it (`srvMembersDir`, from `SnapRO.lean`), what the snapshot path's
+  `AddPeer`s need of the members' URLs (`applySnapshot`'s `hdir`/`hdok`); in the dynamic mode the live
   transport, with no pool (`c.L = []`: no remote is ever started, so `RemovePeer` needs no
   no-remote token; M8's dynamic `NewServer` is to restate it), the cluster's dynamic instance and
   the removed map's writer half (`rcRemovedOwn`).
@@ -19,6 +22,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportState
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvHooks
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
 
 @[expose] public section
 
@@ -65,10 +69,11 @@ def srvPeersCover (γs : ServerRaftNames) (lid : w64) (_A : List EntryModel) (pr
 
 /-- **The in-memory members stay among the boot configuration's** (D43 M5e: what keeps
 `AddMember`'s bound, `size ≤ 2 ^ 62`): the members of the rest model at the applied log are
-members of raft's boot configuration, of at most `2 ^ 62` members. -/
+members of raft's boot configuration, of fewer than `2 ^ 61` members (2026-10-31, the snapshot
+track: what certifying a snapshot takes, `SnapListsOk`; until then at most `2 ^ 62`). -/
 def srvMemOk (γs : ServerRaftNames) (c0 : w64) (A : List EntryModel) : Prop :=
   (∀ k, ((restModel c0 γs.raft.boot (γs.pre ++ A)).mem !! k).isSome = true → k ∈ γs.raft.cfg) ∧
-    GMap.size γs.raft.cfg ≤ 2 ^ 62
+    GMap.size γs.raft.cfg < 2 ^ 61
 
 /-- A normal entry keeps the members' ids. -/
 theorem restEntry_normal_memKeys (c0 : w64) (m : EntryModel) (r : apply.RestM) (ht : m.typ = W32 0)
@@ -189,7 +194,7 @@ theorem memBoot_keys (bootLog : List EntryM) (S : GSet w64)
 /-- **The rest model's members at the start of a new cluster** are the boot peers (`srvBootLogOk`). -/
 theorem srvMemOk_boot (γs : ServerRaftNames) (c0 : w64)
     (ps : List w64) (hpre : γs.pre = []) (hcfg : γs.raft.cfg = GMap.listToSet ps)
-    (hnd : ps.Nodup) (hlen : (ps.length : Int) ≤ 2 ^ 62) (hb : srvBootLogOk ps γs.raft.boot) :
+    (hnd : ps.Nodup) (hlen : (ps.length : Int) < 2 ^ 61) (hb : srvBootLogOk ps γs.raft.boot) :
     srvMemOk γs c0 [] := by
   unfold srvMemOk
   rw [hpre, List.append_nil, restModel_nil, hcfg]
@@ -222,13 +227,48 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
+/-- **The network's directory, well formed** (rafthttp stage 6d, 2026-10-24; a premise of
+`NewServer.spec`, of the caller's directory): no member `0` (raft's ids are not `0`; the directory
+gives an unknown host the owner `0`, `netOwner`), each host of one member's URLs only
+(`dirHostsDistinct`), every peer URL a plain `http://` URL (`types.plainPeerURL`: what the
+transport's `AddPeer` parses). -/
+def netDirOk (dir : w64 → List GoString) : Prop :=
+  dir 0 = [] ∧ dirHostsDistinct dir ∧ ∀ (id : w64) (s : GoString), s ∈ dir id → types.plainPeerURL s
+
+/-- **A member returned by `Members()`, its URLs the directory's** (D21 M2, 2026-10-19): owned
+(`membership.memberIs`'s fields), with id `id`, its peer URLs `dir id`. -/
+def memberDirIs (dir : w64 → List GoString) (m : Loc) (id : w64) : IProp GF :=
+  iprop(⌜m ≠ null⌝ ∗ ∃ (pu cu : GoSlice) (il : Bool) (nm : GoString) (pus cus : List GoString),
+    membership.mIDAddr m ↦ id ∗ membership.mPeerURLsAddr m ↦ pu ∗
+    membership.mIsLearnerAddr m ↦ il ∗ membership.mNameAddr m ↦ nm ∗
+    membership.mClientURLsAddr m ↦ cu ∗ pu ↦* pus ∗ cu ↦* cus ∗
+    ⌜membership.peerURLsOk pus ∧ pus = dir id⌝)
+
+/-- `bootOk`'s contract of the cluster's `Members()` (S8d's named premise, threaded from `NewServer`). -/
+def srvMembersDir (cl : Loc) (ps : List w64) (dir : w64 → List GoString) : IProp GF :=
+  iprop(□ (∀ Φ : val → IProp GF,
+    (∀ (sl : GoSlice) (ms : List (Loc × w64)), ⌜ms.map Prod.snd = ps⌝ -∗
+      sl ↦* ms.map Prod.fst -∗ ([∗list] p ∈ ms, memberDirIs dir p.1 p.2) -∗ Φ #sl) -∗
+    WP (App (Val (cl @!! go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"Members"))
+      (Val #())) {{ Φ }}))
+
+instance srvMembersDir_persistent (cl : Loc) (ps : List w64) (dir : w64 → List GoString) :
+    Persistent (srvMembersDir (GF := GF) cl ps dir) := by
+  unfold srvMembersDir; infer_instance
+
 /-- **The cluster and the transport, as `applyConfChange` writes them** (see the file header),
 the transport `t` with the member `lid` and the peers' ids `rs`. -/
-def ccMembRes (_γs : ServerRaftNames) (cl t : Loc) (lid : w64) (rs : trIds) : IProp GF :=
+def ccMembRes (γs : ServerRaftNames) (cl t : Loc) (lid : w64) (rs : trIds) : IProp GF :=
   -- (2026-10-30, the repair, D3: static membership after boot, the old static mode's resource;
   -- until then, in the dynamic mode, the live transport with the removal registry `rcDyn`)
-  iprop(membership.isRaftCluster cl ∗ ∃ (γn : NetNames GF) (c : TrN GF), ⌜c.lid = lid⌝ ∗
-      trLive γn t c rs)
+  -- (2026-11-01, J8a: `applySnapshot`'s `hdir`/`hdok`) also the network's directory, well formed,
+  -- and the cluster's `Members()` of it, which the snapshot walk's `AddPeer`s read; (J8a-5) every
+  -- voter of raft's configuration in the directory (the boot's: the configuration is its peers),
+  -- so that the walk's re-added peers cover them (`srvPeersCover` after a snapshot)
+  iprop(membership.isRaftCluster cl ∗ ∃ (γn : NetNames GF) (c : TrN GF) (ps : List w64),
+      ⌜c.lid = lid⌝ ∗ trLive γn t c rs ∗ srvMembersDir cl ps γn.dir ∗
+      ⌜netDirOk γn.dir ∧ (∀ f, γn.dir f ≠ [] ↔ f ∈ ps) ∧ ∀ f, f ∈ γs.raft.cfg → γn.dir f ≠ []⌝)
 
 /-- **The local member a voter** (persistent; 2026-10-30, the repair, T1d: D3's static membership
 needs no positional policy, the server's conf entries being the boot log's `ccPolOk`; until then,
@@ -265,6 +305,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- (2026-10-31, #11) **Fewer than `2^61` voters** (`srvMemOk`'s bound), the resource kept. -/
+theorem srvApRes_cfg_size (s : Loc) (γr : ReadNames) (A : List EntryModel) :
+    srvApRes (GF := GF) s γr A ⊢ srvApRes s γr A ∗ ⌜GMap.size γr.raft.raft.cfg < 2 ^ 61⌝ := by
+  unfold srvApRes
+  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, %H7, #H8,
+    Hmr, %Hp, #Hd⟩
+  isplitl
+  · iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
+    iframe H1 H2 H3 H4 H5 H6 H8 Hd
+    iframe
+    isplitr
+    · ipureintro; exact H7
+    ipureintro; exact Hp
+  ipureintro; exact Hp.2.2
+
 /-- **A normal entry keeps the resource** (the peers and the members as they are). -/
 theorem srvApRes_normal (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
     (ht : m.typ = W32 0) :
@@ -290,7 +345,7 @@ theorem srvApplyKV_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.App
   iunfold srvApplyKV at H
   icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hrest⟩
   iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp, Hu, Ho⟩
+  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
   iunfold apply.kvOwn at Ho
   icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
   icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
@@ -303,7 +358,7 @@ theorem srvApplyKV_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.App
   · iexact Hua
   isplitr
   · iexact Hap
-  isplitl [Hu Hsr Hsw Hll Hrd Hwo]
+  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
   · iunfold apply.applyKV
     iexists p
     iframe Hu
@@ -324,7 +379,7 @@ theorem srvApplyKV_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.
   iunfold srvApplyKV at H
   icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hrest⟩
   iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp, Hu, Ho⟩
+  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
   iunfold apply.kvOwn at Ho
   icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
   icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
@@ -340,7 +395,7 @@ theorem srvApplyKV_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.
   · iexact Hua
   isplitr
   · iexact Hap
-  isplitl [Hu Hsr Hsw Hll Hrd Hwo]
+  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
   · iunfold apply.applyKV
     iexists p
     iframe Hu
@@ -373,6 +428,33 @@ theorem ccRest_memKeys (v3 : Bool) (cm : ConfChangeM) (r : apply.RestM) (S : GSe
         · rw [GMap.lookup_delete_ne _ hkk] at hk; exact h k hk
       · exact h k hk
   · exact h k hk
+
+/-- (2026-11-01, J8a-5) **`srvMemOk` across committed entries** `B` (conf changes `applyConfChange`
+takes, `ccLogOk`): what the snapshot's jump to its log `A ++ B` keeps. -/
+theorem srvMemOk_append (γs : ServerRaftNames) (c0 : w64) (A B : List EntryModel)
+    (h : srvMemOk γs c0 A) (hB : ccLogOk γs.raft B) : srvMemOk γs c0 (A ++ B) := by
+  induction B generalizing A with
+  | nil => simpa using h
+  | cons m B ih =>
+    have h1 : srvMemOk γs c0 (A ++ [m]) := by
+      refine ⟨?_, h.2⟩
+      intro k hk
+      have e : γs.pre ++ (A ++ [m]) = (γs.pre ++ A) ++ [m] := by simp
+      rw [e, restModel_append] at hk
+      by_cases ht : m.typ = W32 0
+      · rw [restEntry_normal_memKeys _ _ _ ht] at hk
+        exact h.1 k hk
+      · cases hdec : ccDecodeV1 m.data with
+        | none =>
+          unfold restEntry at hk
+          rw [if_neg ht, hdec] at hk
+          exact h.1 k hk
+        | some cc =>
+          rw [restEntry_cc _ _ cc _ ht hdec] at hk
+          have hin := (hB m (by simp) ht cc hdec).2.1
+          exact ccRest_memKeys _ cc _ _ hin h.1 k hk
+    have := ih (A ++ [m]) h1 (fun e he => hB e (List.mem_cons_of_mem _ he))
+    simpa using this
 
 /-- **The resource around a conf entry** `m` (decoding to `cm`, in the scope, the next entry after
 `A`): the pieces `applyConfChange` takes, the premises it asks of them, and the way back, after
@@ -418,7 +500,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
             by_cases hkk : cm.nodeId = k
             · subst hkk; exact hin
             · rw [GMap.lookup_insert_ne _ _ hkk] at hk; exact Hp.2.1 k hk)
-        _ ≤ 2 ^ 62 := Hp.2.2
+        _ ≤ 2 ^ 62 := by have := Hp.2.2; omega
   iintro %v3 Hmr
   have hpa : ∀ bk, ccPeersAfter v3 cm bk prs = prs := by
     intro bk; unfold ccPeersAfter

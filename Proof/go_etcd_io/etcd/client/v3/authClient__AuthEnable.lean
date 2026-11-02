@@ -36,7 +36,8 @@ theorem authClient.AuthEnable.wp_proof
   ihave Hsend : (pbAuthEnableRequest (GF := GF)).send «$a1_ptr» () $$ [«$a1»]
   · simp only [pbAuthEnableRequest]
     iexists _
-    iexact «$a1»
+    iframe «$a1»
+    ipureintro; rfl
   iunfold callOptsAt at Hsl
   icases Hsl with ⟨%vs, #Hvs, -, #Hvok, -⟩
   wp_apply wp_retry rac conn addr Spec Q ci cd «$a1_ptr» () sl vs $$ [Hsend]

@@ -218,6 +218,15 @@ instance cachedKvOwn_dfractional (c : CachedKv) :
     DFractional (fun dq => cachedKvOwn (GF := GF) c dq) := by
   unfold cachedKvOwn; infer_instance
 
+end defs
+
+section nested
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+open Iris.ProofMode
+
 /-! ## Nested operations, as `Op` values -/
 
 mutual
@@ -270,12 +279,154 @@ instance opTAtC_persistent (v : go_etcd_io.etcd.client.v3.Op) (t : OpT) :
 instance opListAtC_persistent (vs : List go_etcd_io.etcd.client.v3.Op) (ts : List OpT) :
     Persistent (opListAtC (GF := GF) false vs ts) := opListAtC_false_persistent vs ts
 
+theorem opListAtC_length (c : Bool) :
+    ∀ (vs : List go_etcd_io.etcd.client.v3.Op) (ts : List OpT),
+      opListAtC (GF := GF) c vs ts ⊢ ⌜vs.length = ts.length⌝
+  | [], [] => by iintro -; ipureintro; rfl
+  | [], _ :: _ => by simp only [opListAtC]; iintro H; iexfalso; iexact H
+  | _ :: _, [] => by simp only [opListAtC]; iintro H; iexfalso; iexact H
+  | v :: vs, t :: ts => by
+    simp only [opListAtC]
+    iintro ⟨-, H⟩
+    ihave %h := opListAtC_length c vs ts $$ H
+    ipureintro; simp [h]
+
+/-- The first of the trees `drop i`. -/
+theorem opListAtC_drop (c : Bool) (vs : List go_etcd_io.etcd.client.v3.Op) (ts : List OpT)
+    (i : Nat) (v : go_etcd_io.etcd.client.v3.Op) (t : OpT) (hv : vs[i]? = some v)
+    (ht : ts[i]? = some t) :
+    opListAtC (GF := GF) c (vs.drop i) (ts.drop i) ⊢
+      opTAtC c v t ∗ opListAtC c (vs.drop (i + 1)) (ts.drop (i + 1)) := by
+  have hvi : i < vs.length := (List.getElem?_eq_some_iff.1 hv).1
+  have hti : i < ts.length := (List.getElem?_eq_some_iff.1 ht).1
+  rw [List.drop_eq_getElem_cons hvi, List.drop_eq_getElem_cons hti]
+  have e1 : vs[i] = v := (List.getElem?_eq_some_iff.1 hv).2
+  have e2 : ts[i] = t := (List.getElem?_eq_some_iff.1 ht).2
+  rw [e1, e2]
+  simp only [opListAtC]
+  exact .rfl
+
+/-- The `i`-th tree of a list of trees (any capacity flag). -/
+theorem opListAtC_get (c : Bool) :
+    ∀ (vs : List go_etcd_io.etcd.client.v3.Op) (ts : List OpT) (i : Nat)
+      (v : go_etcd_io.etcd.client.v3.Op) (t : OpT), vs[i]? = some v → ts[i]? = some t →
+      opListAtC (GF := GF) c vs ts ⊢ opTAtC c v t ∗ True
+  | [], _, _, _, _, h, _ => by simp at h
+  | _ :: _, [], _, _, _, _, h => by simp at h
+  | v' :: vs, t' :: ts, i, v, t, hv, ht => by
+    simp only [opListAtC]
+    rcases i with _ | i
+    · simp at hv ht; subst hv ht
+      iintro ⟨H, -⟩; iframe H
+    · simp at hv ht
+      iintro ⟨-, H⟩
+      iapply opListAtC_get c vs ts i v t hv ht $$ H
+
+/-- The lists of trees of an appended slice. -/
+theorem opListAtC_append (c : Bool) :
+    ∀ (vs1 vs2 : List go_etcd_io.etcd.client.v3.Op) (ts1 ts2 : List OpT),
+      opListAtC (GF := GF) c vs1 ts1 ∗ opListAtC c vs2 ts2 ⊢ opListAtC c (vs1 ++ vs2) (ts1 ++ ts2)
+  | [], vs2, [], ts2 => by simp only [List.nil_append, opListAtC]; iintro ⟨-, H⟩; iexact H
+  | [], _, _ :: _, _ => by simp only [opListAtC]; iintro ⟨H, -⟩; iexfalso; iexact H
+  | _ :: _, _, [], _ => by simp only [opListAtC]; iintro ⟨H, -⟩; iexfalso; iexact H
+  | v :: vs1, vs2, t :: ts1, ts2 => by
+    simp only [List.cons_append, opListAtC]
+    iintro ⟨⟨H1, H2⟩, H3⟩
+    iframe H1
+    iapply opListAtC_append c vs1 vs2 ts1 ts2 $$ [$H2 $H3]
+
+/-- The models of the trees `ts`: one per tree. -/
+theorem OpT.txnOps_length : ∀ (ts : List OpT) (ops : List TxnOp),
+    OpT.txnOps ts = some ops → ops.length = ts.length
+  | [], ops, h => by simp [OpT.txnOps] at h; subst h; rfl
+  | t :: ts, ops, h => by
+    simp only [OpT.txnOps] at h
+    split at h
+    · rename_i a b _ hb
+      simp at h; subst h
+      simp [OpT.txnOps_length ts b hb]
+    · simp at h
+
+/-- The models of the trees `ts`, position by position. -/
+theorem OpT.txnOps_getElem : ∀ (ts : List OpT) (ops : List TxnOp) (i : Nat) (t : OpT),
+    OpT.txnOps ts = some ops → ts[i]? = some t → ∃ op, t.txnOp = some op ∧ ops[i]? = some op
+  | [], _, _, _, _, h => by simp at h
+  | t' :: ts, ops, i, t, h, hi => by
+    simp only [OpT.txnOps] at h
+    split at h
+    · rename_i a b ha hb
+      simp at h; subst h
+      rcases i with _ | i
+      · simp at hi; subst hi; exact ⟨a, ha, rfl⟩
+      · simp at hi
+        obtain ⟨op, h1, h2⟩ := OpT.txnOps_getElem ts b i t hb hi
+        exact ⟨op, h1, by simpa using h2⟩
+    · simp at h
+
 /-- The `[]Op` slice `sl` (read-only) holds the operation trees `ts`, in order. -/
 def opsTAt (sl : GoSlice) (ts : List OpT) : IProp GF :=
   iprop(∃ vs : List go_etcd_io.etcd.client.v3.Op, sl ↦*□ vs ∗ opListAtC false vs ts)
 
 instance opsTAt_persistent (sl : GoSlice) (ts : List OpT) : Persistent (opsTAt (GF := GF) sl ts) := by
   unfold opsTAt; infer_instance
+
+/-- **A plain operation's tree** (`notes/txn-nested.md`, L2). -/
+theorem opTAtC_leaf (v : go_etcd_io.etcd.client.v3.Op) (o : OpFull) :
+    opTAtC (GF := GF) false v (.leaf o) ⊣⊢ opFullAt v o ∗ ⌜o.t ≠ W64 4⌝ := by
+  unfold opTAtC; exact .rfl
+
+/-- **`OpTxn`'s result is a nested transaction's tree** (L1): its `Op` (`OpTxn.spec`'s post) and the
+trees of its two slices. -/
+theorem opTAtC_opTxn (v : go_etcd_io.etcd.client.v3.Op) (ms : List CmpModel) (tsl esl : GoSlice)
+    (ts es : List OpT) (hs : v.thenOps' = tsl ∧ v.elseOps' = esl) :
+    opFullAt (GF := GF) v OpFull.txnInit ∗ cmpsAt v.cmps' ms ∗ opsTAt tsl ts ∗ opsTAt esl es ⊢
+      opTAtC false v (.txn OpFull.txnInit ms ts es) := by
+  obtain ⟨h1, h2⟩ := hs
+  unfold opsTAt
+  iintro ⟨Hf, Hc, ⟨%tvs, Ht, Htl⟩, ⟨%evs, He, Hel⟩⟩
+  unfold opTAtC
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  iframe Hf Hc
+  isplitl []
+  · ipureintro; rfl
+  iexists tvs, evs
+  rw [h1, h2]
+  iframe
+
+/-- No trees: the nil slice (L3). -/
+theorem opsTAt_nil : ⊢ opsTAt (GF := GF) slice.nil [] := by
+  unfold opsTAt
+  iexists []
+  isplitl
+  · iapply (ownSlice_nil (V := go_etcd_io.etcd.client.v3.Op) DFrac.discard)
+  · unfold opListAtC; itrivial
+
+/-- A slice of `Op` values that are the trees `ts` holds them (L3). -/
+theorem opsTAt_of_list (sl : GoSlice) (vs : List go_etcd_io.etcd.client.v3.Op) (ts : List OpT) :
+    sl ↦*□ vs ∗ opListAtC (GF := GF) false vs ts ⊢ opsTAt sl ts := by
+  unfold opsTAt
+  iintro ⟨H1, H2⟩
+  iexists vs
+  iframe
+
+/-- A one-element slice (a literal `[]Op{v}`) holds `v`'s tree (L15). -/
+theorem opsTAt_one (sl : GoSlice) (v : go_etcd_io.etcd.client.v3.Op) (t : OpT) :
+    sl ↦*□ [v] ∗ opTAtC (GF := GF) false v t ⊢ opsTAt sl [t] := by
+  unfold opsTAt
+  iintro ⟨H1, H2⟩
+  iexists [v]
+  iframe
+  unfold opListAtC opListAtC
+  iframe
+
+end nested
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
+variable [sem : go.Semantics]
 
 /-! ## Nested responses, read-only -/
 
@@ -444,7 +595,8 @@ def txnCommitResultO (pfx : GoString) (lo : w64) (t : TxnModel) (resp : Loc) (er
 
 /-- **The builder** `t` with abstract state `B`, with nested operations and owned responses (see
 the module docstring; `txnBuilderSpec`'s `If`, its `Then`/`Else` on operation trees, its `Commit`
-with `txnCommitResultO`). -/
+with `txnCommitResultO`). The request fits a gRPC message (`Commit`: `txnSizeOk`; 2026-10-30, `notes/decisions.md`, "The
+encoded-size bound at grpc's send side"). -/
 def txnBuilderSpecO (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp GF) : IProp GF :=
   iprop(
     (□ ∀ (b : TxnBuild) (sl : GoSlice) (ms : List CmpModel),
@@ -465,7 +617,7 @@ def txnBuilderSpecO (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp
           B { b with model := { b.model with elseOps := b.model.elseOps ++ ops },
                      celse := true } }}) ∗
     (□ ∀ (b : TxnBuild) (lo : w64),
-      {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx⌝ }}
+      {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ txnSizeOk b.model⌝ }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           txnCommitResultO pfx lo b.model resp err }}))
@@ -492,11 +644,12 @@ instance isEtcdTxnKVO_persistent (kv : GoInterfaceOk) (pfx : GoString) :
 
 /-- **The client's `Do` of a get** (`clientv3.KV`'s `Do(ctx, op)`; a definition, the assumption a
 caller makes of `client.KV`): for a get `op` (modelled by `o`), the `OpResponse`'s `get` field and
-the error are what `Get` returns (`kvGetResult`). -/
+the error are what `Get` returns (`kvGetResult`). The request fits a gRPC message (`opSizeOk` of the get; 2026-10-30, `notes/decisions.md`, "The
+encoded-size bound at grpc's send side"). -/
 def isEtcdDoKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF))
       (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull) (lo : w64),
-    {{ context.isContext ctx cs ∗ opFullAt opv o ∗ etcdReached lo ∗ ⌜o.t = W64 1⌝ }}
+    {{ context.isContext ctx cs ∗ opFullAt opv o ∗ etcdReached lo ∗ ⌜o.t = W64 1 ∧ opSizeOk o⌝ }}
       (App (App (Val #(methods kv.ty go!"Do" kv.v)) (Val #(GoInterface.ok ctx))) (Val #opv))
     {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
         kvGetResult pfx lo o r.get' err }})
@@ -507,6 +660,7 @@ instance isEtcdDoKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
 
 /-! ## Lemmas -/
 
+omit EM in
 /-- Plain operations (each one a transaction can run) as operation trees. -/
 theorem opsAt_leaves (sl : GoSlice) (os : List OpFull) (ops : List TxnOp)
     (h : os.map txnOpOf = ops.map some) :

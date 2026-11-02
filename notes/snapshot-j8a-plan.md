@@ -1,0 +1,239 @@
+# J8a: `applyAll` with a snapshot (plan, 2026-11-01)
+
+Stage J8a of `notes/snapshot-sj-plan.md`: the apply thread's job on a snapshot payload
+(`rnApSnap`, the `sorry -- SNAPSHOT-SORRY` at `EtcdServer__run.lean` ~:873 and its auth-on twin
+~:1412) runs `applyAll` over `applySnapshot.specSnap`, and `srvSnapApplied` gives back what the
+next batch and the next snapshot take. Built on J1b (`snap-sorries` at `15ff878455`). J8b (the loop's
+`applyRes` with `kvReach`, the link, `applyAll_model`) follows.
+
+## The inventory (2026-11-01)
+
+Every premise and resource of `specSnap`, against the apply thread's state at that `sorry`. Ready
+(no work beyond glue): the apply thread's resources (`applyRes`), `srvSnapRO`'s fields and contracts,
+`srvSnapRes` (stop channels, `bOpen ½`, the alarm store's `Get`, the KV's closer, `pathOwn` of the
+backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `hmeta`, `hlease`,
+`halarm`, `hauthb`, `hmemb`, `himg`, `hA'`, `hpre`, `hRok`, `hkI`, `certOk`), `hi`, `hle`, `hkb`,
+`hstp`, `hlid`, `trLive`, the payload's snapshot (`ownSnapM … DFrac.discard`).
+
+## Open problems, by risk
+
+1. **R-loc lost: the snapshot file's `fileHolds`.** `snapDirInv` gives `fileHolds (snapDBPath ss i) D`
+   from `snapSaved γd i`, which J2 got from raft's `snapLocal` in the snapshot `Ready`. Raft's
+   internal `readySnapData` still has it (`InvNodeChan.lean:733`), but the node API's snapshot `Ready`
+   (fdf2da3d6b, "snapshot paths unreachable") does not, and `rnApSnap` has `snapshotCert` in its place
+   (its docstring still says `snapLocal`); `snapLocal_of_saved` was deleted (`Net.lean:294`). Fix: a
+   raft API law giving `snapLocal` with the snapshot `Ready` (as `nodeDriver_hardStateCommitted`:
+   an API change, `interface/` diff), then `rnApSnap` carries it again. **Approval: raft API.**
+   *API part done (2026-11-01, the user approved):* `stepIn_intro` takes `snapLocalMsg`, `readySnap`
+   gives `nodeSnapLocal` (decisions, "The raft API's `snapLocal` clause"); `rnApSnap` carries it
+   (2026-11-01), and `rnApplyTok_recv`'s snapshot case gives it to the apply thread. Item 1 done; the
+   apply thread turns it into `snapSaved γd i` with `nodeSnapLocal_elem` and `srvClusterOk`'s
+   `snapLoc` (J8a-5). That case now also keeps `rnRtOk` at `A'` (item 4's merge).
+2. **The `isMetaBackend` family is false as stated** (`specSnap`'s `□ ∀ π b, π.m0 = (i, tI) →
+   isMetaBackend b … (readView (γ.withPh π))`, "D22 J1a"): any names `π`, any backend `b`. Restate:
+   tie `π` to how `b` was opened (`isBackend` at `batchLockInv (γ.withPh π)`) and to the opened data's
+   meta keys (`metaIs D π.m0`); or prove it from the backend's `ReadTx` (verified) and the protocol.
+   **Approval: `specSnap` is a spec here, not trusted; but the premise is a named one to discharge.**
+   **Done (J8a-4, 2026-11-01, the user's decision)**: the premise restated at the open (form C2: from
+   the fresh backend's `hkOwn`/`bFresh`, for `isBackend` at `batchLockInv (γ.withPh π)` and
+   `metaIs D π.m0`), carried in `bootOk` as `"#HmetaSnap"` beside `#Hmeta`; the model's two holes
+   closed (the term key, `batchLockInv`'s `⌜mm.2 = γ.m0.2⌝ ∨ wrDone γ`; `wr` a `dghostVar`).
+   **Open, for 5e: the carrier from `bootOk` to `applyAll`'s snapshot case** (this stage threads it
+   nowhere: `srvSnapRO`/`srvSnapOwn` and `applyAll.spec` unchanged). `notes/decisions.md`, "J8a-4".
+   The carrier (5e): a premise of `applyAll.specSnap`, the same text at its `γ`; `run` gives it from
+   `bootOk`'s `#HmetaSnap` (J8b).
+3. **`srvCfgAddr s ↦□ cfg` is false** (the struct copy in `OpenSnapshotBackend(s.Cfg, …)` races
+   with `NewWatchServer`'s write of `WatchProgressNotifyInterval`,
+   `issues/etcd-cfg-watch-progress-interval-race.md`). A field-wise restatement is not sound: the
+   copy reads every field. Fix the fork (`NewWatchServer` not writing the server's config), pin bump.
+   **Approval: fork change.**
+   *Done 2026-11-01 (J8a-3, decisions "J8a-3")*: the fork's `7cf3644ec`; `NewWatchServer.spec` over
+   the field `↦□`. `start` writes `SnapshotCount`/`SnapshotCatchUpEntries`, so the whole struct is
+   read-only from `start` on: `srvSnapRO`'s last conjunct is the rebuild (`□ ∀ sc scu, … ↦□ sc -∗
+   … ↦□ scu -∗ srvCfgAddr s ↦□ {cfg with …}`), `isServerRun`'s `"#Hsncfg"` the two fields.
+4. **`applyAll` needs a snapshot spec.** `applyAll.spec` takes `taSnapshotAddr ap ↦□ null`, and its
+   post's `ai'`, `ciEff`, `termAfter` and `entriesStep` clauses are false after a jump. A separate
+   `applyAll.specSnap` (pre: the payload's facts, `srvSnapOwn`, …; post: the apply thread at the
+   snapshot's index and backend, `srvSnapOwn` at `E'`), with:
+   - no entries (`rnApSnap`), so `applyEntries` returns at once;
+   - `<-notifyc` the second receive of `isNotify2` (and `specSnap`'s the first, in place of
+     `isUnitBag`);
+   - `snapshotIfNeededAndCompactRaftLog` a no-op (disk = mem = applied index): a spec of its
+     no-op case, without `ai ≤ w`, `srvSnapStor`, `epCsCfg`, `srvFrozenTerm`;
+   - the merge branch (`msgSnapC`) after the jump: `rnRtOk` (kept by `rnApplyTok_recv`, which drops it
+     today), `lastTermIs A' Term` (payload amendment: raft's `plogLast` fact), `srvFrozenTerms` false
+     after the compaction (to restate: the frozen terms from the snapshot's index);
+   - J5's `uint.Z ai ≤ w`: not in `specSnap` (the jump passes `w`); `applyRes` keeps it only for
+     the entries case (J8b).
+   `applyAll_model` (an exported result) changes in J8b, not here.
+5. **What `srvSnapApplied` does not give back**: `x'.chain` (needed by `kvApplied_of_jump`), the
+   alarm store's `Get` after `Recover` (`alarmGetIs` at the new `Tal`), `isKV` at `E'`, `srvSnapRO`
+   moved along `beSucc`. Strengthen the walk (`SnapApplyWalk`, `SnapApplyPost`).
+   *Done 2026-11-01* (decisions, "`srvSnapApplied`'s missing post"): `srvSnapApplied` gives the
+   chain (`zal = true → x'.chain = alarmChain E.authOn false false`) and the KV at `E'`
+   (`txn.isKV`); `srvSnapRO_succ` moves the bundle along `beSucc`. *Corrected (J8a-5)*: the alarm
+   store's `Get` does need something: the run has `zal = false`, so no chain fact (J8a-5's 5d).
+6. **The stocks** (the user's decision, 2026-11-01: thread pool, `threadBound ≤ 2^28`):
+   - `E.RD`: `authIs`'s mutex holds `authInfoIdle p ∗ E.RD` (`Chain.lean:1270`); only the admin
+     check (`IsAdminPermitted`) uses it, before the inner call. Restate: the mutex holds
+     `authInfoIdle p`; `authApplierV3.Apply.spec`/`specL` and the chain's `Apply` triple take a
+     lending law of their frame `A` (`A ⊢ E.RD ∗ (E.RD -∗ A)`, `kvOwn`'s: `Chain.lean:435`).
+     Then `newAuthApplierV3`, `apply.NewUberApplier`, `EtcdServer.NewUberApplier` take no `RD`;
+     `NewServer`'s `HRD` and `specSnap`'s second `E.RD` go. Apply package only.
+     *Done 2026-11-01* (decisions, "The auth store's reader resource borrowed per `Apply`"): and
+     `srvSnapStock`'s `E.RD` copies gone, the walk's post carrying the old KV's `E.RD`.
+   - `lgMu`: the transport's `R` (8 copies per `AddPeer`, `startPeer`'s `HR1`-`HR8`, of which
+     `RemoveAllPeers` returns 4) becomes a pool's: `threadPool.init` on J1b's 2^28 stock
+     (`threadBound ≤ 2^28`, `NewServer.spec` and the closed theorems' `n + 2 ≤ 2^28`), each of the
+     peer's goroutines forked with `wp_fork_tok` and borrowing with its thread token (`borrow`,
+     `giveBack` at exit). The `rafthttp` specs (`startPeer`, `AddPeer`, `RemoveAllPeers`,
+     `Transport.Start`, the stream readers') change from copies of `R` to the pool.
+   - also: `c.R = srvLgReader s` (no tie today), `trPeersNoRem` after the `AddPeer`s (from the
+     examples' `srvTrTok`).
+     *Done 2026-11-01* (J8a-6; decisions, "The transport's `R`s from a thread pool") but for
+     `trPeersNoRem`: `Transport.Start` takes `raftPool R` (`trFixed` holds it), `startPeer`'s two
+     receiving goroutines borrow from it (the writers and the pipeline need no `R`), so `AddPeer`
+     takes none and `RemoveAllPeers` gives none back; `NewServer`'s pool is `2 ^ 28` of `lgMu`'s
+     slots, `threadBound ≤ 2 ^ 28`; `srvSnapStock` gone, `specSnap`'s `8·|ps|` copies gone, the
+     `c.R` tie moot. `trPeersNoRem` and `hdir`/`hdok` stay `specSnap` premises (design
+     questions: the tokens are the examples', and `srvSnapRO` has no `γn`).
+7. **Environment facts not threaded** into `srvSnapRO` or `applyAll`: `E.cmp = false` (`hcm`),
+   `storage.snapOpensOk` (`hsop`), `E.γ.watchQ` (`hwq`), `receiptBound ≤ wbInit - 6` (`hrbw`),
+   `netDirOk`/`γn.dir = dir` (`hdok`, `hdir`), the backend parameters (`P.Wf`, `limit`, `ciKeys`,
+   `hooksParams`, `bridgeParams`), `lessorInv`, `isWatchableStore` in the apply thread, `authMode =
+   .off` (not only `authOn = false`), `hRO`'s fields tied to the stores'. Mechanical: each into
+   `srvSnapRO` from `NewServer`/`bootOk`; some are `NewServer.spec` premises today (`hsop` is L3's).
+   *Done 2026-11-01* (decisions, "`specSnap`'s environment facts in `srvSnapRO`") but for
+   `hdir`/`hdok` (with J8a-6); `d.P.Wf ∧ d.P.limit = openLimit cfg` added to `bootOk` (approved);
+   `hoff` from `authOn = false` (`authMode_off_of`).
+8. **`specSnap` restated for the payload**: `isNotify2`'s first receive (item 4), `snapDirInv` at
+   `srvSnapRm γt γr` (as `srvSnapRO` has it) in place of `snapTakenLb γt`, the image facts from
+   `snapRecv_image` (`hch`, `|boot| ≤ i`: lemmas).
+   *Done 2026-11-01* but for the image facts: `specSnap` takes the payload's `isNotify2 γnc nc True
+   True ∗ notifyRcvN γnc 0` (its first receive, `wp_notify2_receive1`; the post gives back
+   `notifyRcvN γnc 1` for `applyAll`'s second) and `snapDirInv` at `srvSnapRm γt γr`
+   (`Release`'s obligation is its first disjunct). The image facts are `snapRecv_image`'s
+   premises about the run (the start values, `hch`, `|boot| ≤ i`): lemmas for J8a-5, where
+   `run`'s snapshot case calls it, not a restatement.
+
+## Stages
+
+- **J8a-1** (no approval): the stocks' `E.RD` half (item 6), the environment facts (item 7), `specSnap`
+  over the payload's forms (item 8), the walk's missing post (item 5). Done 2026-11-01 (but for
+  `hdir`/`hdok`, with J8a-6, and item 8's image lemmas, with J8a-5).
+- **J8a-2** (raft API, approved 2026-11-01): `snapLocal` through the API (item 1); done.
+- **J8a-3** (fork, approval): `NewWatchServer`'s config write (item 3). Done 2026-11-01.
+- **J8a-4**: the `isMetaBackend` restatement (item 2). Done 2026-11-01; the carrier to `applyAll`
+  is 5e's.
+- **J8a-5**: `applyAll.specSnap` (item 4). `run`'s two `sorry`s over it need `applyRes` restated
+  (`kvReach`, `notes/snapshot-sj-plan.md` §6), J8b's. Steps:
+  - *5a, done 2026-11-01*: the payload `rnApSnap` (and `rnApplyTok_recv`'s snapshot case) carries
+    `ap.entries' ↦*□ []` and `uint.Z i < 2^61`, from raft's `readySnap` (`ce = []`, the index
+    bound) through `raftNode.start`.
+  - *5b, done*: the callees' no-op cases: `applyEntries.specNil` (no entries), and
+    `snapshotIfNeededAndCompactRaftLog.specNoop` (the disk and in-memory snapshot indices at the
+    applied one, `ai + 100 < 2^64`), over `shouldSnapshotToMemory.spec`'s post strengthened
+    (`m = ai → 2^64 ≤ ai + 100`: Go's `m + memorySnapshotCount` wraps only near `2^64`).
+  - *5c, done*: `snapDir_take` (`SnapRO.lean`): the snapshot's file out of `snapDirInv` before
+    `applySnapshot(i)` (a later credit; the removal fact refuted below the counter and the applied
+    index, then given by the counter raised to `i`), so `specSnap`'s `hnt` is `nt ≤ i` (was `nt ≤ ai`:
+    the file cannot leave the directory before the counter reaches `i`).
+  - *5d, done (2026-11-01, the user's choice "Model the alarms")*: the alarm store's map is split
+    between the lock and the user (`alarmBeOnM`, `alarmEmpty`); `Get.spec` returns no alarm under
+    `alarmEmpty`, `Recover` gives it, the `NewAlarmStore` axiom's post gives it with the apply
+    contract outright (`alarmFresh` deleted); `alarmGetIs_empty` (`AlarmGet.lean`); `Tal`/`zal`
+    gone from `srvSnapRes`, `specSnap`, `snapWalkPost`, `srvSnapApplied` (its chain fact now
+    unconditional). `notes/decisions.md`, "The alarm store's alarms modelled". What it was:
+    **the applier chain after the jump.** `kvApplied` at `A'` needs the new
+    chain to be the boot's (`alarmChain false false false`), i.e. the alarm store empty when
+    `NewUberApplier` reads it. True in Go (`Recover` loads the image's empty alarm bucket,
+    `halarm`), but not derivable: `AlarmStore.Get.spec` returns any slice, `Recover`'s post says
+    nothing of the store's alarms, and the boot's `alarmFresh` (the `NewAlarmStore` axiom's token)
+    is spent at boot, so `srvSnapRes` holds `alarmGetIs al True false` (`zal = false`, no chain
+    fact from `srvSnapApplied`). Item 5's "the alarm store's `Get` needs nothing" was wrong. Fix:
+    model the store's alarms (a ghost "no alarm" half in `alarmLockInv`, `Recover` re-establishing it
+    from the empty bucket, `Get` returning empty under it), which changes `v3alarm`'s predicates and
+    the `NewAlarmStore` axiom's post (**approval: a trusted statement**).
+  - *5e, design (2026-11-01)*: the Go steps after `applySnapshot` and where each one's
+    resources come from.
+    - **`applySnapshot`** (`specSnap`): its premises come from:
+      - `srvSnapOwn`'s `srvSnapRO`/`srvSnapRes`/`γt` (the config through J8a-3's rebuild fact, at
+        `{cfg with SnapshotCount', SnapshotCatchUpEntries'}`);
+      - `snapDir_take` (the file and `□ srvImage γ i D`), then `snapRecv_image` (the image facts,
+        `srvRLogLb γr.raft A'`), over the fresh start's `γr.raft = ⟨γ, [], 0⟩`, `c0 = 0`, the boot
+        chain and `log0` (premises, as `run` has them), `|boot| ≤ i`;
+      - `srvApRes`'s `ccMembRes` (`trLive`);
+      - `E.cmp = false` and `authOn = false` (the run's mode off);
+      - the payload (`isNotify2`, `ownSnapM`, `nodeSnapLocal` → `snapSaved`);
+      - open (J8a-4/J8a-6): `isMetaBackend`, `hdir`/`hdok` (`trPeersNoRem` gone in J8a-7, the
+        `8·|ps|` `c.R` in J8a-6).
+    - **`applyEntries`**: `specNil`.
+    - **`VerifyBackendConsistency`, the gauge**: as `wp_proof`, at `E'`.
+    - **`applyWait.Trigger(i)`**: `applied_jump`. `kvLogAt γr i (kvModel A')` comes from
+      `srvRLogLb A'`; `idxCert` from `snapRecv_kv_jump`'s `certOk`. That lemma also turns `kvApplied A x`
+      into `kvAppliedL A'`, and `kvApplied_of_jump` gives `kvApplied A' x'` from `srvSnapApplied`'s
+      chain.
+    - **`<-notifyc`**: `wp_notify2_receive2`.
+    - **`raftAdvancedC`**: the payload's `nodeAppliedLb`/`storDL`/`srvFrozenAt`/`srvFrozenBelow` at `i`.
+    - **`snapshotIfNeededAndCompactRaftLog`**: `specNoop`, since disk = mem = applied index after the walk.
+    - **The merge branch** (`msgSnapC`), as `wp_proof`'s at `γ'`, `E'`, `A'`. Its inputs:
+      - `lastTermIs A' sv.Term` and the voters' conf state, from the payload's `snapshotCert`
+        through `snapshotCert_valid` (`snapshotValid`: a committed log of length `i`, its last term,
+        `confStateIs` at `confAt`; `srv_confAt_simple`). No raft API change.
+      - `srvWTPool E'` = `srvWTPool E` (it names only `E.γbe`, which `beSucc` keeps).
+      - `i < 2^61` from the payload.
+    - **Post**: `applyAll.spec`'s shape after the jump: `γ'`, `E'`, the applied log the image's `A'`
+      (`srvRLogLb A'`, length `i`), `srvApRes` at `A'` (`srvMemOk` from the image facts,
+      `srvPeersCover` from the walk's `L`), `srvSnapOwn` at `E'` (`srvSnapRO_succ`). J8b ties `A'`
+      to raft's `cum`.
+  - *5e*: `applyAll.specSnap` and its proof: `snapDir_take` (`snapSaved` from the payload's
+    `nodeSnapLocal`, `nodeSnapLocal_elem`, `snapLoc`), `snapRecv_image`/`snapRecv_kv_jump` (the image
+    facts, the KV jump), `specSnap`, `specNil`, `applied_jump` for `applyWait.Trigger(i)` (Go does not
+    call `setAppliedIndex`, J5), `wp_notify2_receive2`, `specNoop`, the merge branch at `i`. Its
+    premises that stay open: `srvCfgAddr s ↦□ cfg` (J8a-3; since done, from `srvSnapRO`'s rebuild
+    applied to `isServerRun`'s `"#Hsncfg"`), the `isMetaBackend` family (J8a-4), the
+    `hdir`/`hdok` (the `8·|ps|` copies of `c.R` gone in J8a-6, `trPeersNoRem` in J8a-7).
+    **Done 2026-11-01** (branch `snap-j8a-5e`): `Spec/.../EtcdServer__applyAll.lean`'s `specSnap`,
+    proved in `ApplyAllSnap.lean` (`applyAll.wp_proofSnap`), with no `sorry` of its own (the merge
+    branch rests on `mergedCreate_window`'s, as `wp_proof` does). New facts: `lastTermIs_of_snap`,
+    `epCsVoters_of_snap` (`SnapRecvFacts`), `srvMemOk_append` (`InvApRes`); `srvSnapApplied` gives
+    `ep.confState`'s `csOptA`; `ccMembRes` holds every voter in the directory (`NewServer` proves it
+    from the boot peers), which `srvPeersCover` at the walk's peers needs. Not linked yet: J8b
+    (`run`'s two `SNAPSHOT-SORRY`s) uses it.
+- **J8a-6**: the `lgMu` pool in `rafthttp` (item 6). Done 2026-11-01 (branch `snap-j8a-6`) but
+  for `trPeersNoRem` and `hdir`/`hdok` (design questions, item 6).
+- **J8a-7** (fork fix, the user's choice): `trPeersNoRem` gone. The fork's remote pauses by a flag
+  (`goose-lean-remotepause`, `ab3c28d9a`), so `CutPeer`/`MendPeer` need no no-remote token and every
+  token is gone (decisions, "A remote pauses by a flag"). Done 2026-11-01 (branch `snap-j8a-7`).
+  `hdir`/`hdok`: done 2026-11-01 (branch `snap-j8a-hdir`; decisions, "`applySnapshot`'s directory
+  facts in `ccMembRes`"): 5e's caller takes them from `srvApRes`'s `ccMembRes`.
+- **J8b** (branch `snap-j8b`): `run`'s snapshot jobs over `applyAll.specSnap`.
+  - *Link step, done 2026-11-01*: the snapshot triples conjoined into the linked specs (decisions,
+    "J8b: the snapshot cases linked by conjoining").
+  - *Spec-first round, done 2026-11-01* (the user's approval: drop both, split compaction with a
+    named `sorry`): reading `specSnap`'s pre and post against `applyRes` and `isServerRun`, then the
+    statements built with sorried proofs. Changes:
+    - `uint.Z ai ≤ w` (J5) dropped from `applyAll.specBatch`/`specOn`,
+      `snapshotIfNeededAndCompactRaftLog.specBatch`/`specOff`/`specOn` and from `applyRes`/`applyResOn`
+      (no proof read it: `haw` was unused; the snapshot's jump breaks it). `applyAll_model` loses a
+      premise (a strengthening).
+    - `applyRes`/`applyResOn`'s `entriesStep C.c₀ A C.x₀ x` dropped (only ever rebuilt; false after a
+      jump; `kvApplied` ties `x` to the log).
+    - `isServerRun`/`isServerRunOn` (and `isServerBuilt`/`isServerBuiltOn`, `srvBuilt`/`srvBuiltG`)
+      gain `"#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id` (the member id the raft node's: `specSnap`'s member
+      id against the payload's `nodeSnapLocal … γn.id`) and `"#HmetaSnap" ∷ srvMetaSnap γ` (`bootOk`'s
+      `#HmetaSnap` by name, `InvRun.lean`), both proved in `NewServer`.
+    - `rnApSnap` (and `rnApplyTok_recv`'s snapshot case) gains `|boot| ≤ i`, from
+      `rnReadySnap_bootLen`, **proved** (2026-11-01, branch `snap-bootlen`): raft's `readySnap`
+      gains `bootLen < index` (an API change, approved), from the pending snapshot's `snapLocOk`
+      (`restore` takes only an index above the commit index, which is at least `|boot|`).
+    - `run_job_snap` (`EtcdServer__run.lean`): the snapshot payload's job, `applyRes C A` to
+      `applyRes C A'`; `run`'s mode-off `SNAPSHOT-SORRY` replaced by the job's scheduling over it
+      (built). Its proof cases on `E.cmp`: **`run_job_snap_cmp` (`sorry`, open)** the compaction mode
+      (`specSnap` needs it off; generalizing `specSnap` is a stage of its own); the mode off
+      **proved** over `applyAll.specSnap`: the fresh start's facts (`ai₀ = 0`, `pre = []`,
+      `c₀ = 0`) give `specSnap`'s `γr.raft = ⟨_, [], 0⟩` and `ai = |A|`, `kvInv_ch0_off` its chain;
+      the post's log is raft's `A'` by `srvRLogLb_prefix` and the lengths. It takes three ties
+      `run` gives by `rfl` or `Hnm`: `C.γr.raft.pre = γn.pre`, `C.γs = γn.γs`, `C.γw = C.ρ.wait`.
+    - The initial KV log (`log0 = [[], []]`) needed no new fact: `isServerApplyAll` has it.
+    - Not touched: the auth-on `SNAPSHOT-SORRY` (the peer's `snap-auth-on`).

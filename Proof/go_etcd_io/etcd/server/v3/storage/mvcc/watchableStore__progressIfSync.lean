@@ -458,6 +458,10 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     obtain ⟨hne, rfl, -, -⟩ := HCr
     have : 0 < Clog.length := List.length_pos_iff.2 hne
     word
+  -- the notified log is not empty (it extends a certified log)
+  have hLne : σ.Lmu ≠ [] := by
+    obtain ⟨hne, -, -, -⟩ := HCr
+    rw [← hClm]; exact hne
   have hrevE : (σ.Lmu.length : Int) ≤ sint.Z r + 1 := by
     rw [← hClm]
     obtain ⟨hne, rfl, h2, h3⟩ := HCr
@@ -522,7 +526,10 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     iunfold mvcc.wlogQ at Hwlog
     icases Hwlog with ⟨Hwl, Hla⟩
     ihave Hwl : mvcc.notifiedLent γ (some (sync.rfrac.half, σ.Lmu)) $$ [Hwl]
-    · iunfold mvcc.notifiedLent; iexact Hwl
+    · iunfold mvcc.notifiedLent
+      isplitl [Hwl]
+      · iexact Hwl
+      ipureintro; exact hLne
     ihave #Hfu := BigSepM.bigSepM_lookup hst0 $$ HF
     iunfold mvcc.memberFacts at Hfu
     icases Hfu with ⟨%γw, %rr, %fcs, %HMw, #HmetaW, #HfixW, Hfu⟩
@@ -602,6 +609,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       ipureintro
       simp
     iunfold mvcc.notifiedLent at Hwl
+    icases Hwl with ⟨Hwl, -⟩
     ihave Hwlog : mvcc.wlogQ γ sync.rfrac σ.Lmu $$ [Hwl Hla]
     · iunfold mvcc.wlogQ; iframe Hwl Hla
     irevert Hlv; rw [← hγu]; iintro Hlv

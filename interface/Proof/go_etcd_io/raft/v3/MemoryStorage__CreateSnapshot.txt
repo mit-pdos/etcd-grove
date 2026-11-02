@@ -24,7 +24,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof [package_sem : Assumptions] (wp_Ge
                 ownCSM cs dq c ∗
                     memSnapLb γs (uint.nat i) ∗
                       ((⌜err = GoInterface.nil⌝ ∗
-                          ownSnapM snap (DFrac.own 1) (memSnapMade i e.Term' c bs) ∗
+                          ownSnapV snap (DFrac.own 1) (memSnapMade i e.Term' c bs) ∗
                             match o with
                             | some (c0, snd) => memStorFresh ms γs c0 (memSnapMade i e.Term' c bs)
                             | none => emp) ∨

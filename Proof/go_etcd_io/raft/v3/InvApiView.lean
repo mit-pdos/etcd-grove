@@ -199,6 +199,18 @@ theorem busy_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds es : List Entr
   iintro ⟨#Hn, #Hlb, Hr⟩
   iframe Hn Hlb Hr
 
+theorem nodeDriver_hardStateCommitted_impl (n : Loc) (γ : Cluster) (N : Namespace)
+    (st : NodeDriverState) :
+    nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗
+      hsCommitted γ N st.hardState st.delivered.length := by
+  unfold nodeDriver
+  iintro ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, %Hdyn, #Htab, #Hhc, #Hkey, Htok⟩
+  isplitl [Htok]
+  · iexists γn, id, ds
+    iframe Hci Hlb0 Htab Hhc Hkey Htok
+    ipureintro; exact ⟨Hf, Hdyn⟩
+  · iexact Hhc
+
 theorem nodeDriver_deliveredLogLb_impl (n : Loc) (γ : Cluster) (N : Namespace)
     (st : NodeDriverState) :
     nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗ deliveredLogLb n γ N st.delivered := by
@@ -255,8 +267,8 @@ theorem deliveredLogLb_nodeCommitLb_core (n : Loc) (γ : Cluster) (N : Namespace
   icases Hl with ⟨⟨%γn', %id', %ds', %Hf', #Hnd', Htab', #Hdl'⟩, #Hc⟩
   icases Htab' with (%Hnd | #Htab')
   · exfalso
-    have h1 := Hf.1.2.2.2
-    have h2 := Hf'.1.2.2.2
+    have h1 := Hf.1.2.2
+    have h2 := Hf'.1.2.2
     rw [h2, ← h1, Hdyn] at Hnd
     cases Hnd
   ihave %Hn := nodeTabOk_agree γ n γn γn' $$ Htab Htab'

@@ -55,14 +55,19 @@ def applyResOn (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
   iprop(∃ (B : ApplyBe GF) (st : ApplyState) (ai at' a t : w64) (cs : Loc) (x : apply.ApplyKV)
       (sa : auth.AuthState),
     ⌜beSucc C.γ C.E B.γ B.E⌝ ∗ isServerM true C.s B.γ C.ci B.TM B.E C.ρ C.γr ∗
-    epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗
+    epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗ epCsAt C.ρ.raft A cs ∗
     srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread B.γ st ∗ applyBackend B.γ C.ci B.b ∗ ciApplying C.ci a t ∗
     srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKVOn C.s B.E C.γw x sa ∗
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRunAtOn C.γr C.ai₀ C.c₀ A x sa ∗
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
-    (∃ w : Nat, srvWTTaken C.wt w ∗ ⌜uint.Z ai ≤ w⌝) ∗ srvTokRights B.E (ciEff B.γ st.k) ∗
+    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
+    rnWalTok (srvRAddr C.s) (1 : Qp).half ∗
+    (∃ w : Nat, srvWTTaken C.wt w) ∗ srvTokRights B.E (ciEff B.γ st.k) ∗
+    -- (D22 J1b, 2026-10-31) `applyRes`'s snapshot resources
+    srvSnapOwn C.s C.ci B.E C.γr ai ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
-      entriesStep C.c₀ A C.x₀ x ∧ lastTermIs A at'⌝)
+      uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
+      lastTermIs A at'⌝)
 
 /-- **The apply thread's resources when `run` starts, in the mode `on`** (`applyStart`'s; the
 model's auth state at the start's, `srvAuthSt0`). -/
@@ -73,7 +78,9 @@ def applyStartOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvWgReader s ∗
     srvApplyKVOn s E γw x₀ srvAuthSt0 ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunAtOn γr ai₀ c₀ [] x₀ srvAuthSt0 ∗
-    srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k))
+    srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k) ∗
+    -- (D22 J1b, 2026-10-31) `applyStart`'s snapshot resources
+    srvSnapOwn s ci E γr ai₀)
 
 /-- **What `run` needs in the mode `on`** (`isServerRun`'s, see the file header). -/
 def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
@@ -84,20 +91,38 @@ def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
   iprop("#Hsrv" ∷ isServerM true s γ ci TM E ρ γr ∗
     "#Hlnil" ∷ srvLessorNil s ∗
     "#Hsa" ∷ isServerApplyAll s γr ∗
+    -- (J8b, 2026-11-01) the server's member id is the raft node's (`isServerBuilt`'s)
+    "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
+    -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
+    "#HmetaSnap" ∷ srvMetaSnap γ ∗
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     "%HEr" ∷ ⌜Er.C = srvCM true ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
       (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
+    -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
+    -- `run` gives the raft loop with `raftNode.stop`) and the loop's (`raftNode.start`'s); the disk
+    -- cooperating (`storage.diskOk`, `NewServer`'s premise)
+    "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
+    "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+    -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
+    "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v ∗
-    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀) ∗
+    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
     "Hdc" ∷ ownBroadcastChan v.done γd iprop(True) .Pending ∗
     "Hclose" ∷ token γg.close ∗
     "Hstart" ∷ applyStartOn s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
-    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀))
+    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
+    -- (2026-10-31, #11) what the snapshot path takes of the construction (`isServerRun`'s; D22 J1b:
+    -- the persistent bundle, the rest in `applyStartOn`)
+    "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt) ∗
+    -- (J8a-3, 2026-11-01) the two configuration fields `start` writes, read-only from then on:
+    -- with `srvSnapRO`'s rebuild, the whole configuration read-only (`specSnap`'s `srvCfgAddr s ↦□`)
+    "#Hsncfg" ∷ (∃ sc scu : w64, srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
+      srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu))
 
 
 /-- **What `run` needs in the mode `on`** (the auth-mode merge's step 1, 2026-10-29):

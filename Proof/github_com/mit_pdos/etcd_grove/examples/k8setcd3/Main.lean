@@ -76,7 +76,7 @@ theorem Main.wp_proof
     (wp_SetZero : runtime.SetZeroValue.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS EK RT SC ST VA N id ctxs boot clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
+  intro CS EK RT SC ST VA N id ctxs boot clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hrf Hdbo Hms hAs
     hse Hty H0 H31 Hops Hmul
   have hcon := driver_contractOk wp_Encode wp_cEncode wp_Upd wp_Prep wp_ORV wp_Parse wp_From wp_To
     wp_Dec wp_SetZero (driverSpec_tyOk Hty)
@@ -114,7 +114,7 @@ theorem Main.wp_proof
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (k8setcd3Dir id) (dirOne_member id _)
       (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog⟩ := Hal
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
   -- `StartServer("k8setcd3", "127.0.0.1:23906", clientAddr, lg)`
@@ -137,7 +137,7 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   iunfold common.memberUp at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi,
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
     Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `Serve(s, clientAddr)`: (D29) the member never refuses (authentication off, a voter, the
@@ -147,13 +147,13 @@ theorem Main.wp_proof
       (fun cid mid _ => iprop(common.etcdKVAt go!"127.0.0.1:23896" E { ρ with wait := γw } ρ.rd cid mid ∗
         ⌜noRefusalAt go!"127.0.0.1:23896"⌝))
       (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
-    $$ [Haddr Hlg3 Hbemu Hgo Hwpi HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+    $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
     ihave ⟨Hg, %Hnr⟩ := common.grpcUp_noRefusal srv E { ρ with wait := γw } ρ.rd gs lis
       go!"127.0.0.1:23896" cid mid R HEo $$ [Hg]
     · iframe; iframe #
-    imod (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23896" cid mid R Hrb48)
+    imod (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23896" cid mid R Hrb48 Hrf rfl)
       $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms] with ⟨Hserv, #Hkv⟩
     · iframe; iframe #
     imodintro
@@ -169,7 +169,7 @@ theorem Main.wp_proof
   subst Hserr
   wp_auto
   iunfold common.etcdKVAt at Hkv
-  icases Hkv with ⟨#HPut, #HRange, #HDel, #HTxn⟩
+  icases Hkv with ⟨#HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   -- `kubernetes.New(Config{Endpoints: {clientAddr}, Logger: lg, MaxUnaryRetries: 1})`
   wp_apply wp_slice_literal
   try (isplitr; (ipureintro; rfl))
@@ -180,6 +180,7 @@ theorem Main.wp_proof
   ihave #Pkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes $$ []
   · iPkgInit
   let V : client.WEnv GF := EtcdGrove.client.srvWEnv R go!"127.0.0.1:23896" [] null null [] null default
+  haveI : ThreadBoundLe GF (2 ^ 28) := ⟨Htb⟩
   wp_apply (wp_kNew _ [go!"127.0.0.1:23896"] V (fun _ => iprop(True))) $$ [] as %kc %cerr Hcl
   · iframe #
     iunfold clientCfgOk
@@ -192,9 +193,7 @@ theorem Main.wp_proof
       refine ⟨?_, ?_⟩
       · exact plainEndpoints_singleton _ (by unfold plainEndpoint; decide)
       · simp [Hlg]
-    isplitr
-    · iapply clientAuthPre_anon; rfl
-    ipureintro; exact Htb
+    iapply clientAuthPre_anon; rfl
   icases Hcl with (⟨%Hcerr, %cl, #Hkc, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · cases cerr with

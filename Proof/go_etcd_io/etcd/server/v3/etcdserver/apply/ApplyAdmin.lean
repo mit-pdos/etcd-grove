@@ -105,7 +105,7 @@ theorem apply.uberApplier.Apply.wp_admin
   icases Hs' with ⟨%ai, %Hai, #Ht⟩
   subst Hai
   iunfold apply.applierTriples at Ht
-  icases Ht with ⟨-, -, -, -, -, -, -, -, -, #HApply⟩
+  icases Ht with ⟨-, -, -, -, -, -, -, -, -, #HApply, -⟩
   wp_auto
   iapply wp_fupd
   wp_apply HApply $$ %r %rq %skip %v3
@@ -118,6 +118,8 @@ theorem apply.uberApplier.Apply.wp_admin
           apply.dispatchResult rq v3 x.log skip ar o ∗ W ∗ apply.adminDone Own γa E.authMode hs rq v3 ar))
       [Ha Hkv Hcs Ho Hrc HW Hx] as %ar Hpost
   · iframe Hw Ha Hkv Hcs Ho Hrc HW Hx
+    isplitr
+    · iapply apply.rdLend_kvOwn
     imodintro
     iintro %Φ' ⟨Hres, Ha, Hkv, Hcs, Ho, Hrc, HW, Hx⟩ HΦ'
     iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log Pre Q Post (apply.principalOf rq) W γa hs Own)
@@ -134,13 +136,15 @@ theorem apply.uberApplier.Apply.wp_admin
     ⟨%Hna, ⟨Ha, Hkv, Hcs, Ho, Hrc, HW, -⟩, Hrej⟩)
   · imodintro
     iapply HΦ
-    iexists ⟨o.logAfter x.log, x.chain⟩, (.dispatched o skip)
+    iexists ⟨o.logAfter x.log, x.chain, x.crev⟩, (.dispatched o skip)
     simp only [apply.applyResultIs, apply.applyAuthRes, apply.adminOut]
     iframe Hkv HPP Htr Hres HW Hdone Hadm
     isplitl [Ha']
     · iunfold apply.uberOwn; iexists _; iframe Ha' Hs Hsh; ipureintro; exact HcE
     isplitr
-    · ipureintro; exact ⟨⟨Hskip, Hst', rfl, Or.inl rfl⟩, Or.inr ⟨o, rfl⟩⟩
+    · ipureintro
+      exact ⟨⟨Hskip, Hst', rfl, Or.inl rfl, (apply.dispatchCrev_nonCmp _ _ _ _
+        (fun h => by have := Hok.2.1; simp [apply.adminKindOk, h] at this)).symm⟩, Or.inr ⟨o, rfl⟩⟩
     iintro %_
     iapply (apply.chainClass_nonKV _ _ _ _ _ (apply.adminKindOk_nonKV rq Hok.2.1))
   · iunfold apply.rejectResultIs at Hrej

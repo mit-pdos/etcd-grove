@@ -143,8 +143,8 @@ compactions compose (`kiCompact_kiCompact`, `kiCompact_kiCompact_le`), compactio
 changes nothing (`kiCompact_neg`), compaction commutes with the writer's next event
 (`kiCompactO_step`, `IdxCRep.step`), the compacted index answers as the uncompacted one
 (`IdxCRep.kiAt`, `IdxCRep.rangeAt`), and what a read at or above the compaction revision names is
-kept (`kiGet_avail`, `named_not_del`: under `NoDelPutAt`,
-`issues/etcd-compaction-delete-then-put.md`). -/
+kept (`kiGet_avail`, `named_not_del`: by the fixed `doCompact`, etcd-io/etcd#22377; until M2's
+item 18, 2026-10-30, under `NoDelPutAt`, `issues/etcd-compaction-delete-then-put.md`). -/
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_kiCompact
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_of_kiCompact_empty
 #print axioms Perennial.EtcdGrove.mvcc.kiCompact_kiCompact
@@ -261,7 +261,7 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF)
     (f : GoFunc) (hf : f ≠ func.nil) (rd0 : GoFunc) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
-    (hrb : receiptBound GF ≤ 2 ^ 48) :
+    (hrb : receiptBound GF ≤ 2 ^ 48) (Perm : Int → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -297,7 +297,8 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - mvcc.nJobRd (some d)) (),
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
-        mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }} := by
+        mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗
+        mvcc.crevPermIs γ Perm }} := by
   iintro %Φ H HΦ
   iapply (mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
       backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
@@ -311,13 +312,13 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
       backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
       schema.bucket.wp_IsSafeRangeBucket backend.backend.wp_LockForSafeRangeDelete
       backend.backend.wp_UnlockForSafeRangeDelete backend.batchTxBuffered.wp_UnsafePut
-      lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb) $$ %Φ [H]
+      lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb Perm) $$ %Φ [H]
   · iexact H
   inext
-  iintro %s ⟨%γ, %Hγ, Hs, Hrd, Hcok, Hh, Hv, Hr, Ht, Hc, Hcl, Hfs, Hcr, -⟩
+  iintro %s ⟨%γ, %Hγ, Hs, Hrd, Hcok, Hh, Hv, Hr, Ht, Hc, Hcl, Hfs, Hcr, -, #HcpIs⟩
   iapply HΦ
   iexists γ
-  iframe Hs Hrd Hcok Hh Hv Hr Ht Hc Hcl Hfs Hcr
+  iframe Hs Hrd Hcok Hh Hv Hr Ht Hc Hcl Hfs Hcr HcpIs
   ipureintro; exact Hγ
 
 /-- **`NewStore` over a compacting real backend, linked** (question 5's stage 6, the close):
@@ -327,7 +328,8 @@ The store supports the compaction (`storeCmp γ`, `mvcc_store_Compact`'s premise
 close it becomes the restorable compaction right at `-1` (`compactRightR_of_closer`: the closer
 split, not discarded; M2, the storage side, the approval's item 24). So `store.Compact.spec`'s
 premises on the store (`storeCmp γ`, `-1 ≤ c` at `c = -1`, `isStore`, `compactRightR s γ (-1)`,
-`idxCert γ.idx [[], []]`, `hookIs`) are this post's; the caller
+`idxCert γ.idx [[], []]`, `hookIs`, and the permit of its revisions `crevPermIs γ Perm`, at the
+caller's `Perm`: C3's store law, 2026-11-02) are this post's; the caller
 brings the rest (the critical-section contract, the trace, the reader's token `storeRT γ`, and,
 M2's Q1 (a), the compaction's write-back supply `kbWTSupplyM γ.kb`, no longer `NewStore`'s). One
 reader of the pool is kept back for the compaction job (`nJobRd`), and the pool's retired count is
@@ -339,7 +341,8 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = true) (γb γl : GName)
     (Pk : IProp GF) (f : GoFunc) (hf : f ≠ func.nil) (rd0 : GoFunc)
-    (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit') (hrb : receiptBound GF ≤ 2 ^ 48) :
+    (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit') (hrb : receiptBound GF ≤ 2 ^ 48)
+    (Perm : Int → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -370,7 +373,7 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
         mvcc.compactRightR s γ (-1) ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗
-        mvcc.retiredAt γ 1 }} := by
+        mvcc.retiredAt γ 1 ∗ mvcc.crevPermIs γ Perm }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfk, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm,
     Hrts, Hlrd, #Hle, Hro⟩ HΦ
   iapply wp_fupd
@@ -386,9 +389,9 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
         backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
         schema.bucket.wp_IsSafeRangeBucket backend.backend.wp_LockForSafeRangeDelete
         backend.backend.wp_UnlockForSafeRangeDelete backend.batchTxBuffered.wp_UnsafePut
-        lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb)
+        lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb Perm)
       $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro]
-    as %s ⟨%γ, %Hγ, #Hst, Hrd, Hcok, Hhk', Hviews, Hrds, Htoks, #Hc, Hcl, Hfs, Hright, Hret⟩
+    as %s ⟨%γ, %Hγ, #Hst, Hrd, Hcok, Hhk', Hviews, Hrds, Htoks, #Hc, Hcl, Hfs, Hright, Hret, #HcpIs⟩
   · iframe #; iframe Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro
     iintro !> %_; itrivial
   have hj : mvcc.nJobRd (some d) = 1 := by unfold mvcc.nJobRd; simp [hcm]
@@ -473,13 +476,14 @@ next one the index compactor's token, with the closer's half and the jobs' lease
 fields, M2's item 17): on success, the right at `rev`, a lower bound `rev` of the
 compaction revision for every reader, and the job's channel, whose receive gives `compactDone`
 (the compaction finished at `rev` or later, `compactedAt`, or interrupted by the store's `Close`
-or a cancelled scheduler context); `ErrCompacted` (the barrier's channel) or `ErrFutureRev`
-otherwise, the right unchanged. And what it means for readers: at a compaction revision `c`, a
+or a cancelled scheduler context); `ErrCompacted` (the barrier's channel)
+otherwise, the right unchanged (not `ErrFutureRev`: the caller's certificate is of a prefix of the
+committed log; M2, the apply side, item 18). And what it means for readers: at a compaction revision `c`, a
 read at a revision at or above `c` answers as the uncompacted store (`mvcc_rangeOutcomeC_ge`: the
 read path's `rangeOutcomeC` is `rangeOutcome`, the answer from the certified log; below `c`,
 `ErrCompacted`), with the pure model's `IdxCRep.kiAt`/`IdxCRep.rangeAt` (the compacted index
 answers as the uncompacted one there) and `named_not_del` (what such a read names is not deleted
-from the bucket, under `NoDelPutAt`, which `store.Compact`'s caller asserts since unit 6a). -/
+from the bucket; no premise on the compaction revision since M2's item 18, the fixed `doCompact`). -/
 
 noncomputable section
 
@@ -533,9 +537,8 @@ The store's readers hold of a store whose compaction revision moves: a reader is
 `crevLb γ rev` makes every transaction opened afterwards observe `crev ≥ rev`:
 `mvcc_store_Read_after_Compact`). Its range reads answer `rangeOutcomeC` at `crev`:
 `ErrCompacted` below it (`mvcc_rangeOutcomeC_lt`), the uncompacted outcome at or above it
-(`mvcc_rangeOutcomeC_ge`): what such a read names is never a key compaction deleted, because the
-one who compacts asserts `NoDelPutAt` at its revision (`store.Compact`'s premise, carried by the
-keys the job deletes, `delKey`; `rangeAnswers_not_del`). `FirstRev` is `crev`. The readers' statements (the packages above mvcc: `storeReader`, the
+(`mvcc_rangeOutcomeC_ge`): what such a read names is never a key compaction deleted (the keys the job deletes,
+`delKey`; `rangeAnswers_not_del`). `FirstRev` is `crev`. The readers' statements (the packages above mvcc: `storeReader`, the
 transactions at the tag `True`, the observed `crev` exposed; `ReaderSpecs.lean`) are corollaries
 (`spec_R`), printed here linked. -/
 
@@ -598,7 +601,7 @@ theorem mvcc_store_Read_after_Compact (s : Loc) (γ : mvcc.StoreNames) (mode : w
     · ipureintro; exact Ht
     unfold mvcc.logLent; itrivial
   inext
-  iintro %mw ⟨%log, %rv, %crev, Htx, Hm, #Hlb', #Hrok, %Hp, -, -⟩
+  iintro %mw ⟨%log, %rv, %crev, Htx, Hm, #Hlb', -, #Hrok, %Hp, -, -⟩
   iapply HΦ
   iexists log, rv, crev
   iframe Htx Hm Hlb' Hrok

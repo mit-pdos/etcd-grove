@@ -21,7 +21,10 @@ is specific to the Lean port.
   because an entry chose it; supersede the entry instead (its header says how).
 - `notes/status-history.md` — STATUS.md's superseded sections, append-only (move a section there when it stops describing the current state).
 
-Before you finish, update `notes/STATUS.md` if anything moved.
+Before you finish, update `notes/STATUS.md` if anything moved. Its "Last updated" line keeps the
+ten newest dated entries: add yours at the front and move the oldest to the list at the end of
+`notes/status-history.md`. In a merge conflict on that line, keep one copy of each entry (never
+both sides' lines whole: merges that did grew the header to 1.1 MB).
 
 ## Branches
 
@@ -176,6 +179,17 @@ The `spec` skill (`.claude/skills/spec/`) is where the repository keeps what mak
 (yours, a reviewer's, or a candidate), make it learn from it, minimally: a new or sharpened
 principle; and when the user approves a spec, an example (its first version, each critique with
 what it changed, the approved spec). A fix to the spec itself is not enough.
+
+## Bounds
+
+Thread counts, `RWMutex` reader slots, lifetime counters and sizes are reasoned about where they
+are owned (`notes/bounds-plan.md`): the adequacy theorem fixes the constants, the owner of a lock,
+wait group or counter turns them into a protocol inside its invariant (a thread pool of reader
+slots, a wait group backed by thread tokens, receipts), and a spec in between takes only its
+`threadTok` and the owner's handle. `etc/bounds-check.py` counts what does
+not yet follow this, per kind and package (`--kind KIND` lists the places); `--check` (in
+`etc/gates.sh` and CI) refuses a count above `etc/bounds-baseline.txt`, and `--check --update`
+records a decrease. An owner's own matches are listed in `etc/bounds-allow.txt`.
 
 ## Trust base
 

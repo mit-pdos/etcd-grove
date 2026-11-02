@@ -56,7 +56,7 @@ theorem Main.wp_proof
     (wp_NewClient : common.NewClient.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id ctxs boot clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
+  intro CS CRE CEC N id ctxs boot clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hrf Hdbo Hms hAs
     H0 H31 Hops Hmul
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
@@ -92,7 +92,7 @@ theorem Main.wp_proof
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (linkvtxnDir id) (dirOne_member id _)
       (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog⟩ := Hal
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
   -- `StartServer("linkvtxn", "127.0.0.1:23806", clientAddr, lg)`
@@ -115,7 +115,7 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   iunfold common.memberUp at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi,
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
     Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `Serve(s, clientAddr)`: (D29) the member never refuses (authentication off, a voter, the
@@ -125,13 +125,13 @@ theorem Main.wp_proof
       (fun cid mid _ => iprop(common.etcdKVAt go!"127.0.0.1:23796" E { ρ with wait := γw } ρ.rd cid mid ∗
         ⌜noRefusalAt go!"127.0.0.1:23796"⌝))
       (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
-    $$ [Haddr Hlg3 Hbemu Hgo Hwpi HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+    $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
     ihave ⟨Hg, %Hnr⟩ := common.grpcUp_noRefusal srv E { ρ with wait := γw } ρ.rd gs lis
       go!"127.0.0.1:23796" cid mid R HEo $$ [Hg]
     · iframe; iframe #
-    imod (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23796" cid mid R Hrb48)
+    imod (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23796" cid mid R Hrb48 Hrf rfl)
       $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms] with ⟨Hserv, #Hkv⟩
     · iframe; iframe #
     imodintro
@@ -147,11 +147,11 @@ theorem Main.wp_proof
   subst Hserr
   wp_auto
   iunfold common.etcdKVAt at Hkv
-  icases Hkv with ⟨#HPut, #HRange, #HDel, #HTxn⟩
+  icases Hkv with ⟨#HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration, its default retries)
   wp_apply (wp_NewClient go!"127.0.0.1:23796" lg
       (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23796" [] null null [] null default) Hlg
-      (by unfold plainEndpoint; decide) Htb) as %cl %cerr Hcl
+      (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail

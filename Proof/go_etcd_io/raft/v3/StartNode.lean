@@ -182,7 +182,7 @@ private theorem certLink_make (γ : Cluster) (N : Namespace) (HU : UniNames γ N
       savedPredOwn sn.gk DFrac.discard (raftSnapCertD (GF := GF) γ.raft) -∗
       ctCommitted γ.raft sn -∗ certLink γ.raft sn := by
   iintro #Hci #Hsv #Hgk #Hct
-  have HcN : raftCertN γ.raft = N := HU.2.2.1
+  have HcN : raftCertN γ.raft = N := HU.2.1
   unfold certLink
   iframe Hct
   unfold storCertOk
@@ -311,12 +311,11 @@ private theorem wp_StartNode_impl
   ihave #Hci' := Hci
   iunfold clusterInv at Hci'
   icases Hci' with ⟨%HNs, #Hcinv, -, -⟩
-  have Hsl := HU.2.1
   obtain ⟨h0, h1, Hmd⟩ := Hmr.mode
   have HD : γ.raft.dyn = some (DynCfg.ofFold noDec (stOf (Membership.simple (GMap.listToSet vs))) h0) :=
     Hmr.1.2.2.1
   have HdynOk : ∀ γn : NodeNames, NodeOk γ γn → γn.mode.isDyn = true := fun γn h => by
-    rw [h.2.2.2, Hmd]; rfl
+    rw [h.2.2, Hmd]; rfl
   have Hmdb : γ.raft.reDyn.isSome = true := by
     have := reDyn_of HD
     cases h : γ.raft.reDyn with
@@ -555,7 +554,7 @@ private theorem wp_StartNode_impl
                           gen := gen
                           dur := gdur
                           bw := gbw }
-  have Hnok : NodeOk γ γn := ⟨rfl, rfl, Hsl, rfl⟩
+  have Hnok : NodeOk γ γn := ⟨rfl, rfl, rfl⟩
   have Hdy : γn.mode.isDyn = true := HdynOk γn Hnok
   -- the node's table entry, while its struct is owned whole
   imod nodeTab_insert γ N np nv (cfgNamesOf γn) $$ Htab Hnp with ⟨#Hnp, #Hte⟩

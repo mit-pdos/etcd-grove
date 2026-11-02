@@ -546,9 +546,90 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
       iapply nodeRunning_stopped γ.nl γ.node.cl srvClusterN _ $$ [Hrun Hst]
       iframe Hrun Hst
   isplitr
-  · -- SNAPSHOT-SORRY: the snapshot `Advance` clause (`node.Advance.spec` at `L = some l`:
-    -- `snapReceipt`, `snapshotCert`; the view at the snapshot from `confAt`/`confStateIs`, D3)
-    sorry
+  · -- `Advance` after a snapshot `Ready`: the view at the snapshot is the voters' (D3:
+    -- `srv_confAt_simple` at the snapshot's committed log, `confAt_agree`)
+    iintro !> %d %A' %es %p %l %Φ !> ⟨Hbusy, Hrc, #Hcert, Hrun⟩ HΦ
+    iunfold rnBusyS at Hbusy
+    icases Hbusy with ⟨⟨%S, %r, Hdrv, HrS⟩, Hcv, %Hsn⟩
+    obtain ⟨hA', hd, hdl, hpos, h61⟩ := Hsn
+    iunfold rnCfgAt at Hcv
+    iunfold srvCfgView at Hcv
+    icases Hcv with ⟨%v, Hcfg, %Hok⟩
+    obtain ⟨hva, -, W, hW, -, -, hW0, hWs⟩ := Hok
+    ihave #Hsv := snapshotCert_valid γ.node.cl srvClusterN l.snap hpos h61 $$ [Hisc Hcert]
+    · iframe Hisc Hcert
+    iunfold snapshotValid at Hsv
+    icases Hsv with ⟨%ls, %ms, #Hls, #Hms, -, %Hsf⟩
+    obtain ⟨hls, -, -, -, -⟩ := Hsf
+    -- the snapshot's log and the log before, as long as the loan's delivered log
+    have hlA : (γ.pre ++ A').length = uint.nat l.snap.Metadata'.Index' := by
+      have h := congrArg List.length hA'
+      simp only [srvLE, strip, List.length_map] at h
+      rw [h, hdl]
+    have hld : (γ.pre ++ d).length ≤ uint.nat l.snap.Metadata'.Index' := by
+      have h := hd.length_le
+      simp only [srvLE, strip, List.length_map] at h
+      omega
+    -- the voters' membership at every index of the snapshot's committed log (D3)
+    have Hsimp : ∀ k, k ≤ ls.length →
+        srvRaftLogInv (GF := GF) E.γr.raft ∗ isCommittedLogLb γ.node.cl ls ⊢
+          |={⊤}=> confAt γ.node.cl k (Membership.simple γ.node.cfg) := by
+      intro k hk
+      rw [← Hraft]
+      exact srv_confAt_simple E.γr.raft ls k hk ⊤ (by simp) (by simp)
+    imod (Hsimp ls.length (Nat.le_refl _)) $$ [Hinv Hls] with #Hsl
+    · iframe Hinv Hls
+    imod (Hsimp v.applied (by omega)) $$ [Hinv Hls]
+      with #Hsv0
+    · iframe Hinv Hls
+    ihave %Hms := confAt_agree γ.node.cl ls.length ms (Membership.simple γ.node.cfg) $$ [Hms Hsl]
+    · iframe Hms Hsl
+    ihave ⟨Hcfg, #Hcv0⟩ := nodeConfig_confAt γ.nl γ.node.cl srvClusterN v $$ Hcfg
+    ihave %Hv0 := confAt_agree γ.node.cl v.applied v.membership (Membership.simple γ.node.cfg)
+      $$ [Hcv0 Hsv0]
+    · iframe Hcv0 Hsv0
+    have hWc : W = γ.node.cfg := by
+      have h := congrArg Membership.voters (hW.symm.trans Hv0)
+      simpa [Membership.simple] using h
+    subst hWc
+    -- the old view's voters are the cluster's (its membership the voters' at `v.applied` too)
+    wp_apply (wp_Advance γ.nl γ.node.cl srvClusterN γ.id
+        ⟨memStorIface γ.ms, srvLE γ.srv A', p, some (es.map EntryModel.toM, some l), γ.key, S, r⟩
+        (es.map EntryModel.toM) (some l) v rfl (fun l' h => by cases h; exact hdl))
+      $$ [Hdrv Hrc Hcfg] as Hres
+    · iframe #
+      simp only [advReceipt]
+      iframe Hdrv Hrc Hcfg
+    icases Hres with (⟨Hdrv, #Hal, ⟨%m, Hcfg, #Hca, %Hcsm⟩⟩ | ⟨#Hst, -⟩)
+    · ihave %Hm' := confAt_agree γ.node.cl ls.length m ms $$ [Hca Hms]
+      · rw [hls]; iframe Hca Hms
+      iapply HΦ
+      iframe Hrun
+      isplitl [Hdrv Hcfg HrS]
+      · iunfold rnDrv
+        iexists S, r
+        isplitl [Hdrv]
+        · iExactEq Hdrv; rfl
+        iframe HrS
+        iunfold rnCfgAt
+        iunfold srvCfgView
+        iexists ⟨uint.nat l.snap.Metadata'.Index', m⟩
+        iframe Hcfg
+        ipureintro
+        have hm : m = Membership.simple γ.node.cfg := Hm'.trans Hms
+        subst hm
+        refine ⟨by simp only [List.length_map]; omega, ?_, γ.node.cfg, rfl, fun _ h => h,
+          fun _ h1 h2 => absurd h1 h2, hW0, hWs⟩
+        intro k e hk1 hk2 _
+        (try simp only [List.length_append] at hk2)
+        (try simp only at hk1)
+        have := hlA; simp only [List.length_append] at this
+        omega
+      iapply nodeAppliedLb_mono γ.node.cl γ.key _ _ (by
+        simp only [srvLE, List.length_map]; omega) $$ Hal
+    · iexfalso
+      iapply nodeRunning_stopped γ.nl γ.node.cl srvClusterN _ $$ [Hrun Hst]
+      iframe Hrun Hst
   isplitr
   · -- `Tick`
     iintro !> %Φ !> - HΦ

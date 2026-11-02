@@ -9,7 +9,10 @@ links:
 
 # server/storage/mvcc: compacting at a revision that deletes a key and puts it again deletes the live value
 
-- **Status**: open (not filed; no fix branch yet). Reachable through etcd's gRPC API (2026-10-14,
+- **Status**: fixed in the fork (2026-10-28): upstream's etcd-io/etcd#22377 (`keyIndex.doCompact`)
+  cherry-picked as `e7bb9f2de` and #22395 (the gRPC path, below) as `249d76bea`, branch
+  `goose-lean-compactfix` of `upamanyus/etcd`, `etc/goose.py`'s etcd pin since `5d82727117`.
+  Open upstream (both PRs open when last checked). Reachable through etcd's gRPC API (2026-10-14,
   below): `checkIntervals` rejects a transaction that deletes and puts one key only when the
   delete names the key or a bounded range; a from-key delete gets the empty interval
   ([etcd-txn-delete-then-ignore-put](etcd-txn-delete-then-ignore-put.md)), so
@@ -165,6 +168,46 @@ links:
   ```
 - **Expected**: compaction keeps, for every key, the revision a read at the compaction revision
   (or later) returns: here `(c, 1)`.
+- **A second symptom, at the fork pin: a watch from the compaction revision misses the delete**
+  (2026-11-01, reproduced at the mvcc level, found by the spec review of watches across a
+  compaction, `notes/watch-compaction-plan.md`). The fork's fixed `doCompact` keeps the live value:
+  of revision `c`'s two changes of the key, the put `(c, 1)` is kept and the tombstone `(c, 0)` is
+  not, so `scheduleCompaction` deletes the tombstone from the key bucket. A watch from `c` (what a
+  client re-watches from when it is told `CompactRevision = c`) reads the bucket from `c`
+  (`syncWatchers`' `rangeEvents`) and gets only the `PUT`, where the history has `DELETE` then `PUT`
+  (an uncompacted store sends both). At the pin it is reachable only through mvcc's own API, since
+  `249d76bea` closes the gRPC path; upstream, with #22395 open, through gRPC too. Test (package
+  `mvcc`, run with `go test -overlay`; fails at the pin: 1 event):
+
+  ```go
+  func TestWatchFromCompactRevLosesEvent(t *testing.T) {
+  	b, _ := betesting.NewDefaultTmpBackend(t)
+  	s := newWatchableStore(zaptest.NewLogger(t), b, &lease.FakeLessor{}, StoreConfig{})
+  	defer cleanup(s, b)
+  	s.Put([]byte("foo"), []byte("v1"), lease.NoLease) // rev 2
+  	txn := s.Write(traceutil.TODO())                   // rev 3: delete then put
+  	txn.DeleteRange([]byte("foo"), nil)
+  	txn.Put([]byte("foo"), []byte("v2"), lease.NoLease)
+  	txn.End()
+  	ch, err := s.Compact(traceutil.TODO(), 3)
+  	if err != nil {
+  		t.Fatal(err)
+  	}
+  	<-ch
+  	w := s.NewWatchStream()
+  	w.Watch(t.Context(), 0, []byte("foo"), nil, 3)
+  	s.syncWatchers()
+  	if wr := <-w.Chan(); len(wr.Events) != 2 {
+  		t.Fatalf("revision 3 has two changes of foo, the watch from 3 got %d", len(wr.Events))
+  	}
+  }
+  ```
+
+  A fix: keep the tombstone at `c` as well when the key is re-created at `c` (the bucket keeps both
+  of `c`'s changes; the index's generations are unaffected), or have `chooseAll` treat
+  `minRev == compactRev` as compacted when revision `c` re-created a key (simpler: treat
+  `minRev <= compactRev` as compacted, at the cost of a compaction response for a watch exactly at
+  `c`).
 - **How the proof handles it**: the compaction model's theorem that a read at or above the
   compaction revision never names a revision compaction may delete (`named_not_del`,
   `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Compact.lean`, over `kiGet_avail`) needs the
@@ -175,6 +218,15 @@ links:
   carries it (`delKey`), which is what lets the readers of a compacted store prove a read at or
   above the compaction revision unaffected (`rangeAnswers_not_del`). In the server it is the
   transaction checks' guarantee (`checkIntervals`, the txn package's `NoDupKeysPerRev`).
+  **Since the fix (2026-10-28, `7c8ef717ef`)** the model follows the fixed loop (`compactGenIdx`
+  over `genAdv`/`genRecreatedAt`, `Compact.lean`; `generation.isRecreatedAt` specified and
+  proved) and `keyIndex.doCompact.wp_proof` is re-proved against it. **The premise is gone since
+  2026-10-31** (M2, the apply side, item 18, branch `m2-apply`): `kiGet_avail`'s case of a
+  tombstone at `c` with the read's revision at `c` in a later generation is the fixed loop's
+  `genRecreatedAt` step, so `kiGet_avail`, `named_not_del`, `rangeAnswers_not_del`, `delKey`,
+  `compactJobPre` and the specs of `store.Compact`, `compactLockfree` and `updateCompactRev` hold
+  without `NoDelPutAt`; `crevSafe` keeps only the certificate. (The server's interim compaction
+  family, `CompactMode.lean`'s `irrNoDelPut`, still has it until the switch replaces the family.)
 - **Possible fixes**: in `doCompact`, skip a generation whose tombstone is at `atRev` when a later
   generation has a revision at `atRev` (compare the next generation's first revision, not the
   tombstone, with `atRev`); or reject a put of a key the same write transaction deleted.

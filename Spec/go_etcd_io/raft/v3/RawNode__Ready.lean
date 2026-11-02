@@ -141,7 +141,7 @@ abbrev RawNode.Ready.spec : Prop :=
       "#Hhard" ∷ hsOpt rd.HardState' h ∗
       -- (D22 S-b) a non-`nil` one is the node's: its witness (`hsWit`); (D22l) of `prevHardSt`
       -- after the `Ready` (`phsNext`)
-      "#Hhsw" ∷ hsWit γ (phsNext rs.phs h) (rs.delivered ++ ce).length ∗
+      "#Hhsw" ∷ hsWit γ (phsNext rs.phs h) (dlvAfter rs.delivered ce L).length ∗
       -- the right to append `es` to the node's storage (2026-10-10); (D22 S-d3a) with a snapshot,
       -- the storage itself (`readyOut`); (U8 v2, raft-final phase 1) over the ranges: the log from
       -- the batch on, or after a snapshot from an index at most it with the snapshot handed out

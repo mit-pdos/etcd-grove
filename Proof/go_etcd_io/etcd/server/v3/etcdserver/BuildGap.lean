@@ -143,7 +143,7 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
   · inext; iexists L'; iframe HL' Hσ Hw; ipureintro; exact Hok
   iunfold kvWork at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
-  obtain ⟨Hsh, Hccl⟩ := Hsh
+  obtain ⟨Hsh, Hccl, -⟩ := Hsh
   -- (2026-10-27) the committed log's entries are the server's log's or fillers
   have hshL : logShape L := by
     intro m hm
@@ -248,13 +248,13 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   unfold srvBuilt srvBuildGap isServerBuilt
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
-      #Hrn, %HEr, Hrunh, %Hρrd, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
+      #Hrn, %HEr, Hrunh, Hwth, Hwtl, %Hdisk, %Hρrd, #Hmid, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
       Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
       ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, HWB, #Hsmall, #HNR, #Hcv, %Hbound,
       ⟨%ua, Hua, #Hfor, Hakv⟩, Hwtok, Hsnapb⟩, Hsnap⟩
-  iframe Hci Hreqb Hrunb Hsab Hai Hkvi Hti Hci' Hrn HNR Hcv Hcci Hwci
+  iframe Hci Hreqb Hrunb Hsab Hai Hkvi Hti Hci' Hrn HNR Hcv Hcci Hwci Hmid HmetaSnap
   iframe Hloop Hsend Happly Hrdone Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg
-  iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap Hwtok Hsnapb Hcrun Hrunh
+  iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap Hwtok Hsnapb Hcrun Hrunh Hwth Hwtl
   isplitr
   · unfold srvFieldsBuiltNA
     iexists v
@@ -267,6 +267,8 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     iframe Hkv HisKV Hrv HisRV Hsmall Hrdb
   isplitr
   · ipureintro; exact HEr
+  isplitr
+  · ipureintro; exact Hdisk
   isplitr
   · ipureintro; exact Hρrd
   isplitr

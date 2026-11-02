@@ -82,6 +82,8 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   (ps.length : Int) ≤ 2 ^ 62 →
   cv.ID' ∈ ps →
   γr.vs = ps →
+  -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`NewStorage`'s contract)
+  storage.walReady wal →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
       -- (2026-10-30, the repair: raft's unified `StartNode.spec`) the storage `b.storage` as
@@ -120,8 +122,9 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         nodeRunning n γr.cl srvClusterN 1 ∗
         -- the wrapper, over the config built here
         isRNIDRemoved f ∗ isRNWal st ∗
-        -- (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`rnNewStorageOk`'s)
-        ⌜rnStorageOf st ss⌝ ∗
+        -- (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`rnNewStorageOk`'s); (2026-10-31)
+        -- over the WAL `wal`
+        ⌜rnStorageOf st ss ∧ storage.walOf st = wal⌝ ∗
         rnBuilt E γw r
           (raftNodeConfig.mk bv.lg' f (interface.mkOk (go.GoType.PointerType node.ty) #n)
             bv.storage' st bv.heartbeat' GoInterface.nil) ∗

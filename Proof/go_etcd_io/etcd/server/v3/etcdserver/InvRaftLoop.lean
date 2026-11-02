@@ -47,8 +47,31 @@ theorem cum_extend (γc : GName) (cums : List (List EntryModel)) (L ce : List En
   imodintro
   iframe Hauth H1 H2
 
+/-- (2026-10-31, #3) `cum` extended with any log (a snapshot `Ready`'s `A'`, which need not
+extend the last as a list of the server's entries). -/
+theorem cum_push (γc : GName) (cums : List (List EntryModel)) (L A : List EntryModel)
+    (n : Nat) (hlen : cums.length = n + 1) (hlast : cums.getLast? = some L) :
+    ⊢ monoListAuthOwn (GF := GF) γc 1 cums ==∗
+      monoListAuthOwn γc 1 (cums ++ [A]) ∗ monoListIdxOwn γc n L ∗ monoListIdxOwn γc (n + 1) A := by
+  iintro Hauth
+  imod monoListAuthOwn_update_app [A] $$ Hauth with ⟨Hauth, #Hlb⟩
+  have hn : (cums ++ [A])[n]? = some L := by
+    rw [List.getElem?_append_left (by omega)]
+    rw [List.getLast?_eq_getElem?] at hlast
+    rw [hlen] at hlast
+    simpa using hlast
+  have hn1 : (cums ++ [A])[n + 1]? = some A := by
+    rw [List.getElem?_append_right (by omega)]
+    simp [hlen]
+  ihave #H1 := monoListIdxOwn_get n L hn $$ Hlb
+  ihave #H2 := monoListIdxOwn_get (n + 1) A hn1 $$ Hlb
+  imodintro
+  iframe Hauth H1 H2
+
 /-- **The apply side's receive** of the payload at its position: the batch extends exactly the
-log `A` it got so far, and its token moves to `A ++ ce`. -/
+log `A` it got so far, and its token moves to `A ++ ce`; its term is good for that log
+(`rnRtOk`; 2026-10-31, S1: for `applyAll`'s merge; 2026-11-01, J8a: for a snapshot too, with the
+member's `nodeSnapLocal` of the snapshot's index). -/
 theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : List EntryModel)
     (ap : toApply) :
     ⊢ spscConsumer γ.ap (rcv ++ [ap]) -∗ monoListIdxOwn γ.cum rcv.length A -∗
@@ -60,37 +83,56 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
         rnApGive γ A ce ∗
         rnAdvChan ap.raftAdvancedC'
           (letI := srvStor (GF := GF) γ.node
-           iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A ++ ce).length ∗
-            srvFrozenRange γ.γs ((γ.pre ++ A).length + 1) ((γ.pre ++ A ++ ce).length + 1))) ∗
-        committedLast E.γr ce) ∨
+           iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A ++ ce).length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A ++ ce).length ∗
+            srvFrozenRange γ.γs ((γ.pre ++ A).length + 1) ((γ.pre ++ A ++ ce).length + 1) ∗
+            srvFrozenTerms γ.γs (γ.pre.length + 1) (A ++ ce))) ∗
+        committedLast E.γr ce ∗ rnRtOk γ ap.raftTerm' (rnLogOf γ (A ++ ce)).length) ∨
       -- (2026-10-30, the repair: snapshots allowed) a snapshot payload: the log jumps to `A'`
       (∃ (A' : List EntryModel) (sv : SnapshotM),
         rnApplyTok γ A' ∗
-        ⌜A.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index'⌝ ∗
-        ownSnapM ap.snapshot' DFrac.discard sv ∗
+        ⌜A.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧
+          uint.Z sv.Metadata'.Index' < 2 ^ 61 ∧
+          (γ.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index'⌝ ∗
+        ap.entries' ↦*□ ([] : List Loc) ∗ ownSnapM ap.snapshot' DFrac.discard sv ∗
         (letI := srvStor (GF := GF) γ.node
          snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) ∗
-        □ E.C A' ∗ (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' iprop(True) ∗ notifyRcv γnc) ∗
+        nodeSnapLocal γ.node.cl γ.id sv.Metadata'.Index' ∗
+        □ E.C A' ∗ (∃ γnc : NotifyNames, isNotify2 γnc ap.notifyc' iprop(True) iprop(True) ∗ notifyRcvN γnc 0) ∗
         rnAdvChan ap.raftAdvancedC'
           (letI := srvStor (GF := GF) γ.node
-           iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗
+           iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A').length ∗
             srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length)) ∗
-        committedAtLeast E.γr sv.Metadata'.Index') := by
+        committedAtLeast E.γr sv.Metadata'.Index' ∗
+        -- (2026-11-01, J8a) its term good for the jumped log (`applyAll`'s merge after the jump)
+        rnRtOk γ ap.raftTerm' (rnLogOf γ A').length) := by
   iintro Hcons #HA HP
   iunfold rnApP at HP
   icases HP with (HP | HP)
   rotate_left
-  · -- SNAPSHOT-SORRY: the snapshot payload's components, `cum`'s agreement at `rcv.length`
-    -- (`A` is `F`) and the consumer's token at `A'`
-    sorry
+  · -- a snapshot payload: `cum`'s agreement at `rcv.length` (`A` is `F`), the token at `A'`
+    iright
+    iunfold rnApSnap at HP
+    icases HP with ⟨%F, %A', %sv, #HF, #HFA, %Hlen, #Hes, #Hsn, #Hcert, #Hloc, #HC, Hn, #Hrac, #Hcl, #Hrt⟩
+    simp only [Int.toNat_natCast] at *
+    ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
+    subst Heq
+    iexists A', sv
+    iframe Hes Hsn Hcert Hloc HC Hn Hrac Hcl Hrt
+    isplitl [Hcons]
+    · iunfold rnApplyTok
+      iexists rcv ++ [ap]
+      iframe Hcons
+      simp only [List.length_append, List.length_singleton]
+      iexact HFA
+    ipureintro; exact Hlen
   ileft
   iunfold rnApN at HP
-  icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, -⟩
+  icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, #Hrt⟩
   simp only [Int.toNat_natCast] at *
   ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
   subst Heq
   iexists ce, ceL
-  iframe Hsl Hents HC Hn HG Hrac Hcl
+  iframe Hsl Hents HC Hn HG Hrac Hcl Hrt
   isplitl [Hcons]
   · iunfold rnApplyTok
     iexists rcv ++ [ap]

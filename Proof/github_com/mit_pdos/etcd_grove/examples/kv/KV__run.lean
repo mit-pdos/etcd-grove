@@ -248,7 +248,7 @@ theorem KV.run.wp_proof
   icases Hgot with ⟨%ce, %es, %hh, %L, %qs, %ss, #Hce, #Hcomm, ⟨%sts, #Hsts, #Hstsok⟩, Hrest, -, Henter⟩
   iunfold readyEnter at Henter
   imod Henter $$ %⊤ %(1 : Qp) %(by simp) [$Hraft $Hrun] with ⟨Hraft, Hrun, Hdrv, #Hmsgs⟩
-  ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ $$ Hrest
+  ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ _ $$ Hrest
   unfold readyRest
   icases Hrest with ⟨#Hes, Hms, Hmsok, -, -, %Hbnd, HS, -⟩
   try wp_auto
@@ -514,7 +514,7 @@ theorem KV.run.wp_proof
     simp only [NodeDriverState.afterReady]
     ihave ⟨Hdrv, #Hdl⟩ := nodeDriver_deliveredLogLb _ _ _ _ $$ Hdrv
     iunfold readySnap at HS
-    icases HS with ⟨%Hl, Hsn, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HclS⟩
+    icases HS with ⟨%Hl, Hsn, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HclS, -, -⟩
     obtain ⟨Hdlv, Hptr, Hce0, Hpre, Hlt, Hdlen, Hpos, H61, -, Hli⟩ := Hl
     subst Hce0
     have Hslen : (strip l.dlv).length = uint.nat l.snap.Metadata'.Index' := by

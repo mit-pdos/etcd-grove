@@ -63,9 +63,10 @@ theorem putResult_of_km (γ : KMNames) [KMWritable γ] (pfx : GoString) (lo : w6
     (hw : putTxnOp w = op) (hu : op.Under pfx) (hnp : txn.needsPrev w = false)
     (hlz : w.leaseID = W64 0)
     (l0 : List (List Change)) (hlo : sint.Z lo ≤ l0.length) (σ : KVState) (hok : kvLogOk σ)
-    (h63 : σ.rev + 4 < 2 ^ 63) (hpost : kvLogOk (kvOpStep (.put w) σ)) :
+    (h63 : kvRevFits (σ.rev + 1)) (hpost : kvLogOk (kvOpStep (.put w) σ)) :
     kmWriteQ (GF := GF) γ l0 (.put w) σ ⊢
       putResult (EM := etcdModelOfKV γ) pfx lo op GoInterface.nil := by
+  replace h63 := h63.lt
   subst hw
   have hst := kvOpStep_put w σ hnp hlz
   have hkvs := kvLogOk_kvs σ hok
@@ -129,9 +130,10 @@ theorem deleteResult_of_km (γ : KMNames) [KMWritable γ] (pfx : GoString) (lo :
     (hu : KeyRangeUnder pfx o.key o.base.rangeEnd)
     (l0 : List (List Change)) (hlo : sint.Z lo ≤ l0.length) (h1 : 1 ≤ l0.length)
     (σ : KVState) (hok : kvLogOk σ)
-    (h63 : σ.rev + 4 < 2 ^ 63) (hpost : kvLogOk (kvOpStep (.deleteRange (deleteWireOf o)) σ)) :
+    (h63 : kvRevFits (σ.rev + 1)) (hpost : kvLogOk (kvOpStep (.deleteRange (deleteWireOf o)) σ)) :
     kmWriteQ (GF := GF) γ l0 (.deleteRange (deleteWireOf o)) σ ⊢
       deleteResult (EM := etcdModelOfKV γ) pfx lo o GoInterface.nil := by
+  replace h63 := h63.lt
   have hkvs := kvLogOk_kvs σ hok
   have hrc := kvLogOk_rev σ hok
   have hll := (kvLogOk_log hok).2.2.2
@@ -261,7 +263,7 @@ theorem isEtcdPutKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : 
   iintro ⟨#Pc, #Hkv, #Hinv, #Hrest⟩
   unfold isEtcdPutKVTodo
   iintro !> %key %val %sl %gs %op %lo %Φ !> ⟨#Hopts, #Hlo, %Hp⟩ HΦ
-  obtain ⟨hpan, hop, hu, ht⟩ := Hp
+  obtain ⟨hpan, hop, hu, ht, hsz⟩ := Hp
   have hw := putTxnOp_wire _ _ hop ht
   by_cases hl : (putWireOf (opPutModel key val gs)).leaseID = W64 0 ∧
     txn.needsPrev (putWireOf (opPutModel key val gs)) = false
@@ -285,11 +287,13 @@ theorem isEtcdPutKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : 
   · iframe #
     isplitl []
     · ipureintro; exact ⟨hpan, ht, hl.1⟩
-    iexact Hau
+    isplitl [Hau]
+    · iexact Hau
+    ipureintro; exact hsz
   inext
   iintro %resp %err Hout
   iapply HΦ
-  icases Hout with (⟨%Herr, %m, %σ, -, HQ, %Hs⟩ | ⟨%Herr, -⟩)
+  icases Hout with (⟨%Herr, %m, %σ, -, HQ, %Hs, -⟩ | ⟨%Herr, -⟩)
   · subst Herr
     obtain ⟨-, -, h63, hok, hpost⟩ := Hs
     iapply (putResult_of_km γ pfx lo _ op hw hu hl.2 hl.1 l0 Hll σ hok h63 hpost) $$ HQ
@@ -311,7 +315,7 @@ theorem isEtcdDeleteKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx
   iintro ⟨#Pc, #Hkv, #Hinv, #H1⟩
   unfold isEtcdDeleteKVTodo
   iintro !> %key %sl %gs %lo %Φ !> ⟨#Hopts, #Hlo, %Hp⟩ HΦ
-  obtain ⟨hpan, hu, hz, ht⟩ := Hp
+  obtain ⟨hpan, hu, hz, ht, hsz⟩ := Hp
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
   imod km_reached_lb γ lo $$ Hlo with ⟨%l0, #Hl0, %Hll⟩
   -- the longer of the floor and the first revision's changes
@@ -334,7 +338,9 @@ theorem isEtcdDeleteKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx
   · iframe #
     isplitl []
     · ipureintro; exact ⟨hpan, ht, by simpa [deleteWireOf, txn.deleteOpOf] using hz⟩
-    iexact Hau
+    isplitl [Hau]
+    · iexact Hau
+    ipureintro; exact hsz
   inext
   iintro %resp %err Hout
   iapply HΦ

@@ -208,6 +208,10 @@ structure StoreNames where
   name of the scheduler's payload (`stopPayAt`): fresh per scheduler, it records the store's stop
   channel, which `NewStore`/`store.Restore` make after the scheduler -/
   sx : GName := 0
+  /-- (C3's store law, 2026-11-02; logical) the compaction revisions' permit (`savedPredOwn`,
+  read-only, `crevPermIs`): a predicate fixed when the store is created (`True` for a caller that
+  does not care); `withPhys` keeps it, so a restore's names agree with `NewStore`'s -/
+  cperm : GName := 0
 
 instance idxNames_countable : Pos.Countable IdxNames :=
   countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev, x.cmp))
@@ -245,8 +249,8 @@ instance kbReal_countable : Pos.Countable KBReal :=
 
 instance storeNames_countable : Pos.Countable StoreNames :=
   countableOfLeftInverse
-    (fun x : StoreNames => ((((x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ, x.wr, x.wk, x.wv, x.cur, x.rst, x.tk, x.tko, x.wsd, x.tkw), x.tkr), x.mwk), x.cm, x.sx))
-    (fun r0 => let r := r0.1; let q := r.1; let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, q.2, r.2, r0.2.1, r0.2.2⟩)
+    (fun x : StoreNames => (((((x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ, x.wr, x.wk, x.wv, x.cur, x.rst, x.tk, x.tko, x.wsd, x.tkw), x.tkr), x.mwk), x.cm, x.sx), x.cperm))
+    (fun r1 => let r0 := r1.1; let r := r0.1; let q := r.1; let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, q.2, r.2, r0.2.1, r0.2.2, r1.2⟩)
     (fun _ => rfl)
 
 /-- **The store's physical ghost names** (D22 receiver epochs, S5b, 2026-10-22): those of one
@@ -286,7 +290,7 @@ def StoreNames.phys (γ : StoreNames) : PhysNames :=
 def StoreNames.withPhys (γ : StoreNames) (p : PhysNames) : StoreNames :=
   ⟨⟨γ.idx.hist, p.nev, γ.idx.log, γ.idx.crev, p.cmp⟩, p.bucket, γ.clog, γ.leases, γ.revs, p.hook,
     p.hookFn, p.kb, p.cmeta, p.fin, p.sch, γ.cok, γ.watchQ, γ.wr, p.wk, p.wv, γ.cur, γ.rst, γ.tk,
-    γ.tko, γ.wsd, γ.tkw, γ.tkr, p.mwk, γ.cm, p.sx⟩
+    γ.tko, γ.wsd, γ.tkw, γ.tkr, p.mwk, γ.cm, p.sx, γ.cperm⟩
 
 @[simp] theorem StoreNames.withPhys_phys (γ : StoreNames) (p : PhysNames) :
     (γ.withPhys p).phys = p := rfl
@@ -298,6 +302,9 @@ def StoreNames.withPhys (γ : StoreNames) (p : PhysNames) : StoreNames :=
 
 @[simp] theorem StoreNames.withPhys_clog (γ : StoreNames) (p : PhysNames) :
     (γ.withPhys p).clog = γ.clog := rfl
+
+@[simp] theorem StoreNames.withPhys_cperm (γ : StoreNames) (p : PhysNames) :
+    (γ.withPhys p).cperm = γ.cperm := rfl
 
 @[simp] theorem StoreNames.withPhys_leases (γ : StoreNames) (p : PhysNames) :
     (γ.withPhys p).leases = γ.leases := rfl
@@ -1596,7 +1603,8 @@ def isLessor (le : GoInterface) (γl : GName) : IProp GF :=
     □ (∀ (id : w64) (items : GoSlice) (l : List go_etcd_io.etcd.server.v3.lease.LeaseItem)
         (dq : DFrac) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
       {{ lease.leaseOwn γl L I ∗ ⌜id ∈ L⌝ ∗
-          ⌜∀ it ∈ l, I.lookup it = none ∨ I.lookup it = some id⌝ ∗ items ↦*{dq} l }}
+          ⌜∀ it ∈ l, I.lookup it = none ∨ I.lookup it = some id⌝ ∗
+          ⌜∀ it ∈ l, (it.Key'.length : Int) < 2 ^ 63 - 1⌝ ∗ items ↦*{dq} l }}
         (App (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
           go!"Attach" #lp)) (Val #id)) (Val #items))
       {{ RET #(GoInterface.nil); lease.leaseOwn γl L (lease.insertAll I l id) ∗ items ↦*{dq} l }}) ∗
@@ -2135,15 +2143,13 @@ def crevFrozen (γ : StoreNames) : IProp GF := inv crevFrozenN (crevUB γ.idx (1
 instance crevFrozen_persistent (γ : StoreNames) : Persistent (crevFrozen (GF := GF) γ) := by
   unfold crevFrozen; infer_instance
 
-/-- **A compaction revision safe for readers** (persistent; 2026-10-13, unit 6a): a certified
-log with revision `c` that does not delete a key and put it again (`NoDelPutAt`, `Compact.lean`:
-else compaction at `c` deletes the key's live value, `issues/etcd-compaction-delete-then-put.md`).
-`NoDelPutAt` depends on revision `c` alone (`NoDelPutAt_prefix`), so it holds of every certified log
-with that revision (`crevSafe_cert`). The one who compacts asserts it (`store.Compact`'s premise);
-`s.mu`'s resource keeps it for the current compaction revision (`muInvAt`), the keys compaction
-may delete for theirs (`delKey`). Trivial at `c < 0` (`crevSafe_neg`). -/
+/-- **A certified compaction revision** (persistent; 2026-10-13, unit 6a): a certified log with
+revision `c`. `s.mu`'s resource keeps it for the current compaction revision (`muInvAt`). Until
+M2's item 18 (2026-10-30) it also said that revision `c` does not delete a key and put it again
+(`NoDelPutAt`, which the one who compacts asserted); the fixed `doCompact` (etcd-io/etcd#22377)
+needs no such premise. Trivial at `c < 0` (`crevSafe_neg`). -/
 def crevSafe (γ : StoreNames) (c : Int) : IProp GF :=
-  iprop(∃ log : Log, idxCert γ.idx log ∗ ⌜c < log.length ∧ NoDelPutAt log c⌝)
+  iprop(∃ log : Log, idxCert γ.idx log ∗ ⌜c < log.length⌝)
 
 instance crevSafe_persistent (γ : StoreNames) (c : Int) : Persistent (crevSafe (GF := GF) γ c) := by
   unfold crevSafe; infer_instance
@@ -2155,28 +2161,64 @@ theorem crevSafe_neg (γ : StoreNames) (c : Int) (log : Log) (hc : c < 0) (hl : 
   iunfold crevSafe
   iexists log
   iframe H
-  ipureintro; exact ⟨hl, NoDelPutAt_neg hc⟩
+  ipureintro; exact hl
 
-/-- **Every certified log with revision `c` is safe at `c`** if one is. -/
-theorem crevSafe_cert (γ : StoreNames) (c : Int) (log : Log) (hl : c < log.length) :
-    crevSafe (GF := GF) γ c ∗ idxCert γ.idx log ⊢ ⌜NoDelPutAt log c⌝ := by
-  iintro ⟨Hs, #Hc⟩
-  iunfold crevSafe at Hs
-  icases Hs with ⟨%log', #Hc', %Hl'⟩
-  ihave %Hp := idxCert_prefix γ.idx log log' $$ [$Hc $Hc']
-  ipureintro
-  rcases Hp with h | h
-  · exact (NoDelPutAt_prefix h hl).1 Hl'.2
-  · exact (NoDelPutAt_prefix h Hl'.1).2 Hl'.2
+/-- **The store's compaction permit is `Perm`** (C3's store law, 2026-11-02; persistent): a
+predicate fixed when the store is created (`NewStore`), which every compaction revision the store
+holds satisfies (`crevPermAt`). -/
+def crevPermIs (γ : StoreNames) (Perm : Int → IProp GF) : IProp GF :=
+  savedPredOwn γ.cperm DFrac.discard (fun c => iprop(□ Perm c))
+
+instance crevPermIs_persistent (γ : StoreNames) (Perm : Int → IProp GF) :
+    Persistent (crevPermIs (GF := GF) γ Perm) := by
+  unfold crevPermIs; infer_instance
+
+/-- **The compaction revision `c` is permitted** (C3's store law; persistent): none yet (`-1`), or
+the store's permit holds of it. `s.mu`'s and `s.revMu`'s resources keep it of their `c`
+(`muInvAt`, `revMuBody`); `store.Compact` takes it of its revision. -/
+def crevPermAt (γ : StoreNames) (c : Int) : IProp GF :=
+  iprop(⌜c = -1⌝ ∨ ∃ Perm : Int → IProp GF, crevPermIs γ Perm ∗ □ Perm c)
+
+instance crevPermAt_persistent (γ : StoreNames) (c : Int) :
+    Persistent (crevPermAt (GF := GF) γ c) := by
+  unfold crevPermAt; infer_instance
+
+/-- No compaction yet is permitted. -/
+theorem crevPermAt_none (γ : StoreNames) : ⊢ crevPermAt (GF := GF) γ (-1) := by
+  iunfold crevPermAt; ileft; ipureintro; rfl
+
+/-- A revision the store's permit holds of is permitted. -/
+theorem crevPermAt_of (γ : StoreNames) (Perm : Int → IProp GF) (c : Int) :
+    crevPermIs γ Perm ∗ □ Perm c ⊢ crevPermAt γ c := by
+  iintro ⟨#H, #HP⟩
+  iunfold crevPermAt; iright; iexists Perm; iframe H HP
+
+/-- The permit of a store whose permit is `True`. -/
+theorem crevPermAt_true (γ : StoreNames) (c : Int) :
+    crevPermIs (GF := GF) γ (fun _ => iprop(True)) ⊢ crevPermAt γ c := by
+  iintro #H
+  iapply crevPermAt_of γ _ c
+  iframe H
+  imodintro; ipureintro; trivial
+
+/-- `crevPermAt` at a name with the same permit name (a restore's `withPhys`). -/
+theorem crevPermAt_cperm (γ γ' : StoreNames) (h : γ'.cperm = γ.cperm) (c : Int) :
+    crevPermAt (GF := GF) γ c ⊢ crevPermAt γ' c := by
+  unfold crevPermAt crevPermIs; rw [h]
+
+/-- **The store's permit**, allocated (`NewStore`). -/
+theorem crevPermIs_alloc (Perm : Int → IProp GF) :
+    ⊢ |==> ∃ g : GName, savedPredOwn g DFrac.discard (fun c => iprop(□ Perm c)) :=
+  saved_pred_alloc _ DFrac.discard trivial
 
 /-- **A key compaction may delete** (persistent, the store's choice of the backend contract's
 `Del`): of a certified log, a revision's bytes compaction at a lower bound `c` of the
-compaction revision may delete (`KeyDel`, `Compact.lean`), revision `c` of the log not deleting
-then putting a key (`NoDelPutAt`: the compactor's assertion, `compactJobPre`; 2026-10-13, unit 6a):
-so a read at or above the compaction revision never names one (`rangeAnswers_not_del`). -/
+compaction revision may delete (`KeyDel`, `Compact.lean`): a read at or above the compaction
+revision never names one (`rangeAnswers_not_del`; until M2's item 18, 2026-10-30, also with revision
+`c` of the log not deleting then putting a key, `NoDelPutAt`, the compactor's assertion). -/
 def delKey (γ : StoreNames) (k : GoString) : IProp GF :=
   iprop(∃ (c : Int) (log : Log), crevLb γ.idx c ∗ idxCert γ.idx log ∗
-    ⌜-1 ≤ c ∧ KeyDel log c k ∧ NoDelPutAt log c⌝)
+    ⌜-1 ≤ c ∧ KeyDel log c k⌝)
 
 /-- `delKey` is timeless (ghost lower bounds and pure facts; the backend-compaction stage, review
 round 2, Target 4): so the store's deletable keys can be instantiated as `◇ delKey`, which the
@@ -2191,7 +2233,7 @@ instance delKey_persistent (γ : StoreNames) (k : GoString) : Persistent (delKey
 names only through the index's (`γ.idx`), which `NewStore`'s caller allocates before the store
 exists, so the creator can fix the backend's registration to it before `NewStore`. -/
 def delKeyI (γi : IdxNames) (k : GoString) : IProp GF :=
-  iprop(∃ (c : Int) (log : Log), crevLb γi c ∗ idxCert γi log ∗ ⌜-1 ≤ c ∧ KeyDel log c k ∧ NoDelPutAt log c⌝)
+  iprop(∃ (c : Int) (log : Log), crevLb γi c ∗ idxCert γi log ∗ ⌜-1 ≤ c ∧ KeyDel log c k⌝)
 
 theorem delKey_eq_delKeyI (γ : StoreNames) (k : GoString) :
     delKey (GF := GF) γ k = delKeyI γ.idx k := rfl
@@ -2250,7 +2292,7 @@ theorem crevUB_noDel (γ : StoreNames) (q : Qp) (k : GoString) :
   iunfold delKey at Hd
   icases Hd with ⟨%c, %log, #Hlb, -, %Hk⟩
   ihave %Hle := crevUB_lb γ.idx q (-1) c (by decide) Hk.1 $$ Hc Hlb
-  exact (KeyDel_neg (show c < 0 by omega) Hk.2.1).elim
+  exact (KeyDel_neg (show c < 0 by omega) Hk.2).elim
 
 /-- **A snapshot of a store not compacted is the bucket**: with a part of the compaction
 revision's authority at `-1` (kept), a thinned snapshot misses no key. -/
@@ -2951,6 +2993,7 @@ def revMuBody (s : Loc) (γ γp : StoreNames) (q : Qp) : IProp GF :=
     "Hlog" ∷ idxLogAuth γ.idx (revQ γ q) log ∗
     "Hcmp" ∷ (s.[store, go!"compactMainRev"] ↦{DFrac.own q.half} (W64 c : w64) : IProp GF) ∗
     "Hcrev" ∷ crevUB γ.idx q.half.half c ∗
+    "#Hperm" ∷ crevPermAt γ c ∗
     "%Hc" ∷ ⌜-1 ≤ c ∧ c < log.length⌝)
 
 /-- `s.revMu`'s resource is fractional (for `sync.init_RWMutex`): the halves of `currentRev`,
@@ -3035,6 +3078,8 @@ instance revMuBody_fractional (s : Loc) (γ γp : StoreNames) : Fractional (revM
       · iapply (hcmp _).2; iframe Hcmp1 Hcmp2
       isplitl [Hcrev1 Hcrev2]
       · iapply (hcrev c).2; iframe Hcrev1 Hcrev2
+      isplitr
+      · iexact Hperm1
       ipureintro; exact Hc1
 
 /-- **`s.revMu`'s resource while `store.Restore` restores** (D22 receiver epochs, S3, 2026-10-22):
@@ -3543,13 +3588,13 @@ instance readerPool_persistent (γ : StoreNames) : Persistent (readerPool (GF :=
 /-- `s.mu`'s resource at fraction `q`, at the compaction revision `c` (`-1`: none): half
 `compactMainRev`'s points-to and a quarter of the compaction revision's authority (`s.revMu`
 holds as much; the compaction right, half the authority, is `compactRightR`), with a certified
-log of which `c` is a revision, safe for readers (`crevSafe`: no key deleted then put again at
-`c`, which `store.Compact`'s caller asserts; 2026-10-13, unit 6a). A transaction holds `s.mu`
+log of which `c` is a revision (`crevSafe`; 2026-10-13, unit 6a). A transaction holds `s.mu`
 shared for its whole life, so its `rangeKeys` reads `compactMainRev` from its part (`muHeld`). -/
 def muInvAt (s : Loc) (γ : StoreNames) (q : Qp) (c : Int) : IProp GF :=
   iprop("HcmpM" ∷ (s.[store, go!"compactMainRev"] ↦{DFrac.own q.half} (W64 c : w64) : IProp GF) ∗
     "HcrevM" ∷ crevUB γ.idx q.half.half c ∗
     "#HclM" ∷ crevSafe γ c ∗
+    "#HpM" ∷ crevPermAt γ c ∗
     "%HcM" ∷ ⌜-1 ≤ c⌝)
 
 /-- `s.mu`'s resource at fraction `q`: at some compaction revision, and the writer's deposit
@@ -3601,6 +3646,8 @@ instance muInv_fractional (s : Loc) (γ : StoreNames) : Fractional (muInv (GF :=
       · iapply (hcrev c).2; iframe HcrevM1 HcrevM2
       isplitr
       · iexact HclM1
+      isplitr
+      · iexact HpM1
       ipureintro; exact HcM1
 
 /-- `s.mu` held shared by a transaction, at the compaction revision `c`: the reader's token and
@@ -3724,7 +3771,7 @@ theorem muHeld_cmp (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
   icases Hc0 with ⟨-, %Hwf, -⟩
   iframe HcmpM HcrevM
   isplitl []
-  · ipureintro; exact ⟨HcM, by have := Hlt.1; omega⟩
+  · ipureintro; exact ⟨HcM, by have := Hlt; omega⟩
   iintro Hm Hc
   iunfold muHeld
   iframe Hl Hf
@@ -3810,7 +3857,7 @@ theorem muHeld_cmp_idx (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
   icases Hc0 with ⟨-, %Hwf, -⟩
   iframe HcmpM HcrevM Hi
   isplitl []
-  · ipureintro; exact ⟨HcM, by have := Hlt.1; omega⟩
+  · ipureintro; exact ⟨HcM, by have := Hlt; omega⟩
   iintro Hm Hc Hi
   ihave Hf := Hfb $$ Hi
   iunfold muHeld
@@ -5148,6 +5195,23 @@ theorem hookIs_agree_lc (E : CoPset) (γ : StoreNames) (P P' : IProp GF) (f f' :
   icases (hookIs_split γ P f).1 $$ H1 with ⟨#H1, -⟩
   icases (hookIs_split γ P' f').1 $$ H2 with ⟨#H2, -⟩
   iapply hookOk_agree_lc E γ P P' f f' $$ [$Hlc $H1 $H2]
+
+/-- **A permitted revision's permit**, now (C3's store law; a later credit spent). -/
+theorem crevPermAt_elim_lc (E : CoPset) (γ : StoreNames) (Perm : Int → IProp GF) (c : Int) :
+    £ 1 ∗ crevPermIs γ Perm ∗ crevPermAt γ c ⊢ |={E}=> ⌜c = -1⌝ ∨ □ Perm c := by
+  iintro ⟨Hlc, #H1, #H2⟩
+  iunfold crevPermAt at H2
+  icases H2 with (%h | ⟨%Perm', #H2, #HP⟩)
+  · imodintro; ileft; ipureintro; exact h
+  iunfold crevPermIs at H1 H2
+  ihave Heq := saved_pred_agree γ.cperm DFrac.discard DFrac.discard
+    (fun c => iprop(□ Perm' c)) (fun c => iprop(□ Perm c)) c $$ H2 H1
+  imod lc_fupd_elim_later $$ Hlc Heq with #Heq
+  ihave #Hiff := internalEq_iff _ _ $$ Heq
+  icases Hiff with ⟨#Hf, -⟩
+  imodintro; iright
+  iapply Hf
+  iexact HP
 
 /-- **The caller's hook against the store's recorded invariant** (`isStore`'s `hookP`; unit N4,
 D14b: the store records no hook), one later credit. -/

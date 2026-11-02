@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked: 2026-10-30
+upstream: none
+checked: 2026-11-02
 links:
+  - etcd-io/etcd#21909 pr open: related, not this bug (skips the auth revision check for verify-only JWT providers; does not touch `doSerialize`'s check with auth disabled or the TLS common-name path)
 ---
 
 # auth: a serializable read can fail with "revision of auth store is old" while auth is disabled

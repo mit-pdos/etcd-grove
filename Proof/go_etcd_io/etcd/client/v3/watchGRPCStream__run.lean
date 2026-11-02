@@ -248,6 +248,8 @@ theorem watchGRPCStream.run.wp_proof
         wp_apply wp_ptoPB pr as %preq Hpsend
         wp_apply HSend $$ %S.L %preq %(.progress) [Hstok Hpsend] as %err ⟨-, Hres'⟩
         · iframe
+          isplitl []; rotate_left
+          · ipureintro; exact (by decide : wireSlack < grpcMsgMax)
           unfold v3rpc.watchUp v3rpc.watchReqOk
           isplitr <;> itrivial
         ihave ⟨%L', %HL', Hstok⟩ : iprop(∃ L' : List v3rpc.WatchReqM,
@@ -526,6 +528,8 @@ theorem watchGRPCStream.run.wp_proof
         wp_apply HSend $$ %S.L %preq %(.create (createOf P0.key P0.ed P0.rev P0.pn P0.sr P0.bd))
           [Hstok Hpsend Hwt] as %err ⟨-, Hres⟩
         · iframe
+          isplitl [Hwt]; rotate_left
+          · ipureintro; exact wsReqOk_wire Hok _ _ _ _
           unfold v3rpc.watchUp
           isplitr
           · ipureintro; simp [v3rpc.watchReqOk, createOf]
@@ -1649,6 +1653,8 @@ theorem watchGRPCStream.run.wp_proof
           wp_apply HSend $$ %S.L %preq %(.create (createOf P2.key P2.ed B2.rr P2.pn B2.srr P2.bd)) [Hstok Hpsend Hwt]
             as %err ⟨-, Hres'⟩
           · iframe
+            isplitl [Hwt]; rotate_left
+            · iapply wsIs_wire V P2; iexact HP2
             unfold v3rpc.watchUp
             isplitr
             · ipureintro; simp [v3rpc.watchReqOk, createOf]
@@ -1938,8 +1944,9 @@ theorem watchGRPCStream.run.wp_proof
       obtain ⟨Hmeq, Hrev, HLplen, Hlast, Hlive⟩ := Hpure
       have hsrc : m.src = some ρ := by rw [Hmeq]; rfl
       have hcr0 : m.created = false := by rw [Hmeq]; rfl
-      have hca0 : m.canceled = false := by rw [Hmeq]; rfl
-      have hcomp0 : m.compactRev = W64 0 := by rw [Hmeq]; rfl
+      -- (watches across a compaction, D6) canceled exactly when mvcc's response carries a compaction
+      have hca0 : m.canceled = decide (ρ.compactRev ≠ W64 0) := by rw [Hmeq]; rfl
+      have hcomp0 : m.compactRev = ρ.compactRev := by rw [Hmeq]; rfl
       have hfr0 : m.fragment = false := by rw [Hmeq]; rfl
       have hid0 : m.watchId = ρ.id := by rw [Hmeq]; rfl
       have hev0 : m.evs = ρ.evs := by rw [Hmeq]; rfl
@@ -1953,6 +1960,25 @@ theorem watchGRPCStream.run.wp_proof
       rw [hcr0]
       wp_auto
       rw [hca0]
+      wp_auto
+      -- (watches across a compaction) `pbresp.Canceled && pbresp.CompactRevision == 0`: false of
+      -- either kind (not canceled; or canceled with a compaction)
+      wp_bind (If (Val #(!decide (ρ.compactRev = W64 0))) _ _)
+      iapply (wp_wand_r (Φ := fun v => iprop(⌜v = #false⌝ ∗ pbresp_ptr ↦ p ∗
+        structFieldRef etcdserverpb.WatchResponse go!"CompactRevision" p ↦ m.compactRev)))
+      isplitl [pbresp Hcomp]
+      · by_cases hρc : ρ.compactRev = W64 0
+        · rw [decide_eq_true hρc]
+          wp_auto
+          iframe
+          ipureintro; rfl
+        · rw [decide_eq_false hρc]
+          wp_auto
+          rw [hcomp0, decide_eq_false hρc]
+          iframe
+          ipureintro; rfl
+      iintro %v ⟨%Hv, pbresp, Hcomp⟩
+      subst Hv
       wp_auto
       rw [hfr0]
       wp_auto
@@ -1971,8 +1997,17 @@ theorem watchGRPCStream.run.wp_proof
         rw [hcr0, hca0, hcomp0, hfr0, hid0]
         iframe
         ipureintro; exact Hhn
+      ihave %Hrokp : ⌜ρ.compactRev ≠ W64 0 → ρ.evs = [] ∧ ρ.id ≠ W64 (-1) ∧ ρ.rev = W64 0⌝ $$ []
+      · iunfold mvcc.respOk at Hrok
+        icases Hrok with ⟨-, %rr, %fcs, -, %H⟩
+        ipureintro; intro hc
+        exact ⟨(H.2.2 hc).1, (H.2.2 hc).2.2.1, (H.2.2 hc).2.2.2⟩
       by_cases hid : ρ.id = W64 (-1)
       · -- a progress response of id `-1` (unit W-K): broadcast to every registered substream
+        have hρc : ρ.compactRev = W64 0 :=
+          Classical.byContradiction fun h => (Hrokp h).2.1 hid
+        have hca0 : m.canceled = false := by rw [hca0, hρc]; rfl
+        have hcomp0 : m.compactRev = W64 0 := hcomp0.trans hρc
         iunfold v3rpc.mvccCov at Hcov
         icases Hcov with ⟨%γc, %pre, %γo, %γa, #Hax, %Hγ, #Hfwd, #Hsl0, #Hrc, #Hra, #Hcq⟩
         iunfold mvcc.respCov at Hrc
@@ -2194,6 +2229,8 @@ theorem watchGRPCStream.run.wp_proof
           · ipureintro; exact Hlg
           wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ρ.id) [Hstok Hsend] as %err ⟨-, Hres'⟩
           · iframe
+            isplitl []; rotate_left
+            · ipureintro; exact (by decide : wireSlack < grpcMsgMax)
             unfold v3rpc.watchUp v3rpc.watchReqOk
             isplitr <;> itrivial
           ihave ⟨%L', %HL', Hstok⟩ : iprop(∃ L' : List v3rpc.WatchReqM,
@@ -2293,8 +2330,17 @@ theorem watchGRPCStream.run.wp_proof
         · unfold v3rpc.downLbW; iexact HDlb
         ihave #Hevs' : iprop([∗list] x ∈ ps.zip ρ.evs, mvcc.evIs x.1 x.2) $$ []
         · rw [← hev0]; iexact Hevs
-        ihave Hpre := client.reg_pre V γs P B HB S.Dm S.Dm.length m ρ rs w rg fcs lo sent C h sl ps kvs
-            hsrc hev0 ⟨hcomp0, hca0, hcr0⟩ Hfilt (by rw [← hev0]; exact Hpslen) Hkvl HPpure.2.1 Hpre.2
+        have hkind : m.created = false ∧ ((m.compactRev = W64 0 ∧ m.canceled = false) ∨
+            (m.compactRev ≠ W64 0 ∧ m.canceled = true ∧ m.evs = [] ∧ m.hdr.revision = W64 0)) := by
+          refine ⟨hcr0, ?_⟩
+          by_cases hρc : ρ.compactRev = W64 0
+          · left; exact ⟨hcomp0.trans hρc, by rw [hca0, hρc]; rfl⟩
+          · right
+            refine ⟨by rw [hcomp0]; exact hρc, by rw [hca0]; simpa using hρc, ?_, ?_⟩
+            · rw [hev0]; exact (Hrokp hρc).1
+            · rw [Hrev]; exact (Hrokp hρc).2.2
+        ihave Hpre := client.reg_pre_any V γs P B HB S.Dm S.Dm.length m ρ rs w rg fcs lo sent C h sl ps kvs
+            hsrc hev0 hkind Hfilt (by rw [← hev0]; exact Hpslen) Hkvl HPpure.2.1 Hpre.2
             Hpre.1 Hhn rfl HPpure.2.2 hlive hid Hkc.1 $$ [Hauth Hst Hhrev Hc2]
         · iframe; iframe Hevs' HDw Hrg HsoB Hea Hrecv Hmvcc Hps HS3 Hlaws Hsmall Hkvf Hwa
         imod Hpre with ⟨%es, %C', %C2, #Hes, %Hesl, Hhw, Hauth, Hcap, Hst, Hpend⟩
@@ -2448,6 +2494,8 @@ theorem watchGRPCStream.run.wp_proof
             · ipureintro; exact Hlg
             wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ρ.id) [Hstok Hsend] as %err ⟨-, Hres'⟩
             · iframe
+              isplitl []; rotate_left
+              · ipureintro; exact (by decide : wireSlack < grpcMsgMax)
               unfold v3rpc.watchUp v3rpc.watchReqOk
               isplitr <;> itrivial
             ihave ⟨%L', %HL', Hstok⟩ : iprop(∃ L' : List v3rpc.WatchReqM,
@@ -2755,6 +2803,8 @@ theorem watchGRPCStream.run.wp_proof
           %(.create (createOf P2.key P2.ed B2.rr P2.pn B2.srr P2.bd)) [Hstok2 Hpsend Hwt]
           as %err3 ⟨-, Hres'⟩
         · iframe
+          isplitl [Hwt]; rotate_left
+          · iapply wsIs_wire V P2; iexact HP2
           unfold v3rpc.watchUp
           isplitr
           · ipureintro; simp [v3rpc.watchReqOk, createOf]
@@ -3041,6 +3091,8 @@ theorem watchGRPCStream.run.wp_proof
       · ipureintro; exact Hlg
       wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ph.id) [Hstok Hsend] as %err ⟨-, Hres⟩
       · iframe
+        isplitl []; rotate_left
+        · ipureintro; exact (by decide : wireSlack < grpcMsgMax)
         unfold v3rpc.watchUp v3rpc.watchReqOk
         isplitr <;> itrivial
       ihave ⟨%L', %HL', Hstok⟩ : iprop(∃ L' : List v3rpc.WatchReqM,

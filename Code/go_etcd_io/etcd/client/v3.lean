@@ -134,6 +134,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   isUnavailableErr_unfold : FuncUnfold isUnavailableErr [] isUnavailableErr.impl
   ContextError_unfold : FuncUnfold ContextError [] ContextError.impl
   canceledByCaller_unfold : FuncUnfold canceledByCaller [] canceledByCaller.impl
+  OpCompact_unfold : FuncUnfold OpCompact [] OpCompact.impl
   Compare_unfold : FuncUnfold Compare [] Compare.impl
   Value_unfold : FuncUnfold Value [] Value.impl
   Version_unfold : FuncUnfold Version [] Version.impl
@@ -337,6 +338,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.isUnavailableErr_unfold
   Assumptions.ContextError_unfold
   Assumptions.canceledByCaller_unfold
+  Assumptions.OpCompact_unfold
   Assumptions.Compare_unfold
   Assumptions.Value_unfold
   Assumptions.Version_unfold

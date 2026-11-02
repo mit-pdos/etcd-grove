@@ -229,7 +229,10 @@ theorem Storage.wp_CreateSnapshot (wp : MemoryStorage.CreateSnapshot.spec (GF :=
     iframe HSV HDL
   iapply HΦ
   icases HQ with ⟨H1, H2, (⟨%H, H3, -⟩ | ⟨%H, H3, -⟩)⟩
-  · iframe H1 H2; ileft; iframe H3; ipureintro; exact H
+  · iframe H1 H2; ileft
+    isplitr
+    · ipureintro; exact H
+    iapply ownSnapV_M $$ H3
   · iframe H1 H2; iright; iframe H3; ipureintro; exact H
 
 theorem Storage.wp_Compact (wp : MemoryStorage.Compact.spec (GF := GF) (hG := hG))

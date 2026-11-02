@@ -7,6 +7,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__CutPeer
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer__Pause
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote__Pause
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportSpecs
 
 @[expose] public section
@@ -28,9 +29,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
 theorem rafthttp.Transport.CutPeer.wp_proof
-    (hM : rafthttp.peer.Pause.spec (GF := GF) (hG := hG)) :
+    (hM : rafthttp.peer.Pause.spec (GF := GF) (hG := hG))
+    (hR : rafthttp.remote.Pause.spec (GF := GF) (hG := hG)) :
     rafthttp.Transport.CutPeer.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.CutPeer_ok hM
+  rafthttp.Transport.CutPeer_ok hM hR
 
 end proof
 

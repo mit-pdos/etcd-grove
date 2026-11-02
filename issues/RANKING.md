@@ -53,6 +53,13 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
 
 ## Second tier: real, narrower or partly known
 
+- **[etcd-txn-check-intervals-sibling](etcd-txn-check-intervals-sibling.md)** (re-ranked
+  2026-11-01; was "declined": #16380 closed not planned when the only effect known was the check's
+  inconsistency): a revision such a transaction commits puts a key and then deletes it, and
+  compacting at that revision drops the put, so a watch from the compaction revision (what a client
+  re-watches from after `CompactRevision`) skips the `PUT` event, through gRPC with the default
+  configuration. Reproduced at the mvcc level. New evidence for the maintainers, with the earlier
+  fix (#16395) at hand.
 4. **[etcd-compact-past-raft-applied](etcd-compact-past-raft-applied.md)**: the apply loop
    snapshots and compacts raft's in-memory log before `Advance` has moved raft's `applied`, so a
    campaign in that window panics the member (`hasUnappliedConfChanges`: "unavailable due to
@@ -136,7 +143,49 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     permission with its key; else it appends a duplicate and the old type stays in effect (a
     downgrade from `READWRITE` to `READ` leaves writes permitted). Needs two permissions sharing a
     key; admin-only with auth on; reproduced by a unit test at the pin; a small fix (match the
-    range end too). Upstream not searched.
+    range end too). Known upstream: open PR etcd-io/etcd#21845 (same fix, stale, unreviewed).
+14. **[etcd-txn-nested-depth-apply-panic](etcd-txn-nested-depth-apply-panic.md)** (2026-10-30): a
+    transaction nested 4999 deep passes gRPC's protobuf decoding (10000 levels) but its raft entry is
+    one level deeper, and every member panics applying it, again on every restart (as item 1, the
+    cluster down for good). Only with `--max-txn-ops` raised to about 5000 or more (the default
+    128 bounds the nesting); reproduced end to end; a small fix (a depth bound in
+    `checkTxnRequest`). Upstream not searched.
+15. **[etcd-txn-keysonly-reply-alloc-panic](etcd-txn-keysonly-reply-alloc-panic.md)** (2026-10-31): a
+    `Txn` of nested keys-only whole-range reads builds a reply whose encoding exceeds 2^48 bytes while
+    using only about 11 GiB of heap (keys-only aliases the index's key slices), and the gRPC codec's
+    `make([]byte, size)` panics (`makeslice`) marshalling it, exiting the member; `checkTxnRequest`
+    budgets `maxTxnOps` per nesting level, so nesting multiplies the leaf count. Any client with
+    read+write access (any client with auth off). Needs `--max-request-bytes` raised to about 10 MiB
+    (borderline at the 1.5 MiB default), and the clean crash needs a wide election timeout so the
+    handler waits for the apply to finish (at the default timing the client times out first, but the
+    apply loop still builds the multi-GB reply on every member and replays it on each restart);
+    reproduced end to end through `clientv3`. Same codec root cause as
+    [grpc-codec-alloc-before-size-check](grpc-codec-alloc-before-size-check.md) (the client send side)
+    and the known-false server reply-size axioms (`notes/audit.md:338`). Upstream searched
+    2026-10-31: no duplicate. Candidate drafted locally, on hold for the user's security decision
+    (etcd's `THREAT_MODEL.md` likely classes it a robustness defect): count nested txns' operations
+    toward `--max-txn-ops` (`issues/upstream/etcd-txn-keysonly-reply-alloc-panic/`).
+16. **[etcd-lease-timetolive-keys-toctou](etcd-lease-timetolive-keys-toctou.md)** (2026-10-31):
+    with auth on, `LeaseTimeToLive` with `Keys` returns the names of keys attached to the lease after
+    its permission check (a second lookup, or the leader's over leasehttp), to a user who may not
+    read them; the revision re-check sees no auth change. An information leak of key names (not
+    values), across a permission line, so a candidate for etcd's private security process (the
+    user's decision, as item 1's). Reproduced with gofail on leader and follower; fix: check the
+    returned keys. Upstream: nothing found (searched 2026-11-02).
+16a. **[etcd-lease-renew-keys-follower-lag](etcd-lease-renew-keys-follower-lag.md)** (2026-11-01):
+    with auth on, a lease renewal through a lagging follower is checked against the follower's key
+    set, so a user keeps alive a lease holding a key it may not write. The same family as item 16
+    (a permission check over a stale or second lookup), narrower in effect (the lease is kept
+    alive, nothing leaks). Not reproduced yet; upstream: nothing found (searched 2026-11-02).
+17. **[etcd-leasehttp-timetolive-nil-response-panic](etcd-leasehttp-timetolive-nil-response-panic.md)**
+    (2026-10-31): a follower forwarding `LeaseTimeToLive` panics on a 200 reply without the
+    `LeaseTimeToLiveResponse` field (`leasehttp/http.go:274`); etcd's own handler always sets it, so
+    it takes a peer URL served by something else. A one-line nil check; low impact. Reproduced
+    (unit test). Upstream not searched.
+17a. **[etcd-leasehttp-timetolive-nil-header-panic](etcd-leasehttp-timetolive-nil-header-panic.md)**
+    (2026-11-01): its sibling: the forwarded response without a `Header` passes `TimeToLiveHTTP`
+    and the gRPC handler's `fill` panics on it (`header.go:55`). One nil check fixes both. Low
+    impact. Reproduced (unit tests). Upstream not searched.
 
 Also to file (2026-10-21, the last scan of the current batch):
 [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (a watch created with a
@@ -294,6 +343,11 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   changes in between (reproduced: a node elects itself alone). Safety in principle, but etcd leaves
   `Applied` unset, so it affects only other applications; a documentation sentence fixes it.
 
+- **[etcd-watch-compacted-resent](etcd-watch-compacted-resent.md)** (2026-11-01): with more than
+  512 unsynced watchers, `chooseAll` deletes a compacted watcher from `choose`'s copy only, so it
+  stays unsynced and is sent the compaction response again each sync until the client cancels.
+  Reproduced at the mvcc level; the Go client tolerates it (it cancels the unknown id), so a
+  duplicate canceled response and a stale `slowWatcherGauge`; a small fix in `syncWatchers`.
 - **[etcd-restore-pending-compaction-unclosed](etcd-restore-pending-compaction-unclosed.md)**
   (2026-10-30): `store.Restore` drops a queued compaction job without closing its channel, so a
   `Physical` compaction RPC on a follower that installs a snapshot meanwhile hangs and leaks its
@@ -416,8 +470,6 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   [etcd-backend-put-value-too-large-fatal](etcd-backend-put-value-too-large-fatal.md) (the same
   cause, one size check covers all three). Cheap robustness fixes, not a priority for etcd.
 - **Declined, unreproduced or out of scope**:
-  [etcd-txn-check-intervals-sibling](etcd-txn-check-intervals-sibling.md) (maintainers declined:
-  #16380 closed not planned),
   [etcd-backend-read-buffer-cache-stale-after-commit](etcd-backend-read-buffer-cache-stale-after-commit.md)
   (deterministic, a one-line fix, but no wrong etcd result known),
   [etcd-watch-sync-ticker-reset-zero](etcd-watch-sync-ticker-reset-zero.md) (Windows only; known,
@@ -466,6 +518,10 @@ one-line clamp fix; added 2026-10-29),
 `DeleteBucket` in the same transaction panics or silently misses data; documentation or an
 error return; added 2026-10-27),
 [bbolt-mmap-madvise-leak](bbolt-mmap-madvise-leak.md) (one line; moot if #940 lands).
+[bbolt-init-not-crash-safe](bbolt-init-not-crash-safe.md) (added 2026-10-31) is the exception to
+this section's title. A crash during a new database's first `init` (for etcd, a member's first
+start) can leave a file that never opens. It comes from reasoning about writeback order, is not
+reproduced, and needs a search upstream before it is ranked.
 
 ## Kubernetes (the API server's etcd3 store, its test model, the DaemonSet controller; not etcd's)
 

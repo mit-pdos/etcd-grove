@@ -59,7 +59,7 @@ theorem revEvents_plan (P : List (GoString × GoString)) (σ : KVState) (r : Nat
     ∃ (k v : GoString) (nv : EtcdKv), (k, v) ∈ P ∧
       σ.log[m]? = some [mvcc.Change.put k v (W64 0)] ∧
       σ.revEvents m = [⟨false, nv, none⟩] ∧ nv.key = k ∧ nv.value = v ∧ nv.modRev = W64 m := by
-  obtain ⟨he, hr, hr63, hwf, hsm⟩ := hok
+  obtain ⟨he, hr, hr63, hwf, hsm, -⟩ := hok
   have hc : σ.compacted = 0 := by rw [he]; rfl
   have hlen : σ.log.length = σ.rev + 1 := by
     simp only [KVState.log, KVState.rev, List.length_cons, hc]; omega

@@ -34,7 +34,7 @@ abbrev callDel.spec : Prop :=
     (cl : Loc) (ms : List (client.SrvAt GF))
     (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  ∀ (key : GoString) (Q : KVState → IProp GF),
+  ∀ (key : GoString) (Q : KVState → IProp GF), key.length ≤ inMax →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
@@ -45,7 +45,7 @@ abbrev callDel.spec : Prop :=
   {{ (y : Output), RET #y; ⌜y = errOut⌝ ∨
       ∃ σ : KVState, Q σ ∗
         ⌜y = delOut (W64 ((kvOpStep (.deleteRange (linkv.delOp key)) σ).rev : Int))
-            (W64 ((rangeIn σ.kvs (linkv.delOp key)).length : Int)) ∧ σ.rev + 4 < 2 ^ 63⌝ }}
+            (W64 ((rangeIn σ.kvs (linkv.delOp key)).length : Int)) ∧ kvRevFits (σ.rev + 1)⌝ }}
 
 end spec
 

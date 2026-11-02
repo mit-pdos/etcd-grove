@@ -677,6 +677,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
   icombine Hr Hr' gives %Heq
   subst Heq
+  icases ownStepGhost_bootCommit γ _ cf id s $$ Hghost with ⟨%Hbc0, Hghost⟩
   icases ownStepGhost_term0 γ _ cf id s $$ Hghost
     with ⟨%Hb1, Hghost⟩
   -- (raft-final phase 2) the no-snapshot mode is off (`NsCap`)
@@ -740,10 +741,12 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     have Hsl0 := Hsl sv0 Hsn0
     -- (2026-10-26, D22 J2) the pending snapshot kept, or the message's, local to the node
     ihave #Hsloc' : snapLocOk γ id s'.logst.snap $$ []
-    · rcases Hsl0 with ⟨-, h2, -, -⟩ | ⟨-, -, h2, -, -, -⟩
+    · rcases Hsl0 with ⟨-, h2, -, -⟩ | ⟨-, -, h2, -, hcm, -⟩
       · rw [h2]; iexact Hsloc
       · rw [h2]; iapply (snapLocOk_some γ id (snapId sv0)).2
-        rw [show (snapId sv0).index' = sv0.Metadata'.Index' from rfl]; iexact Hloc0
+        isplitr
+        · rw [show (snapId sv0).index' = sv0.Metadata'.Index' from rfl]; iexact Hloc0
+        ipureintro; show _ < uint.Z sv0.Metadata'.Index'; omega
     -- (2026-10-28, stage U3c) in either mode: the ghost part at a new full prefix (a restore's)
     obtain ⟨fp', ds', Hmd, Hfp'⟩ := RNMode.stepOut_snap Href Hs
     ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp', ds'⟩) cf id s' $$ [Hghost]
@@ -1874,7 +1877,8 @@ def freshOk (γ : NodeNames) (rd : Ready) (rs : RNState) (ce es : List EntryM)
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
       [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
     -- (D22 S-b) with its witness (`hsWit`)
-    (∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ hsWit γ.raft (phsNext rs.phs hrd) (rs.delivered ++ ce).length) ∗
+    (∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗
+      hsWit γ.raft (phsNext rs.phs hrd) (dlvAfter rs.delivered ce L).length) ∗
     rdSnapOut γ.raft rs rd ce es L ∗
     ⌜(∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc) ∧ (rs.psnap = false → L = none)⌝)
 
@@ -2123,10 +2127,22 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, Hmsgs_cap, Hown, #Hrsts,
       ⟨%hrd0, #Hrdh0, #Hhsw⟩, Hsnz, %Hfacts⟩
     -- (D22 S-d4) no snapshot unless one is handed out (`rdSnapOut`)
-    ihave %Hsz : ⌜L = none → rd.Snapshot' = null⌝ $$ [Hsnz]
+    -- (2026-10-31) and the witness's committed log at least the one before it
+    ihave %Hsz : ⌜(L = none → rd.Snapshot' = null) ∧
+        (rs.delivered ++ ce).length ≤ (dlvAfter rs.delivered ce L).length⌝ $$ [Hsnz]
     · cases L with
-      | none => iunfold rdSnapOut at Hsnz; icases Hsnz with %H; ipureintro; intro _; exact H
-      | some l => ipureintro; intro h; cases h
+      | none =>
+        iunfold rdSnapOut at Hsnz; icases Hsnz with %H; ipureintro
+        exact ⟨fun _ => H, Nat.le_refl _⟩
+      | some l =>
+        iunfold rdSnapOut at Hsnz; icases Hsnz with ⟨-, -, %Hlo⟩; ipureintro
+        refine ⟨fun h => (by cases h), ?_⟩
+        obtain ⟨-, Hce0, Hpre, -⟩ := Hlo
+        subst Hce0
+        show (rs.delivered ++ []).length ≤ l.dlv.length
+        rw [List.append_nil]; exact Hpre.length_le
+    ihave #Hhsw' := hsWit_mono γ.raft _ _ _ Hsz.2 $$ Hhsw
+    replace Hsz := Hsz.1
     ihave %Hshape := ownSlice_shape _ _ _ $$ Hmsgs
     icases ownRawNodeReady_abandon_keep γ.raft nv.rn' id rs rd ce es ms L Hsteps Hunp
       $$ Hmsgs Hmsgs_cap Hown Hrn with
@@ -2153,7 +2169,7 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     · ipureintro; exact Hrc
     unfold staleOk
     iexists ce, es, ms.length, hrd0
-    iframe Hrdsoft Hrdh0 Hhsw Hce Hce_cap Hcommitted Hents Hrsts
+    iframe Hrdsoft Hrdh0 Hhsw' Hce Hce_cap Hcommitted Hents Hrsts
     ipureintro
     refine ⟨fun h => Hnuc.2.2.1 ?_, Hnuc.2.1, by simpa using Hshape, Hnuc.1, Hnuc.2.2.2.1, Hhb,
       Hnuc.2.2.2.2⟩

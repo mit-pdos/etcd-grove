@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, etcd, kv, kvreconf, durable, durablekv, kvdurable, putget, putgetc, putget3,
+  --project    only this project (raft, etcd, kv, kvreconf, durable, bboltfs, crashlog, durablekv, kvdurable, putget, putgetc, putget3,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver or
                k8s-daemonset; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -192,12 +192,21 @@ PROJECTS = [
         # `goose-lean-compactfix` (on a20f6760f): upstream's fixes of the compaction of a key deleted
         # and put again in the compacted revision (etcd-io/etcd#22377, `keyIndex.doCompact`,
         # e7bb9f2de; #22395, the gRPC txn overlap check, 249d76bea;
-        # issues/etcd-compaction-delete-then-put.md).
+        # issues/etcd-compaction-delete-then-put.md). Then (S1, the snapshot plan's #7, 2026-10-31)
+        # branch `goose-lean-snapguard` (on 249d76bea): the queued MsgSnap merged only if its
+        # snapshot is at or below the applied index (633036387; a guard for the proof, not a bug
+        # fix: notes/decisions.md, "The merged snapshot's index guard"). Then (#8's J8a-3,
+        # 2026-11-01) branch `goose-lean-watchcfg` (on 633036387): `NewWatchServer` keeps the adjusted
+        # progress interval local instead of writing `s.Cfg` (7cf3644ec,
+        # issues/etcd-cfg-watch-progress-interval-race.md). Then (#8's J8a-7, 2026-11-01) branch
+        # `goose-lean-remotepause` (on 7cf3644ec): a remote paused by a flag under its own mutex,
+        # as a peer, so that `CutPeer`/`MendPeer` may be repeated (ab3c28d9a; the nonissue
+        # issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="249d76bea78d0c8980251d5fa7b26c35ef21263a",
+        rev="ab3c28d9a12a41bff370b78791b9eafb14d07f60",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -281,6 +290,9 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/errors",
             "go.etcd.io/etcd/server/v3/etcdserver/read",
             "go.etcd.io/etcd/server/v3/lease",
+            # names only (the lease-renew plan, 2026-11-01): `LeaseRenew`'s forwarding to the
+            # leader (`RenewHTTP`, `LeasePrefix`), a contract
+            "go.etcd.io/etcd/server/v3/lease/leasehttp",
             # types only: the lease's protobuf message (the lessor's persistTo, Revoke)
             "go.etcd.io/etcd/server/v3/lease/leasepb",
             "go.etcd.io/etcd/server/v3/auth",
@@ -492,6 +504,41 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "durable")],
     ),
     Project(
+        name="bboltfs",
+        # minibolt and its programs (`examples/bboltfs`), the acceptance test of the Linux file
+        # extension osFsExt (GooseLang/Ext/OsFs, notes/osfs-ext-plan.md). Its `os`, `syscall` and
+        # `golang.org/x/sys/unix` are this repository's translations, not Perennial's (whose
+        # `os.toml` trusts nothing): the constants and types minibolt needs, and the functions it
+        # calls trusted, modeled by the extension's operations (TrustedCode/os.lean,
+        # TrustedCode/syscall.lean, TrustedCode/golang_org/x/sys/unix.lean). A package of the
+        # examples' Go module (examples/go.mod).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "bboltfs"),
+        # (`io/fs`, which Perennial does not translate: the types `os` names, `FileInfo`,
+        # `FileMode` and `PathError`, the errors the models return)
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
+                    "io/fs="],
+        packages=[".", "os", "syscall", "golang.org/x/sys/unix", "io/fs"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "bboltfs"),
+               "os", "syscall", os.path.join("golang_org", "x", "sys"), os.path.join("io", "fs")],
+    ),
+    Project(
+        name="crashlog",
+        # the smallest crash-safe program over the Linux file extension (`examples/crashlog`): a
+        # commit flag guarding 8 bytes of data, proved crash-safe end to end
+        # (Proof/github_com/mit_pdos/etcd_grove/examples/crashlog/). Its `os` and `syscall` are
+        # project bboltfs's translations (the same lean roots), which own them; only the package
+        # itself is translated here. A package of the examples' Go module (examples/go.mod).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "crashlog"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
+                    "io/fs="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "crashlog")],
+    ),
+    Project(
         name="durablekv",
         # kv made durable (`examples/durablekv`): each replica's raft state in a file of the
         # durable package, rewritten whole before the messages that depend on it are sent;
@@ -579,6 +626,19 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putgetc")],
+    ),
+    Project(
+        name="compactkv",
+        # putgetc under compaction pressure (the client's `kv.Compact`, 2026-11-01): rounds of a
+        # client's Put, a Compact at the revision before it and a Get, on one member with the
+        # auto-compactor on.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "compactkv"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "compactkv")],
     ),
     Project(
         name="linkvtxn",
@@ -677,6 +737,20 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putget3")],
+    ),
+    Project(
+        name="restart3",
+        # putget3 with a follower stopped (HardStop) and started again on its data directory
+        # (notes/restart-plan.md): the WAL replayed, a snapshot found in it, the member caught
+        # up by a snapshot. A package of the examples' Go module (examples/go.mod); its imports
+        # are the etcd project's translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "restart3"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "restart3")],
     ),
     Project(
         name="porcupine",

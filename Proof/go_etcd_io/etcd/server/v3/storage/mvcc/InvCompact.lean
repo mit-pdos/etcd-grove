@@ -159,7 +159,8 @@ theorem CompactSmall_of_cert (s : Loc) (γ : StoreNames) (log : Log) (c : Int) :
   iunfold isStore at Hs
   iNamed Hs
   iunfold idxCert at Hc
-  icases Hc with ⟨-, -, -, %Hlt⟩
+  icases Hc with ⟨-, -, -, Hp⟩
+  ihave %Hlt := preceipt_lt _ $$ Hp
   ipureintro
   exact CompactSmall_of_logCh c (by have : (2 : Nat) ^ 48 < 2 ^ 62 := by decide
                                     omega)
@@ -472,9 +473,8 @@ theorem storeCloserM_close (s : Loc) (γ : StoreNames) (c : Int) :
 fields at some objects (`storeStopR`: the job leases it for its run; the approval's item 17, in
 place of step 1's discarded `storeStop` and the never-stopped scheduler `schedLive`: the barriers
 are tracked), its backend supporting the compaction (`storeCmp`), a lower bound `rev` of the
-compaction revision (`Compact` set it), a certified log with revision `rev`, which does not delete a
-key and put it again (`NoDelPutAt`: `store.Compact`'s caller asserted it; the keys the job deletes
-carry it, `delKey`; 2026-10-13, unit 6a), with the index's count of its events (`idxNevLb`: D22
+compaction revision (`Compact` set it), a certified log with revision `rev` (until M2's item 18,
+2026-10-30, also not deleting a key and putting it again, `NoDelPutAt`), with the index's count of its events (`idxNevLb`: D22
 receiver epochs, S1). (Until 2026-10-18 also `CompactSmall` at `rev`, the caller's physical bound;
 now the job derives it, `CompactSmall_of_cert`.) And (M2, the storage side, Q1 (a), 2026-10-30) the
 write-back supply (`kbWTSupplyM γ.kb`, persistent), which `store.Compact`'s caller gave and the
@@ -483,7 +483,7 @@ def compactJobPre (s : Loc) (γ : StoreNames) (rev : w64) : IProp GF :=
   iprop(isStore s γ ∗ (∃ o : StoreObjs, storeStopR s γ o) ∗ ⌜storeCmp γ⌝ ∗
     crevLb γ.idx (sint.Z rev) ∗ kbWTSupplyM γ.kb ∗
     ∃ log : Log, idxCert γ.idx log ∗ idxNevLb γ.idx log ∗
-      ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length ∧ NoDelPutAt log (sint.Z rev)⌝)
+      ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length⌝)
 
 instance compactJobPre_persistent (s : Loc) (γ : StoreNames) (rev : w64) :
     Persistent (compactJobPre (GF := GF) s γ rev) := by

@@ -117,7 +117,7 @@ theorem k8setcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : putget.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
@@ -130,10 +130,11 @@ theorem k8setcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([k8setcd3Program clients ops], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 31) (Hwb : n + 7 ≤ backend.wbInit) :
+    (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+  have Hwb : n + 7 ≤ backend.wbInit := by unfold backend.wbInit; omega
   suffices H : (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
       (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧ (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) by
     refine ⟨H.1, H.2.1, fun v hv => ?_⟩
@@ -180,7 +181,7 @@ theorem k8setcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iunfold read.readRegPerm
     iframe
   have hM := k8setcd3.wp_Main (GF := k8setcd3GF) n id ctxs boot clients ops Hbf
-    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8setcd3.storageErrTyOk_holds k8setcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Haddr Htok]
   · iframe; iframe #

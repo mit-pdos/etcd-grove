@@ -97,7 +97,7 @@ theorem Main.wp_proof
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id₁ id₂ id₃ ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
+  intro CS CRE CEC N id₁ id₂ id₃ ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Hf₁, Hf₂, Hf₃, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hmarsh, #Hcom⟩
@@ -244,7 +244,7 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   iunfold common.memberUp at Hup₁
-  icases Hup₁ with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi, Hbemu,
+  icases Hup₁ with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hbemu,
     Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
   iunfold srvGoRes at Hgo
   icases Hgo with ⟨Hwgr, Htok⟩
@@ -302,10 +302,10 @@ theorem Main.wp_proof
   wp_apply (wp_Serve s₁ clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cfg
       (fun cid mid _ => common.etcdKVAt clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cid mid)
       (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
-    $$ [Hac Hlg3 Hbemu Hgo Hwpi HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+    $$ [Hac Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
-    iapply (common.kv_served s₁ E { ρ₁ with wait := γw } ρ₁.rd gs lis clientAddr₁ cid mid R Hrb48)
+    iapply (common.kv_served s₁ E { ρ₁ with wait := γw } ρ₁.rd gs lis clientAddr₁ cid mid R Hrb48 Hrf rfl)
     iframe; iframe #
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv⟩)
   · cases serr with
@@ -320,7 +320,7 @@ theorem Main.wp_proof
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration)
   wp_apply (wp_NewClient clientAddr₁ lg
       (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default) Hlg
-      (by unfold plainEndpoint clientAddr₁; decide) Htb) as %cl %cerr Hcl
+      (by unfold plainEndpoint clientAddr₁; decide) (by omega)) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
@@ -354,7 +354,9 @@ theorem Main.wp_proof
     simp at Hf
   -- `cli.Put(ctx, "k", "v")`
   wp_apply (client.client_Put_own cl clientAddr₁ _ E ρ₁.rd γf cid mid
-      pctx pcd go!"k" go!"v" slice.nil []) as %presp %perr Hput
+      pctx pcd go!"k" go!"v" slice.nil []
+      (opSizeOk_opPutModel (K := 1) (E := 0) (V := 1) (optsKeep_nil _ _ _) (by decide) (by decide)
+        (by decide))) as %presp %perr Hput
   · iframe #
   -- `pcancel()`
   (try wp_auto)
@@ -378,7 +380,8 @@ theorem Main.wp_proof
   -- `cli.Get(gctx, "k")`
   imod monoNatLbOwn_0 (GF := GF) ρ₁.rd.committed with #Hc0
   wp_apply (client.client_Get_own cl clientAddr₁ _ E ρ₁.rd γf (W64 0) cid mid
-      gctx gcd go!"k" go!"v" slice.nil []) as %gresp %gerr Hget
+      gctx gcd go!"k" go!"v" slice.nil []
+      (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide))) as %gresp %gerr Hget
   · iframe #
     iunfold committedAtLeast
     iExactEq Hc0; rfl

@@ -1,6 +1,21 @@
 # Plan: M2, the storage side (spec-first; branch `m2-storage`)
 
-Status (2026-10-30): **item 17 switched with the lease** ("Item 17 switched: the jobs' share
+**Done (2026-11-01).** Compaction is in the server's model: the request path (`EtcdServer.Compact`),
+the apply side (the backend's `Compaction`, the chain's triple, `dispatch`/`Apply`, `applyEntryNormal`'s
+compaction arm), the storage side and `NewServer` in both compaction modes are proved; the client's
+`kv.Compact` is proved; `examples/compactkv`'s closed theorem `compactkv_safe` is proved and `putgetc`
+rests on the same proofs (both still on the server's snapshot-track `sorry`s). `notes/STATUS.md`, "M2,
+the apply side".
+What is left, none of it M2's goal: restore in compaction mode (the interim restriction "a snapshot
+installed only with the mode off", `specSnap`'s `d.cm = false`; the storage plan's "B2 by sealed
+logs" Drafts are its unswitched design); `kvApplied`'s `crevOf` clause (deferred, `notes/decisions.md`,
+"stage 4c"); the compaction arm with auth on (`applyEntryNormal` applies compactions on the auth-off
+path only), with the auth-mode merge of `applyAll`/`run`'s `spec`/`specOn` (the apply plan's stage 5,
+which needs nothing of M2 and waits on SNAPSHOT-SORRY #7/#8); one token count in place of `bootstrap`'s
+`N + N` (the user's later, moved to restore in compaction mode: `notes/decisions.md`, "One token count goes with restore in compaction mode"); the Draft modules (`M2ApplyDraft*`, `M2StorageDraft*`, `M2ApplyProbe` under
+`etcdserver/`, `apply/` and `mvcc/`; they import only each other) to delete or fold in.
+
+Earlier status (2026-10-30): **item 17 switched with the lease** ("Item 17 switched: the jobs' share
 leased", the last section: 17, item 4's step-2 text, 20, 23, 24 real; item 31 stopped, its `none`
 arm needing a nil-hook `SetScheduledCompact` no approved text states). Before: **the approved items switched** ("The switch of the approved items", the last
 section: 1-13, 19, 26, 28, 29's pure vocabulary, 34, 35 and item 4's supply line real; item 17
@@ -2097,6 +2112,14 @@ mvcc's Link equals the committed file, the previously hand-edited `store.restore
 
 ### Task 4: item 37 (stopped; design and impact recorded)
 
+**Its consumers (2026-11-02, branch `snap-window`).** `etcdserver.mergedCreate_window` is proved over
+two laws stated with named `sorry`s in `Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/KeyObs.lean`,
+which this item proves inside mvcc: `txn.kvWriter_keyObs` (the sole writer, with the batch lock's
+resource `lateW d.gx` and a view of the backend, sees the `Key` bucket thin of its log, exactly its
+log when the store does not compact: the writer's pin of `writerRes`'s log) and
+`txn.kvWriter_noCmp` (with a reader's bound of the compaction-key flag, `fkRd`, no compaction key
+when the store does not compact: the off-mode store lends the writer `bkNoCmp`).
+
 The coordinator's choice: the writer's relation becomes "the backend's view is a subset of the log's
 bucket, the missing keys deletable". **Not implemented this round**; the refuted widening Draft is
 dropped (`backend/M2BackendDraft.lean` deleted; its refutation is in "The restore chain, backend
@@ -2182,6 +2205,12 @@ check the shape against; best done with item 15.
   round 2") is implemented by whoever proves item 15's `Restore`, so its one consumer checks its shape.
 
 ## B2 by sealed logs (2026-10-30; Draft)
+
+**The mvcc half switched (2026-11-01, branch `m2-b2-mvcc`)**: `idxSealed`/`idxCert`/`idxWriter` carry the
+persistent receipt in `InvIndex.lean`, `treeIndex.Put`/`Tombstone` raise it, and `store.restore.spec`
+takes and gives `⧖` (a statement the Draft had missed). `notes/decisions.md`, "M2's B2, the mvcc half
+switched". Left: the snapshot half (`dbImageR`/`srvImageR`, the sender, `specSnap`'s
+`restoreRcptM`), after J8a and with SNAPSHOT-SORRY #7, and `Restore.specMR` with `Restore.specM`.
 
 The user's answer after the restore chain's round 2 (above): no `NewServer` premise; every installed
 image's log is some member's sealed log, carried with the snapshot. Drafts:

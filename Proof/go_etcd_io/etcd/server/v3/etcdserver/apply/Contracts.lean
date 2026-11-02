@@ -47,6 +47,8 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.RestModel
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.RestLease
+public import Proof.go_etcd_io.etcd.server.v3.lease.RangeDeleter
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Wait
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Writer
@@ -295,6 +297,45 @@ def leaseTTLIs (l : Loc) (id : w64) : IProp GF :=
 instance leaseTTLIs_persistent (l : Loc) (id : w64) : Persistent (leaseTTLIs (GF := GF) l id) := by
   unfold leaseTTLIs; infer_instance
 
+/-- **The log after revoking `id`** (the lease-revoke plan, 2026-10-31): the lease's keys deleted
+at one revision (`mvcc.leaseDels`), none if it has none. -/
+abbrev revokeLog (log : mvcc.Log) (id : w64) : mvcc.Log :=
+  mvcc.commitLog log (mvcc.leaseDels (mvcc.stateAfter log) id)
+
+/-- **`isApplyLessor`'s `Revoke` clause** (D3) at the store `s` (names `γ`), the batch lock (`P`,
+`f`) and the rest resource `RO`: by the lease owner at the live set `L`, the sole writer at `log`
+(room for a revision), the range deleter held, the rest at `rs`, and the certificate of the
+revocation's commit:
+* `id` not live: an error (`ErrLeaseNotFound`), nothing changed, `Pre` back;
+* `id` live: no error, the lease's keys deleted (`mvcc.leaseDels`), `Post`, the live set without
+  `id`, its record deleted from the `lease` bucket (`restRevoke`).
+The write token is spent in the second case even when there is no key (`lessor.Revoke` opens a
+write transaction). -/
+def revokeClause (le : GoInterfaceOk) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
+    (RO : RestM → IProp GF) : IProp GF :=
+  iprop(□ (∀ (id : w64) (log : mvcc.Log) (L : List w64) (rs : RestM) (Pre Q Post : IProp GF),
+    {{ mvcc.csContract P f Pre Q Post ∗ txn.kvWriter s γ log ∗ mvcc.storeReader s γ ∗
+        mvcc.storeWT γ ∗ ⌜log.length + 4 ≤ 2 ^ 63⌝ ∗
+        lease.leaseOwn γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
+        lease.leaseRevokers γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) ∗
+        lease.rdAt γ.leases s ∗ RO rs ∗
+        □ mvcc.certOkNext γ log (mvcc.leaseDels (mvcc.stateAfter log) id) }}
+      (App (Val #(methods le.ty go!"Revoke" le.v)) (Val #id))
+    {{ (err : GoInterface), RET #err; mvcc.storeReader s γ ∗ lease.rdAt γ.leases s ∗ applyErrIs err ∗
+        ((⌜id ∉ L ∧ mvcc.leaseDels (mvcc.stateAfter log) id = []⌝ ∗
+            (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□
+              GoInterface.ok e ∗ ⌜err = GoInterface.ok e⌝) ∗ Pre ∗ mvcc.storeWT γ ∗ txn.kvWriter s γ log ∗
+            lease.leaseOwn γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
+            lease.leaseRevokers γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) ∗ RO rs) ∨
+         (⌜id ∈ L ∧ err = GoInterface.nil⌝ ∗ Post ∗
+            txn.kvWriter s γ (revokeLog log id) ∗
+            lease.leaseOwn γ.leases (L.filter (· != id)) (mvcc.leaseItemsOf (mvcc.stateAfter
+              (revokeLog log id))) ∗
+            lease.leaseRevokers γ.leases (L.filter (· != id)) ∗
+            txn.leasesKnown (L.filter (· != id)) (mvcc.stateAfter
+              (revokeLog log id)) ∗
+            RO (restRevoke id rs))) }}))
+
 /-- **The `lease.Lessor` `le`** as the apply package uses it (trust boundary: `lease` is
 names-only): the txn package's `isTxnLessor`, its writes under the batch lock (`P`, `f`); a
 revocation deletes the lease's keys through the store `γ`'s writer, one revision, under the
@@ -316,7 +357,7 @@ lessor's backend contract `lease.lessorBackend` takes both per write); the serve
 the backend's tracked buckets' half, which its apply thread does not lend (no lease request is
 admitted). -/
 def isApplyLessor (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
-    (RW : IProp GF) : IProp GF :=
+    (RO : RestM → IProp GF) (RW : IProp GF) : IProp GF :=
   iprop(txn.isTxnLessor le γ.leases ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
     □ (∀ (id ttl : w64) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
         (Pre Q Post : IProp GF),
@@ -330,22 +371,8 @@ def isApplyLessor (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp
             (⌜err ≠ GoInterface.nil⌝ ∨
               (⌜err = GoInterface.nil⌝ ∗ ∃ id' : w64, leaseTTLIs l id' ∗ ⌜id' ∈ L'⌝))) ∗
           applyErrIs err }}) ∗
-    -- `Revoke` (D14h, 2026-10-17): vacuous (`⌜False⌝`): the workload has no lease request
-    -- (`rqOk`), and `lessor.Revoke` is not specified (unit T3: it needs the lessor's invariant to
-    -- record the store's range deleter)
-    □ (∀ (id : w64) (log : mvcc.Log) (L : List w64) (Pre Q Post : IProp GF),
-      {{ ⌜False⌝ ∗ mvcc.csContract P f Pre Q Post ∗ txn.kvWriter s γ log ∗ mvcc.storeWT γ ∗
-          lease.leaseOwn γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
-          txn.leasesKnown L (mvcc.stateAfter log) ∗
-          (□ ∀ pend : List mvcc.Change, ⌜∀ c ∈ pend, c.isDel = true⌝ -∗
-            mvcc.certOkNext γ log pend) }}
-        (App (Val #(methods li.ty go!"Revoke" li.v)) (Val #id))
-      {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗
-          (∃ (pend : List mvcc.Change) (L' : List w64), ⌜∀ c ∈ pend, c.isDel = true⌝ ∗
-            txn.kvWriter s γ (mvcc.commitLog log pend) ∗
-            lease.leaseOwn γ.leases L' (mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log pend))) ∗
-            txn.leasesKnown L' (mvcc.stateAfter (mvcc.commitLog log pend))) ∗
-          applyErrIs err }}) ∗
+    -- `Revoke` (the lease-revoke plan, 2026-10-31; until then vacuous, D14h)
+    revokeClause li s γ P f RO ∗
     □ (∀ (id rem : w64) (Pre Q Post : IProp GF),
       {{ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ RW }}
         (App (App (Val #(methods li.ty go!"Checkpoint" li.v)) (Val #id)) (Val #rem))
@@ -354,24 +381,47 @@ def isApplyLessor (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp
       {{ True }} (App (Val #(methods li.ty go!"Lookup" li.v)) (Val #id))
       {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ leaseIs l id }}))
 
+instance revokeClause_persistent (le : GoInterfaceOk) (s : Loc) (γ : mvcc.StoreNames)
+    (P : IProp GF) (f : val) (RO : RestM → IProp GF) : Persistent (revokeClause le s γ P f RO) := by
+  unfold revokeClause; infer_instance
+
 instance isApplyLessor_persistent (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames)
-    (P : IProp GF) (f : val) (RW : IProp GF) : Persistent (isApplyLessor le s γ P f RW) := by
+    (P : IProp GF) (f : val) (RO : RestM → IProp GF) (RW : IProp GF) :
+    Persistent (isApplyLessor le s γ P f RO RW) := by
   unfold isApplyLessor; infer_instance
 
 /-- The lessor's contract over some store (what the permission checks take: they call only
 `Lookup`; unit N4: `isApplyLessor`'s `Revoke` clause names the KV's store `s`). -/
 def isApplyLessorAny (le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RW : IProp GF) : IProp GF :=
-  iprop(∃ s : Loc, isApplyLessor le s γ P f RW)
+  iprop(∃ (s : Loc) (RO : RestM → IProp GF), isApplyLessor le s γ P f RO RW)
 
 instance isApplyLessorAny_persistent (le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF)
     (f : val) (RW : IProp GF) : Persistent (isApplyLessorAny le γ P f RW) := by
   unfold isApplyLessorAny; infer_instance
 
 theorem isApplyLessorAny_of (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
-    (f : val) (RW : IProp GF) : isApplyLessor (GF := GF) le s γ P f RW ⊢ isApplyLessorAny le γ P f RW := by
-  unfold isApplyLessorAny; iintro H; iexists s; iexact H
+    (f : val) (RO : RestM → IProp GF) (RW : IProp GF) :
+    isApplyLessor (GF := GF) le s γ P f RO RW ⊢ isApplyLessorAny le γ P f RW := by
+  unfold isApplyLessorAny; iintro H; iexists s, RO; iexact H
 
+/-- **The lease owner's view, when the checking thread has it** (the lease-keys plan): `some (L,
+I)` on the apply thread, which lends the transaction walk (`checkTxnPermission`) its owner's
+resource (`lease.lessorUser`: `L` the live leases, `I` the item map); `none` on the server's read
+path (`EtcdServer.Txn`'s `CheckTxnAuth`), which holds none and walks only read-only transactions
+(every operation a get: no put, so no lease to look up; the walk's specs take that premise with
+`none`). -/
+abbrev LeaseView := Option (List w64 × GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
+
+/-- The owner's resource of the view (`lease.lessorUser`), nothing without one. -/
+def lessorView (γl : GName) : LeaseView → IProp GF
+  | none => iprop(True)
+  | some (L, I) => lease.lessorUser γl L I
+
+theorem lessorView_none (γl : GName) : lessorView (GF := GF) γl none = iprop(True) := rfl
+theorem lessorView_some (γl : GName) (L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) :
+    lessorView (GF := GF) γl (some (L, I)) = lease.lessorUser γl L I := rfl
 /-! ## The alarm store, the cluster, the raft status, the snapshot server -/
 
 /-- The `*pb.AlarmMember` `m` (not nil): its `Alarm`, read-only. -/
@@ -425,7 +475,8 @@ instance alarmGetOk_persistent (st : Loc) : Persistent (alarmGetOk (GF := GF) st
   unfold alarmGetOk; infer_instance
 
 /-- **The alarm store's `Get` under a resource `T`**, returning no alarm if `z` (D14i,
-2026-10-17: a fresh alarm store's, `alarmFresh`, during the uber-applier's construction;
+2026-10-17: a fresh alarm store's, during the uber-applier's construction, since 2026-11-01 the
+user's half at no alarm, `alarmEmpty`, `AlarmGet.lean`;
 `alarmGetOk` is `T = True`, `z = false`). -/
 def alarmGetIs (st : Loc) (T : IProp GF) (z : Bool) : IProp GF :=
   iprop(□ (∀ at' : w32,

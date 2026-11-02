@@ -13,7 +13,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__add
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__delete
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__addVictim
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.SyncModel
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.SyncWatchersLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.SyncCompactLemmas
 
 @[expose] public section
 
@@ -181,10 +181,11 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   iunfold mvcc.revMuBody at HQ
   icases HQ with ⟨%C, %ntok, %cQ, HQ⟩
   iNamedSuffix HQ "Q"
-  -- the store's compaction revision is `-1`: the watchable store's store is never compacted
-  -- (`isWatchableStore`'s `crevFrozen`; until M2, `notes/m2-plan.md`, the reader's)
-  imod mvcc.crevFrozen_agree γ.st _ cQ HcQ.1 $$ Hfrz HcrevQ with ⟨HcrevQ, %HcQ1⟩
-  subst HcQ1
+  -- (watches across a compaction) the compaction revision `cQ`: `-1` (no compactor) or a revision
+  -- of the committed log that writes no key twice (the create token's `watchNoDup`); a member
+  -- `choose` marks compacted is behind it (`crevLb`)
+  imod mvcc.watchNoDup_crev γ.st _ cQ C HcQ.1 $$ Hfrz HcrevQ HcertQ HokQ with ⟨HcrevQ, %HndQ⟩
+  icases mvcc.crevUB_get_lb _ _ _ $$ HcrevQ with ⟨HcrevQ, #HlbQ⟩
   icases persistent_entails_right (mvcc.idxLogAuth_cert_prefix _ _ _ _) $$ [$HlogQ $Hcert]
     with ⟨%HpC, HlogQ, -⟩
   -- under `s.mu`, the committed log is the notified one (unit W-K)
@@ -198,18 +199,41 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   -- the unsynced members' states, for `choose`
   icases persistent_entails_right (mvcc.sw_unsynced_bounds γ σ Hok _ C) $$ [$Hmem $HlogQ]
     with ⟨%Hbd, Hmem, HlogQ⟩
+  icases persistent_entails_right (mvcc.sw_unsynced_cmp γ σ Hok _ cQ HcQ.1) $$ [$Hmem $HcrevQ]
+    with ⟨%Hcmp0, Hmem, HcrevQ⟩
   have hCne : 1 ≤ C.length := List.length_pos_iff.2 HneQ
   have hClt : C.length < 2 ^ 63 := by
     have := HbudgetQ; omega
   icases (mvcc.sw_bigSepM_split (fun k _ => (σ.Wu !! k).isSome) σ.ST _).1 $$ Hst with ⟨Hstu, Hstr⟩
+  icases (mvcc.sw_bigSepM_split (fun k _ => (σ.Wu !! k).isSome) σ.ST _).1 $$ Hmem with ⟨Hmemu, Hmemr⟩
   have hSTu : ∀ k, (Iris.Std.PartialMap.filter (fun k _ => (σ.Wu !! k).isSome) σ.ST : GMap Loc mvcc.WatcherSt) !! k =
       if (σ.Wu !! k).isSome then σ.ST !! k else none := by
     intro k; rw [mvcc.sw_filter_lookup]; cases σ.ST !! k <;> cases (σ.Wu !! k).isSome <;> rfl
   generalize hSTuD : (Iris.Std.PartialMap.filter (fun k _ => (σ.Wu !! k).isSome) σ.ST : GMap Loc mvcc.WatcherSt) = STu at hSTu ⊢
   have hcur : sint.Z (W64 ((C.length : Int) - 1)) = (C.length : Int) - 1 := by word
-  wp_apply (hChoose (mvcc.unsyncedAddr s) σ.Wu STu (W64 512) (W64 ((C.length : Int) - 1)) (W64 (-1)))
-    $$ [$Hunsynced Hstu] as %g %minRev Hch
-  · iunfold mvcc.ownStates; iframe Hstu
+  have hcQ : sint.Z (W64 cQ : w64) = cQ := by have := HbudgetQ; word
+  -- (watches across a compaction) the members' parts of `choose`'s compaction sends
+  ihave Hmemu := BigSepM.bigSepM_mono (Φ := fun k x => mvcc.memberRes (GF := GF) γ 1 σ k x)
+      (Ψ := fun k x => iprop((if decide (sint.Z x.minRev < sint.Z (W64 cQ : w64)) then
+          mvcc.cmpSendPre γ k x.ch (1 : Qp).half else iprop(True)) ∗
+        ((if decide (sint.Z x.minRev < sint.Z (W64 cQ : w64)) then
+          mvcc.cmpSendPre γ k x.ch (1 : Qp).half else iprop(True)) -∗ mvcc.memberRes γ 1 σ k x)))
+      (fun {k x} hk => by
+        have hk' : STu !! k = some x := hk
+        rw [hSTu] at hk'
+        split at hk'
+        · rename_i hu
+          exact mvcc.memberRes_cmp_split γ σ k x (W64 cQ) (Or.inr (Or.inl hu))
+        · cases hk') $$ Hmemu
+  irevert Hmemu
+  rw [BigSepM.bigSepM_sep_eq]
+  iintro ⟨Hpre, Hwands⟩
+  wp_apply (hChoose γ (1 : Qp).half (mvcc.unsyncedAddr s) σ.Wu STu (W64 512) (W64 ((C.length : Int) - 1))
+      (W64 cQ))
+    $$ [$Hunsynced Hstu Hpre] as %g %minRev Hch
+  · iunfold mvcc.ownStates; iframe Hstu Hpre
+    isplitr
+    · rw [hcQ]; iexact HpermQ
     ipureintro
     refine ⟨⟨fun w hw => ?_, fun w st hw => ?_⟩, by have := Hok.wu_size; omega⟩
     · rw [hSTu, if_pos hw]; exact Hok.live_st w (Or.inr (Or.inl hw))
@@ -218,64 +242,86 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
       · rename_i hu
         have := (Hbd w st hw hu).1
         -- at or below `curRev`, or restoring (D22 receiver epochs, S6: `WsState.unsRst`)
-        refine ⟨by rw [show sint.Z (W64 (-1) : w64) = -1 by decide]; omega, ?_⟩
+        refine ⟨this, ?_⟩
         rcases Hurst w st hu hw with h | h
         · left; rw [hcur]; rw [← HCL] at h; omega
         · right; exact h
       · cases hw
-  have hne_of : ∀ W : GMap Loc mvcc.WatchRange, GMap.size W ≠ 0 → ∃ w, (W !! w).isSome := by
-    intro W h
-    refine Classical.byContradiction fun hc => h ?_
-    rw [GMap.map_size_empty_iff, ← GMap.lookup_empty_iff]
-    intro k
-    cases hk : W !! k with
-    | none => rfl
-    | some _ => exact absurd ⟨k, by rw [hk]; rfl⟩ hc
-  ihave Hch : ∃ (self : Bool) (W' : GMap Loc mvcc.WatchRange),
-      ⌜W' ⊆ σ.Wu ∧ (∃ w, (W' !! w).isSome) ∧
-        sint.Z minRev = mvcc.minRevOf STu (domSet W') ∧
-        (self = true → g = mvcc.unsyncedAddr s ∧ W' = σ.Wu)⌝ ∗
-      mvcc.ownWatcherGroup g W' ∗
-      mvcc.ownStates (mvcc.chooseRst (W64 ((C.length : Int) - 1)) (domSet W') STu) ∗
-      (if self then iprop(True) else mvcc.ownWatcherGroup (mvcc.unsyncedAddr s) σ.Wu) $$ [Hch]
-  · icases Hch with (⟨%H1, Hg, Hstu, %Hm⟩ | ⟨%W', %H2, Hun, Hg, Hstu, %Hm⟩)
-    · iexists true, σ.Wu
-      obtain ⟨rfl, -⟩ := H1
-      iframe Hg Hstu
+  icases Hch with ⟨%W0, %Cm, %HWC, Hbr, Hstu, Hpre, %hminR⟩
+  obtain ⟨hW0sub, hCm⟩ := HWC
+  -- (watches across a compaction) the members sent the compaction response (`Cm`) left the chosen
+  -- group (`W'`), and in the group branch the unsynced one
+  ihave Hbr : ∃ (self : Bool), ⌜self = true → g = mvcc.unsyncedAddr s ∧ W0 = σ.Wu⌝ ∗
+      mvcc.ownWatcherGroup g (Iris.Std.PartialMap.filter (fun w _ => !(Cm !! w).isSome) W0) ∗
+      (if self then iprop(True) else mvcc.ownWatcherGroup (mvcc.unsyncedAddr s) σ.Wu) $$ [Hbr]
+  · icases Hbr with (⟨%H1, Hg⟩ | ⟨-, Hun, Hg⟩)
+    · iexists true
+      obtain ⟨rfl, rfl, -⟩ := H1
+      iframe Hg
       isplitr
-      · ipureintro
-        refine ⟨GMap.map_subseteq_refl _, hne_of _ (fun h => Hif (by rw [h]; rfl)), Hm,
-          fun _ => ⟨rfl, rfl⟩⟩
-      simp only [↓reduceIte]
-      itrivial
-    · iexists false, W'
+      · ipureintro; exact fun _ => ⟨rfl, rfl⟩
+      simp only [↓reduceIte]; itrivial
+    · iexists false
       simp only [Bool.false_eq_true, ↓reduceIte]
-      iframe Hg Hun Hstu
-      ipureintro
-      refine ⟨H2.1, hne_of _ ?_, Hm, fun h => by cases h⟩
-      have := H2.2.2
-      have h512 : sint.Z (W64 512 : w64) = 512 := by decide
-      rw [h512] at this
-      omega
-  icases Hch with ⟨%self, %W', %HW', Hg, Hstu, Hun⟩
-  obtain ⟨hW'sub, hW'ne, hminR, hself⟩ := HW'
-  have hW'Wu : ∀ w r, W' !! w = some r → σ.Wu !! w = some r := fun w r h => hW'sub w r h
-  -- (D22 receiver epochs, S6) the states after `choose`'s restore reset: the chosen members'
-  -- (`STu'`) and all (`ST0`), the loop's initial ones
-  rw [← mvcc.minRevOf_chooseRst (W64 ((C.length : Int) - 1)) (domSet W')] at hminR
-  generalize hSTu'D : mvcc.chooseRst (W64 ((C.length : Int) - 1)) (domSet W') STu = STu' at hminR ⊢
-  have hSTu' : ∀ k, STu' !! k = (STu !! k).map (fun st =>
-      if (domSet W' !! k).isSome then mvcc.rstClear (W64 ((C.length : Int) - 1)) st else st) := by
-    intro k; rw [← hSTu'D]; rfl
-  generalize hST0D : mvcc.chooseRst (W64 ((C.length : Int) - 1)) (domSet W') σ.ST = ST0
-  have hST0 : ∀ k, ST0 !! k = (σ.ST !! k).map (fun st =>
-      if (domSet W' !! k).isSome then mvcc.rstClear (W64 ((C.length : Int) - 1)) st else st) := by
-    intro k; rw [← hST0D]; rfl
-  have hW'dom : ∀ k, (domSet W' !! k).isSome → (σ.Wu !! k).isSome := by
+      iframe Hg Hun
+      ipureintro; exact fun h => by cases h
+  icases Hbr with ⟨%self, %hself0, Hg, Hun⟩
+  generalize hW'D : (Iris.Std.PartialMap.filter (fun w _ => !(Cm !! w).isSome) W0 :
+    GMap Loc mvcc.WatchRange) = W'
+  have hW'0 : ∀ w r, W' !! w = some r → W0 !! w = some r ∧ (Cm !! w).isSome = false := by
+    intro w r h
+    rw [← hW'D, mvcc.sw_filter_lookup] at h
+    cases h0 : W0 !! w with
+    | none => rw [h0] at h; cases h
+    | some r0 =>
+      rw [h0] at h
+      cases hc : (Cm !! w).isSome
+      · simp only [hc, Bool.not_false, ↓reduceIte, Option.bind_some, Option.some.injEq] at h
+        exact ⟨by rw [h], rfl⟩
+      · simp [hc] at h
+  have hCmWu : ∀ w, (Cm !! w).isSome → (σ.Wu !! w).isSome := by
+    intro w hw
+    obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 (hCm w hw).1
+    rw [hW0sub w r hr]; rfl
+  have hW0dom : ∀ k, (domSet W0 !! k).isSome → (σ.Wu !! k).isSome := by
     intro k hk
-    have hk' : (W' !! k).isSome := by rw [GMap.domSet, GMap.lookup_fmap] at hk; simpa using hk
+    have hk' : (W0 !! k).isSome := by rw [GMap.domSet, GMap.lookup_fmap] at hk; simpa using hk
     obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 hk'
-    rw [hW'Wu k r hr]; rfl
+    rw [hW0sub k r hr]; rfl
+  generalize hWu1D : (if self then W' else σ.Wu) = Wu1
+  have hWu1 : ∀ w, Wu1 !! w = σ.Wu !! w ∨ ((Cm !! w).isSome ∧ Wu1 !! w = none) := by
+    intro w
+    rw [← hWu1D]
+    cases hs : self
+    · left; rfl
+    · obtain ⟨-, hW0⟩ := hself0 hs
+      simp only [↓reduceIte]
+      rw [← hW'D, mvcc.sw_filter_lookup, hW0]
+      cases hc : (Cm !! w).isSome
+      · left; cases σ.Wu !! w <;> simp [hc]
+      · right; refine ⟨rfl, ?_⟩; cases σ.Wu !! w <;> simp [hc]
+  have hself : self = true → g = mvcc.unsyncedAddr s ∧ W' = Wu1 := by
+    intro hs; refine ⟨(hself0 hs).1, ?_⟩; rw [← hWu1D, hs]; rfl
+  have hW'Wu : ∀ w r, W' !! w = some r → σ.Wu !! w = some r :=
+    fun w r h => hW0sub w r (hW'0 w r h).1
+  have hW'Wu1 : ∀ w r, W' !! w = some r → Wu1 !! w = some r := by
+    intro w r h
+    rcases hWu1 w with e | ⟨hc, -⟩
+    · rw [e]; exact hW'Wu w r h
+    · rw [(hW'0 w r h).2] at hc; cases hc
+  -- (D22 receiver epochs, S6; watches across a compaction) the states after `choose` (restore
+  -- reset, compaction responses): the chosen members' (`STu'`) and all (`ST0`), the loop's initial
+  -- ones
+  generalize hSTu'D : mvcc.chooseCmp Cm (mvcc.chooseRst (W64 ((C.length : Int) - 1)) (domSet W0) STu)
+    = STu'
+  have hSTu' : ∀ k, STu' !! k =
+      (STu !! k).map (mvcc.chooseF (W64 ((C.length : Int) - 1)) (domSet W0) Cm k) := by
+    intro k; rw [← hSTu'D, mvcc.chooseCmp_chooseRst_lookup]
+  generalize hST0D : mvcc.chooseCmp Cm (mvcc.chooseRst (W64 ((C.length : Int) - 1)) (domSet W0) σ.ST)
+    = ST0
+  have hST0 : ∀ k, ST0 !! k =
+      (σ.ST !! k).map (mvcc.chooseF (W64 ((C.length : Int) - 1)) (domSet W0) Cm k) := by
+    intro k; rw [← hST0D, mvcc.chooseCmp_chooseRst_lookup]
   have hW'ST : ∀ w, (W' !! w).isSome → ∃ st, STu' !! w = some st ∧ ST0 !! w = some st := by
     intro w hw
     obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 hw
@@ -291,30 +337,60 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     | some st0 =>
       rw [h0] at hs
       simp only [Option.map_some, Option.some.injEq] at hs
-      have e : st.minRev = st0.minRev := by rw [← hs]; split <;> simp
+      have e : st.minRev = st0.minRev := by rw [← hs]; simp
       rw [e]; exact Hbd w st0 h0 hu
-  obtain ⟨hm0, hm2⟩ := mvcc.sw_minRevOf_lb STu' (domSet W')
-    (fun w st hw hs => by
-      have hw' : (W' !! w).isSome := by rw [GMap.domSet, GMap.lookup_fmap] at hw; simpa using hw
-      obtain ⟨st', h1, h2⟩ := hW'ST w hw'
-      obtain rfl : st' = st := Option.some.inj (h1.symm.trans hs)
-      obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 hw'
-      exact (Hbd0 w st' h2 (by rw [hW'Wu w r hr]; rfl)).1)
-  rw [← hminR] at hm0 hm2
+  -- (watches across a compaction) the range's lower bound: the least `minRev` of the chosen
+  -- members not behind the compaction revision, so at least it
+  obtain ⟨hm0, hm2⟩ := mvcc.sw_minRevOf_lb STu
+    (Iris.Std.PartialMap.filter (fun w _ => mvcc.notBehind STu (W64 cQ) w) (domSet W0))
+    (fun w st _ hs => by
+      rw [hSTu] at hs
+      split at hs
+      · rename_i hu; exact (Hbd w st hs hu).1
+      · cases hs)
+  have hmQ : cQ ≤ mvcc.minRevOf STu
+      (Iris.Std.PartialMap.filter (fun w _ => mvcc.notBehind STu (W64 cQ) w) (domSet W0)) := by
+    refine mvcc.minRevOf_ge _ _ cQ (by have := HcQ.2; omega) (fun w st hw hs => ?_)
+    rw [mvcc.sw_filter_lookup] at hw
+    cases h0 : domSet W0 !! w with
+    | none => rw [h0] at hw; cases hw
+    | some u =>
+      rw [h0] at hw
+      unfold mvcc.notBehind at hw; rw [hs] at hw
+      by_cases hc : sint.Z (W64 cQ : w64) ≤ sint.Z st.minRev
+      · rw [hcQ] at hc; exact hc
+      · exfalso
+        simp only [decide_eq_false hc] at hw
+        simp at hw
+  rw [← hminR] at hm0 hm2 hmQ
+  have hm2' : ∀ w st, (W' !! w).isSome → STu' !! w = some st → cQ ≤ sint.Z st.minRev →
+      sint.Z minRev ≤ sint.Z st.minRev := by
+    intro w st hw hs hq
+    obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 hw
+    rw [hSTu'] at hs
+    cases h0 : STu !! w with
+    | none => rw [h0] at hs; cases hs
+    | some st0 =>
+      rw [h0] at hs; simp only [Option.map_some, Option.some.injEq] at hs
+      have e : st.minRev = st0.minRev := by rw [← hs]; simp
+      rw [e] at hq ⊢
+      refine hm2 w st0 ?_ h0
+      rw [mvcc.sw_filter_lookup, GMap.domSet, GMap.lookup_fmap, (hW'0 w r hr).1]
+      unfold mvcc.notBehind; rw [h0]; simp [hcQ, hq]
   ihave %HCwf : ⌜mvcc.LogWf' C ∧ C.length < 2 ^ 63 ∧ ∀ cs ∈ C, cs.length < 2 ^ 63⌝ $$ [HcertQ]
   · iunfold mvcc.idxCert at HcertQ
     icases HcertQ with ⟨-, %H, -⟩
     ipureintro; exact H
   have hcur1 : sint.Z (W64 ((C.length : Int) - 1) + W64 1) = (C.length : Int) := by word
-  ihave #HfrzP : mvcc.crevFrozen (γ.st.withPhys p) $$ []
-  · rw [mvcc.crevFrozen_withPhys]; iexact Hfrz
   ihave #HcertP : mvcc.idxCert (γ.st.withPhys p).idx C $$ []
   · rw [mvcc.idxCert_withPhys]; iexact HcertQ
   ihave #HbkS := mvcc.isKeyBackendG_wand $$ HbkS
   wp_apply (lc := 1) (hRange _ _ (γ.st.withPhys p) _ _ _ _ C minRev (W64 ((C.length : Int) - 1) + W64 1) g W')
-    $$ [$HbkS $HrtR $HfrzP $HbucketQ $HcertP $Hg] as %evs ⟨HrtR, HbucketQ, Hg, %ps, Hevs, Hevcap,
-      %Hpslen, #HevIs⟩
-  · ipureintro; rw [hcur1]; omega
+    $$ [$HbkS $HrtR HcrevQ $HbucketQ $HcertP $Hg] as %evs ⟨HrtR, HcrevQ, HbucketQ, Hg, %ps, Hevs,
+      Hevcap, %Hpslen, #HevIs⟩
+  · rw [mvcc.crevUB_withPhys]; iframe HcrevQ
+    ipureintro; rw [hcur1]
+    exact ⟨hm0, by omega, by omega, HcQ.1, hmQ, HndQ⟩
   -- the slot back in the readers' pool, the watchable store's deposit back (S5a)
   imod mvcc.readerPool_checkin_ws_p γ.st p _ o $$ Hlc1 HpoolS Hcur [HtiP HrtR] Htkw with ⟨HtkR, Hwsd, Hcur⟩
   · iunfold mvcc.idxSlot; iframe HtiP HrtR
@@ -334,8 +410,6 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     ipureintro
     refine ⟨fun w hw => ?_, Hpslen⟩
     obtain ⟨st, h1, -⟩ := hW'ST w hw; rw [h1]; rfl
-  icases Hwb with (%hW0 | ⟨-, Hwb⟩)
-  · exfalso; obtain ⟨w, hw⟩ := hW'ne; rw [hW0.1] at hw; cases hw
   iunfold mvcc.ownStates at Hstu
   have hsplit1 : (Iris.Std.PartialMap.filter (fun k _ => (σ.Wu !! k).isSome) ST0 :
       GMap Loc mvcc.WatcherSt) = STu' := by
@@ -352,16 +426,42 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
       (Iris.Std.PartialMap.filter _ σ.ST : GMap Loc mvcc.WatcherSt) !! k
     rw [mvcc.sw_filter_lookup, mvcc.sw_filter_lookup, hST0]
     cases hu : (σ.Wu !! k).isSome
-    · have hd : (domSet W' !! k).isSome = false := by
-        cases h : (domSet W' !! k).isSome
+    · have hd : (domSet W0 !! k).isSome = false := by
+        cases h : (domSet W0 !! k).isSome
         · rfl
-        · have := hW'dom k h; rw [hu] at this; cases this
+        · have := hW0dom k h; rw [hu] at this; cases this
+      have hc : (Cm !! k).isSome = false := by
+        cases h : (Cm !! k).isSome
+        · rfl
+        · have := hCmWu k h; rw [hu] at this; cases this
       cases σ.ST !! k with
       | none => rfl
-      | some st0 => simp only [Option.map_some, hd, Bool.false_eq_true, ↓reduceIte, Option.bind_some, hu]
+      | some st0 =>
+        simp only [Option.map_some, mvcc.chooseF_of _ _ _ _ _ hd hc, Option.bind_some, hu]
     · cases σ.ST !! k <;> simp [hu]
   ihave Hst := (mvcc.sw_bigSepM_split (fun k _ => (σ.Wu !! k).isSome) ST0 _).2 $$ [Hstu Hstr]
   · rw [hsplit1, hsplit2]; iframe
+  -- (watches across a compaction) the members' resources back from `choose`'s sends, in the state
+  -- after it: the ones marked compacted behind the compaction revision
+  icombine Hpre Hwands as Hpw
+  irevert Hpw
+  rw [BigSepM.bigSepM_sep_eq_symm]
+  iintro Hpw
+  ihave Hmemu : [∗map] k ↦ x ∈ STu, mvcc.memberRes (GF := GF) γ 1 σ k x $$ [Hpw]
+  · iapply (BigSepM.bigSepM_mono (fun {k x} _ => by iintro ⟨H1, H2⟩; iapply H2 $$ H1)) $$ Hpw
+  ihave Hmem := (mvcc.sw_bigSepM_split (fun k _ => (σ.Wu !! k).isSome) σ.ST _).2 $$ [Hmemu Hmemr]
+  · rw [hSTuD]; iframe
+  -- the lock's facts in the state after `choose`
+  have hcm := (mvcc.WsOk.cmpSt (Hok.chooseRst_ST (W64 ((C.length : Int) - 1)) (domSet W0)) Cm Wu1
+    hCmWu hWu1)
+  have hX1 : ({ σ with Wu := Wu1, ST := ST0 } : mvcc.WsState) =
+      ({ σ with ST := mvcc.chooseRst (W64 ((C.length : Int) - 1)) (domSet W0) σ.ST } :
+        mvcc.WsState).cmpSt Cm Wu1 := by rw [← hST0D]; rfl
+  have hok1 : mvcc.WsOk { σ with Wu := Wu1, ST := ST0 } := by rw [hX1]; exact hcm.1
+  have hlive1 : ∀ k, ({ σ with Wu := Wu1, ST := ST0 } : mvcc.WsState).live k ↔ σ.live k := by
+    intro k; rw [hX1]; exact (hcm.2 k).trans (mvcc.chooseRst_live σ _ _ k)
+  have hset1 : ({ σ with Wu := Wu1, ST := ST0 } : mvcc.WsState).settled := by
+    rw [hX1]; exact mvcc.WsState.settled_cmpSt (mvcc.WsState.settled_chooseRst Hset _ _) Cm Wu1
 
   -- the chosen group's set, lent to the loop
   icases (mvcc.ownWatcherGroup_at g W' 1).1 $$ Hg with ⟨%ws, Hg⟩
@@ -375,16 +475,36 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     iapply mvcc.ownWatcherGroupAt_intro g W' km ws t KM L HL
     iframe
     iframe #
-  ihave Hun : (if self then (mvcc.ownWatcherSet ws (domSet σ.Wu) -∗
-      mvcc.ownWatcherGroupAt (mvcc.unsyncedAddr s) σ.Wu ws)
-      else mvcc.ownWatcherGroup (mvcc.unsyncedAddr s) σ.Wu) $$ [Hun Hrest]
+  ihave Hun : (if self then (mvcc.ownWatcherSet ws (domSet Wu1) -∗
+      mvcc.ownWatcherGroupAt (mvcc.unsyncedAddr s) Wu1 ws)
+      else mvcc.ownWatcherGroup (mvcc.unsyncedAddr s) Wu1) $$ [Hun Hrest]
   · cases hs : self
-    · simp only [hs, Bool.false_eq_true, ↓reduceIte] at *; iexact Hun
-    · obtain ⟨rfl, rfl⟩ := hself hs
+    · have e : Wu1 = σ.Wu := by rw [← hWu1D, hs]; rfl
+      rw [e]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hun
+    · obtain ⟨rfl, hW⟩ := hself hs
+      rw [← hW]
       simp only [↓reduceIte]
       iexact Hrest
   iunfold mvcc.ownWatcherSet at Hws
-  iunfold mvcc.ownWatcherBatch at Hwb
+  -- (watches across a compaction) every chosen member sent the compaction response: no batch map
+  ihave Hwb : ∃ PB : GMap Loc (Loc × mvcc.EventBatch),
+      (⌜W' = ∅⌝ ∨ wb ↦$ GMap.fmap Prod.fst PB) ∗
+      ⌜W' = ∅ ∨ mvcc.batchOf W' STu' evm = GMap.fmap Prod.snd PB⌝ ∗
+      ([∗map] _w ↦ p ∈ PB, ⌜p.1 ≠ null⌝ ∗ mvcc.ownEventBatch p.1 p.2) $$ [Hwb]
+  · icases Hwb with (%hW0 | ⟨-, Hwb⟩)
+    · iexists ∅
+      isplitr
+      · ileft; ipureintro; exact hW0.1
+      isplitr
+      · ipureintro; exact Or.inl hW0.1
+      iapply BigSepM.bigSepM_empty.2; iempintro
+    · iunfold mvcc.ownWatcherBatch at Hwb
+      icases Hwb with ⟨%PB, Hwbm, %HBt, Hbs⟩
+      iexists PB
+      iframe Hbs
+      isplitl [Hwbm]
+      · iright; iexact Hwbm
+      ipureintro; exact Or.inr HBt
   icases Hwb with ⟨%PB, Hwbm, %HBt, Hbs⟩
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
@@ -400,46 +520,78 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
       "Hvm" ∷ vm ↦$ GMap.fmap Prod.fst PBv ∗
       "Hbv" ∷ ([∗map] _w ↦ p ∈ PBv, ⌜p.1 ≠ null⌝ ∗ mvcc.ownEventBatch p.1 p.2) ∗
       "Hrem" ∷ ([∗map] _w ↦ p ∈ PBr, ⌜p.1 ≠ null⌝ ∗ mvcc.ownEventBatch p.1 p.2) ∗
-      "Hwbm" ∷ wb ↦$ GMap.fmap Prod.fst PB ∗
+      "Hwbm" ∷ (⌜W' = ∅⌝ ∨ wb ↦$ GMap.fmap Prod.fst PB) ∗
       "w" ∷ w_ptr ↦ wv ∗ "s" ∷ s_ptr ↦ s ∗
       "curRev" ∷ curRev_ptr ↦ W64 ((C.length : Int) - 1) ∗
-      "compactionRev" ∷ compactionRev_ptr ↦ W64 (-1) ∗
+      "compactionRev" ∷ compactionRev_ptr ↦ W64 cQ ∗
       "victims" ∷ victims_ptr ↦ vm ∗ "wb" ∷ wb_ptr ↦ wb ∗
-      "%Hi" ∷ ⌜mvcc.SyncLoop σ ST0 v PB PBv PBr keys i ∧
+      "%Hi" ∷ ⌜mvcc.SyncLoop { σ with Wu := Wu1 } ST0 v PB PBv PBr keys i ∧
         m' = (if self then domSet v.Wu else domSet W')⌝))
     _ _ _ ws (domSet W') (DFrac.own 1)) $$ Hws
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
   isplitl [Hst Hmem Hsynced Hun Hvm Hbs Hwbm w s curRev compactionRev victims wb]
-  · -- (D22 receiver epochs, S6) the loop starts from `σ` with `choose`'s reset states `ST0`
-    have hok1 : mvcc.WsOk { σ with ST := ST0 } := by rw [← hST0D]; exact Hok.chooseRst_ST _ _
-    have hset1 : ({ σ with ST := ST0 } : mvcc.WsState).settled := by
-      rw [← hST0D]; exact mvcc.WsState.settled_chooseRst Hset _ _
-    iexists mvcc.SyncVars.init { σ with ST := ST0 }, ∅, PB, zero_val Loc
+  · -- (D22 receiver epochs, S6; watches across a compaction) the loop starts from the state after
+    -- `choose`: its reset and compacted states `ST0`, the unsynced group `Wu1`
+    iexists mvcc.SyncVars.init { σ with Wu := Wu1, ST := ST0 }, ∅, PB, zero_val Loc
     simp only [named, GMap.fmap_empty]
-    have hI : ∀ k, (mvcc.SyncVars.st σ (mvcc.SyncVars.init { σ with ST := ST0 })).victimOf k =
+    have hI : ∀ k, (mvcc.SyncVars.st σ (mvcc.SyncVars.init { σ with Wu := Wu1, ST := ST0 })).victimOf k =
         σ.victimOf k := by
       intro k; rw [mvcc.SyncVars.st_victimOf]; simp [mvcc.SyncVars.init]
     iframe Hvm Hwbm w s curRev compactionRev victims wb Hbs
-    have e1 : (mvcc.SyncVars.init { σ with ST := ST0 }).ST = ST0 := rfl
-    have e2 : (mvcc.SyncVars.init { σ with ST := ST0 }).Ws = σ.Ws := rfl
-    have e3 : (mvcc.SyncVars.init { σ with ST := ST0 }).Wu = σ.Wu := rfl
+    have e1 : (mvcc.SyncVars.init { σ with Wu := Wu1, ST := ST0 }).ST = ST0 := rfl
+    have e2 : (mvcc.SyncVars.init { σ with Wu := Wu1, ST := ST0 }).Ws = σ.Ws := rfl
+    have e3 : (mvcc.SyncVars.init { σ with Wu := Wu1, ST := ST0 }).Wu = Wu1 := rfl
     rw [e1, e2, e3]
     iframe Hst Hsynced Hun
     isplitl [Hmem]
-    · iapply (BigSepM.bigSepM_mono (Φ := fun k x => mvcc.memberRes (GF := GF) γ 1 σ k x)
+    · iapply (BigSepM.bigSepM_mono (Φ := fun k x => mvcc.memberRes (GF := GF) γ 1 { σ with Wu := Wu1, ST := ST0 } k x)
         (fun {k x} _ => by
-          rw [mvcc.sw_memberRes_congr γ 1 (mvcc.SyncVars.st σ (mvcc.SyncVars.init { σ with ST := ST0 }))
-            σ k x rfl rfl rfl rfl (hI k)]))
-      rw [← hST0D]
-      unfold mvcc.chooseRst
+          rw [mvcc.sw_memberRes_congr γ 1 (mvcc.SyncVars.st σ (mvcc.SyncVars.init { σ with Wu := Wu1, ST := ST0 }))
+            { σ with Wu := Wu1, ST := ST0 } k x rfl rfl rfl rfl (hI k) rfl]))
+      iapply (show ([∗map] k ↦ x ∈ mvcc.gmapMapK (mvcc.chooseF (W64 ((C.length : Int) - 1)) (domSet W0) Cm)
+          σ.ST, mvcc.memberRes (GF := GF) γ 1 { σ with Wu := Wu1, ST := ST0 } k x) ⊢
+          [∗map] k ↦ x ∈ ST0, mvcc.memberRes γ 1 { σ with Wu := Wu1, ST := ST0 } k x
+        from by rw [← mvcc.chooseCmp_chooseRst]; (try rw [hST0D]))
       iapply (mvcc.bigSepM_gmapMapK _ _ _).2
-      iapply (BigSepM.bigSepM_mono (fun {k x} _ => ?_)) $$ Hmem
-      have e : ((if (domSet W' !! k).isSome = true then mvcc.rstClear (W64 ((C.length : Int) - 1)) x
-          else x).minRev = x.minRev) ∧
-          (if (domSet W' !! k).isSome = true then mvcc.rstClear (W64 ((C.length : Int) - 1)) x
-          else x).ch = x.ch := by
-        split <;> simp
-      rw [mvcc.memberRes_st_congr γ 1 σ k _ x e.1 e.2]
+      iapply BigSepM.bigSepM_impl $$ Hmem
+      imodintro
+      iintro %k %x %hk H
+      have hk' : σ.ST !! k = some x := hk
+      cases hu : (σ.Wu !! k).isSome
+      · -- not unsynced: untouched
+        have hd : (domSet W0 !! k).isSome = false := by
+          cases h : (domSet W0 !! k).isSome
+          · rfl
+          · have := hW0dom k h; rw [hu] at this; cases this
+        have hc : (Cm !! k).isSome = false := by
+          cases h : (Cm !! k).isSome
+          · rfl
+          · have := hCmWu k h; rw [hu] at this; cases this
+        rw [mvcc.chooseF_of _ _ _ _ _ hd hc]
+        have h1 : (Wu1 !! k).isSome = (σ.Wu !! k).isSome := by
+          rcases hWu1 k with e | ⟨hc', -⟩
+          · rw [e]
+          · rw [hc] at hc'; cases hc'
+        have h2 : ST0 !! k = σ.ST !! k := by
+          simp only [hST0, hk', Option.map_some, mvcc.chooseF_of _ _ _ _ _ hd hc]
+        iapply (mvcc.memberRes_congr γ 1 σ { σ with Wu := Wu1, ST := ST0 } k x rfl rfl h1 rfl rfl h2)
+          $$ H
+      · -- unsynced: marked compacted only behind the compaction revision
+        have hws0 : σ.Ws !! k = none := by
+          cases h : σ.Ws !! k with
+          | none => rfl
+          | some _ => have := Hok.ws_wu k (by rw [h]; rfl); rw [this] at hu; cases hu
+        iapply (mvcc.memberRes_cmpSt γ σ { σ with Wu := Wu1, ST := ST0 } k x _ cQ rfl rfl rfl rfl hws0 hu (Hok.wu_v k hu)
+          ((hlive1 k).2 (Or.inr (Or.inl hu))) (mvcc.chooseF_minRev _ _ _ _ _)
+          (mvcc.chooseF_ch _ _ _ _ _) (fun hc => ?_))
+        · rcases mvcc.chooseF_compacted _ _ _ _ _ hc with h | h
+          · exact Or.inl h
+          · obtain ⟨-, st1, hst1, hlt⟩ := hCm k h
+            rw [hSTu, if_pos hu, hk'] at hst1; cases hst1
+            right; rw [hcQ] at hlt; exact hlt
+        isplitl [H]
+        · iexact H
+        iexact HlbQ
     isplitr
     · iapply BigSepM.bigSepM_empty.2; iempintro
     ipureintro
@@ -465,7 +617,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     have hσWu : σ.Wu !! key = some r := hW'Wu key r hr
     obtain ⟨hvST, hvWu, hvWs, hvE, hvBv, hPBr⟩ := Hl.rest key hnot
     rw [hσST] at hvST
-    rw [hσWu] at hvWu
+    have hvWu : v.Wu !! key = some r := hvWu.trans (hW'Wu1 key r hr)
+    have hσWu : σ.Wu !! key = some r := hW'Wu key r hr
     have hσWs : σ.Ws !! key = none := by
       cases h : σ.Ws !! key with
       | none => rfl
@@ -474,20 +627,62 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     obtain ⟨hm0', hmC'⟩ := Hbd0 key st hσST (by rw [hσWu]; rfl)
     have hvST' : Iris.Std.PartialMap.get? v.ST key = some st := by rw [gmap_get?_eq]; exact hvST
     icases (BigSepM.bigSepM_delete hvST').1 $$ Hst with ⟨Hstw, Hst⟩
+    iunfold mvcc.watcherOwn at Hstw
+    icases Hstw with ⟨HminRev, Hvict, Hcomp, Hrest0, Hchf⟩
+    wp_auto
+    by_cases hskip : sint.Z st.minRev < cQ
+    · -- (watches across a compaction) behind the compaction revision, its compaction response not
+      -- sent (its channel full): skipped, `choose` retries it next time
+      rw [decide_eq_true (show sint.Z st.minRev < sint.Z (W64 cQ : w64) by rw [hcQ]; exact hskip)]
+      wp_auto
+      ihave Hstw : mvcc.watcherOwn key st $$ [HminRev Hvict Hcomp Hrest0 Hchf]
+      · iunfold mvcc.watcherOwn; iframe
+      ihave Hst := (BigSepM.bigSepM_delete (Φ := fun w x => mvcc.watcherOwn (GF := GF) w x) hvST').2
+        $$ [Hstw Hst]
+      · isplitl [Hstw]
+        · iexact Hstw
+        iexact Hst
+      unfold forMapPostcondition
+      ileft
+      isplitr
+      · ipureintro; rfl
+      iexists _
+      iframe Hm
+      iexists v, PBv, PBr, key
+      simp only [named]
+      iframe Hst Hmem Hsynced Hun Hvm Hbv Hrem Hwbm w s curRev compactionRev victims wb
+      ipureintro
+      refine ⟨Hl.skip Hkey (fun st0 _ hs => ?_), hm'⟩
+      rw [hvST] at hs; cases hs
+      show sint.Z st.minRev < (σ.Lmu.length : Int)
+      rw [← HCL]; have := HcQ.2; omega
+    rw [decide_eq_false (show ¬ sint.Z st.minRev < sint.Z (W64 cQ : w64) by rw [hcQ]; exact hskip)]
+    wp_auto
+    -- not compacted: a compacted unsynced member is behind the compaction revision
+    have hcp0 : st.compacted = false := by
+      have h2 := hσST
+      cases h1 : σ.ST !! key with
+      | none => rw [hST0, h1] at h2; cases h2
+      | some st1 =>
+        rw [hST0, h1] at h2
+        simp only [Option.map_some, Option.some.injEq] at h2
+        cases hc : st.compacted
+        · rfl
+        · exfalso
+          rw [← h2] at hc
+          rcases mvcc.chooseF_compacted _ _ _ _ _ hc with h | h
+          · have := Hcmp0 key st1 h1 (by rw [hσWu]; rfl) h
+            have e : st.minRev = st1.minRev := by rw [← h2]; simp
+            rw [e] at hskip; omega
+          · rw [(hW'0 key r hr).2] at h; cases h
     icases (BigSepM.bigSepM_delete hvST').1 $$ Hmem with ⟨Hmemw, Hmem⟩
     icases mvcc.sw_memberRes_unsynced γ 1 (v.st σ) key st hvWs (by show (v.Wu !! key).isSome; rw [hvWu]; rfl)
       $$ Hmemw with ⟨%γw, %r', %fcs, %evsw, %hM, #Hmeta, #Hfx, #Hch, #Hfo, %Hsr, %hE, Ha, Hlv, %Hlo,
-        #Hwf, %Lc, #HLc, %HLc⟩
+        #Hwf, ⟨%Lc, #HLc, %HLc⟩, #Hcmpw⟩
     icases (BigSepM.bigSepM_lookup_acc (m := W') (by rw [gmap_get?_eq]; exact hr)).1 $$ Hfixed
       with ⟨⟨%fcs0, #Hf0⟩, -⟩
     ihave %Hag := mvcc.watcherFixed_agree key r' r fcs fcs0 $$ [$Hfx $Hf0]
     obtain ⟨rfl, -⟩ := Hag
-    iunfold mvcc.watcherOwn at Hstw
-    icases Hstw with ⟨HminRev, Hvict, Hcomp, Hrest0, Hchf⟩
-    wp_auto
-    rw [decide_eq_false (show ¬ sint.Z st.minRev < sint.Z (W64 (-1) : w64) by
-      rw [show sint.Z (W64 (-1) : w64) = -1 by decide]; omega)]
-    wp_auto
     by_cases hmC : sint.Z st.minRev < C.length
     rotate_left
     · -- (D22 receiver epochs, S6) beyond the committed log: a watcher `watchableStore.Restore`
@@ -496,7 +691,13 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
       rw [if_neg (show ¬ sint.Z st.minRev < sint.Z (W64 ((C.length : Int) - 1) + W64 1) by
         rw [hcur1]; omega)]
       (try wp_auto)
+      icases Hwbm with (%hWe | Hwbm)
+      · exfalso; rw [hWe] at hW; simp at hW
       wp_apply wp_map_lookup2 $$ Hwbm as Hwbm
+      ihave Hwbm : (⌜W' = ∅⌝ ∨ wb ↦$ GMap.fmap Prod.fst PB) $$ [Hwbm]
+      · iright; iexact Hwbm
+      have HBt : mvcc.batchOf W' STu' evm = GMap.fmap Prod.snd PB :=
+        HBt.resolve_left (fun hWe => by rw [hWe] at hW; simp at hW)
       have hbk : GMap.fmap Prod.snd PB !! key = mvcc.memberBatch r' st evm := by
         rw [← HBt, mvcc.batchOf_lookup, hr, hSTuk]
       have hmb := mvcc.memberBatch_logEvents C HCwf.1 HCwf.2.1 HCwf.2.2 r' st
@@ -504,7 +705,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         (fun ev hc => by
           simp only [mvcc.wgCovers, decide_eq_true_eq]; exact ⟨key, r', hr, hc⟩)
         (by
-          have := hm2 key st (by rw [GMap.domSet, GMap.lookup_fmap, hr]; rfl) hSTuk
+          have := hm2' key st hW hSTuk (by omega)
           show ((sint.Z minRev).toNat : Int) ≤ _; omega)
         (Nat.le_refl _)
       rw [hevm] at hmb
@@ -532,7 +733,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
       wp_apply (mvcc.sw_wp_unsynced_delete hDel self s ws v.Wu W' m' key r' fcs hm')
         $$ [$Hun $Hm $Hfx] as %b ⟨Hun, Hm⟩
       (try wp_auto)
-      obtain ⟨fc, fv, fch, fvo, fbv, -⟩ := Hl.unsynced_facts hvWu hvST
+      obtain ⟨fv, fch, fvo, fbv, -⟩ := Hl.unsynced_facts hvWu hvST
+      have fc := hcp0
       ihave Hmw := mvcc.sw_memberRes_new_synced γ σ v key r' st γw fcs evsw (sint.nat st.minRev) hM Hsr
         ⟨Hlo, by show sint.Z st.minRev ≤ ((sint.Z st.minRev).toNat : Int); omega⟩
         $$ [Hmeta Hfx Hch Hfo Ha Hlv Hwf]
@@ -579,7 +781,13 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     rw [if_pos (show sint.Z st.minRev < sint.Z (W64 ((C.length : Int) - 1) + W64 1) by
       rw [hcur1]; omega)]
     (try wp_auto)
+    icases Hwbm with (%hWe | Hwbm)
+    · exfalso; rw [hWe] at hW; simp at hW
     wp_apply wp_map_lookup2 $$ Hwbm as Hwbm
+    ihave Hwbm : (⌜W' = ∅⌝ ∨ wb ↦$ GMap.fmap Prod.fst PB) $$ [Hwbm]
+    · iright; iexact Hwbm
+    have HBt : mvcc.batchOf W' STu' evm = GMap.fmap Prod.snd PB :=
+      HBt.resolve_left (fun hWe => by rw [hWe] at hW; simp at hW)
     have hbk : GMap.fmap Prod.snd PB !! key = mvcc.memberBatch r' st evm := by
       rw [← HBt, mvcc.batchOf_lookup, hr, hSTuk]
     have hmb := mvcc.memberBatch_logEvents C HCwf.1 HCwf.2.1 HCwf.2.2 r' st
@@ -587,7 +795,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
       (fun ev hc => by
         simp only [mvcc.wgCovers, decide_eq_true_eq]; exact ⟨key, r', hr, hc⟩)
       (by
-        have := hm2 key st (by rw [GMap.domSet, GMap.lookup_fmap, hr]; rfl) hSTuk
+        have := hm2' key st hW hSTuk (by omega)
         show ((sint.Z minRev).toNat : Int) ≤ _; omega)
       (Nat.le_refl _)
     rw [hevm] at hmb
@@ -608,7 +816,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
       wp_apply (mvcc.sw_wp_unsynced_delete hDel self s ws v.Wu W' m' key r' fcs hm')
         $$ [$Hun $Hm $Hfx] as %b ⟨Hun, Hm⟩
       (try wp_auto)
-      obtain ⟨fc, fv, fch, fvo, fbv, -⟩ := Hl.unsynced_facts hvWu hvST
+      obtain ⟨fv, fch, fvo, fbv, -⟩ := Hl.unsynced_facts hvWu hvST
+      have fc := hcp0
       have hmN : sint.nat st.minRev ≤ C.length := by
         show (sint.Z st.minRev).toNat ≤ _; omega
       have hloN : γw.lo ≤ sint.nat st.minRev := by
@@ -667,7 +876,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
       iunfold mvcc.ownEventBatch at HB
       icases HB with ⟨%sl, %eps, Heb, Hsl, Hcap, %Heplen, #HevB⟩
       simp only at Heplen ⊢
-      obtain ⟨fc, fv, fch, fvo, fbv, -⟩ := Hl.unsynced_facts hvWu hvST
+      obtain ⟨fv, fch, fvo, fbv, -⟩ := Hl.unsynced_facts hvWu hvST
+      have fc := hcp0
       have hmN : sint.nat st.minRev ≤ C.length := by
         show (sint.Z st.minRev).toNat ≤ _; omega
       have hloN : γw.lo ≤ sint.nat st.minRev := by
@@ -779,7 +989,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
               exact GMap.lookup_delete_ne _ (Ne.symm hk))
             (mvcc.SyncVars.settled_step Hl.ok Hl.set hvWu (.victim B) st' (evsw, C.length)
               (fun h => by cases h)
-              (fun _ => by have h := hst'm; rw [HCL] at h; omega))
+              (fun _ => by have h := hst'm; rw [HCL] at h; simp only; omega))
             (fun h => by cases h), ?_⟩
           cases self <;> rfl
         · simp only [↓reduceIte]
@@ -945,7 +1155,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
               (fun h => by cases h)
               (fun _ => by
                 have hle : M ≤ C.length := by omega
-                rw [HCL] at hle; omega))
+                rw [HCL] at hle; simp only; omega))
             (fun h => by cases h), ?_⟩
           cases self <;> rfl
         · simp only [↓reduceIte]
@@ -962,6 +1172,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
             hM Hsr hvWs hvWu ⟨by rw [hst'm]; omega, by
               show M = (sint.Z st'.minRev).toNat; rw [hst'm]; simp⟩
             (by show (sint.Z st'.minRev).toNat ≤ max γw.lo C.length; rw [hst'm]; simp; omega)
+            (by rw [← hst']; exact hcp0)
             $$ [Hmeta Hfx Hch Hfo Ha Hlv Hwf']
           · rw [← hst']; iframe; iframe #
           ihave Hwo : mvcc.watcherOwn key st' $$ [HminRev Hvict Hcomp Hrest0 Hchf]
@@ -1010,7 +1221,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     cases hs : self
     · simp only [hs, Bool.false_eq_true, ↓reduceIte, GMap.domSet, GMap.lookup_fmap, hr] at Hu
       cases Hu
-    · simp only [hs, ↓reduceIte, GMap.domSet, GMap.lookup_fmap, hu, hW'Wu key r hr] at Hu
+    · have hu' : v.Wu !! key = some r := hu.trans (hW'Wu1 key r hr)
+      simp only [hs, ↓reduceIte, GMap.domSet, GMap.lookup_fmap, hu'] at Hu
       cases Hu
   iintro %m' HP Hm
   iNamed HP
@@ -1100,8 +1312,12 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HrstR]
     as HrevMuR
   · inext
+    have ecr : mvcc.crevUB (GF := GF) { γ.st.idx with nev := p.nev, cmp := p.cmp }
+        sync.rfrac.half.half cQ = mvcc.crevUB γ.st.idx sync.rfrac.half.half cQ :=
+      mvcc.crevUB_withPhys γ.st p _ _
+    irevert HcrevQ; rw [ecr]; iintro HcrevQ
     iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
-    iexists C, ntok, -1
+    iexists C, ntok, cQ
     simp only [named]
     iframe
     iframe #
@@ -1142,7 +1358,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     · ipureintro; exact hlen'
     isplitl [Hmem]
     · iapply (BigSepM.bigSepM_mono (fun {k x} _ => ?_)) $$ Hmem
-      rw [mvcc.sw_memberRes_congr γ 1 (v.st σ) σf k x rfl rfl rfl rfl (hvo k).symm]
+      rw [mvcc.sw_memberRes_congr γ 1 (v.st σ) σf k x rfl rfl rfl rfl (hvo k).symm rfl]
     isplitr
     · iapply (BigSepM.bigSepM_mono (fun {k x} _ => by unfold mvcc.outRes; exact .rfl)) $$ Hout
     ipureintro; exact hokf
@@ -1165,19 +1381,40 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
       exact Hl.uns k stk (by rw [List.take_length]; exact hk) hu hst
     · obtain ⟨h1, h2, -⟩ := Hl.rest k (by rw [List.take_length]; exact hk)
       have hst' : ST0 !! k = some stk := by rw [← h1]; exact hst
-      have hd : (domSet W' !! k).isSome = false := by
-        cases h : (domSet W' !! k).isSome
-        · rfl
-        · exact absurd ((Hkset k).2 h) hk
+      have hu1 : (Wu1 !! k).isSome := by
+        have e : v.Wu !! k = Wu1 !! k := h2
+        rw [← e]; exact hu
+      have hu' : (σ.Wu !! k).isSome := by
+        rcases hWu1 k with e | ⟨-, e⟩
+        · rw [← e]; exact hu1
+        · rw [e] at hu1; cases hu1
       rw [hST0] at hst'
-      have hu' : (σ.Wu !! k).isSome := by rw [← h2]; exact hu
       cases h0 : σ.ST !! k with
       | none => rw [h0] at hst'; cases hst'
       | some st0 =>
         rw [h0] at hst'
-        simp only [Option.map_some, hd, Bool.false_eq_true, ↓reduceIte, Option.some.injEq] at hst'
+        simp only [Option.map_some, Option.some.injEq] at hst'
         subst hst'
-        exact Hurst k st0 hu' h0
+        by_cases hc : (Cm !! k).isSome
+        · -- (watches across a compaction) sent the compaction response, kept unsynced (the copy
+          -- branch): behind the compaction revision, so below the notified log
+          left
+          obtain ⟨-, st1, hst1, hlt⟩ := hCm k hc
+          rw [hSTu, if_pos hu', h0] at hst1; cases hst1
+          rw [mvcc.chooseF_minRev]; rw [hcQ] at hlt
+          show _ < (σ.Lmu.length : Int)
+          rw [← HCL]; have := HcQ.2; omega
+        · have hd : (domSet W0 !! k).isSome = false := by
+            cases h : (domSet W0 !! k).isSome
+            · rfl
+            · exfalso; apply hk; apply (Hkset k).2
+              have hk0 : (W0 !! k).isSome := by
+                rw [GMap.domSet, GMap.lookup_fmap] at h; simpa using h
+              obtain ⟨r0, hr0⟩ := Option.isSome_iff_exists.1 hk0
+              rw [GMap.domSet, GMap.lookup_fmap, ← hW'D, mvcc.sw_filter_lookup, hr0]
+              simp [hc]
+          rw [mvcc.chooseF_of _ _ _ _ _ hd (by simpa using hc)]
+          exact Hurst k st0 hu' h0
   (try wp_auto)
   iapply HΦ
   iunfold mvcc.watchReader

@@ -196,7 +196,7 @@ private theorem certLink_make (γ : Cluster) (N : Namespace) (HU : UniNames γ N
       savedPredOwn sn.gk DFrac.discard (raftSnapCertD (GF := GF) γ.raft) -∗
       ctCommitted γ.raft sn -∗ certLink γ.raft sn := by
   iintro #Hci #Hsv #Hgk #Hct
-  have HcN : raftCertN γ.raft = N := HU.2.2.1
+  have HcN : raftCertN γ.raft = N := HU.2.1
   unfold certLink
   iframe Hct
   unfold storCertOk
@@ -399,7 +399,6 @@ private theorem wp_RestartNode_impl
   ihave #Hci' := Hci
   iunfold clusterInv at Hci'
   icases Hci' with ⟨%HNs, #Hcinv, -, -⟩
-  have Hsl := HU.2.1
   -- the configuration point: the cluster's mode, a valid restorable membership
   iunfold EtcdGrove.confAt at Hconf
   ihave %Hval := confAt_valid_impl γ a m $$ Hconf
@@ -928,7 +927,7 @@ private theorem wp_RestartNode_impl
   ihave #Hhw := hsWit_of_phsWit γ.raft σ.hs _ Hlen' $$ Hphw2
   imod hsCommitted_of_raft γ N ⊤ CoPset.subseteq_top σ.hs _ $$ Hci Hhw with HhsC
   have HdynOk : ∀ γn : NodeNames, NodeOk γ γn → γn.mode.isDyn = true := fun γn h => by
-    rw [h.2.2.2, Hmd]; rfl
+    rw [h.2.2, Hmd]; rfl
   wp_auto
   wp_apply wp_newNode rn as %nv ⟨%Hnvrn, Hchans⟩
   -- the node's configuration names, `live`, the durable state and role, the last batch's maps
@@ -989,7 +988,7 @@ private theorem wp_RestartNode_impl
                           gen := gen
                           dur := gdur
                           bw := gbw }
-  have Hnok : NodeOk γ γn := ⟨rfl, rfl, Hsl, rfl⟩
+  have Hnok : NodeOk γ γn := ⟨rfl, rfl, rfl⟩
   have Hdy : γn.mode.isDyn = true := HdynOk γn Hnok
   -- the node's table entry, while its struct is owned whole
   imod nodeTab_insert γ N n_ptr nv (cfgNamesOf γn) $$ Htab n with ⟨#Hnp, #Hte⟩

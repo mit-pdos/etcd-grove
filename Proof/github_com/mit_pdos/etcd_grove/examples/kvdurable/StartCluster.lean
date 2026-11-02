@@ -99,7 +99,7 @@ theorem StartCluster.wp_proof
     StartCluster.spec (GF := GF) (hG := hG) := by
   intro γ o dir Hok
   dsimp only
-  wp_start as ⟨#Hcci, #Hcl, #HstorInv, %Hdup, %Hbl0, #Hfits, Hvoters, Hjoin, Hfresh, Hopn, HnidA,
+  wp_start as ⟨#Hcci, #Hcl, #HstorInv, %Hdup, %Hbl0, %Hsl, #Hfits, Hvoters, Hjoin, Hfresh, Hopn, HnidA,
     Hrseqs, Hcur⟩
   obtain ⟨HV1, HV5, Hm1, Hm2, Hsz⟩ := Hok
   have HVn : uint.nat o.Voters' ≤ 5 := by word
@@ -217,7 +217,7 @@ theorem StartCluster.wp_proof
     unfold isReadSeqs
     iframe #
     ipureintro
-    exact ⟨⟨⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩, Hdup, Hbl0⟩
+    exact ⟨⟨⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩, Hdup, Hbl0, Hsl⟩
   -- every voter known: the next-id bound raised at once
   imod mono_nat_own_update (uint.nat o.Voters' + 1) (by omega) $$ HnidA with ⟨HnidA, #Hlb⟩
   try wp_auto

@@ -209,8 +209,12 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
     iframe Hrun Hprod Hcum
     isplitr
     · ipureintro; exact ⟨rfl, rfl⟩
-    ipureintro
-    exact ⟨W64 0, by rw [hpre]; rfl, fun n m h => by simp at h⟩
+    isplitr
+    · ipureintro
+      exact ⟨W64 0, by rw [hpre]; rfl, fun n m h => by simp at h⟩
+    iunfold srvFrozenTerms
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
+    itrivial
   · iunfold rnApplyTok
     iexists []
     iframe Hcons
@@ -272,6 +276,8 @@ abbrev NodeStartSpec : Prop :=
     -- the peers, the cluster's voters
     ps = pv.map Peer.ID' → ps ≠ [] → ps.Nodup → W64 0 ∉ ps →
     (ps.length : Int) < 2 ^ 62 → cv.ID' ∈ ps → γr.vs = ps →
+    -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`NewStorage`'s contract)
+    storage.walReady wal →
     -- the time-receipt bound past the bootstrap log (`rnLogFits`)
     receiptBound GF + γr.boot.length ≤ 2 ^ 61 →
     -- the server's names: the cluster, the start log empty
@@ -312,7 +318,9 @@ abbrev NodeStartSpec : Prop :=
             rv.raftNodeConfig'.transport' = GoInterface.nil ∧
             rv.raftNodeConfig'.Node' = rnNodeIface γw ∧
             -- (D22 J1a) the storage a `*storage` over the snapshotter `ss`
-            rnStorageOf rv.raftNodeConfig'.storage' ss⌝ ∗
+            rnStorageOf rv.raftNodeConfig'.storage' ss ∧
+            -- (2026-10-31) over the WAL `wal` (whose open token `bootstrap`'s contract gives)
+            storage.walOf rv.raftNodeConfig'.storage' = wal⌝ ∗
           -- the struct value, to be copied; its fresh mutex
           r ↦ rv ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
           -- (D21 M2) the node's inbound methods (`Process`'s), from the start

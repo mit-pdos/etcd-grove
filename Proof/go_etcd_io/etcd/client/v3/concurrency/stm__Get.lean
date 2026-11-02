@@ -32,7 +32,7 @@ theorem stm.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := hG))
     (hF : stm.fetch.spec (GF := GF) (hG := hG)) (hRV : respToValue.spec (GF := GF) (hG := hG)) :
     stm.Get.spec (GF := GF) (hG := hG) := by
   intro b pfx st gs ksl ks
-  wp_start as ⟨#Henv, Hrs, Hws, Hopts, %Hgs, #Hks, %Hpk⟩
+  wp_start as ⟨#Henv, Hrs, Hws, Hopts, %Hgs, #Hks, %Hpk, %Hc⟩
   unfold stmWsetOwn
   icases Hws with ⟨%m, %wsMap, Hf, Hm, #Hat⟩
   wp_auto
@@ -43,7 +43,7 @@ theorem stm.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := hG))
   · obtain ⟨rfl, -⟩ := Hpn
     wp_auto
     wp_apply hF b pfx st.reads gs ksl ks $$ [$Hpkg $Henv $Hrs $Hopts $Hks] as %r Hr
-    · ipureintro; exact ⟨Hgs, Hpk⟩
+    · ipureintro; exact ⟨Hgs, Hpk, by have := Hc.1; omega, Hc.2.1⟩
     iunfold stmRet at Hr
     icases Hr with (⟨%p, %Hrp, %reads', Hrs, Hopts, %Hgrow, Hp⟩ | %Hab)
     rotate_left
@@ -65,7 +65,7 @@ theorem stm.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := hG))
       · iexists m, wsMap
         iframe Hf Hm Hat
       ipureintro
-      exact ⟨rfl, Hgrow, fun _ => rfl, fun h => absurd rfl h⟩
+      exact ⟨rfl, Hgrow, rfl, fun _ => rfl, fun h => absurd rfl h⟩
     · wp_apply hRV p e.value $$ [$Hpkg]
       · iright; iexists pfx, k, e; iframe He; ipureintro; rfl
       iapply HΦ
@@ -77,7 +77,7 @@ theorem stm.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := hG))
         iframe Hf Hm Hat
       ipureintro
       obtain ⟨Hk, Hre, Hkv⟩ := Hke
-      exact ⟨rfl, Hgrow, fun h => by simp [h] at Hk,
+      exact ⟨rfl, Hgrow, rfl, fun h => by simp [h] at Hk,
         fun _ => ⟨k, Hk, Or.inr ⟨Hnw k Hk, e', Hre, by simp [ReadM.value, Hkv]⟩⟩⟩
   · ihave %Hpnn := typedPointsto_not_null $$ Hp
     rw [decide_eq_false Hpnn]
@@ -92,7 +92,7 @@ theorem stm.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := hG))
     · iexists m, wsMap
       iframe Hf Hm Hat
     ipureintro
-    refine ⟨rfl, ⟨fun _ _ h => h, fun k' h => Or.inl h⟩, fun h => by simp [h] at Hk, fun _ => ?_⟩
+    refine ⟨rfl, ⟨fun _ _ h => h, fun k' h => Or.inl h⟩, rfl, fun h => by simp [h] at Hk, fun _ => ?_⟩
     exact ⟨k, Hk, Or.inl ⟨w, Hwk, Hv⟩⟩
 
 end proof

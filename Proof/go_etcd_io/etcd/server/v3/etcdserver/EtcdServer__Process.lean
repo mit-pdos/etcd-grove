@@ -53,7 +53,7 @@ theorem EtcdServer.Process.wp_proof
   wp_start as ⟨#Hok, #Hctx, Hlr, Hrecv⟩
   iunfold srvProcOk at Hok
   icases Hok with ⟨%l, %c, %st, %γ, #Hlg, %Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hstat, %Hstnn, #Hn,
-    #Hsi, #Hcok, %HN⟩
+    #Hsi, #Hcok, %HN, %Hd⟩
   ihave #Hmpkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
@@ -112,7 +112,7 @@ theorem EtcdServer.Process.wp_proof
       iframe Hm HO HP HS
       ipureintro
       exact ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, by rw [Hγid]; exact Hto, Hrs'⟩
-    imod (stepIn_of_recv γn γ HN ml) $$ [Hcok Hrecv] with Hstep
+    imod (stepIn_of_recv γn γ HN (by rw [Hγid]; exact Hd) ml) $$ [Hcok Hrecv] with Hstep
     · iframe Hcok Hrecv
     iunfold rnStepIfc at Hsi
     icases Hsi with ⟨%ni, %Hni, #HStep, -, -⟩
@@ -137,7 +137,7 @@ theorem EtcdServer.Process.wp_proof
       iframe Hm HO HP HS
       ipureintro
       exact ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, by rw [Hγid]; exact Hto, Hrs'⟩
-    imod (stepIn_of_recv γn γ HN ml) $$ [Hcok Hrecv] with Hstep
+    imod (stepIn_of_recv γn γ HN (by rw [Hγid]; exact Hd) ml) $$ [Hcok Hrecv] with Hstep
     · iframe Hcok Hrecv
     iunfold rnStepIfc at Hsi
     icases Hsi with ⟨%ni, %Hni, #HStep, -, -⟩

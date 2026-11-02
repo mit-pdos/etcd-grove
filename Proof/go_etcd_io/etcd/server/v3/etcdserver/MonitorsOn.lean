@@ -73,7 +73,8 @@ theorem srvMonitorPermitM_of (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : Req
   iintro !> %rq %Gb %hrq
   cases on
   · iapply (reqPropOkM_of_false ρ.raft ρ.kv Gb rq (fun _ => iprop(True)))
-    iunfold reqPropOk
+    iapply reqPropOk_of_W
+    iunfold reqPropOkW
     ileft
     ipureintro
     obtain ⟨h1, h2, h3, h4, -⟩ := monitorReq_prop rq hrq

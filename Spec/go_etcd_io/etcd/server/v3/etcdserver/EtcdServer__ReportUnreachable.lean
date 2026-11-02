@@ -26,9 +26,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.ReportUnreachable(x)`** returns (raft's `node.ReportUnreachable`). -/
 abbrev EtcdServer.ReportUnreachable.spec : Prop :=
-  ∀ (γn : NetNames GF) (s : Loc) (id x : w64),
+  ∀ (γn : NetNames GF) (γd : GName) (s : Loc) (id x : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvProcOk γn s id }}
+      srvProcOk γn s id γd }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"ReportUnreachable")) (Val #x))
   {{ RET #(); True }}
 

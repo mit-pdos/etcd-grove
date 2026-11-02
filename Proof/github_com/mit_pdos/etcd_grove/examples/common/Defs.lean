@@ -185,7 +185,8 @@ def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
   iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain false false false ∧
       ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧
-      ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = cmp⌝ ∗
+      ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = cmp ∧
+      ρ.rd.kv.cmp = cmp⌝ ∗
     -- (2026-10-27, the server port) the node API's boot token of the member and the server's raft
     -- invariant (until then raft's ghost state, its committed bootstrap log and the term budget)
     (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
@@ -214,7 +215,7 @@ theorem memberBoot_cmp (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E
   iunfold memberBoot at H
   icases H with ⟨%Hρ, Hr⟩
   isplitr
-  · ipureintro; exact Hρ.2.2.2.2.2.2.2
+  · ipureintro; exact Hρ.2.2.2.2.2.2.2.1
   iunfold memberBoot
   isplitr
   · ipureintro; exact Hρ
@@ -268,7 +269,6 @@ def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : 
     ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
       srvReadReader s ρ.rd) ∗
     srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
-    srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ cfg.WatchProgressNotifyInterval' ∗
     srvBemuReader s ∗
     ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
     ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
@@ -285,7 +285,7 @@ server's resources back, and the listener `lis` at `addr`. -/
 def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
     (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(∃ (C : v3rpc.GrpcCfg GF) (q p pw : Loc) (il im iu ims is : GoFunc) (svcs : List GoString)
-      (regs sregs : List (GoString × val × GoInterface)) (d' : w64),
+      (regs sregs : List (GoString × val × GoInterface)),
     ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E ∧
       (∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ v3rpc.watchSReg pw ∈ sregs ∧
       R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.γ = C.γ⌝ ∗
@@ -300,7 +300,6 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
     srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ d' ∗
     ([∗list] _x ∈ List.replicate 64 (), mvcc.watchReader C.wsl E.s C.γ) ∗
     netListenerAt lis addr)
 
@@ -314,7 +313,8 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
   iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain true false false ∧
       ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧
-      ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = cmp⌝ ∗
+      ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = cmp ∧
+      ρ.rd.kv.cmp = cmp⌝ ∗
     (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
       nodeVacant γ.cl id) ∗ srvRaftLogInv ρ.rd.raft ∗
     idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
@@ -326,6 +326,20 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
     srvReadNamesFreshNK ρ.rd ∗ kvInvM true ρ.rd.raft ρ.rd.kv srvAuthSt0 ∗
     ghostMapAuth γ.reg 1 (∅ : GMap Loc MemStorNamesRec) ∗
     ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))
+
+/-- **The member's compaction mode, read off its boot bundle with auth on** (`memberBoot_cmp`'s). -/
+theorem memberBootOn_cmp (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) (cmp : Bool) :
+    memberBootOn γ ctxs ρ E₀ Φs id cmp ⊢ ⌜E₀.cmp = cmp⌝ ∗ memberBootOn γ ctxs ρ E₀ Φs id cmp := by
+  iintro H
+  iunfold memberBootOn at H
+  icases H with ⟨%Hρ, Hr⟩
+  isplitr
+  · ipureintro; exact Hρ.2.2.2.2.2.2.2.1
+  iunfold memberBootOn
+  isplitr
+  · ipureintro; exact Hρ
+  iexact Hr
 
 /-- **A member started with auth on** (the auth plan's E3zb, 2026-10-28; `memberUp`'s, from
 `NewServer.specM true` and `Start.specOn`): at an apply environment in the mode `.on γa`, the
@@ -341,14 +355,17 @@ def memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn 
     ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
       srvReadReader s ρ.rd) ∗
     srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
-    srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ cfg.WatchProgressNotifyInterval' ∗
     srvBemuReader s ∗
     ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
     ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
     ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
     ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
     ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
-    srvPeerCtl γn s id ∗ srvWatchReaders s E 64)
+    srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗
+    -- (authkv's Main, 2026-10-30) the TLS fallback off (`ClientCertAuthEnabled` the
+    -- configuration's `false`, `srvTLSId_false`) and the auth store's cost field (`BcryptCost()`'s)
+    -- and (C1's A4, 2026-10-31) its `Authenticate` side (`srvAuthStoreOn`)
+    □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD)
 
 /-- **What `v3rpc.Server` and `Listen` return, with auth on** (the auth plan's E3zb; `grpcUp`'s): at
 the KV answers with auth on (`srvKVAnsOn … 0 none`), and with the Auth service's registrations on
@@ -356,7 +373,7 @@ the `*AuthServer` `pa` over the server (`authRegs`, `authServerIs`). -/
 def grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
     (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(∃ (C : v3rpc.GrpcCfg GF) (q p pw pa : Loc) (il im iu ims is : GoFunc)
-      (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)) (d' : w64),
+      (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)),
     ⌜C.A = v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none ∧ C.E = E ∧
       (∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ (∀ x ∈ v3rpc.authRegs pa, x ∈ regs) ∧
       v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.γ = C.γ⌝ ∗
@@ -372,7 +389,6 @@ def grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs
     srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ d' ∗
     ([∗list] _x ∈ List.replicate 64 (), mvcc.watchReader C.wsl E.s C.γ) ∗
     netListenerAt lis addr)
 

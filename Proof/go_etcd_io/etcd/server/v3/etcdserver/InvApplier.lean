@@ -41,6 +41,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.notify.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
 
 @[expose] public section
 
@@ -155,7 +156,7 @@ theorem backendStep_prefix (rq : apply.IRRModel) (log : mvcc.Log) (o : apply.Out
     · exact hc _
   · obtain ⟨pend, -, rfl⟩ := h
     exact hc _
-  · exact h.elim
+  · subst h; exact List.prefix_refl _
   · exact h.elim
   · rcases h with rfl | rfl <;> exact List.prefix_refl _
 
@@ -328,10 +329,13 @@ structure SrvFields where
   tickMs : w64
 
 /-- The server's KV invariants (persistent; 2026-10-14, unit T1): the KV invariant, the
-certificates', raft's committed log's; the store's certificates at the KV's names. -/
+certificates', raft's committed log's; the store's certificates at the KV's names; and (M2's apply
+side, item 19) the KV names' compaction mode the server's, which is its store's backend's (S-5's law
+`kbCmpM E.γ.kb ↔ E.cmp`: with `srvEnvOk`'s `d.cm = false` it gives the mode off, until the snapshot
+track's `srvEnvOkD` makes the backend's mode the server's). -/
 def srvKVInvs (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(kvInv γr.raft γr.kv ∗ kvCertInv γr.raft γr.kv ∗ srvRaftLogInv γr.raft ∗
-    ⌜E.γ.cok = γr.kv.cok⌝)
+    ⌜E.γ.cok = γr.kv.cok⌝ ∗ ⌜γr.kv.cmp = E.cmp ∧ (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)⌝)
 
 instance srvKVInvs_persistent (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVInvs (GF := GF) E γr) := by
@@ -414,6 +418,39 @@ theorem epCsOk_of_csOptA (p : Loc) (c : ConfStateM) :
 def epConfState (ep cs : Loc) : IProp GF :=
   iprop(epConfStateAddr ep ↦ cs ∗ epCsOk cs)
 
+/-- (2026-10-31, the snapshot track's S5) **`ep.confState` reports the voters** of the server's raft
+names `γs` (persistent): a read-only conf state of the cluster's simple membership, raft's answer to
+a validated conf change (`applyConfChange`; `epCsCfg` at the read names). -/
+def epCsVoters (γs : ServerRaftNames) (cs : Loc) : IProp GF :=
+  iprop(∃ c : ConfStateM, csPts cs DFrac.discard c false ∗
+    ⌜confStateIs c (Membership.simple γs.raft.cfg)⌝)
+
+instance epCsVoters_persistent (γs : ServerRaftNames) (cs : Loc) :
+    Persistent (epCsVoters (GF := GF) γs cs) := by
+  unfold epCsVoters; infer_instance
+
+/-- (2026-10-31, S5) **`ep.confState` after the applied log `L`** (persistent; the apply loop's):
+nothing applied yet, or it reports the voters (the log's first entry is a conf entry,
+`srv_first_entry`, that validates on a fresh backend, `ccValidOn_boot`). -/
+def epCsAt (γs : ServerRaftNames) (L : List EntryModel) (cs : Loc) : IProp GF :=
+  iprop(⌜L = []⌝ ∨ epCsVoters γs cs)
+
+instance epCsAt_persistent (γs : ServerRaftNames) (L : List EntryModel) (cs : Loc) :
+    Persistent (epCsAt (GF := GF) γs L cs) := by
+  unfold epCsAt; infer_instance
+
+theorem epCsAt_voters (γs : ServerRaftNames) (L : List EntryModel) (cs : Loc) :
+    epCsVoters (GF := GF) γs cs ⊢ epCsAt γs L cs := by
+  iintro #H; iunfold epCsAt; iright; iexact H
+
+theorem epCsAt_ne (γs : ServerRaftNames) (L : List EntryModel) (cs : Loc) (h : L ≠ []) :
+    epCsAt (GF := GF) γs L cs ⊢ epCsVoters γs cs := by
+  iintro #H
+  iunfold epCsAt at H
+  icases H with (%h' | #H)
+  · exact absurd h' h
+  · iexact H
+
 end defs
 
 section defs_lc
@@ -473,13 +510,58 @@ write right the tracked buckets' half (`srvRestOwn`, `srvRestRW`); (D22 receiver
 2026-10-23) both with the server's objects' backend parts `H` (`srvRestOwnH`, `srvRestRWH`): the
 alarm store's, the auth store's, the lessor's and (S7e) the cluster's, on the store's backend
 (`srvObjsOn`). (Question 5's core stage, part (1), the user's Q5-4 and review round 16's M1,
-2026-10-29) The store's backend does not compact (`d.cm = false`: no restore in compaction mode,
-`store.Restore`'s premise; M2 turns the server's compaction on). -/
+2026-10-29: the store's backend did not compact, `d.cm = false`.) (M2's apply side, 2026-10-31, the
+user's (a): the snapshot track's draft `srvEnvOkD` in place) The store's backend compacts in the
+server's compaction mode (`d.cm = E.cmp`); a snapshot is installed only with the mode off (the
+interim restriction: `applySnapshot.specSnap`'s `d.cm = false`, until restore in compaction mode).
+(2026-11-01, `restorePre_of_apply`) And the store's logical mode is the server's (`E.γ.cm = E.cmp`,
+`envAgree`'s at `NewServer`; a restore keeps both): what makes a compaction-off store frozen
+(`isWatchableStore_frozen`) for `Restore`. -/
 def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
-  E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
+  E.γ.cm = E.cmp ∧ E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
     ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH γB cl H ∧ E.RW = srvRestRWH γB H ∧
       ∃ (d : mvcc.KBReal) (al st lp : Loc), E.γ.kb = some d ∧ d.γB = γB ∧
-        H = srvObjsOn al st lp cl d.be ∧ d.cm = false
+        H = srvObjsOn al st lp cl d.be ∧ d.cm = E.cmp
+
+/-- **The store compacts exactly in the server's mode** (S-5's law, from `srvEnvOk`). -/
+theorem srvEnvOk_kbCmp (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc)
+    (h : srvEnvOk s γ ci E cl) : mvcc.kbCmpM E.γ.kb ↔ E.cmp = true := by
+  obtain ⟨-, -, -, -, -, -, -, d, -, -, -, hkb, -, -, hcm⟩ := h
+  rw [hkb, ← hcm]; rfl
+
+/-- **The store's logical mode is the server's** (`srvEnvOk`). -/
+theorem srvEnvOk_cm (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc)
+    (h : srvEnvOk s γ ci E cl) : E.γ.cm = E.cmp := h.1
+
+/-- **At a store that does not compact, the server's mode is off** (`srvEnvOk`). -/
+theorem srvEnvOk_off (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc)
+    (d : mvcc.KBReal) (h : srvEnvOk s γ ci E cl) (hkb : E.γ.kb = some d) (hcm : d.cm = false) :
+    E.cmp = false := by
+  obtain ⟨-, -, -, -, -, -, -, d0, -, -, -, hkb0, -, -, hcm0⟩ := h
+  rw [hkb] at hkb0
+  cases hkb0
+  rw [← hcm0, hcm]
+
+/-- **The server's current backend, with its hooks** (persistent; 2026-11-02, the user's approval,
+branch `snap-window`): the store's backend `d` (`E.γ.kb`) is the real backend whose batch lock has
+the apply protocol's resource at the consistent index's keys (`batchLockInv γ (metaTM d.γB d.P)`),
+its hooks the server's `BackendHooks` `bh`, `s.beHooks` (`backend.hooksAt`) over the consistent index `ci`
+(`isBackendHooks`), at parameters with the hooks' keys (`ciKeys`, `hooksParams`). What the merged
+snapshot's window needs to freeze the stored index (`storeReq_freeze`). Made where the backend is:
+`NewServer` (`bootOk`'s), `applySnapshot` (`OpenSnapshotBackend`'s). -/
+def srvBeHooked (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ (d : mvcc.KBReal) (bh lgh : Loc),
+    ⌜E.γ.kb = some d ∧ ciKeys d.P ∧ storage.hooksParams d.P⌝ ∗
+    structFieldRef EtcdServer go!"beHooks" s ↦□ bh ∗
+    storage.isBackendHooks bh
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩
+      lgh ∗
+    backend.hooksAt d.be (storage.hooksIface bh) ∗
+    backend.isBackend d.γB d.P (mvcc.lateW d.gx) (batchLockInv γ (metaTM d.γB d.P)) d.be)
+
+instance srvBeHooked_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) :
+    Persistent (srvBeHooked (GF := GF) s γ ci E) := by
+  unfold srvBeHooked; infer_instance
 
 /-- The server `s`'s fields hold `v`, with their contracts; the apply environment `E`'s batch
 lock has the protocol's invariant `batchLockInv γ TM` and runs the post-lock hook `v.hook`; its
@@ -500,7 +582,7 @@ def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
       srvLgMuAddr s ↦□ v.lgMu ∗ srvMemberIDAddr s ↦□ v.memberID ∗ srvLeadInv s ∗
       cfgElectionTicksAddr (srvCfgAddr s) ↦□ v.electionTicks ∗
       cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗
-      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore)
+      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci E)
 
 instance srvFieldsAt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) :
@@ -703,7 +785,7 @@ theorem applyKV_idxCert (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyK
   iintro H
   ihave #Hc : iprop(mvcc.idxCert E.γ.idx x.log) $$ [H]
   · iunfold apply.applyKV at H
-    icases H with ⟨%p, -, -, Hk⟩
+    icases H with ⟨%p, -, -, Hk, -⟩
     iunfold apply.kvOwn at Hk
     icases Hk with ⟨-, Hsw, -⟩
     iunfold txn.kvWriter at Hsw
@@ -760,7 +842,7 @@ theorem srvApplyKV_small' (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply
   iunfold srvApplyKV at H
   icases H with ⟨%ua, -, -, Hkv, -⟩
   iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, -, -, Hk⟩
+  icases Hkv with ⟨%p, -, -, Hk, -⟩
   iunfold apply.kvOwn at Hk
   icases Hk with ⟨-, Hsw, -⟩
   iunfold txn.kvWriter at Hsw

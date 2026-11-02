@@ -34,6 +34,11 @@ Unit 3a (2026-10-12): the server's contract discharged for `Put` and `DeleteRang
 * **`put_end_to_end_model`**, **`deleteRange_end_to_end_model`** (pure): through the
   uber-applier's chain, such a put appends the client's put change to the log (a delete commits
   its changes), no alarm raised.
+
+**The replies' size** (2026-10-31, `notes/reply-size.md`): the served results here that take a
+server token (`grpcServerAt`, `grpcStreamServerAt`: the auth and watch services served) are
+conditional, through it, on the workload premise `grpcRepliesFit`, which `grpc.start`, the token's
+only producer, takes; their statements do not show it.
 -/
 module
 
@@ -48,6 +53,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchStep
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchClass
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthService
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.QuotaLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerLeaseRead
 
 @[expose] public section
 
@@ -1311,11 +1317,13 @@ theorem etcdReached_of_hdr (E : apply.AEnv GF) (log : mvcc.Log) (r : w64)
 the header's revision `r` is the certified log's last (reached), and etcd's state at `r` under any
 prefix is the log's last state restricted to it; the response is the txn package's range at that
 log (`txn.rangeResult`; with `rangeSel_underPfx`, its selection of a range under the prefix is the
-restricted state's). -/
-theorem etcdState_of_range (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : Log) (o : OpFull)
-    (resp : Loc) (r : w64) (pfx : GoString) (Q : List EntryModel → IProp GF) :
-    storeSmall E.γ ∗ rangeAnsOk E γr c F o resp r Q ⊢
-      ∃ log : Log, ⌜r = W64 ((log.length : Int) - 1) ∧ 2 ≤ log.length ∧
+restricted state's). (2026-10-30, `notes/keylen.md`) With the server's read view
+(`isServerRead`, a handler's), whose KV invariant bounds the log's keys (`read_keys`), as
+`etcdState`'s model now requires. -/
+theorem etcdState_of_range (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : Log)
+    (o : OpFull) (resp : Loc) (r : w64) (pfx : GoString) (Q : List EntryModel → IProp GF) :
+    isServerRead s E γr ∗ storeSmall E.γ ∗ rangeAnsOk E γr c F o resp r Q ⊢
+      |={⊤}=> ∃ log : Log, ⌜r = W64 ((log.length : Int) - 1) ∧ 2 ≤ log.length ∧
           log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
         □ etcdState (self := etcdModelOfServer E) r pfx (underPfx pfx (stateAfter log)) ∗
         ⌜EtcdStateWf pfx (underPfx pfx (stateAfter log))⌝ ∗
@@ -1323,12 +1331,14 @@ theorem etcdState_of_range (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : 
         (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
         (∃ crev : Int,
           txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) crev o true) := by
-  iintro ⟨#Hsm, Hok⟩
+  iintro ⟨#Hsrd, #Hsm, Hok⟩
   iunfold rangeAnsOk at Hok
   icases Hok with ⟨%log, #H, #Hcok, %Hl, Hlin, -, Hres⟩
   obtain ⟨h2, h3, rfl, hF⟩ := Hl
+  imod read_keys s E γr log $$ Hsrd H Hcok with %Hk
   have hr : sint.Z (W64 ((log.length : Int) - 1)) = (log.length : Int) - 1 := by word
-  ihave ⟨#Hst, %Hwf⟩ := etcdState_of_cert_last E log pfx h2 h3 $$ [$Hsm $H]
+  ihave ⟨#Hst, %Hwf⟩ := etcdState_of_cert_last E log pfx h2 h3 Hk $$ [$Hsm $H]
+  imodintro
   iexists log
   iframe Hst Hlin Hres
   isplitr
@@ -1340,10 +1350,10 @@ theorem etcdState_of_range (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : 
 /-- **What a successful read-only `Txn` gives the clients' model** (`txn_end_to_end`'s
 `txnReadAns`): as `etcdState_of_range`, the response the server's run of the transaction at the
 log's last revision. -/
-theorem etcdState_of_txnRead (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : Log)
+theorem etcdState_of_txnRead (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : Log)
     (t : TxnModel) (Q : List EntryModel → IProp GF) (resp : Loc) (r : w64) (pfx : GoString) :
-    storeSmall E.γ ∗ txnReadAns E γr c F t Q resp r ⊢
-      ∃ log : Log, ⌜r = W64 ((log.length : Int) - 1) ∧ 2 ≤ log.length ∧
+    isServerRead s E γr ∗ storeSmall E.γ ∗ txnReadAns E γr c F t Q resp r ⊢
+      |={⊤}=> ∃ log : Log, ⌜r = W64 ((log.length : Int) - 1) ∧ 2 ≤ log.length ∧
           log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
         □ etcdState (self := etcdModelOfServer E) r pfx (underPfx pfx (stateAfter log)) ∗
         ⌜EtcdStateWf pfx (underPfx pfx (stateAfter log))⌝ ∗
@@ -1352,12 +1362,14 @@ theorem etcdState_of_txnRead (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F 
         txn.txnResponseIs false resp (W64 ((log.length : Int) - 1)) t
           (txn.srvRunTxn (W64 (log.length : Int)) (stateAfter log) t).1
           (txn.srvRunTxn (W64 (log.length : Int)) (stateAfter log) t).2.2 := by
-  iintro ⟨#Hsm, Hok⟩
+  iintro ⟨#Hsrd, #Hsm, Hok⟩
   iunfold txnReadAns at Hok
   icases Hok with ⟨%log, #H, #Hcok, %Hl, Hlin, -, Hres⟩
   obtain ⟨h2, h3, rfl, hF⟩ := Hl
+  imod read_keys s E γr log $$ Hsrd H Hcok with %Hk
   have hr : sint.Z (W64 ((log.length : Int) - 1)) = (log.length : Int) - 1 := by word
-  ihave ⟨#Hst, %Hwf⟩ := etcdState_of_cert_last E log pfx h2 h3 $$ [$Hsm $H]
+  ihave ⟨#Hst, %Hwf⟩ := etcdState_of_cert_last E log pfx h2 h3 Hk $$ [$Hsm $H]
+  imodintro
   iexists log
   iframe Hst Hlin Hres
   isplitr
@@ -1691,6 +1703,87 @@ theorem etcd_watch_served_etcd_chain (addr : GoString) (p : Loc) (R : WSrv GF) (
 
 end watch_wire
 
+/-! ## The lease reads at the gRPC level (`notes/lease-grpc-plan.md`, 2026-11-01)
+
+`LeaseServer.LeaseTimeToLive` and `LeaseServer.LeaseLeases` (linked, over the contract
+`raftLeaseRead`), and the contract discharged from the server's linked `EtcdServer.LeaseTimeToLive`
+and `EtcdServer.LeaseLeases` at `S := E.RD ∗ threadTok` and the store's reader;
+the two specs' bounds premises are the discharge's. Both handler proofs rest on a `sorry` (Go's
+second `errors.Is(err, ErrLeaseNotFound)` answering differently from the first), pending
+Perennial's change (`notes/perennial-changes.md`, "`errors.Is` answers the same twice"). -/
+
+section leaseRead
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+open Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
+
+theorem leaseTimeToLive_handler :
+    EtcdGrove.v3rpc.LeaseServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) :=
+  LeaseServer.wp_LeaseTimeToLive
+
+theorem leaseLeases_handler :
+    EtcdGrove.v3rpc.LeaseServer.LeaseLeases.spec (GF := GF) (hG := hG) :=
+  LeaseServer.wp_LeaseLeases
+
+/-- **The lease-read contract, discharged** (`raftLeaseRead_of_server` at the linked results). -/
+theorem raftLeaseRead_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (γl : GName) (cs ms : w64) (hT : threadBound GF ≤ 2 ^ 30 - 1) (hR : receiptBound GF ≤ 2 ^ 62) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthAt s E ∗
+        srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ lease.lessorRdPool γl ∗ srvHeaderFacts s cs ms ⊢
+      raftLeaseRead s E γl iprop(E.RD ∗ threadTok)
+        (mvcc.storeReader E.s E.γ) :=
+  raftLeaseRead_of_server EtcdServer.wp_LeaseTimeToLive EtcdServer.wp_LeaseLeases
+    s E ρ γr γl cs ms hT hR
+
+/-- **The server's header fields, from its request side** (`srvHeaderFacts_of_reqM`: the discharge's
+`srvHeaderFacts` premise needs no source of its own). -/
+theorem srvHeaderFacts_server (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isServerReqM (GF := GF) on s E ρ ⊢ ∃ cs ms : w64, srvHeaderFacts s cs ms :=
+  srvHeaderFacts_of_reqM on s E ρ
+
+end leaseRead
+
+/-! ## The lease keep-alive stream at the gRPC level (`notes/lease-keepalive-plan.md`, 2026-11-01)
+
+`LeaseServer.LeaseKeepAlive` (linked, over the contract `raftLeaseRenew`: the `j`th response answers
+the `j`th request and, unless its TTL is `0`, carries the renewal's key check at the request's ghost
+bounds for the stream's token, `kaStreamSpec`), and the contract discharged from the server's linked
+`EtcdServer.LeaseRenew` at `S' := E.RD ∗ threadTok ∗ srvLgReader s ∗
+srvReadReader s γr`, its peer round tripper `srvPeerRt s` (which `NewServer` exports, with
+`srvLessorRd`). -/
+
+section leaseKeepAlive
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+open Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
+
+theorem leaseKeepAlive_handler :
+    EtcdGrove.v3rpc.LeaseServer.LeaseKeepAlive.spec (GF := GF) (hG := hG) :=
+  LeaseServer.wp_LeaseKeepAlive
+
+/-- **The renewal contract, discharged** (`raftLeaseRenew_of_server` at the linked result). -/
+theorem raftLeaseRenew_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (γl : GName) (hT : threadBound GF ≤ 2 ^ 30 - 1) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthAt s E ∗
+        srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ lease.lessorRdPool γl ∗ srvPeerRt s ⊢
+      raftLeaseRenew s E γl
+        iprop(E.RD ∗ threadTok ∗ srvLgReader s ∗ srvReadReader s γr) :=
+  raftLeaseRenew_of_server EtcdServer.wp_LeaseRenew s E ρ γr γl hT
+
+end leaseKeepAlive
+
 end v3rpc
 
 #print axioms Perennial.EtcdGrove.v3rpc.checkIntervals_nodup
@@ -1736,6 +1829,12 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.userGrantRole_end_to_end_on
 #print axioms Perennial.EtcdGrove.v3rpc.roleGrantPermission_end_to_end_on
 #print axioms Perennial.EtcdGrove.v3rpc.etcd_auth_served
+#print axioms Perennial.EtcdGrove.v3rpc.leaseTimeToLive_handler
+#print axioms Perennial.EtcdGrove.v3rpc.leaseLeases_handler
+#print axioms Perennial.EtcdGrove.v3rpc.raftLeaseRead_server
+#print axioms Perennial.EtcdGrove.v3rpc.srvHeaderFacts_server
+#print axioms Perennial.EtcdGrove.v3rpc.leaseKeepAlive_handler
+#print axioms Perennial.EtcdGrove.v3rpc.raftLeaseRenew_server
 
 end EtcdGrove
 end Perennial

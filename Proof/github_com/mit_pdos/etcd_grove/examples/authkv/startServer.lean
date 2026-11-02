@@ -44,13 +44,12 @@ theorem startServer.wp_proof
   intro CS N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2
     Hdirok Hdir Hlg Hck Haf Hbuq Hdbo
   wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
-  iunfold common.bootPremise at Hboot
   iunfold common.commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   iunfold common.memberBootOn at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
-  obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0⟩ := Hρ
+  obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp⟩ := Hρ
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -92,8 +91,10 @@ theorem startServer.wp_proof
         [common.httpURL go!"127.0.0.1:23916"],
         GMap.insert go!"authkv" (slice.mk peer (W64 1) (W64 1)) ∅,
         fun _ => [common.httpURL go!"127.0.0.1:23926"]⟩
-      γ id ctxs ρ E₀ N Φs γn dir γd hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok
-      Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩ rfl hcmp0 Htb Hrb48 HrbN
+      γ id ctxs ρ E₀ N Φs γn dir γd hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok hkcmp
+      Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
+      (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
+      v3rpc.maxTxnOpsOk_default rfl hcmp0 Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (common.peerURLsDir_httpURL dir id _ Hdirok Hdir)
       (fun _ => ⟨rfl, by word, by word⟩))
@@ -104,7 +105,7 @@ theorem startServer.wp_proof
     · iapply Hboot
       ipureintro
       refine ⟨?_, ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩, hvs, hrule, hboot⟩
-      unfold common.cfgOk; simp
+      unfold cfgOk; simp
     isplitr
     · iunfold bootCfgRO
       isplitr; · iExactEq Hpeer; rfl
@@ -122,8 +123,8 @@ theorem startServer.wp_proof
     isplitr; · ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
     iapply Htk
     ipureintro; rfl
-  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb, -, -,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #HLnil⟩)
+  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
+    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #HLnil, #Hcca, #HBF, -, -⟩)
   · -- `NewServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -150,7 +151,7 @@ theorem startServer.wp_proof
     iexists _
     iframe Hmf Hfgc
   iunfold srvServeBuilt at Hserve
-  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
+  icases Hserve with ⟨#Hsf, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
   -- `s.Start()` with auth on
   wp_apply (wp_Start srv γA ci TM E ρ ρ.rd _ γrn b (W64 0) (W64 0) (W64 0) (bootKVOf true) N γa
@@ -168,9 +169,17 @@ theorem startServer.wp_proof
   iframe #
   isplitr
   · ipureintro; exact ⟨hagree, hγa, rfl, rfl, rfl⟩
-  iunfold common.srvPeerCtl
-  iexists τ
-  iframe Hnm Htokp
+  isplitl [Htokp]
+  · iunfold common.srvPeerCtl
+    iexists τ
+    iframe Hnm Htokp
+  -- the TLS fallback off: the configuration's `ClientCertAuthEnabled` is the default `false`
+  isplitr
+  · iintro !> #Ht
+    iapply srvTLSId_false srv $$ [Ht]
+    iframe Ht
+    iExactEq Hcca; rfl
+  iapply HBF; ipureintro; first | rfl | trivial
 
 end proof
 

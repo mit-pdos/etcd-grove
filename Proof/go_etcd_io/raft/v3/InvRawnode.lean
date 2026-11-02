@@ -2206,11 +2206,14 @@ instance loanCom_pers (γ : RaftNames) (o : Option SnapLoan) :
 /-- (2026-10-26, D22 J2, R-loc) **The pending snapshot is local to the node**: the receiver-local
 fact (`snapLocal`, `RaftNames.reSnapLoc`) of the pending snapshot's index, if one is pending.
 `RawNode.Step` of a `MsgSnap` sets it from the message's (`netP`); every other step keeps or clears
-the pending snapshot; a `Ready` that hands the snapshot out reads it (`ownRawNode_loanLoc`). -/
+the pending snapshot; a `Ready` that hands the snapshot out reads it (`ownRawNode_loanLoc`).
+(2026-11-01, J8b) With the index past the bootstrap log: `restore` takes only an index above the
+commit index (`SnapLogStep`), which is at least the bootstrap log's length (`ownLogGhost`'s
+`%Hboot`); what a `Ready`'s snapshot carries out (`readySnap`). -/
 def snapLocOk (γ : RaftNames) (id : w64) (o : Option entryID) : IProp GF :=
   match o with
   | none => iprop(True)
-  | some p => snapLocal γ id p.index'
+  | some p => iprop(snapLocal γ id p.index' ∗ ⌜(γ.reBoot.length : Int) < uint.Z p.index'⌝)
 
 instance snapLocOk_pers (γ : RaftNames) (id : w64) (o : Option entryID) :
     Persistent (snapLocOk (GF := GF) γ id o) := by
@@ -2222,7 +2225,8 @@ theorem snapLocOk_none (γ : RaftNames) (id : w64) : ⊢ snapLocOk (GF := GF) γ
 
 /-- The fact at a pending snapshot of index `i`. -/
 theorem snapLocOk_some (γ : RaftNames) (id : w64) (p : entryID) :
-    snapLocOk (GF := GF) γ id (some p) ⊣⊢ snapLocal γ id p.index' := by
+    snapLocOk (GF := GF) γ id (some p) ⊣⊢
+      snapLocal γ id p.index' ∗ ⌜(γ.reBoot.length : Int) < uint.Z p.index'⌝ := by
   unfold snapLocOk; exact .rfl
 
 /-- A step that keeps the pending snapshot or clears it keeps the fact. -/
@@ -2819,6 +2823,22 @@ theorem ownRawNode_mode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
     Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur
 
+/-- (2026-11-01, J8b) **The commit index is past the bootstrap log** (`ownLogGhost`'s `%Hboot`):
+what makes a restored snapshot's index past it (`snapLocOk`). -/
+theorem ownStepGhost_bootCommit (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ownStepGhost (GF := GF) γ md c id s ⊢
+      ⌜(γ.reBoot.length : Int) ≤ uint.Z s.logst.committed⌝ ∗ ownStepGhost γ md c id s := by
+  apply persistent_entails_right
+  iintro H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, -⟩
+  iunfold ownRaftGhost at Hg
+  icases Hg with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  icases ownLogGhost_boot γ id (toPState s) kl $$ Hlg with ⟨%Hx, -⟩
+  ipureintro
+  exact Hx.1
+
 /-- (2026-10-17) In a cluster started from a bootstrap log (`StartNode`: `γ.reBoot ≠ []`) every
 node is past term `0` (`ownLogGhost_boot`): a pre-vote request rejected at a node's own term
 (`Term: r.Term`) is never of term `0`, which `send` refuses. -/
@@ -3144,8 +3164,10 @@ theorem ownRawNode_loanLoc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   iNamed H
   rcases (Hloan.2.2.1 l Hl).2.1 with h | ⟨s2, -, -, h⟩
   · rw [show l.snap.Metadata'.Index' = (snapId l.snap).index' from rfl]
-    iapply (snapLocOk_some γ id (snapId l.snap)).1
-    rw [← h]; iexact Hsloc
+    ihave Hx := (snapLocOk_some γ id (snapId l.snap)).1 $$ [Hsloc]
+    · rw [← h]; iexact Hsloc
+    icases Hx with ⟨Hx, -⟩
+    iexact Hx
   · rw [Hp] at h; cases h
 
 /-- (2026-11-02, stage II (u)) **A lent snapshot is at or past the configuration index**

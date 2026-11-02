@@ -27,13 +27,14 @@ theorem retryAuthClient.RoleGrantPermission.wp_proof
     (wp_authClient_RoleGrantPermission : etcdserverpb.authClient.RoleGrantPermission.spec (GF := GF) (hG := hG)) :
     retryAuthClient.RoleGrantPermission.spec (GF := GF) (hG := hG) := by
   intro rac conn addr Spec Q ctx cd inp m opts vs
-  wp_start as ⟨#Hrac, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hopts, #Hok⟩
+  wp_start as ⟨#Hrac, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
   iunfold retryAuthAt at Hrac
   icases Hrac with ⟨%ac, #Hac, #Hstub⟩
   wp_auto
   wp_apply wp_authClient_RoleGrantPermission ac conn addr Spec Q ctx cd inp m opts vs $$ [Hin] as %resp %err Hres
   · iframe #
     iframe
+    try (ipureintro; exact Hsz)
   iapply HΦ
   simp only [pbAuthRoleGrantPermissionRequest]
   iexact Hres

@@ -49,7 +49,8 @@ theorem RawNode.Ready.wp_proof [package_sem : Assumptions] (wp_RawNode_readyWith
                                                       ("#Hrs_ok" ∷ [∗list] st ∈ sts, readStateRaw γ st) ∗
                                                         "#Hhard" ∷ hsOpt rd.HardState' h ∗
                                                           "#Hhsw" ∷
-                                                              hsWit γ (phsNext rs.phs h) (rs.delivered ++ ce).length ∗
+                                                              hsWit γ (phsNext rs.phs h)
+                                                                (dlvAfter rs.delivered ce L).length ∗
                                                             "Happ" ∷ readyOut rs.storage rs.sn es L ∗
                                                               "#Hfrz" ∷
                                                                   (⌜L ≠ none⌝ ∨

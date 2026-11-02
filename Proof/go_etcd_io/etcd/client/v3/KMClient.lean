@@ -82,7 +82,7 @@ connection's object and the members' registrations, each at the KV's state name,
 receipts' bound (D48); `dup` (no claim that the members never refuse a request: a reader's). -/
 theorem isKv_of_regs [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64)
-    (γk : KVNames) (hst : γr.kv.st = γk.st) (hrb : receiptBound GF ≤ 2 ^ 62) :
+    (γk : KVNames) (hst : kvSame γr.kv γk) (hrb : receiptBound GF ≤ 2 ^ 62) :
     kvObjAt api addr ∗ kvRegs (srvsAt addr E γr cid mid) ⊢ |==> isKv api γk true := by
   iintro ⟨#Ho, #Hr⟩
   imod (srvStart_alloc (GF := GF) (srvsAt addr E γr cid mid)) with #Hs

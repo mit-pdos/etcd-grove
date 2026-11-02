@@ -252,7 +252,7 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (R : IProp GF) (lo : w64)
     (Hnp : ¬ opGetPanics gs) (Ht : (opGetModel key gs).t = W64 1)
-    (Hx : (opGetModel key gs).getExact) :
+    (Hx : (opGetModel key gs).getExact) (Hsz : opSizeOk (opGetModel key gs)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗ kvRegs (srvsAt addr E γr cid mid) ∗
         sortNamesIf (opGetModel key gs).base.sortSet ∗ kvRangeAu E γr ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
@@ -300,6 +300,8 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
     · iapply isKV_srvsAt $$ [Hkv Hrpc]; iframe #
     isplitl []
     · ipureintro; exact ⟨Hnp, Ht⟩
+    isplitl []; rotate_left
+    · ipureintro; exact Hsz
     iapply knownAt_srvsAt $$ []
     iframe #
   inext
@@ -316,7 +318,7 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
     · unfold getRespMore; ileft; ipureintro; exact Herr.1
     iexact Hse
   iunfold rangeReplyOk at Hq
-  icases Hq with ⟨%log, #Hcert, #Hcok, %Hlog, -, #HQl⟩
+  icases Hq with ⟨%log, #Hcert, #Hcok, %Hk, %Hlog, -, #HQl⟩
   obtain ⟨h2, h3, hrev, -, -, -, -, hsrv, hFl⟩ := Hlog
   -- the floor at the state read (a linearizable get's)
   ihave %Hfl : ⌜(opGetModel key gs).base.serializable = false →
@@ -338,7 +340,7 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
   rw [hrev] at hsrv; rw [hrev]
   have hr : sint.Z (W64 ((log.length : Int) - 1)) = (log.length : Int) - 1 := by word
   ihave #Hreach := v3rpc.etcdReached_of_certOk E log (W64 ((log.length : Int) - 1)) (by omega) $$ Hcok
-  ihave ⟨#Hst, %Hwf⟩ := v3rpc.etcdState_of_cert_last E log pfx h2 h3 $$ [$Hsm $Hcert]
+  ihave ⟨#Hst, %Hwf⟩ := v3rpc.etcdState_of_cert_last E log pfx h2 h3 Hk $$ [$Hsm $Hcert]
   ihave #Hgr : getRespRev resp (W64 ((log.length : Int) - 1)) $$ []
   · unfold getRespRev
     iexists h
@@ -458,7 +460,7 @@ theorem kv_get_server (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AE
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (R : IProp GF) (lo : w64)
     (Hnp : ¬ opGetPanics gs) (Ht : (opGetModel key gs).t = W64 1)
-    (Hx : (opGetModel key gs).getExact) :
+    (Hx : (opGetModel key gs).getExact) (Hsz : opSizeOk (opGetModel key gs)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗ kvRegs (srvsAt addr E γr cid mid) ∗
         sortNamesOk ∗ kvAnyAu E γr ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
@@ -472,7 +474,7 @@ theorem kv_get_server (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AE
   iintro %Φ ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hsn, #Hany, #Hctx, #Hce, #Hopts, HR, #Hlo⟩ HΦ
   ihave #Hr := kvAnyAu_range E γr $$ Hany
   ihave #Hsi := sortNamesIf_of_ok (opGetModel key gs).base.sortSet $$ Hsn
-  iapply (kv_get_server_r api addr s E γr cid mid pfx hpfx ci cd key sl gs R lo Hnp Ht Hx)
+  iapply (kv_get_server_r api addr s E γr cid mid pfx hpfx ci cd key sl gs R lo Hnp Ht Hx Hsz)
     $$ [HR] HΦ
   iframe #; iframe
 
@@ -489,9 +491,9 @@ theorem isEtcdKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : app
   iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hsn, #Hany⟩
   unfold isEtcdKVTodo
   iintro !> %key %sl %gs %R %lo %Φ !> ⟨#Hopts, HR, #Hlo, %Hpre⟩ HΦ
-  obtain ⟨Hnp, Ht, Hx, -⟩ := Hpre
+  obtain ⟨Hnp, Ht, Hx, -, Hsz⟩ := Hpre
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
-  iapply (kv_get_server api addr s E γr cid mid pfx hpfx todoCtxVal cd key sl gs R lo Hnp Ht Hx)
+  iapply (kv_get_server api addr s E γr cid mid pfx hpfx todoCtxVal cd key sl gs R lo Hnp Ht Hx Hsz)
     $$ [HR] [HΦ]
   · iframe #; iframe
   inext
@@ -513,14 +515,14 @@ theorem isEtcdKVE_of_kv_r (api : Loc) (addr : List GoString) (s : Loc) (E : appl
   iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hany, #Hall⟩
   unfold isEtcdKVE
   iintro !> %ctx %cs %key %sl %gs %lo %Φ !> ⟨#Hctx, #Hopts, #Hlo, %Hpre⟩ HΦ
-  obtain ⟨Hnp, Ht, Hx, Hss, -⟩ := Hpre
+  obtain ⟨Hnp, Ht, Hx, Hss, -, Hsz⟩ := Hpre
   ihave #Hsi : sortNamesIf (GF := GF) (opGetModel key gs).base.sortSet $$ []
   · rw [Hss]; unfold sortNamesIf; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
   iunfold ctxErrClientAll at Hall
   ihave #Hce := Hall $$ %ctx %cs Hctx
   ihave #Hok := ctxOk_of_isContext ctx cs $$ Hctx
   ihave #Hor := optsAt_res sl gs iprop(True) $$ Hopts
-  iapply (kv_get_server_r api addr s E γr cid mid pfx hpfx ctx cs key sl gs iprop(True) lo Hnp Ht Hx)
+  iapply (kv_get_server_r api addr s E γr cid mid pfx hpfx ctx cs key sl gs iprop(True) lo Hnp Ht Hx Hsz)
     $$ [] [HΦ]
   · iframe #
   inext

@@ -43,7 +43,10 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Inv
 public import Proof.go_etcd_io.raft.v3.MemstorageInstance
 public import Perennial.Golang.Theory.Chan.Idioms.Idioms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
+public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 public import Perennial.Ghost.MonoList
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NotifyC2
+public import Proof.go_etcd_io.raft.v3.MemstorageApi
 
 @[expose] public section
 
@@ -167,12 +170,14 @@ def rnMsgOk (E : RNEnv GF) (m : Loc) : IProp GF :=
   iprop(∃ (to : w64) (ty : w32), msgAt m to ty ∗ E.M m)
 
 /-- (D22 S-l sender, 2026-10-22; 2026-10-30, the repair: snapshots allowed, until then `False`)
-**A `MsgSnap` raft handed out, owned**: the message at some fraction (a `Ready`'s), of type
-`MsgSnap`, sent by the node, with its credits (`sentMsg_snapshot` gives its snapshot's
-certificate): what `processMessages` hands to `msgSnapC` and `applyAll`'s merge rewrites. -/
+**A `MsgSnap` raft handed out, owned**: the message, whole (a `Ready`'s: `readyDq`, a
+`MsgSnap` being no response; 2026-10-31, S1: until then at some fraction, which
+`createMergedSnapshotMessage`'s write of `m.Snapshot` cannot take), of type `MsgSnap`, sent by the
+node, with its credits (`sentMsg_snapshot` gives its snapshot's certificate): what
+`processMessages` hands to `msgSnapC` and `applyAll`'s merge rewrites. -/
 def rnSnapMsg (γ : RNNames) (m : Loc) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
-  iprop(∃ (dq : DFrac) (st : MsgSt), msgOwn m dq st ∗ ⌜st.msg.Type' = MsgSnap⌝ ∗
+  iprop(∃ st : MsgSt, msgOwn m (DFrac.own 1) st ∗ ⌜st.msg.Type' = MsgSnap⌝ ∗
     sentMsg γ.node.cl srvClusterN γ.id st ∗ msgCredits γ.node.cl srvClusterN st)
 
 /-- (D22 S-l sender) **A message of a `Ready`, as the server receives it**: any but a `MsgSnap`
@@ -219,6 +224,36 @@ def srvFrozenAt (γs : MemStorNames) (i : Nat) : IProp GF :=
 hand-over with `raftAdvancedC`). -/
 def srvFrozenRange (γs : MemStorNames) (lo hi : Nat) : IProp GF :=
   [∗list] j ∈ List.range' lo (hi - lo), srvFrozenAt γs j
+
+/-- (2026-10-31, the snapshot track: #11's S3) **The entries of `L` frozen from `lo` on, with
+their terms** (persistent; the raft loop's hand-over with `raftAdvancedC`, next to
+`srvFrozenRange`): the storage's entry at `lo + k` is frozen and has `L[k]`'s term, so a snapshot
+`CreateSnapshot` names after it has the applied term (`srvFrozenTerm`); (2026-10-31, #3) or, for
+any entry but the last, compacted (a snapshot `Ready`'s `ApplySnapshot` compacts the storage below
+the snapshot's index and leaves its dummy entry, frozen with the snapshot's term, the last). -/
+def srvFrozenTerms (γs : MemStorNames) (lo : Nat) (L : List EntryModel) : IProp GF :=
+  [∗list] k ↦ m ∈ L, iprop((∃ e : EntryM, memLog γs (lo + k) DFrac.discard [e] ∗ ⌜e.Term' = m.term⌝) ∨
+    (⌜k + 1 < L.length⌝ ∗ memCompacted γs (lo + k)))
+
+instance srvFrozenTerms_persistent (γs : MemStorNames) (lo : Nat) (L : List EntryModel) :
+    Persistent (srvFrozenTerms (GF := GF) γs lo L) := by
+  unfold srvFrozenTerms; infer_instance
+
+/-- The frozen terms of a log from those of its two parts. -/
+theorem srvFrozenTerms_app (γs : MemStorNames) (lo : Nat) (L1 L2 : List EntryModel) :
+    srvFrozenTerms (GF := GF) γs lo L1 ∗ srvFrozenTerms γs (lo + L1.length) L2 ⊢
+      srvFrozenTerms γs lo (L1 ++ L2) := by
+  unfold srvFrozenTerms
+  refine Entails.trans ?_ BigSepL.bigSepL_append.2
+  refine sep_mono (BigSepL.bigSepL_mono_of_forall fun {k x} => ?_)
+    (BigSepL.bigSepL_mono_of_forall fun {k x} => ?_)
+  · iintro (H | ⟨%h, H⟩)
+    · ileft; iexact H
+    · iright; iframe H; ipureintro; simp only [List.length_append]; omega
+  · rw [show lo + L1.length + k = lo + (k + L1.length) by omega]
+    iintro (H | ⟨%h, H⟩)
+    · ileft; iexact H
+    · iright; iframe H; ipureintro; simp only [List.length_append]; omega
 
 /-- (2026-10-30, the repair) **Every entry below `n` frozen or compacted** (persistent;
 `Compact`'s premise at any compaction index below the applied index: `ApplySnapshot` compacts
@@ -309,6 +344,22 @@ def rnDrv (γ : RNNames) (L : List EntryModel) (p : HardStateM) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   iprop(∃ (S : RaftState) (r : StateType), nodeDriver γ.nl γ.node.cl srvClusterN (rnDrvSt γ L p S r) ∗
     raftState γ.node.cl γ.id S ∗ rnCfgAt γ L)
+
+/-- (2026-10-31, the snapshot track: #11's S4) The committed log handed out through `L`, at the
+node's storage: the storage contract's `DL` (`nodeCommitLb`) at its length (`CreateSnapshot`'s
+`J.DL`). (2026-11-02, the lean merge: from the idle driver, whose key names the storage,
+`nodeDriver_nodeCommitLb`; until then from `isNode` and `deliveredLogLb`, the open `storDL`.) -/
+theorem rn_storDL (γ : RNNames) (L : List EntryModel) (p : HardStateM) :
+    rnDrv (GF := GF) γ L p ⊢ rnDrv γ L p ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ L).length := by
+  letI := srvStor (GF := GF) γ.node
+  iintro Hd
+  iunfold rnDrv at Hd
+  icases Hd with ⟨%S, %r, Hd, HrS, Hcf⟩
+  ihave ⟨Hd, #Hc⟩ := nodeDriver_nodeCommitLb γ.nl γ.node.cl srvClusterN _ $$ Hd
+  isplitl [Hd HrS Hcf]
+  · iunfold rnDrv; iexists S, r; iframe
+  · iExactEq Hc
+    simp [rnDrvSt, srvLE]
 
 /-- The driver with a `Ready` in hand, handed the committed log `d ++ ce`, to append `es`
 before `Advance`: the node API's `nodeDriver` busy, without the view; (2026-11-01, durability
@@ -439,32 +490,79 @@ a snapshot gives the driver**, after the committed log `d`: the node API's snaps
 (`readySnap … (some l)`: the loan's snapshot, half owned, its certificate, the storage's range from
 an index at most the snapshot's with the end, `snapGiven`), the committed log `A'` the snapshot
 jumps to (raft's `strip l.dlv`, past `d`), `E.C A'`, the entries `es` to append after it with the
-right to, the messages, soft state, hard state (`p'` after `p`) and read states as `rnReadyData`'s. -/
+right to, the messages, soft state, hard state (`p'` after `p`) and read states as `rnReadyData`'s;
+(2026-10-31, #3) the entries' index bound (`MemoryStorage.Append`'s, the node API's
+`readyRest_fits`), the empty committed entries (`updateCommittedIndex`'s) and the last term of
+`A'` the snapshot's (its certificate's, `snapshotValid`: the loop's `srvFrozenTerms` after it),
+and the snapshot valid (`ApplySnapshot`'s `J.SV`). -/
 def rnReadySnap (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d es A' : List EntryModel)
     (p p' : HardStateM) (l : SnapLoan) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
-  iprop(∃ (esL msL : List Loc) (hs : HardStateModel),
+  iprop(∃ (ceL esL msL : List Loc) (hs : HardStateModel),
     -- (2026-11-01, durability layer 4) at the driver's state at receipt, whatever its durable
     -- state and role (`readySnap` reads the storage, the delivered log and the key)
     (∃ (S : RaftState) (r : StateType),
-      readySnap γ.node.cl srvClusterN rd (rnDrvSt γ d p S r) [] (es.map EntryModel.toM) (some l)) ∗
-    ⌜srvLE γ.srv A' = strip l.dlv ∧ d.length < A'.length⌝ ∗ □ E.C A' ∗
+      readySnap γ.node.cl srvClusterN γ.id rd (rnDrvSt γ d p S r) [] (es.map EntryModel.toM) (some l)) ∗
+    -- (2026-10-31, #3) no committed entries
+    rd.CommittedEntries' ↦*□ ceL ∗ entriesAt ceL [] ∗
+    ⌜srvLE γ.srv A' = strip l.dlv ∧ d.length < A'.length ∧
+      (∀ e0, (es.map EntryModel.toM).head? = some e0 →
+        uint.Z e0.Index' + ((es.map EntryModel.toM).length : Int) ≤ 2 ^ 61) ∧
+      Option.map EntryModel.term A'.getLast? = some l.snap.Metadata'.Term'⌝ ∗ □ E.C A' ∗
+    snapshotValid γ.node.cl l.snap ∗
     rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗
     rd.Messages' ↦*□ msL ∗ ([∗list] m ∈ msL, rnMsgR E γ m) ∗
     softStateAt rd.SoftState' ∗ hardStateAt rd.HardState' hs ∗ ⌜p' = phsNext p hs.toM⌝ ∗
     (∃ rsL : List ReadState, rd.ReadStates' ↦*□ rsL ∗
       [∗list] rs ∈ rsL, srvReadStateOk E.γr.raft E.RQ rs))
 
+/-- (J8b, 2026-11-01) **A snapshot `Ready` is past the boot log**: its index is at least the boot
+log's length. True of raft: a node restores a snapshot only above its committed index
+(`raft.restore`), which is at least the boot log's length, so every snapshot a `Ready` hands out is
+past it. From raft's `readySnap_bootLen` and the server's cluster at its bootstrap log
+(`srvClusterOk`, through `rnEnvOk`). What `applyAll.specSnap` takes (`|boot| ≤ i`, through
+`rnApSnap`). -/
+theorem rnReadySnap_bootLen (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d es A' : List EntryModel)
+    (p p' : HardStateM) (l : SnapLoan) :
+    ⊢ rnEnvOk E γ -∗ rnReadySnap E γ rd d es A' p p' l -∗ rnReadySnap E γ rd d es A' p p' l ∗
+      ⌜(γ.node.boot.length : Int) ≤ uint.Z l.snap.Metadata'.Index'⌝ := by
+  iintro #Henv H
+  iunfold rnEnvOk at Henv
+  icases Henv with ⟨-, %Hn, -, #Hinv, -⟩
+  iunfold srvRaftLogInv at Hinv
+  icases Hinv with ⟨-, #Hcl, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨-, -, -, -, -, -, -, -, %Hbl⟩
+  rw [Hn.1] at Hbl
+  iunfold rnReadySnap at H
+  icases H with ⟨%ceL, %esL, %msL, %hs, ⟨%S, %r, HrS⟩, Hrest⟩
+  ihave ⟨%Hb, HrS⟩ := (letI := srvStor (GF := GF) γ.node; readySnap_bootLen _ _ _ _ _ _ _ _) $$ HrS
+  isplitl
+  · iunfold rnReadySnap
+    iexists ceL, esL, msL, hs
+    iframe Hrest
+    iexists S, r
+    iexact HrS
+  ipureintro
+  rw [Hbl] at Hb
+  omega
+
 /-- (D22 J6a; 2026-10-30, the repair: until then `False`) **The driver with a snapshot `Ready` in
 hand**: the node API's `nodeDriver` busy with the loan, delivered the snapshot's log `A'`, its view
-after the log before (`rnCfgAt γ d`, replaced by `Advance`'s answer at the snapshot). -/
+after the log before (`rnCfgAt γ d`, replaced by `Advance`'s answer at the snapshot).
+(2026-10-31, the snapshot track) With `readySnap`'s facts `Advance` needs: the snapshot's log is
+`A'` (the loan's delivered log, as long as the snapshot's index) past the log before, the index in
+`(0, 2^61)`. -/
 def rnBusyS (γ : RNNames) (d A' es : List EntryModel) (p : HardStateM) (l : SnapLoan) :
     IProp GF :=
   letI := srvStor (GF := GF) γ.node
   iprop((∃ (S : RaftState) (r : StateType), nodeDriver γ.nl γ.node.cl srvClusterN
       ⟨memStorIface γ.ms, srvLE γ.srv A', p, some (es.map EntryModel.toM, some l), γ.key, S, r⟩ ∗
       raftState γ.node.cl γ.id S) ∗
-    rnCfgAt γ d)
+    rnCfgAt γ d ∗
+    ⌜srvLE γ.srv A' = strip l.dlv ∧ srvLE γ.srv d <+: strip l.dlv ∧
+      l.dlv.length = uint.nat l.snap.Metadata'.Index' ∧
+      0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2 ^ 61⌝)
 
 /-- **The `raft.Node` `n`** (see the file header; 2026-10-30, the repair: raft's unified node API):
 its `ApplyConfChange` (the apply thread's, `raftApplyCC`); `Ready` returns the node API's `Ready`
@@ -565,7 +663,10 @@ theorem rnMsgOk_of_api [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNN
       iunfold rnMsgR
       iright
       iunfold rnSnapMsg
-      iexists (readyDq q.st), q.st
+      iexists q.st
+      have hdq : readyDq q.st = DFrac.own 1 := by
+        unfold readyDq; rw [hsn]; exact if_neg (by unfold RespType; decide)
+      rw [hdq] at *
       iframe Hm Hsm Hc
       ipureintro; exact hsn
     imod msgOwn_persist_fupd q.loc _ q.st ⊤ $$ Hm with #Hm
@@ -699,14 +800,166 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   · iunfold srvRaftLogInv at Hinv; icases Hinv with ⟨-, #H, -⟩; iexact H
   cases Lo with
   | some l =>
-    -- SNAPSHOT-SORRY: `rnReadySnap` from `readySnap (some l)` and the messages, `rnBusyS` from
-    -- the driver
-    sorry
+    -- a snapshot `Ready`: the snapshot's log `A'` (the loan's delivered log after the start log),
+    -- committed, so `E.C A'`; the messages as without a snapshot
+    ihave #Hfits : readyFits γ.node.cl srvClusterN $$ []
+    · iunfold srvClusterOk at Hcl; icases Hcl with ⟨-, -, -, #H, -⟩; rw [Hraft]; iexact H
+    simp only [NodeDriverState.afterReady]
+    icases readyRest_fits γ.node.cl srvClusterN γ.id rd _ ce es h (some l) ms ss $$ [Hfits Hrest]
+      with ⟨Hrest, %Hfit61⟩
+    · iframe Hfits Hrest
+    simp only [readyRest, readySnap]
+    icases Hrest with ⟨#Hes, Hmsgs, Hmo, #Hhs, #Hss, -, ⟨%Hsp, Hown, #Hcom2, #Hcert, Hold,
+      Hgiv⟩, -⟩
+    obtain ⟨Hdlv, Hptr, Hce0, Hpfx, Hlt, Hdl, Hpos, H61, Hfl, Hli⟩ := Hsp
+    subst Hce0
+    obtain ⟨A', HA'⟩ : ∃ A', A' = (l.dlv.drop γ.pre.length).map EntryModel.ofM := ⟨_, rfl⟩
+    have Hpre' : γ.pre.map EntryModel.toLE <+: strip l.dlv := by
+      refine List.IsPrefix.trans ?_ Hpfx
+      simp only [srvLE, List.map_append]
+      exact List.prefix_append _ _
+    have hA' : srvLE γ.srv A' = strip l.dlv := by
+      have ht := List.prefix_iff_eq_take.1 Hpre'
+      rw [List.length_map] at ht
+      rw [HA']
+      simp only [srvLE, List.map_append, List.map_map]
+      have hc : (EntryModel.toLE ∘ EntryModel.ofM) = LogEntry.ofEntryM := rfl
+      rw [hc, List.map_drop, ht]
+      exact List.take_append_drop _ _
+    have hlen' : (γ.pre ++ A').length = l.dlv.length := by
+      have h := congrArg List.length hA'
+      simp only [srvLE, strip, List.length_map] at h
+      exact h
+    have hLA : L.length < A'.length := by
+      have h := Hlt
+      simp only [srvLE, List.length_map, List.length_append] at h hlen'
+      omega
+    -- the indices of the loan's delivered log: `k + 1` at `k`
+    have hkI : ∀ (k : Nat) (e : EntryM), l.dlv[k]? = some e → e.Index' = W64 (k + 1) := by
+      intro k e he
+      rw [Hdlv] at he
+      unfold LogEntry.toEntries at he
+      rw [List.getElem?_mapIdx] at he
+      cases hx : (strip l.dlv)[k]? with
+      | none => rw [hx] at he; cases he
+      | some x =>
+        rw [hx] at he
+        simp only [Option.map_some, Option.some.injEq] at he
+        subst he
+        simp only [LogEntry.toEntryM]
+        congr 1; omega
+    have HidxA : ∀ (n : Nat) (m : EntryModel), A'[n]? = some m →
+        uint.Z m.index = uint.Z E.γr.raft.ai0 + 1 + n := by
+      intro n m hm
+      rw [HA', List.getElem?_map, List.getElem?_drop] at hm
+      cases hx : l.dlv[γ.pre.length + n]? with
+      | none => rw [hx] at hm; cases hm
+      | some x =>
+        rw [hx] at hm
+        simp only [Option.map_some, Option.some.injEq] at hm
+        subst hm
+        have hb : γ.pre.length + n < l.dlv.length := (List.getElem?_eq_some_iff.1 hx).1
+        have hI := hkI _ x hx
+        simp only [EntryModel.ofM, hI, Hai0]
+        have : ((γ.pre.length + n + 1 : Nat) : Int) < 2 ^ 61 := by
+          have := Hdl; have := uint_nat_eq l.snap.Metadata'.Index'; omega
+        word
+    have HsrvLE : srvLE E.γr.raft A' = srvLE γ.srv A' := by
+      unfold srvLE RNNames.srv; rw [Hpre]
+    -- (2026-10-31, #3) the last term of `A'`: the snapshot's (its certificate's committed log)
+    ihave #HisCl : isCluster γ.node.cl srvClusterN $$ []
+    · iunfold srvClusterOk at Hcl; icases Hcl with ⟨#H, -⟩; rw [Hraft]; iexact H
+    ihave #HsvV := snapshotCert_valid γ.node.cl srvClusterN l.snap Hpos H61 $$ [HisCl Hcert]
+    · iframe HisCl Hcert
+    ihave #HsvV0 := HsvV
+    iunfold snapshotValid at HsvV
+    icases HsvV with ⟨%lc, %mc, #Hlc, -, -, %Hlcf⟩
+    ihave %Hag := isCommittedLogLb_agree γ.node.cl lc (strip l.dlv) $$ [Hlc Hcom2]
+    · iframe Hlc Hcom2
+    have hlastA : Option.map EntryModel.term A'.getLast? = some l.snap.Metadata'.Term' := by
+      have hl1 : lc.length = (strip l.dlv).length := by
+        rw [Hlcf.1]; unfold strip; rw [List.length_map, Hdl]
+      have hlc : lc = strip l.dlv := by
+        rcases Hag with hp | hp
+        · exact hp.eq_of_length hl1
+        · exact (hp.eq_of_length hl1.symm).symm
+      have hlast := Hlcf.2.2.1
+      rw [hlc, ← hA'] at hlast
+      have hne : A' ≠ [] := by intro h; rw [h] at hLA; simp at hLA
+      obtain ⟨Ai, a, hAeq⟩ : ∃ Ai a, A' = Ai ++ [a] :=
+        ⟨A'.dropLast, A'.getLast hne, (List.dropLast_concat_getLast hne).symm⟩
+      rw [hAeq] at hlast ⊢
+      simp only [srvLE, ← List.append_assoc, List.map_append, List.map_cons, List.map_nil,
+        List.getLast?_append, List.getLast?_singleton, Option.some_or, Option.map_some] at hlast ⊢
+      exact hlast
+    icases entsPts_elim _ _ _ $$ Hes with ⟨%esL, #HesL, #Hesro⟩
+    icases entsPts_elim _ _ _ $$ Hce with ⟨%ceL, #HceL, #Hcero⟩
+    imod ownSlice_persist _ _ _ $$ Hmsgs with #Hmsgs
+    ihave Hmo := readyMsgs_sent γ.node.cl srvClusterN γ.id ms $$ [$Hmo $Hsent]
+    imod rnMsgOk_of_api E γ ms $$ HM Hcl %Hraft Hmo with Hmok
+    ihave #Hcom' : isCommittedLogLb E.γr.raft.raft.cl (srvLE E.γr.raft A') $$ []
+    · rw [HsrvLE, hA', Hraft]; iexact Hcom2
+    imod srvRLogLb_intro E.γr.raft ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full) A'
+        HidxA $$ Hinv Hcom' with #HLb
+    ihave %HLiW := srvRLogLb_idx E.γr.raft _ $$ HLb
+    imod HC $$ %A' HLb [] with #HEC
+    · ipureintro
+      rw [Hai0]
+      have h := hlen'
+      have := Hdl; have := uint_nat_eq l.snap.Metadata'.Index'
+      simp only [List.length_append] at h
+      omega
+    imodintro
+    iframe Hrun
+    iright
+    iexists es.map EntryModel.ofM, A', phsNext p h, l
+    isplitl [Hown Hold Hgiv Hmok]
+    · iunfold rnReadySnap
+      iexists ceL, esL, ms.map QMsg.loc, HardStateModel.ofM h
+      rw [EntryModel.map_toM_ofM]
+      iframe Hmsgs Hmok HEC HesL HceL HsvV0
+      isplitl [Hown Hold Hgiv]
+      · iexists S, r
+        simp only [readySnap, rnDrvSt]
+        iframe Hown Hcom2 Hcert Hold Hgiv
+        ipureintro; exact ⟨Hdlv, Hptr, trivial, Hpfx, Hlt, Hdl, Hpos, H61, Hfl, Hli⟩
+      isplitr
+      · have h0 : (LogEntry.toEntries [] (srvLE γ.srv L).length).map EntryModel.ofM = [] := by
+          simp [LogEntry.toEntries]
+        rw [← h0]
+        iapply entriesAt_of_entRO ceL _ $$ Hcero
+      isplitr
+      · ipureintro; exact ⟨hA', hLA, Hfit61, hlastA⟩
+      isplitr
+      · iapply entriesAt_of_entRO esL es $$ Hesro
+      isplitr
+      · iunfold softStateAt; iapply softStateIs_RO $$ Hss
+      isplitr
+      · iunfold hardStateAt
+        rw [HardStateModel.toM_ofM]
+        iexact Hhs
+      isplitr
+      · rw [HardStateModel.toM_ofM]; ipureintro; rfl
+      iunfold readStatesPts at Hrs
+      icases Hrs with ⟨%vs, #Hvs, #Hrs2⟩
+      iexists vs
+      iframe Hvs
+      iapply rnReadStates_of_api E γ vs sts $$ Hbr Hrs2 Hrsok
+    isplitl [Hcfg Hdrv HrS]
+    · iunfold rnBusyS
+      iframe Hcfg
+      rw [EntryModel.map_toM_ofM, hA']
+      isplitl [Hdrv HrS]
+      · iexists _, _
+        iframe Hdrv HrS
+      ipureintro
+      exact ⟨rfl, Hpfx, Hdl, Hpos, H61⟩
+    ipureintro; exact HLiW
   | none =>
   simp only [NodeDriverState.afterReady]
   ihave #Hfits : readyFits γ.node.cl srvClusterN $$ []
   · iunfold srvClusterOk at Hcl; icases Hcl with ⟨-, -, -, #H, -⟩; rw [Hraft]; iexact H
-  icases readyRest_fits γ.node.cl srvClusterN rd _ ce es h none ms ss $$ [Hfits Hrest]
+  icases readyRest_fits γ.node.cl srvClusterN γ.id rd _ ce es h none ms ss $$ [Hfits Hrest]
     with ⟨Hrest, %Hfit61⟩
   · iframe Hfits Hrest
   simp only [readyRest, readySnap]
@@ -851,34 +1104,99 @@ instance isRNMemStor_persistent (γ : RNNames) (ms : Loc) :
     Persistent (isRNMemStor (GF := GF) γ ms) := by
   unfold isRNMemStor; infer_instance
 
-/-- **The WAL `st`** (`serverstorage.Storage`, trust boundary: names-only): `Save` of a hard
-state and entries returns some error (on which the loop exits the process, `lg.Fatal`);
-`Close` succeeds (otherwise `onStop` panics in the loop's goroutine, which crashes etcd: the
-contract assumes it does not). -/
+/-- **The WAL `st`** (`serverstorage.Storage` over the WAL `w`, trust boundary: names-only; the
+contract `rnNewStorageOk`'s): while its WAL `w` (`storage.walOf st`) is open (some fraction of
+`storage.walOpen w`, which every storage over `w` shares), `Save` of a hard state and entries returns some error (on which the loop
+exits the process, `lg.Fatal`), `SaveSnap` of a snapshot's metadata whose conf state, index and term
+pointers are set (`smPtsV`: `walpb.ValidateSnapshotForWrite` rejects a nil index or term and a nil
+conf state at a non-zero index, `walpb/record.go:45-57`; 2026-10-31, approved by the user: until
+then over the model, the index and term non-zero, the conf state not the empty one, which nothing
+proved of the term) fails only on I/O (`storage.walSaveOk`), and `Sync` returns
+some error; `Close` takes the whole token and fails only on I/O (`storage.walCloseOk`; `onStop`
+panics otherwise). (2026-10-31, `notes/axiom-review/savesnap.md`: until then no token, `Close` at
+`True` always `nil`, `SaveSnap` over any metadata with any error.) -/
 def isRNWal (st : GoInterface) : IProp GF :=
+  letI w := storage.walOf st
   iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
-    □ (∀ (hp : Loc) (hs : HardStateModel) (sl : GoSlice) (esL : List Loc)
+    □ (∀ (q : Qp) (hp : Loc) (hs : HardStateModel) (sl : GoSlice) (esL : List Loc)
         (es : List EntryModel),
-      {{ hardStateAt hp hs ∗ sl ↦*□ esL ∗ entriesAt esL es }}
+      {{ storage.walOpen w q ∗ hardStateAt hp hs ∗ sl ↦*□ esL ∗ entriesAt esL es }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
-      {{ (err : GoInterface), RET #err; True }}) ∗
-    □ ({{ True }} (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
-      {{ RET #(GoInterface.nil); True }}) ∗
+      {{ (err : GoInterface), RET #err; storage.walOpen w q }}) ∗
+    □ ({{ storage.walOpen w 1 }} (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
+      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∨ ¬ storage.walCloseOk⌝ }}) ∗
     -- (D22 J1a, 2026-10-26) `SaveSnap(snap)`: reads the snapshot's metadata (`snap.Metadata.Index`,
     -- `.Term`, `GetConfState()`: the metadata pointer must be set) and writes the WAL's snapshot
     -- record (`storage.go`: `st.w.SaveSnapshot`; at the pin it no longer writes a `.snap` file),
     -- for the raft loop's snapshot branch and the apply thread's disk snapshot
-    □ (∀ (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM),
-      {{ sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smPts mp dq' md }}
+    □ (∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM),
+      {{ storage.walOpen w q ∗ sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
+          smPtsV mp dq' md }}
         (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
-      {{ (err : GoInterface), RET #err;
-          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smPts mp dq' md }}) ∗
+      {{ (err : GoInterface), RET #err; storage.walOpen w q ∗
+          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smPtsV mp dq' md ∗
+          ⌜err = GoInterface.nil ∨ ¬ storage.walSaveOk⌝ }}) ∗
     -- (D22 J1a) `Sync()`: syncs the WAL
-    □ ({{ True }} (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; True }}))
+    □ (∀ q : Qp, {{ storage.walOpen w q }} (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))
+      {{ (err : GoInterface), RET #err; storage.walOpen w q }}))
 
-instance isRNWal_persistent (st : GoInterface) : Persistent (isRNWal (GF := GF) st) := by
+instance isRNWal_persistent (st : GoInterface) :
+    Persistent (isRNWal (GF := GF) st) := by
   unfold isRNWal; infer_instance
+
+/-- (2026-10-31) **The wrapper `r`'s WAL open, at the fraction `q`**: the open token
+(`storage.walOpen`) of the WAL of `r`'s storage. The raft loop holds a half, the apply thread the
+other (for its disk snapshot's `SaveSnap`), which `stopped` brings back to the loop for `Close`. -/
+def rnWalTok (r : Loc) (q : Qp) : IProp GF :=
+  iprop(∃ st : GoInterface, rnStorageAddr r ↦□ st ∗ storage.walOpen (storage.walOf st) q)
+
+theorem rnWalTok_half (r : Loc) :
+    rnWalTok (GF := GF) r (1 : Qp).half ∗ rnWalTok r (1 : Qp).half ⊢ rnWalTok r 1 := by
+  unfold rnWalTok
+  iintro ⟨⟨%st1, #H1, T1⟩, ⟨%st2, #H2, T2⟩⟩
+  icombine H1 H2 gives %Heq
+  have Heq' : st1 = st2 := by first | exact Heq | exact Heq.2
+  subst Heq'
+  iexists st1
+  iframe H1
+  have h := ((storage.walOpen_fractional (GF := GF) (storage.walOf st1)).fractional
+    (1 : Qp).half (1 : Qp).half).2
+  rw [Qp.half_add_half] at h
+  iapply h
+  iframe T1 T2
+
+/-- The token at the storage `st` the wrapper `r` holds. -/
+theorem rnWalTok_open (r : Loc) (st : GoInterface) (q : Qp) :
+    rnStorageAddr r ↦□ st ∗ rnWalTok (GF := GF) r q ⊢ storage.walOpen (storage.walOf st) q := by
+  unfold rnWalTok
+  iintro ⟨#Hst, ⟨%st', #Hst', T⟩⟩
+  icombine Hst Hst' gives %Heq
+  have Heq' : st' = st := by first | exact Heq.symm | exact Heq.2.symm
+  subst Heq'
+  iexact T
+
+/-- The loop's half and the half `stopped` brings back (`rnStopBag`'s, at the WAL of `r`'s
+storage `st`) make the whole token (`onStop`'s `Close`). -/
+theorem rnWalTok_join (r : Loc) (st : GoInterface) :
+    rnStorageAddr r ↦□ st ∗ rnWalTok (GF := GF) r (1 : Qp).half ∗
+      storage.walOpen (storage.walOf st) (1 : Qp).half ⊢ rnWalTok r 1 := by
+  iintro ⟨#Hst, T1, T2⟩
+  iapply rnWalTok_half r
+  iframe T1
+  iunfold rnWalTok
+  iexists st
+  iframe Hst T2
+
+theorem rnWalTok_split (r : Loc) :
+    rnWalTok (GF := GF) r 1 ⊢ rnWalTok r (1 : Qp).half ∗ rnWalTok r (1 : Qp).half := by
+  unfold rnWalTok
+  iintro ⟨%st, #H, T⟩
+  icases ((storage.walOpen_fractional (GF := GF) (storage.walOf st)).fractional (1 : Qp).half
+      (1 : Qp).half).1 $$ [T] with ⟨T1, T2⟩
+  · rw [Qp.half_add_half]; iexact T
+  isplitl [T1]
+  · iexists st; iframe H T1
+  · iexists st; iframe H T2
 
 /-- **The transport `tr`** (`rafthttp.Transporter`): `Send` takes the slice of messages, each one
 raft may send, borrowing `E.S` (2026-10-24); `Stop` returns, taking `E.ST` (D43 M5c). -/
@@ -977,12 +1295,15 @@ instance isUnitBag_persistent (c : Loc) : Persistent (isUnitBag (GF := GF) c) :=
 the transport, which the loop's `onStop` uses; and (2026-10-30, the repair) the apply side's half
 of the node's running token (`rnRunHalf`'s other half: `raftNode.stop` is called once the scheduler
 is drained, so the apply thread no longer needs it), which with the loop's makes the whole token
-`node.Stop` takes. -/
-def rnStopBag (E : RNEnv GF) (γ : RNNames) (c : Loc) : IProp GF :=
-  iprop(∃ γc : ChanNames, isChanBag γc c (V := Unit) (fun _ => iprop(E.ST ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half))))
+`node.Stop` takes; (2026-10-31) and the apply side's half of the WAL `w`'s open token, which with
+the loop's makes the whole `Close` takes (etcd closes the WAL only once the apply thread is done,
+`server.go:819-831`). -/
+def rnStopBag (E : RNEnv GF) (γ : RNNames) (w : Loc) (c : Loc) : IProp GF :=
+  iprop(∃ γc : ChanNames, isChanBag γc c (V := Unit) (fun _ => iprop(E.ST ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
+    storage.walOpen w (1 : Qp).half)))
 
-instance rnStopBag_persistent (E : RNEnv GF) (γ : RNNames) (c : Loc) :
-    Persistent (rnStopBag E γ c) := by
+instance rnStopBag_persistent (E : RNEnv GF) (γ : RNNames) (w : Loc) (c : Loc) :
+    Persistent (rnStopBag E γ w c) := by
   unfold rnStopBag; infer_instance
 
 /-- `raftAdvancedC` (D19i part 1, 2026-10-18: the fork closes it after every `Advance`, and
@@ -996,14 +1317,77 @@ instance rnAdvChan_persistent (c : Loc) (P : IProp GF) : Persistent (rnAdvChan (
   unfold rnAdvChan; infer_instance
 
 
-/-- (D22 S-b, item 2; 2026-10-27: trivial) The raft term a batch carries (`toApply.raftTerm`):
-until 2026-10-27 `0` or a term with raft's commit witness, for the snapshot sender's merged
-snapshot, which is unreachable on the node API (`rnSnapMsg`). -/
-def rnRtOk (_γ : RNNames) (_t : w64) (_n : Nat) : IProp GF := iprop(True)
+/-- (D22 S-b, item 2) **The raft term a batch carries** (`toApply.raftTerm`, the term of the last
+non-empty `HardState`, raft.go:222), for the snapshot sender's merged snapshot: `0` (no hard state
+yet), or a term the log through some index `c` was committed at (raft's `committedAtTerm`), `c` at
+least the batch's log, `n` entries long. (2026-10-27 to 2026-10-31 `True`; 2026-10-31, from the
+node API's `nodeDriver_hardStateCommitted`.) -/
+def rnRtOk (γ : RNNames) (t : w64) (n : Nat) : IProp GF :=
+  letI := srvStor (GF := GF) γ.node
+  iprop(⌜t = W64 0⌝ ∨ ∃ c : w64, committedAtTerm γ.node.cl srvClusterN t c ∗ ⌜(n : Int) ≤ uint.Z c⌝)
 
 instance rnRtOk_persistent (γ : RNNames) (t : w64) (n : Nat) :
     Persistent (rnRtOk (GF := GF) γ t n) := by
   unfold rnRtOk; infer_instance
+
+/-- (2026-10-31) The term the `Ready` loop records (`0` or the driver's hard state's) is good for a
+batch of the log the driver was delivered, `pre ++ L` (`nodeDriver_hardStateCommitted`). -/
+theorem rn_rtOk_st (γ : RNNames) (rt : w64) (L : List EntryModel) (st : NodeDriverState)
+    (hd : st.delivered = srvLE γ.srv L) (Hrt : uint.Z rt = 0 ∨ rt = st.hardState.Term') :
+    (letI := srvStor (GF := GF) γ.node; nodeDriver (GF := GF) γ.nl γ.node.cl srvClusterN st) ⊢
+      (letI := srvStor (GF := GF) γ.node; nodeDriver γ.nl γ.node.cl srvClusterN st) ∗
+        rnRtOk γ rt (rnLogOf γ L).length := by
+  letI := srvStor (GF := GF) γ.node
+  iintro Hd
+  ihave ⟨Hd, #Hc⟩ := nodeDriver_hardStateCommitted _ _ _ _ $$ Hd
+  iframe Hd
+  iunfold rnRtOk
+  rcases Hrt with Hrt | Hrt
+  · ileft; ipureintro; word
+  · icases Hc with (%Hz | ⟨#Hc, %Hle⟩)
+    · ileft; ipureintro; rw [Hrt, Hz]
+    · iright
+      iexists st.hardState.Commit'
+      rw [Hrt]
+      iframe Hc
+      ipureintro
+      rw [hd] at Hle
+      simp only [srvLE, rnLogOf, RNNames.srv, List.length_map, List.length_append] at Hle ⊢
+      omega
+
+/-- `rn_rtOk_st` for the driver with a `Ready` of entries in hand (`rnBusyN`). -/
+theorem rn_rtOk_busyN (γ : RNNames) (rt : w64) (d ce es : List EntryModel) (p : HardStateM)
+    (Hrt : uint.Z rt = 0 ∨ rt = p.Term') :
+    rnBusyN (GF := GF) γ d ce es p ⊢ rnBusyN γ d ce es p ∗ rnRtOk γ rt (rnLogOf γ (d ++ ce)).length := by
+  letI := srvStor (GF := GF) γ.node
+  iintro Hb
+  iunfold rnBusyN at Hb
+  icases Hb with ⟨%S, %r, Hd, HrS⟩
+  ihave ⟨Hd, #Hok⟩ := rn_rtOk_st γ rt (d ++ ce) _ rfl Hrt $$ Hd
+  iframe Hok
+  iunfold rnBusyN
+  iexists S, r
+  iframe
+
+/-- `rn_rtOk_st` for the driver with a snapshot `Ready` in hand (`rnBusyS`'s driver, with the
+node's durable state, 2026-11-01). -/
+theorem rn_rtOk_busyS (γ : RNNames) (rt : w64) (A' es : List EntryModel) (p : HardStateM)
+    (l : SnapLoan) (Hrt : uint.Z rt = 0 ∨ rt = p.Term') :
+    (letI := srvStor (GF := GF) γ.node
+     iprop(∃ (S : RaftState) (r : StateType), nodeDriver (GF := GF) γ.nl γ.node.cl srvClusterN
+      ⟨memStorIface γ.ms, srvLE γ.srv A', p, some (es.map EntryModel.toM, some l), γ.key, S, r⟩ ∗
+      raftState γ.node.cl γ.id S)) ⊢
+    (letI := srvStor (GF := GF) γ.node
+     iprop(∃ (S : RaftState) (r : StateType), nodeDriver γ.nl γ.node.cl srvClusterN
+      ⟨memStorIface γ.ms, srvLE γ.srv A', p, some (es.map EntryModel.toM, some l), γ.key, S, r⟩ ∗
+      raftState γ.node.cl γ.id S)) ∗
+    rnRtOk γ rt (rnLogOf γ A').length := by
+  letI := srvStor (GF := GF) γ.node
+  iintro ⟨%S, %r, Hd, HrS⟩
+  ihave ⟨Hd, #Hok⟩ := rn_rtOk_st γ rt A' _ rfl Hrt $$ Hd
+  iframe Hok
+  iexists S, r
+  iframe
 
 /-- (D22l) `prevHardSt`'s update by a `Ready` of the server's hard state `hs`. -/
 theorem phsNext_toM_empty (p : HardStateM) (hs : HardStateModel) (h : hs = HardStateModel.empty) :
@@ -1060,9 +1444,11 @@ def rnApN (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
     -- index past the batch (until then the storage's floor)
     rnAdvChan ap.raftAdvancedC'
       (letI := srvStor (GF := GF) γ.node
-       iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ F ++ ce).length ∗
+       iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ F ++ ce).length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ F ++ ce).length ∗
         -- (2026-10-30, the repair) the batch's entries frozen in the storage (`CreateSnapshot`'s)
-        srvFrozenRange γ.γs ((γ.pre ++ F).length + 1) ((γ.pre ++ F ++ ce).length + 1))) ∗
+        srvFrozenRange γ.γs ((γ.pre ++ F).length + 1) ((γ.pre ++ F ++ ce).length + 1) ∗
+        -- (2026-10-31, the snapshot track: #11's S3) with their terms
+        srvFrozenTerms γ.γs (γ.pre.length + 1) (F ++ ce))) ∗
     committedLast E.γr ce ∗
     -- (D22 S-b) the raft term it carries; (D22l) whose witness's commit index bounds the batch
     rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length)
@@ -1072,7 +1458,8 @@ def rnApN (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
 `F` forwarded before it (`cum[i]`) and the committed log up to the snapshot `A'` it jumps to
 (`cum[i + 1] = A'`, extending `F` strictly, `pre ++ A'` the snapshot's index long), no committed
 entries, the clone read-only (`ownSnapM … DFrac.discard`), `E.C A'`, the snapshot local to the node
-(`snapLocal`: for the server, saved in the member's snapshot directory), the snapshot's id the last
+(`nodeSnapLocal`, the node API's `readySnap`, 2026-11-01: for the server, saved in the member's
+snapshot directory), the snapshot's id the last
 of the committed log (raft's `Ready` states it, `readySnapData`: so its term is the term of the
 entry at its index), its two channels, the committed index at least the snapshot's
 (`updateCommittedIndex`), its raft term. Only outside raft's no-snapshot mode. `notifyc` is as in
@@ -1083,14 +1470,22 @@ def rnApSnap (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :
   -- (2026-10-30, the repair: snapshots allowed, until then `False`)
   iprop(∃ (F A' : List EntryModel) (sv : SnapshotM),
     monoListIdxOwn γ.cum i.toNat F ∗ monoListIdxOwn γ.cum (i.toNat + 1) A' ∗
-    ⌜F.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index'⌝ ∗
+    ⌜F.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧
+      -- (2026-11-01, J8a-5) the index's bound (raft's `readySnap`)
+      uint.Z sv.Metadata'.Index' < 2 ^ 61 ∧
+      -- (J8b, 2026-11-01) past the boot log (`rnReadySnap_bootLen`, open)
+      (γ.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index'⌝ ∗
+    -- (2026-11-01, J8a-5) no committed entries with a snapshot (raft's `readySnap`: `ce = []`)
+    ap.entries' ↦*□ ([] : List Loc) ∗
     ownSnapM ap.snapshot' DFrac.discard sv ∗
-    snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗ □ E.C A' ∗
-    -- `notifyc`: two sends for a snapshot batch (raft.go:274,302); stated with the entries' one
-    -- receive until the two-receive notify is written with the branch's proof (SNAPSHOT-SORRY)
-    (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' iprop(True) ∗ notifyRcv γnc) ∗
+    snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
+    -- (2026-11-01, J8a) the snapshot's index in the member's snapshot directory (raft's `readySnap`)
+    nodeSnapLocal γ.node.cl γ.id sv.Metadata'.Index' ∗ □ E.C A' ∗
+    -- `notifyc`: two sends for a snapshot batch (raft.go:274,302), two receives (`applySnapshot`'s,
+    -- `applyAll`'s): the two-receive notify (`NotifyC2.lean`; 2026-10-31, #3)
+    (∃ γnc : NotifyNames, isNotify2 γnc ap.notifyc' iprop(True) iprop(True) ∗ notifyRcvN γnc 0) ∗
     -- closed once `Advance` returned: the node's applied index at the snapshot
-    rnAdvChan ap.raftAdvancedC' iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗
+    rnAdvChan ap.raftAdvancedC' iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A').length ∗
       -- the snapshot's dummy entry frozen, everything below compacted (`ApplySnapshot`'s)
       srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length) ∗
     committedAtLeast E.γr sv.Metadata'.Index' ∗
@@ -1123,13 +1518,13 @@ theorem rnApP_rtOk (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) :
     iframe H2 Hrt
   · -- (D22 J6a) a snapshot (2026-10-30, the repair: allowed): `cum[i+1] = A'`, as `A' ++ []`
     iunfold rnApSnap at H
-    icases H with ⟨%F, %A', %sv, #H1, #H2, %H3, #H4, #H5, #H6, H7, #H8, #H9, #Hrt⟩
+    icases H with ⟨%F, %A', %sv, #H1, #H2, %H3, #Hes, #H4, #H5, #H5l, #H6, H7, #H8, #H9, #Hrt⟩
     isplitl [H7]
     · iunfold rnApP
       iright
       iunfold rnApSnap
       iexists F, A', sv
-      iframe H1 H2 H4 H5 H6 H7 H8 H9 Hrt
+      iframe H1 H2 Hes H4 H5 H5l H6 H7 H8 H9 Hrt
       ipureintro; exact H3
     iexists A', []
     rw [List.append_nil]
@@ -1153,7 +1548,9 @@ def rnLoopTokP (γ : RNNames) (L : List EntryModel) (p : HardStateM) : IProp GF 
     rnDrv γ L p ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗ spscProducer γ.ap sent ∗ monoListAuthOwn γ.cum 1 cums ∗
     ⌜cums.length = sent.length + 1 ∧ cums.getLast? = some L⌝ ∗
     -- (2026-10-27) the log's indices consecutive from the start's (`rn_ready_recv`'s premise)
-    ⌜∃ ai : w64, uint.Z ai = γ.pre.length ∧ srvIdxOkW ai L⌝)
+    ⌜∃ ai : w64, uint.Z ai = γ.pre.length ∧ srvIdxOkW ai L⌝ ∗
+    -- (2026-10-31, the snapshot track: #11's S3) the log handed out so far frozen, with its terms
+    srvFrozenTerms γ.γs (γ.pre.length + 1) L)
 
 /-- The loop's ghost state at some `prevHardSt` (D22l: `rnLoopTokP`, the loop keeps it tied to
 the raft term it records). -/
@@ -1209,7 +1606,7 @@ def isRaftNode (E : RNEnv GF) (γ : RNNames) (r : Loc) : IProp GF :=
     "#Hrsci" ∷ isRNReadStateC E rsc ∗
     "#Htk" ∷ rnTickerAddr r ↦□ tk ∗ "#Htki" ∷ isRNTicker E tk ∗
     "#Htd" ∷ rnTdAddr r ↦□ td ∗ "#Htdi" ∷ isRNTimeoutDetector td ∗
-    "#Hstc" ∷ rnStoppedAddr r ↦□ stc ∗ "#Hstci" ∷ rnStopBag E γ stc ∗
+    "#Hstc" ∷ rnStoppedAddr r ↦□ stc ∗ "#Hstci" ∷ rnStopBag E γ (storage.walOf st) stc ∗
     "#Hdnc" ∷ rnDoneAddr r ↦□ dnc ∗ "#Hdnci" ∷ ownBroadcastChan dnc γ.done iprop(True) .Unknown)
 
 instance isRaftNode_persistent (E : RNEnv GF) (γ : RNNames) (r : Loc) :

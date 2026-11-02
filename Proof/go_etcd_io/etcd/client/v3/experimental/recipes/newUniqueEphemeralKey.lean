@@ -32,7 +32,7 @@ theorem newUniqueEphemeralKey.wp_proof
   wp_start as ⟨#Hsess, #Hcl, #Hlo, %Hk⟩
   wp_auto
   wp_apply hNUEKV s γ client id pfx kp [] lo $$ [$Hpkg $Hsess $Hcl $Hlo] as %ek %err Hres
-  · ipureintro; exact Hk
+  · ipureintro; exact ⟨Hk.1, Hk.2, by simp⟩
   (try wp_auto)
   iapply HΦ
   icases Hres with (⟨%Heq, %kv, %key, %r, #HKV, Hek, #Hr, #Hc, %Hrr⟩ | %H)

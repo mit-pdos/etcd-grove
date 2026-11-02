@@ -2,8 +2,9 @@
 **M2, the storage side: the server's glue, still Draft** (`notes/m2-storage-plan.md`). The step-1
 statements are switched (2026-10-30, "The switch of the approved items": `apply.AEnv.cmp`,
 `envAgree`'s mode clause, `NewServer.spec`'s `E₀.cmp` premise, `mvcc.New.spec`'s `crevRightM`); what
-stays here is the glue for the compacting server (`NewServer.specCompact`, whose proof is still the
-skeleton's `sorry`), imported by nothing but the server's step-2 Draft:
+stays here is the glue for the compacting server (`NewServer.specCompact`, proved 2026-10-31 over
+`BuildLemmas.lean`'s `server_kv_watchable_ofM`, this Draft's lemma in either mode, and
+`CmpSupply.lean`'s stock), imported by nothing but the server's step-2 Draft:
 
 - `server_kv_watchable_ofD`: the server's KV from `New.spec` over the backend `d` in either mode
   (nothing deletable off, the store's keys on: `storeDlReg`), the post at `kb = some d` with
@@ -160,7 +161,8 @@ theorem server_kv_watchable_ofD
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
   ihave Hsrm := mvcc.kbSRM_some d $$ Hsr
-  iapply (hNew lg _ le cfg (some d) γb γl Pk f rd0 γi γok γtag hcfg hrb)
+  haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
+  iapply (hNew lg _ le cfg (some d) γb γl Pk f rd0 γi γok γtag (fun _ => iprop(True)) hcfg)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hif Hok]
   · iframe Hpkg Hle Hro Hif Hok Hsrm Hsb
     simp only [mvcc.kbView_some, mvcc.kbNoCmp_some, mvcc.kbRegRight_some, mvcc.kbWT_some,
@@ -168,7 +170,7 @@ theorem server_kv_watchable_ofD
     unfold backend.wbTok
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
-  iintro %ws ⟨%st, %γw, %Hγ, #Hws, Hro, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl, Hcr, Hfrag, Hret⟩
+  iintro %ws ⟨%st, %γw, %Hγ, #Hws, Hro, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl, Hcr, Hfrag, Hret, -⟩
   obtain ⟨hb, hl, hk, hi, hc, ht, -⟩ := Hγ
   ihave #Hrv := mvcc.isWatchableStore_readView ws st γw $$ Hws
   iapply HΦ

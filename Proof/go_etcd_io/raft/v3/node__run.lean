@@ -874,7 +874,7 @@ theorem node.run.wp_proof
         (∃ sts : List ReadStateM, readStatesPts rdv'.ReadStates' sts ∗
           [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
         (∃ h : HardStateM, hsOpt rdv'.HardState' h ∗
-          hsWit γ.raft (phsNext rs.phs h) (rs.delivered ++ ce).length) ∗
+          hsWit γ.raft (phsNext rs.phs h) (dlvAfter rs.delivered ce L).length) ∗
         rdSnapOut γ.raft rs rdv' ce es L ∗
         ⌜(∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc) ∧ (rs.psnap = false → L = none)⌝)
       $$ [Hst]
@@ -924,6 +924,7 @@ theorem node.run.wp_proof
           iframe Hrs Hrs_ok
         isplitr
         · iexists hrd
+          simp only [dlvAfter]
           iframe Hrdh Hhsw
         isplitr
         · simp only [rdSnapOut]; ipureintro; exact Hrdz
@@ -964,7 +965,8 @@ theorem node.run.wp_proof
       with ⟨#Hss, Hrn⟩
     -- (2026-10-26, D22 J2, R-loc) a snapshot handed out is local to the node
     ihave #Hlloc : iprop(□ ∀ l : SnapLoan, ⌜L = some l⌝ -∗
-        snapLocal γ.raft id l.snap.Metadata'.Index') $$ [Hrn]
+        snapLocal γ.raft id l.snap.Metadata'.Index' ∗
+        ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) $$ [Hrn]
     · cases L with
       | none => imodintro; iintro %l %h; cases h
       | some l0 =>
@@ -1023,7 +1025,9 @@ theorem node.run.wp_proof
         | none =>
           simp only [readyDataL, readyData, rdSnapOut]
           icases Hsnz with %Hrdz
-          iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw Hss Hri
+          ihave #Hhw' : hsWit γ.raft (phsNext rs.phs h) (rs.delivered ++ ce).length $$ []
+          · iExactEq Hhw; rfl
+          iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw' Hss Hri
           isplitl [Happ]
           · rw [← Hstor, ← Hsnγ]
             iexact Happ
@@ -1037,13 +1041,18 @@ theorem node.run.wp_proof
         | some l =>
           simp only [readyDataL, readySnapData, rdSnapOut]
           icases Hsnz with ⟨Hhalf, #Hdc, %Hlo⟩
-          ihave #Hll : snapLocal γ.raft γ.id l.snap.Metadata'.Index' $$ []
+          ihave ⟨#Hll, %Hbl⟩ : iprop(snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
+              ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) $$ []
           · rw [Hgid]; iapply Hlloc $$ %l %rfl
           ihave #Hcl : raftSnapCertD γ.raft (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) $$ []
           · iapply Hcert $$ %l %rfl
-          iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw Hss Hri Hhalf Hdc Hll Hcl
+          ihave #Hhw' : hsWit γ.raft (phsNext rs.phs h) l.dlv.length $$ []
+          · iExactEq Hhw; rfl
+          iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw' Hss Hri Hhalf Hdc Hll Hcl
           isplitr
           · iexists h; iframe Hhh; ipureintro; rfl
+          isplitr
+          · ipureintro; exact Hbl
           isplitr
           · ipureintro; exact Hllast l rfl
           isplitr

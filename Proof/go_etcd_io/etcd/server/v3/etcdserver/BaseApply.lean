@@ -38,6 +38,8 @@ public import Proof.encoding.base64.Base
 -- (the spec-first pilot) the auto-compactor and its clock
 public import Proof.github_com.jonboulle.clockwork.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Base
+-- (the lease-renew plan, 2026-11-01) `LeaseRenew`'s forwarding: the server imports `leasehttp`
+public import Proof.go_etcd_io.etcd.server.v3.lease.leasehttp.Base
 
 @[expose] public section
 

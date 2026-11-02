@@ -61,7 +61,8 @@ witness `hsWit` of a non-`nil` one: the node's term and commit index at the `Rea
 and the committed log handed out within the commit index.) (D22l, 2026-10-20: the witness is of
 `prevHardSt` as `acceptReady` leaves it, `phsNext rs.phs h`: for a `nil` `HardState` the node's
 hard state is `prevHardSt`'s, `RNState.phs`, so every `Ready` bounds its committed log by the
-witness of the last non-empty hard state handed out.) (D22 S-d3a, 2026-10-21: **with a
+witness of the last non-empty hard state handed out.) (2026-10-31: the log it bounds is the committed log
+handed out after the `Ready`, `dlvAfter`: with a snapshot, the log up to the snapshot.) (D22 S-d3a, 2026-10-21: **with a
 snapshot pending** too, until then a premise `rs.psnap = false`: the `Ready` then hands it out --
 `rd.Snapshot` a fresh clone, half of it the application's (`rdSnapOut`), with the committed log up
 to it, the loan `L` (`SnapLoan`); no committed entries -- and with no snapshot restored since the
@@ -110,7 +111,7 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       -- (D22 S-b) a non-`nil` one is the node's hard state: its witness (`hsWit`), bounding the
       -- committed log handed out; (D22l) of `prevHardSt` after the `Ready` (`phsNext`): a `nil`
       -- or empty one leaves the witness `prevHardSt`'s (`rs.phs`), the node's hard state then
-      "#Hhsw" ∷ hsWit γ (phsNext rs.phs h) (rs.delivered ++ ce).length }}
+      "#Hhsw" ∷ hsWit γ (phsNext rs.phs h) (dlvAfter rs.delivered ce L).length }}
 
 end spec
 

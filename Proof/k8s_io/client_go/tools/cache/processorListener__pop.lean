@@ -37,7 +37,8 @@ theorem processorListener.pop.wp_proof
     (wp_WriteOne : buffer.TypedRingGrowing.WriteOne.spec (GF := GF) (hG := hG))
     (wp_HandleCrash : utilruntime.HandleCrashWithLogger.spec (GF := GF) (hG := hG)) :
     processorListener.pop.spec (GF := GF) (hG := hG) := by
-  intro l γ Q done Hbound
+  intro _ l γ Q done
+  have Hbound : receiptBound GF ≤ 2 ^ 61 := ReceiptBoundLe.le (GF := GF) _
   wp_start as ⟨#Hl, #Hdone', Hcons, Hprod, Hring, Hbc⟩
   ihave #Hbuf : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.utils.buffer $$ []
   · iPkgInit

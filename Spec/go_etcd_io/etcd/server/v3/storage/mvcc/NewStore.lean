@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -92,11 +93,14 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
   that index's deletable keys). (M2, the storage side, Q1 (a), 2026-10-30: the write-back supply
   `kbWTSupplyM` is no longer taken here: `store.Compact` takes it per compaction.)
 * (M2, the storage side, item 26) The store's logical compaction mode (`γ.cm`) is the instance's
-  (`decide (kbCmpM kb)`); a restore keeps it. -/
+  (`decide (kbCmpM kb)`); a restore keeps it. 
+The store's compaction permit is the caller's `Perm` (`crevPermIs`, C3's store law, 2026-11-02):
+every compaction revision the store holds satisfies it. -/
 abbrev mvcc.NewStore.spec : Prop :=
-  ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
-    (P : IProp GF) (f : val) (rd0 : GoFunc) (wq : Bool) (γi : mvcc.IdxNames) (γok : GName),
-  mvcc.batchLimitOk cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 →
+  ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
+    (P : IProp GF) (f : val) (rd0 : GoFunc) (wq : Bool) (γi : mvcc.IdxNames) (γok : GName)
+    (Perm : Int → IProp GF),
+  mvcc.batchLimitOk cfg.CompactionBatchLimit' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
         mvcc.storeBackend b s γ P) ∗
@@ -123,7 +127,8 @@ abbrev mvcc.NewStore.spec : Prop :=
       ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
       (if wq then mvcc.logQ γ [[], []] else iprop(True)) ∗ mvcc.storeCloser s γ ∗
       mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗ mvcc.writerFrag γ ∗
-      mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗ mvcc.retiredAt γ (mvcc.nJobRd kb) }}
+      mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗ mvcc.retiredAt γ (mvcc.nJobRd kb) ∗
+      mvcc.crevPermIs γ Perm }}
 
 end spec
 

@@ -44,7 +44,7 @@ theorem auth.authStore.Recover.wp_proof
   icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
   ihave #Htpok := HtpokA
   iunfold tokenProviderOkA at Htpok
-  icases Htpok with ⟨%tpi, %Htpi, -, #HEnable, -, -, -⟩
+  icases Htpok with ⟨%tpi, %Htpi, -, #HEnable, -, -, -, -⟩
   subst Htpi
   iunfold authWR at HWR
   icases HWR with ⟨⟨%be0, Hbe, -⟩, HT, Hen, Hca⟩

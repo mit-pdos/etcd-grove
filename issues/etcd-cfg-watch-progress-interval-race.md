@@ -33,16 +33,27 @@ reproduction written (it needs an embedded server with two listeners under `-rac
 **Expected**: the server's configuration is read-only once the server is started (nothing
 documents that it may change).
 
-**How the proof handles it**: the proof gives the serving path the field
-`WatchProgressNotifyInterval` owned (`srvServeBuilt`,
-`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvServe.lean:106`), so the whole configuration
-cannot be read-only for the snapshot path: `srvSnapRO` (`SnapRO.lean`, D22 J1a) holds only the
-fields `applySnapshot`'s callees read. `applySnapshot.specSnap`'s premise `srvCfgAddr s ↦□ cfg`
-(the whole struct) is therefore not dischargeable as stated; `notes/decisions.md`, "D22 J1a".
+**How the proof handles it**: until J8a-3 (2026-11-01) the proof gave the serving path the field
+`WatchProgressNotifyInterval` owned (`srvServeBuilt`, `InvServe.lean`), so the whole configuration
+could not be read-only for the snapshot path: `srvSnapRO` (`SnapRO.lean`, D22 J1a) held only the
+fields `applySnapshot`'s callees read, and `applySnapshot.specSnap`'s premise `srvCfgAddr s ↦□ cfg`
+(the whole struct) was not dischargeable; `notes/decisions.md`, "D22 J1a". Since the fork's fix
+(below), the field is read-only (`srvServeCfg`), `NewWatchServer.spec` takes it `↦□`, and
+`srvSnapRO` holds the configuration's rebuild (`notes/decisions.md`, "J8a-3"). `EtcdServer.start`'s
+two writes of `s.Cfg` (`SnapshotCount`, `SnapshotCatchUpEntries` set to their defaults when zero,
+`server/etcdserver/server.go:554-570`) are not a race, since they happen before `run` and the
+listeners start, but they are why the configuration is read-only only from `start` on: the rebuild
+takes those two fields read-only, which `start` persists (`isServerRun`'s `"#Hsncfg"`).
 
 **Possible fixes**: keep the adjusted interval in the watch server (or in the package variable
 `progressReportInterval`, which `SetProgressReportInterval` already sets under its lock) without
 writing `s.Cfg`; or adjust the configuration in `NewServer`/`embed` before the server starts.
+
+- **Fixed in the fork** (2026-11-01, the user's decision; `upamanyus/etcd` branch
+  `goose-lean-watchcfg` `7cf3644ec`, the pin of `etc/goose.py`): `NewWatchServer` reads
+  `s.Cfg.WatchProgressNotifyInterval` into a local `interval`, raises the local to
+  `minWatchProgressInterval` if below (with the same warning), and passes it to
+  `SetProgressReportInterval`; it no longer writes `s.Cfg`. The first of the possible fixes above.
 
 **Found**: 2026-10-26, by D22 stage J1a (threading the snapshot path's configuration from
 `NewServer` to the apply thread).

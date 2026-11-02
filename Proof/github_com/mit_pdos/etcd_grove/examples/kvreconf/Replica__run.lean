@@ -135,13 +135,13 @@ theorem Replica.run.wp_proof
     icases Hgot with ⟨%ce, %es, %h, %L, %ms, %ss, #Hce, #Hcomm, Hrs, Hrest, -, Henter⟩
     iunfold readyEnter at Henter
     imod Henter $$ %⊤ %(1 : Qp) %(by simp) [$Hraft $Hrun] with ⟨Hraft, Hrun, Hdrv, #Hmsgs⟩
-    ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ $$ Hrest
+    ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ _ $$ Hrest
     try wp_auto
     cases L with
     | none =>
       simp only [NodeDriverState.afterReady]
       icases nodeDriver_nodeCommitLb _ _ _ _ $$ Hdrv with ⟨Hdrv, #HclD⟩
-      ihave ⟨%Hin, Hrest⟩ := readyRest_ceInBatch _ _ _ _ _ _ _ _ $$ Hrest
+      ihave ⟨%Hin, Hrest⟩ := readyRest_ceInBatch _ _ _ _ _ _ _ _ _ $$ Hrest
       iunfold readyRest at Hrest
       icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
       iunfold readySnap at Hsnap
@@ -336,7 +336,7 @@ theorem Replica.run.wp_proof
       iunfold readyRest at Hrest
       icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
       iunfold readySnap at Hsnap
-      icases Hsnap with ⟨%Hl, Hss4, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HclS⟩
+      icases Hsnap with ⟨%Hl, Hss4, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HclS, -, -⟩
       obtain ⟨Hdlv, Hptr, Hce0, Hpre, Hlt, Hdlen, Hpos, H61, -, Hli⟩ := Hl
       subst Hce0
       wp_apply wp_fits rdv.Entries' es DFrac.discard $$ [$Hpkg $Hes] as %b ⟨-, %Hfit⟩

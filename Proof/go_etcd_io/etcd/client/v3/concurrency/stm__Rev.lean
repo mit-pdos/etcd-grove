@@ -38,7 +38,10 @@ theorem stm.Rev.wp_proof (hF : stm.fetch.spec (GF := GF) (hG := hG)) :
   ipersist Hksl
   wp_auto
   wp_apply hF b pfx reads gs _ [k] $$ [$Hpkg $Henv $Hrs $Hopts $Hksl] as %r Hr
-  · ipureintro; refine ⟨Hgs, ?_⟩; simpa using Hpk
+  · ipureintro; refine ⟨Hgs, ?_, ?_, ?_⟩
+    · simpa using Hpk.1
+    · simp [stmCallMax]
+    · simpa using Hpk.2
   iunfold stmRet at Hr
   icases Hr with (⟨%p, %Hrp, %reads', Hrs, Hopts, %Hgrow, Hp⟩ | %Hab)
   rotate_left

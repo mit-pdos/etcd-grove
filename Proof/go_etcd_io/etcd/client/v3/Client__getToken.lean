@@ -87,7 +87,7 @@ theorem Client.getToken.wp_proof
     iintro !> -; ipureintro; rfl
   rw [decide_eq_false hp]
   wp_auto
-  icases Hreg with (%Hup | ⟨%Hatbn, #Hall, #Hreg⟩)
+  icases Hreg with (%Hup | ⟨%Hatbn, #Hall, #Hreg, %Hsz⟩)
   · exfalso; rcases Hup with h | h
     · exact hu h
     · exact hp h
@@ -115,6 +115,7 @@ theorem Client.getToken.wp_proof
       (fun (t : (pbAuthenticateResponse (GF := GF)).M) => iprop(□ P t)) $$ []
     as %resp %err Hres
   · iframe #
+    ipureintro; exact Hsz
   ihave #Hb' := Hb
   iunfold tokenBundleInv at Hb'
   icases Hb' with ⟨%b, %rc, %Hab, -, -⟩

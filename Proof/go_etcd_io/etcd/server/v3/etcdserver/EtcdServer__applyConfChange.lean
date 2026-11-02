@@ -121,6 +121,23 @@ local macro "raft_cc " cm:term:max " with " hccp:term:max " then " k:tactic : ta
       %k %e %mb %((1 : Qp).half) %$hccp [Hnc Hrun]
     as %csp ⟨Hcsp, Hnc, Hrun⟩
   · iframe Hnc Hdl Hrun; simp only [ownConfChangeI]; iexists cc; iframe Hcc; ipureintro; rfl
+  -- (S5) the membership raft answers is the voters' (`srv_confAt_simple`, D3)
+  letI := srvStor (GF := GF) γs.raft
+  ihave ⟨Hnc, #Hck⟩ := nodeConfig_confAt _ _ _ _ $$ Hnc
+  ihave #Hdlc := deliveredLogLb_committed _ _ _ _ $$ Hdl
+  ihave #Hrn' := Hrn
+  iunfold srvRaftNode at Hrn'
+  icases Hrn' with ⟨%rn0, -, Hrp⟩
+  iunfold raftPropose at Hrp
+  icases Hrp with ⟨%rni0, -, #Hsrl, -⟩
+  have hk1 : k + 1 ≤ ds.length := by
+    obtain ⟨_, h, _⟩ := $hccp
+    have := (List.getElem?_eq_some_iff.1 h).1
+    omega
+  imod (srv_confAt_simple γs ds (k + 1) hk1 ⊤ (by simp) (by simp)) $$ [Hsrl Hdlc] with #Hsk
+  · iframe Hsrl Hdlc
+  ihave %Hmb := confAt_agree γs.raft.cl (k + 1) mb (Membership.simple γs.raft.cfg) $$ [Hck Hsk]
+  · iframe Hck Hsk
   ihave Hdvq : dvCCPost (GF := GF) γs (some γn) k mb $$ [Hnc Hrun]
   · simp only [dvCCPost]; iframe Hnc Hrun
   clear $hccp
@@ -162,7 +179,10 @@ local macro "fail_tail" : tactic => `(tactic| (
   isplitl [Hcs]
   · iexists { m with nodeId := W64 0 }, cs
     iframe Hcc Hcs
-    ipureintro; rfl
+    isplitr
+    · ipureintro; rfl
+    iright
+    ipureintro; exact ⟨by simpa using hv, rfl⟩
   try simp only [↓reduceIte]
   isplitl [Hrb Hcm Hal Hau Hle Hbef]
   · iunfold srvRestOwnH; iunfold srvRestOwn; iunfold srvObjsOn; iunfold clusterBeOn
@@ -239,7 +259,7 @@ local macro "succ_tail" : tactic => `(tactic| (
     iapply HΦ'
     iframe
   simp only [ccMembRes]
-  icases Hmr with ⟨#Hrc, %γn, %c, %Hcl, Hlive⟩
+  icases Hmr with ⟨#Hrc, %γn, %c, %ps, %Hcl, Hlive, #Hmd, %Hdk⟩
   ihave #HrcG := (membership.isRaftCluster_static cl).1 $$ Hrc
   wp_apply (hAdd cl membership.rcStatic rs.mem _ (DFrac.own 1) (membership.ccMemberAt m) true lgc cid
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
@@ -300,9 +320,15 @@ local macro "succ_tail" : tactic => `(tactic| (
       iframe Hcc
       isplitr
       · ipureintro; rfl
-      iunfold epConfState
-      iframe Hcsf
-      iunfold epCsOk; iright; iexists csm; iexact Hcsok
+      isplitl [Hcsf]
+      · iunfold epConfState
+        iframe Hcsf
+        iunfold epCsOk; iright; iexists csm; iexact Hcsok
+      ileft
+      iunfold epCsVoters
+      iexists csm
+      iframe Hcsok
+      ipureintro; rw [← Hmb]; exact Hcsm
     isplitl [Hrb Hcm Hal Hau Hle Hbef]
     · iunfold srvRestOwnH; iunfold srvRestOwn; iunfold srvObjsOn; iunfold clusterBeOn
       iframe Hal Hau Hle
@@ -318,9 +344,9 @@ local macro "succ_tail" : tactic => `(tactic| (
     · ileft; iexact Hpo
     try simp only [ccMembRes]
     iframe Hrc
-    iexists γn, c
-    iframe Hlive
-    ipureintro; exact Hcl
+    iexists γn, c, ps
+    iframe Hlive Hmd
+    ipureintro; exact ⟨Hcl, Hdk⟩
   · wsteps
     rw [decide_eq_false hlid]
     simp only [Bool.not_false]
@@ -361,9 +387,15 @@ local macro "succ_tail" : tactic => `(tactic| (
       iframe Hcc
       isplitr
       · ipureintro; rfl
-      iunfold epConfState
-      iframe Hcsf
-      iunfold epCsOk; iright; iexists csm; iexact Hcsok
+      isplitl [Hcsf]
+      · iunfold epConfState
+        iframe Hcsf
+        iunfold epCsOk; iright; iexists csm; iexact Hcsok
+      ileft
+      iunfold epCsVoters
+      iexists csm
+      iframe Hcsok
+      ipureintro; rw [← Hmb]; exact Hcsm
     isplitl [Hrb Hcm Hal Hau Hle Hbef]
     · iunfold srvRestOwnH; iunfold srvRestOwn; iunfold srvObjsOn; iunfold clusterBeOn
       iframe Hal Hau Hle
@@ -379,9 +411,9 @@ local macro "succ_tail" : tactic => `(tactic| (
     · ileft; iexact Hpo
     try simp only [ccMembRes]
     iframe Hrc
-    iexists γn, c
-    iframe Hlive
-    ipureintro; exact Hcl))
+    iexists γn, c, ps
+    iframe Hlive Hmd
+    ipureintro; exact ⟨Hcl, Hdk⟩))
 
 set_option maxHeartbeats 4000000 in
 theorem EtcdServer.applyConfChange.wp_proof
