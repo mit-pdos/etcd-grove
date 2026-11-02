@@ -17,6 +17,7 @@ axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
+axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorCompactHash.wp_proof
 axiom EtcdServer.monitorDowngrade.wp_proof
@@ -339,6 +340,7 @@ axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.IsCtxErr.wp_proof
+axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolverOwn
 axiom etcdResolver_grpc
@@ -373,6 +375,8 @@ axiom grpc.WithResolvers.wp_proof
 axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof
 axiom grpc.WithUnaryInterceptor.wp_proof
+axiom grpc.serve
+axiom grpc.start
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcDialOptIs
@@ -382,12 +386,14 @@ axiom grpcPeerOpt
 axiom grpcProtoCodec
 axiom grpcResolverAt
 axiom grpcServeTok
+axiom grpcServerAt
 axiom grpcServes
 axiom grpcServesStream
 axiom grpcServes_persistent
 axiom grpcSrvNew
 axiom grpcSrvOpt
 axiom grpcStatsHandlerOk
+axiom grpcStreamServerAt
 axiom grpcWrotePeer
 axiom grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof
 axiom grpc_health_v1.RegisterHealthServer.wp_proof
@@ -525,9 +531,11 @@ axiom snap.Message.GetTo.wp_proof
 axiom snap.Message.fields.wp_proof
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
+axiom sort.Sort.wp_anyLess
 axiom sort.Stable.wp_proof
 axiom sort.StringSlice.Sort.wp_proof
 axiom status.Code.wp_proof
+axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof

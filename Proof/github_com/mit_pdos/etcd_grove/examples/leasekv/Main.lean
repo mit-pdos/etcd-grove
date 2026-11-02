@@ -137,7 +137,8 @@ theorem Main.wp_proof
     imod (common.kv_lease_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23936" cid
       mid R Hrb48 (by omega) Hrf HlP rfl) $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms HLR Htok2]
       with ⟨Htk, -, #Hlr⟩
-    · iframe; iframe #
+    · unfold common.kvServeStocks
+      iframe; iframe #
     imodintro; iframe; iframe #
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hlr⟩)
   · cases serr with

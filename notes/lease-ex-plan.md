@@ -175,3 +175,9 @@ the same `grpc.serve`, at a slot `S` holding `etcdGrpcSlot` and giving it back, 
 The lease reads at the slot `etcdGrpcSlot s E γr ∗ threadTok`: `client.etcd_leaseReadMethodsOk`
 (`LeaseReadServed.lean`). The lower bounds `0`: the lessor's from `lessorLb_get` (its read
 invariant from `srvLeaseRd`'s `lessorInv`) and `lessorLb_le`, the auth store's `authPubLbM_zero`.
+- Merged on `lease-ex` (2026-11-02): with `lessor.TimeToLive`/`lessor.Leases` (branch
+  `lease-ex-lessor`) every `sorry` of the stage is closed; `leasekv_safe` rests on the four `sorry`s the
+  server's collections carry (`merged_image`, `run_job_snap_cmp`, `txn.kvWriter_keyObs`,
+  `txn.kvWriter_noCmp`). The collections `leasekv` and `v3rpc` updated: the axioms they now reach were
+  behind the stage's `sorry`s, none new to `etc/tcb-baseline.txt`. Bounds: 393 against 390, the three
+  `examples/leasekv` entries of the Freeze list.
