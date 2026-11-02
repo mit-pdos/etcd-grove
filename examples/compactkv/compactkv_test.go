@@ -75,4 +75,10 @@ func TestCompactKV(t *testing.T) {
 		t.Fatalf("watch from revision 2: %v (compact revision %d), want ErrCompacted",
 			wresp.Err(), wresp.CompactRevision)
 	}
+	// Main's C3 check is tight: the compaction revision plus the retention is the latest revision
+	// (the last round compacted at the revision before its Put's)
+	if wresp.CompactRevision+retention != resp.Header.Revision {
+		t.Fatalf("compaction revision %d plus the retention %d, want the latest revision %d",
+			wresp.CompactRevision, retention, resp.Header.Revision)
+	}
 }

@@ -62,7 +62,7 @@ the storage side, review round 2's N1, the approval's item 13) its server off. -
 def memberWatch (γr : ReadNames) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(isServerRead s E ρ.rd ∗ (∃ pw : Loc, v3rpc.isWatchServer pw R) ∗
-    ⌜R.E = E ∧ v3rpc.memberOf γr.raft γr.kv ρ.rd ∧ ρ.rd.kv.st = γr.kv.st ∧ E.γ.cm = false⌝)
+    ⌜R.E = E ∧ v3rpc.memberOf γr.raft γr.kv ρ.rd ∧ kvSame ρ.rd.kv γr.kv ∧ E.γ.cm = false⌝)
 
 instance memberWatch_persistent (γr : ReadNames) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (R : v3rpc.WSrv GF) : Persistent (memberWatch γr s E ρ R) := by
@@ -71,7 +71,7 @@ instance memberWatch_persistent (γr : ReadNames) (s : Loc) (E : apply.AEnv GF) 
 /-- **A member's watch facts are its `watchMemberFacts`** at the history's model. -/
 theorem memberWatch_facts (V : client.WEnv GF) (γr : ReadNames) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (hWM : V.WM = v3rpc.etcdModelOfHistory γr.raft γr.kv)
-    (hWL : V.WL = v3rpc.histWL γr.raft γr.kv) (hK : V.kst = γr.kv.st)
+    (hWL : V.WL = v3rpc.histWL γr.raft γr.kv) (hK : kvSame γr.kv V.kv)
     (hlog0 : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) :
     memberWatch γr s E ρ V.R ⊢ client.watchMemberFacts V := by
   iintro #H
@@ -92,7 +92,7 @@ theorem memberWatch_facts (V : client.WEnv GF) (γr : ReadNames) (s : Loc) (E : 
   iframe #
   isplitr
   · ipureintro; exact Hlink
-  iapply client.srvKVFacts_of_off V ρ.rd (by rw [hst, hK]) (by rw [hm.2.2.2, hlog0]) hrb
+  iapply client.srvKVFacts_of_off V ρ.rd (kvSame_trans hst hK) (by rw [hm.2.2.2, hlog0]) hrb
   iframe #
 
 theorem watchEnv_addrs (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
@@ -143,13 +143,13 @@ theorem watchEnv_conn [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fm
   · iintro !> %i %hi
     have hn : (watchEnv R₁ R₂ R₃ γr pfx).nm = 3 := rfl
     rcases i with _ | _ | _ | i
-    · iapply memberWatch_facts ((watchEnv R₁ R₂ R₃ γr pfx).atIdx 0) γr s₁ E₁ ρ₁ rfl rfl rfl hlog0 hrb
+    · iapply memberWatch_facts ((watchEnv R₁ R₂ R₃ γr pfx).atIdx 0) γr s₁ E₁ ρ₁ rfl rfl (kvSame_refl _) hlog0 hrb
       rw [show ((watchEnv R₁ R₂ R₃ γr pfx).atIdx 0).R = R₁ from rfl]
       iexact Hm₁
-    · iapply memberWatch_facts ((watchEnv R₁ R₂ R₃ γr pfx).atIdx 1) γr s₂ E₂ ρ₂ rfl rfl rfl hlog0 hrb
+    · iapply memberWatch_facts ((watchEnv R₁ R₂ R₃ γr pfx).atIdx 1) γr s₂ E₂ ρ₂ rfl rfl (kvSame_refl _) hlog0 hrb
       rw [show ((watchEnv R₁ R₂ R₃ γr pfx).atIdx 1).R = R₂ from rfl]
       iexact Hm₂
-    · iapply memberWatch_facts ((watchEnv R₁ R₂ R₃ γr pfx).atIdx 2) γr s₃ E₃ ρ₃ rfl rfl rfl hlog0 hrb
+    · iapply memberWatch_facts ((watchEnv R₁ R₂ R₃ γr pfx).atIdx 2) γr s₃ E₃ ρ₃ rfl rfl (kvSame_refl _) hlog0 hrb
       rw [show ((watchEnv R₁ R₂ R₃ γr pfx).atIdx 2).R = R₃ from rfl]
       iexact Hm₃
     · exfalso; omega

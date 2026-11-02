@@ -52,3 +52,5 @@ context_ErrAny: @
 common_Writer: context_WithTimeoutBackground context_ErrAny
 WatchResponse__Err: @
 common_Collect: WatchResponse__Err
+# (C3's watch side, 2026-11-02) `CompactRev`: a watch channel's first response's compaction revision
+common_CompactRev:

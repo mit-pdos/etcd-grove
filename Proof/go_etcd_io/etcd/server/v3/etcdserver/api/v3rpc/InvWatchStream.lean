@@ -631,6 +631,26 @@ instance mvccOk_persistent (γs : StreamNames) (γ : mvcc.WsNames) (j : Nat) (m 
     Persistent (mvccOk (GF := GF) γs γ j m) := by
   unfold mvccOk; infer_instance
 
+open Iris.ProofMode in
+/-- **An mvcc response's compaction revision is its mvcc response's, permitted** (C3's watch side,
+2026-11-02): the store's `cmpPermOf` of the response it came from. -/
+theorem mvccOk_cmpPerm [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (γs : StreamNames) (γ : mvcc.WsNames) (j : Nat) (m : WatchRespM) :
+    mvccOk (GF := GF) γs γ j m ⊢ ∃ r : mvcc.RespM, ⌜m.src = some r ∧ m.compactRev = r.compactRev⌝ ∗
+      mvcc.cmpPermOf γ r := by
+  iintro #H
+  iunfold mvccOk at H
+  icases H with ⟨%r, %rs, %L, %Hm, -, -, -, -, #Hcov, -⟩
+  iunfold mvccCov at Hcov
+  icases Hcov with ⟨%γc, %pre, %γo, %γa, -, -, -, -, #Hrc, -⟩
+  iexists r
+  isplitr
+  · ipureintro
+    obtain ⟨hm, -⟩ := Hm
+    constructor
+    · rw [hm]; rfl
+    · rw [hm]; rfl
+  iapply mvcc.respCov_cmpPerm γ γc pre r $$ Hrc
+
 /-- **A created response sent at down position `j` follows the responses of id `-1` queued before
 it** (persistent; the watch slice's unit W-K, `issues/etcd-watch-progress-before-created.md`): for
 a registered (created, not canceled) control response `m`, its watcher `w` (`idAssigned`, as its
