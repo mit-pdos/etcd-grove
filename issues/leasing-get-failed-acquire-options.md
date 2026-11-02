@@ -3,7 +3,7 @@ upstream: none
 checked: 2026-10-26
 links:
   - etcd-io/etcd#20704 issue closed: related, not this bug (our leasing report, closed by the stale bot as not planned, unfixed; does not list this)
-blocks-proof: no
+blocks-proof: yes
 ---
 
 # clientv3/leasing: a Get of a key another client has leased ignores the request's options
@@ -44,7 +44,7 @@ acquired, `leases.Add` applies the op's options to the cached response; if not
 
 ## Proof
 
-no: the top-level adequacy proof needs no fix on the goosed fork for it; the leasing KV's intended spec is false here; the proof states what the code returns
+yes: it makes the property a top-level adequacy test over this code checks false for a workload such a test may use, and no fix is in the goosed fork yet; the proof sidesteps it: the leasing KV's intended spec is false here; the proof states what the code returns
 (`getNotAcquired`, `Proof/go_etcd_io/etcd/client/v3/leasing/InvLeasingKV.lean`); the verified fork
 carries no fix.
 

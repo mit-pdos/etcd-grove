@@ -2,7 +2,7 @@
 upstream: none
 checked: 2026-10-31
 links:
-blocks-proof: no
+blocks-proof: yes
 ---
 
 # etcdserver: a Txn of nested keys-only whole-range reads makes every member build a huge reply, and the member that answers it panics (with --max-request-bytes of about 10 MiB or more)
@@ -65,7 +65,7 @@ allocation panics above 2^48 bytes; grpc does not recover the handler's goroutin
 
 ## Proof
 
-no: the top-level adequacy proof needs no fix on the goosed fork for it; the server's gRPC replies are assumed to fit, the workload premise `grpcRepliesFit` of
+yes: it makes the property a top-level adequacy test over this code checks false for a workload such a test may use, and no fix is in the goosed fork yet; the proof sidesteps it: the server's gRPC replies are assumed to fit, the workload premise `grpcRepliesFit` of
 `grpc.start` (`Proof/google_golang_org/grpc/InvGrpcServer.lean`, `notes/reply-size.md`), which is
 false of etcd under this client.
 

@@ -5,7 +5,7 @@ links:
   - etcd-io/etcd#19091 issue closed: related, not this bug (our report: stale cached Get after the session lease expires, from the non-blocking session.Done check); closed by the stale bot
   - etcd-io/etcd#19092 pr closed: related, not this bug (our fix for #19091); closed unmerged
   - etcd-io/etcd#20704 issue closed: related, not this bug (our leasing report, closed by the stale bot as not planned, unfixed; does not list this)
-blocks-proof: no
+blocks-proof: yes
 ---
 
 # clientv3/leasing: a key read just before the leasing session expires keeps serving its old value after other clients write it
@@ -48,7 +48,7 @@ evicts the entry.
 
 ## Proof
 
-no: the top-level adequacy proof needs no fix on the goosed fork for it; the leasing KV's intended spec is false here; the proof's facts are about the acquisition
+yes: it makes the property a top-level adequacy test over this code checks false for a workload such a test may use, and no fix is in the goosed fork yet; the proof sidesteps it: the leasing KV's intended spec is false here; the proof's facts are about the acquisition
 revision and `leasingX` has no "entries carry the current lease" invariant
 (`Proof/go_etcd_io/etcd/client/v3/leasing/InvLeasingKV.lean`); the verified fork carries no fix.
 

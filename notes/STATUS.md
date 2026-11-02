@@ -554,8 +554,10 @@ happens, Expected, Impact, Reproduction with the pasted failing output, Cause; `
 its test in `issues/<slug>/`. The other 87 findings (code reading, preconditions etcd meets,
 documentation, tests only through internals, absurd configurations) are in `nonissues/`, each with
 its reason. Every
-file says whether it blocks the proof (`blocks-proof:`, 23 issues and 5 non-issues): `yes` when the
-top-level adequacy proof needed a fix on the goosed fork (the user's definition, 2026-11-02); the three
+file says whether it blocks the proof (`blocks-proof:`, 39 issues and 5 non-issues): `yes` when the bug
+makes false the property a top-level adequacy test over the code checks, for a workload such a test
+may use, whether the goosed fork carries the fix the proof needed or the proof sidesteps it with a
+weaker spec or a premise on valid requests (the leasing KV; the user's definition, 2026-11-02); the three
 findings that were on hold for etcd's private security process are not security reports under
 etcd's `THREAT_MODEL.md` (`issues/README.md`, "Reporting privately"). The upstream drafts (`issues/upstream/`) are
 folded into the files' `## Fix` sections, which the `upstream-report` skill's `check.py` renders

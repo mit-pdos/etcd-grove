@@ -5,7 +5,7 @@ links:
   - etcd-io/etcd#16380 issue closed: same bug (put in an earlier nested txn vs delete in a later sibling passes; reversed order rejected); confirmed by ahrtr, closed not planned (stale) in 2025
   - etcd-io/etcd#16395 pr closed: fix for #16380, never merged; ahrtr found its pairwise check too costly and asked for the expected semantics first
   - etcd-io/etcd#22395 pr open: related, not this bug (checkIntervals and from-key deletes)
-blocks-proof: no
+blocks-proof: yes
 ---
 
 # etcdserver: a txn may put a key in one nested txn and delete it in a later sibling, though it may not modify a key twice
@@ -51,7 +51,7 @@ FAIL
 
 ## Proof
 
-no: the top-level adequacy proof needs no fix on the goosed fork for it; what `checkIntervals` gives the transaction's run (each key written at most once per revision,
+yes: it makes the property a top-level adequacy test over this code checks false for a workload such a test may use, and no fix is in the goosed fork yet; the proof sidesteps it: what `checkIntervals` gives the transaction's run (each key written at most once per revision,
 `v3rpc.check_gives_nodup`, `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/CheckNodup.lean`)
 needs the premise `ReqOp.siblingSafeL`, which etcd does not enforce; the client's watch is verified
 under it (`srvNoDupKeys`, `Proof/go_etcd_io/etcd/client/v3/InvWatch.lean`).

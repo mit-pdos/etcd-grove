@@ -7,7 +7,7 @@ links:
   - etcd-io/etcd#22615 pr open: a fix by someone else, an hour before #22616: makes IsDefaultOrdering false for a non-key target with NONE, which also fixes etcd-rangestream-sort-none; needs TestV3RangeRequest/sort updated
   - etcd-io/etcd#21326 pr merged: related (the same limit/sort logic, KEY/ASCEND); not this bug
   - etcd-io/etcd#6672 pr merged: related (2016: NONE with a non-key target sorts ascending); where the bug starts
-blocks-proof: no
+blocks-proof: yes
 ---
 
 # etcdserver: a range sorted by version, revision or value with no order and a limit returns the wrong keys
@@ -36,7 +36,7 @@ FAIL
 
 ## Proof
 
-no: the top-level adequacy proof needs no fix on the goosed fork for it; the txn run and the client's get model take the premise that a get's sort is not cut early by
+yes: it makes the property a top-level adequacy test over this code checks false for a workload such a test may use, and no fix is in the goosed fork yet; the proof sidesteps it: the txn run and the client's get model take the premise that a get's sort is not cut early by
 its limit (`cutEarly`, `Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/TxnRun.lean`), which etcd does
 not enforce.
 

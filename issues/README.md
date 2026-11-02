@@ -37,13 +37,17 @@ blocks-proof: no
 - `links`: one line per related upstream issue, PR or commit: `<repo>#<n> <issue|pr> <state>: <how it
   relates>` (state `open`, `closed`, `merged`), or `<repo>@<sha>: ...`. Related but different ones
   too, saying so.
-- `blocks-proof`: `yes` when the bug blocks the top-level adequacy proof: the proof needed a fix on
-  the goosed fork (the branches `etc/goose.py` pins, whose comments list the fixes). `no`
-  otherwise: the proof goes through as is, with a premise or precondition (an absurd
-  configuration, a workload restriction), with a weaker spec of the code, or outside the
-  top-level results (bbolt's and Kubernetes' own proofs; liveness, performance and metrics); a fix
-  the fork carries that the proof does not need is `no` too. The `## Proof` section says which
-  (the user's definition, 2026-11-02).
+- `blocks-proof`: `yes` when the bug blocks the top-level adequacy proof: it makes false the
+  property a top-level adequacy test over the code checks (linearizability, mutual exclusion, no
+  panic, durability) for a workload and configuration such a test may use. Either the proof
+  needed a fix on the goosed fork (the branches `etc/goose.py` pins, whose comments list the
+  fixes), or no fix is there yet and the proof sidesteps the bug with a weaker spec of the code or
+  a premise excluding valid requests (the leasing KV's divergences, a workload premise like
+  `cutEarly`). `no` otherwise: liveness, performance and metrics; a precondition on an absurd
+  configuration; a precondition etcd and the documented uses meet; input only an untrusted or
+  non-member peer sends; code outside the top-level results (bbolt's and Kubernetes' own proofs);
+  a fix the fork carries that the proof does not need. The `## Proof` section says which (the
+  user's definition, 2026-11-02).
 
 ## An issue: the report
 

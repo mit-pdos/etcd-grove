@@ -3,7 +3,7 @@ upstream: none
 checked: 2026-10-26
 links:
   - etcd-io/etcd#20704 issue closed: related, not this bug (our leasing report, closed by the stale bot as not planned, unfixed; does not list this)
-blocks-proof: no
+blocks-proof: yes
 ---
 
 # clientv3/leasing: a transaction answered from the cache takes the wrong branch when it compares a missing key or a lease
@@ -48,7 +48,7 @@ compares a missing key as the zero `KeyValue`, fails a `VALUE` comparison on it,
 
 ## Proof
 
-no: the top-level adequacy proof needs no fix on the goosed fork for it; the leasing KV's intended spec (answers as etcd would) is false; the proof states what the
+yes: it makes the property a top-level adequacy test over this code checks false for a workload such a test may use, and no fix is in the goosed fork yet; the proof sidesteps it: the leasing KV's intended spec (answers as etcd would) is false; the proof states what the
 code computes (`leaseCmpHolds`, with the divergences `leasing_evalCmpM_absent_lt` and
 `leasing_evalCmpM_lease`, `Proof/go_etcd_io/etcd/client/v3/leasing/Results.lean`); the
 verified fork carries no fix.
