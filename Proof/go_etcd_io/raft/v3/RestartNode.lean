@@ -378,6 +378,11 @@ private theorem termAt_of_full {b : entryID} {fp ents : List EntryM} {i : Nat} {
     rw [show (uint.Z (W64 (i : Int)) - uint.Z b.index' - 1).toNat = i - 1 - fp.length by omega]
     simpa using ht
 
+/-- A follower has no pre-candidate campaign to guard. -/
+private theorem preGuardF_fol {fp : List EntryM} {s : NState} (h : s.role = .follower) :
+    PreGuardF fp s :=
+  fun _ hr => absurd (h.symm.trans hr) (by decide)
+
 /-- See the header. -/
 private theorem wp_RestartNode_impl
     (wp_NewRawNode : NewRawNode.spec (GF := GF) (hG := hG))
@@ -686,6 +691,171 @@ private theorem wp_RestartNode_impl
       omega
     iexists K
     iframe HKn HFK
+  subst Herr
+  obtain ⟨Hlsn, Hgsn⟩ := Hsn2
+  -- the committed log handed out at the start: up to `max b A`
+  have Ha0c : max σ.b (uint.nat cv.Applied') ≤ σ.commit := by omega
+  have HDlen : ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied'))).length =
+      max σ.b (uint.nat cv.Applied') := by
+    rw [List.length_take]; omega
+  ihave #HcD : isCommitted γ.raft ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied'))) $$ []
+  · iapply isCommitted_mono γ.raft _ _ (List.take_prefix_take_left Ha0c) $$ HcmtF
+  -- the restarted protocol state is the state `newRaft` restored
+  have HrP : restartPState σ.hs σv = restartP S σ.base σ.hs.Commit' := by
+    unfold restartPState restartP; simp only [σv]; rw [HsT, HsV, Hca, ← Hse]
+  -- the configuration point's fold, over the restarted full log
+  imod api_lb_committed γ N ⊤ CoPset.subseteq_top lA $$ Hci HlbA with ⟨%DA, %HDA, #HcDA⟩
+  icases isCommitted_agree γ.raft DA ((fp ++ σ.ents).take σ.commit) $$ HcDA HcmtF with %HpA
+  have HtakeA : strip ((fp ++ σ.ents).take a) = lA.take a := by
+    rw [← HDA]
+    have hDAl : a ≤ DA.length := by rw [← HDA, strip, List.length_map] at HkA; exact HkA
+    have hFl : a ≤ ((fp ++ σ.ents).take σ.commit).length := by rw [List.length_take]; omega
+    have : (fp ++ σ.ents).take a = DA.take a := by
+      rw [show (fp ++ σ.ents).take a = ((fp ++ σ.ents).take σ.commit).take a by
+        rw [List.take_take, Nat.min_eq_left Ha2]]
+      rcases HpA with ⟨t, ht⟩ | ⟨t, ht⟩
+      · rw [← ht, List.take_append_of_le_length hDAl]
+      · rw [← ht, List.take_append_of_le_length hFl]
+    rw [this, strip, strip, List.map_take]
+  -- the node, closed: `rawNodeAt` with the restarted ghost state in the cluster's dynamic mode
+  iunfold rawNodeAt at Hrn
+  icases Hrn with ⟨%rnv, %sv, %hprev, Hrn⟩
+  iNamed Hrn
+  obtain ⟨Ht, Hv, Hr, Ho, Hst0, Hpd⟩ := Hterm
+  obtain ⟨Hlp, Hse0, Hue, Hsd, Hcm, Hap, Hapg, Hun, Hsn0, Hsg, Hdtk⟩ := Hlog
+  -- the term ceiling raised to the term, which the budget covers (`termLB`)
+  have Htc0 : uint.Z s.gh.tc ≤ uint.Z S.term := by
+    rw [Hgh]; exact uint_Z_nonneg _
+  ihave Hphys := ownRaftPhysC_raise_tc _ rnv.raft' cv.ID' s S.term Htc0 $$ Hphys
+  icases ownRaftPhysC_sdr _ rnv.raft' cv.ID' _ $$ Hphys with ⟨#Hsd0, Hphys⟩
+  icases ownRaftPhysC_log_same _ rnv.raft' cv.ID' _ $$ Hphys with ⟨HL, Hback0⟩
+  icases ownRaftLog_fl _ _ $$ HL with ⟨%Hflk, HL⟩
+  icases ownRaftLog_caught _ _ $$ HL with ⟨#Hcu, HL⟩
+  ihave Hphys := Hback0 $$ HL
+  ihave #Hcu2 : storCaught (GF := GF) sn $$ []
+  · rw [← Hlsn]; iexact Hcu
+  -- the applied index the node starts at: `max b A`
+  have Happn : uint.nat s.logst.applying = max σ.b (uint.nat cv.Applied') := by
+    rw [Hapg]; unfold w64Max StorContents.b
+    simp only [σv]
+    by_cases hA : cv.Applied' = W64 0
+    · rw [if_pos hA, hA]
+      have : uint.nat (W64 0) = 0 := rfl
+      simp
+    · rw [if_neg hA]
+      have := uint_nat_eq σ.base.index'; have := uint_nat_eq cv.Applied'
+      split <;> omega
+  have HtoP : toPState s = restartP S σ.base σ.hs.Commit' := by rw [← HrP]; exact Hrel.1
+  have Hfp' : FullOk σ.base fp := Hfp
+  -- the restarted node's dynamic invariant (`RInv`), at the configuration point `a`
+  have HfoldA : cfgFold (effDec noDec MA) (stOf c0m) ((fp ++ σ.ents).take a) = some (stOf m) := by
+    rw [cfgFold_decs MA c0m HmA.valid, HtakeA, HfA]; rfl
+  let s1 : NState := { s with gh := { s.gh with tc := S.term } }
+  let g : RGh := ⟨a, stOf m, fp, MA⟩
+  have HtoP1 : toPState s1 = restartP S σ.base σ.hs.Commit' := HtoP
+  have Hrole1 : (restartP S σ.base σ.hs.Commit').role = .follower := rfl
+  have HRI : RInv (effDec noDec MA) (stOf c0m) (rOf s1 g) := by
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · show FullOk (toPState s1).base fp; rw [HtoP1]; exact Hfp'
+    · show uint.Z (toPState s1).base.index' ≤ uint.Z (toPState s1).commit; rw [HtoP1]; exact HbcZ
+    · show uint.Z (toPState s1).commit ≤ plogLastIndexZ (toPState s1).base (toPState s1).log
+      rw [HtoP1]; simp only [restartP, plogLastIndexZ]; rw [← Hse]; exact HcL
+    · show uint.nat s.logst.applied ≤ a; rw [Hap, Happn]; omega
+    · show a ≤ uint.nat (toPState s1).commit; rw [HtoP1]; exact Ha2
+    · intro _
+      show uint.Z (toPState s1).base.index' ≤ uint.Z s.logst.applied
+      rw [HtoP1, Hap]
+      have := uint_nat_eq s.logst.applying; have := uint_nat_eq σ.base.index'
+      simp only [restartP]; unfold StorContents.b at Happn; omega
+    · intro h; change (toPState s1).role = .leader at h; rw [HtoP1, Hrole1] at h; cases h
+    · show cfgFold (effDec noDec MA) (stOf c0m) ((fp ++ (toPState s1).log).take a) = some (stOf m)
+      rw [HtoP1]; simp only [restartP]; rw [← Hse]; exact HfoldA
+    · show ConfI1 (fp ++ (toPState s1).log) (uint.nat (toPState s1).commit)
+      rw [HtoP1]; simp only [restartP]; exact HI1 rfl
+    · intro h; change (toPState s1).role = .leader at h; rw [HtoP1, Hrole1] at h; cases h
+    · intro h; change (toPState s1).role = .candidate at h; rw [HtoP1, Hrole1] at h; cases h
+  have Hns : γ.raft.reNoSnap = false := HmA.1.2.2.2.1
+  ihave Hghost : ownStepGhost γ.raft (RNMode.toG (γ.mode inferInstance) g) (stOf m).cfg cv.ID' s1
+      $$ [Hg]
+  · rw [Hmd]
+    simp only [RNMode.toG]
+    iapply (ownStepGhost_dyn γ.raft noDec (stOf c0m) h0 g (stOf m).cfg cv.ID' s1).2
+    isplitr
+    · ipureintro
+      refine ⟨HD, rfl, ?_⟩
+      unfold NsLink
+      show s.gh.ns = _
+      rw [Hgh, Hns]
+    isplitr; · iexact HMA
+    isplitl [Hg]
+    · unfold ownRaftGhostR
+      simp only [rOf.proj_p, rOf.proj_fp]
+      rw [HtoP1]
+      iframe Hg Hfr
+      ipureintro; exact HRI
+    isplitr
+    · rw [show s1.gh.sn = sn from Hgsn]; iexact Hlink
+    isplitr
+    · iapply leadW_none γ.raft cv.ID' _ (by rw [HtoP1]; rfl)
+    unfold xfW
+    rw [show s1.gh.xw = ∅ by show s.gh.xw = ∅; rw [Hgh]]
+    iapply BigSepM.bigSepM_empty.2; iempintro
+  -- the node's record: the committed log up to `max b A` handed out, the stored hard state, the
+  -- durable state `S`, a follower; the term ceiling at the term; at the configuration point
+  let rs0 : RNState :=
+    { delivered := (fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied')), unpersisted := [],
+      steps := [], term := σ.hs.Term', storage := interface.ok si, sn := sn, tc := S.term,
+      mode := γ.mode inferInstance, cfg := stOf m, capplied := a, phs := hprev, dur := S,
+      role := StateFollower }
+  have Hdtk1 : s.logst.dtk = σ.commit := by rw [Hdtk, Hca]; rfl
+  ihave #Hphw : phsWit γ.raft hprev $$ []
+  · unfold phsWit
+    iright
+    rw [Hhz, Hca]
+    iExactEq Hcw
+    simp only [restartP]; rw [HsT]
+  ihave #Hph : prevHS γ.raft rnv.prevHardSt' hprev rs0.phs $$ []
+  · iapply prevHS_intro γ.raft _ hprev $$ Hhard Hphw
+  ihave #Hdurt : durTie γ.raft rs0 s1 $$ []
+  · unfold durTie
+    iintro !> %_ %fp' %Hfp2 #Hr2
+    have Hfp2' : FullOk σ.base fp' := by
+      have : s1.logst.prev = σ.base := Hlp
+      rw [this] at Hfp2; exact Hfp2
+    ihave %H := HI1r $$ %fp' %Hfp2' Hr2
+    ipureintro
+    refine ⟨?_, ?_⟩
+    · show DurFull S (fp' ++ s.logst.stored)
+      rw [Hsd]; show DurFull S (fp' ++ σ.ents); rw [Hse]; exact H.1
+    · show uint.Z S.base.index' ≤ uint.Z s.logst.prev.index'
+      rw [Hlp]; exact Hsb
+  ihave Hrn : ownRawNode γ.raft rn cv.ID' rs0 $$ [Hrn Hphys Hghost Hsteps Hsteps_cap]
+  · iapply ownRawNode_intro γ.raft rn cv.ID' rs0 s1 (stOf m).cfg fp (ds := MA) rnv sv hprev []
+      Hrel.2 (fun h => by simp only [rs0] at h; rw [Hmd] at h; cases h) Hasync
+      (by show ((fp ++ σ.ents).take _).length = _; rw [HDlen, toNat_uZ]; exact Happn.symm)
+      Hun.symm (fun _ => Hsn0) trivial Ht.symm ⟨Hsg.symm, Hlsn.symm⟩
+      ⟨fun _ => preGuardF_fol Hr, rfl, by show uint.Z s.term ≤ uint.Z S.term; rw [Ht, HsT]; exact Int.le_refl _,
+        fun h => absurd (Hr.symm.trans h) (by decide), fun _ => Hr⟩
+      (by show 0 = s.gh.outlb; rw [Hgh]) (by show false = s.gh.unst; rw [Hgh])
+      (uint_Z_nonneg _)
+      ⟨fun _ => by rw [Hap]; exact Hflk.1, fun h => absurd h (by rw [Hap]; exact Int.lt_irrefl _)⟩
+      ⟨by show s.gh.slent = false; rw [Hgh],
+        fun _ => ⟨by show s.gh.snp = none; rw [Hgh], fun _ _ _ _ h => by cases h⟩,
+        fun l h => by cases h⟩
+      ⟨by show ((fp ++ σ.ents).take _).length ≤ s.logst.dtk; rw [HDlen, Hdtk1]; exact Ha0c,
+        fun i hi1 hi2 => by
+          change ((fp ++ σ.ents).take _).length < i at hi1
+          change i ≤ s.logst.dtk at hi2
+          rw [HDlen] at hi1; rw [Hdtk1] at hi2
+          obtain ⟨t, ht, -⟩ := restartCt_complete HcF (by omega) hi2
+          exact ⟨hi2, t, ht⟩⟩
+      Hsvr.1.symm
+      $$ Hrn Hphys Hghost [] Hsoft Hph Hsteps Hsteps_cap [] HcD [] [] [] Hdurt
+    · iunfold sdrOk; iexists _; iexact Hsd0
+    · iapply pendList_nil
+    · iapply ackInv_none; intro _ _ _ _ h; cases h
+    · iapply loanCom_none γ.raft rfl
+    · rw [show s1.logst.snap = none from Hsn0]; iapply snapLocOk_none
   sorry
 
 end wrap
