@@ -1,8 +1,10 @@
 /- Lean-first (no Rocq counterpart).
 
-`r.crash()` (kv.go): under `dmu`, `crashed` set: from now on nothing writes the file, and the writer's
-half of the file's variable (at the file's contents `o` and durable state `S`) comes out of `dmu`
-for the restarter; then `stop`, whose `node.Stop` gives the id's slot back (`nodeVacant`).
+`r.crash()` (kv.go): under `dmu`, `crashed` set: from now on nothing writes the file; then `stop`,
+whose `node.Stop` gives the id's slot back (`nodeVacant`); then, under `dmu` again (a critical section
+that does nothing at run time: `run` and the snapshotter have returned), the writer's half of the
+file's variable (at the file's contents `o` and durable state `S`) comes out of `dmu` for the
+restarter, `run`'s claim (from `stop`) left in its place (2026-11-01, G6).
 -/
 module
 

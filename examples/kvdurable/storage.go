@@ -319,10 +319,11 @@ func (s *Storage) encode() []byte {
 // as encode wrote it: the same contents, the entries below the snapshot included (MemoryStorage
 // has no call that sets them below a snapshot, so it applies a snapshot at the log's start -- the
 // stored one if that is where the log starts, an empty one otherwise -- appends the entries, then
-// takes the stored snapshot again from them), and its image is the file's contents. good is false
-// for bytes encode did not write, or contents raft would not restart from: entries not
-// consecutive from the log's start, a snapshot below the log's start or past its end, a commit
-// index outside the log.
+// takes the stored snapshot again from them, on a copy of its data), and its image is the file's
+// contents. good is false for bytes encode did not write, or contents raft would not restart from:
+// entries not consecutive from the log's start, an index at or past maxIndex, a snapshot below the
+// log's start or past its end, or at another term than the log's at its index, a log starting at
+// index 0 at a term other than 0, a commit index outside the log.
 func openStorage(boot *pb.ConfState, b []byte) (s *Storage, good bool) {
 	s = &Storage{MemoryStorage: raft.NewMemoryStorage(), boot: boot}
 	term, r1, ok1 := getUint64(b)
@@ -335,7 +336,7 @@ func openStorage(boot *pb.ConfState, b []byte) (s *Storage, good bool) {
 	prev, r5, ok5 := getUint64(r4)
 	prevTerm, r6, ok6 := getUint64(r5)
 	n, rest, ok7 := getUint64(r6)
-	if !ok4 || !ok5 || !ok6 || !ok7 || prev >= maxIndex || n > maxIndex-prev {
+	if !ok4 || !ok5 || !ok6 || !ok7 || prev >= maxIndex || n >= maxIndex-prev {
 		return nil, false
 	}
 	var ents []*pb.Entry
@@ -352,6 +353,14 @@ func openStorage(boot *pb.ConfState, b []byte) (s *Storage, good bool) {
 	if len(rest) != 0 || si < prev || si > last || commit < prev || commit > last {
 		return nil, false
 	}
+	// the terms the MemoryStorage will hold: its dummy entry's at index 0 is 0, and the snapshot's is
+	// the log's at its index (the start's, where ApplySnapshot puts it, or the entry's, which
+	// CreateSnapshot reads)
+	st := snap.GetMetadata().GetTerm()
+	if (prev == 0 && prevTerm != 0) || (si == prev && st != prevTerm) ||
+		(si > prev && ents[si-prev-1].GetTerm() != st) {
+		return nil, false
+	}
 	if prev > 0 {
 		base := snap
 		if si != prev {
@@ -361,7 +370,8 @@ func openStorage(boot *pb.ConfState, b []byte) (s *Storage, good bool) {
 	}
 	s.MemoryStorage.Append(ents)
 	if si > prev {
-		s.MemoryStorage.CreateSnapshot(si, snap.GetMetadata().GetConfState(), snap.GetData())
+		// a copy of the data: the MemoryStorage keeps the slice it is given, and the image keeps snap
+		s.MemoryStorage.CreateSnapshot(si, snap.GetMetadata().GetConfState(), append([]byte(nil), snap.GetData()...))
 	}
 	hs := &pb.HardState{Term: new(term), Vote: new(vote), Commit: new(commit)}
 	s.MemoryStorage.SetHardState(hs)

@@ -2,7 +2,7 @@
 
 `r.snapshotter(known)` (kv.go): the snapshot goroutine, until `stopc` is closed: each request
 (`snapReqOk`) handed to `snapshot`; then its half of `nodeRunning` (which its `persist` uses to fire
-a pending *enter*) on `snapDone`. `known` is a lower bound of the stored snapshot's index.
+a pending *enter*) on `snapDone`. `known` is a lower bound of the stored snapshot's index (the `MemoryStorage`'s and the image's).
 -/
 module
 
@@ -33,7 +33,7 @@ abbrev Replica.snapshotter.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq : Loc)
     (ρ : KdRepNames) (known : w64),
   {{ isReplicaR γ vs dir id r n st sts sq ρ ∗ handoffProducer ρ.sd false ∗
-      memSnapLb ρ.γs (uint.nat known) ∗ nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half }}
+      memSnapLb ρ.γs (uint.nat known) ∗ monoNatLbOwn ρ.ph.is (uint.nat known) ∗ nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half }}
     (App (Val (r @!! go.GoType.PointerType kReplicaTy @!! go!"snapshotter")) (Val #known))
   {{ RET #(); True }}
 

@@ -35,7 +35,7 @@ theorem Replica.stop.wp_proof (wp_Stop : node.Stop.spec (GF := GF) (hG := hG)) :
     Replica.stop.spec (GF := GF) (hG := hG) := by
   intro γ vs dir id r
   wp_start as Hs
-  iunfold repStop at Hs
+  iunfold repStopper at Hs
   icases Hs with ⟨%n, %st, %sts, %sq, %ρ, #HR, Hpend, Hrd, Htd, Hsd⟩
   ihave #HR' := HR
   iunfold isReplicaR at HR'
@@ -50,10 +50,12 @@ theorem Replica.stop.wp_proof (wp_Stop : node.Stop.spec (GF := GF) (hG := hG)) :
   try wp_auto
   wp_apply wp_broadcast_chan_close ρ.stopc ρ.sc iprop(True) $$ [$Hpend $Htt] as -
   try wp_auto
-  wp_apply wp_handoff_receive ρ.rd ρ.rdc (fun _ => nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half)
+  wp_apply wp_handoff_receive ρ.rd ρ.rdc (fun _ => iprop(nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half ∗
+      ∃ v : Option GName × RaftState, ghostVar ρ.ph.ph (1 : Qp).half v))
     iprop(True) iprop(False) false $$ [$HrdH $Hrd] as %u %ok ⟨-, Hgot⟩
   unfold handoffGot
-  ihave Hrun1 : nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half $$ [Hgot]
+  ihave ⟨Hrun1, Hclaim⟩ : iprop(nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half ∗
+      ∃ v : Option GName × RaftState, ghostVar ρ.ph.ph (1 : Qp).half v) $$ [Hgot]
   · cases ok with
     | true => simp only [Bool.false_eq_true, ↓reduceIte]; icases Hgot with ⟨$, -⟩
     | false =>
@@ -81,7 +83,9 @@ theorem Replica.stop.wp_proof (wp_Stop : node.Stop.spec (GF := GF) (hG := hG)) :
   try wp_auto
   wp_apply wp_Stop n γ.r.cluster kdRaftN id $$ [$Hraft $HisNode $Hrun] as ⟨-, Hvac⟩
   iapply HΦ
-  iexact Hvac
+  iframe Hvac
+  iexists n, st, sts, sq, ρ
+  iframe HR Hclaim
 
 end proof
 

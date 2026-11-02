@@ -4,7 +4,7 @@
 (tolerating `ErrSnapOutOfDate`), a compaction under `dmu` to a random index from the first one to the
 least of the requested bound and `known`; then, if either changed the storage, one time in two
 `persist` (with the snapshotter's share of `nodeRunning`). It returns a lower bound of the stored
-snapshot's index.
+snapshot's index, of the `MemoryStorage`'s and of the image's (`ρ.ph.is`; 2026-11-01, stage II (h)).
 -/
 module
 
@@ -34,10 +34,12 @@ attribute [local instance] kdStorageModel
 abbrev Replica.snapshot.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq : Loc)
     (ρ : KdRepNames) (q : KSnapReq) (known : w64) (qp : Qp),
-  {{ isReplicaR γ vs dir id r n st sts sq ρ ∗ snapReqOk γ ρ.key ρ.γs q ∗
-      memSnapLb ρ.γs (uint.nat known) ∗ nodeRunning n γ.r.cluster kdRaftN qp }}
+  {{ isReplicaR γ vs dir id r n st sts sq ρ ∗ snapReqOk γ ρ.key ρ.γs ρ.ph q ∗
+      memSnapLb ρ.γs (uint.nat known) ∗ monoNatLbOwn ρ.ph.is (uint.nat known) ∗
+      nodeRunning n γ.r.cluster kdRaftN qp }}
     (App (App (Val (r @!! go.GoType.PointerType kReplicaTy @!! go!"snapshot")) (Val #q)) (Val #known))
   {{ (known' : w64), RET #known'; memSnapLb ρ.γs (uint.nat known') ∗
+      monoNatLbOwn ρ.ph.is (uint.nat known') ∗
       nodeRunning n γ.r.cluster kdRaftN qp }}
 
 end spec

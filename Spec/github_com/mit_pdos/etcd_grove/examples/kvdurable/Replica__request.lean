@@ -7,7 +7,11 @@ ap` and `bound` unless `bound` is `0` (raft's applied index, `nodeAppliedLb` at 
 `Advance`'s), and returns the latest snapshot index asked for. What the request carries
 (`snapReqOk`) comes from the applier's frozen delivered log `D` above the known compaction point
 `c`, the node's committed index on the storage (`nodeCommitLb` at `len D`, from the loop's driver:
-the snapshotter holds none) and the snapshot's certificate (the store's registry).
+the snapshotter holds none) and the snapshot's certificate (the store's registry). `ap` is a prefix
+of `D` (and at most the image's frozen bound) only when it is past `snapIndex`, when a snapshot may
+be asked for; the compaction's `bound` is at most `len D` (2026-11-01, stage II (j), G15: after a
+restart below the snapshot, the replicated state is ahead of the delivered log, and `run` keeps
+`snapIndex` at least `len ap`).
 -/
 module
 
@@ -39,11 +43,14 @@ abbrev Replica.request.spec : Prop :=
     (ρ : KdRepNames) (ap : List LogEntry) (csp : Loc) (m : Membership) (mA : Loc)
     (A : GMap (List w8) (List w8)) (D : List LogEntry) (c : Nat) (snapIndex bound : w64)
     (snap : Bool),
-  ap <+: D → c ≤ uint.nat snapIndex →
+  (uint.nat snapIndex < ap.length → ap <+: D) → c ≤ uint.nat snapIndex → uint.nat bound ≤ D.length →
   {{ isReplicaR γ vs dir id r n st sts sq ρ ∗ repOwn γ r ap (W64 ap.length) csp m mA A ∗
       memCompacted ρ.γs c ∗ memLog ρ.γs (c + 1) DFrac.discard ((LogEntry.toEntries D 0).drop c) ∗
       deliveredLogLb n γ.r.cluster kdRaftN D ∗ nodeCommitLb γ.r.cluster ρ.key D.length ∗
-      (⌜bound = W64 0⌝ ∨ nodeAppliedLb γ.r.cluster ρ.key (uint.nat bound)) }}
+      (⌜bound = W64 0⌝ ∨ nodeAppliedLb γ.r.cluster ρ.key (uint.nat bound)) ∗
+      -- (2026-11-01, stage II (h)) the applied index at most the image's frozen bound
+      -- (stage II (j), G15: needed only for a snapshot, past `snapIndex`)
+      (⌜ap.length ≤ uint.nat snapIndex⌝ ∨ monoNatLbOwn ρ.ph.ic ap.length) }}
     (App (App (App (Val (r @!! go.GoType.PointerType kReplicaTy @!! go!"request")) (Val #snapIndex)) (Val #snap)) (Val #bound))
   {{ (ret : w64), RET #ret; repOwn γ r ap (W64 ap.length) csp m mA A ∗
       ⌜ret = snapIndex ∨ (ret = W64 ap.length ∧ uint.nat snapIndex < ap.length)⌝ }}

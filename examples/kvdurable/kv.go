@@ -381,12 +381,16 @@ func (r *Replica) stop() {
 
 // crash crashes the incarnation: from now on it writes nothing to its file, and it stops (stop).
 // What it does between the two is what it might have done before the crash, but for the writes:
-// it sends no message that needs a write it can no longer make (run).
+// it sends no message that needs a write it can no longer make (run). The last critical section of
+// dmu, after stop, does nothing at run time: once run and the snapshot goroutine have returned, it
+// lets the proof take the file's writer out of dmu's invariant.
 func (r *Replica) crash() {
 	r.dmu.Lock()
 	r.crashed = true
 	r.dmu.Unlock()
 	r.stop()
+	r.dmu.Lock()
+	r.dmu.Unlock()
 }
 
 // persist writes the storage's image to the file; false if the incarnation has crashed, which
@@ -524,7 +528,8 @@ type snapReq struct {
 }
 
 // request asks the snapshot goroutine, without waiting, for a snapshot of the replicated state at
-// the applied index if snap (unless the latest one asked for is already that recent), and for a
+// the applied index if snap (unless the latest one asked for is already that recent, or no
+// configuration is applied yet: a new replica's, before it catches up), and for a
 // compaction up to the least of the applied index and bound, unless bound is 0 (run passes raft's
 // applied index, after an Advance); a request is dropped if the goroutine has one pending. It
 // returns the index of the latest snapshot asked for.
@@ -533,7 +538,7 @@ func (r *Replica) request(snapIndex uint64, snap bool, bound uint64) uint64 {
 	index := r.index
 	cs := r.cs
 	var data []byte
-	if snap && index > snapIndex {
+	if snap && cs != nil && index > snapIndex {
 		data = encodeState(r.kv, r.applied)
 	}
 	r.mu.Unlock()

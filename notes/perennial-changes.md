@@ -93,6 +93,22 @@ It is proved, with no axiom, from Perennial's exported unsealing equations and `
 first `Unlock` establishes `R`. Proposed: the same lemma next to `init_Mutex` in Perennial's
 `Proof/sync/Base.lean`, after which the local copy goes. Status: not yet proposed.
 
+### Tactics: `wp_auto` and `iunfold` unfold a `token` hypothesis to its model (2026-11-01, kvdurable)
+
+- **Limitation.** In `Cluster.Crash`'s proof, a spatial hypothesis `crasher γ` (kvdurable's
+  `def crasher γ := token γ.crt`) came out of `try wp_auto` unfolded past `token` and `own`, down to
+  the `UPred` structure (`{ holds := fun n x => iSingleton … ≼{n} x.val, … }`). After that no spec
+  can frame it and `iexact` cannot unify it with `crasher γ`. `iunfold isClusterC at Hc'` did the
+  same to it, although it unfolds another hypothesis. A `curRep` hypothesis (`ghostMapElem`) in
+  `Cluster.restart`'s proof went through `wp_auto` unchanged. Unconfirmed guess: something reduces
+  the hypotheses' types to weak head normal form, and `token`/`own` unfold all the way there.
+- **Needed by.** `Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/Cluster__Crash.lean`.
+- **Workaround here.** `attribute [local irreducible] crasher in` on the theorem. The package
+  init comes from `isClusterC` in a subgoal with only that hypothesis.
+- **Proposed.** First a minimal reproduction (a `token` hypothesis through `wp_auto`), then keep
+  the tactics from changing hypotheses they do not use.
+- **Status.** Open.
+
 ### Tactics: `wp_if_destruct` on a loop condition left as `#(decide P) = #true` (2026-10-27)
 
 - **Limitation.** After a `wp_for`, `wp_if_destruct` sometimes splits on `#(decide P) = #true`
@@ -227,6 +243,11 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   built over the other hypothesis). So a cached proof does leak between contexts, as the paragraph
   above feared, and fails at the kernel rather than silently. Workaround there: no `word` in sibling
   branches (`rfl`/`omega` and `BitVec.toInt_sdiv_of_ne_or_ne` instead), with a comment.
+- **Seen again** (2026-11-01, kvdurable's `openStorage`): `word` in a `prev = 0` branch of a
+  `wp_if_destruct` (hypothesis `¬ 0 < prev`) gave a proof the kernel rejected, built over the
+  sibling branch's `0 < prev`; and a `word` side goal later in the same proof failed with "unknown
+  free variable" (a cached term over a hypothesis of another goal). Workaround there: `omega` on
+  `BitVec.toNat` for the first, the `word` fact proved at the top of the proof for the second.
 - **Status.** Not started (found 2026-10-21, `raft-retarget`, now on `lean`).
 
 ### Specs: a law for `Done()` of an `isContext` context (2026-10-27, the compactor pilot)

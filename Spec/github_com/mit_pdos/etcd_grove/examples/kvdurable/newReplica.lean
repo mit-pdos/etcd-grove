@@ -9,7 +9,10 @@ writer's half of the file's variable at `(S, o)` and the storage's image, at the
 `S`); the node's driver (at the storage's key `K`), its configuration view at `(len ap,
 m)`, its running token whole (halves to `run` and the snapshotter, the stopper collecting both) go
 to the incarnation's goroutines (`run`, `ticker`, `snapshotter`). It returns the running
-incarnation with the stopper's share.
+incarnation with the stopper's share. (2026-11-01, stage II (j), S2: the file is the image, the
+delivered log `l` at most `ap` and within the image's log up to its commit, the storage's entries up
+to `l` frozen and `l`'s, the stored snapshot's writers' lower bound: what `kdDmuInv`, `runStart`
+and `isReplicaR` now need.)
 -/
 module
 
@@ -43,6 +46,15 @@ abbrev newReplica.spec : Prop :=
     (o : Option StorFile) (M : StorFile) (rafted : w64) (tick : time.Duration) (f : GoFunc),
   0 < sint.Z tick → M.hs = hs → KdFileOk M → StorageHolds S (kdContents (some M)) →
   (ap.length : Int) < 2 ^ 61 → uint.nat rafted = l.length →
+  -- (2026-11-01, stage II (j), S2) the file holds the image (if it exists), the delivered log at
+  -- most the replicated state (G18) and at most the image's commit
+  (∀ f, o = some f → f = M) → l.length ≤ ap.length →
+  uint.nat M.prev ≤ l.length → l.length ≤ uint.nat M.hs.Commit' →
+  -- (2026-11-01, stage II (j), the start functions) the id among the cluster's (`isReplica`), the
+  -- membership's size (`repOwn`), and the replicated state at the stored snapshot's index (the
+  -- snapshotter's `known`, the image's snapshot index's lower bound): what S2 missed
+  1 ≤ uint.nat id → uint.nat id ≤ 9 → GMap.size m.ids < 2 ^ 61 →
+  ap.length = uint.nat M.snap.Metadata'.Index' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvdurable ∗ context.isClosedchanInit ∗
       kdCluster γ vs ∗ isStats sts ∗ isReadSeqs γ sq ∗ kdFileInv γ dir id ∗
       isNode n γ.r.cluster kdRaftN id ∗
@@ -52,6 +64,13 @@ abbrev newReplica.spec : Prop :=
       kdStorRec st ms γs ∗ memStorInvP ms γs (kdJ γ.r.cluster K) ∗
       memStorMeta ms γs hs ∗ st.[KStorage, go!"img"] ↦□ ip ∗ ownImage ip M ∗
       kdSnapCert γ M.snap ∗ kdWriter γ id S o ∗
+      -- (S2) the storage's compaction point at the image's log start, its entries up to the
+      -- delivered log frozen, and they are the delivered log's (G19); the writers' lower bound of
+      -- the stored snapshot at the image's (G23, the snapshotter's `known`)
+      memCompacted γs (uint.nat M.prev) ∗
+      memLog γs (uint.nat M.prev + 1) DFrac.discard (M.ents.take (l.length - uint.nat M.prev)) ∗
+      kvreconf.frozenTo γs (uint.nat M.prev) l ∗
+      memSnapLb γs (uint.nat M.snap.Metadata'.Index') ∗
       mK ↦$ Kv ∗ mA ↦$ A ∗ csOpt csp DFrac.discard cfg ∗ ⌜confStateIs cfg m⌝ ∗
       isCommittedLogLb γ.r.cluster ap ∗ confAt γ.r.cluster ap.length m ∗
       ⌜∀ k, (Kv !! k).getD [] = kvreconf.kvFold (kvreconf.logHist ap) k⌝ ∗

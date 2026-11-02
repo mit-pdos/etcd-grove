@@ -2,7 +2,8 @@
 
 `c.Crash(pause, stop)` (reconf.go): until `stop` is closed, a random replica restarted
 (`Cluster.restart`), at random times. One `Crash` runs at a time: it holds the cluster's crasher
-token (the stopper shares of the current incarnations, which it moves to the new ones).
+token (`crasher`: `StartCluster` gives it; `restart` trades it for the stopper-and-crasher share of
+the incarnation it crashes, which the lock keeps), and gives it back when it returns.
 -/
 module
 
@@ -32,9 +33,9 @@ attribute [local instance] kdStorageModel
 abbrev Cluster.Crash.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) (pause : time.Duration) (stop : Loc)
     (γst : ChanNames),
-  {{ isClusterC γ vs dir c ∗ ownBroadcastChan stop γst iprop(True) .Unknown }}
+  {{ isClusterC γ vs dir c ∗ crasher γ ∗ ownBroadcastChan stop γst iprop(True) .Unknown }}
     (App (App (Val (c @!! go.GoType.PointerType kClusterTy @!! go!"Crash")) (Val #pause)) (Val #stop))
-  {{ RET #(); True }}
+  {{ RET #(); crasher γ }}
 
 end spec
 

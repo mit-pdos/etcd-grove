@@ -31,7 +31,7 @@ attribute [local instance] kdStorageModel
 /-- See the file header. -/
 abbrev Replica.read.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq ms : Loc)
-    (γs : MemStorNames) (ph : GName) (key : List w8) (tmo : time.Duration) (L0 : List (List w8)),
+    (γs : MemStorNames) (ph : KdDmuNames) (key : List w8) (tmo : time.Duration) (L0 : List (List w8)),
   (key.length : Int) < 2 ^ 61 →
   {{ isReplica γ vs dir id r n st sts sq ms γs ph ∗ kvLb γ L0 }}
     (App (App (Val (r @!! go.GoType.PointerType kReplicaTy @!! go!"read")) (Val #key)) (Val #tmo))

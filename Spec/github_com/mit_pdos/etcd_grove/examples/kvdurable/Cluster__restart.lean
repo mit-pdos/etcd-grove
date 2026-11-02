@@ -3,8 +3,11 @@
 `c.restart(id)` (cluster.go): the current incarnation of replica `id` crashed (`Replica.crash`:
 `nodeVacant` and the writer's half back), the next one started from the file (`Cluster.start`) and
 made current under `c.mu` (the old one's `isReplica` stays: its node stopped). `Crash` runs it,
-one at a time: it holds the stopper's share of the current incarnation (`repStop`), and gets the
-new one's.
+one at a time: it holds the crasher's token (`crasher`), which `c.replica(id)` trades for the current
+incarnation's stopper-and-crasher share (`repStop`) and its place in the map of the current
+incarnations (`curRep`), and the final critical section back for the new one's (2026-11-01, the
+crasher). `id` is a started one (`repKnown`: `c.replica(id)` is not `nil`, and `Cluster.start`'s
+transport needs it).
 -/
 module
 
@@ -32,10 +35,10 @@ attribute [local instance] kdStorageModel
 
 /-- See the file header. -/
 abbrev Cluster.restart.spec : Prop :=
-  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) (id : w64) (r : Loc),
-  {{ isClusterC γ vs dir c ∗ kdFileInv γ dir id ∗ repStop γ vs dir id r }}
+  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) (id : w64),
+  {{ isClusterC γ vs dir c ∗ repKnown γ id ∗ crasher γ }}
     (App (Val (c @!! go.GoType.PointerType kClusterTy @!! go!"restart")) (Val #id))
-  {{ RET #(); ∃ r' : Loc, repStop γ vs dir id r' }}
+  {{ RET #(); crasher γ }}
 
 end spec
 

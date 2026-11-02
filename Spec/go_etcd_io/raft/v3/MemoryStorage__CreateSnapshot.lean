@@ -5,7 +5,12 @@ U8 v2 step 3 (2026-10-29): over the range vocabulary at the storage's names (`In
 
 kvreconf-snapshot-thread (2026-10-30): the exclusive `memSnapExact γs sv0` replaced by the persistent `memSnapLb`; `cs` non-`nil` (was `memCsArg`, `nil` allowed).
 
-Durability stage I (I-5, 2026-10-31): the mode `o` (`memStorAt`; the new snapshot's validity and delivered bound are the attached mode's). Detached (`some (c0, sv0)`): the token comes back at the same compaction point, the stored snapshot the new one on success, `sv0` on `ErrSnapOutOfDate`. -/
+Durability stage I (I-5, 2026-10-31): the mode `o` (`memStorAt`; the new snapshot's validity and delivered bound are the attached mode's). Detached (`some (c0, sv0)`): the token comes back at the same compaction point, the stored snapshot the new one on success, `sv0` on `ErrSnapOutOfDate`.
+
+kvdurable's openStorage (2026-11-01): detached, `ErrSnapOutOfDate` also says `i` is at most `sv0`'s
+index (no other writer moves a detached storage's snapshot), so a detached caller that knows `i` is
+past it knows the call succeeds (kvdurable's `openStorage` takes the stored snapshot again above the
+one it applied). -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
@@ -45,7 +50,8 @@ abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
          | none => emp)) ∨
        (⌜snap = null ∧ err = eood⌝ ∗ data ↦* bs ∗
         (match o with
-         | some (c0, sv0) => memStorFresh ms γs c0 sv0
+         | some (c0, sv0) =>
+           memStorFresh ms γs c0 sv0 ∗ ⌜uint.nat i ≤ uint.nat sv0.Metadata'.Index'⌝
          | none => emp))) }}
 
 end spec
