@@ -29685,3 +29685,45 @@ compaction's write-back stock), a hypothesis of the closed theorem `cache_safe`,
 `compactkv_safe`'s. On the way, `common.StartCompactingServer` now calls `newServerMode(…, "revision", …)`
 (its Go and proof, as `StartPeriodicServer`'s), so both starters are in `common`'s generated
 `Link.lean`; compactkv's and putgetc's hand links use them.
+
+## `merged_image` is false with compaction on (2026-11-02 · found on branch `merged-image`; the user's direction: spec-first, `notes/merged-image-plan.md`)
+
+**2026-11-02 · finding (a bug in this repository's statements, not in Go)**
+
+`merged_image` (`SnapSendBranch.lean`, a `sorry` since S1) concludes `□ (srvNet γr.raft.raft).img ai
+D`, which is `srvImage`: `dbImage` at the fresh cluster's raft names `⟨γ, [], 0⟩`, whose `imageAt`
+holds `mvcc.keyImage (kvModel γk A') D` (the `Key` bucket exactly the log's, and `Meta` holding
+neither `scheduledCompactRev` nor `finishedCompactRev`). **With `E.cmp = true` it is false.**
+`mergedObs` (since 2026-10-31, "The merged snapshot's observation with compactions") gives the exact
+`Key` clause and `noCmpData D` only at `cmp = false`. A compaction-mode server that applied a
+compaction has `scheduledCompactRev` in `Meta` (`updateCompactRev`'s `SetScheduledCompact` and
+`ForceCommit`, before the job deletes keys); the backend snapshot `createMergedSnapshotMessage`
+streams holds it, so no log makes `keyImage` true: a `D` with that key satisfies every premise and
+falsifies the conclusion. The lemma was in the trust base of eleven collections, the compaction-mode ones
+(`compactkv`, `m2`'s `putgetc_safe`, and since `lean`'s `cache-cmp` `cachekv`) included. The `srvImageR` draft (`M2StorageDraftB2.lean`) has the same
+`imageAt`: the receipt is not the issue. S1's entry ("`applyAll`'s merge branch (S1)") noted "with
+compaction on, `mvcc.keyImage` of the KV's log must still hold of the snapshotted data" as a caveat;
+the statement was not restricted then.
+
+With `hcmp` added the lemma holds: the fresh start's raft names
+(`γr.raft = ⟨γr.raft.raft, [], W64 0⟩`) come from `isServer`'s `srvRaftLogInv` (`pre = []`,
+`ai0 = pre.length`; law `srvRaftLogInv_fresh`). (The first draft of this entry said no premise gave
+them and proposed carrying them to `applyAll.specBatch`; review round 1 found them in `isServer`.)
+
+The repair (`notes/merged-image-plan.md`): `merged_image` takes `E.cmp = false`; `applyAll`'s batch
+case splits on `E.cmp`, the compaction-mode side an open hole (`SNAPSHOT-SORRY #7-cmp`), which is
+**false as stated** (it asserts the same `srvImage`), so the compaction-mode results, `compactkv`'s,
+`m2`'s (`putgetc_safe`: `putgetc` runs the auto-compactor) and `cachekv`'s (`cache-cmp`), still rest on a false hole until #7-cmp is
+repaired (the plan's questions).
+
+**2026-11-02 · accepted (the user's approval of the plan's four questions)**
+1. Frozen as planned: `merged_image` takes `hcmp : E.cmp = false` (proved); `srvRaftLogInv_fresh` in
+   `SrvRaftLog.lean`; `merged_image_cmp` a named lemma holding `sorry -- SNAPSHOT-SORRY #7-cmp`, its
+   docstring saying it is false as stated; `applyAll`'s batch case splits on `E.cmp`; the snapshot
+   case (`ApplyAllSnap.lean`) takes `E'.cmp = false` from `specSnap`'s `hcmp` and `beSucc`.
+2. The hole stays the named lemma, not the pure claim `mergedObs γr true … → keyImage log D` (no
+   truer; #7-cmp's repair replaces it).
+3. `merged_image`'s `h0.1` (`c0 = 0`, derivable from `kvInv`) stays: a later cleanup, with
+   `specSnap`'s derivable premises.
+4. #7-cmp's repair: in place (`imageAt`'s `keyImage` as `mvcc.keyImageM γk.cmp`, the law
+   `keyImageM_off`), a stage of its own together with #7-on's (a plan item, `notes/merged-image-plan.md`).

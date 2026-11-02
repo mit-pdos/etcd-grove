@@ -408,9 +408,17 @@ theorem EtcdServer.applyAll.wp_proofBatch
               $$ [Hrli' HlbB Hsm Hct] with #Hsm'
             · iframe Hrli' HlbB Hsm Hct
             -- (S2's `merged_image`) the image's certificate
-            imod merged_image s γ ci TM E ρ γr ai' (A ++ unapplied ai ms) x' D hlenZ Hkv0
-              $$ [Hka] with ⟨Hka, #Himg⟩
-            · iframe Hsrv Hka; ipureintro; exact HQd
+            -- (2026-11-02) with the compaction mode off; on, the open (false) #7-cmp
+            ihave Hmi : |={⊤}=> kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x' ∗
+                □ (srvNet (GF := GF) γr.raft.raft).img ai' D $$ [Hka]
+            · cases hEc : E.cmp
+              · iapply (merged_image s γ ci TM E ρ γr ai' (A ++ unapplied ai ms) x' D hlenZ Hkv0
+                  hEc)
+                iframe Hsrv Hka; ipureintro; exact HQd
+              · iapply (merged_image_cmp s γ ci TM E ρ γr ai' (A ++ unapplied ai ms) x' D hlenZ Hkv0
+                  hEc)
+                iframe Hsrv Hka; ipureintro; exact HQd
+            imod Hmi with ⟨Hka, #Himg⟩
             imod srvMerged_bundle γr.raft.raft m rc sm γm.id c ai' at' D Hty
               $$ [Hml Hsm' Hrs Himg] with Hbun
             · iframe Hml Hsm' Hrs Himg
