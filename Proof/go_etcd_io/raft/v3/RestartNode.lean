@@ -856,6 +856,45 @@ private theorem wp_RestartNode_impl
     · iapply ackInv_none; intro _ _ _ _ h; cases h
     · iapply loanCom_none γ.raft rfl
     · rw [show s1.logst.snap = none from Hsn0]; iapply snapLocOk_none
+  -- the driver's view of the configuration is the node's: from the applied index it starts at
+  -- PORT(durability stage II, I-9): a configuration point above the applied index the node starts
+  -- at (`max b A < a`): `run`'s `runCfg` ties the driver's configuration index to at most the
+  -- committed log handed out (`capplied ≤ delivered`), which a restart at `a > max b A` breaks; the
+  -- conf entries in `(max b A, a]` are the client's to skip (amendment 4), an obligation of `run`'s
+  -- invariant not yet discharged
+  by_cases Hae : a = max σ.b (uint.nat cv.Applied')
+  rotate_left
+  · sorry
+  have Hhp : hprev = σ.hs := by rw [Hhz, Hca]
+  -- raft's certified terms of the committed log handed out (the attach record's)
+  ihave #HdK : dlvKeys (GF := GF) sn ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied'))) $$ []
+  · unfold dlvKeys dlvKeysAt
+    iapply BigSepL.bigSepL_forall_elim
+    iintro %j %e %Hj
+    iunfold storCaught at Hcu2
+    icases Hcu2 with ⟨-, #Hcu'⟩
+    have hj := (List.getElem?_eq_some_iff.1 Hj).1
+    rw [HDlen] at hj
+    iapply Hcu' $$ %_ %_ %(And.intro (show 0 + j + 1 ≤ σ.commit by omega) (by
+      show (0 + j + 1, e.Term') ∈ restartCt (fp ++ σ.ents) σ.commit
+      unfold restartCt
+      rw [List.mem_map]
+      refine ⟨j, by rw [List.mem_range]; omega, ?_⟩
+      rw [List.getElem?_take, ite_eq_left (by omega)] at Hj
+      rw [Hj]; simp))
+  -- the API's committed log handed out (two copies: `isCommittedLogLb`'s persistence is internal)
+  imod api_committed_lb γ N ⊤ CoPset.subseteq_top
+    ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied'))) $$ Hci HcD with ⟨HlbD, %HidxD⟩
+  imod api_committed_lb γ N ⊤ CoPset.subseteq_top
+    ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied'))) $$ Hci HcD with ⟨HlbD2, -⟩
+  have Hlen' : (((strip ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied')))).length : Nat) : Int)
+      ≤ uint.Z σ.hs.Commit' := by
+    simp only [strip, List.length_map]; rw [HDlen]
+    unfold StorContents.commit at Ha0c; have := uint_nat_eq σ.hs.Commit'; omega
+  ihave #Hphw2 : phsWit (GF := GF) γ.raft σ.hs $$ []
+  · rw [← Hhp]; iexact Hphw
+  ihave #Hhw := hsWit_of_phsWit γ.raft σ.hs _ Hlen' $$ Hphw2
+  imod hsCommitted_of_raft γ N ⊤ CoPset.subseteq_top σ.hs _ $$ Hci Hhw with Hhc
   sorry
 
 end wrap
