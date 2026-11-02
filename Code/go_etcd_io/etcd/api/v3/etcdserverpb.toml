@@ -131,7 +131,12 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   # the auth plan's C1 phase 2 (2026-10-28): the stub's `Authenticate` (a user client's token)
   "authClient.Authenticate", "Auth_Authenticate_FullMethodName",
   # C1's A5 (2026-10-31): the generated server-side handler of `Authenticate`
-  "_Auth_Authenticate_Handler"]
+  "_Auth_Authenticate_Handler",
+  # the closed lease example (2026-11-02): the Lease stub's two reads, their method names and
+  # handlers, the request of `Leases` and the getters the client reads
+  "leaseClient.LeaseTimeToLive", "leaseClient.LeaseLeases", "Lease_LeaseTimeToLive_FullMethodName",
+  "Lease_LeaseLeases_FullMethodName", "_Lease_LeaseTimeToLive_Handler", "_Lease_LeaseLeases_Handler",
+  "LeaseLeasesRequest", "LeaseTimeToLiveResponse.GetHeader", "LeaseLeasesResponse.GetHeader"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
   "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc", "context"]
