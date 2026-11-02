@@ -524,8 +524,18 @@ over them (`notes/mvcc-api-proof-plan.md`): a store mode `absQ` (today's specs a
 gated by `writerFrag`), the abstract state's ghost names in `s.revMu`'s resource and the writer's
 state (P1, `cad9d508e3`), and internal specs in either mode with the caller's update at the
 linearization point (`specA` of `storeTxnWrite.End`, `metricsTxnWrite.End`, `store.Read`,
-`store.Write`, `NewStore`); the tester translated (Goose project `mvccrand`). Next: the API's
-predicates over the implementation, the plain store's candidate specs, then the watchable store's. Found on the way: `issues/etcd-mvcc-watch-negative-start-rev.md`,
+`store.Write`, `NewStore`); the tester translated (Goose project `mvccrand`). Then (same day) the
+API's predicates over the implementation (`ApiImpl.lean`: `MvccImpl`, `mvccStateI`, `isMvccI`
+with the readers', revision tokens' and watch tokens' pools, `mvccTxnI` with the watchable wrapper,
+the open token's invariant holding the closer) and these candidate specs proved: `New`,
+`watchableStore.Write`/`End`/`Close`, `store.Read`/`Write`/`Rev` (watched)/`Commit`,
+`metricsTxnWrite.End`/`Range`/`Rev`/`Put`/`DeleteRange`/`Changes`/`FirstRev` (read),
+`NewReadOnlyTxnWrite`, `txnReadWrite.Range`/`Rev`/`Changes`/`End`; and seven of the laws
+(`ApiLaws.lean`). The proof changed the candidate API in places (each in the plan's notes: `New`'s
+premises, `mvccTxn_unwrap` restricted to write views, `mvccHook`'s non-nil hook, `Put`'s key
+bound). Next: the watch stream (the old stream gives no next-id fact: a counter mode in its
+invariant; `Watch`'s update fired after the call at a positive start revision, the tester's), the
+lessor's `Grant`/`Revoke` over the API, then the tester's proof. Found on the way: `issues/etcd-mvcc-watch-negative-start-rev.md`,
 `etcd-mvcc-hash-currentrev-race.md`, `etcd-mvcc-hashbyrev-zero-stored.md`,
 `etcd-mvcc-hashbyrev-restore-rev1.md` (each reproduced).
 
