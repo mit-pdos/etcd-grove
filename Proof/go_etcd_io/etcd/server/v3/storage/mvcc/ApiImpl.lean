@@ -158,10 +158,12 @@ transaction at the log the state is, nothing pending; and the reader's loan of t
 (the caller's thread token is in the pool until `End`). -/
 def mvccTxnI (t : GoInterface) (γ : MvccImpl) (trace : Loc) : MTxn → IProp GF
   | .read σ => iprop(∃ (mw s : Loc),
-      ⌜t = interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw⌝ ∗ isMvccI s γ ∗
+      ⌜t = interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw ∧ 1 ≤ σ.log.length⌝ ∗
+      isMvccI s γ ∗
       isTxnRead mw s γ.st trace σ.log (W64 (σ.rev : Int)) σ.crev ∗ threadPool.ownThreadLoan γ.tl)
   | .write σ pend => iprop(∃ (mw s : Loc) (puts deletes putSize : w64),
-      ⌜t = interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw ∧ σ.pending = none⌝ ∗
+      ⌜t = interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw ∧ σ.pending = none ∧
+        1 ≤ σ.log.length⌝ ∗
       isMvccI s γ ∗
       isTxnWrite mw s γ.st trace σ.log pend puts deletes putSize σ.crev ∗
       threadPool.ownThreadLoan γ.tl)

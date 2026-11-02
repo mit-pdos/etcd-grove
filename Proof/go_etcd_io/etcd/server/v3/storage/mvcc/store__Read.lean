@@ -424,7 +424,7 @@ theorem mvcc.store.Read.wp_proofC (hA : mvcc.store.Read.specA (GF := GF) (hG := 
   simp only [mvcc.mvccTxnI]
   iexists mw, s
   isplitr
-  · ipureintro; rfl
+  · ipureintro; exact ⟨rfl, Hlen⟩
   isplitr
   · iunfold mvcc.isMvcc at Hs; iexact Hs
   iframe Hloan

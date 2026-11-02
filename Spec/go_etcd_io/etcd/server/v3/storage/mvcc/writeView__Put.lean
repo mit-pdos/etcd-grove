@@ -61,7 +61,7 @@ abbrev mvcc.writeView.Put.specC : Prop :=
     (f : GoFunc) (Q : mvcc.MvccState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isMvccView (interface.mkOk (go.GoType.PointerType writeView.ty) #wv) γ ∗ threadTok ∗ key ↦*□ k ∗ value ↦*□ v ∗
-      ⌜leaseID ≠ W64 0 → (k.length : Int) < 2 ^ 63 - 1⌝ ∗
+      ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
       lease.leaseOwn (mvcc.mvccLeases γ) L I ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗ mvcc.mvccHook γ P f ∗ Pre ∗ mvcc.hookRun P f Pre Q' ∗ (Q' ={⊤}=∗ P ∗ Post) ∗
       AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ ∗ ⌜mvcc.pendItems σ.log [] = I⌝ }> @ ⊤ \ ↑mvcc.mvccN, ∅
         <{ mvcc.mvccState γ (σ.notify [.put k v leaseID]), COMM

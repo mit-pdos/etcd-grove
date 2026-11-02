@@ -4902,6 +4902,29 @@ theorem isTxnWrite_wrAt (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log
   iframe #
   ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
 
+/-- A write transaction's log is not empty. -/
+theorem isTxnWrite_ne (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)
+    (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) (ld : Bool) :
+    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev Z ld ⊢
+      isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ld ∗ ⌜ilog ≠ []⌝ := by
+  iintro H
+  iunfold isTxnWrite at H
+  icases H with ⟨%tw, %ranges, Hmw, Hst, Htrc⟩
+  iunfold storeTxnWriteIs at Hst
+  icases Hst with ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, %Pw, %fw, %Dep, Hst⟩
+  iNamed Hst
+  isplitl
+  · iunfold isTxnWrite
+    iexists tw, ranges
+    iframe Hmw Htrc
+    iunfold storeTxnWriteIs
+    iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
+    simp only [named]
+    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hpnd
+    iframe #
+    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
+  ipureintro; exact Hne
+
 /-- **A write transaction's compaction revision** (`muHeld`'s part of its authority): with
 another part, it agrees. -/
 theorem isTxnWrite_crev (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)

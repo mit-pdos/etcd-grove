@@ -193,7 +193,7 @@ theorem mvcc.metricsTxnWrite.End.wp_proofC (hA : mvcc.metricsTxnWrite.End.specA 
   | read σ =>
     iunfold mvcc.mvccTxn at Htx
     simp only [mvcc.mvccTxnI]
-    icases Htx with ⟨%mw', %s, %Ht, #Hs, Hrd, Hloan⟩
+    icases Htx with ⟨%mw', %s, ⟨%Ht, -⟩, #Hs, Hrd, Hloan⟩
     simp only [interface_mkOk_inj, _root_.true_and] at Ht
     have hmw : mw' = mw := (GoGlobalContext.intoVal_inj_loc Ht).symm
     subst hmw
@@ -213,7 +213,7 @@ theorem mvcc.metricsTxnWrite.End.wp_proofC (hA : mvcc.metricsTxnWrite.End.specA 
     icases Hpre with ⟨#Hwok, #Hhook, HP, Hau⟩
     iunfold mvcc.mvccTxn at Htx
     simp only [mvcc.mvccTxnI]
-    icases Htx with ⟨%mw', %s, %puts, %deletes, %putSize, ⟨%Ht, %Hpn⟩, #Hs, Htxw, Hloan⟩
+    icases Htx with ⟨%mw', %s, %puts, %deletes, %putSize, ⟨%Ht, %Hpn, -⟩, #Hs, Htxw, Hloan⟩
     simp only [interface_mkOk_inj, _root_.true_and] at Ht
     have hmw : mw' = mw := (GoGlobalContext.intoVal_inj_loc Ht).symm
     subst hmw

@@ -48,7 +48,7 @@ abbrev mvcc.metricsTxnWrite.Put.specC : Prop :=
     (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace (.write σ pend) ∗ key ↦*□ k ∗ value ↦*□ v ∗
-      ⌜leaseID ≠ W64 0 → (k.length : Int) < 2 ^ 63 - 1⌝ ∗
+      ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
       lease.leaseOwn (mvcc.mvccLeases γ) L (mvcc.pendItems σ.log pend) ∗
       ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ }}
     (App (App (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Put")) (Val #key))

@@ -369,6 +369,7 @@ theorem mvcc.store.Write.wp_proofC (hA : mvcc.store.Write.specA (GF := GF) (hG :
     ipureintro; exact Htr
   inext
   iintro %mw ⟨⟨%ilog, %crev, Htx, -, %Hc⟩, HQ, -, -, Hloan⟩
+  icases mvcc.isTxnWrite_ne mw s γ.st trace ilog [] _ _ _ crev _ _ $$ Htx with ⟨Htx, %Hne⟩
   iapply HΦ
   iframe HQ
   iexists ⟨ilog, crev, none⟩
@@ -376,7 +377,7 @@ theorem mvcc.store.Write.wp_proofC (hA : mvcc.store.Write.specA (GF := GF) (hG :
   simp only [mvcc.mvccTxnI]
   iexists mw, s, W64 0, W64 0, W64 0
   isplitr
-  · ipureintro; simp
+  · ipureintro; have := List.length_pos_iff.2 Hne; simp; omega
   isplitr
   · iunfold mvcc.isMvcc at Hs; iexact Hs
   iframe Htx Hloan
