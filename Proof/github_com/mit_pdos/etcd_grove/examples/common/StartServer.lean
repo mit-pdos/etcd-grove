@@ -38,7 +38,7 @@ theorem StartServer.wp_proof
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartServer.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule
-    hboot hblen Hγn1 Hγn2 Hdirok Hdir Hlg Hck Haf Hbuq Hdbo
+    hboot hblen Hγn1 Hγn2 Hdirok Hdir Hname8 Hlg Hck Haf Hbuq Hdbo
   wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
@@ -72,7 +72,8 @@ theorem StartServer.wp_proof
       (slice.mk peer (W64 1) (W64 1)) pm lg
       (GMap.insert name (slice.mk peer (W64 1) (W64 1)) ∅) (fun _ => [httpURL peerAddr])
       (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN
-      hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩ Hlg (by decide) Hck Haf Hbuq
+      hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
+      (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty) Hlg (by decide) Hck Haf Hbuq
       Hdbo) $$ [Htok Hmb] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)

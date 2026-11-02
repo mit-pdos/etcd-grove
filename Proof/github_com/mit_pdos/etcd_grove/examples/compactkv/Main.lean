@@ -166,7 +166,7 @@ theorem Main.wp_proof
       (W64 1) lg
       (LogEntry.toEntries boot 0) ctxs (compactkvDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [compactkvDir, dirOne]) Hlg (by decide) (by rw [hkr]; decide) Hck Haf Hbuq Hdbo)
+      (by simp [compactkvDir, dirOne]) (by decide) Hlg (by decide) (by rw [hkr]; decide) Hck Haf Hbuq Hdbo)
       $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #

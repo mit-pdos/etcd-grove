@@ -36,7 +36,7 @@ theorem StartMember.wp_proof
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs
-    γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hck Haf
+    γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU HU8 Hlg Hck Haf
     Hbuq Hdbo
   wp_start as ⟨Haddr, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hpown⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -44,7 +44,7 @@ theorem StartMember.wp_proof
   (try wp_auto)
   -- `NewMember(name, peer, peerAddr, client, cluster, token, NoSnapCount, NoSnapCatchUp, lg)`
   wp_apply (wp_NewMember N name peerAddr client token (W64 10000) (W64 281474976710656) peer cluster lg M iu Uok ps bootLog ctxs dir id
-      γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU
+      γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU HU8
       Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Htok Hmb Hpown] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)

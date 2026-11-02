@@ -54,6 +54,9 @@ abbrev newServer.spec : Prop :=
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
+  -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
+  -- `bootPremise`'s condition
+  (∀ k, (M.lookup k).isSome → utf8Valid k) →
   lg ≠ null → retention = W64 0 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
@@ -86,6 +89,9 @@ abbrev newServer.specCompact : Prop :=
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
+  -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
+  -- `bootPremise`'s condition
+  (∀ k, (M.lookup k).isSome → utf8Valid k) →
   lg ≠ null → 0 < sint.Z retention →
   -- (C3's server stage, 2026-11-02) the cluster's retention at most the compactor's
   (ρ.rd.kv.cret : Int) ≤ sint.Z retention →

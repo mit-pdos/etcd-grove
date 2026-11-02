@@ -33,7 +33,7 @@ theorem BuildServer.wp_proof
     (wp_newServer : newServer.spec (GF := GF) (hG := hG)) :
     BuildServer.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs
-    dir id γ ρ E₀ Φs γn ThB RcB RcN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hck Haf
+    dir id γ ρ E₀ Φs γn ThB RcB RcN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU HU8 Hlg Hck Haf
     Hbuq Hdbo
   wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
   (try wp_auto)
@@ -41,7 +41,7 @@ theorem BuildServer.wp_proof
   wp_apply (wp_newServer N name peerAddr client token (W64 0) snapCount catchUp peer cluster lg M iu
       Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn (ThreadBoundLe.le (GF := GF) (2 ^ 28))
       (ReceiptBoundLe.le (GF := GF) (2 ^ 48)) (ReceiptBoundLe.le (GF := GF) (N + 1)) hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
-      Hdir HU Hlg (by decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb] as %s %err Hres
+      Hdir HU HU8 Hlg (by decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb] as %s %err Hres
   · iframe; iframe #
   iapply HΦ
   iexact Hres

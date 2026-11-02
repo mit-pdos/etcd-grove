@@ -42,7 +42,7 @@ theorem newServer.wp_proof
       NewServer.spec (GF := GF) (hG := hG)) :
     newServer.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ
-    ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hret Hck Haf Hbuq
+    ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU HU8 Hlg Hret Hck Haf Hbuq
     Hdbo
   subst Hret
   wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
@@ -86,7 +86,7 @@ theorem newServer.wp_proof
     · rw [show (N + if E₀.cmp = true then N else 0) = N by simp [hcmp0]]
       iapply Hboot
       ipureintro
-      refine ⟨?_, HU, hvs, hrule, hboot⟩
+      refine ⟨?_, HU, HU8, hvs, hrule, hboot⟩
       unfold cfgOk; simp
     isplitr
     · iunfold bootCfgRO
@@ -144,7 +144,7 @@ theorem newServer.wp_proofCompact
       NewServer.spec (GF := GF) (hG := hG)) :
     newServer.specCompact (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ
-    ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hret Hcret Hck Haf Hbuq
+    ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU HU8 Hlg Hret Hcret Hck Haf Hbuq
     Hdbo
   wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
   iunfold bootPremise at Hboot
@@ -188,7 +188,7 @@ theorem newServer.wp_proofCompact
     · rw [show (N + if E₀.cmp = true then N else 0) = N + N by simp [hcmp0]]
       iapply Hboot
       ipureintro
-      refine ⟨?_, HU, hvs, hrule, hboot⟩
+      refine ⟨?_, HU, HU8, hvs, hrule, hboot⟩
       unfold cfgOk; simp
     isplitr
     · iunfold bootCfgRO
