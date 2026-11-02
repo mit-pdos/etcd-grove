@@ -851,3 +851,27 @@ Smaller:
   example for one line of glue).
 - **Scope:** `run.specStop` covers first starts (`isServerRun`'s `HEr`); a restarted member's
   right is R2d's. The `errorc` path stays closed (its bag's `False`).
+
+### R2b-1: the WAL's records (2026-11-02, blocked on a finding)
+
+Drafting the WAL's records model found that etcd's WAL does not hold the durable state raft's
+restart checks. `wal.ReadAll` returns every entry record above its start snapshot's index,
+whatever its place relative to the snapshot record. A follower that installs a received snapshot
+at `k` over a conflicting log keeps the old entries above `k` in its WAL; if it stops before any
+entry above `k` reaches it, its restarted log is the snapshot followed by entries of lower terms
+(`nonissues/etcd-wal-stale-entries-above-snapshot.md`, with a failing WAL-level test). Raft's
+durable state (`RaftState.next`) has no entries above an installed snapshot, so the image's
+`StorageHolds S σ` is false of such a member, and so is `raftNode.stop.specStop`'s post.
+
+Options:
+1. **A fix on the goosed fork** (as the three raft fixes): `ReadAll`, at a snapshot record at `k`
+   whose term differs from the entry it holds at `k`, drops the entries from `k` on (a received
+   snapshot that conflicts; the server's own snapshots match their entry, and raft puts a received
+   snapshot in a `Ready` only when it conflicts or the log is shorter). The model of `ReadAll`
+   then matches `RaftState.next`, and R2b-1 goes on as planned. Upstream-worthy if the stale tail
+   can be shown to matter at the raft level.
+2. **Model the WAL as it is:** `StorageHolds` (raft's restart, the durability work) admits a stale
+   tail of lower terms above the snapshot. A change to raft's restart spec and its proof (the
+   restarted log is not a log raft ever had).
+3. **A scope premise** on the stopped member (no received snapshot since its last appended entry):
+   nothing in `restart3` can check it.
