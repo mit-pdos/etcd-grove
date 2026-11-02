@@ -44,7 +44,7 @@ backend path), the counter `γt` (`hnt`), J7's image facts (`SnapImageFacts`: `h
    `bootOk`'s `#HmetaSnap` (J8b).
 3. **`srvCfgAddr s ↦□ cfg` is false** (the struct copy in `OpenSnapshotBackend(s.Cfg, …)` races
    with `NewWatchServer`'s write of `WatchProgressNotifyInterval`,
-   `issues/etcd-cfg-watch-progress-interval-race.md`). A field-wise restatement is not sound: the
+   `nonissues/etcd-cfg-watch-progress-interval-race.md`). A field-wise restatement is not sound: the
    copy reads every field. Fix the fork (`NewWatchServer` not writing the server's config), pin bump.
    **Approval: fork change.**
    *Done 2026-11-01 (J8a-3, decisions "J8a-3")*: the fork's `7cf3644ec`; `NewWatchServer.spec` over

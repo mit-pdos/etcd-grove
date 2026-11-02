@@ -1,5 +1,5 @@
 # Explicit-state model of etcd-raft membership changes with a witness, as raft#168 does it in
-# the fork raft-witness-goose-lean (9ed005d46). An extension of issues/raft-conf-lag-model/
+# the fork raft-witness-goose-lean (9ed005d46). An extension of notes/raft-conf-lag-model/
 # model.py (same abstraction: atomic elections, one AppendEntries round trip per `app`,
 # apply-time configuration switching) with:
 #   - entries (term, subterm, kind, data); the leader's epoch (subterm, excluded per half);

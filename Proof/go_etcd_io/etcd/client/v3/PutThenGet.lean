@@ -4,7 +4,7 @@
 
 The end-to-end specs (`client_put_end_to_end`, `client_get_end_to_end`, `Results.lean`) take
 persistent atomic updates over the whole abstract state `etcdKV`: a put's update may fire more
-than once (a retried or re-proposed put, `issues/etcd-client-retry-put-ctx-error.md`), even after
+than once (a retried or re-proposed put, `nonissues/etcd-client-retry-put-ctx-error.md`), even after
 the put returned. A client that is the only writer does not need to know which firing was "the"
 linearization point: every firing of the put of `key ↦ val` leaves `key` at `val`, and nothing
 else changes the state, so a monotone flag ("the put has fired") suffices.

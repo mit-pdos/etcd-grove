@@ -25,7 +25,7 @@ retries writes, whenever the interceptor finds a write safe to retry. For a writ
 it twice. linkvtxn's write update is ordinary (fired once, D21 M6), so the proof needs:
 
 **A write is sent again only after an attempt that did not apply it.** At the fork's pin
-(`8a24be2a3`, the context-error fix of `issues/etcd-client-retry-put-ctx-error.md`), the
+(`8a24be2a3`, the context-error fix of `nonissues/etcd-client-retry-put-ctx-error.md`), the
 interceptor retries a `nonRepeatable` call in three cases (`retry_interceptor.go:62-96`):
 
 1. `shouldRefreshToken`: the error is `ErrUserEmpty` with a token bundle (none without

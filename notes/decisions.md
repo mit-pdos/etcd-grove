@@ -228,7 +228,7 @@ error paths; `checkInvariants` returns `nil` iff `CfgInv`. Choices:
 - the old specs are replaced, not kept beside the new ones; `Restore`'s statement is
   unchanged, and its proof derives the old `Simple` statement (`Simple_votersOnly`).
 Two findings: `Config.Clone` drops `AutoLeave` (`issues/raft-config-clone-autoleave.md`);
-a tracker with a `nil` incoming voter map panics (`issues/nonissues/raft-changer-nil-incoming.md`,
+a tracker with a `nil` incoming voter map panics (`nonissues/raft-changer-nil-incoming.md`,
 excluded by `ownCfgCC`).
 
 **A Goose bug found on the way.** `cc := cc` (Go's loop-local-copy idiom, used twice in
@@ -1138,7 +1138,7 @@ it and what the proofs changed.
   2026-11-01):* Go's `WaitGroup` does panic when an `Add` from zero overlaps a pending `Wait`
   ("Add called concurrently with Wait", or the waiter's "reused before previous Wait has
   returned"), and `Close` cancels the loops, so the counter reaches zero while it waits: the token
-  is a real precondition of the code, `issues/etcd-cache-watch-during-close-waitgroup.md`.
+  is a real precondition of the code, `nonissues/etcd-cache-watch-during-close-waitgroup.md`.
 - **`NewDemux` takes the caller's wait group abstractly**: `wgSlotProtocol wg Pslot Prun Pret`
   (the triples of `Add(1)` and `Done()`), instantiated by `newCache` with the cache's slot and
   "open" token. *Rejected:* `NewDemux` stating `cacheWgInv` (the demux would depend on the
@@ -3121,7 +3121,7 @@ corresponding ones for `Put` (`putKv`), `DeleteRange` (the filter) and `Range`
   `mkGteRange("\x00")`); on decoded requests (protobuf-go decodes an empty `bytes` field as
   `nil`) that is the client's `inRange`. A put denotes the server's total `putTxnOp` (the
   ignore flags keep the value or lease whatever the request says), not the client's partial
-  `txnOpOf`. An empty oneof denotes nothing (`Txn` panics on it, `issues/nonissues/etcd-txn-empty-requestop.md`).
+  `txnOpOf`. An empty oneof denotes nothing (`Txn` panics on it, `nonissues/etcd-txn-empty-requestop.md`).
   The responses mirror `TxnOpResult` (`txnResponseIs`), recursively; a nested response's
   header revision is `0`.
 - **The index answers the state** (unit 0b, pure): for a well-formed log, mvcc's
@@ -3218,7 +3218,7 @@ corresponding ones for `Put` (`putKv`), `DeleteRange` (the filter) and `Range`
   the mvcc changes named (the write transaction's pending list); `txn_runTxn` relates it to the
   client's `runTxn` under `OpsStable`. *Rejected:* stating `Txn` over `runTxn` (false for a nested
   comparison on a key written earlier in the transaction: the client model is wrong there,
-  `issues/nonissues/etcd-txn-nested-compare-snapshot.md`); changing the client model (leasing's proofs use
+  `nonissues/etcd-txn-nested-compare-snapshot.md`); changing the client model (leasing's proofs use
   it). (2) **A context never canceled** instead of a panic: in the write path a range or a
   `PrevKv` delete at a done context returns an error that `txn` turns into `lg.Panic`; mvcc's
   `rangeCtx true` now also takes an `isContext` whose Done proposition never holds (`neverDone`:
@@ -4121,7 +4121,7 @@ results and making the server's `applierFor` a definition.
   with a trivial lock resource (`Apply` and unit 2's uber-applier would carry `chainRes`).
 - **A lease checkpoint request with one checkpoint** (unit 1): the lessor persists each
   checkpoint in its own critical section, which the critical-section contract cannot express
-  (`issues/etcd-apply-lease-checkpoint-sections.md`): a premise, not a weaker contract.
+  (`nonissues/etcd-apply-lease-checkpoint-sections.md`): a premise, not a weaker contract.
 - **`auth.AuthStore` translated** (unit 1): `auth.toml` imports the packages its methods'
   signatures name; it was an axiomatized type whose generated instances are `sorry`.
 
@@ -4287,7 +4287,7 @@ gRPC checks discharge the txn package's request premises.
 - **Ids: credits per process, claims per cluster** (unit 0). `idGen` hands `2^48 - 1` credits
   (`Auth Nat`), each `Next` an `idFresh` id (unclaimed, with its wait slot). Claims are one
   cluster-wide map: that other members' entries never claim an id this member issued is the
-  premise that member ids differ in their low 16 bits (`issues/etcd-request-id-member-prefix.md`),
+  premise that member ids differ in their low 16 bits (`nonissues/etcd-request-id-member-prefix.md`),
   part of the raft contract's apply side.
 - **The checks as pure functions of what they read** (unit 0, `v3rpc/Defs.lean`). A
   `RequestOp` as the checks see it is `ReqOp` (the txn package's `OpFull` for range, put,
@@ -4593,7 +4593,7 @@ btree's `ownBTree` was, "store: btree as the trust boundary"), the functions' sp
   (mvcc's `s.revMu`, held exclusively by the store's `End` around `Unlock`, is this): `Unlock`'s
   two critical sections (the write-back, then the commit when a delete is pending) are not atomic
   for an unsynchronized reader, and the read-buffer cache of `ConcurrentReadTx` goes stale across
-  them (`issues/etcd-backend-read-buffer-cache-stale-after-commit.md`, reproduced).
+  them (`nonissues/etcd-backend-read-buffer-cache-stale-after-commit.md`, reproduced).
 - **When the lock is free, `V ≈ S`** (equal on every key, an absent bucket as an empty one): the
   write buffer's leftover puts (the hook's, buffered after the write-back) precede every later
   put in the chronological order the write-back preserves, and every session with a delete
@@ -4840,7 +4840,7 @@ code forced:
   job's loop ends when a batch is short of the limit; the backend reads a non-positive limit as
   none); `NewStore` takes `0 ≤ cfg.CompactionBatchLimit` (a zero limit is defaulted: `mvccInit`
   fixes `defaultCompactionBatchLimit = 1000`), the premise that the code's unvalidated flag needs
-  (`issues/etcd-compaction-negative-batch-limit.md`, reproduced).
+  (`nonissues/etcd-compaction-negative-batch-limit.md`, reproduced).
 
 ### The compaction over the real backend (merge, 2026-10-13)
 
@@ -4921,7 +4921,7 @@ dropping `snapThin` (the assumed contract would be false of Go's backend once co
   only persistent facts (`isTreeIndex`, `crevLb`, `idxCert`), so it allowed two concurrent
   passes: then one pass can `compact` a key index the other deleted (an empty one: `lg.Panic`),
   or delete by key a key put again in between, and the clone's pointers are not owned by anyone
-  when visited (unprovable, and false of Go: `issues/nonissues/etcd-index-compact-overlapping.md`). It
+  when visited (unprovable, and false of Go: `nonissues/etcd-index-compact-overlapping.md`). It
   also allowed a pass at a revision below an earlier pass's, whose `available` is then not
   `keepSetIs` (the key indexes are already compacted above it). The new ghost name `IdxNames.cmp`
   (`ghostVar (Int × List Loc)`) holds the last compaction's revision and the pointers a pass has
@@ -5464,7 +5464,7 @@ that contract from the real backend's, and proves the hook in `hookFnSpec`'s sha
   used by the server's construction premise (`srvFieldsAt`/`isServerBuilt` still state
   `lessorOk`/`isApplyLessor`): the lessor's constructor is not proved.
 - **`Revoke` is not proved** (translated): (1) it reads `le.rd` after unlocking `le.mu` (a data
-  race with `SetRangeDeleter`/`Recover`: `issues/nonissues/etcd-lessor-revoke-rd-unlocked.md`), so it needs a
+  race with `SetRangeDeleter`/`Recover`: `nonissues/etcd-lessor-revoke-rd-unlocked.md`), so it needs a
   share of `rd` outside the lock, which unit 8's `SetRangeDeleter` spec (any caller) does not
   leave; (2) `le.rd()` is the store's write closure: its contract (`NewStore`'s closure over
   `store.Write`, under the sole-writer discipline) would have to be recorded by `SetRangeDeleter`;
@@ -5513,12 +5513,12 @@ that contract from the real backend's, and proves the hook in `hookFnSpec`'s sha
   the call: unboundedly many concurrent requests would exhaust any finite supply).
 - **`metadata.FromIncomingContext`'s axiom states non-empty value lists**, narrower than grpc's
   code (which copies any context's metadata): `AuthInfoFromCtx` indexes `ts[0]`, a panic on a
-  context built with an empty list (`issues/etcd-auth-token-md-empty.md`); grpc's transports build
+  context built with an empty list (`nonissues/etcd-auth-token-md-empty.md`); grpc's transports build
   each key from at least one header field. *Rejected:* a premise on the context in `isReqAuth`
   (the request path's contexts come from grpc's handler axioms, which would have to state it).
 - **`AuthInfoFromTLS` is the trust boundary whole**: `credentials.TLSInfo`, `tls.ConnectionState`
   and `x509.Certificate` are axiomatized types (no field of them steps), and its one-result type
-  assertion panics for a peer with other credentials (`issues/nonissues/etcd-auth-tls-info-assert.md`;
+  assertion panics for a peer with other credentials (`nonissues/etcd-auth-tls-info-assert.md`;
   unreachable in etcd's servers): the axiom states only its result.
 - **The auth package's instance moved to `auth/Base.lean`** (from the apply package's `Base`, which
   imports it): its facts are its own error variables (`authErrVar`, the shape of `errVarLeaf`,
@@ -5816,7 +5816,7 @@ and reply types and spec: `isGrpcConn conn addr` (persistent, opaque: the `*Clie
 `isGrpcRpc addr method Spec`, `□ ▷ Spec m Φ`, `Req.send inp m`, `Rep.blank out`, the call options
 (`callOptsOk`); it returns `Req.send inp m` and `nil` with `∃ m', Rep.recv out m' ∗ Φ m'` (the last
 run's) or a client error and nothing. C1's honest retry semantics stand (other runs may have
-happened; `issues/etcd-client-retry-put-ctx-error.md`). The client's stack (the stub, the retry
+happened; `nonissues/etcd-client-retry-put-ctx-error.md`). The client's stack (the stub, the retry
 client, `kv.Do`, `kv.Put`, `kv.Get`) is proved for any spec of the method and any `Φ`; the
 results instantiate etcd's specs (`client/v3/Results.lean`: `etcdPutSpec`, `etcdRangeSpec`,
 `etcdDeleteSpec`), and the client's end-to-end results take the registration and the connection as
@@ -5879,7 +5879,7 @@ reply and `Φ`, or a client error. `Client.unaryClientInterceptor` returns such 
 (proved); the client's connection is `isEtcdConn conn addr := ∃ ic, grpcConn conn addr [ic] [] ∗
 etcdInterceptorOk ic`, a definition: what `clientv3.New` dials (`dialSetupOpts`), given no
 `Config.DialOptions` adding interceptors or default call options (an assumption about the
-unverified constructor; `issues/nonissues/etcd-client-dialoptions-unary-interceptor.md`: a
+unverified constructor; `nonissues/etcd-client-dialoptions-unary-interceptor.md`: a
 `WithUnaryInterceptor` there replaces the retry interceptor). `etcdConn_Invoke`
 (`client/v3/EtcdInvoke.lean`) derives unit C1's statement from the axiom and the contract; the
 stubs use it, so the client's results are unchanged in form, their premise `isGrpcConn` (opaque)
@@ -5889,7 +5889,7 @@ now `isEtcdConn` (defined), and errors also `statusErrOk`.
 `lastErr` (`nil` only before the first attempt, otherwise a client error grpc accepts), the
 request, the reply buffer and the peer buffer. Each attempt reuses `□ ▷ Spec m Φ`; a context
 error with the caller's context live (`ctx.Err() == nil`, `isContext`'s `Err` triple) continues,
-whatever the policy (`issues/etcd-client-retry-put-ctx-error.md`): the contract allows it. The
+whatever the policy (`nonissues/etcd-client-retry-put-ctx-error.md`): the contract allows it. The
 options: the interceptor's own (`reuseOrNewWithCallOptions(defaultOptions, optFuncs)`, a package
 fact for `defaultOptions`, the dial's options' closures `optApplyOk`) and a call's (its
 `retryOption`s, `retryApplyOk`: they write only `retryPolicy`) are read-only once built
@@ -6204,7 +6204,7 @@ the two gaps' resolutions stand.
   vo, COMM □ Q vo}>` and returns `□ Q vo` on success.
 
 The update is persistent because the client's retry interceptor may apply a `Put` more than once
-(`issues/etcd-client-retry-put-ctx-error.md`, each attempt a new request id, so a new raft entry),
+(`nonissues/etcd-client-retry-put-ctx-error.md`, each attempt a new request id, so a new raft entry),
 and raft may commit one proposal's data more than once. A write is linearized at the commit of an
 entry carrying it, a read at a committed index at or after its read index. A client-side prophecy
 that turns these into ordinary atomic specs is later work.
@@ -6686,7 +6686,7 @@ lease-free puts and transactions are meaningful again; leased ones wait for T3.
   beside `searchInv` (whose pure part keeps only the model-free `FramesPos`): its spec already
   allows `false` with the context done, so no caller's spec changes.
 - **`rep` is not necessarily persistent** (2026-10-19, decided with the user): etcd's robustness
-  model sorts its states in place in `Equal` (`issues/etcd-robustness-model-equal-mutates.md`),
+  model sorts its states in place in `Equal` (`nonissues/etcd-robustness-model-equal-mutates.md`),
   so each closure spec takes the `rep`s it reads and gives them back, of the same abstract
   states, and `checkSingle`, which keeps a state value in its stack, its cache and its current
   state, shares each in a non-atomic invariant of a pool it allocates (`Shared.lean`; one
@@ -7179,7 +7179,7 @@ drawn there:
   an unset optional `bool` is unpopulated, not `false`, to `Equal`). The restriction is a real
   one in the code: a `ConfState` with an unknown field (written by a newer raftpb) is "not
   equivalent" to the same configuration and `raft.restore`/`newRaft` panic
-  (`issues/nonissues/raft-confstate-unknown-fields-panic.md`, reproduced); the later `restore`/`newRaft`
+  (`nonissues/raft-confstate-unknown-fields-panic.md`, reproduced); the later `restore`/`newRaft`
   specs inherit it as a premise. Other messages' predicates keep their unknown fields
   existential (`entPts`, `msgPts`, ...): no axiom there compares them.
 
@@ -7807,7 +7807,7 @@ study of `NewServer` against the premise, row by row, found two things that shap
    at the state it meets) and `batchWaitOk ρ E L` (its id is claimed under *this* server's
    generator); nothing produces either. For one server `entriesOk` needs log-independent bounds
    the deposit does not carry; for several members both are facts about the other members'
-   requests (and `issues/etcd-request-id-member-prefix.md` shows id prefixes can collide). The
+   requests (and `nonissues/etcd-request-id-member-prefix.md` shows id prefixes can collide). The
    honest form is a named premise `clusterWorkloadOk ρ E c₀ x₀ : □ ∀ L, srvRLogLb L -∗
    ⌜entriesOk c₀ L x₀⌝ ∗ batchWaitOk ρ E L`, from which the clause follows (N2); discharging it
    for one server is **unit N3** (may stay a premise).
@@ -7965,8 +7965,8 @@ constructor contracts false. D14 settles the three.
 - **D14e: the background goroutines, the cheap option (the user's decision, 2026-10-17).**
   Configuration premises turn them off or make them harmless; their full modelling is open work.
   `cfg.AutoCompactionRetention = 0` (no compactor: `v3compactor.New` and `Run` are not reached;
-  also sidesteps `issues/etcd-compactor-periodic-tiny-retention.md` and
-  `issues/etcd-compactor-started-before-start.md`); the `LeaseCheckpoint` feature off (no
+  also sidesteps `nonissues/etcd-compactor-periodic-tiny-retention.md` and
+  `nonissues/etcd-compactor-started-before-start.md`); the `LeaseCheckpoint` feature off (no
   checkpointer installed: the lessor's `runLoop` never calls one, and a non-primary lessor's loop
   only takes its lock); the peers' URLs valid (`types.NewURLs` succeeds on each member's: no
   `AddRemote`/`AddPeer` panic). The transport's goroutines (inbound messages into `srv.Process`,
@@ -8073,7 +8073,7 @@ composes the connection from the descriptors as grpc does (the last `WithUnaryIn
 interceptor, no chain, no default call options). An option no axiom describes has no descriptor,
 so a dial holding one is simply not covered: no catch-all "harmless option" is assumed. The
 caller's `Config.DialOptions` are excluded by a premise (empty) rather than modelled
-(`issues/nonissues/etcd-client-dialoptions-unary-interceptor.md`).
+(`nonissues/etcd-client-dialoptions-unary-interceptor.md`).
 
 **Why `NewClient` asks for etcd's stream interceptor.** `grpcConn` (item 4's `InvGrpc.lean`,
 not ours to change) records the unary chain only, and `ClientConn.NewStream`'s axiom assumes the
@@ -8363,7 +8363,7 @@ The client's end-to-end specs (`client_put_end_to_end`, `client_get_end_to_end`,
 `client/v3/Results.lean`) take `□ AU <{∃∃ σ, etcdKV γk σ}> <{etcdKV γk (kvOpStep op σ), COMM □ Q
 σ}>` and return `∃ σ, □ Q σ`. The update is persistent because it does fire more than once: a put
 resent after a per-attempt error is proposed twice and applied twice
-(`issues/etcd-client-retry-put-ctx-error.md`), and a duplicate can commit after the put returned.
+(`nonissues/etcd-client-retry-put-ctx-error.md`), and a duplicate can commit after the put returned.
 The adequacy example (one member, `clientv3.New`, `Put(k, v)`, then `Get(k)`; the pure conclusion:
 no panic and the Get returns `v`) needs the client to hold `etcdKV` in its own invariant and get
 "Get's value = Put's" out of these updates.
@@ -8619,7 +8619,7 @@ the theorem says nothing.
   length bound inside `kvInv`'s updates (D19b's receipts). (2) `batchWaitOk` of the boot log's
   conf changes (id `0`, raft's `Bootstrap`; the log is the server's `L`, start index `0`) needs
   id `0` never claimed, which `idGen` allows when the prefix is `0`
-  (`issues/etcd-request-id-zero-bootstrap-confchange.md`). (3) `publishV3`/`monitorClusterVersions`
+  (`nonissues/etcd-request-id-zero-bootstrap-confchange.md`). (3) `publishV3`/`monitorClusterVersions`
   are names-only with `True` posts: their real proposals are outside the model. Options for the
   user: (a) a per-request premise "`rqOk` at every state and `dispatchOk`" in `reqPropOk` (new
   premises of `EtcdServer.Put`/`DeleteRange`/`Txn`, discharged at v3rpc from `checkIntervals` and
@@ -8792,7 +8792,7 @@ the theorem says nothing.
   - *The feature gate's contract was false of Go* (a spec bug of this repository).
     `isFeatureGate` said `Enabled(f)` returns some boolean for every `f`. `featureGate.Enabled`
     panics on a feature it has not registered (its own comment says so; the `FeatureGate`
-    interface's does not: `issues/nonissues/etcd-featuregate-enabled-panic-undocumented.md`). As a premise
+    interface's does not: `nonissues/etcd-featuregate-enabled-panic-undocumented.md`). As a premise
     of `NewServer.spec` it could not be met, and the trust-boundary spec of
     `NewDefaultServerFeatureGate` would have been a false axiom. Now `isFeatureGate`
     (`Proof/go_etcd_io/etcd/server/v3/features/Defs.lean`, moved there from `InvProposer.lean`)
@@ -9429,7 +9429,7 @@ back only with the cursor). (`grpc.ClientConn.NewStream`, the twelfth latent one
 **(i) `time.Since`** (`Spec/time/Since.lean`: `0 < d`). The audit's suggested fix, `0 ≤ d`, is
 not true either for an arbitrary `t` (a `t` without a monotonic reading, or a later one, gives a
 negative duration), and it breaks `syncWatchersLoop`, whose `delayTicker.Reset(syncDuration)`
-panics on `0`: the Go hazard of `issues/etcd-watch-sync-ticker-reset-zero.md` (upstream
+panics on `0`: the Go hazard of `nonissues/etcd-watch-sync-ticker-reset-zero.md` (upstream
 etcd-io/etcd#22296). Perennial's time model has no monotonic clock (`runtimeNano` arbitrary), so
 its proved `time.wp_Since` gives any duration (the local axiom is false in that model too).
 - *(A) A named run premise* `time.clockAdvances` (opaque: "every `time.Since` of the run returns a
@@ -9449,7 +9449,7 @@ its proved `time.wp_Since` gives any duration (the local axiom is false in that 
 - *Recommendation:* (C); (A) with the class if the fork should stay at upstream's code.
 
 **(ii) `auth.authStore.AuthInfoFromTLS`** (any context; Go panics on a peer whose `AuthInfo` is
-not a `credentials.TLSInfo`: `issues/nonissues/etcd-auth-tls-info-assert.md`). Its caller is the server's
+not a `credentials.TLSInfo`: `nonissues/etcd-auth-tls-info-assert.md`). Its caller is the server's
 request contract (`isReqAuth`'s `AuthInfoFromTLS` clause, `AuthReqDerive.lean`), for any context.
 - *(A) A deployment premise* (opaque "etcd's gRPC servers are built with TLS credentials or
   none", so a handler's peer has no `AuthInfo` or a `TLSInfo`), as a class (gen-link
@@ -10284,7 +10284,7 @@ Paths under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless said otherwise.
    misaddressed message (`To ≠` the receiver) is read as `errMemberRemoved` too
    (`rafthttp/util.go` `checkPostResponse`; `pipeline.go:165-171`, `snapshot_sender.go:110-114`;
    the pipeline handler does not check `X-Raft-To`, the stream handler does), and `run` stops on
-   it (`server.go:844-847`). Filed: `issues/etcd-rafthttp-misaddressed-403-member-removed.md`.
+   it (`server.go:844-847`). Filed: `nonissues/etcd-rafthttp-misaddressed-403-member-removed.md`.
    Multi-member, static membership: true under a deployment fact (every peer URL is served by the
    member it names), which an in-process cluster's delivery axiom states (D21b); or a fork fix.
 6. **The conf-change policy** `srvCCPolicy` (`InvRequest.lean:296-298`: v1, id `0`, `ccBootOk`),
@@ -10312,7 +10312,7 @@ Paths under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless said otherwise.
    `publishV3` `ClusterMemberAttrSet`, the leader's cluster version: `server.go:1803-1852`,
    `2216-2236`), so the KV invariant and the claims are the cluster's, the read budget and fresh
    tokens split per member. Request ids are unique across members only if the members' ids differ
-   in their low 16 bits (`issues/etcd-request-id-member-prefix.md`, `idutil/id.go:56-71`).
+   in their low 16 bits (`nonissues/etcd-request-id-member-prefix.md`, `idutil/id.go:56-71`).
 8. **The read index's singleton shortcut** (`issues/raft-readindex-singleton-stale.md`, the fork's
    fix): only matters for one voter; the multi-voter path (`readAck`, heartbeats) is already proved.
    Nothing to do, but the read loop's 500ms resend and its `leaderChanged` branch, dead in practice
@@ -10849,7 +10849,7 @@ Generic in what a message carries, so that D20 (b) plugs in without restating an
   `Send` holding `O st` or the transport's delivery token. Nothing reaches `ErrorC` because no
   member says another was removed (static) and no message reaches the wrong member: the
   deployment fact that every URL of `γn.dir id` is served by the transport holding `id`'s slot,
-  which excludes `issues/etcd-rafthttp-misaddressed-403-member-removed.md`'s run. It is stated
+  which excludes `nonissues/etcd-rafthttp-misaddressed-403-member-removed.md`'s run. It is stated
   where the handler is served (M5: `putget3` serves each member's raft handler on that member's
   own listener) -- in M2, with one member, no `AddPeer` or `AddRemote` runs.
 - **`transportEffectsOk` goes** (from `InvBoot.lean`, the three axioms, `NewServer.spec`, putget's
@@ -11297,7 +11297,7 @@ unchanged (`RaftHandler` stays names-only). (2) `http.Serve(l, h)` takes the lis
 `raftHandlerOf γn id h` and `⌜"http://" ++ a ∈ γn.dir id⌝`, and its postcondition is `True`. These
 axioms are where D21b's deployment fact gets stated. That fact is: every peer URL of member `id` is
 served by the raft handler of the transport holding `id`'s slot. `Transport.Start`'s axiom needs it
-(`issues/etcd-rafthttp-misaddressed-403-member-removed.md`). Until M5 it was only argued in
+(`nonissues/etcd-rafthttp-misaddressed-403-member-removed.md`). Until M5 it was only argued in
 `Start`'s docstring.
 - **The program** (`examples/putget3/putget3.go`): putget's `Main` with a helper,
   `startMember(name, peer, peerAddr, client, cluster, lg)`. The helper runs `NewServer` with putget's
@@ -14242,12 +14242,12 @@ real network. The goal: verify the reconnection and drop the premise.
 - **Two bugs remain** (each reproduced by an overlay test with a fake `pb.WatchClient`, fixed on
   the fork branch `watch-resume-fixes` off the pin, one commit each with a regression test that
   fails without the fix; `go test -race ./client/v3` passes with both):
-  1. `issues/etcd-watch-resume-stale-canceled-id.md` (introduced by K0): the dropped substream
+  1. `nonissues/etcd-watch-resume-stale-canceled-id.md` (introduced by K0): the dropped substream
      keeps its id; after a reconnect a resumed watch can be registered under the same id, and
      `closeSubstream` of the canceled one then deletes the resumed watch (which never gets
      another event; `run` may stop and hang in `wg.Wait()`). Fix F1 `04375baaa`: the `Canceled`
      case resets the id to `InvalidWatchID`.
-  2. `issues/etcd-watch-resume-nil-watch-chan.md` (upstream too): a watch canceled while `run`
+  2. `nonissues/etcd-watch-resume-nil-watch-chan.md` (upstream too): a watch canceled while `run`
      reconnects has its `outc` closed and set to `nil` by `waitCancelSubstreams`;
      `closeSubstream` then sends the nil channel on `retc`, which `Watch` may return. Fix F2
      `a8a459955`: send on `retc` only a non-nil `outc`. The proof needs it: `retcP` (`isSpsc`)
@@ -14407,7 +14407,7 @@ branch `watch-resume-fixes` (`/shared/etcd-goose-lean-wr`, a worktree of
 `goose-lean` and pushed (or the translation run with `--src etcd=<checkout>` until then).
 
 **S1c's findings (2026-10-20; S1c-R1 and S1c-R2 done; stopped before R3 for a fourth fork fix).**
-- *A fourth fix is needed* (`issues/etcd-watch-resume-waitgroup-overflow.md`): `waitCancelSubstreams`
+- *A fourth fix is needed* (`nonissues/etcd-watch-resume-waitgroup-overflow.md`): `waitCancelSubstreams`
   calls `wg.Add(len(w.resuming))` on a local `sync.WaitGroup`, whose counter is an `int32`.
   Perennial's `Add` spec needs the counter below `2^31`, so the proof needs `len(w.resuming) <
   2^31`. The model bounds only the live goroutines (`threadBound GF ≤ 2^31`), and nothing ties
@@ -14528,7 +14528,7 @@ that pausing a peer only loses messages, which the network model allows. Checkin
 `CutPeer` also calls `Pause` on a *remote* of `id` if there is one, and `remote.Pause` stops the
 pipeline, whose `stop` closes a channel unconditionally, so a second `CutPeer` of a remote without
 a `MendPeer` in between panics ("close of closed channel"; reproduced,
-`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The theorem quantifies over every
+`nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The theorem quantifies over every
 schedule, including one that cuts the same link twice, so the S1 axiom was false as stated.
 
 **Options.** (a) Fix the fork (`remote.Pause`/`Resume` idempotent): the axiom is then true of any
@@ -14730,7 +14730,7 @@ leave the program: Perennial's adequacy covers every thread. Its specs
 - `New(addr, l)`, `l` a listener bound at `a` (`netListenerAt`): a bridge to `addr`, not
   blackholed, and `a` serves what `addr` serves, method by method (the forwarding fact).
 - `Blackhole` of a bridge not blackholed (a second one panics:
-  `issues/nonissues/etcd-bridge-blackhole-twice-panic.md`): blackholed. `Unblackhole`: not blackholed.
+  `nonissues/etcd-bridge-blackhole-twice-panic.md`): blackholed. `Unblackhole`: not blackholed.
   `DropConnections`: unchanged.
 
 Why the forwarding fact holds of the bridge and gRPC: the bridge only copies bytes, so each side
@@ -14851,7 +14851,7 @@ whose description (`rpctypes.ErrorDesc`, the status message) is one of:
   (`isSafeRetryMutableRPC`, messages of grpc's old balancer).
 
 The context-error branch returns for a `nonRepeatable` call (the fork's fix,
-`issues/etcd-client-retry-put-ctx-error.md`), and every other error stops the loop. A proof that
+`nonissues/etcd-client-retry-put-ctx-error.md`), and every other error stops the loop. A proof that
 the members never send a refusal costs far more than the rest of the plan. The server's specs
 describe its errors by structure, not identity (R1, "Error identity"). So the members'
 refusal-freedom is assumed (choice (P) of R1, chosen by the user), and the rest is proved.
@@ -15096,7 +15096,7 @@ The user approved both fixes (2026-10-22). The etcd pin moves to the fork's `188
 
 - **The alarm store recovered in place** (`8fd98af04`, `issues/etcd-alarm-store-snapshot-race.md`).
   Not the `atomic.Pointer` of S-j2's list: the upstream candidate's fix
-  (`issues/upstream/etcd-alarm-store-snapshot-race/`, `d396a0fc7`), so that the fork and the
+  (`issues/etcd-alarm-store-snapshot-race.md`, `d396a0fc7`), so that the fork and the
   proposal upstream agree. `AlarmStore.Recover(be)` reloads the store under its own mutex, as
   `lessor.Recover` does; `applySnapshot` calls it instead of `restoreAlarms`, which only
   `NewServer` calls now. For the proof this is the better of the two: `s.alarmStore` is written
@@ -16494,7 +16494,7 @@ over `permVerdict`'s first half; S1, `authpb` translated and schema's auth backe
   The store skips a no-op update only when the new encoding is byte-equal to the stored one and
   not stale (`store.go:547`, the #48394 fix), and otherwise rewrites it at a new resource
   version. The Model skips it whenever the objects are equal up to the resource version, so it
-  rejects the store's correct response (`issues/k8s-correctness-model-noop-rewrite.md`,
+  rejects the store's correct response (`nonissues/k8s-correctness-model-noop-rewrite.md`,
   reproduced by a Go test). With the Model as it is, a non-canonical driver (D30b) checked
   against it (D30c) would make `k8setcd3_porcupine_safe` false. Decided:
   - **The generic specs** use the Lean model with one more bit per item: whether its stored
@@ -17365,7 +17365,7 @@ four questions as decided above. Each commit a full build.
   (+ `TS`), `rnParts`, `isRaftNode`; intermediate specs `raftNode.stop`, `raftNode.onStop`,
   `NewServer` (`srvEr … (netPeers γn id)`); the examples' `memberBuilt` (the same). No closed
   theorem's text changed.
-- Found on the way: `issues/nonissues/etcd-rafthttp-leaderstats-followers-race.md` (`removePeer` writes the
+- Found on the way: `nonissues/etcd-rafthttp-leaderstats-followers-race.md` (`removePeer` writes the
   leader stats' map without its lock, `JSON` marshals it unlocked).
 
 **W2, the auth store across `Recover`: no restatement of `NewAuthStore` needed.** The server's auth
@@ -17726,7 +17726,7 @@ store does, and the request side's verdicts were over states nobody recorded.
   instances are `sorry`s, which the proofs would reach).
 - **The premises**: the revision below `2^64 - 1` and the next state's permissions fitting the
   cache's trees (`stepOk`, from the caller: the records' growth is unbounded,
-  `issues/etcd-auth-record-too-large-fatal.md`); a new record's name within bbolt's key bound
+  `nonissues/etcd-auth-record-too-large-fatal.md`); a new record's name within bbolt's key bound
   (`UserAdd`, `RoleAdd`: `issues/etcd-auth-useradd-long-name-fatal.md`; `UserChangePassword` too,
   since the write contract does not record that an existing record's key was accepted).
 
@@ -17829,7 +17829,7 @@ tokens, was names only.
   nothing. The contract's sanity check.
 - **The contract keeps `True` as its precondition.** A proof of the simple provider needs a context
   premise (its `info` waits on the context's `Done()`, its `assign` reads two context values and
-  panics without the prefix: `issues/etcd-auth-simple-token-assign-prefix-panic.md`), and
+  panics without the prefix: `nonissues/etcd-auth-simple-token-assign-prefix-panic.md`), and
   Perennial's contexts (`mvcc.txnCtx`, `context.isContext`) are stated with later credits, which
   `InvAuth.lean` is generic over. Adding the premise is part of proving the simple provider.
 
@@ -18986,7 +18986,7 @@ unchanged (721 axioms, 5 `sorry`s).
   precondition; the Go reads the peers under the read lock, which `AddPeer`/`RemovePeer` write
   under). `Handler` stays over the frozen transport: on a live one the handlers' `AddRemote` runs
   `NewURLs` on the request's `X-PeerURLs` header, which the raft protocol (`fromOkAt`) does not
-  constrain, and Go panics on a malformed one (`issues/etcd-rafthttp-addremote-bad-peerurls-panic.md`,
+  constrain, and Go panics on a malformed one (`nonissues/etcd-rafthttp-addremote-bad-peerurls-panic.md`,
   found here); the dynamic handler (M8) needs that header fact in the protocol, then
   `AddRemote_full` with the cover `∀ f, member f → f ≠ lid → f ∈ c.L`.
 - Left for M8: the dynamic `NewServer` (a key for `E.ST`, as `srvTrKey` for `E.S`, with `L` in
@@ -19239,7 +19239,7 @@ invariant over the context-premised contract (with `NewAuthStore`).
   `store.Restore` are proved (their statements differ from the axioms S8c and S6 wrote: S8d uses the
   proved ones). S8c's W3 commit is reverted before the merge (`72a1cb065b`): the peers right
   (`netPeers`, `netTrIs`, `transportAddRight`, `RNEnv.TS`) is to be re-expressed over the proved
-  transport, with W8. The issue it filed (`issues/nonissues/etcd-rafthttp-leaderstats-followers-race.md`) is
+  transport, with W8. The issue it filed (`nonissues/etcd-rafthttp-leaderstats-followers-race.md`) is
   kept.
 - **W5** (the user): `storage.snapOpensOk` stays its own environment premise (not folded into
   `dbOpensOk`); it may become a premise of closed theorems at S-l.
@@ -20096,7 +20096,7 @@ orchestrator while the user was away (J0).
   definitions only). `linkv3p_safe`'s statement survives (its `CutPeer` premise is internal, now the
   token). D40's note was wrong ("the window's remotes stopped by the re-add": Go's `AddPeer` never
   looks at the remotes), corrected there; so was the reachability claim of
-  `issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md` (verdict kept: a test hook). J-T
+  `nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md` (verdict kept: a test hook). J-T
   takes from M5 what `applySnapshot` needs (`notes/membership-plan.md`, M5).
 - **`srvAuthRecoverOk`'s source**: `auth.NewAuthStore.spec` (axiom) restated, its post gaining the
   `Recover` triple (`authRecoverOk`, today's `srvAuthRecoverOk` moved beside `authApplyOk`); true in
@@ -20337,7 +20337,7 @@ members' statements internal lemmas ("Abstract only").
 **Choices made in the abstract specs** (the open points of the design, decided here):
 - *A write's update* under `□?dup` (the user: the AU in the spec; the optional `□` is Iris's
   `intuitionisticallyIf`): persistent if the client's retry interceptor may resend the write
-  (`issues/etcd-client-retry-put-ctx-error.md`), fired at most once on a refusal-free client (D29).
+  (`nonissues/etcd-client-retry-put-ctx-error.md`), fired at most once on a refusal-free client (D29).
 - *Ranges at the latest revision only* (`kv.Get.spec`, `kv.Do.spec`'s range case: `rev = 0`): a
   reply at an earlier revision is not a function of the current state. Every client-level caller
   reads at `0`; the server-model results (the recipes' gets at a revision) use the members' lemma.
@@ -20570,7 +20570,7 @@ write token `T` and the admin side's authority `authOwn M hs`, each answers from
 the read, `RUnlock`: `schema/auth_users.go`, `auth_roles.go`), so they run no hook and take no
 critical-section contract; `GetAllRoles` is the batch transaction (`Lock` is `LockInsideApply`,
 the hook runs: it takes `mvcc.csContract` and gives `Post`). Its read transaction's twin
-`UnsafeGetAllRoles` panics (`issues/etcd-auth-readtx-getallroles-panics.md`); etcd's
+`UnsafeGetAllRoles` panics (`nonissues/etcd-auth-readtx-getallroles-panics.md`); etcd's
 `GetAllRoles` does not use it, and the contract names only the backend's `GetAllRoles`.
 
 **A bug in this repository's contract, fixed.** S5's `GetUser` clause (appended to
@@ -22043,7 +22043,7 @@ is, and `Main`'s Go test `TestMainNeverPanics` fails in such runs (2 of 100 at t
 accepted. The bug is not fixed now: the proofs go on bottom up, and the controller is changed only
 when a proof genuinely gets stuck on it (the S1 proof is expected to, at the ambiguous create in
 `syncNodes`), or by the user. The candidate fixes are in
-`issues/upstream/k8s-daemonset-ambiguous-create-duplicate-pod/` (04, 05).
+`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md` (04, 05).
 
 **The rule, generally.** Implementations and the program's configuration are not changed to make a
 property provable or to dodge a gap; a gap that blocks a proof is left open (a named hypothesis)
@@ -23089,7 +23089,7 @@ Not changed: `NewServer.spec`/`specM`'s text (their posts' `srvBuilt` gained the
 - **The whole configuration read-only** (`specSnap`'s `srvCfgAddr s ↦□ cfg`): `applySnapshot`
   copies `s.Cfg` (`OpenSnapshotBackend(s.Cfg, …)`), while the serving path owns
   `WatchProgressNotifyInterval` (`srvServeBuilt`), which `v3rpc.NewWatchServer` writes: a data race
-  in Go with a sub-100ms interval (`issues/etcd-cfg-watch-progress-interval-race.md`). `srvSnapRO`
+  in Go with a sub-100ms interval (`nonissues/etcd-cfg-watch-progress-interval-race.md`). `srvSnapRO`
   has the fields the snapshot path's callees read; J8a either restates `specSnap` over them (if the
   struct copy can be stated field-wise) or the fork fixes `NewWatchServer`.
 Also not done (J4's, the other agent's): the storage token into J0 item 2's invariant at the end of
@@ -24341,7 +24341,7 @@ The coordinator's process change (2026-10-27): J4b on top of J4a without merging
 `wBkt tx b n` was persistent and `Tx.DeleteBucket_kv` left it, so after `DeleteBucket(n)` and
 `CreateBucketIfNotExists(n)` the specs allowed `Put`, `Delete` and `Cursor` through the old
 handle; bbolt frees a deleted bucket's nodes, and the old handle's `Put` panics while its reads
-and deletes miss the data (`issues/bbolt-deleted-bucket-handle.md`, reproduced). Found false by
+and deletes miss the data (`nonissues/bbolt-deleted-bucket-handle.md`, reproduced). Found false by
 the audit (D19l (iv), stopped, latent), refuted by `etc/spec-test/bbolt` (step 2 of
 `notes/spec-first-plan.md`) in 28 of 3000 runs.
 
@@ -24497,7 +24497,7 @@ nothing to the trust base:
   `urlRootPlain u → s = "http://" ++ u.Host'` (Go's `URL.String` of a URL of only `http` and a
   host of letters, digits, `.`, `-`, `:`: `escape(host, encodeHost)` keeps those bytes, the path
   and query are empty). This also discharges, for members, the panic of
-  `issues/etcd-rafthttp-addremote-bad-peerurls-panic.md` (a member's header always parses).
+  `nonissues/etcd-rafthttp-addremote-bad-peerurls-panic.md` (a member's header always parses).
 
 **Statement changes** (every closed theorem's statement unchanged; the example-level specs below
 are discharged by their callers):
@@ -28538,7 +28538,7 @@ Supersedes in part "D22 J1a" (its "The whole configuration read-only" item, whic
 `goose-lean-watchcfg` `7cf3644ec` (on `633036387`), the pin of `etc/goose.py`: `NewWatchServer`
 keeps the adjusted progress interval in a local and passes it to `SetProgressReportInterval`; it no
 longer writes `s.Cfg.WatchProgressNotifyInterval`, the race of
-`issues/etcd-cfg-watch-progress-interval-race.md` (with `applySnapshot`'s struct copy
+`nonissues/etcd-cfg-watch-progress-interval-race.md` (with `applySnapshot`'s struct copy
 `OpenSnapshotBackend(s.Cfg, …)` and another listener's read). A field-wise restatement of
 `specSnap`'s `srvCfgAddr s ↦□ cfg` was not an option: the copy reads every field.
 
@@ -28617,7 +28617,7 @@ ghost agreement, so they are not a field to add.
 
 **Before** (D22 J-T, 2026-10-27; D43 M5c): upstream's `remote.Pause` is `g.stop()`, which closes
 the pipeline's `stopc`, so a second `CutPeer` of a remote, or `Transport.Stop` after one, panics
-("close of closed channel", `issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`).
+("close of closed channel", `nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`).
 `CutPeer`/`MendPeer` therefore took `trNoRemOr c id`: `id` not among the pool's ids `c.L`, or its
 no-remote token (`trNoRem`), which `trPoolE` handed out per id of `L` and `NewServer` gave to the
 examples in `srvTrTok`; the transport carried an opening flag (`trUnopened`/`trOpened`) so that no
@@ -28824,7 +28824,7 @@ Frozen and linked:
 - `ErrNotPrimary` translated and in `leaseInit` (appended), `features.FastLeaseKeepAlive`
   translated. The post: on `nil` the last `checkLeaseRenew`'s verdict (`leaseKeysVerdictFrom
   .write`) at the caller's context; the margin: the local lessor may lag the renewing one
-  (`issues/etcd-lease-renew-keys-follower-lag.md`, a candidate), and the leader's re-lookup.
+  (`nonissues/etcd-lease-renew-keys-follower-lag.md`, a candidate), and the leader's re-lookup.
 - **The bounds baseline raised by 3** (the user's choice at the merge, 2026-11-01): `LeaseRenew.spec`,
   C1 and C2 take `threadBound GF ≤ 2^30 - 1`, as their siblings in the baseline (`checkLeaseRenew`,
   `LeaseLeases`, `LeaseTimeToLive`); item 5 predates the bounds plan. `etc/bounds-baseline.txt`:

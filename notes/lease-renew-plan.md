@@ -27,7 +27,7 @@ before the success: `leaseCheckFrom` with `leaseKeysVerdictFrom … .write`, as
 `checkLeaseRenew.spec`'s post); on an error, an error the gRPC layer can take (`applyErrIs`).
 Nothing of the TTL.
 
-**A finding** (recorded: `issues/etcd-lease-renew-keys-follower-lag.md`, not yet reproduced): on a
+**A finding** (recorded: `nonissues/etcd-lease-renew-keys-follower-lag.md`, not yet reproduced): on a
 follower the check reads the follower's lessor (no wait for any index) and the renewal is the
 leader's, so a lagging follower's check misses keys the leader's lease holds. The spec states the
 check over the local lessor at a lower bound, nothing of the renewed lease; its margin names it.
@@ -74,7 +74,7 @@ boot proof yet states the field: `NewServer` stores `rafthttp.NewRoundTripper`'s
 `roundTripperOk`): on `nil`, `leaseCheckFrom s E ctx n (fun info =>
 leaseKeysVerdictFrom E.authMode n info γl m id .write)`; on an error, `applyErrIs`. **The margin**:
 the key check is of the local lessor; the renewed lease is the leader's, possibly holding keys the
-check did not see (`issues/etcd-lease-renew-keys-follower-lag.md`), and on the leader a key
+check did not see (`nonissues/etcd-lease-renew-keys-follower-lag.md`), and on the leader a key
 attached between the check and `Renew` (`issues/etcd-lease-timetolive-keys-toctou.md`'s window).
 The revision re-check is `checkLeaseRenew.spec`'s margin.
 
@@ -137,4 +137,4 @@ call (no statement changes). "Keep premise, record open": `peerRt` stays a premi
 
 `Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__LeaseRenew.lean`, no `sorry`, linked in the
 server's `Link.lean`. Open: `peerRt` from `NewServer`'s contract; a `tickMu` pool (C2); C1 at the
-lease-grant work; a Go reproduction of `issues/etcd-lease-renew-keys-follower-lag.md`.
+lease-grant work; a Go reproduction of `nonissues/etcd-lease-renew-keys-follower-lag.md`.

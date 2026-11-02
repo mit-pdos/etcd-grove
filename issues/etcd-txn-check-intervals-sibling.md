@@ -1,206 +1,78 @@
 ---
 upstream: known
-checked: 2026-10-26
+checked: 2026-11-01
 links:
   - etcd-io/etcd#16380 issue closed: same bug (put in an earlier nested txn vs delete in a later sibling passes; reversed order rejected); confirmed by ahrtr, closed not planned (stale) in 2025
-  - etcd-io/etcd#16395 pr closed: fix for #16380, never merged (drafted, then closed stale); ahrtr found it too costly and questioned the expected semantics
+  - etcd-io/etcd#16395 pr closed: fix for #16380, never merged; ahrtr found its pairwise check too costly and asked for the expected semantics first
   - etcd-io/etcd#22395 pr open: related, not this bug (checkIntervals and from-key deletes)
+blocks-proof: yes
 ---
 
-# etcdserver: checkIntervals accepts a put in a nested txn and a delete of the key in a later sibling txn
+# etcdserver: a txn may put a key in one nested txn and delete it in a later sibling, though it may not modify a key twice
 
-- **Status**: open (not filed). Not a crash found; the check is inconsistent with itself.
-- **Where**: `server/etcdserver/api/v3rpc/key.go`, `checkIntervals` (lines 236-315 at the
-  pinned `bc8b52a50`, upstream `main` f061acd09 the same), called by `kvServer.Txn` on each
-  branch ("check for forbidden put/del overlaps").
-- **What happens**: `checkIntervals(reqs)` collects the level's deletes, then for each nested
-  transaction in order checks its puts against `puts` and `dels` *so far* and only then unions
-  its deletes into `dels`; the level's own puts are checked last. So a nested transaction's put of
-  `k` is never checked against the deletes of a nested transaction *after* it. A transaction
-  `Then(Txn(Then(Put(k))), Txn(Then(Delete(k))))` passes the check and runs a put of `k` and a
-  delete of `k` in one revision, while the flat `Then(Put(k), Delete(k))` and the reversed
-  `Then(Txn(Then(Delete(k))), Txn(Then(Put(k))))` are rejected with `ErrGRPCDuplicateKey`.
-  Reproduction (a test in package `v3rpc`, run with `go test -overlay` from `server/`):
+`Txn` rejects a transaction that modifies one key twice ("duplicate key given in txn request"),
+including a delete in one nested transaction and a put in a later one, but accepts the same two
+operations in the other order: `Then(OpTxn(nil, [Put(k)], nil), OpTxn(nil, [Delete(k)], nil))`
+succeeds and writes a put and a delete of `k` in one revision, so watchers see a put event whose
+value never was the key's value at that revision. A compaction at that revision then keeps only the
+delete, so a watch from the compaction revision (where a client re-watches from after
+`ErrCompacted`) misses the put event it reported before the compaction.
 
-```go
-package v3rpc
+**Reproduction:** `TestTxnSiblingPutThenDelete` in
+[`issues/etcd-txn-check-intervals-sibling/txn_sibling_put_delete_test.go`](etcd-txn-check-intervals-sibling/txn_sibling_put_delete_test.go),
+copied (as `zz_txn_sibling_put_delete_test.go`) into `tests/integration/clientv3` at
+etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28), go1.27.3; the flat txn and the
+reversed order are rejected, the last case is not:
 
-import (
-	"testing"
-
-	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
-)
-
-func putOp(k string) *pb.RequestOp {
-	return &pb.RequestOp{Request: &pb.RequestOp_RequestPut{RequestPut: &pb.PutRequest{Key: []byte(k)}}}
-}
-func delOp(k string) *pb.RequestOp {
-	return &pb.RequestOp{Request: &pb.RequestOp_RequestDeleteRange{RequestDeleteRange: &pb.DeleteRangeRequest{Key: []byte(k)}}}
-}
-func txnOp(then ...*pb.RequestOp) *pb.RequestOp {
-	return &pb.RequestOp{Request: &pb.RequestOp_RequestTxn{RequestTxn: &pb.TxnRequest{Success: then}}}
-}
-
-// A put in a nested transaction and a delete of the same key in a later sibling.
-func TestProbeSiblingPutThenDelete(t *testing.T) {
-	_, _, errFlat := checkIntervals([]*pb.RequestOp{putOp("a"), delOp("a")})
-	_, _, errNested := checkIntervals([]*pb.RequestOp{txnOp(putOp("a")), txnOp(delOp("a"))})
-	_, _, errNestedRev := checkIntervals([]*pb.RequestOp{txnOp(delOp("a")), txnOp(putOp("a"))})
-	t.Logf("flat put;del: %v", errFlat)
-	t.Logf("nested txn(put);txn(del): %v", errNested)
-	t.Logf("nested txn(del);txn(put): %v", errNestedRev)
-	if errNested == nil {
-		t.Errorf("checkIntervals accepted a put in a nested txn and a delete of the key in a later sibling txn (flat: %v, reversed: %v)", errFlat, errNestedRev)
-	}
-}
+```
+$ (cd tests && go test ./integration/clientv3 -run '^TestTxnSiblingPutThenDelete$' -count=1)
+    zz_txn_sibling_put_delete_test.go:48:
+        	Error:      	Expected error with "etcdserver: duplicate key given in txn request" in chain but got nil.
+        	Test:       	TestTxnSiblingPutThenDelete
+        	Messages:   	txn(put), txn(delete)
+FAIL
 ```
 
-  prints `flat put;del: ... duplicate key given in txn request`, `nested txn(put);txn(del):
-  <nil>`, `nested txn(del);txn(put): ... duplicate key ...`.
-- **How it happens**: at each level, `checkIntervals` checks a nested transaction's puts
-  against the deletes collected so far, and only then adds that transaction's deletes. The
-  example `Then(Txn(Then(Put(a))), Txn(Then(Delete(a))))`:
+The watch consequence: `TestWatchFromCompactRevAfterSiblingPutDelete` in
+[`issues/etcd-txn-check-intervals-sibling/watch_after_compact_test.go`](etcd-txn-check-intervals-sibling/watch_after_compact_test.go),
+copied (as `zz_watch_after_compact_test.go`) into `tests/integration/clientv3` at
+etcd-io/etcd@a2e3642bcd2cca3a802503cdb09f64a3dc15cdf5 (2026-11-02), go1.27.3 (event types: 0 `PUT`,
+1 `DELETE`):
 
-  1. The top level has no deletes of its own, so `dels` starts empty.
-  2. The first nested transaction returns `putsThen = {a}`. `a` is not in `dels`, so it is
-     accepted and added to `puts`.
-  3. The second nested transaction returns `delsThen = {a}`, unioned into `dels`. Its puts are
-     empty, so nothing is checked against the new delete.
-  4. The level's own puts (none) are checked last. The function returns no error, and the
-     transaction applies a put of `a` and a delete of `a` in one revision.
+```
+$ (cd tests && go test ./integration/clientv3 -run '^TestWatchFromCompactRevAfterSiblingPutDelete$' -count=1)
+    zz_watch_after_compact_test.go:66:
+        	Error:      	Not equal:
+        	            	expected: []mvccpb.Event_EventType{0, 1}
+        	            	actual  : []mvccpb.Event_EventType{1}
+        	Messages:   	events of revision 3 for a watch from it, before and after compacting at it
+FAIL
+```
 
-  ```go
-  // server/etcdserver/api/v3rpc/key.go:258-297 (etcd main f061acd09)
-  	// collect children puts/deletes
-  	puts := make(map[string]struct{})
-  	for _, req := range reqs {
-  	// ...
-  		putsThen, delsThen, err := checkIntervals(tv.RequestTxn.Success)
-  	// ...
-  		for k := range putsThen {
-  			if _, ok := puts[k]; ok {
-  				return nil, dels, rpctypes.ErrGRPCDuplicateKey
-  			}
-  			if dels.Intersects(adt.NewStringAffinePoint(k)) { // <- only deletes seen so far
-  				return nil, dels, rpctypes.ErrGRPCDuplicateKey
-  			}
-  			puts[k] = struct{}{}
-  		}
-  	// ...
-  		dels.Union(delsThen, adt.NewStringAffineInterval("\x00", "")) // <- added after
-  		dels.Union(delsElse, adt.NewStringAffineInterval("\x00", ""))
-  	}
-  ```
+## Proof
 
-  This order, put then delete, does no harm downstream as far as we found. mvcc writes the put
-  at `(R, 0)` and the tombstone at `(R, 1)`, and the delete's range sees the put. The key index
-  holds `{(R,0), (R,1)t}, {}`, so a read at `R` sees the key deleted, and compaction at `R`
-  keeps the tombstone (`key_index.go`, `doCompact`). Watchers get a PUT then a DELETE at `R`.
-  The reversed order, delete then put, is the one that corrupts compaction
-  (`etcd-compaction-delete-then-put`), and the check rejects it.
-- **Expected**: the check's documented purpose ("puts and deletes overlap for a list of ops");
-  the same verdict for the two orders of the siblings, as for the flat case.
-- **A consequence through compaction: a watch from the compaction revision misses the put**
-  (2026-11-01, reproduced at the mvcc level; found by the spec review of watches across a
-  compaction, `notes/watch-compaction-plan.md`). The revision such a transaction commits puts the key
-  and then deletes it (`(c, 0)` put, `(c, 1)` tombstone). Compacting at `c` keeps only the
-  tombstone (`keyIndex.doCompact` stops at the generation whose tombstone is at `c`, and the walk
-  keeps its latest revision at or below `c`), so `scheduleCompaction` deletes the put's bucket key,
-  and a watch from `c` (what a client re-watches from when told `CompactRevision = c`) gets the
-  `DELETE` alone, where an uncompacted store sends `PUT` then `DELETE`. Reachable through gRPC at
-  the fork pin (this issue's transaction, then a compaction at its revision). Test (package `mvcc`,
-  through mvcc's write transaction, which has no interval check; run with `go test -overlay`; fails
-  at the pin with 1 event, the `DELETE`):
+yes: it makes the property a top-level adequacy test over this code checks false for a workload such a test may use, and no fix is in the goosed fork yet; the proof sidesteps it: what `checkIntervals` gives the transaction's run (each key written at most once per revision,
+`v3rpc.check_gives_nodup`, `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/CheckNodup.lean`)
+needs the premise `ReqOp.siblingSafeL`, which etcd does not enforce; the client's watch is verified
+under it (`srvNoDupKeys`, `Proof/go_etcd_io/etcd/client/v3/InvWatch.lean`).
 
-  ```go
-  func TestWatchFromCompactRevLosesPut(t *testing.T) {
-  	b, _ := betesting.NewDefaultTmpBackend(t)
-  	s := newWatchableStore(zaptest.NewLogger(t), b, &lease.FakeLessor{}, StoreConfig{})
-  	defer cleanup(s, b)
-  	s.Put([]byte("foo"), []byte("v1"), lease.NoLease) // rev 2
-  	txn := s.Write(traceutil.TODO())                   // rev 3: put then delete
-  	txn.Put([]byte("foo"), []byte("v2"), lease.NoLease)
-  	txn.DeleteRange([]byte("foo"), nil)
-  	txn.End()
-  	ch, err := s.Compact(traceutil.TODO(), 3)
-  	if err != nil {
-  		t.Fatal(err)
-  	}
-  	<-ch
-  	w := s.NewWatchStream()
-  	w.Watch(t.Context(), 0, []byte("foo"), nil, 3)
-  	s.syncWatchers()
-  	if wr := <-w.Chan(); len(wr.Events) != 2 {
-  		t.Fatalf("revision 3 has two changes of foo, the watch from 3 got %d", len(wr.Events))
-  	}
-  }
-  ```
+## Fix
 
-- **How the proof handles it**: `v3rpc.intervalsOkCheckStmt`
-  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Defs.lean`), what `checkIntervals`
-  gives the txn package's `NoDupKeysPerRev` (`keys_nodup_iff_check`), is stated with the premise
-  `ReqOp.siblingSafeL` (no nested put deleted by a later sibling), beside `noFromKeyDelL`
-  (`etcd-txn-delete-then-ignore-put`): it is false without it. Proved under both premises by
-  the request path's unit 1 (`v3rpc.check_gives_nodup`,
-  `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/CheckNodup.lean`), whose docstring names
-  this issue.
-- **Possible fixes**: check each nested transaction's puts against the deletes of the
-  transactions *after* it too, in a reverse pass over the level's nested transactions (see the
-  2026-10-23 note below). Checking them against the level's final `dels` instead would be too
-  strict: it would reject a then-put whose key the same transaction's else branch deletes, which
-  the two mutually exclusive branches allow.
-- **Found**: 2026-10-12, the request path's unit 0 (stating `checkIntervals`'s semantics in
-  `Defs.lean`).
+**Branch**: `txn-check-intervals-investigate` in `~/etcd-fixes/txn-check-intervals-investigate` (upamanyus/etcd, not pushed): fc6254021 test and fix
+**Base**: etcd-io/etcd@3aaab3479b6c4f5fe1b2b8f33437093c2caae88a
 
-**A consequence for watchers** (2026-10-15, the watch slice's unit W-C): such a revision writes
-`k` twice (a put, then a delete), so etcd's watch delivers, at that revision, a put event of `k`
-whose key-value is not in the state at the revision, then the delete. A watcher contract that
-says each event's key-value is (for a put) or is not (for a delete) in etcd's state at the
-event's revision (`client/v3`'s `rangeWatchEvOk`, which the recipes and the cache rest on) is
-false for it. The client's watch is verified under the premise `srvNoDupKeys` (every certified
-log of the server writes each key at most once per revision, `txn.NoDupKeysPerRev`;
-`Proof/go_etcd_io/etcd/client/v3/InvWatch.lean`), which the transactions of the recipes and the
-cache meet (their transactions never put and delete one key): the premise is about other writers
-to the same server.
+A reverse pass over the level's nested transactions checks each one's puts against the deletes of
+the transactions after it (the forward pass already checks the earlier ones), never against its own
+else branch: linear in the operations, answering #16395's cost objection (+25 lines in `key.go`;
+`siblings` benchmark +32%, only for two or more nested txns at one level).
 
-**A simple fix** (2026-10-23, investigated at upstream `main` `3aaab3479`):
+## Notes
 
-- *The old fix and its objections.* In #16380, ahrtr first proposed moving the unions before the
-  put checks, and then one loop collecting every delete before any put is checked. bsbds pointed
-  out that a nested txn's then-put may overlap its own else-delete, which rules out "every delete
-  first". He then opened #16395 (+44/−17 in `key.go`), which checks every *pair* of sibling txns:
-  for each pair (x, y), x's puts against y's deletes and y's against x's. ahrtr rejected it
-  (2023-09-07): "too complicated and inefficient (e.g. triple loops)", O(T²·P·log D) for T sibling
-  txns. He also judged the bug not critical, since Kubernetes does not use nested txns, and said
-  "the key from putThen should be allowed to be overlapped with key range from delElse" (#16395
-  already allowed that within one txn) and "we should clearly define & clarify the expected
-  behaviour firstly". bsbds then wrote the constraints out (six of them). The bug is only his
-  constraint 3: a put in txn X must not overlap a delete in another txn Y. He asked for a cheaper
-  way to check it and got no answer, and both the issue and the PR went stale.
-- *Proposed fix.* Keep the existing forward loop, which checks each nested txn's puts against the
-  level's deletes and the earlier siblings' deletes. Record each nested txn's
-  `(putsThen, putsElse, delsThen, delsElse)`, then add a reverse pass. It walks the nested txns
-  from last to first with a tree `later` of the deletes of the txns after the current one. It
-  checks the current txn's puts against `later`, then unions the current txn's deletes into it.
-  The forward pass covers constraint 3 for X before Y, the reverse pass for X after Y, and neither
-  compares a txn with itself, so then-put/else-delete stays allowed. The cost: each nested put is
-  checked once more (O(log D)), and each nested delete is unioned once more. That is the same
-  asymptotic cost as today, linear in the ops, against #16395's quadratic one. The diff is +25
-  lines in `key.go`, no deletions. The branch is `txn-check-intervals-investigate`, worktree
-  `~/etcd-fixes/txn-check-intervals-investigate`, commit `fc6254021` (+67 lines of
-  `TestCheckIntervals`/`BenchmarkCheckIntervals` in `key_test.go`).
-- *Tests.* `TestCheckIntervals` has 8 cases. Before the fix, 3 fail: put in a txn then delete in a
-  later sibling; put then range delete in a later sibling; a doubly nested put then a later
-  sibling's else-delete. After the fix all 8 pass, including the reversed order, the flat case,
-  then-put/else-delete of one txn (allowed), and a key put in two siblings (rejected). The whole
-  package (`go test ./etcdserver/api/v3rpc/...`) passes, and so do the integration tests
-  `TestV3TxnDuplicateKeys|Revision|CmpHeaderRev|RangeCompare|NestedPath`.
-- *Benchmark* (benchstat, n=6, a noisy 24-core machine; `flat` does not run the new code, so its
-  +9.7% is the noise level): `flat` (128 puts, 128 deletes) 501µs → 549µs; `siblings` (64 nested
-  txns, each 2 puts / 1 else-delete) 604µs → 797µs, +32%, allocs 1871 → 2456; `oneTxn` (one
-  nested txn, 128 puts) unchanged. The cost, the second tree's inserts, is paid only by requests
-  with two or more nested txns at one level.
-- *Worth an upstream-report candidate?* Yes, as a follow-up on #16380, which a maintainer
-  confirmed: this answers both objections (linear, not triple loops; then/else overlap kept) and
-  makes the order-dependence visible in a table test. The impact stays low (put then delete in
-  one revision is harmless downstream; see above).
+Low impact for reads: a read at that revision sees the delete, and the reverse order, which does
+corrupt compaction (`etcd-compaction-delete-then-put`), is rejected. Not harmless to watches,
+though (2026-11-01, found by this repository's review of watches across a compaction,
+`notes/watch-compaction-plan.md`): `keyIndex.doCompact` keeps one revision of the key at or below the
+compaction revision, the tombstone, and `scheduleCompaction` deletes the put's backend key, so a
+watch from that revision gets the `DELETE` alone. The root cause is the same (a revision with two
+changes of one key), and the cheap fix removes both. With the watch consequence, a follow-up comment
+on #16380 has more to say than the cost argument.

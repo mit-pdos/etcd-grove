@@ -3,135 +3,73 @@ upstream: none
 checked: 2026-11-02
 links:
   - etcd-io/etcd#10907 pr merged: related, not this bug (added RoleAdd's empty-name check, the only name check besides UserAdd's; no length bound)
-candidate: issues/upstream/etcd-auth-useradd-long-name-fatal/
+blocks-proof: yes
 ---
 
-# A user or role name longer than bbolt's `MaxKeySize` makes every member exit while applying it
+# auth: adding a user or role with a name longer than 32768 bytes makes every member exit
 
-- **Status**: a bug (a reachable process exit). `UserAdd` and `RoleAdd` check only that the name is
-  not empty; the name becomes a bbolt key, and bbolt refuses keys above `MaxKeySize = 32768`
-  bytes, which the backend treats as fatal. Nothing on the request path bounds the name below the
-  request size limit (1.5 MiB by default). With auth disabled (the default) any client can send
-  the request; with auth enabled, an admin.
-- **Where**: at the etcd pin of `etc/goose.py` (`09669450f`): `server/auth/store.go:423`
-  (`authStore.UserAdd`: `len(r.Name) == 0` is the only check, then `tx.UnsafePutUser(newUser)`
-  at line 459, the key `[]byte(user.Name)`), `server/auth/store.go:764` (`RoleAdd`, likewise,
-  `tx.UnsafePutRole(newRole)` at line 782); `server/storage/backend/batch_tx.go:169`
-  (`batchTx.unsafePut`: any error of `bucket.Put` is `lg.Fatal("failed to write to a bucket")`);
-  bbolt v1.5.0 `bucket.go` (`Put` returns `ErrKeyTooLarge` above `MaxKeySize`). The request
-  side (`server/etcdserver/v3_server.go` `EtcdServer.UserAdd`/`RoleAdd`,
-  `server/etcdserver/api/v3rpc/auth.go`) does not check the name's length; the apply side
-  (`server/etcdserver/apply/backend.go:166`, `applierV3backend.UserAdd`) passes the request on.
-- **What happens**: the request is proposed, committed and applied; the apply reaches
-  `bucket.Put` with a key longer than 32768 bytes, bbolt returns `ErrKeyTooLarge`, and the
-  backend's `Fatal` exits the process. Every member applies the same entry, so every member
-  exits; on restart each replays the entry from the WAL and exits again. Reproduced at the pin
-  with the test below (in package `server/storage/schema`; its logger turns `Fatal` into a panic
-  so the test observes it): it logs `{"level":"fatal","msg":"failed to write to a bucket",
-  "bucket-name":"authUsers","error":"key too large"}`. Confirmed end to end through gRPC below.
+`etcdctl user add` or `role add` with a name longer than 32768 bytes is committed, and every
+member exits while applying it (`failed to write to a bucket ... key too large`). After a restart
+every member replays the entry and exits again, so the cluster stays down.
 
-  ```go
-  package schema
+**Expected:** adding a user or role whose name is too long should fail with an error, as an empty
+name does, and the members should keep running.
 
-  import (
-  	"strings"
-  	"testing"
-  	"time"
+**Impact:** any cluster, default configuration: with auth disabled (the default) any client can
+send the request; with auth enabled, only `root`. The whole cluster goes down and cannot restart
+without a fixed binary. Reproduced on `main` with binaries (three members, `etcdctl role add` of a
+32769-byte name; 32768 bytes succeeds).
 
-  	"go.uber.org/zap"
-  	"go.uber.org/zap/zapcore"
-  	"golang.org/x/crypto/bcrypt"
+**Reproduction:** `TestRoleAddLongName` and `TestUserAddLongName` in
+[`issues/etcd-auth-useradd-long-name-fatal/long_name_test.go`](etcd-auth-useradd-long-name-fatal/long_name_test.go),
+copied into `tests/common` at etcd-io/etcd@1573d5941 (2026-10-28), go1.27.3 linux/amd64 (the
+member's fatal exit takes the test binary down):
 
-  	"go.etcd.io/etcd/api/v3/authpb"
-  	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
-  	"go.etcd.io/etcd/server/v3/auth"
-  	"go.etcd.io/etcd/server/v3/storage/backend"
-  	betesting "go.etcd.io/etcd/server/v3/storage/backend/testing"
-  )
+```
+$ go test -tags integration ./common/ -run '^TestRoleAddLongName$' -count=1 -v
+    logger.go:146: 2026-11-01T04:09:38.589Z	FATAL	m0	failed to write to a bucket	{"member": "m0", "bucket-name": "authRoles", "error": "key too large"}
+FAIL	go.etcd.io/etcd/tests/v3/common	0.232s
+$ go test -tags integration ./common/ -run '^TestUserAddLongName$' -count=1 -v
+    logger.go:146: 2026-11-01T04:09:41.113Z	FATAL	m0	failed to write to a bucket	{"member": "m0", "bucket-name": "authUsers", "error": "key too large"}
+FAIL	go.etcd.io/etcd/tests/v3/common	0.237s
+```
 
-  func TestAuthUserAddLongNameFatal(t *testing.T) {
-  	lg := zap.NewExample(zap.WithFatalHook(zapcore.WriteThenPanic))
-  	bcfg := backend.DefaultBackendConfig(lg)
-  	bcfg.Path = t.TempDir() + "/db"
-  	bcfg.BatchInterval = time.Hour
-  	bcfg.BatchLimit = 10000
-  	be := backend.New(bcfg)
-  	defer betesting.Close(t, be)
+**Cause:** [`UserAdd`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/auth/store.go#L423-L426)
+and [`RoleAdd`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/auth/store.go#L764-L767)
+check only that the name is not empty, then store it as a bbolt key; bbolt rejects keys over
+`MaxKeySize` (32768 bytes), and the backend treats any
+[failed write](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/storage/backend/batch_tx.go#L183-L189)
+as fatal. Nothing on the request path bounds the name below the request size limit (1.5 MiB).
 
-  	tp, err := auth.NewTokenProvider(lg, "simple", func(uint64) <-chan struct{} {
-  		c := make(chan struct{})
-  		close(c)
-  		return c
-  	}, time.Minute)
-  	if err != nil {
-  		t.Fatal(err)
-  	}
-  	as := auth.NewAuthStore(lg, NewAuthBackend(lg, be), tp, bcrypt.MinCost)
-  	defer func() {
-  		if r := recover(); r == nil {
-  			t.Fatalf("UserAdd with a 40000-byte name returned without a fatal error")
-  		}
-  	}()
-  	as.UserAdd(&pb.AuthUserAddRequest{
-  		Name:    strings.Repeat("a", 40000),
-  		Options: &authpb.UserAddOptions{NoPassword: true},
-  	})
-  }
-  ```
-- **Through gRPC, end to end** (2026-10-18, upstream `main` at `22cc5d9`, `etcd` and `etcdctl`
-  built with `go build` from `server/` and `etcdctl/`): a three-member cluster on localhost with
-  the default configuration (auth disabled), then
+## Proof
 
-  ```sh
-  etcdctl --endpoints=$EP user add "$(head -c 40000 /dev/zero | tr '\0' a)" --no-password
-  ```
+yes: it makes the property a top-level adequacy test over this code checks false for a workload such a test may use, and no fix is in the goosed fork yet; the proof sidesteps it: the auth store's contract (`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Contracts.lean`)
+says `UserAdd`/`RoleAdd` return for any request, false here; the proof bounds the names by
+`maxKeySize` in the workload clause (`rqOk`, `apply/InvRequest.lean`), a premise on clients that
+etcd does not enforce.
 
-  The client gets `rpc error: code = Unavailable desc = error reading from server: EOF`, and all
-  three members exit at once, each logging `{"level":"fatal","caller":"backend/batch_tx.go:184",
-  "msg":"failed to write to a bucket","bucket-name":"authUsers","error":"key too large"}`.
-  Restarting all three: they re-form a quorum, apply the entry again and all exit with the same
-  line, on each of two full restarts (30 s observed each time); the cluster stays down. A member
-  restarted alone stays up (it does not reach the entry without a quorum). `etcdctl role add
-  <name>` does the same (`"bucket-name":"authRoles"`): with a 32769-byte name all three exit; with
-  32768 bytes (`MaxKeySize`) the role is created and the cluster is fine. The script (members on
-  ports 23791-23793 / 23801-23803, data in a fresh directory):
+## Fix
 
-  ```sh
-  B=./bin; W=./run; mkdir -p $W
-  CL=m1=http://127.0.0.1:23801,m2=http://127.0.0.1:23802,m3=http://127.0.0.1:23803
-  start() { i=$1; $B/etcd --name m$i --data-dir $W/m$i.etcd \
-      --listen-client-urls http://127.0.0.1:2379$i --advertise-client-urls http://127.0.0.1:2379$i \
-      --listen-peer-urls http://127.0.0.1:2380$i --initial-advertise-peer-urls http://127.0.0.1:2380$i \
-      --initial-cluster $CL --initial-cluster-state new --initial-cluster-token authrepro \
-      >> $W/m$i.log 2>&1 & }
-  EP=http://127.0.0.1:23791,http://127.0.0.1:23792,http://127.0.0.1:23793
-  for i in 1 2 3; do start $i; done; sleep 5
-  $B/etcdctl --endpoints=$EP endpoint health
-  $B/etcdctl --endpoints=$EP user add "$(head -c 40000 /dev/zero | tr '\0' a)" --no-password
-  sleep 3; grep '"level":"fatal"' $W/m*.log      # all three
-  for i in 1 2 3; do start $i; done; sleep 15
-  grep -c '"level":"fatal"' $W/m*.log            # 2 each: they exit again
-  ```
+**Branch**: `fix/etcd-auth-useradd-long-name-fatal` in `~/etcd-fixes/etcd-auth-useradd-long-name-fatal` (upamanyus/etcd, not pushed): 5a3373080 test, 612320b8e fix
+**Base**: etcd-io/etcd@3aaab3479b6c4f5fe1b2b8f33437093c2caae88a
 
-  For upstream this should become an e2e test (`tests/e2e`, which runs the members as processes:
-  an integration test's in-process members would take the test binary down with them).
-- **Expected**: the name's length checked like its emptiness, with an error (at `UserAdd`/
-  `RoleAdd`, or where the request enters, before it is proposed), or the bound stated.
-- **How the proof handles it**: not yet. The apply package's contract of the auth store
-  (`apply.isAuthStore`'s `authReqContract`, `Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/
-  Contracts.lean`) says `UserAdd` and `RoleAdd` return for any request, which is false of the
-  Go code for such a name; it was a hypothesis (the auth store is names-only), and it cannot
-  become `auth.NewAuthStore`'s axiom as stated (unit N4, 2026-10-17, `notes/STATUS.md`). The fix
-  in the proof: the request model records the two names (`IRRModel.authUserAdd`/`authRoleAdd`, now
-  `Bool`), the workload clause (`rqOk`) bounds them by `maxKeySize`, and the contract's two
-  clauses take the bound.
-- **Possible fixes**: in `authStore.UserAdd` and `RoleAdd`, return an error (a new
-  `ErrUserNameTooLong`/`ErrRoleNameTooLong`, or `ErrUserEmpty`'s kind) when `len(r.Name) >
-  bolt.MaxKeySize`; or reject it in `EtcdServer.UserAdd`/`RoleAdd` before proposing, so the
-  entry never reaches the log. The upstream candidate (`issues/upstream/etcd-auth-useradd-long-name-fatal/`,
-  2026-10-23) takes the first: it is where the empty-name check is, and only an apply-time check lets a
-  cluster whose WAL already holds such an entry restart (checked: the base's crashed data directories
-  restart healthy with the fixed `etcd`).
-- **Found**: 2026-10-17, writing `auth.NewAuthStore`'s contract as an axiom true of the Go code
-  (unit N4, D14d): the auth store's admin writes reach `batchTx.UnsafePut`, whose key bound the
-  backend's spec states (`batchTxBuffered.UnsafePut.spec`, `kb.length ≤ maxKeySize`).
+**PR draft**:
+
+Title: server/auth: reject user and role names longer than the max key size
+
+[`UserAdd`](https://github.com/etcd-io/etcd/blob/3aaab3479b6c4f5fe1b2b8f33437093c2caae88a/server/auth/store.go#L423-L426) and [`RoleAdd`](https://github.com/etcd-io/etcd/blob/3aaab3479b6c4f5fe1b2b8f33437093c2caae88a/server/auth/store.go#L764-L767) check only that the name is not empty, then store it as a bbolt key. bbolt rejects keys longer than `MaxKeySize` (32768 bytes), and the backend treats any [failed write](https://github.com/etcd-io/etcd/blob/3aaab3479b6c4f5fe1b2b8f33437093c2caae88a/server/storage/backend/batch_tx.go#L183-L189) as fatal, so every member exits applying the request. This PR returns an error for such names next to the empty-name check, which also applies an entry already in the log as an error.
+
+The first commit adds a test of the issue's example, which fails on `main`; the second, the fix, makes it pass.
+
+A reviewer may ask why at apply time and not before proposing: the empty-name check is there, and
+only an apply-time check lets a cluster whose log already holds such an entry restart (checked: the
+crashed data directories restart healthy with the fixed `etcd`). The new errors are not mapped to
+gRPC codes (clients get `Unknown` with `auth: role name is too long`); mapping them like
+`ErrUserEmpty` is a few lines more if asked. The branch's tests are cases added to `TestRoleAdd_Error`
+and `TestUserAdd_Simple` in `tests/common`.
+
+## Notes
+
+The 2026-10-23 review's plan: upstream (the fix is easy to audit). Not a security report (clients are
+trusted; with auth on only `root` can add users or roles). The same failure for a record grown
+past bbolt's value limit by many grants is `nonissues/etcd-auth-record-too-large-fatal.md`.

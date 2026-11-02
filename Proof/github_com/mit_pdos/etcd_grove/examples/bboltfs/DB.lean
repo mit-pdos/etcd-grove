@@ -53,7 +53,7 @@ pages' cells and, unless `out`, the meta cells, holding the metas while not fail
 
 The mapping has a state (`MapSt`): mapped, or unmapped (before the first `mmap`, after a failed
 remap, once closed). Unmapped, `mmaplock` guards only the nil fields (a reader that finds
-`meta0` nil refuses, `issues/bbolt-failed-remap-nil-meta-panic.md`), and the writer holds the
+`meta0` nil refuses, `nonissues/bbolt-failed-remap-nil-meta-panic.md`), and the writer holds the
 whole file and fd and the invariant's quarter of `cur` (`writerExtra`); `rwlock`'s resource then
 records the failure (`dbFailed`). Once closed, `rwlock`'s resource is the committer's half of
 `own` (so that no `Commit` can follow) and halves of the mapping fields. The mapping's invariant

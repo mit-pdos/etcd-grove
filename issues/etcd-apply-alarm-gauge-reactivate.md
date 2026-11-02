@@ -1,117 +1,57 @@
 ---
 upstream: none
-checked: 2026-10-16
-links:
+checked: 2026-11-01
+links: []
+blocks-proof: no
 ---
 
-# server/etcdserver/apply: the alarm gauge counts an alarm activated twice twice
+# server: the alarms gauge counts an alarm activated twice twice, and stays at 1 after it is disarmed
 
-- **Status**: open (a wrong metric value; not filed).
-- **Where**: `server/etcdserver/apply/backend.go` at bc8b52a50 (`etc/goose.py`'s etcd pin),
-  `applierV3backend.Alarm` (`backend.go:116-132`): on `ACTIVATE` it increments the gauge
-  `etcd_debugging_server_alarms{server_id, alarm_type}` (`metrics.go:19-28`) whenever
-  `AlarmStore.Activate` returns a member, on `DEACTIVATE` it decrements it whenever
-  `Deactivate` does. But `AlarmStore.Activate` (`api/v3alarm/alarms.go:53-64`) returns the
-  *existing* member, without writing, when the alarm is already set (`addToMap` returns it), so
-  a second activation of the same alarm increments the gauge again, while the store keeps one
-  alarm; one deactivation removes it and decrements once.
-- **Reachable**: an `ACTIVATE` comes from the Maintenance API's `Alarm` (`v3_server.go:805`,
-  any action, an admin request) and from the apply loop: `applyEntryNormal`
-  (`server.go:1976-1996`) proposes a `NOSPACE` activation for every applied request that
-  failed with `ErrNoSpace` while no `NOSPACE` alarm is set *at its apply*; several such
-  requests applied before the first activation entry applies propose several activations.
-- **What happens**: the gauge reads 2 for one alarm, and 1 after it is disarmed (it never
-  returns to 0 while the member runs). Reproduction (`server/etcdserver/apply/`, next to
-  `uber_applier_test.go`'s `defaultUberApplier`; it passes, asserting the drift):
+The `etcd_debugging_server_alarms` gauge counts alarm activations, not alarms: when the same alarm
+(say `NOSPACE` for a member) is activated twice, the gauge reads 2 while the member has one alarm,
+and after the alarm is disarmed it reads 1 until the member restarts.
 
-  ```go
-  package apply
-  
-  import (
-  	"testing"
-  
-  	"github.com/prometheus/client_golang/prometheus/testutil"
-  	"github.com/stretchr/testify/require"
-  
-  	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
-  	"go.etcd.io/etcd/client/pkg/v3/types"
-  	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
-  )
-  
-  // An alarm activated twice (the alarm store keeps one member) counts twice in the
-  // `etcd_debugging_server_alarms` gauge; deactivated once, it is gone but the gauge says 1.
-  func TestAlarmGaugeReactivate(t *testing.T) {
-  	ua := defaultUberApplier(t)
-  	alarm := func(action pb.AlarmRequest_AlarmAction) {
-  		result := ua.Apply(&InternalRaftRequestWrapper{InternalRaftRequest: &pb.InternalRaftRequest{
-  			Header: &pb.RequestHeader{},
-  			Alarm:  &pb.AlarmRequest{Action: action, MemberID: memberID, Alarm: pb.AlarmType_NOSPACE},
-  		}}, membership.ApplyBoth)
-  		require.NotNil(t, result)
-  		require.NoError(t, result.Err)
-  	}
-  	gauge := alarms.WithLabelValues(types.ID(memberID).String(), pb.AlarmType_NOSPACE.String())
-  	before := testutil.ToFloat64(gauge)
-  	alarm(pb.AlarmRequest_ACTIVATE)
-  	alarm(pb.AlarmRequest_ACTIVATE)
-  	require.Equal(t, before+2, testutil.ToFloat64(gauge), "the second activation counts again")
-  	alarm(pb.AlarmRequest_DEACTIVATE)
-  	got := ua.Apply(&InternalRaftRequestWrapper{InternalRaftRequest: &pb.InternalRaftRequest{
-  		Header: &pb.RequestHeader{},
-  		Alarm:  &pb.AlarmRequest{Action: pb.AlarmRequest_GET, Alarm: pb.AlarmType_NOSPACE},
-  	}}, membership.ApplyBoth)
-  	require.Empty(t, got.Resp.(*pb.AlarmResponse).Alarms, "no alarm left")
-  	require.Equal(t, before+1, testutil.ToFloat64(gauge), "but the gauge still counts one")
-  }
-  ```
-- **How it happens**: the applier counts `Activate` calls that return a member, not alarms
-  added. A `NOSPACE` alarm for member `m`, gauge at 0:
+**Expected:** the gauge should read the number of alarms set, as its help text says ("Alarms for
+every member in cluster"): 1 while the alarm is set, 0 once it is disarmed.
 
-  1. Two requests fail with `ErrNoSpace` before any alarm is set, and `applyEntryNormal`
-     proposes an `ACTIVATE` for each.
-  2. The first `ACTIVATE` applies. `addToMap` stores the new member, `Activate` writes it and
-     returns it, and the gauge goes to 1.
-  3. The second `ACTIVATE` applies. `addToMap` finds the existing member and returns it, so
-     `Activate` returns it without writing. The applier increments the gauge to 2.
-  4. One `DEACTIVATE` removes the alarm and decrements the gauge to 1. It stays at 1.
+**Impact:** monitoring that alerts on this gauge keeps alerting after `etcdctl alarm disarm`. A
+second activation happens without any operator action: a member that runs out of space proposes a
+`NOSPACE` activation for every write that fails with "no space" before the first activation is
+applied; an admin's repeated `etcdctl alarm` activation does the same. Metric only; the alarms
+themselves are correct.
 
-  ```go
-  // server/etcdserver/apply/backend.go:115-124 (etcd main f061acd09)
-  	case pb.AlarmRequest_ACTIVATE:
-  		if ar.Alarm == pb.AlarmType_NONE {
-  			break
-  		}
-  		m := a.options.AlarmStore.Activate(types.ID(ar.MemberID), ar.Alarm)
-  		if m == nil {
-  			break
-  		}
-  		resp.Alarms = append(resp.Alarms, m)
-  		alarms.WithLabelValues(types.ID(ar.MemberID).String(), m.Alarm.String()).Inc() // <-
+**Reproduction:** `TestAlarmGaugeReactivate` in
+[`issues/etcd-apply-alarm-gauge-reactivate/alarm_gauge_test.go`](etcd-apply-alarm-gauge-reactivate/alarm_gauge_test.go),
+copied into `server/etcdserver/apply` at etcd-io/etcd@1573d5941 (2026-10-28), go1.27.3
+linux/amd64. It applies two `NOSPACE` activations and one deactivation through the applier
+(`UberApplier.Apply`, as the apply loop does):
 
-  // server/etcdserver/api/v3alarm/alarms.go:53-64 (etcd main f061acd09)
-  func (a *AlarmStore) Activate(id types.ID, at pb.AlarmType) *pb.AlarmMember {
-  	a.mu.Lock()
-  	defer a.mu.Unlock()
+```
+$ go test ./etcdserver/apply/ -run '^TestAlarmGaugeReactivate$' -count=1
+--- FAIL: TestAlarmGaugeReactivate (0.01s)
+    alarm_gauge_test.go:38:
+        	Error:      	Not equal:
+        	            	expected: 1
+        	            	actual  : 2
+        	Messages:   	the gauge should count the one alarm once
+FAIL
+```
 
-  	newAlarm := &pb.AlarmMember{MemberID: uint64(id), Alarm: at}
-  	if m := a.addToMap(newAlarm); m != newAlarm {
-  		return m // <- already set: returned without writing
-  	}
+**Cause:** [`applierV3backend.Alarm`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/apply/backend.go#L115-L131)
+increments the gauge whenever `AlarmStore.Activate` returns a member, but
+[`Activate`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/etcdserver/api/v3alarm/alarms.go#L53-L64)
+returns the existing member, without adding one, when the alarm is already set.
 
-  	a.be.MustPutAlarm(newAlarm)
-  	return newAlarm
-  }
-  ```
-- **Expected**: the gauge counts the alarms the store holds (its help text: "Alarms for every
-  member in cluster"): 1 while the alarm is set, 0 after it is disarmed.
-- **How the proof handles it**: not a premise: the gauge is a metric (`alarms`, a package
-  fact of `apply/Base.lean`; its `Inc`/`Dec` return, mvcc's `gaugeSpec`), which no
-  statement of the apply package models; the finding is from reading the code for the alarm
-  store's contract (`isAlarmStore`, `Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/
-  Contracts.lean`: `Activate` returns a member whether it wrote or not).
-- **Possible fixes**: count only a new alarm: `Activate` could report whether it added the
-  member (or the applier compares the returned member with a fresh one, as `Activate` does
-  internally), and `Deactivate` likewise; or set the gauge from the store (`Set(1)` on
-  activation, `Set(0)` on deactivation, per label).
-- **Found**: 2026-10-12, apply unit 0 (the alarm store's contract), reproduced with the test
-  above at bc8b52a50.
+## Proof
+
+no: a metric; no statement of the apply package models the gauge.
+
+## Fix
+
+Count only a newly added alarm (have `Activate`/`Deactivate` report whether they changed the
+store), or set the gauge per label (`Set(1)`/`Set(0)`) instead of `Inc`/`Dec`.
+
+## Notes
+
+The 2026-10-23 review's plan: skip for now (trivial fix, little impact). Kept as an issue: it has a
+failing test through the applier; it is a debugging metric, so maintainers may not care.

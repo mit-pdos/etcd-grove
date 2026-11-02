@@ -1,52 +1,69 @@
 ---
-upstream: unchecked
+upstream: none
+checked: 2026-11-02
+links: []
+blocks-proof: no
 ---
 
-# etcdserver/api/v3rpc: `LeaseTimeToLive` panics on a forwarded reply without a response header
+# v3rpc: a follower's `LeaseTimeToLive` crashes the member when the leader's peer URL replies without a response header
 
-- **Status**: a bug (robustness): a reachable panic on a follower, on input from the network; the
-  sibling of `etcd-leasehttp-timetolive-nil-response-panic.md` (there the reply lacks the
-  `LeaseTimeToLiveResponse`, here the response lacks its `Header`). A peer URL that answers the
-  lease TimeToLive POST with status 200 and a `LeaseInternalResponse` whose
-  `LeaseTimeToLiveResponse` has the requested `ID` but no `Header` passes `TimeToLiveHTTP`'s checks
-  (it compares only the `ID`); `EtcdServer.leaseTimeToLive` returns that response, and the gRPC
-  handler `LeaseServer.LeaseTimeToLive` calls `ls.hdr.fill(resp.Header)`, which panics on a nil
-  header (`panic("unexpected nil resp.Header")`). The handler runs on the gRPC goroutine; etcd
-  installs no recovery interceptor, so the process exits. etcd's own leader handler always sets the
-  header (`&pb.ResponseHeader{}`), so it takes a peer URL served by something else or a corrupted
-  reply.
-- **Where** (etcd at `633036387c66`, `etc/goose.py`'s pin): `server/lease/leasehttp/http.go:270-278`
-  (`TimeToLiveHTTP`: unmarshal, the `ID` check, the response returned);
-  `server/etcdserver/v3_server.go:681-683` (`leaseTimeToLive` returns
-  `resp.LeaseTimeToLiveResponse`); `server/etcdserver/api/v3rpc/lease.go:76` (`ls.hdr.fill`);
-  `server/etcdserver/api/v3rpc/header.go:54-56` (the panic).
-- **What happens**: reproduced (go1.27.3), two unit tests. In package `leasehttp`, a 200 reply
-  with `proto.Marshal(&leasepb.LeaseInternalResponse{LeaseTimeToLiveResponse:
-  &pb.LeaseTimeToLiveResponse{ID: 1}})` is accepted, its `Header` nil:
+A follower serving `LeaseTimeToLive` forwards it to the leader's peer URLs; if one of them answers
+`200` with a TimeToLive reply for the asked lease but without its response header, the follower
+accepts it and the gRPC handler panics (`unexpected nil resp.Header`), and the member exits.
+etcd's own lease handler always sets the header, so it takes something other than an etcd member at
+a peer URL (a proxy or load balancer, a misconfigured endpoint) or a corrupted reply.
 
-  ```go
-  resp, err := TimeToLiveHTTP(context.Background(), 1, false, ts.URL+LeaseInternalPrefix, http.DefaultTransport)
-  // err == nil, resp.LeaseTimeToLiveResponse.Header == nil
-  ```
+**Expected:** a malformed reply should be an error, as a non-200 status is in
+[`TimeToLiveHTTP`](https://github.com/etcd-io/etcd/blob/a2e3642bcd2cca3a802503cdb09f64a3dc15cdf5/server/lease/leasehttp/http.go#L260-L268),
+which `leaseTimeToLive`'s loop then treats like any other failed URL.
 
-  In package `v3rpc`, a `LeaseServer` whose `Lessor` returns that response
-  (`&pb.LeaseTimeToLiveResponse{ID: r.ID}, nil`, what `leaseTimeToLive` returns on a follower):
+**Impact:** a member serving a client's `TimeToLive` while it is a follower, in a deployment
+where a peer URL is answered by something that is not etcd. Between etcd members the header is
+always set. A sibling of `issues/etcd-leasehttp-timetolive-nil-response-panic.md` (there the reply
+lacks the whole TimeToLive response), with the same fix.
 
-  ```go
-  ls := &LeaseServer{lg: zap.NewNop(), le: nilHeaderLessor{}, hdr: header{rev: func() int64 { return 1 }}}
-  ls.LeaseTimeToLive(context.Background(), &pb.LeaseTimeToLiveRequest{ID: 1})
-  ```
+**Reproduction:** `TestLeaseTimeToLiveForwardedReplyWithoutHeader` in
+[`issues/etcd-leasehttp-timetolive-nil-header-panic/lease_timetolive_nil_header_test.go`](etcd-leasehttp-timetolive-nil-header-panic/lease_timetolive_nil_header_test.go),
+copied into `server/etcdserver/api/v3rpc` at etcd-io/etcd@a2e3642bcd2cca3a802503cdb09f64a3dc15cdf5
+(2026-11-02), go1.27.3 linux/amd64. Its `LeaseServer`'s lessor does what
+[`leaseTimeToLive`](https://github.com/etcd-io/etcd/blob/a2e3642bcd2cca3a802503cdb09f64a3dc15cdf5/server/etcdserver/v3_server.go#L676-L691)
+does on a follower (`leasehttp.TimeToLiveHTTP` to the peer URL, then its
+`LeaseTimeToLiveResponse`), against an `httptest` server answering `200` with
+`LeaseInternalResponse{LeaseTimeToLiveResponse: {ID: 1}}`:
 
-  panics with `unexpected nil resp.Header`.
-- **Expected**: an error for a malformed reply, as for a non-200 status, which `leaseTimeToLive`'s
-  loop treats like any other failed URL.
-- **How the proof handles it**: the names-only contract `EtcdServer.leaseTimeToLive`
-  (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__leaseTimeToLive.lean`) states, in its
-  peers assumption, that the leader's peer URLs are served by etcd's lease handler, which always
-  sets the header: its post gives `⌜w.Header' ≠ null⌝`, which the gRPC handler's proof needs for
-  `fill` (the lease rows at the gRPC level, `notes/lease-grpc-plan.md`).
-- **Possible fixes**: in `TimeToLiveHTTP`, after the unmarshal, `if lresp.LeaseTimeToLiveResponse
-  == nil || lresp.LeaseTimeToLiveResponse.Header == nil { return nil, fmt.Errorf("lease: malformed
-  TimeToLive response") }` (fixes both issues).
-- **Found**: 2026-11-01, the lease rows at the gRPC level, the Draft's independent spec review;
-  reproduced the same day.
+```
+$ go test ./etcdserver/api/v3rpc -run '^TestLeaseTimeToLiveForwardedReplyWithoutHeader$' -count=1
+--- FAIL: TestLeaseTimeToLiveForwardedReplyWithoutHeader (0.03s)
+    lease_timetolive_nil_header_test.go:68: LeaseTimeToLive panicked: unexpected nil resp.Header
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc	0.058s
+```
+
+**Cause:** `TimeToLiveHTTP` checks only the reply's `ID`
+([L270-L277](https://github.com/etcd-io/etcd/blob/a2e3642bcd2cca3a802503cdb09f64a3dc15cdf5/server/lease/leasehttp/http.go#L270-L277)),
+`leaseTimeToLive` returns its `LeaseTimeToLiveResponse` as is, and
+[`LeaseServer.LeaseTimeToLive`](https://github.com/etcd-io/etcd/blob/a2e3642bcd2cca3a802503cdb09f64a3dc15cdf5/server/etcdserver/api/v3rpc/lease.go#L62-L76)
+calls `ls.hdr.fill(resp.Header)`, which
+[panics on a nil header](https://github.com/etcd-io/etcd/blob/a2e3642bcd2cca3a802503cdb09f64a3dc15cdf5/server/etcdserver/api/v3rpc/header.go#L53-L56).
+The handler runs on the gRPC goroutine, and etcd installs no recovery interceptor.
+
+## Proof
+
+no: the trust-boundary contract `EtcdServer.leaseTimeToLive.spec`
+(`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__leaseTimeToLive.lean`) gives a non-nil
+header under the premise `leasePeersOk` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/LeaseRead.lean`:
+the leader's peer URLs answer `200` only as etcd's lease handler does, header set), which etcd's
+members meet; the gRPC handler's proof needs it for `fill` (`notes/lease-grpc-plan.md`).
+
+## Fix
+
+Not written. In `TimeToLiveHTTP`, after the unmarshal: `if lresp.LeaseTimeToLiveResponse == nil ||
+lresp.LeaseTimeToLiveResponse.Header == nil { return nil, fmt.Errorf("lease: malformed TimeToLive
+response") }` (fixes both siblings).
+
+## Notes
+
+The test's lessor replays `leaseTimeToLive`'s two follower lines instead of running an
+`EtcdServer`: reaching them for real needs a member whose leader's peer URL is not an etcd member
+(the axiom review's program, `notes/axiom-review/lease-ttl-id.md`, did it for the sibling with a
+one-member cluster before its first election).

@@ -19,7 +19,7 @@ queue should be in the dirty set and not in the processing set"; the converse ho
 operations are `QState.add`, `QState.get`, `QState.done` (the code's effect, proved by the
 methods' proofs); `wf` is preserved by each (`Lemmas.lean`), `done` only for an item being
 processed: `Done(k)` on a dirty item that is not being processed pushes a second copy of `k`
-(`issues/k8s-workqueue-done-without-get-duplicates.md`), which is why `Done` takes the item's
+(`nonissues/k8s-workqueue-done-without-get-duplicates.md`), which is why `Done` takes the item's
 token.
 
 **The tokens.** `keyTok γ k` (exclusive, `Get` gives it, `Done` takes it): the caller processes

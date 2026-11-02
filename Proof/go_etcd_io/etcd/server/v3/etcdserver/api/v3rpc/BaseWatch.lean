@@ -62,7 +62,7 @@ instance v3rpc.histVar_persistent (g : GoString) : Persistent (v3rpc.histVar (GF
 /-- **The progress interval** at the fraction `q` (what `progressReportIntervalMu` guards): a
 duration of at least `10` nanoseconds (`GetProgressReportInterval`'s jitter `rand.Int63n(d / 10)`
 needs `d / 10 > 0`) and at most `2 ^ 62` (`d + d / 10` must not wrap:
-`issues/etcd-watch-progress-interval-overflow.md`). -/
+`nonissues/etcd-watch-progress-interval-overflow.md`). -/
 def v3rpc.intervalP (q : Qp) : IProp GF :=
   iprop(∃ d : w64, typedPointsto (globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.progressReportInterval)
       d (DFrac.own q) ∗ ⌜10 ≤ sint.Z d ∧ sint.Z d ≤ 2 ^ 62⌝)

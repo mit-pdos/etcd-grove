@@ -44,7 +44,7 @@ The right's revision is at least `-1` (`NewStore`'s; each success raises it: 202
 contract correction: the counter `crevN` cannot tell a right below `-1` from one at `-1`, and
 then a `rev` in `(c, -1]` is `ErrCompacted` without `rev ≤ c`). The configuration's batch limit
 is positive (`isStore`: `NewStore` excludes a negative one,
-`issues/etcd-compaction-negative-batch-limit.md`).
+`nonissues/etcd-compaction-negative-batch-limit.md`).
 
 **The certificate** (2026-10-13, unit 6a): the caller holds a certificate of a log `log` with
 revision `rev` (so `rev` is not above the committed log). The store records it for the new

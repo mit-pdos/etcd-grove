@@ -482,7 +482,7 @@ theorem EtcdServer.start.wp_proof
   -- `go s.run()`, with the write budget backed by time receipts (D19b)
   imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
   -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
-  -- `issues/etcd-compactor-started-before-start.md`): its run, once (`compactorRun`; M2, S4)
+  -- `nonissues/etcd-compactor-started-before-start.md`): its run, once (`compactorRun`; M2, S4)
   icases Hcrun with ⟨%cr, #Hcra, Hcr⟩
   ihave %Hcreq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcra Hcpf
   subst Hcreq
@@ -971,7 +971,7 @@ theorem EtcdServer.start.wp_proofOn
   -- `go s.run()`, with the write budget backed by time receipts (D19b)
   imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
   -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
-  -- `issues/etcd-compactor-started-before-start.md`): its run, once (`compactorRun`; M2, S4)
+  -- `nonissues/etcd-compactor-started-before-start.md`): its run, once (`compactorRun`; M2, S4)
   icases Hcrun with ⟨%cr, #Hcra, Hcr⟩
   ihave %Hcreq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcra Hcpf
   subst Hcreq

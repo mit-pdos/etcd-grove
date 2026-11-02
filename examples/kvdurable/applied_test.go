@@ -8,7 +8,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// TestAppliedAboveConfState reproduces issues/raft-applied-above-snapshot-confstate.md: a node
+// TestAppliedAboveConfState reproduces nonissues/raft-applied-above-snapshot-confstate.md: a node
 // restarted with Config.Applied above its storage's snapshot never re-applies the configuration
 // changes between the two (raft returns no entry at or below Applied), so its configuration stays
 // the snapshot's (InitialState's ConfState). Here the snapshot at 1 has the single voter 1, entry 2

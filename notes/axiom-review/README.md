@@ -35,7 +35,7 @@ held their counterexamples (Go programs and tests, Lean proofs), were deleted on
 user's request, after the repairs landed; their last commits were `2f1e9c8cdb`, `d400040099`,
 `5c8e1c382b` and `8b47c519de` (unreachable, so gone once git collects them). The reports keep the
 programs' descriptions and outputs; the stream-key test is inlined in
-`issues/etcd-watch-stream-key-collision.md`.
+`nonissues/etcd-watch-stream-key-collision.md`.
 
 `axiom/txn-nested-wire` (the counterexample `examples/axiomcx/txnwire`: `Attack`, its tests and
 `Attack.lean`) was deleted the same way on 2026-10-31, after both repairs and the report landed; its

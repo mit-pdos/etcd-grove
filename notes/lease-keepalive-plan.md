@@ -112,7 +112,7 @@ proofs unchanged), and the callers destructuring the post (`examples/authkv/star
 - A TTL of 0 (`ErrLeaseNotFound`) carries nothing, not even authentication (the unary margin).
 - Nothing of the renewal itself (that the lease was renewed, its TTL): `LeaseRenew.spec` states none.
 - The verdict is of the local member's lessor, which on a follower can lag the leader's
-  (`issues/etcd-lease-renew-keys-follower-lag.md`): not the cluster's certificate.
+  (`nonissues/etcd-lease-renew-keys-follower-lag.md`): not the cluster's certificate.
 - A failed `Send` may have delivered its response; the content was spent either way.
 - When the context wins the select, the loop's error is dropped.
 

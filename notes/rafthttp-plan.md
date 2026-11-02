@@ -55,7 +55,7 @@ About 2,600 lines without metrics (`stream.go` 607, `http.go` 417, `transport.go
   lost, no order), so nothing is lost by not proving FIFO.
 - **`CutPeer`/`MendPeer`** pause/resume the peer (drop outgoing, drop stream-inbound after
   decoding; pipeline and snapshot inbound still processed) or stop/start a remote's pipeline
-  (`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`, with the race noted 2026-10-22).
+  (`nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`, with the race noted 2026-10-22).
 
 External calls: `net/http` (`RoundTripper.RoundTrip`, `NewRequest`, `Request.WithContext`, headers,
 `Response.StatusCode`/`Body`, `ResponseWriter.Header/WriteHeader/Write`, `http.Flusher`,
@@ -192,7 +192,7 @@ trust-boundary spec.
    and the next state. Also proved: `isLinkHeartbeatMessage`, `pbutil.MustUnmarshalMessage`
    generically (`MustUnmarshalMessagePb`). `proto.MarshalOptions` translated (a struct of options;
    protobuf now imports `internal/pragma`, and raft's `Init.lean` runs its initializer). A finding:
-   `issues/etcd-rafthttp-msgappv2-unbounded-lengths.md` (the decoder allocates whatever lengths
+   `nonissues/etcd-rafthttp-msgappv2-unbounded-lengths.md` (the decoder allocates whatever lengths
    the stream says). **New axioms, accepted by the user**: `proto.ClonePb` and
    `proto.MarshalAppendPb` (generic, `InvProto.lean`'s vocabulary), `pbEnc_ok` (what `pbEnc` is: a
    frozen message's encoding is an encoding of it, below `2^63` bytes), `v2stats.FollowerStats.Succ`
