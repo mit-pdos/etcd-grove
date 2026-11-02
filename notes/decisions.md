@@ -30171,3 +30171,21 @@ Found on the way (the user's question, 2026-11-02): porcupine's open PR #46 (a D
 github.com/anishathalye/porcupine/pull/46) breaks completeness when two overlapping operations
 share a `ClientId` (a linearizable register history it rejects), so the old spec would be false
 of it; soundness likely survives there. Not filed: the PR is unmerged and not what we verify.
+
+## cachekv checks the cache's `Get` (2026-11-02 · the user's go-ahead · `cache_safe` gains `GetFailed`)
+
+`Main`, after the watch's check, does a `Get` of the prefix at the highest revision `r` a `Put`
+returned (`WithRev(r)`, under `WithTimeout(Background(), RequestTimeout)`) and `checkGet`s the
+answer: each key's last watched value at or below `r`, and every key watched at or below `r`. A
+`Get` error ends `Main` with the new result `GetFailed = 3`, so that `Ok` means the check ran
+(the user's choice, 2026-11-02: `cache_safe`'s statement changes, its result set `{0, 1, 2, 3}`;
+the alternative, `Ok` on an error, keeps the statement but weakens `Ok`).
+
+The proof rests on the strengthened `cache_Get` (etcd's state at the revision asked for,
+"The cache's `Get` at the revision asked for"): `getCheck_km` (`GetFacts.lean`) opens the adapter's
+invariant for the `Get`'s log (a watchkv log, `WkLog`), lines `collect`'s per-event `kmRevAt`s up
+with it (their lower bounds comparable), and applies the pure law `checkGetOk_of'` (only the events
+at or below `r` need be in the log, `checkGetOk_take`). Two small facts: the cache's `Get` errors
+are non-nil (`cacheGetErr_ne_nil`, from the cache's and `rpctypes`' package facts), and the
+answer's slice is the whole state (`kvRange_prefix`). No new axiom: `context.WithTimeoutBackground`
+was already in cachekv's trust base (`common.Writer`'s).

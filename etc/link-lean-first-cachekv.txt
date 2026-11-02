@@ -8,7 +8,7 @@
 # the program's own functions: its `collect`; the watch workload's other functions are the
 # examples' shared ones (`common`'s, linked in its `Link.lean`)
 cachekv_collect:
-# (2026-11-02) the check of the cache's Get, not called by Main yet: `lastVal`, `hasKey`, `checkGet`
+# (2026-11-02) the check of the cache's Get: `lastVal`, `hasKey`, `checkGet`
 cachekv_lastVal:
 cachekv_hasKey:
 cachekv_checkGet: cachekv_lastVal cachekv_hasKey
@@ -35,4 +35,8 @@ common_StartPeriodicServer: @
 common_Serve: @
 common_NewClient: @
 zap_NewNop:
-cachekv_Main: common_GenAll common_Writer common_MaxRev cachekv_collect common_Check zap_NewNop common_StartPeriodicServer common_Serve common_NewClient context_ErrAny watcher__Watch WithPrefix WithRev watcher__RequestProgress cache_v3_New Cache__Watch
+# (2026-11-02) the cache's Get (linked in the cache's `Link.lean`) with a timeout (`context`'s
+# trust-boundary axiom, `Proof/context/WithTimeoutBackground.lean`), then `checkGet`
+Cache__Get: @
+context_WithTimeoutBackground:
+cachekv_Main: common_GenAll common_Writer common_MaxRev cachekv_collect common_Check zap_NewNop common_StartPeriodicServer common_Serve common_NewClient context_ErrAny watcher__Watch WithPrefix WithRev watcher__RequestProgress cache_v3_New Cache__Watch Cache__Get context_WithTimeoutBackground cachekv_checkGet
