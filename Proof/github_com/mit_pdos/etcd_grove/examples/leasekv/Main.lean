@@ -12,6 +12,7 @@ ID is `7`) and its check. Every step's error ends `Main` (`return`).
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.leasekv.Main
+public import Spec.github_com.mit_pdos.etcd_grove.examples.leasekv.holdToken
 public import Spec.go_uber_org.zap.NewNop
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.StartServer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Serve
@@ -47,6 +48,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.leasekv.Assumpti
 /-- See the file header. -/
 theorem Main.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
+    (wp_holdToken : holdToken.spec (GF := GF) (hG := hG))
     (wp_StartServer : common.StartServer.spec (GF := GF) (hG := hG))
     (wp_Serve : common.Serve.spec (GF := GF) (hG := hG))
     (wp_NewClient : common.NewClient.spec (GF := GF) (hG := hG))

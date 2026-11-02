@@ -716,7 +716,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h135 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.leasekv (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h9, h37, h134, True.intro⟩
+    exact ⟨h6, h5, h9, h37, h134, True.intro⟩
   exact h135
 
 end table

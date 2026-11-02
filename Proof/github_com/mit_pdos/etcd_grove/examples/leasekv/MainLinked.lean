@@ -13,6 +13,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.leasekv.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_uber_org.zap.NewNop
+public import Proof.github_com.mit_pdos.etcd_grove.examples.leasekv.holdToken
 public import Perennial.Proof.context.Link
 public import Proof.context.Link
 public import Proof.context.WithTimeoutBackground
@@ -44,7 +45,7 @@ its callees' linked results: `int64(f)` of a `float64` (`Float64ToInt64Semantics
 and the client's `dialWithBalancer` body (`DialWithBalancerBody`). -/
 theorem leasekv.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     leasekv.Main.spec (GF := GF) (hG := hG) :=
-  leasekv.Main.wp_proof zap.NewNop.wp_proof common.wp_StartServer common.wp_Serve
+  leasekv.Main.wp_proof zap.NewNop.wp_proof leasekv.holdToken.wp_proof common.wp_StartServer common.wp_Serve
     common.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
     context.wp_ErrAny client.v3.lessor.wp_Leases client.v3.lessor.wp_TimeToLive
 

@@ -14,12 +14,10 @@ panic. Lean-first (no Rocq counterpart).
   only the not-found arm does), down to the trust-boundary `leaseTimeToLive`: a trusted change for
   Freeze. It is true on every path (D3: the follower's `leasehttp.TimeToLiveHTTP` checks the
   leader's reply against the asked ID), so the check needs no assumption about the cluster. Grants are a later stage.
-- **F4 in grpc's model** (the lease-src review): a run of a served method holds its goroutine's
-  `threadTok` (Perennial's `wp_fork` gives it one). Done as a restatement of the axiom
-  `grpc.serve` (`InvGrpc.lean`): the method meets are at `S ∗ threadTok`, and `grpcServes` carries
-  `S ∗ threadTok`; `grpc_serve_rpcs` keeps its statement (`grpcMethodsOkMd_frame`), so its callers
-  are unchanged; `grpc_serve_rpcs_tok` is the form the lease reads use. This repository's grpc
-  model, not Perennial. A trusted change for Freeze.
+- **F4, the run's thread token** (the lease-src review): a lease read takes a thread token (the
+  lessor's and each lease's reader slots are thread pools). First done by restating `grpc.serve`
+  (D1, the user's choice "in grpcHandlerOk"), which turned out unsound and was reverted; now the
+  program forks the token's goroutine ("The run's thread token" below, the user's choice).
 - **Auth off**, as `watchkv`.
 
 ## What is missing (the survey)
@@ -30,7 +28,7 @@ Server side:
 2. The served specs a client may assume (`GrpcSpec`s), and the handler meets
    (`grpcHandlerOk` of `*quotaLeaseServer`'s promoted `LeaseTimeToLive`/`LeaseLeases`), from
    `LeaseServer.LeaseTimeToLive`/`LeaseLeases`' specs and `raftLeaseRead_server`.
-3. F4: done (D1, the `grpc.serve` restatement).
+3. F4: "The run's thread token" below.
 4. `examples/common`'s `Serve`: the lease methods' registrations into `isGrpcRpcs` (`v3rpc.Server`'s
    `leaseRegs`, from lease-src).
 
@@ -51,8 +49,11 @@ Prove.
 
 ## Draft (2026-11-02)
 
-**D1. F4** (`InvGrpc.lean`): the axiom `grpc.serve` restated, a run's slot `S ∗ threadTok`
-(`grpc_serve_rpcs_tok`; `grpc_serve_rpcs` keeps its statement through `grpcMethodsOkMd_frame`).
+**D1. F4** (`InvGrpc.lean`): the axiom `grpc.serve` restated, a run's slot `S ∗ threadTok`.
+**Unsound, reverted** (2026-11-02, after the review): the axiom gave each run a token no caller
+gave; tokens are bounded (`threadToks threadBound ⊢ False`) and grpc's goroutines are outside the
+threads adequacy counts, so a program with a blocking gRPC service of its own could collect
+`threadBound` of them. Replaced by "The run's thread token".
 
 **D2. The wire** (`client/v3/InvLeaseRead.lean`): `pbLeaseTimeToLiveRequest` (`(ID, Keys)`; the
 server's decoded copy read-only as a whole, which `LeaseServer.LeaseTimeToLive` takes),
@@ -93,6 +94,24 @@ six from `kv_lease_served`'s statement repeating `kv_served`'s slot premises (th
 counted twice). Prove should factor `kv_lease_served` through a `kv_served` generalized over extra
 methods, with the slots in one definition, which brings the count back; else the baseline moves.
 
+## The run's thread token (2026-11-02, the user's choice)
+
+A lease read's run takes a `threadTok` (the lessor's reader pool, and each lease's two lock pools,
+made per lease at `Grant`). The only sound tokens are those of goroutines the modelled program
+forks. Rejected:
+- an axiom giving it (D1: unbounded tokens);
+- the client lending its own to the run: a call can time out while its run goes on, so a token
+  back to the client on an error is held twice, and one back only with the reply breaks retries;
+- stocks of reader slots set aside for grpc's runs: needed in every lease's two pools, a rework of
+  the lessor's model and `Grant`.
+
+Chosen: `leasekv`'s `Main` runs `go holdToken()` (sleeps forever, touches no lock) before `Serve`;
+`wp_fork_tok_self` gives `Main` a token, which goes into the one gRPC slot (`S := slots ∗
+threadTok`, `kv_lease_served`'s `threadTok`). Sound: the token is a real goroutine's, and that
+goroutine never reads a lock, so the grpc goroutine using its token is never a reader too many; a
+timed-out call's run keeps the slot until it ends. No trusted change. `holdToken.spec` (post
+`False`) is proved.
+
 ## Test (2026-11-02)
 
 `examples/leasekv/leasekv_cluster_test.go`: three members whose peer listeners serve the raft and
@@ -107,3 +126,20 @@ asked ID) for a lease that exists. Main's checks and the specs are unaffected (n
 found or not-found); the trust-boundary `leaseTimeToLive`'s docstring stated its cluster assumption
 as "the lease handler serves the leader's peer URLs", false in the examples; restated to what the
 triple needs (no 200 without a response; a 404 is an allowed error).
+
+## Freeze list (so far)
+
+- Trusted: `EtcdServer.leaseTimeToLive.spec`'s `⌜w.ID' = v.ID'⌝` (D3), its cluster assumption
+  restated (Test). Collections resting on it: `server.txt` (the review). The `axiom` skill runs on it
+  before Freeze (`notes/spec-first-plan.md`, "Freeze: the axioms attacked first").
+- Frozen specs changed: `EtcdServer.LeaseTimeToLive.spec`, `ttlAns`, `leaseTTLOut` (D3);
+  `memberBuilt`/`memberUp`/`grpcUp` gain conjuncts (the review's locality finding: nine `Main`
+  proofs' patterns changed).
+- New `sorry`s: the handler and method meets, `kv_lease_served`, `LeaseOp.applyOpts`,
+  `toLeaseTimeToLiveRequest`, `lessor.TimeToLive`, `lessor.Leases`, `leasekv.Main`.
+- Bounds (`etc/bounds-check.py --check`, 399 against 390): the stock count in `examples/common`
+  23 → 29 (above); `examples/leasekv` new, `spec-thread 1` and `spec-receipt 2`, `Main.spec`'s
+  `threadBound GF ≤ 2 ^ 28` and receipt bounds, as every example's (putget's baseline entries).
+- tcb: `etc/tcb-collections/leasekv.txt` (593 entries; its `sorry`s the five above that `Main`
+  reaches, plus the four the server's collections already carry).
+- The Go program: `Main` forks `holdToken` ("The run's thread token").

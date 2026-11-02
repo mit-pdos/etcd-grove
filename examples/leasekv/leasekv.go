@@ -15,6 +15,7 @@ package leasekv
 
 import (
 	"context"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -33,6 +34,16 @@ const (
 // The lease id TimeToLive asks about: any id, since the member holds no lease.
 const leaseID = clientv3.LeaseID(7)
 
+// holdToken sleeps forever. Main runs it on a goroutine of its own, which touches no lock: the
+// proof hands that goroutine's thread token to the gRPC server's one slot, for the goroutine grpc
+// runs a call on, whose lease reads take the lessor's and the leases' reader slots through it
+// (notes/lease-ex-plan.md, "The run's thread token").
+func holdToken() {
+	for {
+		time.Sleep(time.Hour)
+	}
+}
+
 // Main starts one member of a new cluster, connects a client, and checks its two lease reads.
 func Main() {
 	lg := zap.NewNop()
@@ -40,6 +51,7 @@ func Main() {
 	if err != nil {
 		return
 	}
+	go holdToken()
 	if err := common.Serve(s, clientAddr); err != nil {
 		return
 	}

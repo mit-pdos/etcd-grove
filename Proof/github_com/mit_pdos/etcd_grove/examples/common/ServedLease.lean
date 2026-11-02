@@ -5,9 +5,11 @@ example, 2026-11-02, `notes/lease-ex-plan.md`). Lean-first (no Rocq counterpart)
 `kv_lease_served`: `kv_served`'s ghost step, with the Lease service's reads served too
 (`client.etcdLeaseReadAt`: `LeaseTimeToLive`, `LeaseLeases` at etcd's specs), from `grpcUp`'s
 Lease service (`grpcLeaseUp`) and the member's lessor reader side (`memberUp`'s `srvLeaseRd`). One
-`grpc.serve` serves every method: the KV's run slots and the lease reads' (`raftLeaseRead_server`'s
-`E.RD ∗ threadTok` and the store's reader) are the same slots, each run holding its goroutine's
-thread token (`grpc.serve`, F4).
+`grpc.serve` serves every method, with one slot: the KV's run resources and a thread token, which
+the caller gives (the token of a goroutine that touches no lock, `leasekv`'s `holdToken`: grpc's own
+goroutines are not among the threads adequacy counts, so a run's token is one the program forked;
+`notes/lease-ex-plan.md`, "The run's thread token"). The lease reads take it with `E.RD` and the
+store's reader (`raftLeaseRead_server`'s `E.RD ∗ threadTok`); the KV's runs frame it through.
 -/
 module
 
@@ -38,15 +40,15 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **etcd's KV calls and lease reads registered at the address** (see the file header); as
-`kv_served`, under `grpcRepliesFit`, with the lessor's reader side and the bounds the lease reads'
-server specs take (`threadBound GF ≤ 2 ^ 30 - 1`, `receiptBound GF ≤ 2 ^ 48`). -/
+`kv_served`, under `grpcRepliesFit`, with the lessor's reader side, a thread token for the one gRPC
+slot, and the bounds the lease reads' server specs take (`threadBound GF ≤ 2 ^ 30 - 1`, `receiptBound GF ≤ 2 ^ 48`). -/
 theorem kv_lease_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64)
     (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (HT : threadBound GF ≤ 2 ^ 30 - 1)
     (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeaseRd s E ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeaseRd s E ∗ threadTok ∗
         ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
         ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
         ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
