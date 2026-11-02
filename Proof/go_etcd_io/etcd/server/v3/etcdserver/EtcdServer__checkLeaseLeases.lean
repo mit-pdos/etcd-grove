@@ -36,7 +36,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) :
     EtcdServer.checkLeaseLeases.spec (GF := GF) (hG := hG) := by
   intro s E γl ctx cd sl ls dq n m
-  wp_start as ⟨#Hau, #Hlb, #Hlr, #Hpub, #Hctx, HRD, Hrdo, Htok, %Hbound, Hsl, #Hls⟩
+  wp_start as ⟨#Hau, #Hlb, #Hlr, #Hpub, #Hctx, HRD, Htok, %Hbound, Hsl, #Hls⟩
   ihave ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #HLb⟩ := leaseCheckSetup s E n $$ [$Hau $Hlb $Hpub]
   iunfold isAuthStoreLeaseLb at HLb
   icases HLb with ⟨%ai, %Hai, #HEn, #HRev, #HAdm, -, #HRng⟩
@@ -65,7 +65,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
   | false =>
     (try wp_auto)
     iapply HΦ
-    iframe HRD Hrdo Htok Hsl
+    iframe HRD Htok Hsl
     isplitl []
     · iapply applyErrIs_nil
     iintro %_
@@ -80,7 +80,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
   rcases err with ei | _
   · (try wp_auto)
     iapply HΦ
-    iframe HRD Hrdo Htok Hsl Herr
+    iframe HRD Htok Hsl Herr
     iintro %h; cases h
   (try wp_auto)
   iunfold authInfoOpt at Ha
@@ -89,7 +89,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     subst Han
     (try wp_auto)
     iapply HΦ
-    iframe HRD Hrdo Htok Hsl HUEe
+    iframe HRD Htok Hsl HUEe
     iintro %h; cases h
   ihave #Hp := authInfoIs_pointsto a user rev' $$ Hai0
   ihave #Hib := infoBoundM_of_ctxBound E.authOn s E _ a user rev' $$ [Hb Hai0]
@@ -108,7 +108,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
   rotate_left
   · (try wp_auto)
     iapply HΦ
-    iframe HRD Hrdo Htok Hsl
+    iframe HRD Htok Hsl
     isplitl []
     · iapply applyErrIs_nil
     iintro %_
@@ -221,7 +221,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
         wp_for_post
         wp_for_post
         iapply HΦ
-        iframe HRD Hrdo Htok Hsl
+        iframe HRD Htok Hsl
         iunfold authApplyErrIs at Herr3
         icases Herr3 with ⟨#Herr3, -⟩
         iframe Herr3
@@ -255,7 +255,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
   (try wp_auto)
   wp_if_destruct
   · iapply HΦ
-    iframe HRD Hrdo Htok Hsl
+    iframe HRD Htok Hsl
     isplitl []
     · iapply applyErrIs_nil
     iintro %_
@@ -266,7 +266,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     iright
     iexact Hcls
   · iapply HΦ
-    iframe HRD Hrdo Htok Hsl HORe
+    iframe HRD Htok Hsl HORe
     iintro %h; cases h
 
 end proof

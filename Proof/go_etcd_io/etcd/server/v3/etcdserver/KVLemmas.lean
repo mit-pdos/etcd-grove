@@ -297,11 +297,11 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
     (r : w64) (hr : rq.compaction = some r)
     (hform : γk.cmp = true ∧ compactPropOk rq ∧ rqShape rq) :
     ⊢ kvInv (GF := GF) γ γk -∗ kvCertInv γ γk -∗ srvRaftLogInv γ -∗
-      idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗ kvRevLb γk r ={E}=∗
+      idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗ kvRevLbZ γk (sint.Z r + γk.cret) ={E}=∗
       srvPropAu1 γ d (fun _ => iprop(True)) := by
   have Hdisj := kvN_raftN
   iintro #Hinv #Hci #Hrl #Hcl #Hreg #Hr
-  iunfold kvRevLb at Hr
+  iunfold kvRevLbZ at Hr
   icases Hr with ⟨%L₀, #HL0, %HL0r⟩
   imodintro
   unfold srvPropAu1

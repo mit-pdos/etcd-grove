@@ -47,7 +47,7 @@ theorem EtcdServer.LeaseLeases.wp_proof
     (hHdr : EtcdServer.newHeader.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseLeases.spec (GF := GF) (hG := hG) := by
   intro s E γr γl ctx cd r mid cid n m
-  wp_start as ⟨#Hsr, #Hhf, Hst, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, HRD, Hrdo, Htok, %Hb1, %Hb2⟩
+  wp_start as ⟨#Hsr, #Hhf, Hst, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, HRD, #Hpool, Htok, %Hb1, %Hb2⟩
   ihave #Htx : mvcc.txnCtx (GF := GF) ctx cd $$ []
   · iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hlr' := Hlr
@@ -55,24 +55,15 @@ theorem EtcdServer.LeaseLeases.wp_proof
   icases Hlr' with ⟨%lp, #Hlf, #Hinv⟩
   ihave #Hlp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
-  iunfold lease.lessorRdOf at Hrdo
-  icases Hrdo with ⟨%lp', #Hpin', Hrd⟩
-  ihave #Hinv' := Hinv
-  iunfold lease.lessorInv at Hinv'
-  icases Hinv' with ⟨-, #Hpin, -, -⟩
-  ihave %Heq := lease.lessorPin_agree γl lp lp' $$ [$Hpin $Hpin']
-  subst Heq
   (try wp_auto)
-  wp_apply (hLs lp γl m) $$ [$Hrd $Htok] as %sl %ls ⟨Hrd, Htok, Hsl, ⟨%li, %Hmi, #Hmap⟩, #Hls⟩
-  · iframe Hinv Hmlb; ipureintro; exact ⟨Hb1, Hb2⟩
-  ihave Hrdo : lease.lessorRdOf γl $$ [Hrd]
-  · iunfold lease.lessorRdOf; iexists lp; iframe Hpin Hrd
+  wp_apply (hLs lp γl m) $$ [$Htok] as %sl %ls ⟨Htok, Hsl, ⟨%li, %Hmi, #Hmap⟩, #Hls⟩
+  · iframe Hinv Hpool Hmlb; ipureintro; exact ⟨Hb1, Hb2⟩
   ihave #Hlive := lease.leaseMapAt_live γl li ls $$ Hmap
   ihave ⟨#Hobj, #Hid⟩ := BigSepL.bigSepL_sep_eqv.1 $$ Hls
   (try wp_auto)
   -- `if err := s.checkLeaseLeases(ctx, ls); err != nil { return nil, err }`
-  wp_apply (hChk s E γl ctx cd sl ls (DFrac.own 1) n li) $$ [$HRD $Hrdo $Htok $Hsl]
-      as %err ⟨HRD, Hrdo, Htok, Hsl, #Herr, Hok⟩
+  wp_apply (hChk s E γl ctx cd sl ls (DFrac.own 1) n li) $$ [$HRD $Htok $Hsl]
+      as %err ⟨HRD, Htok, Hsl, #Herr, Hok⟩
   · iframe #
     isplitr
     · ipureintro; exact Hb1
@@ -82,7 +73,7 @@ theorem EtcdServer.LeaseLeases.wp_proof
   rcases err with ei | _
   · (try wp_auto)
     iapply HΦ
-    iframe HRD Hrdo Htok Hst
+    iframe HRD Htok Hst
     iright
     iframe Herr
     ipureintro; exact ⟨rfl, by intro h; cases h⟩
@@ -156,7 +147,7 @@ theorem EtcdServer.LeaseLeases.wp_proof
   (try wp_auto)
   ihave #Hc := Hok $$ %rfl
   iapply HΦ
-  iframe HRD Hrdo Htok Hst
+  iframe HRD Htok Hst
   ileft
   isplitr
   · ipureintro; rfl
