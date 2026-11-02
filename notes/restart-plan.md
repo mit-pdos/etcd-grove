@@ -726,3 +726,90 @@ Second tier:
    - The crash rule's limit (a generator after a crash could take a stopped one's address: still
      sound, but `Next`'s proof would need the record cleared) and the extension's non-package name
      are documented in `Impl.lean`.
+
+### R2b: the stop, its plan (2026-11-02)
+
+`HardStop` sends on `s.stop`; `run` returns and its deferred shutdown runs: `close(stopping)`,
+`cancel`, `sched.Stop()` (the pending `applyAll` jobs run), `s.wg.Wait()`, `s.r.stop()` (the raft
+loop's `onStop`: `node.Stop`, the ticker, the transport, the WAL's `Close`), `Cleanup()` (the
+lessor, the KV store, the auth store, `be.Close()`, the compactor), `close(done)`; `HardStop`
+returns on `done`. What the proof has today: `run`'s `stop` and `errorc` bags carry `False` (D19m),
+so the shutdown is unreached; `raftNode.stop`'s post is `True`; `Cleanup` has no spec; the WAL is
+the trust-boundary contract `isRNWal` with an open token (`walOpen`) and no contents.
+
+Two findings from reading the stop path:
+
+1. **The raft loop can stop holding an unsaved `Ready`.** `raftNode.start`'s loop returns on
+   `r.stopped` from two selects between receiving a `Ready` and its WAL `Save`: the read state's
+   send (`readStateC`) and the hand-off to the apply thread (`applyc`). The server's proof enters
+   each batch at its receive (`rnBusyN`: "its WAL `Save` is not modelled as durable"), so at such a
+   stop the node's durable state `raftState S` includes a batch the WAL never got, and the image's
+   `StorageHolds S σ` is false. Raft's node API allows the other order (`readyEnter`: "a durable
+   client: in the write that makes it durable"): what the loop does before the `Save` needs only
+   the receive (the committed entries and `isCommittedLogLb` for the apply thread; at role leader
+   the messages, `readyLeaderMsgs`). So R2b moves the server's *enter* to the WAL's `Save`. Not an
+   etcd bug: at such a stop nothing of the batch was applied (the stop is chosen instead of the
+   `applyc` send) or sent by a follower (it sends after the `Save`); a leader's messages carry no
+   promise.
+2. **The WAL's records are not modelled.** The image needs them (`σ`, what `ReadAll` returns from
+   the last snapshot record). They become a ghost token beside `walOpen`, `walRecs w σ`, which the
+   trust-boundary contract `isRNWal` updates: `Save(h, es)` (the entries truncate-and-append, the
+   hard state replaced when not empty) and `SaveSnap(m)` (a snapshot record: `ReadAll` then starts
+   there). Two threads write the WAL: the raft loop (`Save`, `SaveSnap` of a received snapshot) and
+   the apply thread (`SaveSnap` of its own snapshots, `snapshot()`), so the token lives in an
+   invariant both open; the raft loop's `Save` fires *enter* inside it, keeping
+   `StorageHolds S σ` (as `kvdurable`'s `kdFileInv`).
+
+The sub-steps, each a draft reviewed before its proof:
+
+- **R2b-1. The WAL as the durable point.** `walRecs` and its laws, `isRNWal`'s `Save`/`SaveSnap`
+  over it (trust boundary), `bootOk`'s fresh WAL's records (`StorageHolds RaftState.init σ₀`), the
+  invariant `S`–`σ`, the raft loop entering at the `Save` (`raftNode.start`'s proof). The order's
+  first half: every WAL snapshot record is at or below the applied index (`σ.b ≤ i`: the raft
+  loop's `SaveSnap` of a received snapshot precedes its apply; the apply thread's own snapshots are
+  of its applied state), and its second: the apply thread applies only entries a saved hard state
+  commits (`i ≤ σ.commit`, the `Save` follows the hand-off unconditionally).
+- **R2b-2. The shutdown.** `s.stop`'s bag carries the stop request; `done` closes with the image
+  escrowed for the stop right's holder (an invariant: the image or the claim); `run`'s stop case
+  through the deferred shutdown: `sched.Stop`'s last post (the apply thread's final state: its
+  index `i`, the backend's view), `s.wg.Wait`, `raftNode.stop` (its post strengthened: `raftState`,
+  `nodeVacant`, the WAL closed with its records), `Cleanup` (its spec: `be.Close` gives the data
+  `D` the store's view held and the path back). `HardStop` proved; `srvStopRight` defined (the
+  stop request and the claim, the directory recorded).
+- **R2b-3. The image.** The closes' trust-boundary axioms giving `srvFiles dd id σ D` (`wal.Close`
+  and `backend.Close` in one directory, its exclusivity the right's); the backend's certificate at
+  the consistent index (`imageAt`, as the snapshot sender's from the store's view and the meta
+  keys); `confAt` at `i`; the bootstrap log applied (`bootLen ≤ i`: the scope restriction of R2c's
+  review F4, which `restart3` meets by waiting, before the stop, until the member has applied it;
+  a Go change to the example, and a spec of the wait).
+
+Order: R2b-2's statements first (they fix what R2b-1 and R2b-3 must give), then R2b-1, R2b-3.
+
+### R2b-2: the shutdown's statements (2026-11-02, draft)
+
+Reading `start` changed one thing in the plan: `start`, not `NewServer`, makes the channels `stop`,
+`done` and `stopping`, so the stop right comes out of `Start`. `NewServer` records only the data
+directory (`srvDataDir s dd`: the read-only `Cfg` field's `DataDir`).
+
+- **The right** (`InvRestart.lean`, defined): `srvStopRight s γ ρ id dd` is the stop channel (a bag
+  whose predicate is `True`: anyone may ask), `done` (a broadcast channel whose close announces
+  `srvDoneInv γ ρ id dd c`, an invariant holding the image or the claim `c`), and the claim `c`. It
+  now records the request names `ρ`, so that `run`, which knows them, can fill the escrow.
+- **`HardStop`** (proved; translated with its body, as is `Cleanup`): from the right, the image.
+  It no longer takes the request view `isServerReq`: a `HardStop` before `Start` blocks forever,
+  which partial correctness allows.
+- **`Start`** (`common.Start_builtS_spec`, first start, and `Start_builtR_spec`, a restart: draft
+  `Prop`s): from `memberBuilt` and `srvDataDir s dd`, `memberUp` and the right at
+  `ρ.rd.raft.raft`. `BuildServer.specStop`/`specRestart` give `srvDataDir` in place of the right;
+  `restart3`'s `memberStop` records `ρ`, `stop` no longer takes `isServerReq`.
+- **`run`** (`run.specStop`, draft): `isServerRun` takes the stop requests' predicate `SP` and
+  `done`'s `DQ` (defaults `False` and `True`, the runs covered so far, unchanged), at `True` and
+  `srvDoneInv`, with `srvShutdownPre` (the raft loop's stop claim, the data directory, the storage
+  registry's authority).
+- **`raftNode.stop.specStop`** (draft): with the loop's stop claim and the apply side's token at the
+  log `A` handed to it, the node's id vacant, its durable state `S`, the WAL closed with records `σ`
+  (`rnWalClosed`, opaque until R2b-1), `StorageHolds S σ` and
+  `σ.b ≤ |pre ++ A| ≤ σ.commit`.
+
+Left to R2b-3's draft: `Cleanup`'s spec (the backend closed, its data), the closes' axioms
+(`srvFiles`), and the image's assembly from `run`'s state after the shutdown.

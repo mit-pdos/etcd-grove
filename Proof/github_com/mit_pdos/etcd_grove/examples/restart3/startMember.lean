@@ -43,7 +43,7 @@ theorem startMember.wp_proof
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG))
     (hReg : http.registerClosable_spec (GF := GF))
-    (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
+    (wp_StartS : common.Start_builtS_spec (GF := GF) (hG := hG)) :
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn
     ThB RcB RcN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hck Haf Hbuq Hdbo
@@ -53,6 +53,11 @@ theorem startMember.wp_proof
   ihave #Pcom : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.common $$ []
   · iPkgInit
+  -- the member's raft names are the cluster's (`memberBoot`)
+  ihave %Hγρ : ⌜ρ.rd.raft.raft = γ⌝ $$ [Hmb]
+  · iunfold common.memberBoot at Hmb
+    icases Hmb with ⟨%Hb, -⟩
+    ipureintro; rw [Hb.1]
   (try wp_auto)
   -- `common.BuildServer(name, peer, client, cluster, "restart3", SnapCount, SnapCatchUp, lg)`
   wp_apply (wp_BuildServer N name peerAddr client token (W64 1) (W64 1) peer cluster lg M iu Uok
@@ -104,10 +109,9 @@ theorem startMember.wp_proof
     ipureintro; exact isPanic_intoVal serr
   (try wp_auto)
   -- `s.Start()`
-  wp_apply (common.wp_Start_built wp_Start s ρ E₀ lg γn id N true
-      (ReceiptBoundLe.le (GF := GF) (N + 1)))
-    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok] as Hup
-  · iframe Htok
+  wp_apply (wp_StartS s ρ E₀ lg γn id N true (name ++ go!".etcd"))
+    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok Hsr] as ⟨Hup, Hsr⟩
+  · iframe Htok Hsr
     iframe #
     iunfold common.memberBuilt
     iexists γA, ci, TM, E, γrn, b, cfg, γk, τ
@@ -122,6 +126,7 @@ theorem startMember.wp_proof
   iexists s, lis
   iframe
   iunfold memberStop
+  rw [← Hγρ]
   iframe
   ipureintro; exact Hli
 
@@ -140,6 +145,8 @@ theorem startMember.wp_proofRestart
   ihave #Pcom : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.common $$ []
   · iPkgInit
+  -- the image's raft names are the cluster's
+  icases srvDiskImage_raft γ ρ id _ $$ Himg with ⟨%Hγρ, Himg⟩
   (try wp_auto)
   -- `common.BuildServer(name, peer, client, cluster, "restart3", SnapCount, SnapCatchUp, lg)`
   wp_apply (wp_BuildServer N name peerAddr client token (W64 1) (W64 1) peer cluster lg M iu Uok
@@ -193,9 +200,9 @@ theorem startMember.wp_proofRestart
     ipureintro; exact isPanic_intoVal serr
   (try wp_auto)
   -- `s.Start()`
-  wp_apply (wp_StartR s ρ' E₀ lg γn id N true)
-    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok] as Hup
-  · iframe Htok
+  wp_apply (wp_StartR s ρ' E₀ lg γn id N true (name ++ go!".etcd"))
+    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok Hsr] as ⟨Hup, Hsr⟩
+  · iframe Htok Hsr
     iframe #
     iunfold common.memberBuiltR
     iexists ai₀, at₀, c₀, x₀
@@ -213,6 +220,8 @@ theorem startMember.wp_proofRestart
   iframe
   isplitr; · ipureintro; exact Hρ'
   iunfold memberStop
+  have Hγρ' : ρ'.rd.raft.raft = γ := by rw [Hρ'.1, Hγρ]
+  rw [← Hγρ']
   iframe
   ipureintro; exact Hli
 

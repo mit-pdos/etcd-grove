@@ -354,7 +354,7 @@ theorem Run.wp_proof
   · -- member 3 leads: member 2 stopped and started again
     wp_apply (wp_restartCheck cl clientAddr₁
         (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default) E ρ₁.rd γf cid mid
-        m₂ s₂ pl₂ E₂' { ρ₂ with wait := γw₂ } N name₂ peerAddr₂ clientAddr₂
+        m₂ s₂ pl₂ ρ₂ N name₂ peerAddr₂ clientAddr₂
         (slice.mk peer₂ (W64 1) (W64 1)) pm lg
         (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
           (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
@@ -368,7 +368,7 @@ theorem Run.wp_proof
   · -- member 3 stopped and started again
     wp_apply (wp_restartCheck cl clientAddr₁
         (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default) E ρ₁.rd γf cid mid
-        m₃ s₃ pl₃ E₃' { ρ₃ with wait := γw₃ } N name₃ peerAddr₃ clientAddr₃
+        m₃ s₃ pl₃ ρ₃ N name₃ peerAddr₃ clientAddr₃
         (slice.mk peer₃ (W64 1) (W64 1)) pm lg
         (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
           (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
