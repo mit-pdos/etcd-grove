@@ -41,13 +41,13 @@ Brief for the prover. Unfold `isServer`; take the old one's parts apart (`⌜ρ.
   `srvClusterAddr s` (the hypothesis's `↦□ cl` and `srvFieldsAt`'s `↦□ v.cluster`: their agreement,
   e.g. `pointsto_agree`/`typed_pointsto_agree` as used elsewhere for `↦□`). Rewrite with that before
   framing `srvEnvOk`'s `cl`.
-- `srvAtomics`, `srvGenAt`: kept (`srvAtomics_snapE`: both backends off, M2's apply side;
+- `srvAtomics`, `srvGenAt`: kept (`srvAtomics_snapE`: the new backend at the old one's mode, M2's item 15;
   `srvGenAt_snapE`, `rfl`); `srvRaftNode` kept. -/
 theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (π0 : ApplyPhys) (γB : backend.BNames)
     (P : backend.BParams) (d' : mvcc.KBReal) (p' : mvcc.PhysNames) (g : GoFunc)
-    (al ast lp cl : Loc) (hγB : d'.γB = γB) (hkb' : p'.kb = some d') (hcm' : d'.cm = false)
-    (d : mvcc.KBReal) (hkb : E.γ.kb = some d) (hcm : d.cm = false) (hP : d'.P = P) (hPd : P = d.P)
+    (al ast lp cl : Loc) (hγB : d'.γB = γB) (hkb' : p'.kb = some d')
+    (d : mvcc.KBReal) (hcm' : d'.cm = d.cm) (hkb : E.γ.kb = some d) (hP : d'.P = P) (hPd : P = d.P)
     (hk : Loc) :
     isServer s γ ci TM E ρ γr ∗ srvClusterAddr s ↦□ cl ∗
       isServerCI s (snapγ γ π0 γB) ci ∗ hookSpec (snapγ γ π0 γB) ci (metaTM γB P) #g ∗
@@ -81,15 +81,19 @@ theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IP
       by rw [hPd]; exact hhP⟩
   icombine Hcl Hclv gives %Heq
   subst Heq
-  -- (M2's apply side, the user's (a)) the install only with the mode off: the old backend's
-  have hE : E.cmp = false := srvEnvOk_off s γ ci E v.cluster d Henv hkb hcm
+  -- (M2's item 15) the install keeps the mode: the old backend's is the server's (`srvEnvOk`)
+  have hE : d.cm = E.cmp := by
+    have h := srvEnvOk_kbCmp s γ ci E v.cluster Henv
+    rw [hkb] at h
+    change d.cm = true ↔ E.cmp = true at h
+    cases hd : d.cm <;> cases hc : E.cmp <;> simp_all
   have hok : srvEnvOk s (snapγ γ π0 d'.γB) ci
       (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d'.P) ci p' g d'.γB al ast lp v.cluster d'.be) v.cluster :=
     ⟨Henv.1, Henv.2.1, rfl, d'.γB, _, rfl, rfl, d', al, ast, lp, snapE_kb _ _ _ _ _ _ _ _ _ _ _ _ d' hkb', rfl,
-      rfl, hcm'.trans hE.symm⟩
+      rfl, hcm'.trans hE⟩
   -- (M2's apply side) the KV invariants' mode law: both backends off
   ihave #Hat := srvAtomics_snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d'.P) ci p' g d'.γB al ast lp v.cluster
-    d'.be s γr d d' hkb hcm hkb' hcm' $$ Hat
+    d'.be s γr d d' hkb hkb' hcm' $$ Hat
   rw [srvGenAt_snapE]
   isplitr
   · ipureintro; exact Hrd

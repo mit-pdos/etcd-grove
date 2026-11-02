@@ -124,7 +124,7 @@ theorem srvSnapApplied_of_walk
   ihave HplRO := backend.plHook_persist d'.γB g $$ HplH
   imod HplRO with #HplRO
   -- step 2: the server's view
-  ihave #Hsrv' := snap_isServer s γ ci TM E ρ γr π0 d'.γB d.P d' p' g al ast lp cl rfl hkb' hcm' d hkb hcm hP' rfl hk $$ []
+  ihave #Hsrv' := snap_isServer s γ ci TM E ρ γr π0 d'.γB d.P d' p' g al ast lp cl rfl hkb' d (hcm'.trans hcm.symm) hkb hP' rfl hk $$ []
   · iframe #
   -- step 3: the new applier's options
   ihave #Hbo' := snap_backendOptsOk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg
@@ -134,9 +134,11 @@ theorem srvSnapApplied_of_walk
   · iframe #
   -- step 4: the applier state
   ihave HKV' := snap_applyKV s γ ci E ρ π0 d'.γB d.P d' p' γw ws g up' opts' w0 RD0 al ast lp cl x R
-      rfl hkb' hcm' hγw hwq hpre hRok hrbw $$
+      rfl hkb' hγw hwq hpre hRok hrbw (-1) $$
       [Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hra Hauar Hwok HRD0]
   · iframe #; iframe Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hra Hauar Hwok HRD0
+    iapply apply.cmpOwn_of_off
+    simp [mvcc.kbCmpM, hkb', hcm']
   imod HKV' with ⟨%x', %Hx', HKV'⟩
   -- step 5: the rest buckets
   ihave HRest := snap_srvRest E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB d' γr al ast lp
@@ -159,7 +161,7 @@ theorem srvSnapApplied_of_walk
   isplitr
   · ipureintro
     refine ⟨by apply snapE_beSucc, hkb', hcm', hP', rfl, snapSt_loopOk γ π0 d'.γB _ _ hm0, snapSt_ciEff γ π0 d'.γB _ _ hm0, Hx'.1,
-      Hx'.2, hcov⟩
+      Hx'.2.1, hcov⟩
   iunfold epConfState
   iframe Hsrv' Hai Hatt Hds Hms Hcsa Hcs Hcso Hat Hab Hlgr Hbmr HKV' HRest HKC HSC Hbo Hγt Hpath Htl
   -- (J8a-1, item 5) the KV at the new environment: the walk's watchable store, its inner store's
