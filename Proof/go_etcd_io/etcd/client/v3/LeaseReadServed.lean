@@ -87,7 +87,59 @@ theorem etcd_leaseTTLHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
       grpcHandlerOk (lp @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseTimeToLive")
         iprop(S ∗ A.revR) etcdLeaseTTLSpec := by
-  sorry
+  iintro ⟨#Pv, #Hat, #HL, #Hn, #Hm⟩
+  unfold grpcHandlerOk
+  iintro %req %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hrev⟩, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
+  rw [show (pbLeaseTimeToLiveRequest (GF := GF)).recv r req =
+      iprop(∃ v : etcdserverpb.LeaseTimeToLiveRequest, r ↦□ v ∗ ⌜(v.ID', v.Keys') = req⌝) from rfl]
+  icases Hr with ⟨%v, #Hv, %Hvm⟩
+  iapply wp_fupd
+  iapply (v3rpc.LeaseServer.wp_LeaseTimeToLive lp s A cid mid E γl S ci cd r DFrac.discard v n m)
+    $$ [HS Hrev]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, Hrev, -, Hout⟩
+  iunfold v3rpc.leaseTTLOut at Hout
+  icases Hout with (⟨%Hok, %w, Hw, %Hid, Hh, -⟩ | %Herr)
+  · ihave %Hnn := typedPointsto_not_null $$ Hw
+    iunfold v3rpc.leaseHdrDone at Hh
+    icases Hh with ⟨Hfd, %dq, %rv, Hrv⟩
+    iunfold v3rpc.hdrFilled at Hfd
+    icases Hfd with ⟨%Hhn, %t, %ld, Hcid, Hmid, Ht, Hl⟩
+    ipersist Hcid
+    ipersist Hmid
+    ipersist Ht
+    ipersist Hl
+    ipersist Hrv
+    iStructNamedSuffix Hw "_f"
+    ipersist Header_f
+    ipersist ID_f
+    ipersist TTL_f
+    ipersist GrantedTTL_f
+    ipersist Keys_f
+    imodintro
+    iapply HΨ
+    iframe HS Hrev
+    iintro -
+    iexists (LeaseTTLRespM.mk (HdrM.mk cid mid rv t ld) w.ID' w.TTL' w.GrantedTTL')
+    isplitl []
+    · simp only [pbLeaseTimeToLiveResponse]
+      unfold leaseTTLRespMsg hdrFull
+      isplitl []
+      · ipureintro; exact Hnn
+      iexists w.Header', w.Keys'
+      iframe #
+      ipureintro; exact Hhn
+    · iunfold etcdLeaseTTLSpec at Hspec
+      iapply Hspec
+      ipureintro
+      simp only
+      rw [Hid, ← Hvm]
+  · imodintro
+    iapply HΨ
+    iframe HS Hrev
+    iintro %Hnil
+    exact absurd Hnil Herr.2
 
 /-- **etcd's `LeaseLeases` handler meets etcd's `LeaseLeases` spec** (as
 `etcd_leaseTTLHandlerOk`): the reply lists the lessor's IDs at some index of its history, or

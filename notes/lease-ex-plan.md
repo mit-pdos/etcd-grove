@@ -143,3 +143,12 @@ triple needs (no 200 without a response; a 404 is an allowed error).
 - tcb: `etc/tcb-collections/leasekv.txt` (593 entries; its `sorry`s the five above that `Main`
   reaches, plus the four the server's collections already carry).
 - The Go program: `Main` forks `holdToken` ("The run's thread token").
+
+## Probe (2026-11-02)
+
+- Easy: `LeaseOp.applyOpts` (the KV's `Op.applyOpts` proof adapted, `foldl_apply_take_succ`) and
+  `toLeaseTimeToLiveRequest` (one call): about 10 minutes with the build loop; no spec problem.
+- Hard: `etcd_leaseTTLHandlerOk`, the server meet the example rests on (the request's wire model
+  into `LeaseServer.LeaseTimeToLive.spec` at the contract's slot; its `leaseTTLOut` into the client's
+  `leaseTTLRespMsg`, the response split into its fields and persisted, `ID` the asked one through
+  D3): proved on the first build, no spec problem. The review's findings were the ones that mattered.

@@ -26,7 +26,12 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 theorem toLeaseTimeToLiveRequest.wp_proof
     (wp_applyOpts : LeaseOp.applyOpts.spec (GF := GF) (hG := hG)) :
     toLeaseTimeToLiveRequest.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro id sl gs
+  wp_start as #Hopts
+  wp_auto
+  wp_apply wp_applyOpts $$ [$«$r0» $Hopts] as Hop
+  iapply HΦ
+  iframe
 
 end proof
 
