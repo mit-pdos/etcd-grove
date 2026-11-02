@@ -30,10 +30,11 @@ set_option maxHeartbeats 4000000 in
 theorem chains.computeFirstUnk.wp_proof
     (wp_Check : Consistency.Check.spec (GF := GF) (hG := hG)) :
     chains.computeFirstUnk.spec (GF := GF) (hG := hG) := by
-  intro ch h cs st c cons hok hwf hshape hfu hheads hc0 hcl hprev
+  intro ch cl h cs st c cons hok hwf hshape hfu hheads hc0 hcl hprev
   wp_start as ⟨Hch, #Hlin⟩
-  iunfold chainsOwn at Hch
-  icases Hch with ⟨%chV, Hch, Hrep⟩
+  iunfold chainsOwnCl at Hch
+  icases Hch with ⟨%chV, Hch, %Hclq, Hrep⟩
+  subst Hclq
   iunfold chainsRepr at Hrep
   icases Hrep with ⟨%cvs, Hcl, %Hcvs, Hfr, Hcap, Hcls⟩
   obtain ⟨cvc, hcvc⟩ : ∃ cv, cvs[sint.nat c]? = some cv :=
@@ -446,7 +447,111 @@ theorem chains.computeFirstUnk.wp_proof
                   rcases HBx with ⟨h1, -⟩ | ⟨h1, -, -⟩
                   · subst h1; exact hfd (by decide)
                   · subst h1; omega
-        · sorry
+        · have hlh : sint.Z lv = sint.Z hv := by omega
+          have hlv : lv = hv := by word
+          subst hlv
+          wp_join with [result firstDontKnow]
+          · wp_if_destruct
+            · exfalso
+              rcases HBx with ⟨h1, -⟩ | ⟨h1, -, -⟩
+              · subst h1; rename_i hh; exact absurd hh (by decide)
+              · subst h1; omega
+            · iframe
+          -- the linear scan (only after a `DontKnow`: one step)
+          wp_join iprop("result" ∷ result_ptr ↦ lv ∗
+              "Hcosd" ∷ cvd.cltOps' ↦* cosd ∗ "Hcosc" ∷ cvc.cltOps' ↦* cosc ∗
+              "consistency" ∷ consistency_ptr ↦ cons ∗
+              "op" ∷ op_ptr ↦ sliceIndexRef clientOperation (sint.Z cvc.head') cvc.cltOps' ∗
+              "cltOps_cd" ∷ (sliceIndexRef client (sint.Z dv) chV.clients').[client, go!"cltOps"]
+                ↦{DFrac.own (1 : Qp).half} cvd.cltOps' ∗
+              "clients_ch" ∷ ch.[chains, go!"clients"] ↦ chV.clients' ∗
+              "ch" ∷ ch_ptr ↦ ch ∗ "d" ∷ d_ptr ↦ dv ∗
+              "firstDontKnow" ∷ firstDontKnow_ptr ↦ fdkv) at next
+            with [result Hcosd Hcosc consistency op cltOps_cd clients_ch ch d firstDontKnow] as HL
+          · rcases HBx with ⟨rfl, hL⟩ | ⟨h1, hL, hnP⟩
+            · wp_auto
+              wp_join_done
+            · have h1' := h1.symm
+              subst h1'
+              have hl0 : 0 ≤ sint.Z lv := by omega
+              have hlLn : sint.nat lv < (chain cs (sint.nat dv)).length := by word
+              obtain ⟨a, ha⟩ : ∃ a, cosd[sint.nat lv]? = some a :=
+                ⟨_, List.getElem?_eq_getElem (by omega)⟩
+              have hPiff := pAt_iff_linOrder Hcod Hcoc hlLn hhl ha hco'
+              have hbl : 0 ≤ sint.Z lv ∧ sint.Z lv < sint.Z cvd.cltOps'.len := ⟨hl0, by omega⟩
+              wp_if_destruct
+              · wp_for
+                idx_auto [hbd']
+                cleanup_bool_decide
+                wp_if_destruct
+                · idx_auto [hbd', hbl]
+                  wp_apply (wp_check_elems wp_Check consistency_ptr cons cvd.cltOps' cvc.cltOps' cosd
+                    cosc (sint.Z lv) (sint.Z cvc.head') a co (DFrac.own 1) (DFrac.own 1) hl0 hbh.1 ha hco)
+                    $$ [$consistency $Hcosd $Hcosc] as ⟨consistency, Hcosd, Hcosc⟩
+                  · iframe #
+                  wp_if_destruct
+                  · exact absurd (hPiff.mp Hif) hnP
+                  · wp_for_post
+                    iframe
+                    ipureintro; rfl
+                · exfalso; have : sint.Z (W64 0) = 0 := rfl; omega
+              · exfalso; have : sint.Z (W64 0) = 0 := rfl; omega
+          iNamed HL
+          -- the result is `FUe`
+          have hl0 : 0 ≤ sint.Z lv := by omega
+          have hlvn : ((sint.nat lv : Nat) : Int) = sint.Z lv := Int.toNat_of_nonneg hl0
+          have hres : sint.Z lv = FUe h cs (sint.nat c) (sint.nat dv) (st.head (sint.nat c)) := by
+            have := fue_of_search (k := st.head (sint.nat c)) (r := sint.nat lv) hok
+              (by rw [← hstart]; omega) (by omega)
+              (fun j hj1 hj2 => HBp j (by rw [hstart]; exact hj1) (by omega))
+              (fun hr => by
+                rcases HBx with ⟨-, h2⟩ | ⟨-, -, h3⟩
+                · omega
+                · exact h3)
+            omega
+          -- `op.firstUnk[d] = result`
+          icases ownSlice_elem_acc (sint.Z cvc.head') co cvc.cltOps' _ cosc hbh.1 hco $$ Hcosc
+            with ⟨Hco, Hcosc⟩
+          icases typedPointsto_not_null_dup _ _ _ $$ Hco with ⟨Hco, %Hconn'⟩
+          iStructNamedSuffix Hco "_co"
+          wp_auto
+          ihave Hco := typedPointsto_combine _ co _ Hconn $$
+            [Op_co globalId_co id_co firstUnk_co visited_co __co]
+          · simp only [TypedPointsto.typedPointstoDef]; iframe
+          ihave Hcosc := Hcosc $$ %co Hco
+          rw [list_set_lookup_self _ _ _ hco]
+          ihave %Hfllen := ownSlice_len $$ Hfl
+          have hbf : 0 ≤ sint.Z dv ∧ sint.Z dv < sint.Z co.firstUnk'.len := by
+            refine ⟨Hd.1, ?_⟩; have := Hfllen.1; have := Hfllen.2; have := Hd.2.2.1; word
+          simp only [hbf, and_self, ↓reduceIte]
+          wp_apply (wp_store_slice_index co.firstUnk' (sint.Z dv) fl lv) $$ [Hfl] as Hfl
+          · iframe Hfl; ipureintro; refine ⟨Hd.1, ?_⟩; have := Hd.2.2.1; word
+          -- client `d` put back
+          ihave Hcvd := typedPointsto_combine _ cvd _ Hcvdnn $$ [id_cd cltOps_cd head_cd nDeps_cd __cd]
+          · simp only [TypedPointsto.typedPointstoDef]; iframe
+          ihave HclB := HclB $$ %cvd Hcvd
+          rw [list_set_lookup_self _ _ _ hcvd]
+          ihave Hcd : clientOwn h cs st (sint.nat dv) cvd $$ [Hcosd Hfusd]
+          · unfold clientOwn
+            iframe
+            ipureintro; exact ⟨Hcvdf, Hcod⟩
+          ihave Hcd := (ite_emp_neg (GF := GF) hdc).2 $$ Hcd
+          ihave Hrest := Hrest $$ %cvd Hcd
+          rw [list_set_lookup_self _ _ _ hcvd]
+          wp_for_post
+          iframe
+          iexists dv + W64 1, fl.set (sint.nat dv) lv
+          iframe
+          ipureintro
+          refine ⟨by word, by word, by rw [List.length_set]; exact Hd.2.2.1,
+            fun d' hd' hd'l hd'c => ?_⟩
+          by_cases hdd : d' = sint.nat dv
+          · subst hdd
+            rw [List.getD_eq_getElem?_getD, List.getElem?_set_self (by omega)]
+            exact hres
+          · rw [List.getD_eq_getElem?_getD, List.getElem?_set_ne (Ne.symm hdd),
+              ← List.getD_eq_getElem?_getD]
+            exact Hd.2.2.2 d' (by word) hd'l hd'c
     · sorry
 
 end proof

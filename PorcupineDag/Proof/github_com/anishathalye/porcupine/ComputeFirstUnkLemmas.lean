@@ -330,15 +330,15 @@ theorem chains_restore (ch : Loc) (chV : chains) (h : List (Op OpV)) (cs : List 
         chV.clients' ↦*{DFrac.own (1 : Qp).half} cvs.set c v') ∗
       sliceIndexRef client (c : Int) chV.clients' ↦{DFrac.own (1 : Qp).half} cvc ∗
       ([∗list] k ↦ y ∈ cvs, if k = c then emp else clientOwn h cs st k y) ∗
-      clientOwn h cs st' c cvc ⊢ chainsOwn ch h cs st' := by
+      clientOwn h cs st' c cvc ⊢ chainsOwnCl ch chV.clients' h cs st' := by
   iintro ⟨Hch, Hfr, Hcap, HclB, HclA, Hcvc, Hrest, Hc⟩
   ihave HclA := HclA $$ %cvc Hcvc
   rw [list_set_lookup_self _ _ _ hcvc]
   ihave Hcl := (ownSlice_halves chV.clients' cvs).2 $$ [HclA HclB]
   · iframe
-  unfold chainsOwn chainsRepr
-  iexists chV
+  iapply chainsOwnCl_fold ch chV chV.clients' h cs st' rfl
   iframe Hch
+  unfold chainsRepr
   iexists cvs
   iframe Hcl Hfr Hcap
   isplitr
