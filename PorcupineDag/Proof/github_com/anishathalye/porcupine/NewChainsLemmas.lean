@@ -158,6 +158,10 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 
+/-- Client `c`'s struct as `newChains`'s first loop stores it. -/
+def clientAt (sls : List GoSlice) (c : Nat) : client :=
+  ⟨W64 (c : Int), sls.getD c slice.nil, W64 0, W64 0⟩
+
 /-- `firstUnks` cut into `n` pieces of `nc` ints, one per operation id. -/
 theorem ownSlice_pieces (s : GoSlice) (nc n : Nat) (hb : ((n * nc : Nat) : Int) < 2 ^ 63) :
     (slice.slice s w64 (W64 0) (W64 ((n * nc : Nat) : Int)) ↦*
