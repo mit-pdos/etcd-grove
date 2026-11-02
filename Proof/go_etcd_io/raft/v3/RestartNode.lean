@@ -268,18 +268,72 @@ names. (2026-11-01, durability stage I-4: keyed by the storage's key.) -/
 private theorem storBnd_raftBnd (γ : Cluster) (K : GName) (sn : StorNames) (c : Nat) :
     ⊢ storKeyNames (GF := GF) K sn -∗ monoNatLbOwn sn.ga 0 -∗ EtcdGrove.storBnd γ K c -∗
       raftBnd sn c := by
-  -- PORT(durability stage II): restated (I-4: keyed by `K`, `snapGiven` merged)
-  sorry
+  iintro #Hsn #H0 Hb
+  unfold EtcdGrove.storBnd EtcdGrove.nodeAppliedLb nodeAppliedLbU raftBnd
+  icases Hb with ⟨%k, %Hk, (%Hk0 | ⟨%sn', #Hsn', (#Hl | #Hl | %Hl)⟩)⟩
+  · ileft
+    iexists 0
+    isplitr; · ipureintro; omega
+    ileft; iexact H0
+  · ihave %He := storKeyNames_agree K sn' sn $$ Hsn' Hsn
+    subst He
+    ileft
+    iexists k
+    isplitr; · ipureintro; exact Hk
+    ileft; iexact Hl
+  · ihave %He := storKeyNames_agree K sn' sn $$ Hsn' Hsn
+    subst He
+    ileft
+    iexists k
+    isplitr; · ipureintro; exact Hk
+    iright; iexact Hl
+  · ihave %He := storKeyNames_agree K sn' sn $$ Hsn' Hsn
+    subst He
+    iright
+    ipureintro; omega
 
 /-- Raft's reading of the contract's `DL` for a valid snapshot: the node on the storage committed
-up to its index, so raft certified the term there (or handed out a snapshot past it). (2026-11-01,
-durability stage I-4: `nodeCommitLb`, keyed by the storage's key.) -/
+up to its index, so raft certified the term there (or handed out a snapshot past it, or the attach
+recorded it). (2026-11-01, durability stage I-4: `nodeCommitLb`, keyed by the storage's key.) -/
 private theorem storDL_raftDL (γ : Cluster) (K : GName) (sn : StorNames) (sv : SnapshotM) :
     ⊢ storKeyNames (GF := GF) K sn -∗ EtcdGrove.snapshotValid γ sv -∗
       EtcdGrove.nodeCommitLb γ K (uint.nat sv.Metadata'.Index') -∗
       raftDL sn (uint.nat sv.Metadata'.Index') sv.Metadata'.Term' := by
-  -- PORT(durability stage II): restated (I-4: `nodeCommitLb` keyed by `K`)
-  sorry
+  iintro #Hsn Hv Hdl
+  unfold EtcdGrove.snapshotValid EtcdGrove.isCommittedLogLb EtcdGrove.nodeCommitLb nodeCommitLbU
+  icases Hv with ⟨%l1, %m, #Hlb1, -, -, %Hp⟩
+  obtain ⟨Hlen, Hpos, Hlast, -⟩ := Hp
+  icases Hdl with (%H0 | ⟨%sn', %l, #Hsn', #Hlb, %Hi, #Hdk⟩)
+  · exfalso; omega
+  ihave %He := storKeyNames_agree K sn' sn $$ Hsn' Hsn
+  subst He
+  icases isCommittedLogLb_agree_impl γ l1 l $$ [Hlb1 Hlb] with %Hcm
+  · iframe Hlb1 Hlb
+  have Hpre : l1 <+: l := by
+    rcases Hcm with h | h
+    · exact h
+    · have e := h.eq_of_length (by have := h.length_le; omega)
+      rw [e]
+      exact ⟨[], List.append_nil _⟩
+  obtain ⟨t, Ht⟩ := Hpre
+  have Hj : l1.length - 1 < l1.length := by omega
+  have Hl1j : l1[l1.length - 1]?.map LogEntry.term = some sv.Metadata'.Term' := by
+    rw [← List.getLast?_eq_getElem?]; exact Hlast
+  have Hlj : l[l1.length - 1]? = l1[l1.length - 1]? := by
+    rw [← Ht, List.getElem?_append_left Hj]
+  rw [← Hlj] at Hl1j
+  cases hde : l[l1.length - 1]? with
+  | none => rw [hde] at Hl1j; cases Hl1j
+  | some e =>
+    rw [hde] at Hl1j
+    simp only [Option.map_some, Option.some.injEq] at Hl1j
+    have hte : (LogEntry.toEntries l 0)[l1.length - 1]? =
+        some (e.toEntryM (W64 ((0 + (l1.length - 1) + 1 : Nat) : Int))) := by
+      rw [toEntries_getElem?, hde]; rfl
+    ihave #Hke := (BigSepL.bigSepL_lookup (Φ := fun j (e : EntryM) =>
+      raftDL (GF := GF) sn' (j + 1) e.Term') hte) $$ Hdk
+    rw [show uint.nat sv.Metadata'.Index' = l1.length - 1 + 1 by omega, ← Hl1j]
+    iExactEq Hke; rfl
 
 /-- **The certificate link of fresh storage names** (`certLink`): their `SV` pin the API's
 `snapshotValid`, their snapshot pin raft's certificate. -/

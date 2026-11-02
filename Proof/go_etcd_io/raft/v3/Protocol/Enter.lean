@@ -1208,21 +1208,20 @@ unchanged): the vacant slot and the durable half at `S` give the volatile half o
 `S.term` restarted from a storage holding `S` from the base `b` with the commit `c`
 (`restartP`: `kl` forgotten, the durable `kd` taken; an empty outbox and tally), with the whole
 generation and its free queue slot. Amendment 1: the bootstrap log within the stored commit. -/
-theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) {md : Bool}
-    (b : entryID) (c : w64) :
+theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool}
+    (b : entryID) (c : w64) (Φ : RaftState → Prop) (R : RaftState → IProp GF) :
     ↑(raftN γ) ⊆ E →
     γ.reDyn.isSome = md →
-    uint.Z S.base.index' ≤ uint.Z b.index' → uint.Z b.index' ≤ uint.Z c →
-    uint.Z c ≤ uint.Z S.commit →
-    plogTermAt S.base S.ents b.index' = some b.term' →
+    (∀ S, Φ S → uint.Z S.base.index' ≤ uint.Z b.index' ∧ uint.Z b.index' ≤ uint.Z c ∧
+      uint.Z c ≤ uint.Z S.commit ∧ plogTermAt S.base S.ents b.index' = some b.term') →
     (γ.reBoot.length : Int) ≤ uint.Z c →
-    ⊢ ownDurGhost (GF := GF) γ id S -∗ raftIdSlot γ id ={E}=∗
-      ownDurGhost γ id S ∗ ownRaftGhost γ id (restartP S b c) md ∗
-      ∃ g, slotLive γ id 1 g ∗ slotFree γ id g := by
-  intro HE Hmd Hb1 Hb2 Hb3 Hbt Hboot
-  iintro Hdur Hslot
-  unfold ownDurGhost
-  icases Hdur with ⟨%E1, Hsh1, #Hdp, -⟩
+    ⊢ raftIdSlot (GF := GF) γ id -∗
+      (|={E \ ↑(slotN γ id), ∅}=> ∃ S, ownDurGhost γ id S ∗ ⌜Φ S⌝ ∗
+        (ownDurGhost γ id S ={∅, E \ ↑(slotN γ id)}=∗ R S)) ={E}=∗
+      ∃ S, ⌜Φ S⌝ ∗ R S ∗ ownRaftGhost γ id (restartP S b c) md ∗
+        ∃ g, slotLive γ id 1 g ∗ slotFree γ id g := by
+  intro HE Hmd HΦ Hboot
+  iintro Hslot Hacc
   unfold raftIdSlot
   icases Hslot with ⟨%γs, %V, %g, %Hγs, %Hnz, Hvirt, Hlive, Hfree, #Hsinv, #Hcinv, #Hrci,
     ⟨%γm, %terms, %Htm, Hterms, #Htf⟩, ⟨%γw, %wins, %Hwn, Hwins, #Hwf⟩,
@@ -1251,8 +1250,25 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) {m
   rw [HMq'] at HV
   simp only [virtQ] at HV
   subst HV
+  -- the durable half, through the accessor (the client's update: `RestartNode`'s), while the slot
+  -- is open
+  imod Hacc with ⟨%S, Hdur, %HS, Hcl⟩
+  obtain ⟨Hb1, Hb2, Hb3, Hbt⟩ := HΦ S HS
+  unfold ownDurGhost
+  icases Hdur with ⟨%E1, Hsh1, #Hdp, #Hsinv1⟩
   icases durShares_agree γ id _ _ V E1 $$ Hsh0 Hsh1 with ⟨Hsh0, Hsh1, %HE1⟩
   subst HE1
+  -- the leader-side keys: entered campaigns' terms
+  icases keys_camps γ id _ V (fun t (x : TermRec) => iprop(t ↪[γm]□ x)) terms $$ [$Hsh1 $Htf]
+    with ⟨Hsh1, %Ktm⟩
+  icases keys_camps γ id _ V (fun t (x : GSet w64) => iprop(t ↪[γw]□ x)) wins $$ [$Hsh1 $Hwf]
+    with ⟨Hsh1, %Kwn⟩
+  icases keys_camps γ id _ V (fun t (x : GName) => iprop(t ↪[γl]□ x)) lcm $$ [$Hsh1 $Hlf]
+    with ⟨Hsh1, %Kln⟩
+  icases keys_camps γ id _ V (fun t (x : GName) => iprop(t ↪[γq]□ x)) rqm $$ [$Hsh1 $Hqf]
+    with ⟨Hsh1, %Kqn⟩
+  imod Hcl $$ [Hsh1] with HR
+  · iexists V; iframe Hsh1 Hdp Hsinv1
   imod Hclose $$ [Hsh0 Hv0 Hg0 Hq] with -
   · inext
     unfold slotBody
@@ -1264,15 +1280,6 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) {m
     ⟨%kd, %fp, %Hp, #Hrb, #Hbb, #Hfp, #Hvl, #Hhs, #Hkl, #Hci, #Hcm, -⟩
   obtain ⟨Hvh, Hak, Hcp, Hev, HfB, Hwfb, Hterms_le, HcL⟩ := Hp
   imod durPers_restart_acks E γ id S V b c HE Hb1 Hb2 Hb3 Hbt $$ Hdp Hfr0 with #Hacks
-  -- the leader-side keys: entered campaigns' terms
-  icases keys_camps γ id _ V (fun t (x : TermRec) => iprop(t ↪[γm]□ x)) terms $$ [$Hsh1 $Htf]
-    with ⟨Hsh1, %Ktm⟩
-  icases keys_camps γ id _ V (fun t (x : GSet w64) => iprop(t ↪[γw]□ x)) wins $$ [$Hsh1 $Hwf]
-    with ⟨Hsh1, %Kwn⟩
-  icases keys_camps γ id _ V (fun t (x : GName) => iprop(t ↪[γl]□ x)) lcm $$ [$Hsh1 $Hlf]
-    with ⟨Hsh1, %Kln⟩
-  icases keys_camps γ id _ V (fun t (x : GName) => iprop(t ↪[γq]□ x)) rqm $$ [$Hsh1 $Hqf]
-    with ⟨Hsh1, %Kqn⟩
   imod rdCred_zero (GF := GF) γ with Hcr0
   have Hterm : (restartP S b c).term = S.term := rfl
   have Hrole : (restartP S b c).role = .follower := rfl
@@ -1281,9 +1288,11 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) {m
   have Hcommit : (restartP S b c).commit = c := rfl
   have Hvote : (restartP S b c).vote = S.vote := rfl
   imodintro
-  isplitl [Hsh1]
-  · iexists V; iframe Hsh1 Hdp Hsinv
+  iexists S
+  isplitr; · ipureintro; exact HS
+  iframe HR
   isplitr [Hl Hfr]
+
   rotate_left
   · iexists g
     isplitl [Hl]
