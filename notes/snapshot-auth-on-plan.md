@@ -667,6 +667,30 @@ All seven recommendations accepted:
 Next: the backend stage (1, 2 as it touches the backend, 4), spec-first, before the auth premise is
 applied.
 
+## An example after the Prove phase: compaction, auth on and a snapshot together (2026-11-02, the user's request)
+
+No closed theorem combines auth on with a snapshot sent to a follower, nor all three of compaction,
+auth on and snapshots: `authkv` is one member with no compactor and a catch-up of 2^48 entries;
+the compacting examples are one member; `linkv3p` sends snapshots with auth and the compactor off.
+After this stage's Prove phase (and `image-cmp`'s, `notes/image-cmp-plan.md`, which adds the
+compactor to `linkv3p`), add a new small example, `putget3`'s size (about 150 lines of Go), with a
+fixed scenario and targeted panics instead of a linearizability check:
+
+1. Three members with auth on (simple tokens) and the revision-mode compactor; root enables auth
+   after creating one user with a role on a key prefix.
+2. Cut one follower off (`CutPeer`), write past the snapshot threshold and compact, mend: the
+   follower must install a snapshot (small `SnapCount`/`SnapCatchUp`, as `linkv3p`).
+3. Through the follower, as the user: panic unless a key under the prefix reads the value written,
+   a get at a compacted revision answers `ErrCompacted`, the user's permission holds after the
+   install (users and roles came across in the snapshot), and an operation outside the prefix is
+   denied.
+
+The theorem is safety only (no panic); that a snapshot is in fact sent is the Go test's check, as
+`linkv3p`'s. Why not auth on in `linkv3p`: porcupine's model would need permissions (`authkv`'s
+model is the largest example proof), and simple tokens are each member's own while `linkv3p`
+picks a member per operation, so its proof would run through the client's re-authentication under
+partitions; Kubernetes, the main user, runs with auth off.
+
 ## Change log after the freeze
 
 Empty until the Freeze. From then on, every change to a frozen statement gets one entry here, tagged
