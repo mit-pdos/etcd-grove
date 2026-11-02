@@ -523,3 +523,19 @@ needs a weighting toward it, as here, or the tester's verdict on it is weak.
 **The comparison** (step 3's main metric): spec revisions after the freeze, 1 for the compactor (by
 M2's glue), against about 5 for the read-index baseline over two weeks; not yet fair (hours against
 weeks, and M2 not finished).
+
+## To revisit: the snapshot track as a data point (2026-11-02)
+
+The snapshot track was done proof-first on 2026-10-31 and 2026-11-01 (`snap-sorries`, `snap-j8a`), then spec-first
+(the auth-on install, `notes/snapshot-auth-on-plan.md` on `snap-auth-on-draft`; the backend auth
+split, `notes/backend-auth-split-plan.md` on `backend-auth-split`). A first pass, not strong evidence
+(the proof-first half finished an older bottom-up design; the install is not proved yet): the
+proof-first half had 30 commits in 35 hours, 29 restating an existing statement (10 trusted or exported),
+`applySnapshot`'s spec restated 8 times, CALLER 17 / false 7 / SCOPE 3; the backend split's
+post-freeze log had R 1, F 0. Write-up and table: branch `spec-first-snapshot-data`
+(`notes/spec-first-study/snapshot-proof-first.md`), not merged. To recompute: the track's commits in
+the window touching `Spec/` or `Proof/` (`git log --no-merges --since=2026-10-31 --until=2026-11-01T14:40
+-- Spec Proof`, the other tracks dropped), each classified with step 1's rubric, `git show --numstat`
+for the lines. **Revisit when the auth-on install is frozen and proved**: compare its
+"Change log after the freeze" (F and R per frozen statement, and their `Proof/` lines) with
+that table.
