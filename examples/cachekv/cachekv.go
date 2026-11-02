@@ -1,7 +1,8 @@
 // Package cachekv is watchkv (examples/watchkv) with the watch read through etcd's cache: one etcd
-// member started in-process (as examples/putget starts it), a client connected to it, a cache of
-// the prefix over the client (cache.New), a cache watch of the prefix from revision 2 opened before
-// any write, writer goroutines putting random keys under the prefix, and watchkv's check that the
+// member started in-process with the auto-compactor on (periodic mode, keeping 10ms of revisions,
+// as examples/putgetc starts it), a client connected to it, a cache of the prefix over the client
+// (cache.New), a cache watch of the prefix from revision 2 opened before any write, writer
+// goroutines putting random keys under the prefix, and watchkv's check that the
 // watch reported exactly the writes: Main panics if the check fails; the theorem to prove is that
 // it does not (notes/STATUS.md, "cachekv").
 //
@@ -17,7 +18,7 @@
 // reports an error (a cancel, a compaction), before that, Main returns WatchEnded without a check.
 //
 // Main calls only what the proofs specify: the examples' shared start (examples/common's
-// StartServer, Serve and NewClient: etcdserver.NewServer, Start, v3rpc.Server, net.Listen,
+// StartPeriodicServer, Serve and NewClient: etcdserver.NewServer, Start, v3rpc.Server, net.Listen,
 // (*grpc.Server).Serve on a goroutine, clientv3.New), the client's Put,
 // cache.New, the cache's Watch and context.WithCancel. An error from a step of the start ends Main
 // with Failed.
@@ -26,6 +27,7 @@ package cachekv
 import (
 	"context"
 	"sync"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -42,6 +44,12 @@ const (
 	clientAddr = "127.0.0.1:23873"
 	peerAddr   = "127.0.0.1:23883"
 )
+
+// The auto-compactor's period (periodic mode, since 2026-11-02: it compacts, during a run, every
+// revision the store had a period before; a compaction of the cache's watch's next revision ends
+// the cache's watch with ErrCompacted, and the cache re-lists and watches again from the revision
+// after its Get's).
+const period = 10 * time.Millisecond
 
 // The prefix every writer's key is under, and the one the watch covers.
 const prefix = "ck/"
@@ -92,7 +100,7 @@ func Main(nw int, nops int) int {
 	tried := common.GenAll(nw*nops, []string{"ck/k0", "ck/k1", "ck/k2"})
 
 	lg := zap.NewNop()
-	s, err := common.StartServer("cachekv", peerAddr, clientAddr, lg)
+	s, err := common.StartPeriodicServer("cachekv", peerAddr, clientAddr, period, lg)
 	if err != nil {
 		return Failed
 	}

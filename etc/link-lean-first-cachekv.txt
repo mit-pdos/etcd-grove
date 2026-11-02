@@ -16,7 +16,8 @@ common_Check: @
 getPrefix:
 WithPrefix: getPrefix
 WithRev:
-# `Main`: the examples' shared start of the server and the client (`common`'s `StartServer`,
+# `Main`: the examples' shared start of the server and the client (`common`'s
+# `StartPeriodicServer` since 2026-11-02, `StartServer` until then,
 # `Serve`, `NewClient`, linked in its `Link.lean`; zap's trust-boundary axiom), the cache's
 # client (the client's watcher's `Watch` and `RequestProgress`, linked in the client's
 # `Link.lean`; a context's `Err`, in `context`'s), the cache's `New` and `Watch` (linked in the
@@ -26,8 +27,8 @@ watcher__Watch: @
 watcher__RequestProgress: @
 cache_v3_New: @
 Cache__Watch: @
-common_StartServer: @
+common_StartPeriodicServer: @
 common_Serve: @
 common_NewClient: @
 zap_NewNop:
-cachekv_Main: common_GenAll common_Writer common_MaxRev cachekv_collect common_Check zap_NewNop common_StartServer common_Serve common_NewClient context_ErrAny watcher__Watch WithPrefix WithRev watcher__RequestProgress cache_v3_New Cache__Watch
+cachekv_Main: common_GenAll common_Writer common_MaxRev cachekv_collect common_Check zap_NewNop common_StartPeriodicServer common_Serve common_NewClient context_ErrAny watcher__Watch WithPrefix WithRev watcher__RequestProgress cache_v3_New Cache__Watch
