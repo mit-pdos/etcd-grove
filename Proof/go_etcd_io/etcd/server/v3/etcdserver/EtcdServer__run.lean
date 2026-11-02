@@ -278,41 +278,12 @@ theorem run_job_snap_cmp (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := h
     {{ RET #(); schedule.schedRunning γs ∗ applyRes C A' }} := by
   sorry
 
-/-- (open, the lease-grant plan's D2, 2026-11-02) **`run_job_snap` in a cluster that grants
-leases** (`KVNames.lg = true`): not proved. `applyAll.specSnap` takes a cluster that grants none:
-its lessor is monotone, and `Recover` (the snapshot's restore) takes a revocable one; besides, the
-snapshot's image then has leases (`specSnap`'s `hlease` is false). A single member is never sent a
-snapshot; restoring one with leases is a stage of its own. -/
-theorem run_job_snap_lg (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
-    (C : ApplyCtx GF) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
-    (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
-    (γn : RNNames) (rt : w64)
-    (ha00 : uint.nat C.ai₀ = 0) (hc0 : uint.Z C.c₀ ≤ uint.Z C.ai₀) (hpre : γn.pre = [])
-    (hγn : γn.node = C.γr.raft.raft) (hρ : C.ρ.raft = C.γr.raft)
-    (hpr : C.γr.raft.pre = γn.pre) (hγs : C.γs = γn.γs) (hγw : C.γw = C.ρ.wait)
-    (hlt : A.length < A'.length)
-    (hlen : (γn.pre ++ A').length = uint.nat sv.Metadata'.Index')
-    (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
-    (hboot : (γn.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index')
-    (hlg : C.γr.kv.lg = true) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ γn.id ∗ srvMetaSnap C.γ ∗
-        taEntriesAddr apL ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
-        taSnapshotAddr apL ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
-        (letI := srvStor (GF := GF) γn.node; iprop(
-          snapshotCert γn.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
-          nodeSnapLocal γn.node.cl γn.id sv.Metadata'.Index')) ∗
-        taNotifycAddr apL ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
-        taRaftAdvancedCAddr apL ↦□ rac ∗
-        rnAdvChan rac (letI := srvStor (GF := GF) γn.node
-          iprop(nodeAppliedLb γn.node.cl γn.key (γn.pre ++ A').length ∗
-            nodeCommitLb γn.node.cl γn.key (γn.pre ++ A').length ∗
-            srvFrozenAt γn.γs (γn.pre ++ A').length ∗ srvFrozenBelow γn.γs (γn.pre ++ A').length)) ∗
-        taRaftTermAddr apL ↦□ rt ∗ rnRtOk γn rt (rnLogOf γn A').length ∗
-        schedule.schedRunning γs ∗ applyRes C A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft A' }}
-      (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
-        (Val #apL))
-    {{ RET #(); schedule.schedRunning γs ∗ applyRes C A' }} := by
+/-- (open, the lease-grant plan's D2, 2026-11-02) **`run`'s snapshot job in a cluster that grants
+leases** (`runSnapLgOk`, `InvRun.lean`): not proved. `run` does not use it: it takes the case as
+`isServerRun`'s premise `γr.kv.lg = true → runSnapLgOk` (from `NewServer`'s precondition), which a
+cluster that grants none discharges by its `lg = false`; only a lease-granting result
+(`leasegrant.wp_Main`) uses this theorem, so it is in their trust base only. -/
+theorem runSnapLgOk_open : runSnapLgOk (GF := GF) := by
   sorry
 
 /-- **A snapshot payload's job** (J8b, 2026-11-01; `s.applyAll(&ep, &ap)` on raft's snapshot
@@ -322,7 +293,8 @@ index), the apply thread's resources at `A'`, over `applyAll.specSnap`: the imag
 `A'` (both committed, of the same length), the applied index and the consistent index the
 snapshot's (`ciJ`'s second disjunct, a fresh start's `c₀ = 0`). The member's id and the meta
 reads are `isServerRun`'s (`#Hmid`, `#HmetaSnap`), the index past the boot log the payload's
-(`rnReadySnap_bootLen`, open). In the compaction mode, `run_job_snap_cmp` (open). -/
+(`rnReadySnap_bootLen`, open). In the compaction mode, `run_job_snap_cmp` (open); in a cluster that grants leases, the
+premise `hslg` (`runSnapLgOk`, `isServerRun`'s `%Hslg`). -/
 theorem run_job_snap (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
     (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
@@ -333,7 +305,8 @@ theorem run_job_snap (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
     (hlt : A.length < A'.length)
     (hlen : (γn.pre ++ A').length = uint.nat sv.Metadata'.Index')
     (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
-    (hboot : (γn.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index') :
+    (hboot : (γn.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index')
+    (hslg : C.γr.kv.lg = true → runSnapLgOk (GF := GF)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ γn.id ∗ srvMetaSnap C.γ ∗
         taEntriesAddr apL ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
@@ -354,8 +327,8 @@ theorem run_job_snap (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
     {{ RET #(); schedule.schedRunning γs ∗ applyRes C A' }} := by
   cases hlgc : C.γr.kv.lg
   case true =>
-    exact run_job_snap_lg hAA C A A' apL es sn sv rac nc γs γnc γn rt ha00 hc0 hpre hγn hρ hpr hγs
-      hγw hlt hlen h61 hboot hlgc
+    exact hslg hlgc C A A' apL es sn sv rac nc γs γnc γn rt ha00 hc0 hpre hγn hρ hpr hγs hγw hlt
+      hlen h61 hboot hlgc
   cases hcm : C.E.cmp
   · iintro %Φ ⟨#Hpkg, #Hsa, #Hmid, #Hmeta, #Hes, #Hesl, #Hsnf, Hsnv, #Hcl, #Hncf, #Hnc2, Hnr0,
       #Hracf, #Hracc, #Hrtf, #Hrtok, Hrun, HR, #HWc, #Hlbr⟩ HΦ
@@ -1135,7 +1108,7 @@ theorem EtcdServer.run.wp_proof
           (Val #ep_ptr)) (Val #ap_ptr))
         iapply (run_job_snap hAA.2 ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ A A' ap_ptr apv.entries' apv.snapshot' sv
           apv.raftAdvancedC' apv.notifyc' γs γnc γn apv.raftTerm' ha0 Hc0a.1 hp0 hgn hρC
-          (by rw [← hρC, hρ]; exact Hnm.2.1) rfl rfl hlt hlenA h61 hboot) $$ [Hrun Hres Hnrc]
+          (by rw [← hρC, hρ]; exact Hnm.2.1) rfl rfl hlt hlenA h61 hboot Hslg) $$ [Hrun Hres Hnrc]
         · iframe #
           iframe Hrun Hres Hnrc
         inext

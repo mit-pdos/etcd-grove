@@ -90,6 +90,9 @@ def isServerBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
     -- cooperating (`storage.diskOk`, `NewServer`'s premise)
     "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+    -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open snapshot
+    -- case (`runSnapLgOk`, `NewServer`'s precondition)
+    "%Hslg" ∷ ⌜γr.kv.lg = true → runSnapLgOk (GF := GF)⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     -- (J8b, 2026-11-01) the server's member id is the raft node's (`applyAll.specSnap`'s member id
     -- against the snapshot payload's `nodeSnapLocal … γn.id`)
@@ -184,7 +187,7 @@ theorem isServerBuilt_of_gapOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
       isServerBuiltOn s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   unfold srvBuiltG srvBuildGap isServerBuiltOn srvUberRowM
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
-      #Hrn, %HEr, Hrunh, Hwth, Hwtl, %Hdisk, %Hρrd, #Hmid, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
+      #Hrn, %HEr, Hrunh, Hwth, Hwtl, %Hdisk, %Hslg, %Hρrd, #Hmid, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
       Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
       ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, HWB, #Hsmall, #HNR, #Hcv, %Hbound,
       ⟨%ua, Hua, #HuB, #Hfor, Hakv⟩, Hwtok, Hsnapb⟩, Hsnap⟩
@@ -205,6 +208,8 @@ theorem isServerBuilt_of_gapOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
   · ipureintro; exact HEr
   isplitr
   · ipureintro; exact Hdisk
+  isplitr
+  · ipureintro; exact Hslg
   isplitr
   · ipureintro; exact Hρrd
   isplitr

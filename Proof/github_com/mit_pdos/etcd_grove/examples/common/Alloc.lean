@@ -67,13 +67,13 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
       (by simp) (by simpa using Hid0.symm) Hcc (by simp) (by simpa using Hlow) cmp cret) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
-  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr⟩ := Hγ
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg⟩ := Hγ
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, #Hkf, Hnb, Hsd⟩, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hwns with ⟨Hwn, -⟩
   imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp [Hwn]
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   · rw [hwn]; iexact Hwn
-  obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', -, hkr', hwn', hfs', hinc'⟩ := Hρ
+  obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', -, hkr', hklg', hwn', hfs', hinc'⟩ := Hρ
   -- (R2c) the member's first key, its store's index registered, at its names
   ihave #Hkf' : idKeyFactAt ρ.ids.fs ρ.ids.key idx $$ []
   · simp only [IdNames.key]; rw [hpfx, hinc', hfs', hfs]; iexact Hkf
@@ -102,7 +102,7 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
   isplitr
   · ipureintro
     exact ⟨rfl, by rw [hc0', hc0], by rw [hch', hch], by rw [hlog', hlog], hcok,
-      hpfx, rfl, trivial, by rw [hkc', hkc]⟩
+      hpfx, rfl, trivial, by rw [hkc', hkc], by simp [hklg', hklg]⟩
   iunfold idNoZero
   rw [hiss', hiss]
   iexact H0

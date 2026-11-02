@@ -42,12 +42,13 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.leasegrant.Assum
 /-- **The adequacy example's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/leasegrant/Main.lean`), under the semantic premises of
 its callees' linked results: `int64(f)` of a `float64` (`Float64ToInt64Semantics`, the server's)
-and the client's `dialWithBalancer` body (`DialWithBalancerBody`). -/
+and the client's `dialWithBalancer` body (`DialWithBalancerBody`); the open snapshot case of `run`
+in a cluster that grants leases (`runSnapLgOk_open`, a `sorry` only this example's results reach). -/
 theorem leasegrant.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     leasegrant.Main.spec (GF := GF) (hG := hG) :=
   leasegrant.Main.wp_proof zap.NewNop.wp_proof leasegrant.holdToken.wp_proof common.wp_StartServer common.wp_Serve
     common.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
-    context.wp_ErrAny client.v3.lessor.wp_Grant client.v3.lessor.wp_Leases
+    context.wp_ErrAny client.v3.lessor.wp_Grant client.v3.lessor.wp_Leases runSnapLgOk_open
 
 end results
 

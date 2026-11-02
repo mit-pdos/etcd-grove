@@ -431,6 +431,46 @@ theorem srvMetaSnap_withPh (γ : ApplyNames) (ph : ApplyPhys) :
     srvMetaSnap (GF := GF) (γ.withPh ph) = srvMetaSnap γ := by
   unfold srvMetaSnap; rfl
 
+/-- (open, the lease-grant plan's D2, 2026-11-02) **A snapshot payload's job in a cluster that
+grants leases** (`KVNames.lg = true`; `run_job_snap`'s statement there): the obligation `run` takes
+as `isServerRun`'s `%Hslg` (from `NewServer`'s precondition) instead of proving it. `applyAll.specSnap`
+takes a cluster that grants none: its lessor is monotone, and `Recover` (the snapshot's restore)
+takes a revocable one; besides, the snapshot's image then has leases (`specSnap`'s `hlease` is
+false). A single member is never sent a snapshot; restoring one with leases is a stage of its own.
+A cluster that grants none (every example but `leasegrant`) discharges the premise
+`γr.kv.lg = true → runSnapLgOk` by its `lg = false`, so the open case is in the trust base of the
+lease-granting results only (`runSnapLgOk_open`, `EtcdServer__run.lean`). -/
+def runSnapLgOk : Prop :=
+  ∀ (C : ApplyCtx GF) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
+    (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
+    (γn : RNNames) (rt : w64),
+  uint.nat C.ai₀ = 0 → uint.Z C.c₀ ≤ uint.Z C.ai₀ → γn.pre = [] →
+  γn.node = C.γr.raft.raft → C.ρ.raft = C.γr.raft →
+  C.γr.raft.pre = γn.pre → C.γs = γn.γs → C.γw = C.ρ.wait →
+  A.length < A'.length →
+  (γn.pre ++ A').length = uint.nat sv.Metadata'.Index' →
+  uint.Z sv.Metadata'.Index' < 2 ^ 61 →
+  (γn.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' →
+  C.γr.kv.lg = true →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ γn.id ∗ srvMetaSnap C.γ ∗
+        taEntriesAddr apL ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
+        taSnapshotAddr apL ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
+        (letI := srvStor (GF := GF) γn.node; iprop(
+          snapshotCert γn.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
+          nodeSnapLocal γn.node.cl γn.id sv.Metadata'.Index')) ∗
+        taNotifycAddr apL ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
+        taRaftAdvancedCAddr apL ↦□ rac ∗
+        rnAdvChan rac (letI := srvStor (GF := GF) γn.node
+          iprop(nodeAppliedLb γn.node.cl γn.key (γn.pre ++ A').length ∗
+            nodeCommitLb γn.node.cl γn.key (γn.pre ++ A').length ∗
+            srvFrozenAt γn.γs (γn.pre ++ A').length ∗ srvFrozenBelow γn.γs (γn.pre ++ A').length)) ∗
+        taRaftTermAddr apL ↦□ rt ∗ rnRtOk γn rt (rnLogOf γn A').length ∗
+        schedule.schedRunning γs ∗ applyRes C A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft A' }}
+      (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
+        (Val #apL))
+    {{ RET #(); schedule.schedRunning γs ∗ applyRes C A' }}
+
 /-- **What `run` needs** (see `Spec/.../EtcdServer__run.lean`; named conjuncts): the apply
 thread's view, `applyAll`'s, the raft wrapper (its node contract over the server's `E.C`), `run`'s
 fields, the ticks; the snapshot's contract once; the raft wrapper's loop, apply and done tokens
@@ -459,6 +499,9 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     -- cooperating (`storage.diskOk`, `NewServer`'s premise)
     "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+    -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open snapshot
+    -- case (`runSnapLgOk`, `NewServer`'s precondition)
+    "%Hslg" ∷ ⌜γr.kv.lg = true → runSnapLgOk (GF := GF)⌝ ∗
     -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
     "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v ∗

@@ -54,7 +54,7 @@ theorem newServerMode.wp_proof
   iunfold memberBoot at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
-  obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp⟩ := Hρ
+  obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp, hslg⟩ := Hρ
   -- `NewServer`'s compactor premise and the store's mode, from the mode's
   have Hacr : retention = W64 0 ∨
       (mode = go!"revision" ∧ 0 < sint.Z retention ∧ (ρ.rd.kv.cret : Int) ≤ sint.Z retention) ∨
@@ -122,6 +122,7 @@ theorem newServerMode.wp_proof
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
     isplitr; · ipureintro; exact Hdbo
+    isplitr; · ipureintro; exact hslg
     isplitr; · ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
     iapply Htk
     ipureintro; rfl

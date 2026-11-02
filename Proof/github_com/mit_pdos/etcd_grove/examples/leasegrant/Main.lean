@@ -60,7 +60,10 @@ theorem Main.wp_proof
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Grant : lessor.Grant.spec (GF := GF) (hG := hG))
-    (wp_Leases : lessor.Leases.spec (GF := GF) (hG := hG)) :
+    (wp_Leases : lessor.Leases.spec (GF := GF) (hG := hG))
+    -- (2026-11-02) the open snapshot case of `run` in a cluster that grants leases (`runSnapLgOk`,
+    -- `NewServer`'s precondition through `memberBoot`): this example's names grant leases
+    (hslg : runSnapLgOk (GF := GF)) :
     Main.spec (GF := GF) (hG := hG) := by
   sorry
 

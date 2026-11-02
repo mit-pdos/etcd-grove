@@ -1840,6 +1840,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   isplitr
   · ipureintro; exact Hdisk
   isplitr
+  · ipureintro; exact Hslg
+  isplitr
   · ipureintro; rfl
   isplitr
   · -- (J8b) the member id, the raft node's (`srvProcOk`'s)

@@ -87,7 +87,7 @@ grant's specs (D4-D5) and the example's theorem (statements, `sorry`).
 - `NewServer.specM`/`specG`'s post: `srvLessorNil srv` → `□ (⌜on = true⌝ → srvLessorNil srv)` (its
   only user, `authkv`'s `startServer`, is auth on).
 
-### D2. The lessor's monotone mode (done, proved but `run_job_snap_lg`)
+### D2. The lessor's monotone mode (done, proved; `run`'s lease-granting snapshot case a premise)
 
 - `LessorRdNames := GName × GName × Bool`: the third component the **mode**, pinned with the names;
   `lessorRdBody` gains `⌜γr.2.2 = true → histMono hs⌝` (no lease leaves a later lease map).
@@ -110,9 +110,18 @@ grant's specs (D4-D5) and the example's theorem (statements, `sorry`).
 - The server: `NewServer` creates the lessor at mode `ρ.rd.kv.lg`; `srvSnapRO` keeps
   `lessorModeIs E.γ.leases γr.kv.lg`; `applyAll.specSnap` takes `γr.kv.lg = false` (as it takes
   `E.cmp = false`), `applySnapshot.specSnap` and the walk take `lessorRevocable E.γ.leases`; `run`'s
-  snapshot job splits on `lg`: **`run_job_snap_lg` (new `sorry`)**, the snapshot job in a cluster
-  that grants leases (an interim restriction like `run_job_snap_cmp`; a single member is never sent
-  a snapshot).
+  snapshot job splits on `lg`. The case `lg = true` (the snapshot job in a cluster that grants
+  leases; a single member is never sent a snapshot) is not proved, and is a **premise**, not an
+  inline `sorry` (which would be in the trust base of every result resting on `run`, granting or
+  not; the coordinator's review, 2026-11-02): `runSnapLgOk` (`InvRun.lean`, the job's triple at
+  `lg = true`) enters as `ρ.rd.kv.lg = true → runSnapLgOk`, a pure row `%Hslg` of `NewServer`'s
+  precondition (`spec`/`specM`/`specG`), carried as `diskOk` is (`srvBuilt`, `srvBuiltG`,
+  `isServerBuilt(On)`, `isServerRun(On)`) to `run_job_snap`'s premise `hslg`. The examples' boot
+  bundle `memberBoot`/`memberBootOn` gets the same conjunct, which the allocations discharge by
+  their names' `lg = false` (`srvClusterBoot(On)_alloc` now state `γk.lg = false`,
+  `srvMemberBoot(On)_alloc` `ρ.rd.kv.lg = γk.lg`; `memberBoot_of` takes `γk.lg = false`).
+  `runSnapLgOk_open` (`EtcdServer__run.lean`, **new `sorry`**) discharges it; only
+  `leasegrant.Main.wp_proof` takes it (a premise `hslg`, `MainLinked` passes it).
 
 ### D3. The grant through the request path and the apply thread (not drafted in code)
 
@@ -164,7 +173,9 @@ lease table stays untied (S1 (a)).
 `lessorExpiredC`); `lease.lessor.Recover.spec` (axiom: `lessorRevocable`);
 `lease.lessor.ExpiredLeasesC.spec`, `lease.lessor.Revoke.spec`, `lease.lessor.Grant.spec` (proved
 specs); `lessorOk`'s `ExpiredLeasesC` clause and `srvGrantGuard`; `NewServer.specM`/`specG`'s
-`srvLessorNil`; `applyAll.specSnap` (`lg = false`), `applySnapshot.specSnap` (`lessorRevocable`);
+`srvLessorNil`, and (the review) the row `%Hslg : ρ.rd.kv.lg = true → runSnapLgOk` in
+`NewServer.spec`/`specM`/`specG`'s precondition; `applyAll.specSnap` (`lg = false`),
+`applySnapshot.specSnap` (`lessorRevocable`);
 `apply.revokeClause`, `revokeRes`, `revokeResAfter`. The client contracts are not changed (siblings).
 
 ### Checks
@@ -172,7 +183,10 @@ specs); `lessorOk`'s `ExpiredLeasesC` clause and `srvGrantGuard`; `NewServer.spe
 `lake build` passes; `etc/gen-init.py --check` and `etc/gen-interface.py --check` (backend, raft)
 pass; `etc/bounds-check.py --check` reports the example's three new matches (`spec-receipt` 2,
 `spec-thread` 1 in `examples/leasegrant`: `Main.spec`'s bounds, as `leasekv`'s), not recorded;
-`etc/tcb-report.py --check` reports two new `sorry`s in the trust base, `run_job_snap_lg` (every
-result that rests on `run`, as `run_job_snap_cmp`) and `leasegrant.Main.wp_proof` (the example's);
+`etc/tcb-report.py --check` reports two new `sorry`s in the trust base, `runSnapLgOk_open` and
+`leasegrant.Main.wp_proof`, both reached by `leasegrant_Main`/`leasegrant_safe` only (`--roots`);
+every `etc/tcb-collections/*.txt` passes `--reuse --collection <c> --check` unchanged (until the
+review the open case was an inline `sorry` of `run_job_snap`, `run_job_snap_lg`, in the trust base
+of every result resting on `run`);
 the other three (`EtcdServer.LeaseGrant.wp_proof`, `v3rpc.lessorGrantOkL_of_server`,
 `common.kv_lease_grant_served`) are reached by no root yet (not linked). Baseline not updated.
