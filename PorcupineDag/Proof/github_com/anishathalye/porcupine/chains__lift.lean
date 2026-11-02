@@ -258,7 +258,8 @@ theorem chains.lift.wp_proof
         with [Hch ch i consistency] as ⟨%stc, ch, i, consistency, Hch, %Hinv0⟩
       · iunfold chainsOwnCl at Hch
         icases Hch with ⟨%chV2, Hchp, %Hcl2, Hr⟩
-        icases chainsRepr_acc chV2 h cs st3 i hil $$ Hr with ⟨%Hlen2, %cvi, He, Hc, Hback⟩
+        icases chainsRepr_open chV2 h cs st3 i hil $$ Hr with ⟨%cvs, %cvi, %Hcvs, He, Hc, Hrest⟩
+        obtain ⟨Hcvi, Hcvsl, Hlen2⟩ := Hcvs
         iunfold clientOwn at Hc
         icases Hc with ⟨%Hcv, %cos3, Hcos3, %Hcok3, Hfus3⟩
         obtain ⟨Hcvi1, Hcvi2, Hcvi3⟩ := Hcv
@@ -272,17 +273,80 @@ theorem chains.lift.wp_proof
         have h3fr : st3.frontier = st.frontier.erase i := by rw [hst3]; simp only; rw [h2f, hst1]
         wp_if_destruct
         · -- client `i` unfinished: recount its `nDeps`
-          sorry
+          have hk2l : st.head i + 1 < (chain cs i).length := by
+            have := Hcos3l; rw [snat_eq] at this; rw [hk2] at Hif; omega
+          obtain ⟨co2, Hco2⟩ : ∃ co2, cos3[st.head i + 1]? = some co2 :=
+            ⟨_, List.getElem?_eq_getElem (by omega)⟩
+          have hbk2 : 0 ≤ sint.Z cvi.head' ∧ sint.Z cvi.head' < sint.Z cvi.cltOps'.len := by
+            constructor
+            · rw [hk2]; omega
+            · exact Hif
+          repeat ((try simp only [hiz, hbi2, hbk2, _root_.and_self, ↓reduceIte]); wp_auto)
+          simp only [hbk2, _root_.and_self, ↓reduceIte]
+          wp_apply wp_load_slice_index cvi.cltOps' (sint.Z cvi.head') cos3 _ co2 hbk2.1 $$ [Hcos3] as Hcos3
+          · iframe; ipureintro; rw [hk2]; simpa using Hco2
+          repeat ((try simp only [hiz, hbi2, hbk2, _root_.and_self, ↓reduceIte]); wp_auto)
+          -- `nDeps[i] = 0`, then the recount loop with client `i` kept out of the chains
+          have hk2v : st2.visAt i (st.head i + 1) = true := by
+            rw [h2vis]; apply Bool.or_eq_true_iff.mpr; right; apply decide_eq_true
+            refine ⟨rfl, ?_, hk2l⟩
+            unfold ChSt.head; rw [hst1]; simp only; rw [← ChSt.head, hlc.H'_getD, if_pos rfl]
+          have hk2s : st2.head i = st.head i + 1 := hhi2
+          obtain ⟨fu2, Hfu2⟩ : ∃ fu2, fu2 = st3.fuAt i (st.head i + 1) := ⟨_, rfl⟩
+          have hfu2l : fu2.length = cs.length := by
+            rw [Hfu2]; exact (h2sh.2.2.2.2 i (st.head i + 1) hk2l).2.2 ▸ (by unfold ChSt.fuAt; rw [hst3])
+          have hfu2v : ∀ d, d < cs.length → d ≠ i → sint.Z (fu2.getD d 0) = FUe h cs i d (st.head i + 1) := by
+            intro d hd hdi
+            have := h2fu i (st.head i + 1) hk2v d hd hdi
+            rw [Hfu2]; unfold ChSt.fuAt at this ⊢; rw [hst3]; exact this
+          icases BigSepL.bigSepL_lookup_acc Hco2 $$ Hfus3 with ⟨Hfu, Hfus3⟩
+          rw [← Hfu2]
+          ihave %Hful := ownSlice_len $$ Hfu
+          ihave HK : (∃ (kv : w64), "k" ∷ k_ptr ↦ kv ∗
+              "He" ∷ sliceIndexRef client (i : Int) chV2.clients' ↦
+                (⟨cvi.id', cvi.cltOps', cvi.head', W64 (cnt h cs st2.heads i (sint.nat kv) : Int)⟩ : client) ∗
+              "%Hk" ∷ ⌜0 ≤ sint.Z kv ∧ sint.Z kv ≤ cs.length⌝ : IProp GF) $$ [k He]
+          · iexists W64 0
+            rw [show sint.nat (W64 0) = 0 from rfl, cnt_zero]
+            iframe
+            ipureintro; exact ⟨by decide, by word⟩
+          wp_for HK
+          obtain ⟨Hk1, Hk2⟩ := Hk
+          have hw1 : ∀ n : Nat, (W64 ((n + 1 : Nat) : Int) : w64) = W64 (n : Int) + W64 1 := by
+            intro n; push_cast; word
+          wp_if_destruct
+          · -- the recount's body
+            have hkl : sint.nat kv < cs.length := by
+              have := Hif
+              rw [Hlen2] at this; rw [snat_eq]; omega
+            have hk1 : sint.nat (kv + W64 1) = sint.nat kv + 1 := by
+              rw [snat_eq, snat_eq]; have := hkl; rw [snat_eq] at this; word
+            have hkv1 : 0 ≤ sint.Z (kv + W64 1) ∧ sint.Z (kv + W64 1) ≤ cs.length := by
+              have := hkl; rw [snat_eq] at this
+              have h1 : sint.Z (kv + W64 1) = sint.Z kv + 1 := by word
+              omega
+            wp_if_destruct
+            · -- `k == i`
+              wp_for_post
+              iframe
+              iexists W64 (i : Int) + W64 1
+              rw [hk1, hinw, cnt_succ, if_neg (fun h0 => h0.1 rfl), Nat.add_zero]
+              iframe
+              ipureintro; exact hkv1
+            · sorry
+          · sorry
         · -- client `i` finished
           have hfin : ¬ st2.head i < (chain cs i).length := by
             rw [hhi2]; intro hlt; apply Hif
             have := Hcos3l; rw [snat_eq] at this; rw [hk2]; omega
-          ihave Hr := Hback $$ %st3 %cvi [] He [Hcos3 Hfus3]
-          · ipureintro; exact ⟨fun _ _ => ⟨rfl, rfl, rfl, rfl⟩, rfl⟩
+          ihave Hc : clientOwn h cs st3 i cvi $$ [Hcos3 Hfus3]
           · iunfold clientOwn
             isplitr
             · ipureintro; exact ⟨Hcvi1, Hcvi2, Hcvi3⟩
             iexists cos3; iframe; ipureintro; exact Hcok3
+          ihave Hr := chainsRest_close chV2 h cs st3 st3 i cvs cvi cvi Hcvi
+            (fun _ _ => ⟨rfl, rfl, rfl, rfl⟩) rfl $$ [He Hc Hrest]
+          · iframe
           isplitl []
           · itrivial
           iexists st3
