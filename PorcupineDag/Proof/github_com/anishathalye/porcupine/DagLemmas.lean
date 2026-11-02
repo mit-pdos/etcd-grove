@@ -82,6 +82,31 @@ theorem frontier_iff (hok : ChainsOk h cs) (hwf : CallLeRet h) {B : List Nat} {s
     obtain ⟨rfl, -⟩ := this
     exact hx'
 
+/-- Every head at its chain's end: every operation is linearized. -/
+theorem complete_all (hok : ChainsOk h cs) {B : List Nat} {st : ChSt} (hci : ChainsInv h cs B st)
+    (hall : ∀ c, c < cs.length → st.head c = (chain cs c).length) :
+    ∀ y, y < h.length → y ∈ B := by
+  intro y hy
+  obtain ⟨c, hc, hyc⟩ := (hok.2.1 y).mp hy
+  obtain ⟨k, hk, hke⟩ := List.getElem_of_mem hyc
+  have := (hci.2.2.1 c k hk).mpr (by have := hall c hc; unfold ChSt.head at this; omega)
+  rw [hke] at this; exact this
+
+/-- Some head before its chain's end: some operation is not linearized. -/
+theorem incomplete_some (hok : ChainsOk h cs) {B : List Nat} {st : ChSt} (hci : ChainsInv h cs B st)
+    (hnot : ¬ ∀ c, c < cs.length → st.head c = (chain cs c).length) :
+    ∃ y, y < h.length ∧ y ∉ B := by
+  have : ∃ c, c < cs.length ∧ st.head c ≠ (chain cs c).length := by
+    refine Classical.byContradiction fun hn => hnot fun c hc => ?_
+    exact Classical.byContradiction fun hne => hn ⟨c, hc, hne⟩
+  obtain ⟨c, hc, hne⟩ := this
+  have hle : st.head c ≤ (chain cs c).length := by
+    have := hci.2.2.2.1.2 c; unfold ChSt.head; exact this
+  have hlt : st.head c < (chain cs c).length := by omega
+  refine ⟨(chain cs c)[st.head c], lt_length_of_mem hok (List.getElem_mem hlt), fun hB => ?_⟩
+  have := (hci.2.2.1 c (st.head c) hlt).mp hB
+  unfold ChSt.head at this; omega
+
 end basic
 
 /-! ## `chains.unlift` -/

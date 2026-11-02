@@ -318,6 +318,22 @@ theorem chainsRest_close (chV : chains) (h : List (Op OpV)) (cs : List (List Nat
   iframe Hfr Hcap
   ipureintro; simpa using Hp
 
+theorem chainsRepr_facts (chV : chains) (h : List (Op OpV)) (cs : List (List Nat)) (st : ChSt) :
+    chainsRepr chV h cs st ⊢ ⌜sint.Z chV.numOps' = h.length ∧
+      sint.Z chV.frontier'.len = st.frontier.length⌝ ∗ chainsRepr (GF := GF) chV h cs st := by
+  unfold chainsRepr
+  iintro ⟨%cvs, Hcl, %Hcvs, Hfr, Hcap, Hcls⟩
+  ihave %Hfl := ownSlice_len $$ Hfr
+  isplitl []
+  · ipureintro
+    obtain ⟨h1, h2⟩ := Hfl
+    refine ⟨Hcvs.2, ?_⟩
+    simp only [List.length_map] at h1
+    rw [h1, show sint.nat chV.frontier'.len = (sint.Z chV.frontier'.len).toNat from rfl]; omega
+  iexists cvs
+  iframe
+  ipureintro; exact Hcvs
+
 /-- A client's struct, with its head or `nDeps` changed. -/
 theorem clientOwn_upd (h : List (Op OpV)) (cs : List (List Nat)) {st st' : ChSt} {c : Nat}
     (cv cv' : client) (hcl : cv'.cltOps' = cv.cltOps') (hid : cv'.id' = cv.id')
@@ -365,6 +381,19 @@ theorem stackRep_pop (S : ModelSpec GF σ) (np : NaInvPoolName) (cs : List (List
   rw [show fs.length = 0 + fs.reverse.length by simp]
   iframe H1 Hs
   ipureintro; exact ⟨hses, he⟩
+
+/-- The `k`-th oldest entry holds the `k`-th oldest frame's operation. -/
+theorem stackRep_get (S : ModelSpec GF σ) (np : NaInvPoolName) (cs : List (List Nat))
+    (ses : List stackEntry) (fs : List (Frame σ)) [NaInvG GF] {k : Nat} {se : stackEntry}
+    {f : Frame σ} (hse : ses[k]? = some se) (hf : fs.reverse[k]? = some f) :
+    stackRep S np cs ses fs ⊢ ⌜sint.Z se.opId' = f.id⌝ := by
+  unfold stackRep
+  iintro H
+  icases BigSepL2.bigSepL2_lookup (Φ := fun i se f =>
+    iprop(⌜sint.Z se.opId' = f.id ∧ sint.Z se.clientId' = clientOf cs f.id ∧
+      sint.Z se.frontierIdx' = f.pos⌝ ∗ shared (GF := GF) S np i se.state' f.pre)) hse hf $$ H
+    with ⟨%h, -⟩
+  ipureintro; exact h.1
 
 /-- A frame pushed: a new last entry. -/
 theorem stackRep_push (S : ModelSpec GF σ) (np : NaInvPoolName) (cs : List (List Nat))
