@@ -325,9 +325,10 @@ theorem newChains.wp_proof
         iframe
         ipureintro
         exact ⟨by word, by word⟩
-    have hivc : sint.nat iv = cs.length := by word
+    have hz0 : sint.Z (W64 0) = 0 := rfl
+    have hivc : sint.nat iv = cs.length := by have : sint.nat iv = (sint.Z iv).toNat := rfl; omega
     rw [hivc]
-    wp_apply +noauto (wp_slice_make3 (V := w64) (W64 0) ohsl.len ⟨by word, by word⟩)
+    wp_apply +noauto (wp_slice_make3 (V := w64) (W64 0) ohsl.len ⟨by rw [hz0]; omega, by rw [hz0]; omega⟩)
     iintro %frsl ⟨Hfr, Hfrcap, %Hfrc⟩
     wp_auto
     simp only [show sint.nat (W64 0) = 0 from rfl, List.replicate_zero]
@@ -368,10 +369,10 @@ theorem newChains.wp_proof
         "%Hi" ∷ ⌜0 ≤ sint.Z iv ∧ sint.Z iv ≤ cs.length ∧ NcInv h cs (sint.nat iv) st⌝) $$ [i Hch]
     · iexists W64 0, chStInit cs
       iframe
-      ipureintro; exact ⟨by word, by word, ncInv_init h cs⟩
+      ipureintro; exact ⟨by rw [hz0]; omega, by rw [hz0]; omega, ncInv_init h cs⟩
     wp_for IH4
     wp_if_destruct
-    · have hin : sint.nat iv < cs.length := by word
+    · have hin : sint.nat iv < cs.length := by have : sint.nat iv = (sint.Z iv).toNat := rfl; omega
       have hbi : 0 ≤ sint.Z iv ∧ sint.Z iv < sint.Z clsl.len := ⟨Hi.1, by omega⟩
       obtain ⟨hI1, hI2, hI3, hI4, hI5, hI6⟩ := Hi.2.2
       wp_apply +noauto (wp_computeFirstUnk ch_ptr clsl h cs st iv cons hok hwf hI3 hI4
@@ -398,7 +399,141 @@ theorem newChains.wp_proof
       have hndl : (sint.Z iv).toNat < st1.nDeps.length := by
         rw [Hst1.2.2.2.1.2.1]; exact hin
       wp_if_destruct
-      · sorry
+      · have hl : 0 < (chain cs (sint.nat iv)).length := by
+          have : 0 < sint.Z cv.cltOps'.len := by simpa using Hif
+          omega
+        have hb0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z cv.cltOps'.len := by
+          refine ⟨by decide, ?_⟩; simpa using Hif
+        obtain ⟨co0, hco0⟩ : ∃ co, cos[(sint.Z (W64 0)).toNat]? = some co :=
+          ⟨_, List.getElem?_eq_getElem (by rw [Hcoo.1]; exact hl)⟩
+        nc_idx [hbi, hb0]
+        simp only [eq_true hb0, ↓reduceIte]
+        wp_apply (wp_load_slice_index cv.cltOps' (sint.Z (W64 0)) cos _ co0 hb0.1) $$ [Hcos] as Hcos
+        · iframe Hcos; ipureintro; exact hco0
+        have hco0' : cos[0]? = some co0 := hco0
+        icases (BigSepL.bigSepL_lookup_acc (PROP := IProp GF)
+          (Φ := fun k (co : clientOperation) => co.firstUnk' ↦* st1.fuAt (sint.Z iv).toNat k) hco0').1
+          $$ Hfus with ⟨Hfl, Hfus⟩
+        ihave %Hfllen := ownSlice_len $$ Hfl
+        have hfl0 : (st1.fuAt (sint.nat iv) 0).length = cs.length :=
+          (Hst1.2.2.2.1.2.2.2.2 _ _ hl).2.2
+        have hvis0 : st1.visAt (sint.nat iv) 0 = true := by
+          rw [Hst1.2.2.2.2.2]; simp [ncInv_head Hi.2.2, hl]
+        have hfue : ∀ d, d < cs.length → d ≠ sint.nat iv →
+            sint.Z ((st1.fuAt (sint.nat iv) 0).getD d 0) = FUe h cs (sint.nat iv) d 0 :=
+          fun d h1 h2 => Hst1.2.2.2.2.1 _ _ hvis0 d h1 h2
+        iStructNamedSuffix op "_op"
+        ihave IH5 : iprop(∃ (jv ndv : w64), "j" ∷ j_ptr ↦ jv ∗
+            "nDeps_cc" ∷ (sliceIndexRef client (sint.Z iv) clsl).[client, go!"nDeps"] ↦ ndv ∗
+            "%Hj" ∷ ⌜0 ≤ sint.Z jv ∧ sint.Z jv ≤ cs.length ∧
+              sint.Z ndv = (((List.range (sint.nat jv)).filter (fun d =>
+                decide (d ≠ sint.nat iv ∧ 0 < FUe h cs (sint.nat iv) d 0))).length : Int)⌝)
+          $$ [j nDeps_cc]
+        · iexists W64 0, W64 0
+          iframe
+          ipureintro; exact ⟨by rw [hz0]; omega, by rw [hz0]; omega, by rw [show sint.nat (W64 0) = 0 from rfl]; rfl⟩
+        wp_for IH5
+        wp_if_destruct
+        · have hjn : sint.nat jv < cs.length := by
+            have : sint.nat jv = (sint.Z jv).toNat := rfl
+            omega
+          have hj1 := sint_add_one (a := jv) Hj.1 (by omega)
+          have hcnt := count_succ
+            (fun d => decide (d ≠ sint.nat iv ∧ 0 < FUe h cs (sint.nat iv) d 0)) (sint.nat jv)
+          have hle := List.length_filter_le
+            (fun d => decide (d ≠ sint.nat iv ∧ 0 < FUe h cs (sint.nat iv) d 0))
+            (List.range (sint.nat jv))
+          rw [List.length_range] at hle
+          wp_if_destruct
+          · -- `j = i`: skipped
+            wp_for_post
+            iframe
+            iexists jv + W64 1, ndv
+            rw [hj1.2]
+            iframe
+            ipureintro
+            refine ⟨by omega, by omega, ?_⟩
+            rw [hcnt, Hj.2.2]
+            subst Hif
+            simp
+          · have hji : sint.nat jv ≠ sint.nat iv := fun e => Hif (sint_nat_inj Hj.1 Hi.1 e)
+            have hbj : 0 ≤ sint.Z jv ∧ sint.Z jv < sint.Z co0.firstUnk'.len := by
+              refine ⟨Hj.1, ?_⟩
+              have h1 := Hfllen.1; have h2 := Hfllen.2
+              have : sint.nat jv = (sint.Z jv).toNat := rfl
+              have : sint.nat co0.firstUnk'.len = (sint.Z co0.firstUnk'.len).toNat := rfl
+              rw [show (sint.Z iv).toNat = sint.nat iv from rfl, hfl0] at h1
+              omega
+            simp only [hbj, _root_.and_self, ↓reduceIte]
+            have hx : (st1.fuAt (sint.Z iv).toNat 0)[(sint.Z jv).toNat]? =
+                some ((st1.fuAt (sint.nat iv) 0).getD (sint.nat jv) 0) := by
+              rw [List.getD_eq_getElem?_getD, show (sint.Z jv).toNat = sint.nat jv from rfl,
+                List.getElem?_eq_getElem (by rw [show (sint.Z iv).toNat = sint.nat iv from rfl, hfl0]; exact hjn)]
+              rfl
+            wp_apply (wp_load_slice_index co0.firstUnk' (sint.Z jv) _ _ _ Hj.1) $$ [Hfl] as Hfl
+            · iframe Hfl; ipureintro; exact hx
+            have hv := hfue (sint.nat jv) hjn hji
+            have hz : sint.Z (W64 0) = 0 := rfl
+            wp_if_destruct
+            · -- a dependency: `nDeps++`
+              have hpos : 0 < FUe h cs (sint.nat iv) (sint.nat jv) 0 := by omega
+              have hnd1 := sint_add_one (a := ndv) (by omega) (by omega)
+              nc_idx [hbi]
+              wp_for_post
+              iframe
+              iexists jv + W64 1, ndv + W64 1
+              rw [hj1.2]
+              iframe
+              ipureintro
+              refine ⟨by omega, by omega, ?_⟩
+              rw [hcnt, hnd1.1, Hj.2.2]
+              simp [hji, hpos]
+            · have hnpos : ¬ 0 < FUe h cs (sint.nat iv) (sint.nat jv) 0 := by omega
+              wp_for_post
+              iframe
+              iexists jv + W64 1, ndv
+              rw [hj1.2]
+              iframe
+              ipureintro
+              refine ⟨by omega, by omega, ?_⟩
+              rw [hcnt, Hj.2.2]
+              simp [hnpos]
+        · -- every client looked at: `nDeps[i]` is the count
+          have hjc : sint.nat jv = cs.length := by
+            have : sint.nat jv = (sint.Z jv).toNat := rfl
+            omega
+          have hndv : sint.Z ndv = (deps h cs (List.replicate cs.length 0) (sint.nat iv) : Int) := by
+            rw [Hj.2.2, hjc, deps_init hl]
+          ihave Hfus := Hfus $$ %co0 Hfl
+          rw [list_set_lookup_self _ _ _ hco0']
+          ihave Hcv := typedPointsto_combine _ { cv with nDeps' := ndv } _ Hcvnn $$
+            [id_cc cltOps_cc head_cc nDeps_cc __cc]
+          · simp only [TypedPointsto.typedPointstoDef]; iframe
+          ihave Hchp := typedPointsto_combine _ chV _ Hchnn $$ [clients_ch numOps_ch frontier_ch __ch]
+          · simp only [TypedPointsto.typedPointstoDef]; rw [Hchcl]; iframe
+          ihave Hc : clientOwn h cs { st1 with nDeps := st1.nDeps.set (sint.Z iv).toNat ndv }
+              (sint.Z iv).toNat { cv with nDeps' := ndv } $$ [Hcos Hfus]
+          · unfold clientOwn
+            isplitr
+            · ipureintro
+              exact ⟨Hcf.1, Hcf.2.1, by simp only; rw [List.getD_eq_getElem?_getD,
+                List.getElem?_set_self hndl]; rfl⟩
+            iexists cos
+            iframe
+            ipureintro; exact Hcoo
+          ihave Hch := chains_close ch_ptr chV clsl h cs st1
+            { st1 with nDeps := st1.nDeps.set (sint.Z iv).toNat ndv } cvs (sint.Z iv)
+            { cv with nDeps' := ndv } Hchcl ⟨Hcvslen, Hnum⟩ (by omega)
+            (fun k hk cv => clientOwn_nDeps_ne h cs st1 _ _ k hk cv) $$ [Hchp Hfr Hcap Hcv Hw Hrest Hc]
+          · iframe
+          have hi1 := sint_add_one (a := iv) Hi.1 (by omega)
+          wp_for_post
+          iframe
+          iexists iv + W64 1, { st1 with nDeps := st1.nDeps.set (sint.Z iv).toNat ndv }
+          rw [hi1.2]
+          iframe
+          ipureintro
+          exact ⟨by omega, by omega, ncInv_step Hi.2.2 hin Hst1 _ (fun _ => hndv)⟩
       · -- no operations: `nDeps` stays `0`
         have hl0 : (chain cs (sint.nat iv)).length = 0 := by
           have : ¬ (0 < sint.Z cv.cltOps'.len) := by simpa using Hif
@@ -426,11 +561,11 @@ theorem newChains.wp_proof
         wp_for_post
         iframe
         iexists iv + W64 1, { st1 with nDeps := st1.nDeps.set (sint.Z iv).toNat (W64 0) }
-        have hi1 : sint.nat (iv + W64 1) = sint.nat iv + 1 := by word
-        rw [hi1]
+        have hi1 := sint_add_one (a := iv) Hi.1 (by omega)
+        rw [hi1.2]
         iframe
         ipureintro
-        exact ⟨by word, by word, ncInv_step Hi.2.2 hin Hst1 _ (fun hp => absurd hp (by omega))⟩
+        exact ⟨by omega, by omega, ncInv_step Hi.2.2 hin Hst1 _ (fun hp => absurd hp (by omega))⟩
     · sorry
 
 end proof

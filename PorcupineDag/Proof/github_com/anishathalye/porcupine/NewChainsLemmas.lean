@@ -236,6 +236,18 @@ theorem take_set_succ {β : Type} {l : List β} {j : Nat} (hj : j < l.length) (a
     List.set_eq_of_length_le (by simp; omega)]
   rfl
 
+theorem sint_add_one {a : w64} (h0 : 0 ≤ sint.Z a) (h1 : sint.Z a < 2 ^ 62) :
+    sint.Z (a + W64 1) = sint.Z a + 1 ∧ sint.nat (a + W64 1) = sint.nat a + 1 := by
+  constructor <;> word
+
+theorem sint_nat_inj {a b : w64} (ha : 0 ≤ sint.Z a) (hb : 0 ≤ sint.Z b)
+    (h : sint.nat a = sint.nat b) : a = b := by
+  have : sint.Z a = sint.Z b := by
+    have e1 : sint.nat a = (sint.Z a).toNat := rfl
+    have e2 : sint.nat b = (sint.Z b).toNat := rfl
+    omega
+  word
+
 theorem w64_eq_of_sint {a : w64} {n : Nat} (ha : sint.Z a = (n : Int)) (hn : (n : Int) < 2 ^ 63) :
     a = W64 (n : Int) := by
   word
