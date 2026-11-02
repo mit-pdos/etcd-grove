@@ -442,7 +442,43 @@ theorem checkSingle.wp_proof
         · iright; iexact HPD
     · -- lifted
       subst Hok
-      sorry
+      iunfold searchOwn at Hs
+      icases Hs with ⟨%st1, %ssl1, %ses1, %lsl1, %ws1, Hch, %Hci1, Hstk, Hstack, Hscap, #Hses, Hlinp, Hlin,
+        %Hws1', Hcache⟩
+      simp only [named]
+      iunfold chainsOwn at Hch
+      icases Hch with ⟨%chV1, Hchp, Hr⟩
+      icases chainsRepr_facts chV1 h cs st1 $$ Hr with ⟨%Hf1, Hr⟩
+      wp_auto
+      have hfl : sint.Z (chV1.frontier'.len - W64 1) = (fr'.length : Int) - 1 := by
+        have h1 := Hf1.2
+        have h2 : fr'.length = st1.frontier.length := by rw [← Hci1.2]; unfold frOf; simp
+        have : st1.frontier.length ≤ cs.length := by
+          have := nodup_of_sorted Hci1.1.2.2.2.2.2.2.2.2.2.2.1
+          exact Nat.le_trans (List.Nodup.length_le_of_subset this (fun v hv => List.mem_range.mpr
+            (Hci1.1.2.2.2.2.2.2.2.2.2.1 v hv).1)) (by simp)
+        have hcs : (cs.length : Int) ≤ 2 ^ 45 := by
+          have := halloc; unfold AllocOk maxAllocBytes at this
+          have hm : (cs.length : Int) * 1 ≤ cs.length * ((max h.length 6 : Nat) : Int) :=
+            Int.mul_le_mul_of_nonneg_left (by omega) (by omega)
+          omega
+        rw [h2]; word
+      ihave Hs : searchOwn S np h cs ch_ptr stack_ptr serialized_ptr cm (⟨y, s, q, fr⟩ :: fs) fr'
+          ((fun i => i ∈ y :: ids fs, t') :: cache) $$ [Hchp Hr Hstk Hstack Hscap Hlinp Hlin Hcache]
+      · iunfold searchOwn; iexists st1, ssl1, ses1, lsl1, ws1; simp only [named]
+        isplitl [Hchp Hr]
+        · iunfold chainsOwn; iexists chV1; iframe
+        iframe; iframe Hses; ipureintro; exact ⟨Hci1, Hws1'⟩
+      ihave #Hnsv' : shared S np (⟨y, s, q, fr⟩ :: fs).length nsv t' $$ []
+      · iexact Hnsv
+      wp_for_post
+      iframe
+      iexists t'
+      iframe Hnsv'
+      isplitr
+      · ipureintro; rw [hfl]; exact Hst'
+      rw [hfl]
+      iexact Hb'
 
 end proof
 
