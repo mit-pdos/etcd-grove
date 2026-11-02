@@ -42,6 +42,32 @@ def glOrder (a b : Operation) : w64 :=
   else if sint.Z b.Call' < sint.Z a.Call' then W64 1
   else W64 0
 
+theorem rtOrder_cases (a b : Operation) :
+    rtOrder a b = W64 (-2) ∨ rtOrder a b = W64 2 ∨ rtOrder a b = W64 0 := by
+  unfold rtOrder; split
+  · exact Or.inl rfl
+  · split
+    · exact Or.inr (Or.inl rfl)
+    · exact Or.inr (Or.inr rfl)
+
+theorem glOrder_cases (a b : Operation) :
+    glOrder a b = W64 (-1) ∨ glOrder a b = W64 1 ∨ glOrder a b = W64 0 := by
+  unfold glOrder; split
+  · exact Or.inl rfl
+  · split
+    · exact Or.inr (Or.inl rfl)
+    · exact Or.inr (Or.inr rfl)
+
+/-- `linOrder` is `RealTime`'s answer, or `GeneralLikely`'s where it does not know. -/
+theorem linOrder_eq (a b : Operation) :
+    linOrder a b = if rtOrder a b = W64 0 then glOrder a b else rtOrder a b := by
+  unfold linOrder rtOrder glOrder
+  split
+  · rfl
+  · split
+    · rfl
+    · rfl
+
 end orders
 
 section proofs
