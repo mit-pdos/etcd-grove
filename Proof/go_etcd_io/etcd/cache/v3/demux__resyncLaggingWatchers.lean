@@ -500,9 +500,10 @@ theorem demux.resyncLaggingWatchers.wp_proof
           (by simp only; rw [Hrange]; simpa using Hbok.1)
           (by simp only; rw [Hrange]; simpa using enqueueResult_some sent0 hr')).1 rfl⟩
       ihave #Hpub := pub_send (C := C) pred ri.sr ri.s { v with n := resyncNext nv vis j } sent0
-        (eventsResp b) c.base Hsr HSOr Hnext $$ [Hcerts] [Hprog]
+        (eventsResp b) c.base Hsr HSOr Hnext $$ [Hcerts] [Hprog] [Hquiet]
       · simp only; rw [Hst]; iexact Hcerts
       · simp only; rw [Hmx]; iexact Hprog
+      · simp only; rw [Hst, Hmx, chainEnd_base_stream]; iexact Hquiet
       wp_apply wp_enqueueResponse key ri.γ pred (demuxPub C pred ri.sr) sent0 _ (eventsResp b)
         $$ [Hopen] as %ok ⟨%sent'', Hopen, %Henq⟩
       · iframe Hw Hopen
@@ -614,9 +615,10 @@ theorem demux.resyncLaggingWatchers.wp_proof
           (by simp only; omega) (by simp only; rw [Hmx]; omega)
           (by simp only; rw [Hmx]; exact enqueueResult_some sent1 hr')).2 rfl⟩
       ihave #Hpub := pub_send (C := C) pred ri.sr ri.s { v with n := resyncNext nv vis vis.length }
-        sent1 (progressResp c.maxRev) c.base Hsr HSOr Hnext $$ [Hcerts] [Hprog]
+        sent1 (progressResp c.maxRev) c.base Hsr HSOr Hnext $$ [Hcerts] [Hprog] [Hquiet]
       · simp only; rw [Hst]; iexact Hcerts
       · simp only; rw [Hmx]; iexact Hprog
+      · simp only; rw [Hst, Hmx, chainEnd_base_stream]; iexact Hquiet
       wp_apply wp_enqueueResponse key ri.γ pred (demuxPub C pred ri.sr) sent1 _
         (progressResp c.maxRev) $$ [Hopen] as %ok ⟨%sent2, Hopen, %Henq⟩
       · iframe Hw Hopen

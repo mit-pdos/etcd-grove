@@ -874,6 +874,13 @@ def cacheCert (cf : CacheFields) : DemuxCert GF where
     unfold cacheRev etcdStepCertBody
     iintro ⟨⟨%cs, -, -, -, H1⟩, H2⟩
     iframe H1 H2
+  quiet := etcdQuiet cf.pfx
+  quiet_timeless := fun _ _ => inferInstance
+  quiet_mono := etcdQuiet_mono cf.pfx
+  quiet_nil := etcdQuiet_nil cf.pfx
+  cert_quiet := fun p b a hp => by
+    iintro ⟨H, -⟩
+    iapply etcdQuiet_of_cert cf.pfx p b a hp $$ H
 
 /-- The cache's demux certificate is stronger than etcd's (`etcdStepCert`), the one `Watch`'s
 statement and the delivery theorem are about. -/
@@ -989,7 +996,7 @@ theorem respCert_cacheCert (cf : CacheFields) (c : DemuxCore) (r : RespModel) (B
       |==> ∃ B', respCert (cacheCert cf) c r ∗ cacheBound cf B' := by
   unfold respCert
   split
-  · iintro ⟨⟨%Hb, #Hp⟩, Hbd⟩
+  · iintro ⟨⟨%Hb, #Hp, #Hq⟩, Hbd⟩
     have hp : (etcdStepCert (GF := GF) cf.pfx).prog r.hdrRev = etcdReached r.hdrRev := rfl
     rw [hp]
     imod cacheBound_raise cf B r.hdrRev $$ [$Hbd $Hp] with ⟨%B', Hbd, #Hlb, -⟩
@@ -998,11 +1005,15 @@ theorem respCert_cacheCert (cf : CacheFields) (c : DemuxCore) (r : RespModel) (B
     iframe Hbd
     isplitr
     · ipureintro; exact Hb
-    imodintro
-    have hc : (cacheCert (GF := GF) cf).prog r.hdrRev = cacheRev cf r.hdrRev := rfl
-    rw [hc]
-    unfold cacheRev
-    iframe Hp Hlb
+    isplitr
+    · imodintro
+      have hc : (cacheCert (GF := GF) cf).prog r.hdrRev = cacheRev cf r.hdrRev := rfl
+      rw [hc]
+      unfold cacheRev
+      iframe Hp Hlb
+    · have hq : (cacheCert (GF := GF) cf).quiet c.lastRev (sint.Z r.hdrRev) =
+          (etcdStepCert cf.pfx).quiet c.lastRev (sint.Z r.hdrRev) := rfl
+      rw [hq]; iexact Hq
   · split
     · iintro ⟨-, Hbd⟩
       imodintro
@@ -1089,23 +1100,30 @@ theorem certChain_mono (C C' : DemuxCert GF) (h : ∀ p b, C.cert p b ⊢ C'.cer
 
 /-- A watcher's publication is monotone in the certificate. -/
 theorem demuxPubBody_mono (C C' : DemuxCert GF) (hc : ∀ p b, C.cert p b ⊢ C'.cert p b)
-    (hp : ∀ r, C.prog r ⊢ C'.prog r) (pred : Option (GoString → Bool)) (sr : w64)
+    (hp : ∀ r, C.prog r ⊢ C'.prog r) (hq : ∀ a b, C.quiet a b ⊢ C'.quiet a b)
+    (pred : Option (GoString → Bool)) (sr : w64)
     (oc : Option (Option w64)) (L : List RespModel) :
     demuxPubBody C pred sr oc L ⊢ demuxPubBody C' pred sr oc L := by
   unfold demuxPubBody
-  iintro ⟨%s, %v, %p₀, %Hpure, Hch, #Hprog⟩
+  iintro ⟨%s, %v, %p₀, %Hpure, Hch, #Hprog, #Hq⟩
   iexists s, v, p₀
   isplitr
   · ipureintro; exact Hpure
   isplitl [Hch]
   · iapply certChain_mono C C' hc $$ Hch
+  isplitr
   · imodintro; iapply hp $$ Hprog
+  icases Hq with (%h | #Hq)
+  · ileft; ipureintro; exact h
+  · iright; imodintro; iapply hq $$ Hq
 
 /-- The cache's demux publications give etcd's (`etcdStepCert`). -/
 theorem demuxPubBody_cacheCert (cf : CacheFields) (pred : Option (GoString → Bool)) (sr : w64)
     (oc : Option (Option w64)) (L : List RespModel) :
     demuxPubBody (cacheCert cf) pred sr oc L ⊢ demuxPubBody (etcdStepCert (GF := GF) cf.pfx) pred sr oc L :=
-  demuxPubBody_mono _ _ (cacheCert_cert cf) (cacheCert_prog cf) pred sr oc L
+  demuxPubBody_mono _ _ (cacheCert_cert cf) (cacheCert_prog cf)
+    (fun a b => by
+      rw [show (cacheCert (GF := GF) cf).quiet a b = (etcdStepCert cf.pfx).quiet a b from rfl]) pred sr oc L
 
 /-- The `i`-th response `v` on `Cache.Watch`'s channel: modelled by `r`, the `i`-th of a log `L`
 (of the monotone log `fwd`) that is a `cacheWatchLog`. -/
@@ -1155,7 +1173,9 @@ theorem demuxPubBody_nil (C : DemuxCert GF) (pred : Option (GoString → Bool)) 
   rw [h0]
   isplitr
   · iapply certChain_nil
+  isplitr
   · imodintro; iapply C.prog_zero
+  · ileft; ipureintro; exact Or.inr (Or.inl rfl)
 
 /-- **Receiving** on `Cache.Watch`'s channel: with `ok`, the next response, the received log
 (`rs ++ [r]`) still a `cacheWatchLog`; without, the channel was closed. -/
