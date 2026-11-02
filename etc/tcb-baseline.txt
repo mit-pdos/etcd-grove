@@ -765,8 +765,6 @@ axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
-sorry ApiImpl.wp_RestartNode_impl
-sorry ApiImpl.wp_StartNode_impl
 sorry EtcdServer.applyAll.wp_proof
 sorry EtcdServer.applyAll.wp_proofOn
 sorry EtcdServer.processInternalRaftRequestOnce.wp_proofCompact
@@ -774,12 +772,9 @@ sorry EtcdServer.run.wp_proof
 sorry EtcdServer.run.wp_proofOn
 sorry EtcdServer.snapshot.wp_proof
 sorry EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
-sorry NewRawNode.wp_proof
 sorry NewServer.wp_proofCompact
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
-sorry RestartNode.wp_raw
-sorry StartNode.wp_raw
 sorry authkv.Main.wp_proof
 sorry authkv.Work.wp_proof
 sorry authkv.newUserClient.wp_proof
@@ -790,12 +785,11 @@ sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
 sorry kv.StartCluster.wp_proof
 sorry kvStorage_bootStorage
+sorry kvdurable.kd_RestartNode_at
+sorry kvdurable.kd_confAt_lists_le
 sorry kvreconf.Cluster.startNew.wp_proof
 sorry kvreconf.StartCluster.wp_proof
-sorry newLogWithSize.wp_proof
-sorry newRaft.wp_proof
 sorry raftNode.start.wp_proof
 sorry raftNode_of_StartNode
 sorry rnApplyTok_recv
 sorry rn_ready_recv
-sorry setupNode.wp_proof

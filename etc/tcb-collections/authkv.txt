@@ -296,7 +296,8 @@ sorry EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
 sorry authkv.Main.wp_proof
 sorry authkv.Work.wp_proof
 sorry authkv.newUserClient.wp_proof
-sorry isRaftNodeIfc_of_isNode
+sorry bootstrappedRaft.newRaftNode.wp_proof
 sorry raftNode.start.wp_proof
+sorry raftNode_of_StartNode
 sorry rnApplyTok_recv
 sorry rn_ready_recv

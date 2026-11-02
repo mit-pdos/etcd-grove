@@ -18697,3 +18697,66 @@ in "Last updated entries (all 164, until 2026-10-22)"), newest first.
 - 2026-10-21 (client-member cuts in linkv3p, K0, K1, K3: `linkv3p_safe` re-closed with client-member cuts through a copy of etcd's bridge, part of the network (D26: 5 trust-boundary axioms, its code not verified), a finding (`issues/nonissues/etcd-bridge-blackhole-twice-panic.md`); older entries: `notes/status-history.md`, "Last updated entries (all 164, until 2026-10-22)".; 2026-10-21 (client-member cuts in linkv3p, K0, K1, K3: `linkv3p_safe` re-closed with client-member cuts through a copy of etcd's bridge, part of the network (D26: 5 trust-boundary axioms, its code not verified), a finding (`issues/nonissues/etcd-bridge-blackhole-twice-panic.md`); older entries: `notes/status-history.md`, "Last updated entries (all 164, until 2026-10-22)".) 2026-11-01 (durability stage II (j), start functions: kvdurable's `openStorage` proved (no sorry, no axiom; branch `worktree-agent-kvd-openstorage`), with three spec changes: `KdFileOk`'s log bound strict (the last index below `maxIndex`, `MemoryStorage.Append`'s premise; the Go check now `n >= maxIndex-prev`), `getSnapshot` gives `ownSnapS` (every pointer field set: the conf state non-`nil` for `CreateSnapshot`), raft's `MemoryStorage.CreateSnapshot.spec` detached refusal also gives `i ≤ sv0`'s index; report `spec-scratch/raft-durability/kvd-openstorage-report.md`)
 - 2026-10-21 (client-member cuts in linkv3p, K0, K1, K3: `linkv3p_safe` re-closed with client-member cuts through a copy of etcd's bridge, part of the network (D26: 5 trust-boundary axioms, its code not verified), a finding (`issues/nonissues/etcd-bridge-blackhole-twice-panic.md`); older entries: `notes/status-history.md`, "Last updated entries (all 164, until 2026-10-22)".; 2026-10-21 (client-member cuts in linkv3p, K0, K1, K3: `linkv3p_safe` re-closed with client-member cuts through a copy of etcd's bridge, part of the network (D26: 5 trust-boundary axioms, its code not verified), a finding (`issues/nonissues/etcd-bridge-blackhole-twice-panic.md`); older entries: `notes/status-history.md`, "Last updated entries (all 164, until 2026-10-22)".) (Merged from the integration branch:) 2026-11-01 (durability stage II (i): `durTie` tied to the storage, the 16 G2 sites proved, `readyMsgs_sent` in raft; see "Durability stage II (i)")
 - 2026-10-30 (the old bbolt branch merged into `old/bbolt/`, not built, for the redo; see "The old bbolt proofs, kept for the redo")
+
+## Durability stage II (p): the restart path (2026-11-02, branch `worktree-agent-raftrestart`)
+
+Report: `/home/ubuntu/spec-scratch/raft-durability/stageII-p-report.md`. (Stage II (o)'s section is in
+`status-history.md`.)
+
+- **Proved:** `RestartNode.wp_proof` (one triple, as `StartNode`'s; one `sorry` left, below),
+  `newLogWithSize.wp_proof`, `setupNode.wp_proof`; `StartNode.wp_proof` still proved.
+- **`wcommit`** (`notes/decisions.md`, "The restart's lowest commit: `wcommit`"):
+  `RaftState.wcommit`, `StorageHolds`' new lower bound `S.wcommit ≤ σ.commit`, the durable half's
+  and the batch's I1 (`durI1`), `raft_enter`'s premise, `raft_restart`'s I1 and `DurFull` outputs.
+- **`SdtTie` relaxed** to the attach record's gap, the record's terms committed (`ctCommitted` in
+  `certLink`), a `Ready`'s certification over the gap (`ownRaftLog_certify_gap`); `AttachRec`
+  records every index `1..c0` (`notes/raft-durability-proof-plan.md`, "Stage II (p)").
+- **API statement changes:** `RestartNode.spec` takes `readyFits γ N` and the conf state lists'
+  bound `≤ 2^62` (scope); `StorageHolds` (above); `raftState`'s sealed body gains the budget's
+  invariant.
+- **Still `sorry`:** both gone in stage II (r) (below the section above).
+- **Builds:** raft's `Linked`, kvreconf's, kv's and the server's `Link`/`NodeApiLink`. Interfaces
+  regenerated; `etc/api-check.py etc/api/raft.txt --check` passes (older warnings).
+  `etc/tcb-report.py --check` not run (needs a full build).
+
+## Durability stage II (s): kvdurable merged, its stand-ins replaced (2026-11-02, branch `worktree-kvdurable`)
+
+`origin/worktree-agent-kvd-adequacy` (kvdurable's restart, start, link, callees, `openStorage` and
+adequacy: the sections below) merged; only `notes/STATUS.md` conflicted. kvdurable's `sorry`s that stood
+in for raft facts are gone, replaced by what raft now states:
+
+- **The `Ready` facts** (`Replica__run.lean`): G4, G7, G8, G9, G10, G14, G17 are raft's `readyRest_*` laws
+  (`InvNode`), G21 `softStateIs_ne_null` (`ApiVocab`); G20 (`EntWf`) is `readyRest_ents_type` plus the
+  data length of each entry's slice (`entsRO_data_len`, new, from `entsRO`). G7 is the law's: the snapshot
+  is above the hard state's commit index (`st.hardState`), not the durable state's; `img_snap_fresh` now
+  takes the image's commit index (`M.hs`, equal to the driver's hard state by `Hcmeq`), which is all it
+  needed. `softStateIs`'s new `⌜p ≠ null⌝` and `readyRest`'s `ReadyRestFacts` conjunct are skipped in the
+  two `icases` of each.
+- **The freeze point**: `kd_restartStorage` gives raft's `restartStorage` directly, frozen at the stored
+  snapshot's index (new premise `prev ≤ snapshot index`); `storHoldsF`, `restartStorageF` and the bridge
+  `restartStorage_frozen_prefix` are gone.
+- **S1b**: `Cluster.start` calls `RestartNode.spec` itself (its post has S1b); `RestartNodeS1b.spec` and
+  `restart_delivered_stored_S1b` are gone.
+- **`kdFileInv` without its lent case**: with `▷ raftState` in `RestartNode`'s update, `kd_restartAu`
+  opens the file's invariant inside the update (the writer's half pins the state; the later stays on the
+  durable state, stripped off the timeless parts) and gives back the writer's half. `Cluster.start` reads
+  the file inside the invariant too (`Read.wp_file_au`, one later credit), taking out the contents' facts
+  and the snapshot's certificate. `kdFile_lend`, `kdFile_return`, `kdWriter_lent_absurd` and the lent
+  disjunct are gone (`Replica.persist`'s two sites and `RunDmu`'s lost their refutation). `kdRepN_files`
+  moved to `DefsLaws` with the new `kdRepN_raft`.
+
+- **Link in a namespace of its own** (`etc/gen-link.py`: `--kvdurable` is `NAMESPACED`, `kvdurable`): its
+  results shared names with kvreconf's Link (`context.wp_WithTimeoutBackground`, `node.wp_*`, ...), so the
+  two could not be imported together and `etc/tcb-report.py` failed; a namespaced mode now refers to a spec
+  declared only below `Perennial` (`durable`'s `Read`, `Write`) from the root (`_root_.Perennial.…`).
+- **`MustSync` importable** (`etc/api/raft.txt`, an API change: kvdurable's `Replica.run` calls it): its spec
+  file imports `InvPbLog` and `InvStorage` (both importable) instead of the internal `InvRaftPhys`.
+- Raft's interfaces regenerated: `MustSync` new; `MemoryStorage.CreateSnapshot` (the openStorage branch's
+  `i ≤ sv0`'s index on the detached refusal) and `Linked` had gone stale in the merge.
+- `etc/tcb-report.py --check` matches the baseline unchanged (766 axioms, 34 `sorry`s: kvdurable's stand-ins
+  were never in it). `kvdurable_porcupine_safe` rests on 18 of this repository's axioms and 5 `sorry`s, all
+  raft's restart path: `ApiImpl.wp_RestartNode_impl`, `RestartNode.wp_raw`, `NewRawNode.wp_proof`,
+  `newLogWithSize.wp_proof`, `newRaft.wp_proof`.
+
+What remains on `kvdurable_adequate`'s path is raft's restart path (the other agent's): the report,
+`/home/ubuntu/spec-scratch/raft-durability/stageII-s-report.md`.
