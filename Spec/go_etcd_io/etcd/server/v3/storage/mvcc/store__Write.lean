@@ -49,6 +49,24 @@ abbrev mvcc.store.Write.spec : Prop :=
         mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev Z ∗ mvcc.crevLb γ.idx crev ∗
         ⌜c ≤ crev⌝) ∗ Q ∗ mvcc.hookIs γ P f }}
 
+/-- **`Write` in either mode** (mvcc's candidate API, `notes/mvcc-api-proof-plan.md`, stage P2):
+`spec`'s, with the hook's facts (`hookOk`) and a pin of the store's current objects at any fraction
+(`curAt`: the abstract mode's is persistent) in place of the caller's hook (`hookIs`, whose writer's
+fragment is the old mode's). -/
+abbrev mvcc.store.Write.specA : Prop :=
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool)
+    (c : Int) (Z : IProp GF) (dq : DFrac) (o : mvcc.StoreObjs),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isStore s γ ∗ mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.crevLb γ.idx c ∗ mvcc.revToken γ ∗
+      mvcc.storeWT γ ∗ ⌜trace ≠ null⌝ ∗
+      mvcc.hookOk γ P f ∗ mvcc.curAt γ dq o ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
+      traceutil.ownTrace trace te }}
+    (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
+  {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
+      (∃ (ilog : mvcc.Log) (crev : Int),
+        mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev Z ∗ mvcc.crevLb γ.idx crev ∗
+        ⌜c ≤ crev⌝) ∗ Q ∗ mvcc.hookOk γ P f ∗ mvcc.curAt γ dq o }}
+
 /-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Write(trace)` opens a write transaction, the store's writer until its `End`: at the
 store's state `σ`, which nothing else changes before then (`mvccTxn_write_agree`), no pending
 change. Under the batch lock (invariant `P`), the post-lock hook `f` runs on the caller's `Pre`
