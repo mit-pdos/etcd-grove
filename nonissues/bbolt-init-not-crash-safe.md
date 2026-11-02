@@ -26,7 +26,11 @@ here (found by reasoning about Linux's write-back order).
 no: the top-level adequacy proof needs no fix on the goosed fork for it; a crash-safety theorem of bbolt's `Open` would be false here; bbolt has no crash proof (the
 old one had no crash semantics, `old/bbolt/notes/STATUS-bbolt.md`), and the example minibolt
 initializes differently on purpose (`examples/bboltfs/README.md`, "One deliberate difference from
-bbolt: init"), as a bbolt proof would need.
+bbolt: init"), as a bbolt proof would need. The goose target fork carries that fix (2026-11-02,
+`upamanyus/bbolt` branch `goose-lean`, 3207bac): `init` writes the four pages with zero meta
+pages and syncs, then the metas and syncs, and `Open` runs `init` again when every byte the file
+holds of its meta pages is zero (an interrupted `init`; a database never otherwise has zero meta
+pages), with a test (`TestOpen_InterruptedInit`).
 
 ## Notes
 

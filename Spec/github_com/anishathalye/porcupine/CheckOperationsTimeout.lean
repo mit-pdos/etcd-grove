@@ -37,8 +37,9 @@ abbrev CheckOperationsTimeout.spec : Prop :=
     (App (App (App (Val (@! github_com.anishathalye.porcupine.CheckOperationsTimeout))
       (Val #m)) (Val #sl)) (Val #dur))
   {{ (r : GoString), RET #r;
-      ⌜Linearizable S.M (histOf ops) →
-        r ≠ go!"Illegal" ∧ (sint.Z dur ≤ 0 → r = go!"Ok")⌝ }}
+      ⌜(r = go!"Ok" ∧ Linearizable S.M (histOf ops)) ∨
+        (r = go!"Illegal" ∧ ¬ Linearizable S.M (histOf ops)) ∨
+        (r = go!"Unknown" ∧ 0 < sint.Z dur)⌝ }}
 
 end spec
 
