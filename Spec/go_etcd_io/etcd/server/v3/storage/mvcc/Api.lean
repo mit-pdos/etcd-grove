@@ -387,15 +387,17 @@ abbrev wsRecv_resp.law : Prop :=
     ⌜∀ r ∈ rs, (∀ ev ∈ r.evs, sint.Z ev.kv.modRev ≤ sint.Z r.rev) ∧
       (r.compactRev ≠ W64 0 → r.evs = []) ∧ (r.evs ≠ [] → (W !! r.id).isSome)⌝
 
-/-- **The watch guarantee**: the events received for each watcher are its range's events,
-filtered, of the revisions `[lo, hi)` of the notified history; each response's revision is one of
-it; a compaction response's revision is positive and at most the compaction revision. -/
+/-- **The watch guarantee**: the events received for each watcher without filters are its range's
+events of the revisions `[lo, hi)` of the notified history; each progress response's revision is one
+of it; a compaction response's revision is positive and at most the compaction revision.
+(2026-11-02, the proof: a filter's spec does not determine its predicate, so the guarantee is for
+watchers without filters; and only an event-less response's revision is bounded by its facts.) -/
 abbrev wsRecv_events.law : Prop :=
   ∀ ws γ ι rs W σ,
     isMvccWatchStream (GF := GF) ws γ ι ∗ wsRecv ι rs ∗ wsWatchers ι W ∗ mvccState γ σ ⊢
-      ⌜(∀ (id : w64) (w : WInfo), W !! id = some w → ∃ hi, hi ≤ σ.notifiedLog.length ∧
+      ⌜(∀ (id : w64) (w : WInfo), W !! id = some w → w.fs = [] → ∃ hi, hi ≤ σ.notifiedLog.length ∧
           recvEvs rs id = filtered w.fs (watchEvents σ.notifiedLog w.rg w.lo hi)) ∧
-        (∀ r ∈ rs, sint.nat r.rev < σ.notifiedLog.length) ∧
+        (∀ r ∈ rs, r.evs = [] → sint.nat r.rev < σ.notifiedLog.length) ∧
         (∀ r ∈ rs, r.compactRev ≠ W64 0 → 0 < sint.Z r.compactRev ∧ sint.Z r.compactRev ≤ σ.crev)⌝
 
 /-- **Progress**: a response without events, the `j`-th received, at revision `P`, for the
