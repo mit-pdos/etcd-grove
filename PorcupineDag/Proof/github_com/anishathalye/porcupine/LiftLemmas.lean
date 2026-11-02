@@ -216,6 +216,39 @@ theorem LiftInv.members (hi : LiftInv h cs st st2 i j stc) :
   obtain ⟨a, b, c, _⟩ := (hi.2.2.2.2.2.2.2.2 v).mp hv
   exact ⟨a, b, c⟩
 
+theorem LiftCtx2.shape_of (hx : LiftCtx2 h cs st st2 B i y) {stc : ChSt}
+    (hh : stc.heads = st2.heads) (hv : stc.vis = st2.vis) (hf : stc.fu = st2.fu)
+    (hn : stc.nDeps.length = st.nDeps.length) : ShapeOk cs stc := by
+  obtain ⟨h1, h2, h3, h4, h5⟩ := hx.2.2.2.1
+  refine ⟨by rw [hh]; exact h1, by rw [hn, hx.1.2.2.1.1.2.1], by rw [hv]; exact h3,
+    by rw [hf]; exact h4, ?_⟩
+  intro c' k hk
+  unfold ChSt.fuAt
+  rw [hv, hf]
+  exact h5 c' k hk
+
+/-- The frontier without `i`: sorted, and its members have no dependency at the new heads. -/
+theorem LiftCtx2.erase_facts (hx : LiftCtx2 h cs st st2 B i y) {stc : ChSt}
+    (hh : stc.heads = st2.heads) (hfr : stc.frontier = st.frontier.erase i) :
+    (frOf cs stc).Pairwise (KeyGt h cs) ∧ i ∉ stc.frontier ∧
+    ∀ v ∈ stc.frontier, v < cs.length ∧ st2.head v < (chain cs v).length ∧
+      deps h cs st2.heads v = 0 := by
+  have hci := hx.1.2.2.1
+  have hnd : st.frontier.Nodup := nodup_of_sorted hci.2.2.2.2.2.2.2.2.2.2.1
+  refine ⟨?_, fun hi => ?_, fun v hv => ?_⟩
+  · have heq : frOf cs stc = (st.frontier.erase i).map (hdOp cs st) := by
+      unfold frOf; rw [hfr]
+      refine List.map_congr_left fun v hv' => hx.hdOp_ne hh ?_
+      exact (hnd.mem_erase_iff.mp hv').1
+    rw [heq]
+    exact hci.2.2.2.2.2.2.2.2.2.2.1.sublist (List.erase_sublist.map _)
+  · rw [hfr, hnd.mem_erase_iff] at hi; exact hi.1 rfl
+  · rw [hfr, hnd.mem_erase_iff] at hv
+    obtain ⟨hvi, hvf⟩ := hv
+    obtain ⟨hvl, hvh, hvd⟩ := (hx.1.frontier_iff' v).mp hvf
+    have := hx.deps2_ne hvi
+    exact ⟨hvl, by rw [hx.head2_ne hvi]; exact hvh, by omega⟩
+
 /-- The loop's start, `i` not re-added (it is finished or has a dependency). -/
 theorem LiftCtx2.inv_init_erase (hx : LiftCtx2 h cs st st2 B i y) {stc : ChSt}
     (hh : stc.heads = st2.heads) (hv : stc.vis = st2.vis) (hf : stc.fu = st2.fu)

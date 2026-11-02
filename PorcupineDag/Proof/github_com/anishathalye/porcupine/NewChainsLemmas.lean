@@ -17,6 +17,13 @@ public import PorcupineDag.Proof.github_com.anishathalye.porcupine.ChainsOwn
 
 set_option linter.unusedSectionVars false
 
+/-- `idx_auto` (`ComputeFirstUnkLemmas.lean`) under its own name: resolve the bounds checks with
+the given facts, then step; repeated while it makes progress. -/
+syntax "nc_idx" "[" Lean.Parser.Tactic.simpLemma,* "]" : tactic
+macro_rules
+  | `(tactic| nc_idx [$ts,*]) =>
+    `(tactic| repeat (simp only [$ts,*, _root_.and_self, ↓reduceIte]; wp_auto))
+
 namespace Perennial
 namespace github_com.anishathalye.porcupine
 namespace Theory
@@ -96,6 +103,22 @@ theorem chains_length_sum (hok : ChainsOk h cs) : (cs.map List.length).sum = h.l
       exact ⟨cs[i], List.getElem_mem hi, by rw [chain_eq_getElem hi] at hy; exact hy⟩
   rw [← List.length_flatten, hperm.length_eq, List.length_range]
 
+/-- The operation ids are the chains' operations, chain by chain. -/
+theorem chains_flatMap_perm (hok : ChainsOk h cs) :
+    (List.range h.length).Perm ((List.range cs.length).flatMap (chain cs)) := by
+  have hnd : ((List.range cs.length).flatMap (chain cs)).Nodup := by
+    unfold List.Nodup
+    rw [List.pairwise_flatMap]
+    refine ⟨fun c _ => (hok.1 c).1, ?_⟩
+    refine (List.pairwise_lt_range (n := cs.length)).imp ?_
+    intro a b hab y hya z hzb hyz
+    subst hyz
+    have := hok.2.2 y a b hya hzb
+    omega
+  refine (List.perm_ext_iff_of_nodup List.nodup_range hnd).mpr fun y => ?_
+  rw [List.mem_range, hok.2.1 y, List.mem_flatMap]
+  simp only [List.mem_range]
+
 theorem sum_take_le (cs : List (List Nat)) (m : Nat) :
     ((cs.take m).map List.length).sum ≤ (cs.map List.length).sum := by
   conv => rhs; rw [← List.take_append_drop m cs]
@@ -136,6 +159,58 @@ theorem count_succ (p : Nat → Bool) (j : Nat) :
 end Theory
 
 open Theory
+
+/-- The chains' state as `newChains` builds it: heads `0`, `nDeps` `0`, no frontier, nothing
+visited, every `firstUnk` all zeros. -/
+def chStInit (cs : List (List Nat)) : ChSt where
+  heads := List.replicate cs.length 0
+  nDeps := List.replicate cs.length (W64 0)
+  frontier := []
+  vis := cs.map (fun l => List.replicate l.length false)
+  fu := cs.map (fun l => List.replicate l.length (List.replicate cs.length (W64 0)))
+
+theorem getD_map_chain {β : Type} {cs : List (List Nat)} (f : List Nat → List β) (hf : f [] = [])
+    (c : Nat) : (cs.map f).getD c [] = f (chain cs c) := by
+  unfold chain
+  simp only [List.getD_eq_getElem?_getD, List.getElem?_map]
+  cases cs[c]? <;> simp [hf]
+
+theorem init_visAt {cs : List (List Nat)} (c k : Nat) : (chStInit cs).visAt c k = false := by
+  unfold ChSt.visAt chStInit
+  simp only
+  rw [getD_map_chain (fun l => List.replicate l.length false) (by simp)]
+  simp only [List.getD_eq_getElem?_getD, List.getElem?_replicate]
+  split <;> rfl
+
+theorem init_fuAt {cs : List (List Nat)} {c k : Nat} (hk : k < (chain cs c).length) :
+    (chStInit cs).fuAt c k = List.replicate cs.length (W64 0) := by
+  unfold ChSt.fuAt chStInit
+  simp only
+  rw [getD_map_chain (fun l => List.replicate l.length (List.replicate cs.length (W64 0))) (by simp)]
+  simp [List.getD_eq_getElem?_getD, hk]
+
+theorem init_head {cs : List (List Nat)} (c : Nat) : (chStInit cs).head c = 0 := by
+  unfold ChSt.head chStInit; exact replicate_getD _ _
+
+theorem init_nDeps {cs : List (List Nat)} (c : Nat) : (chStInit cs).nDeps.getD c 0 = W64 0 := by
+  unfold chStInit
+  simp only [List.getD_eq_getElem?_getD, List.getElem?_replicate]
+  split <;> rfl
+
+theorem init_shape (cs : List (List Nat)) : ShapeOk cs (chStInit cs) := by
+  refine ⟨by simp [chStInit], by simp [chStInit], by simp [chStInit], by simp [chStInit],
+    fun c k hk => ⟨?_, ?_, ?_⟩⟩
+  · unfold chStInit; simp only
+    rw [getD_map_chain (fun l => List.replicate l.length false) (by simp)]; simp
+  · unfold chStInit; simp only
+    rw [getD_map_chain (fun l => List.replicate l.length (List.replicate cs.length (W64 0)))
+      (by simp)]; simp
+  · rw [init_fuAt hk]; simp
+
+theorem init_fuOk {α : Type} (h : List (Op α)) (cs : List (List Nat)) : FuOk h cs (chStInit cs) := by
+  intro c k hv
+  rw [init_visAt] at hv
+  cases hv
 
 /-- `ChainsInv` at no operation linearized, from the state's parts. -/
 theorem chainsInv_init [GooseExts] {h : List (Op OpV)} {cs : List (List Nat)} (hok : ChainsOk h cs)
@@ -209,6 +284,183 @@ theorem ownSlice_pieces (s : GoSlice) (nc n : Nat) (hb : ((n * nc : Nat) : Int) 
     isplitl [H1]
     · iapply (ih hb') $$ H1
     · iexact H2
+
+/-- Two lists of the same length, element by element. -/
+theorem bigSepL_transfer {A B : Type} {Φ : Nat → A → IProp GF} {Ψ : Nat → B → IProp GF} :
+    ∀ (l1 : List A) (l2 : List B), l1.length = l2.length →
+      (∀ k x y, l1[k]? = some x → l2[k]? = some y → Φ k x ⊢ Ψ k y) →
+      ([∗list] k ↦ x ∈ l1, Φ k x) ⊢ [∗list] k ↦ y ∈ l2, Ψ k y
+  | [], [], _, _ => BigSepL.bigSepL_nil_intro
+  | [], _ :: _, hl, _ => absurd hl (by simp)
+  | _ :: _, [], hl, _ => absurd hl (by simp)
+  | x :: l1, y :: l2, hl, hf => by
+    refine BigSepL.bigSepL_cons.1.trans ((sep_mono ?_ ?_).trans BigSepL.bigSepL_cons.2)
+    · exact hf 0 x y rfl rfl
+    · exact bigSepL_transfer (Φ := fun k x => Φ (k + 1) x) (Ψ := fun k y => Ψ (k + 1) y) l1 l2
+        (by simpa using hl) (fun k x' y' h1 h2 => hf (k + 1) x' y' h1 h2)
+
+/-- `firstUnks`' pieces, regrouped by client (the ids of client `c` are its chain's). -/
+theorem pieces_regroup {h : List (Theory.Op OpV)} {cs : List (List Nat)} (hok : ChainsOk h cs)
+    (P : Nat → IProp GF) {B : Type} (l : List B) (hl : l.length = cs.length) :
+    ([∗list] y ∈ List.range h.length, P y) ⊢ [∗list] c ↦ _x ∈ l, [∗list] y ∈ chain cs c, P y := by
+  refine (BigSepL.bigSepL_perm (chains_flatMap_perm hok)).1.trans ?_
+  rw [BigSepL.bigSepL_flatMap]
+  refine bigSepL_transfer _ _ (by simp [hl]) ?_
+  intro k x y hx hy
+  have hk : k < cs.length := by rw [← hl]; exact (List.getElem?_eq_some_iff.mp hy).1
+  rw [List.getElem?_range hk] at hx
+  cases hx; exact .rfl
+
+/-- The chains opened at client `i`: everything, client `i`'s struct taken out of the slice. -/
+theorem chains_open (ch : Loc) (cl : GoSlice) (h : List (Theory.Op OpV)) (cs : List (List Nat))
+    (st : ChSt) (i : Int) (hi : 0 ≤ i) (hc : i.toNat < cs.length) :
+    (chainsOwnCl ch cl h cs st : IProp GF) ⊢ ∃ (chV : chains) (cvs : List client) (cv : client),
+      ⌜chV.clients' = cl ∧ cvs.length = cs.length ∧ sint.Z chV.numOps' = h.length ∧
+        cvs[i.toNat]? = some cv⌝ ∗
+      ch ↦ chV ∗ chV.frontier' ↦* (st.frontier.map (fun (c : Nat) => (W64 (c : Int) : w64))) ∗
+      ownSliceCap w64 chV.frontier' (DFrac.own 1) ∗
+      sliceIndexRef client i cl ↦ cv ∗
+      (∀ v', sliceIndexRef client i cl ↦ v' -∗ cl ↦* cvs.set i.toNat v') ∗
+      ([∗list] k ↦ y ∈ cvs, if k = i.toNat then emp else clientOwn h cs st k y) ∗
+      clientOwn h cs st i.toNat cv := by
+  unfold chainsOwnCl chainsRepr
+  iintro ⟨%chV, Hch, %Hclq, %cvs, Hcl, %Hcvs, Hfr, Hcap, Hcls⟩
+  subst Hclq
+  obtain ⟨cv, hcv⟩ : ∃ cv, cvs[i.toNat]? = some cv :=
+    ⟨_, List.getElem?_eq_getElem (by omega)⟩
+  icases ownSlice_elem_acc i cv chV.clients' _ cvs hi hcv $$ Hcl with ⟨Hcv, Hcl⟩
+  icases (BigSepL.bigSepL_delete_cond (PROP := IProp GF)
+    (Φ := fun k cv => clientOwn h cs st k cv) hcv).1 $$ Hcls with ⟨Hc, Hrest⟩
+  iexists chV, cvs, cv
+  iframe
+  ipureintro
+  exact ⟨rfl, Hcvs.1, Hcvs.2, hcv⟩
+
+/-- The chains closed again, client `i`'s struct (now `cv'`) put back, at the state `st'` (the
+other clients' structs unchanged). -/
+theorem chains_close (ch : Loc) (chV : chains) (cl : GoSlice) (h : List (Theory.Op OpV))
+    (cs : List (List Nat)) (st st' : ChSt) (cvs : List client) (i : Int) (cv' : client)
+    (hcl : chV.clients' = cl) (hlen : cvs.length = cs.length ∧ sint.Z chV.numOps' = h.length)
+    (hc : i.toNat < cvs.length)
+    (hother : ∀ k, k ≠ i.toNat → ∀ cv, clientOwn (GF := GF) h cs st' k cv = clientOwn h cs st k cv) :
+    (ch ↦ chV : IProp GF) ∗
+      chV.frontier' ↦* (st'.frontier.map (fun (c : Nat) => (W64 (c : Int) : w64))) ∗
+      ownSliceCap w64 chV.frontier' (DFrac.own 1) ∗
+      sliceIndexRef client i cl ↦ cv' ∗
+      (∀ v', sliceIndexRef client i cl ↦ v' -∗ cl ↦* cvs.set i.toNat v') ∗
+      ([∗list] k ↦ y ∈ cvs, if k = i.toNat then emp else clientOwn h cs st k y) ∗
+      clientOwn h cs st' i.toNat cv' ⊢ chainsOwnCl ch cl h cs st' := by
+  iintro ⟨Hch, Hfr, Hcap, Hcv, Hw, Hrest, Hc⟩
+  ihave Hcl := Hw $$ %cv' Hcv
+  subst hcl
+  iapply chainsOwnCl_fold ch chV chV.clients' h cs st' rfl
+  iframe Hch
+  unfold chainsRepr
+  iexists cvs.set i.toNat cv'
+  iframe Hcl Hfr Hcap
+  isplitr
+  · ipureintro; exact ⟨by rw [List.length_set]; exact hlen.1, hlen.2⟩
+  iapply (BigSepL.bigSepL_delete_cond (PROP := IProp GF)
+    (Φ := fun k cv => clientOwn h cs st' k cv) (List.getElem?_set_self hc)).2
+  iframe Hc
+  iapply (bigSepL_transfer _ _ (List.length_set ..).symm ?_) $$ Hrest
+  intro k x y hx hy
+  by_cases hk : k = i.toNat
+  · simp only [hk, ↓reduceIte]; exact .rfl
+  · rw [List.getElem?_set_ne (Ne.symm hk), hx] at hy
+    cases hy
+    simp only [hk, ↓reduceIte, hother k hk x]; exact .rfl
+
+/-- Operation `y`'s piece of `firstUnks` (`fsl`), `nc` ints. -/
+noncomputable def fuPiece (fsl : GoSlice) (nc y : Nat) : IProp GF :=
+  slice.slice fsl w64 (W64 ((y * nc : Nat) : Int)) (W64 (((y + 1) * nc : Nat) : Int)) ↦*
+    List.replicate nc (W64 0)
+
+/-- Client `c`'s operations (at `sl`), not yet given their `firstUnk` pieces. -/
+noncomputable def coPend (h : List (Theory.Op OpV)) (cs : List (List Nat)) (fsl : GoSlice) (c : Nat)
+    (sl : GoSlice) : IProp GF :=
+  iprop(∃ cos : List clientOperation, sl ↦* cos ∗ ⌜CoFresh h (chain cs c) cos⌝ ∗
+    [∗list] y ∈ chain cs c, fuPiece fsl cs.length y)
+
+/-- Client `c`'s operations (at `sl`), each given its `firstUnk` piece. -/
+noncomputable def coDone (h : List (Theory.Op OpV)) (cs : List (List Nat)) (c : Nat) (sl : GoSlice) : IProp GF :=
+  iprop(∃ cos : List clientOperation, sl ↦* cos ∗ ⌜CoFresh h (chain cs c) cos⌝ ∗
+    [∗list] k ↦ co ∈ cos, co.firstUnk' ↦* List.replicate cs.length (W64 0))
+
+/-- Before `newChains`' second loop: every client pending, with its operations' pieces. -/
+theorem pend_init {h : List (Theory.Op OpV)} {cs : List (List Nat)} (hok : ChainsOk h cs)
+    (sls : List GoSlice) (hl : sls.length = cs.length) (fsl : GoSlice) (m : Nat) (hm : m = 0) :
+    ([∗list] c ↦ sl ∈ sls, ∃ cos : List clientOperation, sl ↦* cos ∗ ⌜CoFresh h (chain cs c) cos⌝)
+      ∗ ([∗list] y ∈ List.range h.length, fuPiece fsl cs.length y) ⊢
+      [∗list] c ↦ sl ∈ sls, if c < m then coDone (GF := GF) h cs c sl else coPend h cs fsl c sl := by
+  iintro ⟨H1, H2⟩
+  ihave H2 := pieces_regroup hok _ sls hl $$ H2
+  ihave H := BigSepL.bigSepL_sep_eqv.2 $$ [H1 H2]
+  · iframe
+  iapply (BigSepL.bigSepL_mono ?_) $$ H
+  intro c sl _
+  subst hm
+  simp only [Nat.not_lt_zero, ↓reduceIte]
+  unfold coPend
+  iintro ⟨Hp, %cos, Hs, %Hf⟩
+  iexists cos
+  iframe
+  ipureintro; exact Hf
+
+/-- Client `i` taken out of the loop's conjunction (it is pending). -/
+theorem bigSepL_if_take {A : Type} (l : List A) (i : Nat) (x : A) (hx : l[i]? = some x)
+    (D F : Nat → A → IProp GF) :
+    ([∗list] k ↦ y ∈ l, if k < i then D k y else F k y) ⊢
+      F i x ∗ [∗list] k ↦ y ∈ l, if k = i then emp else (if k < i then D k y else F k y) := by
+  iintro H
+  icases (BigSepL.bigSepL_delete_cond (PROP := IProp GF)
+    (Φ := fun k y => if k < i then D k y else F k y) hx).1 $$ H with ⟨Hi, Hr⟩
+  simp only [Nat.lt_irrefl, ↓reduceIte]
+  iframe
+
+/-- Client `i` put back, done. -/
+theorem bigSepL_if_step {A : Type} (l : List A) (i : Nat) (x : A) (hx : l[i]? = some x)
+    (D F : Nat → A → IProp GF) :
+    D i x ∗ ([∗list] k ↦ y ∈ l, if k = i then emp else (if k < i then D k y else F k y)) ⊢
+      [∗list] k ↦ y ∈ l, if k < i + 1 then D k y else F k y := by
+  iintro ⟨Hd, Hr⟩
+  iapply (BigSepL.bigSepL_delete_cond (PROP := IProp GF)
+    (Φ := fun k y => if k < i + 1 then D k y else F k y) hx).2
+  simp only [Nat.lt_succ_self, ↓reduceIte]
+  iframe Hd
+  iapply (BigSepL.bigSepL_mono ?_) $$ Hr
+  intro k y _
+  by_cases hk : k = i
+  · simp only [hk, ↓reduceIte]; exact .rfl
+  · by_cases hki : k < i
+    · simp only [hk, hki, show k < i + 1 by omega, ↓reduceIte]; exact .rfl
+    · simp only [hk, hki, show ¬ k < i + 1 by omega, ↓reduceIte]; exact .rfl
+
+/-- A client whose operations got their `firstUnk` pieces: its struct, at the initial state. -/
+theorem clientOwn_init {h : List (Theory.Op OpV)} {cs : List (List Nat)} (sls : List GoSlice)
+    (c : Nat) (sl : GoSlice) (hsl : sls[c]? = some sl) (hc : (c : Int) < 2 ^ 63) :
+    coDone h cs c sl ⊢ clientOwn (GF := GF) h cs (chStInit cs) c (clientAt sls c) := by
+  unfold clientOwn clientAt coDone
+  iintro ⟨%cos, Hsl, %Hf, Hfu⟩
+  isplitr
+  · ipureintro
+    refine ⟨by simp only; word, by simp only; rw [init_head]; rfl, by simp only; rw [init_nDeps]⟩
+  iexists cos
+  simp only [List.getD_eq_getElem?_getD, hsl, Option.getD_some]
+  iframe Hsl
+  isplitr
+  · ipureintro
+    refine ⟨Hf.1, fun k co hco => ?_⟩
+    obtain ⟨y, o, h1, h2, h3, -, h5, h6, h7, h8, h9⟩ := Hf.2 k co hco
+    refine ⟨y, o, h1, h2, h3, h5, h6, h7, h8, ?_⟩
+    rw [h9]
+    have := init_visAt (cs := cs) c k
+    unfold ChSt.visAt at this
+    exact this.symm
+  iapply (BigSepL.bigSepL_mono ?_) $$ Hfu
+  intro k co hco
+  have hk : k < (chain cs c).length := by rw [← Hf.1]; exact (List.getElem?_eq_some_iff.mp hco).1
+  rw [init_fuAt hk]
 
 end heap
 

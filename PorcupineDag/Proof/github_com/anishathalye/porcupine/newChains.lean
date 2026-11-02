@@ -137,8 +137,110 @@ theorem newChains.wp_proof
     have : sint.Z (nv + sl.len) = sint.Z nv + sint.Z sl.len := by word
     rw [this, Hk.2.2, hlenk, hsucc]
     omega
-  · -- NOT YET PROVED (see the file header): the rest of `newChains` after the clients' loop.
-    sorry
+  · have hkc : sint.nat k = cs.length := by word
+    have htot := chains_length_sum hok
+    have hnv : sint.Z nv = (h.length : Int) := by
+      rw [Hk.2.2, hkc, List.take_length, htot]
+    rw [hkc, Nat.sub_self, List.replicate_zero, List.append_nil]
+    have h60 := hwf.1
+    have hal := halloc
+    unfold AllocOk maxAllocBytes at hal
+    have hmx : (cs.length : Int) * (h.length : Int) ≤
+        (cs.length : Int) * ((max h.length 6 : Nat) : Int) :=
+      Int.mul_le_mul_of_nonneg_left (by omega) (by omega)
+    have hnn : ((h.length * cs.length : Nat) : Int) ≤ 2 ^ 45 := by
+      push_cast
+      rw [Int.mul_comm]
+      generalize (cs.length : Int) * (h.length : Int) = A at *
+      generalize (cs.length : Int) * ((max h.length 6 : Nat) : Int) = B at *
+      omega
+    have hprod : sint.Z (nv * ohsl.len) = ((h.length * cs.length : Nat) : Int) := by
+      have : sint.Z nv * sint.Z ohsl.len = ((h.length * cs.length : Nat) : Int) := by
+        rw [hnv, hncZ]; push_cast; rfl
+      word
+    wp_apply +noauto (wp_slice_make2 (V := w64) (nv * ohsl.len))
+    · ipureintro; omega
+    iintro %fsl ⟨Hfu, Hfucap⟩
+    wp_auto
+    ihave %Hfulen := ownSlice_len $$ Hfu
+    have hnn' : sint.nat (nv * ohsl.len) = h.length * cs.length := by
+      have : sint.nat (nv * ohsl.len) = (sint.Z (nv * ohsl.len)).toNat := rfl
+      rw [this, hprod]; rfl
+    rw [hnn', show (zero_val w64 : w64) = W64 0 from rfl] at *
+    have hfsllen : fsl.len = W64 ((h.length * cs.length : Nat) : Int) := by
+      rw [List.length_replicate] at Hfulen
+      have := Hfulen.1; have := Hfulen.2; word
+    icases (ownSlice_trivial_slice fsl _ _).1 $$ Hfu with Hfu
+    rw [hfsllen]
+    ihave Hfu := ownSlice_pieces fsl cs.length h.length (by omega) $$ Hfu
+    ihave Hcls := pend_init hok sls Hslslen fsl (sint.nat (W64 0)) rfl $$ [Hcls Hfu]
+    · iframe
+    -- the pieces handed out
+    ihave IH2 : iprop(∃ (iv : w64), "i" ∷ i_ptr ↦ iv ∗
+        "%Hi" ∷ ⌜0 ≤ sint.Z iv ∧ sint.Z iv ≤ cs.length⌝ ∗
+        "Hcls" ∷ [∗list] c ↦ sl ∈ sls, if c < sint.nat iv then coDone (GF := GF) h cs c sl
+          else coPend h cs fsl c sl) $$ [i Hcls]
+    · iexists W64 0
+      iframe
+      ipureintro; exact ⟨by word, by word⟩
+    wp_for IH2
+    wp_if_destruct
+    · have hin : sint.nat iv < cs.length := by word
+      obtain ⟨sl, hsl⟩ : ∃ sl, sls[sint.nat iv]? = some sl :=
+        ⟨_, List.getElem?_eq_getElem (by omega)⟩
+      have hcvi : (List.map (clientAt sls) (List.range cs.length))[(sint.Z iv).toNat]? =
+          some (clientAt sls (sint.nat iv)) := by
+        rw [show (sint.Z iv).toNat = sint.nat iv from rfl, List.getElem?_map,
+          List.getElem?_range hin]; rfl
+      have hclsl : sint.Z clsl.len = (cs.length : Int) := by
+        have h1 := Hcllen.1
+        have h2 : ((sint.nat clsl.len : Nat) : Int) = sint.Z clsl.len := Int.toNat_of_nonneg Hcllen.2
+        rw [← h1] at h2
+        simp only [List.length_append, List.length_map, List.length_range, hkc, Nat.sub_self,
+          List.length_replicate, Nat.add_zero] at h2
+        omega
+      have hbi : 0 ≤ sint.Z iv ∧ sint.Z iv < sint.Z clsl.len := ⟨Hi.1, by omega⟩
+      icases bigSepL_if_take sls (sint.nat iv) sl hsl (fun c sl => coDone (GF := GF) h cs c sl) (fun c sl => coPend h cs fsl c sl) $$ Hcls with ⟨Hc, Hcls⟩
+      iunfold coPend at Hc
+      icases Hc with ⟨%cos, Hsl, %Hcof, Hpend⟩
+      icases ownSlice_elem_acc (sint.Z iv) _ clsl _ _ Hi.1 hcvi $$ Hcl with ⟨Hcv, Hcl⟩
+      icases typedPointsto_not_null_dup _ _ _ $$ Hcv with ⟨Hcv, %Hcvnn⟩
+      iStructNamedSuffix Hcv "_cc"
+      have hcltops : (clientAt sls (sint.nat iv)).cltOps' = sl := by
+        unfold clientAt; simp only [List.getD_eq_getElem?_getD, hsl, Option.getD_some]
+      rw [hcltops]
+      ihave %Hcoslen := ownSlice_len $$ Hsl
+      have hlenZ : sint.Z sl.len = ((chain cs (sint.nat iv)).length : Int) := by
+        rw [← Hcof.1, Hcoslen.1]; exact (Int.toNat_of_nonneg Hcoslen.2).symm
+      ihave IH3 : iprop(∃ (jv : w64) (cosj : List clientOperation), "j" ∷ j_ptr ↦ jv ∗
+          "Hsl" ∷ sl ↦* cosj ∗
+          "%Hj" ∷ ⌜0 ≤ sint.Z jv ∧ sint.Z jv ≤ (chain cs (sint.nat iv)).length ∧
+            CoFresh h (chain cs (sint.nat iv)) cosj⌝ ∗
+          "Hdone" ∷ ([∗list] k ↦ co ∈ cosj.take (sint.nat jv),
+            co.firstUnk' ↦* List.replicate cs.length (W64 0)) ∗
+          "Hpend" ∷ [∗list] y ∈ (chain cs (sint.nat iv)).drop (sint.nat jv),
+            fuPiece (GF := GF) fsl cs.length y) $$ [j Hsl Hpend]
+      · iexists W64 0, cos
+        simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.drop_zero]
+        iframe
+        isplitr
+        · ipureintro; exact ⟨by word, by word, Hcof⟩
+        exact BigSepL.bigSepL_nil_intro
+      wp_for IH3
+      nc_idx [hbi]
+      wp_if_destruct
+      · have hjl : sint.nat jv < (chain cs (sint.nat iv)).length := by word
+        obtain ⟨co, hco⟩ : ∃ co, cosj[(sint.Z jv).toNat]? = some co :=
+          ⟨_, List.getElem?_eq_getElem (by rw [Hj.2.2.1]; exact hjl)⟩
+        obtain ⟨y, o, hy, hyo, hid, -⟩ := Hj.2.2.2 _ co hco
+        have hbj : 0 ≤ sint.Z jv ∧ sint.Z jv < sint.Z sl.len := ⟨Hj.1, Hif⟩
+        icases ownSlice_elem_acc (sint.Z jv) co sl _ cosj Hj.1 hco $$ Hsl with ⟨Hco, Hsl⟩
+        icases typedPointsto_not_null_dup _ _ _ $$ Hco with ⟨Hco, %Hconn⟩
+        iStructNamedSuffix Hco "_co"
+        nc_idx [hbi, hbj]
+        sorry
+      · sorry
+    · sorry
 
 end proof
 

@@ -387,7 +387,87 @@ theorem chains.lift.wp_proof
                 rw [hk1, cnt_succ, if_neg (fun h0 => Hif (htest.mpr h0.2.2)), Nat.add_zero]
                 iframe
                 ipureintro; exact hkv1
-          · sorry
+          · -- the recount is done: `nDeps[i]` is `deps`
+            have hkend : sint.nat kv = cs.length := by
+              have hn : ¬ sint.Z kv < sint.Z chV2.clients'.len := by
+                intro hlt; apply Hif; simp [hlt]
+              rw [Hlen2] at hn; rw [snat_eq]; omega
+            rw [hkend, cnt_deps]
+            have hdl : deps h cs st2.heads i ≤ cs.length := deps_le
+            have hdz : sint.Z (W64 (deps h cs st2.heads i : Int)) = (deps h cs st2.heads i : Int) := by
+              have := hcs; word
+            repeat ((try simp only [hiz, hbi2, _root_.and_self, ↓reduceIte]); wp_auto)
+            -- client `i` back
+            ihave Hfus3 := Hfus3 $$ %co2 Hfu
+            have hset2 : cos3.set (st.head i + 1) co2 = cos3 := by
+              obtain ⟨hl, he⟩ := List.getElem?_eq_some_iff.mp Hco2
+              rw [← he]; exact List.set_getElem_self hl
+            rw [hset2]
+            ihave Hc : clientOwn h cs st3 i cvi $$ [Hcos3 Hfus3]
+            · iunfold clientOwn
+              isplitr
+              · ipureintro; exact ⟨Hcvi1, Hcvi2, Hcvi3⟩
+              iexists cos3; iframe; ipureintro; exact Hcok3
+            obtain ⟨st4, hst4⟩ : ∃ st4 : ChSt, st4 = ChSt.mk st3.heads
+                (st3.nDeps.set i (W64 (deps h cs st2.heads i : Int))) st3.frontier st3.vis st3.fu :=
+              ⟨_, rfl⟩
+            have hin3 : i < st3.nDeps.length := by rw [h3n, Hci.1.2.1]; exact hil
+            have hhd4 : sint.Z cvi.head' = (st4.head i : Int) := by
+              rw [Hcvi2]; unfold ChSt.head; rw [hst4]
+            have hnd4 : (W64 (deps h cs st2.heads i : Int) : w64) = st4.nDeps.getD i 0 := by
+              rw [hst4]; simp [List.getD_eq_getElem?_getD, List.getElem?_set_self hin3]
+            ihave Hc := clientOwn_upd (st := st3) (st' := st4) h cs cvi
+              ⟨cvi.id', cvi.cltOps', cvi.head', W64 (deps h cs st2.heads i : Int)⟩ rfl rfl hhd4 hnd4
+              (by rw [hst4]) (by rw [hst4]) $$ Hc
+            have hag4 : ∀ c, c ≠ i → ChAgree st3 st4 c := by
+              intro c' hc'
+              refine ⟨by unfold ChSt.head; rw [hst4], ?_, by rw [hst4], by rw [hst4]⟩
+              rw [hst4]; simp [List.getD_eq_getElem?_getD, List.getElem?_set_ne (Ne.symm hc')]
+            ihave He : (sliceIndexRef client (i : Int) chV2.clients' ↦
+                (⟨cvi.id', cvi.cltOps', cvi.head', W64 (deps h cs st2.heads i : Int)⟩ : client)
+                : IProp GF) $$ [He]
+            · iexact He
+            ihave Hr := chainsRest_close chV2 h cs st3 st4 i cvs cvi _ Hcvi hag4 (by rw [hst4]) $$ [He Hc Hrest]
+            · iframe
+            ihave Hch := chainsOwnCl_fold ch chV2 cl h cs st4 Hcl2 $$ [Hchp Hr]
+            · iframe
+            have h4h : st4.heads = st2.heads := by rw [hst4, hst3]
+            have h4v : st4.vis = st2.vis := by rw [hst4, hst3]
+            have h4f : st4.fu = st2.fu := by rw [hst4, hst3]
+            have h4n : st4.nDeps.length = st.nDeps.length := by rw [hst4]; simp only; rw [List.length_set, h3n]
+            have h4i : sint.Z (st4.nDeps.getD i 0) = deps h cs st2.heads i := by
+              rw [← hnd4]; exact hdz
+            have h4o : ∀ d, d ≠ i → st4.nDeps.getD d 0 = st.nDeps.getD d 0 := by
+              intro d hd; rw [← h3n]; exact (hag4 d hd).2.1
+            have h4fr : st4.frontier = st.frontier.erase i := by rw [hst4]; exact h3fr
+            obtain ⟨hsort4, hnot4, hmem4⟩ := hlc2.erase_facts h4h h4fr
+            wp_if_destruct
+            · -- no dependency: `addToFrontier(i)`
+              have hd0 : deps h cs st2.heads i = 0 := by
+                have := hdz; rw [Hif] at this; simp at this; omega
+              obtain ⟨hah, hamem⟩ := hlc2.add_pre h4h hil (by rw [hhi2]; exact hk2l) hd0 hmem4
+              wp_apply wp_addToFrontier ch cl h cs st4 (W64 (i : Int)) cons hok
+                (hlc2.shape_of h4h h4v h4f h4n) (by omega) (by omega) (by rw [hinw]; exact hil)
+                (by rw [hinw]; exact hah) (by rw [hinw]; exact hnot4) (by rw [hinw]; exact hamem) hsort4
+                $$ [Hch] as ⟨%fr5, Hch, %Hfr5⟩
+              · iframe; iframe Hcons
+              rw [hinw] at Hfr5
+              isplitl []
+              · ipureintro; rfl
+              iexists _
+              iframe
+              ipureintro
+              refine hlc2.inv_init_add (stc := ChSt.mk st4.heads st4.nDeps fr5 st4.vis st4.fu)
+                h4h h4v h4f h4n h4i h4o Hfr5.1 (fun x => by rw [Hfr5.2 x, h4fr]) ⟨by rw [hhi2]; exact hk2l, hd0⟩
+            · -- `i` has a dependency
+              isplitl []
+              · ipureintro; first | rfl | trivial
+              iexists st4
+              iframe
+              ipureintro
+              refine hlc2.inv_init_erase h4h h4v h4f h4n (fun _ => h4i) h4o h4fr ?_
+              rintro ⟨-, hd0⟩
+              apply Hif; rw [hd0]; rfl
         · -- client `i` finished
           have hfin : ¬ st2.head i < (chain cs i).length := by
             rw [hhi2]; intro hlt; apply Hif
