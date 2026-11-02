@@ -87,20 +87,45 @@ def commitAU (γ : MvccName) (pend : List Change) (Q : IProp GF) : IProp GF :=
         AU <{ ∃∃ (σ' : MvccState), mvccState γ σ' }> @ ⊤ \ ↑mvccN, ∅
           <{ mvccState γ σ'.commitPending, COMM Q }> }>)
 
+/-- **The other half of the watchers' log** (`γ.ws.wlog`), on a store with watchers: the client
+holds one (`mvccStateI`), the watchable store's `s.mu` the other at the notified log. -/
+def wlogW (γ : MvccName) (L : Log) : IProp GF :=
+  if γ.watched then monoListAuthOwn γ.ws.wlog (1 : Qp).half L else iprop(True)
+
+theorem wlogW_update (γ : MvccName) (L L' : Log) (h : L <+: L') :
+    wlogW (GF := GF) γ L ∗
+      (if γ.watched then monoListAuthOwn γ.ws.wlog (1 : Qp).half L else iprop(True)) ==∗
+      wlogW γ L' ∗
+        (if γ.watched then monoListAuthOwn γ.ws.wlog (1 : Qp).half L' else iprop(True)) := by
+  unfold wlogW
+  split
+  · iintro ⟨H1, H2⟩
+    imod wlog_update_halves γ.ws L L' h $$ H1 H2 with ⟨H1, H2⟩
+    imodintro
+    iframe H1 H2
+  · iintro _
+    imodintro
+    isplit <;> itrivial
+
+theorem wlogW_off (γ : MvccName) (hw : γ.watched = false) (L : Log) : ⊢ wlogW (GF := GF) γ L := by
+  unfold wlogW; simp only [hw, Bool.false_eq_true, ↓reduceIte]; itrivial
+
 /-- **The second update, at the notified state**: the bump, the abstract committed log advanced
-(its three parts: the client's, `s.revMu`'s and the writer's), nothing pending. -/
-theorem commit_second (γ : MvccName) (habs : γ.st.absQ = true) (hw : γ.watched = false) (ilog : Log)
+(its three parts: the client's, `s.revMu`'s and the writer's), nothing pending; on a store with
+watchers, the watchers' log too (its two halves: the client's, and `wlogW`). -/
+theorem commit_second (γ : MvccName) (habs : γ.st.absQ = true) (ilog : Log)
     (pend : List Change)
     (hne : pend ≠ []) (Q : IProp GF) (hlen : (ilog ++ [pend]).length + 3 ≤ 2 ^ 63) :
     idxCert γ.st.idx (ilog ++ [pend]) ∗
     iprop(AU <{ ∃∃ (σ' : MvccState), mvccState γ σ' }> @ ⊤ \ ↑mvccN, ∅
         <{ mvccState γ σ'.commitPending, COMM Q }>) ∗
     ghostVar γ.st.abs (1 : Qp).half.half ilog ∗ ghostVar γ.st.abs (1 : Qp).half.half ilog ∗
-    ghostVar γ.st.pnd (1 : Qp).half (some pend) ={⊤}=∗
+    ghostVar γ.st.pnd (1 : Qp).half (some pend) ∗ wlogW γ ilog ={⊤}=∗
       ghostVar γ.st.abs (1 : Qp).half.half (ilog ++ [pend]) ∗
       ghostVar γ.st.abs (1 : Qp).half.half (ilog ++ [pend]) ∗
-      ghostVar γ.st.pnd (1 : Qp).half (none : Option (List Change)) ∗ Q := by
-  iintro ⟨#Hc', Hau, Ha1, Ha2, Hp⟩
+      ghostVar γ.st.pnd (1 : Qp).half (none : Option (List Change)) ∗ wlogW γ (ilog ++ [pend]) ∗
+      Q := by
+  iintro ⟨#Hc', Hau, Ha1, Ha2, Hp, Hw⟩
   ihave Hau := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvccN) (Eo2 := ⊤) (by simp) $$ Hau
   ihave Hacc := aupd_aacc $$ Hau
   unfold atomic_acc
@@ -121,6 +146,7 @@ theorem commit_second (γ : MvccName) (habs : γ.st.absQ = true) (hw : γ.watche
   subst Hl
   imod ghostVar_update_halves (σ.log ++ [pend]) γ.st.abs _ _ $$ Ha12 Hga with ⟨Ha12, Hga⟩
   imod ghostVar_update_halves (none : Option (List Change)) γ.st.pnd _ _ $$ Hp Hgp with ⟨Hp, Hgp⟩
+  imod wlogW_update γ σ.log (σ.log ++ [pend]) (List.prefix_append _ _) $$ [$Hw $Hwl] with ⟨Hw, Hwl⟩
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
   have hσ : σ.commitPending = { σ with log := σ.log ++ [pend], pending := none } := by
@@ -128,9 +154,8 @@ theorem commit_second (γ : MvccName) (habs : γ.st.absQ = true) (hw : γ.watche
   imod Hcommit $$ [Hga Hgp Hgc HM Hwl] with HQ
   · iunfold mvccState
     iunfold mvccStateI
-    simp only [hw, Bool.false_eq_true, ↓reduceIte]
-    iframe Hwl
     rw [hσ]
+    iframe Hwl
     simp only
     iframe Hga Hgp Hgc Hc'
     isplitl [HM]
@@ -148,7 +173,7 @@ theorem commit_second (γ : MvccName) (habs : γ.st.absQ = true) (hw : γ.watche
     (1 : Qp).half.half (1 : Qp).half.half
   rw [Qp.half_add_half] at h
   icases h.1 $$ Ha12 with ⟨Ha1, Ha2⟩
-  iframe Ha1 Ha2 Hp HQ
+  iframe Ha1 Ha2 Hp Hw HQ
 
 /-- **The commit update of a plain store's `End`** (`absCommit`, from the caller's two updates):
 both run at the bump. The first notifies (the pending revision's ghost, the client's half and the
@@ -212,9 +237,10 @@ theorem absCommit_of_au (γ : MvccName) (habs : γ.st.absQ = true) (hw : γ.watc
         simp [MvccState.notify, hne]
       rw [hσ]
       exact MvccReachable.notify σ pend Hreach.1 hpn (LogWf.of_wf' Hwf.1 (by simp))
-    ihave Hcs := commit_second γ habs hw σ.log pend hne Q Hlen
+    ihave Hw0 := wlogW_off γ hw σ.log
+    ihave Hcs := commit_second γ habs σ.log pend hne Q Hlen
     isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down, tforall_cons, tforall_nil] at Hcs
-    imod Hcs $$ [$Hc' $Hau2 $HaR $HaW $HpW] with ⟨Ha1, Ha2, Hp, HQ⟩
+    imod Hcs $$ [$Hc' $Hau2 $HaR $HaW $HpW $Hw0] with ⟨Ha1, Ha2, Hp, -, HQ⟩
     imodintro
     iframe Ha1 Ha2 Hp HQ Hcok
   · -- already notified: the notification changes nothing
@@ -229,11 +255,117 @@ theorem absCommit_of_au (γ : MvccName) (habs : γ.st.absQ = true) (hw : γ.watc
       isplitl [HM]
       · iexists M; iframe HM; ipureintro; exact HMok
       ipureintro; exact Hreach
-    ihave Hcs := commit_second γ habs hw σ.log pend hne Q Hlen
+    ihave Hw0 := wlogW_off γ hw σ.log
+    ihave Hcs := commit_second γ habs σ.log pend hne Q Hlen
     isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down, tforall_cons, tforall_nil] at Hcs
-    imod Hcs $$ [$Hc' $Hau2 $HaR $HaW $HpW] with ⟨Ha1, Ha2, Hp, HQ⟩
+    imod Hcs $$ [$Hc' $Hau2 $HaR $HaW $HpW $Hw0] with ⟨Ha1, Ha2, Hp, -, HQ⟩
     imodintro
     iframe Ha1 Ha2 Hp HQ Hcok
+
+/-- **The first update, at the seal** (the watchable store's `End`, before the watchers get the
+revision's events): the pending revision notified (the writer's half of it and the client's at
+`some pend`), the next log's certificate in the client's map (the element, persistent: it is the
+events' certificate, `certOk`), and the second update left. -/
+theorem notify_first (γ : MvccName) (habs : γ.st.absQ = true) (ilog : Log) (pend : List Change)
+    (hne : pend ≠ []) (Q : IProp GF) (hlen : (ilog ++ [pend]).length + 3 ≤ 2 ^ 63)
+    (hwf : LogWf (ilog ++ [pend])) :
+    commitAU γ pend Q ∗ absAt γ.st (1 : Qp).half.half ilog ∗ pndAt γ.st (1 : Qp).half none ={⊤}=∗
+      absAt γ.st (1 : Qp).half.half ilog ∗ pndAt γ.st (1 : Qp).half (some pend) ∗
+      (W64 ((ilog ++ [pend]).length : Int)) ↪[γ.st.cok]□ (ilog ++ [pend]) ∗
+      iprop(AU <{ ∃∃ (σ' : MvccState), mvccState γ σ' }> @ ⊤ \ ↑mvccN, ∅
+          <{ mvccState γ σ'.commitPending, COMM Q }>) := by
+  iintro ⟨Hau, HaW, HpW⟩
+  simp only [absAt, pndAt, habs, ↓reduceIte]
+  iunfold commitAU at Hau
+  ihave Hau := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvccN) (Eo2 := ⊤) (by simp) $$ Hau
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%σ, Hσ, Hucl⟩
+  iunfold mvccState at Hσ
+  iunfold mvccStateI at Hσ
+  icases Hσ with ⟨Hga, Hgp, Hgc, #Hgi, ⟨%M, HM, %HMok⟩, #Hpe, Hwl, %Hreach⟩
+  ihave %Hl := ghostVar_agree γ.st.abs _ _ _ _ $$ HaW Hga
+  ihave %Hpp := ghostVar_agree γ.st.pnd _ _ _ _ $$ HpW Hgp
+  subst Hl
+  icases Hucl with ⟨-, Hcommit⟩
+  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
+  have hpn : σ.pending = none := Hpp.symm
+  have hok : certMapOk M σ.log := by rw [← notifiedLog_none σ hpn]; exact HMok
+  have hkey := certMapOk_fresh M σ.log pend hok (by omega)
+  imod ghost_map_insert_persist (W64 ((σ.log ++ [pend]).length : Int)) (σ.log ++ [pend]) hkey
+    $$ HM with ⟨HM, #Hel⟩
+  ihave #Hcok : certOk γ.st (σ.log ++ [pend]) $$ []
+  · iunfold certOk; iright; ileft; iexact Hel
+  imod ghostVar_update_halves (some pend) γ.st.pnd _ _ $$ HpW Hgp with ⟨HpW, Hgp⟩
+  imod Hcommit $$ [Hga Hgp Hgc HM Hwl] with Hau2
+  · iunfold mvccState
+    iunfold mvccStateI
+    simp only [MvccState.notify, if_neg hne]
+    iframe Hwl
+    iframe Hga Hgp Hgc Hgi
+    isplitl [HM]
+    · iexists _; iframe HM; ipureintro
+      unfold MvccState.notifiedLog; simp only
+      exact certMapOk_insert M σ.log pend hok
+    isplitr
+    · iintro !> %x %hx; cases hx; iexact Hcok
+    ipureintro
+    refine ⟨?_, Hreach.2⟩
+    have hσ : ({ σ with pending := some pend } : MvccState) = σ.notify pend := by
+      simp [MvccState.notify, hne]
+    rw [hσ]
+    exact MvccReachable.notify σ pend Hreach.1 hpn hwf
+  imodintro
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down, tforall_cons, tforall_nil]
+  iframe HaW HpW Hel Hau2
+
+/-- **The commit update of a watchable store's `End`** (`absCommit`, from the second of the caller's
+updates, the first run at the seal, `notify_first`): at the bump, the abstract committed log, the
+pending revision and the watchers' log (`s.mu`'s half, `wlogW`, given back at the committed log)
+advanced. Called at a writer's part not notified, it finds the next log's certificate in the map of
+a history without it: impossible. -/
+theorem absCommit_of_au2 (γ : MvccName) (habs : γ.st.absQ = true) (ilog : Log) (pend : List Change)
+    (hne : pend ≠ []) (Q : IProp GF) :
+    (W64 ((ilog ++ [pend]).length : Int)) ↪[γ.st.cok]□ (ilog ++ [pend]) ∗
+    iprop(AU <{ ∃∃ (σ' : MvccState), mvccState γ σ' }> @ ⊤ \ ↑mvccN, ∅
+        <{ mvccState γ σ'.commitPending, COMM Q }>) ∗ wlogW γ ilog ⊢
+      absCommit γ.st ilog pend iprop(wlogW γ (ilog ++ [pend]) ∗ Q) := by
+  iintro ⟨#Hel, Hau, Hw⟩
+  unfold absCommit
+  rw [if_neg hne]
+  iintro %p %Hp %Hlen #Hc' ⟨HaR, Hwr⟩
+  iunfold wrAt at Hwr
+  icases Hwr with ⟨HaW, HpW⟩
+  simp only [wrAt, absAt, pndAt, habs, ↓reduceIte]
+  rcases Hp with rfl | rfl
+  · -- not notified: impossible
+    ihave Hau := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvccN) (Eo2 := ⊤) (by simp) $$ Hau
+    ihave Hacc := aupd_aacc $$ Hau
+    unfold atomic_acc
+    imod Hacc with Hacc
+    isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+    icases Hacc with ⟨%σ, Hσ, -⟩
+    iunfold mvccState at Hσ
+    iunfold mvccStateI at Hσ
+    icases Hσ with ⟨Hga, Hgp, -, -, ⟨%M, HM, %HMok⟩, -⟩
+    ihave %Hl := ghostVar_agree γ.st.abs _ _ _ _ $$ HaW Hga
+    ihave %Hpp := ghostVar_agree γ.st.pnd _ _ _ _ $$ HpW Hgp
+    ihave %Hlk := ghost_map_lookup $$ HM Hel
+    exfalso
+    have hn : σ.notifiedLog = σ.log := notifiedLog_none σ Hpp.symm
+    obtain ⟨-, -, hpre⟩ := HMok _ _ Hlk
+    rw [hn, ← Hl] at hpre
+    have := hpre.length_le
+    simp at this; omega
+  · ihave Hcs := commit_second γ habs ilog pend hne Q Hlen
+    isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down, tforall_cons, tforall_nil] at Hcs
+    isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down, tforall_cons, tforall_nil] at Hau
+    imod Hcs $$ [$Hc' $Hau $HaR $HaW $HpW $Hw] with ⟨Ha1, Ha2, Hp, Hw, HQ⟩
+    imodintro
+    iframe Ha1 Ha2 Hp Hw HQ
+    iunfold certOk; iright; ileft; iexact Hel
 
 /-- **A commit of nothing**: the caller's two updates, at the state (nothing pending: the writer's
 half says so), change nothing. -/

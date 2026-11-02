@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Rev
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLemmas
 
 @[expose] public section
 
@@ -564,6 +565,547 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     unfold mvcc.wBudget; simp only [List.length_append, List.length_singleton]; omega
   rw [hb]
   iexact Htoks
+
+/-- **A write transaction's core, not sealed, lends the writer's part** (at `none`). -/
+theorem mvcc.isTxnWriteCore_wrAtF (mw s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (ilog : mvcc.Log)
+    (pend : List mvcc.Change) (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc)
+    (crev : Int) :
+    mvcc.isTxnWriteCore (GF := GF) mw s γ trace ilog pend puts deletes putSize chs ps false crev ⊢
+      mvcc.wrAt γ ilog none ∗ (mvcc.wrAt γ ilog none -∗
+        mvcc.isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps false crev) := by
+  iintro H
+  iunfold mvcc.isTxnWriteCore at H
+  iNamed H
+  iunfold mvcc.storeTxnWriteCore at Htw
+  iNamed Htw
+  isimp only [mvcc.pndEndB_false] at Hpnd
+  iframe Hpnd
+  iintro Hpnd
+  iunfold mvcc.isTxnWriteCore
+  iexists tw, ranges
+  iframe Hmw Htrc
+  iunfold mvcc.storeTxnWriteCore
+  iexists ti, bt, Locked, ntok, Pw, fw, Dep
+  simp only [named, mvcc.pndEndB_false]
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hpnd
+  iframe #
+  ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
+
+/-- **Seal** the write transaction's pending revision (`isTxnWriteCore_seal`), lending the writer's
+part (at `none`): the sealed core takes it back notified or not. -/
+theorem mvcc.isTxnWriteCore_sealOpen (mw s : Loc) (γ : mvcc.StoreNames) (trace : Loc)
+    (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64) (chs : GoSlice)
+    (ps : List Loc) (hne : pend ≠ []) (crev : Int) :
+    mvcc.isTxnWriteCore (GF := GF) mw s γ trace ilog pend puts deletes putSize chs ps false crev ==∗
+      mvcc.wrAt γ ilog none ∗
+      (∀ p : Option (List mvcc.Change), ⌜p = none ∨ (pend ≠ [] ∧ p = some pend)⌝ -∗
+        mvcc.wrAt γ ilog p -∗
+        mvcc.isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps true crev) ∗
+      mvcc.idxSealed γ.idx (ilog ++ [pend]) := by
+  iintro H
+  iunfold mvcc.isTxnWriteCore at H
+  iNamed H
+  iunfold mvcc.storeTxnWriteCore at Htw
+  iNamed Htw
+  isimp only [mvcc.pndEndB_false] at Hpnd
+  isimp only [mvcc.idxWriterB_false] at Hw
+  imod mvcc.idxWriter_seal γ.idx ilog pend hne $$ Hw with ⟨Hw, #Hlb⟩
+  imodintro
+  iframe Hlb Hpnd
+  iintro %p %hp Hp
+  iunfold mvcc.isTxnWriteCore
+  iexists tw, ranges
+  iframe Hmw Htrc
+  iunfold mvcc.storeTxnWriteCore
+  iexists ti, bt, Locked, ntok, Pw, fw, Dep
+  ihave Hpe : mvcc.pndEnd γ ilog pend $$ [Hp]
+  · iunfold mvcc.pndEnd; iexists p; iframe Hp; ipureintro; exact hp
+  simp only [named, mvcc.idxWriterB_true, mvcc.pndEndB_true]
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hpe
+  iframe #
+  ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
+
+/-- `body_pin` without the client's half of the watchers' log (the abstract mode: it is the client's
+state's): the lock's quarter of the committed log's authority agrees with the writer's half. -/
+theorem mvcc.body_pinA (s stw st : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) (ilog : mvcc.Log)
+    (pend : List mvcc.Change) (chs : GoSlice) (ps : List Loc) (crev : Int) (ld : Bool) :
+    mvcc.watchStoreBody (GF := GF) s γ 1 σ ∗
+      mvcc.storeTxnWriteCore stw st γ.st trace ilog pend chs ps false crev (ld := ld) ⊢
+      ⌜σ.Lmu = ilog ∧ σ.syncedBelow ilog.length⌝ := by
+  iintro ⟨Hb, Hc⟩
+  iunfold mvcc.watchStoreBody at Hb
+  iNamed Hb
+  iunfold mvcc.wlogQ at Hwlog
+  icases Hwlog with ⟨-, Hq⟩
+  iunfold mvcc.storeTxnWriteCore at Hc
+  iNamed Hc
+  simp only [mvcc.idxWriterB_false, mvcc.pndEndB_false]
+  iunfold mvcc.idxWriter at Hw
+  icases Hw with ⟨Hauth, -, -, Hla, -⟩
+  ihave %Hl0 := monoListAuthOwn_agree _ _ _ _ _ $$ Hq Hla
+  ihave %Hbel := mvcc.syncedBelow_of γ σ Hok ilog pend $$ [$Hmem $Hauth]
+  ipureintro
+  exact ⟨Hl0.2, Hbel⟩
+
+/-- `body_commit` with `s.mu`'s half of the watchers' log lent too (the abstract mode: the commit's
+update advances it with the client's, `absCommit_of_au2`). -/
+theorem mvcc.body_commitA (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) :
+    mvcc.watchStoreBody (GF := GF) s γ 1 σ ⊢ mvcc.logQ γ.st σ.Lmu ∗
+      monoListAuthOwn γ.wlog (1 : Qp).half σ.Lmu ∗
+      (∀ L : mvcc.Log, ⌜σ.syncedAbove L.length ∧ σ.Lmu <+: L⌝ -∗
+        monoListAuthOwn γ.wlog (1 : Qp).half L -∗
+        mvcc.idxCert γ.st.idx L -∗ mvcc.logQ γ.st L ==∗
+        mvcc.watchStoreBody s γ 1 { σ with Lmu := L }) := by
+  iintro Hb
+  iunfold mvcc.watchStoreBody at Hb
+  iNamed Hb
+  iunfold mvcc.wlogQ at Hwlog
+  icases Hwlog with ⟨Hwlog, Hq⟩
+  iframe Hq Hwlog
+  iintro %L ⟨%hab, %hpre⟩ Hwl #Hc Hq
+  imod ghostVar_update { σ with Lmu := L } γ.wst σ $$ Hσ with Hσ
+  imodintro
+  ihave #Hwfz2 := mvcc.wsWatchFrozen_mono γ σ { σ with Lmu := L } (fun h => h) $$ Hwfz
+  iunfold mvcc.watchStoreBody
+  simp only [named]
+  iframe Hσ
+  isplitl [Hwl Hq]
+  · iunfold mvcc.wlogQ; iframe Hwl Hq
+  iframe
+  iframe #
+  isplitr
+  · ipureintro; exact Hvlen
+  isplitr
+  · iapply (BigSepM.bigSepM_mono (fun {k v} _ => by unfold mvcc.outRes; exact .rfl)) $$ Hout
+  ipureintro
+  exact { Hok with synced_d := fun w γw ed h1 h2 h3 => hab w γw ed h1 h2 h3 }
+
+/-- **The candidate `End`** of the watchable store's write transaction (`specC`): `spec`'s, the
+abstract mode's. The caller's first update runs at the seal (`notify_first`: the events' certificate
+from it), the second at the bump inside the inner `End` (`absCommit_of_au2`, with `s.mu`'s half of
+the watchers' log, which the commit advances with the client's); the notified log pinned by the
+committed log's authority (`body_pinA`), not the client's half. -/
+theorem mvcc.watchableStoreTxnWrite.End.wp_proofC
+    (hCh : mvcc.metricsTxnWrite.Changes.spec (GF := GF) (hG := hG))
+    (hEnd : mvcc.metricsTxnWrite.End.specA (GF := GF) (hG := hG))
+    (hRev : mvcc.storeTxnWrite.Rev.spec (GF := GF) (hG := hG))
+    (hNotify : mvcc.watchableStore.notify.spec (GF := GF) (hG := hG)) :
+    mvcc.watchableStoreTxnWrite.End.specC (GF := GF) (hG := hG) := by
+  intro tw γ trace σ₀ pend P f Q
+  wp_start as ⟨Htx, #Hhook, HPh, Hau⟩
+  iunfold mvcc.mvccTxn at Htx
+  simp only [mvcc.mvccTxnI]
+  icases Htx with ⟨%mw, %st, %puts, %deletes, %putSize, %Hpl, #Hmv, Htx, Hloan,
+    (%Ht | ⟨%tw', ⟨%Ht, %hw⟩, #Htw, #Hws⟩)⟩
+  · simp [interface_mkOk_inj, metricsTxnWrite.ty, watchableStoreTxnWrite.ty] at Ht
+  simp only [interface_mkOk_inj, _root_.true_and] at Ht
+  have htw : tw' = tw := (GoGlobalContext.intoVal_inj_loc Ht).symm
+  subst htw
+  ihave #Hmv1 := Hmv
+  iunfold mvcc.isMvccI at Hmv1
+  icases Hmv1 with ⟨-, %Hf, -⟩
+  obtain ⟨habs, -⟩ := Hf
+  ihave #Hhk := mvcc.mvccHook_hookOk γ P f $$ Hhook
+  cases σ₀ with
+  | mk ilog crev pending0 =>
+  try simp only
+  iStructNamed Htw
+  (try wp_auto)
+  rw [method_unfold (t := go.GoType.PointerType watchableStoreTxnWrite.ty) (m := go!"Changes")]; wp_call
+  (try wp_auto)
+  wp_apply (hCh trace mw st γ.st ilog pend puts deletes putSize crev iprop(True) false) $$ [$Htx] as %chs %ps ⟨Hchs, Hkvs, %Hps, Hcore⟩
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hchs
+  icases mvcc.isTxnWriteCore_room _ _ _ _ _ _ _ _ _ _ _ crev false $$ Hcore with ⟨Hcore, %Hroom⟩
+  (try wp_auto)
+  have hpend : pend = [] ↔ chs.len = W64 0 := by
+    constructor
+    · intro h
+      have hz : ps.length = 0 := by rw [Hps, h]; rfl
+      rw [← mvcc.W64_sint_nat chs.len Hlen.2, ← Hlen.1, hz]; rfl
+    · intro h
+      have h1 := Hlen.1
+      rw [h] at h1
+      exact List.length_eq_zero_iff.1 (by rw [← Hps, h1]; rfl)
+  wp_if_destruct
+  · -- no change: the inner transaction ends, no revision
+    have hnil : pend = [] := hpend.2 Hif
+    subst hnil
+    (try wp_auto)
+    icases mvcc.isTxnWriteCore_wrAtF mw st γ.st trace ilog [] puts deletes putSize chs ps crev $$ Hcore
+      with ⟨Hwr, Hcore⟩
+    iunfold mvcc.wrAt at Hwr
+    icases Hwr with ⟨HaW, HpW⟩
+    imod mvcc.commitAU_nil γ habs Q $$ [Hau HpW] with ⟨HQ, HpW⟩
+    · iframe HpW; iunfold mvcc.commitAU; iexact Hau
+    ihave Hcore := Hcore $$ [HaW HpW]
+    · iunfold mvcc.wrAt; iframe HaW HpW
+    ihave Hte : mvcc.isTxnEnd mw st γ.st trace (.write ilog [] puts deletes putSize) crev $$ [Hcore]
+    · simp only [mvcc.isTxnEnd]; iexists chs, ps, false, false; iexact Hcore
+    iapply wp_fupd
+    wp_apply (hEnd trace mw st γ.st (.write ilog [] puts deletes putSize) crev iprop(True) Q)
+      $$ [$Hte HPh HQ] as ⟨Hrd, -, Hpost, Htrc⟩
+    · simp only [mvcc.txnEndPreA]
+      iexists P, #f
+      iframe Hhk HPh
+      rw [mvcc.logQPre_nil]
+      isplitr; · itrivial
+      unfold mvcc.absCommit
+      rw [if_pos rfl]
+      iexact HQ
+    simp only [mvcc.txnEndPostA]
+    icases Hpost with ⟨-, -, -, HQ⟩
+    imod mvcc.mvccGiveBack st γ $$ [$Hmv $Hloan $Hrd] with Htt
+    (try wp_auto)
+    iapply HΦ
+    iframe Htt Htrc HQ
+  have hne : pend ≠ [] := fun h => Hif (hpend.1 h)
+  (try wp_auto)
+  rw [method_unfold (t := go.GoType.PointerType watchableStoreTxnWrite.ty) (m := go!"Rev")]; wp_call
+  (try wp_auto)
+  iunfold mvcc.isTxnWriteCore at Hcore
+  icases Hcore with ⟨%stw, %ranges, Hmw, Hcore, Htrc⟩
+  wp_bind (App (Val #(methods (go.GoType.PointerType metricsTxnWrite.ty) go!"Rev" #mw)) (Val #()))
+  rw [method_unfold (t := go.GoType.PointerType metricsTxnWrite.ty) (m := go!"Rev")]; wp_call
+  (try wp_auto)
+  wp_apply (hRev trace stw st γ.st ilog pend chs ps false crev iprop(True) false) $$ [$Hcore] as Hcore
+  icases mvcc.storeTxnWriteCore_wf _ _ _ _ _ _ _ _ (ld := false) $$ Hcore with ⟨Hcore, %Hwfc⟩
+  (try wp_auto)
+  wp_apply wp_slice_make2 (V := Loc) chs.len $$ [] as %esl ⟨Hesl, Hecap⟩
+  · ipureintro; exact Hlen.2
+  (try wp_auto)
+  rename_i igo
+  irename : (igo ↦ zero_val w64 : IProp GF) => Higo
+  iunfold mvcc.changesAre at Hkvs
+  ihave IH : iprop(∃ (n : w64) (cv : Loc) (iv : w64) (done : List Loc) (evd : List mvcc.EvM),
+      "i" ∷ i_ptr ↦ n ∗ "change" ∷ change_ptr ↦ cv ∗ "Higo" ∷ igo ↦ iv ∗
+      "Hesl" ∷ esl ↦* (done ++ List.replicate (sint.nat chs.len - sint.nat n) (zero_val Loc)) ∗
+      "Hchs" ∷ chs ↦* ps ∗
+      "Hrest" ∷ ([∗list] j ↦ p ∈ ps.drop (sint.nat n), ∃ kv : EtcdKv,
+        ⌜mvcc.changeKv (W64 ilog.length) (mvcc.stateAfter ilog) pend (sint.nat n + j) = some kv⌝ ∗
+        mvcc.kvPtrIs true p kv) ∗
+      "Hdone" ∷ ([∗list] x ∈ done.zip evd, mvcc.evIs x.1 x.2) ∗
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z chs.len ∧ done.length = sint.nat n ∧
+        evd.length = sint.nat n ∧ evd = (List.range (sint.nat n)).filterMap (fun i =>
+          (mvcc.changeKv (W64 ilog.length) (mvcc.stateAfter ilog) pend i).map
+            (mvcc.evOfKv ilog.length))⌝) $$ [i change Higo Hesl Hchs Hkvs]
+  · iexists W64 0, _, _, [], []
+    simp only [named]
+    iframe i change Higo Hchs
+    have h0 : sint.nat (W64 0) = 0 := rfl
+    rw [h0, List.drop_zero, Nat.sub_zero, List.nil_append]
+    iframe Hesl
+    simp only [Nat.zero_add, List.zip_nil_left]
+    iframe Hkvs
+    isplitl []
+    · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
+    ipureintro; refine ⟨by word, Hlen.2, rfl, rfl, rfl⟩
+  wp_for IH
+  wp_if_destruct
+  · have Hlt : sint.nat n < ps.length := by rw [Hlen.1]; word
+    obtain ⟨p, Hp⟩ : ∃ p, ps[sint.nat n]? = some p := ⟨_, List.getElem?_eq_getElem Hlt⟩
+    have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z chs.len := ⟨Hn.1, Hif⟩
+    simp only [Hbnd, _root_.and_self, ↓reduceIte]
+    wp_apply wp_load_slice_index chs (sint.Z n) ps (DFrac.own 1) p Hn.1 $$ [Hchs] as Hchs
+    · iframe; ipureintro; exact Hp
+    (try wp_auto)
+    simp only [Hbnd, _root_.and_self, ↓reduceIte]
+    wp_apply wp_load_slice_index chs (sint.Z n) ps (DFrac.own 1) p Hn.1 $$ [Hchs] as Hchs
+    · iframe; ipureintro; exact Hp
+    (try wp_auto)
+    ihave %Hel := ownSlice_len _ _ _ $$ Hesl
+    have Hdl := Hn.2.2.1
+    have Hb2 : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z esl.len := by
+      refine ⟨Hn.1, ?_⟩
+      have h1 := Hel.1
+      rw [List.length_append, List.length_replicate] at h1
+      word
+    simp only [Hb2, _root_.and_self, ↓reduceIte]
+    wp_apply wp_store_slice_index esl (sint.Z n) _ «$r0_ptr» $$ [$Hesl] as Hesl
+    · ipureintro
+      have h1 := Hel.1
+      rw [List.length_append, List.length_replicate] at h1 ⊢
+      word
+    -- the change's key-value
+    have hpe : ps[sint.nat n] = p := by
+      have := List.getElem?_eq_getElem Hlt; rw [this] at Hp; exact Option.some.inj Hp
+    have hdrop : ps.drop (sint.nat n) = p :: ps.drop (sint.nat n + 1) := by
+      rw [List.drop_eq_getElem_cons Hlt, hpe]
+    rw [hdrop]
+    icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ Hrest with ⟨⟨%kv, %Hkv, Hkvp⟩, Hrest⟩
+    iunfold mvcc.kvPtrIs at Hkvp
+    simp only [↓reduceIte]
+    icases Hkvp with ⟨%ks, %kst, %kuf, %ksc, #Hks, %vs, #Hvs, Hkvp⟩
+    ihave %Hpnn := typedPointsto_not_null _ _ _ $$ Hkvp
+    ihave %Henn := typedPointsto_not_null _ _ _ $$ «$r0»
+    iStructNamedPrefix Hkvp "K"
+    iStructNamedPrefix «$r0» "E"
+    (try wp_auto)
+    have Hset : ((done ++ List.replicate (sint.nat chs.len - sint.nat n) (zero_val Loc)).set
+        (sint.Z n).toNat «$r0_ptr»)[(sint.Z n).toNat]? = some «$r0_ptr» := by
+      apply List.getElem?_set_self
+      have h1 := Hel.1
+      rw [List.length_append, List.length_replicate] at h1 ⊢
+      word
+    wp_if_destruct
+    · -- DELETE
+      try simp only [Hb2, _root_.and_self, ↓reduceIte]
+      wp_apply wp_load_slice_index esl (sint.Z n) _ (DFrac.own 1) «$r0_ptr» Hn.1 $$ [Hesl] as Hesl
+      · iframe; ipureintro; exact Hset
+      simp only [go_etcd_io.etcd.api.v3.mvccpb.Event_DELETE]
+      (try wp_auto)
+      try simp only [Hb2, _root_.and_self, ↓reduceIte]
+      wp_apply wp_load_slice_index esl (sint.Z n) _ (DFrac.own 1) «$r0_ptr» Hn.1 $$ [Hesl] as Hesl
+      · iframe; ipureintro; exact Hset
+      (try wp_auto)
+      have hN : (W64 ((ilog.length : Int) - 1) : w64) + W64 1 = W64 (ilog.length : Int) := by
+        rw [← mvcc.W64_add_one]; congr 1; omega
+      rw [hN]
+      ihave Hpk : (p ↦
+          ({ state' := kst, Key' := ks, CreateRevision' := kv.createRev,
+             ModRevision' := W64 (ilog.length : Int), Version' := kv.version, Value' := vs,
+             Lease' := kv.lease, unknownFields' := kuf, sizeCache' := ksc } :
+            go_etcd_io.etcd.api.v3.mvccpb.KeyValue) : IProp GF) $$
+          [Kstate KKey KCreateRevision KModRevision KVersion KValue KLease KunknownFields KsizeCache]
+      · iapply typedPointsto_combine _ _ _ Hpnn
+        simp only [TypedPointsto.typedPointstoDef]
+        iframe
+      ihave He : («$r0_ptr» ↦
+          ({ state' := zero_val _, Type' := W32 1, Kv' := p, PrevKv' := null,
+             unknownFields' := slice.nil, sizeCache' := W32 0 } :
+            go_etcd_io.etcd.api.v3.mvccpb.Event) : IProp GF) $$ [Estate EType' EKv EPrevKv EunknownFields EsizeCache]
+      · iapply typedPointsto_combine _ _ _ Henn
+        simp only [TypedPointsto.typedPointstoDef]
+        iframe
+      wp_for_post_core
+      ipersist Hpk
+      ipersist He
+      have hev : mvcc.evOfKv ilog.length kv =
+          ⟨true, { kv with modRev := W64 (ilog.length : Int) }, none⟩ := by
+        unfold mvcc.evOfKv; rw [if_pos Hif]
+      ihave #Hev : mvcc.evIs «$r0_ptr» (mvcc.evOfKv ilog.length kv) $$ []
+      · rw [hev]
+        iunfold mvcc.evIs
+        iexists p, null, _, slice.nil, W32 0
+        simp only [mvcc.evType, ↓reduceIte]
+        iframe He
+        isplitr
+        · ipureintro; exact ⟨Henn, Hpnn⟩
+        isplitr
+        · iunfold mvcc.kvPtrFixed
+          iexists ks, vs, kst, kuf, ksc
+          iframe Hks Hvs Hpk
+        first | (ipureintro; rfl) | (ipureintro; trivial) | itrivial
+      (try wp_auto)
+      iframe
+      iexists n + W64 1, _, _, done ++ [«$r0_ptr»], evd ++ [mvcc.evOfKv ilog.length kv]
+      have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
+      rw [hn1]
+      have hset : (done ++ List.replicate (sint.nat chs.len - sint.nat n) (zero_val Loc)).set
+          (sint.Z n).toNat «$r0_ptr» =
+          (done ++ [«$r0_ptr»]) ++ List.replicate (sint.nat chs.len - (sint.nat n + 1)) (zero_val Loc) := by
+        have h1 : (sint.Z n).toNat = done.length := by rw [Hdl]; try rfl
+        rw [h1, ← Hdl]
+        apply mvcc.set_replicate_step
+        first | (rw [Hdl]; word) | rw [Hdl] | word
+      rw [hset]
+      iframe
+      isplitl [Hrest]
+      · iapply mvcc.rest_shift (sint.nat n) _ (fun j p => iprop(∃ kv : EtcdKv,
+          ⌜mvcc.changeKv (W64 ilog.length) (mvcc.stateAfter ilog) pend j = some kv⌝ ∗
+          mvcc.kvPtrIs true p kv)) $$ Hrest
+      isplitl [Hdone]
+      · rw [List.zip_append (by rw [Hn.2.2.1, Hn.2.2.2.1])]
+        simp only [List.zip_cons_cons, List.zip_nil_left]
+        iapply (BigSepL.bigSepL_snoc (PROP := IProp GF)).2
+        iframe Hdone
+        iexact Hev
+      ipureintro
+      refine ⟨by word, by word, by simp [Hn.2.2.1], by simp [Hn.2.2.2.1], ?_⟩
+      rw [List.range_succ, List.filterMap_append, ← Hn.2.2.2.2]
+      simp only [Nat.add_zero] at Hkv
+      simp only [List.filterMap_cons, List.filterMap_nil, Hkv, Option.map_some, List.append_nil]
+    · simp only [Hb2, _root_.and_self, ↓reduceIte]
+      wp_apply wp_load_slice_index esl (sint.Z n) _ (DFrac.own 1) «$r0_ptr» Hn.1 $$ [Hesl] as Hesl
+      · iframe; ipureintro; exact Hset
+      simp only [go_etcd_io.etcd.api.v3.mvccpb.Event_PUT]
+      (try wp_auto)
+      ihave Hpk : (p ↦
+          ({ state' := kst, Key' := ks, CreateRevision' := kv.createRev,
+             ModRevision' := kv.modRev, Version' := kv.version, Value' := vs,
+             Lease' := kv.lease, unknownFields' := kuf, sizeCache' := ksc } :
+            go_etcd_io.etcd.api.v3.mvccpb.KeyValue) : IProp GF) $$
+          [Kstate KKey KCreateRevision KModRevision KVersion KValue KLease KunknownFields KsizeCache]
+      · iapply typedPointsto_combine _ _ _ Hpnn
+        simp only [TypedPointsto.typedPointstoDef]
+        iframe
+      ihave He : («$r0_ptr» ↦
+          ({ state' := zero_val _, Type' := W32 0, Kv' := p, PrevKv' := null,
+             unknownFields' := slice.nil, sizeCache' := W32 0 } :
+            go_etcd_io.etcd.api.v3.mvccpb.Event) : IProp GF) $$ [Estate EType' EKv EPrevKv EunknownFields EsizeCache]
+      · iapply typedPointsto_combine _ _ _ Henn
+        simp only [TypedPointsto.typedPointstoDef]
+        iframe
+      wp_for_post_core
+      ipersist Hpk
+      ipersist He
+      have hev : mvcc.evOfKv ilog.length kv = ⟨false, kv, none⟩ := by
+        unfold mvcc.evOfKv; rw [if_neg Hif]
+      ihave #Hev : mvcc.evIs «$r0_ptr» (mvcc.evOfKv ilog.length kv) $$ []
+      · rw [hev]
+        iunfold mvcc.evIs
+        iexists p, null, _, slice.nil, W32 0
+        simp only [mvcc.evType, Bool.false_eq_true, ↓reduceIte]
+        iframe He
+        isplitr
+        · ipureintro; exact ⟨Henn, Hpnn⟩
+        isplitr
+        · iunfold mvcc.kvPtrFixed
+          iexists ks, vs, kst, kuf, ksc
+          iframe Hks Hvs Hpk
+        first | (ipureintro; rfl) | (ipureintro; trivial) | itrivial
+      (try wp_auto)
+      iframe
+      iexists n + W64 1, _, _, done ++ [«$r0_ptr»], evd ++ [mvcc.evOfKv ilog.length kv]
+      have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
+      rw [hn1]
+      have hset : (done ++ List.replicate (sint.nat chs.len - sint.nat n) (zero_val Loc)).set
+          (sint.Z n).toNat «$r0_ptr» =
+          (done ++ [«$r0_ptr»]) ++ List.replicate (sint.nat chs.len - (sint.nat n + 1)) (zero_val Loc) := by
+        have h1 : (sint.Z n).toNat = done.length := by rw [Hdl]; try rfl
+        rw [h1, ← Hdl]
+        apply mvcc.set_replicate_step
+        first | (rw [Hdl]; word) | rw [Hdl] | word
+      rw [hset]
+      iframe
+      isplitl [Hrest]
+      · iapply mvcc.rest_shift (sint.nat n) _ (fun j p => iprop(∃ kv : EtcdKv,
+          ⌜mvcc.changeKv (W64 ilog.length) (mvcc.stateAfter ilog) pend j = some kv⌝ ∗
+          mvcc.kvPtrIs true p kv)) $$ Hrest
+      isplitl [Hdone]
+      · rw [List.zip_append (by rw [Hn.2.2.1, Hn.2.2.2.1])]
+        simp only [List.zip_cons_cons, List.zip_nil_left]
+        iapply (BigSepL.bigSepL_snoc (PROP := IProp GF)).2
+        iframe Hdone
+        iexact Hev
+      ipureintro
+      refine ⟨by word, by word, by simp [Hn.2.2.1], by simp [Hn.2.2.2.1], ?_⟩
+      rw [List.range_succ, List.filterMap_append, ← Hn.2.2.2.2]
+      simp only [Nat.add_zero] at Hkv
+      simp only [List.filterMap_cons, List.filterMap_nil, Hkv, Option.map_some, List.append_nil]
+  have hnl : sint.nat n = pend.length := by
+    have h1 := Hn.2.1
+    rw [← Hps, Hlen.1]; word
+  have hevd : evd = mvcc.evsOfRevM ilog.length (mvcc.stateAfter ilog) pend := by
+    rw [Hn.2.2.2.2, hnl]; rfl
+  have hdl : done.length = evd.length := by rw [Hn.2.2.1, Hn.2.2.2.1]
+  have hsub : sint.nat chs.len - sint.nat n = 0 := by word
+  rw [hsub, List.replicate_zero, List.append_nil]
+  have hN : (W64 ((ilog.length : Int) - 1) : w64) + W64 1 = W64 (ilog.length : Int) := by
+    rw [← mvcc.W64_add_one]; congr 1; omega
+  rw [hN]
+  ihave #Hws0 : mvcc.isWatchableStore γ.wl st γ.ws $$ []
+  · iexact Hws
+  iunfold mvcc.isWatchableStore at Hws
+  iNamed Hws
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  (try wp_auto)
+  wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HP⟩
+  wp_auto_lc 1
+  imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv γ.wl γ.ws 1)) $$ Hlc1 HP with HP
+  iunfold mvcc.watchStoreInv at HP
+  icases HP with ⟨%σ, HP, Hrel, Hwsf, %HsetR⟩
+  obtain ⟨Hset, Hsrb, Hurst⟩ := HsetR
+  icases persistent_entails_right (mvcc.body_pinA γ.wl stw st γ.ws σ ilog pend chs ps crev false) $$
+    [$HP $Hcore] with ⟨%Hpin, HP, Hcore⟩
+  obtain ⟨hLmu, hbel⟩ := Hpin
+  -- the seal: the revision's history lower bound, before the watchers get its events
+  ihave Hcw : mvcc.isTxnWriteCore mw st γ.st trace ilog pend puts deletes putSize chs ps false crev
+      (ld := false) $$
+    [Hmw Hcore Htrc]
+  · iunfold mvcc.isTxnWriteCore; iexists stw, ranges; iframe
+  imod mvcc.isTxnWriteCore_sealOpen mw st γ.st trace ilog pend puts deletes putSize chs ps hne crev $$ Hcw
+    with ⟨Hwr, Hcw, #Hsl⟩
+  -- the caller's first update: the revision notified, the next log's certificate (unit W-M3: the
+  -- events carry it)
+  ihave #Hsl0 := Hsl
+  iunfold mvcc.idxSealed at Hsl0
+  icases Hsl0 with ⟨-, %Hswf, -⟩
+  iunfold mvcc.wrAt at Hwr
+  icases Hwr with ⟨HaW, HpW⟩
+  imod mvcc.notify_first γ habs ilog pend hne Q (by simp; omega) (mvcc.LogWf.of_wf' Hswf.1 (by simp))
+    $$ [Hau HaW HpW] with ⟨HaW, HpW, #Hel, Hau2⟩
+  · iframe HaW HpW; iunfold mvcc.commitAU; iexact Hau
+  ihave Hcw := Hcw $$ %(some pend) %(Or.inr ⟨hne, rfl⟩) [HaW HpW]
+  · iunfold mvcc.wrAt; iframe HaW HpW
+  ihave #Hok : mvcc.certOk γ.st (ilog ++ [pend]) $$ []
+  · iunfold mvcc.certOk; iright; ileft; iexact Hel
+  ihave #Hlb : mvcc.evLog γ.st (ilog ++ [pend]) $$ []
+  · iunfold mvcc.evLog; iframe Hsl Hok
+  -- (D25) the revision released before its events go out: the released length bumped
+  imod mono_nat_own_update (ilog ++ [pend]).length (by rw [hLmu]; simp) $$ Hrel with ⟨Hrel, #Hrl⟩
+  ihave #Hrlb : mvcc.relLb γ.ws (ilog ++ [pend]).length $$ []
+  · iunfold mvcc.relLb; iexact Hrl
+  wp_apply (hNotify γ.wl st γ.ws σ ilog pend esl (DFrac.own 1) done evd) $$
+    [$Hws0 $HP $Hlb $Hrlb $Hesl $Hdone] as ⟨Hesl, %σ', HP, %Hσ'⟩
+  · ipureintro
+    exact ⟨⟨hLmu, hbel, by rw [← hLmu]; exact Hset.2, by omega, Hwfc.2.2.2.2⟩, hdl, hevd⟩
+  obtain ⟨hLmu', hab, hbel', hvic', hMeq, hWuEq, hSTEq⟩ := Hσ'
+  have hLL : σ.Lmu.length = σ'.Lmu.length := by rw [hLmu, hLmu']
+  (try wp_auto)
+  ihave Hte : mvcc.isTxnEnd mw st γ.st trace (.write ilog pend puts deletes putSize) crev $$ [Hcw]
+  · simp only [mvcc.isTxnEnd]; iexists chs, ps, true, false; iexact Hcw
+  -- the lock's outer quarter of the committed log's authority, lent to the commit (unit W-K)
+  icases mvcc.body_commitA γ.wl γ.ws σ' $$ HP with ⟨Hq, Hwm, Hcommit⟩
+  ihave Hwm : mvcc.wlogW γ ilog $$ [Hwm]
+  · unfold mvcc.wlogW; rw [if_pos hw, ← hLmu']; iexact Hwm
+  -- the caller's second update, at the bump: the commit's update
+  ihave Hac := mvcc.absCommit_of_au2 γ habs ilog pend hne Q $$ [$Hel $Hau2 $Hwm]
+  wp_apply (hEnd trace mw st γ.st (.write ilog pend puts deletes putSize) crev iprop(True)
+      iprop(mvcc.wlogW γ (ilog ++ [pend]) ∗ Q)) $$ [$Hte HPh Hq Hac]
+    as ⟨Hrd, -, Hpost, Htrc⟩
+  · simp only [mvcc.txnEndPreA]
+    iexists P, #f
+    iframe Hhk HPh Hac
+    rw [mvcc.logQPre_ne γ.st ilog pend hne Hwq, ← hLmu']; iexact Hq
+  have hcl : mvcc.commitLog ilog pend = ilog ++ [pend] := by
+    unfold mvcc.commitLog; rw [if_neg hne]
+  simp only [mvcc.txnEndPostA, hcl, mvcc.logQPost_ne γ.st ilog pend hne Hwq]
+  icases Hpost with ⟨#Hc, -, Hq, Hwl', HQ⟩
+  rw [← hLmu'] at *
+  isimp only [mvcc.wlogW, hw, ↓reduceIte] at Hwl'
+  imod Hcommit $$ %(σ'.Lmu ++ [pend]) %(⟨by simpa using hab, List.prefix_append _ _⟩) Hwl' Hc Hq
+    with HP
+  (try wp_auto)
+  iapply wp_fupd
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HP Hrel Hwsf]
+  · have hs'' : ({ σ' with Lmu := σ'.Lmu ++ [pend] } : mvcc.WsState).settled := by
+      refine ⟨?_, ?_⟩
+      · show σ'.syncedBelow (σ'.Lmu ++ [pend]).length
+        rw [List.length_append, List.length_singleton]; exact hbel'
+      · show σ'.vicBelow (σ'.Lmu ++ [pend]).length
+        rw [List.length_append, List.length_singleton]; exact hvic'
+    have hsr'' : ({ σ' with Lmu := σ'.Lmu ++ [pend] } : mvcc.WsState).srBelow
+        ({ σ' with Lmu := σ'.Lmu ++ [pend] } : mvcc.WsState).Lmu.length := by
+      intro w γw hm hs
+      have h0 : σ.M !! w = some γw := by rw [← hMeq]; exact hm
+      have := Hsrb w γw h0 hs
+      have hl := hLL
+      simp only [List.length_append, List.length_singleton]; omega
+    -- (D22 receiver epochs, S6) the unsynced members untouched, the notified log longer
+    have hur'' : ({ σ' with Lmu := σ'.Lmu ++ [pend] } : mvcc.WsState).unsRst := by
+      intro w st hu hst
+      have hu' : (σ.Wu !! w).isSome := by rw [← hWuEq]; exact hu
+      have hst' : σ.ST !! w = some st := by rw [← hSTEq w hu']; exact hst
+      rcases Hurst w st hu' hst' with h | h
+      · left; have hl := hLL; simp only [List.length_append, List.length_singleton]; omega
+      · right; exact h
+    inext; iunfold mvcc.watchStoreInv; iexists _; iframe HP Hrel Hwsf; ipureintro
+    exact ⟨hs'', hsr'', hur''⟩
+  imod mvcc.mvccGiveBack st γ $$ [$Hmv $Hloan $Hrd] with Htt
+  (try wp_auto)
+  iapply HΦ
+  iframe Htt Htrc HQ
 
 end proof
 
