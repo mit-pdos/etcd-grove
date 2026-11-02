@@ -89,3 +89,10 @@ def restoreInCC (vo v l ln : List w64) : List ConfChangeSingleM :=
 
 def restoreOutCC (vo : List w64) : List ConfChangeSingleM :=
   List.map addNodeCC vo
+
+def ConfStateOk (c : ConfStateM) : Prop :=
+  (CSWf c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' ∨
+      c.Voters' = [] ∧ c.VotersOutgoing' = [] ∧ c.Learners' = [] ∧ c.LearnersNext' = []) ∧
+    c.Voters'.Nodup ∧
+      c.VotersOutgoing'.Nodup ∧
+        c.Learners'.Nodup ∧ c.LearnersNext'.Nodup ∧ (c.VotersOutgoing' = [] → c.AutoLeave' = false)
