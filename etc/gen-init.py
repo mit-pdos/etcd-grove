@@ -25,6 +25,8 @@ initializers listed in the generated `Proof/runtime/PkgInitExt.lean` (`ExternalI
 
 The parallel tree `RaftWitness/` gets copies of the files it imports that reach raft
 (`PART_INITS`, and `PkgInitExt`), at `RaftWitness/<path>`.
+The part `PorcupineDag/` (porcupine PR #46) gets its own package's `Init.lean`, from its own
+translation, and `Closures.lean`, the func literals its package fact names (`DAG_*`).
 
   etc/gen-init.py            regenerate every file
   etc/gen-init.py --check    exit 1 if a file differs from what would be generated
@@ -2247,7 +2249,19 @@ slice and struct literals).""",
                  'LinearizabilityOracles': 'GoSlice', 'RealTimeWrites': 'GoFunc',
                  'OrderedSequentialConsistencyOracles': 'GoSlice', 'RVal': 'Validity',
                  'Linearizability': 'Consistency', 'OrderedSequentialConsistency': 'Consistency'},
-    finish=['sorry'],
+    finish=[
+        # `LinearizabilityOracles`, then `OrderedSequentialConsistencyOracles`: slice literals of
+        # the globals' closures
+        'wp_apply wp_slice_literal (l := [rtV, glV])', 'isplitr', '· ipureintro; rfl',
+        'iintro %s1 ⟨S1, -⟩', 'try wp_auto',
+        'wp_apply wp_slice_literal (l := [_, _])', 'isplitr', '· ipureintro; rfl',
+        'iintro %s2 ⟨S2, -⟩', 'try wp_auto',
+        # `RVal`: a struct literal of two func literals, folded to their names
+        'rw [← rvInitV_val, ← rvStepV_val]', 'try wp_auto',
+        'ipersist HLinearizability', 'ipersist S1', 'iframe Hown', 'imodintro', 'isplitr',
+        '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish', 'imodintro',
+        'unfold linInit', 'iexists _', 'iframe HLinearizability', 'unfold isLinearizability',
+        'iframe S1', 'ipureintro', 'rfl'],
 )
 
 
@@ -2296,6 +2310,7 @@ def dag_closures():
          f'`{DAG_ROOT}/Code/{dirof(DAG_PKG)}.lean`; do not edit.',
          '-/', 'module', '', f'public import {DAG_ROOT}.Code.{DAG_PKG}', '',
          '@[expose] public section', '', 'set_option maxRecDepth 100000', '',
+         'open Iris', '',
          'namespace Perennial', 'noncomputable section', '', f'namespace {DAG_PKG}', '']
     for name, var, field, doc in DAG_CLOSURES:
         init = dag_initializer(body, var)
@@ -2310,6 +2325,12 @@ def dag_closures():
         L.append(f'noncomputable def {name} [GooseExts] [GoGlobalContext] : GoFunc :=')
         L.append(f'  func.mk BAnon "{arg}"')
         L.append('  ' + inner.replace('\n', '\n  '))
+        L.append('')
+        L.append(f'/-- `{name}` as the value its func literal evaluates to (to fold it in a goal). -/')
+        L.append(f'theorem {name}_val [GooseExts] [GoLocalContext] [GoGlobalContext] [GoSemanticsFunctions]\n    [go.Semantics] :')
+        L.append(f'    (#{name} : val) = RecV BAnon "{arg}"')
+        L.append('  ' + inner.replace('\n', '\n  ') + ' := by')
+        L.append('  rw [go.intoVal_unfold GoFunc]; rfl')
         L.append('')
     L += [f'end {DAG_PKG}', '', 'end', 'end Perennial']
     return f'{DAG_ROOT}/Proof/{dirof(DAG_PKG)}/Closures.lean', '\n'.join(L) + '\n'

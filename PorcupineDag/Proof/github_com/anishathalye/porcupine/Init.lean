@@ -92,7 +92,34 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of RealTime))
   -- translated initializer of GeneralLikely))
   -- translated initializer of RealTime))
-  sorry
+  wp_apply wp_slice_literal (l := [rtV, glV])
+  isplitr
+  · ipureintro; rfl
+  iintro %s1 ⟨S1, -⟩
+  try wp_auto
+  wp_apply wp_slice_literal (l := [_, _])
+  isplitr
+  · ipureintro; rfl
+  iintro %s2 ⟨S2, -⟩
+  try wp_auto
+  rw [← rvInitV_val, ← rvStepV_val]
+  try wp_auto
+  ipersist HLinearizability
+  ipersist S1
+  iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
+  is_pkg_init_finish
+  imodintro
+  unfold linInit
+  iexists _
+  iframe HLinearizability
+  unfold isLinearizability
+  iframe S1
+  ipureintro
+  rfl
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
