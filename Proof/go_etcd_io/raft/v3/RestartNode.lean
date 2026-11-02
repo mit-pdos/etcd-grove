@@ -508,6 +508,184 @@ private theorem wp_RestartNode_impl
   ihave #HcmtF : isCommitted γ.raft ((fp ++ σ.ents).take σ.commit) $$ []
   · iExactEq Hcmt
     unfold cprefix; simp only [restartP]; rw [← Hse, toNat_uZ]; rfl
+  -- the storage's frame and reads
+  iunfold restartStorage at Hrs
+  icases Hrs with ⟨%i, %Rb, %f, %Hi, %Hf, HRb, #HFI, #HLI, #HIS⟩
+  cases Hi
+  -- raft's storage names: the floor and the snapshot hand-out at the base, no term certified yet,
+  -- the contract's `SV` and the received snapshots' certificate; the attach record: the applied
+  -- bound `max b A`, the stored commit and the committed log's terms up to it
+  imod mono_nat_own_alloc (GF := GF) (uint.nat σ.base.index') with ⟨%ga, Hga, #Hgalb⟩
+  imod mono_nat_own_alloc (GF := GF) σ.b with ⟨%gg, Hgg, -⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := w64) with ⟨%gdd, Hgd⟩
+  imod saved_pred_alloc (EtcdGrove.snapshotValid (GF := GF) γ) DFrac.discard trivial
+    with ⟨%gsv, #Hsv⟩
+  imod saved_pred_alloc (raftSnapCertD (GF := GF) γ.raft) DFrac.discard trivial with ⟨%gk, #Hgk⟩
+  let sn : StorNames :=
+    { ga := ga, gg := gg, gsv := gsv, gd := gdd, gk := gk, a0 := max σ.b (uint.nat cv.Applied'),
+      c0 := σ.commit, ct := restartCt (fp ++ σ.ents) σ.commit }
+  let σv : StorState :=
+    { prev := σ.base, ents := σ.ents, pend := [], fl := σ.base.index', fr := f,
+      sg := σ.b, dt := ∅ }
+  ihave #Hct : ctCommitted (GF := GF) γ.raft sn $$ []
+  · unfold ctCommitted
+    iexists (fp ++ σ.ents).take σ.commit
+    iframe HcmtF
+    ipureintro
+    intro i t hm hi
+    obtain ⟨h1, h2, h3⟩ := restartCt_mem HcF hm
+    refine ⟨h1, ?_⟩
+    rw [List.getElem?_take, ite_eq_left (by omega)]; exact h3
+  ihave #Hlink := certLink_make γ N HU sn $$ Hci Hsv Hgk Hct
+  ihave HA : storAuths (GF := GF) sn.unrec σv $$ [Hga Hgg Hgd]
+  · ihave #Hcu := storCaught_unrec (GF := GF) sn 1 _ $$ Hga
+    unfold storAuths
+    iframe Hcu
+    isplitl [Hga]
+    · iExactEq Hga; rfl
+    isplitl [Hgg]
+    · iExactEq Hgg; rfl
+    iExactEq Hgd; rfl
+  ihave #Hga0 := monoNatLbOwn_le (GF := GF) (γ := ga) 0 (Nat.zero_le _) $$ Hgalb
+  -- `NewRawNode`'s premises
+  have HAR : AttachRec sn σ.base σ.ents (uint.nat (committedAfter σ.base σ.hs))
+      (max (uint.nat σ.base.index') (uint.nat cv.Applied')) := by
+    rw [Hca]
+    refine ⟨rfl, rfl, fun i t hm _ => ?_, fun i h1 h2 => restartCt_complete HcF h1 h2⟩
+    obtain ⟨h1, h2, h3⟩ := restartCt_mem HcF hm
+    refine ⟨h1, fun hb => termAt_of_full Hfp hb h1 ?_ h3⟩
+    unfold StorContents.commit at h2
+    have := uint_nat_eq σ.hs.Commit'; omega
+  have Hvalm : memValid m := by
+    unfold EtcdGrove.Membership.Valid memValid at Hval; exact Hval
+  obtain ⟨-, Hrestore⟩ := restore_of_confStateIs csm m Hcs Hvalm Hres
+  have HbcZ : uint.Z σ.base.index' ≤ uint.Z σ.hs.Commit' := by
+    unfold StorContents.b StorContents.commit at Hbc
+    have := uint_nat_eq σ.base.index'; have := uint_nat_eq σ.hs.Commit'; omega
+  have Happ' : cv.Applied' = W64 0 ∨ uint.Z σ.base.index' ≤ uint.Z cv.Applied' ∧
+      uint.Z cv.Applied' ≤ uint.Z (committedAfter σ.base σ.hs) := by
+    rw [Hca]
+    rcases Happ with h | ⟨h1, h2⟩
+    · left; apply BitVec.eq_of_toNat_eq; exact h
+    · right
+      simp only [StorContents.b, StorContents.commit] at h1 h2
+      have := uint_nat_eq σ.base.index'; have := uint_nat_eq σ.hs.Commit'
+      have := uint_nat_eq cv.Applied'; omega
+  wp_apply wp_NewRawNode c cv lok si sn σv σ.hs csm iprop(Rb ∗ storAuths sn.unrec σv)
+    iprop(∃ K, storKeyNames K sn ∗ F K) (stOf m) H1 H2 H3 H4 H5 H6 H7 H8 H9
+    (by show LogIndicesOk σ.base σ.ents; rw [Hse]; exact Hwf) rfl Hf.1 (by rw [Hca]; exact Hf.2) (Int.le_refl _) (Nat.le_refl _)
+    (fun k t h => by simp [σv] at h) Hlast HAR (.inr ⟨HbcZ, HcL⟩) Happ' Hrestore Hcsl
+    $$ [Hc HRb HA]
+    as %rn %err ⟨⟨%K, #HKn, HFK⟩, %s, Hrn, %Herr, %Hsn2⟩
+  · iframe Hc Hlg
+    isplitl [HRb HA]
+    · iframe HRb HA
+    isplitr
+    · iintro !> %Φ' !> ⟨HRb, HA⟩ HΦ'
+      iapply HFI $$ HRb [HA HΦ']
+      inext; iintro HRb
+      ihave H := HΦ' $$ [HRb HA]
+      · iframe HRb HA
+      iExactEq H; rfl
+    isplitr
+    · iintro !> %Φ' !> ⟨HRb, HA⟩ HΦ'
+      iapply HLI $$ HRb [HA HΦ']
+      inext; iintro HRb
+      ihave H := HΦ' $$ [HRb HA]
+      · iframe HRb HA
+      iExactEq H; rfl
+    iintro !> %Φ' !> ⟨HRb, HA⟩ HΦ'
+    iapply HIS $$ HRb [HA HΦ']
+    inext
+    iintro %hp %cs %al ⟨Hhs, Hcs, Hk⟩
+    iapply HΦ'
+    iframe Hhs Hcs
+    -- the attach: a fresh key recording raft's storage names
+    imod dghostVar_alloc (GF := GF)
+      ((sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct) :
+        Nat × Nat × Nat × Nat × Nat × Nat × Nat × List (Nat × w64)) with ⟨%K, HK⟩
+    imod dghostVar_persist K 1 _ $$ HK with #HK
+    ihave #HKn : storKeyNames (GF := GF) K sn $$ []
+    · unfold storKeyNames; iexact HK
+    imod api_committed_lb γ N ⊤ CoPset.subseteq_top ((fp ++ σ.ents).take σ.commit) $$ Hci HcmtF
+      with ⟨HlbC, %HidxC⟩
+    imod Hk $$ %K [] [HlbC] with ⟨Hst, Hsh, HFK⟩
+    · iunfold EtcdGrove.nodeAppliedLb
+      unfold nodeAppliedLbU
+      iright
+      iexists sn
+      iframe HKn
+      iright; iright
+      ipureintro; exact Nat.le_refl _
+    · iunfold EtcdGrove.nodeCommitLb
+      unfold nodeCommitLbU
+      iright
+      iexists sn, strip ((fp ++ σ.ents).take σ.commit)
+      iframe HKn HlbC
+      isplitr
+      · ipureintro; rw [strip, List.length_map, List.length_take]; omega
+      rw [toEntries_strip _ 0 (fun k e h => by rw [HidxC k e h]; push_cast; omega)]
+      iapply BigSepL.bigSepL_forall_elim
+      iintro %j %e %Hj
+      unfold raftDL
+      iright; iright
+      ipureintro
+      have hj := (List.getElem?_eq_some_iff.1 Hj).1
+      rw [List.length_take] at hj
+      refine ⟨by show j + 1 ≤ σ.commit; omega, ?_⟩
+      show (j + 1, e.Term') ∈ restartCt (fp ++ σ.ents) σ.commit
+      unfold restartCt
+      rw [List.mem_map]
+      refine ⟨j, by rw [List.mem_range]; omega, ?_⟩
+      rw [List.getElem?_take, ite_eq_left (by omega)] at Hj
+      rw [Hj]; rfl
+    imodintro
+    isplitl [Hst]
+    · iapply isStorage_of_V
+      unfold isStorageV
+      iexists EtcdGrove.snapshotValid (GF := GF) γ, EtcdGrove.storBnd (GF := GF) γ K,
+        EtcdGrove.nodeCommitLb (GF := GF) γ K
+      isplitl [Hst]
+      · iunfold EtcdGrove.isStorage at Hst
+        iexact Hst
+      isplitr; · iexact Hsv
+      isplitr
+      · iintro !> %sv #H
+        imodintro; iexact H
+      isplitr
+      · iintro !> %c' Hb
+        iapply storBnd_raftBnd γ K sn c' $$ HKn Hga0 Hb
+      · iintro !> %sv Hv Hd
+        imodintro
+        iapply storDL_raftDL γ K sn sv $$ HKn Hv Hd
+    isplitl [Hsh HA]
+    · iunfold storHolds at Hsh
+      icases Hsh with ⟨%e0, %He0, #Hc0, #Hl0, #Hlf, Hown, Hend⟩
+      unfold ownStorage
+      iexists e0
+      isplitr
+      · iExactEq Hc0; rfl
+      isplitr
+      · ihave H := (StorageModel.storLog_app (GF := GF) (interface.ok si) σ.b DFrac.discard [e0]
+          (σ.ents.take (f - σ.b))).2 $$ [Hl0 Hlf]
+        · iframe Hl0; iExactEq Hlf; rfl
+        iExactEq H; rfl
+      isplitl [Hown]
+      · iExactEq Hown
+        simp only [σv, StorState.kOut, List.head?_nil, StorContents.b]
+        rw [show uint.nat σ.base.index' + 1 + σ.ents.length - uint.nat σ.base.index' - 1 =
+          σ.ents.length by omega, List.take_length]
+      isplitl [Hend]
+      · iright; iExactEq Hend; simp only [σv, StorContents.last, StorContents.b]; congr 1; omega
+      iframe HA
+      ipureintro
+      refine ⟨He0, Hf.1, ?_, by simp [σv, StorState.kOut], Nat.le_refl _⟩
+      simp only [σv, StorState.kOut, List.head?_nil]
+      unfold StorContents.commit StorContents.b at Hf
+      have := uint_nat_eq σ.base.index'; have := uint_nat_eq σ.hs.Commit'
+      omega
+    iexists K
+    iframe HKn HFK
   sorry
 
 end wrap
