@@ -873,3 +873,13 @@ Replaced by the design above as the plan of record; kept shortened for its recor
   lent per grant (replaced by `ltHalf` and the Grant clause over `E.RO`, Q3/Q4); the quota's
   `ErrNoSpace` after a grant as a disjunct of the answer (dead under `isQuota`'s existing
   `Available` premise, 2.11); then the Prove stage's leaves (the design's commit 5).
+
+## Freeze (2026-11-02, the user's)
+
+The design above, its Freeze list and Q1-Q6 as recommended, frozen after review rounds 1-3 and the
+axiom reviews (`notes/axiom-review/lessor-apply-ok.md`: `lessorApplyOk` survives, current and
+proposed; `lease-grant-lessor.md`: `NewLessor`'s mode/history/payload, `Recover`'s `lessorRevocable`,
+`ckptEffectsOk`, the wire model survive; `leasesNoExpiry` refuted as worded, its docstring restated to
+"no lease of any lessor the program creates", with two corrections: two `RequestTimeout`s, and
+`Renew`/checkpoints among what moves an expiry later). The bounds' three `examples/leasegrant`
+entries approved with it. Next: the plumbing, in the design's commit order, then Prove.

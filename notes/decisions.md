@@ -29661,7 +29661,7 @@ what came of them:
   call it once each): the permit's `kvRevLbZ (c + 1)`, the read-side law's counter bound
   (`roundsInv_revLb`), a latest `Get` at least it (`client_Get_rev`, `getRevAu_round`).
 
-## The lease-grant stage's choices (2026-11-02 · the user's decisions · branch `lease-grant`)
+## The lease-grant stage's choices (2026-11-02 · the user's decisions; frozen 2026-11-02 · branch `lease-grant`)
 
 `examples/leasegrant` (Grant, then Leases; `notes/lease-grant-plan.md`). The user's decisions, in
 order:
@@ -29689,3 +29689,15 @@ order:
   registration at the new ones (`isGrpcRpc_leaseGrant_any`, `isGrpcRpc_leaseLeases_any`); their
   callers (leasekv, the client's results) keep the old contracts under the new names.
 
+
+**Frozen (the user, 2026-11-02)**, after the stage stepped back to design before plumbing
+(`notes/spec-first-plan.md`, "Design before plumbing"): the server chain's design
+(`notes/lease-grant-plan.md`, "Design of the server chain"), three review rounds
+(`notes/spec-review/lease-grant-design{,-r2,-r3}.md`), with Q1-Q6 as recommended: (C) at `lg = true`
+the KV invariant owns the KV state whole, so the KV results hold vacuously there (the user's (c));
+the grant's answer beside `dispatchAnswer`; the lessor tied to the table by ghost halves through
+`Apply`/`dispatch`; `lessorApplyOk` returning the lent part; the snapshot image gated on `lg`
+(TTL-free: members' minimum TTLs differ); auth on requires `lg = false`. The axiom reviews
+(`notes/axiom-review/lessor-apply-ok.md`, `lease-grant-lessor.md`): five restated trusted statements
+survive; `leasesNoExpiry` was refuted as worded ("the cluster's leases"; `NewLessor` reads it for
+every lessor) and is restated to every lessor the program creates.
