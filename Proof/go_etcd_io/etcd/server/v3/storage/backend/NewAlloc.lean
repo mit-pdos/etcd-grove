@@ -12,6 +12,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.NewLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvNew
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
+import all Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 

@@ -353,10 +353,11 @@ def rbPart (γ : BNames) (S : GoString → Prop) (r : GMap GoString BktData) : I
   iprop(∃ F : GoString → Bool, rbPartF γ S r F)
 
 /-- **The client's idle part of the tracked buckets in `S`**: `rbPart`, and no write to a bucket of
-`S` pending: no session has put in, deleted from, created or deleted one since the holder's last
-`Unlock` (which makes the part it is handed idle: `batchTxBuffered.Unlock.spec`); a write needs the
+`S` pending: no session has put in, deleted from, created or deleted one since the last
+`Unlock` that was handed this part (which makes it idle; an `Unlock.bare` makes nothing idle: `batchTxBuffered.Unlock.spec`); a write needs the
 holder's part, so no one else makes it pending. A ghost fact about the session's writes (option
-(b) of the plan note), not about the readers: that the readers then see `r` on `S` is Go's
+(b) of the plan note), not about the readers: that a reader begun after it sees `r` on `S`, an
+uncommitted bucket created in the session as empty (`bktOf`), is Go's
 (`batchTxBuffered.Unlock` writes the session's puts back into the read buffer and commits when a
 delete is pending, etcd-io/etcd#17119), argued in the docstring of each trusted reader that takes
 it; the read model's version of it (`rtHeldF_rbOwnIn`) is option (a), a later stage. -/
@@ -404,7 +405,8 @@ def rbPut (γ : BNames) (P : BParams) (n : GoString) (S : Data) : IProp GF :=
   if P.RB n then rbPart γ (fun m => m = n) (rbData P S) else iprop(True)
 
 /-- The whole form of `rbPut` (the client's half of every tracked bucket, as until decision 3):
-what callers holding `rbOwn` pass (the operations' `spec_all` corollaries, `ClientLaws.lean`). -/
+what a caller holding `rbOwn` splits into its bucket's `rbPut` and the rest (`rbPutAll_split`,
+`TrackedLemmas.lean`; `BackendBridge.lean`'s `bt_leaseDel`). -/
 def rbPutAll (γ : BNames) (P : BParams) (n : GoString) (S : Data) : IProp GF :=
   if P.RB n then rbOwn γ (rbData P S) else iprop(True)
 
@@ -496,8 +498,10 @@ theorem fkPut_eq (γ : BNames) (n k : GoString) (h : ¬ fkKey n k) :
 /-- **The batch lock's side of the tracked buckets** at contents `r`: the ghost map's authority,
 the other halves of its elements (the shape of the client's `rbOwn`, so that a snapshot's
 observation is handed one), and every tracked bucket of the table among its names (a session's
-write goes to one). -/
-def rbSide (γ : BNames) (P : BParams) (r : GMap GoString BktData) : IProp GF :=
+write goes to one). Sealed (`@[no_expose]`): its authority is what clears the pending flags, which
+only `Unlock`'s proof may do (`rbSide_idle`, private to `TrackedLemmas.lean`); the backend's own
+proofs `import all` this module. -/
+@[no_expose] def rbSide (γ : BNames) (P : BParams) (r : GMap GoString BktData) : IProp GF :=
   iprop((∃ M : GMap GoString (Option BktData × Bool), ghostMapAuth γ.rbk 1 M) ∗ rbOwn γ r ∗
     ⌜∀ n i, P.BT.lookup n = some i → P.RB n = true → γ.rbD.lookup n ≠ none⌝)
 

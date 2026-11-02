@@ -14,6 +14,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadSide
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.WritebackLemmas
 public import Proof.go_etcd_io.raft.v3.FrameH
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.UnlockBare
+import all Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
 
 @[expose] public section
 

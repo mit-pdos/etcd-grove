@@ -11,6 +11,7 @@ of two parts, and the two ghost steps the proved operations take: a session's wr
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
+import all Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -547,7 +548,7 @@ theorem rbSide_put (γ : BNames) (P : BParams) (r r' : GMap GoString BktData) (n
 side with it. Only `batchTxBuffered.Unlock`'s proof takes it, at the end of the session (Go writes
 the session back and commits a pending delete there); used anywhere else it would assert an
 idleness Go does not give. -/
-theorem rbSide_idle (γ : BNames) (P : BParams) (r : GMap GoString BktData) (S : GoString → Prop)
+private theorem rbSide_idle (γ : BNames) (P : BParams) (r : GMap GoString BktData) (S : GoString → Prop)
     (rS : GMap GoString BktData) :
     iprop(rbSide (GF := GF) γ P r ∗ rbPart γ S rS) ⊢ |==> iprop(rbSide γ P r ∗ rbOwnIn γ S rS) := by
   unfold rbSide rbOwnIn

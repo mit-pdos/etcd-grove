@@ -47,7 +47,9 @@ A write-back's budget either way. Not in the hook's window, with room for the co
 `rbPart γ S r` in, `rbOwnIn γ S r` out, for any bucket set `S`, the caller's choice; nothing for `S`
 empty, `Unlock.bare`): Go writes the session's puts back into the read buffer under
 `readTx.Lock()` and, when a delete is pending, commits (`pendingDeleteOperations`,
-etcd-io/etcd#17119), so the readers then see the writer's contents on every bucket, and a later
+etcd-io/etcd#17119), so a read transaction begun after it sees the writer's contents on `S`, up to
+a bucket created in the session and not yet committed (`batchTxBuffered` counts a creation as
+pending, not as a pending delete), which such a reader sees absent, as empty (`bktOf`); a later
 write to a bucket of `S` needs the holder's part.
 (Until question 2: the put branch got `sData P st.S` back, and the first branch was `viewSame`;
 a Draft `specC` had the deleting branch beside it.) -/

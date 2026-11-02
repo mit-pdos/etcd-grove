@@ -29222,3 +29222,14 @@ reads off `isServer`'s `srvEnvOk` with `srvEnvOk_off`. `srvEnvOk` is inside `isS
 exported `applyAll_model`'s preconditions name: a change to an exported statement's meaning, approved.
 Rejected: (B) a new `specSnap` premise, which pushes the same fact up to `run`; and (C) an mvcc law
 opening the store's invariant at names the restore is changing.
+- **Sealed** (2026-11-02, both round-2 reviewers' first tier: the pending flag's meaning was a
+  convention any proof holding the batch lock could break): `rbSide` is `@[no_expose]` and
+  `rbSide_idle` private to `TrackedLemmas.lean`; `NewAlloc.lean` and `batchTxBuffered__Unlock.lean`
+  `import all` them. Outside the backend nothing reaches the ghost map's authority, so a flag is
+  cleared only through `Unlock.spec`. Not yet a gate: the backend has no `etc/api/backend.txt` (an
+  `import all` from another package would reopen it); proposed with the trusted step.
+- **What `rbOwn` now also says**: every tracked bucket of `r` is among `γ.rbD`. The applied
+  creators (`NewLessor`, `NewAlarmStore`, `NewAuthStore`, text unchanged) return `rbOwn` with their
+  bucket inserted, so they rely on the bucket being in the table (as they did in substance before,
+  through `UnsafeCreateBucket.spec`'s `P.has`); no law lets a client derive a name outside `γ.rbD`.
+  The trusted step's draft adds the premise (`leaseParams`, a new `restParams`).

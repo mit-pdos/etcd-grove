@@ -594,7 +594,8 @@ no open share; `guarded_RLock`; `Close.spec`'s docstring); decision 3's untruste
 pending flag) over the pure domain `γ.rbD`, not tied to the readers' model (`InvBackend.lean`,
 laws in `TrackedLemmas.lean`); `rbOwn = rbPart ⊤`; the four batch writers take their bucket's part
 only; `Unlock` takes any part and returns it idle (`Unlock.bare`, `UnlockBare.lean`, the old
-statement). Held for the trusted step: the readers' axioms taking `rbOwnIn`, `New`/`OpenBackend`
+statement); `rbSide` sealed and `rbSide_idle` private, so only `Unlock` clears a flag (no
+`etc/api/backend.txt` gate yet). Held for the trusted step: the readers' axioms taking `rbOwnIn`, `New`/`OpenBackend`
 giving the idle token, decision 2's pool, `premise_buckets`' consumer (`AuthSplitDraft.lean`).
 The revised trusted restatements are drafted for the user's approval, not applied. Later stage:
 option (a), the read model over the tracked hook buckets (the plan note).
