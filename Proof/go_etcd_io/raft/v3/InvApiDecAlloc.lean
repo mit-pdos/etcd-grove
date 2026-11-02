@@ -46,10 +46,10 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool)
         isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
         joinAuthU γ (GMap.listToSet vs) ∗
-        [∗list] id ∈ vs, nodeFounderU γ N vs id := by
+        [∗list] id ∈ vs, raftStateU γ id RaftState.init ∗ nodeVacantU γ id := by
   intro Hrb Hne Hnd Hnz Hlen
   imod budget_alloc (GF := GF) Hrb E with ⟨%bud, #Hbinv, #Htlb⟩
-  imod alloc_maps (GF := GF) (K := w64) (V := CfgNames) allNodeIds with ⟨%tab, -, Htab⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := CfgNames) with ⟨%tab, Htab⟩
   imod mono_list_own_alloc (GF := GF) ([] : List (w64 × List w8)) with ⟨%g, Hreg, -⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := Option ConfChangeIM) with ⟨%gd, Hdm⟩
   have HB : BootLog ([] : List w64) [] [] := ⟨rfl, by simp, fun k e h => by simp at h⟩
@@ -97,8 +97,17 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool)
     iexists 0, 2 ^ 64 - 2
     iframe H0 Hcr
     ipureintro; omega
+  -- (durability stage I-2) the node table's invariant, empty
+  imod inv_alloc (N .@ "nodetab") E iprop(∃ M : GMap Loc CfgNames, ghostMapAuth γ.nodeTab 1 M ∗
+      [∗map] n ↦ _x ∈ M, ∃ nv : node, n ↦□ nv) $$ [Htab] with #Htabinv
+  · inext
+    iexists ∅
+    rw [Hγt]
+    iframe Htab
+    iapply (BigSepM.bigSepM_empty).2; iempintro
   ihave #Hdc : isClusterU (GF := GF) γ N $$ []
-  · unfold isClusterU rdPool
+  · unfold isClusterU rdPool nodeTabInv
+    iframe Htabinv
     isplitr
     · ipureintro; exact ⟨⟨c0, gd, Hmr⟩, Hcert, by rw [HbootL]; simp⟩
     isplitr
@@ -109,12 +118,13 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool)
     ipureintro; exact Hrb
   -- every id's part (raft's ghost state at the initial state, the node table's), into the join
   -- authority; the founders' out of it
-  isimp only [Option.isSome_some] at Hnodes
-  ihave Hsl : ([∗map] x ↦ _u ∈ toMap allNodeIds, joinSlotU (GF := GF) γ x) $$ [Hnodes Htab]
-  · unfold joinSlotU
-    rw [BigSepM.bigSepM_sep_eq]
-    rw [initPState_eq, Hγt]
-    iframe Hnodes Htab
+  ihave Hsl : ([∗map] x ↦ _u ∈ toMap allNodeIds, joinSlotU (GF := GF) γ x) $$ [Hnodes]
+  · iapply BigSepM.bigSepM_impl $$ Hnodes
+    imodintro
+    iintro %x %u %_ ⟨Hd, Hs⟩
+    unfold joinSlotU raftStateU nodeVacantU
+    rw [Hγb, show RaftState.init.term = W64 0 from rfl]
+    iframe Hd Hs Htlb Hbinv
   ihave Hja : joinAuthU (GF := GF) γ ∅ $$ [Hsl]
   · unfold joinAuthU joinBaseU
     rw [show allNodeIds \ (∅ : GSet w64) = allNodeIds from GMap.set_eq fun x => by
@@ -160,9 +170,9 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool)
   iapply BigSepL.bigSepL_impl $$ Hfs
   imodintro
   iintro %k %id %_ Hj
-  unfold nodeFounderU
-  iframe Hj
-  ipureintro; exact ⟨Hcfg, ⟨gd, Hmr⟩, Hne, Hnd, Hnz, Hlen⟩
+  unfold joinSlotU
+  iexact Hj
+
 
 end alloc
 

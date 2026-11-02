@@ -171,30 +171,35 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
 []`): from the node API's driver at its start (`NodeDriverState.init`: nothing delivered, with
 `γ.pre = []`), its view of the configuration at index `0` (`StartNode`'s; 2026-10-30, the repair:
 in every cluster), the loop's half of the running token, and `applyc`'s halves with `cum` at
-`[[]]` (`newRaftNode`'s). (2026-10-27: over the node API.) -/
+`[[]]` (`newRaftNode`'s). (2026-10-27: over the node API. 2026-11-01, durability layer 4: the
+driver at the storage's key `γ.key`, and the node's durable state at `RaftState.init`, which goes
+into the loop's token beside the driver.) -/
 theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
     (hcfg : srvCfgOk γ.node.cfg [] ⟨0, Membership.simple γ.node.cfg⟩) :
     (letI := srvStor (GF := GF) γ.node;
       iprop(nodeDriver γ.nl γ.node.cl srvClusterN
-          (NodeDriverState.init (memStorIface γ.ms)) ∗
+          (NodeDriverState.init (memStorIface γ.ms) γ.key) ∗
+        raftState γ.node.cl γ.id RaftState.init ∗
         nodeConfig γ.nl γ.node.cl srvClusterN ⟨0, Membership.simple γ.node.cfg⟩)) ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
       spscProducer γ.ap ([] : List toApply) ∗ spscConsumer γ.ap ([] : List toApply) ∗
       monoListAuthOwn γ.cum 1 [([] : List EntryModel)] ∗
       monoListIdxOwn γ.cum 0 ([] : List EntryModel) ⊢
       rnLoopTok γ [] ∗ rnApplyTok γ [] := by
   letI := srvStor (GF := GF) γ.node
-  iintro ⟨⟨Hdrv, Hcfg⟩, Hrun, Hprod, Hcons, Hcum, Hcum0⟩
-  isplitl [Hdrv Hcfg Hrun Hprod Hcum]
+  iintro ⟨⟨Hdrv, HrS, Hcfg⟩, Hrun, Hprod, Hcons, Hcum, Hcum0⟩
+  isplitl [Hdrv HrS Hcfg Hrun Hprod Hcum]
   · iunfold rnLoopTok
     iexists hsZero
     iunfold rnLoopTokP
     iexists [], [[]]
-    isplitl [Hdrv Hcfg]
+    isplitl [Hdrv HrS Hcfg]
     · iunfold rnDrv
-      have h : rnDrvSt γ [] hsZero = NodeDriverState.init (memStorIface γ.ms) := by
+      iexists RaftState.init, W64 0
+      have h : rnDrvSt γ [] hsZero RaftState.init (W64 0) =
+          NodeDriverState.init (memStorIface γ.ms) γ.key := by
         simp [rnDrvSt, NodeDriverState.init, srvLE, RNNames.srv, hpre]
       rw [h]
-      iframe Hdrv
+      iframe Hdrv HrS
       unfold rnCfgAt srvCfgView
       iexists ⟨0, Membership.simple γ.node.cfg⟩
       iframe Hcfg
@@ -217,12 +222,14 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
 
 /-- **A fresh `MemoryStorage` boots a node** (2026-10-30, the repair: `StartNode.spec`'s
 `bootStorage`, at the empty conf state and hard state, over raft's two-writer `MemoryStorage`
-specs; until then the trusted `InitialState` closure and the old storage tokens): `FirstIndex` is
-`1` and `LastIndex` `0` (the storage fresh: `memStorFresh_compacted`), `InitialState` answers the
-zero hard state and the empty conf state (`memSnapEmpty`'s), and its update allocates the storage's
-invariant at the node's justifications (`memStorInv_alloc`), the storage `isStorage`
-(`memStorage_isStorage`), its dummy entry and end; the frame `Q` keeps the invariant and the hard
-state. -/
+specs; until then the trusted `InitialState` closure and the old storage tokens; 2026-11-01,
+durability layer 4: `restartStorage` at the empty contents): `FirstIndex` is `1` and `LastIndex` `0`
+(the storage fresh: `memStorFresh_compacted`), `InitialState` answers the zero hard state and the
+empty conf state (`memSnapEmpty`'s), and its continuation, at the key `K` raft names, allocates the
+storage's invariant at `K`'s justifications (`memStorInv_alloc`), the storage `isStorage`
+(`memStorage_isStorage`), its dummy entry and end; the client's frame `F` is made from the
+invariant and the hard state at the key (`HF`; 2026-11-01, stage-I fix G1-frame: the frame
+depends on the key). -/
 theorem srvMem_bootStorage
     (wp_InitialState : MemoryStorage.InitialState.spec (GF := GF) (hG := hG))
     (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
@@ -230,72 +237,104 @@ theorem srvMem_bootStorage
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
-    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (id : w64) :
+    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (F : GName → IProp GF) :
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
-    memStorReg ms γs ∗ memStorLock ms γs ∗ memStorFresh ms γs ∗
+    memStorReg ms γs ∗ memStorLock ms γs ∗ memStorFresh ms γs 0 memSnapEmpty ∗
       memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
-      memLog (GF := GF) γs 0 DFrac.discard [(zero_val EntryM : EntryM)] ∗ memEnd (GF := GF) γs 1 ⊢
-      bootStorage γr.cl id (memStorIface ms) (HardStateM.mk (W64 0) (W64 0) (W64 0))
-        memSnapEmpty.Metadata'.ConfState'
-        iprop(memStorInv ms γs γr.cl id ∗
-          memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0))) := by
+      memLog (GF := GF) γs 0 DFrac.discard [(zero_val EntryM : EntryM)] ∗ memEnd (GF := GF) γs 1 ∗
+      (∀ K : GName, memStorInv ms γs γr.cl K -∗
+        memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗ F K) ⊢
+      restartStorage γr.cl (memStorIface ms)
+        ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
+        memSnapEmpty.Metadata'.ConfState' 0 F := by
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
-  iintro ⟨#Hreg, #Hl, Hfresh, Hmeta, #Hlog, He⟩
+  iintro ⟨#Hreg, #Hl, Hfresh, Hmeta, #Hlog, He, HF⟩
   ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iunfold memStorLock at Hl; icases Hl with ⟨#H, -⟩; iexact H
-  unfold bootStorage
+  unfold restartStorage
   iexists (⟨MemoryStorage.ty.PointerType, intoVal ms⟩ : GoInterfaceOk)
-  iexists iprop(memStorFresh ms γs ∗
-    memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗ memEnd γs 1)
+  iexists iprop(memStorFresh ms γs 0 memSnapEmpty ∗
+    memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗ memEnd γs 1 ∗
+    (∀ K : GName, memStorInv ms γs γr.cl K -∗
+      memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗ F K))
+  iexists 0
   isplitr
   · ipureintro; rfl
-  isplitl [Hfresh Hmeta He]
-  · iframe Hfresh Hmeta He
   isplitr
-  · iintro !> %Φ ⟨Hfresh, Hmeta, He⟩ HΦ
+  · ipureintro; simp [StorContents.b, StorContents.commit]
+  isplitl [Hfresh Hmeta He HF]
+  · iframe Hfresh Hmeta He HF
+  isplitr
+  · iintro !> %Φ ⟨Hfresh, Hmeta, He, HF⟩ HΦ
     wp_apply wp_FirstIndex ms γs 0 $$ [$Hinit $Hl]
       as %fi ⟨%Hfi, #Hc⟩
     · iapply memCompacted_zero
-    icases memStorFresh_compacted ms γs _ $$ [$Hfresh $Hc] with ⟨%H0, Hfresh⟩
-    have Hfi1 : fi = W64 1 := by word
-    subst Hfi1
+    icases memStorFresh_compacted ms γs _ _ _ $$ [$Hfresh $Hc] with ⟨%H0, Hfresh⟩
+    have Hfi1 : fi = W64 (StorContents.b ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ + 1) := by
+      simp only [StorContents.b]; word
+    rw [Hfi1]
     iapply HΦ
-    iframe Hfresh Hmeta He
+    iframe Hfresh Hmeta He HF
   isplitr
-  · iintro !> %Φ ⟨Hfresh, Hmeta, He⟩ HΦ
+  · iintro !> %Φ ⟨Hfresh, Hmeta, He, HF⟩ HΦ
     wp_apply wp_LastIndex ms γs 1 $$ [$Hinit $Hl $He]
       as %li ⟨He, %Hli⟩
-    have Hli0 : li = W64 0 := by word
-    subst Hli0
+    have Hli0 : li = W64 (StorContents.last ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩) := by
+      simp only [StorContents.last, StorContents.b, List.length_nil]; word
+    rw [Hli0]
     iapply HΦ
-    iframe Hfresh Hmeta He
-  iintro !> %Φ ⟨Hfresh, Hmeta, He⟩ HΦ
-  wp_apply wp_InitialState ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0))
+    iframe Hfresh Hmeta He HF
+  iintro !> %Φ ⟨Hfresh, Hmeta, He, HF⟩ HΦ
+  wp_apply wp_InitialState ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) 0 memSnapEmpty
     $$ [$Hinit $Hmeta $Hfresh]
-    as %hp %cs ⟨#Hhs, Hmeta, Hfresh, Hcs⟩
+    as %hp %cs ⟨#Hhs, Hmeta, Hfresh, #Hcs⟩
   iapply HΦ $$ %hp %cs %true
+  iframe Hhs
   isplitr
-  · iexact Hhs
-  isplitl [Hcs]
   · have hce : memSnapEmpty.Metadata'.ConfState' = ConfStateM.mk [] [] [] [] false := rfl
     rw [hce]
     iexact Hcs
-  imod memStorInv_alloc ms γs γr.cl id ⊤ $$ Hl Hfresh with #Hinv
+  iintro %K #HA #HD
+  imod memStorInvP_alloc ms γs (memStorJ γr.cl K) ⊤ 0 memSnapEmpty $$ Hl Hfresh [] [] with #Hinv
+  · iintro !> %k %hk
+    have : k = 0 := by omega
+    subst this
+    unfold memStorJ
+    iapply nodeAppliedLb_zero γr.cl K
+  · ileft; ipureintro; rfl
+  ihave #Hinv' : memStorInv ms γs γr.cl K $$ []
+  · unfold memStorInv; iexact Hinv
+  ihave HFK := HF $$ %K Hinv' Hmeta
   imodintro
-  iframe Hinv
   isplitr
   · iapply memStorage_isStorage wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
-      ms γs γr.cl id $$ Hinv Hreg
-  isplitr [Hmeta]
-  · iexists (zero_val EntryM)
-    isplitr
-    · ipureintro; rfl
-    isplitr
-    · iapply memStorLog_of ms γs 0 DFrac.discard [zero_val EntryM] $$ Hreg Hlog
-    iapply memStorEnd_of ms γs 1 $$ Hreg He
-  iexact Hmeta
+      ms γs γr.cl K $$ Hinv' Hreg
+  iframe HFK
+  iunfold storHolds
+  have hb : (⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).b = 0 := by
+    simp [StorContents.b]
+  have hl : (⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).last = 0 := by
+    simp [StorContents.last, StorContents.b]
+  rw [hl, hb, Nat.zero_add]
+  simp only [Nat.sub_self, List.take_zero, List.drop_zero]
+  iexists (zero_val EntryM)
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iapply memStorCompacted_of ms γs 0 $$ Hreg
+    iapply memCompacted_zero
+  isplitr
+  · iapply memStorLog_of ms γs 0 DFrac.discard [zero_val EntryM] $$ Hreg Hlog
+  isplitr
+  · iapply memStorLog_of ms γs 1 DFrac.discard [] $$ Hreg
+    iapply memLog_nil
+  isplitr
+  · iapply memStorLog_of ms γs 1 (DFrac.own 1) [] $$ Hreg
+    iapply memLog_nil
+  iapply memStorEnd_of ms γs 1 $$ Hreg He
+
 /-- **The composition's statement** (see the file header; 2026-10-27: over the node API, for the
 server's raft names `γr` and the cluster's storage model `srvStor γr`): for the receiver `b` and the
 config `cv` with `StartNode.spec`'s premises on it, the peers, the server's names
@@ -337,14 +376,16 @@ abbrev NodeStartSpec : Prop :=
         -- `InitialState` allocates the storage's invariant at the node's justifications
         "#Hreg" ∷ memStorReg bv.storage' γs ∗
         "#Hlock" ∷ memStorLock bv.storage' γs ∗
-        "Hfresh" ∷ memStorFresh bv.storage' γs ∗
+        "Hfresh" ∷ memStorFresh bv.storage' γs 0 memSnapEmpty ∗
         "Hmeta" ∷ memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
         "#Hlog0" ∷ memLog γs 0 DFrac.discard [zero_val EntryM] ∗ "Hend" ∷ memEnd γs 1 ∗
         -- the peers, their contexts
         "Hpeers" ∷ bv.peers' ↦*{dq} pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
         -- the cluster's allocation's: this node's boot token (2026-10-30, the repair: raft's
-        -- unified `cluster_alloc` with the bootstrap log), the server's raft invariant
-        "Hboot" ∷ nodeBoot γr.cl srvClusterN ps ctxs cv.ID' ∗
+        -- unified `cluster_alloc` with the bootstrap log), with (2026-11-01, durability layer 4)
+        -- its vacant id and its durable state at `RaftState.init`; the server's raft invariant
+        "Hboot" ∷ (nodeBoot γr.cl srvClusterN ps ctxs cv.ID' ∗ raftState γr.cl cv.ID' RaftState.init ∗
+          nodeVacant γr.cl cv.ID') ∗
         "#Hlinv" ∷ srvRaftLogInv E.γr.raft ∗
         -- the names-only contracts
         "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
@@ -384,9 +425,10 @@ abbrev NodeStartSpec : Prop :=
             rnTransportAddr a ↦□ tr) ∗
           -- (2026-10-27) the peers' slice not back (the node API's `StartNode` keeps it)
           b ↦{dq} bv ∗
-          -- (2026-10-30, the repair) the storage's invariant at the node's justifications
-          -- (`memStorInv`, allocated by `InitialState`, `bootStorage`'s `Q`) and its hard state
-          memStorInv bv.storage' γs γr.cl cv.ID' ∗
+          -- (2026-10-30, the repair) the storage's invariant at the justifications of its key (the
+          -- wrapper's, `γw.key`; `memStorInv`, allocated by `InitialState`, `restartStorage`'s
+          -- frame) and its hard state
+          memStorInv bv.storage' γs γr.cl γw.key ∗
           memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) }}
 
 set_option maxHeartbeats 0 in
@@ -429,18 +471,24 @@ theorem raftNode_of_StartNode
   iintro %Φ Hpre HΦ
   iNamed Hpre
   ihave Hbs := srvMem_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
-      wp_Entries γr bv.storage' γs cv.ID' $$ [Hfresh Hmeta Hend]
+      wp_Entries γr bv.storage' γs
+      (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
+        memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0))))
+      $$ [Hfresh Hmeta Hend]
   · iframe Hreg Hlock Hfresh Hmeta Hlog0 Hend
+    iintro %K Hi Hm
+    iframe Hi Hm
+  icases Hboot with ⟨#Hnboot, HrS, Hvac⟩
   wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] pv ps ctxs
-    iprop(memStorInv bv.storage' γs γr.cl cv.ID' ∗
-      memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))
+    (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
+      memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0))))
     Hlg Hhb Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0
     (by omega) Hid Hvs Hwal)
-    $$ [Hb Hc Hbs Hpeers Hboot]
+    $$ [Hb Hc Hbs Hpeers HrS Hvac]
     as %r Hpost
-  · iframe #; iframe Hb Hc Hbs Hpeers Hboot
-  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, Hncfg, Hrun, #Hidri, #Hsti, %Hstss,
-    Hbuilt, Hb, ⟨#Hminv, Hmeta⟩⟩
+  · iframe #; iframe Hb Hc Hbs Hpeers HrS Hvac
+  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, HrS, Hncfg, Hrun, #Hidri, #Hsti,
+    %Hstss, Hbuilt, Hb, ⟨#Hminv, Hmeta⟩⟩
   obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs⟩ := Hnames
   iunfold rnBuilt at Hbuilt
   iNamed Hbuilt
@@ -471,9 +519,9 @@ theorem raftNode_of_StartNode
         refine srvCfgOk_nil _ (fun h0 => H0 ((GMap.elem_of_list_to_set _ _).1 h0)) ?_
         rw [GMap.size_list_to_set ps Hnodup]
         omega)
-    $$ [Hdrv Hncfg Hrun1 Hprod Hcons Hcum Hcum0]
-  · rw [Hwnode, Hwnl, Hwms]
-    iframe Hdrv Hrun1 Hprod Hcons Hcum Hcum0
+    $$ [Hdrv HrS Hncfg Hrun1 Hprod Hcons Hcum Hcum0]
+  · rw [Hwnode, Hwnl, Hwms, Hwid]
+    iframe Hdrv HrS Hrun1 Hprod Hcons Hcum Hcum0
     unfold SrvRaft.cfg
     rw [Hvs]
     iexact Hncfg

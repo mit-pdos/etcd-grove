@@ -50,7 +50,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specOff : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
     (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
-    (ms : Loc) (γs : MemStorNames) (nid : w64) (γp : GName) (w : Nat)
+    (ms : Loc) (γs : MemStorNames) (nk : GName) (γp : GName) (w : Nat)
     (TM : MetaCI → IProp GF) (ρ : ReqNames) (q : Qp),
   E.authOn = false →
   loopOk γ st ai →
@@ -63,15 +63,15 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specOff : Prop :=
   storage.walSaveOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM false s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
-      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvSnapStor ms γs γr nid ai at' ∗
+      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvSnapStor ms γs γr nk ai at' ∗
       isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
       srvSnapFrozen γs (uint.nat ai) ∗
       -- (2026-10-31) `ep.confState` the voters' (or nothing applied: no snapshot is due at `0`), the
       -- entry at `ai` frozen at `at'` (`snapshot`'s)
       (⌜uint.Z ai = 0⌝ ∨ epCsCfg γr cs) ∗ srvFrozenTerm γs ai at' ∗
-      -- (D19i part 1; 2026-10-30, the repair: in place of the storage's floor) the node `nid`'s
+      -- (D19i part 1; 2026-10-30, the repair: in place of the storage's floor) the node's (on the storage of key `nk`)
       -- applied index past the applied index (`raftAdvancedC`'s, `Compact`'s `J.B`)
-      (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗
+      (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nk (uint.nat ai)) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKV s E γw x ∗
       rnWalTok (srvRAddr s) q }}
@@ -87,7 +87,7 @@ rows share, `srvApplyKVCore`). -/
 abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specOn : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
     (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
-    (ms : Loc) (γs : MemStorNames) (nid : w64) (γp : GName) (w : Nat)
+    (ms : Loc) (γs : MemStorNames) (nk : GName) (γp : GName) (w : Nat)
     (TM : MetaCI → IProp GF) (ρ : ReqNames)
     (sa : auth.AuthState) (q : Qp),
   E.authOn = true →
@@ -101,15 +101,15 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specOn : Prop :=
   storage.walSaveOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM true s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
-      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvSnapStor ms γs γr nid ai at' ∗
+      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvSnapStor ms γs γr nk ai at' ∗
       isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
       srvSnapFrozen γs (uint.nat ai) ∗
       -- (2026-10-31) `ep.confState` the voters' (or nothing applied: no snapshot is due at `0`), the
       -- entry at `ai` frozen at `at'` (`snapshot`'s)
       (⌜uint.Z ai = 0⌝ ∨ epCsCfg γr cs) ∗ srvFrozenTerm γs ai at' ∗
-      -- (D19i part 1; 2026-10-30, the repair: in place of the storage's floor) the node `nid`'s
+      -- (D19i part 1; 2026-10-30, the repair: in place of the storage's floor) the node's (on the storage of key `nk`)
       -- applied index past the applied index (`raftAdvancedC`'s, `Compact`'s `J.B`)
-      (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗
+      (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nk (uint.nat ai)) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVOn s E γw x sa ∗
       rnWalTok (srvRAddr s) q }}

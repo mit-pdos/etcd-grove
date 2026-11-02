@@ -49,7 +49,7 @@ theorem Replica.request.wp_proof
     (wp_encodeState : encodeState.spec (GF := GF) (hG := hG)) :
     Replica.request.spec (GF := GF) (hG := hG) := by
   intro γr vs id r n st sts ρ ap csp m mA A D cp snapIndex snap compact Hpre Hcp
-  wp_start as ⟨#Hrr, Hown, #Hcpc, #Hfz, #Hdl, #Hal⟩
+  wp_start as ⟨#Hrr, Hown, #Hcpc, #Hfz, #Hdl, #Hcl', #Hal⟩
   ihave #Hrr' := Hrr
   iunfold isReplicaR at Hrr'
   iNamed Hrr'
@@ -68,8 +68,8 @@ theorem Replica.request.wp_proof
       r.[RReplica, go!"kv"] ↦ mK ∗ r.[RReplica, go!"applied"] ↦{DFrac.own (1 : Qp).half} mA ∗
       (⌜dv = slice.nil⌝ ∨ ∃ (e : EntryM) (cc : ConfStateM) (bs : List w8),
         memLog ρ.γs (uint.nat (W64 ap.length)) DFrac.discard [e] ∗
-        (kvrJ γr.cluster id).SV (memSnapMade (W64 ap.length) e.Term' cc bs) ∗
-        (kvrJ γr.cluster id).DL (uint.nat (W64 ap.length)) ∗
+        (kvrJ γr.cluster ρ.key).SV (memSnapMade (W64 ap.length) e.Term' cc bs) ∗
+        (kvrJ γr.cluster ρ.key).DL (uint.nat (W64 ap.length)) ∗
         ownCSM csp DFrac.discard cc ∗ dv ↦* bs) ∗
       ⌜dv ≠ slice.nil → uint.nat snapIndex < ap.length⌝)
     with [data HK HA index cs snapIndex r HmK HmA] as ⟨%dv, data, HK, HA, index, cs, snapIndex, r, HmK, HmA, Hdv, %Hdvi⟩
@@ -118,7 +118,7 @@ theorem Replica.request.wp_proof
       iframe He Hsl HcsM
       isplitl []
       · unfold kvrJ; rw [← memSnapCreated_some memSnapEmpty]; iexact Hsv
-      unfold kvrJ storDL; iexists n, kvrRaftN, D; iframe HisNode Hdl; ipureintro; exact HapD
+      unfold kvrJ; iapply nodeCommitLb_mono γr.cluster ρ.key D.length _ HapD $$ Hcl'
     ipureintro; intro _; exact Hlt
   -- the lock released, the applier's halves back (and a credit for the send)
   wp_apply (lc := 1) sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked HR]
@@ -135,7 +135,7 @@ theorem Replica.request.wp_proof
   · iexists W64 0; iframe; ipureintro; left; rfl
   · iexists W64 ap.length; iframe; ipureintro; right; exact ⟨trivial, rfl⟩
   -- what the request carries
-  ihave HP : snapReqOk γr id ρ.γs
+  ihave HP : snapReqOk γr ρ.key ρ.γs
       (github_com.mit_pdos.etcd_grove.examples.kvreconf.snapReq.mk (W64 ap.length) csp dv cv) $$ [Hdv]
   · unfold snapReqOk
     simp only

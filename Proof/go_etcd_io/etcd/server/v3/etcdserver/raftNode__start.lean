@@ -181,8 +181,8 @@ theorem raftNode.start.wp_proof
       iunfold rnLoopTokP at Htok
       icases Htok with ⟨%sent, %cums, Hdrv, Hrun, Hprod, Hauth, %Hcums, %Hix, #Hfzt⟩
       iunfold rnDrv at Hdrv
-      icases Hdrv with ⟨Hdrv, Hcfg⟩
-      icases isReadyChan_recvAu γ.nl rc γ.node.cl srvClusterN γ.id (rnDrvSt γ L' p) _ rfl
+      icases Hdrv with ⟨%S, %ro, Hdrv, HrS, Hcfg⟩
+      icases isReadyChan_recvAu γ.nl rc γ.node.cl srvClusterN γ.id (rnDrvSt γ L' p S ro) _ rfl
         $$ Hrc Hisn Hdrv with ⟨%γc, #Hch, Hau⟩
       iexists Ready, inferInstance, inferInstance, inferInstance, inferInstance, rc, γc
       isplitr
@@ -191,20 +191,21 @@ theorem raftNode.start.wp_proof
       · iexact Hch
       iapply Hau $$ [$Hlc1 $Hlc2]
       inext
-      iintro %rd ⟨%ce0, %es0, %h0, %Lo, #Hcea0, #Hcom0, Hrs0, Hrest, Hdrv⟩
+      iintro %rd Hgot
       -- (2026-10-27) the log's indices, at the start's index (`rnEnvOk`'s)
       have HLi : srvIdxOkW E.γr.raft.ai0 L' := by
         obtain ⟨ai, hai, hidx⟩ := Hix
         have h2 : uint.Z ai = uint.Z E.γr.raft.ai0 := by rw [hai, HEai]
         have hae : ai = E.γr.raft.ai0 := by word
         rw [← hae]; exact hidx
-      imod rn_ready_recv E γ L' p rd ce0 es0 h0 Lo HLi $$ Henv Hrsb Hcfg Hcea0 Hcom0 Hrs0 Hrest
-        Hdrv with (⟨%ce, %es, %p', Hdata, Hbusy, #Hdlb, %HidxN⟩ | Hsnap)
+      imod rn_ready_recv E γ L' p S ro rd HLi $$ Henv Hrsb Hcfg HrS Hrun Hgot
+        with ⟨Hrun, (⟨%ce, %es, %p', Hdata, Hbusy, #Hdlb, %HidxN⟩ | Hsnap)⟩
       rotate_left
       · -- (2026-10-31, #3) **The `Ready`-snapshot branch** (raft.go:256-342): the snapshot cloned
         -- twice (`raftSnap`, the apply thread's), the batch on `applyc` (`rnApSnap`), `SaveSnap`,
         -- `Save`, `Sync`, notifyc's first send, `MemoryStorage.ApplySnapshot` (`readySnap`'s range,
-        -- `snapGiven` for `J.B`, `rn_storDL` for `J.DL`, `snapshotValid` for `J.SV`), the entries'
+        -- its `nodeAppliedLb` for `J.B` and `nodeCommitLb` for `J.DL` (2026-11-02, the lean merge;
+        -- until then `snapGiven` and `rn_storDL`), `snapshotValid` for `J.SV`), the entries'
         -- `Append`, notifyc's second send, `Advance`'s snapshot clause over `snapReceipt`, and
         -- `raftAdvancedC` closed with the frozen dummy entry
         letI : MemStorReg GF := ⟨γ.reg⟩
@@ -212,14 +213,14 @@ theorem raftNode.start.wp_proof
         iunfold rnBusyS at Hbusy
         icases Hbusy with ⟨Hbdrv, Hbcv, %Hbs⟩
         obtain ⟨HbA, HbPre, HbD, HbPos, Hb61⟩ := Hbs
-        ihave ⟨Hbdrv, #Hdl⟩ := nodeDriver_deliveredLogLb _ _ _ _ $$ Hbdrv
         icases rnReadySnap_bootLen E γ _ _ _ _ _ _ _ $$ Henv Hdata with ⟨Hdata, %Hbb⟩
         iunfold rnReadySnap at Hdata
-        icases Hdata with ⟨%ceL, %esL, %msL, %hs, HrS, #Hce, #Hcea, %HA', #HC, #HsvV, #Hes, #Hesa,
+        icases Hdata with ⟨%ceL, %esL, %msL, %hs, ⟨%S1, %r1, HrSn⟩, #Hce, #Hcea, %HA', #HC, #HsvV, #Hes, #Hesa,
           #Hmsl, Hmsok, #Hss, #Hhs, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩⟩
         obtain ⟨-, HLA, Hfit, Hlast⟩ := HA'
-        iunfold readySnap at HrS
-        icases HrS with ⟨%Hl, Hsn, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HsnLoc, -⟩
+        iunfold readySnap at HrSn
+        icases HrSn with ⟨%Hl, Hsn, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HcLbS,
+          #HsnLoc, -⟩
         obtain ⟨-, Hptr, -, -, -, -, -, -, -, Hli⟩ := Hl
         -- the snapshot's log `A'`, `pre ++ A'` the snapshot's index long
         have hlenA : (γ.pre ++ A').length = uint.nat l.snap.Metadata'.Index' := by
@@ -432,8 +433,8 @@ theorem raftNode.start.wp_proof
         wp_apply chan.wp_make2 (V := Unit) $$ [] as %ac %γac ⟨#Hacch, -, Hacown⟩
         · ipureintro; decide
         -- its close carries the node's applied index at the snapshot's and the frozen dummy entry
-        imod alloc_stop_chan (E := ⊤) iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A').length ∗
-            storDL γ.node.cl γ.id (γ.pre ++ A').length ∗
+        imod alloc_stop_chan (E := ⊤) iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗
+            nodeCommitLb γ.node.cl γ.key (γ.pre ++ A').length ∗
             srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length) γac ac
           $$ Hacch Hacown with Hacp
         icases ownStopChan_pending_unknown _ _ _ $$ Hacp with ⟨Hacp, #HacU⟩
@@ -642,7 +643,7 @@ theorem raftNode.start.wp_proof
           iunfold isInitialized at Hinit
           iNamed Hinit
           icases ErrSnapOOD with ⟨%eood, #Heood⟩
-          ihave #HmsP : memStorInvP ms γ.γs (memStorJ γ.node.cl γ.id) $$ []
+          ihave #HmsP : memStorInvP ms γ.γs (memStorJ γ.node.cl γ.key) $$ []
           · rw [Hmsγ]; iunfold memStorInv at Hmsinv; iexact Hmsinv
           ihave #HmsP' := HmsP
           iunfold memStorInvP at HmsP'
@@ -653,16 +654,19 @@ theorem raftNode.start.wp_proof
           · iExactEq Hend; rfl
           ihave Hlog := memStorLog_to γ.ms γ.γs _ _ _ $$ Hreg Hlog
           ihave Hend := memStorEnd_to γ.ms γ.γs _ $$ Hreg Hend
-          ihave #HBJ : (memStorJ γ.node.cl γ.id).B (uint.nat l.snap.Metadata'.Index') $$ []
-          · unfold memStorJ; iright; iexact Hgiven
-          ihave #HsvJ : (memStorJ γ.node.cl γ.id).SV l.snap $$ []
+          ihave #HBJ : (memStorJ γ.node.cl γ.key).B (uint.nat l.snap.Metadata'.Index') $$ []
+          · unfold memStorJ; iExactEq Hgiven; rfl
+          ihave #HsvJ : (memStorJ γ.node.cl γ.key).SV l.snap $$ []
           · unfold memStorJ; iexact HsvV
-          ihave #HDLJ : (memStorJ γ.node.cl γ.id).DL (uint.nat l.snap.Metadata'.Index') $$ []
-          · unfold memStorJ; rw [← hlenA]; iapply rn_storDL γ A'; iframe Hisn Hdl
-          wp_apply wp_ApplySnapshot ms γ.γs (memStorJ γ.node.cl γ.id) k old c1 DFrac.discard l.snap
-              eood Hk (by word) $$ [$Hrpkg $HmsP $Hlog $Hend $HBJ $HsvJ $HDLJ $Hslb0 $Heood]
+          ihave #HDLJ : (memStorJ γ.node.cl γ.key).DL (uint.nat l.snap.Metadata'.Index') $$ []
+          · unfold memStorJ; iExactEq HcLbS; rfl
+          -- (2026-11-02, the lean merge) attached (mode `none`, durability stage I-5)
+          wp_apply wp_ApplySnapshot ms γ.γs (memStorJ γ.node.cl γ.key) none k old c1 DFrac.discard
+              l.snap eood Hk (by word) $$ [$Hrpkg $Hlog $Hend $Hslb0 $Heood]
             as ⟨-, #HcpS, #Hdum, HendS, -⟩
-          · unfold snapArg; iright; iexact Hc1
+          · rw [memStorAt_none]
+            iframe HmsP HBJ HsvJ HDLJ
+            unfold snapArg; iright; iexact Hc1
           (try wp_auto)
           -- `r.lg.Info(.., zap.Uint64("snapshot-index", raftSnap.Metadata.GetIndex()))`
           ihave #Hm1o : smOpt pm1 DFrac.discard l.snap.Metadata' $$ []
@@ -818,13 +822,15 @@ theorem raftNode.start.wp_proof
               -- `r.Advance()`: the snapshot clause, the driver at `A'`
               ihave HAdvS' := HAdvS $$ %L' %A' %es %p' %l
               wp_apply HAdvS' $$ [$Hbusy $Hrcpt $Hcert $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
+              ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ A' p' $$ Hdrv
               -- `close(raftAdvancedC)`, with the applied index and the frozen dummy entry
               wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
-              · -- (persistent: `storDL` from `rn_storDL`, the frozen dummy from `ApplySnapshot`'s)
+              · -- (persistent: `nodeCommitLb` from `rn_storDL`, the frozen dummy from
+                -- `ApplySnapshot`'s)
                 imodintro
                 iframe Hfl
                 isplitr
-                · iapply rn_storDL γ A'; iframe Hisn Hdl
+                · iexact HcA
                 rw [hlenA]; iapply srv_snap_frozen γ.γs _ l.snap; iframe HcpS Hdum
               (try wp_auto)
               wp_for_post
@@ -858,13 +864,15 @@ theorem raftNode.start.wp_proof
               -- `r.Advance()`: the snapshot clause, the driver at `A'`
               ihave HAdvS' := HAdvS $$ %L' %A' %es %p' %l
               wp_apply HAdvS' $$ [$Hbusy $Hrcpt $Hcert $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
+              ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ A' p' $$ Hdrv
               -- `close(raftAdvancedC)`, with the applied index and the frozen dummy entry
               wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
-              · -- (persistent: `storDL` from `rn_storDL`, the frozen dummy from `ApplySnapshot`'s)
+              · -- (persistent: `nodeCommitLb` from `rn_storDL`, the frozen dummy from
+                -- `ApplySnapshot`'s)
                 imodintro
                 iframe Hfl
                 isplitr
-                · iapply rn_storDL γ A'; iframe Hisn Hdl
+                · iexact HcA
                 rw [hlenA]; iapply srv_snap_frozen γ.γs _ l.snap; iframe HcpS Hdum
               (try wp_auto)
               wp_for_post
@@ -1128,7 +1136,7 @@ theorem raftNode.start.wp_proof
       · ipureintro; decide
       -- (D19i part 1) `raftAdvancedC`: a broadcast channel, closed after `Advance`
       -- its close carries the storage's floor past the batch (`node.Advance`'s)
-      imod alloc_stop_chan (E := ⊤) iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ L' ++ ce).length ∗ storDL γ.node.cl γ.id (γ.pre ++ L' ++ ce).length ∗
+      imod alloc_stop_chan (E := ⊤) iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ L' ++ ce).length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ L' ++ ce).length ∗
           srvFrozenRange γ.γs ((γ.pre ++ L').length + 1) ((γ.pre ++ L' ++ ce).length + 1) ∗
           srvFrozenTerms γ.γs (γ.pre.length + 1) (L' ++ ce)) γac ac
         $$ Hacch Hacown with Hacp
@@ -1395,10 +1403,11 @@ theorem raftNode.start.wp_proof
             ihave Hcv' := rnCfgAt_back_false γ _ L' ce HidxOk.2 Hcc.symm $$ Hkeep
             ihave HAdv' := HAdv $$ %L' %ce %es %p'
             wp_apply HAdv' $$ [$Hbusy $Hcv' $Hrcpt $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
+            ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ (L' ++ ce) p' $$ Hdrv
             -- `close(raftAdvancedC)`, with the floor's witness
             wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
             · imodintro; iframe Hfl Hfr Hft
-              rw [List.append_assoc]; iapply rn_storDL γ (L' ++ ce); iframe Hisn Hdlb
+              rw [List.append_assoc]; iexact HcA
             (try wp_auto)
             wp_for_post
             iframe
@@ -1448,10 +1457,11 @@ theorem raftNode.start.wp_proof
               ihave Hcv' := rnCfgAt_back_true γ L' ce Hcc.symm $$ [$Hkeep $HRr]
               ihave HAdv' := HAdv $$ %L' %ce %es %p'
               wp_apply HAdv' $$ [$Hbusy $Hcv' $Hrcpt $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
+              ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ (L' ++ ce) p' $$ Hdrv
               -- `close(raftAdvancedC)`, with the floor's witness
               wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
               · imodintro; iframe Hfl Hfr Hft
-                rw [List.append_assoc]; iapply rn_storDL γ (L' ++ ce); iframe Hisn Hdlb
+                rw [List.append_assoc]; iexact HcA
               (try wp_auto)
               wp_for_post
               iframe
@@ -1506,10 +1516,11 @@ theorem raftNode.start.wp_proof
             ihave Hcv' := rnCfgAt_back_false γ _ L' ce HidxOk.2 Hcc.symm $$ Hkeep
             ihave HAdv' := HAdv $$ %L' %ce %es %p'
             wp_apply HAdv' $$ [$Hbusy $Hcv' $Hrcpt $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
+            ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ (L' ++ ce) p' $$ Hdrv
             -- `close(raftAdvancedC)`, with the floor's witness
             wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
             · imodintro; iframe Hfl Hfr Hft
-              rw [List.append_assoc]; iapply rn_storDL γ (L' ++ ce); iframe Hisn Hdlb
+              rw [List.append_assoc]; iexact HcA
             (try wp_auto)
             wp_for_post
             iframe
@@ -1553,10 +1564,11 @@ theorem raftNode.start.wp_proof
               ihave Hcv' := rnCfgAt_back_true γ L' ce Hcc.symm $$ [$Hkeep $HRr]
               ihave HAdv' := HAdv $$ %L' %ce %es %p'
               wp_apply HAdv' $$ [$Hbusy $Hcv' $Hrcpt $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
+              ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ (L' ++ ce) p' $$ Hdrv
               -- `close(raftAdvancedC)`, with the floor's witness
               wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
               · imodintro; iframe Hfl Hfr Hft
-                rw [List.append_assoc]; iapply rn_storDL γ (L' ++ ce); iframe Hisn Hdlb
+                rw [List.append_assoc]; iexact HcA
               (try wp_auto)
               wp_for_post
               iframe

@@ -409,6 +409,14 @@ structure RaftNames where
   `false` (the default): a proposal's update and ticket are one-shot. Pure data, fixed at
   allocation. -/
   dup : Bool := false
+  /-- **Each node's slot** (2026-10-31, durability stage I-1, `notes/raft-durability-proof-plan.md`):
+  `reSlot !! id = some (γv, γq, γg)` names node `id`'s ghost variable of its virtual maps (the
+  entered promises with the queued batch applied, `DurMaps`: half in the slot invariant
+  `slotInv`, half in the running node's `ownRaftGhost` or the vacant `idSlot`), its queue (a
+  ghost map `generation ↦ Option batch`, the authority in `slotInv`, each generation's element
+  `slotFree`/`pendBatch`) and its generation counter (a ghost variable, half in `slotInv`, half
+  `slotLive`). Set at allocation (`ownRaftGhost_alloc_*`). -/
+  reSlot : GMap w64 (GName × GName × GName) := ∅
 
 /-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
 stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged
@@ -1178,7 +1186,7 @@ theorem entKey_inj {ty1 ty2 : w32} {d1 d2 : List w8} (h : entKey ty1 d1 = entKey
 
 /-- A normal entry's bytes decode as its type says: there is nothing to decode. -/
 theorem CCDecodes_normal (d : List w8) : CCDecodes (W32 0) d :=
-  ⟨fun h => absurd h (by decide), fun h => absurd h (by decide)⟩
+  ⟨fun h => absurd h (by decide), fun h => absurd h (by decide), by decide⟩
 
 /-- A registered data's record (2026-10-21): its result predicate's name, its deposits' map's
 name. -/
@@ -2017,6 +2025,41 @@ private theorem logRecs_elim (γ : RaftNames) (b : entryID) (es : List EntryM)
   refine (BigSepL.bigSepL_lookup Hk).trans ?_
   simp only [Hr, ite_true]
   exact .rfl
+
+/-- (2026-11-02, durability stage II (q), kvdurable's G20) **An entry's type is one of raft's**
+(`CCDecodes`), from its data's record. -/
+theorem propDataIs_ty (γ : RaftNames) (e : EntryM) (o : Option (List w8)) :
+    propDataIs (GF := GF) γ e o ⊢ ⌜uint.Z e.Type' ≤ 2⌝ := by
+  cases o with
+  | none =>
+    unfold propDataIs
+    iintro %H; ipureintro; exact H.2.2.2
+  | some k =>
+    unfold propDataIs
+    iintro ⟨%H, -⟩; ipureintro; exact H.2.2.2.2
+
+theorem isEntryR_ty (γ : RaftNames) (e : EntryM) (pt : w64) :
+    isEntryR (GF := GF) γ e pt ⊢ ⌜uint.Z e.Type' ≤ 2⌝ := by
+  unfold isEntryR entData
+  iintro (⟨%ldr, %γt, %b, %l0, %F0, -, -, -, -, -, ⟨%o, Hd⟩, -⟩ | ⟨-, %o, Hd⟩)
+  · cases o with
+    | none => iunfold entDataIs at Hd; iapply propDataIs_ty γ e none $$ Hd
+    | some d => unfold entDataIs; icases Hd with ⟨Hd, -⟩; iapply propDataIs_ty γ e (some d) $$ Hd
+  · cases o with
+    | none => iunfold entDataIs at Hd; iapply propDataIs_ty γ e none $$ Hd
+    | some d => unfold entDataIs; icases Hd with ⟨Hd, -⟩; iapply propDataIs_ty γ e (some d) $$ Hd
+
+/-- (2026-11-02, durability stage II (q)) **Every entry of a well-formed log with records is of a
+type of raft's.** -/
+theorem logRecs_ty (γ : RaftNames) (b : entryID) (es : List EntryM) (Hwf : PlogWf b es) :
+    logRecs (GF := GF) γ b es ⊢ ⌜∀ e ∈ es, uint.Z e.Type' ≤ 2⌝ := by
+  iintro #H
+  iintro %e %He
+  obtain ⟨k, Hk⟩ := List.getElem?_of_mem He
+  have Hi := Hwf k e Hk
+  have := uint_Z_lt e.Index'
+  icases logRecs_elim γ b es k e Hk (by push_cast at Hi; omega) $$ H with ⟨%pt, -, #Hr⟩
+  iapply isEntryR_ty γ e pt $$ Hr
 
 /-- `logRecs` from a persistent resource giving each in-range entry's record
 (Rocq: `big_sepL_intro` + `case_decide`). -/
@@ -3583,23 +3626,50 @@ theorem hist_of_agree (γ : RaftNames) (F X : List EntryM) (t i : w64) (B : Int)
 
 /-! ### Acknowledgements, justified
 
-`ackAgree γ b es t i`: the log `(b, es)` reaches `i` and has, at `i`, the term some log of
-the leader of `t` has there. `ownLogGhost` keeps it of every acknowledgement a
+`ackAgree γ b es t i`: the log `(b, es)` reaches `i` and has, at `i`, the term the full log of a
+prefix of the leader of `t` has there (`leadFull`). `ownLogGhost` keeps it of every acknowledgement a
 non-leader has made in its current term above its commit index (`acksOk`): that is what
-`heartbeat_commit_le_last` needs, and what a later `app`/`snap` of the same term cannot
-undo -- they come from the same leader, so they agree with the log at and below `i`
-(`ackAgree_term`). -/
+`heartbeat_commit_le_last` and the heartbeat's commit need, and what a later `app`/`snap` of the same
+term cannot undo -- they come from the same leader, so they agree with the log at and below `i`
+(`ackAgree_term`). (2026-11-01, durability stage II(d) round 9: in full-log coordinates on the
+leader's side, until then a `leadPrefix` holding `i`; an acknowledgement below the leader's base --
+a refused snapshot's, `Step.snapStale` -- has the former but not the latter.) -/
 
 def ackAgree (γ : RaftNames) (b : entryID) (es : List EntryM) (t i : w64) :
     IProp GF :=
   iprop(⌜uint.Z i ≤ plogLastIndexZ b es⌝ ∗
-    ∃ ldr bL l, leadPrefix γ ldr t bL l ∗
-      ⌜(plogTermAt bL l i).isSome ∧ plogTermAt bL l i = plogTermAt b es i⌝ ∗
-      ∃ fp, lpfull γ ldr t bL l fp)
+    ∃ X, leadFull γ t X ∗
+      ⌜(plogTermAt base0 X i).isSome ∧ plogTermAt base0 X i = plogTermAt b es i⌝)
 
 instance ackAgree_persistent (γ : RaftNames) (b : entryID) (es : List EntryM)
     (t i : w64) : Persistent (ackAgree (GF := GF) γ b es t i) := by
   unfold ackAgree; infer_instance
+instance ackAgree_timeless (γ : RaftNames) (b : entryID) (es : List EntryM)
+    (t i : w64) : Timeless (ackAgree (GF := GF) γ b es t i) := by
+  unfold ackAgree; infer_instance
+
+/-- `ackAgree` from a prefix of the leader holding the log's term at `i`. -/
+theorem ackAgree_intro (γ : RaftNames) (b : entryID) (es : List EntryM) (t i ldr : w64)
+    (bL : entryID) (l fp : List EntryM) :
+    uint.Z i ≤ plogLastIndexZ b es → (plogTermAt bL l i).isSome →
+    plogTermAt bL l i = plogTermAt b es i →
+    ⊢ leadPrefix (GF := GF) γ ldr t bL l -∗ lpfull γ ldr t bL l fp -∗ ackAgree γ b es t i := by
+  intro Hi Hs Heq
+  iintro #Hp #Hpf
+  ihave %Hf : ⌜FullOk bL fp⌝ $$ []
+  · iunfold lpfull at Hpf
+    icases Hpf with ⟨%F0, -, -, %H⟩
+    ipureintro; exact H.1
+  obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp Hs
+  have HbL := (plogTermAt_some_range _ _ _ _ Hx).1
+  unfold ackAgree
+  isplitr; · ipureintro; exact Hi
+  iexists fp ++ l
+  isplitr; · iapply leadFull_intro $$ Hp Hpf
+  ipureintro
+  rw [full_term_at bL fp l i Hf HbL]
+  exact ⟨Hs, Heq⟩
+
 /-- A log that agrees with the leader of `t` at `i` agrees, at and below `i`, with every
 other log of that leader. -/
 theorem ackAgree_term (γ : RaftNames) (b : entryID) (es : List EntryM)
@@ -3612,10 +3682,18 @@ theorem ackAgree_term (γ : RaftNames) (b : entryID) (es : List EntryM)
       ⌜plogTermAt b es j = plogTermAt bL l' j⌝ := by
   intro Hwf Hj1 Hj2 Hji Hs'
   unfold ackAgree
-  iintro #Hr ⟨%Hi, %ldr, %bL0, %l, #Hp, %HsEq, -⟩ #Hp'
-  obtain ⟨Hs, Heq⟩ := HsEq
+  iintro #Hr ⟨%Hi, %X, #HX, %HsEq⟩ #Hp'
+  iunfold leadFull at HX
+  icases HX with ⟨%ldr, %bL0, %l, %fpX, #Hp, #Hpf, %HXe⟩
+  subst HXe
+  ihave %Hf : ⌜FullOk bL0 fpX⌝ $$ []
+  · iunfold lpfull at Hpf
+    icases Hpf with ⟨%F0, -, -, %H⟩
+    ipureintro; exact H.1
   icases leadPrefix_base γ ldr ldr' t bL0 bL l l' $$ Hp Hp' with %Hb
   subst Hb
+  rw [full_term_at bL0 fpX l i Hf (by omega)] at HsEq
+  obtain ⟨Hs, Heq⟩ := HsEq
   ihave ⟨%Hwfl, #Hrl⟩ := leadPrefix_wf γ ldr t _ l $$ Hp
   icases logRecs_agree γ b es _ l $$ Hr Hrl with %HRA
   have Hsi : (plogTermAt b es i).isSome := by rw [← Heq]; exact Hs

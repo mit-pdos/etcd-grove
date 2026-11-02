@@ -549,7 +549,7 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
       · cases h; exact Hd
     obtain ⟨Hrole, Hap, Hlt, Hjb, Hsn, cs', Hfold, Hcs'⟩ := Hd
     simp only [ghostRest, ghostRestM, ownStepGhost, GMode.isDyn]
-    iintro Hlc Hg ⟨%Hnl, ⟨%Hdc, #HM, #Hfr, #Hc⟩, #Hcl⟩
+    iintro Hlc Hg ⟨%Hnl, ⟨%Hdc, #HM, #Hfr⟩, #Hcl⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     ihave ⟨#Hlr, %HB⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hg
     imod lastRec_receipt γ _ $$ Hlr with #Hrc
@@ -575,9 +575,7 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
     ihave Hown : ownRaftGhostR γ (effDec dec g.decs) c0 id (rOf s g) $$ [Hg]
     · simp only [ownRaftGhostR, rOf.proj_p, rOf.proj_fp]
       iframe Hg Hfr
-      isplitr
-      · ipureintro; exact HI
-      iintro %hcand; iapply Hc; exact hcand
+      ipureintro; exact HI
     imod ownRaftGhostR_stepR γ dec g.decs c0 h0 HD (fun l => l = g.fp.take (uint.nat j)) id _ HB
       (rOf s g) [] _ HR $$ Hrc HM [] [] [Hcr] [] Hlc Hown with Hown
     · imodintro
@@ -591,7 +589,7 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
     imodintro
     iexists GMode.dyn dec c0 h0 g'
     iunfold ownRaftGhostR at Hown
-    icases Hown with ⟨Hg, %HI', #Hfr', #Hc'⟩
+    icases Hown with ⟨Hg, %HI', #Hfr'⟩
     simp only [rOf.proj_p, rOf.proj_fp]
     isplitr
     · ipureintro
@@ -605,8 +603,6 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
     · isplitr
       · ipureintro; exact ⟨HD, Hcs', HI'⟩
       iframe Hfr' HM
-
-      iintro %hcand; iapply Hc'; exact hcand
     rw [show xfW (GF := GF) γ s' = xfW γ s by unfold xfW; rw [Hng.1], Hps, Hng.1]
     iexact Hcl
 

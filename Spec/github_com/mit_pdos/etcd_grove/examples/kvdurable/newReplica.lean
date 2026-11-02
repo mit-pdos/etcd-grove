@@ -1,0 +1,89 @@
+/- Lean-first (no Rocq counterpart).
+
+`newReplica(id, file, node, storage, kv, applied, cs, index, rafted, tick, stats, seqs, send)`
+(kv.go): an incarnation of replica `id` on the node `RestartNode` just started on `storage`, whose
+durable file is `file` (its invariant, `kdFileInv`), at the replicated state of the stored
+snapshot's prefix `ap` (`repOwn`'s fields `kv` and `applied` given here, the configuration `cs`
+denoting `m`, `index = len ap`); raft's applied index at start `rafted`. Its `dmu` lock gets the
+writer's half of the file's variable at `(S, o)` and the storage's image, at the contents `M` (holding
+`S`); the node's driver (at the storage's key `K`), its configuration view at `(len ap,
+m)`, its running token whole (halves to `run` and the snapshotter, the stopper collecting both) go
+to the incarnation's goroutines (`run`, `ticker`, `snapshotter`). It returns the running
+incarnation with the stopper's share. (2026-11-01, stage II (j), S2: the file is the image, the
+delivered log `l` at most `ap` and within the image's log up to its commit, the storage's entries up
+to `l` frozen and `l`'s, the stored snapshot's writers' lower bound: what `kdDmuInv`, `runStart`
+and `isReplicaR` now need.)
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Defs
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace kvdurable
+
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt durableExt]
+variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvdurable.Assumptions]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+
+attribute [local instance] kdStorageModel
+
+/-- See the file header. -/
+abbrev newReplica.spec : Prop :=
+  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (n st sts sq ms : Loc)
+    (γs : MemStorNames) (K : GName) (mK mA csp : Loc) (Kv A : GMap (List w8) (List w8))
+    (ap l : List LogEntry) (m : Membership) (cfg : ConfStateM) (ip : Loc) (hs : HardStateM) (S : RaftState)
+    (o : Option StorFile) (M : StorFile) (rafted : w64) (tick : time.Duration) (f : GoFunc),
+  0 < sint.Z tick → M.hs = hs → KdFileOk M → StorageHolds S (kdContents (some M)) →
+  (ap.length : Int) < 2 ^ 61 → uint.nat rafted = l.length →
+  -- (2026-11-01, stage II (j), S2) the file holds the image (if it exists), the delivered log at
+  -- most the replicated state (G18) and at most the image's commit
+  (∀ f, o = some f → f = M) → l.length ≤ ap.length →
+  uint.nat M.prev ≤ l.length → l.length ≤ uint.nat M.hs.Commit' →
+  -- (2026-11-01, stage II (j), the start functions) the id among the cluster's (`isReplica`), the
+  -- membership's size (`repOwn`), and the replicated state at the stored snapshot's index (the
+  -- snapshotter's `known`, the image's snapshot index's lower bound): what S2 missed
+  1 ≤ uint.nat id → uint.nat id ≤ 9 → GMap.size m.ids < 2 ^ 61 →
+  ap.length = uint.nat M.snap.Metadata'.Index' →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvdurable ∗ context.isClosedchanInit ∗
+      kdCluster γ vs ∗ isStats sts ∗ isReadSeqs γ sq ∗ kdFileInv γ dir id ∗
+      isNode n γ.r.cluster kdRaftN id ∗
+      nodeDriver n γ.r.cluster kdRaftN ⟨kdStorIface st, l, hs, none, K, S, StateFollower⟩ ∗
+      nodeConfig n γ.r.cluster kdRaftN ⟨ap.length, m⟩ ∗
+      nodeRunning n γ.r.cluster kdRaftN 1 ∗
+      kdStorRec st ms γs ∗ memStorInvP ms γs (kdJ γ.r.cluster K) ∗
+      memStorMeta ms γs hs ∗ st.[KStorage, go!"img"] ↦□ ip ∗ ownImage ip M ∗
+      kdSnapCert γ M.snap ∗ kdWriter γ id S o ∗
+      -- (S2) the storage's compaction point at the image's log start, its entries up to the
+      -- delivered log frozen, and they are the delivered log's (G19); the writers' lower bound of
+      -- the stored snapshot at the image's (G23, the snapshotter's `known`)
+      memCompacted γs (uint.nat M.prev) ∗
+      memLog γs (uint.nat M.prev + 1) DFrac.discard (M.ents.take (l.length - uint.nat M.prev)) ∗
+      kvreconf.frozenTo γs (uint.nat M.prev) l ∗
+      memSnapLb γs (uint.nat M.snap.Metadata'.Index') ∗
+      mK ↦$ Kv ∗ mA ↦$ A ∗ csOpt csp DFrac.discard cfg ∗ ⌜confStateIs cfg m⌝ ∗
+      isCommittedLogLb γ.r.cluster ap ∗ confAt γ.r.cluster ap.length m ∗
+      ⌜∀ k, (Kv !! k).getD [] = kvreconf.kvFold (kvreconf.logHist ap) k⌝ ∗
+      ⌜kvreconf.AppliedOk A (kvreconf.logHist ap)⌝ ∗ sendSpec γ id f }}
+    (App (App (App (App (App (App (App (App (App (App (App (App (App
+      (Val (@! github_com.mit_pdos.etcd_grove.examples.kvdurable.newReplica)) (Val #id)) (Val #(kdFileName dir id)))
+      (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n))) (Val #st)) (Val #mK)) (Val #mA))
+      (Val #csp)) (Val #(W64 ap.length))) (Val #rafted)) (Val #tick)) (Val #sts)) (Val #sq)) (Val #f))
+  {{ (r : Loc), RET #r; (∃ (n' st' sts' sq' : Loc) (ρ : KdRepNames),
+        isReplicaR γ vs dir id r n' st' sts' sq' ρ) ∗ repStop γ vs dir id r }}
+
+end spec
+
+end kvdurable
+end EtcdGrove
+end Perennial

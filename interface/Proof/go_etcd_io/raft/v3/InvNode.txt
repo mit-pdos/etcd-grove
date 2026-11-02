@@ -16,10 +16,17 @@ def (sealed) nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDrive
 theorem isCommittedLogLb_timeless (γ : Cluster) (l : List LogEntry) : Timeless (isCommittedLogLb γ
     l)
 
+def readyEnter (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState) (ms :
+    List QMsg) : IProp GF :=
+  iprop(∀ E q,
+      ⌜↑N ⊆ E⌝ -∗
+        raftState γ id st.durable ∗ nodeRunning n γ N q ={E}=∗
+          raftState γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗ readyMsgs γ N id ms)
+
 def (sealed) isReadCtx (γ : Cluster) (N : Namespace) (c : List w8) (Q : List LogEntry → IProp GF) :
     IProp GF
 
-theorem nodeAppliedLb_persistent (γ : Cluster) (id : w64) (k : Nat) : Persistent (nodeAppliedLb γ id
+theorem nodeAppliedLb_persistent (γ : Cluster) (K : GName) (k : Nat) : Persistent (nodeAppliedLb γ K
     k)
 
 theorem ownCommittedOps_get_lb (γ : Cluster) (ops : List LogEntry) : ownCommittedOps γ ops ⊢
@@ -36,12 +43,22 @@ def nodeErrS (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc 
 theorem committedAtTerm_committed [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (t c :
     w64) : committedAtTerm γ N t c ⊢ ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat c⌝
 
+theorem readyRest_snap [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (rd :
+    Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (l :
+    SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) : readyRest γ N id rd st ce es h
+    (some l) ms ss ⊢ readyRest γ N id rd st ce es h (some l) ms ss ∗ ⌜uint.nat st.hardState.Commit'
+    < uint.nat l.snap.Metadata'.Index' ∧ uint.nat l.snap.Metadata'.Index' ≤ uint.nat (phsNext
+    st.hardState h).Commit'⌝
+
 def (sealed) stepIn (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) : IProp GF
 
 def (sealed) msgCredits (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF
 
 theorem snapshotCert_persistent (γ : Cluster) (N : Namespace) (k : SnapTrip) : Persistent
     (snapshotCert γ N k)
+
+theorem nodeCommitLb_mono [package_sem : Assumptions] (γ : Cluster) (K : GName) (i i' : Nat) : i' ≤
+    i → nodeCommitLb γ K i ⊢ nodeCommitLb γ K i'
 
 theorem readySnap_bootLen [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (rd :
     Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (l : SnapLoan) : readySnap
@@ -53,8 +70,16 @@ theorem readStateOk_ctx [package_sem : Assumptions] (γ : Cluster) (N : Namespac
     ≤ l'.length → ⊢ readStateOk γ N c idx -∗ isReadCtx γ N c Q -∗ isCommittedLogLb γ l' ={E}=∗ ∃ l,
     ⌜l.length = uint.nat idx⌝ ∗ isCommittedLogLb γ l ∗ ▷ ▷ □ Q (opsOf l)
 
+theorem readyMsgs_persistent (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) : Persistent
+    (readyMsgs γ N id ms)
+
 theorem sentMsg_appFrom [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (src : w64) (st :
     MsgSt) : sentMsg γ N src st ⊢ ⌜AppFrom src st⌝
+
+theorem nodeCommitLb_timeless (γ : Cluster) (K : GName) (i : Nat) : Timeless (nodeCommitLb γ K i)
+
+def readyMsgs (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) : IProp GF :=
+  [∗list] q ∈ ms, sentMsg γ N id q.st
 
 theorem snapLocalMsg_notSnap [package_sem : Assumptions] (γ : Cluster) (id : w64) (st : MsgSt) (h :
     st.msg.Type' ≠ MsgSnap) : ⊢ snapLocalMsg γ id st
@@ -71,14 +96,8 @@ theorem isCommittedLogLb_agree (γ : Cluster) (l1 l2 : List LogEntry) : isCommit
 
 theorem node.wp_readyRecv [package_sem : Assumptions] (n ch : Loc) (γ : Cluster) (N : Namespace) (id
     : w64) (st : NodeDriverState) : st.handling = none → ⊢ ∀ Φ, isReadyChan n γ N ch ∗ isNode n γ N
-    id ∗ nodeDriver n γ N st -∗ (▷ ∀ rd, (∃ ce es h L, committedEntriesAt rd.CommittedEntries'
-    st.delivered.length ce ∗ isCommittedLogLb γ (st.delivered ++ ce) ∗ (∃ rs, readStatesPts
-    rd.ReadStates' rs ∗ [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗ readyRest γ N id
-    rd st ce es h L ∗ nodeDriver n γ N (match L with | none => { storage := st.storage, delivered :=
-    st.delivered ++ ce, hardState := phsNext st.hardState h, handling := some (es, none) } | some l
-    => { storage := st.storage, delivered := strip l.dlv, hardState := phsNext st.hardState h,
-    handling := some (es, some l) })) -∗ Φ (intoVal rd, intoVal true)) -∗ WP ((chan.receive
-    Ready.ty) (intoVal ch)) {{ Φ }}
+    id ∗ nodeDriver n γ N st -∗ (▷ ∀ rd, readyGot n γ N id st rd -∗ Φ (intoVal rd, intoVal true)) -∗
+    WP ((chan.receive Ready.ty) (intoVal ch)) {{ Φ }}
 
 def (sealed) readCtxAfter (γ : Cluster) (N : Namespace) (c : List w8) (l0 : List LogEntry) : IProp
     GF
@@ -97,6 +116,12 @@ theorem isReadyChan_persistent (n : Loc) (γ : Cluster) (N : Namespace) (ch : Lo
 theorem nodeSnapLocal_elem [package_sem : Assumptions] (γ : Cluster) (id : w64) (γd : GName) (h :
     γ.snapLoc id = some γd) (i : w64) : nodeSnapLocal γ id i ⊢ i ↪[γd]□ ()
 
+theorem readyRest_ents_above_commit [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id :
+    w64) (rd : Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h :
+    HardStateM) (ms : List QMsg) (ss : Option (w64 × StateType)) : readyRest γ N id rd st ce es h
+    none ms ss ⊢ readyRest γ N id rd st ce es h none ms ss ∗ ⌜∀ (e0 : EntryM), es.head? = some e0 →
+    uint.nat st.hardState.Commit' < uint.nat e0.Index'⌝
+
 def (sealed) Cluster : Type 1
 
 def (sealed) snapLocalMsg (γ : Cluster) (id : w64) (st : MsgSt) : IProp GF
@@ -104,15 +129,36 @@ def (sealed) snapLocalMsg (γ : Cluster) (id : w64) (st : MsgSt) : IProp GF
 theorem isNode_persistent (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : Persistent (isNode n
     γ N id)
 
+theorem readyRest_durable_has_delivered [package_sem : Assumptions] (γ : Cluster) (N : Namespace)
+    (id : w64) (rd : Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h :
+    HardStateM) (ms : List QMsg) (ss : Option (w64 × StateType)) : readyRest γ N id rd st ce es h
+    none ms ss ⊢ readyRest γ N id rd st ce es h none ms ss ∗ ⌜∀ (j : Nat) (e : LogEntry), ce[j]? =
+    some e → uint.nat (readyDurable st.durable (phsNext st.hardState h) none es).base.index' <
+    st.delivered.length + 1 + j → (readyDurable st.durable (phsNext st.hardState h) none
+    es).ents[st.delivered.length + j - uint.nat (readyDurable st.durable (phsNext st.hardState h)
+    none es).base.index']? = some (LogEntry.toEntryM (W64 (↑st.delivered.length + 1 + ↑j)) e)⌝
+
+theorem deliveredLogLb_nodeCommitLb [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N :
+    Namespace) (st : NodeDriverState) (l : List LogEntry) : nodeDriver n γ N st ∗ deliveredLogLb n γ
+    N l ⊢ nodeDriver n γ N st ∗ nodeCommitLb γ st.key l.length
+
 theorem readStateOk_after (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) (l0 : List
     LogEntry) : readStateOk γ N c idx ∗ readCtxAfter γ N c l0 ⊢ ⌜l0.length ≤ uint.nat idx⌝
 
 def (sealed) Cluster.snapLoc (γ : Cluster) : w64 → Option GName
 
+def (sealed) nodeVacant (γ : Cluster) (id : w64) : IProp GF
+
 def (sealed) Cluster.bootLen (γ : Cluster) : Nat
 
 theorem readyFits_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) : receiptBound GF
     + γ.bootLen ≤ 2 ^ 61 → ⊢ readyFits γ N
+
+theorem readyRest_ents_start [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64)
+    (rd : Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (ms
+    : List QMsg) (ss : Option (w64 × StateType)) : readyRest γ N id rd st ce es h none ms ss ⊢
+    readyRest γ N id rd st ce es h none ms ss ∗ ⌜∀ (e0 : EntryM), es.head? = some e0 → uint.nat
+    e0.Index' ≤ st.durable.last + 1⌝
 
 def propErrS (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp GF)) (err :
     GoInterface) : IProp GF :=
@@ -121,12 +167,16 @@ def propErrS (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc 
 theorem ownCommittedOps_lb_prefix (γ : Cluster) (ops l : List LogEntry) : ownCommittedOps γ ops ∗
     isCommittedLogLb γ l ⊢ ⌜opsOf l <+: ops⌝
 
-theorem snapGiven_persistent (γ : Cluster) (id : w64) (k : Nat) : Persistent (snapGiven γ id k)
-
 theorem Membership.simple_valid (vs : GSet w64) : vs ≠ ∅ → ¬W64 0 ∈ vs → GMap.size vs < 2 ^ 62 →
     (Membership.simple vs).Valid
 
 def (sealed) readStateOk (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) : IProp GF
+
+theorem readyRest_commit_le_last [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id :
+    w64) (rd : Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h :
+    HardStateM) (L : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) : readyRest γ
+    N id rd st ce es h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗ ⌜uint.nat (phsNext
+    st.hardState h).Commit' ≤ (readyDurable st.durable (phsNext st.hardState h) L es).last⌝
 
 theorem isCommittedLogLb_persistent (γ : Cluster) (l : List LogEntry) : Persistent (isCommittedLogLb
     γ l)
@@ -142,28 +192,54 @@ theorem snapLocalMsg_persistent (γ : Cluster) (id : w64) (st : MsgSt) : Persist
 
 theorem readyRest_indices [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (rd :
     Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L :
-    Option SnapLoan) : readyRest γ N id rd st ce es h L ⊢ ⌜∀ (e0 : EntryM), es.head? = some e0 → ∀
-    (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = uint.nat e0.Index' + j⌝ ∗
-    readyRest γ N id rd st ce es h L
+    Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) : readyRest γ N id rd st ce es
+    h L ms ss ⊢ ⌜∀ (e0 : EntryM), es.head? = some e0 → ∀ (j : Nat) (e : EntryM), es[j]? = some e →
+    uint.nat e.Index' = uint.nat e0.Index' + j⌝ ∗ readyRest γ N id rd st ce es h L ms ss
+
+theorem nodeCommitLb_zero [package_sem : Assumptions] (γ : Cluster) (K : GName) : ⊢ nodeCommitLb γ K
+    0
 
 def (sealed) ownReadCtxs (γ : Cluster) (U : GSet (List w8)) : IProp GF
 
+theorem readyRest_delivered_le_commit [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id
+    : w64) (rd : Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h :
+    HardStateM) (ms : List QMsg) (ss : Option (w64 × StateType)) : readyRest γ N id rd st ce es h
+    none ms ss ⊢ readyRest γ N id rd st ce es h none ms ss ∗ ⌜(st.delivered ++ ce).length ≤ uint.nat
+    (phsNext st.hardState h).Commit'⌝
+
+theorem readyRest_ents_type [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (rd
+    : Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L :
+    Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) : readyRest γ N id rd st ce es
+    h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗ ⌜∀ (e : EntryM), e ∈ es → uint.Z e.Type' ≤
+    2⌝
+
 def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState) (ce :
-    List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) : IProp GF :=
-  iprop(∃ ms,
-      entsRO rd.Entries' es ∗
-        ownSlice rd.Messages' (List.map QMsg.loc ms) (DFrac.own 1) ∗
-          ([∗list] q ∈ ms, iprop(msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗ msgCredits γ N q.st)) ∗
-            hsOpt rd.HardState' h ∗
-              softStateRO rd.SoftState' ∗
-                ⌜∃ Lx,
-                      Lx < 2 ^ 64 ∧
-                        (∀ (e0 : EntryM), es.head? = some e0 → uint.Z e0.Index' + ↑es.length ≤ Lx + 1) ∧
-                          ↑(st.delivered ++ ce).length ≤ Lx ∧ Lx < ↑(receiptBound GF) + ↑γ.bootLen⌝ ∗
-                  readySnap γ N id rd st ce es L)
+    List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg) (ss :
+    Option (w64 × StateType)) : IProp GF :=
+  iprop(entsRO rd.Entries' es ∗
+      ownSlice rd.Messages' (List.map QMsg.loc ms) (DFrac.own 1) ∗
+        ([∗list] q ∈ ms, iprop(msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st)) ∗
+          hsOpt rd.HardState' h ∗
+            softStateIs rd.SoftState' ss ∗
+              ⌜∃ Lx,
+                    Lx < 2 ^ 64 ∧
+                      (∀ (e0 : EntryM), es.head? = some e0 → uint.Z e0.Index' + ↑es.length ≤ Lx + 1) ∧
+                        ↑(st.delivered ++ ce).length ≤ Lx ∧ Lx < ↑(receiptBound GF) + ↑γ.bootLen⌝ ∗
+                readySnap γ N id rd st ce es L ∗ ⌜ReadyRestFacts st ce es h L⌝)
+
+def readyGot (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (rd : Ready)
+    : IProp GF :=
+  iprop(∃ ce es h L ms ss,
+      committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
+        isCommittedLogLb γ (st.delivered ++ ce) ∗
+          (∃ rs, readStatesPts rd.ReadStates' rs ∗ [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
+            readyRest γ N id rd st ce es h L ms ss ∗
+              readyLeaderMsgs γ N id st ms ss ∗ readyEnter n γ N id st (st.afterReady ce es h L ss) ms)
 
 theorem propErrS_propErr [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (cd :
     context.ContextDesc (IProp GF)) (err : GoInterface) : propErrS n γ N cd err ⊢ propErr cd err
+
+def (sealed) nodeCommitLb (γ : Cluster) (K : GName) (i : Nat) : IProp GF
 
 theorem Membership.applyChange_nodeZero (vs : GSet w64) (cm : ConfChangeM) : cm.nodeId = W64 0 →
     (Membership.simple vs).Valid → Membership.applyChange (ConfChangeIM.v1 cm) (Membership.simple
@@ -172,18 +248,27 @@ theorem Membership.applyChange_nodeZero (vs : GSet w64) (cm : ConfChangeM) : cm.
 theorem msgCredits_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (st : MsgSt) :
     st.msg.Type' ≠ MsgProp → ⊢ |==> msgCredits γ N st
 
-theorem nodeAppliedLb_timeless (γ : Cluster) (id : w64) (k : Nat) : Timeless (nodeAppliedLb γ id k)
+theorem nodeAppliedLb_timeless (γ : Cluster) (K : GName) (k : Nat) : Timeless (nodeAppliedLb γ K k)
 
 theorem nodeErrS_nodeErr [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (cd :
     context.ContextDesc (IProp GF)) (err : GoInterface) : nodeErrS n γ N cd err ⊢ nodeErr cd err
 
 def (sealed) snapshotCert (γ : Cluster) (N : Namespace) (k : SnapTrip) : IProp GF
 
+theorem readyMsgs_sent [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (ms :
+    List QMsg) : ([∗list] q ∈ ms, iprop(msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st)) ∗
+    readyMsgs γ N id ms ⊢ [∗list] q ∈ ms, iprop(msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id
+    q.st ∗ msgCredits γ N q.st)
+
 theorem isReadCtx_persistent (γ : Cluster) (N : Namespace) (c : List w8) (Q : List LogEntry → IProp
     GF) : Persistent (isReadCtx γ N c Q)
 
 theorem snapLocalMsg_noDir [package_sem : Assumptions] (γ : Cluster) (id : w64) (h : γ.snapLoc id =
     none) (st : MsgSt) : ⊢ snapLocalMsg γ id st
+
+theorem nodeDriver_nodeCommitLb [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace)
+    (st : NodeDriverState) : nodeDriver n γ N st ⊢ nodeDriver n γ N st ∗ nodeCommitLb γ st.key
+    st.delivered.length
 
 theorem nodeDriver_deliveredLogLb [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N :
     Namespace) (st : NodeDriverState) : nodeDriver n γ N st ⊢ nodeDriver n γ N st ∗ deliveredLogLb n
@@ -192,13 +277,7 @@ theorem nodeDriver_deliveredLogLb [package_sem : Assumptions] (n : Loc) (γ : Cl
 theorem isReadyChan_recvAu [package_sem : Assumptions] (n ch : Loc) (γ : Cluster) (N : Namespace)
     (id : w64) (st : NodeDriverState) (Φ : Ready → Bool → IProp GF) : st.handling = none → ⊢
     isReadyChan n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗ ∃ γc, isChan ch γc Ready ∗ (£
-    1 ∗ £ 1 -∗ (▷ ∀ rd, (∃ ce es h L, committedEntriesAt rd.CommittedEntries' st.delivered.length ce
-    ∗ isCommittedLogLb γ (st.delivered ++ ce) ∗ (∃ rs, readStatesPts rd.ReadStates' rs ∗ [∗list] s ∈
-    rs, readStateOk γ N s.RequestCtx' s.Index') ∗ readyRest γ N id rd st ce es h L ∗ nodeDriver n γ
-    N (match L with | none => { storage := st.storage, delivered := st.delivered ++ ce, hardState :=
-    phsNext st.hardState h, handling := some (es, none) } | some l => { storage := st.storage,
-    delivered := strip l.dlv, hardState := phsNext st.hardState h, handling := some (es, some l) }))
-    -∗ Φ rd true) -∗ recvAu γc Ready Φ)
+    1 ∗ £ 1 -∗ (▷ ∀ rd, readyGot n γ N id st rd -∗ Φ rd true) -∗ recvAu γc Ready Φ)
 
 theorem sentMsg_snapshot (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) : st.msg.Type' =
     MsgSnap → sentMsg γ N src st ⊢ ∃ sv, ⌜st.snap = some sv⌝ ∗ snapshotCert γ N (snapTrip sv
@@ -206,6 +285,12 @@ theorem sentMsg_snapshot (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt)
 
 theorem ownCommittedOps_timeless (γ : Cluster) (ops : List LogEntry) : Timeless (ownCommittedOps γ
     ops)
+
+theorem readyRest_commit_mono [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64)
+    (rd : Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L
+    : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) : readyRest γ N id rd st ce
+    es h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗ ⌜uint.nat st.hardState.Commit' ≤
+    uint.nat (phsNext st.hardState h).Commit'⌝
 
 def (sealed) readyFits (γ : Cluster) (_N : Namespace) : IProp GF
 
@@ -218,6 +303,11 @@ theorem readyFits_persistent (γ : Cluster) (N : Namespace) : Persistent (readyF
 
 theorem msgCredits_copy [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (st : MsgSt) :
     γ.dup = true → msgCredits γ N st ⊢ □ msgCredits γ N st
+
+theorem readyRest_facts [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (rd :
+    Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L :
+    Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) : readyRest γ N id rd st ce es
+    h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗ ⌜ReadyRestFacts st ce es h L⌝
 
 theorem nodeSnapLocal_none [package_sem : Assumptions] (γ : Cluster) (id : w64) (h : γ.snapLoc id =
     none) (i : w64) : ⊢ nodeSnapLocal γ id i
@@ -248,18 +338,19 @@ theorem nodeStopped_persistent (n : Loc) (γ : Cluster) (N : Namespace) : Persis
 
 theorem readyRest_fits [go.Semantics] (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st :
     NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
-    : readyFits γ N ∗ readyRest γ N id rd st ce es h L ⊢ readyRest γ N id rd st ce es h L ∗ ⌜∀ (e0 :
-    EntryM), es.head? = some e0 → uint.Z e0.Index' + ↑es.length ≤ 2 ^ 61⌝
+    (ms : List QMsg) (ss : Option (w64 × StateType)) : readyFits γ N ∗ readyRest γ N id rd st ce es
+    h L ms ss ⊢ readyRest γ N id rd st ce es h L ms ss ∗ ⌜∀ (e0 : EntryM), es.head? = some e0 →
+    uint.Z e0.Index' + ↑es.length ≤ 2 ^ 61⌝
 
 theorem readyRest_ceInBatch [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (rd
-    : Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) :
-    readyRest γ N id rd st ce es h none ⊢ ⌜∀ (e0 : EntryM), es.head? = some e0 → ∀ (j : Nat) (e :
-    LogEntry), ce[j]? = some e → uint.nat e0.Index' ≤ st.delivered.length + 1 + j → Option.map
-    LogEntry.ofEntryM es[st.delivered.length + 1 + j - uint.nat e0.Index']? = some e⌝ ∗ readyRest γ
-    N id rd st ce es h none
+    : Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (ms :
+    List QMsg) (ss : Option (w64 × StateType)) : readyRest γ N id rd st ce es h none ms ss ⊢ ⌜∀ (e0
+    : EntryM), es.head? = some e0 → ∀ (j : Nat) (e : LogEntry), ce[j]? = some e → uint.nat e0.Index'
+    ≤ st.delivered.length + 1 + j → Option.map LogEntry.ofEntryM es[st.delivered.length + 1 + j -
+    uint.nat e0.Index']? = some e⌝ ∗ readyRest γ N id rd st ce es h none ms ss
 
-theorem nodeAppliedLb_mono [package_sem : Assumptions] (γ : Cluster) (id : w64) (k k' : Nat) : k' ≤
-    k → nodeAppliedLb γ id k ⊢ nodeAppliedLb γ id k'
+theorem nodeAppliedLb_mono [package_sem : Assumptions] (γ : Cluster) (K : GName) (k k' : Nat) : k' ≤
+    k → nodeAppliedLb γ K k ⊢ nodeAppliedLb γ K k'
 
 theorem nodeErrS_persistent (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp
     GF)) (err : GoInterface) : Persistent (nodeErrS n γ N cd err)
@@ -269,11 +360,13 @@ theorem readCtx_commit_after (γ : Cluster) (N : Namespace) (U : GSet (List w8))
     l0 ∗ □ AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ownCommittedOps γ ops, COMM □ Q ops
     }> ⊢ |==> (ownReadCtxs γ (insert c U) ∗ isReadCtx γ N c Q ∗ readCtxAfter γ N c l0)
 
-def (sealed) snapGiven (γ : Cluster) (id : w64) (k : Nat) : IProp GF
-
 theorem nodeSnapLocal_persistent (γ : Cluster) (id i : w64) : Persistent (nodeSnapLocal γ id i)
 
-def (sealed) nodeAppliedLb (γ : Cluster) (id : w64) (k : Nat) : IProp GF
+def (sealed) nodeAppliedLb (γ : Cluster) (K : GName) (k : Nat) : IProp GF
+
+def readyLeaderMsgs (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) : IProp GF :=
+  iprop(⌜roleAfter st.role ss = StateLeader⌝ -∗ readyMsgs γ N id ms)
 
 theorem stepIn_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc)
     (src : w64) (st : MsgSt) : st.msg.To' = id → sentMsg γ N src st ∗ msgPtsC ml (DFrac.own 1)
@@ -282,6 +375,8 @@ theorem stepIn_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) 
 
 theorem isCommittedLogLb_length [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
     LogEntry) : readyFits γ N ∗ isCommittedLogLb γ l ⊢ ⌜↑l.length + 1 < 2 ^ 64⌝
+
+def (sealed) raftState (γ : Cluster) (id : w64) (S : RaftState) : IProp GF
 
 def (sealed) isCommittedLogLb (γ : Cluster) (l : List LogEntry) : IProp GF
 
@@ -313,6 +408,9 @@ theorem Membership.applyChange_removeAbsent (vs : GSet w64) (cm : ConfChangeM) :
     cm.nodeId ≠ W64 0 → ¬cm.nodeId ∈ vs → (Membership.simple vs).Valid → Membership.applyChange
     (ConfChangeIM.v1 cm) (Membership.simple vs) = some (Membership.simple vs)
 
+theorem nodeCommitLb_persistent (γ : Cluster) (K : GName) (i : Nat) : Persistent (nodeCommitLb γ K
+    i)
+
 theorem committedAtTerm_persistent (γ : Cluster) (N : Namespace) (t c : w64) : Persistent
     (committedAtTerm γ N t c)
 
@@ -321,15 +419,13 @@ theorem readCtx_commit (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : 
     ↑N, ∅ <{ ownCommittedOps γ ops, COMM □ Q ops }> ⊢ |==> (ownReadCtxs γ (insert c U) ∗ isReadCtx γ
     N c Q)
 
-theorem nodeAppliedLb_zero [package_sem : Assumptions] (γ : Cluster) (id : w64) : ⊢ nodeAppliedLb γ
-    id 0
+theorem nodeAppliedLb_zero [package_sem : Assumptions] (γ : Cluster) (K : GName) : ⊢ nodeAppliedLb γ
+    K 0
 
 theorem Membership.applyChange_removeVoter (vs : GSet w64) (cm : ConfChangeM) : cm.type = W32 1 →
     cm.nodeId ≠ W64 0 → cm.nodeId ∈ vs → GMap.delete cm.nodeId vs ≠ ∅ → (Membership.simple vs).Valid
     → Membership.applyChange (ConfChangeIM.v1 cm) (Membership.simple vs) = some (Membership.simple
     (GMap.delete cm.nodeId vs))
-
-theorem snapGiven_timeless (γ : Cluster) (id : w64) (k : Nat) : Timeless (snapGiven γ id k)
 
 theorem sentMsg_persistent (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) : Persistent
     (sentMsg γ N src st)
@@ -373,5 +469,6 @@ def readySnap (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
               (∃ k old,
                   ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
                     storLog st.storage k (DFrac.own 1) old ∗ storEnd st.storage (k + old.length)) ∗
-                snapGiven γ id (uint.nat l.snap.Metadata'.Index') ∗
-                  nodeSnapLocal γ id l.snap.Metadata'.Index' ∗ ⌜↑γ.bootLen < uint.Z l.snap.Metadata'.Index'⌝)
+                nodeAppliedLb γ st.key (uint.nat l.snap.Metadata'.Index') ∗
+                  nodeCommitLb γ st.key (uint.nat l.snap.Metadata'.Index') ∗
+                    nodeSnapLocal γ id l.snap.Metadata'.Index' ∗ ⌜↑γ.bootLen < uint.Z l.snap.Metadata'.Index'⌝)

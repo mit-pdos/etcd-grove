@@ -83,7 +83,7 @@ struct open lets the caller move the old `Progress` objects' resources to the ne
 the call: `ApplyConfChange`'s new `Progress` objects are copies that share the old ones'
 `Inflights` (`ownNewPr_transfer`). (Until 2026-10-13 it took `ownRaftPhys cfg0` sealed and
 `ownConfig`, the non-leader case only: that statement, `spec_nonleader`, had no
-caller and is gone, 2026-10-17; its open form is `newRaft`'s `wp_switchToConfig_follower`.)
+caller and is gone, 2026-10-17; its open form was `newRaft`'s `wp_switchToConfig_follower`, until 2026-11-02, stage II (r): `newRaft` steps through the follower's arm on its raw struct, `wp_switchToConfig_w`.)
 
 **The leader case** (2026-10-13): `id ∈ cfg` (the node stays a voter: removing or demoting the
 leader, and `stepDownOnRemoval`, are not covered), and each new `Match` is `0` or the old one

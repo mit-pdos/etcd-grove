@@ -8,7 +8,8 @@ The ghost state first: raft's cluster of the voters `vs = bootVoters Voters` (`c
 `0`) and the snapshot registry. Then the cluster's struct: the bootstrap `ConfState` (the voters
 appended, frozen read-only), the `Stats` counters (`isStats_alloc`), `c.mu` locked fresh
 (`wp_Mutex_Lock_fresh`: its invariant is due at the `Unlock`). The loop starts each founder as
-`startNew` starts a newcomer, with its `nodeFounder` token; the `Unlock` gives the lock its
+`startNew` starts a newcomer, from its durable state at `RaftState.init` and its vacant id
+(`cluster_alloc`'s); the `Unlock` gives the lock its
 invariant: the founders' replicas and stop tokens, the ids above them fresh.
 -/
 module
@@ -23,7 +24,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.kvreconf.newReplica
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kvreconf.Stats__add
 public import Spec.go_etcd_io.raft.v3.RestartNode
 public import Spec.go_etcd_io.raft.v3.NewMemoryStorage
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.KvrStorageApi
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.StartLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.ClusterLemmas
 
 @[expose] public section
@@ -75,14 +76,16 @@ theorem StartCluster.wp_proof
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   -- the ghost state
-  imod cluster_alloc (GF := GF) kvrRaftN (bootVoters (uint.nat o.Voters')) [] [] true (fun _ => none) ⊤ Hrb
+  imod cluster_alloc (GF := GF) kvrRaftN (bootVoters (uint.nat o.Voters')) [] [] true (fun _ => none) ⊤ (by omega)
     (by intro h; have := congrArg List.length h; rw [bootVoters_length] at this; simp at this; omega)
     (bootVoters_nodup _ (by omega)) (bootVoters_zero _ (by omega))
     (by rw [bootVoters_length]; omega) (fun h => absurd rfl h)
-    $$ [] with ⟨%γ, ⟨%Hdup, %Hsl, -⟩, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hjf⟩
+    $$ [] with ⟨%γ, ⟨%Hdup, %Hsl, %Hbl⟩, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hfounders, Hjoin⟩
   · rw [if_pos rfl]; iempintro
-  isimp only [↓reduceIte] at Hjf
-  icases Hjf with ⟨Hjoin, Hfounders⟩
+  -- (2026-11-02) `RestartNode`'s `readyFits`: no bootstrap log, the receipts' bound
+  ihave #Hfits : readyFits (GF := GF) γ kvrRaftN $$ []
+  · iapply readyFits_intro (GF := GF) γ kvrRaftN (by rw [Hbl]; simp; omega)
+  isimp only [↓reduceIte] at Hjoin
   imod confPolicy_alloc γ kvrConfN kvrRule ⊤ $$ Hdec with #Hpol
   imod mono_nat_own_alloc (GF := GF) (uint.nat o.Voters' + 1) with ⟨%γn, HnidA, #Hlb⟩
   imod ghostVar_alloc (GF := GF) false with ⟨%γs, Hstp⟩
@@ -189,7 +192,7 @@ theorem StartCluster.wp_proof
     simp only [named]
     iframe #
     ipureintro
-    exact ⟨Hdup, Hsl, ⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩
+    exact ⟨Hdup, Hsl, Hbl, ⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩
   try wp_auto
   have HVv : uint.nat o.Voters' ≤ 9 := by omega
   have Hvnd : (bootVoters (uint.nat o.Voters')).Nodup := bootVoters_nodup _ (by omega)
@@ -200,7 +203,8 @@ theorem StartCluster.wp_proof
   icases (BigSepL.bigSepL_append (Φ := fun _ id => iprop(id ↪[γr.rseq] W64 0))).1 $$ Hrseqs
     with ⟨Hrs1, Hrseq⟩
   ihave Htodo := (BigSepL.bigSepL_sep_eqv
-    (Φ := fun _ id => nodeFounder (GF := GF) γr.cluster kvrRaftN (bootVoters (uint.nat o.Voters')) id)
+    (Φ := fun _ id => iprop(raftState (GF := GF) γr.cluster id RaftState.init ∗
+      nodeVacant γr.cluster id))
     (Ψ := fun _ id => (id ↪[γr.rseq] W64 0 : IProp GF)) (l := bootVoters (uint.nat o.Voters'))).2
     $$ [Hfounders Hrs1]
   · iframe Hfounders Hrs1
@@ -211,7 +215,8 @@ theorem StartCluster.wp_proof
       "Hreps" ∷ ([∗map] id ↦ r ∈ R, isRep γr (bootVoters (uint.nat o.Voters')) id r) ∗
       "Htoks" ∷ ([∗map] _id ↦ r ∈ R, repStop γr (bootVoters (uint.nat o.Voters')) r) ∗
       "Htodo" ∷ ([∗list] id ∈ (bootVoters (uint.nat o.Voters')).drop (uint.nat k - 1),
-        nodeFounder γr.cluster kvrRaftN (bootVoters (uint.nat o.Voters')) id ∗ id ↪[γr.rseq] W64 0))
+        (raftState γr.cluster id RaftState.init ∗ nodeVacant γr.cluster id) ∗
+          id ↪[γr.rseq] W64 0))
     $$ [id HR Htodo]
   · iexists W64 1, ∅
     iframe id HR
@@ -230,7 +235,7 @@ theorem StartCluster.wp_proof
     have Hget : (bootVoters (uint.nat o.Voters'))[uint.nat k - 1]? = some k := by
       rw [bootVoters_getElem _ _ (by omega)]; congr 1; word
     rw [life_drop_cons _ _ _ Hget, show uint.nat k - 1 + 1 = uint.nat k from by omega]
-    icases Htodo with ⟨⟨Hfd, Hseq⟩, Htodo⟩
+    icases Htodo with ⟨⟨⟨HrS, Hvac⟩, Hseq⟩, Htodo⟩
     try wp_auto
     wp_apply wp_NewMemoryStorage $$ [$Hraft] as %ms %γs' ⟨#Hml, #Hmlog, Hmend, Hmsnap, Hmeta, Hfresh⟩
     try wp_auto
@@ -240,29 +245,39 @@ theorem StartCluster.wp_proof
     wp_apply wp_config γr _ cl k «$r0_ptr» Hnid0 (by word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
     obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp⟩ := Hcfg
     ihave Hboot := kvr_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
-      wp_Entries «$r0_ptr» ms «$v3_ptr» γs' _ (bootCS (bootVoters (uint.nat o.Voters'))) γr.cluster k
-      $$ Hpkg Hsrec Hsboot Hml Hfresh Hmeta Hmlog Hmend
+      wp_Entries «$r0_ptr» ms «$v3_ptr» γs' _ (bootCS (bootVoters (uint.nat o.Voters'))) γr.cluster
+      (fun K => iprop(memStorMeta ms γs' (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
+        memStorInvP ms γs' (kvrJ γr.cluster K)))
+      $$ Hpkg Hsrec Hsboot Hml Hfresh Hmeta Hmlog Hmend []
+    · iintro %K Hm Hi; iframe Hm Hi
+    ihave Hau := kvr_restartAu γr.cluster kvrRaftN k kvrBootContents kvrBoot_holds $$ [HrS]
+    · inext; iexact HrS
     ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
-    wp_apply (wp_RestartNode γr.cluster kvrRaftN (bootVoters (uint.nat o.Voters')) cp cv qLogger
-        ⟨go.GoType.PointerType rStorageTy, #«$r0_ptr»⟩ (HardStateM.mk (W64 0) (W64 0) (W64 0))
-        (bootCS (bootVoters (uint.nat o.Voters')))
-        iprop(memStorMeta ms γs' (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
-          memStorInvP ms γs' (kvrJ γr.cluster k)) HcV HcLg HcSt HcM HcDP HcRO
-        HcDC HcSz HcAS HcAp ⟨rfl, rfl, rfl⟩ rfl rfl rfl rfl rfl)
-      $$ [$Hraft $Hcv $Hlogger Hboot Hfd]
-      as %nd ⟨%n, %Hnd, #HisNode, Hdrv, Hncfg, Hrun, Hmeta, #HmsInv⟩
-    · have Hiface : kvrStorIface «$r0_ptr» =
-          GoInterface.ok ⟨go.GoType.PointerType rStorageTy, #«$r0_ptr»⟩ := rfl
-      rw [HcID, ← Hiface]
-      isplitl [Hboot]
-      · iexact Hboot
-      ileft
-      iexact Hfd
-    subst Hnd
-    ihave #HisNode' : isNode n γr.cluster kvrRaftN k $$ []
-    · rw [← HcID]; iexact HisNode
     have Hiface : kvrStorIface «$r0_ptr» =
         GoInterface.ok ⟨go.GoType.PointerType rStorageTy, #«$r0_ptr»⟩ := rfl
+    wp_apply (wp_RestartNode γr.cluster kvrRaftN cp cv qLogger
+        ⟨go.GoType.PointerType rStorageTy, #«$r0_ptr»⟩ kvrBootContents
+        (bootCS (bootVoters (uint.nat o.Voters'))) 0
+        (Membership.simple (GMap.listToSet (bootVoters (uint.nat o.Voters'))))
+        (fun S => iprop(raftState γr.cluster k S ∗ ⌜S = RaftState.init⌝))
+        (fun K => iprop(memStorMeta ms γs' (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
+          memStorInvP ms γs' (kvrJ γr.cluster K)))
+        HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (Or.inl (by rw [HcAp]; rfl))
+        (by rw [HcAp]; simp [StorContents.b]) (by simp [StorContents.commit])
+        (by rw [Hbl]; simp [StorContents.commit]) (bootCS_is _ Hvnd))
+      $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
+      as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, ⟨HrS, %HS⟩, Hmeta,
+        #HmsInv⟩
+    · have hA : uint.nat cv.Applied' = 0 := by rw [HcAp]; rfl
+      rw [HcID, ← Hiface, hA]
+      iframe Hboot Hvac Hiscl Hca0 Hfits
+      iExactEq Hau; rfl
+    subst Hnd
+    have Hl0 : l = [] := List.eq_nil_of_length_eq_zero (by rw [Hlen, HcAp]; rfl)
+    rw [kvr_startDriver _ l K S Hl0 HS] at *
+    subst HS
+    ihave #HisNode' : isNode n γr.cluster kvrRaftN k $$ []
+    · rw [← HcID]; iexact HisNode
     rw [← Hiface]
     try wp_auto
     wp_apply wp_tick γr _ cl $$ [$Hc] as %tk %Htk
@@ -276,8 +291,8 @@ theorem StartCluster.wp_proof
     have Hvl : ((bootVoters (uint.nat o.Voters')).length : Int) < 2 ^ 61 := by
       rw [bootVoters_length]; omega
     wp_apply (wp_newReplica γr _ k n «$r0_ptr» (cl.[RCluster, go!"Stats"]) «$v3_ptr» tk f ms γs' _
-        Htk Hvnd Hvl (bootCS_is _ Hvnd))
-      $$ [$Hpkg $Hcci $Hcl $Hstats $HisNode' $Hdrv $Hrun $Hncfg $Hsrec $HmsInv $Hmeta $Hmsnap
+        K Htk Hvnd Hvl (bootCS_is _ Hvnd))
+      $$ [$Hpkg $Hcci $Hcl $Hstats $HisNode' $Hdrv $HrS $Hrun $Hncfg $Hsrec $HmsInv $Hmeta $Hmsnap
         $HbootCS $Hf $Hseq] as %r ⟨#Hr, Hrs⟩
     have HRn : R !! k = none := by
       cases h : R !! k with

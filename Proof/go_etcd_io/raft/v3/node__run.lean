@@ -13,7 +13,15 @@ whole (`confstateP`); a `Ready`'s messages are handed out (`QMsg`, D8).
 `headRest_snapIn`); a `Ready` with a snapshot (the loan `L`): `readyc`'s payload `readySnapData`
 (the storage lent, the snapshot's certificate), `run`'s record with the loan, and at `advancec` the
 loan's receipt (`advRet`'s `loanRet`) for `RawNode.Advance`, the committed log handed out the
-loan's (`advRS`). -/
+loan's (`advRS`).
+
+(2026-11-01, durability stage II (n)) Under the durability design: `run`'s share of the durable
+state (`durRest`: idle, its half of `dur`, `bw` whole and the generation's free queue; busy, its half
+of `bw`); at the `readyc` send, inside the send's update, the cut (`ownRawNodeReady_handout`: the
+batch queued in the generation, the messages' facts behind its fragments) and the batch's
+`readyCut`; at `advancec` the driver's halves back (`advRet`), the fragments for `RawNode.Advance`;
+at the stop, `run` answers with its share of the generation and its protocol state (`stopAns`),
+from which `Stop` gives the id's slot back (`raft_stop`). -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvAdvance
@@ -101,7 +109,8 @@ theorem node.run.wp_proof
   ihave #Hnode' := Hnode
   open_node Hnode'
   unfold runPre
-  icases Hpre with ⟨%nv0, %rs, %x, #Hn0, Hrn, %Hrs, Hdlv, Hr1, Hr2, #Hlb, Hcfg, Hpend, Hlive⟩
+  icases Hpre with ⟨%nv0, %rs, %x, #Hn0, Hrn, %Hrs, Hdlv, Hr1, Hr2, #Hlb, Hcfg, Hpend, Hlive, Hdur,
+    Hbw, Hfree⟩
   icombine Hn Hn0 gives %Heq
   subst Heq
   -- (D22 S-d4) nothing queued, so nothing lent
@@ -113,7 +122,7 @@ theorem node.run.wp_proof
       "propc" ∷ propc_ptr ↦ pc ∗ "readyc" ∷ readyc_ptr ↦ rc ∗ "advancec" ∷ advancec_ptr ↦ ac ∗
       "rd" ∷ rd_ptr ↦ rdv ∗ "lead" ∷ lead_ptr ↦ ld ∗
       "%Hpc" ∷ ⌜pc = chan.nil ∨ pc = nv.propc'⌝ ∗ "Hhead" ∷ runHead γ id nv ac rc rdv)
-    $$ [propc readyc advancec rd lead Hrn Hdlv Hr1 Hr2 Hcfg]
+    $$ [propc readyc advancec rd lead Hrn Hdlv Hr1 Hr2 Hcfg Hdur Hbw Hfree]
   · iexists zero_val GoChan, zero_val GoChan, zero_val GoChan, zero_val Ready, _
     simp only [named]
     iframe propc readyc advancec rd
@@ -136,6 +145,9 @@ theorem node.run.wp_proof
     · unfold rofFull
       iexists x
       iframe Hr1 Hr2
+    isplitl [Hdur Hbw Hfree]
+    · iapply durRest_false_intro γ rs $$ Hdur Hbw
+      rw [Hgid]; iexact Hfree
     ileft; ipureintro; rfl
   ihave %Hadv_nn := isChan_not_null $$ [Hadvancec]
   · iapply isAdvChan_isChan $$ Hadvancec
@@ -151,7 +163,7 @@ theorem node.run.wp_proof
       iunfold runHead at Hhead
       icases Hhead with ⟨%rs, Hrn, Hrest⟩
       icases headRest_nil γ nv rs rc rdv Hadv_nn $$ Hrest with
-        ⟨#Hlb, %Hrs, Hdlv, Hrof, Hcfg, Hrc⟩
+        ⟨#Hlb, %Hrs, Hdlv, Hrof, Hcfg, Hdr, Hrc⟩
       obtain ⟨Hst, Hsteps, Hunp, Hsl⟩ := Hrs
       wp_apply wp_RawNode_HasReady γ.raft nv.rn' id rs $$ [$Hrn] as %b Hb
       icases Hb with (⟨%Hb, Hrn⟩ | ⟨%Hb, Hrn⟩) <;> subst Hb
@@ -168,7 +180,7 @@ theorem node.run.wp_proof
         isplitr
         · ipureintro; rfl
         iexists rs
-        iframe Hlb Hdlv Hrof Hcfg
+        iframe Hlb Hdlv Hrof Hcfg Hdr
         isplitr
         · ipureintro; exact ⟨Hst, Hsteps, Hunp, Hsl⟩
         iright; ileft
@@ -177,8 +189,7 @@ theorem node.run.wp_proof
         iexists ce, es, ms, L
         iframe Hrn
         unfold freshOk
-        rw [Hgid]
-        iframe Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hmsgs_ok Hsnapz
+        iframe Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hsnapz
         isplitr
         · iexists sts
           iframe Hrs Hrs_ok
@@ -195,7 +206,7 @@ theorem node.run.wp_proof
         isplitr
         · ipureintro; rfl
         iexists rs
-        iframe Hlb Hdlv Hrof Hcfg
+        iframe Hlb Hdlv Hrof Hcfg Hdr
         isplitr
         · ipureintro; exact ⟨Hst, Hsteps, Hunp, Hsl⟩
         icases Hrc with (%Hrc | ⟨%Hrc, Hstale⟩)
@@ -849,7 +860,7 @@ theorem node.run.wp_proof
     isplitr
     · iapply isHandshake_isChan $$ Hreadyc
     icases runMid_ready γ id nv ac rdv' Hrdy_nn Hadv_nn $$ Hmid with
-      ⟨%Hac, %rs, #Hlb', %Hrs, Hdlv, Hrof, Hcfg, Hst⟩
+      ⟨%Hac, %rs, #Hlb', %Hrs, Hdlv, Hrof, Hcfg, Hdr, Hst⟩
     subst Hac
     obtain ⟨Hstor, Hsteps, Hunp, Hsl0⟩ := Hrs
     -- (D22 S-d4) what `runCfg` says of snapshots
@@ -860,7 +871,6 @@ theorem node.run.wp_proof
         entsRO rdv'.CommittedEntries' ce ∗ isCommitted γ.raft (rs.delivered ++ ce) ∗
         entsRO rdv'.Entries' es ∗ rdv'.Messages' ↦* ms.map QMsg.loc ∗
         ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
-        ([∗list] q ∈ ms, isRaftMsg γ.raft γ.id q.st) ∗
         (∃ sts : List ReadStateM, readStatesPts rdv'.ReadStates' sts ∗
           [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
         (∃ h : HardStateM, hsOpt rdv'.HardState' h ∗
@@ -870,10 +880,10 @@ theorem node.run.wp_proof
       $$ [Hst]
     · icases Hst with (⟨%ce, %es, %ms, %L, Hrn, Hf⟩ | ⟨Hrn, Hstale⟩)
       · iunfold freshOk at Hf
-        icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, -, Hown, #Hmsgs_ok, #Hrsts, #Hhd,
+        icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, -, Hown, #Hrsts, #Hhd,
           Hsnz, %Hfacts⟩
         iexists ce, es, ms, L
-        iframe Hrn Hce Hcommitted Hents Hmsgs Hown Hmsgs_ok Hrsts Hhd Hsnz
+        iframe Hrn Hce Hcommitted Hents Hmsgs Hown Hrsts Hhd Hsnz
         ipureintro; exact Hfacts
       · icases ownRawNodeIdle_facts γ.raft nv.rn' id rs Hsl0 $$ Hrn with ⟨%Hidf, Hrn⟩
         iunfold staleOk at Hstale
@@ -881,7 +891,7 @@ theorem node.run.wp_proof
           ⟨%ce, %es, %k, %hrd, #Hrdsoft, #Hrdh, #Hhsw, #Hce, Hce_cap, #Hcommitted, #Hents, #Hrsts,
             %Hsf⟩
         icases Hrsts with ⟨%sts, #Hrs, #Hrs_ok⟩
-        obtain ⟨Hrdz', Hes, Hshape, Hk, Hce_ok⟩ := Hsf
+        obtain ⟨Hrdz', Hes, Hshape, Hk, Hce_ok, Hhlb, Hphl⟩ := Hsf
         -- (D22 S-d4) no snapshot: the node is idle (`unst` off)
         have Hrdz : rdv'.Snapshot' = null := by
           by_cases h : rdv'.Snapshot' = null
@@ -900,15 +910,12 @@ theorem node.run.wp_proof
         -- (D22l) its hard state's witness, for `prevHardSt`
         ihave #Hrdw := phsWit_of_hsWit_next γ.raft rs.phs hrd _ $$ Hhsw
         ihave Hrn := ownRawNodeIdle_ready γ.raft nv.rn' id rs rdv' ce sts hrd Hsteps Hunp Hrdz
-          Hce_ok $$ Hrdsoft Hrdh Hrdw Hce Hce_cap Hents Hcommitted Hrs Hrn
+          Hce_ok Hhlb Hphl $$ Hrdsoft Hrdh Hrdw Hce Hce_cap Hents Hcommitted Hrs Hrn
         iexists ce, [], [], none
         iframe Hrn Hce Hcommitted Hents
         isplitl []
         · rw [List.map_nil]
           iapply ownSlice_of_shape (V := Loc) rdv'.Messages' (DFrac.own 1) Hshape
-        isplitl []
-        · iapply BigSepL.bigSepL_nil.2
-          iempintro
         isplitl []
         · iapply BigSepL.bigSepL_nil.2
           iempintro
@@ -923,12 +930,24 @@ theorem node.run.wp_proof
         · simp only [rdSnapOut]; ipureintro; exact Hrdz
         ipureintro; exact ⟨by simp, fun _ => rfl⟩
     icases Hg with
-      ⟨%ce, %es, %ms, %L, Hrn, #Hce, #Hcommitted, #Hents, Hmsgs, Hown, #Hmsgs_ok, #Hrsts,
+      ⟨%ce, %es, %ms, %L, Hrn, #Hce, #Hcommitted, #Hents, Hmsgs, Hown, #Hrsts,
         ⟨%h, #Hhh, #Hhw⟩, Hsnz, %Hfacts⟩
     icases rdSnapOut_pure γ.raft rs rdv' ce es L $$ Hsnz with ⟨%HLo, Hsnz⟩
     -- (raft-final phase 2) the batch's indices, and a snapshot's certificate (a `⊤` update first)
     icases ownRawNodeReady_batch γ.raft nv.rn' id rs rdv' ce es ms false L $$ Hrn with ⟨%Hbatch, Hrn⟩
     icases runCfg_sn γ rs $$ Hcfg with ⟨%Hsnγ, Hcfg⟩
+    -- (2026-11-01, durability stage II (n)) the batch's entered term, within the budget
+    icases (persistent_entails_left (ownRawNodeReady_term_tc γ.raft nv.rn' id rs rdv' ce es
+      ms false L h)) $$ [$Hhh $Hrn] with ⟨⟨-, Hrn⟩, %Htc⟩
+    -- (2026-11-01, durability stage II (n)) the cut's resources: `run`'s share of the generation,
+    -- its half of `dur`, `bw`, the generation's free queue
+    iunfold nodeLiveRaw at Hlive
+    icases Hlive with ⟨Hlv, Hsl⟩
+    icases durRest_false_open γ rs $$ Hdr with ⟨Hdur, ⟨%Wb, Hbw⟩, Hfree⟩
+    ihave Hsl : slotLive γ.raft id (1 : Qp).half γ.gen $$ [Hsl]
+    · rw [← Hgid]; iexact Hsl
+    ihave Hfree : slotFree γ.raft id γ.gen $$ [Hfree]
+    · rw [← Hgid]; iexact Hfree
     iapply sendAu_fupd
     ihave Hcx : iprop(|={⊤}=> (□ ∀ l : SnapLoan, ⌜L = some l⌝ -∗
         raftSnapCertD γ.raft (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) ∗
@@ -941,13 +960,9 @@ theorem node.run.wp_proof
           with ⟨#Hc, Hrn⟩
         imodintro; iframe Hrn; imodintro; iintro %l %h; cases h; iexact Hc
     imod Hcx with ⟨#Hcert, Hrn⟩
-    iapply handshake_send_au_upd (t := Ready.ty) γ.readyc nv.readyc' rdv' (readyP γ) iprop(True) _
-      $$ [$Hlc1 $Hlc2 $Hlc3] Hreadyc
     -- (2026-10-16, stage R7a) the `Ready`'s soft state, read-only for the application
     icases ownRawNodeReady_softStateRO γ.raft nv.rn' id rs rdv' ce es ms false L $$ Hrn
       with ⟨#Hss, Hrn⟩
-    -- the append right goes with the `Ready` (D22 S-d4: with a snapshot the storage itself and the
-    -- snapshot's certificate), and `rof` records it with its loan
     -- (2026-10-26, D22 J2, R-loc) a snapshot handed out is local to the node
     ihave #Hlloc : iprop(□ ∀ l : SnapLoan, ⌜L = some l⌝ -∗
         snapLocal γ.raft id l.snap.Metadata'.Index' ∗
@@ -969,8 +984,12 @@ theorem node.run.wp_proof
     -- (2026-10-28, the decision switch) the loan's decisions, for the driver's `Advance`
     icases ownRawNodeReady_loanDec γ.raft nv.rn' id rs rdv' ce es ms false L $$ Hrn
       with ⟨#Hld, Hrn⟩
-    imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms L $$ Hrn
-      with ⟨Hrn, Happ, #Hcef, #Hdk, Hcr, Htk, #Hri⟩
+    -- (2026-11-01, durability stage II (k)/(n)) the hand-out and the cut, inside the send's update
+    imod ownRawNodeReady_handout ⊤ γ.raft nv.rn' id rs rdv' ce es ms L (1 : Qp).half γ.gen h
+      CoPset.subseteq_top $$ Hhh Hsl Hfree Hrn
+      with ⟨%W, %ss, Hrn, Happ, #Hcef, #Hdk, Hcr, Htk, #Hri, Hsl, Hpb, #Hss1, %Hssn1, Hmw, #Hlead, %Hrf⟩
+    iapply handshake_send_au_upd (t := Ready.ty) γ.readyc nv.readyc' rdv' (readyP γ) iprop(True) _
+      $$ [$Hlc1 $Hlc2 $Hlc3] Hreadyc
     -- (2026-10-15, stage N) the committed log handed out grows, a lower bound for the driver;
     -- (D22 S-d4) with a snapshot, to the committed log up to it; (U8 v2) with raft's certified
     -- terms of it
@@ -990,61 +1009,84 @@ theorem node.run.wp_proof
     icases Hrof with ⟨%x, Hr1, Hr2⟩
     imod dghostVar_update_halves (rs.delivered, ce, es, phsNext rs.phs h, L) γ.rof x x $$ Hr1 Hr2
       with ⟨Hr1, Hr2⟩
-    ihave Hmt := readyMsgs_termLB γ rs.tc ms Hfacts.1 $$ Hown Hmsgs_ok Hlb'
+    -- (2026-11-01, durability stage II (n)) `bw` at the batch's maps, the durable state and role it
+    -- enters: a half with the batch (`readyCut`), a half kept
+    imod dghostVar_update (W, (readyDurable rs.dur (phsNext rs.phs h) L es, roleAfter rs.role ss))
+      γ.bw Wb $$ Hbw with Hbw
+    icases dghostVar_halves γ.bw _ $$ Hbw with ⟨Hbw1, Hbw2⟩
+    ihave Hmt := readyMsgs_termLB γ rs.tc ms Hfacts.1 $$ Hown Hlb'
     imodintro
-    isplitl [Hdlv Hr1 Happ Hmsgs Hmt Hcr Htk Hsnz]
+    isplitl [Hdlv Hr1 Happ Hmsgs Hmt Hcr Htk Hsnz Hdur Hbw1 Hpb Hmw]
     · unfold readyP
       iexists rs.delivered, ce, es, ms, rs.phs, phsNext rs.phs h, L
       iframe Hdlv Hr1 Hdlb Hdlk Hld
-      cases L with
-      | none =>
-        simp only [readyDataL, readyData, rdSnapOut]
-        icases Hsnz with %Hrdz
-        ihave #Hhw' : hsWit γ.raft (phsNext rs.phs h) (rs.delivered ++ ce).length $$ []
-        · iExactEq Hhw; rfl
-        iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw' Hss Hri
-        isplitl [Happ]
-        · rw [← Hstor, ← Hsnγ]
+      isplitr [Hdur Hbw1 Hpb Hmw]
+      · cases L with
+        | none =>
+          simp only [readyDataL, readyData, rdSnapOut]
+          icases Hsnz with %Hrdz
+          ihave #Hhw' : hsWit γ.raft (phsNext rs.phs h) (rs.delivered ++ ce).length $$ []
+          · iExactEq Hhw; rfl
+          iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw' Hss Hri
+          isplitl [Happ]
+          · rw [← Hstor, ← Hsnγ]
+            iexact Happ
+          isplitr
+          · icases Hcef with (%Hn | #Hcf)
+            · exact absurd rfl Hn
+            rw [← Hstor]; iexact Hcf
+          isplitr
+          · iexists h; iframe Hhh; ipureintro; rfl
+          ipureintro; exact ⟨Hrdz, Hbatch⟩
+        | some l =>
+          simp only [readyDataL, readySnapData, rdSnapOut]
+          icases Hsnz with ⟨Hhalf, #Hdc, %Hlo⟩
+          ihave ⟨#Hll, %Hbl⟩ : iprop(snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
+              ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) $$ []
+          · rw [Hgid]; iapply Hlloc $$ %l %rfl
+          ihave #Hcl : raftSnapCertD γ.raft (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) $$ []
+          · iapply Hcert $$ %l %rfl
+          ihave #Hhw' : hsWit γ.raft (phsNext rs.phs h) l.dlv.length $$ []
+          · iExactEq Hhw; rfl
+          iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw' Hss Hri Hhalf Hdc Hll Hcl
+          isplitr
+          · iexists h; iframe Hhh; ipureintro; rfl
+          isplitr
+          · ipureintro; exact Hbl
+          isplitr
+          · ipureintro; exact Hllast l rfl
+          isplitr
+          · ipureintro; exact Hlo
+          rw [← Hstor, ← Hsnγ]
           iexact Happ
-        isplitr
-        · icases Hcef with (%Hn | #Hcf)
-          · exact absurd rfl Hn
-          rw [← Hstor]; iexact Hcf
-        isplitr
-        · iexists h; iframe Hhh; ipureintro; rfl
-        ipureintro; exact ⟨Hrdz, Hbatch⟩
-      | some l =>
-        simp only [readyDataL, readySnapData, rdSnapOut]
-        icases Hsnz with ⟨Hhalf, #Hdc, %Hlo⟩
-        ihave ⟨#Hll, %Hbl⟩ : iprop(snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
-            ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝) $$ []
-        · rw [Hgid]; iapply Hlloc $$ %l %rfl
-        ihave #Hcl : raftSnapCertD γ.raft (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) $$ []
-        · iapply Hcert $$ %l %rfl
-        ihave #Hhw' : hsWit γ.raft (phsNext rs.phs h) l.dlv.length $$ []
-        · iExactEq Hhw; rfl
-        iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw' Hss Hri Hhalf Hdc Hll Hcl
-        isplitr
-        · iexists h; iframe Hhh; ipureintro; rfl
-        isplitr
-        · ipureintro; exact Hbl
-        isplitr
-        · ipureintro; exact Hllast l rfl
-        isplitr
-        · ipureintro; exact Hlo
-        rw [← Hstor, ← Hsnγ]
-        iexact Happ
+      -- the batch, cut
+      unfold readyCut
+      iexists (rs.dur, rs.role), readyDurable rs.dur (phsNext rs.phs h) L es, W, ss
+      rw [Hgid]
+      iframe Hdur Hbw1 Hpb Hmw Hss1 Hlead
+      isplitr
+      · ipureintro; rfl
+      -- (2026-11-02, durability stage II (q)) the hand-out's `ReadyFacts`
+      isplitr
+      · iapply termLB_le γ.bud rs.tc _ (by rw [readyDurable_term]; exact Htc) $$ Hlb'
+      ipureintro; exact Hrf
     try imodintro
     inext
     iintro -
     wp_auto
-    wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id rs rdv' ce es ms h L $$ [$Hrn $Hhh]
-      as %steps Hrn
+    wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id { rs with bw := W } rdv' ce es ms h L
+      $$ [$Hrn $Hhh] as %steps %ss2 ⟨#Hss2, %Hssn2, Hrn⟩
+    ihave %Hsse := softStateIs_agree rdv'.SoftState' ss ss2 Hssn1 Hssn2 $$ [$Hss1 $Hss2]
+    subst Hsse
     icases ownRawNode_async γ.raft nv.rn' id _ $$ Hrn with ⟨%rnv, Hrnown, %Hasync, Hrnback⟩
     wp_auto
     rw [Hasync]
     wp_auto
     ihave Hrn := Hrnback $$ Hrnown
+    ihave Hlive : nodeLiveRaw γ 1 $$ [Hlv Hsl]
+    · iunfold nodeLiveRaw
+      iframe Hlv
+      rw [Hgid]; iexact Hsl
     wp_for_post
     iframe HΦ n r Hpend Hlive
     iexists pc', chan.nil, nv.advancec', rdv', ld'
@@ -1052,9 +1094,10 @@ theorem node.run.wp_proof
     isplitr
     · ipureintro; exact Hpc'
     unfold runHead
-    iexists { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
+    iexists { rs with bw := W, delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
                       outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false,
-                      slent := L }
+                      slent := L, dur := readyDurable rs.dur (phsNext rs.phs h) L es,
+                      role := roleAfter rs.role ss }
     iframe Hrn
     unfold headRest
     iframe Hlb'
@@ -1065,6 +1108,9 @@ theorem node.run.wp_proof
     iright
     isplitr
     · ipureintro; exact ⟨rfl, rfl, rfl⟩
+    isplitl [Hbw2]
+    · iapply durRest_true_intro
+      iexact Hbw2
     iexists rs.delivered, ce
     iframe Hr2
     ipureintro; rfl
@@ -1083,39 +1129,48 @@ theorem node.run.wp_proof
     isplitr
     · iapply isAdvChan_isChan $$ Hadvancec
     icases runMid_busy γ id nv rc' rdv' Hadv_nn $$ Hmid with
-      ⟨%rs, %d, %ce, Hrn, #Hlb', Hcfg, %Hrs, Hrof⟩
+      ⟨%rs, %d, %ce, Hrn, #Hlb', Hcfg, %Hrs, Hrof, Hdr⟩
     obtain ⟨Hstor, Hrc, Hunst, Hdel⟩ := Hrs
     subst Hrc
     icases runCfg_sn γ rs $$ Hcfg with ⟨%Hsnγ, Hcfg⟩
     -- (D19i part 1) the rendezvous raises the floor (`advInv`): `run`'s node goes in, comes
     -- back appended and raised; (D22 S-d4) or, after a snapshot `Ready`, with the loan's receipt
-    iapply adv_recv_au γ nv.rn' id nv.advancec' _ $$ [$Hlc1 $Hlc2] Hadvancec [Hrn Hcfg Hrof]
+    iapply adv_recv_au γ nv.rn' id nv.advancec' _ $$ [$Hlc1 $Hlc2] Hadvancec [Hrn Hcfg Hrof Hdr]
     · iunfold advDep
       iexists rs, d, ce
       iframe Hrn Hlb' Hcfg Hrof
+      isplitl [Hdr]
+      · iapply durRest_true_open $$ Hdr
       ipureintro; exact ⟨⟨Hstor, Hsnγ⟩, Hunst, Hdel⟩
     inext
     iintro Hret
     iunfold advRet at Hret
-    icases Hret with ⟨%rs1, %ca_d, Hrn, #Hlb1, Hcfg, Hdlv, Hrofs, #Hcamlb, Hlr, %Hr1, #HA⟩
+    icases Hret with ⟨%rs1, %ca_d, Hrn, #Hlb1, Hcfg, Hdlv, Hrofs, #Hcamlb, Hlr, Hdur, Hbw, #Hfr,
+      Hfree, %Hr1, #HA⟩
     obtain ⟨Hstor1, Hunst1, Hunp1⟩ := Hr1
     wp_auto
     -- (2026-10-15, stage N) A1, from the driver's; (2026-10-28, stage U3d) dynamically after a
     -- snapshot `Ready`, its `ConfState` no auto-leave one (the driver's, `advanceP`)
     icases runCfgR_a1 γ rs1 ca_d $$ Hcfg Hcamlb HA with ⟨#HA1, Hcfg⟩
+    -- (2026-11-01, durability stage II (k)/(n)) the fragments *enter* minted, for `Advance`
+    ihave #Hfr' : durFrags γ.raft id rs1.bw $$ []
+    · rw [← Hgid]; iexact Hfr
     wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1
-      $$ [$Hrn $Hlr $HA1] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
+      $$ [$Hrn $Hlr $HA1 $Hfr'] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
     ihave Hcfg := runCfg_advance γ rs1 t ca Hca $$ HA1 Hcfg
     -- (D22 S-d4) the node after `Advance` (`advRS`): nothing queued, unpersisted or lent, the
     -- committed log handed out the driver's
     have Hadv : (advRS rs1 t ca).steps = [] ∧ (advRS rs1 t ca).unpersisted = [] ∧
         (advRS rs1 t ca).slent = none ∧ (advRS rs1 t ca).storage = rs1.storage ∧
         (advRS rs1 t ca).tc = rs1.tc ∧ (advRS rs1 t ca).delivered = rsDlv rs1 ∧
-        (advRS rs1 t ca).phs = rs1.phs := by
+        (advRS rs1 t ca).phs = rs1.phs ∧ (advRS rs1 t ca).dur = rs1.dur ∧
+        (advRS rs1 t ca).role = rs1.role ∧ (advRS rs1 t ca).bw = rs1.bw := by
       cases hs : rs1.slent with
       | none => simp [advRS, rsDlv, hs, Hunp1 hs]
       | some l => simp [advRS, rsDlv, hs]
-    obtain ⟨Ha1, Ha2, Ha3, Ha4, Ha5, Ha6, Ha7⟩ := Hadv
+    obtain ⟨Ha1, Ha2, Ha3, Ha4, Ha5, Ha6, Ha7, Ha8, Ha9, Ha10⟩ := Hadv
+    ihave Hdr := durRest_false_intro γ rs1 $$ Hdur Hbw Hfree
+    ihave Hdr := durRest_congr γ (rs := rs1) (rs' := advRS rs1 t ca) false Ha8 Ha9 Ha10 $$ Hdr
     wp_for_post
     iframe HΦ n r Hpend Hlive
     iexists pc', chan.nil, chan.nil, zero_val Ready, ld'
@@ -1133,6 +1188,7 @@ theorem node.run.wp_proof
     ileft
     isplitr
     · ipureintro; exact ⟨rfl, Ha1, Ha2, Ha3⟩
+    iframe Hdr
     rw [Ha6, Ha7]
     iframe Hdlv
     isplitl [Hrofs]
@@ -1183,7 +1239,9 @@ theorem node.run.wp_proof
     iexists rs
     iframe Hrn Hrest
   -- `<-n.stop` (2026-10-29, stage U9a): the client's half of `live`; the node stopped,
-  -- `close(n.done)` and return
+  -- `close(n.done)` and return. (2026-11-01, durability stage II (n), the stop's option (c)) `run`
+  -- answers with its share of the generation and its protocol state (`stopAns`), with which `Stop`
+  -- gives the id's slot back (`raft_stop`)
   iapply BigAndL.bigAndL_cons.2
   isplit
   · ileft
@@ -1193,12 +1251,19 @@ theorem node.run.wp_proof
     · ipureintro; rfl
     isplitr
     · iapply isHandshake_isChan $$ Hstop
-    iapply handshake_receive_au γ.stop nv.stop' _ iprop(True) _ $$ [$Hlc1 $Hlc2] Hstop []
-    · itrivial
+    ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
+    iunfold runHead at Hhead
+    icases Hhead with ⟨%rs, Hrn, -⟩
+    ihave Hg := ownRawNode_ghost γ.raft nv.rn' id rs $$ Hrn
+    iunfold nodeLiveRaw at Hlive
+    icases Hlive with ⟨Hlv, Hsl⟩
+    iapply handshake_receive_au γ.stop nv.stop' _ (stopAns γ id) _ $$ [$Hlc1 $Hlc2] Hstop [Hsl Hg]
+    · unfold stopAns
+      rw [← Hgid]
+      iframe Hsl Hg
     inext
     iintro %v Hcl
-    unfold nodeLiveRaw
-    imod dghostVar_update_halves true _ _ _ $$ Hlive Hcl with ⟨Hl1, -⟩
+    imod dghostVar_update_halves true _ _ _ $$ Hlv Hcl with ⟨Hl1, -⟩
     imod dghostVar_persist _ _ _ $$ Hl1 with #Hst
     wp_auto
     wp_apply wp_broadcast_chan_close nv.done' γ.done (nodeStoppedRaw γ) $$ [$Hpend]

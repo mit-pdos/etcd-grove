@@ -106,13 +106,15 @@ theorem Replica.run.wp_proof
   ihave #Hrep' := Hrep
   iunfold isReplica at Hrep'
   iNamed Hrep'
-  ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  ihave #HrP : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
+  ihave #HkC := Hcl
+  iclear Hcl
   try wp_auto
   ihave Hinv := runInv_init γr vs id r n st ρ pending_ptr snapIndex_ptr $$ [Hstart pending snapIndex]
   · iframe
   wp_for Hinv
-  wp_apply (lc := 2) wp_Ready γr.cluster kvrRaftN id n $$ [$Hraft $HisNode] as %ch #Hch
+  wp_apply (lc := 2) wp_Ready γr.cluster kvrRaftN id n $$ [$HrP $HisNode] as %ch #Hch
   try wp_auto
   wp_apply_core chan.wp_select_blocking
   iapply BigAndL.bigAndL_cons.2
@@ -128,14 +130,20 @@ theorem Replica.run.wp_proof
     · iexact Hchan
     iapply Hau $$ [$Hlc1 $Hlc2]
     inext
-    iintro %rdv ⟨%ce, %es, %h, %L, #Hce, #Hcomm, Hrs, Hrest, Hdrv⟩
-    ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ $$ Hrest
+    iintro %rdv Hgot
+    iunfold readyGot at Hgot
+    icases Hgot with ⟨%ce, %es, %h, %L, %ms, %ss, #Hce, #Hcomm, Hrs, Hrest, -, Henter⟩
+    iunfold readyEnter at Henter
+    imod Henter $$ %⊤ %(1 : Qp) %(by simp) [$Hraft $Hrun] with ⟨Hraft, Hrun, Hdrv, #Hmsgs⟩
+    ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ _ $$ Hrest
     try wp_auto
     cases L with
     | none =>
-      ihave ⟨%Hin, Hrest⟩ := readyRest_ceInBatch _ _ _ _ _ _ _ _ $$ Hrest
+      simp only [NodeDriverState.afterReady]
+      icases nodeDriver_nodeCommitLb _ _ _ _ $$ Hdrv with ⟨Hdrv, #HclD⟩
+      ihave ⟨%Hin, Hrest⟩ := readyRest_ceInBatch _ _ _ _ _ _ _ _ _ $$ Hrest
       iunfold readyRest at Hrest
-      icases Hrest with ⟨%msl, #Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap⟩
+      icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
       iunfold readySnap at Hsnap
       icases Hsnap with ⟨%Hnull, Happ, #Hcef, -⟩
       wp_apply wp_fits rdv.Entries' es DFrac.discard $$ [$Hpkg $Hes] as %b ⟨-, %Hfit⟩
@@ -143,18 +151,18 @@ theorem Replica.run.wp_proof
       · run_exit
       have Hfit' := Hfit rfl
       try wp_auto
-      wp_apply wp_IsEmptySnap rdv.Snapshot' DFrac.discard none $$ [$Hraft] as %b2 ⟨%Hb2, -⟩
+      wp_apply wp_IsEmptySnap rdv.Snapshot' DFrac.discard none $$ [$HrP] as %b2 ⟨%Hb2, -⟩
       · unfold snapOpt; ipureintro; exact Hnull
       subst Hb2
       simp only [Option.elim]
       try wp_auto
-      wp_apply wp_IsEmptyHardState rdv.HardState' h $$ [$Hraft $Hhs]
+      wp_apply wp_IsEmptyHardState rdv.HardState' h $$ [$HrP $Hhs]
       try wp_auto
       wp_join iprop(∃ hs' : HardStateM, memStorMeta ρ.ms ρ.γs hs' ∗ r_ptr ↦ r ∗ rd_ptr ↦ rdv)
         with [Hmeta r rd] as ⟨%hs0, Hmeta, r, rd⟩
       · try wp_auto
         wp_apply Storage.wp_SetHardState wp_SetHardState st ρ.ms ρ.γs hs rdv.HardState' h
-          $$ [$HstRec $Hraft $Hmeta $Hhs] as Hmeta
+          $$ [$HstRec $HrP $Hmeta $Hhs] as Hmeta
         wp_join_done
       · icases append_none_pre st ρ.ms ρ.γs es $$ HstRec Happ with ⟨%k, %old, ⟨%Hk, %Hk0⟩, Hrange⟩
         have h1 : ∀ (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = k + j := by
@@ -176,7 +184,7 @@ theorem Replica.run.wp_proof
         iunfold memStorInvP at HmsInv'
         icases HmsInv' with ⟨#Hlock, -, -⟩
         wp_apply Storage.wp_Append wp_Append st ρ.ms ρ.γs k old es rdv.Entries' DFrac.discard h1 h2
-          $$ [$HstRec $Hraft $Hlock $Hrange $Hes] as ⟨-, Hb⟩
+          $$ [$HstRec $HrP $Hlock $Hrange $Hes] as ⟨-, Hb⟩
         imod append_none_post st ρ.ms ρ.γs c D ce es k Hsi.2 (Hin) Hidx Hk
           $$ HstRec Hfz Hcef Hb with ⟨#Hfz', Hrcpt⟩
         -- `send(rd.Messages)`
@@ -184,7 +192,8 @@ theorem Replica.run.wp_proof
         wp_bind (App (Val #f) _)
         iunfold sendSpec at Hsend
         iapply Hsend $$ [Hmsl Hmsok]
-        · iframe; iexact Hpkg
+        · iframe Hpkg Hmsl
+          iapply readyMsgs_sent $$ [$Hmsok $Hmsgs]
         iintro !> -
         try wp_auto
         -- the read states, noted
@@ -267,7 +276,7 @@ theorem Replica.run.wp_proof
           · wp_apply wp_request γr vs id r n st sts ρ (D ++ ce.take (sint.nat k + 1)) csp2 m2 mA A2
                 (D ++ ce) c si true false ((List.prefix_append_right_inj _).mpr (List.take_prefix _ _))
                 Hk.2.2
-              $$ [$Hrr $Hown $Hcp $Hfz' $Hdl] as %ret ⟨Hown, %Hsv1⟩
+              $$ [$Hrr $Hown $Hcp $Hfz' $Hdl $HclD] as %ret ⟨Hown, %Hsv1⟩
             · ileft; ipureintro; rfl
             wp_for_post
             iframe
@@ -287,12 +296,12 @@ theorem Replica.run.wp_proof
           wp_apply wp_answer γr vs id r n st sts (D ++ ce) _ csp' m' mA A' pv' (ps ++ vls) (DFrac.own 1)
               (by word) $$ [$Hrep $Hown $Hpv $Hps'] as %rest ⟨Hown, %ps', Hrest, Hcap2, #Hps2⟩
           -- `r.node.Advance()`
-          ihave #Hcl' := Hcl
-          iunfold kvrCluster at Hcl'
-          icases Hcl' with ⟨#Hic, -⟩
+          ihave #HkC' := HkC
+          iunfold kvrCluster at HkC'
+          icases HkC' with ⟨#Hic, -⟩
           icases appNode_open γr n (D ++ ce) (D ++ ce).length m' $$ Hview with ⟨%v, Hcfg, #Hsk, Hback⟩
           wp_apply wp_Advance n γr.cluster kvrRaftN id _ es none v rfl (fun _ h => by cases h)
-            $$ [$Hraft $Hic $HisNode $Hdrv $Hrcpt $Hcfg $Hsk] as Hadv
+            $$ [$HrP $Hic $HisNode $Hdrv $Hrcpt $Hcfg $Hsk] as Hadv
           icases Hadv with (⟨Hdrv, #Hal', Hcfg⟩ | ⟨#Hstop, -⟩)
           · ihave Hview := Hback $$ Hcfg
             -- `snapIndex = r.request(snapIndex, oneIn(4), oneIn(4))`
@@ -300,7 +309,7 @@ theorem Replica.run.wp_proof
             wp_apply wp_oneIn (W64 4) (by decide) $$ [$Hpkg] as %b2 -
             wp_apply wp_request γr vs id r n st sts ρ (D ++ ce) csp' m' mA A'
                 (D ++ ce) c si b1 b2 (List.prefix_refl _) Hk.2.2
-              $$ [$Hrr $Hown $Hcp $Hfz' $Hdl] as %ret ⟨Hown, %Hsv1⟩
+              $$ [$Hrr $Hown $Hcp $Hfz' $Hdl $HclD] as %ret ⟨Hown, %Hsv1⟩
             · iright; iexact Hal'
             have Hc2 : c ≤ uint.nat ret := by
               rcases Hsv1 with h' | ⟨h', h''⟩
@@ -312,19 +321,22 @@ theorem Replica.run.wp_proof
             wp_for_post
             iframe
             unfold runInv
-            iexists D ++ ce, phsNext hd h, hs0, csp', mA, m', A', ret, c, rest, ps'
+            iexists D ++ ce, phsNext hd h, hs0, csp', mA, m', A', ret, c, rest, ps',
+              readyDurable S (phsNext hd h) none es, roleAfter role ss
             iframe
-            iframe Hcp Hfz' Hal' Hps2
+            iframe Hcp Hfz' Hal' HclD Hps2
             ipureintro
             exact ⟨Hc2, by rw [List.length_append]; omega⟩
           · iexfalso
             iapply nodeRunning_stopped n γr.cluster kvrRaftN 1
             iframe Hrun Hstop
     | some l =>
+      simp only [NodeDriverState.afterReady]
+      icases nodeDriver_nodeCommitLb _ _ _ _ $$ Hdrv with ⟨Hdrv, #HclD⟩
       iunfold readyRest at Hrest
-      icases Hrest with ⟨%msl, #Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap⟩
+      icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
       iunfold readySnap at Hsnap
-      icases Hsnap with ⟨%Hl, Hss4, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, -⟩
+      icases Hsnap with ⟨%Hl, Hss4, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HclS, -, -⟩
       obtain ⟨Hdlv, Hptr, Hce0, Hpre, Hlt, Hdlen, Hpos, H61, -, Hli⟩ := Hl
       subst Hce0
       wp_apply wp_fits rdv.Entries' es DFrac.discard $$ [$Hpkg $Hes] as %b ⟨-, %Hfit⟩
@@ -343,7 +355,7 @@ theorem Replica.run.wp_proof
       ihave Hs1 := ownSnapS_M _ _ _ $$ Hs1
       try wp_auto
       rw [← Hptr]
-      wp_apply wp_IsEmptySnap l.ptr _ (some l.snap) $$ [$Hraft Hs1] as %b2 ⟨%Hb2, Hs1⟩
+      wp_apply wp_IsEmptySnap l.ptr _ (some l.snap) $$ [$HrP Hs1] as %b2 ⟨%Hb2, Hs1⟩
       · unfold snapOpt; iexact Hs1
       unfold snapOpt at Hb2
       subst Hb2
@@ -351,7 +363,7 @@ theorem Replica.run.wp_proof
       · unfold snapOpt; iexact Hs1
       simp only [Option.elim, decide_eq_false Hne]
       -- the snapshot's facts: valid, its data the state of the delivered log
-      imod kvr_snap_recv γr vs l.snap (strip l.dlv) Hpos H61 Hslen $$ Hcl HcL Hcert
+      imod kvr_snap_recv γr vs l.snap (strip l.dlv) Hpos H61 Hslen $$ HkC HcL Hcert
         with ⟨#Hsv, %mL, #HcaL, %HmL⟩
       obtain ⟨HcsL, HszL, HdatL⟩ := HmL
       obtain ⟨kvs, ops, Hdat, Hwk, Hwo, Hkv, Hans⟩ := HdatL
@@ -363,7 +375,7 @@ theorem Replica.run.wp_proof
       wp_apply wp_decodeState ds _ kvs ops Hwk Hwo $$ [$Hpkg $Hds] as %mK %mA2 ⟨Hds, %K', %A', HK', HA', %HKA⟩
       ihave Hs1 := Hs1back $$ Hds
       -- `r.storage.ApplySnapshot(rd.Snapshot)`
-      ihave #Hinit := isInitialized_access $$ Hraft
+      ihave #Hinit := isInitialized_access $$ HrP
       iunfold isInitialized at Hinit
       iNamed Hinit
       icases ErrSnapOOD with ⟨%eood, #Heood⟩
@@ -372,19 +384,16 @@ theorem Replica.run.wp_proof
       ihave ⟨Hdrv, #Hdl⟩ := nodeDriver_deliveredLogLb _ _ _ _ $$ Hdrv
       try wp_auto
       rw [← Hptr]
-      wp_apply Storage.wp_ApplySnapshot wp_ApplySnapshot st ρ.ms ρ.γs (kvrJ γr.cluster id) k old l.ptr
+      wp_apply Storage.wp_ApplySnapshot wp_ApplySnapshot st ρ.ms ρ.γs (kvrJ γr.cluster ρ.key) k old l.ptr
           (DFrac.own (Qp.half (Qp.half 1))) l.snap eood Hk (by word)
-        $$ [$HstRec $Hraft $HmsInv $Hlog $Hend $HsnLb $Heood Hs2] as ⟨Hs2, #HcpS, #Hdum, HendS, -⟩
+        $$ [$HstRec $HrP $HmsInv $Hlog $Hend $HsnLb $Heood Hs2] as ⟨Hs2, #HcpS, #Hdum, HendS, -⟩
       · simp only [kvrJ]
         isplitl []
-        · iright; iexact Hgiven
+        · iexact Hgiven
         isplitl []
         · iexact Hsv
         isplitl []
-        · unfold storDL
-          iexists n, kvrRaftN, strip l.dlv
-          iframe HisNode Hdl
-          ipureintro; omega
+        · iexact HclS
         unfold snapArg
         iright; iexact Hs2
       -- `r.install(rd.Snapshot.GetMetadata(), kv, ops)`
@@ -409,13 +418,13 @@ theorem Replica.run.wp_proof
       ihave Hs1 := Hs1back $$ Hpm2
       try wp_auto
       -- the hard state
-      wp_apply wp_IsEmptyHardState rdv.HardState' h $$ [$Hraft $Hhs]
+      wp_apply wp_IsEmptyHardState rdv.HardState' h $$ [$HrP $Hhs]
       try wp_auto
       wp_join iprop(∃ hs' : HardStateM, memStorMeta ρ.ms ρ.γs hs' ∗ r_ptr ↦ r ∗ rd_ptr ↦ rdv)
         with [Hmeta r rd] as ⟨%hs0, Hmeta, r, rd⟩
       · try wp_auto
         wp_apply Storage.wp_SetHardState wp_SetHardState st ρ.ms ρ.γs hs rdv.HardState' h
-          $$ [$HstRec $Hraft $Hmeta $Hhs] as Hmeta
+          $$ [$HstRec $HrP $Hmeta $Hhs] as Hmeta
         wp_join_done
       -- `r.storage.Append(rd.Entries)`, after the snapshot's index
       ihave ⟨Hrange, Hkeep⟩ := snapAppend_pre ρ.γs (uint.nat l.snap.Metadata'.Index' + 1) es $$ HendS
@@ -439,7 +448,7 @@ theorem Replica.run.wp_proof
       icases HmsInv' with ⟨#Hlock, -, -⟩
       wp_apply Storage.wp_Append wp_Append st ρ.ms ρ.γs (uint.nat l.snap.Metadata'.Index' + 1) [] es
           rdv.Entries' DFrac.discard h1 h2
-        $$ [$HstRec $Hraft $Hlock $Hrange $Hes] as ⟨-, Hb⟩
+        $$ [$HstRec $HrP $Hlock $Hrange $Hes] as ⟨-, Hb⟩
       ihave ⟨Hb, HendB⟩ := snapAppend_post ρ.γs _ es $$ [Hb Hkeep]
       · iframe Hb Hkeep
       ihave Hs := ownSnapM_combine l.ptr _ _ l.snap $$ [Hs1 Hs2]
@@ -452,7 +461,8 @@ theorem Replica.run.wp_proof
       wp_bind (App (Val #f) _)
       iunfold sendSpec at Hsend
       iapply Hsend $$ [Hmsl Hmsok]
-      · iframe; iexact Hpkg
+      · iframe Hpkg Hmsl
+        iapply readyMsgs_sent $$ [$Hmsok $Hmsgs]
       iintro !> -
       try wp_auto
       -- the read states, noted
@@ -484,14 +494,14 @@ theorem Replica.run.wp_proof
       wp_apply wp_answer γr vs id r n st sts (strip l.dlv) _ csp2 mL mA2 A' pv' (ps ++ vls) (DFrac.own 1)
           (by rw [Hslen]; word) $$ [$Hrep $Hown $Hpv $Hps'] as %rest ⟨Hown, %ps', Hrest, Hcap2, #Hps2⟩
       -- `r.node.Advance()`: the node's configuration at the snapshot's
-      ihave #Hcl' := Hcl
-      iunfold kvrCluster at Hcl'
-      icases Hcl' with ⟨#Hic, -⟩
+      ihave #HkC' := HkC
+      iunfold kvrCluster at HkC'
+      icases HkC' with ⟨#Hic, -⟩
       iunfold appNode at Hview
       icases Hview with ⟨%v, Hcfg, -, -, -⟩
       wp_apply wp_Advance n γr.cluster kvrRaftN id _ es (some l) v rfl
           (fun l' h => by cases h; exact Hdlen)
-        $$ [$Hraft $Hic $HisNode $Hdrv Hrcpt $Hcfg] as Hadv
+        $$ [$HrP $Hic $HisNode $Hdrv Hrcpt $Hcfg] as Hadv
       · simp only [advReceipt]
         iframe Hrcpt Hcert
       icases Hadv with (⟨Hdrv, #Hal', %m2, Hcfg, #Hca2, %Hcs2⟩ | ⟨#Hstop, -⟩)
@@ -509,7 +519,7 @@ theorem Replica.run.wp_proof
         wp_apply wp_request γr vs id r n st sts ρ (strip l.dlv) csp2 m2 mA2 A'
             (strip l.dlv) (uint.nat l.snap.Metadata'.Index') l.snap.Metadata'.Index' b1 b2
             (List.prefix_refl _) (Nat.le_refl _)
-          $$ [$Hrr $Hown $HcpS $Hfz2 $Hdl] as %ret ⟨Hown, %Hsv1⟩
+          $$ [$Hrr $Hown $HcpS $Hfz2 $Hdl $HclD] as %ret ⟨Hown, %Hsv1⟩
         · iright; iexact Hal'
         have Hc2 : uint.nat l.snap.Metadata'.Index' ≤ uint.nat ret := by
           rcases Hsv1 with h' | ⟨h', h''⟩
@@ -523,9 +533,10 @@ theorem Replica.run.wp_proof
         iframe
         unfold runInv
         iexists strip l.dlv, phsNext hd h, hs0, csp2, mA2, m2, A', ret,
-          uint.nat l.snap.Metadata'.Index', rest, ps'
+          uint.nat l.snap.Metadata'.Index', rest, ps', readyDurable S (phsNext hd h) (some l) es,
+          roleAfter role ss
         iframe
-        iframe HcpS Hfz2 Hal' Hps2
+        iframe HcpS Hfz2 Hal' HclD Hps2
         ipureintro
         exact ⟨Hc2, by omega⟩
       · iexfalso

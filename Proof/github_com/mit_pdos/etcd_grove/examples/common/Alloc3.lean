@@ -104,7 +104,8 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
       srvPropMint ⟨γ, [], W64 0⟩ γk.ids -∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued -∗
       kvInv ⟨γ, [], W64 0⟩ γk -∗
       (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗
-        nodeBoot γ.cl srvClusterN ps ctxs id ∗
+        (nodeBoot γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id RaftState.init ∗
+          nodeVacant γ.cl id) ∗
         ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit)) -∗
       idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) -∗
       ghostMapAuth reg 1 (∅ : GMap Loc MemStorNamesRec) -∗
@@ -129,7 +130,8 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
   ihave #Hsrl' := srvRaftLogInv_reg γ reg $$ Hsrl
   ihave #Hpm' := srvPropMint_reg γ reg γk.ids $$ Hpm
   ihave #Hrc' := srvRdCtxInv_reg γ reg issued $$ Hrc
-  ihave Hnb' : nodeBoot γ.cl srvClusterN γ.vs ctxs id $$ [Hnb]
+  ihave Hnb' : nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
+      nodeVacant γ.cl id $$ [Hnb]
   · rw [Hvs]; iexact Hnb
   iframe Hnb' Hsrl' Hcl Hpm' Hrc' Hsh Hidx Hcok Hrev Hnk Hkvρ Hwt Hsd Hreg
   isplitr

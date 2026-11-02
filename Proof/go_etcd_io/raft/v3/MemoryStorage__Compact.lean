@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
 public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
+public import Proof.go_etcd_io.raft.v3.InvMemstorageAt
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__lastIndex
 
 @[expose] public section
@@ -33,12 +34,9 @@ theorem MemoryStorage.Compact.wp_proof
     (wp_GetTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG)) :
     MemoryStorage.Compact.spec (GF := GF) (hG := hG) := by
   have HN : ↑memStorN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
-  intro ms γs J ci ecomp
-  wp_start as ⟨#Hsi, #Hpre, #HB, #Hlbx, #Herr⟩
-  iunfold memStorInvP at Hsi
-  icases Hsi with ⟨#Hlock, #HB0, #Hjinv⟩
-  ihave #Hsi : memStorInvP ms γs J $$ []
-  · iunfold memStorInvP; iframe Hlock HB0 Hjinv
+  intro ms γs J o ci ecomp
+  wp_start as ⟨Hat, #Hpre, #Hlbx, #Herr⟩
+  icases memStorAt_split ms γs J o _ $$ Hat with ⟨#Hlock, Hjc, Hho⟩
   iunfold memStorLock at Hlock
   icases Hlock with ⟨#Hinit, #Hmu⟩
   wp_auto
@@ -99,15 +97,24 @@ theorem MemoryStorage.Compact.wp_proof
     iapply HΦ
     isplitr
     · ipureintro; right; rfl
-    iunfold memCompacted
-    iright
     isplitr
-    · iapply monoNatLbOwn_le _ Hle $$ Hcplb
-    iunfold memCompJust at Hcj_inv
-    icases Hcj_inv with ⟨%L, #HL, %HLm⟩
-    iexists L
-    iframe HL
-    ipureintro; exact ⟨_, HLm, Hle⟩
+    · iunfold memCompacted
+      iright
+      isplitr
+      · iapply monoNatLbOwn_le _ Hle $$ Hcplb
+      iunfold memCompJust at Hcj_inv
+      icases Hcj_inv with ⟨%L, #HL, %HLm⟩
+      iexists L
+      iframe HL
+      ipureintro; exact ⟨_, HLm, Hle⟩
+    ihave Hjc := memJcAt_bump ms γs J o _ (uint.nat ci) $$ Hjc
+    cases o with
+    | none => iempintro
+    | some p0 =>
+      obtain ⟨c0, sv0'⟩ := p0
+      simp only [memBumpAt, Option.map_some]
+      iapply memStorFresh_of_at
+      iframe Hjc Hho
   -- past the compaction point: the caller's frozen entry at `x`
   have Hgt : uint.nat p.index' < uint.nat ci := by word
   icases Hpre with (⟨%e, #Hel⟩ | #Hc)
@@ -214,7 +221,8 @@ theorem MemoryStorage.Compact.wp_proof
     iframe Hd' Hb2
   -- the new state: the compaction point at `ci` (registered), the entries after it
   imod mono_nat_own_update (uint.nat ci) (by omega) $$ Hcp_inv with ⟨Hcp, #Hcplb'⟩
-  imod memCompJust_register ms γs J (uint.nat ci) ⊤ HN $$ Hsi HB with #Hcjn
+  imod memCompJust_register_at ms γs J o _ (uint.nat ci) ⊤ HN (by iintro #HB; iexact HB)
+    $$ Hjc with ⟨#Hcjn, Hjc⟩
   have Hok' : MemOk (entryID.mk e.Term' ci) (ents.drop (uint.nat ci - uint.nat p.index')) M sv0 := by
     have H1 := Hok.1
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -278,14 +286,22 @@ theorem MemoryStorage.Compact.wp_proof
   iapply HΦ
   isplitr
   · ipureintro; left; rfl
-  iunfold memCompacted
-  iright
-  iframe Hcplb'
-  iunfold memCompJust at Hcjn
-  icases Hcjn with ⟨%L, #HL, %HLm⟩
-  iexists L
-  iframe HL
-  ipureintro; exact ⟨_, HLm, Nat.le_refl _⟩
+  isplitr
+  · iunfold memCompacted
+    iright
+    iframe Hcplb'
+    iunfold memCompJust at Hcjn
+    icases Hcjn with ⟨%L, #HL, %HLm⟩
+    iexists L
+    iframe HL
+    ipureintro; exact ⟨_, HLm, Nat.le_refl _⟩
+  cases o with
+  | none => iempintro
+  | some p0 =>
+    obtain ⟨c0, sv0'⟩ := p0
+    simp only [memBumpAt, Option.map_some]
+    iapply memStorFresh_of_at
+    iframe Hjc Hho
 
 end proof
 

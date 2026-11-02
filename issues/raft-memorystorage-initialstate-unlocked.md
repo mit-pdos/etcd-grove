@@ -24,7 +24,12 @@ returns `ms.hardState` and that `ConfState` uncloned (the caller shares them wit
 
 **What happens**: a data race whenever `InitialState` runs concurrently with one of those
 writers (e.g. the application calling `SetHardState` on its goroutine while a node is
-being created on another). Reproduction (in package `raft`,
+being created on another). An application that reads its hard state back through
+`InitialState` while its node runs races with raft's own goroutine. `MemoryStorage.Snapshot`,
+reached from `maybeSendSnapshot`, writes `ms.snapshot` under the lock (`storage.go:212`). This
+repository's `examples/kvdurable` did so until 2026-10-31: its `encode` called `InitialState` to
+write the hard state to its file, and `go test -race -run TestRounds` reported it (found by a
+spec review). It now keeps its own copy of the hard state it last set. Reproduction (in package `raft`,
 `go test -race -run TestMemoryStorageInitialStateRace`; the race detector reports the
 read at `storage.go:123` against the write in `SetHardState`):
 

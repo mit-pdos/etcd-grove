@@ -11,10 +11,10 @@ What the rest of kvreconf uses of `*kvreconf.Storage` (`KvrStorage.lean`'s vocab
   replica call: `FirstIndex`, `LastIndex`, `Term`, `Entries`, `Append`, `ApplySnapshot`,
   `SetHardState`, `CreateSnapshot`, `Compact`;
 - **the contract** (`kvrStorage_isStorage`, under `kvrStorageModel`): a registered wrapper whose
-  `MemoryStorage` has its invariant at `kvrJ γ id` is node `id`'s storage (`isStorage`), as raft's
+  `MemoryStorage` has its invariant at `kvrJ γ K` is the storage of key `K` (`isStorage`), as raft's
   `memStorage_isStorageP` is proved (`Snapshot` is the wrapper's own, `Storage.Snapshot.spec`);
 - **the boot premise** (`kvr_bootStorage`): what `RestartNode` asks of a fresh storage
-  (`bootStorage`), from what `NewMemoryStorage` gives; its `InitialState` allocates the invariant;
+  (`restartStorage` at the empty contents), from what `NewMemoryStorage` gives; its `InitialState` allocates the invariant;
 - **the records of a new wrapper** (`kvrStor_alloc`), from its fields as allocated.
 
 The contract and the boot premise need the package's `isPkgInit` (the wrapper's `Snapshot` and
@@ -175,14 +175,17 @@ theorem Storage.wp_ApplySnapshot (wp : MemoryStorage.ApplySnapshot.spec (GF := G
       memCompacted γs (uint.nat sv.Metadata'.Index') ∗
       memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
       memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗ memSnapLb γs (uint.nat sv.Metadata'.Index') }} := by
-  wp_start as ⟨#Hrec, HP⟩
+  wp_start as ⟨#Hrec, #Hpkg, #Hsi, Hold, Hend, #HB, #HSV, #HDL, Hsnap, #Hlb, #Herr⟩
   iunfold kvrStorRec at Hrec
   icases Hrec with ⟨#Hf, -⟩
   try wp_auto
-  wp_apply wp ms γs J j old sp dq sv eood h1 h2 $$ [HP] as  HQ
-  · iexact HP
+  wp_apply wp ms γs J none j old sp dq sv eood h1 h2 $$ [Hold Hend Hsnap] as HQ
+  · iframe Hold Hend Hsnap Hlb Herr
+    iapply memStorAt_none_intro $$ Hsi
+    iframe HB HSV HDL
   iapply HΦ
-  iexact HQ
+  icases HQ with ⟨H1, H2, H3, H4, H5, -⟩
+  iframe H1 H2 H3 H4 H5
 
 theorem Storage.wp_SetHardState (wp : MemoryStorage.SetHardState.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) (hs : HardStateM) (st : Loc) (hs' : HardStateM) :
@@ -216,21 +219,21 @@ theorem Storage.wp_CreateSnapshot (wp : MemoryStorage.CreateSnapshot.spec (GF :=
       ownCSM cs dq c ∗ memSnapLb γs (uint.nat i) ∗
       ((⌜err = interface.nil⌝ ∗ ownSnapM snap (DFrac.own 1) (memSnapMade i e.Term' c bs)) ∨
        (⌜snap = null ∧ err = eood⌝ ∗ data ↦* bs)) }} := by
-  wp_start as ⟨#Hrec, HP⟩
+  wp_start as ⟨#Hrec, #Hpkg, #Hsi, #He, #HSV, #HDL, #Hlb, Hcs, Hdata, #Herr⟩
   iunfold kvrStorRec at Hrec
   icases Hrec with ⟨#Hf, -⟩
   try wp_auto
-  wp_apply wp ms γs J i e cs dq c data bs eood  $$ [HP] as %snap %err HQ
-  · iexact HP
+  wp_apply wp ms γs J none i e cs dq c data bs eood $$ [Hcs Hdata] as %snap %err HQ
+  · iframe He Hlb Hcs Hdata Herr
+    iapply memStorAt_none_intro $$ Hsi
+    iframe HSV HDL
   iapply HΦ
-  icases HQ with ⟨Hcs, Hlb, Hr⟩
-  iframe Hcs Hlb
-  icases Hr with (⟨%He, Hs⟩ | Hn)
-  · ileft
+  icases HQ with ⟨H1, H2, (⟨%H, H3, -⟩ | ⟨%H, H3, -⟩)⟩
+  · iframe H1 H2; ileft
     isplitr
-    · ipureintro; exact He
-    iapply ownSnapV_M $$ Hs
-  · iright; iexact Hn
+    · ipureintro; exact H
+    iapply ownSnapV_M $$ H3
+  · iframe H1 H2; iright; iframe H3; ipureintro; exact H
 
 theorem Storage.wp_Compact (wp : MemoryStorage.Compact.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) (J : MemJust GF) (x : w64) (ecomp : GoInterface) :
@@ -242,14 +245,18 @@ theorem Storage.wp_Compact (wp : MemoryStorage.Compact.spec (GF := GF) (hG := hG
       github_com.mit_pdos.etcd_grove.examples.kvreconf.Storage.ty @!! go!"Compact")) (Val #x))
   {{ (err : GoInterface), RET #err;
       ⌜err = interface.nil ∨ err = ecomp⌝ ∗ memCompacted γs (uint.nat x) }} := by
-  wp_start as ⟨#Hrec, HP⟩
+  wp_start as ⟨#Hrec, #Hpkg, #Hsi, Hpre, #HB, #Hlb, #Herr⟩
   iunfold kvrStorRec at Hrec
   icases Hrec with ⟨#Hf, -⟩
   try wp_auto
-  wp_apply wp ms γs J x ecomp $$ [HP] as %err HQ
-  · iexact HP
+  wp_apply wp ms γs J none x ecomp $$ [Hpre] as %err HQ
+  · iframe Hpre Hlb Herr
+    iapply memStorAt_none_intro $$ Hsi
+    iframe HB
   iapply HΦ
-  iexact HQ
+  icases HQ with ⟨%H, H1, -⟩
+  iframe H1
+  ipureintro; exact H
 
 end promoted
 
@@ -264,26 +271,24 @@ variable [KvrStor GF] [AllG GF]
 attribute [local instance] kvrStorageModel
 
 /-- `kvrJ`'s compaction justification is the API's (`storBnd`). -/
-theorem kvrJ_bnd (γ : Cluster) (id : w64) (c : Nat) :
-    memBnd (kvrJ (GF := GF) γ id) c ⊢ storBnd γ id c := by
+theorem kvrJ_bnd (γ : Cluster) (K : GName) (c : Nat) :
+    memBnd (kvrJ (GF := GF) γ K) c ⊢ storBnd γ K c := by
   unfold memBnd storBnd kvrJ; exact .rfl
 
-theorem kvrJ_B0 (γ : Cluster) (id : w64) : ⊢ (kvrJ (GF := GF) γ id).B 0 := by
-  unfold kvrJ
-  iintro
-  ileft; iapply nodeAppliedLb_zero
+theorem kvrJ_B0 (γ : Cluster) (K : GName) : ⊢ (kvrJ (GF := GF) γ K).B 0 := by
+  unfold kvrJ; exact nodeAppliedLb_zero γ K
 
-/-- **The store's storage meets node `id`'s storage contract** (under `kvrStorageModel`). -/
+/-- **The store's storage meets the storage contract of key `K`** (under `kvrStorageModel`). -/
 theorem kvrStorage_isStorage
     (wp_Snapshot : Storage.Snapshot.spec (GF := GF) (hG := hG))
     (wp_LastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
-    (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (id : w64) :
+    (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvreconf -∗
-      kvrStorRec s ms γs -∗ memStorInvP ms γs (kvrJ γ id) -∗
-      isStorage γ id (kvrStorIface s) := by
+      kvrStorRec s ms γs -∗ memStorInvP ms γs (kvrJ γ K) -∗
+      isStorage γ K (kvrStorIface s) := by
   iintro #Hpkg #Hrec #Hinv
   ihave #Hl : memStorLock ms γs $$ []
   · iunfold memStorInvP at Hinv; icases Hinv with ⟨#Hl, -⟩; iexact Hl
@@ -356,16 +361,16 @@ theorem kvrStorage_isStorage
     imodintro
     iintro %Φ ⟨#Hc, #Hesu⟩ HΦ
     ihave #Hc := kvrStorCompacted_to s ms γs c $$ Hrec Hc
-    wp_apply wp_Snapshot s ms γs (kvrJ γ id) c esu $$ [$Hpkg $Hrec $Hinv $Hc $Hesu]
+    wp_apply wp_Snapshot s ms γs (kvrJ γ K) c esu $$ [$Hpkg $Hrec $Hinv $Hc $Hesu]
       as %snap %err Hres
     iapply HΦ
     iexact Hres
   isplitr
   · iintro !> %c #Hc
     ihave #Hc := kvrStorCompacted_to s ms γs c $$ Hrec Hc
-    imod memCompacted_bound ms γs (kvrJ γ id) c $$ Hinv Hc with Hb
+    imod memCompacted_bound ms γs (kvrJ γ K) c $$ Hinv Hc with Hb
     imodintro
-    iapply kvrJ_bnd γ id c $$ Hb
+    iapply kvrJ_bnd γ K c $$ Hb
   iintro !> %k %dq %es H
   ihave H := kvrStorLog_to s ms γs k dq es $$ Hrec H
   iunfold memLog at H
@@ -377,11 +382,15 @@ theorem kvrStorage_isStorage
   iframe H
   ipureintro; exact Hb
 
-/-- **The store's storage before `RestartNode`** (`RestartNode`'s `bootStorage` premise), from what
-`NewMemoryStorage` gave of its `MemoryStorage` and the wrapper's records: `FirstIndex` is `1` (the
-storage is fresh, `memStorFresh_compacted`), `LastIndex` `0`, and `InitialState` gives the hard
-state, the bootstrap conf state, and (allocating the storage's invariant) the contract. The frame
-`Q` is the hard state's metadata and the invariant. -/
+/-- **The store's storage before `RestartNode`** (`RestartNode`'s `restartStorage` premise at the
+empty contents; until 2026-11-01, durability layer 4, `bootStorage`), from what `NewMemoryStorage`
+gave of its `MemoryStorage` and the wrapper's records: `FirstIndex` is `1` (the storage is fresh,
+`memStorFresh_compacted`), `LastIndex` `0`, and `InitialState` gives the hard state, the bootstrap
+conf state, and -- at the key `K` raft names the storage by, allocating the storage's invariant
+`memStorInvP ms γs (kvrJ γ K)` from raft's bounds at the attach (`kvrJ_B0`, the empty snapshot) --
+the contract and the storage's (empty) log. The frame `F` is the client's: what it makes of the
+hard state's metadata and the invariant, at the key (`HF`; 2026-11-01, stage-I fix G1-frame: the
+frame depends on the key, so it holds the invariant at the key the driver records). -/
 theorem kvr_bootStorage
     (wp_InitialState : Storage.InitialState.spec (GF := GF) (hG := hG))
     (wp_Snapshot : Storage.Snapshot.spec (GF := GF) (hG := hG))
@@ -390,62 +399,90 @@ theorem kvr_bootStorage
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (s ms bp : Loc) (γs : MemStorNames) (hs : HardStateM) (csm : ConfStateM)
-    (γ : Cluster) (id : w64) :
+    (γ : Cluster) (F : GName → IProp GF) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvreconf -∗
       kvrStorRec s ms γs -∗ kvrStorBoot s bp csm -∗
-      memStorLock ms γs -∗ memStorFresh ms γs -∗ memStorMeta ms γs hs -∗
+      memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty -∗ memStorMeta ms γs hs -∗
       memLog γs 0 DFrac.discard [zero_val EntryM] -∗ memEnd γs 1 -∗
-      bootStorage γ id (kvrStorIface s) hs csm
-        iprop(memStorMeta ms γs hs ∗ memStorInvP ms γs (kvrJ γ id)) := by
-  iintro #Hpkg #Hrec #Hboot #Hl Hfresh Hmeta #Hlog He
+      (∀ K : GName, memStorMeta ms γs hs -∗ memStorInvP ms γs (kvrJ γ K) -∗ F K) -∗
+      restartStorage γ (kvrStorIface s) ⟨hs, none, entryID.mk (W64 0) (W64 0), []⟩ csm 0 F := by
+  iintro #Hpkg #Hrec #Hboot #Hl Hfresh Hmeta #Hlog He HF
   ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iunfold memStorLock at Hl; icases Hl with ⟨#H, -⟩; iexact H
-  unfold bootStorage
+  unfold restartStorage
   iexists (interface.mk (go.GoType.PointerType
     github_com.mit_pdos.etcd_grove.examples.kvreconf.Storage.ty) #s)
-  iexists iprop(memStorFresh ms γs ∗ memStorMeta ms γs hs ∗ memEnd γs 1)
+  iexists iprop(memStorFresh ms γs 0 memSnapEmpty ∗ memStorMeta ms γs hs ∗ memEnd γs 1 ∗
+    (∀ K : GName, memStorMeta ms γs hs -∗ memStorInvP ms γs (kvrJ γ K) -∗ F K))
+  iexists 0
   isplitr
   · ipureintro; rfl
-  isplitl [Hfresh Hmeta He]
-  · iframe Hfresh Hmeta He
   isplitr
-  · iintro !> %Φ ⟨Hfresh, Hmeta, He⟩ HΦ
+  · ipureintro; simp [StorContents.b, StorContents.commit]
+  isplitl [Hfresh Hmeta He HF]
+  · iframe Hfresh Hmeta He HF
+  isplitr
+  · iintro !> %Φ ⟨Hfresh, Hmeta, He, HF⟩ HΦ
     wp_apply Storage.wp_FirstIndex wp_FirstIndex s ms γs 0 $$ [$Hrec $Hinit $Hl]
       as %fi ⟨%Hfi, #Hc⟩
     · iapply memCompacted_zero
-    icases memStorFresh_compacted ms γs _ $$ [$Hfresh $Hc] with ⟨%H0, Hfresh⟩
-    have Hfi1 : fi = W64 1 := by word
-    subst Hfi1
+    icases memStorFresh_compacted ms γs _ _ _ $$ [$Hfresh $Hc] with ⟨%H0, Hfresh⟩
+    have Hfi1 : fi = W64 (StorContents.b ⟨hs, none, entryID.mk (W64 0) (W64 0), []⟩ + 1) := by
+      simp only [StorContents.b]; word
+    rw [Hfi1]
     iapply HΦ
-    iframe Hfresh Hmeta He
+    iframe Hfresh Hmeta He HF
   isplitr
-  · iintro !> %Φ ⟨Hfresh, Hmeta, He⟩ HΦ
+  · iintro !> %Φ ⟨Hfresh, Hmeta, He, HF⟩ HΦ
     wp_apply Storage.wp_LastIndex wp_LastIndex s ms γs 1 $$ [$Hrec $Hinit $Hl $He]
       as %li ⟨He, %Hli⟩
-    have Hli0 : li = W64 0 := by word
-    subst Hli0
+    have Hli0 : li = W64 (StorContents.last ⟨hs, none, entryID.mk (W64 0) (W64 0), []⟩) := by
+      simp only [StorContents.last, StorContents.b, List.length_nil]; word
+    rw [Hli0]
     iapply HΦ
-    iframe Hfresh Hmeta He
-  iintro !> %Φ ⟨Hfresh, Hmeta, He⟩ HΦ
+    iframe Hfresh Hmeta He HF
+  iintro !> %Φ ⟨Hfresh, Hmeta, He, HF⟩ HΦ
   iapply wp_fupd
   wp_apply wp_InitialState s ms bp γs hs csm $$ [$Hpkg $Hrec $Hboot $Hmeta $Hfresh]
     as %hp %cs ⟨#Hhs, Hmeta, Hfresh, Hcs⟩
   imod csPts_persist cs (DFrac.own 1) csm false $$ Hcs with #Hcs
   imodintro
   iapply HΦ $$ %hp %cs %false
-  iframe Hhs Hcs Hmeta
-  imod memStorInvP_alloc ms γs (kvrJ γ id) ⊤ $$ Hl Hfresh [] with #Hinv
-  · iapply kvrJ_B0 γ id
+  iframe Hhs Hcs
+  iintro %K #HA #HD
+  imod memStorInvP_alloc ms γs (kvrJ γ K) ⊤ 0 memSnapEmpty $$ Hl Hfresh [] [] with #Hinv
+  · iintro !> %k %hk
+    have : k = 0 := by omega
+    subst this
+    iapply kvrJ_B0 γ K
+  · ileft; ipureintro; rfl
+  ihave HFK := HF $$ %K Hmeta Hinv
   imodintro
   isplitr
   · iapply kvrStorage_isStorage wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term wp_Entries
-      s ms γs γ id $$ Hpkg Hrec Hinv
-  iframe Hinv
+      s ms γs γ K $$ Hpkg Hrec Hinv
+  iframe HFK
+  iunfold storHolds
+  have hb : (⟨hs, none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).b = 0 := by
+    simp [StorContents.b]
+  have hl : (⟨hs, none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).last = 0 := by
+    simp [StorContents.last, StorContents.b]
+  rw [hl, hb, Nat.zero_add]
+  simp only [Nat.sub_self, List.take_zero, List.drop_zero]
   iexists (zero_val EntryM)
   isplitr
   · ipureintro; rfl
   isplitr
+  · iapply kvrStorCompacted_of s ms γs 0 $$ Hrec
+    iapply memCompacted_zero
+  isplitr
   · iapply kvrStorLog_of s ms γs 0 DFrac.discard [zero_val EntryM] $$ Hrec Hlog
+  isplitr
+  · iapply kvrStorLog_of s ms γs 1 DFrac.discard [] $$ Hrec
+    iapply memLog_nil
+  isplitr
+  · iapply kvrStorLog_of s ms γs 1 (DFrac.own 1) [] $$ Hrec
+    iapply memLog_nil
   iapply kvrStorEnd_of s ms γs 1 $$ Hrec He
 
 /-- **A new wrapper's records** (`&Storage{MemoryStorage: ms, boot: bp}`, its two fields as

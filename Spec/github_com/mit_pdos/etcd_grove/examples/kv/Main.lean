@@ -10,8 +10,8 @@ allocated in the proof, from what package initialization provides (`isPkgInit` o
 package, which holds its dependencies', raft's, lintest's and porcupine's among them) and
 `context`'s `isClosedchanInit` (which porcupine's `WithCancel(Background())` needs and
 `isPkgInit` does not give; the adequacy theorem gets it from the program's initialization,
-`Init.lean`). For executions of fewer than `2^63` steps (`receiptBound GF ≤ 2^63`: the
-counter clock does not wrap, and raft's terms stay below `2^64`).
+`Init.lean`). For executions of fewer than `2^61` steps (`receiptBound GF ≤ 2^61`: the
+counter clock does not wrap, raft's terms stay below `2^64`, and raft's `RestartNode` takes `readyFits`, the bound within `2^61`).
 -/
 module
 
@@ -38,7 +38,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  receiptBound GF ≤ 2 ^ 63 →
+  -- (2026-11-02, durability stage II (l), at the landing: raft's `RestartNode` takes `readyFits`;
+  -- until then `2^63`)
+  receiptBound GF ≤ 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ context.isClosedchanInit }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.Main)) (Val #()))
   {{ RET #(); True }}

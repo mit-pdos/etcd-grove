@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, etcd, kv, kvreconf, durable, bboltfs, crashlog, durablekv, putget, putgetc, putget3,
+  --project    only this project (raft, etcd, kv, kvreconf, durable, bboltfs, crashlog, durablekv, kvdurable, putget, putgetc, putget3,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver or
                k8s-daemonset; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -553,6 +553,23 @@ PROJECTS = [
         # the store; not its command (cmd/durablekv), which only runs it
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "durablekv")],
+    ),
+    Project(
+        name="kvdurable",
+        # kvreconf made durable (`examples/kvdurable`): kvreconf's store, its every application
+        # choice at random, with each replica's raft storage in a file of the durable package
+        # (written whole, before what raft needs durable is relied on; what it does not need,
+        # written late or not at all), and replicas that crash and restart from their files. A
+        # package of the examples' Go module, with kvreconf's imports (trusted_proph, translated
+        # by kvreconf's project) and the durable package's.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "kvdurable"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org=",
+                    "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
+        # the store; not its command (cmd/kvdurablecheck), which only runs it
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "kvdurable")],
     ),
     Project(
         name="common",

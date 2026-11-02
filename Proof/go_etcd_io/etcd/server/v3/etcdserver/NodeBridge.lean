@@ -511,6 +511,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
   · -- `Advance`, after a `Ready` without a snapshot
     iintro !> %d %ce %es %p %Φ !> ⟨Hbusy, Hcv, Hrcpt, Hrun⟩ HΦ
     iunfold rnBusyN at Hbusy
+    icases Hbusy with ⟨%S, %r, Hbusy, HrS⟩
     iunfold rnAdvReceipt at Hrcpt
     iunfold rnCfgAt at Hcv
     iunfold srvCfgView at Hcv
@@ -521,7 +522,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
       exact h
     ihave #Hsk := skippedIn_noConf γ.node.cl (srvLE γ.srv (d ++ ce)) v.applied _ Hnc
     wp_apply (wp_Advance γ.nl γ.node.cl srvClusterN γ.id
-        ⟨memStorIface γ.ms, srvLE γ.srv (d ++ ce), p, some (es.map EntryModel.toM, none)⟩
+        ⟨memStorIface γ.ms, srvLE γ.srv (d ++ ce), p, some (es.map EntryModel.toM, none), γ.key, S, r⟩
         (es.map EntryModel.toM) none v rfl (fun _ h => by cases h)) $$ [Hbusy Hrcpt Hcfg]
       as Hres
     · iframe #
@@ -529,16 +530,18 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     icases Hres with (⟨Hdrv, #Hal, Hcfg⟩ | ⟨#Hst, -⟩)
     · iapply HΦ
       iframe Hrun
-      isplitl [Hdrv Hcfg]
+      isplitl [Hdrv Hcfg HrS]
       · iunfold rnDrv
+        iexists S, r
         isplitl [Hdrv]
         · iExactEq Hdrv; rfl
+        iframe HrS
         iunfold rnCfgAt
         iunfold srvCfgView
         iexists v
         iframe Hcfg
         ipureintro; exact Hok
-      iapply nodeAppliedLb_mono γ.node.cl γ.id _ _ (by simp [srvLE]) $$ Hal
+      iapply nodeAppliedLb_mono γ.node.cl γ.key _ _ (by simp [srvLE]) $$ Hal
     · iexfalso
       iapply nodeRunning_stopped γ.nl γ.node.cl srvClusterN _ $$ [Hrun Hst]
       iframe Hrun Hst
@@ -547,7 +550,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     -- `srv_confAt_simple` at the snapshot's committed log, `confAt_agree`)
     iintro !> %d %A' %es %p %l %Φ !> ⟨Hbusy, Hrc, #Hcert, Hrun⟩ HΦ
     iunfold rnBusyS at Hbusy
-    icases Hbusy with ⟨Hdrv, Hcv, %Hsn⟩
+    icases Hbusy with ⟨⟨%S, %r, Hdrv, HrS⟩, Hcv, %Hsn⟩
     obtain ⟨hA', hd, hdl, hpos, h61⟩ := Hsn
     iunfold rnCfgAt at Hcv
     iunfold srvCfgView at Hcv
@@ -591,7 +594,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     subst hWc
     -- the old view's voters are the cluster's (its membership the voters' at `v.applied` too)
     wp_apply (wp_Advance γ.nl γ.node.cl srvClusterN γ.id
-        ⟨memStorIface γ.ms, srvLE γ.srv A', p, some (es.map EntryModel.toM, some l)⟩
+        ⟨memStorIface γ.ms, srvLE γ.srv A', p, some (es.map EntryModel.toM, some l), γ.key, S, r⟩
         (es.map EntryModel.toM) (some l) v rfl (fun l' h => by cases h; exact hdl))
       $$ [Hdrv Hrc Hcfg] as Hres
     · iframe #
@@ -602,10 +605,12 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
       · rw [hls]; iframe Hca Hms
       iapply HΦ
       iframe Hrun
-      isplitl [Hdrv Hcfg]
+      isplitl [Hdrv Hcfg HrS]
       · iunfold rnDrv
+        iexists S, r
         isplitl [Hdrv]
         · iExactEq Hdrv; rfl
+        iframe HrS
         iunfold rnCfgAt
         iunfold srvCfgView
         iexists ⟨uint.nat l.snap.Metadata'.Index', m⟩
@@ -620,7 +625,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
         (try simp only at hk1)
         have := hlA; simp only [List.length_append] at this
         omega
-      iapply nodeAppliedLb_mono γ.node.cl γ.id _ _ (by
+      iapply nodeAppliedLb_mono γ.node.cl γ.key _ _ (by
         simp only [srvLE, List.length_map]; omega) $$ Hal
     · iexfalso
       iapply nodeRunning_stopped γ.nl γ.node.cl srvClusterN _ $$ [Hrun Hst]
@@ -635,7 +640,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
   isplitr
   · -- `Stop`
     iintro !> %Φ !> Hrun HΦ
-    wp_apply wp_Stop γ.nl γ.node.cl srvClusterN γ.id $$ [Hrun] as #Hst
+    wp_apply wp_Stop γ.nl γ.node.cl srvClusterN γ.id $$ [Hrun] as ⟨#Hst, -⟩
     · iframe #; iframe Hrun
     iapply HΦ
     iexact Hst

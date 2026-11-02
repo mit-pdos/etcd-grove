@@ -215,8 +215,10 @@ abbrev NewServer.spec : Prop :=
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
-      -- peers `γ.vs` with the contexts `ctxs`, and the server's raft invariant
-      "Hnboot" ∷ nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗
+      -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
+      -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant
+      "Hnboot" ∷ (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
+        nodeVacant γ.cl id) ∗
       "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
       -- (D21e (A), stage M4) the cluster's resources, allocated once (`srvClusterBoot_alloc`):
       -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
@@ -396,8 +398,10 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
-      -- peers `γ.vs` with the contexts `ctxs`, and the server's raft invariant
-      "Hnboot" ∷ nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗
+      -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
+      -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant
+      "Hnboot" ∷ (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
+        nodeVacant γ.cl id) ∗
       "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
       -- (D21e (A), stage M4) the cluster's resources, allocated once (`srvClusterBoot_alloc`):
       -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
@@ -593,8 +597,10 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
-      -- peers `γ.vs` with the contexts `ctxs`, and the server's raft invariant
-      "Hnboot" ∷ nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗
+      -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
+      -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant
+      "Hnboot" ∷ (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
+        nodeVacant γ.cl id) ∗
       "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
       -- (D21e (A), stage M4) the cluster's resources, allocated once (`srvClusterBoot_alloc`):
       -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;

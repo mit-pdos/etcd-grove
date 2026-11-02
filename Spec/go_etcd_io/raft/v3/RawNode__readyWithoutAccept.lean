@@ -33,7 +33,7 @@ application appended its entries (in `node.go`: `advancec == nil`).
 
 What the application gets with `rd` (all of `RawNode.Ready.spec`'s postcondition but the
 node and the right to append): the committed entries `ce` extending `rs.delivered`, the
-entries `es` to append, the messages to send, each `isRaftMsg`, no snapshot, and (since
+entries `es` to append, the messages to send (their facts with the cut, `ownRawNodeReady_handout`, since 2026-11-01), no snapshot, and (since
 2026-10-13) the read states `sts`: `rd.ReadStates` read-only, each `ReadState`
 `readStateRaw` -- its context a proposed slice whose read was created knowing a committed
 log of length at most its index (`readOk`). The slice is read-only because the node
@@ -85,7 +85,8 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
       -- (2026-10-16, stage R5, D8) the messages handed out, a response at half
       "Hmsgs_own" ∷ ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
-      "#Hmsgs_ok" ∷ ([∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
+      -- (2026-11-01, durability stage II (k), fix C; until then each message's `isRaftMsg` here)
+      -- the messages' facts come with the cut (`ownRawNodeReady_handout`)
       -- (2026-10-17; until then at most `rs.term`) within the term ceiling (a granted pre-vote)
       "%Hmsgs_term" ∷ ⌜∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc⌝ ∗
       "Habandon" ∷ (rd.Messages' ↦* ms.map QMsg.loc -∗

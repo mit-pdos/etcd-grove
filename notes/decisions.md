@@ -27293,6 +27293,43 @@ approved design's "Layer 4: authkv" (`notes/g2-watch-auth.md`) put `watchAddrFac
 `Work.spec` at the auth-on server without checking that its `srvKVFacts` (and `srvLogsSmall`) can
 be discharged from `memberUpOn`; G2's reviews checked only the auth-off callers.
 
+## The restart's lowest commit: `wcommit` (2026-11-02 · durability stage II (p); the coordinator's decision (b))
+
+**The problem** (stage II (o)'s report). A restarted node is in the cluster's dynamic mode, whose
+invariant has I1 at its commit (`RInv.i1`: of two conf-change entries of the log, the first is
+below the commit). Its commit is the stored one, which `StorageHolds` allowed anywhere from the base
+up to `S.commit`; nothing durable recorded I1. **Counterexample** (real raft is unsafe there too):
+node 1 stores entries 1..9 with conf entries at 6 (C5 = {1,2,3} → C6 adds 4) and 8 (adds 5, C8 =
+{1..5}), both committed, `S.commit = 9`; its storage presents the stored commit 5 (allowed);
+raft restarts at C5, commit 5, and `hasUnappliedConfChanges` reads only `(applied, committed]`, so
+it may campaign; meanwhile C8's quorum {3,4,5} commits entry 10; node 1 wins term T+1 with {1,2}
+(a C5 quorum: node 2's log as up to date, raft checks no membership when granting): a leader
+without a committed entry.
+
+**Decision** (option (b) of the report, the coordinator's). `RaftState.wcommit`: the commit of the
+last entered batch that wrote entries or a snapshot (a commit-only batch keeps it). `StorageHolds`
+requires `S.wcommit ≤ σ.commit` (with the base bound kept: a compaction may pass `wcommit`). The
+durable half carries I1 of its full log at `wcommit` (`durI1`); a batch carries I1 at its own
+commit, which the cut reads off the node's `RInv` (every batch's log is the node's at the cut);
+*enter* takes the batch's when it wrote, the durable half's (unchanged log) when not. A client
+writing the hard state with each batch's entries (kvdurable) stores `σ.commit ≥ wcommit`. Option
+(a) (a pure scope premise of `RestartNode` on `σ`) was not taken: it needs a new per-`Ready`
+law telling the client the batch's I1.
+
+## A restart's certified terms above the committed log handed out (2026-11-02 · stage II (p); decision 2, internal)
+
+**The problem.** `ownRawNode`'s `SdtTie` had the certification height equal to the committed log
+handed out; a restarted node certified the attach record's terms up to the stored commit
+(`storCaught`, needed by `raftDL`'s attach reading) and hands out only up to `max b A`.
+
+**Decision.** `SdtTie` is `≤`, the gap `(sdtLen, dtk]` attach-record indices at most `c0`. A `Ready`
+hands the gap out again with the recorded keys (`ownRaftLog_certify_gap`), whose terms are the
+committed log's: `certLink` gains `ctCommitted γ sn` (the record's terms are a committed log's), so
+a `Ready`'s committed entries agree with them by the committed logs' prefix order. Rejected:
+keeping every key's fragment in `storAuths` (the agreement is still needed below a restored
+snapshot's base, where `DtOk` says nothing), and an `ownRawNode` conjunct (`certLink` is the
+storage names' tie to the cluster already, fixed at the attach). `AttachRec` records every index
+`1..c0` once (below the base too), so the restart's delivered keys (`dlvKeys`) are the record's.
 ## M2 apply side: the switch stated in place (2026-10-30, the user's Q6 (a) · `notes/m2-apply-plan.md`, "The switch in place")
 
 Review rounds 1-3 showed that mode-indexed copies of the shape vocabulary (`dispatchOkM`,

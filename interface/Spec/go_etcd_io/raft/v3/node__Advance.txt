@@ -20,9 +20,9 @@ def node.Advance.spec : Prop :=
                           | some l => snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) -∗
               ▷
                   ((nodeDriver n γ N
-                          { storage := st.storage, delivered := st.delivered, hardState := st.hardState,
-                            handling := none } ∗
-                        nodeAppliedLb γ id st.delivered.length ∗
+                          { storage := st.storage, delivered := st.delivered, hardState := st.hardState, handling := none,
+                            key := st.key, durable := st.durable, role := st.role } ∗
+                        nodeAppliedLb γ st.key st.delivered.length ∗
                           match L with
                           | none => nodeConfig n γ N v
                           | some l =>
@@ -32,8 +32,8 @@ def node.Advance.spec : Prop :=
                                   ⌜confStateIs l.snap.Metadata'.ConfState' m⌝) ∨
                       nodeStopped n γ N ∗
                         nodeDriver n γ N
-                          { storage := st.storage, delivered := st.delivered, hardState := st.hardState,
-                            handling := none } -∗
+                          { storage := st.storage, delivered := st.delivered, hardState := st.hardState, handling := none,
+                            key := st.key, durable := st.durable, role := st.role } -∗
                     Φ (intoVal ())) -∗
                 WP
                   ((intoVal (methods node.ty.PointerType go!"Advance" (intoVal n)))

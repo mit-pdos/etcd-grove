@@ -66,6 +66,9 @@ abbrev setupNode.spec : Prop :=
   csm.LearnersNext' = [] →
   csm.AutoLeave' = false →
   σ.fl = W64 0 →
+  -- (2026-11-01, durability stage I-6) no attach record: an empty storage (`NewRawNode`'s
+  -- `AttachRec` holds vacuously and its `ownStorage sn.unrec` is this one)
+  sn.unrec = sn →
   -- the peers (`RawNode.Bootstrap`'s premises)
   ps = pv.map Peer.ID' →
   ps ≠ [] → ps.Nodup → W64 0 ∉ ps →

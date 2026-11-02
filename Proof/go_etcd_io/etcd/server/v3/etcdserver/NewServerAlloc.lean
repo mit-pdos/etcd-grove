@@ -167,7 +167,10 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
         idClusterInv issued cnt Φs ∗ (W64 0) ↪[issued]□ (none : Option (List w8 × GName)) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
         ([∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗
-          nodeBoot γ.cl srvClusterN ps ctxs id ∗
+          -- (2026-11-01, durability layer 4) with its durable state at `RaftState.init` and its
+          -- vacant id (`cluster_alloc`'s, `StartNode`'s premises)
+          (nodeBoot γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id RaftState.init ∗
+            nodeVacant γ.cl id) ∗
           -- (2026-10-26, D22 J2) and its snapshot directory, empty (`SrvRaft.snapLoc`)
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
@@ -221,7 +224,7 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
   -- the node API's cluster from the bootstrap log, proposals not duplicated
   imod (cluster_alloc (GF := GF) srvClusterN ps ctxs boot false sl ⊤ Hrb Hne Hnd Hnz
       (by omega) (fun _ => HB)) $$ [Hmarsh]
-    with ⟨%cl, ⟨%Hdup, %Hcsl, %Hbl⟩, Hops, Hctxs, #Hst, Hdec, #Hca0, Hsm, Hboots⟩
+    with ⟨%cl, ⟨%Hdup, %Hcsl, %Hbl⟩, Hops, Hctxs, #Hst, Hdec, #Hca0, Hsm, Hslots, Hboots⟩
   · rw [if_neg hbne]; iexact Hmarsh
   isimp only [hbne, ↓reduceIte] at Hboots
   icases Hboots with ⟨#Hbl0c, Hboots⟩
@@ -288,14 +291,17 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
   isplitr
   · ipureintro
     exact ⟨hvs, hrule, hbt, hreg, rfl, rfl, rfl, rfl, rfl, rfl⟩
-  isplitl [Hps Hsd Hboots]
+  isplitl [Hps Hsd Hboots Hslots]
   · iapply (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).2
-    ihave Hbc : iprop([∗list] id ∈ ps, (nodeBoot γ.cl srvClusterN ps ctxs id ∗
+    ihave Hbc : iprop([∗list] id ∈ ps, ((nodeBoot γ.cl srvClusterN ps ctxs id ∗
+        raftState γ.cl id RaftState.init ∗ nodeVacant γ.cl id) ∗
         ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth (GF := GF) γd 1 (∅ : GMap w64 Unit)))
-      $$ [Hsd Hboots]
+      $$ [Hsd Hboots Hslots]
     · iapply (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).2
       rw [hcl, hsl]
-      iframe Hboots
+      isplitl [Hboots Hslots]
+      · iapply (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).2
+        iframe Hboots Hslots
       iexact Hsd
     iframe Hbc
     have hm : ([∗list] p ∈ idPfxsOf ps, p ↪[cnt] ([] : List w64)) =

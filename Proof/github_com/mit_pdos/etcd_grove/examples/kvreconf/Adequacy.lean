@@ -7,7 +7,7 @@ kv's `Adequacy.lean` (`Proof/github_com/mit_pdos/etcd_grove/examples/kv/Adequacy
 (`examples/kvreconf/check.go`), with no Iris in its statement: the program `initialize'(); Main()`
 -- the store package's initialization (which initializes its dependencies, raft, lintest,
 porcupine and `context` among them, then the package) followed by `Main` -- started from a fresh
-state (no package initialized, one thread), for every real execution of fewer than `2^63` steps,
+state (no package initialized, one thread), for every real execution of fewer than `2^61` steps,
 never gets stuck, no thread of it ends in a panic, and the main thread's result, if it has one, is
 `#()`.
 
@@ -28,10 +28,10 @@ proofs allocate, the storage registry `KvrStor`'s among them, and iris-lean's no
 `Main`'s spec. This file proves it from `Main.spec` as a hypothesis (`kvreconf_adequate_of`);
 `AdequacyLinked.lean` applies it to the linked result `kvreconf.wp_Main` (`Link.lean`).
 
-- **The length bound.** `Main.spec` takes `receiptBound GF ≤ 2^63` (the counter clock does not
+- **The length bound.** `Main.spec` takes `receiptBound GF ≤ 2^61` (the counter clock does not
   wrap; raft's step bound `2^64 - 2` holds), and `goose_adequacy`'s receipt bound `N` must exceed
-  the execution's length `n`: `N = n + 1 ≤ 2^63`, so the theorem is about executions of
-  `n < 2^63` steps.
+  the execution's length `n`: `N = n + 1 ≤ 2^61`, so the theorem is about executions of
+  `n < 2^61` steps.
 - **The Go semantics** is a parameter, as in every Perennial result: `GoGlobalContext`,
   `GoLocalContext`, `go.Semantics`, the package assumptions `kvreconf.Assumptions` (every name's
   translated body or Perennial's trusted model, the struct layouts, recursively for the imports,
@@ -117,7 +117,7 @@ def kvreconfProgram [GoSemanticsFunctions] : Expr :=
 /-- **Porcupine never rejects the reconfiguring store's trace**, from `Main`'s spec (`wp_Main`, at
 every `HeapGS` of `kvrGF` and every semantics): every real execution of `kvreconfProgram` (the
 store package's initialization, then `Main()`) from a fresh state -- no package initialized
-(`IsInit`), one live thread -- of `n < 2^63` steps: if the main thread has finished, its result is
+(`IsInit`), one live thread -- of `n < 2^61` steps: if the main thread has finished, its result is
 `#()`; no thread is stuck (each is a value or can step); no thread has ended in a panic. `Main`
 panics unless porcupine answers `Ok` on the trace of the randomized test against a cluster of
 random options under configuration changes and leadership disruptions (see the file header), so
@@ -133,7 +133,7 @@ theorem kvreconf_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (wp_Main : kvrMainSpec)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
-    (n : Nat) (Hn : n < 2 ^ 63) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([kvreconfProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
@@ -143,7 +143,7 @@ theorem kvreconf_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩
     ⟨trivial, trivial⟩ Hlctx Hinit Hthreads n κs t2 σ2 Hsteps fun hG HN _ => ?_
   letI : HeapGS .hasLC kvrGF := heapWith hG lctx
-  have Hbound : receiptBound kvrGF ≤ 2 ^ 63 := by rw [HN]; omega
+  have Hbound : receiptBound kvrGF ≤ 2 ^ 61 := by rw [HN]; omega
   unfold progOk0
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.kvreconf.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.kvreconf.getIsPkgInit_wf, ?_⟩

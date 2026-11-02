@@ -62,6 +62,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.kv',
          # (2026-10-29, track C) the store that reconfigures and snapshots
          'github_com.mit_pdos.etcd_grove.examples.kvreconf',
+         # (2026-11-01) the durable store (its files through the durable-state extension's Go
+         # package `durable`)
+         'github_com.mit_pdos.etcd_grove.examples.kvdurable',
          'github_com.mit_pdos.etcd_grove.examples.linkv3p',
          'github_com.mit_pdos.etcd_grove.examples.linkvtxn',
          'github_com.mit_pdos.etcd_grove.examples.watchkv',
@@ -2123,6 +2126,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/kv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.kvreconf':
             'Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.kvdurable':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8setcd3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/PkgTable.lean'}
 
