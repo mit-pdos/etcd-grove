@@ -304,7 +304,8 @@ LEAN_FIRST = {
                    "The reconfiguring key-value store example's proofs (`examples/kvreconf`)", [""]),
     # the durable store (examples/kvdurable), as `--kvreconf`, its storage registry `KdStor`
     "--kvdurable": ("link-lean-first-kvdurable.txt",
-                    "github_com.mit_pdos.etcd_grove.examples.kvdurable go_etcd_io.raft.v3",
+                    "github_com.mit_pdos.etcd_grove.examples.kvdurable go_etcd_io.raft.v3 "
+                    "github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine",
                     "github_com.mit_pdos.etcd_grove.examples.kvdurable.Assumptions",
                     "The durable key-value store example's proofs (`examples/kvdurable`)", [""]),
     # the Raft proof (raft v3.7 plus the read-index fix, project raft of etc/goose.py) and the
@@ -526,7 +527,8 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  # Perennial's `time` results (`=_root_.Perennial.time.*`), gokv's trusted
                  # `ResolveBytes`'s proved spec (`Cluster.Read`'s prophecy, `=_root_.Perennial.…`)
                  # raft's importable `confchange`/`tracker` specs, Perennial's `time` results
-                 "--kvdurable": ["Proof.go_etcd_io.raft.v3.Linked", "Perennial.Proof.time.Link"],
+                 "--kvdurable": ["Proof.go_etcd_io.raft.v3.Linked", "Perennial.Proof.time.Link",
+                                 "Proof.github_com.mit_pdos.gokv.trusted_proph.ResolveBytes"],
                  "--kvreconf": ["Proof.go_etcd_io.raft.v3.Linked", "Perennial.Proof.time.Link",
                                 "Proof.github_com.mit_pdos.gokv.trusted_proph.ResolveBytes"],
                  # (rafthttp stage 6f) the HTTP boundary's axioms and Perennial's linked results
@@ -551,7 +553,7 @@ if mode is None:
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
-NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kv", "--kvreconf", "--linkv3p",
+NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kv", "--kvreconf", "--kvdurable", "--linkv3p",
             "--linkvtxn", "--kvwitness", "--k8setcd3"}
 # The modes whose store's storage model is a `def` made a local instance of the Link (kvreconf's
 # `kvrStorageModel`, `KvrStorage.lean`): its specs are stated at it, and raft's results over any

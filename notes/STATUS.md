@@ -505,6 +505,40 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## kvdurable's adequacy (2026-11-01, branch `worktree-agent-kvd-adequacy`)
+
+`kvdurable_adequate` (`Proof/.../kvdurable/AdequacyLinked.lean`; from `Main.spec`,
+`kvdurable_adequate_of`, `Adequacy.lean`): every real execution of `initialize'(); Main(dir)` from a
+fresh state with one thread whose files (the durable extension's, `extLocal durableExt σ.world`) hold
+none of the replicas' files in `dir` (`kdFileName dir i`, `i ∈ 1 … 9`), of `n < 2^63` steps, is not
+stuck, has no panicked thread, and the main thread's result is `#()`: porcupine accepts the trace of
+the randomized test under reconfigurations, disruptions and crashes with restarts from the files. Over
+`durable_init_adequate` (`examples/common/DurableExt.lean`, the program owns its initial files) at
+`durableGF`; kvdurable is a root of `etc/gen-init.py` (`Init.lean`, `PkgTable.lean`; `durable`'s own
+root line is gone: kvdurable imports it). It rests on kvreconf's adequacy's axioms plus the durable
+extension's trusted model, and on the isolated `sorry`s on kvdurable's path (raft's, `restartStorage_frozen_prefix`,
+`restart_delivered_stored_S1b`): the report, `spec-scratch/raft-durability/kvd-adequacy-report.md`.
+
+- **New specs and proofs** (kvreconf's, ported, no `sorry`): `copyMap`, `within`, `hashString`,
+  `hashMap`, `Model` (`ModelDefs.lean`), `Gen`, `RandomOptions`, `RandomConfig`, `pick`,
+  `Cluster.{randomID, randomChange, Reconfigure, Disrupt, randomMember, do, Put, Get, Read}`,
+  `Replica.{conf, propose}` (`ReconfAu.lean`, `ClientLemmas.lean`, `DriverLemmas.lean`); and
+  kvdurable's own: `Cluster.Stop`, `Cluster.all.specStop`, `Run`, `Main`.
+- **The stopper.** `clusterLockInv`'s `Hstops` gains a stopped mode, `(crasher γ ∗ [∗map] curRep) ∨
+  …`: `Stop` takes the crasher's token, `all.specStop` (the token excludes every entry's) takes every
+  `repStop` out and leaves the fragments and the token in the lock, so no restart is under way (its
+  fragment would meet the lock's) and none can start (its token would). `replica.specPin`, `restart`,
+  `startNew` and `StartCluster` handle the new disjunct. `Run.spec` returns the crasher's token: the
+  crashes' goroutine gives it back through the wait group (`sync.join`'s resource).
+- **The allocation** `StartCluster.spec` takes is `Run`'s (`Alloc.lean`, `kd_alloc`: raft's
+  `cluster_alloc` with no bootstrap log, `confPolicy`, the store's invariant with the read sequences
+  of `freshIds 0`, the snapshot registry, the writer variables, the empty map of the current
+  incarnations, the crasher's token, the client's `rkvVal γ kvEmpty`); `Main` allocates the storage
+  registry and the files' invariant (`durableFiles_alloc`, the nine files claimed absent:
+  `Main.spec`'s premise, the Go comment's "`dir` holds none of the replicas' files").
+- **Link**: `etc/gen-link.py --kvdurable` now also resolves lintest's and porcupine's `@`s, imports
+  gokv's `ResolveBytes` and assumes `NaInvG` (as `--kvreconf`).
+
 ## kvdurable: restart, Crash, StartCluster (2026-11-01, branch `worktree-agent-kvd-restart`)
 
 `Cluster.restart`, `Cluster.Crash` and `StartCluster` proved and linked, with no new `sorry` or axiom;

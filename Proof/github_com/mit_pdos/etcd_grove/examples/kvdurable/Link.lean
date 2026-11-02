@@ -12,12 +12,22 @@ public import Proof.context.WithTimeoutBackground
 public import Proof.github_com.mit_pdos.etcd_grove.examples.durable.Read
 public import Proof.github_com.mit_pdos.etcd_grove.examples.durable.Write
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__Crash
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__Disrupt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__Get
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__Put
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__Read
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__Reconfigure
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__Stop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__all
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__config
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__deliver
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__do
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__dropped
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__fileOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__random
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__randomChange
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__randomID
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__randomMember
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__replica
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__restart
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__send
@@ -26,13 +36,20 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__s
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__startNew
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__step
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Cluster__tick
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Gen
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Model
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.RandomConfig
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.RandomOptions
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__answer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__applyConf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__applyEntry
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__applyOp
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__conf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__crash
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__install
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__persist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__propose
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__read
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__request
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__run
@@ -40,6 +57,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__s
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__snapshotter
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__stop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Replica__ticker
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Run
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.StartCluster
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Stats__add
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage__Append
@@ -52,6 +70,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage__S
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage__encode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage__snapIndex
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.below
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.copyMap
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.copyMsg
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.decode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.decodeReadCtx
@@ -65,6 +84,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.getIDs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.getMap
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.getSnapshot
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.getUint64
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.hashMap
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.hashString
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.image__append
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.image__applySnapshot
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.image__compact
@@ -75,6 +96,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.newReplica
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.newStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.oneIn
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.openStorage
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.pick
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.putBytes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.putEntry
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.putIDs
@@ -90,8 +112,11 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.readSeqs__
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.sleep
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.sortStrings
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.validConf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.within
 public import Proof.go_etcd_io.raft.v3.Linked
 public import Perennial.Proof.time.Link
+public import Proof.github_com.mit_pdos.gokv.trusted_proph.ResolveBytes
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Link
 public import Proof.go_etcd_io.raft.v3.Link
 
 @[expose] public section
@@ -101,7 +126,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.kvdurable go_etcd_io.raft.v3
+open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.kvdurable go_etcd_io.raft.v3 github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine
 
 section links
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -109,6 +134,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvdurable.Assumptions]
+variable [NaInvG GF]
 variable [HasExt durableExt] [go.IntoValInj GoString]
 
 attribute [local instance] kvdurable.kdStorageModel
@@ -131,6 +157,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvdurable.Assumptions]
+variable [NaInvG GF]
 variable [HasExt durableExt] [go.IntoValInj GoString]
 
 attribute [local instance] kvdurable.kdStorageModel
@@ -439,13 +466,37 @@ theorem kvdurable.Cluster.wp_Crash [AllG GF] [KdStor GF] :
     kvdurable.Cluster.Crash.spec (GF := GF) (hG := hG) :=
   kvdurable.Cluster.Crash.wp_proof kvdurable.wp_sleep kvdurable.Cluster.wp_random kvdurable.Cluster.wp_restart
 
-theorem kvdurable.Cluster.wp_startNew [AllG GF] [KdStor GF] :
-    kvdurable.Cluster.startNew.spec (GF := GF) (hG := hG) :=
-  kvdurable.Cluster.startNew.wp_proof kvdurable.Cluster.wp_start kvdurable.Stats.wp_add
+theorem kvdurable.Cluster.wp_Disrupt [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.Disrupt.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.Disrupt.wp_proof kvdurable.wp_sleep kvdurable.Cluster.wp_random kvdurable.wp_below node.wp_TransferLeadership node.wp_Campaign node.wp_ForgetLeader node.wp_Status context.wp_WithTimeoutBackground
 
 theorem kvdurable.wp_encode :
     kvdurable.encode.spec (GF := GF) (hG := hG) :=
   kvdurable.encode.wp_proof
+
+theorem kvdurable.Replica.wp_conf [AllG GF] [KdStor GF] :
+    kvdurable.Replica.conf.spec (GF := GF) (hG := hG) :=
+  kvdurable.Replica.conf.wp_proof
+
+theorem kvdurable.Cluster.wp_randomMember [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.randomMember.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.randomMember.wp_proof kvdurable.Cluster.wp_random kvdurable.Cluster.wp_replica kvdurable.Replica.wp_conf kvdurable.wp_below kvdurable.wp_oneIn raftpb.ConfState.wp_GetVoters raftpb.ConfState.wp_GetLearners
+
+theorem kvdurable.Replica.wp_propose [AllG GF] [KdStor GF] :
+    kvdurable.Replica.propose.spec (GF := GF) (hG := hG) :=
+  kvdurable.Replica.propose.wp_proof node.wp_Propose context.wp_WithTimeoutBackground
+
+theorem kvdurable.Cluster.wp_do [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.do.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.do.wp_proof kvdurable.wp_encode kvdurable.Cluster.wp_randomMember kvdurable.Replica.wp_propose kvdurable.Stats.wp_add
+
+theorem kvdurable.Cluster.wp_Get [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.Get.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.Get.wp_proof kvdurable.Cluster.wp_do
+
+theorem kvdurable.Cluster.wp_Put [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.Put.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.Put.wp_proof kvdurable.Cluster.wp_do
 
 theorem kvdurable.wp_readCtx :
     kvdurable.readCtx.spec (GF := GF) (hG := hG) :=
@@ -459,9 +510,81 @@ theorem kvdurable.Replica.wp_read [AllG GF] [KdStor GF] :
     kvdurable.Replica.read.spec (GF := GF) (hG := hG) :=
   kvdurable.Replica.read.wp_proof kvdurable.wp_readCtx kvdurable.readSeqs.wp_next node.wp_ReadIndex context.wp_WithTimeoutBackground
 
+theorem kvdurable.Cluster.wp_Read [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.Read.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.Read.wp_proof kvdurable.Cluster.wp_randomMember kvdurable.Replica.wp_read kvdurable.Stats.wp_add _root_.Perennial.github_com.mit_pdos.gokv.trusted_proph.ResolveBytes.wp_proof
+
+theorem kvdurable.Cluster.wp_startNew [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.startNew.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.startNew.wp_proof kvdurable.Cluster.wp_start kvdurable.Stats.wp_add
+
+theorem kvdurable.wp_pick [AllG GF] [KdStor GF] :
+    kvdurable.pick.spec (GF := GF) (hG := hG) :=
+  kvdurable.pick.wp_proof kvdurable.wp_below
+
+theorem kvdurable.Cluster.wp_randomID [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.randomID.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.randomID.wp_proof kvdurable.Cluster.wp_random kvdurable.Cluster.wp_startNew kvdurable.wp_oneIn kvdurable.wp_pick raftpb.ConfState.wp_GetVoters raftpb.ConfState.wp_GetVotersOutgoing raftpb.ConfState.wp_GetLearners
+
+theorem kvdurable.Cluster.wp_randomChange [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.randomChange.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.randomChange.wp_proof kvdurable.Cluster.wp_random kvdurable.Cluster.wp_randomID kvdurable.Replica.wp_conf kvdurable.wp_below kvdurable.wp_oneIn raftpb.ConfChangeType.wp_Enum raftpb.ConfChangeTransition.wp_Enum
+
+theorem kvdurable.Cluster.wp_Reconfigure [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.Reconfigure.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.Reconfigure.wp_proof kvdurable.wp_sleep kvdurable.Cluster.wp_randomChange kvdurable.Cluster.wp_random kvdurable.Stats.wp_add node.wp_ProposeConfChange context.wp_WithTimeoutBackground
+
+theorem kvdurable.Cluster.wp_allStop [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.all.specStop (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.all.wp_proofStop
+
+theorem kvdurable.Cluster.wp_Stop [AllG GF] [KdStor GF] :
+    kvdurable.Cluster.Stop.spec (GF := GF) (hG := hG) :=
+  kvdurable.Cluster.Stop.wp_proof kvdurable.Cluster.wp_allStop kvdurable.Replica.wp_stop
+
+theorem kvdurable.wp_Gen :
+    kvdurable.Gen.spec (GF := GF) (hG := hG) :=
+  kvdurable.Gen.wp_proof
+
+theorem kvdurable.wp_RandomOptions :
+    kvdurable.RandomOptions.spec (GF := GF) (hG := hG) :=
+  kvdurable.RandomOptions.wp_proof kvdurable.wp_below kvdurable.wp_oneIn
+
+theorem kvdurable.wp_RandomConfig :
+    kvdurable.RandomConfig.spec (GF := GF) (hG := hG) :=
+  kvdurable.RandomConfig.wp_proof kvdurable.wp_RandomOptions kvdurable.wp_below
+
 theorem kvdurable.wp_StartCluster [AllG GF] [KdStor GF] :
     kvdurable.StartCluster.spec (GF := GF) (hG := hG) :=
   kvdurable.StartCluster.wp_proof kvdurable.Cluster.wp_start kvdurable.Stats.wp_add
+
+theorem kvdurable.wp_copyMap :
+    kvdurable.copyMap.spec (GF := GF) (hG := hG) :=
+  kvdurable.copyMap.wp_proof
+
+theorem kvdurable.wp_within :
+    kvdurable.within.spec (GF := GF) (hG := hG) :=
+  kvdurable.within.wp_proof
+
+theorem kvdurable.wp_hashString :
+    kvdurable.hashString.spec (GF := GF) (hG := hG) :=
+  kvdurable.hashString.wp_proof
+
+theorem kvdurable.wp_hashMap :
+    kvdurable.hashMap.spec (GF := GF) (hG := hG) :=
+  kvdurable.hashMap.wp_proof kvdurable.wp_hashString
+
+theorem kvdurable.wp_Model :
+    kvdurable.Model.spec (GF := GF) (hG := hG) :=
+  kvdurable.Model.wp_proof kvdurable.wp_copyMap kvdurable.wp_within kvdurable.wp_hashMap
+
+theorem kvdurable.wp_Run [AllG GF] [KdStor GF] :
+    kvdurable.Run.spec (GF := GF) (hG := hG) :=
+  kvdurable.Run.wp_proof kvdurable.wp_StartCluster kvdurable.Cluster.wp_Reconfigure kvdurable.Cluster.wp_Disrupt kvdurable.Cluster.wp_Crash kvdurable.Cluster.wp_Put kvdurable.Cluster.wp_Get kvdurable.Cluster.wp_Read kvdurable.wp_Model kvdurable.wp_Gen lintest.wp_Run
+
+theorem kvdurable.wp_Main :
+    kvdurable.Main.spec (GF := GF) (hG := hG) :=
+  kvdurable.Main.wp_proof kvdurable.wp_RandomConfig lintest.wp_CounterClock kvdurable.wp_Run kvdurable.Cluster.wp_Stop
 
 end links_hasLC
 

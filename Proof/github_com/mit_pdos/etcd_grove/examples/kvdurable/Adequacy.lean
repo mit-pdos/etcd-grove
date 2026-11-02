@@ -1,0 +1,135 @@
+/- Lean-first (no Rocq counterpart).
+
+# Adequacy of the durable store's linearizability test (2026-11-01)
+
+kvreconf's `Adequacy.lean` for `examples/kvdurable`: a closed theorem about the operational semantics
+of `Main(dir)` (`examples/kvdurable/check.go`), with no Iris in its statement: the program
+`initialize'(); Main(dir)` -- the store package's initialization (which initializes its
+dependencies, raft, lintest, porcupine, `context` and `durable` among them, then the package)
+followed by `Main` -- started from a fresh state (no package initialized, one thread) whose files
+(the durable-state extension's, `extLocal durableExt σ.world`) hold none of the replicas' files in
+`dir` (`kdFileName dir i` for the ids `1 … 9`), for every real execution of fewer than `2^63` steps,
+never gets stuck, no thread of it ends in a panic, and the main thread's result, if it has one, is
+`#()`.
+
+`Main` starts a cluster of random options, runs the randomized linearizability test `Run(cfg,
+lintest.CounterClock(), dir)` -- random `Put`/`Get`/`Read` traffic from 4 clients of 100 operations,
+traced with a counter clock, while one to three proposers change the configuration, leadership is
+disrupted, and replicas crash at random and restart from their files (every durability choice raft
+leaves the application made at random) -- panics unless porcupine answers `Ok`, then stops the
+cluster. So no panic means porcupine never rejects the store's trace, across crashes and restarts.
+
+It follows from Perennial's `goose_adequacy` through `examples/common/DurableExt.lean`'s
+`durable_init_adequate` (`init_adequate` with the extensions' start resources: the program owns its
+initial files, `durableOwn`), at the extension list `[durableExt]` and its ghost-state bundle
+`durableGF` (kvreconf's `kvrGF` with the extension's ghost variable in the universal camera, and
+iris-lean's non-atomic invariants `NaInvG` at slot 11, which porcupine's results take), the bounds
+`N = n + 1` (time receipts) and `T = n + 2` (threads), the package initialization (`Init.lean`, at
+the program's table `PkgTable.lean`, both generated; `context`'s `isClosedchanInit` from `context`'s
+`isPkgInit`) and `Main`'s spec. This file proves it from `Main.spec` as a hypothesis
+(`kvdurable_adequate_of`); `AdequacyLinked.lean` applies it to the linked result `kvdurable.wp_Main`
+(`Link.lean`).
+
+- **The length bound.** `Main.spec` takes `receiptBound GF ≤ 2^63` (the counter clock does not
+  wrap; raft's step bound `2^64 - 2` holds), and `goose_adequacy`'s receipt bound `N` must exceed
+  the execution's length `n`: `N = n + 1 ≤ 2^63`, so the theorem is about executions of
+  `n < 2^63` steps.
+- **No crash of the node.** The semantics' crashes (`ExtSemantics.crash`: the whole node's) are not
+  taken by `goose_adequacy`; the program's crashes are its own (a replica's incarnation abandoned and
+  restarted from its file, `Cluster.Crash`), which the theorem covers.
+- **The Go semantics** is a parameter, as in every Perennial result: `GoGlobalContext`,
+  `GoLocalContext`, `go.Semantics`, the package assumptions `kvdurable.Assumptions` (every name's
+  translated body or Perennial's trusted model, the struct layouts, recursively for the imports,
+  raft's and `durable`'s among them: `durable`'s `Read`/`Write` are the extension's operations), and
+  raft's initialization premise: the model of `log.New` (`log.NewModel`).
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.DurableExt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvdurable.PkgTable
+public import Spec.github_com.mit_pdos.etcd_grove.examples.kvdurable.Main
+public import Proof.runtime.Threads
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+
+attribute [local instance] durableExts durableExtsSemantics durableExtsInterp durableExts_hasExt
+
+section adequacy
+variable [go_gctx : GoGlobalContext]
+
+/-- `Main`'s spec at `durableGF`, for every `HeapGS` (hence every local context), every semantics
+and every package assumptions: what `Main.wp_proof` gives, the hypothesis of
+`kvdurable_adequate_of`. -/
+abbrev kdMainSpec : Prop :=
+  ∀ [hG : HeapGS HasLC.hasLC durableGF] [go.Semantics]
+    [github_com.mit_pdos.etcd_grove.examples.kvdurable.Assumptions],
+    kvdurable.Main.spec (GF := durableGF) (hG := hG)
+
+/-- The store's program, its replicas' files in `dir`: the package's initialization, then
+`Main(dir)`. -/
+def kvdurableProgram [GoSemanticsFunctions] (dir : GoString) : Expr :=
+  github_com.mit_pdos.etcd_grove.examples.kvdurable.initialize' #() ;;
+  (@! github_com.mit_pdos.etcd_grove.examples.kvdurable.Main) #dir
+
+/-- **Porcupine never rejects the durable store's trace**, from `Main`'s spec (`wp_Main`, at every
+`HeapGS` of `durableGF` and every semantics): every real execution of `kvdurableProgram dir` (the
+store package's initialization, then `Main(dir)`) from a fresh state -- no package initialized
+(`IsInit`), one live thread, and none of the replicas' files in `dir` among its files -- of
+`n < 2^63` steps: if the main thread has finished, its result is `#()`; no thread is stuck (each is
+a value or can step); no thread has ended in a panic. `Main` panics unless porcupine answers `Ok` on
+the trace of the randomized test against a cluster of random options under configuration changes,
+leadership disruptions and crashes with restarts from the files (see the file header), so porcupine
+answered `Ok` in every interleaving and every choice of the scheduler.
+
+Parametric in the Go semantics: any `go.Semantics` at the state's local context, any package
+assumptions (the translated bodies behind the store's and its imports' names) and the model of
+`log.New`. -/
+theorem kvdurable_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.kvdurable.Assumptions]
+    [hLog : log.NewModel]
+    (wp_Main : kdMainSpec) (dir : GoString)
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hthreads : σ.threads = 1)
+    (Hfiles : ∀ i ∈ kvreconf.allIds,
+      extLocal durableExt σ.world !! kvdurable.kdFileName dir i = none)
+    (n : Nat) (Hn : n < 2 ^ 63) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([kvdurableProgram dir], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+  refine durable_init_adequate (GF := durableGF)
+    github_com.mit_pdos.etcd_grove.examples.kvdurable.initialize'
+    ((@! github_com.mit_pdos.etcd_grove.examples.kvdurable.Main) #dir)
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g Hlctx Hinit Hthreads n κs t2
+    σ2 Hsteps fun hG HN _ => ?_
+  letI : HeapGS .hasLC durableGF := heapWith hG lctx
+  have Hbound : receiptBound durableGF ≤ 2 ^ 63 := by rw [HN]; omega
+  unfold progOkS
+  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.kvdurable.wp_initialize' _
+    github_com.mit_pdos.etcd_grove.examples.kvdurable.getIsPkgInit_wf, ?_⟩
+  iintro #Hpkg - Hown
+  ihave #Hcc : context.isClosedchanInit (GF := durableGF) $$ []
+  · iapply context.isClosedchanInit_of_init
+    iPkgInit
+  wp_apply (wp_Main dir _ Hbound Hfiles) $$ [Hpkg Hcc Hown]
+  · iframe #
+    iexact Hown
+  ipureintro
+  rfl
+
+end adequacy
+
+end EtcdGrove
+end Perennial
+
+#print axioms Perennial.EtcdGrove.kvdurable_adequate_of
