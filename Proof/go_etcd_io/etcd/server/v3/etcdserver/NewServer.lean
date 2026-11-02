@@ -1615,6 +1615,18 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       iapply kbWTSupplyM_of_cmpStock
       iexact Hst
   imod HSup with HSup
+  -- (K7) the lease service's server facts: the peers' round tripper, the lessor's reader side
+  ipersist peerRt
+  ihave #HpeerRt : srvPeerRt s $$ []
+  · iunfold srvPeerRt
+    iexists _
+    iframe peerRt
+    ipureintro; exact Hprt
+  ihave #HlessRd : srvLessorRd s γw.st.leases $$ []
+  · iunfold srvLessorRd
+    iexists lp
+    iframe lessor
+    rw [Hγw.2.1]; iexact Hlinv
   imodintro
   wp_auto
   iapply HΦ
@@ -1627,7 +1639,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
   iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
-  iframe HLnil HBF ClientCertAuthEnabledS
+  iframe HLnil HBF ClientCertAuthEnabledS HpeerRt HlessRd
   isplitr
   · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2⟩
   isplitr
@@ -1647,7 +1659,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe #
     isplitr
     · ipureintro; exact Hlgnn
-    ipureintro; exact ⟨⟨rfl, rfl⟩, rfl, rfl, d.γB, _, rfl, rfl, ({ d with cm := cmp } : mvcc.KBReal), alst, astl, lp, Hγw.2.2.1, rfl, rfl,
+    ipureintro; exact ⟨⟨rfl, rfl⟩, by show γw.st.cm = _; rw [Hcmw]; first | rfl | exact Hcmp0 | exact Hcmp0.symm,
+      rfl, rfl, d.γB, _, rfl, rfl, ({ d with cm := cmp } : mvcc.KBReal), alst, astl, lp, Hγw.2.2.1, rfl, rfl,
       Hcmp0.symm⟩
   isplitr
   · -- `#Hreqb`
@@ -2431,7 +2444,7 @@ theorem NewServer.wp_proof
   iintro !> %srv %err Hpost
   iapply HΦ
   icases Hpost with (Hl | ⟨%He, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %H1, H2, H3, H4, H5, H6, H7,
-    H8, H9, H10, H11, H12, -⟩)
+    H8, H9, H10, H11, H12, -, -, -, #H13, #H14⟩)
   · ileft; iexact Hl
   iright
   isplitr
@@ -2439,7 +2452,7 @@ theorem NewServer.wp_proof
   iexists γA, ci, TM, E, γrn, b, γk, τ
   isplitr
   · ipureintro; exact ⟨H1.1, H1.2.1⟩
-  iframe H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12
+  iframe H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
 
 
 

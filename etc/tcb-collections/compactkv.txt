@@ -1,5 +1,6 @@
 # The client's `kv.Compact` (2026-11-01): examples/compactkv (putgetc under compaction pressure:
-# five rounds of a Put of the round's key, a client Compact at the revision before it and a Get),
+# five rounds of a Put of the round's key, a client Compact at the revision before it and a Get;
+# since W4 of watches across a compaction, a watch from revision 2 after the rounds),
 # `compactkv_Main` and the closed theorem `compactkv_safe`, in
 # Proof/github_com/mit_pdos/etcd_grove/examples/compactkv/Results.lean.
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/compactkv/Results\.lean$
@@ -325,6 +326,7 @@ axiom context.ErrAny.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelBackground.wp_proof
 axiom context.WithCancelTodo.wp_proof
+axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
 axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
@@ -336,6 +338,7 @@ axiom errors.IsStatusErr.wp_proof
 axiom etcdResolverOwn
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
+axiom etcd_noRefusal
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom fmt.Errorf.wp_proof
@@ -347,8 +350,16 @@ axiom goose_adequacy_start
 axiom grpc.ChainStreamInterceptor.wp_proof
 axiom grpc.ChainUnaryInterceptor.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
+axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.CustomCodec.wp_proof
+axiom grpc.GenericClientStream.CloseSend.wp_proof
+axiom grpc.GenericClientStream.Context.wp_proof
+axiom grpc.GenericClientStream.Recv.wp_proof
+axiom grpc.GenericClientStream.Send.wp_proof
+axiom grpc.GenericServerStream.Context.wp_proof
+axiom grpc.GenericServerStream.Recv.wp_proof
+axiom grpc.GenericServerStream.Send.wp_proof
 axiom grpc.KeepaliveEnforcementPolicy.wp_proof
 axiom grpc.MaxConcurrentStreams.wp_proof
 axiom grpc.MaxRecvMsgSize.wp_proof
@@ -367,6 +378,7 @@ axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof
 axiom grpc.WithUnaryInterceptor.wp_proof
 axiom grpc.serve
+axiom grpc.serveStream
 axiom grpc.start
 axiom grpcConn
 axiom grpcConn_persistent
@@ -380,6 +392,7 @@ axiom grpcServeTok
 axiom grpcServerAt
 axiom grpcServes
 axiom grpcServesStream
+axiom grpcServesStream_persistent
 axiom grpcServes_persistent
 axiom grpcSrvNew
 axiom grpcSrvOpt
@@ -439,6 +452,7 @@ axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
 axiom monitorFileDescriptor.wp_proof
+axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
@@ -495,6 +509,7 @@ axiom rafthttp.newStreamRoundTripper.wp_proof
 axiom rafthttp.waitSchedule.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
 axiom raftpb.MessageType.String.wp_proof
+axiom rand.Int63n.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
@@ -533,6 +548,7 @@ axiom storage.OpenBackend.wp_proof
 axiom storage.storage.Release.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
+axiom streamKeyFromCtx.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.TrimSuffix.wp_proof
 axiom swMsgBound_phys
@@ -568,6 +584,7 @@ axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
+axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
@@ -593,7 +610,6 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
-sorry etcdserver.restorePre_of_apply
 sorry mergedCreate_window
 sorry merged_image
 sorry run_job_snap_cmp

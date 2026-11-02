@@ -67,4 +67,12 @@ func TestCompactKV(t *testing.T) {
 	if err != nil || len(r.Kvs) != 0 {
 		t.Fatalf("read of the last key before its round: %v, %v", r, err)
 	}
+	// a watch from revision 2, below the compactions, ends with ErrCompacted (as Main's)
+	wctx, wcancel := context.WithCancel(context.Background())
+	defer wcancel()
+	wresp := <-cli.Watch(wctx, last, clientv3.WithRev(2))
+	if !errors.Is(wresp.Err(), rpctypes.ErrCompacted) || wresp.CompactRevision == 0 {
+		t.Fatalf("watch from revision 2: %v (compact revision %d), want ErrCompacted",
+			wresp.Err(), wresp.CompactRevision)
+	}
 }

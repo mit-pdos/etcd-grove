@@ -24,6 +24,10 @@ const pageSize = 4096
 // minMmapSize is db.mmapSize's smallest mapping, 32 KiB.
 const minMmapSize = 1 << 15
 
+// maxMapSize is minibolt's largest mapping and file, 1 GiB (bbolt's maxMapSize is larger on
+// 64-bit platforms; mmapSize below assumes this bound).
+const maxMapSize = 1 << 30
+
 const flockRetryTimeout = 50 * time.Millisecond
 
 // flock is bolt_unix.go's flock with Options.Timeout 0: LOCK_NB with LOCK_EX

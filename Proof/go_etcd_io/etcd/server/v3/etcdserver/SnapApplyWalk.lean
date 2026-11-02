@@ -342,7 +342,15 @@ theorem applySnapshot_walk
   -- (M2's apply side, A1) the old store's compaction resources are not needed again (no restore in
   -- compaction mode, Q5-3)
   icases HaKV with ⟨%up, %Hup, HuOwn, HkvOwn, -⟩
-  ihave Hrp := etcdserver.restorePre_of_apply s E x.log hwq $$ [$HkvOwn $Hkvc]
+  -- the store's mode off (`srvEnvOk`): its frozen fact for `Restore`
+  ihave #Hsrv2 := Hsrv
+  iunfold isServer at Hsrv2
+  icases Hsrv2 with ⟨-, -, ⟨%sfv2, #Hfl2⟩, -, -⟩
+  iunfold srvFieldsAt at Hfl2
+  icases Hfl2 with ⟨-, -, -, -, -, %Henv0, -⟩
+  have hγcm : E.γ.cm = false :=
+    (srvEnvOk_cm s γ ci E sfv2.cluster Henv0).trans (srvEnvOk_off s γ ci E sfv2.cluster d Henv0 hkb hcm)
+  ihave Hrp := etcdserver.restorePre_of_apply s E x.log hwq hγcm $$ [$HkvOwn $Hkvc]
   icases Hrp with ⟨%ws, %γw, %Hγw, #Hws, Hscl, Hfrag, HwOwn, #Hfrz, HwW, ⟨HsRd, HlLive, HERD⟩, ⟨%wsk, %stck, #Hkvfk, #Hstck, Hstclk, Hwswk⟩⟩
   icombine Hkvf Hkvfk gives %Hwk
   have Hwkl : wsk = wsl := by simp at Hwk; exact GoGlobalContext.intoVal_inj_loc Hwk.symm

@@ -256,7 +256,7 @@ theorem srv_be_swapR (s : Loc) (E : apply.AEnv GF) (γp : GName) (d' : mvcc.KBRe
 backend at the server's mode (`d.cm = E.cmp`) in place of `d.cm = false` (Q5-4's restriction,
 withdrawn: restore works in compaction mode). -/
 def srvEnvOkD (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
-  E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
+  E.γ.cm = E.cmp ∧ E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
     ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH γB cl H ∧ E.RW = srvRestRWH γB H ∧
       ∃ (d : mvcc.KBReal) (al st lp : Loc), E.γ.kb = some d ∧ d.γB = γB ∧
         H = srvObjsOn al st lp cl d.be ∧ d.cm = E.cmp

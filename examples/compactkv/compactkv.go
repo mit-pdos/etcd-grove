@@ -7,7 +7,9 @@
 // returns that Put's value. Main panics if a check fails; the theorem to prove is that it does not,
 // whatever the compactions (the client's and the auto-compactor's, racing) did meanwhile: a latest
 // read is never compacted, and a read at an old revision returns the store at that revision or fails
-// (ErrCompacted, once a compaction passed it), never another value.
+// (ErrCompacted, once a compaction passed it), never another value. After the rounds, a watch of
+// the last round's key from revision 2 (compacted) ends with ErrCompacted or sees only the rounds'
+// values.
 //
 // The explicit compactions are what a test sees: the revision compactor polls every five minutes
 // (v3compactor's revInterval), so in a run of Main it never fires, and putgetc's test compacts
@@ -101,5 +103,23 @@ func Main() {
 		}
 		prevKey = k
 		prevRev = presp.Header.Revision
+	}
+	// A watch of the last round's key from revision 2, below the rounds' compactions: in a run its
+	// first response is the compaction's (ErrCompacted), which ends it without a check; a watch
+	// that sees events (no compaction passed revision 2: every compaction failed) sees only the
+	// rounds' Puts, each of value.
+	if prevRev == 0 {
+		return
+	}
+	wctx, wcancel := context.WithCancel(context.Background())
+	wch := cli.Watcher.Watch(wctx, prevKey, clientv3.WithRev(2))
+	evs, ok := common.Collect(wch, prevRev)
+	wcancel()
+	if ok {
+		for _, e := range evs {
+			if e.Val != value {
+				panic("compactkv: the watch saw another value")
+			}
+		}
 	}
 }

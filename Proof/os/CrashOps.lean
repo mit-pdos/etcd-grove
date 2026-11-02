@@ -150,11 +150,11 @@ shows a crash of `Good`; on failure, its `ok` is lost. -/
 theorem wp_osFsync_cf (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (γ : GName)
     (Good : Option OsFile → Prop) (m : OsMeta) (bs : List (w8 × Bool))
     (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N)
-    (hok : CrashOk Good (some (m.synced, syncedBytes m bs, none))) (Φ : val → IProp GF) :
+    (hok : CrashOk Good (some (m.synced 0 bs, syncedBytes m bs, none))) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ cfInv (L := L) N d.path γ Good -∗ osFd (L := L) fd dq d -∗
       cfOwn (L := L) d.path γ (some (m, bs, none)) -∗
       (∀ e : w64,
-        ((⌜e = 0⌝ ∗ cfOwn (L := L) d.path γ (some (m.synced, syncedBytes m bs, none))) ∨
+        ((⌜e = 0⌝ ∗ cfOwn (L := L) d.path γ (some (m.synced 0 bs, syncedBytes m bs, none))) ∨
          (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗ cfOwn (L := L) d.path γ (some ({ m with ok := false }, bs, none)))) -∗
         osFd (L := L) fd dq d -∗ Φ (#e)) -∗
       WP (ExternalOp osFsExt.name "Fsync" (Val (#fd))) {{ Φ }} := by
@@ -180,10 +180,10 @@ theorem wp_osFsync_cf (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (γ : G
   icases Hres with (⟨%he, Hm, Hb⟩ | ⟨%he, Hm, Hb⟩)
   · icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
     icases (osBytes_halves _ _ _).1 $$ Hb with ⟨Hb1, Hb2⟩
-    imod ghostVar_update_halves (some (m.synced, syncedBytes m bs, none)) γ _ _ $$ Hv Hv'
+    imod ghostVar_update_halves (some (m.synced 0 bs, syncedBytes m bs, none)) γ _ _ $$ Hv Hv'
       with ⟨Hv, Hv'⟩
     imod Hclose $$ [Hv' Hm2 Hb2] with -
-    · inext; iexists (some (m.synced, syncedBytes m bs, none)); iframe Hv'
+    · inext; iexists (some (m.synced 0 bs, syncedBytes m bs, none)); iframe Hv'
       isplitl; · iapply (invRes_idle _ _ _).2; iframe
       ipureintro; exact hok
     imodintro

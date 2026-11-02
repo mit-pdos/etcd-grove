@@ -17,6 +17,7 @@ token).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseCheck
+public import Code.net.http
 
 @[expose] public section
 
@@ -47,6 +48,18 @@ def srvHeaderFacts (s : Loc) (cid mid : w64) : IProp GF :=
 instance srvHeaderFacts_persistent (s : Loc) (cid mid : w64) :
     Persistent (srvHeaderFacts (GF := GF) s cid mid) := by
   unfold srvHeaderFacts; infer_instance
+
+/-- **The server's peer round tripper** (persistent; the keep-alive stage, 2026-11-01): its
+`peerRt` field (set by `NewServer` from `bootstrap`'s `prt` and never written again) a
+`*http.Transport` (what `rafthttp.NewRoundTripper` returns), which `LeaseRenew` forwards a
+follower's renewal through. -/
+def srvPeerRt (s : Loc) : IProp GF :=
+  iprop(∃ (rt : GoInterface), structFieldRef EtcdServer go!"peerRt" s ↦□ rt ∗
+    ⌜∃ t : Loc,
+      rt = GoInterface.ok ⟨go.GoType.PointerType _root_.Perennial.net.http.Transport.ty, #t⟩⌝)
+
+instance srvPeerRt_persistent (s : Loc) : Persistent (srvPeerRt (GF := GF) s) := by
+  unfold srvPeerRt; infer_instance
 
 /-- **`newHeader()`'s header `h`** (owned): the cluster's id `cid`, the member's `mid`, the
 revision the last of a certified log (`newHeader.spec`'s post). -/

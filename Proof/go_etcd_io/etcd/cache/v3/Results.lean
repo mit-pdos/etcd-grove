@@ -243,9 +243,7 @@ theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
         go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #pw) ∈ sregs)
     -- (W3) the watch contract at the server's model
     (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E) (hWL : V.WL = client.srvWL V.R)
-    -- (M2, the storage side, review round 2's N1, the approval's item 13) the server off: its store
-    -- does not compact, so its watchers' create requests carry the "no compactor" fact
-    (hoff : V.R.E.γ.cm = false) (Hrf : grpcRepliesFit) :
+    (Hrf : grpcRepliesFit) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
@@ -262,11 +260,15 @@ theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
         v3rpc.isWatchServer pw V.R ∗ srvStreamInterceptorOk ims iprop(True) ∗
         srvStreamInterceptorOk is iprop(True) ∗
         ([∗list] _x ∈ List.replicate nw (), v3rpc.watchRunSlot V.R) ∗
-        client.srvKVFacts V ∗ client.eofOk ⊢
+        client.srvKVFacts V ∗ client.eofOk ∗
+        -- (watches across a compaction, 2026-11-01; until then `hoff : V.R.E.γ.cm = false`) the
+        -- store's fact for watches: it does not compact (`isWatchServer_watchNoDup_env`), or no
+        -- revision writes a key twice
+        mvcc.watchNoDup V.R.E.γ ⊢
       |={⊤}=> grpcServeTok gs lis ∗
         client.kvRegs (client.srvsAt [addr] E γr cid mid) ∗ watchAddrFacts V := by
   iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots,
-    #Hws, #Hims, #His, Hwslots, #Hkf, #Heof⟩
+    #Hws, #Hims, #His, Hwslots, #Hkf, #Heof, #HwnD⟩
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs N
     hregs Hrf hrd) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
   · iframe; iframe #
@@ -275,7 +277,8 @@ theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
   · iframe; iframe #
   ihave %Hlink := client.watchSrvLink_of_server pw V.R $$ Hws
   ihave #Htok := client.watchTokPool_of_server pw V.R $$ Hws
-  ihave #Hnc := v3rpc.isWatchServer_watchNoDup_env pw V.R hoff $$ Hws
+  ihave #Hnc : mvcc.watchNoDup V.R.γ.st $$ []
+  · rw [Hlink]; iexact HwnD
   ihave #Hsm : client.srvLogsSmall V.R $$ []
   · iapply client.srvLogsSmall_of_read V.R s γr Hlink
     rw [hE]; iexact Hsrd

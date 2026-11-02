@@ -52,25 +52,33 @@ theorem v3rpc.NewLeaseServer.wp_proof
   iunfold v3rpc.hdrValIs at Hhv
   icases Hhv with ⟨%Hhv, #HrevS, #Hrs⟩
   obtain ⟨Hc, Hm, Hsg⟩ := Hhv
-  ihave #Hat : v3rpc.leaseServerAt «$r0_ptr» s A cid mid $$ []
-  · iunfold v3rpc.leaseServerAt
-    iunfold v3rpc.hdrIs
-    iframe #
-    rw [Hc, Hm, Hsg]
-    iframe #
-    ipureintro; exact Hpn
-  wp_if_destruct
-  · wp_apply hNop as %l -
+  iapply wp_fupd
+  wp_join iprop(srv_ptr ↦ «$r0_ptr» ∗ ∃ lg : Loc, ⌜lg ≠ null⌝ ∗
+      typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer go!"lg"
+        «$r0_ptr») lg (DFrac.own 1)) with [lg srv]
+    as ⟨srv, %lg, %Hlg, lgf⟩
+  · wp_apply hNop as %l %Hl
     (try wp_auto)
-    iapply HΦ
-    iexists «$r0_ptr», cid, mid
-    iframe #
-    ipureintro; rfl
-  · (try wp_auto)
-    iapply HΦ
-    iexists «$r0_ptr», cid, mid
-    iframe #
-    ipureintro; rfl
+    wp_join_done
+    iframe
+    ipureintro; exact Hl
+  · iframe
+    ipureintro; exact Hif
+  (try wp_auto)
+  ipersist lgf
+  imodintro
+  iapply HΦ
+  iexists «$r0_ptr», cid, mid
+  isplitr
+  · ipureintro; rfl
+  iunfold v3rpc.leaseServerAt
+  iunfold v3rpc.hdrIs
+  iframe #
+  rw [Hc, Hm, Hsg]
+  iframe #
+  isplitr
+  · ipureintro; exact Hpn
+  ipureintro; exact Hlg
 
 end proof
 

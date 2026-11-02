@@ -2,7 +2,7 @@
 **etcd's server, started for authkv** (2026-10-30). Lean-first (no Rocq counterpart).
 
 `ak_served_kv`: the ghost step between `net.Listen` and `go gs.Serve(l)` with auth on, watchkv's
-`wk_served` without the watch: from `v3rpc.Server`'s postcondition (`grpcUpOn`), the member's
+`watchkv.wk_served_nd` without the watch: from `v3rpc.Server`'s postcondition (`grpcUpOn`), the member's
 started facts (`memberUpOn`'s `srvAuthStoreOn`: the store's cost field and `Authenticate` side), the listener and the run slots, the right to serve,
 etcd's KV methods with auth on at the address (`akKVOn`), the five Auth admin methods
 (`setupAuthServed`) and `Authenticate` (`etcd_kv_auth_served_on`). `ak_served_watch`: its watch
@@ -116,7 +116,7 @@ theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
 
 
 /-- **etcd's server, started for authkv: its watch service** (see the file header): watchkv's
-`wk_served`'s watch half, with the members' KV facts from the read view with auth on. -/
+`wk_served_nd`'s watch half, with the members' KV facts from the read view with auth on. -/
 theorem ak_served_watch [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     (V : client.WEnv GF) (addr : GoString) (pw s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (ims is : GoFunc) (sregs : List (GoString × val × GoInterface)) (nw : Nat)

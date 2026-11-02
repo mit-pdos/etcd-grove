@@ -36,10 +36,10 @@ abbrev leaseClient.LeaseKeepAlive.spec : Prop :=
     (App (App (Val (lc @!! go.GoType.PointerType etcdserverpb.leaseClient.ty @!! go!"LeaseKeepAlive"))
       (Val #(GoInterface.ok ctx))) (Val #opts))
   {{ (st err : GoInterface), RET (PairV #st #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (γ : StreamNames) (Dn : Nat → (w64 × w64) → IProp GF)
-          (cd' : context.ContextDesc (IProp GF)),
-        cliBidiStreamIs st γ pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse
-          (fun _ _ => iprop(True)) Dn cd' ∗
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (γ : StreamNames) (Up : Nat → KaReqM → IProp GF)
+          (Dn : Nat → (w64 × w64) → IProp GF) (cd' : context.ContextDesc (IProp GF)),
+        cliBidiStreamIs st γ pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse Up Dn cd' ∗
+        kaUpZero Up ∗
         cliSendTok (Req := pbLeaseKeepAliveRequest) γ [] ∗
         cliRecvTok (Rep := pbLeaseKeepAliveResponse) γ []) ∨
       (⌜st = GoInterface.nil⌝ ∗ cliStreamErr err) }}

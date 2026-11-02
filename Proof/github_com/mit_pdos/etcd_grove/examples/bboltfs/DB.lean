@@ -377,10 +377,10 @@ instance mapR_fractional (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) :
       icombine H1 H2 gives % ⟨_, Heq⟩
       ipureintro; exact Heq)
 
-/-- What minibolt's code needs of the initialized program: `sync`'s initialization, and the
-package's error values, which are not nil, and `io.EOF`, which is not nil, not a `*PathError`, and
-a pointer error (a `*T`, as `errors.New`'s `*errorString`): `Snapshot` compares `ReadAt`'s error with
-it, which takes its dynamic type to be comparable. (The package's `isPkgInit` would give them, once
+/-- What minibolt's code needs of the initialized program: `sync`'s initialization, the package's
+error values (`errFailed`, `errPageSize`, `errMapTooLarge`), which are not nil, and `io.EOF`, which
+is not nil, not a `*PathError`, and a pointer error (a `*T`, as `errors.New`'s `*errorString`):
+`Snapshot` compares `ReadAt`'s error with it, which takes its dynamic type to be comparable. (The package's `isPkgInit` would give them, once
 `os`, `syscall` and `golang.org/x/sys/unix`, which it imports, have `IsPkgInit` instances.) -/
 def pkgFacts : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.sync ∗ ∃ (e1 e2 : GoInterface),
@@ -389,10 +389,18 @@ def pkgFacts : IProp GF :=
     ∃ eof : GoInterface, globalAddr _root_.Perennial.io.EOF ↦□ eof ∗
       ⌜eof ≠ interface.nil ∧
         (∀ pe : Loc, eof ≠ interface.mkOk (go.GoType.PointerType _root_.Perennial.io.fs.PathError.ty) #pe) ∧
-        ∃ (T : go.GoType) (l : Loc), eof = interface.mkOk (go.GoType.PointerType T) #l⌝)
+        ∃ (T : go.GoType) (l : Loc), eof = interface.mkOk (go.GoType.PointerType T) #l⌝ ∗
+    ∃ e3 : GoInterface, globalAddr errMapTooLarge ↦□ e3 ∗ ⌜e3 ≠ interface.nil⌝)
 
 instance pkgFacts_persistent : Persistent (pkgFacts (GF := GF)) := by
   unfold pkgFacts; infer_instance
+
+/-- `errMapTooLarge`'s value, from `pkgFacts`. -/
+theorem pkgFacts_errMapTooLarge :
+    pkgFacts (GF := GF) ⊢ ∃ e3 : GoInterface, globalAddr errMapTooLarge ↦□ e3 ∗ ⌜e3 ≠ interface.nil⌝ := by
+  unfold pkgFacts
+  iintro ⟨-, %e1, %e2, -, -, -, %eof, -, -, H⟩
+  iexact H
 
 /-- `metalock`'s resource (see the file header). -/
 def metaR (γ : DBNames) (db : Loc) (p : GoString) : IProp GF :=

@@ -117,18 +117,32 @@ func (db *DB) readPageSize() (int, bool, error) {
 	return 0, false, nil
 }
 
-// init writes db.go's four initial pages: the freelist and root pages, synced,
-// then the two metas, synced.
+// init writes db.go's four initial pages: all four with the meta pages zero, synced,
+// then meta 1, synced, then meta 0, synced.
 func (db *DB) init() error {
 	buf := make([]byte, 4*pageSize)
 	initPages(buf, pageSize)
-	if _, err := db.file.WriteAt(buf[2*pageSize:], 2*pageSize); err != nil {
+	// first all four pages, with the meta pages zero: whatever a crash left in the meta slots
+	// (an interrupted init's arbitrary bytes) is overwritten and synced before any meta is
+	// written, so no leftover bytes can complete into a valid meta
+	first := make([]byte, 4*pageSize)
+	copy(first[2*pageSize:], buf[2*pageSize:])
+	if _, err := db.file.WriteAt(first, 0); err != nil {
 		return err
 	}
 	if err := syscall.Fdatasync(int(db.file.Fd())); err != nil {
 		return err
 	}
-	if _, err := db.file.WriteAt(buf[:2*pageSize], 0); err != nil {
+	// then meta 1 (txid 1), synced, before meta 0 (txid 0): a crash that keeps meta 0 has kept
+	// meta 1, so txid 0 is never the current meta (a torn write of both could keep meta 0 alone,
+	// and the commit after it would give txid 1 a value, which the boot check refuses)
+	if _, err := db.file.WriteAt(buf[pageSize:2*pageSize], pageSize); err != nil {
+		return err
+	}
+	if err := syscall.Fdatasync(int(db.file.Fd())); err != nil {
+		return err
+	}
+	if _, err := db.file.WriteAt(buf[:pageSize], 0); err != nil {
 		return err
 	}
 	if err := syscall.Fdatasync(int(db.file.Fd())); err != nil {
@@ -203,6 +217,10 @@ func (db *DB) meta() *Meta {
 
 // errFailed is what a handle answers after a failed commit.
 var errFailed = errors.New("minibolt: an earlier commit failed")
+
+// errMapTooLarge is a commit's answer when the database would grow past maxMapSize (bbolt's
+// "mmap too large").
+var errMapTooLarge = errors.New("minibolt: the database would exceed its maximum size")
 
 // Get is a read transaction (beginTx, then the root page through the mapping):
 // the current txid, and the value if the root page holds one.
@@ -304,8 +322,12 @@ func (db *DB) commit(m Meta, v uint64) error {
 	m.pgid = pg + 1
 	m.root.root = pg
 
-	// db.allocate: remap if the high water mark passes the mapping
+	// db.allocate: remap if the high water mark passes the mapping; refuse to grow past
+	// maxMapSize, as db.mmapSize does
 	minsz := int(m.pgid+1) * pageSize
+	if minsz > maxMapSize {
+		return errMapTooLarge
+	}
 	if minsz >= db.datasz {
 		if err := db.mmap(minsz); err != nil {
 			return err
