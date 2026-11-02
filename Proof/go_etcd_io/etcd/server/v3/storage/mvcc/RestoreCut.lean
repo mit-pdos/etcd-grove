@@ -286,6 +286,43 @@ theorem restoreCur_cut (R : Log) (hR : ∀ cs ∈ R, cs ≠ []) (hRne : R ≠ []
     have hcm := CmpRecs.crev_le_max r
     omega
 
+/-- **`restoreCur_cut` at the empty log** (M2's item 15: a compacting store's image may be the empty
+log with a record at `1`): nothing to rebuild, the answer `1`, the records at most `1`. -/
+theorem restoreCur_cut_nil (r : CmpRecs) (hrec : recsOk ([[], []] : Log) r) (ents : List KvEnt)
+    (hcut : entsCutAt ([[], []] : Log) r.crev ents) :
+    max (max (sint.Z (restoreLastRev ents)) r.finRev) r.schedRev = (([[], []] : Log).length : Int) - 1 := by
+  have hents : ents = [] := by
+    have h := hcut.1
+    have h2 : logEnts ([[], []] : Log) 0 ([[], []] : Log).length = [] := logEnts_two
+    rw [h2] at h
+    exact List.sublist_nil.1 h
+  subst hents
+  have hfin : r.finRev ≤ 1 := by
+    unfold CmpRecs.finRev
+    cases hf : r.fin with
+    | none => simp
+    | some x => have := (hrec.1 x hf).2; simp at this ⊢; omega
+  have hsch : r.schedRev ≤ 1 := by
+    unfold CmpRecs.schedRev
+    cases hf : r.sched with
+    | none => simp
+    | some x => have := (hrec.2 x hf).2; simp at this ⊢; omega
+  have h1 : sint.Z (restoreLastRev ([] : List KvEnt)) = 1 := rfl
+  rw [h1]
+  simp only [List.length_cons, List.length_nil]
+  omega
+
+/-- `restoreCur_cut` for any restored log (empty or not). -/
+theorem restoreCur_cut' (R : Log) (hR : ∀ cs ∈ R, cs ≠ [])
+    (hb : LogB ([[], []] ++ R)) (r : CmpRecs) (hrec : recsOk ([[], []] ++ R) r)
+    (ents : List KvEnt) (hcut : entsCutAt ([[], []] ++ R) r.crev ents) :
+    max (max (sint.Z (restoreLastRev ents)) r.finRev) r.schedRev =
+      (([[], []] ++ R).length : Int) - 1 := by
+  by_cases hR0 : R = []
+  · subst hR0
+    exact restoreCur_cut_nil r hrec ents hcut
+  · exact restoreCur_cut R hR hR0 hb r hrec ents hcut
+
 end pure
 
 end mvcc

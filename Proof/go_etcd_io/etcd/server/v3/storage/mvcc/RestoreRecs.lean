@@ -340,28 +340,31 @@ theorem resumeHookM_no (d' : KBReal) (r : CmpRecs) (h : r.resumes = false) :
   unfold resumeHookM; simp [h]
 
 /-- **The view `restore()` reads, over the image's bucket `m` and records `r`** (item 27's
-`restoreViewR`, over the records' resource `NC`): `NewStore`'s empty bucket (no record), or the
-bucket `m` over a clean read buffer with the records' clean read. -/
-def restoreViewR (b : GoInterface) (γ : StoreNames) (RT : IProp GF) (q : Qp) (R : Log)
+`restoreViewR`, over the records' resource `NC`): by the caller's branch `ns`, `NewStore`'s empty
+bucket (no record), or the bucket `m` over a clean read buffer with the records' clean read (M2's
+item 15: any restored log, the empty one included, which a compacting store's image can be with a
+record). -/
+def restoreViewR (b : GoInterface) (γ : StoreNames) (RT : IProp GF) (q : Qp) (ns : Bool)
     (m : Bucket) (NC : IProp GF) (r : CmpRecs) : IProp GF :=
-  if R = [] then iprop(bucketView γ q ∅ ∗ ⌜m = ∅ ∧ r = CmpRecs.empty⌝)
+  if ns then iprop(bucketView γ q ∅ ∗ ⌜m = ∅ ∧ r = CmpRecs.empty⌝)
   else iprop(bucketViewC γ q m ∗ keyCleanReadR b (bucketViewC γ) RT NC r)
 
 /-- At no record and the whole bucket it is today's `restoreView`. -/
 theorem restoreViewR_empty (b : GoInterface) (γ : StoreNames) (RT : IProp GF) (q : Qp) (R : Log) :
     restoreView (GF := GF) b γ RT q R ⊢
-      restoreViewR b γ RT q R (bucketMap ([[], []] ++ R)) (kbNoCmp γ.kb γ.bucket) CmpRecs.empty := by
+      restoreViewR b γ RT q (decide (R = [])) (bucketMap ([[], []] ++ R)) (kbNoCmp γ.kb γ.bucket)
+        CmpRecs.empty := by
   iintro Hview
   iunfold restoreView at Hview
   iunfold restoreViewOut at Hview
   iunfold restoreViewR
   by_cases hR0 : R = []
   · subst hR0
-    simp only [↓reduceIte]
+    simp only [decide_true, ↓reduceIte]
     icases Hview with ⟨Hv, -⟩
     iframe Hv
     ipureintro; exact ⟨rfl, trivial⟩
-  · simp only [hR0, ↓reduceIte]
+  · simp only [hR0, decide_false, Bool.false_eq_true, ↓reduceIte]
     rw [keyCleanReadR_empty]
     iexact Hview
 

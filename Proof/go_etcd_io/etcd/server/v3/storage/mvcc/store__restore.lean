@@ -56,8 +56,8 @@ theorem mvcc.store.restore.wp_proof
     (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     mvcc.store.restore.spec (GF := GF) (hG := hG) := by
   intro s γ b le ti lg q P HF RT WT W Wi Dep NC Cmp PutOk Rb Bt MW SR SRh dqb dqi R RevP0 RevP RevK RevQ
-    dqc dql q1 q2 r ents Fin hR hq12 hrec hdq hcut
-  by_cases hR0 : R = []
+    dqc dql q1 q2 r ents Fin ns hR hq12 hrec hns hdq hcut
+  by_cases hR0 : ns = true
   rotate_left
   · -- a bucket with data (the restore plan's R5c), thinned at the restored revision (item 18)
     obtain ⟨hRne, ⟨hwf', hlen1, -, hcs⟩, hlease⟩ := hR
@@ -65,11 +65,10 @@ theorem mvcc.store.restore.wp_proof
     have hok := mvcc.logEnts_restoreOk ([[], []] ++ R) hb.1 hcs rfl
     have hsub : ents.Sublist (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length) := hcut.1
     have hokE : mvcc.RestoreEntsOk ents := mvcc.restoreOk_sublist hok hsub
-    have hRpos : 0 < R.length := List.length_pos_iff.2 hR0
     wp_start as ⟨Hb, #Hbk, Hrt, Hncmp, Hview, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, %Hlgnn, Hcur1, Hcmp,
       HRevP0, HFw, HLk, HUl, HK, Hrcp⟩
     iunfold mvcc.restoreViewR at Hview
-    simp only [hR0, ↓reduceIte] at *
+    simp only [hR0, Bool.false_eq_true, ↓reduceIte] at *
     icases Hview with ⟨Hbv, Hcr⟩
     wp_auto
     wp_apply (hSetup s b dqb) $$ [$Hb] as Hb
@@ -480,7 +479,7 @@ theorem mvcc.store.restore.wp_proof
       simp only [hsr] at *
       omega
     have hc3 : c3 = W64 ((([[], []] ++ R).length : Int) - 1) := by
-      rw [mvcc.restoreCur_cut R hRne (List.length_pos_iff.1 hRpos) hb r hrec ents hcut] at Hc3
+      rw [mvcc.restoreCur_cut' R hRne hb r hrec ents hcut] at Hc3
       have : (([[], []] ++ R).length : Int) < 2 ^ 63 := by have := hb.1; omega
       apply BitVec.eq_of_toNat_eq
       have h1 : sint.Z (W64 ((([[], []] ++ R).length : Int) - 1)) = (([[], []] ++ R).length : Int) - 1 := by
@@ -623,7 +622,8 @@ theorem mvcc.store.restore.wp_proof
       iapply HΦ
       iexact HFin
   -- the empty bucket (`NewStore`): no record, no entry
-  subst hR0
+  have hRe := hns hR0
+  subst hR0 hRe
   have hents : ents = [] := by
     have h := hcut.1
     have h2 : mvcc.logEnts ([[], []] ++ ([] : mvcc.Log)) 0 ([[], []] ++ ([] : mvcc.Log)).length = [] :=

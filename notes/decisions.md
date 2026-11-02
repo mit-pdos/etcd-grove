@@ -29407,3 +29407,26 @@ resource `False`: no reader of the store holds a records' resource (only `restor
 compaction keys, over its caller's contract, not `physOk`'s), so the clause was never used.
 `isKeyBackendGR_ncFalse` gives it from the contract at any records, `isKeyBackendG_ncFalse` from
 today's (`NewStore`, the off-mode `Restore`). No exported statement changes.
+
+## `store.restore.spec`'s branch flag: the clean read for any restored log (M2's item 15, step A2d)
+
+**2026-11-02 · accepted** (internal to mvcc: `store.restore` is called by `NewStore` and `store.Restore`)
+
+**Problem.** `store.restore.spec` branched on `R = []`: the empty log was `NewStore`'s case (no
+record, read through the backend's contract), any other the clean read. Two things blocked the
+compaction-mode `store.Restore`: (1) the contract and the clean read share the reader's token `RT`,
+and a compacting store's clean read lends the new backend's unfixed registration with it (`dlInit`,
+item 30's D1), which the contract, at the fixed registration (`restoreFixM`), cannot have; (2) a
+compacting store's image can be the empty log with a record (a sender that compacted at revision
+`1` before any write), which the `R = []` branch excluded (`r = empty`).
+
+**Decision.** A flag `ns` (with `ns → R = []`) chooses the branch: `NewStore`'s (the contract, the
+empty view, no record) or the clean read, now for any restored log; the contract is required only
+in `NewStore`'s branch (`if ns then isKeyBackendGR … else True`). The clean read's proof needed
+only the current-revision lemma at the empty log (`restoreCur_cut_nil`, `restoreCur_cut'`).
+`specNC_of_spec` passes `ns := decide (R = [])`: `NewStore` and the off-mode `Restore` are
+unchanged.
+
+**Rejected.** A framing law moving `dlInit` through the contract's `RT` (deep: the batch
+transaction's specs); excluding the empty log with records in `store.Restore`'s approved statement
+(the server could not discharge it).

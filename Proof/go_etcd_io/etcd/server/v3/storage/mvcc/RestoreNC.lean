@@ -86,8 +86,8 @@ theorem mvcc.store.restore.specNC_of_spec (h : mvcc.store.restore.spec (GF := GF
         s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗
         s.[store, go!"b"] ↦{dqb} b ∗
         s.[store, go!"kvindex"] ↦{dqi}
-          (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface))
-      hR hq12 hrec (fun x hx => by cases hx) (mvcc.entsCutAt_full _ _)) $$
+          (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface)) (decide (R = []))
+      hR hq12 hrec (fun h => of_decide_eq_true h) (fun x hx => by cases hx) (mvcc.entsCutAt_full _ _)) $$
     [Hb Hrt Hnc Hview Hkvi Hix Hig Hcur1 Hcmp HRevP HLk HUl]
   · rw [mvcc.isKeyBackendGR_empty, mvcc.bucketOfEnts_logEnts, mvcc.CmpRecs.crev_empty]
     ihave Hig := (mvcc.idxLockG_at _ _).1 $$ Hig
@@ -114,10 +114,19 @@ theorem mvcc.store.restore.specNC_of_spec (h : mvcc.store.restore.spec (GF := GF
       simp only [mvcc.CmpRecs.empty, Option.getD_none, mvcc.logEnts_length]
       iintro ⟨H1, H2, H3⟩
       iframe H1 H2 H3
-    iframe Hpkg Hb Hbk Hrt Hnc Hkvi Hix Hiw Hle Hlg Hcur1 Hcmp HRevP HLk Hig Hview Hfw HUl Hk
+    -- the branch flag, as the restored log's emptiness
+    ihave #Hbk' : (if R = [] then mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT
+        (mvcc.kbNoCmp γ.kb γ.bucket) PutOk (mvcc.delKey γ) W Wi Dep Cmp P HF
+        (Rb := Rb) (Bt := Bt) (SR := SR) (SRh := SRh) (MW := MW) else iprop(True)) $$ []
+    · split
+      · iexact Hbk
+      · itrivial
+    simp only [show ∀ A B : IProp GF, (if decide (R = []) = true then A else B) =
+      (if R = [] then A else B) from fun A B => by by_cases h : R = [] <;> simp [h]]
+    iframe Hpkg Hb Hbk' Hrt Hnc Hkvi Hix Hiw Hle Hlg Hcur1 Hcmp HRevP HLk Hig Hview Hfw HUl Hk
     isplitl []
     · ipureintro; exact Hlgnn
-    ileft; ipureintro; rfl
+    ileft; ipureintro; first | rfl | trivial
   iintro !> H
   iapply HΦ
   iexact H

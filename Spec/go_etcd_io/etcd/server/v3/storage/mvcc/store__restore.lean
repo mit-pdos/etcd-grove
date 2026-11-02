@@ -30,11 +30,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 `L' = [[], []] ++ R` (`restoreLogOk R`: every revision of `R` with changes, the log well formed, no
 lease) a compaction job left at the restored revision, with the image's compaction records `r`
 (M2, the storage side, item 18, 2026-10-30), read-only: `NewStore` restores the empty bucket
-(`R = []`), `store.Restore` a snapshot's (the restore plan's R4, R5c), returning `nil`. It reads
-with a `ReadTx` (a reader's token `RT`, given back): for a bucket with data, over a clean read
-buffer (`restoreViewR`: the store's clean view of the image's bucket `bucketOfEnts ents` and the
-backend's clean-view `ReadTx` at the records, `keyCleanReadR`), where a limited range returns the
-range's first entries (`issues/etcd-unsafe-range-limit-buffer.md`).
+(the branch `ns`: `R = []`, no record, over the backend's contract), `store.Restore` a snapshot's
+(the restore plan's R4, R5c; M2's item 15: any restored log, the empty one with a record
+included), returning `nil`. It reads with a `ReadTx` (a reader's token `RT`, given back): out of
+`NewStore`'s branch, over a clean read buffer (`restoreViewR`: the store's clean view of the
+image's bucket `bucketOfEnts ents` and the backend's clean-view `ReadTx` at the records,
+`keyCleanReadR`; the backend's contract is not needed there, so `RT` may lend what the clean read
+needs: a compacting store's unfixed registration), where a limited range returns the range's first
+entries (`issues/etcd-unsafe-range-limit-buffer.md`).
 
 * **The image** (`entsCutAt L' r.crev ents`): the log's entries but, per key, a prefix deletable by
   the compaction at the restored revision `r.crev` (`CmpRecs.crev`: the scheduled record if
@@ -76,15 +79,15 @@ abbrev mvcc.store.restore.spec : Prop :=
     (Bt : GoInterfaceOk → IProp GF) (MW SR SRh : IProp GF)
     (dqb dqi : DFrac)
     (R : mvcc.Log) (RevP0 RevP RevK RevQ : IProp GF) (dqc dql : DFrac) (q1 q2 : Qp)
-    (r : mvcc.CmpRecs) (ents : List mvcc.KvEnt) (Fin : IProp GF),
-  mvcc.restoreLogOk R → q1 + q2 = 1 → mvcc.recsOk ([[], []] ++ R) r →
+    (r : mvcc.CmpRecs) (ents : List mvcc.KvEnt) (Fin : IProp GF) (ns : Bool),
+  mvcc.restoreLogOk R → q1 + q2 = 1 → mvcc.recsOk ([[], []] ++ R) r → (ns = true → R = []) →
     (∀ x, r.fin = some x → dqc • dql = DFrac.own 1) →
     mvcc.entsCutAt ([[], []] ++ R) r.crev ents →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       s.[store, go!"b"] ↦{dqb} b ∗
-      mvcc.isKeyBackendGR b (mvcc.bucketView γ) RT WT NC r PutOk (mvcc.delKey γ) W Wi Dep Cmp P HF
-        (Rb := Rb) (Bt := Bt) (SR := SR) (SRh := SRh) (MW := MW) ∗
-      RT ∗ NC ∗ mvcc.restoreViewR b γ RT q R (mvcc.bucketOfEnts ents) NC r ∗
+      (if ns then mvcc.isKeyBackendGR b (mvcc.bucketView γ) RT WT NC r PutOk (mvcc.delKey γ) W Wi Dep
+        Cmp P HF (Rb := Rb) (Bt := Bt) (SR := SR) (SRh := SRh) (MW := MW) else iprop(True)) ∗
+      RT ∗ NC ∗ mvcc.restoreViewR b γ RT q ns (mvcc.bucketOfEnts ents) NC r ∗
       s.[store, go!"kvindex"] ↦{dqi}
         (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
       mvcc.ownIdxPriv ti [] ∗ mvcc.idxLockGAt γ.idx (mvcc.evsOf (([[], []] ++ R) ++ [[]])).length r.crev ∗
@@ -96,7 +99,7 @@ abbrev mvcc.store.restore.spec : Prop :=
       mvcc.revFinW s dql r.fin RevP0 RevP ∗
       mvcc.revLockW s q2 RevP RevK ∗
       mvcc.revUnlockW s q2 ([[], []] ++ R) RevK
-        iprop((if R = [] then mvcc.bucketView γ q ∅ else mvcc.bucketViewC γ q (mvcc.bucketOfEnts ents)) ∗
+        iprop((if ns then mvcc.bucketView γ q ∅ else mvcc.bucketViewC γ q (mvcc.bucketOfEnts ents)) ∗
           mvcc.isTreeIndex ti γ.idx ∗
           ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
             mvcc.idxReader ti γ.idx) ∗
