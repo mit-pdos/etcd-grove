@@ -96,6 +96,26 @@ theorem chains_length_sum (hok : ChainsOk h cs) : (cs.map List.length).sum = h.l
       exact ⟨cs[i], List.getElem_mem hi, by rw [chain_eq_getElem hi] at hy; exact hy⟩
   rw [← List.length_flatten, hperm.length_eq, List.length_range]
 
+theorem sum_take_le (cs : List (List Nat)) (m : Nat) :
+    ((cs.take m).map List.length).sum ≤ (cs.map List.length).sum := by
+  conv => rhs; rw [← List.take_append_drop m cs]
+  rw [List.map_append, List.sum_append]
+  omega
+
+theorem sum_take_succ (cs : List (List Nat)) {m : Nat} (hm : m < cs.length) :
+    ((cs.take (m + 1)).map List.length).sum =
+      ((cs.take m).map List.length).sum + (chain cs m).length := by
+  rw [List.take_add_one, List.getElem?_eq_getElem hm, chain_eq_getElem hm, List.map_append,
+    List.sum_append]
+  simp
+
+theorem set_prefix_replicate {β : Type} (f : Nat → β) (z : β) {k L : Nat} (hk : k < L) :
+    ((List.range k).map f ++ List.replicate (L - k) z).set k (f k) =
+      (List.range (k + 1)).map f ++ List.replicate (L - (k + 1)) z := by
+  have hL : L - k = (L - (k + 1)) + 1 := by omega
+  rw [List.set_append_right _ _ (by simp), hL, List.replicate_succ]
+  simp [List.range_succ]
+
 /-- `nDeps` at no operation linearized: the clients whose operations precede the first. -/
 theorem deps_init {c : Nat} (hl : 0 < (chain cs c).length) :
     deps h cs (List.replicate cs.length 0) c =
