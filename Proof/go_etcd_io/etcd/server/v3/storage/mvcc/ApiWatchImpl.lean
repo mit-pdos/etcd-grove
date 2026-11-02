@@ -48,6 +48,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
+instance watchStreamOpen_timeless (γo : WsStreamNames) :
+    Timeless (watchStreamOpen (GF := GF) γo) := by
+  unfold watchStreamOpen; infer_instance
+
 /-- **The stream `st` of the store `γ`, named `ι`** (`isMvccWatchStream`): the old stream over the
 watchable store at the store's parameters, with the API's choices of its progress fact and cancel
 reason (`True`), its channel and the channel's invariant, and the open token's invariant (all of the

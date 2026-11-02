@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Close
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -130,6 +131,35 @@ theorem mvcc.watchStream.Close.wp_proof : mvcc.watchStream.Close.spec (GF := GF)
     iapply Hdone $$ %id %w %hk %hid
   iapply HΦ
   itrivial
+
+/-- **The candidate `Close`** (`specC`): `spec`'s, the old stream's open token from the open
+token's invariant (the whole token for it). -/
+theorem mvcc.watchStream.Close.wp_proofC (hO : mvcc.watchStream.Close.spec (GF := GF) (hG := hG)) :
+    mvcc.watchStream.Close.specC (GF := GF) (hG := hG) := by
+  intro st γ ι
+  iintro %Φ ⟨#Hpkg, #Hst, Hop, Htt⟩ HΦ
+  iunfold mvcc.isMvccWatchStream at Hst
+  iunfold mvcc.isMvccWatchStreamI at Hst
+  icases Hst with ⟨%Hn, #Hws, -, -, -, -, -, #Hoi, -⟩
+  iunfold mvcc.wsOpen at Hop
+  iunfold mvcc.wsOpenI at Hop
+  iapply fupd_wp
+  iinv Hoi with Hi Hclose
+  icases Hi with (>Ht' | >Ho)
+  · ihave %Hv := ghostVar_valid_2 ι.op _ _ _ _ $$ Hop Ht'
+    exfalso
+    have h1 : (1 : Rat) + (1 : Qp).val ≤ 1 := Hv.1
+    have := (1 : Qp).2
+    grind
+  imod Hclose $$ [Hop] with _
+  · inext; ileft; iexact Hop
+  imodintro
+  iapply (hO st _ _ ι.o) $$ %Φ [Ho]
+  · iframe Hpkg Hws Ho
+  inext
+  iintro -
+  iapply HΦ
+  iexact Htt
 
 end proof
 

@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Chan
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -31,6 +32,24 @@ theorem mvcc.watchStream.Chan.wp_proof : mvcc.watchStream.Chan.spec (GF := GF) (
   wp_auto
   iapply HΦ
   iframe HC Hch
+
+/-- **The candidate `Chan`** (`specC`): `spec`'s, the channel the stream's (`ch`'s points-to). -/
+theorem mvcc.watchStream.Chan.wp_proofC (hO : mvcc.watchStream.Chan.spec (GF := GF) (hG := hG)) :
+    mvcc.watchStream.Chan.specC (GF := GF) (hG := hG) := by
+  intro st γ ι
+  iintro %Φ ⟨#Hpkg, #Hst⟩ HΦ
+  iunfold mvcc.isMvccWatchStream at Hst
+  iunfold mvcc.isMvccWatchStreamI at Hst
+  icases Hst with ⟨%Hn, #Hws, #Hch, -⟩
+  iapply (hO st _ _ ι.o) $$ %Φ [Hws]
+  · iexact Hws
+  inext
+  iintro %ch ⟨-, #Hch'⟩
+  ihave %Heq := typedPointsto_agree_wand _ _ _ _ _ $$ Hch Hch'
+  iapply HΦ
+  ipureintro
+  unfold mvcc.wsChanOf
+  exact Heq.symm
 
 end proof
 

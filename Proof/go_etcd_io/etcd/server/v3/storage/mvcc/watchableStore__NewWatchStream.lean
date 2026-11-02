@@ -217,6 +217,64 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   iapply (mvcc.wp_watch_close s st γ ch γc L) $$ H HΦ'
 
 
+/-- **The candidate `NewWatchStream`** (`specC`): `spec`'s at the API's progress fact and cancel
+reason (`True`), with the API's ghosts: the registrar's and consumer's tokens, and the open token
+(its invariant holding the old stream's). -/
+theorem mvcc.watchableStore.NewWatchStream.wp_proofC
+    (hO : mvcc.watchableStore.NewWatchStream.spec (GF := GF) (hG := hG)) :
+    mvcc.watchableStore.NewWatchStream.specC (GF := GF) (hG := hG) := by
+  intro ws γ
+  iintro %Φ ⟨#Hpkg, #Hwm⟩ HΦ
+  ihave #Hwm0 := Hwm
+  iunfold mvcc.isWatchableMvcc at Hwm0
+  iunfold mvcc.isWatchableMvccI at Hwm0
+  icases Hwm0 with ⟨%Hw, %st, #Hws, #Hm⟩
+  obtain ⟨hw, hwl⟩ := Hw
+  ihave %Hsl := mvcc.isMvccI_loc st γ $$ Hm
+  iapply wp_fupd
+  wp_apply (hO ws st γ.ws iprop(True) (fun _ => iprop(True))) $$ [] as %sp ⟨%γo, %ch, %γc, #Hstr,
+    #Hch, #Hisch, #Hinv, Hopen, Hcons, %Hnames, #Hprog, #Hrsn⟩
+  · iexact Hws
+  imod ghostVar_alloc (GF := GF) () with ⟨%γr, Hreg⟩
+  imod ghostVar_alloc (GF := GF) () with ⟨%γv, Hrcv⟩
+  imod ghostVar_alloc (GF := GF) () with ⟨%γp, Hop⟩
+  imod inv_alloc mvcc.wsOpenN ⊤ iprop(ghostVar γp 1 () ∨ mvcc.watchStreamOpen γo) $$ [Hopen] with #Hoi
+  · inext; iright; iexact Hopen
+  imodintro
+  iapply HΦ
+  iexists ({ mv := γ, o := γo, c := γc, ch := ch, reg := γr, rcv := γv, op := γp } : mvcc.WsNameI)
+  isplitr
+  · iunfold mvcc.isMvccWatchStream
+    iunfold mvcc.isMvccWatchStreamI
+    rw [hwl, Hsl]
+    iframe Hstr Hch Hisch Hinv Hprog Hrsn Hoi
+    isplitr
+    · ipureintro
+      obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hnames
+      exact ⟨rfl, hw, h1, h2, h3, h4, h5, h6⟩
+    iunfold mvcc.isWatchableMvcc at Hwm
+    rw [← hwl]
+    iexact Hwm
+  isplitl [Hop]
+  · iunfold mvcc.wsOpen; iunfold mvcc.wsOpenI; iexact Hop
+  isplitl [Hreg]
+  · iunfold mvcc.wsWatchers
+    iunfold mvcc.wsWatchersI
+    iframe Hreg
+    iintro !>
+    iapply BigSepM.bigSepM_empty.2
+    iempintro
+  iunfold mvcc.wsRecv
+  iunfold mvcc.wsRecvI
+  iframe Hrcv
+  iexists []
+  iframe Hcons
+  isplitr
+  · ipureintro; rfl
+  iintro !>
+  iapply BigSepL.bigSepL_nil_intro
+  iempintro
+
 end proof
 
 end EtcdGrove

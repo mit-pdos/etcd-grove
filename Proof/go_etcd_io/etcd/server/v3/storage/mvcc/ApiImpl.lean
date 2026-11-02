@@ -278,6 +278,32 @@ theorem mvccGiveBack (s : Loc) (γ : MvccImpl) :
   iunfold poolR
   iframe Hr Hx
 
+/-- **A watchable store's reader from the pool** (`watchReader`: what the watch stream's calls
+lend), for a later credit, and back for the thread token. -/
+theorem mvccBorrowW (s : Loc) (γ : MvccImpl) (hw : γ.watched = true) :
+    £ 1 ∗ isMvccI (GF := GF) s γ ∗ threadTok ⊢ |={⊤}=>
+      watchReader γ.wl s γ.ws ∗ (watchReader γ.wl s γ.ws ={⊤}=∗ threadTok) := by
+  iintro ⟨Hlc, #Hs, Htt⟩
+  imod mvccBorrow s γ $$ [$Hlc $Hs $Htt] with ⟨Hr, Hl⟩
+  iunfold mvccLoan at Hl
+  icases Hl with ⟨Hl, Hx⟩
+  iunfold poolX at Hx
+  isimp only [hw, ↓reduceIte] at Hx
+  imodintro
+  isplitl [Hr Hx]
+  · iunfold watchReader; iunfold storeReader; iframe Hr Hx
+  iintro Hw
+  iunfold watchReader at Hw
+  icases Hw with ⟨Hr, Hx⟩
+  iunfold storeReader at Hr
+  iapply mvccGiveBack s γ
+  iframe Hs Hr
+  iunfold mvccLoan
+  iframe Hl
+  iunfold poolX
+  simp only [hw, ↓reduceIte]
+  iexact Hx
+
 /-- **The whole open token gives the closer** (`Close`, later): the invariant holds it, not the
 token. -/
 theorem mvccOpen_take (γ : MvccImpl) :
