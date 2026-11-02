@@ -97,7 +97,9 @@ steps):
 
 **Postcondition**: `nil`; at some physical names `p'` of the new backend's bucket and instance,
 the new right to close (`storeCloser s γ'`), the watchable store's quarter and deposit back, the
-writer's fragment at `γ'`, its retired token of the new backend (`writerOwn γ'`), the new batch
+writer's fragment at `γ'`, its retired token of the new backend (`writerOwn γ'`), its pin at `L'`
+(`writerPin γ' L'`, M2's item 37: from the new view and the new backend's no-compaction token and
+nothing-deletable fact, `kbNoDel`; the old pin is the old view's), the new batch
 lock's invariant recorded (`hookP γ' P'`: the server's hook is installed on the new backend later,
 `hookOk_of_init`), the certificate of `L'`, the revision tokens not spent at `L'`, for a watchable
 store's the outer quarter at `L'`; the old backend's reader tokens (`nReaders - 1`: the pool's and
@@ -119,7 +121,7 @@ abbrev mvcc.store.Restore.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ ⌜∃ d, γ.kb = some d ∧ d.cm = false⌝ ∗ ⌜d'.cm = false⌝ ∗
       mvcc.storeCloser s γ ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗
-      mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ mvcc.crevFrozen γ ∗
+      mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ mvcc.writerPin γ L ∗ mvcc.crevFrozen γ ∗
       mvcc.idxCert γ.idx L ∗ ownToks γ.revs (2 ^ 63 - 3 - L.length) ∗
       (if γ.watchQ then mvcc.logQ γ L else iprop(True)) ∗
       mvcc.certOk γ ([[], []] ++ R) ∗
@@ -129,13 +131,14 @@ abbrev mvcc.store.Restore.spec : Prop :=
         mvcc.keyCleanRead b' (mvcc.bucketViewC (γ.withPhys p)) (mvcc.storeRT (γ.withPhys p))
           (mvcc.kbNoCmp (γ.withPhys p).kb (γ.withPhys p).bucket)) ∗
       mvcc.kbViewC (some d') γb' 1 (mvcc.bucketMap ([[], []] ++ R)) ∗
-      mvcc.kbNoCmp (some d') γb' ∗ mvcc.kbRegRight (some d') ∗
+      mvcc.kbNoCmp (some d') γb' ∗ mvcc.kbNoDel (some d') ∗ mvcc.kbRegRight (some d') ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Restore")) (Val #b'))
   {{ RET #GoInterface.nil; ∃ p' : mvcc.PhysNames,
       ⌜p'.bucket = γb' ∧ p'.kb = some d'⌝ ∗
       mvcc.storeCloser s (γ.withPhys p') ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗
       mvcc.writerFrag (γ.withPhys p') ∗ mvcc.writerOwn (γ.withPhys p') ∗
+      mvcc.writerPin (γ.withPhys p') ([[], []] ++ R) ∗
       mvcc.hookP (γ.withPhys p') P' ∗
       mvcc.idxCert γ.idx ([[], []] ++ R) ∗
       ownToks γ.revs (2 ^ 63 - 3 - ([[], []] ++ R).length) ∗

@@ -29205,3 +29205,48 @@ disjunct (vacuous at any follower).
 `kv_Read`/`Range` drop it (nothing needs it before the server's permit is not `True`); the client
 does not see `crevPermIs` (only the apply thread does). Both go with C3's client stage. Reviews: three
 `spec-reviewer` rounds (the Draft's candidates 2-5); the example `.claude/skills/spec/examples/c3-store-law.md`.
+
+## The writer's pin: M2's item 37, the sole writer's two laws proved (2026-11-02 · the user's approval · branch `m2-item37`)
+
+**Supersedes in part** "Task 4: item 37" of `notes/m2-storage-plan.md` (the route through `writerRes`'s
+log, `bucketViewL`) and the "Item 37 deferred to item 15" entry for the two laws of "The merged
+snapshot's window" (they no longer wait for item 15; `bucketViewL` still does).
+
+**What was open.** `txn.kvWriter_keyObs` (the sole writer, with the batch lock's resource `lateW d.gx`
+and a view of the backend, sees the `Key` bucket thin of its log, exact with compaction off) and
+`txn.kvWriter_noCmp` (with a reader's bound of the compaction-key flag, no compaction key with
+compaction off) were named `sorry`s.
+
+**Why not through `lateW`.** The planned route pinned `writerRes`'s log (a third share of `γ.wv`) and
+read the view through `lateW`. But `lateW` is unregistered after `store.Restore` until the next
+writer's lock (`writerReg`): a snapshot sent after a restore and before any write sees `lateW`'s `none`
+half and nothing of the data, so the law as stated was not provable in that window.
+
+**Chosen (candidate 1, approved).** The writer holds a share of the view itself:
+
+    writerLoan γ := if kbCmpM γ.kb then True else kbNoCmp γ.kb γ.bucket ∗ kbNoDel γ.kb
+    writerPin γ log := bucketView γ ¼ (bucketMap log) ∗ writerLoan γ
+
+- The bucket view's fractions: `writerRes` ¼ (was ½), the pin ¼, `revMuBody` ½. The write
+  transaction's `Hbv` stays ½: `store.Write` joins `writerRes`'s quarter with the pin's
+  (`bucketView_join_quarters`: the two agree), `storeTxnWrite.End` splits it back at the commit. The
+  loan rides in the transaction's `Hcres`.
+- The off-mode store no longer drops its no-compaction token: `NewStore` keeps `restore`'s
+  `kbNoCmp` in the pin (`physCmp_alloc` gives `kbMW` only in compaction mode), and the backend's
+  "nothing deletable" (`dlNoDel`) comes in through `kbNoDelOff kb` (`NewStore`, `New`,
+  `newWatchableStore`) or `kbNoDel (some d')` (`store.Restore`, `watchableStore.Restore`: a
+  restore runs only with compaction off).
+- Statements: `NewStore`'s post gains `writerPin γ [[], []]`; `store.Write` takes `writerPin γ log`;
+  `storeTxnWrite.End` gives `writerPin γ (commitLog ilog pend)`; `writeView.Put`/`DeleteRange` take
+  and give it; `store.Restore` takes the old pin and gives `writerPin (γ.withPhys p') ([[], []] ++ R)`.
+  The linked restatements (`mvcc_NewStore_backend`, `_cmp`, `mvcc_store_Write_backend`) follow.
+- The pin is folded into `watchWriter` (watchable store) and `txn.wlogOwn` (`wlogOwnW` the old body),
+  so `kvWriter`, the txn specs and the server's texts are unchanged. `watchableStore.Restore`'s post
+  `watchWriter` is now at the inner store's new names (`{ γ with st := γ.st.withPhys p' }`): the pin
+  is of the new view.
+- `kvWriter_keyObs` drops `lateW d.gx` (unused); both laws are proved (`txn/KeyObs.lean`, from
+  `backend.viewAt_bView`, `thinV_exact`, `fkRd_abs`). Two `sorry`s fewer.
+
+**Not chosen.** The pin hidden in `writerFrag`, tied to `kvWriter`'s log by fractions of the
+revision tokens' and the log's authorities: fewer spec diffs, but a harder refactor of `revMuBody`'s
+and `writerL`'s fractions and a less direct contract.

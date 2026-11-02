@@ -30,6 +30,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
   icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, Hfrag⟩
   iunfold mvcc.storeTxnWriteCore at Htw
   iNamed Htw
+  icases Hcres with ⟨Hcres, Hloan⟩
   obtain ⟨Hps, Hlen⟩ := Hps
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
@@ -64,6 +65,8 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     -- the writer's state checked back in (D22 receiver epochs, S2): the batch lock's key and the
     -- transaction's part of `s.mu`'s deposit ghost back
     icases ghostVar_halves γ.wv ilog $$ Hwv with ⟨Hwv, HwvW⟩
+    -- the view's quarters: `writerRes`'s and the writer's pin's (M2's item 37)
+    icases (mvcc.bucketView_quarters γ _).1 $$ Hbv with ⟨Hbv, HbvP⟩
     ihave HL : mvcc.writerL s γ $$ [Htoks Hw Hclog Hwv Hcur Hlrd]
     · iunfold mvcc.writerL
       iexists ilog, ntok
@@ -113,6 +116,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     rw [ite_eq_left rfl, mvcc.logQPost_nil]
     try rw [if_pos rfl]
     iframe Hcert Htok Hfrag
+    iunfold mvcc.writerPin; iframe HbvP Hloan
 
   · -- a change: commit the pending revision under `s.revMu`
     have hne' : pend ≠ [] := fun h => Hif (hpend.1 h)
@@ -181,12 +185,14 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     icases mvcc.muHeld_cur s γ crev ti $$ Hmu with ⟨%o, %Ho, Hpin, Hmub⟩
     imod mvcc.writerInv_checkin s γ (ilog ++ [pend]) _ o $$ Hlc2 HwiS Hpin HL HwvW with ⟨Hwk, Hwr, HwvW, Hpin⟩
     ihave #HUnlock' := HUnlock $$ %(mvcc.bucketMap ilog)
-      %(mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap (ilog ++ [pend])))
-    wp_apply HUnlock' $$ [$Hlocked $Hview $HP Hwk HwvW Hcres] as Hbucket
+      %(iprop(mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap (ilog ++ [pend])) ∗
+        mvcc.bucketView γ (1 : Qp).half.half (mvcc.bucketMap (ilog ++ [pend]))))
+    wp_apply HUnlock' $$ [$Hlocked $Hview $HP Hwk HwvW Hcres] as ⟨Hbucket, HbvP⟩
     · rw [← mvcc.bucketMap_append ilog pend Hne]
       iintro Hv
       icases (mvcc.bucketView_halves γ 1 _).1 $$ Hv with ⟨Hv1, Hv2⟩
-      iframe Hv2
+      icases (mvcc.bucketView_quarters γ _).1 $$ Hv1 with ⟨Hv1, Hv1b⟩
+      iframe Hv2 Hv1b
       iapply mvcc.storeW_put s γ
       iframe Hreg
       iunfold mvcc.writerRes
@@ -240,6 +246,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       rw [ite_eq_right hne']
       try rw [ite_eq_right hne']
       iframe Hcert' Hq Hfrag
+      iunfold mvcc.writerPin; iframe HbvP Hloan
 end proof
 
 end EtcdGrove

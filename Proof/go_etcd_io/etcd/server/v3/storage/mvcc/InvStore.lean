@@ -2056,6 +2056,50 @@ theorem bucketView_halves (γ : StoreNames) (q : Qp) (m : Bucket) :
   rw [Qp.half_add_half] at h
   exact h
 
+/-- Two parts of the view agree on the bucket. -/
+theorem bucketView_agree (γ : StoreNames) (q1 q2 : Qp) (m1 m2 : Bucket) :
+    bucketView (GF := GF) γ q1 m1 ∗ bucketView γ q2 m2 ⊢ ⌜m1 = m2⌝ := by
+  unfold bucketView kbView
+  cases γ.kb with
+  | none =>
+    simp only
+    iintro ⟨H1, H2⟩
+    iapply ghostMapAuth_agree γ.bucket q1 q2 m1 m2 $$ H1 H2
+  | some d =>
+    simp only
+    unfold bkView backend.bView backend.bViewC
+    iintro ⟨⟨%vd1, ⟨%c1, Hv1, -, -⟩, %Hk1⟩, ⟨%vd2, ⟨%c2, Hv2, -, -⟩, %Hk2⟩⟩
+    ihave %Heq := ghostVar_agree d.γB.view vd1 _ vd2 _ $$ Hv1 Hv2
+    subst Heq
+    ipureintro
+    apply GMap.ext
+    intro k
+    have h1 := Hk1 keyName k
+    have h2 := Hk2 keyName k
+    simp only [↓reduceIte] at h1 h2
+    rw [← h1, ← h2]
+
+/-- The writer's half of the view as its two quarters (`writerRes`'s and the writer's pin's). -/
+theorem bucketView_quarters (γ : StoreNames) (m : Bucket) :
+    bucketView (GF := GF) γ (1 : Qp).half m ⊣⊢
+      bucketView γ (1 : Qp).half.half m ∗ bucketView γ (1 : Qp).half.half m :=
+  bucketView_halves γ (1 : Qp).half m
+
+/-- The two quarters, at buckets that then agree, join. -/
+theorem bucketView_join_quarters (γ : StoreNames) (m1 m2 : Bucket) :
+    bucketView (GF := GF) γ (1 : Qp).half.half m1 ∗ bucketView γ (1 : Qp).half.half m2 ⊢
+      ⌜m1 = m2⌝ ∗ bucketView γ (1 : Qp).half m1 := by
+  iintro H
+  icases (and_intro .rfl (bucketView_agree γ _ _ m1 m2) :
+      iprop(bucketView (GF := GF) γ (1 : Qp).half.half m1 ∗ bucketView γ (1 : Qp).half.half m2) ⊢
+        iprop(bucketView (GF := GF) γ (1 : Qp).half.half m1 ∗ bucketView γ (1 : Qp).half.half m2) ∧
+          ⌜m1 = m2⌝) $$ H with ⟨⟨H1, H2⟩, %Heq⟩
+  subst Heq
+  isplitl []
+  · ipureintro; rfl
+  iapply (bucketView_quarters γ m1).2
+  iframe H1 H2
+
 /-- A revision token: the right to open one write transaction (`store.Write`). The store's
 `NewStore` hands out `2 ^ 63 - 5` of them: with the budget `writerRes` keeps, the revision
 counter stays below `2 ^ 63 - 2`. -/
@@ -2527,18 +2571,52 @@ theorem wDep_halves (γ : StoreNames) :
 /-- The batch lock's resource for the store (`W` of `isKeyBackend`; physical, per backend: D22
 receiver epochs, S2, 2026-10-22, until then also the writer's state, now `writerL`): the batch
 lock's key, half the ghost of the log `L` the bucket's view is of (the other half is the
-writer's state's, so the writer's log is the view's), half the bucket's view at `L` (the other
-half under `s.revMu`: the write transaction's reads of the bucket, through the batch transaction),
+writer's state's, so the writer's log is the view's), a quarter of the bucket's view at `L` (the
+writer's pin holds another, `writerPin`; the other half under `s.revMu`: the write transaction's
+reads of the bucket, through the batch transaction),
 the certificate of `L`, and the compaction's part (`compactRes`: the meta keys' record, the
 finished compactions' counter). -/
 def writerRes (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ L : Log,
     "Hwk" ∷ writerKey γ ∗
     "Hwv" ∷ ghostVar γ.wv (1 : Qp).half L ∗
-    "Hbv" ∷ bucketView γ (1 : Qp).half (bucketMap L) ∗
+    "Hbv" ∷ bucketView γ (1 : Qp).half.half (bucketMap L) ∗
     "#Hcert" ∷ idxCert γ.idx L ∗
     "%Hne" ∷ ⌜L ≠ []⌝ ∗
     "Hcres" ∷ compactRes γ)
+
+/-- **The backend of the instance `kb` has nothing deletable** (persistent): for the real
+backend, its creator fixed its deletable keys at none (`backend.dlNoDel`: a store that does not
+compact). -/
+def kbNoDel (kb : Option KBReal) : IProp GF :=
+  match kb with
+  | none => iprop(True)
+  | some d => backend.dlNoDel d.γB
+
+instance kbNoDel_persistent (kb : Option KBReal) : Persistent (kbNoDel (GF := GF) kb) := by
+  unfold kbNoDel; cases kb <;> simp only <;> infer_instance
+
+/-- **The writer's loan of a store that does not compact**: its backend's no-compaction token
+(`kbNoCmp`, the client's half of the compaction-key flag at `0`) and its nothing-deletable fact
+(`kbNoDel`); nothing for a compacting store (its token is in `mwInv`). -/
+def writerLoan (γ : StoreNames) : IProp GF :=
+  if kbCmpM γ.kb then iprop(True) else iprop(kbNoCmp γ.kb γ.bucket ∗ kbNoDel γ.kb)
+
+/-- Nothing deletable, for a store that does not compact (`NewStore`'s premise: the writer's loan). -/
+def kbNoDelOff (kb : Option KBReal) : IProp GF :=
+  if kbCmpM kb then iprop(True) else kbNoDel kb
+
+instance kbNoDelOff_persistent (kb : Option KBReal) : Persistent (kbNoDelOff (GF := GF) kb) := by
+  unfold kbNoDelOff; split <;> infer_instance
+
+/-- **The writer's pin** (M2's item 37, 2026-11-02; `notes/decisions.md`, "The writer's pin"): the
+sole writer's quarter of the bucket's view at its log `log` (with `writerRes`'s quarter, the
+write transaction's half: `store.Write` joins them, `storeTxnWrite.End` splits them at the new
+log), and its loan (`writerLoan`). What the writer's observations of a backend snapshot read:
+the snapshot's physical view is thin of the view (`backend.viewAt_bView`), and exact with nothing
+deletable; no compaction key with the no-compaction token. Not persistent. -/
+def writerPin (γ : StoreNames) (log : Log) : IProp GF :=
+  iprop(bucketView γ (1 : Qp).half.half (bucketMap log) ∗ writerLoan γ)
 
 /-- **The writer's state** (D22 receiver epochs, S2, 2026-10-22; until then in the batch lock's
 resource, which `store.Restore` never takes): the index writer's handle at the committed log
@@ -2676,8 +2754,8 @@ theorem mwSlot_alloc (γ : StoreNames) :
 /-- **`NewStore`'s allocation of the compaction facts** (after `restore` gives the right back): the
 invariant at `true` with the right, and the registration. -/
 theorem physCmp_alloc (s : Loc) (γ : StoreNames) :
-    mwRest (GF := GF) γ ∗ kbMW γ.kb γ.bucket ∗ storeRegd s γ ={⊤}=∗
-      physCmp s γ := by
+    mwRest (GF := GF) γ ∗ (if kbCmpM γ.kb then kbMW γ.kb γ.bucket else iprop(True)) ∗
+      storeRegd s γ ={⊤}=∗ physCmp s γ := by
   unfold mwRest physCmp
   by_cases hc : kbCmpM γ.kb
   · simp only [hc, ↓reduceIte]
@@ -4490,8 +4568,9 @@ theorem changesAre_snoc (ps : List Loc) (ilog : Log) (pend : List Change) (c : C
 fields (`beginRev` is `ilog`'s last revision, `changes` the key-values written), the batch
 transaction locked with the pending puts, the writer's state (`writerL`, checked out of
 `writerInv`, with the pending changes in the index writer's handle) and the batch lock's resource
-(`writerRes`: the view's half, the compaction's part; its key deposited in `writerInv`), both
-halves of the view's log ghost, the revision token the transaction was opened with, and the
+(`writerRes`: the view's quarter, the compaction's part; its key deposited in `writerInv`) with
+the writer's pin (its quarter of the view, and its loan with the compaction's part: `writerLoan`;
+M2's item 37), both halves of the view's log ghost, the revision token the transaction was opened with, and the
 transaction's tokens (with its slot of the index's lock, out of the readers' pool): `s.mu` held shared at the compaction revision `crev` the
 transaction observed (one of `ilog`'s revisions, or `-1`), and the reader's tag `Z` (persistent,
 given back at `End`). By default the frozen transaction (`crev = -1`, `Z = crevFrozen γ`: a store
@@ -4533,7 +4612,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
     "Hti" ∷ idxReader ti γ.idx ∗
     "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
-    "Hcres" ∷ compactRes γ ∗
+    "Hcres" ∷ (compactRes γ ∗ writerLoan γ) ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
     "%Hcrev" ∷ ⌜-1 ≤ crev ∧ crev < ilog.length⌝ ∗
     "#HZ" ∷ □ Z)
@@ -4579,7 +4658,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
     "Hti" ∷ idxReader ti γ.idx ∗
     "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
-    "Hcres" ∷ compactRes γ ∗
+    "Hcres" ∷ (compactRes γ ∗ writerLoan γ) ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
     "%Hcrev" ∷ ⌜-1 ≤ crev ∧ crev < ilog.length⌝ ∗
     "#HZ" ∷ □ Z)
@@ -5023,7 +5102,7 @@ def txnEndPost (γ : StoreNames) : TxnKind → IProp GF
   | .read _ _ => iprop(True)
   | .write ilog pend _ _ _ =>
     iprop(idxCert γ.idx (commitLog ilog pend) ∗ (if pend = [] then revToken γ else iprop(True)) ∗
-      logQPost γ ilog pend ∗ writerFrag γ)
+      logQPost γ ilog pend ∗ writerFrag γ ∗ writerPin γ (commitLog ilog pend))
 
 /-- What `End` takes of a transaction: nothing of a read one; of a write one, the batch lock's
 invariant `P` (the store's: `hookIs`), which `Unlock` takes back, and the outer quarter of the
@@ -5058,10 +5137,10 @@ theorem txnEndPost_plain (γ : StoreNames) (ilog : Log) (pend : List Change)
     (puts deletes putSize : w64) (h : γ.watchQ = false) :
     txnEndPost (GF := GF) γ (.write ilog pend puts deletes putSize) ⊢
       idxCert γ.idx (commitLog ilog pend) ∗ (if pend = [] then revToken γ else iprop(True)) ∗
-        writerFrag γ := by
+        writerFrag γ ∗ writerPin γ (commitLog ilog pend) := by
   simp only [txnEndPost]
-  iintro ⟨Hc, Ht, -, Hf⟩
-  iframe Hc Ht Hf
+  iintro ⟨Hc, Ht, -, Hf, Hp⟩
+  iframe Hc Ht Hf Hp
 
 /-- The store's `writeView` (`kv_view.go`): its `kv` is the store `s`. -/
 def isWriteView (wv s : Loc) (γ : StoreNames) : IProp GF :=
@@ -5255,7 +5334,7 @@ which it deposits with its part of the deposit ghost. -/
 theorem writerInv_checkout (s : Loc) (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ curAt γ dq o -∗ storeW s γ -∗ wDep γ ={⊤}=∗
       writerL s γ ∗ storeRegd s γ ∗
-      (∃ L : Log, ghostVar γ.wv (1 : Qp).half L ∗ bucketView γ (1 : Qp).half (bucketMap L) ∗
+      (∃ L : Log, ghostVar γ.wv (1 : Qp).half L ∗ bucketView γ (1 : Qp).half.half (bucketMap L) ∗
         idxCert γ.idx L ∗ ⌜L ≠ []⌝ ∗ compactRes γ) ∗ curAt γ dq o := by
   iintro Hlc #Hi Hpin HW Hd
   iunfold writerInv at Hi

@@ -57,7 +57,7 @@ abbrev mvcc.store.restore.specNC : Prop :=
             mvcc.idxReader ti γ.idx) ∗
           ⧖ (mvcc.logCh ([[], []] ++ R))) RevQ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
-  {{ RET #GoInterface.nil; RT ∗ mvcc.kbMW γ.kb γ.bucket ∗
+  {{ RET #GoInterface.nil; RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗
       ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
       s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
       s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗
@@ -80,7 +80,7 @@ theorem mvcc.store.restore.specNC_of_spec (h : mvcc.store.restore.spec (GF := GF
   iapply (h s γ b le ti lg q P HF RT WT W Wi Dep (mvcc.kbNoCmp γ.kb γ.bucket) Cmp PutOk Rb Bt MW SR SRh
       dqb dqi R RevP RevP RevK RevQ dqc DFrac.discard q1 q2 mvcc.CmpRecs.empty
       (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length)
-      iprop(RT ∗ mvcc.kbMW γ.kb γ.bucket ∗
+      iprop(RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗
         ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
         s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
         s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗
@@ -101,7 +101,7 @@ theorem mvcc.store.restore.specNC_of_spec (h : mvcc.store.restore.spec (GF := GF
         (mvcc.restoreDone s b ti q1 dqb dqi dqc ([[], []] ++ R)
           (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length) mvcc.CmpRecs.empty RT
           (mvcc.kbNoCmp γ.kb γ.bucket) RevQ)
-        iprop(RT ∗ mvcc.kbMW γ.kb γ.bucket ∗
+        iprop(RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗
           ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
           s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
           s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗
@@ -113,7 +113,6 @@ theorem mvcc.store.restore.specNC_of_spec (h : mvcc.store.restore.spec (GF := GF
       unfold mvcc.restoreDone
       simp only [mvcc.CmpRecs.empty, Option.getD_none, mvcc.logEnts_length]
       iintro ⟨H1, H2, H3⟩
-      ihave H2 := mvcc.kbNoCmp_MW _ _ $$ H2
       iframe H1 H2 H3
     iframe Hpkg Hb Hbk Hrt Hnc Hkvi Hix Hiw Hle Hlg Hcur1 Hcmp HRevP HLk Hig Hview Hfw HUl Hk
     isplitl []

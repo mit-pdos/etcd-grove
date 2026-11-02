@@ -328,5 +328,3 @@ sorry EtcdServer.applyAll.wp_proofOn
 sorry EtcdServer.run.wp_proofOn
 sorry merged_image
 sorry run_job_snap_cmp
-sorry txn.kvWriter_keyObs
-sorry txn.kvWriter_noCmp

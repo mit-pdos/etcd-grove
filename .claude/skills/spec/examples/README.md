@@ -23,6 +23,7 @@ principles match your target.
 | [lease-grpc.md](lease-grpc.md) | two gRPC handlers over a server's proved specs, and a library call (`errors.Is`) made twice on one error | a contract instead of callee specs when the callee's names and bounds would leak; ask for determinism where Go's code needs two answers to agree |
 | [lease-keepalive.md](lease-keepalive.md) | a bidirectional stream over a server call, with per-run bounds | a stream's spec is fixed at registration: over the token, with per-request bounds as ghost fields of the request's model; one wire model for both ends; an export must close every premise it is for |
 | [c3-store-law.md](c3-store-law.md) | a bound on a field every writer must respect (the compaction revision's permit), its readers' law, and no consumer yet | build the reusable law, not the client statement no one uses; a predicate fixed at creation where the locks hold the shares; a conjunct outside a disjunction a value may satisfy otherwise; a name the restore keeps |
+| [writer-pin.md](writer-pin.md) | a client's observation law over a share the implementation held behind a lock's late-registered resource | rest the law on a share the client holds, not on a resource registered later (check the pending window); lend a token the implementation would drop; thread a piece at its owner's layer, fold it into the definitions above |
 
 Keep it small: an example is readable in one sitting; when a newer example shows the same principles
 better, remove the older one from this index (git keeps it).
