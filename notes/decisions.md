@@ -29269,3 +29269,11 @@ opening the store's invariant at names the restore is changing.
   opaque), so the trusted step proposes `memBoot` with `ccMemberAt`, as Go's bootstrap members are.
   The weak form is not needed: Go never stores a member under another id's key.
 - Q2, Q4–Q7 as the plan note lists them.
+- **Defects of the applied cluster contract** (round 6 of the trusted set's review, 2026-11-02;
+  not this stage's changes): the rows of `bootOk`'s `clusterApplyOk` (`apply/Contracts.lean:525-549`)
+  quantify over every rest state `r` and are false of Go at some: `UpdateAttributes` of an id
+  neither a member nor removed panics (already a known model gap, `RestModel.lean:19`); `SetVersion`
+  above the server's version panics (`MustDetectDowngrade`); with `v3`, a missing `members` or
+  `cluster` bucket is fatal (`UnsafePut`); and, unconfirmed, the attribute row may need an owned
+  `ClientURLs` slice where it takes a read-only one. A false conjunct of `bootPremise` makes the
+  closed results vacuous, not unsound. Fixes proposed in the draft (`bks-trusted.md`, R; Q9).
