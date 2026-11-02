@@ -355,7 +355,83 @@ theorem newChains.wp_proof
       cases hcv
       simp only [hc, ↓reduceIte]
       exact clientOwn_init sls c sl hsl (by omega)
-    sorry
+    have hclsl : sint.Z clsl.len = (cs.length : Int) := by
+      have h1 := Hcllen.1
+      have h2 : ((sint.nat clsl.len : Nat) : Int) = sint.Z clsl.len := Int.toNat_of_nonneg Hcllen.2
+      rw [← h1] at h2
+      simp only [List.length_append, List.length_map, List.length_range, hkc, Nat.sub_self,
+        List.length_replicate, Nat.add_zero] at h2
+      omega
+    -- the first operations' `firstUnk` and the `nDeps`
+    ihave IH4 : iprop(∃ (iv : w64) (st : ChSt), "i" ∷ i_ptr ↦ iv ∗
+        "Hch" ∷ chainsOwnCl ch_ptr clsl h cs st ∗
+        "%Hi" ∷ ⌜0 ≤ sint.Z iv ∧ sint.Z iv ≤ cs.length ∧ NcInv h cs (sint.nat iv) st⌝) $$ [i Hch]
+    · iexists W64 0, chStInit cs
+      iframe
+      ipureintro; exact ⟨by word, by word, ncInv_init h cs⟩
+    wp_for IH4
+    wp_if_destruct
+    · have hin : sint.nat iv < cs.length := by word
+      have hbi : 0 ≤ sint.Z iv ∧ sint.Z iv < sint.Z clsl.len := ⟨Hi.1, by omega⟩
+      obtain ⟨hI1, hI2, hI3, hI4, hI5, hI6⟩ := Hi.2.2
+      wp_apply +noauto (wp_computeFirstUnk ch_ptr clsl h cs st iv cons hok hwf hI3 hI4
+        (by rw [hI1]; exact headsOk_nil) Hi.1 hin
+        (fun hp => absurd hp (by rw [ncInv_head Hi.2.2]; omega))) $$ [Hch]
+      · iframe; iframe #
+      iintro ⟨%st1, Hch, %Hst1⟩
+      wp_auto
+      icases chains_open ch_ptr clsl h cs st1 (sint.Z iv) Hi.1 hin $$ Hch with
+        ⟨%chV, %cvs, %cv, %Hfacts, Hchp, Hfr, Hcap, Hcv, Hw, Hrest, Hc⟩
+      obtain ⟨Hchcl, Hcvslen, Hnum, Hcvi⟩ := Hfacts
+      iunfold clientOwn at Hc
+      icases Hc with ⟨%Hcf, %cos, Hcos, %Hcoo, Hfus⟩
+      ihave %Hcoslen := ownSlice_len $$ Hcos
+      icases typedPointsto_not_null_dup _ _ _ $$ Hchp with ⟨Hchp, %Hchnn⟩
+      icases typedPointsto_not_null_dup _ _ _ $$ Hcv with ⟨Hcv, %Hcvnn⟩
+      iStructNamedSuffix Hchp "_ch"
+      iStructNamedSuffix Hcv "_cc"
+      rw [Hchcl]
+      wp_auto
+      nc_idx [hbi]
+      have hcol : sint.Z cv.cltOps'.len = ((chain cs (sint.nat iv)).length : Int) := by
+        rw [← Hcoo.1, Hcoslen.1]; exact (Int.toNat_of_nonneg Hcoslen.2).symm
+      have hndl : (sint.Z iv).toNat < st1.nDeps.length := by
+        rw [Hst1.2.2.2.1.2.1]; exact hin
+      wp_if_destruct
+      · sorry
+      · -- no operations: `nDeps` stays `0`
+        have hl0 : (chain cs (sint.nat iv)).length = 0 := by
+          have : ¬ (0 < sint.Z cv.cltOps'.len) := by simpa using Hif
+          omega
+        ihave Hcv := typedPointsto_combine _ { cv with nDeps' := W64 0 } _ Hcvnn $$
+          [id_cc cltOps_cc head_cc nDeps_cc __cc]
+        · simp only [TypedPointsto.typedPointstoDef]; iframe
+        ihave Hchp := typedPointsto_combine _ chV _ Hchnn $$ [clients_ch numOps_ch frontier_ch __ch]
+        · simp only [TypedPointsto.typedPointstoDef]; rw [Hchcl]; iframe
+        ihave Hc : clientOwn h cs { st1 with nDeps := st1.nDeps.set (sint.Z iv).toNat (W64 0) }
+            (sint.Z iv).toNat { cv with nDeps' := W64 0 } $$ [Hcos Hfus]
+        · unfold clientOwn
+          isplitr
+          · ipureintro
+            exact ⟨Hcf.1, Hcf.2.1, by simp only; rw [List.getD_eq_getElem?_getD,
+              List.getElem?_set_self hndl]; rfl⟩
+          iexists cos
+          iframe
+          ipureintro; exact Hcoo
+        ihave Hch := chains_close ch_ptr chV clsl h cs st1
+          { st1 with nDeps := st1.nDeps.set (sint.Z iv).toNat (W64 0) } cvs (sint.Z iv)
+          { cv with nDeps' := W64 0 } Hchcl ⟨Hcvslen, Hnum⟩ (by omega)
+          (fun k hk cv => clientOwn_nDeps_ne h cs st1 _ _ k hk cv) $$ [Hchp Hfr Hcap Hcv Hw Hrest Hc]
+        · iframe
+        wp_for_post
+        iframe
+        iexists iv + W64 1, { st1 with nDeps := st1.nDeps.set (sint.Z iv).toNat (W64 0) }
+        have hi1 : sint.nat (iv + W64 1) = sint.nat iv + 1 := by word
+        rw [hi1]
+        iframe
+        ipureintro
+        exact ⟨by word, by word, ncInv_step Hi.2.2 hin Hst1 _ (fun hp => absurd hp (by omega))⟩
+    · sorry
 
 end proof
 

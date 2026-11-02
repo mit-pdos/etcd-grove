@@ -332,6 +332,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 
+/-- Another client's struct does not see client `i`'s `nDeps`. -/
+theorem clientOwn_nDeps_ne (h : List (Theory.Op OpV)) (cs : List (List Nat)) (st : ChSt) (i : Nat)
+    (nd : w64) (k : Nat) (hk : k ≠ i) (cv : client) :
+    clientOwn (GF := GF) h cs { st with nDeps := st.nDeps.set i nd } k cv = clientOwn h cs st k cv := by
+  unfold clientOwn
+  simp only [List.getD_eq_getElem?_getD, List.getElem?_set_ne (Ne.symm hk)]
+  rfl
+
 /-- Client `c`'s struct as `newChains`'s first loop stores it. -/
 def clientAt (sls : List GoSlice) (c : Nat) : client :=
   ⟨W64 (c : Int), sls.getD c slice.nil, W64 0, W64 0⟩
