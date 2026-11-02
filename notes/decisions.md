@@ -29593,7 +29593,7 @@ what came of them:
   call it once each): the permit's `kvRevLbZ (c + 1)`, the read-side law's counter bound
   (`roundsInv_revLb`), a latest `Get` at least it (`client_Get_rev`, `getRevAu_round`).
 
-## The cluster contract's rows: premises from the requests, presence and read-only client URLs in the rest resource (2026-11-02 · proposed, for the user's approval · branch `cluster-rows`, `notes/cluster-rows-plan.md`)
+## The cluster contract's rows: premises from the requests, presence and read-only client URLs in the rest resource (2026-11-02 · the user's decisions accepted; the text awaits approval · branch `cluster-rows`, `notes/cluster-rows-plan.md`)
 
 **The problem.** `apply.isCluster`'s rows (`bootOk`'s `clusterApplyOk`) are false of Go at some
 rest states: `UpdateAttributes` of an id neither a member nor removed panics; `SetVersion` of a
