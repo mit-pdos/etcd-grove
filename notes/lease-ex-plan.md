@@ -6,14 +6,20 @@ panic. Lean-first (no Rocq counterpart).
 
 ## Scope (2026-11-02; the user's choices)
 
-- **Reads on an empty lessor.** The server grants no lease (`srvGrantGuard` is `False`: no verified
-  proposer sends a `LeaseGrant`), so `Main` starts a member, serves it, connects a client and
-  checks `cli.Leases(ctx)` has no lease and `cli.TimeToLive(ctx, id)` answers `TTL == -1` (the
-  handler's own `ErrLeaseNotFound` reply); it panics otherwise. Grants are a later stage.
-- **F4 in grpc's model** (the lease-src review): `grpcHandlerOk` (and its `Md`/`Own` variants) carry
-  the run goroutine's `threadTok` (Perennial's `wp_fork` gives it one) in their pre and post, for
-  every handler: the served lease reads need it (`raftLeaseRead`'s `S := E.RD ∗ threadTok`).
-  This repository's grpc model, not Perennial.
+- **State-independent reads** (revised from "reads on an empty lessor", which needs a new
+  invariant that the lessor's history stays empty). `Main` starts a member, serves it, connects a
+  client and checks what holds whatever the lessor holds: `cli.Leases(ctx)` lists no lease twice
+  (`leaseIdsAt`'s `Nodup`), and `cli.TimeToLive(ctx, id)` answers about `id` (the reply's `ID`);
+  it panics otherwise. The second check needs `leaseTTLOut`'s found arm to state the ID (today
+  only the not-found arm does), down to the trust-boundary `leaseTimeToLive` (the follower path
+  returns the leader's HTTP answer, which `leasehttp.TimeToLiveHTTP` does not check against the
+  asked ID, unlike `RenewHTTP`): a trusted change for Freeze. Grants are a later stage.
+- **F4 in grpc's model** (the lease-src review): a run of a served method holds its goroutine's
+  `threadTok` (Perennial's `wp_fork` gives it one). Done as a restatement of the axiom
+  `grpc.serve` (`InvGrpc.lean`): the method meets are at `S ∗ threadTok`, and `grpcServes` carries
+  `S ∗ threadTok`; `grpc_serve_rpcs` keeps its statement (`grpcMethodsOkMd_frame`), so its callers
+  are unchanged; `grpc_serve_rpcs_tok` is the form the lease reads use. This repository's grpc
+  model, not Perennial. A trusted change for Freeze.
 - **Auth off**, as `watchkv`.
 
 ## What is missing (the survey)
@@ -24,7 +30,7 @@ Server side:
 2. The served specs a client may assume (`GrpcSpec`s), and the handler meets
    (`grpcHandlerOk` of `*quotaLeaseServer`'s promoted `LeaseTimeToLive`/`LeaseLeases`), from
    `LeaseServer.LeaseTimeToLive`/`LeaseLeases`' specs and `raftLeaseRead_server`.
-3. F4: the token in `grpcHandlerOk`; `etcdRunSlot`'s users.
+3. F4: done (D1, the `grpc.serve` restatement).
 4. `examples/common`'s `Serve`: the lease methods' registrations into `isGrpcRpcs` (`v3rpc.Server`'s
    `leaseRegs`, from lease-src).
 

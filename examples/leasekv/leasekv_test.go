@@ -10,8 +10,9 @@ import (
 )
 
 // TestMainRun runs Main for real: one member in a fresh data directory (Main's DataDir is
-// relative); the checks must pass. Then it grants a lease on the member Main left running and asks
-// TimeToLive of it (so that the check's TTL -1 is the answer for an absent lease, not every answer).
+// relative); the checks must pass. Then, on the member Main left running, it checks the answers
+// Main saw are the empty lessor's (TimeToLive's TTL -1, no lease listed), grants a lease and checks
+// the answers about it.
 func TestMainRun(t *testing.T) {
 	t.Chdir(t.TempDir())
 	if r := Main(); r != Ok {
@@ -25,6 +26,10 @@ func TestMainRun(t *testing.T) {
 	defer cli.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+	ttl0, err := cli.TimeToLive(ctx, leaseID)
+	if err != nil || ttl0.TTL != -1 || ttl0.ID != leaseID {
+		t.Fatalf("TimeToLive of an absent lease: %v %v", ttl0, err)
+	}
 	g, err := cli.Grant(ctx, 60)
 	if err != nil {
 		t.Fatal(err)
@@ -33,7 +38,7 @@ func TestMainRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ttl.TTL <= 0 {
+	if ttl.TTL <= 0 || ttl.ID != g.ID {
 		t.Fatalf("a granted lease's TTL is %d", ttl.TTL)
 	}
 	ls, err := cli.Leases(ctx)

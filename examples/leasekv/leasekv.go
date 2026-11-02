@@ -1,9 +1,9 @@
 // Package leasekv is the lease example of etcd's server and client: one etcd member started
 // in-process (as examples/watchkv starts it), a client connected to it, and the client's two lease
-// reads against the member's lessor, which holds no lease (no request the server's verified
-// proposers send grants one): Main panics unless Leases lists no lease and TimeToLive of a lease id
-// answers TTL -1, the server's answer for a lease it does not hold; the theorem to prove is that
-// it does not (notes/lease-ex-plan.md).
+// reads: Main panics if Leases lists a lease id twice or if TimeToLive's answer is about another
+// lease than the one asked; the theorem to prove is that it does not (notes/lease-ex-plan.md). The
+// checks hold whatever the lessor holds (the member holds no lease: no request the server's
+// verified proposers send grants one; the test also checks the answers after a grant).
 //
 // Main calls only what the proofs specify: the examples' shared start (examples/common's
 // StartServer, Serve and NewClient), the client's Leases and TimeToLive (through its embedded
@@ -58,16 +58,20 @@ func Main() int {
 	if err != nil {
 		return Failed
 	}
-	if len(ls.Leases) != 0 {
-		panic("leasekv: Leases listed a lease")
+	for i := range ls.Leases {
+		for j := 0; j < i; j++ {
+			if ls.Leases[i].ID == ls.Leases[j].ID {
+				panic("leasekv: Leases listed a lease twice")
+			}
+		}
 	}
 
 	ttl, err := cli.Lease.TimeToLive(ctx, leaseID)
 	if err != nil {
 		return Failed
 	}
-	if ttl.TTL != -1 {
-		panic("leasekv: TimeToLive of a lease the member does not hold")
+	if ttl.ID != leaseID {
+		panic("leasekv: TimeToLive answered about another lease")
 	}
 	return Ok
 }
