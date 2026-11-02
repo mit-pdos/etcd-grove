@@ -92,3 +92,34 @@ func TestCollect(t *testing.T) {
 		t.Fatal("closed early: ok")
 	}
 }
+
+// TestCheckGet checks checkGet on hand-made answers: the last values pass; a stale value, a
+// missing key or an extra key panics.
+func TestCheckGet(t *testing.T) {
+	evs := []common.Event{
+		{Rev: 2, Key: "ck/k0", Val: "a", Put: true},
+		{Rev: 3, Key: "ck/k1", Val: "b", Put: true},
+		{Rev: 4, Key: "ck/k0", Val: "c", Put: true},
+	}
+	kv := func(k, v string) *mvccpb.KeyValue { return &mvccpb.KeyValue{Key: []byte(k), Value: []byte(v)} }
+	panics := func(f func()) (p bool) {
+		defer func() { p = recover() != nil }()
+		f()
+		return false
+	}
+	if panics(func() { checkGet(evs, 4, []*mvccpb.KeyValue{kv("ck/k0", "c"), kv("ck/k1", "b")}) }) {
+		t.Fatal("checkGet rejected the last values")
+	}
+	if panics(func() { checkGet(evs, 3, []*mvccpb.KeyValue{kv("ck/k0", "a"), kv("ck/k1", "b")}) }) {
+		t.Fatal("checkGet rejected the values at revision 3")
+	}
+	for name, kvs := range map[string][]*mvccpb.KeyValue{
+		"stale":   {kv("ck/k0", "a"), kv("ck/k1", "b")},
+		"missing": {kv("ck/k0", "c")},
+		"extra":   {kv("ck/k0", "c"), kv("ck/k1", "b"), kv("ck/k2", "d")},
+	} {
+		if !panics(func() { checkGet(evs, 4, kvs) }) {
+			t.Fatalf("checkGet accepted the %s answer", name)
+		}
+	}
+}
