@@ -117,7 +117,7 @@ abbrev BuildServer.specRestart : Prop :=
       (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       ⌜err ≠ GoInterface.nil⌝ ∨
-        (⌜err = GoInterface.nil⌝ ∗ memberBuiltR s ρ E₀ lg γn id N ∗ srvStopRight s γ id) }}
+        (⌜err = GoInterface.nil⌝ ∗ memberBuiltR s ρ E₀ lg γn id N false ∗ srvStopRight s γ id) }}
 
 end spec
 

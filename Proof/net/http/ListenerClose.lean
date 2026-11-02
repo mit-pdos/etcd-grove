@@ -13,7 +13,8 @@ takes whole. Here:
 
 * `registerClosable_spec`: the registration keeps a closing half, `httpListenerCloser l a P`, for
   the thread that will close the listener (the Go program keeps the listener; `http.Serve` runs on
-  its own goroutine).
+  its own goroutine), and says the listener is an interface value with a dynamic type (`net.Listen`
+  returns one with a `nil` error), whose `Close` method the program calls.
 * `ListenerClose_spec`: `l.Close()` with the closing half gives back the address
   (`netAddrFree a`) and the right to serve it with its protocol (`httpProtoOwn a P`). The protocol
   stays the address's (`httpProtoAt a P` is persistent): a later listener at `a` serves the same
@@ -49,7 +50,8 @@ opaque httpListenerCloser (l : GoInterface) (a : GoString) (P : Proto GF) : IPro
 def registerClosable_spec : Prop :=
   ∀ (l : GoInterface) (a : GoString) (P : Proto GF),
     ⊢ netListenerAt (GF := GF) l a -∗ httpProtoOwn a P ==∗
-      httpListenerAt l a P ∗ httpListenerCloser l a P
+      ⌜∃ li : GoInterfaceOk, l = GoInterface.ok li⌝ ∗ httpListenerAt l a P ∗
+        httpListenerCloser l a P
 
 /-- **`l.Close()` of a served listener** (DRAFT, see the file header): the address and the right
 to serve it with its protocol back, whatever the error. -/

@@ -297,3 +297,42 @@ What drafting has found so far:
   right to serve the address with its raft protocol (`httpProtoOwn`). The protocol itself stays
   fixed (`httpProtoAt`: the restarted member serves the same member's raft handler protocol). The
   axiom review (the `axiom` skill) checks it with the old `http.Serve`'s handlers still running.
+
+### R2a, where it stands (2026-11-02)
+
+Drafted, checked, no `sorry`, no new axiom. The new server statements are `opaque` placeholders,
+and the draft trust-boundary statements are `Prop`s the proofs take as hypotheses:
+
+- **Server vocabulary** (`etcdserver/InvRestart.lean`, opaque until R2b/R2c):
+  - `srvStopRight s γ id`: `NewServer` gives it, `HardStop` takes it.
+  - `srvStartRet s`: `Start` returned. A `HardStop` before `Start` blocks forever.
+  - `srvDiskImage γ id`: the stopped member's data directory.
+  - `srvRestartBoot`: the restarted member's ghost bundle.
+  - `bootstrapRestartContract`: `bootstrap`'s restart case.
+- **Draft server specs:**
+  - `EtcdServer.HardStop.spec`: from `srvStopRight s γ id` and `srvStartRet s` to
+    `srvDiskImage γ id`.
+  - `EtcdServer.Start.specStop`: `Start.spec`'s at any starting index (a restarted apply thread
+    starts at the image's consistent index; `Start.spec` takes `ai₀ = 0`), also returning
+    `srvStartRet`.
+- **`common`:**
+  - `BuildServer.spec`, proved over `newServer` and linked.
+  - Its drafted variants `specStop` (the stop right) and `specRestart` (from the image).
+  - `Restart.lean`: `bootPremiseR` and `memberBuiltR`, `memberBuilt` at any starting index.
+  - `StartStop.lean`: `wp_Start_builtStop` and `wp_Start_builtR`, proved over `Start.specStop`.
+- **The network's draft boundary** (`Proof/net/http/ListenerClose.lean`):
+  - `registerClosable_spec`: the registration keeps a closing half, and the listener has a
+    dynamic type.
+  - `ListenerClose_spec`: `Close` gives back `netAddrFree` and `httpProtoOwn`.
+- **`restart3`:**
+  - `Defs.lean`: putget3's pure facts with `common.httpURL`; `premises` with the restart contracts
+    of members 2 and 3; `memberStop`.
+  - Specs of `startMember` (`spec`, `specRestart`), `stop`, `serveClient`, `Run` and `Main`.
+  - Proved over those specs: `startMember` (both cases), `stop`, `serveClient` and `Main`.
+
+**Next:** `Run`'s glue, which is where R2c starts. `Run` needs `srvRestartBoot` to tie the
+restarted member's names to the cluster's, so that its `Serve` registers the cluster's KV answers,
+and the client invariant must carry the last put's value (`v2`) across the stop. That is what
+`srvRestartBoot` and `srvDiskImage` must say: the restarted member's `ReqNames` agree with the
+cluster's raft and KV names (`ρ.rd.raft`, `kvInv`), its id generator is fresh past its previous
+ids, and its wait registry is new.
