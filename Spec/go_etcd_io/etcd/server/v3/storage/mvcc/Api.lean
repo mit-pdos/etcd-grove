@@ -28,6 +28,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiImpl
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiWatchImpl
 
 @[expose] public section
 
@@ -48,7 +49,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 abbrev MvccName : Type := MvccImpl
 
 /-- A watch stream's name. -/
-opaque WsName : Type := Unit
+abbrev WsName : Type := WsNameI
 
 /-- **The store's lessor's ghost name** (its `lease.leaseOwn`). -/
 def mvccLeases (γ : MvccName) : GName := γ.st.leases
@@ -68,7 +69,7 @@ watched mode): its mode, fixed at its creation. -/
 def mvccWatched (γ : MvccName) : Bool := γ.watched
 
 /-- **The stream's channel** (fixed at its creation). -/
-opaque wsChanOf (ι : WsName) : GoChan := default
+def wsChanOf (ι : WsName) : GoChan := ι.ch
 
 /-- **The hash of the revisions `(lo, hi]` of a history**, as the store computes it (a function of
 the history, `mvccHashOf_prefix`: crc32's over the revisions' keys and key-values kept by the
@@ -192,21 +193,25 @@ opaque mvccCompactChan (ch : GoChan) : IProp GF := iprop(True)
 
 /-- **`ws` (a `*watchStream`) is a watch stream of the store `γ`, named `ι`** (persistent; its
 channel is `wsChanOf ι`). -/
-opaque isMvccWatchStream (ws : Loc) (γ : MvccName) (ι : WsName) : IProp GF := iprop(True)
+def isMvccWatchStream (ws : Loc) (γ : MvccName) (ι : WsName) : IProp GF := isMvccWatchStreamI ws γ ι
+
+instance isMvccWatchStream_persistent (ws : Loc) (γ : MvccName) (ι : WsName) :
+    Persistent (isMvccWatchStream (GF := GF) ws γ ι) := by
+  unfold isMvccWatchStream; infer_instance
 
 /-- **A share `q` of the stream's open token** (fractional): `Close` takes it whole; a holder of
 a share refutes `Watch`'s closed-stream arm. -/
-opaque wsOpen (ι : WsName) (q : Qp) : IProp GF := iprop(True)
+def wsOpen (ι : WsName) (q : Qp) : IProp GF := wsOpenI ι q
 
 /-- **The registrar's view of the stream's watchers** (exclusive, timeless; the client's, what
 `Watch`'s and `Cancel`'s atomic updates are over): the watcher `id` is `W !! id` (2026-11-02: a
 map keyed by the stream's ids, not their positions: the stream does assign `0, 1, ...`, but its
 proof records no counter of them). -/
-opaque wsWatchers (ι : WsName) (W : GMap w64 WInfo) : IProp GF := iprop(True)
+def wsWatchers (ι : WsName) (W : GMap w64 WInfo) : IProp GF := wsWatchersI ι W
 
 /-- **The consumer has received the responses `rs`** from the stream's channel, in order
 (exclusive, timeless). -/
-opaque wsRecv (ι : WsName) (rs : List WResp) : IProp GF := iprop(True)
+def wsRecv (ι : WsName) (rs : List WResp) : IProp GF := wsRecvI ι rs
 
 /-- **The `WatchResponse` value `v` is the response `r`**: its id, revision and compaction
 revision, its events a read-only slice of `r`'s events (persistent). -/
