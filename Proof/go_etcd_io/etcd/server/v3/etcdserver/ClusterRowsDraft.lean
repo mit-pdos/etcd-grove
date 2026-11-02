@@ -3,8 +3,9 @@
 2026-11-02; `notes/cluster-rows-plan.md`). Imported by nothing; no `axiom`, no `sorry`; nothing
 switched. Each `…D` drafts the unsuffixed statement it names, to replace it in place at the
 switch; a new name is the name it will have. Built on the backend-auth-split stage's approved
-restatement of `srvRestOwn` (`bks-trusted.md` §16), which this branch's base has not applied yet:
-`srvRestOwnD` is §16's text with this stage's conjunct.
+restatement of `srvRestOwn` (§16), applied on `lean` at `a43af91055` and merged here:
+`srvRestOwnD` is the applied `srvRestOwn` (`InvRest.lean:434-437`) over `clusterMemD`, with this
+stage's conjunct.
 
 The rows (`apply.isClusterD`, `apply/ClusterRowsDraft.lean`) need, besides their premises:
 
@@ -85,14 +86,15 @@ theorem restPresent_delIn (r : apply.RestM) (n k : GoString)
   fun n' hn => delIn_present r n k n' (h n' hn)
 
 /-- **Buckets agreeing off `lease`, with `lease` present, keep them** (the lessor's revocation
-lens, §16 applied first: it gives back `srvRestOwn` at buckets agreeing with `rs.bk` off `lease`;
-the revocation's deletes keep the `lease` bucket, `delIn_present`). -/
+lens, `SnapRO.lean:172-179`: it gives back `srvRestOwn` at buckets agreeing with `rs.bk` off
+`mvcc.leaseName`; its hypothesis gains `lease` present, which its call sites' buckets have,
+`restPresent_rbDel`). -/
 theorem restPresent_congr (bk bk' : GMap GoString backend.BktData)
-    (h : ∀ n, n ≠ go!"lease" → bk.lookup n = bk'.lookup n)
-    (hl : (bk'.lookup go!"lease").isSome = true)
+    (h : ∀ n, n ≠ mvcc.leaseName → bk.lookup n = bk'.lookup n)
+    (hl : (bk'.lookup mvcc.leaseName).isSome = true)
     (hp : restPresent bk) : restPresent bk' := by
   intro n hn
-  by_cases hnl : n = go!"lease"
+  by_cases hnl : n = mvcc.leaseName
   · subst hnl; exact hl
   · rw [← h n hnl]; exact hp n hn
 
