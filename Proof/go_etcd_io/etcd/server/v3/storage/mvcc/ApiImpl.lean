@@ -36,10 +36,14 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 /-- **The names of a store of the candidate API**: today's store names (in the abstract mode),
 the readers' pool's loans, and whether the store has watchers. -/
 structure MvccImpl where
-  st : StoreNames
+  /-- the watchable store's names (`WsNames`; its store's, `st`, for a store without watchers too) -/
+  ws : WsNames
   /-- the readers' tickets' thread pool (`threadPool.isThreadPool`) -/
   tl : GName
   watched : Bool
+
+/-- The store's names. -/
+abbrev MvccImpl.st (γ : MvccImpl) : StoreNames := γ.ws.st
 
 /-- **The certificate map is the notified history's**: each entry, at its log's length, is a
 prefix of the notified history, not empty. -/
@@ -88,6 +92,7 @@ def mvccStateI (γ : MvccImpl) (σ : MvccState) : IProp GF :=
     crevUB γ.st.idx (1 : Qp).half σ.crev ∗ idxCert γ.st.idx σ.log ∗
     (∃ M : GMap w64 Log, ghostMapAuth γ.st.cok 1 M ∗ ⌜certMapOk M σ.notifiedLog⌝) ∗
     □ (∀ x, ⌜σ.pending = some x⌝ -∗ certOk γ.st (σ.log ++ [x])) ∗
+    (if γ.watched then monoListAuthOwn γ.ws.wlog (1 : Qp).half σ.log else iprop(True)) ∗
     ⌜MvccReachable σ ∧ σ.log.length + 3 ≤ 2 ^ 63⌝)
 
 /-- **The revision tokens' pool**: `n` tokens and `a` time receipts, `receiptBound GF ≤ a + n + 1`

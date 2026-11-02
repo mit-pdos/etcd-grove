@@ -254,7 +254,7 @@ theorem mvcc.metricsTxnWrite.End.wp_proofC (hA : mvcc.metricsTxnWrite.End.specA 
       iunfold mvcc.mvccWatchersOkI at Hwok
       cases hwd : γ.watched
       · have hq : γ.st.watchQ = false := by rw [hwq, hwd]
-        ihave Hac := mvcc.absCommit_of_au γ habs σ₀.log pend hp Q $$ [Hau]
+        ihave Hac := mvcc.absCommit_of_au γ habs hwd σ₀.log pend hp Q $$ [Hau]
         · iunfold mvcc.commitAU; iexact Hau
         ihave Htx := mvcc.isTxn_toEnd mw' s γ.st (.write σ₀.log pend puts deletes putSize) σ₀.crev
           iprop(True) $$ [Htxw]

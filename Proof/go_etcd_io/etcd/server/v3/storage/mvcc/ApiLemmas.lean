@@ -89,7 +89,8 @@ def commitAU (γ : MvccName) (pend : List Change) (Q : IProp GF) : IProp GF :=
 
 /-- **The second update, at the notified state**: the bump, the abstract committed log advanced
 (its three parts: the client's, `s.revMu`'s and the writer's), nothing pending. -/
-theorem commit_second (γ : MvccName) (habs : γ.st.absQ = true) (ilog : Log) (pend : List Change)
+theorem commit_second (γ : MvccName) (habs : γ.st.absQ = true) (hw : γ.watched = false) (ilog : Log)
+    (pend : List Change)
     (hne : pend ≠ []) (Q : IProp GF) (hlen : (ilog ++ [pend]).length + 3 ≤ 2 ^ 63) :
     idxCert γ.st.idx (ilog ++ [pend]) ∗
     iprop(AU <{ ∃∃ (σ' : MvccState), mvccState γ σ' }> @ ⊤ \ ↑mvccN, ∅
@@ -108,7 +109,7 @@ theorem commit_second (γ : MvccName) (habs : γ.st.absQ = true) (ilog : Log) (p
   icases Hacc with ⟨%σ, Hσ, Hucl⟩
   iunfold mvccState at Hσ
   iunfold mvccStateI at Hσ
-  icases Hσ with ⟨Hga, Hgp, Hgc, #Hgi, ⟨%M, HM, %HMok⟩, #Hpe, %Hreach⟩
+  icases Hσ with ⟨Hga, Hgp, Hgc, #Hgi, ⟨%M, HM, %HMok⟩, #Hpe, Hwl, %Hreach⟩
   ihave %Hl := ghostVar_agree γ.st.abs _ _ _ _ $$ Ha1 Hga
   ihave %Hpp := ghostVar_agree γ.st.pnd _ _ _ _ $$ Hp Hgp
   -- the abstract committed log, all of it, advanced
@@ -124,9 +125,11 @@ theorem commit_second (γ : MvccName) (habs : γ.st.absQ = true) (ilog : Log) (p
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
   have hσ : σ.commitPending = { σ with log := σ.log ++ [pend], pending := none } := by
     unfold MvccState.commitPending; rw [← Hpp]; simp [commitLog, hne]
-  imod Hcommit $$ [Hga Hgp Hgc HM] with HQ
+  imod Hcommit $$ [Hga Hgp Hgc HM Hwl] with HQ
   · iunfold mvccState
     iunfold mvccStateI
+    simp only [hw, Bool.false_eq_true, ↓reduceIte]
+    iframe Hwl
     rw [hσ]
     simp only
     iframe Hga Hgp Hgc Hc'
@@ -152,7 +155,8 @@ both run at the bump. The first notifies (the pending revision's ghost, the clie
 writer's, at `some pend`; the next log's certificate in the client's map), unless the commit is
 already notified (then it changes nothing); the second advances the abstract committed log
 (`commit_second`). -/
-theorem absCommit_of_au (γ : MvccName) (habs : γ.st.absQ = true) (ilog : Log) (pend : List Change)
+theorem absCommit_of_au (γ : MvccName) (habs : γ.st.absQ = true) (hw : γ.watched = false) (ilog : Log)
+    (pend : List Change)
     (hne : pend ≠ []) (Q : IProp GF) :
     commitAU γ pend Q ⊢ absCommit γ.st ilog pend Q := by
   iintro Hau
@@ -174,7 +178,7 @@ theorem absCommit_of_au (γ : MvccName) (habs : γ.st.absQ = true) (ilog : Log) 
   icases Hacc with ⟨%σ, Hσ, Hucl⟩
   iunfold mvccState at Hσ
   iunfold mvccStateI at Hσ
-  icases Hσ with ⟨Hga, Hgp, Hgc, #Hgi, ⟨%M, HM, %HMok⟩, #Hpe, %Hreach⟩
+  icases Hσ with ⟨Hga, Hgp, Hgc, #Hgi, ⟨%M, HM, %HMok⟩, #Hpe, Hwl, %Hreach⟩
   ihave %Hl := ghostVar_agree γ.st.abs _ _ _ _ $$ HaR Hga
   ihave %Hpp := ghostVar_agree γ.st.pnd _ _ _ _ $$ HpW Hgp
   subst Hl
@@ -190,10 +194,11 @@ theorem absCommit_of_au (γ : MvccName) (habs : γ.st.absQ = true) (ilog : Log) 
     ihave #Hcok : certOk γ.st (σ.log ++ [pend]) $$ []
     · iunfold certOk; iright; ileft; iexact Hel
     imod ghostVar_update_halves (some pend) γ.st.pnd _ _ $$ HpW Hgp with ⟨HpW, Hgp⟩
-    imod Hcommit $$ [Hga Hgp Hgc HM] with Hau2
+    imod Hcommit $$ [Hga Hgp Hgc HM Hwl] with Hau2
     · iunfold mvccState
       iunfold mvccStateI
       simp only [MvccState.notify, if_neg hne]
+      iframe Hwl
       iframe Hga Hgp Hgc Hgi
       isplitl [HM]
       · iexists _; iframe HM; ipureintro
@@ -207,7 +212,7 @@ theorem absCommit_of_au (γ : MvccName) (habs : γ.st.absQ = true) (ilog : Log) 
         simp [MvccState.notify, hne]
       rw [hσ]
       exact MvccReachable.notify σ pend Hreach.1 hpn (LogWf.of_wf' Hwf.1 (by simp))
-    ihave Hcs := commit_second γ habs σ.log pend hne Q Hlen
+    ihave Hcs := commit_second γ habs hw σ.log pend hne Q Hlen
     isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down, tforall_cons, tforall_nil] at Hcs
     imod Hcs $$ [$Hc' $Hau2 $HaR $HaW $HpW] with ⟨Ha1, Ha2, Hp, HQ⟩
     imodintro
@@ -216,14 +221,15 @@ theorem absCommit_of_au (γ : MvccName) (habs : γ.st.absQ = true) (ilog : Log) 
     ihave #Hcok := Hpe $$ %pend %Hpp.symm
     have hσ := notify_pending σ pend hne Hpp.symm
     isimp only [hσ] at Hcommit
-    imod Hcommit $$ [Hga Hgp Hgc HM] with Hau2
+    imod Hcommit $$ [Hga Hgp Hgc HM Hwl] with Hau2
     · iunfold mvccState
       iunfold mvccStateI
+      iframe Hwl
       iframe Hga Hgp Hgc Hgi Hpe
       isplitl [HM]
       · iexists M; iframe HM; ipureintro; exact HMok
       ipureintro; exact Hreach
-    ihave Hcs := commit_second γ habs σ.log pend hne Q Hlen
+    ihave Hcs := commit_second γ habs hw σ.log pend hne Q Hlen
     isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down, tforall_cons, tforall_nil] at Hcs
     imod Hcs $$ [$Hc' $Hau2 $HaR $HaW $HpW] with ⟨Ha1, Ha2, Hp, HQ⟩
     imodintro
@@ -244,16 +250,17 @@ theorem commitAU_nil (γ : MvccName) (habs : γ.st.absQ = true) (Q : IProp GF) :
   icases Hacc with ⟨%σ, Hσ, Hucl⟩
   iunfold mvccState at Hσ
   iunfold mvccStateI at Hσ
-  icases Hσ with ⟨Hga, Hgp, Hgc, #Hgi, HM, #Hpe, %Hreach⟩
+  icases Hσ with ⟨Hga, Hgp, Hgc, #Hgi, HM, #Hpe, Hwl, %Hreach⟩
   ihave %Hpp := ghostVar_agree γ.st.pnd _ _ _ _ $$ HpW Hgp
   have hσ : σ.notify [] = σ := by
     cases σ with
     | mk log crev pending => simp only at Hpp; subst Hpp; simp [MvccState.notify]
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down, hσ] at Hcommit
-  imod Hcommit $$ [Hga Hgp Hgc HM] with Hau2
+  imod Hcommit $$ [Hga Hgp Hgc HM Hwl] with Hau2
   · iunfold mvccState
     iunfold mvccStateI
+    iframe Hwl
     iframe Hga Hgp Hgc HM Hgi Hpe
     ipureintro; exact Hreach
   ihave Hau2 := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvccN) (Eo2 := ⊤) (by simp) $$ Hau2
@@ -264,7 +271,7 @@ theorem commitAU_nil (γ : MvccName) (habs : γ.st.absQ = true) (Q : IProp GF) :
   icases Hacc with ⟨%σ', Hσ, Hucl⟩
   iunfold mvccState at Hσ
   iunfold mvccStateI at Hσ
-  icases Hσ with ⟨Hga, Hgp, Hgc, #Hgi, HM, #Hpe, %Hreach⟩
+  icases Hσ with ⟨Hga, Hgp, Hgc, #Hgi, HM, #Hpe, Hwl, %Hreach⟩
   ihave %Hpp := ghostVar_agree γ.st.pnd _ _ _ _ $$ HpW Hgp
   have hσ : σ'.commitPending = σ' := by
     cases σ' with
@@ -272,9 +279,10 @@ theorem commitAU_nil (γ : MvccName) (habs : γ.st.absQ = true) (Q : IProp GF) :
       simp only at Hpp; subst Hpp; simp [MvccState.commitPending, commitLog]
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down, hσ] at Hcommit
-  imod Hcommit $$ [Hga Hgp Hgc HM] with HQ
+  imod Hcommit $$ [Hga Hgp Hgc HM Hwl] with HQ
   · iunfold mvccState
     iunfold mvccStateI
+    iframe Hwl
     iframe Hga Hgp Hgc HM Hgi Hpe
     ipureintro; exact Hreach
   imodintro
