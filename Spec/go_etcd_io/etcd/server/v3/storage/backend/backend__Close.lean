@@ -27,7 +27,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `b.Close()`, with all of the clients' open token: the `run` goroutine stopped (its
-`CommitAndStop`), then bbolt's database closed: `nil`, or bbolt's error (`¬ dbCloseOk`). -/
+`CommitAndStop`), then bbolt's database closed: `nil`, or bbolt's error (`¬ dbCloseOk`). A read
+begun before it needs no share of the token (the guard is at the acquisition, `readTx.RLock` and
+`ConcurrentReadTx`: the backend-auth-split stage's decision 1) and finishes first: the stop's
+commit takes `readTx.Lock()`, which waits for every `readTx.RLock` holder, and bbolt's `Close`
+waits for the read transactions (a `ConcurrentReadTx`'s). -/
 abbrev backend.backend.Close.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ isStopChans γ b ∗

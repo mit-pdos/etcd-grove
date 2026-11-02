@@ -78,7 +78,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   icases srvApRes_cfg_size s γr A $$ HAR with ⟨HAR, %hsz⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
-  icases Hsrv' with ⟨%Hρrd, -, ⟨%sv, #Hfl⟩, -, -, #HrnS⟩
+  icases Hsrv' with ⟨%Hρrd, -, ⟨%sv, #Hfl⟩, -, -, #HrnS, -⟩
   iunfold srvFieldsAt at Hfl
   icases Hfl with ⟨#Hlgf, %Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -⟩
   ihave #Hsa' := Hsa
@@ -469,7 +469,7 @@ theorem EtcdServer.applyAll.wp_proofOn
   icases srvApRes_cfg_size s γr A $$ HAR with ⟨HAR, %hsz⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
-  icases Hsrv' with ⟨%Hρrd, -, ⟨%sv, #Hfl⟩, -, -, #HrnS⟩
+  icases Hsrv' with ⟨%Hρrd, -, ⟨%sv, #Hfl⟩, -, -, #HrnS, -⟩
   iunfold srvFieldsAtM at Hfl
   icases Hfl with ⟨#Hlgf, %Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -⟩
   ihave #Hsa' := Hsa

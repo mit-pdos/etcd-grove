@@ -55,6 +55,7 @@ theorem backend.batchTxBuffered.UnsafePut.wp_proof
     (pend_succ_nat Hwf Hp) (fun i => put_W_le st bi kb vb false i) bi.name kb
     (hkData_put_other st bi kb vb false) (rbData_put_other st bi kb vb false)
     (fun hk => fkOkG_put false HP Hhas hk) (fun hk => fkOkG_putFk false HP Hhas (Hfv hk))
+    (fun _ => ⟨bi.id, Hhas⟩) (BSess.put_S_other st bi kb vb false)
     $$ Hg Hhkp Hrbp Hfkp
     with ⟨Hg, Hhkp, Hrbp, Hfkp⟩
   wp_apply (hBuf (wbOf t) st.W bk bi key value kb vb Hlen) $$ [$HW] as HW

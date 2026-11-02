@@ -35,7 +35,8 @@
   bits not `0` (since M4 the cluster's allocation's premise) and the conf-change policy
   `srvCCPolicy` admitting id-`0` conf changes only (D19c: no request claims the id `0` of raft's
   bootstrap conf changes); the lifetime bounds (D14g, D17, D19b): the logic's thread bound
-  `threadBound GF ≤ 2 ^ 28` (J8a-6, 2026-11-01: the transport's thread pool; `2 ^ 31` until then),
+  `threadBound GF ≤ backend.rdPoolN`, `2 ^ 28` (J8a-6, 2026-11-01: the transport's thread pool;
+  `2 ^ 31` until then; the backend-auth-split stage, 2026-11-02: also the backend's pool of readers),
   and the time-receipt bounds `receiptBound GF ≤ 2 ^ 48` (D19b: the id generator's invariant holds
   a receipt per id issued, so fewer than `2 ^ 48` ids; until then the premise `idLifeBound`) and
   `receiptBound GF ≤ N + 1` (D19b: `start` puts the `N` write tokens in a receipt-backed budget,
@@ -176,8 +177,9 @@ abbrev NewServer.spec : Prop :=
   E₀.cmp = decide (cfg.AutoCompactionRetention' ≠ 0) → ρ.rd.kv.cmp = E₀.cmp →
   -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice; J8a-6,
   -- 2026-11-01, the user's decision: `2 ^ 28` (until then `2 ^ 31`), the transport's pool of `lgMu`
-  -- reader slots, a thread pool, having `2 ^ 28` of them)
-  threadBound GF ≤ 2 ^ 28 →
+  -- reader slots, a thread pool, having `2 ^ 28` of them; the backend-auth-split stage, 2026-11-02:
+  -- written `backend.rdPoolN`, the backend's pool of readers being as large)
+  threadBound GF ≤ backend.rdPoolN →
   -- the time-receipt bound (D19b: the adequacy theorem's step bound `N`, its caller's choice):
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
   -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
@@ -201,6 +203,9 @@ abbrev NewServer.spec : Prop :=
   -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
   letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      -- (2026-11-02, the backend-auth-split stage) the constructing thread's token, given back:
+      -- for the pooled readers of the next stage
+      "Htok" ∷ threadTok ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
       -- (M2) in compaction mode at `N + N` write tokens: `N` more, the compaction's write-back
@@ -261,8 +266,8 @@ abbrev NewServer.spec : Prop :=
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
   {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);
-      ⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∨
-      ⌜err = GoInterface.nil⌝ ∗
+      (⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+      ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
           ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗ srvWatchBuilt srv E ∗
@@ -351,8 +356,9 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   E₀.cmp = false →
   -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice; J8a-6,
   -- 2026-11-01, the user's decision: `2 ^ 28` (until then `2 ^ 31`), the transport's pool of `lgMu`
-  -- reader slots, a thread pool, having `2 ^ 28` of them)
-  threadBound GF ≤ 2 ^ 28 →
+  -- reader slots, a thread pool, having `2 ^ 28` of them; the backend-auth-split stage, 2026-11-02:
+  -- written `backend.rdPoolN`, the backend's pool of readers being as large)
+  threadBound GF ≤ backend.rdPoolN →
   -- the time-receipt bound (D19b: the adequacy theorem's step bound `N`, its caller's choice):
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
   -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
@@ -380,6 +386,9 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
   letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      -- (2026-11-02, the backend-auth-split stage) the constructing thread's token, given back:
+      -- for the pooled readers of the next stage
+      "Htok" ∷ threadTok ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
       "#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir ∗
@@ -438,8 +447,8 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
   {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);
-      ⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∨
-      ⌜err = GoInterface.nil⌝ ∗
+      (⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+      ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
           -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.specOn`'s)
@@ -542,8 +551,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   E₀.cmp = cmp →
   -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice; J8a-6,
   -- 2026-11-01, the user's decision: `2 ^ 28` (until then `2 ^ 31`), the transport's pool of `lgMu`
-  -- reader slots, a thread pool, having `2 ^ 28` of them)
-  threadBound GF ≤ 2 ^ 28 →
+  -- reader slots, a thread pool, having `2 ^ 28` of them; the backend-auth-split stage, 2026-11-02:
+  -- written `backend.rdPoolN`, the backend's pool of readers being as large)
+  threadBound GF ≤ backend.rdPoolN →
   -- the time-receipt bound (D19b: the adequacy theorem's step bound `N`, its caller's choice):
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
   -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
@@ -571,6 +581,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
   letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      -- (2026-11-02, the backend-auth-split stage) the constructing thread's token, given back:
+      -- for the pooled readers of the next stage
+      "Htok" ∷ threadTok ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
       -- (M2, `NewServer.spec`'s compaction mode) at `N + N` write tokens: `N` more, the
@@ -631,8 +644,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
   {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);
-      ⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∨
-      ⌜err = GoInterface.nil⌝ ∗
+      (⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+      ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
           -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.specOn`'s)

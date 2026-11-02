@@ -115,7 +115,7 @@ theorem Main.wp_proof
       (W64 10000000) lg
       (LogEntry.toEntries boot 0) ctxs (putgetcDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [putgetcDir, dirOne]) Hlg (by decide) hkr Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
+      (by simp [putgetcDir, dirOne]) (by decide) Hlg (by decide) hkr Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)

@@ -6,6 +6,7 @@
 
 # The cache's prefix bound (`2 ^ 28`): one API pair (`New`, `newCache`), local (B5).
 shared-limit ^Spec/go_etcd_io/etcd/cache/v3/(New|newCache)\.lean$
+stock storage/backend/RdPool\.lean  # the backend's reader pool (the backend-auth-split stage, 2026-11-02): the owner of `readTx.mu`'s reader slots builds its pool from the constructor's slots and their open shares, and counts the remainder (`rdStock`)
 
 # The lessor's reader pool, made of its lock's spare slots by the lock's owner, the lease package
 # (the lease-src plan, 2026-11-02).

@@ -13,6 +13,8 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__writ
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadSide
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.WritebackLemmas
 public import Proof.go_etcd_io.raft.v3.FrameH
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.UnlockBare
+import all Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
 
 @[expose] public section
 
@@ -120,13 +122,14 @@ local macro "bu_release" : tactic => `(tactic| (
     iexact HQ
   ))
 
-theorem backend.batchTxBuffered.Unlock.wp_proof
+/-- `Unlock` handed no part of the tracked buckets (the session's code). -/
+private theorem unlock_core
     (hRLock : backend.readTx.Lock.spec (GF := GF) (hG := hG))
     (hWB : backend.txWriteBuffer.writeback.spec (GF := GF) (hG := hG))
     (hRUnlock : backend.readTx.Unlock.spec (GF := GF) (hG := hG))
     (hC : backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG))
     (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG)) :
-    backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG) := by
+    backend.batchTxBuffered.Unlock.specBare (GF := GF) (hG := hG) := by
   intro γ P W Pk b t st Q Hhw Hroom
   wp_start as ⟨#Hb, #Ht, Hl, Htok, Hcase⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
@@ -278,6 +281,40 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
         · exfalso; exact hcond (Or.inr (by have : sint.Z (W64 0) = 0 := rfl; omega))
         icases HQw $$ Hbvw with ⟨HWv, HQ⟩
         bu_free (wbSt P st) hbg' hfo'
+
+/-- **`Unlock`'s ghost step** (`rbSide_idle`): the part handed in made idle, at the session's end.
+Private to this proof: anywhere else it would assert an idleness Go does not give. -/
+private theorem unlock_idle (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (S : GoString → Prop)
+    (r : GMap GoString BktData) :
+    ⊢ batchLocked (GF := GF) γ P b st -∗ rbPart γ S r ==∗ batchLocked γ P b st ∗ rbOwnIn γ S r := by
+  unfold batchLocked batchLockedAt batchGhost batchGhostAt trkHalf
+  iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hb⟩, Hfk, %Hok⟩, %Hwf⟩
+    Hc
+  imod rbSide_idle (hG := hG) γ P (rbData P st.S) S r $$ [$Hb $Hc] with ⟨Hb, Hc⟩
+  imodintro
+  iframe Hc
+  iexists t, db
+  iframe
+  iframe #
+  ipureintro; exact ⟨Hok, Hwf⟩
+
+theorem backend.batchTxBuffered.Unlock.wp_proof
+    (hRLock : backend.readTx.Lock.spec (GF := GF) (hG := hG))
+    (hWB : backend.txWriteBuffer.writeback.spec (GF := GF) (hG := hG))
+    (hRUnlock : backend.readTx.Unlock.spec (GF := GF) (hG := hG))
+    (hC : backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG))
+    (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG)) :
+    backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG) := by
+  intro γ P W Pk b t st Q S r Hhw Hroom
+  iintro %Φ ⟨#Hpkg, #Hb, #Ht, Hl, Htok, Hrb, Hcase⟩ HΦ
+  imod unlock_idle (hG := hG) γ P b st S r $$ Hl Hrb with ⟨Hl, Hin⟩
+  iapply (unlock_core hRLock hWB hRUnlock hC hBU γ P W Pk b t st Q Hhw Hroom) $$ %Φ
+    [Hl Htok Hcase]
+  · iframe Hl Htok Hcase; iframe #
+  inext
+  iintro HQ
+  iapply HΦ
+  iframe HQ Hin
 
 end proof
 

@@ -6,6 +6,7 @@ entries `A'`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyNames
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestMemId
 
 @[expose] public section
 
@@ -39,16 +40,19 @@ theorem snap_srvRest (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IP
     (A' : List EntryModel) (hγB : d'.γB = γB)
     (hA' : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk = bk ∧
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI) :
-    backend.rbOwn d'.γB bk ∗ membership.clusterMem cl memI ∗
+    backend.rbOwnIn d'.γB membership.clusterBkts bk ∗
+      backend.rbPart d'.γB (fun n => ¬ membership.clusterBkts n) bk ∗ membership.clusterMem cl memI ∗
       alarmBeOn al d'.be ∗ authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ⊢
     srvRest (snapE E γ' TM' ci p' g γB al ast lp cl d'.be) γr A' := by
   subst hγB
   unfold srvRest
   rw [snapE_RO]
   unfold srvRestOwnH srvRestOwn srvObjsOn
+  have hmi : memIdOk memI := hA'.2 ▸ restModel_memIdOk' _ _ _
   rw [hA'.1, hA'.2]
-  iintro ⟨H1, H2, H3, H4, H5, H6⟩
+  iintro ⟨H0, H1, H2, H3, H4, H5, H6⟩
   iframe
+  ipureintro; exact hmi
 
 end proof
 end EtcdGrove

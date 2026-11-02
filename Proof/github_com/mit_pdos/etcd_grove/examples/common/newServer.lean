@@ -37,14 +37,14 @@ theorem newServer.wp_proof
     (wp_newServerMode : newServerMode.spec (GF := GF) (hG := hG)) :
     newServer.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ
-    ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hret Hck Haf Hbuq
+    ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU HU8 Hlg Hret Hck Haf Hbuq
     Hdbo
-  wp_start as ⟨#Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
+  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
   (try wp_auto)
   wp_apply (wp_newServerMode N name peerAddr client token go!"revision" retention snapCount catchUp
       peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn false Htb Hrb48 HrbN hvs hrule
-      hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg (by simpa using Hret) Hck Haf Hbuq Hdbo)
-    $$ [Hmb] as %s %err Hres
+      hboot hblen Hγn1 Hγn2 Hdirok Hdir HU HU8 Hlg (by simpa using Hret) Hck Haf Hbuq Hdbo)
+    $$ [Htok Hmb] as %s %err Hres
   · iframe; iframe #
     iExactEq Hboot; simp
   (try wp_auto)
@@ -57,14 +57,14 @@ theorem newServer.wp_proofCompact
     (wp_newServerMode : newServerMode.spec (GF := GF) (hG := hG)) :
     newServer.specCompact (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ
-    ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hret Hcret Hck Haf Hbuq
+    ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU HU8 Hlg Hret Hcret Hck Haf Hbuq
     Hdbo
-  wp_start as ⟨#Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
+  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
   (try wp_auto)
   wp_apply (wp_newServerMode N name peerAddr client token go!"revision" retention snapCount catchUp
       peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn true Htb Hrb48 HrbN hvs hrule
-      hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg (by simp only [↓reduceIte]; exact Or.inl ⟨trivial, Hret, Hcret⟩) Hck Haf Hbuq Hdbo)
-    $$ [Hmb] as %s %err Hres
+      hboot hblen Hγn1 Hγn2 Hdirok Hdir HU HU8 Hlg (by simp only [↓reduceIte]; exact Or.inl ⟨trivial, Hret, Hcret⟩) Hck Haf Hbuq Hdbo)
+    $$ [Htok Hmb] as %s %err Hres
   · iframe; iframe #
     iExactEq Hboot; simp
   (try wp_auto)

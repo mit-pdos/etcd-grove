@@ -137,7 +137,7 @@ theorem kbWTSupplyM_of_poolR (s : Loc) (E : apply.AEnv GF) (γp : GName) :
       srvBeOwn s E ∗ mvcc.kbWTSupplyM E.γ.kb := by
   iintro #Hp Hbo Hlc
   iunfold srvBeOwn at Hbo
-  icases Hbo with ⟨%d, %Hd, Hbe, Hg⟩
+  icases Hbo with ⟨%d, %Hd, Hbe, Hg, #Hro, Hpl⟩
   ihave #Hp' := Hp
   iunfold srvWTPoolR at Hp'
   iinv Hp' with ⟨%a, %d0, >Ha, >Hg0, #Hs0, >Hc, Hrt⟩ Hclose
@@ -149,10 +149,10 @@ theorem kbWTSupplyM_of_poolR (s : Loc) (E : apply.AEnv GF) (γp : GName) :
     iexists a, d
     iframe Ha Hg0 Hs0 Hc Hrt
   imodintro
-  isplitl [Hbe Hg]
+  isplitl [Hbe Hg Hpl]
   · iunfold srvBeOwn
     iexists d
-    iframe Hbe Hg
+    iframe Hbe Hg Hro Hpl
     ipureintro; exact Hd
   rw [Hd]
   iapply kbWTSupplyM_of_stock E γp d $$ [$Hp $Hs1]
@@ -207,7 +207,7 @@ theorem srv_be_swapR (s : Loc) (E : apply.AEnv GF) (γp : GName) (d' : mvcc.KBRe
   iunfold bemuP at Hbm
   icases Hbm with ⟨%d1, Hbe1, Hg1, #Hro1⟩
   iunfold srvBeOwn at Hbo
-  icases Hbo with ⟨%d, %Hd, Hbe2, Hg2⟩
+  icases Hbo with ⟨%d, %Hd, Hbe2, Hg2, -, -⟩
   icombine Hg1 Hg2 gives %Hag
   obtain ⟨-, rfl⟩ := Hag
   icombine Hbe1 Hbe2 as Hbe

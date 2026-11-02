@@ -28,6 +28,7 @@ current modules (the result of an interrupted or failed run, or of an older layo
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 
@@ -137,7 +138,31 @@ def _imports(mod, memo={}):
     return memo[mod]
 
 
-PERENNIAL = os.path.join(ROOT, ".lake", "packages", "perennial")
+def _perennial_dir():
+    """Perennial's checkout as Lake resolves it: the `perennial` entry of the manifest Lake reads
+    (`--packages=FILE` in `$LAKE_OPTS`, as `etc/tcb-report.py` passes it to Lake, else
+    `lake-manifest.json`), its `dir` for a `path` dependency, else `<packagesDir>/perennial`."""
+    manifest = os.path.join(ROOT, "lake-manifest.json")
+    opts = shlex.split(os.environ.get("LAKE_OPTS", ""))
+    for i, o in enumerate(opts):
+        if o.startswith("--packages="):
+            manifest = o.split("=", 1)[1]
+        elif o == "--packages" and i + 1 < len(opts):
+            manifest = opts[i + 1]
+    manifest = os.path.join(ROOT, manifest)
+    try:
+        with open(manifest, encoding="utf-8") as f:
+            man = json.load(f)
+    except (OSError, ValueError):
+        man = {}
+    pkgs_dir = os.path.join(ROOT, man.get("packagesDir", os.path.join(".lake", "packages")))
+    for p in man.get("packages", []):
+        if p.get("name") == "perennial" and p.get("type") == "path" and p.get("dir"):
+            return os.path.join(ROOT, p["dir"])
+    return os.path.join(pkgs_dir, "perennial")
+
+
+PERENNIAL = _perennial_dir()
 
 
 def shadows_perennial(mod):

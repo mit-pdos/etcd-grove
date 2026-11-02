@@ -46,8 +46,8 @@ theorem newServerMode.wp_proof
     newServerMode.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
     bootLog ctxs dir id γ ρ E₀ Φs γn cmp Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir
-    HU Hlg Hmode Hck Haf Hbuq Hdbo
-  wp_start as ⟨#Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
+    HU HU8 Hlg Hmode Hck Haf Hbuq Hdbo
+  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
@@ -98,7 +98,7 @@ theorem newServerMode.wp_proof
       v3rpc.maxTxnOpsOk_default Hacr Hdec
       (hkcmp.trans hcmp0.symm) Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir))
-    $$ [Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
+    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
   · iframe
     iframe #
     isplitr
@@ -106,7 +106,7 @@ theorem newServerMode.wp_proof
         cases cmp <;> simp [hcmp0]]
       iapply Hboot
       ipureintro
-      refine ⟨?_, HU, hvs, hrule, hboot⟩
+      refine ⟨?_, HU, HU8, hvs, hrule, hboot⟩
       unfold cfgOk; simp
     isplitr
     · iunfold bootCfgRO
@@ -125,10 +125,10 @@ theorem newServerMode.wp_proof
     isplitr; · ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
     iapply Htk
     ipureintro; rfl
-  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
+  icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
     Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, -, #Hlrd, #Hpool⟩)
   · -- `NewServer` failed: the error returned
-    iapply HΦ; ileft; ipureintro; exact Herr
+    iapply HΦ; ileft; iframe Htok; ipureintro; exact Herr
   subst Herr
   -- what `Start` takes: the built server, the monitors off
   ihave Hsb := isServerBuilt_of_gap srv γA ci TM E ρ ρ.rd _ γrn b (W64 0) (W64 0) (W64 0) bootKV N
@@ -147,6 +147,7 @@ theorem newServerMode.wp_proof
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl
+  iframe Htok
   iunfold memberBuilt
   iexists γA, ci, TM, E, γrn, b, _, γk, τ
   simp only [Bool.false_eq_true, ↓reduceIte]

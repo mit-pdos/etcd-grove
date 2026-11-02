@@ -29091,6 +29091,103 @@ the no-compactor arm), and `common.Collect.spec` takes the consumer at any start
 `I 0 c0` (until then `0`, a watch from revision 1). The watch is of the last round's key, guarded
 by `prevRev != 0` so that the key is a round's (`prevOk`, the request's size).
 
+## The backend for the auth split: open shares at acquisition, a reader pool, idle parts (2026-11-01 · Draft, not frozen · `notes/backend-auth-split-plan.md`)
+
+What the auth-on snapshot install's restated premise needs of the backend, after the user's
+decisions of 2026-11-01 (Draft in `AuthSplitDraft.lean`, imported by nothing).
+
+- **A read in progress holds no open share.** Today `readTx.UnsafeRange` takes `bOpen γ qo` to
+  rule out the stopped interval, so a reader holds a share from `RLock` to `RUnlock` and a
+  release cannot give `Close` its share while reads run, though Go's `Close` waits for them
+  (`commit` takes `readTx.Lock()`). Chosen: the held read (`rtHeldF`) records that the interval is
+  live, which `RLock` establishes with the share it takes and gives back; the interval stays live
+  while held (only the stop's commit, under the write lock, clears it). `UnsafeRange` drops the
+  share; `Close` keeps `bOpen γ 1`. Today's statements are corollaries.
+- **Readers draw slots from a pool with a thread token** (the Bounds rule; the shape of minibolt's
+  `isDB` and rafthttp's `raftPool`): the backend's constructor builds a pool of `2 ^ 28` slots (at
+  J8a's thread bound) for the readers that hold no lock of their owner's (member, alarm and auth
+  admin reads, `Recover`s), and leaves the rest counted for the owners whose readers nest a slot
+  under their own read lock (auth's `beMu`, mvcc's `s.mu`), which pool bundles (`notes/bounds-locks.md`,
+  B2). Review round 2 dropped the pool on the premise that every reader holds an owner lock;
+  round 3 showed it false. Where the pool lives is the plan's Q2, open. mvcc's `bkRTx` loses its
+  open share for an acquisition guard in the store (Q5).
+- **`rbOwn` is the writer's contents; idleness is a separate predicate.** The auth Draft's
+  `rbOwn_split_in` split `rbOwn` into idle parts, false while the holder's own write is pending
+  (a held batch with a pending delete: readers still see the key). Chosen: `rbPart γ S r` (the
+  writer's contents on the tracked buckets of `S`; `rbOwn = rbPart ⊤`, meaning kept) and
+  `rbOwnIn γ S r` (idle: readers see `r` there), split/join over disjoint sets; `rbPut` takes its
+  bucket's part only; `Unlock` turns a part handed in into the idle part (Go writes the session
+  back and commits a pending delete, etcd-io/etcd#17119); a fresh backend's are idle. The split the
+  premise needs is restated over `rbOwnIn ⊤`. The batch lock's own side is a third predicate
+  (`rbLock`), so that `backend.Snapshot`'s observation no longer hands the lock's half as `rbOwn`.
+
+## The backend for the auth split, Freeze: decision 1 applied, decision 3 stopped (2026-11-01 · decision 1 frozen · `notes/backend-auth-split-plan.md`, "Freeze")
+
+Supersedes in part the entry above (its first bullet is now applied; its third is not).
+
+- **Decision 1 applied.** `rtHeld`/`rtHeldF` (`InvBackend.lean`) carry `rtx ≠ Loc.null` in their
+  existing pure conjunct (`⌜rd.rtx = rtx ∧ rtx ≠ Loc.null⌝`), not as a separate `∗ ⌜…⌝` outside
+  the existential as the draft wrote it: the same predicate, and the laws that destructure it keep
+  their patterns. `RLock` establishes it with the open share it takes (`rtResAt_live`, over
+  `rtIntv_live`); `readTx.UnsafeRange.spec` takes no open share. The share-free laws are
+  `rtHeldF_lend'`/`rtHeldF_read'` (`ReadLemmas.lean`); today's `rtHeldF_lend`/`rtHeldF_read`/
+  `rtHeld_read` (with `bOpen`) stay, as one-line corollaries, so that their callers are unchanged.
+  `rtHeld_wf` moved from mvcc's bridge to the backend (a law, `ReadLemmas.lean`). The two direct
+  users of `UnsafeRange.spec` (`rtUR_held`, `rt_rangeLimF`) frame the share; no other caller
+  changed. `guarded_RLock` is in `ClientLaws.lean`. `Close.spec`: docstring only (Q1).
+- **Decision 3 stopped: `rtHeldF_rbOwnIn` is not provable over the current read model.** The law
+  says a held read agrees with the idle part on its tracked buckets. On the server every tracked
+  bucket is a hook bucket (`bridgeParams`: `HB n = (n ≠ key)`), and the backend relates the
+  readers' state to the writer's contents only off the hook buckets (`sessWf`'s `agreeOff P.HB`,
+  `vData`, `viewSame`; `hookStep` constrains the write buffer only off them): nothing in today's
+  invariants says what a reader sees of a tracked bucket. The auth Q2 survey's finding (the
+  readers' model would have to be extended to the hook buckets; its estimate 2.5–10k lines). The
+  other laws (split/join, congruence, `batchLocked_rbPart`, `rbLock_agree`) are provable over a
+  per-bucket ghost map of the writer's halves, but without `rbOwnIn` they give no client anything
+  (`Unlock`'s restatement and `newPostK`'s idle part need it), and changing `rbOwn`'s
+  representation changes what `backend.Snapshot`'s axiom asserts (its observation hands the lock's
+  half as `rbOwn`). So nothing of decision 3 is applied; `AuthSplitDraft.lean` keeps it.
+- **Decision 2 held.** The pool in `newPostK` would make `storage.OpenBackend`'s axiom assert it
+  under any thread bound; the axiom's restatement is step 2's, to be approved.
+
+## The backend for the auth split: the user's decisions on the Freeze's questions (2026-11-01 · the user's · `notes/backend-auth-split-plan.md`, "The user's decisions on the Freeze's questions")
+
+Supersedes the Freeze entry's "decision 3 stopped" in its consequence (the finding stands).
+
+- **`rbOwnIn` as a ghost idle token** (option (b)): its meaning is a fact about the session's
+  writes (no put, delete, bucket creation or deletion on the buckets since the holder's last
+  `Unlock`), kept by the proved batch operations, not a fact about what the readers see. That the
+  readers see the idle contents is Go's (`Unlock` writes the session back and commits a pending
+  delete), argued in each trusted reader's docstring and checked by the axiom check. Why not wait
+  for option (a): its cost (a read model over the hook buckets), and the trusted readers are
+  axioms today anyway; (a) is recorded as a later stage.
+- **The pool as a proved corollary of a core axiom**, the thread bound a persistent fact of the
+  server's: the Bounds rule (a bound reasoned about where it is owned) forbids an instance on
+  every spec between `NewServer` and `applySnapshot`.
+- The other five (the decoding premise defined, the trusted set extended to `srvRestOwn`/`bootOk`
+  with writers over any containing set, the readers moved onto the pool, the bounds entry, the
+  merge) as the plan note lists them.
+
+## The backend for the auth split: decision 3 applied as a per-bucket ghost map (2026-11-01 · applied, untrusted part · `notes/backend-auth-split-plan.md`)
+
+- **Representation.** `γ.rbk` is a ghost map, bucket name to (contents, pending flag), over a pure
+  domain `γ.rbD` (a new `BNames` field, `GMap GoString Unit`, fixed at `New`: the tracked buckets
+  with contents or a table entry). The client holds half of each element of its set (`rbPartF`, a
+  big separating conjunction over `rbD`, with the pure fact that a bucket outside `rbD` is empty);
+  `rbPart` hides the flags, `rbOwnIn` is the part with every flag false, `rbOwn = rbPart ⊤`. The
+  batch lock's side (`rbSide`) is the authority, an `rbOwn`-shaped half, and the fact that the
+  table's tracked buckets are in `rbD`. Why a flag rather than a separate token per bucket: the
+  writer's step (`rbSide_put`) and `Unlock`'s (`rbSide_idle`) update one element each, and
+  agreement of the halves gives a holder of `rbOwnIn` the lock's contents without a second
+  resource.
+- **Why `rbOwn`'s meaning is unchanged** (so the trusted axioms naming it, `backend.Snapshot`'s
+  observation included, keep their justification): `rbOwn γ r` still determines the writer's
+  contents `r` by agreement with the lock's side, which has `rbOwn`'s shape; only its
+  representation moved. Hence no `rbLock`: the lock's half is an `rbOwn`.
+- **`Unlock` takes any part** (`Unlock.spec` with `S`, `r`, `rbPart γ S r` to `rbOwnIn γ S r`);
+  callers that hold none use `Unlock.bare` (the empty set). The writers take their bucket's part
+  (`rbPut` per bucket; `rbPutAll` the whole form, for `bt_leaseDel`'s split).
+
 
 ## The cache over a compacting store: `etcd_cache_served` over the store's fact for watches (2026-11-01 · accepted, the user's approval)
 
@@ -29125,6 +29222,83 @@ reads off `isServer`'s `srvEnvOk` with `srvEnvOk_off`. `srvEnvOk` is inside `isS
 exported `applyAll_model`'s preconditions name: a change to an exported statement's meaning, approved.
 Rejected: (B) a new `specSnap` premise, which pushes the same fact up to `run`; and (C) an mvcc law
 opening the store's invariant at names the restore is changing.
+- **Sealed** (2026-11-02, both round-2 reviewers' first tier: the pending flag's meaning was a
+  convention any proof holding the batch lock could break): `rbSide` is `@[no_expose]` and
+  `rbSide_idle` private to `TrackedLemmas.lean`; `NewAlloc.lean` and `batchTxBuffered__Unlock.lean`
+  `import all` them. Outside the backend nothing reaches the ghost map's authority, so a flag is
+  cleared only through `Unlock.spec`. Not yet a gate: the backend has no `etc/api/backend.txt` (an
+  `import all` from another package would reopen it); proposed with the trusted step.
+- **What `rbOwn` now also says**: every tracked bucket of `r` is among `γ.rbD`. The applied
+  creators (`NewLessor`, `NewAlarmStore`, `NewAuthStore`, text unchanged) return `rbOwn` with their
+  bucket inserted, so they rely on the bucket being in the table (as they did in substance before,
+  through `UnsafeCreateBucket.spec`'s `P.has`); no law lets a client derive a name outside `γ.rbD`.
+  The trusted step's draft adds the premise (`leaseParams`, a new `restParams`).
+- **A defect of the applied membership texts** (round 3 of the trusted set's review, 2026-11-02):
+  `MustReadMembersFromBackend`, `MustSaveMemberToBackend` and `MustDeleteMemberFromBackend` (the
+  applied axioms) take `rbOwn d.γB bk` (or the store's `storeRT`/`storeWT`) but no
+  `isBackend d.γB …`, and none of their other premises mentions `γB.rbk` (or, since decision 3,
+  `γB.rbD`): a caller may pick ghost names of its own for `d.γB` (plain fields), allocate a fresh
+  map, and meet the premise with made-up contents, so the axioms assert reads and writes Go does not
+  do (a `members` bucket read as empty; a put to a missing bucket, fatal in Go, proved safe). No
+  current proof does so. The fix, in the trusted step's draft (G): `isBackend d.γB d.P W Pk d.be`
+  in each pre (its batch mutex holds `rbSide d.γB`, which only the real backend's names have).
+- **A defect of the applied `AlarmStore.restore` text** (round 4, 2026-11-02): it quantifies over
+  any `γB`, `P`; for a backend whose `alarm` bucket is untracked (`P.RB "alarm" = false`, which
+  `backend.New.spec` allows) `alarm ∉ γ.rbD` and `rbData` has no `alarm` entry, so its premise
+  "the alarm bucket is empty" holds whatever is stored, while Go loads the stored alarms (or returns
+  the unmarshal error). The server's callers are at `KBReal.P` (alarm tracked). The fix, in the
+  trusted step's draft (J): `P.RB "alarm" = true` and `P.has mvcc.alarmBI`, also on the proved
+  `AlarmStore.Recover`.
+
+## The backend for the auth split: the user's decisions on the second questions (2026-11-02 · the user's · `notes/backend-auth-split-plan.md`, "The user's decisions on the Freeze's second questions")
+
+- **An applied change in meaning of trusted axioms** (Q3, accepted until the trusted step): since
+  decision 3's representation, `rbOwn γ r` also says every tracked bucket of `r` is among `γ.rbD`
+  (the backend's tracked names, fixed at `New`: the table's tracked buckets and the opened data's).
+  `lease.NewLessor`, `v3alarm.NewAlarmStore` and `auth.NewAuthStore` (applied, text unchanged)
+  return `rbOwn` of `r` with their bucket inserted, so they now also assert that bucket is among
+  `γ.rbD`: false for a backend whose table lacks it. Harmless: (1) no law of the vocabulary lets a
+  client derive that a name is outside `γ.rbD`, nor anything from a name's being in it beyond what
+  the lock's side agrees with, so nothing false follows from the extra claim; (2) the dependence was
+  there in substance before (the lock's side only ever reaches a created bucket through
+  `UnsafeCreateBucket.spec`, which needs `P.has`); (3) every caller is at a server backend, whose
+  table has the rest buckets (the lease's by `leaseParams`, the others by the schema's bucket list).
+  The trusted step adds the premise (`P.has` of each created bucket).
+- **The strong `membersDecode`** (Q1): the model's members have their keys as ids along the applied
+  log (`restModel_memIdOk`, proved); the boot's do not as `memBoot` stands (`ccMemberOf`'s id is
+  opaque), so the trusted step proposes `memBoot` with `ccMemberAt`, as Go's bootstrap members are.
+  The weak form is not needed: Go never stores a member under another id's key.
+- Q2, Q4–Q7 as the plan note lists them.
+- **Defects of the applied cluster contract** (round 6 of the trusted set's review, 2026-11-02;
+  not this stage's changes): the rows of `bootOk`'s `clusterApplyOk` (`apply/Contracts.lean:525-549`)
+  quantify over every rest state `r` and are false of Go at some: `UpdateAttributes` of an id
+  neither a member nor removed panics (already a known model gap, `RestModel.lean:19`); `SetVersion`
+  above the server's version panics (`MustDetectDowngrade`); with `v3`, a missing `members` or
+  `cluster` bucket is fatal (`UnsafePut`); and, unconfirmed, the attribute row may need an owned
+  `ClientURLs` slice where it takes a read-only one. A false conjunct of `bootPremise` makes the
+  closed results vacuous, not unsound. Fixes proposed in the draft (`bks-trusted.md`, R; Q9).
+- **Q8, a deployment premise** (the user's decision, 2026-11-02; drafted, `bks-trusted.md` §19, to
+  apply with the trusted step): `bootPremise` asks `bootstrapContract` only for configurations whose
+  initial cluster's member names are valid UTF-8 (`utf8Valid` of every key of `U.initMap`). Go keeps
+  a name raw in the cluster's members while the peers' contexts decode with U+FFFD in its place, so
+  `bootOk`'s members (the contexts' decodings) are Go's only for valid names. A weaker
+  `bootPremise`: the closed results assume less, and each supplies the conjunct from its `Uok`.
+- **Q9** (the user's decision): the cluster contract's false rows get their own stage right after
+  this one (the plan note, "Next stage").
+- **The final review round (round 7)** found a first-tier gap in the draft, not in Go:
+  `applyConfChange` has no `isBackend` for the restated member read and save; repaired in the draft
+  (revision 4.3, T: `srvBeOwn` carries `srvBeRO d`), not re-reviewed. Per the user's rule nothing
+  trusted is applied.
+- **Approved** (the user, 2026-11-02): revision 4.3 of the trusted restatements as it stands, with
+  T, §18 and §19, no further review round. Applied by the apply step (below in STATUS.md).
+- **Applied** (2026-11-02, four stages, STATUS.md): as approved, with one text the draft names but does
+  not spell out: item E's boot fact for alarm and auth is four conjuncts of `bootOk`'s `%Hbe`
+  beside `leaseParams`, `d.P.has mvcc.alarmBI`, `authBI`, `authUsersBI`, `authRolesBI` (the
+  table's entries, per bucket as item I asks); `srvSnapRO` gains the alarm entry. `newPostKP`
+  holds `rdPool`, not `bkRPool` (untrusted; the snapshot path builds `bkRPool` by `bkRPool_intro`).
+- **The user's approvals** (2026-11-02): the four `%Hbe` conjuncts (`d.P.has mvcc.alarmBI`, `authBI`,
+  `authUsersBI`, `authRolesBI`) are within the approved meaning; the branch is approved to land.
+
 
 ## The merged snapshot's window: the writer's observations, the freeze at `ci` 0, the snapshot's compaction keys (2026-11-02 · the user's approvals · branch `snap-window`)
 

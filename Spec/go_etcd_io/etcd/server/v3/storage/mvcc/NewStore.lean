@@ -99,7 +99,10 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
 * (M2, the storage side, item 26) The store's logical compaction mode (`γ.cm`) is the instance's
   (`decide (kbCmpM kb)`); a restore keeps it. 
 The store's compaction permit is the caller's `Perm` (`crevPermIs`, C3's store law, 2026-11-02):
-every compaction revision the store holds satisfies it. -/
+every compaction revision the store holds satisfies it.
+(the backend-auth-split stage, 2026-11-02) The backend's reader tokens it takes are the backend's
+counted stock (`backend.rdStockN`, past the backend's pool), the readers it gives counted from it;
+until then all `actualMaxReaders` of them. -/
 abbrev mvcc.NewStore.spec : Prop :=
   ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (rd0 : GoFunc) (wq : Bool) (γi : mvcc.IdxNames) (γok : GName)
@@ -110,7 +113,7 @@ abbrev mvcc.NewStore.spec : Prop :=
         mvcc.storeBackend b s γ P) ∗
       mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbNoDelOff kb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
       mvcc.kbSRM kb ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), mvcc.kbRT kb) ∗
+      ([∗list] _x ∈ List.replicate backend.rdStockN (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
       mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
@@ -126,7 +129,7 @@ abbrev mvcc.NewStore.spec : Prop :=
         s.[store, go!"WriteView"] ↦
           (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
         mvcc.isWriteView wv s γ) ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - mvcc.nJobRd kb) (),
+      ([∗list] _x ∈ List.replicate (backend.rdStockN - mvcc.nJobRd kb) (),
         mvcc.storeReaderC s γ) ∗
       ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
       (if wq then mvcc.logQ γ [[], []] else iprop(True)) ∗ mvcc.storeCloser s γ ∗
