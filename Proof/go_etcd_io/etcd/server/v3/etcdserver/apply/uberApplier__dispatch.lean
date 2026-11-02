@@ -763,6 +763,16 @@ theorem apply.uberApplier.dispatch.wp_proof
     iframe HFS HRO
     iexact Hpost
 
+/-- (open, the lease-grant plan's D3, 2026-11-02) **`dispatch`'s grant arm** (`specGrant`): not
+proved. Only the lease-granting path uses it (`EtcdServer.raftRequest.wp_grant`'s apply side). -/
+theorem apply.uberApplier.dispatch.wp_grant
+    (hIs : errors.Is.spec (GF := GF) (hG := hG))
+    (hASO : txn.ApplySecObserve.spec (GF := GF) (hG := hG))
+    (hWER : txn.WarnOfExpensiveRequest.spec (GF := GF) (hG := hG))
+    (hWFR : txn.WarnOfFailedRequest.spec (GF := GF) (hG := hG)) :
+    apply.uberApplier.dispatch.specGrant (GF := GF) (hG := hG) := by
+  sorry
+
 end proof
 
 end EtcdGrove

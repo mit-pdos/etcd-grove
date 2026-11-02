@@ -90,16 +90,20 @@ instance leaseRevokeRespMsg_persistent (l : Loc) (m : LeaseRevokeRespM) :
     Persistent (leaseRevokeRespMsg (GF := GF) l m) := by
   unfold leaseRevokeRespMsg; infer_instance
 
-/-- **A `*pb.LeaseGrantRequest`** on the wire: its `(TTL, ID)`. -/
+/-- **A `*pb.LeaseGrantRequest`** on the wire: its `(TTL, ID)`; decoded, its `TTL` read-only and
+(the lease-grant plan, 2026-11-02, `recvOwn`, as `UserAdd`'s password) its `ID` owned: the server's
+`LeaseGrant` writes a fresh id there when it is `0` (`v3_server.go:436-439`), which every client
+request is (`clientv3`'s `Grant` sends `ID: 0`). Until then both read-only, which the Go server's
+write contradicted. -/
 def pbLeaseGrantRequest : ProtoMsg GF where
   ty := etcdserverpb.LeaseGrantRequest.ty
   M := w64 × w64
   send inp m := iprop(∃ req : etcdserverpb.LeaseGrantRequest, inp ↦ req ∗
     ⌜m = (req.TTL', req.ID') ∧ req.unknownFields' = slice.nil⌝)
   wireLen _ := wireSlack
-  recv r m := iprop(structFieldRef etcdserverpb.LeaseGrantRequest go!"TTL" r ↦□ m.1 ∗
-    structFieldRef etcdserverpb.LeaseGrantRequest go!"ID" r ↦□ m.2)
+  recv r m := iprop(structFieldRef etcdserverpb.LeaseGrantRequest go!"TTL" r ↦□ m.1)
   recv_persistent _ _ := inferInstance
+  recvOwn r m := iprop(structFieldRef etcdserverpb.LeaseGrantRequest go!"ID" r ↦ m.2)
   blank l := iprop(l ↦ (zero_val etcdserverpb.LeaseGrantRequest))
   own l := iprop(∃ v : etcdserverpb.LeaseGrantRequest, l ↦ v)
   blank_own l := by iintro H; iexists _; iexact H

@@ -55,18 +55,20 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   rw [Hli]
   wp_auto
   wp_apply HGrant $$ [$Hcs $HRW $Hown $Hrvk $Hwt $Hrt $Hgr] as %l %err
-    ⟨HPP, Hrt, ⟨%L', Hown, Hrvk, %HLL, Hl⟩, #HeI⟩
+    ⟨Hrt, #HeI, Hres⟩
   ihave Hwo := Hrdb $$ Hrt
-  ihave Hlive : apply.leasesLive E.γ (mvcc.stateAfter log) $$ [Hown Hrdo Hrvk]
-  · iunfold apply.leasesLive
-    iexists L'
-    isplitl []
-    · iapply EtcdGrove.apply.leasesKnown_mono L L' _ HLL $$ Hknown
-    iunfold EtcdGrove.lease.lessorUser
-    iframe Hown Hrdo Hrvk
-  icases Hl with (%Hne | ⟨%He, %id', #Hlease, -⟩)
-  · cases err with
-    | nil => exact absurd rfl Hne
+  icases Hres with (⟨%Hne, HPre, Hown, Hrvk⟩ | ⟨%Hok, HPost, Hown, Hrvk, #Hlease, -⟩)
+  · ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
+    · iright; iexact HPre
+    ihave Hlive : apply.leasesLive E.γ (mvcc.stateAfter log) $$ [Hown Hrdo Hrvk]
+    · iunfold apply.leasesLive
+      iexists L
+      isplitl []
+      · iexact Hknown
+      iunfold EtcdGrove.lease.lessorUser
+      iframe Hown Hrdo Hrvk
+    cases err with
+    | nil => exact absurd rfl Hne.1
     | ok ei =>
       wp_auto
       iapply HΦ
@@ -75,7 +77,18 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
       iapply apply.mPost_backend
       iunfold apply.kvOwn
       iframe
-  · subst He
+  · obtain ⟨He, -, -, -⟩ := Hok
+    subst He
+    ihave HPP : iprop(Post ∨ Pre) $$ [HPost]
+    · ileft; iexact HPost
+    ihave Hlive : apply.leasesLive E.γ (mvcc.stateAfter log) $$ [Hown Hrdo Hrvk]
+    · iunfold apply.leasesLive
+      iexists (L ++ [g.id])
+      isplitl []
+      · iapply EtcdGrove.apply.leasesKnown_mono L (L ++ [g.id]) _
+          (fun x hx => List.mem_append_left _ hx) $$ Hknown
+      iunfold EtcdGrove.lease.lessorUser
+      iframe Hown Hrdo Hrvk
     iunfold apply.leaseTTLIs at Hlease
     icases Hlease with ⟨%Hln, #HlID, #HTTL⟩
     iStructNamed «$r0»

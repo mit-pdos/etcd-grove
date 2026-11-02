@@ -355,7 +355,11 @@ premises); a granted lease is `leaseTTLIs` (no `Keys()`). (D22, 2026-10-23) `Gra
 `Checkpoint` take the write right `RW` of the lease bucket, spent with the write-back token (the
 lessor's backend contract `lease.lessorBackend` takes both per write); the server's `AEnv.RW` is
 the backend's tracked buckets' half, which its apply thread does not lend (no lease request is
-admitted). -/
+admitted). (The lease-grant plan's D3, 2026-11-02) `Grant`'s clause exact, as `lease.lessor.Grant.spec`:
+an error exactly when the id is `0`, the TTL above `MaxLeaseTTL` or the id live (`Pre` and the live
+set back), else `Post`, the live set `L ++ [id]`, the new lease `leaseTTLIs l id` and in the
+lessor's history (`leaseLiveFrom`). Until then: some superset of `L`, and on success a lease of
+some live id. -/
 def isApplyLessor (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RO : RestM → IProp GF) (RW : IProp GF) : IProp GF :=
   iprop(txn.isTxnLessor le γ.leases ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
@@ -365,12 +369,12 @@ def isApplyLessor (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp
           mvcc.storeWT γ ∗ mvcc.storeRT γ ∗
           lease.leaseGranted γ.leases id ∗ RW }}
         (App (App (Val #(methods li.ty go!"Grant" li.v)) (Val #id)) (Val #ttl))
-      {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); (Post ∨ Pre) ∗ mvcc.storeRT γ ∗
-          (∃ L' : List w64, lease.leaseOwn γ.leases L' I ∗ lease.leaseRevokers γ.leases L' ∗
-            ⌜∀ x ∈ L, x ∈ L'⌝ ∗
-            (⌜err ≠ GoInterface.nil⌝ ∨
-              (⌜err = GoInterface.nil⌝ ∗ ∃ id' : w64, leaseTTLIs l id' ∗ ⌜id' ∈ L'⌝))) ∗
-          applyErrIs err }}) ∗
+      {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); mvcc.storeRT γ ∗ applyErrIs err ∗
+          ((⌜err ≠ GoInterface.nil ∧ ¬ (id ≠ W64 0 ∧ sint.Z ttl ≤ 9000000000 ∧ id ∉ L)⌝ ∗ Pre ∗
+              lease.leaseOwn γ.leases L I ∗ lease.leaseRevokers γ.leases L) ∨
+            (⌜err = GoInterface.nil ∧ id ≠ W64 0 ∧ sint.Z ttl ≤ 9000000000 ∧ id ∉ L⌝ ∗ Post ∗
+              lease.leaseOwn γ.leases (L ++ [id]) I ∗ lease.leaseRevokers γ.leases (L ++ [id]) ∗
+              leaseTTLIs l id ∗ lease.leaseLiveFrom γ.leases 0 id l)) }}) ∗
     -- `Revoke` (the lease-revoke plan, 2026-10-31; until then vacuous, D14h)
     revokeClause li s γ P f RO ∗
     □ (∀ (id rem : w64) (Pre Q Post : IProp GF),

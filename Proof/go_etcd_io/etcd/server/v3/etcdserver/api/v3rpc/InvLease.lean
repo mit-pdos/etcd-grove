@@ -29,9 +29,9 @@ handler cannot give it; it comes from the server: `EtcdServer.LeaseGrant` replac
 
 **What the later server proof must meet** (`raftLessor s E S` of `*EtcdServer`, through
 `raftRequest`): the two triples at the run slot `S` it chooses (`client/v3/Results.lean`'s
-`etcd_kv_lease_served` takes `S := etcdRunSlot s E γr`, the KV handlers' slot); note that the
-decoded request is read-only here, while `EtcdServer.LeaseGrant` writes `r.ID` when it is `0`
-(the gRPC wire model's `ProtoMsg.recv` is persistent: `notes/STATUS.md`).
+`etcd_kv_lease_served` takes `S := etcdRunSlot s E γr`, the KV handlers' slot). The decoded
+request's `ID` is owned (`leaseGrantReqIdOwn`, the wire model's `recvOwn` since 2026-11-02), as
+`EtcdServer.LeaseGrant` writes `r.ID` when it is `0`; its `TTL` read-only (`leaseGrantReqIs`).
 
 **The objects** (persistent): `leaseServerAt p s A cid mid` (the `*LeaseServer` `p` that
 `NewLeaseServer(s)` builds: its header `hdrIs` at the KV parameters `A`, `le` the server `s`),
@@ -66,11 +66,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-! ## The requests, as the gRPC runtime hands them -/
 
-/-- **The decoded `*pb.LeaseGrantRequest` `r`** of `(TTL, ID)` `m` (read-only;
-`pbLeaseGrantRequest.recv`). -/
+/-- **The decoded `*pb.LeaseGrantRequest` `r`** of `(TTL, ID)` `m`: its `TTL` (read-only;
+`pbLeaseGrantRequest.recv`). Its `ID` is owned (`leaseGrantReqIdOwn`, the wire model's `recvOwn`;
+the lease-grant plan, 2026-11-02: until then read-only here). -/
 def leaseGrantReqIs (r : Loc) (m : w64 × w64) : IProp GF :=
-  iprop(structFieldRef etcdserverpb.LeaseGrantRequest go!"TTL" r ↦□ m.1 ∗
-    structFieldRef etcdserverpb.LeaseGrantRequest go!"ID" r ↦□ m.2)
+  iprop(structFieldRef etcdserverpb.LeaseGrantRequest go!"TTL" r ↦□ m.1)
+
+/-- **The decoded `*pb.LeaseGrantRequest` `r`'s `ID`, owned** at `id` (`pbLeaseGrantRequest.recvOwn`):
+the server's `LeaseGrant` writes a fresh id there when it is `0` (`v3_server.go:436-439`). -/
+def leaseGrantReqIdOwn (r : Loc) (id : w64) : IProp GF :=
+  iprop(structFieldRef etcdserverpb.LeaseGrantRequest go!"ID" r ↦ id)
 
 instance leaseGrantReqIs_persistent (r : Loc) (m : w64 × w64) :
     Persistent (leaseGrantReqIs (GF := GF) r m) := by
@@ -124,7 +129,8 @@ def leaseRevokeAns (E : apply.AEnv GF) (resp : Loc) (err : GoInterface) : IProp 
 /-- **The server's `LeaseGrant`** (one conjunct of `raftLessor`). -/
 def lessorGrantOk (s : Loc) (E : apply.AEnv GF) (S : IProp GF) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64 × w64),
-    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ leaseGrantReqIs r m }}
+    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ leaseGrantReqIs r m ∗
+        leaseGrantReqIdOwn r m.2 }}
       (App (App (Val (srvM s go!"LeaseGrant")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ leaseGrantAns E resp err }})
 

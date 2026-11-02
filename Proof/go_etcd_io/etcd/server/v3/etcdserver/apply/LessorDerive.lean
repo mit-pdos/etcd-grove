@@ -287,39 +287,35 @@ theorem isApplyLessor_of_lessorInv
       ⟨%Hok, Hown, Hrvk, HPost, #HID, #Hlive, ⟨%mt, -, #Ht, -⟩⟩)⟩
     · iapply HΦ
       iframe Hrt
-      isplitl [HPre]
-      · iright; iexact HPre
-      isplitl [Hown Hrvk]
-      · iexists L; iframe Hown Hrvk
-        isplitr
-        · ipureintro; intro x hx; exact hx
-        ileft; ipureintro; exact Hne.1
-      iapply lessorErrIs_applyErrIs err $$ [$Hpkg $Herr]
-    · obtain ⟨Herr, Hln, -, -, Hnin⟩ := Hok
+      isplitr
+      · iapply lessorErrIs_applyErrIs err $$ [$Hpkg $Herr]
+      ileft
+      iframe HPre Hown Hrvk
+      ipureintro
+      refine ⟨Hne.1, ?_⟩
+      rintro ⟨h1, h2, h3⟩
+      rcases Hne.2 with h | h | h
+      · exact h1 h
+      · omega
+      · exact h3 h
+    · obtain ⟨Herr, Hln, Hid0, Httl, Hnin⟩ := Hok
       subst Herr
       iapply HΦ
       iframe Hrt
-      isplitl [HPost]
-      · ileft; iexact HPost
-      isplitl [Hown Hrvk]
-      · iexists (L ++ [id]); iframe Hown Hrvk
-        isplitr
-        · ipureintro; intro x hx; exact List.mem_append_left _ hx
-        iright
-        isplitr
-        · ipureintro; rfl
-        iexists id
-        isplitl
-        · iunfold leaseTTLIs
-          iframe HID
-          isplitr
-          · ipureintro; exact Hln
-          iintro !> %Φ' !> - HΦ'
-          iapply (hTTL l _ DFrac.discard) $$ [$Hpkg $Ht]
-          iintro !> -
-          iapply HΦ'; itrivial
-        ipureintro; exact List.mem_append_right _ (List.mem_singleton.mpr rfl)
-      iapply applyErrIs_nil
+      isplitr
+      · iapply applyErrIs_nil
+      iright
+      iframe HPost Hown Hrvk Hlive
+      isplitr
+      · ipureintro; exact ⟨rfl, Hid0, Httl, Hnin⟩
+      iunfold leaseTTLIs
+      iframe HID
+      isplitr
+      · ipureintro; exact Hln
+      iintro !> %Φ' !> - HΦ'
+      iapply (hTTL l _ DFrac.discard) $$ [$Hpkg $Ht]
+      iintro !> -
+      iapply HΦ'; itrivial
   isplitr
   · -- `Revoke` (the lease-revoke plan)
     iapply revokeClause_of_lessorInv hRv lp s γ P f RO

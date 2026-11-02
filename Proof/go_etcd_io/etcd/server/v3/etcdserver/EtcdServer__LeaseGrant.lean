@@ -34,7 +34,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem EtcdServer.LeaseGrant.wp_proof
     (hNext : idutil.Generator.Next.spec (GF := GF) (hG := hG))
     (hAuth : EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG))
-    (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
+    (hRR : EtcdServer.raftRequest.specGrant (GF := GF) (hG := hG)) :
     EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG) := by
   sorry
 

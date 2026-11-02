@@ -5,6 +5,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseGrant
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__processInternalRaftRequestOnce
 public import Spec.go_opentelemetry_io.otel.trace.SpanFromContext
@@ -238,6 +239,20 @@ theorem EtcdServer.raftRequest.wp_proof
   intro s E ρ
   exact EtcdServer.raftRequest.wp_proofM E.authOn
     (EtcdServer.processInternalRaftRequestOnce.spec_M hP _) hSp hV hGS hSS hIS hLL s E ρ
+
+/-- **`raftRequest` for a lease grant** (`specGrant`; the lease-grant plan's D3, 2026-11-02): open
+(Draft), over the same callees. Only `EtcdServer.LeaseGrant`'s proof takes `specGrant`, and only the
+lease-granting example reaches it. -/
+theorem EtcdServer.raftRequest.wp_grant
+    (hP : EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG))
+    (hSp : trace.SpanFromContext.spec (GF := GF) (hG := hG))
+    (hV : context.ValueStartTime.spec (GF := GF) (hG := hG))
+    (hGS : traceutil.Trace.GetStartTime.spec (GF := GF) (hG := hG))
+    (hSS : traceutil.Trace.SetStartTime.spec (GF := GF) (hG := hG))
+    (hIS : traceutil.Trace.InsertStep.spec (GF := GF) (hG := hG))
+    (hLL : traceutil.Trace.LogIfLong.spec (GF := GF) (hG := hG)) :
+    EtcdServer.raftRequest.specGrant (GF := GF) (hG := hG) := by
+  sorry
 
 end proof
 

@@ -34,7 +34,7 @@ theorem v3rpc.LeaseServer.LeaseGrant.wp_proof
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseGrant.spec (GF := GF) (hG := hG) := by
   intro p s A cid mid E S ci cd r m
-  wp_start as ⟨#Hls, #HL, HS, #Hctx, #Hrc, #Hr⟩
+  wp_start as ⟨#Hls, #HL, HS, #Hctx, #Hrc, #Hr, Hid⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, -⟩
@@ -43,7 +43,7 @@ theorem v3rpc.LeaseServer.LeaseGrant.wp_proof
   iunfold v3rpc.lessorGrantOk at HG
   iunfold v3rpc.lessorRevokeOk at HR
   wp_auto
-  wp_apply HG $$ [HS] as %resp %err ⟨HS, Hans⟩
+  wp_apply HG $$ [HS Hid] as %resp %err ⟨HS, Hans⟩
   · iframe; iframe #
   iunfold v3rpc.leaseGrantAns at Hans
   icases Hans with (⟨%Hok, Hh, #Hf⟩ | #Hse)

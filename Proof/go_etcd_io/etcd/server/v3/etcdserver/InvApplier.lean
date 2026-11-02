@@ -472,7 +472,10 @@ granted, and the lessor's `expiredC` carries only such leases. (The lease-grant 
 (`lg`, the KV names' `KVNames.lg`), with auth off (`on = false`: the auth layer's checks of a
 leased put assume the lessor finds no lease, `lookupNil`), under the deployment premise
 `lease.leasesNoExpiry`: so `run`'s receive from `expiredC`, whose every slice refutes that premise,
-is dead whatever the cluster, and with `lg = false` or auth on it is `False` as before. -/
+is dead whatever the cluster, and with `lg = false` or auth on it is `False` as before.
+**Auth off is required** (the plan's question 2, settled 2026-11-02): with auth on, the auth layer's
+`srvLessorNil` (every lease the lessor looks up is absent) is what its leased-put and transaction
+checks rest on, and a granted lease would refute it; the lease-granting example is auth off. -/
 def srvGrantGuard (lg on : Bool) : w64 → IProp GF :=
   fun _ => iprop(⌜lease.leasesNoExpiry ∧ lg = true ∧ on = false⌝)
 

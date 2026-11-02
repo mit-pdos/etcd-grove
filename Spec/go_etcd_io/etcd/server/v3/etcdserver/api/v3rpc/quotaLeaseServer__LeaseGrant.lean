@@ -29,7 +29,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`q.LeaseGrant(ctx, r)`** on a `*quotaLeaseServer` over a service `ls` whose `LeaseGrant`
-meets `Spec` with the resource `S` (`grpcHandlerOk`), for the server `s`: the quota check, then
+meets `Spec` with the resource `S` (`grpcHandlerOwnOk`: it may write the decoded request, whose
+owned part `Req.recvOwn` it is handed; the lease-grant plan, 2026-11-02), for the server `s`: the quota check, then
 `ls.LeaseGrant(ctx, r)`: `S` and the check's reader slots (`quotaRd`) come back, and on success the
 response is `ls.LeaseGrant`'s (at some `m'` with `Φ m'`); as `quotaKVServer.Put`. -/
 abbrev v3rpc.quotaLeaseServer.LeaseGrant.spec : Prop :=
@@ -38,9 +39,9 @@ abbrev v3rpc.quotaLeaseServer.LeaseGrant.spec : Prop :=
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      v3rpc.quotaLeaseServerAt q ls s ∗ grpcHandlerOk #(methods ls.ty go!"LeaseGrant" ls.v) S Spec ∗
+      v3rpc.quotaLeaseServerAt q ls s ∗ grpcHandlerOwnOk #(methods ls.ty go!"LeaseGrant" ls.v) S Spec ∗
       S ∗ v3rpc.quotaRd s ∗
-      context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Spec m Φ }}
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Req.recvOwn r m ∗ Spec m Φ }}
     (App (App (Val (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.quotaRd s ∗

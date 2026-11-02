@@ -321,6 +321,29 @@ theorem rqOkM_off (log : mvcc.Log) (rq : IRRModel) : rqOkM .off log rq ↔ rqOk 
 theorem rqOkM_of_rqOk (M : auth.AuthMode) (log : mvcc.Log) (rq : IRRModel) (h : rqOk log rq) :
     rqOkM M log rq := Or.inl h
 
+/-- **A lease grant the apply thread admits** (the lease-grant plan's D3, 2026-11-02): a request
+dispatched to `LeaseGrant`, with no admin and no side-effect-free field set (the server proposes
+`{LeaseGrant: r}` alone), its id not `0` (`EtcdServer.LeaseGrant` writes a fresh id while `r.ID` is
+`0`, `v3_server.go:436-439`). Nothing about the TTL or the live set: `lessor.Grant` answers an
+error for a TTL above `MaxLeaseTTL` or a live id, which the response carries. -/
+def grantKindOk (rq : IRRModel) : Prop :=
+  dispatchKind rq = .leaseGrant ∧ needAdminPermission rq = false ∧ noSideEffect rq = false ∧
+    ∀ g, rq.leaseGrant = some g → g.id ≠ W64 0
+
+/-- **The per-request premise in a cluster whose lessor is monotone at `lg`** (the lease-grant
+plan's D3): `rqOk`, or, when `lg` (`KVNames.lg`: the cluster grants leases), an admitted grant
+(`grantKindOk`). A second clause, as `rqOkM`: `rqOk` (whose `LeaseGrant` arm stays `False`) and
+every statement written with it keep their text, and at `lg = false` the two agree (`rqOkG_false`),
+so a cluster that grants none is as before. -/
+def rqOkG (lg : Bool) (log : mvcc.Log) (rq : IRRModel) : Prop :=
+  rqOk log rq ∨ (lg = true ∧ grantKindOk rq)
+
+theorem rqOkG_false (log : mvcc.Log) (rq : IRRModel) : rqOkG false log rq ↔ rqOk log rq := by
+  simp [rqOkG]
+
+theorem rqOkG_of_rqOk (lg : Bool) (log : mvcc.Log) (rq : IRRModel) (h : rqOk log rq) :
+    rqOkG lg log rq := Or.inl h
+
 /-! ## The compaction arm, pure (M2, the apply side, 2026-10-31) -/
 
 /-- **The chains whose `Compaction` reaches the backend**: the auth, quota and capped wrappers pass

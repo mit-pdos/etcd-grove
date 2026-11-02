@@ -80,6 +80,17 @@ def plainCover (rq : apply.IRRModel) : Prop :=
       apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false
   | _ => False
 
+/-- **The requests covered in a cluster that grants leases at `lg`** (the lease-grant plan's D3,
+2026-11-02): `plainCover`, or, when `lg` (`KVNames.lg`), an admitted grant (`apply.grantKindOk`). A
+second clause, as `apply.rqOkG`: the generic proofs over `plainCover` keep their text, and at
+`lg = false` the two agree (`plainCoverG_false`). The KV model's lease table stays untied to the
+lessor (the plan's S1 (a)): a grant changes no key. -/
+def plainCoverG (lg : Bool) (rq : apply.IRRModel) : Prop :=
+  plainCover rq ∨ (lg = true ∧ apply.grantKindOk rq)
+
+theorem plainCoverG_false (rq : apply.IRRModel) : plainCoverG false rq ↔ plainCover rq := by
+  simp [plainCoverG]
+
 /-- **A KV operation** as the server applies it. -/
 inductive KVOp where
   | put (o : OpFull)

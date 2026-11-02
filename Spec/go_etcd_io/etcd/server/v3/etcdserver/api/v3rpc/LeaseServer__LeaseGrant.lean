@@ -39,7 +39,8 @@ abbrev v3rpc.LeaseServer.LeaseGrant.spec : Prop :=
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64 × w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.raftLessor s E S ∗ S ∗
-      context.isContext ci cd ∗ grpcRunCtx ci ∗ v3rpc.leaseGrantReqIs r m }}
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ v3rpc.leaseGrantReqIs r m ∗
+      v3rpc.leaseGrantReqIdOwn r m.2 }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.leaseGrantOut E cid mid resp err }}

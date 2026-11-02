@@ -69,7 +69,8 @@ or restated trusted statement → Probe → Freeze (the user) → Prove.
 
 Statements in code, proofs `sorry` where not done; the build passes. Commits on `lease-grant`:
 the example and its translation; D1-D2 (wired through the server, proved but for one `sorry`); the
-grant's specs (D4-D5) and the example's theorem (statements, `sorry`).
+grant's specs (D4-D5) and the example's theorem (statements, `sorry`); D3's statements and the wire
+model's owned `ID`.
 
 ### D1. Expiry apart from the grant guard (done, proved)
 
@@ -123,17 +124,47 @@ grant's specs (D4-D5) and the example's theorem (statements, `sorry`).
   `runSnapLgOk_open` (`EtcdServer__run.lean`, **new `sorry`**) discharges it; only
   `leasegrant.Main.wp_proof` takes it (a premise `hslg`, `MainLinked` passes it).
 
-### D3. The grant through the request path and the apply thread (not drafted in code)
+### D3. The grant through the request path and the apply thread (statements in code)
 
-Not wired: admitting the grant changes the shared apply path (`rqOk`, the dispatch arms,
-`reqPropOkW`, `plainCover`), which every server result rebuilds and re-proves, and
-`snapRecv_image`'s `hlease` (the image's lease bucket empty) stops holding. What the Prove stage
-changes: `plainCover`/`reqPropOkW` admit `{LeaseGrant: r}` when `γk.lg = true` (with
-`leasesNoExpiry`, `r.ID ≠ 0`); `rqOk .leaseGrant` the same; `isApplyLessor`'s Grant clause exact
-(`L ++ [id]`) and carrying `Grant.spec`'s `leaseLiveFrom`; the apply thread lends the lease bucket's
-`AEnv.RW`; the reply (`appliedOk`) carries `leaseGrantedAt E.γ.leases i id`; `hlease` replaced by
-"the lease bucket is the grants'" or kept with the snapshot job's `lg = false`. The KV model's
-lease table stays untied (S1 (a)).
+Admission is by **siblings gated on `lg = true`** (the precedent `rqOkM`'s second clause): the
+existing definitions keep their text, so every `lg = false` server proof is unchanged; the sibling
+at `lg = false` is the original (`rqOkG_false`, `plainCoverG_false`, `reqPropOkWG_false`). The open
+cases are `sorry` theorems only `EtcdServer.LeaseGrant`'s proof (hence only leasegrant) reaches.
+Each statement, old → new (trusted / frozen / internal):
+
+- internal, new: `apply.grantKindOk rq` (`Chain.lean`: dispatched as `.leaseGrant`, no admin
+  permission, not side-effect-free, the grant's id `≠ 0`); `rqOkG lg log rq := rqOk log rq ∨ (lg ∧
+  grantKindOk rq)` (`rqOk .leaseGrant` itself stays `False`).
+- internal, new: `plainCoverG lg rq := plainCover rq ∨ (lg ∧ grantKindOk rq)` (`KVModelDefs.lean`).
+- internal, new: `reqPropOkWG γk rq Qr := reqPropOkW γk rq Qr ∨ ⌜γk.lg ∧ grantKindOk rq ∧ Qr = True⌝`
+  (`InvRequest.lean`; a grant proposes no KV update).
+- trusted (`isApplyLessor`'s Grant clause, `Contracts.lean`; derived for the real lessor in
+  `LessorDerive.lean`, proved): post `(Post ∨ Pre) ∗ (∃ L' ⊇ L, leaseOwn L' ∗ leaseRevokers L' ∗
+  (err ≠ nil ∨ ∃ id' ∈ L', leaseTTLIs l id'))` → exact: `err ≠ nil ∧ ¬(id ≠ 0 ∧ ttl ≤ MaxLeaseTTL ∧
+  id ∉ L)` with `Pre` and `L` unchanged, or `err = nil ∧ id ≠ 0 ∧ ttl ≤ MaxLeaseTTL ∧ id ∉ L` with
+  `Post`, `L ++ [id]`, `leaseTTLIs l id` and `leaseLiveFrom γ.leases 0 id l`.
+  `applierV3backend.LeaseGrant.wp_proof` (proved) adapted; its spec unchanged.
+- internal, new: `apply.grantAnswerIs E rq log ar` (`InvUber.lean`): the grant's answer in
+  `dispatch`'s result: an error, or a `*LeaseGrantResponse` with the grant's id (`≠ 0`), `TTL`,
+  `Error`, its header at `log` (`appliedHdr`) with a revision `≠ 0` below `log.length`, and
+  `leaseGrantedAt E.γ.leases i id`.
+- internal, new spec: `apply.uberApplier.dispatch.specGrant` (`grantKindOk rq → E.authOn = false →`
+  `dispatch.spec`'s triple with also `E.RW ∗ lessorModeIs E.γ.leases true` lent and returned, the
+  log unchanged, and `grantAnswerIs`): **what the apply thread lends for the lease-bucket write is
+  `E.RW`**. **`apply.uberApplier.dispatch.wp_grant` (new `sorry`, reached by no root).** The Prove
+  stage: the server's `E.RW` is `srvRestRW` (never lent), the rest model holding the lease bucket;
+  in a granting cluster the lease bucket is split out of `srvRestOwn` and lent per grant; and
+  `applierV3backend.LeaseGrant.spec`'s post strengthened to the response's fields.
+- internal, new: `grantReplyOk E rq' log resp` (`LeaseGrant.lean`): `grantAnswerIs` without its
+  error case, as `raftRequest` returns it.
+- internal, new spec: `EtcdServer.raftRequest.specGrant` (`LeaseGrant.lean`): `specOff` for a request
+  with `grantKindOk` in a cluster with `srvGrantsLeases`, without `reqPropOk`; success: `grantReplyOk`
+  at the log `lb` the entry met, `appliedWit ρ.rd lb`, `certOk E.γ lb` (**the reply carrying the
+  grant's `leaseGrantedAt` to the caller**). **`EtcdServer.raftRequest.wp_grant` (new `sorry`,
+  over `raftRequest`'s callees; reached by no root).** `EtcdServer.LeaseGrant.wp_proof`'s premise
+  `raftRequest.spec` → `raftRequest.specGrant`.
+- Not changed: `appliedOk` (its `dispatchAnswer`'s `LeaseGrant` arm stays `True`), `hlease` (kept
+  with the snapshot job's `lg = false`, D2).
 
 ### D4. `EtcdServer.LeaseGrant` (statement, `sorry`)
 
@@ -146,10 +177,20 @@ lease table stays untied (S1 (a)).
   **`EtcdServer.LeaseGrant.wp_proof` (new `sorry`).**
 - `v3rpc.lessorGrantOkL` (`api/v3rpc/InvLeaseGrant.lean`), the sibling of `raftLessor`'s grant
   conjunct, and **`v3rpc.lessorGrantOkL_of_server` (new `sorry`)**.
-- Found: `lessorGrantOk`'s `leaseGrantReqIs` and the wire model `pbLeaseGrantRequest.recv` have the
-  request's `ID` read-only, but `EtcdServer.LeaseGrant` writes it when it is `0` (the client always
-  sends `0`): `raftLessor` is unsatisfiable by the Go server as stated. Not changed (it is the
-  trusted wire model): the Prove stage moves `ID` to `recvOwn` (as `UserAdd`'s password).
+- `leaseGrantedResp` (internal): the revision bound `uint.nat rv < log.length` → `sint.Z rv <
+  log.length`, and `mvcc.certOk E.γ log` added (question 3 below).
+- The wire model (2026-11-02; until then `raftLessor` was unsatisfiable by the Go server, which
+  writes `r.ID` when it is `0`):
+  - trusted: `pbLeaseGrantRequest` (`client/v3/InvLease.lean`): `recv r m := TTL ↦□ m.1 ∗ ID ↦□
+    m.2` → `recv r m := TTL ↦□ m.1`, `recvOwn r m := ID ↦ m.2` (as `UserAdd`'s password).
+  - frozen: `_Lease_LeaseGrant_Handler.spec`: `GrpcSpec`, `grpcHandlerOk` → `GrpcSpecMd`,
+    `grpcHandlerOwnOkMd` (as `Compact`'s); `quotaLeaseServer.LeaseGrant.spec`: `grpcHandlerOk` →
+    `grpcHandlerOwnOk`, pre `+ Req.recvOwn r m`; `LeaseServer.LeaseGrant.spec`: pre `+
+    leaseGrantReqIdOwn r m.2`. Proofs adapted (proved).
+  - internal: `v3rpc.leaseGrantReqIs r m`: `TTL ↦□ ∗ ID ↦□` → `TTL ↦□`; new `leaseGrantReqIdOwn r
+    id := ID ↦ id`; `lessorGrantOk`'s and `lessorGrantOkL`'s pre `+ leaseGrantReqIdOwn r m.2`;
+    `quotaLease_grantHandlerOk_of`, `etcd_leaseGrantHandlerOk`, `etcd_leaseGrantMethodOk`
+    (`grpcHandlerOk` → `grpcHandlerOwnOk`; proved).
 
 ### D5. The client's and the served side (statements, `sorry`)
 
@@ -167,6 +208,18 @@ lease table stays untied (S1 (a)).
   (`leasegrant_adequate`, with `Hlne : lease.leasesNoExpiry`). The Prove stage needs an allocation
   with `KVNames.lg = true` (`common.alloc1` makes `false`).
 
+### Open questions of the draft (answered 2026-11-02)
+
+1. *`Recover` requires `lessorRevocable`; snapshots in a granting cluster are `runSnapLgOk`.* Left
+   as is: an **interim restriction** (a granting cluster's snapshot path is not proved; a single
+   member is never sent one). The Prove stage, or a later one, lifts it.
+2. *Auth off is required for the guard.* Fine: the example is auth off. Stated in `srvGrantGuard`'s
+   and `srvGrantsLeases`' docstrings.
+3. *The header facts.* Checked against `v3rpc.leaseHdrAns` (`hf ↦□ h ∗ hdrW h ∗ r ≠ 0 ∗ Revision h
+   ↦□ r ∗ etcdReached r`): `hdrW` comes from `appliedHdr`'s `respHdrOwn`; `etcdReached r` from
+   `etcdReached_of_certOk` (`certOk E.γ log` and `sint.Z r < log.length`). So `leaseGrantedResp`
+   needs `certOk` and the signed bound; both added (D4).
+
 ### Trusted and frozen statements changed
 
 `lease.NewLessor.spec` (axiom: `mono`, `lessorModeIs`, the expiry payload through
@@ -176,7 +229,10 @@ specs); `lessorOk`'s `ExpiredLeasesC` clause and `srvGrantGuard`; `NewServer.spe
 `srvLessorNil`, and (the review) the row `%Hslg : ρ.rd.kv.lg = true → runSnapLgOk` in
 `NewServer.spec`/`specM`/`specG`'s precondition; `applyAll.specSnap` (`lg = false`),
 `applySnapshot.specSnap` (`lessorRevocable`);
-`apply.revokeClause`, `revokeRes`, `revokeResAfter`. The client contracts are not changed (siblings).
+`apply.revokeClause`, `revokeRes`, `revokeResAfter`; (D3) `isApplyLessor`'s Grant clause; (the wire
+model) `pbLeaseGrantRequest` (trusted), `_Lease_LeaseGrant_Handler.spec`,
+`quotaLeaseServer.LeaseGrant.spec`, `LeaseServer.LeaseGrant.spec` (frozen). The client contracts are
+not changed (siblings).
 
 ### Checks
 

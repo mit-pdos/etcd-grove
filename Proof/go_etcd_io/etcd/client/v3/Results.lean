@@ -3146,15 +3146,16 @@ theorem etcd_leaseGrantHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w6
     (E : apply.AEnv GF) (S : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.raftLessor s E S ⊢
-      grpcHandlerOk (lp @!! go.GoType.PointerType
+      grpcHandlerOwnOk (lp @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseGrant") S
         (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E)) := by
   iintro ⟨#Pv, #Hat, #HL⟩
-  unfold grpcHandlerOk
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
+  unfold grpcHandlerOwnOk
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, Hid, Hspec⟩ HΨ
   rw [show (pbLeaseGrantRequest (GF := GF)).recv r m = v3rpc.leaseGrantReqIs r m from rfl]
+  rw [show (pbLeaseGrantRequest (GF := GF)).recvOwn r m = v3rpc.leaseGrantReqIdOwn r m.2 from rfl]
   iapply wp_fupd
-  iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid E S ci cd r m) $$ [HS]
+  iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid E S ci cd r m) $$ [HS Hid]
   · iframe; iframe #
   inext
   iintro %resp %err ⟨HS, Hout⟩
@@ -3262,7 +3263,7 @@ generated `_Lease_LeaseGrant_Handler` on the `*quotaLeaseServer` `q` whose `Leas
 theorem etcd_leaseGrantMethodOk (q : Loc)
     (Spec : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse) (S : IProp GF)
     (ics : List GoFunc) (Rs : List (IProp GF)) :
-    grpcHandlerOk (q @!! go.GoType.PointerType
+    grpcHandlerOwnOk (q @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant")
         S Spec ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
         srvInterceptorsOk v3rpc.learnerReqOk ics Rs ⊢
@@ -3281,8 +3282,9 @@ theorem etcd_leaseGrantMethodOk (q : Loc)
         (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseGrantRequest.ty) #l)) $$ []
   · iintro !> %l -
     iapply leaseGrantReq_learnerOk
+  ihave #Hh' := (grpcHandlerOwnOk_md _ _ _).1 $$ Hh
   iapply (v3rpc.etcdserverpb.wp__Lease_LeaseGrant_Handler pbLeaseGrantRequest pbLeaseGrantResponse
-    Spec ⟨go.GoType.PointerType
+    (GrpcSpec.md Spec) ⟨go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty, #q⟩
     S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
     $$ [HS HRs HSpec]

@@ -31,7 +31,7 @@ theorem v3rpc.quotaLeaseServer.LeaseGrant.wp_proof
     (wp_check : v3rpc.quotaAlarmer.check.spec (GF := GF) (hG := hG)) :
     v3rpc.quotaLeaseServer.LeaseGrant.spec (GF := GF) (hG := hG) := by
   intro Req Rep Spec q s ls S m Φ' ci cd r
-  wp_start_folded as ⟨#Hq, #Hh, HS, Hqr, #Hctx, #Hrc, #Hr, HSpec⟩
+  wp_start_folded as ⟨#Hq, #Hh, HS, Hqr, #Hctx, #Hrc, #Hr, Hown, HSpec⟩
   rw [method_unfold (t := go.GoType.PointerType v3rpc.quotaLeaseServer.ty) (m := go!"LeaseGrant")]
   wp_call
   iunfold v3rpc.quotaLeaseServerAt at Hq
@@ -49,8 +49,8 @@ theorem v3rpc.quotaLeaseServer.LeaseGrant.wp_proof
     cases Hc
   | nil =>
     wp_auto
-    iunfold grpcHandlerOk at Hh
-    wp_apply Hh $$ %m %Φ' %ci %cd %r [HS HSpec] as %resp %err' ⟨HS, Hres⟩
+    iunfold grpcHandlerOwnOk at Hh
+    wp_apply Hh $$ %m %Φ' %ci %cd %r [HS Hown HSpec] as %resp %err' ⟨HS, Hres⟩
     · iframe; iframe #
     iapply HΦ
     iframe
