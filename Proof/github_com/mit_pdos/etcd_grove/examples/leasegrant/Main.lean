@@ -61,10 +61,10 @@ theorem Main.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Grant : lessor.Grant.spec (GF := GF) (hG := hG))
     (wp_Leases : lessor.Leases.spec (GF := GF) (hG := hG))
-    -- (2026-11-02) the open snapshot case of `run` in a cluster that grants leases (`runSnapLgOk`,
+    -- (2026-11-02) the open cases of a cluster that grants leases (`srvGrantOpen`,
     -- `NewServer`'s precondition through `memberBoot`, with `Main`'s `leasesNoExpiry`: review S1):
     -- this example's names grant leases
-    (hslg : runSnapLgOk (GF := GF)) :
+    (hslg : srvGrantOpen (GF := GF)) :
     Main.spec (GF := GF) (hG := hG) := by
   sorry
 

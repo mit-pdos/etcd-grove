@@ -333,11 +333,13 @@ structure SrvFields where
 certificates', raft's committed log's; the store's certificates at the KV's names; and (M2's apply
 side, item 19) the KV names' compaction mode the server's, which is its store's backend's (S-5's law
 `kbCmpM E.γ.kb ↔ E.cmp`: with `srvEnvOk`'s `d.cm = false` it gives the mode off, until the snapshot
-track's `srvEnvOkD` makes the backend's mode the server's). -/
+track's `srvEnvOkD` makes the backend's mode the server's). (The lease-grant stage, B1,
+2026-11-02) The KV names' lease-granting mode the environment's (`γr.kv.lg = E.lg`, beside the
+retention's). -/
 def srvKVInvs (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(kvInv γr.raft γr.kv ∗ kvCertInv γr.raft γr.kv ∗ srvRaftLogInv γr.raft ∗
     ⌜E.γ.cok = γr.kv.cok⌝ ∗ ⌜γr.kv.cmp = E.cmp ∧ (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)⌝ ∗
-    ⌜γr.kv.cret = E.cret⌝ ∗ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv))
+    ⌜γr.kv.cret = E.cret ∧ γr.kv.lg = E.lg⌝ ∗ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv))
 
 instance srvKVInvs_persistent (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVInvs (GF := GF) E γr) := by

@@ -278,12 +278,13 @@ theorem run_job_snap_cmp (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := h
     {{ RET #(); schedule.schedRunning γs ∗ applyRes C A' }} := by
   sorry
 
-/-- (open, the lease-grant plan's D2, 2026-11-02) **`run`'s snapshot job in a cluster that grants
-leases** (`runSnapLgOk`, `InvRun.lean`): not proved. `run` does not use it: it takes the case as
-`isServerRun`'s premise `γr.kv.lg = true → lease.leasesNoExpiry ∧ runSnapLgOk` (from `NewServer`'s precondition), which a
+/-- (open, the lease-grant plan's D2, 2026-11-02; since its B1/B2 commit 1 the bundle) **The open
+cases of a cluster that grants leases** (`srvGrantOpen`, `InvRun.lean`: `run`'s snapshot job, and the
+grant's cases as the plan adds them): not proved. `run` does not use it: it takes the case as
+`isServerRun`'s premise `γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen` (from `NewServer`'s precondition), which a
 cluster that grants none discharges by its `lg = false`; only a lease-granting result
 (`leasegrant.wp_Main`) uses this theorem, so it is in their trust base only. -/
-theorem runSnapLgOk_open : runSnapLgOk (GF := GF) := by
+theorem srvGrantOpen_open : srvGrantOpen (GF := GF) := by
   sorry
 
 /-- **A snapshot payload's job** (J8b, 2026-11-01; `s.applyAll(&ep, &ap)` on raft's snapshot
@@ -294,7 +295,7 @@ index), the apply thread's resources at `A'`, over `applyAll.specSnap`: the imag
 snapshot's (`ciJ`'s second disjunct, a fresh start's `c₀ = 0`). The member's id and the meta
 reads are `isServerRun`'s (`#Hmid`, `#HmetaSnap`), the index past the boot log the payload's
 (`rnReadySnap_bootLen`, open). In the compaction mode, `run_job_snap_cmp` (open); in a cluster that grants leases, the
-premise `hslg` (its `runSnapLgOk`, `isServerRun`'s `%Hslg`, opened by `runSnapLgOk_elim`). -/
+premise `hslg` (its `srvGrantOpen`, `isServerRun`'s `%Hslg`, opened by `srvGrantOpen_snap`). -/
 theorem run_job_snap (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
     (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
@@ -306,7 +307,7 @@ theorem run_job_snap (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
     (hlen : (γn.pre ++ A').length = uint.nat sv.Metadata'.Index')
     (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
     (hboot : (γn.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index')
-    (hslg : C.γr.kv.lg = true → lease.leasesNoExpiry ∧ runSnapLgOk (GF := GF)) :
+    (hslg : C.γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ γn.id ∗ srvMetaSnap C.γ ∗
         taEntriesAddr apL ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
@@ -327,7 +328,7 @@ theorem run_job_snap (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
     {{ RET #(); schedule.schedRunning γs ∗ applyRes C A' }} := by
   cases hlgc : C.γr.kv.lg
   case true =>
-    exact runSnapLgOk_elim (hslg hlgc).2 C A A' apL es sn sv rac nc γs γnc γn rt ha00 hc0 hpre hγn hρ hpr hγs hγw hlt
+    exact srvGrantOpen_snap (hslg hlgc).2 C A A' apL es sn sv rac nc γs γnc γn rt ha00 hc0 hpre hγn hρ hpr hγs hγw hlt
       hlen h61 hboot hlgc
   cases hcm : C.E.cmp
   · iintro %Φ ⟨#Hpkg, #Hsa, #Hmid, #Hmeta, #Hes, #Hesl, #Hsnf, Hsnv, #Hcl, #Hncf, #Hnc2, Hnr0,

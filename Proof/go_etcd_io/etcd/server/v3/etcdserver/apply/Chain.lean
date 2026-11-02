@@ -408,6 +408,11 @@ structure AEnv (GF : BundledGFunctors) where
   `srvKVInvs` ties it to): what the server's compactor's proposals must keep (`cret ≤` its
   retention, `compactableOk_server`); the apply package does not use it -/
   cret : Nat := 0
+  /-- (the lease-grant stage, B1, 2026-11-02) whether the cluster grants leases (`KVNames.lg`, which
+  `srvKVInvs` ties it to): the per-request premise admits a grant only then (`rqOk`); the apply
+  package does not read it until its chain passes it to `rqOk` (commit 4 of the lease-grant plan's
+  last section) -/
+  lg : Bool := false
 
 /-- Whether the auth store may refuse (`Chain.auth E.authOn`; until the auth plan's A0 a field):
 `false` exactly in the mode `off`. -/

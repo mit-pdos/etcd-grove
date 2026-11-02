@@ -38,7 +38,7 @@ variable [sem : go.Semantics]
 guard `srvGrantGuard` is `False` with auth on, whose layer rests on the lessor finding no lease,
 `srvLessorNil`). (The review's S1, 2026-11-02: until then also the deployment premise
 `lease.leasesNoExpiry`, which only the apply thread's grant needs: it is `NewServer`'s row
-`ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ runSnapLgOk`, so a result over this spec is conditional
+`ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen`, so a result over this spec is conditional
 on it through `NewServer`.) -/
 def srvGrantsLeases (E : apply.AEnv GF) (ρ : ReqNames) : Prop :=
   ρ.rd.kv.lg = true ∧ E.authOn = false

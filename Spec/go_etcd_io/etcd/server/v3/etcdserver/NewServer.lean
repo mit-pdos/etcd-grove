@@ -259,8 +259,8 @@ abbrev NewServer.spec : Prop :=
       -- the server's snapshot path once S-j wires it in (today nothing opens one)
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
       -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open case of
-      -- `run`'s snapshot job (`runSnapLgOk`): a cluster that grants none discharges it by `lg = false`
-      "%Hslg" ∷ ⌜ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ runSnapLgOk (GF := GF)⌝ ∗
+      -- the open cases (`srvGrantOpen`: `run`'s snapshot job, ...): a cluster that grants none discharges it by `lg = false`
+      "%Hslg" ∷ ⌜ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
       -- goroutine panics otherwise, `issues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
@@ -448,8 +448,8 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       -- the server's snapshot path once S-j wires it in (today nothing opens one)
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
       -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open case of
-      -- `run`'s snapshot job (`runSnapLgOk`): a cluster that grants none discharges it by `lg = false`
-      "%Hslg" ∷ ⌜ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ runSnapLgOk (GF := GF)⌝ ∗
+      -- the open cases (`srvGrantOpen`: `run`'s snapshot job, ...): a cluster that grants none discharges it by `lg = false`
+      "%Hslg" ∷ ⌜ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
       -- goroutine panics otherwise, `issues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
@@ -654,8 +654,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- the server's snapshot path once S-j wires it in (today nothing opens one)
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
       -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open case of
-      -- `run`'s snapshot job (`runSnapLgOk`): a cluster that grants none discharges it by `lg = false`
-      "%Hslg" ∷ ⌜ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ runSnapLgOk (GF := GF)⌝ ∗
+      -- the open cases (`srvGrantOpen`: `run`'s snapshot job, ...): a cluster that grants none discharges it by `lg = false`
+      "%Hslg" ∷ ⌜ρ.rd.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
       -- goroutine panics otherwise, `issues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
