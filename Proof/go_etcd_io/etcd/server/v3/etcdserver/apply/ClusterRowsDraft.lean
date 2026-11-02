@@ -63,7 +63,10 @@ leader's own `version.Version` is among the versions (`getMembersVersions` recor
 member's, the local member being in `c.members`), which bounds the proposal by the proposer's
 major.minor. The applying member's bound is the proposer's because every member runs this binary
 (the model's deployment: one program, the verified one); a member restarted on an older binary
-between the proposal and its apply panics, by design (`MustDetectDowngrade`).
+between the proposal and its apply panics, by design (`MustDetectDowngrade`). The monitor's
+downgrade branch (`monitor.go:79-98`, which could propose above the bound: `allowedDowngradeVersion`
+wraps `Minor()-1` at minor `0`) is not reached: no `DowngradeInfoSet` is admitted (`rqOk`), and the
+boot and snapshot images carry no enabled downgrade record.
 Its axiom is `EtcdServer.monitorClusterVersions`'s, through `monitorReq`. -/
 opaque semverAtMostServer : GoString → Prop
 
@@ -153,9 +156,11 @@ any value: Go calls it), with `membership`'s and `api`'s package initialization 
 `MustDetectDowngrade` panics); `UpdateAttributes`' member a member of `r.mem` (an id neither a
 member nor removed panics). The rest state's buckets present and the members' client URLs
 read-only are in `RO`'s meaning (`srvRestOwnD`, `memberAtD`, the server's draft), `SetDowngradeInfo`'s
-in `RW`'s (`srvRestRWD`). Not claimed (as before): a member value above bbolt's `MaxValueSize`,
-which `MustSaveMemberToBackend` would make fatal; the request's size is bounded by
-`MaxRequestBytes` well below it. -/
+in `RW`'s (`srvRestRWD`). Claimed, and false, as before this stage: a saved value above bbolt's
+`MaxValueSize` (a member's attributes, or a version string with a huge prerelease tag, which sorts
+below the bound) is fatal in `unsafePut` (`batch_tx.go:183-188`); no caller makes one (the monitor
+proposes `Major.Minor.0`, the attributes come from the configuration),
+`issues/etcd-backend-put-value-too-large-fatal.md`; a size premise is the user's question. -/
 def apply.isClusterD (c : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RO : apply.RestM → IProp GF) (RW : IProp GF) : IProp GF :=
   iprop(⌜c ≠ null⌝ ∗

@@ -96,6 +96,17 @@ theorem restPresent_congr (bk bk' : GMap GoString backend.BktData)
   · subst hnl; exact hl
   · rw [← h n hnl]; exact hp n hn
 
+/-- **A delete keeps them** (`rbDel` inserts its bucket): the revocation lens's call sites,
+`LessorDerive.lean:213,235`, give back `rs.bk` or `rbDel rs.bk leaseName k` (round 3: the lens's
+hypothesis quantifies over these, or takes `lease` present, for `restPresent_congr`). -/
+theorem restPresent_rbDel (bk : GMap GoString backend.BktData) (n k : GoString)
+    (h : restPresent bk) : restPresent (mvcc.rbDel bk n k) := by
+  intro m hm
+  by_cases hn : n = m
+  · subst hn; simp [mvcc.rbDel]
+  · simp only [mvcc.rbDel, GMap.lookup_insert_eq_iff, hn, false_and, false_or] at *
+    first | exact h m hm | simpa [hn] using h m hm
+
 /-- `SetVersion`'s row keeps them. -/
 theorem restPresent_restSetVersion (b : Bool) (s : GoString) (r : apply.RestM)
     (h : restPresent r.bk) :
@@ -518,8 +529,10 @@ theorem membership.memberAt_persistD (m : Loc) (q : Qp) (mm : apply.MemberM) :
 
 /-- **The glue at the monitors' permission** (`srvMonitorPermitM_of`'s): from the request view,
 the server's id field and that it is a voter (`srvApRes`'s `srvMemberIDAddr` and `srvDynLog`, which
-`Start` extracts from `isServerBuilt`'s `srvApRes s γr []` with `srvApRes_lid`, where it builds
-the permission: `EtcdServer__Start.lean:103,133,248,278`). -/
+`Start` builds the permission, `EtcdServer__Start.lean:103,133,248,278`: from `isServerBuilt`'s
+`#Hmid : srvMemberIDAddr s ↦□ γn.id` with a new conjunct `⌜γn.id ∈ γr.raft.raft.cfg⌝`, which
+`NewServer` proves, `NewServer.lean:1929-1931`; round 3, in place of destructuring `applyBuilt` for
+`srvApRes_lid`). -/
 theorem srvMonitorPermitMD_of (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (lid : w64)
     (hl : lid ∈ ρ.raft.raft.cfg) :
     isServerReqM (GF := GF) on s E ρ ∗ srvMemberIDAddr s ↦□ lid ⊢ srvMonitorPermitMD on s E ρ := by

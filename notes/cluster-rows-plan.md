@@ -176,6 +176,10 @@ Untrusted, the changes each needs:
   `srvApRes_lid` from `isServerBuilt`, then the permit).
 - `InvApRes` (`srvMemOk` as `srvMemOkD`; `srvMemOk_boot`, `srvApRes_normal`, `srvMemOk_append`,
   `srvApRes_cc` with the cover), `ApplyAllSnap`, `NewServer` (`srvMemOkD_boot`).
+- `apply/LessorDerive.lean` (`isApplyLessor_of_lessorInv`'s lens hypothesis: `lease` present, or
+  over `rbDel`'s buckets; `restPresent_rbDel`), `InvStart` (`isServerBuilt(On)` gains
+  `⌜γn.id ∈ γr.raft.raft.cfg⌝`), `NewServer` (proves it, `:1929-1931`), `InvMonitors`
+  (`srvMonitorPermit`, `srvMonitorPermit_of` deleted).
 - `srvRestRW`'s lenses (`SnapApplyOptsLemmas.lean:41-82`, `srvRestRWH_lens_*`: the pure conjunct
   carried; no producer of `srvRestRW` exists, the write right is never owned in the workload).
 - `srvRestOwn`'s producers and destructurings (`restPresent`; the revocation lens
@@ -228,6 +232,24 @@ Second tier, repaired: `SetVersion`'s row takes `isPkgInit membership ∗ isPkgI
 `MinClusterVersion` case; the one-binary deployment the applying member's bound rests on); the
 trusted `monitorReq` is the draft's `monitorReqD` exactly; the order of application (§16 first).
 Not traced, a question: the lessor's `lease` bucket through `lessorApplyOk`'s `Rb`.
+
+**Round 3** (fresh). No reachable unsoundness, no premise without a source. First tier by the
+letter only, predating this stage: the rows claim a return where a saved value is above bbolt's
+`MaxValueSize` (fatal; a version string with a huge prerelease tag sorts below the bound), which no
+caller makes; the draft's "not claimed" was wrong. Repaired as wording ("claimed, and false, as
+before", `issues/etcd-backend-put-value-too-large-fatal.md`), a size premise left to the user.
+Second tier, repaired: the revocation lens returns `RO` at any buckets (`LessorDerive.lean:256-258`),
+so its hypothesis must take `lease` present or range over its two call sites' buckets (`rs.bk`,
+`rbDel rs.bk leaseName k`; `restPresent_rbDel`); `Start`'s permit from a new conjunct
+`⌜γn.id ∈ γr.raft.raft.cfg⌝` of `isServerBuilt` (proved at `NewServer.lean:1929-1931`) beside its
+`#Hmid`, not by destructuring `applyBuilt`; `semverAtMostServer`'s docstring names the unreached
+downgrade branch (it could exceed the bound at minor `0`); `srvMonitorPermit` (mode off, unused)
+deleted, not restated; `memberIs_iff_memberAt` deleted; `Recover`'s docstring at the switch. At the
+switch, drop the draft-only `rqOk_of_rqOkD`, `rqOkD_of_rqOk`, `rqShapeD`. Raised, outside the
+targets: the lessor's put right (bks §8, `rbPart d.γB (· = "lease") r` at any `r`) is fatal on a
+missing `lease` bucket; with `restPresent` it can take `lease` present (a question).
+
+The first tier is clear; the review stops here (Freeze is the user's).
 
 ## Questions for the user
 
