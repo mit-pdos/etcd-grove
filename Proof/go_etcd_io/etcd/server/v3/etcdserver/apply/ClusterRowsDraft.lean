@@ -30,6 +30,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__ClusterVersionSet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__ClusterMemberAttrSet
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__DowngradeInfoSet
 
 @[expose] public section
 
@@ -56,8 +57,11 @@ pin: `MustDetectDowngrade(lg, MustParse(version.Version), cv)` compares
 `semver.New(sv.Major(), sv.Minor(), 0, "", "")` with `cv` and panics when it is less,
 `server/etcdserver/version/downgrade.go:42-54`). Opaque, as `semverValid`: the premise of a
 `ClusterVersionSet` request, which only the leader's monitor proposes, of the minimum of the
-members' server versions with patch `0` (`version.Monitor.UpdateClusterVersionIfNeeded`: the
-local member's version among them, so at most its major.minor; every member runs this binary).
+members' server versions with patch `0` (`version.Monitor.UpdateClusterVersionIfNeeded`): the
+leader's own `version.Version` is among them (`getMembersVersions` records the local member's, the
+local member being in `c.members`), which bounds the proposal by the proposer's major.minor; the
+minimum is `nil`, no proposal, unless every member answers with its version, which bounds it by
+every member's, the applying one's among them.
 Its axiom is `EtcdServer.monitorClusterVersions`'s, through `monitorReq`. -/
 opaque semverAtMostServer : GoString → Prop
 
@@ -111,6 +115,13 @@ theorem rqOk_of_rqOkD (log : mvcc.Log) (rq : IRRModel) (h : rqOkD log rq) : rqOk
   unfold rqOkD at h; unfold rqOk
   split <;> rename_i hk <;> simp only [hk] at h <;> first | exact h | (intro v hv; exact (h v hv).1)
 
+/-- Today's premise is the restated one off `ClusterVersionSet` (the other producers of
+`rqShape`: `InvProposer`, `ReqOn`, `EtcdServer__Compact`, `KVAuthModel`, `ProposeOn`). -/
+theorem rqOkD_of_rqOk (log : mvcc.Log) (rq : IRRModel) (h : rqOk log rq)
+    (hk : dispatchKind rq ≠ .clusterVersionSet) : rqOkD log rq := by
+  unfold rqOk at h; unfold rqOkD
+  split <;> rename_i hk' <;> simp only [hk'] at h <;> first | exact h | exact absurd hk' hk
+
 /-- **`dispatch`'s `ClusterVersionSet` call site** (the glue: `uberApplier__dispatch.lean:259`'s
 `hsv`, now with the version's bound). -/
 theorem rqOkD_ver (log : mvcc.Log) (rq : IRRModel) (x : GoString) (h : rqOkD log rq)
@@ -138,7 +149,10 @@ variable [sem : go.Semantics]
 any value: Go calls it) and its version not above the server's (`semverAtMostServer`: above it,
 `MustDetectDowngrade` panics); `UpdateAttributes`' member a member of `r.mem` (an id neither a
 member nor removed panics). The rest state's buckets present and the members' client URLs
-read-only are in `RO`'s meaning (`srvRestOwnD`, `memberAtD`, the server's draft). -/
+read-only are in `RO`'s meaning (`srvRestOwnD`, `memberAtD`, the server's draft), `SetDowngradeInfo`'s
+in `RW`'s (`srvRestRWD`). Not claimed (as before): a member value above bbolt's `MaxValueSize`,
+which `MustSaveMemberToBackend` would make fatal; the request's size is bounded by
+`MaxRequestBytes` well below it. -/
 def apply.isClusterD (c : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RO : apply.RestM → IProp GF) (RW : IProp GF) : IProp GF :=
   iprop(⌜c ≠ null⌝ ∗
@@ -197,6 +211,19 @@ def apply.backendIsD (E : apply.AEnv GF) (p : Loc) : IProp GF :=
 instance apply.backendIsD_persistent (E : apply.AEnv GF) (p : Loc) :
     Persistent (apply.backendIsD E p) := by
   unfold apply.backendIsD; infer_instance
+
+/-- **A cluster method's request facts, restated** (`clusterFacts`, `Chain.lean:1147`, with the
+rest state `rs` the applier contract's cluster row already binds): `ClusterVersionSet`'s version not
+above the server's, `ClusterMemberAttrSet`'s member a member of `rs.mem` (the restated specs'
+premises; `dispatch` takes them from `rqOkD` and `restReqOk`). -/
+def apply.clusterFactsD (E : apply.AEnv GF) (m : GoString) (cr : apply.ClusterReq) (r : Loc)
+    (rs : apply.RestM) : IProp GF :=
+  match cr with
+  | .ver v => iprop(⌜m = go!"ClusterVersionSet"⌝ ∗ apply.clusterVersionSetIs r v ∗
+      ⌜apply.semverValid v ∧ apply.semverAtMostServer v⌝)
+  | .attr a => iprop(⌜m = go!"ClusterMemberAttrSet"⌝ ∗ apply.memberAttrSetIs r a ∗
+      ⌜(rs.mem.lookup a.memberID).isSome = true⌝)
+  | .dg d => iprop(⌜m = go!"DowngradeInfoSet"⌝ ∗ apply.downgradeInfoSetIs r d ∗ E.RW)
 
 end defs
 
@@ -366,6 +393,70 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proofD
   iunfold apply.mPostV
   iframe HRO
   iframe
+
+/-- **The glue at `newApplierV3Backend`'s cluster row** (`newApplierV3Backend.lean:260-302`, the
+applier contract's cluster row over `clusterFactsD`, from the restated specs). The draft takes
+`backendIs` beside `backendIsD` for `DowngradeInfoSet`'s unchanged spec; at the switch they are
+one. -/
+theorem apply.clusterRow_backendD
+    (hClusterVersionSet : apply.applierV3backend.ClusterVersionSet.specD (GF := GF) (hG := hG))
+    (hClusterMemberAttrSet : apply.applierV3backend.ClusterMemberAttrSet.specD (GF := GF) (hG := hG))
+    (hDowngradeInfoSet : apply.applierV3backend.DowngradeInfoSet.spec (GF := GF) (hG := hG))
+    (E : apply.AEnv GF) (p : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      apply.backendIs E p ∗ apply.backendIsD E p ⊢
+    □ (∀ (m : GoString) (r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF)
+        (cr : apply.ClusterReq) (rs : apply.RestM) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+      ⌜m ∈ apply.clusterMethods⌝ -∗
+      {{ apply.clusterFactsD E m cr r rs ∗
+          apply.mPreV v3 E .backend (.ok ⟨go.GoType.PointerType applierV3backend.ty, #p⟩) info log
+            Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.FS ∗ E.RO rs }}
+        (App (App (Val #(methods (go.GoType.PointerType applierV3backend.ty) m #p)) (Val #r))
+          (Val #v3))
+      {{ RET #(); apply.mPostV v3 E .backend (.ok ⟨go.GoType.PointerType applierV3backend.ty, #p⟩)
+          info log Pre Post ∗ E.FS ∗ E.RO (cr.eff v3 rs) }}) := by
+  iintro ⟨#Hinit, #Hbk, #HbkD⟩
+  imodintro
+  iintro %m %r %v3 %log %Pre %Q %Post %cr %rs %info %hm
+  imodintro
+  iintro %Φ' Hpre HΦ'
+  icases Hpre with ⟨HR, Hm, Hwt, HFS, HRO⟩
+  cases cr with
+  | ver v =>
+    iunfold apply.clusterFactsD at HR
+    icases HR with ⟨%Hmv, #HR, %Hsv⟩
+    subst Hmv
+    iapply (hClusterVersionSet E p r v3 log Pre Q Post v rs info) $$ [Hm Hwt HFS HRO] [HΦ']
+    · iframe
+      iframe #
+      ipureintro; exact Hsv
+    inext
+    iintro ⟨H1, H2, H3⟩
+    iapply HΦ'
+    iframe
+  | attr a =>
+    iunfold apply.clusterFactsD at HR
+    icases HR with ⟨%Hmv, #HR, %Hmem⟩
+    subst Hmv
+    iapply (hClusterMemberAttrSet E p r v3 log Pre Q Post a rs info) $$ [Hm Hwt HRO] [HΦ' HFS]
+    · iframe
+      iframe #
+      ipureintro; exact Hmem
+    inext
+    iintro ⟨Hpost, HRO⟩
+    iapply HΦ'
+    iframe
+  | dg d =>
+    iunfold apply.clusterFactsD at HR
+    icases HR with ⟨%Hmv, #HR, HRW⟩
+    subst Hmv
+    iapply (hDowngradeInfoSet E p r v3 log Pre Q Post info) $$ [Hm Hwt HRW] [HΦ' HFS HRO]
+    · iframe
+      iframe #
+    inext
+    iintro Hpost
+    iapply HΦ'
+    iframe
 
 end proof
 

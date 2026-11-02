@@ -84,6 +84,13 @@ theorem clusterPresent_delIn (r : apply.RestM) (n k : GoString)
     (h : membership.clusterPresent r.bk) : membership.clusterPresent (r.delIn n k).bk :=
   fun n' hn => delIn_present r n k n' (h n' hn)
 
+/-- **Buckets agreeing on the cluster's keep them** (the lessor's revocation lens, §16: it gives
+back `srvRestOwn` at buckets agreeing with `rs.bk` off `lease`, not a cluster bucket). -/
+theorem clusterPresent_congr (bk bk' : GMap GoString backend.BktData)
+    (h : ∀ n, membership.clusterBkts n → bk.lookup n = bk'.lookup n)
+    (hp : membership.clusterPresent bk) : membership.clusterPresent bk' :=
+  fun n hn => by rw [← h n hn]; exact hp n hn
+
 /-- `SetVersion`'s row keeps them. -/
 theorem clusterPresent_restSetVersion (b : Bool) (s : GoString) (r : apply.RestM)
     (h : membership.clusterPresent r.bk) :
@@ -239,10 +246,23 @@ variable [GooseExts]
 
 /-- **An attribute request names a member of `S`** (the cluster-rows stage): a request `dispatch`
 sends to `ClusterMemberAttrSet` has its member in `S` (raft's configuration, the server's static
-membership). Any other request: nothing. -/
+membership), and it has no range end `[0]` (`irrNoZeroEnd`: the wire then decodes the request
+itself, `attrIdOk_wire`; a cluster kind wins `dispatchKind` over a range's). Any other request:
+nothing. -/
 def attrIdOk (S : GSet w64) (rq : apply.IRRModel) : Prop :=
   apply.dispatchKind rq = .clusterMemberAttrSet →
-    ∀ a, rq.clusterMemberAttrSet = some a → a.memberID ∈ S
+    irrNoZeroEnd rq ∧ ∀ a, rq.clusterMemberAttrSet = some a → a.memberID ∈ S
+
+/-- **The permission's fact carries to the request the wire decodes** (`reqPropOk_wire`'s). -/
+theorem attrIdOk_wire (S : GSet w64) (rq rq' : apply.IRRModel) (hm : apply.HeaderModel)
+    (hw : irrWireOf (apply.withHeader rq hm) rq') (h : attrIdOk S rq) : attrIdOk S rq' := by
+  intro hk'
+  have hk : apply.dispatchKind rq = .clusterMemberAttrSet := by
+    have := hw.2.2.1; rw [hk'] at this; exact this.symm
+  obtain ⟨hz, ha⟩ := h hk
+  have he : rq' = apply.withHeader rq hm := hw.2.2.2 hz
+  subst he
+  exact ⟨hz, ha⟩
 
 theorem attrIdOk_of_kind (S : GSet w64) (rq : apply.IRRModel)
     (h : apply.dispatchKind rq ≠ .clusterMemberAttrSet) : attrIdOk S rq := fun hk => absurd hk h
@@ -282,7 +302,7 @@ theorem restReqOk_of_attr (γs : ServerRaftNames) (c0 : w64) (A : List EntryMode
     (ht : m.typ = W32 0) (hdec : apply.irrDecode m.data = some rq) :
     apply.restReqOk rq (restModel c0 γs.raft.boot (γs.pre ++ A)) := by
   intro hk a ha'
-  exact hmo.2 _ (ha ht rq hdec hk a ha')
+  exact hmo.2 _ ((ha ht rq hdec hk).2 a ha')
 
 end pure3
 
@@ -305,7 +325,8 @@ theorem monitorReqD_monitorReq (lid : w64) (rq : apply.IRRModel) (h : monitorReq
 /-- A monitor's request names the server's own id, a voter. -/
 theorem attrIdOk_of_monitorReqD (S : GSet w64) (lid : w64) (rq : apply.IRRModel)
     (h : monitorReqD lid rq) (hl : lid ∈ S) : attrIdOk S rq := by
-  intro _ a ha; rw [h.2.1 a ha]; exact hl
+  intro _
+  exact ⟨h.1.1, fun a ha => by rw [h.2.1 a ha]; exact hl⟩
 
 /-- **`rqShape` under the restated premise** (`rqShape`'s text read under `rqOkD`). -/
 def rqShapeD (rq : apply.IRRModel) : Prop :=
@@ -338,7 +359,8 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 client URLs' elements read-only (`cu ↦*□`, until then at `q`). `UpdateAttributes` stores the
 attributes' slice in the member (`m.Attributes = attr`, `cluster.go:472`), so after it the
 member's `ClientURLs` is the request's array, which the proof holds read-only; no Go code writes a
-member's client URLs' elements (`Clone` copies them, the writers replace the slice). -/
+member's client URLs' elements (`Clone` copies them, the writers replace the slice). Both halves
+carry it: `clusterMem`'s and the cluster lock's (`rcLockInv`, through `memAt`). -/
 def membership.memberAtD (m : Loc) (q : Qp) (mm : apply.MemberM) : IProp GF :=
   iprop(⌜m ≠ null⌝ ∗ ∃ (pu cu : GoSlice),
     membership.mIDAddr m ↦{DFrac.own q} mm.id ∗ membership.mPeerURLsAddr m ↦{DFrac.own q} pu ∗
@@ -367,15 +389,21 @@ def srvRestOwnD (γB : backend.BNames) (c : Loc) (r : apply.RestM) : IProp GF :=
     backend.rbPart γB (fun n => ¬ membership.clusterBkts n) r.bk ∗ membership.clusterMemD c r.mem ∗
     ⌜memIdOk r.mem ∧ membership.clusterPresent r.bk⌝)
 
-/-- **The cluster's apply contract, restated** (`clusterApplyOk`'s text over `isClusterD` and
-`srvRestOwnD`). -/
+/-- **The server's `AEnv.RW`, restated**: the writer's half at some buckets, **the cluster's
+present** (`SetDowngradeInfo`'s `MustSaveDowngradeToBackend` puts in `cluster`, fatal on a missing
+bucket; review round 1). Until then `∃ r, rbOwn γB r`. -/
+def srvRestRWD (γB : backend.BNames) : IProp GF :=
+  iprop(∃ bk, backend.rbOwn γB bk ∗ ⌜membership.clusterPresent bk⌝)
+
+/-- **The cluster's apply contract, restated** (`clusterApplyOk`'s text over `isClusterD`,
+`srvRestOwnD` and `srvRestRWD`). -/
 def clusterApplyOkD (c : Loc) : IProp GF :=
   iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ' : mvcc.StoreNames) (f : GoFunc)
       (RO : apply.RestM → IProp GF) (RW : IProp GF),
     ⌜γ'.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
     ⌜f ≠ func.nil⌝ -∗ (∃ n : Loc, membership.rcVersionChangedAddr c ↦□ n) -∗
     roLens RO (fun r => iprop(srvRestOwnD d.γB c r ∗ clusterBeOn c d.be)) -∗
-    rwLens RW iprop(srvRestRW d.γB ∗ clusterBeOn c d.be) -∗
+    rwLens RW iprop(srvRestRWD d.γB ∗ clusterBeOn c d.be) -∗
     apply.isClusterD c γ' Pk #f RO RW)
 
 instance clusterApplyOkD_persistent (c : Loc) : Persistent (clusterApplyOkD (GF := GF) c) := by
@@ -479,7 +507,8 @@ theorem membership.memberAt_persistD (m : Loc) (q : Qp) (mm : apply.MemberM) :
 
 /-- **The glue at the monitors' permission** (`srvMonitorPermitM_of`'s): from the request view,
 the server's id field and that it is a voter (`srvApRes`'s `srvMemberIDAddr` and `srvDynLog`, which
-`NewServer` holds where it builds the permission). -/
+`Start` extracts from `isServerBuilt`'s `srvApRes s γr []` with `srvApRes_lid`, where it builds
+the permission: `EtcdServer__Start.lean:103,133,248,278`). -/
 theorem srvMonitorPermitMD_of (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (lid : w64)
     (hl : lid ∈ ρ.raft.raft.cfg) :
     isServerReqM (GF := GF) on s E ρ ∗ srvMemberIDAddr s ↦□ lid ⊢ srvMonitorPermitMD on s E ρ := by
@@ -525,16 +554,29 @@ theorem kvWorkD_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : 
   rw [attrLogOk_append]
   exact ⟨Ha, fun m hm => by rw [List.mem_singleton] at hm; subst hm; exact ha⟩
 
-/-- **The rest resource after a row is the row's** (`srvRestOwnD`'s pure part kept by the rows;
-`memIdOk` by `restModel_memIdOk`'s steps, the presence here). -/
-theorem srvRestOwnD_pure_restSetVersion (b : Bool) (s : GoString) (r : apply.RestM)
-    (h : memIdOk r.mem ∧ membership.clusterPresent r.bk) :
-    membership.clusterPresent (apply.restSetVersion b s r).bk :=
-  clusterPresent_restSetVersion b s r h.2
-
-/-- At the start: the boot's rest state has the buckets (`NewServer`'s `srvRestOwnD`). -/
-theorem srvRestOwnD_boot_present (bootLog : List EntryM) :
-    membership.clusterPresent (restBoot bootLog).bk := clusterPresent_restBoot bootLog
+/-- **The server's id field, a voter** (`srvApRes`'s `srvMemberIDAddr` and `srvDynLog`): what
+`Start` extracts from `isServerBuilt`'s `srvApRes s γr []` to build the monitors' permission
+(`srvMonitorPermitMD_of`, `srvApRes_cfg_size`'s pattern). -/
+theorem srvApRes_lid (s : Loc) (γr : ReadNames) (A : List EntryModel) :
+    srvApRes (GF := GF) s γr A ⊢
+      srvApRes s γr A ∗ ∃ lid : w64, srvMemberIDAddr s ↦□ lid ∗ ⌜lid ∈ γr.raft.raft.cfg⌝ := by
+  unfold srvApRes
+  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, %H7, #H8,
+    Hmr, %Hp, #Hd⟩
+  iunfold srvDynLog at Hd
+  icases Hd with %Hd
+  isplitl
+  · iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
+    iframe H1 H2 H3 H4 H5 H6 H8
+    iframe
+    isplitr
+    · ipureintro; exact H7
+    isplitr
+    · ipureintro; exact Hp
+    iunfold srvDynLog; ipureintro; exact Hd
+  iexists lid
+  iframe H4
+  ipureintro; exact Hd
 
 /-- Across committed entries of the server's policy (`srvMemOk_append`'s). -/
 theorem srvMemOkD_append (γs : ServerRaftNames) (c0 : w64) (A B : List EntryModel)
