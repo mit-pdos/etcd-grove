@@ -20,12 +20,10 @@ ones), which is a checksum collision on a torn meta, the case P1 excludes.
 `BootMinibolt(dir)`) is run with the Linux file extension's semantics whose crash relation is
 `OsCrash ∧ P1 (dir ++ "/db")` (`osFsExtsSemanticsWith`, `GooseLang/Ext/OsFs/CrashP1.lean`): that
 is where P1 shows. In every execution with crashes from a state where `dir/db` is allowed and
-absent, no thread is stuck and none has an unrecovered panic, for executions of fewer than
-`2 ^ 30 - 2` steps (with crashes, all generations together). The step bound stands for a thread
-bound: `Open` builds the reader pool of `mmaplock` for at most `2 ^ 30` live threads (Go's
-`rwmutexMaxReaders`), and the adequacy theorem takes the thread bound as a hypothesis on the
-executions (`RealCrashThreadsBelow`), which an execution of `n` steps meets with `n + 2`. A proof
-that the boot program forks no thread would lift the bound; see `Results.lean`. It is a `def`:
+absent, no thread is stuck and none has an unrecovered panic, for executions along which fewer
+than `2 ^ 30` threads are live (`RealCrashThreadsBelow`, the thread bound Perennial's adequacy
+theorems take as a hypothesis on the executions: `Open` builds the reader pool of `mmaplock` for at
+most `2 ^ 30` live threads, Go's `rwmutexMaxReaders`). It is a `def`:
 `bootCrashSafety` (`Results.lean`) proves it under the hypotheses of package initialization
 (`Hinit_wp`) and the `os.file`/`os.fileStat` field instances.
 -/
@@ -76,9 +74,10 @@ def BootCrashSafety [GoGlobalContext] [lctx : GoLocalContext]
       some none →
     σ.threads = 1 →
     ∀ (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool),
-    n + 2 ≤ 2 ^ 30 →
     @RealCrashNsteps osFsExts (osFsExtsSemanticsWith (P1 (dir ++ go!"/db"))) _ (boot dir) n
       ([boot dir], ((σ, g) : CfgState)) κs (t2, σ2) b →
+    @RealCrashThreadsBelow osFsExts (osFsExtsSemanticsWith (P1 (dir ++ go!"/db"))) _ (boot dir)
+      (2 ^ 30) n ([boot dir], ((σ, g) : CfgState)) →
     (∀ e2, e2 ∈ t2 → @RealNotStuck osFsExts (osFsExtsSemanticsWith (P1 (dir ++ go!"/db"))) _ e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)
 
