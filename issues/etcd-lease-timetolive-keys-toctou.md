@@ -1,5 +1,8 @@
 ---
-upstream: unchecked
+upstream: none
+checked: 2026-11-02
+links:
+  - etcd-io/etcd#15656 pr merged: related, not this bug (GHSA-3p4g-rcw5-8298, CVE-2023-32082: added `checkLeaseTimeToLive`, the check this race gets past)
 ---
 
 # server/etcdserver: `LeaseTimeToLive` with `Keys` returns key names the caller may not read
