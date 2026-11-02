@@ -40,6 +40,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- (open, M2's item 15, stage C; SNAPSHOT-SORRY #8-cmp) **The received image's facts in the
+compaction mode**: the image's compaction records `r` with the image by the mode (`keyImageM`), at
+least the apply thread's compaction revision, the restored log's receipt and the compaction permits
+of both records. The image certificate by the mode (branch `image-cmp`: `snapRecv_imageMD`,
+`crev_hcc`) proves it; until then not provable: `kvApplied` does not yet tie `x.crev` to the
+applied log (`crevOf`), and `srvImage`'s image is the mode-off one. Replaced `run_job_snap_cmp`. -/
+theorem snapRecv_image_cmp (γr : ReadNames) (E : apply.AEnv GF) (i : w64) (D : backend.Data)
+    (d : mvcc.KBReal) (A A' : List EntryModel) (x : apply.ApplyKV) (R : mvcc.Log)
+    (hkb : E.γ.kb = some d) (hcm : d.cm = true) (hA : A <+: A')
+    (hR : [[], []] ++ R = kvModel γr.kv A') :
+    srvKVInvs E γr ∗ srvImage γr.raft.raft i D ∗ kvApplied γr.raft γr.kv A x ⊢ |={⊤}=>
+      kvApplied γr.raft γr.kv A x ∗ ∃ r : mvcc.CmpRecs,
+        ⌜mvcc.keyImageM true ([[], []] ++ R) r D ∧ x.crev ≤ r.crev⌝ ∗
+        mvcc.restoreRcptM d ([[], []] ++ R) ∗ mvcc.crevPermAt E.γ r.finRev ∗
+        mvcc.crevPermAt E.γ r.crev := by
+  sorry -- SNAPSHOT-SORRY #8-cmp
+
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 4000000 in
 theorem EtcdServer.applyAll.wp_proofSnap
@@ -67,7 +84,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specSnap (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk q γn rt n
-    hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hcmp hγn hnI
+    hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hγn hnI
   wp_start as ⟨#Hsrv, #Hsa, #Hnid, #Hes, #Hesl, #Hsnf, Hsnv, ⟨#Hcert, #Hsloc⟩, #Hncf, #Hnc2, Hnr0,
     #Hracf, #Hracc, #Hrtf, #Hrt, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog,
     #HW, HWA, Hka, HRS, HAR, #Hkv, HwalT, Hso, #HmetaSnap⟩
@@ -124,6 +141,34 @@ theorem EtcdServer.applyAll.wp_proofSnap
     rw [hraft]; have := hAL; word
   imod snapRecv_image γr.raft.raft γr E sv.Metadata'.Index' ai D d A x cl _ hraft hc0 hch hlog0
       hai0 hai hboot hRO $$ Hkvi Himg Hka HRS Hrc with ⟨Hka, HRS, %A', %R, #HA', %Hif⟩
+  -- (M2's item 15, stage C) the image's records, the receipt and the permits, by the mode: off, no
+  -- record and both free; on, the image certificate's (`snapRecv_image_cmp`)
+  ihave HcI : iprop(|={⊤}=> kvApplied γr.raft γr.kv A x ∗ ∃ r : mvcc.CmpRecs,
+      ⌜mvcc.keyImageM d.cm ([[], []] ++ R) r D ∧ (d.cm = true → x.crev ≤ r.crev)⌝ ∗
+      mvcc.restoreRcptM d ([[], []] ++ R) ∗ mvcc.crevPermAt E.γ r.finRev ∗
+      mvcc.crevPermAt E.γ r.crev) $$ [Hka]
+  · cases hdf : d.cm
+    · imodintro
+      iframe Hka
+      iexists mvcc.CmpRecs.empty
+      isplitr
+      · ipureintro
+        refine ⟨?_, fun h => absurd h (by decide)⟩
+        rw [mvcc.keyImageM_off]; exact ⟨Hif.hkI, rfl⟩
+      isplitr
+      · rw [mvcc.restoreRcptM_off d _ hdf]; itrivial
+      isplitr
+      · rw [mvcc.CmpRecs.finRev_empty]; iapply mvcc.crevPermAt_none
+      · rw [mvcc.CmpRecs.crev_empty]; iapply mvcc.crevPermAt_none
+    · imod snapRecv_image_cmp γr E sv.Metadata'.Index' D d A A' x R hkb hdf Hif.pre Hif.log
+        $$ [Hka] with ⟨Hka, %r, %hr, #Hrc, #Hpf, #Hpc⟩
+      · iframe Hkvi Himg Hka
+      imodintro
+      iframe Hka
+      iexists r
+      iframe Hrc Hpf Hpc
+      ipureintro; exact ⟨hr.1, fun _ => hr.2⟩
+  imod HcI with ⟨Hka, %r, %hrI, #Hrc0, #Hpf0, #Hpc0⟩
   -- the auth mode off (the run's), the KV's ghost state jumps to the image's log
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A $$ [$Hsrv $HKV $Hka] with ⟨%Hoff, HKV, Hka⟩
   have hoff := authMode_off_of E Hoff
@@ -140,16 +185,6 @@ theorem EtcdServer.applyAll.wp_proofSnap
   subst Hale
   icombine Hcfdd Hdd gives %Hdde
   subst Hdde
-  -- (M2's item 15) the mode off: no record, the receipt and the permits free
-  have hdf : d.cm = false := by rw [hcm, hcmp]
-  have hkI' : mvcc.keyImageM d.cm ([[], []] ++ R) mvcc.CmpRecs.empty D := by
-    rw [hdf, mvcc.keyImageM_off]; exact ⟨Hif.hkI, rfl⟩
-  ihave #Hrc0 : mvcc.restoreRcptM (GF := GF) d ([[], []] ++ R) $$ []
-  · rw [mvcc.restoreRcptM_off d _ hdf]; itrivial
-  ihave #Hpf0 : mvcc.crevPermAt (GF := GF) E.γ mvcc.CmpRecs.empty.finRev $$ []
-  · rw [mvcc.CmpRecs.finRev_empty]; iapply mvcc.crevPermAt_none
-  ihave #Hpc0 : mvcc.crevPermAt (GF := GF) E.γ mvcc.CmpRecs.empty.crev $$ []
-  · rw [mvcc.CmpRecs.crev_empty]; iapply mvcc.crevPermAt_none
   -- the apply thread's membership resources: the transport, the members' directory
   iunfold srvApRes at HAR
   icases HAR with ⟨%bh, %ix, %lgh', %tl, %lid, %cl', %lgc, %cid, %prs, #Hbhf, #Hbh, #Htrf, #Hmidf,
@@ -177,7 +212,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
   wp_apply (hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
       { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai d D lgh hkb
       hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hlg hmm tI hmeta st b (by omega)
-      al ast lp cl x A hRO Hif.hlease hwq R Hif.hpre Hif.hRok mvcc.CmpRecs.empty (fun h => absurd h (by rw [hdf]; decide)) hkI' hbr hlp γp hrb stp γd γt
+      al ast lp cl x A hRO Hif.hlease hwq R Hif.hpre Hif.hRok r hrI.2 hrI.1 hbr hlp γp hrb stp γd γt
       (srvImage γr.raft.raft) (uint.nat sv.Metadata'.Index') hstp (Nat.le_refl _) Hif.halarm halbi
       Hif.hauthb Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
       cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq A' Hif.hA' hoff
@@ -197,7 +232,6 @@ theorem EtcdServer.applyAll.wp_proofSnap
     Hsm, Hcs, #Hcso, Hst, Hbe, Hlr, Hbr, HKV, HRS, HKC, Hstopc, Hbo, Hγt, Hpath, Htlive,
     ⟨%kv', #Hkvf', #Hkvi'⟩⟩
   obtain ⟨hbs, hkb', hcm', hP', hRO', hlo', hci', hxl, -, hxch, hL⟩ := Hsa1
-  replace hcm' : d'.cm = false := hcm'.trans hdf
   -- `s.applyEntries(ep, apply)`: no entries
   wp_apply hAE s ep ap es $$ []
   · iframe #
@@ -278,7 +312,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
       iframe Htlive Hmd'
       ipureintro; exact ⟨Hcl, Hdk⟩
     ipureintro; exact ⟨hcov, hmo⟩
-  ihave #Hro1 := srvSnapRO_succ s ci γr γt d d' al ast lp cl hbs hkb hkb' (by rw [hcm', hcmp]) hP'
+  ihave #Hro1 := srvSnapRO_succ s ci γr γt d d' al ast lp cl hbs hkb hkb' (hcm'.trans hcm) hP'
     hRO' $$ [Hro Half Hauf Hlpf Hclf]
   · iframe Hro Half Hauf Hlpf Hclf
   ihave Hso' : srvSnapOwn s ci E' γr sv.Metadata'.Index' $$ [Hγt Hstopc Hbo HKC Hpath]
@@ -482,14 +516,18 @@ theorem EtcdServer.applyAll.wp_proofSnap
                 (by have := hnI; have := uint_nat_eq sv.Metadata'.Index'; omega)
               $$ [Hrli HA' Hsm Hct] with #Hsm'
             · iframe Hrli HA' Hsm Hct
-            -- (S2's `merged_image`) the image's certificate
-            have hcmp' : E'.cmp = false := by
-              obtain ⟨-, p, P, f, cc, RO, RW, hE⟩ := hbs
-              rw [hE]; exact hcmp
-            imod merged_image s γ' ci TM' E' ρ γr sv.Metadata'.Index' A' x' Dm hlenZ ⟨hc0, hlog0⟩
-                hcmp'
-              $$ [Hka] with ⟨Hka, #Himg'⟩
-            · iframe Hsrv1 Hka; ipureintro; exact HQd
+            -- (S2's `merged_image`) the image's certificate; (M2's item 15, stage C) with the
+            -- compaction mode on, the open (false) #7-cmp, as `wp_proof`'s
+            ihave Hmi : |={⊤}=> kvApplied γr.raft γr.kv A' x' ∗
+                □ (srvNet (GF := GF) γr.raft.raft).img sv.Metadata'.Index' Dm $$ [Hka]
+            · cases hEc : E'.cmp
+              · iapply (merged_image s γ' ci TM' E' ρ γr sv.Metadata'.Index' A' x' Dm hlenZ
+                  ⟨hc0, hlog0⟩ hEc)
+                iframe Hsrv1 Hka; ipureintro; exact HQd
+              · iapply (merged_image_cmp s γ' ci TM' E' ρ γr sv.Metadata'.Index' A' x' Dm hlenZ
+                  ⟨hc0, hlog0⟩ hEc)
+                iframe Hsrv1 Hka; ipureintro; exact HQd
+            imod Hmi with ⟨Hka, #Himg'⟩
             imod srvMerged_bundle γr.raft.raft m rc sm γm.id cm sv.Metadata'.Index'
                 sv.Metadata'.Term' Dm Hty
               $$ [Hml Hsm' Hrs Himg'] with Hbun
