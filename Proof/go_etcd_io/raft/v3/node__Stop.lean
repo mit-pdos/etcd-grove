@@ -7,6 +7,7 @@ import all Proof.go_etcd_io.raft.v3.InvNodeChan
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.LemmasP5NodeErr
 import Proof.go_etcd_io.raft.v3.InvApi
+import Proof.go_etcd_io.raft.v3.Protocol.Enter
 
 @[expose] public section
 
@@ -21,7 +22,10 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 `select { case n.stop <- struct{}{}: case <-n.done: return }; <-n.done`: the client's half of
 `live` goes to `run` on `stop` (`isNodeChan`'s `Hstop`), which closes `done` once stopped
-(`node_done_recv_au`); if `done` fired first, the node had stopped already. -/
+(`node_done_recv_au`); if `done` fired first, the node had stopped already. (2026-11-01, durability
+stage II (n), the stop's option (c)) `run` answers with its share of the generation and its
+protocol state (`stopAns`), which with the client's share of the generation give the id's slot
+back (`raft_stop`). -/
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -64,12 +68,22 @@ private theorem node.Stop.wp_raw : node.Stop.specRaw (GF := GF) (hG := hG) := by
     · ipureintro; exact ⟨rfl, rfl⟩
     isplitr
     · iapply isHandshake_isChan $$ Hstop
-    iapply handshake_send_au γ.stop nv.stop' () (fun (_ : Unit) => nodeLiveRaw γ 1)
-      (raftIdSlot γ.raft id)
-      $$ [$Hlc1 $Hlc2 $Hlc3] Hstop [Hlive]
-    · iexact Hlive
+    unfold nodeLiveRaw
+    icases Hlive with ⟨Hlv, Hsl⟩
+    iapply handshake_send_au γ.stop nv.stop' ()
+      (fun (_ : Unit) => dghostVar γ.live (DFrac.own (1 : Qp).half) false) (stopAns γ id)
+      $$ [$Hlc1 $Hlc2 $Hlc3] Hstop [Hlv]
+    · iexact Hlv
     inext
-    iintro Hslot
+    iintro Hans
+    unfold stopAns
+    icases Hans with ⟨Hsl', %s, %md, Hg⟩
+    subst Hgid
+    have Hfr := (slotLive_fractional (GF := GF) γ.raft γ.id γ.gen).fractional (Qp.half 1)
+      (Qp.half 1)
+    rw [Qp.half_add_half] at Hfr
+    ihave Hsl1 := Hfr.2 $$ [$Hsl $Hsl']
+    imod raft_stop ⊤ γ.raft γ.id s γ.gen (md := md) CoPset.subseteq_top $$ Hsl1 Hg with Hslot
     wp_auto
     wp_apply chan.wp_receive (V := Unit) nv.done' γ.done $$ [] as -
     · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone

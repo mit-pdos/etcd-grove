@@ -1776,6 +1776,17 @@ theorem ownRawNode_slent_nil (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
     Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur
 
+/-- (2026-11-01, durability stage II (n)) A node given up at the stop: its volatile protocol state
+(`ownRaftGhost`, which `raft_stop` takes; `stopAns`). -/
+theorem ownRawNode_ghost (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
+    ⊢ ownRawNode (GF := GF) γ rn id rs -∗ ∃ (s : PState) (md : Bool), ownRaftGhost γ id s md := by
+  iintro H
+  iNamed H
+  iunfold ownStepGhost at Hghost
+  icases Hghost with ⟨Hg, -⟩
+  iexists _, _
+  iexact Hg
+
 /-- (D22 S-d4) The pure facts of a `Ready`'s snapshot as the application gets it (`LoanOut`). -/
 theorem rdSnapOut_pure (γ : RaftNames) (rs : RNState) (rd : Ready) (ce es : List EntryM)
     (L : Option SnapLoan) :
@@ -1833,13 +1844,77 @@ def freshOk (γ : NodeNames) (rd : Ready) (rs : RNState) (ce es : List EntryM)
     entsRO rd.Entries' es ∗ rd.Messages' ↦* ms.map QMsg.loc ∗
     ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
     ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
-    ([∗list] q ∈ ms, isRaftMsg γ.raft γ.id q.st) ∗
+    -- (2026-11-01, durability stage II (n)) the messages' `isRaftMsg` no longer here: they come
+    -- with the cut, at the send (`ownRawNodeReady_handout`, `readyCut`)
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
       [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
     -- (D22 S-b) with its witness (`hsWit`)
     (∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ hsWit γ.raft (phsNext rs.phs hrd) (rs.delivered ++ ce).length) ∗
     rdSnapOut γ.raft rs rd ce es L ∗
     ⌜(∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc) ∧ (rs.psnap = false → L = none)⌝)
+
+/-- (2026-11-01, durability stage II (n)) `run`'s share of the durable state the driver recorded
+(`NodeNames.dur`, `.bw`): with no `Ready` handed out (`busy = false`), its half of `dur` at the node's
+record, `bw` whole and the generation's free queue, from which it cuts the next batch
+(`readyCut`); with one handed out, its half of `bw`, recording the durable state and role the batch
+enters (`readyCut`'s other half), which comes back at `Advance` (`advDep`, `advRet`). -/
+def durRest (γ : NodeNames) (rs : RNState) (busy : Bool) : IProp GF :=
+  if busy then iprop(dghostVar γ.bw (DFrac.own (1 : Qp).half) (rs.bw, (rs.dur, rs.role)))
+  else iprop(dghostVar γ.dur (DFrac.own (1 : Qp).half) (rs.dur, rs.role) ∗
+    (∃ W : DurMaps × (RaftState × StateType), dghostVar γ.bw (DFrac.own 1) W) ∗
+    slotFree γ.raft γ.id γ.gen)
+
+/-- `durRest` reads only the node's durable record. -/
+theorem durRest_congr (γ : NodeNames) {rs rs' : RNState} (b : Bool) (hd : rs'.dur = rs.dur)
+    (hr : rs'.role = rs.role) (hw : rs'.bw = rs.bw) :
+    ⊢ durRest (GF := GF) γ rs b -∗ durRest γ rs' b := by
+  unfold durRest; rw [hd, hr, hw]; iintro H; iexact H
+
+theorem durRest_false_open (γ : NodeNames) (rs : RNState) :
+    ⊢ durRest (GF := GF) γ rs false -∗
+      dghostVar γ.dur (DFrac.own (1 : Qp).half) (rs.dur, rs.role) ∗
+      (∃ W : DurMaps × (RaftState × StateType), dghostVar γ.bw (DFrac.own 1) W) ∗
+      slotFree γ.raft γ.id γ.gen := by
+  unfold durRest; simp only [Bool.false_eq_true, ↓reduceIte]; iintro H; iexact H
+
+theorem durRest_false_intro (γ : NodeNames) (rs : RNState) :
+    ⊢ dghostVar (GF := GF) γ.dur (DFrac.own (1 : Qp).half) (rs.dur, rs.role) -∗
+      (∃ W : DurMaps × (RaftState × StateType), dghostVar γ.bw (DFrac.own 1) W) -∗
+      slotFree γ.raft γ.id γ.gen -∗ durRest γ rs false := by
+  unfold durRest; simp only [Bool.false_eq_true, ↓reduceIte]; iintro H1 H2 H3; iframe H1 H2 H3
+
+theorem durRest_true_open (γ : NodeNames) (rs : RNState) :
+    ⊢ durRest (GF := GF) γ rs true -∗
+      dghostVar γ.bw (DFrac.own (1 : Qp).half) (rs.bw, (rs.dur, rs.role)) := by
+  unfold durRest; simp only [↓reduceIte]; iintro H; iexact H
+
+theorem durRest_true_intro (γ : NodeNames) (rs : RNState) :
+    ⊢ dghostVar (GF := GF) γ.bw (DFrac.own (1 : Qp).half) (rs.bw, (rs.dur, rs.role)) -∗
+      durRest γ rs true := by
+  unfold durRest; simp only [↓reduceIte]; iintro H; iexact H
+
+omit [GooseInterp] [GooseSemantics] [StorageModel GF] in
+/-- The durable state after a `Ready` is at the term of the hard state after it. -/
+theorem readyDurable_term (S : RaftState) (h' : HardStateM) (L : Option SnapLoan)
+    (es : List EntryM) : (readyDurable S h' L es).term = h'.Term' := by
+  unfold readyDurable RaftState.next; cases L <;> rfl
+
+/-- (2026-11-01, durability stage II (n)) A fresh `Ready`'s hard state after it is at the node's term,
+within the term ceiling: the batch's entered term is covered by the budget (`readyCut`). -/
+theorem ownRawNodeReady_term_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
+    (ce es : List EntryM) (ms : List QMsg) (hb : Bool) (L : Option SnapLoan) (h : HardStateM) :
+    hsOpt rd.HardState' h ∗ ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms hb L ⊢
+      ⌜uint.Z (phsNext rs.phs h).Term' ≤ uint.Z rs.tc⌝ := by
+  iintro ⟨#Hh, H⟩
+  iunfold ownRawNodeReady at H
+  icases H with ⟨%s, %c, %fp, %ds, %rnv, %sv, %hprev, H⟩
+  iNamed H
+  icases Hrdhard with ⟨%hrd, #Hh', -, %Heq⟩
+  ihave %He := hsOpt_agree rd.HardState' h hrd $$ [$Hh $Hh']
+  subst He
+  ipureintro
+  rw [Heq, Hpvoff.2.1]
+  exact Hpvoff.2.2.1
 
 /-- Both halves of `rof`: no `Ready` handed out. -/
 def rofFull (γ : NodeNames) : IProp GF :=
@@ -1855,8 +1930,9 @@ def headRest (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoChan) (rd : 
   iprop(termLB γ.bud rs.tc ∗ ⌜rs.storage = γ.stor⌝ ∗ runCfg γ rs ∗
     ((⌜ac = chan.nil ∧ rs.steps = [] ∧ rs.unpersisted = [] ∧ rs.slent = none⌝ ∗
         dghostVar γ.dlv (DFrac.own (1 : Qp).half) (rs.delivered, rs.phs) ∗ rofFull γ ∗
+        durRest γ rs false ∗
         (⌜rc = chan.nil⌝ ∨ (⌜rc = nv.readyc'⌝ ∗ staleOk γ rd rs)))
-     ∨ (⌜ac = nv.advancec' ∧ rc = chan.nil ∧ rs.unst = false⌝ ∗
+     ∨ (⌜ac = nv.advancec' ∧ rc = chan.nil ∧ rs.unst = false⌝ ∗ durRest γ rs true ∗
         ∃ d ce : List EntryM, ⌜rs.delivered = d ++ ce⌝ ∗
           dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted, rs.phs, rs.slent))))
 
@@ -1872,6 +1948,7 @@ def runMid (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd : Ready)
     (⌜ac = chan.nil⌝ ∗ ∃ rs : RNState, termLB γ.bud rs.tc ∗
       ⌜rs.storage = γ.stor ∧ rs.steps = [] ∧ rs.unpersisted = [] ∧ rs.slent = none⌝ ∗
       dghostVar γ.dlv (DFrac.own (1 : Qp).half) (rs.delivered, rs.phs) ∗ rofFull γ ∗ runCfg γ rs ∗
+      durRest γ rs false ∗
       ((⌜rc = chan.nil⌝ ∗ ownRawNode γ.raft nv.rn' id rs) ∨
        (⌜rc = nv.readyc'⌝ ∗ ∃ (ce es : List EntryM) (ms : List QMsg) (L : Option SnapLoan),
           ownRawNodeReady γ.raft nv.rn' id rs rd ce es ms false L ∗ freshOk γ rd rs ce es ms L) ∨
@@ -1964,11 +2041,12 @@ theorem headRest_nil (γ : NodeNames) (nv : node) (rs : RNState) (rc : GoChan) (
       termLB γ.bud rs.tc ∗
       ⌜rs.storage = γ.stor ∧ rs.steps = [] ∧ rs.unpersisted = [] ∧ rs.slent = none⌝ ∗
       dghostVar γ.dlv (DFrac.own (1 : Qp).half) (rs.delivered, rs.phs) ∗ rofFull γ ∗ runCfg γ rs ∗
+      durRest γ rs false ∗
       (⌜rc = chan.nil⌝ ∨ (⌜rc = nv.readyc'⌝ ∗ staleOk γ rd rs)) := by
   iintro H
   unfold headRest
-  icases H with ⟨#Hlb, %Hst, Hcfg, (⟨%Hs, Hdlv, Hrof, Hrc⟩ | ⟨%Hs, -⟩)⟩
-  · iframe Hlb Hdlv Hrof Hrc Hcfg
+  icases H with ⟨#Hlb, %Hst, Hcfg, (⟨%Hs, Hdlv, Hrof, Hdr, Hrc⟩ | ⟨%Hs, -⟩)⟩
+  · iframe Hlb Hdlv Hrof Hrc Hcfg Hdr
     ipureintro; exact ⟨Hst, Hs.2⟩
   · exact absurd Hs.1.symm Hnn
 
@@ -1982,7 +2060,7 @@ theorem runHead_mid_busy (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan
   unfold runHead
   icases H with ⟨%rs, Hrn, Hrest⟩
   unfold headRest
-  icases Hrest with ⟨#Hlb, %Hst, Hcfg, (⟨%Hs, Hdlv, Hrof, Hrc⟩ | ⟨%Hs, Hd⟩)⟩
+  icases Hrest with ⟨#Hlb, %Hst, Hcfg, (⟨%Hs, Hdlv, Hrof, Hdr, Hrc⟩ | ⟨%Hs, Hdr, Hd⟩)⟩
   · exact absurd Hs.1 Hac
   isplitr
   · ipureintro; exact Hs.1
@@ -1991,7 +2069,7 @@ theorem runHead_mid_busy (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan
   isplitr
   · ipureintro; exact Hst
   iright
-  iframe Hd
+  iframe Hd Hdr
   ipureintro; exact Hs
 
 /-- Abandoning a fresh `Ready` (keeping it armed, `ownRawNodeReady_abandon_keep`), or
@@ -2000,7 +2078,7 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     ⊢ runMid (GF := GF) γ id nv ac rc rd -∗ runHead γ id nv ac rc rd := by
   iintro H
   unfold runMid
-  icases H with (⟨-, H⟩ | ⟨%Hac, %rs, #Hlb, %Hrs, Hdlv, Hrof, Hcfg, H⟩)
+  icases H with (⟨-, H⟩ | ⟨%Hac, %rs, #Hlb, %Hrs, Hdlv, Hrof, Hcfg, Hdr, H⟩)
   · iexact H
   obtain ⟨Hst, Hsteps, Hunp, Hsl⟩ := Hrs
   unfold runHead
@@ -2012,12 +2090,12 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     isplitr
     · ipureintro; exact Hst
     ileft
-    iframe Hdlv Hrof
+    iframe Hdlv Hrof Hdr
     isplitr
     · ipureintro; exact ⟨Hac, Hsteps, Hunp, Hsl⟩
     ileft; ipureintro; exact Hrc
   · unfold freshOk
-    icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, Hmsgs_cap, Hown, #Hmsgs_ok, #Hrsts,
+    icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, Hmsgs_cap, Hown, #Hrsts,
       ⟨%hrd0, #Hrdh0, #Hhsw⟩, Hsnz, %Hfacts⟩
     -- (D22 S-d4) no snapshot unless one is handed out (`rdSnapOut`)
     ihave %Hsz : ⌜L = none → rd.Snapshot' = null⌝ $$ [Hsnz]
@@ -2043,6 +2121,8 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     iframe Hdlv Hrof
     isplitr
     · ipureintro; exact ⟨Hac, Hsteps, Hunp, Hsl⟩
+    isplitl [Hdr]
+    · iapply durRest_congr γ (rs := rs) (rs' := { rs with outlb := n, unst := u, clb := c, hlb := hb }) false rfl rfl rfl $$ Hdr
     iright
     isplitr
     · ipureintro; exact Hrc
@@ -2063,7 +2143,7 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     isplitr
     · ipureintro; exact Hst
     ileft
-    iframe Hdlv Hrof
+    iframe Hdlv Hrof Hdr
     isplitr
     · ipureintro; exact ⟨Hac, Hsteps, Hunp, Hsl⟩
     iright
@@ -2075,24 +2155,21 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
 stage R5: with the messages' ownership, as `readyData` holds them.) -/
 theorem readyMsgs_termLB (γ : NodeNames) (t : w64) (ms : List QMsg)
     (H : ∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z t) :
-    ⊢ ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st) -∗
-      ([∗list] q ∈ ms, isRaftMsg (GF := GF) γ.raft γ.id q.st) -∗ termLB γ.bud t -∗
-      [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft γ.id q.st ∗
-        termLB γ.bud q.st.msg.Term' := by
+    ⊢ ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st) -∗ termLB γ.bud t -∗
+      [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ termLB γ.bud q.st.msg.Term' := by
   induction ms with
   | nil =>
-    iintro - - -
+    iintro - -
     iapply BigSepL.bigSepL_nil.2
     iempintro
   | cons q ms ih =>
-    iintro Ho Hl #Hlb
+    iintro Ho #Hlb
     icases BigSepL.bigSepL_cons.1 $$ Ho with ⟨Hq, Ho⟩
-    icases BigSepL.bigSepL_cons.1 $$ Hl with ⟨Hm, Hl⟩
     iapply BigSepL.bigSepL_cons.2
-    isplitl [Hq Hm]
-    · iframe Hq Hm
+    isplitl [Hq]
+    · iframe Hq
       iapply termLB_le γ.bud t q.st.msg.Term' (H q (List.mem_cons_self ..)) $$ Hlb
-    · iapply ih (fun m' hm => H m' (List.mem_cons_of_mem _ hm)) $$ Ho Hl Hlb
+    · iapply ih (fun m' hm => H m' (List.mem_cons_of_mem _ hm)) $$ Ho Hlb
 
 /-- What `readyc` and `advancec` may be. -/
 theorem runMid_chans (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd : Ready) :
@@ -2100,11 +2177,11 @@ theorem runMid_chans (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (r
       ⌜(rc = chan.nil ∨ rc = nv.readyc') ∧ (ac = chan.nil ∨ ac = nv.advancec')⌝ := by
   iintro H
   unfold runMid
-  icases H with (⟨%Hac, H⟩ | ⟨%Hac, %rs, -, -, -, -, -, H⟩)
+  icases H with (⟨%Hac, H⟩ | ⟨%Hac, %rs, -, -, -, -, -, -, H⟩)
   · unfold runHead
     icases H with ⟨%rs, -, Hrest⟩
     unfold headRest
-    icases Hrest with ⟨-, -, -, (⟨%Hs, -, -, (%Hrc | ⟨%Hrc, -⟩)⟩ | ⟨%Hs, -⟩)⟩
+    icases Hrest with ⟨-, -, -, (⟨%Hs, -, -, -, (%Hrc | ⟨%Hrc, -⟩)⟩ | ⟨%Hs, -⟩)⟩
     · ipureintro; exact ⟨.inl Hrc, .inr Hac⟩
     · ipureintro; exact ⟨.inr Hrc, .inr Hac⟩
     · ipureintro; exact ⟨.inl Hs.2.1, .inr Hac⟩
@@ -2120,12 +2197,13 @@ theorem runMid_ready (γ : NodeNames) (id : w64) (nv : node) (ac : GoChan) (rd :
       ⌜ac = chan.nil⌝ ∗ ∃ rs : RNState, termLB γ.bud rs.tc ∗
         ⌜rs.storage = γ.stor ∧ rs.steps = [] ∧ rs.unpersisted = [] ∧ rs.slent = none⌝ ∗
         dghostVar γ.dlv (DFrac.own (1 : Qp).half) (rs.delivered, rs.phs) ∗ rofFull γ ∗ runCfg γ rs ∗
+        durRest γ rs false ∗
         ((∃ (ce es : List EntryM) (ms : List QMsg) (L : Option SnapLoan),
             ownRawNodeReady γ.raft nv.rn' id rs rd ce es ms false L ∗ freshOk γ rd rs ce es ms L) ∨
          (ownRawNodeIdle γ.raft nv.rn' id rs ∗ staleOk γ rd rs)) := by
   iintro H
   unfold runMid
-  icases H with (⟨%Hac, H⟩ | ⟨%Hac, %rs, #Hlb, %Hrs, Hdlv, Hrof, Hcfg, H⟩)
+  icases H with (⟨%Hac, H⟩ | ⟨%Hac, %rs, #Hlb, %Hrs, Hdlv, Hrof, Hcfg, Hdr, H⟩)
   · unfold runHead
     icases H with ⟨%rs, -, Hrest⟩
     unfold headRest
@@ -2135,7 +2213,7 @@ theorem runMid_ready (γ : NodeNames) (id : w64) (nv : node) (ac : GoChan) (rd :
   isplitr
   · ipureintro; exact Hac
   iexists rs
-  iframe Hlb Hdlv Hrof Hcfg
+  iframe Hlb Hdlv Hrof Hcfg Hdr
   isplitr
   · ipureintro; exact Hrs
   icases H with (⟨%Hrc, -⟩ | ⟨%Hrc, Hf⟩ | ⟨%Hrc, Hrn, Hstale⟩)
@@ -2150,17 +2228,18 @@ theorem runMid_busy (γ : NodeNames) (id : w64) (nv : node) (rc : GoChan) (rd : 
       ∃ (rs : RNState) (d ce : List EntryM), ownRawNode γ.raft nv.rn' id rs ∗
         termLB γ.bud rs.tc ∗ runCfg γ rs ∗
         ⌜rs.storage = γ.stor ∧ rc = chan.nil ∧ rs.unst = false ∧ rs.delivered = d ++ ce⌝ ∗
-        dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted, rs.phs, rs.slent) := by
+        dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted, rs.phs, rs.slent) ∗
+        durRest γ rs true := by
   iintro H
   unfold runMid
   icases H with (⟨-, H⟩ | ⟨%Hac, -⟩)
   · unfold runHead
     icases H with ⟨%rs, Hrn, Hrest⟩
     unfold headRest
-    icases Hrest with ⟨#Hlb, %Hst, Hcfg, (⟨%Hs, -⟩ | ⟨%Hs, %d, %ce, %Hd, Hrof⟩)⟩
+    icases Hrest with ⟨#Hlb, %Hst, Hcfg, (⟨%Hs, -⟩ | ⟨%Hs, Hdr, %d, %ce, %Hd, Hrof⟩)⟩
     · exact absurd Hs.1 Hnn
     iexists rs, d, ce
-    iframe Hrn Hlb Hrof Hcfg
+    iframe Hrn Hlb Hrof Hcfg Hdr
     ipureintro; exact ⟨Hst, Hs.2.1, Hs.2.2, Hd⟩
   · exact absurd Hac Hnn
 
@@ -2171,7 +2250,7 @@ theorem runMid_lead (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
       leadFields r (runMid γ id nv ac rc rd) := by
   iintro H #Hr
   unfold runMid
-  icases H with (⟨%Hac, H⟩ | ⟨%Hac, %rs, #Hlb, %Hrs, Hdlv, Hrof, Hcfg, H⟩)
+  icases H with (⟨%Hac, H⟩ | ⟨%Hac, %rs, #Hlb, %Hrs, Hdlv, Hrof, Hcfg, Hdr, H⟩)
   · unfold runHead
     icases H with ⟨%rs, Hrn, Hrest⟩
     ihave Hlf := ownRawNode_lead γ.raft nv.rn' id rs r $$ Hrn Hr
@@ -2199,7 +2278,7 @@ theorem runMid_lead (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     isplitr
     · ipureintro; exact Hac
     iexists rs
-    iframe Hlb Hdlv Hrof Hcfg
+    iframe Hlb Hdlv Hrof Hcfg Hdr
     isplitr
     · ipureintro; exact Hrs
     ileft
@@ -2217,7 +2296,7 @@ theorem runMid_lead (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     isplitr
     · ipureintro; exact Hac
     iexists rs
-    iframe Hlb Hdlv Hrof Hcfg
+    iframe Hlb Hdlv Hrof Hcfg Hdr
     isplitr
     · ipureintro; exact Hrs
     iright; ileft
@@ -2237,7 +2316,7 @@ theorem runMid_lead (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     isplitr
     · ipureintro; exact Hac
     iexists rs
-    iframe Hlb Hdlv Hrof Hcfg
+    iframe Hlb Hdlv Hrof Hcfg Hdr
     isplitr
     · ipureintro; exact Hrs
     iright; iright

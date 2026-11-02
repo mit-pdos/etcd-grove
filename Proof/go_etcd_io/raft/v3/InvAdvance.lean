@@ -31,6 +31,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- (2026-11-01, durability stage II (n)) The driver's halves back at the rendezvous agree with
+`run`'s half of `bw` (`advDep`'s): the durable state and role `run` recorded, `bw` whole. -/
+theorem bw_back (γ : NodeNames) (W0 : DurMaps) (y0 : RaftState × StateType) :
+    ⊢ dghostVar (GF := GF) γ.bw (DFrac.own (1 : Qp).half) (W0, y0) -∗
+      (∃ (y : RaftState × StateType) (W : DurMaps), dghostVar γ.dur (DFrac.own (1 : Qp).half) y ∗
+        dghostVar γ.bw (DFrac.own (1 : Qp).half) (W, y) ∗ durFrags γ.raft γ.id W ∗
+        slotFree γ.raft γ.id γ.gen) -∗
+      dghostVar γ.dur (DFrac.own (1 : Qp).half) y0 ∗
+      (∃ W : DurMaps × (RaftState × StateType), dghostVar γ.bw (DFrac.own 1) W) ∗
+      durFrags γ.raft γ.id W0 ∗ slotFree γ.raft γ.id γ.gen := by
+  iintro Hbw ⟨%y, %W, Hdur, Hbw', #Hfr, Hfree⟩
+  ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hbw Hbw'
+  simp only [Prod.mk.injEq] at Heq
+  obtain ⟨rfl, rfl⟩ := Heq
+  iframe Hdur Hfr Hfree
+  iexists (W0, y0)
+  icombine Hbw Hbw' as Hbw1
+  iexact Hbw1
+
 /-- **The rendezvous** (whichever side meets the other): the driver's append receipt absorbed,
 the floor raised to the committed log `run` handed out (`ownRawNode_raise_floor`), which the
 driver's lower bound `ds` is a prefix of; its witness, and `run`'s node after it. (D22 S-d4,
@@ -44,10 +63,11 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
       advRet γ rn id ∗ reqWit γ (reqOf L ds) ∗ capAns γ (loanReq γ.mode L x) := by
   iintro #Hlb Hdep HP
   iunfold advDep at Hdep
-  icases Hdep with ⟨%rs, %d, %ce, Hrn, #Htlb, Hcfg, Hrof, %Hrs⟩
+  icases Hdep with ⟨%rs, %d, %ce, Hrn, #Htlb, Hcfg, Hrof, Hbw, %Hrs⟩
   obtain ⟨Hstor, Hunst, Hdel⟩ := Hrs
   iunfold advanceP at HP
   icases HP with ⟨%d', %ce', %es', %p', Hdlv, Hrof', Hrcpt, Hpay, Hback, %ca_d, #Hcamlb, #HA⟩
+  icases bw_back γ rs.bw (rs.dur, rs.role) $$ Hbw Hback with ⟨Hdur, Hbw1, #Hfr, Hfree⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hrof Hrof'
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨rfl, rfl, rfl, rfl, HL⟩ := Heq
@@ -85,7 +105,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     isplitr [Hfw]
     · iunfold advRet
       iexists { { rs with unpersisted := [] } with flw := true }, ca_d
-      iframe Hrn Htlb Hcamlb Hback
+      iframe Hrn Htlb Hcamlb Hdur Hbw1 Hfr Hfree
       isplitl [Hcfg]
       · iapply (runCfgR_of_runCfg (GF := GF) γ { { rs with unpersisted := [] } with flw := true }
           (.inl Hsl)).2
@@ -141,10 +161,10 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
         ipureintro; exact Hinv
       rw [loanCfg_static hd]
       imodintro
-      isplitl [Hrn Hcfg Hdlv Hrof Hrof' Hrcpt Hback]
+      isplitl [Hrn Hcfg Hdlv Hrof Hrof' Hrcpt Hdur Hbw1 Hfree]
       · iunfold advRet
         iexists rs, ca_d
-        iframe Hrn Htlb Hcamlb Hback
+        iframe Hrn Htlb Hcamlb Hdur Hbw1 Hfr Hfree
         isplitl [Hcfg]
         · iapply (runCfgR_of_runCfg (GF := GF) γ rs (.inr Hst)).2
           iapply (runCfg_congr (GF := GF) γ (rs := rs) (rs' := { rs with flw := false })
@@ -173,10 +193,10 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
         simp only [loanCfg, hd, ↓reduceIte, Hmd]
       rw [Hlc]
       imodintro
-      isplitl [Hrn Hdlm Hcap_r Hcam Hdlv Hrof Hrof' Hrcpt Hback]
+      isplitl [Hrn Hdlm Hcap_r Hcam Hdlv Hrof Hrof' Hrcpt Hdur Hbw1 Hfree]
       · iunfold advRet
         iexists rs, ca_d
-        iframe Hrn Htlb Hcamlb Hback
+        iframe Hrn Htlb Hcamlb Hdur Hbw1 Hfr Hfree
         isplitl [Hdlm Hcap_r Hcam]
         · iapply (runCfgR_loan (GF := GF) γ rs l Hsl Hdy).2
           iunfold runCfgLoan

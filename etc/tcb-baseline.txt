@@ -794,7 +794,6 @@ sorry kvreconf.Cluster.startNew.wp_proof
 sorry kvreconf.StartCluster.wp_proof
 sorry newLogWithSize.wp_proof
 sorry newRaft.wp_proof
-sorry node.run.wp_proof
 sorry raftNode.start.wp_proof
 sorry raftNode_of_StartNode
 sorry rnApplyTok_recv

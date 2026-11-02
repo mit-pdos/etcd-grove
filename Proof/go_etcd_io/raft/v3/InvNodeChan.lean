@@ -1008,6 +1008,9 @@ taken back by a `select` that fires another case. -/
   iprop(∃ (rs : RNState) (d ce : List EntryM), ownRawNode γ.raft rn id rs ∗
     termLB γ.bud rs.tc ∗ runCfg γ rs ∗
     dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted, rs.phs, rs.slent) ∗
+    -- (2026-11-01, durability stage II (n)) `run`'s half of the batch's maps, recording the durable
+    -- state and role it enters (`readyCut`'s other half)
+    dghostVar γ.bw (DFrac.own (1 : Qp).half) (rs.bw, (rs.dur, rs.role)) ∗
     ⌜(rs.storage = γ.stor ∧ rs.sn = γ.sn) ∧ rs.unst = false ∧ rs.delivered = d ++ ce⌝)
 
 /-- `run`'s node after the rendezvous: the `Ready`'s entries appended, the floor raised
@@ -1022,10 +1025,12 @@ entries not appended here, and the floor not raised; `dlv` at the committed log 
     (∃ x : List EntryM × List EntryM × List EntryM × HardStateM × Option SnapLoan,
       dghostVar γ.rof (DFrac.own (1 : Qp).half) x ∗ dghostVar γ.rof (DFrac.own (1 : Qp).half) x) ∗
     monoNatLbOwn γ.cam ca_d ∗ loanRet rs ∗
-    -- (2026-11-01, stage II(g), approved fix D) the driver's halves back (`advanceP`'s)
-    (∃ (y : RaftState × StateType) (W : DurMaps), dghostVar γ.dur (DFrac.own (1 : Qp).half) y ∗
-      dghostVar γ.bw (DFrac.own (1 : Qp).half) (W, y) ∗ durFrags γ.raft γ.id W ∗
-      slotFree γ.raft γ.id γ.gen) ∗
+    -- (2026-11-01, stage II(g), approved fix D) the driver's halves back (`advanceP`'s);
+    -- (2026-11-01, stage II (n)) agreeing with `run`'s (`advDep`'s `bw` half): the durable state and
+    -- role the node records, `bw` whole, the fragments of the node's batch maps
+    dghostVar γ.dur (DFrac.own (1 : Qp).half) (rs.dur, rs.role) ∗
+    (∃ W : DurMaps × (RaftState × StateType), dghostVar γ.bw (DFrac.own 1) W) ∗
+    durFrags γ.raft γ.id rs.bw ∗ slotFree γ.raft γ.id γ.gen ∗
     ⌜rs.storage = γ.stor ∧ rs.unst = false ∧ (rs.slent = none → rs.unpersisted = [])⌝ ∗
     -- (raft-final phase 2: the design's A1, only after a `Ready` without a snapshot, as `advanceP`'s;
     -- until then unguarded)
@@ -1150,6 +1155,13 @@ instance nodeLiveRaw_fractional (γ : NodeNames) :
 instance nodeLiveRaw_timeless (γ : NodeNames) (q : Qp) : Timeless (nodeLiveRaw (GF := GF) γ q) := by
   unfold nodeLiveRaw slotLive; infer_instance
 
+/-- (2026-11-01, durability stage II (n), the stop's option (c)) **`run`'s answer on `stop`**: its
+share of the generation (`nodeLiveRaw`'s, `slotLive` at `½`) and its node's volatile protocol
+state (`ownRaftGhost`), which `run` gives up when it stops. `Stop` takes them, adds its own share of
+the generation, and gives the id's slot back itself (`raft_stop`, `nodeVacant`). -/
+def stopAns (γ : NodeNames) (id : w64) : IProp GF :=
+  iprop(slotLive γ.raft id (1 : Qp).half γ.gen ∗ ∃ (s : PState) (md : Bool), ownRaftGhost γ.raft id s md)
+
 /-- (2026-10-29, stage U9a) **The node stopped** (persistent): `run` closed `done`, the
 broadcast's proposition. -/
 def nodeStoppedRaw (γ : NodeNames) : IProp GF :=
@@ -1234,10 +1246,11 @@ theorem node_done_recv_live_au (γ : NodeNames) (ch : Loc) (q : Qp) (Φ : Unit �
     -- idiom: `run` holds the `.Pending` side, `runPre`), with the node stopped; `stop` carries the
     -- client's half of `live` (`Stop`)
     "#Hdone" ∷ ownBroadcastChan nv.done' γ.done (nodeStoppedRaw γ) .Unknown ∗
-    -- (2026-11-01, durability stage I-2/I-7) whose answer is the id's slot (`raftIdSlot`, the
-    -- API's `nodeVacant`): `run` hands it back before it closes `done` (`node.go:450`)
-    "#Hstop" ∷ isHandshake γ.stop nv.stop' (fun (_ : Unit) => nodeLiveRaw γ 1)
-      (raftIdSlot γ.raft id) ∗
+    -- (2026-11-01, durability stage II (n), the stop's option (c); from stage I-2/I-7 the client's
+    -- whole `nodeLiveRaw` for the id's slot) the client's half of `live`, for `run`'s share of the
+    -- generation and its protocol state (`stopAns`): `Stop` gives the id's slot back itself
+    "#Hstop" ∷ isHandshake γ.stop nv.stop'
+      (fun (_ : Unit) => dghostVar γ.live (DFrac.own (1 : Qp).half) false) (stopAns γ id) ∗
     "#Hstatus" ∷ isHandshake γ.status nv.status' statusChP iprop(True) ∗
     "#Htickc" ∷ isChan nv.tickc' γ.tick Unit ∗
     "#Htickinv" ∷ inv tickN (tickInv γ) ∗
