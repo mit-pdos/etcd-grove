@@ -273,6 +273,57 @@ theorem chainsInv_init [GooseExts] {h : List (Op OpV)} {cs : List (List Nat)} (h
   · rw [hfr]
     exact candList_init hok hwf (by rw [← hfr]; exact hpw) hmem
 
+/-- `newChains`' third loop's invariant, at its counter `i`: heads `0`, no frontier, the clients
+below `i` have their first operation visited and their `nDeps` counted. -/
+def NcInv {α : Type} (h : List (Op α)) (cs : List (List Nat)) (i : Nat) (st : ChSt) : Prop :=
+  st.heads = List.replicate cs.length 0 ∧ st.frontier = [] ∧ ShapeOk cs st ∧ FuOk h cs st ∧
+  (∀ c k, st.visAt c k = decide (c < i ∧ k = 0 ∧ k < (chain cs c).length)) ∧
+  (∀ c, c < i → 0 < (chain cs c).length →
+    sint.Z (st.nDeps.getD c 0) = deps h cs (List.replicate cs.length 0) c)
+
+theorem ncInv_init {α : Type} (h : List (Op α)) (cs : List (List Nat)) :
+    NcInv h cs 0 (chStInit cs) :=
+  ⟨rfl, rfl, init_shape cs, init_fuOk h cs, fun c k => by rw [init_visAt]; simp,
+    fun _ hc => absurd hc (Nat.not_lt_zero _)⟩
+
+theorem ncInv_head {α : Type} {h : List (Op α)} {cs : List (List Nat)} {i : Nat} {st : ChSt}
+    (hinv : NcInv h cs i st) (c : Nat) : st.head c = 0 := by
+  unfold ChSt.head; rw [hinv.1, replicate_getD]
+
+/-- One client counted: the state after `computeFirstUnk(i)` (`st1`) with `nDeps[i]` set. -/
+theorem ncInv_step {α : Type} {h : List (Op α)} {cs : List (List Nat)} {i : Nat} {st st1 : ChSt}
+    (hinv : NcInv h cs i st) (hi : i < cs.length)
+    (h1 : st1.heads = st.heads ∧ st1.nDeps = st.nDeps ∧ st1.frontier = st.frontier ∧
+      ShapeOk cs st1 ∧ FuOk h cs st1 ∧
+      ∀ c' k, st1.visAt c' k = (st.visAt c' k ||
+        decide (c' = i ∧ k = st.head c' ∧ k < (chain cs c').length)))
+    (nd : w64) (hnd : 0 < (chain cs i).length → sint.Z nd = deps h cs (List.replicate cs.length 0) i) :
+    NcInv h cs (i + 1) { st1 with nDeps := st1.nDeps.set i nd } := by
+  obtain ⟨hh, hn, hf, hsh, hfu, hv⟩ := h1
+  obtain ⟨i1, i2, i3, i4, i5, i6⟩ := hinv
+  refine ⟨by simp only; rw [hh, i1], by simp only; rw [hf, i2], ?_, hfu, ?_, ?_⟩
+  · obtain ⟨s1, s2, s3, s4, s5⟩ := hsh
+    exact ⟨s1, by simp only; rw [List.length_set]; exact s2, s3, s4, s5⟩
+  · intro c k
+    show st1.visAt c k = _
+    rw [hv, i5]
+    have hhd : st.head c = 0 := by unfold ChSt.head; rw [i1, replicate_getD]
+    rw [hhd]
+    by_cases hc : c = i
+    · subst hc; simp
+    · by_cases hci : c < i
+      · simp [hc, hci, show c < i + 1 by omega]
+      · simp [hc, hci, show ¬ c < i + 1 by omega]
+  · intro c hc hl
+    simp only
+    by_cases hci : c = i
+    · subst hci
+      rw [List.getD_eq_getElem?_getD, List.getElem?_set_self (by rw [hn, i3.2.1]; exact hi)]
+      exact hnd hl
+    · rw [List.getD_eq_getElem?_getD, List.getElem?_set_ne (Ne.symm hci), ← List.getD_eq_getElem?_getD,
+        hn]
+      exact i6 c (by omega) hl
+
 section heap
 open Iris Iris.BI Iris.ProofMode
 variable [GooseExts] [GooseSemantics] [GooseInterp]

@@ -301,8 +301,61 @@ theorem newChains.wp_proof
         unfold fuPiece
         rw [hsp]
         iexact Hp
-      · sorry
-    · sorry
+      · have hjn : sint.nat jv = (chain cs (sint.nat iv)).length := by
+          have : sint.nat jv = (sint.Z jv).toNat := rfl
+          omega
+        rw [hjn, List.drop_length, ← Hj.2.2.1, List.take_length]
+        ihave Hcv := typedPointsto_combine _ (clientAt sls (sint.nat iv)) _ Hcvnn $$
+          [id_cc cltOps_cc head_cc nDeps_cc __cc]
+        · simp only [TypedPointsto.typedPointstoDef]; rw [hcltops]; iframe
+        ihave Hcl := Hcl $$ %_ Hcv
+        rw [list_set_lookup_self _ _ _ hcvi]
+        ihave Hcls := bigSepL_if_step sls (sint.nat iv) sl hsl
+          (fun c sl => coDone (GF := GF) h cs c sl) (fun c sl => coPend h cs fsl c sl) $$ [Hcls Hsl Hdone]
+        · iframe
+          unfold coDone
+          iexists cosj
+          iframe
+          ipureintro; exact Hj.2.2
+        wp_for_post
+        iframe
+        iexists iv + W64 1
+        have hi1 : sint.nat (iv + W64 1) = sint.nat iv + 1 := by word
+        rw [hi1]
+        iframe
+        ipureintro
+        exact ⟨by word, by word⟩
+    have hivc : sint.nat iv = cs.length := by word
+    rw [hivc]
+    wp_apply +noauto (wp_slice_make3 (V := w64) (W64 0) ohsl.len ⟨by word, by word⟩)
+    iintro %frsl ⟨Hfr, Hfrcap, %Hfrc⟩
+    wp_auto
+    simp only [show sint.nat (W64 0) = 0 from rfl, List.replicate_zero]
+    have hnc62 : (cs.length : Int) < 2 ^ 62 := by
+      have h6 : (cs.length : Int) * 6 ≤ (cs.length : Int) * ((max h.length 6 : Nat) : Int) :=
+        Int.mul_le_mul_of_nonneg_left (by omega) (by omega)
+      generalize (cs.length : Int) * ((max h.length 6 : Nat) : Int) = B at *
+      omega
+    ihave Hch : chainsOwnCl (GF := GF) ch_ptr clsl h cs (chStInit cs) $$ [ch Hcl Hfr Hfrcap Hcls]
+    · unfold chainsOwnCl chainsRepr
+      iexists _
+      iframe ch
+      isplitr
+      · ipureintro; rfl
+      iexists (List.range cs.length).map (clientAt sls)
+      iframe Hcl Hfrcap
+      isplitr
+      · ipureintro; exact ⟨by simp, hnv⟩
+      isplitl [Hfr]
+      · simp only [chStInit, List.map_nil]; iexact Hfr
+      iapply (bigSepL_transfer sls _ (by simp [Hslslen]) ?_) $$ Hcls
+      intro c sl cv hsl hcv
+      have hc : c < cs.length := by rw [← Hslslen]; exact (List.getElem?_eq_some_iff.mp hsl).1
+      rw [List.getElem?_map, List.getElem?_range hc] at hcv
+      cases hcv
+      simp only [hc, ↓reduceIte]
+      exact clientOwn_init sls c sl hsl (by omega)
+    sorry
 
 end proof
 

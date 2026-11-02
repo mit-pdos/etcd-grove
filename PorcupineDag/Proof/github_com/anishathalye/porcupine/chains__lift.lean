@@ -730,7 +730,41 @@ theorem chains.lift.wp_proof
             refine hlc2.inv_skip Hinv (Or.inr (Or.inl fun hlt => Hif ?_))
             have := Hcosjl; rw [snat_eq] at this; rw [hk0]; omega
       · -- the loop's end: return
-        sorry
+        have hnlt : ¬ sint.Z jv < sint.Z chV4.clients'.len := fun hlt => Hif (by simp [hlt])
+        have hjend : sint.nat jv = cs.length := by
+          have := hnlt; rw [Hlen4] at this; rw [snat_eq]; omega
+        simp only [hnlt, _root_.decide_false, Bool.false_eq_true, ↓reduceIte]
+        rw [hjend] at Hinv
+        obtain ⟨hfin, hcandl⟩ := hlc2.inv_final Hinv
+        ihave Hch := chainsOwnCl_fold ch chV4 cl h cs stj Hcl4 $$ [Hchp Hr]
+        · iframe
+        ihave Hch := chainsOwnCl_weaken ch cl h cs stj $$ Hch
+        have hcid : sint.Z cv.id' = clientOf cs (hdOp cs st i) := by rw [Hcv1, hlc.clientOf]
+        ihave #Hses' := stackRep_push S np cs ses
+          ⟨co.id', cv.id', sv, cv.head', iv⟩ ⟨hdOp cs st i, s, q, fr⟩ fs ⟨hcoid, hcid, hq⟩ $$ [Hses Hsv]
+        · iframe Hses Hsv
+        wp_auto
+        wp_for_post
+        iapply HΦ
+        iframe
+        iright
+        isplitr
+        · ipureintro; rfl
+        iexists hdOp cs st i, q, t', frOf cs stj
+        iframe Hnsv
+        isplitl
+        · iunfold searchOwn
+          iexists stj, ssl', ses ++ [⟨co.id', cv.id', sv, cv.head', iv⟩], lsl, ws'
+          simp only [named]
+          iframe
+          iframe Hses'
+          ipureintro
+          refine ⟨⟨hfin, trivial⟩, by rw [Hws'.1, Hws1], Hws'.2⟩
+        isplitr
+        · ipureintro; exact struct_push hst hfrq ho Hst' hcandl
+        icases Hbad with (%Hb | #HPD)
+        · ileft; ipureintro; exact bad_push hst (hq ▸ Hb) ho Hst'
+        · iright; iexact HPD
   · -- every candidate tried
     have hiv : sint.Z iv = -1 := by
       have : ¬ 0 ≤ sint.Z iv := by
