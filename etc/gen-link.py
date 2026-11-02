@@ -509,6 +509,12 @@ LEAN_FIRST = {
 }
 # The GooseLang extensions a mode's specs assume (`[HasExt X]`, after the semantics variables).
 EXTS = {"--bboltfs": "osFsExt"}
+# The request ids' issue record (`GooseLang/Ext/IdIssue`, the restart plan's R2c stage 2): the trusted
+# model of `idutil`'s `Generator.Next` steps through it, so every mode whose links reach `Next`'s
+# proof (the server's, and those linking over it) takes its `HasExt`.
+for _m in ["--server", "--v3rpc", "--common", "--linkv3p", "--linkvtxn", "--watchkv", "--authkv",
+           "--cachekv", "--k8setcd3", "--k8s", "--k8s-etcd3"]:
+    EXTS[_m] = "idIssueExt"
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",

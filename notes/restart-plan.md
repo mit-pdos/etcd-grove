@@ -400,7 +400,9 @@ image carries none of them.
 16-bit prefix; the cluster's map must not see one twice. The old generator may keep issuing after
 the stop (item 1), so no ghost bound on its suffix exists when the new one starts. Disjointness is
 the issue's precondition (`issues/etcd-request-id-restart-reuse.md`): the clock does not step back
-and a member issues fewer than 256 ids per millisecond on average. It is an assumption about the
+and the earlier generator, started at millisecond t0, issues in all at most 256·(t1 − t0) ids, t1
+the later one's start (2026-11-02 review: the earlier "fewer than 256 per millisecond on average" was
+imprecise). It is an assumption about the
 environment, and has to enter as a trust-boundary statement or a premise:
 - **(a) a spec of the generator's start time** (`time.Now` in `NewGenerator`'s call): the suffix it
   starts from is past every suffix issued under the prefix so far (a per-prefix high-water mark in
@@ -501,3 +503,135 @@ The refactor's logic, in place (the drafts of `idutil/Incarnations.lean` folded 
     extension's instance, which each example's adequacy provides.
   - Drop the one-key-per-prefix condition, and prove `idIncarnation_alloc` (a fresh incarnation
     number chosen from the finite maps).
+
+### R2e: raft's restart, now that the durability work has landed (2026-11-02)
+
+The durability branch landed on `lean` (stage II (u)), so R2e can be built on proved raft specs,
+not a named `sorry`:
+
+- **`RestartNode.spec`** (`Spec/go_etcd_io/raft/v3/RestartNode.lean`, proved). It restarts node
+  `id` of the cluster from three things:
+  - the id vacant (`nodeVacant`: no node of it runs);
+  - a storage holding raft's stored contents `σ` (`restartStorage`), at a configuration point `a`
+    the storage's `ConfState` reports, between the applied index and the stored commit;
+  - the client's update `AU`, which fires when raft reads the storage. It checks the storage holds
+    the client's durable state `S` (`raftState`, `StorageHolds`).
+
+  Its post gives the `Ready` loop's token at the committed log from `max σ.b Applied`. It also gives
+  the configuration view at `(a, m)` and the storage's key.
+- **`node.Stop`** gives the id's vacancy back (`nodeStopped`, `nodeVacant`).
+- **`examples/kvdurable`** is the pattern for a stop and a restart:
+  - `Replica.stop` returns `nodeVacant` and the replica's durable-state ghost variable (`raftState`).
+  - `Cluster.restart` restarts from them, with the crash token held by the cluster.
+
+For the server, this fixes what the image (`srvDiskImage`) holds of raft:
+- `HardStop`'s `run` shutdown calls `raftNode.stop`, which calls `node.Stop`, which returns
+  `nodeVacant`.
+- The WAL's hard state, snapshot and entries are the durable state `S`. etcd's `bootstrappedWAL`
+  rebuilds its `MemoryStorage` from them, so bootstrap's restart contract (L3) must produce
+  `restartStorage σ` with `StorageHolds σ S`.
+- The configuration point is the WAL snapshot's `ConfState`, the snapshot's index.
+
+The open questions:
+1. The server's raft node is not `kvdurable`'s. It runs through `raftNode` and its `Ready` loop, and
+   `bootstrap` reads the WAL, not a durable file of the client's. So the restart contract has to
+   state the WAL image's correspondence to `S`.
+2. `RestartNode`'s scope: the stored commit covers the bootstrap log (`γ.bootLen ≤ σ.commit`). That
+   holds for `restart3`, which stops a member only after a put has committed past the bootstrap.
+
+### R2c stage 2: the trusted `Next`, design (2026-11-02)
+
+- **The record: an extension.** `idutil` has no package variable whose initializer could allocate a
+  model-only map, and `go.GlobalAlloc` runs only from an initializer. So the issuers' record is a
+  GooseLang extension's local state, `idIssueExt` (`GooseLang/Ext/IdIssue/`): a map from id to
+  issuing generator.
+  - Its one operation, `"Issue"` of `(id, g)`, returns whether no other generator holds the id
+    (`M !! id = none ∨ M !! id = some g`), and records `id ↦ g` if so.
+  - The examples close their programs over it in place of `trivialExt`. It does nothing a Go
+    program can see.
+- **The model: `Generator.Next`, trusted.** It is the generated body with one step before the
+  return: `assume (ExternalOp "Issue" (id, g))`. Perennial's `assume` loops forever on `false`
+  (`wp_assume`), so the model excludes exactly the executions in which two generators issue one id.
+  Its faithfulness is the issue's precondition. It goes through the `axiom` skill's review before it
+  lands.
+- **The proof: two atomic steps.**
+  - The increment counts the id as pending in the generator's invariant (`idIssued` is the list
+    plus the pending ids).
+  - The issue step opens the cluster invariant. Its `assume` gives `M !! id ∈ {none, some g}`.
+    `some g` would put the id in the generator's own list, but a pending id is not there: the
+    receipts' bound keeps the suffix from wrapping. So `M !! id = none`, the id is in no key's
+    list, and it enters the maps.
+- **The cluster invariant:**
+  - The extension's record (the program's half). It agrees with the keys' lists through a map from
+    key to generator, `Gm`.
+  - `Gm` is injective. That is proved at registration: the new generator's fields are owned whole,
+    and every registered generator's prefix field is persistently readable, so the new address
+    differs from them.
+  - The stage-1 condition, one key per prefix, goes. `idIncarnation_alloc` becomes provable: a fresh
+    incarnation number, chosen from the finite maps.
+
+### R2c stage 2, where it stands (2026-11-02)
+
+**Done, and it checks:**
+- The extension: `GooseLang/Ext/IdIssue/Impl.lean` (`"Issue"` of `(id, g)`) and `Specs.lean`
+  (`wp_IdIssue_atomic`, the closure `idIssueExts`).
+- The trusted model `TrustedCode/go_etcd_io/etcd/pkg/v3/idutil.lean`: the generated body with
+  `assume (Issue (id, g))` before the return.
+- The Goose configuration marks `Generator.Next` trusted; the translation was regenerated, with its
+  `ManualProof` module.
+
+**Then, in order** (all done 2026-11-02):
+1. **The record's ghost state, in a form that needs no `Main` changes** (`GooseLang/Ext/IdIssue/Specs.lean`):
+   - The state interpretation holds a ghost record contained in the physical one (any initial
+     record is allowed; the ghost one starts empty), its authority and every entry's persistent
+     element. The program starts with `True`, so no `Main` takes anything for it.
+   - `wp_IdIssue` gives, with `b = true`, the fact `idIssueFrag id g`, with the mask open around the
+     step for an invariant. `idIssueFrag_agree`: one issuer per id.
+   - `idIssueFragD` reads the fact without the instance: `if h : HasExt idIssueExt then … else
+     False`, rewritten by `idIssueFragD_eq` under the instance. `idIssueFragD_agree` holds either
+     way. So no spec mentions the instance; only proofs that run `Next` take it.
+2. **`idutil`** (`Defs`, `Lemmas`, `NewGenerator`, `Generator__Next`):
+   - `IdNames` gains `pend`. A key's entry of the keys' map is a pair: issued ids, and the generator
+     once `NewGenerator` registers it. That replaces the separate key-to-generator map.
+   - The cluster invariant keeps, per registered key, its generator's persistent prefix field and
+     the record's fact for every listed id (`idKeyGenFacts`). One key per generator (`idClusterOk`).
+     The one-key-per-prefix condition is gone.
+   - `NewGenerator` registers its generator. It is no registered key's: its prefix field is owned
+     whole, and `w64_pointsto_excl` is a local lemma, recorded in `notes/perennial-changes.md`.
+   - `Next` is proved over the trusted model in two steps:
+     - the increment counts the id as pending and takes its wait slot;
+     - the issue step opens both invariants around `"Issue"`. With the record's fact, the
+       generators' facts, the injectivity and the pending token, the id is in no key's list, so in
+       no map.
+
+     The proof depends only on Lean's standard axioms (`#print axioms`).
+   - `idIncarnation_alloc`: a key `(p, inc)` with `inc` above every key's (`idKey_fresh_inc`), its
+     empty entry, registry cell and facts' parameter. R2c's restart allocation will use it.
+3. **The allocations**: the `IdNames` literals take `pend`; the server's member allocations
+   (`NewServerAlloc`, `NewServerAllocOn`) allocate the pending map; the boot statements' entries are
+   pairs. `SrvRaftLog`'s `srvRdFresh_mint`, which opens the generator's invariant, has its new shape.
+4. **The instance.**
+   - `Next.wp_proof` takes `[HasExt idIssueExt]`, and so does every result that reaches it:
+     `etc/gen-link.py` adds it to the modes linking over the server (`EXTS`: server, v3rpc, common,
+     linkv3p, linkvtxn, watchkv, authkv, cachekv, k8setcd3, k8s, k8s-etcd3), and the hand-written
+     sections using those results (`Results` files, the examples' `Main`s, ...) have it as a
+     section variable. A file was given it only where the build asked for it.
+   - The examples' closure (`TrivialExt.lean`, names kept) is `[idIssueExt]`, with
+     `trivialExts_hasExt`. The adequacy files take the universal camera they already had as the
+     extension's pre-ghost state (`goosePreGExts := (⟨…GF_allG⟩, ())`) and the closure's `HasExt`
+     as a local instance.
+5. **Review** (a fresh agent, the trusted-base and `axiom` skills' method): verdict OK, nothing
+   unsound. The trusted `Next` is the generated body plus the one `assume` step; the record's step
+   is deterministic, heap-preserving, and stuck only off its one call site; the assumption yields
+   only "two generator addresses never issue one id", and the proof does not use the record against
+   a single generator's repeats (those are excluded by the receipts' bound). Documentation fixes,
+   applied:
+   - The precondition was stated imprecisely ("fewer than 256 ids per millisecond on average"): the
+     exact one is that the earlier generator, started at millisecond t0, issues in all at most
+     256·(t1 − t0) ids, t1 the later one's start. Corrected in the issue, the model, the extension
+     and this plan.
+   - The issue file's "How the proof handles it" was stale (pointed to `Incarnations.lean` and
+     `primitive.Assume`); `TrivialExt.lean`'s header said the closure does nothing.
+   - The crash rule's limit (a generator after a crash could take a stopped one's address: still
+     sound, but `Next`'s proof would need the record cleared) and the extension's non-package name
+     are documented in `Impl.lean`.

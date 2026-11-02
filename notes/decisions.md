@@ -29723,3 +29723,28 @@ follow-up (`notes/cluster-rows-plan.md`, "Follow-ups").
 - `srvMemCover` lives in `InvRest.lean` (with `restReqOk_of_attr`, which takes the cover rather than
   `srvMemOk`), so that `applyEntryNormal`'s spec need not import `InvApRes`.
 - The draft modules were deleted in A4, not A5 (their names collided with the switched ones).
+
+## The cache over a compacting member: `cachekv` with the auto-compactor on (2026-11-02 · the user's "go ahead"; the Draft's recommendations · branch `cache-cmp`)
+
+**The Draft** (scratch, 2026-11-01, `cache-compaction-draft.md`): the cache's Go code treats a
+compaction response as one more watch error (it re-lists and watches again); its proofs already
+hold over a compacting store since D8 (watches across a compaction). D1, weakening
+`etcd_cache_served`'s "no compactor" premise to the store's fact for watches (`watchNoDup`), was
+done on 2026-11-01. D2 (a), done here: `cachekv` starts its member with the auto-compactor on, so
+that `cache_safe` covers runs in which the cache's watch is compacted and the cache re-lists. In
+periodic mode at 10ms (`common.StartPeriodicServer`, the cluster's retention `0`), not the Draft's
+revision mode at retention 1: the user asked that the test check that compactions happen, and the
+revision compactor polls every five minutes, so it never fires in a test run. The test now checks
+that the first write's revision (2) is compacted when `Main` returns, and that the last revision is
+compacted within 5s (10 of 10 runs pass). It cannot observe the cache's re-list (the cache logs
+nothing); a re-list needs a compaction past the cache's watch's next revision before the watch is
+synced, which a run rarely produces.
+
+**What changed.** The store's fact for watches comes from the writers' plan in place of "no
+compactor" (`cachekv/NoDup.lean`: `kmWAu`, the adapter's invariant's read update of its plan's
+fact; `oneChange_of_wk`; `noDupKeys_of_wk`, as `compactkv`'s `noDupKeys_of_rounds`).
+`cachekv.premises` gives `bootstrap`'s contract `N + N` write tokens (`compactkv`'s: `N` more, the
+compaction's write-back stock), a hypothesis of the closed theorem `cache_safe`, as
+`compactkv_safe`'s. On the way, `common.StartCompactingServer` now calls `newServerMode(…, "revision", …)`
+(its Go and proof, as `StartPeriodicServer`'s), so both starters are in `common`'s generated
+`Link.lean`; compactkv's and putgetc's hand links use them.

@@ -3,7 +3,8 @@ The cache watch example's results (`examples/cachekv/cachekv.go`), restated, wit
 of each printed in the build log (`#print axioms`). Lean-first (no Rocq counterpart).
 
 * **`cachekv_Main`** (`Link.lean`'s `cachekv.wp_Main`): `Main(nw, nops)` -- the Puts picked, one
-  etcd member started in process, a client with etcd's default configuration, a cache of the prefix over it, the cache's
+  etcd member started in process (since 2026-11-02 with the auto-compactor on, periodic mode
+  at 10ms: a compaction of the cache's watch makes the cache re-list), a client with etcd's default configuration, a cache of the prefix over it, the cache's
   watch of the prefix from revision `2`, `nw` writers, the watch read up to the highest successful
   revision, and a check that panics unless the watched events are exactly the writes -- does not
   panic and returns `Ok`, `Failed` or `WatchEnded`. From `isPkgInit cachekv`, the right to listen
@@ -34,7 +35,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -49,7 +50,7 @@ theorem cachekv_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Seman
 end results
 
 section adequacy
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 variable [go_gctx : GoGlobalContext]
 
 /-- **The cache watch example is safe, in the operational semantics** (`cache_adequate`, see the file
