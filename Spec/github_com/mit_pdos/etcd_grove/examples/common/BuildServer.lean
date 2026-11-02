@@ -8,7 +8,8 @@ example that keeps its listeners (`examples/restart3`). Lean-first (no Rocq coun
 a new cluster's first start), at any snapshot settings.
 
 **`specStop`** (DRAFT, R2b): `spec`'s, with the server's data directory recorded (`srvDataDir`,
-the name's `.etcd`), from which `Start` gives the right to stop it (`common.Start_builtS_spec`;
+the name's `.etcd`) and what it keeps for the stop (`srvStopKeep`), from which `Start` gives the
+right to stop it (`common.Start_builtS_spec`;
 R2b-2, 2026-11-02: until then the right itself, `srvStopRight`, `NewServer`'s to give; `start`
 makes the channels it names).
 
@@ -103,7 +104,7 @@ abbrev BuildServer.specStop : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false ∗
-          srvDataDir s (name ++ go!".etcd")) }}
+          srvDataDir s (name ++ go!".etcd") ∗ srvStopKeep s) }}
 
 /-- See the file header (`specRestart`). -/
 abbrev BuildServer.specRestart : Prop :=
@@ -132,7 +133,7 @@ abbrev BuildServer.specRestart : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ ∃ (ρ' : ReqNames) (E₀' : apply.AEnv GF),
-          ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvDataDir s (name ++ go!".etcd")) }}
+          ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvDataDir s (name ++ go!".etcd") ∗ srvStopKeep s) }}
 
 end spec
 

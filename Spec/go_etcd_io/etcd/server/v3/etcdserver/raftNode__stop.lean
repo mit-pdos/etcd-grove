@@ -44,7 +44,14 @@ has run every job), giving back what the loop's `onStop` left: the node's id vac
 (`StorageHolds`, R2b-1: the loop enters a batch at its WAL `Save`), between the WAL's snapshot
 record and its stored commit the log handed to the apply thread (R2b-1: every snapshot record is
 of an index the apply thread was handed, and the loop saves a `Ready`'s hard state after handing
-its committed entries, with no stop between). -/
+its committed entries, with no stop between).
+
+What R2b-1 must change for it (R2b-2 review F5): the loop's `done` carries the escrow, so
+`isRaftNode`'s persistent `done` conjunct (today at predicate `True`) changes, and with it every
+spec that mentions `isRaftNode`; the server enters a batch at its WAL `Save`, not at the receive
+(else `StorageHolds` fails at a stop between the two). The image's order is at the backend's
+consistent index, which equals `|pre ++ A|` once every job ran and the backend's last commit
+saved the index: R2b-3's. -/
 abbrev raftNode.stop.specStop : Prop :=
   ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc) (A : List EntryModel),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗

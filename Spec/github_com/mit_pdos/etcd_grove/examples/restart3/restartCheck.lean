@@ -50,6 +50,8 @@ abbrev restartCheck.spec : Prop :=
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   ρ.rd.kv.st = γr.kv.st →
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
+  -- (R2b-2) at most `NBoot` bootstrap entries, which `stop` waits for
+  bootLog.length ≤ 3 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   Uok ⟨[common.httpURL peerAddr], [common.httpURL caddr], M, iu⟩ →
   plainEndpoint caddr → lg ≠ null →

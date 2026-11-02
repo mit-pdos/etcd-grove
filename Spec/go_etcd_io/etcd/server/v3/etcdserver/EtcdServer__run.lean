@@ -66,24 +66,31 @@ abbrev EtcdServer.run.specOn : Prop :=
   {{ RET #(); True }}
 
 /-- (DRAFT, R2b-2, 2026-11-02; `notes/restart-plan.md`, "R2b: the stop") **`run` of a server that
-may be stopped**: `spec`'s, with stop requests on `stop` (its bag's predicate `True`: `HardStop`
-sends one) and `done`'s close announcing the image of member `id`'s data directory `dd` at the
-request names `ρ`, escrowed for the stop right's claim `c` (`srvDoneInv`), `id` the raft node's;
-with what the shutdown
+may be stopped**: `spec`'s, with stop requests on `stop` (`HardStop` sends one, with the evidence
+that the bootstrap log was applied, `srvBootApplied`: R2b-2 review F2) and `done`'s close
+announcing the image of member `γn.id`'s data directory `dd` at the request names `ρ`, escrowed for
+the stop right's claim `c` (`srvDoneInv`); with what the shutdown
 needs besides (`srvShutdownPre`). On a stop request `run` returns and its deferred shutdown runs:
 `close(stopping)`, `cancel()`, `sched.Stop()` (the pending `applyAll` jobs run, the last one's post
 `applyRes` at the log handed to the apply thread), `s.wg.Wait()`, `s.r.stop()`
 (`raftNode.stop.specStop`), `Cleanup()` (the backend closed), and `close(done)` with the image in the
-escrow (R2b-3: assembled from those posts). -/
+escrow (R2b-3: assembled from those posts).
+
+Scope (R2b-2 review): a first start only (`isServerRun`'s `HEr`: `ai₀ = 0`, `γn.pre = []`; a
+restarted member's `run` is R2d's, so `Start_builtR_spec`'s right waits for it); the `errorc` path
+stays closed (its bag's `False`): were it opened (`stopWithDelay`, the transport's errors), the
+shutdown would have to fill the escrow without a stop request's evidence. One spec per function
+(R2b-2 review F4): when R2b-2's proof is done, this replaces `spec` (whose callers never stop the
+server), as `Start.spec` gives the right and `raftNode.stop.specStop` replaces `raftNode.stop.spec`;
+the draft keeps both meanwhile. -/
 abbrev EtcdServer.run.specStop : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (γg : GoNames)
     (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields) (b : GoInterface)
-    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (id : w64) (dd : GoString) (c : GName),
-  γn.id = id →
+    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (dd : GoString) (c : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerRun s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ iprop(True)
-        (srvDoneInv ρ.rd.raft.raft ρ id dd c) ∗
+      isServerRun s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ (srvBootApplied ρ)
+        (srvDoneInv ρ.rd.raft.raft ρ γn.id dd c) ∗
       srvShutdownPre s γn dd }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
   {{ RET #(); True }}

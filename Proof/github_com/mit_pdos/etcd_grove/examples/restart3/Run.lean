@@ -217,6 +217,8 @@ theorem Run.wp_proof
     simp [dir3, hn13.symm, hn23.symm]
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
+  have hb3 : (LogEntry.toEntries boot 0).length ≤ 3 := by
+    simp [LogEntry.toEntries, hblen0]
   -- the three members (`startMember`), the thread token passed along
   wp_apply (wp_startMember N name₁ peerAddr₁ clientAddr₁ (slice.mk peer₁ (W64 1) (W64 1)) pm lg
       (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
@@ -360,7 +362,7 @@ theorem Run.wp_proof
           (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
         (urlsOk peerAddr₂ clientAddr₂) [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs
         (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } γn hst₂
-        hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₂
+        hvs hrule hboot hblen hb3 hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₂
         ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ (by unfold plainEndpoint clientAddr₂; decide) Hlg Hck Haf
         Hbuq Hrf Hdbo Hms hAs) $$ [Hst₂ Hac₂ Htok2]
     · iframe; iframe #
@@ -374,7 +376,7 @@ theorem Run.wp_proof
           (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
         (urlsOk peerAddr₃ clientAddr₃) [id₁, id₂, id₃] (LogEntry.toEntries boot 0) ctxs
         (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } γn hst₃
-        hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₃
+        hvs hrule hboot hblen hb3 hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₃
         ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ (by unfold plainEndpoint clientAddr₃; decide) Hlg Hck Haf
         Hbuq Hrf Hdbo Hms hAs) $$ [Hm₃ Hsr₃ Hcl₃ Hac₃ Htok2]
     · iframe; iframe #

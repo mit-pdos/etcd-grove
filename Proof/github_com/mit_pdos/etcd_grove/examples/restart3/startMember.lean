@@ -64,7 +64,7 @@ theorem startMember.wp_proof
       ps bootLog ctxs dir id γ ρ E₀ Φs γn hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
       Hdir HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, Hsr⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, Hsr, Hkeep⟩)
   · -- `BuildServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -110,8 +110,8 @@ theorem startMember.wp_proof
   (try wp_auto)
   -- `s.Start()`
   wp_apply (wp_StartS s ρ E₀ lg γn id N true (name ++ go!".etcd"))
-    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok Hsr] as ⟨Hup, Hsr⟩
-  · iframe Htok Hsr
+    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok Hsr Hkeep] as ⟨Hup, Hsr⟩
+  · iframe Htok Hsr Hkeep
     iframe #
     iunfold common.memberBuilt
     iexists γA, ci, TM, E, γrn, b, cfg, γk, τ
@@ -120,6 +120,7 @@ theorem startMember.wp_proof
     iframe #
     ipureintro; exact HE
   (try wp_auto)
+  icases memberUp_applied s ρ E₀ lg γn id $$ Hup with ⟨Hup, #Hai⟩
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl
@@ -128,7 +129,8 @@ theorem startMember.wp_proof
   iunfold memberStop
   rw [← Hγρ]
   iframe
-  ipureintro; exact Hli
+  iframe #
+  ipureintro; exact ⟨Hli, rfl⟩
 
 theorem startMember.wp_proofRestart
     (wp_BuildServer : common.BuildServer.specRestart (GF := GF) (hG := hG))
@@ -153,7 +155,7 @@ theorem startMember.wp_proofRestart
       ps bootLog ctxs dir id γ ρ γn hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
       Hdir HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Himg] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, %ρ', %E₀, %Hρ', Hmb, Hsr⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, %ρ', %E₀, %Hρ', Hmb, Hsr, Hkeep⟩)
   · -- `BuildServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -201,8 +203,8 @@ theorem startMember.wp_proofRestart
   (try wp_auto)
   -- `s.Start()`
   wp_apply (wp_StartR s ρ' E₀ lg γn id N true (name ++ go!".etcd"))
-    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok Hsr] as ⟨Hup, Hsr⟩
-  · iframe Htok Hsr
+    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok Hsr Hkeep] as ⟨Hup, Hsr⟩
+  · iframe Htok Hsr Hkeep
     iframe #
     iunfold common.memberBuiltR
     iexists ai₀, at₀, c₀, x₀
@@ -213,6 +215,7 @@ theorem startMember.wp_proofRestart
     iframe #
     ipureintro; exact HE
   (try wp_auto)
+  icases memberUp_applied s ρ' E₀ lg γn id $$ Hup with ⟨Hup, #Hai⟩
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl
@@ -223,7 +226,8 @@ theorem startMember.wp_proofRestart
   have Hγρ' : ρ'.rd.raft.raft = γ := by rw [Hρ'.1, Hγρ]
   rw [← Hγρ']
   iframe
-  ipureintro; exact Hli
+  iframe #
+  ipureintro; exact ⟨Hli, rfl⟩
 
 end proof
 

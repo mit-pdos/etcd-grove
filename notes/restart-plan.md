@@ -813,3 +813,41 @@ directory (`srvDataDir s dd`: the read-only `Cfg` field's `DataDir`).
 
 Left to R2b-3's draft: `Cleanup`'s spec (the backend closed, its data), the closes' axioms
 (`srvFiles`), and the image's assembly from `run`'s state after the shutdown.
+
+### R2b-2 review, round 1 (2026-11-02, a fresh `spec-reviewer`)
+
+No bug in etcd. Three blocking findings, all taken:
+- **F1.** `srvDataDir` made the whole `Cfg` read-only, which contradicts `memberBuilt`'s ownership of
+  the fields `start` writes (`SnapshotCount`, ...): `BuildServer.specStop`'s success case was
+  `False`, and the proofs over it vacuous. Now per field (`DataDir`, as `srvSnapRes`), with
+  `DedicatedWALDir` empty, so that the WAL is `<dd>/member/wal` as `srvFiles` says.
+- **F2.** With a stop request carrying nothing, `run` could not fill the escrow: a `HardStop`
+  right after `Start` stops a member that has not applied the bootstrap log, and the image needs
+  `bootLen ≤ i` (R2c review F4). Now the stop bag carries `srvBootApplied ρ` (an applied-index
+  lower bound, `appliedAtLeast`, at least the bootstrap log's length), which `HardStop` takes.
+  `restart3`'s `stop` gets it by waiting: `for m.s.AppliedIndex() < NBoot { time.Sleep(1ms) }`
+  (Go changed, the test passes; proved, with `memberStop` carrying the applied index's invariant
+  and the raft names, `restartCheck` the bootstrap log's length).
+- **F3.** Nothing named the sources of the shutdown's resources. `srvShutdownPre` now lists
+  `srvCleanupOwn` (the lessor's stop right, the auth store's closer; opaque until R2b-3) besides
+  the raft loop's claim, the data directory and the registry's authority, and says where each
+  comes from; `NewServer` keeps them for `Start` (`srvStopKeep`, opaque, which
+  `BuildServer.specStop`/`specRestart` give and the `Start` drafts take). The KV's and the backend's
+  closers come back from the apply thread through `sched.Stop`'s last job's post.
+
+Smaller:
+- **F4 (one spec per function), recorded, not yet done:** the drafts are families (`run.specStop`
+  beside `spec`, `Start_builtS_spec` beside `Start.spec`, `raftNode.stop.specStop` beside `spec`,
+  `BuildServer.specStop` beside `spec`). When R2b-2's proof is done they collapse: `Start.spec`
+  gives the right (callers that never stop drop it), `run`'s one spec is the stop-capable one,
+  `raftNode.stop.specStop` replaces `spec`. The draft keeps both so that nothing proved moves.
+- **F5:** `raftNode.stop.specStop` is true of `raft.go` once the server enters a batch at its WAL
+  `Save` (R2b-1). R2b-1 must change `isRaftNode`'s `done` (its predicate is fixed at `True` in a
+  persistent conjunct), so every spec over `isRaftNode` moves. The image's order is at the
+  backend's consistent index, equal to the handed log's length once the jobs ran and the backend
+  committed: R2b-3's. Both noted in the docstring.
+- **F6:** `run.specStop` no longer takes `id` (it is `γn.id`). Not taken: dropping `γ` from
+  `srvStopRight`, or a `memberBoot` law in place of `startMember`'s unfold (it would rebuild every
+  example for one line of glue).
+- **Scope:** `run.specStop` covers first starts (`isServerRun`'s `HEr`); a restarted member's
+  right is R2d's. The `errorc` path stays closed (its bag's `False`).

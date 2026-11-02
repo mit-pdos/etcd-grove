@@ -40,7 +40,7 @@ theorem srvDoneInv_take (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString
 
 theorem EtcdServer.HardStop.wp_proof : EtcdServer.HardStop.spec (GF := GF) (hG := hG) := by
   intro s γ ρ id dd
-  wp_start as ⟨Hr⟩
+  wp_start as ⟨Hr, #Hba⟩
   iunfold srvStopRight at Hr
   icases Hr with ⟨%stc, %dnc, %γst, %γd, %c, #Hstc, #Hbag, #Hdnc, #Hdn, Hc⟩
   ihave #Hdch := ownBroadcastChan_is_chan _ _ _ _ $$ Hdn
@@ -57,7 +57,7 @@ theorem EtcdServer.HardStop.wp_proof : EtcdServer.HardStop.spec (GF := GF) (hG :
     isplitr
     · iapply is_bag_is_chan $$ Hbag
     iapply bag_send_au γst stc _ () _ $$ [$Hlc1 $Hlc2] Hbag []
-    · itrivial
+    · iexact Hba
     inext
     wp_auto
     wp_apply_core chan.wp_receive dnc γd $$ Hdch

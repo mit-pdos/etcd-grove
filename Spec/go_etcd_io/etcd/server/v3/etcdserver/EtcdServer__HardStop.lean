@@ -6,7 +6,9 @@ transport stopped (`raftNode.stop`), `Cleanup` (the lessor, the KV store, the au
 backend and the compactor closed), `done` closed. Lean-first (no Rocq counterpart).
 
 **The triple:** from the right to stop the server (`srvStopRight`, which `Start` gives: `start`
-makes the channels `stop` and `done`), `HardStop` returns with member `id`'s data directory as its
+makes the channels `stop` and `done`) and evidence that it applied the cluster's bootstrap log
+(`srvBootApplied`, which the stop request carries: the image needs it, R2c review F4; R2b-2
+review F2), `HardStop` returns with member `id`'s data directory as its
 stop left it (`srvDiskImage`, R2c), at the request names `ρ` the right records, from which the
 member can be started again. It sends a stop request on `stop` (or finds `done` already closed),
 waits for `done`, and takes the image `run`'s shutdown escrowed there with the right's claim
@@ -40,7 +42,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 abbrev EtcdServer.HardStop.spec : Prop :=
   ∀ (s : Loc) (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvStopRight s γ ρ id dd }}
+      srvStopRight s γ ρ id dd ∗ srvBootApplied ρ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"HardStop")) (Val #()))
   {{ RET #(); srvDiskImage γ ρ id dd }}
 

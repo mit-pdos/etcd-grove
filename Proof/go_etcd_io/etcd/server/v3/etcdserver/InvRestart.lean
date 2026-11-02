@@ -119,16 +119,42 @@ theorem srvDiskImage_raft (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoStri
   iintro ⟨%S, %σ, %i, %A, %D, %m, %M, -, -, -, %Hρ, -⟩
   ipureintro; exact Hρ.1
 
-/-- **The server `s`'s data directory is `dd`** (persistent; R2b-2): its configuration (the
-read-only `Cfg` field `NewServer` sets) has `DataDir = dd`. `NewServer` gives it, and `Start`'s
-stop right names it (R2c review F2). -/
+/-- **The server `s`'s data directory is `dd`, its WAL in it** (persistent; R2b-2): the
+configuration's `DataDir` field is `dd` and its `DedicatedWALDir` field empty, so that the WAL is
+`<dd>/member/wal` (`ServerConfig.WALDir`), as `srvFiles` says. Per field (as the snapshot path's
+`srvSnapRes`): `start` writes other fields of `Cfg` (`SnapshotCount`, ...), whose whole struct is
+read-only only after it (R2b-2 review F1: a read-only points-to of the whole `Cfg` contradicted
+`memberBuilt`'s ownership of those fields). `NewServer` gives it, and `Start`'s stop right names
+`dd` (R2c review F2). -/
 def srvDataDir (s : Loc) (dd : GoString) : IProp GF :=
-  iprop(∃ cfg : go_etcd_io.etcd.server.v3.config.ServerConfig, srvCfgAddr s ↦□ cfg ∗
-    ⌜cfg.DataDir' = dd⌝)
+  iprop(srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗
+    srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ (go!"" : GoString))
 
 instance srvDataDir_persistent (s : Loc) (dd : GoString) :
     Persistent (srvDataDir (GF := GF) s dd) := by
   unfold srvDataDir; infer_instance
+
+/-- **The server at the request names `ρ` has applied the cluster's bootstrap log** (persistent;
+R2b-2 review F2): an applied-index lower bound (`appliedAtLeast`, what `AppliedIndex()` returns) at
+least the bootstrap log's length. What a stop request carries (`srvStopRight`'s stop bag): the image
+needs `bootLen ≤ i` (R2c review F4), and `run`, shut down by a request sent right after `Start`,
+could not give it otherwise. `restart3`'s `stop` gets it by waiting on `AppliedIndex()`. -/
+def srvBootApplied (ρ : ReqNames) : IProp GF :=
+  iprop(∃ v : w64, appliedAtLeast ρ.rd v ∗ ⌜ρ.rd.raft.raft.boot.length ≤ uint.nat v⌝)
+
+instance srvBootApplied_persistent (ρ : ReqNames) : Persistent (srvBootApplied (GF := GF) ρ) := by
+  unfold srvBootApplied; infer_instance
+
+/-- A reader's view of the server holds the applied index's invariant (`AppliedIndex()`'s
+premise). -/
+theorem isServerRead_applied (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    isServerRead (GF := GF) s E γr ⊢ srvAppliedInv s E γr := by
+  iintro #H
+  iunfold isServerRead at H
+  icases H with ⟨%v, H⟩
+  iunfold srvReadFieldsAt at H
+  icases H with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hai, -⟩
+  iexact Hai
 
 /-- The namespace of the stopped server's escrowed image (R2b-2). -/
 def srvStopN : Namespace := nroot.@"srvStop"
@@ -145,24 +171,42 @@ instance srvDoneInv_persistent (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : G
   unfold srvDoneInv; infer_instance
 
 /-- **The right to stop the started server `s`** (DRAFT, R2b-2; see the file header): `s.stop` (a
-channel anyone may send a stop request on: a bag whose predicate is `True`; `run` receives it), and
+channel a stop request is sent on, carrying evidence that the server applied the bootstrap log,
+`srvBootApplied`: R2b-2 review F2; `run` receives it), and
 `s.done`, whose close announces the image escrowed for the claim `c` (`srvDoneInv`), with the claim.
 `start` makes both channels, so `Start` gives the right (R2b-2: until then `NewServer`, in the
 draft). The data directory `dd` is the configuration's `DataDir` (R2c review F2). -/
 def srvStopRight (s : Loc) (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IProp GF :=
   iprop(∃ (stc dnc : Loc) (γst γd : ChanNames) (c : GName),
-    srvStopAddr s ↦□ stc ∗ isChanBag γst stc (V := Unit) (fun _ => iprop(True)) ∗
+    srvStopAddr s ↦□ stc ∗ isChanBag γst stc (V := Unit) (fun _ => srvBootApplied ρ) ∗
     srvDoneAddr s ↦□ dnc ∗ ownBroadcastChan dnc γd (srvDoneInv γ ρ id dd c) .Unknown ∗
     token c)
 
+/-- (DRAFT, R2b-2/R2b-3) **What `Cleanup` closes besides the apply thread's resources** (opaque
+until R2b-3): the lessor's stop right (`lessor.Stop` is `close(le.stopC)`: a second call panics,
+so it is exclusive; `isServerRun` holds only the persistent `lessorOk`) and the auth store's
+closer (its lock and token provider). The KV store's closer and the backend's (`srvKVCloserW`,
+`bOpen ½`, `pathOwn`, in `srvSnapRes`) come back from the apply thread, through `sched.Stop`'s last
+job's post (R2b-2 review F3). -/
+opaque srvCleanupOwn (s : Loc) : IProp GF
+
 /-- **What `run`'s shutdown needs besides `isServerRun`** (DRAFT, R2b-2; `run.specStop`): the claim
 on the raft loop's stop escrow (`rnStopClaim`, which `raftNode.stop`'s stop variant takes), the
-data directory (`srvDataDir`, which the image names), and the storage registry's authority (R2c
-review F3: the image hands it to the restart; `NewServer` takes it empty and must keep it for
-`run`). R2b-2's proof makes `start` (and `NewServer`) give them; R2b-3 may add the files' tokens. -/
+data directory (`srvDataDir`, which the image names), the storage registry's authority (R2c
+review F3: the image hands it to the restart; `bootOk` returns it to `NewServer`, which drops it
+today and must keep it), and what `Cleanup` closes (`srvCleanupOwn`). Its sources (R2b-2 review
+F3): `NewServer` keeps all but the raft loop's claim for `Start` (`srvStopKeep`), `newRaftNode`
+allocates the claim with the loop's `done`, and `start` hands them to `run`. -/
 def srvShutdownPre (s : Loc) (γn : RNNames) (dd : GoString) : IProp GF :=
   iprop(rnStopClaim γn ∗ srvDataDir s dd ∗
-    (letI : MemStorReg GF := ⟨γn.node.reg⟩; ∃ M : GMap Loc MemStorNamesRec, memStorRegAuth M))
+    (letI : MemStorReg GF := ⟨γn.node.reg⟩; ∃ M : GMap Loc MemStorNamesRec, memStorRegAuth M) ∗
+    srvCleanupOwn s)
+
+/-- (DRAFT, R2b-2) **What `NewServer` keeps for the stop** (opaque until R2b-2's proof): the raft
+loop's stop claim and the storage registry's authority (at the raft names `NewServer` builds),
+and what `Cleanup` closes (`srvCleanupOwn`): `srvShutdownPre`'s parts but the data directory,
+which `Start` hands to `run` (R2b-2 review F3: until then nothing named their source). -/
+opaque srvStopKeep (s : Loc) : IProp GF
 
 end defs
 
