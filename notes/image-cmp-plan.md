@@ -69,10 +69,12 @@ receipt `⧖ (logCh (kvModel γk A))` that `restoreRcptM` needs on. The draft ad
    `merged_image`; the mode tie `γr.kv.cmp = E.cmp` from `srvKVInvs`). Off, today's window gives the
    draft's observation (`mergedObsD_of_off`, at `x.crev = -1`).
 5. **The receiver, `snapRecv_imageMD`** (the glue at `specSnap`'s call): from `srvKVInvs E γr`,
-   `srvImageD γ i D` and the receiver's `srvRLogLb γr.raft A'` (`|A'| = i`), with `A <+: A'`,
-   `d.cm = E.cmp`, `x.crev = crevOf γr.kv A` and `CrevPermitLaw`: some `r` with `keyImageM d.cm
-   (kvModel γr.kv A') r D`, `d.cm = true → x.crev ≤ r.crev` (`crevOf_mono`), `restoreRcptM d
-   (kvModel γr.kv A')`, `crevPermAt E.γ r.finRev`, `crevPermAt E.γ r.crev`. Proved.
+   `srvImageD γ i D` and the receiver's `srvRLogLb γr.raft A'` (`|A'| = i`), with `E.γ.kb = some d`
+   and `CrevPermitLaw`: some `r` with `keyImageM d.cm (kvModel γr.kv A') r D ∧ r.crev = crevOf γr.kv
+   A'`, `restoreRcptM d (kvModel γr.kv A')`, `crevPermAt E.γ r.finRev`, `crevPermAt E.γ r.crev`.
+   Proved. `specSnap`'s `hcc` follows by `crev_hcc` (from `kvApplied`'s `x.crev = crevOf γr.kv A`
+   and `A <+: A'`); the equation is also what re-forms `kvApplied`'s clause at `A'` after the restore
+   (`x'.crev = r.crev`) and what a later `merged_imageD` from the restored member needs.
 6. **The permits are derived, not carried** (56's question). The certificate does not hold
    `crevPermAt`: a permit is `kvCmpPermit γk c = 0 < c ∗ kvRevLbZ γk (c + γk.cret)`, at the
    receiver's KV names (its `cret`, its revision ghost), which the network's certificate (existential
@@ -121,6 +123,24 @@ Collections whose baseline loses `merged_image_cmp`'s `sorry` once proved: `comp
   `store.Restore`'s proof does not use it (`obtain ⟨hrec, -, hcut, -⟩`). A sender cannot give it.
 - **F2.** The sender's observation in the mode on needs backend and mvcc work (above).
 - **F3.** `kvApplied`'s deferred `crevOf` clause becomes needed on both sides.
+
+## Review
+
+Round 1 (a fresh `spec-reviewer`, given the targets, the Go code and the callers):
+- Tier 1: `NoDelPutAt` in `keyImageM`-on (= F1 above, confirmed; the fix is 56's, a question); the
+  receiver's glue proved `r.crev = crevOf γr.kv A'` but returned only `hcc`, while the restore's
+  `x'.crev = r.crev` needs the equation to re-form `kvApplied`'s clause (and a restored member's
+  next `merged_imageD` its `hcrev`): fixed, the post returns the equation, `hcc` by `crev_hcc`.
+- Tier 2: `CrevPermitLaw` a premise (to prove at the switch; the reviewer finds it provable from
+  `cmpEntryOk` and `kvInv`'s `γk.rlog = γ.raft.log`); `d.cm = E.cmp` derivable from `srvKVInvs`'s
+  `kbCmpM` tie and `E.γ.kb = some d` (fixed: the glue takes `hkb`); `merged_imageD` over `isServer`
+  using only `srvKVInvs` (fixed).
+- Tier 3: `imageAtD` could read `keyImageM true` always (the network's certificate leaves the mode
+  free anyway; a question); fold the glue into `snapRecv_image`/`SnapImageFacts` at the switch (one
+  destructuring of the certificate; planned); `mergedObsD_of_off` at any `crev = -1` (fixed).
+- Confirmed: the Go facts (records, cut, `crev` the latest compaction, also with a second compaction
+  queued), all four sender/receiver mode combinations, the unconditional receipt, the mode out of
+  `srvNet`, the permits derived rather than carried.
 
 ## Questions
 

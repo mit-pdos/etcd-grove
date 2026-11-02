@@ -21,10 +21,11 @@ the unsuffixed statement it names, to replace it in place at the switch (`compac
   writer's receipt, and `kvApplied`'s deferred clause `x.crev = crevOf γk A` (M2 apply item 4).
   Off, today's window gives `mergedObsD` (`mergedObsD_of_off`).
 * **The receiver** (`snapRecv_imageMD`): from the certificate, for `applySnapshot.specSnap`: records
-  `r` with `keyImageM d.cm L r D`, the receipt `restoreRcptM d L`, the permits `crevPermAt E.γ
-  r.finRev`, `crevPermAt E.γ r.crev` (from the store's permit `crevPermIs E.γ (kvCmpPermit γr.kv)`
-  and the cluster's permit of the committed log's compaction revision, `CrevPermitLaw`, a law to
-  prove), and `hcc` (from the receiver's own `x.crev = crevOf γr.kv A`).
+  `r` with `keyImageM d.cm L r D` at the committed log's compaction revision (`r.crev = crevOf γr.kv
+  A'`: `specSnap`'s `hcc` by `crev_hcc`, and `kvApplied`'s clause after the restore), the receipt
+  `restoreRcptM d L`, the permits `crevPermAt E.γ r.finRev`, `crevPermAt E.γ r.crev` (from the store's
+  permit `crevPermIs E.γ (kvCmpPermit γr.kv)` and the cluster's permit of the committed log's
+  compaction revision, `CrevPermitLaw`, a law to prove).
 -/
 module
 
@@ -186,10 +187,11 @@ def mergedObsD (γr : ReadNames) (cmp : Bool) (ai : w64) (A : List EntryModel) (
 /-- **Off, today's observation is the draft's** (at revision `-1`): the window's mode-off proof
 stands. -/
 theorem mergedObsD_of_off (γr : ReadNames) (ai : w64) (A : List EntryModel) (log : mvcc.Log)
-    (D : backend.Data) (h : mergedObs γr false ai A log D) : mergedObsD γr false ai A log (-1) D := by
+    (crev : Int) (D : backend.Data) (hc : crev = -1) (h : mergedObs γr false ai A log D) :
+    mergedObsD γr false ai A log crev D := by
   obtain ⟨-, hk, hn, h3, h4, h5, h6⟩ := h
   exact ⟨⟨mvcc.CmpRecs.empty, (mvcc.keyImageM_off _ _ D).2 ⟨⟨hk rfl, (hn rfl).1, (hn rfl).2⟩, rfl⟩,
-    mvcc.CmpRecs.crev_empty⟩, h3, h4, h5, h6⟩
+    by rw [mvcc.CmpRecs.crev_empty, hc]⟩, h3, h4, h5, h6⟩
 
 end pure
 
@@ -275,21 +277,16 @@ SNAPSHOT-SORRY #7-cmp): the window's observation `mergedObsD` at the store's mod
 thread's compaction revision `x.crev`, the sole writer's receipt of the KV log (`idxCert`'s, which
 the window's restated post hands out: `mergedCreate_window`), and `kvApplied`'s deferred clause
 `x.crev = crevOf γr.kv A` (`hcrev`; M2 apply item 4) give the network's certificate. -/
-theorem merged_imageD (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai : w64) (A : List EntryModel)
+theorem merged_imageD (E : apply.AEnv GF) (γr : ReadNames) (ai : w64) (A : List EntryModel)
     (x : apply.ApplyKV) (D : backend.Data) (hlen : uint.Z ai = A.length)
     (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]) (hcrev : x.crev = crevOf γr.kv A) :
     ⌜mergedObsD γr E.cmp ai A x.log x.crev D⌝ ∗ ⧖ (mvcc.logCh x.log) ∗
-      isServer s γ ci TM E ρ γr ∗ kvApplied γr.raft γr.kv A x ⊢
+      srvKVInvs E γr ∗ kvApplied γr.raft γr.kv A x ⊢
       |={⊤}=> kvApplied γr.raft γr.kv A x ∗ □ srvImageD (GF := GF) γr.raft.raft ai D := by
   iintro ⟨%hobs, #Hrc, #Hsrv, Hka⟩
   obtain ⟨⟨r, hkI, hr⟩, hci, hterm, hrest, hwf⟩ := hobs
-  iunfold isServer at Hsrv
-  icases Hsrv with ⟨-, -, -, Hat, -, -⟩
-  iunfold srvAtomics at Hat
-  icases Hat with ⟨-, -, Hki⟩
-  iunfold srvKVInvs at Hki
-  icases Hki with ⟨#Hki, -, #Hrl, -, %Hcm, -⟩
+  iunfold srvKVInvs at Hsrv
+  icases Hsrv with ⟨#Hki, -, #Hrl, -, %Hcm, -⟩
   ihave %hraft := srvRaftLogInv_fresh γr.raft $$ Hrl
   imod (kvInv_ch0_off γr.raft γr.kv) $$ Hki with %hch
   iunfold kvApplied at Hka
@@ -370,27 +367,38 @@ theorem kvCmpPermit_le (γk : KVNames) (c c' : Int) (h0 : 0 < c) (h : c ≤ c') 
   iapply kvRevLbZ_mono γk (c + γk.cret) (c' + γk.cret) (by omega)
   iexact H
 
+/-- **`specSnap`'s `hcc`** from the records' revision: the apply thread's compaction revision is its
+applied log's (`kvApplied`'s `x.crev = crevOf γk A`), below the image's log `A'`. -/
+theorem crev_hcc (γk : KVNames) (A A' : List EntryModel) (x : apply.ApplyKV) (r : mvcc.CmpRecs)
+    (hcrev : x.crev = crevOf γk A) (hAA : A <+: A') (hr : r.crev = crevOf γk A') :
+    x.crev ≤ r.crev := by
+  rw [hcrev, hr]; exact crevOf_mono γk A A' hAA
+
 /-- **The glue at `specSnap`'s call** (in compaction mode `run_job_snap_cmp`'s, either mode): from
 the network's certificate of the received file `D` at the snapshot's index `i` and the image's
 committed log `A'` (`snapRecv_image`'s, of length `i`), the receiver's KV invariants (its store's
-permit `crevPermIs E.γ (kvCmpPermit γr.kv)`, the mode tie `γr.kv.cmp = E.cmp`) and the new backend's
-mode `d.cm = E.cmp`: the records `r` with `keyImageM d.cm (kvModel γr.kv A') r D`, the restored
-log's receipt, the two permits, and `hcc` from the receiver's `x.crev = crevOf γr.kv A` at an
-applied `A` below `A'`. -/
+permit `crevPermIs E.γ (kvCmpPermit γr.kv)`, the mode ties) and the new backend `d` of the store
+(`E.γ.kb = some d`): the records `r` with `keyImageM d.cm (kvModel γr.kv A') r D`, at the
+committed log's compaction revision (`specSnap`'s `hcc` by `crev_hcc`; `kvApplied`'s clause after
+the restore, where the apply thread's revision becomes `r.crev`), the restored log's receipt, and
+the two permits. -/
 theorem snapRecv_imageMD (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (d : mvcc.KBReal)
-    (i : w64) (D : backend.Data) (A A' : List EntryModel) (x : apply.ApplyKV)
+    (i : w64) (D : backend.Data) (A' : List EntryModel)
     (hraft : γr.raft = ⟨γ, [], W64 0⟩) (hc0 : γr.kv.c0 = W64 0)
     (hch : γr.kv.ch0 = apply.alarmChain false false false) (hlog0 : γr.kv.log0 = [[], []])
-    (hlA : uint.Z i = A'.length) (hAA : A <+: A') (hdcm : d.cm = E.cmp)
-    (hcrev : x.crev = crevOf γr.kv A) (hperm : CrevPermitLaw (GF := GF) γr.raft γr.kv) :
+    (hlA : uint.Z i = A'.length) (hkb : E.γ.kb = some d)
+    (hperm : CrevPermitLaw (GF := GF) γr.raft γr.kv) :
     ⊢ srvKVInvs E γr -∗ srvImageD γ i D -∗ srvRLogLb γr.raft A' ={⊤}=∗
       ∃ r : mvcc.CmpRecs, ⌜mvcc.keyImageM d.cm (kvModel γr.kv A') r D ∧
-          (d.cm = true → x.crev ≤ r.crev)⌝ ∗
+          r.crev = crevOf γr.kv A'⌝ ∗
         mvcc.restoreRcptM d (kvModel γr.kv A') ∗ mvcc.crevPermAt E.γ r.finRev ∗
         mvcc.crevPermAt E.γ r.crev := by
   iintro #Hinvs #Himg #HA'
   iunfold srvKVInvs at Hinvs
   icases Hinvs with ⟨#HkI, -, #HrI, -, %Hcm, -, #Hcp⟩
+  have hdcm : d.cm = γr.kv.cmp := by
+    have h2 := Hcm.2; rw [hkb] at h2; simp only [mvcc.kbCmpM] at h2
+    rw [Hcm.1]; cases hd : d.cm <;> cases he : E.cmp <;> simp_all
   -- the certificate at the sender's mode, its committed log `A'` (one length, one log)
   ihave ⟨%b, #Hdb⟩ := (dbImageD_of_srvImageD (γ := γ) (γk := γr.kv) (i := i) (D := D) hc0 hch hlog0)
     $$ Himg
@@ -415,9 +423,7 @@ theorem snapRecv_imageMD (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (d
     imageAtD_kv_congr (γk := { γr.kv with cmp := b }) rfl rfl rfl
       (fun _ h => by rw [hcr]; exact Hoff h) hB.2
   obtain ⟨⟨r, hkI, hr⟩, -, -, -, -⟩ := himg
-  rw [Hcm.1, ← hdcm] at hkI
-  have hcc : d.cm = true → x.crev ≤ r.crev := fun _ => by
-    rw [hcrev, hr]; exact crevOf_mono γr.kv A A' hAA
+  rw [← hdcm] at hkI
   -- the receipt
   ihave #Hrcpt : mvcc.restoreRcptM (GF := GF) d (kvModel γr.kv A') $$ []
   · unfold mvcc.restoreRcptM
@@ -433,9 +439,7 @@ theorem snapRecv_imageMD (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (d
     iexists mvcc.CmpRecs.empty
     iframe Hrcpt
     isplitr
-    · ipureintro; rw [hdm] at hcc; exact ⟨(mvcc.keyImageM_off _ _ D).2 ⟨by
-        obtain ⟨h, -⟩ := (mvcc.keyImageM_off _ _ D).1 (by rw [← hdm] at hkI ⊢; exact hkI); exact h,
-        rfl⟩, hcc⟩
+    · ipureintro; exact ⟨hkI, hr⟩
     rw [mvcc.CmpRecs.finRev_empty, mvcc.CmpRecs.crev_empty]
     isplitr <;> iapply mvcc.crevPermAt_none
   | true =>
@@ -450,14 +454,14 @@ theorem snapRecv_imageMD (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (d
       iexists mvcc.CmpRecs.empty
       iframe Hrcpt
       isplitr
-      · ipureintro; rw [hdm] at hcc; exact ⟨hkI, hcc⟩
+      · ipureintro; exact ⟨hkI, hr⟩
       rw [mvcc.CmpRecs.finRev_empty, mvcc.CmpRecs.crev_empty]
       isplitr <;> iapply mvcc.crevPermAt_none
     · imodintro
       iexists r
       iframe Hrcpt
       isplitr
-      · ipureintro; rw [hdm] at hcc; exact ⟨hkI, hcc⟩
+      · ipureintro; exact ⟨hkI, hr⟩
       ihave #Hpc : mvcc.crevPermAt (GF := GF) E.γ r.crev $$ []
       · rw [hr]
         iapply mvcc.crevPermAt_of E.γ (kvCmpPermit γr.kv) (crevOf γr.kv A')
