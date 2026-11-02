@@ -678,30 +678,181 @@ theorem newRaft.wp_proof
     (wp_MakeProgressTracker : tracker.MakeProgressTracker.spec (GF := GF) (hG := hG))
     (wp_newReadOnly : newReadOnly.spec (GF := GF) (hG := hG))
     (wp_traceInitState : traceInitState.spec (GF := GF) (hG := hG))
-    (wp_raftLog_lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG))
     (wp_confchange_Restore : confchange.Restore.spec (GF := GF) (hG := hG))
-    (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG))
+    (wp_traceConfChangeEvent : traceConfChangeEvent.spec (GF := GF) (hG := hG))
+    (wp_ProgressTracker_ConfState : tracker.ProgressTracker.ConfState.spec (GF := GF) (hG := hG))
     (wp_assertConfStatesEquivalent : assertConfStatesEquivalent.spec (GF := GF) (hG := hG))
     (wp_IsEmptyHardState : IsEmptyHardState.spec (GF := GF) (hG := hG))
-    (wp_raft_loadState : raft.loadState.spec (GF := GF) (hG := hG))
-    (wp_raftLog_appliedTo : raftLog.appliedTo.spec (GF := GF) (hG := hG))
+    (wp_HardState_GetCommit : raftpb.HardState.GetCommit.spec (GF := GF) (hG := hG))
+    (wp_HardState_GetTerm : raftpb.HardState.GetTerm.spec (GF := GF) (hG := hG))
+    (wp_HardState_GetVote : raftpb.HardState.GetVote.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG))
     (wp_ProgressTracker_VoterNodes : tracker.ProgressTracker.VoterNodes.spec (GF := GF) (hG := hG))
     (wp_fmt_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
-  -- PORT(durability stage II, the window; 2026-11-02, stage II (p): blocked, not attempted in full):
-  -- from `InitialState` to `appliedTo` no `ownRaftLog` exists when `A > b` or the stored commit is
-  -- above `b`: the client may compact up to `max b A` from the attach on (`raftBnd`'s attach
-  -- reading), so the view needs its floor there (`storCaught`), while `ownRaftLog`'s `FlOk` wants the
-  -- floor at most `applying`, which is `b` until `appliedTo`; and its `DtOk` wants the attach record's
-  -- certified terms at most `committed`, `b` until `loadState`. The decision (coordinator, 2026-11-02):
-  -- window variants of `lastEntryID`, `switchToConfig`, `loadState`, `appliedTo` over the raw log
-  -- (`newLogWithSize`'s `l ↦ lv0`, closed by its wand at the end), or their bodies inlined. They
-  -- cascade: `lastEntryID` reads through `raftLog.lastIndex`/`raftLog.term` (both over `ownRaftLog`,
-  -- 90 + 273 lines), `switchToConfig` (589 lines) returns through a wand that must seal
-  -- `ownRaftPhys` (so a struct variant over the raw log too). See
-  -- `notes/raft-durability-proof-plan.md`, "Stage II (p)".
+  intro c cv lok si sn σ hs csm R R' cs' Hvalid Hlok Hsto HmaxInfl Hdpf Hros Hdccv Hmcs Hidx Hpend
+    Hfr1 Hfr2 Hfl0 Hsg0 Hdt Hwrap Hrec Hhs Happ Hres Hlen Hcsok
+  obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
+  -- the restored commit `C`, the applied index `A'` the node starts at, the base `b`
+  have HbZ := uint_nat_eq σ.prev.index'
+  have HCle : uint.Z σ.prev.index' ≤ uint.Z (committedAfter σ.prev hs) ∧
+      uint.Z (committedAfter σ.prev hs) ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) := by
+    unfold committedAfter
+    split
+    · constructor <;> omega
+    · rcases Hhs with h | h
+      · rename_i hn; exact absurd h hn
+      · exact h
+  wp_start as ⟨Hc, #Hlg0, HR, #HFI, #HLI, #HInit⟩
+  wp_auto
+  wp_apply wp_Config_validate _ _ ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩
+    $$ [$Hc] as %cv' ⟨Hc, %Hpres⟩
+  obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg, HpMC, HpAW, HpRO, HpDCC,
+    HpSDR⟩ := Hpres
+  rw [HpSt, Hsto, HpLg, Hlok]
+  have Hmcs' : 0 < uint.Z cv'.MaxCommittedSizePerReady' := by
+    rw [HpMC]
+    split
+    · rename_i Hz
+      rcases Hmcs with Hc | Hc
+      · exact absurd Hz Hc
+      · have : uint.Z cv.MaxSizePerMsg' ≠ 0 := fun H0 => Hc (by word)
+        word
+    · rename_i Hz
+      have : uint.Z cv.MaxCommittedSizePerReady' ≠ 0 := fun H0 => Hz (by word)
+      word
+  wp_apply wp_newLogWithSize _ _ _ sn lok R (uint.nat σ.prev.index')
+      (uint.nat σ.prev.index' + σ.ents.length) rfl Hmcs' (by omega) (by push_cast; omega)
+    $$ [$HR $Hlg0]
+    as %l %ip ⟨HR, %Hip0, %lv0, Hl, %Hlv0, HLback⟩
+  · isplitr
+    · push_cast; iapply HFI
+    · push_cast; iapply HLI
+  obtain ⟨Hlst, Hlcm, Hlap, Hlapg, Hlsn, Hlen0, Hloff, Hlip, Hlsip, Hlasz, Hlpz, Hlamx⟩ := Hlv0
+  rw [HpSt, Hsto]
+  wp_apply HInit $$ [$HR] as %hp %cs %al ⟨#Hhsp, #Hcs, Hup⟩
+  imod Hup with ⟨#HisSto, HSto, HR⟩
+  -- the catch-up with the attach record (`storCaught`): the floor at `max b A`, the record's terms
+  -- certified
+  obtain ⟨Ha0, Hc0, Hct, Hcomp⟩ := Hrec
+  let M : GMap Nat w64 := ctMap (sn.ct.filter (fun p => decide (p.1 ≤ sn.c0)))
+  have HM : ∀ i t, i ≤ sn.c0 ∧ (i, t) ∈ sn.ct → M !! i = some t := by
+    intro i t ⟨hi, hm⟩
+    have h1 := (Hct i t hm (by omega)).1
+    obtain ⟨t0, -, hu⟩ := Hcomp i h1 (by omega)
+    refine ctMap_lookup (List.mem_filter.2 ⟨hm, by simp [hi]⟩) (fun t' ht' => ?_)
+    rw [hu t' (List.mem_filter.1 ht').1, hu t hm]
+  have HMk : ∀ k t, M !! k = some t → k ≤ uint.nat (committedAfter σ.prev hs) ∧
+      (uint.nat σ.prev.index' ≤ k → termAt σ.prev σ.ents (W64 (k : Int)) = some t) := by
+    intro k t h
+    obtain ⟨hm, hk⟩ := List.mem_filter.1 (ctMap_mem h)
+    simp only [decide_eq_true_eq] at hk
+    rw [Hc0] at hk
+    exact ⟨hk, (Hct k t hm (by omega)).2⟩
+  have HA0 : (sn.a0 : Int) < 2 ^ 64 := by
+    rw [Ha0]; have := uint_nat_eq cv.Applied'; have := word.unsigned_range cv.Applied'
+    have := word.unsigned_range σ.prev.index'; omega
+  imod ownStorage_catchUp sn (interface.ok si) σ M
+    (by rw [Ha0]; have := uint_nat_eq σ.fl; omega) HA0 Hdt HM $$ HSto with HSto
+  let σ1 : StorState := { σ with fl := W64 (sn.a0 : Int), dt := M }
+  have Hfl1 : uint.nat σ1.fl = sn.a0 := by
+    show uint.nat (W64 (sn.a0 : Int)) = sn.a0
+    have := uint_Z_W64 (sn.a0 : Int) (by omega) HA0
+    have := uint_nat_eq (W64 (sn.a0 : Int)); omega
+  -- the struct
+  wp_apply wp_MakeProgressTracker as %tv0 %v0 ⟨%Htv0, Hv0, Hvotes, Hprs0⟩
+  obtain ⟨Htv0mi, Htv0mb, Htv0arr, Htv0l, Htv0ln, Htv0al⟩ := Htv0
+  wp_apply wp_newReadOnly _ (HpRO.trans Hros) as %ro Hro
+  imod raftOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
+  wp_apply wp_traceInitState
+  have HA0C : sn.a0 ≤ uint.nat (committedAfter σ.prev hs) := by
+    rw [Ha0]
+    have := uint_nat_eq (committedAfter σ.prev hs); have := uint_nat_eq cv.Applied'
+    rcases Happ with h | h
+    · rw [h]; have : uint.nat (W64 0) = 0 := rfl; omega
+    · omega
+  have HfE : uint.Z σ1.fl ≤ uint.Z σ1.prev.index' + (σ1.ents.length : Int) := by
+    have := uint_nat_eq σ1.fl; have := uint_nat_eq (committedAfter σ.prev hs); show _ ≤ uint.Z σ.prev.index' + (σ.ents.length : Int); omega
+  iunfold raftOwn at «$r0»
+  iNamed «$r0»
+  wp_auto
+  -- `lastID := r.raftLog.lastEntryID()`
+  wp_apply wp_lastEntryID_w l lv0 si sn σ1 Hlst Hlsn Hlen0 Hpend
+      (by rw [Hloff, Hip0]; push_cast; show _ = uint.Z σ.prev.index' + (σ.ents.length : Int) + 1; omega)
+      HfE (by show uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 < 2 ^ 64; omega)
+    $$ [$Hl $HisSto $HSto] as %lastID ⟨Hl, HSto⟩
+  -- `confchange.Restore` on the empty tracker: `Restore`'s configuration `cs'.cfg`
+  have Hmi : 0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62 := by
+    rw [Htv0mi, HpMI]; omega
+  ipersist Hprs0
+  ihave Hcsw := csPts_weaken $$ Hcs
+  try wp_auto
+  wp_apply wp_Restore_ok wp_confchange_Restore ⟨tv0, lastID.index'⟩ cs csm DFrac.discard v0 cs'
+      Hcsok Hres Hlen Hmi Htv0arr Htv0l Htv0ln Htv0al $$ [$Hcsw $Hv0 $Hprs0]
+    as %cfgv %prsm Hres'
+  imod Hres' with ⟨Hcsw, %prs, %pvs, Hcfg⟩
+  try wp_auto
+  -- `assertConfStatesEquivalent(r.logger, cs, r.switchToConfig(cfg, trk))`
+  ihave #Hlgf : «$r0_ptr».[raft, go!"logger"] ↦□ interface.ok lok $$ [H_logger]
+  · rw [← Hlok, ← HpLg]; iexact H_logger
+  ihave H_state : «$r0_ptr».[raft, go!"state"] ↦ StateFollower $$ [H_state]
+  · iExactEq H_state; rfl
+  wp_apply wp_switchToConfig_w wp_traceConfChangeEvent wp_ProgressTracker_ConfState cs'.cfg
+      «$r0_ptr» cv'.ID' lok false tv0 ∅ cfgv prsm prs pvs Hmi
+    $$ [$H_trk $H_id $Hlgf $Hlg0 $H_isLearner $H_state $Hvotes $Hcfg]
+    as %cs2 %xs2 %os2 %ls2 %lns2 %bl ⟨H_trk, Htrk, H_isLearner, H_state, Hcs2, %Hcs2p⟩
+  obtain ⟨Hperm, Hal2⟩ := confStateOk_perm csm cs' Hcsok Hres xs2 os2 ls2 lns2 Hcs2p
+  ihave Hcs2v := csPts_weaken $$ Hcs2
+  wp_apply wp_assertConfStatesEquivalent _ cs cs2 csm
+      (ConfStateM.mk xs2 ls2 os2 lns2 cs'.cfg.autoLeave) DFrac.discard (DFrac.own 1) Hperm
+      (by obtain ⟨-, -, -, -⟩ := Hperm
+          refine ⟨?_, ?_, ?_, ?_⟩ <;> simp only [ConfStateM.lists] <;> omega) Hal2
+    $$ [$Hcsw $Hcs2v] as ⟨-, -⟩
+  have HbW : (W64 (uint.nat σ.prev.index' : Int)) = σ.prev.index' := by
+    apply uint_Z_inj.1; rw [uint_Z_W64 _ (by omega) (by have := word.unsigned_range σ.prev.index'; omega)]
+  -- `if !IsEmptyHardState(hs) { r.loadState(hs) }`: both arms at the restored commit
+  wp_join iprop(«$r0_ptr».[raft, go!"Term"] ↦ hs.Term' ∗ «$r0_ptr».[raft, go!"Vote"] ↦ hs.Vote' ∗
+      «$r0_ptr».[raft, go!"raftLog"] ↦ l ∗
+      l ↦ { lv0 with committed' := committedAfter σ.prev hs } ∗
+      ownStorage sn (interface.ok si) σ1 ∗ hs_ptr ↦ hp ∗ r_ptr ↦ «$r0_ptr») at next
+    with [H_Term H_Vote H_raftLog Hl HSto hs r] as ⟨H_Term, H_Vote, H_raftLog, Hl, HSto, hs, r⟩
+  · wp_apply wp_IsEmptyHardState hp hs $$ []
+    · simp only [named]; iexact Hhsp
+    by_cases Hemp : HsEmpty hs
+    · rw [decide_eq_true (show hs.Term' = W64 0 ∧ hs.Vote' = W64 0 ∧ hs.Commit' = W64 0 from Hemp)]
+      wp_auto
+      have Hca : committedAfter σ.prev hs = σ.prev.index' := by
+        unfold committedAfter; rw [if_pos Hemp]
+      obtain ⟨HT, HV, HC⟩ := Hemp
+      isplitr
+      · ipureintro; rfl
+      iframe HSto hs r H_raftLog
+      isplitl [H_Term]
+      · iExactEq H_Term; rw [HT]; rfl
+      isplitl [H_Vote]
+      · iExactEq H_Vote; rw [HV]; rfl
+      iExactEq Hl
+      rw [Hca, ← HbW, ← Hlcm]
+    · rw [decide_eq_false (show ¬ (hs.Term' = W64 0 ∧ hs.Vote' = W64 0 ∧ hs.Commit' = W64 0) from Hemp)]
+      wp_auto
+      iunfold hsOpt at Hhsp
+      icases Hhsp with (⟨%Hn, %Hz⟩ | #Hhro)
+      · exfalso; apply Hemp; rw [Hz]; exact ⟨rfl, rfl, rfl⟩
+      have Hca : committedAfter σ.prev hs = hs.Commit' := by
+        unfold committedAfter; rw [if_neg Hemp]
+      have Hcr := Hhs.resolve_left Hemp
+      wp_apply wp_loadState_w wp_HardState_GetCommit wp_HardState_GetTerm wp_HardState_GetVote
+          «$r0_ptr» l lv0 _ _ si sn σ1 hp hs Hlst Hlsn Hlen0 Hpend
+          (by rw [Hlcm, HbW]; exact ⟨Hcr.1, Hcr.2⟩)
+        $$ [$H_raftLog $H_Term $H_Vote $Hl $HisSto $HSto $Hhro]
+        as ⟨H_raftLog, H_Term, H_Vote, Hl, HSto⟩
+      try wp_auto
+      isplitr
+      · ipureintro; rfl
+      iframe HSto hs r H_raftLog H_Term H_Vote
+      iExactEq Hl
+      rw [Hca]
   sorry
 
 end proof
