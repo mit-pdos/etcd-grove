@@ -48,12 +48,127 @@ theorem eraseIdx_map {α β : Type} (f : α → β) :
   | _ :: _, 0 => rfl
   | _ :: l, k + 1 => by simp [eraseIdx_map f l k]
 
+section pure
+variable {α : Type}
+
+/-- The client of a chain's operation. -/
+theorem clientOf_opAt {h : List (Op α)} {cs : List (List Nat)} (hok : ChainsOk h cs) {c k : Nat}
+    (hc : c < cs.length) (hk : k < (chain cs c).length) : clientOf cs (opAt cs c k) = c := by
+  have hmem : opAt cs c k ∈ chain cs c := by
+    rw [opAt_eq hk]; exact List.getElem_mem hk
+  have hcs : chain cs c = cs[c] := by
+    unfold chain; rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hc]; rfl
+  unfold clientOf
+  rw [List.findIdx_eq hc]
+  refine ⟨by simpa [← hcs] using hmem, fun j hj => ?_⟩
+  have hj' : chain cs j = cs[j] := by
+    unfold chain; rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]; rfl
+  simp only [decide_eq_false_iff_not]
+  intro hm
+  rw [← hj'] at hm
+  have := hok.2.2 _ _ _ hm hmem
+  omega
+
+theorem keyGt_trans {h : List (Op α)} {cs : List (List Nat)} {x y z : Nat}
+    (h1 : KeyGt h cs x y) (h2 : KeyGt h cs y z) : KeyGt h cs x z := by
+  unfold KeyGt at *; omega
+
+/-- Inserting `x` at `i` in a list sorted by a transitive relation, after the members it is
+below and before the first it is above, keeps it sorted. -/
+theorem pairwise_insert {R : Nat → Nat → Prop} (htr : ∀ a b c, R a b → R b c → R a c)
+    {L : List Nat} {x i : Nat} (hL : L.Pairwise R) (hi : i ≤ L.length)
+    (hbefore : ∀ j (hj : j < i), R (L[j]'(by omega)) x)
+    (hafter : ∀ (hi' : i < L.length), R x L[i]) :
+    (L.take i ++ x :: L.drop i).Pairwise R := by
+  have hsplit := hL
+  rw [← List.take_append_drop i L, List.pairwise_append] at hsplit
+  obtain ⟨hT, hD, hTD⟩ := hsplit
+  rw [List.pairwise_append, List.pairwise_cons]
+  refine ⟨hT, ⟨fun y hy => ?_, hD⟩, fun a ha b hb => ?_⟩
+  · obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hy
+    rw [List.getElem_drop]
+    have hi' : i < L.length := by simp at hj; omega
+    rcases Nat.eq_zero_or_pos j with h0 | hpos
+    · subst h0; simpa using hafter hi'
+    · refine htr _ _ _ (hafter hi') ?_
+      have := List.pairwise_iff_getElem.mp hL i (i + j) hi' (by simp at hj; omega) (by omega)
+      exact this
+  · obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem ha
+    rcases List.mem_cons.mp hb with rfl | hb
+    · simp only [List.length_take] at hj
+      rw [List.getElem_take]
+      exact hbefore j (by omega)
+    · exact hTD _ (List.getElem_mem _) _ hb
+
+theorem mem_insert_iff {L : List Nat} {x i y : Nat} :
+    y ∈ L.take i ++ x :: L.drop i ↔ y = x ∨ y ∈ L := by
+  constructor
+  · intro hy
+    rcases List.mem_append.mp hy with h1 | h1
+    · exact Or.inr (List.mem_of_mem_take h1)
+    · rcases List.mem_cons.mp h1 with h2 | h2
+      · exact Or.inl h2
+      · exact Or.inr (List.mem_of_mem_drop h2)
+  · rintro (rfl | hy)
+    · simp
+    · rw [← List.take_append_drop i L] at hy
+      rcases List.mem_append.mp hy with h1 | h1
+      · exact List.mem_append_left _ h1
+      · exact List.mem_append_right _ (List.mem_cons_of_mem _ h1)
+
+/-- `s = append(s, 0); copy(s[i+1:], s[i:]); s[i] = x` inserts `x` at `i`. -/
+theorem insert_by_copy {A : Type} (L : List A) (z x : A) (i : Nat) (hi : i < L.length) :
+    ((L ++ [z]).take (i + 1) ++
+      ((subslice i (L.length + 1) (L ++ [z])).take (L.length + 1 - (i + 1)) ++
+        (subslice (i + 1) (L.length + 1) (L ++ [z])).drop (L.length + 1 - i)) ++
+      (L ++ [z]).drop (L.length + 1)).set i x = L.take i ++ x :: L.drop i := by
+  have h1 : (L ++ [z]).take (i + 1) = L.take (i + 1) := List.take_append_of_le_length (by omega)
+  have h2 : (subslice i (L.length + 1) (L ++ [z])).take (L.length + 1 - (i + 1)) = L.drop i := by
+    have e : subslice i (L.length + 1) (L ++ [z]) = L.drop i ++ [z] := by
+      simp only [subslice]
+      rw [List.take_of_length_le (by simp)]
+      simp [List.drop_append, show i - L.length = 0 by omega]
+    rw [e, List.take_append_of_le_length (by simp)]
+    exact List.take_of_length_le (by simp)
+  have h3 : (subslice (i + 1) (L.length + 1) (L ++ [z])).drop (L.length + 1 - i) = [] := by
+    simp only [subslice]
+    apply List.drop_of_length_le
+    simp; omega
+  have h4 : (L ++ [z]).drop (L.length + 1) = [] := by
+    apply List.drop_of_length_le; simp
+  rw [h1, h2, h3, h4, List.append_nil, List.append_nil, List.take_succ_eq_append_getElem hi,
+    List.append_assoc, List.set_append_right _ _ (by simp; omega)]
+  simp [Nat.min_eq_left (Nat.le_of_lt hi)]
+
+end pure
+
+/-- On operations unrelated in real time, `Check`'s answer is `GeneralLikely`'s. -/
+theorem linOrder_unrelated [GooseExts] {a b : Operation} (h1 : ¬ sint.Z a.Return' < sint.Z b.Call')
+    (h2 : ¬ sint.Z b.Return' < sint.Z a.Call') : linOrder a b = glOrder a b := by
+  unfold linOrder glOrder
+  simp only [h1, h2, ↓reduceIte]
+
 section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
+
+/-- A slice's element, read and put back unchanged. -/
+theorem ownSlice_elem_acc' {V : Type} [TypedPointsto (GF := GF) V] [ZeroVal V] (i : Int) (v : V)
+    (s : GoSlice) (dq : DFrac) (vs : List V) (hpos : 0 ≤ i) (hlookup : vs[i.toNat]? = some v) :
+    (s ↦*{dq} vs : IProp GF) ⊢
+      typedPointsto (sliceIndexRef V i s) v dq ∗
+      (typedPointsto (sliceIndexRef V i s) v dq -∗ s ↦*{dq} vs) := by
+  iintro Hs
+  icases ownSlice_elem_acc i v s dq vs hpos hlookup $$ Hs with ⟨Hv, Hs⟩
+  iframe Hv
+  iintro Hv
+  ihave Hs := Hs $$ %v Hv
+  obtain ⟨hlt, heq⟩ := List.getElem?_eq_some_iff.mp hlookup
+  rw [← heq, List.set_getElem_self]
+  iexact Hs
 
 /-- What client `c`'s struct says purely: its id, its head, its operations slice's length. -/
 def clientFacts (cs : List (List Nat)) (st : ChSt) (c : Nat) (cv : client) : Prop :=
