@@ -51,6 +51,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [backend_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
+/-- **The image's records' revision is at least `-1`**, and off there is no record. -/
+theorem mvcc.keyImageM_crev (cm : Bool) (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Data)
+    (h : mvcc.keyImageM cm L r D) : -1 ≤ r.crev ∧ (cm = false → r = mvcc.CmpRecs.empty) := by
+  cases cm with
+  | false =>
+    obtain ⟨-, hr⟩ := (mvcc.keyImageM_off L r D).1 h
+    subst hr
+    exact ⟨by rw [mvcc.CmpRecs.crev_empty]; exact Int.le_refl _, fun _ => rfl⟩
+  | true =>
+    unfold mvcc.keyImageM at h
+    simp only [↓reduceIte] at h
+    obtain ⟨-, -, -, -, -, hpos, -⟩ := h
+    refine ⟨?_, fun h => absurd h (by decide)⟩
+    rcases mvcc.recsPos_crev r hpos with h | h <;> omega
+
 /-- A record's bytes are a value the store writes at a compaction key. -/
 theorem mvcc.recBytes_metaRevVal {x : Option w64} {v : GoString} (hx : ∀ y, x = some y → 1 ≤ sint.Z y)
     (h : mvcc.recBytes x = some v) : mvcc.metaRevVal v := by

@@ -21,9 +21,10 @@ approved spec (candidate 1 with amendment 1's permits) is `store.Restore.spec` a
 and `watchableStore.Restore` in either mode: the specs switched"); the server still restores with
 the mode off (`watchableStore.Restore.specOff_of_spec`). Stage B1 done (2026-11-02): the write
 budget is one stock per backend (`srvWTStockInv`; `notes/decisions.md`, "The write budget: one stock
-per backend"). Next: B2, the snapshot path by the mode (`srvKVCloserM`, `restorePre_of_applyM`, the
-walk; `applySnapshot.specSnap` changes: the user's to approve), then B3, the one-count merge of
-`NewServer`'s compaction stock; stage C (`run_job_snap_cmp`) stays a `sorry`.
+per backend"). Stage B2 done (2026-11-02): the snapshot walk is by the mode and `applySnapshot.specSnap`
+is switched (no `d.cm = false`; the image's records `r`, `keyImageM`, the receipt and the permits as
+premises; `notes/decisions.md`, "Restore in compaction mode at the server"); `applyAll` still calls it
+with the mode off. Next: B3, the one-count merge of `NewServer`'s compaction stock; stage C (`run_job_snap_cmp`) stays a `sorry`.
 
 Earlier status (2026-10-30): **item 17 switched with the lease** ("Item 17 switched: the jobs' share
 leased", the last section: 17, item 4's step-2 text, 20, 23, 24 real; item 31 stopped, its `none`

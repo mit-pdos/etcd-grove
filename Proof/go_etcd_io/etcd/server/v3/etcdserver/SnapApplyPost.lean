@@ -39,7 +39,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 resources and closer and the rest buckets at the snapshot's backend. The names `γ'`, `TM'`, `E'`,
 `st'` are `snapγ γ π0 γB`, `metaTM γB d.P`, `snapE …`, `snapSt γ' i` (`SnapApplyNames.lean`); steps
 2-6 are the lemmas `snap_isServer`, `snap_backendOptsOk`, `snap_applyKV`, `snap_srvRest`,
-`snap_kvCloser`; step 7 (the rest of the post) is framed here. -/
+`snap_kvCloserW` (with the compaction right step 4 takes, so first); step 7 (the rest of the post) is framed here. -/
 theorem srvSnapApplied_of_walk
     (hGL : lease.lessor.GetLease.spec (GF := GF) (hG := hG))
     (hAt : lease.lessor.Attach.spec (GF := GF) (hG := hG))
@@ -60,8 +60,6 @@ theorem srvSnapApplied_of_walk
     (hi : uint.Z ai < uint.Z sv.Metadata'.Index')
     (d : mvcc.KBReal) (D : backend.Data) (lgh : Loc)
     (hkb : E.γ.kb = some d)
-    -- (M2's apply side, the user's (a)) the interim restriction: no install in compaction mode
-    (hcm : d.cm = false)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
     (hcfgl : cfg.Logger' ≠ null)
@@ -73,7 +71,7 @@ theorem srvSnapApplied_of_walk
     (hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅)
     (hwq : E.γ.watchQ = true)
     (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
-    (hkI : mvcc.keyImage ([[], []] ++ R) D) (hbr : mvcc.bridgeParams d.P)
+    (r : mvcc.CmpRecs) (hkI : mvcc.keyImageM d.cm ([[], []] ++ R) r D) (hbr : mvcc.bridgeParams d.P)
     (hlp : mvcc.leaseParams d.P)
     (γp : GName) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
@@ -106,24 +104,31 @@ theorem srvSnapApplied_of_walk
       srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
       srvClusterAddr s ↦□ cl ∗ membership.isRaftCluster cl ∗ mvcc.certOk E.γ ([[], []] ++ R) ∗
       srvWTPool E γp ∗
-      snapWalkPost s ep sv γ ci E ρ γr d D A x R mvcc.CmpRecs.empty ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
+      snapWalkPost s ep sv γ ci E ρ γr d D A x R r ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad ⊢
-    |={⊤}=> srvSnapApplied s ep sv γ ci E ρ γr d R A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl := by
+    |={⊤}=> srvSnapApplied s ep sv γ ci E ρ γr d R r A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl := by
   iintro ⟨#Hpkg, #Hsrv, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #Hlinv, #Hlpf, #Half,
     #HisAl, #Haustf, #Hclf, #Hirc, #Hcok, #HWP, Hw⟩
   iunfold snapWalkPost at Hw
   icases Hw with ⟨%γB, %d', %gx, %π0, %p', %γw, %ws, %g, %up', %opts', %L, %spc, %Ll, %jf, %γcf,
-    %w0, %RD0, %up, %lg, %wsk, %stck, %Hpure, #HB, #HhkAt', #HbhF', HSC, -, -, -, #HCI', #HhkS, -, -, #Hro', -,
+    %w0, %RD0, %up, %lg, %wsk, %stck, %Hpure, #HB, #HhkAt', #HbhF', HSC, -, -, -, #HCI', #HhkS, -, -, #Hro', #HnSup,
     #Hws, -, #HhP, #Hkva, #Hwa, #Hlga, Hwok, HplH, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Haub, Hclb,
     Hleb, Hlo, Hlrd, Hlrv, Hrt, Hrb, Hrn, Hcm, Hbo, Hpl', Hsc, Hwf, Hww, HwOwn, Hsr, Htl, Hlgr, Hai, Hatt, Hds, Hms,
     Hcsa, Hcso, Hpath, Halb, HRD2, Hube, Hua, -, Hra, Hauar, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
   obtain ⟨hγB, hP', -, hcm', hm0, -, hkb', hγw, -, hcov, hgnn, ho1, ho2, ho3, ho4, ho5, ho6, ho7, -, -, -,
     ho11, ho12⟩ := Hpure
   subst hγB
-  -- (M2's item 15) the closer at no record, off
-  have hoffp : ¬ mvcc.kbCmpM (γw.st.withPhys p').kb := by
-    simp [mvcc.StoreNames.withPhys_kb, hkb', mvcc.kbCmpM, hcm', hcm]
-  ihave Hsc := (mvcc.storeCloserM_off E.s (γw.st.withPhys p') _ hoffp).1 $$ Hsc
+  -- (M2's item 15) the KV's closer and the apply thread's compaction right at the records', by the
+  -- mode (step 6 first: step 4 takes the right)
+  obtain ⟨hcr, hcr0⟩ := mvcc.keyImageM_crev d.cm _ r D hkI
+  ihave HKC := snap_kvCloserW s E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB al ast lp cl
+    d'.be γw wsk stck hγw r.crev hcr (fun h => by
+      have hf : d.cm = false := by
+        have : ¬ d'.cm = true := by simpa [mvcc.kbCmpM, hkb'] using h
+        rw [← hcm']; simpa using this
+      rw [hcr0 hf, mvcc.CmpRecs.crev_empty]) $$ [Hstc Hwsw Hsc]
+  · iframe #; iframe Hstc Hwsw Hsc
+  icases HKC with ⟨HKC, Hcr⟩
   -- step 1: the names (`SnapApplyNames.lean`)
   ihave HplRO := backend.plHook_persist d'.γB g $$ HplH
   imod HplRO with #HplRO
@@ -138,20 +143,18 @@ theorem srvSnapApplied_of_walk
   · iframe #
   -- step 4: the applier state
   ihave HKV' := snap_applyKV s γ ci E ρ π0 d'.γB d.P d' p' γw ws g up' opts' w0 RD0 al ast lp cl x R
-      rfl hkb' hγw hwq hpre hRok hrbw (-1) $$
-      [Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hpl' Hra Hauar Hwok HRD0]
+      rfl hkb' hγw hwq hpre hRok hrbw r.crev $$
+      [Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hpl' Hra Hauar Hwok HRD0 Hcr]
   · iframe #; iframe Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hpl' Hra Hauar Hwok HRD0
-    iapply apply.cmpOwn_of_off
-    simp [mvcc.kbCmpM, hkb', hcm', hcm]
+    iunfold apply.cmpOwn
+    iframe Hcr
+    simp only [snapE_γ, mvcc.StoreNames.withPhys_kb, hkb']
+    iexact HnSup
   imod HKV' with ⟨%x', %Hx', HKV'⟩
   -- step 5: the rest buckets
   ihave HRest := snap_srvRest E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB d' γr al ast lp
     cl _ memI A' rfl hA' $$ [Hrb Hrn Hcm Halb Haub Hclb Hleb]
   · iframe Hrb Hrn Hcm Halb Haub Hclb Hleb
-  -- step 6: the KV's closer
-  ihave HKC := snap_kvCloser s E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB al ast lp cl
-    d'.be γw wsk stck hγw $$ [Hstc Hwsw Hsc]
-  · iframe #; iframe Hstc Hwsw Hsc
   -- step 7: the rest, framed
   icases Hcso with #Hcso
   ihave Hcs := epCsOk_of_csOptA spc sv.Metadata'.ConfState' $$ Hcso
@@ -164,8 +167,8 @@ theorem srvSnapApplied_of_walk
     snapSt (snapγ γ π0 d'.γB) sv.Metadata'.Index', d', x', spc, L
   isplitr
   · ipureintro
-    refine ⟨by apply snapE_beSucc, hkb', hcm'.trans hcm, hP', rfl, snapSt_loopOk γ π0 d'.γB _ _ hm0, snapSt_ciEff γ π0 d'.γB _ _ hm0, Hx'.1,
-      Hx'.2.1, hcov⟩
+    refine ⟨by apply snapE_beSucc, hkb', hcm', hP', rfl, snapSt_loopOk γ π0 d'.γB _ _ hm0, snapSt_ciEff γ π0 d'.γB _ _ hm0, Hx'.1,
+      Hx'.2.2, Hx'.2.1, hcov⟩
   iunfold epConfState
   iframe Hsrv' Hai Hatt Hds Hms Hcsa Hcs Hcso Hat Hab Hlgr Hbmr HKV' HRest HKC HSC Hbo Hγt Hpath Htl
   -- (J8a-1, item 5) the KV at the new environment: the walk's watchable store, its inner store's

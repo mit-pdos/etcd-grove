@@ -140,10 +140,16 @@ theorem EtcdServer.applyAll.wp_proofSnap
   subst Hale
   icombine Hcfdd Hdd gives %Hdde
   subst Hdde
-  have hncm : ¬ mvcc.kbCmpM E.γ.kb := by
-    rw [hkb]; simp only [mvcc.kbCmpM]; rw [hcm, hcmp]; simp
-  ihave HKC : srvKVCloser s E $$ [HKC]
-  · rw [← srvKVCloserW_off s E hncm]; iexact HKC
+  -- (M2's item 15) the mode off: no record, the receipt and the permits free
+  have hdf : d.cm = false := by rw [hcm, hcmp]
+  have hkI' : mvcc.keyImageM d.cm ([[], []] ++ R) mvcc.CmpRecs.empty D := by
+    rw [hdf, mvcc.keyImageM_off]; exact ⟨Hif.hkI, rfl⟩
+  ihave #Hrc0 : mvcc.restoreRcptM (GF := GF) d ([[], []] ++ R) $$ []
+  · rw [mvcc.restoreRcptM_off d _ hdf]; itrivial
+  ihave #Hpf0 : mvcc.crevPermAt (GF := GF) E.γ mvcc.CmpRecs.empty.finRev $$ []
+  · rw [mvcc.CmpRecs.finRev_empty]; iapply mvcc.crevPermAt_none
+  ihave #Hpc0 : mvcc.crevPermAt (GF := GF) E.γ mvcc.CmpRecs.empty.crev $$ []
+  · rw [mvcc.CmpRecs.crev_empty]; iapply mvcc.crevPermAt_none
   -- the apply thread's membership resources: the transport, the members' directory
   iunfold srvApRes at HAR
   icases HAR with ⟨%bh, %ix, %lgh', %tl, %lid, %cl', %lgc, %cid, %prs, #Hbhf, #Hbh, #Htrf, #Hmidf,
@@ -170,8 +176,8 @@ theorem EtcdServer.applyAll.wp_proofSnap
   icases Hgr with ⟨HgrW, HthT⟩
   wp_apply (hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
       { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai d D lgh hkb
-      (by rw [hcm, hcmp]) hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hlg hmm tI hmeta st b (by omega)
-      al ast lp cl x A hRO Hif.hlease hwq R Hif.hpre Hif.hRok Hif.hkI hbr hlp γp hrb stp γd γt
+      hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hlg hmm tI hmeta st b (by omega)
+      al ast lp cl x A hRO Hif.hlease hwq R Hif.hpre Hif.hRok mvcc.CmpRecs.empty (fun h => absurd h (by rw [hdf]; decide)) hkI' hbr hlp γp hrb stp γd γt
       (srvImage γr.raft.raft) (uint.nat sv.Metadata'.Index') hstp (Nat.le_refl _) Hif.halarm halbi
       Hif.hauthb Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
       cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq A' Hif.hA' hoff
@@ -190,7 +196,8 @@ theorem EtcdServer.applyAll.wp_proofSnap
   icases Hsapp with ⟨%γ', %TM', %E', %b', %st', %d', %x', %cs', %L, %Hsa1, #Hsrv1, Hai, Hat, Hsd,
     Hsm, Hcs, #Hcso, Hst, Hbe, Hlr, Hbr, HKV, HRS, HKC, Hstopc, Hbo, Hγt, Hpath, Htlive,
     ⟨%kv', #Hkvf', #Hkvi'⟩⟩
-  obtain ⟨hbs, hkb', hcm', hP', hRO', hlo', hci', hxl, hxch, hL⟩ := Hsa1
+  obtain ⟨hbs, hkb', hcm', hP', hRO', hlo', hci', hxl, -, hxch, hL⟩ := Hsa1
+  replace hcm' : d'.cm = false := hcm'.trans hdf
   -- `s.applyEntries(ep, apply)`: no entries
   wp_apply hAE s ep ap es $$ []
   · iframe #
@@ -274,8 +281,6 @@ theorem EtcdServer.applyAll.wp_proofSnap
   ihave #Hro1 := srvSnapRO_succ s ci γr γt d d' al ast lp cl hbs hkb hkb' (by rw [hcm', hcmp]) hP'
     hRO' $$ [Hro Half Hauf Hlpf Hclf]
   · iframe Hro Half Hauf Hlpf Hclf
-  have hncm' : ¬ mvcc.kbCmpM E'.γ.kb := by
-    rw [hkb']; simp only [mvcc.kbCmpM]; rw [hcm']; simp
   ihave Hso' : srvSnapOwn s ci E' γr sv.Metadata'.Index' $$ [Hγt Hstopc Hbo HKC Hpath]
   · iunfold srvSnapOwn
     iexists γt, uint.nat sv.Metadata'.Index'
@@ -287,7 +292,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
     iframe Hstopc Hbo Half Hcfdd Hpath
     isplitr
     · ipureintro; exact hkb'
-    rw [srvKVCloserW_off s E' hncm']; iexact HKC
+    iexact HKC
   iunfold epConfState at Hcs
   icases Hcs with ⟨Hcs, #Hcsok⟩
   -- the step's end, shared by the selects' branches: the apply thread at a state `stF` of the

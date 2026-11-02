@@ -29798,6 +29798,39 @@ counter bounds all takes together.
 withdrawn discarded part: a swap gathers all of `E.γbe`); a supply that carries its own later
 credit (the supply is a persistent wand over `⧗ 1` only, `kbWTSupply`; changing it changes mvcc's
 approved statements).
+## Restore in compaction mode at the server: the walk by the mode and `specSnap` switched (M2's item 15, stage B2)
+
+**2026-11-02 · within the approved candidate 1 with amendment 1 and the user's "Add as premises"
+(the permits on `specSnap`); `applySnapshot.specSnap` changed (approved), no exported result's
+statement changed · branch `m2-item15`**
+
+**What was.** `applySnapshot.specSnap` took `d.cm = false`: the server restored only with the mode
+off (`watchableStore.Restore.specOff_of_spec`), and its post (`srvSnapApplied`) said `d'.cm = false`
+and handed back `srvKVCloser`.
+
+**Decision.** The walk (`applySnapshot_walk`) is by the mode. `specSnap` drops `hcm` and takes the
+image's records `r` with `hcc : d.cm = true → x.crev ≤ r.crev` and `hkI : keyImageM d.cm L r D`
+(off: today's `keyImage`, `r` empty); its pre holds the closer by the mode (`srvKVCloserW`), the
+receipt `restoreRcptM d L` and the permits `crevPermAt E.γ r.finRev ∗ crevPermAt E.γ r.crev`; its post
+(`srvSnapApplied … r …`) says `d'.cm = d.cm`, `x'.crev = r.crev` and hands back `srvKVCloserW`. The
+pieces: `restorePre_of_applyW` (the store's right from the apply thread's `cmpRight E x.crev`),
+`SnapRestoreM.lean` (`snap_restoreBackendM`: the backend contract and the clean read by the mode, on
+over `storeBackendTR_of_backendC`/`keyCleanRead_of_backendC`; `snap_kbSRM`, `snap_resumeHook`,
+`snap_oldReaders`, `snap_cmpRight_le`), `keyImageM_crev`; the write-back stock is made before
+`Restore` and gives the supply (`kbWTSupplyM_of_stock`, moved to `InvApplier.lean`). `applyAll`'s
+call discharges the new premises off (`keyImageM_off`, `r` empty, `crevPermAt_none`,
+`restoreRcptM_off`). `snapWalkPost` lost its unused fields (the backend contract, the clean read,
+the frozen revision).
+
+**Differences from candidate 1's text** (reported to the user): the store's compaction revision is
+`x.crev` (the apply thread's, already in `srvEnvOk`), not a new parameter `c`; the closer is the
+landed `srvKVCloserW`, not the draft's `srvKVCloserM s E c`; `hcc` is conditional on the mode (off
+it follows from `cmpRight`'s `x.crev = -1` and `r` empty), which is weaker for callers.
+
+**Why.** Stage B of the approved plan: the server restores a snapshot in either mode. The receipt and
+the permits stay premises (`notes/m2-storage-plan.md`): the receipt waits on `srvImageR` (the same
+gap as `merged_image`), the permits on the cluster's compaction protocol at the caller.
+
 ## The read-side law: a revision reached is at most every later read's (2026-11-02 · the user's "go ahead with the read-side law" · branch `read-law`)
 
 **The question** (C3's client stage, "deferred" above): `kvRevLbZ γk n` is a lower bound of the KV
