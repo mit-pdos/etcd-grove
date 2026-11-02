@@ -25,10 +25,10 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 
 theorem chains.removeFromFrontier.wp_proof : chains.removeFromFrontier.spec (GF := GF) (hG := hG) :=
-    fun ch h cs st c hc hfr hcs => by
+    fun ch cl h cs st c hc hfr hcs => by
   wp_start as Hch
-  unfold chainsOwn chainsRepr
-  icases Hch with ⟨%chV, Hch, %cvs, Hcl, %Hcvs, Hfr, Hcap, Hcls⟩
+  unfold chainsOwnCl chainsRepr
+  icases Hch with ⟨%chV, Hch, %Hcleq, %cvs, Hcl, %Hcvs, Hfr, Hcap, Hcls⟩
   ihave %Hlen := ownSlice_len $$ Hfr
   ihave %Hwf := ownSlice_wf $$ Hfr
   wp_auto
@@ -70,6 +70,8 @@ theorem chains.removeFromFrontier.wp_proof : chains.removeFromFrontier.spec (GF 
       iapply HΦ
       iexists { chV with frontier' := sl }
       iframe Hch
+      isplitr
+      · ipureintro; exact Hcleq
       iexists cvs
       iframe
       rw [eraseIdx_map, ← erase_eq_eraseIdx_of hx Hk.2.2]
@@ -98,7 +100,9 @@ theorem chains.removeFromFrontier.wp_proof : chains.removeFromFrontier.spec (GF 
     rw [List.erase_of_not_mem hne]
     simp
     iapply HΦ
-    iexists chV; iframe Hch; iexists cvs; iframe; ipureintro; exact Hcvs
+    iexists chV; iframe Hch; isplitr
+    · ipureintro; exact Hcleq
+    iexists cvs; iframe; ipureintro; exact Hcvs
 
 end proof
 

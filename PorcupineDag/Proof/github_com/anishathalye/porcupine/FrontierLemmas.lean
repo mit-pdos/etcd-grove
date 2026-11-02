@@ -140,6 +140,38 @@ theorem insert_by_copy {A : Type} (L : List A) (z x : A) (i : Nat) (hi : i < L.l
     List.append_assoc, List.set_append_right _ _ (by simp; omega)]
   simp [Nat.min_eq_left (Nat.le_of_lt hi)]
 
+/-- The frontier with `cc` inserted at `k`, before its member `x` it is `KeyGt` than, after the
+members `KeyGt` than it, is sorted. -/
+theorem frontier_insert_sorted {h : List (Op α)} {cs : List (List Nat)} {f : Nat → Nat}
+    {fr : List Nat} {cc k x : Nat} (hsorted : (fr.map f).Pairwise (KeyGt h cs))
+    (hk : fr[k]? = some x)
+    (hbefore : ∀ j y, j < k → fr[j]? = some y → KeyGt h cs (f y) (f cc))
+    (hafter : KeyGt h cs (f cc) (f x)) :
+    ((fr.take k ++ cc :: fr.drop k).map f).Pairwise (KeyGt h cs) := by
+  have hkl : k < fr.length := (List.getElem?_eq_some_iff.mp hk).1
+  rw [List.map_append, List.map_cons, List.map_take, List.map_drop]
+  refine pairwise_insert (R := KeyGt h cs) (L := fr.map f) (x := f cc) (i := k)
+    (fun _ _ _ h1 h2 => keyGt_trans h1 h2) hsorted
+    (by rw [List.length_map]; omega) (fun j hj => ?_)
+    (fun hi' => ?_)
+  · rw [List.getElem_map]
+    exact hbefore j _ hj (List.getElem?_eq_getElem _)
+  · rw [List.getElem_map, (List.getElem?_eq_some_iff.mp hk).2]
+    exact hafter
+
+/-- The frontier with `cc` appended, when every member is `KeyGt` than it, is sorted. -/
+theorem frontier_append_sorted {h : List (Op α)} {cs : List (List Nat)} {f : Nat → Nat}
+    {fr : List Nat} {cc : Nat} (hsorted : (fr.map f).Pairwise (KeyGt h cs))
+    (hbefore : ∀ j y, j < fr.length → fr[j]? = some y → KeyGt h cs (f y) (f cc)) :
+    ((fr ++ [cc]).map f).Pairwise (KeyGt h cs) := by
+  rw [List.map_append, List.pairwise_append]
+  refine ⟨hsorted, by simp, fun a ha b hb => ?_⟩
+  simp only [List.map_cons, List.map_nil, List.mem_singleton] at hb
+  subst hb
+  obtain ⟨y, hy, rfl⟩ := List.mem_map.mp ha
+  obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hy
+  exact hbefore j _ hj (List.getElem?_eq_getElem _)
+
 end pure
 
 /-- On operations unrelated in real time, `Check`'s answer is `GeneralLikely`'s. -/
@@ -148,12 +180,46 @@ theorem linOrder_unrelated [GooseExts] {a b : Operation} (h1 : ¬ sint.Z a.Retur
   unfold linOrder glOrder
   simp only [h1, h2, ↓reduceIte]
 
+theorem glOrder_eq_one [GooseExts] {a b : Operation} :
+    glOrder a b = W64 1 ↔ sint.Z b.Call' < sint.Z a.Call' := by
+  unfold glOrder
+  split
+  · constructor
+    · intro h; exact absurd h (by decide)
+    · intro h; omega
+  · split
+    · exact ⟨fun _ => by assumption, fun _ => rfl⟩
+    · constructor
+      · intro h; exact absurd h (by decide)
+      · intro h; omega
+
+theorem glOrder_eq_zero [GooseExts] {a b : Operation} :
+    glOrder a b = W64 0 ↔ sint.Z a.Call' = sint.Z b.Call' := by
+  unfold glOrder
+  split
+  · constructor
+    · intro h; exact absurd h (by decide)
+    · intro h; omega
+  · split
+    · constructor
+      · intro h; exact absurd h (by decide)
+      · intro h; omega
+    · exact ⟨fun _ => by omega, fun _ => rfl⟩
+
+theorem glOrder_ne_three [GooseExts] {a b : Operation} : glOrder a b ≠ W64 3 := by
+  rcases glOrder_cases a b with h | h | h <;> rw [h] <;> decide
+
 section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
+
+/-- A client's struct does not depend on the frontier. -/
+theorem clientOwn_frontier (h : List (Op OpV)) (cs : List (List Nat)) (st : ChSt) (fr : List Nat)
+    (c : Nat) (cv : client) :
+    clientOwn (GF := GF) h cs { st with frontier := fr } c cv = clientOwn h cs st c cv := rfl
 
 /-- A slice's element, read and put back unchanged. -/
 theorem ownSlice_elem_acc' {V : Type} [TypedPointsto (GF := GF) V] [ZeroVal V] (i : Int) (v : V)
