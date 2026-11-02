@@ -38,8 +38,19 @@ Seven steps, in order (renamed 2026-10-28; the notes and commits before then num
 | **Review** | phase 1b | fresh reviewers, rounds until nothing first-tier is left |
 | **Test** | phase 2 | the spec-guided tester runs the specs against the Go code |
 | **Probe** | phase 3 | an easy and a hard proof; the list of cross-package unfolds |
-| **Freeze** | -- | the specs fixed: every caller's glue written, the unfold list empty or justified |
+| **Freeze** | -- | the specs fixed: every caller's glue written, the unfold list empty or justified; every new or restated axiom attacked by the `axiom` skill |
 | **Prove** | phase 4 | the remaining proofs, in parallel |
+
+**Freeze: the axioms attacked first** (the user's, 2026-11-02). Before the user freezes a stage, the
+`axiom` skill runs on every axiom the stage adds or restates (`etc/tcb-report.py --check` lists
+the new ones; a same-name restatement is in the diff of the stage's trust-boundary files): it tries
+to build a Go program that panics yet is proved safe from the axioms. Its report goes with the
+Freeze list. Review checks an axiom against the Go code, and Test against runs, so neither sees an
+axiom that is unsound in the logic: one that gives out a counted resource (a `threadTok`, a receipt)
+it did not take. (lease-ex's D1: the restated `grpc.serve` gave each gRPC run a thread token out of
+nothing; the review rated it true of grpc-go and left the accounting "uncertain";
+`.claude/skills/spec/PRINCIPLES.md`, "A trusted statement never gives out a counted resource it did
+not take".)
 
 **Scope (was phase 0): the configuration and the top-level statement first.** Before any spec of a slice, fix the
 configuration the result covers (features on or off, message types, membership changes,
