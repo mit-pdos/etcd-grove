@@ -595,7 +595,6 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
-sorry leasekv.Main.wp_proof
 sorry lessor.Leases.wp_proof
 sorry lessor.TimeToLive.wp_proof
 sorry merged_image

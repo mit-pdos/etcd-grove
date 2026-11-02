@@ -154,3 +154,15 @@ triple needs (no 200 without a response; a 404 is an allowed error).
   into `LeaseServer.LeaseTimeToLive.spec` at the contract's slot; its `leaseTTLOut` into the client's
   `leaseTTLRespMsg`, the response split into its fields and persisted, `ID` the asked one through
   D3): proved on the first build, no spec problem. The review's findings were the ones that mattered.
+
+## Prove (2026-11-02)
+
+- `leasekv.Main.wp_proof` proved (no spec change): putget's start; `go holdToken()` by
+  `wp_fork_tok_self` (`holdToken.spec`'s `False` discharges the forked thread's post), its token into
+  `common.kv_lease_served`'s slot (still `sorry`, used as stated); `cli.Lease` from `isNewClient`'s
+  `lessorAt` (its `lessorRemoteAt`), the interface call resolved by `wp_auto`; `Leases` with
+  `Q m := ⌜m.ids.Nodup⌝`, the double loop over the persisted slice (each element's `ID` field through
+  the generated `LeaseStatus_access_load_ID`, which `wp_auto` does not find through a
+  `sliceIndexRef`; the equal-ID branch refuted by `List.Nodup.eq_of_getElem?_eq`); `TimeToLive(7)`
+  with `Q m := ⌜m.id = 7⌝`, no options (`leaseOptsAt slice.nil []`). `etc/tcb-collections/leasekv.txt`:
+  its `sorry` line dropped (by hand, without a run of the report).
