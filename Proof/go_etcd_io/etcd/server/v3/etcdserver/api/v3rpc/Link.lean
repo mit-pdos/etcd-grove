@@ -64,7 +64,9 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Put_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Range_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Txn_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseGrant_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseLeases_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseRevoke_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseTimeToLive_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.IsCapabilityEnabled
 public import Proof.go_opentelemetry_io.otel.attribute.Bool
@@ -722,9 +724,17 @@ theorem etcdserverpb.wp__Lease_LeaseGrant_Handler :
     EtcdGrove.etcdserverpb._Lease_LeaseGrant_Handler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdserverpb._Lease_LeaseGrant_Handler.wp_proof
 
+theorem etcdserverpb.wp__Lease_LeaseLeases_Handler :
+    EtcdGrove.etcdserverpb._Lease_LeaseLeases_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._Lease_LeaseLeases_Handler.wp_proof
+
 theorem etcdserverpb.wp__Lease_LeaseRevoke_Handler :
     EtcdGrove.etcdserverpb._Lease_LeaseRevoke_Handler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdserverpb._Lease_LeaseRevoke_Handler.wp_proof
+
+theorem etcdserverpb.wp__Lease_LeaseTimeToLive_Handler :
+    EtcdGrove.etcdserverpb._Lease_LeaseTimeToLive_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._Lease_LeaseTimeToLive_Handler.wp_proof
 
 theorem grpc.GenericServerStream.wp_Recv :
     EtcdGrove.grpc.GenericServerStream.Recv.spec (GF := GF) (hG := hG) :=

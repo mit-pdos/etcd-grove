@@ -641,6 +641,18 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "compactkv")],
     ),
     Project(
+        name="leasekv",
+        # the closed lease example (2026-11-02, notes/lease-ex-plan.md): one member started
+        # in-process, a client, and its lease reads (`Leases`, `TimeToLive`), checked.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "leasekv"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "leasekv")],
+    ),
+    Project(
         name="linkvtxn",
         # The lintest driver over etcd's KV API as its robustness tester drives it
         # (notes/linkv-txn-plan.md, stage D): one member started in-process and a client to it,

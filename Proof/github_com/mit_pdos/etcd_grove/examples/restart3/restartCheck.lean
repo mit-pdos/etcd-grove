@@ -138,7 +138,7 @@ theorem restartCheck.wp_proof
   wp_auto
   iunfold common.memberUp at Hup
   icases Hup with ⟨%E', %cfg, %γw, %HEc, #Hreq', #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hbemu,
-    Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
+    Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   iunfold memberStop at Hst
   icases Hst with ⟨HmR, -, -, -⟩
@@ -156,6 +156,7 @@ theorem restartCheck.wp_proof
     iintro %gs %lis %cid' %mid' %R Hg
     iapply (common.kv_served sR E' { ρ' with wait := γw } ρ'.rd gs lis caddr cid' mid' R Hrb48
       Hrf rfl)
+    unfold common.kvServeStocks
     iframe; iframe #
   icases Hs with (%Hserr | ⟨%Hserr, %cidR, %midR, %R, #Hkv⟩)
   · cases serr with

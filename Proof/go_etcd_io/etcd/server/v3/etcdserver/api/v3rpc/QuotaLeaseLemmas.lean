@@ -74,6 +74,46 @@ theorem v3rpc.quotaLease_revokeHandlerOk {Req Rep : ProtoMsg GF} (Spec : GrpcSpe
   inext
   iexact HΨ
 
+/-- **`quotaLeaseServer.LeaseTimeToLive`** (the embedded service's, promoted; the closed lease example) meets what the embedded
+service's meets. -/
+theorem v3rpc.quotaLease_ttlHandlerOk {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep)
+    (q s : Loc) (ls : GoInterfaceOk) (S : IProp GF) :
+    v3rpc.quotaLeaseServerAt (GF := GF) q ls s ∗
+        grpcHandlerOk #(methods ls.ty go!"LeaseTimeToLive" ls.v) S Spec ⊢
+      grpcHandlerOk (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseTimeToLive")
+        S Spec := by
+  iintro ⟨#Hq, #Hh⟩
+  iunfold v3rpc.quotaLeaseServerAt at Hq
+  icases Hq with ⟨%Hqn, #Hls, -⟩
+  unfold grpcHandlerOk
+  iintro %m %Φ %ci %cd %r !> %Ψ Hpre HΨ
+  rw [method_unfold (t := go.GoType.PointerType v3rpc.quotaLeaseServer.ty) (m := go!"LeaseTimeToLive")]
+  wp_pures
+  wp_auto
+  iapply Hh $$ %m %Φ %ci %cd %r Hpre
+  inext
+  iexact HΨ
+
+/-- **`quotaLeaseServer.LeaseLeases`** (the embedded service's, promoted; the closed lease example) meets what the embedded
+service's meets. -/
+theorem v3rpc.quotaLease_leasesHandlerOk {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep)
+    (q s : Loc) (ls : GoInterfaceOk) (S : IProp GF) :
+    v3rpc.quotaLeaseServerAt (GF := GF) q ls s ∗
+        grpcHandlerOk #(methods ls.ty go!"LeaseLeases" ls.v) S Spec ⊢
+      grpcHandlerOk (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseLeases")
+        S Spec := by
+  iintro ⟨#Hq, #Hh⟩
+  iunfold v3rpc.quotaLeaseServerAt at Hq
+  icases Hq with ⟨%Hqn, #Hls, -⟩
+  unfold grpcHandlerOk
+  iintro %m %Φ %ci %cd %r !> %Ψ Hpre HΨ
+  rw [method_unfold (t := go.GoType.PointerType v3rpc.quotaLeaseServer.ty) (m := go!"LeaseLeases")]
+  wp_pures
+  wp_auto
+  iapply Hh $$ %m %Φ %ci %cd %r Hpre
+  inext
+  iexact HΨ
+
 end lemmas
 
 end EtcdGrove

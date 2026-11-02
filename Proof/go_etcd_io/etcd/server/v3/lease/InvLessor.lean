@@ -419,6 +419,13 @@ instance leaseIdsAt_persistent (γl : GName) (i : Nat) (ids : List w64) :
     Persistent (leaseIdsAt (GF := GF) γl i ids) := by
   unfold leaseIdsAt; infer_instance
 
+/-- The ids of `leaseIdsAt` are distinct. -/
+theorem leaseIdsAt_nodup (γl : GName) (i : Nat) (ids : List w64) :
+    leaseIdsAt (GF := GF) γl i ids ⊢ ⌜ids.Nodup⌝ := by
+  unfold leaseIdsAt
+  iintro ⟨%σ, %H, -⟩
+  ipureintro; exact H.1
+
 /-- Each lease of `leaseMapAt` is live there. -/
 theorem leaseMapAt_live (γl : GName) (i : Nat) (ls : List (Loc × w64)) :
     leaseMapAt (GF := GF) γl i ls ⊢ [∗list] x ∈ ls, leaseLiveFrom γl i x.2 x.1 := by

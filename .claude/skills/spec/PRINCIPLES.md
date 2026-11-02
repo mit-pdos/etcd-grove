@@ -190,6 +190,17 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   (`pilot-review-1.md`). A thread token is one such token (it bounds the live goroutines, as reader
   slots must be bounded); another is fine if all callers have it. Do not make callers thread a
   resource only the proof's bookkeeping needs. (`put.md`, critique 3)
+- **A trusted statement never gives out a counted resource it did not take** (a `threadTok`, a
+  receipt, a reader slot): such a resource is sound only because its total is fixed by the adequacy
+  theorem (`threadToks threadBound ⊢ False`), and one an axiom produces has no such bound. In each
+  post, name the caller that gave every counted resource. Give it back only once the real
+  operation that used it is over, not when the call returns: a call can time out while the work it
+  started goes on. Analogy with a modelled operation ("grpc forks a goroutine, and `wp_fork` gives
+  a token") is no argument when the thing is outside the semantics: grpc's goroutines are not
+  among the threads adequacy counts. (lease-ex's D1, 2026-11-02: the restated `grpc.serve` gave
+  each run a `threadTok` out of nothing, and a blocking service could collect `threadBound` of them;
+  the reviewer, checking against grpc-go, rated it true and left the accounting "uncertain". The
+  first fix, the client lending its token to the run, failed the timeout case.)
 - **A bound is reasoned about where it is owned, not in the specs between** (`notes/bounds-plan.md`,
   the user's, 2026-11-01): the adequacy theorem fixes the global constants (threads, steps, the
   workload); the owner of a bounded object (the invariant allocating the `RWMutex`, `WaitGroup` or

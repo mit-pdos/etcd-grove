@@ -5,6 +5,7 @@ spec-thread github_com/mit_pdos/etcd_grove/examples/cachekv 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/common 10
 spec-thread github_com/mit_pdos/etcd_grove/examples/compactkv 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/k8setcd3 1
+spec-thread github_com/mit_pdos/etcd_grove/examples/leasekv 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/linkv3p 4
 spec-thread github_com/mit_pdos/etcd_grove/examples/linkvtxn 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/lintest/logkvrw 3
@@ -25,6 +26,7 @@ spec-receipt github_com/mit_pdos/etcd_grove/examples/k8setcd3 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/kv 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/kvdurable 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/kvreconf 3
+spec-receipt github_com/mit_pdos/etcd_grove/examples/leasekv 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/linkv3p 9
 spec-receipt github_com/mit_pdos/etcd_grove/examples/linkvtxn 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/lintest 1

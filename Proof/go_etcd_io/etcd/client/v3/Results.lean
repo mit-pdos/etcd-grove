@@ -1928,21 +1928,37 @@ theorem etcd_txnMethodOk (q : Loc) (E : apply.AEnv GF)
   iapply HΨ
   iframe
 
-/-- **etcd's server serves its KV methods** (the server side, `grpc_serve_rpcs`; unit P3b: as grpc
-runs them): the gRPC server at `addr` built with the chain `[il, im, iu]` (`v3rpc.Server`'s:
-`newLogUnaryInterceptor(s)`'s, grpc-prometheus's, `newUnaryInterceptor(s)`'s) with the KV
-service registered on the `*quotaKVServer` `q` (`RegisterKVServer(gs, NewQuotaKVServer(s))`:
-`etcdKVRegs q` among the registered methods), that hands the runtime `N` run slots
-(`etcdGrpcSlot`), registers etcd's `Put`, `Range` and `DeleteRange` specs at `addr` (`isGrpcRpc`).
-Premises: the server's (`isServerReq`, `isServerRead`, its `*kvServer` `p`, the id budget
-`□ |==> idCred ρ.ids 1` of `srvStarted`), the quota wrapper over `p` (`quotaKVServerAt`: what
-`NewQuotaKVServer(s)` returns), the interceptors' contracts (`srvInterceptorOk`: what
-`newLogUnaryInterceptor(s)` and `newUnaryInterceptor(s)` return, proved; grpc-prometheus's,
-assumed), the method-set fact `QuotaKVServerIsKVServer`, the packages'. -/
-theorem etcd_kv_served (addr : GoString) (p q s : Loc)
+/-- **A method meeting `Spec` with the slot `S` meets it with any slot `S'` that holds `S` and
+gives it back** (through `S' ⊢ S ∗ F` and `S ∗ F ⊢ S'`; the closed lease example: the KV methods
+at the slot that also holds the lease reads' thread token). -/
+theorem grpcMethodOkMd_slot {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (S S' F : IProp GF) (Spec : GrpcSpecMd Req Rep)
+    (h1 : S' ⊢ S ∗ F) (h2 : S ∗ F ⊢ S') :
+    grpcMethodOkMd mh srv ics S Spec ⊢ grpcMethodOkMd mh srv ics S' Spec := by
+  iintro #Hh
+  unfold grpcMethodOkMd
+  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨HS', #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  ihave ⟨HS, HF⟩ := h1 $$ HS'
+  iapply Hh $$ %m %Φ %ci %cd %dec %ui [HS HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, Hres⟩
+  iapply HΨ
+  iframe Hres
+  iapply h2
+  iframe
+
+/-- **etcd's server serves its KV methods, with others** (as `etcd_kv_served`; the closed lease
+example, 2026-11-02): one `grpc.serve` serves the KV methods and the methods `ms` (met at the slot
+`S`), at a slot `S` holding the KV's `etcdGrpcSlot` and giving it back (`h1`, `h2`). -/
+theorem etcd_kv_served_with (addr : GoString) (p q s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64) (il im iu : GoFunc)
-    (regs : List (GoString × val × GoInterface)) (N : Nat)
-    (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q, x ∈ regs) (hρ : ρ.rd = γr) :
+    (regs : List (GoString × val × GoInterface)) (N : Nat) (S F : IProp GF)
+    (ms : List (GrpcMethod GF))
+    (h1 : S ⊢ etcdGrpcSlot s E γr ∗ F) (h2 : etcdGrpcSlot s E γr ∗ F ⊢ S)
+    (hnd : ((etcdKVMethods q E ρ.rd γr cid mid ++ ms).map GrpcMethod.name).Nodup)
+    (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q, x ∈ regs)
+    (hms : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) (hρ : ρ.rd = γr) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗
@@ -1954,13 +1970,15 @@ theorem etcd_kv_served (addr : GoString) (p q s : Loc)
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
         grpcServerAt addr [il, im, iu] regs ∗
-        ([∗list] _x ∈ List.replicate N (), etcdGrpcSlot s E γr) ⊢
+        (□ [∗list] m ∈ ms, grpcMethodOkMd m.handler m.srv [il, im, iu] S m.spec) ∗
+        ([∗list] _x ∈ List.replicate N (), S) ⊢
       |={⊤}=> isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) := by
-  iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hl, Hslots⟩
+        isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) ∗
+        [∗list] m ∈ ms, isGrpcRpcMd addr m.name m.spec := by
+  iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hl, #Hxs, Hslots⟩
   ihave #Hp := etcd_putHandlerOk p s E ρ γr cid mid n hρ $$ []
   · iframe #
   ihave #Hr := etcd_rangeHandlerOk p s E ρ γr cid mid n $$ []
@@ -2014,27 +2032,89 @@ theorem etcd_kv_served (addr : GoString) (p q s : Loc)
   ihave #Hmd' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmd
   ihave #Hmt' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmt
   ihave #Hmc' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmc
-  imod (grpc_serve_rpcs addr [il, im, iu] regs (etcdKVMethods q E ρ.rd γr cid mid)
-    (etcdGrpcSlot s E γr) N (by simp only [etcdKVMethods, List.map]; decide)
+  ihave #Hmp'' := grpcMethodOkMd_slot _ _ _
+    iprop((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ [∗list] R ∈ etcdIcRs s, R) S F _ h1 h2 $$ Hmp'
+  ihave #Hmr'' := grpcMethodOkMd_slot _ _ _
+    iprop((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ [∗list] R ∈ etcdIcRs s, R) S F _ h1 h2 $$ Hmr'
+  ihave #Hmd'' := grpcMethodOkMd_slot _ _ _
+    iprop((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ [∗list] R ∈ etcdIcRs s, R) S F _ h1 h2 $$ Hmd'
+  ihave #Hmt'' := grpcMethodOkMd_slot _ _ _
+    iprop((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ [∗list] R ∈ etcdIcRs s, R) S F _ h1 h2 $$ Hmt'
+  ihave #Hmc'' := grpcMethodOkMd_slot _ _ _
+    iprop((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ [∗list] R ∈ etcdIcRs s, R) S F _ h1 h2 $$ Hmc'
+  imod (grpc_serve_rpcs addr [il, im, iu] regs (etcdKVMethods q E ρ.rd γr cid mid ++ ms)
+    S N hnd
     (by
       intro x hx
-      apply hregs
-      simp only [etcdKVMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-      rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp [etcdKVRegs])) $$ [Hl Hslots] with Hrpcs
+      rcases List.mem_append.1 hx with hx | hx
+      · apply hregs
+        simp only [etcdKVMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
+        rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp [etcdKVRegs]
+      · exact hms x hx)) $$ [Hl Hslots] with Hrpcs
   · iframe
     imodintro
-    simp only [etcdKVMethods]
-    unfold etcdGrpcSlot
-    iframe #
-    iapply BigSepL.bigSepL_nil.2
-    itrivial
+    iapply BigSepL.bigSepL_append.2
+    isplitl []
+    · simp only [etcdKVMethods]
+      iframe #
+      iapply BigSepL.bigSepL_nil.2
+      itrivial
+    · iexact Hxs
+  ihave Hrpcs := BigSepL.bigSepL_append.1 $$ Hrpcs
+  icases Hrpcs with ⟨Hkv, Hle⟩
   simp only [etcdKVMethods]
-  icases Hrpcs with ⟨#H1, #H2, #H3, #H4, #H5, -⟩
+  icases Hkv with ⟨#H1, #H2, #H3, #H4, #H5, -⟩
   ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
   ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
   ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
   ihave #H4' := (isGrpcRpc_md _ _ _).2 $$ H4
   ihave #H5' := (isGrpcRpc_md _ _ _).2 $$ H5
+  imodintro
+  iframe #
+  iexact Hle
+
+/-- **etcd's server serves its KV methods** (the server side, `grpc_serve_rpcs`; unit P3b: as grpc
+runs them): the gRPC server at `addr` built with the chain `[il, im, iu]` (`v3rpc.Server`'s:
+`newLogUnaryInterceptor(s)`'s, grpc-prometheus's, `newUnaryInterceptor(s)`'s) with the KV
+service registered on the `*quotaKVServer` `q` (`RegisterKVServer(gs, NewQuotaKVServer(s))`:
+`etcdKVRegs q` among the registered methods), that hands the runtime `N` run slots
+(`etcdGrpcSlot`), registers etcd's `Put`, `Range` and `DeleteRange` specs at `addr` (`isGrpcRpc`).
+Premises: the server's (`isServerReq`, `isServerRead`, its `*kvServer` `p`, the id budget
+`□ |==> idCred ρ.ids 1` of `srvStarted`), the quota wrapper over `p` (`quotaKVServerAt`: what
+`NewQuotaKVServer(s)` returns), the interceptors' contracts (`srvInterceptorOk`: what
+`newLogUnaryInterceptor(s)` and `newUnaryInterceptor(s)` return, proved; grpc-prometheus's,
+assumed), the method-set fact `QuotaKVServerIsKVServer`, the packages'. At the slot
+`etcdGrpcSlot`, with no other method (`etcd_kv_served_with`). -/
+theorem etcd_kv_served (addr : GoString) (p q s : Loc)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64) (il im iu : GoFunc)
+    (regs : List (GoString × val × GoInterface)) (N : Nat)
+    (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q, x ∈ regs) (hρ : ρ.rd = γr) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗
+        v3rpc.kvServerAt p s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) cid mid n ∗
+        □ (|==> idCred ρ.ids 1) ∗
+        v3rpc.quotaKVServerAt q
+          ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
+        srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
+        srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
+        srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+        grpcServerAt addr [il, im, iu] regs ∗
+        ([∗list] _x ∈ List.replicate N (), etcdGrpcSlot s E γr) ⊢
+      |={⊤}=> isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) := by
+  iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hl, Hslots⟩
+  imod (etcd_kv_served_with addr p q s E ρ γr cid mid n il im iu regs N (etcdGrpcSlot s E γr)
+    iprop(True) [] (by iintro H; iframe H) (by iintro ⟨H, -⟩; iexact H)
+    (by simp only [etcdKVMethods, List.map, List.append_nil]; decide) hregs
+    (by intro m hm; simp at hm) hρ) $$ [Hl Hslots] with ⟨#H1, #H2, #H3, #H4, #H5, -⟩
+  · iframe; iframe #
+    iintro !>
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
   imodintro
   iframe #
 
@@ -2907,6 +2987,49 @@ theorem kvServerAt_of_is (p s : Loc) (A : v3rpc.KVAns GF) (cid mid n : w64) :
   iframe #
   ipureintro; exact ⟨Hp, Hmx⟩
 
+/-- **etcd's KV service, started, with other methods** (`etcd_kv_started` with the methods `ms`
+served by the same `grpc.serve`, met at a slot `S` holding the KV's `etcdGrpcSlot`:
+`etcd_kv_served_with`; the closed lease example, 2026-11-02). -/
+theorem etcd_kv_started_with (addr : GoString) (gs q p s : Loc)
+    (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64)
+    (il im iu ims is : GoFunc) (svcs : List GoString)
+    (regs sregs : List (GoString × val × GoInterface)) (N : Nat) (S F : IProp GF)
+    (ms : List (GrpcMethod GF))
+    (h1 : S ⊢ etcdGrpcSlot s E γr ∗ F) (h2 : etcdGrpcSlot s E γr ∗ F ⊢ S)
+    (hnd : ((etcdKVMethods q E ρ.rd γr cid mid ++ ms).map GrpcMethod.name).Nodup)
+    (hregs : ∀ x ∈ v3rpc.kvRegs q, x ∈ regs)
+    (hms : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗
+        v3rpc.kvServerAt p s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) cid mid n ∗
+        □ (|==> idCred ρ.ids 1) ∗
+        v3rpc.quotaKVServerAt q
+          ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
+        (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
+        (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
+        srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+        grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗
+        (□ [∗list] m ∈ ms, grpcMethodOkMd m.handler m.srv [il, im, iu] S m.spec) ∗
+        ([∗list] _x ∈ List.replicate N (), S) ⊢
+      |={⊤}=> grpcServeTok gs lis ∗ grpcStreamServerAt addr [ims, is] sregs ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) ∗
+        [∗list] m ∈ ms, isGrpcRpcMd addr m.name m.spec := by
+  iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, #Hxs, Hslots⟩
+  imod (grpc.start gs lis addr [il, im, iu] [ims, is] svcs regs sregs Hrf) $$ [Hgs Hlis] with ⟨Hat', Hst, Htok⟩
+  · iframe
+  ihave #Hil' := Hil $$ %v3rpc.learnerReqOk
+  ihave #Him' := Him $$ %v3rpc.learnerReqOk
+  imod (etcd_kv_served_with addr p q s E ρ γr cid mid n il im iu regs N S F ms h1 h2 hnd
+    (by rw [etcdKVRegs_eq]; exact hregs) hms hρ) $$ [Hat' Hslots] with H
+  · iframe; iframe #
+  imodintro
+  iframe
+
 /-- **etcd's KV service, started** (see the file header): the server `v3rpc.Server` built
 (`grpcSrvNew` with its chains and registrations, the KV methods `kvRegs q` among them, the quota
 wrapper `q` over `p`, the interceptors' contracts) and a listener at `addr` become, in a ghost
@@ -2938,15 +3061,16 @@ theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots⟩
-  imod (grpc.start gs lis addr [il, im, iu] [ims, is] svcs regs sregs Hrf) $$ [Hgs Hlis] with ⟨Hat', Hst, Htok⟩
-  · iframe
-  ihave #Hil' := Hil $$ %v3rpc.learnerReqOk
-  ihave #Him' := Him $$ %v3rpc.learnerReqOk
-  imod (etcd_kv_served addr p q s E ρ γr cid mid n il im iu regs N
-    (by rw [etcdKVRegs_eq]; exact hregs) hρ) $$ [Hat' Hslots] with H
+  imod (etcd_kv_started_with addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs N
+    (etcdGrpcSlot s E γr) iprop(True) [] (by iintro H; iframe H) (by iintro ⟨H, -⟩; iexact H)
+    (by simp only [etcdKVMethods, List.map, List.append_nil]; decide) hregs
+    (by intro m hm; simp at hm) Hrf hρ) $$ [Hgs Hlis Hslots] with ⟨Htok, Hst, #H1, #H2, #H3, #H4, #H5, -⟩
   · iframe; iframe #
+    iintro !>
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
   imodintro
-  iframe
+  iframe; iframe #
 
 end start
 
