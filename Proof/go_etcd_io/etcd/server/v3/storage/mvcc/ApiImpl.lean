@@ -44,6 +44,8 @@ structure MvccImpl where
   watched : Bool
   /-- the watchable store's location (a store with watchers; not read otherwise) -/
   wl : Loc
+  /-- the store's location (`isMvccI` pins it: a transaction's store is the names') -/
+  sl : Loc
   /-- the store's open token (`ghostVar Unit`, fractional: `mvccOpen`) -/
   op : GName
 
@@ -141,7 +143,7 @@ def mvccLoan (γ : MvccImpl) : IProp GF := iprop(threadPool.ownThreadLoan γ.tl 
 def isMvccI (s : Loc) (γ : MvccImpl) : IProp GF :=
   iprop(isStore s γ.st ∗
     ⌜γ.st.absQ = true ∧ γ.st.watchQ = γ.watched ∧ (∃ d, γ.st.kb = some d) ∧
-      threadBound GF ≤ 2 ^ 30⌝ ∗
+      threadBound GF ≤ 2 ^ 30 ∧ γ.sl = s⌝ ∗
     (∃ o : StoreObjs, curAt γ.st DFrac.discard o) ∗
     threadPool.isThreadPool tixN γ.tl (poolR s γ) ∗ revPool γ.st ∗
     □ (⧗ 1 ={⊤}=∗ storeWT γ.st) ∗ wsFrozenM γ.st)
@@ -216,6 +218,13 @@ def mvccDeleterI (rd : GoFunc) (γ : MvccImpl) : IProp GF :=
 instance mvccDeleterI_persistent (rd : GoFunc) (γ : MvccImpl) :
     Persistent (mvccDeleterI (GF := GF) rd γ) := by
   unfold mvccDeleterI; split <;> infer_instance
+
+/-- **The store of the names** is the names' location. -/
+theorem isMvccI_loc (s : Loc) (γ : MvccImpl) : isMvccI (GF := GF) s γ ⊢ ⌜γ.sl = s⌝ := by
+  iintro #Hs
+  iunfold isMvccI at Hs
+  icases Hs with ⟨-, %Hf, -⟩
+  ipureintro; exact Hf.2.2.2.2
 
 /-- **A ticket of the pool**: the store's reader and the loan. -/
 theorem mvccBorrow (s : Loc) (γ : MvccImpl) :

@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLemmas
 
 @[expose] public section
 
@@ -81,6 +82,53 @@ theorem mvcc.watchableStore.Write.wp_proof (hWrite : mvcc.store.Write.spec (GF :
   simp only [named]
   iframe
   iframe #
+
+/-- **The candidate `Write`** of the watchable store (`specC`): the inner store's (`store.Write.specC`),
+its transaction wrapped (the watchable case of `mvccTxnI`: the wrapper's fields, the watchable
+store over the transaction's store, which is the names' `sl`). -/
+theorem mvcc.watchableStore.Write.wp_proofC (hC : mvcc.store.Write.specC (GF := GF) (hG := hG)) :
+    mvcc.watchableStore.Write.specC (GF := GF) (hG := hG) := by
+  intro ws γ trace te P Pre Q f
+  wp_start as ⟨#Hwm, Htt, %Htr, Htrc, #Hhook, Hpre, Hrun⟩
+  iunfold mvcc.isWatchableMvcc at Hwm
+  iunfold mvcc.isWatchableMvccI at Hwm
+  icases Hwm with ⟨%Hw, %st, #Hws, #Hm⟩
+  obtain ⟨hw, hwl⟩ := Hw
+  ihave %Hsl := mvcc.isMvccI_loc st γ $$ Hm
+  ihave #Hws0 := Hws
+  iunfold mvcc.isWatchableStore at Hws0
+  iNamed Hws0
+  (try wp_auto)
+  wp_apply (hC st γ trace te P Pre Q f) $$ [$Htt $Htrc $Hhook $Hpre $Hrun] as %mw ⟨⟨%σ, Htx⟩, HQ⟩
+  · isplitr
+    · iunfold mvcc.isMvcc; iexact Hm
+    ipureintro; exact Htr
+  (try wp_auto)
+  wp_alloc wtw as Hwtw
+  ipersist Hwtw
+  (try wp_auto)
+  iapply HΦ
+  iframe HQ
+  iexists σ
+  icases (mvcc.mvccTxn_write_eq mw γ trace σ []).1 $$ Htx with
+    ⟨%s', %p, %d, %ps, %Hpl, #Hs', Htxw, Hloan⟩
+  ihave %Hsl' := mvcc.isMvccI_loc s' γ $$ Hs'
+  have hs : s' = st := Hsl'.symm.trans Hsl
+  subst hs
+  iunfold mvcc.mvccTxn
+  simp only [mvcc.mvccTxnI]
+  iexists mw, s', p, d, ps
+  iframe Htxw Hloan
+  isplitr
+  · ipureintro; exact Hpl
+  isplitr
+  · iexact Hs'
+  iright
+  iexists wtw
+  isplitr
+  · ipureintro; exact ⟨rfl, hw⟩
+  rw [hwl]
+  iframe Hwtw Hws
 
 end proof
 
