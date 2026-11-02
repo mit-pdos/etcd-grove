@@ -407,9 +407,72 @@ theorem kvStorage_bootStorage
       restartStorage γ (kvStorIface s)
         ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
         (kv.kvConfState voters) 0 F := by
-  -- PORT(durability stage II): restated (durability layer 4: `restartStorage` with the client's
-  -- frame)
-  sorry
+  iintro #Hpkg #Hrec #Hfield #Hv #Hl Hfresh #Hlog He HF
+  ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iunfold memStorLock at Hl; icases Hl with ⟨#H, -⟩; iexact H
+  unfold restartStorage
+  iexists (interface.mk (go.GoType.PointerType rStorageTy) #s)
+  iexists iprop(memStorFresh ms γs 0 memSnapEmpty ∗ memEnd γs 1 ∗
+    (∀ K : GName, memStorInvP ms γs (kvJ γ K) -∗ F K))
+  isplitr
+  · ipureintro; rfl
+  isplitl [Hfresh He HF]
+  · iframe Hfresh He HF
+  isplitr
+  · iintro !> %Φ ⟨Hfresh, He, HF⟩ HΦ
+    wp_apply kvStorage.wp_FirstIndex wp_FirstIndex s ms γs 0 $$ [$Hrec $Hinit $Hl]
+      as %fi ⟨%Hfi, #Hc⟩
+    · iapply memCompacted_zero
+    icases memStorFresh_compacted ms γs _ _ _ $$ [$Hfresh $Hc] with ⟨%H0, Hfresh⟩
+    have Hfi1 : fi = W64 (StorContents.b ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ + 1) := by
+      simp only [StorContents.b]; word
+    rw [Hfi1]
+    iapply HΦ
+    iframe Hfresh He HF
+  isplitr
+  · iintro !> %Φ ⟨Hfresh, He, HF⟩ HΦ
+    wp_apply kvStorage.wp_LastIndex wp_LastIndex s ms γs 1 $$ [$Hrec $Hinit $Hl $He]
+      as %li ⟨He, %Hli⟩
+    have Hli0 : li = W64 (StorContents.last ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩) := by
+      simp only [StorContents.last, StorContents.b, List.length_nil]; word
+    rw [Hli0]
+    iapply HΦ
+    iframe Hfresh He HF
+  iintro !> %Φ ⟨Hfresh, He, HF⟩ HΦ
+  wp_apply wp_InitialState s vsl voters $$ [$Hpkg $Hfield $Hv] as %hp %cs ⟨#Hhs, #Hcs⟩
+  iapply HΦ $$ %hp %cs %false
+  iframe Hhs Hcs
+  iintro %K #HA #HD
+  imod memStorInvP_alloc ms γs (kvJ γ K) ⊤ 0 memSnapEmpty $$ Hl Hfresh [] [] with #Hinv
+  · iintro !> %k %hk
+    have : k = 0 := by omega
+    subst this
+    iapply kvJ_B0 γ K
+  · ileft; ipureintro; rfl
+  ihave HFK := HF $$ %K Hinv
+  imodintro
+  isplitr
+  · iapply kvStorage_isStorage wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term wp_Entries
+      s ms γs γ K $$ Hpkg Hrec Hinv
+  iframe HFK
+  iunfold storHolds
+  have hb : (⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).b = 0 := by
+    simp [StorContents.b]
+  have hl : (⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).last = 0 := by
+    simp [StorContents.last, StorContents.b]
+  rw [hl, hb, Nat.zero_add]
+  iexists (zero_val EntryM)
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iapply kvStorCompacted_of s ms γs 0 $$ Hrec
+    iapply memCompacted_zero
+  isplitr
+  · iapply kvStorLog_of s ms γs 0 DFrac.discard [zero_val EntryM] $$ Hrec Hlog
+  isplitr
+  · iapply kvStorLog_of s ms γs 1 (DFrac.own 1) [] $$ Hrec
+    iapply memLog_nil
+  iapply kvStorEnd_of s ms γs 1 $$ Hrec He
 
 end api
 

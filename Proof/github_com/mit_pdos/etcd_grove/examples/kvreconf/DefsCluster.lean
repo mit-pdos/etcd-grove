@@ -285,6 +285,9 @@ def isClusterC (γr : RNames) (vs : List w64) (c : Loc) : IProp GF :=
     "%Hdup" ∷ ⌜γr.cluster.dup = true⌝ ∗
     -- (2026-11-01, J8a) no snapshot directories (`cluster_alloc`'s `sl`)
     "%Hsl" ∷ ⌜γr.cluster.snapLoc = fun _ => none⌝ ∗
+    -- (2026-11-01, durability stage II (l)) no bootstrap log (`cluster_alloc`'s `bootLen` at
+    -- `boot = []`): `RestartNode`'s scope premise `γ.bootLen ≤ σ.commit` for a newcomer
+    "%Hbl0" ∷ ⌜γr.cluster.bootLen = 0⌝ ∗
     "#HstorInv" ∷ kvrStorInv ∗
     "#Hopts" ∷ c.[RCluster, go!"opts"] ↦□ o ∗
     "%Ho" ∷ ⌜OptsOk o ∧ vs = bootVoters (uint.nat o.Voters')⌝ ∗

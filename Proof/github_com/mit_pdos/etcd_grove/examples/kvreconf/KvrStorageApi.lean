@@ -406,8 +406,77 @@ theorem kvr_bootStorage
       memLog γs 0 DFrac.discard [zero_val EntryM] -∗ memEnd γs 1 -∗
       (∀ K : GName, memStorMeta ms γs hs -∗ memStorInvP ms γs (kvrJ γ K) -∗ F K) -∗
       restartStorage γ (kvrStorIface s) ⟨hs, none, entryID.mk (W64 0) (W64 0), []⟩ csm 0 F := by
-  -- PORT(durability stage II): restated (durability layer 4: `restartStorage` with a frame)
-  sorry
+  iintro #Hpkg #Hrec #Hboot #Hl Hfresh Hmeta #Hlog He HF
+  ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iunfold memStorLock at Hl; icases Hl with ⟨#H, -⟩; iexact H
+  unfold restartStorage
+  iexists (interface.mk (go.GoType.PointerType
+    github_com.mit_pdos.etcd_grove.examples.kvreconf.Storage.ty) #s)
+  iexists iprop(memStorFresh ms γs 0 memSnapEmpty ∗ memStorMeta ms γs hs ∗ memEnd γs 1 ∗
+    (∀ K : GName, memStorMeta ms γs hs -∗ memStorInvP ms γs (kvrJ γ K) -∗ F K))
+  isplitr
+  · ipureintro; rfl
+  isplitl [Hfresh Hmeta He HF]
+  · iframe Hfresh Hmeta He HF
+  isplitr
+  · iintro !> %Φ ⟨Hfresh, Hmeta, He, HF⟩ HΦ
+    wp_apply Storage.wp_FirstIndex wp_FirstIndex s ms γs 0 $$ [$Hrec $Hinit $Hl]
+      as %fi ⟨%Hfi, #Hc⟩
+    · iapply memCompacted_zero
+    icases memStorFresh_compacted ms γs _ _ _ $$ [$Hfresh $Hc] with ⟨%H0, Hfresh⟩
+    have Hfi1 : fi = W64 (StorContents.b ⟨hs, none, entryID.mk (W64 0) (W64 0), []⟩ + 1) := by
+      simp only [StorContents.b]; word
+    rw [Hfi1]
+    iapply HΦ
+    iframe Hfresh Hmeta He HF
+  isplitr
+  · iintro !> %Φ ⟨Hfresh, Hmeta, He, HF⟩ HΦ
+    wp_apply Storage.wp_LastIndex wp_LastIndex s ms γs 1 $$ [$Hrec $Hinit $Hl $He]
+      as %li ⟨He, %Hli⟩
+    have Hli0 : li = W64 (StorContents.last ⟨hs, none, entryID.mk (W64 0) (W64 0), []⟩) := by
+      simp only [StorContents.last, StorContents.b, List.length_nil]; word
+    rw [Hli0]
+    iapply HΦ
+    iframe Hfresh Hmeta He HF
+  iintro !> %Φ ⟨Hfresh, Hmeta, He, HF⟩ HΦ
+  iapply wp_fupd
+  wp_apply wp_InitialState s ms bp γs hs csm $$ [$Hpkg $Hrec $Hboot $Hmeta $Hfresh]
+    as %hp %cs ⟨#Hhs, Hmeta, Hfresh, Hcs⟩
+  imod csPts_persist cs (DFrac.own 1) csm false $$ Hcs with #Hcs
+  imodintro
+  iapply HΦ $$ %hp %cs %false
+  iframe Hhs Hcs
+  iintro %K #HA #HD
+  imod memStorInvP_alloc ms γs (kvrJ γ K) ⊤ 0 memSnapEmpty $$ Hl Hfresh [] [] with #Hinv
+  · iintro !> %k %hk
+    have : k = 0 := by omega
+    subst this
+    iapply kvrJ_B0 γ K
+  · ileft; ipureintro; rfl
+  ihave HFK := HF $$ %K Hmeta Hinv
+  imodintro
+  isplitr
+  · iapply kvrStorage_isStorage wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term wp_Entries
+      s ms γs γ K $$ Hpkg Hrec Hinv
+  iframe HFK
+  iunfold storHolds
+  have hb : (⟨hs, none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).b = 0 := by
+    simp [StorContents.b]
+  have hl : (⟨hs, none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).last = 0 := by
+    simp [StorContents.last, StorContents.b]
+  rw [hl, hb, Nat.zero_add]
+  iexists (zero_val EntryM)
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iapply kvrStorCompacted_of s ms γs 0 $$ Hrec
+    iapply memCompacted_zero
+  isplitr
+  · iapply kvrStorLog_of s ms γs 0 DFrac.discard [zero_val EntryM] $$ Hrec Hlog
+  isplitr
+  · iapply kvrStorLog_of s ms γs 1 (DFrac.own 1) [] $$ Hrec
+    iapply memLog_nil
+  iapply kvrStorEnd_of s ms γs 1 $$ Hrec He
 
 /-- **A new wrapper's records** (`&Storage{MemoryStorage: ms, boot: bp}`, its two fields as
 allocated; the bootstrap conf state read-only): the registry's record (`kvr_register`) and the boot
