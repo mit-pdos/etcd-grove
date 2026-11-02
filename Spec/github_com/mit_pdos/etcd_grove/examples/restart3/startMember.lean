@@ -9,8 +9,9 @@ and the peer listener registered closable: an error (with the thread token), or 
 (`common.memberUp`) and a stoppable member's record (`memberStop`).
 
 **`specRestart`, a start after a stop** (R2c, R2d): the same, from the data directory the stop left
-(`srvDiskImage`), `bootstrap`'s restart contract (`common.bootPremiseR`) and the restart's boot
-bundle (`srvRestartBoot`), the peer address and its protocol's right as the stop gave them back.
+(`srvDiskImage`, at the stopped incarnation's names `ρ`) and `bootstrap`'s restart contract
+(`common.bootPremiseR`), the peer address and its protocol's right as the stop gave them back: the
+member started at new names `ρ'` that agree with `ρ` where the cluster sees them (`restartNames`).
 -/
 module
 
@@ -69,8 +70,7 @@ abbrev startMember.specRestart : Prop :=
     (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
-    (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
+    (id : w64) (γ : SrvRaft) (ρ : ReqNames) (γn : NetNames GF)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
@@ -82,15 +82,16 @@ abbrev startMember.specRestart : Prop :=
       peer ↦*□ [common.httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       common.bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ common.commonPremises ∗
       context.isClosedchanInit ∗
-      srvDiskImage γ id ∗ srvRestartBoot γ ctxs ρ E₀ Φs id ∗
+      srvDiskImage γ ρ id ∗
       netHttpOk γn id ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) }}
     (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.restart3.startMember))
       (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #client)) (Val #cluster)) (Val #lg))
   {{ (m : Loc) (err : GoInterface), RET (PairV #m #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (s : Loc) (pl : GoInterface),
-        common.memberUp s ρ E₀ lg γn id ∗ memberStop m s pl γ id peerAddr γn) }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (s : Loc) (pl : GoInterface) (ρ' : ReqNames)
+        (E₀' : apply.AEnv GF), ⌜restartNames ρ ρ'⌝ ∗
+        common.memberUp s ρ' E₀' lg γn id ∗ memberStop m s pl γ id peerAddr γn) }}
 
 end spec
 
