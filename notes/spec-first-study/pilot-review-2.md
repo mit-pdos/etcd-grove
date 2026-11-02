@@ -393,7 +393,7 @@ docstring is package-internal, I note only that it exposes fields, which is fine
     baseInterval` with a negative `baseInterval` is false, which is always), it compacts at a sample
     taken microseconds earlier. The retention is effectively zero, and the loop burns CPU.
   - It is not a panic. Upstream PR etcd-io/etcd#22396 (open) would reject it.
-  - It is mentioned only as a sibling in `issues/etcd-compactor-periodic-tiny-retention.md`. It
+  - It is mentioned only as a sibling in `nonissues/etcd-compactor-periodic-tiny-retention.md`. It
     deserves its own file if the spec keeps excluding it (F3.2).
 - I did not reproduce it with a Go test.
 

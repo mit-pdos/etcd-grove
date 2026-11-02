@@ -2,7 +2,7 @@
 upstream: none
 checked: 2026-11-01
 links: []
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # etcd: a `--quota-backend-bytes` above about 90 TiB crashes etcd at startup with "failed to open database"
@@ -12,6 +12,8 @@ database, in one `mmap`. A mapping larger than the process's free address space 
 amd64 Linux, out of 128 TiB) fails with `cannot allocate memory`, and bbolt refuses one above 256 TiB
 (amd64, arm64; less on 32-bit platforms) with `mmap too large`; either way etcd panics at startup with
 `failed to open database`, a message that does not name the flag.
+
+**Why not an issue:** an absurd configuration (a `--quota-backend-bytes` above about 90 TiB): the proof takes a precondition on it rather than a fix (the user's call, 2026-11-02).
 
 **Expected:** etcd should reject the value at startup with an error naming the flag and its
 maximum, or document the limit; the flag's help ("Sets the maximum size (in bytes) that the etcd
@@ -23,7 +25,7 @@ already rejects other unusable values with such errors.
 warns); the failure is immediate and loud. Every release.
 
 **Reproduction:** `TestLargeQuotaBackendBytesFlag` in
-[`issues/etcd-quota-backend-bytes-mmap-panic/quota_flag_test.go`](etcd-quota-backend-bytes-mmap-panic/quota_flag_test.go),
+[`nonissues/etcd-quota-backend-bytes-mmap-panic/quota_flag_test.go`](etcd-quota-backend-bytes-mmap-panic/quota_flag_test.go),
 copied into `server/embed` at etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28),
 go1.27.3 linux/amd64. It parses `--quota-backend-bytes=1125899906842624` (1 PiB) with etcd's own
 flag set (`Config.AddFlags`, as `etcdmain` does) and starts a single member with `StartEtcd`, in a
@@ -52,7 +54,7 @@ so below `maxMapSize` the limit is the address space: `q = 2^47` (`q + q/10` = 1
 
 ## Proof
 
-yes: `storage.OpenBackend`'s trust-boundary axiom needed the premise `openMmapOk cfg` (the quota
+no: a precondition on the configuration, which the top-level adequacy proof takes, not a fix on the goosed fork; `storage.OpenBackend`'s trust-boundary axiom needed the premise `openMmapOk cfg` (the quota
 not positive, the default, or `q + q/10 ≤ 0xFFFFFFFFFFFF`;
 `Proof/go_etcd_io/etcd/server/v3/storage/InvOpen.lean`), which `NewServer.spec` takes and etcd does
 not check; found by the `axiom` skill (`notes/axiom-review/openbackend.md`). That bound is still

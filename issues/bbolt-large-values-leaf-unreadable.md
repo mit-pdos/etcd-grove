@@ -4,7 +4,7 @@ checked: 2026-11-01
 links:
   - etcd-io/bbolt#931 issue closed: huge values panicking after a refactor shrank MaxAllocSize (fixed by #968); one value, a different cause
   - etcd-io/bbolt#182 issue closed: a slice-bounds panic in leafPageElement.key with small values (corruption); not this
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # bbolt: `Get` panics on values committed together whose sizes add up to more than 2 GiB
@@ -53,7 +53,7 @@ would also wrap (not reproduced: the read panics first).
 
 ## Proof
 
-yes: the bbolt proof's spill (branch `bbolt`, in progress: `SpillFit.lean`) assumes each entry's
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the bbolt proof's spill (branch `bbolt`, in progress: `SpillFit.lean`) assumes each entry's
 key plus value is at most `2^28` bytes and the page size below 1 MiB, so that a written page's
 elements stay inside `MaxAllocSize`; `Put`'s documented bounds do not give it; etcd meets it.
 

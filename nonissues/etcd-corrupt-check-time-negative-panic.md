@@ -12,6 +12,8 @@ blocks-proof: no
 goroutine then panics with `non-positive interval for NewTicker`, ending the process. The flag's
 value is not validated at startup.
 
+**Why not an issue:** an absurd configuration (a negative `--corrupt-check-time`): the proof takes a precondition on it rather than a fix (the user's call, 2026-11-02).
+
 **Expected:** etcd should reject the value at startup with an error naming the flag, as it does for
 the comparable [`--compact-hash-check-time`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/embed/config.go#L1022-L1024)
 (`must be >0`); the flag's help, "Duration of time between cluster corruption check passes.",
@@ -22,7 +24,7 @@ file); the failure is immediate and loud, but the panic message does not name th
 release with the flag (named `--experimental-corrupt-check-time` before #19156).
 
 **Reproduction:** `TestNegativeCorruptCheckTimeFlag` in
-[`issues/etcd-corrupt-check-time-negative-panic/corrupt_check_time_test.go`](etcd-corrupt-check-time-negative-panic/corrupt_check_time_test.go),
+[`nonissues/etcd-corrupt-check-time-negative-panic/corrupt_check_time_test.go`](etcd-corrupt-check-time-negative-panic/corrupt_check_time_test.go),
 copied into `server/embed` at etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28),
 go1.27.3 linux/amd64. It parses `--corrupt-check-time=-1s` with etcd's own flag set
 (`Config.AddFlags`, as `etcdmain` does) and starts a single member with `StartEtcd`, in a child
@@ -47,7 +49,7 @@ a negative interval; `Config.Validate` does not check the field.
 
 ## Proof
 
-no: outside the verified code (the server's monitors are not verified).
+no: a precondition on the configuration, which the top-level adequacy proof takes, not a fix on the goosed fork; outside the verified code (the server's monitors are not verified).
 
 ## Fix
 

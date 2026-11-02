@@ -4,7 +4,7 @@ checked: 2026-11-01
 links:
   - etcd-io/etcd#22396 pr open: related, not this bug (bounds parseCompactionRetention: rejects negative and overflowing retentions); still accepts a positive retention below 10ns such as `5ns`
   - etcd-io/etcd#9485 pr merged: introduced the retry interval min(period, 1h)/10 and `int(period/retryInterval)+1` retentions (2018), the division that is by zero here
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # v3compactor: a periodic auto-compaction retention below 10ns crashes etcd at startup
@@ -12,6 +12,8 @@ blocks-proof: yes
 `etcd --auto-compaction-mode=periodic --auto-compaction-retention=5ns` (any retention strictly
 between 0 and 10ns) is accepted by the flag parsing and then panics while the server is created:
 `runtime error: integer divide by zero`.
+
+**Why not an issue:** an absurd configuration (a periodic retention below 10ns): the proof takes a precondition on it rather than a fix (the user's call, 2026-11-02).
 
 **Expected:** the retention should be rejected with an error, as an unknown
 `--auto-compaction-mode` is
@@ -22,7 +24,7 @@ of an hour, to get there); the member fails loudly at startup, with a stack trac
 error message. No running member is affected.
 
 **Reproduction:** `TestPeriodicTinyRetention` in
-[`issues/etcd-compactor-periodic-tiny-retention/periodic_tiny_retention_test.go`](etcd-compactor-periodic-tiny-retention/periodic_tiny_retention_test.go),
+[`nonissues/etcd-compactor-periodic-tiny-retention/periodic_tiny_retention_test.go`](etcd-compactor-periodic-tiny-retention/periodic_tiny_retention_test.go),
 copied (as `zz_periodic_tiny_retention_test.go`) into `server/embed` at
 etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28), go1.27.3; it follows the flag
 through `parseCompactionRetention` to the `v3compactor.New` call `NewServer` makes:
@@ -44,7 +46,7 @@ and `NewServer` creates the compactor for any non-zero retention
 
 ## Proof
 
-yes: `NewServer`'s statement needs the premise that a periodic retention is at least 10ns in absolute
+no: a precondition on the configuration, which the top-level adequacy proof takes, not a fix on the goosed fork; `NewServer`'s statement needs the premise that a periodic retention is at least 10ns in absolute
 value, which etcd's flag handling does not ensure (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3compactor/New.lean`).
 
 ## Fix

@@ -3,7 +3,7 @@ upstream: none
 checked: 2026-10-31
 links:
   - grpc/grpc-go#9056 issue closed: the same panic message (makeslice: len out of range) from a message mutated while marshaled; not this bug
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # grpc-go: marshaling a message whose encoding is over 2^48 bytes panics instead of failing with ResourceExhausted
@@ -47,7 +47,7 @@ and the send limits run only after `Marshal` returns.
 
 ## Proof
 
-yes: grpc's send side takes the encoded-size premise `Req.wireLen ≤ grpcMsgMax` (2^32) on
+no: the top-level adequacy proof needs no fix on the goosed fork for it; grpc's send side takes the encoded-size premise `Req.wireLen ≤ grpcMsgMax` (2^32) on
 `Invoke` and `NewStream` (`Proof/google_golang_org/grpc/InvGrpc.lean`, `notes/invoke-size.md`),
 which etcd's client does not check; its callers carry it as bounds on keys, values and operations.
 
@@ -65,8 +65,9 @@ itself (`proto/encode.go:190`) and panics the same way.
 ## Notes
 
 grpc-go asks for crashes to go through its CVE process (`P4-grpc-cve-process.md`) rather than a
-public issue: the user decides, together with
-[`etcd-txn-keysonly-reply-alloc-panic`](etcd-txn-keysonly-reply-alloc-panic.md), which is on hold.
+public issue: the user decides. (The etcd side of the same allocation,
+[`etcd-txn-keysonly-reply-alloc-panic`](etcd-txn-keysonly-reply-alloc-panic.md), is not a security
+report for etcd: its client is authenticated, inside etcd's trust boundary.)
 grpc-go's rules differ from etcd's: CLA (not DCO), PR title starting `encoding/proto:`, `Fixes`
 first, a `RELEASE NOTES:` bullet. protobuf-go's `proto.Marshal` panicking on the same message is a
 separate, unreported bug.

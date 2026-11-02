@@ -151,7 +151,7 @@ abbrev NewServer.spec : Prop :=
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain false false false →
   ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
-  -- `issues/etcd-compaction-negative-batch-limit.md`)
+  -- `nonissues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
   -- (2026-10-30, `notes/keylen.md`) the request limit (`MaxRequestBytes`) below the clients'
   -- model's key bound, with the gRPC overhead (`v3rpc.etcdMaxRequestBytesOk`): a scope
@@ -260,7 +260,7 @@ abbrev NewServer.spec : Prop :=
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
-      -- goroutine panics otherwise, `issues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
+      -- goroutine panics otherwise, `nonissues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
       -- snapshot backend
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
@@ -342,7 +342,7 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- (M2's apply side, item 14') the KV names' compaction mode the stand-in's
   ρ.rd.kv.cmp = false →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
-  -- `issues/etcd-compaction-negative-batch-limit.md`)
+  -- `nonissues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
   -- (2026-10-30, `notes/keylen.md`) the request limit (`MaxRequestBytes`) below the clients'
   -- model's key bound, with the gRPC overhead (`v3rpc.etcdMaxRequestBytesOk`): a scope
@@ -446,7 +446,7 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
-      -- goroutine panics otherwise, `issues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
+      -- goroutine panics otherwise, `nonissues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
       -- snapshot backend
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
@@ -534,7 +534,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (M2's apply side, item 14') the KV names' compaction mode the stand-in's
   ρ.rd.kv.cmp = cmp →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
-  -- `issues/etcd-compaction-negative-batch-limit.md`)
+  -- `nonissues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
   -- (2026-10-30, `notes/keylen.md`) the request limit (`MaxRequestBytes`) below the clients'
   -- model's key bound, with the gRPC overhead (`v3rpc.etcdMaxRequestBytesOk`): a scope
@@ -648,7 +648,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
       -- (2026-10-29, the `axiom` skill's `notes/axiom-review/openbackend.md`; the user's decision)
       -- the configuration's quota is one bbolt can map (`storage.openMmapOk`: `OpenBackend`'s
-      -- goroutine panics otherwise, `issues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
+      -- goroutine panics otherwise, `nonissues/etcd-quota-backend-bytes-mmap-panic.md`), for the same
       -- snapshot backend
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises

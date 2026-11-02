@@ -2,7 +2,7 @@
 upstream: none
 checked: 2026-10-31
 links:
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # etcdserver: a Txn of nested keys-only whole-range reads makes every member build a huge reply, and the member that answers it panics (with --max-request-bytes of about 10 MiB or more)
@@ -65,7 +65,7 @@ allocation panics above 2^48 bytes; grpc does not recover the handler's goroutin
 
 ## Proof
 
-yes: the server's gRPC replies are assumed to fit, the workload premise `grpcRepliesFit` of
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the server's gRPC replies are assumed to fit, the workload premise `grpcRepliesFit` of
 `grpc.start` (`Proof/google_golang_org/grpc/InvGrpcServer.lean`, `notes/reply-size.md`), which is
 false of etcd under this client.
 
@@ -96,8 +96,9 @@ GiB), below the panic.
 
 ## Notes
 
-On hold: whether to report it through etcd's private security process is the user's decision
-(2026-11-02); keep this file to what is already public. The fix's tests (`TestCheckTxnRequestNestedOps`,
+Not a security report (the user's call, 2026-11-02): it needs an authenticated client, and etcd's `THREAT_MODEL.md` ("The Client-to-Server Boundary") counts crashes and memory exhaustion from an authenticated client's requests as robustness defects; it also needs non-default flags ("Non-Default & Test-Only Configuration"). File it as a normal issue.
+
+The fix's tests (`TestCheckTxnRequestNestedOps`,
 `TestV3TxnNestedTooManyOps`: 64 nested txns of 64 ranges accepted under 128) fail at the base
 (2026-10-31). The fix is the change [`nonissues/etcd-max-txn-ops-nested`](../nonissues/etcd-max-txn-ops-nested.md)
 calls documentation only: if this is filed, that one is its root cause. The same allocation in

@@ -179,7 +179,7 @@ PROJECTS = [
         # in Go). Then (D43 M3, 2026-10-25) branch `goose-lean-leaderwait` (on bc9c3868c): the
         # leader's raft loop waits for its apply loop before `Advance` when a `Ready` commits a
         # conf change, as a follower's does (4d9282b0f,
-        # nonissues/etcd-leader-advance-before-applyconfchange.md; raft's dynamic mode needs a
+        # issues/etcd-leader-advance-before-applyconfchange.md; raft's dynamic mode needs a
         # `Ready`'s conf changes applied before `Advance`). Then (D43 M4, 2026-10-26) branch
         # `goose-lean-learnerfix` (on 4d9282b0f): a removed local member is no learner, rather
         # than a panic (c00a2dc06, issues/etcd-unary-interceptor-learner-removed.md;

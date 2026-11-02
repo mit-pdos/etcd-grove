@@ -25,7 +25,7 @@ none FALSE-BEH).
   (`embed/config.go:71-72`: mode `periodic`, retention `"0"`).
 - `v3compactor.New` is a trust-boundary axiom whose post is `True`
   (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3compactor/New.lean`, with the premise
-  `ret ≤ -10 ∨ 10 ≤ ret` from `issues/etcd-compactor-periodic-tiny-retention.md`); the server's
+  `ret ≤ -10 ∨ 10 ≤ ret` from `nonissues/etcd-compactor-periodic-tiny-retention.md`); the server's
   `run` sees the compactor only through `compactorOk` (`InvRun.lean`: nil, or `Pause`/`Resume`
   return), a names-only contract.
 - **Compaction requests are outside the server's model**: `apply.dispatchOk` requires
@@ -46,7 +46,7 @@ over mvcc's `store.Compact`). That is the first thing Scope found.
   with a retention duration (an integer means hours, e.g. `1`, the documented example; or a
   duration, `10m`), and `revision` with a revision count (`1000`, the documented example).
 - Premise for `periodic`: a retention of at least 10ns (below, `getRetryInterval` is 0 and `New`
-  divides by zero: `issues/etcd-compactor-periodic-tiny-retention.md`; etcd accepts it).
+  divides by zero: `nonissues/etcd-compactor-periodic-tiny-retention.md`; etcd accepts it).
 - The compactor runs on every member; `run` pauses it on a follower and resumes it on the leader
   (`server.go:762-785`). It starts in `NewServer`, before `Start`
   (`nonissues/etcd-compactor-started-before-start.md`): `Compact`'s contract must hold from then on.
@@ -241,7 +241,7 @@ of its three blockers came from round 1's repairs; one finding a false positive)
 | `Compact` took `storeReader`, which asserts "never compacted" | `storeReaderC` |
 | `Compact` dropped the compactor's permit | a permit `Pc r` travels with the proposal (the compactor's C1 permit; the gRPC caller's `True`) |
 | `New` asked for contracts it never uses | moved to `Run`'s precondition (`runPre`); `New` and the constructors take none |
-| `New`'s `10 ≤ ret` uncited for negative periods | the docstring cites the busy loop (`issues/etcd-compactor-periodic-tiny-retention.md`, etcd-io/etcd#22396) |
+| `New`'s `10 ≤ ret` uncited for negative periods | the docstring cites the busy loop (`nonissues/etcd-compactor-periodic-tiny-retention.md`, etcd-io/etcd#22396) |
 | the clock: what survives the trivial model, a Test test | in its docstring |
 | "possible Go issue": a negative retention busy-loops | false positive: already in `issues/` |
 | `Compact` unprovable today (`dispatchOk` excludes compactions) | expected: the server side's model step (step 3) |

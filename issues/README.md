@@ -37,11 +37,13 @@ blocks-proof: no
 - `links`: one line per related upstream issue, PR or commit: `<repo>#<n> <issue|pr> <state>: <how it
   relates>` (state `open`, `closed`, `merged`), or `<repo>@<sha>: ...`. Related but different ones
   too, saying so.
-- `blocks-proof`: `yes` when the theorem this repository proves for the code, or would state for it
-  (the package's intended spec), is false at the code as etcd uses it: the proof needed a fix in
-  the verified fork, or a premise etcd does not meet. `no` otherwise: the proof goes through with
-  no premise, or with one etcd meets; liveness, performance and metrics are outside the safety
-  theorems. The `## Proof` section says which.
+- `blocks-proof`: `yes` when the bug blocks the top-level adequacy proof: the proof needed a fix on
+  the goosed fork (the branches `etc/goose.py` pins, whose comments list the fixes). `no`
+  otherwise: the proof goes through as is, with a premise or precondition (an absurd
+  configuration, a workload restriction), with a weaker spec of the code, or outside the
+  top-level results (bbolt's and Kubernetes' own proofs; liveness, performance and metrics); a fix
+  the fork carries that the proof does not need is `no` too. The `## Proof` section says which
+  (the user's definition, 2026-11-02).
 
 ## An issue: the report
 
@@ -154,7 +156,15 @@ A non-issue's tests, if any, are in `nonissues/<slug>/`.
 
 ## Reporting privately
 
-etcd's threat model trusts its clients (2026-10-21): a crash a client can cause with a request it
+Judge a finding against etcd's `THREAT_MODEL.md` (upstream `main`): authenticated clients and
+peers are trusted input, so a crash, memory exhaustion or leak they can cause is a robustness
+defect; RBAC is an optional, secondary control, off by default, and name-enumeration leaks behind
+it are hardening; a finding that needs a non-default flag is configuration hardening; `cache`,
+`grpc-proxy` and `contrib/` are best-effort. Only a finding reachable by an unauthenticated actor,
+or exceeding an authenticated actor's privileges in a production component under a
+production-relevant configuration, goes to security@etcd.io (2026-11-02:
+`etcd-txn-keysonly-reply-alloc-panic`, `etcd-lease-timetolive-keys-toctou` and
+`etcd-lease-renew-keys-follower-lag` are not). A crash a client can cause with a request it
 is allowed to send is a robustness bug, not a security issue, and does not go to
 security@etcd.io on that ground alone. A bug that crosses a permission line (with auth enabled, a
 user allowed to write one key crashes every member: `etcd-txn-delete-then-ignore-put`) is the

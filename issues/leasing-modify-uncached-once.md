@@ -3,7 +3,7 @@ upstream: none
 checked: 2026-10-26
 links:
   - etcd-io/etcd#20704 issue closed: related, not this bug (our leasing report, closed by the stale bot as not planned, unfixed; does not list this)
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # clientv3/leasing: a Put or Delete of a key the leasing KV has not cached is applied twice
@@ -63,7 +63,7 @@ which commits the same guarded op again.
 
 ## Proof
 
-yes: the leasing KV's intended spec (each write applied once) is false; the proof describes the
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the leasing KV's intended spec (each write applied once) is false; the proof describes the
 second commit (`leasing_put`/`leasing_delete`, `Proof/go_etcd_io/etcd/client/v3/leasing/`); the
 verified fork carries no fix.
 

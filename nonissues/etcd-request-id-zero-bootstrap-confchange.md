@@ -3,7 +3,7 @@ upstream: none
 checked: 2026-10-26
 links:
   - etcd-io/etcd#20729 pr merged: related, not this bug (the 2^48 event window comment in idutil)
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # etcdserver: a member can issue the request id 0, which raft's bootstrap conf changes carry
@@ -19,7 +19,7 @@ listeners never do); the test shows only the generator's id 0.
 
 ## Proof
 
-yes: the apply side asks that no KV request be registered under a committed conf change's id
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the apply side asks that no KV request be registered under a committed conf change's id
 (`entryWaitOk`, `Proof/go_etcd_io/etcd/server/v3/etcdserver/InvRequest.lean`), so `NewServer.spec`
 takes the premise that the member id's low 16 bits are not 0 (`pkg/v3/idutil/Defs.lean`,
 `idNoZero`), which etcd does not ensure.

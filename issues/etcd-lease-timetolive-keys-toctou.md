@@ -3,7 +3,7 @@ upstream: none
 checked: 2026-11-02
 links:
   - etcd-io/etcd#15656 pr merged: related, not this bug (GHSA-3p4g-rcw5-8298, CVE-2023-32082: added `checkLeaseTimeToLive`, the check this race gets past)
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # etcdserver: `LeaseTimeToLive` with `Keys` returns key names the caller may not read
@@ -67,7 +67,7 @@ nothing about who may read the lease's keys.
 
 ## Proof
 
-yes: `EtcdServer.LeaseTimeToLive.spec`
+no: the top-level adequacy proof needs no fix on the goosed fork for it; `EtcdServer.LeaseTimeToLive.spec`
 (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__LeaseTimeToLive.lean`) states the
 permission check over the keys it checked, not the keys it returns (its margin); the intended
 guarantee, a key returned only to a user who may read it, is false here.
@@ -82,7 +82,7 @@ semantics (the whole request fails if any key is unreadable).
 
 ## Notes
 
-On hold (2026-11-02): it crosses a permission line (key names a user may not read), so whether it
-goes through etcd's private security process (security@etcd.io) is the user's decision; nothing
-is to be filed publicly until then. The same shape for `LeaseRenew`'s write check is
+Not a security report (checked against etcd's `THREAT_MODEL.md`, 2026-11-02): RBAC is "an optional, secondary control" there, off by default, and "name-enumeration leaks behind the transport boundary are hardening concerns, not vulnerabilities"; it leaks key names (not values) to an authenticated user, only with auth enabled. File it as a normal issue.
+
+The same shape for `LeaseRenew`'s write check is
 `nonissues/etcd-lease-renew-keys-follower-lag.md`.

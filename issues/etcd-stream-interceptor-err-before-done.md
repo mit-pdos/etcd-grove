@@ -4,7 +4,7 @@ checked: 2026-11-01
 links:
   - etcd-io/etcd#12196 pr merged: added cancellableContext (the window dates from it); not about the Err/Done order
   - golang/go#75533 issue closed: the same Err-before-Done window in Go's own cancelCtx, fixed by golang/go@8ca209ec39
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # server: a require-leader stream's context returns a non-nil Err while its Done channel is still open
@@ -42,7 +42,7 @@ while `Err` returns the stored reason without looking at `Done()`
 
 ## Proof
 
-yes: the require-leader branch is excluded by the premise `v3rpc.runsNoRequireLeader` (no client asks
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the require-leader branch is excluded by the premise `v3rpc.runsNoRequireLeader` (no client asks
 for a leader on a stream), which etcd's clients do not meet
 (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvStreamInterceptor.lean`): with the window
 the wrapper cannot meet Perennial's `isContext`.

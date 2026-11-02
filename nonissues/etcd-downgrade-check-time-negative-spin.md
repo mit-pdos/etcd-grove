@@ -13,6 +13,8 @@ blocks-proof: no
 without pause for the member's lifetime: an idle single-member cluster uses a whole core (on the
 leader, each iteration also reads the cluster's versions). The flag's value is not validated.
 
+**Why not an issue:** an absurd configuration (a negative `--downgrade-check-time`): the proof takes a precondition on it rather than a fix (the user's call, 2026-11-02).
+
 **Expected:** etcd should reject the value at startup with an error naming the flag, as it does for
 the comparable [`--compact-hash-check-time`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/embed/config.go#L1022-L1024)
 (`must be >0`); the flag's help, "Duration of time between two downgrade status checks.", gives no
@@ -22,7 +24,7 @@ other meaning to a negative value.
 Every release with the flag (named `--experimental-downgrade-check-time` before #19328).
 
 **Reproduction:** `TestNegativeDowngradeCheckTimeFlag` in
-[`issues/etcd-downgrade-check-time-negative-spin/downgrade_check_time_test.go`](etcd-downgrade-check-time-negative-spin/downgrade_check_time_test.go),
+[`nonissues/etcd-downgrade-check-time-negative-spin/downgrade_check_time_test.go`](etcd-downgrade-check-time-negative-spin/downgrade_check_time_test.go),
 copied into `server/embed` at etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28),
 go1.27.3 linux/amd64. It parses `--downgrade-check-time=-1s` with etcd's own flag set
 (`Config.AddFlags`, as `etcdmain` does), starts a single member with `StartEtcd` and measures the
@@ -45,7 +47,7 @@ fires at once for a negative `t`; `Config.Validate` does not check the field.
 
 ## Proof
 
-no: outside the verified code.
+no: a precondition on the configuration, which the top-level adequacy proof takes, not a fix on the goosed fork; outside the verified code.
 
 ## Fix
 

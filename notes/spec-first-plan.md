@@ -385,7 +385,7 @@ trust-boundary axioms, which no proof will ever check):
   links mutually recursive); liveness, which no phase sees (`c01f2275b8`: the kv example's replica
   never answered requests a snapshot covered, found by a Go test).
 - **Writing specs finds Go bugs before any proof**: the compaction specs (`3f2263f694`) found
-  `issues/etcd-compaction-delete-then-put.md` and `issues/etcd-compaction-negative-batch-limit.md`.
+  `issues/etcd-compaction-delete-then-put.md` and `nonissues/etcd-compaction-negative-batch-limit.md`.
 
 **Limits.** 64 of 605 (for the large classes, about ±12 points at 95%); one agent per commit, no
 second opinion; "would have found it earlier" is a counterfactual judgment. Sampling by "modifies

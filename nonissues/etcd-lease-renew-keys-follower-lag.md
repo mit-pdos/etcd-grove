@@ -2,7 +2,7 @@
 upstream: none
 checked: 2026-11-02
 links: []
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # etcdserver: a `LeaseRenew` through a lagging follower checks the follower's stale key set
@@ -28,14 +28,16 @@ failpoints are process-wide in the integration framework).
 
 ## Proof
 
-yes: `EtcdServer.LeaseRenew.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__LeaseRenew.lean`)
+no: the top-level adequacy proof needs no fix on the goosed fork for it; `EtcdServer.LeaseRenew.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__LeaseRenew.lean`)
 states the check over the local lessor at a lower bound, nothing of the renewed lease (its margin
 names this gap); the intended guarantee, no renewal of a lease holding a key the user may not
 write, would be false here.
 
 ## Notes
 
+Not a security report if reproduced (checked against etcd's `THREAT_MODEL.md`, 2026-11-02): it needs auth enabled, which is off by default and "an optional, secondary control" there, and a stale check on a lagging follower lets a user renew, not read or write, a lease holding a key they may not write: hardening, not privilege escalation.
+
 Fix, if wanted: on a follower, run the check on the leader (pass the principal through leasehttp and
 check in the leader's handler), or wait for the follower's applied index to reach the leader's
 commit index (a read index) before the check. If a test confirms it, it crosses a permission line,
-like `etcd-lease-timetolive-keys-toctou` (on hold for the private security process).
+like `etcd-lease-timetolive-keys-toctou`.

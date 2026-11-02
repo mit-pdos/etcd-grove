@@ -5,7 +5,7 @@ links:
   - etcd-io/etcd#21869 pr closed: same bug and fix (delete k, not key, in EvictRange); closed unmerged by serathius citing the AI-contribution policy
   - etcd-io/etcd#21589 pr closed: same bug and fix, bundled with a lease-freshness fix for #19091; closed unmerged by its author
   - etcd-io/etcd#20704 issue closed: related, not this bug (our leasing report, closed by the stale bot as not planned, unfixed; does not list this)
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # clientv3/leasing: after a failed range delete, the leasing KV keeps serving keys etcd deleted
@@ -36,7 +36,7 @@ error path.
 
 ## Proof
 
-yes: the leasing KV's intended spec (linearizable reads) is false after such an error; the proof
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the leasing KV's intended spec (linearizable reads) is false after such an error; the proof
 states what the code does (`LeaseCacheSt.evictRange`,
 `Proof/go_etcd_io/etcd/client/v3/leasing/leaseCache__EvictRange.lean`); the verified fork carries
 no fix.

@@ -7,7 +7,7 @@ links:
   - etcd-io/bbolt#262 issue closed: a fault in rollback's db.meta (a concurrent remap), a different cause
   - etcd-io/bbolt#152 issue closed: a rollback panic with NoFreelistSync, a different path
   - etcd-io/bbolt#331 issue closed: a crash between the data pages' sync and the meta's, a different path
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # bbolt: a read transaction's snapshot changes after a `Commit` fails once its meta page is written
@@ -37,7 +37,7 @@ FAIL	go.etcd.io/bbolt	0.015s
 
 ## Proof
 
-yes: bbolt's `Commit` cannot have a spec that keeps open readers' snapshots when `writeMeta`
+no: the top-level adequacy proof needs no fix on the goosed fork for it; bbolt's `Commit` cannot have a spec that keeps open readers' snapshots when `writeMeta`
 fails after the write reached the file; the bbolt proof (branch `bbolt`, unfinished) found it
 stating `Commit`'s error paths, and `Tx.rollback`'s writer spec
 (`Spec/go_etcd_io/bbolt/Tx__rollback_w.lean` there) requires the current meta to be the

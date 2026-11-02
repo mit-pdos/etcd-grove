@@ -2,7 +2,7 @@
 upstream: none
 checked: 2026-11-02
 links:
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # etcdserver: a restarted member can reissue its previous run's request ids if the clock went back
@@ -23,7 +23,7 @@ instead of two members.
 
 ## Proof
 
-yes: the ids' freshness across a member's runs is the assumption of the trusted model of
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the ids' freshness across a member's runs is the assumption of the trusted model of
 `Generator.Next` (no other run of the member issued the id; the restart plan's R2c,
 `Proof/go_etcd_io/etcd/server/v3/etcdserver/InvRestart.lean`, `notes/restart-plan.md`), which
 etcd does not ensure.

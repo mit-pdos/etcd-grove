@@ -3,7 +3,7 @@ upstream: none
 checked: 2026-10-26
 links:
   - etcd-io/etcd#20729 pr merged: related, not this bug (ours: the 2^48 event window comment in idutil; no cross-member collision)
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # etcdserver: request ids of two members collide when their member ids agree in the low 16 bits
@@ -22,7 +22,7 @@ request committed while the other member's request with that id is pending.
 
 ## Proof
 
-yes: the apply side of the raft contract needs every committed entry's id claimed in one
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the apply side of the raft contract needs every committed entry's id claimed in one
 cluster-wide map, i.e. the members' prefixes distinct (`batchCommitted`,
 `Proof/go_etcd_io/etcd/server/v3/etcdserver/InvRequest.lean`; `pkg/v3/idutil/Defs.lean`), which
 etcd does not ensure.

@@ -2,7 +2,7 @@
 upstream: none
 checked: 2026-11-02
 links:
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # etcdserver: a transaction nested about 5000 deep panics every member, permanently (with --max-txn-ops of 5000 or more)
@@ -47,7 +47,7 @@ which hits the same limit and
 
 ## Proof
 
-yes: `proto.MarshalIRR.spec` takes the premise `apply.irrDepthOk` (the request at most 9999
+no: the top-level adequacy proof needs no fix on the goosed fork for it; `proto.MarshalIRR.spec` takes the premise `apply.irrDepthOk` (the request at most 9999
 messages deep, `Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/IrrDepth.lean`), which the gRPC
 handler discharges only under `NewServer.spec`'s configuration premise `v3rpc.maxTxnOpsOk`
 (`--max-txn-ops` at most 4999, `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/RecvLimit.lean`);

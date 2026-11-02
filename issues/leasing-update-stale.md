@@ -3,7 +3,7 @@ upstream: reported
 checked: 2026-11-01
 links:
   - etcd-io/etcd#20704 issue closed: this bug for cases 3 and 4 (its bugs 3 and 1: Update increments Version, Update after Delete); cases 1-2 (WithIgnoreValue, WithLease) not in it; closed by the stale bot as not planned, unfixed
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # clientv3/leasing: after a put of a cached key, the leasing KV serves a key-value etcd does not have
@@ -58,7 +58,7 @@ response is newer than the cached mod revision; it never sees the put's options 
 
 ## Proof
 
-yes: the leasing KV's intended spec is false here; the proof characterizes when `Update` tracks
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the leasing KV's intended spec is false here; the proof characterizes when `Update` tracks
 etcd (`leasing_update_tracks_put`) and states the divergences (`leasing_update_ignoreValue`,
 `leasing_update_out_of_order`, `Proof/go_etcd_io/etcd/client/v3/leasing/Results.lean`); the
 verified fork carries no fix.

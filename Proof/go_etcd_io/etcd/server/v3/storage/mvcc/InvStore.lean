@@ -1189,7 +1189,7 @@ one `Meta` put after a start below the backend's `P.limit ≤ 2^57`) stays withi
 abbrev rangeLimitMax : Int := 2 ^ 56
 
 /-- **The store's batch limit** (the configuration's `CompactionBatchLimit`; `NewStore`'s premise): not
-negative (`issues/etcd-compaction-negative-batch-limit.md`: `NewStore` replaces `0` by the default,
+negative (`nonissues/etcd-compaction-negative-batch-limit.md`: `NewStore` replaces `0` by the default,
 and a negative one makes the job's loop run forever: its range then reads nothing and the
 loop never reaches its end condition), and at most `rangeLimitMax` (the
 backend-compaction stage's scope premise, decision O3 and review round 2: the job's range then
@@ -3999,7 +3999,7 @@ theorem muHeld_cmp_idx (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
 
 /-- A store (persistent): its lessor, logger, and the two locks' guards; and what compaction uses:
 the configuration (a positive `CompactionBatchLimit`: the job's loop needs it to end,
-`issues/etcd-compaction-negative-batch-limit.md`), the hash storage. **Nothing of its objects and
+`nonissues/etcd-compaction-negative-batch-limit.md`), the hash storage. **Nothing of its objects and
 physical names** (D22 receiver epochs, S5b, 2026-10-22: until then the backend of its instance
 `γ.kb`, registered, with the batch lock's deposit witness, the batch lock's invariant `hookP`, the
 index, the scheduler, at the pinned objects): they are the current ones, which `store.Restore`

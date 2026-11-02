@@ -8,7 +8,7 @@ links:
   - etcd-io/raft#456 issue open: related, not this bug: the TLA+ spec lacks the hasUnappliedConfChanges guard
   - etcd-io/etcd#12136 issue closed: related, not this bug: pendingConfIndex vs applied with AutoLeave (liveness), fixed by etcd-io/etcd#12137
   - etcd-io/raft#469 pr open: related, not this bug: adds the unapplied-conf-change campaign guard to the TLA+ spec
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # raft: calling `Advance` before applying a conf change, as `Node.Advance` allows, lets two nodes commit different entries at one index
@@ -62,7 +62,7 @@ its commit index.
 
 ## Proof
 
-yes: the reconfiguration specs take the order as a premise (`node.Advance.dynamicSpec`'s
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the reconfiguration specs take the order as a premise (`node.Advance.dynamicSpec`'s
 `NoConfChangeIn`, `Spec/go_etcd_io/raft/v3/node__Advance.lean`; `RawNode.ApplyConfChange.spec`,
 `Spec/go_etcd_io/raft/v3/RawNode__ApplyConfChange.lean`), which raft's documentation does not
 require and etcd's leader does not meet upstream (the verified etcd fork makes its leader wait).

@@ -2,7 +2,7 @@
 upstream: none
 checked: 2026-11-02
 links: []
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # auth: a role or user record grown past bbolt's value limit makes every member exit while applying a grant
@@ -17,7 +17,7 @@ member, and again on replay.
 
 ## Proof
 
-yes: `auth.NewAuthStore`'s axiom takes the premise `authRecordsFit`
+no: the top-level adequacy proof needs no fix on the goosed fork for it; `auth.NewAuthStore`'s axiom takes the premise `authRecordsFit`
 (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvBoot.lean`), a premise of `NewServer.spec` that
 etcd does not enforce.
 

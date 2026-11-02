@@ -6,7 +6,7 @@ links:
   - etcd-io/etcd#22550 pr open: fix for #22209 (records the lease in the key index); ahrtr objects to the design and suggests documenting the limitation
   - etcd-io/etcd#22212 pr closed: earlier fix for #22209 (lessor lookup at the latest revision), closed by its author without review
   - etcd-io/etcd#21791 pr merged: introduced the regression (FastKeysOnly)
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # etcdserver: keys-only ranges return lease 0 unless sorted by value (regression in v3.7)
@@ -35,7 +35,7 @@ FAIL
 
 ## Proof
 
-yes: the server's range model zeroes the lease of a fast keys-only read (`leaseZ`,
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the server's range model zeroes the lease of a fast keys-only read (`leaseZ`,
 `Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/InvTxn.lean`), and the client's get model holds only
 for gets that are not keys-only (`Proof/go_etcd_io/etcd/cache/v3/InvEtcd.lean`, unit V2).
 

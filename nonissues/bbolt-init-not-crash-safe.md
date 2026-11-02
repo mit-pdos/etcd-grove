@@ -5,7 +5,7 @@ links:
   - etcd-io/bbolt#567 issue closed: this bug (power failure during initialization), closed 2026-02-21 by documenting it
   - etcd-io/bbolt#1151 pr merged: the documentation (README, known issues: "Bolt db can be corrupted during the initialization phase due to abrupt power failure")
   - etcd-io/etcd#16596 issue closed: etcd fails to start after a power failure during the first start (found with LazyFS)
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # bbolt: a crash while creating a new database can leave a file that never opens
@@ -23,7 +23,7 @@ here (found by reasoning about Linux's write-back order).
 
 ## Proof
 
-yes: a crash-safety theorem of bbolt's `Open` would be false here; bbolt has no crash proof (the
+no: the top-level adequacy proof needs no fix on the goosed fork for it; a crash-safety theorem of bbolt's `Open` would be false here; bbolt has no crash proof (the
 old one had no crash semantics, `old/bbolt/notes/STATUS-bbolt.md`), and the example minibolt
 initializes differently on purpose (`examples/bboltfs/README.md`, "One deliberate difference from
 bbolt: init"), as a bbolt proof would need.

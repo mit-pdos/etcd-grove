@@ -7,7 +7,7 @@ links:
   - etcd-io/etcd#22082 issue open: related, not this bug (same-session key recreated with a newer create revision; Unlock deletes it unfenced, here Lock returns without checking myRev)
   - etcd-io/etcd#22115 pr open: related, not this bug (fences Unlock with IsOwner; Lock's final existence-only check unchanged)
   - etcd-io/etcd#22387 pr open: related (fixes #19597): Lock returns ErrSessionExpired when its key is deleted during the wait, which narrows this bug but does not fix it (deletion and recreation between Lock's RPCs): the test still fails in 15 of 20 runs with it (2026-10-18)
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # concurrency: Mutex.Lock returns while another session holds the lock
@@ -34,7 +34,7 @@ FAIL
 
 ## Proof
 
-yes: the proved spec of `Lock` has a weaker outcome, `keyRecreated` (the key present with a later
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the proved spec of `Lock` has a weaker outcome, `keyRecreated` (the key present with a later
 create revision, not `lockedAt`), so mutual exclusion holds only for one `Mutex` per session and
 prefix (`Proof/go_etcd_io/etcd/client/v3/concurrency/InvMutex.lean`); the verified fork carries no
 fix.

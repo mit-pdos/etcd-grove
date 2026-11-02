@@ -4840,7 +4840,7 @@ code forced:
   job's loop ends when a batch is short of the limit; the backend reads a non-positive limit as
   none); `NewStore` takes `0 ≤ cfg.CompactionBatchLimit` (a zero limit is defaulted: `mvccInit`
   fixes `defaultCompactionBatchLimit = 1000`), the premise that the code's unvalidated flag needs
-  (`issues/etcd-compaction-negative-batch-limit.md`, reproduced).
+  (`nonissues/etcd-compaction-negative-batch-limit.md`, reproduced).
 
 ### The compaction over the real backend (merge, 2026-10-13)
 
@@ -7965,7 +7965,7 @@ constructor contracts false. D14 settles the three.
 - **D14e: the background goroutines, the cheap option (the user's decision, 2026-10-17).**
   Configuration premises turn them off or make them harmless; their full modelling is open work.
   `cfg.AutoCompactionRetention = 0` (no compactor: `v3compactor.New` and `Run` are not reached;
-  also sidesteps `issues/etcd-compactor-periodic-tiny-retention.md` and
+  also sidesteps `nonissues/etcd-compactor-periodic-tiny-retention.md` and
   `nonissues/etcd-compactor-started-before-start.md`); the `LeaseCheckpoint` feature off (no
   checkpointer installed: the lessor's `runLoop` never calls one, and a non-primary lessor's loop
   only takes its lock); the peers' URLs valid (`types.NewURLs` succeeds on each member's: no
@@ -18769,7 +18769,7 @@ Three decisions, each the recommended option:
 - *The leader's `Advance`.* In the dynamic mode `node.Advance` asks that the committed log's conf
   entries be applied first (A1, `NoConfIn ds ca`); etcd's raft loop waits for its apply loop only on
   a follower or candidate, the leader calls `Advance` at once
-  (`nonissues/etcd-leader-advance-before-applyconfchange.md`, a real safety gap), so no proof over that
+  (`issues/etcd-leader-advance-before-applyconfchange.md`, a real safety gap), so no proof over that
   code. **Decided: the fork fix** (M3a), the upstream candidate's: the leader does the follower's
   second `notifyc` send (fork branch `goose-lean-leaderwait`, `4d9282b0f`). A change to the verified
   code, like the earlier fork fixes; the alternative, a premise, would have been unsound.

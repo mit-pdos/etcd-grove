@@ -3,7 +3,7 @@ upstream: none
 checked: 2026-11-01
 links:
   - etcd-io/etcd#13777 issue closed: related, not this bug (stabilizing the compaction-batch-limit flag; no validation discussed)
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # mvcc: a negative --compaction-batch-limit makes every compaction run forever
@@ -12,6 +12,8 @@ With `--compaction-batch-limit` set to a negative number, which etcd accepts wit
 first compaction never finishes: it rescans the compacted range in a loop, force-committing the
 backend every 10 ms, never records that it finished, and every later compaction waits behind it, so
 the database is never compacted again.
+
+**Why not an issue:** an absurd configuration (a negative `--compaction-batch-limit`): the proof takes a precondition on it rather than a fix (the user's call, 2026-11-02).
 
 **Expected:** the flag should be rejected at startup, as etcd's
 [`Config.Validate`](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/embed/config.go#L1022-L1024)
@@ -24,7 +26,7 @@ quota alarm, and the `Compact` call that started it never returns when `physical
 releases since the flag was added.
 
 **Reproduction:** `TestCompactionNegativeBatchLimit` in
-[`issues/etcd-compaction-negative-batch-limit/compaction_negative_batch_limit_test.go`](etcd-compaction-negative-batch-limit/compaction_negative_batch_limit_test.go),
+[`nonissues/etcd-compaction-negative-batch-limit/compaction_negative_batch_limit_test.go`](etcd-compaction-negative-batch-limit/compaction_negative_batch_limit_test.go),
 copied (as `zz_compaction_negative_batch_limit_test.go`) into `server/storage/mvcc` at
 etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-10-28), go1.27.3; the flag's value
 reaches `StoreConfig.CompactionBatchLimit` unchanged:
@@ -49,7 +51,7 @@ and no length is below a negative number, so the loop never exits.
 
 ## Proof
 
-yes: `NewStore`'s spec takes `0 ≤ cfg.CompactionBatchLimit` as a premise, which etcd's flag
+no: a precondition on the configuration, which the top-level adequacy proof takes, not a fix on the goosed fork; `NewStore`'s spec takes `0 ≤ cfg.CompactionBatchLimit` as a premise, which etcd's flag
 handling does not ensure (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/NewStore.lean`).
 
 ## Fix

@@ -3,7 +3,7 @@ upstream: none
 checked: 2026-11-01
 links:
   - etcd-io/etcd#20418 issue closed: stale reads from a paused process (robustness); different cause
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # etcdserver: a Txn with comparisons and no operations returns a stale result from a member that is behind
@@ -47,7 +47,7 @@ so it is true for a txn with no operations.
 
 ## Proof
 
-yes: the server's model has the same rule, so a compare-only txn's reply carries no linearization
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the server's model has the same rule, so a compare-only txn's reply carries no linearization
 point, and the linearizability result of `examples/linkvtxn` takes the premise that the workload
 sends none (`GenIn`, `Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/Calls.lean`).
 

@@ -131,7 +131,7 @@ Decide before the `NewServer` glue, and update the issue's proof section.
 **F2.2 (Tier 1, minor: no unneeded premise / premise stricter than the parser).** `mode = "periodic" → 10 ≤ ret`
 (New.lean). etcd accepts negative periods (`time.ParseDuration`, embed/etcd.go:940), and the code runs with
 them without panicking. It busy-loops with zero effective retention, but a WP is partial correctness.
-- `issues/etcd-compactor-periodic-tiny-retention.md` itself says the true statement needs only
+- `nonissues/etcd-compactor-periodic-tiny-retention.md` itself says the true statement needs only
   `ret ≤ -10 ∨ 10 ≤ ret`.
 - Phase 0's C2 draft says "for any accepted retention", so this premise excludes configurations C2 claims.
 - With a negative period, `perPermit`'s full-window clause is trivial (`clockLb T` from `stampAt_clockLb`,

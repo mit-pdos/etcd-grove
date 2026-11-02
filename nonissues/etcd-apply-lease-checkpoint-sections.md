@@ -4,7 +4,7 @@ checked: 2026-11-01
 links:
   - etcd-io/etcd#13508 pr merged: related, not this bug (adds --experimental-enable-lease-checkpoint-persist, the persistence whose atomicity fails here)
   - etcd-io/etcd#17132 issue closed: related, not this bug (TTLs reset on restart because checkpoints were not persisted at all)
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # server: a lease checkpoint entry is not persisted atomically with its consistent index
@@ -22,7 +22,7 @@ revoked before its TTL, and the lost checkpoint can only lengthen a lease, never
 
 ## Proof
 
-yes: `applierV3backend.LeaseCheckpoint`'s triple takes a request with at most one checkpoint
+no: the top-level adequacy proof needs no fix on the goosed fork for it; `applierV3backend.LeaseCheckpoint`'s triple takes a request with at most one checkpoint
 (`Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/applierV3backend__LeaseCheckpoint.lean`), a
 premise etcd does not meet (the lessor batches up to 1000); today the workload has no leases
 (`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`).

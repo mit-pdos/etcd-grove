@@ -3,7 +3,7 @@ upstream: none
 checked: 2026-11-02
 links:
   - etcd-io/etcd#17780 issue closed: related, not this bug (the same restore path: a crash during a compaction made the revision go back; fixed by reading the scheduled record for the current revision)
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # mvcc: a member restored mid-way through a compaction at revision 0 has compaction revision -1, where the others have 0
@@ -26,7 +26,7 @@ unfinished-compaction backend by hand.
 
 ## Proof
 
-yes: `EtcdServer.Compact.spec` takes the scope restriction `1 ≤ r` (no compaction at revision `0`,
+no: the top-level adequacy proof needs no fix on the goosed fork for it; `EtcdServer.Compact.spec` takes the scope restriction `1 ≤ r` (no compaction at revision `0`,
 `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Compact.lean`), which etcd does not enforce;
 without it, `store.Restore`'s premise `c ≤ c'` is false in this corner.
 

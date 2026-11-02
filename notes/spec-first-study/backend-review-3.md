@@ -146,7 +146,7 @@ user".
 **R3-4 (minor, documentation).**
 - `batchLimitOk`'s docstring says a negative limit "would make the job's loop read nothing". That is
   wrong. The backend treats a non-positive limit as unlimited (`batch_tx.go:207-209`), so the first
-  pass reads everything and the loop never ends (`issues/etcd-compaction-negative-batch-limit.md`,
+  pass reads everything and the loop never ends (`nonissues/etcd-compaction-negative-batch-limit.md`,
   "What happens"). Say "loops forever (the issue)".
 - `etcdserver/Results.lean:792` still describes the premise as `0 ≤ CompactionBatchLimit`.
 
@@ -306,5 +306,5 @@ this round's batch, with the exit criterion attached.
 - The exact shape of D22's `srvWTPool` change.
 - The `◇ delKey` cost beyond the sites counted.
 
-**No new Go bug.** `issues/etcd-compaction-negative-batch-limit.md` already covers the negative-limit
+**No new Go bug.** `nonissues/etcd-compaction-negative-batch-limit.md` already covers the negative-limit
 case, which the new docstring misdescribes (R3-4).

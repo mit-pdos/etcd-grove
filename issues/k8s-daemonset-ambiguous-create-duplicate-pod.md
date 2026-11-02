@@ -6,7 +6,7 @@ links:
   - kubernetes/kubernetes#138181 pr merged: the same assumption for deletes ("any failure to delete the pod means that we will never observe the delete"); not this bug
   - kubernetes/kubernetes#139657 pr open: the controller robustness framework whose MaxOnePodPerNode this breaks; its injected faults never reach the server (still open 2026-11-01, head now 806c3e93)
   - kubernetes/enhancements#5647 issue open: KEP-5647, which tracks only successful writes; does not discuss writes with unknown outcome
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # DaemonSet controller creates a second pod on a node after a pod create that is committed but returns an error
@@ -65,7 +65,7 @@ satisfied, and `manage` creates a pod on a node whose committed pod the cache ha
 
 ## Proof
 
-yes: the planned DaemonSet theorem takes the model API server with `AmbiguousWrites` off (a failed
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the planned DaemonSet theorem takes the model API server with `AmbiguousWrites` off (a failed
 write had no effect), a premise real API servers do not meet
 (`examples/k8sdaemonset/apimodel/doc.go`, "Failures"; `ambiguous_create_breaks_S1` in
 `Proof/k8s_io/kubernetes/pkg/controller/daemon/S1Model.lean`).

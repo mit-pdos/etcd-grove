@@ -3,7 +3,7 @@ upstream: none
 checked: 2026-11-02
 links:
   - etcd-io/etcd#10907 pr merged: related, not this bug (added RoleAdd's empty-name check, the only name check besides UserAdd's; no length bound)
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # auth: adding a user or role with a name longer than 32768 bytes makes every member exit
@@ -43,7 +43,7 @@ as fatal. Nothing on the request path bounds the name below the request size lim
 
 ## Proof
 
-yes: the auth store's contract (`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Contracts.lean`)
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the auth store's contract (`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Contracts.lean`)
 says `UserAdd`/`RoleAdd` return for any request, false here; the proof bounds the names by
 `maxKeySize` in the workload clause (`rqOk`, `apply/InvRequest.lean`), a premise on clients that
 etcd does not enforce.

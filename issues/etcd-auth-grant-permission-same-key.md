@@ -3,7 +3,7 @@ upstream: known
 checked: 2026-11-02
 links:
   - etcd-io/etcd#21845 pr open: same bug and fix (scan the same-key entries for the exact `(Key, RangeEnd)` pair before appending), by an outside contributor, 2026-05-29; labeled `stale` and `needs-ok-to-test`, no review; its unit test (`TestRoleGrantPermissionSameKeyDifferentRangeEnd`) checks the re-grant replaces the type, not the permission check
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # auth: re-granting a permission on a range does not change its type when the role has another permission with the same start key
@@ -48,7 +48,7 @@ so when another permission with the same key comes first, the matching one is ne
 
 ## Proof
 
-yes: the verified fork replaces every permission on the range (`acafa0317`, `etc/goose.py`); the
+no: the goosed fork carries a fix, but the top-level adequacy proof does not need it; the verified fork replaces every permission on the range (`acafa0317`, `etc/goose.py`); the
 auth model's step allows both outcomes (`Proof/go_etcd_io/etcd/server/v3/auth/Steps.lean`,
 `roleGrantPermissionR`).
 

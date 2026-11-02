@@ -7,7 +7,7 @@ links:
   - etcd-io/etcd#22408 pr open: related, not this bug (the same retry loop: back-off and GetTimeout never read)
   - etcd-io/etcd#21536 issue closed: related, not this bug (Get(WithRev) with revision gaps; fixed by #21540)
   - etcd-io/etcd#20691 pr merged: related (made the demux keep a min/max revision range, where Init's purge comes from)
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # cache: the cache never becomes ready again after a compaction cancels its upstream watch
@@ -33,7 +33,7 @@ FAIL
 
 ## Proof
 
-yes: the verified fork carries the fix (`64313a1f8`, fork branch `cache-ready-after-retry`); the bug
+no: the goosed fork carries a fix, but the top-level adequacy proof does not need it; the verified fork carries the fix (`64313a1f8`, fork branch `cache-ready-after-retry`); the bug
 itself is liveness (readiness never set), which the cache's safety specs do not state.
 
 ## Fix

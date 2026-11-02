@@ -3,7 +3,7 @@ upstream: none
 checked: 2026-10-26
 links:
   - etcd-io/etcd#20704 issue closed: related, not this bug (our leasing report, closed by the stale bot as not planned, unfixed; does not list this)
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # clientv3/leasing: a range delete goes through while another client still caches a key in the range
@@ -46,7 +46,7 @@ guard holds.
 
 ## Proof
 
-yes: the leasing theorems take the leasing protocol as a premise (`LeasingProtocol`,
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the leasing theorems take the leasing protocol as a premise (`LeasingProtocol`,
 `Proof/go_etcd_io/etcd/client/v3/leasing/InvLeasingModel.lean`: no write to a key while another
 client holds its lease), and this lets leasing clients break it; `waitRescind`'s spec has a third
 outcome, `nil` with no promise. The verified fork carries no fix.

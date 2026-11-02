@@ -2,7 +2,7 @@
 upstream: none
 checked: 2026-10-16
 links:
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # backend: a put whose stored value exceeds bbolt's MaxValueSize makes the member exit
@@ -17,7 +17,7 @@ configuration.
 
 ## Proof
 
-yes: the backend's `UnsafePut`/`UnsafeSeqPut` specs take the size bounds as premises
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the backend's `UnsafePut`/`UnsafeSeqPut` specs take the size bounds as premises
 (`Spec/go_etcd_io/etcd/server/v3/storage/backend/batchTxBuffered__UnsafePut.lean`), passed to mvcc's
 puts as `PutOk` (`BackendBridge.lean`); etcd meets them only while `--max-request-bytes` stays below
 about 2 GiB, which it does not check.

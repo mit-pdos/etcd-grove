@@ -549,12 +549,15 @@ In status-history.md: "Durability stage II (p)", "Durability stage II (s)" (2026
 `issues/` holds only bugs with a Go test that fails at current upstream `main` (etcd `1573d5941`,
 or `a2e3642bc` for the findings added since; raft `c51f010c8`, bbolt `a4ef19710`; Kubernetes
 v1.37.2, grpc-go v1.85.0, Go 1.27.3) and reaches the bug the way etcd, or a documented user of a
-public package, uses the code: 73 of them, each written as the report we would file (title, what
+public package, uses the code: 68 of them, each written as the report we would file (title, what
 happens, Expected, Impact, Reproduction with the pasted failing output, Cause; `issues/README.md`),
-its test in `issues/<slug>/`. The other 82 findings (code reading, preconditions etcd meets,
-documentation, tests only through internals) are in `nonissues/`, each with its reason. Every
-file says whether it blocks the proof (`blocks-proof:`, 51 issues and 14 non-issues), read against
-the theorem proved for the code or its intended spec. The upstream drafts (`issues/upstream/`) are
+its test in `issues/<slug>/`. The other 87 findings (code reading, preconditions etcd meets,
+documentation, tests only through internals, absurd configurations) are in `nonissues/`, each with
+its reason. Every
+file says whether it blocks the proof (`blocks-proof:`, 23 issues and 5 non-issues): `yes` when the
+top-level adequacy proof needed a fix on the goosed fork (the user's definition, 2026-11-02); the three
+findings that were on hold for etcd's private security process are not security reports under
+etcd's `THREAT_MODEL.md` (`issues/README.md`, "Reporting privately"). The upstream drafts (`issues/upstream/`) are
 folded into the files' `## Fix` sections, which the `upstream-report` skill's `check.py` renders
 into the texts to file (`--print issue|pr`); `INDEX-reviewed.md` and `RANKING.md` are gone, and the
 indexes are generated (`etc/issues-status.py --index`, `--check` in `etc/gates.sh`).
@@ -2230,7 +2233,7 @@ The `axiom` skill, run from the backend-compaction stage (`backend-cmp`):
   `MaxMapSize` makes `newBackend` panic in any environment. **Fixed:** `openPre` takes
   `openMmapOk cfg`, a new pure premise of `NewServer.spec`/`specCompact`/`specM` and passed through
   D22's `applySnapshot.specSnap`/`applySnapshot_walk`/`srvSnapRO`. The examples discharge it (quota 0).
-  The etcd side is in `issues/etcd-quota-backend-bytes-mmap-panic.md`.
+  The etcd side is in `nonissues/etcd-quota-backend-bytes-mmap-panic.md`.
 
 ## Two bbolt axioms refuted (2026-10-29, on `lean`)
 

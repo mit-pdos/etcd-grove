@@ -5,7 +5,7 @@ links:
   - etcd-io/bbolt#931 issue closed: the same panic for values above 256 MB (a refactor had shrunk MaxAllocSize); fixed in v1.4.1
   - etcd-io/bbolt#968 pr merged: the fix of #931 (MaxAllocSize platform-dependent again); this is the edge that remains at that bound
   - etcd-io/bbolt#1044 issue closed: the same Commit panic on i386 (a 256 MB value, the 32-bit MaxAllocSize); the maintainer called it expected and fixed only the test (#1045)
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # bbolt: `Put` accepts a value of `MaxValueSize` bytes that `Commit` or `Get` then panics on
@@ -58,7 +58,7 @@ bytes before the key.
 
 ## Proof
 
-yes: the bbolt proof's spill (branch `bbolt`, in progress: `SpillFit.lean`) assumes each entry's
+no: the top-level adequacy proof needs no fix on the goosed fork for it; the bbolt proof's spill (branch `bbolt`, in progress: `SpillFit.lean`) assumes each entry's
 key plus value is at most `2^28` bytes, which `Put`'s documented bounds do not give; etcd meets
 it.
 
