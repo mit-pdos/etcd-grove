@@ -401,9 +401,8 @@ theorem chains.unlift.wp_proof
     obtain ⟨hshape, hcnot, hch, hcop', hmem, hsort⟩ := hx.add_pre Hinv
     ihave Hch := chainsOwnCl_fold ch chV2 _ h cs stc Hcl2 $$ [Hchp Hr]
     · iframe
-    ihave Hch := chainsOwnCl_weaken ch _ h cs stc $$ Hch
     wp_auto
-    wp_apply wp_addToFrontier ch h cs stc se.clientId' cons hok hshape (by omega) (by omega)
+    wp_apply wp_addToFrontier ch chV.clients' h cs stc se.clientId' cons hok hshape (by omega) (by omega)
       (by rw [hcn]; exact hc) (by rw [hcn]; exact hch) (by rw [hcn]; exact hcnot)
       (by rw [hcn]; exact hmem) hsort $$ [Hch] as ⟨%fr', Hch, %Hfr'⟩
     · iframe; iframe Hcons
@@ -416,7 +415,7 @@ theorem chains.unlift.wp_proof
         slice.slice ssl stackEntry (W64 0) (ssl.len - W64 1), ses', lsl, bsClear ws se.opId'
       simp only [named]
       isplitl [Hch]
-      · iexact Hch
+      · iapply chainsOwnCl_weaken; iexact Hch
       isplitr
       · ipureintro; exact ⟨hfin, hfrf⟩
       iframe
