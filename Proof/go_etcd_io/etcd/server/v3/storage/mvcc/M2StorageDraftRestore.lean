@@ -74,6 +74,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreRecs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LockArm
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendRecs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreVocab
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreImageOpen
 
 @[expose] public section
 
@@ -173,30 +174,7 @@ theorem mvcc.keyCleanRead_of_backendC_holds :
 /- (`restoreRegM`, `restoreFixM` and their laws are switched: `RestoreVocab.lean`, M2's item 15,
 step A3.) -/
 
-/-- **A received image's `Key` entries and compaction records, by the mode** (draft of
-`keyImage`'s use in `specSnap`, D22's `hkI`; review round 4): off, today's `keyImage` (the whole
-bucket at `L`, no record); on, the `Key` bucket the entries `ents` of the job's shape at the
-records' revision `r.crev` (`entsCutAt`: per key, a prefix of its entries deletable there removed;
-a finished compaction or a leader's bucket mid-job), the `Meta` bucket's two compaction keys
-holding the records' bytes, the records of `L` and past revision `0` (`recsPos`: M2's scope, Q7
-(a)) and `r.crev` safe for readers (`NoDelPutAt`); no premise on how often a revision changes a key
-(the index at a full revision, B1: `idxRestore_cut`). The apply side's obligations (S-j1's), as `L <+: L'` is
-today. The walk's `restoreImageM` and the clean read's records come from it with the backend's
-`fkOpenD`. -/
-def mvcc.keyImageM (cm : Bool) (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Data) : Prop :=
-  if cm then ∃ ents : List mvcc.KvEnt,
-      (∀ k, backend.dget D mvcc.keyName k = (mvcc.bucketOfEnts ents).lookup k) ∧
-      backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.finKeyBytes =
-        mvcc.recBytes r.fin ∧
-      backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.schedKeyBytes =
-        mvcc.recBytes r.sched ∧
-      mvcc.recsOk L r ∧ mvcc.recsPos r ∧ mvcc.entsCutAt L r.crev ents ∧
-      mvcc.NoDelPutAt L r.crev
-  else mvcc.keyImage L D ∧ r = mvcc.CmpRecs.empty
-
-theorem mvcc.keyImageM_off (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Data) :
-    mvcc.keyImageM false L r D ↔ mvcc.keyImage L D ∧ r = mvcc.CmpRecs.empty := by
-  unfold mvcc.keyImageM; simp
+/- (`keyImageM` and `keyImageM_off` moved to `RestoreImageOpen.lean`, M2's item 15, stage B2a.) -/
 
 /- (`restoreImageM` is switched: `RestoreVocab.lean`, M2's item 15, step A3.) -/
 
