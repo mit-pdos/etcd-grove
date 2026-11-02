@@ -283,6 +283,11 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[raft-restore-malformed-confstate-panic](raft-restore-malformed-confstate-panic.md)**
+  (2026-11-02): a restart from a `ConfState` with a repeated id, or `AutoLeave` without outgoing
+  voters, panics in `newRaft` instead of erroring; the storage API does not state the
+  precondition. Only hand-built or corrupted storages reach it; a documentation sentence fixes it.
+
 - **[raft-applied-above-snapshot-confstate](raft-applied-above-snapshot-confstate.md)**
   (2026-10-31): `Config.Applied`'s documentation does not say that `InitialState`'s `ConfState` must
   be the configuration as of `Applied`; with `Applied` above the snapshot, raft skips the conf
