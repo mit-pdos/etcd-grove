@@ -785,8 +785,6 @@ sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
 sorry kv.StartCluster.wp_proof
 sorry kvStorage_bootStorage
-sorry kvdurable.kd_RestartNode_at
-sorry kvdurable.kd_confAt_lists_le
 sorry kvreconf.Cluster.startNew.wp_proof
 sorry kvreconf.StartCluster.wp_proof
 sorry raftNode.start.wp_proof

@@ -44,8 +44,9 @@ theorem newRaft.wp_proof [package_sem : Assumptions] (wp_Config_validate : Confi
                                           restoreM csm.VotersOutgoing' csm.Voters' csm.Learners' csm.LearnersNext'
                                                 csm.AutoLeave' =
                                               some cs' →
-                                            csm.Voters'.length + csm.VotersOutgoing'.length + csm.Learners'.length +
-                                                  csm.LearnersNext'.length ≤
+                                            ↑(listToSet csm.Voters' ∪ listToSet csm.VotersOutgoing' ∪
+                                                        listToSet csm.Learners' ∪
+                                                      listToSet csm.LearnersNext').size ≤
                                                 2 ^ 62 →
                                               ConfStateOk csm →
                                                 ⊢

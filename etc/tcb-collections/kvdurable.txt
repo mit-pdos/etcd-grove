@@ -20,5 +20,3 @@ axiom proto.SizeEntry.wp_proof
 axiom proto.UnmarshalConfChange.wp_proof
 axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
-sorry kvdurable.kd_RestartNode_at
-sorry kvdurable.kd_confAt_lists_le
