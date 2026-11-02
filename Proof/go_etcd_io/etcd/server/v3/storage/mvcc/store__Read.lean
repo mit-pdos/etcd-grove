@@ -163,6 +163,8 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     isplitr [Hmine HoA]
     rotate_left
     · iframe Hmine Hlbc Hok HoA
+      isplitr
+      · iexact HpM
       ipureintro; exact ⟨⟨Hpre.2, by omega, Hclbc⟩, HoaL⟩
     iunfold mvcc.isTxnRead
     iexists p, trw, tr, o.ti, rt, (W64 0)

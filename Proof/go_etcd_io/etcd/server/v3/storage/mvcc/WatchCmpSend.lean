@@ -49,16 +49,17 @@ def cmpResp (w : Loc) (id : w64) (k : Nat) (c : w64) : RespM :=
   { w := w, id := id, evs := [], rev := W64 0, cov := [], regs := [], idx := k, compactRev := c }
 
 /-- **The compaction response's send** (see the file header): the update of a non-blocking send of
-`v` (`WatchResponse{WatchID: r.id, CompactRevision: c}`, `c ≠ 0`) on `w`'s channel; with the
-liveness fragment back, the continuation `Φ`. -/
+`v` (`WatchResponse{WatchID: r.id, CompactRevision: c}`, `c > 0`, permitted: `crevPermAt`, C3's
+store law) on `w`'s channel; with the liveness fragment back, the continuation `Φ`. -/
 theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice)
     (ch : Loc) (ql : Qp) (v : WatchResponse) (c : w64)
     (hv : v.WatchID' = r.id ∧ v.Revision' = W64 0 ∧ v.CompactRevision' = c ∧ v.Events' = slice.nil)
-    (hc : c ≠ W64 0) (Φ : IProp GF) :
-    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ filtersOk fcs ∗ watcherChan γ w γw ch ∗
+    (hcp : 0 < sint.Z c) (Φ : IProp GF) :
+    crevPermAt γ.st (sint.Z c) ∗ watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ filtersOk fcs ∗ watcherChan γ w γw ch ∗
       dghostVar γw.live (DFrac.own ql) true ∗ (dghostVar γw.live (DFrac.own ql) true -∗ Φ) ⊢
       nonblockingSendAuInner γw.wc.ch v Φ := by
-  iintro ⟨#Hmeta, #Hfix, #Hfok, #Hwc, Hlive, HΦ⟩
+  have hc : c ≠ W64 0 := by intro h; rw [h] at hcp; exact absurd hcp (by decide)
+  iintro ⟨#Hperm, #Hmeta, #Hfix, #Hfok, #Hwc, Hlive, HΦ⟩
   iunfold watcherChan at Hwc
   icases Hwc with ⟨#Hisch, #Hinv, #Hregw⟩
   iunfold filtersOk at Hfok
@@ -88,7 +89,10 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
     · iunfold respCompl; ileft; ipureintro; exact Hrid
     isplitr
     · ipureintro; intro _ h; exact absurd h hc
-    iunfold respRev; iright; iright; ipureintro; exact ⟨hc, rfl⟩
+    iunfold respRev
+    isplitl []
+    · iright; iright; ipureintro; exact ⟨hc, rfl⟩
+    iunfold cmpPermOf; simp only [cmpResp]; iright; iframe Hperm; ipureintro; exact hcp
   iexists s
   iframe Hch
   have hpre := Hpre.length_le

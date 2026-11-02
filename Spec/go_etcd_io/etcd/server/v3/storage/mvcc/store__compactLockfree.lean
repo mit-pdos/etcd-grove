@@ -32,13 +32,16 @@ revision `rev`, as `store.Compact`'s (no `NoDelPutAt` since M2's item 18).
 reader token `storeRT γ` (the apply thread's, from `writerOwn`) for `checkPrevCompactionCompleted`'s
 `ReadTx`, and gets it back in every case. So is the caller's hook context (`lockCtxM`/`lockBackM`,
 by the hook's state: `restore()` resumes a compaction with it unset; item 31, 2026-10-30; until
-then `hookIs γ P f` with `csContract`, Probe P1, 2026-10-30). -/
+then `hookIs γ P f` with `csContract`, Probe P1, 2026-10-30). 
+The revision is permitted (`crevPermAt`, C3's store law, 2026-11-02): the store's compaction
+permit holds of it, which `s.mu`'s and `s.revMu`'s resources keep of the compaction revision. -/
 abbrev mvcc.store.compactLockfree.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c : Int) (P : IProp GF) (hk : Option val)
     (Pre Q Post : IProp GF) (log : mvcc.Log),
   mvcc.storeCmp γ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.muInvAt s γ 1 c ∗ mvcc.compactRightR s γ c ∗
+      mvcc.crevPermAt γ (sint.Z rev) ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length⌝ ∗
       mvcc.lockCtxM γ P hk Pre Q Post ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"compactLockfree")) (Val #rev))

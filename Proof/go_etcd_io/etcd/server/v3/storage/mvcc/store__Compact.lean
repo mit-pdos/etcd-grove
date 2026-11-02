@@ -39,7 +39,7 @@ theorem mvcc.store.Compact.wp_of_le
     (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool) (htr : trace ≠ null)
     (hcmp : mvcc.storeCmp γ) (hc : -1 ≤ c) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.compactRightR s γ c ∗
+      mvcc.isStore s γ ∗ mvcc.compactRightR s γ c ∗ mvcc.crevPermAt γ (sint.Z rev) ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length⌝ ∗
       mvcc.hookIs γ P f ∗
       mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗
@@ -51,7 +51,7 @@ theorem mvcc.store.Compact.wp_of_le
       (⌜sint.Z rev ≤ c⌝ ∗
         (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
         mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True))) }} := by
-  wp_start as ⟨#Hs, Hright, #HcertC, %HrevC, HhookW, Hcs, Htrc, HRTok, #HsupM⟩
+  wp_start as ⟨#Hs, Hright, #HpermR, #HcertC, %HrevC, HhookW, Hcs, Htrc, HRTok, #HsupM⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'

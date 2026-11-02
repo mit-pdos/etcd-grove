@@ -689,14 +689,27 @@ def notifiedLent (γ : WsNames) : Option (Qp × Log) → IProp GF
 theorem notifiedLent_none (γ : WsNames) : ⊢ notifiedLent (GF := GF) γ none := by
   unfold notifiedLent; itrivial
 
+/-- **A compaction response's revision is permitted** (C3's store law, 2026-11-02): none, or a
+positive revision the store's compaction permit holds of (`crevPermAt`; `syncWatchers` reads it
+with the revision under `s.revMu`). -/
+def cmpPermOf (γ : WsNames) (x : RespM) : IProp GF :=
+  iprop(⌜x.compactRev = W64 0⌝ ∨
+    (⌜0 < sint.Z x.compactRev⌝ ∗ crevPermAt γ.st (sint.Z x.compactRev)))
+
+instance cmpPermOf_persistent (γ : WsNames) (x : RespM) :
+    Persistent (cmpPermOf (GF := GF) γ x) := by
+  unfold cmpPermOf; infer_instance
+
 /-- **An event-less response's revision** (K2e-5): the notified log's last when it was sent, so
 at least every earlier event-less response's on the channel (`pre`). (Only `progressIfSync` sends
 one: a victim's batch has events.) A compaction response (watches across a compaction,
-2026-11-01) claims no revision: its own (`0`, unset) is at or below every other's. -/
+2026-11-01) claims no revision: its own (`0`, unset) is at or below every other's. Every response's
+compaction revision is permitted (`cmpPermOf`, C3's store law: outside the disjunction, which a
+compaction response may satisfy by its second disjunct). -/
 def respRev (γ : WsNames) (pre : List RespM) (x : RespM) : IProp GF :=
-  iprop(⌜x.evs ≠ []⌝ ∨ (∃ L : Log, notifiedLb γ L ∗
+  iprop((⌜x.evs ≠ []⌝ ∨ (∃ L : Log, notifiedLb γ L ∗
     ⌜sint.Z x.rev + 1 = (L.length : Int) ∧ ∀ y ∈ pre, y.evs = [] → sint.Z y.rev ≤ sint.Z x.rev⌝) ∨
-    ⌜x.compactRev ≠ W64 0 ∧ x.rev = W64 0⌝)
+    ⌜x.compactRev ≠ W64 0 ∧ x.rev = W64 0⌝) ∗ cmpPermOf γ x)
 
 instance respRev_persistent (γ : WsNames) (pre : List RespM) (x : RespM) :
     Persistent (respRev (GF := GF) γ pre x) := by
@@ -714,10 +727,16 @@ instance revLbOf_persistent (γ : WsNames) (y : RespM) : Persistent (revLbOf (GF
 theorem revLbOf_of (γ : WsNames) (pre : List RespM) (y : RespM) :
     respRev (GF := GF) γ pre y ⊢ revLbOf γ y := by
   unfold respRev revLbOf
-  iintro (%h | ⟨%L, #Hl, %h⟩ | %h)
+  iintro ⟨(%h | ⟨%L, #Hl, %h⟩ | %h), -⟩
   · ileft; ipureintro; exact h
   · iright; ileft; iexists L; iframe Hl; ipureintro; exact h.1
   · iright; iright; ipureintro; exact h
+
+/-- **A watch response's compaction revision is permitted** (C3's store law). -/
+theorem respRev_cmpPerm (γ : WsNames) (pre : List RespM) (y : RespM) :
+    respRev (GF := GF) γ pre y ⊢ cmpPermOf γ y := by
+  unfold respRev
+  iintro ⟨-, $⟩
 
 /-- **Below the notified log** (K2e-5): with a fraction of its authority at `Lx`, every event-less
 response whose revision is the last of a notified log is at most `Lx`'s last. -/
@@ -1210,7 +1229,8 @@ theorem sentAuth_revs (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) 
 notified log's authority at a log whose last is its revision. -/
 theorem respRev_new (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
     (nl : Option (Qp × Log)) (x : RespM)
-    (hnl : x.evs = [] → ∃ q Lx, nl = some (q, Lx) ∧ sint.Z x.rev + 1 = (Lx.length : Int)) :
+    (hnl : x.evs = [] → ∃ q Lx, nl = some (q, Lx) ∧ sint.Z x.rev + 1 = (Lx.length : Int))
+    (hc : x.compactRev = W64 0) :
     sentAuth (GF := GF) γ γc sent L ∗ notifiedLent γ nl ⊢
       sentAuth γ γc sent L ∗ notifiedLent γ nl ∗ respRev γ sent x := by
   by_cases he : x.evs = []
@@ -1226,17 +1246,21 @@ theorem respRev_new (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L
       · iexact Ha
       ipureintro; exact hLx
     iunfold respRev
-    iright
-    ileft
-    iexists Lx
-    iunfold notifiedLb
-    iframe Hlb
-    ipureintro
-    exact ⟨hx, fun y hy hye => by have := H y hy hye; omega⟩
+    isplitl []
+    · iright
+      ileft
+      iexists Lx
+      iunfold notifiedLb
+      iframe Hlb
+      ipureintro
+      exact ⟨hx, fun y hy hye => by have := H y hy hye; omega⟩
+    iunfold cmpPermOf; ileft; ipureintro; exact hc
   · iintro ⟨Hs, Ha⟩
     iframe Hs Ha
     iunfold respRev
-    ileft; ipureintro; exact he
+    isplitl []
+    · ileft; ipureintro; exact he
+    iunfold cmpPermOf; ileft; ipureintro; exact hc
 
 /-- **What a sent response covers** (persistent; K1b): the coverage of the response at index `k`. -/
 theorem sentAuth_cov (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)

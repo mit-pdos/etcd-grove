@@ -638,7 +638,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       (batchLockInv γA (metaTM d.γB d.P)) #func.nil func.nil N E₀.γ.idx E₀.γ.cok M Hcbl Hrb)
     $$ [Hdl Hview Hncmp Hlate Hwkv Hrts Hlrd Hro Hidx Hcok HsrS]
     as %ws ⟨%kst, %γw, %Hγw0, #HisKV, ⟨%rv, #Hrvf, #Hrv⟩, #HhkI, Hkvw, Hwts, Hcok, #Hws, Hwtoks,
-      Hwrds, Hwcl, Hcr, Hret0, -, #Htag⟩
+      Hwrds, Hwcl, Hcr, #HcpIs, Hret0, -, #Htag⟩
   · ihave #Hsz0 : mvcc.keySized (GF := GF) d.γB d.P d.be $$ []
     · iapply Hsz
     iframe Hisl HB Hsz0 Hdl
@@ -1439,7 +1439,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       unfold apply.cmpRight
       simp only [show ¬ mvcc.kbCmpM γw.st.kb from Hkbw rfl, ↓reduceIte]
       ipureintro; trivial
-    · iapply srvKVCloserW_cmpRight_of_new s _ (Hkbon rfl) Hcmw $$ Hcl0 Hcr
+    · iapply srvKVCloserW_cmpRight_of_new s _ (Hkbon rfl) Hcmw $$ Hcl0 Hcr HcpIs
   imod HclR with ⟨Hcl, Hcmr⟩
   -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`srvSnapBoot`,
   -- `SnapRO.lean`): its persistent bundle, the snapshot-taken counter's authority (J8a-6: no stock

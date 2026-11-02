@@ -39,10 +39,12 @@ revision is frozen only when the store does not compact (`isWatchableStore`'s `w
 compaction mode the caller gets the compaction right's half of the revision's authority
 (`crevRightM γ.st`, `True` otherwise) beside the closer; the store's logical mode is the
 instance's (`γ.st.cm`); and the write-back supply is no longer taken here (Q1 (a): `store.Compact`
-takes it). -/
+takes it). (C3's store law, 2026-11-02) The store's compaction permit is the caller's `Perm`
+(`crevPermIs`). -/
 abbrev mvcc.newWatchableStore.spec : Prop :=
   ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
-    (P : IProp GF) (f : val) (rd0 : GoFunc) (γi : mvcc.IdxNames) (γok γtag : GName),
+    (P : IProp GF) (f : val) (rd0 : GoFunc) (γi : mvcc.IdxNames) (γok γtag : GName)
+    (Perm : Int → IProp GF),
   mvcc.batchLimitOk cfg.CompactionBatchLimit' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
@@ -62,7 +64,7 @@ abbrev mvcc.newWatchableStore.spec : Prop :=
         mvcc.watchReader s st γ) ∗
       (∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ mvcc.stopCloser stc) ∗
       mvcc.storeCloser st γ.st ∗ mvcc.crevRightM γ.st ∗
-      mvcc.writerFrag γ.st ∗ mvcc.retiredAt γ.st (mvcc.nJobRd kb) ∗
+      mvcc.writerFrag γ.st ∗ mvcc.retiredAt γ.st (mvcc.nJobRd kb) ∗ mvcc.crevPermIs γ.st Perm ∗
       typedPointsto (mvcc.wsWgAddr s) (zero_val sync.WaitGroup) (DFrac.own 1) }}
 
 end spec

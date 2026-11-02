@@ -863,9 +863,9 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   ihave Hsrm : mvcc.kbSRM (GF := GF) (some d) $$ []
   · iapply hsr.2; itrivial
   iapply wp_fupd
-  wp_apply (mvcc_NewStore_backend lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb)
+  wp_apply (mvcc_NewStore_backend lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb (fun _ => iprop(True)))
       $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro]
-    as %s ⟨%γ, %Hγ, #Hst, -, Hcok, Hhk', -, Hrds, Htoks, #Hc, Hcl, -, Hright⟩
+    as %s ⟨%γ, %Hγ, #Hst, -, Hcok, Hhk', -, Hrds, Htoks, #Hc, Hcl, -, Hright, -⟩
   · iframe #; iframe Hdl Hv Hncmp Hrg Hrts Hlrd Hro Hsrm
     isplitr
     · iintro !> %h; rw [hcm] at h; cases h

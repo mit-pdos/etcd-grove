@@ -29167,3 +29167,41 @@ buckets, `rbOwn`; `IdxWf`, `soleWriter_idxWf`). Four did not:
   `d.cm = false → fkAbsRv`, and `noCmpData_of_fkAbsD` the clause.
 
 `mergedCreate_window` is proved over these; the trust base trades its `sorry` for the two laws'.
+
+## C3's store law: a compaction permit fixed at the store's creation (2026-11-02 · the user's approval · branch `c3-perm`)
+
+**Scope (the user's).** C3 (`notes/compactor-pilot-plan.md`): the store's compaction revision is at
+most what the compactor's permit allows. No proof needs it yet (the cache re-lists on
+`ErrCompacted`, `compactkv` skips its check), so the user chose its reusable core only, the store
+law; the server's permit, compaction proposals carrying it (a client's `kv.Compact` too, the user's
+answer) and a client statement are later stages.
+
+**The law.** `StoreNames` gains a logical name `cperm` (`withPhys` keeps it) for a saved predicate:
+`crevPermIs γ Perm` (persistent), and `crevPermAt γ c := ⌜c = -1⌝ ∨ ∃ Perm, crevPermIs γ Perm ∗ □ Perm c`
+(`crevPermAt_elim_lc` strips the later with a credit). `muInvAt` and `revMuBody` keep `crevPermAt γ c`
+of their compaction revision; `store.Compact`, `updateCompactRev` and `compactLockfree` take
+`crevPermAt γ (sint.Z rev)` (a new premise, approved); `NewStore`, `newWatchableStore` and `New` take
+`Perm` and return `crevPermIs`; `store.Read`/`store.Write`/`readView.Range` give the transaction's
+`crevPermAt γ crev` (its ranges answer `ErrCompacted` below `crev`); the watch's `respRev` gains
+`cmpPermOf γ x` (no compaction, or a positive one permitted), a conjunct outside its disjunction (a
+compaction response also satisfies the notified-log disjunct, so a disjunct could not be selected;
+round 2). The server passes `Perm := True`: `cmpRight`'s on arm carries `crevPermIs E.γ True`
+(`srvKVCloserW_cmpRight_of_new`), and `cmp_store_pre` gives `□ ∀ r, crevPermAt E.γ r`. The exported
+`mvcc_NewStore_backend_cmp` (and `mvcc_NewStore_backend`) take `Perm`, their posts gain
+`crevPermIs` (approved).
+
+**In place of M2's S5** (a logically atomic `store.Compact`): S5 assumed no invariant could keep a
+share of the compaction revision's authority; both locks' resources hold a quarter each since
+compaction's unit 6a, so the permit sits beside them. A predicate parameter, departing from "TaDa,
+not HoCAP" on purpose (the spec skill's principle now says when).
+
+**Restores.** At the pin every restore ends at `-1` (`kbNoCmp`, `crevFrozen`), which the first
+disjunct covers. A compaction-mode restore will take `□ (∀ x, r.fin = some x ∨ r.sched = some x →
+crevPermAt γ (sint.Z x))`, discharged from the cluster's facts; not a ghost record in `cmeta` (a
+physical name; a snapshot's records are another member's), nor an "unpermitted when restored"
+disjunct (vacuous at any follower).
+
+**Not done here.** The permit stops at mvcc's transaction posts: `ReaderSpecs`' `spec_R` and txn's
+`kv_Read`/`Range` drop it (nothing needs it before the server's permit is not `True`); the client
+does not see `crevPermIs` (only the apply thread does). Both go with C3's client stage. Reviews: three
+`spec-reviewer` rounds (the Draft's candidates 2-5); the example `.claude/skills/spec/examples/c3-store-law.md`.

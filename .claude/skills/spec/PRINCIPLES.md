@@ -154,6 +154,10 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   receiving one gives a witness that it is in the set), and the client keeps whatever invariant it
   wants over it (one client: every snapshot's data is empty; a client that makes none: the set stays
   empty).
+  The departure the user approved: a persistent predicate fixed when the object is created (a saved
+  predicate, `crevPermIs`), which every value of a field satisfies, when the object's own locks
+  already hold the shares a logically atomic spec would hand back and a client only reads the fact;
+  it costs one premise on the writer and no client state. Say that it departs. (`c3-store-law.md`)
 - **Linearizability is the caller's atomic update, written in the triple**, not behind a helper
   definition, and in the shape of the closest sibling spec (a server operation and the client
   operation that calls it). (`put.md`, critique 4)

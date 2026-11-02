@@ -426,7 +426,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
             -- (K2e-5) an event-less response: at least every earlier event-less one's revision
             icases mvcc.respRev_new γ γw.wc sent L nl
               (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ : mvcc.RespM)
-              (fun h => Hnle (Classical.byContradiction fun hne => hA ⟨hne, h⟩))
+              (fun h => Hnle (Classical.byContradiction fun hne => hA ⟨hne, h⟩)) rfl
               $$ [$Hsentl $Hnl] with ⟨Hsentl, Hnl, #Hrr⟩
             ihave #Hrc := mvcc.respCov_of_list γ γw.wc sent
               (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ : mvcc.RespM)

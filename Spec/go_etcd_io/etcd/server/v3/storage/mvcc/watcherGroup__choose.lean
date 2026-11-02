@@ -33,6 +33,7 @@ abbrev mvcc.watcherGroup.choose.spec : Prop :=
     (ST : GMap Loc mvcc.WatcherSt) (maxWatchers curRev compactRev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.ownWatcherGroup wg W ∗ mvcc.ownStates ST ∗
+      mvcc.crevPermAt γ.st (sint.Z compactRev) ∗
       ([∗map] w ↦ st ∈ ST, if decide (sint.Z st.minRev < sint.Z compactRev) then
         mvcc.cmpSendPre γ w st.ch ql else iprop(True)) ∗
       ⌜(∀ w, (W !! w).isSome → (ST !! w).isSome) ∧
