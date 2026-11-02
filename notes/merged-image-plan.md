@@ -1,8 +1,7 @@
 # The merged snapshot's image: `merged_image` restated (2026-11-02)
 
 Spec-first (`notes/spec-first-plan.md`): Scope, Draft, Review, then the user, then Freeze. The
-finding is in `notes/decisions.md`, "`merged_image` is false with compaction on, and lacks the fresh
-start's raft names". Branch `merged-image`.
+finding is in `notes/decisions.md`, "`merged_image` is false with compaction on". Branch `merged-image`.
 
 ## Scope
 
@@ -54,9 +53,12 @@ forms are given by `mergedObs`. So `hcmp` is what callers can use; the weaker fo
 `run.wp_proof`'s link; it is not an exported result, and it does not change. `merged_image`'s `sorry`
 is in the trust base of eleven collections (`cachekv`, `compactkv`, `k8setcd3`, `leasekv`, `linkv3p`,
 `linkvtxn`, `m2`, `putget`, `putget3`, `server`, `watchkv`). After the change those collections
-trade `sorry merged_image` for `sorry merged_image_cmp`: the count is unchanged, and the hole they
-rest on is false only in the compaction mode, which only `compactkv` runs (its result still rests on
-a false hole until #7-cmp is repaired).
+trade `sorry merged_image` for `sorry merged_image_cmp` (`etc/tcb-baseline.txt`'s line and each
+collection's, by `--check --update`): the count is unchanged. The reports list declarations, not
+modes, so all eleven list the hole, which is false only in the compaction mode; two collections run
+that mode and so rest on a false hole until #7-cmp is repaired: `compactkv` and `m2` (`putgetc_safe`:
+`putgetc` runs the auto-compactor, `StartPeriodicServer` with `cmp := true`). Freeing the nine
+mode-off collections of the hole would need a mode-gated spec, outside this stage.
 
 ## Draft
 
@@ -80,3 +82,34 @@ of carrying it to `applyAll`'s batch case: (A) a `specBatch` premise, (B) a conj
   `isServer`; `log0` is in its `isServerApplyAll`; `run_job_snap_cmp`/`run_job_body` thread the same
   facts. Candidates for removal in a later stage, not here.
 - Also noted: `merged_image`'s `h0.1` (`c0 = 0`) is derivable (`kvInv`'s `c0 ≤ ai0`); `h0.2` is not.
+
+**Round 2** (fresh `spec-reviewer`, commit 477dd3b96e, looking hardest at round 1's diff): no
+first-tier finding on the statements (`merged_image'` true, every premise used, sufficient for both
+callers; `srvRaftLogInv_fresh` correct).
+- R2-1 (first tier, the record): not only `compactkv` runs the compaction mode; `putgetc` does too
+  (`m2`'s `putgetc_safe`). Taken: the plan and the decision entry name both.
+- R2-2: the plan cited the entry's old title. Fixed.
+- P2-1: say which baselines move and that the static reports list the hole in all eleven. Taken.
+- P1-1: `h0.1` (`c0 = 0`) derivable (`kvInv`'s `c0 ≤ ai0`). To the user (question 3).
+- P1-3/P2-3: `merged_image` over `mvcc.keyImage x.log D` in place of `hcmp` (true in every mode),
+  and the hole the pure `mergedObs γr true … → keyImage log D` (decidable, testable). To the user
+  (question 2).
+- P2-2: #7-cmp's fix in place (`imageAt`'s `keyImage` as `keyImageM γk.cmp`, `keyImageM_off`, per
+  `compaction-in-place.md`) rather than a mode-indexed `srvNet`. To the user (question 4).
+- P2-4 (wording, taken), P2-5 (`AEnv.onBe`'s docstring should list `cmp`, `cret`: at Freeze).
+
+## Questions for the user (before Freeze)
+
+1. Freeze `merged_image` with the one premise `hcmp : E.cmp = false`, the law `srvRaftLogInv_fresh`,
+   and the batch case's split onto a named `merged_image_cmp` (false as stated, SNAPSHOT-SORRY
+   #7-cmp)? Recommended: yes.
+2. The hole's form: `merged_image_cmp` (the image certificate at `E.cmp = true`), or `merged_image`
+   over `mvcc.keyImage x.log D` with the hole the pure `mergedObs γr true … → keyImage log D`?
+   Recommended: the pure form (the lemma true in every mode, the false claim a decidable fact about
+   the snapshot), unless the in-place fix (4) comes soon, which replaces either.
+3. Drop `h0.1` (`γr.kv.c0 = 0`, derivable from `isServer`)? Recommended: no, not in this stage
+   (callers hold it; the change would touch both call sites for no gain); with `specSnap`'s
+   derivable premises (round 1's P2) in a later cleanup.
+4. #7-cmp's repair: the image in the cluster's compaction mode, in place (`imageAt`'s `keyImage` as
+   `mvcc.keyImageM γk.cmp`, `keyImageM_off` the "off is today's" law) or a mode-indexed `srvNet`
+   (#7-on's target (b))? Recommended: in place, together with #7-on's, as its own stage.

@@ -29674,18 +29674,19 @@ neither `scheduledCompactRev` nor `finishedCompactRev`). **With `E.cmp = true` i
 compaction has `scheduledCompactRev` in `Meta` (`updateCompactRev`'s `SetScheduledCompact` and
 `ForceCommit`, before the job deletes keys); the backend snapshot `createMergedSnapshotMessage`
 streams holds it, so no log makes `keyImage` true: a `D` with that key satisfies every premise and
-falsifies the conclusion. The lemma was in the trust base of eleven collections, `compactkv`'s (a
-compaction-mode example) included. The `srvImageR` draft (`M2StorageDraftB2.lean`) has the same
+falsifies the conclusion. The lemma was in the trust base of eleven collections, the two compaction-mode ones
+(`compactkv`, `m2`'s `putgetc_safe`) included. The `srvImageR` draft (`M2StorageDraftB2.lean`) has the same
 `imageAt`: the receipt is not the issue. S1's entry ("`applyAll`'s merge branch (S1)") noted "with
 compaction on, `mvcc.keyImage` of the KV's log must still hold of the snapshotted data" as a caveat;
 the statement was not restricted then.
 
-With compaction off the lemma holds as stated but for that premise: the fresh start's raft names
+With `hcmp` added the lemma holds: the fresh start's raft names
 (`γr.raft = ⟨γr.raft.raft, [], W64 0⟩`) come from `isServer`'s `srvRaftLogInv` (`pre = []`,
 `ai0 = pre.length`; law `srvRaftLogInv_fresh`). (The first draft of this entry said no premise gave
 them and proposed carrying them to `applyAll.specBatch`; review round 1 found them in `isServer`.)
 
 The repair (`notes/merged-image-plan.md`): `merged_image` takes `E.cmp = false`; `applyAll`'s batch
 case splits on `E.cmp`, the compaction-mode side an open hole (`SNAPSHOT-SORRY #7-cmp`), which is
-**false as stated** (it asserts the same `srvImage`), so `compactkv`'s results still rest on a false
-hole until the image is mode-indexed (the plan's questions).
+**false as stated** (it asserts the same `srvImage`), so the compaction-mode results, `compactkv`'s and
+`m2`'s (`putgetc_safe`: `putgetc` runs the auto-compactor), still rest on a false hole until #7-cmp is
+repaired (the plan's questions).
