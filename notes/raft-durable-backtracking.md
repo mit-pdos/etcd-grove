@@ -1115,6 +1115,78 @@ Candidate 1 is not on disk. It is reconstructed from r1's quotes and c2's change
   - Avoid: yes. When a plan says "the registry records X", check who can write to the registry.
     Put a fact about an entry in the record its producers build.
 
+- **E105 · `newRaft.spec`'s conf-state premise was false.**
+  - Where: II(r), Backtracking 1 (`58c2a9fd3a`).
+  - Old (I-6): `restoreM … = some cs'` alone.
+  - What broke: `Restore` accepts a repeated voter and `AutoLeave` with no outgoing voters. The
+    `ConfState` raft rebuilds then differs, and `assertConfStatesEquivalent` panics, so the spec
+    claimed no panic where raft panics.
+  - Fix: a premise `ConfStateOk csm` on `newRaft.spec` and `NewRawNode.spec` (well-formed, `Nodup`,
+    `AutoLeave` only when joint). `RestartNode` gets it from `confStateIs`'s `CSWf`, which until
+    then had been discarded; the API is unchanged. Filed as
+    `issues/raft-restore-malformed-confstate-panic.md`.
+  - Cost: 2 specs and 3 proofs. **[cat d] [stage II-R]**
+  - Avoid: yes. Walk every `panic` and assertion on the Go path of a spec before stating it
+    (section 0, pattern 5).
+
+- **E106 · `newRaft`'s certified-terms premise was too weak; the plan for its window does not work.**
+  - Where: II(r), Backtracking 2 and 4.
+  - Old (II(o)): the view may already hold certified terms at or below the base. The II(p)
+    design: window variants of the callees' specs.
+  - What broke:
+    - The catch-up needs fresh certificates for every recorded index, which an authority cannot
+      produce for terms already certified.
+    - No `ownRaftLog` can hold in the window: `FlOk` needs the floor at most `applying = b`, while
+      the caught-up view needs it at least `max b A`. So the callees' specs cannot be used there
+      at all.
+  - Fix: `σ.dt = ∅` (both callers already pass it). The window's callees are proved over their
+    bodies on the raw fields, as private lemmas in `newRaft.lean`.
+  - Cost: the II(p) design was dropped, and one agent round. **[cat a, with g] [stage II-R]**
+  - Avoid: yes. For a window the plan names, check that the predicate the callees need can hold
+    in it before choosing "variants of their specs".
+
+- **E107 · kvdurable's stand-ins were replaced by raft's laws (II(s)).**
+  - G7: kvdurable's statement used the durable commit, which raft cannot give after a lagging
+    restart. It now uses the image's commit, which equals the hard state's (one statement, three
+    sites).
+  - `kdFileInv`'s lending case became unnecessary once the update took `▷ raftState` (E68), and
+    was deleted (four sites).
+  - The freeze-point bridge, S1b and G20's data-length half were one-for-one replacements.
+  - Tooling: a Link namespace clash, and `MustSync` not importable. Both were latent because the
+    kvdurable branches never ran `tcb-report` or `api-check`.
+  - **[cat b for G7; h for the tooling] [stage II-C]**
+  - Avoid: partly. State a client's stand-in lemmas against the provider's actual post (the
+    composition check), and run the trust-base and API checks on every branch, not only at the
+    merge.
+
+- **E108 · `RestartNode`'s configuration point narrowed wrongly (the coordinator's decision).**
+  - Where: coordinator decision after II(p); found in II(t) (`7d0415929f`, `kd_RestartNode_at`).
+  - Old (II(r), decided by the coordinator): `a := max σ.b A`. A configuration above the applied
+    point was judged a misuse, by analogy with `issues/raft-applied-above-snapshot-confstate.md`.
+    That analogy had the inequality backwards: the issue is about a configuration older than
+    `Applied`.
+  - What broke: kvdurable's storage keeps entries below its snapshot (`σ.b = prev < si`), and its
+    `ConfState` is the snapshot's (`a = si > max σ.b A`). It legitimately skips the conf changes
+    raft re-delivers. Any storage that compacts lazily below its snapshot is in the same position.
+  - Fix: revert to candidate 12's approved form (a parameter `a` with
+    `max σ.b A ≤ a ≤ σ.commit`), and prove the case `a > max σ.b A` in raft, which was II(p)'s
+    unproved case.
+  - Cost: the narrowing round, a kvdurable `sorry`, and a further raft round.
+    **[cat b, with i] [stage II-R]**
+  - Avoid: yes. Before narrowing a spec to make a case go away, check every existing client's Go
+    against the narrowed form. Narrowing is an API change like any other.
+
+- **E109 · `RestartNode`'s `≤ 2^62` list bound was a premise clients cannot prove easily.**
+  - Where: II(p) added it; II(t) (`kd_confAt_lists_le`, `sorry`).
+  - What broke: `Membership.Valid` bounds the members but does not make incoming voters and
+    `LearnersNext` disjoint. kvdurable's member bound therefore gives three times the count, not
+    two.
+  - Fix (decided): raft derives the bound itself, with `Membership.Valid` strengthened by that
+    disjointness if needed, and the premise is deleted.
+  - **[cat b] [stage II-R]**
+  - Avoid: yes. A premise about raft's own data structures should come from raft's invariants,
+    not from the client.
+
 ---
 
 ## 2. Counts
