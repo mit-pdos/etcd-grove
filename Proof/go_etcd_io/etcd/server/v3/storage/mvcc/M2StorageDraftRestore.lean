@@ -75,6 +75,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LockArm
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendRecs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreVocab
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreImageOpen
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendRecsSnap
 
 @[expose] public section
 
@@ -128,14 +129,7 @@ names `kbRecs`, the backend's part of item 29.) -/
 
 /- (`bucketOfEnts` and `restoreViewR` are switched: `RestoreCut.lean`, `RestoreRecs.lean`.) -/
 
-/-- At a real instance the records' resource is the backend's (`bkRecs`, `BackendRecs.lean`; the
-Draft's `fkOpenD` of the records' bytes is `fkOpen … (recsVals r)` by definition). -/
-theorem mvcc.kbRecs_some (d : mvcc.KBReal) (γb : GName) (r : mvcc.CmpRecs) :
-    mvcc.kbRecs (GF := GF) (some d) γb r = mvcc.bkRecs d.γB r := by
-  unfold mvcc.kbRecs mvcc.bkRecs
-  split
-  · rfl
-  · rfl
+/- (`kbRecs_some` moved to `BackendRecsSnap.lean`, M2's item 15, stage B2b.) -/
 
 /-- **The records' clean read of a compacting real backend** (the statement of the bridge law the
 walk needs, A1 (a); restated after the plan's item 30 repairs and **proved**, 2026-10-30:
