@@ -124,6 +124,13 @@ theorem chain_length_le' (hok : ChainsOk h cs) (c : Nat) : (chain cs c).length �
     (fun y hy => List.mem_range.mpr (lt_length_of_mem hok hy))
   simpa using this
 
+theorem lt_of_chain_pos {c : Nat} (hl : 0 < (chain cs c).length) : c < cs.length := by
+  apply Classical.byContradiction
+  intro hc
+  unfold chain at hl
+  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)] at hl
+  simp at hl
+
 theorem sum_take_le (cs : List (List Nat)) (m : Nat) :
     ((cs.take m).map List.length).sum ≤ (cs.map List.length).sum := by
   conv => rhs; rw [← List.take_append_drop m cs]
@@ -344,6 +351,24 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 
+/-- What `newChains`' last loop reads of client `c`'s struct. -/
+theorem clientOwn_len (h : List (Theory.Op OpV)) (cs : List (List Nat)) (st : ChSt) (c : Nat)
+    (cv : client) :
+    clientOwn h cs st c cv ⊢ clientOwn (GF := GF) h cs st c cv ∗
+      ⌜sint.Z cv.cltOps'.len = ((chain cs c).length : Int) ∧ cv.nDeps' = st.nDeps.getD c 0⌝ := by
+  unfold clientOwn
+  iintro ⟨%Hc, %cos, Hcl, %Hok, Hfu⟩
+  ihave %Hlen := ownSlice_len $$ Hcl
+  isplitl
+  · isplitr
+    · ipureintro; exact Hc
+    iexists cos
+    iframe
+    ipureintro; exact Hok
+  · ipureintro
+    refine ⟨?_, Hc.2.2⟩
+    rw [← Hok.1, Hlen.1]; exact (Int.toNat_of_nonneg Hlen.2).symm
+
 /-- Another client's struct does not see client `i`'s `nDeps`. -/
 theorem clientOwn_nDeps_ne (h : List (Theory.Op OpV)) (cs : List (List Nat)) (st : ChSt) (i : Nat)
     (nd : w64) (k : Nat) (hk : k ≠ i) (cv : client) :
@@ -482,9 +507,10 @@ noncomputable def coPend (h : List (Theory.Op OpV)) (cs : List (List Nat)) (fsl 
     [∗list] y ∈ chain cs c, fuPiece fsl cs.length y)
 
 /-- Client `c`'s operations (at `sl`), each given its `firstUnk` piece. -/
-noncomputable def coDone (h : List (Theory.Op OpV)) (cs : List (List Nat)) (c : Nat) (sl : GoSlice) : IProp GF :=
+noncomputable def coDone (h : List (Theory.Op OpV)) (cs : List (List Nat)) (c : Nat)
+    (sl : GoSlice) : IProp GF :=
   iprop(∃ cos : List clientOperation, sl ↦* cos ∗ ⌜CoFresh h (chain cs c) cos⌝ ∗
-    [∗list] k ↦ co ∈ cos, co.firstUnk' ↦* List.replicate cs.length (W64 0))
+    [∗list] co ∈ cos, co.firstUnk' ↦* List.replicate cs.length (W64 0))
 
 /-- Before `newChains`' second loop: every client pending, with its operations' pieces. -/
 theorem pend_init {h : List (Theory.Op OpV)} {cs : List (List Nat)} (hok : ChainsOk h cs)

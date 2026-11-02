@@ -1,22 +1,18 @@
 /- Lean-first (no Rocq counterpart). Proof of
 `PorcupineDag/Spec/github_com/anishathalye/porcupine/newChains.lean`.
 
-UNFINISHED (2026-11-02): the first loop (the clients, `clientAt`, `n` the chains' sizes so far)
-is proved; the rest is a `sorry`. What remains, with the lemmas already in `NewChainsLemmas.lean`:
-- `firstUnks := make([]int, n*numClients)`: `n = h.length` (`chains_length_sum`), no overflow
-  (`AllocOk`); cut into one piece per operation id (`ownSlice_pieces`, after
-  `ownSlice_trivial_slice`).
-- the second (nested) loop: each client's `j`-th `clientOperation` (its `id` is the chain's
-  `j`-th, `CoFresh`) gets the piece of its id, taken from a big separating conjunction over the
-  ids not yet handed out (a `Nodup` list; ids are distinct by `ChainsOk`); the struct store needs
-  `iStructNamed` (field access through `Access` fails on slice elements).
-- `ch := chains{...}`, at the state `heads = replicate nc 0`, `nDeps` zero, `frontier = []`,
-  nothing visited (`CoFresh`'s `visited = false`), `fu` all zeros: `chainsOwnCl`.
-- the third loop: `computeFirstUnk(i)` (its premise on the previous operation is vacuous at
-  head 0), then `nDeps` counted by the inner loop (`deps_init`, `count_succ`; `op` is a copy of
-  the first `clientOperation`, its `firstUnk` holds `FUe … 0` by `FuOk`).
-- the fourth loop: `addToFrontier(i)` for the clients with operations and `nDeps = 0`
-  (`init_unrelated` for its premise; `cs.length < 2^62` from `AllocOk`); then
+The proof follows the code's four loops (lemmas in `NewChainsLemmas.lean`):
+- the clients (`clientAt`), `n` the chains' sizes so far (`= h.length` at the end,
+  `chains_length_sum`);
+- `firstUnks := make([]int, n*numClients)` (no overflow by `AllocOk`), cut into one piece per
+  operation id (`ownSlice_pieces`) and regrouped by client (`pieces_regroup`: the ids are the
+  chains' operations); the nested loop hands client `i`'s `j`-th operation the piece of its id
+  (`coPend` to `coDone`, `bigSepL_if_take`/`bigSepL_if_step`);
+- `ch := chains{...}` at `chStInit` (heads and `nDeps` zero, no frontier, nothing visited, every
+  `firstUnk` zeros): `clientOwn_init`;
+- `computeFirstUnk(i)` at head 0 for every client, and `nDeps` counted (`NcInv`, `ncInv_step`,
+  `deps_init`; the chains opened at client `i` by `chains_open`/`chains_close`);
+- `addToFrontier(i)` for the clients with operations and no dependency (`init_unrelated`); then
   `chainsInv_init`.
 -/
 module
@@ -566,7 +562,157 @@ theorem newChains.wp_proof
         iframe
         ipureintro
         exact ⟨by omega, by omega, ncInv_step Hi.2.2 hin Hst1 _ (fun hp => absurd hp (by omega))⟩
-    · sorry
+    -- the frontier
+    have hivn : sint.nat iv = cs.length := by
+      have : sint.nat iv = (sint.Z iv).toNat := rfl
+      omega
+    have hinv := Hi.2.2
+    rw [hivn] at hinv
+    obtain ⟨hI1, hI2, hI3, hI4, hI5, hI6⟩ := hinv
+    have hst : ({ st with frontier := [] } : ChSt) = st := by rw [← hI2]
+    have hhd : ∀ (fr : List Nat) c, ({ st with frontier := fr } : ChSt).head c = 0 :=
+      fun _ c => ncInv_head Hi.2.2 c
+    have hhdop : ∀ (fr : List Nat) c, hdOp cs { st with frontier := fr } c = opAt cs c 0 := by
+      intro fr c; unfold hdOp; rw [hhd]
+    have hdeps : ∀ c, c < cs.length → 0 < (chain cs c).length →
+        sint.Z (st.nDeps.getD c 0) = deps h cs (List.replicate cs.length 0) c :=
+      fun c hc hl => hI6 c (by omega) hl
+    ihave IH6 : iprop(∃ (jv : w64) (fr : List Nat), "i" ∷ i_ptr ↦ jv ∗
+        "Hch" ∷ chainsOwnCl ch_ptr clsl h cs { st with frontier := fr } ∗
+        "%Hj" ∷ ⌜0 ≤ sint.Z jv ∧ sint.Z jv ≤ cs.length ∧
+          (fr.map (hdOp cs st)).Pairwise (KeyGt h cs) ∧
+          ∀ x, x ∈ fr ↔ x < sint.nat jv ∧ 0 < (chain cs x).length ∧
+            deps h cs (List.replicate cs.length 0) x = 0⌝) $$ [i Hch]
+    · iexists W64 0, []
+      rw [hst]
+      iframe
+      ipureintro
+      refine ⟨by rw [hz0]; omega, by rw [hz0]; omega, List.Pairwise.nil, fun x => ?_⟩
+      rw [show sint.nat (W64 0) = 0 from rfl]
+      simp
+    wp_for IH6
+    wp_if_destruct
+    · have hjn : sint.nat jv < cs.length := by
+        have : sint.nat jv = (sint.Z jv).toNat := rfl
+        omega
+      have hbj : 0 ≤ sint.Z jv ∧ sint.Z jv < sint.Z clsl.len := ⟨Hj.1, by omega⟩
+      have hj1 := sint_add_one (a := jv) Hj.1 (by omega)
+      icases chains_open ch_ptr clsl h cs { st with frontier := fr } (sint.Z jv) Hj.1 hjn $$ Hch with
+        ⟨%chV, %cvs, %cv, %Hfacts, Hchp, Hfr, Hcap, Hcv, Hw, Hrest, Hc⟩
+      obtain ⟨Hchcl, Hcvslen, Hnum, Hcvi⟩ := Hfacts
+      icases clientOwn_len _ _ _ _ _ $$ Hc with ⟨Hc, %Hcl⟩
+      icases typedPointsto_not_null_dup _ _ _ $$ Hchp with ⟨Hchp, %Hchnn⟩
+      icases typedPointsto_not_null_dup _ _ _ $$ Hcv with ⟨Hcv, %Hcvnn⟩
+      iStructNamedSuffix Hchp "_ch"
+      iStructNamedSuffix Hcv "_cc"
+      rw [Hchcl]
+      simp only at Hcl
+      obtain ⟨hcl, hcnd⟩ := Hcl
+      have hjn' : (sint.Z jv).toNat = sint.nat jv := rfl
+      rw [hjn'] at hcl hcnd
+      wp_auto
+      nc_idx [hbj]
+      have hz : sint.Z (W64 0) = 0 := rfl
+      have hmemj : ∀ x, x ∈ fr → x ≠ sint.nat jv := fun x hx e => by
+        have := ((Hj.2.2.2 x).mp hx).1; omega
+      wp_if_destruct
+      · have hl : 0 < (chain cs (sint.nat jv)).length := by omega
+        nc_idx [hbj]
+        ihave Hcv := typedPointsto_combine _ cv _ Hcvnn $$ [id_cc cltOps_cc head_cc nDeps_cc __cc]
+        · simp only [TypedPointsto.typedPointstoDef]; iframe
+        ihave Hchp := typedPointsto_combine _ chV _ Hchnn $$ [clients_ch numOps_ch frontier_ch __ch]
+        · simp only [TypedPointsto.typedPointstoDef]; rw [Hchcl]; iframe
+        ihave Hch := chains_close ch_ptr chV clsl h cs { st with frontier := fr }
+          { st with frontier := fr } cvs (sint.Z jv) cv Hchcl ⟨Hcvslen, Hnum⟩ (by omega)
+          (fun _ _ _ => rfl) $$ [Hchp Hfr Hcap Hcv Hw Hrest Hc]
+        · iframe
+        have hdj := hdeps (sint.nat jv) hjn hl
+        rw [← hcnd] at hdj
+        wp_if_destruct
+        · -- no dependency: added to the frontier
+          have hd0 : deps h cs (List.replicate cs.length 0) (sint.nat jv) = 0 := by
+            rw [Hif] at hdj; omega
+          wp_apply +noauto (wp_addToFrontier ch_ptr clsl h cs { st with frontier := fr } jv cons hok hI3
+            hnc62 Hj.1 hjn (by rw [hhd]; exact hl) (fun hm => hmemj _ hm rfl)
+            (fun v hv => by
+              obtain ⟨hv1, hv2, hv3⟩ := (Hj.2.2.2 v).mp hv
+              have hvc : v < cs.length := by omega
+              rw [hhdop, hhdop, hhd]
+              exact ⟨hvc, hv2, init_unrelated hok hwf.2 hjn hl hd0 hvc hv2 hv3⟩)
+            Hj.2.2.1) $$ [Hch]
+          · iframe; iframe #
+          iintro ⟨%fr', Hch, %Hfr'⟩
+          wp_auto
+          wp_for_post
+          iframe
+          iexists jv + W64 1, fr'
+          rw [hj1.2]
+          iframe
+          ipureintro
+          refine ⟨by omega, by omega, Hfr'.1, fun x => ?_⟩
+          rw [Hfr'.2 x, Hj.2.2.2 x]
+          constructor
+          · rintro (rfl | ⟨h1, h2, h3⟩)
+            · exact ⟨by omega, hl, hd0⟩
+            · exact ⟨by omega, h2, h3⟩
+          · rintro ⟨h1, h2, h3⟩
+            by_cases hx : x = sint.nat jv
+            · exact Or.inl hx
+            · exact Or.inr ⟨by omega, h2, h3⟩
+        · have hd0 : deps h cs (List.replicate cs.length 0) (sint.nat jv) ≠ 0 := by
+            intro e; apply Hif; rw [e] at hdj; word
+          wp_for_post
+          iframe
+          iexists jv + W64 1, fr
+          rw [hj1.2]
+          iframe
+          ipureintro
+          refine ⟨by omega, by omega, Hj.2.2.1, fun x => ?_⟩
+          rw [Hj.2.2.2 x]
+          constructor
+          · rintro ⟨h1, h2, h3⟩; exact ⟨by omega, h2, h3⟩
+          · rintro ⟨h1, h2, h3⟩
+            have hx : x ≠ sint.nat jv := by rintro rfl; exact hd0 h3
+            exact ⟨by omega, h2, h3⟩
+      · have hl : (chain cs (sint.nat jv)).length = 0 := by omega
+        ihave Hcv := typedPointsto_combine _ cv _ Hcvnn $$ [id_cc cltOps_cc head_cc nDeps_cc __cc]
+        · simp only [TypedPointsto.typedPointstoDef]; iframe
+        ihave Hchp := typedPointsto_combine _ chV _ Hchnn $$ [clients_ch numOps_ch frontier_ch __ch]
+        · simp only [TypedPointsto.typedPointstoDef]; rw [Hchcl]; iframe
+        ihave Hch := chains_close ch_ptr chV clsl h cs { st with frontier := fr }
+          { st with frontier := fr } cvs (sint.Z jv) cv Hchcl ⟨Hcvslen, Hnum⟩ (by omega)
+          (fun _ _ _ => rfl) $$ [Hchp Hfr Hcap Hcv Hw Hrest Hc]
+        · iframe
+        wp_for_post
+        iframe
+        iexists jv + W64 1, fr
+        rw [hj1.2]
+        iframe
+        ipureintro
+        refine ⟨by omega, by omega, Hj.2.2.1, fun x => ?_⟩
+        rw [Hj.2.2.2 x]
+        constructor
+        · rintro ⟨h1, h2, h3⟩; exact ⟨by omega, h2, h3⟩
+        · rintro ⟨h1, h2, h3⟩
+          have hx : x ≠ sint.nat jv := by rintro rfl; omega
+          exact ⟨by omega, h2, h3⟩
+    -- the result
+    have hjn : sint.nat jv = cs.length := by
+      have : sint.nat jv = (sint.Z jv).toNat := rfl
+      omega
+    rw [hjn] at Hj
+    iunfold chainsOwnCl at Hch
+    icases Hch with ⟨%chV, Hchp, %Hchcl, Hrep⟩
+    wp_auto
+    iapply HΦ
+    iexists { st with frontier := fr }
+    iframe
+    ipureintro
+    refine chainsInv_init hok hwf.2 hI3 hI1 hI4 (fun c hl => ?_) (fun c hc hl => hdeps c hc hl)
+      Hj.2.2.1 Hj.2.2.2
+    show st.visAt c 0 = true
+    rw [hI5]
+    simp [lt_of_chain_pos hl, hl]
 
 end proof
 
