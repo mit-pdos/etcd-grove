@@ -558,6 +558,7 @@ theorem mvcc.watchStream.Watch.wp_proofC (hspan : trace.SpanFromContext.spec (GF
       ipersist span
       wp_apply wp_mapInsert $$ [$Hcm] as Hcm
       wp_apply wp_mapInsert $$ [$Hwm] as Hwm
+      iapply wp_fupd
       wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids HCR]
       · inext
         iunfold mvcc.watchStreamInv
@@ -645,7 +646,66 @@ theorem mvcc.watchStream.Watch.wp_proofC (hspan : trace.SpanFromContext.spec (GF
             · exact hi
           · iright
             iexact Hc0
-      sorry
+      -- the reader back
+      imod Hback $$ [HPR] with Htt
+      · subst hP; rw [← Hsl]; simp only [mvcc.storeWatchParams]; iexact HPR
+      subst hγ hP
+      ihave #HIWF' : mvcc.watcherIs γ'.ws w (mvcc.watchRangeOf k e endk startRev id) fcs lo $$ []
+      · isimp only [mvcc.storeWatchParams] at HIWF; iexact HIWF
+      ihave #Hw0 := HIWF'
+      iunfold mvcc.watcherIs at Hw0
+      icases Hw0 with ⟨%γw, %C, -, -, -, ⟨%nreg, -⟩, %Hlo⟩
+      have hsr0 : startRev ≠ W64 0 := by intro h; rw [h] at Hsr1; simp at Hsr1
+      have hlo : lo = sint.nat startRev := by
+        have h2 := Hlo.2
+        simp only [mvcc.watchRangeOf, hsr0, ↓reduceIte] at h2
+        exact h2
+      -- the caller's update: the watcher registered, under its fresh id
+      ihave Hau := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvcc.mvccN) (Eo2 := ⊤) (by simp) $$ Hau
+      ihave Hacc := aupd_aacc $$ Hau
+      unfold atomic_acc
+      imod Hacc with Hacc
+      isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+      icases Hacc with ⟨%σ, %W, ⟨Hσ, HW⟩, Hucl⟩
+      iunfold mvcc.wsWatchers at HW
+      iunfold mvcc.wsWatchersI at HW
+      icases HW with ⟨Hreg, Htoks, #Hinfo⟩
+      cases hWid : W !! id with
+      | some wi0 =>
+        icases (BigSepM.bigSepM_lookup_acc hWid).1 $$ Htoks with ⟨Ht2, -⟩
+        iexfalso
+        iapply (mvcc.idTok_excl ι.o id)
+        iframe Hit Ht2
+      | none =>
+        icases Hucl with ⟨-, Hcommit⟩
+        isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
+        imod Hcommit $$ %id %nreg [Hσ Hreg Htoks Hit] with HQ
+        · iframe Hσ
+          isplitr
+          · ipureintro; exact hWid
+          iunfold mvcc.wsWatchers
+          iunfold mvcc.wsWatchersI
+          iframe Hreg
+          isplitl [Htoks Hit]
+          · iapply (BigSepM.bigSepM_insert hWid).2
+            iframe Hit Htoks
+          iintro !>
+          iapply (BigSepM.bigSepM_insert hWid).2
+          iframe Hinfo
+          iunfold mvcc.wInfoOk
+          iexists w, fcs
+          simp only [hmv, ← hlo]
+          iframe Hia HIWF' Hfi
+          ipureintro; rfl
+        imodintro
+        (try wp_auto)
+        iapply HΦ
+        iframe Htt
+        ileft
+        isplitr
+        · ipureintro; exact ⟨rfl, hne⟩
+        iexists σ, W
+        iexact HQ
 
 end proof
 
