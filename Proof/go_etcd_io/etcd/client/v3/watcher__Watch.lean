@@ -53,7 +53,7 @@ theorem watcher.Watch.wp_proof
   iunfold watchMemberFacts at Hmf0
   icases Hmf0 with ⟨-, -, -, -, #Hkf0, -⟩
   iunfold srvKVFacts at Hkf0
-  icases Hkf0 with ⟨%on0, %γr0, #Hinvs0, #H00, %Hkr0⟩
+  icases Hkf0 with ⟨%on0, %γr0, #Hinvs0, #H00, %Hkr0, -⟩
   imod (srvKVCoreM_fire on0 V.R.E γr0 γ (by rw [Hkr0.1, Hkst]) Hkr0.2.1 [[], []] Q)
     $$ Hinvs0 H00 H00 [] Hau
     with ⟨%C0, #HQ0, -⟩

@@ -271,7 +271,7 @@ choice (`isNewClient`); a client that never watches needs none of its facts. -/
 def watchEnv (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
     EtcdGrove.client.WEnv GF :=
   ⟨R₁, bridgeAddr₁, [], null, null, pfx, null, v3rpc.etcdModelOfHistory γr.raft γr.kv,
-    v3rpc.histWL γr.raft γr.kv, memAt3 R₁ R₂ R₃, 3, γr.kv.st⟩
+    v3rpc.histWL γr.raft γr.kv, memAt3 R₁ R₂ R₃, 3, γr.kv⟩
 
 /-- **A member of the started cluster** (persistent; W4: what `startCluster` gives of each, from
 `memberServed` and its bridge's start): its bridge's address serving
@@ -324,7 +324,7 @@ def clusterUp (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (pfx : GoString)
     isNewClient cl₂ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) ∗
     isNewClient cl₃ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) ∗
     etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries bootLog)) ∗
-    ⌜ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.st = ρ₁.rd.kv.st⌝)
+    ⌜kvSame ρ₂.rd.kv ρ₁.rd.kv ∧ kvSame ρ₃.rd.kv ρ₁.rd.kv⌝)
 
 end cluster
 

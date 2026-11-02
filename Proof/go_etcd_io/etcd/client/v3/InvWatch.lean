@@ -126,9 +126,13 @@ structure WEnv (GF : BundledGFunctors) where
   watch server (`addr` and `R` are the current one's: the epoch's, in `run`) -/
   mem : Nat → GoString × v3rpc.WSrv GF
   nm : Nat
-  /-- (D47) the cluster's KV state variable (`KVNames.st`): every member's KV invariants are at
-  it (`srvKVFacts`), and the watches' read updates are of it (`wsIs`) -/
-  kst : GName
+  /-- (C3's watch side, 2026-11-02; until then its state variable `kst` only, D47) the cluster's
+  KV names: every member's KV invariants are at names the same as these (`srvKVFacts`'s `kvSame`),
+  and the watches' read updates are of their state variable (`kst`, `wsIs`) -/
+  kv : KVNames
+
+/-- (D47) the cluster's KV state variable (`KVNames.st`, the KV names' `V.kv.st`). -/
+abbrev WEnv.kst (V : WEnv GF) : GName := V.kv.st
 
 /-- **`V` at its member `i`** (W3b): the member's address and watch server. A predicate that reads
 neither `R` nor `addr` is the same at every member, by definition. A `def`, so that `run`'s
@@ -248,9 +252,9 @@ instance srvWL_persistent (R : v3rpc.WSrv GF) (L : mvcc.Log) : Persistent (srvWL
 
 /-- **A client of one server** (the watch contract at the server's model). -/
 abbrev srvWEnv (R : v3rpc.WSrv GF) (addr : GoString) (ics : List GoFunc) (conn wc : Loc)
-    (pfx : GoString) (lg : Loc) (kst : GName) : WEnv GF :=
+    (pfx : GoString) (lg : Loc) (kv : KVNames) : WEnv GF :=
   ⟨R, addr, ics, conn, wc, pfx, lg, v3rpc.etcdModelOfServer R.E, srvWL R, fun _ => (addr, R), 1,
-    kst⟩
+    kv⟩
 
 /-! ## The premises about the server and the transport -/
 
@@ -377,28 +381,42 @@ nothing else of it, and a premise with the mode free is weaker than one fixing i
 def srvKVFacts (V : WEnv GF) : IProp GF :=
   iprop(∃ (on : Bool) (γr : ReadNames), srvKVCoreM on V.R.E γr ∗
     mvcc.idxSealed V.R.E.γ.idx [[], []] ∗
-    ⌜γr.kv.st = V.kst ∧ γr.kv.log0 = [[], []] ∧ receiptBound GF ≤ 2 ^ 62⌝)
+    ⌜γr.kv.st = V.kst ∧ γr.kv.log0 = [[], []] ∧ receiptBound GF ≤ 2 ^ 62⌝ ∗
+    ⌜kvSame γr.kv V.kv⌝)
 
 instance srvKVFacts_persistent (V : WEnv GF) : Persistent (srvKVFacts V) := by
   unfold srvKVFacts; infer_instance
 
 /-- **A member's KV facts, from its server's KV core in a mode** (`srvKVCoreM_of_readM`). -/
 theorem srvKVFacts_intro (V : WEnv GF) (on : Bool) (γr : ReadNames)
-    (hst : γr.kv.st = V.kst) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) :
+    (hs : kvSame γr.kv V.kv) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) :
     srvKVCoreM on V.R.E γr ∗ mvcc.idxSealed V.R.E.γ.idx [[], []] ⊢ srvKVFacts V := by
   iintro ⟨#Hc, #H0⟩
   iunfold srvKVFacts
   iexists on, γr
   iframe Hc H0
-  ipureintro; exact ⟨hst, hlog, hrb⟩
+  isplitl
+  · ipureintro; exact ⟨hs.1, hlog, hrb⟩
+  ipureintro; exact hs
+
+/-- **The members' store's compaction permit is the cluster's** (C3's watch side, 2026-11-02):
+the member's KV core's `crevPermIs` (`srvKVCoreM_cperm`), at the environment's KV names
+(`kvCmpPermit_same`). -/
+theorem srvKVFacts_cperm (V : WEnv GF) :
+    srvKVFacts V ⊢ mvcc.crevPermIs V.R.E.γ (kvCmpPermit V.kv) := by
+  iintro #H
+  iunfold srvKVFacts at H
+  icases H with ⟨%on, %γr, #Hc, -, -, %Hs⟩
+  rw [← kvCmpPermit_same γr.kv V.kv Hs]
+  iapply srvKVCoreM_cperm on V.R.E γr $$ Hc
 
 /-- **… with auth off** (`srvKVFacts_intro … false`): from the auth-off read view's KV invariants
 (`srvKVInvs_of_read`). -/
 theorem srvKVFacts_of_off (V : WEnv GF) (γr : ReadNames)
-    (hst : γr.kv.st = V.kst) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) :
+    (hs : kvSame γr.kv V.kv) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) :
     srvKVInvs V.R.E γr ∗ mvcc.idxSealed V.R.E.γ.idx [[], []] ⊢ srvKVFacts V := by
   rw [← srvKVCoreM_false]
-  exact srvKVFacts_intro V false γr hst hlog hrb
+  exact srvKVFacts_intro V false γr hs hlog hrb
 
 /-- **The watch laws of a client of one server** (`watchLaws` at `etcdModelOfServer`, `srvWL`):
 the server model's facts of a certified log (`etcdReached_of_certOk`, `srvEtcdState`, `srvStep`),
@@ -407,7 +425,7 @@ member's KV facts (`srvKVFacts`, `srvKVCoreM_keys`). -/
 theorem watchLaws_srv [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (V : WEnv GF)
     (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
     (hWL : V.WL = srvWL V.R) (hst : V.R.γ.st = V.R.E.γ) : srvKVFacts V ⊢ watchLaws V := by
-  obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kst⟩ := V
+  obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kv⟩ := V
   simp only at hWM hWL hst ⊢
   subst hWM hWL
   iintro #Hfacts
@@ -537,7 +555,7 @@ theorem watchConnFacts_cur (V : WEnv GF) :
   obtain ⟨hp, -, i, hi, he⟩ := Hp
   ihave #Hmi := Hm $$ %i %hi
   have hV : V.atIdx i = V := by
-    obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kst⟩ := V
+    obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kv⟩ := V
     simp only at he ⊢
     simp [WEnv.atIdx, he]
   irevert Hmi; rw [hV]; iintro #Hmi

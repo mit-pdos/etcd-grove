@@ -164,7 +164,7 @@ theorem Main.wp_proof
   -- watch server's facts there, for the clients' watcher environment `akV R`)
   haveI := Hms
   let akV : v3rpc.WSrv GF → client.WEnv GF := fun R =>
-    client.srvWEnv R go!"127.0.0.1:23916" [] null null go!"a" null ρ.rd.kv.st
+    client.srvWEnv R go!"127.0.0.1:23916" [] null null go!"a" null ρ.rd.kv
   wp_apply (wp_ServeOn srv go!"127.0.0.1:23916" E { ρ with wait := γw } ρ.rd cfg γa
       (fun cid mid R => iprop(⌜R.E = E ∧ R.s = srv⌝ ∗
         akKVOn go!"127.0.0.1:23916" srv E { ρ with wait := γw } cid mid ∗
@@ -211,7 +211,7 @@ theorem Main.wp_proof
       iunfold idCred
       ipureintro; exact Hrb48
     imod (ak_served_watch (akV R) go!"127.0.0.1:23916" pw srv E ρ.rd ims is sregs 1 rfl hRE
-        (by simp) rfl hlog (by omega) Hms.watch_impl Hregs2 rfl rfl (by rw [hRE]; exact Hoff))
+        (by simp) (kvSame_refl _) hlog (by omega) Hms.watch_impl Hregs2 rfl rfl (by rw [hRE]; exact Hoff))
       $$ [Hss Hwslots] with ⟨#HWF, #Htag⟩
     · iframe; iframe #
     imodintro
