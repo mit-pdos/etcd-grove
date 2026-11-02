@@ -530,19 +530,6 @@ theorem membership.memberAtD_agree (m : Loc) (q1 q2 : Qp) (mm1 mm2 : apply.Membe
   cases mm1; cases mm2
   simp_all
 
-/-- **A member's client URLs made read-only** (an update): how today's producers of `memberAt`
-(`AddMember`'s caller, from the context's unmarshalled member) give `memberAtD`. -/
-theorem membership.memberAt_persistD (m : Loc) (q : Qp) (mm : apply.MemberM) :
-    membership.memberAt (GF := GF) m q mm ⊢ |==> membership.memberAtD m q mm := by
-  unfold membership.memberAt membership.memberAtD
-  iintro ⟨%Hnn, %pu, %cu, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus⟩
-  imod ownSlice_persist $$ Hcus with #Hcus
-  imodintro
-  isplitr; (ipureintro; exact Hnn)
-  iexists pu, cu
-  iframe
-  iexact Hcus
-
 /-- **The glue at the monitors' permission** (`srvMonitorPermitM_of`'s): from the request view,
 the server's id field and that it is a voter (`srvApRes`'s `srvMemberIDAddr` and `srvDynLog`, which
 `Start` builds the permission, `EtcdServer__Start.lean:103,133,248,278`: from `isServerBuilt`'s

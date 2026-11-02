@@ -269,12 +269,8 @@ local macro "succ_tail" : tactic => `(tactic| (
   wsteps
   rw [Hvlrn, Hvnm]
   subst Hpus
-  ihave Hm : membership.memberAt («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) 1 (membership.ccMemberAt m) $$ [ID PeerURLs IsLearner Name ClientURLs Hpus Hcus]
-  · iunfold membership.memberAt
-    isplitr
-    · ipureintro; exact Hmnn
-    iexists _, _
-    simp only [membership.ccMemberAt]
+  imod membership.memberAt_of_owned («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) 1 (membership.ccMemberAt m) _ _ Hmnn $$ [ID PeerURLs IsLearner Name ClientURLs Hpus Hcus] with Hm
+  · simp only [membership.ccMemberAt]
     iframe
   ihave #HbeSave : membership.beSaveOk
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
