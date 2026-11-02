@@ -357,11 +357,11 @@ theorem EtcdServer.apply.wp_proofOff
     iapply wp_go_step_receipt'
     case hv => exact isPanic_intoVal _
     inext
-    iintro Hr -
+    iintro Hr Hlc
     iapply wp_value'
     -- (2026-10-19, D21 M3) the token's count, past the entry's index
     have hma : uint.Z m.index = uint.Z aw + 1 := by omega
-    imod srvWTPool_take_n s E γp ρ.wait xj (w + sint.nat j) $$ HWP Hr HWA HKV
+    imod srvWTPool_take_n s E γp ρ.wait xj (w + sint.nat j) $$ HWP Hr Hlc HWA HKV
       with ⟨Hwt, #HWA1, HKV⟩
     ihave #HWA2 : srvWTTaken γp (w + sint.nat (j + W64 1)) $$ []
     · rw [hjs, ← Nat.add_assoc]
@@ -1199,11 +1199,11 @@ theorem EtcdServer.apply.wp_proofOn
     iapply wp_go_step_receipt'
     case hv => exact isPanic_intoVal _
     inext
-    iintro Hr -
+    iintro Hr Hlc
     iapply wp_value'
     -- (2026-10-19, D21 M3) the token's count, past the entry's index
     have hma : uint.Z m.index = uint.Z aw + 1 := by omega
-    imod srvWTPool_take_nOn s E γp ρ.wait xj saj (w + sint.nat j) $$ HWP Hr HWA HKV
+    imod srvWTPool_take_nOn s E γp ρ.wait xj saj (w + sint.nat j) $$ HWP Hr Hlc HWA HKV
       with ⟨Hwt, #HWA1, HKV⟩
     ihave #HWA2 : srvWTTaken γp (w + sint.nat (j + W64 1)) $$ []
     · rw [hjs, ← Nat.add_assoc]

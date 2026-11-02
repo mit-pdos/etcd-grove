@@ -29466,3 +29466,40 @@ the old pool), so `stock` in mvcc stays at its baseline (58).
 **Rejected.** A separate theorem for each mode with its own statement (two more copies of the
 spec's text, and of its reader stocks); keeping `store.Restore.specOff` beside the switched spec
 (nothing uses it once `watchableStore.Restore` switches in the same step).
+
+## The write budget: one stock per backend (M2's item 15, stage B1)
+
+**2026-11-02 · within the approved candidate 1 (stage B: "Q2 stages A and B now"); no linked statement
+changed · branch `m2-item15`**
+
+**What was.** `srvWTPool` (`InvApplier.lean`) held the current backend's write-back tokens and their
+bound (`receiptBound ≤ a + n + 1`) in its invariant; `srv_be_swap` took the old backend's tokens out
+(unused: the walk dropped them) and put the new backend's in.
+
+**Decision.** The tokens of each backend `d` are a persistent invariant of their own,
+`srvWTStockInv γp d` (namespace `srvWTStockN`, disjoint from the pool's): the tokens and a lower
+bound `m` of the pool's receipt counter `γp`, with `receiptBound ≤ m + n + 1`. The pool keeps the
+receipts, the counter's authority, its quarter of `E.γbe` at the current backend, that backend's
+stock fact and the monitor's read token. A take (`srvWTStock_take`) opens the pool and then the
+stock: the receipt goes into the pool, the counter up by one, a token out of the stock, whose lower
+bound moves to the new count. Since the stock fact sits under the pool's `▷` and is not timeless,
+finding the current backend's stock costs a later credit (`srvWTPool_stockOf`); every take law
+(`srvWTPool_take_at_d`/`_at`/`_n`/`_nOn`/`_extra_d`/`_extra`/`_two`, `srvApplyKVCore_commit`,
+`mergedCreate_window`'s premise) takes a `£ 1` beside its `⧗ 1`, which every caller has from the
+step that gave the receipt (`wp_go_step_receipt'` hands both; the callers had discarded the credit).
+`srv_be_swap` takes the new backend's stock fact (the walk makes it from the fresh tokens,
+`srvWTStock_alloc`) and hands out no old tokens.
+
+**Why.** Restore in compaction mode needs a persistent write-back supply of a backend
+(`kbWTSupplyM (some d)`, which `store.Compact` and a resumed compaction take) that survives later
+swaps; with the tokens in the pool's invariant, only the current backend's were reachable, through
+a part of `E.γbe`. With a stock per backend the supply is `kbWTSupplyM_of_stock` (the server Draft
+`M2StorageDraftRestore.lean`, with `kbWTSupplyM_of_poolR` for the apply loop's compaction arm);
+the old Draft's `kbWTSupplyM_of_srvWTPool` (from a discarded part of `E.γbe`) is removed. No more
+tokens than before: one stock of `receiptBound - 1` per backend, as the pool's was, and the shared
+counter bounds all takes together.
+
+**Rejected.** Keeping the tokens in the pool and handing a compaction job a part of `E.γbe` (P4's
+withdrawn discarded part: a swap gathers all of `E.γbe`); a supply that carries its own later
+credit (the supply is a persistent wand over `⧗ 1` only, `kbWTSupply`; changing it changes mvcc's
+approved statements).

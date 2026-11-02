@@ -83,16 +83,16 @@ theorem srvApplyKV_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.A
 /-- (2026-10-31, the snapshot track: #11's S6) **`s.KV().Commit()`'s resources, lent by the
 shared row**: the store writer's fragment and its reader token of the backend (`txn.kvWriter`'s
 and `apply.kvOwn`'s), and a write token from the budget for the commit's write-back
-(`srvWTPool_take_extra`, for a receipt), given back after the commit. -/
+(`srvWTPool_take_extra`, for a receipt and a later credit), given back after the commit. -/
 theorem srvApplyKVCore_commit [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (ua : GoInterface) (γp : GName) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ srvApplyKVCore s E γw x ua ={⊤}=∗
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvApplyKVCore s E γw x ua ={⊤}=∗
       mvcc.writerFrag E.γ ∗ mvcc.writerOwn E.γ ∗ mvcc.storeWT E.γ ∗
       (mvcc.writerFrag E.γ ∗ mvcc.writerOwn E.γ -∗ srvApplyKVCore s E γw x ua) := by
-  iintro #Hp Hr Hc
+  iintro #Hp Hr Hlc Hc
   iunfold srvApplyKVCore at Hc
   icases Hc with ⟨Hua, #Hap, Hkv, Hbo, Hra, Hw⟩
-  imod srvWTPool_take_extra s E γp $$ Hp Hr Hbo with ⟨Hwt, Hbo⟩
+  imod srvWTPool_take_extra s E γp $$ Hp Hr Hlc Hbo with ⟨Hwt, Hbo⟩
   iunfold apply.applyKV at Hkv
   icases Hkv with ⟨%p, %Hpe, Huo, Hko, Hcmp⟩
   iunfold apply.kvOwn at Hko

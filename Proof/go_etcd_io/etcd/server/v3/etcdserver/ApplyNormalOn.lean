@@ -712,35 +712,19 @@ theorem srvApplyKVOn_beOwn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
 /-- **One write token, the count raised by one, with auth on** (`srvWTPool_take_n`'s). -/
 theorem srvWTPool_take_nOn (s : Loc) (E : apply.AEnv GF) (γp γw : GName) (x : apply.ApplyKV)
     (st : auth.AuthState) (n : Nat) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ srvWTTaken γp n -∗ srvApplyKVOn s E γw x st ={⊤}=∗
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTTaken γp n -∗ srvApplyKVOn s E γw x st ={⊤}=∗
       mvcc.storeWT E.γ ∗ srvWTTaken γp (n + 1) ∗ srvApplyKVOn s E γw x st := by
-  iintro #Hp Hr #Hv HKV
+  iintro #Hp Hr Hlc #Hv HKV
   icases srvApplyKVOn_beOwn s E γw x st $$ HKV with ⟨Hbo, HKV⟩
   icases srvBeOwn_frag s E $$ Hbo with ⟨%d, %Hd, Hg, Hbo⟩
-  unfold srvWTPool
-  iinv Hp with ⟨%a, %m, %d', >Ha, >Hg', >Hn, >Hc, >%Hb, Hrt⟩ Hclose
-  ihave %Hdd := dghostVar_agree E.γbe d _ d' _ $$ Hg Hg'
-  subst Hdd
+  imod srvWTPool_stockOf E γp d _ $$ Hp Hlc Hg with ⟨#Hs, Hg⟩
   unfold srvWTTaken
-  icases monoNatLbOwn_valid γp 1 a n $$ Hc Hv with %Hva
-  replace Hva := Hva.2
-  icases receipt_add_one_lt a $$ [Hr Ha] with ⟨%Hlt, Ha⟩
-  · iframe
-  obtain ⟨m', rfl⟩ : ∃ m', m = m' + 1 := ⟨m - 1, by omega⟩
-  icases wbToks_split d m' $$ Hn with ⟨Ht, Hn⟩
-  imod mono_nat_own_update (a + 1) (by omega) $$ Hc with ⟨Hc, #Hlb⟩
-  imod Hclose $$ [Ha Hg' Hn Hc Hrt] with -
-  · inext
-    iexists a + 1, m', d
-    iframe Ha Hg' Hn Hc Hrt
-    ipureintro; omega
+  imod srvWTStock_take E γp d n $$ Hp Hs Hr Hv with ⟨Ht, #Hlb⟩
   ihave Hbo := Hbo $$ Hg
   ihave HKV := HKV $$ Hbo
   imodintro
-  iframe HKV
-  isplitl [Ht]
-  · iapply storeWT_of_wbTok E.γ d Hd $$ Ht
-  iapply monoNatLbOwn_le (n + 1) (by omega) $$ Hlb
+  iframe HKV Hlb
+  iapply storeWT_of_wbTok E.γ d Hd $$ Ht
 
 /-- **The apply thread's KV log is small, with auth on** (`srvApplyKV_small`'s). -/
 theorem srvApplyKVOn_small (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)

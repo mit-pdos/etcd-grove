@@ -112,20 +112,19 @@ theorem kv_cert_jump (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : �
 /-- **`s.be`'s swap** (D22 receiver epochs, S8d; see the file header): under `bemu`'s write side
 (`bemuP s E.γbe 1`) with the apply thread's part of `s.be` (`srvBeOwn`), the write budget's
 invariant (`srvWTPool`) moved from the current backend `d` (the apply thread's, `E.γ.kb`) to the
-new one `d'` (its facts `srvBeRO d'`, write-back tokens `n'` past the receipts' bound, the
-storage-version monitor's read token): `s.be` whole (at `d`), the old backend's tokens and the
-monitor's old read token out, and, once `s.be` holds `d'`, `bemu`'s lock invariant and the apply
+new one `d'` (its facts `srvBeRO d'`, its write-back stock `srvWTStockInv γp d'`, the
+storage-version monitor's read token): `s.be` whole (at `d`) and the monitor's old read token out
+(the old backend's write-back tokens stay in its stock, M2's item 15), and, once `s.be` holds `d'`, `bemu`'s lock invariant and the apply
 thread's half of `s.be` and quarter of the ghost variable at `d'`. -/
-theorem srv_be_swap (s : Loc) (E : apply.AEnv GF) (γp : GName) (d' : mvcc.KBReal) (n' : Nat)
-    (hn : receiptBound GF ≤ n' + 1) :
-    srvWTPool E γp ⊢ bemuP s E.γbe 1 -∗ srvBeOwn s E -∗ srvBeRO d' -∗ ownToks d'.γB.wb n' -∗
+theorem srv_be_swap (s : Loc) (E : apply.AEnv GF) (γp : GName) (d' : mvcc.KBReal) :
+    srvWTPool E γp ⊢ bemuP s E.γbe 1 -∗ srvBeOwn s E -∗ srvBeRO d' -∗ srvWTStockInv γp d' -∗
       mvcc.bkRTx d'.γB d'.P d'.be -∗ £ 1 -∗
       |={⊤}=> ∃ d : mvcc.KBReal, ⌜E.γ.kb = some d⌝ ∗ srvBeAddr s ↦ srvBeIface d.be ∗
-        (∃ n : Nat, ownToks d.γB.wb n) ∗ mvcc.bkRTx d.γB d.P d.be ∗ srvBeRO d ∗
+        mvcc.bkRTx d.γB d.P d.be ∗ srvBeRO d ∗
         (srvBeAddr s ↦ srvBeIface d'.be -∗ bemuP s E.γbe 1 ∗
           srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
           dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d') := by
-  iintro #Hp Hbm Hbo #Hro' Htk' Hrt' Hlc
+  iintro #Hp Hbm Hbo #Hro' #Hs' Hrt' Hlc
   iunfold bemuP at Hbm
   icases Hbm with ⟨%d1, Hbe1, Hg1, #Hro1⟩
   iunfold srvBeOwn at Hbo
@@ -134,7 +133,7 @@ theorem srv_be_swap (s : Loc) (E : apply.AEnv GF) (γp : GName) (d' : mvcc.KBRea
   obtain ⟨-, rfl⟩ := Hag
   icombine Hbe1 Hbe2 as Hbe
   unfold srvWTPool
-  iinv Hp with ⟨%a, %n, %d2, >Ha, >Hg3, >Hn, >Hc, >%Hb, Hrt⟩ Hclose
+  iinv Hp with ⟨%a, %d2, >Ha, >Hg3, #Hs2, >Hc, Hrt⟩ Hclose
   icombine Hg1 Hg3 gives %Hag2
   obtain ⟨-, rfl⟩ := Hag2
   icombine Hg2 Hg3 as Hg23
@@ -155,20 +154,16 @@ theorem srv_be_swap (s : Loc) (E : apply.AEnv GF) (γp : GName) (d' : mvcc.KBRea
   icases (dghostVar_split (GF := GF) E.γbe d' (DFrac.own (1 : Qp).half.half)
       (DFrac.own (1 : Qp).half.half)) $$ [Hg] with ⟨HgA, HgW⟩
   · rw [DFrac.op_own, Qp.half_add_half]; iexact Hg
-  imod Hclose $$ [Ha HgW Htk' Hc Hrt'] with -
+  imod Hclose $$ [Ha HgW Hc Hrt'] with -
   · inext
-    iexists a, n', d'
-    iframe Ha HgW Htk' Hc
-    isplitr
-    · ipureintro; omega
+    iexists a, d'
+    iframe Ha HgW Hs' Hc
     ileft; iexact Hrt'
   imodintro
   iexists d1
   iframe Hbe Hrt Hro1
   isplitr
   · ipureintro; exact Hd
-  isplitl [Hn]
-  · iexists n; iexact Hn
   iintro Hbe
   icases (typedPointsto_half_split (srvBeAddr s) (srvBeIface d'.be) 1).1 $$ Hbe with ⟨Hb1, Hb2⟩
   iframe Hb2 HgA

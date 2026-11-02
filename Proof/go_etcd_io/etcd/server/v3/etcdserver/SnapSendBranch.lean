@@ -513,7 +513,7 @@ def mergedObs (γr : ReadNames) (cmp : Bool) (ai : w64) (A : List EntryModel) (l
 /-- **(S2, open) The merged snapshot's window** (`createMergedSnapshotMessage`'s premise): with the
 apply thread at the applied index `ai`, its consistent index (`loopOk`, `ciEff γ st.k = ai`) and
 its KV at the log `x.log` (the shared row, `srvApplyKVCore`, in either auth mode), two time
-receipts (for the commit's write token and the snapshot's write-back token), the contracts of
+receipts and two later credits (for the commit's write token and the snapshot's write-back token), the contracts of
 `s.KV().Commit()` (`srvKVCommitOk`) and `s.be.Snapshot()` (`srvBeSnapOk`) with the window's
 resources (`RC`, the commit's `RC'` giving the snapshot's `RS`; D22 the stored-index window:
 `storeReq_freeze`, `srvBeSnapOk_window`), the snapshot observing `mergedObs` at `ai`; once the
@@ -536,7 +536,7 @@ theorem mergedCreate_window
     (hlen : uint.Z ai = A.length) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM on s γ ci TM E ρ γr ∗ srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ ∗
-      srvWTPool E γp ∗ appliedLogAt γr ai x.log ∗ srvRLogLb γr.raft A ∗ ⧗ 1 ∗ ⧗ 1 ∗
+      srvWTPool E γp ∗ appliedLogAt γr ai x.log ∗ srvRLogLb γr.raft A ∗ ⧗ 1 ∗ £ 1 ∗ ⧗ 1 ∗ £ 1 ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvApplyKVCore s E γw x ua ∗
       srvRest E γr A ⊢
     |={⊤}=> ∃ (be : GoInterface) (dq : DFrac) (RC RC' RS RS' : IProp GF),
@@ -545,7 +545,7 @@ theorem mergedCreate_window
       (RS' -∗ srvBeAddr s ↦{dq} be ={⊤}=∗ ∃ st' : ApplyState, applyThread γ st' ∗
         applyBackend γ ci b ∗ ciApplying ci a t ∗ srvApplyKVCore s E γw x ua ∗ srvRest E γr A ∗
         ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝) := by
-  iintro ⟨#Hpkg, #Hsrv, #Hkva, #Hkv, #Hpool, -, -, Hr1, Hr2, Hst, Hab, Hca, HKV, HRs⟩
+  iintro ⟨#Hpkg, #Hsrv, #Hkva, #Hkv, #Hpool, -, -, Hr1, Hl1, Hr2, Hl2, Hst, Hab, Hca, HKV, HRs⟩
   -- the server's backend, its hooks and the protocol (`srvBeHooked`, `srvEnvOk`, `isServerCI`)
   iunfold isServerM at Hsrv
   icases Hsrv with ⟨-, #HCI, ⟨%v, #Hf⟩, -⟩
@@ -593,8 +593,8 @@ theorem mergedCreate_window
   rw [hkb] at hd2
   obtain rfl := Option.some.inj hd2
   -- two write-backs' tokens
-  imod srvWTPool_take_extra_d E γp d _ $$ Hpool Hr1 Hg with ⟨Ht1, Hg⟩
-  imod srvWTPool_take_extra_d E γp d _ $$ Hpool Hr2 Hg with ⟨Ht2, Hg⟩
+  imod srvWTPool_take_extra_d E γp d _ $$ Hpool Hr1 Hl1 Hg with ⟨Ht1, Hg⟩
+  imod srvWTPool_take_extra_d E γp d _ $$ Hpool Hr2 Hl2 Hg with ⟨Ht2, Hg⟩
   ihave Hwt := storeWT_of_wbTok E.γ d hkb $$ Ht1
   -- the rest buckets
   iunfold srvRest at HRs

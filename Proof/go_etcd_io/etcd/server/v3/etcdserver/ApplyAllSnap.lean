@@ -398,7 +398,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
         iapply wp_go_step_receipt'
         case hv => first | rfl | simp [val.isPanic]
         inext
-        iintro Hr1 -
+        iintro Hr1 Hl1
         iapply wp_value'
         repeat (
           fail_if_success wp_bind (App (Val (GoInstruction (MethodResolve _ _))) (Val _))
@@ -407,7 +407,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
         iapply wp_go_step_receipt'
         case hv => first | rfl | simp [val.isPanic]
         inext
-        iintro Hr2 -
+        iintro Hr2 Hl2
         iapply wp_value'
         (try wp_auto)
         wp_apply (hGT.1 m (DFrac.own 1) DFrac.discard false sm) $$ [Hm] as Hm
@@ -443,9 +443,9 @@ theorem EtcdServer.applyAll.wp_proofSnap
             icases srvApplyKV_core s E' ρ.wait x' $$ HKV with ⟨%ua, HKVc, HKVk⟩
             imod mergedCreate_window hC hSnap hOn hSave hPut hUR hID hName hSafe false s γ' ci TM' E'
                 ρ γr b' st' sv.Metadata'.Index' a t A' x' ρ.wait γp ua kv' hlo' hci' hpos hlenZ
-              $$ [Hst Hbe Happ HKVc HRS Hr1 Hr2]
+              $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 Hr2 Hl2]
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
-            · iframe Hpkg HsrvM Hkvf' Hkvi' HW' Hlog1 HA' Hr1 Hr2 Hst Hbe Happ HKVc HRS
+            · iframe Hpkg HsrvM Hkvf' Hkvi' HW' Hlog1 HA' Hr1 Hl1 Hr2 Hl2 Hst Hbe Happ HKVc HRS
             wp_apply (hCM s m sm sv.Metadata'.Term' sv.Metadata'.Index' cs' fv.lg kv' be dq RC RC'
                 RS RS' (mergedObs γr E'.cmp sv.Metadata'.Index' A' x'.log))
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]

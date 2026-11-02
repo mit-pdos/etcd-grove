@@ -484,9 +484,10 @@ theorem applySnapshot_walk
       simp only [mvcc.storeRT, mvcc.StoreNames.withPhys_kb, Hp'.2]]
     rw [kbRT_some]
     iexact Hnew
-  imod srv_be_swap s E γp d' (backend.wbInit - 2 - 1 - 2) (by omega) $$ HWP Hbm Hbo HnRO
-      [Hnwb] HnMon Hlc2 with ⟨%dold, %Hdold, Hbefull, -, HoMon, #HoRO, Hbeback⟩
+  imod srvWTStock_alloc γp d' (backend.wbInit - 2 - 1 - 2) (by omega) ⊤ $$ [Hnwb] with #HnS
   · rw [hγ']; iexact Hnwb
+  imod srv_be_swap s E γp d' $$ HWP Hbm Hbo HnRO HnS HnMon Hlc2
+    with ⟨%dold, %Hdold, Hbefull, HoMon, #HoRO, Hbeback⟩
   (try wp_auto)
   icases Hbeback $$ Hbefull with ⟨Hbm, HbeA, HγbeA⟩
   wp_apply sync.RWMutex.wp_Unlock $$ [$Hbl Hbm] as Hbr
