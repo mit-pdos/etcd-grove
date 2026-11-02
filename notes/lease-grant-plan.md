@@ -313,328 +313,380 @@ what changed.
   `examples/leasegrant`.
 - **M6.** Done: `lessorLb_max`, `leaseGrantedAt_lb_max` (`InvLessor.lean`).
 
-## Design of the server chain (2026-11-02)
+## Design of the server chain (2026-11-02, round 2)
 
 The plan of record from here on; it replaces the plumbing-commit list (kept, shortened, under
 "Superseded" below). Written as text before any more site is threaded (`notes/spec-first-plan.md`,
 "Design before plumbing"): Review checks the whole chain against it, the user freezes it, then the
 commits of part 3 plumb it. It follows the user's decisions: S1 narrow plus the tie (the lessor's
 live set is the model's lease table, so a grant's success is a function of the applied log and the
-rest model steps exactly by `restGrant`); S2 `leasesNoExpiry` a named premise (`NewServer`'s gated
-row); B1 in place, gated on `lg` (one spec per function, `lg = false` meaning what it means on
-`lean`); S6 done; (c) a granting cluster makes no claim about etcd's KV service; revocations out
-(`rqOk _ _ .leaseRevoke = False`); one member, snapshots of a granting cluster behind
-`srvGrantOpen` (a true, unproved statement; no false statement behind a hypothesis).
+rest model steps by a grant's record); S2 `leasesNoExpiry` a named premise (`NewServer`'s gated
+row); B1 in place, gated on `lg` (one spec per function); S6 done; (c) a granting cluster makes no
+claim about etcd's KV service; revocations out (`rqOk _ _ .leaseRevoke = False`); one member,
+snapshots of a granting cluster behind `srvGrantOpen` (a true, unproved statement; no false
+statement behind a hypothesis).
 
-Notation: `lg` is `KVNames.lg = AEnv.lg` (tied in `srvKVInvs`); "gated" means a definition of the
-form `if lg then new else old` (or a conjunct `⌜lg = false⌝ → …`), so that at `lg = false` the old
-text is a law (`_false` lemma by `rfl`/`simp`), not a re-proof. Status marks: **trusted** (an axiom
-or a contract the trust base names), **frozen** (a `Spec/` statement reviewed in an earlier stage),
-**draft** (this stage's, not frozen), **internal** (a definition or lemma under the specs).
+**Round 1 → round 2** (review `notes/spec-review/lease-grant-design.md`, of `5cc0eaa28a`):
+
+- **B1** (a member's `minLeaseTTL` in the cluster-wide image): `AEnv.mt` is gone. The shared
+  image (`srvRest` at `lg = true`, `bkRestAt`'s leased form) says only that each table id has *some*
+  record `leaseEnc id t 0` (`restLeasesWith f ids`, `f` existential); the member's TTL appears only
+  in the lessor's own statements (`Grant.spec`'s `∃ mt, minLeaseTTL ↦□ mt`), and the Grant clause
+  returns `∃ t, RO (restGrantT id t rs)`. Every former `E.mt` use is listed in 2.0 with its new form.
+  `isApplyLessor` takes no `mt` argument (70 sites saved).
+- **S1** (header unprovable from `newHeader`): `newHeader.spec`'s post strengthened (2.11a): the
+  header's fields owned, `Revision ↦ W64 (|log| − 1)`, `2 ≤ |log| ∧ |log| + 3 ≤ 2^63`, from
+  `store.Rev` at the sole writer. The grant's answer uses `grantHdr` (`+ 3`), not `appliedHdr`
+  (`+ 4`, which no grant callee gives).
+- **S2** (`leaseGrantedAt` needs the mode): `srvGrantable` now carries `lessorModeIs E.γ.leases true`
+  and sits in `srvSnapRO` beside `lessorModeIs` (M2), not in `srvKVInvs`; `grantPermRq` carries it
+  too, so the backend triple converts `leaseLiveFrom` to `leaseGrantedAt`.
+- **S3**: `srvRest_applyG`'s premise is `plainCover rq ∨ grantPropOk E.lg rq` (`plainEntryM`'s).
+- **S4**: `bkRestAt` keeps its text; `imageAt γk` gates it: `if γk.lg then bkRestAtL … else
+  bkRestAt …` (2.14). `bkRestAt_boot` and the receive proofs at `lg = false` are untouched.
+- **S5**: part 3 lists every statement that changes at `lg = false` too, with the law its callers use.
+- **M1**: `lessorApplyOk`'s new text written out (2.12), both arms of `Grant.spec`.
+- **M3**: one lemma each, taking `lg`: `srvClusterBoot_alloc`/`alloc1` and `kv_lease_served`; no
+  `…G` copies, and `kv_lease_grant_served` becomes `kv_lease_served` at `lg = true`.
+- **M4**: `dispatchIds`/`grantRest` take the outcome, as `restOut`.
+- **M5**: checked (2.7): a serializable `Range` fires no client update (`rangeReadOkM`'s serializable
+  arm has no `Q`); the linearizable one fires through `kv_fire_reads`, refutable.
+- **Q3**: kept (a), the halves through `Apply`/`dispatch`, over the reviewer's variant (the live set
+  in `RestM`); the reason is in Q3.
+
+Notation: `lg` is `KVNames.lg = AEnv.lg` (tied in `srvKVInvs`); "gated" means `if lg then new else
+old` (or `⌜lg = true⌝ → …`), so at `lg = false` the old text is a law (`_false`, by `rfl`/`simp`).
+Status marks: **trusted** (the trust base names it), **frozen** (a `Spec/` statement reviewed in an
+earlier stage), **draft** (this stage's), **internal** (a definition or lemma under the specs).
+"Member-local": about this member's objects only; "cluster-wide": shared through the log, a
+snapshot or a certificate, so equal at every member.
 
 ### 1. What admitting a grant breaks
 
 Every invariant, definition and result on the path that rules a grant out today, and whether it is
-still true once a grant is applied in an `lg = true` cluster. "Gate" = restated in place, gated;
-"keep" = true as is.
+still true once a grant is applied in an `lg = true` cluster.
 
 | where | rules the grant out by | true after a grant (lg = true)? | disposition |
 |---|---|---|---|
-| `rqOk lg` (`apply/Chain.lean`) | arm `False` at `false` | yes (3a, commit 2) | sites move from `false` to `E.lg` |
-| `rqShape`/`entryShape`/`logShape lg`, `entryOk`, `entryOkM` (`InvApplier`, `ApplyNormalOn`) | `rqOk false` | no at `false` | `E.lg`/`γk.lg` at every server site |
-| `plainLogM cmp lg`, `kvInv`'s `plainLogM γk.cmp false` | third disjunct off | no at `false` | `kvInv` at `γk.lg` |
+| `rqOk lg` (`apply/Chain.lean`) | arm `False` at `false` | yes (commit 2) | sites from `false` to `E.lg` |
+| `rqShape`/`entryShape`/`logShape lg`, `entryOk`, `entryOkM` | `rqOk false` | no at `false` | `E.lg`/`γk.lg` at every server site |
+| `plainLogM cmp lg`; `kvInv`'s `plainLogM γk.cmp false` | third disjunct off | no at `false` | `kvInv` at `γk.lg` |
 | `reqPropOk(W)`, `reqPropOkM false`, `kv_prop_au` | no grant form | — | gated grant disjunct (2.7) |
-| `kvInv`'s `ghostVar γk.st ½ (kvModelSt γk L)` with clients' `etcdKV` | — | the state steps on a grant (table): needs a client update or the whole variable | (C): the invariant owns it whole at `lg = true` (2.7, Q1) |
-| `reqPropOkW`'s write forms (`□ Q (kvStateOf (kvModel γk L))`), `kv_prop_auW` by `kvModelSt_plain` | — | **false** once a lease is in the table, if a client AU exists | (C) makes every client AU refutable at `lg = true`: true, vacuous |
-| `kvDep`/`regOk` at `kvStOff`, `kv_fire_reads`, `readQs` | — | **false** likewise | same, (C) |
-| `kv_revLbZ_le` (takes `etcdKV`) | — | yes (rev only), and vacuous under (C) | keep |
-| `EtcdServer.Put/DeleteRange/Txn/Range/Compact.spec` (frozen), the client contracts (trusted) | — | true under (C) (their AU is refutable); never registered at `lg = true` | keep (text unchanged) |
-| `kvModel_snoc_state`, `kvModel_eqv`, `kvWork`, `cmpLogOk`, `kvRaftOf` | — | yes (a grant changes no mvcc log; `kvTable` steps) | keep |
-| `kvTableOf_plainM`, `kvModelSt_plain`, `backendTable_plain`, `restOut_plain` | premise plain at `lg = false` | yes, at `lg = false` only | keep; callers at `lg = false` |
-| `dispatchAnswer`'s grant arm `True` | no answer | yes but useless | keep; the answer travels beside it (2.6, Q2) |
-| `appliedOk(M)`/`resPostM`/`resultIsW` | no grant fact | yes but useless | gain `grantAns…` (2.6) |
-| `backendStep`'s grant arm (`applied log ∨ rejected backend`) | not exact | yes (log unchanged either way) | keep; success is the tie's, not the outcome's |
-| `ApplyKV`, `applyStep` | — | yes | keep (no `ids` field: Q3) |
-| `kvOwn`/`leasesLive` (`∃ L`, live set hidden) | — | yes, but loses the live set: no tie | gated half `ltHalf E L` inside (2.10, Q3) |
-| `applierTriples`' generic `respMethods` triple for `LeaseGrant` (`reqFacts`: `leaseGranted ∗ E.RW`; post `mPost`, no rest step) | `E.RW` never lent; no answer | **false** use: the grant writes the lease bucket, which `E.RO` holds exactly | own triple, over `E.RO` (2.11) |
-| `isApplyLessor`'s Grant clause (trusted contract, derived): consumes `RW` | — | true, unusable (no RW to lend; RO not stepped) | restated over `RO` (2.12) |
-| `lessorApplyOk`/`lessorBackend` (the `NewLessor` axiom's backend contract): per-write token `wbTok ∗ RW` spent | — | true; but `Grant` then loses `lessorBeOn`, which the RO lens must get back | lent part returned (2.12, Q4) |
-| `srvRest E γr A := E.RO (restModel …)` (`restModel` never touches `lease`, `restEntry_keep`) | — | **false** after a granted lease (bucket has the record) | gated: leases image + tie half (2.9) |
+| `kvInv`'s `ghostVar γk.st ½ (kvModelSt γk L)`, clients' `etcdKV` | — | the state steps (table): needs a client update or the whole variable | (C): the invariant owns it whole at `lg = true` (2.7, Q1) |
+| `reqPropOkW`'s write forms (`□ Q (kvStateOf (kvModel γk L))`), `kv_prop_auW` by `kvModelSt_plain` | — | **false** with a lease in the table, if a client AU exists | (C): every client AU refutable, true vacuously |
+| `kvDep`/`regOk` at `kvStOff`, `kv_fire_reads`, `readQs` | — | **false** likewise | same |
+| `kv_revLbZ_le` (takes `etcdKV`) | — | yes (rev only) | keep (fraction-generic) |
+| `EtcdServer.Put/DeleteRange/Txn/Range/Compact.spec` (frozen), client contracts (trusted) | — | true under (C) (their AU cannot exist) | keep (text unchanged) |
+| `kvModel_snoc_state`, `kvModel_eqv`, `kvWork`, `cmpLogOk`, `kvRaftOf` | — | yes | keep |
+| `kvTableOf_plainM`, `kvModelSt_plain`, `backendTable_plain`, `restOut_plain` | plain premise | yes, at `lg = false` | keep |
+| `dispatchAnswer`'s grant arm `True` | no answer | yes, useless | keep; answer beside it (2.6, Q2) |
+| `appliedOk(M)`/`resPostM`/`resultIsW` | no grant fact | yes, useless | gain `grantArM` (2.6) |
+| `backendStep`'s grant arm (`applied ∨ rejected backend`) | not exact | yes | keep; the triple says which (2.11) |
+| `ApplyKV`, `applyStep` | — | yes | keep |
+| `kvOwn`/`leasesLive` (`∃ L`, live set hidden) | — | yes, but no tie | gated half `ltHalf E L` inside (2.10) |
+| generic `respMethods` triple for `LeaseGrant` (`E.RW`, post `mPost`) | `E.RW` never lent | **false** use: the grant writes `lease`, held exactly by `E.RO` | own triple over `E.RO` (2.11) |
+| `newHeader.spec` (post `h ≠ null` only) | — | true, too weak for the answer | post strengthened (2.11a) |
+| `isApplyLessor`'s Grant clause (derived): consumes `RW` | — | true, unusable | over `RO` (2.12) |
+| `lessorApplyOk` (trusted, `NewLessor`'s post): `wbTok ∗ RW` spent whole | — | true; but the lens needs `lessorBeOn` back | lent part returned (2.12, Q4) |
+| `srvRest E γr A := E.RO (restModel …)` (no `lease` write, `restEntry_keep`) | — | **false** after a grant | gated, leased image with `∃ f` (2.9) |
+| `imageAt`'s `bkRestAt` (cluster-wide), `bkRestAt_boot` ("lease empty") | image = `restModel` | **false** after a grant | gated in `imageAt` (2.14) |
 | `srvGrantGuard`, `lessorOk`, expiry arms, `srvLessorNil` (D1) | done | yes | keep |
-| `UberOn`'s `lookupNil_of_guard`, `srvLessorNil` (auth on) | guard `False` with auth on | yes at auth on | keep; auth on requires `lg = false` (2.13) |
-| snapshot receive: `applyAll.specSnap` (`lg = false`), `applySnapshot.specSnap`/`Recover` (`lessorRevocable`), walk's `hlease` | premises | `Recover` would reload leases; `hlease` false | keep; `srvGrantOpen_snap` (D2) |
-| snapshot send: `SnapSendBranch`, `bkRestAt`, `InvImage`'s "lease bucket empty" | image = `restModel` | **false**: the image has the lease records | `bkRestAt` over the leased image (2.14, Q5) |
-| boot: `restBootBk` (empty `lease`), `NewLessor`'s empty-bucket premise | — | yes (fresh boot) | keep; restart of a granting cluster is not in scope |
-| `ckptEffectsOk` (trusted, opaque) | docstring | vacuous in the example (feature off) | keep (S2 done; `axiom` pass pending) |
+| `UberOn`'s guard, `srvLessorNil` (auth on) | guard `False` with auth on | yes | keep; auth on requires `lg = false` (2.13) |
+| snapshot receive (`applyAll.specSnap`, `Recover`, walk's `hlease`) | premises | `hlease` false at `lg = true` | keep; `srvGrantOpen_snap` (D2), now true at any members' TTLs (B1) |
+| boot: `restBootBk` (empty `lease`), `NewLessor`'s empty bucket | — | yes (fresh boot) | keep; restart not in scope |
+| `ckptEffectsOk` (trusted, opaque) | docstring | vacuous (feature off) | keep |
 
-Nothing else found: `grep` of `False` arms (`rqOk`, `plainCover`, `dispatchKind` cases), "plain"
-predicates (`plainCover`, `plainReq`, `plainEntry*`, `plainLog*`: a grant is not `plainCover`, the
-generic apply lemmas over it never meet one), exact images (`srvRest`, `restModel`, `bkRestAt`,
-`kvModelSt`), `kvModelSt_plain`-style lemmas (6 uses), `respMethods`/`reqFacts`, `E.RW`.
+Nothing else found by `grep` of `False` arms (`rqOk`, `plainCover`, `dispatchKind`), the "plain"
+predicates, the exact images (`srvRest`, `restModel`, `bkRestAt`, `imageAt`, `kvModelSt`), the
+`kvModelSt_plain` uses (six: `KVLemmas.lean:518,581,708`, `ReadOn.lean:390`, all inside `kvInv`
+with a client AU open), `respMethods`/`reqFacts`, `E.RW`.
 
 ### 2. The chain, statement by statement (top-down)
 
 **2.0 New vocabulary** (internal, pure unless said).
-- apply: `grantIdsOk (L : List w64) (id ttl : w64) : Prop := id ≠ 0 ∧ sint.Z ttl ≤ maxLeaseTTL ∧ id ∉ L`
-  (the clause's condition, named); `grantGoes (c : Chain) (rq) : Bool` (no corrupt or capped layer:
-  `chainTable`'s path); `dispatchIds (c rq v3) (L) : List w64 := if dispatchKind rq = .leaseGrant ∧
-  v3 ∧ grantGoes c rq then (match rq.leaseGrant with | some g => if grantIdsOk L g.id g.ttl
-  then L ++ [g.id] else L | none => L) else L`; `grantRest (mt) (c rq v3) (L) (r : RestM)` the same
-  case split with `restGrant mt g.id g.ttl r`.
-- apply: `AEnv.mt : w64 := 0` (the lessor's `minLeaseTTL`), `AEnv.γlt : GName := default`;
-  `ltHalf (E) (L) : IProp := if E.lg then ghostVar E.γlt ½ L else True` (the tie's half).
-- server: `restLeases (mt) (lt : LeaseTable) (r) := lt.foldl (fun r p => restGrant mt p.1 p.2 r) r`;
-  `appliedTable (γr) (A) := kvTableOf γr.kv.c0 γr.kv.ch0 [] (γr.raft.pre ++ A)`. Laws:
-  `(dispatchTable c rq v3 lt).ids = dispatchIds c rq v3 lt.ids` (from `backendTable`, `leaseGrantOk`
-  ⇔ `grantIdsOk`); `restEntry` commutes with `restGrant` (`restEntry_keep`: no `lease` write);
-  `restLeases mt (lt ++ [(id, ttl)]) r = restGrant mt id ttl (restLeases mt lt r)`;
-  `restLeases_mem` (members unchanged).
+- apply: `grantIdsOk (L : List w64) (id ttl : w64) : Prop := id ≠ 0 ∧ sint.Z ttl ≤ maxLeaseTTL ∧
+  id ∉ L` (`Grant.spec`'s condition); `grantGoes (c : Chain) rq : Bool` (no capped or corrupt layer);
+  over the outcome `o` (M4), as `restOut`: `grantIds rq o (L) := match o, rq.leaseGrant with |
+  .applied .., some g => L ++ [g.id] | _, _ => L`, and `grantRest (t : w64) rq o (r : RestM)` the same
+  match with `restGrantT g.id t r`; `restGrantT id t r := r.putIn leaseName (leaseKey id) (leaseEnc
+  id t 0)` (`restGrant mt id ttl = restGrantT id (grantTTL mt ttl)`, by `rfl`).
+- apply: `AEnv.γlt : GName := default`; `ltHalf E L : IProp := if E.lg then ghostVar E.γlt ½ L else
+  True` (the tie's half; `ltHalf_false`).
+- server: `restLeasesWith (f : w64 → w64) (ids : List w64) r := ids.foldl (fun r id => restGrantT id
+  (f id) r) r`; `appliedTable γr A := kvLeases γr.kv (γr.raft.pre ++ A)`. Laws:
+  `(dispatchTable c rq v3 lt).ids = grantIds rq o lt.ids` under the triple's `o ↔` fact;
+  `restEntry` commutes with `restGrantT` (`restEntry_keep`, GMap extensionality);
+  `restLeasesWith_snoc` (with `f' := Function.update f id t`, equal on `ids` when `id ∉ ids`).
+- **Where `E.mt` was, and what it is now** (B1): §2.0's `restLeases mt` → `restLeasesWith f`
+  (cluster-wide, `∃ f`); §2.9's `srvRest` → `∃ f` (it reaches `runSnapLgOkBody`, cluster-wide); §2.10's
+  `grantRest E.mt` → `∃ t, grantRest t` (member-local, but nothing needs `t`); §2.12's `isApplyLessor …
+  mt` → no argument, the clause's `∃ t`; §2.13's "choose `E.mt`" → gone; §2.14's `bkRestAt c0 mt` →
+  `bkRestAtL` with `∃ f` (cluster-wide). The member's `minLeaseTTL` stays in `lessorCfg` and
+  `Grant.spec` only.
 
-**2.1 `leasegrant.Main.spec`, `leasegrant_safe`** (draft): unchanged. Glue unchanged in shape:
-alloc at `lg = true` (2.3), `kv_lease_grant_served`, the client's `Grant`/`Leases` at
-`etcdLeaseGrantSpec`/`etcdLeaseLeasesSpec`.
+**2.1 `leasegrant.Main.spec`, `leasegrant_safe`** (draft): unchanged. Glue: `alloc1 true` (2.3),
+`kv_lease_served` at `lg = true` (2.2), the client's `Grant`/`Leases` at
+`etcdLeaseGrantSpec`/`etcdLeaseLeasesSpec`. Docstring (Q1's caveat): the KV service makes no claim
+in this cluster; its results hold vacuously.
 
-**2.2 `common.kv_lease_grant_served`** (draft). Old post `grpcServeTok ∗ etcdKVAt addr E ρ γr cid
-mid ∗ client.etcdLeaseReadAt addr ∗ etcdLeaseGrantAt addr E` → new: **without `etcdKVAt`** ((c): no
-KV contract is registered; no KV call reaches the member in the closed world). Callees:
-`kv_lease_served`'s steps (the gRPC slot, `raftLeaseRead_server`, the lower bound `0`), plus
-`v3rpc.lessorGrantOkL_of_server` and the Lease service's `LeaseGrant`/`LeaseLeases` handler lemmas
-at `etcdLeaseGrantSpec`/`etcdLeaseLeasesSpec` (the latter over `EtcdServer.LeaseLeases.spec`,
-`leaseGrantedAt_lb_max`, `leaseGrantedAt_listed`). Glue: `kv_lease_served`'s proof minus the KV
-registrations; `hG : srvGrantsLeases E ρ` feeds `lessorGrantOkL_of_server`.
+**2.2 `common.kv_lease_served`** (internal lemma; one lemma, M3). Post `grpcServeTok ∗ etcdKVAt …
+∗ client.etcdLeaseReadAt addr` → `grpcServeTok ∗ client.etcdLeaseReadAt addr ∗ (if ρ.rd.kv.lg then
+etcdLeaseGrantAt addr E else etcdKVAt addr E ρ γr cid mid)` (law `kv_lease_served_false`: the old
+post). The draft `kv_lease_grant_served` goes. Callees: as today, plus
+`v3rpc.lessorGrantOkL_of_server` and the Lease service's `LeaseGrant`/`LeaseLeases` handlers at
+`lg = true`. Keeping `etcdKVAt` at `lg = true` would be sound (vacuous under (C)) but is what the
+user's (c) excludes.
 
-**2.3 The allocation at `lg = true`** (internal, new): `srvClusterBootG_alloc` (beside
-`srvClusterBoot_alloc`, which states `γk.lg = false`): the same ghost state with `γk.lg = true`, the
-KV state's ghost variable kept **whole** for the KV invariant (no `etcdKV` returned, (C)), and
-`memberBoot`'s row `lg = true → leasesNoExpiry ∧ srvGrantOpen` from `Main.spec`'s premise and
-`srvGrantOpen_open`. A `common.alloc1G` for the example.
+**2.3 `srvClusterBoot_alloc`, `common.alloc1`** (internal; one lemma each, taking `lg`): the KV
+state's ghost variable whole to the KV invariant at `lg = true`, the clients' half returned at
+`false`: post `… ∗ (if lg then True else etcdKV γk σ0)`; `memberBoot`'s row from `Main.spec`'s
+premise and `srvGrantOpen_open`. Callers at `false`: `alloc1_false`.
 
 **2.4 `v3rpc.lessorGrantOkL_of_server`** (draft lemma; statement unchanged). Callees:
-`EtcdServer.LeaseGrant.spec`, `etcdReached_of_certOk` (via `srvRevLb`), `leaseHdrAns`'s pieces.
-Glue: call the spec with `S`'s lent readers; the success post `leaseGrantedResp` gives `ID ↦□ id`,
-`leaseGrantedAt`, the header for `leaseGrantAns`; the error post `applyErrIs err`.
+`EtcdServer.LeaseGrant.spec`, `etcdReached_of_certOk` (via `srvRevLb`). Glue: the success post
+`leaseGrantedResp` gives `ID ↦□ id`, `leaseGrantedAt`, the header; the error post `applyErrIs err`.
 
 **2.5 `EtcdServer.LeaseGrant.spec`** (draft; statement unchanged). Callees: the id generator's
-`Next` (`srvGenAt`, credits from `□ |==> idCred ρ.ids 1`), the tracer's specs (as `Put`'s),
-`requireAuthInfo.spec` (auth off: `nil`), `raftRequest.spec`. Glue:
-1. the loop writes `Next() & (2^63-1)` until non-zero: invariant `ID ↦ id`, exit `id ≠ 0`; persist
-   `ID ↦□ id`, giving `leaseGrantIs r ⟨id, ttl⟩`, so `irrNoHdrIs p rq` for `rq := {leaseGrant :=
-   some ⟨id, ttl⟩}` (`rq.id = 0`, `irrDepthOk rq`: one level);
-2. `reqPropOkM false … rq (fun _ _ => True)` by the new grant disjunct (2.7): `grantPropOk ρ.kv.lg rq`
-   from `srvGrantsLeases` and `grantKindOk` (no admin or side-effect field, `id ≠ 0`),
-   `rqShape true rq` (`grantKindOk` is log-free), `irrNoZeroEnd rq` (no range);
-3. success: `appliedOkM false E ρ rq' F resp L` now carries `grantAnsM E rq' resp` (2.6): `resp =
-   mkOk *LeaseGrantResponse r` (the type assertion), and, `err = nil`, the response's `ID ↦□ g.id`,
-   `TTL`, `Error`, `appliedHdr x.log` with `Revision ↦□ rv`, `sint.Z rv = x.log.length - 1`, and
-   `∃ i, leaseGrantedAt E.γ.leases i g.id`; `g.id = id` by `irrWireOf`; `x'.log = x.log` (the grant
-   leaves the log) with `idxCert`/`certOk` at `x'.log` give `srvRevLb E.γ rv`; `rv ≠ 0` from
-   `appliedHdr`'s `2 ≤ x.log.length` — this is `leaseGrantedResp E r`;
+`Next` (`srvGenAt`, credits `□ |==> idCred ρ.ids 1`), the tracer's specs, `requireAuthInfo.spec`
+(auth off: `nil`), `raftRequest.spec`. Glue:
+1. the loop writes `Next() & (2^63-1)` until non-zero (invariant `ID ↦ id`); persist `ID ↦□ id`:
+   `leaseGrantIs r ⟨id, ttl⟩`, `irrNoHdrIs p rq` for `rq := {leaseGrant := some ⟨id, ttl⟩}`;
+2. `reqPropOkM false … rq (fun _ _ => True)` by the grant disjunct (2.7): `grantPropOk ρ.kv.lg rq`
+   from `srvGrantsLeases` and `grantKindOk`; `rqShape true rq`; `irrNoZeroEnd rq`;
+3. success: `appliedOkM`'s `grantAnsM E rq' resp` (2.6): `resp = mkOk *LeaseGrantResponse r` (the
+   type assertion), and at `err = nil` the fields `ID ↦□ g.id`, `TTL`, `Error`, `grantHdr x.log` (2.6)
+   and `∃ i, leaseGrantedAt E.γ.leases i g.id`; `g.id = id` by `irrWireOf`; `srvRevLb E.γ rv` from
+   `grantHdr`'s `idxCert`/`certOk` at its log (2.11a: the header's log is certified); `rv ≠ 0` from
+   `2 ≤ |log|`: `leaseGrantedResp E r`;
 4. error: `applyErrIs err`, `resp = nil`.
 
-**2.6 `raftRequest.spec`, `processInternalRaftRequestOnce.spec`** (frozen; **text unchanged**). Their
-definitions move:
+**2.6 `raftRequest.spec`, `processInternalRaftRequestOnce.spec`** (frozen; **text unchanged**;
+definitions underneath move):
 - `appliedOkM on E ρ rq' F resp L` gains `∗ grantAnsM E rq' resp` (`True` unless `dispatchKind rq' =
-  .leaseGrant`); `resPostM`, `resultIsW`, `resultIsWOn` gain `∗ grantArM E ar rq out` (the answer
-  read through the result `ar`: `∃ v, ar ↦□ v ∗ grantAnswer E.γ.leases rq v.Resp' v.Err' x.log` for a
-  dispatched grant, else `True`). The pattern of `authnArM`/`authnAnsM` (Q2).
-- `grantAnswer γl rq resp err log` (apply, internal): for a grant `g`, `∃ r, resp = mkOk
-  *LeaseGrantResponse r ∗ ((⌜err = nil⌝ ∗ grantRespIs r g log ∗ ∃ i, leaseGrantedAt γl i g.id) ∨
-  ⌜err ≠ nil⌝)`, `grantRespIs` the fields of 2.5.3.
-- Glue of both proofs: unchanged (they pass `reqPropOkM` to the proposal and the waiter's payload
-  through); `grantAnsM_of_ar` (as `authnAnsM_of_ar`) in `raftRequest`.
+  .leaseGrant`); `resPostM`, `resultIsW`, `resultIsWOn` gain `∗ grantArM E ar rq out` (`∃ v, ar ↦□ v ∗
+  grantAnswer E rq v.Resp' v.Err'` for a dispatched grant, else `True`): the
+  `authnArM`/`authnAnsM` pattern (Q2).
+- `grantAnswer E rq resp err` (apply; `γl := E.γ.leases`, `γ := E.γ`): for a grant `g`, `∃ r, ⌜resp = mkOk *LeaseGrantResponse r⌝
+  ∗ ((⌜err = nil⌝ ∗ grantRespIs r g ∗ ∃ i, leaseGrantedAt γl i g.id) ∨ ⌜err ≠ nil⌝)`;
+  `grantRespIs r g := ID ↦□ g.id ∗ TTL ↦□ _ ∗ Error ↦□ "" ∗ ∃ log, grantHdr log (Header r)`;
+  `grantHdr log hf := respHdrOwn hf ∗ ∃ h rv, hf ↦□ h ∗ Revision h ↦□ rv ∗ idxCert γ.idx log ∗
+  certOk γ log ∗ ⌜sint.Z rv = |log| − 1 ∧ 2 ≤ |log| ∧ |log| + 3 ≤ 2^63⌝`.
+- Glue of both proofs: unchanged; `grantAnsM_of_ar` (as `authnAnsM_of_ar`) in `raftRequest`.
 
-**2.7 The proposal and the KV invariant** (internal; the decision (c) as (C), Q1).
-- `reqPropOk γk rq Qr` gains a third disjunct `⌜grantPropOk γk.lg rq ∧ rqShape γk.lg rq ∧
-  irrNoZeroEnd rq ∧ Qr = fun _ => True⌝` (no client update); `reqPropOk_off`'s pattern gives the
-  old reading at `γk.lg = false` (`grantPropOk_false`). `reqPropOkM`/`reqPropOkOn`/`reqPropOkD`:
-  `M false` is `reqPropOk`, the others unchanged (auth on is `lg = false`, 2.13).
+**2.7 The proposal and the KV invariant** (internal; (c) as (C), Q1).
+- `reqPropOk γk rq Qr` gains `⌜grantPropOk γk.lg rq ∧ rqShape γk.lg rq ∧ irrNoZeroEnd rq ∧ Qr = fun _
+  => True⌝` (no client update); `grantPropOk_false` refutes it at `false`. `reqPropOkM false` is
+  `reqPropOk`; `On`/`D` unchanged (auth on is `lg = false`).
 - `kvInv γ γk`: `ghostVar γk.st ½ (kvModelSt γk L)` → `ghostVar γk.st (if γk.lg then 1 else ½)
-  (kvModelSt γk L)`; `plainLogM γk.cmp false L` → `plainLogM γk.cmp γk.lg L`. At `lg = false` the
-  old text (law `kvInv_false`).
-- `kv_prop_au` (statement unchanged): the new disjunct `kv_prop_au_grant`: at the commit, `L ++ [e]`,
-  update the whole variable to `kvModelSt γk (L ++ [e]) = kvOpStep (.leaseGrant id ttl) σ`
-  (`kvModel_snoc_state`), the entry facts by `plainEntryM`'s third disjunct, `kvWork_snoc` (no
-  puts), `cmpLogOk` (no compaction); `Qr` trivial. The write forms (`kv_prop_auW`) at `γk.lg = true`:
-  opening the client's AU gives `etcdKV γk σ` (½), against the invariant's whole variable: `False`
-  (`ghostVar_valid`); at `false` the old proof. Same for `kv_fire_reads` (a deposit's `kvReadAu`) and
-  `kv_revLbZ_le`. So `EtcdServer.Put`, `DeleteRange`, `Txn`, `Range`, `Compact` keep their text and
-  stay true at `lg = true` (their client update cannot exist there).
+  (kvModelSt γk L)`; `plainLogM γk.cmp false L` → `plainLogM γk.cmp γk.lg L` (`kvInv_false`).
+  Docstring: in a granting cluster the KV results are vacuous (Q1's caveat).
+- `kv_prop_au` (statement unchanged): `kv_prop_au_grant` updates the whole variable to
+  `kvModelSt γk (L ++ [e])` (`kvModel_snoc_state`), entry facts by `plainEntryM`'s third disjunct,
+  `kvWork_snoc`, `cmpLogOk`; `Qr` trivial. At `γk.lg = true` the write forms (`kv_prop_auW`) open the
+  client's AU, get `etcdKV γk σ` (½) against the whole variable: `False`. Likewise `kv_fire_reads`
+  (the linearizable read deposits). **M5:** a serializable `Range` fires no update: `rangeReadOkM`'s
+  serializable arm has no `Q` and no `kvInv` access (`ReadOn.lean:163-171`), so nothing to refute;
+  `Txn`'s read-only path is `kvDep` through the same read loop. `kv_revLbZ_le` is fraction-generic.
 
 **2.8 The shapes** (internal): `kvWork`'s, `isServerRun`'s `logShape`, `srvLogShapes`,
-`reqPropOk(W)`'s `rqShape` from `false` to `γk.lg`/`E.lg` (`rqShape_mono : rqShape false rq →
-rqShape lg rq` for the old forms); `entryOk x m` → `entryOk lg x m` (`rqOk lg`), `entryOkM on lg`.
-`EtcdServer.applyAll.spec` (frozen): `logShape false` → `logShape E.lg` (3a's `false` reverted to the
-meaning B1 intended); `applyEntries`/`apply`/`applyEntryNormal.spec` (frozen): `logShapeM`,
-`entryOkM` at `E.lg` (text: one argument).
+`reqPropOk(W)`'s `rqShape` at `γk.lg`/`E.lg` (`rqShape_mono : rqShape false rq → rqShape lg rq`);
+`entryOk lg x m` (`rqOk lg`), `entryOkM on lg`. `EtcdServer.applyAll.spec` (frozen): `logShape false`
+→ `logShape E.lg`; `applyEntries`/`apply`/`applyEntryNormal.spec` (frozen): `logShapeM`, `entryOkM`
+at `E.lg`.
 
-**2.9 The apply thread's rest and tie** (internal; `srvRest` is the carrier, so the apply-thread
-specs' text does not change).
-- `srvRest E γr A := E.RO (restModel c0 boot (pre ++ A))` → `if E.lg then E.RO (restLeases E.mt
-  (appliedTable γr A) (restModel …)) ∗ ltHalf E (appliedTable γr A).ids else E.RO (restModel …)`.
-  Laws: `srvRest_false`; `srvRest_snoc`/`srvRest_nodata` as before; `srvRest_applyG` (new; replaces
-  `srvRest_apply`'s `plainCover` premise by `rqOk E.lg`): after `Apply` with its post (2.10),
-  `E.RO (grantRest E.mt ch rq v3 T (restOut rq v3 out rs)) ∗ ltHalf E (dispatchIds ch rq v3 T)` at
-  `rs := restLeases …`, `T := (appliedTable γr A).ids` is `srvRest E γr (A ++ [m])` (2.0's laws).
-- `srvKVInvs E γr` gains `srvGrantable E := □ (⌜E.lg = true⌝ → ∀ id, lease.leaseGranted E.γ.leases
-  id)` (persistent). Why true: `NewServer` creates the lessor with guard `srvGrantGuard lg on = ⌜
-  leasesNoExpiry ∧ lg ∧ ¬ on⌝` (`lessorGuard`), and at `lg = true` has `leasesNoExpiry` (`%Hslg`) and
-  `on = false`.
-- `applyEntryNormal.wp_proof` (spec text unchanged but `entryOkM`): opens `srvRest`, calls `Apply`
-  with `rs`, `T`, `grantPermRq E rq` (from `srvGrantable` and `rqOk E.lg`: a grant kind only at
-  `lg = true`), recloses `srvRest (A ++ [m])` by `srvRest_applyG`, hands `grantArM` to the waiter
-  with the result (`resultIsW`). `apply`, `applyEntries`, `applyAll`, `run`: unchanged proofs (they
-  pass `srvRest`), but the snapshot-send branch (2.14).
+**2.9 The apply thread's rest and tie** (internal; `srvRest` the carrier).
+- `srvRest E γr A := E.RO (restModel …)` → `if E.lg then ∃ f, E.RO (restLeasesWith f (appliedTable
+  γr A).ids (restModel …)) ∗ ltHalf E (appliedTable γr A).ids else E.RO (restModel …)`. Cluster-wide
+  where it is used (`runSnapLgOkBody`, the send branch): only ids, the TTLs under `∃ f` (B1).
+- Laws: `srvRest_false`; `srvRest_snoc`/`_nodata`; `srvRest_applyG` (one lemma, generic in `lg`;
+  replaces `srvRest_apply`): premise `plainCover rq ∨ grantPropOk E.lg rq` (S3, what `plainEntryM`
+  gives; `grantKindOk` excludes `noSideEffect` and admin), from `Apply`'s post (2.10) `∃ t, E.RO
+  (grantRest t rq o (restOut rq v3 o rs)) ∗ ltHalf E (grantIds rq o T)` at `rs := restLeasesWith f …`,
+  `T := (appliedTable γr A).ids`, gives `srvRest E γr (A ++ [m])` with `f' := update f g.id t`
+  (`restLeasesWith_snoc`; `g.id ∉ T` by the triple's `o ↔ grantIdsOk`).
+- `srvGrantable E := □ (⌜E.lg = true⌝ → (∀ id, lease.leaseGranted E.γ.leases id) ∗
+  lease.lessorModeIs E.γ.leases true)` (S2), a conjunct of `srvSnapRO` beside `lessorModeIs E.γ.leases
+  γr.kv.lg` (M2). Why true: `NewServer` creates the lessor with guard `srvGrantGuard lg on`, and at
+  `lg = true` has `leasesNoExpiry` (`%Hslg`) and `on = false`; the mode is `lessorModeIs … γr.kv.lg`.
+- `applyEntryNormal.spec`/`applyEntries`/`apply` (frozen) gain the persistent `srvGrantable E` in the
+  pre (from `applyAll`'s `srvSnapRO`; `srvGrantable_false` at `lg = false`). Alternative: a field of
+  `isServerM` (more sites).
+- `applyEntryNormal.wp_proof`: opens `srvRest`, calls `Apply` with `rs`, `T`, `grantPermRq E rq`
+  (from `srvGrantable` and `rqOk E.lg`), recloses by `srvRest_applyG`, hands `grantArM` to the waiter.
+  `apply`, `applyEntries`, `applyAll`, `run`: unchanged proofs but the send branch (2.14).
 
 **2.10 `apply.uberApplier.Apply.spec`, `dispatch.spec`** (frozen; text changes):
-- pre: `⌜rqOk false log rq ∧ …⌝` → `⌜rqOk E.lg log rq ∧ …⌝`; `+ grantPermRq E rq` (`□ (⌜dispatchKind rq
-  = .leaseGrant⌝ → ∀ g, ⌜rq.leaseGrant = some g⌝ → lease.leaseGranted E.γ.leases g.id)`, the
-  pattern of `cmpPermRq`); `+ ltHalf E T` (new `∀ T`).
-- post: `E.RO (restAfter rq v3 rs)` → `E.RO (grantRest E.mt c rq v3 T (restAfter rq v3 rs))` (Apply:
-  through `restOut`); `+ ltHalf E (dispatchIds c rq v3 T)`; `+ grantRes E rq v3 log ar` (Apply:
-  `applyGrantRes E rq v3 x.log ar out`, `True` but for a dispatched grant: 2.6's `grantAnswer` read
-  through `ar`).
-- `kvOwn E log` (text unchanged) now holds the other half: `leasesLive E s := ∃ L, txn.leasesKnown L
-  s ∗ lease.lessorUser E.γ.leases L (leaseItemsOf s) ∗ ltHalf E L` (was over `E.γ`). The two halves
-  agree (`L = T`) wherever both are held, and only a holder of both changes `L`: every non-grant
-  path recloses `kvOwn` with its `L` and leaves `T`. This is the tie, without naming `L` in the
-  ≈300 statements that pass `kvOwn` (Q3).
-- Callees of `dispatch`'s grant arm: `rqOk E.lg` (⇒ `E.lg = true ∧ grantKindOk rq`), the chain's
-  grant triple (2.11), `grantPermRq`. Glue: `LeaseGrant` is dispatched only with `v3` (first
-  `switch`, then `!shouldApplyV3`); without `v3` the result is `nil`, `dispatchIds`/`grantRest` the
-  identity; every other arm frames `ltHalf E T`.
-- `Apply`'s glue: its auth check passes a grant (`needAdminPermission rq = false`); frames the rest.
+- pre: `rqOk false` → `rqOk E.lg`; `+ grantPermRq E rq` (`□ (⌜dispatchKind rq = .leaseGrant⌝ → (∀ g,
+  ⌜rq.leaseGrant = some g⌝ → leaseGranted E.γ.leases g.id) ∗ lessorModeIs E.γ.leases true)`, the
+  `cmpPermRq` pattern; S2); `+ ltHalf E T` (new `∀ T`).
+- post: `E.RO (restAfter rq v3 rs)` → `∃ t, E.RO (grantRest t rq o (restAfter rq v3 rs))` (Apply:
+  `restOut`); `+ ltHalf E (grantIds rq o T)`; `+ grantRes E rq o ar` (2.6's `grantAnswer` through
+  `ar`, `True` but for a dispatched grant).
+- `kvOwn E log` (text unchanged) holds the other half: `leasesLive E s := ∃ L, txn.leasesKnown L s ∗
+  lease.lessorUser E.γ.leases L (leaseItemsOf s) ∗ ltHalf E L`. Only a holder of both halves changes
+  `L`; every non-grant path recloses `kvOwn` with its `L` and frames `ltHalf E T`.
+- Glue of `dispatch`'s grant arm: `rqOk E.lg` (⇒ `E.lg ∧ grantKindOk rq`), the grant triple (2.11),
+  `grantPermRq`. A grant is dispatched only with `v3` (`uber_applier.go:126-148`); without it `o` is
+  not `.applied`, so `grantIds`/`grantRest` are the identity (M4). `Apply`'s auth check passes a grant.
 
 **2.11 The chain's grant triple** (internal: `applierTriples`; `LeaseGrant` leaves `respMethods`,
-`reqFacts`'s `LeaseGrant` clause goes):
+`reqFacts`'s clause goes):
 ```
-□ ∀ (r : Loc) (rq) (g : LeaseGrantModel) (log) (T : List w64) (rs : RestM) (Pre Q Post) (info),
+□ ∀ (r : Loc) rq (g : LeaseGrantModel) log (T : List w64) (rs : RestM) Pre Q Post info,
   {{ ⌜rq.leaseGrant = some g ∧ dispatchKind rq = .leaseGrant⌝ ∗ leaseGrantIs r g ∗
-     lease.leaseGranted E.γ.leases g.id ∗ ltHalf E T ∗ E.RO rs ∗ mvcc.storeWT E.γ ∗
-     mPre E c (.ok ai) info log Pre Q Post ∗ ciSplit E Pre }}
+     lease.leaseGranted E.γ.leases g.id ∗ lease.lessorModeIs E.γ.leases true ∗ ltHalf E T ∗
+     E.RO rs ∗ mvcc.storeWT E.γ ∗ mPre E c (.ok ai) info log Pre Q Post ∗ ciSplit E Pre }}
     ai.LeaseGrant(r)
-  {{ (resp : Loc) (err), RET (resp, err); mPost E c (.ok ai) log Pre Post ∗ applyErrIs err ∗
-     ltHalf E (chainIds c rq T) ∗ E.RO (chainRest E.mt c rq T rs) ∗
-     grantAnswer E.γ.leases rq (mkOk *LeaseGrantResponse resp) err log ∗
-     ⌜err = nil ↔ grantGoes c rq ∧ grantIdsOk T g.id g.ttl⌝ }}
+  {{ (resp : Loc) (err) (o), RET (resp, err); mPost E c (.ok ai) log Pre Post ∗ applyErrIs err ∗
+     ⌜chainOutcome c rq o⌝ ∗ ⌜(o is .applied) ↔ err = nil⌝ ∗
+     ⌜err = nil ↔ grantGoes c rq ∧ grantIdsOk T g.id g.ttl⌝ ∗
+     ltHalf E (grantIds rq o T) ∗ ∃ t, E.RO (grantRest t rq o rs) ∗
+     grantAnswer E rq (mkOk *LeaseGrantResponse resp) err }}
 ```
-(`chainIds`/`chainRest`: `dispatchIds`/`grantRest` without the `v3` test.) Per layer
-(`newApplierV3*.lean` prove `applierTriples` for each):
-- backend (`applierV3backend.LeaseGrant.spec`, frozen, restated to this triple): callees the
-  Grant clause (2.12), `newHeader` (the KV's `Rev()` at the sole writer: `rv = |log| - 1`), `Lease.TTL`
-  (`leaseTTLIs`). Glue: open `kvOwn` → `L`, `ltHalf E L`; agree with `ltHalf E T` → `L = T`; clause
-  with `RO rs`; on success update both halves to `T ++ [g.id]` (`ghostVar_update_halves`), reclose
-  `kvOwn` (`leasesKnown` grows: `leasesKnown_mono`); the response's fields; `appliedHdr` as `Put`'s.
-- quota (`quotaApplierV3.LeaseGrant.spec`, restated): inner triple, then `Available` is `true`
-  (`isQuota`'s premise, the chain's quota comment): `err` unchanged, so `err = nil ↔ granted` holds
-  (the `ErrNoSpace`-after-grant branch is dead under the existing premise, not a new one).
-- auth (embedded, no override): the inner triple.
-- capped / corrupt (`applierV3Capped/Corrupt.LeaseGrant.spec`, restated): `nil, ErrNoSpace` /
-  `nil, ErrCorrupt`; `grantGoes = false`: halves, RO, `L` unchanged. (Not reached from `ch0`, which
-  has neither layer; stated for the generic chain.)
+(`chainOutcome`: the chain's step, `backendStep`'s two grant arms at `grantGoes`, `rejected` at the
+capped/corrupt layer.) Per layer:
+- backend (`applierV3backend.LeaseGrant.spec`, frozen, restated to this triple). Callees: the Grant
+  clause (2.12), `newHeader.spec` (2.11a), `Lease.TTL` (`leaseTTLIs`). Glue: open `kvOwn` → `L`,
+  `ltHalf E L`; agree with `ltHalf E T`, `L = T`; clause with `RO rs`; on success update both halves
+  to `T ++ [g.id]`, reclose `kvOwn` (`leasesKnown_mono`); `leaseLiveFrom` + `lessorModeIs … true` →
+  `leaseGrantedAt` (`leaseGrantedAt_of_live`); the header by `newHeader` (2.11a).
+- quota (`quotaApplierV3.LeaseGrant.spec`, restated): inner triple, `Available` true by
+  `apply.backendUnderQuota` (`isQuota`'s premise; `quotaReqTy` lists the grant): `err` unchanged.
+- auth (embedded): the inner triple. capped / corrupt (restated): `nil, ErrNoSpace`/`ErrCorrupt`,
+  `o` rejected; halves, RO, `L` unchanged.
 
-**2.12 The lessor contract** (trusted contract, derived for the real lessor):
-- `isApplyLessor le s γ P f RO RW` → `isApplyLessor le s γ P f RO RW mt` (new argument, the
-  server's `E.mt`); its Grant clause: pre `… ∗ leaseGranted γ.leases id ∗ RW` → `… ∗ leaseGranted
-  γ.leases id ∗ RO rs` (new `∀ rs`); post error arm `+ RO rs`, success arm `+ RO (restGrant mt id ttl
-  rs)`; conditions written `grantIdsOk L id ttl`. True of Go: `Grant` puts exactly `leaseEnc id
-  (grantTTL mt ttl) 0` under `leaseKey id` (`lessor.go:311`, `persistTo`), on success only.
-- `isApplyLessor_of_lessorInv` (proof): over `lease.lessor.Grant.spec` with `Rb := storeRb γ`
-  from the RO lens (the revoke clause's lens, `revokeClause_of_lessorInv`), `mt` agreed from
-  `lF "minLeaseTTL" lp ↦□ mt` (a new premise, from `lessorCfg` at `NewServer`), the put's
-  `Rb (rbSet …)` turned back into `RO (restGrant …)` by the lens (`grant_bk`).
-- **`lease.lessorBackend`/`lessorApplyOk`** (trusted: the `NewLessor` axiom's contract): its write
-  token `wbTok ∗ RW` with `rwLens RW (lessorBeOn lp be)` is spent whole today; the lens needs
-  `lessorBeOn` back. Restated: the token `wbTok` spent, the lent part `RW` returned by `Unlock`. True
-  of Go: a write through `le.b.BatchTx()` does not change `le.b`. `lease.lessor.Grant.spec`,
-  `Checkpoint.spec`, `persistTo` (proved) give it back (Q4).
+**2.11a `apply.applierV3backend.newHeader.spec`** (frozen; post strengthened, S1). Old post
+`storeReader ∗ kvWriter E.s E.γ log ∗ ⌜h ≠ null⌝` → `… ∗ ⌜h ≠ null⌝ ∗ hdrFields h ∗ Revision h ↦
+W64 (|log| − 1) ∗ ⌜2 ≤ |log| ∧ |log| + 3 ≤ 2^63⌝` (`hdrFields`: `ClusterId`, `MemberId`, `RaftTerm`,
+`LeaderId` owned: `respHdrOwn`'s body). Callees (already its proof's): `mvcc.store.Rev.spec` (through
+`kvOver_rev_wp`), the cluster's and raft status's getters. Glue: the proof calls `Rev` with the sole
+writer's tokens `m := soleBudget log = 2^63 − 3 − |log|`; `Rev`'s post gives `log <+: log'` and
+`|log'| + m + 3 ≤ 2^63`, so `|log'| ≤ |log|`, `log' = log`, `v = |log| − 1`; `kvWriter_len` gives
+`2 ≤ |log|`; the struct allocation gives the fields. The `idxCert`/`certOk` of `grantHdr` come from
+`Rev`'s post (now kept, not dropped with `-`). Callers (51 sites / 36 files): a stronger post; their
+intro patterns drop the new conjuncts.
+
+**2.12 The lessor contract** (trusted `lessorApplyOk`; derived `isApplyLessor`):
+- `isApplyLessor le s γ P f RO RW` (signature unchanged): its Grant clause pre `… ∗ leaseGranted
+  γ.leases id ∗ RW` → `… ∗ leaseGranted γ.leases id ∗ RO rs` (`∀ rs`); post error arm `+ RO rs`,
+  success arm `+ ∃ t, RO (restGrantT id t rs)`, conditions as `grantIdsOk L id ttl`.
+  `isApplyLessor_of_lessorInv`: over `Grant.spec` with `Rb := storeRb γ` from the RO lens
+  (`revokeClause_of_lessorInv`'s); the put `Rb (rbSet rb leaseName … (leaseEnc id (grantTTL mt ttl)
+  0))` back into `RO (restGrantT id (grantTTL mt ttl) rs)` (`grant_bk`), `t := grantTTL mt ttl`.
+- `lessorBackend lp P f T R Rb` → `lessorBackend lp P f T Ln R Rb` (new `Ln`, the lent part): lens
+  `□ (T -∗ ∃ dq, b ↦{dq} … ∗ (… -∗ T))` → `□ (Ln -∗ ∃ dq, lF "b" lp ↦{dq} b ∗ (lF "b" lp ↦{dq} b -∗ Ln))`.
+- `lessorApplyOk lp` (trusted; `NewLessor`'s post): `lessorBackend lp Pk #f (wbTok d.γB ∗ RW)
+  (bkRTx …) (rbPart d.γB (· = lease))` → `lessorBackend lp Pk #f (wbTok d.γB) RW (bkRTx …)
+  (rbPart d.γB (· = lease))`: the counted token spent, the lent part `RW` (with `rwLens RW
+  (lessorBeOn lp d.be)`) given back. True of Go: `persistTo(le.b)` reads the field before
+  `BatchTx()`, and `LockInsideApply`/`Unlock` do not write it (`lease.go:55-61`).
+- `lease.lessor.Grant.spec` (frozen): pre `T ∗ R ∗ Rb rb` → `T ∗ Ln ∗ R ∗ Rb rb`; post both arms
+  `R ∗ Ln ∗ …` (error arm: `Rb rb`, as now; success arm: `Rb (rbSet …)`, as now; `T` spent in both).
+  `Checkpoint.spec`, `persistTo` (proved) likewise; `Revoke`'s clause (same contract) gets `Ln` back.
 
 **2.13 `NewServer.spec`/`specM`/`specG`** (frozen; text: one row). `%Hslg` unchanged; `specM true`
-(auth on) takes `ρ.rd.kv.lg = false` (its guard is `False`: no grant there; `memberBootOn` already
-allocates `lg = false`). Proof: allocate `E.γlt` at `[]` (both halves at `lg = true`: one into the
-boot's `leasesLive` with `NewLessor`'s `leaseOwn γl [] ∅`, one into `srvRest E γr []`); choose
-`E.mt` from `lessorCfg`; prove `srvGrantable E` (2.9).
+takes `ρ.rd.kv.lg = false`. Proof: allocate `E.γlt` at `[]` (one half into the boot's `leasesLive`
+with `leaseOwn γl [] ∅`, one into `srvRest E γr []` at `f := fun _ => 0`); `srvGrantable E` (2.9) into
+`srvSnapRO`.
 
-**2.14 The snapshot side**. Receive: unchanged, `srvGrantOpen_snap` (its body names `applyRes`,
-which now holds the new `srvRest`: still true, still sealed). Send (`applyAll`'s `msgSnapC` branch,
-`SnapSendBranch.lean`, live in multi-member clusters): it reads `srvRest` as the image and states
-`bkRestAt c0 bootLog L D` (`rbData D = (restModel …).bk`, so "the lease bucket empty",
-`InvImage.lean:187`), false at `lg = true`. Restated (Q5): `bkRestAt c0 mt bootLog L D := rbData D =
-(restLeases mt (kvTableOf c0 ch0 [] L) (restModel …)).bk`; the "empty" law takes a plain log. The
-two S2 `sorry`s there (`mergedCreate_window`, `merged_image`) keep their role, at true statements.
+**2.14 The snapshot side**. Receive: unchanged, `srvGrantOpen_snap` (its body's `applyRes` now holds
+the gated `srvRest`, with `∃ f`: true whatever the members' minimum TTLs, B1). Send (`applyAll`'s
+`msgSnapC` branch, `SnapSendBranch.lean`): the image is cluster-wide (`imageAt`, the snapshot
+certificates, `snapDirInv`). `imageAt γk bootLog i L A D`: conjunct `bkRestAt γk.c0 bootLog L D` →
+`(if γk.lg then bkRestAtL γk bootLog L D else bkRestAt γk.c0 bootLog L D)` (S4), with `bkRestAtL γk
+bootLog L D := ∃ f, ∀ n ∈ restBuckets, D.lookup n = (restLeasesWith f (kvLeases γk L).ids (restModel
+γk.c0 bootLog L)).bk.lookup n`. `bkRestAt`, `bkRestAt_boot`, `SnapRecvFacts`, `KVModelRestore` keep
+their text and proofs (the receive side at `lg = false`). The send branch at `lg = true` reads
+`bkRestAtL` off `srvRest`'s `∃ f`. The S2 `sorry`s (`mergedCreate_window`, `merged_image`) keep
+their role.
 
-**2.15 The trust base after the design**. Restated trusted: `isApplyLessor`'s Grant clause (2.12),
-`lessorApplyOk`/`lessorBackend` (lent part returned, 2.12); both for the `axiom` skill's pass
-(with `ckptEffectsOk`, `leasesNoExpiry`, pending). `srvGrantOpen` keeps one field (`snap`): every
-other `lg = true` obligation is proved from callees. New `sorry`s: none beyond `srvGrantOpen_open`
-and the Prove stage's drafts (`EtcdServer.LeaseGrant.wp_proof`, `lessorGrantOkL_of_server`,
-`kv_lease_grant_served`, `leasegrant.Main.wp_proof`).
+**2.15 The trust base after the design**. Trusted, restated: `lessorApplyOk` (`NewLessor`'s post,
+2.12: the lent part returned), for the `axiom` skill's pass of the `NewLessor` axiom (with
+`ckptEffectsOk`, `leasesNoExpiry`, pending). Derived, restated: `isApplyLessor`. `srvGrantOpen`
+keeps one field (`snap`). New `sorry`s: none beyond `srvGrantOpen_open` and the drafts
+(`EtcdServer.LeaseGrant.wp_proof`, `lessorGrantOkL_of_server`, `leasegrant.Main.wp_proof`).
 
-### 3. The size, and the commits
+### 3. The size, the statements that change at `lg = false`, and the commits
 
-Sites (`grep -c` over `Proof/ Spec/`, sites / files) per changed definition: `rqOk false` 17/10,
-`rqShape false` 21/10, `logShape false` 13/9, `entryShape false` 5/3, `entryOk` 15/10, `logShapeM`
-15/3, `plainLogM γk.cmp false` 5/4 (to `lg`); `leasesLive` 29/13 (and the ≈13 proofs that open it,
-which carry `ltHalf`); `isApplyLessor` 70/31 (`mt`); `respMethods` 17/10, `reqFacts` 15/10, the four
-`LeaseGrant.spec`s 16/13, `applierTriples` 49/31 (the new triple; the layer proofs' intro
-patterns); `dispatch.spec` 4/4, `Apply.spec` 12/6; `restAfter` 21/11, `restOut` 16/8 (wrapped by
-`grantRest` at the two specs and `srvRest_applyG`); `srvRest` def 1, proofs unfolding it 18/8;
-`bkRestAt` 29/4; `kvInv` def 1, proofs opening it ≈10 (off mode); `reqPropOk` 31/10;
-`appliedOkM` 32/16, `resPostM` 12/6, `resultIsW` 33/12 (defs; constructors ≈10); `srvKVInvs` 1 def
-(167 uses, unchanged); `lessorBackend`/`lessorApplyOk` 11/9 + 18/9; `lease.lessor.Grant.spec` 16/10;
-allocs 32/9. Not touched: `kvOwn` (288/73), `ApplyKV` (549/92), `dispatchAnswer`/`dispatchResult`/
-`applyResultIs` (58+38+88). Roughly 450 edited sites, most mechanical.
+**Sites** (`grep -c` over `Proof/ Spec/`, sites / files): `rqOk false` 17/10, `rqShape false`
+21/10, `logShape false` 13/9, `entryShape false` 5/3, `entryOk` 15/10, `logShapeM` 15/3, `plainLogM
+γk.cmp false` 5/4; `leasesLive` 29/13; `respMethods` 17/10, `reqFacts` 15/10, the four
+`LeaseGrant.spec`s 16/13, `applierTriples` 49/31; `newHeader.spec` 51/36; `dispatch.spec` 4/4,
+`Apply.spec` 12/6; `restAfter` 21/11, `restOut` 16/8; `srvRest` proofs unfolding it 18/8; `imageAt`
+15; `kvInv` openers ≈10; `reqPropOk` 31/10; `appliedOkM` 32/16, `resPostM` 12/6, `resultIsW` 33/12;
+`srvSnapRO` constructors (few; 1 def); `lessorBackend` 11/9, `lessorApplyOk` 18/9,
+`lease.lessor.Grant.spec` 16/10; allocs 32/9. Not touched: `kvOwn` (288/73), `ApplyKV` (549/92),
+`dispatchAnswer`/`dispatchResult`/`applyResultIs` (184), `isApplyLessor`'s signature (70/31),
+`bkRestAt` (29/4), `srvKVInvs` (167). Roughly 450 edited sites, most mechanical.
 
-Commits, each a full build with the checks of the last section (`tcb-report --check` new only
+**Statements that change at `lg = false` too** (S5; each new part is reached only through a grant,
+which `rqOk false` excludes), with the law their `lg = false` callers use:
+
+| statement | change at every `lg` | law for `lg = false` callers |
+|---|---|---|
+| `lessorApplyOk`, `lessorBackend`, `Grant`/`Checkpoint`/`Revoke`'s clause, `persistTo` | `Ln` returned | none: proofs re-done once (Revoke's user gets `Ln` back, drops it) |
+| `isApplyLessor`'s Grant clause | `RO` for `RW` | none (no `lg = false` caller calls `Grant`) |
+| the four `LeaseGrant.spec`s, `applierTriples`' grant entry | new triple | none (unreachable at `rqOk false`) |
+| `newHeader.spec` | stronger post | none (more conjuncts; intro patterns) |
+| `dispatch.spec`, `Apply.spec` | `+ grantPermRq`, `+ ltHalf`, `grantRest`, `grantRes` | `grantPermRq_of_not_grant`, `ltHalf_false`, `grantRest_not_applied` (`= r`), `grantRes_not_grant` |
+| `appliedOkM`, `resPostM`, `resultIsW(On)` | `+ grantArM`/`grantAnsM` | `grantArM_not_grant` (constructors), dropped by users |
+| `leasesLive` (now over `E`) | `+ ltHalf E L` | `ltHalf_false` (`True`) |
+| `kvInv`'s ≈10 openers | fraction `if γk.lg then 1 else ½` | `kvInv_false`; `kv_prop_auW` splits on `γk.lg`; `kv_revLbZ_le` fraction-generic |
+| `srvSnapRO`, `applyEntryNormal`/`applyEntries`/`apply` pre | `+ srvGrantable` | `srvGrantable_false` (`⊣⊢ True`) |
+| `kv_lease_served`, `srvClusterBoot_alloc`, `alloc1` | take `lg` | `_false` (old post) |
+| `rqOk`/shapes/`plainLogM`/`kvInv`'s plain log, `srvRest`, `imageAt`, `reqPropOk` | gated | `_false` by `rfl`/`simp` |
+
+**Commits**, each a full build with the checks of the last section (`tcb-report --check` new only
 `srvGrantOpen_open` and the drafts; every collection unchanged; `gen-init`, `gen-interface`):
-1. **Pure** (new modules, no rebuild above them): 2.0's apply and server definitions and laws.
-2. **Lease package** (rebuilds lease and everything above, once): `lessorBackend`'s lent part,
-   `lessorApplyOk`, `Grant.spec`/`Checkpoint.spec`/`persistTo` returning it.
-3. **Apply package and the apply thread** (one full server rebuild): `AEnv.mt`/`γlt`, `ltHalf`,
-   `leasesLive E`, `isApplyLessor … mt` with the RO Grant clause and its derivation, the grant
-   triple and the five layers, `dispatch.spec`/`Apply.spec`, `grantAnswer`/`grantRes`; on the server
-   side in the same commit (it cannot build otherwise): `srvRest` gated, `srvRest_applyG`,
-   `srvKVInvs`' `srvGrantable`, `entryOk`/`logShape` at `E.lg`, `applyEntryNormal`, `NewServer`'s
-   allocations, `bkRestAt` and the send branch.
+1. **Pure** (new modules): 2.0's definitions and laws.
+2. **Lease package** (rebuilds lease and above): `lessorBackend`'s `Ln`, `lessorApplyOk`,
+   `Grant`/`Checkpoint`/`persistTo`/the revoke path returning it.
+3. **Apply package and the apply thread** (one full server rebuild): `AEnv.γlt`, `ltHalf`,
+   `leasesLive E`, `newHeader.spec`, `isApplyLessor`'s RO clause and derivation, the grant triple and
+   the five layers, `dispatch.spec`/`Apply.spec`, `grantAnswer`/`grantRes`; server side in the same
+   commit: `srvRest` gated, `srvRest_applyG`, `srvSnapRO`'s `srvGrantable`, `entryOk`/`logShape` at
+   `E.lg`, `applyEntryNormal`/`applyEntries`/`apply`, `NewServer`'s allocations, `imageAt`'s gate and
+   the send branch.
 4. **The request path** (full server rebuild): `kvInv` (C), `reqPropOk`'s grant disjunct,
    `kv_prop_au_grant` and the refutations, `plainLogM γk.cmp γk.lg`, `kvWork`'s shapes,
-   `grantArM`/`grantAnsM` in `resultIsW`/`resPostM`/`appliedOkM`, `NewServer.specM true`'s
-   `lg = false`, the `lg = true` allocation.
+   `grantArM`/`grantAnsM`, `NewServer.specM true`'s `lg = false`, `srvClusterBoot_alloc lg`.
 5. **Leaves** (cheap): `EtcdServer.LeaseGrant.wp_proof`, `lessorGrantOkL_of_server`,
-   `kv_lease_grant_served` (post without `etcdKVAt`), `alloc1G`, `leasegrant.Main.wp_proof`.
+   `kv_lease_served lg`, `alloc1 lg`, `leasegrant.Main.wp_proof`.
 Commits 3 and 4 may be merged to save one full rebuild; kept apart for review.
 
 ### 4. Open questions (for the user)
 
-- **Q1. The KV state of a granting cluster** (how (c) is realized). (A) As L4 decided: a grant
-  carries its client update `kvOpAu γk (.leaseGrant id ttl) Q`; `LeaseGrant.spec` takes `□ ∀ id,
-  kvOpAu …`, the served side keeps `etcdKV` and makes it; but then a write's AU exists at `lg = true`
-  and `Put`/`DeleteRange`/`Txn`/`Range.spec` are false there: each needs a premise `ρ.kv.lg = false`
-  (frozen texts change, every caller threads it). (B) Drop the table from the clients' state
-  (`kvModelSt := kvStateOf (kvModel γk L)`, L3a's state half undone): every KV result true at any
-  `lg`, no update for grants; L6 must put it back. (C) The KV invariant owns the state's ghost
-  variable whole at `lg = true`; a grant steps it without a client; any client AU is refutable, so
-  every KV result is true (vacuously) with its text unchanged; L4's client update is not used.
-  **Recommended: (C)** (smallest; exactly "no claim about the KV service"; L6 later replaces it by
-  (a) of the blocker).
-- **Q2. Where the grant's answer travels.** (i) In `dispatchAnswer`'s arm, with the lessor's name
-  (the review's B1; `dispatchAnswer`/`dispatchResult`/`applyResultIs` gain `γl`, ≈184 sites).
-  (ii) Beside it, `grantRes`/`grantArM`/`grantAnsM` (the `authnArM` precedent; ≈15 statement sites).
-  **Recommended: (ii).**
+- **Q1. The KV state of a granting cluster.** (A) L4's client update for a grant; then
+  `Put`/`DeleteRange`/`Txn`/`Range.spec` need `ρ.kv.lg = false` (frozen texts change). (B) Drop the
+  table from the clients' state (L3a's state half undone; L6 puts it back). (C) The KV invariant owns
+  the state's ghost variable whole at `lg = true`; any client AU is refutable; every KV result true,
+  vacuously, text unchanged; L4's update not used. **Recommended: (C)** (reviewer agrees), with the
+  vacuity said in the docstrings of `kvInv`, `%Hslg` and `leasegrant_safe`.
+- **Q2. Where the grant's answer travels.** (i) In `dispatchAnswer`, with `γl` (≈184 sites). (ii)
+  Beside it, `grantRes`/`grantArM`/`grantAnsM` (`authnArM` precedent, ≈15). **Recommended: (ii).**
 - **Q3. The tie's carrier.** (a) Two halves of a ghost variable gated on `lg`: one in `kvOwn`'s
-  `leasesLive`, one beside the rest image in `srvRest` and through `Apply`/`dispatch` (`ltHalf`). (b)
-  The live set explicit in the apply state (the leases plan's L3b: `ApplyKV.ids`, `kvOwn E log L`,
-  every applier triple's `mPre`/`mPost`/`kvPost`: ≈300 statement sites, ≈80 files). **Recommended:
-  (a)**; (b) when leased puts need the live set in every triple (L3b/L6).
-- **Q4. Getting `lessorBeOn` back from `Grant`.** (a) Restate the trusted `lessorApplyOk` so the
-  write's lent part returns at `Unlock` (true of Go). (b) Keep `RW`: lend `E.RW` per grant, which
-  steps the backend's client half outside `E.RO`, so `srvRest` is not exact (the rejected
-  alternative of B2). **Recommended: (a)**, with the `axiom` skill's pass.
-- **Q5. The snapshot send path.** (a) `bkRestAt` over the leased image (true; the S2 `sorry`s keep
-  their role). (b) A second sealed field `srvGrantOpen_send` for `applyAll`'s branch at `lg = true`
-  (no restatement of `bkRestAt`, but the field must name `applyAll`'s branch, which sits inside
-  `isServerApplyAll`'s user: the circularity commit 1 met). **Recommended: (a).**
-- **Q6. Auth on with `lg = true`.** Required `lg = false` (2.13; recommended: the grant guard is
-  `False` there and no example needs it), or supported (a stage of its own).
+  `leasesLive`, one beside the image in `srvRest` and through `Apply`/`dispatch` (`∀ T`, `ltHalf E T`
+  in and `ltHalf E (grantIds …)` out). (a') The reviewer's variant: the live set in `RestM` (`lids`),
+  its half inside the server's `E.RO`; `Apply`/`dispatch` gain no `T`. (b) The live set explicit in
+  `ApplyKV`/`kvOwn` (≈300 statement sites). **Chosen: (a).** (a') moves the half inside the abstract
+  `E.RO`, so the backend triple, which must update both halves, needs a lens through `RO` to the half:
+  either a new law on `AEnv`'s `RO` given at `NewServer`, or the half as a new argument of
+  `isApplyLessor` (70 sites / 31 files, the cost B1 just removed), and the server's `RO` a wrapper of
+  `srvRestOwn` (29 sites). (a) costs a gated conjunct on two frozen specs (16 sites), `True` at
+  `lg = false`; the triples carry the half in the open. (b) when leased puts need the live set in
+  every triple (L3b/L6).
+- **Q4. Getting `lessorBeOn` back from `Grant`.** (a) The `Ln` argument of `lessorBackend` (2.12;
+  true of Go). (b) Lend `E.RW` per grant (breaks the exact image). **Recommended: (a)**, with the
+  `axiom` skill's pass of `NewLessor`.
+- **Q5. The snapshot send path.** (a) `imageAt` gated, `bkRestAtL` with `∃ f` (2.14). (b) A second
+  sealed field (re-meets commit 1's circularity). **Recommended: (a).**
+- **Q6. Auth on with `lg = true`.** Required `lg = false` (recommended), or a stage of its own.
+- **Q7 (new). Where `srvGrantable` reaches `applyEntryNormal`.** A conjunct of its pre (and of
+  `applyEntries`/`apply`, passed from `applyAll`'s `srvSnapRO`), or a field of `isServerM`.
+  **Recommended: the pre** (three frozen specs, one persistent conjunct; `isServerM` has more users).
+- **Q8 (new, to check in the plumbing). `newHeader`'s `log' = log`.** The argument (2.11a) uses that
+  the sole writer lends `Rev` exactly `soleBudget log` tokens; if a caller lends fewer, the post weakens
+  to `log <+: log'` and the answer's revision to "at least". Its present proof passes `soleBudget log`.
 
 ## Superseded: the plumbing-commit list (2026-11-02)
 
