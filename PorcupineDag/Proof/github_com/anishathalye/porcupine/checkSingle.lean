@@ -410,7 +410,36 @@ theorem checkSingle.wp_proof
             iexists ps
             iframe Hps Hpse
             ipureintro; exact Hk3
-        sorry
+        -- `top, unlifted_id := ch.unlift(&stack, &serialized, consistency)`
+        obtain ⟨f, fs', rfl⟩ := List.exists_cons_of_ne_nil (l := fs) (fun h0 => hlen0 (by rw [h0]; rfl))
+        ihave Hs : searchOwn S np h cs ch_ptr stack_ptr serialized_ptr cm (f :: fs') fr cache
+          $$ [Hch Hstk Hstack Hscap Hlinp Hlin Hcache]
+        · iunfold searchOwn; iexists st1, ssl1, ses1, lsl1, ws1; simp only [named]
+          iframe; iframe Hses; ipureintro; exact ⟨Hci1, Hws1'⟩
+        wp_apply wp_unlift σ S np cons h cs ch_ptr stack_ptr serialized_ptr cm f fs' fr cache s (sint.Z lf)
+          hok hwf halloc Hst $$ [Hs] as %sv' %idx ⟨Hs, #Hsv', %Hidx⟩
+        · iframe; iframe Hcons
+        have hpos : f.pos < h.length := by
+          obtain ⟨-, ⟨-, hcl, hp⟩, -⟩ := Hst
+          have hl := (List.getElem?_eq_some_iff.mp hp).1
+          have hnd : f.fr.Nodup := by
+            exact hcl.1.imp fun {a b} (hk : KeyGt h cs a b) (he : a = b) => by
+              subst he; exact keyGt_irrefl hk
+          have : f.fr.length ≤ h.length := by
+            simpa using List.Nodup.length_le_of_subset hnd
+              (fun y hy => List.mem_range.mpr ((hcl.2 y).mp hy).1)
+          omega
+        have hidx1 : sint.Z (idx - W64 1) = (f.pos : Int) - 1 := by
+          have := hhl; rw [← Hidx]; word
+        wp_for_post
+        iframe
+        iexists f.pre
+        iframe Hsv'
+        isplitr
+        · ipureintro; rw [hidx1]; exact struct_pop Hst
+        icases Hb with (%Hb | #HPD)
+        · ileft; ipureintro; rw [hidx1]; exact bad_pop hirr hdom Hst Hb hinc
+        · iright; iexact HPD
     · -- lifted
       subst Hok
       sorry
