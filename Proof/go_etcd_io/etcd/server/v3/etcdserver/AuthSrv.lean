@@ -290,6 +290,10 @@ theorem authStoreKit_on
     (hDelL : auth.authStore.IsDeleteRangePermitted.specL (GF := GF) (hG := hG))
     (hAdminL : auth.authStore.IsAdminPermitted.specL (GF := GF) (hG := hG))
     (hRangeLb : auth.authStore.IsRangePermitted.specLb (GF := GF) (hG := hG))
+    (hEnLb : auth.authStore.IsAuthEnabled.specLb (GF := GF))
+    (hRevLb : auth.authStore.Revision.specLb (GF := GF))
+    (hAdminLb : auth.authStore.IsAdminPermitted.specLb (GF := GF) (hG := hG))
+    (hPutLb : auth.authStore.IsPutPermitted.specLb (GF := GF) (hG := hG))
     (hEnableB : auth.authStore.AuthEnable.specTB (GF := GF) (hG := hG))
     (hUserAddB : auth.authStore.UserAdd.specTSureB (GF := GF) (hG := hG))
     (hRoleAddB : auth.authStore.RoleAdd.specTB (GF := GF) (hG := hG))
@@ -358,9 +362,9 @@ theorem authStoreKit_on
     iintro !> %n #Hlb
     isplitr
     · iapply apply.isAuthStoreRangeLb_of_authInv hRangeLb stp R (.on γa) n $$ [$Hpkg $Hinv $Hlb]
-    -- (the lease-src plan, Draft) `isAuthStoreLeaseLb_of_authInv`, its five `specLb`s threaded at
-    -- Prove
-    sorry
+    -- (the lease-src plan) the lease checks' methods at the same lower bound
+    · iapply isAuthStoreLeaseLb_of_authInv hEnLb hRevLb hAdminLb hPutLb hRangeLb stp R (.on γa) n
+        $$ [$Hpkg $Hinv $Hlb]
   -- (E3t) publication, of its invariant
   ihave #HstPub := authPublishM_of_authInv stp R γa $$ Hinv
   -- (E3zb) the request side bound to the request context's token, of its invariant
@@ -450,6 +454,10 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
     (hDelL : auth.authStore.IsDeleteRangePermitted.specL (GF := GF) (hG := hG))
     (hAdminL : auth.authStore.IsAdminPermitted.specL (GF := GF) (hG := hG))
     (hRangeLb : auth.authStore.IsRangePermitted.specLb (GF := GF) (hG := hG))
+    (hEnLb : auth.authStore.IsAuthEnabled.specLb (GF := GF))
+    (hRevLb : auth.authStore.Revision.specLb (GF := GF))
+    (hAdminLb : auth.authStore.IsAdminPermitted.specLb (GF := GF) (hG := hG))
+    (hPutLb : auth.authStore.IsPutPermitted.specLb (GF := GF) (hG := hG))
     (hEnableB : auth.authStore.AuthEnable.specTB (GF := GF) (hG := hG))
     (hUserAddB : auth.authStore.UserAdd.specTSureB (GF := GF) (hG := hG))
     (hRoleAddB : auth.authStore.RoleAdd.specTB (GF := GF) (hG := hG))
@@ -484,7 +492,7 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro; exact ⟨rfl, fun _ => ⟨γa, rfl⟩⟩
   iapply (authStoreKit_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh hCtx hTLS hPut hRange
-    hDel hAdmin hEn hPutL hRangeL hDelL hAdminL hRangeLb hEnableB hUserAddB hRoleAddB hUserGrantRoleB
+    hDel hAdmin hEn hPutL hRangeL hDelL hAdminL hRangeLb hEnLb hRevLb hAdminLb hPutLb hEnableB hUserAddB hRoleAddB hUserGrantRoleB
     hRoleGrantPermissionB hAuthnB hCP hGT hD22 _ γa (auth.simpleAdmin p))
     $$ [$HtpA $HA $Hown $Hcur $HI $Hfr $Hcap $Hcn]
 

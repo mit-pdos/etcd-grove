@@ -1384,6 +1384,11 @@ theorem auth_put_permitted_lb : auth.authStore.IsPutPermitted.specLb (GF := GF) 
 theorem auth_delete_range_permitted_lb : auth.authStore.IsDeleteRangePermitted.specLb (GF := GF) :=
   auth.authStore.IsDeleteRangePermitted.wp_lb auth_op_permitted_lb
 
+/-- **`IsAdminPermitted` no older than a reader's lower bound** (the lease-src plan,
+`auth/FreshAdmin.lean`): the lease checks' admin check, every callee linked. -/
+theorem auth_admin_permitted_lb : auth.authStore.IsAdminPermitted.specLb (GF := GF) (hG := hG) :=
+  auth.authStore.IsAdminPermitted.wp_lb auth_enabled_lb auth_locked_read_tx_lb auth.wp_hasRootRole
+
 end readLb
 
 #print axioms Perennial.EtcdGrove.auth_locked_read_tx_lb
@@ -1394,6 +1399,7 @@ end readLb
 #print axioms Perennial.EtcdGrove.auth_range_permitted_lb
 #print axioms Perennial.EtcdGrove.auth_put_permitted_lb
 #print axioms Perennial.EtcdGrove.auth_delete_range_permitted_lb
+#print axioms Perennial.EtcdGrove.auth_admin_permitted_lb
 
 section latestApply
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -2048,6 +2054,7 @@ theorem srv_auth_tp_on (hValid : auth.ValidSpec (GF := GF) (hG := hG))
     auth.authStore.wp_IsDeleteRangePermitted auth.authStore.wp_IsAdminPermitted
     auth.authStore.wp_IsAuthEnabled auth_put_permitted_latest auth_range_permitted_latest
     auth_delete_range_permitted_latest auth_admin_permitted_latest auth_range_permitted_lb
+    auth_enabled_lb auth_revision_lb auth_admin_permitted_lb auth_put_permitted_lb
     (auth.authStore.AuthEnable.wp_tieB auth.authStore.wp_refreshRangePermCache
       auth.authStore.wp_setRevision auth.wp_hasRootRole zap.Logger.wp_Info)
     (auth.authStore.UserAdd.wp_tieSureB auth.authStore.wp_commitRevision

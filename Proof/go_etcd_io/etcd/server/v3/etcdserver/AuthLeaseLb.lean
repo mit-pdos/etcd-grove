@@ -88,6 +88,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+variable [apply_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **The real store's lease checks at a lower bound, of its invariant** (as
 `apply.isAuthStoreRangeLb_of_authInv`, from the five methods' `specLb`s). -/
@@ -101,7 +102,56 @@ theorem isAuthStoreLeaseLb_of_authInv
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ∗
       auth.authPubLbM M n ⊢
       isAuthStoreLeaseLb (auth.authIface st) (auth.authRd st R M) M n := by
-  sorry
+  iintro ⟨#Hpkg, #Hinv, #Hlb⟩
+  iunfold isAuthStoreLeaseLb
+  iexists (interface.mk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty) #st)
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iintro !> %Φ !> Hrd HΦ
+    iunfold auth.authRd at Hrd
+    icases Hrd with ⟨Hen, Hca, HR⟩
+    iapply (hEn st R M n) $$ [Hen]
+    · iframe; iframe #
+    iintro !> %b ⟨Hen, #Hv⟩
+    iapply HΦ
+    iunfold auth.authRd
+    iframe
+    iexact Hv
+  isplitr
+  · iintro !> %Φ !> - HΦ
+    iapply (hRev st R M n) $$ []
+    · iframe #
+    iintro !> %x #Hv
+    iapply HΦ
+    iexact Hv
+  isplitr
+  · iintro !> %a %info %dq %Φ !> ⟨Ha, Hrd⟩ HΦ
+    iapply (hAdmin st R M n a info dq) $$ [Ha Hrd]
+    · iframe; iframe #
+    iintro !> %err ⟨Hrd, Ha, #Herr, #Hv⟩
+    iapply HΦ
+    iframe
+    isplitl []
+    · iapply apply.authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
+    · iunfold adminVerdictFrom; iexact Hv
+  isplitr
+  · iunfold permCheck2Lb
+    iintro !> %a %info %dq %key %k %dk %Φ !> ⟨Ha, Hk, Hrd, %Hlen⟩ HΦ
+    iapply (hPut st R M n a info dq key k dk) $$ [Ha Hk Hrd]
+    · iframe; iframe #; ipureintro; exact Hlen
+    iintro !> %err ⟨Hrd, Ha, Hk, #Herr, #Hv⟩
+    iapply HΦ
+    iframe
+    iframe #
+    iapply apply.authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
+  · ihave #H3 := apply.isAuthStoreRangeLb_of_authInv hRange st R M n $$ [$Hpkg $Hinv $Hlb]
+    iunfold apply.isAuthStoreRangeLb at H3
+    icases H3 with ⟨%ai, %Hai, #H3⟩
+    have Hai' : ai = interface.mk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty) #st := by
+      unfold auth.authIface at Hai; cases Hai; rfl
+    subst Hai'
+    iexact H3
 
 end proofs
 
