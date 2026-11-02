@@ -29296,6 +29296,8 @@ opening the store's invariant at names the restore is changing.
   beside `leaseParams`, `d.P.has mvcc.alarmBI`, `authBI`, `authUsersBI`, `authRolesBI` (the
   table's entries, per bucket as item I asks); `srvSnapRO` gains the alarm entry. `newPostKP`
   holds `rdPool`, not `bkRPool` (untrusted; the snapshot path builds `bkRPool` by `bkRPool_intro`).
+- **The user's approvals** (2026-11-02): the four `%Hbe` conjuncts (`d.P.has mvcc.alarmBI`, `authBI`,
+  `authUsersBI`, `authRolesBI`) are within the approved meaning; the branch is approved to land.
 
 
 ## The merged snapshot's window: the writer's observations, the freeze at `ci` 0, the snapshot's compaction keys (2026-11-02 · the user's approvals · branch `snap-window`)
