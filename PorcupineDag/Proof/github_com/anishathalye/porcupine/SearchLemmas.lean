@@ -185,6 +185,20 @@ theorem clientOwn_facts (h : List (Op OpV)) (cs : List (List Nat)) (st : ChSt) (
   iframe Hr
   ipureintro; exact ⟨Hc, Hc⟩
 
+/-- The frontier slice of a chains value. -/
+theorem chainsRepr_frontier (chV : chains) (h : List (Op OpV)) (cs : List (List Nat)) (st : ChSt) :
+    chainsRepr chV h cs st ⊢
+      chV.frontier' ↦* (st.frontier.map (fun (c : Nat) => (W64 (c : Int) : w64))) ∗
+      (chV.frontier' ↦* (st.frontier.map (fun (c : Nat) => (W64 (c : Int) : w64))) -∗
+        chainsRepr (GF := GF) chV h cs st) := by
+  unfold chainsRepr
+  iintro ⟨%cvs, Hcl, %Hcvs, Hfr, Hcap, Hcls⟩
+  iframe Hfr
+  iintro Hfr
+  iexists cvs
+  iframe
+  ipureintro; exact Hcvs
+
 /-- A client's struct, with its head or `nDeps` changed. -/
 theorem clientOwn_upd (h : List (Op OpV)) (cs : List (List Nat)) {st st' : ChSt} {c : Nat}
     (cv cv' : client) (hcl : cv'.cltOps' = cv.cltOps') (hid : cv'.id' = cv.id')
