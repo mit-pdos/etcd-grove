@@ -63,7 +63,7 @@ theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IP
   have hE : E.cmp = false := srvEnvOk_off s γ ci E v.cluster d Henv hkb hcm
   have hok : srvEnvOk s (snapγ γ π0 γB) ci
       (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp v.cluster d'.be) v.cluster :=
-    ⟨Henv.1, rfl, γB, _, rfl, rfl, d', al, ast, lp, snapE_kb _ _ _ _ _ _ _ _ _ _ _ _ d' hkb', hγB,
+    ⟨Henv.1, Henv.2.1, rfl, γB, _, rfl, rfl, d', al, ast, lp, snapE_kb _ _ _ _ _ _ _ _ _ _ _ _ d' hkb', hγB,
       rfl, hcm'.trans hE.symm⟩
   -- (M2's apply side) the KV invariants' mode law: both backends off
   ihave #Hat := srvAtomics_snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp v.cluster

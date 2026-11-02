@@ -605,7 +605,6 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
-sorry EtcdServer.run.wp_proof
-sorry etcdserver.restorePre_of_apply
 sorry mergedCreate_window
 sorry merged_image
+sorry run_job_snap_cmp

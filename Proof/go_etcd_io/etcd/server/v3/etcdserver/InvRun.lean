@@ -269,15 +269,14 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
     rnWalTok (srvRAddr C.s) (1 : Qp).half ∗
     -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap; (D22 J5,
-    -- 2026-10-26) a count `w` of the tokens taken, at least the applied index (no snapshot
-    -- installed: `applyAll`'s premise; J8a's snapshot case makes it conditional)
-    (∃ w : Nat, srvWTTaken C.wt w ∗ ⌜uint.Z ai ≤ w⌝) ∗
+    -- 2026-10-26) a count `w` of the tokens taken (until J8b, 2026-11-01, at least the applied
+    -- index, which no proof read and a snapshot's jump breaks)
+    (∃ w : Nat, srvWTTaken C.wt w) ∗
     -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back, at the current backend
     srvSnapOwn C.s C.ci B.E C.γr ai ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
       -- (2026-10-31, the snapshot track: #11's S1) the consistent index at least the applied one
       uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
-      entriesStep C.c₀ A C.x₀ x ∧
       -- (D22 S-h, 2026-10-20; S-0's amendment) `ep.appliedt` the last applied entry's term
       lastTermIs A at'⌝)
 
@@ -408,6 +407,30 @@ def applyStart (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
     -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back
     srvSnapOwn s ci E γr ai₀)
 
+/-- (J8b, 2026-11-01) **The meta reads of the backends the apply thread opens** at the apply names
+`γ`: `bootOk`'s `#HmetaSnap` (J8a-4) by name, which `NewServer` passes to `run` through `start`'s
+construction premise (`srvBuilt`, `isServerBuilt`, `isServerRun`'s `#HmetaSnap`) for
+`applyAll.specSnap`'s premise of the same text. -/
+def srvMetaSnap (γ : ApplyNames) : IProp GF :=
+  iprop(□ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
+        ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
+        backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
+        backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ∗
+        □ ∀ (W : IProp GF) (b : Loc),
+          backend.isBackend γB P W (batchLockInv (γ.withPh π) (metaTM γB P)) b -∗
+          isMetaBackend (interface.mkOk (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
+            (readView (γ.withPh π))))
+
+instance srvMetaSnap_persistent (γ : ApplyNames) : Persistent (srvMetaSnap (GF := GF) γ) := by
+  unfold srvMetaSnap; infer_instance
+
+/-- `srvMetaSnap` at the next backend's names: `beSucc` keeps the logical names, and the premise
+names only `γ.withPh π`. -/
+theorem srvMetaSnap_withPh (γ : ApplyNames) (ph : ApplyPhys) :
+    srvMetaSnap (GF := GF) (γ.withPh ph) = srvMetaSnap γ := by
+  unfold srvMetaSnap; rfl
+
 /-- **What `run` needs** (see `Spec/.../EtcdServer__run.lean`; named conjuncts): the apply
 thread's view, `applyAll`'s, the raft wrapper (its node contract over the server's `E.C`), `run`'s
 fields, the ticks; the snapshot's contract once; the raft wrapper's loop, apply and done tokens
@@ -421,6 +444,10 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     IProp GF :=
   iprop("#Hsrv" ∷ isServer s γ ci TM E ρ γr ∗
     "#Hsa" ∷ isServerApplyAll s γr ∗
+    -- (J8b, 2026-11-01) the server's member id is the raft node's (`isServerBuilt`'s)
+    "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
+    -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
+    "#HmetaSnap" ∷ srvMetaSnap γ ∗
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     -- (D43 M3, 2026-10-25) in raft's dynamic mode a fresh start: no entry replayed
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧

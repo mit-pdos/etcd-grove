@@ -1659,7 +1659,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe #
     isplitr
     · ipureintro; exact Hlgnn
-    ipureintro; exact ⟨⟨rfl, rfl⟩, rfl, rfl, d.γB, _, rfl, rfl, ({ d with cm := cmp } : mvcc.KBReal), alst, astl, lp, Hγw.2.2.1, rfl, rfl,
+    ipureintro; exact ⟨⟨rfl, rfl⟩, by show γw.st.cm = _; rw [Hcmw]; first | rfl | exact Hcmp0 | exact Hcmp0.symm,
+      rfl, rfl, d.γB, _, rfl, rfl, ({ d with cm := cmp } : mvcc.KBReal), alst, astl, lp, Hγw.2.2.1, rfl, rfl,
       Hcmp0.symm⟩
   isplitr
   · -- `#Hreqb`
@@ -1786,6 +1787,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · ipureintro; exact Hdisk
   isplitr
   · ipureintro; rfl
+  isplitr
+  · -- (J8b) the member id, the raft node's (`srvProcOk`'s)
+    have hidr : γrn.id = id := by rw [Hrn5, Hrid]
+    rw [hidr, ← Hid]; iexact memberID
+  isplitr
+  · -- (J8b) `bootOk`'s meta reads, by name
+    unfold srvMetaSnap; iexact HmetaSnap
   isplitl [Hsend]
   · simp only [srvErM]; iexact Hsend
   isplitl [w]

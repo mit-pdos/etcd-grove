@@ -512,9 +512,12 @@ alarm store's, the auth store's, the lessor's and (S7e) the cluster's, on the st
 2026-10-29: the store's backend did not compact, `d.cm = false`.) (M2's apply side, 2026-10-31, the
 user's (a): the snapshot track's draft `srvEnvOkD` in place) The store's backend compacts in the
 server's compaction mode (`d.cm = E.cmp`); a snapshot is installed only with the mode off (the
-interim restriction: `applySnapshot.specSnap`'s `d.cm = false`, until restore in compaction mode). -/
+interim restriction: `applySnapshot.specSnap`'s `d.cm = false`, until restore in compaction mode).
+(2026-11-01, `restorePre_of_apply`) And the store's logical mode is the server's (`E.γ.cm = E.cmp`,
+`envAgree`'s at `NewServer`; a restore keeps both): what makes a compaction-off store frozen
+(`isWatchableStore_frozen`) for `Restore`. -/
 def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
-  E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
+  E.γ.cm = E.cmp ∧ E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
     ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH γB cl H ∧ E.RW = srvRestRWH γB H ∧
       ∃ (d : mvcc.KBReal) (al st lp : Loc), E.γ.kb = some d ∧ d.γB = γB ∧
         H = srvObjsOn al st lp cl d.be ∧ d.cm = E.cmp
@@ -522,14 +525,18 @@ def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Lo
 /-- **The store compacts exactly in the server's mode** (S-5's law, from `srvEnvOk`). -/
 theorem srvEnvOk_kbCmp (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc)
     (h : srvEnvOk s γ ci E cl) : mvcc.kbCmpM E.γ.kb ↔ E.cmp = true := by
-  obtain ⟨-, -, -, -, -, -, d, -, -, -, hkb, -, -, hcm⟩ := h
+  obtain ⟨-, -, -, -, -, -, -, d, -, -, -, hkb, -, -, hcm⟩ := h
   rw [hkb, ← hcm]; rfl
+
+/-- **The store's logical mode is the server's** (`srvEnvOk`). -/
+theorem srvEnvOk_cm (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc)
+    (h : srvEnvOk s γ ci E cl) : E.γ.cm = E.cmp := h.1
 
 /-- **At a store that does not compact, the server's mode is off** (`srvEnvOk`). -/
 theorem srvEnvOk_off (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc)
     (d : mvcc.KBReal) (h : srvEnvOk s γ ci E cl) (hkb : E.γ.kb = some d) (hcm : d.cm = false) :
     E.cmp = false := by
-  obtain ⟨-, -, -, -, -, -, d0, -, -, -, hkb0, -, -, hcm0⟩ := h
+  obtain ⟨-, -, -, -, -, -, -, d0, -, -, -, hkb0, -, -, hcm0⟩ := h
   rw [hkb] at hkb0
   cases hkb0
   rw [← hcm0, hcm]

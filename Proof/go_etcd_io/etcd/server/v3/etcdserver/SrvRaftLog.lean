@@ -690,7 +690,10 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
     ⌜γ.raft.cl.dup = false⌝ ∗ inv srvSnapsN (∃ S, ownSnapsMade γ.raft.cl S) ∗
     ⌜srvRuleKeeps γ.raft.rule γ.raft.cfg⌝ ∗
     -- (2026-11-01, J8a) the cluster's snapshot directories the members' (`snapLoc`)
-    ⌜γ.raft.cl.snapLoc = γ.raft.snapLoc⌝)
+    ⌜γ.raft.cl.snapLoc = γ.raft.snapLoc⌝ ∗
+    -- (2026-11-01, J8b) the cluster's bootstrap log the server's (`cluster_alloc`'s `bootLen`):
+    -- what puts a snapshot `Ready` past `boot` (`readySnap_bootLen`)
+    ⌜γ.raft.cl.bootLen = γ.raft.boot.length⌝)
 
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
   unfold srvClusterOk; infer_instance

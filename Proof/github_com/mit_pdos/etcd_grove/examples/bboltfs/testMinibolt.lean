@@ -106,7 +106,7 @@ theorem testMinibolt.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
       have : uint.Z x ≤ uint.Z (W64 40) := by simpa using Hif
       have h' : uint.Z (W64 40) = 40 := rfl
       simp only [uint.Z] at this h'; omega
-    wp_apply wp_Commit γ db (x.toNat - 1) (x.toNat + 2) x (by omega) (by omega)
+    wp_apply wp_Commit γ db (x.toNat - 1) (x.toNat + 2) x (by omega)
         (by rw [Hvp]; exact valueOkP_next x Hx.1) $$ [Hown]
       as %e (⟨%He, Hown, #Htxc, #Hlastc⟩ | ⟨%He, -, Hown⟩)
     · iframe #; iframe

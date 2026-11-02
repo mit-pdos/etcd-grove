@@ -28724,6 +28724,33 @@ so `wp_applyAll`, `wp_run`, `wp_start` and `wp_Start` and their results in `Resu
 instance argument too. It adds no assumption to the closed results: `wp_NewServer`, under all of
 them, already took it.
 
+## J8b: `run`'s snapshot job, spec-first (2026-11-01 · the user's approval: drop both, split compaction)
+
+Supersedes D22 J5's `uint.Z ai ≤ w` (its entry: "J8a ... drops `applyAll.spec`'s premise `uint.Z ai ≤ w`")
+and the J8b candidate's `kvReach` restatement of `applyRes`'s `entriesStep`.
+
+The review read `applyAll.specSnap`'s pre and post against `run`'s loop invariant (`applyRes`) and
+`isServerRun`, conjunct by conjunct (`notes/snapshot-j8a-plan.md`, J8b). What did not fit, and the
+change:
+- `applyRes`'s `ai ≤ w`: false after the jump (`ai = i`, `w` unchanged). J5 kept it for the
+  compaction's bound through `srvWTPool_bound_n`, which nothing uses; `snapshotIfNeededAndCompactRaftLog`'s
+  proof took it (`haw`) and never read it. Dropped everywhere (the premise of five specs, two loop
+  invariants). The applied index's bounds come from raft (`srvIdxOk`, the payload's `< 2^61`).
+- `applyRes`'s `entriesStep C.c₀ A C.x₀ x` (the KV a fold of the log from `x₀`): false after the
+  jump; its only reader rebuilt it. Dropped rather than restated as `kvReach`: no client. A
+  run-level trace result, if wanted, states its own.
+- `E.cmp = false` (`specSnap`'s, for `srvKVCloserW`): `run.spec` covers both compaction modes. The
+  job cases on the mode; the mode on is `run_job_snap_cmp`, a named `sorry` (the user's choice).
+- The member id: `specSnap` takes `srvMemberIDAddr s ↦□ nid` and the payload's `nodeSnapLocal` is at
+  `γn.id`; `run` had no tie. `isServerRun` gains it (`NewServer` knows `γrn.id = id`).
+- The meta reads (`bootOk`'s `#HmetaSnap`): reached `run` nowhere. `isServerRun` gains them, by name
+  (`srvMetaSnap`), through `start`'s construction premise.
+- `|boot| ≤ i`: not derivable by the server (the payload says nothing of the boot log). It is per
+  payload, so not an `isServerRun` fact: `rnApSnap` gains it, from `rnReadySnap_bootLen`, a named
+  `sorry` whose proof is a `readySnap` conjunct proved in raft (to propose).
+Everything else `specSnap` takes is in `applyRes`, the payload, or `isServerRun`; its post rebuilds
+`applyRes` at raft's `A'` (`srvRLogLb_prefix` with the lengths ties the image's log to raft's).
+
 ## The lease checks' revision re-check is not stated (2026-11-01 · accepted, the user's choice · `notes/lease-revcheck-plan.md`)
 
 Item 3 of the lessor/auth list asked for the lease checks' `Revision()` re-check in their posts. The
@@ -29024,3 +29051,77 @@ noDupKeys γ`: weaker for clients (one of a store that never compacts keeps givi
 `noCompactor`, the token's old fact), and without the gate's margin (a compaction-mode store
 frozen by its creator). Presented to the user side by side with the approved gate; approved.
 `wsWatchFrozen γ σ := ⌜σ.M = ∅⌝ ∨ watchNoDup γ.st`.
+
+
+## A snapshot `Ready` is past the bootstrap log: `readySnap` gains `bootLen < index` (2026-11-01 · the user's approval, strict · branch `snap-bootlen`)
+
+**The gap.** `applyAll.specSnap` takes `|boot| ≤ i` for the snapshot's index `i`. The server had it
+from the named `sorry` `rnReadySnap_bootLen` (J8b), because raft's `readySnap` did not say it.
+
+**Why it is true.** A `Ready` hands out a pending (unstable) snapshot, and only `restore` sets one.
+`restore` takes only an index above the commit index (`SnapLogStep`'s restore disjunct:
+`committed < index`). The commit index is at least the bootstrap log's length (`ownLogGhost`'s
+`%Hboot`). A node restarted from storage has no pending snapshot (`RestartNode`: `snapLocOk … none`),
+so restarts need nothing new.
+
+**Where.** The pending snapshot's fact `snapLocOk` (`InvRawnode.lean`) already holds the
+receiver-local `snapLocal`. It gains `⌜|reBoot| < index⌝`. Only the two places that set it from a
+`MsgSnap` (`RawNode.Step`, `InvNodeRun`'s network step) prove it: `ownStepGhost_bootCommit` gives
+`|reBoot| ≤ committed` at the pre-state, and the restore disjunct gives `committed < index`. Every
+other step keeps or clears the pending snapshot (`snapLocOk_keep`, unchanged). The fact goes out
+through `ownRawNodeReady_loanLoc` to `readySnapData` and the impl's `readySnap`, and from there to
+the API's `readySnap` as `⌜(γ.bootLen : Int) < index⌝`, with the law `readySnap_bootLen`. Strict,
+because `restore` is strict (the user's choice); the server uses `≤`.
+
+**The server.** `srvClusterOk` gains `cl.bootLen = boot.length`; both `NewServerAlloc`s have it
+from `cluster_alloc`. `rnReadySnap_bootLen` takes `rnEnvOk`, which holds `srvClusterOk`, and is
+proved. Its `sorry` is gone.
+
+**The raft API changed** (`interface/` diff): `readySnap`'s snapshot case, `readySnap_bootLen`
+new. It is a stronger postcondition of `node.readyRecv`, so no client loses anything.
+
+## Watches across a compaction, W4: `compactkv` with a watch (2026-11-01 · accepted, the user's question 3 (a) · branch `watch-w4`)
+
+The member's store gives the create token's `noDupKeys` arm from the example's own workload: the
+rounds' invariant keeps every revision one put of `v` (`oneValW`), a read update reads it at any
+state (`oneValAu`), and `srvKVCoreM_fire` fires it at every watched log, a prefix of a committed
+one. Two shared helpers changed shape for it: the served lemma takes the store's fact for watches
+as a premise (`watchkv.wk_served_nd`; `wk_served`, its `cm = false` form, is gone, its callers give
+the no-compactor arm), and `common.Collect.spec` takes the consumer at any start cursor `c0` with
+`I 0 c0` (until then `0`, a watch from revision 1). The watch is of the last round's key, guarded
+by `prevRev != 0` so that the key is a round's (`prevOk`, the request's size).
+
+
+## The cache over a compacting store: `etcd_cache_served` over the store's fact for watches (2026-11-01 · accepted, the user's approval)
+
+The survey (the cache's Go code at the pin): on any watch error, a compaction response's
+`ErrCompacted` included, `watchEvents` returns it and `getWatchLoop` re-lists at the current
+revision and watches again; the cache never reads the compaction revision (`demux.Compact` has no
+caller). Its results take the client watcher and `watchAddrFacts`, which carry `watchNoDup` since
+D8, so they hold of a compacting store already; the client's `Watch.spec` needs no compaction
+bound (the watch-compaction plan's question 2(b) stays deferred). The one premise excluding
+compaction was `etcd_cache_served`'s `hoff : V.R.E.γ.cm = false`; it now takes
+`mvcc.watchNoDup V.R.E.γ` (as `watchkv.wk_served_nd`), which `hoff` implies
+(`isWatchServer_watchNoDup_env`). The end-to-end example over a compacting member is another
+session's (`cachekv` with compaction).
+
+## `restorePre_of_apply`'s frozen fact from the watchable store: `srvEnvOk` gains `E.γ.cm = E.cmp` (2026-11-01 · the user's choice, option A · branch `snap-restorepre`)
+
+**The gap.** `restorePre_of_apply` (`RestorePre.lean`) had one `sorry`: `crevFrozen E.γ`, which
+`watchableStore.Restore.spec` takes. M2 S1 took `crevFrozen` out of `storeReader`, and with it the
+lemma's old source. M2's own decision (`notes/m2-plan.md`, "Draft, S1 steps 4-5") kept `Restore`'s
+frozen premise for compaction-off servers.
+
+**The source.** A compaction-off watchable store is frozen by a proved law
+(`mvcc.isWatchableStore_frozen`, needing `γ.st.cm = false`), and the lemma holds that store. This was
+`restorePre_of_applyM`'s draft off case (`M2StorageDraftRestore.lean`). The missing fact was the
+store names' mode `E.γ.cm`: the store ties it to its backend only inside its invariant (`physOk`'s
+`%Hcmt`), and the server recorded the backend's mode (`d.cm = E.cmp`), not the names'.
+
+**Chosen (A).** `srvEnvOk` gains a first conjunct `E.γ.cm = E.cmp` (law `srvEnvOk_cm`). `NewServer`
+has it (`envAgree`'s), and `applySnapshot`'s new environment keeps it definitionally (`withPhys` and
+`onBe` keep both flags). `restorePre_of_apply` takes `E.γ.cm = false`, which `applySnapshot_walk`
+reads off `isServer`'s `srvEnvOk` with `srvEnvOk_off`. `srvEnvOk` is inside `isServer`, which the
+exported `applyAll_model`'s preconditions name: a change to an exported statement's meaning, approved.
+Rejected: (B) a new `specSnap` premise, which pushes the same fact up to `run`; and (C) an mvcc law
+opening the store's invariant at names the restore is changing.

@@ -2,8 +2,8 @@
 `syscall.Fdatasync(fd)` (this repository's `syscall`, project `bboltfs`): the trusted model
 (`TrustedCode/syscall.lean`) is the Linux file extension's `Fsync`, so the spec is `wp_osFsync`'s:
 with the whole of the file's `OsMeta` and some of its bytes, whole. On success the size is durable
-and the bytes clean (unless an earlier failed sync lost one, `m.ok`); on failure, which is never
-`EINTR`, bytes may be lost.
+and the bytes clean (unless an earlier failed sync lost one, `m.ok`; if none is lost, the `OsMeta`
+records them as durable); on failure, which is never `EINTR`, bytes may be lost.
 Proved in `Proof/syscall/Fdatasync.lean`. Lean-first (no Rocq counterpart).
 -/
 module
@@ -34,7 +34,7 @@ abbrev syscall.Fdatasync.spec : Prop :=
       osBytes (GF := GF) d.path lo (DFrac.own 1) xs }}
     (App (Val (@! syscall.Fdatasync)) (Val #fd))
   {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗
-      ((⌜e = 0⌝ ∗ osMeta d.path (DFrac.own 1) (some m.synced) ∗
+      ((⌜e = 0⌝ ∗ osMeta d.path (DFrac.own 1) (some (m.synced lo xs)) ∗
           osBytes d.path lo (DFrac.own 1) (syncedBytes m xs)) ∨
        (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗ osMeta d.path (DFrac.own 1) (some { m with ok := false }) ∗
           osBytes d.path lo (DFrac.own 1) xs)) }}

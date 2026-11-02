@@ -373,7 +373,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         (Hpl rq hdata hdec) Hoff Htyp
         hdata hdec HkA.2 $$ Hkc
       ihave HFSE : E.FS $$ [HFS]
-      · rw [HEo.1]; iexact HFS
+      · rw [HEo.2.1]; iexact HFS
       ihave HSpF : iprop(if false = true then apply.ciSplit E iprop(True) else iprop(True)) $$ []
       · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
       iapply wp_fupd
@@ -396,7 +396,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         iframe Hcx
         ipureintro; exact ⟨hdec, hid, hrq, HaOn ▸ hdk, Hca rq hdata hdec⟩
       ihave HFS : srvFS s $$ [HFS]
-      · rw [← HEo.1]; iexact HFS
+      · rw [← HEo.2.1]; iexact HFS
       have Hstep := Hstep0.1
       rw [srvRest_apply_M E γr A m rq false x x' out Htyp hdata hdec HkA.2 (Hpl rq hdata hdec) Hstep]
       ihave ⟨HKV, #Hcert⟩ := applyKV_idxCert E ua x' $$ HKV
@@ -539,7 +539,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       imod Hfl with ⟨%F, #HcF, #HfFo⟩
       -- D14i: the snapshot right and the consistent index's resources, lent out of `Pre`
       ihave HFSE : E.FS $$ [HFS]
-      · rw [HEo.1]; iexact HFS
+      · rw [HEo.2.1]; iexact HFS
       ihave #HSp : apply.ciSplit E iprop(applyThread γ st ∗ ciApplying ci m.index m.term ∗
           applyBackend γ ci b ∗ ⌜st.pending = false ∧ m.index = st.p + 1 ∧
             uint.Z st.p < uint.Z m.index ∧ uint.Z (ciEff γ st.k) < uint.Z m.index⌝) $$ []
@@ -548,7 +548,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         iexists iprop(applyThread γ st ∗ applyBackend γ ci b), ciEff γ st.k
         iframe Hst' Hbe'
         isplitr
-        · ipureintro; rw [HEo.2.1]; exact ⟨st, b, rfl, Hp, hld, rfl⟩
+        · ipureintro; rw [HEo.2.2.1]; exact ⟨st, b, rfl, Hp, hld, rfl⟩
         iintro ⟨Hst', Hbe'⟩
         iframe Hst' Happ' Hbe'
         ipureintro; exact Hf'
@@ -598,7 +598,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         · iframe Hst Happ Hbe HcF
           ipureintro; exact ⟨hpre, hdec, hid, hrq, HaOn ▸ hdk, Hca rq hdata hdec⟩
       ihave HFS : srvFS s $$ [HFS]
-      · rw [← HEo.1]; iexact HFS
+      · rw [← HEo.2.1]; iexact HFS
       have Hstep := Hstep0.1
       rw [srvRest_apply_M E γr A m rq true x x' out Htyp hdata hdec HkA.2 (Hpl rq hdata hdec) Hstep]
       ihave Hj : iprop(|={⊤}=> ∃ st1 : ApplyState, applyThread γ st1 ∗
@@ -774,7 +774,7 @@ set_option hygiene false in
 (`hkeep`), the auth state too (`HAR` at `sa`), the rest buckets one entry later (`HRS`). -/
 local macro "tail_off" : tactic => `(tactic| (
   ihave HFS : srvFS s $$ [HFS]
-  · rw [← HEo.1]; iexact HFS
+  · rw [← HEo.2.1]; iexact HFS
   ihave ⟨HKV, #Hcert⟩ := applyKV_idxCert E ua x' $$ HKV
   ihave %Hlen := idxCert_len E.γ.idx x'.log $$ Hcert
   imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, -⟩
@@ -1108,7 +1108,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         ihave #Hcp : apply.certPreV false E x.chain rq x.log $$ []
         · simp only [apply.certPreV, Bool.false_eq_true, ↓reduceIte]; itrivial
         ihave HFSE : E.FS $$ [HFS]
-        · rw [HEo.1]; iexact HFS
+        · rw [HEo.2.1]; iexact HFS
         ihave HSpF : iprop(if false = true then apply.ciSplit E iprop(True) else iprop(True)) $$ []
         · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
         iapply wp_fupd
@@ -1165,7 +1165,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         ihave HRS : srvRest E γr (A ++ [m]) $$ [HRS]
         · rw [srvRest_admin E γr A m rq Htyp hdata hdec hadm]; iunfold srvRest; iexact HRS
         ihave HFS : E.FS $$ [HFS]
-        · rw [HEo.1]; iexact HFS
+        · rw [HEo.2.1]; iexact HFS
         tail_off
   · -- the entry `i = p + 1`, above `ci`
     simp only [↓reduceIte]
@@ -1285,7 +1285,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           hrq.resolve_right (fun h => adminKindOk_notPutget rq h hpk)
         -- D14i: the snapshot right and the consistent index's resources, lent out of `Pre`
         ihave HFSE : E.FS $$ [HFS]
-        · rw [HEo.1]; iexact HFS
+        · rw [HEo.2.1]; iexact HFS
         ihave #HSp : apply.ciSplit E iprop(applyThread γ st ∗ ciApplying ci m.index m.term ∗
             applyBackend γ ci b ∗ ⌜st.pending = false ∧ m.index = st.p + 1 ∧
               uint.Z st.p < uint.Z m.index ∧ uint.Z (ciEff γ st.k) < uint.Z m.index⌝) $$ []
@@ -1294,7 +1294,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           iexists iprop(applyThread γ st ∗ applyBackend γ ci b), ciEff γ st.k
           iframe Hst' Hbe'
           isplitr
-          · ipureintro; rw [HEo.2.1]; exact ⟨st, b, rfl, Hp, hld, rfl⟩
+          · ipureintro; rw [HEo.2.2.1]; exact ⟨st, b, rfl, Hp, hld, rfl⟩
           iintro ⟨Hst', Hbe'⟩
           iframe Hst' Happ' Hbe'
           ipureintro; exact Hf'
@@ -1362,7 +1362,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           ihave ⟨Hfu, Htie'⟩ := HLback $$ HL
           ihave HAR := Hcl $$ %hs %sa Hfu Htie' %Hhl HT Htp
           ihave HFS : srvFS s $$ [HFS]
-          · rw [← HEo.1]; iexact HFS
+          · rw [← HEo.2.1]; iexact HFS
           rw [srvRest_apply E γr A m rq true x x' out Htyp hdata hdec HkA.2 hp Hstep0.1]
           ihave ⟨HRes, #Hnn⟩ := applyResultIs_notNoSpaceOn rq x x' ar out hp Hch Hstep0.1
             $$ Hev HRes
@@ -1408,7 +1408,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           ihave #HtA : adminTieAr ar rq sa (adminNext rq sa) out $$ []
           · iapply (adminTieAr_nonAdmin ar rq sa (adminNext rq sa) out hna)
           ihave HFS : srvFS s $$ [HFS]
-          · rw [← HEo.1]; iexact HFS
+          · rw [← HEo.2.1]; iexact HFS
           rw [srvRest_apply E γr A m rq true x x' out Htyp hdata hdec HkA.2 hp Hstep0.1]
           ihave ⟨HRes, #Hnn⟩ := applyResultIs_notNoSpaceOn rq x x' ar out hp Hch Hstep0.1
             $$ Hev HRes
@@ -1436,7 +1436,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             iexists iprop(applyThread γ st ∗ applyBackend γ ci b)
             iframe Hst' Hbe'
             isplitr
-            · ipureintro; rw [HEo.2.1]; exact ⟨st, b, rfl, Hp, hld, rfl⟩
+            · ipureintro; rw [HEo.2.2.1]; exact ⟨st, b, rfl, Hp, hld, rfl⟩
             iintro ⟨Hst', Hbe'⟩
             iframe Hst' Happ' Hbe'
             ipureintro; exact Hf'

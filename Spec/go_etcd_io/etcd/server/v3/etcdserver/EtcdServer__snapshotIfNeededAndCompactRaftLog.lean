@@ -44,8 +44,6 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
     (TM : MetaCI → IProp GF) (ρ : ReqNames)
     (sa : auth.AuthState) (q : Qp),
   loopOk γ st ai →
-  -- (D22 J5) the applied index at most the write tokens taken (no snapshot installed)
-  uint.Z ai ≤ w →
   -- (2026-10-30, the repair: snapshots allowed) what `snapshot` takes (its spec, lean's
   -- `specFull`): the consistent index past `ai`, `Release` not failing
   uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
