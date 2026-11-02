@@ -182,7 +182,7 @@ consistent index `c₀`. -/
 -- 2026-10-14 (unit T1): the log `L` is committed (`srvRLogLb ρ.raft L`), raft's committed log's.
 def srvC (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (L : List EntryModel) : IProp GF :=
-  iprop(⌜srvIdxOk ai₀ L ∧ logShape L⌝ ∗ batchWaitOk ρ E L ∗ srvRLogLb ρ.raft L)
+  iprop(⌜srvIdxOk ai₀ L ∧ logShape false L⌝ ∗ batchWaitOk ρ E L ∗ srvRLogLb ρ.raft L)
 
 instance srvC_persistent (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (L : List EntryModel) : Persistent (srvC (GF := GF) ρ E ai₀ c₀ x₀ L) := by

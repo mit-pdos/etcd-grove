@@ -58,7 +58,7 @@ variable [GooseExts]
 /-- **The committed log's shapes in the auth mode `on`**: `logShape` off, `logShapeOn` on. -/
 def logShapeM (on : Bool) (L : List EntryModel) : Prop :=
   match on with
-  | false => logShape L
+  | false => logShape false L
   | true => logShapeOn L
 
 /-- The shapes of either mode give a conf change's id `0`. -/
@@ -68,7 +68,7 @@ theorem logShapeM_cc (on : Bool) (L : List EntryModel) (h : logShapeM on L) :
   · exact fun m hm => (h m hm).2
   · exact fun m hm => (h m hm).2
 
-theorem logShapeM_false (L : List EntryModel) : logShapeM false L = logShape L := rfl
+theorem logShapeM_false (L : List EntryModel) : logShapeM false L = logShape false L := rfl
 
 theorem logShapeM_true (L : List EntryModel) : logShapeM true L = logShapeOn L := rfl
 

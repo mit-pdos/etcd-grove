@@ -155,7 +155,7 @@ theorem crevOf_plain (γk : KVNames) (A : List EntryModel) (h : plainLog A) : cr
 /-- An admitted entry leaves the compaction revision at `-1` or at least `1` (a compaction in M2's
 scope is at a revision `≥ 1`). -/
 theorem kvCrevEntry_pos (c₀ : w64) (ch : apply.Chain) (cmp : Bool) (crev : Int) (m : EntryModel)
-    (hm : plainEntryM cmp m) (hc : crev = -1 ∨ 1 ≤ crev) :
+    (hm : plainEntryM cmp false m) (hc : crev = -1 ∨ 1 ≤ crev) :
     kvCrevEntry c₀ ch crev m = -1 ∨ 1 ≤ kvCrevEntry c₀ ch crev m := by
   unfold kvCrevEntry
   split
@@ -164,7 +164,7 @@ theorem kvCrevEntry_pos (c₀ : w64) (ch : apply.Chain) (cmp : Bool) (crev : Int
     · rename_i ht hd
       split
       · rename_i rq hrq
-        rcases hm ht hd rq hrq with hp | ⟨-, ⟨⟨-, r, hr, h1⟩, -, -⟩⟩
+        rcases plainEntryM_lg_false cmp m hm ht hd rq hrq with hp | ⟨-, ⟨⟨-, r, hr, h1⟩, -, -⟩⟩
         · rw [apply.dispatchCrev_nonCmp _ _ _ _ (plainReq_nonCmp rq hp)]; exact hc
         · unfold apply.dispatchCrev
           split
@@ -180,10 +180,10 @@ theorem kvCrevEntry_pos (c₀ : w64) (ch : apply.Chain) (cmp : Bool) (crev : Int
 
 /-- **The compaction revision of an admitted log is `-1` or at least `1`** (Q7 (a)'s scope limit, at
 the model: with `mvcc.recsPos_crev` of the image, #8's `c ≤ c'` has no `Compact(0)` corner). -/
-theorem crevOf_pos (γk : KVNames) (cmp : Bool) (A : List EntryModel) (h : plainLogM cmp A) :
+theorem crevOf_pos (γk : KVNames) (cmp : Bool) (A : List EntryModel) (h : plainLogM cmp false A) :
     crevOf γk A = -1 ∨ 1 ≤ crevOf γk A := by
   unfold crevOf kvCrevOf
-  have key : ∀ (B : List EntryModel), plainLogM cmp B → ∀ c : Int, (c = -1 ∨ 1 ≤ c) →
+  have key : ∀ (B : List EntryModel), plainLogM cmp false B → ∀ c : Int, (c = -1 ∨ 1 ≤ c) →
       B.foldl (kvCrevEntry γk.c0 γk.ch0) c = -1 ∨ 1 ≤ B.foldl (kvCrevEntry γk.c0 γk.ch0) c := by
     intro B
     induction B with
@@ -267,7 +267,7 @@ compaction in M2's scope at a reached revision, its result trivial. -/
 def reqPropOkD (γk : KVNames) (cmp : Bool) (rq : apply.IRRModel)
     (Qr : List EntryModel → IProp GF) : IProp GF :=
   iprop(reqPropOk γk rq Qr ∨
-    (⌜cmp = true ∧ compactPropOk rq ∧ rqShape rq ∧ irrNoZeroEnd rq ∧
+    (⌜cmp = true ∧ compactPropOk rq ∧ rqShape false rq ∧ irrNoZeroEnd rq ∧
         Qr = fun _ => iprop(True)⌝ ∗
       ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLb γk r))
 

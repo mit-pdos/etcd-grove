@@ -151,7 +151,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
       rw [hai, hi]; word
     · rw [hc0, hai]; word
   -- the workload facts of the boot log (D19c): conf changes of id `0`, nothing claimed
-  have hshape : logShape (bootEntries bootLog) := by
+  have hshape : logShape false (bootEntries bootLog) := by
     intro m hm
     obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
     obtain ⟨-, ht, -, hid⟩ := hent' n m hn
@@ -178,7 +178,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
   iunfold kvInv
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
       srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
-      ⌜plainLogM γk.cmp L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
+      ⌜plainLogM γk.cmp false L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
         γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
         γk.rlog = γs.raft.log⌝ ∗
         kvWork γs.raft γk L))
@@ -190,7 +190,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
     · iexact HL
     isplitr
     · ipureintro
-      exact ⟨plainLogM_of _ _ hok.1, hok.2.1, hok.2.2.1, hok.2.2.2.1, hok.2.2.2.2,
+      exact ⟨plainLogM_of _ _ _ hok.1, hok.2.1, hok.2.2.1, hok.2.2.2.1, hok.2.2.2.2,
         cmpLogOk_plain _ _ _ hok.1, hrl⟩
     iunfold kvWork
     iframe Hcl

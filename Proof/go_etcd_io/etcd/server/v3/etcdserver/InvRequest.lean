@@ -265,7 +265,7 @@ shape (`logShape`: a request's premise at every log but for its size clauses; a 
 `0`), every conf change one `applyConfChange` takes at raft's configuration `cfg` (`ccLogOk`,
 audit phase B3), and every id claimed. -/
 def kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) : IProp GF :=
-  iprop(⌜logShape L ∧ ccLogOk cfg L ∧ logPutsOk L ∧ mvcc.LogPutsLe etcdKeyMax γk.log0⌝ ∗
+  iprop(⌜logShape false L ∧ ccLogOk cfg L ∧ logPutsOk L ∧ mvcc.LogPutsLe etcdKeyMax γk.log0⌝ ∗
     [∗list] m ∈ L, entryClaim γk.ids m)
 
 instance kvWork_persistent (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
@@ -343,7 +343,7 @@ scope admitted in compaction mode; and, last, each committed compaction's claims
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
-    ⌜plainLogM γk.cmp L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
+    ⌜plainLogM γk.cmp false L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
       γk.rlog = γ.raft.log⌝ ∗
       kvWork γ.raft γk L)
@@ -573,15 +573,15 @@ range end `[0]` either. Since D19q (2026-10-18) plain (`plainReq`). (M2's apply 
 write forms, `reqPropOk`'s first disjunct.) -/
 def reqPropOkW (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
-  iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
+  iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape false rq ∧
       Qr = fun _ => iprop(True)⌝) ∨
     (∃ (op : KVOp) (Q : KVState → IProp GF), ⌜plainReq rq ∧ reqKVOp rq = some op ∧
-        irrNoZeroEnd rq ∧ rqShape rq ∧ Qr = fun L => iprop(□ Q (kvStateOf (kvModel γk L)))⌝ ∗
+        irrNoZeroEnd rq ∧ rqShape false rq ∧ Qr = fun L => iprop(□ Q (kvStateOf (kvModel γk L)))⌝ ∗
       kvOpAu γk op Q) ∨
     -- (2026-10-19, D21 M6) its client's update fired at most once, the result left at the
     -- token `γc` (`kvRes`)
     (∃ (op : KVOp) (Q : KVState → IProp GF) (γc : GName), ⌜plainReq rq ∧
-        reqKVOp rq = some op ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
+        reqKVOp rq = some op ∧ irrNoZeroEnd rq ∧ rqShape false rq ∧
         Qr = fun L => kvRes γc Q (kvStateOf (kvModel γk L))⌝ ∗
       kvOpAu1 γk op Q))
 
@@ -733,7 +733,7 @@ its result trivial. -/
 def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
   iprop(reqPropOkW γk rq Qr ∨
-    (⌜γk.cmp = true ∧ compactPropOk rq ∧ rqShape rq ∧ irrNoZeroEnd rq ∧
+    (⌜γk.cmp = true ∧ compactPropOk rq ∧ rqShape false rq ∧ irrNoZeroEnd rq ∧
         Qr = fun _ => iprop(True)⌝ ∗
       ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLbZ γk (sint.Z r + γk.cret)))
 

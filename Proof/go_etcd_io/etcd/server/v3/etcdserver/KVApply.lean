@@ -137,7 +137,7 @@ M2's apply side, a compaction admitted in compaction mode), and the start's chai
 with auth disabled. -/
 theorem kv_log_plain (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) :
     ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ B ={⊤}=∗
-      ⌜plainLogM γk.cmp B ∧ γk.ch0 = apply.alarmChain false false false⌝ := by
+      ⌜plainLogM γk.cmp false B ∧ γk.ch0 = apply.alarmChain false false false⌝ := by
   iintro #Hinv #Hr #HB
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
@@ -149,7 +149,7 @@ theorem kv_log_plain (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel
   · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
   imodintro
   ipureintro
-  refine ⟨srv_entry_transfer γ.ai0 B L (plainEntryM γk.cmp) ?_ ?_ ?_ HBi Hp.2.2 Hok.1, Hok.2.2.2.1⟩
+  refine ⟨srv_entry_transfer γ.ai0 B L (plainEntryM γk.cmp false) ?_ ?_ ?_ HBi Hp.2.2 Hok.1, Hok.2.2.2.1⟩
   · intro m m' he h ht hd rq hdec
     have h1 := congrArg LogEntry.type he
     have h2 := congrArg LogEntry.data he
@@ -206,7 +206,7 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
     (m : EntryModel) (x : apply.ApplyKV)
     (hlen : (kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m).length < 2 ^ 63) :
     ⊢ srvKVInvs (GF := GF) E γr -∗ kvApplied γr.raft γr.kv A x -∗ srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
-      ⌜plainEntryM γr.kv.cmp m ∧ x.chain = γr.kv.ch0 ∧ x.chain.kvExact = true⌝ ∗
+      ⌜plainEntryM γr.kv.cmp false m ∧ x.chain = γr.kv.ch0 ∧ x.chain.kvExact = true⌝ ∗
       kvAppliedL γr.raft γr.kv (A ++ [m]) (kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m) := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvs at Hinvs

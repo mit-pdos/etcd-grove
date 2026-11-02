@@ -27,7 +27,7 @@ variable [GooseExts]
 
 /-- A monitor's request is a plain non-write request of a good shape (`srvMonitorPermit_of`'s). -/
 theorem monitorReq_prop (rq : apply.IRRModel) (h : monitorReq rq) :
-    plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
+    plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape false rq ∧
       kvShapeAll rq := by
   have hs := rqShape_of_monitorReq rq h
   obtain ⟨hz, hna, hns, hk⟩ := h

@@ -315,7 +315,7 @@ what changed.
 
 ## B1/B2 in place, with the tie: the work, in commits that each build (2026-11-02; next)
 
-**Where it stopped** (2026-11-02): commits 1 and 2 done (checks after 2: full build, `tcb-report.py --check` new only `srvGrantOpen_open` and `leasegrant.Main.wp_proof`, every collection `--reuse --check` unchanged, `gen-init.py --check`, `gen-interface.py --check` backend and raft unchanged) (`75676e772c`, `7a83c345aa`), each a full
+**Where it stopped** (2026-11-02, second agent): commit 3a done (the `lg` parameters at `false`, COMMIT3A); commit 3b blocked on a decision (below, "The blocker"). Before that: commits 1 and 2 done (checks after 2: full build, `tcb-report.py --check` new only `srvGrantOpen_open` and `leasegrant.Main.wp_proof`, every collection `--reuse --check` unchanged, `gen-init.py --check`, `gen-interface.py --check` backend and raft unchanged) (`75676e772c`, `7a83c345aa`), each a full
 build; commit 3 not started (below, what it needs, found by the survey of its consumers). Every
 commit: full build, `etc/tcb-report.py --check` (only `srvGrantOpen_open`, until commit 1
 `runSnapLgOk_open`, and `leasegrant.Main.wp_proof` new) and every collection `--reuse --check`
@@ -341,6 +341,71 @@ unchanged.
   would be unprovable at `lg = true`. `rqOkM` keeps its signature, over `rqOk false`. The proofs
   are unchanged (the arm reduces to `False` at the literal). `plainCover` not changed (commit 3,
   where its grant arm gets a meaning).
+
+**The previous agent's question, answered (the user, 2026-11-02; `notes/leases-plan.md` L4):** a
+grant takes its own client update, `kvOpAu γk (.leaseGrant id ttl) Q`, as puts take theirs; the
+model's table steps on it (`kvTable`, L3a, done; `kvOpStep`'s grant checks `leaseGrantOk`). So a
+grant entry changes the clients' state `kvModelSt γk L` (its `leases`), and the KV invariant fires
+the grant's update at the commit.
+
+**Commit 3a (done, COMMIT3A):** the `lg` parameters, every site at `false` (meaning unchanged):
+
+- `plainEntryM (cmp lg : Bool)`, `plainLogM (cmp lg : Bool)` (`KVModelDefs.lean`): a third disjunct
+  `grantPropOk lg rq` (new: `lg = true ∧ apply.grantKindOk rq`), the compaction form's pattern;
+  `plainEntryM_lg_false` gives the old two-disjunct reading at `lg = false`; `plainEntryM_false`,
+  `plainLogM_false` at `false false`; `plainEntryM_of`, `plainLogM_of`, `plainLogM_append` generic
+  in `lg`; `kvTable_plainM`, `kvTableOf_plainM`, `kvModelSt_plain`, `kv_fire_reads`, the restore
+  lemmas (`KVModelRestore`), `ApplyCmpArm`'s, `M2ApplyDraft`'s at `lg = false`. The KV invariant
+  `kvInv` (and `BuildAlloc`'s, `KVApply`'s statements) at `plainLogM γk.cmp false`.
+- `rqShape (lg)`, `entryShape (lg)`, `logShape (lg)` (`WorkloadDefs.lean`): `rqOk lg`; every site at
+  `false`, among them the statements `EtcdServer.applyAll.spec` (`Spec/`, frozen: text `logShape` →
+  `logShape false`, meaning unchanged), `ModeSpecs`' `applyAll`/`applyEntries` instances, `kvWork`,
+  `reqPropOk(W)`'s and `reqPropOkOn`'s `rqShape`, `isServerRun`'s `logShape`, `srvLogShapes`.
+- **Deviation:** `plainCover`/`plainReq` not changed (planned: an `lg` parameter on `plainCover`).
+  The admission is `plainEntryM`'s disjunct, as the compaction's (`plainCover` is what the generic
+  apply-side proofs cover, `backendTable_plain` and the like, none of which a grant meets), so the
+  95 + 26 sites of `plainCover`/`plainReq` stay as they are.
+
+**The blocker found by commit 3a's survey (2026-11-02): a granting cluster's KV results.** Admitting
+a grant entry into the KV invariant at `lg = true` (`plainLogM γk.cmp γk.lg L`) makes every
+existing KV result false there, not just unproved:
+
+- `reqPropOkW`'s write forms promise `□ Q (kvStateOf (kvModel γk L))` (the lease-free state of the
+  log's model), while the update fires `Q σ` at the invariant's `σ = kvModelSt γk L =
+  kvStateOf (kvModel γk L) (kvLeases γk L)`; `kv_prop_auW` bridges them by `kvModelSt_plain`, true
+  only of a grant-free log. After a granted lease the two states differ (`leases`), and `Q` is the
+  client's, arbitrary (it may read `σ.leases`).
+- So `EtcdServer.Put.spec`/`DeleteRange`/`Txn` (post `Q (kvStateOf x.log)`), the client contracts
+  (`putReplied`'s `Q (kvStateOf x.log)`, trusted), and the reads (`kvDep`/`regOk` at `kvStOff γk L
+  = kvStateOf (kvModel γk L)`, `kv_fire_reads` by `kvModelSt_plain`) are false in a cluster that
+  has applied a grant. A named hypothesis for them in `srvGrantOpen` would be false (it would make
+  `leasegrant_safe` vacuous), so commit 3's grant disjunct cannot be added to `reqPropOk` and the
+  invariant soundly until they are restated. (`leasegrant` serves the KV service too, through
+  `kv_lease_grant_served`, so they are reached there.)
+
+This is `notes/leases-plan.md`'s L3a finding ("a reply's state must come from the committed log
+`Lq` ... those results move to `kvModelSt γk Lq` when grants are admitted"), which S1 (a) deferred
+and the L4 decision (the grant's own client update) makes due now. **Options, for the user:**
+
+- **(a) The results at the full state** (L3d's move, brought forward): the write forms' and the
+  read deposits' result at `kvModelSt γk L` (then `kv_prop_auW`'s proof drops `kvModelSt_plain`;
+  `reqPropOk_shape`/`kv_qinv` by `kvModel_eqv`'s table half); the server's KV specs and the client
+  contracts (`putReplied`, `txnReplied`, `rangeReplyOk`'s `Q`, trusted) at the committed table:
+  `Q (kvStateOf x.log lt)` with `lt` the table of the committed log the entry met, which needs the
+  apply side to know it (`ApplyKV.leases`, or the tie of step 5 exported with `appliedOk`). At
+  `lg = false` `lt = []` (plain logs). The most work; the right end state (the leases plan wants it).
+- **(b) Lease-blind KV clients in a granting cluster:** the KV forms at `lg = true` carry only a
+  `Q` that ignores the table (`∀ σ lt, Q σ ⊣⊢ Q {σ with leases := lt}`), a premise of the KV
+  client contracts in a granting cluster (trusted change; a client of the example's KV service
+  never reads the table). Less work; restricts the KV contracts where leases are granted.
+- **(c) No KV client updates in a granting cluster:** the write forms and read deposits require
+  `γk.lg = false`; at `lg = true` the served KV service registers only the `…Any`-style contracts
+  (no `Q`), so `kv_lease_grant_served` states less. Least work; the example's theorem says nothing
+  of the KV service's results.
+
+Until then, commit 3b (the grant disjunct of `reqPropOk(W)`/`On`/`M`/`D`, `kvInv` at `γk.lg`,
+`kv_prop_au`'s grant case: fire `kvOpAu γk (.leaseGrant id ttl) Q` at the commit, the state stepped
+by `kvModel_snoc_state`, which already covers every request) waits; the rest below is unchanged.
 
 **Commit 3, what it needs** (the survey of `reqPropOk`'s consumers, 2026-11-02; larger than planned):
 

@@ -61,7 +61,7 @@ theorem kvModel_snoc_state (γk : KVNames) (L : List EntryModel) (e : EntryModel
   exact kvStateOf_backendLog _ rq _ (kvModel_ne_nil γk L h0)
 
 /-- **A plain committed log's state has no lease** (unit T3, L3a). -/
-theorem kvModelSt_plain (γk : KVNames) (L : List EntryModel) {cmp : Bool} (h : plainLogM cmp L) :
+theorem kvModelSt_plain (γk : KVNames) (L : List EntryModel) {cmp : Bool} (h : plainLogM cmp false L) :
     kvModelSt γk L = kvStateOf (kvModel γk L) := by
   unfold kvModelSt kvLeases; rw [kvTableOf_plainM _ _ cmp L h]
 
@@ -196,11 +196,11 @@ theorem plainEntry_of_data (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
 mode, and its claims vacuous). -/
 theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryModel)
     (e : EntryModel)
-    (hok : plainLogM γk.cmp L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
+    (hok : plainLogM γk.cmp false L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
       γk.rlog = γ.raft.log)
     (hidx' : srvIdxOkW γ.ai0 (L ++ [e])) (hpl : plainEntry e) :
-    plainLogM γk.cmp (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
+    plainLogM γk.cmp false (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧
       cmpLogOk γk γk.cmp (L ++ [e]) ∧ γk.rlog = γ.raft.log := by
@@ -210,11 +210,11 @@ theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryM
   refine ⟨hplog, fun m hm => ?_⟩
   rw [List.mem_singleton] at hm
   subst hm
-  exact plainEntryM_of _ _ hpl
+  exact plainEntryM_of _ _ _ hpl
 
 /-- **The workload facts, one entry on** (D19c): the entry of a good shape, its id claimed. -/
 theorem kvWork_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
-    (hs : entryShape e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) (hk : entryPutsOk e) :
+    (hs : entryShape false e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) (hk : entryPutsOk e) :
     ⊢ kvWork (GF := GF) cfg γk L -∗ entryClaim γk.ids e -∗ kvWork cfg γk (L ++ [e]) := by
   iintro Hw #He
   iunfold kvWork at Hw
@@ -295,7 +295,7 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
     (id : w64) (γf : GName) (hid : apply.irrId rq = some id)
     (E : CoPset) (hE1 : ↑kvcN ⊆ E) (hE2 : ↑srvRaftN ⊆ E)
     (r : w64) (hr : rq.compaction = some r)
-    (hform : γk.cmp = true ∧ compactPropOk rq ∧ rqShape rq) :
+    (hform : γk.cmp = true ∧ compactPropOk rq ∧ rqShape false rq) :
     ⊢ kvInv (GF := GF) γ γk -∗ kvCertInv γ γk -∗ srvRaftLogInv γ -∗
       idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗ kvRevLbZ γk (sint.Z r + γk.cret) ={E}=∗
       srvPropAu1 γ d (fun _ => iprop(True)) := by
@@ -351,12 +351,12 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
       unfold kvModel at h1 ⊢
       omega
     -- plain in the mode: a compaction in M2's scope
-    have hplain : plainEntryM γk.cmp e := by
+    have hplain : plainEntryM γk.cmp false e := by
       intro _ _ rq' h
       rw [hed, hdec] at h
       cases h
-      exact Or.inr ⟨hform.1, hform.2.1⟩
-    have hsh : entryShape e :=
+      exact Or.inr (Or.inl ⟨hform.1, hform.2.1⟩)
+    have hsh : entryShape false e :=
       ⟨fun _ => Or.inr ⟨rq, by rw [hed]; exact hdec, ⟨id, hid⟩, hform.2.2⟩, fun h => absurd het h⟩
     ihave #Hecl : entryClaim γk.ids e $$ []
     · iunfold entryClaim
@@ -397,7 +397,7 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
   have Hdisj := kvN_raftN
   iintro #Hinv #Hcl #Hreg Hok
   -- the entry's workload facts, whichever case
-  have hsh : ∀ e : EntryModel, e.typ = W32 0 → e.data = d → rqShape rq → entryShape e := by
+  have hsh : ∀ e : EntryModel, e.typ = W32 0 → e.data = d → rqShape false rq → entryShape false e := by
     intro e het hed hs
     refine ⟨fun _ => Or.inr ⟨rq, by rw [hed]; exact hdec, ⟨id, hid⟩, hs⟩, fun h => absurd het h⟩
   ihave #Hecl : iprop(∀ e : EntryModel, ⌜e.data = d⌝ -∗ entryClaim γk.ids e) $$ []
@@ -647,7 +647,7 @@ theorem reqPropOk_qinv (γ : ServerRaftNames) (γk : KVNames) (rq : apply.IRRMod
 
 /-- Firing every registered read update at the state of `L`'s model, the KV authority's half
 agreeing. -/
-theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) {cmp : Bool} (hpl : plainLogM cmp L) :
+theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) {cmp : Bool} (hpl : plainLogM cmp false L) :
     ∀ gs : List GName,
       ⊢ ghostVar (GF := GF) γk.st (1 : Qp).half (kvModelSt γk L) -∗
         ([∗list] g ∈ gs, regOk γk g) -∗

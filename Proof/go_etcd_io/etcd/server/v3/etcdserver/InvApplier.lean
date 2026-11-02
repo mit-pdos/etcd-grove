@@ -119,7 +119,7 @@ def entryOk (x : apply.ApplyKV) (m : EntryModel) : Prop :=
 /-- **An entry's premise at a small log, from its shape** (D19c's move, 2026-10-18): the KV
 invariant keeps every committed entry's shape (`entryShape`), and the apply thread's log is
 small (`srvApplyKV_small`), so the size clauses hold there (`rqSmall_of_small`). -/
-theorem entryOk_of_shape [GooseExts] (x : apply.ApplyKV) (m : EntryModel) (hs : entryShape m)
+theorem entryOk_of_shape [GooseExts] (x : apply.ApplyKV) (m : EntryModel) (hs : entryShape false m)
     (ht : m.typ = W32 0) (hl : x.log.length ≤ mvcc.logCh x.log + 2)
     (hc : mvcc.logCh x.log < 2 ^ 48) : entryOk x m := by
   rcases hs.1 ht with hd | ⟨rq, hdec, hid, hsh⟩

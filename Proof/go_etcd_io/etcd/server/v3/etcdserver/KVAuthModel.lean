@@ -673,13 +673,13 @@ theorem detLogOn_last (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × 
 excludes every admin kind, or an admitted admin request with an id). -/
 def entryShapeOn (m : EntryModel) : Prop :=
   (m.typ = W32 0 → m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧
-      (∃ id, apply.irrId rq = some id) ∧ (rqShape rq ∨ apply.adminKindOk rq)) ∧
+      (∃ id, apply.irrId rq = some id) ∧ (rqShape false rq ∨ apply.adminKindOk rq)) ∧
     (m.typ ≠ W32 0 → ccIdOf m.data = W64 0)
 
 /-- Every entry of a log has a good shape in the mode `on`. -/
 def logShapeOn (L : List EntryModel) : Prop := ∀ m ∈ L, entryShapeOn m
 
-theorem entryShapeOn_of_entryShape (m : EntryModel) (h : entryShape m) :
+theorem entryShapeOn_of_entryShape (m : EntryModel) (h : entryShape false m) :
     entryShapeOn m := by
   refine ⟨fun ht => ?_, h.2⟩
   rcases h.1 ht with h | ⟨rq, hd, hid, hs⟩

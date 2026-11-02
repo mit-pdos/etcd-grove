@@ -33,10 +33,10 @@ variable [GooseExts]
 decodes to. -/
 def plainOrCmp (rq : apply.IRRModel) : Prop := plainCover rq ∨ compactPropOk rq
 
-theorem plainOrCmp_of_entryM (cmp : Bool) (m : EntryModel) (h : plainEntryM cmp m)
+theorem plainOrCmp_of_entryM (cmp : Bool) (m : EntryModel) (h : plainEntryM cmp false m)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (rq : apply.IRRModel)
     (hdec : apply.irrDecode m.data = some rq) : plainOrCmp rq := by
-  rcases h ht hd rq hdec with h | ⟨-, h⟩
+  rcases plainEntryM_lg_false cmp m h ht hd rq hdec with h | ⟨-, h⟩
   · exact Or.inl h.1
   · exact Or.inr h
 
@@ -84,7 +84,7 @@ theorem kvEntry_cmp (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (log : mvc
 /-- **A raft entry's step on an entry plain in the mode**, at a `kvExact` chain: the chain
 unchanged and the log as `kvEntry` says (a compaction: unchanged). -/
 theorem batchStep_plainM (c₀ : w64) (lt : LeaseTable) (cmp : Bool) (m : EntryModel)
-    (x x' : apply.ApplyKV) (hp : plainEntryM cmp m) (hoff : x.chain.kvExact = true)
+    (x x' : apply.ApplyKV) (hp : plainEntryM cmp false m) (hoff : x.chain.kvExact = true)
     (h : batchStep c₀ m x x') :
     x'.chain = x.chain ∧ x'.log = kvEntry c₀ x.chain lt x.log m := by
   by_cases hcm : ∃ rq, m.typ = W32 0 ∧ m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧
@@ -102,7 +102,7 @@ theorem batchStep_plainM (c₀ : w64) (lt : LeaseTable) (cmp : Bool) (m : EntryM
     exact applyStep_cmp rq hc _ x x' out h
   · have hpl : plainEntry m := by
       intro ht hd rq hdec
-      rcases hp ht hd rq hdec with h | ⟨-, hc⟩
+      rcases plainEntryM_lg_false cmp m hp ht hd rq hdec with h | ⟨-, hc⟩
       · exact h
       · exact absurd ⟨rq, ht, hd, hdec, hc⟩ hcm
     exact batchStep_plain c₀ lt m x x' hpl hoff h

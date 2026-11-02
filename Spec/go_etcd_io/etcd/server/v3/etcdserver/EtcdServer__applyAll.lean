@@ -67,7 +67,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
     (mst : Loc) (γs : MemStorNames) (γp : GName) (dv : Option Loc) (γnc : NotifyNames)
     (w : Nat) (nk : GName) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat),
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
-  loopOk γ st ai → logShape (unapplied ai ms) →
+  loopOk γ st ai → logShape false (unapplied ai ms) →
   -- (D43 M3, 2026-10-25) the driver's view, `apply`'s
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
   -- (2026-10-31, the snapshot track: #11's S3) a fresh start's log: `A` the applied log through

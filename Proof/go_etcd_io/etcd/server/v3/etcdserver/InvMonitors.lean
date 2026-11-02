@@ -59,7 +59,7 @@ def monitorReq (rq : apply.IRRModel) : Prop :=
         ∀ v, rq.clusterVersionSet = some v → apply.semverValid v))
 
 /-- A monitor's request has a good shape. -/
-theorem rqShape_of_monitorReq (rq : apply.IRRModel) (h : monitorReq rq) : rqShape rq := by
+theorem rqShape_of_monitorReq (rq : apply.IRRModel) (h : monitorReq rq) : rqShape false rq := by
   obtain ⟨-, -, -, hk⟩ := h
   refine ⟨fun on => ?_, fun log _ => ?_⟩
   · unfold apply.dispatchOk

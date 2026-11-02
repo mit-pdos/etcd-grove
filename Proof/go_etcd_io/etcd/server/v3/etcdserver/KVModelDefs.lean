@@ -163,32 +163,51 @@ theorem plainReq_nonCmp (rq : apply.IRRModel) (h : plainReq rq) :
   rw [hk] at this
   simp [putgetKind] at this
 
+/-- **A lease grant admitted in a cluster that grants leases** (the lease-grant stage, B1/B2 commit 3,
+2026-11-02): `lg` (`KVNames.lg`) set and the request a grant the apply thread admits
+(`apply.grantKindOk`). In a cluster that grants none, `False`. -/
+def grantPropOk (lg : Bool) (rq : apply.IRRModel) : Prop := lg = true ∧ apply.grantKindOk rq
+
+theorem grantPropOk_false (rq : apply.IRRModel) : ¬ grantPropOk false rq := fun h => nomatch h.1
+
 /-- **A plain entry in the cluster's compaction mode `cmp`** (M2's apply side, item 5): a plain
-request, or, in compaction mode, a compaction in M2's scope. -/
-def plainEntryM (cmp : Bool) (m : EntryModel) : Prop :=
+request, or, in compaction mode, a compaction in M2's scope; (the lease-grant stage, B1/B2 commit 3,
+2026-11-02) or, in a cluster that grants leases (`lg`), a grant (`grantPropOk`). At `lg = false` it
+means what it meant (`plainEntryM_lg_false`). -/
+def plainEntryM (cmp lg : Bool) (m : EntryModel) : Prop :=
   m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
-    plainReq rq ∨ (cmp = true ∧ compactPropOk rq)
+    plainReq rq ∨ (cmp = true ∧ compactPropOk rq) ∨ grantPropOk lg rq
 
-/-- **A plain log in the mode `cmp`**: every entry plain in the mode. -/
-def plainLogM (cmp : Bool) (A : List EntryModel) : Prop := ∀ m ∈ A, plainEntryM cmp m
+/-- **A plain log in the modes `cmp`, `lg`**: every entry plain in the modes. -/
+def plainLogM (cmp lg : Bool) (A : List EntryModel) : Prop := ∀ m ∈ A, plainEntryM cmp lg m
 
-theorem plainEntryM_false (m : EntryModel) : plainEntryM false m ↔ plainEntry m := by
-  unfold plainEntryM plainEntry
+/-- **In a cluster that grants none, the old reading** (no grant disjunct). -/
+theorem plainEntryM_lg_false (cmp : Bool) (m : EntryModel) (h : plainEntryM cmp false m) :
+    m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
+      plainReq rq ∨ (cmp = true ∧ compactPropOk rq) := by
+  intro ht hd rq hrq
+  rcases h ht hd rq hrq with h | h | h
+  · exact Or.inl h
+  · exact Or.inr h
+  · exact absurd h (grantPropOk_false rq)
+
+theorem plainEntryM_false (m : EntryModel) : plainEntryM false false m ↔ plainEntry m := by
+  unfold plainEntryM plainEntry grantPropOk
   simp
 
 /-- **Off, a plain log** (the law callers with the mode off need, `kv_log_plain_off`). -/
-theorem plainLogM_false (A : List EntryModel) : plainLogM false A ↔ plainLog A := by
+theorem plainLogM_false (A : List EntryModel) : plainLogM false false A ↔ plainLog A := by
   unfold plainLogM plainLog
   simp only [plainEntryM_false]
 
-theorem plainEntryM_of (cmp : Bool) (m : EntryModel) (h : plainEntry m) : plainEntryM cmp m :=
+theorem plainEntryM_of (cmp lg : Bool) (m : EntryModel) (h : plainEntry m) : plainEntryM cmp lg m :=
   fun ht hd rq hrq => Or.inl (h ht hd rq hrq)
 
-theorem plainLogM_of (cmp : Bool) (A : List EntryModel) (h : plainLog A) : plainLogM cmp A :=
-  fun m hm => plainEntryM_of cmp m (h m hm)
+theorem plainLogM_of (cmp lg : Bool) (A : List EntryModel) (h : plainLog A) : plainLogM cmp lg A :=
+  fun m hm => plainEntryM_of cmp lg m (h m hm)
 
-theorem plainLogM_append (cmp : Bool) (A B : List EntryModel) :
-    plainLogM cmp (A ++ B) ↔ plainLogM cmp A ∧ plainLogM cmp B := by
+theorem plainLogM_append (cmp lg : Bool) (A B : List EntryModel) :
+    plainLogM cmp lg (A ++ B) ↔ plainLogM cmp lg A ∧ plainLogM cmp lg B := by
   unfold plainLogM
   simp only [List.mem_append]
   exact ⟨fun h => ⟨fun m hm => h m (Or.inl hm), fun m hm => h m (Or.inr hm)⟩,
@@ -750,7 +769,7 @@ theorem compactPropOk_nonwrite (rq : apply.IRRModel) (h : compactPropOk rq) :
 
 /-- **An entry plain in the mode changes no table** (a compaction is no write). -/
 theorem kvTable_plainM (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (cmp : Bool)
-    (m : EntryModel) (hp : plainEntryM cmp m) : kvTable c₀ ch lt m = lt := by
+    (m : EntryModel) (hp : plainEntryM cmp false m) : kvTable c₀ ch lt m = lt := by
   unfold kvTable
   split
   · rename_i ht
@@ -762,7 +781,7 @@ theorem kvTable_plainM (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (cmp : 
         unfold dispatchTable
         split
         · rfl
-        · rcases hp ht hd rq hdec with h | ⟨-, h⟩
+        · rcases plainEntryM_lg_false cmp m hp ht hd rq hdec with h | ⟨-, h⟩
           · exact chainTable_plain rq lt h.1 ch
           · exact chainTable_nonwrite rq lt (compactPropOk_nonwrite rq h) ch
       · rfl
@@ -770,7 +789,7 @@ theorem kvTable_plainM (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (cmp : 
 
 /-- A log plain in the mode changes no table. -/
 theorem kvTableOf_plainM (c₀ : w64) (ch : apply.Chain) (cmp : Bool) (A : List EntryModel)
-    (hp : plainLogM cmp A) : ∀ lt, kvTableOf c₀ ch lt A = lt := by
+    (hp : plainLogM cmp false A) : ∀ lt, kvTableOf c₀ ch lt A = lt := by
   induction A with
   | nil => intro lt; rfl
   | cons m A ih =>
