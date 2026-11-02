@@ -39,6 +39,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.New
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.newCorruptionChecker
 public import Spec.go_etcd_io.etcd.server.v3.lease.NewLessor
+public import Proof.go_etcd_io.etcd.server.v3.lease.RdPool
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__SetTxPostLockInsideApplyHook
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.New
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__HashStorage
@@ -632,7 +633,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   icases (ownToks_add (N + 2) 4 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwkv⟩
   -- the lessor's reader slots: one for the store, one for the apply thread's lease owner (D14i)
   icases replicate_take1 _ _ hM1 $$ Hlrd with ⟨Hlrd, Hlrds⟩
-  icases replicate_take1 _ _ (by omega) $$ Hlrds with ⟨Hlrd2, -⟩
+  icases replicate_take1 _ _ (by omega) $$ Hlrds with ⟨Hlrd2, Hlrds⟩
+  -- (the lease-src plan) the rest in the lessor's reader pool, which the lease service's calls
+  -- borrow from with their thread tokens (`threadBound GF ≤ 2 ^ 28`)
+  imod lease.lessorRdPool_init γl ⊤ _ (by omega) $$ Hlrds with #HlPool
   wp_apply (lc := 2) (server_kv_watchable_ofM cmp h26 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73
       h74 h75 h76 h77 h94 h46 h47 h48 hLSR hUSR hUP cfg.Logger' (lease.lessorIface lp) _ d HbP E₀.γ.bucket γl
       (batchLockInv γA (metaTM d.γB d.P)) #func.nil func.nil N E₀.γ.idx E₀.γ.cok M Hcbl Hrb)
@@ -1627,6 +1631,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iexists lp
     iframe lessor
     rw [Hγw.2.1]; iexact Hlinv
+  ihave #HlPool' : lease.lessorRdPool (GF := GF) γw.st.leases $$ []
+  · rw [Hγw.2.1]; iexact HlPool
   imodintro
   wp_auto
   iapply HΦ
@@ -1639,7 +1645,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
   iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
-  iframe HLnil HBF ClientCertAuthEnabledS HpeerRt HlessRd
+  iframe HLnil HBF ClientCertAuthEnabledS HpeerRt HlessRd HlPool'
   isplitr
   · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2⟩
   isplitr
