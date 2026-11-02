@@ -139,7 +139,56 @@ theorem checkSingle.wp_proof
     isplitr
     · ipureintro; rw [hlf0]; exact struct_init hfr0
     ileft; ipureintro; rw [hlf0]; exact bad_init
-  sorry
+  irename «ctx» => Hctxp
+  ihave #Hctx2 := Hctx
+  iNamed Hctx2
+  ihave #HErrU := HErr $$ %Broadcast.Unknown
+  iclear HDeadline HDone HValue HErrDone HDoneFresh HParentCC HClosedchan HErr
+  have hirr : ∀ y, ¬ Before h cs y y := before_irrefl hok hcall
+  have hdom : ∀ a b, Before h cs a b → a < h.length := fun a b hab => before_dom hok hab
+  wp_for HI
+  iunfold searchOwn at Hs
+  icases Hs with ⟨%st, %ssl, %ses, %lsl, %ws, Hch, %Hci, Hstk, Hstack, Hscap, #Hses, Hlinp, Hlin, %Hws,
+    Hcache⟩
+  simp only [named]
+  obtain ⟨Hci, Hfr⟩ := Hci
+  obtain ⟨Hws1, Hws2⟩ := Hws
+  wp_apply wp_isComplete ch_ptr h cs st Hci.1 Hci.2.2.2.1 $$ [Hch] as Hch
+  · iframe
+  by_cases hcomp : ∀ (c : Nat), c < cs.length → st.head c = (chain cs c).length
+  · -- every operation linearized: the loop's end
+    have hft : ¬ ((#false : val) = #true) := fun h0 => by
+      have := go.intoVal_inj h0; simp at this
+    simp only [eq_true hcomp, decide_true, Bool.not_true, hft, decide_false, Bool.false_eq_true,
+      ↓reduceIte]
+    sorry
+  · -- some operation not linearized: the loop's body
+    have hinc := incomplete_some hok Hci hcomp
+    simp only [eq_false hcomp, decide_false, Bool.not_false, decide_true, ↓reduceIte]
+    -- `if ctx.Err() != nil { fmt.Printf(...); return false, longest }`
+    try wp_auto
+    wp_apply HErrU as %err Herr
+    cases err
+    · simp only [reduceCtorEq, ↓reduceIte]
+      icases Herr with ⟨#HPD, -⟩
+      wp_auto
+      wp_apply wp_slice_literal
+      isplitr
+      · ipureintro; rfl
+      iintro %psl ⟨Hpsl, -⟩
+      wp_apply wp_Printf _ _ _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int pv) fmt.ArgsWf.nil) $$ [Hpsl]
+        as %n %e2 -
+      · iframe
+      wp_for_post
+      iapply HΦ
+      iframe
+      iright
+      isplitr
+      · ipureintro; rfl
+      iright; iexact HPD
+    iclear Herr
+    wp_auto
+    sorry
 
 end proof
 
