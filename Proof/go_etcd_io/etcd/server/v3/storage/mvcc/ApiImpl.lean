@@ -273,6 +273,26 @@ theorem mvccGiveBack (s : Loc) (γ : MvccImpl) :
   iunfold poolR
   iframe Hr Hx
 
+/-- **The whole open token gives the closer** (`Close`, later): the invariant holds it, not the
+token. -/
+theorem mvccOpen_take (γ : MvccImpl) :
+    mvccOpenI (GF := GF) γ 1 ⊢ |={⊤}=>
+      ▷ (if γ.watched then (∃ c : Int, wsCloserM γ.wl γ.sl γ.st c) else storeCloser γ.sl γ.st) := by
+  iintro H
+  iunfold mvccOpenI at H
+  icases H with ⟨Ht, #Hinv⟩
+  iinv Hinv with Hi Hclose
+  icases Hi with (>Ht' | Hc)
+  · ihave %Hv := ghostVar_valid_2 γ.op _ _ _ _ $$ Ht Ht'
+    exfalso
+    have h1 : (1 : Rat) + (1 : Qp).val ≤ 1 := Hv.1
+    have := (1 : Qp).2
+    grind
+  imod Hclose $$ [Ht] with _
+  · inext; ileft; iexact Ht
+  imodintro
+  iexact Hc
+
 /-- In the abstract mode, a part of the abstract committed log agrees with a ghost half. -/
 theorem absAt_agree (γ : StoreNames) (h : γ.absQ = true) (q1 q2 : Qp) (l1 l2 : Log) :
     absAt (GF := GF) γ q1 l1 ∗ ghostVar γ.abs q2 l2 ⊢

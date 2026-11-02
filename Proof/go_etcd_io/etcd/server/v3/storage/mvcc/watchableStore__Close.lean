@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Close
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Close
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewWatchableLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLemmas
 
 @[expose] public section
 
@@ -81,6 +82,53 @@ theorem mvcc.watchableStore.Close.wp_proof
   imod Hmask with -
   imodintro
   wp_apply mvcc.wp_wsWg_Wait s γwg γd $$ [$Htok]
+  · iframe #
+  (try wp_auto)
+  wp_apply hClose st γ.st c $$ [$Hsc]
+  · iframe #
+  iapply HΦ
+  itrivial
+
+/-- **The candidate `Close`** (`specC`): `spec`'s, the closer from the open token's invariant
+(`mvccOpen_take`, its later stripped by a credit of the call's first steps). -/
+theorem mvcc.watchableStore.Close.wp_proofC
+    (hClose : mvcc.store.Close.spec (GF := GF) (hG := hG)) :
+    mvcc.watchableStore.Close.specC (GF := GF) (hG := hG) := by
+  intro ws γ
+  wp_start as ⟨#Hwm, Hop⟩
+  iunfold mvcc.isWatchableMvcc at Hwm
+  iunfold mvcc.isWatchableMvccI at Hwm
+  icases Hwm with ⟨%Hw, %st, #Hws, #Hm⟩
+  obtain ⟨hw, hwl⟩ := Hw
+  ihave %Hsl := mvcc.isMvccI_loc st γ $$ Hm
+  iunfold mvcc.mvccOpen at Hop
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  iunfold mvcc.isWatchableStore at Hws
+  iNamed Hws
+  wp_auto_lc 1
+  imod mvcc.mvccOpen_take γ $$ Hop with Hc
+  imod (lc_fupd_elim_later (E := ⊤)) $$ Hlc1 Hc with Hc
+  isimp only [hw, hwl, Hsl, ↓reduceIte] at Hc
+  icases Hc with ⟨%c, Hcl⟩
+  icases mvcc.wsCloserM_close ws st γ.st c $$ Hcl with ⟨%stc2, #Hstc, Hstop, Hwait, Hsc⟩
+  ihave %Hst := typedPointsto_agree_wand _ _ _ _ _ $$ Hstc Hstopc
+  subst Hst
+  iunfold mvcc.stopCloser at Hstop
+  icases Hstop with ⟨%γc, Hstop⟩
+  iunfold mvcc.wsWaiter at Hwait
+  icases Hwait with ⟨%γwg, %γd, #HisWg, #Hinv, Hwt⟩
+  (try wp_auto)
+  wp_apply wp_broadcast_chan_close stc2 γc iprop(True) $$ [$Hstop] as -
+  · imodintro; itrivial
+  (try wp_auto)
+  iapply fupd_wp
+  imod fupd_mask_subseteq (E2 := ↑mvcc.wsWgWGN) CoPset.subseteq_top with Hmask
+  imod sync.alloc_wait_token (mvcc.wsWgAddr ws) γwg mvcc.wsWgWGN 0 (by decide) $$ HisWg Hwt
+    with ⟨-, Htok⟩
+  imod Hmask with -
+  imodintro
+  wp_apply mvcc.wp_wsWg_Wait ws γwg γd $$ [$Htok]
   · iframe #
   (try wp_auto)
   wp_apply hClose st γ.st c $$ [$Hsc]
