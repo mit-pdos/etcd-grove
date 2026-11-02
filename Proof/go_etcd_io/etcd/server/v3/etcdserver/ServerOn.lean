@@ -685,7 +685,7 @@ theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List Entr
     · iintro %rq %id %hrq
       obtain ⟨hd, hdec, hid⟩ := hrq
       iunfold entryClaim at Hc
-      icases Hc with (%hc | ⟨%rq', %id', %γf, %hrq', #Hcl', #Hreg⟩)
+      icases Hc with (%hc | ⟨%rq', %id', %γf, %k, %hrq', #Hcl', #Hreg⟩)
       · exfalso; rcases hc with hc | hc
         · exact hc ht
         · exact hd hc
@@ -694,9 +694,8 @@ theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List Entr
         cases hdec'
         rw [hid] at hid'
         cases hid'
-        iframe Hreg
-        iexists γf
-        iexact Hcl'
+        iexists γf, k
+        iframe Hcl' Hreg
     · iexists L
       iframe HL
       ipureintro; exact hm
@@ -709,7 +708,8 @@ theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List Entr
     iintro !> %Ψ HR
     iunfold reqWaitR at HR
     icases HR with ⟨%d, %rq, %γf, %F, #Hc0, -, -⟩
-    iapply idClaim_noZero ρ.ids d γf $$ HNZ Hc0
+    ihave #Hc0a := idClaimAny_of ρ.ids (W64 0) d γf $$ Hc0
+    iapply idClaim_noZero ρ.ids d γf $$ HNZ Hc0a
 
 /-- `srv_entry_transfer` for a committed log `A` with no empty `ConfChangeV2` (`srv_committed_noV2`):
 `P` need not hold of one. -/

@@ -128,7 +128,7 @@ theorem Main.wp_proof
   wp_auto
   iunfold common.memberUp at Hup
   icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
-    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
+    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `Serve(s, clientAddr)`, with etcd's KV calls registered at the address
   haveI := Hms
@@ -140,6 +140,7 @@ theorem Main.wp_proof
     iintro %gs %lis %cid %mid %R Hg
     iapply (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23791" cid mid
       R Hrb48 Hrf rfl)
+    unfold common.kvServeStocks
     iframe; iframe #
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv⟩)
   · cases serr with

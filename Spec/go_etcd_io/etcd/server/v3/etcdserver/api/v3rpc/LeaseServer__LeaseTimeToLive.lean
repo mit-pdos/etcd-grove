@@ -33,8 +33,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 contract's per-call resources `S` and the header's revision reader `A.revR`, at a context and the
 lower bounds `n`, `m`, on the request `r`: `s.LeaseTimeToLive(ctx, r)`, `ErrLeaseNotFound`
 (`errors.Is`) turned into a fresh response with `TTL` `-1`, another error through `togRPCError`,
-then the header filled. Everything back, and `leaseTTLOut`: on success the response with its
-header filled and the server's verdict (the request authenticated, with `r.Keys` the key check's),
+then the header filled. Everything back, and `leaseTTLOut`: on success the response, about the
+asked lease (its `ID` the request's), with its header filled and the server's verdict (the request authenticated, with `r.Keys` the key check's),
 or the not-found response; on an error `nil`. The request is owned (`r ↦{dq} v`), not the gRPC
 wire model's persistent fields (`pbLeaseGrantRequest.recv`'s form): the stage that links the
 handler to the gRPC server reconciles them. -/

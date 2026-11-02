@@ -161,6 +161,22 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 - **Linearizability is the caller's atomic update, written in the triple**, not behind a helper
   definition, and in the shape of the closest sibling spec (a server operation and the client
   operation that calls it). (`put.md`, critique 4)
+- **A commit point the client chooses is an atomic update the library hands out.** When the client
+  decides *when* a library step takes effect (raft's Ready: written to disk first, or at once), the
+  library's spec gives the client an atomic update to fire at that moment, inside its own atomic step
+  or whenever, and what the step permits (sending the batch's messages) is the update's post. The
+  library does not name the client's mechanism: no "disk" predicate in raft, because a client may
+  keep nothing durable. The state the update acts on is in the library's own terms (raft's state),
+  and is exclusive only where soundness needs it. (raft's durable node API, 2026-10-31, the user's
+  critique of candidate 4: `notes/STATUS.md`, "examples/kvdurable and the durable node API")
+  The client-owned state is only the part the client's choice is about: for durability, raft's
+  persistent fields (term, vote, log, snapshot), not the volatile ones, which stay in the library.
+  Then a restart is no transition of that state, only a fresh library-side half built over it.
+  (Same, the user's answer on candidate 5.)
+- **No identification handles for the proof's bookkeeping** (`nodeInc`, incarnation tokens): key
+  facts by values the client already has (the node object, the storage object). A handle only the
+  proof needs is a resource every caller threads. (Same critique; see also "Do not make callers
+  thread a resource only the proof's bookkeeping needs", `put.md`, critique 3.)
 - **The caller's result predicate carries what the caller needs**: no witness or history predicate
   beside it. A read that may be stale still fires the update at the current state, and answers from a
   past state of it. (`range.md`, critique 1)
@@ -174,6 +190,17 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   (`pilot-review-1.md`). A thread token is one such token (it bounds the live goroutines, as reader
   slots must be bounded); another is fine if all callers have it. Do not make callers thread a
   resource only the proof's bookkeeping needs. (`put.md`, critique 3)
+- **A trusted statement never gives out a counted resource it did not take** (a `threadTok`, a
+  receipt, a reader slot): such a resource is sound only because its total is fixed by the adequacy
+  theorem (`threadToks threadBound ⊢ False`), and one an axiom produces has no such bound. In each
+  post, name the caller that gave every counted resource. Give it back only once the real
+  operation that used it is over, not when the call returns: a call can time out while the work it
+  started goes on. Analogy with a modelled operation ("grpc forks a goroutine, and `wp_fork` gives
+  a token") is no argument when the thing is outside the semantics: grpc's goroutines are not
+  among the threads adequacy counts. (lease-ex's D1, 2026-11-02: the restated `grpc.serve` gave
+  each run a `threadTok` out of nothing, and a blocking service could collect `threadBound` of them;
+  the reviewer, checking against grpc-go, rated it true and left the accounting "uncertain". The
+  first fix, the client lending its token to the run, failed the timeout case.)
 - **A bound is reasoned about where it is owned, not in the specs between** (`notes/bounds-plan.md`,
   the user's, 2026-11-01): the adequacy theorem fixes the global constants (threads, steps, the
   workload); the owner of a bounded object (the invariant allocating the `RWMutex`, `WaitGroup` or

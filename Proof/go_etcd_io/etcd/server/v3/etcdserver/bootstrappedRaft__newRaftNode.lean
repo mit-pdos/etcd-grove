@@ -69,13 +69,35 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   rw [Hlen0]
   (try wp_auto)
   -- `raft.StartNode(b.config, b.peers)`: the node API's unified `StartNode`
+  ihave Hau : AU <{ ∃∃ (S : RaftState), raftState γr.cl cv.ID' S ∗ ⌜S = RaftState.init⌝ }>
+      @ ⊤ \ ↑srvClusterN, ∅
+      <{ raftState γr.cl cv.ID' S, COMM raftState γr.cl cv.ID' RaftState.init }> $$ [Hrst]
+  · iauintro
+    unfold atomic_acc
+    iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑srvClusterN from
+      Std.LawfulSet.empty_subset)
+    iintro Hclose
+    isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+    iexists RaftState.init
+    iframe Hrst
+    isplitr
+    · ipureintro; rfl
+    isplit
+    · iintro ⟨H, -⟩
+      imod Hclose with -
+      imodintro
+      iexact H
+    · iintro H
+      imod Hclose with -
+      imodintro
+      iexact H
   wp_apply (wp_StartNode γr γr.cl srvClusterN ps ctxs bv.config' cv lok
       ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
-      (HardStateM.mk (W64 0) (W64 0) (W64 0)) memSnapEmpty.Metadata'.ConfState' Q
+      memSnapEmpty.Metadata'.ConfState' (raftState γr.cl cv.ID' RaftState.init) Q
       bv.peers' dq pv Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied
-      ⟨rfl, rfl, rfl⟩ rfl rfl rfl rfl rfl Hps) $$ [Hc Hbs Hboot Hpeers]
-    as %nd ⟨%n, %Hnd, #Hnode, Hdrv, Hncfg, Hrun, HQ, -⟩
-  · iframe #; iframe Hc Hpeers Hboot
+      rfl rfl rfl rfl rfl Hps) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
+    as %nd ⟨%n, %K, %Hnd, #Hnode, Hdrv, Hncfg, Hrun, Hrst, HQ, -⟩
+  · iframe #; iframe Hc Hpeers Hboot Hvac Hau
     iExactEq Hbs; rfl
   subst Hnd
   (try wp_auto)
@@ -99,7 +121,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   · ipureintro; exact Hwal
   (try wp_auto)
   -- `newRaftNode(cfg)`
-  wp_apply (wp_newRaftNode E γr cv.ID' n pre bv.storage' γs
+  wp_apply (wp_newRaftNode E γr cv.ID' n pre bv.storage' γs K
     (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #n) bv.storage' st
       bv.heartbeat' GoInterface.nil) Hlg Hhb) $$ [] as %r ⟨%γw, %Hγw, Hbuilt⟩
   · iframe #
@@ -112,9 +134,11 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   iexists n, γw, _, st
   isplitr
   · ipureintro
-    obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hγw
+    obtain ⟨h1, h2, h3, h4, h5, h6, -⟩ := Hγw
     exact ⟨h1, h2, h3, h4, h5, h6⟩
-  iframe Hnode Hst Hbuilt Hb HQ Hrun Hncfg
+  obtain ⟨-, -, -, -, -, -, hkey⟩ := Hγw
+  subst hkey
+  iframe Hnode Hst Hbuilt Hb HQ Hrun Hncfg Hrst
   isplitl [Hdrv]
   · iExactEq Hdrv; rfl
   isplitr

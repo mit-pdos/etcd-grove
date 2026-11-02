@@ -246,6 +246,8 @@ LeaseServer__LeaseKeepAlive: LeaseServer__leaseKeepAlive
 quotaLeaseServer__LeaseGrant: quotaAlarmer__check
 _Lease_LeaseGrant_Handler:
 _Lease_LeaseRevoke_Handler:
+_Lease_LeaseTimeToLive_Handler:
+_Lease_LeaseLeases_Handler:
 NewClusterServer: EtcdServer__Cluster
 NewAuthServer:
 # the auth plan's A3, the API layer (2026-10-24): auth.go's AuthServer wrappers over the server's

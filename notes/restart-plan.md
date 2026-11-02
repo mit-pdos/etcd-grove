@@ -458,3 +458,46 @@ cluster (F8), which removes the store registration (`srvKeyStore`, `srvFloorFact
 usable as written) and the image's incarnation number (G2). The reviewer's answer to whether an old
 incarnation's replayed entry can take the empty floor: yes, without the assumption -- a waiter here
 holds an own-key claim of its id, and two claims of one id agree.
+
+### R2c stage 1: the id state keyed by incarnation (2026-11-02, landed)
+
+The refactor's logic, in place (the drafts of `idutil/Incarnations.lean` folded into
+`idutil/Defs.lean` and removed):
+
+- **`idutil`:**
+  - `IdNames` gains the incarnation number `inc` and the keys' facts map `fs`; `IdNames.key` is
+    `(pfx, inc)`.
+  - A claim records its claimer's key (`IdClaimV`). `idClaim` is the incarnation's own claim, what
+    proposers make and waiters hold; `idClaimAny` is a claim by some key, what a committed entry's
+    reader knows.
+  - The cluster invariant `idClusterInv issued cnt wn fs Φs` keeps the keys' lists, registry cells
+    (its authority moved into the invariant) and the keys' facts' parameters, with one domain for
+    the three.
+  - The facts are first-order: the cluster fixes a family `Φs : X → …` once, and each key registers
+    an `x : X` (`idKeyFactAt`). Saved predicates, the reviewer's F8, would have put the fact under
+    two laters. The server's family is `srvFloorFacts`, at the key's store index, and
+    `srvFloorFact E` is that family at `E.γ.idx`.
+  - Stage 1 keeps one key per prefix in `idClusterOk`, so `Next`'s freshness is still proved from
+    prefixes. `idCluster_alloc` makes each member's key `(p, 0)`.
+- **The server:**
+  - A committed entry carries its claim with the claimer's key and the registration at that key
+    (`entryClaim`, `entryWaitOk`, `idRegdAt`).
+  - The apply thread cases on the key in place of the id's prefix. With its own key, it reads the
+    floor (`idClaim_fact`) and its registration. With another key's claim (another member's, or an
+    earlier incarnation's), it reads nothing: `entryRegd`'s "nothing registered" case gives
+    `idOther`, and `entryRegd_none_key` turns that into "the key is not mine". A waiter's own claim
+    agrees with the entry's, so its key is the incarnation's (`idClaim_agree_entry`).
+  - The waiter's `entryWit` and the proposals' mint `srvPropMint` take claims by any key. The mint
+    is the cluster's, so a claim stored there at a member's own key would have been stated at the
+    wrong key for every other member.
+  - `NewServer`'s premise is the keyed invariant at `srvFloorFacts` plus the member's key fact at
+    its store index (`E₀.γ.idx`).
+- **Left for a cleanup pass:** `memberBoot` and `NewServer.spec` still carry the per-prefix `Φs`
+  and its equation `Φs pfx = srvFloorFact E₀`, which nothing reads any more (about 40 files pass
+  them).
+- **Next, stage 2:**
+  - A trusted `Generator.Next`, its Go body followed by `primitive.Assume`, with the issuers' record
+    as an extension's state (`GooseLang/Ext/`). Linked results that reach `Next` gain the
+    extension's instance, which each example's adequacy provides.
+  - Drop the one-key-per-prefix condition, and prove `idIncarnation_alloc` (a fresh incarnation
+    number chosen from the finite maps).

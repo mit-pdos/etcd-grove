@@ -24,34 +24,34 @@ theorem RawNode.readyWithoutAccept.wp_proof [package_sem : Assumptions] (wp_raft
                               "Hmsgs" ∷ ownSlice rd.Messages' (List.map QMsg.loc ms) (DFrac.own 1) ∗
                                 "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
                                   ("Hmsgs_own" ∷ [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
-                                    ("#Hmsgs_ok" ∷ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
-                                      "%Hmsgs_term" ∷ ⌜∀ (q : QMsg), q ∈ ms → uint.Z q.st.msg.Term' ≤ uint.Z rs.tc⌝ ∗
-                                        "Habandon" ∷
-                                            (ownSlice rd.Messages' (List.map QMsg.loc ms) (DFrac.own 1) -∗
-                                              ownSliceCap Loc rd.Messages' (DFrac.own 1) -∗
-                                                ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
-                                                  ownRawNodeReady γ rn id rs rd ce es ms false L -∗
-                                                    ∃ n u c,
-                                                      ⌜ms.length ≤ n ∧
-                                                            (es ≠ [] → u = true) ∧
-                                                              ∀ (e : EntryM),
-                                                                ce.getLast? = some e →
-                                                                  uint.Z e.Index' ≤ uint.Z c ∧
-                                                                    uint.Z e.Index' = ↑rs.delivered.length + ↑ce.length⌝ ∗
-                                                        ownRawNode γ rn id
-                                                          { delivered := rs.delivered, unpersisted := rs.unpersisted,
-                                                            steps := rs.steps, term := rs.term, storage := rs.storage,
-                                                            sn := rs.sn, outlb := n, unst := u, clb := c, tc := rs.tc,
-                                                            mode := rs.mode, cfg := rs.cfg, capplied := rs.capplied,
-                                                            flw := rs.flw, psnap := rs.psnap, slent := rs.slent,
-                                                            phs := rs.phs }) ∗
-                                          "Hsnapz" ∷ rdSnapOut γ rs rd ce es L ∗
-                                            "%Hpsn" ∷ ⌜rs.psnap = false → L = none⌝ ∗
-                                              "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗
-                                                ("#Hrs_ok" ∷ [∗list] st ∈ sts, readStateRaw γ st) ∗
-                                                  "#Hhard" ∷ hsOpt rd.HardState' h ∗
-                                                    "#Hhsw" ∷
-                                                      hsWit γ (phsNext rs.phs h) (dlvAfter rs.delivered ce L).length -∗
+                                    "%Hmsgs_term" ∷ ⌜∀ (q : QMsg), q ∈ ms → uint.Z q.st.msg.Term' ≤ uint.Z rs.tc⌝ ∗
+                                      "Habandon" ∷
+                                          (ownSlice rd.Messages' (List.map QMsg.loc ms) (DFrac.own 1) -∗
+                                            ownSliceCap Loc rd.Messages' (DFrac.own 1) -∗
+                                              ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
+                                                ownRawNodeReady γ rn id rs rd ce es ms false L -∗
+                                                  ∃ n u c,
+                                                    ⌜ms.length ≤ n ∧
+                                                          (es ≠ [] → u = true) ∧
+                                                            ∀ (e : EntryM),
+                                                              ce.getLast? = some e →
+                                                                uint.Z e.Index' ≤ uint.Z c ∧
+                                                                  uint.Z e.Index' = ↑rs.delivered.length + ↑ce.length⌝ ∗
+                                                      ownRawNode γ rn id
+                                                        { delivered := rs.delivered, unpersisted := rs.unpersisted,
+                                                          steps := rs.steps, term := rs.term, storage := rs.storage,
+                                                          sn := rs.sn, outlb := n, unst := u, clb := c, tc := rs.tc,
+                                                          mode := rs.mode, cfg := rs.cfg, capplied := rs.capplied,
+                                                          flw := rs.flw, psnap := rs.psnap, slent := rs.slent,
+                                                          phs := rs.phs, dur := rs.dur, role := rs.role, bw := rs.bw,
+                                                          hlb := rs.hlb }) ∗
+                                        "Hsnapz" ∷ rdSnapOut γ rs rd ce es L ∗
+                                          "%Hpsn" ∷ ⌜rs.psnap = false → L = none⌝ ∗
+                                            "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗
+                                              ("#Hrs_ok" ∷ [∗list] st ∈ sts, readStateRaw γ st) ∗
+                                                "#Hhard" ∷ hsOpt rd.HardState' h ∗
+                                                  "#Hhsw" ∷
+                                                    hsWit γ (phsNext rs.phs h) (dlvAfter rs.delivered ce L).length -∗
                       Φ (intoVal rd)) -∗
                 WP
                   ((intoVal
@@ -64,5 +64,7 @@ theorem RawNode.readyWithoutAccept.wp_proof [package_sem : Assumptions] (wp_raft
 def readyVal (sp hp : Loc) (rs ents : GoSlice) (sn : Loc) (ce msgs : GoSlice) (ms : Bool) : Ready :=
   { SoftState' := sp, HardState' := hp, ReadStates' := rs, Entries' := ents, Snapshot' := sn, CommittedEntries' := ce,
     Messages' := msgs, MustSync' := ms }
+
+theorem stateW64_leader {r : PRole} (h : stateW64 r = StateLeader) : r = PRole.leader
 
 theorem hsOpt_of_hsRO [package_sem : Assumptions] (p : Loc) (h : HardStateM) : hsRO p h ⊢ hsOpt p h

@@ -83,7 +83,7 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
         rnApGive γ A ce ∗
         rnAdvChan ap.raftAdvancedC'
           (letI := srvStor (GF := GF) γ.node
-           iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A ++ ce).length ∗ storDL γ.node.cl γ.id (γ.pre ++ A ++ ce).length ∗
+           iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A ++ ce).length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A ++ ce).length ∗
             srvFrozenRange γ.γs ((γ.pre ++ A).length + 1) ((γ.pre ++ A ++ ce).length + 1) ∗
             srvFrozenTerms γ.γs (γ.pre.length + 1) (A ++ ce))) ∗
         committedLast E.γr ce ∗ rnRtOk γ ap.raftTerm' (rnLogOf γ (A ++ ce)).length) ∨
@@ -100,7 +100,7 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
         □ E.C A' ∗ (∃ γnc : NotifyNames, isNotify2 γnc ap.notifyc' iprop(True) iprop(True) ∗ notifyRcvN γnc 0) ∗
         rnAdvChan ap.raftAdvancedC'
           (letI := srvStor (GF := GF) γ.node
-           iprop(nodeAppliedLb γ.node.cl γ.id (γ.pre ++ A').length ∗ storDL γ.node.cl γ.id (γ.pre ++ A').length ∗
+           iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A').length ∗
             srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length)) ∗
         committedAtLeast E.γr sv.Metadata'.Index' ∗
         -- (2026-11-01, J8a) its term good for the jumped log (`applyAll`'s merge after the jump)

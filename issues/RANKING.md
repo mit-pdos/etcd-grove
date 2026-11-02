@@ -337,6 +337,17 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[raft-restore-malformed-confstate-panic](raft-restore-malformed-confstate-panic.md)**
+  (2026-11-02): a restart from a `ConfState` with a repeated id, or `AutoLeave` without outgoing
+  voters, panics in `newRaft` instead of erroring; the storage API does not state the
+  precondition. Only hand-built or corrupted storages reach it; a documentation sentence fixes it.
+
+- **[raft-applied-above-snapshot-confstate](raft-applied-above-snapshot-confstate.md)**
+  (2026-10-31): `Config.Applied`'s documentation does not say that `InitialState`'s `ConfState` must
+  be the configuration as of `Applied`; with `Applied` above the snapshot, raft skips the conf
+  changes in between (reproduced: a node elects itself alone). Safety in principle, but etcd leaves
+  `Applied` unset, so it affects only other applications; a documentation sentence fixes it.
+
 - **[etcd-watch-compacted-resent](etcd-watch-compacted-resent.md)** (2026-11-01): with more than
   512 unsynced watchers, `chooseAll` deletes a compacted watcher from `choose`'s copy only, so it
   stays unsynced and is sent the compaction response again each sync until the client cancels.

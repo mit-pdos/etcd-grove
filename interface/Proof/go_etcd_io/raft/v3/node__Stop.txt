@@ -8,5 +8,5 @@ theorem node.Stop.wp_proof [package_sem : Assumptions] : node.Stop.spec
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeRunning n γ N 1 -∗
-          ▷ (nodeStopped n γ N -∗ Φ (intoVal ())) -∗
+          ▷ (nodeStopped n γ N ∗ nodeVacant γ id -∗ Φ (intoVal ())) -∗
             WP ((intoVal (methods node.ty.PointerType go!"Stop" (intoVal n))) (intoVal ())) {{ Φ }}

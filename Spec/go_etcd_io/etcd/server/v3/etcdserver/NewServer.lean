@@ -215,14 +215,19 @@ abbrev NewServer.spec : Prop :=
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
-      -- peers `γ.vs` with the contexts `ctxs`, and the server's raft invariant
-      "Hnboot" ∷ nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗
+      -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
+      -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant
+      "Hnboot" ∷ (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
+        nodeVacant γ.cl id) ∗
       "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
       -- (D21e (A), stage M4) the cluster's resources, allocated once (`srvClusterBoot_alloc`):
       -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
       -- and the member's share: its prefix's entry and slots (`idShare`), `2 ^ 48` of raft's read
       -- credits (`srvMemberBoot_alloc`)
-      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
+      -- (R2c, 2026-11-02) by incarnation key: the cluster's claims at the server's facts' family,
+      -- the member's key registering its store's index (the claim facts' parameter)
+      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
       "Hids" ∷ idShare ρ.ids ∗
@@ -396,14 +401,19 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
-      -- peers `γ.vs` with the contexts `ctxs`, and the server's raft invariant
-      "Hnboot" ∷ nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗
+      -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
+      -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant
+      "Hnboot" ∷ (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
+        nodeVacant γ.cl id) ∗
       "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
       -- (D21e (A), stage M4) the cluster's resources, allocated once (`srvClusterBoot_alloc`):
       -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
       -- and the member's share: its prefix's entry and slots (`idShare`), `2 ^ 48` of raft's read
       -- credits (`srvMemberBoot_alloc`)
-      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
+      -- (R2c, 2026-11-02) by incarnation key: the cluster's claims at the server's facts' family,
+      -- the member's key registering its store's index (the claim facts' parameter)
+      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
       "Hids" ∷ idShare ρ.ids ∗
@@ -593,14 +603,19 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
-      -- peers `γ.vs` with the contexts `ctxs`, and the server's raft invariant
-      "Hnboot" ∷ nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗
+      -- peers `γ.vs` with the contexts `ctxs`, with (2026-11-01, durability layer 4) its durable
+      -- state at `RaftState.init` and its vacant id (`StartNode`'s), and the server's raft invariant
+      "Hnboot" ∷ (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
+        nodeVacant γ.cl id) ∗
       "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
       -- (D21e (A), stage M4) the cluster's resources, allocated once (`srvClusterBoot_alloc`):
       -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
       -- and the member's share: its prefix's entry and slots (`idShare`), `2 ^ 48` of raft's read
       -- credits (`srvMemberBoot_alloc`)
-      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
+      -- (R2c, 2026-11-02) by incarnation key: the cluster's claims at the server's facts' family,
+      -- the member's key registering its store's index (the claim facts' parameter)
+      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
       "Hids" ∷ idShare ρ.ids ∗

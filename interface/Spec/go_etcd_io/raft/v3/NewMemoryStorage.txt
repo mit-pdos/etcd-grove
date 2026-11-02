@@ -12,6 +12,7 @@ def NewMemoryStorage.spec : Prop :=
                   memLog γs 0 DFrac.discard [zero_val EntryM] ∗
                     memEnd γs 1 ∗
                       memSnapNone γs ∗
-                        memStorMeta ms γs { Term' := W64 0, Vote' := W64 0, Commit' := W64 0 } ∗ memStorFresh ms γs -∗
+                        memStorMeta ms γs { Term' := W64 0, Vote' := W64 0, Commit' := W64 0 } ∗
+                          memStorFresh ms γs 0 memSnapEmpty -∗
                 Φ (intoVal ms)) -∗
           WP ((intoVal (functions NewMemoryStorage [])) (intoVal ())) {{ Φ }}

@@ -82,5 +82,21 @@ def leasesRespIs (E : apply.AEnv GF) (resp : Loc) (cid mid : w64) (ids : List w6
 
 end defs
 
+/-- **The deployment's peers answer the lease handler's path as etcd's lease handler does** (a named
+premise about the program's environment, as `grpcRepliesFit`; the axiom review of 2026-11-02,
+`notes/axiom-review/lease-ttl-id.md`, the user's choice): every address a member uses as a peer URL
+answers a POST to `/leases/internal` (`leasehttp.LeaseInternalPrefix`) with `200` only with a
+`LeaseInternalResponse` whose `LeaseTimeToLiveResponse` and its header are set (etcd's
+`leasehttp.NewHandler`, `http.go:116-156`), or not with `200` (`404` where nothing serves the path,
+as on the examples' members, whose peer listeners serve only the raft handler, or no answer). What
+the trust-boundary `EtcdServer.leaseTimeToLive.spec` takes: a follower's `TimeToLiveHTTP` reads the
+leader's `200` reply and dereferences its response (`http.go:274`).
+
+**False of** a program serving a peer address with another handler that answers that path `200`
+(`examples/axiomcx/leasettl` on branch `axiom/lease-ttl-id`: an empty `200`, and the follower's
+`LeaseTimeToLive` panics, `issues/etcd-leasehttp-timetolive-nil-response-panic.md`). A theorem taking
+this premise says nothing about such runs. -/
+opaque leasePeersOk : Prop
+
 end EtcdGrove
 end Perennial

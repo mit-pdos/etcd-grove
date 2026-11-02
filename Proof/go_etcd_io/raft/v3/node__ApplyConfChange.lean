@@ -383,7 +383,7 @@ private theorem node.wp_ApplyConfChange_impl
   have Hdy2 : γn2.mode.isDyn = true := by rw [Hnok2.2.2, Hmd1]; rfl
   icases Htab2 with (%Hc | #Htab2)
   · rw [Hdy2] at Hc; cases Hc
-  icases nodeTabOk_agree γ id1 γn γn2 $$ Htab1 Htab2 with %Hnm
+  icases nodeTabOk_agree γ n γn γn2 $$ Htab1 Htab2 with %Hnm
   ihave #Hlb' := dlvLb_names γn2 γn Hnm.symm ds $$ Hlb
   -- the entry, as raft has it
   have He' : (strip ds)[k]? = some e := by rw [Hds]; exact He
@@ -454,6 +454,7 @@ private theorem node.wp_ApplyConfChange_impl
   have := confStateIs_of_ok cs _ Hok
   rw [stOf_cfg, memOf_cfgOf] at this
   exact this
+
 
 end wrap
 

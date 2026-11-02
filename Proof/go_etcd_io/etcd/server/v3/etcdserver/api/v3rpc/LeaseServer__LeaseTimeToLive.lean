@@ -57,7 +57,7 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
   wp_apply HT $$ [HS HR Hr] as %resp %err ⟨HS, HR, Hr, Hans⟩
   · iframe; iframe #
   iunfold v3rpc.ttlAns at Hans
-  icases Hans with (⟨%He, ⟨%w, Hw, %Hh, %hv, Hhv⟩, #Hauth, #Hchk⟩ | ⟨%Hn, #Hae⟩)
+  icases Hans with (⟨%He, ⟨%w, Hw, %Hh, %Hid, %hv, Hhv⟩, #Hauth, #Hchk⟩ | ⟨%Hn, #Hae⟩)
   · subst He
     wp_auto
     -- `errors.Is(nil, ErrLeaseNotFound)`: `false` (an empty tree; `err` nil)
@@ -92,6 +92,8 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
     · ipureintro; rfl
     iexists w
     iframe Hw
+    isplitr
+    · ipureintro; exact Hid
     isplitl [Hfd Hrev]
     · iunfold v3rpc.leaseHdrDone
       iframe Hfd
@@ -165,6 +167,8 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
           · ipureintro; rfl
           iexists _
           iframe «$r0»
+          isplitr
+          · ipureintro; rfl
           isplitl [Hfd Hrev]
           · iunfold v3rpc.leaseHdrDone
             iframe Hfd

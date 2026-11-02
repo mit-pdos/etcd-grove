@@ -21,6 +21,7 @@ public import Proof.go_etcd_io.raft.v3.InvRaftlog
 public import Proof.go_etcd_io.raft.v3.InvReadylog
 public import Proof.go_etcd_io.raft.v3.InvTrackerC
 public import Proof.go_etcd_io.raft.v3.InvPbSnapSet
+public import Proof.go_etcd_io.raft.v3.Protocol.RaftState
 public import Proof.go_etcd_io.raft.v3.SnapConf
 public import Proof.go_etcd_io.raft.v3.StepLemmasR
 public import Proof.go_etcd_io.raft.v3.Protocol.RefinementDyn
@@ -216,6 +217,18 @@ structure SnapLoan [GooseExts] where
   dlv : List EntryM
   decs : DecMap
 
+-- (2026-11-01, durability stage I-3/I-8) shared by the node API and `run`'s `Ready` payload
+/-- The role after a `Ready` whose `SoftState` is `ss` (`nil`: unchanged; else its `RaftState`),
+from the role `r` last reported. -/
+def roleAfter [GooseExts] (r : StateType) (ss : Option (w64 × StateType)) : StateType :=
+  (ss.map (·.2)).getD r
+
+/-- **The durable state after a `Ready`** (candidate 12 §3): `S` with the batch applied -- the hard
+state after it `h'` (`phsNext`), its snapshot, its entries `es`. -/
+def readyDurable [GooseExts] (S : RaftState) (h' : HardStateM) (L : Option SnapLoan) (es : List EntryM) :
+    RaftState :=
+  S.next h'.Term' h'.Vote' h'.Commit' (L.map (·.snap)) es
+
 /-- What the application sees of a `RawNode` (2026-10-09). -/
 structure RNState [GooseExts] where
   /-- The committed log handed out so far, from the start (as `isCommitted` takes it):
@@ -289,6 +302,23 @@ structure RNState [GooseExts] where
   `hsWit` of `phsNext rs.phs h`) is this one's: what `node.go`'s driver needs to read every
   batch's commit witness off the hard state it last recorded. -/
   phs : HardStateM := HardStateM.mk (W64 0) (W64 0) (W64 0)
+  /-- (2026-11-01, durability stage I-3/I-8) the durable state the client entered last, as the
+  driver recorded it (`NodeNames.dur`, `NodeDriverState.durable`), from which the next batch is
+  cut (`readyCut`), and the role the last `Ready` reported (`NodeDriverState.role`). How
+  `ownRawNode` relates them to the log and the soft state is stage II's (`ownRaftGhost_cut`'s
+  `DurFull` premise; see the stage I-3 worklist). -/
+  dur : RaftState := RaftState.init
+  role : StateType := W64 0
+  /-- (2026-11-01, durability stage II (k), fix C) the virtual maps of the batch the last `Ready`
+  cut (`ownRawNodeReady_handout`, `ownRaftGhost_cut`): the self-addressed responses `acceptReady`
+  queues for `Advance` have their facts behind these maps' fragments (`pendingRel`), which
+  *enter* mints and `Advance` takes (`RawNode.Advance.spec`'s `durFrags γ id rs.bw`). -/
+  bw : DurMaps := DurMaps.empty
+  /-- (2026-11-01, durability stage II (m)) a lower bound of the node's hard state (`HsLe`, term
+  and commit not below it, its vote kept at its term), which `ownRawNodeReady_abandon` raises to
+  the abandoned `Ready`'s hard state and every step keeps: if `HasReady` later finds the hard state
+  unchanged (`ownRawNodeIdle`), that `Ready`'s hard state was the node's (`ownRawNodeIdle_ready`). -/
+  hlb : HardStateM := HardStateM.mk (W64 0) (W64 0) (W64 0)
 
 end
 
@@ -445,13 +475,46 @@ def stTks (γ : RaftNames) (st : MsgSt) : IProp GF :=
 /-- A `Ready`'s `SoftState` as the application reads it (2026-10-16, stage R7a, D10): `nil`, or a
 `*SoftState` whose `Lead` and `RaftState` are read-only (raft never writes a `SoftState` after
 `r.softState()` allocates it: `readyWithoutAccept` hands it out and `acceptReady` keeps it as
-`prevSoftSt`). The server's `softStateAt` has this form, so it can be defined over it. -/
+`prevSoftSt`). The server's `softStateIs` has this form, so it can be defined over it. -/
 def softStateRO (p : Loc) : IProp GF :=
   iprop(⌜p = null⌝ ∨ ∃ (lead : w64) (rs : StateType),
     structFieldRef SoftState go!"Lead" p ↦□ lead ∗ structFieldRef SoftState go!"RaftState" p ↦□ rs)
 
 instance softStateRO_persistent (p : Loc) : Persistent (softStateRO (GF := GF) p) := by
   unfold softStateRO; infer_instance
+
+/-- (2026-11-01, durability stage I-3) **A `Ready`'s `SoftState` is `ss`**: `nil` (`none`), or a
+`*SoftState` whose `Lead` and `RaftState` are `ss`'s, read-only: what the receive's `roleAfter`
+reads. -/
+def softStateIs (p : Loc) : Option (w64 × StateType) → IProp GF
+  | none => iprop(⌜p = null⌝)
+  | some (lead, rs) => iprop(⌜p ≠ null⌝ ∗ structFieldRef SoftState go!"Lead" p ↦□ lead ∗
+      structFieldRef SoftState go!"RaftState" p ↦□ rs)
+
+instance softStateIs_persistent (p : Loc) (ss : Option (w64 × StateType)) :
+    Persistent (softStateIs (GF := GF) p ss) := by
+  cases ss with
+  | none => unfold softStateIs; infer_instance
+  | some x => obtain ⟨a, b⟩ := x; unfold softStateIs; infer_instance
+
+/-- A soft state at a value is read-only (`softStateRO`). -/
+theorem softStateIs_RO (p : Loc) (ss : Option (w64 × StateType)) :
+    softStateIs (GF := GF) p ss ⊢ softStateRO p := by
+  unfold softStateRO
+  cases ss with
+  | none => unfold softStateIs; iintro %H; ileft; ipureintro; exact H
+  | some x =>
+    obtain ⟨lead, rs⟩ := x
+    unfold softStateIs
+    iintro ⟨-, #H1, #H2⟩
+    iright; iexists lead, rs; iframe H1 H2
+
+/-- (2026-11-01, durability stage II (m), kvdurable's G21) **A soft state is a non-`nil` pointer.** -/
+theorem softStateIs_ne_null (p : Loc) (x : w64 × StateType) :
+    softStateIs (GF := GF) p (some x) ⊢ ⌜p ≠ null⌝ := by
+  obtain ⟨lead, rs⟩ := x
+  unfold softStateIs
+  iintro ⟨%H, -⟩; ipureintro; exact H
 
 /-- (U8 v2, 2026-10-29; until then the right to append, or with a snapshot the storage itself and
 its certificate in the storage's registry) **What a `Ready` hands the application for the storage**

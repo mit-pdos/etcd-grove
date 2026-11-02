@@ -26,18 +26,19 @@ porcupine's.
   2026-10-30, D4 of the client repair: `kv_porcupine_safe` does not reach it; it can return with
   kvreconf's `validConf` guard.)
 * **The storage** (`kv_NewStorage`, `kv_storage_isStorage`, `kv_bootStorage`): `*kv.Storage`
-  meets node `id`'s `Storage` contract (`isStorage γ id`) once its `MemoryStorage` has its
-  invariant at `kvJ γ id`, and a fresh one is what `RestartNode` takes (`bootStorage`).
+  meets the `Storage` contract of a key `K` (`isStorage γ K`) once its `MemoryStorage` has its
+  invariant at `kvJ γ K`, and a fresh one is what `RestartNode` takes (`restartStorage` at the empty
+  contents).
 * **The ghost state's allocation** (`kvStorInv_alloc`, `rkvInv_alloc`, `Alloc.lean`).
 * **The cluster** (`kv_StartCluster`, `cluster.go`) and **the randomized linearizability test**
   (`kv_Check`, `check.go`): `Check` over replicas of one store, from the empty store, returns
   `Ok`: porcupine accepts the trace of `Gen`'s random traffic against the store's model.
 * **The top-level driver** (`kv_Main`): `{{ isPkgInit kv ∗ context.isClosedchanInit }} Main()
-  {{ RET #(); True }}` for executions of fewer than `2^63` steps: the cluster is started, the
+  {{ RET #(); True }}` for executions of fewer than `2^61` steps: the cluster is started, the
   test runs, and `Main`'s panic unless porcupine answers `Ok` is unreachable.
 * **Adequacy** (`kv_adequate`, `AdequacyLinked.lean`, from `Adequacy.lean`'s `kv_adequate_of`):
   the same in the operational semantics, with package initialization proved (`Init.lean`):
-  every execution of `initialize'(); Main()` from a fresh state, of fewer than `2^63` steps,
+  every execution of `initialize'(); Main()` from a fresh state, of fewer than `2^61` steps,
   has no stuck thread and no panic, so porcupine never rejects the store's trace.
 
 Every result here assumes `[NaInvG GF]` (iris-lean's non-atomic invariants, which porcupine's
@@ -115,32 +116,38 @@ theorem kv_run : kv.KV.run.spec (GF := GF) (hG := hG) :=
 theorem kv_NewStorage : kv.NewStorage.spec (GF := GF) (hG := hG) :=
   kv.wp_NewStorage
 
-/-- **A store's storage is node `id`'s raft `Storage`** (2026-10-30, stage F of the client repair:
-until then `isStorage (kvStorIface s)` over the owner's view): the storage `NewStorage` returns (its
-record, `kvStorRec`), its `MemoryStorage`'s invariant at node `id`'s justifications (`kvJ`), meets
-raft's `Storage` contract of node `id` (`isStorage γ id`). -/
-theorem kv_storage_isStorage (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (id : w64) :
+/-- **A store's storage is a raft `Storage`** (2026-10-30, stage F of the client repair:
+until then `isStorage (kvStorIface s)` over the owner's view; 2026-11-01, durability layer 4: keyed
+by the storage's key `K`, which raft names at the attach, not the node's id): the storage
+`NewStorage` returns (its record, `kvStorRec`), its `MemoryStorage`'s invariant at the
+justifications of key `K` (`kvJ`), meets raft's `Storage` contract of key `K` (`isStorage γ K`). -/
+theorem kv_storage_isStorage (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
-      kvStorRec (GF := GF) s ms γs -∗ memStorInvP ms γs (kvJ γ id) -∗
-      isStorage γ id (kvStorIface s) :=
+      kvStorRec (GF := GF) s ms γs -∗ memStorInvP ms γs (kvJ γ K) -∗
+      isStorage γ K (kvStorIface s) :=
   kvStorage_isStorage kv.Storage.wp_Snapshot MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex
-    MemoryStorage.wp_Term MemoryStorage.wp_Entries s ms γs γ id
+    MemoryStorage.wp_Term MemoryStorage.wp_Entries s ms γs γ K
 
 /-- **... and a fresh one is what `RestartNode` takes** (`bootStorage`, 2026-10-30, replacing
-`kv_storage_initialState`): from `NewStorage`'s records and tokens, `FirstIndex` answers `1`,
+`kv_storage_initialState`; 2026-11-01, durability layer 4: `restartStorage` at the empty contents,
+which `bootStorage` became): from `NewStorage`'s records and tokens, `FirstIndex` answers `1`,
 `LastIndex` `0`, and `InitialState` the empty hard state and the voters' conf state, read-only for
-good, with (allocating its `MemoryStorage`'s invariant, the frame `Q`) the contract. -/
+good, with -- at the key `K` raft names the storage by, allocating its `MemoryStorage`'s invariant
+at `kvJ γ K` -- the contract and the empty log; the client's frame `F`, made from the invariant at
+the key (an argument, depending on the key: until 2026-11-01 the frame was the invariant itself). -/
 theorem kv_bootStorage (s ms : Loc) (γs : MemStorNames) (vsl : GoSlice) (voters : List w64)
-    (γ : Cluster) (id : w64) :
+    (γ : Cluster) (F : GName → IProp GF) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
       kvStorRec (GF := GF) s ms γs -∗ s.[RStorage, go!"voters"] ↦□ vsl -∗ vsl ↦*□ voters -∗
-      memStorLock ms γs -∗ memStorFresh ms γs -∗
+      memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty -∗
       memLog γs 0 DFrac.discard [zero_val EntryM] -∗ memEnd γs 1 -∗
-      bootStorage γ id (kvStorIface s) (HardStateM.mk (W64 0) (W64 0) (W64 0))
-        (kv.kvConfState voters) iprop(memStorInvP ms γs (kvJ γ id)) :=
+      (∀ K : GName, memStorInvP ms γs (kvJ γ K) -∗ F K) -∗
+      restartStorage γ (kvStorIface s)
+        ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
+        (kv.kvConfState voters) 0 F :=
   kvStorage_bootStorage kv.Storage.wp_InitialState kv.Storage.wp_Snapshot
     MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term
-    MemoryStorage.wp_Entries s ms γs vsl voters γ id
+    MemoryStorage.wp_Entries s ms γs vsl voters γ F
 
 /-- `StartCluster(ids)` (`Spec/github_com/mit_pdos/etcd_grove/examples/kv/StartCluster.lean`). -/
 theorem kv_StartCluster : kv.StartCluster.spec (GF := GF) (hG := hG) :=
@@ -164,7 +171,7 @@ variable [NaInvG GF]
 
 /-- **The top-level driver** `Main()` (`Spec/github_com/mit_pdos/etcd_grove/examples/kv/Main.lean`):
 from package initialization (with `context`'s `isClosedchanInit`), for executions of fewer
-than `2^63` steps, it returns: porcupine accepts the test's trace. Stated at no storage
+than `2^61` steps, it returns: porcupine accepts the test's trace. Stated at no storage
 registry: the proof allocates one. -/
 theorem kv_Main : kv.Main.spec (GF := GF) (hG := hG) :=
   kv.wp_Main
@@ -196,14 +203,14 @@ variable [go_gctx : GoGlobalContext]
 `AdequacyLinked.lean`): every real execution of `kvProgram` -- the store package's
 initialization, then `Main()`: a cluster of three raft nodes, 4 clients of 25 random `Put`s,
 `Get`s and `Append`s on random replicas, porcupine's check of the trace, and a panic unless it
-answers `Ok` -- from a fresh state with one thread, of `n < 2^63` steps, has no stuck thread and
+answers `Ok` -- from a fresh state with one thread, of `n < 2^61` steps, has no stuck thread and
 no thread that ended in a panic: porcupine always answers `Ok`. -/
 theorem kv_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
     [hLog : log.NewModel]
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
-    (n : Nat) (Hn : n < 2 ^ 63) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([kvProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧

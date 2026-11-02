@@ -429,7 +429,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   imod (srvSendKey_alloc (GF := GF)) with ⟨%γk, Hk⟩
   ihave #Htkok' : rnTickerOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)) $$ []
   · iapply rnTickerOk_srvErM_S $$ Htkok
-  ihave Hnboot' : iprop(nodeBoot γ.cl srvClusterN ps ctxs cv.ID') $$ [Hnboot]
+  ihave Hnboot' : iprop(nodeBoot γ.cl srvClusterN ps ctxs cv.ID' ∗
+      raftState γ.cl cv.ID' RaftState.init ∗ nodeVacant γ.cl cv.ID') $$ [Hnboot]
   · rw [← Hrvs, Hrid]; iexact Hnboot
   wp_apply (hNS γ (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)) bs.raft'
     bs.ss' bw.w' bc.cl' (DFrac.own 1) bv cv lok γs pv ps ctxs ρ.ids.issued Hrlg Hrhb Hrvalid Hrlok
@@ -455,10 +456,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iPkgInit
   wp_apply time.wp_Now as %now -
   -- (D21e (A), stage M4) over the cluster's claims, at the member's prefix
-  wp_apply (h14 ρ.ids _ now Φs (by rw [Hpfx]; congr 1; rw [← Hid])) $$ [Hids] as %gen #Hgen0
-  · iframe Hidc; iframe Hids
+  -- (R2c) at the member's key: the claims' facts the server's family at its store's index
+  wp_apply (h14 ρ.ids _ now srvFloorFacts E₀.γ.idx (by rw [Hpfx]; congr 1; rw [← Hid]))
+    $$ [Hids] as %gen #Hgen0
+  · iframe Hidc Hidk; iframe Hids
   ihave #Hgen : idGen ρ.ids gen (srvFloorFact E₀) $$ []
-  · rw [← HΦs]; iexact Hgen0
+  · rw [show srvFloorFact (GF := GF) E₀ = srvFloorFacts E₀.γ.idx from rfl]
+    iexact Hgen0
   (try wp_auto)
   wp_apply h15 as %fcn ⟨#Hfcn, Hfcnr⟩
   wp_apply h15 as %cvn ⟨#Hcvn, Hcvnr⟩
@@ -1293,7 +1297,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iunfold srvBuildGap
     rw [Hrn8, show γrn.node.reg = MemStorReg.memStorRegName (GF := GF) by rw [Hrn1]; rfl]
     iapply rnSnapOnce_of_tok h85 _ γrn (srvRAddr s) bv.storage' γs Hrn7 $$ Hpkg Hrn [] Hsnone
-    rw [Hrn1, Hrn5, Hrid]; iexact Hminv
+    rw [Hrn1]; iexact Hminv
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'
   iNamedPrefix Hrn' "N"

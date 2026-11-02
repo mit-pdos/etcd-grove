@@ -55,7 +55,7 @@ abbrev EtcdServer.snapshot.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (γw : GName) (b : GoInterface) (ep : Loc)
     (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV) (toDisk : Bool)
-    (ms : Loc) (γs : MemStorNames) (nid : w64) (sl : w64) (γp : GName) (ua : GoInterface) (q : Qp),
+    (ms : Loc) (γs : MemStorNames) (nk : GName) (sl : w64) (γp : GName) (ua : GoInterface) (q : Qp),
   loopOk γ st ai → uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
   -- (2026-10-31, the snapshot track: what `snapshotCert_make` takes) an entry applied, the voters
   -- fewer than `2^61` (`SnapListsOk`)
@@ -65,8 +65,8 @@ abbrev EtcdServer.snapshot.spec : Prop :=
   storage.walSaveOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗
-      srvSnapState s ep ms γs ai sl ∗ srvSnapFrozen γs (uint.nat ai) ∗ (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai)) ∗
-      srvSnapStor ms γs γr nid ai at' ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
+      srvSnapState s ep ms γs ai sl ∗ srvSnapFrozen γs (uint.nat ai) ∗ (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nk (uint.nat ai)) ∗
+      srvSnapStor ms γs γr nk ai at' ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
       -- (2026-10-31) `ep.confState` the voters', the entry at `ai` frozen at `at'`
       epCsCfg γr cs ∗ srvFrozenTerm γs ai at' ∗
       (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvWTPool E γp ∗

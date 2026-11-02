@@ -15,10 +15,10 @@ checker in porcupine's.
 * **The cluster** (`kvreconf_StartCluster`, `kvreconf_Stop`).
 * **The randomized test** (`kvreconf_Run`, `check.go`) and **the top-level driver**
   (`kvreconf_Main`): `{{ isPkgInit kvreconf ∗ context.isClosedchanInit }} Main() {{ RET #(); True
-  }}` for executions of fewer than `2^63` steps.
+  }}` for executions of fewer than `2^61` steps.
 * **Adequacy** (`kvreconf_porcupine_safe`, from `AdequacyLinked.lean`'s `kvreconf_adequate`): the
   same in the operational semantics, with package initialization proved (`Init.lean`): every
-  execution of `initialize'(); Main()` from a fresh state, of fewer than `2^63` steps, has no stuck
+  execution of `initialize'(); Main()` from a fresh state, of fewer than `2^61` steps, has no stuck
   thread and no panic, so porcupine never rejects the store's trace.
 
 Every result here assumes `[NaInvG GF]` (the linked results of `Link.lean` take it), except the
@@ -97,14 +97,14 @@ variable [go_gctx : GoGlobalContext]
 store package's initialization, then `Main()`: a cluster of random options, 4 clients of 100
 random `Put`s, `Get`s and `Read`s, one to three proposers of configuration changes and leadership
 disruptions, porcupine's check of the trace, and a panic unless it answers `Ok` -- from a fresh
-state with one thread, of `n < 2^63` steps, has no stuck thread and no thread that ended in a
+state with one thread, of `n < 2^61` steps, has no stuck thread and no thread that ended in a
 panic: porcupine always answers `Ok`. -/
 theorem kvreconf_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.kvreconf.Assumptions]
     [hLog : log.NewModel]
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
-    (n : Nat) (Hn : n < 2 ^ 63) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([kvreconfProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧

@@ -27293,6 +27293,43 @@ approved design's "Layer 4: authkv" (`notes/g2-watch-auth.md`) put `watchAddrFac
 `Work.spec` at the auth-on server without checking that its `srvKVFacts` (and `srvLogsSmall`) can
 be discharged from `memberUpOn`; G2's reviews checked only the auth-off callers.
 
+## The restart's lowest commit: `wcommit` (2026-11-02 · durability stage II (p); the coordinator's decision (b))
+
+**The problem** (stage II (o)'s report). A restarted node is in the cluster's dynamic mode, whose
+invariant has I1 at its commit (`RInv.i1`: of two conf-change entries of the log, the first is
+below the commit). Its commit is the stored one, which `StorageHolds` allowed anywhere from the base
+up to `S.commit`; nothing durable recorded I1. **Counterexample** (real raft is unsafe there too):
+node 1 stores entries 1..9 with conf entries at 6 (C5 = {1,2,3} → C6 adds 4) and 8 (adds 5, C8 =
+{1..5}), both committed, `S.commit = 9`; its storage presents the stored commit 5 (allowed);
+raft restarts at C5, commit 5, and `hasUnappliedConfChanges` reads only `(applied, committed]`, so
+it may campaign; meanwhile C8's quorum {3,4,5} commits entry 10; node 1 wins term T+1 with {1,2}
+(a C5 quorum: node 2's log as up to date, raft checks no membership when granting): a leader
+without a committed entry.
+
+**Decision** (option (b) of the report, the coordinator's). `RaftState.wcommit`: the commit of the
+last entered batch that wrote entries or a snapshot (a commit-only batch keeps it). `StorageHolds`
+requires `S.wcommit ≤ σ.commit` (with the base bound kept: a compaction may pass `wcommit`). The
+durable half carries I1 of its full log at `wcommit` (`durI1`); a batch carries I1 at its own
+commit, which the cut reads off the node's `RInv` (every batch's log is the node's at the cut);
+*enter* takes the batch's when it wrote, the durable half's (unchanged log) when not. A client
+writing the hard state with each batch's entries (kvdurable) stores `σ.commit ≥ wcommit`. Option
+(a) (a pure scope premise of `RestartNode` on `σ`) was not taken: it needs a new per-`Ready`
+law telling the client the batch's I1.
+
+## A restart's certified terms above the committed log handed out (2026-11-02 · stage II (p); decision 2, internal)
+
+**The problem.** `ownRawNode`'s `SdtTie` had the certification height equal to the committed log
+handed out; a restarted node certified the attach record's terms up to the stored commit
+(`storCaught`, needed by `raftDL`'s attach reading) and hands out only up to `max b A`.
+
+**Decision.** `SdtTie` is `≤`, the gap `(sdtLen, dtk]` attach-record indices at most `c0`. A `Ready`
+hands the gap out again with the recorded keys (`ownRaftLog_certify_gap`), whose terms are the
+committed log's: `certLink` gains `ctCommitted γ sn` (the record's terms are a committed log's), so
+a `Ready`'s committed entries agree with them by the committed logs' prefix order. Rejected:
+keeping every key's fragment in `storAuths` (the agreement is still needed below a restored
+snapshot's base, where `DtOk` says nothing), and an `ownRawNode` conjunct (`certLink` is the
+storage names' tie to the cluster already, fixed at the attach). `AttachRec` records every index
+`1..c0` once (below the base too), so the restart's delivered keys (`dlvKeys`) are the record's.
 ## M2 apply side: the switch stated in place (2026-10-30, the user's Q6 (a) · `notes/m2-apply-plan.md`, "The switch in place")
 
 Review rounds 1-3 showed that mode-indexed copies of the shape vocabulary (`dispatchOkM`,
@@ -29436,6 +29473,37 @@ stock (`etc/bounds-allow.txt`). The trusted changes: the axioms `leaseTimeToLive
 `lessor.Renew` are restated over the pool (their old premises are incomparable with the new ones).
 Rejected: a slot held for the whole call (F1 of the review: a slot and the token held at once by
 one thread); a per-call slot handed down from `NewServer` (it would bound the number of calls).
+
+## The closed lease example: the TTL reply's ID, the lease peers' premise, the run's token (2026-11-02 · accepted, the user's Freeze · branch `lease-ex`)
+
+`examples/leasekv` checks that `TimeToLive(id)` answers about `id` and that `Leases()` lists no lease
+twice (`notes/lease-ex-plan.md`). Three changes to trusted or frozen statements, each the user's
+choice:
+
+- **The reply's ID** (D3): `⌜w.ID' = v.ID'⌝` in the success arm of the trust-boundary
+  `EtcdServer.leaseTimeToLive.spec`, and so of `EtcdServer.LeaseTimeToLive.spec`, `ttlAns` and
+  `leaseTTLOut` (frozen in lease-src). True on every path: the leader's literal has `ID: r.ID`, a
+  follower's `TimeToLiveHTTP` rejects a mismatched reply (`http.go:274`), the handler's not-found
+  reply has `ID: rr.ID`. It survived the `axiom` skill (`notes/axiom-review/lease-ttl-id.md`).
+- **`leasePeersOk`** (the axiom review's (A)): the same review refuted the axiom as it stood since
+  lease-grpc. Its cluster assumption (what answers `/leases/internal` at the leader's peer URLs)
+  was only docstring prose, and a program serving its peer address with an empty `200` panics yet
+  had a proof. Now an `opaque` deployment premise (`etcdserver/LeaseRead.lean`, as `grpcRepliesFit`),
+  taken by the axiom, `LeaseTimeToLive.spec`, `raftLeaseRead_server`, `kv_lease_served`,
+  `leasekv.Main.spec` and `leasekv_safe`'s hypotheses. Rejected: (B) the premise stated over the HTTP
+  model (provable by the program that serves the address; more work in `raftProto`), for later.
+- **The run's thread token**: a lease read's run takes a `threadTok` (the lessor's and the leases'
+  reader pools). Restating `grpc.serve` to give each run one (D1) was unsound and is reverted;
+  lending the client's token fails on a timed-out call; per-lease stocks of reader slots would
+  rework the lessor. `leasekv`'s `Main` forks `holdToken` (sleeps forever, touches no lock) and puts
+  that goroutine's token in the one gRPC slot. No trusted change; the Go program has one idle
+  goroutine.
+
+Also: `memberBuilt`, `memberUp` and `grpcUp` (the examples' aggregates) gain `srvLeaseRd` and
+`grpcLeaseUp`; the review's locality finding (nine `Main` proofs changed their patterns) stands
+as a known cost. The two new rules this stage taught are in `.claude/skills/spec/PRINCIPLES.md`
+("A trusted statement never gives out a counted resource it did not take") and
+`notes/spec-first-plan.md` ("Freeze: the axioms attacked first").
 
 ## C3's client stage: deferred, a survey's finding (2026-11-02 · my recommendation, under the user's "follow your recommendations" · branch `periodic`)
 

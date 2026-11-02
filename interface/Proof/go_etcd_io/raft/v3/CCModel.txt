@@ -84,7 +84,7 @@ def propConfStep (joint : Bool) (applied li : w64) (acc : List EntryM × w64) (x
     else (acc.fst ++ [x.fst], li + W64 ↑acc.fst.length + W64 1)
 
 def CCDecodes (ty : w32) (bs : List w8) : Prop :=
-  (ty = W32 1 → ∃ m, ccDecodeV1 bs = some m) ∧ (ty = W32 2 → ∃ m, ccDecodeV2 bs = some m)
+  (ty = W32 1 → ∃ m, ccDecodeV1 bs = some m) ∧ (ty = W32 2 → ∃ m, ccDecodeV2 bs = some m) ∧ uint.Z ty ≤ 2
 
 def (sealed) ccDecodeV2 : List w8 → Option ConfChangeV2M
 

@@ -37,6 +37,8 @@ public import Spec.google_golang_org.grpc.Server__Serve
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKVOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthServer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLease
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseCheck
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Base
 
 @[expose] public section
@@ -209,8 +211,10 @@ def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
       ρ.rd.kv.cmp = cmp⌝ ∗
     -- (2026-10-27, the server port) the node API's boot token of the member and the server's raft
     -- invariant (until then raft's ghost state, its committed bootstrap log and the term budget)
-    nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ srvRaftLogInv ρ.rd.raft ∗
-    idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
+    (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
+      nodeVacant γ.cl id) ∗ srvRaftLogInv ρ.rd.raft ∗
+    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+    idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
     idShare ρ.ids ∗ idWaitTok ρ.ids ∗
     mvcc.idxFresh E₀.γ.idx ∗
@@ -240,6 +244,16 @@ theorem memberBoot_cmp (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E
   · ipureintro; exact Hρ
   iexact Hr
 
+/-- **The lessor's reader side** (persistent; the closed lease example, 2026-11-02,
+`notes/lease-ex-plan.md`): `NewServer`'s `srvLessorRd` and `lessorRdPool`, which the served lease
+reads take (`raftLeaseRead_server`). -/
+def srvLeaseRd (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(srvLessorRd s E.γ.leases ∗ lease.lessorRdPool E.γ.leases)
+
+instance srvLeaseRd_persistent (s : Loc) (E : apply.AEnv GF) :
+    Persistent (srvLeaseRd (GF := GF) s E) := by
+  unfold srvLeaseRd; infer_instance
+
 /-- **A member built** (`newServer`'s success): the server `s` built by `NewServer` with the
 request names `ρ` at an apply environment `E` agreeing with the stand-in `E₀`, auth off, from a
 configuration `cfg` with the logger `lg`, no tracer options and no progress-notify interval:
@@ -265,7 +279,7 @@ def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
     srvServeBuilt s E cfg 64 ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
     srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     (if served then True else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
-    srvWatchReaders s E 64)
+    srvWatchReaders s E 64 ∗ srvLeaseRd s E)
 
 /-- **What the partitioner takes of a member** (2026-10-24, rafthttp stage 6d): its place in the
 network (`srvNetMember`, with its transport `τ`) and one of its transport's reader tokens
@@ -295,7 +309,22 @@ def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : 
     ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
     ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
     ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
-    srvPeerCtl γn s id ∗ srvWatchReaders s E 64)
+    srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗ srvLeaseRd s E)
+
+/-- **The Lease service `v3rpc.Server` registered** (persistent; the closed lease example,
+2026-11-02): its unary methods among the registrations `regs` (`leaseRegs`), on the
+`*quotaLeaseServer` `ql` over the `*LeaseServer` `pl` of the server `s`, its header at the KV answers
+`A` (`v3rpc.Server`'s post). -/
+def grpcLeaseUp (s : Loc) (A : v3rpc.KVAns GF) (regs : List (GoString × val × GoInterface)) :
+    IProp GF :=
+  iprop(∃ (ql pl : Loc) (lcid lmid : w64), ⌜∀ x ∈ v3rpc.leaseRegs ql, x ∈ regs⌝ ∗
+    v3rpc.quotaLeaseServerAt ql
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #pl⟩ s ∗
+    v3rpc.leaseServerAt pl s A lcid lmid)
+
+instance grpcLeaseUp_persistent (s : Loc) (A : v3rpc.KVAns GF)
+    (regs : List (GoString × val × GoInterface)) : Persistent (grpcLeaseUp (GF := GF) s A regs) := by
+  unfold grpcLeaseUp; infer_instance
 
 /-- **What `v3rpc.Server` and `Listen` return** (the ghost step's input): the gRPC server `gs`
 being built with etcd's interceptor chains and services (`v3rpc.Server.spec`'s postcondition, at
@@ -321,7 +350,7 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
     ([∗list] _x ∈ List.replicate 64 (), mvcc.watchReader C.wsl E.s C.γ) ∗
-    netListenerAt lis addr)
+    netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
 
 /-- **What member `id`'s `NewServer` takes of the ghost state, with auth on** (the auth plan's
 E3zb, 2026-10-28; `memberBoot`'s, `NewServer.specM true`'s): the start chain with the auth layer
@@ -335,8 +364,10 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
       ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧
       ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = cmp ∧
       ρ.rd.kv.cmp = cmp⌝ ∗
-    nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ srvRaftLogInv ρ.rd.raft ∗
-    idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
+    (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
+      nodeVacant γ.cl id) ∗ srvRaftLogInv ρ.rd.raft ∗
+    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+    idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
     idShare ρ.ids ∗ idWaitTok ρ.ids ∗
     mvcc.idxFresh E₀.γ.idx ∗

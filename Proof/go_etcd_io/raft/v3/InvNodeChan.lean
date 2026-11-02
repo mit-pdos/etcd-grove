@@ -421,6 +421,19 @@ structure NodeNames [GooseExts] where
   /-- (2026-10-22, D38a) the node's id (`isNodeChan`'s): the sender of the messages its `Ready`s hand
   out (`isRaftMsg`, whose `MsgApp`s are from it) -/
   id : w64
+  /-- (2026-11-01, durability stage I-1/I-3, R8) the node's generation of its id's slot
+  (`slotLive`), fixed at its start: `nodeLiveRaw`'s shares hold it, *enter* and the cut need it,
+  the stop consumes it whole -/
+  gen : Nat := 0
+  /-- (2026-11-01, durability stage I-3/I-8) the durable state and the role the driver last
+  recorded (`NodeDriverState.durable`, `.role`): halves, the driver's and `run`'s, which travels
+  with a `Ready` (`readyCut`) and comes back at `Advance` (`advanceP`), so that `run` cuts the next
+  batch from the client's durable state -/
+  dur : GName := 0
+  /-- (2026-11-01, durability stage I-3, R7) the virtual maps of the batch last cut: halves,
+  `run`'s and the driver's (`readyCut`), which comes back at `Advance` with the fragments *enter*
+  minted (`advanceP`), for the batch's self-addressed messages -/
+  bw : GName := 0
   -- (raft-final phase 1, 2026-10-29, U9) `snapIn` (the application may deliver a `MsgSnap`, D22 S-d4)
   -- deleted: in every cluster.
 
@@ -658,8 +671,9 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     -- (U8 v2) the committed entries below the batch, frozen
     ceFrozen γ.stor d.length ce es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
-    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft γ.id q.st ∗
-      termLB γ.bud q.st.msg.Term') ∗
+    -- (2026-11-01, durability stage I-3) each message's `isRaftMsg` behind the batch's fragments
+    -- (`readyCut`)
+    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ termLB γ.bud q.st.msg.Term') ∗
     ([∗list] q ∈ ms, rdCred γ.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
     -- (2026-10-19, D21 M6) each forwarded proposal's tickets (`stTks`)
     ([∗list] q ∈ ms, stTks γ.raft q.st) ∗
@@ -713,8 +727,7 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
   iprop(entsRO rd.CommittedEntries' ce ∗ isCommitted γ.raft (d ++ ce) ∗
     entsRO rd.Entries' es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
-    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft γ.id q.st ∗
-      termLB γ.bud q.st.msg.Term') ∗
+    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ termLB γ.bud q.st.msg.Term') ∗
     ([∗list] q ∈ ms, rdCred γ.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
     ([∗list] q ∈ ms, stTks γ.raft q.st) ∗
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
@@ -758,6 +771,32 @@ def readyDataL (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
 -- that cannot be handed a snapshot: in the no-snapshot mode, or at a node that takes no `MsgSnap`)
 -- deleted: every client may be handed one.
 
+/-- (2026-11-01, durability stage I-3; `notes/raft-durability-proof-plan.md` I-1/I-3, R7, R9) **A
+`Ready`'s batch, cut** (`ownRaftGhost_cut` at `run`'s send): `run`'s half of the durable state and
+role the driver recorded (`dur`, at `x`), `run`'s half of the batch's virtual maps (`bw`, at `W`),
+the batch queued in the node's generation (`pendBatch`), entering the recorded durable state with
+the batch applied (`readyDurable`), the `Ready`'s soft state `ss`, each message's `isRaftMsg`
+behind the batch's fragments (released by *enter*, `raft_enter`), and at role leader (the role
+after `ss`) unconditionally (R9: a leader's outbox needs no pending promise). -/
+def readyCut (γ : NodeNames) (rd : Ready) (d ce es : List EntryM) (ms : List QMsg)
+    (p p' : HardStateM) (L : Option SnapLoan) : IProp GF :=
+  iprop(∃ (x : RaftState × StateType) (S' : RaftState) (W : DurMaps)
+      (ss : Option (w64 × StateType)),
+    dghostVar γ.dur (DFrac.own (1 : Qp).half) x ∗
+    -- (2026-11-01, stage II(g), approved fix D) `bw` also records the durable state and role the
+    -- batch enters, by which `run` recognizes the driver's half of `dur` back at `Advance`
+    dghostVar γ.bw (DFrac.own (1 : Qp).half) (W, (S', roleAfter x.2 ss)) ∗
+    pendBatch γ.raft γ.id γ.gen S' W ∗ ⌜S' = readyDurable x.1 p' L es⌝ ∗
+    -- (2026-11-01, stage II(g), approved fix B) the budget covers the entered term (`raftState`'s)
+    termLB γ.bud S'.term ∗
+    softStateIs rd.SoftState' ss ∗
+    ([∗list] q ∈ ms, □ (durFrags γ.raft γ.id W -∗ isRaftMsg γ.raft γ.id q.st)) ∗
+    □ (⌜roleAfter x.2 ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ.raft γ.id q.st) ∗
+    -- (2026-11-01, durability stage II (m)) what the `Ready` is past, and within, of the recorded
+    -- durable state, the hard state `p` last handed out and the committed log `d` handed out
+    -- (`ReadyFacts`, `ownRawNodeReady_handout`'s)
+    ⌜ReadyFacts x.1 p p' d ce es L⌝)
+
 /-- A `Ready` on `readyc` (see the file header): `run`'s half of `dlv` at `d`, the other half
 of its record, and the data. (D22 S-d4, 2026-10-21) The record has the `Ready`'s snapshot, if any
 (the loan `L`, `RNState.slent`), so that `run` recognizes its own loan at `Advance`; the lower bound
@@ -772,7 +811,9 @@ is of the committed log handed out after the `Ready` (`dlvAfter`). -/
     -- (U8 v2) with raft's certified terms (`dlvLb`)
     dlvKeys γ.sn (dlvAfter d ce L) ∗
     -- (2026-10-28, the decision switch) the loan's decisions, for `Advance`
-    loanDecO γ.raft L)
+    loanDecO γ.raft L ∗
+    -- (2026-11-01, durability stage I-3) the batch, cut
+    readyCut γ rd d ce es ms p p' L)
 
 -- (2026-10-28) `advReceipt` moved to `ApiVocab.lean` (the storage contract's vocabulary, which
 -- `node.Advance`'s spec states)
@@ -808,6 +849,13 @@ loan `L`: the committed log handed out after it (`dlvAfter`), and the receipt fo
     -- (`cap`'s half at `x`), which the rendezvous moves to the snapshot's (`loanCfg`) (until
     -- 2026-10-29, stage U5, also dynamically the snapshot's `ConfState` no auto-leave one)
     capPay γ L x ∗
+    -- (2026-11-01, durability stage I-3/I-8, R7) `run`'s halves back: the durable state and role
+    -- recorded after the `Ready`, and the batch's maps with the fragments *enter* minted
+    -- ((2026-11-01, stage II(g), approved fix D) with the generation's free queue, which *enter*
+    -- freed, for `run`'s next cut; `bw` recording `y`)
+    (∃ (y : RaftState × StateType) (W : DurMaps), dghostVar γ.dur (DFrac.own (1 : Qp).half) y ∗
+      dghostVar γ.bw (DFrac.own (1 : Qp).half) (W, y) ∗ durFrags γ.raft γ.id W ∗
+      slotFree γ.raft γ.id γ.gen) ∗
     -- (2026-10-15, stage N) **A1**, in the dynamic mode: no conf entry of the committed log
     -- handed out past the driver's configuration index `ca` (a lower bound of `run`'s)
     -- (2026-10-28, the decision switch) or skipped (`undecFree`); (raft-final, 2026-10-29, the
@@ -866,9 +914,13 @@ entry. (D22 S-d4, 2026-10-21) A node that takes snapshots (`snapIn`) is outside 
 mode (2026-10-28, stage U3d: in either mode; until then the static one); one that does not has no
 snapshot pending or lent (from D22 S-c to S-d4 none at all); while a snapshot `Ready` is lent the
 committed log handed out is the loan's (`rsDlv`), which extends `delivered`, and (U3d) the driver may
-apply a conf entry of it (the configuration index bounded by it, `rsDlv`). -/
+apply a conf entry of it (the configuration index bounded by it, `rsDlv`). (2026-11-02, stage II
+(u)) The configuration index past the committed log handed out only with the driver's view at it
+(`ca = capplied`): a node `RestartNode` starts at its storage's `ConfState`'s point, above the
+applied index it hands the committed log out from, whose conf entries up to that point the view
+already reflects (until then `capplied ≤ (rsDlv rs).length` always). -/
 @[no_expose] def runCfg (γ : NodeNames) (rs : RNState) : IProp GF :=
-  iprop(⌜rs.mode = γ.mode ∧ rs.capplied ≤ (rsDlv rs).length ∧
+  iprop(⌜rs.mode = γ.mode ∧
       -- (D19i part 1) the floor not raised past `applied` (`RNState.flw`): `run` raises it only
       -- in its `advancec` arm, right before `Advance`
       rs.flw = false ∧
@@ -881,7 +933,7 @@ apply a conf entry of it (the configuration index bounded by it, `rsDlv`). -/
     -- (U8 v2, 2026-10-29) raft's certified terms of it, for the driver's lower bounds (`dlvLb`)
     dlvKeys γ.sn (rsDlv rs) ∗
     ∃ ca : Nat, dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, rs.cfg) ∗
-      monoNatAuthOwn γ.cam 1 ca ∗ ⌜ca ≤ rs.capplied⌝ ∗
+      monoNatAuthOwn γ.cam 1 ca ∗ ⌜ca ≤ rs.capplied ∧ (ca < rs.capplied → rs.capplied ≤ (rsDlv rs).length)⌝ ∗
       -- (2026-10-28, the decision switch) over skipped entries (until then none, `NoConfIn`)
       undecFree γ.raft γ.mode (rsDlv rs) ca rs.capplied)
 
@@ -963,6 +1015,9 @@ taken back by a `select` that fires another case. -/
   iprop(∃ (rs : RNState) (d ce : List EntryM), ownRawNode γ.raft rn id rs ∗
     termLB γ.bud rs.tc ∗ runCfg γ rs ∗
     dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted, rs.phs, rs.slent) ∗
+    -- (2026-11-01, durability stage II (n)) `run`'s half of the batch's maps, recording the durable
+    -- state and role it enters (`readyCut`'s other half)
+    dghostVar γ.bw (DFrac.own (1 : Qp).half) (rs.bw, (rs.dur, rs.role)) ∗
     ⌜(rs.storage = γ.stor ∧ rs.sn = γ.sn) ∧ rs.unst = false ∧ rs.delivered = d ++ ce⌝)
 
 /-- `run`'s node after the rendezvous: the `Ready`'s entries appended, the floor raised
@@ -977,6 +1032,12 @@ entries not appended here, and the floor not raised; `dlv` at the committed log 
     (∃ x : List EntryM × List EntryM × List EntryM × HardStateM × Option SnapLoan,
       dghostVar γ.rof (DFrac.own (1 : Qp).half) x ∗ dghostVar γ.rof (DFrac.own (1 : Qp).half) x) ∗
     monoNatLbOwn γ.cam ca_d ∗ loanRet rs ∗
+    -- (2026-11-01, stage II(g), approved fix D) the driver's halves back (`advanceP`'s);
+    -- (2026-11-01, stage II (n)) agreeing with `run`'s (`advDep`'s `bw` half): the durable state and
+    -- role the node records, `bw` whole, the fragments of the node's batch maps
+    dghostVar γ.dur (DFrac.own (1 : Qp).half) (rs.dur, rs.role) ∗
+    (∃ W : DurMaps × (RaftState × StateType), dghostVar γ.bw (DFrac.own 1) W) ∗
+    durFrags γ.raft γ.id rs.bw ∗ slotFree γ.raft γ.id γ.gen ∗
     ⌜rs.storage = γ.stor ∧ rs.unst = false ∧ (rs.slent = none → rs.unpersisted = [])⌝ ∗
     -- (raft-final phase 2: the design's A1, only after a `Ready` without a snapshot, as `advanceP`'s;
     -- until then unguarded)
@@ -1052,19 +1113,61 @@ lower bound, and the `ConfState` of the configuration. (2026-10-16, stage R5: th
       monoNatLbOwn γ.cam v.1 ∗ ⌜confstateOk c v.2.cfg⌝)))
 
 /-- (2026-10-29, stage U9a) **The node runs** (a share `q` of a half of `live`; `q = 1` the half:
-the client's, which `Stop` sends on `stop` (the API's `nodeRunning`), or `run`'s). -/
+the client's, which `Stop` sends on `stop` (the API's `nodeRunning`), or `run`'s); (2026-11-01,
+durability stage I-3, R8) with the same share of the node's generation of its id's slot
+(`slotLive`, at `gen`), which *enter* and the cut need and the stop consumes whole. -/
 def nodeLiveRaw (γ : NodeNames) (q : Qp) : IProp GF :=
-  dghostVar γ.live (DFrac.own q.half) false
+  iprop(dghostVar γ.live (DFrac.own q.half) false ∗ slotLive γ.raft γ.id q.half γ.gen)
+
+/-- (stage II helper) A share of the generation splits and combines. -/
+instance slotLive_fractional (γ : RaftNames) (id : w64) (g : Nat) :
+    Fractional (fun q => slotLive (GF := GF) γ id q g) where
+  fractional p q := by
+    unfold slotLive
+    constructor
+    · iintro ⟨%γs, %H, Hv⟩
+      icases ((ghostVar_half_fractional (GF := GF) γs.2.2 g).fractional p q).1 $$ Hv with ⟨H1, H2⟩
+      isplitl [H1]
+      · iexists γs; iframe H1; ipureintro; exact H
+      · iexists γs; iframe H2; ipureintro; exact H
+    · iintro ⟨⟨%γs, %H, H1⟩, ⟨%γs', %H', H2⟩⟩
+      rw [H] at H'; cases H'
+      iexists γs
+      isplitr
+      · ipureintro; exact H
+      iapply ((ghostVar_half_fractional (GF := GF) γs.2.2 g).fractional p q).2
+      iframe H1 H2
 
 instance nodeLiveRaw_fractional (γ : NodeNames) :
     Fractional (nodeLiveRaw (GF := GF) γ) where
   fractional p q := by
     unfold nodeLiveRaw
     rw [Qp_half_add]
-    exact (dghostVar_fractional (GF := GF) γ.live false).fractional p.half q.half
+    constructor
+    · iintro ⟨Hl, Hs⟩
+      icases ((dghostVar_fractional (GF := GF) γ.live false).fractional p.half q.half).1 $$ Hl
+        with ⟨Hl1, Hl2⟩
+      icases ((slotLive_fractional (GF := GF) γ.raft γ.id γ.gen).fractional p.half q.half).1 $$ Hs
+        with ⟨Hs1, Hs2⟩
+      isplitl [Hl1 Hs1]
+      · iframe Hl1 Hs1
+      · iframe Hl2 Hs2
+    · iintro ⟨⟨Hl1, Hs1⟩, ⟨Hl2, Hs2⟩⟩
+      isplitl [Hl1 Hl2]
+      · iapply ((dghostVar_fractional (GF := GF) γ.live false).fractional p.half q.half).2
+        iframe Hl1 Hl2
+      · iapply ((slotLive_fractional (GF := GF) γ.raft γ.id γ.gen).fractional p.half q.half).2
+        iframe Hs1 Hs2
 
 instance nodeLiveRaw_timeless (γ : NodeNames) (q : Qp) : Timeless (nodeLiveRaw (GF := GF) γ q) := by
-  unfold nodeLiveRaw; infer_instance
+  unfold nodeLiveRaw slotLive; infer_instance
+
+/-- (2026-11-01, durability stage II (n), the stop's option (c)) **`run`'s answer on `stop`**: its
+share of the generation (`nodeLiveRaw`'s, `slotLive` at `½`) and its node's volatile protocol
+state (`ownRaftGhost`), which `run` gives up when it stops. `Stop` takes them, adds its own share of
+the generation, and gives the id's slot back itself (`raft_stop`, `nodeVacant`). -/
+def stopAns (γ : NodeNames) (id : w64) : IProp GF :=
+  iprop(slotLive γ.raft id (1 : Qp).half γ.gen ∗ ∃ (s : PState) (md : Bool), ownRaftGhost γ.raft id s md)
 
 /-- (2026-10-29, stage U9a) **The node stopped** (persistent): `run` closed `done`, the
 broadcast's proposition. -/
@@ -1098,7 +1201,7 @@ instance propErrRaw_persistent (γ : NodeNames) (cd : context.ContextDesc (IProp
 theorem nodeLiveRaw_stopped (γ : NodeNames) (q : Qp) :
     nodeLiveRaw (GF := GF) γ q ∗ nodeStoppedRaw γ ⊢ False := by
   unfold nodeLiveRaw nodeStoppedRaw
-  iintro ⟨H1, H2⟩
+  iintro ⟨⟨H1, -⟩, H2⟩
   ihave %H := dghostVar_agree _ _ _ _ _ $$ H1 H2
   cases H
 
@@ -1150,7 +1253,11 @@ theorem node_done_recv_live_au (γ : NodeNames) (ch : Loc) (q : Qp) (Φ : Unit �
     -- idiom: `run` holds the `.Pending` side, `runPre`), with the node stopped; `stop` carries the
     -- client's half of `live` (`Stop`)
     "#Hdone" ∷ ownBroadcastChan nv.done' γ.done (nodeStoppedRaw γ) .Unknown ∗
-    "#Hstop" ∷ isHandshake γ.stop nv.stop' (fun (_ : Unit) => nodeLiveRaw γ 1) iprop(True) ∗
+    -- (2026-11-01, durability stage II (n), the stop's option (c); from stage I-2/I-7 the client's
+    -- whole `nodeLiveRaw` for the id's slot) the client's half of `live`, for `run`'s share of the
+    -- generation and its protocol state (`stopAns`): `Stop` gives the id's slot back itself
+    "#Hstop" ∷ isHandshake γ.stop nv.stop'
+      (fun (_ : Unit) => dghostVar γ.live (DFrac.own (1 : Qp).half) false) (stopAns γ id) ∗
     "#Hstatus" ∷ isHandshake γ.status nv.status' statusChP iprop(True) ∗
     "#Htickc" ∷ isChan nv.tickc' γ.tick Unit ∗
     "#Htickinv" ∷ inv tickN (tickInv γ) ∗
@@ -1209,7 +1316,7 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
     {{ (rd : Ready), RET (PairV #rd #true);
         ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
           readyDataL γ rd ds ce es ms p p' L ∗
-          nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L }} := by
+          nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗ readyCut γ rd ds ce es ms p p' L }} := by
   iintro %Φ ⟨#Hrc, Hdrv⟩ HΦ
   unfold nodeDriverChan
   icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
@@ -1219,12 +1326,12 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
   iintro %rd
   iintro !> HP
   unfold readyP
-  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld⟩
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld, Hcut⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
   cases Heq
   iapply HΦ
   iexists ce, es, ms, p', L
-  iframe Hdata
+  iframe Hdata Hcut
   unfold nodeDriverBusy
   iframe Hnode Hld
   isplitr
@@ -1297,16 +1404,16 @@ theorem readyP_take (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : Lis
     ⊢ readyP (GF := GF) γ rd -∗ nodeDriverChan γ id n ds p -∗
       ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
         readyDataL γ rd ds ce es ms p p' L ∗ nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗
-        dlvLb γ (dlvAfter ds ce L) := by
+        dlvLb γ (dlvAfter ds ce L) ∗ readyCut γ rd ds ce es ms p p' L := by
   iintro HP Hdrv
   unfold nodeDriverChan
   icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
   unfold readyP
-  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld⟩
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld, Hcut⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
   cases Heq
   iexists ce, es, ms, p', L
-  iframe Hdata
+  iframe Hdata Hcut
   unfold nodeDriverBusy dlvLb
   iframe Hnode Hlb Hk Hld
   iexists ds, ce, p

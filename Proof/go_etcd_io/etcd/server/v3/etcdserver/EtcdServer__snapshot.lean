@@ -90,7 +90,7 @@ theorem EtcdServer.snapshot.wp_proof
     (hStr : zap.String.spec (GF := GF) (hG := hG))
     (hBool : zap.Bool.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshot.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr γw b ep st ai at' cs a t x toDisk ms γs nid sl γp ua q Hloop Hci Hrel
+  intro s γ ci TM E ρ γr γw b ep st ai at' cs a t x toDisk ms γs nk sl γp ua q Hloop Hci Hrel
     Hpos Hsz Hwso
   cases toDisk
   all_goals (
@@ -140,7 +140,7 @@ theorem EtcdServer.snapshot.wp_proof
     icombine Heood Hxs gives %Heq
     subst Heq
     (try wp_auto)
-    wp_apply (wp_srv_createSnapshot hCS ms γs γr nid ai at' cs _ Hpos Hsz) $$ [Hstor]
+    wp_apply (wp_srv_createSnapshot hCS ms γs γr nk ai at' cs _ Hpos Hsz) $$ [Hstor]
       as %snap' %err ⟨#Hlbi, Hres⟩
     · iframe #; iframe Hstor
     icases Hres with (⟨%Herr, %c, %Hcsc, Hsnap⟩ | %Herr)
@@ -271,7 +271,7 @@ theorem EtcdServer.snapshot.wp_proof
     icombine Heood Hxs gives %Heq
     subst Heq
     (try wp_auto)
-    wp_apply (wp_srv_createSnapshot hCS ms γs γr nid ai at' cs _ Hpos Hsz) $$ [Hstor]
+    wp_apply (wp_srv_createSnapshot hCS ms γs γr nk ai at' cs _ Hpos Hsz) $$ [Hstor]
       as %snap' %err ⟨#Hlbi, Hres⟩
     · iframe #; iframe Hstor
     icases Hres with (⟨%Herr, %c, %Hcsc, Hsnap⟩ | %Herr)

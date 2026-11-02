@@ -361,8 +361,9 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
     ihave #Hecl : entryClaim γk.ids e $$ []
     · iunfold entryClaim
       iright
-      iexists rq, id, γf
+      iexists rq, id, γf, γk.ids.key
       rw [hed]
+      iunfold idClaim at Hcl
       iframe Hcl Hreg
       ipureintro; exact ⟨hdec, hid⟩
     ihave #Hw' := kvWork_snoc γ.raft γk L e hsh (fun h => absurd het h)
@@ -403,8 +404,9 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
   · iintro %e %hed
     iunfold entryClaim
     iright
-    iexists rq, id, γf
+    iexists rq, id, γf, γk.ids.key
     rw [hed]
+    iunfold idClaim at Hcl
     iframe Hcl Hreg
     ipureintro; exact ⟨hdec, hid⟩
   iunfold reqPropOkW at Hok

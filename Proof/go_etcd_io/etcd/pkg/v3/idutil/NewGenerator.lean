@@ -36,8 +36,8 @@ theorem idutil_suffix_lt (x : BitVec 64) : (x &&& 0xffffffffff#64) <<< 8#64 < 0x
 
 theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := hG)) :
     idutil.NewGenerator.spec (GF := GF) (hG := hG) := by
-  intro γi memberID now Φs Hpfx
-  wp_start as ⟨Hshare, #Hcl⟩
+  intro γi memberID now X hX Φs x Hpfx
+  wp_start as ⟨Hshare, #Hkf, #Hcl⟩
   iunfold idShare at Hshare
   icases Hshare with ⟨Hcnt, HS⟩
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
@@ -63,7 +63,7 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
       structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" gp ↦
         (s0 + W64 (k : Int)) ∗
       ⧗ k ∗
-      γi.pfx ↪[γi.cnt] L ∗ ghostMapAuth γi.slot 1 S ∗
+      γi.key ↪[γi.cnt] L ∗ ghostMapAuth γi.slot 1 S ∗
       ⌜∀ id, (id ∈ L ↔ idIssued γi.pfx s0 k id) ∧ ((S !! id).isSome ↔ idIssued γi.pfx s0 k id)⌝)
     $$ [suffix HCa Hcnt HS] with #Hinv
   · inext
@@ -87,8 +87,8 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
   · ipureintro; exact Hgpn
   isplitr
   · ipureintro; exact ⟨Hs0, Hpl⟩
-  iexists Φs
-  iframe Hcl
+  iexists X, hX, Φs, x
+  iframe Hkf Hcl
   ipureintro; rfl
 
 end proof

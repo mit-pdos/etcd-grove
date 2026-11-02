@@ -151,13 +151,13 @@ instance isServerApplyAll_persistent (s : Loc) (γr : ReadNames) :
 
 /-- (2026-10-30, the repair) **What `CreateSnapshot` at the applied index `ai` of term
 `at'` takes of the cluster and the storage** (persistent): the storage's invariant at the node
-`nid`'s justifications, the node's delivered log past `ai` (`J.DL`), raft's committed log at the
+of key `nk` (the node's storage key)'s justifications, the node's delivered log past `ai` (`J.DL`), raft's committed log at the
 server (its registry, `srvClusterOk`) and a committed log `A` of length `ai` whose last term is
 `at'` (`snapshotCert_make`'s). -/
-def srvSnapStor (ms : Loc) (γs : MemStorNames) (γr : ReadNames) (nid : w64) (ai at' : w64) :
+def srvSnapStor (ms : Loc) (γs : MemStorNames) (γr : ReadNames) (nk : GName) (ai at' : w64) :
     IProp GF :=
   letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩
-  iprop(memStorInv ms γs γr.raft.raft.cl nid ∗ storDL γr.raft.raft.cl nid (uint.nat ai) ∗
+  iprop(memStorInv ms γs γr.raft.raft.cl nk ∗ nodeCommitLb γr.raft.raft.cl nk (uint.nat ai) ∗
     srvRaftLogInv γr.raft ∗
     ∃ A : List EntryModel, srvRLogLb γr.raft A ∗ ⌜uint.Z ai = A.length ∧ lastTermIs A at'⌝)
 

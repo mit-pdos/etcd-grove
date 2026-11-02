@@ -42,7 +42,7 @@ bounds the two specs take, and the lessor's reader pool): `raftLeaseRead` at `S 
 theorem raftLeaseRead_of_server (hTTL : EtcdServer.LeaseTimeToLive.spec (GF := GF) (hG := hG))
     (hLs : EtcdServer.LeaseLeases.spec (GF := GF) (hG := hG))
     (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName) (cs ms : w64)
-    (hT : threadBound GF ≤ 2 ^ 30 - 1) (hR : receiptBound GF ≤ 2 ^ 62) :
+    (hT : threadBound GF ≤ 2 ^ 30 - 1) (hR : receiptBound GF ≤ 2 ^ 62) (hP : leasePeersOk) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthAt s E ∗
         srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ lease.lessorRdPool γl ∗ srvHeaderFacts s cs ms ⊢
@@ -53,7 +53,7 @@ theorem raftLeaseRead_of_server (hTTL : EtcdServer.LeaseTimeToLive.spec (GF := G
   isplitr
   · iunfold lessorTTLOk
     iintro %ci %cd %r %dq %v %n %m !> %Φ ⟨⟨HRD, Htok⟩, HR, #Hctx, #Hpub, #Hllb, Hr⟩ HΦ
-    wp_apply (hTTL s E ρ γr γl ci cd r dq v n m) $$ [HRD Htok Hr]
+    wp_apply (hTTL hP s E ρ γr γl ci cd r dq v n m) $$ [HRD Htok Hr]
       as %resp %err ⟨HRD, Htok, Hr, Hans⟩
     · iframe; iframe #; ipureintro; exact hT
     iapply HΦ

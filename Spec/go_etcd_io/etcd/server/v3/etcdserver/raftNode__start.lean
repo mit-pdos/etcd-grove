@@ -39,7 +39,7 @@ abbrev raftNode.start.spec : Prop :=
       rnWalTok r (1 : Qp).half ∗
       -- (2026-10-31, #3) the `MemoryStorage`'s invariant and its stored snapshot's index at least
       -- `0` (a snapshot `Ready`'s `ApplySnapshot`)
-      (letI : MemStorReg GF := ⟨γ.reg⟩; memStorInv γ.ms γ.γs γ.node.cl γ.id) ∗ memSnapLb γ.γs 0 }}
+      (letI : MemStorReg GF := ⟨γ.reg⟩; memStorInv γ.ms γ.γs γ.node.cl γ.key) ∗ memSnapLb γ.γs 0 }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"start")) (Val #rh))
   {{ RET #(); True }}
 

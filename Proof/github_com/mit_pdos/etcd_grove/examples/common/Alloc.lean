@@ -63,15 +63,22 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
   have Hid0 : id ≠ W64 0 := by
     intro h; apply Hlow; rw [h]; decide
   let Φs : w64 → w64 → List w8 → GName → IProp GF := fun _ => srvFloorFact (env₀ idx cok rev cmp)
-  imod (srvClusterBoot_alloc (GF := GF) [id] ctxs boot Φs reg Hrb Hrb2 HB (by simp) (by simp)
-      (by simpa using Hid0.symm) Hcc (by simp) (by simpa using Hlow) cmp cret) $$ Hmarsh
-    with ⟨%γ, %issued, %cnt, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms, Hwns⟩
-  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, hkc, hkr⟩ := Hγ
-  icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, Hnb, Hsd⟩, -⟩
+  imod (srvClusterBoot_alloc (GF := GF) [id] ctxs boot (fun _ => idx) reg Hrb Hrb2 HB (by simp)
+      (by simp) (by simpa using Hid0.symm) Hcc (by simp) (by simpa using Hlow) cmp cret) $$ Hmarsh
+    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
+      Hwns⟩
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr⟩ := Hγ
+  icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, #Hkf, Hnb, Hsd⟩, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hwns with ⟨Hwn, -⟩
-  imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp Hwn
+  imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp [Hwn]
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
-  obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', -, hkr'⟩ := Hρ
+  · rw [hwn]; iexact Hwn
+  obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', -, hkr', hwn', hfs', hinc'⟩ := Hρ
+  -- (R2c) the member's first key, its store's index registered, at its names
+  ihave #Hkf' : idKeyFactAt ρ.ids.fs ρ.ids.key idx $$ []
+  · simp only [IdNames.key]; rw [hpfx, hinc', hfs', hfs]; iexact Hkf
+  ihave #Hcl' : idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts $$ []
+  · rw [hiss', hcnt, hwn', hfs', hiss, hwn, hfs]; iexact Hcl
   -- the raft network; (2026-10-24, rafthttp stage 6d) one member: no other member's hosts to
   -- register (until then the member's slot)
   imod (netNames_alloc (srvNet γ) dir (∅ : GMap w64 Unit) ⊤) with ⟨%γn, %Hγn, -, #HregN⟩
@@ -91,7 +98,7 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
   rw [← hboot, etcdKV_congr ρ.rd.kv γk hst,
     show kvModelSt ρ.rd.kv (bootEntries γ.boot) = kvModelSt γk (bootEntries γ.boot) by
       unfold kvModelSt kvLeases kvModel; rw [hc0', hch', hlog']]
-  iframe Hnb Hsrl Hcl Hpm Hrc Hsh Hidx Hcok Hrev Hnk Hkvρ Hwt Hetcd Hsd Hreg
+  iframe Hnb Hsrl Hcl' Hkf' Hpm Hrc Hsh Hidx Hcok Hrev Hnk Hkvρ Hwt Hetcd Hsd Hreg
   isplitr
   · ipureintro
     exact ⟨rfl, by rw [hc0', hc0], by rw [hch', hch], by rw [hlog', hlog], hcok,

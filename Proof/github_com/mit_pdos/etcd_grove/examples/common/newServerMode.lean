@@ -52,7 +52,7 @@ theorem newServerMode.wp_proof
   iunfold commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hnrl⟩
   iunfold memberBoot at Hmb
-  icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #HNZ0, #Hpmint, #Hrdctx,
+  icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
   obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp⟩ := Hρ
   -- `NewServer`'s compactor premise and the store's mode, from the mode's
@@ -126,7 +126,7 @@ theorem newServerMode.wp_proof
     iapply Htk
     ipureintro; rfl
   icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, -, -⟩)
+    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, -, #Hlrd, #Hpool⟩)
   · -- `NewServer` failed: the error returned
     iapply HΦ; ileft; iframe Htok; ipureintro; exact Herr
   subst Herr
@@ -142,6 +142,8 @@ theorem newServerMode.wp_proof
     isplitr; · iExactEq Hmd; rfl
     iexists _
     iframe Hmf Hfgc
+  ihave #Hlr : srvLeaseRd srv E $$ []
+  · iunfold srvLeaseRd; iframe #
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl

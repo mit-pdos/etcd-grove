@@ -157,7 +157,8 @@ local macro "kv_snap_post" : tactic => `(tactic| (
     wp_for_post
     iframe
     unfold kvRunInv
-    iexists D ++ ce, phsNext hd hh, rdv', rest, ps', a', a', c
+    iexists D ++ ce, phsNext hd hh, rdv', rest, ps', a', a', c, readyDurable S (phsNext hd hh) none es,
+      roleAfter ro ss
     iframe
     iframe Hps2 Hcp Hfz'
     isplitl [HmK HK HmA HA]
@@ -189,8 +190,8 @@ theorem KV.run.wp_proof
     (wp_Entry_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
     (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
     KV.run.spec (GF := GF) (hG := hG) := by
-  intro γr γp r id n st send
-  wp_start as ⟨#Hrep, Hdrv, Hcfg, Hrun, Hown, #Hstor, #Hsend⟩
+  intro γr γp r id n st send Kst
+  wp_start as ⟨#Hrep, Hdrv, Hraft, Hcfg, Hrun, Hown, #Hstor, #Hsend⟩
   ihave #Hrep' := Hrep
   iunfold isReplica at Hrep'
   iNamed Hrep'
@@ -212,13 +213,14 @@ theorem KV.run.wp_proof
   icases HmsInv' with ⟨#Hlock, -, -⟩
   wp_auto
   wp_apply wp_node_Ready γr.cluster kvRaftN id n $$ [$Hraftinit $HisNode] as %ch #Hch
-  ihave IH : kvRunInv γr r n st γs rd_ptr pending_ptr applied_ptr snapIndex_ptr reconf_ptr
-    $$ [rd Hdrv Hcfg Hrun Hown pending applied snapIndex reconf]
+  ihave IH : kvRunInv γr id Kst r n st γs rd_ptr pending_ptr applied_ptr snapIndex_ptr reconf_ptr
+    $$ [rd Hdrv Hraft Hcfg Hrun Hown pending applied snapIndex reconf]
   · unfold kvRunInv
     ihave ⟨Hdrv, #Hdl⟩ := nodeDriver_deliveredLogLb _ _ _ _ $$ Hdrv
-    iexists [], hsZero, zero_val Ready, zero_val GoSlice, [], zero_val w64, zero_val w64, 0
+    iexists [], hsZero, zero_val Ready, zero_val GoSlice, [], zero_val w64, zero_val w64, 0,
+      RaftState.init, W64 0
     unfold NodeDriverState.init
-    iframe Hdrv Hrun Hown rd pending applied snapIndex reconf
+    iframe Hdrv Hraft Hrun Hown rd pending applied snapIndex reconf
     isplitl [Hcfg]
     · unfold appNode
       iexists ⟨0, kvMembership⟩
@@ -241,10 +243,14 @@ theorem KV.run.wp_proof
   wp_for IH
   try wp_auto
   wp_apply node.wp_readyRecv n ch γr.cluster kvRaftN id _ rfl $$ [$Hch $HisNode $Hdrv]
-    as %rdv' ⟨%ce, %es, %hh, %L, #Hce, #Hcomm, ⟨%sts, #Hsts, #Hstsok⟩, Hrest, Hdrv⟩
-  ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ $$ Hrest
+    as %rdv' Hgot
+  iunfold readyGot at Hgot
+  icases Hgot with ⟨%ce, %es, %hh, %L, %qs, %ss, #Hce, #Hcomm, ⟨%sts, #Hsts, #Hstsok⟩, Hrest, -, Henter⟩
+  iunfold readyEnter at Henter
+  imod Henter $$ %⊤ %(1 : Qp) %(by simp) [$Hraft $Hrun] with ⟨Hraft, Hrun, Hdrv, #Hmsgs⟩
+  ihave ⟨%Hidx, Hrest⟩ := readyRest_indices _ _ _ _ _ _ _ _ _ _ $$ Hrest
   unfold readyRest
-  icases Hrest with ⟨%msgs, #Hes, Hms, Hmsok, -, -, %Hbnd, HS⟩
+  icases Hrest with ⟨#Hes, Hms, Hmsok, -, -, %Hbnd, HS, -⟩
   try wp_auto
   wp_apply wp_fits rdv'.Entries' es DFrac.discard $$ [$Hpkg $Hes] as %b ⟨-, %Hfit⟩
   cases b
@@ -262,9 +268,8 @@ theorem KV.run.wp_proof
   imod kv_noConf γr (D ++ ce) ⊤ CoPset.subseteq_top $$ Hinv Hcl Hcomm with ⟨%Hnc, #HcaF⟩
   cases L with
   | none =>
-    ihave Hdrv : iprop(nodeDriver n γr.cluster kvRaftN ⟨kvStorIface st, D ++ ce, phsNext hd hh,
-        some (es, none)⟩) $$ [Hdrv]
-    · iexact Hdrv
+    simp only [NodeDriverState.afterReady]
+    icases nodeDriver_nodeCommitLb _ _ _ _ $$ Hdrv with ⟨Hdrv, #HclD⟩
     ihave ⟨Hdrv, #Hdl⟩ := nodeDriver_deliveredLogLb _ _ _ _ $$ Hdrv
     iunfold readySnap at HS
     icases HS with ⟨%Hnull, Happ, #Hcef, %Hin⟩
@@ -300,7 +305,8 @@ theorem KV.run.wp_proof
     wp_bind (App (Val #send) _)
     iunfold sendSpec at Hsend
     iapply Hsend $$ [Hms Hmsok]
-    · iframe
+    · iframe Hms
+      iapply readyMsgs_sent $$ [$Hmsok $Hmsgs]
     iintro !> -
     try wp_auto
     -- the read states, noted
@@ -457,16 +463,14 @@ theorem KV.run.wp_proof
         imod kv_snap_make γr (D ++ ce) a' e.Term' (encState kvs ops) Hlen' (by word) Ha61 Hlast
             (snapListsOk_voters kvVoters e.Term' a' _ (by decide) (by decide) (by decide) (by decide) Ha61)
             HSE $$ Hcl Hap HcaF with #Hsv
-        ihave #HSV : (kvJ γr.cluster id).SV
+        ihave #HSV : (kvJ γr.cluster Kst).SV
             (memSnapMade a' e.Term' (kvConfState kvVoters) (encState kvs ops)) $$ []
         · unfold kvJ; iexact Hsv
-        ihave #HDL : (kvJ γr.cluster id).DL (uint.nat a') $$ []
-        · unfold kvJ storDL
-          iexists n, kvRaftN, D ++ ce
-          iframe HisNode Hdl
-          ipureintro; omega
+        ihave #HDL : (kvJ γr.cluster Kst).DL (uint.nat a') $$ []
+        · unfold kvJ
+          iapply nodeCommitLb_mono γr.cluster Kst (D ++ ce).length _ (by omega) $$ HclD
         -- `r.storage.CreateSnapshot(applied, cs, data)`
-        wp_apply kvStorage.wp_CreateSnapshot wp_MemoryStorage_CreateSnapshot st ms γs (kvJ γr.cluster id)
+        wp_apply kvStorage.wp_CreateSnapshot wp_MemoryStorage_CreateSnapshot st ms γs (kvJ γr.cluster Kst)
             a' e «$a1_ptr» DFrac.discard (kvConfState kvVoters) dsl (encState kvs ops) eood
           $$ [$Hrec $Hraftinit $HmsInv $He $HSV $HDL $HsnLb $Hcs' $Hdsl $Heood] as %snap' %err ⟨-, #HsLb, -⟩
         try wp_auto
@@ -486,13 +490,12 @@ theorem KV.run.wp_proof
               iexists e2; iexact He2
             · iright
               iapply memCompacted_mono γs c (uint.nat (a' - W64 10)) (by omega) $$ Hcp
-          ihave #HBx : (kvJ γr.cluster id).B (uint.nat (a' - W64 10)) $$ []
+          ihave #HBx : (kvJ γr.cluster Kst).B (uint.nat (a' - W64 10)) $$ []
           · unfold kvJ
-            ileft
-            iapply nodeAppliedLb_mono γr.cluster id (D ++ ce).length (uint.nat (a' - W64 10)) (by omega)
+            iapply nodeAppliedLb_mono γr.cluster Kst (D ++ ce).length (uint.nat (a' - W64 10)) (by omega)
               $$ Hal'
           ihave #HsLbx := memSnapLb_mono γs (uint.nat a') (uint.nat (a' - W64 10)) (by omega) $$ HsLb
-          wp_apply kvStorage.wp_Compact wp_MemoryStorage_Compact st ms γs (kvJ γr.cluster id)
+          wp_apply kvStorage.wp_Compact wp_MemoryStorage_Compact st ms γs (kvJ γr.cluster Kst)
               (a' - W64 10) errCompacted
             $$ [$Hrec $Hraftinit $HmsInv $Hfx $HBx $HsLbx $ErrCompacted] as %err2 -
           kv_snap_post
@@ -500,19 +503,18 @@ theorem KV.run.wp_proof
         wp_for_post
         iframe
         unfold kvRunInv
-        iexists D ++ ce, phsNext hd hh, rdv', rest, ps', a', sI, c
+        iexists D ++ ce, phsNext hd hh, rdv', rest, ps', a', sI, c, readyDurable S (phsNext hd hh) none es,
+          roleAfter ro ss
         iframe
         iframe Hps2 Hcp Hfz'
         ipureintro
         refine ⟨Ha', Ha.2.1, ?_⟩
         have := Ha.2.2; have := Ha.1; rw [Ha', List.length_append]; omega
   | some l =>
-    ihave Hdrv : iprop(nodeDriver n γr.cluster kvRaftN ⟨kvStorIface st, strip l.dlv, phsNext hd hh,
-        some (es, some l)⟩) $$ [Hdrv]
-    · iexact Hdrv
+    simp only [NodeDriverState.afterReady]
     ihave ⟨Hdrv, #Hdl⟩ := nodeDriver_deliveredLogLb _ _ _ _ $$ Hdrv
     iunfold readySnap at HS
-    icases HS with ⟨%Hl, Hsn, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, -⟩
+    icases HS with ⟨%Hl, Hsn, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HclS, -, -⟩
     obtain ⟨Hdlv, Hptr, Hce0, Hpre, Hlt, Hdlen, Hpos, H61, -, Hli⟩ := Hl
     subst Hce0
     have Hslen : (strip l.dlv).length = uint.nat l.snap.Metadata'.Index' := by
@@ -553,18 +555,15 @@ theorem KV.run.wp_proof
     -- `r.storage.ApplySnapshot(rd.Snapshot)`: its justifications at node `id`
     ihave Hlog := kvStorLog_to st ms γs _ _ _ $$ Hrec Hlog
     ihave Hend := kvStorEnd_to st ms γs _ $$ Hrec Hend
-    ihave #HsvJ : (kvJ γr.cluster id).SV l.snap $$ []
+    ihave #HsvJ : (kvJ γr.cluster Kst).SV l.snap $$ []
     · unfold kvJ
       iapply snapshotCert_valid γr.cluster kvRaftN l.snap Hpos H61
       iframe Hiscl Hcert
-    ihave #HBJ : (kvJ γr.cluster id).B (uint.nat l.snap.Metadata'.Index') $$ []
-    · unfold kvJ; iright; iexact Hgiven
-    ihave #HDLJ : (kvJ γr.cluster id).DL (uint.nat l.snap.Metadata'.Index') $$ []
-    · unfold kvJ storDL
-      iexists n, kvRaftN, strip l.dlv
-      iframe HisNode Hdl
-      ipureintro; omega
-    wp_apply kvStorage.wp_ApplySnapshot wp_MemoryStorage_ApplySnapshot st ms γs (kvJ γr.cluster id) k old
+    ihave #HBJ : (kvJ γr.cluster Kst).B (uint.nat l.snap.Metadata'.Index') $$ []
+    · unfold kvJ; iexact Hgiven
+    ihave #HDLJ : (kvJ γr.cluster Kst).DL (uint.nat l.snap.Metadata'.Index') $$ []
+    · unfold kvJ; iexact HclS
+    wp_apply kvStorage.wp_ApplySnapshot wp_MemoryStorage_ApplySnapshot st ms γs (kvJ γr.cluster Kst) k old
         l.ptr (DFrac.own (Qp.half 1)) l.snap eood Hk (by word)
       $$ [$Hrec $Hraftinit $HmsInv $Hlog $Hend $HBJ $HsvJ $HDLJ Hsn $HsnLb $Heood]
       as ⟨Hsn, #HcpS, #Hdum, HendS, -⟩
@@ -598,7 +597,8 @@ theorem KV.run.wp_proof
     wp_bind (App (Val #send) _)
     iunfold sendSpec at Hsend
     iapply Hsend $$ [Hms Hmsok]
-    · iframe
+    · iframe Hms
+      iapply readyMsgs_sent $$ [$Hmsok $Hmsgs]
     iintro !> -
     try wp_auto
     -- the read states, noted
@@ -661,7 +661,8 @@ theorem KV.run.wp_proof
     iframe
     unfold kvRunInv
     iexists strip l.dlv, phsNext hd hh, rdv', rest, ps', l.snap.Metadata'.Index',
-      l.snap.Metadata'.Index', uint.nat l.snap.Metadata'.Index'
+      l.snap.Metadata'.Index', uint.nat l.snap.Metadata'.Index', readyDurable S (phsNext hd hh) (some l) es,
+      roleAfter ro ss
     iframe
     iframe Hps2 HcpS Hfz2
     ipureintro

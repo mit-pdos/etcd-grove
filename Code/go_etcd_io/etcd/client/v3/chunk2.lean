@@ -469,6 +469,7 @@ class LeaseOp.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_attachedKeys : ∀ (x : LeaseOp) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet LeaseOp.underlying go!"attachedKeys") (PairV #x #y) (Val #(({ x with attachedKeys' := y } : LeaseOp)))
   method_set : go.MethodSetIs LeaseOp.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseOp.ty) [(go!"go.etcd.io/etcd/client/v3.applyOpts", (some (go.signature.Signature [(go.GoType.SliceType LeaseOption.ty)] false [])))]
+  ptr_applyOpts_unfold : MethodUnfold (go.GoType.PointerType LeaseOp.ty) go!"applyOpts" LeaseOp.applyOpts.impl
 
 attribute [instance] LeaseOp.TypeAssumptions.type_repr
   LeaseOp.TypeAssumptions.underlying
@@ -478,6 +479,7 @@ attribute [instance] LeaseOp.TypeAssumptions.type_repr
   LeaseOp.TypeAssumptions.set_attachedKeys
   LeaseOp.TypeAssumptions.method_set
   LeaseOp.TypeAssumptions.ptr_method_set
+  LeaseOp.TypeAssumptions.ptr_applyOpts_unfold
 
 class LeaseOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LeaseOption.ty LeaseOption.underlying
@@ -536,7 +538,9 @@ class retryLeaseClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType retryLeaseClient.ty) [(go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseKeepAlive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty), go.error]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error])))]
   ptr_LeaseGrant_unfold : MethodUnfold (go.GoType.PointerType retryLeaseClient.ty) go!"LeaseGrant" retryLeaseClient.LeaseGrant.impl
   ptr_LeaseKeepAlive_unfold : MethodUnfold (go.GoType.PointerType retryLeaseClient.ty) go!"LeaseKeepAlive" retryLeaseClient.LeaseKeepAlive.impl
+  ptr_LeaseLeases_unfold : MethodUnfold (go.GoType.PointerType retryLeaseClient.ty) go!"LeaseLeases" retryLeaseClient.LeaseLeases.impl
   ptr_LeaseRevoke_unfold : MethodUnfold (go.GoType.PointerType retryLeaseClient.ty) go!"LeaseRevoke" retryLeaseClient.LeaseRevoke.impl
+  ptr_LeaseTimeToLive_unfold : MethodUnfold (go.GoType.PointerType retryLeaseClient.ty) go!"LeaseTimeToLive" retryLeaseClient.LeaseTimeToLive.impl
 
 attribute [instance] retryLeaseClient.TypeAssumptions.type_repr
   retryLeaseClient.TypeAssumptions.underlying
@@ -546,7 +550,9 @@ attribute [instance] retryLeaseClient.TypeAssumptions.type_repr
   retryLeaseClient.TypeAssumptions.ptr_method_set
   retryLeaseClient.TypeAssumptions.ptr_LeaseGrant_unfold
   retryLeaseClient.TypeAssumptions.ptr_LeaseKeepAlive_unfold
+  retryLeaseClient.TypeAssumptions.ptr_LeaseLeases_unfold
   retryLeaseClient.TypeAssumptions.ptr_LeaseRevoke_unfold
+  retryLeaseClient.TypeAssumptions.ptr_LeaseTimeToLive_unfold
 
 class retryClusterClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying retryClusterClient.underlying retryClusterClient

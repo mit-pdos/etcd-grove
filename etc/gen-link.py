@@ -26,6 +26,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --v3election > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3election/Link.lean
        etc/gen-link.py --kv > Proof/github_com/mit_pdos/etcd_grove/examples/kv/Link.lean
        etc/gen-link.py --kvreconf > Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/Link.lean
+       etc/gen-link.py --kvdurable > Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/Link.lean
        etc/gen-link.py --raft-witness > RaftWitness/Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --kvwitness > RaftWitness/Proof/github_com/mit_pdos/etcd_grove/examples/kvwitness/Link.lean
        etc/gen-link.py --mvcc > Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean
@@ -152,6 +153,14 @@ porcupine's functions it calls are `@` callees, linked in their `Link.lean`s, an
 etc/link-lean-first-kvreconf.txt, as `--kv`: its specs' `[KvrStor GF]` (the storage registry) is
 passed on, and its storage model `kvrStorageModel` (a `def`) is a local instance of the Link, at
 which raft's results over `[StorageModel GF]` are instantiated.
+`--kvdurable` links the durable store's (`examples/kvdurable`), from
+etc/link-lean-first-kvdurable.txt, as `--kvreconf` (its registry `[KdStor GF]`, its storage model
+`kdStorageModel` a local instance), with the durable extension's section variables (`[HasExt
+durableExt] [go.IntoValInj GoString]`, which its specs take).
+
+A function with a second spec and proof (`Replica.persist`'s `specRun`/`wp_proofRun`) is listed a
+second time as `<fn>+<S>`: its spec `<F>.spec<S>`, its proof `<F>.wp_proof<S>`, its result
+`wp_<M><S>`; a caller names it the same way.
 `--raft-witness` and `--kvwitness` link the same in the parallel tree `RaftWitness/` (raft's
 witness experiment, `notes/raft-witness.md`), from etc/link-lean-first-raft-witness.txt and
 etc/link-lean-first-kvwitness.txt: their specs are searched in the main tree and in
@@ -294,6 +303,12 @@ LEAN_FIRST = {
                    "github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine",
                    "github_com.mit_pdos.etcd_grove.examples.kvreconf.Assumptions",
                    "The reconfiguring key-value store example's proofs (`examples/kvreconf`)", [""]),
+    # the durable store (examples/kvdurable), as `--kvreconf`, its storage registry `KdStor`
+    "--kvdurable": ("link-lean-first-kvdurable.txt",
+                    "github_com.mit_pdos.etcd_grove.examples.kvdurable go_etcd_io.raft.v3 "
+                    "github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine",
+                    "github_com.mit_pdos.etcd_grove.examples.kvdurable.Assumptions",
+                    "The durable key-value store example's proofs (`examples/kvdurable`)", [""]),
     # the Raft proof (raft v3.7 plus the read-index fix, project raft of etc/goose.py) and the
     # trust boundary of protobuf-go it rests on (Spec/google_golang_org/protobuf/proto/, stage R1)
     "--raft": ("link-lean-first-raft.txt", "go_etcd_io.raft.v3",
@@ -497,7 +512,7 @@ EXTS = {"--bboltfs": "osFsExt"}
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--authkv": "authkv", "--cachekv": "cachekv", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
+              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--authkv": "authkv", "--cachekv": "cachekv", "--kvdurable": "kvdurable", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
               "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache", "--k8sinformers": "k8sinformers",
               "--apimodel": "apimodel", "--bboltfs": "bboltfs"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
@@ -524,6 +539,9 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  # raft's importable `confchange`/`tracker` specs (`=RaftLink.*` callees),
                  # Perennial's `time` results (`=_root_.Perennial.time.*`), gokv's trusted
                  # `ResolveBytes`'s proved spec (`Cluster.Read`'s prophecy, `=_root_.Perennial.…`)
+                 # raft's importable `confchange`/`tracker` specs, Perennial's `time` results
+                 "--kvdurable": ["Proof.go_etcd_io.raft.v3.Linked", "Perennial.Proof.time.Link",
+                                 "Proof.github_com.mit_pdos.gokv.trusted_proph.ResolveBytes"],
                  "--kvreconf": ["Proof.go_etcd_io.raft.v3.Linked", "Perennial.Proof.time.Link",
                                 "Proof.github_com.mit_pdos.gokv.trusted_proph.ResolveBytes"],
                  # (rafthttp stage 6f) the HTTP boundary's axioms and Perennial's linked results
@@ -551,24 +569,32 @@ if mode is None:
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
-NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kv", "--kvreconf", "--linkv3p",
+NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kv", "--kvreconf", "--kvdurable", "--linkv3p",
             "--linkvtxn", "--kvwitness", "--k8setcd3"}
 # The modes whose store's storage model is a `def` made a local instance of the Link (kvreconf's
 # `kvrStorageModel`, `KvrStorage.lean`): its specs are stated at it, and raft's results over any
 # `[StorageModel GF]` are instantiated there.
-LOCAL_INSTANCES = {"--kvreconf": ["kvreconf.kvrStorageModel"]}
-# The trusted assumptions a mode's linked proofs need beyond its package's (minibolt's: the
+LOCAL_INSTANCES = {"--kvreconf": ["kvreconf.kvrStorageModel"],
+                   "--kvdurable": ["kvdurable.kdStorageModel"]}
+# The trusted assumptions a mode's linked proofs need beyond its package's, first (minibolt's: the
 # layouts of `os.file` and `os.fileStat`, which `TrustedCode/os.lean` states and goose cannot
 # emit; `OpenFile`'s and `Stat`'s proofs take them).
-EXTRA_VARS = {"--bboltfs": "variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]\n"}
-em = ((EXTRA_VARS.get(sys.argv[1], ""))
+PRE_VARS = {"--bboltfs": "variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]\n"}
+# The section variables a mode's specs take besides the usual ones, last (kvdurable's: the durable
+# extension, `GooseLang/Ext/Durable`, and the injectivity of strings its file names need)
+EXTRA_VARS = {"--kvdurable": "variable [HasExt durableExt] [go.IntoValInj GoString]\n"}
+em = ((PRE_VARS.get(sys.argv[1], ""))
       + ("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else "")
+      + EXTRA_VARS.get(sys.argv[1], "")
       + "".join(f"\nattribute [local instance] {i}\n"
                 for i in LOCAL_INSTANCES.get(sys.argv[1], [])))
 # The storage registries a store's specs take (kv's `KVStor`, kvreconf's `KvrStor`): passed on; a
 # spec taking one is stated at the store's storage model, not at any `[StorageModel GF]`.
-STOR_REGS = ["[KVStor GF]", "[KvrStor GF]"]
+STOR_REGS = ["[KVStor GF]", "[KvrStor GF]", "[KdStor GF]"]
+# a registry as a pending hypothesis's binder, named in full (the Link opens the package's Go
+# namespace, not the store's proof namespace)
+STOR_QUAL = {"[KdStor GF]": "[kvdurable.KdStor GF]"}
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.normpath(os.path.join(here, ".."))
@@ -660,6 +686,18 @@ with open(os.path.join(here, mode[0])) as f:
         callees[fn] = cs.split()
 fns.sort()
 
+
+def sfx(fn):
+    """The second spec's suffix of `<fn>+<S>` (`Run`), `""` for a plain function."""
+    return fn.partition("+")[2]
+
+
+# `<fn>+<S>`: a second spec and proof of `<fn>`, in the same files
+for fn in list(fns) + [c for cs in callees.values() for c in cs]:
+    base = fn.partition("+")[0]
+    if sfx(fn) and base in where:
+        where[fn], prefix[fn] = where[base], prefix[base]
+
 # `--skip-unproved`: leave out the functions with no proof file yet, and those reaching one
 skipped = set()
 if cache and "--skip-unproved" in sys.argv[2:]:
@@ -677,6 +715,7 @@ if cache and "--skip-unproved" in sys.argv[2:]:
     fns = [fn for fn in fns if fn not in skipped]
 
 spec = {}
+in_eg = {}  # whether the spec is declared below `EtcdGrove` (`durable`'s are only below `Perennial`)
 for fn in fns:
     src = open(spec_file(fn)).read()
     m = re.search(r"^abbrev ([\w.«»']+)\.spec\b", src, re.M)
@@ -684,6 +723,7 @@ for fn in fns:
     nss = re.findall(r"^namespace (\S+)", src, re.M)
     inner = nss[nss.index("EtcdGrove") + 1:] if "EtcdGrove" in nss else []
     spec[fn] = ".".join(inner + [m.group(1)])
+    in_eg[fn] = "EtcdGrove" in nss
 
 # The specs stated at `HeapGS HasLC.hasLC GF` (the ghost state holds an invariant).
 haslc = {fn for fn in fns
@@ -703,12 +743,15 @@ def result(fn):
             parts = parts[1:]
         elif where[fn].split(".")[:-1] == ["go_etcd_io", "etcd", "client", "v3"]:
             parts = ["v3"] + parts
-    return ".".join(parts[:-1] + [f"wp_{last}"])
+    return ".".join(parts[:-1] + [f"wp_{last}{sfx(fn)}"])
 
 
 def specref(fn):
-    """The spec's name as the Link refers to it: in a namespaced mode, below `EtcdGrove`."""
-    return f"EtcdGrove.{spec[fn]}" if nsd else spec[fn]
+    """The spec's name as the Link refers to it: in a namespaced mode, below `EtcdGrove` (or, for a
+    spec declared only below `Perennial`, from the root)."""
+    if not nsd:
+        return spec[fn]
+    return f"EtcdGrove.{spec[fn]}" if in_eg[fn] else f"_root_.Perennial.{spec[fn]}"
 
 
 def external_link(fn):
@@ -834,8 +877,8 @@ hand.
         "function): " + ", ".join(f"`{fn}`" for fn in sorted(skipped)) + ".", 96,
         break_on_hyphens=False) if skipped else "") + """
 -/""", "module", ""]
-    out.extend(f"public import {proof_module(fn)}" for fn in fns
-               if fn not in external and fn not in pending and fn not in reused)
+    out.extend(dict.fromkeys(f"public import {proof_module(fn)}" for fn in fns
+               if fn not in external and fn not in pending and fn not in reused))
     out.extend(f"public import {m}" for m in EXTRA_IMPORTS.get(sys.argv[1], []))
     out.extend(f"public import {prefix[fn]}Spec.{where[fn]}" for fn in fns if fn in pending)
     # an `@` callee whose package has no `Link.lean` of its own is linked by one of the other
@@ -907,7 +950,7 @@ variable [sem : go.Semantics]
 
     def emit_cache(fn):
         args = " ".join(arg(fn, c) for c in callees[fn])
-        body = f"{specref(fn)}.wp_proof" + (f" {args}" if args else "")
+        body = f"{specref(fn)}.wp_proof{sfx(fn)}" + (f" {args}" if args else "")
         # the specs with ghost state (the store's) take `[AllG GF]`
         src = open(spec_file(fn)).read()
         allg = " [AllG GF]" if "[AllG GF]" in src and fn not in blocked else ""
@@ -935,7 +978,7 @@ variable [sem : go.Semantics]
         elif "[MemStorReg GF]" in src:
             allg += " [MemStorReg GF]"
         allg += "".join(" " + premise_binder(p) for p in SEM_PREMISES if p in premises[fn])
-        return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec (GF := GF) (hG := hG) :=\n"
+        return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
 
     cache_assumptions = set()
@@ -1042,8 +1085,8 @@ variable [sem : go.Semantics]
         pend_allg = any("[AllG GF]" in pend_src(fn) for fn in pending)
         hyps = ("variable [AllG GF]\n" if pend_allg else "") + "\n".join(
             f"variable ({hyp(fn)} : "
-            + "".join(f"∀ {r}, " for r in STOR_REGS if r in pend_src(fn))
-            + f"{specref(fn)}.spec (GF := GF) (hG := hG))"
+            + "".join(f"∀ {STOR_QUAL.get(r, r)}, " for r in STOR_REGS if r in pend_src(fn))
+            + f"{specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG))"
             for fn in sorted(pending))
         names = " ".join(hyp(fn) for fn in sorted(pending))
         out.append(f"""/-! The results that reach a function specified but not proved yet (a later unit's):

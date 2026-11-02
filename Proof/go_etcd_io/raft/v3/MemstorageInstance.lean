@@ -415,8 +415,11 @@ theorem memStorage_isStorageP
     imodintro
     iintro %Φ ⟨#Hc, #Hesu⟩ HΦ
     ihave #Hc := memStorCompacted_to ms γs c $$ Hreg Hc
-    wp_apply wp_Snapshot ms γs J c false esu $$ [$Hinv $Hc $Hesu] as %snap %err ⟨-, Hres⟩
-    · iempintro
+    wp_apply wp_Snapshot ms γs J none c false esu $$ [$Hc $Hesu] as %snap %err ⟨-, Hres⟩
+    · isplitr
+      · iapply memStorAt_none_intro $$ Hinv
+        iempintro
+      iempintro
     iapply HΦ
     icases Hres with ⟨%H, %sv, Hs, %Hsv, Hv⟩
     ihave Hs := ownSnapW_E $$ Hs

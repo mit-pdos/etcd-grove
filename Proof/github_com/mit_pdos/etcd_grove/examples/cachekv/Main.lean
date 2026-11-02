@@ -244,7 +244,7 @@ theorem Main.wp_proof
   wp_auto
   iunfold common.memberUp at Hup
   icases Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
-    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
+    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
   have Hoff : E.γ.cm = false := envAgree_off E E₀ HEa Hcmp0
   -- `Serve(s, clientAddr)`, with the ghost step `wk_served_nd` (the KV specs and the watch server's
@@ -261,7 +261,7 @@ theorem Main.wp_proof
     iintro %gs %lis %cid %mid %R Hg
     iunfold common.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo2, HWRs, Hlis⟩
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo2, HWRs, Hlis, -⟩
     obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ⟩ := HC
     -- the watch server's environment is the server's: `E` is `R.E` from here on
     subst hRE

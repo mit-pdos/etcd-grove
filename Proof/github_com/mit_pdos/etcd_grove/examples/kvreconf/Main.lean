@@ -7,8 +7,8 @@ counterpart).
 instantiates it there. `RandomConfig()` gives options a cluster may run with and 4 clients of 100
 operations; `lintest.CounterClock()` a clock (its invariant at `kvrClockN`, apart from the driver's
 `lintestN`); `Run` then answers `Ok`, so the panic branch is not taken, and hands back the cluster
-with the stopper's token, which `Stop` takes. `receiptBound GF ≤ 2^63` gives `Run`'s `≤ 2^64 - 2`
-and the clock's.
+with the stopper's token, which `Stop` takes. `receiptBound GF ≤ 2^61` is `Run`'s and gives
+the clock's `≤ 2^63`.
 -/
 module
 
@@ -86,7 +86,7 @@ theorem Main.wp_proof
   ihave #Hlpkg : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest
     $$ []
   · iPkgInit
-  wp_apply wp_CounterClock kvrClockN Hrb as %f ⟨%clockVal, #Hclk, Ht0⟩
+  wp_apply wp_CounterClock kvrClockN (by omega) as %f ⟨%clockVal, #Hclk, Ht0⟩
   wp_apply wp_Run cfg clockVal (W64 0) ↑kvrClockN f Hopts (by omega) lintestN_kvrClockN
     (by rw [Hcl]; decide) (by rw [Hcl]; decide) (by rw [Hops]; decide)
     (by rw [Hcl, Hops]; decide) (by omega) $$ [Ht0]

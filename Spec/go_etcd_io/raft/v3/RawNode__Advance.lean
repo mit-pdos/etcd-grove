@@ -102,7 +102,10 @@ abbrev RawNode.Advance.spec : Prop :=
       -- 2026-10-29, the design's A1) only after a `Ready` without a snapshot: after one with a
       -- snapshot the configuration is the snapshot's (`appliedSnap`, `StepR.applySnap`, which needs
       -- none; a newcomer that catches up by a snapshot has decided its conf entries `.apply`)
-      "#HA1" ∷ □ (⌜rs.slent = none⌝ -∗ undecFree γ rs.mode rs.delivered rs.capplied rs.delivered.length) }}
+      "#HA1" ∷ □ (⌜rs.slent = none⌝ -∗ undecFree γ rs.mode rs.delivered rs.capplied rs.delivered.length) ∗
+      -- (2026-11-01, durability stage II (k), fix C) the fragments of the batch the last `Ready` cut
+      -- (`RNState.bw`), which *enter* minted: the queued self-addressed responses' facts
+      "#Hbw" ∷ durFrags γ id rs.bw }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))
   {{ (t : w64) (ca : Nat), RET #();
       -- (D19i part 1) `applied` up to `applying`, at least the floor: no longer raised;

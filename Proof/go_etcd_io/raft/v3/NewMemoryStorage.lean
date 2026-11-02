@@ -154,7 +154,10 @@ theorem NewMemoryStorage.wp_proof
     iframe Hpkg Hmu HhardState cs_initialState
     iapply hsOpt_null
   iunfold memStorFresh
-  iframe Hjc
+  isplitl [Hjc]
+  · iexists [0]
+    iframe Hjc
+    ipureintro; simp
   isplitl [Hhk]
   · iunfold memKey; iexact Hhk
   iexists sp

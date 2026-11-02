@@ -85,7 +85,7 @@ theorem Replica.snapshot.wp_proof
   · icases Hsnap with (%Hnil | ⟨%e, %cc, %bs, #He, #HSV, #HDL, #Hcs, Hdata⟩)
     · exfalso; exact Hif Hnil
     try wp_auto
-    wp_apply Storage.wp_CreateSnapshot wp_CreateSnapshot st ρ.ms ρ.γs (kvrJ γr.cluster id) q.index' e
+    wp_apply Storage.wp_CreateSnapshot wp_CreateSnapshot st ρ.ms ρ.γs (kvrJ γr.cluster ρ.key) q.index' e
         q.cs' DFrac.discard cc q.data' bs _
       $$ [$HstRec $Hraft $HmsInv $He $HSV $HDL $HsnLb $Hcs $Hdata $Heood] as %snap %err ⟨-, #Hlb, Hres⟩
     icases Hres with (⟨%Herr, -⟩ | ⟨⟨%Hsn, %Herr⟩, -⟩)
@@ -125,15 +125,15 @@ theorem Replica.snapshot.wp_proof
     · iapply HΦ; iexact Hkn1
     wp_apply wp_below $$ [$Hpkg] as %rb %Hrb
     try wp_auto
-    wp_apply Storage.wp_Compact wp_Compact st ρ.ms ρ.γs (kvrJ γr.cluster id) _ errCompacted
+    wp_apply Storage.wp_Compact wp_Compact st ρ.ms ρ.γs (kvrJ γr.cluster ρ.key) _ errCompacted
       $$ [$HstRec $Hraft $HmsInv $ErrCompacted] as %err ⟨-, -⟩
     · isplitl []
       · ileft
         icases frozenTo_at ρ.γs cp D (uint.nat (fi + rb)) (by word) (by word) $$ Hfz with ⟨%e, #He, -⟩
         iexists e; iexact He
       isplitl []
-      · unfold kvrJ; ileft
-        iapply nodeAppliedLb_mono γr.cluster id (uint.nat q.compact') _ (by word) $$ Hal
+      · unfold kvrJ
+        iapply nodeAppliedLb_mono γr.cluster ρ.key (uint.nat q.compact') _ (by word) $$ Hal
       iapply (memSnapLb_mono ρ.γs (uint.nat k1) (uint.nat (fi + rb)) (by word))
       iexact Hkn1
     try wp_auto
