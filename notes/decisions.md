@@ -29828,3 +29828,29 @@ the spec-reviewer's round 1 caught the non-strict form). Proved at the three ins
 (`kmStep_restrict`, `srvStep_restrict`, `histStep_restrict`) over the step's own log. Next: the
 store's gap certificate `G` (adjacent snapshots, and the newest against `latestRev`, in
 `storeLockInv`), then the demux's quiet certificate for progress notifications.
+
+## The cache store's gap certificate `G` (2026-11-02 · stage 2a of the cache's `Get` at the requested revision · the user's choice of shape)
+
+The store (`cache/v3/InvStore.lean`) takes a third certificate parameter beside `E` (snapshots)
+and `R` (the latest revision): `G : w64 → Int → IProp GF`, `G a b` for "the revisions after a
+snapshot's `a` up to `b`". The user chose (2026-11-02) to keep it in the lock invariant, the
+spec-reviewer's restatement of candidate 1: `storeLockInv` holds `gapList G (gapsOf st.history
+st.latestRev)` (`gapsOf`: each snapshot's gap up to the next's revision minus one, the newest's
+up to the latest revision), persistent beside `□ R`; no ghost map, no change to the ring's items.
+`b` is an `Int` (no `w64` subtraction at a pair's end). Each state change reduces to a pure list
+law: every gap of the new state is an old one or one its writer certified (`gapsOf_applyResp`,
+over `gapsOf_ringAppend`, `gapsOf_latest`, `gapsOf_applyEvents`).
+
+- `newStore` asks nothing of `G` (no snapshot, no gap); `Restore(kvs, rev)` asks `G rev rev`
+  (its one snapshot's gap, empty); `storeApplyCert` also asks `gapList G (applyRespGaps Y st r)`
+  (computed from the state, empty when the response is rejected: for the snapshots appended,
+  `evGaps`, from the newest `Y` to the first's revision and each from its revision to the next's
+  and to itself; for a progress notification applied, the newest's up to the header's revision).
+- `getSnapshot`/`Get` return, for `.ok r m`, `∃ b, ⌜rev' ≤ b⌝ ∗ □ G r b` with `rev'` the revision
+  asked for (`rev`, or the latest if `0`, inline): the picked snapshot's gap covers it
+  (`snapModel_gap`).
+- The cache's instance `cacheGap pfx` is `True` for now (`InvCache.lean`): its real body, "no event
+  under the prefix in `(a, b]`", needs progress notifications to carry that fact through the demux
+  (stage 3, the demux's quiet certificate), since `applyStorage` sees only what the demux
+  publishes. Stage 3 then gives it the body and `cache_Get` its stronger post. A strengthening
+  of the store's API only: no client outside `cache/v3`.

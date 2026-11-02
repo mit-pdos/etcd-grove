@@ -48,7 +48,14 @@ revision: the lock invariant holds `□ R latestRev`, `newStore` asks for `R 0`,
 the state seen. The cache's `R` (`cacheRev`, `InvCache.lean`) says that etcd has reached the
 revision (`etcdReached`, `InvEtcd.lean`), so that its linearizable `Get` returns at least it,
 and that it is at most the cache's revision bound, so that a `Restore` from such a `Get` is at
-or above every revision the store can reach.
+or above every revision the store can reach. A third parameter `G : w64 → Int → IProp GF`
+certifies the gaps between snapshots (`gapsOf`: after each snapshot's revision up to the next's,
+exclusive, or up to the latest revision for the newest): the lock invariant holds them all,
+`Restore` asks for its one snapshot's (empty) gap, `Apply` for the gaps it makes
+(`applyRespGaps`), and `getSnapshot`/`Get` return the gap of the snapshot they pick, which covers
+the revision asked for (`snapModel_gap`). With the cache's `G` (etcd's state under the prefix does
+not change in the gap), a `Get` answers etcd's state at the revision asked for, not only at the
+snapshot's.
 
 Models of the methods: `snapModel` (`getSnapshot`), `kvRange` (`snapshot.Range`),
 `applyEvents`/`applyResp` (`Apply`), `restoreState` (`Restore`).
@@ -426,6 +433,238 @@ theorem applyRespRevs_mem (st : StoreState) (r : RespModel) (x : w64)
     exact applyEventsSnaps_rev_mem _ _ _ hy
   · simp at h
 
+/-! ## The gaps between snapshots -/
+
+/-- **The gaps of a history** `hs` with latest revision `l`: for each snapshot `(a, m)`, the
+revisions after it up to the next snapshot's (exclusive), or up to `l` for the newest, as
+`(a, b)` with `b` the last revision of the gap (an `Int`: `b` is `a`'s next revision minus one).
+The store's gap certificate `G` holds of each (`gapCerts`): what lets a reader of the snapshot at
+`a` answer for any revision of the gap. -/
+def gapsOf : List (w64 × KvMap) → w64 → List (w64 × Int)
+  | [], _ => []
+  | [a], l => [(a.1, sint.Z l)]
+  | a :: b :: t, l => (a.1, sint.Z b.1 - 1) :: gapsOf (b :: t) l
+
+/-- The gaps `Apply`'s caller certifies for the snapshots `snaps` an `Apply` appends after the
+newest snapshot at `Y`: from `Y` to the first one's revision (exclusive), and each from its
+revision to the next's (exclusive) and to itself (`(r, r)`: the newest's gap while it is the
+newest; at the cache's certificate, empty). -/
+def evGaps : w64 → List (w64 × KvMap) → List (w64 × Int)
+  | _, [] => []
+  | Y, x :: t => (Y, sint.Z x.1 - 1) :: (x.1, sint.Z x.1) :: evGaps x.1 t
+
+/-- The gaps `Apply(r)`'s caller certifies, on a state whose newest snapshot is at `Y`: those of
+the snapshots it appends (`evGaps`), or, for a progress notification it applies, the newest's gap
+up to the header's revision. -/
+def applyRespGaps (Y : w64) (st : StoreState) (r : RespModel) : List (w64 × Int) :=
+  if r.canceled then []
+  else if !validRevisions r st.latestRev then []
+  else if r.isProgressNotify then
+    (if st.latestRev = W64 0 then [] else [(Y, sint.Z r.hdrRev)])
+  else if !r.events.isEmpty then evGaps Y (applyEventsSnaps st.latest r.events)
+  else []
+
+theorem gapsOf_cons_mem {a : w64 × KvMap} {t : List (w64 × KvMap)} {l : w64} {g : w64 × Int}
+    (h : g ∈ gapsOf t l) : g ∈ gapsOf (a :: t) l := by
+  match t, h with
+  | b :: t', h => simp only [gapsOf, List.mem_cons]; exact Or.inr h
+
+/-- The gaps of `hs` at a new latest revision `l'`: those at `l`, or the newest's up to `l'`. -/
+theorem gapsOf_latest {hs : List (w64 × KvMap)} {l l' : w64} {Y : w64 × KvMap}
+    (hY : hs.getLast? = some Y) {g : w64 × Int} (h : g ∈ gapsOf hs l') :
+    g ∈ gapsOf hs l ∨ g = (Y.1, sint.Z l') := by
+  induction hs with
+  | nil => simp at hY
+  | cons a t ih =>
+    match t, ih with
+    | [], _ =>
+      simp only [List.getLast?_singleton, Option.some.injEq] at hY; subst hY
+      simp only [gapsOf, List.mem_singleton] at h; exact Or.inr h
+    | b :: t', ih =>
+      simp only [gapsOf, List.mem_cons] at h ⊢
+      rcases h with h | h
+      · exact Or.inl (Or.inl h)
+      · rw [List.getLast?_cons_cons] at hY
+        rcases ih hY h with h | h
+        · exact Or.inl (Or.inr h)
+        · exact Or.inr h
+
+/-- The gaps after appending `x` to `hs` (newest `Y`), at `l'`: old ones (at any `l`), `Y`'s up to
+`x`, or `x`'s up to `l'`. -/
+theorem gapsOf_snoc {hs : List (w64 × KvMap)} {x Y : w64 × KvMap} {l l' : w64}
+    (hY : hs.getLast? = some Y) {g : w64 × Int} (h : g ∈ gapsOf (hs ++ [x]) l') :
+    g ∈ gapsOf hs l ∨ g = (Y.1, sint.Z x.1 - 1) ∨ g = (x.1, sint.Z l') := by
+  induction hs with
+  | nil => simp at hY
+  | cons a t ih =>
+    match t, ih with
+    | [], _ =>
+      simp only [List.getLast?_singleton, Option.some.injEq] at hY; subst hY
+      simp only [List.cons_append, List.nil_append, gapsOf, List.mem_cons, List.mem_singleton,
+        List.not_mem_nil, or_false] at h
+      rcases h with h | h
+      · exact Or.inr (Or.inl h)
+      · exact Or.inr (Or.inr h)
+    | b :: t', ih =>
+      rw [List.getLast?_cons_cons] at hY
+      simp only [List.cons_append, gapsOf, List.mem_cons] at h ⊢
+      rcases h with h | h
+      · exact Or.inl (Or.inl h)
+      · have := ih hY (by simpa only [List.cons_append] using h)
+        rcases this with h | h | h
+        · exact Or.inl (Or.inr h)
+        · exact Or.inr (Or.inl h)
+        · exact Or.inr (Or.inr h)
+
+theorem gapsOf_tail {hs : List (w64 × KvMap)} {l : w64} {g : w64 × Int}
+    (h : g ∈ gapsOf hs.tail l) : g ∈ gapsOf hs l := by
+  cases hs with
+  | nil => simpa using h
+  | cons a t => exact gapsOf_cons_mem h
+
+/-- The gaps after `ringAppend` (an eviction drops the oldest's). -/
+theorem gapsOf_ringAppend (cap : Nat) {hs : List (w64 × KvMap)} {x Y : w64 × KvMap} {l l' : w64}
+    (hY : hs.getLast? = some Y) {g : w64 × Int} (h : g ∈ gapsOf (ringAppend cap hs x) l') :
+    g ∈ gapsOf hs l ∨ g = (Y.1, sint.Z x.1 - 1) ∨ g = (x.1, sint.Z l') := by
+  unfold ringAppend at h
+  split at h
+  · exact gapsOf_snoc hY h
+  · cases ht : hs.tail with
+    | nil =>
+      rw [ht] at h
+      simp only [List.nil_append, gapsOf, List.mem_singleton] at h
+      exact Or.inr (Or.inr h)
+    | cons c t' =>
+      have hY' : hs.tail.getLast? = some Y := by
+        cases hs with
+        | nil => simp at hY
+        | cons a t =>
+          simp only [List.tail_cons] at ht ⊢
+          rw [ht] at hY ⊢; rw [List.getLast?_cons_cons] at hY; exact hY
+      rcases gapsOf_snoc (l := l) hY' h with h | h | h
+      · exact Or.inl (gapsOf_tail h)
+      · exact Or.inr (Or.inl h)
+      · exact Or.inr (Or.inr h)
+
+/-- **The gaps after `applyEvents`**: old ones, or those `evGaps` lists for the snapshots it
+appends. -/
+theorem gapsOf_applyEvents (cap : Nat) :
+    ∀ (evs : List EvModel) (st : StoreState) (Y : w64 × KvMap), st.history.getLast? = some Y →
+      ∀ g, g ∈ gapsOf (applyEvents cap st evs).1.history (applyEvents cap st evs).1.latestRev →
+        g ∈ gapsOf st.history st.latestRev ∨ g ∈ evGaps Y.1 (applyEventsSnaps st.latest evs) := by
+  intro evs
+  induction h : evs.length using Nat.strongRecOn generalizing evs with
+  | ind n ih =>
+    intro st Y hY g hg
+    match evs with
+    | [] => simp only [applyEvents] at hg; exact Or.inl hg
+    | e :: es =>
+      rw [applyEvents] at hg
+      rw [applyEventsSnaps]
+      split at hg
+      · rename_i m hb
+        have hY1 : (ringAppend cap st.history (e.rev, m)).getLast? = some (e.rev, m) :=
+          ringAppend_getLast cap _ _
+        rcases ih _ (h ▸ dropWhile_length_lt e es) _ rfl _ _ hY1 g hg with hg | hg
+        · rcases gapsOf_ringAppend cap (l := st.latestRev) hY hg with hg | hg | hg
+          · exact Or.inl hg
+          · right; simp only [evGaps, List.mem_cons]; exact Or.inl hg
+          · right; simp only [evGaps, List.mem_cons]; exact Or.inr (Or.inl hg)
+        · right; simp only [evGaps, List.mem_cons]; exact Or.inr (Or.inr hg)
+      · exact Or.inl hg
+
+/-- **The gaps after `Apply`**: old ones, or those its caller certifies (`applyRespGaps`). -/
+theorem gapsOf_applyResp (cap : Nat) (st : StoreState) (r : RespModel) (Y : w64 × KvMap)
+    (hY : st.history.getLast? = some Y) (g : w64 × Int)
+    (hg : g ∈ gapsOf (applyResp cap st r).1.history (applyResp cap st r).1.latestRev) :
+    g ∈ gapsOf st.history st.latestRev ∨ g ∈ applyRespGaps Y.1 st r := by
+  unfold applyResp at hg; unfold applyRespGaps
+  by_cases hc : r.canceled = true
+  · rw [if_pos hc] at hg; exact Or.inl hg
+  rw [if_neg hc] at hg ⊢
+  by_cases hv : (!validRevisions r st.latestRev) = true
+  · rw [if_pos hv] at hg; exact Or.inl hg
+  rw [if_neg hv] at hg ⊢
+  by_cases hp : r.isProgressNotify = true
+  · rw [if_pos hp] at hg ⊢
+    by_cases h0 : st.latestRev = W64 0
+    · rw [if_pos h0] at hg; exact Or.inl hg
+    rw [if_neg h0] at hg ⊢
+    rcases gapsOf_latest (l := st.latestRev) hY hg with hg | hg
+    · exact Or.inl hg
+    · right; simp only [List.mem_singleton]; exact hg
+  rw [if_neg hp] at hg ⊢
+  by_cases he : (!r.events.isEmpty) = true
+  · rw [if_pos he] at hg ⊢; exact gapsOf_applyEvents cap _ st Y hY g hg
+  · rw [if_neg he] at hg; exact Or.inl hg
+
+/-- In a sorted history, the gap of the newest snapshot at or below `v` covers `v` (with `v` at
+most the latest revision `l`). -/
+theorem gapsOf_filter_last (v l : w64) : ∀ (hs : List (w64 × KvMap)) (x : w64 × KvMap),
+    RevSorted Prod.fst hs → sint.Z v ≤ sint.Z l →
+    (hs.filter (fun h => decide (sint.Z h.1 ≤ sint.Z v))).getLast? = some x →
+    ∃ b, (x.1, b) ∈ gapsOf hs l ∧ sint.Z v ≤ b
+  | [], _, _, _, hx => by simp at hx
+  | [a], x, _, hle, hx => by
+    simp only [List.filter_cons, List.filter_nil] at hx
+    split at hx
+    · simp only [List.getLast?_singleton, Option.some.injEq] at hx; subst hx
+      exact ⟨_, by simp [gapsOf], hle⟩
+    · simp at hx
+  | a :: b :: t', x, hs, hle, hx => by
+    have hs' : RevSorted Prod.fst (b :: t') := (List.pairwise_cons.1 hs).2
+    by_cases hb : sint.Z b.1 ≤ sint.Z v
+    · have hne : (List.filter (fun h => decide (sint.Z h.1 ≤ sint.Z v)) (b :: t')) ≠ [] := by
+        simp [List.filter_cons, hb]
+      have hx' : (List.filter (fun h => decide (sint.Z h.1 ≤ sint.Z v)) (b :: t')).getLast? =
+          some x := by
+        rw [List.filter_cons (x := a)] at hx
+        split at hx
+        · obtain ⟨y, hy⟩ := Option.ne_none_iff_exists'.1 (mt List.getLast?_eq_none_iff.1 hne)
+          rw [List.getLast?_cons, hy] at hx; rw [hy]; simpa using hx
+        · exact hx
+      obtain ⟨b', hb', hle'⟩ := gapsOf_filter_last v l (b :: t') x hs' hle hx'
+      exact ⟨b', gapsOf_cons_mem hb', hle'⟩
+    · have hall : ∀ y ∈ b :: t', sint.Z v < sint.Z y.1 := by
+        intro y hy
+        rcases List.mem_cons.1 hy with rfl | hy
+        · omega
+        · have := (List.pairwise_cons.1 hs').1 y hy; omega
+      have hnil : List.filter (fun h => decide (sint.Z h.1 ≤ sint.Z v)) (b :: t') = [] := by
+        rw [List.filter_eq_nil_iff]; intro y hy; have := hall y hy; simp; omega
+      rw [List.filter_cons (x := a), hnil] at hx
+      split at hx
+      · simp only [List.getLast?_singleton, Option.some.injEq] at hx; subst hx
+        exact ⟨sint.Z b.1 - 1, by simp [gapsOf], by omega⟩
+      · simp at hx
+
+/-- **The gap of the snapshot `getSnapshot(rev)` picks** covers the revision asked for (`rev`, or
+the latest if `0`): the next snapshot, if any, is above it (the snapshot picked is the newest at
+or below it), else the latest revision is at least it (not `.future`). -/
+theorem snapModel_gap (cap : Nat) (st : StoreState) (rev r : w64) (m : KvMap)
+    (hinv : StoreInv cap st) (h : snapModel st rev = .ok r m) :
+    ∃ b, (r, b) ∈ gapsOf st.history st.latestRev ∧
+      sint.Z (if rev = W64 0 then st.latestRev else rev) ≤ b := by
+  unfold snapModel at h
+  by_cases h0 : st.latestRev = W64 0
+  · rw [if_pos h0] at h; cases h
+  rw [if_neg h0] at h
+  by_cases hn : sint.Z rev < 0
+  · rw [if_pos hn] at h; cases h
+  rw [if_neg hn] at h
+  try dsimp only at h
+  generalize (if rev = W64 0 then st.latestRev else rev) = v at h ⊢
+  by_cases hf : sint.Z st.latestRev < sint.Z v
+  · rw [if_pos hf] at h; cases h
+  rw [if_neg hf] at h
+  cases hx : (st.history.filter (fun h => decide (sint.Z h.1 ≤ sint.Z v))).getLast? with
+  | none => rw [hx] at h; cases h
+  | some x =>
+    rw [hx] at h
+    simp only [SnapResult.ok.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    exact gapsOf_filter_last v _ _ x hinv.hist_sorted (by omega) hx
+
 /-! ## The newest snapshot (`storeSnapKey`) -/
 
 /-- The newest snapshot's revision plus one, `0` with no history (or a negative newest revision,
@@ -668,6 +907,32 @@ instance snapCerts_persistent (E : w64 → KvMap → IProp GF) (hs : List (w64 �
 def revCerts (R : w64 → IProp GF) (rs : List w64) : IProp GF :=
   iprop(□ ∀ r, ⌜r ∈ rs⌝ -∗ R r)
 
+/-- Every gap of `gs` is certified by `G`. The store's gap certificate parameter `G a b`: what its
+user knows of the revisions after a snapshot's `a` up to `b` (the cache: that etcd's state under
+its prefix does not change there); the lock invariant keeps it of every gap of the history
+(`gapsOf`), `Apply`'s caller certifies the new ones (`applyRespGaps`), `getSnapshot`/`Get` return
+the one of the snapshot they pick. -/
+def gapList (G : w64 → Int → IProp GF) (gs : List (w64 × Int)) : IProp GF :=
+  iprop(□ ∀ g, ⌜g ∈ gs⌝ -∗ G g.1 g.2)
+
+instance gapList_persistent (G : w64 → Int → IProp GF) (gs : List (w64 × Int)) :
+    Persistent (gapList G gs) := by
+  unfold gapList; infer_instance
+
+theorem gapList_mono (G : w64 → Int → IProp GF) (gs gs' : List (w64 × Int))
+    (h : ∀ g ∈ gs', g ∈ gs) : gapList G gs ⊢ gapList G gs' := by
+  unfold gapList
+  iintro #H; imodintro; iintro %g %hg; iapply H; ipureintro; exact h g hg
+
+/-- Two certified lists certify every gap of a third that only has theirs. -/
+theorem gapList_of_or (G : w64 → Int → IProp GF) (gs1 gs2 gs : List (w64 × Int))
+    (h : ∀ g ∈ gs, g ∈ gs1 ∨ g ∈ gs2) : gapList G gs1 ∗ gapList G gs2 ⊢ gapList G gs := by
+  unfold gapList
+  iintro ⟨#H1, #H2⟩; imodintro; iintro %g %hg
+  rcases h g hg with h | h
+  · iapply H1; ipureintro; exact h
+  · iapply H2; ipureintro; exact h
+
 theorem snapCerts_cons (E : w64 → KvMap → IProp GF) (h : w64 × KvMap) (hs : List (w64 × KvMap)) :
     snapCerts E (h :: hs) ⊢ □ E h.1 h.2 ∗ snapCerts E hs := by
   unfold snapCerts
@@ -735,7 +1000,7 @@ instance storeLockRest_fractional (γ : StoreNames) (st : StoreState) :
 
 /-- The lock invariant `P q` of `s.mu` (see the module docstring). -/
 def storeLockInv (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF)
-    (R : w64 → IProp GF) (q : Qp) : IProp GF :=
+    (R : w64 → IProp GF) (G : w64 → Int → IProp GF) (q : Qp) : IProp GF :=
   iprop(∃ st : StoreState,
     "Hst" ∷ ghostVar γ.state q st ∗
     "Hrev" ∷ monoNatAuthOwn γ.rev q (sint.nat st.latestRev) ∗
@@ -743,11 +1008,12 @@ def storeLockInv (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → 
     "Hhist" ∷ ownRingBuffer (storeHistAddr s) cap (snapCert E) Prod.fst st.history (DFrac.own q) ∗
     "Hrest" ∷ storeLockRest γ q st ∗
     "#HR" ∷ □ R st.latestRev ∗
+    "#HG" ∷ gapList G (gapsOf st.history st.latestRev) ∗
     "%Hinv" ∷ ⌜StoreInv cap st⌝)
 
 instance storeLockInv_fractional (s : Loc) (γ : StoreNames) (cap : Nat)
-    (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF) :
-    Fractional (storeLockInv (GF := GF) s γ cap E R) where
+    (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF) (G : w64 → Int → IProp GF) :
+    Fractional (storeLockInv (GF := GF) s γ cap E R G) where
   fractional q1 q2 := by
     have hrev : ∀ r : w64, (storeLatestRevAddr s ↦{DFrac.own (q1 + q2)} r : IProp GF) ⊣⊢
         storeLatestRevAddr s ↦{DFrac.own q1} r ∗ storeLatestRevAddr s ↦{DFrac.own q2} r :=
@@ -818,20 +1084,20 @@ instance storeRevLb_persistent (γ : StoreNames) (r : w64) :
 
 /-- A reader's token: one of the `RWMutex`'s bounded reader slots (`RLock` needs one). -/
 def storeReader (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF)
-    (R : w64 → IProp GF) : IProp GF :=
-  sync.ownRWMutex (storeMuAddr s) (storeLockInv (hG := hG) s γ cap E R)
+    (R : w64 → IProp GF) (G : w64 → Int → IProp GF) : IProp GF :=
+  sync.ownRWMutex (storeMuAddr s) (storeLockInv (hG := hG) s γ cap E R G)
 
 /-- The writers' handle on the store (persistent): `Restore` and `Apply` take the write lock with
 it (`sync.isRWMutexGuard`: a writer needs none of the `RWMutex`'s bounded reader slots), so any
 number of goroutines may write, in turn. Everything a writer needs to know of the state is in
 the lock invariant: `Restore` and `Apply` are specified for the state they find there. -/
 def isStoreWriter (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF)
-    (R : w64 → IProp GF) : IProp GF :=
-  sync.isRWMutexGuard (storeMuAddr s) (storeLockInv (hG := hG) s γ cap E R)
+    (R : w64 → IProp GF) (G : w64 → Int → IProp GF) : IProp GF :=
+  sync.isRWMutexGuard (storeMuAddr s) (storeLockInv (hG := hG) s γ cap E R G)
 
 instance isStoreWriter_persistent (s : Loc) (γ : StoreNames) (cap : Nat)
-    (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF) :
-    Persistent (isStoreWriter (GF := GF) s γ cap E R) := by
+    (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF) (G : w64 → Int → IProp GF) :
+    Persistent (isStoreWriter (GF := GF) s γ cap E R G) := by
   unfold isStoreWriter; infer_instance
 
 /-- A lower bound on the store's newest snapshot's revision (persistent): the store has a
@@ -852,19 +1118,23 @@ theorem storeSnapLb_mono (γ : StoreNames) (r r' : w64) (h : sint.Z r' ≤ sint.
 whose newest snapshot `(Y, st.latest)` is at or above the caller's lower bound `lo` (the caller
 holds `storeSnapLb γ lo`), with that snapshot's certificate `□ E Y st.latest`: `Apply` either
 changes nothing or succeeds, and the snapshots it appends and the revisions it may move the
-latest revision to are certified (`snapCerts E`, `revCerts R`). Several writers may apply
+latest revision to are certified (`snapCerts E`, `revCerts R`), and so are the gaps it makes
+(`gapList G (applyRespGaps Y st r)`: the snapshots' and, for a progress notification, the newest's
+up to its revision). Several writers may apply
 responses in any interleaving: each certifies its response relative to whatever state it finds
 (a stale response, which `validateRevisions` rejects, changes nothing). -/
-def storeApplyCert (cap : Nat) (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF) (lo : w64)
-    (r : RespModel) : IProp GF :=
+def storeApplyCert (cap : Nat) (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF)
+    (G : w64 → Int → IProp GF) (lo : w64) (r : RespModel) : IProp GF :=
   iprop(□ ∀ (st : StoreState) (Y : w64),
     ⌜StoreInv cap st ∧ st.history.getLast? = some (Y, st.latest) ∧ sint.Z lo ≤ sint.Z Y⌝ -∗
     □ E Y st.latest -∗
     ⌜(applyResp cap st r).2 = true ∨ (applyResp cap st r).1 = st⌝ ∗
-      snapCerts E (applyRespSnaps st r) ∗ revCerts R (applyRespRevs st r))
+      snapCerts E (applyRespSnaps st r) ∗ revCerts R (applyRespRevs st r) ∗
+      gapList G (applyRespGaps Y st r))
 
 instance storeApplyCert_persistent (cap : Nat) (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF)
-    (lo : w64) (r : RespModel) : Persistent (storeApplyCert (GF := GF) cap E R lo r) := by
+    (G : w64 → Int → IProp GF) (lo : w64) (r : RespModel) :
+    Persistent (storeApplyCert (GF := GF) cap E R G lo r) := by
   unfold storeApplyCert; infer_instance
 
 /-- Keep a resource while learning a pure fact from it. -/

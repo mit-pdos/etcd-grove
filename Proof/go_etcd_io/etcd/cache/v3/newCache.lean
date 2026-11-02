@@ -119,7 +119,7 @@ theorem newCache.wp_proof
   iunfold isEtcdClient at Hcl'
   icases Hcl' with ⟨%kv, %w, #HKVf, #HWf, #HisKV, #HisW, #HisPN⟩
   try wp_auto
-  wp_apply wp_newStore (etcdCert pfx) R0 cfg.BTreeDegree' cfg.HistoryWindowSize'
+  wp_apply wp_newStore (etcdCert pfx) R0 (cacheGap pfx) cfg.BTreeDegree' cfg.HistoryWindowSize'
     $$ [$Hpkg $HstorePre]
     as %st %γs ⟨#HisStore, #HisStoreW, #Hslb0, Hrds⟩
   wp_apply wp_newReady $$ [$Hpkg] as %rd %γr ⟨#HisReady, -⟩

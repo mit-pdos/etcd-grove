@@ -34,7 +34,7 @@ theorem newStore.wp_proof
     (wp_newRingBuffer : newRingBuffer.spec (GF := GF) (hG := hG)) :
     newStore.spec (GF := GF) (hG := hG) := by
   have wp_btree_New : btree.New.modelSpec (GF := GF) (hG := hG) := btree.New.modelSpec_of wp_btree_New
-  intro E R degree cap
+  intro E R G degree cap
   wp_start as ⟨%Hdeg, %Hcap, #HR0⟩
   ihave #HR0' : □ R StoreState.init.latestRev $$ []
   · rw [show StoreState.init.latestRev = W64 0 from rfl]; iexact HR0
@@ -81,7 +81,7 @@ theorem newStore.wp_proof
   have Hinv0 : StoreInv (sint.nat cap) StoreState.init := by
     constructor <;> simp [StoreState.init, RevSorted] <;> first | word | skip
   let γ : StoreNames := ⟨γs, γr, γsn, γt⟩
-  imod sync.init_RWMutex (storeLockInv (hG := hG) «$r0_ptr» γ (sint.nat cap) E R)
+  imod sync.init_RWMutex (storeLockInv (hG := hG) «$r0_ptr» γ (sint.nat cap) E R G)
     (storeMuAddr «$r0_ptr») $$ [Hgs Hauth Lrev Hhist Hgt1 Hsauth] mu with Htoks
   · inext
     unfold storeLockInv storeLockRest
@@ -91,6 +91,8 @@ theorem newStore.wp_proof
     iframe HR0'
     isplitr
     · ipureintro; intro h hh; simp [StoreState.init] at hh
+    isplitr
+    · unfold gapList; imodintro; iintro %g %hg; simp [StoreState.init, gapsOf] at hg
     ipureintro; exact Hinv0
   imod inv_alloc storeTreeN ⊤ (storeTreeInv (hG := hG) «$r0_ptr» γ) $$ [Hgt2 Ltree Ht] with #HtreeInv
   · inext

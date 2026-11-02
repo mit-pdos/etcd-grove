@@ -822,6 +822,22 @@ theorem cacheBoundLb_mono (cf : CacheFields) (r r' : w64) (h : sint.Z r' ≤ sin
     · iright
       iapply monoNatLbOwn_le (sint.nat r') (Int.toNat_le_toNat h) $$ H
 
+/-- **The store's gap certificate** in the cache (its `G`): nothing yet. The strengthening of the
+cache's `Get` to etcd's state at the revision asked for (`notes/decisions.md`, "cachekv's check of
+the cache's `Get`") makes it "no event under the prefix in the gap" once progress notifications
+carry that fact (the demux's quiet certificate). -/
+def cacheGap (_pfx : GoString) (_a : w64) (_b : Int) : IProp GF := iprop(True)
+
+instance cacheGap_persistent (pfx : GoString) (a : w64) (b : Int) :
+    Persistent (cacheGap (GF := GF) pfx a b) := by
+  unfold cacheGap; infer_instance
+
+/-- Every gap is certified by the cache's `G` (while it is trivial). -/
+theorem cacheGap_all (pfx : GoString) (gs : List (w64 × Int)) :
+    ⊢ gapList (GF := GF) (cacheGap pfx) gs := by
+  unfold gapList cacheGap
+  imodintro; iintro %g %hg; ipureintro; trivial
+
 /-- **The store's revision certificate** in the cache (its `R`): etcd has reached `r`, and `r` is
 at most the cache's revision bound. -/
 def cacheRev (cf : CacheFields) (r : w64) : IProp GF :=
@@ -1319,7 +1335,7 @@ def isCacheFields (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNa
     "#HisDemux" ∷ isDemux cf.demux γd cap (cacheCert cf) ∗
     "#Hstore" ∷ cacheStoreAddr c ↦□ cf.store ∗
     "#HisStore" ∷ isStore cf.store cf.γs cf.scap ∗
-    "#HisStoreW" ∷ isStoreWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) ∗
+    "#HisStoreW" ∷ isStoreWriter cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (cacheGap cf.pfx) ∗
     "#Hkv" ∷ cacheKvAddr c ↦□ GoInterface.ok cf.kv ∗
     "#HisKV" ∷ isEtcdKVE cf.kv cf.pfx ∗
     "#Hpr" ∷ cachePrAddr c ↦□
@@ -1378,7 +1394,7 @@ instance validateResult_persistent (u : Bool) (pfx key rangeEnd : GoString) (f :
 /-- A reader's token of the cache's store, with the cache's certificates (`etcdCert`,
 `cacheRev`). -/
 def cacheReader (cf : CacheFields) : IProp GF :=
-  storeReader cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf)
+  storeReader cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) (cacheGap cf.pfx)
 
 /-- What `waitTillRevision(ctx, rev)` returns: `nil` once the store's latest revision is at
 least `rev`; the value of `ErrCacheTimeout`; or the context's (non-nil) error once it is
