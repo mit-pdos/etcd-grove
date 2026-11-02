@@ -117,12 +117,12 @@ func StartCompactingServer(name string, peerAddr string, clientAddr string, rete
 	return s, nil
 }
 
-// NewServer builds member name of a new cluster whose initial members' peer URLs are cluster and
+// BuildServer builds member name of a new cluster whose initial members' peer URLs are cluster and
 // whose token is token, its peer URLs peer and its one client URL http://client, with the
 // snapshot settings snapCount and catchUp (newServer, the auto-compactor off), and serves nothing:
 // for an example that keeps its listeners, to close them when it stops the member
 // (examples/restart3).
-func NewServer(name string, peer types.URLs, client string, cluster types.URLsMap, token string,
+func BuildServer(name string, peer types.URLs, client string, cluster types.URLsMap, token string,
 	snapCount uint64, catchUp uint64, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	return newServer(name, peer, client, cluster, token, 0, snapCount, catchUp, lg)
 }
