@@ -722,6 +722,20 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putget3")],
     ),
     Project(
+        name="restart3",
+        # putget3 with a follower stopped (HardStop) and started again on its data directory
+        # (notes/restart-plan.md): the WAL replayed, a snapshot found in it, the member caught
+        # up by a snapshot. A package of the examples' Go module (examples/go.mod); its imports
+        # are the etcd project's translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "restart3"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "restart3")],
+    ),
+    Project(
         name="porcupine",
         # The linearizability checker of etcd's robustness tests (github.com/anishathalye/
         # porcupine v1.3.1, the version in etcd's tests/go.mod), vendored with the one change
