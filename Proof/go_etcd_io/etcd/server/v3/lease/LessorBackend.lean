@@ -47,17 +47,27 @@ namespace lease
 
 open Iris Iris.BI Iris.ProofMode
 
-/-- **No lease granted in the run expires before the run ends** (a named premise about the
+/-- **No lease the cluster grants expires while the program runs** (a named premise about the
 program's deployment, as `leasePeersOk`; the lease-grant plan's S2 (a), the user's choice of
-2026-11-02, `notes/lease-grant-plan.md`): every lease the run grants lives, by the clock the
-lessor's expiry loop reads, until the run ends. So the lessor's loop (`runLoop`,
+2026-11-02, restated by the review's S3, `notes/lease-grant-plan.md`): no lease granted in the
+cluster (by this member, or by another and reloaded here from a snapshot by `Recover`) expires, by
+the clock the lessor's expiry loop reads, while the program runs. So the lessor's loop (`runLoop`,
 `revokeExpiredLeases`, `lessor.go:620-660` at the etcd pin) never finds an expired lease
-(`findExpiredLeases` returns only leases whose `expiry` is past) and sends nothing on `expiredC`;
-what a theorem taking it says nothing of: runs longer than a granted lease's TTL (`examples/leasegrant`
-grants one of 600 s; its run takes seconds), runs whose clock jumps, and a lessor promoted with leases
-it did not grant in the run (a member restarted on a backend holding leases: `Recover`). The
+(`findExpiredLeases` returns only leases whose `expiry` is past) and sends nothing on `expiredC`.
+
+What the theorem reads it over: the program's run ends when `Main` returns (Go exits), but the
+adequacy theorem's executions also continue the other goroutines after that (steps Go never takes),
+and the premise is read over them too: as used (the payload of `expiredC` refutes it, below), it
+says no slice is ever sent on `expiredC`, in any of the theorem's executions.
+
+True of `examples/leasegrant`: its only lease is granted with TTL 600 s, and the read that must list
+it runs within `RequestTimeout` of the grant's apply (the expiry is set to at least the grant's apply
+plus the TTL, and `Promote`, `Demote` and `minLeaseTTL` only move it later, `lessor.go:301-303,
+480-553`). What a theorem taking it says nothing of: runs longer than a granted lease's TTL, runs
+whose clock jumps, and a lessor promoted with leases whose expiry has already passed. The
 trust-boundary `NewLessor` states it in the payload of `expiredC` (`lessorExpiredC`): a slice sent
-refutes it. -/
+refutes it. `NewServer` takes it (gated on the cluster granting leases, `KVNames.lg = true`, review
+S1) for its apply thread, the one place a grant is minted. -/
 opaque leasesNoExpiry : Prop
 
 section defs

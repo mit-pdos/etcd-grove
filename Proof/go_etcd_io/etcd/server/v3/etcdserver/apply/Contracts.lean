@@ -354,8 +354,11 @@ state live (`txn.leasesKnown`). Still assumed (the lessor's other methods are no
 premises); a granted lease is `leaseTTLIs` (no `Keys()`). (D22, 2026-10-23) `Grant` and
 `Checkpoint` take the write right `RW` of the lease bucket, spent with the write-back token (the
 lessor's backend contract `lease.lessorBackend` takes both per write); the server's `AEnv.RW` is
-the backend's tracked buckets' half, which its apply thread does not lend (no lease request is
-admitted). (The lease-grant plan's D3, 2026-11-02) `Grant`'s clause exact, as `lease.lessor.Grant.spec`:
+the backend's tracked buckets' half. (Review M2, 2026-11-02) The `Grant` clause consumes `RW` and
+does not give it back (`lease.lessor.Grant.spec` spends the backend's write token with it): in a
+cluster that grants none the apply thread never calls it (no grant is admitted, `rqOk`), so no write
+right is lent; a granting cluster's accounting (the right handed back after the grant's batch, or
+re-split per grant) is the lease-grant plan's open B2. (The lease-grant plan's D3, 2026-11-02) `Grant`'s clause exact, as `lease.lessor.Grant.spec`:
 an error exactly when the id is `0`, the TTL above `MaxLeaseTTL` or the id live (`Pre` and the live
 set back), else `Post`, the live set `L ++ [id]`, the new lease `leaseTTLIs l id` and in the
 lessor's history (`leaseLiveFrom`). Until then: some superset of `L`, and on success a lease of

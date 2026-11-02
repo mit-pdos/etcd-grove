@@ -28,6 +28,41 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3
 
+section bag
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V] {t : go.GoType}
+  [IntoValTyped (GF := GF) V t]
+
+/-- (review M1, 2026-11-02; a local workaround: a fact of Perennial's `isChanBag`, which has no
+such law yet, `notes/perennial-changes.md`) The bag invariant is monotone in its payload. -/
+theorem chanBagInv_mono (γ : ChanNames) (P Q : V → IProp GF) (h : ∀ v, P v ⊢ Q v) :
+    chanBagInv γ P ⊢ chanBagInv γ Q := by
+  unfold chanBagInv
+  refine exists_mono fun s => sep_mono_right ?_
+  cases s <;> first
+    | exact .rfl
+    | exact h _
+    | exact BigSepL.bigSepL_mono_of_forall (fun {_ _} => h _)
+
+/-- (review M1; local, as `chanBagInv_mono`) **A bag's payload may be replaced by an equivalent
+one**. -/
+theorem isChanBag_iff (γ : ChanNames) (ch : Loc) (P Q : V → IProp GF) (h1 : ∀ v, P v ⊢ Q v)
+    (h2 : ∀ v, Q v ⊢ P v) : isChanBag γ ch P ⊢ isChanBag γ ch Q := by
+  rw [isChanBag_unseal]; unfold isChanBagDef
+  iintro ⟨#Hch, #Hinv⟩
+  isplitr
+  · iexact Hch
+  iapply inv_iff $$ Hinv
+  inext; imodintro
+  isplit
+  · iintro H; iapply (chanBagInv_mono γ P Q h1) $$ H
+  · iintro H; iapply (chanBagInv_mono γ Q P h2) $$ H
+
+end bag
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -36,7 +71,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The server's lessor contract, of the real lessor** at `lp`, (its grant guard the server's,
-`srvGrantGuard lg on`: the lease-grant plan's D1; until then `False`, D45). -/
+`srvGrantGuard lg on`: the lease-grant plan's D1; until then `False`, D45): the guard refutes the
+expired slices' payload, so the bag is of `False` (`isChanBag_iff`, review M1). -/
 theorem lessorOk_of_lessorInv
     (hPromote : lease.lessor.Promote.spec (GF := GF) (hG := hG))
     (hDemote : lease.lessor.Demote.spec (GF := GF) (hG := hG))
@@ -63,8 +99,9 @@ theorem lessorOk_of_lessorInv
     · iframe #
     iintro %c !> ⟨%γc, #Hb⟩
     iapply HΦ
-    iexists γc, lg, on
-    iexact Hb
+    iexists γc
+    iapply (isChanBag_iff γc c _ _ (fun _ => srvGrantGuard_expired lg on)
+      (fun _ => false_elim)) $$ Hb
 
 end proof
 

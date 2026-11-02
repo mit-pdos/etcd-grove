@@ -436,11 +436,11 @@ grants leases** (`KVNames.lg = true`; `run_job_snap`'s statement there): the obl
 as `isServerRun`'s `%Hslg` (from `NewServer`'s precondition) instead of proving it. `applyAll.specSnap`
 takes a cluster that grants none: its lessor is monotone, and `Recover` (the snapshot's restore)
 takes a revocable one; besides, the snapshot's image then has leases (`specSnap`'s `hlease` is
-false). A single member is never sent a snapshot; restoring one with leases is a stage of its own.
-A cluster that grants none (every example but `leasegrant`) discharges the premise
-`γr.kv.lg = true → runSnapLgOk` by its `lg = false`, so the open case is in the trust base of the
-lease-granting results only (`runSnapLgOk_open`, `EtcdServer__run.lean`). -/
-def runSnapLgOk : Prop :=
+false). It quantifies over every apply context, so it covers a member of a multi-member cluster,
+which a leader may send a snapshot (a lagging follower, `raft.go`'s `maybeSendSnapshot`): it is not
+vacuous outside the single-member examples, and restoring a snapshot with leases is a stage of its
+own. Sealed (`runSnapLgOk`); `run` opens it with `runSnapLgOk_elim`. -/
+def runSnapLgOkBody : Prop :=
   ∀ (C : ApplyCtx GF) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
     (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
     (γn : RNNames) (rt : w64),
@@ -470,6 +470,16 @@ def runSnapLgOk : Prop :=
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
     {{ RET #(); schedule.schedRunning γs ∗ applyRes C A' }}
+
+/-- (review S4, 2026-11-02) **The open snapshot case of a lease-granting cluster, by name**: what
+`NewServer`'s precondition names (`%Hslg`, gated on `lg = true`), sealed so that the statement a
+client reads is a name, not the snapshot job's triple (`runSnapLgOkBody`; `runSnapLgOk_elim` is
+how `run` uses it). A cluster that grants none discharges the gated premise by its `lg = false`;
+the open case is in the trust base of the lease-granting results only (`runSnapLgOk_open`,
+`EtcdServer__run.lean`). -/
+@[no_expose] def runSnapLgOk : Prop := runSnapLgOkBody (GF := GF)
+
+theorem runSnapLgOk_elim : runSnapLgOk (GF := GF) → runSnapLgOkBody (GF := GF) := id
 
 /-- **What `run` needs** (see `Spec/.../EtcdServer__run.lean`; named conjuncts): the apply
 thread's view, `applyAll`'s, the raft wrapper (its node contract over the server's `E.C`), `run`'s
@@ -501,7 +511,7 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
     -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open snapshot
     -- case (`runSnapLgOk`, `NewServer`'s precondition)
-    "%Hslg" ∷ ⌜γr.kv.lg = true → runSnapLgOk (GF := GF)⌝ ∗
+    "%Hslg" ∷ ⌜γr.kv.lg = true → lease.leasesNoExpiry ∧ runSnapLgOk (GF := GF)⌝ ∗
     -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
     "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v ∗

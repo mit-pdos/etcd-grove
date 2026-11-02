@@ -1,8 +1,11 @@
 /-
 Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__LeaseGrant.lean`. Lean-first (no
 Rocq counterpart); the lease-grant plan's D4 (2026-11-02): not proved (Draft). Its callees: the id
-generator's `Next`, `requireAuthInfo`, `raftRequest` (whose apply of a grant needs the plan's D3:
-the grant admitted by the request path and the apply thread).
+generator's `Next`, `requireAuthInfo`, `raftRequest`. **Not provable yet over them**: `raftRequest.spec`
+admits no grant (`reqPropOk`, `apply.rqOk`'s `LeaseGrant` arm `False`) and its reply says nothing of
+one (`apply.dispatchAnswer`'s `LeaseGrant` arm `True`): the plan's D3, the in-place admission
+(the review's B1/B2, `notes/lease-grant-plan.md`, "Review"), which waits on the decisions recorded
+there.
 -/
 module
 
@@ -34,7 +37,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem EtcdServer.LeaseGrant.wp_proof
     (hNext : idutil.Generator.Next.spec (GF := GF) (hG := hG))
     (hAuth : EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG))
-    (hRR : EtcdServer.raftRequest.specGrant (GF := GF) (hG := hG)) :
+    (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG) := by
   sorry
 

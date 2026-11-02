@@ -3,11 +3,18 @@
 lease-grant plan's D5, 2026-11-02, `notes/lease-grant-plan.md`). Lean-first (no Rocq counterpart).
 
 `kv_lease_grant_served`: `kv_lease_served`'s ghost step in a cluster that grants leases
-(`srvGrantsLeases`: the KV names' `lg`, auth off, `lease.leasesNoExpiry`), with also `LeaseGrant`
+(`srvGrantsLeases`: the KV names' `lg` and auth off, two scope restrictions; conditional, through
+`NewServer`'s gated row, on the deployment premise `lease.leasesNoExpiry`), with also `LeaseGrant`
 and `LeaseLeases` registered at the specs at the lessor's history (`etcdLeaseGrantAt`): a grant's
 reply carries its lease's grant (`etcdLeaseGrantSpecL`), and a listing lists every grant the caller
 hands in (`etcdLeaseLeasesSpecL`). The Lease service's `LeaseGrant` handler calls the server's
 (`v3rpc.lessorGrantOkL_of_server`). Not proved (Draft).
+
+Why one member's lessor (review S5): the contracts name `E.γ.leases`, this member's, not a
+cluster-level certificate, because Go's listing is member-local: `LeaseLeases` reads the member's
+own lessor without a read index (`v3_server.go:737-749`), so a lagging member need not list a lease
+the cluster granted, and a cluster-level contract would be false. With several endpoints the client
+would need the contracts at every member, which no granting cluster gives.
 -/
 module
 
@@ -39,7 +46,8 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **`LeaseGrant` and `LeaseLeases` registered at the specs at the lessor `E.γ.leases`'s
-history** (persistent). -/
+history** (persistent). Per member, not per cluster: `LeaseLeases` is a member-local read (see
+the file header). -/
 def etcdLeaseGrantAt (addr : GoString) (E : apply.AEnv GF) : IProp GF :=
   iprop(isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant"
       (etcdLeaseGrantSpecL (EM := v3rpc.etcdModelOfServer E) E.γ.leases) ∗

@@ -14,6 +14,12 @@ them need no more), for a server whose lessor `γl` is monotone (it grants lease
   no older than the bound the grants give (`lessorLb`, `leaseGrantedAt_lb`), and a monotone lessor's
   later maps keep every lease granted (`leaseGrantedAt_listed`).
 
+Why the lessor `γl` of one member, not a cluster-level certificate (review S5): Go's `LeaseLeases`
+is a member-local read (`EtcdServer.LeaseLeases`, `v3_server.go:737-749`: the member's own lessor,
+no read index), so a lagging member need not list a lease the cluster granted; the contracts are
+registered at one member's address with its lessor. A client with several endpoints would need them
+at every member, which no granting cluster gives.
+
 What `Main` of `examples/leasegrant` checks: the lease `Grant` returns is in the `Leases` reply.
 -/
 module
@@ -43,7 +49,7 @@ variable [EM : EtcdModel GF]
 
 /-- **etcd's spec of `LeaseGrant` at the lessor `γl`** (see the file header): any request gets a
 reply whose lease ID is not `NoLease`, whose header revision etcd has reached, and whose lease was
-granted at some index of the lessor's history. -/
+granted at some index of the lessor's history (one member's: see the file header). -/
 def etcdLeaseGrantSpecL (γl : GName) :
     GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
   fun (_ : w64 × w64) (Φ : LeaseGrantRespM → IProp GF) =>
@@ -59,7 +65,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **etcd's spec of `LeaseLeases` at the lessor `γl`** (see the file header): the caller's grants
-`G` (each granted at some index) are all listed, and no lease twice. -/
+`G` (each granted at some index of this member's lessor: the listing is member-local, see the file
+header) are all listed, and no lease twice. -/
 def etcdLeaseLeasesSpecL (γl : GName) :
     GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse :=
   fun (_ : Unit) (Φ : LeaseLeasesRespM → IProp GF) =>

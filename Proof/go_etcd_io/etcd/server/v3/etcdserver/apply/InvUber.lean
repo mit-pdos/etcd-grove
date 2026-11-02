@@ -360,33 +360,6 @@ def dispatchResult (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (skip : Bool) (a
       applyErrIs v.Err')
   else iprop(⌜ar = null⌝)
 
-/-- **A lease grant's answer** in `dispatch`'s result `ar` (the lease-grant plan's D3, 2026-11-02;
-`dispatchAnswer`'s `LeaseGrant` arm says nothing, the grant being dead before): the request's
-grant `g`, and either an error (`lessor.Grant`'s: the id live, the TTL above `MaxLeaseTTL`) or a
-`*LeaseGrantResponse` `r` with the grant's `ID` (not `0`: `Grant` refuses `0`), its `TTL` and
-`Error` (read-only), its header's id fields owned at the
-log the entry met (`appliedHdr`, `newHeader`'s) and its revision read-only, a revision of that log
-(`newHeader`'s `KV().Rev()`, the log's last; not `0`: the log has at least two), and the lease granted at an index `i` of the
-lessor `E.γ.leases`'s history (`lease.leaseGrantedAt`: the lessor monotone, `Grant`'s
-`leaseLiveFrom`). True of Go (`applierV3backend.LeaseGrant`, `apply/apply.go`): on `Grant`'s
-success the response gets `l.ID`, which is the request's `ID`, and `newHeader()`. -/
-def grantAnswerIs (E : AEnv GF) (rq : IRRModel) (log : mvcc.Log) (ar : Loc) : IProp GF :=
-  iprop(∃ (g : LeaseGrantModel) (v : Result), ⌜rq.leaseGrant = some g⌝ ∗ ar ↦□ v ∗
-    (⌜v.Err' ≠ GoInterface.nil⌝ ∨
-      (⌜v.Err' = GoInterface.nil⌝ ∗ ∃ (r : Loc) (i : Nat),
-        ⌜v.Resp' = interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseGrantResponse.ty) #r ∧
-          r ≠ null⌝ ∗
-        structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" r ↦□ g.id ∗ ⌜g.id ≠ W64 0⌝ ∗
-        (∃ (ttl : w64) (e : GoString),
-          structFieldRef etcdserverpb.LeaseGrantResponse go!"TTL" r ↦□ ttl ∗
-          structFieldRef etcdserverpb.LeaseGrantResponse go!"Error" r ↦□ e) ∗
-        appliedHdr log (structFieldRef etcdserverpb.LeaseGrantResponse go!"Header" r) ∗
-        (∃ (h : Loc) (rv : w64),
-          structFieldRef etcdserverpb.LeaseGrantResponse go!"Header" r ↦□ h ∗
-          structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ rv ∗
-          ⌜rv ≠ W64 0 ∧ sint.Z rv < log.length⌝) ∗
-        lease.leaseGrantedAt E.γ.leases i g.id)))
-
 /-- **The trace of `dispatch`'s result** `ar` (unit P1b, 2026-10-14): owned (`traceRes`), unless
 the result is `nil` or an error (`raftRequest` reads the trace only of a result without error).
 The apply thread hands it, with the result, to the goroutine serving the request. -/

@@ -1491,3 +1491,13 @@ carry it. Done here: `applyErrIs` with an exact tree (its three leaf constructor
 `errors.Is.spec` proved by `errors.wp_Is_tree`, the two handlers' `sorry`s closed. **Follow-up**
 (small, open): `errorIsTree_of_walk` (and the other `Base.lean` lemmas) take the section's
 `errors.Assumptions` though their proofs do not use it; an `omit package_sem in` would drop it.
+
+## `isChanBag` has no law for changing its payload (2026-11-02, the lease-grant review's M1)
+
+`Perennial/Golang/Theory/Chan/Idioms/Bag.lean`'s `isChanBag γ ch P` (irreducible, over an `inv` of
+`chanBagInv γ P`) has no law replacing `P` by an equivalent payload, though `inv_iff` makes it
+immediate. **Workaround here**: `chanBagInv_mono` and `isChanBag_iff` (`P v ⊢ Q v` and `Q v ⊢ P v`
+for every `v`), in `Proof/go_etcd_io/etcd/server/v3/etcdserver/LessorOk.lean`, used to restate the
+lessor's `expiredC` as a bag of `False`. **The change** (proposed, not started): the two lemmas in
+`Bag.lean` (and the same for the other channel idioms' payloads).
+

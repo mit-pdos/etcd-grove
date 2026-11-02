@@ -200,8 +200,16 @@ request path's model; and so does `lessor.Renew` (`lessor.go:436-439`: a renewal
 `remainingTTL` is set proposes its checkpoint through it; the lease-renew plan, 2026-11-01,
 approved by the user: `lease.lessor.Renew.spec` cites this premise). A premise of
 `lease.NewLessor`'s axiom and so of `NewServer.spec`; nothing in the model proves or refutes it.
-Neither call is exercised while the server's grant guard is `False` (`srvGrantGuard`: no lessor has
-a lease); the lease-grant work must revisit both. (Until D21 M2, 2026-10-19, it had a sibling, `transportEffectsOk`,
+When it is exercised (revisited for a cluster that grants leases, the lease-grant plan's review
+S2, 2026-11-02): only with a lease in the lessor and the `LeaseCheckpoint` feature on. A cluster
+that grants none (`KVNames.lg = false`, the server's grant guard `False`) never has a lease, so
+neither call happens. In a granting cluster with the feature on, `Grant` on a primary lessor
+schedules a checkpoint (`le.cp != nil`, `lessor.go:318-321, 753-770`) and after
+`checkpointInterval` (300 s by default) the loop proposes `LeaseCheckpoint` through `raftRequest`
+(`server.go:394-406`): outside the verified request path, so the premise then has content. The
+examples leave the feature off (`examples/common/common.go:96`: `le.cp == nil`, nothing is ever
+proposed), so for `examples/leasegrant` it holds vacuously. Pending: the `axiom` skill's review of
+this restatement (the lease-grant plan). (Until D21 M2, 2026-10-19, it had a sibling, `transportEffectsOk`,
 the transport's goroutines' effects, now the network contract: `rafthttp/Net.lean`.) -/
 opaque ckptEffectsOk : Prop
 

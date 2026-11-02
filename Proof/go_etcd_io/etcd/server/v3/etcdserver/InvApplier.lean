@@ -497,21 +497,21 @@ theorem srvGrantGuard_false (lg on : Bool) (h : lg = false ∨ on = true) (id : 
 
 /-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes); and
 (2026-10-13, the request path's unit 4c: the server's `run`) whose `Demote` returns and whose
-`ExpiredLeasesC` returns a channel of slices of expired leases, each carrying a lease of the
-lessor's grant guard `srvGrantGuard` (D19n; until D19n a bag with no logical content, which `run`
-passed to the names-only `revokeExpiredLeases`) at some cluster mode `lg` and auth mode `on`, and
-(the lease-grant plan's D1, 2026-11-02; until then the guard was `False`) refuting
-`lease.leasesNoExpiry`, which the guard implies: nothing is sent on that channel
-(`srvGrantGuard_expired`). A trust-boundary contract (the lessor is names-only). -/
+`ExpiredLeasesC` returns a channel on which nothing is sent (a bag of `False`; review M1,
+2026-11-02). Why nothing: the lessor's `expiredC` carries a lease of its grant guard
+(`lease.lessorExpiredC` at `srvGrantGuard lg on`, D19n, the lease-grant plan's D1) in a slice that
+refutes `lease.leasesNoExpiry`, and the guard implies that premise (`srvGrantGuard_expired`;
+`lessorOk_of_lessorInv` turns the payload into `False`). Until D19n a bag with no logical content,
+which `run` passed to the names-only `revokeExpiredLeases`. A trust-boundary contract (the lessor
+is names-only), derived of the real lessor (`lessorOk_of_lessorInv`). -/
 def lessorOk (l : GoInterface) : IProp GF :=
   iprop(∃ li : GoInterfaceOk, ⌜l = GoInterface.ok li⌝ ∗
     □ (∀ d : w64,
       {{ True }} (App (Val #(methods li.ty go!"Promote" li.v)) (Val #d)) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods li.ty go!"Demote" li.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods li.ty go!"ExpiredLeasesC" li.v)) (Val #()))
-      {{ (c : GoChan), RET #c; ∃ (γc : ChanNames) (lg on : Bool),
-        isChanBag γc c (V := GoSlice)
-          (fun _ => iprop(⌜¬ lease.leasesNoExpiry⌝ ∗ ∃ id : w64, srvGrantGuard lg on id)) }}))
+      {{ (c : GoChan), RET #c; ∃ γc : ChanNames,
+        isChanBag γc c (V := GoSlice) (fun _ => iprop(False)) }}))
 
 instance lessorOk_persistent (l : GoInterface) :
     Persistent (lessorOk (GF := GF) l) := by

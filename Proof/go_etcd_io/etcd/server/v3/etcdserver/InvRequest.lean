@@ -585,26 +585,6 @@ def reqPropOkW (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → I
         Qr = fun L => kvRes γc Q (kvStateOf (kvModel γk L))⌝ ∗
       kvOpAu1 γk op Q))
 
-/-- **What a proposal of `rq` needs, in a cluster that may grant leases** (the lease-grant plan's
-D3, 2026-11-02): `reqPropOkW`, or, in a cluster whose KV names grant leases (`γk.lg`), an admitted
-grant (`apply.grantKindOk`) with no client update (`Qr` trivial: a grant changes no key; what the
-caller learns, the grant in the lessor's history, comes with the reply, `grantReplyOk`). A second
-clause, as `apply.rqOkG`: `reqPropOkW` and its users keep their text; at `γk.lg = false` the two
-agree (`reqPropOkWG_false`). -/
-def reqPropOkWG (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
-    IProp GF :=
-  iprop(reqPropOkW γk rq Qr ∨
-    ⌜γk.lg = true ∧ apply.grantKindOk rq ∧ Qr = fun _ => iprop(True)⌝)
-
-theorem reqPropOkWG_false (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF)
-    (h : γk.lg = false) : reqPropOkWG (GF := GF) γk rq Qr ⊣⊢ reqPropOkW γk rq Qr := by
-  unfold reqPropOkWG
-  constructor
-  · iintro (H | %Hg)
-    · iexact H
-    · rw [h] at Hg; exact absurd Hg.1 (by simp)
-  · iintro H; ileft; iexact H
-
 /-- **etcd's KV `γk` has reached revision `r`** (persistent; the client's `kv.Compact`, 2026-10-31,
 in place of M2's `cmpReach`): the cluster's requested raft log has a prefix whose KV model is
 longer than `r`, so every entry requested later is applied after revision `r` exists. One for the

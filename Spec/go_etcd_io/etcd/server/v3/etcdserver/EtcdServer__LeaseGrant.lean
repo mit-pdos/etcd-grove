@@ -31,8 +31,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 (`srvGrantsLeases`), at a context, with the request path's resources (`Put`'s: the server's
 request-side facts, the leader-timeout reader, the backend reader `E.RD`, the id generator's
 credits, freely minted) and the decoded request (its `ID` owned): on `nil`, the server's response
-(`leaseGrantedResp`: a lease id not `0`, its header, and the lease granted at an index of the
-lessor's history); on an error, no response and an error the gRPC layer can take.
+(`leaseGrantedResp`: a lease id not `0`, its header with a revision the store has reached, and the
+lease granted at an index of the lessor's history); on an error, no response and an error the gRPC layer can take.
 
 Why it is true of the Go code: while `r.ID` is `0` it writes `s.reqIDGen.Next() & (2^63-1)` there
 (the owned field); `requireAuthInfo` returns `nil` with auth off; `raftRequest` proposes
@@ -41,7 +41,12 @@ Why it is true of the Go code: while `r.ID` is `0` it writes `s.reqIDGen.Next() 
 the lessor having appended the snapshot with it (`lessor.Grant.spec`'s `leaseLiveFrom`, monotone:
 `leaseGrantedAt_of_live`); an id already granted (`ErrLeaseExists`), a TTL above the maximum or a
 timeout are errors. The type assertion `resp.(*pb.LeaseGrantResponse)` does not panic: the apply
-of a `LeaseGrant` request answers that type. -/
+of a `LeaseGrant` request answers that type.
+
+The margin (the review's M4): the request's `ID` is not given back (the post drops it); Go's unary
+interceptors read no field of a `LeaseGrantRequest` after the handler (`v3rpc/interceptor.go`), so no
+caller needs it. Conditional, through `NewServer`, on the deployment premise
+`lease.leasesNoExpiry` (`srvGrantsLeases`). -/
 abbrev EtcdServer.LeaseGrant.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (ttl id0 : w64),
@@ -52,7 +57,7 @@ abbrev EtcdServer.LeaseGrant.spec : Prop :=
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
-      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ leaseGrantedResp E ρ resp) ∨
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ leaseGrantedResp E resp) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec

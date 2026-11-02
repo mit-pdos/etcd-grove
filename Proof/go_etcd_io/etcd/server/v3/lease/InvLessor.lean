@@ -465,6 +465,25 @@ theorem leaseGrantedAt_lb (γl : GName) (i : Nat) (id : w64) :
   iexists γr, hs; iframe Hp Hlb; ipureintro
   exact (List.getElem?_eq_some_iff.1 Hhs).1
 
+/-- (review M6, 2026-11-02) **Two lower bounds of the history give their maximum**: what combines a
+caller's grants (each `leaseGrantedAt_lb`) into the one bound `EtcdServer.LeaseLeases.spec` takes. -/
+theorem lessorLb_max (γl : GName) (i j : Nat) :
+    lessorLb (GF := GF) γl i ∗ lessorLb γl j ⊢ lessorLb γl (max i j) := by
+  iintro ⟨Hi, Hj⟩
+  rcases Nat.le_total i j with h | h
+  · rw [Nat.max_eq_right h]; iexact Hj
+  · rw [Nat.max_eq_left h]; iexact Hi
+
+/-- (review M6) **A grant and a lower bound give the larger bound** (`leaseGrantedAt_lb`,
+`lessorLb_max`). -/
+theorem leaseGrantedAt_lb_max (γl : GName) (i j : Nat) (id : w64) :
+    leaseGrantedAt (GF := GF) γl i id ∗ lessorLb γl j ⊢ lessorLb γl (max i j) := by
+  iintro ⟨Hg, Hj⟩
+  iapply lessorLb_max
+  isplitl [Hg]
+  · iapply leaseGrantedAt_lb; iexact Hg
+  · iexact Hj
+
 /-- **A live lease of a monotone lessor was granted** at its index. -/
 theorem leaseGrantedAt_of_live (γl : GName) (m : Nat) (id : w64) (l : Loc) :
     lessorModeIs (GF := GF) γl true ∗ leaseLiveFrom γl m id l ⊢
