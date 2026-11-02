@@ -891,3 +891,33 @@ the contract `isRNWalR` (`Save`/`SaveSnap` as atomic updates in the cases the se
 `WalSaveOk`/`WalSnapOk`, failing only on I/O), the durability invariant `rnDurInv`, the pure laws
 as statements (`walSave_holds_stmt`, `walSnapSave_holds_stmt`, `walOwnSnap_holds_stmt`,
 `walFresh_holds_stmt`), and the receive keeping *enter* unfired (`rnReadyRecvR_stmt`).
+
+### R2b-1 review, round 1 (2026-11-02, a fresh `spec-reviewer`)
+
+Code reading found a second etcd problem and a flaw in the first fork fix:
+- **G1** (`nonissues/etcd-wal-snapshot-record-order.md`): the apply thread's own `SaveSnap(i)`
+  can land after the raft loop's `SaveSnap(k)` of a received snapshot, `i < k`, and
+  `recoverSnapshot` opens the WAL at the *last* record: the restart reads back the old log above
+  `i` with the commit `k` (a panic if it ends below `k`). Fork fix: open at the highest index.
+- **G2**: the first fix decided by the WAL's entry at the snapshot's index, but raft decides on its
+  in-memory log. Fork fix revised: drop the entries above the start snapshot iff it is above the
+  commit index saved before its record (exactly a received snapshot).
+- **G3**: `ReadAll` did not restore `w.state`, which a cut repeats at a file's head (the G2 rule
+  needs it). Fixed.
+The fork's branch is now `6293455e0` + `ce3dbc097`; the WAL and server tests pass, four new WAL
+tests fail without it.
+
+On the draft:
+- **F1, F5** (false laws): `walSaveSnap` follows the commit rule and ignores a record below the
+  base; `walSnapSave_holds_stmt` and `walSave_holds_stmt` take the entries consecutive, which
+  raft's `ReadyRestFacts` does not state yet (a raft API law to add); `walOwnSnap_holds_stmt`
+  needs the durable log's term at the snapshot's index, which the invariant must carry.
+- **F2**: `WalSaveOk` requires consecutive entries. `Save` failing only on I/O widens the
+  environment premise `walSaveOk` (today `SaveSnap`'s only): **open, the user's choice**.
+- **F3**: `rnDurInv` needs a "snapshot pending" state, the hard-state agreement, the
+  `walCommitLb` authority, the log's agreement with the committed log, an exit for the stop, and
+  credits for `walRecs`: listed in its docstring, for the next draft.
+- **F4**: entering at the `Save` needs a raft API change: `readyGot` must give
+  `deliveredLogLb (delivered ++ ce)` and the new hard state's term fact without *enter* (the
+  hand-off on `applyc` precedes the `Save`).
+- **F6**: `isRNWalR` replaces `isRNWal`'s `Save`/`SaveSnap` in the proof.

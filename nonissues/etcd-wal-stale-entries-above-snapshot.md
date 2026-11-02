@@ -38,15 +38,17 @@ wal_stale_test.go:54: ReadAll after a snapshot at 3 (term 2) returned 2 entries 
 Upstream not searched (no GitHub access from the session that found it, 2026-11-02).
 
 **The fork's fix** (branch `goose-lean-walsnap` of `upamanyus/etcd`, on the pin `ab3c28d9a`; the
-user's choice, 2026-11-02): `ReadAll` reads the records as the log they write. An entry written at
-or below the start snapshot's index truncates the entries above it (`ReadAll` ignored such writes,
-a second way to keep stale entries), and at the start snapshot's record the entries above it go
-unless the log holds the snapshot's entry (its index and term): raft puts a received snapshot in a
-`Ready` only when the log conflicts with it or is shorter, and the server's own snapshots are of its
-applied log, whose entry at the index is in the WAL before the record. Tests in
-`server/storage/wal/wal_test.go`: `TestReadAllDropsEntriesAReceivedSnapshotDiscards`,
-`TestReadAllTruncatesAtEntryBelowStart` (both fail without the fix),
-`TestReadAllKeepsEntriesAboveOwnSnapshot`.
+user's choice, 2026-11-02; `6293455e0`, revised by `ce3dbc097` after review): `ReadAll` reads the
+records as the log they write. An entry written at or below the start snapshot's index truncates
+the entries above it (`ReadAll` ignored such writes, a second way to keep stale entries), and at
+the start snapshot's record the entries above it go when the snapshot is above the commit index
+saved before it: exactly a received snapshot (raft installs one only past its commit; the server's
+own snapshots are of applied entries). The first version decided by the WAL's entry at the
+snapshot's index, but raft decides on its in-memory log, which a newer leader's appends may have
+changed. `ReadAll` also restores the WAL's hard state, which a cut repeats at the head of the next
+file. Tests in `server/storage/wal/wal_test.go` (`TestReadAllDropsEntriesAReceivedSnapshotDiscards`,
+`TestReadAllDropsEntriesAboveReceivedSnapshotTheWALMatches`, `TestReadAllTruncatesAtEntryBelowStart`,
+`TestReadAllRestoresState` fail without the fix; `TestReadAllKeepsEntriesAboveOwnSnapshot`).
 
 ## Proof
 
