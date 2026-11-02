@@ -380,7 +380,7 @@ theorem watchGRPCStream.run.wp_proof
         P0.flt P0.retc P0.γret «$r0_ptr» (EtcdWatchNames.mk G.γr γcur γcur2 (cplOf P0)) outc recvc G.γr γhi γh2 γx
         P0.sr γps P0.kv P0.Q P0.n P0.bd
       imod start_spsc (V := go_etcd_io.etcd.client.v3.WatchResponse) outc
-        (outcElem Ppre.γ P0.o P0.Q (wsRow V Ppre)) (fun _ => iprop(True)) γo
+        (outcElem V.kv Ppre.γ P0.o P0.Q (wsRow V Ppre)) (fun _ => iprop(True)) γo
         $$ Houtc [Houto] with ⟨%γsp, #Hosp, Hoprod, Hocons⟩
       · iright; iexact Houto
       imod start_sspsc (V := Loc) recvc (client.recvElem V Ppre) (fun _ => iprop(True)) γrc2
@@ -388,9 +388,9 @@ theorem watchGRPCStream.run.wp_proof
       let P : WsPrm GF := WsPrm.mk P0.o P0.rev P0.ctx P0.cs P0.key P0.ed P0.cn P0.pn P0.wbl
         P0.flt P0.retc P0.γret «$r0_ptr» (EtcdWatchNames.mk γsp γcur γcur2 (cplOf P0)) outc recvc γrr γhi γh2 γx
         P0.sr γps P0.kv P0.Q P0.n P0.bd
-      have eq1 : (isSpsc γsp outc (outcElem Ppre.γ P0.o P0.Q (wsRow V Ppre))
+      have eq1 : (isSpsc γsp outc (outcElem V.kv Ppre.γ P0.o P0.Q (wsRow V Ppre))
           (fun _ => iprop(True)) : IProp GF) =
-          isSpsc P.γ.spsc P.outc (outcElem P.γ P.o P.Q (wsRow V P))
+          isSpsc P.γ.spsc P.outc (outcElem V.kv P.γ P.o P.Q (wsRow V P))
             (fun _ => iprop(True)) := rfl
       have eq2 : (isSspsc γrr recvc (client.recvElem V Ppre) (fun _ => iprop(True)) : IProp GF) =
           isSspsc P.γr P.recvc (client.recvElem V P) (fun _ => iprop(True)) := rfl

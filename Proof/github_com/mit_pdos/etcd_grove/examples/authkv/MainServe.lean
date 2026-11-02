@@ -120,7 +120,7 @@ theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
 theorem ak_served_watch [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     (V : client.WEnv GF) (addr : GoString) (pw s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (ims is : GoFunc) (sregs : List (GoString × val × GoInterface)) (nw : Nat)
-    (hV : V.addr = addr) (hE : V.R.E = E) (hp : V.pfx ≠ []) (hst : γr.kv.st = V.kst)
+    (hV : V.addr = addr) (hE : V.R.E = E) (hp : V.pfx ≠ []) (hst : kvSame γr.kv V.kv)
     (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62)
     (hset : go.typeSetContains
       (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty)

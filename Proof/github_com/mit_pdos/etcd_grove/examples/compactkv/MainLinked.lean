@@ -15,6 +15,7 @@ is linked. `Results.lean` restates it.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.compactkv.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.compactkv.checkCompactRev
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.StartCompactingServer
 public import Proof.go_uber_org.zap.NewNop
@@ -54,6 +55,13 @@ theorem compactkv.wp_StartCompactingServer [go_etcd_io.etcd.cache.v3.Assumptions
     (common.newServer.wp_proofCompact common.wp_newServerMode)
     EtcdServer.wp_Start
 
+/-- `checkCompactRev` (C3's watch side, 2026-11-02), over the client's `Watch`, `common.CompactRev`
+and the context's functions. -/
+theorem compactkv.wp_checkCompactRev [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    compactkv.checkCompactRev.spec (GF := GF) (hG := hG) :=
+  compactkv.checkCompactRev.wp_proof context.wp_Background context.WithTimeoutBackground.wp_proof
+    context.wp_ErrAny WithRev.wp_proof client.v3.watcher.wp_Watch common.wp_CompactRev
+
 /-- **The adequacy example's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/compactkv/Main.lean`), under the semantic premises of
 its callees' linked results: `int64(f)` of a `float64` (`Float64ToInt64Semantics`, the server's)
@@ -63,6 +71,7 @@ theorem compactkv.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.D
   compactkv.Main.wp_proof zap.NewNop.wp_proof compactkv.wp_StartCompactingServer common.wp_Serve
     common.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
     context.wp_ErrAny WithRev.wp_proof client.v3.watcher.wp_Watch common.wp_Collect
+    compactkv.wp_checkCompactRev
 
 end results
 

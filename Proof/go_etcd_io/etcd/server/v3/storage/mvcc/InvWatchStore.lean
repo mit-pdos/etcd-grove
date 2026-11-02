@@ -787,6 +787,13 @@ theorem respCov_rev (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x 
   iintro ⟨-, -, -, #Hr⟩
   iapply revLbOf_of γ pre x $$ Hr
 
+/-- **A covered response's compaction revision is permitted** (C3's watch side, 2026-11-02). -/
+theorem respCov_cmpPerm (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM) :
+    respCov (GF := GF) γ γc pre x ⊢ cmpPermOf γ x := by
+  unfold respCov
+  iintro ⟨-, -, -, #Hr⟩
+  iapply respRev_cmpPerm γ pre x $$ Hr
+
 instance respCov_persistent (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM) :
     Persistent (respCov (GF := GF) γ γc pre x) := by
   unfold respCov; infer_instance

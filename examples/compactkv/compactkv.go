@@ -9,7 +9,9 @@
 // read is never compacted, and a read at an old revision returns the store at that revision or fails
 // (ErrCompacted, once a compaction passed it), never another value. After the rounds, a watch of
 // the last round's key from revision 2 (compacted) ends with ErrCompacted or sees only the rounds'
-// values.
+// values; and a second such watch's compaction revision, plus the retention, is at most a later
+// latest Get's revision (C3: every compaction is at least the retention behind a revision the
+// cluster has reached).
 //
 // The explicit compactions are what a test sees: the revision compactor polls every five minutes
 // (v3compactor's revInterval), so in a run of Main it never fires, and putgetc's test compacts
@@ -126,5 +128,27 @@ func Main() {
 				panic("compactkv: the watch saw another value")
 			}
 		}
+	}
+	checkCompactRev(cli, prevKey)
+}
+
+// checkCompactRev checks C3, the compaction retention: a watch of key from revision 2, whose first
+// response is the compaction's in a run. Its compaction revision is at least the retention behind
+// a revision the cluster has reached, so a latest Get after it reads at a revision at least the
+// compaction revision plus the retention (in a run, the last round's compaction is at the last
+// Put's revision minus one, and the Get reads at the last Put's: equal). It panics if not.
+func checkCompactRev(cli *clientv3.Client, key string) {
+	cctx, ccancel := context.WithCancel(context.Background())
+	cch := cli.Watcher.Watch(cctx, key, clientv3.WithRev(2))
+	crev, cok := common.CompactRev(cch)
+	ccancel()
+	if !cok {
+		return
+	}
+	lctx, lcancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	lresp, err := cli.Get(lctx, key)
+	lcancel()
+	if err == nil && lresp.Header.Revision < crev+retention {
+		panic("compactkv: a compaction revision within the retention of the latest revision")
 	}
 }

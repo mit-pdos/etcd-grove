@@ -132,9 +132,9 @@ theorem Main.wp_proof
       (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot) ⊤) $$ Hetcd
     with ⟨%γl, #Hlinv, Hst⟩
   ihave #Hlinv₂ : linkvtxn.linkvInv γl ρ₂.rd.kv $$ []
-  · rw [linkvInv_congr γl ρ₂.rd.kv ρ₁.rd.kv hst₂]; iexact Hlinv
+  · rw [linkvInv_congr γl ρ₂.rd.kv ρ₁.rd.kv hst₂.1]; iexact Hlinv
   ihave #Hlinv₃ : linkvtxn.linkvInv γl ρ₃.rd.kv $$ []
-  · rw [linkvInv_congr γl ρ₃.rd.kv ρ₁.rd.kv hst₃]; iexact Hlinv
+  · rw [linkvInv_congr γl ρ₃.rd.kv ρ₁.rd.kv hst₃.1]; iexact Hlinv
   -- every client's members: the three, at their bridges' addresses
   let ms : List (EtcdGrove.client.SrvAt GF) :=
     [⟨bridgeAddr₁, E₁', ρ₁.rd, cid₁, mid₁⟩, ⟨bridgeAddr₂, E₂', ρ₂.rd, cid₂, mid₂⟩,

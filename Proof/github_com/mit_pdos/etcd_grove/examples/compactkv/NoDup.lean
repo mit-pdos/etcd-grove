@@ -129,7 +129,7 @@ theorem noDupKeys_of_rounds [go_etcd_io.raft.v3.Assumptions] [go_etcd_io.etcd.se
       mvcc.noDupKeys V.R.E.γ := by
   iintro ⟨#Hkf, #Hau⟩
   iunfold client.srvKVFacts at Hkf
-  icases Hkf with ⟨%on, %γr, #Hinvs, #H00, %Hkr⟩
+  icases Hkf with ⟨%on, %γr, #Hinvs, #H00, %Hkr, -⟩
   iunfold mvcc.noDupKeys
   iintro !> %log #Hev
   iunfold mvcc.evLog at Hev

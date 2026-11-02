@@ -1805,7 +1805,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       rw [Hkbiff, Hcmw, Hcmp0]
     · simp only [srvKVInvsM, srvKVInvsOn, kvInvM, kvCertInvM]
       isplit
-      · iframe Hkci Hsrl Hkvinv Htie
+      · iframe Hkci Hsrl Hkvinv Htie HcpIs
         ipureintro; exact (Hγw.2.2.2.2.trans Hcok.symm)
       · iapply srvUberOn_of_kit hKit
         iPkgInit
