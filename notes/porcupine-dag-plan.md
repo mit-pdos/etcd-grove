@@ -227,3 +227,258 @@ specs are the part's exported results (`PorcupineDag/Proof/.../Link.lean`).
 premise on event histories), `Check*Consistency` with a general `Consistency` (oracles of
 arbitrary specs; the DAG search's correctness then needs properties of the oracles, e.g. a hard
 order that is a strict partial order compatible with the chains), the visualizer.
+
+## Invariant plan (candidate 1, 2026-11-02)
+
+Against the spec plan. Notation: `h : List (Op OpV)` the partition's history (`n = h.length`),
+`cs : List (List Nat)` its chains (`nc = cs.length`), `B` the ids linearized (the stack's, newest
+first), `H : List Nat` the heads (`H[c]` the number of client `c`'s operations linearized),
+`headOp H c = cs[c][H[c]]`, `clientOf cs y` the chain holding `y`. Premises available everywhere
+below: `ChainsOk h cs`, `HistWf h` (`n < 2^60`, `call ≤ ret`), `nc * n < 2^63`.
+
+### 1. The search, in pure terms (`DagTheory.lean`, beside the copied `Theory.lean`)
+
+Reused from v1.3.1's `Theory.lean` (copied, its entry-list part dropped): `Op`, `SeqModel`, `run`,
+`Prec`, `vals`, `Completes`, `Good`, `Linearizable`, `good_congr`, `Chain`, `chain_det`,
+`SuccBad`, `OnStack`, `CacheOk`. `Frame` changes: it records the candidate list it was lifted from.
+
+    structure Frame (σ) where id : Nat; pre : σ; pos : Nat; fr : List Nat
+
+    /-- `y` may be linearized next after `B`: not linearized, and everything that precedes it in
+    real time is. -/
+    def Cand (h) (B : List Nat) (y : Nat) : Prop := y < h.length ∧ y ∉ B ∧ ∀ z, Prec h z y → z ∈ B
+
+    /-- The frontier's order (`addToFrontier`): later call first, then larger client. -/
+    def KeyGt (h) (cs) (y z : Nat) : Prop :=
+      call y > call z ∨ (call y = call z ∧ clientOf cs y > clientOf cs z)
+
+    /-- `l` is the candidates of `B`, sorted by `KeyGt`. -/
+    def CandList (h cs B l) : Prop := l.Pairwise (KeyGt h cs) ∧ ∀ y, y ∈ l ↔ Cand h B y
+
+    theorem candList_unique : CandList h cs B l → CandList h cs B' l' → (∀ y, y ∈ B ↔ y ∈ B') → l = l'
+      -- KeyGt is asymmetric; two Pairwise-KeyGt lists with the same members are equal
+
+    /-- Lifting `fr[q]` for `q > p` leads only to configurations without completion. -/
+    def PrefixBad (M h) (B) (t : σ) (fr : List Nat) (p : Int) : Prop :=
+      ∀ q y, p < q → fr[q]? = some y → SuccBad M h B t y
+
+    /-- What survives a cancelled step: each frame lifted the candidate at `pos` of the candidate
+    list below it. -/
+    def FramesStruct (h cs) : List (Frame σ) → Prop
+      | [] => True
+      | f :: fs => FramesStruct fs ∧ CandList h cs (ids fs) f.fr ∧ f.fr[f.pos]? = some f.id
+    def FramesBad (M h) : List (Frame σ) → Prop
+      | [] => True
+      | f :: fs => FramesBad fs ∧ PrefixBad M h (ids fs) f.pre f.fr f.pos
+
+    /-- The structure (kept by every branch, cancelled or not). -/
+    def Struct (M h cs fs s fr p) : Prop :=
+      Chain M h fs s ∧ FramesStruct h cs fs ∧ CandList h cs (ids fs) fr ∧ -1 ≤ p ∧ p < fr.length
+    /-- The completeness invariant (lost on a cancelled step: carried as `⌜Bad⌝ ∨ □ Done`). -/
+    def Bad (M h fs s fr p cache) : Prop :=
+      FramesBad M h fs ∧ PrefixBad M h (ids fs) s fr p ∧ CacheOk M h fs cache
+
+Lemmas (one per branch of `checkSingle`/`chains.lift`, plus the exits):
+
+    theorem struct_init : CandList h cs [] fr → Struct M h cs [] M.init fr (fr.length - 1)
+    theorem bad_init : Bad M h [] s fr (fr.length - 1) []                -- vacuous
+    -- a candidate not lifted, its configuration cached: cursor down
+    theorem bad_skip (hb : Bad M h fs s fr p cache) (hy : fr[p]? = some y) (hcand : Cand h (ids fs) y)
+        (hcached : ∀ o t', h[y]? = some o → M.step s o.val = some t' →
+          ∃ c ∈ cache, (∀ i, c.1 i ↔ i ∈ y :: ids fs) ∧ c.2 = t') :
+        Bad M h fs s fr (p - 1) cache
+    -- a candidate the model refuses: cursor down
+    theorem bad_skip_step (hb) (hy : fr[p]? = some y) (hst : ∀ o, h[y]? = some o → M.step s o.val = none) :
+        Bad M h fs s fr (p - 1) cache
+    -- a candidate lifted (the model steps, not cached): pushed with the new candidate list
+    theorem struct_push (hs : Struct M h cs fs s fr p) (hq : 0 ≤ q ≤ p) (hy : fr[q]? = some y) (ho)
+        (hst : M.step s o.val = some t') (hfr' : CandList h cs (y :: ids fs) fr') :
+        Struct M h cs (⟨y, s, q, fr⟩ :: fs) t' fr' (fr'.length - 1)
+    theorem bad_push (hb : Bad M h fs s fr q cache) (hy) (ho) (hst) :
+        Bad M h (⟨y, s, q, fr⟩ :: fs) t' fr' (fr'.length - 1) ((· ∈ y :: ids fs, t') :: cache)
+      -- `hb` at the cursor `q`: the candidates between `q` and the entry cursor were skipped
+      -- (`bad_skip`s); the new frame's PrefixBad is that of q; the new cursor's is vacuous
+    -- every candidate tried: no completion (needs only call ≤ ret)
+    theorem bad_here (hes : HistWf h) (hfr : CandList h cs B fr) (hall : PrefixBad M h B s fr (-1)) :
+        ¬ Good M h (· ∈ B) s
+    -- backtrack: the frame's configuration was bad; resume below it, after its position
+    theorem struct_pop (hs : Struct M h cs (f :: fs) s fr p) : Struct M h cs fs f.pre f.fr (f.pos - 1)
+    theorem bad_pop (hes) (hs : Struct …) (hb : Bad M h (f :: fs) s fr (-1) cache) :
+        Bad M h fs f.pre f.fr (f.pos - 1) cache
+    theorem bad_fail (hes) (hs : Struct M h cs [] s fr p) (hb : Bad M h [] s fr (-1) cache) :
+        ¬ Linearizable M h
+    -- soundness: every frame lifted a candidate; with every id lifted, the stack is a linearization
+    theorem sound_done (hes) (hs : Struct M h cs fs s fr p) (hall : ∀ y < h.length, y ∈ ids fs) :
+        Linearizable M h       -- π = (ids fs).reverse
+
+Cancellation (`stepCtxSpec`'s `□ Done` arm) is handled as in v1.3.1: `Struct` is unconditional,
+`Bad` is under `⌜Bad⌝ ∨ □ Done`; a refused step on a done context keeps `Struct` (nothing changes)
+and gives the `□ Done` arm.
+
+### 2. The chains, in pure terms (`Chains.lean`)
+
+    /-- The ids linearized, from the heads: client `c`'s first `H[c]`. -/
+    def headsSet (cs) (H : List Nat) (y : Nat) : Prop := ∃ c k, k < H[c] ∧ cs[c][k]? = some y
+    def HeadsOk (cs H) : Prop := H.length = cs.length ∧ ∀ c, H[c] ≤ cs[c].length
+
+    /-- The number of client `d`'s operations that precede client `c`'s `k`-th. -/
+    def FU (h cs c k d) : Nat := ((cs[d]).filter (fun z => decide (Prec h z (cs[c][k])))).length
+    /-- The number of other clients with operations preceding `c`'s head not all linearized. -/
+    def deps (h cs H c) : Nat :=
+      ((List.range cs.length).filter (fun d => d ≠ c ∧ FU h cs c H[c] d > H[d])).length
+
+Lemmas (all under `ChainsOk h cs`, `HistWf h`):
+
+    theorem fu_prefix : i < cs[d].length → (i < FU h cs c k d ↔ Prec h (cs[d][i]) (cs[c][k]))
+      -- the operations of d preceding x are a prefix of d's chain (d's chain is sequential)
+    theorem fu_mono : k + 1 < cs[c].length → FU h cs c k d ≤ FU h cs c (k+1) d
+      -- what makes computeFirstUnk's start from the previous operation's bound exact
+    theorem cand_iff : HeadsOk cs H → (∀ y, y ∈ B ↔ headsSet cs H y) →
+        (Cand h B y ↔ ∃ c, H[c] < cs[c].length ∧ cs[c][H[c]] = y ∧ deps h cs H c = 0)
+    theorem cand_not_prec : Cand h B y → Cand h B z → ¬ Prec h y z
+      -- frontier members are unrelated in real time: Check never answers Hard among them
+    theorem deps_lift (j ≠ i) : deps h cs (H.set i (H[i]+1)) j
+        = deps h cs H j - (if FU h cs j H[j] i = H[i] + 1 then 1 else 0)
+      -- and in the decremented case deps h cs H j ≥ 1; symmetric `deps_unlift`
+
+### 3. The chains in the heap (`ChainsOwn.lean`)
+
+One record of pure values for the chains' state:
+
+    structure ChSt where
+      heads : List Nat
+      nDeps : List w64
+      frontier : List Nat          -- client indices
+      vis : List (List Bool)       -- per client, per operation
+      fu : List (List (List w64))  -- per client, per operation: its firstUnk slice
+
+    /-- The chains value `chV`: its clients slice (each client: `id = c`, `cltOps` holding client
+    `c`'s operations (`Op`, `id`, `globalId` = the chain's ids; `firstUnk` a slice holding
+    `st.fu[c][k]`, of length `nc`; `visited = st.vis[c][k]`), `head = st.heads[c]`,
+    `nDeps = st.nDeps[c]`), `numOps = n`, its frontier slice holding `st.frontier` (with its
+    capacity: `append`). -/
+    def chainsRepr (chV : chains.t) (h cs) (st : ChSt) : IProp GF
+    def chainsOwn (ch : Loc) (h cs) (st : ChSt) : IProp GF := ∃ chV, ch ↦ chV ∗ chainsRepr chV h cs st
+
+    /-- The chains' invariant, at heads `st.heads`. -/
+    def ChainsInv (h cs) (st : ChSt) : Prop :=
+      HeadsOk cs st.heads ∧ shapes (lengths of nDeps, vis, fu match cs) ∧
+      FuOk h cs st ∧
+      (∀ c k, k < cs[c].length → k ≤ st.heads[c] → st.vis[c][k] = true) ∧
+      (∀ c, st.heads[c] < cs[c].length → sint.Z st.nDeps[c] = deps h cs st.heads c) ∧
+      (∀ c ∈ st.frontier, st.heads[c] < cs[c].length) ∧
+      CandList h cs (headsList cs st.heads) (st.frontier.map (headOp cs st.heads))
+    /-- Every visited operation's firstUnk is exact (except its own client's entry, never written). -/
+    def FuOk (h cs st) : Prop := ∀ c k, st.vis[c][k] = true → ∀ d ≠ c, sint.Z st.fu[c][k][d] = FU h cs c k d
+
+`ChainsInv`'s last conjunct is what makes `liftFrom` right: the frontier, mapped to the head
+operations, is the sorted candidate list, hence (`candList_unique`) after `unlift` the list the
+popped frame was lifted from.
+
+### 4. The helpers' specs and their loops
+
+- `Consistency.Check(&consistency, a, b)` on `isLinearizability`, `a ↦{qa} coa`, `b ↦{qb} cob`:
+  `(linOrder coa.Op cob.Op, nil)`. Its loop over the (two) oracles: `ok` is the fold of the first
+  `i` answers; after RealTime `ok ∈ {DontKnow, HardBefore, HardAfter}`; GeneralLikely's Soft or
+  DontKnow changes only a DontKnow; no conflict (RealTime gives at most one Hard, GeneralLikely
+  none), so the error branches (`errors.New`, `fmt.Sprintf("%+v")`) are unreachable.
+- `chains.computeFirstUnk(c, consistency)`: pre `chainsOwn ch h cs st`, `FuOk h cs st`,
+  `st.heads[c] > 0 → st.vis[c][st.heads[c] - 1]`; post `st` with `vis[c][heads[c]] := true` and
+  `fu[c][heads[c]][d] := FU … d` for `d ≠ c` (if `heads[c] < len` and not yet visited; else `st`),
+  `FuOk` kept. Loop invariants. Outer loop over `d`: the entries `d' < d` (`d' ≠ c`) of the head's
+  slice are exact. For one `d`, with `start` (the previous op's `fu[d]`, or 0; `start ≤ FU … d` and
+  `∀ j < start, P j`, by `fu_mono`/`fu_prefix`), `P i := Prec (cs[d][i]) x` (downward closed on
+  `[0, L)`, `fu_prefix`), `L = cs[d].length`:
+  - exponential: `start ≤ i`, `step = 2^m ≥ 1`, `i = start + step - 1`, `∀ j < i, P j` when
+    `i ≤ L`... precisely `∀ j, j < i → j < L → P j` — every index probed so far is `P` and by
+    downward closure all below; `fdk = -1`; exit: `i ≥ L` (`fdk = -1`) or `¬ P i` (`fdk = i < L`);
+    bounds `step ≤ 2L`, `i < 2L + 1` (no overflow: `L < 2^60`).
+  - binary: `start ≤ low ≤ high ≤ L`, `∀ j < low, P j`, and
+    `(fdk = -1 ∧ high = L) ∨ (fdk = high ∧ high < L ∧ ¬ P high)`; exit `low = high`.
+  - result: `fdk = -1` → `result = low = L = FU`; else the linear scan's first iteration sees
+    `¬ P fdk`, so `result = fdk = low = FU` (linear loop invariant: `j = fdk` until it breaks).
+- `chains.addToFrontier(c, consistency)`: pre `chainsOwn`, `st.frontier` Pairwise `KeyGt` on head
+  ops, `heads[c] < len`, every member's head op unrelated to `c`'s head op both ways (`¬ Prec`),
+  members' heads `< len`, members distinct from `c` or `c` itself; post: `st.frontier'` Pairwise,
+  members = members ∪ {c}, rest unchanged. Loops: dedup: `c ∉ frontier[0..i)`; insertion:
+  `∀ v ∈ frontier[0..i), KeyGt (headOp v) (headOp c)` (Check answers SoftAfter iff
+  `call_c > call_v`, DontKnow iff equal, as they are unrelated); inserting before `frontier[i]`
+  (`KeyGt c frontier[i]`) or at the end keeps it sorted.
+- `chains.removeFromFrontier(c)`: loop `c ∉ frontier[0..i)`; post: erase (Pairwise kept, members
+  minus c).
+- `chains.isComplete()`: loop `∀ c' < i, heads[c'] = len`; result `decide (∀ c, heads[c] = len)`.
+- `newChains(history, consistency)`: post the `ch` value with `ChainsInv h cs st0` at heads 0.
+  Loops: (1) clients built for `i' < i`, `n = Σ lens`; (2) firstUnk slices assigned for `i' < i`
+  (`firstUnks` split into `n` disjoint pieces by id, regrouped by chain: `cs.flatten` is a
+  permutation of `range n`); (3) for `i' < i`, `vis[i'][0]` and `nDeps[i'] = deps … i'` (inner loop
+  counts `j' < j`); (4) frontier = a Pairwise list of `{i' < i : len > 0 ∧ nDeps = 0}` (each
+  addition unrelated to the members: all are candidates of `[]`).
+- `client.lift(ctx, model, consistency, oldState, cache, serialized)` (receiver `&clients[i]`):
+  v1.3.1's `lift` + `cacheContains` steps of `checkSingle`: a refused step (model `none`, or
+  `□ Done`): `(false, _)`, nothing changed; a step to a cached configuration: `(false, oldState)`,
+  bitset restored (set then clear), and the abstract cache has `(y :: B, t')`; else `head + 1`,
+  bitset with `y`, cache with `(y :: B, t')` (bucket append; the new state shared in the pool),
+  `(t'_val, true)`. Loop over the bucket: v1.3.1's `cacheContains`'s.
+- `client.unlift(top, serialized)`: `c.id = top.clientId` (frames record their client), head − 1,
+  bitset without `top.opId`.
+- `chains.lift(…, liftFrom)` (the frontier loop): invariant over `idx` (from `liftFrom` down):
+  state unchanged; under `⌜Bad … liftFrom …⌝ ∨ □ Done` at the entry, `⌜Bad … idx …⌝ ∨ □ Done`
+  (`bad_skip`, `bad_skip_step`). Exit with no success: `Bad … (-1)` (or Done). On success at
+  `idx`: push the frame (`stackEntry{opId, clientId, state, opIdx = head, frontierIdx = idx}`),
+  `computeFirstUnk(i)` (the new head's `vis`), `removeFromFrontier(i)`, recount `nDeps[i]` (loop:
+  `k' < k` counted), maybe `addToFrontier(i)`, then the loop over `j` (invariant: for `j' < j`,
+  `j' ≠ i`, unfinished: `nDeps[j'] = deps H' j'`, and `j'` in the frontier iff a candidate of
+  `H'`; for `j' ≥ j`: `nDeps[j'] = deps H j'`, frontier membership as at `H` minus `i`; the
+  frontier Pairwise throughout; every member a candidate of `H'`, so additions are unrelated to
+  members). At the end `ChainsInv` at `H' = H.set i (H[i]+1)` (`cand_iff`, `deps_lift`).
+- `chains.unlift(stack, serialized, consistency)`: `removeFromFrontier(clientId)`, `unlift`, the
+  loop over `j` (invariant: `j' < j` processed: `nDeps[j'] = deps H' j'` with
+  `H' = H.set c (H[c]-1)`, removed from the frontier if they became blocked; `j' ≥ j`: as at
+  `H`), `addToFrontier(clientId)` (its head op, the popped one, is a candidate of `H'`: it was
+  lifted from the frontier at `H'`; members are candidates of `H'`, so unrelated). Post
+  `ChainsInv` at `H'`; returns `(top.state, top.frontierIdx)`.
+
+### 5. `checkSingle`'s loop (`Search.lean`)
+
+    searchInv := ∃ fs s fr p cache st,
+      chainsOwn ch h cs st ∗ ⌜ChainsInv h cs st ∧ st.heads = headsOf cs fs ∧
+        st.frontier.map (headOp cs st.heads) = fr⌝ ∗
+      stack ↦ stk ∗ stackOwn stk fs (entries: opId = f.id, clientId = clientOf f.id, opIdx = its
+        chain position, frontierIdx = f.pos, state a shared value of f.pre) ∗
+      serialized: bitset of `ids fs` ∗ state: shared value of `s`, index |fs| ∗
+      cache map with `cacheP n cache` ∗ liftFrom = p ∗
+      ⌜Struct S.M h cs fs s fr p⌝ ∗ (⌜Bad S.M h fs s fr p cache⌝ ∨ □ Done) ∗ longestOwn longest n
+
+- `isComplete` true: every head at its chain's length, so every id in `ids fs` (`ChainsOk`'s
+  permutation); `sound_done` → `true ∧ Linearizable`.
+- `ctx.Err() ≠ nil`: `false` and `□ Done` (`isContext`'s `Err`).
+- lift success: `struct_push`, `bad_push`; `liftFrom = len(frontier) - 1`.
+- lift failure, empty stack: `bad_fail` → `false ∧ ¬ Linearizable` (or Done).
+- lift failure, nonempty: `struct_pop`/`bad_pop`; the frontier after `unlift` is `f.fr`
+  (`candList_unique`), so `liftFrom = f.pos - 1` is the theory's cursor.
+- the `computePartial` loop and the final `seq`: memory only (`longestOwn`), as v1.3.1.
+
+### 6. `checkParallel`, `checkOperations`, `makeEntries`
+
+- `checkParallel`: v1.3.1's invariants (`resultP`, `Hok`, `Hsnd`, `Hfull`) unchanged; each goroutine
+  gets its partition's `ohistOwn` (not returned) and a copy of `isLinearizability c` (persistent).
+- `makeEntries`: loop invariant over `ops[0..k)`: the entries so far (memory only) and
+  `ohsl ↦* sls` with `sls[c]` holding client `c`'s ids `< k` in order; index `ClientId <
+  numClients` from the premise.
+- `checkOperations`: the `maxClientId` loop (`maxClientId` = max of `0` and the ids seen, so
+  `(maxClientId + 1) * n < 2^63` from `ClientsOk`); `ChainsOk (histOf ops) (chainsOf ops nc)` from
+  `ClientsOk` (sequential clients) and `HistOk`.
+
+### 7. Executable check (before the review)
+
+A copy of the PR with the invariants asserted (scratch module): at every iteration of
+`checkSingle`'s loop, `ChainsInv` (each visited op's `firstUnk` against a brute-force count, the
+prefix property, `nDeps`, the frontier against the brute-force sorted candidate list), the stack
+(heads, ids, states, each frame's recorded frontier against the candidate list of the ids below
+it, `fr[pos] = client`, each frame a candidate), the bitset, the cursor's range, `PrefixBad` of the
+cursor and of every frame, and `CacheOk` (by a brute-force search for a completion); at every
+failed lift, that the configuration has no completion; after every `unlift`, that the frontier is
+the one the popped frame was lifted from. Random histories satisfying the premises (register and
+append-log models, up to 8 operations and 4 clients, ties in call times, a quarter of the reads
+corrupted): 80000 histories, 456511 loop iterations, no violation; the answer agrees with v1.3.1
+on every one.
