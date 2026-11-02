@@ -232,6 +232,10 @@ theorem newChains.wp_proof
       wp_if_destruct
       · have hjn : sint.nat jv = (sint.Z jv).toNat := rfl
         have hjl : sint.nat jv < (chain cs (sint.nat iv)).length := by omega
+        have hj1 : sint.nat (jv + W64 1) = sint.nat jv + 1 := by
+          have : (((chain cs (sint.nat iv)).length : Nat) : Int) < 2 ^ 60 := by
+            have := chain_length_le' hok (sint.nat iv); omega
+          word
         obtain ⟨co, hco⟩ : ∃ co, cosj[(sint.Z jv).toNat]? = some co :=
           ⟨_, List.getElem?_eq_getElem (by rw [Hj.2.2.1]; exact hjl)⟩
         obtain ⟨y, o, hy, hyo, hid, -⟩ := Hj.2.2.2 _ co hco
@@ -283,21 +287,17 @@ theorem newChains.wp_proof
         have hyj : (chain cs (sint.nat iv))[sint.nat jv]'hjl = y := by
           have := hy; rw [hjn.symm, List.getElem?_eq_getElem hjl] at this; exact Option.some.inj this
         rw [List.drop_eq_getElem_cons hjl, hyj]
+        clear hyj
         icases Hpend with ⟨Hp, Hpend⟩
         wp_for_post
         iframe
         iexists jv + W64 1, cosj.set (sint.nat jv) { co with firstUnk' := sp }
-        have hj1 : sint.nat (jv + W64 1) = sint.nat jv + 1 := by
-          have : (((chain cs (sint.nat iv)).length : Nat) : Int) < 2 ^ 60 := by
-            have := chain_length_le' hok (sint.nat iv); omega
-          word
         rw [hj1, take_set_succ hjc]
         iframe
         isplitr
         · ipureintro
-          refine ⟨by word, by word, coFresh_set_fu Hj.2.2.2 hco _⟩
-        iapply BigSepL.bigSepL_snoc.2
-        iframe
+          refine ⟨by word, by word, coFresh_set_fu Hj.2.2 hco _⟩
+        iapply BigSepL.bigSepL_singleton.2
         unfold fuPiece
         rw [hsp]
         iexact Hp
