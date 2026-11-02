@@ -66,6 +66,41 @@ abbrev mvcc.store.restore.specNC : Prop :=
         (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) }}
 
 
+/-- **`store.restore` at no record and the whole bucket, over a clean read** (`store.Restore` off,
+M2's item 15: the caller's branch `ns = false` whatever the restored log, so no contract is taken,
+and the clean read's `RT` need not be the contract's). -/
+abbrev mvcc.store.restore.specNCc : Prop :=
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (b le : GoInterface) (ti lg : Loc) (q : Qp) (RT : IProp GF)
+    (dqb dqi : DFrac) (R : mvcc.Log) (RevP RevK RevQ : IProp GF) (dqc : DFrac) (q1 q2 : Qp),
+  mvcc.restoreLogOk R → q1 + q2 = 1 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      s.[store, go!"b"] ↦{dqb} b ∗
+      RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗ mvcc.bucketViewC γ q (mvcc.bucketMap ([[], []] ++ R)) ∗
+      mvcc.keyCleanRead b (mvcc.bucketViewC γ) RT (mvcc.kbNoCmp γ.kb γ.bucket) ∗
+      s.[store, go!"kvindex"] ↦{dqi}
+        (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+      mvcc.ownIdxPriv ti [] ∗ mvcc.idxLockG γ.idx (mvcc.evsOf (([[], []] ++ R) ++ [[]])).length ∗
+      mvcc.idxWriterLb γ.idx ([[], []] ++ R) ∗
+      s.[store, go!"le"] ↦□ le ∗ s.[store, go!"lg"] ↦□ lg ∗
+      ⌜lg ≠ null⌝ ∗
+      s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 1 : w64) ∗
+      s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗ RevP ∗
+      mvcc.revLockW s q2 RevP RevK ∗
+      mvcc.revUnlockW s q2 ([[], []] ++ R) RevK
+        iprop(mvcc.bucketViewC γ q (mvcc.bucketMap ([[], []] ++ R)) ∗ mvcc.isTreeIndex ti γ.idx ∗
+          ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+            mvcc.idxReader ti γ.idx) ∗
+          ⧖ (mvcc.logCh ([[], []] ++ R))) RevQ }}
+    (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
+  {{ RET #GoInterface.nil; RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗
+      ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
+      s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
+      s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗
+      s.[store, go!"b"] ↦{dqb} b ∗
+      s.[store, go!"kvindex"] ↦{dqi}
+        (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) }}
+
+
 set_option maxHeartbeats 800000 in
 /-- **At no record and the whole bucket the spec reads as before item 18.** -/
 theorem mvcc.store.restore.specNC_of_spec (h : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
@@ -124,6 +159,68 @@ theorem mvcc.store.restore.specNC_of_spec (h : mvcc.store.restore.spec (GF := GF
     simp only [show ∀ A B : IProp GF, (if decide (R = []) = true then A else B) =
       (if R = [] then A else B) from fun A B => by by_cases h : R = [] <;> simp [h]]
     iframe Hpkg Hb Hbk' Hrt Hnc Hkvi Hix Hiw Hle Hlg Hcur1 Hcmp HRevP HLk Hig Hview Hfw HUl Hk
+    isplitl []
+    · ipureintro; exact Hlgnn
+    ileft; ipureintro; first | rfl | trivial
+  iintro !> H
+  iapply HΦ
+  iexact H
+
+set_option maxHeartbeats 800000 in
+/-- **At no record and the whole bucket, over a clean read**: the caller's branch `ns = false`. -/
+theorem mvcc.store.restore.specNCc_of_spec (h : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
+    mvcc.store.restore.specNCc (GF := GF) (hG := hG) := by
+  intro s γ b le ti lg q RT dqb dqi R RevP RevK RevQ dqc q1 q2 hR hq12
+  iintro %Φ ⟨#Hpkg, Hb, Hrt, Hnc, Hview, #Hcr, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, %Hlgnn, Hcur1, Hcmp,
+    HRevP, HLk, HUl⟩ HΦ
+  have hrec : mvcc.recsOk ([[], []] ++ R) mvcc.CmpRecs.empty := by
+    unfold mvcc.recsOk mvcc.CmpRecs.empty
+    refine ⟨?_, ?_⟩ <;> intro x hx <;> cases hx
+  iapply (h s γ b le ti lg q iprop(True) (fun _ => iprop(True)) RT iprop(True) iprop(True) iprop(True)
+      iprop(True) (mvcc.kbNoCmp γ.kb γ.bucket) True (fun _ _ _ _ => True) (fun _ => iprop(True))
+      (fun _ => iprop(True)) iprop(True) iprop(True) iprop(True)
+      dqb dqi R RevP RevP RevK RevQ dqc DFrac.discard q1 q2 mvcc.CmpRecs.empty
+      (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length)
+      iprop(RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗
+        ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
+        s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
+        s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗
+        s.[store, go!"b"] ↦{dqb} b ∗
+        s.[store, go!"kvindex"] ↦{dqi}
+          (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface)) false
+      hR hq12 hrec (fun h => by cases h) (fun x hx => by cases hx) (mvcc.entsCutAt_full _ _)) $$
+    [Hb Hrt Hnc Hview Hkvi Hix Hig Hcur1 Hcmp HRevP HLk HUl]
+  · rw [mvcc.bucketOfEnts_logEnts, mvcc.CmpRecs.crev_empty]
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    ihave Hig := (mvcc.idxLockG_at _ _).1 $$ Hig
+    ihave Hview : mvcc.restoreViewR (GF := GF) b γ RT q false (mvcc.bucketMap ([[], []] ++ R))
+        (mvcc.kbNoCmp γ.kb γ.bucket) mvcc.CmpRecs.empty $$ [Hview]
+    · iunfold mvcc.restoreViewR
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      rw [mvcc.keyCleanReadR_empty]
+      iframe Hview Hcr
+    ihave Hfw : mvcc.revFinW s DFrac.discard mvcc.CmpRecs.empty.fin RevP RevP $$ []
+    · simp only [mvcc.CmpRecs.empty]
+      iunfold mvcc.revFinW
+      iintro H; iexact H
+    ihave Hk : mvcc.resumeK s mvcc.CmpRecs.empty
+        (mvcc.restoreDone s b ti q1 dqb dqi dqc ([[], []] ++ R)
+          (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length) mvcc.CmpRecs.empty RT
+          (mvcc.kbNoCmp γ.kb γ.bucket) RevQ)
+        iprop(RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗
+          ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
+          s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
+          s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗
+          s.[store, go!"b"] ↦{dqb} b ∗
+          s.[store, go!"kvindex"] ↦{dqi}
+            (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface)) $$ []
+    · iunfold mvcc.resumeK
+      simp only [mvcc.CmpRecs.resumes_empty, Bool.false_eq_true, ↓reduceIte]
+      unfold mvcc.restoreDone
+      simp only [mvcc.CmpRecs.empty, Option.getD_none, mvcc.logEnts_length]
+      iintro ⟨H1, H2, H3⟩
+      iframe H1 H2 H3
+    iframe Hpkg Hb Hrt Hnc Hkvi Hix Hiw Hle Hlg Hcur1 Hcmp HRevP HLk Hig Hview Hfw HUl Hk
     isplitl []
     · ipureintro; exact Hlgnn
     ileft; ipureintro; first | rfl | trivial

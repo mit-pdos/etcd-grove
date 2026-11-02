@@ -15,6 +15,13 @@ which needs nothing of M2 and waits on SNAPSHOT-SORRY #7/#8); one token count in
 `N + N` (the user's later, moved to restore in compaction mode: `notes/decisions.md`, "One token count goes with restore in compaction mode"); the Draft modules (`M2ApplyDraft*`, `M2StorageDraft*`, `M2ApplyProbe` under
 `etcdserver/`, `apply/` and `mvcc/`; they import only each other) to delete or fold in.
 
+**Restore in compaction mode (item 15), stage A done (2026-11-02, branch `m2-item15`):** the
+approved spec (candidate 1 with amendment 1's permits) is `store.Restore.spec` and
+`watchableStore.Restore.spec`, both proved in either mode (`notes/decisions.md`, "`store.Restore`
+and `watchableStore.Restore` in either mode: the specs switched"); the server still restores with
+the mode off (`watchableStore.Restore.specOff_of_spec`). Next: stage B, the server side; stage C
+(`run_job_snap_cmp`) stays a `sorry`.
+
 Earlier status (2026-10-30): **item 17 switched with the lease** ("Item 17 switched: the jobs' share
 leased", the last section: 17, item 4's step-2 text, 20, 23, 24 real; item 31 stopped, its `none`
 arm needing a nil-hook `SetScheduledCompact` no approved text states). Before: **the approved items switched** ("The switch of the approved items", the last

@@ -9,6 +9,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AlarmGet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyDefs
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InstanceLaws
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreOff
 
 @[expose] public section
 
@@ -177,6 +178,8 @@ theorem applySnapshot_walk
         (Val #ap))
     {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A x R ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad ∗ notifyRcvN γnc 1 }} := by
+  -- the server restores over backends that do not compact (until M2's Stage B)
+  have hRst := mvcc.watchableStore.Restore.specOff_of_spec hRst
   wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, #HauR, #HmetaB⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'

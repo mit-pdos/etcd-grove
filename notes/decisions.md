@@ -29430,3 +29430,39 @@ unchanged.
 **Rejected.** A framing law moving `dlInit` through the contract's `RT` (deep: the batch
 transaction's specs); excluding the empty log with records in `store.Restore`'s approved statement
 (the server could not discharge it).
+
+## `store.Restore` and `watchableStore.Restore` in either mode: the specs switched (M2's item 15, step A3)
+
+**2026-11-02 · the user's approval (candidate 1: "Q1 bucketViewL, Q2 stages A and B now, Q3 yes";
+amendment 1: "yes, add the two permit premises") · branch `m2-item15`**
+
+**What was.** `store.Restore.spec` and `watchableStore.Restore.spec` excluded compaction mode:
+`cm = false` premises for both backends, the store never compacted (`crevFrozen`), the whole `Key`
+bucket of the restored log and no record (`kbNoCmp`). The mode-general statements were Drafts
+(`store.Restore.specM`, `specMR` by sealed logs, `watchableStore.Restore.specM`).
+
+**Decision.** Both specs are now the approved mode-general statement: `specMR` with the
+restored log's receipt in the pre (`restoreRcptM`, in place of the pure `restoreBoundM`) and
+amendment 1's permits (`crevPermAt γ r.finRev ∗ crevPermAt γ r.crev`), the conjuncts in `specMR`'s
+order but for `isPkgInit`, first as everywhere (the Draft had the receipt before it). The
+vocabulary moved out of the Drafts into `mvcc/RestoreVocab.lean` (`restoreRightM`, `restoreImageM`,
+`kbRecs` over the merged compaction-key ghost `backend.fkVD`, `restoreRegM`/`restoreFixM`,
+`storeBackendTR`, `restoreRcptM`, `cmOff_true` and the off laws), so the Spec files import no
+Draft. `store.Restore.wp_proof` (now also over `compactLockfree`'s spec, for a resumed compaction)
+splits on the mode: on, the proof over `RestoreCmp.lean`'s pieces and `RestoreOn.lean`'s round
+resources; off, the earlier proof, over `store.restore.specNCc` (new, `RestoreNC.lean`: no record,
+the whole bucket, the clean read for any restored log, `ns = false`), because the off pre's clean
+read lends `restoreRegM d'` with the reader's token, which `specNC`'s shared `RT` with the contract
+(needed in its `R = []` branch) cannot take. `watchableStore.Restore`'s proof passes the store's pre
+and post through. The server keeps restoring over backends that do not compact until Stage B: its
+callers take the switched spec and use `watchableStore.Restore.specOff` (the old text,
+`RestoreOff.lean`) through `specOff_of_spec`. The Drafts' `store.Restore.specM`, `spec_of_specM`,
+`specMR`, `specMR_of_specM` and `watchableStore.Restore.specM`/`spec_of_specM` are gone.
+
+**Bounds.** No new stock: the on proof is a branch of `wp_proof` (no restated `specOn`), and the
+three round resources share one tail (`restoreOnRest`: the revision tokens, the outer quarter and
+the old pool), so `stock` in mvcc stays at its baseline (58).
+
+**Rejected.** A separate theorem for each mode with its own statement (two more copies of the
+spec's text, and of its reader stocks); keeping `store.Restore.specOff` beside the switched spec
+(nothing uses it once `watchableStore.Restore` switches in the same step).

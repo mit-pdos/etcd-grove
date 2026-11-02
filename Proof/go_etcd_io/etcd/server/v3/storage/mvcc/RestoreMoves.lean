@@ -324,7 +324,7 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
       ghostVar γ.wsd qw () ∗
       restoreWriter γ ([[], []] ++ R) ∗ ownToks γ.revs (2 ^ 63 - 3 - ([[], []] ++ R).length) ∗
       (if γ.watchQ then logQ γ ([[], []] ++ R) else iprop(True)) ∗
-      ([∗list] _x ∈ List.replicate (nReaders - rt) (), storeRT γ) := by
+      ([∗list] _x ∈ List.replicate (nReaders - rt) (), storeRT γ) ∗ idxCert γ.idx ([[], []] ++ R) := by
   iintro Hlc Hlc' #Hwi Hwsd #Hpool Hc1 Hfrag Hc2 Hc3 Htkr Hr1 Hr2 Hheld Hrev Hcmp Hlt #Hperm #Hnv #Hok Hview
     Hrds #Hrc %Hrb Hrts
   ihave %Hrclt := preceipt_lt _ $$ Hrc
@@ -478,10 +478,11 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
     simp only [named]
     iframe HclogW Hlw HtoksW Hlrd Hhist Hcert
     ipureintro; omega
-  iframe Hold
+  iframe Hold Hcert
 
 /-- **The writer's state checked in at the restored log** (one later credit; after `restore`, which
-gives `currentRev`'s other half and the rebuild's receipts): the writer's invariant is in its
+gives `currentRev`'s other half, with the restored log's persistent receipt: off, the rebuild's,
+snapshotted; on, the image's, `restoreRcptM`): the writer's invariant is in its
 restoring state (a writer's state at the new names would have half the new view log's ghost, a
 writer's deposit the new batch lock's key: `store.Restore` holds both whole), whose half of the
 history's authority is at `L'`; the writer's state at `L'` and the new names goes in, with the new
@@ -493,13 +494,11 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗
       curAt (γ.withPhys p') (DFrac.own (1 : Qp).half.half.half) o' -∗ restoreWriter γ L' -∗
       (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 ((L'.length : Int) - 1) : w64) :
-        IProp GF) -∗ ⧗ (logCh L') -∗ monoNatLbOwn p'.nev (evsOf (L' ++ [[]])).length -∗
+        IProp GF) -∗ ⧖ (logCh L') -∗ monoNatLbOwn p'.nev (evsOf (L' ++ [[]])).length -∗
       ghostVar p'.wk 1 () -∗ ghostVar p'.wv 1 L' -∗
       bucketViewL (γ.withPhys p') (1 : Qp).half.half L' -∗ compactRes (γ.withPhys p') -∗
       kbRegRight p'.kb ={⊤}=∗ ghostVar γ.wr 1 () ∗ idxCert γ.idx L' ∗ writerReg s (γ.withPhys p') := by
-  iintro Hlc #Hwi Hc Hw Hcur Hrc #Hnv Hwk Hwv Hbv Hcres Hrr
-  -- the rebuild's receipts, as the writer's persistent one (M2's B2)
-  imod receipt_snapshot _ $$ Hrc with ⟨-, #Hrc⟩
+  iintro Hlc #Hwi Hc Hw Hcur #Hrc #Hnv Hwk Hwv Hbv Hcres Hrr
   iunfold restoreWriter at Hw
   icases Hw with ⟨%ntok, Hw⟩
   iNamed Hw
