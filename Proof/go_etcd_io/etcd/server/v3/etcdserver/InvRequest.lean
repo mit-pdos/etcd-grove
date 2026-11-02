@@ -763,6 +763,19 @@ server's store keeps it of its compaction revision (`mvcc.crevPermIs`). -/
 def kvCmpPermit (γk : KVNames) (c : Int) : IProp GF :=
   iprop(⌜0 < c⌝ ∗ kvRevLbZ γk (c + γk.cret))
 
+/-- A permit at a positive revision below a permitted one (#7-cmp's Freeze: the restored finished
+record's, below the scheduled one's). -/
+theorem kvCmpPermit_le (γk : KVNames) (c c' : Int) (h0 : 0 < c) (h : c ≤ c') :
+    kvCmpPermit (GF := GF) γk c' ⊢ kvCmpPermit γk c := by
+  iintro H
+  iunfold kvCmpPermit at H
+  icases H with ⟨-, #H⟩
+  iunfold kvCmpPermit
+  isplitr
+  · ipureintro; exact h0
+  iapply kvRevLbZ_mono γk (c + γk.cret) (c' + γk.cret) (by omega)
+  iexact H
+
 omit raftAsm in
 instance kvCmpPermit_persistent (γk : KVNames) (c : Int) :
     Persistent (kvCmpPermit (GF := GF) γk c) := by

@@ -1222,6 +1222,35 @@ theorem kvCrevEntry_pos (c₀ : w64) (ch : apply.Chain) (cmp : Bool) (crev : Int
       · exact hc
   · exact hc
 
+/-- **An entry leaves the compaction revision or raises it to a compaction's revision.** -/
+theorem kvCrevEntry_cases (c₀ : w64) (ch : apply.Chain) (crev : Int) (m : EntryModel) :
+    kvCrevEntry c₀ ch crev m = crev ∨ ∃ (rq : apply.IRRModel) (r : w64), m.typ = W32 0 ∧
+      m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.dispatchKind rq = .compaction ∧
+      rq.compaction = some r ∧ kvCrevEntry c₀ ch crev m = sint.Z r := by
+  unfold kvCrevEntry
+  by_cases ht : m.typ = W32 0
+  · rw [if_pos ht]
+    by_cases hd : m.data = []
+    · rw [if_pos hd]; left; rfl
+    · rw [if_neg hd]
+      cases hdec : apply.irrDecode m.data with
+      | none => left; rfl
+      | some rq =>
+        simp only
+        unfold apply.dispatchCrev
+        split
+        · rename_i hc
+          cases hrc : rq.compaction with
+          | none => left; rfl
+          | some r =>
+            simp only
+            unfold apply.cmpRevAfter
+            by_cases hlt : crev < sint.Z r
+            · rw [if_pos hlt]; right; exact ⟨rq, r, ht, hd, rfl, hc.2.1, hrc, rfl⟩
+            · rw [if_neg hlt]; left; rfl
+        · left; rfl
+  · rw [if_neg ht]; left; rfl
+
 end crev
 
 end EtcdGrove

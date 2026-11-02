@@ -30165,3 +30165,27 @@ compaction on", accepted 4). Drafted in `ImageCmpDraft.lean`:
   compacted at itself) and unused by `store.Restore`'s proof; the sender's mode-on observation needs
   mvcc tracking of the records and the job's cut and a restated `backend.Snapshot` observation of hook
   keys (an axiom check); `kvApplied`'s deferred `x.crev = crevOf γk A` becomes needed.
+
+**2026-11-02 · accepted (the user's approval of the plan's eight recommendations) · frozen**
+1. The certificate as drafted, in place: `imageAt`'s key view `∃ r, keyImageM γk.cmp (kvModel γk A) r D
+   ∧ r.crev = crevOf γk A` (`imageAt_off`: off, at a log with no compaction, today's `keyImage`);
+   `dbImage` with the receipt `⧖ (logCh (kvModel γk A))`; `srvNet`'s text unchanged.
+2. `keyImageM γk.cmp` (not `true`), with the law at a member's names (`SnapRecvFacts.dbImage_of_srvImage`:
+   the network's certificate, which leaves the mode free, `dbImage_of_srvImage_mode`, moved to the
+   member's mode by its KV invariant, `crevOf_offM`).
+3. `NoDelPutAt` dropped from `keyImageM`-on and `restoreImageM` (56 agreed the change be made here).
+4. The permits derived at the receiver: `crevOf_permit` (`ApplyCmpArm.lean`, proved by induction on
+   the committed log from `kv_entry_claim` and `kv_revLbZ_of_rlogLb`), `image_restoreRes`.
+5. The receipt in `dbImage` in place; B2's `dbImageR`/`srvImageR` retired (`M2StorageDraftB2.lean`).
+6. `kvApplied` carries `x.crev = crevOf γk A`; `crevOf` and its laws moved to `InvRequest.lean`
+   (`kvCrevEntry`/`kvCrevOf` to `KVModelDefs.lean`), with `crev_hcc`; the apply step keeps the tie
+   (`batchStep_crev`, `crevOf_batchStep`).
+7. The sender's mode-on observation is F2, its own spec-first stage; until then one named `sorry`
+   at the narrowest point (`SnapSendBranch.srvBeSnapOk_cmpRecs`, SNAPSHOT-SORRY #7-cmp: a snapshot on
+   the server's backend in compaction mode, taken with the KV's sole writer at `log` and the apply
+   thread's compaction resources at `crev` in its frame, observes `keyImageM true log r D` at
+   `r.crev = crev`; true of Go, not provable from today's `backend.Snapshot.spec` nor mvcc's
+   tracking). `merged_image` is one lemma for both modes; `merged_image_cmp` (false) is gone.
+8. The restart path's readers (`srvDiskImage`, `bootstrapRestartContract`) read the restated
+   `imageAt` in place; their compaction-mode receipt is the restart path's (marked RESTART-RCPT in
+   their docstrings and `notes/image-cmp-plan.md`).
