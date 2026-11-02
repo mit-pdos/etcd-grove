@@ -92,3 +92,18 @@ premises at leasekv's addresses), `leasekv_Main`, `leasekv_safe` (`Adequacy.lean
 six from `kv_lease_served`'s statement repeating `kv_served`'s slot premises (the same stocks,
 counted twice). Prove should factor `kv_lease_served` through a `kv_served` generalized over extra
 methods, with the slots in one definition, which brings the count back; else the baseline moves.
+
+## Test (2026-11-02)
+
+`examples/leasekv/leasekv_cluster_test.go`: three members whose peer listeners serve the raft and
+lease handlers (as etcd's embed), 12 leases granted through every member (one with a key), then
+from every member `TimeToLive` of each and of an absent ID, with and without keys, and `Leases`.
+Passes (3 of 3 runs): every reply's `ID` the asked one, on both paths (26 answers from the leader,
+52 from followers through `leasehttp.TimeToLiveHTTP`); every listing without a repeat, all 12.
+
+Found on the way: `examples/common`'s members serve only the raft handler on their peer
+listeners, so a follower's `TimeToLive` gets the leader's 404 and answers "not found" (TTL -1, the
+asked ID) for a lease that exists. Main's checks and the specs are unaffected (nothing is stated of
+found or not-found); the trust-boundary `leaseTimeToLive`'s docstring stated its cluster assumption
+as "the lease handler serves the leader's peer URLs", false in the examples; restated to what the
+triple needs (no 200 without a response; a 404 is an allowed error).

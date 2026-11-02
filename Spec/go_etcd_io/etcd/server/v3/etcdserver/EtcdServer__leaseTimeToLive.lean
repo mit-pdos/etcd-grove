@@ -47,9 +47,13 @@ is about the asked lease (`ID`; stated 2026-11-02 for the closed lease example,
 `Remaining`, `TTL`, `Keys`, `Demoted`, after `waitAppliedIndex`), on a follower it asks the leader
 (`waitLeader`, `leasehttp.TimeToLiveHTTP` to each of its peer URLs, until the request's timeout),
 so the keys are another lessor's or another lookup's (`issues/etcd-lease-timetolive-keys-toctou.md`).
-**Its assumption on the cluster**: the leader's peer URLs are served by etcd's lease handler
-(`leasehttp.NewHandler`), which always sets the reply's `LeaseTimeToLiveResponse` and its header; a
-200 reply without the former panics (`issues/etcd-leasehttp-timetolive-nil-response-panic.md`). -/
+**Its assumption on the cluster**: whatever serves `/leases/internal` at the leader's peer URLs
+answers 200 only with a `LeaseTimeToLiveResponse` and its header set, as etcd's lease handler
+(`leasehttp.NewHandler`) does; a 200 reply without the former panics
+(`issues/etcd-leasehttp-timetolive-nil-response-panic.md`). A peer listener that does not serve
+that path (the examples' members serve only the raft handler, `examples/common`'s `NewMember`)
+answers 404, which `TimeToLiveHTTP` reads as `ErrLeaseNotFound`: an error the triple allows,
+though the lease may exist (seen 2026-11-02, `examples/leasekv/leasekv_cluster_test.go`). -/
 abbrev EtcdServer.leaseTimeToLive.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (dq : DFrac)
