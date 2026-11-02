@@ -114,8 +114,10 @@ func heal(delay time.Duration, m int) []Step {
 //
 // It runs Main's body (startCluster, the partitioner, Check, the panic on Illegal) with a logger
 // that counts what the members did (runCounts), where Main has none, and reports the counts; it
-// fails if the run did not test what it is meant to: a re-election, a follower caught up by
-// entries, and one by a snapshot (installed). Snapshots come from SnapCount and SnapCatchUp:
+// fails if the run did not test what it is meant to: a leader change, a follower caught up by
+// entries, raft's log compacted, and a snapshot sent to a follower. (Not the KV store's
+// compaction: the members' auto-compactor is off and the workload sends no Compact; that is
+// examples/compactkv's.) Snapshots come from SnapCount and SnapCatchUp:
 // after one is sent, etcd pauses its leader's log compaction for 30s (releaseDelayAfterSnapshot),
 // so a run sees few, typically one or two (a member started after the others' first entries, or
 // mended after a cut).
@@ -157,13 +159,17 @@ func TestMainRun(t *testing.T) {
 	t.Logf("Main took %v", time.Since(start))
 	t.Log(rc.report())
 	if n := rc.get(cntLeader); n < 2 {
-		t.Errorf("%d leaders elected: no re-election", n)
+		t.Errorf("%d leaders elected: no leader change", n)
 	}
 	if rc.get(cntAppReject) == 0 {
 		t.Errorf("no follower was caught up by entries (no MsgApp rejected)")
 	}
-	if rc.get(cntSnapApplied) == 0 {
-		t.Errorf("no snapshot was installed (SnapCount %d, SnapCatchUp %d)", SnapCount, SnapCatchUp)
+	if rc.get(cntCompact) == 0 {
+		t.Errorf("raft's log was never compacted (SnapCount %d, SnapCatchUp %d)", SnapCount,
+			SnapCatchUp)
+	}
+	if rc.get(cntSnapSent) == 0 {
+		t.Errorf("no snapshot was sent (SnapCount %d, SnapCatchUp %d)", SnapCount, SnapCatchUp)
 	}
 
 	var kvs string
