@@ -233,9 +233,13 @@ def mvccOpenI (γ : MvccImpl) (q : Qp) : IProp GF :=
       (if γ.watched then (∃ c : Int, wsCloserM γ.wl γ.sl γ.st c) else storeCloser γ.sl γ.st)))
 
 /-- **The range deleter `rd`** (`mvccDeleter`): with watchers, the watchable store's `Write` at a
-fresh trace (`rdCode`); a store without watchers has none in the abstract mode yet. -/
+fresh trace (`rdCode`), with the watchable store (what that `Write` takes); a store without watchers
+has none in the abstract mode yet. -/
 def mvccDeleterI (rd : GoFunc) (γ : MvccImpl) : IProp GF :=
-  if γ.watched then rdCode rd γ.wl else iprop(False)
+  if γ.watched then
+    iprop(rdCode rd γ.wl ∗ isWatchableMvccI γ.wl γ ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc)
+  else iprop(False)
 
 instance mvccDeleterI_persistent (rd : GoFunc) (γ : MvccImpl) :
     Persistent (mvccDeleterI (GF := GF) rd γ) := by

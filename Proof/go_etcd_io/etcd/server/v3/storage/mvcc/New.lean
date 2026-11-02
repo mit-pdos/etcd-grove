@@ -284,7 +284,25 @@ theorem mvcc.New.wp_proofC
   iunfold mvcc.mvccDeleter
   iunfold mvcc.mvccDeleterI
   simp only [↓reduceIte]
-  iexact Hrd
+  iframe Hrd Hpkg
+  iunfold mvcc.isWatchableMvccI
+  isplitr
+  · ipureintro; exact ⟨rfl, rfl⟩
+  iexists st
+  iframe Hws
+  iunfold mvcc.isMvccI
+  simp only [mvcc.MvccImpl.st, ↓reduceIte]
+  rw [hpr, hwt]
+  iframe Hs Hpool Hfrz Hws
+  isplitr
+  · ipureintro; exact ⟨habs, Hwq, ⟨d, hkb⟩, by omega, trivial⟩
+  isplitr
+  · iexists o; iunfold mvcc.curAt; iexact Hpin
+  isplitr
+  · iunfold mvcc.revPool; iexact Hrev
+  isplitr
+  · iexact Hwb
+  iunfold mvcc.wtPool; iexact Hwtp
 
 end candidate
 

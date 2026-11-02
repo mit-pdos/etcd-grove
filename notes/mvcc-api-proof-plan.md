@@ -197,10 +197,47 @@ invariants (in `isMvcc`):
   loops), a backend that does not compact (`d.cm = false`), its deletable-keys registration
   (`dlInit`) and two write-back tokens (what `NewStore` spends). `mvccTxn_unwrap` is false at a
   read view `k'` (the watchable wrapper is only ever a write transaction): restrict it to writes.
-- **Next**: `Changes` (write: `isTxnWrite_join`; read), `FirstRev` (write), `store.Rev`,
-  `store.Commit`; the watch stream (`NewWatchStream`, `Watch`, `RequestProgress`, `Chan`, `Close`:
-  the registrar's view `wsWatchers` and the consumer's `wsRecv` over the old `WatchParams`); the
-  laws; then the tester.
+- **Proved since** (`8a0cbdff40`..): `metricsTxnWrite.Changes` (both views), `store.Rev` (a watched
+  store: `readView.Rev` over the watchable store, `store.Read.specC` at a KV over the store,
+  `kvOver_ReadC`; `isMvccI` holds, watched, `isWatchableStore`, whose fields give the store's views;
+  an unwatched store's views are not yet in `isMvccI`: `sorry`), `store.Commit` (the backend's
+  reader token checked out of the store's readers' pool for `ForceCommit`, with a deposit split off
+  the exclusive lock's whole `γ.wr`, `wr_dep`, checked back in before `Unlock`; the write-back token
+  from the deferred `Unlock`'s resolution receipt). Laws (`ApiLaws.lean`): `mvccState_excl`,
+  `mvccState_reachable`, `mvccTxn_write_agree` (always the transaction's own state),
+  `mvccTxn_unwrap` (restricted to write views), `isWatchableMvcc_store`, `mvccDeleter_spec` (from
+  `watchableStore.Write.specC`; the deleter carries the watchable store and the package's init),
+  `mvccWatchersOk_unwatched`, `mvccWatchersOk_nil`. Not yet: `FirstRev` (write: the tester does not
+  call it), `persistent` (needs the opaque predicates defined), `mvccTxn_trace`, `isMvcc_views`, the
+  hash and restore laws, the watch laws.
+- **The watch stream's design inputs** (a survey of the old specs, 2026-11-02): the old stream is
+  over `WatchParams` (`InvWatchStream.lean:188`), instantiated by `storeWatchParams s st γ`
+  (`InvWatchStore.lean:1718`): `R = watchReader` (lent to each call: the pool's `poolR` copy), `T =
+  watchTok γ ∗ noCompactor γ.st` (consumed by every `Watch`, failed ones too: the `wtPool` pays it),
+  `IWF = watcherIs` (range, filters, first revision `lo`: the start revision, or `C.length` of an
+  `idxCert C` at 0). `NewWatchStream.spec` gives `isWatchStream`, the channel `ch` and its invariant
+  `inv watchN (watchChanInv γ ch γc)`, `watchStreamOpen γo`, `watchConsumer γc []` (half of
+  `γc.recv`), with the caller's `Q` (what an id `-1` response proves) and `Ψ` (a cancel's reason).
+  The consumer receives with `wp_watch_receive`/`watch_recv_au` (`WatchRecv.lean:454/275`):
+  `watchRecvResult` gives the next `RespM r` (`respIs v r`: id, revision, events, compaction 0),
+  `respOk r`, and the persistent `watchRecvOk γ r.w rs_w` (`WatchRecv.lean:86`: the watcher's
+  responses so far are the kept deliveries of `watchEvents L r lo d`, `L` an `evLog`, sealed and
+  certified, so in the client's certificate map, a prefix of its notified log), `chanRegFact`
+  (the watcher's id, `chanIdAssigned`, agreeing with the stream's `idAssigned`), `progFact` for id
+  `-1`, `respCov` (an event-less response covers its watcher up to its revision; an id `-1` one every
+  watcher registered before it, `regsAt`, or cancelled), `r.idx = |received|`. The v3rpc proofs
+  (`serverWatchStream__sendLoop.lean`, `rcvOk`/`rcvOk_snoc`) accumulate these facts per received
+  index: `wsRecv ι rs` is to be the consumer's half and such an accumulator over the `RespM`s, `rs`
+  their views; `wsWatchers ι W` the registrar's (the `Watch` caller's) record of the ids it got, each
+  `idAssigned` with its `watcherIs` facts; the laws then from the accumulator and `certMapOk`.
+  `Watch`'s old post consumes `T` even on `ErrEmptyWatcherRange`; `RequestProgress(All)`' posts say
+  nothing (the facts come at the receive). The old guarantee theorems cited by `WatchRecv.lean`'s
+  docs (`watchRecvOk_cert`, ...) do not exist; `recv_unfiltered`
+  (`Proof/go_etcd_io/etcd/client/v3/WatchContent.lean:412`) is the closest.
+- **Next**: the watch stream (`NewWatchStream`, `Watch`, `RequestProgress`, `Chan`, `Close` and the
+  watch laws, over the design inputs above); then the lessor's `Grant`/`Revoke` over the API (today's
+  are over the old mode's resources: `rdIs`, `watchWriter`, `storeReader`) and `NewLessor` without
+  `clusterOk`; then the tester.
 
 ## Log
 

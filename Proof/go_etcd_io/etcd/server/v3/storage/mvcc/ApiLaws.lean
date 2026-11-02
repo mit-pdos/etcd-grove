@@ -6,6 +6,7 @@ section), proved of its implementation (`ApiImpl.lean`), those its definitions s
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLemmas
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write
 
 @[expose] public section
 
@@ -138,6 +139,45 @@ theorem mvccTxn_unwrap_proof : mvccTxn_unwrap.law (GF := GF) := by
   iexists tw'
   iframe Htw Hws
   ipureintro; exact ⟨rfl, hw⟩
+
+/-- The range deleter is the watchable store's `Write` (`rdCode`, at its candidate
+`watchableStore.Write.specC`). -/
+theorem mvccDeleter_spec_proof (hW : watchableStore.Write.specC (GF := GF) (hG := hG)) :
+    mvccDeleter_spec.law (GF := GF) := by
+  intro rd γ P Pre Q f
+  iintro #Hd
+  iunfold mvccDeleter at Hd
+  iunfold mvccDeleterI at Hd
+  cases hw : γ.watched with
+  | false =>
+    isimp only [hw, Bool.false_eq_true, ↓reduceIte] at Hd
+    icases Hd with %Hd
+    exact Hd.elim
+  | true =>
+  isimp only [hw, ↓reduceIte] at Hd
+  icases Hd with ⟨#Hrd, #Hwm, #Hpkg⟩
+  iunfold rdCode at Hrd
+  icases Hrd with ⟨%Hnn, #Hrd⟩
+  ihave #Hc := Hrd $$ %(iprop(threadTok ∗ mvccHook γ P f ∗ Pre ∗ hookRun P f Pre Q))
+    %(fun tr tw => iprop((∃ σ : MvccState, mvccTxn
+      (interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw) γ tr (.write σ [])) ∗ Q)) []
+  · iintro %tr !> %Φ' ⟨⟨Htt, #Hh, HPre, Hrun⟩, %Htr, Htrc⟩ HΦ'
+    iapply (hW γ.wl γ tr true P Pre Q f) $$ %Φ' [Htt Hh HPre Hrun Htrc] HΦ'
+    iframe Hpkg Htt Hh HPre Hrun Htrc
+    isplitr
+    · iunfold isWatchableMvcc; iexact Hwm
+    ipureintro; exact Htr
+  iintro !> %Φ Hpre HΦ
+  iapply Hc $$ %Φ Hpre
+  inext
+  iintro %tw ⟨%tr, ⟨%σ, Htx⟩, HQ⟩
+  iapply HΦ
+  iframe HQ
+  iexists tr, σ
+  iframe Htx
+  ipureintro
+  simp only [mvccWatched, hw, ↓reduceIte]
+  exact ⟨tw, rfl⟩
 
 /-- The watchable store's store. -/
 theorem isWatchableMvcc_store_proof : isWatchableMvcc_store.law (GF := GF) := by
