@@ -6,10 +6,10 @@ R2a states what the example (`examples/restart3`) needs of the server at a stop 
 the predicates named here. Their content is the later sub-steps': each is an `opaque` placeholder
 until then, so that no statement over them can be proved by unfolding them.
 
-* `srvStopRight s γ id` (exclusive): the right to stop the server `s` of member `id` of the cluster
+* `srvStopRight s γ id dd` (exclusive): the right to stop the server `s` of member `id` of the cluster
   `γ` once started (`HardStop`). R2b (the stopping server, the membership plan's M6): what
   `NewServer` gives its caller, with the "server open" token the request paths share.
-* `srvDiskImage γ ρ id` (exclusive): member `id`'s data directory, as its last incarnation's stop
+* `srvDiskImage γ ρ id dd` (exclusive): member `id`'s data directory, as its last incarnation's stop
   left it, that incarnation's request names `ρ` recorded: raft's hard state, log and last snapshot
   record (the WAL), the backend's buckets at its consistent index, the member and cluster ids. R2c
   (L2): the ghost image handed from one incarnation to the next; graceful stops only (the plan's
@@ -55,22 +55,27 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The right to stop the started server `s`** (DRAFT, R2b; see the file header). -/
-opaque srvStopRight (s : Loc) (γ : SrvRaft) (id : w64) : IProp GF
+/-- **The right to stop the started server `s`, whose data directory is `dd`** (DRAFT, R2b; see
+the file header; R2c review F2: the directory, the configuration's `DataDir`, recorded at
+`NewServer`, so that the stop's image names it). -/
+opaque srvStopRight (s : Loc) (γ : SrvRaft) (id : w64) (dd : GoString) : IProp GF
 
 /-- **The files of a stopped member's data directory hold `σ` and `D`** (opaque, exclusive; a
 trust-boundary token, DRAFT R2c): the WAL in `<dd>/member/wal` reads back (`ReadAll` from its last
 snapshot record) as the records `σ` -- the snapshot record at `σ.b`, the hard state `σ.hs`, the
-entries `σ.ents` -- and the bbolt file at `<dd>/member/snap/db` holds `D`. Made by the stop's
+entries `σ.ents` -- and the bbolt file at `<dd>/member/snap/db` holds `D`; the WAL's metadata names the member `id`
+(R2c review, second tier 1: `bootOkR`'s `cv.ID' = id` comes from it). Exclusivity per directory
+(two tokens of one directory) is not stated: an open question for R2b, which makes it. Made by the stop's
 closes (R2b: `wal.Close`, `backend.Close`, axioms at the trust boundary, from what the server's
 `Save`s and the backend's commits wrote), consumed by `bootstrap`'s restart contract. A graceful
 stop in the same process: every write is visible to the next open, synced or not (the plan's
 Q4). -/
-opaque srvFiles (dd : GoString) (σ : StorContents) (D : backend.Data) : IProp GF
+opaque srvFiles (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) : IProp GF
 
 /-- **`buildConfStateFromV3store`** (opaque, DRAFT R2c, R2d's to define): the conf state etcd
-builds from the backend's members (voters the non-learners, learners the learners, by id). -/
-opaque v3ConfState (mem : GMap w64 apply.MemberM) : ConfStateM := memSnapEmpty.Metadata'.ConfState'
+builds from the backend's `members` bucket of `D` (voters the non-learners, learners the learners,
+by id; R2c review F4: from the bucket, not the in-memory members). -/
+opaque v3ConfState (D : backend.Data) : ConfStateM := memSnapEmpty.Metadata'.ConfState'
 
 /-- **Member `id`'s data directory as its last stop left it, at that incarnation's request names
 `ρ`** (DRAFT, R2c; see the file header and `notes/restart-plan.md`, "R2c: the image's content"):
@@ -87,19 +92,26 @@ opaque v3ConfState (mem : GMap w64 apply.MemberM) : ConfStateM := memSnapEmpty.M
 - the configuration point raft restarts with: `bootstrap` replaces the WAL snapshot's `ConfState`
   by the backend's (`buildConfStateFromV3store`), so the membership at `i`, the backend's members
   at `A`; `RestartNode` takes any point from the storage's base to its commit;
+- the bootstrap log applied (`γ.cl.bootLen ≤ i`; R2c review F4, a scope restriction: a member
+  stopped before its first `Ready` was applied would restart with an empty members bucket, which
+  etcd copes with and these statements do not; `restart3`'s stop must provide it);
+- the storage registry's authority (R2c review F3: the restart registers its new `MemoryStorage`
+  in the same registry, `restartNames` keeping raft's names), handed back by the stop;
 - the files holding `σ` and `D` (`srvFiles`) and the backend file's directory entry (`pathOwn`,
-  which a first start's `bootOk` gives and the stop returns). -/
-def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) : IProp GF :=
-  iprop(∃ (S : RaftState) (σ : StorContents) (i t : w64) (A : List EntryModel)
-      (D : backend.Data) (m : Membership) (dd : GoString),
+  which a first start's `bootOk` gives and the stop returns), in the directory `dd` the right to
+  stop records (`srvStopRight`; R2c review F2). (R2c review F5: the KV names' `c0` is `0`, as
+  `restModel (W64 0)` reads the image's buckets.) -/
+def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IProp GF :=
+  iprop(∃ (S : RaftState) (σ : StorContents) (i : w64) (A : List EntryModel)
+      (D : backend.Data) (m : Membership) (M : GMap Loc MemStorNamesRec),
     nodeVacant γ.cl id ∗ raftState γ.cl id S ∗ ⌜StorageHolds S σ⌝ ∗
-    ⌜ρ.rd.raft.raft = γ⌝ ∗ srvRLogLb ρ.rd.raft A ∗
+    ⌜ρ.rd.raft.raft = γ ∧ ρ.rd.kv.c0 = W64 0⌝ ∗ srvRLogLb ρ.rd.raft A ∗
     ⌜uint.Z i = uint.Z ρ.rd.raft.ai0 + A.length ∧
-      imageAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) A D ∧ metaIs D (i, t)⌝ ∗
-    ⌜σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit⌝ ∗
-    confAt γ.cl (uint.nat i) m ∗
-    ⌜confStateIs (v3ConfState (restModel (W64 0) γ.boot (ρ.rd.raft.pre ++ A)).mem) m⌝ ∗
-    srvFiles dd σ D ∗ backend.pathOwn (config.backendPathOf dd))
+      imageAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) A D⌝ ∗
+    ⌜σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i⌝ ∗
+    confAt γ.cl (uint.nat i) m ∗ ⌜confStateIs (v3ConfState D) m⌝ ∗
+    (letI : MemStorReg GF := ⟨γ.reg⟩; memStorRegAuth M) ∗
+    srvFiles dd id σ D ∗ backend.pathOwn (config.backendPathOf dd))
 
 end defs
 
@@ -128,7 +140,7 @@ first start's: the remotes (`Hrms0`: `bootstrapClusterWithWAL` sets none either)
 members (a static cluster, the plan's scope). -/
 def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) (id : w64)
     (N : Nat) (dir : w64 → List GoString) (σ : StorContents) (i : w64) (L : List EntryModel)
-    (D : backend.Data) (b : Loc) : IProp GF :=
+    (D : backend.Data) (M : GMap Loc MemStorNamesRec) (b : Loc) : IProp GF :=
   iprop(∃ (bs : bootstrappedServer) (sto : bootstrappedStorage) (bk : bootstrappedBackend)
       (bw : bootstrappedWAL) (bc : bootstrappedCluster) (bv : bootstrappedRaft) (cv : Config)
       (lok : GoInterfaceOk) (γs : MemStorNames) (pv : List Peer) (ps : List w64)
@@ -169,7 +181,9 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
     -- (D19r (B), 2026-10-18) the registry's authority, given empty, back with the new storage
-    "Hrauth" ∷ memStorRegAuth (GMap.insert bv.storage' γs.tuple (∅ : GMap Loc MemStorNamesRec)) ∗
+    -- [R2c] (review F3) the registry's authority given at `M`, back with the new storage, a
+    -- location not registered before
+    "Hrauth" ∷ memStorRegAuth (GMap.insert bv.storage' γs.tuple M) ∗ "%HMn" ∷ ⌜M !! bv.storage' = none⌝ ∗
     -- (2026-10-30, the repair: raft's two-writer `MemoryStorage` specs) the fresh storage as
     -- `NewMemoryStorage` leaves it: its lock, dummy entry and end, the "no snapshot taken yet"
     -- token (which `run`'s `Snapshot()` reads), its hard state and fresh state (which
@@ -181,7 +195,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- (`ApplySnapshot` of the WAL snapshot with the backend's `ConfState`, `SetHardState`,
     -- `Append`), in place of the fresh storage's tokens; R2d derives `RestartNode`'s
     -- `restartStorage` from it, as kvdurable's `kd_restartStorage`
-    "Hrest" ∷ memStorRestarted bv.storage' γs σ (v3ConfState (restModel (W64 0) γ.boot L).mem) ∗
+    "Hrest" ∷ memStorRestarted bv.storage' γs σ (v3ConfState D) ∗
     "Hpeers" ∷ bv.peers' ↦* pv ∗
     -- the cluster
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
@@ -248,8 +262,9 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- (2026-11-01: `consInv_alloc`'s state, processed through the stored index `γA.m0.1`; until
     -- then `⟨0, 0, 0, false⟩`, a hidden copy of the literal)
     "Hthr" ∷ applyThread γA ⟨W64 0, γA.m0.1, W64 0, false⟩ ∗
-    -- [R2c] the index loaded from the image (`metaIs D γA.m0`, `γA.m0.1 = i`)
-    "Happ" ∷ ciApplying cil γA.m0.1 γA.m0.2 ∗ "Hown" ∷ ciOwner cil bk.be' ∗
+    -- (R2c review, F1: the applying index and term are the apply loop's own fields, which
+    -- `NewConsistentIndex` leaves at 0 and `SetBackend` does not set: as on a first start)
+    "Happ" ∷ ciApplying cil (W64 0) (W64 0) ∗ "Hown" ∷ ciOwner cil bk.be' ∗
     -- the boot backend's meta reads: `#HmetaSnap`'s output at the boot open (`boot_create`,
     -- `SnapApplyOpen.lean`: from the fresh keys and payment rights inside `OpenBackend`'s `openPre`,
     -- with `Hm0`), which `bootstrap`, names-only, does not let `NewServer` derive
@@ -329,18 +344,20 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
 `bootstrapContract`): with the configuration's URLs, the storage registry's authority, and the
 directory's files holding the WAL's records `σ` and the backend's data `D` (`srvFiles`, its path's
 entry `pathOwn`) of an image (`imageAt` at `L`, the index `i` between the WAL's snapshot and
-commit), `bootstrap` returns an error, or the record of a restart (`bootOkR`). -/
+commit, the bootstrap log applied), `bootstrap` returns an error, or the record of a restart
+(`bootOkR`). As a first start's, the contract may always return an error, after which `restart3`
+does nothing more: it does not promise the restart succeeds (R2c review, second tier 6). -/
 def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
-    (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) :
-    IProp GF :=
-  iprop(□ ∀ (σ : StorContents) (i : w64) (γk : KVNames) (L A : List EntryModel)
-      (D : backend.Data),
-    ⌜imageAt γk γ.boot i L A D ∧ σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit⌝ -∗
-    {{ bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
-        srvFiles cfg.DataDir' σ D ∗ backend.pathOwn (config.backendPathOf cfg.DataDir') }}
+    (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) : IProp GF :=
+  iprop(□ ∀ (σ : StorContents) (i : w64) (L : List EntryModel) (D : backend.Data)
+      (M : GMap Loc MemStorNamesRec),
+    ⌜(∃ (γk : KVNames) (A : List EntryModel), γk.c0 = W64 0 ∧ imageAt γk γ.boot i L A D) ∧
+      σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i⌝ -∗
+    {{ bootCfgRO cfg U ∗ memStorRegAuth M ∗
+        srvFiles cfg.DataDir' id σ D ∗ backend.pathOwn (config.backendPathOf cfg.DataDir') }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
-        ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOkR cfg γ id N dir σ i L D b }})
+        ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOkR cfg γ id N dir σ i L D M b }})
 
 end boot
 
@@ -348,6 +365,7 @@ end boot
 (see the file header). -/
 def restartNames [GooseExts] (ρ ρ' : ReqNames) : Prop :=
   ρ'.rd.raft = ρ.rd.raft ∧ ρ'.rd.kv.st = ρ.rd.kv.st ∧ kvModel ρ'.rd.kv = kvModel ρ.rd.kv ∧
+    ρ'.rd.kv.c0 = ρ.rd.kv.c0 ∧
     ρ'.ids.issued = ρ.ids.issued ∧ ρ'.ids.pfx = ρ.ids.pfx
 
 end EtcdGrove

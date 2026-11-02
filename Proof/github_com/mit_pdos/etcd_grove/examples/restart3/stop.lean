@@ -31,7 +31,7 @@ theorem stop.wp_proof
     (wp_HardStop : EtcdServer.HardStop.spec (GF := GF) (hG := hG))
     (hClose : http.ListenerClose_spec (GF := GF) (hG := hG)) :
     stop.spec (GF := GF) (hG := hG) := by
-  intro m s pl γ id peerAddr γn E ρ
+  intro m s pl γ id peerAddr γn E ρ dd
   wp_start as ⟨Hm, #Hreq⟩
   iunfold memberStop at Hm
   icases Hm with ⟨Hrec, Hsr, %Hli, Hcl⟩
@@ -40,7 +40,7 @@ theorem stop.wp_proof
   · iPkgInit
   wp_auto
   -- `m.s.HardStop()`
-  wp_apply (wp_HardStop s γ id E ρ) $$ [Hsr] as Himg
+  wp_apply (wp_HardStop s γ id dd E ρ) $$ [Hsr] as Himg
   · iframe; iframe #
   -- `m.pl.Close()`
   wp_apply (hClose _ li peerAddr (raftProto (netRh γn)) rfl) $$ [Hcl] as %err ⟨Haddr, Hown⟩

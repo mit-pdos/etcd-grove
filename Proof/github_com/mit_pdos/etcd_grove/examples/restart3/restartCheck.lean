@@ -83,7 +83,7 @@ theorem restartCheck.wp_proof
   · iPkgInit
   (try wp_auto)
   -- `stop(m)`
-  wp_apply (wp_stop m s pl γ id peerAddr γn E ρ) $$ [Hmst] as ⟨Himg, Hpa, Hpown⟩
+  wp_apply (wp_stop m s pl γ id peerAddr γn E ρ (name ++ go!".etcd")) $$ [Hmst] as ⟨Himg, Hpa, Hpown⟩
   · iframe; iframe #
   (try wp_auto)
   -- the puts of `k ↦ v2`: once one returned `nil`, the put's flag

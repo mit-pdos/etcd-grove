@@ -33,11 +33,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.restart3.Assumpt
 /-- See the file header. -/
 abbrev stop.spec : Prop :=
   ∀ (m s : Loc) (pl : GoInterface) (γ : SrvRaft) (id : w64) (peerAddr : GoString)
-    (γn : NetNames GF) (E : apply.AEnv GF) (ρ : ReqNames),
+    (γn : NetNames GF) (E : apply.AEnv GF) (ρ : ReqNames) (dd : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.restart3 ∗
-      memberStop m s pl γ id peerAddr γn ∗ isServerReq s E ρ }}
+      memberStop m s pl γ id peerAddr γn dd ∗ isServerReq s E ρ }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.restart3.stop)) (Val #m))
-  {{ RET #(); srvDiskImage γ ρ id ∗ netAddrFree (GF := GF) peerAddr ∗
+  {{ RET #(); srvDiskImage γ ρ id dd ∗ netAddrFree (GF := GF) peerAddr ∗
       http.httpProtoOwn peerAddr (raftProto (netRh γn)) }}
 
 end spec

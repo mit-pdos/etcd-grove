@@ -62,7 +62,7 @@ abbrev startMember.spec : Prop :=
   {{ (m : Loc) (err : GoInterface), RET (PairV #m #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (s : Loc) (pl : GoInterface),
-        common.memberUp s ρ E₀ lg γn id ∗ memberStop m s pl γ id peerAddr γn) }}
+        common.memberUp s ρ E₀ lg γn id ∗ memberStop m s pl γ id peerAddr γn (name ++ go!".etcd")) }}
 
 /-- See the file header (`specRestart`). -/
 abbrev startMember.specRestart : Prop :=
@@ -82,7 +82,7 @@ abbrev startMember.specRestart : Prop :=
       peer ↦*□ [common.httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       common.bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ common.commonPremises ∗
       context.isClosedchanInit ∗
-      srvDiskImage γ ρ id ∗
+      srvDiskImage γ ρ id (name ++ go!".etcd") ∗
       netHttpOk γn id ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) }}
     (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.restart3.startMember))
@@ -91,7 +91,7 @@ abbrev startMember.specRestart : Prop :=
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (s : Loc) (pl : GoInterface) (ρ' : ReqNames)
         (E₀' : apply.AEnv GF), ⌜restartNames ρ ρ'⌝ ∗
-        common.memberUp s ρ' E₀' lg γn id ∗ memberStop m s pl γ id peerAddr γn) }}
+        common.memberUp s ρ' E₀' lg γn id ∗ memberStop m s pl γ id peerAddr γn (name ++ go!".etcd")) }}
 
 end spec
 
