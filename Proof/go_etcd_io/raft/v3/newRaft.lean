@@ -915,6 +915,135 @@ theorem newRaft.wp_proof
   ihave #Hns0 := NsCap.off (GF := GF) (interface.ok si)
   ihave #Hsc0 : qSrcs (GF := GF) sn ([] ++ []) $$ []
   · rw [List.append_nil]; iapply qSrcs_nil
+  let rv2 : raft :=
+    { id' := cv'.ID', Term' := hs.Term', Vote' := hs.Vote', readStates' := slice.nil, raftLog' := l,
+      maxMsgSize' := cv'.MaxSizePerMsg', maxUncommittedSize' := cv'.MaxUncommittedEntriesSize',
+      trk' := { tv0 with Config' := cfgv, Progress' := prsm }, state' := StateFollower,
+      isLearner' := bl, msgs' := slice.nil, msgsAfterAppend' := slice.nil, lead' := W64 0,
+      leadTransferee' := 0, pendingConfIndex' := 0,
+      disableConfChangeValidation' := cv'.DisableConfChangeValidation', uncommittedSize' := 0,
+      readOnly' := ro, electionElapsed' := 0, heartbeatElapsed' := 0, checkQuorum' := cv'.CheckQuorum',
+      preVote' := cv'.PreVote', heartbeatTimeout' := cv'.HeartbeatTick',
+      electionTimeout' := cv'.ElectionTick', randomizedElectionTimeout' := 0,
+      disableProposalForwarding' := cv'.DisableProposalForwarding',
+      stepDownOnRemoval' := cv'.StepDownOnRemoval', tick' := func.nil, step' := func.nil,
+      logger' := cv'.Logger', pendingReadIndexMessages' := slice.nil,
+      traceLogger' := cv'.TraceLogger' }
+  ihave Hro : raftOwn (GF := GF) «$r0_ptr» rv2 $$ [H_Term H_Vote H_readStates H_raftLog H_maxMsgSize
+      H_maxUncommittedSize H_trk H_state H_isLearner H_msgs H_msgsAfterAppend H_lead
+      H_leadTransferee H_pendingConfIndex H_disableConfChangeValidation H_uncommittedSize
+      H_readOnly H_electionElapsed H_heartbeatElapsed H_checkQuorum H_preVote H_heartbeatTimeout
+      H_electionTimeout H_randomizedElectionTimeout H_disableProposalForwarding H_tick H_step
+      H_pendingReadIndexMessages H_traceLogger]
+  · unfold raftOwn
+    simp only [named]
+    iframe
+    isplitr
+    · iexact H_id
+    isplitr
+    · iexact H_stepDownOnRemoval
+    iexact H_logger
+  let ls2 : LogState :=
+    { prev := σ.prev, sents := σ.ents, uents := [], committed := committedAfter σ.prev hs,
+      applied := ap, snap := none, inprogress := ip, applying := ap, unpersisted := [],
+      stored := σ.ents, apsize := W64 0, apmax := cv'.MaxCommittedSizePerReady',
+      storage := interface.ok si, ksn := [], sn := sn, fl := σ1.fl, sg := σ.sg,
+      dtk := uint.nat (committedAfter σ.prev hs) }
+  let s2 : NState :=
+    { term := hs.Term', vote := hs.Vote', lead := W64 0, role := .follower, votes := ∅,
+      outbox := [], stepfn := func.nil, ticking := false, progress := prs, log := l, logst := ls2,
+      prvals := pvs, prevote := cv.PreVote', gh := { sn := sn }, isLearner := bl,
+      sdr := cv'.StepDownOnRemoval', cq := cv.CheckQuorum' }
+  ihave Hphys := ownRaftPhysCV_intro cs'.cfg cs'.cfg.voters «$r0_ptr» cv.ID' s2 rv2 [] [] lok
+    HpID rfl rfl rfl rfl rfl ⟨HpPV, fun h => absurd h (by simp only [s2]; decide)⟩
+    (by simp only [rv2]; rw [HpDPF, Hdpf]) (by simp only [rv2]; rw [HpDCC, Hdccv])
+    (by first | exact HpCQ | exact HpCQ.symm | (simp only [rv2, s2]; rw [HpCQ]))
+    rfl ⟨rfl, fun h => HvID h.symm⟩ rfl rfl HvID
+    (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by simp only [rv2]; rw [HpLg, Hlok])
+    rfl (fun h => absurd h (by simp only [s2]; decide)) (fun _ h => absurd h List.not_mem_nil)
+    (fun _ h => absurd h List.not_mem_nil) (Nat.zero_le _)
+    ⟨fun h => absurd h Bool.false_ne_true,
+      SnpOk.of_none rfl rfl rfl rfl, rfl⟩
+    (fun h => absurd rfl h) (PrvalsOk.not_leader (by simp only [s2]; decide)) (LogNsOk.off rfl)
+    (XfOk.nil (fun h => absurd h (by simp only [s2]; decide)))
+    $$ Hro Hlg0 Htrk HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob Hns0 Hsc0
+  try wp_auto
+  -- `r.becomeFollower(r.Term, None)`
+  wp_apply wp_raft_becomeFollower _ _ _ s2 s2.term (W64 0) (Int.le_refl _) $$ [$Hphys]
+    as %pvs3 Hphys
+  let s3 : NState := { becomeFollower s2 s2.term (W64 0) with prvals := pvs3 }
+  -- `r.trk.VoterNodes()`
+  icases ownRaftPhysC_tracker_same _ _ _ s3 $$ Hphys with ⟨%tv3, Htrkf, Htrk3, Htrkback⟩
+  wp_apply wp_ProgressTracker_VoterNodes $$ [$Htrkf $Htrk3] as %nsl %nxs ⟨Htrkf, Htrk3, Hnsl, %Hnxs⟩
+  ihave Hphys := Htrkback $$ %tv3 Htrkf Htrk3
+  -- the log line's `nodesStrs` loop; what it builds is never read
+  ihave IH : iprop(∃ (k x : w64) (sl' : GoSlice) (strs : List GoString),
+      "i" ∷ i_ptr ↦ k ∗ "n" ∷ n_ptr ↦ x ∗ "nodesStrs" ∷ nodesStrs_ptr ↦ sl' ∗
+      "Hstrs" ∷ sl' ↦* strs ∗
+      "Hstrs_cap" ∷ ownSliceCap GoString sl' (DFrac.own 1) ∗
+      "Hnsl" ∷ nsl ↦* nxs ∗
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (nxs.length : Int)⌝) $$ [i n nodesStrs Hnsl]
+  · iexists W64 0, _, slice.nil, []
+    iframe i n nodesStrs Hnsl
+    isplitr
+    · iapply ownSlice_nil
+    isplitr
+    · iapply ownSliceCap_nil
+    ipureintro; constructor <;> word
+  wp_for IH
+  wp_if_destruct
+  · ihave %Hnl := ownSlice_len $$ Hnsl
+    have Hlt : (sint.Z k).toNat < nxs.length := by word
+    list_elem nxs (sint.Z k).toNat as e
+    rw [ite_eq_left (show 0 ≤ sint.Z k ∧ sint.Z k < sint.Z nsl.len by word)]
+    wp_apply wp_load_slice_index nsl (sint.Z k) nxs (DFrac.own 1) e Hk.1 $$ [Hnsl] as Hnsl
+    · iframe; ipureintro; exact He_lookup
+    wp_apply wp_slice_literal
+    try (isplitr; (ipureintro; rfl))
+    iintro %sla ⟨Hargs, -⟩
+    wp_auto
+    wp_apply wp_fmt_Sprintf $$ [$Hargs] as %str Hargs
+    · ipureintro
+      exact _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) _root_.Perennial.fmt.ArgsWf.nil
+    wp_apply wp_slice_literal
+    try (isplitr; (ipureintro; rfl))
+    iintro %sl2 ⟨Hsl2, -⟩
+    wp_auto
+    wp_apply wp_slice_append $$ [$Hstrs $Hstrs_cap $Hsl2] as %sl3 ⟨Hstrs, Hstrs_cap, -⟩
+    wp_for_post
+    iframe
+    iexists _, _, _, _
+    iframe
+    ipureintro; constructor <;> word
+  -- the log line: `r.id`, `strings.Join(nodesStrs, ",")`, `r.Term`, then
+  -- `r.raftLog.committed` and `r.raftLog.applied` through the log
+  wp_apply wp_strings_Join $$ [$Hstrs] as %joined Hstrs
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same _ _ _ s3 $$ Hphys with ⟨Hlog3, Hlogback⟩
+  icases ownRaftLog_struct _ _ $$ Hlog3 with ⟨%lv3, Hl3, -, Hl3back⟩
+  wp_auto
+  ihave Hlog3 := Hl3back $$ Hl3
+  ihave Hphys := Hlogback $$ Hlog3
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same _ _ _ s3 $$ Hphys with ⟨Hlog3, Hlogback⟩
+  icases ownRaftLog_struct _ _ $$ Hlog3 with ⟨%lv4, Hl3, -, Hl3back⟩
+  wp_auto
+  ihave Hlog3 := Hl3back $$ Hl3
+  ihave Hphys := Hlogback $$ Hlog3
+  wp_apply wp_slice_literal
+  try (isplitr; (ipureintro; rfl))
+  try iintro %_ ⟨_, -⟩
+  try wp_auto
+  wp_apply Logger.wp_logf lok _ _ _ (by decide) $$ Hlg0
+  try wp_auto
+  iapply HΦ $$ %«$r0_ptr» %s3 %cv'
+  iframe HR Hphys Hc
+  isplitr
+  · ipureintro; exact HpAW
+  -- `becomeFollower(r.Term, None)` keeps the term, so `reset` keeps the
+  -- vote: the state is the persisted `HardState`'s
+  ipureintro
   sorry
 
 end proof
