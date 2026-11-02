@@ -770,6 +770,21 @@ theorem isGrpcRpc_intro {Req Rep : ProtoMsg GF} (addr name : GoString) (mh : val
   iexists mh, srv, ics, S
   iframe #
 
+/-- A method handler meeting the metadata-indexed `Spec` with `S` meets it with more (`S ∗ R`, `R`
+given back). -/
+theorem grpcMethodOkMd_frame {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (S R : IProp GF) (Spec : GrpcSpecMd Req Rep) :
+    grpcMethodOkMd mh srv ics S Spec ⊢ grpcMethodOkMd mh srv ics iprop(S ∗ R) Spec := by
+  iintro #Hh
+  unfold grpcMethodOkMd
+  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HR⟩, #Hctx, #Hrc, Hdec, Hch, HSpec⟩ HΨ
+  iapply Hh $$ %m %Φ %ci %cd %dec %ui [HS Hdec Hch HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, Hres⟩
+  iapply HΨ
+  iframe
+
 /-- **Serving** (an axiom, the server side of the trust boundary; see the file header and
 `notes/decisions.md`, "The server end of the gRPC boundary"; unit P3b): a gRPC server at `addr`,
 built with the chain `ics`, with the methods `regs` registered (`grpcServerAt`), of which the
@@ -777,7 +792,11 @@ methods `ms` (distinct names), each meeting its spec with the per-run resource `
 it (`grpcMethodOk`: its `MethodDesc.Handler` on the registered service value, the call's context
 (`isContext`, and `grpcRunCtx`: no value under etcd's keys), grpc's `dec` for the request, the
 interceptor for `ics`), and that hands the runtime `n` copies of `S`, is served at `addr`: a run
-holds one copy of `S` (taken from the `n` and given back: at most `n` runs at a time).
+holds one copy of `S` (taken from the `n` and given back: at most `n` runs at a time) and the thread
+token of the goroutine it runs on (`threadTok`, given back; the lease-ex plan, 2026-11-02: grpc
+runs a call on a goroutine of its own, `serveStreams`' `handleStream`, which `wp_fork` gives a
+token; until then a run had only `S`, and the lease service's reads, which take the caller's token,
+could not be served).
 
 Since 2026-10-31 (`notes/reply-size.md`): grpc marshals a reply before any size check, and the
 codec's `make` panics above `grpcReplyMax`. This axiom's resource (`grpcServerAt`,
@@ -787,10 +806,52 @@ axiom grpc.serve (addr : GoString) (ics : List GoFunc) (regs : List (GoString ×
     (ms : List (GrpcMethod GF)) (S : IProp GF) (n : Nat) :
   (ms.map GrpcMethod.name).Nodup → (∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) →
   (grpcServerAt addr ics regs ∗ ([∗list] _x ∈ List.replicate n (), S) ∗
-    [∗list] m ∈ ms, grpcMethodOkMd m.handler m.srv ics S m.spec) ⊢
-  |={⊤}=> [∗list] m ∈ ms, grpcServes addr m.name m.handler m.srv ics S
+    [∗list] m ∈ ms, grpcMethodOkMd m.handler m.srv ics iprop(S ∗ threadTok) m.spec) ⊢
+  |={⊤}=> [∗list] m ∈ ms, grpcServes addr m.name m.handler m.srv ics iprop(S ∗ threadTok)
 
-/-- **The methods of a served server are registered** (`grpc.serve`, `isGrpcRpc_intro`). -/
+/-- **The methods of a served server are registered, each run with the goroutine's token**
+(`grpc.serve`, `isGrpcRpc_intro`): as `grpc.serve`, the methods meeting their specs with the slot
+and the run's thread token (the lease-ex plan). -/
+theorem grpc_serve_rpcs_tok (addr : GoString) (ics : List GoFunc)
+    (regs : List (GoString × val × GoInterface)) (ms : List (GrpcMethod GF)) (S : IProp GF)
+    (n : Nat) (hnd : (ms.map GrpcMethod.name).Nodup)
+    (hreg : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) :
+    (grpcServerAt addr ics regs ∗ ([∗list] _x ∈ List.replicate n (), S) ∗
+      □ [∗list] m ∈ ms, grpcMethodOkMd m.handler m.srv ics iprop(S ∗ threadTok) m.spec) ⊢
+    |={⊤}=> [∗list] m ∈ ms, isGrpcRpcMd addr m.name m.spec := by
+  iintro ⟨Hl, Hs, #Hh⟩
+  imod (grpc.serve addr ics regs ms S n hnd hreg) $$ [Hl Hs] with Hsv
+  · iframe
+    iexact Hh
+  imodintro
+  have Hm := BigSepL.bigSepL_mono_of_forall (PROP := IProp GF) (l := ms)
+    (Φ := fun _ m => iprop(grpcServes addr m.name m.handler m.srv ics iprop(S ∗ threadTok) ∗
+      grpcMethodOkMd m.handler m.srv ics iprop(S ∗ threadTok) m.spec))
+    (Ψ := fun _ m => isGrpcRpcMd addr m.name m.spec)
+    (fun {_ m} => isGrpcRpcMd_intro (GF := GF) addr m.name m.handler m.srv ics
+      iprop(S ∗ threadTok) m.spec)
+  iapply Hm
+  iapply BigSepL.bigSepL_sep_eqv.2
+  isplitl [Hsv]
+  · iexact Hsv
+  · iexact Hh
+
+/-- `grpcMethodOkMd_frame` for a list of methods. -/
+theorem grpcMethodsOkMd_frame (ms : List (GrpcMethod GF)) (ics : List GoFunc) (S R : IProp GF) :
+    ([∗list] m ∈ ms, grpcMethodOkMd m.handler m.srv ics S m.spec) ⊢
+      [∗list] m ∈ ms, grpcMethodOkMd m.handler m.srv ics iprop(S ∗ R) m.spec := by
+  induction ms with
+  | nil => iintro -; iapply BigSepL.bigSepL_nil.2; itrivial
+  | cons m ms ih =>
+    iintro H
+    icases (BigSepL.bigSepL_cons).1 $$ H with ⟨Hm, Hms⟩
+    iapply (BigSepL.bigSepL_cons).2
+    isplitl [Hm]
+    · iapply grpcMethodOkMd_frame $$ Hm
+    · iapply ih $$ Hms
+
+/-- **The methods of a served server are registered** (`grpc_serve_rpcs_tok`, the methods' token
+framed: `grpcMethodsOkMd_frame`). -/
 theorem grpc_serve_rpcs (addr : GoString) (ics : List GoFunc)
     (regs : List (GoString × val × GoInterface)) (ms : List (GrpcMethod GF)) (S : IProp GF)
     (n : Nat) (hnd : (ms.map GrpcMethod.name).Nodup)
@@ -799,20 +860,9 @@ theorem grpc_serve_rpcs (addr : GoString) (ics : List GoFunc)
       □ [∗list] m ∈ ms, grpcMethodOkMd m.handler m.srv ics S m.spec) ⊢
     |={⊤}=> [∗list] m ∈ ms, isGrpcRpcMd addr m.name m.spec := by
   iintro ⟨Hl, Hs, #Hh⟩
-  imod (grpc.serve addr ics regs ms S n hnd hreg) $$ [Hl Hs] with Hsv
-  · iframe
-    iexact Hh
-  imodintro
-  have Hm := BigSepL.bigSepL_mono_of_forall (PROP := IProp GF) (l := ms)
-    (Φ := fun _ m => iprop(grpcServes addr m.name m.handler m.srv ics S ∗
-      grpcMethodOkMd m.handler m.srv ics S m.spec))
-    (Ψ := fun _ m => isGrpcRpcMd addr m.name m.spec)
-    (fun {_ m} => isGrpcRpcMd_intro (GF := GF) addr m.name m.handler m.srv ics S m.spec)
-  iapply Hm
-  iapply BigSepL.bigSepL_sep_eqv.2
-  isplitl [Hsv]
-  · iexact Hsv
-  · iexact Hh
+  ihave #Hh' := grpcMethodsOkMd_frame ms ics S threadTok $$ Hh
+  iapply (grpc_serve_rpcs_tok addr ics regs ms S n hnd hreg)
+  iframe Hl Hs Hh'
 
 /-! ## The client side: one attempt, the interceptor chain (unit P3a) -/
 
