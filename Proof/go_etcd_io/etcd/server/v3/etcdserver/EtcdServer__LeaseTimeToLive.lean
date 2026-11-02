@@ -41,7 +41,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     (hTTL : EtcdServer.leaseTimeToLive.spec (GF := GF) (hG := hG))
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr γl ctx cd r dq v n m
+  intro Hpeers s E ρ γr γl ctx cd r dq v n m
   wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, HRD, #Hpool, Htok, %Hbound, Hreq⟩
   ihave ⟨%st, %cca, #Has, #Hreqa, #Hreqb, #Hcca, #HLb⟩ := leaseCheckSetup s E n $$ [$Hau $Hlb $Hpub]
   iunfold isAuthStoreLeaseLb at HLb
@@ -95,7 +95,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
       simp only [TypedPointsto.typedPointstoDef, hK]
       iframe
     -- `resp, err := s.leaseTimeToLive(ctx, r)`
-    wp_apply (hTTL s E ρ γr γl ctx cd r dq v) $$ [$Htok $Hreq] as %resp %err2
+    wp_apply (hTTL Hpeers s E ρ γr γl ctx cd r dq v) $$ [$Htok $Hreq] as %resp %err2
         ⟨Htok, Hreq, Hres⟩
     · iframe #; ipureintro; exact Hbound
     icases Hres with (⟨%He2, %w, Hw, %Hh, %Hid, Hhv⟩ | ⟨%Hn, #He2⟩)
@@ -168,7 +168,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     · iapply typedPointsto_combine _ _ _ Hrn
       simp only [TypedPointsto.typedPointstoDef, hK]
       iframe
-    wp_apply (hTTL s E ρ γr γl ctx cd r dq v) $$ [$Htok $Hreq] as %resp %err2
+    wp_apply (hTTL Hpeers s E ρ γr γl ctx cd r dq v) $$ [$Htok $Hreq] as %resp %err2
         ⟨Htok, Hreq, Hres⟩
     · iframe #; ipureintro; exact Hbound
     icases Hres with (⟨%He2, %w, Hw, %Hh, %Hid, Hhv⟩ | ⟨%Hn, #He2⟩)

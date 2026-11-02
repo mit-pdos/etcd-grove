@@ -595,12 +595,10 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
-sorry LeaseOp.applyOpts.wp_proof
 sorry leasekv.Main.wp_proof
 sorry lessor.Leases.wp_proof
 sorry lessor.TimeToLive.wp_proof
 sorry merged_image
 sorry run_job_snap_cmp
-sorry toLeaseTimeToLiveRequest.wp_proof
 sorry txn.kvWriter_keyObs
 sorry txn.kvWriter_noCmp

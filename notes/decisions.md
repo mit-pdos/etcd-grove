@@ -29223,3 +29223,34 @@ stock (`etc/bounds-allow.txt`). The trusted changes: the axioms `leaseTimeToLive
 `lessor.Renew` are restated over the pool (their old premises are incomparable with the new ones).
 Rejected: a slot held for the whole call (F1 of the review: a slot and the token held at once by
 one thread); a per-call slot handed down from `NewServer` (it would bound the number of calls).
+
+## The closed lease example: the TTL reply's ID, the lease peers' premise, the run's token (2026-11-02 · proposed for the user's Freeze · branch `lease-ex`)
+
+`examples/leasekv` checks that `TimeToLive(id)` answers about `id` and that `Leases()` lists no lease
+twice (`notes/lease-ex-plan.md`). Three changes to trusted or frozen statements, each the user's
+choice:
+
+- **The reply's ID** (D3): `⌜w.ID' = v.ID'⌝` in the success arm of the trust-boundary
+  `EtcdServer.leaseTimeToLive.spec`, and so of `EtcdServer.LeaseTimeToLive.spec`, `ttlAns` and
+  `leaseTTLOut` (frozen in lease-src). True on every path: the leader's literal has `ID: r.ID`, a
+  follower's `TimeToLiveHTTP` rejects a mismatched reply (`http.go:274`), the handler's not-found
+  reply has `ID: rr.ID`. It survived the `axiom` skill (`notes/axiom-review/lease-ttl-id.md`).
+- **`leasePeersOk`** (the axiom review's (A)): the same review refuted the axiom as it stood since
+  lease-grpc. Its cluster assumption (what answers `/leases/internal` at the leader's peer URLs)
+  was only docstring prose, and a program serving its peer address with an empty `200` panics yet
+  had a proof. Now an `opaque` deployment premise (`etcdserver/LeaseRead.lean`, as `grpcRepliesFit`),
+  taken by the axiom, `LeaseTimeToLive.spec`, `raftLeaseRead_server`, `kv_lease_served`,
+  `leasekv.Main.spec` and `leasekv_safe`'s hypotheses. Rejected: (B) the premise stated over the HTTP
+  model (provable by the program that serves the address; more work in `raftProto`), for later.
+- **The run's thread token**: a lease read's run takes a `threadTok` (the lessor's and the leases'
+  reader pools). Restating `grpc.serve` to give each run one (D1) was unsound and is reverted;
+  lending the client's token fails on a timed-out call; per-lease stocks of reader slots would
+  rework the lessor. `leasekv`'s `Main` forks `holdToken` (sleeps forever, touches no lock) and puts
+  that goroutine's token in the one gRPC slot. No trusted change; the Go program has one idle
+  goroutine.
+
+Also: `memberBuilt`, `memberUp` and `grpcUp` (the examples' aggregates) gain `srvLeaseRd` and
+`grpcLeaseUp`; the review's locality finding (nine `Main` proofs changed their patterns) stands
+as a known cost. The two new rules this stage taught are in `.claude/skills/spec/PRINCIPLES.md`
+("A trusted statement never gives out a counted resource it did not take") and
+`notes/spec-first-plan.md` ("Freeze: the axioms attacked first").

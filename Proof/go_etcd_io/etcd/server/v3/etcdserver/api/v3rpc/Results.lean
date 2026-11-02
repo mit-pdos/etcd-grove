@@ -1730,16 +1730,18 @@ theorem leaseLeases_handler :
     EtcdGrove.v3rpc.LeaseServer.LeaseLeases.spec (GF := GF) (hG := hG) :=
   LeaseServer.wp_LeaseLeases
 
-/-- **The lease-read contract, discharged** (`raftLeaseRead_of_server` at the linked results). -/
+/-- **The lease-read contract, discharged** (`raftLeaseRead_of_server` at the linked results), under
+the deployment premise `leasePeersOk` (the trust-boundary `leaseTimeToLive`'s). -/
 theorem raftLeaseRead_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
-    (γl : GName) (cs ms : w64) (hT : threadBound GF ≤ 2 ^ 30 - 1) (hR : receiptBound GF ≤ 2 ^ 62) :
+    (γl : GName) (cs ms : w64) (hT : threadBound GF ≤ 2 ^ 30 - 1) (hR : receiptBound GF ≤ 2 ^ 62)
+    (hP : leasePeersOk) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthAt s E ∗
         srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ lease.lessorRdPool γl ∗ srvHeaderFacts s cs ms ⊢
       raftLeaseRead s E γl iprop(E.RD ∗ threadTok)
         (mvcc.storeReader E.s E.γ) :=
   raftLeaseRead_of_server EtcdServer.wp_LeaseTimeToLive EtcdServer.wp_LeaseLeases
-    s E ρ γr γl cs ms hT hR
+    s E ρ γr γl cs ms hT hR hP
 
 /-- **The server's header fields, from its request side** (`srvHeaderFacts_of_reqM`: the discharge's
 `srvHeaderFacts` premise needs no source of its own). -/

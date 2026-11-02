@@ -21,7 +21,9 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
 * pure facts of the program and its environment: `BootFacts id bootLog` (the member id and the
   bootstrap log Go computes), `ckptEffectsOk`, `authRecordsFit`,
   `apply.backendUnderQuota`, `grpcRepliesFit` (the replies' encoded size, `grpc.start`'s, 2026-10-31),
-  `storage.diskOk` (D22 S-j2), `namesUnclaimed`/`addrsUnclaimed` (D19d),
+  `storage.diskOk` (D22 S-j2), `leasePeersOk` (the peers answer the lease handler's path as etcd's
+  lease handler does: the trust-boundary `leaseTimeToLive`'s, the axiom review of 2026-11-02),
+  `namesUnclaimed`/`addrsUnclaimed` (D19d),
   and the execution's length (`n + 2 ≤ 2 ^ 28`: the thread bound and, with `N = n + 1`, the
   time-receipt bounds; it also gives `n + 7 ≤ backend.wbInit`, the backend's write-back budget
   `bootstrap`'s contract takes, since 2026-11-01 derived instead of assumed);
@@ -124,6 +126,7 @@ theorem leasekv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbf : leasekv.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
+    (Hlp : leasePeersOk)
     (HNs : prometheus.namesUnclaimed leasekvProgram leasekvNames)
     (HAs : addrsUnclaimed leasekvProgram [go!"127.0.0.1:23936"])
     (n : Nat)
@@ -151,7 +154,7 @@ theorem leasekv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   iintro #Hinit Htok ⟨Has, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
   have hM := leasekv.wp_Main (GF := leasekvGF) n id ctxs boot Hbf (by rw [HT]; omega)
-    (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hrf Hdbo Hlp inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Haddr Htok]
   · iframe; iframe #
   ipureintro

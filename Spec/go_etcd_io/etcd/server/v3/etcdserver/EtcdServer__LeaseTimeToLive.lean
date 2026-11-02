@@ -38,8 +38,10 @@ it returns. The response is `leaseTimeToLive`'s, which looks the lease up again,
 through it (its contract states nothing of the keys), so a key attached in between is returned
 unchecked (`issues/etcd-lease-timetolive-keys-toctou.md`). The revision re-check
 (`ErrAuthOldRevision` unless the auth revision is still the check's) is not stated
-(`checkLeaseRenew.spec`'s margin). -/
+(`checkLeaseRenew.spec`'s margin). Under the deployment premise `leasePeersOk`
+(`leaseTimeToLive`'s). -/
 abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
+  leasePeersOk →
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (dq : DFrac)
     (v : etcdserverpb.LeaseTimeToLiveRequest) (n m : Nat),

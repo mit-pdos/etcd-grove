@@ -43,6 +43,10 @@ upstream: unchecked
   contract (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__leaseTimeToLive.lean`, the
   lease-read plan): the contract's docstring states the assumption that the leader's peer URLs are
   served by etcd's lease handler (`leasehttp.NewHandler`), which always sets the field.
+  That assumption is prose, not a premise: on 2026-11-02 (`notes/axiom-review/lease-ttl-id.md`,
+  branch `axiom/lease-ttl-id`) a whole program reached the panic through `EtcdServer.LeaseTimeToLive`
+  on a one-member cluster (its own peer address served by a handler answering `200`, the call made
+  before the first election, so the member forwards to itself), and the contract proves it returns.
 - **Possible fixes**: `if lresp.LeaseTimeToLiveResponse == nil { return nil, fmt.Errorf("lease:
   empty TimeToLive response") }` before `http.go:274`.
 - **Found**: 2026-10-31, the lease-read plan's Draft review (the independent spec review of the
