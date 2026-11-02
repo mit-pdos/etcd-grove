@@ -13,7 +13,7 @@ of bound lastindex(1)") and, for an `i` the storage has compacted but newer than
 
 **Why not an issue:** a precondition etcd meets (it calls `CreateSnapshot` only with its applied
 index, after the entries are persisted, and compacts only below its last snapshot); documentation
-only (INDEX-reviewed.md's Plan: "Skip for now").
+only (the 2026-10-23 review's Plan: "Skip for now").
 
 `TestMemoryStorageCreateSnapshotBelowCompaction` and `TestMemoryStorageCreateSnapshotPastLastIndex`
 in

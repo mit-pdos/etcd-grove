@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-16
+checked: 2026-11-02
 links: []
 blocks-proof: no
 ---
@@ -21,4 +21,4 @@ no: a metric; `dispatch`'s spec says the deferred metrics return, with any `op`.
 
 A test applying `InternalRaftRequest{AuthStatus: ...}` through `NewUberApplier(...).Apply` and
 reading the histogram's labels would promote it to `issues/`; the fix is `op = "AuthStatus"` in the
-case. INDEX-reviewed.md's plan: skip for now.
+case. The 2026-10-23 review's plan: skip for now.

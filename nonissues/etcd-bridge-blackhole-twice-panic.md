@@ -25,6 +25,6 @@ unblackholed, and `examples/linkv3p`'s partitioner skips a second `Blackhole`.
 ## Notes
 
 Test: this repository's `third_party/bridge/bridge_test.go`, `TestBlackholeTwicePanics` (passes
-when the panic happens). The INDEX-reviewed Plan asked whether this is a bug or the helper's
+when the panic happens). The 2026-10-23 review's plan asked whether this is a bug or the helper's
 contract; the 2026-10-23 review answered the contract. The guard `select { case
 <-b.blackholec: default: close(b.blackholec) }` would be a one-line cleanup.

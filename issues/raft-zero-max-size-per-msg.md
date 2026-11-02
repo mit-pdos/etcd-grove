@@ -66,6 +66,6 @@ matching "at most one entry").
 
 ## Notes
 
-INDEX-reviewed.md's Plan was "Nonissue, maybe docs" (a configuration precondition). Moved to
+The 2026-10-23 review's Plan was "Nonissue, maybe docs" (a configuration precondition). Moved to
 `issues/` under the new rule: the test uses only the public API with a value `Config` documents
 as valid, and fails at `main`.

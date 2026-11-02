@@ -178,7 +178,7 @@ The serious findings are about a premise of the server's closed theorems that re
 
 ## Issues in the Go code
 
-- Filed: [`nonissues/raft-compact-past-snapshot.md`](../issues/raft-compact-past-snapshot.md).
+- Filed: [`nonissues/raft-compact-past-snapshot.md`](../nonissues/raft-compact-past-snapshot.md).
   `Compact`'s documentation asks only for `≤ applied`. Compacting past the storage's snapshot makes
   the leader panic when a follower lags (reproduced). etcd is not affected.
 - Not filed:

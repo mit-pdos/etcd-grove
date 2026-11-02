@@ -25,5 +25,5 @@ range deleter is set.
 The test,
 [`nonissues/etcd-lessor-revoke-twice-no-deleter/revoke_no_deleter_test.go`](etcd-lessor-revoke-twice-no-deleter/revoke_no_deleter_test.go)
 (`server/lease`), fails at etcd-io/etcd@1573d5941 (go1.27.3): `after Revoke(1) returned nil, the
-lease is still there` and `second Revoke(1) panicked: close of closed channel`. INDEX-reviewed.md's
+lease is still there` and `second Revoke(1) panicked: close of closed channel`. The 2026-10-23 review's
 plan: skip for now.

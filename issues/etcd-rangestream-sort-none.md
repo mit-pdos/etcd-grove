@@ -67,5 +67,5 @@ The first commit adds a test of the issue's example, which fails on `main`, and 
 
 ## Notes
 
-The plan (2026-10-23, and the user's in `INDEX-reviewed.md`): file this as an issue linked to #22615,
+The plan (2026-10-23, and the user's in the 2026-10-23 review): file this as an issue linked to #22615,
 saying #22615 fixes it; open this branch's PR only if #22616 merges instead of #22615.

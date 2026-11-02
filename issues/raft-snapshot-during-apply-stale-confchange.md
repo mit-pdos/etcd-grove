@@ -27,7 +27,11 @@ followers wait for the apply loop before `Advance` when a `Ready` has a conf cha
 `node.run` keeps stepping messages from the transport, `MsgSnap` included; the leader snapshots a
 follower more than `SnapshotCatchUpEntries` (5000) entries behind. etcd uses v1 conf changes only,
 so there the outcome is a wrong voter set on one member (used for its vote tally if it campaigns),
-not the panic. Same code in v3.7.0.
+not the panic. A randomized test of a replicated key-value store on the `Node` API (real leaders,
+a lossy, reordering network, random snapshots, compactions and joint conf changes) hit the panic
+("can't leave a non-joint config", a leave applied on top of a snapshot taken after it) in 1 of 17
+rounds at v3.7.0 with two unrelated fixes, and none in 15 rounds with this fix (not tied to this
+issue by a trace). Same code in v3.7.0.
 
 **Reproduction:** `TestRawNodeSnapshotDuringConfChangeApply` in
 [`issues/raft-snapshot-during-apply-stale-confchange/snapshot_during_confchange_apply_test.go`](raft-snapshot-during-apply-stale-confchange/snapshot_during_confchange_apply_test.go)
@@ -58,10 +62,13 @@ no longer above the commit index.
 
 ## Proof
 
-yes: not reached yet (the reconfiguration model does not model snapshots,
-`notes/reconfiguration-model-check.md`), but raft's intended `ApplyConfChange` spec (the
-configuration is the log's at the applied index) is false when a snapshot is stepped in this
-window, which etcd's `node.run` allows; no premise etcd meets excludes it.
+yes: the verified raft (the fork's `raft37-goose-lean-a2`, `565c2bd`, `etc/goose.py`) carries this
+fix (`notes/raft-conf-lag-model/fork-v3.7-applied-snap-config.patch`): `raft.restore.spec` keeps
+the configuration and `raft.appliedSnap.spec` switches to the snapshot's
+(`Spec/go_etcd_io/raft/v3/raft__restore.lean`, `Spec/go_etcd_io/raft/v3/raft__appliedSnap.lean`);
+without it, raft's `ApplyConfChange` spec (the configuration is the log's at the applied index) is
+false when a snapshot is stepped in this window, which etcd's `node.run` allows, and no premise etcd
+meets excludes it.
 
 ## Fix
 

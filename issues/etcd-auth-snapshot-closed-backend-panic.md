@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-11-01
+checked: 2026-11-02
 links:
   - etcd-io/etcd#17223 issue closed: the same nil read tx (`UnsafeRange` on a closed backend), reached at shutdown; closed by #17757 and gRPC's GracefulStop draining handlers, which do not cover a snapshot install
   - etcd-io/etcd#21873 pr closed: the same class (a holder of `s.be` using it across applySnapshot's swap and close), for `monitorKVHash`; not merged
@@ -99,7 +99,7 @@ caller changes, and the check would deny a valid user). mvcc's #22609 fixed the 
 - Security classification pending (the user's decision): a public filing exposes that, with auth
   on, any authenticated user's serializable read can crash a member during a snapshot restore. By
   the 2026-10-21 threat model (trusted clients) it is a robustness bug.
-- INDEX-reviewed.md's plan: skip for now (a restart recovers).
+- The 2026-10-23 review's plan: skip for now (a restart recovers).
 - Same class, narrower windows, by code reading only: the maintenance `Snapshot` RPC takes
   `Backend()` twice and uses each after `bemu` is released; `store.hash` after #22609 still reads
   the old backend after `s.mu` is released (an error on a closed db, not a panic).

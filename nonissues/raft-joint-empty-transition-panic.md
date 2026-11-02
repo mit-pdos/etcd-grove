@@ -14,7 +14,7 @@ In a joint configuration, the leader accepts `ConfChangeV2{Transition: JointExpl
 
 **Why not an issue:** reaching it takes a proposal the documentation does not describe:
 `raft.proto` documents leaving a joint configuration as "proposing a ConfChangeV2 with only and
-optionally the Context field populated" (INDEX-reviewed.md's Plan: "the bad execution requires
+optionally the Context field populated" (the 2026-10-23 review's Plan: "the bad execution requires
 violating the raft documentation's instructions"); etcd proposes only v1 `ConfChange`s and never
 enters a joint configuration.
 

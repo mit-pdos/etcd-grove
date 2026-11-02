@@ -71,6 +71,6 @@ next to a proposal) and why not rebuild in `applySnapshot` (the gRPC servers are
 
 ## Notes
 
-INDEX-reviewed.md's Plan is "Skip for now" (availability, not safety): a filing decision; the
+The 2026-10-23 review's Plan is "Skip for now" (availability, not safety): a filing decision; the
 finding stays an issue. The branch's base is three weeks behind the recorded base; the test fails
 at both.

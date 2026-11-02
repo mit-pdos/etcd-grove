@@ -35,7 +35,7 @@ premise etcd does not meet (the lessor batches up to 1000); today the workload h
   batch limit of 1), fails at etcd-io/etcd@1573d5941 (go1.27.3): lease 2's remaining TTL is `0`
   (not checkpointed) in a commit that persists consistent index 3. It shows the broken atomicity of
   an entry with its consistent index, which `txPostLockInsideApplyHook` (#13766) is meant to give.
-- INDEX-reviewed.md's plan: not a wrong result (a lease kept alive longer is safe); skip for now
+- The 2026-10-23 review's plan: not a wrong result (a lease kept alive longer is safe); skip for now
   rather than non-issue, as a possible liveness improvement. Under the issues/nonissues split it
   goes here.
 - Fix branch `fix/etcd-apply-lease-checkpoint-sections` (upamanyus/etcd, pushed, never filed):

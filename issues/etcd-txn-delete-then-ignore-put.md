@@ -37,7 +37,11 @@ FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3	0.245s
 yes: what `checkIntervals` gives the transaction's run takes the premise that no delete is a
 from-key delete (`ReqOp.noFromKeyDelL`,
 `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/CheckNodup.lean`), and the run itself the
-premise `IgnOk` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/TxnRun.lean`).
+premise `IgnOk` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/TxnRun.lean`). Since 2026-10-28
+the verified fork carries #22395 (cherry-picked as `249d76bea`, `goose-lean-compactfix`,
+`etc/goose.py`), and `checkIntervals` is proved against it (a from-key delete read as `[k, +∞)`);
+`check_gives_nodup` still takes `noFromKeyDelL`, which the fixed code should let go (a spec change not
+yet made: `notes/STATUS.md`, "The delete-then-put fix in the fork").
 
 ## Notes
 

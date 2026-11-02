@@ -14,7 +14,7 @@ message (as etcd did with value messages before v3.7, clearing `To` of a message
 member) races with `run`. `Ready.Messages`' documentation does not say the messages are read-only.
 
 **Why not an issue:** no test (code reading); a precondition etcd meets (v3.7's
-`processMessages` only reads the messages); at most worth documenting (INDEX-reviewed.md's Plan:
+`processMessages` only reads the messages); at most worth documenting (the 2026-10-23 review's Plan:
 "Nonissue; maybe some docs").
 
 ## Proof

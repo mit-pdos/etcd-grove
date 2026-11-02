@@ -53,7 +53,7 @@ would need updating for every new field.
 
 ## Notes
 
-INDEX-reviewed.md's Plan: "Nonissue, unless there's serious risk of a field being added and if
+The 2026-10-23 review's Plan: "Nonissue, unless there's serious risk of a field being added and if
 other types deal with unknown fields". The 2026-10-23 review (in git history) found neither:
 `Equivalent` is raft's only message comparison outside tests, and etcd's WAL version check reads
 only etcd's own protos.

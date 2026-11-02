@@ -25,4 +25,4 @@ The test,
 [`nonissues/etcd-auth-newauthstore-nil-tp/newauthstore_nil_tp_test.go`](etcd-auth-newauthstore-nil-tp/newauthstore_nil_tp_test.go)
 (`server/auth`), fails at etcd-io/etcd@1573d5941 (go1.27.3): `NewAuthStore(nil tp) on an
 auth-enabled backend panicked: runtime error: invalid memory address or nil pointer dereference`.
-INDEX-reviewed.md's plan: non-issue.
+The 2026-10-23 review's plan: non-issue.

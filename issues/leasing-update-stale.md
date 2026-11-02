@@ -78,4 +78,4 @@ acquired.
 
 One root cause (the cache computes the key-value instead of reading it), two triggers: put options
 (cases 1-2, unreported) and response order (cases 3-4, #20704). If the leasing findings are filed
-again, as one umbrella issue with small PRs (`RANKING.md`), cases 1-2 could be a file of their own.
+again, as one umbrella issue with small PRs (the 2026-10-18 ranking (`issues/INDEX.md`, in git history)), cases 1-2 could be a file of their own.

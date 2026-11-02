@@ -13,7 +13,7 @@ applies it, again at every restart.
 
 **Why not an issue:** a precondition applications meet: building a `ConfChangeV2` from an
 undefined enum value is not documented use; etcd proposes only v1 `ConfChange`s (`Auto`) and
-rejects `EntryConfChangeV2` entries itself. At most worth documenting (INDEX-reviewed.md's Plan:
+rejects `EntryConfChangeV2` entries itself. At most worth documenting (the 2026-10-23 review's Plan:
 "Nonissue, maybe docs").
 
 `TestRawNodeProposeUnknownTransition` in

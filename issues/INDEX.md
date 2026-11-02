@@ -4,26 +4,30 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (37)
+## Not reported (43)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
 | [bbolt: `Get` panics on values committed together whose sizes add up to more than 2 GiB](bbolt-large-values-leaf-unreadable.md) | yes | etcd-io/bbolt#931 issue closed; etcd-io/bbolt#182 issue closed |
 | [bbolt: `Put` accepts a value of `MaxValueSize` bytes that `Commit` or `Get` then panics on](bbolt-max-value-size-unusable.md) | yes | etcd-io/bbolt#931 issue closed; etcd-io/bbolt#968 pr merged; etcd-io/bbolt#1044 issue closed |
 | [cache: a stale progress notification makes a watch "from now" fail with ErrCompacted](cache-stale-progress-compacts-newest-watch.md) | yes | etcd-io/etcd#15237 pr merged; etcd-io/etcd#20221 issue closed; etcd-io/etcd#20229 pr merged; etcd-io/etcd#20614 pr merged |
-| [auth: re-granting a permission on a range does not change its type when the role has another permission with the same start key](etcd-auth-grant-permission-same-key.md) | yes |  |
 | [server: a member with auth enabled panics on a permission check while it restores a snapshot from the leader](etcd-auth-snapshot-closed-backend-panic.md) | yes | etcd-io/etcd#17223 issue closed; etcd-io/etcd#21873 pr closed; etcd-io/etcd#13883 issue closed; etcd-io/etcd#22189 issue open; etcd-io/etcd#22190 pr open; etcd-io/etcd#14256 issue closed; etcd-io/etcd#22608 issue closed; etcd-io/etcd#22609 pr merged |
 | [auth: adding a user or role with a name longer than 32768 bytes makes every member exit](etcd-auth-useradd-long-name-fatal.md) | yes | etcd-io/etcd#10907 pr merged |
 | [etcdserver: a restarted member panics on a leader transfer to it while it applies the entries replayed from its WAL](etcd-compact-past-raft-applied.md) | yes | etcd-io/etcd#9079 issue closed; etcd-io/etcd#12134 pr merged; etcd-io/etcd#7470 issue closed; etcd-io/etcd#18825 pr merged; etcd-io/etcd#17098 issue closed |
 | [mvcc: a negative --compaction-batch-limit makes every compaction run forever](etcd-compaction-negative-batch-limit.md) | yes | etcd-io/etcd#13777 issue closed |
 | [v3compactor: a periodic auto-compaction retention below 10ns crashes etcd at startup](etcd-compactor-periodic-tiny-retention.md) | yes | etcd-io/etcd#22396 pr open; etcd-io/etcd#9485 pr merged |
+| [etcdserver: two membership changes while the leader's apply loop lags can lose an acknowledged write](etcd-leader-advance-before-applyconfchange.md) | yes | etcd-io/raft#80 issue open; etcd-io/raft#354 issue open |
+| [etcdserver: `LeaseTimeToLive` with `Keys` returns key names the caller may not read](etcd-lease-timetolive-keys-toctou.md) | yes | etcd-io/etcd#15656 pr merged |
 | [etcdserver: a leader that steps down while saving a Ready can send a follower a snapshot of a term above the follower's term](etcd-merged-snapshot-stale-term.md) | yes | etcd-io/etcd#7470 issue closed; etcd-io/etcd#7513 pr merged; etcd-io/raft#47 pr open; etcd-io/raft#108 issue open |
-| [etcd: a `--quota-backend-bytes` above about 230 TiB crashes etcd at startup with "mmap too large"](etcd-quota-backend-bytes-mmap-panic.md) | yes |  |
+| [etcd: a `--quota-backend-bytes` above about 90 TiB crashes etcd at startup with "failed to open database"](etcd-quota-backend-bytes-mmap-panic.md) | yes |  |
 | [etcdserver: a member that catches up by a snapshot rejects writes with "database space exceeded" while its db is under its quota](etcd-quota-stale-backend-after-snapshot.md) | yes | etcd-io/etcd#20553 pr merged |
 | [server: a require-leader stream's context returns a non-nil Err while its Done channel is still open](etcd-stream-interceptor-err-before-done.md) | yes | etcd-io/etcd#12196 pr merged; golang/go#75533 issue closed |
 | [etcdserver: a Txn with comparisons and no operations returns a stale result from a member that is behind](etcd-txn-empty-serializable.md) | yes | etcd-io/etcd#20418 issue closed |
+| [etcdserver: a Txn of nested keys-only whole-range reads makes every member build a huge reply, and the member that answers it panics (with --max-request-bytes of about 10 MiB or more)](etcd-txn-keysonly-reply-alloc-panic.md) | yes |  |
+| [etcdserver: a transaction nested about 5000 deep panics every member, permanently (with --max-txn-ops of 5000 or more)](etcd-txn-nested-depth-apply-panic.md) | yes |  |
 | [watch: a progress notification requested before a watch is created can reach that watch before its events](etcd-watch-progress-before-created.md) | yes | etcd-io/etcd#15220 issue closed; etcd-io/etcd#15237 pr merged; etcd-io/etcd#20229 pr merged |
 | [clientv3: after a reconnect, a watch from a future revision can deliver events below its start revision](etcd-watch-resume-below-start-revision.md) | yes | etcd-io/etcd#20221 issue closed; etcd-io/etcd#20229 pr merged; etcd-io/etcd#20263 pr closed; etcd-io/etcd#15248 pr merged |
+| [grpc-go: marshaling a message whose encoding is over 2^48 bytes panics instead of failing with ResourceExhausted](grpc-codec-alloc-before-size-check.md) | yes | grpc/grpc-go#9056 issue closed |
 | [DaemonSet controller creates a second pod on a node after a pod create that is committed but returns an error](k8s-daemonset-ambiguous-create-duplicate-pod.md) | yes | kubernetes/kubernetes#86140 pr merged; kubernetes/kubernetes#138181 pr merged; kubernetes/kubernetes#139657 pr open; kubernetes/enhancements#5647 issue open |
 | [clientv3/leasing: a transaction answered from the cache takes the wrong branch when it compares a missing key or a lease](leasing-evalcmp-missing-key.md) | yes | etcd-io/etcd#20704 issue closed |
 | [clientv3/leasing: a Get of a key another client has leased ignores the request's options](leasing-get-failed-acquire-options.md) | yes | etcd-io/etcd#20704 issue closed |
@@ -37,12 +41,14 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [server: the alarms gauge counts an alarm activated twice twice, and stays at 1 after it is disarmed](etcd-apply-alarm-gauge-reactivate.md) | no |  |
 | [etcd: a negative `--corrupt-check-time` crashes the member right after it starts](etcd-corrupt-check-time-negative-panic.md) | no | etcd-io/etcd#19156 pr merged |
 | [etcd: a negative `--downgrade-check-time` makes an idle member use a full CPU core](etcd-downgrade-check-time-negative-spin.md) | no | etcd-io/etcd#19328 pr merged; etcd-io/etcd#22476 pr closed |
+| [v3rpc: a follower's `LeaseTimeToLive` crashes the member when the leader's peer URL replies without a response header](etcd-leasehttp-timetolive-nil-header-panic.md) | no |  |
+| [leasehttp: a follower's `LeaseTimeToLive` crashes the member when the leader's peer URL answers 200 with an empty body](etcd-leasehttp-timetolive-nil-response-panic.md) | no |  |
+| [mvcc: a physical compaction request hangs if the member installs a snapshot while its compaction waits behind another](etcd-restore-pending-compaction-unclosed.md) | no | etcd-io/etcd#11817 pr merged; etcd-io/etcd#10079 pr closed |
 | [clientv3: Watcher.Close can hang forever after the member refuses a watch](etcd-watch-close-hang-refused-create.md) | no | etcd-io/etcd#10131 issue closed; etcd-io/etcd#14296 pr merged |
 | [client-go: `Indexer.GetIndexers` races with `AddIndexers` (concurrent map read and write)](k8s-clientgo-getindexers-unlocked-map.md) | no |  |
 | [client-go: the exponential failure rate limiter returns a negative delay when the backoff reaches exactly 2^63 ns](k8s-workqueue-exponential-backoff-2to63.md) | no |  |
 | [raft: with `AsyncStorageWrites`, entries applied after a snapshot that includes them diverge the state machine](raft-async-snapshot-during-apply-divergence.md) | no | etcd-io/raft#8 pr merged |
 | [raft: `Status()` reports `AutoLeave: false` in a joint configuration entered with auto-leave](raft-config-clone-autoleave.md) | no |  |
-| [raft: data race between `MemoryStorage.InitialState` and `MemoryStorage.SetHardState`](raft-memorystorage-initialstate-unlocked.md) | no | etcd-io/raft#441 pr merged |
 | [raft: `MaxSizePerMsg: 0` panics on the first committed entry](raft-zero-max-size-per-msg.md) | no |  |
 | [concurrency: a retried Serializable STM attempt reads keys from two revisions](stm-serializable-snapshot.md) | no |  |
 
@@ -58,10 +64,11 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [concurrency: Mutex.Lock returns while another session holds the lock](mutex-lock-recreated.md) | yes | etcd-io/etcd#22613 issue open; etcd-io/etcd#22617 pr open; etcd-io/etcd#22082 issue open; etcd-io/etcd#22115 pr open; etcd-io/etcd#22387 pr open |
 | [Go: `x.(T)` and `==` fail on an interface value read through a `*I1` to `*I2` conversion](go-itab-reinterpret-assert.md) | no | golang/go#82470 issue open; golang/go#18595 issue closed; golang/go#26094 issue closed |
 
-## Reported by others (17)
+## Reported by others (20)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
+| [auth: re-granting a permission on a range does not change its type when the role has another permission with the same start key](etcd-auth-grant-permission-same-key.md) | yes | etcd-io/etcd#21845 pr open |
 | [backend: after two puts of one key in one write session, reads return the older value until the next commit](etcd-backend-duplicate-put-stale-read.md) | yes | etcd-io/etcd#21986 issue open; etcd-io/etcd#21987 pr open; etcd-io/etcd#22298 pr open; etcd-io/etcd#21985 pr closed |
 | [mvcc: compacting at the revision of a txn that deletes a key and puts it again loses the key's value](etcd-compaction-delete-then-put.md) | yes | etcd-io/etcd#22376 issue open; etcd-io/etcd#22377 pr open; etcd-io/etcd#22395 pr open |
 | [clientv3: after a keep-alive stream loses its leader, canceling one `KeepAlive` closes another caller's channel](etcd-lease-close-require-leader-ctx-misaligned.md) | yes | etcd-io/etcd#22081 issue open; etcd-io/etcd#22087 pr open; etcd-io/etcd#21872 pr closed; etcd-io/etcd#22094 issue open |
@@ -78,7 +85,9 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [etcdserver: after a member installs a leader's snapshot it refuses every write with "too many requests" until another write commits](etcd-applied-index-stale-after-snapshot.md) | no | etcd-io/etcd#22516 issue open; etcd-io/etcd#22510 pr open; etcd-io/etcd#22528 issue open; etcd-io/etcd#22524 issue open |
 | [rafthttp: a peer's response with a malformed `X-Server-Version` crashes the member that dialed it](etcd-rafthttp-stream-dial-bad-server-version-panic.md) | no | etcd-io/etcd#21829 pr open; etcd-io/etcd#22261 pr open; etcd-io/etcd#21839 pr merged |
 | [etcdserver: RangeStream sorted by a non-key target without an order returns duplicated and missing keys](etcd-rangestream-sort-none.md) | no | etcd-io/etcd#22615 pr open; etcd-io/etcd#21631 pr merged; etcd-io/etcd@9acc0ebe3 |
+| [mvcc: with more than 512 unsynced watchers, a compacted watcher is sent the compaction response again at every sync](etcd-watch-compacted-resent.md) | no | etcd-io/etcd#22294 issue open; etcd-io/etcd#22295 pr open; etcd-io/etcd#21174 pr closed; etcd-io/etcd#21189 pr closed |
 | [watch: a watch created with the ID of a canceled watch receives the canceled watch's queued events](etcd-watch-id-reuse-stale-events.md) | no | etcd-io/etcd#22673 issue open; etcd-io/etcd#22674 pr open; etcd-io/etcd#21880 pr open; etcd-io/etcd#21065 pr open |
+| [raft: data race between `MemoryStorage.InitialState` and `MemoryStorage.SetHardState`](raft-memorystorage-initialstate-unlocked.md) | no | etcd-io/raft#545 issue open; etcd-io/raft#547 pr open; etcd-io/raft#441 pr merged |
 
 ## Fixed upstream (3)
 

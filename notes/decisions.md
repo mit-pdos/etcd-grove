@@ -1138,7 +1138,7 @@ it and what the proofs changed.
   2026-11-01):* Go's `WaitGroup` does panic when an `Add` from zero overlaps a pending `Wait`
   ("Add called concurrently with Wait", or the waiter's "reused before previous Wait has
   returned"), and `Close` cancels the loops, so the counter reaches zero while it waits: the token
-  is a real precondition of the code, `issues/etcd-cache-watch-during-close-waitgroup.md`.
+  is a real precondition of the code, `nonissues/etcd-cache-watch-during-close-waitgroup.md`.
 - **`NewDemux` takes the caller's wait group abstractly**: `wgSlotProtocol wg Pslot Prun Pret`
   (the triples of `Add(1)` and `Done()`), instantiated by `newCache` with the cache's slot and
   "open" token. *Rejected:* `NewDemux` stating `cacheWgInv` (the demux would depend on the
@@ -28538,7 +28538,7 @@ Supersedes in part "D22 J1a" (its "The whole configuration read-only" item, whic
 `goose-lean-watchcfg` `7cf3644ec` (on `633036387`), the pin of `etc/goose.py`: `NewWatchServer`
 keeps the adjusted progress interval in a local and passes it to `SetProgressReportInterval`; it no
 longer writes `s.Cfg.WatchProgressNotifyInterval`, the race of
-`issues/etcd-cfg-watch-progress-interval-race.md` (with `applySnapshot`'s struct copy
+`nonissues/etcd-cfg-watch-progress-interval-race.md` (with `applySnapshot`'s struct copy
 `OpenSnapshotBackend(s.Cfg, …)` and another listener's read). A field-wise restatement of
 `specSnap`'s `srvCfgAddr s ↦□ cfg` was not an option: the copy reads every field.
 
@@ -28617,7 +28617,7 @@ ghost agreement, so they are not a field to add.
 
 **Before** (D22 J-T, 2026-10-27; D43 M5c): upstream's `remote.Pause` is `g.stop()`, which closes
 the pipeline's `stopc`, so a second `CutPeer` of a remote, or `Transport.Stop` after one, panics
-("close of closed channel", `issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`).
+("close of closed channel", `nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`).
 `CutPeer`/`MendPeer` therefore took `trNoRemOr c id`: `id` not among the pool's ids `c.L`, or its
 no-remote token (`trNoRem`), which `trPoolE` handed out per id of `L` and `NewServer` gave to the
 examples in `srvTrTok`; the transport carried an opening flag (`trUnopened`/`trOpened`) so that no
@@ -28824,7 +28824,7 @@ Frozen and linked:
 - `ErrNotPrimary` translated and in `leaseInit` (appended), `features.FastLeaseKeepAlive`
   translated. The post: on `nil` the last `checkLeaseRenew`'s verdict (`leaseKeysVerdictFrom
   .write`) at the caller's context; the margin: the local lessor may lag the renewing one
-  (`issues/etcd-lease-renew-keys-follower-lag.md`, a candidate), and the leader's re-lookup.
+  (`nonissues/etcd-lease-renew-keys-follower-lag.md`, a candidate), and the leader's re-lookup.
 - **The bounds baseline raised by 3** (the user's choice at the merge, 2026-11-01): `LeaseRenew.spec`,
   C1 and C2 take `threadBound GF ≤ 2^30 - 1`, as their siblings in the baseline (`checkLeaseRenew`,
   `LeaseLeases`, `LeaseTimeToLive`); item 5 predates the bounds plan. `etc/bounds-baseline.txt`:

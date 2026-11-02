@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 call with no variadic arguments passes: not physical; `WithCompactPhysical` makes the server wait
 for the physical deletion, which its spec does not cover): a compaction at `rev`, a revision past
 `0` (M2's scope, `EtcdServer.Compact.spec`'s `1 ≤ r`,
-`issues/etcd-restore-scheduled-compact-zero.md`) the KV has reached (`kvRevLb`, from a `Put`'s
+`nonissues/etcd-restore-scheduled-compact-zero.md`) the KV has reached (`kvRevLb`, from a `Put`'s
 reply or at the start's revisions; the scope restriction that keeps `ErrFutureRev` out of the
 server's model: Go answers a future revision with that error and changes nothing), on a compacting
 cluster (`γ.cmp`, M2's scope); (C3's server stage, 2026-11-02, the user's) at least the cluster's

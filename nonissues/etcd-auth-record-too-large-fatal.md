@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-11-02
 links: []
 blocks-proof: yes
 ---
@@ -25,5 +25,5 @@ etcd does not enforce.
 
 The single-request case of the same fatal write is `etcd-backend-put-value-too-large-fatal`, the
 key case `issues/etcd-auth-useradd-long-name-fatal.md`. A test that builds such a role (slow, 2 GiB
-of disk) could promote it. INDEX-reviewed.md's plan: skip for now. A fix would bound a role's
+of disk) could promote it. The 2026-10-23 review's plan: skip for now. A fix would bound a role's
 permissions (or a user's roles) with an error.

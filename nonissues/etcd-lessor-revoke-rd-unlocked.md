@@ -25,4 +25,4 @@ The test,
 [`nonissues/etcd-lessor-revoke-rd-unlocked/revoke_rd_race_test.go`](etcd-lessor-revoke-rd-unlocked/revoke_rd_race_test.go)
 (`server/lease`, `-race`), fails at etcd-io/etcd@1573d5941 (go1.27.3) with `-count=10` (not every
 run): `WARNING: DATA RACE`, write at `lessor.go:271` (`SetRangeDeleter`), previous read at
-`lessor.go:339` (`Revoke`). INDEX-reviewed.md's plan: non-issue.
+`lessor.go:339` (`Revoke`). The 2026-10-23 review's plan: non-issue.

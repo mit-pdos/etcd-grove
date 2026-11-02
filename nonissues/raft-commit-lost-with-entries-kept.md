@@ -20,7 +20,7 @@ an index already committed. `doc.go` (step 1 of handling a `Ready`) asks for the
 **Why not an issue:** no Go test, only an abstract model's execution (`raft-conf-lag-model/`,
 `python3 model.py 4 3 crash 3 5 2 2 simple trace-crash.txt`, and the checker's
 `trace-check-crash-sms.txt`); atomic persistence of a `Ready`'s entries and `HardState` is part of
-the storage contract a raft specification has to state (INDEX-reviewed.md's Plan: "the raft spec
+the storage contract a raft specification has to state (the 2026-10-23 review's Plan: "the raft spec
 will have to cover this").
 
 ## Proof

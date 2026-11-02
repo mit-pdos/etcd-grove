@@ -94,7 +94,7 @@ type Options struct {
 	StepDownOnRemoval bool
 	MaxSizePerMsg     uint64
 	// MaxCommittedSizePerReady is never 0 when MaxSizePerMsg is: raft defaults the former to the
-	// latter, and panics with both 0 (issues/nonissues/raft-zero-max-size-per-msg.md; the
+	// latter, and panics with both 0 (issues/raft-zero-max-size-per-msg.md; the
 	// premise of raft's NewRawNode and RestartNode specs)
 	MaxCommittedSizePerReady uint64
 	MaxInflightMsgs          int
@@ -380,7 +380,7 @@ func (c *Cluster) deliver(src *Replica, m *pb.Message) {
 
 // step steps m on its target dst and reports a snapshot's fate to its sender src. It reads m
 // only before stepping it: the target keeps the message and writes it (`Node.Step` sets its
-// `From`, a forward sets its `To`: issues/nonissues/raft-step-writes-caller-message.md).
+// `From`, a forward sets its `To`: nonissues/raft-step-writes-caller-message.md).
 func (c *Cluster) step(src, dst *Replica, m *pb.Message) {
 	typ, to := m.GetType(), m.GetTo()
 	ctx, cancel := context.WithTimeout(context.Background(), stepTimeout)

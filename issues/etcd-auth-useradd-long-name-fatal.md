@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-11-01
+checked: 2026-11-02
 links:
   - etcd-io/etcd#10907 pr merged: related, not this bug (added RoleAdd's empty-name check, the only name check besides UserAdd's; no length bound)
 blocks-proof: yes
@@ -70,6 +70,6 @@ and `TestUserAdd_Simple` in `tests/common`.
 
 ## Notes
 
-INDEX-reviewed.md's plan: upstream (the fix is easy to audit). Not a security report (clients are
+The 2026-10-23 review's plan: upstream (the fix is easy to audit). Not a security report (clients are
 trusted; with auth on only `root` can add users or roles). The same failure for a record grown
 past bbolt's value limit by many grants is `nonissues/etcd-auth-record-too-large-fatal.md`.

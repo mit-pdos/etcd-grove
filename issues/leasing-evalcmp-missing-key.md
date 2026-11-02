@@ -79,4 +79,4 @@ transaction does on etcd.
 
 The branch also has `TestEvalCmp` (`client/v3/leasing/util_test.go`, internal): 11 of its 31 cases
 fail at the base, including the lease cases on a present key. Not filed: the leasing package is
-lightly maintained (`RANKING.md`); if filed, one umbrella issue for the leasing findings.
+lightly maintained (the 2026-10-18 ranking (`issues/INDEX.md`, in git history)); if filed, one umbrella issue for the leasing findings.

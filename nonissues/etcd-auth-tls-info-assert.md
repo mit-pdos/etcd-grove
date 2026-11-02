@@ -26,5 +26,5 @@ at upstream's code a premise etcd meets (the peer's auth info is TLS or nil) wou
 The test,
 [`nonissues/etcd-auth-tls-info-assert/authinfo_tls_test.go`](etcd-auth-tls-info-assert/authinfo_tls_test.go)
 (`server/auth`), fails at etcd-io/etcd@1573d5941 (go1.27.3): `interface conversion:
-credentials.AuthInfo is insecure.info, not credentials.TLSInfo`. INDEX-reviewed.md's plan:
+credentials.AuthInfo is insecure.info, not credentials.TLSInfo`. The 2026-10-23 review's plan:
 non-issue.

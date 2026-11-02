@@ -5,12 +5,13 @@ links: []
 blocks-proof: yes
 ---
 
-# etcd: a `--quota-backend-bytes` above about 230 TiB crashes etcd at startup with "mmap too large"
+# etcd: a `--quota-backend-bytes` above about 90 TiB crashes etcd at startup with "failed to open database"
 
 etcd accepts any positive `--quota-backend-bytes`, but it maps 110% of the quota when it opens its
-database, and bbolt refuses a mapping above 256 TiB (amd64, arm64; less on 32-bit platforms), so a
-larger quota makes etcd panic at startup with `failed to open database` and `mmap too large`, a
-message that does not name the flag.
+database, in one `mmap`. A mapping larger than the process's free address space (about 105 TiB on
+amd64 Linux, out of 128 TiB) fails with `cannot allocate memory`, and bbolt refuses one above 256 TiB
+(amd64, arm64; less on 32-bit platforms) with `mmap too large`; either way etcd panics at startup with
+`failed to open database`, a message that does not name the flag.
 
 **Expected:** etcd should reject the value at startup with an error naming the flag and its
 maximum, or document the limit; the flag's help ("Sets the maximum size (in bytes) that the etcd
@@ -42,16 +43,26 @@ FAIL	go.etcd.io/etcd/server/v3/embed	0.091s
 sets the initial mmap size to `q + q/10` for a quota `q`, which bbolt v1.5.0's `Open` refuses above
 its `maxMapSize`, and the backend
 [panics](https://github.com/etcd-io/etcd/blob/1573d59416efa220421c451f5266b24a5d8374ef/server/storage/backend/backend.go#L225-L236)
-on the error. (A `q` with `q + q/10` above `MaxInt64` overflows there too.)
+on the error. bbolt maps the whole size with one
+[`mmap(2)`](https://github.com/etcd-io/bbolt/blob/e7a8b2dd498494a3766ba24dd94d3509e5588485/bolt_unix.go#L57),
+so below `maxMapSize` the limit is the address space: `q = 2^47` (`q + q/10` = 140.8 TiB) fails with
+`mmap failed, size: 154812096184320, error: cannot allocate memory`, while `q + q/10` = 64 TiB opens
+(measured in a Go test process; the limit depends on the process's other mappings and `RLIMIT_AS`). (A
+`q` with `q + q/10` above `MaxInt64` overflows there too.)
 
 ## Proof
 
 yes: `storage.OpenBackend`'s trust-boundary axiom needed the premise `openMmapOk cfg` (the quota
 not positive, the default, or `q + q/10 ≤ 0xFFFFFFFFFFFF`;
 `Proof/go_etcd_io/etcd/server/v3/storage/InvOpen.lean`), which `NewServer.spec` takes and etcd does
-not check; found by the `axiom` skill (`notes/axiom-review/openbackend.md`).
+not check; found by the `axiom` skill (`notes/axiom-review/openbackend.md`). That bound is still
+bbolt's `maxMapSize`, so it does not exclude the address-space failure: the axiom's second review
+(`notes/axiom-review/openbackend-post.md`, branch `axiom/openbackend-post`, `examples/axiomcx/openva`)
+proposes `q + q/10 ≤ 2^46`.
 
 ## Fix
 
-`Config.Validate` rejects a quota whose mapping would exceed bbolt's maximum (or `newBackend`
-clamps the mapping), and the flag's help states the limit.
+`Config.Validate` rejects a quota whose mapping the address space cannot hold (bbolt's maximum,
+`maxMapSize·10/11`, still fails on amd64 Linux), with an error naming the flag, and the `int64`
+overflow; or `newBackend` clamps the initial mapping to one the process can map (bbolt grows the map
+as the file grows, and the quota alarm still applies); and the flag's help states the limit.

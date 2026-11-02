@@ -1,7 +1,8 @@
 ---
-upstream: none
-checked: 2026-11-01
-links: []
+upstream: known
+checked: 2026-11-02
+links:
+  - etcd-io/etcd#21845 pr open: same bug and fix (scan the same-key entries for the exact `(Key, RangeEnd)` pair before appending), by an outside contributor, 2026-05-29; labeled `stale` and `needs-ok-to-test`, no review; its unit test (`TestRoleGrantPermissionSameKeyDifferentRangeEnd`) checks the re-grant replaces the type, not the permission check
 blocks-proof: yes
 ---
 
@@ -54,9 +55,14 @@ auth model's step allows both outcomes (`Proof/go_etcd_io/etcd/server/v3/auth/St
 ## Fix
 
 Look for an entry with the same key and range end among all those with the key (scan from the
-search index while the key is equal), or sort by key then range end so the search finds it.
+search index while the key is equal), as #21845 does, or sort by key then range end so the search
+finds it.
 
 ## Notes
 
 The test calls the auth store directly, as the applier does; an integration test through
 `clientv3`'s `RoleGrantPermission` would be the form to file.
+
+#21845 (open, stale, unreviewed, no issue of its own) has the fix and a unit test of the re-grant,
+but no issue states the impact (a downgrade leaves write access), so the report stays whole here.
+Filing would be this report as an issue linking #21845, to get it reviewed.

@@ -17,7 +17,7 @@ oldest, so that the guards follow the conf changes actually applied (opt-in,
 `Config.TrackConfChangeApplication`; prototype `raft-conf-lag-model/guard-fix.patch`, against
 `40f8be7`).
 
-**Why not an issue:** a design proposal, not a bug (INDEX-reviewed.md's Plan: "Nonissue"); the
+**Why not an issue:** a design proposal, not a bug (the 2026-10-23 review's Plan: "Nonissue"); the
 bug it addresses is [`raft-advance-before-applyconfchange`](../issues/raft-advance-before-applyconfchange.md),
 whose candidate takes the documentation fix instead.
 

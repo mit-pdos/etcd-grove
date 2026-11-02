@@ -62,7 +62,9 @@ keeping `m.Term`. If raft stepped down before that job, the applied data can be 
 
 yes: the verified fork carries a fix (`goose-lean` `de825d8c6`, `etc/goose.py`: the merge only at
 the message's term), which the snapshot track's `.snap` message clause needs (content committed at
-`m.Term`; `notes/decisions.md`, D22a).
+`m.Term`; `notes/decisions.md`, D22a). Since 2026-10-31 the fork's merge also has a proof-only guard
+(the message's snapshot index at most `ep.appliedi`, `goose-lean-snapguard` `633036387`;
+`notes/decisions.md`, "The merged snapshot's index guard"), not a fix of this issue.
 
 ## Fix
 
@@ -86,5 +88,5 @@ leaves broken.
 
 Untraced consequence: restarting such a follower with `--force-new-cluster` appends forced
 conf-change entries stamped with its (older) WAL term after the snapshot, so its log terms go
-down. The INDEX-reviewed Plan was "upstream, leading with the Raft invariant", which the report
+down. The 2026-10-23 review's plan was "upstream, leading with the Raft invariant", which the report
 follows.

@@ -19,7 +19,7 @@ raft's documented paths meet: a new etcd cluster starts with `StartNode` and pee
 a cluster the same way, and `RawNode.Bootstrap`'s doc recommends a manual bootstrap with first
 index > 1, where a joiner is caught up by snapshot. The index-0 snapshot of etcd-io/raft#370 is
 used by etcd only at restart, when the log still holds the conf entries. At most worth
-documenting (INDEX-reviewed.md's Plan: "Nonissue, maybe some documentation would help").
+documenting (the 2026-10-23 review's Plan: "Nonissue, maybe some documentation would help").
 
 `TestJoinerWithoutBootstrapConfState` in
 [`nonissues/raft-joiner-empty-confstate/joiner_empty_confstate_test.go`](raft-joiner-empty-confstate/joiner_empty_confstate_test.go)

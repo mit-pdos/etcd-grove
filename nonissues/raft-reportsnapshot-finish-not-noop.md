@@ -28,4 +28,4 @@ no: the verified scope does not model snapshot transfer or `ReportSnapshot`.
 Reproduced 2026-10-18 by a temporary test (not kept): leader 1 of `{1,2}` with its log compacted,
 the follower's first `MsgAppResp` after the snapshot dropped; without the report the leader stays
 at commit 10 with the progress `StateSnapshot ... paused` after 20 heartbeats and a proposal, with
-it both reach 12. INDEX-reviewed.md's Plan: "Wait to see if it gets merged" (#243).
+it both reach 12. The 2026-10-23 review's Plan: "Wait to see if it gets merged" (#243).

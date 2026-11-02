@@ -14,7 +14,9 @@ blocks-proof: yes
 including a delete in one nested transaction and a put in a later one, but accepts the same two
 operations in the other order: `Then(OpTxn(nil, [Put(k)], nil), OpTxn(nil, [Delete(k)], nil))`
 succeeds and writes a put and a delete of `k` in one revision, so watchers see a put event whose
-value never was the key's value at that revision.
+value never was the key's value at that revision. A compaction at that revision then keeps only the
+delete, so a watch from the compaction revision (where a client re-watches from after
+`ErrCompacted`) misses the put event it reported before the compaction.
 
 **Reproduction:** `TestTxnSiblingPutThenDelete` in
 [`issues/etcd-txn-check-intervals-sibling/txn_sibling_put_delete_test.go`](etcd-txn-check-intervals-sibling/txn_sibling_put_delete_test.go),
@@ -28,6 +30,22 @@ $ (cd tests && go test ./integration/clientv3 -run '^TestTxnSiblingPutThenDelete
         	Error:      	Expected error with "etcdserver: duplicate key given in txn request" in chain but got nil.
         	Test:       	TestTxnSiblingPutThenDelete
         	Messages:   	txn(put), txn(delete)
+FAIL
+```
+
+The watch consequence: `TestWatchFromCompactRevAfterSiblingPutDelete` in
+[`issues/etcd-txn-check-intervals-sibling/watch_after_compact_test.go`](etcd-txn-check-intervals-sibling/watch_after_compact_test.go),
+copied (as `zz_watch_after_compact_test.go`) into `tests/integration/clientv3` at
+etcd-io/etcd@a2e3642bcd2cca3a802503cdb09f64a3dc15cdf5 (2026-11-02), go1.27.3 (event types: 0 `PUT`,
+1 `DELETE`):
+
+```
+$ (cd tests && go test ./integration/clientv3 -run '^TestWatchFromCompactRevAfterSiblingPutDelete$' -count=1)
+    zz_watch_after_compact_test.go:66:
+        	Error:      	Not equal:
+        	            	expected: []mvccpb.Event_EventType{0, 1}
+        	            	actual  : []mvccpb.Event_EventType{1}
+        	Messages:   	events of revision 3 for a watch from it, before and after compacting at it
 FAIL
 ```
 
@@ -50,7 +68,11 @@ else branch: linear in the operations, answering #16395's cost objection (+25 li
 
 ## Notes
 
-Low impact: the put-then-delete order is harmless to mvcc (a read and compaction at that revision
-see the delete); the reverse order, which does corrupt compaction
-(`etcd-compaction-delete-then-put`), is rejected. Worth a follow-up comment on #16380 only with the
-cheap fix.
+Low impact for reads: a read at that revision sees the delete, and the reverse order, which does
+corrupt compaction (`etcd-compaction-delete-then-put`), is rejected. Not harmless to watches,
+though (2026-11-01, found by this repository's review of watches across a compaction,
+`notes/watch-compaction-plan.md`): `keyIndex.doCompact` keeps one revision of the key at or below the
+compaction revision, the tombstone, and `scheduleCompaction` deletes the put's backend key, so a
+watch from that revision gets the `DELETE` alone. The root cause is the same (a revision with two
+changes of one key), and the cheap fix removes both. With the watch consequence, a follow-up comment
+on #16380 has more to say than the cost argument.

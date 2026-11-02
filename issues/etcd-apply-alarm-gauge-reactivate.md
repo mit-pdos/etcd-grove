@@ -53,5 +53,5 @@ store), or set the gauge per label (`Set(1)`/`Set(0)`) instead of `Inc`/`Dec`.
 
 ## Notes
 
-INDEX-reviewed.md's plan: skip for now (trivial fix, little impact). Kept as an issue: it has a
+The 2026-10-23 review's plan: skip for now (trivial fix, little impact). Kept as an issue: it has a
 failing test through the applier; it is a debugging metric, so maintainers may not care.

@@ -23,7 +23,7 @@ with the names it is stated over (`srvSnapBoot`):
 The whole configuration read-only (`srvCfgAddr s ↦□ cfg`, which `applySnapshot` reads as a
 struct) is the bundle's last conjunct, a rebuild from the two fields `start` writes (J8a-3,
 2026-11-01: the fork's `NewWatchServer` no longer writes the configuration,
-`issues/etcd-cfg-watch-progress-interval-race.md`; `isServerRun`'s `"#Hsncfg"` holds the fields).
+`nonissues/etcd-cfg-watch-progress-interval-race.md`; `isServerRun`'s `"#Hsncfg"` holds the fields).
 Not here (J1a's findings, `notes/decisions.md`, "D22 J1a"): the meta reads of every backend
 (`specSnap`'s `isMetaBackend` family, false as stated for names the backend was not opened with;
 J8a-4).

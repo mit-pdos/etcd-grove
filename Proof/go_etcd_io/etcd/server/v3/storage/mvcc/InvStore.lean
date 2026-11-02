@@ -657,7 +657,7 @@ def keyRangeReadSpec (rt : GoInterfaceOk) (m : Bucket) (Rd : GoSlice → GoStrin
 `lo` holding `klo` and `hi` a non-empty `khi`, under the reader's token `Tok`: entries of the
 snapshot `m` with a key in `[klo, khi)`, in key order, some of them: a sublist of the range (with
 `n` entries in the read buffer the real read returns bbolt's first `limit - n`, then the buffer's,
-`issues/etcd-unsafe-range-limit-buffer.md`; all of them with no limit, `keyRangeReadSpec`). -/
+`nonissues/etcd-unsafe-range-limit-buffer.md`; all of them with no limit, `keyRangeReadSpec`). -/
 def keyRangeLimSpec (rt : GoInterfaceOk) (m : Bucket) (Rd : GoSlice → GoString → IProp GF)
     (Tok : IProp GF) (cl : Bool := false) : IProp GF :=
   iprop(∀ (b : GoInterface) (lo hi : GoSlice) (klo khi : GoString) (dqlo dqhi : DFrac) (lim : w64),
@@ -757,7 +757,7 @@ records no compaction, `kbNoCmp`) its reads of the `Meta` bucket's compaction ke
 (`metaReadSpec … true`; given back: the backend-compaction stage, 2026-10-29, in place of the axiom
 `kbNoCmp_metaNone`). (`rng` is false for a `ConcurrentReadTx`, whose range
 of a safe-range bucket can return a key twice over a stale cached read buffer: 2026-10-13, unit 5,
-`issues/etcd-backend-read-buffer-cache-stale-after-commit.md`.) -/
+`nonissues/etcd-backend-read-buffer-cache-stale-after-commit.md`.) -/
 def keyReadLocked (RT NC : IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : Bucket)
     (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool := false) : IProp GF :=
   iprop(□ ({{ Tok }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); RT }}) ∗
@@ -1432,7 +1432,7 @@ session (the backend's bound on a session's operations), a key of `1..MaxKeySize
 every key of the bucket `m` and of the session's puts `l` (the safe-range discipline of the
 `Key` bucket, and `UnsafeSeqPut`'s order check). (No bound on the value: bbolt refuses one above
 `MaxValueSize` and the backend's `lg.Fatal` exits:
-`issues/etcd-backend-put-value-too-large-fatal.md`.) -/
+`nonissues/etcd-backend-put-value-too-large-fatal.md`.) -/
 def keyPutOk (m : Bucket) (l : Puts) (k _v : GoString) : Prop :=
   l.length < 2 ^ 56 ∧ 0 < k.length ∧ k.length ≤ backend.maxKeySize ∧
     (∀ k' v', m.lookup k' = some v' → go.GoStringLt k' k) ∧ ∀ p ∈ l, go.GoStringLt p.1 k

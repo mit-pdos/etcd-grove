@@ -17,7 +17,7 @@ state (a read issued after that is answered at once).
 **Why not an issue:** not a guarantee raft makes (no bound on when a read is answered; it is
 answered as soon as the learner responds), in a configuration etcd never enters (etcd proposes only
 v1 conf changes, never joint ones), and a read retried after the joint state is answered at once;
-INDEX-reviewed.md's Plan: "Skip for now".
+The 2026-10-23 review's Plan: "Skip for now".
 
 `TestRawNodeReadIndexJointSelfQuorum` in
 [`nonissues/raft-joint-self-quorum-read/joint_self_quorum_read_test.go`](raft-joint-self-quorum-read/joint_self_quorum_read_test.go)

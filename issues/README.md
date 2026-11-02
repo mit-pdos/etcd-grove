@@ -119,7 +119,9 @@ Title: <the fix commit's subject>
   `**Base**:` as above (the `upstream-report` skill's `check.py` reads them), and `**PR draft**:`
   holds the PR text until the PR is open. Without one, a sentence saying what would change.
 - **Filed issues** (`reported`, `known`, `fixed`): the write-up is on GitHub. The file keeps the
-  title, the first paragraph, the Reproduction line and `## Proof`.
+  title, the first paragraph, the Reproduction line and `## Proof`. A finding known only through
+  someone's pull request, with no issue describing the bad outcome, keeps its whole report: it is
+  what we would file (`etcd-rangestream-sort-none`, `etcd-auth-grant-permission-same-key`).
 - **Not in the report**: this repository's vocabulary (spec, proof, premise, Goose, unit, ghost);
   placeholders or template lines left unfilled.
 

@@ -42,6 +42,6 @@ line the proof of `closeRequireLeader` fails on the lessor invariant's channel/c
 
 ## Notes
 
-- INDEX-reviewed.md's plan: wait to see if #22087 gets merged.
+- The 2026-10-23 review's plan: wait to see if #22087 gets merged.
 - The test sets the lessor's fields by hand rather than through `KeepAlive` and a server that
   answers "no leader"; #22087's test is the upstream one.

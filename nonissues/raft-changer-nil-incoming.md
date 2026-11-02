@@ -28,5 +28,5 @@ be a map, which every tracker raft builds satisfies.
 
 ## Notes
 
-INDEX-reviewed.md's Plan: "Nonissue." A fix would allocate the map in `checkAndCopy` or
+The 2026-10-23 review's Plan: "Nonissue." A fix would allocate the map in `checkAndCopy` or
 `initProgress`, as `nilAwareAdd` does for learners.

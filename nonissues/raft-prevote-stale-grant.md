@@ -15,7 +15,7 @@ grant for this round: the disruption pre-vote exists to prevent. It needs a resp
 a leader election and an election timeout.
 
 **Why not an issue:** not a guarantee raft makes: discussed upstream in 2017 (etcd-io/etcd#8288)
-and accepted as a rare false positive that costs one election, not safety; INDEX-reviewed.md's
+and accepted as a rare false positive that costs one election, not safety; the 2026-10-23 review's
 Plan: "non-issue, based on the prior discussion; would want to see problems demonstrated to revisit".
 
 `TestPreVoteStaleGrantFromEarlierRound` and `TestPreVoteStaleGrantSameTerm` in

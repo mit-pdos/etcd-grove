@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-26
+checked: 2026-11-02
 links:
   - etcd-io/etcd#13682 pr merged: related, not this bug (oss-fuzz 44478): made the `AuthenticateParamIndex` assertion in `tokenSimple.assign` checked, leaving the `AuthenticateParamSimpleTokenPrefix` one on the next line unchecked
 blocks-proof: no

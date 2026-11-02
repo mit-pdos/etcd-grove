@@ -232,7 +232,7 @@ func (db *DB) Get() (uint64, uint64, bool, error) {
 	}
 	db.mmaplock.RLock()
 	if db.meta0 == nil {
-		// a remap failed (issues/bbolt-failed-remap-nil-meta-panic.md): there is no mapping,
+		// a remap failed (nonissues/bbolt-failed-remap-nil-meta-panic.md): there is no mapping,
 		// and the commit that remapped is failing; refuse, as after a failed commit
 		db.mmaplock.RUnlock()
 		db.metalock.Unlock()
@@ -264,7 +264,7 @@ func (db *DB) Snapshot() (uint64, uint64, bool, error) {
 	}
 	db.mmaplock.RLock()
 	if db.meta0 == nil {
-		// a remap failed (issues/bbolt-failed-remap-nil-meta-panic.md): there is no mapping,
+		// a remap failed (nonissues/bbolt-failed-remap-nil-meta-panic.md): there is no mapping,
 		// and the commit that remapped is failing; refuse, as after a failed commit
 		db.mmaplock.RUnlock()
 		db.metalock.Unlock()

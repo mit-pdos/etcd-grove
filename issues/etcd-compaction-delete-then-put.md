@@ -31,12 +31,17 @@ FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3	0.264s
 
 ## Proof
 
-yes: `store.Compact`'s spec takes the premise that the compaction revision does not delete and
-re-put one key (`NoDelPutAt`, `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/store__Compact.lean`),
-which the gRPC checks give only for transactions without from-key deletes (`noFromKeyDelL`,
-`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/CheckNodup.lean`).
+yes: the verified fork carries upstream's fixes, #22377 (`keyIndex.doCompact`) cherry-picked as
+`e7bb9f2de` and #22395 (the gRPC check) as `249d76bea` (`goose-lean-compactfix`, `etc/goose.py`, since
+2026-10-28); `keyIndex.doCompact` is proved against the fixed loop (`compactGenIdx`,
+`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Compact.lean`), and since 2026-10-31 `store.Compact`'s
+spec no longer takes the premise `NoDelPutAt` that excluded the case
+(`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/store__Compact.lean`).
 
 ## Notes
 
 The gRPC path closes with #22395 (or this repository's `etcd-txn-delete-then-ignore-put` fix);
 mvcc's own API (`store.Write`: `DeleteRange` then `Put` of one key) stays affected until #22377.
+
+#22377's fix has a bug of its own (a watch from the compaction revision misses the delete):
+`notes/pr-verify/etcd-22377.md`.

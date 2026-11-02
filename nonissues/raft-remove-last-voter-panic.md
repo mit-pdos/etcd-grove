@@ -16,7 +16,7 @@ conf change must be passed to `ApplyConfChange`.
 cluster whose last voter is removed cannot make progress either way), and etcd refuses the request
 by default: `mayRemoveMember` rejects removing the only voting member unless
 `--strict-reconfig-check=false` (server/etcdserver/server.go; `IsReadyToRemoveVotingMember`);
-INDEX-reviewed.md's Plan: "Skip for now" ("a self-inflicted loss of the cluster").
+The 2026-10-23 review's Plan: "Skip for now" ("a self-inflicted loss of the cluster").
 
 `TestRawNodeRemoveLastVoter` in
 [`nonissues/raft-remove-last-voter-panic/remove_last_voter_test.go`](raft-remove-last-voter-panic/remove_last_voter_test.go)

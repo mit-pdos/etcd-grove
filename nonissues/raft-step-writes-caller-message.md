@@ -17,7 +17,7 @@ it.
 
 **Why not an issue:** documentation only: `Step`'s comment already forbids the caller from
 touching `m` afterwards, and etcd steps freshly decoded messages it does not reuse
-(INDEX-reviewed.md's Plan: "Non-issue, maybe some documentation change").
+(the 2026-10-23 review's Plan: "Non-issue, maybe some documentation change").
 
 `TestStepWritesAndKeepsCallerMessage` in
 [`nonissues/raft-step-writes-caller-message/step_writes_caller_message_test.go`](raft-step-writes-caller-message/step_writes_caller_message_test.go)

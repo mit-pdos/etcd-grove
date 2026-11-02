@@ -18,12 +18,20 @@ promote it: an embedded server with two client listeners and a 50ms interval, un
 
 ## Proof
 
-no: the proof gives the serving path that field and the snapshot path a read-only view of only
-the fields `applySnapshot`'s callees read (`srvSnapRO`,
-`Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapRO.lean`; `notes/decisions.md`, "D22 J1a").
+no: before the fork's fix the proof went through with the serving path owning that field and the
+snapshot path a read-only view of only the fields `applySnapshot`'s callees read (`srvSnapRO`,
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapRO.lean`; `notes/decisions.md`, "D22 J1a"). Since
+2026-11-01 the verified fork carries the fix (`goose-lean-watchcfg` `7cf3644ec`, `etc/goose.py`:
+`NewWatchServer` keeps the adjusted interval local), so the whole configuration is read-only from
+`EtcdServer.start` on (`srvServeCfg`; `notes/decisions.md`, "J8a-3"); a simplification, not a fix
+the proof needed.
 
 ## Notes
 
 `server/etcdserver/api/v3rpc/watch.go`, `NewWatchServer`. A fix: keep the adjusted interval in the
-watch server (or `progressReportInterval`, under its lock) or adjust it before the server starts.
+watch server (or `progressReportInterval`, under its lock) or adjust it before the server starts;
+the fork's `7cf3644ec` reads the field into a local, raises the local to `minWatchProgressInterval`
+(with the same warning) and passes it to `SetProgressReportInterval`. `EtcdServer.start`'s own writes
+of `s.Cfg` (`SnapshotCount`, `SnapshotCatchUpEntries` set to their defaults when zero) are not a
+race: they happen before `run` and the listeners start.
 Upstream search 2026-11-01 (`WatchProgressNotifyInterval`): nothing about this race.

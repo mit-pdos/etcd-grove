@@ -580,7 +580,7 @@ func (r *Replica) snapshotter(known uint64) {
 // as etcd's apply thread allows; and it compacts the log (in both) to a random index from its
 // first one to the least of the requested bound and the stored snapshot's index as known
 // (compacting past the stored snapshot, the leader would have no snapshot to send a follower that
-// needs the compacted entries: issues/raft-compact-past-snapshot.md), if there is one. Neither
+// needs the compacted entries: nonissues/raft-compact-past-snapshot.md), if there is one. Neither
 // needs to be durable: it writes the image to the file afterwards one time in two (a later write,
 // of a Ready, writes it anyway). It returns what is known of the stored snapshot's index after it.
 func (r *Replica) snapshot(req snapReq, known uint64) uint64 {

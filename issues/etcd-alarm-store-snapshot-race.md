@@ -63,4 +63,4 @@ validates?"); push it with a reply, or drop it.
 
 ## Notes
 
-INDEX-reviewed.md's plan: upstream (done).
+The 2026-10-23 review's plan: upstream (done).

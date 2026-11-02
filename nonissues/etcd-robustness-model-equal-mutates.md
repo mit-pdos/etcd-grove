@@ -28,7 +28,7 @@ Test: `TestNonDeterministicEqualMutatesArguments` in
 [`etcd-robustness-model-equal-mutates/equal_mutates_test.go`](etcd-robustness-model-equal-mutates/equal_mutates_test.go)
 (package `model`, `tests/robustness/model`) fails at
 etcd-io/etcd@1573d59416efa220421c451f5266b24a5d8374ef (2026-11-01): `Equal reordered its
-arguments`. The INDEX-reviewed Plan: if anything, ask porcupine to say whether `Equal`/`Step` may
+arguments`. The 2026-10-23 review's plan: if anything, ask porcupine to say whether `Equal`/`Step` may
 change a state's representation without changing the state it represents. A drafted question for
 anishathalye/porcupine (not filed) asked which is intended: (1) no writes to arguments at all, or
 (2) representation changes (normalizing, sorting, caching) allowed as long as the represented

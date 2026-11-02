@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-16
+checked: 2026-11-02
 links: []
 blocks-proof: no
 ---
@@ -26,4 +26,4 @@ non-empty, true of gRPC's transports.
 The test,
 [`nonissues/etcd-auth-token-md-empty/authinfo_ctx_empty_token_test.go`](etcd-auth-token-md-empty/authinfo_ctx_empty_token_test.go)
 (`server/auth`), fails at etcd-io/etcd@1573d5941 (go1.27.3): `index out of range [0] with
-length 0`. INDEX-reviewed.md's plan: skip for now. A fix would be `if !ok || len(ts) == 0`.
+length 0`. The 2026-10-23 review's plan: skip for now. A fix would be `if !ok || len(ts) == 0`.

@@ -22,4 +22,4 @@ no: the alarm store's contract (`apply.isAlarmStore`,
 
 ## Notes
 
-INDEX-reviewed.md's plan: skip for now.
+The 2026-10-23 review's plan: skip for now.

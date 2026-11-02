@@ -49,7 +49,7 @@ The PR is open (#22616).
 
 ## Notes
 
-The user's plan (`INDEX-reviewed.md`): support #22615 over #22616, which also fixes
+The user's plan (the 2026-10-23 review): support #22615 over #22616, which also fixes
 `etcd-rangestream-sort-none`; a comment for #22615 was drafted 2026-10-23 (not posted): prefer it,
 note that it fixes `RangeStream`, and that `TestV3RangeRequest/sort` needs its last `RangeStream`
 case expected unsupported (`[]bool{false, true, true, true, true, true}`). If #22615 merges, close

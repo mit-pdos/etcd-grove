@@ -29,8 +29,10 @@ matters, [`Node.Advance`](https://github.com/etcd-io/raft/blob/c51f010c851edd0da
 
 **Impact:** any application that calls `Advance` before `ApplyConfChange` and makes two membership
 changes in a row, followed by a partition. etcd's leader does so (it calls `Advance` without
-waiting for its apply loop, which applies the conf change later): the etcd half is
-[`etcd-leader-advance-before-applyconfchange`](../nonissues/etcd-leader-advance-before-applyconfchange.md).
+waiting for its apply loop, which applies the conf change later), and on an etcd cluster this
+loses an acknowledged write (reproduced 2026-11-02 at etcd `main`, with a failpoint slowing the
+leader's apply loop, two concurrent `MemberAdd`s through different members and a partition): the
+etcd half is [`etcd-leader-advance-before-applyconfchange`](etcd-leader-advance-before-applyconfchange.md).
 Applications that apply each `Ready` before `Advance`, as doc.go's examples and
 `contrib/raftexample` do, are not affected. Same code in v3.7.0.
 

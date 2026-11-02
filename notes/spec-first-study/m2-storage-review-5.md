@@ -23,7 +23,7 @@ the repository changed except this file.
 
 **Go.** No new Go bug. Two existing issue files bear on this round:
 - `issues/etcd-txn-check-intervals-sibling.md` (finding B1 rests on it);
-- `issues/etcd-restore-scheduled-compact-zero.md`. Its "How the proof handles it: not yet" is now
+- `nonissues/etcd-restore-scheduled-compact-zero.md`. Its "How the proof handles it: not yet" is now
   stale, since Q7 (a) is drafted. Update it at the switch.
 
 ## Summary
@@ -296,7 +296,7 @@ source the client sees".
 - Item 19's approved text is the design "`pay` a field of `SchedNames`". The Lean `Stop.specD` is,
   by its own docstring, unprovable until then. The approval should name the field, not the Lean
   text.
-- `issues/etcd-restore-scheduled-compact-zero.md`: update "How the proof handles it" (Q7 (a)).
+- `nonissues/etcd-restore-scheduled-compact-zero.md`: update "How the proof handles it" (Q7 (a)).
 
 ## Per target
 
