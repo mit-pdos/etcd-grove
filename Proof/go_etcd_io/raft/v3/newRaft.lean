@@ -535,8 +535,8 @@ private theorem wp_Restore_ok (H : confchange.Restore.spec (GF := GF) (hG := hG)
     (cs' : CCState) (Hok : ConfStateOk c)
     (Hres : restoreM c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' c.AutoLeave' =
       some cs')
-    (Hlen : c.Voters'.length + c.VotersOutgoing'.length + c.Learners'.length +
-      c.LearnersNext'.length ≤ 2 ^ 62)
+    (Hlen : (GMap.size (GMap.listToSet c.Voters' ∪ GMap.listToSet c.VotersOutgoing' ∪
+      GMap.listToSet c.Learners' ∪ GMap.listToSet c.LearnersNext') : Int) ≤ 2 ^ 62)
     (Hmi : 0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62)
     (Harr : chg.Tracker'.Config'.Voters'.arr = [v0, map.nil])
     (Hl : chg.Tracker'.Config'.Learners' = map.nil)
@@ -566,8 +566,7 @@ private theorem wp_Restore_ok (H : confchange.Restore.spec (GF := GF) (hG := hG)
     iapply HΦ
     ipersist Hprsm
     have Hsz' : (GMap.size prs : Int) ≤ 2 ^ 62 :=
-      restore_prs_size c.lists Hvnd Hlnd Hond (by simp only [ConfStateM.lists]; omega) prs
-        c.AutoLeave' Hprs
+      restore_prs_size_ids c.lists Hlen prs c.AutoLeave' Hprs
     ihave Hcfg := ownCfgCC_cast cfgv (DFrac.own 1)
       (cfgStateC (csCfgM c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' c.AutoLeave')).cfg
       (csCfgM c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' c.AutoLeave') rfl $$ Hcfg
@@ -735,8 +734,7 @@ theorem newRaft.wp_proof
   ihave Hcs2v := csPts_weaken $$ Hcs2
   wp_apply wp_assertConfStatesEquivalent _ cs cs2 csm
       (ConfStateM.mk xs2 ls2 os2 lns2 cs'.cfg.autoLeave) DFrac.discard (DFrac.own 1) Hperm
-      (by obtain ⟨-, -, -, -⟩ := Hperm
-          refine ⟨?_, ?_, ?_, ?_⟩ <;> simp only [ConfStateM.lists] <;> omega) Hal2
+      (lists_bounded_of_ids csm.lists Hcsok.2.1 Hcsok.2.2.1 Hcsok.2.2.2.1 Hcsok.2.2.2.2.1 Hlen) Hal2
     $$ [$Hcsw $Hcs2v] as ⟨-, -⟩
   have HbW : (W64 (uint.nat σ.prev.index' : Int)) = σ.prev.index' := by
     apply uint_Z_inj.1; rw [uint_Z_W64 _ (by omega) (by have := word.unsigned_range σ.prev.index'; omega)]

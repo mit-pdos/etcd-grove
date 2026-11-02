@@ -31,9 +31,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 stage I; candidate 12 §4; until then from a founder's or a newcomer's token on an empty storage):
 starts node `cv.ID'` of the cluster (`isCluster`), whose id is vacant (`nodeVacant`: no node of it
 runs), from a storage holding the contents `σ` (`restartStorage`), at the configuration `m` after
-the first `max σ.b Applied` committed entries (`confAt`: the configuration at the applied index the
-node starts at), which the storage's `ConfState` reports; `Applied` is `0` or within the stored
-log's committed part.
+the first `a` committed entries (`confAt`), which the storage's `ConfState` reports, `a` between the
+applied index the node starts at (`max σ.b Applied`) and the stored commit; `Applied` is `0` or
+within the stored log's committed part.
 
 The client's update (`AU`) fires inside `RestartNode`, when it reads the storage (its
 `InitialState`, before any step), and leaves the client's durable state `S` (`raftState`)
@@ -42,13 +42,21 @@ unchanged: it checks that the storage holds `S` (`StorageHolds`), so that a stal
 Raft names the storage by a fresh key `K` at the attach (`restartStorage`'s continuation). The post:
 the node, its `Ready` loop's token at the committed log of the applied index it starts at
 (`max σ.b A`), the stored hard state, the durable state `S`, the follower's role, the storage's key;
-its view of the configuration at `(max σ.b Applied, m)`; its running token whole; the update's
-`COMM`; and the storage's frame.
+its view of the configuration at `(a, m)`; its running token whole; the update's `COMM`; and the
+storage's frame.
 
-(2026-11-02, stage II (r)) The configuration point is the applied index the node starts at. Until
-then it was any `a` with `max σ.b Applied ≤ a ≤ σ.commit` (`confAt γ a m`): a `ConfState` above the
-applied index is wrong, since raft re-delivers the entries in `(max σ.b Applied, a]` and the client
-re-applies their conf changes (issues/raft-applied-above-snapshot-confstate.md's converse).
+Raft hands the committed log out again from `max σ.b Applied`, so the entries in
+`(max σ.b Applied, a]`, conf entries among them, come again; the view at `(a, m)` already reflects
+them, and `node.ApplyConfChange` applies only a conf entry at or past the view's index (its
+`v.applied ≤ k`): the client skips them, as a storage whose `ConfState` is its snapshot's does (its
+`Applied` below the snapshot's index, after a compaction short of it).
+
+(2026-11-02, stage II (u)) The configuration point `a` is back (candidate 12's form). From stage II
+(r) to II (u) it was the applied index `max σ.b Applied` only (`confAt γ (max σ.b Applied) m`,
+`nodeConfig ⟨max σ.b Applied, m⟩`), on the argument that a client re-applies the conf changes in
+`(max σ.b Applied, a]`, which the view's index excludes; and from stage II (p) to II (u) the conf
+state's four lists had at most `2^62` ids together, a premise raft now derives from the
+membership's validity (`newRaft` needs fewer than `2^62` ids tracked).
 
 Scope (to file when adopted): a cluster with a bootstrap log restarts a node only once its stored commit covers
 the bootstrap log (`γ.bootLen ≤ σ.commit`, review 3's A2); a `MemoryStorage` is attached once.
@@ -56,7 +64,7 @@ the bootstrap log (`γ.bootLen ≤ σ.commit`, review 3's A2); a `MemoryStorage`
 names no namespace.) -/
 abbrev RestartNode.spec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (σ : StorContents) (csm : ConfStateM) (m : Membership)
+    (σ : StorContents) (csm : ConfStateM) (a : Nat) (m : Membership)
     (Q : RaftState → IProp GF) (F : GName → IProp GF),
   -- `NewRawNode`'s premises
   ConfigValid cv →
@@ -70,14 +78,11 @@ abbrev RestartNode.spec : Prop :=
   cv.AsyncStorageWrites' = false →
   -- `Applied` (raft's `appliedTo` panics otherwise; `0`: from the base)
   (uint.nat cv.Applied' = 0 ∨ σ.b ≤ uint.nat cv.Applied' ∧ uint.nat cv.Applied' ≤ σ.commit) →
+  -- the configuration point, from the applied index the node starts at to the stored commit
+  max σ.b (uint.nat cv.Applied') ≤ a → a ≤ σ.commit →
   -- the bootstrap log within the stored commit [scope]
   γ.bootLen ≤ σ.commit →
   confStateIs csm m →
-  -- (2026-11-02, stage II (p)) at most `2^62` ids in the conf state's lists [scope: `newRaft`'s
-  -- premise, the tracker's sort; a valid membership has fewer than `2^62` ids, which bounds the
-  -- lists' total only by `2^63`]
-  csm.Voters'.length + csm.VotersOutgoing'.length + csm.Learners'.length +
-    csm.LearnersNext'.length ≤ 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isCluster γ N ∗ nodeVacant γ cv.ID' ∗
       -- (2026-11-02, stage II (p)) the receipts' bound past the bootstrap log within `2^61`
@@ -90,7 +95,7 @@ abbrev RestartNode.spec : Prop :=
       -- it is not timeless, and a client keeping it in an invariant opens it later-ed)
       AU <{ ∃∃ (S : RaftState), ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
          <{ raftState γ cv.ID' S, COMM Q S }> ∗
-      confAt γ (max σ.b (uint.nat cv.Applied')) m ∗
+      confAt γ a m ∗
       restartStorage γ (interface.ok si) σ csm (uint.nat cv.Applied') F }}
     (App (Val #(functions RestartNode [])) (Val #c))
   {{ (nd : GoInterface), RET #nd;
@@ -102,7 +107,7 @@ abbrev RestartNode.spec : Prop :=
         -- entries up to its length (raft read them from the storage)
         ⌜(LogEntry.toEntries l 0).drop σ.b = σ.ents.take (l.length - σ.b)⌝ ∗
         nodeDriver n γ N ⟨interface.ok si, l, σ.hs, none, K, S, StateFollower⟩ ∗
-        nodeConfig n γ N ⟨max σ.b (uint.nat cv.Applied'), m⟩ ∗
+        nodeConfig n γ N ⟨a, m⟩ ∗
         nodeRunning n γ N 1 ∗
         Q S ∗ F K }}
 

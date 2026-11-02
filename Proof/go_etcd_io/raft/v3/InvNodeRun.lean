@@ -403,7 +403,7 @@ theorem runCfg_sn (γ : NodeNames) (rs : RNState) :
   iunfold runCfg at Hcfg
   icases Hcfg with ⟨%Hm0, Hrest⟩
   isplitr
-  · ipureintro; exact Hm0.2.2.2.2
+  · ipureintro; exact Hm0.2.2.2
   iunfold runCfg
   iframe Hrest
   ipureintro; exact Hm0
@@ -600,10 +600,12 @@ private theorem LoanOk.step_xw {rs : RNState} {s s' : NState} {b : Bool} (t : w6
       s'.logst.fl = s.logst.fl ∧
       s'.logst.stored = s.logst.stored ∧ s'.logst.unpersisted = s.logst.unpersisted ∧
       s'.logst.applying = s.logst.applying ∧
-      uint.Z s.logst.committed ≤ uint.Z s'.logst.committed) :
+      uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
+    -- (2026-11-02, stage II (u)) the pending snapshot kept (`CapOk`)
+    (hcap : s'.logst.snap = s.logst.snap ∧ uint.Z s.logst.committed ≤ uint.Z s'.logst.committed) :
     LoanOk { rs with term := t, psnap := rs.psnap || b } s' := by
-  obtain ⟨H1, H2, H3⟩ := H
-  refine ⟨by rw [hgh]; exact H1, fun h => ?_, fun l h => ?_⟩
+  obtain ⟨H1, H2, H3, H4⟩ := H
+  refine ⟨by rw [hgh]; exact H1, fun h => ?_, fun l h => ?_, H4.keep hcap.1 hcap.2⟩
   · rw [hgh]; exact H2 h
   · have hl : rs.slent = some l := h
     obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9⟩ := H3 l hl
@@ -772,16 +774,21 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
           (Hloan.step s'.term Hgh (fun _ => ⟨by
               rcases Hsl0 with ⟨-, h2, -, -⟩ | ⟨-, -, h2, -, h3, -⟩
               · exact .inl h2
-              · exact .inr ⟨_, h2, h3, by simp [Hs]⟩, Hfl', Hsd, Hu, Ha, Hc⟩))
+              · exact .inr ⟨_, h2, h3, by simp [Hs]⟩, Hfl', Hsd, Hu, Ha, Hc⟩)
+              ⟨by
+                rcases Hsl0 with ⟨-, h2, -, -⟩ | ⟨-, -, h2, -, h3, -⟩
+                · exact .inl h2
+                · refine .inr ⟨_, h2, h3, ?_⟩
+                  have := uint_Z_nonneg s.logst.applying; rw [Hdlen]; omega, Hc⟩)
           (Hsdt.snap Hdag Hsl0) Hrole
           (Hphs.snapStep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsl0
-            (fun l hl => (Hloan.2.2 l hl).2.2.1)) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
+            (fun l hl => (Hloan.2.2.1 l hl).2.2.1)) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
       · -- (durability stage II (i)) the step keeps `durTie`'s fields
         rcases Hsl0 with ⟨Hpv0, Hsn0', -, -⟩ | ⟨-, Hpv0, Hsn0', -, Hc0, -⟩
         · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn0' Hpv0 Hsd $$ Hdur
         · iapply durTie_vac γ Hsn0'
           intro l hl heq
-          obtain ⟨-, -, Hlc, -⟩ := Hloan.2.2 l hl
+          obtain ⟨-, -, Hlc, -⟩ := Hloan.2.2.1 l hl
           have : uint.Z (snapId sv0).index' = uint.Z (snapId l.snap).index' := by rw [heq]
           simp only [snapId] at this
           omega
@@ -843,7 +850,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
         (Hpvoff.step_xw rfl rfl Hpre Hgx Hle Hpcs (by not_net))
         (by rw [Hgx]; exact Hrs_out) (by rw [Hgx]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
         (RNFl.keep Hrnfl Hfl' Hap' Ha)
-        (Hloan.step_xw s'.term Hgx (fun _ => ⟨.inl Hsn, Hfl', (logStoreRec_stored Hsd), Hu, Ha, Hc⟩))
+        (Hloan.step_xw s'.term Hgx (fun _ => ⟨.inl Hsn, Hfl', (logStoreRec_stored Hsd), Hu, Ha, Hc⟩) ⟨Hsn, Hc⟩)
         (Hsdt.ofRec Hsn Hsd) Hrole
         (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsn (ip_of_step Hip4 Htrc)) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
     · -- (durability stage II (i)) the step keeps `durTie`'s fields
@@ -1344,7 +1351,10 @@ theorem wp_applyConf_dyn
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s) (Hsdt : SdtTie rs s)
     (Hrole : rs.role = sv.RaftState') (Hphs : PhsOk rs s)
-    (HDc : (D.length : Int) ≤ uint.Z s.logst.committed) :
+    (HDc : (D.length : Int) ≤ uint.Z s.logst.committed)
+    -- (2026-11-02, stage II (u)) `D` within the committed log handed out (`CapOk`)
+    (HDl : ∀ l, rs.slent = some l → D.length ≤ l.dlv.length)
+    (HDn : rs.slent = none → D.length ≤ rs.delivered.length) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         rawNodeOwn rn rnv ∗ ownRaftPhysCV cf cf.voters rnv.raft' id s ∗
         ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id s ∗
@@ -1483,6 +1493,18 @@ theorem wp_applyConf_dyn
       simp only; rw [hm]; rfl]
     iexact Hghost
   obtain ⟨Hwf', Ht', Hpv', Hgh', Hls', Hc', Hrl', Hfol'⟩ := applyCCOkC_frame Hok Hwf
+  -- (2026-11-02, stage II (u)) the configuration index up to the entry applied, within `D`
+  have Hcap' : CapOk { rs with cfg := cs', capplied := k + 1 } s' := by
+    have H3 := Hloan.2.2.2.2.2
+    refine ⟨?_, fun l hl => ?_, fun hl p hp => ?_⟩
+    · show ((k + 1 : Nat) : Int) ≤ _; omega
+    · show k + 1 ≤ l.dlv.length; have := HDl l hl; omega
+    · rw [Hls'] at hp
+      have h3 := H3 hl p hp
+      have := HDn hl
+      exact ⟨by show ((k + 1 : Nat) : Int) ≤ _; omega, h3.2⟩
+  have HL := Hloan.keep (rs' := rs) Hgh' (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls'])
+    (by rw [Hls']) Hc'
   ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok (by rw [Ht']; exact Int.le_refl _)
     (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']; exact Int.le_refl _) $$ Hstrecs
   ihave #Hsloc' := snapLocOk_keep γ id (o := s.logst.snap) (o' := s'.logst.snap) (.inl (by rw [Hls']))
@@ -1501,7 +1523,7 @@ theorem wp_applyConf_dyn
         fun h => Hfol' (Hpvoff.2.2.2.2 (by rw [Hls'] at h; exact h))⟩
       (by rw [Hgh']; exact Hrs_out) (by rw [Hgh']; exact Hrs_unst) (Int.le_trans Hrs_clb Hc')
       (by unfold RNFl; rw [Hls']; exact Hrnfl)
-      (Hloan.keep Hgh' (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) Hc')
+      ⟨HL.1, HL.2.1, HL.2.2.1, Hcap'⟩
       (by unfold SdtTie; rw [Hls']; exact Hsdt) Hrole
       (Hphs.keep rfl rfl rfl (HsLe.of_step (applyCCOkC_voteLe Hok) Hc') (by rw [Hls'])
         (.inl (by rw [Hls']; exact Int.le_refl _))) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
@@ -1723,11 +1745,13 @@ theorem wp_rn_raft_applyConfChange_dyn
     cases hs : rs.slent with
     | none => rw [Hdlen]; have := uint_Z_nonneg s.logst.applying; omega
     | some l =>
-      obtain ⟨-, -, Hi, -, -, -, -, Hdl, -⟩ := Hloan.2.2 l hs
+      obtain ⟨-, -, Hi, -, -, -, -, Hdl, -⟩ := Hloan.2.2.1 l hs
       simp only; rw [Hdl]; have := uint_Z_nonneg l.snap.Metadata'.Index'; omega
   iapply wp_applyConf_dyn wp_raft_applyConfChange γ rn id rs dec c0 h0 h1 hm k e cs' cc ccm
       DFrac.discard (rsDlv rs) ds Hpre' s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap Hstok
       Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs HDc
+      (fun l hl => by simp [rsDlv, hl])
+      (fun hl => by simp [rsDlv, hl])
     $$ [$Hpkg $Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv
       $Hstrecs $Hloanc $Hsloc $Hccs $Hlc $HDd $Hdur]
   inext
@@ -1972,7 +1996,7 @@ theorem headRest_flw (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoChan
   iunfold runCfg at Hcfg
   icases Hcfg with ⟨%Hm0, Hcfg⟩
   isplitr
-  · ipureintro; exact Hm0.2.2.1
+  · ipureintro; exact Hm0.2.1
   iframe Hlb H
   isplitr
   · ipureintro; exact Hst
@@ -2445,7 +2469,7 @@ theorem runCfg_confc (γ : NodeNames) (rs : RNState) (ds : List EntryM) (ca : Na
   -- (2026-10-28, the decision switch) the driver's decisions and `run`'s skipped entries, joined
   icases undecFree_join γ.raft γ.mode _ _ _ M $$ [HM Hinv2] with ⟨%M', #HM', %Hsub, %Hnu⟩
   · iframe HM Hinv2
-  have Hp' := dynCCPreOp_transfer (Hp.mono_dec (effDec_mono dec Hsub)) Hpfx.2 Hinv
+  have Hp' := dynCCPreOp_transfer (Hp.mono_dec (effDec_mono dec Hsub)) Hpfx.2 Hinv.1
     (Hnu dec c0 h0 h1 hm)
   isplitr
   · iexists M'; iframe HM'; ipureintro; exact Hp'
@@ -2457,7 +2481,7 @@ theorem runCfg_confc (γ : NodeNames) (rs : RNState) (ds : List EntryM) (ca : Na
   iunfold runCfg
   isplitr
   · ipureintro
-    exact ⟨Hm0.1, by show k + 1 ≤ (rsDlv rs).length; omega, Hm0.2.2.1, Hm0.2.2.2.1, Hm0.2.2.2.2⟩
+    exact ⟨Hm0.1, Hm0.2.1, Hm0.2.2.1, Hm0.2.2.2⟩
   isplitl [Hdlm]
   · iExactEq Hdlm; rfl
   isplitr
@@ -2465,7 +2489,7 @@ theorem runCfg_confc (γ : NodeNames) (rs : RNState) (ds : List EntryM) (ca : Na
   iexists k + 1
   iframe Hcap_r Hcam
   isplitr
-  · ipureintro; exact Nat.le_refl _
+  · ipureintro; exact ⟨Nat.le_refl _, fun h => absurd h (Nat.lt_irrefl _)⟩
   iapply undecFree_empty
 
 /-- The `readyc` arm: the committed log handed out grows by the `Ready`'s committed entries
@@ -2488,11 +2512,11 @@ theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM) (L 
   iintro #HX' Hcfg
   iunfold runCfg at Hcfg
   icases Hcfg with ⟨%Hm0, Hdlm, #Hdk, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
-  obtain ⟨Hmd, Hcp, Hflw, -, Hsnm⟩ := Hm0
+  obtain ⟨Hmd, Hflw, -, Hsnm⟩ := Hm0
   ihave #Hdk : dlvKeys γ.sn rs.delivered $$ [Hdk]
   · iExactEq Hdk; rw [rsDlv_none Hsl0]
   rw [rsDlv_none Hsl0]
-  rw [rsDlv_none Hsl0] at Hcp
+  rw [rsDlv_none Hsl0] at Hinv
   have Hext : rs.delivered <+: dlvAfter rs.delivered ce L := by
     cases L with
     | none => exact List.prefix_append _ _
@@ -2514,17 +2538,21 @@ theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM) (L 
   iframe Hdlm Hdk'
   isplitr
   · ipureintro
-    refine ⟨Hmd, ?_, by rw [Hfw]; exact Hflw, ?_, by rw [Hsn']; exact Hsnm⟩
-    · exact Nat.le_trans Hcp Hext.length_le
-    · intro l hl
-      obtain ⟨rfl, Hp⟩ := HL l hl
-      simpa using Hp
+    refine ⟨Hmd, by rw [Hfw]; exact Hflw, ?_, by rw [Hsn']; exact Hsnm⟩
+    intro l hl
+    obtain ⟨rfl, Hp⟩ := HL l hl
+    simpa using Hp
   iexists ca_r
   iframe Hcap_r Hcam
   isplitr
-  · ipureintro; exact Hinv
-  iapply undecFree_prefix γ.raft γ.mode Hext Hcp
-  iexact Hinv2
+  · ipureintro
+    exact ⟨Hinv.1, fun h => Nat.le_trans (Hinv.2 h) Hext.length_le⟩
+  -- (2026-11-02, stage II (u)) past the committed log handed out only without a gap
+  by_cases hgap : ca_r < rs.capplied
+  · iapply undecFree_prefix γ.raft γ.mode Hext (Hinv.2 hgap)
+    iexact Hinv2
+  · rw [show rs.capplied = ca_r by have := Hinv.1; omega]
+    iapply undecFree_empty
 
 /-- (D22 S-d4) What `runCfg` says of snapshots: none pending or lent at a node that takes none,
 and one that takes them is outside the no-snapshot mode (until 2026-10-28, stage U3d, also in the
@@ -2559,7 +2587,7 @@ theorem runCfg_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat) :
   isplitr
   · rw [Hm0.1]
     iapply undecFree_mono γ.raft γ.mode (lo := ca_d) (hi := rs.delivered.length)
-      (by have := Hle.2; omega) (Nat.le_refl _)
+      (by have := Hle.2; have := Hinv.1; omega) (Nat.le_refl _)
     iexact HA
   iunfold runCfg
   iframe Hdlm Hdk
@@ -2617,23 +2645,21 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
     ihave Hcfg := (runCfgR_of_runCfg (GF := GF) γ rs (.inl hsl)).1 $$ Hcfg
     iunfold runCfg at Hcfg
     icases Hcfg with ⟨%Hm0, Hdlm, #Hdk, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
-    obtain ⟨Hmd, Hcp, -, -, Hsnm⟩ := Hm0
-    simp only [rsDlv, hsl] at Hmd Hcp Hsnm Hinv ⊢
+    obtain ⟨Hmd, -, -, Hsnm⟩ := Hm0
+    simp only [rsDlv, hsl] at Hmd Hsnm Hinv ⊢
     rw [advRS_none t ca hsl]
     have Hcases : ca = rs.capplied ∨ (rs.mode.isDyn = true ∧ ca ≤ rs.delivered.length) := by
       cases hm : rs.mode with
       | static => exact .inl (Hca.2.2 hm)
       | dyn _ _ _ _ =>
-        right; refine ⟨rfl, ?_⟩
-        have := (Hca.1 hsl).2; omega
+        have := (Hca.1 hsl).1; have := (Hca.1 hsl).2
+        by_cases hl : ca ≤ rs.delivered.length
+        · exact .inr ⟨rfl, hl⟩
+        · left; omega
     iunfold runCfg
     isplitr
     · ipureintro
-      refine ⟨Hmd, ?_, rfl, fun l h => by simp [hsl] at h, Hsnm⟩
-      simp only [rsDlv, hsl]
-      rcases Hcases with h | ⟨-, h⟩
-      · rw [h]; exact Hcp
-      · exact h
+      exact ⟨Hmd, rfl, fun l h => by simp [hsl] at h, Hsnm⟩
     isplitl [Hdlm]
     · iExactEq Hdlm; simp only [rsDlv, hsl]
     isplitr
@@ -2646,7 +2672,7 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
       iframe Hinv2
       ipureintro; exact Hinv
     · isplitr
-      · ipureintro; have := (Hca.1 hsl).1; omega
+      · ipureintro; have := (Hca.1 hsl).1; exact ⟨by have := Hinv.1; omega, fun _ => h⟩
       iapply undecFree_trans γ.raft γ.mode _ _ rs.capplied
       iframe Hinv2
       rw [← Hmd]
@@ -2666,8 +2692,8 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
       ihave Hcfg := (runCfgR_of_runCfg (GF := GF) γ rs (.inr hd)).1 $$ Hcfg
       iunfold runCfg at Hcfg
       icases Hcfg with ⟨%Hm0, Hdlm, #Hdk, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
-      obtain ⟨Hmd, Hcp, -, -, Hsnm⟩ := Hm0
-      simp only [rsDlv, hsl] at Hmd Hcp Hsnm Hinv
+      obtain ⟨Hmd, -, -, Hsnm⟩ := Hm0
+      simp only [rsDlv, hsl] at Hmd Hsnm Hinv
       have Hst : rs.mode = .static := by
         cases hm : rs.mode with
         | static => rfl
@@ -2677,8 +2703,7 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
       iunfold runCfg
       isplitr
       · ipureintro
-        refine ⟨Hmd, ?_, rfl, fun l' h => by simp at h, Hsnm⟩
-        simp only [rsDlv]; rw [Hca0]; exact Hcp
+        exact ⟨Hmd, rfl, fun l' h => by simp at h, Hsnm⟩
       isplitl [Hdlm]
       · iExactEq Hdlm; simp only [rsDlv, hsl]
       isplitr
@@ -2700,8 +2725,7 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
       iunfold runCfg
       isplitr
       · ipureintro
-        refine ⟨Hmd, ?_, rfl, fun l' h => by simp at h, Hsnm⟩
-        simp only [rsDlv]; rw [Hca0]; exact Nat.le_refl _
+        exact ⟨Hmd, rfl, fun l' h => by simp at h, Hsnm⟩
       isplitl [Hdlm]
       · iExactEq Hdlm; simp only [rsDlv]
       isplitr
@@ -2711,7 +2735,7 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
       simp only [rsDlv]
       rw [Hca0]
       isplitr
-      · ipureintro; exact Nat.le_refl _
+      · ipureintro; exact ⟨Nat.le_refl _, fun h => absurd h (Nat.lt_irrefl _)⟩
       iapply undecFree_empty
 
 end cfgshare

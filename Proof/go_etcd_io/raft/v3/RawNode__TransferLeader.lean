@@ -127,7 +127,7 @@ theorem RawNode.TransferLeader.wp_proof
       (by rw [Hgx]; exact Hrs_out) (by rw [Hgx]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
         (RNFl.keep Hrnfl Hfl' Hap' Ha) (by
           have H := Hloan.step_gxw (b := false) rs.term Hgx
-            (fun _ => ⟨.inl Hsn, Hfl', logStoreRec_stored Hsd, Hu, Ha, Hc⟩)
+            (fun _ => ⟨.inl Hsn, Hfl', logStoreRec_stored Hsd, Hu, Ha, Hc⟩) ⟨Hsn, Hc⟩
           simp only [Bool.or_false] at H
           exact H)
       (Hsdt.ofRec Hsn Hsd) Hrole

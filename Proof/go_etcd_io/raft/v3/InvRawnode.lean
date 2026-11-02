@@ -927,6 +927,47 @@ theorem RNPv.keepS {rs rs' : RNState} {fp : List EntryM} {s s' : NState} (H : RN
     by rw [hgh, ht]; exact H3, fun h => by rw [hgh, ht]; exact H4 (hr ▸ h),
     fun h => by rw [hr]; exact H5 (hsn ▸ h)⟩
 
+/-- (2026-11-02, stage II (u)) **The configuration index below a snapshot** (`RNState.capplied`):
+at most the commit index; while a snapshot is lent, at most its index; while one is pending and none
+lent, at most its index, as is the committed log handed out (`delivered`). `RestartNode` starts a
+node at a configuration index above the committed log it hands out (the storage's `ConfState`'s
+point, up to the stored commit); a snapshot raft restores afterwards is past the commit index
+(`raft.restore`), so past the configuration index, and `run`'s view of the configuration moves to a
+snapshot's index only upward (`advance_complete`). -/
+def CapOk (rs : RNState) (s : NState) : Prop :=
+  (rs.capplied : Int) ≤ uint.Z s.logst.committed ∧
+  (∀ l, rs.slent = some l → rs.capplied ≤ l.dlv.length) ∧
+  (rs.slent = none → ∀ p, s.logst.snap = some p →
+    (rs.capplied : Int) ≤ uint.Z p.index' ∧ (rs.delivered.length : Int) ≤ uint.Z p.index')
+
+omit [GooseSemantics] [GooseInterp] go_gctx in
+/-- `CapOk` across a step that keeps what it reads (the commit index not moved back). -/
+theorem CapOk.keep {rs rs' : RNState} {s s' : NState} (H : CapOk rs s)
+    (hsn : s'.logst.snap = s.logst.snap)
+    (hcm : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
+    (hsl : rs'.slent = rs.slent := by rfl) (hd : rs'.delivered = rs.delivered := by rfl)
+    (hca : rs'.capplied = rs.capplied := by rfl) : CapOk rs' s' := by
+  obtain ⟨H1, H2, H3⟩ := H
+  refine ⟨by rw [hca]; omega, fun l h => by rw [hca]; exact H2 l (hsl ▸ h),
+    fun h p hp => by rw [hca, hd]; exact H3 (hsl ▸ h) p (hsn ▸ hp)⟩
+
+omit [GooseSemantics] [GooseInterp] go_gctx in
+/-- `CapOk` across a step that may restore a snapshot past the commit index (`raft.restore`). -/
+theorem CapOk.restore {rs rs' : RNState} {s s' : NState} (H : CapOk rs s)
+    (hsn : s'.logst.snap = s.logst.snap ∨ ∃ s2, s'.logst.snap = some s2 ∧
+      uint.Z s.logst.committed < uint.Z s2.index' ∧
+      (rs.delivered.length : Int) ≤ uint.Z s.logst.committed)
+    (hcm : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
+    (hsl : rs'.slent = rs.slent := by rfl) (hd : rs'.delivered = rs.delivered := by rfl)
+    (hca : rs'.capplied = rs.capplied := by rfl) : CapOk rs' s' := by
+  rcases hsn with hsn | ⟨s2, h2, hlt, hdl⟩
+  · exact H.keep hsn hcm hsl hd hca
+  obtain ⟨H1, H2, H3⟩ := H
+  refine ⟨by rw [hca]; omega, fun l h => by rw [hca]; exact H2 l (hsl ▸ h),
+    fun _ p hp => ?_⟩
+  rw [h2] at hp; cases hp
+  rw [hca, hd]; omega
+
 /-- (D22 S-d3a, 2026-10-21) **A snapshot `Ready`'s loan, as the node keeps it** (`RNState.slent`):
 the ghost mirror of the lent storage (`NGhost.slent`, `SnpOk`) and of the snapshot handed out
 (`NGhost.snp`); with a loan, the snapshot still pending or (D22 S-d3b, 2026-10-21) a later one
@@ -936,7 +977,8 @@ index, the floor the storage was lent at, what the storage will hold the batch h
 (`stored = unpersisted`), `applying` at most the snapshot's index, the committed log up to the
 snapshot extending `delivered`, and its acknowledgement queued last, after the node's own
 responses (a snapshot `Ready` hands out no committed entries), at the snapshot as its boundary.
-(Until S-d3b: the snapshot still pending, `psnap` off, and `psnap → steps = []`.) -/
+(Until S-d3b: the snapshot still pending, `psnap` off, and `psnap → steps = []`.) (2026-11-02,
+stage II (u)) And the configuration index below a snapshot (`CapOk`). -/
 def LoanOk (rs : RNState) (s : NState) : Prop :=
   s.gh.slent = rs.slent.isSome ∧
   (rs.slent = none → s.gh.snp = none ∧ ∀ t b e sv, Pending.appendAck t b e (some sv) ∉ rs.steps) ∧
@@ -952,7 +994,8 @@ def LoanOk (rs : RNState) (s : NState) : Prop :=
     uint.Z s.logst.applying < uint.Z l.snap.Metadata'.Index' ∧
     rs.delivered <+: l.dlv ∧ l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
     ∃ pre t e, rs.steps = pre ++ [Pending.appendAck t (snapId l.snap) e (some l.snap)] ∧
-      ∀ p ∈ pre, ∃ pv t', p = .self pv t')
+      ∀ p ∈ pre, ∃ pv t', p = .self pv t') ∧
+  CapOk rs s
 
 /-- (U8 v2, 2026-10-29; until then, stage U4a, the record of the storage's terms `stb`/`sdt` tied
 to `delivered`) **Raft certified the terms of the committed log handed out, and no more**: the
@@ -1034,7 +1077,7 @@ theorem LoanOk.none_of_nil {rs : RNState} {s : NState} (H : LoanOk rs s) (h : rs
   cases hl : rs.slent with
   | none => rfl
   | some l =>
-    obtain ⟨-, -, -, -, -, -, -, -, pre, t, e, Hst, -⟩ := H.2.2 l hl
+    obtain ⟨-, -, -, -, -, -, -, -, pre, t, e, Hst, -⟩ := H.2.2.1 l hl
     rw [h] at Hst; simp at Hst
 
 /-- `LoanOk` across a step that keeps what it reads (the commit index not moved back). -/
@@ -1044,10 +1087,11 @@ theorem LoanOk.keep {rs rs' : RNState} {s s' : NState} (H : LoanOk rs s)
     (hap : s'.logst.applying = s.logst.applying)
     (hcm : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
     (hsl : rs'.slent = rs.slent := by rfl) (hst : rs'.steps = rs.steps := by rfl)
-    (hd : rs'.delivered = rs.delivered := by rfl) (hps : rs'.psnap = rs.psnap := by rfl) :
+    (hd : rs'.delivered = rs.delivered := by rfl) (hps : rs'.psnap = rs.psnap := by rfl)
+    (hca : rs'.capplied = rs.capplied := by rfl) :
     LoanOk rs' s' := by
-  obtain ⟨H1, H2, H3⟩ := H
-  refine ⟨by rw [hgh, hsl]; exact H1, fun h => ?_, fun l h => ?_⟩
+  obtain ⟨H1, H2, H3, H4⟩ := H
+  refine ⟨by rw [hgh, hsl]; exact H1, fun h => ?_, fun l h => ?_, H4.keep hsn hcm hsl hd hca⟩
   · rw [hgh, hst]; exact H2 (hsl ▸ h)
   · obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9⟩ := H3 l (hsl ▸ h)
     rw [hgh, hsn, hfl, hsd, hu, hap, hd, hst, hps]
@@ -1064,10 +1108,16 @@ theorem LoanOk.step {rs : RNState} {s s' : NState} {b : Bool} (t : w64) (H : Loa
       s'.logst.fl = s.logst.fl ∧
       s'.logst.stored = s.logst.stored ∧ s'.logst.unpersisted = s.logst.unpersisted ∧
       s'.logst.applying = s.logst.applying ∧
+      uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
+    -- (2026-11-02, stage II (u)) the pending snapshot kept or restored past the commit index
+    -- (`CapOk`)
+    (hcap : (s'.logst.snap = s.logst.snap ∨ ∃ s2, s'.logst.snap = some s2 ∧
+        uint.Z s.logst.committed < uint.Z s2.index' ∧
+        (rs.delivered.length : Int) ≤ uint.Z s.logst.committed) ∧
       uint.Z s.logst.committed ≤ uint.Z s'.logst.committed) :
     LoanOk { rs with term := t, psnap := rs.psnap || b } s' := by
-  obtain ⟨H1, H2, H3⟩ := H
-  refine ⟨by rw [hgh]; exact H1, fun h => ?_, fun l h => ?_⟩
+  obtain ⟨H1, H2, H3, H4⟩ := H
+  refine ⟨by rw [hgh]; exact H1, fun h => ?_, fun l h => ?_, H4.restore hcap.1 hcap.2⟩
   · rw [hgh]; exact H2 h
   · have hl : rs.slent = some l := h
     obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9⟩ := H3 l hl
@@ -1089,7 +1139,7 @@ theorem LoanOk.ack_eq {rs : RNState} {s : NState} (H : LoanOk rs s) {t : w64} {b
   cases hl : rs.slent with
   | none => exact absurd hm ((H.none_noack hl).2 t b e sv)
   | some l =>
-    obtain ⟨-, -, -, -, -, -, -, -, pre, t', e', Hst, Hpre⟩ := H.2.2 l hl
+    obtain ⟨-, -, -, -, -, -, -, -, pre, t', e', Hst, Hpre⟩ := H.2.2.1 l hl
     rw [Hst] at hm
     rcases List.mem_append.1 hm with h | h
     · obtain ⟨pv, t'', h'⟩ := Hpre _ h; cases h'
@@ -1107,7 +1157,7 @@ theorem ack_snap_sip {rs : RNState} {s : NState} (H : LoanOk rs s) (Hsn : SnpOk 
   | none => exact .inl hsn
   | some sv =>
     obtain ⟨l, hl, rfl, -⟩ := H.ack_eq hm
-    obtain ⟨a1, -⟩ := H.2.2 l hl
+    obtain ⟨a1, -⟩ := H.2.2.1 l hl
     exact .inr ((Hsn.2.1 _ a1).1 hsn).1
 
 /-- What `GMode.Pre` needs of the node, for any message but a snapshot or a storage-apply
@@ -2893,7 +2943,7 @@ theorem ownRawNode_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
     rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap
     (stepsOk_mono s _ _ rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl Hle' Hstok) Htrm Hstor
     ⟨H1, rfl, Int.le_trans H3 Hle', fun h => Int.le_trans (H4 h) Hle', H5⟩ Hrs_out Hrs_unst Hrs_clb Hrnfl
-    ⟨Hloan.1, Hloan.2.1, Hloan.2.2⟩
+    ⟨Hloan.1, Hloan.2.1, Hloan.2.2.1, Hloan.2.2.2⟩
     Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc [Hdur]
   · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
 
@@ -2944,7 +2994,8 @@ theorem ownRawNode_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
     Hdlen rfl Hsnap
     (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl (Int.le_refl _) Hstok)
     Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
-    ⟨Hloan.1, Hloan.2.1, (fun l (h : rs.slent = some l) => by rw [Hsl] at h; cases h)⟩
+    ⟨Hloan.1, Hloan.2.1, (fun l (h : rs.slent = some l) => by rw [Hsl] at h; cases h),
+        Hloan.2.2.2⟩
     Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc [Hdur]
   · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
 
@@ -3073,7 +3124,8 @@ theorem ownRawNode_raise_floor (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
       (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl (Int.le_refl _) Hstok)
       Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
       ⟨fun h => by simp at h, Hrnfl.2⟩
-      ⟨Hloan.1, Hloan.2.1, (fun l (h : rs.slent = some l) => by rw [Hsl] at h; cases h)⟩
+      ⟨Hloan.1, Hloan.2.1, (fun l (h : rs.slent = some l) => by rw [Hsl] at h; cases h),
+        Hloan.2.2.2⟩
       Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc [Hdur]
     · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
   iexists s.logst.applying
@@ -3090,11 +3142,24 @@ theorem ownRawNode_loanLoc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     ownRawNode (GF := GF) γ rn id rs ⊢ snapLocal γ id l.snap.Metadata'.Index' := by
   iintro H
   iNamed H
-  rcases (Hloan.2.2 l Hl).2.1 with h | ⟨s2, -, -, h⟩
+  rcases (Hloan.2.2.1 l Hl).2.1 with h | ⟨s2, -, -, h⟩
   · rw [show l.snap.Metadata'.Index' = (snapId l.snap).index' from rfl]
     iapply (snapLocOk_some γ id (snapId l.snap)).1
     rw [← h]; iexact Hsloc
   · rw [Hp] at h; cases h
+
+/-- (2026-11-02, stage II (u)) **A lent snapshot is at or past the configuration index**
+(`CapOk`): what `run` needs to move its view of the configuration up to the snapshot's. -/
+theorem ownRawNode_capLoan (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
+    ⊢ ownRawNode (GF := GF) γ rn id rs -∗
+      ⌜∀ l, rs.slent = some l → rs.capplied ≤ l.dlv.length⌝ ∗ ownRawNode γ rn id rs := by
+  iintro H
+  iNamed H
+  isplitr
+  · ipureintro; exact Hloan.2.2.2.2.1
+  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap
+    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur
 
 end rawnode
 

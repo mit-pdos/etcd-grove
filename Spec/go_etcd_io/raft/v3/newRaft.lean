@@ -202,8 +202,10 @@ abbrev newRaft.spec : Prop :=
   -- the persisted ConfState: one `Restore` accepts, at the tracker's state `cs'`
   restoreM csm.VotersOutgoing' csm.Voters' csm.Learners' csm.LearnersNext' csm.AutoLeave' =
     some cs' →
-  csm.Voters'.length + csm.VotersOutgoing'.length + csm.Learners'.length +
-    csm.LearnersNext'.length ≤ 2 ^ 62 →
+  -- (2026-11-02, stage II (u)) at most `2^62` ids listed (the progress map `Restore` builds;
+  -- until then at most `2^62` ids in the four lists together, which a valid membership does not give)
+  (GMap.size (GMap.listToSet csm.Voters' ∪ GMap.listToSet csm.VotersOutgoing' ∪
+    GMap.listToSet csm.Learners' ∪ GMap.listToSet csm.LearnersNext') : Int) ≤ 2 ^ 62 →
   -- (2026-11-02, stage II (r)) and well-formed, which `assertConfStatesEquivalent` needs (a list
   -- with a repeat, or `AutoLeave` set with no outgoing voter, makes it panic)
   ConfStateOk csm →

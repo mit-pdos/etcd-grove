@@ -58,6 +58,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       wp_apply wp_applyConf_dyn wp_raft_applyConfChange γ rn id rs dec c0 h0 h1 hm k0 e0
           cs0 v2 m.asV2 (DFrac.own 1) rs.delivered ds (Hpre.mono_dec (effDec_base dec ds)) s cf fp rnv sv hprev steps Hwf Hin
           Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs HDc
+          (fun l hl => (Hloan.2.2.1 l hl).2.2.2.2.2.2.1.length_le) (fun _ => Nat.le_refl _)
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
           $Hloanc $Hsloc $Hch $Hlc1 $Hdur] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcs, %Hcs0⟩
       try wp_auto
@@ -82,6 +83,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       wp_apply wp_applyConf_dyn wp_raft_applyConfChange γ rn id rs dec c0 h0 h1 hm k0 e0
           cs0 p m dq rs.delivered ds (Hpre.mono_dec (effDec_base dec ds)) s cf fp rnv sv hprev steps Hwf Hin
           Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs HDc
+          (fun l hl => (Hloan.2.2.1 l hl).2.2.2.2.2.2.1.length_le) (fun _ => Nat.le_refl _)
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
           $Hloanc $Hsloc $Hch $Hlc1 $Hdur] as %cs %xs %os %ls %lns ⟨Hrn, Hch, Hcs, %Hcs0⟩
       try wp_auto

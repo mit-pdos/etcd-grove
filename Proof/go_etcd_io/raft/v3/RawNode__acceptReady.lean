@@ -970,7 +970,26 @@ theorem RawNode.acceptReady.wp_proof
       simp only [readySteps, if_neg Hne, List.mem_append, List.mem_singleton, _root_.or_true]
   -- (D22 S-d3a) the loan, as the node keeps it (`LoanOk`)
   have HloanN : LoanOk rsN (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) := by
-    refine ⟨rfl, fun hl => ⟨?_, ?_⟩, fun l hl => ?_⟩
+    refine ⟨rfl, fun hl => ⟨?_, ?_⟩, fun l hl => ?_, ?_⟩
+    rotate_right
+    · -- (2026-11-02, stage II (u)) the configuration index below the lent snapshot (`CapOk`)
+      have H4 := Hloan.1.2.2.2
+      refine ⟨?_, fun l hl => ?_, fun hl p hp => ?_⟩
+      · show (rs.capplied : Int) ≤ uint.Z
+          (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.committed
+        rw [Hlogst, Haf4, Hf_cm]; exact H4.1
+      · have hl' : L = some l := hl
+        subst hl'
+        obtain ⟨Hs1, -, -, -, -, -, -, Hdl1, -⟩ := (Hrdp.2 l rfl).2
+        have h3 := (H4.2.2 Hloan.2 _ Hs1).1
+        simp only [snapId] at h3
+        show rs.capplied ≤ l.dlv.length
+        rw [Hdl1]; omega
+      · have hl' : L = none := hl
+        change (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.snap
+          = some p at hp
+        rw [Hlogst, Haf2, Hf_snap, (Hrdp.1 hl').2] at hp
+        cases hp
     · have hl' : L = none := hl
       show loanTrip L = none
       rw [hl']; rfl

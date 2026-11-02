@@ -62,8 +62,14 @@ theorem setupNode.wp_proof
     rw [S1, S2]; simp only [List.length_nil]; have : uint.Z (W64 0) = 0 := rfl; omega
   have A8 : restoreM csm.VotersOutgoing' csm.Voters' csm.Learners' csm.LearnersNext' csm.AutoLeave' =
       some (cfgState ∅ ∅) := by rw [Q2, Q1, Q3, Q4]; rfl
-  have A9 : csm.Voters'.length + csm.VotersOutgoing'.length + csm.Learners'.length +
-      csm.LearnersNext'.length ≤ 2 ^ 62 := by rw [Q1, Q2, Q3, Q4]; simp
+  have A9 : (GMap.size (GMap.listToSet csm.Voters' ∪ GMap.listToSet csm.VotersOutgoing' ∪
+      GMap.listToSet csm.Learners' ∪ GMap.listToSet csm.LearnersNext') : Int) ≤ 2 ^ 62 := by
+    rw [Q1, Q2, Q3, Q4]
+    have h := GMap.size_list_to_set ([] : List w64) List.nodup_nil
+    rw [show GMap.listToSet ([] : List w64) ∪ GMap.listToSet [] ∪ GMap.listToSet [] ∪
+      GMap.listToSet [] = GMap.listToSet ([] : List w64) from
+        GMap.set_eq fun k => by simp only [GMap.elem_of_union, or_self], h]
+    simp
   wp_apply wp_NewRawNode c cv lok si sn σ hs csm R R' (cfgState ∅ ∅) P1 P2 P3 P4 P5 P6 P7 P8 P9
     A1 S3 A2 A3 A4 A5 S6 A7 HAR (.inl Hhs) (.inl P10) A8 A9 A10
     $$ [Hc HR]

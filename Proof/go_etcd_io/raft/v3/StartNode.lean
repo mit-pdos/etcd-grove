@@ -610,7 +610,7 @@ private theorem wp_StartNode_impl
       · unfold runCfg
         isplitr
         · ipureintro
-          exact ⟨rfl, Nat.le_refl _, rfl, fun _ h => by simp at h, rfl⟩
+          exact ⟨rfl, rfl, fun _ h => by simp at h, rfl⟩
         isplitl [Hdlm]
         · iExactEq Hdlm; rfl
         isplitr
@@ -619,7 +619,7 @@ private theorem wp_StartNode_impl
         iexists 0
         iframe Hcap1 Hcam
         isplitr
-        · ipureintro; exact Nat.le_refl _
+        · ipureintro; exact ⟨Nat.le_refl _, fun h => absurd h (Nat.lt_irrefl _)⟩
         iapply undecFree_empty
       iexists _; iexact Hbw
     itrivial

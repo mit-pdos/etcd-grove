@@ -65,6 +65,55 @@ theorem restore_prs_size (cl : CSLists) (Hvnd : cl.voters.Nodup) (Hlnd : cl.lear
   have : (0 : Int) ≤ cl.learnersNext.length := by omega
   omega
 
+/-- (2026-11-02, stage II (u)) `restore_prs_size` from the number of ids the lists name (not their
+lengths, which a membership bounds only by three times its ids). -/
+theorem restore_prs_size_ids (cl : CSLists)
+    (Hsz : (GMap.size (GMap.listToSet cl.voters ∪ GMap.listToSet cl.outgoing ∪
+      GMap.listToSet cl.learners ∪ GMap.listToSet cl.learnersNext) : Int) ≤ 2 ^ 62)
+    (prs : GMap w64 Loc) (al : Bool)
+    (Hprs : domSet prs =
+      domSet (cfgStateC (csCfgM cl.outgoing cl.voters cl.learners cl.learnersNext al)).prs) :
+    (GMap.size prs : Int) ≤ 2 ^ 62 := by
+  have Hd : domSet prs = (GMap.listToSet cl.voters ∪ GMap.listToSet cl.outgoing) ∪
+      GMap.listToSet cl.learners := by
+    rw [Hprs]
+    apply GMap.set_eq; intro k
+    rw [GMap.elem_of_dom']
+    simp only [cfgStateC, csCfgM, CfgM.voters]
+    rw [cfgFlags_mem]
+    simp only [GMap.elem_of_union]
+  have h1 := GMap.size_dom prs
+  rw [Hd] at h1
+  have h2 := GMap.subseteq_size (GMap.union_subseteq_l
+    (GMap.listToSet cl.voters ∪ GMap.listToSet cl.outgoing ∪ GMap.listToSet cl.learners)
+    (GMap.listToSet cl.learnersNext))
+  omega
+
+/-- (2026-11-02, stage II (u)) Lists without repeats, of at most `2^62` ids together, are each at
+most `2^62` long. -/
+theorem lists_bounded_of_ids (cl : CSLists) (Hvnd : cl.voters.Nodup) (Hond : cl.outgoing.Nodup)
+    (Hlnd : cl.learners.Nodup) (Hnnd : cl.learnersNext.Nodup)
+    (Hsz : (GMap.size (GMap.listToSet cl.voters ∪ GMap.listToSet cl.outgoing ∪
+      GMap.listToSet cl.learners ∪ GMap.listToSet cl.learnersNext) : Int) ≤ 2 ^ 62) :
+    cl.Bounded := by
+  have hv := GMap.subseteq_size (Y := GMap.listToSet cl.voters ∪ GMap.listToSet cl.outgoing ∪
+      GMap.listToSet cl.learners ∪ GMap.listToSet cl.learnersNext) (X := GMap.listToSet cl.voters)
+    (by rw [GMap.elem_of_subseteq]; intro k hk; simp only [GMap.elem_of_union]; simp [hk])
+  have ho := GMap.subseteq_size (Y := GMap.listToSet cl.voters ∪ GMap.listToSet cl.outgoing ∪
+      GMap.listToSet cl.learners ∪ GMap.listToSet cl.learnersNext) (X := GMap.listToSet cl.outgoing)
+    (by rw [GMap.elem_of_subseteq]; intro k hk; simp only [GMap.elem_of_union]; simp [hk])
+  have hl := GMap.subseteq_size (Y := GMap.listToSet cl.voters ∪ GMap.listToSet cl.outgoing ∪
+      GMap.listToSet cl.learners ∪ GMap.listToSet cl.learnersNext) (X := GMap.listToSet cl.learners)
+    (by rw [GMap.elem_of_subseteq]; intro k hk; simp only [GMap.elem_of_union]; simp [hk])
+  have hn := GMap.subseteq_size (Y := GMap.listToSet cl.voters ∪ GMap.listToSet cl.outgoing ∪
+      GMap.listToSet cl.learners ∪ GMap.listToSet cl.learnersNext) (X := GMap.listToSet cl.learnersNext)
+    (by rw [GMap.elem_of_subseteq]; intro k hk; simp only [GMap.elem_of_union]; simp [hk])
+  rw [GMap.size_list_to_set _ Hvnd] at hv
+  rw [GMap.size_list_to_set _ Hond] at ho
+  rw [GMap.size_list_to_set _ Hlnd] at hl
+  rw [GMap.size_list_to_set _ Hnnd] at hn
+  refine ⟨?_, ?_, ?_, ?_⟩ <;> omega
+
 /-- What `confchange.Restore` builds for a `ConfState` denoting `c`, as `switchToConfig` takes
 it (`ownConfigC`): its `Progress` values are some `pvs` whose learner flags are `c`'s. -/
 theorem ownConfigC_of_restore (c : CfgM) (cfgv : tracker.Config) (prsm : Loc)

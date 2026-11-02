@@ -523,7 +523,10 @@ theorem RawNode.Bootstrap.wp_proof
           (by simp only; rw [HNgh]) (by simp only; rw [HNgh]) (uint_Z_nonneg _) (HrnflB _ rfl)
           -- (D22 S-d3a) no snapshot lent
           ⟨by simp only; rw [HNgh]; rfl, fun _ => ⟨by simp only; rw [HNgh], fun _ _ _ _ h => (by cases h)⟩,
-            fun l h => (by cases h)⟩
+            fun l h => (by cases h),
+            -- (2026-11-02, stage II (u)) the configuration index `0`, no snapshot (`CapOk`)
+            ⟨by simp only [Int.natCast_zero]; exact uint_Z_nonneg _, fun l h => (by cases h),
+              fun _ p hp => by rw [HNls] at hp; simp [logAppend, Hsn] at hp⟩⟩
           (SdtTie.of_none (by rw [HNls]; simp only [logAppend, Hsn]; exact Hdtk0))
         -- (durability stage II, G2) a fresh node's recorded role: `NewRawNode`'s follower
         (by exact Hsvr.1.symm)
@@ -591,7 +594,10 @@ theorem RawNode.Bootstrap.wp_proof
           (by simp only; rw [HNgh]) (by simp only; rw [HNgh]) (uint_Z_nonneg _) (HrnflB _ rfl)
           -- (D22 S-d3a) no snapshot lent
           ⟨by simp only; rw [HNgh]; rfl, fun _ => ⟨by simp only; rw [HNgh], fun _ _ _ _ h => (by cases h)⟩,
-            fun l h => (by cases h)⟩
+            fun l h => (by cases h),
+            -- (2026-11-02, stage II (u)) the configuration index `0`, no snapshot (`CapOk`)
+            ⟨by simp only [Int.natCast_zero]; exact uint_Z_nonneg _, fun l h => (by cases h),
+              fun _ p hp => by rw [HNls] at hp; simp [logAppend, Hsn] at hp⟩⟩
           (SdtTie.of_none (by rw [HNls]; simp only [logAppend, Hsn]; exact Hdtk0))
         -- (durability stage II, G2) a fresh node's recorded role: `NewRawNode`'s follower
         (by exact Hsvr.1.symm)

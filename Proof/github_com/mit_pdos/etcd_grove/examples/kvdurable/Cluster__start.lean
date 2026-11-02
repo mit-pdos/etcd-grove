@@ -96,73 +96,6 @@ def startStor (stp bp : Loc) (boot : ConfStateM) (F : StorFile) : IProp GF :=
     memEnd γs (uint.nat F.prev + F.ents.length + 1) ∗
     memCompacted γs (uint.nat F.prev) ∗ memSnapLb γs (uint.nat F.snap.Metadata'.Index'))
 
-/-- (2026-11-02, stage II (t); gap, `sorry`) **A membership of the store's cluster lists at most
-`2^62` ids in its four sets** (`RestartNode`'s scope premise on the conf state's lists, stage II (p)).
-True of every membership the cluster reaches -- its ids are the replicas', at most `maxReplicas` --
-but not derivable from what the store records of a configuration (`GMap.size m.ids < 2^61`, the
-store's `validConf` check, with `Membership.Valid`): a valid membership bounds the lists only by
-`3 * |ids|` (raft's `checkInvariants` allows an incoming voter in `LearnersNext`, so the four sets
-may cover the outgoing voters three times), where `2 * |ids|` would do. A fix: the store's
-invariant records that every id is a replica's (`allIds`), or raft's `Membership.Valid` that
-`LearnersNext` is disjoint from the incoming voters (which raft's `confchange` keeps). -/
-theorem kd_confAt_lists_le (γ : KdNames) (vs : List w64) (k : Nat) (m : Membership) :
-    kdCluster (GF := GF) γ vs ∗ confAt γ.r.cluster k m ⊢
-      ⌜GMap.size m.voters + GMap.size m.votersOutgoing + GMap.size m.learners +
-        GMap.size m.learnersNext ≤ 2 ^ 62⌝ := by
-  sorry
-
-/-- (2026-11-02, stage II (t); gap, `sorry` above the applied index) **`RestartNode` at a
-configuration point `a` in `[max σ.b Applied, σ.commit]`**: `RestartNode.spec`'s form until stage
-II (r), which narrowed the point to `max σ.b Applied`. The store needs the wider form: it restarts
-with `Applied` anywhere in `[first - 1, si]` (`si` its stored snapshot's index, `first - 1` the
-log's start, below `si` after a `Compact` short of the snapshot), and its storage's `ConfState` is
-the snapshot's, the configuration at `si`, not at `max σ.b Applied`; it skips the entries up to
-`si`, conf entries among them (`Replica.applyEntry`), as the post's `nodeConfig ⟨a, m⟩` lets it.
-At `a = max σ.b Applied` this is `RestartNode.spec`; above it, the case stage II (p) left `sorry`
-(`run`'s `runCfg` needs the configuration point within the delivered log: plan amendment 4 / I-9),
-which stage II (r) removed from raft by narrowing the spec. -/
-theorem kd_RestartNode_at (wp_RestartNode : RestartNode.spec (GF := GF) (hG := hG)) :
-  ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (σ : StorContents) (csm : ConfStateM) (a : Nat) (m : Membership)
-    (Q : RaftState → IProp GF) (F : GName → IProp GF),
-  ConfigValid cv →
-  cv.Logger' = interface.ok lok →
-  cv.Storage' = interface.ok si →
-  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-  cv.DisableProposalForwarding' = false →
-  cv.ReadOnlyOption' = W64 0 →
-  cv.DisableConfChangeValidation' = false →
-  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-  cv.AsyncStorageWrites' = false →
-  (uint.nat cv.Applied' = 0 ∨ σ.b ≤ uint.nat cv.Applied' ∧ uint.nat cv.Applied' ≤ σ.commit) →
-  max σ.b (uint.nat cv.Applied') ≤ a → a ≤ σ.commit →
-  γ.bootLen ≤ σ.commit →
-  confStateIs csm m →
-  csm.Voters'.length + csm.VotersOutgoing'.length + csm.Learners'.length +
-    csm.LearnersNext'.length ≤ 2 ^ 62 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isCluster γ N ∗ nodeVacant γ cv.ID' ∗ readyFits γ N ∗
-      AU <{ ∃∃ (S : RaftState), ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
-         <{ raftState γ cv.ID' S, COMM Q S }> ∗
-      confAt γ a m ∗
-      restartStorage γ (interface.ok si) σ csm (uint.nat cv.Applied') F }}
-    (App (Val #(functions RestartNode [])) (Val #c))
-  {{ (nd : GoInterface), RET #nd;
-      ∃ (n : Loc) (S : RaftState) (l : List LogEntry) (K : GName),
-        ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-        isNode n γ N cv.ID' ∗
-        isCommittedLogLb γ l ∗ ⌜l.length = max σ.b (uint.nat cv.Applied')⌝ ∗
-        ⌜(LogEntry.toEntries l 0).drop σ.b = σ.ents.take (l.length - σ.b)⌝ ∗
-        nodeDriver n γ N ⟨interface.ok si, l, σ.hs, none, K, S, StateFollower⟩ ∗
-        nodeConfig n γ N ⟨a, m⟩ ∗
-        nodeRunning n γ N 1 ∗
-        Q S ∗ F K }} := by
-  intro γ N c cv lok si σ csm a m Q F Hv Hl Hs Hm Hdp Hro Hdc Hsz Has Hap Ha1 Ha2 Hbl Hcs Hlen
-  by_cases Ha : a = max σ.b (uint.nat cv.Applied')
-  · subst Ha
-    exact wp_RestartNode γ N c cv lok si σ csm m Q F Hv Hl Hs Hm Hdp Hro Hdc Hsz Has Hap Hbl Hcs Hlen
-  · sorry
-
 theorem Cluster.start.wp_proof
     (wp_fileOf : Cluster.fileOf.spec (GF := GF) (hG := hG))
     (wp_Read : github_com.mit_pdos.etcd_grove.examples.durable.Read.spec (GF := GF) (hG := hG))
@@ -507,17 +440,9 @@ theorem Cluster.start.wp_proof
       GoInterface.ok ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage.ty, #s⟩ :=
     rfl
   have HA : uint.nat cv.Applied' = uint.nat ap0 := by rw [HcAp]
-  -- (2026-11-02, stage II (t)) the conf state's lists within `2^62` (`kd_confAt_lists_le`, a gap)
-  ihave %Hlists := kd_confAt_lists_le γ vs _ m $$ [$Hcl $Hcap]
-  have Hcsl : (kdInitCS (kvreconf.bootCS vs) F).Voters'.length +
-      (kdInitCS (kvreconf.bootCS vs) F).VotersOutgoing'.length +
-      (kdInitCS (kvreconf.bootCS vs) F).Learners'.length +
-      (kdInitCS (kvreconf.bootCS vs) F).LearnersNext'.length ≤ 2 ^ 62 := by
-    obtain ⟨h1, h2, h3, h4, -⟩ := Hinit
-    rw [h1.length_eq, h2.length_eq, h3.length_eq, h4.length_eq]
-    simp only [GMap.length_elements]
-    exact Hlists
-  wp_apply (kd_RestartNode_at wp_RestartNode γ.r.cluster kdRaftN cp cv qLogger
+  -- (2026-11-02, stage II (u)) `RestartNode` at the stored snapshot's configuration point (until
+  -- then `kd_RestartNode_at`, `sorry` above the applied index, and `kd_confAt_lists_le`, `sorry`)
+  wp_apply (wp_RestartNode γ.r.cluster kdRaftN cp cv qLogger
       ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.kvdurable.Storage.ty, #s⟩
       (kdContents (some F)) (kdInitCS (kvreconf.bootCS vs) F) (uint.nat F.snap.Metadata'.Index') m
       (fun S' => iprop(kdWriter γ id S fo ∗ ⌜S' = S⌝))
@@ -532,7 +457,7 @@ theorem Cluster.start.wp_proof
           · rw [h1]; simp; word
           · omega)
       (by simp only [kdContents_some_commit]; exact Hsc)
-      (by rw [Hbl0]; omega) Hinit Hcsl)
+      (by rw [Hbl0]; omega) Hinit)
     $$ [$Hraft $Hcv $Hlogger $HisC $Hfits Hvac Hau Hrs]
     as %nd ⟨%n, %S', %l, %K, %Hnd, #HisNode, #Hl', %Hllen, %HS1b, Hdrv, Hncfg, Hrun, ⟨Hwr, %HS'⟩,
       ⟨Hmeta, #HmsInv⟩⟩

@@ -78,7 +78,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
   icases Hlb with ⟨#Hlb, -⟩
   ihave %Hpfx := mono_list_auth_lb_valid _ _ _ _ $$ Hdlm Hlb
   ihave %Hcle := monoNatLbOwn_valid _ _ _ _ $$ Hcam Hcamlb
-  obtain ⟨Hmd, Hcap, Hflw, Hpre, Hsnm⟩ := Hm0
+  obtain ⟨Hmd, Hflw, Hpre, Hsnm⟩ := Hm0
   cases L with
   | none =>
     have Hsl : rs.slent = none := HL
@@ -86,7 +86,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     · iunfold runCfg
       iframe Hdlm Hdk
       isplitr
-      · ipureintro; exact ⟨Hmd, Hcap, Hflw, Hpre, Hsnm⟩
+      · ipureintro; exact ⟨Hmd, Hflw, Hpre, Hsnm⟩
       iexists ca_r
       iframe Hcap_r Hcam Hinv2
       ipureintro; exact Hinv
@@ -138,7 +138,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     have Hsl : rs.slent = some l := HL
     have Hdp := Hpre l Hsl
     rw [Hsl]
-    simp only [rsDlv, Hsl] at Hpfx Hcap Hinv ⊢
+    simp only [rsDlv, Hsl] at Hpfx Hinv ⊢
     simp only [advReceipt, reqOf, dlvAfter, reqWit, loanReq, Option.map_some, capAns, capPay]
     ihave %Hx := dghostVar_agree _ _ _ _ _ $$ Hcap_r Hpay
     subst Hx
@@ -155,7 +155,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
         simp only [rsDlv, Hsl]
         iframe Hdlm Hdk
         isplitr
-        · ipureintro; exact ⟨Hmd, Hcap, Hflw, by rw [← Hsl]; exact Hpre, Hsnm⟩
+        · ipureintro; exact ⟨Hmd, Hflw, by rw [← Hsl]; exact Hpre, Hsnm⟩
         iexists ca_r
         iframe Hcap_r Hcam Hinv2
         ipureintro; exact Hinv
@@ -184,7 +184,9 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
       iframe Hpay Hcl
     | true =>
       have Hdy : rs.mode.isDyn = true := by rw [Hmd, hd]
-      have Hle : ca_r ≤ l.dlv.length := Nat.le_trans Hinv Hcap
+      -- (2026-11-02, stage II (u)) the lent snapshot at or past the configuration index (`CapOk`)
+      icases ownRawNode_capLoan γ.raft rn id rs $$ Hrn with ⟨%Hcl0, Hrn⟩
+      have Hle : ca_r ≤ l.dlv.length := Nat.le_trans Hinv.1 (Hcl0 l Hsl)
       imod dghostVar_update_halves (l.dlv.length, rs.mode.foldCfg l.decs l.dlv rs.cfg) γ.cap _ _
         $$ Hcap_r Hpay with ⟨Hcap_r, Hpay⟩
       imod mono_nat_own_update l.dlv.length Hle $$ Hcam with ⟨Hcam, #Hcl⟩

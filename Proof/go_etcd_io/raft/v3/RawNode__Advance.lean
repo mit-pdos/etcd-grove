@@ -975,7 +975,7 @@ theorem RawNode.Advance.wp_proof
   · -- (D22 S-d3a) **after a snapshot `Ready`**: the application's receipt back, absorbed; the queue
     -- is the node's own responses, then the snapshot's acknowledgement
     obtain ⟨Hsnp, Hss, Hcm0, Hfl0, Hstu, Haplt, Hdlp, Hdll, pre, tA, eA, Hsteq, Hpre⟩ :=
-      Hloan.2.2 l hsl
+      Hloan.2.2.1 l hsl
     have Hapl := Int.le_of_lt Haplt
     -- (D22 S-d3b) the lent snapshot pending, or a later one restored past it (`LoanOk`)
     have Hsnn : s.logst.snap ≠ none := by rcases Hss with h | ⟨_, h, -⟩ <;> rw [h] <;> simp
@@ -1578,8 +1578,32 @@ theorem RawNode.Advance.wp_proof
       have HloanA : LoanOk { rs with
               steps := [], term := s1.term, capplied := CA, flw := false, slent := none,
               unpersisted := [], delivered := l.dlv, cfg := rs.mode.foldCfg l.decs l.dlv rs.cfg }
-          { s1 with logst := s1.logst, gh := { s1.gh with slent := false, snp := none } } :=
-        ⟨rfl, fun _ => ⟨rfl, fun _ _ _ _ h => (by cases h)⟩, fun l h => (by cases h)⟩
+          { s1 with logst := s1.logst, gh := { s1.gh with slent := false, snp := none } } := by
+        -- (2026-11-02, stage II (u)) the configuration index at most the snapshot's, below a later
+        -- one pending (`CapOk`)
+        have Hcl : CA ≤ l.dlv.length := by
+          rw [HCA]; split
+          · exact Nat.le_refl _
+          · exact Hloan.2.2.2.2.1 l hsl
+        have Hdl' : (l.dlv.length : Int) = uint.Z l.snap.Metadata'.Index' := by
+          rw [Hdll]; have := uint_Z_nonneg l.snap.Metadata'.Index'; omega
+        refine ⟨rfl, fun _ => ⟨rfl, fun _ _ _ _ h => (by cases h)⟩, fun l h => (by cases h), ?_⟩
+        refine ⟨?_, ⟨fun l' (h : (none : Option SnapLoan) = some l') => by simp at h, fun _ p hp => ?_⟩⟩
+        · show (CA : Int) ≤ uint.Z s1.logst.committed
+          have := Hs0f.2.2.2.2.2.2.2.1
+          rw [this] at Hc1
+          omega
+        · change s1.logst.snap = some p at hp
+          show (CA : Int) ≤ uint.Z p.index' ∧ (l.dlv.length : Int) ≤ uint.Z p.index'
+          rcases Hsk1 with ⟨h1, h2⟩ | ⟨h1, -⟩
+          · rw [h1] at hp
+            rw [hp] at h2
+            rcases Hss with h | ⟨s2, h3, hlt, -⟩
+            · rw [h] at hp; cases hp
+              simp [snapHit, snapId] at h2
+            · rw [h3] at hp; cases hp
+              constructor <;> omega
+          · rw [h1] at hp; cases hp
       iapply HΦ $$ %s1.term %CA
       rw [advRS_some _ _ hsl]
       isplitl
@@ -1645,7 +1669,7 @@ theorem RawNode.Advance.wp_proof
           have Hsnk : s1.logst.snap = none → s.logst.snap = some (snapId l.snap) := by
             intro h
             rcases Hsk1 with ⟨h', -⟩ | ⟨-, h'⟩
-            · obtain ⟨-, Hd, -⟩ := Hloan.2.2 l hsl
+            · obtain ⟨-, Hd, -⟩ := Hloan.2.2.1 l hsl
               rcases Hd with Hd | ⟨s2, Hd, -⟩
               · exact Hd
               · rw [← h', h] at Hd; cases Hd
@@ -1965,9 +1989,26 @@ theorem RawNode.Advance.wp_proof
     have HrnflA : RNFl { rs with steps := [], term := s1.term, capplied := ca, flw := false } s1 :=
       ⟨fun _ => by have := Hflb1.1; rw [Hs1.1] at this; omega,
        fun h => absurd Hge (by rw [Hs1.1] at h; omega)⟩
+    -- (2026-11-02, stage II (u)) the configuration index up to at most the committed log handed out,
+    -- below the commit index and a pending snapshot (`CapOk`)
+    icases ownRaftPhysC_applying cf rnv.raft' id s1 $$ Hphys with ⟨%Hac1, Hphys⟩
+    have HcapA : CapOk { rs with steps := [], term := s1.term, capplied := ca, flw := false } s1 := by
+      have H4 := Hloan.2.2.2
+      have Hdc : (rs.delivered.length : Int) ≤ uint.Z s1.logst.committed := by
+        rw [Hdlen, ← Hs1.1]; have := uint_Z_nonneg s1.logst.applying; omega
+      refine ⟨?_, fun l h => (by simp only at h; rw [hsl] at h; cases h), fun _ p hp => ?_⟩
+      · show (ca : Int) ≤ _
+        have := H4.1; have := Hca.2.1
+        omega
+      · change s1.logst.snap = some p at hp
+        rw [Hs1.2.2.1] at hp
+        have h3 := H4.2.2 hsl p hp
+        show (ca : Int) ≤ _ ∧ (rs.delivered.length : Int) ≤ _
+        have := Hca.2.1
+        constructor <;> omega
     have HloanA : LoanOk { rs with steps := [], term := s1.term, capplied := ca, flw := false } s1 :=
       ⟨by rw [Hsg1.2.2]; exact Hloan.1, fun h => ⟨by rw [Hsg1.2.2]; exact (Hloan.2.1 h).1,
-        fun _ _ _ _ h => (by cases h)⟩, fun l h => (by simp only at h; rw [hsl] at h; cases h)⟩
+        fun _ _ _ _ h => (by cases h)⟩, fun l h => (by simp only at h; rw [hsl] at h; cases h), HcapA⟩
     ihave #Hsloc' := snapLocOk_keep γ id (.inl Hs1.2.2.1) $$ Hsloc
     icases ownRaftPhysC_sn cf rnv.raft' id s1 $$ Hphys with ⟨%Hsn1, Hphys⟩
     iapply HΦ $$ %s1.term %ca

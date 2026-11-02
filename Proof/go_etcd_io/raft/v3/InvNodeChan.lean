@@ -911,9 +911,13 @@ entry. (D22 S-d4, 2026-10-21) A node that takes snapshots (`snapIn`) is outside 
 mode (2026-10-28, stage U3d: in either mode; until then the static one); one that does not has no
 snapshot pending or lent (from D22 S-c to S-d4 none at all); while a snapshot `Ready` is lent the
 committed log handed out is the loan's (`rsDlv`), which extends `delivered`, and (U3d) the driver may
-apply a conf entry of it (the configuration index bounded by it, `rsDlv`). -/
+apply a conf entry of it (the configuration index bounded by it, `rsDlv`). (2026-11-02, stage II
+(u)) The configuration index past the committed log handed out only with the driver's view at it
+(`ca = capplied`): a node `RestartNode` starts at its storage's `ConfState`'s point, above the
+applied index it hands the committed log out from, whose conf entries up to that point the view
+already reflects (until then `capplied ≤ (rsDlv rs).length` always). -/
 @[no_expose] def runCfg (γ : NodeNames) (rs : RNState) : IProp GF :=
-  iprop(⌜rs.mode = γ.mode ∧ rs.capplied ≤ (rsDlv rs).length ∧
+  iprop(⌜rs.mode = γ.mode ∧
       -- (D19i part 1) the floor not raised past `applied` (`RNState.flw`): `run` raises it only
       -- in its `advancec` arm, right before `Advance`
       rs.flw = false ∧
@@ -926,7 +930,7 @@ apply a conf entry of it (the configuration index bounded by it, `rsDlv`). -/
     -- (U8 v2, 2026-10-29) raft's certified terms of it, for the driver's lower bounds (`dlvLb`)
     dlvKeys γ.sn (rsDlv rs) ∗
     ∃ ca : Nat, dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, rs.cfg) ∗
-      monoNatAuthOwn γ.cam 1 ca ∗ ⌜ca ≤ rs.capplied⌝ ∗
+      monoNatAuthOwn γ.cam 1 ca ∗ ⌜ca ≤ rs.capplied ∧ (ca < rs.capplied → rs.capplied ≤ (rsDlv rs).length)⌝ ∗
       -- (2026-10-28, the decision switch) over skipped entries (until then none, `NoConfIn`)
       undecFree γ.raft γ.mode (rsDlv rs) ca rs.capplied)
 

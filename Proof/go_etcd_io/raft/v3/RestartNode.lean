@@ -390,10 +390,7 @@ private theorem wp_RestartNode_impl
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     EtcdGrove.RestartNode.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.RestartNode.spec
-  intro γ N c cv lok si σ csm m Q F H1 H2 H3 H4 H5 H6 H7 H8 H9 Happ Hboot Hcs Hcsl
-  -- the configuration point `a`, the applied index the node starts at (named until the post)
-  generalize Hae : max σ.b (uint.nat cv.Applied') = a
-  have Ha1 : max σ.b (uint.nat cv.Applied') ≤ a := Hae ▸ Nat.le_refl _
+  intro γ N c cv lok si σ csm a m Q F H1 H2 H3 H4 H5 H6 H7 H8 H9 Happ Ha1 Ha2 Hboot Hcs
   wp_start as ⟨Hc, #Hlg, #Hcl, Hvac, #Hfits, HAU, #Hconf, Hrs⟩
   iunfold EtcdGrove.isCluster at Hcl
   ihave #Hcl' := Hcl
@@ -576,6 +573,17 @@ private theorem wp_RestartNode_impl
     rw [hAL]
     have hO : m.votersOutgoing = ∅ := by rw [← cc_listToSet_of_perm hVO, h]; rfl
     exact (Hvalm.1.1.2.2.2 hO).2
+  -- (2026-11-02, stage II (u)) fewer than `2^62` ids listed: the membership's (`CfgOk`)
+  have Hcsl : (GMap.size (GMap.listToSet csm.Voters' ∪ GMap.listToSet csm.VotersOutgoing' ∪
+      GMap.listToSet csm.Learners' ∪ GMap.listToSet csm.LearnersNext') : Int) ≤ 2 ^ 62 := by
+    obtain ⟨hV, hVO, hL, hLN, -⟩ := Hcs
+    rw [cc_listToSet_of_perm hV, cc_listToSet_of_perm hVO, cc_listToSet_of_perm hL,
+      cc_listToSet_of_perm hLN]
+    have h2 := memOf_ids_of_inv Hvalm.1.1
+    rw [stOf_cfg, memOf_cfgOf] at h2
+    have h1 : GMap.size (cfgOf m).ids < 2 ^ 62 := Hvalm.1.2.2
+    show (GMap.size m.ids : Int) ≤ _
+    rw [h2]; omega
   have HbcZ : uint.Z σ.base.index' ≤ uint.Z σ.hs.Commit' := by
     unfold StorContents.b StorContents.commit at Hbc
     have := uint_nat_eq σ.base.index'; have := uint_nat_eq σ.hs.Commit'; omega
@@ -707,7 +715,6 @@ private theorem wp_RestartNode_impl
   obtain ⟨Hlsn, Hgsn⟩ := Hsn2
   -- the committed log handed out at the start: up to `max b A`
   have Ha0c : max σ.b (uint.nat cv.Applied') ≤ σ.commit := by omega
-  have Ha2 : a ≤ σ.commit := Hae ▸ Ha0c
   have HDlen : ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied'))).length =
       max σ.b (uint.nat cv.Applied') := by
     rw [List.length_take]; omega
@@ -856,6 +863,12 @@ private theorem wp_RestartNode_impl
     rw [Hca, Hsvr.2]
     simp only [σv]
     omega
+  -- (2026-11-02, stage II (u)) the configuration point within the stored commit, no snapshot
+  have HcapR : CapOk rs0 s1 := by
+    refine ⟨?_, fun l (h : (none : Option SnapLoan) = some l) => by simp at h, fun _ p hp => ?_⟩
+    · show (a : Int) ≤ uint.Z s.logst.committed
+      rw [Hcm, Hca]; unfold StorContents.commit at Ha2; have := uint_nat_eq σ.hs.Commit'; omega
+    · change s.logst.snap = some p at hp; rw [Hsn0] at hp; cases hp
   ihave Hrn : ownRawNode γ.raft rn cv.ID' rs0 $$ [Hrn Hphys Hghost Hsteps Hsteps_cap]
   · iapply ownRawNode_intro γ.raft rn cv.ID' rs0 s1 (stOf m).cfg fp (ds := MA) rnv sv hprev []
       Hrel.2 (fun h => by simp only [rs0] at h; rw [Hmd] at h; cases h) Hasync
@@ -868,7 +881,7 @@ private theorem wp_RestartNode_impl
       ⟨fun _ => by rw [Hap]; exact Hflk.1, fun h => absurd h (by rw [Hap]; exact Int.lt_irrefl _)⟩
       ⟨by show s.gh.slent = false; rw [Hgh],
         fun _ => ⟨by show s.gh.snp = none; rw [Hgh], fun _ _ _ _ h => by cases h⟩,
-        fun l h => by cases h⟩
+        fun l h => (by cases h), HcapR⟩
       ⟨by show ((fp ++ σ.ents).take _).length ≤ s.logst.dtk; rw [HDlen, Hdtk1]; exact Ha0c,
         fun i hi1 hi2 => by
           change ((fp ++ σ.ents).take _).length < i at hi1
@@ -883,8 +896,7 @@ private theorem wp_RestartNode_impl
     · iapply ackInv_none; intro _ _ _ _ h; cases h
     · iapply loanCom_none γ.raft rfl
     · rw [show s1.logst.snap = none from Hsn0]; iapply snapLocOk_none
-  -- the driver's view of the configuration is the node's: from the applied index it starts at
-  subst Hae
+  -- the driver's view of the configuration is the node's: at the configuration point `a`
   have Hhp : hprev = σ.hs := by rw [Hhz, Hca]
   -- raft's certified terms of the committed log handed out (the attach record's)
   ihave #HdK : dlvKeys (GF := GF) sn ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied'))) $$ []
@@ -922,9 +934,9 @@ private theorem wp_RestartNode_impl
   -- the node's configuration names, `live`, the durable state and role, the last batch's maps
   imod mono_list_own_alloc (GF := GF) ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied')))
     with ⟨%gdlm, Hdlm, #Hdlb⟩
-  imod dghostVar_alloc (GF := GF) ((max σ.b (uint.nat cv.Applied')), stOf m) with ⟨%gcap, Hcap⟩
-  imod dghostVar_alloc (GF := GF) ((max σ.b (uint.nat cv.Applied')), stOf m) with ⟨%gccq, Hccq⟩
-  imod mono_nat_own_alloc (GF := GF) (max σ.b (uint.nat cv.Applied')) with ⟨%gcam, Hcam, #Hcamlb⟩
+  imod dghostVar_alloc (GF := GF) (a, stOf m) with ⟨%gcap, Hcap⟩
+  imod dghostVar_alloc (GF := GF) (a, stOf m) with ⟨%gccq, Hccq⟩
+  imod mono_nat_own_alloc (GF := GF) a with ⟨%gcam, Hcam, #Hcamlb⟩
   imod dghostVar_alloc (GF := GF) false with ⟨%glive, Hlive⟩
   imod dghostVar_alloc (GF := GF) ((S, StateFollower) : RaftState × StateType) with ⟨%gdur, Hdur⟩
   imod dghostVar_alloc (GF := GF)
@@ -1033,17 +1045,15 @@ private theorem wp_RestartNode_impl
       · unfold runCfg
         isplitr
         · ipureintro
-          refine ⟨rfl, ?_, rfl, fun _ h => absurd h (by simp [rs0]), rfl⟩
-          show (max σ.b (uint.nat cv.Applied')) ≤ ((fp ++ σ.ents).take _).length
-          rw [HDlen]; omega
+          exact ⟨rfl, rfl, fun _ h => absurd h (by simp [rs0]), rfl⟩
         isplitl [Hdlm]
         · iExactEq Hdlm; rfl
         isplitr
         · iExactEq HdK; rfl
-        iexists (max σ.b (uint.nat cv.Applied'))
+        iexists a
         iframe Hcap1 Hcam
         isplitr
-        · ipureintro; exact Nat.le_refl _
+        · ipureintro; exact ⟨Nat.le_refl _, fun h => absurd h (Nat.lt_irrefl _)⟩
         iapply undecFree_empty
       iexists _; iexact Hbw
     itrivial
