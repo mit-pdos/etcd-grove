@@ -84,6 +84,50 @@ theorem prec_iff_linOrder {h : List (Op OpV)} {cs : List (List Nat)} {c d j k : 
     rw [hob] at h2; cases h2
     exact hlt
 
+theorem linOrder_ne_conc (a b : Operation) : linOrder a b ≠ W64 3 := by
+  unfold linOrder
+  repeat (first | decide | split)
+
+/-- Client `d`'s `j`-th operation precedes client `c`'s `k`-th (the searches' test). -/
+abbrev PAt {α : Type} (h : List (Op α)) (cs : List (List Nat)) (c k d j : Nat) : Prop :=
+  Prec h (opAt cs d j) (opAt cs c k)
+
+/-- The test is downward closed along the chain. -/
+theorem pAt_down {α : Type} {h : List (Op α)} {cs : List (List Nat)} (hok : ChainsOk h cs)
+    {c k d j j' : Nat} (hj : j < (chain cs d).length) (hj' : j' ≤ j) (hP : PAt h cs c k d j) :
+    PAt h cs c k d j' := by
+  unfold PAt at *
+  rw [opAt_eq hj, ← fu_prefix hok hj] at hP
+  rw [opAt_eq (by omega), ← fu_prefix hok (by omega)]
+  omega
+
+/-- `Check`'s answer, with the operations by position. -/
+theorem pAt_iff_linOrder {h : List (Op OpV)} {cs : List (List Nat)} {c d j k : Nat}
+    {va vb : List Bool} {cosa cosb : List clientOperation} {a b : clientOperation}
+    (hcoa : CoOk h (chain cs d) va cosa) (hcob : CoOk h (chain cs c) vb cosb)
+    (hj : j < (chain cs d).length) (hk : k < (chain cs c).length)
+    (ha : cosa[j]? = some a) (hb : cosb[k]? = some b) :
+    linOrder a.Op' b.Op' = W64 (-2) ↔ PAt h cs c k d j := by
+  unfold PAt
+  rw [opAt_eq hj]
+  exact prec_iff_linOrder hcoa hcob hj hk ha hb
+
+/-- The searches' result: from `start`, the first index whose operation does not precede, is
+`FUe` at `k` (`start` the previous operation's `FUe`, or `0` at the chain's first). -/
+theorem fue_of_search {α : Type} {h : List (Op α)} {cs : List (List Nat)} (hok : ChainsOk h cs)
+    {c k d r : Nat}
+    (hsr : (if 0 < k then FUe h cs c d (k - 1) else 0) ≤ r) (hrl : r ≤ (chain cs d).length)
+    (hpre : ∀ j, (if 0 < k then FUe h cs c d (k - 1) else 0) ≤ j → j < r → PAt h cs c k d j)
+    (hstop : r < (chain cs d).length → ¬ PAt h cs c k d r) :
+    r = FUe h cs c d k := by
+  have := fue_search hok hsr hrl
+    (fun j hj h1 h2 => by have := hpre j h1 h2; unfold PAt at this; rwa [opAt_eq hj] at this)
+    (fun hr hp => hstop hr (by unfold PAt; rwa [opAt_eq hr]))
+  rw [this]
+  cases k with
+  | zero => simp [FUe]
+  | succ k => simp [fue_succ]
+
 /-- The head operation's `visited` set, keeping the rest of a client's operation. -/
 theorem coOk_set_visited {h : List (Op OpV)} {ch : List Nat} {vs : List Bool}
     {cos : List clientOperation} {k : Nat} {co : clientOperation}
@@ -249,6 +293,11 @@ theorem fus_rebuild {cos cos' : List clientOperation} {i : Nat} {F F' : Nat → 
   by_cases hk : k = i
   · simp only [hk, ↓reduceIte]; exact .rfl
   · simp only [hk, ↓reduceIte, hF k hk]; exact .rfl
+
+theorem ite_emp_neg {p : Prop} [Decidable p] {P : IProp GF} (hp : ¬ p) :
+    (if p then emp else P) ⊣⊢ P := by
+  rw [ite_cond_eq_false _ _ (eq_false hp)]
+  exact .rfl
 
 /-- A read-only slice as two halves. -/
 theorem ownSlice_halves {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (s : GoSlice)

@@ -26,6 +26,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 
+set_option maxHeartbeats 4000000 in
 theorem chains.computeFirstUnk.wp_proof
     (wp_Check : Consistency.Check.spec (GF := GF) (hG := hG)) :
     chains.computeFirstUnk.spec (GF := GF) (hG := hG) := by
@@ -128,7 +129,198 @@ theorem chains.computeFirstUnk.wp_proof
       · simp [hn]
     wp_auto
     idx_auto [hbc, hbh]
-    sorry
+    have hco' : cosc[st.head (sint.nat c)]? = some co := by rw [← hhdn]; exact hco
+    icases (BigSepL.bigSepL_delete_cond (PROP := IProp GF)
+      (Φ := fun k co => co.firstUnk' ↦* st.fuAt (sint.nat c) k) hco').1 $$ Hfus with ⟨Hfl, Hfurest⟩
+    have hfl0 : (st.fuAt (sint.nat c) (st.head (sint.nat c))).length = cs.length :=
+      (hshape.2.2.2.2 _ _ hhl).2.2
+    ihave IH : iprop(∃ (dv : w64) (fl : List w64),
+        "d" ∷ d_ptr ↦ dv ∗ "Hfl" ∷ co.firstUnk' ↦* fl ∗
+        "%Hd" ∷ ⌜0 ≤ sint.Z dv ∧ sint.Z dv ≤ cs.length ∧ fl.length = cs.length ∧
+          ∀ d', d' < sint.nat dv → d' < cs.length → d' ≠ sint.nat c →
+            sint.Z (fl.getD d' 0) = FUe h cs (sint.nat c) d' (st.head (sint.nat c))⌝) $$ [d Hfl]
+    · iexists W64 0, st.fuAt (sint.nat c) (st.head (sint.nat c))
+      iframe
+      ipureintro
+      refine ⟨by word, by word, hfl0, fun d' hd' => absurd hd' (by word)⟩
+    wp_for IH
+    have hclZ : sint.Z chV.clients'.len = (cs.length : Int) := by
+      rw [← Hcvs.1, Hcllen.1]; exact (Int.toNat_of_nonneg Hcllen.2).symm
+    wp_if_destruct
+    · have hdl : sint.nat dv < cs.length := by word
+      wp_if_destruct
+      · -- `d = c`: skipped
+        wp_for_post
+        iframe
+        iexists dv + W64 1, fl
+        iframe
+        ipureintro
+        refine ⟨by word, by word, Hd.2.2.1, fun d' hd' hd'l hd'c => ?_⟩
+        have : d' ≠ sint.nat dv := by intro h'; subst h'; exact hd'c (by rw [Hif])
+        exact Hd.2.2.2 d' (by word) hd'l hd'c
+      · have hdc : sint.nat dv ≠ sint.nat c := by intro h'; apply Hif; word
+        idx_auto [hbc]
+        obtain ⟨start, hstart⟩ : ∃ s : Nat, s = if 0 < st.head (sint.nat c) then
+            FUe h cs (sint.nat c) (sint.nat dv) (st.head (sint.nat c) - 1) else 0 := ⟨_, rfl⟩
+        wp_join iprop(∃ fu0 : w64, "firstUnk" ∷ firstUnk_ptr ↦ fu0 ∗
+            "%Hfu0" ∷ ⌜sint.Z fu0 = start⌝ ∗
+            "Hcosc" ∷ cvc.cltOps' ↦* cosc ∗
+            "Hfurest" ∷ ([∗list] k ↦ y ∈ cosc, if k = st.head (sint.nat c) then emp else
+              y.firstUnk' ↦* st.fuAt (sint.nat c) k) ∗
+            "head_cc" ∷ (sliceIndexRef client (sint.Z c) chV.clients').[client, go!"head"]
+              ↦{DFrac.own (1 : Qp).half} cvc.head' ∗
+            "cltOps_cc" ∷ (sliceIndexRef client (sint.Z c) chV.clients').[client, go!"cltOps"]
+              ↦{DFrac.own (1 : Qp).half} cvc.cltOps' ∗
+            "clients_ch" ∷ ch.[chains, go!"clients"] ↦ chV.clients' ∗
+            "ch" ∷ ch_ptr ↦ ch ∗ "c" ∷ c_ptr ↦ c ∗ "d" ∷ d_ptr ↦ dv)
+          with [firstUnk Hcosc Hfurest head_cc cltOps_cc clients_ch ch c d] as HR
+        · -- a previous operation: its bound
+          have hpos : 0 < st.head (sint.nat c) := by word
+          have hd1 : st.head (sint.nat c) - 1 < (chain cs (sint.nat c)).length := by omega
+          have hbm : 0 ≤ sint.Z (cvc.head' - W64 1) ∧
+              sint.Z (cvc.head' - W64 1) < sint.Z cvc.cltOps'.len := by word
+          have hm1n : (sint.Z (cvc.head' - W64 1)).toNat = st.head (sint.nat c) - 1 := by word
+          obtain ⟨co1, hco1⟩ : ∃ co1, cosc[st.head (sint.nat c) - 1]? = some co1 :=
+            ⟨_, List.getElem?_eq_getElem (by omega)⟩
+          have hco1' : cosc[(sint.Z (cvc.head' - W64 1)).toNat]? = some co1 := by rw [hm1n]; exact hco1
+          idx_auto [hbc, hbm]
+          icases ownSlice_elem_acc (sint.Z (cvc.head' - W64 1)) co1 cvc.cltOps' _ cosc hbm.1 hco1'
+            $$ Hcosc with ⟨Hco1, Hcosc⟩
+          icases typedPointsto_not_null_dup _ _ _ $$ Hco1 with ⟨Hco1, %Hco1nn⟩
+          iStructNamedSuffix Hco1 "_c1"
+          wp_auto
+          ihave Hco1 := typedPointsto_combine _ co1 _ Hco1nn $$
+            [Op_c1 globalId_c1 id_c1 firstUnk_c1 visited_c1 __c1]
+          · simp only [TypedPointsto.typedPointstoDef]; iframe
+          ihave Hcosc := Hcosc $$ %co1 Hco1
+          rw [list_set_lookup_self _ _ _ hco1']
+          icases (BigSepL.bigSepL_lookup_acc (PROP := IProp GF)
+            (Φ := fun k (y : clientOperation) => if k = st.head (sint.nat c) then emp else
+              y.firstUnk' ↦* st.fuAt (sint.nat c) k) hco1).1 $$ Hfurest with ⟨Hf1, Hfurest⟩
+          icases (ite_emp_neg (GF := GF) (show ¬ (st.head (sint.nat c) - 1 = st.head (sint.nat c))
+            by omega)).1 $$ Hf1 with Hf1
+          ihave %Hf1len := ownSlice_len $$ Hf1
+          have hfu1 : (st.fuAt (sint.nat c) (st.head (sint.nat c) - 1)).length = cs.length :=
+            (hshape.2.2.2.2 _ _ hd1).2.2
+          have hbd : 0 ≤ sint.Z dv ∧ sint.Z dv < sint.Z co1.firstUnk'.len := by
+            refine ⟨Hd.1, ?_⟩; have := Hf1len.1; have := Hf1len.2; word
+          have hx : (st.fuAt (sint.nat c) (st.head (sint.nat c) - 1))[(sint.Z dv).toNat]? =
+              some ((st.fuAt (sint.nat c) (st.head (sint.nat c) - 1)).getD (sint.nat dv) 0) := by
+            rw [List.getD_eq_getElem?_getD, show (sint.Z dv).toNat = sint.nat dv from rfl,
+              List.getElem?_eq_getElem (by omega)]; rfl
+          simp only [hbd, and_self, ↓reduceIte]
+          wp_apply (wp_load_slice_index co1.firstUnk' (sint.Z dv) _ _ _ Hd.1) $$ [Hf1] as Hf1
+          · iframe Hf1; ipureintro; exact hx
+          wp_join_done
+          ihave Hf1 := (ite_emp_neg (GF := GF) (show ¬ (st.head (sint.nat c) - 1 = st.head (sint.nat c))
+            by omega)).2 $$ Hf1
+          ihave Hfurest := Hfurest $$ %co1 Hf1
+          rw [list_set_lookup_self _ _ _ hco1]
+          iexists _
+          iframe
+          ipureintro
+          have hv1 : st.visAt (sint.nat c) (st.head (sint.nat c) - 1) = true := hprev hpos hhl
+          rw [hfu _ _ hv1 _ hdl hdc, hstart, ite_eq_left hpos]
+        · have hz : ¬ 0 < st.head (sint.nat c) := by word
+          iexists W64 0
+          iframe
+          ipureintro
+          rw [hstart, ite_eq_right hz]; rfl
+        iNamed HR
+        obtain ⟨cvd, hcvd⟩ : ∃ cv, cvs[sint.nat dv]? = some cv :=
+          ⟨_, List.getElem?_eq_getElem (by omega)⟩
+        have hbd : 0 ≤ sint.Z dv ∧ sint.Z dv < sint.Z chV.clients'.len := ⟨Hd.1, by word⟩
+        icases ownSlice_elem_acc (sint.Z dv) cvd chV.clients' _ cvs Hd.1 hcvd $$ HclB
+          with ⟨Hcvd, HclB⟩
+        icases typedPointsto_not_null_dup _ _ _ $$ Hcvd with ⟨Hcvd, %Hcvdnn⟩
+        iStructNamedSuffix Hcvd "_cd"
+        icases (BigSepL.bigSepL_lookup_acc (PROP := IProp GF)
+          (Φ := fun k y => if k = sint.nat c then emp else clientOwn h cs st k y) hcvd).1 $$ Hrest
+          with ⟨Hcd, Hrest⟩
+        icases (ite_emp_neg (GF := GF) hdc).1 $$ Hcd with Hcd
+        iunfold clientOwn at Hcd
+        icases Hcd with ⟨%Hcvdf, %cosd, Hcosd, %Hcod, Hfusd⟩
+        ihave %Hcosdlen := ownSlice_len $$ Hcosd
+        have hdlen : cosd.length = (chain cs (sint.nat dv)).length := Hcod.1
+        have hLZ : (((chain cs (sint.nat dv)).length : Nat) : Int) = sint.Z cvd.cltOps'.len := by
+          rw [← hdlen, Hcosdlen.1]; exact Int.toNat_of_nonneg Hcosdlen.2
+        have hLh : (chain cs (sint.nat dv)).length ≤ h.length := chain_length_le hok _
+        have hh60 : (h.length : Int) < 2 ^ 60 := hwf.1
+        have hsl : start ≤ (chain cs (sint.nat dv)).length := by
+          rw [hstart]; split
+          · exact fue_le
+          · exact Nat.zero_le _
+        wp_auto
+        have hbd' : 0 ≤ sint.Z dv ∧ sint.Z dv < sint.Z chV.clients'.len := hbd
+        -- the exponential search
+        wp_join iprop(∃ (iv stepv fdkv : w64) (m : Nat),
+            "i" ∷ i_ptr ↦ iv ∗ "step" ∷ step_ptr ↦ stepv ∗ "firstDontKnow" ∷ firstDontKnow_ptr ↦ fdkv ∗
+            "%HE" ∷ ⌜sint.Z stepv = 2 ^ m ∧ sint.Z iv = start + 2 ^ m - 1 ∧
+              sint.Z iv - 2 ^ m / 2 ≤ (chain cs (sint.nat dv)).length ∧
+              (∀ j : Nat, start ≤ j → (j : Int) < sint.Z iv - 2 ^ m / 2 →
+                PAt h cs (sint.nat c) (st.head (sint.nat c)) (sint.nat dv) j) ∧
+              ((fdkv = W64 (-1) ∧ ((chain cs (sint.nat dv)).length : Int) ≤ sint.Z iv) ∨
+               (fdkv = iv ∧ sint.Z iv < (chain cs (sint.nat dv)).length ∧
+                ¬ PAt h cs (sint.nat c) (st.head (sint.nat c)) (sint.nat dv) (sint.nat iv)))⌝ ∗
+            "Hcosd" ∷ cvd.cltOps' ↦* cosd ∗ "Hcosc" ∷ cvc.cltOps' ↦* cosc ∗
+            "consistency" ∷ consistency_ptr ↦ cons ∗
+            "op" ∷ op_ptr ↦ sliceIndexRef clientOperation (sint.Z cvc.head') cvc.cltOps' ∗
+            "cltOps_cd" ∷ (sliceIndexRef client (sint.Z dv) chV.clients').[client, go!"cltOps"]
+              ↦{DFrac.own (1 : Qp).half} cvd.cltOps' ∗
+            "clients_ch" ∷ ch.[chains, go!"clients"] ↦ chV.clients' ∗
+            "ch" ∷ ch_ptr ↦ ch ∗ "d" ∷ d_ptr ↦ dv) at next
+          with [i step firstDontKnow Hcosd Hcosc consistency op cltOps_cd clients_ch ch d] as HE
+        · ihave IHE : iprop(∃ (iv stepv : w64) (m : Nat),
+              "i" ∷ i_ptr ↦ iv ∗ "step" ∷ step_ptr ↦ stepv ∗
+              "%HI" ∷ ⌜sint.Z stepv = 2 ^ m ∧ sint.Z iv = start + 2 ^ m - 1 ∧
+                sint.Z iv - 2 ^ m / 2 ≤ (chain cs (sint.nat dv)).length ∧
+                (∀ j : Nat, start ≤ j → (j : Int) < sint.Z iv - 2 ^ m / 2 →
+                  PAt h cs (sint.nat c) (st.head (sint.nat c)) (sint.nat dv) j)⌝) $$ [i step]
+          · iexists fu0, W64 1, 0
+            iframe
+            ipureintro
+            refine ⟨by word, by word, by word, fun j h1 h2 => absurd h2 (by word)⟩
+          wp_for IHE
+          idx_auto [hbd']
+          cleanup_bool_decide
+          wp_if_destruct
+          · have h2m : (1 : Int) ≤ 2 ^ m := by
+              have := Nat.one_le_two_pow (n := m); exact_mod_cast this
+            have hiL : sint.Z iv < ((chain cs (sint.nat dv)).length : Int) := by rw [hLZ]; exact Hif
+            have hbi : 0 ≤ sint.Z iv ∧ sint.Z iv < sint.Z cvd.cltOps'.len := ⟨by omega, Hif⟩
+            have hiLn : sint.nat iv < (chain cs (sint.nat dv)).length := by word
+            obtain ⟨a, ha⟩ : ∃ a, cosd[sint.nat iv]? = some a :=
+              ⟨_, List.getElem?_eq_getElem (by omega)⟩
+            idx_auto [hbd', hbi]
+            wp_apply (wp_check_elems wp_Check consistency_ptr cons cvd.cltOps' cvc.cltOps' cosd cosc
+              (sint.Z iv) (sint.Z cvc.head') a co (DFrac.own 1) (DFrac.own 1) hbi.1 hbh.1 ha hco)
+              $$ [$consistency $Hcosd $Hcosc] as ⟨consistency, Hcosd, Hcosc⟩
+            · iframe #
+            have hPiff := pAt_iff_linOrder Hcod Hcoc hiLn hhl ha hco'
+            wp_if_destruct
+            · -- `HardBefore`: double the step
+              have hPi := hPiff.mp Hif
+              have hstepL : sint.Z stepv ≤ (chain cs (sint.nat dv)).length := by omega
+              wp_for_post
+              iframe
+              iexists iv + stepv, stepv * W64 2, m + 1
+              iframe
+              ipureintro
+              have e1 : sint.Z (iv + stepv) = sint.Z iv + sint.Z stepv := by word
+              have e2 : sint.Z (stepv * W64 2) = sint.Z stepv * 2 := by word
+              have hp : (2 : Int) ^ (m + 1) = 2 ^ m * 2 := Int.pow_succ 2 m
+              refine ⟨by rw [e2, hp, HI.1], by rw [e1, hp]; omega, by rw [e1, hp]; omega,
+                fun j h1 h2 => pAt_down hok hiLn (by
+                  rw [e1, hp] at h2
+                  have := HI.1
+                  have : ((sint.nat iv : Nat) : Int) = sint.Z iv := Int.toNat_of_nonneg hbi.1
+                  omega) hPi⟩
+            · wp_if_destruct
+              · exact absurd Hif (linOrder_ne_conc _ _)
+              · sorry
+          · sorry
+        sorry
+    · sorry
 
 end proof
 
