@@ -8,6 +8,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.Run
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.runClient
 public import Spec.github_com.anishathalye.porcupine.CheckOperationsVerbose
+public import Proof.github_com.anishathalye.porcupine.Soundness
 public import Perennial.Spec.sync.WaitGroup__Add
 public import Perennial.Spec.sync.WaitGroup__Done
 public import Perennial.Spec.sync.WaitGroup__Wait
@@ -252,7 +253,9 @@ theorem Run.wp_proof
       · iframe #
       iapply HΦ
       ipureintro
-      exact Hr Hlin
+      rcases checkResult_complete Hr Hlin with rfl | ⟨rfl, Hd⟩
+      · exact ⟨by decide, fun _ => rfl⟩
+      · exact ⟨by decide, fun h => absurd Hd (by omega)⟩
 
 end proof
 

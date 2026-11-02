@@ -9,9 +9,9 @@ channel predicate (`resultP`, a bag: Perennial's `isChanBag`) says of a verdict 
 from some goroutine `i < n`, with that goroutine's token `i ↪[γt] ()` (a ghost map, so the
 verdicts the main thread receives come from distinct goroutines), its cell written
 (`cellDone`, persistent: the cell and the `longest` slice it holds, read-only from then on), and
-`checkSingle`'s disjunction: `b = true`, or partition `i` is not linearizable, or the context
-was cancelled (`□ PD`, the context's Done proposition, which only the main thread mints, when
-it cancels).
+`checkSingle`'s disjunction: `b = true` and partition `i` is linearizable, or `b = false` and
+partition `i` is not linearizable or the context was cancelled (`□ PD`, the context's Done
+proposition, which only the main thread mints, when it cancels).
 -/
 module
 
@@ -72,7 +72,8 @@ variable {σ : Type}
 def resultP (S : ModelSpec GF σ) (hs : List (List (Theory.Op OpV))) (γt : GName)
     (lsl : GoSlice) (PD : IProp GF) (b : Bool) : IProp GF :=
   iprop(∃ i : Nat, ⌜i < hs.length⌝ ∗ ghostMapElem γt i (DFrac.own 1) () ∗ cellDone lsl i ∗
-    (⌜b = true⌝ ∨ ⌜∃ h, hs[i]? = some h ∧ ¬ Linearizable S.M h⌝ ∨ □ PD))
+    (⌜b = true ∧ ∃ h, hs[i]? = some h ∧ Linearizable S.M h⌝ ∨
+      (⌜b = false⌝ ∗ (⌜∃ h, hs[i]? = some h ∧ ¬ Linearizable S.M h⌝ ∨ □ PD))))
 
 theorem bigSepL_replicate_range {A : Type} (Φ : Nat → A → IProp GF) (n : Nat) (v0 : A) :
     ([∗list] i ↦ x ∈ List.replicate n v0, Φ i x) ⊢ [∗list] k ∈ (List.range n : List Nat), Φ k v0 := by

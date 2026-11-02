@@ -128,15 +128,23 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   -- the backend keeps the key and the value: read-only for good
   ipersist Hib
   ipersist Hd
-  ihave #HSeqPut' := HSeqPut $$ %(mvcc.pendPuts ilog pend) %(1 : Qp).half %(mvcc.bucketMap ilog)
+  -- the view's bucket `m`, thin of `ilog`'s (M2's item 15): the put's condition holds of it
+  iunfold mvcc.bucketViewL at Hbv
+  icases Hbv with ⟨%m, Hbv, #Hbl⟩
+  ihave %Hmsub := mvcc.bucketLog_sub γ ilog m $$ Hbl
+  ihave #HSeqPut' := HSeqPut $$ %(mvcc.pendPuts ilog pend) %(1 : Qp).half %m
     %bK %ib' %d %_ %_
   -- (by hand: `wp_apply` loses the context here)
   wp_bind (App (App (App (Val #(methods bt.ty go!"UnsafeSeqPut" bt.v)) _) _) _)
   iapply HSeqPut' $$ [Hlocked Hbv]
   · iframe Hlocked Hbv HKeyG Hib Hd
-    ipureintro; exact mvcc.storePutOk_next γ ilog pend true _ (by omega) Hcs Hbm
+    ipureintro
+    exact mvcc.storePutOk_mono γ _ m _ _ _ Hmsub
+      (mvcc.storePutOk_next γ ilog pend true _ (by omega) Hcs Hbm)
   inext
   iintro ⟨Hlocked, Hbv⟩
+  ihave Hbv : mvcc.bucketViewL γ (1 : Qp).half ilog $$ [Hbv]
+  · iunfold mvcc.bucketViewL; iexists m; iframe Hbv; iexact Hbl
   icases mvcc.muHeld_idx s γ crev ti $$ Hmu with ⟨Hidxf, HmuI⟩
   (try wp_auto)
   -- `err = tw.s.kvindex.Tombstone(key, idxRev.Revision)`

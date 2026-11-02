@@ -479,8 +479,10 @@ theorem EtcdServer.start.wp_proof
     iintro !> %h
     have h' : E.authOn = true := h
     rw [hAuthOff] at h'; cases h'
-  -- `go s.run()`, with the write budget backed by time receipts (D19b)
-  imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
+  -- `go s.run()`, with the write budget backed by time receipts (D19b; made by `NewServer` since
+  -- M2's item 15, stage B3)
+  iunfold srvWTBudget at HWB
+  icases HWB with ⟨%γp, #HWB, #HWA0⟩
   -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
   -- `nonissues/etcd-compactor-started-before-start.md`): its run, once (`compactorRun`; M2, S4)
   icases Hcrun with ⟨%cr, #Hcra, Hcr⟩
@@ -968,8 +970,10 @@ theorem EtcdServer.start.wp_proofOn
     isplitl [Hap]
     · iexact Hap
     iframe Hso Hfs
-  -- `go s.run()`, with the write budget backed by time receipts (D19b)
-  imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
+  -- `go s.run()`, with the write budget backed by time receipts (D19b; made by `NewServer` since
+  -- M2's item 15, stage B3)
+  iunfold srvWTBudget at HWB
+  icases HWB with ⟨%γp, #HWB, #HWA0⟩
   -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
   -- `nonissues/etcd-compactor-started-before-start.md`): its run, once (`compactorRun`; M2, S4)
   icases Hcrun with ⟨%cr, #Hcra, Hcr⟩

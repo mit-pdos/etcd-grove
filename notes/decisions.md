@@ -6667,7 +6667,8 @@ lease-free puts and transactions are meaningful again; leased ones wait for T3.
   module path is upstream's, so the translation's names are those etcd's tests import.
   *Rejected:* a GitHub fork (an outward-facing step for a one-hunk change; the vendored copy can
   move to one later, as etcd's `goose-lean` branch).
-- **Completeness only**: the specs say a linearizable history is never `Illegal` (and is `Ok`
+- **Completeness only** (*superseded 2026-11-02* by "Porcupine: sound and complete", below: the
+  specs now characterize the result): the specs say a linearizable history is never `Illegal` (and is `Ok`
   without a timeout), not that `Ok` means linearizable. That is what "testing a linearizable
   library never fails" needs, and it makes the search's argument a backtracking invariant
   (`Theory.Inv`: the stack's configurations, a cursor past calls already tried, a cache of
@@ -29603,6 +29604,256 @@ half and nothing of the data, so the law as stated was not provable in that wind
 revision tokens' and the log's authorities: fewer spec diffs, but a harder refactor of `revMuBody`'s
 and `writerL`'s fractions and a less direct contract.
 
+## The writer's relation thin: `bucketViewL` (M2's item 15, step A1)
+
+**2026-11-02 · accepted** (the user: "Q1 bucketViewL", item 15's candidate 1)
+
+**Problem.** The store's pieces of the bucket's view (`writerRes`'s and the writer's pin's quarters,
+`s.revMu`'s half, the write transaction's half) said `bucketView γ q (bucketMap L)`: the view is the
+log's bucket, exactly. Compaction keeps that true (it deletes keys physically; the backend's logical
+view `bView` stays whole), but a restore from a compacted image does not: the new backend opens
+with the image's entries cut at the records' compaction revision (`restoreImageM`'s
+`bucketOfEnts ents`), fewer than `bucketMap L'`. So `store.Restore`'s post in compaction mode
+(`writerPin (γ.withPhys p') L'`) was unprovable. Widening the backend's logical view by a ghost step
+at the open was refuted in review round 4 (the view's other half is in the locks' resources), and a
+wider open (a trusted change of `OpenBackend`, with a pending-widening token: the open does not know
+the store's deletable keys yet) was the user's rejected option (b).
+
+**Decision.** The pieces hold `bucketViewL γ q L := ∃ m, bucketView γ q m ∗ bucketLog γ L m`, with
+`bucketLog γ L m := snapThin (bucketMap L) m (delKey γ) ∗ ⌜¬ kbCmpM γ.kb → m = bucketMap L⌝`
+(persistent): the view's bucket is the log's but for keys compaction may delete, and the log's
+itself when the store does not compact. Laws: `bucketViewL_exact`, `_init`, `_split`, `_halves`,
+`_join` (parts at any logs join at the first's: one bucket), `bucketLog_append` (a commit's puts go
+to both), `bucketLog_withPhys`, `bucketLog_off`, `bucketLog_thin`, `bucketLog_sub`; and
+`snapThin_trans`, `snapThin_foldl_insert`, `storePutOk_mono`.
+
+**The readers are unchanged** (`rangeKeys.spec`, `txReader`): `keyReaderD_thin` makes a reader of
+the view's bucket `m` a reader of any bucket `m` thins (`bucketMap L`), a key `m` lacks being
+deletable; `store.Read`, `storeTxnWrite.Range` and the compaction job compose the snapshot's thinning
+with the view's (`snapThin_trans`). `rangeEvents.spec` takes `bucketViewL γ q log` for
+`bucketView γ q (bucketMap log)` (pre and post: a weaker premise; its proof composes the two
+thinnings before `snapThin_scan`). The sole writer's laws keep their statements
+(`txn.kvWriter_keyObs`: thin by composition, exact off by `bucketLog`'s clause).
+
+## The compaction revision's physical lag (M2's item 15, step A2)
+
+**2026-11-02 · accepted** (the user chose "Lag state" for restore's dip of `compactMainRev`)
+
+**Problem.** `restore()` stores the image's finished compaction record in `compactMainRev` and, if
+the scheduled one is later, resumes it (`compactLockfree(scheduledCompact)`), which raises the field
+to it (`kvstore.go:332-340`, `:405-416`). In compaction mode the receiving store's compaction
+revision `c` (the ghost authority `crevUB`, monotone: readers hold lower bounds for `delKey`) can lie
+between the two records: the image is cut at the scheduled record (`entsCutAt L' r.crev`), so the
+ghost revision is raised to `r.crev` at the switch, while the field holds `r.finRev`, below it, until
+the resumed `updateCompactRev`. `s.revMu`'s resource said the field is the ghost revision.
+
+**Decision.** The lock holds `revMuBodyL`: `revMuBody` but for `compactMainRev`, at `cp ≤ c`, and
+below `c` only with the lag's token (`revLag`: a quarter of the lock's fraction of the watchable
+store's deposit ghost `γ.wsd`). Every opener but `updateCompactRev` finds no lag, so their callers
+are unchanged: a holder of `s.mu` has a part of the field at `c` (`revMuBodyL_mu`: the points-to
+agree), a holder of the watchable store's lock its deposit ghost whole (`revMuBodyL_wsd`;
+`revMuInv_open_ws` now takes `wsFields s γ 1`, `revMuInv_open_share` the deposit ghost).
+`store.Restore` holds both locks, so it can leave the lag. `updateCompactRev.spec` and
+`compactLockfree.spec` take `muInvLag s γ c cp` (`muInvAt s γ 1 c` at `cp = c`, `muInvLag_at`), with
+`cp < c → c ≤ rev`; the success case ends the lag (`prev = cp`, `cp < rev`, `c ≤ rev`, the token
+back: `lagTok`), the error case has none (`cp = c`). `store.Compact` passes `cp = c`.
+
+**Rejected.** Keeping the restoring flag up through the resumed compaction (`revMuRest`): the
+compaction right's share of the fields holds the flag down, and `compactLockfree` needs it. A new
+ghost name for the lag: `γ.wsd` already excludes the only openers `s.mu` does not.
+
+## The writer's registration as an invariant: pending until the batch lock's first holder (M2's item 15, step A2b)
+
+**2026-11-02 · accepted** (the user chose "Pending registration")
+
+**Problem.** In compaction mode `physOk` holds `physCmp`: the write right's invariant and the store's
+registration in its backend (`storeRegd`, the late-bound slot of the batch lock), so that a
+compaction can swap the lock's resource `storeW` for the writer's (`mwSwap_of_physOk`,
+`updateCompactRev`'s hook arm, `scheduleCompaction`'s sessions). `store.Restore` builds `physOk` at
+the new names, but Go never locks the new backend's batch tx in `Restore` (`restore()` reads through
+read transactions), so the registration cannot be made there: off, `Restore` leaves it pending in the
+writer's state (`writerReg`, a disjunction), and the first writer registers; on, `physOk` had nowhere
+to say "pending".
+
+**Decision.** `writerReg s γ := inv regN (storeRegd s γ ∨ kbRegRight γ.kb ∗ writerRes s γ)`, a
+persistent invariant, in the writer's state as before and in `physCmp` (`mwInv γ ∗ writerReg s γ`).
+Its contents are timeless (the instances next to it), so it opens without a later credit:
+`storeW_open` gives any holder of the batch lock's resource the writer's resource with the store
+registered (registering it now if pending: `storeW_pending`), which the creditless swaps
+(`mwSwap_frameU`, the frame with updates) and `updateCompactRev`'s contract update can use.
+`NewStore` allocates it registered (`writerReg_alloc`), `restore_finish` pending (`writerReg_allocP`)
+and returns it for the new `physOk`; `writerInv_checkin` allocates a fresh registered one. Internal to
+mvcc: no exported statement changes.
+
+**Rejected.** Registering in `Restore` by a lock/unlock of the new batch tx: not what Go does. A
+pending disjunct inside `physCmp` itself: `physOk` is persistent, the pending resource is not.
+
+## `physOk`'s backend contract without the records' resource (M2's item 15, step A2c)
+
+**2026-11-02 · accepted** (internal to mvcc)
+
+**Problem.** `physOk` kept the store's backend contract at the no-compaction token
+(`isKeyBackendG … (kbNoCmp γ.kb γ.bucket) …`): a `ReadTx` reader holding it reads the compaction keys
+as absent. A compacting store restored from a compacted image receives the contract only at the
+image's records (`storeBackendTR … r`, whose clause is under `kbRecs … r`), from which the clause
+under `kbNoCmp` does not follow, so `Restore` could not rebuild `physOk`.
+
+**Decision.** `physOk` (and `txReader`, `isKeyBackendG_cmpOn`) keep the contract with the records'
+resource `False`: no reader of the store holds a records' resource (only `restore()` reads the
+compaction keys, over its caller's contract, not `physOk`'s), so the clause was never used.
+`isKeyBackendGR_ncFalse` gives it from the contract at any records, `isKeyBackendG_ncFalse` from
+today's (`NewStore`, the off-mode `Restore`). No exported statement changes.
+
+## `store.restore.spec`'s branch flag: the clean read for any restored log (M2's item 15, step A2d)
+
+**2026-11-02 · accepted** (internal to mvcc: `store.restore` is called by `NewStore` and `store.Restore`)
+
+**Problem.** `store.restore.spec` branched on `R = []`: the empty log was `NewStore`'s case (no
+record, read through the backend's contract), any other the clean read. Two things blocked the
+compaction-mode `store.Restore`: (1) the contract and the clean read share the reader's token `RT`,
+and a compacting store's clean read lends the new backend's unfixed registration with it (`dlInit`,
+item 30's D1), which the contract, at the fixed registration (`restoreFixM`), cannot have; (2) a
+compacting store's image can be the empty log with a record (a sender that compacted at revision
+`1` before any write), which the `R = []` branch excluded (`r = empty`).
+
+**Decision.** A flag `ns` (with `ns → R = []`) chooses the branch: `NewStore`'s (the contract, the
+empty view, no record) or the clean read, now for any restored log; the contract is required only
+in `NewStore`'s branch (`if ns then isKeyBackendGR … else True`). The clean read's proof needed
+only the current-revision lemma at the empty log (`restoreCur_cut_nil`, `restoreCur_cut'`).
+`specNC_of_spec` passes `ns := decide (R = [])`: `NewStore` and the off-mode `Restore` are
+unchanged.
+
+**Rejected.** A framing law moving `dlInit` through the contract's `RT` (deep: the batch
+transaction's specs); excluding the empty log with records in `store.Restore`'s approved statement
+(the server could not discharge it).
+
+## `store.Restore` and `watchableStore.Restore` in either mode: the specs switched (M2's item 15, step A3)
+
+**2026-11-02 · the user's approval (candidate 1: "Q1 bucketViewL, Q2 stages A and B now, Q3 yes";
+amendment 1: "yes, add the two permit premises") · branch `m2-item15`**
+
+**What was.** `store.Restore.spec` and `watchableStore.Restore.spec` excluded compaction mode:
+`cm = false` premises for both backends, the store never compacted (`crevFrozen`), the whole `Key`
+bucket of the restored log and no record (`kbNoCmp`). The mode-general statements were Drafts
+(`store.Restore.specM`, `specMR` by sealed logs, `watchableStore.Restore.specM`).
+
+**Decision.** Both specs are now the approved mode-general statement: `specMR` with the
+restored log's receipt in the pre (`restoreRcptM`, in place of the pure `restoreBoundM`) and
+amendment 1's permits (`crevPermAt γ r.finRev ∗ crevPermAt γ r.crev`), the conjuncts in `specMR`'s
+order but for `isPkgInit`, first as everywhere (the Draft had the receipt before it). The
+vocabulary moved out of the Drafts into `mvcc/RestoreVocab.lean` (`restoreRightM`, `restoreImageM`,
+`kbRecs` over the merged compaction-key ghost `backend.fkVD`, `restoreRegM`/`restoreFixM`,
+`storeBackendTR`, `restoreRcptM`, `cmOff_true` and the off laws), so the Spec files import no
+Draft. `store.Restore.wp_proof` (now also over `compactLockfree`'s spec, for a resumed compaction)
+splits on the mode: on, the proof over `RestoreCmp.lean`'s pieces and `RestoreOn.lean`'s round
+resources; off, the earlier proof, over `store.restore.specNCc` (new, `RestoreNC.lean`: no record,
+the whole bucket, the clean read for any restored log, `ns = false`), because the off pre's clean
+read lends `restoreRegM d'` with the reader's token, which `specNC`'s shared `RT` with the contract
+(needed in its `R = []` branch) cannot take. `watchableStore.Restore`'s proof passes the store's pre
+and post through. The server keeps restoring over backends that do not compact until Stage B: its
+callers take the switched spec and use `watchableStore.Restore.specOff` (the old text,
+`RestoreOff.lean`) through `specOff_of_spec`. The Drafts' `store.Restore.specM`, `spec_of_specM`,
+`specMR`, `specMR_of_specM` and `watchableStore.Restore.specM`/`spec_of_specM` are gone.
+
+**Bounds.** No new stock: the on proof is a branch of `wp_proof` (no restated `specOn`), and the
+three round resources share one tail (`restoreOnRest`: the revision tokens, the outer quarter and
+the old pool), so `stock` in mvcc stays at its baseline (58).
+
+**Rejected.** A separate theorem for each mode with its own statement (two more copies of the
+spec's text, and of its reader stocks); keeping `store.Restore.specOff` beside the switched spec
+(nothing uses it once `watchableStore.Restore` switches in the same step).
+
+## The write budget: one stock per backend (M2's item 15, stage B1)
+
+**2026-11-02 · within the approved candidate 1 (stage B: "Q2 stages A and B now"); no linked statement
+changed · branch `m2-item15`**
+
+**What was.** `srvWTPool` (`InvApplier.lean`) held the current backend's write-back tokens and their
+bound (`receiptBound ≤ a + n + 1`) in its invariant; `srv_be_swap` took the old backend's tokens out
+(unused: the walk dropped them) and put the new backend's in.
+
+**Decision.** The tokens of each backend `d` are a persistent invariant of their own,
+`srvWTStockInv γp d` (namespace `srvWTStockN`, disjoint from the pool's): the tokens and a lower
+bound `m` of the pool's receipt counter `γp`, with `receiptBound ≤ m + n + 1`. The pool keeps the
+receipts, the counter's authority, its quarter of `E.γbe` at the current backend, that backend's
+stock fact and the monitor's read token. A take (`srvWTStock_take`) opens the pool and then the
+stock: the receipt goes into the pool, the counter up by one, a token out of the stock, whose lower
+bound moves to the new count. Since the stock fact sits under the pool's `▷` and is not timeless,
+finding the current backend's stock costs a later credit (`srvWTPool_stockOf`); every take law
+(`srvWTPool_take_at_d`/`_at`/`_n`/`_nOn`/`_extra_d`/`_extra`/`_two`, `srvApplyKVCore_commit`,
+`mergedCreate_window`'s premise) takes a `£ 1` beside its `⧗ 1`, which every caller has from the
+step that gave the receipt (`wp_go_step_receipt'` hands both; the callers had discarded the credit).
+`srv_be_swap` takes the new backend's stock fact (the walk makes it from the fresh tokens,
+`srvWTStock_alloc`) and hands out no old tokens.
+
+**Why.** Restore in compaction mode needs a persistent write-back supply of a backend
+(`kbWTSupplyM (some d)`, which `store.Compact` and a resumed compaction take) that survives later
+swaps; with the tokens in the pool's invariant, only the current backend's were reachable, through
+a part of `E.γbe`. With a stock per backend the supply is `kbWTSupplyM_of_stock` (the server Draft
+`M2StorageDraftRestore.lean`, with `kbWTSupplyM_of_poolR` for the apply loop's compaction arm);
+the old Draft's `kbWTSupplyM_of_srvWTPool` (from a discarded part of `E.γbe`) is removed. No more
+tokens than before: one stock of `receiptBound - 1` per backend, as the pool's was, and the shared
+counter bounds all takes together.
+
+**Rejected.** Keeping the tokens in the pool and handing a compaction job a part of `E.γbe` (P4's
+withdrawn discarded part: a swap gathers all of `E.γbe`); a supply that carries its own later
+credit (the supply is a persistent wand over `⧗ 1` only, `kbWTSupply`; changing it changes mvcc's
+approved statements).
+## Restore in compaction mode at the server: the walk by the mode and `specSnap` switched (M2's item 15, stage B2)
+
+**2026-11-02 · within the approved candidate 1 with amendment 1 and the user's "Add as premises"
+(the permits on `specSnap`); `applySnapshot.specSnap` changed (approved), no exported result's
+statement changed · branch `m2-item15`**
+
+**What was.** `applySnapshot.specSnap` took `d.cm = false`: the server restored only with the mode
+off (`watchableStore.Restore.specOff_of_spec`), and its post (`srvSnapApplied`) said `d'.cm = false`
+and handed back `srvKVCloser`.
+
+**Decision.** The walk (`applySnapshot_walk`) is by the mode. `specSnap` drops `hcm` and takes the
+image's records `r` with `hcc : d.cm = true → x.crev ≤ r.crev` and `hkI : keyImageM d.cm L r D`
+(off: today's `keyImage`, `r` empty); its pre holds the closer by the mode (`srvKVCloserW`), the
+receipt `restoreRcptM d L` and the permits `crevPermAt E.γ r.finRev ∗ crevPermAt E.γ r.crev`; its post
+(`srvSnapApplied … r …`) says `d'.cm = d.cm`, `x'.crev = r.crev` and hands back `srvKVCloserW`. The
+pieces: `restorePre_of_applyW` (the store's right from the apply thread's `cmpRight E x.crev`),
+`SnapRestoreM.lean` (`snap_restoreBackendM`: the backend contract and the clean read by the mode, on
+over `storeBackendTR_of_backendC`/`keyCleanRead_of_backendC`; `snap_kbSRM`, `snap_resumeHook`,
+`snap_oldReaders`, `snap_cmpRight_le`), `keyImageM_crev`; the write-back stock is made before
+`Restore` and gives the supply (`kbWTSupplyM_of_stock`, moved to `InvApplier.lean`). `applyAll`'s
+call discharges the new premises off (`keyImageM_off`, `r` empty, `crevPermAt_none`,
+`restoreRcptM_off`). `snapWalkPost` lost its unused fields (the backend contract, the clean read,
+the frozen revision).
+
+**Differences from candidate 1's text** (reported to the user): the store's compaction revision is
+`x.crev` (the apply thread's, already in `srvEnvOk`), not a new parameter `c`; the closer is the
+landed `srvKVCloserW`, not the draft's `srvKVCloserM s E c`; `hcc` is conditional on the mode (off
+it follows from `cmpRight`'s `x.crev = -1` and `r` empty), which is weaker for callers.
+
+**Why.** Stage B of the approved plan: the server restores a snapshot in either mode. The receipt and
+the permits stay premises (`notes/m2-storage-plan.md`): the receipt waits on `srvImageR` (the same
+gap as `merged_image`), the permits on the cluster's compaction protocol at the caller.
+
+## One write-token count: the budget made by `NewServer`, the compaction's supply from its stock (M2's item 15, stage B3)
+
+**2026-11-02 · the user's ("One token count goes with restore in compaction mode", accepted
+2026-11-01; "go ahead" 2026-11-02) · branch `m2-item15`**
+
+**What was.** In compaction mode `bootstrap`'s contract was at `N + N` write tokens: `N` for the
+write budget (`srvWTPool`, made by `start` from `srvWTStock E N`) and `N` more for the compaction's
+own stock (`srvCmpStock`, `CmpSupply.lean`, its own receipts), which `NewServer` made because the
+budget did not exist before `start`.
+
+**Decision.** `NewServer` makes the budget (`srvWTPool_alloc`, which now also returns the current
+backend's stock fact `srvWTStockInv γp d`) and gives the compaction's supply from that stock
+(`kbWTSupplyM_of_stock`, B1's); it hands the budget on as `srvWTBudget E` (`∃ γp, srvWTPool E γp ∗
+srvWTAt γp 0`) in place of `srvWTStock E N`, and `start` only opens it. `srvCmpStock` and its laws
+are gone. `bootstrap`'s contract is at `N` in both modes: `NewServer.spec`/`specM`/`specG`,
+`common`'s `newServer`, `newServerMode`, `StartCompactingServer`, `StartPeriodicServer`, and
+compactkv's and putgetc's proofs (premises weakened; no result's other statement changed).
+
+**Why.** One stock per backend sharing the budget's receipt counter (B1) bounds the apply loop's and
+the compactions' takes together, so a second stock with its own receipts is not needed; and it is the
+supply that survives a snapshot's swap, which restore in compaction mode needs.
+
 ## The read-side law: a revision reached is at most every later read's (2026-11-02 · the user's "go ahead with the read-side law" · branch `read-law`)
 
 **The question** (C3's client stage, "deferred" above): `kvRevLbZ γk n` is a lower bound of the KV
@@ -29885,3 +30136,38 @@ publishes, so the demux carries it.
   Open (round 2, not needed now): export the per-notification fact as a law beside
   `demuxPubBody_prog` (`demuxPubBody_quiet`), so that `storeW_quiet` and a `Watch` client need no
   unfold; and closed logs keep no quiet fact (`oc ≠ none`).
+## Porcupine: sound and complete (2026-11-02 · the user's "prove the iff")
+
+Supersedes "Completeness only" of "Porcupine: vendored, complete only, ..." (2026-10-14). The
+`Check*` specs said only that a linearizable history is never `Illegal` (and is `Ok` without a
+timeout). That is all "testing a linearizable library never fails" needs, but it left out what
+makes a failing test meaningful: `Illegal` means the history is not linearizable. Now:
+
+- `CheckOperations`: `b = true ↔ Linearizable S.M (histOf ops)`;
+- `CheckOperationsTimeout`/`Verbose`, `checkOperations`, `checkParallel`: a case split on the
+  result, `(r = Ok ∧ lin) ∨ (r = Illegal ∧ ¬ lin) ∨ (r = Unknown ∧ 0 < timeout)`: with no
+  timeout the check decides linearizability (the margin: `Unknown` also means no partition had
+  failed when the timer fired; no caller can use it without the partitions);
+- `checkSingle`: `(b = true ∧ lin) ∨ (b = false ∗ (¬ lin ∨ □ Done))`, its disjuncts tagged with
+  the verdict (untagged, `b = true ∧ ¬ lin` would satisfy it);
+- `checkResult_complete` (`Soundness.lean`): the result read by a caller that knows the history
+  is linearizable, `r = Ok ∨ (r = Unknown ∧ 0 < timeout)`; `lintest.Run`'s spec keeps its
+  completeness shape and derives it.
+
+Preconditions unchanged. The proof: `Theory.Sound` (pure, `Soundness.lean`): the stack is a
+chain of model steps, each frame lifted a call with only calls before it, the cursor is past calls
+only. It is carried unconditionally beside `⌜Inv⌝ ∨ □ cs.PDone`, because a `StepContext` on a done
+context may refuse a step (losing `Inv`'s "every skipped call is bad") but never accepts one the
+model refuses; at the exit with the list empty, the stack, oldest first, linearizes the history
+(`sound_done`). `checkParallel`'s verdicts carry soundness (`resultP`), and its receive loop
+records that every verdict so far was `true` for the partitions received and that it stopped at
+`count >= len(history)` unless it failed or timed out. Still partial correctness: nothing says the
+search terminates.
+
+`Soundness.lean` is a module of its own rather than part of `Theory`/`Defs`, which about 1150
+modules import: only `checkSingle`'s proof and `lintest.Run` import it, so the change rebuilt 57.
+
+Found on the way (the user's question, 2026-11-02): porcupine's open PR #46 (a DAG-based search,
+github.com/anishathalye/porcupine/pull/46) breaks completeness when two overlapping operations
+share a `ClientId` (a linearizable register history it rejects), so the old spec would be false
+of it; soundness likely survives there. Not filed: the PR is unmerged and not what we verify.

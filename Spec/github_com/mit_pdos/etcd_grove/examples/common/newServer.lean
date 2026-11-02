@@ -100,8 +100,9 @@ abbrev newServer.specCompact : Prop :=
       -- (2026-11-02, the backend-auth-split stage) the thread's token, `NewServer`'s, given back
       threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      -- (M2, 2026-10-31) at `N + N` write tokens: `N` more, the compaction's write-back stock
-      bootPremise (N + N) ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
+      -- (M2's item 15, stage B3) at `N` write tokens (`N + N` from M2 until then: `N` more, the
+      -- compaction's write-back stock)
+      bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
       -- (M2, the storage side, N1) the member's boot bundle in compaction mode
       memberBoot γ ctxs ρ E₀ Φs id true ∗

@@ -5,8 +5,9 @@ the restart plan's R2, 2026-11-02; DRAFT): the member `m` stopped, `NPuts` puts 
 of it, a `Get` of `k` through it, and a panic unless the `Get` returned `v2`. Lean-first (no Rocq
 counterpart).
 
-**The triple:** from a started member that can be stopped (`memberStop` and its request view
-`isServerReq` at the names `ρ`), what `startMember.specRestart` needs besides the image and the
+**The triple:** from a started member that can be stopped (`memberStop`, at the request names `ρ`
+its stop right records; R2b-2, 2026-11-02: until then with its request view `isServerReq`, which
+`stop` no longer takes), what `startMember.specRestart` needs besides the image and the
 peer address the stop gives back (`bootstrap`'s restart contract, the URLs, the member's place in
 the network), the right to listen on its client address, a thread token, and `New`'s client `cl`
 of another member (`ep`, its registrations `kvRegsAt` at the read names `γr`) under the client's
@@ -41,7 +42,7 @@ abbrev restartCheck.spec : Prop :=
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (cl : Loc) (ep : GoString) (V : client.WEnv GF) (E₁ : apply.AEnv GF) (γr : ReadNames)
     (γf : GName) (cid mid : w64)
-    (m s : Loc) (pl : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames)
+    (m s : Loc) (pl : GoInterface) (ρ : ReqNames)
     (N : Nat) (name peerAddr caddr : GoString) (peer : GoSlice) (cluster lg : Loc)
     (M : GMap GoString GoSlice) (iu : GoString → List _root_.Perennial.net.url.URL)
     (Uok : BootURLs → Prop) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
@@ -49,6 +50,8 @@ abbrev restartCheck.spec : Prop :=
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   ρ.rd.kv.st = γr.kv.st →
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
+  -- (R2b-2) at most `NBoot` bootstrap entries, which `stop` waits for
+  bootLog.length ≤ 3 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   Uok ⟨[common.httpURL peerAddr], [common.httpURL caddr], M, iu⟩ →
   plainEndpoint caddr → lg ≠ null →
@@ -56,7 +59,7 @@ abbrev restartCheck.spec : Prop :=
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.restart3 ∗
-      memberStop m s pl γ id peerAddr γn (name ++ go!".etcd") ∗ isServerReq s E ρ ∗
+      memberStop m s pl γ id peerAddr γn ρ (name ++ go!".etcd") ∗
       isNewClient cl [ep] V ∗ client.kvRegsAt (⟨ep, E₁, γr, cid, mid⟩ : client.SrvAt GF) ∗
       client.putGetInv γr γf go!"k" go!"v2" ∗
       netAddrFree (GF := GF) caddr ∗ threadTok ∗

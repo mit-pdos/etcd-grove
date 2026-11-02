@@ -7,6 +7,8 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreImageOpen
 
 @[expose] public section
 
@@ -39,7 +41,10 @@ abbrev EtcdServer.applySnapshot.specEmpty : Prop :=
 otherwise), its backend file `snapDBPath ss i` holding the image `D` (its metadata, `metaIs`, at the
 snapshot's index and the image's stored term `tI`, D22 J7b: until then the snapshot's
 `Metadata.Term`, which the image's certificate does not give and the proof does not need, the term
-only naming the consistent index's protocol at the new backend; the restored log `[[], []] ++ R` extending the KV's, `keyImage`), the apply thread's resources before.
+only naming the consistent index's protocol at the new backend; the restored log `[[], []] ++ R` extending the KV's, by the store's mode at the image's compaction records `r`, `keyImageM`), the apply thread's resources before.
+(M2's item 15, 2026-11-02) In either mode: on, the store restores over the compacted image (its
+compaction right the apply thread's, at `x.crev ≤ r.crev`, back at `r.crev`), with the restored
+log's receipt and the compaction permits at the records as premises; off, as before.
 `OpenSnapshotBackend` opens the new backend, `ci.SetBackend` swaps the consistent index's (the
 protocol's names move to `futPhys π0 γB`), the KV, the lessor, the alarm and auth stores and the
 cluster recover from it, `s.be` is swapped under `bemu`, the old backend is closed in a goroutine
@@ -58,10 +63,6 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
     (hi : uint.Z ai < uint.Z sv.Metadata'.Index')
     (d : mvcc.KBReal) (D : backend.Data) (lgh : Loc)
     (hkb : E.γ.kb = some d)
-    -- (question 5's core stage, part (1); Q5-4, review round 16's M1) the store's backend does not
-    -- compact: no restore in compaction mode (M2's apply side, 2026-10-31, the user's (a): an interim
-    -- restriction, `srvEnvOk` now giving `d.cm = E.cmp`; the caller's mode off gives it)
-    (hcm : d.cm = false)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
     (hcfgl : cfg.Logger' ≠ null) (hmmap : storage.openMmapOk cfg)
@@ -73,7 +74,11 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
     (hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅)
     (hwq : E.γ.watchQ = true)
     (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
-    (hkI : mvcc.keyImage ([[], []] ++ R) D) (hbr : mvcc.bridgeParams d.P)
+    -- (M2's item 15, 2026-11-02; until then `d.cm = false`, no restore in compaction mode, and
+    -- `keyImage`) the image by the store's mode at its compaction records `r` (`keyImageM`: off,
+    -- the restored log's bucket and no record), on past the store's compaction revision
+    (r : mvcc.CmpRecs) (hcc : d.cm = true → x.crev ≤ r.crev)
+    (hkI : mvcc.keyImageM d.cm ([[], []] ++ R) r D) (hbr : mvcc.bridgeParams d.P)
     -- (the lease-revoke plan, 2026-10-31) the `Lease` bucket in the table, tracked, no hook keys
     -- (the boot backend's, `bootOk`; the new backend's parameters are the old one's)
     (hlp : mvcc.leaseParams d.P)
@@ -130,11 +135,15 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
        applyThread γ st ∗ applyBackend γ ci b ∗
        srvApplyKV s E ρ.wait x ∗ srvRest E γr A ∗
        lease.lessorInv lp E.γ.leases ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
-       srvKVCloser s E ∗
+       -- (M2's item 15) the server's closer by the mode (on, the watchable store's own parts: the
+       -- store's right is the apply thread's, `srvApplyKV`'s compaction resources)
+       srvKVCloserW s E ∗
        (∃ (wsl : Loc) (γw0 : mvcc.WsNames), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
         mvcc.isWatchableStore wsl E.s γw0) ∗
        mvcc.certOk E.γ ([[], []] ++ R) ∗
+       -- (M2's item 15) on, the restored log's receipt and the compaction permit at the records
+       mvcc.restoreRcptM d ([[], []] ++ R) ∗ mvcc.crevPermAt E.γ r.finRev ∗ mvcc.crevPermAt E.γ r.crev ∗
        □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗ srvWTPool E γp ∗
        rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
@@ -172,7 +181,7 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
              (readView (γ.withPh π))) }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))
         (Val #ap))
-    {{ RET #(); srvSnapApplied s ep sv γ ci E ρ γr d R A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl ∗
+    {{ RET #(); srvSnapApplied s ep sv γ ci E ρ γr d R r A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl ∗
       notifyRcvN γnc 1 ∗ threadTok }}
 
 /-- **`applySnapshot`'s spec** (J8b, 2026-11-01): both cases, the empty snapshot (`specEmpty`) and a
