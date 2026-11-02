@@ -9,8 +9,8 @@ stays here is the glue for the compacting server (`NewServer.specCompact`, prove
 - `server_kv_watchable_ofD`: the server's KV from `New.spec` over the backend `d` in either mode
   (nothing deletable off, the store's keys on: `storeDlReg`), the post at `kb = some d` with
   `crevRightM γw.st` (the right made after `NewServer`'s last error return).
-- `kbWTSupplyM_of_srvWTPool`: R2-7's conversion (its discarded part of `E.γbe` had F2 as its source,
-  withdrawn; the step-2 source is `etcdserver/M2StorageDraftRestore.lean`'s `kbWTSupplyM_of_poolR`).
+- (`kbWTSupplyM_of_srvWTPool`, R2-7's conversion: removed 2026-11-02; the source is
+  `etcdserver/M2StorageDraftRestore.lean`'s `kbWTSupplyM_of_stock`/`kbWTSupplyM_of_poolR`.)
 - `txn.storeWTs_someD`: a law of txn's (to `txn/Defs.lean` when a real proof uses it).
 -/
 module
@@ -37,22 +37,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **R2-7's conversion** (`notes/backend-cmp-plan.md`, "R2-7, D22's side"): the server's write
-budget (`srvWTPool`) at the boot backend `d`, with a discarded part of the current backend's ghost
-variable at `d` (persistent: `d` stays the backend for good, as in a server that installs no
-snapshot), is the compaction's write-back supply (`kbWTSupplyM`), from the same stock: each
-conversion takes a receipt into the pool (`srvWTPool_take_extra_d`). -/
-theorem kbWTSupplyM_of_srvWTPool (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) :
-    srvWTPool (GF := GF) E γp ∗ dghostVar E.γbe DFrac.discard d ⊢ mvcc.kbWTSupplyM (some d) := by
-  iintro ⟨#Hp, #Hg⟩
-  unfold mvcc.kbWTSupplyM
-  split
-  · unfold mvcc.kbWTSupply
-    iintro !> Hr
-    imod srvWTPool_take_extra_d E γp d _ $$ Hp Hr Hg with ⟨Ht, -⟩
-    imodintro
-    iexact Ht
-  · itrivial
+-- (2026-11-02, M2's item 15 stage B1) `kbWTSupplyM_of_srvWTPool`, R2-7's conversion, removed: the
+-- pool now holds the current backend's stock fact under its `▷`, out of reach of a persistent supply
+-- without a later credit; its successor is `kbWTSupplyM_of_stock` (`M2StorageDraftRestore.lean`),
+-- from the backend's stock fact itself.
 
 /-- **A real backend's write-back tokens are the store's write supply** (review round 2's S6': a
 law of txn's, so the server's glue does not unfold `txn.storeWTs`; goes to `txn/Defs.lean` at the

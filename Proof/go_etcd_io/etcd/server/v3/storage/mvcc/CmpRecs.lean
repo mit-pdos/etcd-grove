@@ -56,6 +56,8 @@ def CmpRecs.crev (r : CmpRecs) : Int := if r.resumes then r.schedRev else r.finR
 
 theorem CmpRecs.crev_empty : CmpRecs.empty.crev = -1 := by decide
 
+theorem CmpRecs.finRev_empty : CmpRecs.empty.finRev = -1 := by decide
+
 theorem CmpRecs.resumes_empty : CmpRecs.empty.resumes = false := by decide
 
 /-- **The records are of the log `L`** (pure): each a revision of `L` (`metaRevVal`'s `0 ≤`; below

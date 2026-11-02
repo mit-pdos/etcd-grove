@@ -287,6 +287,8 @@ theorem mvcc.NewStore.wp_proof
   icases (mvcc.bucketView_halves γ 1 _).1 $$ Hbv with ⟨Hbv1, Hbv2⟩
   -- the writer's half: `writerRes`'s quarter and the writer's pin's (M2's item 37)
   icases (mvcc.bucketView_quarters γ _).1 $$ Hbv1 with ⟨Hbv1, HbvP⟩
+  ihave Hbv1 := mvcc.bucketViewL_init γ _ $$ Hbv1
+  ihave HbvP := mvcc.bucketViewL_init γ _ $$ HbvP
   -- the compaction revision's authority: half the compaction right's, a quarter for each lock
   icases (mvcc.crevUB_split γ.idx (1 : Qp).half (1 : Qp).half (-1)).1 $$ [Hcu] with ⟨Hright, Hcu⟩
   · rw [Qp.half_add_half]; iexact Hcu
@@ -369,12 +371,12 @@ theorem mvcc.NewStore.wp_proof
   · iunfold mvcc.writerRes
     iexists [[], []]
     simp only [named]
-    rw [mvcc.bucketMap_init]
     iunfold mvcc.writerKey
     iframe Hwk Hwv2 Hbv1 Hcres
     iframe #
     ipureintro; simp
   imod mvcc.storeW_register «$r0_ptr» γ $$ [$HWi $Hrg $HW] with ⟨HW, #Hregd⟩
+  imod mvcc.writerReg_alloc «$r0_ptr» γ ⊤ $$ Hregd with #HrgI
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
   iapply HUnlock0 $$ %(0 + 1 + 1) [Hlocked HW HP]
   · iframe Hlocked HW HP
@@ -451,6 +453,7 @@ theorem mvcc.NewStore.wp_proof
   · iframe #; ipureintro; exact Hlgnn
   ihave Hbv2 : mvcc.bucketView (GF := GF) γ (1 : Qp).half ∅ $$ [Hbv2]
   · unfold mvcc.restoreViewOut; simp only [↓reduceIte]; iexact Hbv2
+  ihave Hbv2 := mvcc.bucketViewL_init γ _ $$ Hbv2
   ihave Hrt1 : mvcc.kbRT (GF := GF) γ.kb $$ [Hrt1]
   · iexact Hrt1
   ispecialize Hrts $$ Hrt1
@@ -470,7 +473,7 @@ theorem mvcc.NewStore.wp_proof
     $$ [HL HcurWi] with #Hwi
   · inext; iunfold mvcc.writerInvBody; ileft
     iexists γ.phys, _; rw [mvcc.StoreNames.withPhys_self]; iframe HcurWi; ileft; iframe HL
-    iunfold mvcc.writerReg; ileft; iexact Hregd
+    iexact HrgI
   ihave #Hwi : mvcc.writerInv «$r0_ptr» γ $$ []
   · iunfold mvcc.writerInv; iexact Hwi
   -- the readers' pool: every slot of the index's lock in (D22 receiver epochs, S4)
@@ -528,7 +531,7 @@ theorem mvcc.NewStore.wp_proof
     iunfold mvcc.revMuBody
     iexists [[], []], 2 ^ 63 - 5, -1
     simp only [named]
-    rw [mvcc.bucketMap_init, ← hone]
+    rw [← hone]
     iframe HcurB Hc2 Hbv2 HauthR Hil HcmpB HcuR
     iframe #
     isplitl []
@@ -544,7 +547,6 @@ theorem mvcc.NewStore.wp_proof
   ihave HpinW : mvcc.writerPin (GF := GF) γ [[], []] ∗
       (if mvcc.kbCmpM γ.kb then mvcc.kbMW γ.kb γ.bucket else iprop(True)) $$ [HbvP Hmw]
   · iunfold mvcc.writerPin; iunfold mvcc.writerLoan
-    rw [mvcc.bucketMap_init]
     by_cases hcm : mvcc.kbCmpM γ.kb
     · simp only [hcm, ↓reduceIte]
       iframe HbvP
@@ -555,7 +557,7 @@ theorem mvcc.NewStore.wp_proof
       iapply (show mvcc.kbNoDelOff (GF := GF) kb ⊢ mvcc.kbNoDel kb from by
         unfold mvcc.kbNoDelOff; rw [if_neg hcm]) $$ Hnd
   icases HpinW with ⟨HpinW, Hmw⟩
-  imod mvcc.physCmp_alloc «$r0_ptr» γ $$ [$Hmrest $Hmw $Hregd] with #HmwP
+  imod mvcc.physCmp_alloc «$r0_ptr» γ $$ [$Hmrest $Hmw $HrgI] with #HmwP
   -- what the objects are (D22 receiver epochs, S5b: until then `isStore`'s)
   ihave #Hpay : mvcc.stopPayAt γ.sx γ.sch (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs) $$ []
   · iunfold mvcc.stopPayAt; rw [hγsx, hγs]; iframe Hx Hpi
@@ -563,6 +565,7 @@ theorem mvcc.NewStore.wp_proof
   · iunfold mvcc.physOk
     iexists P, Dep
     simp only [named]
+    ihave #HbkF := mvcc.isKeyBackendG_ncFalse _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ $$ Hbk0
     iframe #
     ipureintro; rw [hγcm, hγk]; simp
   ihave Hfs : mvcc.fieldShareAt «$r0_ptr» γ ((1 : Qp).half + (1 : Qp).half) (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs)
