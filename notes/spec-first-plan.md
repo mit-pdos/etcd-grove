@@ -60,12 +60,27 @@ adequacy). Widening later is a new, deliberate stage, not a series of spec edits
 and the statements of the layers it changes, not a survey of the files: M2's Scope, decided from
 a survey, was revised four times in Draft by drafting alone (C3, the watch store, Restore, and
 delete-then-put twice).
+*For a stage that admits a new case into shared invariants* (lease-grant, 2026-11-02, the user's):
+Scope lists not only what is missing but what admitting the case breaks: every invariant and result
+that rules the case out today (by a `False` arm, a "plain" predicate, an exact image), and for each
+whether it stays true once the case happens. lease-grant's Scope listed the five places a grant was
+closed and chose "narrow" from that list; then Draft found, one at a time, that the rest model's
+exact image forces the lessor tied to the model's table, and that the server's KV results become
+false once a grant is applied. Each needed the user's decision in the middle of plumbing.
 
 **Draft (was phase 1): the spec skeleton, top-down.** Every function's spec written, internal and external,
 every proof `sorry` (or a trust-boundary axiom), `Link.lean` generated. Then prove the *glue*:
 the callers whose bodies only thread state between callees, from the callees' specs. Glue proofs
 are short and are what find a missing frame, a premise the caller cannot give, or a
 postcondition too weak for the caller -- before the callee's expensive proof exists.
+*Design before plumbing* (lease-grant, 2026-11-02, the user's): when a change runs through shared
+definitions with many sites (a new parameter threaded through `rqOk`, `dispatchAnswer`: hundreds of
+sites, each a full server rebuild), Draft first writes the design as text in the plan -- each changed
+statement old → new, and for each the callee specs it is proved from -- and Review checks that whole
+chain (is each statement provable from what it cites?) before any site is threaded. lease-grant
+threaded `lg` through about 400 sites before the chain was reviewed; its first review found two specs
+not provable from the callees they cited, and the next two design problems surfaced during the
+plumbing.
 
 **Review (was phase 1b): review the specs, and iterate with the glue** (added 2026-10-27, from the pilot's
 Draft step). Writing a spec and proving its callers' glue alternate per package boundary: write the
