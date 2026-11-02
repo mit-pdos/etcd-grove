@@ -803,7 +803,7 @@ theorem ackSnapLog_facts (ls : LogState) (m : MessageM) (t : w64) (sv : Snapshot
 
 /-- (2026-11-01, durability stage II (m)) A snapshot's acknowledgement does not move
 `offsetInProgress` back (`stableTo` raises it, the rest keep it). -/
-theorem ackSnapLog_inprogress (ls : LogState) (m : MessageM) (t : w64) (sv : SnapshotM) :
+private theorem ackSnapLog_inprogress (ls : LogState) (m : MessageM) (t : w64) (sv : SnapshotM) :
     uint.Z ls.inprogress ≤ uint.Z (ackSnapLog ls m t sv).inprogress := by
   have hl : (ackLog ls (some sv)).inprogress = ls.inprogress := by
     simp only [ackLog]; split <;> rfl
