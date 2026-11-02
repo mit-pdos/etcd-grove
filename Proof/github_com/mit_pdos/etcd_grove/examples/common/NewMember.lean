@@ -43,22 +43,22 @@ theorem NewMember.wp_proof
   intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs
     γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hck Haf Hbuq
     Hdbo
-  wp_start as ⟨Haddr, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hpown⟩
+  wp_start as ⟨Haddr, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hpown⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   (try wp_auto)
   -- `newServer(name, peer, client, cluster, token, 0, snapCount, catchUp, lg)`: the compactor off
   wp_apply (wp_newServer N name peerAddr client token (W64 0) snapCount catchUp peer cluster lg M iu Uok ps bootLog
       ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg
-      (by decide) Hck Haf Hbuq Hdbo) $$ [Hmb] as %s %err Hres
+      (by decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (%Herr | ⟨%Herr, Hmb⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
   · -- `newServer` failed: the error returned
     cases err with
     | nil => exact absurd rfl Herr
     | ok ei => ?_
     wp_auto
-    iapply HΦ; ileft; ipureintro; simp
+    iapply HΦ; ileft; iframe Htok; ipureintro; simp
   subst Herr
   wp_auto
   -- `net.Listen("tcp", peerAddr)`
@@ -70,7 +70,7 @@ theorem NewMember.wp_proof
     | nil => exact absurd rfl Hlerr
     | ok ei => ?_
     wp_auto
-    iapply HΦ; ileft; ipureintro; simp
+    iapply HΦ; ileft; iframe Htok; ipureintro; simp
   subst Hlerr
   wp_auto
   iunfold memberBuilt at Hmb
@@ -98,6 +98,7 @@ theorem NewMember.wp_proof
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl
+  iframe Htok
   iunfold memberBuilt
   iexists γA, ci, TM, E, γrn, b, cfg, γk, τ
   simp only [↓reduceIte]

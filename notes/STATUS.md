@@ -619,6 +619,20 @@ readers' shares today (`SnapApplyWalk.lean`). The membership vocabulary (`InvRes
 `authRolesBI` (`InvStore.lean`), and Q6's gate: `etc/api/backend.txt` (57 importable modules,
 with `RdPool`) and `etc/import-all-check.py` (`etc/import-all.txt`), in `etc/gates.sh` and CI.
 
+**Stage 2 of the apply (2026-11-02): the untrusted plumbing**, no axiom's text changed. The stock:
+mvcc's `New`/`NewStore`/`newWatchableStore`/`Restore` and the server's boot take and count the
+backend's stock `backend.rdStockN` (irreducible, `rdStockN_val`; `mvcc.nReaders := rdStockN`), so
+the pool's slots come off (`newPost_pool` at `NewServer`, `newPostK_pool` on the snapshot path).
+The bound: `isServer` holds `threadBound GF ≤ backend.rdPoolN` (`isServer_rdPoolN`), `NewServer`'s
+premise written so. The pool: `srvBeOwn` holds `srvBeRO d` and `backend.bkRPool` of the current
+backend (the apply thread's, through `srvApplyKV`); on the snapshot path the new backend's is built
+by `bkRPool_intro` and the old one's shares go to its `Close`. The token: `applyConfChange`,
+`applySnapshot.specSnap`, `NewServer` (and the examples' `newServer`, `NewMember`) take
+`threadTok` and give it back; the apply thread's is `srvGoRes`'s. `applyConfChange.spec` takes
+`membersDecode rs.bk` (Q) and `bkRPool` (discharged in `EtcdServer.apply` by
+`membersDecode_restModel` and `srvApplyKV(On)_ua_rt_pool`). Next: stage 3, the restated axioms'
+callers (§1-§2, §4, §6-7, §10).
+
 ## The lease keep-alive entry point (2026-11-01, branch `lease-renew`; frozen and proved)
 
 `EtcdServer.LeaseRenew` is translated and proved (`Proof/.../etcdserver/EtcdServer__LeaseRenew.lean`,

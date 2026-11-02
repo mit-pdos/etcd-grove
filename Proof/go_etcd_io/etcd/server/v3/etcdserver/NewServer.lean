@@ -376,6 +376,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · ipureintro; exact Hlgnn
     iapply HΦ
     ileft
+    iframe Htok
     ipureintro; exact ⟨rfl, Herr⟩
   subst Herr
   iNamed Hb
@@ -610,6 +611,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     wp_apply Hclose
     iapply HΦ
     ileft
+    iframe Htok
     ipureintro; exact ⟨rfl, by simp⟩
   | nil => ?_
   have Htpnn := Htp rfl
@@ -841,6 +843,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     wp_apply Hclose
     iapply HΦ
     ileft
+    iframe Htok
     ipureintro; exact ⟨rfl, by simp⟩
   subst Haerr
   (try wp_auto)
@@ -992,6 +995,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     wp_apply Hclose
     iapply HΦ
     ileft
+    iframe Htok
     ipureintro; exact ⟨rfl, by simp⟩
   subst Hterr
   (try wp_auto)
@@ -1638,6 +1642,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   iright
   isplitr
   · ipureintro; rfl
+  iframe Htok
   iexists γA, cil, metaTM d.γB d.P,
     (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp⟩ : apply.AEnv GF),
     γrn, (interface.mkOk (go.GoType.PointerType
@@ -2455,12 +2460,13 @@ theorem NewServer.wp_proof
   iapply h' $$ Hpre
   iintro !> %srv %err Hpost
   iapply HΦ
-  icases Hpost with (Hl | ⟨%He, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %H1, H2, H3, H4, H5, H6, H7,
+  icases Hpost with (Hl | ⟨%He, Htk, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %H1, H2, H3, H4, H5, H6, H7,
     H8, H9, H10, H11, H12, -, -, -, #H13, #H14⟩)
   · ileft; iexact Hl
   iright
   isplitr
   · ipureintro; exact He
+  iframe Htk
   iexists γA, ci, TM, E, γrn, b, γk, τ
   isplitr
   · ipureintro; exact ⟨H1.1, H1.2.1⟩
