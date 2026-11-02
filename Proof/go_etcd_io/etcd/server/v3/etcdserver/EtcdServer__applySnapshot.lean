@@ -116,15 +116,26 @@ theorem EtcdServer.applySnapshot.wp_proof_snap
     (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
     (hFS : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
-    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG)) :
+    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
+    (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
+    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG)) :
     EtcdServer.applySnapshot.specSnap (GF := GF) (hG := hG) := by
   · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hcm hdbo hsop hP hcfgl hmmap tI hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre hRok hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm hauthb hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' hA' hoff γnc
     iintro %Φ Hpre HΦ
     icases Hpre with ⟨#Hpkg, #Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, Hkvc, #Hkvex, #Hcok, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, #HauR, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #HmetaB⟩
     iapply wp_fupd
-    iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hcm hdbo hsop hP hcfgl hmmap tI hmeta hSB st b hle hLR al ast lp cl x A hRO hlease hwq hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel R hpre hRok hkI hbr hGTP hSTP hCIg γp hrbw hRel stp γd γt img nt hstp hnt hNAB hAR halarm hNAuB hauthb hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc hAG) $$ [Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOh]
+    -- (M2's item 15) off: no record
+    have hoffE : ¬ mvcc.kbCmpM E.γ.kb := by simp [hkb, mvcc.kbCmpM, hcm]
+    have hkI' : mvcc.keyImageM d.cm ([[], []] ++ R) mvcc.CmpRecs.empty D := by
+      rw [hcm, mvcc.keyImageM_off]; exact ⟨hkI, rfl⟩
+    iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta hSB st b hle hLR al ast lp cl x A hRO hlease hwq hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel R hpre hRok mvcc.CmpRecs.empty (fun h => absurd h (by simp [hcm])) hkI' hbr hGTP hSTP hCIg γp hrbw hRel stp γd γt img nt hstp hnt hNAB hAR halarm hNAuB hauthb hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc hAG hLSR hUSR) $$ [Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOh]
     · iframe #
+      rw [srvKVCloserW_off s E hoffE, mvcc.restoreRcptM_off d _ hcm, mvcc.CmpRecs.finRev_empty,
+        mvcc.CmpRecs.crev_empty]
       iframe Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOh
+      ihave #Hn : mvcc.crevPermAt (GF := GF) E.γ (-1) $$ []
+      · iapply mvcc.crevPermAt_none
+      iframe Hn
     iintro !> ⟨Hw, Hrcv⟩
     ihave Hpost := (srvSnapApplied_of_walk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hcm hdbo hsop hP hcfgl tI hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre hRok hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm hauthb hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' hA' hoff) $$ [Hw]
     · iframe #
@@ -199,10 +210,12 @@ theorem EtcdServer.applySnapshot.wp_proof
     (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
     (hFS : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
-    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG)) :
+    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
+    (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
+    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG)) :
     EtcdServer.applySnapshot.spec (GF := GF) (hG := hG) :=
   ⟨EtcdServer.applySnapshot.wp_proofEmpty hIES,
-    EtcdServer.applySnapshot.wp_proof_snap hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe hSB hLR hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel hGTP hSTP hCIg hRel hNAB hAR hNAuB hNMB hCSB hClose hCRec hRAP hAP hMID hNUA hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hLead hTerm hFS hAG⟩
+    EtcdServer.applySnapshot.wp_proof_snap hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe hSB hLR hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel hGTP hSTP hCIg hRel hNAB hAR hNAuB hNMB hCSB hClose hCRec hRAP hAP hMID hNUA hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hLead hTerm hFS hAG hLSR hUSR⟩
 
 end proof
 

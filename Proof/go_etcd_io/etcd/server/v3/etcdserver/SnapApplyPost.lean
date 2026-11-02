@@ -106,25 +106,29 @@ theorem srvSnapApplied_of_walk
       srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
       srvClusterAddr s ↦□ cl ∗ membership.isRaftCluster cl ∗ mvcc.certOk E.γ ([[], []] ++ R) ∗
       srvWTPool E γp ∗
-      snapWalkPost s ep sv γ ci E ρ γr d D A x R ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
+      snapWalkPost s ep sv γ ci E ρ γr d D A x R mvcc.CmpRecs.empty ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad ⊢
     |={⊤}=> srvSnapApplied s ep sv γ ci E ρ γr d R A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl := by
   iintro ⟨#Hpkg, #Hsrv, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #Hlinv, #Hlpf, #Half,
     #HisAl, #Haustf, #Hclf, #Hirc, #Hcok, #HWP, Hw⟩
   iunfold snapWalkPost at Hw
   icases Hw with ⟨%γB, %d', %gx, %π0, %p', %γw, %ws, %g, %up', %opts', %L, %spc, %Ll, %jf, %γcf,
-    %w0, %RD0, %up, %lg, %wsk, %stck, %Hpure, #HB, #HhkAt', #HbhF', HSC, -, -, -, -, -, #HCI', #HhkS, -, -, -,
-    #Hws, -, -, #HhP, #Hkva, #Hwa, #Hlga, Hwok, HplH, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Haub, Hclb,
+    %w0, %RD0, %up, %lg, %wsk, %stck, %Hpure, #HB, #HhkAt', #HbhF', HSC, -, -, -, #HCI', #HhkS, -, -, -, -,
+    #Hws, -, #HhP, #Hkva, #Hwa, #Hlga, Hwok, HplH, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Haub, Hclb,
     Hleb, Hlo, Hlrd, Hlrv, Hrt, Hrb, Hcm, Hbo, Hsc, Hwf, Hww, HwOwn, Hsr, Htl, Hlgr, Hai, Hatt, Hds, Hms,
     Hcsa, Hcso, Hpath, Halb, HRD2, Hube, Hua, -, Hra, Hauar, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
   obtain ⟨hγB, hP', -, hcm', hm0, -, hkb', hγw, -, hcov, hgnn, ho1, ho2, ho3, ho4, ho5, ho6, ho7, -, -, -,
     ho11, ho12⟩ := Hpure
   subst hγB
+  -- (M2's item 15) the closer at no record, off
+  have hoffp : ¬ mvcc.kbCmpM (γw.st.withPhys p').kb := by
+    simp [mvcc.StoreNames.withPhys_kb, hkb', mvcc.kbCmpM, hcm', hcm]
+  ihave Hsc := (mvcc.storeCloserM_off E.s (γw.st.withPhys p') _ hoffp).1 $$ Hsc
   -- step 1: the names (`SnapApplyNames.lean`)
   ihave HplRO := backend.plHook_persist d'.γB g $$ HplH
   imod HplRO with #HplRO
   -- step 2: the server's view
-  ihave #Hsrv' := snap_isServer s γ ci TM E ρ γr π0 d'.γB d.P d' p' g al ast lp cl rfl hkb' d (hcm'.trans hcm.symm) hkb hP' rfl hk $$ []
+  ihave #Hsrv' := snap_isServer s γ ci TM E ρ γr π0 d'.γB d.P d' p' g al ast lp cl rfl hkb' d hcm' hkb hP' rfl hk $$ []
   · iframe #
   -- step 3: the new applier's options
   ihave #Hbo' := snap_backendOptsOk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg
@@ -138,7 +142,7 @@ theorem srvSnapApplied_of_walk
       [Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hra Hauar Hwok HRD0]
   · iframe #; iframe Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hra Hauar Hwok HRD0
     iapply apply.cmpOwn_of_off
-    simp [mvcc.kbCmpM, hkb', hcm']
+    simp [mvcc.kbCmpM, hkb', hcm', hcm]
   imod HKV' with ⟨%x', %Hx', HKV'⟩
   -- step 5: the rest buckets
   ihave HRest := snap_srvRest E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB d' γr al ast lp
@@ -160,7 +164,7 @@ theorem srvSnapApplied_of_walk
     snapSt (snapγ γ π0 d'.γB) sv.Metadata'.Index', d', x', spc, L
   isplitr
   · ipureintro
-    refine ⟨by apply snapE_beSucc, hkb', hcm', hP', rfl, snapSt_loopOk γ π0 d'.γB _ _ hm0, snapSt_ciEff γ π0 d'.γB _ _ hm0, Hx'.1,
+    refine ⟨by apply snapE_beSucc, hkb', hcm'.trans hcm, hP', rfl, snapSt_loopOk γ π0 d'.γB _ _ hm0, snapSt_ciEff γ π0 d'.γB _ _ hm0, Hx'.1,
       Hx'.2.1, hcov⟩
   iunfold epConfState
   iframe Hsrv' Hai Hatt Hds Hms Hcsa Hcs Hcso Hat Hab Hlgr Hbmr HKV' HRest HKC HSC Hbo Hγt Hpath Htl

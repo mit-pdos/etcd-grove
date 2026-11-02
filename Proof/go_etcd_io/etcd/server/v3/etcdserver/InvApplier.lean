@@ -1095,6 +1095,21 @@ theorem srvWTStock_take (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) (k :
   iframe Ht
   iapply monoNatLbOwn_le (k + 1) (by have := Hka.2; omega) $$ Hlb
 
+/-- **The compaction's write-back supply of a backend with a stock** (M2's item 15, stage B):
+persistent, good after any number of swaps (moved from the step's Draft). -/
+theorem kbWTSupplyM_of_stock (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) :
+    srvWTPool (GF := GF) E γp ∗ srvWTStockInv γp d ⊢ mvcc.kbWTSupplyM (some d) := by
+  iintro ⟨#Hp, #Hs⟩
+  unfold mvcc.kbWTSupplyM
+  split
+  · unfold mvcc.kbWTSupply
+    iintro !> Hr
+    imod monoNatLbOwn_0 (GF := GF) γp with #H0
+    imod srvWTStock_take E γp d 0 $$ Hp Hs Hr H0 with ⟨Ht, -⟩
+    imodintro
+    iexact Ht
+  · itrivial
+
 /-- **The current backend's stock** (M2's item 15, stage B): a taker's part of `E.γbe` at `d` agrees
 with the budget's, whose stock fact (under the budget's `▷`: a later credit) is `d`'s. -/
 theorem srvWTPool_stockOf (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) (dq : DFrac) :

@@ -58,21 +58,7 @@ The stocks themselves (`srvWTStockInv`, `srvWTStock_alloc`, `srvWTStock_take`, `
 and the pool over them (`srvWTPool`) are in `InvApplier.lean` (stage B1, 2026-11-02); the swap is
 `srv_be_swap`. What is left here is the supply the compaction mode takes. -/
 
-/-- **The compaction's write-back supply of any backend with a stock** (draft; in place of
-`kbWTSupplyM_of_srvWTPool`, whose discarded part of `E.γbe` P4's withdrawal took away): persistent,
-good after any number of swaps. -/
-theorem kbWTSupplyM_of_stock (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) :
-    srvWTPool (GF := GF) E γp ∗ srvWTStockInv γp d ⊢ mvcc.kbWTSupplyM (some d) := by
-  iintro ⟨#Hp, #Hs⟩
-  unfold mvcc.kbWTSupplyM
-  split
-  · unfold mvcc.kbWTSupply
-    iintro !> Hr
-    imod monoNatLbOwn_0 (GF := GF) γp with #H0
-    imod srvWTStock_take E γp d 0 $$ Hp Hs Hr H0 with ⟨Ht, -⟩
-    imodintro
-    iexact Ht
-  · itrivial
+-- (`kbWTSupplyM_of_stock` moved to `InvApplier.lean`, stage B2.)
 
 /-- **The compaction arm's supply** (review round 3's S5: the law the apply loop's compaction arm
 uses, `store.Compact.specD`'s `kbWTSupplyM γ.kb`): the apply thread's part of the backend's name
