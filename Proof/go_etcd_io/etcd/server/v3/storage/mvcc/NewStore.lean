@@ -378,6 +378,7 @@ theorem mvcc.NewStore.wp_proof
     iframe #
     ipureintro; simp
   imod mvcc.storeW_register «$r0_ptr» γ $$ [$HWi $Hrg $HW] with ⟨HW, #Hregd⟩
+  imod mvcc.writerReg_alloc «$r0_ptr» γ ⊤ $$ Hregd with #HrgI
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
   iapply HUnlock0 $$ %(0 + 1 + 1) [Hlocked HW HP]
   · iframe Hlocked HW HP
@@ -474,7 +475,7 @@ theorem mvcc.NewStore.wp_proof
     $$ [HL HcurWi] with #Hwi
   · inext; iunfold mvcc.writerInvBody; ileft
     iexists γ.phys, _; rw [mvcc.StoreNames.withPhys_self]; iframe HcurWi; ileft; iframe HL
-    iunfold mvcc.writerReg; ileft; iexact Hregd
+    iexact HrgI
   ihave #Hwi : mvcc.writerInv «$r0_ptr» γ $$ []
   · iunfold mvcc.writerInv; iexact Hwi
   -- the readers' pool: every slot of the index's lock in (D22 receiver epochs, S4)
@@ -557,7 +558,7 @@ theorem mvcc.NewStore.wp_proof
       iapply (show mvcc.kbNoDelOff (GF := GF) kb ⊢ mvcc.kbNoDel kb from by
         unfold mvcc.kbNoDelOff; rw [if_neg hcm]) $$ Hnd
   icases HpinW with ⟨HpinW, Hmw⟩
-  imod mvcc.physCmp_alloc «$r0_ptr» γ $$ [$Hmrest $Hmw $Hregd] with #HmwP
+  imod mvcc.physCmp_alloc «$r0_ptr» γ $$ [$Hmrest $Hmw $HrgI] with #HmwP
   -- what the objects are (D22 receiver epochs, S5b: until then `isStore`'s)
   ihave #Hpay : mvcc.stopPayAt γ.sx γ.sch (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs) $$ []
   · iunfold mvcc.stopPayAt; rw [hγsx, hγs]; iframe Hx Hpi

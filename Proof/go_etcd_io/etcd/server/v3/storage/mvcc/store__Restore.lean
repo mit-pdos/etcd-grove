@@ -113,7 +113,8 @@ theorem mvcc.store.Restore.wp_proof
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$HrevMu] as ⟨HwlR, HR⟩
   wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv s γ 1)) $$ Hlc1 HR with HR
-  imod (mvcc.restore_takeover s γ ⟨b, ti0, GoInterface.ok fi, sstop⟩ L ([[], []] ++ R) hLR) $$
+  imod (mvcc.restore_takeover s γ ⟨b, ti0, GoInterface.ok fi, sstop⟩ L ([[], []] ++ R) (-1) hLR
+      (by decide)) $$
       Hlc2 Hwi HR Hfrst Hcur Hwr HcL Htoks HlogQ HcrevM HcmpM
     with ⟨⟨%v0, Hcr⟩, Hcm, Hrst, Hcur, HcurR, HcurW, HcrevM, Hheld, #Hhlb⟩
   (try wp_auto)
@@ -286,15 +287,20 @@ theorem mvcc.store.Restore.wp_proof
       $$ [Hcur Hfrag HcurR HcurW Htkr Hheld Hrts Hlc3 Hwsd]
   · iunfold mvcc.revUnlockW
     iintro %Ψ Hcur2 ⟨Hwl2, Hr, Hr2, Hcm2, HcmK, Hlc4⟩ ⟨Hv, #Hti', Hrd, #Hrc⟩ HΨ
-    imod (mvcc.restore_switch s γ ⟨b, ti0, GoInterface.ok fi, sstop⟩ ⟨b', ti, sc, stopc⟩ p' R hR) $$
-        Hlc4 Hlc3 Hwi Hwsd Hpool Hcur Hfrag HcurR HcurW Htkr Hr Hr2 Hheld Hcur2 Hcm2 Hnlb Hok' Hv Hrd
-        [] [] Hrts
+    iunfold mvcc.wsDep at Hwsd
+    imod (mvcc.restore_switch s γ ⟨b, ti0, GoInterface.ok fi, sstop⟩ ⟨b', ti, sc, stopc⟩ p' R (-1) (-1)
+        1 hR (by decide) (by simp; omega)) $$
+        Hlc4 Hlc3 Hwi Hwsd Hpool Hcur Hfrag HcurR HcurW Htkr Hr Hr2 Hheld Hcur2 Hcm2 [] [] Hnlb Hok'
+        Hv Hrd [] [] Hrts
       with ⟨HR, Hrst', Hn1, Hfrag', Hn3, Htkr, Hwsd, Hw, Hrv', HlogQ, Hold, Hnew⟩
+    · iunfold mvcc.lagTok; simp only [↓reduceIte]; itrivial
+    · iapply mvcc.crevPermAt_none
     · iexact Hrc
     · ipureintro; exact Hrb
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl2 HR]
     · inext; iexact HR
     iapply HΨ
+    iunfold mvcc.wsDep
     iframe Hrst' Hn1 Hfrag' Hn3 Htkr Hwsd Hw Hrv' HlogQ Hold Hnew HcmK Hti'
   wp_apply +noauto hR' $$ [$Hfb $Hrt1 $Hnc $Hrv $Hfidx $Hix $Hig $Hcr $HcmR $HLk $HUl Hrst Hlc1 Hlc2]
     as ⟨Hrt1, Hnc, Hrc, HRevQ, Hcr, HcmR, Hfb, Hfidx⟩
@@ -319,7 +325,7 @@ theorem mvcc.store.Restore.wp_proof
   ihave Hrr : mvcc.kbRegRight (GF := GF) p'.kb $$ [Hrr]
   · rw [hk]; iexact Hrr
   imod (mvcc.restore_finish s γ ⟨b', ti, sc, stopc⟩ p' ([[], []] ++ R) hR.2.1 (by simp)) $$
-      Hlc1 Hwi Hn3 Hw Hcr Hrc Hnlb Hwk' Hwv' HviewW Hcres Hrr with ⟨Hwr, #HcertL⟩
+      Hlc1 Hwi Hn3 Hw Hcr Hrc Hnlb Hwk' Hwv' HviewW Hcres Hrr with ⟨Hwr, #HcertL, -⟩
   -- the fields' shares at the new objects and names, with what they are (`physOk`)
   ihave #Hph2 : mvcc.physOk (GF := GF) s (γ.withPhys p') ⟨b', ti, sc, stopc⟩ $$ []
   · iunfold mvcc.physOk

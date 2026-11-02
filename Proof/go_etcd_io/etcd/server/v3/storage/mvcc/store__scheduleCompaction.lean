@@ -235,7 +235,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   -- (question 5's core stage) the store's compaction facts: the write right's invariant (the swap
   -- of the key for the compaction keys' write right), its registration, the write-back supply
   have hcmpM : mvcc.kbCmpM γ.kb := mvcc.storeCmp_cmpM γ Hcmp
-  icases (mvcc.physCmp_on s γ hcmpM).1 $$ HmwP with ⟨#Hmwi, #Hreg⟩
+  icases (mvcc.physCmp_on s γ hcmpM).1 $$ HmwP with ⟨#Hmwi, #Hrg⟩
   -- (M2, the storage side, Q1 (a)) the supply from the job's premise
   ihave #Hsup := (mvcc.kbWTSupplyM_on γ.kb hcmpM).1 $$ HsupM
   ihave #Hswk := mvcc.mwSwap_of_inv γ iprop(True) $$ Hmwi
@@ -332,7 +332,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   · iframe HRT Hwt1; iframe #
   inext
   iintro ⟨Hlocked, HW, HP, HRT⟩
-  ihave HW := mvcc.storeW_get s γ $$ [$Hreg $HW]
+  imod mvcc.storeW_open s γ ⊤ (by solve_ndisj) $$ Hrg HW with ⟨HW, #Hreg⟩
   -- (question 5's core stage, part (1)) a later credit for the last batch's swap of the key
   wp_auto_lc 1
   iunfold mvcc.writerRes at HW

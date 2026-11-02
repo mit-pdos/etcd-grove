@@ -29365,3 +29365,29 @@ back: `lagTok`), the error case has none (`cp = c`). `store.Compact` passes `cp 
 **Rejected.** Keeping the restoring flag up through the resumed compaction (`revMuRest`): the
 compaction right's share of the fields holds the flag down, and `compactLockfree` needs it. A new
 ghost name for the lag: `γ.wsd` already excludes the only openers `s.mu` does not.
+
+## The writer's registration as an invariant: pending until the batch lock's first holder (M2's item 15, step A2b)
+
+**2026-11-02 · accepted** (the user chose "Pending registration")
+
+**Problem.** In compaction mode `physOk` holds `physCmp`: the write right's invariant and the store's
+registration in its backend (`storeRegd`, the late-bound slot of the batch lock), so that a
+compaction can swap the lock's resource `storeW` for the writer's (`mwSwap_of_physOk`,
+`updateCompactRev`'s hook arm, `scheduleCompaction`'s sessions). `store.Restore` builds `physOk` at
+the new names, but Go never locks the new backend's batch tx in `Restore` (`restore()` reads through
+read transactions), so the registration cannot be made there: off, `Restore` leaves it pending in the
+writer's state (`writerReg`, a disjunction), and the first writer registers; on, `physOk` had nowhere
+to say "pending".
+
+**Decision.** `writerReg s γ := inv regN (storeRegd s γ ∨ kbRegRight γ.kb ∗ writerRes s γ)`, a
+persistent invariant, in the writer's state as before and in `physCmp` (`mwInv γ ∗ writerReg s γ`).
+Its contents are timeless (the instances next to it), so it opens without a later credit:
+`storeW_open` gives any holder of the batch lock's resource the writer's resource with the store
+registered (registering it now if pending: `storeW_pending`), which the creditless swaps
+(`mwSwap_frameU`, the frame with updates) and `updateCompactRev`'s contract update can use.
+`NewStore` allocates it registered (`writerReg_alloc`), `restore_finish` pending (`writerReg_allocP`)
+and returns it for the new `physOk`; `writerInv_checkin` allocates a fresh registered one. Internal to
+mvcc: no exported statement changes.
+
+**Rejected.** Registering in `Restore` by a lock/unlock of the new batch tx: not what Go does. A
+pending disjunct inside `physCmp` itself: `physOk` is persistent, the pending resource is not.

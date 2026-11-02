@@ -316,7 +316,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
             iintro ⟨HQ, HW⟩
             imod Hupd $$ HQ with ⟨HP, HPost⟩
             ihave HP0 := HPP0 $$ HP
-            ihave HW := mvcc.storeW_get s γ $$ [$Hreg $HW]
+            imod mvcc.storeW_open s γ ⊤ (by solve_ndisj) $$ Hreg HW with ⟨HW, #Hregd⟩
             iunfold mvcc.writerRes at HW
             icases HW with ⟨%ilog, HW⟩
             iNamed HW
@@ -327,7 +327,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
             imodintro
             iframe HP0 HPost
             iapply mvcc.storeW_put s γ
-            iframe Hreg
+            iframe Hregd
             iunfold mvcc.writerRes
             iexists ilog
             simp only [named]
