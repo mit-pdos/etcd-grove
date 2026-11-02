@@ -156,4 +156,4 @@ An independent spec reviewer, given the targets, their Go code and callers. No G
 ## Stages
 
 Draft → Review (an independent spec reviewer) → Test → Probe (the hard proof: one check's borrow
-and give-back around `Lookup`; the easy one: `srvAuthLeaseLb_off`) → Freeze (the user) → Prove. Draft, Review, Probe: done.
+and give-back around `Lookup`; the easy one: `srvAuthLeaseLb_off`) → Freeze (the user) → Prove. Draft, Review, Probe, Freeze (the user, 2026-11-02), Prove: done.

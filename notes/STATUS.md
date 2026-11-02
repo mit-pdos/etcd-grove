@@ -591,6 +591,27 @@ p.Term'` was already the tie, unchanged). Rests on `nodeDriver_hardStateCommitte
 with branch `snap-sorries` (not committed on `snap-rt`: it does not build alone). `applyAll`, its
 consumer, untouched.
 
+## The lease results' sources in a `NewServer`-built server (2026-11-02, branch `lease-src`; frozen and proved)
+
+Follow-on 1 of the lessor/auth list (`notes/lease-src-plan.md`; decisions entry "The lessor's
+reader slots as a pool"). The lease discharges' premises now come from what a server built with
+`NewServer` and started has:
+- **Reader slots as a pool.** `NewServer`'s posts export `lease.lessorRdPool E.γ.leases` (a
+  Perennial thread pool of `NewLessor`'s spare `lessorRdOf` slots, `RdPool.lean`). The lease
+  checks, the entry points (`LeaseTimeToLive`, `LeaseLeases`, `LeaseRenew`), `lessor.Leases` and the
+  axioms `leaseTimeToLive` and `lessor.Renew` (restated, the user's Freeze) take the pool and the
+  caller's `threadTok`, and borrow a slot around each lessor call.
+- **`srvAuthLeaseLb`** (`LeaseSrc.lean`, `srvAuthLeaseLb_of_server`): with auth off, from the read
+  view's exact store triples; with auth on, from `srvAuthLb`, whose `authStoreLbM` now carries the
+  lease checks' methods (`isAuthStoreLeaseLb_of_authInv`, over the new
+  `IsAdminPermitted.specLb`, proved in `auth/FreshAdmin.lean`, linked as `auth_admin_permitted_lb`).
+- **Registration.** `v3rpc.Server.spec` registers the Lease service (`leaseRegs`, `leaseSReg`, the
+  `quotaLeaseServer`/`leaseServer` facts); `etcdserverpbDescs`/`svcDescsOk` state its methods exactly.
+
+Open: the closed client example (next stage); **F4**: the grpc model gives a served lease call no
+`threadTok` of its own (the run goroutine's in `grpcHandlerOk` is the likely source), needed when
+the served handlers are linked to the entry points.
+
 ## The lease keep-alive entry point (2026-11-01, branch `lease-renew`; frozen and proved)
 
 `EtcdServer.LeaseRenew` is translated and proved (`Proof/.../etcdserver/EtcdServer__LeaseRenew.lean`,
