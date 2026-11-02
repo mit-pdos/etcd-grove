@@ -19,9 +19,7 @@ base.
 -/
 module
 
-public import PorcupineDag.Spec.github_com.anishathalye.porcupine.CheckOperations
-public import PorcupineDag.Spec.github_com.anishathalye.porcupine.CheckOperationsTimeout
-public import PorcupineDag.Spec.github_com.anishathalye.porcupine.CheckOperationsVerbose
+public import PorcupineDag.Proof.github_com.anishathalye.porcupine.Link
 
 @[expose] public section
 
@@ -217,6 +215,18 @@ theorem CheckOperationsVerbose.spec_sound
   exact outcome_sound Hr
 
 end results
+
+/-! The trust base of the exported results (while a proof is unfinished, its spec is a hypothesis
+of `Link.lean`'s results that reach it, `section links_pending`). -/
+#print axioms wp_CheckOperations
+#print axioms wp_CheckOperationsTimeout
+#print axioms wp_CheckOperationsVerbose
+#print axioms CheckOperations.spec_seq
+#print axioms CheckOperations.spec_sound
+#print axioms CheckOperationsTimeout.spec_seq
+#print axioms CheckOperationsTimeout.spec_sound
+#print axioms CheckOperationsVerbose.spec_seq
+#print axioms CheckOperationsVerbose.spec_sound
 
 end porcupine
 end EtcdGrove
