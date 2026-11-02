@@ -539,6 +539,97 @@ The open questions:
 2. `RestartNode`'s scope: the stored commit covers the bootstrap log (`γ.bootLen ≤ σ.commit`). That
    holds for `restart3`, which stops a member only after a put has committed past the bootstrap.
 
+### R2c: the image's content (2026-11-02, draft, `InvRestart.lean`)
+
+What a stopped member's data directory holds, and what `bootstrap` makes of it, read from etcd's
+code (`bootstrap.go` at the pin):
+
+- On an existing WAL, `bootstrapRaftFromWAL` gives raft no peers, so `newRaftNode` calls
+  `RestartNode`; `raftConfig` leaves `Applied` at 0. The storage is `bootstrappedWAL.MemoryStorage`:
+  `ApplySnapshot` of the WAL's last snapshot record, `SetHardState`, `Append` of its entries.
+- `bootstrap` then **replaces the WAL snapshot's `ConfState` by the backend's**
+  (`buildConfStateFromV3store`). So raft restarts with the membership the backend holds at its
+  consistent index `i`, not at the WAL snapshot's index. `RestartNode` allows this: its
+  configuration point may be anywhere from the storage's base to its stored commit.
+- `bootstrapClusterWithWAL` builds the cluster from its ids only; `Finalize`'s `cl.Recover` reads
+  the members from the backend's buckets. No remotes, as on a first start.
+- `recoverSnapshot` keeps the backend file unless its consistent index is below the WAL snapshot's
+  (then a `.snap.db` replaces it). A graceful stop never leaves it below: a snapshot is of the
+  applied state.
+
+**The draft** (statements only; the opaque parts are R2d's or the trust boundary's):
+
+- `srvDiskImage γ ρ id`: raft's part (`nodeVacant`, `raftState S`, the WAL's records `σ` with
+  `StorageHolds S σ`, what `RestartNode` takes); the backend's part (the file's data `D` is the
+  image of a committed prefix `A` through `i`, the snapshot path's `imageAt`, reused); the order
+  `σ.b ≤ i ≤ σ.commit`; the configuration point `confAt γ.cl i m`, `m` the backend's members at
+  `A` (`v3ConfState`, opaque until R2d); the files (`srvFiles dd σ D`, a trust-boundary token, and
+  the backend path's `pathOwn`).
+- `bootOkR`: `bootOk` with five changes marked `[R2c]`: no peers; the storage rebuilt at `σ`
+  (`memStorRestarted`, opaque until R2d derives `restartStorage` from it, as kvdurable's
+  `kd_restartStorage`); the members `(restModel 0 γ.boot L).mem`; the consistent index loaded at
+  `i`; the backend's data the image, the fresh file's facts gone.
+- `bootstrapRestartContract`: for every image whose facts hold, `bootstrap` on the files gives an
+  error or `bootOkR`. A premise, as `bootstrapContract`.
+
+**What R2b must prove of the stop** (`HardStop` to the image): the raft loop's `raftState` and
+`node.Stop`'s `nodeVacant`; the backend's certificate at its consistent index (as the snapshot
+sender's, from the store's view and the index's meta keys); the order `σ.b ≤ i ≤ σ.commit` as an
+invariant of the raft loop and the apply thread; `confAt` at `i`; and the closes' trust-boundary
+axioms giving `srvFiles`.
+
+**Scope:** a static cluster (`Hmembers`, `Hdirps` as a first start's); graceful stops in one
+process (no crash: writes are visible to the next open, synced or not).
+
+### R2c image review, round 1 (2026-11-02, a fresh `spec-reviewer`)
+
+The reviewer confirmed the order `σ.b ≤ i ≤ σ.commit` at a graceful stop from etcd's code:
+- The raft loop hands a `Ready` to the apply thread before its `Save`, with no stop check between.
+- The stop runs the scheduler's pending jobs (`sched.Stop`) before `s.r.stop()`, and closes the WAL
+  after the loop exits.
+- The backend's last commit (`CommitAndStop`) saves the consistent index.
+- A WAL snapshot record follows its `applySnapshot` job. etcd's own comment that the consistent
+  index may pass the commit is about crashes only.
+
+It found no bug in etcd. Its first-tier findings, all taken:
+- **F1.** `bootOkR`'s `ciApplying` at the image's index was false: the applying index and term are
+  the apply loop's own fields, which `NewConsistentIndex` leaves at 0. Back to `0 0`.
+- **F2.** The image's directory was existential, unrelated to the configuration's `DataDir`. Now a
+  parameter: `srvStopRight s γ id dd` records it at `NewServer`, and `srvDiskImage γ ρ id dd`
+  names it. `HardStop` and `stop` quantify over it; the examples' specs give `name ++ ".etcd"`
+  (`cfgOk`).
+- **F3.** The restart could not give `memStorRegAuth ∅`: raft's names are kept, so the registry is
+  the first incarnation's, its old storage registered for good. Now the image carries the
+  registry's authority back, and the contract takes it at any `M` and returns it with the new
+  storage at a location not in `M`.
+- **F4.** Nothing made the stopped member have applied the bootstrap log. In `restart3` the put
+  returns on two members' acknowledgements, so a follower may be stopped before its first `Ready`.
+  Then the members bucket is empty, and `Hmem`, `Hmembers` and `RestartNode`'s
+  `bootLen ≤ σ.commit` fail. Now `γ.cl.bootLen ≤ i` is in the image and the contract's premise: a
+  scope restriction `restart3`'s stop must meet (R2b: a witness that the member applied
+  `bootLen`). `v3ConfState` is now over the backend's data (the members bucket), as
+  `buildConfStateFromV3store` reads it.
+- **F5.** The KV names' `c0` was free in the contract, but `restModel (W64 0)` assumes 0. The
+  contract now asks for an image at `c0 = 0` (existential), the image states `ρ.rd.kv.c0 = 0`, and
+  `restartNames` keeps `c0`.
+
+Second tier:
+- **Taken:**
+  - `srvFiles` names the member (the WAL's metadata, `cv.ID' = id`).
+  - The contract's image is an existential.
+  - `ctxs` is dropped from the contract.
+  - The error arm is documented: like a first start's, the contract may always fail.
+- **Open:**
+  - `srvFiles`'s exclusivity per directory (R2b makes the token).
+  - `ctxs` is still a dead parameter of `bootPremiseR`.
+  - Sealing the image behind an API module with the laws R2d needs (the image is an exposed `def`
+    today).
+  - `memStorRestarted` must also give the snapshot token and the storage's conf state, which
+    `restartStorage` needs (R2d).
+  - Conf entries in `(σ.b, i]` are delivered again after a restart. etcd skips `ApplyConfChange`
+    for them but still calls `AddMember`/`SetConfState`; R2d must check that an `AddMember` of a
+    present member is harmless.
+
 ### R2c stage 2: the trusted `Next`, design (2026-11-02)
 
 - **The record: an extension.** `idutil` has no package variable whose initializer could allocate a
