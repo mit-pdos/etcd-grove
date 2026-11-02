@@ -783,16 +783,10 @@ sorry EtcdServer.applyAll.wp_proofOn
 sorry EtcdServer.run.wp_proofOn
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
-sorry bootstrappedRaft.newRaftNode.wp_proof
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
-sorry kv.StartCluster.wp_proof
-sorry kvStorage_bootStorage
-sorry kvreconf.Cluster.startNew.wp_proof
-sorry kvreconf.StartCluster.wp_proof
 sorry merged_image
-sorry raftNode_of_StartNode
 sorry run_job_snap_cmp
 sorry txn.kvWriter_keyObs
 sorry txn.kvWriter_noCmp

@@ -672,12 +672,10 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
-sorry bootstrappedRaft.newRaftNode.wp_proof
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
 sorry merged_image
-sorry raftNode_of_StartNode
 sorry run_job_snap_cmp
 sorry txn.kvWriter_keyObs
 sorry txn.kvWriter_noCmp

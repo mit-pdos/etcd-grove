@@ -1225,6 +1225,26 @@ Candidate 1 is not on disk. It is reconstructed from r1's quotes and c2's change
   - Avoid: partly. A long-lived branch that reshapes a shared API should merge `lean` often; and
     dropping a parameter nobody used *yet* invites a parallel change to re-add it.
 
+- **E112 · The clients' start proofs were proved on a branch the coordinator never merged.**
+  - Where: found at the landing (2026-11-02). Stage II (l) (`f8a8d972f2`, `73c492596e`, branch
+    `worktree-agent-a09ffa1a9b805d40b`, on `cf8a03bee0`) proved the six `PORT(durability stage II)`
+    stubs (`kv.StartCluster`, `kvStorage_bootStorage`, `kvreconf.StartCluster`,
+    `kvreconf.Cluster.startNew`, `bootstrappedRaft.newRaftNode`, `raftNode_of_StartNode`) and was
+    pushed, but never merged into `worktree-kvdurable`.
+  - What broke: the first landing attempt (`landing-report.md`) found the six as `sorry`s that kv's,
+    kvreconf's and the server examples' results reached, and did not land. The branch, merged at
+    last (`e3d1bd00b1`), predated eight later stages: `restartStorage`'s freeze point (II (k)),
+    `StorageHolds`' `wcommit` and `RestartNode`'s `readyFits` (II (p)), its AU over `▷ raftState`
+    (II (k)), S1b in its post, lean's `cluster_alloc` `sl` argument, the server's `walReady`
+    premise and `stopped` bag. Adapting it took 4 conflicts and about 20 proof edits. `readyFits`
+    needed `receiptBound ≤ 2^61`, which narrowed kv's and kvreconf's `StartCluster`/`Run`/`Main`
+    specs and adequacy results from `n < 2^63` to `n < 2^61` steps (as kvdurable's in II (t)).
+  - Cost: one landing round lost, one merge-and-adapt round. Had the branch been merged after
+    II (l), each later stage would have kept the proofs building and met the `readyFits` scope
+    change when it made it. No new `sorry`. **[cat i] [coordination]**
+  - Avoid: yes. Keep a ledger of every agent branch and its merge state, and check
+    `git branch --no-merged` (local and `-r`) before landing.
+
 ---
 
 ## 2. Counts
