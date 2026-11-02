@@ -773,7 +773,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     cases cmp
     · exact absurd (by simpa using Hacr) Hif
     simp only [↓reduceIte] at Hacr
-    obtain ⟨Hmode, -, -, -⟩ := Hacr
+    obtain ⟨Hmode, -⟩ := Hacr
+    -- (periodic mode, 2026-11-02) in revision or periodic mode
+    have Hmode' : cfg.AutoCompactionMode' = go!"revision" ∨
+        cfg.AutoCompactionMode' = go!"periodic" := by
+      rcases Hmode with h | h
+      · exact Or.inl h.1
+      · exact Or.inr h.1
     ihave #Hcppkg : isPkgInit (PROP := IProp GF)
         pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor $$ []
     · iPkgInit
@@ -782,12 +788,17 @@ theorem NewServer.wp_proofG (on cmp : Bool)
             go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws,
           interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s,
           iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ RD ∗ mvcc.storeReaderC kst γw.st)⟩
-        (fun hm => absurd (Hmode.symm.trans hm) (by decide))
+        (fun hm => by
+          rcases Hmode with h | h
+          · exact absurd (h.1.symm.trans hm) (by decide)
+          · exact h.2.1)
     simp only at hNew
     wp_apply hNew as %cp %cperr Hcp
     icases Hcp with (⟨%Hcpe, %T, %γf, #Hcpo, HT⟩ | %Hcpe)
     rotate_left
-    · exact absurd Hmode Hcpe.2.2
+    · rcases Hmode' with h | h
+      · exact absurd h Hcpe.2.2
+      · exact absurd h Hcpe.2.1
     subst Hcpe
     (try wp_auto)
     isplitr
@@ -1727,7 +1738,16 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iright
     subst Hcm
     simp only [↓reduceIte] at Hacr
-    obtain ⟨Hmode, Hret, Hon, Hcret⟩ := Hacr
+    obtain ⟨Hmode, Hon⟩ := Hacr
+    -- (periodic mode, 2026-11-02) the mode's permit: at least the cluster's retention in revision
+    -- mode, a cluster retention of `0` in periodic mode
+    have Hcrm : if cfg.AutoCompactionMode' = go!"revision" then
+        0 ≤ sint.Z cfg.AutoCompactionRetention' ∧
+          ((ρ.rd.kv.cret : Nat) : Int) ≤ sint.Z cfg.AutoCompactionRetention'
+        else ρ.rd.kv.cret = 0 := by
+      rcases Hmode with ⟨hm, hr, hc⟩ | ⟨hm, hr, hc⟩
+      · rw [ite_cond_eq_true _ _ (eq_true hm)]; exact ⟨Int.le_of_lt hr, hc⟩
+      · rw [ite_cond_eq_false _ _ (eq_false (by rw [hm]; decide))]; exact hc
     isplitr
     · icases HM with %HM; ipureintro; show M.isOn = false; rw [HM.1, Hon]
     iexists T, _
@@ -1735,17 +1755,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iintro %ρ' ⟨#Hpk', #Hreq', #Hrd', #Hcred'⟩
     unfold v3compactor.runPre
     simp only
-    rw [show v3compactor.modePermit cfg.AutoCompactionMode' (srvRevLb γw.st)
-        (sint.Z cfg.AutoCompactionRetention') γf =
-        v3compactor.revPermit (srvRevLb γw.st) (sint.Z cfg.AutoCompactionRetention') by
-      unfold v3compactor.modePermit; simp only [Hmode, ↓reduceIte]]
     imodintro
     isplitr
     · ihave #Hrg := revGetterOk_server (hRevS rfl) s (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret⟩ : apply.AEnv GF) ρ'.rd _ $$ [$Hmvpkg $kv $Hrd']
       iunfold srvCompactR at Hrg
       iexact Hrg
     isplitr
-    · ihave #Hcb := compactableOk_server (hCmpS rfl) s (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret⟩ : apply.AEnv GF) ρ' (sint.Z cfg.AutoCompactionRetention') (Int.le_of_lt Hret) Hcmp0 Hcret
+    · ihave #Hcb := compactableOk_server_mode (hCmpS rfl) s (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret⟩ : apply.AEnv GF) ρ' cfg.AutoCompactionMode' (sint.Z cfg.AutoCompactionRetention') γf Hcmp0 Hcrm
         $$ [$Hpk' $Hreq' $Hrd' $Hcred']
       iunfold srvCompactR at Hcb
       iexact Hcb
@@ -2445,15 +2461,21 @@ theorem NewServer.wp_proof
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
     h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG
     (fun _ => hLSR) (fun _ => hUSR) (fun _ => hUP) (fun _ => hRevS) (fun _ => hCmpS)
-  have Hmode : (if E₀.cmp = true then cfg.AutoCompactionMode' = go!"revision" ∧
-      0 < sint.Z cfg.AutoCompactionRetention' ∧ false = false ∧
-      (ρ.rd.kv.cret : Int) ≤ sint.Z cfg.AutoCompactionRetention'
+  have Hmode : (if E₀.cmp = true then
+      ((cfg.AutoCompactionMode' = go!"revision" ∧ 0 < sint.Z cfg.AutoCompactionRetention' ∧
+          (ρ.rd.kv.cret : Int) ≤ sint.Z cfg.AutoCompactionRetention') ∨
+        (cfg.AutoCompactionMode' = go!"periodic" ∧ 10 ≤ sint.Z cfg.AutoCompactionRetention' ∧
+          ρ.rd.kv.cret = 0)) ∧ false = false
     else cfg.AutoCompactionRetention' = 0) := by
     rw [Hcmp0]
-    rcases Hacr with h0 | ⟨hm, hr, hcr⟩
+    rcases Hacr with h0 | ⟨hm, hr, hcr⟩ | ⟨hm, hr, hcr⟩
     · simp [h0]
     · have hne : cfg.AutoCompactionRetention' ≠ 0 := by intro h0; rw [h0] at hr; simp at hr
-      simp [hne, hm, hr, hcr]
+      simp only [ne_eq, hne, not_false_eq_true, decide_true, ↓reduceIte]
+      exact ⟨Or.inl ⟨hm, hr, hcr⟩, trivial⟩
+    · have hne : cfg.AutoCompactionRetention' ≠ 0 := by intro h0; rw [h0] at hr; simp at hr
+      simp only [ne_eq, hne, not_false_eq_true, decide_true, ↓reduceIte]
+      exact ⟨Or.inr ⟨hm, hr, hcr⟩, trivial⟩
   have h' := h cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn
     Hcbl Hmrb Hmto Hmode rfl Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU
     (fun h => absurd h (by decide))

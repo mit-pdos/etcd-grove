@@ -5,6 +5,7 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.common
 public import GeneratedProof.go_uber_org.zap
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.github_com.mit_pdos.etcd_grove.examples.putgetc
 

@@ -29300,6 +29300,59 @@ stock (`etc/bounds-allow.txt`). The trusted changes: the axioms `leaseTimeToLive
 Rejected: a slot held for the whole call (F1 of the review: a slot and the token held at once by
 one thread); a per-call slot handed down from `NewServer` (it would bound the number of calls).
 
+## C3's client stage: deferred, a survey's finding (2026-11-02 · my recommendation, under the user's "follow your recommendations" · branch `periodic`)
+
+**What the stage was to do** (`notes/compactor-pilot-plan.md`): carry the store's permit
+(`kvCmpPermit γk c`: `0 < c` and `kvRevLbZ γk (c + cret)`) up to the client and state C3 in
+`compactkv`. **Surveyed, not started.** Where a client can see a compaction revision:
+- a read's `ErrCompacted`: a gRPC error, about which the gRPC model (`GrpcSpec`, a `Φ` of the reply
+  only) says nothing; a fact there would be a change to the trusted gRPC model;
+- a watch's compaction response: a message, and the server sends the permit already (`watchDn`'s
+  `mvccOk` → `mvccCov` → `respCov` → `respRev`'s `cmpPermOf γ`, over the store's names); the client
+  side (`watchGRPCStream.run`'s `recvElem`, `serveSubstream`, `watchStateElem`) drops it.
+
+**Why deferred.** (1) The client's watch environment ties its KV names to the members' only by
+the state variable (`WEnv.kst`, `isKvWatcher`'s `V.kst = γ.st`, `srvKVFacts`' existential `γr`), not
+by `kvSame`, so `kvCmpPermit γr.kv` does not give `kvCmpPermit γ`: the stage needs the environment's
+KV names first (every `WEnv` construction). (2) Its only consumer would be another `kv.Compact`
+(the one premise written in `kvRevLbZ`): `kvRevLbZ` bounds the KV model of the cluster's *requested*
+log (`γk.rlog`), and no law turns it into a bound on a later `Get`'s revision. A Go-observable C3
+check in `compactkv` (the watch's compaction revision plus the retention at most a later latest
+`Get`'s revision, tight at retention 1) needs that law: the permit restated over the committed
+log (`srvRLogLb`) and a read-side law from a committed bound to a linearizable `Range`'s log
+(`committedAtLeast`, `readLogOk`), or the bound delivered by `Range`'s linearization. Both are
+larger than the stage and change the server's read specs. Recorded as C3's open client stage, after
+periodic mode (the plan's other open item, which has closed results to gain).
+
+## Periodic mode: `NewServer` with the periodic compactor, `putgetc` in periodic mode (2026-11-02 · my recommendation, under the user's "follow your recommendations" · branch `periodic`)
+
+**The compactor plan's C2 in periodic mode** (`notes/compactor-pilot-plan.md`): the closed results
+with the auto-compactor in either mode. Until now `NewServer` proved only revision mode.
+
+**`NewServer`'s premise** (both `spec` and `specG`) gains a third disjunct, the compactor on in
+periodic mode: `AutoCompactionMode = "periodic"`, a period of at least 10ns (`v3compactor.New`'s
+premise: a shorter one busy-loops) and the cluster's retention `ρ.rd.kv.cret = 0`. A period is no
+revision count, so the store's permit (`kvCmpPermit`, C3's server stage) can claim no retention
+beyond "a revision the store had": `cret = 0`. A weakening of the premise: no caller gains an
+obligation.
+
+**The compactor's contract.** `compactableOk_server_of` takes any permit `P` with
+`P r ⊢ ⌜0 < r⌝ ∗ srvRevLb E.γ (r + E.cret)`; revision mode (`compactableOk_server`, unchanged
+statement) and periodic mode (`compactableOk_server_periodic`, `cret = 0`) are its corollaries, and
+`compactableOk_server_mode` picks the mode's (`modePermit`). Periodic mode's permit gives the
+revision through the clock's stamp, `clockwork.stampAt_elim`: the clock's trust boundary (already in
+the trust base, `stampAt`, `clockLb`, `realClock`, ...); the results now rest on this law of it too
+(`etc/tcb-baseline.txt` and the collections, one line each).
+
+**The examples.** `common.newServer` is now `newServerMode(…, "revision", …)`, with the mode a
+parameter (`newServerMode.spec`, in the compaction mode `cmp`, as `NewServer`'s premise); the two
+`newServer` specs are proved over it. `StartPeriodicServer` starts a member in periodic mode.
+`putgetc` runs in periodic mode with a 10ms period (until now revision mode at retention 1, which
+`compactkv` covers): its test now also checks that the compactor compacts during a run (a read at
+the revision before the Put's fails with `ErrCompacted` within 5s). `putgetc_safe`'s statement is
+unchanged. The two new specs repeat their siblings' `threadBound`/`receiptBound` premises, raising
+`examples/common`'s bounds baseline (spec-thread 8 → 10, spec-receipt 12 → 16), as the family's
+others are until the bounds plan moves them.
 ## The writer's pin: M2's item 37, the sole writer's two laws proved (2026-11-02 · the user's approval · branch `m2-item37`)
 
 **Supersedes in part** "Task 4: item 37" of `notes/m2-storage-plan.md` (the route through `writerRes`'s

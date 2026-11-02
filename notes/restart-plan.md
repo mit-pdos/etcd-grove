@@ -308,7 +308,8 @@ baseline):
 - **Server vocabulary** (`etcdserver/InvRestart.lean`, opaque until R2b/R2c):
   - `srvStopRight s γ id`: `NewServer` gives it, `HardStop` takes it.
   - `srvDiskImage γ id`: the stopped member's data directory.
-  - `srvRestartBoot`: the restarted member's ghost bundle.
+  - `srvRestartBoot`: the restarted member's ghost bundle (removed in the glue step below: the
+    image carries it).
   - `bootstrapRestartContract`: `bootstrap`'s restart case.
 - **`EtcdServer.HardStop.spec`** (draft): from `srvStopRight s γ id` and the server's request view
   (`isServerReq`, which `Start` returns: a `HardStop` before `Start` blocks forever; R2b checks only
@@ -330,9 +331,43 @@ baseline):
   - Specs of `startMember` (`spec`, `specRestart`), `stop`, `serveClient`, `Run` and `Main`.
   - Proved over those specs: `startMember` (both cases), `stop`, `serveClient` and `Main`.
 
-**Next:** `Run`'s glue, which is where R2c starts. `Run` needs `srvRestartBoot` to tie the
-restarted member's names to the cluster's, so that its `Serve` registers the cluster's KV answers,
-and the client invariant must carry the last put's value (`v2`) across the stop. That is what
-`srvRestartBoot` and `srvDiskImage` must say: the restarted member's `ReqNames` agree with the
-cluster's raft and KV names (`ρ.rd.raft`, `kvInv`), its id generator is fresh past its previous
-ids, and its wait registry is new.
+**Next (done 2026-11-02, below):** `Run`'s glue, which is where R2c starts.
+
+### R2: `Run`'s glue and R2c's first design (2026-11-02)
+
+`restart3`'s glue is proved over the drafted server specs: `Run`, `restartCheck`, `put`, `stop`,
+`startMember` (both cases), `serveClient`, `Main`. No `sorry`, no new axiom; the server statements
+are still the R2a placeholders and hypotheses (`HardStop.spec`, `BuildServer.specRestart`,
+`Start_builtR_spec`, the listener-close boundary).
+
+- **The Go program**, two changes (the test passes, 5 runs of 5):
+  - The put before the stop is of another key (`k0 ↦ v1`); the check is still on `k`, so a restarted
+    member that missed the puts made while it was stopped finds no value and the check panics. Until
+    then both puts were of `k` (`v1`, then `v2`), which `putGetInv` (one key, one value) cannot
+    take: a persistent `v1` update may fire after `v2`'s. `client.client_Put_other` (over
+    `putOtherAu_of_putGetInv`, `kvOpStep_putOther`) is the put of another key under the invariant.
+  - What follows the choice of the follower is a function, `restartCheck(cli, m, name, peer,
+    peerAddr, client, cluster, lg)`, called in each branch of the leader test: one spec, generic in
+    the member, instead of the rest of `Run` proved twice.
+- **R2c, the names across a restart.** The image records the stopped incarnation's request names:
+  `srvDiskImage γ ρ id` (`HardStop` from `isServerReq s E ρ` to it). A restart returns new names `ρ'`
+  with `restartNames ρ ρ'` (defined, `InvRestart.lean`): equal raft names, KV state ghost variable,
+  KV model, issued-id map and id prefix -- what the other members and the clients see. The new
+  incarnation's own names (its wait registry, its store's index and certificate maps) are fresh, so
+  the server allocates them inside `BuildServer`/`NewServer`; the example supplies only the image.
+  `srvRestartBoot` (the example-supplied bundle of R2a) is gone; what it was to hold (raft's restart
+  token, the cluster's invariants, the id generator's freshness) is the image's or `NewServer`'s
+  restart premise's, R2c/R2d to split. The client's invariant moves to the restarted member's names
+  by `putGetInv_st` (it reads only the KV state's ghost variable).
+- **Thread tokens.** `Run` takes two: `Serve` keeps member 1's `srvGoRes` (and its token), so the
+  restart needs its own. The alternative, `HardStop` returning a token, does not fit: the stopped
+  member's token was passed on to the next member's start.
+- **Found:** `etc/lean-check.py` hung (30 minutes of CPU, "elaborating line 1") when an imported
+  module of the checked file failed to build (a `Spec` file with an unknown constant), instead of
+  reporting the error; `lake build` of the import showed it in seconds.
+
+**Open in R2c** (the content of the placeholders): the floor fact of the member's id prefix
+(`Φs pfx = srvFloorFact E₀` names the first incarnation's stand-in environment; the restarted
+member's store is new), the id generator's start past the old ids
+(`issues/etcd-request-id-restart-reuse.md`), and what the image holds of raft (R2e) and of the
+backend (L5).

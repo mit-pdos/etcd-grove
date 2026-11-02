@@ -51,8 +51,7 @@ theorem compactkv.wp_StartCompactingServer [go_etcd_io.etcd.cache.v3.Assumptions
     [Float64ToInt64Semantics] :
     common.StartCompactingServer.spec (GF := GF) (hG := hG) :=
   common.StartCompactingServer.wp_proof
-    (common.newServer.wp_proofCompact common.features.wp_NewDefaultServerFeatureGate
-      wp_NewServer)
+    (common.newServer.wp_proofCompact common.wp_newServerMode)
     EtcdServer.wp_Start
 
 /-- **The adequacy example's `Main` does not panic** (see the file header;
