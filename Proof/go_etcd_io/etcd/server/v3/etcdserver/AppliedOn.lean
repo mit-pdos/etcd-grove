@@ -340,7 +340,7 @@ theorem authOn_false_of_off (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI 
   imodintro
   isplitr
   · ipureintro
-    rw [← Hc, Hx, Hch, apply.alarmChain_authOn]
+    rw [← Hc, Hx.1, Hch, apply.alarmChain_authOn]
   isplitl [Hua Hap Hakv Hrest]
   · iunfold srvApplyKV
     iexists ua
@@ -367,7 +367,7 @@ theorem authOn_false_of_run (E : apply.AEnv GF) (γr : ReadNames) (ua : GoInterf
   imodintro
   isplitr
   · ipureintro
-    rw [← Hc, Hx, Hch, apply.alarmChain_authOn]
+    rw [← Hc, Hx.1, Hch, apply.alarmChain_authOn]
   iframe Hakv
   iunfold kvRun
   iunfold kvApplied

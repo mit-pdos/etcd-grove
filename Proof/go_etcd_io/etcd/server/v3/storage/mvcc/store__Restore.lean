@@ -52,7 +52,7 @@ theorem mvcc.store.Restore.wp_proof
     have hj1 : mvcc.nJobRd γ.kb = 1 := by rw [hd]; simp [mvcc.nJobRd, hdon]
     ihave #Hrc := (mvcc.restoreRcptM_on d' _ hd'on).1 $$ Hrc0
     icases (mvcc.restoreImageM_on d' γb' _ r hd'on).1 $$ Himg with ⟨%ents, Hview, Hrecs, -, %Himg⟩
-    obtain ⟨hrec, -, hcut, -⟩ := Himg
+    obtain ⟨hrec, -, hcut⟩ := Himg
     ihave Hsr := (mvcc.kbSRM_on (some d') hd'on).1 $$ Hsr
     icases (mvcc.writerOwn_on γ hj1).1 $$ Hown with ⟨HrtOld, Htkr⟩
     have hlen := mvcc.restoreLogOk_len hR

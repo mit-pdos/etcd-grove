@@ -572,6 +572,85 @@ def kvCert (γk : KVNames) (l : mvcc.Log) : IProp GF :=
 instance kvCert_persistent (γk : KVNames) (l : mvcc.Log) : Persistent (kvCert (GF := GF) γk l) := by
   unfold kvCert; infer_instance
 
+end kvGhost
+
+section crevPure
+variable [GooseExts]
+
+/-! ### The compaction revision of the committed log (moved from M2's apply Draft at #7-cmp's
+Freeze) -/
+
+/-- **The compaction revision of the committed log `A`** (Q5 (a): the apply side models it; the
+cluster's start store never compacted, `-1`). -/
+def crevOf (γk : KVNames) (A : List EntryModel) : Int := kvCrevOf γk.c0 γk.ch0 (-1) A
+
+theorem crevOf_snoc (γk : KVNames) (A : List EntryModel) (m : EntryModel) :
+    crevOf γk (A ++ [m]) = kvCrevEntry γk.c0 γk.ch0 (crevOf γk A) m := by
+  unfold crevOf kvCrevOf
+  rw [List.foldl_append]
+  rfl
+
+/-- **The compaction revision never goes down along the committed log** (what the snapshot
+track's #8 needs for `Restore.specM`'s `c ≤ c'`: the installer's applied log is a prefix of the
+image's). -/
+theorem crevOf_mono (γk : KVNames) (A B : List EntryModel) (h : A <+: B) :
+    crevOf γk A ≤ crevOf γk B := by
+  obtain ⟨C, rfl⟩ := h
+  unfold crevOf kvCrevOf
+  rw [List.foldl_append]
+  exact kvCrevOf_ge _ _ C _
+
+theorem crevOf_ge (γk : KVNames) (A : List EntryModel) : -1 ≤ crevOf γk A :=
+  kvCrevOf_ge _ _ A (-1)
+
+/-- **A plain log never compacts** (the compaction-off servers' logs: the revision stays `-1`). -/
+theorem crevOf_plain (γk : KVNames) (A : List EntryModel) (h : plainLog A) : crevOf γk A = -1 := by
+  unfold crevOf kvCrevOf
+  generalize hc : (-1 : Int) = c₀
+  have key : ∀ (B : List EntryModel), plainLog B → ∀ c, B.foldl (kvCrevEntry γk.c0 γk.ch0) c = c := by
+    intro B
+    induction B with
+    | nil => intro _ c; rfl
+    | cons m B ih =>
+      intro hB c
+      simp only [List.foldl_cons]
+      rw [kvCrevEntry_plain _ _ _ _ (hB m (List.mem_cons_self))]
+      exact ih (fun m' hm' => hB m' (List.mem_cons_of_mem _ hm')) c
+  exact key A h c₀
+
+/-- **The compaction revision of an admitted log is `-1` or at least `1`** (Q7 (a)'s scope limit, at
+the model: with `mvcc.recsPos_crev` of the image, #8's `c ≤ c'` has no `Compact(0)` corner). -/
+theorem crevOf_pos (γk : KVNames) (cmp : Bool) (A : List EntryModel) (h : plainLogM cmp A) :
+    crevOf γk A = -1 ∨ 1 ≤ crevOf γk A := by
+  unfold crevOf kvCrevOf
+  have key : ∀ (B : List EntryModel), plainLogM cmp B → ∀ c : Int, (c = -1 ∨ 1 ≤ c) →
+      B.foldl (kvCrevEntry γk.c0 γk.ch0) c = -1 ∨ 1 ≤ B.foldl (kvCrevEntry γk.c0 γk.ch0) c := by
+    intro B
+    induction B with
+    | nil => intro _ c hc; exact hc
+    | cons m B ih =>
+      intro hB c hc
+      simp only [List.foldl_cons]
+      exact ih (fun m' hm' => hB m' (List.mem_cons_of_mem _ hm')) _
+        (kvCrevEntry_pos _ _ cmp c m (hB m (List.mem_cons_self)) hc)
+  exact key A h (-1) (Or.inl rfl)
+
+/-- **`specSnap`'s `hcc`** from the records' revision: the apply thread's compaction revision is
+its applied log's (`kvApplied`'s), below the image's log `A'`, whose compaction revision the
+records carry (`imageAt`'s). -/
+theorem crev_hcc (γk : KVNames) (A A' : List EntryModel) (crev : Int) (rcrev : Int)
+    (hcrev : crev = crevOf γk A) (hAA : A <+: A') (hr : rcrev = crevOf γk A') : crev ≤ rcrev := by
+  rw [hcrev, hr]; exact crevOf_mono γk A A' hAA
+
+end crevPure
+
+section kvGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 /-- **The apply thread's KV ghost state** at the applied raft log `A` and the KV log `l`: `A`
 committed, `l` its model, certified, the longest certified length. -/
 def kvAppliedL (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) (l : mvcc.Log) :
@@ -580,10 +659,11 @@ def kvAppliedL (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) (l :
     ⌜l = kvModel γk A⌝)
 
 /-- `kvAppliedL` of the apply thread's state `x`, at the start's chain (the plain log does not
-change it). -/
+change it), its compaction revision the committed log's (`crevOf`; M2 apply item 4's last clause,
+landed at #7-cmp's Freeze, 2026-11-02: the snapshot's image carries it). -/
 def kvApplied (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) (x : apply.ApplyKV) :
     IProp GF :=
-  iprop(kvAppliedL γ γk A x.log ∗ ⌜x.chain = γk.ch0⌝)
+  iprop(kvAppliedL γ γk A x.log ∗ ⌜x.chain = γk.ch0 ∧ x.crev = crevOf γk A⌝)
 
 /-- **What a put of `op` needs** (2026-10-14, unit T1; 2026-10-15, unit T2: any flags but a
 lease): the lease `0`, and its client's update; since 2026-10-19 (D21 M6) fired at most once. -/

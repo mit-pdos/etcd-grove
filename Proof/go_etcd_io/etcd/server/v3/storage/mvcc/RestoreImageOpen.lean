@@ -27,8 +27,9 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 S-j1's; review round 4): off, today's `keyImage` (the `Key` bucket the restored log's, no
 compaction record) and no record; on, the `Key` bucket the entries `ents` cut at the records'
 revision (a finished compaction or a leader's bucket mid-job), the `Meta` bucket's two compaction
-keys holding the records' bytes, the records of `L` and past revision `0` (`recsPos`) and
-`r.crev` safe for readers (`NoDelPutAt`). -/
+keys holding the records' bytes, the records of `L` and past revision `0` (`recsPos`). (Until
+#7-cmp's Freeze, 2026-11-02, also `NoDelPutAt L r.crev`: false of a legitimate image, a revision
+deleting a key and putting it again compacted at itself, and used by no proof.) -/
 def mvcc.keyImageM (cm : Bool) (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Data) : Prop :=
   if cm then ∃ ents : List mvcc.KvEnt,
       (∀ k, backend.dget D mvcc.keyName k = (mvcc.bucketOfEnts ents).lookup k) ∧
@@ -36,8 +37,7 @@ def mvcc.keyImageM (cm : Bool) (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Da
         mvcc.recBytes r.fin ∧
       backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.schedKeyBytes =
         mvcc.recBytes r.sched ∧
-      mvcc.recsOk L r ∧ mvcc.recsPos r ∧ mvcc.entsCutAt L r.crev ents ∧
-      mvcc.NoDelPutAt L r.crev
+      mvcc.recsOk L r ∧ mvcc.recsPos r ∧ mvcc.entsCutAt L r.crev ents
   else mvcc.keyImage L D ∧ r = mvcc.CmpRecs.empty
 
 theorem mvcc.keyImageM_off (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Data) :
@@ -87,7 +87,7 @@ theorem mvcc.restoreImageM_of_openOn (d' : mvcc.KBReal) (γb : GName) (L : mvcc.
       mvcc.restoreImageM (GF := GF) d' γb L r := by
   unfold mvcc.keyImageM at h
   simp only [↓reduceIte] at h
-  obtain ⟨ents, hk, hfin, hsched, hok, hpos, hcut, hnd⟩ := h
+  obtain ⟨ents, hk, hfin, hsched, hok, hpos, hcut⟩ := h
   have hfin' : backend.dget D go!"meta" go!"finishedCompactRev" = mvcc.recBytes r.fin := hfin
   have hsched' : backend.dget D go!"meta" go!"scheduledCompactRev" = mvcc.recBytes r.sched := hsched
   have hfv : backend.fkVals D = (mvcc.recBytes r.fin, mvcc.recBytes r.sched) := by
@@ -139,7 +139,7 @@ theorem mvcc.restoreImageM_of_openOn (d' : mvcc.KBReal) (γb : GName) (L : mvcc.
     icases Hw with ⟨%n, %v, Hw⟩
     iexists n, v
     iexact Hw
-  ipureintro; exact ⟨hok, hpos, hcut, hnd⟩
+  ipureintro; exact ⟨hok, hpos, hcut⟩
 
 /-- **Off, the image `Restore` takes, from the backend's open** (what the walk built inline until
 stage B): the whole bucket of the restored log and the no-compaction token. -/
