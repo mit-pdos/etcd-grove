@@ -30,8 +30,9 @@ abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
     [ContextErrsClient (GF := GF) (hG := hG)]
-    (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry),
-  runPure (GF := GF) N id₁ id₂ id₃ ctxs boot →
+    (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
+  runPure id₁ id₂ id₃ ctxs boot →
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.restart3 ∗

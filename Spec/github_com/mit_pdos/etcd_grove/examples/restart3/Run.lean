@@ -14,6 +14,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.restart3.Defs
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -32,10 +33,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.restart3.Assumptions]
 
-/-- `Run`'s and `Main`'s pure premises (putget3's). -/
-def runPure (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry) : Prop :=
+/-- `Run`'s and `Main`'s pure premises (putget3's, but the thread and receipt bounds, which `Run.spec`
+and `Main.spec` take as instances). -/
+def runPure (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry) : Prop :=
   BootFacts id₁ id₂ id₃ ctxs boot ∧
-  threadBound GF ≤ 2 ^ 28 ∧ receiptBound GF ≤ 2 ^ 48 ∧ receiptBound GF ≤ N + 1 ∧
   ckptEffectsOk ∧ authRecordsFit ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ storage.diskOk
 
 /-- `Run`'s and `Main`'s resources (putget3's `Main`'s, with all three client addresses). -/
@@ -52,8 +53,9 @@ abbrev Run.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
     [ContextErrsClient (GF := GF) (hG := hG)]
-    (lg : Loc) (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry),
-  lg ≠ null → runPure (GF := GF) N id₁ id₂ id₃ ctxs boot →
+    (lg : Loc) (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
+  lg ≠ null → runPure id₁ id₂ id₃ ctxs boot →
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.restart3 ∗

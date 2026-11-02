@@ -32,16 +32,16 @@ theorem stop.wp_proof
     (hClose : http.ListenerClose_spec (GF := GF) (hG := hG)) :
     stop.spec (GF := GF) (hG := hG) := by
   intro m s pl γ id peerAddr γn
-  wp_start as Hm
+  wp_start as ⟨Hm, #Hreq⟩
   iunfold memberStop at Hm
-  icases Hm with ⟨Hrec, Hsr, %Hst, Hcl⟩
-  obtain ⟨Hst, li, rfl⟩ := Hst
+  icases Hm with ⟨Hrec, Hsr, %Hli, Hcl⟩
+  obtain ⟨li, rfl⟩ := Hli
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   wp_auto
   -- `m.s.HardStop()`
   wp_apply (wp_HardStop s γ id) $$ [Hsr] as Himg
-  · iframe; iframe #; ipureintro; exact Hst
+  · iframe; iframe #
   -- `m.pl.Close()`
   wp_apply (hClose _ li peerAddr (raftProto (netRh γn)) rfl) $$ [Hcl] as %err ⟨Haddr, Hown⟩
   · iexact Hcl

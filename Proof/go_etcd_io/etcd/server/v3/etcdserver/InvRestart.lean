@@ -9,8 +9,6 @@ until then, so that no statement over them can be proved by unfolding them.
 * `srvStopRight s γ id` (exclusive): the right to stop the server `s` of member `id` of the cluster
   `γ` once started (`HardStop`). R2b (the stopping server, the membership plan's M6): what
   `NewServer` gives its caller, with the "server open" token the request paths share.
-* `srvStartRet s` (pure): `s.Start()` returned. `HardStop` of a server never started blocks forever
-  (it sends on `s.stop`, which only `run` receives); R2b.
 * `srvDiskImage γ id` (exclusive): member `id`'s data directory, as its last incarnation's stop left
   it: raft's hard state, log and last snapshot record (the WAL), the backend's buckets at its
   consistent index, the member and cluster ids. R2c (L2): the ghost image handed from one
@@ -45,9 +43,6 @@ variable [sem : go.Semantics]
 
 /-- **The right to stop the started server `s`** (DRAFT, R2b; see the file header). -/
 opaque srvStopRight (s : Loc) (γ : SrvRaft) (id : w64) : IProp GF
-
-/-- **`s.Start()` returned** (DRAFT, R2b; see the file header). -/
-opaque srvStartRet (s : Loc) : Prop
 
 /-- **Member `id`'s data directory as its last stop left it** (DRAFT, R2c; see the file header). -/
 opaque srvDiskImage (γ : SrvRaft) (id : w64) : IProp GF

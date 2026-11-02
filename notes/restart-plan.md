@@ -300,26 +300,26 @@ What drafting has found so far:
 
 ### R2a, where it stands (2026-11-02)
 
-Drafted, checked, no `sorry`, no new axiom. The new server statements are `opaque` placeholders,
-and the draft trust-boundary statements are `Prop`s the proofs take as hypotheses:
+Drafted, built, no `sorry`, no new axiom. The new server statements are `opaque` placeholders, the
+draft statements are `Prop`s the proofs take as hypotheses, and the specs take the thread and
+receipt bounds as instances (`ThreadBoundLe`/`ReceiptBoundLe`; `etc/bounds-check.py` stays at its
+baseline):
 
 - **Server vocabulary** (`etcdserver/InvRestart.lean`, opaque until R2b/R2c):
   - `srvStopRight s γ id`: `NewServer` gives it, `HardStop` takes it.
-  - `srvStartRet s`: `Start` returned. A `HardStop` before `Start` blocks forever.
   - `srvDiskImage γ id`: the stopped member's data directory.
   - `srvRestartBoot`: the restarted member's ghost bundle.
   - `bootstrapRestartContract`: `bootstrap`'s restart case.
-- **Draft server specs:**
-  - `EtcdServer.HardStop.spec`: from `srvStopRight s γ id` and `srvStartRet s` to
-    `srvDiskImage γ id`.
-  - `EtcdServer.Start.specStop`: `Start.spec`'s at any starting index (a restarted apply thread
-    starts at the image's consistent index; `Start.spec` takes `ai₀ = 0`), also returning
-    `srvStartRet`.
+- **`EtcdServer.HardStop.spec`** (draft): from `srvStopRight s γ id` and the server's request view
+  (`isServerReq`, which `Start` returns: a `HardStop` before `Start` blocks forever; R2b checks only
+  `Start` gives it) to `srvDiskImage γ id`.
 - **`common`:**
   - `BuildServer.spec`, proved over `newServer` and linked.
-  - Its drafted variants `specStop` (the stop right) and `specRestart` (from the image).
-  - `Restart.lean`: `bootPremiseR` and `memberBuiltR`, `memberBuilt` at any starting index.
-  - `StartStop.lean`: `wp_Start_builtStop` and `wp_Start_builtR`, proved over `Start.specStop`.
+  - Its drafted variants `specStop` (with the stop right) and `specRestart` (from the image).
+  - `memberBuilt` now takes the apply thread's starting state, a first start's by default.
+    `Restart.lean` has `bootPremiseR` and `memberBuiltR` (`memberBuilt` at some starting state).
+  - `StartStop.lean`: `Start_builtR_spec`, the restart's `Start`. `Start.spec` takes `ai₀ = 0`, so
+    this is a hypothesis until R2d.
 - **The network's draft boundary** (`Proof/net/http/ListenerClose.lean`):
   - `registerClosable_spec`: the registration keeps a closing half, and the listener has a
     dynamic type.

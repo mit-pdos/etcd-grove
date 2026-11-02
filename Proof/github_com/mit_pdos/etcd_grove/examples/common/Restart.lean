@@ -46,22 +46,11 @@ instance bootPremiseR_persistent (N : Nat) (ps : List w64) (bootLog : List Entry
     Persistent (bootPremiseR (GF := GF) N ps bootLog ctxs dir token name Uok id) := by
   unfold bootPremiseR; infer_instance
 
-/-- **A member built, at any starting index** (DRAFT; `memberBuilt`'s, with the apply
-thread's starting state `ai₀ at₀ c₀ x₀` any: see the file header). -/
+/-- **A member built, at any starting index** (DRAFT; `memberBuilt`'s at the apply thread's
+starting state `ai₀ at₀ c₀ x₀`: see the file header). -/
 def memberBuiltR (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (N : Nat) (served : Bool) : IProp GF :=
-  iprop(∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-      (γrn : RNNames) (b : GoInterface) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-      (γk : GName) (τ : SrvTr GF) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV),
-    ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
-      cfg.WatchProgressNotifyInterval' = 0⌝ ∗
-    srvWatchBuilt s E ∗
-    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ ai₀ c₀ x₀ id (srvTrKey γn γk)) γrn b ai₀
-      at₀ c₀ x₀ N ∗
-    srvServeBuilt s E cfg 64 ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
-    srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
-    (if served then True else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
-    srvWatchReaders s E 64)
+  iprop(∃ (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV), memberBuilt s ρ E₀ lg γn id N served ai₀ at₀ c₀ x₀)
 
 end defs
 

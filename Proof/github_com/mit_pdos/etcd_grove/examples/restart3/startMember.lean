@@ -2,10 +2,10 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/restart3/startMember.lean`'s `spec` (the
 restart plan's R2a, 2026-11-02): `common.BuildServer` (its drafted `specStop`), `net.Listen` at the
 peer address, the listener registered closable (the draft boundary `http.registerClosable_spec`),
-`go http.Serve(pl, s.RaftHandler())`, `s.Start()` (`Start.specStop`, through
-`common.wp_Start_builtStop`), and the `member` record allocated. As `common.NewMember`'s and
+`go http.Serve(pl, s.RaftHandler())`, `s.Start()` (`common.wp_Start_built`), and the `member`
+record allocated. As `common.NewMember`'s and
 `common.StartMember`'s proofs. Lean-first (no Rocq counterpart). `wp_proofRestart`: the same over
-`BuildServer.specRestart` and `common.wp_Start_builtR`.
+`BuildServer.specRestart` and the restart's start (`common.Start_builtR_spec`, R2d).
 -/
 module
 
@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RaftHandler
 public import Spec.net.Listen
 public import Proof.net.http.Axioms
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.StartStop
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Start
 
 @[expose] public section
 
@@ -42,10 +43,10 @@ theorem startMember.wp_proof
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG))
     (hReg : http.registerClosable_spec (GF := GF))
-    (wp_Start : EtcdServer.Start.specStop (GF := GF) (hG := hG)) :
+    (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn
-    Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hck Haf Hbuq Hdbo
+    ThB RcB RcN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hck Haf Hbuq Hdbo
   wp_start as ⟨Haddr, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hpown⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
@@ -55,7 +56,7 @@ theorem startMember.wp_proof
   (try wp_auto)
   -- `common.BuildServer(name, peer, client, cluster, "restart3", SnapCount, SnapCatchUp, lg)`
   wp_apply (wp_BuildServer N name peerAddr client token (W64 1) (W64 1) peer cluster lg M iu Uok
-      ps bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
+      ps bootLog ctxs dir id γ ρ E₀ Φs γn hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
       Hdir HU Hlg Hck Haf Hbuq Hdbo) $$ [Hmb] as %s %err Hres
   · iframe; iframe #
   icases Hres with (%Herr | ⟨%Herr, Hmb, Hsr⟩)
@@ -103,8 +104,9 @@ theorem startMember.wp_proof
     ipureintro; exact isPanic_intoVal serr
   (try wp_auto)
   -- `s.Start()`
-  wp_apply (common.wp_Start_builtStop wp_Start s ρ E₀ lg γn id N true HrbN)
-    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok] as ⟨%Hret, Hup⟩
+  wp_apply (common.wp_Start_built wp_Start s ρ E₀ lg γn id N true
+      (ReceiptBoundLe.le (GF := GF) (N + 1)))
+    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok] as Hup
   · iframe Htok
     iframe #
     iunfold common.memberBuilt
@@ -121,17 +123,17 @@ theorem startMember.wp_proof
   iframe
   iunfold memberStop
   iframe
-  ipureintro; exact ⟨Hret, Hli⟩
+  ipureintro; exact Hli
 
 theorem startMember.wp_proofRestart
     (wp_BuildServer : common.BuildServer.specRestart (GF := GF) (hG := hG))
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG))
     (hReg : http.registerClosable_spec (GF := GF))
-    (wp_Start : EtcdServer.Start.specStop (GF := GF) (hG := hG)) :
+    (wp_StartR : common.Start_builtR_spec (GF := GF) (hG := hG)) :
     startMember.specRestart (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn
-    Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hck Haf Hbuq Hdbo
+    ThB RcB RcN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hck Haf Hbuq Hdbo
   wp_start as ⟨Haddr, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Himg, Hmb, #Hnet, Hpown⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
@@ -141,7 +143,7 @@ theorem startMember.wp_proofRestart
   (try wp_auto)
   -- `common.BuildServer(name, peer, client, cluster, "restart3", SnapCount, SnapCatchUp, lg)`
   wp_apply (wp_BuildServer N name peerAddr client token (W64 1) (W64 1) peer cluster lg M iu Uok
-      ps bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
+      ps bootLog ctxs dir id γ ρ E₀ Φs γn hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
       Hdir HU Hlg Hck Haf Hbuq Hdbo) $$ [Himg Hmb] as %s %err Hres
   · iframe; iframe #
   icases Hres with (%Herr | ⟨%Herr, Hmb, Hsr⟩)
@@ -166,9 +168,11 @@ theorem startMember.wp_proofRestart
   subst Hlerr
   wp_auto
   iunfold common.memberBuiltR at Hmb
+  icases Hmb with ⟨%ai₀, %at₀, %c₀, %x₀, Hmb⟩
+  iunfold common.memberBuilt at Hmb
   simp only [Bool.false_eq_true, ↓reduceIte]
-  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %ai₀, %at₀, %c₀, %x₀, %HE, #Hwb,
-    Hsb, Hserve, Hsv, #Hoff, Hlgm, Hrc, #Hnm, Htokp, HServeR, HWR⟩
+  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff,
+    Hlgm, Hrc, #Hnm, Htokp, HServeR, HWR⟩
   -- the listener registered, closable (the draft boundary): it serves the peer address with the
   -- member's raft protocol
   imod (hReg lis peerAddr (raftProto (netRh γn))) $$ Hlis Hpown with ⟨%Hli, Hlis, Hcloser⟩
@@ -189,12 +193,14 @@ theorem startMember.wp_proofRestart
     ipureintro; exact isPanic_intoVal serr
   (try wp_auto)
   -- `s.Start()`
-  wp_apply (common.wp_Start_builtR wp_Start s ρ E₀ lg γn id N true HrbN)
-    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok] as ⟨%Hret, Hup⟩
+  wp_apply (wp_StartR s ρ E₀ lg γn id N true)
+    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok] as Hup
   · iframe Htok
     iframe #
     iunfold common.memberBuiltR
-    iexists γA, ci, TM, E, γrn, b, cfg, γk, τ, ai₀, at₀, c₀, x₀
+    iexists ai₀, at₀, c₀, x₀
+    iunfold common.memberBuilt
+    iexists γA, ci, TM, E, γrn, b, cfg, γk, τ
     simp only [↓reduceIte]
     iframe
     iframe #
@@ -207,7 +213,7 @@ theorem startMember.wp_proofRestart
   iframe
   iunfold memberStop
   iframe
-  ipureintro; exact ⟨Hret, Hli⟩
+  ipureintro; exact Hli
 
 end proof
 

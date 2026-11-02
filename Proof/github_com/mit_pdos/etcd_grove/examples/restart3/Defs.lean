@@ -14,7 +14,7 @@ bootstrap log (`bootMarshal`); the members' shared premises (`common.commonPremi
 
 **A stoppable member** (`memberStop`): what `startMember` returns besides the started member
 (`common.memberUp`) and `stop` takes: the `member` record, the right to stop its server
-(`srvStopRight`, R2b) once started (`srvStartRet`), and the right to close its peer listener
+(`srvStopRight`, R2b), and the right to close its peer listener
 (`http.httpListenerCloser`, the draft boundary of `Proof/net/http/ListenerClose.lean`).
 -/
 module
@@ -127,7 +127,7 @@ served at `peerAddr` with member `id`'s raft protocol in the network `γn`. -/
 def memberStop (m s : Loc) (pl : GoInterface) (γ : SrvRaft) (id : w64) (peerAddr : GoString)
     (γn : NetNames GF) : IProp GF :=
   iprop(m ↦ (github_com.mit_pdos.etcd_grove.examples.restart3.member.mk s pl) ∗
-    srvStopRight s γ id ∗ ⌜srvStartRet s ∧ ∃ li : GoInterfaceOk, pl = GoInterface.ok li⌝ ∗
+    srvStopRight s γ id ∗ ⌜∃ li : GoInterfaceOk, pl = GoInterface.ok li⌝ ∗
     http.httpListenerCloser pl peerAddr (raftProto (netRh γn)))
 
 end defs

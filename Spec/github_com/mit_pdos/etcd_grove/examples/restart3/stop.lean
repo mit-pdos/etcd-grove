@@ -3,7 +3,8 @@
 member's server stopped (`HardStop`), then its peer listener closed. Lean-first (no Rocq
 counterpart).
 
-**The triple:** from a stoppable member (`memberStop`), the member's data directory as the stop
+**The triple:** from a stoppable member (`memberStop`) that was started (its request view, which
+`common.memberUp` holds), the member's data directory as the stop
 left it (`srvDiskImage`, R2c), its peer address and the right to serve it with the member's raft
 protocol back (`http.ListenerClose_spec`'s draft boundary), so that the member can be started
 again there.
@@ -34,7 +35,8 @@ abbrev stop.spec : Prop :=
   ∀ (m s : Loc) (pl : GoInterface) (γ : SrvRaft) (id : w64) (peerAddr : GoString)
     (γn : NetNames GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.restart3 ∗
-      memberStop m s pl γ id peerAddr γn }}
+      memberStop m s pl γ id peerAddr γn ∗
+      (∃ (E : apply.AEnv GF) (ρ : ReqNames), isServerReq s E ρ) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.restart3.stop)) (Val #m))
   {{ RET #(); srvDiskImage γ id ∗ netAddrFree (GF := GF) peerAddr ∗
       http.httpProtoOwn peerAddr (raftProto (netRh γn)) }}

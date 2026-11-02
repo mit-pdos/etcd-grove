@@ -18,6 +18,7 @@ index (`memberBuiltR`), with the right to stop it again.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Restart
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -43,8 +44,8 @@ abbrev BuildServer.spec : Prop :=
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
-  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
+    [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
@@ -70,8 +71,8 @@ abbrev BuildServer.specStop : Prop :=
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
-  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
+    [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
@@ -98,8 +99,8 @@ abbrev BuildServer.specRestart : Prop :=
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
-  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
+    [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →

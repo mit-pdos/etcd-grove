@@ -11,7 +11,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.MonitorsOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StartOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RunOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
 
 @[expose] public section
 
@@ -55,29 +54,6 @@ abbrev EtcdServer.Start.spec : Prop :=
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
   {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
       srvGoRes s ∗ srvLgReader s ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-        srvReadReader s γr) ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
-        srvWgReader s) ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
-        ∃ n : Loc, srvLeaderChangedAddr s ↦□ n ∗ notifyReader n) }}
-
-/-- **`s.Start()`, for a server that may be stopped and may have restarted** (DRAFT, the restart
-plan's R2a, 2026-11-02; proof R2b and R2d): `Start.spec`'s, at any applied index the construction
-starts from (a restarted member's apply thread starts at its image's consistent index; `Start.spec`
-takes `ai₀ = 0`), and `srvStartRet s` returned, which `HardStop` takes. -/
-abbrev EtcdServer.Start.specStop : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)
-    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat),
-  receiptBound GF ≤ N + 1 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ threadTok ∗
-      srvLgReader s ∗ srvLgReader s ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
-      srvReadyCloser s }}
-    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
-  {{ RET #(); ⌜srvStartRet s⌝ ∗ ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗
-      isServerRead s E γr ∗ srvGoRes s ∗ srvLgReader s ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         srvReadReader s γr) ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
