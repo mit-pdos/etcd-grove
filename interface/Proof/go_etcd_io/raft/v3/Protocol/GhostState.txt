@@ -481,7 +481,8 @@ theorem HbAckOk_app (v : w64) (q : Nat) (recs more : List RqRec) : HbAckOk v q r
 
 def batchOk [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (b : RaftBatch) : IProp GF :=
   iprop(∃ π,
-      ⌜b.snd.fst = virt b.snd.snd π ∧ PromsFresh b.snd.snd π⌝ ∗ promsJust γ id b.snd.snd π ∗ durPers γ id b.fst b.snd.fst)
+      ⌜b.snd.fst = virt b.snd.snd π ∧ PromsFresh b.snd.snd π⌝ ∗
+        promsJust γ id b.snd.snd π ∗ durPers γ id b.fst b.snd.fst ∗ durI1 γ b.fst b.fst.commit)
 
 theorem msgCert_persistent [ReceiptGS GF] (γ : RaftNames) (m : Msg) : Persistent (msgCert γ m)
 
@@ -524,7 +525,7 @@ def RoleOk (id : w64) (s : PState) : Prop :=
 theorem votesTbl_timeless [ReceiptGS GF] (γ : RaftNames) : Timeless (votesTbl γ)
 
 def ownDurGhost [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (S : RaftState) : IProp GF :=
-  iprop(∃ E, durShares γ id (Qp.half 1) E ∗ durPers γ id S E ∗ slotInv γ id)
+  iprop(∃ E, durShares γ id (Qp.half 1) E ∗ durPers γ id S E ∗ slotInv γ id ∗ durI1 γ S S.wcommit)
 
 def isMessage [ReceiptGS GF] (γ : RaftNames) (m : Msg) : IProp GF :=
   match m.ty with
@@ -770,6 +771,9 @@ theorem ownRaftGhost_lead_ok [ReceiptGS GF] {md : Bool} [InvGS GF] (γ : RaftNam
 theorem voteEv_timeless [ReceiptGS GF] (γ : RaftNames) (v T : w64) (d : Bool) (F : List EntryM) :
     Timeless (voteEv γ v T d F)
 
+theorem durI1_init [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : ⊢ durI1 γ RaftState.init
+    RaftState.init.wcommit
+
 def rdCredN (γ : RaftNames) : Namespace :=
   raftN γ.@"read_credits"
 
@@ -787,6 +791,9 @@ theorem ev2At_persistent (γ : RaftNames) (L : List EntryM) (e : EntryM) : Persi
 def propSlot [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM)
     : IProp GF :=
   iprop(propSlotRes γ d p l ∗ ∃ K, ghostMapAuth p.snd 1 K ∗ [∗map] γt ∈ K, depSlot γ d p.fst γt l)
+
+theorem durI1_persistent [ReceiptGS GF] (γ : RaftNames) (S : RaftState) (c : w64) : Persistent
+    (durI1 γ S c)
 
 def RqRec : Type :=
   (List w8 × w64) × Option (w64 × GSet w64)
@@ -949,6 +956,9 @@ theorem EvsOk_add_ack (T i : w64) (W : DurMaps) : EvsOk T W → EvsOk T (W.add (
 theorem ownRaftGhost_leader_outbox [ReceiptGS GF] {md : Bool} [InvGS GF] (γ : RaftNames) (id : w64)
     (s : PState) : s.role = Role.leader → ⊢ ownRaftGhost γ id s md -∗ [∗list] m ∈ s.outbox,
     iprop(⌜m.dst ≠ id⌝ -∗ isMessage γ m)
+
+def durI1 [ReceiptGS GF] (γ : RaftNames) (S : RaftState) (c : w64) : IProp GF :=
+  iprop(□ ∀ fp, ⌜FullOk S.base fp⌝ -∗ logRecs γ base0 fp -∗ ⌜γ.reDyn.isSome = true → ConfI1 (fp ++ S.ents) (uint.nat c)⌝)
 
 def rqLb (γ : RaftNames) (L T : w64) (recs : List RqRec) : IProp GF :=
   iprop(∃ γl γq, ⌜γ.reRdq !! L = some γl⌝ ∗ T ↪[γl]□ γq ∗ monoListLbOwn γq recs)
@@ -1143,7 +1153,7 @@ def campKey (γ : RaftNames) (id t : w64) : IProp GF :=
   iprop(∃ F k, isCampK γ id t F k)
 
 def RaftState_countable : Pos.Countable RaftState :=
-  Pos.Countable.ofInjective (fun S => Pos.Countable.encode (S.term, S.vote, S.base, S.ents, S.commit)) ⋯
+  Pos.Countable.ofInjective (fun S => Pos.Countable.encode (S.term, S.vote, S.base, S.ents, S.commit, S.wcommit)) ⋯
 
 theorem virt_cons (W : DurMaps) (p : Prom) (π : List Prom) : virt W (p :: π) = virt (W.add p) π
 

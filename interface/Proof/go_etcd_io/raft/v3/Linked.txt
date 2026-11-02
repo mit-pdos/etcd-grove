@@ -167,34 +167,39 @@ theorem RaftLink.wp_RestartNode [package_sem : Assumptions] : RestartNode.spec
                           a ≤ σ.commit →
                             γ.bootLen ≤ σ.commit →
                               confStateIs csm m →
-                                ⊢
-                                  ∀ Φ,
-                                    isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                                        typedPointsto c cv (DFrac.own 1) ∗
-                                          isLogger lok ∗
-                                            isCluster γ N ∗
-                                              nodeVacant γ cv.ID' ∗
-                                                AU <{ ∃∃ S, ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅ <{
-                                                      raftState γ cv.ID' S, COMM Q S }> ∗
-                                                  confAt γ a m ∗
-                                                    restartStorage γ (GoInterface.ok si) σ csm (uint.nat cv.Applied') F -∗
-                                      (▷
-                                          ∀ nd,
-                                            (∃ n S l K,
-                                                ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
-                                                  isNode n γ N cv.ID' ∗
-                                                    isCommittedLogLb γ l ∗
-                                                      ⌜l.length = max σ.b (uint.nat cv.Applied')⌝ ∗
-                                                        ⌜List.drop σ.b (LogEntry.toEntries l 0) =
-                                                              List.take (l.length - σ.b) σ.ents⌝ ∗
-                                                          nodeDriver n γ N
-                                                              { storage := GoInterface.ok si, delivered := l,
-                                                                hardState := σ.hs, handling := none, key := K,
-                                                                durable := S, role := StateFollower } ∗
-                                                            nodeConfig n γ N { applied := a, membership := m } ∗
-                                                              nodeRunning n γ N 1 ∗ Q S ∗ F K) -∗
-                                              Φ (intoVal nd)) -∗
-                                        WP ((intoVal (functions RestartNode [])) (intoVal c)) {{ Φ }}
+                                csm.Voters'.length + csm.VotersOutgoing'.length + csm.Learners'.length +
+                                      csm.LearnersNext'.length ≤
+                                    2 ^ 62 →
+                                  ⊢
+                                    ∀ Φ,
+                                      isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                          typedPointsto c cv (DFrac.own 1) ∗
+                                            isLogger lok ∗
+                                              isCluster γ N ∗
+                                                nodeVacant γ cv.ID' ∗
+                                                  readyFits γ N ∗
+                                                    AU <{ ∃∃ S, ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
+                                                          <{ raftState γ cv.ID' S, COMM Q S }> ∗
+                                                      confAt γ a m ∗
+                                                        restartStorage γ (GoInterface.ok si) σ csm (uint.nat cv.Applied')
+                                                          F -∗
+                                        (▷
+                                            ∀ nd,
+                                              (∃ n S l K,
+                                                  ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
+                                                    isNode n γ N cv.ID' ∗
+                                                      isCommittedLogLb γ l ∗
+                                                        ⌜l.length = max σ.b (uint.nat cv.Applied')⌝ ∗
+                                                          ⌜List.drop σ.b (LogEntry.toEntries l 0) =
+                                                                List.take (l.length - σ.b) σ.ents⌝ ∗
+                                                            nodeDriver n γ N
+                                                                { storage := GoInterface.ok si, delivered := l,
+                                                                  hardState := σ.hs, handling := none, key := K,
+                                                                  durable := S, role := StateFollower } ∗
+                                                              nodeConfig n γ N { applied := a, membership := m } ∗
+                                                                nodeRunning n γ N 1 ∗ Q S ∗ F K) -∗
+                                                Φ (intoVal nd)) -∗
+                                          WP ((intoVal (functions RestartNode [])) (intoVal c)) {{ Φ }}
 
 theorem RaftLink.MemoryStorage.wp_Snapshot [package_sem : Assumptions] : MemoryStorage.Snapshot.spec
   -- `Perennial.EtcdGrove.MemoryStorage.Snapshot.spec`, unfolded:

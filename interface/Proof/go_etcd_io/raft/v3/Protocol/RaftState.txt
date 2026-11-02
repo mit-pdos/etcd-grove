@@ -8,6 +8,12 @@ structure RaftState : Type where
   base : entryID
   ents : List EntryM
   commit : w64
+  wcommit : w64
+
+theorem RaftState.next_wcommit (S : RaftState) (term vote commit : w64) (snap : Option SnapshotM)
+    (es : List EntryM) : (S.next term vote commit snap es).wcommit = commit ∨ (S.next term vote
+    commit snap es).wcommit = S.wcommit ∧ (S.next term vote commit snap es).base = S.base ∧ (S.next
+    term vote commit snap es).ents = S.ents
 
 def RaftState.last (S : RaftState) : Nat :=
   uint.nat S.base.index' + S.ents.length
@@ -18,9 +24,10 @@ def RaftState.next (S : RaftState) (term vote commit : w64) (snap : Option Snaps
     match snap with
     | some sn =>
       { term := S.term, vote := S.vote, base := { term' := sn.Metadata'.Term', index' := sn.Metadata'.Index' },
-        ents := [], commit := S.commit }
+        ents := [], commit := S.commit, wcommit := S.wcommit }
     | none => S;
-  { term := term, vote := vote, base := S1.base, ents := appendEnts S1.base S1.ents es, commit := commit }
+  have wc := if (snap.isSome || !es.isEmpty) = true then commit else S.wcommit;
+  { term := term, vote := vote, base := S1.base, ents := appendEnts S1.base S1.ents es, commit := commit, wcommit := wc }
 
 def RaftState.entsFrom (S : RaftState) (b : entryID) : List EntryM :=
   List.drop (uint.Z b.index' - uint.Z S.base.index').toNat S.ents
@@ -31,7 +38,8 @@ def appendEnts (b : entryID) (es ents : List EntryM) : List EntryM :=
   | e0 :: tail => plogTruncateAppend b es (List.drop (uint.Z b.index' + 1 - uint.Z e0.Index').toNat ents)
 
 def RaftState.init : RaftState :=
-  { term := W64 0, vote := W64 0, base := { term' := W64 0, index' := W64 0 }, ents := [], commit := W64 0 }
+  { term := W64 0, vote := W64 0, base := { term' := W64 0, index' := W64 0 }, ents := [], commit := W64 0,
+    wcommit := W64 0 }
 
 def DurFull (S : RaftState) (F : List EntryM) : Prop :=
   S.ents = List.drop (uint.nat S.base.index') F ∧ FullOk S.base (List.take (uint.nat S.base.index') F)

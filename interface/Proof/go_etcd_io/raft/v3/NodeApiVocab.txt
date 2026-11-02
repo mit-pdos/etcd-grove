@@ -82,10 +82,11 @@ def StorageHolds (S : RaftState) (σ : StorContents) : Prop :=
         σ.hs.Term' = S.term ∧
           σ.hs.Vote' = S.vote ∧
             σ.b ≤ σ.commit ∧
-              σ.commit ≤ uint.nat S.commit ∧
-                (∀ (sv : SnapshotM),
-                    σ.snap = some sv → σ.b ≤ uint.nat sv.Metadata'.Index' ∧ uint.nat sv.Metadata'.Index' ≤ σ.commit) ∧
-                  (S.base.index' ≠ σ.base.index' → σ.snap.isSome = true)
+              uint.nat S.wcommit ≤ σ.commit ∧
+                σ.commit ≤ uint.nat S.commit ∧
+                  (∀ (sv : SnapshotM),
+                      σ.snap = some sv → σ.b ≤ uint.nat sv.Metadata'.Index' ∧ uint.nat sv.Metadata'.Index' ≤ σ.commit) ∧
+                    (S.base.index' ≠ σ.base.index' → σ.snap.isSome = true)
 
 def NoConfChangeIn (l : List LogEntry) (lo hi : Nat) : Prop :=
   ∀ (k : Nat) (e : LogEntry), lo ≤ k → k < hi → l[k]? = some e → ¬e.isConfChange
