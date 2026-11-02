@@ -537,6 +537,35 @@ theorem wsRecv_progress_proof : wsRecv_progress.law (GF := GF) := by
   iapply progress_one ι σ ms id wi j m hids hw hfs hm he hid
   iframe Hfs Hi Hσ
 
+/-- **A response's events** (`wsRecv_resp`): `respOk`'s (its events at or below its revision, its
+id its watcher's when it has events), `chanRegFact`'s (a watcher's id is not `-1`). -/
+theorem wsRecv_resp_proof : wsRecv_resp.law (GF := GF) := by
+  intro ι rs W
+  iintro ⟨Hr, -⟩
+  iunfold wsRecv at Hr
+  iunfold wsRecvI at Hr
+  icases Hr with ⟨-, %ms, -, %Hrs, #Hfs⟩
+  subst Hrs
+  iapply (pure_forall (PROP := IProp GF)).2
+  iintro %r
+  iapply (pure_wand (PROP := IProp GF)).1
+  iintro %hr
+  obtain ⟨m, hm, rfl⟩ := List.mem_map.1 hr
+  obtain ⟨j, hj⟩ := List.mem_iff_getElem?.1 hm
+  ihave #Hfj := BigSepL.bigSepL_lookup hj $$ Hfs
+  iunfold rcvFact at Hfj
+  icases Hfj with ⟨#Hok, -, #Hreg, -⟩
+  iunfold respOk at Hok
+  icases Hok with ⟨%Hmod, %rr, %fcs, #Hfx, %Hid⟩
+  iunfold chanRegFact at Hreg
+  icases Hreg with ⟨%rr', %fcs', #Hfx', -, %Hne⟩
+  ihave %Ha := watcherFixed_agree m.w rr rr' fcs fcs' $$ [$Hfx $Hfx']
+  obtain ⟨rfl, rfl⟩ := Ha
+  ipureintro
+  simp only [respView]
+  refine ⟨Hmod, fun h => absurd rfl h, fun he => ?_⟩
+  rw [Hid.1 he]; exact Hne
+
 end laws
 
 end mvcc

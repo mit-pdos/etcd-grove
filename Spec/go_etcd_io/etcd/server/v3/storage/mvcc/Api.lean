@@ -380,12 +380,14 @@ abbrev wsChan_recv.law : Prop :=
         (if ok then ∃ r : WResp, wsRecv ι (rs ++ [r]) ∗ wrespIs v r else wsRecv ι rs) -∗ Φ v ok) -∗
       recvAu γch WatchResponse Φ)
 
-/-- **A response's events**: each at or below the response's revision, of a watcher the
-registrar registered; a compaction response has none. -/
+/-- **A response's events**: each at or below the response's revision, of a watcher (an id not
+`-1`); a compaction response has none. (2026-11-02, the proof: not "of a watcher the registrar's
+view has", which `Watch`'s update, fired once the store's `watch` returned, does not give while a
+`Watch` is in flight: `notes/mvcc-api-proof-plan.md`.) -/
 abbrev wsRecv_resp.law : Prop :=
   ∀ ι rs W, wsRecv (GF := GF) ι rs ∗ wsWatchers ι W ⊢
     ⌜∀ r ∈ rs, (∀ ev ∈ r.evs, sint.Z ev.kv.modRev ≤ sint.Z r.rev) ∧
-      (r.compactRev ≠ W64 0 → r.evs = []) ∧ (r.evs ≠ [] → (W !! r.id).isSome)⌝
+      (r.compactRev ≠ W64 0 → r.evs = []) ∧ (r.evs ≠ [] → r.id ≠ W64 (-1))⌝
 
 /-- **The watch guarantee**: the events received for each watcher without filters are its range's
 events of the revisions `[lo, hi)` of the notified history; each progress response's revision is one

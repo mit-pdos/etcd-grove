@@ -260,9 +260,31 @@ invariants (in `isMvcc`):
   `Watch`) needs "every id with events is in the view" when no `Watch` is in flight: either fire the
   update inside the store's `watch` at the registration (a fancy update in its `Hreg` callback, in
   the 1277-line proof), or give the law a premise no `Watch` holds.
-- **Next**: the watch laws `wsRecv_events`, `wsRecv_progress`, `wsRecv_resp` (as above); the lessor's
-  `Grant`/`Revoke` over the API (today's are over the old mode's resources: `rdIs`, `watchWriter`,
-  `storeReader`) and `NewLessor` without `clusterOk`; then the tester.
+- **The watch laws** (`eda33cfa6b`..): `wsRecv_events`, `wsRecv_progress`, `wsRecv_resp` proved
+  (`ApiWatchLaws.lean`), restated: the events and progress guarantees are for watchers without
+  filters (a filter's spec, `filterSpec`, does not determine its predicate: two specs of one function
+  need not agree, so the received events cannot be shown filtered by the registrar's predicates);
+  only an event-less response's revision is bounded (`respRev`; an event response's is not recorded
+  in its facts); progress is a watcher's own progress responses only (a stream-wide one, `-1`, covers
+  the watchers registered before it through `regsAt`, which spends a later credit under a fancy
+  update: a plain entailment cannot); a response with events has a watcher's id (`≠ -1`), not "an
+  id the registrar's view has" (false for the late-fired update, above). The view's facts
+  (`wInfoOk`) record the id is not `-1` and the first revision is positive. The proof: a watcher's
+  last received response's `watchRecvOk` covers all its responses (`last_idx`); the view's id and
+  watcher agree on every response with events (`rcv_agree`: `respOk`, `chanRegFact`, the stream's
+  and channel's id maps the same); without filters the deliveries are whole (`deliv_nofilter`); a
+  watched log is a prefix of the notified history (`evLog_notified`: in the certificate map, or one
+  of the first logs, comparable with the certified one).
+- **What the tester needs that the watch laws do not give**: its receiver checks that a response's
+  watcher is in its map (`c.watchers[resp.WatchID] != nil`), under the lock its registrar holds
+  across `Watch`: "every id with events is in the registrar's view when no `Watch` is in flight".
+  Options: fire `Watch`'s update at the registration (inside the store's `watch`, whose callback
+  `Hreg` is a basic update run with the channel's invariant open, before the watcher's `watcherIs`
+  facts exist: the view would need a "registered, facts pending" state); or a counter of the stream's
+  ids in `idsInv` (a mode of `WsStreamNames`, as `absQ`), whose half the view holds.
+- **Next**: the lessor's `Grant`/`Revoke` over the API (today's are over the old mode's resources:
+  `rdIs`, `watchWriter`, `storeReader`, and the lease ghost over the writer's log `stateAfter log`)
+  and `NewLessor` without `clusterOk`; the registrar's completeness (above); then the tester's proof.
 
 ## Log
 
