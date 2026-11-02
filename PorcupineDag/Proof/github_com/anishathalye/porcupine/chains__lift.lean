@@ -354,7 +354,7 @@ theorem chains.lift.wp_proof
               -- client `k`'s head
               obtain ⟨cvk, Hcvk⟩ : ∃ cvk, cvs[kn]? = some cvk := ⟨_, List.getElem?_eq_getElem (by omega)⟩
               icases chainsRest_read chV2 h cs st3 i kn cvs cvk Hcvk hki $$ Hrest with ⟨Hek, Hck, Hrest⟩
-              icases clientOwn_facts h cs st3 kn cvk $$ Hck with ⟨%Hck', Hck⟩
+              icases clientOwn_ids h cs st3 kn cvk $$ Hck with ⟨%Hck', Hck⟩
               have hbk' : 0 ≤ (kn : Int) ∧ (kn : Int) < sint.Z chV2.clients'.len := by omega
               repeat ((try simp only [hkz, hbk', _root_.and_self, ↓reduceIte]); wp_auto)
               ihave Hrest := Hrest $$ Hek Hck
@@ -584,7 +584,7 @@ theorem chains.lift.wp_proof
               iexists cosj; iframe; ipureintro; exact Hcokj
             -- client `i`'s head
             icases chainsRepr_acc chV4 h cs stj i hil $$ Hr with ⟨-, %cvc, Hec, Hcc, Hbackc⟩
-            icases clientOwn_facts h cs stj i cvc $$ Hcc with ⟨%Hcc', Hcc⟩
+            icases clientOwn_ids h cs stj i cvc $$ Hcc with ⟨%Hcc', Hcc⟩
             have hbi4 : 0 ≤ (i : Int) ∧ (i : Int) < sint.Z chV4.clients'.len := by omega
             have hbi4' : (i : Int) < sint.Z chV4.clients'.len := by omega
             simp only [hiz, hbi4, hbi4', _root_.and_self, ↓reduceIte, Int.natCast_nonneg]
@@ -619,7 +619,7 @@ theorem chains.lift.wp_proof
               have hjh : st2.head jn < (chain cs jn).length := by rw [hk0n, ← hcosjl]; exact hk0l
               obtain ⟨hdec, hjnot⟩ := hlc2.hit_val Hinv hji hjl hjh hfu' (by omega)
               icases chainsRepr_acc chV4 h cs stj jn hjl $$ Hr with ⟨-, %cvj2, Hej, Hcj, Hbackj⟩
-              icases clientOwn_facts h cs stj jn cvj2 $$ Hcj with ⟨%Hcj', Hcj⟩
+              icases clientOwn_ids h cs stj jn cvj2 $$ Hcj with ⟨%Hcj', Hcj⟩
               repeat ((try simp only [hjz, hbj, hbj4, _root_.and_self, ↓reduceIte, Int.natCast_nonneg]); wp_auto)
               obtain ⟨nd, hnd⟩ : ∃ nd, stj.nDeps.getD jn 0 = nd := ⟨_, rfl⟩
               have hcvnd : cvj2.nDeps' = nd := by rw [Hcj'.2.2, hnd]

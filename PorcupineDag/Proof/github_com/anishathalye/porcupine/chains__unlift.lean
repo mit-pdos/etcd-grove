@@ -100,7 +100,7 @@ theorem chains.unlift.wp_proof
   rw [hcn]
   -- `client.unlift(top, serialized)`
   icases chainsOwnCl_acc ch chV.clients' h cs _ c hc $$ Hch with ⟨%chV1, %cv1, Hchp, %Hcl1, He, Hc, Hback⟩
-  icases clientOwn_facts h cs _ c cv1 $$ Hc with ⟨%Hcv, Hc⟩
+  icases clientOwn_ids h cs _ c cv1 $$ Hc with ⟨%Hcv, Hc⟩
   obtain ⟨Hcv1, Hcv2, Hcv3⟩ := Hcv
   have hid : se.clientId' = cv1.id' := BitVec.eq_of_toInt_eq (by
     have h1 := Hcid; have h2 := Hcv1; simp only [sint.Z] at h1 h2; omega)
@@ -254,7 +254,7 @@ theorem chains.unlift.wp_proof
           iexists cos; iframe; ipureintro; exact Hcok
         -- client `c`'s head
         icases chainsRepr_acc chV2 h cs stc c hc $$ Hr with ⟨-, %cvc, Hec, Hcc, Hbackc⟩
-        icases clientOwn_facts h cs stc c cvc $$ Hcc with ⟨%Hcc', Hcc⟩
+        icases clientOwn_ids h cs stc c cvc $$ Hcc with ⟨%Hcc', Hcc⟩
         have hbc2 : 0 ≤ (c : Int) ∧ (c : Int) < sint.Z chV2.clients'.len := by omega
         simp only [Hcid, hbc2, _root_.and_self, ↓reduceIte]
         wp_auto
@@ -294,7 +294,7 @@ theorem chains.unlift.wp_proof
           rw [← hk0n] at htest
           have hfu' := htest.mp rfl
           icases chainsRepr_acc chV2 h cs stc jn hjl $$ Hr with ⟨-, %cvj2, Hej, Hcj, Hbackj⟩
-          icases clientOwn_facts h cs stc jn cvj2 $$ Hcj with ⟨%Hcj', Hcj⟩
+          icases clientOwn_ids h cs stc jn cvj2 $$ Hcj with ⟨%Hcj', Hcj⟩
           simp only [hjz, hbj, _root_.and_self, ↓reduceIte]
           wp_auto
           rw [Hcj'.2.2]
@@ -331,7 +331,7 @@ theorem chains.unlift.wp_proof
           iunfold chainsOwnCl at Hch
           icases Hch with ⟨%chV3, Hchp, %Hcl3, Hr⟩
           icases chainsRepr_acc chV3 h cs stx jn hjl $$ Hr with ⟨%Hlen3, %cvj3, Hej, Hcj, Hbackj⟩
-          icases clientOwn_facts h cs stx jn cvj3 $$ Hcj with ⟨%Hcj3, Hcj⟩
+          icases clientOwn_ids h cs stx jn cvj3 $$ Hcj with ⟨%Hcj3, Hcj⟩
           have hbj3 : 0 ≤ (jn : Int) ∧ (jn : Int) < sint.Z chV3.clients'.len := by omega
           repeat ((try simp only [hjz, hbj3, _root_.and_self, ↓reduceIte]); wp_auto)
           have hjn3 : jn < stx.nDeps.length := by

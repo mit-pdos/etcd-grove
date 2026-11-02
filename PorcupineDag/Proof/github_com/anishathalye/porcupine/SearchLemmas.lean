@@ -176,7 +176,7 @@ theorem chainsOwn_acc (ch : Loc) (h : List (Op OpV)) (cs : List (List Nat)) (st 
   iapply chainsOwnCl_weaken
   iapply Hback $$ %st' %cv' %Hag Hch He Hc
 
-theorem clientOwn_facts (h : List (Op OpV)) (cs : List (List Nat)) (st : ChSt) (c : Nat)
+theorem clientOwn_ids (h : List (Op OpV)) (cs : List (List Nat)) (st : ChSt) (c : Nat)
     (cv : client) :
     clientOwn h cs st c cv ⊢ ⌜sint.Z cv.id' = c ∧ sint.Z cv.head' = st.head c ∧
       cv.nDeps' = st.nDeps.getD c 0⌝ ∗ clientOwn (GF := GF) h cs st c cv := by

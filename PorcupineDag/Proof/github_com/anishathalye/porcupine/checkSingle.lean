@@ -20,7 +20,7 @@ public import PorcupineDag.Spec.github_com.anishathalye.porcupine.chains__lift
 public import PorcupineDag.Spec.github_com.anishathalye.porcupine.chains__unlift
 public import PorcupineDag.Proof.github_com.anishathalye.porcupine.SearchLemmas
 public import PorcupineDag.Proof.github_com.anishathalye.porcupine.DagLemmas
-public import Perennial.Spec.fmt.Printf
+public import Perennial.Proof.fmt.Link
 
 @[expose] public section
 
@@ -137,8 +137,7 @@ theorem checkSingle.wp_proof
     (wp_newBitset : newBitset.spec (GF := GF) (hG := hG))
     (wp_isComplete : chains.isComplete.spec (GF := GF) (hG := hG))
     (wp_lift : chains.lift.spec (GF := GF) (hG := hG))
-    (wp_unlift : chains.unlift.spec (GF := GF) (hG := hG))
-    (wp_Printf : fmt.Printf.spec (GF := GF) (hG := hG)) :
+    (wp_unlift : chains.unlift.spec (GF := GF) (hG := hG)) :
     checkSingle.spec (GF := GF) (hG := hG) := by
   intro σ S m ctx ctxd cons ohsl h cs cp hok hwf halloc
   wp_start as ⟨#Hctx, #Hm, #Hcons, Hoh, #Hio⟩
@@ -343,7 +342,7 @@ theorem checkSingle.wp_proof
         isplitr
         · ipureintro; rfl
         iintro %psl ⟨Hpsl, -⟩
-        wp_apply wp_Printf _ _ _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int pv) fmt.ArgsWf.nil)
+        wp_apply _root_.Perennial.fmt.wp_Printf _ _ _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int pv) fmt.ArgsWf.nil)
           $$ [Hpsl] as %n %e2 -
         · iframe
         iapply HΦ
@@ -367,7 +366,7 @@ theorem checkSingle.wp_proof
       isplitr
       · ipureintro; rfl
       iintro %psl ⟨Hpsl, -⟩
-      wp_apply wp_Printf _ _ _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int pv) fmt.ArgsWf.nil) $$ [Hpsl]
+      wp_apply _root_.Perennial.fmt.wp_Printf _ _ _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int pv) fmt.ArgsWf.nil) $$ [Hpsl]
         as %n %e2 -
       · iframe
       wp_for_post
@@ -407,7 +406,7 @@ theorem checkSingle.wp_proof
         isplitr
         · ipureintro; rfl
         iintro %psl ⟨Hpsl, -⟩
-        wp_apply wp_Printf _ _ _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int pv) fmt.ArgsWf.nil)
+        wp_apply _root_.Perennial.fmt.wp_Printf _ _ _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int pv) fmt.ArgsWf.nil)
           $$ [Hpsl] as %n %e2 -
         · iframe
         wp_for_post

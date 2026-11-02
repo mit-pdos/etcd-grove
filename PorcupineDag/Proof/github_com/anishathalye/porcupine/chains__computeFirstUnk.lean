@@ -245,7 +245,7 @@ theorem chains.computeFirstUnk.wp_proof
         have hdlen : cosd.length = (chain cs (sint.nat dv)).length := Hcod.1
         have hLZ : (((chain cs (sint.nat dv)).length : Nat) : Int) = sint.Z cvd.cltOps'.len := by
           rw [← hdlen, Hcosdlen.1]; exact Int.toNat_of_nonneg Hcosdlen.2
-        have hLh : (chain cs (sint.nat dv)).length ≤ h.length := chain_length_le hok _
+        have hLh : (chain cs (sint.nat dv)).length ≤ h.length := chain_length_le_c hok _
         have hh60 : (h.length : Int) < 2 ^ 60 := hwf.1
         have hsl : start ≤ (chain cs (sint.nat dv)).length := by
           rw [hstart]; split

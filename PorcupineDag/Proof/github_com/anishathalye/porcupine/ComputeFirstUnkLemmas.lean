@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 # `computeFirstUnk`'s lemmas (2026-11-02)
 
 What `chains.computeFirstUnk`'s proof needs besides the shared definitions: `Check`'s answer as
-`Prec` (`linOrder_hb_iff`, `prec_iff_linOrder`), the chains' lengths (`chain_length_le`), the
+`Prec` (`linOrder_hb_iff`, `prec_iff_linOrder`), the chains' lengths (`chain_length_le_c`), the
 state after the head operation is visited (`ChSt.visit`: its `visited` flag set and its
 `firstUnk` slice's new contents) with the laws of `ShapeOk`, `FuOk` and `clientOwn` on it, and
 the bookkeeping of the head operation's `firstUnk` points-to.
@@ -47,7 +47,7 @@ theorem linOrder_hb_iff (a b : Operation) :
   · simp only [h1, ↓reduceIte]
     repeat (first | decide | split)
 
-theorem chain_length_le {α : Type} {h : List (Op α)} {cs : List (List Nat)} (hok : ChainsOk h cs)
+theorem chain_length_le_c {α : Type} {h : List (Op α)} {cs : List (List Nat)} (hok : ChainsOk h cs)
     (d : Nat) : (chain cs d).length ≤ h.length := by
   have := List.Nodup.length_le_of_subset (l₂ := List.range h.length) (hok.1 d).1
     (fun y hy => List.mem_range.mpr (lt_length_of_mem hok hy))

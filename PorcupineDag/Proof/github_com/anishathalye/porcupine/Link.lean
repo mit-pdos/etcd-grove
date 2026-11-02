@@ -21,24 +21,24 @@ public import PorcupineDag.Proof.github_com.anishathalye.porcupine.bitset__set
 public import PorcupineDag.Proof.github_com.anishathalye.porcupine.byTime__Len
 public import PorcupineDag.Proof.github_com.anishathalye.porcupine.byTime__Less
 public import PorcupineDag.Proof.github_com.anishathalye.porcupine.byTime__Swap
+public import PorcupineDag.Proof.github_com.anishathalye.porcupine.chains__addToFrontier
 public import PorcupineDag.Proof.github_com.anishathalye.porcupine.chains__computeFirstUnk
 public import PorcupineDag.Proof.github_com.anishathalye.porcupine.chains__isComplete
+public import PorcupineDag.Proof.github_com.anishathalye.porcupine.chains__lift
 public import PorcupineDag.Proof.github_com.anishathalye.porcupine.chains__removeFromFrontier
+public import PorcupineDag.Proof.github_com.anishathalye.porcupine.chains__unlift
 public import PorcupineDag.Proof.github_com.anishathalye.porcupine.checkOperations
 public import PorcupineDag.Proof.github_com.anishathalye.porcupine.checkParallel
+public import PorcupineDag.Proof.github_com.anishathalye.porcupine.checkSingle
+public import PorcupineDag.Proof.github_com.anishathalye.porcupine.client__lift
 public import PorcupineDag.Proof.github_com.anishathalye.porcupine.client__unlift
 public import PorcupineDag.Proof.github_com.anishathalye.porcupine.fillDefault
 public import PorcupineDag.Proof.github_com.anishathalye.porcupine.makeEntries
 public import PorcupineDag.Proof.github_com.anishathalye.porcupine.newBitset
+public import PorcupineDag.Proof.github_com.anishathalye.porcupine.newChains
 public import PorcupineDag.Proof.github_com.anishathalye.porcupine.newclientOperation
 public import PorcupineDag.Proof.github_com.anishathalye.porcupine.noPartition
 public import Proof.sort.Sort
-public import PorcupineDag.Spec.github_com.anishathalye.porcupine.chains__addToFrontier
-public import PorcupineDag.Spec.github_com.anishathalye.porcupine.chains__lift
-public import PorcupineDag.Spec.github_com.anishathalye.porcupine.chains__unlift
-public import PorcupineDag.Spec.github_com.anishathalye.porcupine.checkSingle
-public import PorcupineDag.Spec.github_com.anishathalye.porcupine.client__lift
-public import PorcupineDag.Spec.github_com.anishathalye.porcupine.newChains
 
 @[expose] public section
 
@@ -106,9 +106,41 @@ theorem Consistency.wp_Check :
     EtcdGrove.porcupine.Consistency.Check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.porcupine.Consistency.Check.wp_proof
 
+theorem chains.wp_computeFirstUnk :
+    EtcdGrove.porcupine.chains.computeFirstUnk.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.porcupine.chains.computeFirstUnk.wp_proof Consistency.wp_Check
+
+theorem chains.wp_addToFrontier :
+    EtcdGrove.porcupine.chains.addToFrontier.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.porcupine.chains.addToFrontier.wp_proof Consistency.wp_Check
+
+theorem wp_newChains :
+    EtcdGrove.porcupine.newChains.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.porcupine.newChains.wp_proof chains.wp_computeFirstUnk chains.wp_addToFrontier
+
+theorem wp_newBitset :
+    EtcdGrove.porcupine.newBitset.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.porcupine.newBitset.wp_proof
+
+theorem chains.wp_isComplete :
+    EtcdGrove.porcupine.chains.isComplete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.porcupine.chains.isComplete.wp_proof
+
 theorem wp_bitsetIndex :
     EtcdGrove.porcupine.bitsetIndex.spec (GF := GF) (hG := hG) :=
   EtcdGrove.porcupine.bitsetIndex.wp_proof
+
+theorem bitset.wp_set :
+    EtcdGrove.porcupine.bitset.set.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.porcupine.bitset.set.wp_proof wp_bitsetIndex
+
+theorem bitset.wp_hash :
+    EtcdGrove.porcupine.bitset.hash.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.porcupine.bitset.hash.wp_proof
+
+theorem bitset.wp_equal :
+    EtcdGrove.porcupine.bitset.equal.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.porcupine.bitset.equal.wp_proof
 
 theorem bitset.wp_clear :
     EtcdGrove.porcupine.bitset.clear.spec (GF := GF) (hG := hG) :=
@@ -118,78 +150,51 @@ theorem bitset.wp_clone :
     EtcdGrove.porcupine.bitset.clone.spec (GF := GF) (hG := hG) :=
   EtcdGrove.porcupine.bitset.clone.wp_proof
 
-theorem bitset.wp_equal :
-    EtcdGrove.porcupine.bitset.equal.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.porcupine.bitset.equal.wp_proof
-
-theorem bitset.wp_hash :
-    EtcdGrove.porcupine.bitset.hash.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.porcupine.bitset.hash.wp_proof
-
-theorem bitset.wp_set :
-    EtcdGrove.porcupine.bitset.set.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.porcupine.bitset.set.wp_proof wp_bitsetIndex
-
-theorem chains.wp_computeFirstUnk :
-    EtcdGrove.porcupine.chains.computeFirstUnk.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.porcupine.chains.computeFirstUnk.wp_proof Consistency.wp_Check
-
-theorem chains.wp_isComplete :
-    EtcdGrove.porcupine.chains.isComplete.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.porcupine.chains.isComplete.wp_proof
+theorem client.wp_lift :
+    EtcdGrove.porcupine.client.lift.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.porcupine.client.lift.wp_proof bitset.wp_set bitset.wp_hash bitset.wp_equal bitset.wp_clear bitset.wp_clone
 
 theorem chains.wp_removeFromFrontier :
     EtcdGrove.porcupine.chains.removeFromFrontier.spec (GF := GF) (hG := hG) :=
   EtcdGrove.porcupine.chains.removeFromFrontier.wp_proof
 
+theorem chains.wp_lift :
+    EtcdGrove.porcupine.chains.lift.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.porcupine.chains.lift.wp_proof client.wp_lift chains.wp_computeFirstUnk chains.wp_removeFromFrontier chains.wp_addToFrontier
+
 theorem client.wp_unlift :
     EtcdGrove.porcupine.client.unlift.spec (GF := GF) (hG := hG) :=
   EtcdGrove.porcupine.client.unlift.wp_proof bitset.wp_clear
 
-theorem wp_newBitset :
-    EtcdGrove.porcupine.newBitset.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.porcupine.newBitset.wp_proof
+theorem chains.wp_unlift :
+    EtcdGrove.porcupine.chains.unlift.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.porcupine.chains.unlift.wp_proof client.wp_unlift chains.wp_removeFromFrontier chains.wp_addToFrontier
 
-end links_hasLC
-
-/-! The results that reach a function specified but not proved yet (a later unit's):
-its spec is a hypothesis (`h_<fn>`) of each of them. -/
-section links_pending
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
-variable [NaInvG GF]
-variable (h_chains__addToFrontier : EtcdGrove.porcupine.chains.addToFrontier.spec (GF := GF) (hG := hG))
-variable (h_chains__lift : EtcdGrove.porcupine.chains.lift.spec (GF := GF) (hG := hG))
-variable (h_chains__unlift : EtcdGrove.porcupine.chains.unlift.spec (GF := GF) (hG := hG))
-variable (h_checkSingle : EtcdGrove.porcupine.checkSingle.spec (GF := GF) (hG := hG))
-variable (h_client__lift : EtcdGrove.porcupine.client.lift.spec (GF := GF) (hG := hG))
-variable (h_newChains : EtcdGrove.porcupine.newChains.spec (GF := GF) (hG := hG))
-include h_chains__addToFrontier h_chains__lift h_chains__unlift h_checkSingle h_client__lift h_newChains
+theorem wp_checkSingle :
+    EtcdGrove.porcupine.checkSingle.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.porcupine.checkSingle.wp_proof wp_newChains wp_newBitset chains.wp_isComplete chains.wp_lift chains.wp_unlift
 
 theorem wp_checkParallel :
     EtcdGrove.porcupine.checkParallel.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.porcupine.checkParallel.wp_proof h_checkSingle
+  EtcdGrove.porcupine.checkParallel.wp_proof wp_checkSingle
 
 theorem wp_checkOperations :
     EtcdGrove.porcupine.checkOperations.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.porcupine.checkOperations.wp_proof wp_fillDefault wp_makeEntries (wp_checkParallel h_chains__addToFrontier h_chains__lift h_chains__unlift h_checkSingle h_client__lift h_newChains)
+  EtcdGrove.porcupine.checkOperations.wp_proof wp_fillDefault wp_makeEntries wp_checkParallel
 
 theorem wp_CheckOperations :
     EtcdGrove.porcupine.CheckOperations.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.porcupine.CheckOperations.wp_proof (wp_checkOperations h_chains__addToFrontier h_chains__lift h_chains__unlift h_checkSingle h_client__lift h_newChains)
+  EtcdGrove.porcupine.CheckOperations.wp_proof wp_checkOperations
 
 theorem wp_CheckOperationsTimeout :
     EtcdGrove.porcupine.CheckOperationsTimeout.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.porcupine.CheckOperationsTimeout.wp_proof (wp_checkOperations h_chains__addToFrontier h_chains__lift h_chains__unlift h_checkSingle h_client__lift h_newChains)
+  EtcdGrove.porcupine.CheckOperationsTimeout.wp_proof wp_checkOperations
 
 theorem wp_CheckOperationsVerbose :
     EtcdGrove.porcupine.CheckOperationsVerbose.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.porcupine.CheckOperationsVerbose.wp_proof (wp_checkOperations h_chains__addToFrontier h_chains__lift h_chains__unlift h_checkSingle h_client__lift h_newChains)
+  EtcdGrove.porcupine.CheckOperationsVerbose.wp_proof wp_checkOperations
 
-end links_pending
+end links_hasLC
 
 end porcupine
 end EtcdGrove

@@ -1,7 +1,6 @@
 # The functions linked in `PorcupineDag/Proof/github_com/anishathalye/porcupine/Link.lean`
 # (porcupine pull request #46, the DAG search; all Lean-first), read by
 # `etc/gen-link.py --porcupine-dag`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`;
-# `<fn>: ?` for a function whose proof is not done yet (its spec a hypothesis of the results).
 #
 # `sort.Sort`: Perennial's pdqsort, proved (`Proof/sort/Sort.lean`, the main tree's).
 sort_Sort:
@@ -26,15 +25,15 @@ bitset__equal:
 Consistency__Check:
 chains__isComplete:
 chains__removeFromFrontier:
-chains__addToFrontier: ?
+chains__addToFrontier: Consistency__Check
 chains__computeFirstUnk: Consistency__Check
-newChains: ?
-client__lift: ?
+newChains: chains__computeFirstUnk chains__addToFrontier
+client__lift: bitset__set bitset__hash bitset__equal bitset__clear bitset__clone
 client__unlift: bitset__clear
-chains__lift: ?
-chains__unlift: ?
+chains__lift: client__lift chains__computeFirstUnk chains__removeFromFrontier chains__addToFrontier
+chains__unlift: client__unlift chains__removeFromFrontier chains__addToFrontier
 # the search
-checkSingle: ?
+checkSingle: newChains newBitset chains__isComplete chains__lift chains__unlift
 # the partitions in goroutines, the entry points
 checkParallel: checkSingle
 checkOperations: fillDefault makeEntries checkParallel
