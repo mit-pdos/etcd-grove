@@ -455,3 +455,12 @@ premises, the pool's stock counts, `New`/`OpenBackend` giving `rbOwnIn`.
 5. **Q5**: `backend.Snapshot` unchanged.
 6. **Q6**: `etc/api/backend.txt` and the `import all` gate land with the trusted step (drafted now).
 7. **Q7**: §2–§10's docstrings written in full in the draft.
+
+## Next stage (the user's decision of 2026-11-02, Q9): the cluster contract's rows
+
+Right after this stage, on its own: the rows of `bootOk`'s `clusterApplyOk`
+(`apply/Contracts.lean:525-549`) are false of Go at some rest states (`notes/decisions.md`,
+"Defects of the applied cluster contract"): `UpdateAttributes` of an unknown id (a row premise: the
+id in `r.mem` or removed, from the workload), `SetVersion` above the server's version (a premise on
+the version), a missing `members`/`cluster` bucket (`srvRestOwn` holding them present,
+`restModel_present`), and the attribute row's read-only `ClientURLs` slice (to check in Lean).

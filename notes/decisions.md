@@ -29277,3 +29277,15 @@ opening the store's invariant at names the restore is changing.
   `cluster` bucket is fatal (`UnsafePut`); and, unconfirmed, the attribute row may need an owned
   `ClientURLs` slice where it takes a read-only one. A false conjunct of `bootPremise` makes the
   closed results vacuous, not unsound. Fixes proposed in the draft (`bks-trusted.md`, R; Q9).
+- **Q8, a deployment premise** (the user's decision, 2026-11-02; drafted, `bks-trusted.md` §19, to
+  apply with the trusted step): `bootPremise` asks `bootstrapContract` only for configurations whose
+  initial cluster's member names are valid UTF-8 (`utf8Valid` of every key of `U.initMap`). Go keeps
+  a name raw in the cluster's members while the peers' contexts decode with U+FFFD in its place, so
+  `bootOk`'s members (the contexts' decodings) are Go's only for valid names. A weaker
+  `bootPremise`: the closed results assume less, and each supplies the conjunct from its `Uok`.
+- **Q9** (the user's decision): the cluster contract's false rows get their own stage right after
+  this one (the plan note, "Next stage").
+- **The final review round (round 7)** found a first-tier gap in the draft, not in Go:
+  `applyConfChange` has no `isBackend` for the restated member read and save; repaired in the draft
+  (revision 4.3, T: `srvBeOwn` carries `srvBeRO d`), not re-reviewed. Per the user's rule nothing
+  trusted is applied.
