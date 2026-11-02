@@ -463,6 +463,99 @@ the invariant plan. `fillDefault`, `noPartition`, the bitset's, `byTime.*`: v1.3
 
 As candidate 1: nothing calls the part; `CheckEvents*` and a general `Consistency` out of scope.
 
+## Invariant plan (candidate 2, 2026-11-02)
+
+After the exhaustive checks of candidate 1 (two agents: one on sections 1, 2, 5 and the lift/unlift
+specs, one on section 3, the other helpers of section 4 and section 6; hand arguments per user,
+and executable checks: 132000 + 194392 histories and exhaustive `computeFirstUnk` cases, every
+assertion below asserted at every use) and the move to spec candidate 2 (`LinearizableCO`, the
+returns-only premise). Candidate 1 stays below for the record; this section is the plan, as
+amendments to it: everything not restated here is candidate 1's.
+
+### What the checks found in candidate 1, and the fixes
+
+1. **`bad_here`, `bad_pop`, `bad_fail` were false** without "some operation is not linearized"
+   (`B` every id, `fr = []`: the empty completion is good). Premise `hinc : ∃ y < n, y ∉ B`
+   added; `checkSingle` has it from `isComplete = false` at the loop head, kept across a failed
+   `chains.lift` (its post: nothing changed). (Already so in `DagTheory.lean`.)
+2. **`bad_push` needed `Chain M h fs s`** (the new cache entry is `OnStack` through the new
+   frame's chain): it takes `Struct`. (So in `DagTheory.lean`.)
+3. **Cursor types**: `bad_skip`/`bad_down`, `struct_push`, `bad_push` take the position as a
+   `Nat` `q` with the hypotheses at `(q : Int)` and the result at `(q : Int) - 1`; every cursor
+   `fr.length - 1`, `f.pos - 1` is `Int` subtraction. (So in `DagTheory.lean`.)
+4. **`deps_unlift`** stated: it is `deps_lift` read at `H' = H.set c (H[c] - 1)`; the code's test
+   `firstUnk[c] == head + 1` (after the decrement) is `FUe … = H'[c] + 1`.
+5. **The heads ↔ stack link was missing.** Added (`Chains.lean`, proved): `headsOf cs B` (per
+   chain, how many of its operations are in `B`), `PosOk cs B H` (the operations of `B` are each
+   chain's first `H[c]`, by position), `heads_ids` (on a stack of candidates: `PosOk` and
+   `HeadsOk` at `headsOf cs (ids fs)`), `headsOf_cons` (the newest frame lifted its client's
+   head, the heads move by one there: what `chains.unlift`'s precondition and `chains.lift`'s
+   post need), `ids_iff_headsSet`, `posOk_push`, `headsOf_eq`. The loop invariant uses
+   `st.heads = headsOf cs (ids fs)`.
+6. **`computeFirstUnk`'s exponential invariant was false** (indices between probes are not
+   probed: `start = 0`, `FU = 2`, probes at 0 and 1, then `i = 3`, `step = 4`, and `P 2` false).
+   Now: `step = 2^m`, `i = start + step - 1`, `fdk = -1`, `i - step/2 ≤ L`, and
+   `∀ j, start ≤ j → j < i - step/2 → P j` (`step/2` truncating: `start` before the first
+   iteration, the last index probed after). The binary loop's `low ≤ high` initially needs
+   `i - step/2 ≤ L`; `start ≤ low` since `step/2 ≤ step - 1` (the `low < firstUnk` clamp is dead).
+   Bounds inside the body only: the guard `i < L` with `i = start + step - 1` gives `step ≤ L`, so
+   `step * 2`, `i + step < 2L < 2^61`.
+7. **`computeFirstUnk` needs `c < nc`** (true at both call sites); `heads[c] ≤ len` not needed.
+8. **`makeEntries` needs `0 ≤ nc`** (also spec review F3); its loop carries each per-client
+   slice's capacity (`append`), dropped at the end.
+9. **`addToFrontier` takes `c ∉ frontier`** (true at all four call sites; the dedup return is
+   never taken) instead of "members distinct from `c` or `c`".
+10. **`removeFromFrontier`'s spec is a plain `List.erase`**, no `Pairwise` premise and `c`
+    possibly absent (it is, at `unlift`'s first call): between `client.lift`'s `head++` and
+    `removeFromFrontier(i)` the frontier mapped through the new heads need not be sorted. Sorted
+    after it: the mapping is unchanged off `i`.
+11. **The j-loops' invariants** exclude `i` (resp. `c`) from the "not yet processed" half and
+    require unfinished clients for the `nDeps` equalities; `chains.unlift`'s carries
+    "`c` not in the frontier, `nDeps[c] = 0`"; "every member is a candidate of `H'`" holds at
+    every step of `chains.lift`'s loop but in `chains.unlift` only after its loop (at
+    `addToFrontier(c)`).
+12. **`client.lift`'s post** is a disjunction `chains.lift` splits: refused (`step = none` or
+    `□ Done`), cached (`step = some t'` and the abstract cache has `(y :: B, t')`), or lifted; its
+    precondition has `y ∉ B` (from `Cand`), needed for "set then clear restores the bitset".
+    `chains.lift`'s success post exposes `step s o.val = some t'` (`ok = true` is
+    `stepCtxSpec`'s first arm even on a done context); its failure post: heads, frontier,
+    bitset, cache, stack unchanged.
+13. **`checkParallel`**: `consistency` is captured by the goroutine closure by reference: its
+    local cell is made read-only (persistent) before the goroutines start, as v1.3.1 does for
+    `model`.
+14. `stackEntry.opIdx` is never read: no invariant on it.
+
+### What changes with spec candidate 2
+
+- **The order**: the search respects `Before h cs a b := Prec h a b ∨ chainOrder cs a b`;
+  `Cand`, `CandList`, `PrefixBad`, `FramesStruct`, `FramesBad`, `Struct`, `Bad` take the order `R`
+  as a parameter (instantiated at `Before h cs`), `Good`/`SuccBad`/`CacheOk` too; `bad_here`,
+  `bad_pop`, `bad_fail` need `R` irreflexive (`before_irrefl`, from call ≤ ret and the chains'
+  `Nodup`) and relating only operations of `h` (`before_dom`); `sound_done` and `bad_fail` are
+  about `Good M h R (fun _ => False) M.init`, which is `LinearizableCO M h (chainOrder cs)` at
+  `R = Before h cs`. (`DagTheory.lean`, `Theory.lean`, proved.)
+- **`ChainsOk`**: returns non-decreasing along each chain (`RetLe`), not `Prec`.
+- **`firstUnk` holds `FUe`**, not `FU`: `FUe h cs c d 0 = FU h cs c 0 d`,
+  `FUe … (k+1) = max (FUe … k) (FU h cs c (k+1) d)`. `FuOk`: a visited operation's slice is
+  `FUe` (for `d ≠ c`). `deps` counts `d` with `H[d] < FUe …`. `computeFirstUnk`'s searches start
+  at `start = FUe … (k-1)` (or 0) and compute `max start FU` (`fue_search`, proved), which is
+  `FUe … k`; their invariants (fix 6) are relative to `start`, with no claim below it.
+- **`cand_iff`** needs `B` closed under `Before` (`∀ z w, w ∈ B → Before z w → z ∈ B`): `FUe`
+  counts operations preceding *earlier* operations of the chain, linearized because those are
+  and `B` is closed. On a stack of candidates the ids are closed (`framesStruct_below`).
+  Proved.
+- **`deps_lift`** with `FUe` (proved).
+- **Frontier members unrelated in real time**: `cand_not_prec` gives `¬ Before`, so `¬ Prec`
+  both ways, so `Check` answers no `Hard*` among them.
+
+### Executable check of candidate 2
+
+The instrumented copy with `firstUnk` checked against `FUe` and the frontier against the sorted
+`Before`-candidate list: 100000 histories with returns non-decreasing per client and calls
+arbitrary (call ≤ return), 500225 loop iterations, no violation, every answer equal to a
+brute-force `LinearizableCO` checker's; and the 60000 sequential-client histories of candidate 1
+again, no violation.
+
 ## Invariant plan (candidate 1, 2026-11-02)
 
 Against the spec plan. Notation: `h : List (Op OpV)` the partition's history (`n = h.length`),
