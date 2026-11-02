@@ -161,6 +161,30 @@ theorem isRespChan_of_state (ch : Loc) (γk : KVNames) (γ : EtcdWatchNames) (o 
   iexists σ
   iframe HQ Hok
 
+/-- **What a read of the KV state says, with its compaction revision's permit** (C3's watch side,
+2026-11-02): `stateOk`, and the response's compaction revision the permit of the KV names `γk`. -/
+def stateCmpOk (γk : KVNames) (o : OpFull) (Q : KVState → IProp GF) : RespOk GF :=
+  fun c c' v r => iprop(stateOk o Q c c' v r ∗ cmpOkOf γk v.CompactRevision')
+
+/-- The client's Watch spec's channel is one at `stateCmpOk` (C3's watch side). -/
+theorem isRespChan_of_state_cmp (ch : Loc) (γk : KVNames) (γ : EtcdWatchNames) (o : OpFull)
+    (Q : KVState → IProp GF) (Au : IProp GF) :
+    isSpsc (GF := GF) γ.spsc ch (watchStateElem γk γ o Q Au) (fun _ => iprop(True)) ⊢
+      isRespChan ch γ (stateCmpOk γk o Q) := by
+  iintro #Hsp
+  unfold isRespChan
+  iexists watchStateElem γk γ o Q Au
+  iframe Hsp
+  iintro !> %i %v HP
+  unfold watchStateElem
+  icases HP with ⟨%r, %σ, %c, %c', #Hr, #HQ, #Hc, #Hc', #Hok, -, #Hcmp⟩
+  imodintro
+  unfold respElemOk stateCmpOk stateOk
+  iexists r, c, c'
+  iframe Hr Hc Hc' Hcmp
+  iexists σ
+  iframe HQ Hok
+
 /-- A read's response's close error is one grpc's `status` accepts (`watchStateRespOk`'s error
 case says so; otherwise there is none). -/
 theorem stateOk_closeErr (o : OpFull) (Q : KVState → IProp GF) (c c' : w64)

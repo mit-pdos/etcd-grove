@@ -47,6 +47,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.compactkv.NoDup
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Served
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Collect
 public import Spec.go_etcd_io.etcd.client.v3.watcher__Watch
+public import Spec.github_com.mit_pdos.etcd_grove.examples.compactkv.checkCompactRev
 
 @[expose] public section
 
@@ -96,7 +97,8 @@ theorem Main.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
-    (wp_Collect : common.Collect.spec (GF := GF) (hG := hG)) :
+    (wp_Collect : common.Collect.spec (GF := GF) (hG := hG))
+    (wp_checkCompactRev : checkCompactRev.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem⟩
@@ -739,6 +741,13 @@ theorem Main.wp_proof
     (try wp_auto)
     cases ok
     · (try wp_auto)
+      -- (C3's watch side) `checkCompactRev(cli, prevKey)`
+      wp_apply (wp_checkCompactRev cl pk R E ρ.rd cid mid γf γl γv keysL go!"v" hpkl hkr hAs) $$ []
+      · iframe #
+        ihave #Hkvs := srvKVInvs_of_read srv E ρ.rd $$ Hrd
+        iunfold srvKVInvs at Hkvs
+        icases Hkvs with ⟨#Hkvi, -⟩
+        iexact Hkvi
       iapply HΦ; itrivial
     ihave ⟨%evs, Hes, -, #Hall⟩ := Hcol $$ %rfl
     (try wp_auto)
@@ -772,6 +781,13 @@ theorem Main.wp_proof
       iframe
       ipureintro; word
     · (try wp_auto)
+      -- (C3's watch side) `checkCompactRev(cli, prevKey)`
+      wp_apply (wp_checkCompactRev cl pk R E ρ.rd cid mid γf γl γv keysL go!"v" hpkl hkr hAs) $$ []
+      · iframe #
+        ihave #Hkvs := srvKVInvs_of_read srv E ρ.rd $$ Hrd
+        iunfold srvKVInvs at Hkvs
+        icases Hkvs with ⟨#Hkvi, -⟩
+        iexact Hkvi
       iapply HΦ; itrivial
 
 end proof

@@ -81,6 +81,49 @@ theorem client_Get_round (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEn
   · iright
     ipureintro; exact Herr
 
+/-- **`cli.Get(ctx, k)` by `New`'s client `cl`, after a lower bound `r` of the rounds' state**
+(C3's watch side, 2026-11-02): `nil` and a reply at a revision at least `r`; or an error. -/
+theorem client_Get_rev (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv GF)
+    (γr : ReadNames) (γf γl γv : GName) (keys : List GoString) (val : GoString) (k : GoString)
+    (r : Nat) (c cid mid : w64) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (F : mvcc.Log)
+    (hsz : opSizeOk (opGetModel k [])) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
+        kvRegsAt (⟨ep, E, γr, cid, mid⟩ : SrvAt GF) ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
+        roundsInv γr γf γl γv keys val ∗ monoNatLbOwn γv r ∗ mvcc.idxCert E.γ.idx F }}
+      (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
+          go!"Get")) (Val #(GoInterface.ok ci))) (Val #k)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        (⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
+            ⌜(r : Int) ≤ sint.Z m.hdr.revision⌝) ∨
+          ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
+  iintro %Φ ⟨#Pc, #Hcl, #Hrpc0, #Hctx, #Hce, #Hopts, #Hc, #Hinv, #Hrlb, #HF⟩ HΦ
+  ihave #Hrpc := kvRegs_one ep E γr cid mid $$ Hrpc0
+  iunfold isNewClient at Hcl
+  icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
+  wp_pures
+  wp_auto
+  ihave #Hau := getRevAu_round γr γf γl γv keys val r $$ [Hinv Hrlb]
+  · iframe #
+  wp_apply (client_get_end_to_end api [ep] E γr c cid mid ci cd k sl
+    (fun σ => iprop(⌜r ≤ σ.rev⌝)) F hsz) $$ [] as %resp %err Hout
+  · iframe #
+  iapply HΦ
+  icases Hout with (⟨%Herr, %m, Hm, #Hq⟩ | %Herr)
+  · ileft
+    ihave Hv := client_get_value_rev E γr c cid mid k F _ m $$ Hq
+    icases Hv with ⟨%σ, %Hσ, %Hval, %Hrev⟩
+    isplitr
+    · ipureintro; exact Herr
+    iexists m
+    iframe Hm
+    ipureintro
+    rw [Hrev]; exact_mod_cast Hσ
+  · iright
+    ipureintro; exact Herr
+
 end e2e
 
 end compactkv

@@ -12,6 +12,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Attempted
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.BuildServer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Collect
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.CompactRev
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Gen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.GenAll
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.MaxRev
@@ -101,6 +102,10 @@ theorem wp_BuildServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64
 theorem wp_Collect :
     EtcdGrove.common.Collect.spec (GF := GF) (hG := hG) :=
   EtcdGrove.common.Collect.wp_proof client.v3.WatchResponse.wp_Err
+
+theorem wp_CompactRev :
+    EtcdGrove.common.CompactRev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.common.CompactRev.wp_proof
 
 theorem wp_NewClients [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.common.NewClients.spec (GF := GF) (hG := hG) :=
