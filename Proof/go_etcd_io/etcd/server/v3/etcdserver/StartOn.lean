@@ -173,7 +173,7 @@ theorem kvRun_nil_on (γr : ReadNames) (ai₀ c₀ : w64) (x : apply.ApplyKV) :
   · iexists srvAuthSt0
     iframe HL Hhi Hc
     ipureintro
-    refine ⟨?_, hch⟩
+    refine ⟨?_, hch.1⟩
     rw [hl]
     rfl
   · ipureintro; exact h

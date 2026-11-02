@@ -33,6 +33,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitUn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyKVCore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapCert
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyCmpArm
 
 @[expose] public section
 
@@ -501,22 +502,41 @@ theorem srvMerged_bundle (γ : SrvRaft) (ml : Loc) (rc : GoInterface) (st : MsgS
   ipureintro
   exact ⟨by simp only [mergedSt]; exact hty, rfl, Hsh.1.2.2.2.2.2.2.2⟩
 
-/-- **What the merged snapshot's image observes** (`createMergedSnapshotMessage`'s `Qd`): the
-backend's data `D` holds at most the KV log `log` in its `Key` bucket (every key it has is `log`'s,
-at its value), exactly `log` with the compaction mode `cmp` off (2026-11-02: with compaction on,
-the compaction job deletes keys physically, so the snapshot can lack keys of `log`; the writer's
-observation `txn.kvWriter_keyObs`), the consistent index `ai` and some
-term in `Meta`, the other buckets of the committed log `A` (`bkRestAt`), and `log` is a well-formed
-committed log (`IdxWf`): `imageAt`'s clauses, over the apply thread's KV log in place of the model
-(`merged_image` relates them). (2026-10-31, the user's decision) No compaction key in `Meta` only
-with the store's compaction mode `cmp` off (`noCmpData`; until then unconditionally, `keyImage`,
-which is false of a snapshot taken with compactions applied): a compacted image is the image
-certificate's to state (`merged_image`, the durability work's `srvImageR`). -/
+/-- **(SNAPSHOT-SORRY #7-cmp) The merged snapshot observes the compaction records** (#7-cmp's
+Freeze, 2026-11-02; the narrowest point of the compaction-mode image, F2 of
+`notes/image-cmp-plan.md`): `s.be.Snapshot()` on the server's backend `d` in compaction mode, taken
+while the apply thread holds the KV's sole writer at the log `log` (`txn.kvWriter`) and its
+compaction resources at the revision `crev` (`apply.cmpOwn`), observes the image of `log` at
+compaction records `r` of revision `crev` (`mvcc.keyImageM true`). True of the Go code: the store
+writes and force-commits `scheduledCompactRev` = `compactMainRev` before the job deletes, the job
+deletes in revision order in force-committed batches, writing `finishedCompactRev` with its last
+(`kvstore.go`'s `updateCompactRev`, `kvstore_compaction.go`'s `scheduleCompaction`), and `Snapshot`
+commits the batch first, so a snapshot sees whole batches (Go tests `TestImageCmpMidJob`, mid-job
+and with a second compaction queued). Not provable from today's specs: `backend.Snapshot.spec`'s
+observation of `Meta`'s hook keys gives only the flag and the values at open (`fkRd`), and mvcc
+tracks neither the records' values nor the job's cut. Its proof is F2's (spec-first: mvcc's
+tracking and a restated `Snapshot` axiom). -/
+theorem srvBeSnapOk_cmpRecs (E : apply.AEnv GF) (d : mvcc.KBReal) (hkb : E.γ.kb = some d)
+    (log : mvcc.Log) (crev : Int) (be : GoInterface) (RS RS' : IProp GF)
+    (Q : backend.Data → Prop) (hbe : be = srvBeIface d.be)
+    (hRS : RS ⊢ txn.kvWriter E.s E.γ log ∗ apply.cmpOwn E crev ∗ True) :
+    srvBeSnapOk (GF := GF) be RS RS' Q ⊢
+      srvBeSnapOk be RS RS' (fun D => Q D ∧
+        (d.cm = true → ∃ r : mvcc.CmpRecs, mvcc.keyImageM true log r D ∧ r.crev = crev)) := by
+  sorry -- SNAPSHOT-SORRY #7-cmp
+
+/-- **What the merged snapshot observes** (S2; #7-cmp's Freeze, 2026-11-02, the user's approval):
+the backend's data `D` is the image, by the store's compaction mode `cmp`, of the KV log `log` at
+compaction records `r` (`mvcc.keyImageM`: off, the `Key` bucket exactly `log`'s and no compaction
+key; on, the entries of `log` the job at `r.crev` has not yet deleted, per key a prefix of the ones
+it deletes, and the records), on at the store's compaction revision `crev` (the apply thread's
+`x.crev`, Go's `compactMainRev`), the consistent index `ai` and some term in `Meta`, the other
+buckets of the committed log `A` (`bkRestAt`), and `log` a well-formed committed log (`IdxWf`):
+`imageAt`'s clauses, over the apply thread's KV log in place of the model (`merged_image` relates
+them). Off the records are none, so `crev` is not read. -/
 def mergedObs (γr : ReadNames) (cmp : Bool) (ai : w64) (A : List EntryModel) (log : mvcc.Log)
-    (D : backend.Data) : Prop :=
-  (∀ k v, backend.dget D mvcc.keyName k = some v → (mvcc.bucketMap log).lookup k = some v) ∧
-    (cmp = false → ∀ k, backend.dget D mvcc.keyName k = (mvcc.bucketMap log).lookup k) ∧
-    (cmp = false → mvcc.noCmpData D) ∧
+    (crev : Int) (D : backend.Data) : Prop :=
+  (∃ r : mvcc.CmpRecs, mvcc.keyImageM cmp log r D ∧ (cmp = true → r.crev = crev)) ∧
     backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
       go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes = encMeta ai ∧
     (∃ t : w64, backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
@@ -554,7 +574,7 @@ theorem mergedCreate_window
       srvRest E γr A ⊢
     |={⊤}=> ∃ (be : GoInterface) (dq : DFrac) (RC RC' RS RS' : IProp GF),
       srvKVCommitOk kv RC RC' ∗ RC ∗ srvBeAddr s ↦{dq} be ∗
-      srvBeSnapOk be RS RS' (mergedObs γr E.cmp ai A x.log) ∗ (RC' -∗ RS) ∗
+      srvBeSnapOk be RS RS' (mergedObs γr E.cmp ai A x.log x.crev) ∗ (RC' -∗ RS) ∗
       (RS' -∗ srvBeAddr s ↦{dq} be ={⊤}=∗ ∃ st' : ApplyState, applyThread γ st' ∗
         applyBackend γ ci b ∗ ciApplying ci a t ∗ srvApplyKVCore s E γw x ua ∗ srvRest E γr A ∗
         ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝) := by
@@ -638,14 +658,14 @@ theorem mergedCreate_window
         backend.rbPart d.γB (fun n => ¬ membership.clusterBkts n)
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk) ∗
       (txn.kvWriter E.s E.γ x.log ∗ backend.rdTok d.γB d.P d.be ∗
-        mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb))))
+        mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb) ∗ apply.cmpOwn E x.crev)))
   iexists iprop(backend.bOpen d.γB backend.rdOpen ∗ (freezeY γ st ∗
       iprop(backend.rbOwnIn d.γB membership.clusterBkts
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
         backend.rbPart d.γB (fun n => ¬ membership.clusterBkts n)
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk) ∗
       (txn.kvWriter E.s E.γ x.log ∗ backend.rdTok d.γB d.P d.be ∗
-        mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb))))
+        mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb) ∗ apply.cmpOwn E x.crev)))
   isplitr
   · iapply srvKVCommitOk_of_kv hC kv E.s E.γ (applyThread γ st) (freezeY γ st) emp
     iframe #
@@ -654,13 +674,20 @@ theorem mergedCreate_window
   isplitl [Hbe]
   · iexact Hbe
   isplitr
-  · -- the snapshot in the window, observing `mergedObs`
+  · -- the snapshot in the window, observing `mergedObs`: on, the records (`srvBeSnapOk_cmpRecs`)
     iapply srvBeSnapOk_mono _ _ _ _ _ ?_
     rotate_left
-    · iapply srvBeSnapOk_window hSnap γ d.γB d.P hcK (mvcc.lateW d.gx) d.be backend.rdOpen st
+    · iapply srvBeSnapOk_cmpRecs E d hkb x.log x.crev _ _ _ _ rfl ?_
+      · iintro ⟨-, -, -, -, Hkw, -, -, Hcmo⟩
+        isplitl [Hkw]
+        · iexact Hkw
+        isplitl [Hcmo]
+        · iexact Hcmo
+        itrivial
+      iapply srvBeSnapOk_window hSnap γ d.γB d.P hcK (mvcc.lateW d.gx) d.be backend.rdOpen st
         (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk
         iprop(txn.kvWriter E.s E.γ x.log ∗ backend.rdTok d.γB d.P d.be ∗
-          mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb))
+          mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb) ∗ apply.cmpOwn E x.crev)
         (fun vd => (∀ k v, vd.lookup (mvcc.keyName, k) = some v →
             (mvcc.bucketMap x.log).lookup k = some v) ∧
           (d.cm = false → ∀ k, vd.lookup (mvcc.keyName, k) = (mvcc.bucketMap x.log).lookup k))
@@ -670,33 +697,39 @@ theorem mergedCreate_window
       · iintro !> %vd ⟨Hkw, -, -⟩ HW Hv
         iapply txn.kvWriter_keyObs E.s E.γ d hkb x.log vd $$ [Hkw Hv]
         iframe
-      · iintro !> %D ⟨Hkw, Hrt, Hret⟩ #Hfk
+      · iintro !> %D ⟨Hkw, Hrt, Hret, Hcmo⟩ #Hfk
         ihave ⟨%h, Hkw⟩ := txn.kvWriter_noCmp E.s E.γ d hkb x.log (D, ⟨∅, W64 0⟩) $$ [Hkw Hfk]
         · iframe Hkw Hfk
-        iframe Hkw Hrt Hret
+        iframe Hkw Hrt Hret Hcmo
         ipureintro; exact fun hc => (h hc).1
-    · intro D ⟨⟨⟨hciO, hrbD⟩, hthin, hex⟩, hnc⟩
+    · intro D ⟨⟨⟨⟨hciO, hrbD⟩, _, hex⟩, hnc⟩, hrec⟩
       have hsd : ∀ k, (backend.sData d.P D).lookup (mvcc.keyName, k) =
           backend.dget D mvcc.keyName k := fun k => by
         rw [backend.sData_lookup]; simp [mvcc.KBReal.P]
       obtain ⟨hci1, t1, ht1⟩ := hciO
       rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inl rfl)] at hci1
       rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inr rfl)] at ht1
-      refine ⟨fun k v h => hthin k v (by rw [hsd]; exact h), fun hc k => ?_,
-        fun hc => mvcc.noCmpData_of_fkAbsD (hnc (hcm.trans hc)), ?_, ⟨t1, by simpa using ht1⟩,
-        bkRestAt_of_rb hRB hrbD, Hwf⟩
-      · rw [← hsd]; exact hex (hcm.trans hc) k
+      refine ⟨?_, ?_, ⟨t1, by simpa using ht1⟩, bkRestAt_of_rb hRB hrbD, Hwf⟩
+      · cases hc : E.cmp
+        · -- off: the whole bucket and no compaction key, no record
+          have hdc : d.cm = false := hcm.trans hc
+          refine ⟨mvcc.CmpRecs.empty, (mvcc.keyImageM_off _ _ D).2 ⟨?_, rfl⟩, fun h => by cases h⟩
+          refine ⟨fun k => ?_, (mvcc.noCmpData_of_fkAbsD (hnc hdc)).1,
+            (mvcc.noCmpData_of_fkAbsD (hnc hdc)).2⟩
+          rw [← hsd]; exact hex hdc k
+        · obtain ⟨r, hr, hrc⟩ := hrec (hcm.trans hc)
+          exact ⟨r, hr, fun _ => hrc⟩
       · rw [← hci]; simpa using hci1
-  isplitl [Hsw Hwl Ht2 Hrb]
+  isplitl [Hsw Hwl Ht2 Hrb Hcmo]
   · iintro ⟨Hfr, Hwo, HY, -⟩
     iunfold mvcc.writerOwn at Hwo
     icases Hwo with ⟨Hrt, Hret⟩
     rw [hRT]
     icases Hrt with ⟨Hrdt, Hop⟩
-    iframe Hop Ht2 HY Hrb Hrdt Hret
+    iframe Hop Ht2 HY Hrb Hrdt Hret Hcmo
     iunfold txn.kvWriter
     iframe
-  · iintro ⟨Hop, HY, Hrb, Hkw, Hrdt, Hret⟩ Hbe
+  · iintro ⟨Hop, HY, Hrb, Hkw, Hrdt, Hret, Hcmo⟩ Hbe
     imod unfreeze γ st $$ Hinv HY with Hst
     imodintro
     iexists st
@@ -739,38 +772,41 @@ theorem mergedCreate_window
     ipureintro; exact ⟨hok, rfl⟩
 
 /-- **(S2) The merged snapshot's image** (the network's image certificate, `srvNet`'s `img`, which
-the bundle carries): an observation `mergedObs` at the applied index `ai` of the applied log `A`
-(`kvApplied`: the KV log the model's, `kvModel`) of the server, with the KV's start values
-(`isServerApplyAll`'s), with the compaction mode off (`hcmp`; 2026-11-02, the user's approval:
-false without it, `merged_image_cmp`). The image is `srvImage` of the apply thread's KV names:
-`mergedObs`'s exact `Key` clause and `noCmpData` give `keyImage`, its `Meta` and rest clauses the
-rest of `imageAt`; the KV invariant gives the start chain (`kvInv_ch0_off`), the raft log's invariant
-the fresh start's names (`srvRaftLogInv_fresh`). The image is exact at `ai` (the consistent index the
-applied index: `mergedCreate_window`'s `ciEff γ st.k = ai`). With the auth mode off: with auth on,
-the KV log is the mode-on model's (`kvModelOn`), not the image `srvNet` carries (`srvImage`, mode
-off), so the on-mode branch is open (`notes/decisions.md`, "applyAll's merge branch (S1)"). Reach
-the image only through this lemma. -/
+the bundle carries), in either compaction mode (#7-cmp's Freeze, 2026-11-02, the user's approval: in
+place of the mode-off `merged_image` and the false `merged_image_cmp`): an observation `mergedObs`
+at the applied index `ai` of the applied log `A` (`kvApplied`: the KV log the model's, `kvModel`,
+the compaction revision the model's, `crevOf`), by the store's mode at the apply thread's compaction
+revision, and the KV log's receipt (the sole writer's `idxCert`, `idxCert_rcpt`), of the server
+with the KV's start values (`isServerApplyAll`'s). The image is `srvImage` of the apply thread's KV
+names: `mergedObs`'s key image is `imageAt`'s at the KV names' mode (`srvKVInvs`'s tie), its records
+at `crevOf` (on, `kvApplied`'s; off, none, the committed log having no compaction, `crevOf_offM`),
+its `Meta` and rest clauses the rest of `imageAt`; the KV invariant gives the start chain
+(`kvInv_ch0_off`), the raft log's invariant the fresh start's names (`srvRaftLogInv_fresh`). The
+image is exact at `ai` (`mergedCreate_window`'s `ciEff γ st.k = ai`). With the auth mode off: with
+auth on, the KV log is the mode-on model's (`kvModelOn`), not the image `srvNet` carries, so the
+on-mode branch is open (#7-on). Reach the image only through this lemma. -/
 theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai : w64) (A : List EntryModel)
     (x : apply.ApplyKV) (D : backend.Data) (hlen : uint.Z ai = A.length)
-    (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]) (hcmp : E.cmp = false) :
-    ⌜mergedObs γr E.cmp ai A x.log D⌝ ∗ isServer s γ ci TM E ρ γr ∗ kvApplied γr.raft γr.kv A x ⊢
+    (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]) :
+    ⌜mergedObs γr E.cmp ai A x.log x.crev D⌝ ∗ ⧖ (mvcc.logCh x.log) ∗ isServer s γ ci TM E ρ γr ∗
+      kvApplied γr.raft γr.kv A x ⊢
       |={⊤}=> kvApplied γr.raft γr.kv A x ∗ □ (srvNet (GF := GF) γr.raft.raft).img ai D := by
-  iintro ⟨%hobs, #Hsrv, Hka⟩
-  rw [hcmp] at hobs
-  obtain ⟨-, hkey, hnc, hci, hterm, hrest, hwf⟩ := hobs
+  iintro ⟨%hobs, #Hrc, #Hsrv, Hka⟩
+  obtain ⟨⟨r, hkI, hr⟩, hci, hterm, hrest, hwf⟩ := hobs
   iunfold isServer at Hsrv
   icases Hsrv with ⟨-, -, -, Hat, -, -⟩
   iunfold srvAtomics at Hat
   icases Hat with ⟨-, -, Hki⟩
   iunfold srvKVInvs at Hki
-  icases Hki with ⟨#Hki, -, #Hrl, -⟩
+  icases Hki with ⟨#Hki, -, #Hrl, -, %Hcm, -⟩
   ihave %hraft := srvRaftLogInv_fresh γr.raft $$ Hrl
   imod (kvInv_ch0_off γr.raft γr.kv) $$ Hki with %hch
   iunfold kvApplied at Hka
   icases Hka with ⟨Hka, %hx⟩
   iunfold kvAppliedL at Hka
   icases Hka with ⟨#HA, Hhi, Hcert, %hlog⟩
+  imod crevOf_offM γr.raft γr.kv A $$ Hki Hrl HA with %Hoff
   imodintro
   isplitl [Hhi Hcert]
   · iunfold kvApplied
@@ -785,28 +821,21 @@ theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
   iunfold dbImage
   iexists A
   iframe HA'
+  rw [← hlog]
+  iframe Hrc
   ipureintro
   have hpre : γr.raft.pre = [] := by rw [hraft]
-  rw [hlog] at hkey hwf
   have hz : uint.Z (W64 0) = 0 := rfl
-  refine ⟨by simp only []; omega, ⟨⟨hkey rfl, (hnc rfl).1, (hnc rfl).2⟩, hci, hterm, ?_, hwf⟩⟩
-  simpa [hpre] using hrest
-
-/-- **(open, false as stated) The merged snapshot's image with the compaction mode on**
-(SNAPSHOT-SORRY #7-cmp; 2026-11-02, the user's approval, `notes/merged-image-plan.md`):
-`merged_image`'s statement at `E.cmp = true`. **False**: `srvImage`'s `keyImage` says `Meta` holds
-no compaction key and the `Key` bucket is the whole log, while a snapshot taken after a compaction
-was applied holds `scheduledCompactRev` (`updateCompactRev` commits it before the job deletes keys)
-and can lack compacted keys. The compaction-mode collections (`compactkv`, `m2`'s `putgetc_safe`,
-`cachekv`) rest on it. The repair, its own stage with #7-on's: the image in the cluster's mode, in
-place (`imageAt`'s `keyImage` as `mvcc.keyImageM γk.cmp`, `keyImageM_off`). -/
-theorem merged_image_cmp (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai : w64) (A : List EntryModel)
-    (x : apply.ApplyKV) (D : backend.Data) (hlen : uint.Z ai = A.length)
-    (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]) (hcmp : E.cmp = true) :
-    ⌜mergedObs γr E.cmp ai A x.log D⌝ ∗ isServer s γ ci TM E ρ γr ∗ kvApplied γr.raft γr.kv A x ⊢
-      |={⊤}=> kvApplied γr.raft γr.kv A x ∗ □ (srvNet (GF := GF) γr.raft.raft).img ai D := by
-  sorry -- SNAPSHOT-SORRY #7-cmp
+  rw [hlog] at hkI hwf
+  have hrc : r.crev = crevOf γr.kv A := by
+    cases hc : E.cmp
+    · rw [hc] at hkI
+      obtain ⟨-, rfl⟩ := (mvcc.keyImageM_off _ _ D).1 hkI
+      rw [mvcc.CmpRecs.crev_empty]; exact (Hoff (Hcm.1.trans hc)).symm
+    · rw [hr hc, hx.2]
+  refine ⟨by simp only []; omega, ⟨⟨r, ?_, hrc⟩, hci, hterm, ?_, hwf⟩⟩
+  · rw [Hcm.1]; exact hkI
+  · simpa [hpre] using hrest
 
 end proof
 

@@ -378,12 +378,14 @@ theorem EtcdServer.applyAll.wp_proofBatch
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
             · iframe Hpkg HsrvM Hkvf Hkvi HW Hlog' HlbB Hr1 Hl1 Hr2 Hl2 Hst Hbe Happ HKVc HRS
             wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS'
-                (mergedObs γr E.cmp ai' (A ++ unapplied ai ms) x'.log))
+                (mergedObs γr E.cmp ai' (A ++ unapplied ai ms) x'.log x'.crev))
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]
               as %mg ⟨Hlr, HRS', Hbeo, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, %HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
             imod Hback $$ HRS' Hbeo with ⟨%st3, Hst, Hbe, Happ, HKVc, HRS, %Hst3⟩
             ihave HKV := HKVk $$ HKVc
+            icases srvApplyKV_idxCert s E ρ.wait x' $$ HKV with ⟨HKV, #Hicx⟩
+            ihave #Hrcx := mvcc.idxCert_rcpt E.γ.idx x'.log $$ Hicx
             -- the merged message sent: of a term committed through the applied index (the batch's
             -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
             iunfold rnRtOk at Hrt
@@ -407,17 +409,11 @@ theorem EtcdServer.applyAll.wp_proofBatch
                 hltA Hcs0 Hty hsn (by word) (by have := hnA; have := uint_nat_eq ai'; omega)
               $$ [Hrli' HlbB Hsm Hct] with #Hsm'
             · iframe Hrli' HlbB Hsm Hct
-            -- (S2's `merged_image`) the image's certificate
-            -- (2026-11-02) with the compaction mode off; on, the open (false) #7-cmp
+            -- (S2's `merged_image`) the image's certificate, either compaction mode (#7-cmp)
             ihave Hmi : |={⊤}=> kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x' ∗
                 □ (srvNet (GF := GF) γr.raft.raft).img ai' D $$ [Hka]
-            · cases hEc : E.cmp
-              · iapply (merged_image s γ ci TM E ρ γr ai' (A ++ unapplied ai ms) x' D hlenZ Hkv0
-                  hEc)
-                iframe Hsrv Hka; ipureintro; exact HQd
-              · iapply (merged_image_cmp s γ ci TM E ρ γr ai' (A ++ unapplied ai ms) x' D hlenZ Hkv0
-                  hEc)
-                iframe Hsrv Hka; ipureintro; exact HQd
+            · iapply (merged_image s γ ci TM E ρ γr ai' (A ++ unapplied ai ms) x' D hlenZ Hkv0)
+              iframe Hsrv Hka Hrcx; ipureintro; exact HQd
             imod Hmi with ⟨Hka, #Himg⟩
             imod srvMerged_bundle γr.raft.raft m rc sm γm.id c ai' at' D Hty
               $$ [Hml Hsm' Hrs Himg] with Hbun
@@ -778,7 +774,7 @@ theorem EtcdServer.applyAll.wp_proofOn
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
             · iframe Hpkg Hsrv Hkvf Hkvi HW Hlog' HlbB Hr1 Hl1 Hr2 Hl2 Hst Hbe Happ HKVc HRS
             wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS'
-                (mergedObs γr E.cmp ai' (A ++ unapplied ai ms) x'.log))
+                (mergedObs γr E.cmp ai' (A ++ unapplied ai ms) x'.log x'.crev))
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]
               as %mg ⟨Hlr, HRS', Hbeo, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, %HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
