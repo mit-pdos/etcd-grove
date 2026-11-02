@@ -1063,10 +1063,12 @@ theorem srvWTStock_alloc (γp : GName) (d : mvcc.KBReal) (n : Nat) (h : receiptB
   ipureintro; omega
 
 /-- The budget from its stock (`N` write tokens), under `receiptBound GF ≤ N + 1`, its counter at
-`0`. -/
+`0`, with the current backend's stock fact (which gives the compaction's supply,
+`kbWTSupplyM_of_stock`). -/
 theorem srvWTPool_alloc (E : apply.AEnv GF) (N : Nat) (Ms : CoPset)
     (h : receiptBound GF ≤ N + 1) :
-    srvWTStock (GF := GF) E N ⊢ |={Ms}=> ∃ γp, srvWTPool E γp ∗ srvWTAt γp (W64 0) := by
+    srvWTStock (GF := GF) E N ⊢ |={Ms}=> ∃ γp, srvWTPool E γp ∗ srvWTAt γp (W64 0) ∗
+      ∃ d, ⌜E.γ.kb = some d⌝ ∗ srvWTStockInv γp d := by
   iintro HW
   iunfold srvWTStock at HW
   icases HW with ⟨%d, %Hd, Hg, Hw, Hrt⟩
@@ -1085,7 +1087,20 @@ theorem srvWTPool_alloc (E : apply.AEnv GF) (N : Nat) (Ms : CoPset)
     iexists 0, d
     iframe H0 Hg Hs Ha
     ileft; iexact Hrt
-  · unfold srvWTAt; imodintro; rw [show uint.nat (W64 0) = 0 from rfl]; iexact Hlb
+  · unfold srvWTAt; imodintro; rw [show uint.nat (W64 0) = 0 from rfl]
+    iframe Hlb
+    iexists d
+    iframe Hs
+    ipureintro; exact Hd
+
+/-- (M2's item 15, stage B3) **The write budget as `NewServer` hands it on** (persistent): the
+budget made (`srvWTPool`, which `start` made until stage B3, so that a compaction's supply draws on
+the same stock), its counter at least `0`. -/
+def srvWTBudget (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ γp, srvWTPool E γp ∗ srvWTAt γp (W64 0))
+
+instance srvWTBudget_persistent (E : apply.AEnv GF) : Persistent (srvWTBudget (GF := GF) E) := by
+  unfold srvWTBudget; infer_instance
 
 /-- One write-back token of the backend `d` off a supply. -/
 theorem wbToks_split (d : mvcc.KBReal) (n : Nat) :

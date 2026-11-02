@@ -568,10 +568,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- the counted stock (`backend.newPost_pool`), for the thread bound
   imod backend.newPost_pool Hbnd ⊤ d.γB d.P _ _ d.be D $$ Hnew with Hnew
   ihave ⟨#HB, #HSC, Hhook, Hopen, Hview, Hwb, Hrbo, Hrts, Hdl, Hncmp, #HfkV, HsrS, HbkP⟩ := bootBackend_of_newPost d.γB d.P
-    (fun _ => mvcc.lateW d.gx) (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D (N + if cmp then N else 0) HD HN HnoCmp $$ Hnew
-  -- (M2) in compaction mode `N` of the tokens set aside, the compaction's write-back stock
-  rw [show (N + if cmp then N else 0) + 7 = (if cmp then N else 0) + (N + 7) by omega]
-  icases (ownToks_add (N + 7) (if cmp then N else 0) d.γB.wb).1 $$ Hwb with ⟨Hwc, Hwb⟩
+    (fun _ => mvcc.lateW d.gx) (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D N HD HN HnoCmp $$ Hnew
   rw [show N + 7 = (N + 6) + 1 by omega]
   icases ownToks_add_1 1 (N + 6) d.γB.wb $$ Hwb with ⟨Hwb, Hwl⟩
   -- `lease.NewLessor`
@@ -1626,22 +1623,24 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe authStore Hc Hau
   -- (M2) the boot log's certificate (the compactor's first lower bound, `srvRevLb … 0`)
   ihave ⟨Hkvw, #Hc0⟩ := txn.kvWriter_cert _ _ _ $$ Hkvw
-  -- (M2) the compaction's write-back supply: `True` off; on, the stock of the `N` tokens set aside
-  ihave HSup : iprop(|={⊤}=> mvcc.kbWTSupplyM (GF := GF) (some ({ d with cm := cmp } : mvcc.KBReal)))
-    $$ [Hwc]
-  · cases cmp
-    · imodintro
-      unfold mvcc.kbWTSupplyM
-      simp only [show ¬ mvcc.kbCmpM (some ({ d with cm := false } : mvcc.KBReal)) from by
-        unfold mvcc.kbCmpM; simp, ↓reduceIte]
-      itrivial
-    · ihave Hwc : ownToks (GF := GF) d.γB.wb N $$ [Hwc]
-      · iExactEq Hwc; simp
-      imod srvCmpStock_alloc ({ d with cm := true } : mvcc.KBReal) N HrbN ⊤ $$ Hwc with #Hst
-      imodintro
-      iapply kbWTSupplyM_of_cmpStock
-      iexact Hst
-  imod HSup with HSup
+  -- (M2's item 15, stage B3) the stores' write budget, made here (by `start` until then), and from
+  -- its stock the compaction's write-back supply (`True` off): one count for both
+  ihave HWS : srvWTStock (GF := GF) (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret⟩ : apply.AEnv GF) N $$ [Hwts HγbW HrtSV]
+  · iunfold srvWTStock; iexists ({ d with cm := cmp } : mvcc.KBReal)
+    isplitr
+    · ipureintro; exact Hγw.2.2.1
+    iframe Hwts HγbW
+    ihave HrtSV : mvcc.kbRT (GF := GF) (some ({ d with cm := cmp } : mvcc.KBReal)) $$ [HrtSV]
+    · rw [← Hγw.2.2.1]; iexact HrtSV
+    rw [mvcc.kbRT_some]
+    iexact HrtSV
+  imod srvWTPool_alloc _ N ⊤ HrbN $$ HWS with ⟨%γp, #HWBp, #HWA0, %d0, %Hd0, #Hst⟩
+  have Hd0' : d0 = ({ d with cm := cmp } : mvcc.KBReal) :=
+    Option.some.inj (Hd0.symm.trans Hγw.2.2.1)
+  subst Hd0'
+  ihave #HSup : mvcc.kbWTSupplyM (GF := GF) (some ({ d with cm := cmp } : mvcc.KBReal)) $$ []
+  · iapply kbWTSupplyM_of_stock
+    iframe HWBp Hst
   -- (K7) the lease service's server facts: the peers' round tripper, the lessor's reader side
   ipersist peerRt
   ihave #HpeerRt : srvPeerRt s $$ []
@@ -1986,16 +1985,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · -- `#Hkv`: the watchable store and its store's read view (`mvcc.New`)
     iexists _, rv
     iframe #
-  -- `HWB`: the stores' write budget
-  isplitl [Hwts HγbW HrtSV]
-  · iunfold srvWTStock; iexists ({ d with cm := cmp } : mvcc.KBReal)
-    isplitr
-    · ipureintro; exact Hγw.2.2.1
-    iframe Hwts HγbW
-    ihave HrtSV : mvcc.kbRT (GF := GF) (some ({ d with cm := cmp } : mvcc.KBReal)) $$ [HrtSV]
-    · rw [← Hγw.2.2.1]; iexact HrtSV
-    rw [mvcc.kbRT_some]
-    iexact HrtSV
+  -- `HWB`: the stores' write budget, made above
+  isplitr
+  · iunfold srvWTBudget; iexists γp
+    iframe HWBp HWA0
   -- the lifetime premises (D17): `storeSmall` at the store's names (`E₀`'s index names), the id
   -- supply from the time-receipt bound (D19b), the thread bound; `ClusterVersion()` from the cluster's
   -- `Version` contract
@@ -2194,7 +2187,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     simp only [apply.AEnv.authOn, HM'.1]
   -- (M2's apply side, A1) the compaction resources at `-1`: the right (`True` off) and the
   -- write-back supply (`True` off; on, the stock's)
-  isplitr [Hcmr HSup]; rotate_left
+  isplitr [Hcmr]; rotate_left
   · iunfold apply.cmpOwn
     iframe Hcmr
     iExactEq HSup

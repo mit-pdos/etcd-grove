@@ -24,7 +24,11 @@ budget is one stock per backend (`srvWTStockInv`; `notes/decisions.md`, "The wri
 per backend"). Stage B2 done (2026-11-02): the snapshot walk is by the mode and `applySnapshot.specSnap`
 is switched (no `d.cm = false`; the image's records `r`, `keyImageM`, the receipt and the permits as
 premises; `notes/decisions.md`, "Restore in compaction mode at the server"); `applyAll` still calls it
-with the mode off. Next: B3, the one-count merge of `NewServer`'s compaction stock; stage C (`run_job_snap_cmp`) stays a `sorry`.
+with the mode off. Stage B3 done (2026-11-02): one write-token count, `N` in both modes (`NewServer`
+makes the budget and the compaction's supply comes from its stock; `notes/decisions.md`, "One
+write-token count"). Next: `applyAll`'s call of `specSnap` in compaction mode (the receipt from `srvImageR`, the permits),
+`merged_image_cmp` restated over `keyImageM` (#7-cmp), and stage C (`run_job_snap_cmp`, a `sorry`
+until then).
 
 Earlier status (2026-10-30): **item 17 switched with the lease** ("Item 17 switched: the jobs' share
 leased", the last section: 17, item 4's step-2 text, 20, 23, 24 real; item 31 stopped, its `none`

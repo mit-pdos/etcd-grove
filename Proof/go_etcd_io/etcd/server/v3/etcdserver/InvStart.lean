@@ -285,7 +285,7 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "Hlrl" ∷ srvLgReader s ∗
     "Hfcr" ∷ (∃ n : Loc, srvFirstCommitAddr s ↦□ n ∗ notifyReader n) ∗
     -- the write budget
-    "HWB" ∷ srvWTStock E N ∗
+    "HWB" ∷ srvWTBudget E ∗
     -- (linkv-txn stage B1, 2026-10-20) the member's entry of the cluster's registries' map, which
     -- `start` sets to the wait it makes
     "Hwtok" ∷ idWaitTok ρ.ids ∗

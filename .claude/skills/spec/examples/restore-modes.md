@@ -40,6 +40,23 @@ differs by the mode is a predicate indexed by it, `True` or the old resource off
 `isPkgInit` first), and the same for `watchableStore__Restore.lean`. The old text stays only for
 callers that have not moved (`watchableStore.Restore.specOff`, with `specOff_of_spec`).
 
+## The caller's spec: `applySnapshot.specSnap` (stage B2, 2026-11-02)
+
+The server's snapshot install, which took `d.cm = false`, was switched to the same mode-indexed
+form: the image's records `r` with `keyImageM d.cm L r D` (off: today's `keyImage`, `r` empty),
+the receipt `restoreRcptM d L` and the permits `crevPermAt E.γ r.finRev ∗ crevPermAt E.γ r.crev`
+as premises (the user's "Add as premises": like `hkI`, facts the caller holds about the image), the
+closer by the mode (`srvKVCloserW`), and a post with `d'.cm = d.cm`, `x'.crev = r.crev`. Against
+candidate 1's text, three changes the user approved after the fact ("go ahead"):
+
+1. **An existing name, not a new parameter**: the store's compaction revision is the apply thread's
+   `x.crev` (already tied to the store by `srvEnvOk`), not a fresh `c`.
+2. **The landed vocabulary over the draft's**: `srvKVCloserW` (landed meanwhile) for the draft's
+   `srvKVCloserM s E c`.
+3. **A mode-conditional premise**: `hcc : d.cm = true → x.crev ≤ r.crev`, not `x.crev ≤ r.crev`:
+   off it follows from the mode-off resources (`x.crev = -1`, `r` empty), so the condition only
+   weakens what callers must show.
+
 ## What it shows
 
 - One spec for both modes, its mode-dependent pieces as predicates indexed by the mode whose off
@@ -47,3 +64,6 @@ callers that have not moved (`watchableStore.Restore.specOff`, with `specOff_of_
   the callers that stay off get the old text by a lemma, not a second spec.
 - When a law about a field lands (the permit), every writer of the field carries its premise,
   restores included: check each write a function makes, not only the obvious one.
+- A caller's spec switched after its callee keeps the same shape (mode-indexed pieces, facts about
+  the input as premises), names state by what already ties it (`x.crev`, not a new `c`), and states a
+  premise only in the mode that needs it.

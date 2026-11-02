@@ -102,9 +102,7 @@ theorem newServerMode.wp_proof
   · iframe
     iframe #
     isplitr
-    · rw [show (N + if E₀.cmp = true then N else 0) = (if cmp then N + N else N) by
-        cases cmp <;> simp [hcmp0]]
-      iapply Hboot
+    · iapply Hboot
       ipureintro
       refine ⟨?_, HU, HU8, hvs, hrule, hboot⟩
       unfold cfgOk; simp

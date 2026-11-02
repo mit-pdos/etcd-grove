@@ -29831,6 +29831,28 @@ it follows from `cmpRight`'s `x.crev = -1` and `r` empty), which is weaker for c
 the permits stay premises (`notes/m2-storage-plan.md`): the receipt waits on `srvImageR` (the same
 gap as `merged_image`), the permits on the cluster's compaction protocol at the caller.
 
+## One write-token count: the budget made by `NewServer`, the compaction's supply from its stock (M2's item 15, stage B3)
+
+**2026-11-02 · the user's ("One token count goes with restore in compaction mode", accepted
+2026-11-01; "go ahead" 2026-11-02) · branch `m2-item15`**
+
+**What was.** In compaction mode `bootstrap`'s contract was at `N + N` write tokens: `N` for the
+write budget (`srvWTPool`, made by `start` from `srvWTStock E N`) and `N` more for the compaction's
+own stock (`srvCmpStock`, `CmpSupply.lean`, its own receipts), which `NewServer` made because the
+budget did not exist before `start`.
+
+**Decision.** `NewServer` makes the budget (`srvWTPool_alloc`, which now also returns the current
+backend's stock fact `srvWTStockInv γp d`) and gives the compaction's supply from that stock
+(`kbWTSupplyM_of_stock`, B1's); it hands the budget on as `srvWTBudget E` (`∃ γp, srvWTPool E γp ∗
+srvWTAt γp 0`) in place of `srvWTStock E N`, and `start` only opens it. `srvCmpStock` and its laws
+are gone. `bootstrap`'s contract is at `N` in both modes: `NewServer.spec`/`specM`/`specG`,
+`common`'s `newServer`, `newServerMode`, `StartCompactingServer`, `StartPeriodicServer`, and
+compactkv's and putgetc's proofs (premises weakened; no result's other statement changed).
+
+**Why.** One stock per backend sharing the budget's receipt counter (B1) bounds the apply loop's and
+the compactions' takes together, so a second stock with its own receipts is not needed; and it is the
+supply that survives a snapshot's swap, which restore in compaction mode needs.
+
 ## The read-side law: a revision reached is at most every later read's (2026-11-02 · the user's "go ahead with the read-side law" · branch `read-law`)
 
 **The question** (C3's client stage, "deferred" above): `kvRevLbZ γk n` is a lower bound of the KV

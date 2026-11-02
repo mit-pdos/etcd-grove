@@ -499,7 +499,7 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)
           #rv : GoInterface) ∗
       mvcc.isReadView rv E.s E.γ) ∗
-    "HWB" ∷ srvWTStock E N ∗
+    "HWB" ∷ srvWTBudget E ∗
     "#Hsmall" ∷ storeSmall E.γ ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗
