@@ -174,10 +174,33 @@ invariants (in `isMvcc`):
   corollary (the etcd server's). In the abstract mode `newWatchableStore` gives the range deleter's
   code (`rdCode`: its spec is any spec of the watchable `Write`'s), the deleter's contract
   (`mvccDeleter`) being over the pools `New`'s candidate makes.
-- **Next**: `FirstRev` (write), `Changes`, `store.Commit`
-  (a `specA` without the writer's fragment), `store.Rev`, `NewStore`/`New` (the pools made), the
-  laws; then the watchable store (its commit's notification at `γ.rel`'s raise, the registrar's
-  view, the watch laws), then the tester.
+- **The watchable store** (same day, `3b8688c4ad`..`ee182aca37`): `isWatchableMvcc`, `mvccOpen`,
+  `mvccDeleter` defined. `MvccImpl` gained the watchable store's location `wl`, the store's `sl`
+  (`isMvccI s γ` pins `γ.sl = s`, so a transaction's store is the names'), and the open token `op`.
+  The readers' pool lends `poolR` (the store's reader and, watched, a reader slot of the watchable
+  store's `s.mu`: `watchReader`, which the watch stream needs); a transaction holds `mvccLoan` (the
+  pool's loan and that slot; `mvccBorrow`/`mvccGiveBack`). `isMvccI` holds, watched, the watch
+  tokens' pool `wtPool` (receipt-paid, as `revPool`). `mvccOpenI γ q` is the token's share and an
+  invariant holding the whole token or the closer (`wsCloserM`; `mvccOpen_take`). The write case of
+  `mvccTxnI` is the store's transaction or the watchable store's wrapper over it (its fields, the
+  watchable store over the transaction's store).
+- **Proved since**: `watchableStore.Write` (from `store.Write.specC`), `watchableStoreTxnWrite.End`
+  (`specC` from `metricsTxnWrite.End.specA`: the caller's first update at the seal, `notify_first`,
+  which inserts the next log's certificate in the client's map, the events' certificate; the second
+  at the bump, `absCommit_of_au2`, with `s.mu`'s half of the watchers' log, which it advances with
+  the client's half; called at a writer's part not notified it finds that certificate in the map of
+  a history without it, impossible; the notified log pinned by the committed log's authority,
+  `body_pinA`), `New` (`specC` from `New.specA` true and the backend's specs: the pools, the pin, the
+  state at `mvccStart`, the open token, the deleter), `watchableStore.Close`.
+- **Changes to the candidate API found by the proof** (since): `New.specC` takes the batch limit in
+  range (`batchLimitOk`), `threadBound GF + 2 ≤ 2 ^ 30` (Go's `2 ^ 30 - 1` readers, two kept by the
+  loops), a backend that does not compact (`d.cm = false`), its deletable-keys registration
+  (`dlInit`) and two write-back tokens (what `NewStore` spends). `mvccTxn_unwrap` is false at a
+  read view `k'` (the watchable wrapper is only ever a write transaction): restrict it to writes.
+- **Next**: `Changes` (write: `isTxnWrite_join`; read), `FirstRev` (write), `store.Rev`,
+  `store.Commit`; the watch stream (`NewWatchStream`, `Watch`, `RequestProgress`, `Chan`, `Close`:
+  the registrar's view `wsWatchers` and the consumer's `wsRecv` over the old `WatchParams`); the
+  laws; then the tester.
 
 ## Log
 
