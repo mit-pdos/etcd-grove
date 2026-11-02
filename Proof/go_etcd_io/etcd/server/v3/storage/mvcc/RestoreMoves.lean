@@ -439,6 +439,7 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
     rw [evsOf_append ([[], []] ++ R) []]; simp [evsOfRev]
   rw [hevs]
   ihave Hbv := restoreViewOut_bucketView (γ.withPhys p') _ R $$ Hview
+  ihave Hbv := bucketViewL_exact (γ.withPhys p') _ _ $$ Hbv
   imodintro
   isplitl [Hr1 Hn2 Hrev HclogB Hbv HtoksB HlogB Hcmp Hcrev]
   · iapply revMuInv_close s γ (γ.withPhys p') 1
@@ -492,7 +493,7 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
       (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 ((L'.length : Int) - 1) : w64) :
         IProp GF) -∗ ⧗ (logCh L') -∗ monoNatLbOwn p'.nev (evsOf (L' ++ [[]])).length -∗
       ghostVar p'.wk 1 () -∗ ghostVar p'.wv 1 L' -∗
-      bucketView (γ.withPhys p') (1 : Qp).half.half (bucketMap L') -∗ compactRes (γ.withPhys p') -∗
+      bucketViewL (γ.withPhys p') (1 : Qp).half.half L' -∗ compactRes (γ.withPhys p') -∗
       kbRegRight p'.kb ={⊤}=∗ ghostVar γ.wr 1 () ∗ idxCert γ.idx L' := by
   iintro Hlc #Hwi Hc Hw Hcur Hrc #Hnv Hwk Hwv Hbv Hcres Hrr
   -- the rebuild's receipts, as the writer's persistent one (M2's B2)

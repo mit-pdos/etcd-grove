@@ -338,6 +338,10 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   iunfold mvcc.writerRes at HW
   icases HW with ⟨%ilog, HW⟩
   iNamedSuffix HW "W"
+  -- the writer's view's bucket `mW`, thin of `ilog`'s (M2's item 15)
+  iunfold mvcc.bucketViewL at HbvW
+  icases HbvW with ⟨%mW, HbvW, #HblW⟩
+  ihave #HthW := mvcc.bucketLog_thin γ ilog mW $$ HblW
   ihave #HcW' := HcertW
   ihave %Hpre : ⌜log <+: ilog ∨ ilog <+: log⌝ $$ []
   · iapply mvcc.idxCert_prefix $$ [Hcert HcertW]
@@ -347,7 +351,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ispecialize HRng $$ []
   · ipureintro; trivial
   wp_bind (App (App (App (App (Val #(methods bt.ty _ bt.v)) (Val #bK)) (Val #lst)) (Val #endS)) (Val #_))
-  iapply HRng $$ %(1 : Qp).half.half %(mvcc.bucketMap ilog) %bK %lst %endS %bs %(u64Be (rev + W64 1))
+  iapply HRng $$ %(1 : Qp).half.half %mW %bK %lst %endS %bs %(u64Be (rev + W64 1))
     %scfg.CompactionBatchLimit' %(DFrac.own 1) %(DFrac.own 1) [] [Hlocked HbvW HlastS HendS]
   · ipureintro
     refine ⟨Hcfgl.1, Hcfgl.2, ?_⟩
@@ -358,8 +362,12 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   inext
   -- (the backend-compaction stage, R2-3) the session ends in the range's token `U`, at the budget
   -- `limit + 1`: a delete or the `Meta` put spends one, `Unlock` takes any
-  iintro %ks %vs ⟨HbvW, HlastS, HendS, %m', %Rd, %U, HU, #Hthin, #Hcap, #Hcap2, #Hpv,
+  iintro %ks %vs ⟨HbvW, HlastS, HendS, %m', %Rd, %U, HU, #Hthin0, #Hcap, #Hcap2, #Hpv,
     #HDelC, #HMetaC, #HUnlU⟩
+  ihave #Hthin := mvcc.snapThin_trans (mvcc.bucketMap ilog) mW m' _ $$ [HthW Hthin0]
+  · iframe HthW Hthin0
+  ihave HbvW : mvcc.bucketViewL γ (1 : Qp).half.half ilog $$ [HbvW]
+  · iunfold mvcc.bucketViewL; iexists mW; iframe HbvW; iexact HblW
   (try wp_auto)
   rename_i igo
   irename : (igo ↦ zero_val w64 : IProp GF) => Higo

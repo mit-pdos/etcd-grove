@@ -289,6 +289,8 @@ theorem mvcc.NewStore.wp_proof
   icases (mvcc.bucketView_halves γ 1 _).1 $$ Hbv with ⟨Hbv1, Hbv2⟩
   -- the writer's half: `writerRes`'s quarter and the writer's pin's (M2's item 37)
   icases (mvcc.bucketView_quarters γ _).1 $$ Hbv1 with ⟨Hbv1, HbvP⟩
+  ihave Hbv1 := mvcc.bucketViewL_init γ _ $$ Hbv1
+  ihave HbvP := mvcc.bucketViewL_init γ _ $$ HbvP
   -- the compaction revision's authority: half the compaction right's, a quarter for each lock
   icases (mvcc.crevUB_split γ.idx (1 : Qp).half (1 : Qp).half (-1)).1 $$ [Hcu] with ⟨Hright, Hcu⟩
   · rw [Qp.half_add_half]; iexact Hcu
@@ -371,7 +373,6 @@ theorem mvcc.NewStore.wp_proof
   · iunfold mvcc.writerRes
     iexists [[], []]
     simp only [named]
-    rw [mvcc.bucketMap_init]
     iunfold mvcc.writerKey
     iframe Hwk Hwv2 Hbv1 Hcres
     iframe #
@@ -453,6 +454,7 @@ theorem mvcc.NewStore.wp_proof
   · iframe #; ipureintro; exact Hlgnn
   ihave Hbv2 : mvcc.bucketView (GF := GF) γ (1 : Qp).half ∅ $$ [Hbv2]
   · unfold mvcc.restoreViewOut; simp only [↓reduceIte]; iexact Hbv2
+  ihave Hbv2 := mvcc.bucketViewL_init γ _ $$ Hbv2
   ihave Hrt1 : mvcc.kbRT (GF := GF) γ.kb $$ [Hrt1]
   · iexact Hrt1
   ispecialize Hrts $$ Hrt1
@@ -529,7 +531,7 @@ theorem mvcc.NewStore.wp_proof
     iunfold mvcc.revMuBody
     iexists [[], []], 2 ^ 63 - 5, -1
     simp only [named]
-    rw [mvcc.bucketMap_init, ← hone]
+    rw [← hone]
     iframe HcurB Hc2 Hbv2 HauthR Hil HcmpB HcuR
     iframe #
     isplitl []
@@ -545,7 +547,6 @@ theorem mvcc.NewStore.wp_proof
   ihave HpinW : mvcc.writerPin (GF := GF) γ [[], []] ∗
       (if mvcc.kbCmpM γ.kb then mvcc.kbMW γ.kb γ.bucket else iprop(True)) $$ [HbvP Hmw]
   · iunfold mvcc.writerPin; iunfold mvcc.writerLoan
-    rw [mvcc.bucketMap_init]
     by_cases hcm : mvcc.kbCmpM γ.kb
     · simp only [hcm, ↓reduceIte]
       iframe HbvP

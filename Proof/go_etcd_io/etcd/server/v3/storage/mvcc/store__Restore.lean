@@ -178,6 +178,8 @@ theorem mvcc.store.Restore.wp_proof
     iexact HviewW
   -- the writer's half of it: `writerRes`'s quarter and the new pin's (M2's item 37)
   icases (mvcc.bucketView_quarters _ _).1 $$ HviewW with ⟨HviewW, HviewP⟩
+  ihave HviewW := mvcc.bucketViewL_exact _ _ _ $$ HviewW
+  ihave HviewP := mvcc.bucketViewL_exact _ _ _ $$ HviewP
   ihave #HcrT' := HcrT $$ %p' %hpb
   ihave Hrv := mvcc.restoreView_of b' (γ.withPhys p') (mvcc.storeRT (γ.withPhys p')) (1 : Qp).half R
     $$ [HviewR]

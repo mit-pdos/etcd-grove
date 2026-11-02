@@ -57,6 +57,9 @@ theorem mvcc.rangeEvents.wp_proof
   (try wp_auto)
   simp only [List.drop_of_length_le (show (List.replicate 17 (W8 0)).length ≤ 17 by simp),
     List.append_nil, mvcc.revOf]
+  -- the view's bucket `m0`, thin of `log`'s (M2's item 15)
+  iunfold mvcc.bucketViewL at Hview
+  icases Hview with ⟨%m0, Hview, #Hbl⟩
   wp_apply HR $$ [$Hview $Hrt] as %rt ⟨Hview, Hsnap⟩
   icases Hsnap with ⟨%L, HL, #Hsnap⟩
   iunfold mvcc.keyReadSnap at Hsnap
@@ -65,7 +68,11 @@ theorem mvcc.rangeEvents.wp_proof
   iapply Hsnap $$ %q [HL Hview]
   · iframe HL Hview
   inext
-  iintro ⟨Hview, %m', %Rd, %Tok, Htok, #Hlk, #Hthin⟩
+  iintro ⟨Hview, %m', %Rd, %Tok, Htok, #Hlk, #Hthin0⟩
+  ihave #Hthin := mvcc.snapThin_trans (mvcc.bucketMap log) m0 m' (mvcc.delKey γ) $$ [Hthin0]
+  · isplitl []
+    · iapply mvcc.bucketLog_thin; iexact Hbl
+    · iexact Hthin0
   -- the snapshot misses no key of the scanned revisions (at or above the compaction revision)
   obtain ⟨hwf0, hlen0, hcs0⟩ := Hwf
   have hlo' : sint.nat minRev < 2 ^ 63 := by
@@ -133,6 +140,8 @@ theorem mvcc.rangeEvents.wp_proof
     unfold mvcc.entsEvents; rw [mvcc.logEnts_events log hwf hlen hcs _ _ hhi]
   rw [hev] at Hps
   rw [hev]
+  ihave Hview : mvcc.bucketViewL γ q log $$ [Hview]
+  · iunfold mvcc.bucketViewL; iexists m0; iframe Hview; iexact Hbl
   iapply HΦ
   iframe
   ipureintro; exact Hps

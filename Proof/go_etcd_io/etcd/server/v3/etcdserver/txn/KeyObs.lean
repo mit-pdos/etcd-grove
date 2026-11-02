@@ -38,7 +38,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 /-- **The writer's pin observes a snapshot of the key bucket** (M2's item 37): the pin's quarter of
-the view at `bucketMap log` and a snapshot's view `vd` of the real backend `d`: every key `vd` has
+the view at a bucket of `log` (`bucketViewL`: thin of `bucketMap log`, the whole of it off) and a snapshot's view `vd` of the real backend `d`: every key `vd` has
 is `bucketMap log`'s, at its value (the physical view is thin of the clients' view,
 `backend.viewAt_bView`), and `vd` is `bucketMap log` on the key bucket when the store does not
 compact (the pin's loan: nothing deletable, `backend.thinV_exact`). -/
@@ -47,21 +47,24 @@ theorem writerPin_keyObs (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = 
     mvcc.writerPin (GF := GF) γ log ∗ backend.viewAt d.γB vd ⊢
       ⌜(∀ k v, vd.lookup (mvcc.keyName, k) = some v → (mvcc.bucketMap log).lookup k = some v) ∧
         (d.cm = false → ∀ k, vd.lookup (mvcc.keyName, k) = (mvcc.bucketMap log).lookup k)⌝ := by
-  unfold mvcc.writerPin mvcc.bucketView mvcc.kbView mvcc.writerLoan mvcc.kbCmpM mvcc.kbNoDel
+  unfold mvcc.writerPin mvcc.bucketViewL mvcc.bucketLog mvcc.snapThin mvcc.bucketView mvcc.kbView
+    mvcc.writerLoan mvcc.kbCmpM mvcc.kbNoDel
   rw [hk]
   simp only
   unfold mvcc.bkView
-  have h1 : ∀ vd' : backend.VData, mvcc.keyView vd' (mvcc.bucketMap log) →
+  have h1 : ∀ (m : mvcc.Bucket) (vd' : backend.VData), mvcc.keyView vd' m →
+      (∀ k v, m.lookup k = some v → (mvcc.bucketMap log).lookup k = some v) →
       (∀ nk v, vd.lookup nk = some v → vd'.lookup nk = some v) →
       ∀ k v, vd.lookup (mvcc.keyName, k) = some v → (mvcc.bucketMap log).lookup k = some v := by
-    intro vd' Hkv Hthin k v h
+    intro m vd' Hkv Hsub Hthin k v h
     have := Hthin _ _ h
     rw [Hkv] at this
-    simpa using this
+    exact Hsub k v (by simpa using this)
   rcases Bool.eq_false_or_eq_true d.cm with hc | hc
   rotate_left
-  · simp only [hc, Bool.false_eq_true, ↓reduceIte]
-    iintro ⟨⟨⟨%vd', Hb, %Hkv⟩, -, #Hnd⟩, Hv⟩
+  · simp only [hc, Bool.false_eq_true, ↓reduceIte, not_false_eq_true, forall_const]
+    iintro ⟨⟨⟨%m, ⟨%vd', Hb, %Hkv⟩, ⟨%Hsub, -⟩, %Hoff⟩, -, #Hnd⟩, Hv⟩
+    subst Hoff
     ihave ⟨-, -, #Ht⟩ := backend.viewAt_bView d.γB vd vd' _ $$ [$Hv $Hb]
     ihave #Ht' := Ht
     iunfold backend.thinV at Ht'
@@ -69,15 +72,15 @@ theorem writerPin_keyObs (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = 
     ihave %Heq := backend.thinV_exact d.γB vd vd' $$ [$Hnd $Ht]
     subst Heq
     ipureintro
-    refine ⟨h1 vd Hkv Hthin, fun _ k => ?_⟩
+    refine ⟨h1 _ vd Hkv Hsub Hthin, fun k => ?_⟩
     rw [Hkv]; simp
   · simp only [hc, ↓reduceIte]
-    iintro ⟨⟨⟨%vd', Hb, %Hkv⟩, -⟩, Hv⟩
+    iintro ⟨⟨⟨%m, ⟨%vd', Hb, %Hkv⟩, ⟨%Hsub, -⟩, -⟩, -⟩, Hv⟩
     ihave ⟨-, -, #Ht⟩ := backend.viewAt_bView d.γB vd vd' _ $$ [$Hv $Hb]
     iunfold backend.thinV at Ht
     icases Ht with ⟨%Hthin, -⟩
     ipureintro
-    exact ⟨h1 vd' Hkv Hthin, fun h => by simp at h⟩
+    exact ⟨h1 m vd' Hkv Hsub Hthin, fun h => by simp at h⟩
 
 /-- **The writer's pin rules out the compaction keys** (M2's item 37): a reader's bound of the
 real backend's compaction-key flag (`backend.fkRd`) at the view `rv` finds no compaction key when

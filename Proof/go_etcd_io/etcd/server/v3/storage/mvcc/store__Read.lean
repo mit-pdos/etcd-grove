@@ -88,12 +88,15 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   (try wp_auto)
   -- the snapshot: `b.ConcurrentReadTx()` or `b.ReadTx()`
   rw [Hbi]
+  -- the view's bucket `m0`, thin of `log`'s (M2's item 15)
+  iunfold mvcc.bucketViewL at Hbucket
+  icases Hbucket with ⟨%m0, Hbucket, #Hbl⟩
   wp_if_destruct <;> (try wp_auto)
   all_goals
     first
-      | (ihave HCq := HC $$ %sync.rfrac.half %(mvcc.bucketMap log)
+      | (ihave HCq := HC $$ %sync.rfrac.half %m0
          wp_apply HCq $$ [$Hbucket $HrtR] as %rt ⟨Hbucket, Hsnap⟩)
-      | (ihave HRq := HR $$ %sync.rfrac.half %(mvcc.bucketMap log)
+      | (ihave HRq := HR $$ %sync.rfrac.half %m0
          wp_apply HRq $$ [$Hbucket $HrtR] as %rt ⟨Hbucket, Hsnap⟩)
   all_goals
     (try wp_auto)
@@ -104,7 +107,15 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     iapply Hsnap $$ %sync.rfrac.half [HL Hbucket]
     · iframe HL Hbucket
     inext
-    iintro ⟨Hbucket, %m', %Rd, %Tok, Htok, #Hsnap0, #Hthin⟩
+    iintro ⟨Hbucket, %m', %Rd, %Tok, Htok, #Hsnap0, #Hthin0⟩
+    -- (the deletable keys at the physical names are the store's: `delKey_withPhys`)
+    ihave #Hthin := mvcc.snapThin_trans (mvcc.bucketMap log) m0 m' (mvcc.delKey γ) $$ [Hthin0]
+    · isplitl []
+      · rw [← mvcc.delKey_withPhys γ p]
+        iapply mvcc.bucketLog_thin; iexact Hbl
+      · iexact Hthin0
+    ihave Hbucket : mvcc.bucketViewL (γ.withPhys p) sync.rfrac.half log $$ [Hbucket]
+    · iunfold mvcc.bucketViewL; iexists m0; iframe Hbucket; iexact Hbl
     (try wp_auto)
     -- `s.revMu.RUnlock()`
     wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hclog Hcert Htoks Hlog Hcmp Hcrev HrstR]

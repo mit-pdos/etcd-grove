@@ -132,8 +132,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   icases mvcc.ghostVar_join_halves γ.wv ilog L $$ [Hwv HwvW] with ⟨Hwv, %HL⟩
   · iframe Hwv HwvW
   subst HL
-  icases mvcc.bucketView_join_quarters γ (mvcc.bucketMap ilog) (mvcc.bucketMap logP)
-    $$ [Hbv HbvP] with ⟨-, Hbv⟩
+  ihave Hbv := mvcc.bucketViewL_join γ (1 : Qp).half ilog logP $$ [Hbv HbvP]
   · iframe Hbv HbvP
   -- the compaction revision is a revision of the committed log (`s.mu`'s certified log is below
   -- the writer's)

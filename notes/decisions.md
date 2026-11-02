@@ -29307,3 +29307,34 @@ half and nothing of the data, so the law as stated was not provable in that wind
 **Not chosen.** The pin hidden in `writerFrag`, tied to `kvWriter`'s log by fractions of the
 revision tokens' and the log's authorities: fewer spec diffs, but a harder refactor of `revMuBody`'s
 and `writerL`'s fractions and a less direct contract.
+
+## The writer's relation thin: `bucketViewL` (M2's item 15, step A1)
+
+**2026-11-02 · accepted** (the user: "Q1 bucketViewL", item 15's candidate 1)
+
+**Problem.** The store's pieces of the bucket's view (`writerRes`'s and the writer's pin's quarters,
+`s.revMu`'s half, the write transaction's half) said `bucketView γ q (bucketMap L)`: the view is the
+log's bucket, exactly. Compaction keeps that true (it deletes keys physically; the backend's logical
+view `bView` stays whole), but a restore from a compacted image does not: the new backend opens
+with the image's entries cut at the records' compaction revision (`restoreImageM`'s
+`bucketOfEnts ents`), fewer than `bucketMap L'`. So `store.Restore`'s post in compaction mode
+(`writerPin (γ.withPhys p') L'`) was unprovable. Widening the backend's logical view by a ghost step
+at the open was refuted in review round 4 (the view's other half is in the locks' resources), and a
+wider open (a trusted change of `OpenBackend`, with a pending-widening token: the open does not know
+the store's deletable keys yet) was the user's rejected option (b).
+
+**Decision.** The pieces hold `bucketViewL γ q L := ∃ m, bucketView γ q m ∗ bucketLog γ L m`, with
+`bucketLog γ L m := snapThin (bucketMap L) m (delKey γ) ∗ ⌜¬ kbCmpM γ.kb → m = bucketMap L⌝`
+(persistent): the view's bucket is the log's but for keys compaction may delete, and the log's
+itself when the store does not compact. Laws: `bucketViewL_exact`, `_init`, `_split`, `_halves`,
+`_join` (parts at any logs join at the first's: one bucket), `bucketLog_append` (a commit's puts go
+to both), `bucketLog_withPhys`, `bucketLog_off`, `bucketLog_thin`, `bucketLog_sub`; and
+`snapThin_trans`, `snapThin_foldl_insert`, `storePutOk_mono`.
+
+**The readers are unchanged** (`rangeKeys.spec`, `txReader`): `keyReaderD_thin` makes a reader of
+the view's bucket `m` a reader of any bucket `m` thins (`bucketMap L`), a key `m` lacks being
+deletable; `store.Read`, `storeTxnWrite.Range` and the compaction job compose the snapshot's thinning
+with the view's (`snapThin_trans`). `rangeEvents.spec` takes `bucketViewL γ q log` for
+`bucketView γ q (bucketMap log)` (pre and post: a weaker premise; its proof composes the two
+thinnings before `snapThin_scan`). The sole writer's laws keep their statements
+(`txn.kvWriter_keyObs`: thin by composition, exact off by `bucketLog`'s clause).

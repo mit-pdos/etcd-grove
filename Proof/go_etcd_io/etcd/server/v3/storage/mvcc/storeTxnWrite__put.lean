@@ -130,10 +130,18 @@ local macro "tw_write" cr:term:max vr:term:max : tactic => `(tactic| (
     -- the backend keeps the key and the value: read-only for good
     ipersist Hib
     ipersist Hd
-    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %(1 : Qp).half %(mvcc.bucketMap ilog) %bK %ib'
+    -- the view's bucket `m`, thin of `ilog`'s (M2's item 15): the put's condition holds of it
+    iunfold mvcc.bucketViewL at Hbv
+    icases Hbv with ⟨%m, Hbv, #Hbl⟩
+    ihave %Hmsub := mvcc.bucketLog_sub γ ilog m $$ Hbl
+    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %(1 : Qp).half %m %bK %ib'
       %d %_ %_ [$(frameH `HKeyG) $(frameH `Hlocked) $(frameH `Hbv) $(frameH `Hib)
           $(frameH `Hd)] as ⟨Hlocked, Hbv⟩
-    · ipureintro; exact mvcc.storePutOk_next γ ilog pend false _ (by omega) Hcs Hb
+    · ipureintro
+      exact mvcc.storePutOk_mono γ _ m _ _ _ Hmsub
+        (mvcc.storePutOk_next γ ilog pend false _ (by omega) Hcs Hb)
+    ihave Hbv : mvcc.bucketViewL γ (1 : Qp).half ilog $$ [Hbv]
+    · iunfold mvcc.bucketViewL; iexists m; iframe Hbv; iexact Hbl
     icases mvcc.muHeld_idx s γ crev ti $$ Hmu with ⟨Hidxf, HmuI⟩
     (try wp_auto)
     -- `tw.s.kvindex.Put(key, idxRev)`
