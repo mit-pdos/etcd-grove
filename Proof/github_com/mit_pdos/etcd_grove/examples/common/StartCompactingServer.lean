@@ -10,7 +10,7 @@ D19r (F)); `newServer` (its URLs `urls1`); on success `s.Start()` (`wp_Start_bui
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.StartCompactingServer
-public import Spec.github_com.mit_pdos.etcd_grove.examples.common.newServer
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.newServerMode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Start
 
 @[expose] public section
@@ -35,7 +35,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptions]
 
 theorem StartCompactingServer.wp_proof
-    (wp_newServer : newServer.specCompact (GF := GF) (hG := hG))
+    (wp_newServerMode : newServerMode.spec (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartCompactingServer.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client retention lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN
@@ -70,15 +70,17 @@ theorem StartCompactingServer.wp_proof
     iapply BigSepM.bigSepM_empty.2; itrivial
   -- `newServer(name, peer, clientAddr, {name: peer}, name, retention, NoSnapCount,
   -- NoSnapCatchUp, lg)`
-  wp_apply (wp_newServer N name peerAddr client name retention (W64 10000) (W64 281474976710656)
-      (slice.mk peer (W64 1) (W64 1)) pm
+  wp_apply (wp_newServerMode N name peerAddr client name go!"revision" retention (W64 10000)
+      (W64 281474976710656) (slice.mk peer (W64 1) (W64 1)) pm
       lg
       (GMap.insert name (slice.mk peer (W64 1) (W64 1)) ∅) (fun _ => [httpURL peerAddr])
-      (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN
+      (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn true Htb Hrb48 HrbN
       hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
-      (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty) Hlg (by omega) Hcret Hck Haf Hbuq
+      (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty) Hlg
+      (by simp only [↓reduceIte]; exact Or.inl ⟨trivial, by omega, Hcret⟩) Hck Haf Hbuq
       Hdbo) $$ [Htok Hmb] as %s %err Hres
   · iframe; iframe #
+    iExactEq Hboot; simp
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
   · -- `newServer` failed: the error returned, with the thread token
     cases err with

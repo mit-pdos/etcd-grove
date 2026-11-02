@@ -118,8 +118,8 @@ func StartServer(name string, peerAddr string, clientAddr string,
 func StartCompactingServer(name string, peerAddr string, clientAddr string, retention int64,
 	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
-	s, err := newServer(name, peer, clientAddr, types.URLsMap{name: peer}, name, retention,
-		NoSnapCount, NoSnapCatchUp, lg)
+	s, err := newServerMode(name, peer, clientAddr, types.URLsMap{name: peer}, name, "revision",
+		retention, NoSnapCount, NoSnapCatchUp, lg)
 	if err != nil {
 		return nil, err
 	}

@@ -9,6 +9,7 @@ public import GeneratedProof.go_etcd_io.etcd.cache.v3
 public import GeneratedProof.go_etcd_io.etcd.client.v3
 public import GeneratedProof.go_uber_org.zap
 public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.github_com.mit_pdos.etcd_grove.examples.cachekv
 
