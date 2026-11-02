@@ -326,7 +326,7 @@ private theorem committedAfter_restart (σ : StorContents) (h : σ.b ≤ σ.comm
 
 /-- (2026-11-02, stage II (p)) **The attach record of a restart**: the terms of the committed log
 `F` at the indices `1, …, c`. -/
-def restartCt (F : List EntryM) (c : Nat) : List (Nat × w64) :=
+private def restartCt (F : List EntryM) (c : Nat) : List (Nat × w64) :=
   (List.range c).map (fun k => (k + 1, ((F[k]?).map EntryM.Term').getD (W64 0)))
 
 private theorem restartCt_mem {F : List EntryM} {c i : Nat} {t : w64} (hc : c ≤ F.length)

@@ -15,8 +15,8 @@ boot the file is absent.
 The specs `wp_BootMinibolt` uses are linked to their proofs (`Open`, `Get`, `Close`, `Commit`,
 from the crash-aware proofs of their callees and the crash-free ones of `Link.lean`).
 
-**What is assumed** (hypotheses of `bootCrashSafety`, besides `BootCrashSafety`'s step bound
-`n + 2 ≤ 2 ^ 30`, `BootP1.lean`):
+**What is assumed** (hypotheses of `bootCrashSafety`, besides `BootCrashSafety`'s thread bound,
+fewer than `2 ^ 30` live threads along the execution, `BootP1.lean`):
 * `Hinit_wp`: the package initializer runs from the fresh package state and gives `pkgFacts`
   (the `sync` package initialized, `errFailed`, `errPageSize`, `errMapTooLarge` and `io.EOF`
   set). `BootCrashSafety` does not have it; as for crashlog, its proof needs `wp_initialize'` of
@@ -24,15 +24,12 @@ from the crash-aware proofs of their callees and the crash-free ones of `Link.le
 * The hand-written `os.file` and `os.fileStat` field facts, as instance hypotheses (as for every
   `OpenFile` and `Stat` spec).
 
-**The step bound.** `Open.specCrash` needs the thread bound `2 ^ 30` (`ThreadBoundLe`: the reader
-pool of `mmaplock`), which the adequacy theorem gives from its `T`, under the hypothesis that every
-execution keeps fewer than `T` live threads (`RealCrashThreadsBelow`); `RealCrashThreadsBelow.of_single`
-gives `T = n + 2` for an execution of `n` steps, hence the bound. The boot program forks no thread,
-so the hypothesis holds for `T = 2` at any length, but proving it is a property of every reachable
-configuration of the real semantics (no `Fork` redex is ever reached, through every function the
-global context resolves, every closure in the heap and every expression an external step returns),
-for which there is no proof device: the program logic proves no thread count, and the adequacy
-theorem does not derive the thread bound from the thread tokens of the proof.
+**The thread bound.** `Open.specCrash` needs the thread bound `2 ^ 30` (`ThreadBoundLe`: the
+reader pool of `mmaplock`), which the adequacy theorem gives from its `T`, under its hypothesis that
+the execution keeps fewer than `T` live threads (`RealCrashThreadsBelow`), as every Perennial
+adequacy theorem does. `BootCrashSafety` states that hypothesis at `T = 2 ^ 30`. (The boot program
+forks no thread, so it holds of every execution; the time-receipt bound `N` is chosen per
+execution, as no proof fixes it.)
 -/
 module
 
@@ -208,8 +205,8 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       iframe Hf'
       ipureintro; exact hg'
 
-/-- **minibolt's crash safety** (`BootCrashSafety`, `BootP1.lean`: executions of fewer than
-`2 ^ 30 - 2` steps), under the hypotheses of the file header: the package initializer
+/-- **minibolt's crash safety** (`BootCrashSafety`, `BootP1.lean`: executions along which fewer
+than `2 ^ 30` threads are live), under the hypotheses of the file header: the package initializer
 (`Hinit_wp`) and the `os.file`/`os.fileStat` field instances. -/
 theorem bootCrashSafety [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
@@ -217,11 +214,9 @@ theorem bootCrashSafety [lctx : GoLocalContext] [sem : go.Semantics]
     (Hinit_wp : ∀ hG : HeapGS .hasLC osFsGF,
       initialize'.spec (GF := osFsGF) (hG := heapAt hG lctx)) :
     BootCrashSafety dir := by
-  intro σ g Hlctx Hpkgs Hinit Hfile Hthreads n κs t2 σ2 b hn Hsteps
-  exact bootCrashSafety_bounded (GF := osFsGF) Hinit_wp (n + 1) (n + 2) hn
-    σ g dir Hlctx Hpkgs Hinit Hfile n κs t2 σ2 b Hsteps (by omega) Hthreads
-    (@RealCrashThreadsBelow.of_single osFsExts (osFsExtsSemanticsWith (P1 (dir ++ go!"/db"))) _
-      _ _ _ Hthreads)
+  intro σ g Hlctx Hpkgs Hinit Hfile Hthreads n κs t2 σ2 b Hsteps Hlive
+  exact bootCrashSafety_bounded (GF := osFsGF) Hinit_wp (n + 1) (2 ^ 30) (Nat.le_refl _)
+    σ g dir Hlctx Hpkgs Hinit Hfile n κs t2 σ2 b Hsteps (by omega) Hthreads Hlive
 
 end adequacy
 

@@ -475,6 +475,16 @@ theorem restoreM_cfgInv {vo v l ln : List w64} {al : Bool} {s : CCState}
       obtain ⟨rfl, h⟩ := checkedM_some H
       exact h
 
+/-- (2026-11-02, stage II (r)) **A well-formed persisted `ConfState`**: well-formed (`CSWf`) or empty
+(a new cluster's), its lists without repeats, `AutoLeave` only with outgoing voters. Then the conf
+state `switchToConfig` reports of `Restore`'s configuration is the same up to order
+(`assertConfStatesEquivalent` does not panic); with a repeat, or `AutoLeave` set alone, it differs. -/
+def ConfStateOk (c : ConfStateM) : Prop :=
+  (CSWf c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' ∨
+    (c.Voters' = [] ∧ c.VotersOutgoing' = [] ∧ c.Learners' = [] ∧ c.LearnersNext' = [])) ∧
+  c.Voters'.Nodup ∧ c.VotersOutgoing'.Nodup ∧ c.Learners'.Nodup ∧ c.LearnersNext'.Nodup ∧
+  (c.VotersOutgoing' = [] → c.AutoLeave' = false)
+
 end model
 
 end EtcdGrove
