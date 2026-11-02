@@ -778,7 +778,6 @@ sorry NewRawNode.wp_proof
 sorry NewServer.wp_proofCompact
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
-sorry RawNode.readyWithoutAccept.wp_proof
 sorry RestartNode.wp_raw
 sorry StartNode.wp_raw
 sorry authkv.Main.wp_proof

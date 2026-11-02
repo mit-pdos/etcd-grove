@@ -55,7 +55,7 @@ theorem RawNode.Ready.wp_proof
   -- (2026-11-01, durability stage II (k)) the hand-out is the cut: the batch queued in `g`
   imod ownRawNodeReady_handout ⊤ γ rn id rs rd ce es ms L q g h CoPset.subseteq_top
     $$ Hhard Hlive Hfree Hrn
-    with ⟨%W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml⟩
+    with ⟨%W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, -⟩
   wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L $$ [$Hrn $Hhard]
     as %steps %ss H
   iNamed H

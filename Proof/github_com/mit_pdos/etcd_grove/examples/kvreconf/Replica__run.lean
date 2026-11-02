@@ -143,7 +143,7 @@ theorem Replica.run.wp_proof
       icases nodeDriver_nodeCommitLb _ _ _ _ $$ Hdrv with ⟨Hdrv, #HclD⟩
       ihave ⟨%Hin, Hrest⟩ := readyRest_ceInBatch _ _ _ _ _ _ _ _ $$ Hrest
       iunfold readyRest at Hrest
-      icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap⟩
+      icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
       iunfold readySnap at Hsnap
       icases Hsnap with ⟨%Hnull, Happ, #Hcef, -⟩
       wp_apply wp_fits rdv.Entries' es DFrac.discard $$ [$Hpkg $Hes] as %b ⟨-, %Hfit⟩
@@ -334,7 +334,7 @@ theorem Replica.run.wp_proof
       simp only [NodeDriverState.afterReady]
       icases nodeDriver_nodeCommitLb _ _ _ _ $$ Hdrv with ⟨Hdrv, #HclD⟩
       iunfold readyRest at Hrest
-      icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap⟩
+      icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, #Hss, %Hbnd, Hsnap, -⟩
       iunfold readySnap at Hsnap
       icases Hsnap with ⟨%Hl, Hss4, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HclS⟩
       obtain ⟨Hdlv, Hptr, Hce0, Hpre, Hlt, Hdlen, Hpos, H61, -, Hli⟩ := Hl

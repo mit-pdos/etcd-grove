@@ -2109,7 +2109,9 @@ def readyRest (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
       ((st.delivered ++ ce).length : Int) ≤ Lx ∧
       Lx < (receiptBound GF : Int) + γ.raft.reBoot.length⌝ ∗
-    readySnap γ N rd st ce es L)
+    readySnap γ N rd st ce es L ∗
+    -- (2026-11-01, durability stage II (m)) what it is past, and within
+    ⌜ReadyRestFacts st ce es h L⌝)
 
 /-- (2026-11-01, durability stage I-3) The messages sent (the draft's `readyMsgs`). -/
 def readyMsgs (γ : Cluster) (N : Namespace) (id : w64) (ms : List QMsg) : IProp GF :=
@@ -2433,6 +2435,41 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
   unfold readyMsgs
   iexact Hsm
 
+/-- (2026-11-01, durability stage II (m)) `ReadyRestFacts` of a `Ready` without a snapshot, from
+raft's `ReadyFacts` at the cut. -/
+theorem readyRestFacts_of_none (st : NodeDriverState) (ds ce es : List EntryM) (h p' : HardStateM)
+    (Hp' : p' = phsNext st.hardState h) (Hlen : st.delivered.length = ds.length)
+    (Hce : LogEntry.toEntries (strip ce) st.delivered.length = ce)
+    (Hrf : ReadyFacts st.durable st.hardState p' ds ce es none) :
+    ReadyRestFacts st (strip ce) es h none := by
+  subst Hp'
+  obtain ⟨g4, g8, g9, g10, g14, g17⟩ := Hrf
+  have u1 := uint_nat_eq st.hardState.Commit'
+  have u2 := uint_nat_eq (phsNext st.hardState h).Commit'
+  refine ⟨by omega, g8, g9, ?_, fun j e hj hb => ?_, fun e0 he0 => ?_⟩
+  · simp only [List.length_append, strip_length] at g10 ⊢; omega
+  · have hj' : ce[j]? = some (e.toEntryM (W64 (st.delivered.length + j + 1))) := by
+      rw [← Hce]; unfold LogEntry.toEntries; rw [List.getElem?_mapIdx, hj]; rfl
+    have := g14 j _ hj' (by rw [← Hlen]; exact hb)
+    rw [← Hlen] at this
+    rw [this, show ((st.delivered.length : Int) + (j : Int) + 1) =
+      (st.delivered.length : Int) + 1 + (j : Int) by omega]
+  · have := g17 e0 he0
+    have := uint_nat_eq e0.Index'
+    omega
+
+/-- (2026-11-01, durability stage II (m)) `ReadyRestFacts` of a `Ready` with a snapshot. -/
+theorem readyRestFacts_of_some (st : NodeDriverState) (ds es : List EntryM) (h p' : HardStateM)
+    (l : SnapLoan) (Hp' : p' = phsNext st.hardState h)
+    (Hrf : ReadyFacts st.durable st.hardState p' ds [] es (some l)) :
+    ReadyRestFacts st [] es h (some l) := by
+  subst Hp'
+  obtain ⟨g4, g8, g7a, g7b⟩ := Hrf
+  have u1 := uint_nat_eq st.hardState.Commit'
+  have u2 := uint_nat_eq (phsNext st.hardState h).Commit'
+  have u3 := uint_nat_eq l.snap.Metadata'.Index'
+  exact ⟨by omega, g8, by omega, by omega⟩
+
 /-- **Receiving a `Ready`, opened**: the node's raft channel and driver token, and the update
 from what raft's receive gives to `readyPost`. -/
 theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
@@ -2442,7 +2479,8 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
         EtcdGrove.isReadyChanRaw γn ch ∗ EtcdGrove.nodeDriverChan γn id n ds st.hardState ∗
         (∀ rd : Ready, (∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM)
             (L : Option SnapLoan), readyDataL γn rd ds ce es ms st.hardState p' L ∗
-            nodeDriverBusy γn id n (dlvAfter ds ce L) es p' L ∗ readyCut γn rd es ms p' L) ={⊤}=∗
+            nodeDriverBusy γn id n (dlvAfter ds ce L) es p' L ∗
+            readyCut γn rd ds ce es ms st.hardState p' L) ={⊤}=∗
           readyPost n γ N id0 st rd) := by
   iintro #Hrc #Hnode0 Hdrv
   iunfold nodeDriver at Hdrv
@@ -2485,7 +2523,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
   iframe Hrc' Htok
   iintro %rd ⟨%ce, %es, %ms, %p', %L, Hdata, Hbusy, Hcut⟩
   iunfold readyCut at Hcut
-  icases Hcut with ⟨%x, %S', %W, %ss, Hdx, Hbw, Hpend, %HS', #HtS', #Hss, #Hmw, #Hlead⟩
+  icases Hcut with ⟨%x, %S', %W, %ss, Hdx, Hbw, Hpend, %HS', #HtS', #Hss, #Hmw, #Hlead, %Hrf⟩
   ihave %Hx := dghostVar_agree _ _ _ _ _ $$ Hdur Hdx
   subst Hx
   cases L with
@@ -2540,6 +2578,9 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
         have := HLx.2.2
         simp only [List.length_append, strip_length] at this ⊢
         omega
+      isplitl; rotate_left
+      · ipureintro
+        exact readyRestFacts_of_none st ds ce es h p' Hp' Hlen Hce Hrf
       unfold readySnap
       isplitr
       · ipureintro; exact Hnull
@@ -2637,6 +2678,9 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
         have := HLx.2.2
         simp only [List.length_append, strip_length, List.length_nil] at this ⊢
         omega
+      isplitl; rotate_left
+      · ipureintro
+        exact readyRestFacts_of_some st ds es h p' l Hp' Hrf
       unfold readySnap
       dsimp only
       iframe Hsnap Hlbd Hcert Hdcl
@@ -2678,7 +2722,7 @@ theorem node_ready_recvAu (γn : NodeNames) (id : w64) (n ch : Loc) (ds : List E
     ⊢ £ 1 ∗ £ 1 -∗ EtcdGrove.isReadyChanRaw γn ch -∗ EtcdGrove.nodeDriverChan γn id n ds p -∗
       ▷ (∀ rd : Ready, (∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM)
           (L : Option SnapLoan), readyDataL γn rd ds ce es ms p p' L ∗
-          nodeDriverBusy γn id n (dlvAfter ds ce L) es p' L ∗ readyCut γn rd es ms p' L) -∗
+          nodeDriverBusy γn id n (dlvAfter ds ce L) es p' L ∗ readyCut γn rd ds ce es ms p p' L) -∗
           Φ rd true) -∗
       recvAu γn.readyc Ready Φ := by
   iintro Hlc #Hrc Hdrv HΦ
@@ -2725,7 +2769,8 @@ theorem isReadyChan_recvAu_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id 
   iapply recvAu_wand_fupd γn.readyc Ready
     (fun rd ok => iprop(⌜ok = true⌝ ∗ (∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM)
           (L : Option SnapLoan), readyDataL γn rd ds ce es ms st.hardState p' L ∗
-          nodeDriverBusy γn id' n (dlvAfter ds ce L) es p' L ∗ readyCut γn rd es ms p' L) ∗
+          nodeDriverBusy γn id' n (dlvAfter ds ce L) es p' L ∗
+          readyCut γn rd ds ce es ms st.hardState p' L) ∗
         (∀ rd : Ready, readyPost n γ N id st rd -∗ Φ rd true))) Φ
     $$ [Htok Hlc HΦ] [Hk]
   · iapply node_ready_recvAu γn id' n ch ds st.hardState $$ Hlc Hrc' Htok

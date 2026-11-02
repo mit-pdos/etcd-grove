@@ -181,6 +181,9 @@ def AppShape (st : MsgSt) : Prop :=
   st.msg.Vote' = W64 0 ∧
     st.msg.Reject' = false ∧ st.msg.RejectHint' = W64 0 ∧ st.snap = none ∧ st.ctx = [] ∧ st.resps = []
 
+theorem softStateIs_ne_null [package_sem : Assumptions] (p : Loc) (x : w64 × StateType) :
+    softStateIs p (some x) ⊢ ⌜p ≠ null⌝
+
 def rnInit (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64) : IProp GF :=
   match md with
   | RNMode.static => ownRaftGhost γ id initPState
@@ -279,14 +282,16 @@ structure RNState : Type where
   dur : RaftState
   role : StateType
   bw : DurMaps
+  hlb : HardStateM
 
 def softStateIs (p : Loc) : Option (w64 × StateType) → IProp GF :=
   match x✝ with
   | none => iprop(⌜p = null⌝)
   | some (lead, rs) =>
-    iprop(typedPointsto (structFieldRef SoftState go!"Lead" p) lead DFrac.discard ∗
-        typedPointsto (structFieldRef SoftState go!"RaftState" p) rs
-          DFrac.discard)
+    iprop(⌜p ≠ null⌝ ∗
+        typedPointsto (structFieldRef SoftState go!"Lead" p) lead DFrac.discard ∗
+          typedPointsto (structFieldRef SoftState go!"RaftState" p) rs
+            DFrac.discard)
 
 def DynCCPreOp (dec : CCDec) (D : List EntryM) (ca : Nat) (cfg : CCState) (op : CCOp) (k : Nat) (e :
     EntryM) (cs' : CCState) : Prop :=

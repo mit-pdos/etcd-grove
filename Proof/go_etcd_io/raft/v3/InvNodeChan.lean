@@ -775,8 +775,8 @@ the batch queued in the node's generation (`pendBatch`), entering the recorded d
 the batch applied (`readyDurable`), the `Ready`'s soft state `ss`, each message's `isRaftMsg`
 behind the batch's fragments (released by *enter*, `raft_enter`), and at role leader (the role
 after `ss`) unconditionally (R9: a leader's outbox needs no pending promise). -/
-def readyCut (γ : NodeNames) (rd : Ready) (es : List EntryM) (ms : List QMsg) (p' : HardStateM)
-    (L : Option SnapLoan) : IProp GF :=
+def readyCut (γ : NodeNames) (rd : Ready) (d ce es : List EntryM) (ms : List QMsg)
+    (p p' : HardStateM) (L : Option SnapLoan) : IProp GF :=
   iprop(∃ (x : RaftState × StateType) (S' : RaftState) (W : DurMaps)
       (ss : Option (w64 × StateType)),
     dghostVar γ.dur (DFrac.own (1 : Qp).half) x ∗
@@ -788,7 +788,11 @@ def readyCut (γ : NodeNames) (rd : Ready) (es : List EntryM) (ms : List QMsg) (
     termLB γ.bud S'.term ∗
     softStateIs rd.SoftState' ss ∗
     ([∗list] q ∈ ms, □ (durFrags γ.raft γ.id W -∗ isRaftMsg γ.raft γ.id q.st)) ∗
-    □ (⌜roleAfter x.2 ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ.raft γ.id q.st))
+    □ (⌜roleAfter x.2 ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ.raft γ.id q.st) ∗
+    -- (2026-11-01, durability stage II (m)) what the `Ready` is past, and within, of the recorded
+    -- durable state, the hard state `p` last handed out and the committed log `d` handed out
+    -- (`ReadyFacts`, `ownRawNodeReady_handout`'s)
+    ⌜ReadyFacts x.1 p p' d ce es L⌝)
 
 /-- A `Ready` on `readyc` (see the file header): `run`'s half of `dlv` at `d`, the other half
 of its record, and the data. (D22 S-d4, 2026-10-21) The record has the `Ready`'s snapshot, if any
@@ -806,7 +810,7 @@ is of the committed log handed out after the `Ready` (`dlvAfter`). -/
     -- (2026-10-28, the decision switch) the loan's decisions, for `Advance`
     loanDecO γ.raft L ∗
     -- (2026-11-01, durability stage I-3) the batch, cut
-    readyCut γ rd es ms p' L)
+    readyCut γ rd d ce es ms p p' L)
 
 -- (2026-10-28) `advReceipt` moved to `ApiVocab.lean` (the storage contract's vocabulary, which
 -- `node.Advance`'s spec states)
@@ -1292,7 +1296,7 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
     {{ (rd : Ready), RET (PairV #rd #true);
         ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
           readyDataL γ rd ds ce es ms p p' L ∗
-          nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗ readyCut γ rd es ms p' L }} := by
+          nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗ readyCut γ rd ds ce es ms p p' L }} := by
   iintro %Φ ⟨#Hrc, Hdrv⟩ HΦ
   unfold nodeDriverChan
   icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
@@ -1380,7 +1384,7 @@ theorem readyP_take (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : Lis
     ⊢ readyP (GF := GF) γ rd -∗ nodeDriverChan γ id n ds p -∗
       ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
         readyDataL γ rd ds ce es ms p p' L ∗ nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗
-        dlvLb γ (dlvAfter ds ce L) ∗ readyCut γ rd es ms p' L := by
+        dlvLb γ (dlvAfter ds ce L) ∗ readyCut γ rd ds ce es ms p p' L := by
   iintro HP Hdrv
   unfold nodeDriverChan
   icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩

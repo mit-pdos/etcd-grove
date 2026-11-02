@@ -546,7 +546,10 @@ def readyRest (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
       ((st.delivered ++ ce).length : Int) ≤ Lx ∧ Lx < (receiptBound GF : Int) + γ.bootLen⌝ ∗
-    readySnap γ N rd st ce es L)
+    readySnap γ N rd st ce es L ∗
+    -- (2026-11-01, durability stage II (m)) what it is past, and within (`ReadyRestFacts`; the
+    -- laws `readyRest_commit_mono` ... below)
+    ⌜ReadyRestFacts st ce es h L⌝)
 
 /-- The implementation's rest of a `Ready` is the draft's. -/
 private theorem readyRest_of_impl (γ : Cluster) (N : Namespace) (rd : Ready)
@@ -615,7 +618,7 @@ theorem readyRest_ceInBatch (γ : Cluster) (N : Namespace) (rd : Ready)
       readyRest γ N rd st ce es h none ms ss := by
   refine (persistent_entails_left ?_).trans sep_comm.1
   unfold readyRest readySnap
-  iintro ⟨-, -, -, -, -, -, -, -, -, %Hb⟩
+  iintro ⟨-, -, -, -, -, -, ⟨-, -, -, %Hb⟩, -⟩
   ipureintro
   intro e0 he
   exact (Hb e0 he).2
@@ -634,13 +637,13 @@ theorem readyRest_indices (γ : Cluster) (N : Namespace) (rd : Ready)
   cases L with
   | none =>
     unfold readySnap
-    iintro ⟨-, -, -, -, -, -, -, -, -, %Hb⟩
+    iintro ⟨-, -, -, -, -, -, ⟨-, -, -, %Hb⟩, -⟩
     ipureintro
     intro e0 he
     exact (Hb e0 he).1
   | some l =>
     unfold readySnap
-    iintro ⟨-, -, -, -, -, -, %Hf, -⟩
+    iintro ⟨-, -, -, -, -, -, ⟨%Hf, -⟩, -⟩
     ipureintro
     intro e0 he j e hj
     have HI := Hf.2.2.2.2.2.2.2.2.2
@@ -654,6 +657,110 @@ theorem readyRest_indices (γ : Cluster) (N : Namespace) (rd : Ready)
     have u2 := uint_nat_eq e0.Index'
     push_cast at a0 aj
     omega
+
+/-! ### What a `Ready` is past, and within (2026-11-01, durability stage II (m))
+
+`ReadyRestFacts`, law by law, as kvdurable's `Replica.run` uses them (its G4, G7–G10, G14, G17). -/
+
+theorem readyRest_facts (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N rd st ce es h L ms ss ⊢ readyRest γ N rd st ce es h L ms ss ∗
+      ⌜ReadyRestFacts st ce es h L⌝ := by
+  refine (persistent_entails_left ?_).trans .rfl
+  unfold readyRest
+  iintro ⟨-, -, -, -, -, -, -, %H⟩
+  ipureintro; exact H
+
+/-- (G4) **The hard state's commit index does not move back.** -/
+theorem readyRest_commit_mono (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N rd st ce es h L ms ss ⊢ readyRest γ N rd st ce es h L ms ss ∗
+      ⌜uint.nat st.hardState.Commit' ≤ uint.nat (phsNext st.hardState h).Commit'⌝ := by
+  iintro H
+  icases readyRest_facts γ N rd st ce es h L ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro
+  cases L with
+  | none => exact Hf.1
+  | some l => exact Hf.1
+
+/-- (G7) **A snapshot is past the hard state's commit index last handed out, and within the
+`Ready`'s.** (kvdurable's statement had the durable state's commit index, `st.durable.commit`, in
+place of `st.hardState.Commit'`: not raft's to give, since a restart may enter a durable commit index
+above the stored hard state's, `StorageHolds`; the image's snapshot is below the stored hard state's
+commit index, which is `st.hardState`'s.) -/
+theorem readyRest_snap (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (l : SnapLoan) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N rd st ce es h (some l) ms ss ⊢
+      readyRest γ N rd st ce es h (some l) ms ss ∗
+      ⌜uint.nat st.hardState.Commit' < uint.nat l.snap.Metadata'.Index' ∧
+        uint.nat l.snap.Metadata'.Index' ≤ uint.nat (phsNext st.hardState h).Commit'⌝ := by
+  iintro H
+  icases readyRest_facts γ N rd st ce es h (some l) ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro; exact Hf.2.2
+
+/-- (G8) **The commit index is within the durable log after the batch.** -/
+theorem readyRest_commit_le_last (γ : Cluster) (N : Namespace) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
+    (L : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N rd st ce es h L ms ss ⊢ readyRest γ N rd st ce es h L ms ss ∗
+      ⌜uint.nat (phsNext st.hardState h).Commit' ≤
+        (readyDurable st.durable (phsNext st.hardState h) L es).last⌝ := by
+  iintro H
+  icases readyRest_facts γ N rd st ce es h L ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro
+  cases L with
+  | none => exact Hf.2.1
+  | some l => exact Hf.2.1
+
+/-- (G9) **Without a snapshot, the entries start at most one past the durable log's end.** -/
+theorem readyRest_ents_start (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N rd st ce es h none ms ss ⊢ readyRest γ N rd st ce es h none ms ss ∗
+      ⌜∀ e0, es.head? = some e0 → uint.nat e0.Index' ≤ st.durable.last + 1⌝ := by
+  iintro H
+  icases readyRest_facts γ N rd st ce es h none ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro; exact Hf.2.2.1
+
+/-- (G10) **Without a snapshot, the committed log delivered is within the commit index.** -/
+theorem readyRest_delivered_le_commit (γ : Cluster) (N : Namespace) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N rd st ce es h none ms ss ⊢ readyRest γ N rd st ce es h none ms ss ∗
+      ⌜(st.delivered ++ ce).length ≤ uint.nat (phsNext st.hardState h).Commit'⌝ := by
+  iintro H
+  icases readyRest_facts γ N rd st ce es h none ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro; exact Hf.2.2.2.1
+
+/-- (G14) **Without a snapshot, the committed entries delivered above the durable base are the
+durable log's after the batch.** -/
+theorem readyRest_durable_has_delivered (γ : Cluster) (N : Namespace) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N rd st ce es h none ms ss ⊢ readyRest γ N rd st ce es h none ms ss ∗
+      ⌜∀ (j : Nat) (e : LogEntry), ce[j]? = some e →
+        uint.nat (readyDurable st.durable (phsNext st.hardState h) none es).base.index' <
+          st.delivered.length + 1 + j →
+        (readyDurable st.durable (phsNext st.hardState h) none es).ents[st.delivered.length + j -
+          uint.nat (readyDurable st.durable (phsNext st.hardState h) none es).base.index']? =
+          some (e.toEntryM (W64 (st.delivered.length + 1 + j)))⌝ := by
+  iintro H
+  icases readyRest_facts γ N rd st ce es h none ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro; exact Hf.2.2.2.2.1
+
+/-- (G17) **Without a snapshot, the entries start past the hard state's commit index last handed
+out.** -/
+theorem readyRest_ents_above_commit (γ : Cluster) (N : Namespace) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N rd st ce es h none ms ss ⊢ readyRest γ N rd st ce es h none ms ss ∗
+      ⌜∀ e0, es.head? = some e0 → uint.nat st.hardState.Commit' < uint.nat e0.Index'⌝ := by
+  iintro H
+  icases readyRest_facts γ N rd st ce es h none ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro; exact Hf.2.2.2.2.2
 
 /-! ## What etcd's server needs (2026-10-27, branch `server-port`; implemented the same day)
 
@@ -938,11 +1045,11 @@ theorem readyRest_fits [StorageModel GF] [go.Semantics] (γ : Cluster) (N : Name
       readyRest γ N rd st ce es h L ms ss ∗
         ⌜∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ 2 ^ 61⌝ := by
   unfold readyFits readyRest
-  iintro ⟨%Hf, Hes, Hm, Hms, Hh, Hss, %Hx, Hsn⟩
+  iintro ⟨%Hf, Hes, Hm, Hms, Hh, Hss, %Hx, Hsn, %Hrf⟩
   obtain ⟨Lx, H1, Hhd, H3, HLx⟩ := Hx
   isplitl
   · iframe Hes Hm Hms Hh Hss Hsn
-    ipureintro; exact ⟨Lx, H1, Hhd, H3, HLx⟩
+    ipureintro; exact ⟨⟨Lx, H1, Hhd, H3, HLx⟩, Hrf⟩
   · ipureintro
     intro e0 he0
     have := Hhd e0 he0

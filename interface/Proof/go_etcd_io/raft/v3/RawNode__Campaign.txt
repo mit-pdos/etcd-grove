@@ -19,7 +19,7 @@ theorem RawNode.Campaign.wp_proof [package_sem : Assumptions] (wp_raft_Step : ra
                               storage := rs.storage, sn := rs.sn, outlb := rs.outlb, unst := rs.unst, clb := rs.clb,
                               tc := rs.tc, mode := rs.mode, cfg := rs.cfg, capplied := rs.capplied, flw := rs.flw,
                               psnap := rs.psnap, slent := rs.slent, phs := rs.phs, dur := rs.dur, role := rs.role,
-                              bw := rs.bw } ∗
+                              bw := rs.bw, hlb := rs.hlb } ∗
                         "%Ht" ∷ ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
                           "%Herr" ∷ ⌜err = GoInterface.nil⌝ -∗
                       Φ (intoVal err)) -∗

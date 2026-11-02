@@ -170,6 +170,34 @@ def NodeDriverState.afterReady (st : NodeDriverState) (ce : List LogEntry) (es :
     durable := readyDurable st.durable (phsNext st.hardState h) L es
     role := roleAfter st.role ss }
 
+/-- (2026-11-01, durability stage II (m); kvdurable's G4, G7–G10, G14, G17) **What a `Ready` is
+past, and within**, at the loop's state `st`, by its snapshot's loan: the commit index does not move
+back, and is within the durable log after the batch; a snapshot is past the hard state's commit
+index last handed out and within the new one; without one, the entries start at most one past the
+durable log and past the hard state's commit index, the committed log delivered is within the
+commit index, and the committed entries above the durable base are the batch's durable log's. -/
+def ReadyRestFacts (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) :
+    Option SnapLoan → Prop
+  | some l =>
+    uint.nat st.hardState.Commit' ≤ uint.nat (phsNext st.hardState h).Commit' ∧
+    uint.nat (phsNext st.hardState h).Commit' ≤
+      (readyDurable st.durable (phsNext st.hardState h) (some l) es).last ∧
+    uint.nat st.hardState.Commit' < uint.nat l.snap.Metadata'.Index' ∧
+    uint.nat l.snap.Metadata'.Index' ≤ uint.nat (phsNext st.hardState h).Commit'
+  | none =>
+    uint.nat st.hardState.Commit' ≤ uint.nat (phsNext st.hardState h).Commit' ∧
+    uint.nat (phsNext st.hardState h).Commit' ≤
+      (readyDurable st.durable (phsNext st.hardState h) none es).last ∧
+    (∀ e0, es.head? = some e0 → uint.nat e0.Index' ≤ st.durable.last + 1) ∧
+    (st.delivered ++ ce).length ≤ uint.nat (phsNext st.hardState h).Commit' ∧
+    (∀ (j : Nat) (e : LogEntry), ce[j]? = some e →
+      uint.nat (readyDurable st.durable (phsNext st.hardState h) none es).base.index' <
+        st.delivered.length + 1 + j →
+      (readyDurable st.durable (phsNext st.hardState h) none es).ents[st.delivered.length + j -
+        uint.nat (readyDurable st.durable (phsNext st.hardState h) none es).base.index']? =
+        some (e.toEntryM (W64 (st.delivered.length + 1 + j)))) ∧
+    (∀ e0, es.head? = some e0 → uint.nat st.hardState.Commit' < uint.nat e0.Index')
+
 /-! ### The configuration, abstractly (2026-10-27, for etcd's server: moved from the draft) -/
 
 /-- **A cluster's membership**, as raft's `ConfState` reports it (a `tracker.Config` without the

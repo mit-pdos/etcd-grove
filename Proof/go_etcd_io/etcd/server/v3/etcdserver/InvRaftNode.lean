@@ -710,7 +710,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     with ⟨Hrest, %Hfit61⟩
   · iframe Hfits Hrest
   simp only [readyRest, readySnap]
-  icases Hrest with ⟨#Hes, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ, #Hcf, %Hidx⟩⟩
+  icases Hrest with ⟨#Hes, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ, #Hcf, %Hidx⟩, -⟩
   obtain ⟨Lx, HLx, Hes0, Hdl, -⟩ := Hbnd
   obtain ⟨ce', Hce'def⟩ : ∃ ce', ce' = rnCe (srvLE γ.srv L).length ce := ⟨_, rfl⟩
   have Hce'LE : ce'.map EntryModel.toLE = ce := by rw [Hce'def]; exact rnCe_toLE _ ce

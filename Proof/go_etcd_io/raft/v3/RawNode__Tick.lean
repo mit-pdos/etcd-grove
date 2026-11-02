@@ -45,10 +45,11 @@ theorem RawNode.Tick.wp_proof
     | wp_apply wp_tickElection cf _ γ rnv.raft' id s
         Hnw (fun _ => Htc1) Hwf (Hrnfl.1 Hflw)
         Hpf.1
-        $$ [$Hphys $Hghost] as %s' ⟨Hphys, Hghost, %Hwf', %Hc, %Htk⟩
+        $$ [$Hphys $Hghost] as %s' ⟨Hphys, Hghost, %Hwf', %Hcv, %Htk⟩
     | wp_apply wp_tickHeartbeat cf _ γ rnv.raft' id s Hwf Hpf.1
-        $$ [$Hphys $Hghost] as %s' ⟨Hphys, Hghost, %Hwf', %Hc, %Htk⟩
+        $$ [$Hphys $Hghost] as %s' ⟨Hphys, Hghost, %Hwf', %Hcv, %Htk⟩
   all_goals (
+    have Hc := Hcv.1
     obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩, Ht1, Ht2, Hip4, Htpc, Hgd, Hsrb⟩ := Htk
     icases ownRaftPhysC_sn cf rnv.raft' id s' $$ Hphys with ⟨%Hsn1, Hphys⟩
     ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) Hip4 $$ Hstrecs
@@ -62,7 +63,8 @@ theorem RawNode.Tick.wp_proof
           by rw [Hgh]; omega, fun hp => by rw [Hgh, Htpc hp]; exact Htc1, Hpvoff.2.2.2.2.step Hsrb⟩
         (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
         (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' (logStoreRec_stored Hsd) Hu Ha Hc)
-        (Hsdt.ofRec Hsn Hsd) Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
+        (Hsdt.ofRec Hsn Hsd) Hrole
+        (Hphs.keep rfl rfl rfl (HsLe.of_step Hcv.2 Hc) Hsn (.inl Hip4)) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
       · -- (durability stage II (i)) the step keeps `durTie`'s fields
         iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
     ipureintro

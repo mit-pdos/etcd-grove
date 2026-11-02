@@ -170,6 +170,113 @@ theorem GMode.StepOut.commit_mono {md : GMode} {c : CfgM} {id : w64} {m : Messag
     obtain ⟨g', -, -, B, recv, H⟩ := H
     exact StepR.commit_mono H
 
+/-! ### The term never moves back, and the vote not within a term (2026-11-01, durability stage II (m))
+
+What the `RawNode` predicate needs to keep `prevHardSt`'s record (`RNState.phs`, `PhsOk`) below the
+node's hard state across steps: a granted vote is never taken back at the same term (`PCanVote`), only
+a new term resets it. -/
+
+/-- `ps'`'s term is at least `ps`'s, and at the same term a vote cast in `ps` is kept. -/
+def PVoteLe (ps ps' : PState) : Prop :=
+  uint.Z ps.term ≤ uint.Z ps'.term ∧ (ps'.term = ps.term → ps.vote = W64 0 ∨ ps'.vote = ps.vote)
+
+theorem PVoteLe.refl (ps : PState) : PVoteLe ps ps := ⟨Int.le_refl _, fun _ => .inr rfl⟩
+
+theorem PVoteLe.trans {a b c : PState} (h1 : PVoteLe a b) (h2 : PVoteLe b c) : PVoteLe a c := by
+  refine ⟨Int.le_trans h1.1 h2.1, fun hc => ?_⟩
+  have hab : b.term = a.term := by
+    have := h1.1; have := h2.1
+    have : uint.Z c.term = uint.Z a.term := by rw [hc]
+    apply word.unsigned_inj; omega
+  have hbc : c.term = b.term := hc.trans hab.symm
+  rcases h1.2 hab with h | h
+  · exact .inl h
+  · rcases h2.2 hbc with h' | h'
+    · exact .inl (h.symm.trans h')
+    · exact .inr (h'.trans h)
+
+/-- A step that keeps the term and the vote. -/
+theorem PVoteLe.of_eq {a b : PState} (ht : b.term = a.term) (hv : b.vote = a.vote) : PVoteLe a b :=
+  ⟨by rw [ht]; exact Int.le_refl _, fun _ => .inr hv⟩
+
+/-- A step to a later term. -/
+theorem PVoteLe.of_lt {a b : PState} (h : uint.Z a.term < uint.Z b.term) : PVoteLe a b :=
+  ⟨Int.le_of_lt h, fun he => absurd (congrArg (fun x : w64 => uint.Z x) he) (by omega)⟩
+
+theorem pbecomeFollower_voteLe (s : PState) (t l : w64) (h : uint.Z s.term ≤ uint.Z t) :
+    PVoteLe s (pbecomeFollower s t l) := by
+  refine ⟨h, fun he => .inr ?_⟩
+  simp only [pbecomeFollower] at he ⊢
+  simp [he]
+
+theorem preadRespondAll_voteLe (id : w64) (s : PState) (qs : List ReadReq) :
+    PVoteLe s (preadRespondAll id s qs) := by
+  obtain ⟨o, rd, h⟩ := preadRespondAll_eq id s qs
+  rw [h]; exact PVoteLe.refl _
+
+theorem StepC.voteLe {c : CfgM} {id : w64} {B : Int} {ps : PState} {recv : List Msg}
+    {ps' : PState} (H : StepC c id B ps recv ps') : PVoteLe ps ps' := by
+  induction H with
+  | refl => exact PVoteLe.refl _
+  | trans _ _ _ _ _ _ _ ih1 ih2 => exact ih1.trans ih2
+  | higherTerm m s h => exact pbecomeFollower_voteLe s _ _ (Int.le_of_lt h)
+  | campaign s _ _ _ _ hnw =>
+    apply PVoteLe.of_lt
+    simp only [psendMsgs, pbecomeCandidate]
+    have : uint.Z (s.term + W64 1) = uint.Z s.term + 1 := by word
+    omega
+  | grantVote m s _ _ _ _ hcv =>
+    refine ⟨Int.le_refl _, fun _ => ?_⟩
+    simp only [psendMsgs]
+    rcases hcv with h | ⟨h, -⟩
+    · exact .inr h.symm
+    · exact .inl h
+  | lose s => exact pbecomeFollower_voteLe s _ _ (Int.le_refl _)
+  | abandon s => exact pbecomeFollower_voteLe s _ _ (Int.le_refl _)
+  | stepDown s => exact pbecomeFollower_voteLe s _ _ (Int.le_refl _)
+  | readAck m s N => exact preadRespondAll_voteLe id _ _
+  | readSingle m s => exact preadRespondAll_voteLe id _ _
+  | readReleaseSingle s => exact preadRespondAll_voteLe id _ _
+  | _ => exact PVoteLe.of_eq rfl rfl
+
+theorem StepR.voteLe {Adm : List EntryM → CCState → Prop} {dec : CCDec} {id : w64}
+    {B : Int} {r : RState} {recv : List Msg} {r' : RState} (H : StepR Adm dec id B r recv r') :
+    PVoteLe r.p r'.p := by
+  induction H with
+  | refl => exact PVoteLe.refl _
+  | trans _ _ _ _ _ _ _ ih1 ih2 => exact ih1.trans ih2
+  | higherTerm m r h => exact pbecomeFollower_voteLe r.p _ _ (Int.le_of_lt h)
+  | campaign r _ _ _ _ hnw =>
+    apply PVoteLe.of_lt
+    simp only [psendMsgs, pbecomeCandidate]
+    have : uint.Z (r.p.term + W64 1) = uint.Z r.p.term + 1 := by word
+    omega
+  | grantVote m r _ _ _ _ hcv =>
+    refine ⟨Int.le_refl _, fun _ => ?_⟩
+    simp only [psendMsgs]
+    rcases hcv with h | ⟨h, -⟩
+    · exact .inr h.symm
+    · exact .inl h
+  | lose r => exact pbecomeFollower_voteLe r.p _ _ (Int.le_refl _)
+  | abandon r => exact pbecomeFollower_voteLe r.p _ _ (Int.le_refl _)
+  | stepDown r => exact pbecomeFollower_voteLe r.p _ _ (Int.le_refl _)
+  | readAck m r N => exact preadRespondAll_voteLe id _ _
+  | readSingle m r => exact preadRespondAll_voteLe id _ _
+  | readReleaseSingle r => exact preadRespondAll_voteLe id _ _
+  | _ => exact PVoteLe.of_eq rfl rfl
+
+/-- The step in the mode's model does not move the code's term back, nor its vote within a term. -/
+theorem GMode.StepOut.voteLe {md : GMode} {c : CfgM} {id : w64} {m : MessageM}
+    {s s' : NState} {md' : GMode} (H : md.StepOut c id m s s' md') :
+    PVoteLe (toPState s) (toPState s') := by
+  cases md with
+  | static =>
+    obtain ⟨-, B, recv, H⟩ := H
+    exact StepC.voteLe H
+  | dyn dec c0 h0 g =>
+    obtain ⟨g', -, -, B, recv, H⟩ := H
+    exact StepR.voteLe H
+
 /-- A step of any message but a `MsgStorageApplyResp`, a `MsgSnap` and (2026-10-28, stage U3) a
 snapshot's acknowledgement (a `MsgStorageAppendResp` that moves `applied`) keeps the mode (the
 configuration index does not move, `CidxMove`). -/

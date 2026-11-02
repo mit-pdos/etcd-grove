@@ -229,7 +229,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   clear Hlv
   ihave #Hhp' := hsOpt_of_hsRO _ _ $$ Hhp
   -- (D22l) `prevHardSt`: its record `rs.phs` and its witness
-  ihave %Hphs := prevHS_eq γ _ _ _ $$ Hhard
+  ihave %Hphe := prevHS_eq γ _ _ _ $$ Hhard
   ihave #Hphsw := prevHS_wit γ _ _ _ $$ Hhard
   ihave #Hhard' := prevHS_hsRO γ _ _ _ $$ Hhard
   ihave #Hhard' := hsOpt_of_hsRO _ _ $$ Hhard'
@@ -288,13 +288,13 @@ theorem RawNode.readyWithoutAccept.wp_proof
       isplitr
       rotate_left
       · ipureintro
-        rw [phsNext_zero, ← Hphs]
+        rw [phsNext_zero, ← Hphe]
         have Hh : hardstateVal (nodeHardstate s) = hardstateVal (hsAbs hprev) := congrArg hardstateVal He
         rw [show hardstateVal (hsAbs hprev) = hprev by cases hprev; rfl] at Hh
         exact Hh.symm
       rw [phsNext_zero]
       have Hc : s.logst.committed = rs.phs.Commit' := by
-        rw [← Hphs]; exact congrArg HardSt.commit He
+        rw [← Hphe]; exact congrArg HardSt.commit He
       iapply hsWit_of_phsWit γ rs.phs _ (by rw [← Hc]; exact Hn) $$ Hphsw
     · rw [ite_neg' He]; iexists hardstateVal (nodeHardstate s)
       isplitr
@@ -306,11 +306,15 @@ theorem RawNode.readyWithoutAccept.wp_proof
         isplitr
         rotate_left
         · ipureintro
-          -- GAP (durability stage II (k), fix C): the node's hard state is empty (`0, 0, 0`) and
-          -- differs from `prevHardSt`'s record, which is then not empty; in Go impossible (the
-          -- hard state only grows, and `prevHardSt` is one the node had), but `ownRawNode` records
-          -- no monotonicity of `rs.phs` against the node's state. See the stage II (k) report.
-          sorry
+          -- (2026-11-01, durability stage II (m)) the node's hard state empty: `prevHardSt`'s
+          -- record, below it (`PhsOk`), is empty too
+          have Hz' : hsOf s = HardStateM.mk (W64 0) (W64 0) (W64 0) := by
+            obtain ⟨a, b, c⟩ := Hz
+            simp only [hardstateVal, nodeHardstate] at a b c
+            simp only [hsOf, a, b, c]
+          have H1 := Hphs.1
+          rw [Hz'] at H1
+          exact (HsLe.eq_zero H1).trans Hz'.symm
         have Hc0 : s.logst.committed = W64 0 := Hz.2.2
         have Hn0 : ((rs.delivered ++ ce).length : Int) ≤ uint.Z rs.phs.Commit' := by
           rw [Hc0] at Hn; have := uint_Z_nonneg rs.phs.Commit'
@@ -505,7 +509,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   -- the messages handed out: those of `r.msgs` and those of `msgsAfterAppend` to others, at
   -- `readyDq`; kept, the halves of the responses (`respHalf` of `r.msgs`'s, inside `Hundo`;
   -- `Hother`) and the self-addressed ones (`Hself`)
-  have Hresp2 : ∀ q ∈ ms2, RespType q.st.msg.Type' := fun q hq => (HmsgsAA_ok q hq).1
+  have Hresp2 : ∀ q ∈ ms2, RespType q.st.msg.Type' := fun q hq => (HmsgsAA_ok.1 q hq).1
   icases qOwns_ready ms1 $$ Hown1 with ⟨H1r, H1h⟩
   icases (qOwns_self_split id ms2).1 $$ Hown2 with ⟨Hself, Hown2⟩
   icases qOwns_other_ready id ms2 Hresp2 $$ Hown2 with ⟨H2r, Hother⟩
@@ -599,10 +603,9 @@ theorem RawNode.readyWithoutAccept.wp_proof
   have Hto : ∀ q ∈ ms1 ++ nonself id ms2, q.st.msg.To' ≠ id := by
     intro q hq
     rcases List.mem_append.1 hq with h | h
-    · -- GAP (durability stage II (k), fix C): `r.msgs` holds no message to the node itself
-      -- (`raft.send` panics on one, `raft.go`'s "message should not be self-addressed"), but
-      -- `ownRaftPhys` does not record it (only `msgsAfterAppend`'s, `AAMsgOk`). See the report.
-      sorry
+    · -- (2026-11-01, durability stage II (m)) `r.msgs` holds no message to the node itself
+      -- (`raft.send` panics on one: `ownRaftPhys`'s `QOk`)
+      exact HmsgsAA_ok.2 q h
     · have h2 := (List.mem_filter.1 h).2
       simp only [isSelfQ, Bool.not_eq_true', decide_eq_false_iff_not] at h2
       exact h2
@@ -635,7 +638,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       iNamed Hv'
       iframe Lead RaftState
       ipureintro
-      exact ⟨fun h => absurd h Hnn, fun h => .inr (stateW64_leader h)⟩
+      exact ⟨Hnn, fun h => absurd h Hnn, fun h => .inr (stateW64_leader h)⟩
   ihave #Hout : iprop([∗list] x ∈ ([] : List Msg), □ (durFrags γ id rs.bw -∗ isMessage γ x)) $$ []
   · iapply BigSepL.bigSepL_nil.2; iempintro
   -- (D22 S-d3a) the snapshot handed out, if any: half of the clone to the application, half kept
@@ -735,7 +738,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       Hrs_unst, Hrs_clb,
       ⟨Hrnfl.1, Int.not_lt.1 fun h => by
         obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
-      HceOk, fun _ => Hcepre, Hrdc, Hprc, Hnsout, Hsdt, Hrole, Hpst⟩
+      HceOk, fun _ => Hcepre, Hrdc, Hprc, Hnsout, Hsdt, Hrole, Hpst, Hphs⟩
   isplitr
   · iexact Hce
   isplitr

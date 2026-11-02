@@ -130,7 +130,8 @@ theorem RawNode.TransferLeader.wp_proof
             (fun _ => ⟨.inl Hsn, Hfl', logStoreRec_stored Hsd, Hu, Ha, Hc⟩)
           simp only [Bool.or_false] at H
           exact H)
-      (Hsdt.ofRec Hsn Hsd) Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
+      (Hsdt.ofRec Hsn Hsd) Hrole
+        (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsn (.inl (Hip4 (by msg_ne)))) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
     · -- (durability stage II (i)) the step keeps `durTie`'s fields
       iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
     

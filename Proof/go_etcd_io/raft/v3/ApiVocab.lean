@@ -314,6 +314,11 @@ structure RNState [GooseExts] where
   queues for `Advance` have their facts behind these maps' fragments (`pendingRel`), which
   *enter* mints and `Advance` takes (`RawNode.Advance.spec`'s `durFrags γ id rs.bw`). -/
   bw : DurMaps := DurMaps.empty
+  /-- (2026-11-01, durability stage II (m)) a lower bound of the node's hard state (`HsLe`, term
+  and commit not below it, its vote kept at its term), which `ownRawNodeReady_abandon` raises to
+  the abandoned `Ready`'s hard state and every step keeps: if `HasReady` later finds the hard state
+  unchanged (`ownRawNodeIdle`), that `Ready`'s hard state was the node's (`ownRawNodeIdle_ready`). -/
+  hlb : HardStateM := HardStateM.mk (W64 0) (W64 0) (W64 0)
 
 end
 
@@ -483,7 +488,7 @@ instance softStateRO_persistent (p : Loc) : Persistent (softStateRO (GF := GF) p
 reads. -/
 def softStateIs (p : Loc) : Option (w64 × StateType) → IProp GF
   | none => iprop(⌜p = null⌝)
-  | some (lead, rs) => iprop(structFieldRef SoftState go!"Lead" p ↦□ lead ∗
+  | some (lead, rs) => iprop(⌜p ≠ null⌝ ∗ structFieldRef SoftState go!"Lead" p ↦□ lead ∗
       structFieldRef SoftState go!"RaftState" p ↦□ rs)
 
 instance softStateIs_persistent (p : Loc) (ss : Option (w64 × StateType)) :
@@ -501,8 +506,15 @@ theorem softStateIs_RO (p : Loc) (ss : Option (w64 × StateType)) :
   | some x =>
     obtain ⟨lead, rs⟩ := x
     unfold softStateIs
-    iintro ⟨#H1, #H2⟩
+    iintro ⟨-, #H1, #H2⟩
     iright; iexists lead, rs; iframe H1 H2
+
+/-- (2026-11-01, durability stage II (m), kvdurable's G21) **A soft state is a non-`nil` pointer.** -/
+theorem softStateIs_ne_null (p : Loc) (x : w64 × StateType) :
+    softStateIs (GF := GF) p (some x) ⊢ ⌜p ≠ null⌝ := by
+  obtain ⟨lead, rs⟩ := x
+  unfold softStateIs
+  iintro ⟨%H, -⟩; ipureintro; exact H
 
 /-- (U8 v2, 2026-10-29; until then the right to append, or with a snapshot the storage itself and
 its certificate in the storage's registry) **What a `Ready` hands the application for the storage**

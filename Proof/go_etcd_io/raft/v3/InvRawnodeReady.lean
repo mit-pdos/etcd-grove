@@ -906,7 +906,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
     "%Houtbox" ∷ ⌜outboxRelP s.outbox ms1 ms2⌝ ∗
     "Hself" ∷ ([∗list] q ∈ ms2, selfOwn id q) ∗
     "Hother" ∷ ([∗list] q ∈ ms2, otherHalf id q) ∗
-    "%HmsgsAA_ok" ∷ ⌜∀ m ∈ ms2, AAMsgOk id s.term m.st⌝ ∗
+    "%HmsgsAA_ok" ∷ ⌜QOk id s.term ms1 ms2⌝ ∗
     "%Hout_term" ∷ ⌜∀ m ∈ ms1 ++ ms2, OutTermOk s.term s.gh.tc m.st.msg⌝ ∗
     "%Hgh_out" ∷ ⌜s.gh.outlb ≤ ms1.length + ms2.length⌝ ∗
     "%Hgh_unst" ∷ ⌜LogGhOk s s.logst⌝ ∗
@@ -939,7 +939,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
         r.[raft, go!"msgsAfterAppend"] ↦ sl2' -∗ sl2' ↦* ms2'.map QMsg.loc -∗
         ownSliceCap Loc sl2' (DFrac.own 1) -∗
         outboxRel o ms1' ms2' -∗
-        ⌜∀ m ∈ ms2', AAMsgOk id s.term m.st⌝ -∗
+        ⌜QOk id s.term ms1' ms2'⌝ -∗
         ⌜∀ m ∈ ms1' ++ ms2', OutTermOk s.term g.tc m.st.msg⌝ -∗
         ⌜g.outlb ≤ ms1'.length + ms2'.length⌝ -∗
         ⌜GhLogOk g ls'⌝ -∗
@@ -1353,7 +1353,9 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
     [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
   "#Hrdlead" ∷ (∃ ss : Option (w64 × StateType), softStateIs rd.SoftState' ss ∗
     ⌜(rd.SoftState' = null → ss = none) ∧
-      (roleAfter rs.role ss = StateLeader → ms = [] ∨ s.role = .leader)⌝))
+      (roleAfter rs.role ss = StateLeader → ms = [] ∨ s.role = .leader)⌝) ∗
+  -- (2026-11-01, durability stage II (m)) as `ownRawNode`'s
+  "%Hphs" ∷ ⌜PhsOk rs s⌝)
 
 /-- (D22 S-d3a) `loanCom` with no loan. -/
 theorem loanCom_none (γ : RaftNames) {o : Option SnapLoan} (h : o = none) :
@@ -1496,7 +1498,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (Hunp0.trans Hunp.symm) Hsnap (by show StepsOk _ rs.steps; rw [Hsteps0]; trivial) Htrm
     Hstor Hpvoff rfl rfl
     (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩ Hloan.1
-    Hsdt Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc [Hdur]
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc [Hdur]
   · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
 
 -- (2026-10-26, raft's signature, stage 1) `readyIdx` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
@@ -1750,6 +1752,135 @@ theorem ownRawNodeReady_loanLast (γ : RaftNames) (rn : Loc) (id : w64) (rs : RN
   iframe H
   ipureintro; exact Hx
 
+/-- A durable state's last index is its full log's length. -/
+theorem DurFull.last {S : RaftState} {F : List EntryM} (H : DurFull S F) : S.last = F.length := by
+  obtain ⟨He, Hf⟩ := H
+  have hl := Hf.1
+  have hb := uint_nat_eq S.base.index'
+  have hle : uint.nat S.base.index' ≤ F.length := by
+    have := List.length_take_le (uint.nat S.base.index') F
+    rw [List.length_take] at hl
+    omega
+  unfold RaftState.last
+  rw [He, List.length_drop]; omega
+
+/-- (2026-11-01, durability stage II (m); kvdurable's G4, G7–G10, G14, G17) **What a `Ready` cut
+from a node is past, and within**, of the durable state `D` recorded, the hard state `p` last
+handed out (`prevHardSt`'s record), the one `p'` after the `Ready`, the committed log `d` handed out
+before it, its committed entries `ce`, its entries `es` and its snapshot's loan `L`: the commit index
+does not move back (G4) and is within the batch's durable log (G8); a snapshot is past the hard
+state's commit index and within the new one (G7); without one, the entries start at most one past
+the durable log (G9) and past the hard state's commit index (G17), the committed log handed out is
+within the commit index (G10), and the committed entries are the batch's durable log's (G14). -/
+def ReadyFacts (D : RaftState) (p p' : HardStateM) (d ce es : List EntryM) (L : Option SnapLoan) :
+    Prop :=
+  uint.Z p.Commit' ≤ uint.Z p'.Commit' ∧
+  uint.nat p'.Commit' ≤ (readyDurable D p' L es).last ∧
+  match L with
+  | some l => uint.Z p.Commit' < uint.Z l.snap.Metadata'.Index' ∧
+      uint.Z l.snap.Metadata'.Index' ≤ uint.Z p'.Commit'
+  | none =>
+      (∀ e0, es.head? = some e0 → uint.nat e0.Index' ≤ D.last + 1) ∧
+      (d ++ ce).length ≤ uint.nat p'.Commit' ∧
+      (∀ (j : Nat) (e : EntryM), ce[j]? = some e →
+        uint.nat (readyDurable D p' none es).base.index' < d.length + 1 + j →
+        (readyDurable D p' none es).ents[d.length + j -
+          uint.nat (readyDurable D p' none es).base.index']? = some e) ∧
+      (∀ e0, es.head? = some e0 → uint.Z p.Commit' < uint.Z e0.Index')
+
+/-- `ReadyFacts` from the log's facts at the hand-out (`ownRawNodeReady_handout`). -/
+theorem readyFacts_of (D : RaftState) (p : HardStateM) (ls : LogState) (t v : w64)
+    (d ce es fp : List EntryM) (L : Option SnapLoan)
+    (Hfp : FullOk ls.prev fp)
+    (HD' : DurFull (readyDurable D (HardStateM.mk t v ls.committed) L es)
+      (fp ++ (ls.sents ++ ls.uents)))
+    (HDt : L = none → DurFull D (fp ++ ls.stored) ∧ uint.Z D.base.index' ≤ uint.Z ls.prev.index')
+    (Hpc0 : uint.Z p.Commit' ≤ uint.Z ls.committed)
+    (Hpip : ls.snap = none → uint.Z p.Commit' < uint.Z ls.inprogress)
+    (Hpsn : ∀ l, L = some l → uint.Z p.Commit' < uint.Z l.snap.Metadata'.Index')
+    (HL : L = none → ls.snap = none)
+    (Hpv : ∀ l, L = some l → ls.prev = snapId l.snap)
+    (Hpst : PersistCut ls) (Hes : es = nextUnstable ls)
+    (Hcm : uint.Z ls.committed ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
+        + (ls.uents.length : Int))
+    (Hpc : uint.Z ls.prev.index' ≤ uint.Z ls.committed)
+    (Hcel : L = none → d.length + ce.length ≤ uint.nat ls.committed)
+    (Hpa : L = none → uint.nat ls.prev.index' ≤ d.length)
+    (Hag : L = none → ∀ k e, (ls.sents ++ ls.uents)[k]? = some e →
+      uint.nat ls.prev.index' + k < (d ++ ce).length →
+      (d ++ ce)[uint.nat ls.prev.index' + k]? = some e) :
+    ReadyFacts D p (HardStateM.mk t v ls.committed) d ce es L := by
+  have hfl : (fp.length : Int) = uint.Z ls.prev.index' := Hfp.1
+  have hP := uint_nat_eq ls.prev.index'
+  have hC := uint_nat_eq ls.committed
+  have hlast := DurFull.last HD'
+  simp only [List.length_append] at hlast
+  refine ⟨Hpc0, ?_, ?_⟩
+  · show uint.nat ls.committed ≤ _
+    rw [hlast]; omega
+  cases hl : L with
+  | some l =>
+    refine ⟨Hpsn l hl, ?_⟩
+    show uint.Z l.snap.Metadata'.Index' ≤ uint.Z ls.committed
+    have := Hpv l hl
+    rw [this] at Hpc; exact Hpc
+  | none =>
+    have Hsn := HL hl
+    obtain ⟨⟨Hpre, -⟩, Hip1, Hip2, Hidx⟩ := Hpst Hsn
+    simp only [logOffset] at Hpre Hip1 Hip2
+    obtain ⟨HDf, Hb⟩ := HDt hl
+    have hDl := DurFull.last HDf
+    simp only [List.length_append] at hDl
+    have hI := uint_nat_eq ls.inprogress
+    -- the entries not yet handed out start at `offsetInProgress`
+    have He0 : ∀ e0, es.head? = some e0 → uint.Z e0.Index' = uint.Z ls.inprogress := by
+      intro e0 he0
+      rw [Hes] at he0
+      unfold nextUnstable at he0
+      simp only [logOffset] at he0
+      have hk : ls.uents[(uint.Z ls.inprogress - (uint.Z ls.prev.index' + ls.sents.length + 1)).toNat]?
+          = some e0 := by
+        rw [List.head?_drop] at he0; exact he0
+      have hk' : (ls.sents ++ ls.uents)[ls.sents.length +
+          (uint.Z ls.inprogress - (uint.Z ls.prev.index' + ls.sents.length + 1)).toNat]? = some e0 := by
+        rw [List.getElem?_append_right (by omega), Nat.add_sub_cancel_left]; exact hk
+      have := Hidx _ _ hk'
+      push_cast at this
+      omega
+    have Hplen := Hpre.length_le
+    simp only [List.length_append, List.length_take] at Hplen
+    refine ⟨fun e0 he0 => ?_, ?_, fun j e hj hb => ?_, fun e0 he0 => ?_⟩
+    · have := He0 e0 he0
+      have h2 := uint_nat_eq e0.Index'
+      rw [hDl]; omega
+    · simp only [List.length_append]; have := Hcel hl; omega
+    · have hjl : j < ce.length := (List.getElem?_eq_some_iff.1 hj).1
+      have Hpa' := Hpa hl
+      have Hcel' := Hcel hl
+      -- position `|d| + j` of the full log, past the boundary, is the log's
+      have hk : d.length + j - uint.nat ls.prev.index' < (ls.sents ++ ls.uents).length := by
+        simp only [List.length_append]; omega
+      obtain ⟨e', he'⟩ : ∃ e', (ls.sents ++ ls.uents)[d.length + j - uint.nat ls.prev.index']? =
+          some e' := ⟨_, List.getElem?_eq_getElem hk⟩
+      have Hx := Hag hl _ e' he' (by simp only [List.length_append]; omega)
+      rw [show uint.nat ls.prev.index' + (d.length + j - uint.nat ls.prev.index') = d.length + j by
+        omega, List.getElem?_append_right (by omega), Nat.add_sub_cancel_left, hj] at Hx
+      cases Hx
+      rw [hl] at HD'
+      obtain ⟨HDe, -⟩ := HD'
+      have hbase : (readyDurable D (HardStateM.mk t v ls.committed) none es).base = D.base := rfl
+      rw [HDe, List.getElem?_drop, hbase]
+      rw [hbase] at hb
+      have hBl : uint.nat D.base.index' ≤ uint.nat ls.prev.index' := by
+        have := uint_nat_eq D.base.index'; omega
+      rw [show uint.nat D.base.index' + (d.length + j - uint.nat D.base.index') =
+        fp.length + (d.length + j - uint.nat ls.prev.index') by omega,
+        List.getElem?_append_right (by omega), Nat.add_sub_cancel_left]
+      exact he'
+    · have := He0 e0 he0
+      have := Hpip Hsn
+      omega
+
 /-- (2026-11-01, durability stage II (k), fix C) Two readings of a `Ready`'s soft state agree, each
 `none` at a `nil` pointer. -/
 theorem softStateIs_agree (p : Loc) (ss1 ss2 : Option (w64 × StateType))
@@ -1760,7 +1891,7 @@ theorem softStateIs_agree (p : Loc) (ss1 ss2 : Option (w64 × StateType))
   · unfold softStateIs; iintro ⟨%Hn, -⟩; exact absurd (H2 Hn) (by simp)
   · unfold softStateIs; iintro ⟨-, %Hn⟩; exact absurd (H1 Hn) (by simp)
   · unfold softStateIs
-    iintro ⟨⟨#Hl1, #Hr1⟩, ⟨#Hl2, #Hr2⟩⟩
+    iintro ⟨⟨-, #Hl1, #Hr1⟩, ⟨-, #Hl2, #Hr2⟩⟩
     icombine Hl1 Hl2 gives %Hl
     icombine Hr1 Hr2 gives %Hr
     ipureintro; rw [Hl, Hr]
@@ -1812,7 +1943,9 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       slotLive γ id qf g ∗ pendBatch γ id g (readyDurable rs.dur (phsNext rs.phs hrd) L es) W ∗
       softStateIs rd.SoftState' ss ∗ ⌜rd.SoftState' = null → ss = none⌝ ∗
       ([∗list] q ∈ ms, □ (durFrags γ id W -∗ isRaftMsg γ id q.st)) ∗
-      □ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) := by
+      □ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
+      -- (2026-11-01, durability stage II (m)) what the `Ready` is past, and within (`ReadyFacts`)
+      ⌜ReadyFacts rs.dur rs.phs (phsNext rs.phs hrd) rs.delivered ce es L⌝ := by
   iintro #Hh Hlive Hfree H
   -- (U8 v2) a lent snapshot's committed log ends at it
   ihave %Hllast : ⌜∀ l, L = some l → plogLast base0 l.dlv = snapId l.snap⌝ $$ [H]
@@ -2036,6 +2169,22 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       have Hidx' := Hidx
       rw [Hprev, Hsents, List.nil_append] at Hidx'
       exact DurFull_next_snap _ _ _ _ _ _ _ Hfp' Hidx'
+  -- (2026-11-01, durability stage II (m)) what the `Ready` is past, and within
+  ihave %HD'0 := Hdf $$ %fp0 %Hfp0 Hfr0
+  ihave %HDt0 : ⌜L = none → DurFull rs.dur (fp0 ++ s.logst.stored) ∧
+      uint.Z rs.dur.base.index' ≤ uint.Z s.logst.prev.index'⌝ $$ []
+  · cases hl : L with
+    | some _ => ipureintro; intro h; cases h
+    | none =>
+      ihave %H := Hdur' $$ %(.inl (Hrdp.1 hl).2) %fp0 %Hfp0 Hfr0
+      ipureintro; intro _; exact H
+  have Hfacts : ReadyFacts rs.dur rs.phs (phsNext rs.phs hrd0) rs.delivered ce es L := by
+    rw [Hhseq] at HD'0 ⊢
+    exact readyFacts_of rs.dur rs.phs s.logst s.term s.vote rs.delivered ce es fp0 L Hfp0 HD'0
+      HDt0 Hphs.commit_le (fun h => Hphs.2.2.1 (.inl h))
+      (fun l hl => Hphs.2.2.2 _ (Hrdp.2 l hl).2.1 (fun l' h => by rw [Hloan.2] at h; cases h))
+      (fun h => (Hrdp.1 h).2) Hpv Hpst Hes Hcm Hpc (fun h => by rw [Hdl]; exact Hcel h)
+      (fun h => by rw [Hdl]; exact Hpa h) Hag
   have Hp' := congrArg HardStateM.Term' Hhseq
   have Hv' := congrArg HardStateM.Vote' Hhseq
   have Hc' := congrArg HardStateM.Commit' Hhseq
@@ -2115,7 +2264,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
     ipureintro
     exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hloan, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
-      Hrs_clb, Hrnfl, Hceok, Hcepre, Hes, Hrdc, Hprc, Hnsout, Hsdt, Hrole, Hpst⟩
+      Hrs_clb, Hrnfl, Hceok, Hcepre, Hes, Hrdc, Hprc, Hnsout, Hsdt, Hrole, Hpst, Hphs⟩
   isplitl [Hout]
   · rw [Hstor.2]; iexact Hout
   iframe Hcef
@@ -2137,7 +2286,9 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
     rw [Hes]
     exact ⟨HL, Hri.1, Hri.2⟩
   iframe Hlive Hpb Hss Hmw Hml
-  ipureintro; exact Hssl.1
+  isplitr
+  · ipureintro; exact Hssl.1
+  ipureintro; exact Hfacts
 
 /-! ## A node with nothing new to hand out (2026-10-10)
 
@@ -2195,7 +2346,11 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
   "%Hsdt" ∷ ⌜SdtTie rs s⌝ ∗
   -- (2026-11-01, durability stage I fix G2) as `ownRawNode`'s
   "%Hrole" ∷ ⌜rs.role = sv.RaftState'⌝ ∗
-  "#Hdur" ∷ durTie γ rs s)
+  "#Hdur" ∷ durTie γ rs s ∗
+  -- (2026-11-01, durability stage II (m)) as `ownRawNode`'s, and nothing new in the hard state:
+  -- empty, or `prevHardSt`'s (`HasReady`'s test)
+  "%Hphs" ∷ ⌜PhsOk rs s⌝ ∗
+  "%Hhsi" ∷ ⌜hsOf s = hsZero ∨ hsOf s = rs.phs⌝)
 
 theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s : NState) (c : CfgM) (fp : List EntryM) {ds : DecMap} (rnv : RawNode) (sv : SoftState)
@@ -2212,7 +2367,8 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s) (Hsdt : SdtTie rs s)
     (Hidle : s.gh.outlb = 0 ∧ nextUnstable s.logst = [] ∧ s.rd.states = [] ∧
       (s.logst.snap = none ∨ s.logst.sip = true))
-    (Hrole : rs.role = sv.RaftState') :
+    (Hrole : rs.role = sv.RaftState') (Hphs : PhsOk rs s)
+    (Hhsi : hsOf s = hsZero ∨ hsOf s = rs.phs) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
       ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) c id s -∗
       sdrOk rnv.raft' rs.mode -∗
@@ -2232,7 +2388,7 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur
   ipureintro
   exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
-    Hrs_unst, Hrs_clb, Hrnfl, Hloan, Hidle, Hsdt, Hrole⟩
+    Hrs_unst, Hrs_clb, Hrnfl, Hloan, Hidle, Hsdt, Hrole, Hphs, Hhsi⟩
 
 theorem ownRawNodeIdle_ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     ⊢ ownRawNodeIdle (GF := GF) γ rn id rs -∗ ownRawNode γ rn id rs := by
@@ -2240,7 +2396,7 @@ theorem ownRawNodeIdle_ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : R
   iNamed H
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
-    Hsdt Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur
 
 /-- What the client sees of an idle node: the lower bounds at their least, and the commit
 index at most the committed log handed out (`applying`). (D22 S-d3a) With no loan: no snapshot
@@ -2267,7 +2423,7 @@ theorem ownRawNodeIdle_facts (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       · exact absurd Hsn H
   iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hidle
-    Hrole $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur
+    Hrole Hphs Hhsi $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur
 
 /-- Accepting, after all, a `Ready` computed earlier and abandoned (see the section
 header): an idle node (no `Ready` outstanding: `rs.steps = []`, `rs.unpersisted = []`) is
@@ -2284,7 +2440,10 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     (Hsteps0 : rs.steps = []) (Hunp0 : rs.unpersisted = [])
     (Hrdz0 : rd.Snapshot' = null)
     (Hce_ok : ∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z rs.clb ∧
-      uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int)) :
+      uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int))
+    -- (2026-11-01, durability stage II (m)) the hard state after it is the node's lower bound
+    -- (`ownRawNodeReady_abandon_keep` raised it to the node's hard state then), above `prevHardSt`'s
+    (Hhlb : phsNext rs.phs hrd = rs.hlb) (Hphl : HsLe rs.phs rs.hlb) :
     ⊢ (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) -∗
       hsOpt rd.HardState' hrd -∗
       -- (D22l) its witness (as `readyWithoutAccept` computed it)
@@ -2330,7 +2489,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hv'
       iframe Lead RaftState
-      ipureintro; exact ⟨fun h => absurd h Hnn, fun _ => by simp⟩
+      ipureintro; exact ⟨Hnn, fun h => absurd h Hnn, fun _ => by simp⟩
   ihave #Hrdrs : iprop(∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
       ⌜sts = [] → s.rd.states = []⌝) $$ []
   · iexists sts
@@ -2343,12 +2502,14 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       ⌜phsNext rs.phs hrd = HardStateM.mk s.term s.vote s.logst.committed⌝) $$ []
   · iexists hrd; iframe Hrdh Hrdw
     ipureintro
-    -- GAP (durability stage II (k), fix C): a stale `Ready`'s hard state is the idle node's. In Go,
-    -- `HasReady` is `false` only if `hardState()` is empty or `prevHardSt` (so a `nil` `HardState`
-    -- reads as it), and a stale `Ready` with a non-`nil` one is never sent (the node's hard state
-    -- only grows past `prevHardSt`); `ownRawNodeIdle` records neither, nor the hard state's
-    -- monotonicity across steps. See the stage II (k) report.
-    sorry
+    -- (2026-11-01, durability stage II (m)) a stale `Ready`'s hard state is the idle node's: the
+    -- lower bound is below the node's hard state, which is empty or `prevHardSt`'s (`HasReady`), and
+    -- `prevHardSt`'s is below the lower bound
+    show phsNext rs.phs hrd = hsOf s
+    rw [Hhlb]
+    rcases Hhsi with h | h
+    · have H1 := Hphs.2.1; rw [h] at H1 ⊢; exact HsLe.eq_zero H1
+    · have H1 := Hphs.2.1; rw [h] at H1 ⊢; exact HsLe.antisymm H1 Hphl
   ihave Hrdz : rdSnapRel γ rs rd ce none s $$ []
   · unfold rdSnapRel; ipureintro; exact ⟨Hrdz0, Hsn⟩
   iunfold ownRawNodeReady
@@ -2393,7 +2554,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     ⟨Hrnfl.1, Int.not_lt.1 fun h => by
       obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
     fun e He => ?_, fun h => absurd rfl h, Hidle.2.1.symm, Nat.zero_le _, List.nil_subperm, Hnsout, Hsdt,
-    Hrole, Hpst⟩
+    Hrole, Hpst, Hphs⟩
   obtain ⟨H1, H2⟩ := Hce_ok e He
   have Hne : ce ≠ [] := by intro h; subst h; simp at He
   have : 0 < ce.length := List.length_pos_iff.2 Hne

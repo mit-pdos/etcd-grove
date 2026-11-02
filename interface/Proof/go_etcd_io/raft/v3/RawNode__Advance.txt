@@ -39,6 +39,9 @@ theorem RawNode.Advance.wp_proof [package_sem : Assumptions] (wp_raft_Step : raf
                     (intoVal rd))
                   {{ Φ }}
 
+theorem ackSnapLog_inprogress (ls : LogState) (m : MessageM) (t : w64) (sv : SnapshotM) : uint.Z
+    ls.inprogress ≤ uint.Z (ackSnapLog ls m t sv).inprogress
+
 theorem ackSnapLog_facts_miss (ls : LogState) (m : MessageM) (t : w64) (sv : SnapshotM) (Hhit :
     snapHit ls.snap sv.Metadata'.Index' = false) (Hsat : ls.sat = false) (Hmiss : ∀ (id' : entryID),
     ackStableId m t = some id' → ¬StableHit ls id') (Hap : uint.Z ls.applying ≤ uint.Z

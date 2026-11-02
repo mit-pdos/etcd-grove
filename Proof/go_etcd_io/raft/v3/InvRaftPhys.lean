@@ -295,6 +295,16 @@ theorem AAMsgOk.mono {id t t' : w64} {st : MsgSt} (Ht : uint.Z t ≤ uint.Z t')
   obtain ⟨H1, H2, H3, H4, H5⟩ := Hself Hto
   exact ⟨H1, H2, H3, H4, by omega⟩
 
+/-- (2026-11-01, durability stage II (m)) **The two queues' facts**: what `send` puts in
+`msgsAfterAppend` (`AAMsgOk`), and that nothing in `msgs` is self-addressed (`send` panics on one,
+"message should not be self-addressed": every type `send` routes to `msgs` is not a response). -/
+def QOk (id t : w64) (msgs msgsAA : List QMsg) : Prop :=
+  (∀ m ∈ msgsAA, AAMsgOk id t m.st) ∧ (∀ m ∈ msgs, m.st.msg.To' ≠ id)
+
+theorem QOk.mono {id t t' : w64} {msgs msgsAA : List QMsg} (Ht : uint.Z t ≤ uint.Z t')
+    (H : QOk id t msgs msgsAA) : QOk id t' msgs msgsAA :=
+  ⟨fun m hm => (H.1 m hm).mono Ht, H.2⟩
+
 /-- A queued message's term (2026-10-10; 2026-10-17 the ceiling `tc`): at most the node's or the
 term ceiling `tc` (`NGhost.tc`; until 2026-10-17, with pre-vote off, at most the node's). `send`
 stamps the node's term into every message but a forwarded proposal (`Term = 0`) and a
@@ -1000,8 +1010,9 @@ private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF)
   "HmsgsAA_cap" ∷ ownSliceCap Loc rv.msgsAfterAppend' (DFrac.own 1) ∗
   "Houtbox" ∷ outboxRel s.outbox msgs msgsAA ∗
   -- what `send` puts in `msgsAfterAppend` (2026-10-10): responses from the node, the
-  -- self-addressed ones steppable by `RawNode.Advance` (`AAMsgOk`)
-  "%HmsgsAA_ok" ∷ ⌜∀ m ∈ msgsAA, AAMsgOk id s.term m.st⌝ ∗
+  -- self-addressed ones steppable by `RawNode.Advance` (`AAMsgOk`); (2026-11-01, durability stage
+  -- II (m)) and none in `msgs` self-addressed (`QOk`)
+  "%HmsgsAA_ok" ∷ ⌜QOk id s.term msgs msgsAA⌝ ∗
   -- the queued messages' terms (2026-10-10): at most the node's or the term ceiling
   "%Hout_term" ∷ ⌜∀ m ∈ msgs ++ msgsAA, OutTermOk s.term s.gh.tc m.st.msg⌝ ∗
   -- the ghost lower bounds for `node.go` (2026-10-10, `NGhost`)
@@ -1130,7 +1141,7 @@ theorem ownRaftPhysCV_intro (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : 
     rv.logger' = interface.ok lok →
     rv.raftLog' = s.log →
     (s.ticking = true → TickFnOk r rv.tick') →
-    (∀ m ∈ msgsAA, AAMsgOk id s.term m.st) →
+    QOk id s.term msgs msgsAA →
     (∀ m ∈ msgs ++ msgsAA, OutTermOk s.term s.gh.tc m.st.msg) →
     s.gh.outlb ≤ msgs.length + msgsAA.length →
     GhLogOk s.gh s.logst →
@@ -1205,7 +1216,7 @@ theorem ownRaftPhysCVW_intro (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s :
     rv.logger' = interface.ok lok →
     rv.raftLog' = s.log →
     (s.ticking = true → TickFnOk r rv.tick') →
-    (∀ m ∈ msgsAA, AAMsgOk id s.term m.st) →
+    QOk id s.term msgs msgsAA →
     (∀ m ∈ msgs ++ msgsAA, OutTermOk s.term s.gh.tc m.st.msg) →
     s.gh.outlb ≤ msgs.length + msgsAA.length →
     GhLogOk s.gh s.logst →
@@ -1988,8 +1999,7 @@ theorem raft.wp_store_TermC (r : Loc) (id : w64) (s : NState) (v : w64)
   iintro %Φ H HΦ
   iNamed_physC H
   wp_apply wp_store_access _ rv.Term' v _ _ (raftOwn_access_store_Term _ _ _) $$ Hr as Hr
-  have HmsgsAA_ok' : ∀ m ∈ msgsAA, AAMsgOk id v m.st :=
-    fun m Hm => (HmsgsAA_ok m Hm).mono Hle
+  have HmsgsAA_ok' : QOk id v msgs msgsAA := HmsgsAA_ok.mono Hle
   have Hout_term' : ∀ m ∈ msgs ++ msgsAA, OutTermOk v s.gh.tc m.st.msg :=
     fun m Hm => (Hout_term m Hm).mono Hle
   iapply HΦ
@@ -2540,6 +2550,8 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
            ⌜SentMsgShape st' ∧ AppFrom id st' ∧
              (st'.msg.Type' = MsgTransferLeader → st'.msg.Term' ≠ W64 0 →
                (s.gh.xw !! (st'.msg.To', st'.msg.Term')).isSome)⌝ -∗
+           -- (2026-11-01, durability stage II (m)) not self-addressed (`send`'s panic)
+           ⌜st'.msg.To' ≠ id⌝ -∗
            -- (D22 S-b′3) the message's certificate's source
            tsSrc s.gh.sn st'.msg.Type' st'.snap -∗
            ownRaftPhysCV (GF := GF) c V r id { s with outbox := s.outbox ++ absList [a] }) := by
@@ -2548,7 +2560,12 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
   icases raft_split_msgs r rv $$ Hr with ⟨Hf, Hback⟩
   iexists rv.msgs', msgs.map QMsg.loc
   iframe Hf Hmsgs Hmsgs_cap
-  iintro %sl' %l' %st' %a Hf Hmsgs Hmsgs_cap Hm %Ha %Hot %Hans %Hxq #Hq
+  iintro %sl' %l' %st' %a Hf Hmsgs Hmsgs_cap Hm %Ha %Hot %Hans %Hxq %Hto #Hq
+  have HmsgsAA_ok : QOk id s.term (msgs ++ [(⟨l', st'⟩ : QMsg)]) msgsAA := by
+    refine ⟨HmsgsAA_ok.1, fun m Hm => ?_⟩
+    rcases List.mem_append.1 Hm with Hm | Hm
+    · exact HmsgsAA_ok.2 m Hm
+    · rw [List.mem_singleton.1 Hm]; exact Hto
   ihave #Hscert : qSrcs (GF := GF) s.gh.sn ((msgs ++ [(⟨l', st'⟩ : QMsg)]) ++ msgsAA) $$ []
   · icases (qSrcs_app (GF := GF) s.gh.sn msgs msgsAA).1 $$ Hscert with ⟨#H1, #H2⟩
     iapply (qSrcs_app (GF := GF) s.gh.sn _ msgsAA).2
@@ -2646,10 +2663,10 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
     · exact Hout_term m (List.mem_append_left _ Hm)
     · exact Hout_term m (List.mem_append_right _ Hm)
     · exact Hot
-  have HmsgsAA_ok' : ∀ m ∈ msgsAA ++ [(⟨l', st'⟩ : QMsg)], AAMsgOk id s.term m.st := by
-    intro m Hm
+  have HmsgsAA_ok' : QOk id s.term msgs (msgsAA ++ [(⟨l', st'⟩ : QMsg)]) := by
+    refine ⟨fun m Hm => ?_, HmsgsAA_ok.2⟩
     rcases List.mem_append.1 Hm with Hm | Hm
-    · exact HmsgsAA_ok m Hm
+    · exact HmsgsAA_ok.1 m Hm
     · rw [List.mem_singleton.1 Hm]; exact Hok
   ihave Hr := Hback $$ %sl' Hf
   ihave HmsgsAA : (sl' ↦* (msgsAA ++ [(⟨l', st'⟩ : QMsg)]).map QMsg.loc : IProp GF) $$ [HmsgsAA]
@@ -2769,7 +2786,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
         "Hf_msgsAA" ∷ r.[raft, go!"msgsAfterAppend"] ↦ sl2 ∗ "HmsgsAA" ∷ sl2 ↦* ms2.map QMsg.loc ∗
         "HmsgsAA_cap" ∷ ownSliceCap Loc sl2 (DFrac.own 1) ∗
         "Houtbox" ∷ outboxRel s.outbox ms1 ms2 ∗
-        "%HmsgsAA_ok" ∷ ⌜∀ m ∈ ms2, AAMsgOk id s.term m.st⌝ ∗
+        "%HmsgsAA_ok" ∷ ⌜QOk id s.term ms1 ms2⌝ ∗
         "%Hout_term" ∷ ⌜∀ m ∈ ms1 ++ ms2, OutTermOk s.term s.gh.tc m.st.msg⌝ ∗
         "%Hgh_out" ∷ ⌜s.gh.outlb ≤ ms1.length + ms2.length⌝ ∗
         "%Hgh_unst" ∷ ⌜LogGhOk s s.logst⌝ ∗
@@ -2793,7 +2810,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
             r.[raft, go!"msgsAfterAppend"] ↦ sl2' -∗ sl2' ↦* ms2'.map QMsg.loc -∗
             ownSliceCap Loc sl2' (DFrac.own 1) -∗
             outboxRel o ms1' ms2' -∗
-            ⌜∀ m ∈ ms2', AAMsgOk id s.term m.st⌝ -∗
+            ⌜QOk id s.term ms1' ms2'⌝ -∗
             ⌜∀ m ∈ ms1' ++ ms2', OutTermOk s.term g.tc m.st.msg⌝ -∗
             ⌜g.outlb ≤ ms1'.length + ms2'.length⌝ -∗
             ⌜GhLogOk g ls'⌝ -∗
@@ -3211,7 +3228,7 @@ theorem ownRaftPhys_intro_trk (r : Loc) (id : w64) (s : NState) (rv : raft)
     rv.logger' = interface.ok lok →
     rv.raftLog' = s.log →
     (s.ticking = true → TickFnOk r rv.tick') →
-    (∀ m ∈ msgsAA, AAMsgOk id s.term m.st) →
+    QOk id s.term msgs msgsAA →
     (∀ m ∈ msgs ++ msgsAA, OutTermOk s.term s.gh.tc m.st.msg) →
     s.gh.outlb ≤ msgs.length + msgsAA.length →
     GhLogOk s.gh s.logst →

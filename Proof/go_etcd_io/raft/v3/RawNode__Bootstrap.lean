@@ -492,6 +492,7 @@ theorem RawNode.Bootstrap.wp_proof
       iunfold bootInit at Hghost
       ihave %Hst0 := ownRaftGhost_static γ id _ $$ Hghost
       ihave Hphys := ownRaftPhys_toC' $$ Hphys
+      icases ownRaftPhysC_persistCut _ _ id _ $$ Hphys with ⟨%Hpcut, Hphys⟩
       -- (raft-final phase 2) the ghost part built here (`ownRawNode_intro_static` takes no leader
       -- witness): at no leader and no transfer record
       ihave Hghost : ownStepGhost γ
@@ -525,7 +526,10 @@ theorem RawNode.Bootstrap.wp_proof
             fun l h => (by cases h)⟩
           (SdtTie.of_none (by rw [HNls]; simp only [logAppend, Hsn]; exact Hdtk0))
         -- (durability stage II, G2) a fresh node's recorded role: `NewRawNode`'s follower
-        (by exact Hsvr.1.symm) $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] []
+        (by exact Hsvr.1.symm)
+        -- (2026-11-01, durability stage II (m)) `prevHardSt`'s record the zero hard state
+        (PhsOk.zero rfl rfl (by rw [HNls]; simp only [logAppend, Hsn]) Hpcut)
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
@@ -543,6 +547,7 @@ theorem RawNode.Bootstrap.wp_proof
       icases Hghost with ⟨%HD, Hgr⟩
       obtain ⟨HD, rfl⟩ := HD
       ihave Hphys := ownRaftPhys_toC' $$ Hphys
+      icases ownRaftPhysC_persistCut _ _ id _ $$ Hphys with ⟨%Hpcut, Hphys⟩
       have Hro : rOf ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) ⟨0, cfgState (GMap.listToSet ps) ∅, [], ∅⟩ =
           rboot (cfgState (GMap.listToSet ps) ∅) bootLog := by
         have HpS : toPState ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) = bootPState bootLog := HNrel.1
@@ -589,7 +594,10 @@ theorem RawNode.Bootstrap.wp_proof
             fun l h => (by cases h)⟩
           (SdtTie.of_none (by rw [HNls]; simp only [logAppend, Hsn]; exact Hdtk0))
         -- (durability stage II, G2) a fresh node's recorded role: `NewRawNode`'s follower
-        (by exact Hsvr.1.symm) $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] []
+        (by exact Hsvr.1.symm)
+        -- (2026-11-01, durability stage II (m)) `prevHardSt`'s record the zero hard state
+        (PhsOk.zero rfl rfl (by rw [HNls]; simp only [logAppend, Hsn]) Hpcut)
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
