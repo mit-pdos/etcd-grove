@@ -23,6 +23,7 @@ public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
 public import Spec.go_etcd_io.raft.v3.raft__loadState
 public import Spec.go_etcd_io.raft.v3.raftLog__appliedTo
 public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
+public import Proof.go_etcd_io.raft.v3.LemmasSnapCfg
 public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetVote
 public import Spec.go_etcd_io.raft.v3.traceConfChangeEvent
@@ -235,6 +236,76 @@ restored commit), while the struct is still at the base (`committed = applied = 
 (`newLogWithSize`'s `l ↦ lv0`) beside the caught-up view; the window's reads (`lastIndex`,
 `lastEntryID`) and writes (`loadState`, `appliedTo`) are proved here on that, over their bodies, and
 `newLogWithSize`'s wand seals `ownRaftLog` once `appliedTo` is done. -/
+
+omit [GooseInterp] [GooseSemantics] [GoGlobalContext] [StorageModel GF] in
+/-- The map of an attach record's (index, term) pairs (the first pair of an index wins). -/
+private def ctMap (ct : List (Nat × w64)) : GMap Nat w64 :=
+  ct.foldr (fun p m => <[p.1 := p.2]> m) ∅
+
+omit [GooseInterp] [GooseSemantics] [GoGlobalContext] [StorageModel GF] in
+private theorem ctMap_mem {ct : List (Nat × w64)} {i : Nat} {t : w64}
+    (h : ctMap ct !! i = some t) : (i, t) ∈ ct := by
+  induction ct with
+  | nil => simp [ctMap] at h
+  | cons p ps ih =>
+    change (<[p.1 := p.2]> (ctMap ps)) !! i = some t at h
+    by_cases hi : p.1 = i
+    · subst hi
+      rw [GMap.lookup_insert_eq] at h
+      cases h
+      exact List.mem_cons_self
+    · rw [GMap.lookup_insert_ne _ _ hi] at h
+      exact List.mem_cons_of_mem _ (ih h)
+
+omit [GooseInterp] [GooseSemantics] [GoGlobalContext] [StorageModel GF] in
+private theorem ctMap_lookup {ct : List (Nat × w64)} {i : Nat} {t : w64} (h : (i, t) ∈ ct)
+    (hu : ∀ t', (i, t') ∈ ct → t' = t) : ctMap ct !! i = some t := by
+  induction ct with
+  | nil => cases h
+  | cons p ps ih =>
+    change (<[p.1 := p.2]> (ctMap ps)) !! i = some t
+    by_cases hi : p.1 = i
+    · subst hi
+      rw [GMap.lookup_insert_eq, hu p.2 List.mem_cons_self]
+    · rw [GMap.lookup_insert_ne _ _ hi]
+      have h' : (i, t) ∈ ps := by
+        rcases List.mem_cons.1 h with h | h
+        · exact absurd (congrArg Prod.fst h).symm hi
+        · exact h
+      exact ih h' (fun t' ht' => hu t' (List.mem_cons_of_mem _ ht'))
+
+/-- **The catch-up with the attach record**, at the attach: the floor raised to the record's applied
+bound, the record's terms up to its commit certified (from nothing certified), so raft's view is at
+the names with the record (`storCaught`). -/
+private theorem ownStorage_catchUp (sn : StorNames) (st : Storage) (σ : StorState)
+    (M : GMap Nat w64) (Hfl : uint.nat σ.fl ≤ sn.a0) (Ha0 : (sn.a0 : Int) < 2 ^ 64)
+    (Hdt : σ.dt = ∅) (HM : ∀ i t, i ≤ sn.c0 ∧ (i, t) ∈ sn.ct → M !! i = some t) :
+    ownStorage (GF := GF) sn.unrec st σ ⊢
+      |==> ownStorage sn st { σ with fl := W64 (sn.a0 : Int), dt := M } := by
+  unfold ownStorage storAuths
+  simp only [StorNames.unrec]
+  have Hk : ({ σ with fl := W64 (sn.a0 : Int), dt := M } : StorState).kOut = σ.kOut := rfl
+  rw [Hk]
+  iintro ⟨%e0, #Hcomp, #HFr, HO, Hend, ⟨Ha, Hg, Hd, -⟩, %Hw⟩
+  have Hfl' : uint.nat (W64 (sn.a0 : Int)) = sn.a0 := by
+    have := uint_Z_W64 (sn.a0 : Int) (by omega) Ha0; have := uint_nat_eq (W64 (sn.a0 : Int)); omega
+  imod mono_nat_own_update (GF := GF) (γ := sn.ga) (uint.nat (W64 (sn.a0 : Int))) (by omega) $$ Ha
+    with ⟨Ha, #Hlb⟩
+  ihave Hd : ghostMapAuth (GF := GF) sn.gd 1 (∅ : GMap Nat w64) $$ [Hd]
+  · rw [← Hdt]; iexact Hd
+  imod ghost_map_insert_persist_big M (GMap.map_disjoint_empty_r M) $$ Hd with ⟨Hd, #Hfr⟩
+  imodintro
+  iexists e0
+  iframe Hcomp HFr HO Hend Ha Hg
+  isplitl [Hd]
+  · isplitl [Hd]
+    · iExactEq Hd; rw [GMap.map_union_empty]
+    unfold storCaught
+    isplitr
+    · iExactEq Hlb; rw [Hfl']
+    iintro !> %i %t %H
+    iapply BigSepM.bigSepM_lookup (Φ := fun k v => (k ↪[sn.gd]□ v : IProp GF)) (HM i t H) $$ Hfr
+  ipureintro; exact Hw
 
 /-- `raftLog.lastIndex` in the window: nothing unstable, so the storage's `LastIndex`. -/
 private theorem wp_lastIndex_w (l : Loc) (lv : raftLog) (si : GoInterfaceOk) (sn : StorNames)
@@ -490,6 +561,116 @@ private theorem wp_switchToConfig_w
       iapply HΦ
       iframe Htrkf Htrk HiL Hst Hcs
       ipureintro; exact Hcs0
+
+omit [GooseInterp] [GooseSemantics] [GoGlobalContext] [StorageModel GF] in
+/-- A well-formed conf state's configuration (`Restore`'s): its sets are the lists', `AutoLeave`
+the conf state's; an empty one's the empty configuration. -/
+private theorem confStateOk_cfg (c : ConfStateM) (cs' : CCState) (Hok : ConfStateOk c)
+    (Hres : restoreM c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' c.AutoLeave' =
+      some cs') :
+    cs' = cfgStateC (csCfgM c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext'
+      c.AutoLeave') := by
+  rcases Hok.1 with Hwf | ⟨h1, h2, h3, h4⟩
+  · rw [restoreM_wf _ _ _ _ _ Hwf] at Hres
+    exact (Option.some.inj Hres).symm
+  · have Hal := Hok.2.2.2.2.2 h2
+    rw [h1, h2, h3, h4, Hal] at Hres ⊢
+    have : restoreM [] [] [] [] false = some (cfgState ∅ ∅) := rfl
+    rw [this] at Hres
+    rw [← Option.some.inj Hres, ← cfgStateC_simple]
+    rfl
+
+/-- The conf state `switchToConfig` reports of a well-formed conf state's configuration is it, up
+to order: `assertConfStatesEquivalent`'s premises. -/
+private theorem confStateOk_perm (c : ConfStateM) (cs' : CCState) (Hok : ConfStateOk c)
+    (Hres : restoreM c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' c.AutoLeave' =
+      some cs') (xs os ls lns : List w64)
+    (H : xs ≡ₚ elements cs'.cfg.incoming ∧ os ≡ₚ elements cs'.cfg.outgoing ∧
+      ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext) :
+    c.lists.Perm ⟨xs, ls, os, lns⟩ ∧ c.AutoLeave' = cs'.cfg.autoLeave := by
+  rw [confStateOk_cfg c cs' Hok Hres] at H ⊢
+  obtain ⟨-, Hvnd, Hond, Hlnd, Hnnd, Hal⟩ := Hok
+  obtain ⟨Hx, Ho, Hl, Hn⟩ := H
+  refine ⟨⟨(perm_elements_listToSet _ Hvnd).trans Hx.symm,
+    (perm_elements_listToSet _ Hlnd).trans Hl.symm,
+    (perm_elements_listToSet _ Hond).trans Ho.symm,
+    (perm_elements_listToSet _ Hnnd).trans Hn.symm⟩, ?_⟩
+  show c.AutoLeave' = if c.VotersOutgoing' = [] then false else c.AutoLeave'
+  by_cases ho : c.VotersOutgoing' = []
+  · rw [ite_eq_left ho]; exact Hal ho
+  · rw [ite_eq_right ho]
+
+/-- `confchange.Restore` of a well-formed conf state on the empty tracker: the configuration
+`switchToConfig` takes (`ownConfigC`) at `Restore`'s model's answer. -/
+private theorem wp_Restore_ok (H : confchange.Restore.spec (GF := GF) (hG := hG))
+    (chg : confchange.Changer) (cs : Loc) (c : ConfStateM) (dq : DFrac) (v0 : Loc)
+    (cs' : CCState) (Hok : ConfStateOk c)
+    (Hres : restoreM c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' c.AutoLeave' =
+      some cs')
+    (Hlen : c.Voters'.length + c.VotersOutgoing'.length + c.Learners'.length +
+      c.LearnersNext'.length ≤ 2 ^ 62)
+    (Hmi : 0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62)
+    (Harr : chg.Tracker'.Config'.Voters'.arr = [v0, map.nil])
+    (Hl : chg.Tracker'.Config'.Learners' = map.nil)
+    (Hln : chg.Tracker'.Config'.LearnersNext' = map.nil)
+    (Hal : chg.Tracker'.Config'.AutoLeave' = false) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗
+        ownCSM cs dq c ∗ v0 ↦$ (∅ : GMap w64 Unit) ∗
+        chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) }}
+      (App (App (Val #(functions confchange.Restore [])) (Val #chg)) (Val #cs))
+    {{ (cfgv : tracker.Config) (prsm : Loc), RET (PairV (PairV #cfgv #prsm) #interface.nil);
+        |==> (ownCSM cs dq c ∗
+          ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress), ownConfigC cs'.cfg cfgv prsm prs pvs) }} := by
+  have Hcs' := confStateOk_cfg c cs' Hok Hres
+  subst Hcs'
+  obtain ⟨Hwfe, Hvnd, Hond, Hlnd, Hnnd, Hal0⟩ := Hok
+  rcases Hwfe with Hwf | ⟨h1, h2, h3, h4⟩
+  · -- well-formed: fresh maps (`raft.appliedSnap`'s)
+    iintro %Φ ⟨#Hpkg, Hcs, Hv0, #Hpm⟩ HΦ
+    have Hvne : c.Voters' ≠ [] := Hwf.1
+    have Hrm := restoreM_wf _ _ _ _ c.AutoLeave' Hwf
+    have Hinv := restoreM_cfgInv Hrm
+    iapply H chg cs c dq v0 _ Hrm Hmi Harr Hl Hln Hal $$ [$Hpkg $Hcs $Hv0 $Hpm]
+    inext
+    iintro %cfgv %prsm %prs ⟨Hcs, -, -, Hres⟩
+    icases Hres with (⟨%Hops, -⟩ | ⟨-, Hcfg, Hprsm, %Hprs, Hprogs⟩)
+    · exfalso; exact restoreSimpleOps_ne_nil_of_voters _ _ _ _ Hvne Hops
+    iapply HΦ
+    ipersist Hprsm
+    have Hsz' : (GMap.size prs : Int) ≤ 2 ^ 62 :=
+      restore_prs_size c.lists Hvnd Hlnd Hond (by simp only [ConfStateM.lists]; omega) prs
+        c.AutoLeave' Hprs
+    ihave Hcfg := ownCfgCC_cast cfgv (DFrac.own 1)
+      (cfgStateC (csCfgM c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' c.AutoLeave')).cfg
+      (csCfgM c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' c.AutoLeave') rfl $$ Hcfg
+    icases ownConfigC_of_restore _ cfgv prsm prs Hinv Hprs Hsz' _ (fun _ _ h => h)
+      $$ Hcfg Hprsm Hprogs with ⟨%pvs, Hnew⟩
+    imodintro
+    iframe Hcs
+    iexists prs, pvs
+    iExactEq Hnew; rfl
+  · -- empty: no op, the tracker's own maps (`wp_Restore_voters`)
+    iintro %Φ Hpre HΦ
+    iapply wp_Restore_voters H chg cs c dq v0 Hvnd (by rw [h1]; exact List.not_mem_nil)
+      (by rw [h1]; decide) h2 h3 h4 Hmi Harr Hl Hln Hal $$ Hpre
+    inext
+    iintro %cfgv %prsm Hr
+    iapply HΦ
+    imod Hr with ⟨Hcs, %prs, Hcfg, %Hdom⟩
+    icases ownConfig_values $$ Hcfg with ⟨%pvs, Hcfg⟩
+    ihave Hcfg := ownConfigV_toC _ _ _ _ _ $$ Hcfg
+    imodintro
+    iframe Hcs
+    iexists prs, pvs
+    rw [h1] at Hdom
+    have Hd0 : domSet prs \ GMap.listToSet ([] : List w64) = (∅ : GSet w64) := by
+      rw [Hdom]
+      apply GMap.set_eq; intro k
+      rw [GMap.elem_of_difference]
+      exact ⟨fun h => absurd h.1 h.2, fun h => absurd h (GMap.not_elem_of_empty _)⟩
+    iExactEq Hcfg
+    rw [Hal0 h2, h1, h2, h3, h4, Hd0]
+    rfl
 
 theorem newRaft.wp_proof
     (wp_Config_validate : Config.validate.spec (GF := GF) (hG := hG))

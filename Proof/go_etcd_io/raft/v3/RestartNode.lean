@@ -567,7 +567,15 @@ private theorem wp_RestartNode_impl
     have := uint_nat_eq σ.hs.Commit'; omega
   have Hvalm : memValid m := by
     unfold EtcdGrove.Membership.Valid memValid at Hval; exact Hval
-  obtain ⟨-, Hrestore⟩ := restore_of_confStateIs csm m Hcs Hvalm Hres
+  obtain ⟨HcsWf, Hrestore⟩ := restore_of_confStateIs csm m Hcs Hvalm Hres
+  have HcsOk : ConfStateOk csm := by
+    obtain ⟨hV, hVO, hL, hLN, hAL⟩ := Hcs
+    refine ⟨.inl HcsWf, hV.nodup_iff.2 (GMap.NoDup_elements _),
+      hVO.nodup_iff.2 (GMap.NoDup_elements _), hL.nodup_iff.2 (GMap.NoDup_elements _),
+      hLN.nodup_iff.2 (GMap.NoDup_elements _), fun h => ?_⟩
+    rw [hAL]
+    have hO : m.votersOutgoing = ∅ := by rw [← cc_listToSet_of_perm hVO, h]; rfl
+    exact (Hvalm.1.1.2.2.2 hO).2
   have HbcZ : uint.Z σ.base.index' ≤ uint.Z σ.hs.Commit' := by
     unfold StorContents.b StorContents.commit at Hbc
     have := uint_nat_eq σ.base.index'; have := uint_nat_eq σ.hs.Commit'; omega
@@ -583,7 +591,7 @@ private theorem wp_RestartNode_impl
   wp_apply wp_NewRawNode c cv lok si sn σv σ.hs csm iprop(Rb ∗ storAuths sn.unrec σv)
     iprop(∃ K, storKeyNames K sn ∗ F K) (stOf m) H1 H2 H3 H4 H5 H6 H7 H8 H9
     (by show LogIndicesOk σ.base σ.ents; rw [Hse]; exact Hwf) rfl Hf.1 (by rw [Hca]; exact Hf.2) (Int.le_refl _) (Nat.le_refl _)
-    (fun k t h => by simp [σv] at h) Hlast HAR (.inr ⟨HbcZ, HcL⟩) Happ' Hrestore Hcsl
+    rfl Hlast HAR (.inr ⟨HbcZ, HcL⟩) Happ' Hrestore Hcsl HcsOk
     $$ [Hc HRb HA]
     as %rn %err ⟨⟨%K, #HKn, HFK⟩, %s, Hrn, %Herr, %Hsn2⟩
   · iframe Hc Hlg

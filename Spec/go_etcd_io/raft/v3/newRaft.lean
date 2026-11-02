@@ -124,6 +124,16 @@ def AttachRec (sn : StorNames) (prev : entryID) (ents : List EntryM) (c0 a0 : Na
     1 ≤ i ∧ (uint.nat prev.index' ≤ i → termAt prev ents (W64 (i : Int)) = some t)) ∧
   ∀ (i : Nat), 1 ≤ i → i ≤ c0 → ∃ t, (i, t) ∈ sn.ct ∧ ∀ t', (i, t') ∈ sn.ct → t' = t
 
+/-- (2026-11-02, stage II (r)) **A well-formed persisted `ConfState`**: well-formed (`CSWf`) or empty
+(a new cluster's), its lists without repeats, `AutoLeave` only with outgoing voters. Then the conf
+state `switchToConfig` reports of `Restore`'s configuration is the same up to order
+(`assertConfStatesEquivalent` does not panic); with a repeat, or `AutoLeave` set alone, it differs. -/
+def ConfStateOk (c : ConfStateM) : Prop :=
+  (CSWf c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' ∨
+    (c.Voters' = [] ∧ c.VotersOutgoing' = [] ∧ c.Learners' = [] ∧ c.LearnersNext' = [])) ∧
+  c.Voters'.Nodup ∧ c.VotersOutgoing'.Nodup ∧ c.Learners'.Nodup ∧ c.LearnersNext'.Nodup ∧
+  (c.VotersOutgoing' = [] → c.AutoLeave' = false)
+
 end defs
 
 section spec
@@ -173,9 +183,10 @@ abbrev newRaft.spec : Prop :=
   -- `loadState` restores
   uint.nat σ.prev.index' ≤ σ.fr → σ.fr ≤ uint.nat (committedAfter σ.prev hs) →
   uint.Z σ.fl ≤ uint.Z σ.prev.index' → σ.sg ≤ uint.nat σ.prev.index' →
-  -- (2026-11-02, stage II (o)) the terms certified at most the base, the base's its term
-  (∀ k t, σ.dt !! k = some t → k ≤ uint.nat σ.prev.index' ∧
-    (uint.nat σ.prev.index' ≤ k → termAt σ.prev σ.ents (W64 (k : Int)) = some t)) →
+  -- (2026-11-02, stage II (r): nothing certified yet; until then any terms at most the base, of
+  -- the log's term there, which the catch-up could not certify again without their keys) no term
+  -- certified
+  σ.dt = ∅ →
   uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 < 2 ^ 64 →
   -- (2026-11-01, durability stage I-6) the storage key's attach record (`restartStorage`'s
   -- continuation): the applied bound `max b A`, the commit `loadState` restores, the view's terms
@@ -193,6 +204,9 @@ abbrev newRaft.spec : Prop :=
     some cs' →
   csm.Voters'.length + csm.VotersOutgoing'.length + csm.Learners'.length +
     csm.LearnersNext'.length ≤ 2 ^ 62 →
+  -- (2026-11-02, stage II (r)) and well-formed, which `assertConfStatesEquivalent` needs (a list
+  -- with a repeat, or `AutoLeave` set with no outgoing voter, makes it panic)
+  ConfStateOk csm →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
       -- (raft-final phase 1) the start bundle (`restartStorage`'s shape; durability stage I-6: at
       -- the view's base and last index)

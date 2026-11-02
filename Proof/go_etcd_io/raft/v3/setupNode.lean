@@ -52,9 +52,10 @@ theorem setupNode.wp_proof
   have A3 : σ.fr ≤ uint.nat (committedAfter σ.prev hs) := by rw [S4]; exact Nat.zero_le _
   have A4 : uint.Z σ.fl ≤ uint.Z σ.prev.index' := by rw [Hfl0, S1]; exact Int.le_refl _
   have A5 : σ.sg ≤ uint.nat σ.prev.index' := by rw [S5]; exact Nat.zero_le _
-  have A6 : ∀ k t, σ.dt !! k = some t → k ≤ uint.nat σ.prev.index' ∧
-      (uint.nat σ.prev.index' ≤ k → termAt σ.prev σ.ents (W64 (k : Int)) = some t) := by
-    intro k t h; rw [S6] at h; simp at h
+  have A10 : ConfStateOk csm := by
+    refine ⟨.inr ⟨Q1, Q2, Q3, Q4⟩, ?_, ?_, ?_, ?_, fun _ => Q5⟩ <;>
+      first | (rw [Q1]; exact List.nodup_nil) | (rw [Q2]; exact List.nodup_nil)
+        | (rw [Q3]; exact List.nodup_nil) | (rw [Q4]; exact List.nodup_nil)
   have A7 : uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 < 2 ^ 64 := by
     rw [S1, S2]; simp only [List.length_nil]; have : uint.Z (W64 0) = 0 := rfl; omega
   have A8 : restoreM csm.VotersOutgoing' csm.Voters' csm.Learners' csm.LearnersNext' csm.AutoLeave' =
@@ -62,7 +63,7 @@ theorem setupNode.wp_proof
   have A9 : csm.Voters'.length + csm.VotersOutgoing'.length + csm.Learners'.length +
       csm.LearnersNext'.length ≤ 2 ^ 62 := by rw [Q1, Q2, Q3, Q4]; simp
   wp_apply wp_NewRawNode c cv lok si sn σ hs csm R R' (cfgState ∅ ∅) P1 P2 P3 P4 P5 P6 P7 P8 P9
-    A1 S3 A2 A3 A4 A5 A6 A7 HAR (.inl Hhs) (.inl P10) A8 A9
+    A1 S3 A2 A3 A4 A5 S6 A7 HAR (.inl Hhs) (.inl P10) A8 A9 A10
     $$ [Hc HR]
     as %rn %err ⟨HR', %s, Hfresh, %Herr, %Hsn2⟩
   · iframe Hc Hlg HR
