@@ -907,3 +907,14 @@ the one the popped frame was lifted from. Random histories satisfying the premis
 append-log models, up to 8 operations and 4 clients, ties in call times, a quarter of the reads
 corrupted): 80000 histories, 456511 loop iterations, no violation; the answer agrees with v1.3.1
 on every one.
+
+1. **2026-11-02, the frontier helpers keep the clients slice.** `chains.unlift` takes
+   `client := &ch.clients[clientId]` before calling `removeFromFrontier` and uses it after; the
+   frozen specs' posts (`chainsOwn`, which quantifies the chains value) could not show
+   `ch.clients` unchanged (found by agent D proving `chains.unlift`). `chainsOwnCl ch cl h cs st`
+   (`ChainsOwn.lean`: the chains value's `clients` is `cl`) now replaces `chainsOwn` in the pre and
+   post of `chains.removeFromFrontier`, `chains.addToFrontier` and `chains.computeFirstUnk`
+   (each `∀ cl`; none stores to `ch.clients`). Checked for the same pattern: `chains.lift`
+   evaluates `&ch.clients[i]` afresh for each use (`client.lift`'s receiver; no chains helper
+   runs while it is held); `checkSingle` holds no client pointer; `isComplete` is not called
+   while one is held.

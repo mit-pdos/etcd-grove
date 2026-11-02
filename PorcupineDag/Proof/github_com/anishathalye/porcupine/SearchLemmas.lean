@@ -53,6 +53,27 @@ theorem bigSepL_set_change {Φ Ψ : Nat → A → PROP} {l : List A} {j : Nat} {
 
 end bi
 
+/-- Setting a clear bit and clearing it again gives the words back. -/
+theorem bsClear_bsSet (ws : List w64) (pos : w64) (h : uint.nat pos / 64 < ws.length)
+    (hb : bsBit ws (uint.nat pos) = false) : bsClear (bsSet ws pos) pos = ws := by
+  unfold bsClear bsSet
+  have hset : ∀ a, (ws.set (uint.nat pos / 64) a).getD (uint.nat pos / 64) 0 = a := by
+    intro a; simp [List.getD_eq_getElem?_getD, List.getElem?_set_self h]
+  rw [hset, List.set_set]
+  have hw : (ws.getD (uint.nat pos / 64) 0 ||| W64 1 <<< (pos % W64 64)) &&& ~~~(W64 1 <<< (pos % W64 64)) =
+      ws.getD (uint.nat pos / 64) 0 := by
+    apply BitVec.eq_of_getLsbD_eq
+    intro j hj
+    rw [getLsbD_andnot_bit _ _ _ hj, getLsbD_or_bit _ _ _ hj]
+    by_cases hjp : j = uint.nat pos % 64
+    · subst hjp
+      unfold bsBit at hb
+      simp only [List.getD_eq_getElem?_getD] at hb
+      simp [hb]
+    · simp [hjp]
+  rw [hw, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h, Option.getD_some,
+    List.set_getElem_self]
+
 section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -107,36 +128,6 @@ theorem chainsRepr_acc (chV : chains) (h : List (Op OpV)) (cs : List (List Nat))
   imodintro
   iintro %k %y %Hk Hy
   iapply clientOwn_agree h cs y (Hag k Hk) $$ Hy
-
-/-- The chains at `ch`, with their clients slice `cl` (fixed by every helper: only the frontier
-field is ever stored to). -/
-def chainsOwnCl (ch : Loc) (cl : GoSlice) (h : List (Op OpV)) (cs : List (List Nat)) (st : ChSt) :
-    IProp GF :=
-  iprop(∃ chV : chains, ch ↦ chV ∗ ⌜chV.clients' = cl⌝ ∗ chainsRepr chV h cs st)
-
-theorem chainsOwnCl_weaken (ch : Loc) (cl : GoSlice) (h : List (Op OpV)) (cs : List (List Nat))
-    (st : ChSt) : chainsOwnCl ch cl h cs st ⊢ chainsOwn (GF := GF) ch h cs st := by
-  unfold chainsOwnCl chainsOwn
-  iintro ⟨%chV, Hch, -, Hr⟩
-  iexists chV
-  iframe
-
-theorem chainsOwnCl_fold (ch : Loc) (chV : chains) (cl : GoSlice) (h : List (Op OpV))
-    (cs : List (List Nat)) (st : ChSt) (hcl : chV.clients' = cl) :
-    ch ↦ chV ∗ chainsRepr chV h cs st ⊢ chainsOwnCl (GF := GF) ch cl h cs st := by
-  unfold chainsOwnCl
-  iintro ⟨Hch, Hr⟩
-  iexists chV
-  iframe
-  ipureintro; exact hcl
-
-theorem chainsOwn_cl (ch : Loc) (h : List (Op OpV)) (cs : List (List Nat)) (st : ChSt) :
-    chainsOwn ch h cs st ⊢ ∃ cl, chainsOwnCl (GF := GF) ch cl h cs st := by
-  unfold chainsOwnCl chainsOwn
-  iintro ⟨%chV, Hch, Hr⟩
-  iexists chV.clients', chV
-  iframe
-  ipureintro; rfl
 
 /-- One client of the chains (`chainsRepr_acc`), at a known clients slice. -/
 theorem chainsOwnCl_acc (ch : Loc) (cl : GoSlice) (h : List (Op OpV)) (cs : List (List Nat))

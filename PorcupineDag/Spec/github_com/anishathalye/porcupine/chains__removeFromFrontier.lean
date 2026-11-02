@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 `(*chains).removeFromFrontier(c)` (dag.go, PR #46): the frontier without `c` (its first
-occurrence; `c` may be absent).
+occurrence; `c` may be absent). The clients slice is untouched (`chainsOwnCl`).
 -/
 module
 
@@ -26,11 +26,11 @@ variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 
 /-- See the file header. -/
 abbrev chains.removeFromFrontier.spec : Prop :=
-  ∀ (ch : Loc) (h : List (Theory.Op OpV)) (cs : List (List Nat)) (st : ChSt) (c : w64),
+  ∀ (ch : Loc) (cl : GoSlice) (h : List (Theory.Op OpV)) (cs : List (List Nat)) (st : ChSt) (c : w64),
   0 ≤ sint.Z c → (∀ v ∈ st.frontier, v < cs.length) → (cs.length : Int) < 2 ^ 62 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine ∗ chainsOwn ch h cs st }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine ∗ chainsOwnCl ch cl h cs st }}
     (App (Val (ch @!! go.GoType.PointerType chains.ty @!! go!"removeFromFrontier")) (Val #c))
-  {{ RET #(); chainsOwn ch h cs { st with frontier := st.frontier.erase (sint.nat c) } }}
+  {{ RET #(); chainsOwnCl ch cl h cs { st with frontier := st.frontier.erase (sint.nat c) } }}
 
 end spec
 

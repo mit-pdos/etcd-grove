@@ -121,6 +121,36 @@ def chainsRepr (chV : chains) (h : List (Op OpV)) (cs : List (List Nat)) (st : C
 def chainsOwn (ch : Loc) (h : List (Op OpV)) (cs : List (List Nat)) (st : ChSt) : IProp GF :=
   iprop(∃ chV : chains, ch ↦ chV ∗ chainsRepr chV h cs st)
 
+/-- The chains at `ch`, with their clients slice `cl` (fixed by every helper: `chains.unlift` takes
+`&ch.clients[c]` before `removeFromFrontier` and uses it after; amendment 1 of the frozen plan). -/
+def chainsOwnCl (ch : Loc) (cl : GoSlice) (h : List (Op OpV)) (cs : List (List Nat)) (st : ChSt) :
+    IProp GF :=
+  iprop(∃ chV : chains, ch ↦ chV ∗ ⌜chV.clients' = cl⌝ ∗ chainsRepr chV h cs st)
+
+theorem chainsOwnCl_weaken (ch : Loc) (cl : GoSlice) (h : List (Op OpV)) (cs : List (List Nat))
+    (st : ChSt) : chainsOwnCl ch cl h cs st ⊢ chainsOwn (GF := GF) ch h cs st := by
+  unfold chainsOwnCl chainsOwn
+  iintro ⟨%chV, Hch, -, Hr⟩
+  iexists chV
+  iframe
+
+theorem chainsOwnCl_fold (ch : Loc) (chV : chains) (cl : GoSlice) (h : List (Op OpV))
+    (cs : List (List Nat)) (st : ChSt) (hcl : chV.clients' = cl) :
+    ch ↦ chV ∗ chainsRepr chV h cs st ⊢ chainsOwnCl (GF := GF) ch cl h cs st := by
+  unfold chainsOwnCl
+  iintro ⟨Hch, Hr⟩
+  iexists chV
+  iframe
+  ipureintro; exact hcl
+
+theorem chainsOwn_cl (ch : Loc) (h : List (Op OpV)) (cs : List (List Nat)) (st : ChSt) :
+    chainsOwn ch h cs st ⊢ ∃ cl, chainsOwnCl (GF := GF) ch cl h cs st := by
+  unfold chainsOwnCl chainsOwn
+  iintro ⟨%chV, Hch, Hr⟩
+  iexists chV.clients', chV
+  iframe
+  ipureintro; rfl
+
 end heap
 
 end github_com.anishathalye.porcupine

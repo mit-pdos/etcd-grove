@@ -34,17 +34,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 
-/-- `removeFromFrontier`'s spec, keeping the clients slice (`chainsOwnCl`): `chains.unlift`
-computes `&ch.clients[clientId]` before calling it and uses the pointer after, so it must know
-that the call leaves `ch.clients` alone (the spec's `chainsOwn` hides it). The function stores
-only to `ch.frontier`. -/
-abbrev chains.removeFromFrontier.specCl : Prop :=
-  ∀ (ch : Loc) (cl : GoSlice) (h : List (Theory.Op OpV)) (cs : List (List Nat)) (st : ChSt) (c : w64),
-  0 ≤ sint.Z c → (∀ v ∈ st.frontier, v < cs.length) → (cs.length : Int) < 2 ^ 62 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine ∗ chainsOwnCl ch cl h cs st }}
-    (App (Val (ch @!! go.GoType.PointerType chains.ty @!! go!"removeFromFrontier")) (Val #c))
-  {{ RET #(); chainsOwnCl ch cl h cs { st with frontier := st.frontier.erase (sint.nat c) } }}
-
 end spec
 
 section proof
@@ -56,7 +45,7 @@ variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 
 theorem chains.unlift.wp_proof
     (wp_client_unlift : client.unlift.spec (GF := GF) (hG := hG))
-    (wp_removeFromFrontierCl : chains.removeFromFrontier.specCl (GF := GF) (hG := hG))
+    (wp_removeFromFrontierCl : chains.removeFromFrontier.spec (GF := GF) (hG := hG))
     (wp_addToFrontier : chains.addToFrontier.spec (GF := GF) (hG := hG)) :
     chains.unlift.spec (GF := GF) (hG := hG) := by
   intro σ S np cons h cs ch stack_ptr lin_ptr cm f fs fr cache s p hok hwf halloc hst
