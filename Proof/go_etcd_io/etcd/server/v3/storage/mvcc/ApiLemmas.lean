@@ -229,6 +229,57 @@ theorem absCommit_of_au (γ : MvccName) (habs : γ.st.absQ = true) (ilog : Log) 
     imodintro
     iframe Ha1 Ha2 Hp HQ Hcok
 
+/-- **A commit of nothing**: the caller's two updates, at the state (nothing pending: the writer's
+half says so), change nothing. -/
+theorem commitAU_nil (γ : MvccName) (habs : γ.st.absQ = true) (Q : IProp GF) :
+    commitAU γ [] Q ∗ pndAt γ.st (1 : Qp).half none ={⊤}=∗ Q ∗ pndAt γ.st (1 : Qp).half none := by
+  iintro ⟨Hau, HpW⟩
+  simp only [pndAt, habs, ↓reduceIte]
+  iunfold commitAU at Hau
+  ihave Hau := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvccN) (Eo2 := ⊤) (by simp) $$ Hau
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%σ, Hσ, Hucl⟩
+  iunfold mvccState at Hσ
+  iunfold mvccStateI at Hσ
+  icases Hσ with ⟨Hga, Hgp, Hgc, #Hgi, HM, #Hpe, %Hreach⟩
+  ihave %Hpp := ghostVar_agree γ.st.pnd _ _ _ _ $$ HpW Hgp
+  have hσ : σ.notify [] = σ := by
+    cases σ with
+    | mk log crev pending => simp only at Hpp; subst Hpp; simp [MvccState.notify]
+  icases Hucl with ⟨-, Hcommit⟩
+  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down, hσ] at Hcommit
+  imod Hcommit $$ [Hga Hgp Hgc HM] with Hau2
+  · iunfold mvccState
+    iunfold mvccStateI
+    iframe Hga Hgp Hgc HM Hgi Hpe
+    ipureintro; exact Hreach
+  ihave Hau2 := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvccN) (Eo2 := ⊤) (by simp) $$ Hau2
+  ihave Hacc := aupd_aacc $$ Hau2
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%σ', Hσ, Hucl⟩
+  iunfold mvccState at Hσ
+  iunfold mvccStateI at Hσ
+  icases Hσ with ⟨Hga, Hgp, Hgc, #Hgi, HM, #Hpe, %Hreach⟩
+  ihave %Hpp := ghostVar_agree γ.st.pnd _ _ _ _ $$ HpW Hgp
+  have hσ : σ'.commitPending = σ' := by
+    cases σ' with
+    | mk log crev pending =>
+      simp only at Hpp; subst Hpp; simp [MvccState.commitPending, commitLog]
+  icases Hucl with ⟨-, Hcommit⟩
+  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down, hσ] at Hcommit
+  imod Hcommit $$ [Hga Hgp Hgc HM] with HQ
+  · iunfold mvccState
+    iunfold mvccStateI
+    iframe Hga Hgp Hgc HM Hgi Hpe
+    ipureintro; exact Hreach
+  imodintro
+  iframe HQ HpW
+
 end lemmas
 
 end mvcc

@@ -107,6 +107,10 @@ opaque mvccOpen (γ : MvccName) (q : Qp) : IProp GF := iprop(True)
 def mvccBackendIs (γ : MvccName) (P : backend.BParams) (Pk : IProp GF) (b : Loc) : IProp GF :=
   mvccBackendIsI γ P Pk b
 
+instance mvccBackendIs_persistent (γ : MvccName) (P : backend.BParams) (Pk : IProp GF) (b : Loc) :
+    Persistent (mvccBackendIs (GF := GF) γ P Pk b) := by
+  unfold mvccBackendIs; infer_instance
+
 /-- **The store's batch lock has invariant `P` and its post-lock hook is `f`, for good**
 (persistent, as its parts are; `f` may be `nil`: no hook): the backend's own read-only share of
 its hook (`backend.plHookRO`, by `plHook_persist` after `SetTxPostLockInsideApplyHook`, or the new
@@ -115,6 +119,10 @@ abstraction: its only maker is the backend. -/
 def mvccHook (γ : MvccName) (P : IProp GF) (f : GoFunc) : IProp GF :=
   iprop(∃ (BP : backend.BParams) (b : Loc), mvccBackendIs γ BP P b ∗
     backend.plHookRO (mvccBackend γ) f ∗ ⌜f ≠ func.nil⌝)
+
+instance mvccHook_persistent (γ : MvccName) (P : IProp GF) (f : GoFunc) :
+    Persistent (mvccHook (GF := GF) γ P f) := by
+  unfold mvccHook; infer_instance
 
 /-- The hook is one (the backend's hook is a ghost variable). -/
 theorem mvccHook_agree (γ : MvccName) (P P' : IProp GF) (f f' : GoFunc) :
@@ -140,6 +148,10 @@ store without watchers gives it freely (`mvccWatchersOk_unwatched`); a watched s
 by the watchable store's `End` and `Restore`, which notify and reset: so a client of a watched store
 commits and restores through them. -/
 def mvccWatchersOk (γ : MvccName) (op : MvccOp) : IProp GF := mvccWatchersOkI γ op
+
+instance mvccWatchersOk_persistent (γ : MvccName) (op : MvccOp) :
+    Persistent (mvccWatchersOk (GF := GF) γ op) := by
+  unfold mvccWatchersOk; infer_instance
 
 /-- **The right to wrap the store `s` in a watchable store** (exclusive; `NewStore` at the watched
 mode gives it, `New`'s watchable store takes it): it holds the store's `ReadView` and `WriteView`

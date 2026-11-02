@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLemmas
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnRead__End
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__End
 
@@ -177,6 +178,110 @@ theorem mvcc.metricsTxnWrite.End.wp_proofA
       (try wp_auto)
       iapply HΦ
       iframe Hrd HZ Htok Hcert Htrc
+
+/-- **The candidate `End`** (`specC`, mvcc's candidate API): `specA`'s; a read transaction's ticket
+back to the readers' pool for the thread token; a write transaction's commit update the caller's two
+atomic updates (`absCommit_of_au`; a commit of nothing: both at once, no change, `commitAU_nil`),
+on a store without watchers (`mvccWatchersOk`: a watched store commits only through the watchable
+store's `End`). -/
+theorem mvcc.metricsTxnWrite.End.wp_proofC (hA : mvcc.metricsTxnWrite.End.specA (GF := GF) (hG := hG)) :
+    mvcc.metricsTxnWrite.End.specC (GF := GF) (hG := hG) := by
+  intro mw γ trace k P f Q
+  iintro %Φ ⟨#Hpkg, Htx, Hpre⟩ HΦ
+  iapply wp_fupd
+  cases k with
+  | read σ =>
+    iunfold mvcc.mvccTxn at Htx
+    simp only [mvcc.mvccTxnI]
+    icases Htx with ⟨%mw', %s, %Ht, #Hs, Hrd, Hloan⟩
+    simp only [interface_mkOk_inj, _root_.true_and] at Ht
+    have hmw : mw' = mw := (GoGlobalContext.intoVal_inj_loc Ht).symm
+    subst hmw
+    ihave #Hs1 := Hs
+    iunfold mvcc.isMvccI at Hs1
+    icases Hs1 with ⟨-, -, -, #Hpool, -, -⟩
+    wp_apply (hA trace mw' s γ.st (.read σ.log (W64 (σ.rev : Int))) σ.crev iprop(True) iprop(True))
+      $$ [Hrd] as ⟨Hrdr, -, -, Htrc⟩
+    · simp only [mvcc.isTxnEnd, mvcc.txnEndPreA]
+      iframe Hrd
+      try iframe #
+    imod threadPool.giveBack mvcc.tixN γ.tl _ ⊤ (by simp) $$ [$Hpool $Hloan $Hrdr] with Htt
+    imodintro
+    iapply HΦ
+    iframe Htt Htrc
+  | write σ₀ pend =>
+    icases Hpre with ⟨#Hwok, #Hhook, HP, Hau⟩
+    iunfold mvcc.mvccTxn at Htx
+    simp only [mvcc.mvccTxnI]
+    icases Htx with ⟨%mw', %s, %puts, %deletes, %putSize, ⟨%Ht, %Hpn⟩, #Hs, Htxw, Hloan⟩
+    simp only [interface_mkOk_inj, _root_.true_and] at Ht
+    have hmw : mw' = mw := (GoGlobalContext.intoVal_inj_loc Ht).symm
+    subst hmw
+    ihave #Hs1 := Hs
+    iunfold mvcc.isMvccI at Hs1
+    icases Hs1 with ⟨-, %Hf, -, #Hpool, -, -⟩
+    obtain ⟨habs, hwq, -, -⟩ := Hf
+    ihave #Hhk := mvcc.mvccHook_hookOk γ P f $$ Hhook
+    by_cases hp : pend = []
+    · -- a commit of nothing: both updates at once, nothing changed
+      subst hp
+      icases mvcc.isTxnWrite_wrAt mw' s γ.st trace σ₀.log [] puts deletes putSize σ₀.crev iprop(True)
+        false $$ Htxw with ⟨Hwr, Htxw⟩
+      iunfold mvcc.wrAt at Hwr
+      icases Hwr with ⟨HaW, HpW⟩
+      imod mvcc.commitAU_nil γ habs Q $$ [Hau HpW] with ⟨HQ, HpW⟩
+      · iframe HpW; iunfold mvcc.commitAU; iexact Hau
+      ihave Htxw := Htxw $$ [HaW HpW]
+      · iunfold mvcc.wrAt; iframe HaW HpW
+      ihave Htx := mvcc.isTxn_toEnd mw' s γ.st (.write σ₀.log [] puts deletes putSize) σ₀.crev
+        iprop(True) $$ [Htxw]
+      · iunfold mvcc.isTxn; iexact Htxw
+      wp_apply (hA trace mw' s γ.st (.write σ₀.log [] puts deletes putSize) σ₀.crev iprop(True) Q)
+        $$ [Htx HP HQ] as ⟨Hrdr, -, Hpost, Htrc⟩
+      · iframe Htx
+        iframe #
+        simp only [mvcc.txnEndPreA]
+        iexists P, #f
+        iframe Hhk HP
+        rw [mvcc.logQPre_nil]
+        isplitr; · itrivial
+        unfold mvcc.absCommit
+        rw [if_pos rfl]
+        iexact HQ
+      imod threadPool.giveBack mvcc.tixN γ.tl _ ⊤ (by simp) $$ [$Hpool $Hloan $Hrdr] with Htt
+      imodintro
+      iapply HΦ
+      simp only [mvcc.txnEndPostA]
+      icases Hpost with ⟨-, -, -, HQ⟩
+      iframe Htt Htrc HQ
+    · -- a commit: the caller's two updates at the bump, on a store without watchers
+      iunfold mvcc.mvccWatchersOk at Hwok
+      iunfold mvcc.mvccWatchersOkI at Hwok
+      cases hwd : γ.watched
+      · have hq : γ.st.watchQ = false := by rw [hwq, hwd]
+        ihave Hac := mvcc.absCommit_of_au γ habs σ₀.log pend hp Q $$ [Hau]
+        · iunfold mvcc.commitAU; iexact Hau
+        ihave Htx := mvcc.isTxn_toEnd mw' s γ.st (.write σ₀.log pend puts deletes putSize) σ₀.crev
+          iprop(True) $$ [Htxw]
+        · iunfold mvcc.isTxn; iexact Htxw
+        wp_apply (hA trace mw' s γ.st (.write σ₀.log pend puts deletes putSize) σ₀.crev iprop(True) Q)
+          $$ [Htx HP Hac] as ⟨Hrdr, -, Hpost, Htrc⟩
+        · iframe Htx
+          try iframe #
+          simp only [mvcc.txnEndPreA]
+          iexists P, #f
+          iframe Hhk HP Hac
+          rw [mvcc.logQPre_plain γ.st σ₀.log pend hq]
+          itrivial
+        imod threadPool.giveBack mvcc.tixN γ.tl _ ⊤ (by simp) $$ [$Hpool $Hloan $Hrdr] with Htt
+        imodintro
+        iapply HΦ
+        simp only [mvcc.txnEndPostA]
+        icases Hpost with ⟨-, -, -, HQ⟩
+        iframe Htt Htrc HQ
+      · isimp only [hwd, ↓reduceIte] at Hwok
+        icases Hwok with %hpe
+        exact absurd hpe hp
 
 end proof
 
