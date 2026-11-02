@@ -544,6 +544,16 @@ registrar's completeness the tester's receiver needs ("every id with events is i
 `etcd-mvcc-hash-currentrev-race.md`, `etcd-mvcc-hashbyrev-zero-stored.md`,
 `etcd-mvcc-hashbyrev-restore-rev1.md` (each reproduced).
 
+**The smallest API (2026-11-02, rounds 10-11)**, at the user's request: specs strong enough for
+etcd's linked proofs and the tester with the fewest abstractions, to be frozen before the
+invariants and the proof (`notes/mvcc-api-candidate.md`, "Rounds 10-11"; the candidate is a
+scratch Lean file outside the repository, `~/mvcc-api-candidates/MvccApiR11.lean`, typechecked).
+The scope is what the clients use (no `NewStore`, `Restore`, hash methods, filters); 8 opaque Iris
+predicates (round 9: 17); specs of the interface-method calls clients make; one pure watch
+guarantee. Seven decisions are the user's before it is frozen (the note's list). Found:
+`issues/etcd-mvcc-watch-compact-rev-subrev-lost.md`, `etcd-mvcc-progress-lock-order-deadlock.md`
+(both reproduced). The proof in progress above (round 9's API) is paused until the specs are frozen.
+
 **Second version (2026-11-01)**, at the user's request: the tester exercises what etcd relies on
 (`notes/mvccrand.md`, "What etcd relies on mvcc for"): the watchable store with a real lessor and a
 post-lock hook set after it, as the server does; one writer making txn's `Put`, `DeleteRange` and

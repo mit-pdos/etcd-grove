@@ -2,7 +2,7 @@
 
 The user asked for new candidate specs of etcd's mvcc package, written in the Lean spec files,
 designed with the `spec` skill, good enough for etcd's proof and for the randomized tester
-(`examples/mvccrand`, `notes/mvccrand.md`). **Status: candidates for review.** They typecheck;
+(`examples/mvccrand`, `notes/mvccrand.md`). **Status: superseded by rounds 10-11 (below), the candidate for the user's review.** In rounds 1-9 they typecheck;
 nothing proves them, and no proof uses them; today's specs and proofs are untouched.
 
 - The vocabulary: `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean` (new).
@@ -316,6 +316,112 @@ the entry being applied as pending; its commit gives the second). Applied:
   `mvccHook_of_backend` gone, `mvccHook_agree` now a theorem from the hook's ghost variable);
   `isHashStorage hs γ` defined, `∃ s, isMvcc s γ ∗ s.hashes ↦□ hs` (the field `NewStore` sets for
   good).
+
+## Rounds 10-11: the smallest API etcd's proofs and the tester need (2026-11-02)
+
+The user (2026-11-02): specs for mvcc strong enough for etcd and for the tester, as simple as
+possible (fewest new abstractions and Iris predicates); specs first, frozen, then the invariants
+(informally, frozen), then the proof. **Status: candidate for the user's review, not frozen.** The
+candidate, in full: a scratch Lean file outside the repository, typechecked against the build
+(`lake env lean FILE` from the worktree): `~/mvcc-api-candidates/MvccApiR11.lean` (its header
+lists every change). Rounds: 10, from round 9 by the user's criterion; 11, after a
+`spec-reviewer` review of 10 (nothing unsound; two gaps, below), reviewed again (repairs sound;
+`Write` now also says nothing is pending; the thread bound's `+ 2` dropped). The reviews:
+`~/mvcc-api-candidates/review-r10.md`, `review-r11.md`.
+
+**The scope: what etcd's linked proofs reach, and what the tester calls** (a survey of the clients,
+2026-11-02). `New`; through the `KV` (`WatchableKV`) the store is: `Read`, `Write`, `Rev`, `Range`
+(the apply's header after a compaction), `Compact` (the apply's compaction, `putgetc`'s
+auto-compactor), `Commit` (the tester), `HashStorage` (etcd only hands it to its corruption
+checker), `Close`, `NewWatchStream`; the transactions' `Rev`, `FirstRev`, `Range`, `Put`,
+`DeleteRange`, `Changes`, `End`, and `NewReadOnlyTxnWrite`; the watch stream's `Watch` (from
+start revision `0`, no filters, id `0`: v3rpc's `watchReqOk`), `Chan`, `RequestProgress`,
+`RequestProgressAll` (client/v3's proof relies on a `-1` response covering every watcher registered
+before it), `Cancel`, `Close`, `Rev`. Out: `NewStore` (a store without watchers), `Restore` (no
+linked result reaches it: `applySnapshot` is linked for the nil snapshot only), the hash storage's
+methods, the `KV`'s own `Put`/`DeleteRange`/`FirstRev`, watch filters, a caller-chosen watch id,
+a store without a post-lock hook.
+
+**The vocabulary: 8 opaque Iris predicates (round 9: 17), 5 opaque pure names (7).**
+`mvccState γ σ` (the client's state, as before: `log`, `crev`, `pending`); `isMvcc kv γ` (the one
+store handle, on the `KV` interface value); `mvccOpen γ q` (`Compact` a share, `Close` the whole);
+`mvccBackendIs γ BP Pk b` (the backend's identity and batch-lock invariant, for the hook and the
+commit requests); `mvccTxn t γ trace k` (any transaction interface value); `isMvccWatchStream ws γ ι`;
+`wsState ι S` (the stream's state, the client's: its watchers, each with range, first revision,
+registration stamp and liveness, and whether it is closed); `wsRecv ι rs` (the consumer's).
+Definitions: `mvccHook`, `mvccDeleter` (the lessor's range deleter is `Write`'s triple),
+`compactChanOk` (a receive's triple), `wrespIs`, and the watch guarantee `wsRecvOk σ S rs`, one pure
+predicate. Laws: persistence/timelessness/fractions, exclusivity, reachability, the hook's
+agreement, the channel's receive, and one watch law (`wsRecv_ok`: the guarantee holds of what was
+received, at any time). Gone from round 9: `isWatchableMvcc`, `mvccWatched`, `mvccWatchersOk`,
+`mvccWrapRight`, `isMvccView`, `mvccRestorable`, `isHashStorage`, `mvccHashOk`, `mvccHashOf`,
+`mvccCompactChan` (now a definition), `wsOpen` (now `S.closed`), `wsWatchers` (now `wsState`),
+`MvccOp`, and the laws `mvccTxn_trace`, `mvccTxn_unwrap`, `isWatchableMvcc_store`, `isMvcc_views`,
+`mvccTxn_write_agree`, `mvccDeleter_spec`, the two `mvccWatchersOk` laws, the restore and hash laws,
+and the three watch laws (one now).
+
+How the count came down:
+
+- **One store kind** (only `New`'s is in scope), so no watched mode and nothing that let a plain
+  store's commit skip the watchers.
+- **Each spec is on the call the client makes**: the method of the interface value it holds
+  (`methods ty M v` of `interface.mkOk ty v`), whatever the dynamic type (`*watchableStore`'s
+  promoted `Read`; `*metricsTxnWrite`, `*watchableStoreTxnWrite`, `*txnReadWrite`). No field laws
+  for promoted methods, and none of today's dispatch lemmas (`kvOver_*`, `tw_wp*`) for clients.
+- **The trace is lent per call** (`Range` and `Put` step it, and etcd's `txn` steps it while a
+  transaction is open), not held by the transaction.
+- **The stream's closed flag is a field of the client's stream state.** `Watch` on a closed stream
+  fires the update unchanged, so the caller learns `S.closed`; `Close` takes an open stream (a second
+  `Close` panics) and closes it.
+- **Write transactions** (round 11, the review's F2): `Write` fires the caller's update where it
+  reads its begin revision; `End`'s two updates (notify, then the bump) promise in their atomic
+  postconditions that the state is the transaction's. The client learns its transaction's state
+  from the API, with no agreement law.
+
+Each spec's linearization point is in its docstring. The ones the proof must move from where round 9
+put them: `Watch` fires at the registration, inside the store's `watch` (so the first revision of a
+watch from `0` is `σ.rev + 1`, and every id a response carries is in the stream's state, the
+tester's registrar check); `Cancel` fires at its first check of the stream's maps.
+
+**Found on the way** (both reproduced with mvcc-level Go tests):
+`issues/etcd-mvcc-watch-compact-rev-subrev-lost.md` (a watch from exactly the compaction revision
+loses the earlier changes of a key changed twice in it), and
+`issues/etcd-mvcc-progress-lock-order-deadlock.md` (found by the review: `progressIfSync` takes the
+two store locks in the wrong order; a hang, which no spec here falsifies).
+
+### Decisions for the user (before freezing)
+
+Each is a scope restriction, or client-owned state or a premise on specs that have clients (the
+skill's policy). Round 9's statement is given beside each, with the alternative.
+
+1. **The scope above.** Out: `NewStore`, `Restore`, the hash methods, the `KV`'s own writes,
+   filters, caller-chosen ids, a nil hook. Round 9 specified all 43 functions. Alternative: add any
+   of them back; each adds vocabulary (`Restore`: `mvccRestorable`; hashes: `mvccHashOk`,
+   `mvccHashOf`; filters: a predicate list in `WInfo`, `filtersImpl`; `NewStore`: the watched mode
+   and `mvccWatchersOk`).
+2. **Specs of interface-method calls.** The API's specs are of `KV.Read`, `TxnWrite.Put`,
+   `WatchStream.Watch`, ... as the client calls them, and the concrete methods' specs
+   (`store.Read`, `metricsTxnWrite.Put`, ...) become internal lemmas. This departs from CLAUDE.md's
+   layout (one spec file per Go function); the files would be named by interface method
+   (`Spec/.../mvcc/KV__Read.lean`). Round 9: specs of the concrete functions, plus field laws.
+3. **The stream's closed flag in the client's stream state**, which replaces the fractional open
+   token `wsOpen`. Consequence: v3rpc, whose closer runs beside its receive loop, keeps `wsState` in
+   an invariant the two share. Alternative: keep `wsOpen` (one more predicate; v3rpc's receive loop
+   then holds `wsWatchers` alone and handles a closed arm).
+4. **The watch guarantee only for watchers whose first revision is above the compaction revision.**
+   The code does not deliver their events exactly otherwise (the issue above). It is enough for both
+   clients: the tester never compacts, and etcd's watch proof excludes compaction (`noCompactor`).
+5. **The registration stamp** `WInfo.k` (the responses sent when the watcher registered), and a `-1`
+   response at index `j` covering the live watchers with `k ≤ j`, as the old proof's `regsAt`/
+   `respCompl`. A client relating its own progress request to the response does the matching, as
+   today.
+6. **The backend boundary is a placeholder** (`mvccBackendFresh d Pk`): round 9's ten conjuncts of
+   internal backend views; to be designed with the backend. It must admit a compacting backend (the
+   review's F1: `Compact`'s job deletes keys and commits after `Compact` returns, which needs M2's
+   backend compaction model). Round 9 excluded one (`d.cm = false`).
+7. **`New`'s premises** `receiptBound GF ≤ 2 ^ 48` (round 9's) and `threadBound GF < 2 ^ 30` (Go's
+   `RWMutex` reader limit, each reader a thread holding a token; round 9 had `+ 2 ≤`, which the
+   re-review found no reason for in the code).
 
 ## Decisions for the user (round 7's list; answered above, kept for the record)
 

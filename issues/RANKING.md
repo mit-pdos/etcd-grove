@@ -326,6 +326,15 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   `HashStorage().Hash()` reads `currentRev` without `revMu`, racing with every write (reported by
   the race detector); reachable through the maintenance `Hash` RPC. Harmless on 64-bit in practice
   (the TODO already says the revision may not match the hash), a one-line fix.
+- **[etcd-mvcc-progress-lock-order-deadlock](etcd-mvcc-progress-lock-order-deadlock.md)** (2026-11-02):
+  a watch progress request takes the store's two locks in the reverse of their documented order and
+  deadlocks with a write transaction's `End` and a waiting `Commit` or `Compact`. A hang only for
+  mvcc's direct users (etcd's server serializes those on its apply goroutine); reproduced, one-line
+  fix (read the revision under `revMu`).
+- **[etcd-mvcc-watch-compact-rev-subrev-lost](etcd-mvcc-watch-compact-rev-subrev-lost.md)** (2026-11-02):
+  a watch from exactly the compaction revision loses the earlier changes of a key changed twice in
+  that revision, with no compaction response. A watch-events guarantee, but only at mvcc's Go API:
+  etcd's gRPC rejects transactions changing a key twice. Matters to direct users of mvcc.
 - **[etcd-mvcc-watch-negative-start-rev](etcd-mvcc-watch-negative-start-rev.md)** (2026-11-01):
   `WatchStream.Watch`'s documentation says a start revision `<= 0` watches after the current
   revision; a negative one replays the history or gets a compaction response with
