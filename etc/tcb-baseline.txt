@@ -786,6 +786,7 @@ sorry Perennial.reflect.Type'.Type'_typed_pointsto
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
-sorry mergedCreate_window
 sorry merged_image
 sorry run_job_snap_cmp
+sorry txn.kvWriter_keyObs
+sorry txn.kvWriter_noCmp

@@ -1,5 +1,7 @@
 ---
-upstream: unchecked
+upstream: none
+checked: 2026-11-02
+links:
 ---
 
 # server/etcdserver: a `LeaseRenew` forwarded from a follower checks the follower's stale key set

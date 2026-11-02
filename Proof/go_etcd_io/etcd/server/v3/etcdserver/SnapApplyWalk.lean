@@ -284,7 +284,7 @@ theorem applySnapshot_walk
     isplitr
     · ipureintro; exact ⟨hdbo, hmmap, hcfgl, hP.1, hP.2.1⟩
     iexact Hcreate
-  icases Hres with (⟨%Herr, %nb, %γB, %Hbe, Hnew, Hdbp⟩ | ⟨%Herr, -, -⟩)
+  icases Hres with (⟨%Herr, %nb, %γB, %Hbe, Hnew, #HhkAt, Hdbp⟩ | ⟨%Herr, -, -⟩)
   rotate_left
   · exfalso
     exact Herr.2.2 ⟨hsop.1 ss, hsop.2.1 _ _⟩
@@ -301,6 +301,8 @@ theorem applySnapshot_walk
       d'.gx = gx' ∧ d'.P = d.P ∧ d'.cm = false :=
     ⟨{ d with γB := γB, be := nb, gx := gx', cm := false }, rfl, rfl, rfl, rfl, rfl⟩
   rw [← hbe']
+  ihave #HhkAtN : backend.hooksAt d'.be (storage.hooksIface hk) $$ []
+  · rw [hbe']; iexact HhkAt
   iunfold snapOpenK at HnK
   icases HnK with ⟨HnCls, #HmetaN, %jf, %γcf, Htcf, #Hidxf⟩
   (try wp_auto)

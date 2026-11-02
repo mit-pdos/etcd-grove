@@ -113,7 +113,7 @@ theorem srvSnapApplied_of_walk
     #HisAl, #Haustf, #Hclf, #Hirc, #Hcok, #HWP, Hw⟩
   iunfold snapWalkPost at Hw
   icases Hw with ⟨%γB, %d', %gx, %π0, %p', %γw, %ws, %g, %up', %opts', %L, %spc, %Ll, %jf, %γcf,
-    %w0, %RD0, %up, %lg, %wsk, %stck, %Hpure, #HB, HSC, -, -, -, -, -, #HCI', #HhkS, -, -, -,
+    %w0, %RD0, %up, %lg, %wsk, %stck, %Hpure, #HB, #HhkAt', #HbhF', HSC, -, -, -, -, -, #HCI', #HhkS, -, -, -,
     #Hws, -, -, #HhP, #Hkva, #Hwa, #Hlga, Hwok, HplH, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Haub, Hclb,
     Hleb, Hlo, Hlrd, Hlrv, Hrt, Hrb, Hcm, Hbo, Hsc, Hwf, Hww, HwOwn, Hsr, Htl, Hlgr, Hai, Hatt, Hds, Hms,
     Hcsa, Hcso, Hpath, Halb, HRD2, Hube, Hua, -, Hra, Hauar, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
@@ -124,7 +124,7 @@ theorem srvSnapApplied_of_walk
   ihave HplRO := backend.plHook_persist d'.γB g $$ HplH
   imod HplRO with #HplRO
   -- step 2: the server's view
-  ihave #Hsrv' := snap_isServer s γ ci TM E ρ γr π0 d'.γB d.P d' p' g al ast lp cl rfl hkb' hcm' d hkb hcm $$ []
+  ihave #Hsrv' := snap_isServer s γ ci TM E ρ γr π0 d'.γB d.P d' p' g al ast lp cl rfl hkb' hcm' d hkb hcm hP' rfl hk $$ []
   · iframe #
   -- step 3: the new applier's options
   ihave #Hbo' := snap_backendOptsOk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg

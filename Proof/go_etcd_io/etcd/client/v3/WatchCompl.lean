@@ -810,7 +810,7 @@ theorem cmpl_mono (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.
     ihave %Hcmp := mono_list_lb_valid γc.sentl (pre' ++ [y]) (pre ++ [x]) $$ Hlb' Hlb
     have hy : y ∈ pre := lb_snoc_mem Hcmp (by omega)
     iunfold mvcc.respRev at Hrr
-    icases Hrr with (%hne | ⟨%Ln, -, %Hn⟩ | %hcr)
+    icases Hrr with ⟨(%hne | ⟨%Ln, -, %Hn⟩ | %hcr), -⟩
     · exact absurd hxe hne
     rotate_left
     · exact absurd hxc hcr.1

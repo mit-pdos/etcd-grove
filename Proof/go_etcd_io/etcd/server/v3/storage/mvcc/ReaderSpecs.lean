@@ -71,7 +71,7 @@ theorem mvcc.store.Read.spec_R (h : mvcc.store.Read.spec (GF := GF) (hG := hG)) 
     isplitr; · ipureintro; exact Ht
     unfold mvcc.logLent; itrivial
   inext
-  iintro %mw ⟨%log, %rev, %crev, Htx, Hm, #Hlb', #Hrok, %Hp, -, -⟩
+  iintro %mw ⟨%log, %rev, %crev, Htx, Hm, #Hlb', -, #Hrok, %Hp, -, -⟩
   iapply HΦ
   iexists log, rev, crev
   iframe Htx Hm Hrok Hlb'
@@ -377,7 +377,7 @@ theorem mvcc.readView.Range.spec_R (h : mvcc.readView.Range.spec (GF := GF) (hG 
   iapply (h rv s γ ctx cd false key endk k e ro (-1)) $$ %Φ [Hrd]
   · iframe Hrd; iframe #
   inext
-  iintro %r %err ⟨-, Hrd, %log, %rev, %crev, #Hc, #Hlb', %Hp, Hout⟩
+  iintro %r %err ⟨-, Hrd, %log, %rev, %crev, #Hc, #Hlb', -, %Hp, Hout⟩
   iapply HΦ
   isplitl [Hrd]
   · iapply mvcc.storeReader_of $$ Hrd

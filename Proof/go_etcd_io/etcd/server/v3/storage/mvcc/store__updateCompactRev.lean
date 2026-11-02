@@ -63,7 +63,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
     (h3 : mvcc.SetScheduledCompact.spec (GF := GF) (hG := hG)) :
     mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG) := by
   intro s γ rev c P hk Pre Q Post logc hcmp
-  wp_start as ⟨#Hs, HmuA, Hright, #HcertC, %HrevC, Hctx, HRTok, #HsupM⟩
+  wp_start as ⟨#Hs, HmuA, Hright, #HpermR, #HcertC, %HrevC, Hctx, HRTok, #HsupM⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
@@ -382,6 +382,8 @@ theorem mvcc.store.updateCompactRev.wp_proof
         iframe
         isplitr
         · iunfold mvcc.crevSafe; iexists logc; iframe HcertC; ipureintro; exact HrevC
+        isplitr
+        · iexact HpermR
         ipureintro; omega
       ihave Hq := mvcc.compactQueue_mono γ c' (sint.Z rev) (by omega) $$ Hq
       isplitl [Hcr Hq Hcur Hfb Hfidx Hfsch Hfstop Hfrst Hstc Htok]

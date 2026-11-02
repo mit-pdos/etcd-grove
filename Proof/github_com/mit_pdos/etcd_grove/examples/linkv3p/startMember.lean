@@ -100,8 +100,9 @@ theorem startMember.wp_proof
   · iapply v3rpc.eofVar_of_init
     iPkgInit
   (try wp_auto)
-  -- `common.NewMember(name, peer, peerAddr, client, cluster, "linkv3p", lg)`
-  wp_apply (wp_NewMember N name peerAddr client go!"linkv3p" peer cluster lg
+  -- `common.NewMember(name, peer, peerAddr, client, cluster, "linkv3p", SnapCount, SnapCatchUp,
+  -- lg)`: frequent snapshots
+  wp_apply (wp_NewMember N name peerAddr client go!"linkv3p" (W64 1) (W64 1) peer cluster lg
       (GMap.insert name₃ sl₃ (GMap.insert name₂ sl₂ (GMap.insert name₁ sl₁ ∅))) initURLs3
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn
       (by omega) Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir

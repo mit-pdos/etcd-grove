@@ -258,15 +258,22 @@ def consInvAt (γ : ApplyNames) (s : ApplyState) (mi : w64) (w : Bool) : IProp G
 
 /-- **The protocol frozen in the stored-index window** (D22 the stored-index window, 2026-10-23;
 `notes/decisions.md`, "D22 the stored-index window carried out"): a commit stored the apply
-thread's consistent index `s.k` (not 0, nothing in flight: `commit_freeze_au`), the apply thread
+thread's consistent index `s.k` (nothing in flight: `commit_freeze_au`), the apply thread
 deposited a quarter of the protocol's state here and holds the other quarter, a quarter of the
 stored index's mirror and the token `γ.fz` (`freezeY`). While frozen no step of the apply thread can
-run (it holds no half of the state), so `ci` stays `s.k`, which every commit stores again. The meta
-keys are written (`wrDone`). -/
+run (it holds no half of the state), so `ci` stays `s.k`, which every commit stores again. The
+stored index is `ciEff γ s.k`: `s.k` with the meta keys written (`wrOwn γ true`), or, with `ci` 0
+(2026-11-02, the merged snapshot's window after a restart: `UnsafeSave` stores nothing), the
+initial `γ.m0.1` with the keys unwritten. -/
 def consFrozen (γ : ApplyNames) (s : ApplyState) (mi : w64) (w : Bool) : IProp GF :=
   iprop(ciIdx γ.ci s.k ∗ ghostVar γ.st (1 : Qp).half s ∗ ghostVar γ.st (1 : Qp).half.half s ∗
-    ghostVar γ.mt (1 : Qp).half.half mi ∗ wrDone γ ∗
-    ⌜s.k = mi ∧ s.k ≠ W64 0 ∧ s.pending = false ∧ w = true ∧ stOk γ s⌝)
+    ghostVar γ.mt (1 : Qp).half.half mi ∗ wrOwn γ w ∗
+    ⌜mi = ciEff γ s.k ∧ (s.k = W64 0 → w = false) ∧ (w = false → s.k = W64 0) ∧
+      s.pending = false ∧ stOk γ s⌝)
+
+instance consFrozen_timeless (γ : ApplyNames) (s : ApplyState) (mi : w64) (w : Bool) :
+    Timeless (consFrozen (GF := GF) γ s mi w) := by
+  unfold consFrozen; infer_instance
 
 /-- **The retired backends' mirrors** (D22 receiver epochs, S7f, 2026-10-23): for every backend
 `applySnapshot` replaced, the invariant's half of its stored index's mirror, at most `c` (the
@@ -355,7 +362,7 @@ def consInv (γ : ApplyNames) : IProp GF :=
     consRest (γ.withPh π) l (ciEff (γ.withPh π) s.k))
 
 instance consInv_timeless (γ : ApplyNames) : Timeless (consInv (GF := GF) γ) := by
-  unfold consInv consInvAt consFrozen; infer_instance
+  unfold consInv consInvAt; infer_instance
 
 theorem consInv_withPh (γ : ApplyNames) (π : ApplyPhys) :
     consInv (GF := GF) (γ.withPh π) = consInv γ := rfl
@@ -1002,17 +1009,24 @@ theorem commit_save_au (γ : ApplyNames) (mm : MetaCI) (Ψ : w64 → IProp GF) :
   rotate_left
   · -- frozen (the stored-index window): `ci` is the stored index, which the commit stores again
     iunfold consFrozen at Hfz
-    icases Hfz with ⟨Hk, Hs, Hsq, Hm, #Hw, %Hf⟩
-    obtain ⟨hmi, hk0, hps, hw, Hok⟩ := Hf
+    icases Hfz with ⟨Hk, Hs, Hsq, Hm, Hw, %Hf⟩
+    obtain ⟨hmi, hw1, hw2, hps, Hok⟩ := Hf
     icombine Hml Hm gives %Heq
     obtain ⟨_, hmm⟩ := Heq
+    ihave Hwd : (⌜s.k = W64 0⌝ ∨ wrDone γ) ∗ wrOwn γ w $$ [Hw]
+    · cases w
+      · iframe Hw; ileft; ipureintro; exact hw2 rfl
+      · rw [wrOwn_true]
+        icases Hw with #Hw
+        iframe Hw
+    icases Hwd with ⟨#Hwd, Hw⟩
     iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
     iintro Hmask
     iexists s.k
     iframe Hk
     iintro Hk
     imod Hmask with -
-    imod Hclose $$ [Hci Hr Hk Hs Hsq Hm] with -
+    imod Hclose $$ [Hci Hr Hk Hs Hsq Hm Hw] with -
     · inext
       iapply consInv_close γ l s s mi w (Int.le_refl _)
       iunfold curOwn
@@ -1025,21 +1039,21 @@ theorem commit_save_au (γ : ApplyNames) (mm : MetaCI) (Ψ : w64 → IProp GF) :
       isplitl [Hsq]
       · iexact Hsq
       ipureintro
-      exact ⟨hmi, hk0, hps, hw, Hok⟩
+      exact ⟨hmi, hw1, hw2, hps, Hok⟩
     imodintro
+    have hif : (if s.k = W64 0 then mm.1 else s.k) = ciEff γ s.k := by
+      by_cases hk : s.k = W64 0
+      · rw [if_pos hk, hmm, hmi]
+      · rw [if_neg hk]; unfold ciEff; rw [if_neg hk]
     have hsave : commitOk s (if s.k = W64 0 then mm.1 else s.k) := by
-      unfold commitOk
-      unfold stOk ciEff at Hok
-      simp only [hk0, ↓reduceIte] at Hok ⊢
-      exact Hok
-    have hmono : s.k ≠ W64 0 → uint.Z mm.1 ≤ uint.Z s.k := fun _ => by
-      rw [hmm, hmi] <;> exact Int.le_refl _
+      rw [hif]; exact Hok
+    have hmono : s.k ≠ W64 0 → uint.Z mm.1 ≤ uint.Z s.k := fun hk => by
+      rw [hmm, hmi]; unfold ciEff; rw [if_neg hk]; exact Int.le_refl _
     ihave Hml : ghostVar γ.mt (1 : Qp).half (if s.k = W64 0 then mm.1 else s.k) $$ [Hml]
-    · rw [if_neg hk0, hmi, ← hmm]
+    · rw [hif, ← hmi, ← hmm]
       iexact Hml
     iapply HΨ $$ %s.k %s %hmono %hsave Hml Htok []
-    iright
-    iexact Hw
+    iexact Hwd
   iunfold consInvAt at Hi
   icases Hi with ⟨Hk, Hs, Hm, Hw, %Hmk, %Hk0, %Hw0, Hrel, Hfzt⟩
   icombine Hml Hm gives %Heq
@@ -1099,25 +1113,26 @@ theorem commit_save_au (γ : ApplyNames) (mm : MetaCI) (Ψ : w64 → IProp GF) :
 
 /-- What the apply thread holds in the stored-index window opened at its state `s` (D22 the
 stored-index window, 2026-10-23): a quarter of its state, a quarter of the stored index's mirror
-(at `s.k`) and the window's token. -/
+(at `ciEff γ s.k`) and the window's token. -/
 def freezeY (γ : ApplyNames) (s : ApplyState) : IProp GF :=
-  iprop(ghostVar γ.st (1 : Qp).half.half s ∗ ghostVar γ.mt (1 : Qp).half.half s.k ∗ token γ.fz ∗
+  iprop(ghostVar γ.st (1 : Qp).half.half s ∗ ghostVar γ.mt (1 : Qp).half.half (ciEff γ s.k) ∗
+    token γ.fz ∗
     curOwn γ)
 
 /-- **The stored-index window opened** (D22 the stored-index window, 2026-10-23; `notes/decisions.md`,
 "D22 the stored-index window carried out"): a commit's `UnsafeSave` as in `commit_save_au`, at the
-request of the apply thread at `s` (`ci = s.k`, not 0; nothing in flight), which gives its state:
-the commit stores `s.k` and the protocol is frozen (`consFrozen`); the apply thread gets
-`freezeY γ s`. -/
+request of the apply thread at `s` (`ci = s.k`; nothing in flight), which gives its state:
+the commit stores `s.k` (nothing with `ci` 0, 2026-11-02) and the protocol is frozen
+(`consFrozen`); the apply thread gets `freezeY γ s`. -/
 theorem commit_freeze_au (γ : ApplyNames) (mm : MetaCI) (s : ApplyState) (Ψ : w64 → IProp GF)
-    (hk0 : s.k ≠ W64 0) (hps : s.pending = false) :
+    (hps : s.pending = false) :
     inv applyN (consInv γ) ⊢ ghostVar γ.mt (1 : Qp).half mm.1 -∗ token γ.pend -∗
       applyThread γ s -∗
       (∀ (k : w64) (s' : ApplyState),
         ⌜k ≠ W64 0 → uint.Z mm.1 ≤ uint.Z k⌝ -∗
         ⌜commitOk s' (if k = W64 0 then mm.1 else k)⌝ -∗
         ghostVar γ.mt (1 : Qp).half (if k = W64 0 then mm.1 else k) -∗ token γ.pend -∗
-        wrDone γ -∗ freezeY γ s -∗ Ψ k) -∗
+        (⌜k = W64 0⌝ ∨ wrDone γ) -∗ freezeY γ s -∗ Ψ k) -∗
       |={⊤ \ ↑ciN, ∅}=> ∃ k : w64, ciIdx γ.ci k ∗ (ciIdx γ.ci k ={∅, ⊤ \ ↑ciN}=∗ Ψ k) := by
   iintro #Hinv Hml Htok Hst HΨ
   iinv Hinv with Hi Hclose
@@ -1144,13 +1159,25 @@ theorem commit_freeze_au (γ : ApplyNames) (mm : MetaCI) (s : ApplyState) (Ψ : 
   iframe Hk
   iintro Hk
   imod Hmask with -
-  imod ghostVar_update_halves s.k $$ Hml Hm with ⟨Hml, Hm⟩
-  imod wrOwn_done γ w $$ Hw with #Hw
-  icases (ghostVar_split_half γ.mt (1 : Qp).half s.k).1 $$ Hm with ⟨Hm, Hmq⟩
+  have hif : (if s.k = W64 0 then mm.1 else s.k) = ciEff γ s.k := by
+    unfold ciEff
+    by_cases hk : s.k = W64 0
+    · rw [if_pos hk, if_pos hk]; exact Hw0 (Hk0 hk)
+    · rw [if_neg hk, if_neg hk]
+  have hw' : (s.k = W64 0 → (w || decide (s.k ≠ W64 0)) = false) ∧
+      ((w || decide (s.k ≠ W64 0)) = false → s.k = W64 0) := by
+    by_cases hk : s.k = W64 0
+    · have hd : decide (s.k ≠ W64 0) = false := decide_eq_false (fun h => h hk)
+      rw [hd, Bool.or_false]; exact ⟨fun _ => Hk0 hk, fun _ => hk⟩
+    · have hd : decide (s.k ≠ W64 0) = true := decide_eq_true hk
+      rw [hd, Bool.or_true]; exact ⟨fun h => absurd h hk, fun h => Bool.noConfusion h⟩
+  imod ghostVar_update_halves (ciEff γ s.k) $$ Hml Hm with ⟨Hml, Hm⟩
+  imod wrOwn_or γ w (decide (s.k ≠ W64 0)) $$ Hw with ⟨Hw, Hwd⟩
+  icases (ghostVar_split_half γ.mt (1 : Qp).half (ciEff γ s.k)).1 $$ Hm with ⟨Hm, Hmq⟩
   icases (ghostVar_split_half γ.st (1 : Qp).half s).1 $$ Hst with ⟨Hsq, Hsq'⟩
-  imod Hclose $$ [Hci Hr Hk Hs Hsq Hm] with -
+  imod Hclose $$ [Hci Hr Hk Hs Hsq Hm Hw] with -
   · inext
-    iapply consInv_close γ l s s s.k true (Int.le_refl _)
+    iapply consInv_close γ l s s (ciEff γ s.k) (w || decide (s.k ≠ W64 0)) (Int.le_refl _)
     iframe Hci Hr
     iright
     iunfold consFrozen
@@ -1160,18 +1187,18 @@ theorem commit_freeze_au (γ : ApplyNames) (mm : MetaCI) (s : ApplyState) (Ψ : 
     isplitl [Hsq]
     · iexact Hsq
     ipureintro
-    exact ⟨rfl, hk0, hps, rfl, Hok⟩
+    exact ⟨rfl, hw'.1, hw'.2, hps, Hok⟩
   imodintro
   have hsave : commitOk s (if s.k = W64 0 then mm.1 else s.k) := by
-    unfold commitOk
-    unfold stOk ciEff at Hok
-    simp only [hk0, ↓reduceIte] at Hok ⊢
+    rw [hif]
     exact Hok
   ihave Hml : ghostVar γ.mt (1 : Qp).half (if s.k = W64 0 then mm.1 else s.k) $$ [Hml]
-  · rw [if_neg hk0]
+  · rw [hif]
     iexact Hml
-  iapply HΨ $$ %s.k %s %(Hmk) %hsave Hml Htok [] [Hsq' Hmq Hfzt Hcu]
-  · iexact Hw
+  iapply HΨ $$ %s.k %s %(Hmk) %hsave Hml Htok [Hwd] [Hsq' Hmq Hfzt Hcu]
+  · icases Hwd with (%hd | #Hd)
+    · ileft; ipureintro; simpa using hd
+    · iright; iexact Hd
   unfold freezeY
   iframe
 
@@ -1191,29 +1218,26 @@ theorem unfreeze (γ : ApplyNames) (s : ApplyState) :
     iexfalso
     iapply token_exclusive $$ Htok Hfzt
   iunfold consFrozen at Hfz
-  icases Hfz with ⟨Hk, Hs, Hsq0, Hm, #Hw, %Hf⟩
-  obtain ⟨hmi, hk0, hps, hw, Hok⟩ := Hf
+  icases Hfz with ⟨Hk, Hs, Hsq0, Hm, Hw, %Hf⟩
+  obtain ⟨hmi, hw1, hw2, hps, Hok⟩ := Hf
   icombine Hsq Hsq0 gives %Heq
   obtain ⟨_, rfl⟩ := Heq
   subst hmi
-  subst hw
   ihave Hst := (ghostVar_split_half γ.st (1 : Qp).half s).2 $$ [$Hsq $Hsq0]
-  ihave Hmh := (ghostVar_split_half γ.mt (1 : Qp).half s.k).2 $$ [$Hmq $Hm]
-  imod Hclose $$ [Hci Hr Hk Hs Hmh Htok] with -
+  ihave Hmh := (ghostVar_split_half γ.mt (1 : Qp).half (ciEff γ s.k)).2 $$ [$Hmq $Hm]
+  imod Hclose $$ [Hci Hr Hk Hs Hmh Htok Hw] with -
   · inext
-    iapply consInv_close γ l s s s.k true (Int.le_refl _)
+    iapply consInv_close γ l s s (ciEff γ s.k) w (Int.le_refl _)
     iframe Hci Hr
     ileft
     iunfold consInvAt
-    rw [wrOwn_true]
-    iframe Hw
     iframe
     iunfold flightInv
     rw [hps]
     ipureintro
-    refine ⟨fun _ => Int.le_refl _, fun h => absurd h hk0, ?_, Hok⟩
-    intro h
-    cases h
+    refine ⟨fun hk => ?_, hw1, fun h => ?_, Hok⟩
+    · unfold ciEff; rw [if_neg hk]; exact Int.le_refl _
+    · unfold ciEff; rw [if_pos (hw2 h)]
   imodintro
   iunfold applyThread
   iframe Hcu

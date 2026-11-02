@@ -40,7 +40,14 @@ the caller held `R`, so the observation gives `Q`. (Question 2, option (a), the 
 `viewAt γ (sData P C)` is the batch lock's quarter at a logical view the committed data reads thin
 of, as `batchGhostAt` holds it after a commit, `batchViewQ`; a weaker observation than the quarter
 at `sData P C` itself, which a compaction's deletes would make false. To be checked by the `axiom`
-skill before the backend stage's Freeze.) What would discharge it: bbolt's `DB.Begin(false)` read isolation and the backend's
+skill before the backend stage's Freeze.) (2026-11-02, the merged snapshot's window; reviewed with
+the `axiom` skill, `notes/axiom-review/backend-snapshot-fk.md`: survives) Why the post's `fkRd γ P
+(D, ⟨∅, W64 0⟩)` holds: at the end of that last commit the batch lock's half of the flag is at some
+`f` with `fkOkG` of the committed state `D` (`fkOkG_commit`), so its lower bound
+(`monoNatLbOwn_get`) with `fkOkRvG` of `D` and an empty read buffer (`fkHalf_rd`,
+`fkOkRvG_of`) is a reader's, as `batchTxBuffered.unsafeCommit` gives its readers over the
+committed data; the flag only grows, so a later put of a compaction key cannot falsify it. What
+would discharge it: bbolt's `DB.Begin(false)` read isolation and the backend's
 commit protocol (`batchTxBuffered.commit`) with a read transaction begun outside the batch lock,
 in a model of bbolt where the database's committed state is shared (a fraction of `ownDB`)
 rather than the batch lock's alone. -/
