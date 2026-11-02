@@ -90,6 +90,19 @@ theorem grpcUp_noRefusal (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
     ipureintro; exact HC
   ipureintro; exact Hnr
 
+/-- **The reader slots a started member leaves for its gRPC runs** (`memberUp`'s stocks, written
+once for `kv_served` and `kv_lease_served`): of `s.leadTimeMu`, `s.lgMu` (two spent on `Start`),
+the apply environment's reader resource, the store's, the read loop's and `s.bemu`'s, from which
+`client.etcdGrpcSlots_of_started` makes the one gRPC slot. -/
+abbrev kvServeStocks (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  iprop(([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
+    ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
+    ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
+    ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
+    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+      srvReadReader s γr) ∗
+    ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s))
+
 /-- **etcd's KV calls registered at the address** (see the file header); under `grpcRepliesFit`
 (`grpc.start`'s). -/
 theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
@@ -97,17 +110,10 @@ theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ isServerRead s E γr ∗
-        ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
-        ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
-        ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
-        ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
-        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-          srvReadReader s γr) ∗
-        ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServeStocks s E γr ∗
         grpcUp s E ρ γr gs lis addr cid mid R ⊢
       |={⊤}=> grpcServeTok gs lis ∗ etcdKVAt addr E ρ γr cid mid := by
-  iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms, Hup⟩
+  iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
     #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, -, Hlis, -⟩
