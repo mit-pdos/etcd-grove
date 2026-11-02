@@ -9,6 +9,9 @@ the backend's data (`backend.viewAt`), sees the key bucket at most `bucketMap lo
 `bucketMap log` when the backend's store does not compact (`d.cm = false`). **Open** (a named
 `sorry`): the writer does not yet hold a handle on the batch lock's log; M2's item 37 (the writer's
 pin of `writerRes`'s log, `notes/m2-storage-plan.md`, "Task 4: item 37") proves it inside mvcc.
+
+`kvWriter_noCmp` (open, the same item): with compaction off, a snapshot's data records no
+compaction (the reader's bound `backend.fkRd` that `backend.Snapshot` gives, 2026-11-02).
 -/
 module
 
@@ -44,6 +47,17 @@ theorem kvWriter_keyObs (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk :
     kvWriter (GF := GF) s γ log ∗ mvcc.lateW d.gx ∗ backend.viewAt d.γB vd ⊢
       ⌜(∀ k v, vd.lookup (mvcc.keyName, k) = some v → (mvcc.bucketMap log).lookup k = some v) ∧
         (d.cm = false → ∀ k, vd.lookup (mvcc.keyName, k) = (mvcc.bucketMap log).lookup k)⌝ := by
+  sorry
+
+/-- **(open) The writer's store records no compaction in a snapshot**: the sole writer of the store
+`(s, γ)` over the real backend `d`, with a reader's lower bound of the backend's compaction-key flag
+(`backend.fkRd`, what `backend.Snapshot` gives over the snapshot's data), knows the reader's state
+has no compaction key when the store does not compact (`fkRd_abs`, with the off-mode store's
+no-compaction token `bkNoCmp d.γB`, which item 37 lends the writer). -/
+theorem kvWriter_noCmp (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = some d)
+    (log : mvcc.Log) (rv : backend.RView) :
+    kvWriter (GF := GF) s γ log ∗ backend.fkRd d.γB d.P rv ⊢
+      ⌜d.cm = false → backend.fkAbsRv d.P rv⌝ ∗ kvWriter s γ log := by
   sorry
 
 end keyObs

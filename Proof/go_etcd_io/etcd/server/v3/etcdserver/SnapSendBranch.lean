@@ -60,29 +60,31 @@ theorem srvBeSnapOk_of_backend (hSnap : backend.backend.Snapshot.spec (GF := GF)
     (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (bl : Loc) (qo : Qp)
     (R : IProp GF)
     (Q : backend.VData → GMap (GoString × GoString) GoString → GMap GoString backend.BktData →
-      Prop) :
+      Prop) (QR : backend.Data → Prop) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       backend.isBackend γ P W Pk bl ∗
       □ (∀ (vd : backend.VData) (d : GMap (GoString × GoString) GoString)
           (r : GMap GoString backend.BktData),
         R -∗ W -∗ Pk -∗ backend.viewAt γ vd -∗ backend.hkOwn γ d -∗ backend.rbOwn γ r -∗
-          ⌜Q vd d r⌝) ⊢
+          ⌜Q vd d r⌝) ∗
+      □ (∀ D : backend.Data, R -∗ backend.fkRd γ P (D, ⟨∅, W64 0⟩) -∗ ⌜QR D⌝ ∗ R) ⊢
       srvBeSnapOk
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
           #bl)
         iprop(backend.bOpen γ qo ∗ backend.wbTok γ ∗ R) iprop(backend.bOpen γ qo ∗ R)
-        (fun D => Q (backend.sData P D) (backend.hkData P D) (backend.rbData P D)) := by
-  iintro ⟨#Hpkg, #Hb, #HQ⟩
+        (fun D => Q (backend.sData P D) (backend.hkData P D) (backend.rbData P D) ∧ QR D) := by
+  iintro ⟨#Hpkg, #Hb, #HQ, #HQR⟩
   iunfold srvBeSnapOk
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #bl⟩
   isplitr
   · ipureintro; rfl
   iintro %Φ !> ⟨Ho, Hwb, HR⟩ HΦ
-  wp_apply hSnap γ P W Pk bl qo R Q $$ [Ho Hwb HR] as %sp %D ⟨Hsn, Ho, HR, %HQD⟩
+  wp_apply hSnap γ P W Pk bl qo R Q $$ [Ho Hwb HR] as %sp %D ⟨Hsn, Ho, HR, #Hfk, %HQD⟩
   · iframe #; iframe
+  ihave ⟨%HQRD, HR⟩ := HQR $$ %D HR Hfk
   iapply HΦ
   iframe
-  ipureintro; exact HQD
+  ipureintro; exact ⟨HQD, HQRD⟩
 
 /-- **`s.KV().Commit()`'s contract from `store.Commit`** (D22 S-l's sender items, 2026-10-22:
 `store.Commit` translated and proved): over a KV of the store `st` (`txn.isKV`: the store itself
@@ -254,22 +256,29 @@ view. -/
 theorem srvBeSnapOk_window (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
     (γA : ApplyNames) (γ : backend.BNames) (P : backend.BParams) (hP : ciKeys P) (W : IProp GF)
     (bl : Loc) (qo : Qp) (s : ApplyState) (rb : GMap GoString backend.BktData) (F : IProp GF)
-    (QF : backend.VData → Prop) :
+    (QF : backend.VData → Prop) (QR : backend.Data → Prop) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       backend.isBackend γ P W (batchLockInv γA (metaTM γ P)) bl ∗
-      □ (∀ vd, F -∗ W -∗ backend.viewAt γ vd -∗ ⌜QF vd⌝) ⊢
+      □ (∀ vd, F -∗ W -∗ backend.viewAt γ vd -∗ ⌜QF vd⌝) ∗
+      □ (∀ D : backend.Data, F -∗ backend.fkRd γ P (D, ⟨∅, W64 0⟩) -∗ ⌜QR D⌝ ∗ F) ⊢
       srvBeSnapOk
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
           #bl)
         iprop(backend.bOpen γ qo ∗ backend.wbTok γ ∗ (freezeY γA s ∗ backend.rbOwn γ rb ∗ F))
         iprop(backend.bOpen γ qo ∗ (freezeY γA s ∗ backend.rbOwn γ rb ∗ F))
-        (fun D => (ciObs (ciEff γA s.k) (backend.hkData P D) ∧ backend.rbData P D = rb) ∧
-          QF (backend.sData P D)) := by
-  iintro ⟨#Hpkg, #Hb, #HQF⟩
+        (fun D => ((ciObs (ciEff γA s.k) (backend.hkData P D) ∧ backend.rbData P D = rb) ∧
+          QF (backend.sData P D)) ∧ QR D) := by
+  iintro ⟨#Hpkg, #Hb, #HQF, #HQR⟩
   iapply srvBeSnapOk_of_backend hSnap γ P W (batchLockInv γA (metaTM γ P)) bl qo
     iprop(freezeY γA s ∗ backend.rbOwn γ rb ∗ F)
-    (fun vd d r => (ciObs (ciEff γA s.k) d ∧ r = rb) ∧ QF vd)
+    (fun vd d r => (ciObs (ciEff γA s.k) d ∧ r = rb) ∧ QF vd) QR
   iframe Hpkg Hb
+  isplitl
+  rotate_left
+  · iintro !> %D ⟨HY, Hrb, HF⟩ Hfk
+    ihave ⟨%h, HF⟩ := HQR $$ %D HF Hfk
+    iframe HY Hrb HF
+    ipureintro; exact h
   iapply snapObs_window γA γ P hP W F s rb QF $$ HQF
 
 /-- **The sender's KV log is well formed as a store's committed log** (D22 J7b, 2026-10-26;
@@ -290,6 +299,44 @@ theorem soleWriter_idxWf (γ : mvcc.StoreNames) (log : mvcc.Log) :
   obtain ⟨hwf, -, hcs⟩ := Hp
   have hne : log ≠ [] := by intro h; subst h; simp at H2
   refine ⟨mvcc.LogWf'.append_nil hwf hne, by omega, by simp, hcs⟩
+
+/-- **The backend with its hooks field known** (`isBackendNH`, what `commitReq_freeze` takes): the
+backend's contract and its `hooks` field (`backend.hooksAt`, the creation specs'). -/
+theorem isBackendNH_of_hooksAt (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF)
+    (b : Loc) (h : GoInterface) :
+    backend.isBackend (GF := GF) γ P W Pk b ∗ backend.hooksAt b h ⊢
+      backend.isBackendNH γ P W Pk b h := by
+  iintro ⟨#Hb, #Hh⟩
+  iunfold backend.isBackend at Hb
+  iunfold backend.hooksAt at Hh
+  icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h', #Ht, #Hrt, #Hlim, #Hlg, %Hlg0, #Hh', #Hbe, #Htm, -,
+    #Hmu, #Hrmu, #Htmu, #Hcmu, #Hci, #Hmet, #Hdbmu, #Hdb, %Hwf⟩
+  icombine Hh Hh' gives %Heq
+  subst Heq
+  iunfold backend.isBackendNH
+  imodintro
+  iexists t, rt, tm, db, lg
+  iframe #
+  ipureintro; exact ⟨Hlg0, Hwf⟩
+
+/-- `srvBeSnapOk` is monotone in its observation. -/
+theorem srvBeSnapOk_mono (b : GoInterface) (RS RS' : IProp GF) (Q Q' : backend.Data → Prop)
+    (hQ : ∀ D, Q D → Q' D) : srvBeSnapOk (GF := GF) b RS RS' Q ⊢ srvBeSnapOk b RS RS' Q' := by
+  iintro H
+  iunfold srvBeSnapOk at H
+  iunfold srvBeSnapOk
+  icases H with ⟨%bi, %Hb, #Ht⟩
+  iexists bi
+  isplitr
+  · ipureintro; exact Hb
+  iintro %Φ !> HR HΦ
+  iapply Ht $$ HR
+  iintro %sp %D
+  inext
+  iintro ⟨Hs, HR', %h⟩
+  iapply HΦ
+  iframe
+  ipureintro; exact hQ D h
 
 /-! ## The merged snapshot (2026-10-31, S1) -/
 
@@ -498,7 +545,172 @@ theorem mergedCreate_window
       (RS' -∗ srvBeAddr s ↦{dq} be ={⊤}=∗ ∃ st' : ApplyState, applyThread γ st' ∗
         applyBackend γ ci b ∗ ciApplying ci a t ∗ srvApplyKVCore s E γw x ua ∗ srvRest E γr A ∗
         ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝) := by
-  sorry
+  iintro ⟨#Hpkg, #Hsrv, #Hkva, #Hkv, #Hpool, -, -, Hr1, Hr2, Hst, Hab, Hca, HKV, HRs⟩
+  -- the server's backend, its hooks and the protocol (`srvBeHooked`, `srvEnvOk`, `isServerCI`)
+  iunfold isServerM at Hsrv
+  icases Hsrv with ⟨-, #HCI, ⟨%v, #Hf⟩, -⟩
+  iunfold srvFieldsAtM at Hf
+  icases Hf with ⟨-, -, -, -, -, %Henv, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hbh⟩
+  iunfold srvBeHooked at Hbh
+  icases Hbh with ⟨%d, %bh, %lgh, %Hd, -, #Hbhk, #HhkAt, #HB⟩
+  obtain ⟨hkb, hcK, hhP⟩ := Hd
+  obtain ⟨-, -, -, γB, H, hRO, -, d', al, stl, lp, hkb', hγB, -, hcm⟩ := Henv
+  rw [hkb] at hkb'
+  obtain rfl := Option.some.inj hkb'
+  subst hγB
+  iunfold isServerCI at HCI
+  icases HCI with ⟨-, #Hci, #Hinv⟩
+  ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
+  · iPkgInit
+  ihave #Hbpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
+  · iPkgInit
+  ihave #Hschpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
+  · iPkgInit
+  ihave #Hcipkg : isPkgInit (PROP := IProp GF)
+      pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
+  · iPkgInit
+  ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
+  · iPkgInit
+  ihave #Hnh := isBackendNH_of_hooksAt d.γB d.P (mvcc.lateW d.gx)
+    (batchLockInv γ (metaTM d.γB d.P)) d.be (storage.hooksIface bh) $$ [HB HhkAt]
+  · iframe #
+  -- the commit's request: the window opened (`storeReq_freeze`)
+  ihave #Hreq := storeReq_freeze hOn hSave hPut hUR hID hName hSafe γ ci E.γ d hkb
+    (mvcc.lateW d.gx) bh lgh hcK hhP st hok.1 $$ [Hspkg Hbpkg Hschpkg Hcipkg Hbhk Hnh HB Hci Hinv]
+  · iframe #
+  -- the apply thread's KV resources
+  iunfold srvApplyKVCore at HKV
+  icases HKV with ⟨Hua, #Hap, Hakv, Hbo, Hra, Hw⟩
+  iunfold apply.applyKV at Hakv
+  icases Hakv with ⟨%p, %Hp, Hub, Hko, Hcmo⟩
+  iunfold apply.kvOwn at Hko
+  icases Hko with ⟨Hsr, Hkw, Hll, Hrd, Hwo⟩
+  iunfold txn.kvWriter at Hkw
+  icases Hkw with ⟨Hsw, Hwl, Hfr⟩
+  ihave ⟨Hsw, %Hwf⟩ := keep_pure (soleWriter_idxWf E.γ x.log) $$ Hsw
+  iunfold srvBeOwn at Hbo
+  icases Hbo with ⟨%d2, %hd2, Hbe, Hg⟩
+  rw [hkb] at hd2
+  obtain rfl := Option.some.inj hd2
+  -- two write-backs' tokens
+  imod srvWTPool_take_extra_d E γp d _ $$ Hpool Hr1 Hg with ⟨Ht1, Hg⟩
+  imod srvWTPool_take_extra_d E γp d _ $$ Hpool Hr2 Hg with ⟨Ht2, Hg⟩
+  ihave Hwt := storeWT_of_wbTok E.γ d hkb $$ Ht1
+  -- the rest buckets
+  iunfold srvRest at HRs
+  rw [hRO]
+  iunfold srvRestOwnH at HRs
+  icases HRs with ⟨Hro, HH⟩
+  iunfold srvRestOwn at Hro
+  icases Hro with ⟨Hrb, Hcl⟩
+  have hRT : mvcc.storeRT (GF := GF) E.γ =
+      iprop(backend.rdTok d.γB d.P d.be ∗ backend.bOpen d.γB backend.rdOpen) := by
+    show mvcc.kbRT E.γ.kb = _
+    rw [hkb]; rfl
+  have hRB : ∀ n ∈ restBuckets, d.P.RB n = true := fun n hn => by
+    simp [mvcc.KBReal.P, hn]
+  imodintro
+  iexists srvBeIface d.be, DFrac.own (1 : Qp).half
+  iexists iprop(mvcc.writerFrag E.γ ∗ mvcc.writerOwn E.γ ∗ mvcc.storeWT E.γ ∗ applyThread γ st ∗
+      mvcc.storeReq E.γ (applyThread γ st) (freezeY γ st) ∗ emp)
+  iexists iprop(mvcc.writerFrag E.γ ∗ mvcc.writerOwn E.γ ∗ freezeY γ st ∗ emp)
+  iexists iprop(backend.bOpen d.γB backend.rdOpen ∗ backend.wbTok d.γB ∗ (freezeY γ st ∗
+      backend.rbOwn d.γB (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
+      (txn.kvWriter E.s E.γ x.log ∗ backend.rdTok d.γB d.P d.be ∗
+        mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb))))
+  iexists iprop(backend.bOpen d.γB backend.rdOpen ∗ (freezeY γ st ∗
+      backend.rbOwn d.γB (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
+      (txn.kvWriter E.s E.γ x.log ∗ backend.rdTok d.γB d.P d.be ∗
+        mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb))))
+  isplitr
+  · iapply srvKVCommitOk_of_kv hC kv E.s E.γ (applyThread γ st) (freezeY γ st) emp
+    iframe #
+  isplitl [Hfr Hwo Hwt Hst]
+  · iframe Hfr Hwo Hwt Hst Hreq
+  isplitl [Hbe]
+  · iexact Hbe
+  isplitr
+  · -- the snapshot in the window, observing `mergedObs`
+    iapply srvBeSnapOk_mono _ _ _ _ _ ?_
+    rotate_left
+    · iapply srvBeSnapOk_window hSnap γ d.γB d.P hcK (mvcc.lateW d.gx) d.be backend.rdOpen st
+        (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk
+        iprop(txn.kvWriter E.s E.γ x.log ∗ backend.rdTok d.γB d.P d.be ∗
+          mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb))
+        (fun vd => (∀ k v, vd.lookup (mvcc.keyName, k) = some v →
+            (mvcc.bucketMap x.log).lookup k = some v) ∧
+          (d.cm = false → ∀ k, vd.lookup (mvcc.keyName, k) = (mvcc.bucketMap x.log).lookup k))
+        (fun D => d.cm = false → backend.fkAbsD D)
+      iframe Hbpkg HB
+      isplitr
+      · iintro !> %vd ⟨Hkw, -, -⟩ HW Hv
+        iapply txn.kvWriter_keyObs E.s E.γ d hkb x.log vd $$ [Hkw HW Hv]
+        iframe
+      · iintro !> %D ⟨Hkw, Hrt, Hret⟩ #Hfk
+        ihave ⟨%h, Hkw⟩ := txn.kvWriter_noCmp E.s E.γ d hkb x.log (D, ⟨∅, W64 0⟩) $$ [Hkw Hfk]
+        · iframe Hkw Hfk
+        iframe Hkw Hrt Hret
+        ipureintro; exact fun hc => (h hc).1
+    · intro D ⟨⟨⟨hciO, hrbD⟩, hthin, hex⟩, hnc⟩
+      have hsd : ∀ k, (backend.sData d.P D).lookup (mvcc.keyName, k) =
+          backend.dget D mvcc.keyName k := fun k => by
+        rw [backend.sData_lookup]; simp [mvcc.KBReal.P]
+      obtain ⟨hci1, t1, ht1⟩ := hciO
+      rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inl rfl)] at hci1
+      rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inr rfl)] at ht1
+      refine ⟨fun k v h => hthin k v (by rw [hsd]; exact h), fun hc k => ?_,
+        fun hc => mvcc.noCmpData_of_fkAbsD (hnc (hcm.trans hc)), ?_, ⟨t1, by simpa using ht1⟩,
+        bkRestAt_of_rb hRB hrbD, Hwf⟩
+      · rw [← hsd]; exact hex (hcm.trans hc) k
+      · rw [← hci]; simpa using hci1
+  isplitl [Hsw Hwl Ht2 Hrb]
+  · iintro ⟨Hfr, Hwo, HY, -⟩
+    iunfold mvcc.writerOwn at Hwo
+    icases Hwo with ⟨Hrt, Hret⟩
+    rw [hRT]
+    icases Hrt with ⟨Hrdt, Hop⟩
+    iframe Hop Ht2 HY Hrb Hrdt Hret
+    iunfold txn.kvWriter
+    iframe
+  · iintro ⟨Hop, HY, Hrb, Hkw, Hrdt, Hret⟩ Hbe
+    imod unfreeze γ st $$ Hinv HY with Hst
+    imodintro
+    iexists st
+    iframe Hst Hab Hca
+    isplitl [Hua Hub Hcmo Hsr Hll Hrd Hkw Hrdt Hret Hop Hra Hw Hbe Hg]
+    · iunfold srvApplyKVCore
+      isplitl [Hua]
+      · iexact Hua
+      isplitr
+      · iexact Hap
+      isplitl [Hub Hcmo Hsr Hll Hrd Hkw Hrdt Hret Hop]
+      · iunfold apply.applyKV
+        iexists p
+        iframe Hub Hcmo
+        isplitr
+        · ipureintro; exact Hp
+        iunfold apply.kvOwn
+        iframe Hsr Hkw Hll Hrd
+        iunfold mvcc.writerOwn
+        iframe Hret
+        rw [hRT]
+        iframe Hrdt Hop
+      isplitl [Hbe Hg]
+      · iunfold srvBeOwn
+        iexists d
+        iframe Hbe Hg
+        ipureintro; exact hkb
+      isplitl [Hra]
+      · iexact Hra
+      iexact Hw
+    isplitl [Hrb Hcl HH]
+    · iunfold srvRest
+      rw [hRO]
+      iunfold srvRestOwnH
+      iframe HH
+      iunfold srvRestOwn
+      iframe Hrb Hcl
+    ipureintro; exact ⟨hok, rfl⟩
 
 /-- **(S2, open) The merged snapshot's image** (the network's image certificate, `srvNet`'s `img`,
 which the bundle carries): an observation `mergedObs` at the applied index `ai` of the applied log
