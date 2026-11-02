@@ -245,7 +245,7 @@ theorem Main.wp_proof
   wp_auto
   iunfold common.memberUp at Hup₁
   icases Hup₁ with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hbemu,
-    Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
+    Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
   iunfold srvGoRes at Hgo
   icases Hgo with ⟨Hwgr, Htok⟩
   wp_apply (wp_StartMember N name₂ peerAddr₂ clientAddr₂ go!"putget3"

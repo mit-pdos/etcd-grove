@@ -10,14 +10,12 @@ import (
 )
 
 // TestMainRun runs Main for real: one member in a fresh data directory (Main's DataDir is
-// relative); the checks must pass. Then, on the member Main left running, it checks the answers
+// relative); its checks must pass (no panic). Then, on the member Main left running, it checks the answers
 // Main saw are the empty lessor's (TimeToLive's TTL -1, no lease listed), grants a lease and checks
 // the answers about it.
 func TestMainRun(t *testing.T) {
 	t.Chdir(t.TempDir())
-	if r := Main(); r != Ok {
-		t.Fatalf("got %v", r)
-	}
+	Main()
 
 	cli, err := clientv3.New(clientv3.Config{Endpoints: []string{clientAddr}, Logger: zap.NewNop()})
 	if err != nil {

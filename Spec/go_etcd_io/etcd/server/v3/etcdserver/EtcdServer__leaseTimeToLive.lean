@@ -39,8 +39,11 @@ token, reading `r`: on
 stated 2026-11-01 for the gRPC handler's `fill`, `notes/lease-grpc-plan.md`; a reply whose
 response has no header panics that `fill`, `issues/etcd-leasehttp-timetolive-nil-header-panic.md`); on an error, no response and one of the
 server's or the lessor's package errors (`applyErrIs`: `ErrStopped`, `ErrTimeoutWaitAppliedIndex`,
-`ErrLeaseNotFound`, `ErrLeaderChanged`, `ErrNoLeader`, `ErrTimeout`, `ErrCanceled`). Nothing is
-stated of the response's lease, TTL or keys: on the leader it looks the lease up again (`Lookup`,
+`ErrLeaseNotFound`, `ErrLeaderChanged`, `ErrNoLeader`, `ErrTimeout`, `ErrCanceled`). The response
+is about the asked lease (`ID`; stated 2026-11-02 for the closed lease example,
+`notes/lease-ex-plan.md`): the leader's literal has `ID: r.ID`, and a follower's
+`leasehttp.TimeToLiveHTTP` returns only a reply whose `LeaseTimeToLiveResponse.ID` is the asked ID
+(`lease: TTL id mismatch` otherwise, `http.go:274`). Nothing is stated of its TTL or keys: on the leader it looks the lease up again (`Lookup`,
 `Remaining`, `TTL`, `Keys`, `Demoted`, after `waitAppliedIndex`), on a follower it asks the leader
 (`waitLeader`, `leasehttp.TimeToLiveHTTP` to each of its peer URLs, until the request's timeout),
 so the keys are another lessor's or another lookup's (`issues/etcd-lease-timetolive-keys-toctou.md`).
@@ -60,7 +63,7 @@ abbrev EtcdServer.leaseTimeToLive.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗
       r ↦{dq} v ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗
-          ⌜w.Header' ≠ null⌝ ∗ ∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∨
+          ⌜w.Header' ≠ null⌝ ∗ ⌜w.ID' = v.ID'⌝ ∗ ∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec

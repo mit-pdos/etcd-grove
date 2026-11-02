@@ -11,9 +11,9 @@ panic. Lean-first (no Rocq counterpart).
   client and checks what holds whatever the lessor holds: `cli.Leases(ctx)` lists no lease twice
   (`leaseIdsAt`'s `Nodup`), and `cli.TimeToLive(ctx, id)` answers about `id` (the reply's `ID`);
   it panics otherwise. The second check needs `leaseTTLOut`'s found arm to state the ID (today
-  only the not-found arm does), down to the trust-boundary `leaseTimeToLive` (the follower path
-  returns the leader's HTTP answer, which `leasehttp.TimeToLiveHTTP` does not check against the
-  asked ID, unlike `RenewHTTP`): a trusted change for Freeze. Grants are a later stage.
+  only the not-found arm does), down to the trust-boundary `leaseTimeToLive`: a trusted change for
+  Freeze. It is true on every path (D3: the follower's `leasehttp.TimeToLiveHTTP` checks the
+  leader's reply against the asked ID), so the check needs no assumption about the cluster. Grants are a later stage.
 - **F4 in grpc's model** (the lease-src review): a run of a served method holds its goroutine's
   `threadTok` (Perennial's `wp_fork` gives it one). Done as a restatement of the axiom
   `grpc.serve` (`InvGrpc.lean`): the method meets are at `S ∗ threadTok`, and `grpcServes` carries
@@ -48,3 +48,47 @@ The example:
 
 Draft → Review (an independent spec reviewer) → Test (the Go test) → Probe → Freeze (the user) →
 Prove.
+
+## Draft (2026-11-02)
+
+**D1. F4** (`InvGrpc.lean`): the axiom `grpc.serve` restated, a run's slot `S ∗ threadTok`
+(`grpc_serve_rpcs_tok`; `grpc_serve_rpcs` keeps its statement through `grpcMethodsOkMd_frame`).
+
+**D2. The wire** (`client/v3/InvLeaseRead.lean`): `pbLeaseTimeToLiveRequest` (`(ID, Keys)`; the
+server's decoded copy read-only as a whole, which `LeaseServer.LeaseTimeToLive` takes),
+`pbLeaseTimeToLiveResponse` (`LeaseTTLRespM`: header, `ID`, `TTL`, `GrantedTTL`; the `Keys` slice a
+field, its contents not modelled), `pbLeaseLeasesRequest` (nothing), `pbLeaseLeasesResponse`
+(`LeaseLeasesRespM`: header, the IDs in order); etcd's specs `etcdLeaseTTLSpec` (the reply's ID is the
+asked one) and `etcdLeaseLeasesSpec` (no ID twice); the options (`leaseOptSpec`, `leaseOptsAt`,
+`leaseKeysFold`, as the KV's `optSpec`).
+
+**D3. The server's answer about the asked lease** (trusted and frozen statements): `⌜w.ID' = v.ID'⌝`
+added to the success arms of the trust-boundary `EtcdServer.leaseTimeToLive.spec` (the leader's
+literal has `ID: r.ID`; a follower's `leasehttp.TimeToLiveHTTP` returns only a reply whose ID is the
+asked one, `lease: TTL id mismatch` otherwise, `http.go:274`), `EtcdServer.LeaseTimeToLive.spec`,
+`ttlAns` and `leaseTTLOut` (proofs updated).
+
+**D4. Served** (`client/v3/LeaseReadServed.lean`, `examples/common/ServedLease.lean`): the
+handler meets (`etcd_leaseTTLHandlerOk`, `etcd_leaseLeasesHandlerOk`, at the contract's slot with
+the lower bounds), the generated handlers' (`etcd_leaseTTLMethodOk`, ...), the promotions through
+`quotaLeaseServer` (`QuotaLeaseLemmas.lean`), `etcdLeaseReadAt addr`, and `common.kv_lease_served`
+(`kv_served` with the lease reads, under `threadBound GF ≤ 2 ^ 30 - 1`). The examples' `memberBuilt`
+and `memberUp` carry `srvLeaseRd s E` (`NewServer`'s `srvLessorRd`, `lessorRdPool`), `grpcUp` the
+Lease service `v3rpc.Server` registered (`grpcLeaseUp`).
+
+**D5. The client** (translated: `lessor.TimeToLive`, `lessor.Leases`, `LeaseOp.applyOpts`,
+`toLeaseTimeToLiveRequest`, the retry lease client's and the stub's two reads, the getters): specs
+as `lessor.Grant`'s; `lessor.TimeToLive` over the options' `Keys` (`leaseKeysFold gs false`);
+`lessor.Leases`' result a fresh `[]LeaseStatus` of the reply's IDs. Linked in the client's `Link`.
+
+**D6. The example**: project `leasekv` (`etc/goose.py`, `etc/gen-init.py`), `Main` returns nothing
+(as putget's; each read in a context with the request timeout), `leasekv.Main.spec` (putget's
+premises at leasekv's addresses), `leasekv_Main`, `leasekv_safe` (`Adequacy.lean`, as putget's).
+
+**Left `sorry` for Prove**: the handler and method meets, `kv_lease_served`, the client's
+`applyOpts`, `toLeaseTimeToLiveRequest`, `lessor.TimeToLive`, `lessor.Leases`, `Main`.
+
+**Bounds** (for Freeze): `etc/bounds-check.py`'s stock count in `examples/common` goes 23 → 29, all
+six from `kv_lease_served`'s statement repeating `kv_served`'s slot premises (the same stocks,
+counted twice). Prove should factor `kv_lease_served` through a `kv_served` generalized over extra
+methods, with the slots in one definition, which brings the count back; else the baseline moves.

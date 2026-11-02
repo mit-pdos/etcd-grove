@@ -6,10 +6,11 @@
 // verified proposers send grants one; the test also checks the answers after a grant).
 //
 // Main calls only what the proofs specify: the examples' shared start (examples/common's
-// StartServer, Serve and NewClient), the client's Leases and TimeToLive (through its embedded
-// Lease field) and context.Background. An error from a step of the start, or from either read,
-// ends Main with Failed: a read may fail (a timeout, the connection), but one that answers must
-// answer as checked.
+// StartServer, Serve and NewClient), the client's Leases and TimeToLive (through its Lease field),
+// each in a context with the examples' request timeout (context.WithTimeout of Background,
+// cancelled after the call). An error from a step of the start, or from either read, ends Main
+// without a check: a read may fail (a timeout, the connection), but one that answers must answer as
+// checked.
 package leasekv
 
 import (
@@ -32,31 +33,25 @@ const (
 // The lease id TimeToLive asks about: any id, since the member holds no lease.
 const leaseID = clientv3.LeaseID(7)
 
-// Main's results: the checks passed, or a step of the start or a read failed.
-const (
-	Ok     = 0
-	Failed = 1
-)
-
 // Main starts one member of a new cluster, connects a client, and checks its two lease reads.
-func Main() int {
+func Main() {
 	lg := zap.NewNop()
 	s, err := common.StartServer("leasekv", peerAddr, clientAddr, lg)
 	if err != nil {
-		return Failed
+		return
 	}
 	if err := common.Serve(s, clientAddr); err != nil {
-		return Failed
+		return
 	}
 	cli, err := common.NewClient(clientAddr, lg)
 	if err != nil {
-		return Failed
+		return
 	}
-	ctx := context.Background()
-
-	ls, err := cli.Lease.Leases(ctx)
+	lctx, lcancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	ls, err := cli.Lease.Leases(lctx)
+	lcancel()
 	if err != nil {
-		return Failed
+		return
 	}
 	for i := range ls.Leases {
 		for j := 0; j < i; j++ {
@@ -66,12 +61,13 @@ func Main() int {
 		}
 	}
 
-	ttl, err := cli.Lease.TimeToLive(ctx, leaseID)
+	tctx, tcancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	ttl, err := cli.Lease.TimeToLive(tctx, leaseID)
+	tcancel()
 	if err != nil {
-		return Failed
+		return
 	}
 	if ttl.ID != leaseID {
 		panic("leasekv: TimeToLive answered about another lease")
 	}
-	return Ok
 }

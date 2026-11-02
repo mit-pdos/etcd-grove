@@ -49,6 +49,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.putgetc',
          # the client's `kv.Compact` (2026-11-01): putgetc under compaction pressure
          'github_com.mit_pdos.etcd_grove.examples.compactkv',
+         # the closed lease example (2026-11-02, notes/lease-ex-plan.md)
+         'github_com.mit_pdos.etcd_grove.examples.leasekv',
          'github_com.mit_pdos.etcd_grove.examples.putget3',
          # the restart plan (2026-11-02, notes/restart-plan.md): putget3 with a member restarted
          'github_com.mit_pdos.etcd_grove.examples.restart3',
@@ -2095,6 +2097,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/putgetc/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.compactkv':
             'Proof/github_com/mit_pdos/etcd_grove/examples/compactkv/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.leasekv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/leasekv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.putget3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/putget3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.linkv3p':

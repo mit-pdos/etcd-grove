@@ -54,7 +54,7 @@ abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
       threadTok ∗ r ↦{dq} v ∗
       ((⌜err = GoInterface.nil⌝ ∗
           (∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗ ⌜w.Header' ≠ null⌝ ∗
-            ∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
+            ⌜w.ID' = v.ID'⌝ ∗ ∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
           authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
           (if v.Keys' then leaseCheckFrom s E (GoInterface.ok ctx) n
               (fun info => leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read)

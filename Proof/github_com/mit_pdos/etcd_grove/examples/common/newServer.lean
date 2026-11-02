@@ -106,7 +106,7 @@ theorem newServer.wp_proof
     iapply Htk
     ipureintro; rfl
   icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, -, -⟩)
+    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, -, #Hlrd, #Hpool⟩)
   · -- `NewServer` failed: the error returned
     iapply HΦ; ileft; ipureintro; exact Herr
   subst Herr
@@ -122,6 +122,8 @@ theorem newServer.wp_proof
     isplitr; · iExactEq Hmd; rfl
     iexists _
     iframe Hmf Hfgc
+  ihave #Hlr : srvLeaseRd srv E $$ []
+  · iunfold srvLeaseRd; iframe #
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl
@@ -207,7 +209,7 @@ theorem newServer.wp_proofCompact
     iapply Htk
     ipureintro; rfl
   icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, -, -⟩)
+    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, -, #Hlrd, #Hpool⟩)
   · -- `NewServer` failed: the error returned
     iapply HΦ; ileft; ipureintro; exact Herr
   subst Herr
@@ -223,6 +225,8 @@ theorem newServer.wp_proofCompact
     isplitr; · iExactEq Hmd; rfl
     iexists _
     iframe Hmf Hfgc
+  ihave #Hlr : srvLeaseRd srv E $$ []
+  · iunfold srvLeaseRd; iframe #
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl

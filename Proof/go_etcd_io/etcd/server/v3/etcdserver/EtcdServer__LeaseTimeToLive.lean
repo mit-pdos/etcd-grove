@@ -98,7 +98,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     wp_apply (hTTL s E ρ γr γl ctx cd r dq v) $$ [$Htok $Hreq] as %resp %err2
         ⟨Htok, Hreq, Hres⟩
     · iframe #; ipureintro; exact Hbound
-    icases Hres with (⟨%He2, %w, Hw, %Hh, Hhv⟩ | ⟨%Hn, #He2⟩)
+    icases Hres with (⟨%He2, %w, Hw, %Hh, %Hid, Hhv⟩ | ⟨%Hn, #He2⟩)
     · subst He2
       (try wp_auto)
       ihave ⟨Hreq, -⟩ := typedPointsto_not_null_dup _ _ _ $$ Hreq
@@ -126,7 +126,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
         · ipureintro; rfl
         iframe Hout
         isplitl [Hw Hhv]
-        · iexists w; iframe Hw Hhv; ipureintro; exact Hh
+        · iexists w; iframe Hw Hhv; ipureintro; exact ⟨Hh, Hid⟩
         (try simp only [↓reduceIte]); iexact Hchk
       | true =>
         (try wp_auto)
@@ -144,7 +144,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
           · ipureintro; rfl
           iframe Hout
           isplitl [Hw Hhv]
-          · iexists w; iframe Hw Hhv; ipureintro; exact Hh
+          · iexists w; iframe Hw Hhv; ipureintro; exact ⟨Hh, Hid⟩
           (try simp only [↓reduceIte]); iexact Hchk
         · -- `return nil, auth.ErrAuthOldRevision`
           (try wp_auto)
@@ -171,7 +171,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     wp_apply (hTTL s E ρ γr γl ctx cd r dq v) $$ [$Htok $Hreq] as %resp %err2
         ⟨Htok, Hreq, Hres⟩
     · iframe #; ipureintro; exact Hbound
-    icases Hres with (⟨%He2, %w, Hw, %Hh, Hhv⟩ | ⟨%Hn, #He2⟩)
+    icases Hres with (⟨%He2, %w, Hw, %Hh, %Hid, Hhv⟩ | ⟨%Hn, #He2⟩)
     · subst He2
       (try wp_auto)
       ihave ⟨Hreq, -⟩ := typedPointsto_not_null_dup _ _ _ $$ Hreq
@@ -190,7 +190,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
       · ipureintro; rfl
       iframe Hout
       isplitl [Hw Hhv]
-      · iexists w; iframe Hw Hhv; ipureintro; exact Hh
+      · iexists w; iframe Hw Hhv; ipureintro; exact ⟨Hh, Hid⟩
       (try simp only [↓reduceIte, Bool.false_eq_true]); itrivial
     · obtain ⟨rfl, Hne⟩ := Hn
       rcases err2 with ei | _

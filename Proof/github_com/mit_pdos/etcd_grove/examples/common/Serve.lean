@@ -76,7 +76,8 @@ theorem Serve.wp_proof
   wp_apply (wp_Server Hms s C _ _ [kv] Hbuq) $$ [Hlg3 Hbemu Hgo]
     as %gs ⟨%q, %p, %pw, %pa, %ql, %pl, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid,
       %lcid, %lmid, %R,
-      Hgsn, %Hregs, -, -, -, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4, Hbemu2, Hgo2⟩
+      Hgsn, %Hregs, -, #Hql, #Hlat, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4,
+      Hbemu2, Hgo2⟩
   · iframe; iframe #
     isplitr
     · ipureintro; rw [Hwpi]; simp
@@ -97,6 +98,11 @@ theorem Serve.wp_proof
   wp_auto
   -- the caller's ghost step, between `Listen` and `go gs.Serve(l)`
   obtain ⟨hRs, hRE, hRw, hRγ⟩ := HR
+  ihave #Hlu : grpcLeaseUp s C.A regs $$ []
+  · iunfold grpcLeaseUp
+    iexists ql, pl, lcid, lmid
+    iframe #
+    ipureintro; exact Hregs.2.2.2.1
   ihave Hup : grpcUp s E ρ γr gs lis addr cid mid R $$ [Hgsn Hlg4 Hbemu2 Hgo2 HWRs Hlis]
   · iunfold grpcUp
     iexists C, q, p, pw, il, im, iu, ims, is, svcs, regs, sregs

@@ -79,7 +79,7 @@ theorem grpcUp_noRefusal (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
     #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbemu, Hgo, HWRs,
-    Hlis⟩
+    Hlis, #Hlu⟩
   ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal addr gs q p s lis E ρ [il, im, iu]
       [ims, is] svcs regs sregs HC.2.2.1 HEo) $$ [Hgsn Hlis]
   · iframe Hgsn Hlis; iframe #
@@ -110,7 +110,7 @@ theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, -, Hlis⟩
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, -, Hlis, -⟩
   obtain ⟨HCA, -, Hregs, -⟩ := HC
   icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨-, -, Hrds⟩
