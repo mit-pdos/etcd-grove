@@ -70,7 +70,9 @@ theorem RawNode.Ready.wp_proof
   · iExactEq Hrn; rfl
   isplitl [Hpb]
   · iintro %E %q' %HE ⟨Hd, Hl⟩
-    imod raft_enter E γ id rs.dur q' g _ W HE $$ Hd Hl Hpb with ⟨Hd, Hl, Hf, #Hfr⟩
+    imod raft_enter E γ id rs.dur q' g (readyDurable rs.dur (phsNext rs.phs h) L es) W HE
+      (RaftState.next_wcommit _ _ _ _ _ _) $$ Hd Hl Hpb
+      with ⟨Hd, Hl, Hf, #Hfr⟩
     imodintro
     iframe Hd Hl Hf Hfr
     iapply bigSepL_wand_pers (durFrags (GF := GF) γ id W) (fun q : QMsg => isRaftMsg γ id q.st) ms

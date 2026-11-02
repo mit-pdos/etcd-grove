@@ -1777,9 +1777,11 @@ theorem nodeCommitLbU_mono (γ : Cluster) (K : GName) (i i' : Nat) (h : i' ≤ i
 /-- (2026-11-01, durability stage I-2; candidate 12 §1) **Node `id`'s durable state is `S`** (the
 API's `raftState`): the protocol's durable half at `S` (`ownDurGhost`: its share of the promise
 authorities at the entered maps, `S`'s durable invariants), and the term budget's lower bound at
-`S`'s term (amendment 3: what the restarted node's `run` needs, `runPre`'s `termLB`). -/
+`S`'s term (amendment 3: what the restarted node's `run` needs, `runPre`'s `termLB`); (2026-11-02,
+stage II (p)) and the budget's invariant, which a restarted node's channels need (`isNodeChan`;
+`StartNode` has it from `nodeBoot`). -/
 def raftStateU (γ : Cluster) (id : w64) (S : RaftState) : IProp GF :=
-  iprop(ownDurGhost γ.raft id S ∗ termLB γ.bud S.term)
+  iprop(ownDurGhost γ.raft id S ∗ termLB γ.bud S.term ∗ inv budgetN (budgetInv γ.bud))
 
 /-- (2026-11-01, durability stage I-2; candidate 12 §1) **No node of `id` runs** (the API's
 `nodeVacant`): the id's protocol slot (`raftIdSlot`: the other half of its virtual maps, its
@@ -2345,7 +2347,10 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
     (S' : RaftState) (W : DurMaps)
     (Hnok : NodeOk γ γn) (HU : UniNames γ N) (HNs : γ.raft.reNs = N .@ "raft")
     (Hγs : γn.stor = st'.storage) (Hds : strip ds' = st'.delivered) (Hdyn : γn.mode.isDyn = true)
-    (Hh : st'.handling = some (es, L)) (HS : st'.durable = S') :
+    (Hh : st'.handling = some (es, L)) (HS : st'.durable = S')
+    -- (2026-11-02, stage II (p)) the batch moves `wcommit` to its commit or writes nothing
+    (HwS : S'.wcommit = S'.commit ∨
+      (S'.wcommit = st.durable.wcommit ∧ S'.base = st.durable.base ∧ S'.ents = st.durable.ents)) :
     ⊢ clusterInv (GF := GF) γ N -∗ rdPool γ N -∗ isCommittedLogLb γ st'.delivered -∗
       nodeTabOk γ n γn -∗ storKeyNames st'.key γn.sn -∗ EtcdGrove.isNodeChan γn γn.id n -∗
       nodeDriverBusy γn γn.id n ds' es st'.hardState L -∗
@@ -2364,7 +2369,7 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
   unfold readyEnter
   iintro %E %q %HE ⟨Hrs, Hrun⟩
   iunfold raftStateU at Hrs
-  icases Hrs with ⟨Hdg, #HtS⟩
+  icases Hrs with ⟨Hdg, #HtS, #Hbi⟩
   iunfold nodeRunning at Hrun
   icases Hrun with ⟨%γ1, %id1, %Hok1, #H1, #T1, Hl⟩
   icases isNode_id_agree γ1 γn id1 γn.id n $$ H1 Hnode with %Hid1
@@ -2386,7 +2391,7 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
     exact HE p (nclose_subseteq N "raft" p hp)
   ihave Hpend : pendBatch γ.raft γn.id γn.gen S' W $$ [Hpend]
   · rw [← Hnok.1]; iexact Hpend
-  imod raft_enter E γ.raft γn.id st.durable q.half γn.gen S' W HrE $$ Hdg Hsl Hpend
+  imod raft_enter E γ.raft γn.id st.durable q.half γn.gen S' W HrE HwS $$ Hdg Hsl Hpend
     with ⟨Hdg, Hsl, Hfree, #Hfr⟩
   ihave #HtS' : termLB γ.bud S'.term $$ []
   · rw [← Hnok.2.1]; iexact HtS'0
@@ -2405,7 +2410,7 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
   isplitl [Hdg]
   · unfold raftStateU
     rw [HS]
-    iframe Hdg HtS'
+    iframe Hdg HtS' Hbi
   isplitl [Hlv Hsl]
   · unfold nodeRunning
     iexists γ1, γn.id
@@ -2553,7 +2558,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     · rw [← Hds, ← strip_append]; iexact Hlb
     ihave Henter := api_enter n γ N γn st (st.afterReady (strip ce) es h none ss) (ds ++ ce) es none
       ms S' W Hnok HU HNs Hγs (by rw [strip_append, Hds]; rfl) Hdyn rfl
-      (by rw [HS', Hp']; rfl) $$ Hci Hpool [] Htab [] Hnode [Hbusy] [] Hdur Hdx [Hbw] Hpend HtS' Hmw Htl
+      (by rw [HS', Hp']; rfl) (by rw [HS']; exact RaftState.next_wcommit _ _ _ _ _ _) $$ Hci Hpool [] Htab [] Hnode [Hbusy] [] Hdur Hdx [Hbw] Hpend HtS' Hmw Htl
     · iExactEq Hlb'; rfl
     · iExactEq Hkey; rfl
     · rw [show (st.afterReady (strip ce) es h none ss).hardState = p' from Hp'.symm,
@@ -2652,7 +2657,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
       iframe Hkey Hdlb Hlbd
     ihave Henter := api_enter n γ N γn st (st.afterReady [] es h (some l) ss) l.dlv es (some l)
       ms S' W Hnok HU HNs Hγs rfl Hdyn rfl
-      (by rw [HS', Hp']; rfl) $$ Hci Hpool [] Htab [] Hnode [Hbusy] [] Hdur Hdx [Hbw] Hpend HtS' Hmw Htl
+      (by rw [HS', Hp']; rfl) (by rw [HS']; exact RaftState.next_wcommit _ _ _ _ _ _) $$ Hci Hpool [] Htab [] Hnode [Hbusy] [] Hdur Hdx [Hbw] Hpend HtS' Hmw Htl
     · iExactEq Hlbd; rfl
     · iExactEq Hkey; rfl
     · rw [show (st.afterReady [] es h (some l) ss).hardState = p' from Hp'.symm]

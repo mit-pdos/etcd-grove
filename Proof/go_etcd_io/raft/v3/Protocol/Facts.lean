@@ -1018,7 +1018,8 @@ private theorem slot_init (E : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNa
   isplitl [Hv1 Ha1 Hc1 Hl1 He1]
   · unfold ownDurGhost slotInv
     iexists DurMaps.empty
-    iframe Hdp Hslot
+    ihave #HI0 := durI1_init (GF := GF) γ
+    iframe Hdp Hslot HI0
     unfold durShares
     simp only [DurMaps.empty]
     iexists γv, γa, γc, γl, γe

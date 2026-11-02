@@ -109,9 +109,15 @@ abbrev NewRawNode.spec : Prop :=
   -- synchronous storage writes
   cv.AsyncStorageWrites' = false →
   -- (durability stage I-6) `newRaft`'s view of the storage, from the base
-  LogIndicesOk σ.prev σ.ents → σ.pend = [] → σ.fr = uint.nat σ.prev.index' →
+  LogIndicesOk σ.prev σ.ents → σ.pend = [] →
+  -- (2026-11-02, stage II (o): `restartStorage`'s freeze point) frozen up to at most the commit
+  -- `loadState` restores
+  uint.nat σ.prev.index' ≤ σ.fr → σ.fr ≤ uint.nat (committedAfter σ.prev hs) →
   uint.Z σ.fl ≤ uint.Z σ.prev.index' → σ.sg ≤ uint.nat σ.prev.index' →
-  (∀ k t, σ.dt !! k = some t → k ≤ uint.nat σ.prev.index') →
+  -- (2026-11-02, stage II (r): nothing certified yet; until then any terms at most the base, of
+  -- the log's term there, which the catch-up could not certify again without their keys) no term
+  -- certified
+  σ.dt = ∅ →
   uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 < 2 ^ 64 →
   -- (2026-11-01, durability stage I-6) the storage key's attach record (`restartStorage`'s
   -- continuation): the applied bound `max b A`, the commit `loadState` restores, the view's terms
@@ -127,6 +133,9 @@ abbrev NewRawNode.spec : Prop :=
     some cs' →
   csm.Voters'.length + csm.VotersOutgoing'.length + csm.Learners'.length +
     csm.LearnersNext'.length ≤ 2 ^ 62 →
+  -- (2026-11-02, stage II (r)) and well-formed, which `assertConfStatesEquivalent` needs (a list
+  -- with a repeat, or `AutoLeave` set with no outgoing voter, makes it panic)
+  ConfStateOk csm →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
       -- (raft-final phase 1) `newRaft`'s start bundle
       (□ {{ R }} (App (Val #(methods si.ty go!"FirstIndex" si.v)) (Val #()))

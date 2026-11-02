@@ -141,15 +141,18 @@ def StorContents.commit (σ : StorContents) : Nat := uint.nat σ.hs.Commit'
 /-- **At a restart, the storage holds `S`** (candidate 12 §2, with the user's amendment of review
 1's R1): its log starts at a point `σ.base` at or above `S.base`, within `S`'s log (the term at
 it `S`'s), with `S`'s entries above it; its hard state is `S`'s term and vote with a commit index
-from the base up to `S`'s (a lagging stored commit allowed: a commit-only batch is entered without
-a write); its snapshot, if any, at an index in `[σ.base, σ.commit]`, and present if the base
-passed `S`'s. -/
+from the base, and from the commit of the last batch that wrote the log (`S.wcommit`), up to `S`'s
+(a lagging stored commit allowed: a commit-only batch is entered without a write); its snapshot, if
+any, at an index in `[σ.base, σ.commit]`, and present if the base passed `S`'s. (2026-11-02, stage
+II (p): the lower bound `S.wcommit`; until then any commit from the base, which a restart cannot
+take: below `S.wcommit` the restarted log may hold two conf-change entries above its commit,
+`notes/decisions.md`, "The restart's lowest commit: `wcommit`".) -/
 def StorageHolds (S : RaftState) (σ : StorContents) : Prop :=
   uint.Z S.base.index' ≤ uint.Z σ.base.index' ∧
   plogTermAt S.base S.ents σ.base.index' = some σ.base.term' ∧
   σ.ents = S.entsFrom σ.base ∧
   σ.hs.Term' = S.term ∧ σ.hs.Vote' = S.vote ∧
-  σ.b ≤ σ.commit ∧ σ.commit ≤ uint.nat S.commit ∧
+  σ.b ≤ σ.commit ∧ uint.nat S.wcommit ≤ σ.commit ∧ σ.commit ≤ uint.nat S.commit ∧
   (∀ sv, σ.snap = some sv →
     σ.b ≤ uint.nat sv.Metadata'.Index' ∧ uint.nat sv.Metadata'.Index' ≤ σ.commit) ∧
   (S.base.index' ≠ σ.base.index' → σ.snap.isSome)

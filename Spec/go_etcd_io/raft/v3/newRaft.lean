@@ -111,12 +111,28 @@ def committedAfter (prev : entryID) (hs : HardStateM) : w64 :=
 /-- (2026-11-01, durability stage I-6) **The storage names `sn` carry the attach record of a
 storage holding the log `prev :: ents`**, with the commit `c0` and the applied bound `a0` raft
 restores: what `restartStorage`'s continuation hands out (`nodeAppliedLb γ K a0`, `nodeCommitLb γ
-K c0`), recorded in the key (`storKeyNames`). Every recorded term is the log's at its index, from
-the base up to `c0`: so raft's view, once its commit reaches `c0`, certifies them (`storCaught`). -/
+K c0`), recorded in the key (`storKeyNames`). Every recorded term from the base up to `c0` is the
+log's at its index: so raft's view, once its commit reaches `c0`, certifies them (`storCaught`).
+(2026-11-02, stage II (p)) Every index from `1` up to `c0` is recorded, once: below the base too
+(raft certifies those terms, which its log does not hold, as the record's: the record's terms are
+the committed log's, `ctCommitted`). A restarted node hands out the committed log up to `a0` with
+the recorded terms (`dlvKeys`), and certified up to `c0` (`SdtTie`). (Until then only the indices
+from the base, of the view's terms.) -/
 def AttachRec (sn : StorNames) (prev : entryID) (ents : List EntryM) (c0 a0 : Nat) : Prop :=
   sn.a0 = a0 ∧ sn.c0 = c0 ∧
-  ∀ (i : Nat) (t : w64), (i, t) ∈ sn.ct → i ≤ c0 →
-    uint.nat prev.index' ≤ i ∧ termAt prev ents (W64 (i : Int)) = some t
+  (∀ (i : Nat) (t : w64), (i, t) ∈ sn.ct → i ≤ c0 →
+    1 ≤ i ∧ (uint.nat prev.index' ≤ i → termAt prev ents (W64 (i : Int)) = some t)) ∧
+  ∀ (i : Nat), 1 ≤ i → i ≤ c0 → ∃ t, (i, t) ∈ sn.ct ∧ ∀ t', (i, t') ∈ sn.ct → t' = t
+
+/-- (2026-11-02, stage II (r)) **A well-formed persisted `ConfState`**: well-formed (`CSWf`) or empty
+(a new cluster's), its lists without repeats, `AutoLeave` only with outgoing voters. Then the conf
+state `switchToConfig` reports of `Restore`'s configuration is the same up to order
+(`assertConfStatesEquivalent` does not panic); with a repeat, or `AutoLeave` set alone, it differs. -/
+def ConfStateOk (c : ConfStateM) : Prop :=
+  (CSWf c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' ∨
+    (c.Voters' = [] ∧ c.VotersOutgoing' = [] ∧ c.Learners' = [] ∧ c.LearnersNext' = [])) ∧
+  c.Voters'.Nodup ∧ c.VotersOutgoing'.Nodup ∧ c.Learners'.Nodup ∧ c.LearnersNext'.Nodup ∧
+  (c.VotersOutgoing' = [] → c.AutoLeave' = false)
 
 end defs
 
@@ -160,11 +176,17 @@ abbrev newRaft.spec : Prop :=
   -- a positive applying-size limit (2026-10-05)
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   -- (durability stage I-6) the storage's view raft makes: from the base (contiguous indices,
-  -- nothing pending, frozen only at the base, the floor, the snapshot handed out and the terms
+  -- nothing pending, frozen from the base up to at most the restored commit, the floor, the snapshot handed out and the terms
   -- certified at most the base), within 64 bits
-  LogIndicesOk σ.prev σ.ents → σ.pend = [] → σ.fr = uint.nat σ.prev.index' →
+  LogIndicesOk σ.prev σ.ents → σ.pend = [] →
+  -- (2026-11-02, stage II (o): `restartStorage`'s freeze point) frozen up to at most the commit
+  -- `loadState` restores
+  uint.nat σ.prev.index' ≤ σ.fr → σ.fr ≤ uint.nat (committedAfter σ.prev hs) →
   uint.Z σ.fl ≤ uint.Z σ.prev.index' → σ.sg ≤ uint.nat σ.prev.index' →
-  (∀ k t, σ.dt !! k = some t → k ≤ uint.nat σ.prev.index') →
+  -- (2026-11-02, stage II (r): nothing certified yet; until then any terms at most the base, of
+  -- the log's term there, which the catch-up could not certify again without their keys) no term
+  -- certified
+  σ.dt = ∅ →
   uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 < 2 ^ 64 →
   -- (2026-11-01, durability stage I-6) the storage key's attach record (`restartStorage`'s
   -- continuation): the applied bound `max b A`, the commit `loadState` restores, the view's terms
@@ -182,6 +204,9 @@ abbrev newRaft.spec : Prop :=
     some cs' →
   csm.Voters'.length + csm.VotersOutgoing'.length + csm.Learners'.length +
     csm.LearnersNext'.length ≤ 2 ^ 62 →
+  -- (2026-11-02, stage II (r)) and well-formed, which `assertConfStatesEquivalent` needs (a list
+  -- with a repeat, or `AutoLeave` set with no outgoing voter, makes it panic)
+  ConfStateOk csm →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
       -- (raft-final phase 1) the start bundle (`restartStorage`'s shape; durability stage I-6: at
       -- the view's base and last index)
@@ -213,6 +238,8 @@ abbrev newRaft.spec : Prop :=
         s.logst.committed = committedAfter σ.prev hs ∧
         s.logst.applying = w64Max σ.prev.index'
           (if cv.Applied' = W64 0 then σ.prev.index' else cv.Applied') ∧
+        -- (2026-11-02, stage II (o), for `rawNodeAt`) `appliedTo` moves both
+        s.logst.applied = s.logst.applying ∧
         s.logst.unpersisted = [] ∧ s.logst.snap = none ∧
         -- the storage it reads (2026-10-10, for `RNState.storage`)
         s.logst.storage = interface.ok si ∧

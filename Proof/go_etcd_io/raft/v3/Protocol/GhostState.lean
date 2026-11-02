@@ -2567,9 +2567,9 @@ facts (`batchOk`, carried by `pendBatch`) are relative to. -/
 abbrev RaftBatch := RaftState × DurMaps × DurMaps
 
 instance RaftState_countable : Pos.Countable RaftState :=
-  .ofInjective (fun S => Pos.Countable.encode (S.term, S.vote, S.base, S.ents, S.commit))
+  .ofInjective (fun S => Pos.Countable.encode (S.term, S.vote, S.base, S.ents, S.commit, S.wcommit))
     (by
-      rintro ⟨_, _, _, _, _⟩ ⟨_, _, _, _, _⟩ h
+      rintro ⟨_, _, _, _, _, _⟩ ⟨_, _, _, _, _, _⟩ h
       have h := Pos.encode_inj h
       simp_all)
 
@@ -2596,12 +2596,38 @@ theorem slotN_sub_reg_log {γ : RaftNames} {id : w64} :
   exact ⟨slotN_sub_reg p hp,
     fun h => ndot_ne_disjoint (raftN γ) (show "slot" ≠ "log" by decide) p ⟨hs, h⟩⟩
 
+/-- (2026-11-02, durability stage II (p)) **I1 of a durable state's full log at `c`**: in the
+dynamic mode, of two conf-change entries of `S`'s full log (`fp ++ S.ents`, `fp` its compacted
+prefix, which its records pin: `FullOk_unique`), the first is below `c` (`ConfI1`). A batch's state
+has it at its commit (raft's I1 at the cut, `RInv.i1`); the durable half at `S.wcommit`, the commit
+of the last batch that wrote the log (`RaftState.wcommit`), which is what a restart reads
+(`raft_restart`). -/
+def durI1 (γ : RaftNames) (S : RaftState) (c : w64) : IProp GF :=
+  iprop(□ ∀ fp, ⌜FullOk S.base fp⌝ -∗ logRecs γ base0 fp -∗
+    ⌜γ.reDyn.isSome = true → ConfI1 (fp ++ S.ents) (uint.nat c)⌝)
+
+instance durI1_persistent (γ : RaftNames) (S : RaftState) (c : w64) :
+    Persistent (durI1 (GF := GF) γ S c) := by
+  unfold durI1; infer_instance
+
+/-- A node that has stored nothing has no conf-change entry. -/
+theorem durI1_init (γ : RaftNames) : ⊢ durI1 (GF := GF) γ RaftState.init RaftState.init.wcommit := by
+  unfold durI1
+  iintro !> %fp %Hfp -
+  ipureintro; intro _
+  have h0 : uint.Z (W64 0) = 0 := rfl
+  have : fp = [] := List.eq_nil_of_length_eq_zero (by
+    have := Hfp.1; simp only [RaftState.init, h0] at this; omega)
+  subst this
+  intro k1 k2 e1 e2 _ h1
+  simp [RaftState.init] at h1
+
 /-- What the slot holds of a queued batch `b` cut from the entered maps `E`: the pending list it
 applies, fresh, with its justifications, and the durable invariants of the batch's state over its
-maps. -/
+maps; (2026-11-02, stage II (p)) and I1 of its log at its commit (`durI1`). -/
 def batchOk (γ : RaftNames) (id : w64) (b : RaftBatch) : IProp GF :=
   iprop(∃ π, ⌜b.2.1 = virt b.2.2 π ∧ PromsFresh b.2.2 π⌝ ∗ promsJust γ id b.2.2 π ∗
-    durPers γ id b.1 b.2.1)
+    durPers γ id b.1 b.2.1 ∗ durI1 γ b.1 b.1.commit)
 
 instance batchOk_persistent (γ : RaftNames) (id : w64) (b : RaftBatch) :
     Persistent (batchOk (GF := GF) γ id b) := by
@@ -2655,7 +2681,9 @@ entered maps, and the durable invariants of `S` over them. -/
 def ownDurGhost (γ : RaftNames) (id : w64) (S : RaftState) : IProp GF :=
   iprop(∃ E : DurMaps, durShares γ id (1 : Qp).half E ∗ durPers γ id S E ∗
     -- (2026-11-01, stage II(d), approved stage-I repair) the slot invariant, for *enter*
-    slotInv γ id)
+    slotInv γ id ∗
+    -- (2026-11-02, stage II (p)) I1 of the log at the commit of the last batch that wrote it
+    durI1 γ S S.wcommit)
 
 /-- **No node of `id` runs** (I-1, R2, R6, R8; the protocol part of `nodeVacant`): the half of
 its virtual maps (the entered ones: its generation's queue is free), its whole generation with

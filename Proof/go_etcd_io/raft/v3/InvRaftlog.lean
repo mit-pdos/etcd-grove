@@ -1561,6 +1561,40 @@ theorem ownRaftLog_certify (l : Loc) (ls : LogState) (i : Nat) (t : w64) (Hi : l
     rfl rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger
     Hu_logger
 
+/-- (2026-11-02, stage II (p)) The catch-up with the attach record, read out of the storage's
+view (kept while it is lent). -/
+theorem lentStor_caught (b : Bool) (sn : StorNames) (st : Storage) (σ : StorState) :
+    lentStor (GF := GF) b sn st σ ⊢ storCaught sn ∗ lentStor b sn st σ := by
+  cases b
+  · simp only [lentStor, Bool.false_eq_true, ↓reduceIte]
+    unfold ownStorage storAuths
+    iintro ⟨%e0, #Hcomp, #HFr, HO, Hend, ⟨Ha, Hg, Hd, #Hcu⟩, %Hw⟩
+    isplitr
+    · iexact Hcu
+    iexists e0
+    iframe Hcomp HFr HO Hend Ha Hg Hd Hcu
+    ipureintro; exact Hw
+  · simp only [lentStor, ↓reduceIte]
+    unfold storAuths
+    iintro ⟨Ha, Hg, Hd, #Hcu⟩
+    iframe Ha Hg Hd Hcu
+
+/-- (2026-11-02, stage II (p)) **The attach record's terms are certified** (`storCaught`), read out
+of the log without consuming it: what `acceptReady` hands out again for the indices above the
+committed log handed out that a restart certified (`ownRaftLog_certify_gap`). -/
+theorem ownRaftLog_caught (l : Loc) (ls : LogState) :
+    ownRaftLog (GF := GF) l ls ⊢ storCaught ls.sn ∗ ownRaftLog l ls := by
+  iintro H
+  iNamed H
+  icases lentStor_caught _ _ _ _ $$ HStorage with ⟨#Hcu, HStorage⟩
+  isplitr
+  · iExactEq Hcu; rfl
+  iapply ownRaftLog_intro (sn := ls.sn) l lv lv.storage' σ _ _
+    ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset Happlied Hpapplied Hcommitted Hapg
+    Hip Hipb Hpersist Happlying Hpaused Hasz Hamx Hstor Hpend Hfl Hsip Hsipn Hlent Hq Hprel Hsat Hfr
+    rfl rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger
+    Hu_logger
+
 /-- (D19i part 1) The floor, read out without consuming the log: at most `applying`, so at most
 `committed` and the last index; below `offsetInProgress` with no snapshot pending. -/
 theorem ownRaftLog_fl (l : Loc) (ls : LogState) :

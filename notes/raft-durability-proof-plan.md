@@ -406,3 +406,29 @@ All four are small. None changes the shape the user approved, and all are within
 4. F3 (`check_leader`), unproved today.
 5. A joint `ConfState` in `ownRaftPhys`/`rnInit`: the largest physical generalization.
 6. Size: raft's proof is 130k lines; stage II touches tens of thousands of them.
+
+## Stage II (p): the restart path (2026-11-02, branch `worktree-agent-raftrestart`)
+
+- **`wcommit`** (the coordinator's decision (b); `notes/decisions.md`, "The restart's lowest
+  commit: `wcommit`"). `RaftState.wcommit`: the commit of the last entered batch that wrote entries
+  or a snapshot (`RaftState.next`; `next_wcommit`). The durable half carries I1 of its full log at
+  it (`durI1 γ S S.wcommit` in `ownDurGhost`); a batch carries I1 at its commit (`durI1 γ S' S'.commit`
+  in `batchOk`), which the cut gets from the node's `RInv.i1` (`ownStepGhost_i1`, vacuous in the
+  static mode); *enter* combines them (`raft_enter`'s new premise, the batch's `wcommit` is its
+  commit or it wrote nothing). `StorageHolds` requires `S.wcommit ≤ σ.commit`; `raft_restart` hands
+  out the restarted log's `DurFull` and I1 at the stored commit (`durI1_rebase`), from which
+  `RestartNode` builds the restarted node's `RInv`.
+- **`SdtTie` relaxed** (decision 2). `SdtTie rs s := sdtLen rs ≤ dtk ∧` every index in
+  `(sdtLen rs, dtk]` is an attach-record index at most `c0`. The record's terms are the committed
+  log's (`ctCommitted γ sn`, a new conjunct of `certLink`); the view's catch-up has their keys
+  (`storCaught`, read out by `ownRaftLog_caught`). A `Ready` certifies its committed entries with
+  `ownRaftLog_certify_gap`: those at or below `dtk` are the recorded keys (their terms agree by the
+  committed logs' prefix order, `pfx_agree`), the rest certified fresh; the height becomes
+  `max dtk (dlvAfter …).length` (in `ownRawNodeReady`'s `Hphys` and `acceptReady`'s `readyNstate`).
+  `AttachRec` now records every index `1..c0`, once (below the base too: no term check there), so
+  that the restart's `dlvKeys` of the delivered log and its `SdtTie` gap come from the record.
+- **`RestartNode`** is one triple (as `StartNode`): `wp_RestartNode_impl` over `NewRawNode`,
+  `newNode`, `node.run`. One `sorry` left: a configuration point above the applied index it starts
+  at (`max b A < a`): `runCfg` needs `capplied ≤ (rsDlv rs).length` (I-9's obligation, amendment 4).
+- **The window** (decision 3) is not done: `newRaft.wp_proof` stays `sorry` (the cascade is at the
+  `sorry`). `newLogWithSize` and `setupNode` are proved.
