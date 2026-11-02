@@ -470,3 +470,32 @@ the version), a missing `members`/`cluster` bucket (`srvRestOwn` holding them pr
 The user approved revision 4.3 of the trusted restatements (§1–§19, with T), no further review
 round; the apply step follows (the texts: the scratch draft `bks-trusted.md`, copied into the
 repository as they are applied).
+
+## Change log after the freeze
+
+Every change to a statement frozen at "Freeze" (2026-11-01) or approved at "Approval" (2026-11-02),
+one entry each, tagged when made (`notes/spec-first-plan.md`, "The change log after the freeze,
+classified"): `[category, how found, public/trusted/internal, approval]`. The entries up to
+2026-11-02 were classified after the fact by one reader, from this note and the commits
+(`notes/spec-first-study/snapshot-proof-first.md`).
+
+- `[R, proof, internal, the user's option (b)]` Decision 3: `rbOwnIn` as the idle part the readers
+  agree with → a per-bucket ghost idle token, the trusted readers arguing from Go
+  (`18956eff57`). The law `rtHeldF_rbOwnIn` is not provable over the backend's read model (no
+  agreement on the hook buckets); found applying it, after four review rounds.
+- `[D, user, trusted, approved]` Decision 2, the pool: a core `OpenBackend` axiom with the pooled
+  spec a proved corollary; the thread bound a persistent server fact (the Freeze's Q4).
+- `[E, user, trusted, approved]` The trusted set grows to `srvRestOwn`/`srvRestRW` and `bootOk`
+  (Q3); the alarm, `storeRT` and `bkRTx` readers onto the pool now (Q5).
+- `[D, user, internal, approved]` `threadTok` through the apply-thread specs; the stock's consumers
+  over `rdStockN` (second questions, Q2, Q4).
+- `[F, test, trusted, approved]` Outside the stage's statements: `MustReadMembersFromBackend` takes
+  the buckets' decoding (`membersDecode`, the strong form with `memIdOk`), Go panicking on an
+  undecodable member (the axiom check's `TestBksReadUndecodableMember`).
+- `[F, Go, trusted, next stage]` Outside the stage's statements: the applied cluster contract's
+  rows false of Go at some rest states (round 6; "Next stage").
+- `[C, proof, trusted, as approved]` Applying revision 4.3: item E's boot fact spelled out as four
+  conjuncts of `bootOk`'s `%Hbe` (the draft names it, does not spell it out). Otherwise applied as
+  approved.
+
+Review misses of the stage's own frozen statements so far: F 0, R 1.
