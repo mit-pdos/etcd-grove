@@ -11,7 +11,7 @@ response answers the `j`th request.
 `LeaseRenew(ctx, id)` at the per-call resources `S'`, given back, at any context and lower bounds
 `n` (the auth store's published index) and `m` (the lessor's history `γl`); its answer the server's
 (`renewAns`): `nil` and the key check's verdict (`.write`), or a non-nil `applyErrIs` error. The
-server meets it with `S' := E.RD ∗ lessorRdOf γl ∗ threadTok ∗ srvLgReader s ∗ srvReadReader s γr`
+server meets it with `S' := E.RD ∗ threadTok ∗ srvLgReader s ∗ srvReadReader s γr`
 (`raftLeaseRenew_of_server`, `ServerLeaseRead.lean`).
 
 **The stream specification** (`kaStreamSpec`, K4): the `j`th response `(id, ttl)` answers the `j`th

@@ -2,7 +2,8 @@
 **The server's lease reads meet the handlers' contract** (the lease rows at the gRPC level,
 `notes/lease-grpc-plan.md`): `raftLeaseRead s E γl S R` (`InvLeaseRead.lean`) from the server's
 proved `EtcdServer.LeaseTimeToLive.spec` and `EtcdServer.LeaseLeases.spec`, at the per-call
-resources `S := E.RD ∗ lessorRdOf γl ∗ threadTok` and the revision reader
+resources `S := E.RD ∗ threadTok` (the lessor's reader pool `lessorRdPool γl` a premise: the
+lease-src plan, 2026-11-02) and the revision reader
 `R := mvcc.storeReader E.s E.γ` (`srvKVAns`'s `revR`, so that the handlers' `A.revR` is it). The
 two specs' bounds premises are this theorem's. Lean-first (no Rocq counterpart).
 -/
@@ -36,7 +37,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The server's lease reads, from its linked specs** (no premise but the server's facts and the
-bounds the two specs take): `raftLeaseRead` at `S := E.RD ∗ lessorRdOf γl ∗ threadTok` and
+bounds the two specs take, and the lessor's reader pool): `raftLeaseRead` at `S := E.RD ∗ threadTok` and
 `R := mvcc.storeReader E.s E.γ`; the server's header ids `cs ms` stay inside (`leasesAns`). -/
 theorem raftLeaseRead_of_server (hTTL : EtcdServer.LeaseTimeToLive.spec (GF := GF) (hG := hG))
     (hLs : EtcdServer.LeaseLeases.spec (GF := GF) (hG := hG))
@@ -44,25 +45,25 @@ theorem raftLeaseRead_of_server (hTTL : EtcdServer.LeaseTimeToLive.spec (GF := G
     (hT : threadBound GF ≤ 2 ^ 30 - 1) (hR : receiptBound GF ≤ 2 ^ 62) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthAt s E ∗
-        srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ srvHeaderFacts s cs ms ⊢
-      raftLeaseRead s E γl iprop(E.RD ∗ lease.lessorRdOf γl ∗ threadTok)
+        srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ lease.lessorRdPool γl ∗ srvHeaderFacts s cs ms ⊢
+      raftLeaseRead s E γl iprop(E.RD ∗ threadTok)
         (mvcc.storeReader E.s E.γ) := by
-  iintro ⟨#Hpkg, #Hq, #Hrd, #Hat, #Hal, #Hlr, #Hhf⟩
+  iintro ⟨#Hpkg, #Hq, #Hrd, #Hat, #Hal, #Hlr, #Hpool, #Hhf⟩
   iunfold raftLeaseRead
   isplitr
   · iunfold lessorTTLOk
-    iintro %ci %cd %r %dq %v %n %m !> %Φ ⟨⟨HRD, Hrdo, Htok⟩, HR, #Hctx, #Hpub, #Hllb, Hr⟩ HΦ
-    wp_apply (hTTL s E ρ γr γl ci cd r dq v n m) $$ [HRD Hrdo Htok Hr]
-      as %resp %err ⟨HRD, Hrdo, Htok, Hr, Hans⟩
+    iintro %ci %cd %r %dq %v %n %m !> %Φ ⟨⟨HRD, Htok⟩, HR, #Hctx, #Hpub, #Hllb, Hr⟩ HΦ
+    wp_apply (hTTL s E ρ γr γl ci cd r dq v n m) $$ [HRD Htok Hr]
+      as %resp %err ⟨HRD, Htok, Hr, Hans⟩
     · iframe; iframe #; ipureintro; exact hT
     iapply HΦ
     iframe
     iunfold ttlAns
     iexact Hans
   · iunfold lessorLeasesOk
-    iintro %ci %cd %r %n %m !> %Φ ⟨⟨HRD, Hrdo, Htok⟩, HR, #Hctx, #Hpub, #Hllb⟩ HΦ
-    wp_apply (hLs s E γr γl ci cd r ms cs n m) $$ [HRD Hrdo Htok HR]
-      as %resp %err ⟨HR, HRD, Hrdo, Htok, Hans⟩
+    iintro %ci %cd %r %n %m !> %Φ ⟨⟨HRD, Htok⟩, HR, #Hctx, #Hpub, #Hllb⟩ HΦ
+    wp_apply (hLs s E γr γl ci cd r ms cs n m) $$ [HRD Htok HR]
+      as %resp %err ⟨HR, HRD, Htok, Hans⟩
     · iframe; iframe #; ipureintro; exact ⟨hT, hR⟩
     iapply HΦ
     iframe
@@ -107,21 +108,21 @@ theorem srvHeaderFacts_of_reqM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : R
   iexact Hlead
 
 /-- **The server's renewals, from its linked spec** (the keep-alive's contract): `raftLeaseRenew` at
-`S' := E.RD ∗ lessorRdOf γl ∗ threadTok ∗ srvLgReader s ∗ srvReadReader s γr`, over the server's
+`S' := E.RD ∗ threadTok ∗ srvLgReader s ∗ srvReadReader s γr`, over the server's
 facts, its peer round tripper (`srvPeerRt`) and the spec's thread bound. -/
 theorem raftLeaseRenew_of_server (hRn : EtcdServer.LeaseRenew.spec (GF := GF) (hG := hG))
     (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
     (hT : threadBound GF ≤ 2 ^ 30 - 1) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthAt s E ∗
-        srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ srvPeerRt s ⊢
+        srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ lease.lessorRdPool γl ∗ srvPeerRt s ⊢
       raftLeaseRenew s E γl
-        iprop(E.RD ∗ lease.lessorRdOf γl ∗ threadTok ∗ srvLgReader s ∗ srvReadReader s γr) := by
-  iintro ⟨#Hpkg, #Hq, #Hrd, #Hat, #Hal, #Hlr, #Hpr⟩
+        iprop(E.RD ∗ threadTok ∗ srvLgReader s ∗ srvReadReader s γr) := by
+  iintro ⟨#Hpkg, #Hq, #Hrd, #Hat, #Hal, #Hlr, #Hpool, #Hpr⟩
   iunfold raftLeaseRenew
-  iintro %ci %cd %id %n %m !> %Φ ⟨⟨HRD, Hrdo, Htok, Hlg, Hrr⟩, #Hctx, #Hpub, #Hllb⟩ HΦ
-  wp_apply (hRn s E ρ γr γl ci cd id n m) $$ [HRD Hrdo Htok Hlg Hrr]
-    as %ttl %err ⟨HRD, Hrdo, Htok, Hlg, Hrr, Hans⟩
+  iintro %ci %cd %id %n %m !> %Φ ⟨⟨HRD, Htok, Hlg, Hrr⟩, #Hctx, #Hpub, #Hllb⟩ HΦ
+  wp_apply (hRn s E ρ γr γl ci cd id n m) $$ [HRD Htok Hlg Hrr]
+    as %ttl %err ⟨HRD, Htok, Hlg, Hrr, Hans⟩
   · iframe; iframe #; ipureintro; exact hT
   iapply HΦ
   iframe

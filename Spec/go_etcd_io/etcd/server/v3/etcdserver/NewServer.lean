@@ -290,7 +290,10 @@ abbrev NewServer.spec : Prop :=
           srvWatchReaders srv E 64 ∗
           -- (the keep-alive stage's K7, 2026-11-01, the user's decision) the lease service's server
           -- facts: the peers' round tripper (`LeaseRenew`'s forwarding) and the lessor's reader side
-          srvPeerRt srv ∗ srvLessorRd srv E.γ.leases }}
+          srvPeerRt srv ∗ srvLessorRd srv E.γ.leases ∗
+          -- (the lease-src plan, 2026-11-02, the user's choice) the lessor's reader pool, of the
+          -- `NewLessor` slots the server does not keep, for the lease checks' `Lookup`s
+          lease.lessorRdPool E.γ.leases }}
 
 /-- **`NewServer(cfg)` with auth on or off** (the auth plan's E2i, 2026-10-26; see the file header):
 as `NewServer.spec` (its mode off, `NewServer.spec_of_specM`), the start's chain with the auth
@@ -475,7 +478,10 @@ abbrev NewServer.specM (on : Bool) : Prop :=
           □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) ∗
           -- (the keep-alive stage's K7, 2026-11-01, the user's decision) the lease service's server
           -- facts: the peers' round tripper (`LeaseRenew`'s forwarding) and the lessor's reader side
-          srvPeerRt srv ∗ srvLessorRd srv E.γ.leases }}
+          srvPeerRt srv ∗ srvLessorRd srv E.γ.leases ∗
+          -- (the lease-src plan, 2026-11-02, the user's choice) the lessor's reader pool, of the
+          -- `NewLessor` slots the server does not keep, for the lease checks' `Lookup`s
+          lease.lessorRdPool E.γ.leases }}
 
 
 /-- **`NewServer(cfg)` in either auth mode and either compaction mode** (M2, 2026-10-31; what
@@ -659,7 +665,10 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) ∗
           -- (the keep-alive stage's K7, 2026-11-01, the user's decision) the lease service's server
           -- facts: the peers' round tripper (`LeaseRenew`'s forwarding) and the lessor's reader side
-          srvPeerRt srv ∗ srvLessorRd srv E.γ.leases }}
+          srvPeerRt srv ∗ srvLessorRd srv E.γ.leases ∗
+          -- (the lease-src plan, 2026-11-02, the user's choice) the lessor's reader pool, of the
+          -- `NewLessor` slots the server does not keep, for the lease checks' `Lookup`s
+          lease.lessorRdPool E.γ.leases }}
 
 end spec
 

@@ -6,3 +6,7 @@
 
 # The cache's prefix bound (`2 ^ 28`): one API pair (`New`, `newCache`), local (B5).
 shared-limit ^Spec/go_etcd_io/etcd/cache/v3/(New|newCache)\.lean$
+
+# The lessor's reader pool, made of its lock's spare slots by the lock's owner, the lease package
+# (the lease-src plan, 2026-11-02).
+stock ^Proof/go_etcd_io/etcd/server/v3/lease/RdPool\.lean$

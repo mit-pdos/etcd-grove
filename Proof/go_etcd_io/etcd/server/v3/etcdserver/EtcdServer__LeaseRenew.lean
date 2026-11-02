@@ -94,8 +94,6 @@ local macro "renew_err" Herr:ident : tactic => `(tactic| (
   (try wp_auto)
   iapply HΦ
   iframe HRD Htok Hlgr Hrrd
-  try iframe Hrdo
-  try (isplitl [Hrd]; · (iunfold lease.lessorRdOf; iexists lp; iframe Hpin Hrd))
   iright
   isplitr
   · ipureintro; nofun
@@ -180,8 +178,8 @@ local macro "renew_forward" : tactic => `(tactic| (
   subst Hln
   (try wp_auto)
   -- `if err := s.checkLeaseRenew(ctx, id); err != nil { return 0, err }`
-  wp_apply (hChk s E γl ctx1 _ id n m) $$ [HRD Hrdo Htok] as %cerr ⟨HRD, Hrdo, Htok, #Hce, Hcok⟩
-  · iframe #; iframe HRD Hrdo Htok; ipureintro; exact Hbound
+  wp_apply (hChk s E γl ctx1 _ id n m) $$ [HRD Htok] as %cerr ⟨HRD, Htok, #Hce, Hcok⟩
+  · iframe #; iframe HRD Htok; ipureintro; exact Hbound
   rcases cerr with cei | _
   · renew_err Hce
   ihave #Hchk1 := Hcok $$ %rfl
@@ -229,7 +227,7 @@ local macro "renew_forward" : tactic => `(tactic| (
       wp_apply HEnd
       (try wp_auto)
       iapply HΦ
-      iframe HRD Hrdo Htok Hlgr Hrrd
+      iframe HRD Htok Hlgr Hrrd
       ileft
       isplitr
       · ipureintro; rfl
@@ -280,19 +278,14 @@ set_option hygiene false in
 /-- The leader's tail: `checkLeaseRenew`, then the lessor's `Renew`; on `ErrNotPrimary`, the
 forwarding. -/
 local macro "renew_leader_tail" : tactic => `(tactic| (
-  wp_apply (hChk s E γl ctx1 _ id n m) $$ [HRD Hrdo Htok] as %cerr ⟨HRD, Hrdo, Htok, #Hce, Hcok⟩
-  · iframe #; iframe HRD Hrdo Htok; ipureintro; exact Hbound
+  wp_apply (hChk s E γl ctx1 _ id n m) $$ [HRD Htok] as %cerr ⟨HRD, Htok, #Hce, Hcok⟩
+  · iframe #; iframe HRD Htok; ipureintro; exact Hbound
   rcases cerr with cei | _
   · renew_err Hce
   ihave #Hchk1 := Hcok $$ %rfl
   (try wp_auto)
-  iunfold lease.lessorRdOf at Hrdo
-  icases Hrdo with ⟨%lp', #Hpin', Hrd⟩
-  ihave %Heq := lease.lessorPin_agree γl lp lp' $$ []
-  · iframe Hpin Hpin'
-  subst Heq
-  wp_apply (hRen lp γl id) $$ [Hrd Htok] as %ttl %rerr ⟨Hrd, Htok, Hre⟩
-  · iframe #; iframe Hrd Htok; ipureintro; exact Hbound
+  wp_apply (hRen lp γl id) $$ [Htok] as %ttl %rerr ⟨Htok, Hre⟩
+  · iframe #; iframe Htok; ipureintro; exact Hbound
   (try wp_auto)
   icases Hre with (%Hrn | ⟨%e, #He, %Hre⟩ | ⟨%e, #He, %Hre⟩)
   · subst Hrn
@@ -301,8 +294,6 @@ local macro "renew_leader_tail" : tactic => `(tactic| (
     (try wp_auto)
     iapply HΦ
     iframe HRD Htok Hlgr Hrrd
-    isplitl [Hrd]
-    · iunfold lease.lessorRdOf; iexists lp; iframe Hpin Hrd
     ileft
     isplitr
     · ipureintro; rfl
@@ -326,8 +317,6 @@ local macro "renew_leader_tail" : tactic => `(tactic| (
     | false => renew_err Hre'
     | true =>
       (try wp_auto)
-      ihave Hrdo : lease.lessorRdOf γl $$ [Hrd]
-      · iunfold lease.lessorRdOf; iexists lp; iframe Hpin Hrd
       renew_forward)))
 
 set_option maxHeartbeats 4000000 in
@@ -350,7 +339,7 @@ theorem EtcdServer.LeaseRenew.wp_proof
     (hIsC : errors.IsCtxErr.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseRenew.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr γl ctx cd id n m
-  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, HRD, Hrdo, Htok, Hlgr, Hrrd,
+  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, HRD, #Hpool, Htok, Hlgr, Hrrd,
     %Hbound, #Hprt⟩
   iunfold srvPeerRt at Hprt
   icases Hprt with ⟨%rt, #Hrtf, %Hrt⟩
@@ -424,8 +413,14 @@ theorem EtcdServer.LeaseRenew.wp_proof
     (try wp_auto)
     cases fe with
     | true =>
+      -- `le := s.lessor.Lookup(id)`, its slot borrowed from the pool for the call (the lease-src
+      -- plan), its later stripped by the next steps
+      iapply fupd_wp
+      imod lease.lessorRdPool_borrow γl ⊤ (fun _ _ => CoPset.mem_full) $$ [Hpool Htok]
+        with ⟨Hrdo, Hback⟩
+      · iframe #; iframe
+      imodintro
       (try wp_auto)
-      -- `le := s.lessor.Lookup(id)`
       iunfold lease.lessorRdOf at Hrdo
       icases Hrdo with ⟨%lp', #Hpin', Hrd⟩
       ihave %Heq := lease.lessorPin_agree γl lp lp' $$ [$Hpin $Hpin']
@@ -433,8 +428,11 @@ theorem EtcdServer.LeaseRenew.wp_proof
       wp_apply (hLk lp γl id m none) $$ [$Hrd] as %l ⟨Hrd, -, -⟩
       · iframe Hinv Hmlb
         rw [lease.lookupView_none]; itrivial
-      ihave Hrdo : lease.lessorRdOf γl $$ [Hrd]
+      -- the slot back, for the token
+      iapply fupd_wp
+      imod Hback $$ [Hrd] with Htok
       · iunfold lease.lessorRdOf; iexists lp; iframe Hpin Hrd
+      imodintro
       (try wp_auto)
       wp_if_destruct
       · renew_wait

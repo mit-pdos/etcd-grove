@@ -29244,3 +29244,21 @@ the head" (the configured retention is what it is as strong as).
 `kvCmpPermit γk sched` of the image's scheduled revision (the cluster's fact of every committed
 compaction entry); no link from an image to committed entries exists yet, and no compaction-mode
 restore runs at the pin. Reviews: three `spec-reviewer` rounds (candidates 2-4).
+
+## The lessor's reader slots as a pool: the lease specs over `lessorRdPool` (2026-11-02 · accepted, the user's Freeze · branch `lease-src`)
+
+**The gap.** The lease checks' specs (`EtcdServer.checkLease{TimeToLive,Renew}`, the entry points
+`Lease{TimeToLive,Leases,Renew}`, the axiom `leaseTimeToLive`) took one lessor reader slot
+(`lessorRdOf γl`) and returned it, and the callee specs `lessor.Leases` (proved) and
+`lessor.Renew` (an axiom) took `lessorRd`. Nothing gave a server's caller such a slot:
+`NewServer` handed the lessor's spare slots nowhere, and a goroutine has one `threadTok`, which
+`Lease.Keys` needs while the slot is out.
+
+**Chosen.** The spare slots go into a Perennial thread pool (`lessorRdPool γl`, persistent,
+`InvLessor.lean`), which `NewServer`'s posts export. A spec takes the pool and the caller's token;
+the proof borrows a slot with the token around each lessor call (`lessorRdPool_borrow`) and gets
+the token back for the next. The pool's `init` (`RdPool.lean`) is an owner of the `threadBound`
+stock (`etc/bounds-allow.txt`). The trusted changes: the axioms `leaseTimeToLive` and
+`lessor.Renew` are restated over the pool (their old premises are incomparable with the new ones).
+Rejected: a slot held for the whole call (F1 of the review: a slot and the token held at once by
+one thread); a per-call slot handed down from `NewServer` (it would bound the number of calls).
