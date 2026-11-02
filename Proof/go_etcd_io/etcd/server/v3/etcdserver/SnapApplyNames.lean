@@ -120,7 +120,7 @@ theorem srvAtomics_snapE (s : Loc) (γr : ReadNames) (d d' : mvcc.KBReal) (hkb :
       srvAppliedInv s E γr := rfl
   unfold srvAtomics srvKVInvs
   rw [e1]
-  iintro ⟨#Ha, #Ht, #Hk, #Hc, #Hr, %Hcok, %Htie⟩
+  iintro ⟨#Ha, #Ht, #Hk, #Hc, #Hr, %Hcok, %Htie, %Hcrt, #Hcp⟩
   isplitr
   · iexact Ha
   isplitr
@@ -131,13 +131,21 @@ theorem srvAtomics_snapE (s : Loc) (γr : ReadNames) (d d' : mvcc.KBReal) (hkb :
   · iexact Hc
   isplitr
   · iexact Hr
-  ipureintro
-  refine ⟨Hcok, Htie.1, ?_⟩
-  have h0 : ¬ mvcc.kbCmpM E.γ.kb := by rw [hkb]; simp [mvcc.kbCmpM, hcm]
-  have h1 : ¬ mvcc.kbCmpM (snapE E γ' TM' ci p' g γB al ast lp cl be).γ.kb := by
-    rw [snapE_kb _ _ _ _ _ _ _ _ _ _ _ _ d' hkb']; simp [mvcc.kbCmpM, hcm']
-  show mvcc.kbCmpM (snapE E γ' TM' ci p' g γB al ast lp cl be).γ.kb ↔ E.cmp = true
-  exact ⟨fun h => absurd h h1, fun h => absurd (Htie.2.2 h) h0⟩
+  isplitr
+  · ipureintro; exact Hcok
+  isplitr
+  · ipureintro
+    refine ⟨Htie.1, ?_⟩
+    have h0 : ¬ mvcc.kbCmpM E.γ.kb := by rw [hkb]; simp [mvcc.kbCmpM, hcm]
+    have h1 : ¬ mvcc.kbCmpM (snapE E γ' TM' ci p' g γB al ast lp cl be).γ.kb := by
+      rw [snapE_kb _ _ _ _ _ _ _ _ _ _ _ _ d' hkb']; simp [mvcc.kbCmpM, hcm']
+    show mvcc.kbCmpM (snapE E γ' TM' ci p' g γB al ast lp cl be).γ.kb ↔ E.cmp = true
+    exact ⟨fun h => absurd h h1, fun h => absurd (Htie.2.2 h) h0⟩
+  isplitr
+  · ipureintro; exact Hcrt
+  iapply (mvcc.crevPermIs_cperm E.γ (snapE E γ' TM' ci p' g γB al ast lp cl be).γ rfl
+    (kvCmpPermit γr.kv))
+  iexact Hcp
 
 theorem srvGenAt_snapE (s : Loc) (ρ : ReqNames) :
     srvGenAt s (snapE E γ' TM' ci p' g γB al ast lp cl be) ρ = srvGenAt s E ρ := rfl

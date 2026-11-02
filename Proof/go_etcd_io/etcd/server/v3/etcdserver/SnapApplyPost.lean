@@ -113,9 +113,9 @@ theorem srvSnapApplied_of_walk
     #HisAl, #Haustf, #Hclf, #Hirc, #Hcok, #HWP, Hw⟩
   iunfold snapWalkPost at Hw
   icases Hw with ⟨%γB, %d', %gx, %π0, %p', %γw, %ws, %g, %up', %opts', %L, %spc, %Ll, %jf, %γcf,
-    %w0, %RD0, %up, %lg, %wsk, %stck, %Hpure, #HB, HSC, -, -, -, -, -, #HCI', #HhkS, -, -, #Hro',
+    %w0, %RD0, %up, %lg, %wsk, %stck, %Hpure, #HB, #HhkAt', #HbhF', HSC, -, -, -, -, -, #HCI', #HhkS, -, -, #Hro',
     #Hws, -, -, #HhP, #Hkva, #Hwa, #Hlga, Hwok, HplH, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Haub, Hclb,
-    Hleb, Hlo, Hlrd, Hlrv, Hrt, Hrb, Hcm, Hbo, Hpl', Hsc, Hwf, Hww, HwOwn, Hsr, Htl, Hlgr, Hai, Hatt, Hds, Hms,
+    Hleb, Hlo, Hlrd, Hlrv, Hrt, Hrb, Hrn, Hcm, Hbo, Hpl', Hsc, Hwf, Hww, HwOwn, Hsr, Htl, Hlgr, Hai, Hatt, Hds, Hms,
     Hcsa, Hcso, Hpath, Halb, HRD2, Hube, Hua, -, Hra, Hauar, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
   obtain ⟨hγB, hP', -, hcm', hm0, -, hkb', hγw, -, hcov, hgnn, ho1, ho2, ho3, ho4, ho5, ho6, ho7, -, -, -,
     ho11, ho12⟩ := Hpure
@@ -124,7 +124,7 @@ theorem srvSnapApplied_of_walk
   ihave HplRO := backend.plHook_persist d'.γB g $$ HplH
   imod HplRO with #HplRO
   -- step 2: the server's view
-  ihave #Hsrv' := snap_isServer s γ ci TM E ρ γr π0 d'.γB d.P d' p' g al ast lp cl rfl hkb' hcm' d hkb hcm $$ []
+  ihave #Hsrv' := snap_isServer s γ ci TM E ρ γr π0 d'.γB d.P d' p' g al ast lp cl rfl hkb' hcm' d hkb hcm hP' rfl hk $$ []
   · iframe #
   -- step 3: the new applier's options
   ihave #Hbo' := snap_backendOptsOk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg
@@ -140,8 +140,8 @@ theorem srvSnapApplied_of_walk
   imod HKV' with ⟨%x', %Hx', HKV'⟩
   -- step 5: the rest buckets
   ihave HRest := snap_srvRest E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB d' γr al ast lp
-    cl _ memI A' rfl hA' $$ [Hrb Hcm Halb Haub Hclb Hleb]
-  · iframe Hrb Hcm Halb Haub Hclb Hleb
+    cl _ memI A' rfl hA' $$ [Hrb Hrn Hcm Halb Haub Hclb Hleb]
+  · iframe Hrb Hrn Hcm Halb Haub Hclb Hleb
   -- step 6: the KV's closer
   ihave HKC := snap_kvCloser s E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB al ast lp cl
     d'.be γw wsk stck hγw $$ [Hstc Hwsw Hsc]

@@ -1126,7 +1126,8 @@ at `lp` (`lease.lessorInv`, its configuration, its backend's contract for the `L
 `lease.lessorBackend`) meets `apply.isApplyLessor`'s `isTxnLessor`, `Grant`, `Checkpoint` and
 (the lease-revoke plan, 2026-10-31) `Revoke` clauses, from their proofs: the store watchable, its
 hook's facts, and the rest resource `RO` lending the store's right to the tracked buckets and the
-lessor's half of `le.b`; its `Lookup` clause is the premise (`apply.isApplyLessor_of_lessorInv`). -/
+lessor's half of `le.b` (given back at buckets agreeing with `rs.bk` off `lease`: 2026-11-02, the
+backend-auth-split stage); its `Lookup` clause is the premise (`apply.isApplyLessor_of_lessorInv`). -/
 theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RO : EtcdGrove.apply.RestM → IProp GF)
     (RW RW₀ : IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) :
@@ -1134,7 +1135,8 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
       mvcc.hookOk γ P f ∗
       □ (∀ rs : EtcdGrove.apply.RestM, RO rs -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗
           mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d.be ∗
-          (∀ bk, mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ∗
+          (∀ bk, ⌜∀ n, n ≠ mvcc.leaseName → bk.lookup n = rs.bk.lookup n⌝ -∗
+            mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗
       lease.lessorBackend lp P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb ∗
@@ -1384,6 +1386,11 @@ theorem auth_put_permitted_lb : auth.authStore.IsPutPermitted.specLb (GF := GF) 
 theorem auth_delete_range_permitted_lb : auth.authStore.IsDeleteRangePermitted.specLb (GF := GF) :=
   auth.authStore.IsDeleteRangePermitted.wp_lb auth_op_permitted_lb
 
+/-- **`IsAdminPermitted` no older than a reader's lower bound** (the lease-src plan,
+`auth/FreshAdmin.lean`): the lease checks' admin check, every callee linked. -/
+theorem auth_admin_permitted_lb : auth.authStore.IsAdminPermitted.specLb (GF := GF) (hG := hG) :=
+  auth.authStore.IsAdminPermitted.wp_lb auth_enabled_lb auth_locked_read_tx_lb auth.wp_hasRootRole
+
 end readLb
 
 #print axioms Perennial.EtcdGrove.auth_locked_read_tx_lb
@@ -1394,6 +1401,7 @@ end readLb
 #print axioms Perennial.EtcdGrove.auth_range_permitted_lb
 #print axioms Perennial.EtcdGrove.auth_put_permitted_lb
 #print axioms Perennial.EtcdGrove.auth_delete_range_permitted_lb
+#print axioms Perennial.EtcdGrove.auth_admin_permitted_lb
 
 section latestApply
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -2048,6 +2056,7 @@ theorem srv_auth_tp_on (hValid : auth.ValidSpec (GF := GF) (hG := hG))
     auth.authStore.wp_IsDeleteRangePermitted auth.authStore.wp_IsAdminPermitted
     auth.authStore.wp_IsAuthEnabled auth_put_permitted_latest auth_range_permitted_latest
     auth_delete_range_permitted_latest auth_admin_permitted_latest auth_range_permitted_lb
+    auth_enabled_lb auth_revision_lb auth_admin_permitted_lb auth_put_permitted_lb
     (auth.authStore.AuthEnable.wp_tieB auth.authStore.wp_refreshRangePermCache
       auth.authStore.wp_setRevision auth.wp_hasRootRole zap.Logger.wp_Info)
     (auth.authStore.UserAdd.wp_tieSureB auth.authStore.wp_commitRevision

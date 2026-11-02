@@ -8,10 +8,16 @@
 etcdserver_NewServer: @
 EtcdServer__Start: @
 features_NewDefaultServerFeatureGate:
-common_newServer: features_NewDefaultServerFeatureGate etcdserver_NewServer
+# (periodic mode, 2026-11-02) `newServer` is `newServerMode` in revision mode
+common_newServerMode: features_NewDefaultServerFeatureGate etcdserver_NewServer
+common_newServer: common_newServerMode
 common_StartServer: common_newServer EtcdServer__Start
+# (the restart plan's R2a, 2026-11-02) `BuildServer`: `newServer` with the compactor off, serving
+# nothing (`examples/restart3` keeps its listeners)
+common_BuildServer: common_newServer
 # (M2, notes/m2-plan.md) `StartCompactingServer`, over `newServer`'s compacting variant
-# (`specCompact`), is linked by hand in putgetc's `MainLinked.lean`
+# (`specCompact`), is linked by hand in compactkv's `MainLinked.lean`; (periodic mode, 2026-11-02)
+# `StartPeriodicServer`, over `newServerMode` in periodic mode, in putgetc's
 # `NewMember` and `StartMember`: a cluster's member, its raft handler served (`net.Listen`'s,
 # `RaftHandler`'s and `http.Serve`'s trust-boundary axioms), then started
 net_Listen:
@@ -46,3 +52,5 @@ context_ErrAny: @
 common_Writer: context_WithTimeoutBackground context_ErrAny
 WatchResponse__Err: @
 common_Collect: WatchResponse__Err
+# (C3's watch side, 2026-11-02) `CompactRev`: a watch channel's first response's compaction revision
+common_CompactRev:

@@ -42,7 +42,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr γl ctx cd r dq v n m
-  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, HRD, Hrdo, Htok, %Hbound, Hreq⟩
+  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, HRD, #Hpool, Htok, %Hbound, Hreq⟩
   ihave ⟨%st, %cca, #Has, #Hreqa, #Hreqb, #Hcca, #HLb⟩ := leaseCheckSetup s E n $$ [$Hau $Hlb $Hpub]
   iunfold isAuthStoreLeaseLb at HLb
   icases HLb with ⟨%ai, %Hai, #HEn, #HRev, -, -, -⟩
@@ -62,7 +62,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
   rcases err with ei | _
   · (try wp_auto)
     iapply HΦ
-    iframe HRD Hrdo Htok Hreq
+    iframe HRD Htok Hreq
     iright
     iframe Herr
     ipureintro; exact ⟨rfl, by intro h; cases h⟩
@@ -73,8 +73,8 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
   | true =>
     (try wp_auto)
     -- `rev, err = s.checkLeaseTimeToLive(ctx, lease.LeaseID(r.ID))`
-    wp_apply (hChk s E γl ctx cd v.ID' n m) $$ [$HRD $Hrdo $Htok] as %rev0 %err1
-        ⟨HRD, Hrdo, Htok, #He1, Hok⟩
+    wp_apply (hChk s E γl ctx cd v.ID' n m) $$ [$HRD $Htok] as %rev0 %err1
+        ⟨HRD, Htok, #He1, Hok⟩
     · iframe #; ipureintro; exact Hbound
     (try wp_auto)
     rcases err1 with ei | _
@@ -84,7 +84,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
         simp only [TypedPointsto.typedPointstoDef, hK]
         iframe
       iapply HΦ
-      iframe HRD Hrdo Htok Hreq
+      iframe HRD Htok Hreq
       iright
       iframe He1
       ipureintro; exact ⟨rfl, by intro h; cases h⟩
@@ -95,8 +95,8 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
       simp only [TypedPointsto.typedPointstoDef, hK]
       iframe
     -- `resp, err := s.leaseTimeToLive(ctx, r)`
-    wp_apply (hTTL s E ρ γr γl ctx cd r dq v) $$ [$Hrdo $Htok $Hreq] as %resp %err2
-        ⟨Hrdo, Htok, Hreq, Hres⟩
+    wp_apply (hTTL s E ρ γr γl ctx cd r dq v) $$ [$Htok $Hreq] as %resp %err2
+        ⟨Htok, Hreq, Hres⟩
     · iframe #; ipureintro; exact Hbound
     icases Hres with (⟨%He2, %w, Hw, %Hh, Hhv⟩ | ⟨%Hn, #He2⟩)
     · subst He2
@@ -120,7 +120,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
       | false =>
         (try wp_auto)
         iapply HΦ
-        iframe HRD Hrdo Htok Hreq
+        iframe HRD Htok Hreq
         ileft
         isplitr
         · ipureintro; rfl
@@ -138,7 +138,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
         wp_if_destruct
         · (try wp_auto)
           iapply HΦ
-          iframe HRD Hrdo Htok Hreq
+          iframe HRD Htok Hreq
           ileft
           isplitr
           · ipureintro; rfl
@@ -149,7 +149,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
         · -- `return nil, auth.ErrAuthOldRevision`
           (try wp_auto)
           iapply HΦ
-          iframe HRD Hrdo Htok Hreq
+          iframe HRD Htok Hreq
           iright
           iframe HORe
           ipureintro; exact ⟨rfl, by intro h; cases h⟩
@@ -157,7 +157,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
       rcases err2 with ei | _
       · (try wp_auto)
         iapply HΦ
-        iframe HRD Hrdo Htok Hreq
+        iframe HRD Htok Hreq
         iright
         iframe He2
         ipureintro; exact ⟨rfl, Hne⟩
@@ -168,8 +168,8 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     · iapply typedPointsto_combine _ _ _ Hrn
       simp only [TypedPointsto.typedPointstoDef, hK]
       iframe
-    wp_apply (hTTL s E ρ γr γl ctx cd r dq v) $$ [$Hrdo $Htok $Hreq] as %resp %err2
-        ⟨Hrdo, Htok, Hreq, Hres⟩
+    wp_apply (hTTL s E ρ γr γl ctx cd r dq v) $$ [$Htok $Hreq] as %resp %err2
+        ⟨Htok, Hreq, Hres⟩
     · iframe #; ipureintro; exact Hbound
     icases Hres with (⟨%He2, %w, Hw, %Hh, Hhv⟩ | ⟨%Hn, #He2⟩)
     · subst He2
@@ -184,7 +184,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
         simp only [TypedPointsto.typedPointstoDef, hK]
         iframe
       iapply HΦ
-      iframe HRD Hrdo Htok Hreq
+      iframe HRD Htok Hreq
       ileft
       isplitr
       · ipureintro; rfl
@@ -196,7 +196,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
       rcases err2 with ei | _
       · (try wp_auto)
         iapply HΦ
-        iframe HRD Hrdo Htok Hreq
+        iframe HRD Htok Hreq
         iright
         iframe He2
         ipureintro; exact ⟨rfl, Hne⟩

@@ -80,7 +80,7 @@ theorem kvOwn_snap (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IPro
     (hkb' : p'.kb = some d') (hγw : γw.st = E.γ) (hwq : E.γ.watchQ = true)
     (hRok : mvcc.restoreLogOk R) (hrb : receiptBound GF ≤ 2 ^ 48) :
     mvcc.isWatchableStore ws E.s γw ∗ mvcc.storeReader E.s E.γ ∗
-      mvcc.writerFrag (γw.st.withPhys p') ∗ mvcc.watchWriter γw ([[], []] ++ R) ∗
+      mvcc.writerFrag (γw.st.withPhys p') ∗ mvcc.watchWriter { γw with st := γw.st.withPhys p' } ([[], []] ++ R) ∗
       (mvcc.storeRT (γw.st.withPhys p') -∗ mvcc.writerOwn (γw.st.withPhys p')) ∗
       mvcc.bkRTx d'.γB d'.P d'.be ∗
       lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗ E.RD ⊢
@@ -90,13 +90,14 @@ theorem kvOwn_snap (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IPro
   rw [storeReader_snapE, snapE_γ, snapE_s, snapE_RD]
   rw [← hγw]
   iunfold mvcc.watchWriter at Hww
-  icases Hww with ⟨#Hc, Htoks, Hhalf⟩
+  icases Hww with ⟨#Hc, Htoks, Hhalf, Hpin⟩
+  dsimp only
   ihave Hwo := Hwo $$ [Hrt]
   · unfold mvcc.storeRT
     rw [show (γw.st.withPhys p').kb = some d' from hkb', kbRT_some]
     iexact Hrt
   iframe Hrd HRD Hwo
-  isplitl [Htoks Hhalf Hfrag]
+  isplitl [Htoks Hhalf Hpin Hfrag]
   · unfold txn.kvWriter txn.soleWriter
     isplitl [Htoks]
     · rw [mvcc.idxCert_withPhys]
@@ -109,6 +110,7 @@ theorem kvOwn_snap (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IPro
     isplitr [Hfrag]
     · have hq : (γw.st.withPhys p').watchQ = true := by rw [hγw]; exact hwq
       iapply (txn.wlogOwn_watch E.s (γw.st.withPhys p') _ hq).2
+      iframe Hpin
       iexists ws, { γw with st := γw.st.withPhys p' }
       rw [mvcc.isWatchableStore_withPhys, mvcc.idxCert_withPhys]
       iframe Hws Hhalf Hc

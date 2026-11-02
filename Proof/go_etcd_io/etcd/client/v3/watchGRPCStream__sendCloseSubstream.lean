@@ -56,7 +56,7 @@ theorem watchGRPCStream.sendCloseSubstream.wp_proof :
   ihave #Hj2 := monoListIdxOwn_get (GF := GF) (sent.length + 1) c2
     (by rw [List.getElem?_append_right (by omega)]; simp [HC2]) $$ Hlb2
   -- (D47) the caller's channel's element: an error, at the watch's first firing's state
-  ihave Hel : outcElem (GF := GF) P.γ P.o P.Q (wsRow V P) (sent.length : Int) v $$ [HRevision]
+  ihave Hel : outcElem (GF := GF) V.kv P.γ P.o P.Q (wsRow V P) (sent.length : Int) v $$ [HRevision]
   · unfold outcElem watchStateElem
     iexists (RespModel.mk [] (W64 0) true false (W64 0)), σ0, c2, c2
     simp only [Int.toNat_natCast]
@@ -88,8 +88,10 @@ theorem watchGRPCStream.sendCloseSubstream.wp_proof :
       iframe Hse
       ipureintro
       exact ⟨Or.inr (Or.inr Hca), rfl⟩
-    iintro !> %h
-    exact absurd rfl h
+    isplitr
+    · iintro !> %h
+      exact absurd rfl h
+    rw [Hcr]; iapply cmpOkOf_zero
   (try wp_auto)
   wp_apply +noauto HDone as %dch %dγ #Hdone
   (try wp_auto)

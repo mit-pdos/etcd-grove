@@ -576,9 +576,10 @@ cache's channel element, `etcdWatchElem`). -/
 theorem etcdWatchElem_of_km (γ : KMNames) (l0 : List (List Change)) (pfx : GoString)
     (hp : pfx ≠ []) (hff : prefixRangeEnd pfx ≠ [W8 0]) (o : OpFull) (rev : w64)
     (hk : o.key = pfx) (he : o.base.rangeEnd = prefixRangeEnd pfx) (hrev : o.base.rev = rev)
-    (γw : EtcdWatchNames) (Au : IProp GF) (i : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse) :
+    (γk : KVNames) (γw : EtcdWatchNames) (Au : IProp GF) (i : Int)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) :
     etcdReached (EM := etcdModelOfKV γ) (rev - W64 1) ∗
-        watchStateElem (GF := GF) γw o (kmSeenQ γ l0) Au i v ⊢
+        watchStateElem (GF := GF) γk γw o (kmSeenQ γ l0) Au i v ⊢
       etcdWatchElem (EM := etcdModelOfKV γ) γw pfx i v := by
   iintro ⟨#Hr0, H⟩
   iunfold watchStateElem at H
@@ -647,11 +648,11 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
   iapply HΦ
   isplitr
   · unfold isEtcdWatchChan
-    iexists watchStateElem γw (opWatchModel key gs) (kmSeenQ γ l0) _
+    iexists watchStateElem _ γw (opWatchModel key gs) (kmSeenQ γ l0) _
     iframe Hs
     iintro !> %i %v H
     imodintro
-    iapply etcdWatchElem_of_km γ l0 pfx hp hff (opWatchModel key gs) rev hkey hend hr γw _ i v
+    iapply etcdWatchElem_of_km γ l0 pfx hp hff (opWatchModel key gs) rev hkey hend hr _ γw _ i v
       $$ [Hreach H]
     iframe Hreach H
   unfold etcdWatchConsumer

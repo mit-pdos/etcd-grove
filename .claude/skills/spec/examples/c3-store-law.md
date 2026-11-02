@@ -62,3 +62,29 @@ def cmpPermOf (γ : WsNames) (x : RespM) : IProp GF :=
 -- etcdserver: cmpRight's on arm gains crevPermIs E.γ (fun _ => True); cmp_store_pre gives
 -- □ ∀ r, crevPermAt E.γ r
 ```
+
+# The server stage (2026-11-02)
+
+The server fixes a real permit, and every compaction carries it.
+
+**Candidate 1**: the permit a member's certificate, `0 < c ∗ srvRevLb γ (c + cret)`; the client's
+premise `kvRevLb γ (W64 (rev + cret))`. **The user's choices**: the retention a field of the
+cluster's names (`KVNames.cret`), not the compactor's configuration (a client does not see it);
+the client's premise (approved); `NewServer`'s `cret ≤ retention` with the compactor on; a premise
+on the apply chain.
+
+**Review rounds, and what they changed**
+- Round 1: `W64 (rev + cret)` wraps, and `kvRevLb` of a negative revision is free, so the premise
+  was vacuous at large revisions → an integer bound `kvRevLbZ`. A member's certificate does not
+  survive a snapshot from another member → **the cluster's certificate** (`kvCmpPermit γk c :=
+  ⌜0 < c⌝ ∗ kvRevLbZ γk (c + cret)`), which also needs no conversion at the client.
+- Round 2: the apply chain's premise is `store.Compact`'s own (`crevPermAt`), not a new
+  environment field; the readers' copy must be where both modes' readers look.
+- Round 3: the entry step cannot reach the readers' view → the store's permit in `srvKVInvs`,
+  which both the apply thread and the readers hold.
+- Implementing: the compactor's call is made at request names its run chooses, which `NewServer`'s
+  premise does not reach → `AEnv.cret`, tied in `srvKVInvs` as the mode `cmp` is.
+
+**The approved spec**: `kv.Compact` takes `kvRevLbZ γ (sint.Z rev + γ.cret)`; `NewServer` (compactor
+on) `ρ.rd.kv.cret ≤ AutoCompactionRetention`; the store is created at `kvCmpPermit`; the apply
+chain takes `cmpPermRq E rq` (`□ (kind = compaction → ∀ r, rq.compaction = some r → crevPermAt E.γ r)`).

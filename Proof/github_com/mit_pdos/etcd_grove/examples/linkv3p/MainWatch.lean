@@ -223,7 +223,7 @@ theorem MainWatch.wp_proof
     · iexact Hrd₁
     isplitr
     · iexists pw₁; iexact Hws₁
-    ipureintro; exact ⟨HR₁.2, hm₁, rfl, hoff₁⟩
+    ipureintro; exact ⟨HR₁.2, hm₁, kvSame_refl _, hoff₁⟩
   ihave #Hmw₂ : memberWatch ρ₁.rd s₂ E₂ ρ₂ R₂ $$ []
   · iunfold memberWatch
     isplitr
@@ -417,7 +417,7 @@ theorem MainWatch.wp_proof
         · iapply isGrpcRpc_forwards $$ [Hfw₂ HTxn₂]; iframe #
         iapply isGrpcRpc_forwards $$ [Hfw₂ HCmp₂]; iframe #
       iframe #
-      ipureintro; rw [hγk]; exact hst₂
+      ipureintro; rw [hγk]; exact hst₂.1
     iapply BigSepL.bigSepL_cons.2
     isplitr
     · iunfold memberPut
@@ -433,7 +433,7 @@ theorem MainWatch.wp_proof
         · iapply isGrpcRpc_forwards $$ [Hfw₃ HTxn₃]; iframe #
         iapply isGrpcRpc_forwards $$ [Hfw₃ HCmp₃]; iframe #
       iframe #
-      ipureintro; rw [hγk]; exact hst₃
+      ipureintro; rw [hγk]; exact hst₃.1
     iapply BigSepL.bigSepL_nil.2
     itrivial
   -- (D29) the bridges' addresses are refusal-free: every client's writes are sent at most once

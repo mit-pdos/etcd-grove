@@ -24,5 +24,9 @@ theorem backend.newBackend.wp_proof (hOpen : bbolt.Open_kv.spec) (hLog :
               ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
                 backend.hooksOk P W Pk cfg.Hooks' ∗
                   ∀ γ, backend.hkOwn γ (backend.hkData P D) ∗ backend.bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) -∗
-          (▷ ∀ r, (∃ b γ, ⌜r = intoVal b⌝ ∗ backend.newPostK γ P W Pk K b D) ∨ ⌜∃ p, r = p.PanicV⌝ -∗ Φ r) -∗
+          (▷
+              ∀ r,
+                (∃ b γ, ⌜r = intoVal b⌝ ∗ backend.newPostK γ P W Pk K b D ∗ backend.hooksAt b cfg.Hooks') ∨
+                    ⌜∃ p, r = p.PanicV⌝ -∗
+                  Φ r) -∗
             WP ((intoVal (functions go_etcd_io.etcd.server.v3.storage.backend.newBackend [])) (intoVal cfg)) {{ Φ }}

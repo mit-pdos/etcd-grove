@@ -343,9 +343,9 @@ theorem EtcdServer.Compact.wp_proof
   (try wp_auto)
   -- the proposal, in compaction mode's form (`compactPropOk`)
   -- (review round 1, S2-3) the revision reached, at the request's value
-  ihave #Hreach : kvRevLb ρ.kv rv.Revision' $$ []
-  · have h : W64 r = rv.Revision' := by rw [← Hrv.1]; word
-    rw [← h]; iexact Hlb
+  ihave #Hreach : kvRevLbZ ρ.kv (sint.Z rv.Revision' + ρ.kv.cret) $$ []
+  · have h : sint.Z rv.Revision' = r := by rw [← Hrv.1]; try word
+    rw [h]; iexact Hlb
   -- (M2's apply side, item 6) `reqPropOk`'s compaction form: the cluster's mode on (the request
   -- view's tie), the revision reached (the caller's `kvRevLb`)
   ihave ⟨%Hkcmp, -⟩ := isServerReq_cmp s E ρ $$ Hsrv

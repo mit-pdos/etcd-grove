@@ -164,7 +164,7 @@ theorem Main.wp_proof
   -- watch server's facts there, for the clients' watcher environment `akV R`)
   haveI := Hms
   let akV : v3rpc.WSrv GF → client.WEnv GF := fun R =>
-    client.srvWEnv R go!"127.0.0.1:23916" [] null null go!"a" null ρ.rd.kv.st
+    client.srvWEnv R go!"127.0.0.1:23916" [] null null go!"a" null ρ.rd.kv
   wp_apply (wp_ServeOn srv go!"127.0.0.1:23916" E { ρ with wait := γw } ρ.rd cfg γa
       (fun cid mid R => iprop(⌜R.E = E ∧ R.s = srv⌝ ∗
         akKVOn go!"127.0.0.1:23916" srv E { ρ with wait := γw } cid mid ∗
@@ -211,7 +211,7 @@ theorem Main.wp_proof
       iunfold idCred
       ipureintro; exact Hrb48
     imod (ak_served_watch (akV R) go!"127.0.0.1:23916" pw srv E ρ.rd ims is sregs 1 rfl hRE
-        (by simp) rfl hlog (by omega) Hms.watch_impl Hregs2 rfl rfl (by rw [hRE]; exact Hoff))
+        (by simp) (kvSame_refl _) hlog (by omega) Hms.watch_impl Hregs2 rfl rfl (by rw [hRE]; exact Hoff))
       $$ [Hss Hwslots] with ⟨#HWF, #Htag⟩
     · iframe; iframe #
     imodintro
@@ -462,7 +462,7 @@ theorem Main.wp_proof
     · ipureintro; exact ⟨watch_all_ok.1, watch_all_ok.2, by decide⟩
     iintro !> %h
     exact absurd h.2 (Nat.lt_irrefl 0)
-  ihave #Hhch := common.isRespChan_of_state hch γh _ (fun σ => iprop(⌜stateHistOk σ⌝)) _ $$ Hhsp
+  ihave #Hhch := common.isRespChan_of_state hch _ γh _ (fun σ => iprop(⌜stateHistOk σ⌝)) _ $$ Hhsp
   (try wp_auto)
   -- `evs, ok := common.Collect(hch, end.Header.Revision)`: every event admitted (`root_resp`)
   iunfold putRespMsg at Hemsg
@@ -536,7 +536,7 @@ theorem Main.wp_proof
     exact absurd h.2 (Nat.lt_irrefl 0)
   rw [OpFull.watchNorm_of_ne (opWatchModel lo [withRangeM hi, withRevM (W64 1)])
     (by rw [watch_ab_ok.2.1]; decide)]
-  ihave #Huch := common.isRespChan_of_state uch γu _ (fun σ => iprop(⌜stateHistOk σ⌝)) _ $$ Husp
+  ihave #Huch := common.isRespChan_of_state uch _ γu _ (fun σ => iprop(⌜stateHistOk σ⌝)) _ $$ Husp
   (try wp_auto)
   -- `uevs, ok := common.Collect(uch, LastIn(evs))`
   wp_apply (wp_LastIn esl evs (DFrac.own 1)) $$ [Hes] as Hes

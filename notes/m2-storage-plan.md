@@ -2110,7 +2110,22 @@ mvcc's Link equals the committed file, the previously hand-edited `store.restore
   `isKeyBackendGR`, or `store.restore.spec` with the contract's token separate: its generalized proof
   never uses the contract).
 
-### Task 4: item 37 (stopped; design and impact recorded)
+### Task 4: item 37 (done 2026-11-02: the writer's pin, branch `m2-item37`)
+
+**Done** (`notes/decisions.md`, "The writer's pin"): the two laws are proved over a quarter of the
+bucket view the writer holds itself (`writerPin`) and, with compaction off, the backend's
+no-compaction token and nothing-deletable fact; not through `writerRes`'s log (unreachable after a
+restore, `lateW` unregistered). `bucketViewL` below stays with item 15. The rest of this section is
+the design at the time.
+
+
+**Its consumers (2026-11-02, branch `snap-window`).** `etcdserver.mergedCreate_window` is proved over
+two laws stated with named `sorry`s in `Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/KeyObs.lean`,
+which this item proves inside mvcc: `txn.kvWriter_keyObs` (the sole writer, with the batch lock's
+resource `lateW d.gx` and a view of the backend, sees the `Key` bucket thin of its log, exactly its
+log when the store does not compact: the writer's pin of `writerRes`'s log) and
+`txn.kvWriter_noCmp` (with a reader's bound of the compaction-key flag, `fkRd`, no compaction key
+when the store does not compact: the off-mode store lends the writer `bkNoCmp`).
 
 The coordinator's choice: the writer's relation becomes "the backend's view is a subset of the log's
 bucket, the missing keys deletable". **Not implemented this round**; the refuted widening Draft is

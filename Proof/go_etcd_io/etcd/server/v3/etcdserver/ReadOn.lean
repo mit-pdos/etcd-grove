@@ -151,8 +151,8 @@ theorem srvAuthLb_rangeCheck (s : Loc) (E : apply.AEnv GF) (ai : GoInterfaceOk) 
     icombine Hf Hf2 gives %Hau
     subst Hau
     rw [hM]
-    iunfold authStoreLbM at HLbM
-    ihave #HR := HLbM $$ Hpub
+    ihave #HLbR := authStoreLbM_range γa _ E.RD $$ HLbM
+    ihave #HR := HLbR $$ Hpub
     iapply apply.rangeCheckFrom_of_isAuthStoreRangeLb $$ HR
   | _ =>
     iapply apply.rangeCheckFrom_of_permCheck3 $$ HP3
@@ -245,7 +245,7 @@ def srvKVCoreM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   match on with
   | false => srvKVInvs E γr
   | true => iprop(kvInvOn γr.raft γr.kv srvAuthSt0 ∗ kvCertInvOn γr.raft γr.kv srvAuthSt0 ∗
-      srvRaftLogInv γr.raft ∗ ⌜E.γ.cok = γr.kv.cok⌝)
+      srvRaftLogInv γr.raft ∗ ⌜E.γ.cok = γr.kv.cok⌝ ∗ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv))
 
 instance srvKVCoreM_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVCoreM (GF := GF) on E γr) := by
@@ -257,7 +257,8 @@ theorem srvKVCoreM_false (E : apply.AEnv GF) (γr : ReadNames) :
 theorem srvKVCoreM_true (E : apply.AEnv GF) (γr : ReadNames) :
     srvKVCoreM (GF := GF) true E γr =
       iprop(kvInvOn γr.raft γr.kv srvAuthSt0 ∗ kvCertInvOn γr.raft γr.kv srvAuthSt0 ∗
-        srvRaftLogInv γr.raft ∗ ⌜E.γ.cok = γr.kv.cok⌝) := rfl
+        srvRaftLogInv γr.raft ∗ ⌜E.γ.cok = γr.kv.cok⌝ ∗
+        mvcc.crevPermIs E.γ (kvCmpPermit γr.kv)) := rfl
 
 /-- `srvKVInvsM true`'s KV invariants (`srvKVInvsM_true`'s, in a section without the package's
 assumptions). -/
@@ -274,14 +275,30 @@ theorem srvKVInvsM_core (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNam
     iintro #H
     ihave #Hon := srvKVInvsM_onPart s E γr $$ H
     iunfold srvKVInvsOn at Hon
-    icases Hon with ⟨#Hk, #Hc, #Hr, -, %Hcok⟩
+    icases Hon with ⟨#Hk, #Hc, #Hr, -, %Hcok, #Hcp⟩
     isplitl []
     · iexact Hk
     isplitl []
     · iexact Hc
     isplitl []
     · iexact Hr
-    ipureintro; exact Hcok
+    isplitl []
+    · ipureintro; exact Hcok
+    iexact Hcp
+
+/-- **The store's compaction permit is the cluster's, in either auth mode** (C3's watch side,
+2026-11-02): the KV core's `crevPermIs`. -/
+theorem srvKVCoreM_cperm (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVCoreM (GF := GF) on E γr ⊢ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv) := by
+  cases on
+  · rw [srvKVCoreM_false]
+    iintro #H
+    iunfold srvKVInvs at H
+    icases H with ⟨-, -, -, -, -, -, #Hcp⟩
+    iexact Hcp
+  · rw [srvKVCoreM_true]
+    iintro ⟨-, -, -, -, #Hcp⟩
+    iexact Hcp
 
 /-- The read view's KV core in its mode (`srvReadFieldsAtM`'s `srvKVInvsM`, `srvKVInvsM_core`). -/
 theorem srvKVCoreM_of_readM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
@@ -380,7 +397,7 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
       rw [Iris.Std.LawfulSet.mem_diff]
       exact ⟨CoPset.mem_full, hp.2⟩
     iintro #Hinvs #H0 #HL #Hc #Hau
-    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
     imod kv_cert_read_on γr.raft γr.kv srvAuthSt0 E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) L
       $$ HcI Hc with Hcase
     ihave %Hp0 := mvcc.idxSealed_prefix E.γ.idx [[], []] L $$ [H0 HL]
@@ -510,7 +527,7 @@ theorem srvKVCoreM_keys [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     exact kvRaftOf_keys _ _ _ A' (fun m hm => Hws.2.2.1 m (hA'L.subset hm)) Hws.2.2.2
   · rw [srvKVCoreM_true]
     iintro #Hinvs #HB #Hl #Hc
-    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
     imod kv_cert_read_on γr.raft γr.kv srvAuthSt0 E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) l
       $$ HcI Hc with Hcase
     ihave %Hp0 := mvcc.idxSealed_prefix E.γ.idx B l $$ [HB Hl]
@@ -936,7 +953,7 @@ theorem readWit_fireOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
   iintro #Hainv #Hkvi #Hw #Hc Hlc
   ihave #Hkvi := srvKVInvsM_true s E γr $$ Hkvi
   iunfold srvKVInvsOn at Hkvi
-  icases Hkvi with ⟨-, #HcI, -, -, %Hcok⟩
+  icases Hkvi with ⟨-, #HcI, -, -, %Hcok, -⟩
   iunfold readWitAt at Hw
   icases Hw with ⟨%ci, %ci₀, %L₀, %gs, %k, %Hp, #HL, #HW, #HQ⟩
   imod appliedLogAt_kvLogAtM true s E γr ci₀ L₀ $$ Hainv HL with #HkL

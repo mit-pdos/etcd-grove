@@ -54,9 +54,14 @@ abbrev newServer.spec : Prop :=
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
+  -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
+  -- `bootPremise`'s condition
+  (∀ k, (M.lookup k).isSome → utf8Valid k) →
   lg ≠ null → retention = W64 0 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
+      -- (2026-11-02, the backend-auth-split stage) the thread's token, `NewServer`'s, given back
+      threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
@@ -69,7 +74,8 @@ abbrev newServer.spec : Prop :=
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #retention))
       (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
-      ⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ memberBuilt s ρ E₀ lg γn id N false) }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false) }}
 
 /-- See the file header (`specCompact`). -/
 abbrev newServer.specCompact : Prop :=
@@ -83,9 +89,16 @@ abbrev newServer.specCompact : Prop :=
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
+  -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
+  -- `bootPremise`'s condition
+  (∀ k, (M.lookup k).isSome → utf8Valid k) →
   lg ≠ null → 0 < sint.Z retention →
+  -- (C3's server stage, 2026-11-02) the cluster's retention at most the compactor's
+  (ρ.rd.kv.cret : Int) ≤ sint.Z retention →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
+      -- (2026-11-02, the backend-auth-split stage) the thread's token, `NewServer`'s, given back
+      threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       -- (M2, 2026-10-31) at `N + N` write tokens: `N` more, the compaction's write-back stock
       bootPremise (N + N) ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
@@ -100,7 +113,8 @@ abbrev newServer.specCompact : Prop :=
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #retention))
       (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
-      ⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ memberBuilt s ρ E₀ lg γn id N false) }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false) }}
 
 end spec
 

@@ -111,17 +111,17 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
       mvcc.idxFresh idx -∗ ghostMapAuth cok 1 (∅ : GMap w64 mvcc.Log) -∗
       ghostMapAuth rev 1 (∅ : GMap w64 Unit) ==∗
       ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
-        ρ.rd.kv.log0 = γk.log0⌝ ∗
+        ρ.rd.kv.log0 = γk.log0 ∧ kvSame ρ.rd.kv γk⌝ ∗
         memberBoot { γ with reg := reg } ctxs ρ (env₀ idx cok rev) Φs id := by
   iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, Hnb, Hsd⟩ Hwn Hreg Hidx Hcok Hrev
   ihave #Hkv' := kvInv_reg γ reg γk $$ Hkv
   imod (srvMemberBoot_alloc (GF := GF) { γ with reg := reg } cnt γk id cok) $$ Hkv' Hp Hwn
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
-  obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', -⟩ := Hρ
+  obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', hrl', hcr'⟩ := Hρ
   imodintro
   iexists ρ
   isplitr
-  · ipureintro; exact ⟨hst, hc0', hch', hlog'⟩
+  · ipureintro; exact ⟨hst, hc0', hch', hlog', hst, hc0', hch', hlog', hrl', hkc', hcr'⟩
   iunfold memberBoot
   simp only [env₀]
   rw [hiss', hcnt, hraft, Hiss]
@@ -162,7 +162,8 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Lo
         γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ₁.rd.kv.log0 = [[], []] ∧
         ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.st = ρ₁.rd.kv.st ∧
         kvModel ρ₂.rd.kv = kvModel ρ₁.rd.kv ∧ kvModel ρ₃.rd.kv = kvModel ρ₁.rd.kv ∧
-        ρ₂.rd.kv.log0 = [[], []] ∧ ρ₃.rd.kv.log0 = [[], []]⌝ ∗
+        ρ₂.rd.kv.log0 = [[], []] ∧ ρ₃.rd.kv.log0 = [[], []] ∧
+        kvSame ρ₂.rd.kv ρ₁.rd.kv ∧ kvSame ρ₃.rd.kv ρ₁.rd.kv⌝ ∗
       memberBoot { γ with reg := reg₁ } ctxs ρ₁ E₁ Φs id₁ ∗
       (netHttpOk γn id₁ ∗ http.httpProtoOwn a₁ (raftProto (netRh γn))) ∗
       memberBoot { γ with reg := reg₂ } ctxs ρ₂ E₂ Φs id₂ ∗
@@ -195,7 +196,7 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Lo
       (by simp [hn12, hn13, hn23]) (by simp)
       (by intro h; exact Hnz _ h rfl) Hcc Hlow Hlow0 false) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms, Hwns⟩
-  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, hkc⟩ := Hγ
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, hkc, -⟩ := Hγ
   icases Hms with ⟨Hm₁, Hm₂, Hm₃, -⟩
   icases Hwns with ⟨Hw₁, Hw₂, Hw₃, -⟩
   imod (memberBoot_of γ [id₁, id₂, id₃] ctxs reg₁ issued cnt γk Φs id₁ idx₁ cok₁ rev₁ hiss hc0 hch hlog
@@ -216,9 +217,9 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Lo
   ihave #Hs₁ := Hnet $$ %id₁
   ihave #Hs₂ := Hnet $$ %id₂
   ihave #Hs₃ := Hnet $$ %id₃
-  obtain ⟨hst₁, hc0₁, hch₁, hlog₁⟩ := Hρ₁
-  obtain ⟨hst₂, hc0₂, hch₂, hlog₂⟩ := Hρ₂
-  obtain ⟨hst₃, hc0₃, hch₃, hlog₃⟩ := Hρ₃
+  obtain ⟨hst₁, hc0₁, hch₁, hlog₁, hs₁⟩ := Hρ₁
+  obtain ⟨hst₂, hc0₂, hch₂, hlog₂, hs₂⟩ := Hρ₂
+  obtain ⟨hst₃, hc0₃, hch₃, hlog₃, hs₃⟩ := Hρ₃
   imodintro
   iexists γ, reg₁, reg₂, reg₃, ρ₁, ρ₂, ρ₃,
     env₀ idx₁ cok₁ rev₁, env₀ idx₂ cok₂ rev₂, env₀ idx₃ cok₃ rev₃, Φs, γn
@@ -229,7 +230,8 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Lo
       by rw [hst₂, hst₁], by rw [hst₃, hst₁],
       by funext B; unfold kvModel; rw [hc0₂, hch₂, hlog₂, hc0₁, hch₁, hlog₁],
       by funext B; unfold kvModel; rw [hc0₃, hch₃, hlog₃, hc0₁, hch₁, hlog₁],
-      by rw [hlog₂, hlog], by rw [hlog₃, hlog]⟩
+      by rw [hlog₂, hlog], by rw [hlog₃, hlog],
+      kvSame_trans hs₂ (kvSame_symm hs₁), kvSame_trans hs₃ (kvSame_symm hs₁)⟩
   rw [← hboot]
   rw [etcdKV_congr ρ₁.rd.kv γk hst₁,
     show kvModelSt ρ₁.rd.kv (bootEntries γ.boot) = kvModelSt γk (bootEntries γ.boot) by

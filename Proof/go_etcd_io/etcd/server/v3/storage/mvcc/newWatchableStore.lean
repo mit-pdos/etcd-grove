@@ -39,7 +39,7 @@ theorem mvcc.newWatchableStore.wp_proof
     (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) := by
   intro _ lg b le cfg kb γb γl P f rd0 γi γok γtag Perm Hcfg0
-  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
+  wp_start as ⟨Hbk, Hbv, Hncmp, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
@@ -49,9 +49,9 @@ theorem mvcc.newWatchableStore.wp_proof
     · ipureintro; rfl
     iexists l; iexact lg
   wp_apply (hNewStore _ _ _ _ _ _ _ _ f _ true γi γok Perm Hcfg0)
-    $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hsrm $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0] as %st
+    $$ [$Hbk $Hbv $Hncmp $Hnd $Hrg $Hwt1 $Hwt2 $Hsrm $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0] as %st
     ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok, %hγcm⟩, #Hst, ⟨%rd1, Hro⟩, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, Hfw,
-      Hwsd, Hfrag, Hright, Hret, #HcpIs⟩
+      Hwsd, Hfrag, Hpin, Hright, Hret, #HcpIs⟩
   -- (M2, the storage side, P3) the right's half of the revision's authority by the mode: frozen
   -- when the store does not compact, handed to the caller when it does (`crevRight_split`); the
   -- closer, with the scheduler's stop token, goes to the caller (D19m (C))
@@ -194,7 +194,7 @@ theorem mvcc.newWatchableStore.wp_proof
   iframe HhookP Hsclose Hcr wg Hfrag Hret
   isplitr [Hmus Hreaders Hstop Htw Hok]
   · iunfold mvcc.watchWriter
-    iframe Hcert Hwl2
+    iframe Hcert Hwl2 Hpin
     have hb : mvcc.wBudget [[], []] = 2 ^ 63 - 5 := by unfold mvcc.wBudget; rfl
     rw [hb]; iexact Htoks
   isplitl [Htw]

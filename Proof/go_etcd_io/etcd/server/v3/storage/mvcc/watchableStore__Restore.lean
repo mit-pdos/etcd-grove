@@ -244,7 +244,8 @@ theorem mvcc.watchableStore.Restore.wp_proof
     mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG) := by
   have hAddG := mvcc.watcherGroup.add.spec_group hAdd
   intro s st γ b' d' γb' P' L R hLR hR
-  wp_start as ⟨#Hws, %Hkb, %Hcm', Hcl, Hfrag, Hown, #Hfrz, Hww, #Hok', #HbkT, #HcrT, Hview, Hnc, Hrr, Hrts⟩
+  wp_start as ⟨#Hws, %Hkb, %Hcm', Hcl, Hfrag, Hown, #Hfrz, Hww, #Hok', #HbkT, #HcrT, Hview, Hnc, #Hnd, Hrr,
+    Hrts⟩
   ihave #HwsAll : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
   ihave #Hpkg0 : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -265,7 +266,7 @@ theorem mvcc.watchableStore.Restore.wp_proof
   icases mvcc.watchBudget_bound _ _ _ $$ Hwt with ⟨Hwt, %HMb⟩
   -- the sole writer's notified log is the lock's
   iunfold mvcc.watchWriter at Hww
-  icases Hww with ⟨#HcL, Htoks, HwlW⟩
+  icases Hww with ⟨#HcL, Htoks, HwlW, Hpin⟩
   iunfold mvcc.wlogQ at Hwlog
   icases Hwlog with ⟨HwlL, HlogQ⟩
   ihave %HLL := monoListAuthOwn_agree γ.wlog _ _ _ _ $$ HwlW HwlL
@@ -280,10 +281,10 @@ theorem mvcc.watchableStore.Restore.wp_proof
   -- `s.store.Restore(b)`
   (try wp_auto)
   wp_apply (hRestore st γ.st b' d' γb' P' L R hLR hR) $$ [Hcl Hfs Hwsd Hfrag Hown Htoks HlogQ
-      Hview Hnc Hrr Hrts]
-    as ⟨%p', %Hp', Hcl, Hfs, Hwsd, Hfrag, Hown, #HhP, #HcL', Htoks, HlogQ, Hold, Hnew'⟩
+      Hview Hnc Hrr Hrts Hpin]
+    as ⟨%p', %Hp', Hcl, Hfs, Hwsd, Hfrag, Hown, Hpin, #HhP, #HcL', Htoks, HlogQ, Hold, Hnew'⟩
   · simp only [mvcc.wBudget, Hwq, ↓reduceIte]
-    iframe Hcl Hfs Hfrag Hown Htoks Hview Hnc Hrr Hrts
+    iframe Hcl Hfs Hfrag Hown Htoks Hview Hnc Hrr Hrts Hpin
     iframe #
     isplitr
     · ipureintro; exact Hkb
@@ -295,6 +296,8 @@ theorem mvcc.watchableStore.Restore.wp_proof
     rw [HLL]; iexact HlogQ
   simp only [Hwq, ↓reduceIte]
   obtain ⟨hbk', hkb'⟩ := Hp'
+  ihave Hpin : mvcc.writerPin (GF := GF) (γ.st.withPhys p') ([[], []] ++ R : mvcc.Log) $$ [Hpin]
+  · iexact Hpin
   generalize hL' : ([[], []] ++ R : mvcc.Log) = L' at *
   have hLL' : σ.Lmu.length ≤ L'.length := by rw [← HLL]; exact hLR.length_le
   (try wp_auto)
@@ -481,8 +484,8 @@ theorem mvcc.watchableStore.Restore.wp_proof
   isplitr
   · ipureintro; exact ⟨hbk', hkb'⟩
   iunfold mvcc.watchWriter
-  simp only [mvcc.wBudget]
-  iframe HcL' Htoks HwlW
+  simp only [mvcc.wBudget, mvcc.idxCert_withPhys, mvcc.StoreNames.withPhys_revs]
+  iframe HcL' Htoks HwlW Hpin
 
 end proof
 

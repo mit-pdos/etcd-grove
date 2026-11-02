@@ -533,7 +533,7 @@ theorem EtcdServer.apply.wp_proofOff
         iunfold hookSpec at Hhook2
         ihave #Hh := Hhook2 $$ %(stLoaded γ st') %m.index %m.term %b
         obtain ⟨HEP, HEf⟩ := HE
-        icases srvApplyKV_ua_rt_pool s E ρ.wait xj $$ HKV with ⟨%ua, %dP, %HdP, Hua, #Happlier, Hrt, HplP, HKVk⟩
+        icases srvApplyKV_ua_rt_pool s E ρ.wait xj $$ HKV with ⟨%ua, %dP, %HdP, Hua, #Happlier, Hrt, HplP, #HbeRO, HKVk⟩
         -- (2026-11-02, the backend-auth-split stage) the current backend's reader pool, for
         -- `applyConfChange`, and the apply thread's token (`srvGoRes`'s)
         have hPB : dB = dP := Option.some.inj (hkbB.symm.trans HdP)
@@ -612,7 +612,7 @@ theorem EtcdServer.apply.wp_proofOff
         · rw [ite_eq_left rfl, HEP, HEf]
           iunfold srvRest at HRS
           iframe Hcif Hua Happlier Hrn Hcc Hcs Hcl HRS Hdvp Hlg Hlr Hbh Hbhi Htr Hmid Hmr Hrt Hclg Hcid
-            HplP HthT
+            HplP HthT HbeRO
           isplitr
           · ipureintro; exact Hlgnn
           isplitr
@@ -1401,7 +1401,7 @@ theorem EtcdServer.apply.wp_proofOn
         iunfold hookSpec at Hhook2
         ihave #Hh := Hhook2 $$ %(stLoaded γ st') %m.index %m.term %b
         obtain ⟨HEP, HEf⟩ := HE
-        icases srvApplyKVOn_ua_rt_pool s E ρ.wait xj saj $$ HKV with ⟨%ua, %dP, %HdP, Hua, #Happlier, Hrt, HplP, HKVk⟩
+        icases srvApplyKVOn_ua_rt_pool s E ρ.wait xj saj $$ HKV with ⟨%ua, %dP, %HdP, Hua, #Happlier, Hrt, HplP, #HbeRO, HKVk⟩
         -- (2026-11-02, the backend-auth-split stage) the current backend's reader pool, for
         -- `applyConfChange`, and the apply thread's token (`srvGoRes`'s)
         have hPB : dB = dP := Option.some.inj (hkbB.symm.trans HdP)
@@ -1480,7 +1480,7 @@ theorem EtcdServer.apply.wp_proofOn
         · rw [ite_eq_left rfl, HEP, HEf]
           iunfold srvRest at HRS
           iframe Hcif Hua Happlier Hrn Hcc Hcs Hcl HRS Hdvp Hlg Hlr Hbh Hbhi Htr Hmid Hmr Hrt Hclg Hcid
-            HplP HthT
+            HplP HthT HbeRO
           isplitr
           · ipureintro; exact Hlgnn
           isplitr

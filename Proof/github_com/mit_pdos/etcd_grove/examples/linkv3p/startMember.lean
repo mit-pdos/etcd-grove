@@ -106,10 +106,12 @@ theorem startMember.wp_proof
       (GMap.insert name₃ sl₃ (GMap.insert name₂ sl₂ (GMap.insert name₁ sl₁ ∅))) initURLs3
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn
       (by omega) Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Hmb Hpown] as %srv %err Hres
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      (common.utf8Keys_insert _ _ _ (by decide) (common.utf8Keys_insert _ _ _ (by decide)
+        (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Htok Hmb Hpown] as %srv %err Hres
   · iframe; iframe #
     iExactEq Hpeer; rfl
-  icases Hres with (%Herr | ⟨%Herr, Hmb⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
   · -- `NewMember` failed: the error returned
     cases err with
     | nil => exact absurd rfl Herr
@@ -158,8 +160,9 @@ theorem startMember.wp_proof
   imod ownSlice_persist _ _ _ $$ Hgsl with #Hgsl
   ihave #Hwpi := srvServeFacts_interval srv E cfg $$ Hsf
   wp_apply (wp_Server Hms srv C _ _ [kv] Hbuq) $$ [Hlg3 Hbemu Hgo]
-    as %gs ⟨%q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid, %R,
-      Hgsn, %Hregs, -, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4, Hbemu2, Hgo2⟩
+    as %gs ⟨%q, %p, %pw, %pa, %ql, %pl, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid,
+      %lcid, %lmid, %R,
+      Hgsn, %Hregs, -, -, -, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4, Hbemu2, Hgo2⟩
   · iframe; iframe #
     isplitr
     · ipureintro; rw [HEw]; simp

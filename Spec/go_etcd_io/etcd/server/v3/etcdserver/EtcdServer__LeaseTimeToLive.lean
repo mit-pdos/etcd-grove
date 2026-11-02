@@ -46,11 +46,11 @@ abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ E.RD ∗ lease.lessorRdOf γl ∗ threadTok ∗
+      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ E.RD ∗ lease.lessorRdPool γl ∗ threadTok ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ r ↦{dq} v }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseTimeToLive"))
       (Val #(GoInterface.ok ctx))) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗ lease.lessorRdOf γl ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗
       threadTok ∗ r ↦{dq} v ∗
       ((⌜err = GoInterface.nil⌝ ∗
           (∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗ ⌜w.Header' ≠ null⌝ ∗

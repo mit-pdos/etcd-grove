@@ -268,7 +268,7 @@ theorem apply.newApplierV3Corrupt.wp_proof
     imodintro
     iintro %cr %rev %log %crev %Pre %Q %Post %info
     imodintro
-    iintro %Φ' ⟨#Hcr, %Hadm, Hm, Hc⟩ HΦ'
+    iintro %Φ' ⟨#Hcr, %Hadm, #Hperm, Hm, Hc⟩ HΦ'
     iunfold apply.compactionIs at Hcr
     icases Hcr with ⟨%Hcrn, -⟩
     iapply (hCompaction p cr) $$ []

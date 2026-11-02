@@ -260,7 +260,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
   -- the KV model (unit T1): the entry plain, the log after it the model's, certified
   ihave #Hkvi' := Hkvi
   iunfold srvKVInvs at Hkvi'
-  icases Hkvi' with ⟨-, -, -, %Hcok, %Hktie⟩
+  icases Hkvi' with ⟨-, -, -, %Hcok, %Hktie, -, #HcpIs⟩
   icases srvApplyKV_idxCert s E ρ.wait x $$ HKV with ⟨HKV, #Hcx⟩
   ihave %Hlx := idxCert_len E.γ.idx x.log $$ Hcx
   icases kvApplied_log γr.raft γr.kv A x $$ Hka with ⟨Hka, %Hxl⟩
@@ -289,6 +289,11 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       apply.cmpAdmit E.γ.kb x.log rq :=
     fun rq hd hdec => cmpAdmit_of_entry γr.kv γr.kv.cmp A m rq E.γ.kb x.log Hxl
       (fun h => hkbE.2 (by rw [← Hktie.1]; exact h)) Htyp hd hdec Hcl
+  -- (C3's server stage) a compaction's permit: the claim's revision the cluster's permit, which is
+  -- the store's (`srvKVInvs`'s `crevPermIs`)
+  ihave #HA0 := srvRLogLb_mono γr.raft A (A ++ [m]) (List.prefix_append _ _) $$ HAm
+  imod (kv_revLbZ_of_rlogLb γr.raft γr.kv A ((kvModel γr.kv A).length - 1) (by omega))
+    $$ HkI HrI HA0 with #HlbA
   ihave ⟨%Hnn, %d, #Hfd, #Hds⟩ := entryAt_fields _ _ $$ He
   ihave %Hdlen := ownSlice_len _ _ _ $$ Hds
   ihave #Pnot : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify $$ []
@@ -394,6 +399,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         isplitr
         · itrivial
         iframe Hcx
+        ihave #Hcpq := cmpPermRq_of_entry E γr.kv A m rq Hcl Htyp hdata hdec $$ [$HlbA $HcpIs]
+        iframe Hcpq
         ipureintro; exact ⟨hdec, hid, hrq, HaOn ▸ hdk, Hca rq hdata hdec⟩
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.2.1]; iexact HFS
@@ -596,6 +603,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
             · iunfold batchLockInv; iexists mm; iframe; iexact Hreg
             iexact Hst
         · iframe Hst Happ Hbe HcF
+          ihave #Hcpq := cmpPermRq_of_entry E γr.kv A m rq Hcl Htyp hdata hdec $$ [$HlbA $HcpIs]
+          iframe Hcpq
           ipureintro; exact ⟨hpre, hdec, hid, hrq, HaOn ▸ hdk, Hca rq hdata hdec⟩
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.2.1]; iexact HFS
@@ -999,7 +1008,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
   · iapply srvKVInvsM_true; iexact Hkvi
   ihave #Hkvi' := Hkvi
   iunfold srvKVInvsOn at Hkvi'
-  icases Hkvi' with ⟨-, -, -, #Htie0, %Hcok⟩
+  icases Hkvi' with ⟨-, -, -, #Htie0, %Hcok, -⟩
   icases srvApplyKVOn_idxCert s E ρ.wait x sa $$ HKV with ⟨HKV, #Hcx, %HaOn⟩
   ihave %Hlx := idxCert_len E.γ.idx x.log $$ Hcx
   -- the mode-`on` model before the entry: `(sa, x.log)`, the start's chain
@@ -1128,6 +1137,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           isplitr
           · itrivial
           iframe Hcx
+          ihave #Hcpq := apply.cmpPermRq_nonCmp E rq (plainCover_nonCmp rq hp)
+          iframe Hcpq
           ipureintro; exact ⟨hdec, hid, hrq', HaOn ▸ hdk, apply.cmpAdmit_nonCmp _ _ _ (plainCover_nonCmp rq hp)⟩
         have Hstep := Hstep0.1
         rw [srvRest_apply E γr A m rq false x x' out Htyp hdata hdec HkA.2 hp Hstep]
@@ -1399,6 +1410,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             isplitr
             · ipureintro; exact Hlgnn
             iframe Hst Happ Hbe HcF
+            ihave #Hcpq := apply.cmpPermRq_nonCmp E rq (plainCover_nonCmp rq hp)
+            iframe Hcpq
             ipureintro; exact ⟨hpre, hdec, hid, hrq', HaOn ▸ hdk, apply.cmpAdmit_nonCmp _ _ _ (plainCover_nonCmp rq hp)⟩
           have hkeep := applyStep_keep rq true x x' out hp hw Hstep0.1
           have hc' := hkeep.2

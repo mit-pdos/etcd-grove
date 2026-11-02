@@ -163,11 +163,17 @@ abbrev NewServer.spec : Prop :=
   -- member's apply; etcd's default (128) meets it
   v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →
   -- (M2, item 14, 2026-10-31) the compactor off, or on in revision mode at a positive retention
-  -- (M2's scope: no periodic mode, which needs the clock's trust boundary); the stand-in's mode
+  -- (M2's scope; periodic mode since 2026-11-02, below); the stand-in's mode
   -- the configuration's (`E₀.cmp`: the store built at `cm := retention ≠ 0`, `envAgree`'s
   -- `E.γ.cm = E.cmp` reads it off the post); the KV names' mode the stand-in's (item 14')
+  -- (C3's server stage, 2026-11-02, the user's) on, the cluster's retention at most the compactor's;
+  -- (periodic mode, 2026-11-02) or on in periodic mode, at a period of at least 10ns (`New`'s
+  -- premise: a shorter one busy-loops) and a cluster retention of `0` (a period is no revision count)
   (cfg.AutoCompactionRetention' = 0 ∨
-    (cfg.AutoCompactionMode' = go!"revision" ∧ 0 < sint.Z cfg.AutoCompactionRetention')) →
+    (cfg.AutoCompactionMode' = go!"revision" ∧ 0 < sint.Z cfg.AutoCompactionRetention' ∧
+      (ρ.rd.kv.cret : Int) ≤ sint.Z cfg.AutoCompactionRetention') ∨
+    (cfg.AutoCompactionMode' = go!"periodic" ∧ 10 ≤ sint.Z cfg.AutoCompactionRetention' ∧
+      ρ.rd.kv.cret = 0)) →
   E₀.cmp = decide (cfg.AutoCompactionRetention' ≠ 0) → ρ.rd.kv.cmp = E₀.cmp →
   -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice; J8a-6,
   -- 2026-11-01, the user's decision: `2 ^ 28` (until then `2 ^ 31`), the transport's pool of `lgMu`
@@ -197,6 +203,9 @@ abbrev NewServer.spec : Prop :=
   -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
   letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      -- (2026-11-02, the backend-auth-split stage) the constructing thread's token, given back:
+      -- for the pooled readers of the next stage
+      "Htok" ∷ threadTok ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
       -- (M2) in compaction mode at `N + N` write tokens: `N` more, the compaction's write-back
@@ -257,8 +266,8 @@ abbrev NewServer.spec : Prop :=
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
   {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);
-      ⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∨
-      ⌜err = GoInterface.nil⌝ ∗
+      (⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+      ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
           ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗ srvWatchBuilt srv E ∗
@@ -290,7 +299,10 @@ abbrev NewServer.spec : Prop :=
           srvWatchReaders srv E 64 ∗
           -- (the keep-alive stage's K7, 2026-11-01, the user's decision) the lease service's server
           -- facts: the peers' round tripper (`LeaseRenew`'s forwarding) and the lessor's reader side
-          srvPeerRt srv ∗ srvLessorRd srv E.γ.leases }}
+          srvPeerRt srv ∗ srvLessorRd srv E.γ.leases ∗
+          -- (the lease-src plan, 2026-11-02, the user's choice) the lessor's reader pool, of the
+          -- `NewLessor` slots the server does not keep, for the lease checks' `Lookup`s
+          lease.lessorRdPool E.γ.leases }}
 
 /-- **`NewServer(cfg)` with auth on or off** (the auth plan's E2i, 2026-10-26; see the file header):
 as `NewServer.spec` (its mode off, `NewServer.spec_of_specM`), the start's chain with the auth
@@ -374,6 +386,9 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
   letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      -- (2026-11-02, the backend-auth-split stage) the constructing thread's token, given back:
+      -- for the pooled readers of the next stage
+      "Htok" ∷ threadTok ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
       "#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir ∗
@@ -432,8 +447,8 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
   {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);
-      ⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∨
-      ⌜err = GoInterface.nil⌝ ∗
+      (⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+      ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
           -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.specOn`'s)
@@ -476,7 +491,10 @@ abbrev NewServer.specM (on : Bool) : Prop :=
           □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) ∗
           -- (the keep-alive stage's K7, 2026-11-01, the user's decision) the lease service's server
           -- facts: the peers' round tripper (`LeaseRenew`'s forwarding) and the lessor's reader side
-          srvPeerRt srv ∗ srvLessorRd srv E.γ.leases }}
+          srvPeerRt srv ∗ srvLessorRd srv E.γ.leases ∗
+          -- (the lease-src plan, 2026-11-02, the user's choice) the lessor's reader pool, of the
+          -- `NewLessor` slots the server does not keep, for the lease checks' `Lookup`s
+          lease.lessorRdPool E.γ.leases }}
 
 
 /-- **`NewServer(cfg)` in either auth mode and either compaction mode** (M2, 2026-10-31; what
@@ -517,10 +535,17 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- restriction, the code accepts any budget and from 5000 on one nested transaction panics every
   -- member's apply; etcd's default (128) meets it
   v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →
-  -- the compactor by the mode: on, in revision mode at a positive retention (M2's phase 0), auth
-  -- off; off, not configured (`AutoCompactionRetention = 0`: `v3compactor.New` not reached)
-  (if cmp then cfg.AutoCompactionMode' = go!"revision" ∧ 0 < sint.Z cfg.AutoCompactionRetention' ∧
-      on = false
+  -- the compactor by the mode: on, in revision mode at a positive retention (M2's phase 0) or in
+  -- periodic mode (2026-11-02), auth
+  -- off; off, not configured (`AutoCompactionRetention = 0`: `v3compactor.New` not reached);
+  -- (C3's server stage, 2026-11-02, the user's) on, the cluster's retention at most the compactor's;
+  -- (periodic mode, 2026-11-02) or on in periodic mode, at a period of at least 10ns and a cluster
+  -- retention of `0`
+  (if cmp then
+      ((cfg.AutoCompactionMode' = go!"revision" ∧ 0 < sint.Z cfg.AutoCompactionRetention' ∧
+          (ρ.rd.kv.cret : Int) ≤ sint.Z cfg.AutoCompactionRetention') ∨
+        (cfg.AutoCompactionMode' = go!"periodic" ∧ 10 ≤ sint.Z cfg.AutoCompactionRetention' ∧
+          ρ.rd.kv.cret = 0)) ∧ on = false
     else cfg.AutoCompactionRetention' = 0) →
   -- the stand-in's mode the server's (`envAgree`'s `E.γ.cm = E.cmp` reads it off the post)
   E₀.cmp = cmp →
@@ -556,6 +581,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
   letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      -- (2026-11-02, the backend-auth-split stage) the constructing thread's token, given back:
+      -- for the pooled readers of the next stage
+      "Htok" ∷ threadTok ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
       -- (M2, `NewServer.spec`'s compaction mode) at `N + N` write tokens: `N` more, the
@@ -616,8 +644,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
   {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);
-      ⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∨
-      ⌜err = GoInterface.nil⌝ ∗
+      (⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+      ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
           -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.specOn`'s)
@@ -660,7 +688,10 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) ∗
           -- (the keep-alive stage's K7, 2026-11-01, the user's decision) the lease service's server
           -- facts: the peers' round tripper (`LeaseRenew`'s forwarding) and the lessor's reader side
-          srvPeerRt srv ∗ srvLessorRd srv E.γ.leases }}
+          srvPeerRt srv ∗ srvLessorRd srv E.γ.leases ∗
+          -- (the lease-src plan, 2026-11-02, the user's choice) the lessor's reader pool, of the
+          -- `NewLessor` slots the server does not keep, for the lease checks' `Lookup`s
+          lease.lessorRdPool E.γ.leases }}
 
 end spec
 

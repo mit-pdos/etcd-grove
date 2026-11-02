@@ -375,20 +375,20 @@ backend-auth-split stage: for `applyConfChange`, which takes `backend.bkRPool`).
 theorem srvApplyKV_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
     srvApplyKV (GF := GF) s E γw x ⊢ ∃ (ua : GoInterface) (d : mvcc.KBReal), ⌜E.γ.kb = some d⌝ ∗
       srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ mvcc.storeRT E.γ ∗
-      backend.bkRPool d.γB d.P d.be ∗
+      backend.bkRPool d.γB d.P d.be ∗ srvBeRO d ∗
       (srvUberApplyAddr s ↦ ua -∗ mvcc.storeRT E.γ -∗ backend.bkRPool d.γB d.P d.be -∗
         srvApplyKV s E γw x) := by
   iintro H
   iunfold srvApplyKV at H
   icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hrest⟩
-  icases srvBeOwn_pool s E $$ Hbo with ⟨%d, %Hd, -, Hpl, Hbo⟩
+  icases srvBeOwn_pool s E $$ Hbo with ⟨%d, %Hd, #Hbro, Hpl, Hbo⟩
   iunfold apply.applyKV at Hkv
   icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
   iunfold apply.kvOwn at Ho
   icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
   icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
   iexists ua, d
-  iframe Hua Hrt Hpl
+  iframe Hua Hrt Hpl Hbro
   isplitr
   · ipureintro; exact Hd
   isplitr

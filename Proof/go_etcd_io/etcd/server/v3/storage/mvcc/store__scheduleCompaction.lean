@@ -347,7 +347,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ispecialize HRng $$ []
   · ipureintro; trivial
   wp_bind (App (App (App (App (Val #(methods bt.ty _ bt.v)) (Val #bK)) (Val #lst)) (Val #endS)) (Val #_))
-  iapply HRng $$ %(1 : Qp).half %(mvcc.bucketMap ilog) %bK %lst %endS %bs %(u64Be (rev + W64 1))
+  iapply HRng $$ %(1 : Qp).half.half %(mvcc.bucketMap ilog) %bK %lst %endS %bs %(u64Be (rev + W64 1))
     %scfg.CompactionBatchLimit' %(DFrac.own 1) %(DFrac.own 1) [] [Hlocked HbvW HlastS HendS]
   · ipureintro
     refine ⟨Hcfgl.1, Hcfgl.2, ?_⟩

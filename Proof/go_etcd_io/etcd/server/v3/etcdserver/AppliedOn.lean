@@ -219,7 +219,7 @@ def srvFieldsAtM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
       srvLgMuAddr s ↦□ v.lgMu ∗ srvMemberIDAddr s ↦□ v.memberID ∗ srvLeadInv s ∗
       cfgElectionTicksAddr (srvCfgAddr s) ↦□ v.electionTicks ∗
       cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗
-      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore)
+      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci E)
 
 instance srvFieldsAtM_persistent (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)
     (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) :

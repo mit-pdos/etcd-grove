@@ -39,8 +39,8 @@ theorem mvcc.store.Restore.wp_proof
   -- `store.restore` at no record and the whole bucket (its spec before M2's item 18)
   have hRestore := mvcc.store.restore.specNC_of_spec hRestore
   intro s γ b' d' γb' P' L R hLR hR
-  wp_start as ⟨#Hs, %Hkb, %Hcm', Hcl, Hfs, Hwsd, Hfrag, Hown, #Hfrz, #HcL, Htoks, HlogQ, #Hok', #HbkT,
-    #HcrT, Hview, Hnc, Hrr, Hrts⟩
+  wp_start as ⟨#Hs, %Hkb, %Hcm', Hcl, Hfs, Hwsd, Hfrag, Hown, -, #Hfrz, #HcL, Htoks, HlogQ, #Hok',
+    #HbkT, #HcrT, Hview, Hnc, #Hnd, Hrr, Hrts⟩
   ihave #Hsch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule $$ []
   · iPkgInit
   ihave #Hs' := Hs
@@ -176,6 +176,8 @@ theorem mvcc.store.Restore.wp_proof
     iunfold mvcc.bucketViewC
     simp only [mvcc.StoreNames.withPhys_kb, mvcc.StoreNames.withPhys_bucket, hk, hb]
     iexact HviewW
+  -- the writer's half of it: `writerRes`'s quarter and the new pin's (M2's item 37)
+  icases (mvcc.bucketView_quarters _ _).1 $$ HviewW with ⟨HviewW, HviewP⟩
   ihave #HcrT' := HcrT $$ %p' %hpb
   ihave Hrv := mvcc.restoreView_of b' (γ.withPhys p') (mvcc.storeRT (γ.withPhys p')) (1 : Qp).half R
     $$ [HviewR]
@@ -294,7 +296,7 @@ theorem mvcc.store.Restore.wp_proof
     iapply HΨ
     iframe Hrst' Hn1 Hfrag' Hn3 Htkr Hwsd Hw Hrv' HlogQ Hold Hnew HcmK Hti'
   wp_apply +noauto hR' $$ [$Hfb $Hrt1 $Hnc $Hrv $Hfidx $Hix $Hig $Hcr $HcmR $HLk $HUl Hrst Hlc1 Hlc2]
-    as ⟨Hrt1, -, Hrc, HRevQ, Hcr, HcmR, Hfb, Hfidx⟩
+    as ⟨Hrt1, Hnc, Hrc, HRevQ, Hcr, HcmR, Hfb, Hfidx⟩
   · iframe #; iframe Hrst Hlc1 Hlc2; ipureintro; exact Hlgnn
   wp_auto_lc 1
   icases HRevQ with ⟨Hrst', Hn1, Hfrag', Hn3, Htkr, Hwsd, Hw, Hrv, HlogQ, Hold, Hnew, HcmK,
@@ -375,9 +377,18 @@ theorem mvcc.store.Restore.wp_proof
     iexists p', ⟨b', ti, sc, stopc⟩
     iexact HfsM
   (try wp_auto)
+  -- the new pin: the view's quarter, the new backend's no-compaction token and nothing deletable
+  ihave HpinN : mvcc.writerPin (GF := GF) (γ.withPhys p') ([[], []] ++ R) $$ [HviewP Hnc]
+  · iunfold mvcc.writerPin; iunfold mvcc.writerLoan
+    rw [if_neg hnc]
+    iframe HviewP
+    isplitl [Hnc]
+    · rw [← mvcc.StoreNames.withPhys_kb γ p', ← mvcc.StoreNames.withPhys_bucket γ p']
+      iexact Hnc
+    simp only [mvcc.kbNoDel, mvcc.StoreNames.withPhys_kb, hk]; iexact Hnd
   iapply HΦ
   iexists p'
-  iframe Hwsd Hfrag' HcertL Hrv HlogQ
+  iframe Hwsd Hfrag' HcertL Hrv HlogQ HpinN
   isplitl []
   · ipureintro; exact ⟨hb, hk⟩
   isplitl [HfsC Hstop HsStop Hq0 Hcmp0]

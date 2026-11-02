@@ -37,7 +37,7 @@ theorem EtcdServer.checkLeaseRenew.wp_proof
     (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) :
     EtcdServer.checkLeaseRenew.spec (GF := GF) (hG := hG) := by
   intro s E γl ctx cd id n m
-  wp_start as ⟨#Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, HRD, Hrdo, Htok, %Hbound⟩
+  wp_start as ⟨#Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, HRD, #Hpool, Htok, %Hbound⟩
   ihave ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #HLb⟩ := leaseCheckSetup s E n $$ [$Hau $Hlb $Hpub]
   iunfold isAuthStoreLeaseLb at HLb
   icases HLb with ⟨%ai, %Hai, #HEn, #HRev, #HAdm, #HPut, -⟩
@@ -66,7 +66,7 @@ theorem EtcdServer.checkLeaseRenew.wp_proof
   | false =>
     (try wp_auto)
     iapply HΦ
-    iframe HRD Hrdo Htok
+    iframe HRD Htok
     isplitl []
     · iapply applyErrIs_nil
     iintro %_
@@ -81,7 +81,7 @@ theorem EtcdServer.checkLeaseRenew.wp_proof
   rcases err with ei | _
   · (try wp_auto)
     iapply HΦ
-    iframe HRD Hrdo Htok Herr
+    iframe HRD Htok Herr
     iintro %h; cases h
   (try wp_auto)
   iunfold authInfoOpt at Ha
@@ -90,7 +90,7 @@ theorem EtcdServer.checkLeaseRenew.wp_proof
     subst Han
     (try wp_auto)
     iapply HΦ
-    iframe HRD Hrdo Htok HUEe
+    iframe HRD Htok HUEe
     iintro %h; cases h
   ihave #Hp := authInfoIs_pointsto a user rev' $$ Hai0
   ihave #Hib := infoBoundM_of_ctxBound E.authOn s E _ a user rev' $$ [Hb Hai0]
@@ -109,7 +109,7 @@ theorem EtcdServer.checkLeaseRenew.wp_proof
   rotate_left
   · (try wp_auto)
     iapply HΦ
-    iframe HRD Hrdo Htok
+    iframe HRD Htok
     isplitl []
     · iapply applyErrIs_nil
     iintro %_
@@ -118,8 +118,14 @@ theorem EtcdServer.checkLeaseRenew.wp_proof
     iexists _
     iframe Hib
     ileft; iexact Hv
+  -- `l := s.lessor.Lookup(leaseID)`, a reader of the lessor at the lower bound `m`, its slot
+  -- borrowed from the pool for the call (the lease-src plan), its later stripped by the next steps
+  iapply fupd_wp
+  imod lease.lessorRdPool_borrow γl ⊤ (fun _ _ => CoPset.mem_full) $$ [Hpool Htok]
+    with ⟨Hrdo, Hback⟩
+  · iframe #; iframe
+  imodintro
   (try wp_auto)
-  -- `l := s.lessor.Lookup(leaseID)`, a reader of the lessor at the lower bound `m`
   iunfold lease.lessorRdOf at Hrdo
   icases Hrdo with ⟨%lp', #Hpin', Hrd⟩
   ihave #Hinv' := Hinv
@@ -131,6 +137,11 @@ theorem EtcdServer.checkLeaseRenew.wp_proof
   wp_apply (hLk lp γl id m none) $$ [$Hrd] as %l ⟨Hrd, Hl, -⟩
   · iframe Hinv Hmlb
     rw [lease.lookupView_none]; itrivial
+  -- the slot back, for the token
+  iapply fupd_wp
+  imod Hback $$ [Hrd] with Htok
+  · iunfold lease.lessorRdOf; iexists lp; iframe Hpin Hrd
+  imodintro
   icases Hl with (⟨%Hnull, #Habs⟩ | ⟨#Hlo, #Hlive⟩)
   · -- no lease of `id` at an index no earlier than `m`
     subst Hnull
@@ -144,8 +155,6 @@ theorem EtcdServer.checkLeaseRenew.wp_proof
     wp_if_destruct
     · iapply HΦ
       iframe HRD Htok
-      isplitl [Hrd]
-      · iunfold lease.lessorRdOf; iexists lp; iframe Hpin Hrd
       isplitl []
       · iapply applyErrIs_nil
       iintro %_
@@ -158,8 +167,6 @@ theorem EtcdServer.checkLeaseRenew.wp_proof
       ileft; iexact Habs
     · iapply HΦ
       iframe HRD Htok
-      isplitl [Hrd]
-      · iunfold lease.lessorRdOf; iexists lp; iframe Hpin Hrd
       iframe HORe
       iintro %h; cases h
   -- `for _, key := range l.Keys() { ... s.AuthStore().IsPutPermitted(authInfo, []byte(key)) ... }`
@@ -232,8 +239,6 @@ theorem EtcdServer.checkLeaseRenew.wp_proof
       wp_for_post
       iapply HΦ
       iframe HRD Htok
-      isplitl [Hrd]
-      · iunfold lease.lessorRdOf; iexists lp; iframe Hpin Hrd
       iunfold authApplyErrIs at Herr3
       icases Herr3 with ⟨#Herr3, -⟩
       iframe Herr3
@@ -250,8 +255,6 @@ theorem EtcdServer.checkLeaseRenew.wp_proof
   wp_if_destruct
   · iapply HΦ
     iframe HRD Htok
-    isplitl [Hrd]
-    · iunfold lease.lessorRdOf; iexists lp; iframe Hpin Hrd
     isplitl []
     · iapply applyErrIs_nil
     iintro %_
@@ -268,8 +271,6 @@ theorem EtcdServer.checkLeaseRenew.wp_proof
     iframe Hkf Hcls
   · iapply HΦ
     iframe HRD Htok
-    isplitl [Hrd]
-    · iunfold lease.lessorRdOf; iexists lp; iframe Hpin Hrd
     iframe HORe
     iintro %h; cases h
 

@@ -50,6 +50,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          # the client's `kv.Compact` (2026-11-01): putgetc under compaction pressure
          'github_com.mit_pdos.etcd_grove.examples.compactkv',
          'github_com.mit_pdos.etcd_grove.examples.putget3',
+         # the restart plan (2026-11-02, notes/restart-plan.md): putget3 with a member restarted
+         'github_com.mit_pdos.etcd_grove.examples.restart3',
          'github_com.mit_pdos.etcd_grove.examples.lintest.counter',
          # the scalable-proof experiment's log-applied register and its variants
          'github_com.mit_pdos.etcd_grove.examples.lintest.logkv',
@@ -1493,10 +1495,9 @@ names) and the four
              'icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM, -⟩',
              'obtain ⟨rfl, HWp, -⟩ := HWp',
              'ihave #HSD : (EtcdGrove.v3rpc.svcDescsOk : IProp GF) $$ []',
-             '· unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.descOk EtcdGrove.descNames EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods EtcdGrove.v3rpc.authDescMethods',
+             '· unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.descOk EtcdGrove.descNames EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods EtcdGrove.v3rpc.authDescMethods EtcdGrove.v3rpc.leaseDescMethods',
             
             
-             '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HL',
              '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HC',
              '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HM',
              '  iframe HK HL HC HA HM',

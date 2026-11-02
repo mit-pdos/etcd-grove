@@ -20,7 +20,7 @@ theorem backend.New.wp_proof (hNB : backend.newBackend.spec) : backend.New.spec
                             intoVal
                               (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType
                                 (intoVal b))⌝ ∗
-                        backend.newPostK γ P W Pk K b D) ∨
+                        backend.newPostK γ P W Pk K b D ∗ backend.hooksAt b cfg.Hooks') ∨
                     ⌜∃ p, r = p.PanicV⌝ -∗
                   Φ r) -∗
             WP ((intoVal (functions go_etcd_io.etcd.server.v3.storage.backend.New [])) (intoVal cfg)) {{ Φ }}

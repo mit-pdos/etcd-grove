@@ -81,6 +81,9 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
     (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index')
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
+    -- (2026-11-02, the backend-auth-split stage) the alarm bucket in the table (`bootOk`'s), which
+    -- the alarm store's `Recover` takes
+    (halbi : d.P.has mvcc.alarmBI)
     (hauthb : ((backend.rbData d.P D).lookup go!"auth").getD ∅ = authBoot ∧
       ((backend.rbData d.P D).lookup go!"authUsers").getD ∅ = ∅ ∧
       ((backend.rbData d.P D).lookup go!"authRoles").getD ∅ = ∅)

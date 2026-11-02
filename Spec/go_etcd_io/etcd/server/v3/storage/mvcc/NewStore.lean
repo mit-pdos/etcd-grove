@@ -72,6 +72,10 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
   (`wsDep`) is returned for the watchable store's lock (`wsFields`).
 * (D22 receiver epochs, S5b) The writer's fragment (`writerFrag`: an eighth of the store's current
   objects and physical names, at `γ`'s), for its sole writer (`hookIs`).
+* (M2's item 37, 2026-11-02) The writer's pin at the initial log (`writerPin γ [[], []]`: its
+  quarter of the bucket's view and, for a store that does not compact, the backend's
+  no-compaction token, which `restore` gives back, and its nothing-deletable fact, the premise
+  `kbNoDelOff kb`), for its sole writer's observations of a backend snapshot.
 * The backend records no compaction (`kbNoCmp`, consumed by `restore`: D19l (v) (A), D22 S-g,
   2026-10-19; until then the opaque premise `backendNoCompaction`), so `restore` schedules none.
 * Compaction (2026-10-13, unit 5a): the store starts at the compaction revision `-1`; the
@@ -107,7 +111,7 @@ abbrev mvcc.NewStore.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
         mvcc.storeBackend b s γ P) ∗
-      mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
+      mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbNoDelOff kb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
       mvcc.kbSRM kb ∗
       ([∗list] _x ∈ List.replicate backend.rdStockN (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
@@ -130,6 +134,7 @@ abbrev mvcc.NewStore.spec : Prop :=
       ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
       (if wq then mvcc.logQ γ [[], []] else iprop(True)) ∗ mvcc.storeCloser s γ ∗
       mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗ mvcc.writerFrag γ ∗
+      mvcc.writerPin γ [[], []] ∗
       mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗ mvcc.retiredAt γ (mvcc.nJobRd kb) ∗
       mvcc.crevPermIs γ Perm }}
 

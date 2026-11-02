@@ -25,12 +25,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Assumpt
 
 /-- **`a.Recover(ab)`**, by the store's user (its half of `a.be`, `alarmBeOn a be0`: the store on the
 backend at `be0`), with a schema alarm backend `ab` over the real backend at `be` whose alarm bucket
-is empty or absent: under the store's mutex, `a.be := ab`, `a.types` a fresh map, `restore`
-(`AlarmStore.restore.spec`); no error, the store on the backend at `be` with no alarm
-(`alarmEmpty a be`: the fresh map is empty, 2026-11-01, J8a-5), the alarm bucket created. -/
+is tracked (`P.RB`), in the table (`P.has`) and empty or absent in a part of any bucket set `S`
+containing it (`backend.rbPart γB S r`), with a pooled reader's resource and the caller's thread
+token (`backend.bkRPool`, `threadTok`): under the store's mutex, `a.be := ab`, `a.types` a fresh map,
+`restore` (`AlarmStore.restore.spec`); no error, the store on the backend at `be` with no alarm
+(`alarmEmpty a be`: the fresh map is empty, 2026-11-01, J8a-5), the alarm bucket created and the
+part **idle** (`rbOwnIn`, as `restore` gives it). (2026-11-02, the backend-auth-split stage: until
+then the writer's half `rbOwn` and any `P`; round 4's `review-r4/alarmuntracked/alarm_test.go`
+shows `restore` false for an untracked alarm bucket.) -/
 abbrev v3alarm.AlarmStore.Recover.spec : Prop :=
   ∀ (a be0 abl lg be : Loc) (γB : backend.BNames) (P : backend.BParams) (W Pk : IProp GF)
-    (qo : Qp) (r : GMap GoString backend.BktData),
+    (qo : Qp) (S : GoString → Prop) (r : GMap GoString backend.BktData),
+  S go!"alarm" → P.RB go!"alarm" = true → P.has mvcc.alarmBI →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm ∗
       isAlarmStore a ∗ alarmBeOn a be0 ∗
       alarmBkBeAddr abl ↦□ (interface.mkOk
@@ -38,11 +44,13 @@ abbrev v3alarm.AlarmStore.Recover.spec : Prop :=
           GoInterface) ∗
       alarmBkLgAddr abl ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
       backend.isBackend γB P W Pk be ∗ backend.bOpen γB qo ∗ backend.wbTok γB ∗
-      backend.rbOwn γB r ∗ ⌜(r.lookup go!"alarm").getD ∅ = ∅⌝ }}
+      backend.bkRPool γB P be ∗ threadTok ∗
+      backend.rbPart γB S r ∗ ⌜(r.lookup go!"alarm").getD ∅ = ∅⌝ }}
     (App (Val (a @!! go.GoType.PointerType v3alarm.AlarmStore.ty @!! go!"Recover"))
       (Val #(alarmBkIface abl)))
   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ alarmEmpty a be ∗
-      backend.bOpen γB qo ∗ backend.rbOwn γB (r.insert go!"alarm" ∅) }}
+      backend.bOpen γB qo ∗ backend.bkRPool γB P be ∗ threadTok ∗
+      backend.rbOwnIn γB S (r.insert go!"alarm" ∅) }}
 
 end spec
 

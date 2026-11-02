@@ -96,6 +96,21 @@ def urls3 (n₁ n₂ n₃ : GoString) (iu : GoString → List _root_.Perennial.n
       U.initMap = GMap.insert n₃ sl₃ (GMap.insert n₂ sl₂ (GMap.insert n₁ sl₁ ∅))) ∧
     U.initURLs = iu
 
+/-- **A map's keys all valid UTF-8** (2026-11-02, the backend-auth-split stage: `bootPremise`'s
+condition on the initial cluster's map, Q8), for the empty map. -/
+theorem utf8Keys_empty : ∀ k, ((∅ : GMap GoString GoSlice).lookup k).isSome → utf8Valid k := by
+  intro k h; simp at h
+
+/-- **A map's keys all valid UTF-8**, kept by inserting a valid key (2026-11-02, the
+backend-auth-split stage). -/
+theorem utf8Keys_insert (M : GMap GoString GoSlice) (n : GoString) (sl : GoSlice)
+    (hn : utf8Valid n) (hM : ∀ k, (M.lookup k).isSome → utf8Valid k) :
+    ∀ k, ((GMap.insert n sl M).lookup k).isSome → utf8Valid k := by
+  intro k h
+  rcases (GMap.lookup_insert_is_Some M n k sl).1 h with rfl | ⟨-, h'⟩
+  · exact hn
+  · exact hM k h'
+
 end pure
 
 section defs
@@ -117,13 +132,18 @@ def cfgOk (token name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.Server
 
 /-- **`bootstrap`'s contract for member `name`** (id `id`) of the cluster `ps` with token `token`,
 at every server raft names of the cluster (its peers `ps`, static, its bootstrap log `bootLog`; at
-the storage registry they name), for its configuration and URLs meeting `Uok`, at the peers'
-contexts `ctxs`, the bound `N` and the directory `dir` (see the file header). -/
+the storage registry they name), for its configuration and URLs meeting `Uok`, **the initial
+cluster's member names valid UTF-8** (`utf8Valid` of every key of `U.initMap`; 2026-11-02, the
+backend-auth-split stage, Q8: `bootstrap` keeps a name raw in the cluster's members while the
+peers' contexts, `json.Marshal` of them, decode with U+FFFD in its place, so `bootOk`'s members are
+the contexts' decodings only for valid names), at the peers' contexts `ctxs`, the bound `N` and the
+directory `dir` (see the file header). -/
 def bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
     (dir : w64 → List GoString) (token name : GoString) (Uok : BootURLs → Prop) (id : w64) :
     IProp GF :=
   iprop(□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
-      ⌜cfgOk token name cfg ∧ Uok U ∧ γ.vs = ps ∧ γ.rule = srvRule (W64 0) bootLog ∧ γ.boot = bootLog⌝ -∗
+      ⌜cfgOk token name cfg ∧ Uok U ∧ (∀ k, (U.initMap.lookup k).isSome → utf8Valid k) ∧
+        γ.vs = ps ∧ γ.rule = srvRule (W64 0) bootLog ∧ γ.boot = bootLog⌝ -∗
       letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N dir)
 
 instance bootPremise_persistent (N : Nat) (ps : List w64) (bootLog : List EntryM)
@@ -147,7 +167,7 @@ theorem bootPremise_of (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs :
   iunfold bootPremise
   imodintro
   iintro %cfg %U %γ %Hp
-  obtain ⟨hc, hu, h1, h2, h3⟩ := Hp
+  obtain ⟨hc, hu, -, h1, h2, h3⟩ := Hp
   iapply H
   ipureintro
   exact ⟨Hc cfg hc, Hu U hu, h1, h2, h3⟩
@@ -229,18 +249,19 @@ monitors off, `lgMu`'s reader slot of the downgrade monitor), and what `NewServe
 (`srvNetMember`, with its transport `τ`; 2026-10-24, rafthttp stage 6d: the raft loop's key to the
 transport's `Send`, `srvTrKey`, under `γk`, one of the transport's reader tokens, `srvTrTok`, and
 what `http.Serve`'s request goroutines borrow, `srvServeRes`, until the peer address is served:
-`served`). -/
+`served`). (2026-11-02, the restart plan) The apply thread's starting state `ai₀ at₀ c₀ x₀`, a
+first start's (`0` and the boot store) unless given: a restarted member's (`Restart.lean`). -/
 def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
-    (id : w64) (N : Nat) (served : Bool) : IProp GF :=
+    (id : w64) (N : Nat) (served : Bool) (ai₀ at₀ c₀ : w64 := W64 0)
+    (x₀ : apply.ApplyKV := bootKV) : IProp GF :=
   iprop(∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
       (γrn : RNNames) (b : GoInterface) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
       (γk : GName) (τ : SrvTr GF),
     ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
       cfg.WatchProgressNotifyInterval' = 0⌝ ∗
     srvWatchBuilt s E ∗
-    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk))
-      γrn b (W64 0)
-      (W64 0) (W64 0) bootKV N ∗
+    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ ai₀ c₀ x₀ id (srvTrKey γn γk))
+      γrn b ai₀ at₀ c₀ x₀ N ∗
     srvServeBuilt s E cfg 64 ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
     srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     (if served then True else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗

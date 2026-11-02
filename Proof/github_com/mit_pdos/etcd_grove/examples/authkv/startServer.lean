@@ -98,7 +98,7 @@ theorem startServer.wp_proof
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (common.peerURLsDir_httpURL dir id _ Hdirok Hdir)
       (fun _ => ⟨rfl, by word, by word⟩))
-    $$ [Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
+    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
   · iframe
     iframe #
     isplitr
@@ -123,7 +123,7 @@ theorem startServer.wp_proof
     isplitr; · ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
     iapply Htk
     ipureintro; rfl
-  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
+  icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
     Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #HLnil, #Hcca, #HBF, -, -⟩)
   · -- `NewServer` failed: the error returned, with the thread token
     cases err with

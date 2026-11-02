@@ -2005,10 +2005,11 @@ theorem bt_unlockD (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := 
     exact keyView_relog hP hwf hs Hvd Hsub
 
 /-- **The lessor's delete from `Lease` under the batch lock** (leases T3, 2026-10-25), as mvcc's
-contract states it (`batchTxSpecG`'s last clause), with the client half of the tracked buckets
+contract states it (`batchTxSpecG`'s last clause), with the client part of the `Lease` bucket
 and the parameters letting the lessor delete from `Lease` (`leaseParams`) as the right `Rb`: the
 backend's `UnsafeDelete` of a non-safe-range, tracked bucket, its key not a hook's own; the lock
-token then `bkLockedD`. -/
+token then `bkLockedD`. (2026-11-02, the backend-auth-split stage: the part of `Lease`, `rbPart`;
+until then the whole client half `rbOwn`.) -/
 theorem bt_leaseDel (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
     (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
@@ -2021,13 +2022,14 @@ theorem bt_leaseDel (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF)
       □ (∀ (l : Puts) (bk : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
           (r : GMap GoString BktData),
         {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ bk ∗ bkLocked γ P b l ∗
-            key ↦*{dq} k ∗ iprop(rbOwn γ r ∗ ⌜leaseParams P⌝) }}
+            key ↦*{dq} k ∗ iprop(rbPart γ (· = leaseName) r ∗ ⌜leaseParams P⌝) }}
           (App (App (Val #(methods (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"UnsafeDelete" #t))
             (Val #bk)) (Val #key))
         {{ RET #(); (∃ U : IProp GF, U ∗ unlockAt ⟨go.GoType.PointerType
               go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩ (bkView γ) W Pk U l) ∗
-            key ↦*{dq} k ∗ iprop(rbOwn γ (rbDel r leaseName k) ∗ ⌜leaseParams P⌝) }}) := by
+            key ↦*{dq} k ∗
+            iprop(rbPart γ (· = leaseName) (rbDel r leaseName k) ∗ ⌜leaseParams P⌝) }}) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Ht⟩ !> %l %bk %key %k %dq %r %Φ !> ⟨#HL, Hl, Hkey, Hrb, %HLp⟩ HΦ
   obtain ⟨hhas, hrb, hhk⟩ := HLp
   icases isBackend_b γ P W Pk b $$ Hb with ⟨%t', %rt, %db, %lg, -, -, -, -, -, -, -, -, -, -, -,
@@ -2037,30 +2039,37 @@ theorem bt_leaseDel (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF)
   iunfold bkLockedAt at Hl
   icases Hl with ⟨Hl, Hwb, %Hs⟩
   icases batchLocked_wf γ P b st $$ Hl with ⟨Hl, %Hwf⟩
-  icases batchLocked_rb γ P b st r $$ [$Hl $Hrb] with ⟨Hl, Hrb, %Hr⟩
-  subst Hr
+  icases batchLocked_rbPart γ P b st (· = leaseName) r $$ [$Hl $Hrb] with ⟨Hl, Hrb, %Hr⟩
   ihave #Hbk := lease_isBucket hID hName hSafe bk $$ [$Hsch $HL]
   obtain ⟨hroom, -⟩ := sessPuts_del_room HPw Hs Hwf
   have hHB : P.HB leaseBI.name = true := by rw [hP.2.2.1]; decide
-  have hrp : rbPutAll (GF := GF) γ P leaseBI.name st.S = rbOwn γ (rbData P st.S) := by
-    unfold rbPutAll; rw [show leaseBI.name = leaseName from rfl, hrb]; rfl
-  have hrp' : rbPutAll (GF := GF) γ P leaseName
+  have hrp : rbPut (GF := GF) γ P leaseBI.name st.S =
+      rbPart γ (· = leaseName) (rbData P st.S) := by
+    unfold rbPut; rw [show leaseBI.name = leaseName from rfl, hrb]; rfl
+  have hdS : (st.del leaseBI k).S = st.S.insert leaseName ((bktOf st.S leaseName).delete k) := rfl
+  have hrp' : rbPut (GF := GF) γ P leaseName
       (st.S.insert leaseName ((bktOf st.S leaseName).delete k)) =
-      rbOwn γ (rbDel (rbData P st.S) leaseName k) := by
-    unfold rbPutAll; rw [hrb]
+      rbPart γ (· = leaseName) (rbDel (rbData P st.S) leaseName k) := by
+    unfold rbPut; rw [hrb]
     simp only [↓reduceIte]
     rw [rbData_del hrb]
-  rw [← hrp]
-  icases rbPutAll_split γ P leaseBI.name st.S $$ Hrb with ⟨Hrb, Hback⟩
+  have hcg : ∀ n, n = leaseName →
+      (rbDel (rbData P st.S) leaseName k).lookup n = (rbDel r leaseName k).lookup n := by
+    rintro n rfl
+    unfold rbDel
+    rw [GMap.lookup_insert, GMap.lookup_insert, Hr _ rfl]
+  ihave Hrb : rbPut γ P leaseBI.name st.S $$ [Hrb]
+  · rw [hrp]
+    iapply (rbPart_congr γ _ (rbData P st.S) r (fun n hn => Hr n hn)).2 $$ Hrb
   have hDel' := hDel γ P W Pk b t st bk leaseBI key k dq true hhas hroom (hhk k) (lease_not_fk k)
   simp only [↓reduceIte] at hDel'
   wp_apply hDel' $$ [$Hb $Ht $Hl $Hbk $Hkey $Hrb] as ⟨Hl, Hkey, Hrb⟩
-  have hdS : (st.del leaseBI k).S = st.S.insert leaseName ((bktOf st.S leaseName).delete k) := rfl
-  ihave Hrb : rbPut γ P leaseBI.name (st.del leaseBI k).S $$ [Hrb]
-  · rw [hdS, show leaseBI.name = leaseName from rfl]; iexact Hrb
-  ihave Hrb := Hback $$ %((st.del leaseBI k).S) %(BSess.del_S_other st leaseBI k) Hrb
-  ihave Hrb : rbOwn γ (rbDel (rbData P st.S) leaseName k) $$ [Hrb]
-  · rw [← hrp']; rw [hdS, show leaseBI.name = leaseName from rfl]; iexact Hrb
+  ihave Hrb : rbPart γ (· = leaseName) (rbDel r leaseName k) $$ [Hrb]
+  · ihave Hrb : rbPut γ P leaseName (st.S.insert leaseName ((bktOf st.S leaseName).delete k))
+        $$ [Hrb]
+    · rw [← hdS, show leaseName = leaseBI.name from rfl]; iexact Hrb
+    rw [hrp']
+    iapply (rbPart_congr γ _ _ _ hcg).1 $$ Hrb
   iapply HΦ
   isplitl [Hl Hwb]
   · iexists (bkLockedD γ P b l)
@@ -3087,7 +3096,7 @@ theorem isKeyBackendG_of_backendC
       isKeyBackendG
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (bkView γ) (bkRTx γ P b) (wbTok γ) (bkNoCmp γ) keyPutOk (bkDel γ) W W iprop(True) Cmp Pk
-        (bkHookIs γ) (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝))
+        (bkHookIs γ) (bkReq γ P b) (fun r => iprop(rbPart γ (· = leaseName) r ∗ ⌜leaseParams P⌝))
         (bkBt b) (backend.srSlot b) (backend.srHeld b) iprop(∃ f : Nat, fkOwn γ f)
         (plHook γ func.nil) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe, #Hfv⟩
@@ -3269,7 +3278,7 @@ theorem isKeyBackendG_of_backend
       isKeyBackendG
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (bkView γ) (bkRTx γ P b) (wbTok γ) (bkNoCmp γ) keyPutOk Del W W iprop(True) Cmp Pk
-        (bkHookIs γ) (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝))
+        (bkHookIs γ) (bkReq γ P b) (fun r => iprop(rbPart γ (· = leaseName) r ∗ ⌜leaseParams P⌝))
         (bkBt b) (MW := iprop(∃ f : Nat, fkOwn γ f)) (HN := plHook γ func.nil) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe, #Hnd⟩
   ihave #HC := isKeyBackendG_of_backendC hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR
@@ -3341,7 +3350,7 @@ theorem storeBackendT_of_backend
     unfold storeCmp kbCmp; rw [hk]; unfold kbCmpM; simp [hcm]
   have hrq : storeReq (GF := GF) γ = bkReq d.γB d.P d.be := by
     unfold storeReq kbReq; rw [hk]
-  have hrb : storeRb (GF := GF) γ = fun r => iprop(rbOwn d.γB r ∗ ⌜leaseParams d.P⌝) := by
+  have hrb : storeRb (GF := GF) γ = fun r => iprop(rbPart d.γB (· = leaseName) r ∗ ⌜leaseParams d.P⌝) := by
     unfold storeRb kbRb; rw [hk]
   have hbt : storeBt (GF := GF) γ = bkBt d.be := by
     unfold storeBt kbBt; rw [hk]
@@ -3473,7 +3482,7 @@ theorem storeBackendT_of_backendC
     funext g; unfold hookFn kbHookIs; rw [hk]
   have hrq : storeReq (GF := GF) γ = bkReq d.γB d.P d.be := by
     unfold storeReq kbReq; rw [hk]
-  have hrb : storeRb (GF := GF) γ = fun r => iprop(rbOwn d.γB r ∗ ⌜leaseParams d.P⌝) := by
+  have hrb : storeRb (GF := GF) γ = fun r => iprop(rbPart d.γB (· = leaseName) r ∗ ⌜leaseParams d.P⌝) := by
     unfold storeRb kbRb; rw [hk]
   have hbt : storeBt (GF := GF) γ = bkBt d.be := by
     unfold storeBt kbBt; rw [hk]

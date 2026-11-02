@@ -766,20 +766,20 @@ theorem srvApplyKVOn_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x :
     (st : auth.AuthState) :
     srvApplyKVOn (GF := GF) s E γw x st ⊢ ∃ (ua : GoInterface) (d : mvcc.KBReal), ⌜E.γ.kb = some d⌝ ∗
       srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ mvcc.storeRT E.γ ∗
-      backend.bkRPool d.γB d.P d.be ∗
+      backend.bkRPool d.γB d.P d.be ∗ srvBeRO d ∗
       (srvUberApplyAddr s ↦ ua -∗ mvcc.storeRT E.γ -∗ backend.bkRPool d.γB d.P d.be -∗
         srvApplyKVOn s E γw x st) := by
   iintro H
   iunfold srvApplyKVOn at H
   icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hrest⟩
-  icases srvBeOwn_pool s E $$ Hbo with ⟨%d, %Hd, -, Hpl, Hbo⟩
+  icases srvBeOwn_pool s E $$ Hbo with ⟨%d, %Hd, #Hbro, Hpl, Hbo⟩
   iunfold apply.applyKV at Hkv
   icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
   iunfold apply.kvOwn at Ho
   icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
   icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
   iexists ua, d
-  iframe Hua Hrt Hpl
+  iframe Hua Hrt Hpl Hbro
   isplitr
   · ipureintro; exact Hd
   isplitr

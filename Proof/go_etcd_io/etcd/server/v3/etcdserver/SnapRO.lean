@@ -115,31 +115,39 @@ instance authApplyOkM_persistent (M : auth.AuthMode) (stl : Loc) (RD : IProp GF)
 receiver epochs, S7c; `lease.NewLessor.spec`'s, the trust boundary): as `alarmApplyOk`, its writes
 pinned to the backend by the user's half of `le.b` (`lease.lessorBeOn`), which the write right
 lends; one write-back token per write, the reader's open share lent; the put into `Lease` (a
-tracked bucket, D22) with the client half of the tracked buckets (`backend.rbOwn`), given back with
-the record put (leases T3, L3c, 2026-10-27: until then the write right lent the half,
-`srvRestRW`, and the put's effect was not stated; the real backend's `LockInsideApply` does not
-need it, its `UnsafePut` does). -/
+tracked bucket, D22) with the lease bucket's part (`backend.rbPart d.γB (· = "lease")`, per bucket:
+the lessor's put writes `Lease` only; 2026-11-01, the backend-auth-split stage: until then the
+whole client half `backend.rbOwn`), given back with the record put (leases T3, L3c, 2026-10-27:
+until then the write right lent the half, `srvRestRW`, and the put's effect was not stated; the
+real backend's `LockInsideApply` does not need it, its `UnsafePut` does). -/
 def lessorApplyOk (lp : Loc) : IProp GF :=
   iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
     backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
     rwLens RW (lease.lessorBeOn lp d.be) -∗
     lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ RW) (mvcc.bkRTx d.γB d.P d.be)
-      (backend.rbOwn d.γB))
+      (backend.rbPart d.γB (· = go!"lease")))
 
 instance lessorApplyOk_persistent (lp : Loc) : Persistent (lessorApplyOk (GF := GF) lp) := by
   unfold lessorApplyOk; infer_instance
 
 /-- The server's write right holds the lessor's write token's part (its half of `le.b`) and the
-tracked buckets' client half, the right its put takes (leases T3, L3c, 2026-10-27). -/
-theorem srvRestRWH_lessor (γB : backend.BNames) (al ast lp cl be : Loc) :
+lease bucket's part of the tracked buckets' client half, the right its put takes (leases T3, L3c,
+2026-10-27; the lease bucket's part since 2026-11-02, the backend-auth-split stage, as
+`lessorApplyOk` now takes it). -/
+theorem srvRestRWH_lessor [go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+    (γB : backend.BNames) (al ast lp cl be : Loc) :
     ⊢ □ (srvRestRWH (GF := GF) γB (srvObjsOn al ast lp cl be) -∗
-      lease.lessorBeOn lp be ∗ ∃ r, backend.rbOwn γB r) := by
+      lease.lessorBeOn lp be ∗ ∃ r, backend.rbPart γB (· = go!"lease") r) := by
   iintro !> Hrw
   iunfold srvRestRWH at Hrw
   iunfold srvObjsOn at Hrw
   icases Hrw with ⟨Hrw, -, -, Hle, -⟩
   iunfold srvRestRW at Hrw
-  iframe Hle Hrw
+  icases Hrw with ⟨%r, Hrw⟩
+  ihave ⟨Hrw, -⟩ := (backend.rbOwn_split (GF := GF) γB (fun n : GoString => n = go!"lease") r).1 $$ Hrw
+  iframe Hle
+  iexists r
+  iexact Hrw
 
 /-- The lessor's write token's part lends itself. -/
 theorem lessorBeOn_lens (lp be : Loc) :
@@ -149,37 +157,68 @@ theorem lessorBeOn_lens (lp be : Loc) :
   iframe Hle
   iintro Hle; iexact Hle
 
+/-- The `Lease` bucket is not one of the cluster's (2026-11-02, the backend-auth-split stage). -/
+theorem lease_not_clusterBkts : ¬ membership.clusterBkts mvcc.leaseName := by
+  simp [membership.clusterBkts, membership.memberBkts, mvcc.leaseName,
+    go_etcd_io.etcd.server.v3.storage.schema.leaseName]
+
 /-- **The server's rest resource lends the lessor's revocation its buckets** (the lease-revoke
 plan, 2026-10-31; `apply.isApplyLessor_of_lessorInv`'s lens): at the store's real backend `d` (its
 parameters naming the `Lease` bucket, tracked, with no hook keys: `leaseParams`, a boot fact), the
-tracked buckets' client half as the store's right `storeRb` and the lessor's half of `le.b`, given
-back at any buckets. -/
-theorem srvRestOwnH_lens_revoke (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = some d)
+`Lease` bucket's part as the store's right `storeRb` and the lessor's half of `le.b`, given back at
+any buckets agreeing with the model's off `lease`. (2026-11-02, the backend-auth-split stage: the
+part of `Lease`, split off `srvRestOwn`'s part of the non-cluster buckets; until then the whole
+client half, given back at any buckets.) -/
+theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+    (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = some d)
     (hlp : mvcc.leaseParams d.P) (al ast lp cl : Loc) :
     ⊢ □ (∀ rs : apply.RestM, srvRestOwnH (GF := GF) d.γB cl (srvObjsOn al ast lp cl d.be) rs -∗
       ∃ d' : mvcc.KBReal, ⌜γ.kb = some d'⌝ ∗ mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d'.be ∗
-        (∀ bk, mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d'.be -∗
+        (∀ bk, ⌜∀ n, n ≠ mvcc.leaseName → bk.lookup n = rs.bk.lookup n⌝ -∗
+          mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d'.be -∗
           srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) { rs with bk := bk })) := by
+  have hlc := lease_not_clusterBkts
+  have hset : ∀ n, (¬ membership.clusterBkts n) ↔
+      (n = mvcc.leaseName ∨ (¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName)) := by
+    intro n
+    by_cases h : n = mvcc.leaseName
+    · subst h; exact ⟨fun _ => Or.inl rfl, fun _ => hlc⟩
+    · exact ⟨fun hc => Or.inr ⟨hc, h⟩, fun hx => hx.elim (fun e => absurd e h) And.left⟩
+  have hd : ∀ n, n = mvcc.leaseName →
+      (¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName) → False := fun _ h1 h2 => h2.2 h1
   iintro !> %rs Hro
   iunfold srvRestOwnH at Hro
   iunfold srvObjsOn at Hro
   icases Hro with ⟨Hro, Hal, Hau, Hle, Hcb⟩
   iunfold srvRestOwn at Hro
-  icases Hro with ⟨Hrb, Hmem⟩
+  icases Hro with ⟨Hcl, Hnc, Hmem, %Hmi⟩
+  ihave Hnc := (backend.rbPart_set (GF := GF) d.γB _ _ rs.bk hset).1 $$ Hnc
+  icases (backend.rbPart_split (GF := GF) d.γB (· = mvcc.leaseName)
+    (fun n => ¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName) rs.bk hd).1 $$ Hnc with ⟨Hl, Hnc⟩
   iexists d
   unfold mvcc.storeRb
   rw [hk]
   simp only [mvcc.kbRb]
   isplitr
   · ipureintro; trivial
-  iframe Hrb Hle
+  iframe Hl Hle
   isplitr
   · ipureintro; exact hlp
-  iintro %bk ⟨⟨Hrb, -⟩, Hle⟩
+  iintro %bk %hbk ⟨⟨Hl, -⟩, Hle⟩
   iunfold srvRestOwnH
   iunfold srvObjsOn
   iunfold srvRestOwn
-  iframe Hrb Hmem Hal Hau Hle Hcb
+  iframe Hmem Hal Hau Hle Hcb
+  isplitl [Hcl]
+  · iapply (backend.rbOwnIn_congr (GF := GF) d.γB _ rs.bk bk
+      (fun n hn => (hbk n (fun e => hlc (e ▸ hn))).symm)).1 $$ Hcl
+  isplitl [Hl Hnc]
+  · iapply (backend.rbPart_set (GF := GF) d.γB _ _ bk hset).2
+    iapply (backend.rbPart_split (GF := GF) d.γB (· = mvcc.leaseName)
+      (fun n => ¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName) bk hd).2
+    iframe Hl
+    iapply (backend.rbPart_congr (GF := GF) d.γB _ rs.bk bk (fun n hn => (hbk n hn.2).symm)).1 $$ Hnc
+  · ipureintro; exact Hmi
 
 /-- **The cluster `c`'s apply contract on whichever backend it is on** (persistent; D22 receiver
 epochs, S7e, 2026-10-23; `bootOk`'s, the bootstrap contract): for a real backend `d` (its
@@ -189,7 +228,16 @@ half and the cluster's in-memory members with its `be` field at a membership bac
 (`clusterBeOn`, `roLens`), and a write right `RW` lending the half and the field (`rwLens`). The
 field (`c.be`: no lock guards it, the apply thread is its only reader and writer) pins the
 cluster's writes to `d`; `SetBackend` replaces it. Until S7e the contract was for the boot
-backend's batch lock only, false once `applySnapshot` calls `SetBackend`. -/
+backend's batch lock only, false once `applySnapshot` calls `SetBackend`. (2026-11-01, the
+backend-auth-split stage: the rest resource holds the cluster's buckets idle. True of the Go code:
+`SetVersion`'s `MustSaveClusterVersionToBackend` and `UpdateAttributes`' `MustSaveMemberToBackend`
+lock the batch (`LockInsideApply`), put, and `Unlock`, which writes the put back, the Go basis;
+without `shouldApplyV3` they write nothing; so after either, the readers see the writer's contents
+on the cluster's buckets, `TestBks2WriterAnySIdle`. `UpdateAttributes` saves under
+`BackendMemberKey(m.ID)`, which is the model's `memberKey a.memberID` because `srvRestOwn` holds
+`memIdOk`, kept by both rows (`restModel_memIdOk`'s steps). Not modelled, as before
+(`RestModel.lean:19`): `UpdateAttributes` of an id that is neither a member nor removed panics in
+Go; the row claims a return there, a gap of the contract this stage leaves as it is.) -/
 def clusterApplyOk (c : Loc) : IProp GF :=
   iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ' : mvcc.StoreNames) (f : GoFunc)
       (RO : apply.RestM → IProp GF) (RW : IProp GF),
@@ -210,9 +258,13 @@ instance authApplyOk_persistent (stl : Loc) (RD : IProp GF) :
 /-- **The auth store `ast`'s `Recover` on a new backend** (persistent; D22 J1a, 2026-10-26: the
 body of S8d's named premise `srvAuthRecoverOk`, moved beside the stores' apply contracts and given by
 `auth.NewAuthStore.spec`, the trust boundary, in its mode `off`): for any later backend `dn` with its
-contract, an open share, a reader token and its tracked buckets with the auth buckets at
-`authBoot`/empty, `Recover(ab)` moves the store's user's half `authBeOn ast oldbe` to the new
-backend, all else given back. -/
+contract, an open share, a pooled reader's resource and the caller's thread token
+(`backend.bkRPool`, `threadTok`), and **the idle part of its auth buckets** at `authBoot`/empty
+(`rbOwnIn dn.γB auth.authBkts r`, what `Recover`'s read transaction sees: the Go basis),
+`Recover(ab)` moves the store's user's half `authBeOn ast oldbe` to the new backend, all else given
+back. (2026-11-02, the backend-auth-split stage: until then the reader's token and open share
+`mvcc.bkRTx` and the writer's half `rbOwn`, with `authRoles` empty too; `NewAuthStore.spec`'s last
+two bullets say why.) -/
 def authRecoverOk (ast : Loc) : IProp GF :=
   iprop(□ (∀ (oldbe abl lg : Loc) (dn : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
           (r : GMap GoString backend.BktData),
@@ -222,13 +274,12 @@ def authRecoverOk (ast : Loc) : IProp GF :=
                 #dn.be : GoInterface) ∗
             structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl ↦□ lg ∗
             backend.isBackend dn.γB dn.P W Pk dn.be ∗ backend.bOpen dn.γB qo ∗
-            mvcc.bkRTx dn.γB dn.P dn.be ∗ backend.rbOwn dn.γB r ∗
-            ⌜(r.lookup go!"auth").getD ∅ = authBoot ∧ (r.lookup go!"authUsers").getD ∅ = ∅ ∧
-              (r.lookup go!"authRoles").getD ∅ = ∅⌝ }}
+            backend.bkRPool dn.γB dn.P dn.be ∗ threadTok ∗ backend.rbOwnIn dn.γB auth.authBkts r ∗
+            ⌜(r.lookup go!"auth").getD ∅ = authBoot ∧ (r.lookup go!"authUsers").getD ∅ = ∅⌝ }}
           (App (Val (ast @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!!
             go!"Recover")) (Val #(authBkIface abl)))
-        {{ RET #(); authBeOn ast dn.be ∗ backend.bOpen dn.γB qo ∗ mvcc.bkRTx dn.γB dn.P dn.be ∗
-            backend.rbOwn dn.γB r }}))
+        {{ RET #(); authBeOn ast dn.be ∗ backend.bOpen dn.γB qo ∗ backend.bkRPool dn.γB dn.P dn.be ∗
+            threadTok ∗ backend.rbOwnIn dn.γB auth.authBkts r }}))
 
 instance authRecoverOk_persistent (ast : Loc) : Persistent (authRecoverOk (GF := GF) ast) := by
   unfold authRecoverOk; infer_instance
@@ -334,6 +385,9 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
       -- buckets' resource at this backend, the receipts' bound
       storage.snapOpensOk ∧ d.cm = E.cmp ∧ mvcc.bridgeParams d.P ∧ ciKeys d.P ∧
       storage.hooksParams d.P ∧ d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ mvcc.leaseParams d.P ∧
+      -- (2026-11-02, the backend-auth-split stage) the alarm bucket in the table, which the alarm
+      -- store's `Recover` takes (`bootOk`'s)
+      d.P.has mvcc.alarmBI ∧
       E.γ.watchQ = true ∧
       E.RO = srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) ∧
       receiptBound GF ≤ backend.wbInit - 6⌝ ∗
@@ -411,7 +465,7 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   icombine Hle H16 gives %e3
   icombine Hcl H17 gives %e4
   simp only [auth.authIface, lease.lessorIface, interface_mkOk_inj] at e2 e3
-  obtain ⟨hkb0, hlg, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, -, hbr, hci, hhk, hwf, hlim, hlp, hwq,
+  obtain ⟨hkb0, hlg, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, -, hbr, hci, hhk, hwf, hlim, hlp, halbi, hwq,
     -, hrb⟩ := Hp
   rw [hkb] at hkb0
   cases hkb0
@@ -425,8 +479,8 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   iexists cfg, ss, hk, lgh, stp, γd, idm, al, ast, lp, cl, ps, dir, d'
   isplitr
   · ipureintro
-    refine ⟨hkb', hlg, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, hcm', ?_, ?_, ?_, ?_, ?_, ?_, hwq, hRO,
-      hrb⟩ <;> rw [hP] <;> assumption
+    refine ⟨hkb', hlg, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, hcm', ?_, ?_, ?_, ?_, ?_, ?_, ?_, hwq,
+      hRO, hrb⟩ <;> rw [hP] <;> assumption
   have e5 : (E.onBe p P f c RO RW).authMode = E.authMode := rfl
   have e6 : (E.onBe p P f c RO RW).RD = E.RD := rfl
   have e7 : (E.onBe p P f c RO RW).γ.leases = E.γ.leases := rfl
