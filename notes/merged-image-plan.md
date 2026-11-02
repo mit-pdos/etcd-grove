@@ -7,33 +7,30 @@ start's raft names". Branch `merged-image`.
 ## Scope
 
 **Configuration.** The merged snapshot's image (`applyAll`'s `msgSnapC` branch, SNAPSHOT-SORRY #7)
-is certified with the auth mode off **and the compaction mode off** (`E.cmp = false`), at a fresh
-start (`γr.raft = ⟨γr.raft.raft, [], W64 0⟩`, which every server is: `NewServer`'s premise
-`ρ.rd.raft = ⟨γ, [], W64 0⟩`). The compaction-mode image joins the auth-on one as an open branch
-(`SNAPSHOT-SORRY #7-cmp` beside `#7-on`): certifying a compacted image (a `srvImage` allowing the
-compaction keys and the keys compacted away) is a design question of its own, like `run_job_snap_cmp`
-(J8b).
+is certified with the auth mode off **and the compaction mode off** (`E.cmp = false`). Every server
+is a fresh start (`isServer`'s `srvRaftLogInv`: `pre = []`, `ai0 = 0`), which `srvImage`'s
+`⟨γ, [], 0⟩` needs. The compaction-mode image joins the auth-on one as an open branch
+(`SNAPSHOT-SORRY #7-cmp` beside `#7-on`), and like `#7-on` it is false as stated: it asserts
+`srvImage` of a snapshot that can hold `Meta`'s compaction keys. Its fix is the same shape as
+`#7-on`'s accepted target (b) ("The merged snapshot's image with auth on"): `srvNet`'s image in the
+cluster's mode; the compacted image's vocabulary is drafted (`mvcc.keyImageM`,
+`M2StorageDraftRestore.lean`). The cluster's `cmp` is in `KVNames`, not `SrvRaft`, so `srvNet` would
+need it: the user's decision (questions below).
 
 **The statements that change.**
 
-1. `merged_image` (`SnapSendBranch.lean`, internal): two premises, `(hcmp : E.cmp = false)` and
-   `(hraft : γr.raft = ⟨γr.raft.raft, [], W64 0⟩)`; the rest unchanged. Proved under them (draft
-   `merged_image'`).
-2. The fresh start's raft names reach `applyAll`'s batch case, one of two ways:
-   - **(A)** `EtcdServer.applyAll.specBatch` gains the premise `γr.raft = ⟨γr.raft.raft, [], W64 0⟩`
-     (as `specSnap` has); `run_job_body` gains it too, and `run` gives it (draft `fresh_raft_of_run`:
-     `kvRun`'s `γr.raft.ai0 = ai₀`, `rnEnvOk`'s `pre`, `isServerRun`'s `HEr`).
-   - **(B)** no premise changes: `isServerApplyAll`'s start values (`⌜γr.kv.c0 = W64 0 ∧ γr.kv.log0 =
-     [[], []]⌝`, there since S1 for the merged image) and `srvApplyAllBuilt`'s gain
-     `γr.raft = ⟨γr.raft.raft, [], W64 0⟩`; `NewServer` builds it from its premise (draft
-     `fresh_raft_of_newServer`); `start` passes the conjunct through (its pattern `%Hkv0` is
-     unchanged); both of `merged_image`'s callers take it from `Hkv0`. `isServerApplyAll` is in the
-     precondition of `applyAll.spec`, `specSnap`, `specOn`, `snapshot`, `snapshotIfNeeded...`, so
-     their preconditions are strengthened by a fact every caller holds; no binder or premise moves.
-     Recommended: the fact sits with its siblings, for the same consumer, and no caller's glue grows.
-3. `applyAll`'s proof (`EtcdServer__applyAll.lean`, `wp_proof`'s batch case): the merge branch splits
-   on `E.cmp`: `false`, `merged_image`; `true`, `sorry -- SNAPSHOT-SORRY #7-cmp`. `specSnap`'s case
-   (`ApplyAllSnap.lean`) has `hcmp` and `hraft` as premises already and passes them.
+1. `merged_image` (`SnapSendBranch.lean`, internal): one premise more, `(hcmp : E.cmp = false)`;
+   the rest unchanged. Proved under it (draft `merged_image'`), the fresh start's names from
+   `isServer` by a new law `srvRaftLogInv_fresh` (`SrvRaftLog.lean`, beside `srvRaftLogInv_facts`).
+2. The compaction-mode hole as a named lemma, `merged_image_cmp`: `merged_image`'s statement with
+   `(hcmp : E.cmp = true)`, `sorry -- SNAPSHOT-SORRY #7-cmp`, its docstring saying it is false as
+   stated (so that the trust-base report names it and the later fix is local).
+3. `applyAll`'s proofs: the batch case (`EtcdServer__applyAll.lean`) splits on `E.cmp`
+   (`merged_image` / `merged_image_cmp`); the snapshot case (`ApplyAllSnap.lean`) calls
+   `merged_image` at `E'` with `E'.cmp = false` from `specSnap`'s `hcmp` and `beSucc` (`AEnv.onBe`
+   keeps `cmp`).
+
+No spec changes: `applyAll.specBatch`, `specSnap`, `isServerApplyAll` and `run` stay as they are.
 
 **Why not a weaker `hcmp`** (the coordinator's question: "`Meta` has no compaction keys"). `keyImage`
 needs both `noCmpData D` and the exact `Key` bucket; `mergedObs` gives the exact bucket only at
@@ -52,20 +49,34 @@ forms are given by `mergedObs`. So `hcmp` is what callers can use; the weaker fo
   `run` is reached by the exported server results through `start`.
 
 **Exported or linked.** The server package has no API list (`etc/api/` has `backend`, `raft`) and no
-`interface/` files: neither statement is in a committed interface. `applyAll.spec` (=
+`interface/` files: no statement here is in a committed interface. `applyAll.spec` (=
 `specBatch ∧ specSnap`) is linked (`Link.lean`'s `EtcdServer.wp_applyAll`) and used only by
-`run.wp_proof`'s link; it is not an exported result. `merged_image`'s `sorry` is in the trust base of
-eleven collections (`cachekv`, `compactkv`, `k8setcd3`, `leasekv`, `linkv3p`, `linkvtxn`, `m2`,
-`putget`, `putget3`, `server`, `watchkv`), `compactkv`'s, a compaction-mode example, included: there the hole was
-false. After the change `merged_image` is proved and `EtcdServer.applyAll.wp_proof` holds the new
-named `sorry` (#7-cmp): the `sorry` count is unchanged, the names trade.
+`run.wp_proof`'s link; it is not an exported result, and it does not change. `merged_image`'s `sorry`
+is in the trust base of eleven collections (`cachekv`, `compactkv`, `k8setcd3`, `leasekv`, `linkv3p`,
+`linkvtxn`, `m2`, `putget`, `putget3`, `server`, `watchkv`). After the change those collections
+trade `sorry merged_image` for `sorry merged_image_cmp`: the count is unchanged, and the hole they
+rest on is false only in the compaction mode, which only `compactkv` runs (its result still rests on
+a false hole until #7-cmp is repaired).
 
 ## Draft
 
 `Proof/go_etcd_io/etcd/server/v3/etcdserver/MergedImageDraft.lean` (imported by nothing; no `axiom`,
-no `sorry`; builds): `merged_image'` (proved), `EtcdServer.applyAll.specBatchR` (option A's text) and
-`specBatchR_of_specBatch`, the glue `fresh_raft_of_run` (A) and `fresh_raft_of_newServer` (B).
+no `sorry`; builds): `srvRaftLogInv_fresh` and `merged_image'` (proved). No glue: no caller's
+premises change.
 
 ## Review
 
-(rounds below)
+**Round 1** (fresh `spec-reviewer`, commit 3972d557ab; the draft then also had `hraft` and two ways
+of carrying it to `applyAll`'s batch case: (A) a `specBatch` premise, (B) a conjunct of
+`isServerApplyAll`):
+- R1/R2/R3 (first tier): `hraft` derivable from `isServer` (`srvRaftLogInv`'s `pre = []`,
+  `ai0 = pre.length`); the finding's second item false; A and B unneeded. Taken: `hraft` dropped,
+  derived by `srvRaftLogInv_fresh`; A, B and their glue deleted; the decision entry corrected.
+- R4 (first tier): the proposed `#7-cmp` hole asserts something false, and the plan hid it. Taken:
+  said in the plan and the decision; the hole as a named lemma, `merged_image_cmp`.
+- R5: the truer alternative, a mode-indexed `srvNet` image (as `#7-on`'s target (b)). To the user.
+- P1: the snapshot case's call is at `E'` (`E'.cmp` from `beSucc`). Taken in the plan.
+- P2 (later): `specSnap`'s premises `γr.raft = ⟨…⟩`, `γr.kv.c0 = 0` are derivable from its
+  `isServer`; `log0` is in its `isServerApplyAll`; `run_job_snap_cmp`/`run_job_body` thread the same
+  facts. Candidates for removal in a later stage, not here.
+- Also noted: `merged_image`'s `h0.1` (`c0 = 0`) is derivable (`kvInv`'s `c0 ≤ ai0`); `h0.2` is not.

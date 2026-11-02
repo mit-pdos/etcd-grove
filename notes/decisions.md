@@ -29661,32 +29661,31 @@ what came of them:
   call it once each): the permit's `kvRevLbZ (c + 1)`, the read-side law's counter bound
   (`roundsInv_revLb`), a latest `Get` at least it (`client_Get_rev`, `getRevAu_round`).
 
-## `merged_image` is false with compaction on, and lacks the fresh start's raft names (2026-11-02 · found on branch `merged-image`; the user's direction: spec-first, `notes/merged-image-plan.md`)
+## `merged_image` is false with compaction on (2026-11-02 · found on branch `merged-image`; the user's direction: spec-first, `notes/merged-image-plan.md`)
 
 **2026-11-02 · finding (a bug in this repository's statements, not in Go)**
 
 `merged_image` (`SnapSendBranch.lean`, a `sorry` since S1) concludes `□ (srvNet γr.raft.raft).img ai
 D`, which is `srvImage`: `dbImage` at the fresh cluster's raft names `⟨γ, [], 0⟩`, whose `imageAt`
 holds `mvcc.keyImage (kvModel γk A') D` (the `Key` bucket exactly the log's, and `Meta` holding
-neither `scheduledCompactRev` nor `finishedCompactRev`). Its premises cannot give it:
+neither `scheduledCompactRev` nor `finishedCompactRev`). **With `E.cmp = true` it is false.**
+`mergedObs` (since 2026-10-31, "The merged snapshot's observation with compactions") gives the exact
+`Key` clause and `noCmpData D` only at `cmp = false`. A compaction-mode server that applied a
+compaction has `scheduledCompactRev` in `Meta` (`updateCompactRev`'s `SetScheduledCompact` and
+`ForceCommit`, before the job deletes keys); the backend snapshot `createMergedSnapshotMessage`
+streams holds it, so no log makes `keyImage` true: a `D` with that key satisfies every premise and
+falsifies the conclusion. The lemma was in the trust base of eleven collections, `compactkv`'s (a
+compaction-mode example) included. The `srvImageR` draft (`M2StorageDraftB2.lean`) has the same
+`imageAt`: the receipt is not the issue. S1's entry ("`applyAll`'s merge branch (S1)") noted "with
+compaction on, `mvcc.keyImage` of the KV's log must still hold of the snapshotted data" as a caveat;
+the statement was not restricted then.
 
-1. **False with `E.cmp = true`.** `mergedObs` (since 2026-10-31, "The merged snapshot's observation
-   with compactions") gives the exact `Key` clause and `noCmpData D` only at `cmp = false`. A
-   compaction-mode server that applied a compaction has `scheduledCompactRev` in `Meta`
-   (`store.compact`'s `UnsafeSetScheduledCompact`, applied before the job deletes keys); the backend
-   snapshot `createMergedSnapshotMessage` streams holds it, so no log makes `keyImage` true, and
-   `srvImage ai D` is false of a reachable state where the premises hold. The lemma was in the trust
-   base of every server collection, `compactkv`'s (a compaction-mode example) included. The
-   `srvImageR` draft (`M2StorageDraftB2.lean`) has the same `imageAt`: the receipt is not the issue.
-2. **Unprovable with any `γr.raft`.** `srvImage` is stated at `⟨γr.raft.raft, [], 0⟩`; `kvApplied`
-   gives `srvRLogLb γr.raft A` over `γr.raft.pre ++ A` from `γr.raft.ai0`, and nothing in `isServer`,
-   `kvApplied` or the start values `h0` fixes `pre = []`, `ai0 = 0`. They hold of every server
-   (`NewServer`'s fresh start), and `run` has them (`isServerRun`'s `HEr`), as does
-   `applyAll.specSnap` (its premise), but `applyAll.specBatch`, the other caller's spec, does not.
+With compaction off the lemma holds as stated but for that premise: the fresh start's raft names
+(`γr.raft = ⟨γr.raft.raft, [], W64 0⟩`) come from `isServer`'s `srvRaftLogInv` (`pre = []`,
+`ai0 = pre.length`; law `srvRaftLogInv_fresh`). (The first draft of this entry said no premise gave
+them and proposed carrying them to `applyAll.specBatch`; review round 1 found them in `isServer`.)
 
-S1's entry ("`applyAll`'s merge branch (S1)") noted "with compaction on, `mvcc.keyImage` of the KV's
-log must still hold of the snapshotted data" as a caveat; the statement was not restricted then.
-The repair (Scope and Draft: `notes/merged-image-plan.md`): `merged_image` takes `E.cmp = false`
-and the fresh start's raft names; `specBatch` takes the latter; the merge branch of `specBatch`'s
-proof splits on `E.cmp`, the compaction-mode side a named hole (`SNAPSHOT-SORRY #7-cmp`), as the
-auth-on side is (`#7-on`): certifying a compacted image is a design question of its own.
+The repair (`notes/merged-image-plan.md`): `merged_image` takes `E.cmp = false`; `applyAll`'s batch
+case splits on `E.cmp`, the compaction-mode side an open hole (`SNAPSHOT-SORRY #7-cmp`), which is
+**false as stated** (it asserts the same `srvImage`), so `compactkv`'s results still rest on a false
+hole until the image is mode-indexed (the plan's questions).
