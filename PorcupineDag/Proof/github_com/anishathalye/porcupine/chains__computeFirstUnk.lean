@@ -552,7 +552,73 @@ theorem chains.computeFirstUnk.wp_proof
           · rw [List.getD_eq_getElem?_getD, List.getElem?_set_ne (Ne.symm hdd),
               ← List.getD_eq_getElem?_getD]
             exact Hd.2.2.2 d' (by word) hd'l hd'c
-    · sorry
+    · -- every other client done: `op.visited = true`
+      have hdn : sint.nat dv = cs.length := by word
+      icases ownSlice_elem_acc (sint.Z cvc.head') co cvc.cltOps' _ cosc hbh.1 hco $$ Hcosc
+        with ⟨Hco, Hcosc⟩
+      iStructNamedSuffix Hco "_co"
+      wp_auto
+      ihave Hco := typedPointsto_combine _ { co with visited' := true } _ Hconn $$
+        [Op_co globalId_co id_co firstUnk_co visited_co __co]
+      · simp only [TypedPointsto.typedPointstoDef]; iframe
+      ihave Hcosc := Hcosc $$ %_ Hco
+      rw [hhdn]
+      ihave Hch := typedPointsto_combine _ chV _ Hchnn $$ [clients_ch numOps_ch frontier_ch __ch]
+      · simp only [TypedPointsto.typedPointstoDef]; iframe
+      ihave Hcvc := typedPointsto_combine _ cvc _ Hcvcnn $$ [id_cc cltOps_cc head_cc nDeps_cc __cc]
+      · simp only [TypedPointsto.typedPointstoDef]; iframe
+      rw [hcn]
+      have hflk : ∀ d, d < cs.length → d ≠ sint.nat c →
+          sint.Z (fl.getD d 0) = FUe h cs (sint.nat c) d (st.head (sint.nat c)) :=
+        fun d h1 h2 => Hd.2.2.2 d (by omega) h1 h2
+      iapply HΦ
+      iexists st.visit (sint.nat c) (st.head (sint.nat c)) fl
+      isplitl
+      · iapply (chains_restore ch chV h cs st (st.visit (sint.nat c) (st.head (sint.nat c)) fl) cvs
+          (sint.nat c) cvc hcvc Hcvs
+          (fun k hk cv => clientOwn_congr rfl rfl (visit_vis_ne hk) (fun _ => visit_fuAt_ne hk)))
+        rw [hcZ, visit_frontier]
+        iframe
+        have hkv : st.head (sint.nat c) < (st.vis.getD (sint.nat c) []).length := by
+          rw [(hshape.2.2.2.2 _ _ hhl).1]; exact hhl
+        have hco2 : (cosc.set (st.head (sint.nat c)) { co with visited' := true })[st.head (sint.nat c)]?
+            = some { co with visited' := true } := by
+          rw [List.getElem?_set_self (List.getElem?_eq_some_iff.mp hco').1]
+        unfold clientOwn
+        isplitr
+        · ipureintro; exact Hcvcf
+        iexists _
+        iframe Hcosc
+        isplitr
+        · ipureintro
+          rw [visit_vis_eq hshape hcl]
+          exact coOk_set_visited Hcoc hco' hkv
+        iapply (BigSepL.bigSepL_delete_cond (PROP := IProp GF)
+          (Φ := fun k (co : clientOperation) =>
+            co.firstUnk' ↦* (st.visit (sint.nat c) (st.head (sint.nat c)) fl).fuAt (sint.nat c) k)
+          hco2).2
+        rw [visit_fuAt hshape hcl hhl]
+        simp only [true_and, ↓reduceIte]
+        iframe Hfl
+        iapply (fus_rebuild (GF := GF) (cos := cosc) ?_ ?_) $$ Hfurest
+        · rw [List.map_set]
+          have := list_set_lookup_self (cosc.map (·.firstUnk')) (st.head (sint.nat c)) co.firstUnk'
+            (by rw [List.getElem?_map, hco']; rfl)
+          exact this
+        · intro k hk
+          rw [visit_fuAt hshape hcl hhl]
+          simp [hk]
+      ipureintro
+      refine ⟨rfl, rfl, rfl, visit_shape hshape hcl hhl Hd.2.2.1,
+        visit_fuOk hfu hshape hcl hhl hflk, fun c' k => ?_⟩
+      rw [visit_visAt hshape hcl hhl]
+      congr 1
+      by_cases h1 : c' = sint.nat c
+      · subst h1
+        by_cases h2 : k = st.head (sint.nat c)
+        · subst h2; simp [hhl]
+        · simp [h2]
+      · simp [h1]
 
 end proof
 
