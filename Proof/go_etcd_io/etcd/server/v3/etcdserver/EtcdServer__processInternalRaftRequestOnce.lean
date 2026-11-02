@@ -218,10 +218,9 @@ local macro "piro_tail" : tactic => `(tactic| (
     iunfold raftPropose at Hprop
     icases Hprop with ⟨%ni, %Hni, #HrLog, #HWits, #HPropose⟩
     -- (linkv-txn stage B1) the id registered in this member's registry, before the proposal
-    ihave #Hireg : iprop(idRegd ρ.ids id) $$ []
-    · iunfold idRegd
+    ihave #Hireg : iprop(idRegdAt ρ.ids ρ.ids.key id) $$ []
+    · iunfold idRegdAt
       iexists ρ.wait, γh.takenName
-      rw [Hpfx]
       iframe Hwn Hregd
     -- (step 5) with auth on, the stamped header's binding, which the write's grant carries
     ihave #Hgb : □ (⌜on = true⌝ → hdrBoundM true s E (GoInterface.ok ctx)
@@ -335,7 +334,7 @@ local macro "piro_tail" : tactic => `(tactic| (
             obtain ⟨hlk, het, hdecw, hidw, hlbw⟩ := Hew
             have hidd : idw = id := by rw [Hidrq] at hidw; cases hidw; rfl
             subst hidd
-            ihave %Hdd := idClaim_agree ρ.ids idw ew.data bs γw γf $$ Hclw Hclaim
+            ihave %Hdd := idClaimAny_agree ρ.ids idw ew.data bs γw γf $$ Hclw Hclaim
             replace Hdd := Hdd.1
             ihave #HWits' := HWits
             iunfold srvPropWits at HWits'
@@ -388,7 +387,7 @@ local macro "piro_tail" : tactic => `(tactic| (
             obtain ⟨hlk, het, hdecw, hidw, hlbw⟩ := Hew
             have hidd : idw = id := by rw [Hidrq] at hidw; cases hidw; rfl
             subst hidd
-            ihave %Hdd := idClaim_agree ρ.ids idw ew.data bs γw γf $$ Hclw Hclaim
+            ihave %Hdd := idClaimAny_agree ρ.ids idw ew.data bs γw γf $$ Hclw Hclaim
             replace Hdd := Hdd.1
             ihave #HWits' := HWits
             iunfold srvPropWits at HWits'

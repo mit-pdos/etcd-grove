@@ -452,10 +452,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iPkgInit
   wp_apply time.wp_Now as %now -
   -- (D21e (A), stage M4) over the cluster's claims, at the member's prefix
-  wp_apply (h14 ρ.ids _ now Φs (by rw [Hpfx]; congr 1; rw [← Hid])) $$ [Hids] as %gen #Hgen0
-  · iframe Hidc; iframe Hids
+  -- (R2c) at the member's key: the claims' facts the server's family at its store's index
+  wp_apply (h14 ρ.ids _ now srvFloorFacts E₀.γ.idx (by rw [Hpfx]; congr 1; rw [← Hid]))
+    $$ [Hids] as %gen #Hgen0
+  · iframe Hidc Hidk; iframe Hids
   ihave #Hgen : idGen ρ.ids gen (srvFloorFact E₀) $$ []
-  · rw [← HΦs]; iexact Hgen0
+  · rw [show srvFloorFact (GF := GF) E₀ = srvFloorFacts E₀.γ.idx from rfl]
+    iexact Hgen0
   (try wp_auto)
   wp_apply h15 as %fcn ⟨#Hfcn, Hfcnr⟩
   wp_apply h15 as %cvn ⟨#Hcvn, Hcvnr⟩

@@ -66,12 +66,14 @@ theorem srv_claim_mint (ρ : ReqNames) (E : apply.AEnv GF) (g : Loc) (id : w64) 
     rw [Hd] at h1; cases h1
     rw [Hid] at h2; cases h2
     iexfalso
-    iapply idClaim_unclaimed $$ Hc Hu
+    ihave #Hca := idClaimAny_of ρ.ids id d γ' $$ Hc
+    iapply idClaim_unclaimed $$ Hca Hu
   | none =>
     imod idClaim_make ρ.ids g (srvFloorFact E) id d γf (⊤ \ ↑srvMintN) idClusterN_mintN
       $$ Hg Hu %Hp [] with #Hc
     · imodintro
       iunfold srvFloorFact
+      iunfold srvFloorFacts
       iexists F
       iframe Hfl HF
     imod ghost_map_insert d () hF $$ HF' with ⟨HF', Hfr⟩

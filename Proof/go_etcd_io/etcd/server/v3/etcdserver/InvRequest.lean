@@ -206,27 +206,33 @@ def kvLeases (γk : KVNames) (L : List EntryModel) : LeaseTable := kvTableOf γk
 lease table. -/
 def kvModelSt (γk : KVNames) (L : List EntryModel) : KVState := kvStateOf (kvModel γk L) (kvLeases γk L)
 
-/-- **`id` was registered** (persistent; linkv-txn stage B1, 2026-10-20) in the wait registry of
-the member of its prefix (the cluster's registries' map, `idWaitIs`), with the consumer token `t`:
-what a proposal's entry carries, its proposer having registered the id before proposing. -/
-def idRegd (γi : IdNames) (id : w64) : IProp GF :=
-  iprop(∃ W t : GName, idWaitIs γi (idPfx id) W ∗ waitRegd W id t)
+/-- **`id` was registered by the incarnation of key `k`** (persistent; linkv-txn stage B1,
+2026-10-20; by key since R2c, 2026-11-02, until then by the id's prefix) in its wait registry (the
+cluster's registries' map, `idWaitIs`), with the consumer token `t`: what a proposal's entry
+carries, its proposer having registered the id before proposing. -/
+def idRegdAt (γi : IdNames) (k : IdKey) (id : w64) : IProp GF :=
+  iprop(∃ W t : GName, idWaitIs γi k W ∗ waitRegd W id t)
 
-instance idRegd_persistent (γi : IdNames) (id : w64) : Persistent (idRegd (GF := GF) γi id) := by
-  unfold idRegd; infer_instance
+instance idRegdAt_persistent (γi : IdNames) (k : IdKey) (id : w64) :
+    Persistent (idRegdAt (GF := GF) γi k id) := by
+  unfold idRegdAt; infer_instance
 
-instance idRegd_timeless (γi : IdNames) (id : w64) : Timeless (idRegd (GF := GF) γi id) := by
-  unfold idRegd idWaitIs waitRegd; infer_instance
+instance idRegdAt_timeless (γi : IdNames) (k : IdKey) (id : w64) :
+    Timeless (idRegdAt (GF := GF) γi k id) := by
+  unfold idRegdAt idWaitIs waitRegd; infer_instance
+
+/-- `idRegdAt` by the incarnation of the names `γi` (its proposer's). -/
+abbrev idRegd (γi : IdNames) (id : w64) : IProp GF := idRegdAt γi γi.key id
 
 /-- **A committed entry's id claimed** (persistent; D19c): a normal entry whose data decode to a
-request with an id was claimed for its data under that id (`idClaim`, the generator's names
-`γi`), and (linkv-txn stage B1, 2026-10-20) the id registered before the entry was proposed
-(`idRegd`). -/
+request with an id was claimed for its data under that id by the incarnation of some key `k` (R2c:
+the claim records it), and (linkv-txn stage B1, 2026-10-20) the id registered by that incarnation
+before the entry was proposed (`idRegdAt`). -/
 def entryClaim (γi : IdNames) (m : EntryModel) : IProp GF :=
   iprop(⌜m.typ ≠ W32 0 ∨ m.data = []⌝ ∨
-    ∃ (rq : apply.IRRModel) (id : w64) (γf : GName),
-      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ ∗ idClaim γi id m.data γf ∗
-      idRegd γi id)
+    ∃ (rq : apply.IRRModel) (id : w64) (γf : GName) (k : IdKey),
+      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ ∗
+      id ↪[γi.issued]□ (some (m.data, γf, k) : Option IdClaimV) ∗ idRegdAt γi k id)
 
 instance entryClaim_persistent (γi : IdNames) (m : EntryModel) :
     Persistent (entryClaim (GF := GF) γi m) := by
@@ -234,7 +240,7 @@ instance entryClaim_persistent (γi : IdNames) (m : EntryModel) :
 
 instance entryClaim_timeless (γi : IdNames) (m : EntryModel) :
     Timeless (entryClaim (GF := GF) γi m) := by
-  unfold entryClaim idClaim; infer_instance
+  unfold entryClaim; infer_instance
 
 /-- Every conf change of `L` is one the server's `applyConfChange` takes (`ccPolOk`, at raft's
 configuration `cfg`; audit phase B3, 2026-10-18). -/
@@ -1173,14 +1179,29 @@ theorem floorAt_agree (γf : GName) (F F' : mvcc.Log) :
   iintro H1 H2
   iapply dghostVar_agree $$ H1 H2
 
+/-- A store index's names, as numbers (for the cluster's keys' facts map). -/
+instance idxNames_countable : Pos.Countable mvcc.IdxNames :=
+  .ofInjective (fun i => Pos.Countable.encode [i.hist, i.nev, i.log, i.crev, i.cmp])
+    (fun ⟨a1, b1, c1, d1, e1⟩ ⟨a2, b2, c2, d2, e2⟩ h => by
+      have h := Pos.encode_inj h
+      simp only [List.cons.injEq, and_true] at h
+      obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := h
+      rfl)
+
+/-- **The server's claimers' facts, by store** (the cluster's family of facts, `idClusterInv`'s
+`Φs`; R2c, 2026-11-02): a claim's ghost name records a floor certified in the store index `idx`
+its claimer's incarnation registered (`idKeyFactAt`). -/
+def srvFloorFacts (idx : mvcc.IdxNames) (_id : w64) (_d : List w8) (γf : GName) : IProp GF :=
+  iprop(∃ F : mvcc.Log, floorAt γf F ∗ mvcc.idxCert idx F)
+
 /-- **The server's claimers' fact** (the id generator's `Φ`, `idGen ρ.ids g (srvFloorFact E)`):
-a claim's ghost name records a certified floor. -/
-def srvFloorFact (E : apply.AEnv GF) (_id : w64) (_d : List w8) (γf : GName) : IProp GF :=
-  iprop(∃ F : mvcc.Log, floorAt γf F ∗ mvcc.idxCert E.γ.idx F)
+a claim's ghost name records a certified floor (`srvFloorFacts` at the store's index). -/
+def srvFloorFact (E : apply.AEnv GF) (id : w64) (d : List w8) (γf : GName) : IProp GF :=
+  srvFloorFacts E.γ.idx id d γf
 
 instance srvFloorFact_timeless (E : apply.AEnv GF) (id : w64) (d : List w8) (γf : GName) :
     Timeless (srvFloorFact (GF := GF) E id d γf) := by
-  unfold srvFloorFact floorAt mvcc.idxCert; infer_instance
+  unfold srvFloorFact srvFloorFacts floorAt mvcc.idxCert; infer_instance
 
 /-- **The result `ar` of applying `rq`**: a non-nil `*apply.Result` of applying `rq` (with `v3`)
 at some KV state `y`, to `y'` (`apply.applyStep`, `apply.applyResultIs`), with mvcc's
@@ -1221,7 +1242,7 @@ its own data under that id, learns `e.data` are its data, and collects its propo
 entry met (`resultIsW`'s): so the proposer's update fired at the state of the log the write met. -/
 def entryWit (ρ : ReqNames) (rq : apply.IRRModel) (lb : mvcc.Log) : IProp GF :=
   iprop(∃ (L : List EntryModel) (m : Nat) (e : EntryModel) (id : w64) (γf : GName),
-    srvRLogLb ρ.raft L ∗ idClaim ρ.ids id e.data γf ∗
+    srvRLogLb ρ.raft L ∗ idClaimAny ρ.ids id e.data γf ∗
     ⌜L[m]? = some e ∧ e.typ = W32 0 ∧ apply.irrDecode e.data = some rq ∧
       apply.irrId rq = some id ∧ kvModel ρ.kv (L.take m) = lb⌝)
 
@@ -1257,7 +1278,7 @@ B1 (2026-10-20) also `ρ.wait` as the member's entry of the cluster's registries
 def waitInv (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF) : IProp GF :=
   iprop((∃ RD : IProp GF, isWait w ρ.ids ρ.wait (reqWaitR ρ E) RD) ∗
     -- (linkv-txn stage B1, 2026-10-20) the member's registry in the cluster's registries' map
-    idWaitIs ρ.ids ρ.ids.pfx ρ.wait)
+    idWaitIs ρ.ids ρ.ids.key ρ.wait)
 
 instance waitInv_persistent (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF) :
     Persistent (waitInv (GF := GF) w ρ E) := by
@@ -1274,7 +1295,8 @@ def entryWaitOk (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) : IProp GF 
   if m.typ = W32 0 then
     iprop((∀ (rq : apply.IRRModel) (id : w64),
       ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
-        (∃ γf : GName, idClaim ρ.ids id m.data γf) ∗ idRegd ρ.ids id) ∗
+        ∃ (γf : GName) (k : IdKey),
+          id ↪[ρ.ids.issued]□ (some (m.data, γf, k) : Option IdClaimV) ∗ idRegdAt ρ.ids k id) ∗
       ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝)
   else iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
     ⌜ccPolOk ρ.raft.raft m.data⌝)

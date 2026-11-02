@@ -1835,7 +1835,7 @@ raft's registry of reads is the cluster's. (Until M4 inside the member's mint, w
 whole `idFresh`.) -/
 def srvRdCtxInv (γ : ServerRaftNames) (issued : GName) : IProp GF :=
   iprop(inv srvRdCtxN iprop(∃ U : List w64, ghostMapAuth γ.raft.rdFresh 1 (ctxMap U) ∗ ⌜U.Nodup⌝ ∗
-    [∗list] id ∈ U, id ↪[issued] (none : Option (List w8 × GName))) ∗
+    [∗list] id ∈ U, id ↪[issued] (none : Option IdClaimV)) ∗
     -- (2026-10-27) the read contexts committed with raft's node API, each with its fresh token
     inv srvRdUsedN iprop(∃ (Uc : GSet (List w8)) (Lc : List (List w8)),
       ownReadCtxs γ.raft.cl Uc ∗ ([∗list] c ∈ Lc, c ↪[γ.raft.rdFresh] ()) ∗
@@ -1976,7 +1976,7 @@ theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
   by_cases hinV : id ∈ V
   · iexfalso
     icases BigSepL.bigSepL_mem_acc
-      (Φ := fun id => (id ↪[γi.issued] (none : Option (List w8 × GName)) : IProp GF)) hinV $$ HVs
+      (Φ := fun id => (id ↪[γi.issued] (none : Option IdClaimV) : IProp GF)) hinV $$ HVs
       with ⟨Hv', -⟩
     iunfold idUnclaimed at Hun
     ihave %Hne := ghostMapElem_ne γi.issued id id (DFrac.own 1) _ _ $$ Hun Hv'
