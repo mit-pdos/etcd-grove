@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"go.etcd.io/etcd/server/v3/etcdserver"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/mit-pdos/etcd-grove/examples/common"
 	"github.com/mit-pdos/etcd-grove/examples/linkvtxn"
@@ -109,6 +111,16 @@ func heal(delay time.Duration, m int) []Step {
 // Ok. Then it asks each member, which Main left running, for the keys (so that the history was not all errors, and the three members, mended, agree), the raft
 // term (past the first election's: a re-election happened) and the member count. (The keys may
 // all be deleted at the end: the workload has deletes; the revision says the writes took effect.)
+//
+// It runs Main's body (startCluster, the partitioner, Check, the panic on Illegal) with a logger
+// that counts what the members did (runCounts), where Main has none, and reports the counts; it
+// fails if the run did not test what it is meant to: a leader change, a follower caught up by
+// entries, raft's log compacted, and a snapshot sent to a follower. (Not the KV store's
+// compaction: the members' auto-compactor is off and the workload sends no Compact; that is
+// examples/compactkv's.) Snapshots come from SnapCount and SnapCatchUp:
+// after one is sent, etcd pauses its leader's log compaction for 30s (releaseDelayAfterSnapshot),
+// so a run sees few, typically one or two (a member started after the others' first entries, or
+// mended after a cut).
 func TestMainRun(t *testing.T) {
 	if inChild(t, "TestMainRun") {
 		return
@@ -130,10 +142,35 @@ func TestMainRun(t *testing.T) {
 		}
 	}
 	start := time.Now()
-	if r := Main(3, 150, sched); r != porcupine.Ok {
+	rc := newRunCounts()
+	// Main's body, with rc's logger
+	srvs, brs, clis, ok := startCluster(zap.New(rc))
+	if !ok {
+		t.Fatal("the cluster did not start")
+	}
+	go partitioner(srvs, brs, sched)
+	r := Check(clis, 3, 150, 0)
+	if r == porcupine.Illegal {
+		panic("linkv3p: porcupine found the history not linearizable")
+	}
+	if r != porcupine.Ok {
 		t.Fatalf("got %v", r)
 	}
 	t.Logf("Main took %v", time.Since(start))
+	t.Log(rc.report())
+	if n := rc.get(cntLeader); n < 2 {
+		t.Errorf("%d leaders elected: no leader change", n)
+	}
+	if rc.get(cntAppReject) == 0 {
+		t.Errorf("no follower was caught up by entries (no MsgApp rejected)")
+	}
+	if rc.get(cntCompact) == 0 {
+		t.Errorf("raft's log was never compacted (SnapCount %d, SnapCatchUp %d)", SnapCount,
+			SnapCatchUp)
+	}
+	if rc.get(cntSnapSent) == 0 {
+		t.Errorf("no snapshot was sent (SnapCount %d, SnapCatchUp %d)", SnapCount, SnapCatchUp)
+	}
 
 	var kvs string
 	for i, addr := range []string{clientAddr1, clientAddr2, clientAddr3} {
@@ -862,4 +899,60 @@ func TestMainWatch(t *testing.T) {
 		}
 		t.Logf("member %d: revision %d, keys %d", i+1, resp.Header.Revision, len(resp.Kvs))
 	}
+}
+
+// The events runCounts counts, each by the message etcd or raft logs for it (raft's at debug level,
+// etcd's at info), summed over the members.
+const (
+	cntElection    = "is starting a new election" // raft: a member campaigns (pre-vote off)
+	cntLeader      = "became leader at term"      // raft: a member won an election
+	cntAppReject   = "rejected MsgApp ["          // raft: a follower's log did not match an append (it lagged or diverged); the leader backs up and resends entries from the follower's hint
+	cntCompact     = "compacted Raft logs"        // etcd: raft's in-memory log compacted
+	cntDiskSnap    = "saved snapshot to disk"     // etcd: a snapshot saved (every SnapCount entries)
+	cntSnapSent    = "sending merged snapshot"    // etcd: a leader sends a follower a snapshot (MsgSnap with the backend)
+	cntSnapApplied = "applied snapshot"           // etcd: a follower installed a received snapshot
+)
+
+var cntEvents = []string{cntElection, cntLeader, cntAppReject, cntCompact, cntDiskSnap, cntSnapSent,
+	cntSnapApplied}
+
+// runCounts is a zap core that logs nothing and counts the messages of cntEvents, at every level.
+type runCounts struct {
+	mu *sync.Mutex
+	n  map[string]int
+}
+
+func newRunCounts() runCounts { return runCounts{mu: &sync.Mutex{}, n: map[string]int{}} }
+
+func (c runCounts) Enabled(zapcore.Level) bool        { return true }
+func (c runCounts) With([]zapcore.Field) zapcore.Core { return c }
+func (c runCounts) Sync() error                       { return nil }
+
+func (c runCounts) Check(e zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.CheckedEntry {
+	return ce.AddCore(e, c)
+}
+
+func (c runCounts) Write(e zapcore.Entry, _ []zapcore.Field) error {
+	for _, k := range cntEvents {
+		if strings.Contains(e.Message, k) {
+			c.mu.Lock()
+			c.n[k]++
+			c.mu.Unlock()
+		}
+	}
+	return nil
+}
+
+func (c runCounts) get(k string) int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.n[k]
+}
+
+func (c runCounts) report() string {
+	return fmt.Sprintf("run counts (summed over the members): elections started %d, leaders "+
+		"elected %d; appends rejected by a lagging follower %d (each then caught up by entries); "+
+		"log compactions %d, snapshots saved %d; snapshots sent %d, installed %d",
+		c.get(cntElection), c.get(cntLeader), c.get(cntAppReject), c.get(cntCompact),
+		c.get(cntDiskSnap), c.get(cntSnapSent), c.get(cntSnapApplied))
 }
