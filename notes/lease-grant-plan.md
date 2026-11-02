@@ -313,7 +313,7 @@ what changed.
   `examples/leasegrant`.
 - **M6.** Done: `lessorLb_max`, `leaseGrantedAt_lb_max` (`InvLessor.lean`).
 
-## Design of the server chain (2026-11-02, round 3)
+## Design of the server chain (2026-11-02, final)
 
 The plan of record from here on; it replaces the plumbing-commit list (kept, shortened, under
 "Superseded" below). Written as text before any more site is threaded (`notes/spec-first-plan.md`,
@@ -325,6 +325,21 @@ row); B1 in place, gated on `lg` (one spec per function); S6 done; (c) a grantin
 claim about etcd's KV service; revocations out (`rqOk _ _ .leaseRevoke = False`); one member,
 snapshots of a granting cluster behind `srvGrantOpen` (a true, unproved statement; no false
 statement behind a hypothesis).
+
+**Round 3 → final** (review `notes/spec-review/lease-grant-design-r3.md`, of `7d62260a7c`; no
+blocker, freeze after S-1):
+
+- **S-1**: `mergedObs` takes an `lg` argument, like `cmp`, and its callers pass `E.lg`. The window
+  lemma then needs no `γr.kv.lg = E.lg` fact, which `srvKVInvsOn` lacks at `on = true`.
+  `merged_image` (at `on = false`) converts to `imageAt`'s `γk.lg` by `srvKVInvs`' tie.
+- **m-a**: `kvLeases_pre` is now stated under `γr.raft.pre = []`, and `pre` is the raft node's prefix
+  (`RNNames.pre`), not the boot log.
+- **m-b**: the two laws of the leased window are named in 2.0, `bkRestAtL_of_rb` and
+  `restLeasesWith_mem`.
+- **m-c**: the freeze list's `sorry` line now says which `sorry`s are new and which are in the
+  baseline.
+- **m-d**: the freeze list now names every spec whose text is unchanged but whose meaning moves at
+  `lg = true`.
 
 **Round 2 → round 3** (review `notes/spec-review/lease-grant-design-r2.md`, of `a2320120fc`; no
 blockers):
@@ -434,10 +449,15 @@ with a client AU open), `respMethods`/`reqFacts`, `E.RW`.
 - apply: `AEnv.γlt : GName := default`; `ltHalf E L : IProp := if E.lg then ghostVar E.γlt ½ L else
   True` (the tie's half; `ltHalf_false`).
 - server: `restLeasesWith (f : w64 → w64) (ids : List w64) r := ids.foldl (fun r id => restGrantT id
-  (f id) r) r`; `appliedTable γr A := kvLeases γr.kv (γr.raft.pre ++ A)` (folds from `[]` over
-  `pre ++ A`; the KV model's table folds over `A`; they agree because `pre` grants nothing: the
-  boot log is configuration entries, which `kvTable` keeps, and `pre = []` in `runSnapLgOkBody`
-  and `applySnapshot`; law `kvLeases_pre : (kvLeases γr.kv γr.raft.pre).ids = []`). Laws:
+  (f id) r) r`; `appliedTable γr A := kvLeases γr.kv (γr.raft.pre ++ A)`. `pre` is the raft node's
+  prefix (`RNNames.pre`, `InvRaftNode.lean:93`), not the boot log, which `restModel` takes
+  separately (`γr.raft.raft.boot`). The table folds from `[]` over `pre ++ A`, and the KV model's
+  own table folds over `A`. They agree where `pre = []`: `NewServer.lean:1932`, `runSnapLgOkBody`
+  (`InvRun.lean:450`), `SnapRecvFacts.lean:335`. Law `kvLeases_pre : γr.raft.pre = [] →
+  (kvLeases γr.kv γr.raft.pre).ids = []` (by `rfl`). Laws for the send window (m-b):
+  `bkRestAtL_of_rb : rbData P D = (restLeasesWith f T (restModel …)).bk → bkRestAtL …`, as
+  `bkRestAt_of_rb`; `restLeasesWith_mem : (restLeasesWith f T r).mem = r.mem` (`restGrantT` writes
+  only `bk`; for `srvRestOwn`'s `%Hmi`). Other laws:
   `(dispatchTable c rq v3 lt).ids = grantIds rq o lt.ids` under the triple's `o ↔` fact;
   `restEntry` commutes with `restGrantT` (`restEntry_keep`, GMap extensionality);
   `restLeasesWith_snoc` (with `f' := Function.update f id t`, equal on `ids` when `id ∉ ids`).
@@ -640,15 +660,23 @@ bootLog L D := ∃ f, ∀ n ∈ restBuckets, D.lookup n = (restLeasesWith f (kvL
 γk.c0 bootLog L)).bk.lookup n`. `bkRestAt`, `bkRestAt_boot`, `SnapRecvFacts`, `KVModelRestore` keep
 their text and proofs (the receive side at `lg = false`, 2.9). The send branch's own observation is
 gated the same way (S-B):
-- `mergedObs` (`SnapSendBranch.lean:516-524`): its conjunct `bkRestAt γr.kv.c0 γr.raft.raft.boot (pre
-  ++ A) D` → `if γr.kv.lg then bkRestAtL γr.kv bootLog (pre ++ A) D else bkRestAt …` (law
-  `mergedObs_false`, by `rfl`).
-- `mergedCreate_window` (proved): restated with the window at the gated buckets
+- `mergedObs` (`SnapSendBranch.lean:516-524`) takes a new argument `lg` (S-1), as it takes `cmp`:
+  `mergedObs γr cmp lg ai A log D`. Its conjunct `bkRestAt γr.kv.c0 γr.raft.raft.boot (pre ++ A) D` →
+  `if lg then bkRestAtL γr.kv bootLog (pre ++ A) D else bkRestAt …` (law `mergedObs_false`, by
+  `rfl`). Its three users pass `E.lg` beside `E.cmp`: `EtcdServer__applyAll.lean:381`,
+  `ApplyAllSnap.lean:458`, and the window's statement. A gate on `γr.kv.lg` would not do: the window
+  is used at `on = true` (`EtcdServer__applyAll.lean:767`), where `srvKVInvsOn` has no `γr.kv.lg =
+  E.lg`. (Rejected alternative: add that tie to `srvKVInvsOn`, which is one more definition and the
+  on-mode boot's constructor.)
+- `mergedCreate_window` (proved, generic in `on`): restated with the window at the gated buckets
   `(restLeasesWith f T (restModel …)).bk`, where `f` and `T` come from `srvRest`'s leased arm, and
-  `f := _`, `T := []` at `lg = false`. Both arms have one proof: it unfolds `srvRest`, passes those
-  buckets to `srvBeSnapOk_window`, concludes the gated observation by `bkRestAt_of_rb`, and recloses.
-- `merged_image` keeps the S2 `sorry` (the file's only one, `:755`), which now also covers the
-  leased image. It is still true: the observed ids are `kvLeases γk (pre ++ A)`, `imageAt`'s `L`.
+  `T := []` at `E.lg = false`. Both arms, gated on the same `E.lg`, share one proof: unfold
+  `srvRest`, pass those buckets to `srvBeSnapOk_window`, conclude by `bkRestAtL_of_rb`/`bkRestAt_of_rb`
+  (with `restLeasesWith_mem`), and reclose.
+- `merged_image` (`on = false`, `isServer`) keeps the S2 `sorry` (the file's only one, `:755`). It
+  converts `mergedObs … E.lg` to `imageAt`'s `γk.lg` by `srvKVInvs`' `γr.kv.lg = E.lg`, and its
+  `sorry` now also covers the leased image. It is still true: the observed ids are
+  `kvLeases γk (pre ++ A)`, which is `imageAt`'s `L`.
 
 **2.15 The trust base after the design**. Trusted, restated: `lessorApplyOk` (`NewLessor`'s post,
 2.12: the lent part returned), for the `axiom` skill's pass of the `NewLessor` axiom (with
@@ -687,7 +715,7 @@ which `rqOk false` excludes), with the law their `lg = false` callers use:
 | `kvInv`'s ≈10 openers | fraction `if γk.lg then 1 else ½` | `kvInv_false`; `kv_prop_auW` splits on `γk.lg`; `kv_revLbZ_le` fraction-generic |
 | `srvRest`'s users with no `lg` fact: `applySnapshot.wp_proof`, `snap_srvRest`, the walk, `SnapRecvFacts`'s lemma, `SnapApplyKV` | the leased arm carries `srvGrantable` | refute it on entry (`lessorRevocable` vs `lessorModeIs … true`, `lessorPinR_agree`), then `srvRest_false`, `ltHalf_false` |
 | `applyEntryNormal`'s auth-on arm (`ApplyNormalOn.lean`) | gated `srvRest` | the generic `srvRest_applyG`/`srvRest_snoc` (no `lg` fact there, m5) |
-| `mergedObs` | gated `bkRestAt` | `mergedObs_false` (`rfl`) |
+| `mergedObs` (new argument `lg`; 3 users pass `E.lg`) | gated `bkRestAt` | `mergedObs_false` (`rfl`) |
 | `mergedCreate_window` (proved) | window at `(restLeasesWith f T (restModel …)).bk` | one proof for both arms; at `false`, `T = []` and `restLeasesWith f [] r = r` |
 | `merged_image` (`sorry`) | premise `mergedObs` gated | none: still the S2 `sorry`, now covering the leased image too |
 | `NewServer.specM true`, `specG` at `on = true` | `+ ρ.rd.kv.lg = false` | callers (`memberBootOn`) allocate at `lg = false` |
@@ -768,8 +796,25 @@ Commits 3 and 4 may be merged to save one full rebuild; kept apart for review.
 - `EtcdServer.applyAll.spec` (`logShape E.lg`); `applyEntries`/`apply`/`applyEntryNormal.spec`
   (`logShapeM`/`entryOkM` at `E.lg`).
 - `NewServer.specM true` and `specG` at `on = true`: `+ ρ.rd.kv.lg = false`.
-- Text unchanged, definitions underneath changed: `raftRequest`, `processInternalRaftRequestOnce`,
-  `applySnapshot`, the KV specs (`Put`/`DeleteRange`/`Txn`/`Range`/`Compact`).
+- **Text unchanged, meaning changed at `lg = true`** (m-d). Each means the same at `lg = false`.
+  They are grouped by the definition that moves underneath them:
+  - over `reqPropOk`/`appliedOkM`/`resPostM` (the grant disjunct, `grantArM`):
+    - `raftRequest`, `processInternalRaftRequestOnce`;
+    - the auth specs `EtcdServer.{UserAdd, UserDelete, UserGet, UserList, UserGrantRole,
+      UserRevokeRole, RoleAdd, RoleDelete, RoleGet, RoleList, RoleGrantPermission,
+      RoleRevokePermission, AuthEnable, AuthDisable, AuthStatus}`.
+  - over `kvInv` (its gated fraction), directly or through `isServerReq`/`isServerM`:
+    - `NewServer.spec`, `examples/compactkv/checkCompactRev.spec`;
+    - the KV specs `Put`/`DeleteRange`/`Txn`/`Range`/`Compact`;
+    - `MemberList`, `Start`/`start`, `HardStop`, `stop`, `Serve`, `serveClient`, `restartCheck`.
+  - over `isApplyLessor` (the Grant clause over `RO`): `apply.newAuthApplierV3.spec`,
+    `lease.NewLessor.spec`.
+  - over `lessorApplyOk`: `lease.NewLessor.spec`, `EtcdServer.applySnapshot.spec`,
+    `lease.lessor.Recover.spec` (docstring only).
+  - over `srvRest` (gated, with `srvGrantable`): `applySnapshot`, and `applyAll`/`applyEntries`/
+    `apply`/`applyEntryNormal`, beyond their listed changes.
+  - over `kvOwn` (`leasesLive`'s `ltHalf`): every applier-chain triple (`applierSpec`, 56 files),
+    gated, so `True` at `lg = false`.
 - Drafts of this stage, statements unchanged: `EtcdServer.LeaseGrant.spec`, `leasegrant.Main.spec`.
 
 **New named hypotheses:** none. Those already named are unchanged:
@@ -781,11 +826,11 @@ Commits 3 and 4 may be merged to save one full rebuild; kept apart for review.
 - `apply.backendUnderQuota`, as today. It is true of Go only with the backend under its quota;
   without it, quota's `LeaseGrant` reports `ErrNoSpace` for a granted lease.
 
-**New `sorry`s expected after the plumbing:** none beyond those already in the baseline:
-- `srvGrantOpen_open`;
-- `merged_image` (S2, now also over the leased image);
-- the Prove stage's drafts: `EtcdServer.LeaseGrant.wp_proof`, `v3rpc.lessorGrantOkL_of_server`,
-  `leasegrant.Main.wp_proof`. (`kv_lease_grant_served` goes; `kv_lease_served lg` is proved.)
+**`sorry`s after the plumbing** (m-c), against `etc/tcb-baseline.txt`:
+- New (what `tcb-report --check` reports): `srvGrantOpen_open`, and the Prove stage's drafts
+  `EtcdServer.LeaseGrant.wp_proof`, `v3rpc.lessorGrantOkL_of_server` and
+  `leasegrant.Main.wp_proof`. `kv_lease_grant_served` goes, and `kv_lease_served lg` is proved.
+- Already in the baseline: `merged_image` (S2). Its statement now also covers the leased image.
 
 **Open questions, with recommendations:**
 - Q1: (C), the KV invariant owns the KV state whole at `lg = true`, so the KV results are vacuous
