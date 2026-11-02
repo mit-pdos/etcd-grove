@@ -41,7 +41,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 good shapes whose ids are claimed meets `entryWaitOk` (a normal entry's request's id claimed for
 its data; a conf change's id `0`, which no request claims). -/
 theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryModel)
-    (hs : logShape L) (hcl : ccLogOk ρ.raft.raft L) :
+    (hs : logShape L) (hcl : ccLogOk ρ.raft.raft L)
+    (ha : attrLogOk ρ.raft.raft.cfg L) :
     ⊢ ([∗list] m ∈ L, entryClaim ρ.ids m) -∗ idNoZero ρ.ids -∗ srvRLogLb ρ.raft L -∗
       batchWaitOk ρ E L := by
   iintro #Hcl #HNZ #HL
@@ -70,7 +71,7 @@ theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryM
         iframe Hcl' Hreg
     · iexists L
       iframe HL
-      ipureintro; exact hm
+      ipureintro; exact ⟨hm, ha m hm⟩
   · rename_i ht
     have h0 := hsh.2 ht
     rw [h0]
@@ -143,7 +144,7 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
   · inext; iexists L'; iframe HL' Hσ Hw; ipureintro; exact Hok
   iunfold kvWork at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
-  obtain ⟨Hsh, Hccl, -⟩ := Hsh
+  obtain ⟨Hsh, Hccl, -, -, Hatt⟩ := Hsh
   -- (2026-10-27) the committed log's entries are the server's log's or fillers
   have hshL : logShape L := by
     intro m hm
@@ -165,11 +166,23 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
       have h2 := congrArg LogEntry.data he
       simp only [EntryModel.toLE] at h1 h2
       rw [← h1, ← h2]; exact Hccl m' hm'
+  -- (2026-11-02, the cluster-rows stage) the attribute requests' members: the fillers ask nothing
+  have hatL : attrLogOk ρ.raft.raft.cfg L := by
+    intro m hm
+    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨ht, hd⟩ | ⟨m', hm', he⟩
+    · exact attrEntryOk_empty _ m hd
+    · exact attrEntryOk_empty _ m hd
+    · have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      have := Hatt m' hm'
+      unfold attrEntryOk at this ⊢
+      rw [← h1, ← h2]; exact this
   ihave #HclL := entryClaims_transfer ρ.ids _ L L' HLi Hp.2.2 $$ Hcl
   imodintro
   isplitr
   · ipureintro; exact hshL
-  iapply batchWaitOk_of_work ρ E L hshL hcclL $$ HclL HNZ HL
+  iapply batchWaitOk_of_work ρ E L hshL hcclL hatL $$ HclL HNZ HL
 
 /-- **The server's raft environment meets the wrapper's discharge** (`rnEnvOk`), for wrapper
 names `γw` over the server's raft names (the cluster the server's, the start log and index the
@@ -248,7 +261,7 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   unfold srvBuilt srvBuildGap isServerBuilt
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
-      #Hrn, %HEr, Hrunh, Hwth, Hwtl, %Hdisk, %Hρrd, #Hmid, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
+      #Hrn, %HEr, Hrunh, Hwth, Hwtl, %Hdisk, %Hρrd, #Hmid, %Hmidc, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
       Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
       ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, HWB, #Hsmall, #HNR, #Hcv, %Hbound,
       ⟨%ua, Hua, #Hfor, Hakv⟩, Hwtok, Hsnapb⟩, Hsnap⟩
@@ -271,6 +284,8 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
   · ipureintro; exact Hdisk
   isplitr
   · ipureintro; exact Hρrd
+  isplitr
+  · ipureintro; exact Hmidc
   isplitr
   · ipureintro; exact Hbound
   unfold applyBuiltNA applyBuilt

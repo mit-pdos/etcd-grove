@@ -29661,6 +29661,69 @@ what came of them:
   call it once each): the permit's `kvRevLbZ (c + 1)`, the read-side law's counter bound
   (`roundsInv_revLb`), a latest `Get` at least it (`client_Get_rev`, `getRevAu_round`).
 
+## The cluster contract's rows: premises from the requests, presence and read-only client URLs in the rest resource (2026-11-02 · the user's decisions accepted, revision 5 of the text approved · branch `cluster-rows`, `notes/cluster-rows-plan.md`)
+
+**The problem.** `apply.isCluster`'s rows (`bootOk`'s `clusterApplyOk`) are false of Go at some
+rest states: `UpdateAttributes` of an id neither a member nor removed panics; `SetVersion` of a
+version above the server's major.minor panics (`MustDetectDowngrade`), and calls its `onSet`,
+which the row lets be any value; a missing `members`/`cluster` bucket is fatal with v3; and the
+post's members own halves of the client URLs' elements, which Go aliases from the request the
+caller holds read-only. Go tests show each (`notes/cluster-rows-plan.md`).
+
+**Where each fix goes (proposed).** The two facts of the request go in the rows as premises
+(`⌜(r.mem.lookup id).isSome⌝`, `⌜semverAtMostServer s⌝`, a new opaque), because they are facts of
+what the server proposes, not of the apply thread's state: they come from the requests' only
+proposers, the monitors (`monitorReq` gains the server's own id and the version's bound, so the
+names-only axioms of `publishV3` and `monitorClusterVersions` claim them, texts unchanged), flow
+through the proposal permission (`reqPropOkM` gains `attrIdOk`), the KV invariant's workload facts
+(`kvWork` gains `attrLogOk`: the committed log's attribute requests name voters) and
+`EtcdServer.apply` (with `srvMemOk`'s converse: the voters are members at every applied log, the
+membership being static after boot) to `dispatch`'s new premise `restReqOk`. The member premise
+names members only, not "or removed": the server removes none, and the removed case would need the
+contract to model Go's `c.removed`. The facts of the apply thread's state go in `srvRestOwn`
+and the write right `srvRestRW` (`restPresent`: every boot bucket present, kept by every writer, true
+of every model rest state; the review rounds found the same fatal in `SetDowngradeInfo` and the
+alarm and auth stores' writers, which lend `srvRestRW`)
+and in `memberAt` (client URLs `↦*□`: no Go code writes a member's client URLs' elements). `onSet`
+is fixed to `api.UpdateCapability`, the one value passed, rather than given a callback contract,
+which would need a trust-boundary spec of `UpdateCapability`. Supersedes, in part, §16's parenthesis
+of backend-auth-split ("Not modelled, as before: `UpdateAttributes` of an id …", "Q9's stage may
+revisit it"): the member premise is a row premise, `memIdOk` stays in `srvRestOwn`.
+
+**Approved (the user, 2026-11-02):** revision 5 of the trusted texts (`notes/cluster-rows-plan.md`,
+"The Freeze"), including the change to the exported `Results.lessor_apply_contract` (the revocation
+lens's hypothesis gains `lease`'s presence carried over: a stronger result). Applied in stages A1-A5.
+
+**Approved change to an exported result (the user, 2026-11-02, during A4):**
+`Results.request_delivered` gains the premise `⌜srvMemCover γr.raft γr.kv.c0 A⌝` (the voters are
+members of the rest state at the applied log `A`): a weaker result. It restates
+`applyEntryNormal`'s precondition, which needs the cover for `dispatch`'s `restReqOk` of a member
+attributes request (`restReqOk_of_attr`: the member a voter, `entryWaitOk`'s `attrEntryOk`; every
+voter a member, the cover). The apply loop holds it (`srvApRes`'s `srvMemOk`, `srvApRes_cover`);
+`applyEntryNormal`'s premises did not. The alternative, deriving the cover inside
+`applyEntryNormal` from the server's invariants so that `request_delivered` regains its form, is a
+follow-up (`notes/cluster-rows-plan.md`, "Follow-ups").
+
+**Applied (A1-A5, branch `cluster-rows`), with these departures from the plan:**
+- The attribute facts reach `applyEntryNormal` through `entryWaitOk` (its normal case gains
+  `attrEntryOk ρ.raft.raft.cfg m` beside the entry's committed log; the batch facts
+  `batchWaitOk_of_work`/`_of_claims` take `attrLogOk`), not through `⌜attrLogOk⌝` premises on
+  `EtcdServer.apply`/`applyAll`/`applyEntries`/`run` or `srvC`/`clusterWorkloadOk`: none of those
+  specs changed. `applyEntryNormal`'s spec gains `⌜srvMemCover …⌝` instead (above), which
+  `EtcdServer.apply` takes from `srvApRes` (`srvApRes_cover`).
+- The off-mode `raftRequest`/`processInternalRaftRequestOnce` specs (`ModeSpecs`' `specOff`) take
+  the request's kind not `clusterMemberAttrSet` (their callers, `Put`/`DeleteRange`/`Txn`/`Compact`,
+  meet it by kind): the permission's `attrIdOk` comes from the kind there.
+- `rqOk`'s row was changed in place; the draft's `rqOkD` and `rqOkD_of_rqOk` were not needed (the
+  monitors are the only proposers of `ClusterVersionSet`, `rqShape_of_monitorReq`).
+- `apply.restReqOk` lives in `apply/Chain.lean` beside `rqOk`; `dispatch`, `uberApplier.Apply` and
+  `Apply.specRec` take `⌜restReqOk rq rs⌝`; `apply.Apply.spec` is unchanged (its method contract is
+  the caller's). The KV and admin dispatch paths (`kvSpecL`, `adminSpec`) need nothing: they exclude
+  the cluster kinds.
+- `srvMemCover` lives in `InvRest.lean` (with `restReqOk_of_attr`, which takes the cover rather than
+  `srvMemOk`), so that `applyEntryNormal`'s spec need not import `InvApRes`.
+- The draft modules were deleted in A4, not A5 (their names collided with the switched ones).
+
 ## The cache over a compacting member: `cachekv` with the auto-compactor on (2026-11-02 · the user's "go ahead"; the Draft's recommendations · branch `cache-cmp`)
 
 **The Draft** (scratch, 2026-11-01, `cache-compaction-draft.md`): the cache's Go code treats a

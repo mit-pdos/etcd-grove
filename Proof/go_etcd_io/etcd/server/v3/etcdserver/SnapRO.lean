@@ -143,7 +143,7 @@ theorem srvRestRWH_lessor [go_etcd_io.etcd.server.v3.storage.backend.Assumptions
   iunfold srvObjsOn at Hrw
   icases Hrw with ⟨Hrw, -, -, Hle, -⟩
   iunfold srvRestRW at Hrw
-  icases Hrw with ⟨%r, Hrw⟩
+  icases Hrw with ⟨%r, Hrw, -⟩
   ihave ⟨Hrw, -⟩ := (backend.rbOwn_split (GF := GF) γB (fun n : GoString => n = go!"lease") r).1 $$ Hrw
   iframe Hle
   iexists r
@@ -175,6 +175,7 @@ theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assum
     ⊢ □ (∀ rs : apply.RestM, srvRestOwnH (GF := GF) d.γB cl (srvObjsOn al ast lp cl d.be) rs -∗
       ∃ d' : mvcc.KBReal, ⌜γ.kb = some d'⌝ ∗ mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d'.be ∗
         (∀ bk, ⌜∀ n, n ≠ mvcc.leaseName → bk.lookup n = rs.bk.lookup n⌝ -∗
+          ⌜(rs.bk.lookup mvcc.leaseName).isSome → (bk.lookup mvcc.leaseName).isSome⌝ -∗
           mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d'.be -∗
           srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) { rs with bk := bk })) := by
   have hlc := lease_not_clusterBkts
@@ -204,7 +205,7 @@ theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assum
   iframe Hl Hle
   isplitr
   · ipureintro; exact hlp
-  iintro %bk %hbk ⟨⟨Hl, -⟩, Hle⟩
+  iintro %bk %hbk %hl ⟨⟨Hl, -⟩, Hle⟩
   iunfold srvRestOwnH
   iunfold srvObjsOn
   iunfold srvRestOwn
@@ -218,7 +219,7 @@ theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assum
       (fun n => ¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName) bk hd).2
     iframe Hl
     iapply (backend.rbPart_congr (GF := GF) d.γB _ rs.bk bk (fun n hn => (hbk n hn.2).symm)).1 $$ Hnc
-  · ipureintro; exact Hmi
+  · ipureintro; exact ⟨Hmi.1, restPresent_lens _ _ hbk hl Hmi.2⟩
 
 /-- **The cluster `c`'s apply contract on whichever backend it is on** (persistent; D22 receiver
 epochs, S7e, 2026-10-23; `bootOk`'s, the bootstrap contract): for a real backend `d` (its
@@ -235,9 +236,12 @@ lock the batch (`LockInsideApply`), put, and `Unlock`, which writes the put back
 without `shouldApplyV3` they write nothing; so after either, the readers see the writer's contents
 on the cluster's buckets, `TestBks2WriterAnySIdle`. `UpdateAttributes` saves under
 `BackendMemberKey(m.ID)`, which is the model's `memberKey a.memberID` because `srvRestOwn` holds
-`memIdOk`, kept by both rows (`restModel_memIdOk`'s steps). Not modelled, as before
-(`RestModel.lean:19`): `UpdateAttributes` of an id that is neither a member nor removed panics in
-Go; the row claims a return there, a gap of the contract this stage leaves as it is.) -/
+`memIdOk`, kept by both rows (`restModel_memIdOk`'s steps).) (2026-11-02, the cluster-rows stage:
+the rows' premises, the version not above the server's and `UpdateAttributes`' member in `r.mem`,
+`SetVersion`'s callback fixed with its package initializations; the rest resource and the write
+right hold the rest buckets present, and the members' client URLs are read-only. Until then the
+rows claimed a return where Go panics or is fatal; they still do above bbolt's `MaxValueSize`, as
+`isCluster` says.) -/
 def clusterApplyOk (c : Loc) : IProp GF :=
   iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ' : mvcc.StoreNames) (f : GoFunc)
       (RO : apply.RestM → IProp GF) (RW : IProp GF),

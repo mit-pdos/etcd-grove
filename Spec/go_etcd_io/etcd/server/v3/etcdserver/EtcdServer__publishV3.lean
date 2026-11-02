@@ -28,7 +28,8 @@ until it succeeds or `stopping` is closed). It proposes, through `s.raftRequest`
 …}`), with the permission `srvMonitorPermitM` gives (in either auth mode, `MonitorsOn.lean`, E3zb) (D19c, 2026-10-18, `InvMonitors.lean`; until
 then the contract took only the package's initialization, and its proposals were outside the
 model). On success it closes `s.readych` (`close(s.readych)`), with the right to (`srvReadyCloser`,
-2026-10-23: until then the contract closed a channel it did not own). -/
+2026-10-23: until then the contract closed a channel it did not own). (2026-11-02, the cluster-rows
+stage: its requests name the server's own id, `s.MemberID()`, `monitorReq lid`.) -/
 abbrev EtcdServer.publishV3.spec : Prop :=
   ∀ (on : Bool) (s : Loc) (d : _root_.Perennial.time.Duration) (E : apply.AEnv GF) (ρ : ReqNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗

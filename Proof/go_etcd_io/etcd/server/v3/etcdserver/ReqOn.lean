@@ -589,22 +589,29 @@ theorem isServerReqM_authOn (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqN
 /-- **What a proposal of `rq` needs, in the auth mode `on`, with its result at the stamped header**
 (see the file header): off, `reqPropOk` with a result `Qr` the header does not change (`Qh` constant);
 on, for every header `hm` the server may stamp, `reqPropOkOn` of `withHeader rq hm` with the result
-`Qh hm` (one resource: the client's update is spent once, at the header actually stamped). -/
+`Qh hm` (one resource: the client's update is spent once, at the header actually stamped).
+In either mode (2026-11-02, the cluster-rows stage) an attribute request names a voter of raft's
+configuration (`attrIdOk`), which the KV invariant keeps of the committed log (`kvWork`'s
+`attrLogOk`). -/
 def reqPropOkM (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.HeaderModel → IProp GF)
     (rq : apply.IRRModel) (Qh : apply.HeaderModel → List EntryModel → IProp GF) : IProp GF :=
   match on with
-  | false => iprop(∃ Qr : List EntryModel → IProp GF, reqPropOk γk rq Qr ∗ ⌜Qh = fun _ => Qr⌝)
-  | true => iprop(∀ hm : apply.HeaderModel, reqPropOkOn γ γk srvAuthSt0 Gb rq hm (Qh hm))
+  | false => iprop((∃ Qr : List EntryModel → IProp GF, reqPropOk γk rq Qr ∗ ⌜Qh = fun _ => Qr⌝) ∗
+      ⌜attrIdOk γ.raft.cfg rq⌝)
+  | true => iprop((∀ hm : apply.HeaderModel, reqPropOkOn γ γk srvAuthSt0 Gb rq hm (Qh hm)) ∗
+      ⌜attrIdOk γ.raft.cfg rq⌝)
 
 /-- `reqPropOk` gives the mode-off `reqPropOkM` at a constant result. -/
 theorem reqPropOkM_of_false (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.HeaderModel → IProp GF)
-    (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
+    (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) (ha : attrIdOk γ.raft.cfg rq) :
     reqPropOk (GF := GF) γk rq Qr ⊢ reqPropOkM false γ γk Gb rq (fun _ => Qr) := by
   iintro H
   iunfold reqPropOkM
-  iexists Qr
-  iframe H
-  ipureintro; rfl
+  isplitl
+  · iexists Qr
+    iframe H
+    ipureintro; rfl
+  ipureintro; exact ha
 
 /-- **A mode-`on` KV write's permission at any header** (`reqPropOkM true`'s write case): a plain
 write of `op` (no range end `[0]`, of a good shape, every permission of the cache's shape), its
@@ -619,6 +626,10 @@ theorem reqPropOkM_true_write (γ : ServerRaftNames) (γk : KVNames)
         (fun hm => grantedRes γk srvAuthSt0 (apply.withHeader rq hm) γc Q) := by
   iintro ⟨#HL₀, Hau⟩
   iunfold reqPropOkM
+  isplitl
+  rotate_left
+  · ipureintro
+    exact attrIdOk_of_kind _ _ (fun h => by unfold reqKVOp at hop; rw [h] at hop; simp at hop)
   iintro %hm
   iunfold reqPropOkOn
   iright
@@ -633,9 +644,12 @@ case). -/
 theorem reqPropOkM_true_nowrite (γ : ServerRaftNames) (γk : KVNames)
     (Gb : apply.HeaderModel → IProp GF) (rq : apply.IRRModel) (hp : plainReq rq)
     (hnw : ¬ writeKind (apply.dispatchKind rq)) (hz : irrNoZeroEnd rq) (hs : rqShape rq)
-    (ha : kvShapeAll rq) :
+    (ha : kvShapeAll rq) (hat : attrIdOk γ.raft.cfg rq) :
     ⊢ reqPropOkM (GF := GF) true γ γk Gb rq (fun _ _ => iprop(True)) := by
   iunfold reqPropOkM
+  isplitl
+  rotate_left
+  · ipureintro; exact hat
   iintro %hm
   iunfold reqPropOkOn
   ileft
@@ -691,11 +705,12 @@ theorem kv_prop_au_M (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (d : Lis
     simp only [kvCertInvM]
     iintro #Hinv #Hci #Hrl #Hcl #Hreg - Hok
     iunfold reqPropOkM at Hok
-    icases Hok with ⟨%Qr, Hok, %HQh⟩
+    icases Hok with ⟨⟨%Qr, Hok, %HQh⟩, %Ha⟩
     subst HQh
     ihave Hok' := reqPropOk_wire γk rq rq' hm Qr hw $$ Hok
     ihave ⟨Hok', Hq⟩ := reqPropOk_qinv γ γk rq' Qr $$ Hok'
-    imod kv_prop_au γ γk d rq' Qr hd hdec hk id γf hid E hE hE1 hE2 $$ Hinv Hci Hrl Hcl Hreg Hok'
+    imod kv_prop_au γ γk d rq' Qr hd hdec hk id γf hid (attrIdOk_wire _ rq rq' hm hw Ha)
+      E hE hE1 hE2 $$ Hinv Hci Hrl Hcl Hreg Hok'
       with Hau
     imodintro
     iframe Hau
@@ -705,13 +720,15 @@ theorem kv_prop_au_M (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (d : Lis
     ihave #Hgb' : □ Gb hm $$ []
     · iintro !>; iapply Hgb; ipureintro; rfl
     iunfold reqPropOkM at Hok
+    icases Hok with ⟨Hok, %Ha⟩
+    have Ha' := attrIdOk_wire _ rq rq' hm hw Ha
     ispecialize Hok $$ %hm
     -- the stamped request's `irrNoZeroEnd` (either case of `reqPropOkOn`) makes it the wire's
     ihave ⟨%Hz, Hok⟩ := reqPropOkOn_noZero γ γk srvAuthSt0 Gb rq hm (Qh hm) $$ Hok
     have he := irrWireOf_eq rq rq' hm hw Hz
     subst he
     ihave ⟨Hok, Hq⟩ := reqPropOkOn_qinv γ γ γk srvAuthSt0 Gb rq hm (Qh hm) $$ Hok
-    imod kv_prop_au_on γ γk srvAuthSt0 d Gb rq hm (Qh hm) hd hdec hk id γf hid E hE
+    imod kv_prop_au_on γ γk srvAuthSt0 d Gb rq hm (Qh hm) hd hdec hk id γf hid Ha' E hE
       $$ Hinv Hcl Hreg Hgb' Hok with Hau
     imodintro
     iframe Hau

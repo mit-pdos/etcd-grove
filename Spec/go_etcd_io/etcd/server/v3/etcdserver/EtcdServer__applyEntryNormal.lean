@@ -44,7 +44,8 @@ at the applied index `v = m.index - 1` with its log the KV's and the entry commi
 after the entry is deposited as the log applied through `m.index` before the result goes to the
 waiter (`srvAppliedPre`). **The KV model**: the apply thread at the mode's model of the committed
 raft log `A` through `v` (`kvAppliedM E.authOn`, from the server's start state `srvAuthSt0`), at
-`A ++ [m]` after. **With auth on** (only): the server's lessor finds no lease (`srvLessorNilM`),
+`A ++ [m]` after; the voters members of the rest state at `A` (`srvMemCover`: with `entryWaitOk`'s
+`attrEntryOk`, `dispatch`'s `restReqOk`; the cluster-rows stage, 2026-11-02). **With auth on** (only): the server's lessor finds no lease (`srvLessorNilM`),
 one time receipt (an admin step's cost) under the receipts' bound, and the rights to issue tokens
 at the consistent index (`srvTokRights`, `True` off), at the entry's index after it with `v3`. -/
 abbrev EtcdServer.applyEntryNormal.spec : Prop :=
@@ -59,6 +60,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
       srvFS s ∗ (if E.authOn then iprop(⧗ 1) else iprop(True)) ∗ srvAppliedOwn γr v ∗
       appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
       kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
+      ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗
       srvRLogLb γr.raft (A ++ [m]) ∗
       ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)⌝ ∗
       ⌜uint.Z m.index = uint.Z v + 1⌝ ∗

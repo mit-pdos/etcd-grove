@@ -12,10 +12,13 @@ specs are trust-boundary contracts (names-only, `server.go`):
   `InternalRaftRequest{ClusterVersionSet: {Ver: v.String()}}` with `v` a `semver.Version` the
   monitor decided (`decideClusterVersion`), whose `String()` parses back (`semverValid`).
 
-Their contracts take `srvMonitorPermit s E ρ`: the server's request path and the proposals'
-permission (`reqPropOk`, with a trivial result) for exactly those requests, a plain non-write
-request of one of the two kinds with no range end `[0]` (no range, delete or transaction field
-set) and, for a version, a valid one. So the committed entries they produce have the shapes the KV
+Their contracts take `srvMonitorPermitM on s E ρ` (`MonitorsOn.lean`): the server's request
+path in the auth mode `on`, the server's id field `lid`, and the proposals' permission
+(`reqPropOkM`, with a trivial result) for exactly those requests (`monitorReq lid`), a plain
+non-write request of one of the two kinds with no range end `[0]` (no range, delete or transaction
+field set), for a member's attributes the server's own id `lid`, and for a version a valid one not
+above the server's (2026-11-02, the cluster-rows stage: the id and the bound; until then the
+mode-off `srvMonitorPermit`, used by no spec, deleted). So the committed entries they produce have the shapes the KV
 invariant keeps (`rqShape`: `rqOk` asks nothing of a member's attributes, and a valid version of
 `ClusterVersionSet`). Until D19c their contracts took only the package's initialization (their
 proposals were not in the model).
@@ -50,24 +53,31 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 /-- **The requests the monitors propose** (pure): a member's attributes, or a valid cluster
 version, with no range end `[0]` and no auth request field set (`needAdminPermission`: D19k,
 2026-10-18, the KV model's `plainReq` asks it), and (D22, 2026-10-23) no side-effect-free field
-set (`noSideEffect`: the monitors' requests set only their own field). Their kinds are plain
-(`putgetKind_cluster`). -/
-def monitorReq (rq : apply.IRRModel) : Prop :=
-  irrNoZeroEnd rq ∧ apply.needAdminPermission rq = false ∧ apply.noSideEffect rq = false ∧
+set (`noSideEffect`: the monitors' requests set only their own field); (2026-11-02, the
+cluster-rows stage) the attributes' member is the server's own id `lid` (`publishV3`: `Member_ID:
+uint64(s.MemberID())`, `server.go:1828-1853`; `s.memberID` is set at `NewServer` and never written
+after) and the version is not above the server's (`semverAtMostServer`: `monitorClusterVersions`
+proposes `Major.Minor.0` of the members' minimum, the local member's among them, or `3.0.0`). Their
+kinds are plain (`putgetKind_cluster`). -/
+def monitorReq (lid : w64) (rq : apply.IRRModel) : Prop :=
+  (irrNoZeroEnd rq ∧ apply.needAdminPermission rq = false ∧ apply.noSideEffect rq = false ∧
     (apply.dispatchKind rq = .clusterMemberAttrSet ∨
       (apply.dispatchKind rq = .clusterVersionSet ∧
-        ∀ v, rq.clusterVersionSet = some v → apply.semverValid v))
+        ∀ v, rq.clusterVersionSet = some v → apply.semverValid v))) ∧
+    (∀ a, rq.clusterMemberAttrSet = some a → a.memberID = lid) ∧
+    ∀ v, rq.clusterVersionSet = some v → apply.semverAtMostServer v
 
 /-- A monitor's request has a good shape. -/
-theorem rqShape_of_monitorReq (rq : apply.IRRModel) (h : monitorReq rq) : rqShape rq := by
-  obtain ⟨-, -, -, hk⟩ := h
+theorem rqShape_of_monitorReq (lid : w64) (rq : apply.IRRModel) (h : monitorReq lid rq) :
+    rqShape rq := by
+  obtain ⟨⟨-, -, -, hk⟩, -, hsv⟩ := h
   refine ⟨fun on => ?_, fun log _ => ?_⟩
   · unfold apply.dispatchOk
     rcases hk with hk | ⟨hk, -⟩ <;> rw [hk] <;> exact ⟨by decide, fun h => by cases h⟩
   · unfold apply.rqOk
     rcases hk with hk | ⟨hk, hv⟩ <;> rw [hk]
     · trivial
-    · exact hv
+    · exact fun v hv' => ⟨hv v hv', hsv v hv'⟩
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -75,35 +85,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/-- **What the monitors may propose** (persistent; see the file header): the server's request
-path, and the proposal's permission for a monitor's request. -/
-def srvMonitorPermit (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
-  iprop(isServerReq s E ρ ∗
-    □ ∀ rq : apply.IRRModel, ⌜monitorReq rq⌝ -∗ reqPropOk ρ.kv rq (fun _ => iprop(True)))
-
-/-- The monitors' permission, from the server's request path. -/
-theorem srvMonitorPermit_of (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
-    isServerReq (GF := GF) s E ρ ⊢ srvMonitorPermit s E ρ := by
-  iintro #H
-  iunfold srvMonitorPermit
-  iframe H
-  iintro !> %rq %hrq
-  iapply reqPropOk_of_W
-  iunfold reqPropOkW
-  ileft
-  ipureintro
-  have hs := rqShape_of_monitorReq rq hrq
-  obtain ⟨hz, hna, hns, hk⟩ := hrq
-  have hk' : apply.dispatchKind rq = .clusterMemberAttrSet ∨
-      apply.dispatchKind rq = .clusterVersionSet := by
-    rcases hk with hk | ⟨hk, -⟩
-    · exact Or.inl hk
-    · exact Or.inr hk
-  refine ⟨?_, ?_, hz, hs, rfl⟩
-  · refine ⟨?_, putgetKind_cluster rq hk'⟩
-    unfold plainCover; rcases hk' with hk' | hk' <;> rw [hk'] <;> exact ⟨hns, hna⟩
-  · unfold writeKind; rcases hk' with hk' | hk' <;> rw [hk'] <;> decide
 
 /-- **The monitors' configuration, as `NewServer` leaves it** (audit B4a; see the file header):
 the corruption check's and the downgrade check's intervals and the feature gate at `cfg`'s values

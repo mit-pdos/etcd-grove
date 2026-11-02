@@ -269,12 +269,8 @@ local macro "succ_tail" : tactic => `(tactic| (
   wsteps
   rw [Hvlrn, Hvnm]
   subst Hpus
-  ihave Hm : membership.memberAt («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) 1 (membership.ccMemberAt m) $$ [ID PeerURLs IsLearner Name ClientURLs Hpus Hcus]
-  · iunfold membership.memberAt
-    isplitr
-    · ipureintro; exact Hmnn
-    iexists _, _
-    simp only [membership.ccMemberAt]
+  imod membership.memberAt_of_owned («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) 1 (membership.ccMemberAt m) _ _ Hmnn $$ [ID PeerURLs IsLearner Name ClientURLs Hpus Hcus] with Hm
+  · simp only [membership.ccMemberAt]
     iframe
   ihave #HbeSave : membership.beSaveOk
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
@@ -383,7 +379,9 @@ local macro "succ_tail" : tactic => `(tactic| (
             (bkPut_members_off rs.bk _ _)).1 $$ Hnc
         isplitl [Hcm]
         · iexact Hcm
-        ipureintro; exact memIdOk_insert _ _ _ Hmi rfl
+        ipureintro
+        exact ⟨memIdOk_insert _ _ _ Hmi.1 rfl,
+          by simpa only [apply.RestM.putIn_bk] using restPresent_putIn rs _ _ _ Hmi.2⟩
       iframe Hal Hau Hle
       iexists mbl, lgm
       iframe Hbef Hmbe Hmlg
@@ -457,7 +455,9 @@ local macro "succ_tail" : tactic => `(tactic| (
             (bkPut_members_off rs.bk _ _)).1 $$ Hnc
         isplitl [Hcm]
         · iexact Hcm
-        ipureintro; exact memIdOk_insert _ _ _ Hmi rfl
+        ipureintro
+        exact ⟨memIdOk_insert _ _ _ Hmi.1 rfl,
+          by simpa only [apply.RestM.putIn_bk] using restPresent_putIn rs _ _ _ Hmi.2⟩
       iframe Hal Hau Hle
       iexists mbl, lgm
       iframe Hbef Hmbe Hmlg

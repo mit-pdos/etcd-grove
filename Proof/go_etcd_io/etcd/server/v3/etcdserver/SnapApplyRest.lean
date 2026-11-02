@@ -49,10 +49,11 @@ theorem snap_srvRest (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IP
   rw [snapE_RO]
   unfold srvRestOwnH srvRestOwn srvObjsOn
   have hmi : memIdOk memI := hA'.2 ▸ restModel_memIdOk' _ _ _
+  have hrp : restPresent bk := hA'.1 ▸ restPresent_restModel _ _ _
   rw [hA'.1, hA'.2]
   iintro ⟨H0, H1, H2, H3, H4, H5, H6⟩
   iframe
-  ipureintro; exact hmi
+  ipureintro; exact ⟨hmi, hrp⟩
 
 end proof
 end EtcdGrove

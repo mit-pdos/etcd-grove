@@ -146,6 +146,7 @@ theorem EtcdServer.DeleteRange.wp_proof
     have hRR := EtcdServer.raftRequest.spec_off hRR
     wp_apply hRR s E ρ ctx1 _ «$a1_ptr» (irrDeleteRange op)
         (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L))) F rfl (apply.irrDepthOk_of_txnW_none rfl)
+        (by simp [apply.dispatchKind, irrDeleteRange, apply.irrEmpty])
         $$ [Hrd Hard Hcred Header Hnp] as %resp %err ⟨Hrd, Hard, Hres⟩
     · iframe # Hrd Hard Hcred
       isplitr

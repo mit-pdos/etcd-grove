@@ -195,10 +195,13 @@ the step's determinacy at the commit and the update's result (`adminQh`). -/
 theorem reqPropOkM_true_admin (γ : ServerRaftNames) (γk : KVNames)
     (Gb : apply.HeaderModel → IProp GF) (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF)
     (ha : adminPropOk srvAuthSt0 rq) (hz : irrNoZeroEnd rq)
-    (hna : apply.needAdminPermission rq = true) :
+    (hna : apply.needAdminPermission rq = true) (hat : attrIdOk γ.raft.cfg rq) :
     histAu (GF := GF) γ γk srvAuthSt0 Gb rq Q ⊢ reqPropOkM true γ γk Gb rq (adminQh γk rq Q) := by
   iintro #Hha
   iunfold reqPropOkM
+  isplitl
+  rotate_left
+  · ipureintro; exact hat
   iintro %hm
   iunfold reqPropOkOn
   iright
@@ -244,6 +247,7 @@ theorem authRaftOk_on (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) 
   ihave Hperm : reqPropOkM true ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq
       (adminQh ρ.kv rq Qa) $$ []
   · iapply reqPropOkM_true_admin (GF := GF) ρ.raft ρ.kv _ rq Qa ha hz hna
+      (attrIdOk_of_kind _ _ (fun h => by rw [h] at hT; simp [adminRespTy] at hT))
     ihave Hau := hh $$ Hhh
     iunfold adminHistAu at Hau
     iexact Hau

@@ -473,7 +473,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
             · iframe Hcsom Hc0
             subst Hcc
             imod srv_merged_sent γr A' sv.Metadata'.Index' sv.Metadata'.Term' cm γm.id ct sm sn hpos
-                hi61 hmo.2 hlenZ hltA Hcs0 Hty hsn (by word)
+                hi61 hmo.2.1 hlenZ hltA Hcs0 Hty hsn (by word)
                 (by have := hnI; have := uint_nat_eq sv.Metadata'.Index'; omega)
               $$ [Hrli HA' Hsm Hct] with #Hsm'
             · iframe Hrli HA' Hsm Hct
