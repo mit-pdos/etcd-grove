@@ -278,6 +278,43 @@ theorem run_job_snap_cmp (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := h
     {{ RET #(); schedule.schedRunning γs ∗ applyRes C A' }} := by
   sorry
 
+/-- (open, the lease-grant plan's D2, 2026-11-02) **`run_job_snap` in a cluster that grants
+leases** (`KVNames.lg = true`): not proved. `applyAll.specSnap` takes a cluster that grants none:
+its lessor is monotone, and `Recover` (the snapshot's restore) takes a revocable one; besides, the
+snapshot's image then has leases (`specSnap`'s `hlease` is false). A single member is never sent a
+snapshot; restoring one with leases is a stage of its own. -/
+theorem run_job_snap_lg (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
+    (C : ApplyCtx GF) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
+    (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
+    (γn : RNNames) (rt : w64)
+    (ha00 : uint.nat C.ai₀ = 0) (hc0 : uint.Z C.c₀ ≤ uint.Z C.ai₀) (hpre : γn.pre = [])
+    (hγn : γn.node = C.γr.raft.raft) (hρ : C.ρ.raft = C.γr.raft)
+    (hpr : C.γr.raft.pre = γn.pre) (hγs : C.γs = γn.γs) (hγw : C.γw = C.ρ.wait)
+    (hlt : A.length < A'.length)
+    (hlen : (γn.pre ++ A').length = uint.nat sv.Metadata'.Index')
+    (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
+    (hboot : (γn.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index')
+    (hlg : C.γr.kv.lg = true) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ γn.id ∗ srvMetaSnap C.γ ∗
+        taEntriesAddr apL ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
+        taSnapshotAddr apL ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
+        (letI := srvStor (GF := GF) γn.node; iprop(
+          snapshotCert γn.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
+          nodeSnapLocal γn.node.cl γn.id sv.Metadata'.Index')) ∗
+        taNotifycAddr apL ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
+        taRaftAdvancedCAddr apL ↦□ rac ∗
+        rnAdvChan rac (letI := srvStor (GF := GF) γn.node
+          iprop(nodeAppliedLb γn.node.cl γn.key (γn.pre ++ A').length ∗
+            nodeCommitLb γn.node.cl γn.key (γn.pre ++ A').length ∗
+            srvFrozenAt γn.γs (γn.pre ++ A').length ∗ srvFrozenBelow γn.γs (γn.pre ++ A').length)) ∗
+        taRaftTermAddr apL ↦□ rt ∗ rnRtOk γn rt (rnLogOf γn A').length ∗
+        schedule.schedRunning γs ∗ applyRes C A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft A' }}
+      (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
+        (Val #apL))
+    {{ RET #(); schedule.schedRunning γs ∗ applyRes C A' }} := by
+  sorry
+
 /-- **A snapshot payload's job** (J8b, 2026-11-01; `s.applyAll(&ep, &ap)` on raft's snapshot
 payload, `rnApplyTok_recv`'s second case): from the apply thread's resources at the log `A`
 (`applyRes`) and the payload that jumps raft's log to `A'` (`|A| < |A'|`, of length the snapshot's
@@ -315,6 +352,10 @@ theorem run_job_snap (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
     {{ RET #(); schedule.schedRunning γs ∗ applyRes C A' }} := by
+  cases hlgc : C.γr.kv.lg
+  case true =>
+    exact run_job_snap_lg hAA C A A' apL es sn sv rac nc γs γnc γn rt ha00 hc0 hpre hγn hρ hpr hγs
+      hγw hlt hlen h61 hboot hlgc
   cases hcm : C.E.cmp
   · iintro %Φ ⟨#Hpkg, #Hsa, #Hmid, #Hmeta, #Hes, #Hesl, #Hsnf, Hsnv, #Hcl, #Hncf, #Hnc2, Hnr0,
       #Hracf, #Hracc, #Hrtf, #Hrtok, Hrun, HR, #HWc, #Hlbr⟩ HΦ
@@ -389,7 +430,7 @@ theorem run_job_snap (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
     · rw [← hγw]; iexact HKV
     iapply (hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es sn sv rac nc st ai at' a t cs x A
       C.ms C.γs C.wt γnc w γn.id γn.key (1 : Qp).half γn rt (rnLogOf γn A').length hai h61
-      (by rw [← hγn]; exact hboot) hAL hcia hraft (by rw [Hkc.1, hc00]) hch Hlog0 hcmB hγn hn)
+      (by rw [← hγn]; exact hboot) hAL hcia hraft (by rw [Hkc.1, hc00]) hch Hlog0 hcmB hlgc hγn hn)
       $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS HAR Hwal Hso Hsnv Hnr0]
     · iframe #
       iframe
@@ -951,7 +992,7 @@ theorem EtcdServer.run.wp_proof
   icases Hlok' with ⟨%li, %Hli, -, -, #HExp⟩
   rw [Hli]
   (try wp_auto)
-  wp_apply HExp as %elc ⟨%γel, #Helc⟩
+  wp_apply HExp as %elc ⟨%γel, %lgE, %onE, #Helc⟩
   (try wp_auto)
   -- the apply thread's resources at the empty log
   iStructNamedSuffix ep "E"
@@ -1246,9 +1287,8 @@ theorem EtcdServer.run.wp_proof
     iapply bag_recv_au γel elc _ _ $$ [$Hlc1 $Hlc2] Helc
     inext
     iintro %ls Hf
-    icases Hf with ⟨%id, Hf⟩
-    iunfold srvGrantGuard at Hf
-    iexfalso; iexact Hf
+    iexfalso
+    iapply srvGrantGuard_expired $$ Hf
   -- `err := <-s.errorc`: nothing is sent on it (D19m: `apply` never asks `stopWithDelay` to
   -- stop the server, the transport has no peer that reports this member removed)
   iapply BigAndL.bigAndL_cons.2
@@ -1552,7 +1592,7 @@ theorem EtcdServer.run.wp_proofOn
   icases Hlok' with ⟨%li, %Hli, -, -, #HExp⟩
   rw [Hli]
   (try wp_auto)
-  wp_apply HExp as %elc ⟨%γel, #Helc⟩
+  wp_apply HExp as %elc ⟨%γel, %lgE, %onE, #Helc⟩
   (try wp_auto)
   -- the apply thread's resources at the empty log
   iStructNamedSuffix ep "E"
@@ -1785,9 +1825,8 @@ theorem EtcdServer.run.wp_proofOn
     iapply bag_recv_au γel elc _ _ $$ [$Hlc1 $Hlc2] Helc
     inext
     iintro %ls Hf
-    icases Hf with ⟨%id, Hf⟩
-    iunfold srvGrantGuard at Hf
-    iexfalso; iexact Hf
+    iexfalso
+    iapply srvGrantGuard_expired $$ Hf
   -- `err := <-s.errorc`: nothing is sent on it (D19m: `apply` never asks `stopWithDelay` to
   -- stop the server, the transport has no peer that reports this member removed)
   iapply BigAndL.bigAndL_cons.2

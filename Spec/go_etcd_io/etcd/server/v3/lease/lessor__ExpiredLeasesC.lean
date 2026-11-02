@@ -23,13 +23,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 /-- `le.ExpiredLeasesC()`: the lessor's `expiredC`, a channel of slices of leases, some lease of
-each meeting the lessor's grant guard `GA` (D19n, 2026-10-18; until then no logical content). -/
+each meeting the lessor's grant guard `GA` (D19n, 2026-10-18; until then no logical content), each
+refuting `leasesNoExpiry` (the lease-grant plan's D1, 2026-11-02). -/
 abbrev lease.lessor.ExpiredLeasesC.spec : Prop :=
   ∀ (lp : Loc) (GA : w64 → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorExpiredC lp GA }}
     (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"ExpiredLeasesC")) (Val #()))
   {{ (c : GoChan), RET #c; ∃ γc : ChanNames,
-      isChanBag γc c (V := GoSlice) (fun _ => iprop(∃ id : w64, GA id)) }}
+      isChanBag γc c (V := GoSlice) (fun _ => iprop(⌜¬ leasesNoExpiry⌝ ∗ ∃ id : w64, GA id)) }}
 
 end spec
 

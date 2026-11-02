@@ -191,7 +191,7 @@ theorem lease.lessor.Grant.wp_proof
     -- the live set grows; the lessor's state and its history with the new lease
     iapply fupd_wp
     imod closers_grant γl lp L M id l rc I I0 sm ⊤ (fun _ _ => CoPset.mem_full) Hlnn hM HL
-      $$ [$Hrd $Ha $Hcls $Hrvk $Hhist $Hrc $Hrcl $HiS $Hsm $Hmu0 $HID $HexG $HexRest] with ⟨Ha, Hcls, Hrvk, Hhist, #Hlo, #HID⟩
+      $$ [$Hrd $Ha $Hcls $Hrvk $Hhist $Hrc $Hrcl $HiS $Hsm $Hmu0 $HID $HexG $HexRest] with ⟨Ha, Hcls, Hrvk, Hhist, #Hlo, #HID, #Hlive⟩
     imod lessor_live_grant γl lp L (M.insert id l) id $$ [$Ha $Hg $Hown $Hgr] with ⟨Ha, Hg, Hown⟩
     imodintro
     -- (S7c) `le.b`, read with the write token's fraction
@@ -272,7 +272,7 @@ theorem lease.lessor.Grant.wp_proof
     iframe Hrtk
     iright
     iunfold leaseOwn
-    iframe Hown Hcls Hrvk HPost HID
+    iframe Hown Hcls Hrvk HPost HID Hlive
     isplitr
     · ipureintro; exact ⟨rfl, Hlnn, hid0, httl, hnot⟩
     iexists mt; iframe Hmt Httl HRb

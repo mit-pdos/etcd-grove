@@ -576,14 +576,15 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   icases ownToks_add_1 1 (N + 6) d.γB.wb $$ Hwb with ⟨Hwb, Hwl⟩
   -- `lease.NewLessor`
   rw [Hbe0]
-  -- the grant guard `False` (`srvGrantGuard`, D19n, D45): the lessor's `expiredC` never delivers
+  -- the grant guard `srvGrantGuard` at the cluster's lease mode and the auth mode (D19n; the
+  -- lease-grant plan's D1, until then `False`, D45): the lessor's `expiredC` never delivers
   -- (D22, 2026-10-23) the rest buckets: the tracked buckets' half, at the fresh file's
   have hDl : ∀ n ∈ mvcc.restBuckets, ((backend.rbData d.P D).lookup n).getD ∅ = ∅ :=
     fun n hn => by rw [rbData_real_lookup d D n hn]; exact HDr.1 n hn
   wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
-      (srvGrantGuard) (fun _ => True) (backend.rbData d.P D) trivial HlP)
+      (srvGrantGuard ρ.rd.kv.lg on) (fun _ => True) (backend.rbData d.P D) ρ.rd.kv.lg trivial HlP)
     $$ [Hopen Hwl Hrbo]
-    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, #Hllk'⟩
+    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, #Hlexp, -, Hlrd, Hlown, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, #Hllk'⟩
   · iframe HB Hclok
     unfold backend.wbTok
     -- (2026-11-02, the backend-auth-split stage) at every bucket: `rbOwn` is `rbPart ⊤`, and the
@@ -592,8 +593,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe Hopen Hwl Hrbo
     ipureintro; exact ⟨Hlgnn, Hckok, by simp, hDl go!"lease" (by decide)⟩
   -- (the auth plan's E3zb) its `Lookup` at the guard `False`: no lease, and the weaker clause
-  ihave #Hlnil := lookupNil_of_guard lp $$ Hllk'
-  ihave #Hllk := lookupOk_of_guard lp srvGrantGuard $$ Hllk'
+  ihave #Hlnil : iprop(□ (⌜on = true⌝ → apply.lookupNil (lease.lessorIface lp))) $$ []
+  · iintro !> %hon
+    iapply (lookupNil_of_guard lp ρ.rd.kv.lg on (Or.inr hon)) $$ Hllk'
+  ihave #Hllk := lookupOk_of_guard lp (srvGrantGuard ρ.rd.kv.lg on) $$ Hllk'
   (try wp_auto)
   -- `auth.NewTokenProvider`
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
@@ -1303,7 +1306,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   iNamedPrefix Hrn' "N"
   -- the lessor
   ihave #Hlok : lessorOk (lease.lessorIface lp) $$ []
-  · iapply lessorOk_of_lessorInv h57 h58 h59 lp γl
+  · iapply lessorOk_of_lessorInv h57 h58 h59 lp γl ρ.rd.kv.lg on
     iframe Hlexp Hlcfg Hlinv Hlspkg
   ihave %Hwq0 : ⌜γw.st.watchQ = true⌝ $$ []
   · ihave #Hws' := Hws
@@ -1512,6 +1515,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       isplitr
       · rw [Hγw.2.1]; iexact Hlinv
       isplitr
+      · rw [Hγw.2.1]; iexact Hlmode
+      isplitr
       · iexists ws, γw; iframe kv Hws
       -- (J8a-3) the configuration's rebuild
       iexact HcfgRb
@@ -1611,10 +1616,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     -- (E3n) and so does the rest resource, at the same rest value
     iapply roLends_authBeOn
   -- (the auth plan's E3zb) the lessor finds no lease
-  ihave #HLnil : srvLessorNil s $$ []
-  · iunfold srvLessorNil
+  ihave #HLnil : iprop(□ (⌜on = true⌝ → srvLessorNil s)) $$ []
+  · iintro !> %hon
+    iunfold srvLessorNil
     iexists (lease.lessorIface lp)
-    iframe Hlnil lessor
+    ihave #Hln := Hlnil $$ %hon
+    iframe lessor Hln
   -- (authkv's Main) with auth on, the store's cost field; (C1's A4) and its `Authenticate` side
   ihave #HBF : iprop(□ (⌜on = true⌝ → srvAuthStoreOn s RD)) $$ []
   · iintro !> %hon

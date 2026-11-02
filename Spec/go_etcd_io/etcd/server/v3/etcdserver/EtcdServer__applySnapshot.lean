@@ -130,6 +130,8 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
        applyThread γ st ∗ applyBackend γ ci b ∗
        srvApplyKV s E ρ.wait x ∗ srvRest E γr A ∗
        lease.lessorInv lp E.γ.leases ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
+       -- (the lease-grant plan's D2, 2026-11-02) the lessor revocable (`Recover`'s premise)
+       lease.lessorRevocable E.γ.leases ∗
        srvKVCloser s E ∗
        (∃ (wsl : Loc) (γw0 : mvcc.WsNames), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗

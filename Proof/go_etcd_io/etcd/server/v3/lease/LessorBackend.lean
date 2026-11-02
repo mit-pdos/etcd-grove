@@ -24,7 +24,10 @@ lock's, half its user's, `lessorBeOn`, which the write token lends).
 `lessorExpiredC lp GA`: the lessor's `expiredC` (read-only), the channel `ExpiredLeasesC`
 returns, of slices of leases each of which met the lessor's grant guard `GA` (D19n, 2026-10-18:
 the expiry loop sends only non-empty slices of leases of its map; until then no logical content);
-a server whose guard is `False` receives nothing from it.
+a server whose guard is `False` receives nothing from it. (The lease-grant plan, 2026-11-02, D1)
+A slice is sent only once a lease has expired, so each also refutes the deployment premise
+`leasesNoExpiry` (no lease granted in the run expires before the run ends): a server whose guard
+implies that premise receives nothing either.
 -/
 module
 
@@ -43,6 +46,19 @@ namespace EtcdGrove
 namespace lease
 
 open Iris Iris.BI Iris.ProofMode
+
+/-- **No lease granted in the run expires before the run ends** (a named premise about the
+program's deployment, as `leasePeersOk`; the lease-grant plan's S2 (a), the user's choice of
+2026-11-02, `notes/lease-grant-plan.md`): every lease the run grants lives, by the clock the
+lessor's expiry loop reads, until the run ends. So the lessor's loop (`runLoop`,
+`revokeExpiredLeases`, `lessor.go:620-660` at the etcd pin) never finds an expired lease
+(`findExpiredLeases` returns only leases whose `expiry` is past) and sends nothing on `expiredC`;
+what a theorem taking it says nothing of: runs longer than a granted lease's TTL (`examples/leasegrant`
+grants one of 600 s; its run takes seconds), runs whose clock jumps, and a lessor promoted with leases
+it did not grant in the run (a member restarted on a backend holding leases: `Recover`). The
+trust-boundary `NewLessor` states it in the payload of `expiredC` (`lessorExpiredC`): a slice sent
+refutes it. -/
+opaque leasesNoExpiry : Prop
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -112,10 +128,11 @@ def lessorBeOn (lp be : Loc) : IProp GF :=
       #be : GoInterface))
 
 /-- The lessor's `expiredC` (persistent): read-only, a channel of slices of leases, some lease of
-each meeting the grant guard `GA` (D19n). -/
+each meeting the grant guard `GA` (D19n), (the lease-grant plan's D1, 2026-11-02) each sent only
+once a lease has expired, so refuting `leasesNoExpiry`. -/
 def lessorExpiredC (lp : Loc) (GA : w64 → IProp GF) : IProp GF :=
   iprop(∃ (c : GoChan) (γc : ChanNames), lF go!"expiredC" lp ↦□ c ∗
-    isChanBag γc c (V := GoSlice) (fun _ => iprop(∃ id : w64, GA id)))
+    isChanBag γc c (V := GoSlice) (fun _ => iprop(⌜¬ leasesNoExpiry⌝ ∗ ∃ id : w64, GA id)))
 
 instance lessorExpiredC_persistent (lp : Loc) (GA : w64 → IProp GF) :
     Persistent (lessorExpiredC (GF := GF) lp GA) := by

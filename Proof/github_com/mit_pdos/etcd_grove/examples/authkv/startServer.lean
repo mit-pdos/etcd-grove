@@ -133,6 +133,8 @@ theorem startServer.wp_proof
     iapply HΦ; ileft; iframe Htok; ipureintro; simp
   subst Herr
   wp_auto
+  -- (the lease-grant plan's D1) the lessor finds no lease, auth being on
+  ihave #HLnil := HLnil $$ %(by trivial)
   obtain ⟨hagree, -, hγa⟩ := HE
   obtain ⟨γa, hγa⟩ := hγa trivial
   -- what `Start` takes: the built part with auth on, the monitors off

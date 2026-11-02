@@ -467,25 +467,48 @@ predicate is (Perennial's channel specs are), and the apply package's. -/
 
 /-- **The server's grant guard** (D19n, 2026-10-18; D19q: the workload's): the predicate on lease
 ids the server gives its lessor (`lease.NewLessor`'s `GA`): only a lease that meets it can be
-granted, and the lessor's `expiredC` carries only such leases. `False`: no request the server's
-verified proposers send grants a lease (`plainReq` admits no `LeaseGrant`), so `run`'s receive
-from `expiredC` is dead (D45: until then the workload's `grant`). -/
-def srvGrantGuard : w64 → IProp GF := fun _ => iprop(False)
+granted, and the lessor's `expiredC` carries only such leases. (The lease-grant plan's D1,
+2026-11-02; until then `False`, D45.) It holds in a cluster whose requests may grant leases
+(`lg`, the KV names' `KVNames.lg`), with auth off (`on = false`: the auth layer's checks of a
+leased put assume the lessor finds no lease, `lookupNil`), under the deployment premise
+`lease.leasesNoExpiry`: so `run`'s receive from `expiredC`, whose every slice refutes that premise,
+is dead whatever the cluster, and with `lg = false` or auth on it is `False` as before. -/
+def srvGrantGuard (lg on : Bool) : w64 → IProp GF :=
+  fun _ => iprop(⌜lease.leasesNoExpiry ∧ lg = true ∧ on = false⌝)
+
+omit package_sem in
+/-- A slice of the server's `expiredC` refutes its grant guard (`run`'s dead receive). -/
+theorem srvGrantGuard_expired (lg on : Bool) :
+    (⌜¬ lease.leasesNoExpiry⌝ ∗ ∃ id : w64, srvGrantGuard (GF := GF) lg on id) ⊢ False := by
+  unfold srvGrantGuard
+  iintro ⟨%Hn, %id, %Hg⟩
+  exact absurd Hg.1 Hn
+
+omit package_sem in
+/-- With `lg = false` or auth on the guard is `False`. -/
+theorem srvGrantGuard_false (lg on : Bool) (h : lg = false ∨ on = true) (id : w64) :
+    srvGrantGuard (GF := GF) lg on id ⊢ False := by
+  unfold srvGrantGuard
+  iintro %Hg
+  rcases h with h | h <;> simp_all
 
 /-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes); and
 (2026-10-13, the request path's unit 4c: the server's `run`) whose `Demote` returns and whose
 `ExpiredLeasesC` returns a channel of slices of expired leases, each carrying a lease of the
 lessor's grant guard `srvGrantGuard` (D19n; until D19n a bag with no logical content, which `run`
-passed to the names-only `revokeExpiredLeases`), `False`: nothing is sent on that channel. A
-trust-boundary contract (the lessor is names-only). -/
+passed to the names-only `revokeExpiredLeases`) at some cluster mode `lg` and auth mode `on`, and
+(the lease-grant plan's D1, 2026-11-02; until then the guard was `False`) refuting
+`lease.leasesNoExpiry`, which the guard implies: nothing is sent on that channel
+(`srvGrantGuard_expired`). A trust-boundary contract (the lessor is names-only). -/
 def lessorOk (l : GoInterface) : IProp GF :=
   iprop(∃ li : GoInterfaceOk, ⌜l = GoInterface.ok li⌝ ∗
     □ (∀ d : w64,
       {{ True }} (App (Val #(methods li.ty go!"Promote" li.v)) (Val #d)) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods li.ty go!"Demote" li.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods li.ty go!"ExpiredLeasesC" li.v)) (Val #()))
-      {{ (c : GoChan), RET #c; ∃ γc : ChanNames,
-        isChanBag γc c (V := GoSlice) (fun _ => iprop(∃ id : w64, srvGrantGuard id)) }}))
+      {{ (c : GoChan), RET #c; ∃ (γc : ChanNames) (lg on : Bool),
+        isChanBag γc c (V := GoSlice)
+          (fun _ => iprop(⌜¬ lease.leasesNoExpiry⌝ ∗ ∃ id : w64, srvGrantGuard lg on id)) }}))
 
 instance lessorOk_persistent (l : GoInterface) :
     Persistent (lessorOk (GF := GF) l) := by

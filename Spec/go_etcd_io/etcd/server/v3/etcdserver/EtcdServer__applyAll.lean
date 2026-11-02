@@ -277,6 +277,9 @@ abbrev EtcdServer.applyAll.specSnap : Prop :=
   -- a fresh cluster's start (`snapRecv_image`'s), compaction off
   γr.raft = ⟨γr.raft.raft, [], W64 0⟩ → γr.kv.c0 = W64 0 →
   γr.kv.ch0 = apply.alarmChain false false false → γr.kv.log0 = [[], []] → E.cmp = false →
+  -- (the lease-grant plan's D2, 2026-11-02) a cluster that grants no lease (its lessor revocable:
+  -- `Recover`'s premise; an interim restriction, as the compaction mode's)
+  γr.kv.lg = false →
   -- the batch's term good for a log at least the snapshot's (the merge's guard)
   γn.node = γr.raft.raft → uint.nat sv.Metadata'.Index' ≤ n →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗

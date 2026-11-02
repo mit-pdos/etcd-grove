@@ -70,12 +70,13 @@ theorem srvLessorNilM_false (s : Loc) : srvLessorNilM (GF := GF) false s = iprop
 theorem srvLessorNilM_true (s : Loc) : srvLessorNilM (GF := GF) true s = srvLessorNil s := rfl
 
 /-- **The lessor finds no lease when its grant guard is `False`** (the auth plan's E3zb,
-2026-10-28): `NewLessor`'s `Lookup` clause at the guard `srvGrantGuard` (D45) is `lookupNil`'s. -/
-theorem lookupNil_of_guard (lp : Loc) :
+2026-10-28): `NewLessor`'s `Lookup` clause at the guard `srvGrantGuard lg on` (D45; the lease-grant
+plan's D1: `False` when the cluster grants no lease or auth is on) is `lookupNil`'s. -/
+theorem lookupNil_of_guard (lp : Loc) (lg on : Bool) (h : lg = false ∨ on = true) :
     □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))
-        {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ (apply.leaseIs l id ∗ □ srvGrantGuard id) }}) ⊢
+        {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ (apply.leaseIs l id ∗ □ srvGrantGuard lg on id) }}) ⊢
       apply.lookupNil (GF := GF) (lease.lessorIface lp) := by
   iintro #HL
   iunfold apply.lookupNil
@@ -88,7 +89,7 @@ theorem lookupNil_of_guard (lp : Loc) :
   · itrivial
   iintro !> %l (%Hn | ⟨-, #Hg⟩)
   · iapply HΦ; ipureintro; exact Hn
-  · iexfalso; iunfold srvGrantGuard at Hg; iexact Hg
+  · iexfalso; iapply srvGrantGuard_false lg on h id $$ Hg
 
 /-- **The weaker `Lookup` clause** (`isApplyLessor`'s, `lessorLookupOk`'s): a non-nil result is the
 lease of its id. -/

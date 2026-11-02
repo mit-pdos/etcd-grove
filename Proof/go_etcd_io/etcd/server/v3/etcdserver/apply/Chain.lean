@@ -1059,13 +1059,14 @@ def txnPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.s
 /-- **What a revocation takes beside the method's resources** (the lease-revoke plan, D4): the
 range deleter held and the rest at `rs`. -/
 def revokeRes (E : AEnv GF) (rs : RestM) : IProp GF :=
-  iprop(lease.rdAt E.γ.leases E.s ∗ E.RO rs)
+  iprop(lease.rdAt E.γ.leases E.s ∗ lease.lessorRevocable E.γ.leases ∗ E.RO rs)
 
 /-- **What it gives back** (R6): the range deleter, the rest with the lease's record deleted when
 the revocation succeeded (`err = nil`: the lease was live), else as it was. Which of "not live"
 and "live with no key" the apply layer cannot tell (the same log): the server's model can (L3c). -/
 def revokeResAfter (E : AEnv GF) (id : w64) (rs : RestM) (err : GoInterface) : IProp GF :=
-  iprop(lease.rdAt E.γ.leases E.s ∗ E.RO (if err = GoInterface.nil then restRevoke id rs else rs))
+  iprop(lease.rdAt E.γ.leases E.s ∗ lease.lessorRevocable E.γ.leases ∗
+    E.RO (if err = GoInterface.nil then restRevoke id rs else rs))
 
 /-- `LeaseRevoke(r)`'s precondition (the lease-revoke plan, R3, 2026-10-31): the request's, room
 for a revision (`putOk`: `rqOk` keeps excluding the kind for `dispatch`), the certificate, the

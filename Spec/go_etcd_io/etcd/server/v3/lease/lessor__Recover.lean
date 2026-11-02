@@ -61,14 +61,17 @@ old leases keep their keys there, frozen: `Recover` does not clear them); `histO
 key and no lease is new. The item-sets map is unchanged; the old leases' `closerAt` (the owner's
 half of each set, a reader slot of its lock) are dropped, and a reader in an old lease's `Keys()`
 keeps the slot it borrowed. The post's `leaseClosers` is at `C = ∅`, `I = ∅`, the history's last
-snapshot, with the owner's half of the item-sets map. -/
+snapshot, with the owner's half of the item-sets map. (The lease-grant plan's D2, 2026-11-02) The
+lessor revocable (`lessorRevocable γl`): the appended `(∅, ∅)` drops the live leases, which a
+monotone lessor's history (`histMono`) forbids. -/
 abbrev lease.lessor.Recover.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (oldbe : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
     (S : GoString → Prop) (r : GMap GoString backend.BktData) (rd : GoFunc) (L : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
   S go!"lease" → mvcc.leaseParams d.P →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
-      lease.lessorInv lp γl ∗ lease.lessorBeOn lp oldbe ∗ lease.leaseOwn γl L I ∗
+      lease.lessorInv lp γl ∗ lease.lessorRevocable γl ∗ lease.lessorBeOn lp oldbe ∗
+      lease.leaseOwn γl L I ∗
       lease.leaseRevokers γl L ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ ownToks d.γB.wb 2 ∗
       backend.rbPart d.γB S r ∗ ⌜(r.lookup go!"lease").getD ∅ = ∅⌝ }}

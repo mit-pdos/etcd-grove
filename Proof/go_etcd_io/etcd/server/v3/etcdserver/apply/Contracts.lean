@@ -318,7 +318,7 @@ def revokeClause (le : GoInterfaceOk) (s : Loc) (γ : mvcc.StoreNames) (P : IPro
         mvcc.storeWT γ ∗ ⌜log.length + 4 ≤ 2 ^ 63⌝ ∗
         lease.leaseOwn γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
         lease.leaseRevokers γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) ∗
-        lease.rdAt γ.leases s ∗ RO rs ∗
+        lease.rdAt γ.leases s ∗ lease.lessorRevocable γ.leases ∗ RO rs ∗
         □ mvcc.certOkNext γ log (mvcc.leaseDels (mvcc.stateAfter log) id) }}
       (App (Val #(methods le.ty go!"Revoke" le.v)) (Val #id))
     {{ (err : GoInterface), RET #err; mvcc.storeReader s γ ∗ lease.rdAt γ.leases s ∗ applyErrIs err ∗

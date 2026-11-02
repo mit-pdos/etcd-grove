@@ -166,7 +166,7 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
   iintro ⟨%hw, #Hpkg, #Hmpkg, #Hinv, #Hhok, #Hlens⟩
   iunfold revokeClause
   iintro !> %id %log %L %rs %Pre %Q %Post %Φ !>
-    ⟨Hcs, Hkw, Hsr, Hwt, %Hput, Hown, Hrvk, #HK, Hrd, HRO, #Hcert⟩ HΦ
+    ⟨Hcs, Hkw, Hsr, Hwt, %Hput, Hown, Hrvk, #HK, Hrd, #Hrev, HRO, #Hcert⟩ HΦ
   icases lease.rdAt_elim _ _ $$ Hrd with ⟨%rd, Hro, #Hrdc⟩
   icases (txn.kvWriter_open s γ log hw (fun ws γw => mvcc.rdIs rd ws s γw)) $$ [Hkw] with
     ⟨%ws, %γw, %Hγ, #Hrdi, Hww, Hfrag, Hclose⟩
@@ -184,7 +184,7 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
     unfold txn.logChanges at h; unfold mvcc.logCh at hch; omega
   iapply (hRv lp γw.st.leases id rd ws s γw log L d rs.bk P Pre Q Post f) $$
     [Hro Hsr Hwt Hww Hhook Hcs Hown Hrvk Hrb Hbe]
-  · iframe Hro Hsr Hwt Hww Hhook Hcs Hown Hrvk Hrb Hbe Hpkg Hmpkg Hinv Hrdi Hcert
+  · iframe Hro Hsr Hwt Hww Hhook Hcs Hown Hrvk Hrb Hbe Hpkg Hmpkg Hinv Hrdi Hcert Hrev
     isplitr
     · ipureintro; exact ⟨rfl, hkb⟩
     ipureintro; exact ⟨Hput, hlen⟩
@@ -284,7 +284,7 @@ theorem isApplyLessor_of_lessorInv
       Pre Q Post) $$ [Hcs Hown Hrvk Hwt Hrt Hrw HRb]
     · iframe; iframe #
     iintro !> %l %err ⟨Hrt, (⟨%Hne, #Herr, Hown, Hrvk, HPre, -⟩ |
-      ⟨%Hok, Hown, Hrvk, HPost, #HID, ⟨%mt, -, #Ht, -⟩⟩)⟩
+      ⟨%Hok, Hown, Hrvk, HPost, #HID, #Hlive, ⟨%mt, -, #Ht, -⟩⟩)⟩
     · iapply HΦ
       iframe Hrt
       isplitl [HPre]

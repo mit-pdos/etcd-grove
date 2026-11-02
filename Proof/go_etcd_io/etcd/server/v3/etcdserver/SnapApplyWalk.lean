@@ -139,6 +139,7 @@ theorem applySnapshot_walk
        applyThread γ st ∗ applyBackend γ ci b ∗
        srvApplyKV s E ρ.wait x ∗ srvRest E γr A ∗
        lease.lessorInv lp E.γ.leases ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
+       lease.lessorRevocable E.γ.leases ∗
        srvKVCloser s E ∗
        (∃ (wsl : Loc) (γw0 : mvcc.WsNames), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
@@ -182,7 +183,7 @@ theorem applySnapshot_walk
         (Val #ap))
     {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A x R ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad ∗ notifyRcvN γnc 1 ∗ threadTok }} := by
-  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, #HauR, #HmetaB⟩
+  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, #Hlrev, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, #HauR, #HmetaB⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
   icases Hsrv' with ⟨-, -, ⟨%sfv, #Hfl⟩, -, -⟩

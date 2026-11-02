@@ -67,7 +67,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specSnap (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk q γn rt n
-    hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hcmp hγn hnI
+    hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hcmp hlgk hγn hnI
   wp_start as ⟨#Hsrv, #Hsa, #Hnid, #Hes, #Hesl, #Hsnf, Hsnv, ⟨#Hcert, #Hsloc⟩, #Hncf, #Hnc2, Hnr0,
     #Hracf, #Hracc, #Hrtf, #Hrt, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog,
     #HW, HWA, Hka, HRS, HAR, #Hkv, HwalT, Hso, #HmetaSnap⟩
@@ -95,7 +95,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
   icases Hro' with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al, %ast, %lp, %cl, %ps, %dir, %d,
     %Hp, #Hcflg, #Hcfdd, #Hcffg, #Hfg, #Hcfq, #Hcfw, #Hssf, #Hssi, #Hhkf, #Hhk, #Hstp, #Hidm,
     #Hdinv, #Half, #Hauf, #Hlpf, #Hclf, #Hal, #HalOk, #HauOk, #HauR, #HlpOk, #HlpCfg, #HlpL, #Hrc,
-    #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #Hws, #Hcfg⟩
+    #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #HlpM, #Hws, #Hcfg⟩
   obtain ⟨hkb, hlg, hstp, hdbo, hmm, hbuq, hsl, hdirps, hsop, hcm, hbr, hci, hhk, hwf, hlim, hlp,
     halbi, hwq, hRO, hrb⟩ := Hp
   icombine Hnid Hidm gives %Hidn
@@ -168,6 +168,9 @@ theorem EtcdServer.applyAll.wp_proofSnap
   -- thread's token (`srvGoRes`'s)
   iunfold srvGoRes at Hgr
   icases Hgr with ⟨HgrW, HthT⟩
+  -- (the lease-grant plan's D2) the lessor revocable: the cluster grants no lease
+  ihave #Hlrev : lease.lessorModeIs E.γ.leases false $$ []
+  · rw [← hlgk]; iexact HlpM
   wp_apply (hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
       { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai d D lgh hkb
       (by rw [hcm, hcmp]) hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hlg hmm tI hmeta st b (by omega)

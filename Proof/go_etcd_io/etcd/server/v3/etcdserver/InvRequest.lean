@@ -155,6 +155,13 @@ structure KVNames where
   compaction of the cluster is at least `cret` revisions behind a revision its KV has reached
   (`reqPropOk`'s compaction form, `kvCmpPermit`); `0`, no more than the store's own check. -/
   cret : Nat := 0
+  /-- (The lease-grant plan's D1/D3, 2026-11-02) **Whether the cluster's requests may grant
+  leases**: one for every member, as `cmp`. `false` (the default): no grant is proposed, every
+  member's grant guard is `False` (`srvGrantGuard`) and its lessor revocable (`lease.NewLessor`'s
+  `mono := false`), so a snapshot can be restored (`lease.lessor.Recover`). `true`: grants are
+  proposed (with auth off and under `lease.leasesNoExpiry`), each member's lessor is monotone (its
+  live leases stay live: no revocation, no restore), which `LeaseLeases` reads rely on. -/
+  lg : Bool := false
 
 /-- Some KV names (C3's watch side, 2026-11-02: the watch environment of an example that never
 watches, `client.srvWEnv … default`). -/

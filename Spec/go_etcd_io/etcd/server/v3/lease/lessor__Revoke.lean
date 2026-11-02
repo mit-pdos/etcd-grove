@@ -39,14 +39,15 @@ its `*backend`: `lessorBeOn`), with the right to write the tracked buckets at `r
   same backend transaction (the tracked buckets' `lease` without its key, the id's 8 big-endian
   bytes), `id` out of the live set and its `revokec` closed: the sole writer at the new log, the
   owner's resource at its state's item map, `Post`.
-The state's size bound is `sort.StringSlice.Sort`'s premise on the keys. -/
+The state's size bound is `sort.StringSlice.Sort`'s premise on the keys. (The lease-grant plan's D2,
+2026-11-02) The lessor revocable (`lessorRevocable γl`: its history is not kept monotone). -/
 abbrev lease.lessor.Revoke.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (id : w64) (rd : GoFunc) (ws st : Loc) (γw : mvcc.WsNames)
     (log : mvcc.Log) (L : List w64) (d : mvcc.KBReal) (r : GMap GoString backend.BktData)
     (P Pre Q Post : IProp GF) (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ lessorInv lp γl ∗
-      ⌜γw.st.leases = γl ∧ γw.st.kb = some d⌝ ∗
+      lessorRevocable γl ∗ ⌜γw.st.leases = γl ∧ γw.st.kb = some d⌝ ∗
       rdOwn γl rd ∗ mvcc.rdIs rd ws st γw ∗
       mvcc.storeReader st γw.st ∗ mvcc.storeWT γw.st ∗ mvcc.watchWriter γw log ∗
       ⌜log.length + 4 ≤ 2 ^ 63 ∧ (mvcc.stateAfter log).length ≤ 2 ^ 62⌝ ∗

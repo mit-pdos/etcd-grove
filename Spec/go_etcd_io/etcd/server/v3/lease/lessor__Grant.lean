@@ -33,7 +33,9 @@ lease's item set is empty. (L3c, 2026-10-27) The error case exactly when `id` is
 `MaxLeaseTTL` (`9000000000`) or `id` live; the new lease's TTL is `grantTTL` of the lessor's
 minimum (its `minLeaseTTL`) and `ttl`, and its record (`leaseEnc` of the id, that TTL and a
 remaining TTL of 0) is put into the tracked buckets `Rb` holds, under the id's 8 big-endian bytes;
-on an error they are left. -/
+on an error they are left. (The lease-grant plan's D2, 2026-11-02) The new lease is in the lessor's
+history (`leaseLiveFrom γl 0 id l`: the snapshot `Grant` appends under `le.mu`, with `l` at `id`),
+which a monotone lessor keeps (`leaseGrantedAt_of_live`). -/
 abbrev lease.lessor.Grant.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (id ttl : w64) (L : List w64) (I : GMap LeaseItem w64) (P : IProp GF)
     (f : val) (T R : IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
@@ -46,7 +48,7 @@ abbrev lease.lessor.Grant.spec : Prop :=
       ((⌜err ≠ GoInterface.nil ∧ (id = W64 0 ∨ 9000000000 < sint.Z ttl ∨ id ∈ L)⌝ ∗ lessorErrIs err ∗
         leaseOwn γl L I ∗ leaseRevokers γl L ∗ Pre ∗ Rb rb) ∨
       (⌜err = GoInterface.nil ∧ l ≠ null ∧ id ≠ W64 0 ∧ sint.Z ttl ≤ 9000000000 ∧ id ∉ L⌝ ∗ leaseOwn γl (L ++ [id]) I ∗ leaseRevokers γl (L ++ [id]) ∗ Post ∗
-        lsF go!"ID" l ↦□ id ∗ ∃ mt : w64, lF go!"minLeaseTTL" lp ↦□ mt ∗
+        lsF go!"ID" l ↦□ id ∗ leaseLiveFrom γl 0 id l ∗ ∃ mt : w64, lF go!"minLeaseTTL" lp ↦□ mt ∗
         lsF go!"ttl" l ↦□ grantTTL mt ttl ∗
         Rb (mvcc.rbSet rb mvcc.leaseName (u64Le id).reverse (leaseEnc id (grantTTL mt ttl) (W64 0))))) }}
 

@@ -57,7 +57,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   iunfold apply.kvOwn at Hpre
   icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hwt, ⟨⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩, Hrr⟩
   iunfold apply.revokeRes at Hrr
-  icases Hrr with ⟨Hrdat, HRO⟩
+  icases Hrr with ⟨Hrdat, #Hrev, HRO⟩
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu⟩
   iunfold lease.lessorUser at Hu
@@ -122,7 +122,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
       · simp only [apply.chainRes]; itrivial
       iright; iexact HPre
     · iunfold apply.revokeResAfter
-      iframe Hrdat
+      iframe Hrdat Hrev
       subst Hee
       simp only [reduceCtorEq, ↓reduceIte]
       iexact HRO
@@ -159,7 +159,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
       · simp only [apply.chainRes]; itrivial
       ileft; iexact HPost
     · iunfold apply.revokeResAfter
-      iframe Hrdat
+      iframe Hrdat Hrev
       rw [if_pos Hok.2]
       iexact HRO
 
