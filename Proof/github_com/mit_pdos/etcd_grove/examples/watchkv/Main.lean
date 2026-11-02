@@ -387,7 +387,7 @@ theorem Main.wp_proof
     exact absurd h.2 (Nat.lt_irrefl 0)
   -- (G2) a non-empty key's range is its own (`watchNorm_of_ne`)
   rw [OpFull.watchNorm_of_ne _ (by rw [hkey]; decide)]
-  ihave #Hwch := common.isRespChan_of_state wch γw _ (wkReadQ γc (trs.map pairOf)) _ $$ Hsp
+  ihave #Hwch := common.isRespChan_of_state wch _ γw _ (wkReadQ γc (trs.map pairOf)) _ $$ Hsp
   (try wp_auto)
   -- the log of the successful Puts under its mutex (`wsInvF` at `okFactW`)
   icases typedPointsto_split _ _ _ $$ «$r0» with Hr0

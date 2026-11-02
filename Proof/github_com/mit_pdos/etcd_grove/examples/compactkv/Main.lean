@@ -706,7 +706,7 @@ theorem Main.wp_proof
           omega
       iintro !> %h
       exact absurd h.2 (Nat.lt_irrefl 0)
-    ihave #Hwch := common.isRespChan_of_state wch γw _ (fun σ => iprop(⌜oneValW go!"v" σ.changes⌝)) _
+    ihave #Hwch := common.isRespChan_of_state wch _ γw _ (fun σ => iprop(⌜oneValW go!"v" σ.changes⌝)) _
       $$ Hsp
     (try wp_auto)
     ihave Hcons : etcdWatchConsumer γw 0 (W64 2 - W64 1) $$ [Hcons Hcur]

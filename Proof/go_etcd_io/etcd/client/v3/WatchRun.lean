@@ -798,6 +798,7 @@ theorem recvElem_of (V : WEnv GF) (P : WsPrm GF) (k : Nat) (hk : k ≠ 0) (m : v
   · iexact Hcm
   simp only [Bool.false_eq_true, ↓reduceIte]
   iframe Hns Hrf Hrow
+  iapply cmpOkOf_zero
 
 /-- **What a promised completeness says of a watch** (pure; K2e-7d): its start revision was read,
 non-zero, and its registered range covers exactly the watch's range (`rangeExact`). -/
@@ -1287,6 +1288,29 @@ theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (hB 
   iframe Hcut'
   ipureintro; exact Hhi'
 
+/-- **An mvcc response's compaction revision is the cluster's permit** (C3's watch side,
+2026-11-02): the store's permit of it (`mvccOk_cmpPerm`'s `cmpPermOf`) is the cluster's
+(`srvKVFacts_cperm`), timeless (`crevPermAt_elim_timeless`). -/
+theorem cmpOkOf_of_mvccOk (V : WEnv GF) (γs : StreamNames) (j : Nat) (m : v3rpc.WatchRespM)
+    (hst : V.R.γ.st = V.R.E.γ) :
+    srvKVFacts V ∗ v3rpc.mvccOk γs V.R.γ j m ⊢ |={⊤}=> cmpOkOf V.kv m.compactRev := by
+  iintro ⟨#Hkf, #Hmv⟩
+  ihave #Hcp := srvKVFacts_cperm V $$ Hkf
+  ihave ⟨%r, %Hr, #Hp⟩ := v3rpc.mvccOk_cmpPerm γs V.R.γ j m $$ Hmv
+  rw [Hr.2]
+  iunfold mvcc.cmpPermOf at Hp
+  icases Hp with (%h0 | ⟨%Hpos, #Hat⟩)
+  · imodintro; iunfold cmpOkOf; ileft; ipureintro; exact h0
+  ihave #Hat' : mvcc.crevPermAt V.R.E.γ (sint.Z r.compactRev) $$ []
+  · rw [← hst]; iexact Hat
+  imod (mvcc.crevPermAt_elim_timeless ⊤ V.R.E.γ (kvCmpPermit V.kv) (sint.Z r.compactRev))
+    $$ [Hcp Hat'] with (%hm1 | #Hk)
+  · isplitl []
+    · iexact Hcp
+    · iexact Hat'
+  · omega
+  imodintro; iunfold cmpOkOf; iright; iexact Hk
+
 /-- **Before dispatching a compaction response to its registered substream** (watches across a
 compaction, D6, 2026-11-01): as `reg_pre`, for mvcc's response to a watch behind the compaction
 revision (canceled, no events, at the header revision `0`): an error for the substream, its
@@ -1323,6 +1347,9 @@ theorem reg_pre_cmp (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) 
           cursorOk V P B (Dm ++ [m]) w rg lo hi) ∗ psAt P (sent.length + 1)) ∗
       cur2Pend V γs (Dm ++ [m]) P B ρ.id w rg lo sent C2 := by
   iintro ⟨#Hkf, #Hwa, #HS3, #Hsm, #Hlaws, #Hso, #Hdn, Hc2, #Hmv, #Hrecv, #Hrf, #Hsl, #Hevs, #Hea, Hauth, Hst, Hrev⟩
+  -- (C3's watch side) the response's compaction revision is the cluster's permit
+  imod (cmpOkOf_of_mvccOk V γs j m hst) $$ [Hkf Hmv] with #HcmpOk
+  · iframe #
   ihave #Hrf0 := Hrf
   ihave Hhdr : iprop(|==> ((⌜m.evs = []⌝ ∗ hdrAt h m.hdr.revision) ∨
       (⌜m.evs ≠ []⌝ ∗ structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦ m.hdr.revision)))
@@ -1470,7 +1497,9 @@ theorem reg_pre_cmp (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) 
     · ipureintro; simp [dispOk, EvRevSorted, hes0]
     isplitr
     · iapply resumeF_holds
-    iintro !> %h'; exact absurd hes0 h'
+    isplitr
+    · iintro !> %h'; exact absurd hes0 h'
+    iexact HcmpOk
   iright
   isplitr
   · ipureintro; simp [Hlen]

@@ -143,13 +143,13 @@ instance stateOk_persistent (o : OpFull) (Q : KVState → IProp GF) (c c' : w64)
 
 /-- The client's Watch spec's channel is one (`watchStateElem`, at `stateOk`), whatever its
 authorization row `Au` (G2). -/
-theorem isRespChan_of_state (ch : Loc) (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF)
-    (Au : IProp GF) :
-    isSpsc (GF := GF) γ.spsc ch (watchStateElem γ o Q Au) (fun _ => iprop(True)) ⊢
+theorem isRespChan_of_state (ch : Loc) (γk : KVNames) (γ : EtcdWatchNames) (o : OpFull)
+    (Q : KVState → IProp GF) (Au : IProp GF) :
+    isSpsc (GF := GF) γ.spsc ch (watchStateElem γk γ o Q Au) (fun _ => iprop(True)) ⊢
       isRespChan ch γ (stateOk o Q) := by
   iintro #Hsp
   unfold isRespChan
-  iexists watchStateElem γ o Q Au
+  iexists watchStateElem γk γ o Q Au
   iframe Hsp
   iintro !> %i %v HP
   unfold watchStateElem

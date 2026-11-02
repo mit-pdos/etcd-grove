@@ -155,7 +155,7 @@ theorem watcher.Watch.wp_proof
   · iexact Hctx
   ihave Hinv : iprop(∃ (b : Bool) (cc : Loc), "ok" ∷ ok_ptr ↦ b ∗
       "closeCh" ∷ closeCh_ptr ↦ cc ∗
-      "Hcc" ∷ closeChRes (opWatchModel key gs).watchNorm Q (wsRow V P0) rev
+      "Hcc" ∷ closeChRes V.kv (opWatchModel key gs).watchNorm Q (wsRow V P0) rev
         (cplCond true (opWatchModel key gs).watchNorm rev) cc) $$ [ok closeCh]
   · iexists false, _
     iframe
@@ -174,7 +174,7 @@ theorem watcher.Watch.wp_proof
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hst]
     · inext; unfold watcherMu; iexists map.nil; iframe Hst; ileft; ipureintro; rfl
     wp_apply chan.wp_make1 (V := go_etcd_io.etcd.client.v3.WatchResponse) as %ch %γch ⟨#Hch, %-, Hcho⟩
-    imod watch_spsc_alloc (opWatchModel key gs).watchNorm Q (wsRow V P0) rev
+    imod watch_spsc_alloc V.kv (opWatchModel key gs).watchNorm Q (wsRow V P0) rev
       (cplCond true (opWatchModel key gs).watchNorm rev) ch γch $$ Hch [Hcho]
       with ⟨%γw, #Hs, Hp, -, Hc, #Hi0, #Hi02, %Hc2⟩
     · ileft; iexact Hcho
@@ -191,7 +191,7 @@ theorem watcher.Watch.wp_proof
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hst HM]
     · inext; unfold watcherMu; iexists map.nil; iframe Hst; iright; iexists M; iframe HM; iframe #
     wp_apply chan.wp_make1 (V := go_etcd_io.etcd.client.v3.WatchResponse) as %ch %γch ⟨#Hch, %-, Hcho⟩
-    imod watch_spsc_alloc (opWatchModel key gs).watchNorm Q (wsRow V P0) rev
+    imod watch_spsc_alloc V.kv (opWatchModel key gs).watchNorm Q (wsRow V P0) rev
       (cplCond true (opWatchModel key gs).watchNorm rev) ch γch $$ Hch [Hcho]
       with ⟨%γw, #Hs, Hp, -, Hc, #Hi0, #Hi02, %Hc2⟩
     · ileft; iexact Hcho
@@ -264,7 +264,7 @@ theorem watcher.Watch.wp_proof
     iframe HM
     iframe #
   wp_join iprop(∃ (cc' : Loc) (γw : EtcdWatchNames), closeCh_ptr ↦ cc' ∗
-      isSpsc γw.spsc cc' (outcElem γw (opWatchModel key gs).watchNorm Q (wsRow V P0))
+      isSpsc γw.spsc cc' (outcElem V.kv γw (opWatchModel key gs).watchNorm Q (wsRow V P0))
         (fun _ => iprop(True)) ∗
       spscProducer γw.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
       monoListAuthOwn γw.cur 1 [rev - W64 1] ∗
@@ -275,7 +275,7 @@ theorem watcher.Watch.wp_proof
   · wp_apply +noauto chan.wp_make2 (V := go_etcd_io.etcd.client.v3.WatchResponse) (W64 1)
       as %ch %γch ⟨#Hch, %-, Hcho⟩
     · ipureintro; word
-    imod watch_spsc_alloc (opWatchModel key gs).watchNorm Q (wsRow V P0) rev
+    imod watch_spsc_alloc V.kv (opWatchModel key gs).watchNorm Q (wsRow V P0) rev
       (cplCond true (opWatchModel key gs).watchNorm rev) ch γch $$ Hch [Hcho]
       with ⟨%γw, #Hs, Hp, Ha, Hc, #Hi0, #Hi02, %Hc2⟩
     · iright; iexact Hcho
@@ -387,7 +387,7 @@ theorem watcher.Watch.wp_proof
         ipersist HRevision
         imod monoListAuthOwn_update_app (GF := GF) [rev - W64 1] $$ Ha with ⟨Ha, #Hlb⟩
         ihave #Hi1 := monoListIdxOwn_get (GF := GF) 1 (rev - W64 1) rfl $$ Hlb
-        ihave Hel := outcElem_canceled γw (opWatchModel key gs).watchNorm Q (wsRow V P0) (kvStateOf C0) 0
+        ihave Hel := outcElem_canceled V.kv γw (opWatchModel key gs).watchNorm Q (wsRow V P0) (kvStateOf C0) 0
           (rev - W64 1) ⟨«$v0_ptr», slice.nil, 0, true, false, GoInterface.ok i, []⟩ ⟨rfl, rfl, rfl, rfl, Hhn⟩ $$ [HRevision]
         · rw [Hc2.1]
           iframe #
@@ -454,7 +454,7 @@ theorem watcher.Watch.wp_proof
       ipersist HRevision
       imod monoListAuthOwn_update_app (GF := GF) [rev - W64 1] $$ Ha with ⟨Ha, #Hlb⟩
       ihave #Hi1 := monoListIdxOwn_get (GF := GF) 1 (rev - W64 1) rfl $$ Hlb
-      ihave Hel := outcElem_canceled γw (opWatchModel key gs).watchNorm Q (wsRow V P0) (kvStateOf C0) 0
+      ihave Hel := outcElem_canceled V.kv γw (opWatchModel key gs).watchNorm Q (wsRow V P0) (kvStateOf C0) 0
         (rev - W64 1) ⟨«$v0_ptr», slice.nil, 0, true, false, GoInterface.ok i, []⟩ ⟨rfl, rfl, rfl, rfl, Hhn⟩ $$ [HRevision]
       · rw [Hc2.1]
         iframe #

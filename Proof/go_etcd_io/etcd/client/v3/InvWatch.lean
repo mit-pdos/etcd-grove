@@ -823,17 +823,18 @@ theorem wsRow_of_authed (V : WEnv GF) (P : WsPrm GF) (tok : Option GoString) (c 
 
 /-- **The caller's channel's element** (D47): a response as one firing of the read update
 `Q`, at the watch's second cursor (`watchStateElem`, at `γ.cur2`: the cursor of a watch that
-promises completeness), with the row `Au` when it has events (G2: `wsRow`). -/
-def outcElem (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) (Au : IProp GF) :
-    Int → go_etcd_io.etcd.client.v3.WatchResponse → IProp GF :=
-  watchStateElem { γ with cur := γ.cur2 } o Q Au
+promises completeness), with the row `Au` when it has events (G2: `wsRow`); (C3's watch side)
+its compaction revision the permit of the KV names `γk`. -/
+def outcElem (γk : KVNames) (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF)
+    (Au : IProp GF) : Int → go_etcd_io.etcd.client.v3.WatchResponse → IProp GF :=
+  watchStateElem γk { γ with cur := γ.cur2 } o Q Au
 
 /-- **What a watch's `retc` carries** (the bag's value predicate): the substream's `outc`, the
 contract's SPSC channel (its row `Au`), with the consumer's resources (`Watch` returns them). -/
 def retcP (V : WEnv GF) (o : OpFull) (rev : w64) (sr : Bool) (Q : KVState → IProp GF)
     (Au : IProp GF) (outc : Loc) : IProp GF :=
   iprop(∃ γ : EtcdWatchNames,
-    isSpsc γ.spsc outc (outcElem γ o Q Au) (fun _ => iprop(True)) ∗
+    isSpsc γ.spsc outc (outcElem V.kv γ o Q Au) (fun _ => iprop(True)) ∗
     spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
     monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ monoListIdxOwn γ.cur2 0 (rev - W64 1) ∗
     ⌜γ.cpl = cplCond sr o rev⌝)
@@ -991,7 +992,8 @@ satisfying the contract from the dispatch cursor's position `k` to `k + 1` (`γh
 `run` extends); a created response has no events and `run`'s half of
 the request's `rev` field (the substream writes it from then on); another is at no goroutine's
 start (`notStart`, D25: a goroutine's first response is its create's) and gives its resume fact
-(`resumeF`). Or the
+(`resumeF`), and (C3's watch side) its compaction revision is the cluster's permit
+(`cmpOkOf`; a created one has none, `respKindOk`). Or the
 substream's goroutine has stopped for good (`γx` set: what its `donec` publishes): `run`'s dispatch
 to it after a failed one (the select took `donec`), which the stopped goroutine never receives. -/
 def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
@@ -1005,7 +1007,8 @@ def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
     (if r.created then
       iprop(⌜r.events = []⌝ ∗
         ∃ rv : w64, wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} rv)
-    else iprop(notStart P k.toNat ∗ resumeF V P r ∗ □ (⌜r.events ≠ []⌝ → wsRow V P)))) ∨
+    else iprop(notStart P k.toNat ∗ resumeF V P r ∗ □ (⌜r.events ≠ []⌝ → wsRow V P) ∗
+      cmpOkOf V.kv r.compactRev))) ∨
     dghostVar P.γx DFrac.discard true)
 
 /-- **A watch's read update** (persistent; D47): the caller's, of the KV state `P.kv` reads, its
@@ -1025,7 +1028,7 @@ each lifetime of the goroutine has its own `donec`: owned fields, `LifePrm`.) -/
 def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
   iprop(wrRO (wsF P.ws go!"initReq") P ∗
     wsF P.ws go!"recvc" ↦□ P.recvc ∗
-    isSpsc P.γ.spsc P.outc (outcElem P.γ P.o P.Q (wsRow V P)) (fun _ => iprop(True)) ∗
+    isSpsc P.γ.spsc P.outc (outcElem V.kv P.γ P.o P.Q (wsRow V P)) (fun _ => iprop(True)) ∗
     isSspsc P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) ∗
     context.isContext P.ctx P.cs ∗
     isChanBag P.γret P.retc (retcP V P.o P.rev P.sr P.Q (wsRow V P)) ∗
@@ -1479,7 +1482,8 @@ def recvLive (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
     (if r.created then
       iprop(⌜r.events = []⌝ ∗
         ∃ rv : w64, wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} rv)
-    else iprop(notStart P k.toNat ∗ resumeF V P r ∗ □ (⌜r.events ≠ []⌝ → wsRow V P))))
+    else iprop(notStart P k.toNat ∗ resumeF V P r ∗ □ (⌜r.events ≠ []⌝ → wsRow V P) ∗
+      cmpOkOf V.kv r.compactRev)))
 
 /-- **The dispatch cursors do not move from `recvc`'s position `a` to `b`** (persistent; D25): the
 responses between were created ones the goroutine skipped (a resumed create keeps both cursors). -/
