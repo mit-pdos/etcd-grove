@@ -69,7 +69,8 @@ theorem bsClear_bsSet (ws : List w64) (pos : w64) (h : uint.nat pos / 64 < ws.le
     · subst hjp
       unfold bsBit at hb
       simp only [List.getD_eq_getElem?_getD] at hb
-      simp [hb]
+      simp only [decide_true, Bool.or_true, Bool.not_true, Bool.and_false]
+      exact hb.symm
     · simp [hjp]
   rw [hw, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h, Option.getD_some,
     List.set_getElem_self]
