@@ -30189,3 +30189,16 @@ compaction on", accepted 4). Drafted in `ImageCmpDraft.lean`:
 8. The restart path's readers (`srvDiskImage`, `bootstrapRestartContract`) read the restated
    `imageAt` in place; their compaction-mode receipt is the restart path's (marked RESTART-RCPT in
    their docstrings and `notes/image-cmp-plan.md`).
+
+**2026-11-02 · accepted (the user's approval of F2's seven questions, `notes/image-cmp-f2-plan.md`)**
+1. `backend.backend.Snapshot.spec` restated as `specF2` (the plan's text, verbatim): the observation
+   also gets the batch lock's exact halves of the physical non-hook view (`pvHalf`) and of `Meta`'s
+   compaction keys (`ckHalf`), the post their values (`fkVals D`); today's spec kept as the proved
+   corollary `spec_of_specF2`. Restated only after the backend's invariant holds the two halves.
+2. Two exact client halves (not the hook's own keys widened, not a gone set).
+3. The cut kept by a job cursor in mvcc, at a whole revision, handed on in `compactTok`.
+4. `srvBeSnapOk_cmpRecs` replaced by the proved observation (`srvBeSnapOk_window`'s), not proved.
+5. `cmpTrack` carried across a restore before any writer registers (the new backend's
+   pre-registration state).
+6. A share of the writer's log ghost `γ.wv` in the writer's pin.
+7. `updateCompactRev` takes `1 ≤ rev` from its caller (the source of `recsPos`).

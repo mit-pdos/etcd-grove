@@ -137,6 +137,8 @@ watchkv.
 
 ## Questions (for the user; recommendations)
 
+**Approved, all seven (the user, 2026-11-02; `notes/decisions.md`).**
+
 1. **Restate `backend.Snapshot.spec` as `specF2`** (the trusted text above). Recommended.
 2. **Two exact client halves** (`pvHalf` of the physical non-hook view, `ckHalf` of the
    compaction keys) rather than widening the hook's own keys to the compaction keys (whose client
