@@ -429,7 +429,8 @@ private theorem wp_RestartNode_impl
   iunfold EtcdGrove.nodeVacant at Hvac
   iunfold nodeVacantU at Hvac
   imod raft_restart ⊤ γ.raft cv.ID' (md := true) σ.base σ.hs.Commit'
-    (fun S => StorageHolds S σ) (fun S => iprop(Q S ∗ termLB γ.bud S.term))
+    (fun S => StorageHolds S σ)
+    (fun S => iprop(Q S ∗ termLB γ.bud S.term ∗ inv budgetN (budgetInv γ.bud)))
     CoPset.subseteq_top Hmdb
     (fun S HS => by
       obtain ⟨Hb1, Hb2, Hb3, -, -, Hbc, Hwc, Hcc, -, -⟩ := HS
@@ -438,7 +439,7 @@ private theorem wp_RestartNode_impl
       have := uint_nat_eq S.commit
       exact ⟨Hb1, by omega, by omega, Hb2, Hwc⟩) HbootZ
     $$ Hvac [HAU Hlc1]
-    with ⟨%S, %HS, ⟨HQ, #HtS⟩, Hg, %gen, Hgen, Hfree, #HI1r⟩
+    with ⟨%S, %HS, ⟨HQ, #HtS, #Hbinv⟩, Hg, %gen, Hgen, Hfree, #HI1r⟩
   · have HEo : (⊤ \ ↑N : CoPset) ⊆ ⊤ \ ↑(slotN γ.raft cv.ID') := by
       intro p hp
       rw [Iris.Std.LawfulSet.mem_diff] at hp ⊢
@@ -457,7 +458,7 @@ private theorem wp_RestartNode_impl
     ihave Hcomm := Hcomm $$ %PUnit.unit
     iunfold EtcdGrove.raftState at HS
     iunfold raftStateU at HS
-    icases HS with ⟨Hdur, #Htlb0⟩
+    icases HS with ⟨Hdur, #Htlb0, #Hbi0⟩
     imodintro
     iexists S
     iframe Hdur
@@ -466,9 +467,9 @@ private theorem wp_RestartNode_impl
     imod Hcomm $$ [Hdur] with HQ
     · iunfold EtcdGrove.raftState
       unfold raftStateU
-      iframe Hdur Htlb0
+      iframe Hdur Htlb0 Hbi0
     imodintro
-    iframe HQ Htlb0
+    iframe HQ Htlb0 Hbi0
   -- the restarted log: its full prefix with records, its committed prefix, its commit's witness,
   -- its last index's record
   icases (entails_wand (persistent_entails_left (ownRaftGhost_cmt γ.raft cv.ID' _))) $$ Hg
@@ -894,8 +895,200 @@ private theorem wp_RestartNode_impl
   ihave #Hphw2 : phsWit (GF := GF) γ.raft σ.hs $$ []
   · rw [← Hhp]; iexact Hphw
   ihave #Hhw := hsWit_of_phsWit γ.raft σ.hs _ Hlen' $$ Hphw2
-  imod hsCommitted_of_raft γ N ⊤ CoPset.subseteq_top σ.hs _ $$ Hci Hhw with Hhc
-  sorry
+  imod hsCommitted_of_raft γ N ⊤ CoPset.subseteq_top σ.hs _ $$ Hci Hhw with HhsC
+  have HdynOk : ∀ γn : NodeNames, NodeOk γ γn → γn.mode.isDyn = true := fun γn h => by
+    rw [h.2.2.2, Hmd]; rfl
+  wp_auto
+  wp_apply wp_newNode rn as %nv ⟨%Hnvrn, Hchans⟩
+  -- the node's configuration names, `live`, the durable state and role, the last batch's maps
+  imod mono_list_own_alloc (GF := GF) ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied')))
+    with ⟨%gdlm, Hdlm, #Hdlb⟩
+  imod dghostVar_alloc (GF := GF) (a, stOf m) with ⟨%gcap, Hcap⟩
+  imod dghostVar_alloc (GF := GF) (a, stOf m) with ⟨%gccq, Hccq⟩
+  imod mono_nat_own_alloc (GF := GF) a with ⟨%gcam, Hcam, #Hcamlb⟩
+  imod dghostVar_alloc (GF := GF) false with ⟨%glive, Hlive⟩
+  imod dghostVar_alloc (GF := GF) ((S, StateFollower) : RaftState × StateType) with ⟨%gdur, Hdur⟩
+  imod dghostVar_alloc (GF := GF)
+    ((DurMaps.empty, (S, StateFollower)) : DurMaps × (RaftState × StateType)) with ⟨%gbw, Hbw⟩
+  -- the node's ghost state
+  imod dghostVar_alloc (((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied')), σ.hs) :
+    List EntryM × HardStateM) with ⟨%γdlv, Hdlv⟩
+  icases dghostVar_halves _ _ $$ Hdlv with ⟨Hdlv1, Hdlv2⟩
+  imod dghostVar_alloc (([], [], [], hsZero, none) : List EntryM × List EntryM ×
+    List EntryM × HardStateM × Option SnapLoan) with ⟨%γrof, Hrof⟩
+  icases dghostVar_halves _ _ $$ Hrof with ⟨Hrof1, Hrof2⟩
+  icases dghostVar_halves _ _ $$ Hcap with ⟨Hcap1, Hcap2⟩
+  icases dghostVar_halves _ _ $$ Hccq with ⟨Hccq1, Hccq2⟩
+  imod dghostVar_alloc (((none, none) : AdvReq)) with ⟨%γreq, Hreq⟩
+  icases dghostVar_halves _ _ $$ Hreq with ⟨Hreq1, Hreq2⟩
+  icases dghostVar_halves _ _ $$ Hlive with ⟨Hlive1, Hlive2⟩
+  icases dghostVar_halves _ _ $$ Hdur with ⟨Hdur1, Hdur2⟩
+  ihave Hgen : slotLive (GF := GF) γ.raft cv.ID' ((1 : Qp).half + (1 : Qp).half) gen $$ [Hgen]
+  · rw [Qp.half_add_half]; iexact Hgen
+  icases ((slotLive_fractional (GF := GF) γ.raft cv.ID' gen).fractional (1 : Qp).half
+    (1 : Qp).half).1 $$ Hgen with ⟨Hgen1, Hgen2⟩
+  unfold newNodeChans
+  icases Hchans with ⟨%γp, %γr, %γc, %γcs, %γrd, %γa, %γt, %γd, %γs, %γst, #Hcp, Hop, #Hcr, Hor,
+    #Hcc, Hoc, #Hccs, Hocs, #Hcrd, Hord, #Hca, Hoa, #Hct, Hot, #Hcd, Hod, #Hcs, Hos, #Hcst, Host⟩
+  let γn : NodeNames := {
+                          raft := γ.raft
+                          id := cv.ID'
+                          bud := γ.bud
+                          stor := interface.ok si
+                          propc := γp
+                          recvc := γr
+                          confc := γc
+                          confstatec := γcs
+                          readyc := γrd
+                          advancec := γa
+                          tick := γt
+                          done := γd
+                          stop := γs
+                          status := γst
+                          dlv := γdlv
+                          rof := γrof
+                          mode := γ.mode inferInstance
+                          dlm := gdlm
+                          cap := gcap
+                          ccq := gccq
+                          cam := gcam
+                          req := γreq
+                          sn := sn
+                          live := glive
+                          gen := gen
+                          dur := gdur
+                          bw := gbw }
+  have Hnok : NodeOk γ γn := ⟨rfl, rfl, Hsl, rfl⟩
+  have Hdy : γn.mode.isDyn = true := HdynOk γn Hnok
+  -- the node's table entry, while its struct is owned whole
+  imod nodeTab_insert γ N n_ptr nv (cfgNamesOf γn) $$ Htab n with ⟨#Hnp, #Hte⟩
+  haveI := nodeTabOk_persistent (GF := GF) γ n_ptr γn
+  ihave #Htb : nodeTabOk (GF := GF) γ n_ptr γn $$ []
+  · unfold nodeTabOk; iexact Hte
+  ihave Hlive1 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive1 Hgen1]
+  · unfold nodeLiveRaw; iframe Hlive1 Hgen1
+  ihave Hlive2 : nodeLiveRaw (GF := GF) γn 1 $$ [Hlive2 Hgen2]
+  · unfold nodeLiveRaw; iframe Hlive2 Hgen2
+  imod start_handshake nv.propc' (propP γn) iprop(True) γp $$ Hcp Hop with #Hhp
+  imod start_handshake nv.recvc' (netP γn cv.ID') iprop(True) γr $$ Hcr Hor with #Hhr
+  imod start_handshake nv.confc' (confcP γn) iprop(True) γc $$ Hcc Hoc with #Hhc
+  imod start_handshake nv.confstatec' (confstateP γn) iprop(True) γcs $$ Hccs Hocs with #Hhcs
+  imod start_handshake nv.readyc' (readyP γn) iprop(True) γrd $$ Hcrd Hord with #Hhrd
+  imod adv_start γn nv.rn' cv.ID' nv.advancec' $$ Hca Hoa with #Hha
+  imod alloc_broadcast_chan (nodeStoppedRaw γn) γd nv.done' $$ Hcd Hod with Hpend
+  icases ownBroadcastChan_pending_unknown nv.done' γd (nodeStoppedRaw γn) $$ Hpend with ⟨Hpend, #Hhd⟩
+  imod start_handshake nv.stop' (fun (_ : Unit) => dghostVar γn.live (DFrac.own (1 : Qp).half) false)
+    (stopAns γn cv.ID') γs $$ Hcs Hos with #Hhs
+  imod start_handshake nv.status' statusChP iprop(True) γst $$ Hcst Host with #Hhst
+  imod tickCred_zero γ.bud with Hcr0
+  imod inv_alloc tickN ⊤ (tickInv γn) $$ [Hot Hcr0] with #Htickinv
+  · inext
+    unfold tickInv
+    iexists []
+    iframe
+  icases ownRawNode_shared γ.raft rn cv.ID' _ $$ Hrn with ⟨%r, %lok', #Hrr, #Hrid, #Hrlg, #Hlg', Hrn⟩
+  ihave #Hnode : isNodeChan γn cv.ID' n_ptr $$ []
+  · unfold isNodeChan
+    iexists nv, r, lok'
+    simp only [named]
+    rw [Hnvrn]
+    iframe #
+    ipureintro; rfl
+  -- `go n.run()`
+  wp_apply wp_fork $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1 Hdur1 Hbw Hfree]
+  · wp_apply wp_node_run γn cv.ID' n_ptr $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1
+      Hdur1 Hbw Hfree]
+    · iframe Hnode
+      unfold runPre
+      iexists nv, _, (([], [], [], hsZero, none) : List EntryM × List EntryM × List EntryM ×
+        HardStateM × Option SnapLoan)
+      rw [Hnvrn]
+      iframe Hnp Hrn Hrof1 Hrof2
+      isplitr
+      · ipureintro; exact ⟨rfl, rfl, rfl⟩
+      isplitl [Hdlv1]
+      · iExactEq Hdlv1; rw [show rs0.phs = σ.hs from Hhp]
+      iframe HtS
+      iframe Hpend Hlive1 Hdur1 Hfree
+      isplitr [Hbw]
+      · unfold runCfg
+        isplitr
+        · ipureintro
+          refine ⟨rfl, ?_, rfl, fun _ h => absurd h (by simp [rs0]), rfl⟩
+          show a ≤ ((fp ++ σ.ents).take _).length
+          rw [HDlen]; omega
+        isplitl [Hdlm]
+        · iExactEq Hdlm; rfl
+        isplitr
+        · iExactEq HdK; rfl
+        iexists a
+        iframe Hcap1 Hcam
+        isplitr
+        · ipureintro; exact Nat.le_refl _
+        iapply undecFree_empty
+      iexists _; iexact Hbw
+    itrivial
+  iapply HΦ
+  iexists n_ptr, S, strip ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied'))), K
+  isplitr
+  · ipureintro; rfl
+  iframe HQ HFK
+  isplitr
+  · iunfold EtcdGrove.isNode
+    unfold isNode
+    iexists γn
+    iframe Hnode Htb Hci Hpool
+    ipureintro; exact ⟨Hnok, HU⟩
+  isplitl [HlbD]
+  · iunfold EtcdGrove.isCommittedLogLb; iexact HlbD
+  isplitr
+  · ipureintro; simp only [strip, List.length_map]; exact HDlen
+  isplitr
+  · ipureintro
+    rw [toEntries_strip _ 0 (fun k e h => by rw [HidxD k e h]; simp)]
+    simp only [strip, List.length_map, HDlen]
+    have hfl : fp.length = σ.b := by
+      unfold StorContents.b; have := uint_nat_eq σ.base.index'; omega
+    rw [List.drop_take, ← hfl, List.drop_left]
+  isplitl [Hdlv2 Hreq1 Hreq2 Hdur2 HlbD2 HhsC]
+  · iunfold EtcdGrove.nodeDriver
+    unfold nodeDriver
+    iexists γn, cv.ID', (fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied'))
+    isplitr
+    · ipureintro; exact ⟨Hnok, rfl, rfl⟩
+    isplitr; · iexact Hci
+    isplitl [HlbD2]; · iexact HlbD2
+    isplitr; · ipureintro; exact Hdy
+    isplitr; · iexact Htb
+    isplitl [HhsC]; · iexact HhsC
+    isplitr; · iexact HKn
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iframe Hdur2
+    unfold nodeDriverChan dlvLb
+    iframe Hnode Hdlv2 Hdlb HdK
+    iexists _
+    iframe Hreq1 Hreq2
+  isplitl [Hcap2 Hccq1 Hccq2]
+  · iunfold EtcdGrove.nodeConfig
+    isplitl [Hcap2 Hccq1 Hccq2]
+    · unfold nodeConfig
+      iexists γn, cv.ID'
+      iframe Hnode Htb
+      isplitr
+      · ipureintro
+        exact ⟨Hnok, Hdy, Hvalm.2⟩
+      unfold nodeCfg
+      iframe Hcap2 Hcamlb
+      iexists _
+      iframe Hccq1 Hccq2
+    iexact Hconf
+  iunfold EtcdGrove.nodeRunning
+  unfold nodeRunning
+  iexists γn, cv.ID'
+  iframe Hnode Htb Hlive2
+  ipureintro; exact ⟨Hnok, Hdy⟩
 
 end wrap
 

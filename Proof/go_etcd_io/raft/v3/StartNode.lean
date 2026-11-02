@@ -350,14 +350,14 @@ private theorem wp_StartNode_impl
     ihave Hcomm := Hcomm $$ %PUnit.unit
     iunfold EtcdGrove.raftState at HS
     iunfold raftStateU at HS
-    icases HS with ⟨Hdur, #Htlb0⟩
+    icases HS with ⟨Hdur, #Htlb0, #Hbi0⟩
     imodintro
     iframe Hdur
     iintro Hdur
     iapply Hcomm
     iunfold EtcdGrove.raftState
     unfold raftStateU
-    iframe Hdur Htlb0
+    iframe Hdur Htlb0 Hbi0
   -- the storage's frame and reads (`restartStorage` of the empty contents, freeze point `0`)
   iunfold restartStorage at Hrs
   icases Hrs with ⟨%i, %Rb, %f, %Hi, %Hf, HRb, #HFI, #HLI, #HIS⟩

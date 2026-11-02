@@ -1777,9 +1777,11 @@ theorem nodeCommitLbU_mono (γ : Cluster) (K : GName) (i i' : Nat) (h : i' ≤ i
 /-- (2026-11-01, durability stage I-2; candidate 12 §1) **Node `id`'s durable state is `S`** (the
 API's `raftState`): the protocol's durable half at `S` (`ownDurGhost`: its share of the promise
 authorities at the entered maps, `S`'s durable invariants), and the term budget's lower bound at
-`S`'s term (amendment 3: what the restarted node's `run` needs, `runPre`'s `termLB`). -/
+`S`'s term (amendment 3: what the restarted node's `run` needs, `runPre`'s `termLB`); (2026-11-02,
+stage II (p)) and the budget's invariant, which a restarted node's channels need (`isNodeChan`;
+`StartNode` has it from `nodeBoot`). -/
 def raftStateU (γ : Cluster) (id : w64) (S : RaftState) : IProp GF :=
-  iprop(ownDurGhost γ.raft id S ∗ termLB γ.bud S.term)
+  iprop(ownDurGhost γ.raft id S ∗ termLB γ.bud S.term ∗ inv budgetN (budgetInv γ.bud))
 
 /-- (2026-11-01, durability stage I-2; candidate 12 §1) **No node of `id` runs** (the API's
 `nodeVacant`): the id's protocol slot (`raftIdSlot`: the other half of its virtual maps, its
@@ -2365,7 +2367,7 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
   unfold readyEnter
   iintro %E %q %HE ⟨Hrs, Hrun⟩
   iunfold raftStateU at Hrs
-  icases Hrs with ⟨Hdg, #HtS⟩
+  icases Hrs with ⟨Hdg, #HtS, #Hbi⟩
   iunfold nodeRunning at Hrun
   icases Hrun with ⟨%γ1, %id1, %Hok1, #H1, #T1, Hl⟩
   icases isNode_id_agree γ1 γn id1 γn.id n $$ H1 Hnode with %Hid1
@@ -2406,7 +2408,7 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
   isplitl [Hdg]
   · unfold raftStateU
     rw [HS]
-    iframe Hdg HtS'
+    iframe Hdg HtS' Hbi
   isplitl [Hlv Hsl]
   · unfold nodeRunning
     iexists γ1, γn.id

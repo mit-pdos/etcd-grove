@@ -123,7 +123,7 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool) (E :
     iintro %x %u %_ ⟨Hd, Hs⟩
     unfold joinSlotU raftStateU nodeVacantU
     rw [Hγb, show RaftState.init.term = W64 0 from rfl]
-    iframe Hd Hs Htlb
+    iframe Hd Hs Htlb Hbinv
   ihave Hja : joinAuthU (GF := GF) γ ∅ $$ [Hsl]
   · unfold joinAuthU joinBaseU
     rw [show allNodeIds \ (∅ : GSet w64) = allNodeIds from GMap.set_eq fun x => by
