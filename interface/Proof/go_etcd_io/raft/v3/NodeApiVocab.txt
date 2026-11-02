@@ -100,7 +100,8 @@ def ReadyRestFacts (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM
     uint.nat st.hardState.Commit' ≤ uint.nat (phsNext st.hardState h).Commit' ∧
       uint.nat (phsNext st.hardState h).Commit' ≤ (readyDurable st.durable (phsNext st.hardState h) (some l) es).last ∧
         uint.nat st.hardState.Commit' < uint.nat l.snap.Metadata'.Index' ∧
-          uint.nat l.snap.Metadata'.Index' ≤ uint.nat (phsNext st.hardState h).Commit'
+          uint.nat l.snap.Metadata'.Index' ≤ uint.nat (phsNext st.hardState h).Commit' ∧
+            ∀ (e : EntryM), e ∈ es → uint.Z e.Type' ≤ 2
   | none =>
     uint.nat st.hardState.Commit' ≤ uint.nat (phsNext st.hardState h).Commit' ∧
       uint.nat (phsNext st.hardState h).Commit' ≤ (readyDurable st.durable (phsNext st.hardState h) none es).last ∧
@@ -114,7 +115,8 @@ def ReadyRestFacts (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM
                             es).ents[st.delivered.length + j -
                           uint.nat (readyDurable st.durable (phsNext st.hardState h) none es).base.index']? =
                       some (LogEntry.toEntryM (W64 (↑st.delivered.length + 1 + ↑j)) e)) ∧
-              ∀ (e0 : EntryM), es.head? = some e0 → uint.nat st.hardState.Commit' < uint.nat e0.Index'
+              (∀ (e0 : EntryM), es.head? = some e0 → uint.nat st.hardState.Commit' < uint.nat e0.Index') ∧
+                ∀ (e : EntryM), e ∈ es → uint.Z e.Type' ≤ 2
 
 def LogEntry.ofEntryM (e : EntryM) : LogEntry :=
   { term := e.Term', type := e.Type', data := e.Data' }

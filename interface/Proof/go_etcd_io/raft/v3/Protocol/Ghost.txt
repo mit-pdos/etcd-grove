@@ -59,6 +59,9 @@ theorem witsB_agree [ReceiptGS GF] (γ : RaftNames) (F F' : List EntryM) (lim : 
 theorem isEntryR_term_pos [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) : ⊢ isEntryR γ e pt
     -∗ ⌜γ.reBoot ≠ [] → 1 ≤ uint.Z e.Term'⌝
 
+theorem propDataIs_ty [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (o : Option (List w8)) :
+    propDataIs γ e o ⊢ ⌜uint.Z e.Type' ≤ 2⌝
+
 def deposited (γ : RaftNames) (d : List w8) : IProp GF :=
   iprop(∃ p, d ↪[γ.reProps]□ p)
 
@@ -836,6 +839,9 @@ theorem logRecs_boot [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) : PlogWf 
     base0 F -∗ ⌜∀ (k : Nat) (e : EntryM), F[k]? = some e → k < γ.reBoot.length → γ.reBoot[k]? = some
     e ∧ e.Term' = W64 1⌝
 
+theorem logRecs_ty [ReceiptGS GF] (γ : RaftNames) (b : entryID) (es : List EntryM) (Hwf : PlogWf b
+    es) : logRecs γ b es ⊢ ⌜∀ (e : EntryM), e ∈ es → uint.Z e.Type' ≤ 2⌝
+
 theorem propData_propRepl [ReceiptGS GF] (γ : RaftNames) (es es' : List EntryM) (H : PropRepl es
     es') : ⊢ ([∗list] e ∈ es, propData γ e) -∗ [∗list] e ∈ es', propData γ e
 
@@ -1050,6 +1056,9 @@ theorem propsOf_nil : propsOf [] = []
 
 theorem logRecs_persistent [ReceiptGS GF] (γ : RaftNames) (b : entryID) (es : List EntryM) :
     Persistent (logRecs γ b es)
+
+theorem isEntryR_ty [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) : isEntryR γ e pt ⊢
+    ⌜uint.Z e.Type' ≤ 2⌝
 
 theorem logRecs_boot_wf [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) : PlogWf base0 F → ⊢
     logRecs γ base0 F -∗ ⌜γ.reBoot <+: F → PlogWf base0 γ.reBoot ∧ ∀ (e : EntryM), e ∈ γ.reBoot →

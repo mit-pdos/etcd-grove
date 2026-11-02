@@ -660,7 +660,7 @@ theorem readyRest_indices (γ : Cluster) (N : Namespace) (rd : Ready)
 
 /-! ### What a `Ready` is past, and within (2026-11-01, durability stage II (m))
 
-`ReadyRestFacts`, law by law, as kvdurable's `Replica.run` uses them (its G4, G7–G10, G14, G17). -/
+`ReadyRestFacts`, law by law, as kvdurable's `Replica.run` uses them (its G4, G7–G10, G14, G17, G20). -/
 
 theorem readyRest_facts (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg)
@@ -699,7 +699,7 @@ theorem readyRest_snap (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDri
         uint.nat l.snap.Metadata'.Index' ≤ uint.nat (phsNext st.hardState h).Commit'⌝ := by
   iintro H
   icases readyRest_facts γ N rd st ce es h (some l) ms ss $$ H with ⟨H, %Hf⟩
-  iframe H; ipureintro; exact Hf.2.2
+  iframe H; ipureintro; exact ⟨Hf.2.2.1, Hf.2.2.2.1⟩
 
 /-- (G8) **The commit index is within the durable log after the batch.** -/
 theorem readyRest_commit_le_last (γ : Cluster) (N : Namespace) (rd : Ready)
@@ -760,7 +760,23 @@ theorem readyRest_ents_above_commit (γ : Cluster) (N : Namespace) (rd : Ready)
       ⌜∀ e0, es.head? = some e0 → uint.nat st.hardState.Commit' < uint.nat e0.Index'⌝ := by
   iintro H
   icases readyRest_facts γ N rd st ce es h none ms ss $$ H with ⟨H, %Hf⟩
-  iframe H; ipureintro; exact Hf.2.2.2.2.2
+  iframe H; ipureintro; exact Hf.2.2.2.2.2.1
+
+/-- (G20; 2026-11-02, durability stage II (q)) **Every entry is of a type of raft's**:
+`EntryNormal`, `EntryConfChange` or `EntryConfChangeV2`. (Raft itself appends an entry of any
+type it is given; every entry here was built by `Propose`, `ProposeConfChange`, raft's own fillers
+or the bootstrap log.) -/
+theorem readyRest_ents_type (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg)
+    (ss : Option (w64 × StateType)) :
+    readyRest (GF := GF) γ N rd st ce es h L ms ss ⊢ readyRest γ N rd st ce es h L ms ss ∗
+      ⌜∀ e ∈ es, uint.Z e.Type' ≤ 2⌝ := by
+  iintro H
+  icases readyRest_facts γ N rd st ce es h L ms ss $$ H with ⟨H, %Hf⟩
+  iframe H; ipureintro
+  cases L with
+  | none => exact Hf.2.2.2.2.2.2
+  | some l => exact Hf.2.2.2.2
 
 /-! ## What etcd's server needs (2026-10-27, branch `server-port`; implemented the same day)
 

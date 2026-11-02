@@ -180,6 +180,11 @@ theorem readyRest_delivered_le_commit [package_sem : Assumptions] (γ : Cluster)
     γ N rd st ce es h none ms ss ∗ ⌜(st.delivered ++ ce).length ≤ uint.nat (phsNext st.hardState
     h).Commit'⌝
 
+theorem readyRest_ents_type [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option
+    SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) : readyRest γ N rd st ce es h L ms ss
+    ⊢ readyRest γ N rd st ce es h L ms ss ∗ ⌜∀ (e : EntryM), e ∈ es → uint.Z e.Type' ≤ 2⌝
+
 def readyRest (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState) (ce : List LogEntry)
     (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 ×
     StateType)) : IProp GF :=

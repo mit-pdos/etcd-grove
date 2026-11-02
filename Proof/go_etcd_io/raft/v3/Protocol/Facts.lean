@@ -1691,7 +1691,8 @@ theorem BootLogOk.wf {ps : List w64} {bootLog : List EntryM}
   refine ⟨H.2.1, fun k e Hk => ?_, ?_⟩
   · obtain ⟨Ht, Hi, Hty, ⟨m, Hm, -, -⟩⟩ := H.2.2 k e Hk
     refine ⟨Ht, Hi, ?_, ⟨fun _ => ⟨m, Hm⟩, fun h => absurd (Hty.symm.trans h)
-      (W32_ne 1 2 (by omega) (by omega) (by omega) (by omega) (by omega))⟩⟩
+      (W32_ne 1 2 (by omega) (by omega) (by omega) (by omega) (by omega)),
+      by rw [Hty]; decide⟩⟩
     rintro ⟨-, h | h⟩ <;> rw [Hty] at h
     · exact W32_ne 1 0 (by omega) (by omega) (by omega) (by omega) (by omega) h
     · exact W32_ne 1 2 (by omega) (by omega) (by omega) (by omega) (by omega) h

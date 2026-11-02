@@ -1771,9 +1771,11 @@ before it, its committed entries `ce`, its entries `es` and its snapshot's loan 
 does not move back (G4) and is within the batch's durable log (G8); a snapshot is past the hard
 state's commit index and within the new one (G7); without one, the entries start at most one past
 the durable log (G9) and past the hard state's commit index (G17), the committed log handed out is
-within the commit index (G10), and the committed entries are the batch's durable log's (G14). -/
+within the commit index (G10), and the committed entries are the batch's durable log's (G14).
+(2026-11-02, stage II (q)) And every entry is of a type of raft's (G20, `CCDecodes`). -/
 def ReadyFacts (D : RaftState) (p p' : HardStateM) (d ce es : List EntryM) (L : Option SnapLoan) :
     Prop :=
+  (∀ e ∈ es, uint.Z e.Type' ≤ 2) ∧
   uint.Z p.Commit' ≤ uint.Z p'.Commit' ∧
   uint.nat p'.Commit' ≤ (readyDurable D p' L es).last ∧
   match L with
@@ -1808,14 +1810,15 @@ theorem readyFacts_of (D : RaftState) (p : HardStateM) (ls : LogState) (t v : w6
     (Hpa : L = none → uint.nat ls.prev.index' ≤ d.length)
     (Hag : L = none → ∀ k e, (ls.sents ++ ls.uents)[k]? = some e →
       uint.nat ls.prev.index' + k < (d ++ ce).length →
-      (d ++ ce)[uint.nat ls.prev.index' + k]? = some e) :
+      (d ++ ce)[uint.nat ls.prev.index' + k]? = some e)
+    (Hty : ∀ e ∈ es, uint.Z e.Type' ≤ 2) :
     ReadyFacts D p (HardStateM.mk t v ls.committed) d ce es L := by
   have hfl : (fp.length : Int) = uint.Z ls.prev.index' := Hfp.1
   have hP := uint_nat_eq ls.prev.index'
   have hC := uint_nat_eq ls.committed
   have hlast := DurFull.last HD'
   simp only [List.length_append] at hlast
-  refine ⟨Hpc0, ?_, ?_⟩
+  refine ⟨Hty, Hpc0, ?_, ?_⟩
   · show uint.nat ls.committed ≤ _
     rw [hlast]; omega
   cases hl : L with
@@ -2178,13 +2181,25 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
     | none =>
       ihave %H := Hdur' $$ %(.inl (Hrdp.1 hl).2) %fp0 %Hfp0 Hfr0
       ipureintro; intro _; exact H
+  -- (2026-11-02, stage II (q), G20) the entries' types, from the log's records
+  icases ownRaftGhost_storedRecs_keep γ id (toPState s) $$ Hghost with ⟨Hghost, #Hsr⟩
+  ihave %Hty : ⌜∀ e ∈ es, uint.Z e.Type' ≤ 2⌝ $$ []
+  · unfold storedRecs
+    icases Hsr with ⟨%Hwf, #Hr⟩
+    ihave %Hall := logRecs_ty γ _ _ Hwf $$ Hr
+    ipureintro
+    intro e he
+    apply Hall e
+    rw [Hes] at he
+    unfold nextUnstable at he
+    exact List.mem_append_right _ (List.mem_of_mem_drop he)
   have Hfacts : ReadyFacts rs.dur rs.phs (phsNext rs.phs hrd0) rs.delivered ce es L := by
     rw [Hhseq] at HD'0 ⊢
     exact readyFacts_of rs.dur rs.phs s.logst s.term s.vote rs.delivered ce es fp0 L Hfp0 HD'0
       HDt0 Hphs.commit_le (fun h => Hphs.2.2.1 (.inl h))
       (fun l hl => Hphs.2.2.2 _ (Hrdp.2 l hl).2.1 (fun l' h => by rw [Hloan.2] at h; cases h))
       (fun h => (Hrdp.1 h).2) Hpv Hpst Hes Hcm Hpc (fun h => by rw [Hdl]; exact Hcel h)
-      (fun h => by rw [Hdl]; exact Hpa h) Hag
+      (fun h => by rw [Hdl]; exact Hpa h) Hag Hty
   have Hp' := congrArg HardStateM.Term' Hhseq
   have Hv' := congrArg HardStateM.Vote' Hhseq
   have Hc' := congrArg HardStateM.Commit' Hhseq

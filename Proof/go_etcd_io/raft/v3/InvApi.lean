@@ -318,7 +318,7 @@ theorem cmtFacts_bootOk (γ : Cluster) {ps : List w64} {L : List EntryM} (H : Bo
   · ipureintro; intro e he
     obtain ⟨k, hk⟩ := List.getElem?_of_mem he
     obtain ⟨-, -, ht, m, hm, -⟩ := H.2.2 k e hk
-    exact ⟨fun _ => ⟨_, hm⟩, fun h2 => by rw [ht] at h2; revert h2; word⟩
+    exact ⟨fun _ => ⟨_, hm⟩, fun h2 => by rw [ht] at h2; revert h2; word, by rw [ht]; decide⟩
   imodintro
   iintro %k %e %hk
   unfold ev2At
@@ -2443,10 +2443,10 @@ theorem readyRestFacts_of_none (st : NodeDriverState) (ds ce es : List EntryM) (
     (Hrf : ReadyFacts st.durable st.hardState p' ds ce es none) :
     ReadyRestFacts st (strip ce) es h none := by
   subst Hp'
-  obtain ⟨g4, g8, g9, g10, g14, g17⟩ := Hrf
+  obtain ⟨g20, g4, g8, g9, g10, g14, g17⟩ := Hrf
   have u1 := uint_nat_eq st.hardState.Commit'
   have u2 := uint_nat_eq (phsNext st.hardState h).Commit'
-  refine ⟨by omega, g8, g9, ?_, fun j e hj hb => ?_, fun e0 he0 => ?_⟩
+  refine ⟨by omega, g8, g9, ?_, fun j e hj hb => ?_, fun e0 he0 => ?_, g20⟩
   · simp only [List.length_append, strip_length] at g10 ⊢; omega
   · have hj' : ce[j]? = some (e.toEntryM (W64 (st.delivered.length + j + 1))) := by
       rw [← Hce]; unfold LogEntry.toEntries; rw [List.getElem?_mapIdx, hj]; rfl
@@ -2464,11 +2464,11 @@ theorem readyRestFacts_of_some (st : NodeDriverState) (ds es : List EntryM) (h p
     (Hrf : ReadyFacts st.durable st.hardState p' ds [] es (some l)) :
     ReadyRestFacts st [] es h (some l) := by
   subst Hp'
-  obtain ⟨g4, g8, g7a, g7b⟩ := Hrf
+  obtain ⟨g20, g4, g8, g7a, g7b⟩ := Hrf
   have u1 := uint_nat_eq st.hardState.Commit'
   have u2 := uint_nat_eq (phsNext st.hardState h).Commit'
   have u3 := uint_nat_eq l.snap.Metadata'.Index'
-  exact ⟨by omega, g8, by omega, by omega⟩
+  exact ⟨by omega, g8, by omega, by omega, g20⟩
 
 /-- **Receiving a `Ready`, opened**: the node's raft channel and driver token, and the update
 from what raft's receive gives to `readyPost`. -/

@@ -175,7 +175,9 @@ past, and within**, at the loop's state `st`, by its snapshot's loan: the commit
 back, and is within the durable log after the batch; a snapshot is past the hard state's commit
 index last handed out and within the new one; without one, the entries start at most one past the
 durable log and past the hard state's commit index, the committed log delivered is within the
-commit index, and the committed entries above the durable base are the batch's durable log's. -/
+commit index, and the committed entries above the durable base are the batch's durable log's.
+(2026-11-02, stage II (q); kvdurable's G20) Either way, every entry is of a type of raft's
+(`EntryNormal`, `EntryConfChange`, `EntryConfChangeV2`). -/
 def ReadyRestFacts (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) :
     Option SnapLoan → Prop
   | some l =>
@@ -183,7 +185,8 @@ def ReadyRestFacts (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM
     uint.nat (phsNext st.hardState h).Commit' ≤
       (readyDurable st.durable (phsNext st.hardState h) (some l) es).last ∧
     uint.nat st.hardState.Commit' < uint.nat l.snap.Metadata'.Index' ∧
-    uint.nat l.snap.Metadata'.Index' ≤ uint.nat (phsNext st.hardState h).Commit'
+    uint.nat l.snap.Metadata'.Index' ≤ uint.nat (phsNext st.hardState h).Commit' ∧
+    (∀ e ∈ es, uint.Z e.Type' ≤ 2)
   | none =>
     uint.nat st.hardState.Commit' ≤ uint.nat (phsNext st.hardState h).Commit' ∧
     uint.nat (phsNext st.hardState h).Commit' ≤
@@ -196,7 +199,8 @@ def ReadyRestFacts (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM
       (readyDurable st.durable (phsNext st.hardState h) none es).ents[st.delivered.length + j -
         uint.nat (readyDurable st.durable (phsNext st.hardState h) none es).base.index']? =
         some (e.toEntryM (W64 (st.delivered.length + 1 + j)))) ∧
-    (∀ e0, es.head? = some e0 → uint.nat st.hardState.Commit' < uint.nat e0.Index')
+    (∀ e0, es.head? = some e0 → uint.nat st.hardState.Commit' < uint.nat e0.Index') ∧
+    (∀ e ∈ es, uint.Z e.Type' ≤ 2)
 
 /-! ### The configuration, abstractly (2026-10-27, for etcd's server: moved from the draft) -/
 

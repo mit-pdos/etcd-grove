@@ -1186,7 +1186,7 @@ theorem entKey_inj {ty1 ty2 : w32} {d1 d2 : List w8} (h : entKey ty1 d1 = entKey
 
 /-- A normal entry's bytes decode as its type says: there is nothing to decode. -/
 theorem CCDecodes_normal (d : List w8) : CCDecodes (W32 0) d :=
-  ⟨fun h => absurd h (by decide), fun h => absurd h (by decide)⟩
+  ⟨fun h => absurd h (by decide), fun h => absurd h (by decide), by decide⟩
 
 /-- A registered data's record (2026-10-21): its result predicate's name, its deposits' map's
 name. -/
@@ -2025,6 +2025,41 @@ private theorem logRecs_elim (γ : RaftNames) (b : entryID) (es : List EntryM)
   refine (BigSepL.bigSepL_lookup Hk).trans ?_
   simp only [Hr, ite_true]
   exact .rfl
+
+/-- (2026-11-02, durability stage II (q), kvdurable's G20) **An entry's type is one of raft's**
+(`CCDecodes`), from its data's record. -/
+theorem propDataIs_ty (γ : RaftNames) (e : EntryM) (o : Option (List w8)) :
+    propDataIs (GF := GF) γ e o ⊢ ⌜uint.Z e.Type' ≤ 2⌝ := by
+  cases o with
+  | none =>
+    unfold propDataIs
+    iintro %H; ipureintro; exact H.2.2.2
+  | some k =>
+    unfold propDataIs
+    iintro ⟨%H, -⟩; ipureintro; exact H.2.2.2.2
+
+theorem isEntryR_ty (γ : RaftNames) (e : EntryM) (pt : w64) :
+    isEntryR (GF := GF) γ e pt ⊢ ⌜uint.Z e.Type' ≤ 2⌝ := by
+  unfold isEntryR entData
+  iintro (⟨%ldr, %γt, %b, %l0, %F0, -, -, -, -, -, ⟨%o, Hd⟩, -⟩ | ⟨-, %o, Hd⟩)
+  · cases o with
+    | none => iunfold entDataIs at Hd; iapply propDataIs_ty γ e none $$ Hd
+    | some d => unfold entDataIs; icases Hd with ⟨Hd, -⟩; iapply propDataIs_ty γ e (some d) $$ Hd
+  · cases o with
+    | none => iunfold entDataIs at Hd; iapply propDataIs_ty γ e none $$ Hd
+    | some d => unfold entDataIs; icases Hd with ⟨Hd, -⟩; iapply propDataIs_ty γ e (some d) $$ Hd
+
+/-- (2026-11-02, durability stage II (q)) **Every entry of a well-formed log with records is of a
+type of raft's.** -/
+theorem logRecs_ty (γ : RaftNames) (b : entryID) (es : List EntryM) (Hwf : PlogWf b es) :
+    logRecs (GF := GF) γ b es ⊢ ⌜∀ e ∈ es, uint.Z e.Type' ≤ 2⌝ := by
+  iintro #H
+  iintro %e %He
+  obtain ⟨k, Hk⟩ := List.getElem?_of_mem He
+  have Hi := Hwf k e Hk
+  have := uint_Z_lt e.Index'
+  icases logRecs_elim γ b es k e Hk (by push_cast at Hi; omega) $$ H with ⟨%pt, -, #Hr⟩
+  iapply isEntryR_ty γ e pt $$ Hr
 
 /-- `logRecs` from a persistent resource giving each in-range entry's record
 (Rocq: `big_sepL_intro` + `case_decide`). -/

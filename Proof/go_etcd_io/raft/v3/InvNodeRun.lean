@@ -940,7 +940,7 @@ theorem propData_ccEnts (γ : RaftNames) (ents : List EntryM) :
         simp only [ccEntOk]
         ipureintro; exact ⟨H1, Hm⟩
       by_cases H2 : e.Type' = W32 2
-      · obtain ⟨m, Hm⟩ := Hdec.2 H2
+      · obtain ⟨m, Hm⟩ := Hdec.2.1 H2
         iexists some (.v2 m)
         simp only [ccEntOk]
         ipureintro; exact ⟨H2, Hm⟩

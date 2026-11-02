@@ -230,7 +230,7 @@ theorem committed_confDecodes_impl (γ : Cluster) (N : Namespace) (l : List LogE
   intro e he hc
   rw [← HL] at he
   obtain ⟨x, hx, rfl⟩ := List.mem_map.mp he
-  obtain ⟨h1, h2⟩ := Hd x hx
+  obtain ⟨h1, h2, -⟩ := Hd x hx
   unfold ConfEntryDecodes ccDecode
   simp only [LogEntry.ofEntryM]
   rcases hc with hc | hc
