@@ -207,6 +207,11 @@ noncomputable def idIssueFragD (id : w64) (g : Loc) : IProp GF :=
 instance idIssueFragD_persistent (id : w64) (g : Loc) : Persistent (idIssueFragD (L := L) id g) := by
   unfold idIssueFragD; split <;> infer_instance
 
+instance idIssueFragD_timeless (id : w64) (g : Loc) : Timeless (idIssueFragD (L := L) id g) := by
+  unfold idIssueFragD; split
+  · unfold idIssueFrag idIssueFragAt; infer_instance
+  · infer_instance
+
 /-- Under the instance, the fact itself. -/
 theorem idIssueFragD_eq [h : HasExt idIssueExt] (id : w64) (g : Loc) :
     idIssueFragD (L := L) id g = idIssueFrag (L := L) id g := by
