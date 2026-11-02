@@ -259,8 +259,11 @@ theorem srvMem_bootStorage
     memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗ memEnd γs 1 ∗
     (∀ K : GName, memStorInv ms γs γr.cl K -∗
       memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗ F K))
+  iexists 0
   isplitr
   · ipureintro; rfl
+  isplitr
+  · ipureintro; simp [StorContents.b, StorContents.commit]
   isplitl [Hfresh Hmeta He HF]
   · iframe Hfresh Hmeta He HF
   isplitr
@@ -315,6 +318,7 @@ theorem srvMem_bootStorage
   have hl : (⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).last = 0 := by
     simp [StorContents.last, StorContents.b]
   rw [hl, hb, Nat.zero_add]
+  simp only [Nat.sub_self, List.take_zero, List.drop_zero]
   iexists (zero_val EntryM)
   isplitr
   · ipureintro; rfl
@@ -323,6 +327,9 @@ theorem srvMem_bootStorage
     iapply memCompacted_zero
   isplitr
   · iapply memStorLog_of ms γs 0 DFrac.discard [zero_val EntryM] $$ Hreg Hlog
+  isplitr
+  · iapply memStorLog_of ms γs 1 DFrac.discard [] $$ Hreg
+    iapply memLog_nil
   isplitr
   · iapply memStorLog_of ms γs 1 (DFrac.own 1) [] $$ Hreg
     iapply memLog_nil
@@ -458,7 +465,7 @@ theorem raftNode_of_StartNode
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NodeStartSpec (GF := GF) := by
   intro γr E b ss wal cl dq bv cv lok γs pv ps ctxs issued Hlg Hhb Hvalid Hlok Hstor Hinfl
-    Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hvs Hfit HEγ HEpre HEai
+    Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hvs Hwal Hfit HEγ HEpre HEai
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
   iintro %Φ Hpre HΦ
@@ -476,7 +483,7 @@ theorem raftNode_of_StartNode
     (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
       memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0))))
     Hlg Hhb Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0
-    (by omega) Hid Hvs)
+    (by omega) Hid Hvs Hwal)
     $$ [Hb Hc Hbs Hpeers HrS Hvac]
     as %r Hpost
   · iframe #; iframe Hb Hc Hbs Hpeers HrS Hvac
@@ -565,7 +572,11 @@ theorem raftNode_of_StartNode
     iNamed Hparts
     simp only [named]
     iframe #
-    ipureintro; exact Hlgnn
+    isplitr
+    · ipureintro; exact Hlgnn
+    -- (2026-10-31) `stopped`'s bag at the storage's WAL
+    iExactEq Hstci
+    first | rfl | simp [Hrvcfg]
   imodintro
   iframe Hrn Hdone Htrf Hprop
   have hn : rnNodeIface γw =

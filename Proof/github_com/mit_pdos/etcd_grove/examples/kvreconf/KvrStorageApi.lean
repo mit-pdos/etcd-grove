@@ -414,8 +414,11 @@ theorem kvr_bootStorage
     github_com.mit_pdos.etcd_grove.examples.kvreconf.Storage.ty) #s)
   iexists iprop(memStorFresh ms γs 0 memSnapEmpty ∗ memStorMeta ms γs hs ∗ memEnd γs 1 ∗
     (∀ K : GName, memStorMeta ms γs hs -∗ memStorInvP ms γs (kvrJ γ K) -∗ F K))
+  iexists 0
   isplitr
   · ipureintro; rfl
+  isplitr
+  · ipureintro; simp [StorContents.b, StorContents.commit]
   isplitl [Hfresh Hmeta He HF]
   · iframe Hfresh Hmeta He HF
   isplitr
@@ -465,6 +468,7 @@ theorem kvr_bootStorage
   have hl : (⟨hs, none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).last = 0 := by
     simp [StorContents.last, StorContents.b]
   rw [hl, hb, Nat.zero_add]
+  simp only [Nat.sub_self, List.take_zero, List.drop_zero]
   iexists (zero_val EntryM)
   isplitr
   · ipureintro; rfl
@@ -473,6 +477,9 @@ theorem kvr_bootStorage
     iapply memCompacted_zero
   isplitr
   · iapply kvrStorLog_of s ms γs 0 DFrac.discard [zero_val EntryM] $$ Hrec Hlog
+  isplitr
+  · iapply kvrStorLog_of s ms γs 1 DFrac.discard [] $$ Hrec
+    iapply memLog_nil
   isplitr
   · iapply kvrStorLog_of s ms γs 1 (DFrac.own 1) [] $$ Hrec
     iapply memLog_nil

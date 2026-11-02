@@ -118,7 +118,8 @@ theorem Cluster.startNew.wp_proof
       memStorInvP ms γs (kvrJ γr.cluster K)))
     $$ Hpkg Hsrec Hsboot Hml Hfresh Hmeta Hmlog Hmend []
   · iintro %K Hm Hi; iframe Hm Hi
-  ihave Hau := kvr_restartAu γr.cluster kvrRaftN nid kvrBootContents kvrBoot_holds $$ HrS
+  ihave Hau := kvr_restartAu γr.cluster kvrRaftN nid kvrBootContents kvrBoot_holds $$ [HrS]
+  · inext; iexact HrS
   ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
   have Hiface : kvrStorIface «$r0_ptr» =
       GoInterface.ok ⟨go.GoType.PointerType rStorageTy, #«$r0_ptr»⟩ := rfl
@@ -132,10 +133,10 @@ theorem Cluster.startNew.wp_proof
       (by rw [HcAp]; simp [StorContents.b]) (by simp [StorContents.commit])
       (by rw [Hbl0]; simp [StorContents.commit]) (bootCS_is vs Hvnd))
     $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
-    as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, Hdrv, Hncfg, Hrun, ⟨HrS, %HS⟩, Hmeta, #HmsInv⟩
+    as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, ⟨HrS, %HS⟩, Hmeta, #HmsInv⟩
   · have hA : uint.nat cv.Applied' = 0 := by rw [HcAp]; rfl
     rw [HcID, ← Hiface, hA]
-    iframe Hboot Hvac Hic Hca0
+    iframe Hboot Hvac Hic Hca0 Hfits
     iExactEq Hau; rfl
   subst Hnd
   have Hl0 : l = [] := List.eq_nil_of_length_eq_zero (by rw [Hlen, HcAp]; rfl)

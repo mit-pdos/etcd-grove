@@ -288,6 +288,9 @@ def isClusterC (γr : RNames) (vs : List w64) (c : Loc) : IProp GF :=
     -- (2026-11-01, durability stage II (l)) no bootstrap log (`cluster_alloc`'s `bootLen` at
     -- `boot = []`): `RestartNode`'s scope premise `γ.bootLen ≤ σ.commit` for a newcomer
     "%Hbl0" ∷ ⌜γr.cluster.bootLen = 0⌝ ∗
+    -- (2026-11-02, durability stage II (l), at the landing) the receipts' bound within `2^61`
+    -- (`readyFits`): `RestartNode`'s, for a newcomer
+    "#Hfits" ∷ readyFits γr.cluster kvrRaftN ∗
     "#HstorInv" ∷ kvrStorInv ∗
     "#Hopts" ∷ c.[RCluster, go!"opts"] ↦□ o ∗
     "%Ho" ∷ ⌜OptsOk o ∧ vs = bootVoters (uint.nat o.Voters')⌝ ∗

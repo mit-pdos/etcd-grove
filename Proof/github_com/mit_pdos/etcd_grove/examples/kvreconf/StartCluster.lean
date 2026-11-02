@@ -76,12 +76,15 @@ theorem StartCluster.wp_proof
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   -- the ghost state
-  imod cluster_alloc (GF := GF) kvrRaftN (bootVoters (uint.nat o.Voters')) [] [] true ⊤ Hrb
+  imod cluster_alloc (GF := GF) kvrRaftN (bootVoters (uint.nat o.Voters')) [] [] true (fun _ => none) ⊤ (by omega)
     (by intro h; have := congrArg List.length h; rw [bootVoters_length] at this; simp at this; omega)
     (bootVoters_nodup _ (by omega)) (bootVoters_zero _ (by omega))
     (by rw [bootVoters_length]; omega) (fun h => absurd rfl h)
-    $$ [] with ⟨%γ, ⟨%Hdup, %Hbl⟩, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hfounders, Hjoin⟩
+    $$ [] with ⟨%γ, ⟨%Hdup, %Hsl, %Hbl⟩, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hfounders, Hjoin⟩
   · rw [if_pos rfl]; iempintro
+  -- (2026-11-02) `RestartNode`'s `readyFits`: no bootstrap log, the receipts' bound
+  ihave #Hfits : readyFits (GF := GF) γ kvrRaftN $$ []
+  · iapply readyFits_intro (GF := GF) γ kvrRaftN (by rw [Hbl]; simp; omega)
   isimp only [↓reduceIte] at Hjoin
   imod confPolicy_alloc γ kvrConfN kvrRule ⊤ $$ Hdec with #Hpol
   imod mono_nat_own_alloc (GF := GF) (uint.nat o.Voters' + 1) with ⟨%γn, HnidA, #Hlb⟩
@@ -189,7 +192,7 @@ theorem StartCluster.wp_proof
     simp only [named]
     iframe #
     ipureintro
-    exact ⟨Hdup, Hbl, ⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩
+    exact ⟨Hdup, Hsl, Hbl, ⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩
   try wp_auto
   have HVv : uint.nat o.Voters' ≤ 9 := by omega
   have Hvnd : (bootVoters (uint.nat o.Voters')).Nodup := bootVoters_nodup _ (by omega)
@@ -247,7 +250,8 @@ theorem StartCluster.wp_proof
         memStorInvP ms γs' (kvrJ γr.cluster K)))
       $$ Hpkg Hsrec Hsboot Hml Hfresh Hmeta Hmlog Hmend []
     · iintro %K Hm Hi; iframe Hm Hi
-    ihave Hau := kvr_restartAu γr.cluster kvrRaftN k kvrBootContents kvrBoot_holds $$ HrS
+    ihave Hau := kvr_restartAu γr.cluster kvrRaftN k kvrBootContents kvrBoot_holds $$ [HrS]
+    · inext; iexact HrS
     ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
     have Hiface : kvrStorIface «$r0_ptr» =
         GoInterface.ok ⟨go.GoType.PointerType rStorageTy, #«$r0_ptr»⟩ := rfl
@@ -262,11 +266,11 @@ theorem StartCluster.wp_proof
         (by rw [HcAp]; simp [StorContents.b]) (by simp [StorContents.commit])
         (by rw [Hbl]; simp [StorContents.commit]) (bootCS_is _ Hvnd))
       $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
-      as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, Hdrv, Hncfg, Hrun, ⟨HrS, %HS⟩, Hmeta,
+      as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, ⟨HrS, %HS⟩, Hmeta,
         #HmsInv⟩
     · have hA : uint.nat cv.Applied' = 0 := by rw [HcAp]; rfl
       rw [HcID, ← Hiface, hA]
-      iframe Hboot Hvac Hiscl Hca0
+      iframe Hboot Hvac Hiscl Hca0 Hfits
       iExactEq Hau; rfl
     subst Hnd
     have Hl0 : l = [] := List.eq_nil_of_length_eq_zero (by rw [Hlen, HcAp]; rfl)

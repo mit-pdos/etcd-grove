@@ -196,10 +196,11 @@ abbrev kvBootContents : StorContents :=
 
 theorem kvBoot_holds : StorageHolds RaftState.init kvBootContents := by
   unfold StorageHolds
-  refine ⟨Int.le_refl _, ?_, ?_, rfl, rfl, ?_, ?_, ?_, ?_⟩
+  refine ⟨Int.le_refl _, ?_, ?_, rfl, rfl, ?_, ?_, ?_, ?_, ?_⟩
   · simp [plogTermAt, RaftState.init]
   · rfl
   · simp [StorContents.b, StorContents.commit]
+  · simp [StorContents.commit, RaftState.init]
   · simp [StorContents.commit, RaftState.init]
   · intro sv h; cases h
   · intro h; exact absurd rfl h
@@ -215,8 +216,8 @@ the node's durable state at `RaftState.init` (allocation's), which the storage `
 the state back, with the fact that it is `RaftState.init`. -/
 theorem kv_restartAu (γ : Cluster) (N : Namespace) (id : w64) (σ : StorContents)
     (Hσ : StorageHolds RaftState.init σ) :
-    raftState (GF := GF) γ id RaftState.init ⊢
-      AU <{ ∃∃ (S : RaftState), raftState γ id S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
+    ▷ raftState (GF := GF) γ id RaftState.init ⊢
+      AU <{ ∃∃ (S : RaftState), ▷ raftState γ id S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
          <{ raftState γ id S,
             COMM (fun S => iprop(raftState γ id S ∗ ⌜S = RaftState.init⌝)) S }> := by
   iintro H
@@ -291,8 +292,11 @@ theorem StartCluster.wp_proof
   -- decided by the store's rule `kvRule` (2026-10-28); its term budget backed by the time
   -- receipts), then the store's invariant from the client's share, with the client's half of the
   -- store's state and the sequence-number tokens, and the store's registry of the snapshots made
-  imod kvCluster_alloc (GF := GF) ⊤ (constMap clusterIds (W64 0)) Hrb
-    with ⟨%γr, ⟨-, %Hbl0⟩, #Hkc, #Hreg, Hval, Hseqs, Hboots⟩
+  imod kvCluster_alloc (GF := GF) ⊤ (constMap clusterIds (W64 0)) (by omega)
+    with ⟨%γr, ⟨-, %Hsl0, %Hbl0⟩, #Hkc, #Hreg, Hval, Hseqs, Hboots⟩
+  -- (2026-11-02) `RestartNode`'s `readyFits`: no bootstrap log, the receipts' bound
+  ihave #Hfits : readyFits (GF := GF) γr.cluster kvRaftN $$ []
+  · iapply readyFits_intro (GF := GF) γr.cluster kvRaftN (by rw [Hbl0]; omega)
   ihave Hseqs := bigSepM_constMap clusterIds (W64 0) clusterIds_nodup
     (fun id s => (id ↪[γr.seq] s : IProp GF)) $$ Hseqs
   ihave Htodo := (BigSepL.bigSepL_sep_eqv
@@ -345,7 +349,8 @@ theorem StartCluster.wp_proof
       (fun K => memStorInvP ms γs (kvJ γr.cluster K))
       $$ Hpkg Hrec Hvoters Hvsl Hml Hfresh Hmlog Hmend []
     · iintro %K Hi; iexact Hi
-    ihave Hau := kv_restartAu γr.cluster kvRaftN id0 kvBootContents kvBoot_holds $$ HrS
+    ihave Hau := kv_restartAu γr.cluster kvRaftN id0 kvBootContents kvBoot_holds $$ [HrS]
+    · inext; iexact HrS
     have Hiface : kvStorIface st = GoInterface.ok ⟨go.GoType.PointerType rStorageTy, #st⟩ := rfl
     ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
     · iPkgInit
@@ -363,11 +368,11 @@ theorem StartCluster.wp_proof
       rfl (Or.inl rfl) (by simp [StorContents.b]) (by simp [StorContents.commit])
       (by rw [Hbl0]; simp [StorContents.commit]) kvConfState_is)
       $$ [$Hraftinit $«$a0» $Hlogger Hboot Hvac Hau]
-      as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, Hdrv, Hcfg, Hrun, ⟨HrS, %HS⟩, #HmsInv⟩
+      as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hcfg, Hrun, ⟨HrS, %HS⟩, #HmsInv⟩
     · have hA : uint.nat (nodeConfig id0 st).Applied' = 0 := rfl
       have hI : (nodeConfig id0 st).ID' = id0 := rfl
       rw [← Hiface, hA, hI]
-      iframe Hboot Hvac Hiscl Hca0
+      iframe Hboot Hvac Hiscl Hca0 Hfits
       iExactEq Hau; rfl
     have Hl0 : l = [] := List.eq_nil_of_length_eq_zero (by rw [Hlen]; rfl)
     rw [kv_startDriver _ l K S Hl0 HS] at *
@@ -396,6 +401,8 @@ theorem StartCluster.wp_proof
       unfold kvPeerOk
       iexists n
       iframe HisNode
+      isplitr
+      · ipureintro; rw [Hsl0]
       ipureintro; rfl
     isplitl
     · iapply (BigSepL.bigSepL_append (Φ := fun _ id => iprop(∃ (nd : GoInterface) (st' : Loc),

@@ -414,8 +414,11 @@ theorem kvStorage_bootStorage
   iexists (interface.mk (go.GoType.PointerType rStorageTy) #s)
   iexists iprop(memStorFresh ms γs 0 memSnapEmpty ∗ memEnd γs 1 ∗
     (∀ K : GName, memStorInvP ms γs (kvJ γ K) -∗ F K))
+  iexists 0
   isplitr
   · ipureintro; rfl
+  isplitr
+  · ipureintro; simp [StorContents.b, StorContents.commit]
   isplitl [Hfresh He HF]
   · iframe Hfresh He HF
   isplitr
@@ -461,6 +464,7 @@ theorem kvStorage_bootStorage
   have hl : (⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).last = 0 := by
     simp [StorContents.last, StorContents.b]
   rw [hl, hb, Nat.zero_add]
+  simp only [Nat.sub_self, List.take_zero, List.drop_zero]
   iexists (zero_val EntryM)
   isplitr
   · ipureintro; rfl
@@ -469,6 +473,9 @@ theorem kvStorage_bootStorage
     iapply memCompacted_zero
   isplitr
   · iapply kvStorLog_of s ms γs 0 DFrac.discard [zero_val EntryM] $$ Hrec Hlog
+  isplitr
+  · iapply kvStorLog_of s ms γs 1 DFrac.discard [] $$ Hrec
+    iapply memLog_nil
   isplitr
   · iapply kvStorLog_of s ms γs 1 (DFrac.own 1) [] $$ Hrec
     iapply memLog_nil

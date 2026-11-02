@@ -34,11 +34,11 @@ porcupine's.
   (`kv_Check`, `check.go`): `Check` over replicas of one store, from the empty store, returns
   `Ok`: porcupine accepts the trace of `Gen`'s random traffic against the store's model.
 * **The top-level driver** (`kv_Main`): `{{ isPkgInit kv ∗ context.isClosedchanInit }} Main()
-  {{ RET #(); True }}` for executions of fewer than `2^63` steps: the cluster is started, the
+  {{ RET #(); True }}` for executions of fewer than `2^61` steps: the cluster is started, the
   test runs, and `Main`'s panic unless porcupine answers `Ok` is unreachable.
 * **Adequacy** (`kv_adequate`, `AdequacyLinked.lean`, from `Adequacy.lean`'s `kv_adequate_of`):
   the same in the operational semantics, with package initialization proved (`Init.lean`):
-  every execution of `initialize'(); Main()` from a fresh state, of fewer than `2^63` steps,
+  every execution of `initialize'(); Main()` from a fresh state, of fewer than `2^61` steps,
   has no stuck thread and no panic, so porcupine never rejects the store's trace.
 
 Every result here assumes `[NaInvG GF]` (iris-lean's non-atomic invariants, which porcupine's
@@ -171,7 +171,7 @@ variable [NaInvG GF]
 
 /-- **The top-level driver** `Main()` (`Spec/github_com/mit_pdos/etcd_grove/examples/kv/Main.lean`):
 from package initialization (with `context`'s `isClosedchanInit`), for executions of fewer
-than `2^63` steps, it returns: porcupine accepts the test's trace. Stated at no storage
+than `2^61` steps, it returns: porcupine accepts the test's trace. Stated at no storage
 registry: the proof allocates one. -/
 theorem kv_Main : kv.Main.spec (GF := GF) (hG := hG) :=
   kv.wp_Main
@@ -203,14 +203,14 @@ variable [go_gctx : GoGlobalContext]
 `AdequacyLinked.lean`): every real execution of `kvProgram` -- the store package's
 initialization, then `Main()`: a cluster of three raft nodes, 4 clients of 25 random `Put`s,
 `Get`s and `Append`s on random replicas, porcupine's check of the trace, and a panic unless it
-answers `Ok` -- from a fresh state with one thread, of `n < 2^63` steps, has no stuck thread and
+answers `Ok` -- from a fresh state with one thread, of `n < 2^61` steps, has no stuck thread and
 no thread that ended in a panic: porcupine always answers `Ok`. -/
 theorem kv_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
     [hLog : log.NewModel]
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
-    (n : Nat) (Hn : n < 2 ^ 63) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([kvProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧

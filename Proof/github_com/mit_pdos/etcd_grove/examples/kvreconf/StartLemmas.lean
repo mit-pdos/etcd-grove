@@ -40,10 +40,11 @@ abbrev kvrBootContents : StorContents :=
 
 theorem kvrBoot_holds : StorageHolds RaftState.init kvrBootContents := by
   unfold StorageHolds
-  refine ⟨Int.le_refl _, ?_, ?_, rfl, rfl, ?_, ?_, ?_, ?_⟩
+  refine ⟨Int.le_refl _, ?_, ?_, rfl, rfl, ?_, ?_, ?_, ?_, ?_⟩
   · simp [plogTermAt, RaftState.init]
   · rfl
   · simp [StorContents.b, StorContents.commit]
+  · simp [StorContents.commit, RaftState.init]
   · simp [StorContents.commit, RaftState.init]
   · intro sv h; cases h
   · intro h; exact absurd rfl h
@@ -61,8 +62,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 fact that it is `RaftState.init`. -/
 theorem kvr_restartAu (γ : Cluster) (N : Namespace) (id : w64) (σ : StorContents)
     (Hσ : StorageHolds RaftState.init σ) :
-    raftState (GF := GF) γ id RaftState.init ⊢
-      AU <{ ∃∃ (S : RaftState), raftState γ id S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
+    ▷ raftState (GF := GF) γ id RaftState.init ⊢
+      AU <{ ∃∃ (S : RaftState), ▷ raftState γ id S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅
          <{ raftState γ id S,
             COMM (fun S => iprop(raftState γ id S ∗ ⌜S = RaftState.init⌝)) S }> := by
   iintro H
