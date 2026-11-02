@@ -29126,7 +29126,7 @@ exported `applyAll_model`'s preconditions name: a change to an exported statemen
 Rejected: (B) a new `specSnap` premise, which pushes the same fact up to `run`; and (C) an mvcc law
 opening the store's invariant at names the restore is changing.
 
-## The lessor's reader slots as a pool: the lease specs over `lessorRdPool` (2026-11-02 · proposed, Freeze · branch `lease-src`)
+## The lessor's reader slots as a pool: the lease specs over `lessorRdPool` (2026-11-02 · accepted, the user's Freeze · branch `lease-src`)
 
 **The gap.** The lease checks' specs (`EtcdServer.checkLease{TimeToLive,Renew}`, the entry points
 `Lease{TimeToLive,Leases,Renew}`, the axiom `leaseTimeToLive`) took one lessor reader slot
