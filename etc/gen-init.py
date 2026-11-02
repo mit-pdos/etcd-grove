@@ -50,6 +50,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          # the client's `kv.Compact` (2026-11-01): putgetc under compaction pressure
          'github_com.mit_pdos.etcd_grove.examples.compactkv',
          'github_com.mit_pdos.etcd_grove.examples.putget3',
+         # the restart plan (2026-11-02, notes/restart-plan.md): putget3 with a member restarted
+         'github_com.mit_pdos.etcd_grove.examples.restart3',
          'github_com.mit_pdos.etcd_grove.examples.lintest.counter',
          # the scalable-proof experiment's log-applied register and its variants
          'github_com.mit_pdos.etcd_grove.examples.lintest.logkv',

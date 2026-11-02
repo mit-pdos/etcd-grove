@@ -1,6 +1,7 @@
 # Plan: restarting a member (`examples/restart3`)
 
-**Date:** 2026-11-02. **Status:** Scope, drafted; the questions Q1-Q6 below are open (the user's).
+**Date:** 2026-11-02. **Status:** Scope decided: Q1-Q6 take the recommended options (the user,
+2026-11-02). **R1 done** (2026-11-02): the Go program, its test and translation (below, "R1").
 Follows the spec-first plan's steps (`notes/spec-first-plan.md`: Scope, Draft, Review, Test, Probe,
 Freeze, Prove).
 
@@ -161,7 +162,14 @@ theorem restart3_safe ... :
 What stays out: crashes (Q4), membership changes (the membership track), restarting the leader
 mid-request (Q6), and a member whose data directory was lost.
 
-## Questions for the user
+## Questions for the user (decided 2026-11-02: each the recommended option)
+
+The stop is `HardStop` (Q1). `run`'s deferred shutdown stops the raft node and the transport and
+calls `Cleanup`, which closes the lessor, the KV store, the auth store and the backend (etcd's embed
+calls `Cleanup` itself only for a server that never started). `Cleanup` must not be called again
+after a stop: a second `lessor.Stop` closes a closed channel. L1's stop spec covers `run`'s
+shutdown with `Cleanup` in it.
+
 
 - **Q1. `Stop` or `HardStop`?** `Stop` first tries to transfer leadership
   (`TryTransferLeadershipOnShutdown`), which needs raft's `TransferLeadership` in the server's
@@ -222,3 +230,24 @@ mid-request (Q6), and a member whose data directory was lost.
 
 R1 can start now. R2 can start once Q1-Q6 are answered, with L4 as a named `sorry` if Q2 says the
 durability work comes first.
+
+## R1 (2026-11-02)
+
+- `examples/restart3` (`restart3.go`): `Run(lg)` is the program at a logger, `Main` is `Run` at
+  `zap.NewNop()`, so the test counts through `Run` what the proof is about. Two changes to the
+  draft above, both from the test:
+  - **The stop is `HardStop` alone.** `run`'s deferred shutdown calls `Cleanup`, and a second
+    `Cleanup` panics (`lessor.Stop` closes a closed channel). The first version called both.
+  - **The member stopped is a follower:** member 3, or member 2 if member 3 leads (Q6; the client's
+    member 1 is never stopped). With member 3 always stopped, a run in which it led failed its next
+    put ("leader changed") and ended without the check.
+- `common.NewServer` (exported): `newServer` with the auto-compactor off, serving nothing, so that
+  `restart3` keeps its listeners and closes them at the stop. Translated, no spec yet (R2).
+- The test (`TestRun`) counts, with a counting logger, the restart's messages and fails unless a
+  member restarted from its WAL, its WAL held a snapshot, and a snapshot was sent and installed
+  after the restart; then it reads the last put's value at members 2 and 3. 15 runs of 15 passed
+  (about 1.3s each), each with exactly one restart, one WAL snapshot and one snapshot sent and
+  installed after it.
+- Translated: project `restart3` of `etc/goose.py`; its package fact `True`
+  (`Proof/.../restart3/Base.lean`) and its generated `Init.lean` (`etc/gen-init.py`'s `ROOTS`).
+
