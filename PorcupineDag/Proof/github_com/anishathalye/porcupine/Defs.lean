@@ -58,10 +58,10 @@ linearizability (`linCO_iff_lin`).
 The PR never calls the model's `Hash` (its cache hashes the bitset only), so `isModel`'s and
 `isModelFilled`'s `Hash` clause is not needed; it is kept to share v1.3.1's `isModel`.
 
-The allocations that grow with the number of operations only (`longest`, the bitset, the
-entries) are smaller than the caller's slice of `Operation`s or are grown by `append` from a live
-slice: Go runs out of memory (the heap is at most 2^47 bytes) before one of them could exceed
-`maxAlloc`, so no premise bounds them.
+The allocations that grow with the number of operations only (`longest`, the bitset, `seq`) are
+smaller than the caller's slice of `Operation`s, or are grown by `append` (the entries, the
+per-client slices, the stack, the cache), which asks for more than `maxAlloc` only from a live
+slice of more than about 0.8·2^48 bytes: Go runs out of memory first, so no premise bounds them.
 
 ## A partition
 
@@ -273,14 +273,15 @@ later than it returns. -/
 def HistOk (ops : List Operation) : Prop :=
   (ops.length : Int) < 2 ^ 60 ∧ ∀ o ∈ ops, sint.Z o.Call' ≤ sint.Z o.Return'
 
-/-- gc's largest allocation, in bytes: `maxAlloc` on 64-bit linux (2^48; ios/arm64 has 2^40); a
-larger `make` panics (`makeslice: len out of range`). Perennial does not model it: the premises
-that mention it keep the specs true of Go, and the proofs never use them. -/
+/-- gc's largest allocation, in bytes: `maxAlloc` on 64-bit platforms other than ios/arm64 and
+wasm (2^48); a larger `make` panics (`makeslice: len out of range`). Perennial does not model the
+limit: the premises that mention it keep the specs true of Go; the proofs use them only to keep
+`n·numClients` and `maxClientId + 1` within `int`. -/
 @[word_unfold] def maxAllocBytes : Int := 2 ^ 48
 
 /-- The allocations sized by `nc` clients over `n` operations fit (`newChains`, `makeEntries`):
 the largest is `8·nc·max n 6` bytes (`firstUnks`, `8·n·nc`; the clients, `48·nc`). -/
-def AllocOk (nc n : Nat) : Prop := (nc : Int) * ((max n 6 : Nat) : Int) * 8 ≤ maxAllocBytes
+@[word_unfold] def AllocOk (nc n : Nat) : Prop := (nc : Int) * ((max n 6 : Nat) : Int) * 8 ≤ maxAllocBytes
 
 /-- The client ids index the chains: non-negative, and small enough that the allocations they
 size fit. -/

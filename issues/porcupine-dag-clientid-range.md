@@ -37,11 +37,11 @@ func TestNegativeClientId(t *testing.T) {
 
 **Expected**: `ClientId` is documented as optional (any value, as v1.3.1 accepts).
 
-**How the proof handles it**: a premise of the PR's specs (`ClientsOk`, in
+**How the proof handles it**: a premise of the PR's specs (`ClientsOk`'s `ClientIdsOk`, in
 `PorcupineDag/Proof/github_com/anishathalye/porcupine/Defs.lean`): every `ClientId` is
-non-negative and `(ClientId + 1) * (len(history) + 6) * 8 ≤ 2^48`, which keeps every allocation
-sized by the client ids within `maxAlloc` (Perennial does not model the limit, so the premise
-is there to keep the spec true of Go).
+non-negative and `(ClientId + 1) · max(len(history), 6) · 8 ≤ 2^48` (`ClientIdsOk`, `AllocOk`),
+which keeps the largest allocation sized by the client ids within `maxAlloc` (Perennial does not
+model the limit, so the premise is there to keep the spec true of Go).
 
 **Possible fixes**: renumber the client ids densely (a map from `ClientId` to `0..k-1`)
 before building the chains.

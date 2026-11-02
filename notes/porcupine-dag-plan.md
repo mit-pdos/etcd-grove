@@ -32,6 +32,38 @@ A random comparison of the PR with v1.3.1 (register model, up to 7 operations, u
 - calls after returns (`Call > Return`): disagreements too, but v1.3.1's spec already excludes
   them (`HistOk`).
 
+## FROZEN (2026-11-02): spec plan = candidate 3 + round-3 wording; invariant plan = candidate 2
+
+**Spec plan, frozen.** Candidate 2 with candidate 3's eight changes, and the third review's
+(a fresh `spec-reviewer` on candidate 3: no false statement; an exhaustive comparison of the PR
+with brute-force `LinearizableCO` on every `MonoReturns` register history of up to 4 operations,
+3 clients, times 0..2, ties included: no disagreement) fixes:
+
+- `maxAllocBytes`'s docstring: the proofs do use the premises, to keep `n·numClients` and
+  `maxClientId + 1` within `int` (not "never"); the platforms are "64-bit other than ios/arm64
+  and wasm"; the `append`-grown allocations argued by the live slice they grow from (not by a
+  heap bound that holds only on linux/amd64). `AllocOk` is `@[word_unfold]`.
+- The corollaries (`Results.lean`): `X.spec_seq : X.spec → X.specSeq` with `specSeq`'s premises
+  `HistOk ops → ClientIdsOk ops → ClientsSeq ops` (it derives `MonoReturns`: `ret_i < call_j ≤
+  ret_j`), and `X.spec_sound : X.spec → X.specSound` (`true`/`Ok` implies `Linearizable`, under
+  `HistOk`, `ClientsOk`), for each of `CheckOperations`, `CheckOperationsTimeout`,
+  `CheckOperationsVerbose`.
+- `issues/porcupine-dag-clientid-range.md` states the exact bound.
+
+**Invariant plan, frozen.** Candidate 2 (candidate 1 with the fourteen fixes of the exhaustive
+checks, and the move to `Before`/`FUe`). The changed parts were re-checked: executably (the
+instrumented copy against `FUe` and the `Before`-candidates, 500225 loop iterations of
+`MonoReturns` histories, every answer equal to brute-force `LinearizableCO`), and the pure lemmas
+they rest on are now proved in Lean, not argued by hand (`DagTheory.lean`: the search's lemmas
+for any order `R`; `Chains.lean`: `fu_prefix`, `fue_search`, `cand_iff` with the closure premise,
+`deps_lift`, `heads_ids`, `headsOf_cons`, `posOk_push`). The interface the helpers' specs share,
+as Lean definitions (`ChainsOwn.lean`: `ChSt`, `CoOk`, `clientOwn`, `chainsRepr`, `chainsOwn`,
+`ShapeOk`, `FuOk`, `ChainsInv` parameterized by `B` with its closure under `Before`, `hdOp`,
+`frOf`; `Search.lean`: `stackRep`, `searchOwn`, v1.3.1's `cacheOwn`), is the plan's sections 3-5
+made precise; a change to them after this point is an amendment below.
+
+### Amendments
+
 ## Spec plan (candidate 1, 2026-11-02)
 
 ### What changes from v1.3.1's specs
