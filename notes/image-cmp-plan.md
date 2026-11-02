@@ -186,3 +186,42 @@ receiver's own `idxCert` covers only its shorter log), the permits derived.
    the Prove phase's main item, possibly its own stage.
 8. **The restart path's `imageAt` readers** (`srvDiskImage`, `bootstrapRestartContract`) restated in
    place with it; their compaction-mode receipt left to the restart path. Recommended.
+
+## Freeze (2026-11-02, the user's approval of all eight)
+
+Done on branch `image-cmp` (`notes/decisions.md`, the accepted block): `ImageCmpDraft.lean` is gone,
+its texts are in place.
+
+- `mvcc.keyImageM` on without `NoDelPutAt` (`RestoreImageOpen`, `RestoreVocab`'s `restoreImageM`,
+  `RestoreCmp.restoreImageM_on`, `store.Restore`'s proof and spec docstring); the mode laws
+  (`keyImageM_mode`, `keyImageM_on_of_off`/`_off_of_on`, `keyImageM_recsPos`,
+  `CmpRecs.finRev_le_crev`/`empty_of_crev`) in `RestoreImageOpen`.
+- `kvApplied` carries `x.crev = crevOf γk A`; `crevOf` and its laws (`crevOf_mono`, `crev_hcc`, ...)
+  in `InvRequest.lean` (`section crevPure`), `kvCrevEntry`/`kvCrevOf` in `KVModelDefs.lean`; the
+  apply step keeps the tie (`KVApply.batchStep_crev`, `crevOf_batchStep`).
+- `CrevPermitLaw` proved: `ApplyCmpArm.crevOf_permit` (with `crevOf_off`, `crevOf_offM`).
+- `InvImage`: `imageAt` with `keyImageM γk.cmp` and the `crevOf` tie, `dbImage` with the receipt,
+  `imageAt_off`, `dbImage_of_srvImage_mode`; `SnapRecvFacts.dbImage_of_srvImage` (the member law),
+  `image_restoreRes`; `snapRecv_image` returns `SnapImageFacts … R r` (the key image at the
+  member's mode, `r.crev = crevOf`) with the receipt and both permits (`snapRecv_imageMD`'s
+  statement, plus `E.γ.kb = some d`). `M2StorageDraftB2`'s `dbImageR`/`srvImageR` retired.
+- The sender: `merged_image` for both modes over `mergedObs … x.log x.crev D` (`∃ r, keyImageM cmp
+  log r D ∧ (cmp → r.crev = crev)`) and the receipt `⧖ (logCh x.log)` (from `srvApplyKV_idxCert`);
+  `merged_image_cmp` (false) gone. With compaction off everything is proved. With it on, the one
+  `sorry` is `SnapSendBranch.srvBeSnapOk_cmpRecs` (SNAPSHOT-SORRY #7-cmp), at the observation of
+  the records: a snapshot on the server's backend, with the KV's writer at `log` and the apply
+  thread's `cmpOwn` at `crev` in the frame, observes `keyImageM true log r D ∧ r.crev = crev`. Its
+  statement needed `mergedCreate_window`'s frame to carry `apply.cmpOwn E x.crev` and `mergedObs`
+  to take the `crev` (the narrowest true point: a plain backend-level statement is false, since the
+  backend alone does not know the records' meaning).
+- RESTART-RCPT: `srvDiskImage` and `bootstrapRestartContract` (`InvRestart.lean`) read the restated
+  `imageAt` in place; the receipt `⧖ (logCh …)` a compaction-mode restart needs is the restart
+  path's, marked `RESTART-RCPT` in their docstrings.
+- Left to 56's stage C: the compaction-mode snapshot apply (`ApplyAllSnap` consumes
+  `snapRecv_image` and stays at mode off), using `snapRecv_image`'s permits and `crev_hcc`.
+- Trust base: `merged_image_cmp`'s `sorry` replaced by `srvBeSnapOk_cmpRecs`'s in the baseline and
+  in the eleven collections that listed it; `authkv` gains it (its `applyAll.wp_proofOn`, already a
+  `sorry`, calls `mergedCreate_window`, which in compaction mode needs it).
+- Left to F2 (its own spec-first stage, `notes/image-cmp-f2-plan.md`): replacing
+  `srvBeSnapOk_cmpRecs` (a transformer of an arbitrary `Snapshot` triple, true of Go but not
+  provable in that form: F2 strengthens `srvBeSnapOk_window`'s observation instead).
