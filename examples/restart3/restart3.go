@@ -1,8 +1,9 @@
 // Package restart3 is putget3 (examples/putget3) with a member stopped and started again on its
-// data directory (notes/restart-plan.md): three etcd members started in-process, a Put through the
-// first, a follower other than the first stopped (HardStop, its peer listener closed), more Puts
-// through the first, that member started again -- same name, data directory and addresses -- and a
-// Get through it, checked against the last Put. Only the first member's gRPC API is served before
+// data directory (notes/restart-plan.md): three etcd members started in-process, a Put of another
+// key through the first, a follower other than the first stopped (HardStop, its peer listener
+// closed), Puts of the key through the first, that member started again -- same name, data
+// directory and addresses -- and a Get of the key through it, checked against the last Put: a
+// restarted member that missed the Puts made while it was stopped finds no value. Only the first member's gRPC API is served before
 // the restart, and the restarted member's after it. The members take a snapshot every other entry
 // and keep one entry below it (linkv3p's settings), so the restarted member finds a snapshot in its
 // WAL and is caught up by a snapshot from the leader.
@@ -130,16 +131,25 @@ func Run(lg *zap.Logger) {
 	if err != nil {
 		return
 	}
-	if err := put(cli, "k", "v1"); err != nil {
+	if err := put(cli, "k0", "v1"); err != nil {
 		return
 	}
 
-	// a follower stopped (Q6 of the plan: no election forced): member 3, or member 2 if member 3
-	// leads (the client's member 1 is never stopped); the others keep the quorum
-	name, peer, peerAddr, client, m := "restart3-3", peer3, peerAddr3, clientAddr3, m3
+	// a follower stopped and started again (Q6 of the plan: no election forced): member 3, or
+	// member 2 if member 3 leads (the client's member 1 is never stopped); the others keep the quorum
 	if m3.s.Leader() == m3.s.MemberID() {
-		name, peer, peerAddr, client, m = "restart3-2", peer2, peerAddr2, clientAddr2, m2
+		restartCheck(cli, m2, "restart3-2", peer2, peerAddr2, clientAddr2, cluster, lg)
+	} else {
+		restartCheck(cli, m3, "restart3-3", peer3, peerAddr3, clientAddr3, cluster, lg)
 	}
+}
+
+// restartCheck stops the member m (member name of the cluster cluster, whose peer URLs are peer, at
+// peerAddr, with client URL http://client), makes NPuts Puts of k through cli, starts the member
+// again on its data directory, serves its gRPC API, and panics unless a Get of k through it returns
+// the last Put's value. An error from any step returns without the check.
+func restartCheck(cli *clientv3.Client, m *member, name string, peer types.URLs, peerAddr string,
+	client string, cluster types.URLsMap, lg *zap.Logger) {
 	stop(m)
 	for i := 0; i < NPuts; i++ {
 		if err := put(cli, "k", "v2"); err != nil {

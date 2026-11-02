@@ -7,8 +7,10 @@ data directory and its gRPC API served, a client of it, a `Get` of `k`, and a pa
 
 **The triple:** putget3's `Main.spec`'s (`putget3/Main.lean`) for `restart3`'s members at any
 logger `lg` that is not `nil`, with the rights to listen on all three client addresses (member 1's
-is served before the restart, the restarted member's after it) and `restart3`'s premises (with the
-restart's contracts, `premises`): `Run(lg)` returns, so it did not panic.
+is served before the restart, the restarted member's after it), two thread tokens (one passed from
+each first start to the next and spent on serving member 1, as putget3's one; the other the
+restart's, spent on serving the restarted member) and `restart3`'s premises (with the restart's
+contracts, `premises`): `Run(lg)` returns, so it did not panic.
 -/
 module
 
@@ -39,14 +41,16 @@ def runPure (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEn
   BootFacts id₁ id₂ id₃ ctxs boot ∧
   ckptEffectsOk ∧ authRecordsFit ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ storage.diskOk
 
-/-- `Run`'s and `Main`'s resources (putget3's `Main`'s, with all three client addresses). -/
+/-- `Run`'s and `Main`'s resources (putget3's `Main`'s, with all three client addresses and a
+second thread token). -/
 def runRes (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
     IProp GF :=
   iprop(netAddrFree (GF := GF) peerAddr₁ ∗ netAddrFree (GF := GF) peerAddr₂ ∗
     netAddrFree (GF := GF) peerAddr₃ ∗ netAddrFree (GF := GF) clientAddr₁ ∗
     netAddrFree (GF := GF) clientAddr₂ ∗ netAddrFree (GF := GF) clientAddr₃ ∗
     httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
-    httpProtoFree (GF := GF) peerAddr₃ ∗ threadTok ∗ premises N id₁ id₂ id₃ ctxs boot)
+    httpProtoFree (GF := GF) peerAddr₃ ∗ threadTok ∗ threadTok ∗
+    premises N id₁ id₂ id₃ ctxs boot)
 
 /-- See the file header. -/
 abbrev Run.spec : Prop :=
