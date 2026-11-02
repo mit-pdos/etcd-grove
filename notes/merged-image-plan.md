@@ -55,9 +55,10 @@ is in the trust base of eleven collections (`cachekv`, `compactkv`, `k8setcd3`, 
 `linkvtxn`, `m2`, `putget`, `putget3`, `server`, `watchkv`). After the change those collections
 trade `sorry merged_image` for `sorry merged_image_cmp` (`etc/tcb-baseline.txt`'s line and each
 collection's, by `--check --update`): the count is unchanged. The reports list declarations, not
-modes, so all eleven list the hole, which is false only in the compaction mode; two collections run
-that mode and so rest on a false hole until #7-cmp is repaired: `compactkv` and `m2` (`putgetc_safe`:
-`putgetc` runs the auto-compactor, `StartPeriodicServer` with `cmp := true`). Freeing the nine
+modes, so all eleven list the hole, which is false only in the compaction mode; three collections run
+that mode and so rest on a false hole until #7-cmp is repaired: `compactkv`, `m2` (`putgetc_safe`:
+`putgetc` runs the auto-compactor, `StartPeriodicServer` with `cmp := true`) and, since `lean`'s
+`cache-cmp` (2026-11-02), `cachekv`. Freeing the eight
 mode-off collections of the hole would need a mode-gated spec, outside this stage.
 
 ## Draft
@@ -113,3 +114,21 @@ callers; `srvRaftLogInv_fresh` correct).
 4. #7-cmp's repair: the image in the cluster's compaction mode, in place (`imageAt`'s `keyImage` as
    `mvcc.keyImageM γk.cmp`, `keyImageM_off` the "off is today's" law) or a mode-indexed `srvNet`
    (#7-on's target (b))? Recommended: in place, together with #7-on's, as its own stage.
+
+## The user's answers (2026-11-02) and Freeze
+
+1. Yes: frozen as planned, and applied (Freeze and Prove at once: the one proof was the draft's).
+2. The named-lemma form (`merged_image_cmp`).
+3. `h0.1` stays; a later cleanup.
+4. In place, as below.
+
+## Plan item: #7-cmp's repair (a stage of its own, with #7-on's)
+
+The merged image in the cluster's compaction mode, in place: `imageAt`'s `mvcc.keyImage` becomes
+`mvcc.keyImageM γk.cmp` (`M2StorageDraftRestore.lean`: `keyImage` with the mode off, the entries cut
+at the compaction revision with `Meta`'s compaction records with it on), with `keyImageM_off` the law
+that the mode off is today's; `srvNet`'s text stays, the image's KV names carry the cluster's `cmp`.
+The sender's side (`merged_image_cmp`) then holds of what `mergedObs` gives at `cmp = true` (with
+the writer's laws for the compaction keys), and the receiver's (`run_job_snap_cmp`, J8b) restores a
+compacted image (`specSnap` generalized to the mode). Done together with #7-on (the image in the
+auth mode, `notes/decisions.md`, "The merged snapshot's image with auth on", target (b)).

@@ -719,6 +719,18 @@ theorem srvRaftLogInv_facts (γ : ServerRaftNames) :
   iintro ⟨-, -, -, %H, -⟩
   ipureintro; exact H
 
+/-- **The server's raft names are the fresh start's** (2026-11-02, `merged_image`): the start log
+empty and the start index its length. -/
+theorem srvRaftLogInv_fresh (γ : ServerRaftNames) :
+    srvRaftLogInv (GF := GF) γ ⊢ ⌜γ = ⟨γ.raft, [], W64 0⟩⌝ := by
+  unfold srvRaftLogInv
+  iintro ⟨-, -, -, %ha, %hp, -⟩
+  ipureintro
+  have ha0 : γ.ai0 = W64 0 := by
+    rw [hp] at ha; simp only [List.length_nil] at ha
+    word
+  cases γ; simp only at hp ha0 ⊢; rw [hp, ha0]
+
 /-- (2026-10-31, S5) **The applied log starts with the first boot entry**: a non-empty committed
 prefix's first entry is a conf entry decoding to an `AddNode` (the bootstrap log's first). -/
 theorem srv_first_boot (γ : ServerRaftNames) (L : List EntryModel) (m : EntryModel)
