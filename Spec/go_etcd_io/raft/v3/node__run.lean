@@ -9,8 +9,10 @@ stage U9a) the closing side of `done` (`ownBroadcastChan … .Pending`) and its 
 (`nodeLiveRaw γ 1`). It returns when it receives the client's half on `stop`: it closes `done`
 with the node stopped (`nodeStoppedRaw`). (2026-11-01, durability stage I-2/I-3) With its share of
 the generation of its id's slot (in `nodeLiveRaw`), its halves of `dur`/`bw` and the generation's
-free queue, from which it cuts each `Ready`'s batch (`readyCut`); at the stop it hands the id's slot
-back on `stop` (`raftIdSlot`, the API's `nodeVacant`, `raft_stop`) before closing `done`.
+free queue, from which it cuts each `Ready`'s batch (`readyCut`); (2026-11-01, stage II (n), the stop's
+option (c)) at the stop it answers on `stop` with its share of the generation and its protocol state
+(`stopAns`), from which `Stop` gives the id's slot back itself (`raftIdSlot`, the API's `nodeVacant`,
+`raft_stop`).
 -/
 module
 
