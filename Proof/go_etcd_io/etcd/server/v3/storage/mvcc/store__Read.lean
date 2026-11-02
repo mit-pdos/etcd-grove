@@ -72,6 +72,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv s γ sync.rfrac)) $$ Hlc1 HP with HP
   icases mvcc.revMuInv_open_pin s γ p _ _ _ o $$ [HP Hfrst Hcur] with ⟨HP, HrstR, Hfrst, Hcur⟩
   · iframe HP Hfrst Hcur
+  icases mvcc.revMuBodyL_mu s γ _ _ _ _ cm HcM $$ [$HP $HcmpM $HcrevM] with ⟨HP, HcmpM, HcrevM⟩
   iunfold mvcc.revMuBody at HP
   icases HP with ⟨%log, %ntok, %c, HP⟩
   iNamed HP

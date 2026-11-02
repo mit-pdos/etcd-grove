@@ -29338,3 +29338,30 @@ with the view's (`snapThin_trans`). `rangeEvents.spec` takes `bucketViewL γ q l
 `bucketView γ q (bucketMap log)` (pre and post: a weaker premise; its proof composes the two
 thinnings before `snapThin_scan`). The sole writer's laws keep their statements
 (`txn.kvWriter_keyObs`: thin by composition, exact off by `bucketLog`'s clause).
+
+## The compaction revision's physical lag (M2's item 15, step A2)
+
+**2026-11-02 · accepted** (the user chose "Lag state" for restore's dip of `compactMainRev`)
+
+**Problem.** `restore()` stores the image's finished compaction record in `compactMainRev` and, if
+the scheduled one is later, resumes it (`compactLockfree(scheduledCompact)`), which raises the field
+to it (`kvstore.go:332-340`, `:405-416`). In compaction mode the receiving store's compaction
+revision `c` (the ghost authority `crevUB`, monotone: readers hold lower bounds for `delKey`) can lie
+between the two records: the image is cut at the scheduled record (`entsCutAt L' r.crev`), so the
+ghost revision is raised to `r.crev` at the switch, while the field holds `r.finRev`, below it, until
+the resumed `updateCompactRev`. `s.revMu`'s resource said the field is the ghost revision.
+
+**Decision.** The lock holds `revMuBodyL`: `revMuBody` but for `compactMainRev`, at `cp ≤ c`, and
+below `c` only with the lag's token (`revLag`: a quarter of the lock's fraction of the watchable
+store's deposit ghost `γ.wsd`). Every opener but `updateCompactRev` finds no lag, so their callers
+are unchanged: a holder of `s.mu` has a part of the field at `c` (`revMuBodyL_mu`: the points-to
+agree), a holder of the watchable store's lock its deposit ghost whole (`revMuBodyL_wsd`;
+`revMuInv_open_ws` now takes `wsFields s γ 1`, `revMuInv_open_share` the deposit ghost).
+`store.Restore` holds both locks, so it can leave the lag. `updateCompactRev.spec` and
+`compactLockfree.spec` take `muInvLag s γ c cp` (`muInvAt s γ 1 c` at `cp = c`, `muInvLag_at`), with
+`cp < c → c ≤ rev`; the success case ends the lag (`prev = cp`, `cp < rev`, `c ≤ rev`, the token
+back: `lagTok`), the error case has none (`cp = c`). `store.Compact` passes `cp = c`.
+
+**Rejected.** Keeping the restoring flag up through the resumed compaction (`revMuRest`): the
+compaction right's share of the fields holds the flag down, and `compactLockfree` needs it. A new
+ghost name for the lag: `γ.wsd` already excludes the only openers `s.mu` does not.

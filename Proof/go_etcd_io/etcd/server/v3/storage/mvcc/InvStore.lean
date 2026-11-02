@@ -3419,6 +3419,247 @@ instance revMuBody_fractional (s : Loc) (γ γp : StoreNames) : Fractional (revM
       · iexact Hperm1
       ipureintro; exact Hc1
 
+/-- **The compaction revision's physical lag** (M2's item 15, the lag state, 2026-11-02): `s.revMu`'s
+part of `compactMainRev` holds `cp`, at most the compaction revision `c`; below it only in
+`restore()`'s resumed compaction, from the restored finished record to `compactLockfree`'s
+`updateCompactRev` (`store.Restore` holding `s.mu` and the watchable store's lock), with a quarter of
+the lock's fraction of the watchable store's deposit ghost (`StoreNames.wsd`). That excludes every
+other opener of `s.revMu`: a holder of `s.mu` has a part of `compactMainRev` at `c`
+(`revMuBodyL_mu`), one of the watchable store's lock its deposit ghost whole (`revMuBodyL_wsd`). -/
+def revLag (γ : StoreNames) (q : Qp) (c cp : Int) : IProp GF :=
+  iprop(⌜-1 ≤ cp ∧ cp ≤ c⌝ ∗ if cp = c then iprop(True) else ghostVar γ.wsd q.half.half ())
+
+theorem revLag_split (γ : StoreNames) (q1 q2 : Qp) (c cp : Int) :
+    revLag (GF := GF) γ (q1 + q2) c cp ⊣⊢ revLag γ q1 c cp ∗ revLag γ q2 c cp := by
+  have hw := (ghostVar_fractional (GF := GF) γ.wsd ()).fractional q1.half.half q2.half.half
+  unfold revLag
+  rw [Qp_half_add, Qp_half_add]
+  by_cases h : cp = c
+  · simp only [h, ↓reduceIte]
+    constructor
+    · iintro ⟨%Hp, -⟩
+      isplitl []
+      · isplitl [] <;> ipureintro <;> trivial
+      · isplitl [] <;> ipureintro <;> trivial
+    · iintro ⟨⟨%Hp, -⟩, -⟩
+      isplitl [] <;> ipureintro <;> trivial
+  · simp only [h, ↓reduceIte]
+    constructor
+    · iintro ⟨%Hp, Hw⟩
+      icases hw.1 $$ Hw with ⟨H1, H2⟩
+      isplitl [H1]
+      · iframe H1; ipureintro; exact Hp
+      · iframe H2; ipureintro; exact Hp
+    · iintro ⟨⟨%Hp, H1⟩, ⟨-, H2⟩⟩
+      isplitl []
+      · ipureintro; exact Hp
+      iapply hw.2; iframe H1 H2
+
+/-- **`s.revMu`'s resource with the compaction revision's physical lag** (M2's item 15, the lag
+state, 2026-11-02): `revMuBody` but for `compactMainRev`, at `cp`, at most the compaction revision
+`c` and below it only with the lag's token (`revLag`). The lock holds it (`revMuCur`); an opener
+finds `revMuBody` (`revMuBodyL_mu`, `revMuBodyL_wsd`) but `updateCompactRev`, which ends the lag. -/
+def revMuBodyL (s : Loc) (γ γp : StoreNames) (q : Qp) : IProp GF :=
+  iprop(∃ (log : Log) (ntok : Nat) (c cp : Int),
+    "Hrev" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own q.half} (W64 ((log.length : Int) - 1) : w64) :
+      IProp GF) ∗
+    "Hclog" ∷ ghostVar γ.clog q.half log ∗
+    "#Hcert" ∷ idxCert γ.idx log ∗
+    "#Hnev" ∷ idxNevLb γp.idx log ∗
+    "#Hok" ∷ certOk γ log ∗
+    "%Hne" ∷ ⌜log ≠ []⌝ ∗
+    "Hbucket" ∷ bucketViewL γp q.half log ∗
+    "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own q.half) ntok ∗
+    "%Hbudget" ∷ ⌜log.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
+    "Hlog" ∷ idxLogAuth γ.idx (revQ γ q) log ∗
+    "Hcmp" ∷ (s.[store, go!"compactMainRev"] ↦{DFrac.own q.half} (W64 cp : w64) : IProp GF) ∗
+    "Hcrev" ∷ crevUB γ.idx q.half.half c ∗
+    "#Hperm" ∷ crevPermAt γ c ∗
+    "Hlag" ∷ revLag γ q c cp ∗
+    "%Hc" ∷ ⌜-1 ≤ c ∧ c < log.length⌝)
+
+instance revMuBodyL_fractional (s : Loc) (γ γp : StoreNames) :
+    Fractional (revMuBodyL (GF := GF) s γ γp) where
+  fractional q1 q2 := by
+    have hcur : ∀ v : w64, (s.[store, go!"currentRev"] ↦{DFrac.own (q1.half + q2.half)} v :
+        IProp GF) ⊣⊢ s.[store, go!"currentRev"] ↦{DFrac.own q1.half} v ∗
+          s.[store, go!"currentRev"] ↦{DFrac.own q2.half} v :=
+      fun v => (typedPointsto_dfractional (GF := GF) _ v).dfractional (DFrac.own q1.half)
+        (DFrac.own q2.half)
+    have hclog := fun (log : Log) =>
+      (ghostVar_fractional (GF := GF) γ.clog log).fractional q1.half q2.half
+    have hbv := fun (L : Log) => bucketViewL_split (GF := GF) γp q1.half q2.half L
+    have htk : ∀ n : Nat, ownTokAuthDfrac (GF := GF) γ.revs (DFrac.own (q1.half + q2.half)) n ⊣⊢
+        ownTokAuthDfrac γ.revs (DFrac.own q1.half) n ∗ ownTokAuthDfrac γ.revs (DFrac.own q2.half) n :=
+      fun n => ownTokAuthDfrac_split (GF := GF) γ.revs (DFrac.own q1.half) (DFrac.own q2.half) n
+    have hlg := fun (log : Log) =>
+      (monoListAuthOwn_fractional (GF := GF) γ.idx.log log).fractional (revQ γ q1) (revQ γ q2)
+    have hcmp : ∀ v : w64, (s.[store, go!"compactMainRev"] ↦{DFrac.own (q1.half + q2.half)} v :
+        IProp GF) ⊣⊢ s.[store, go!"compactMainRev"] ↦{DFrac.own q1.half} v ∗
+          s.[store, go!"compactMainRev"] ↦{DFrac.own q2.half} v :=
+      fun v => (typedPointsto_dfractional (GF := GF) _ v).dfractional (DFrac.own q1.half)
+        (DFrac.own q2.half)
+    have hcrev := fun (c : Int) => crevUB_split (GF := GF) γ.idx q1.half.half q2.half.half c
+    have hlag := fun (c cp : Int) => revLag_split (GF := GF) γ q1 q2 c cp
+    unfold revMuBodyL
+    rw [revQ_add, Qp_half_add, Qp_half_add]
+    refine ⟨?_, ?_⟩
+    · iintro H
+      icases H with ⟨%log, %ntok, %c, %cp, H⟩
+      iNamed H
+      icases (hcur _).1 $$ Hrev with ⟨Hr1, Hr2⟩
+      icases (hclog log).1 $$ Hclog with ⟨Hc1, Hc2⟩
+      icases (hbv _).1 $$ Hbucket with ⟨Hb1, Hb2⟩
+      icases (htk ntok).1 $$ Htoks with ⟨Ht1, Ht2⟩
+      icases (hlg log).1 $$ Hlog with ⟨Hl1, Hl2⟩
+      icases (hcmp _).1 $$ Hcmp with ⟨Hm1, Hm2⟩
+      icases (hcrev c).1 $$ Hcrev with ⟨Hv1, Hv2⟩
+      icases (hlag c cp).1 $$ Hlag with ⟨Hg1, Hg2⟩
+      isplitl [Hr1 Hc1 Hb1 Ht1 Hl1 Hm1 Hv1 Hg1]
+      · iexists log, ntok, c, cp; simp only [named]; iframe Hr1 Hc1 Hb1 Ht1 Hl1 Hm1 Hv1 Hg1
+        iframe #
+        ipureintro
+        exact ⟨Hne, Hbudget, Hc⟩
+      · iexists log, ntok, c, cp; simp only [named]; iframe Hr2 Hc2 Hb2 Ht2 Hl2 Hm2 Hv2 Hg2
+        iframe #
+        ipureintro
+        exact ⟨Hne, Hbudget, Hc⟩
+    · iintro ⟨H1, H2⟩
+      icases H1 with ⟨%log, %ntok, %c, %cp, H1⟩
+      icases H2 with ⟨%log2, %ntok2, %c2, %cp2, H2⟩
+      iNamedSuffix H1 "1"
+      iNamedSuffix H2 "2"
+      ihave %Hlog := ghostVar_agree γ.clog _ _ _ _ $$ Hclog1 Hclog2
+      subst Hlog
+      icombine Htoks1 Htoks2 gives %Hn
+      obtain ⟨-, Hn⟩ := Hn
+      subst Hn
+      ihave %Hcc := crevUB_agree γ.idx _ _ c c2 Hc1.1 Hc2.1 $$ Hcrev1 Hcrev2
+      subst Hcc
+      icombine Hcmp1 Hcmp2 gives %Hv
+      have Hv : (W64 cp : w64) = W64 cp2 := by first | exact Hv.2 | exact Hv
+      iunfold revLag at Hlag1 Hlag2
+      icases Hlag1 with ⟨%Hp1, Hlag1⟩
+      icases Hlag2 with ⟨%Hp2, Hlag2⟩
+      have Hpp : cp = cp2 := by
+        obtain ⟨-, Hc'⟩ := Hc1
+        word
+      subst Hpp
+      iexists log, ntok, c, cp
+      simp only [named]
+      isplitl [Hrev1 Hrev2]
+      · iapply (hcur _).2; iframe Hrev1 Hrev2
+      isplitl [Hclog1 Hclog2]
+      · iapply (hclog log).2; iframe Hclog1 Hclog2
+      isplitr
+      · iexact Hcert1
+      isplitr
+      · iexact Hnev1
+      isplitr
+      · iexact Hok1
+      isplitr
+      · ipureintro; exact Hne1
+      isplitl [Hbucket1 Hbucket2]
+      · iapply (hbv _).2; iframe Hbucket1 Hbucket2
+      isplitl [Htoks1 Htoks2]
+      · iapply (htk ntok).2; iframe Htoks1 Htoks2
+      isplitl []
+      · ipureintro; exact Hbudget1
+      isplitl [Hlog1 Hlog2]
+      · iapply (hlg log).2; iframe Hlog1 Hlog2
+      isplitl [Hcmp1 Hcmp2]
+      · iapply (hcmp _).2; iframe Hcmp1 Hcmp2
+      isplitl [Hcrev1 Hcrev2]
+      · iapply (hcrev c).2; iframe Hcrev1 Hcrev2
+      isplitr
+      · iexact Hperm1
+      isplitl [Hlag1 Hlag2]
+      · iapply (hlag c cp).2
+        iunfold revLag
+        isplitl [Hlag1]
+        · iframe Hlag1; ipureintro; exact Hp1
+        · iframe Hlag2; ipureintro; exact Hp1
+      ipureintro; exact Hc1
+
+/-- The lock's body without a lag is `revMuBody`. -/
+theorem revMuBodyL_of (s : Loc) (γ γp : StoreNames) (q : Qp) :
+    revMuBody (GF := GF) s γ γp q ⊢ revMuBodyL s γ γp q := by
+  iintro H
+  iunfold revMuBody at H
+  icases H with ⟨%log, %ntok, %c, H⟩
+  iNamed H
+  iunfold revMuBodyL
+  iexists log, ntok, c, c
+  simp only [named]
+  iunfold revLag
+  simp only [↓reduceIte]
+  iframe Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev
+  iframe #
+  ipureintro; exact ⟨Hne, Hbudget, ⟨⟨Hc.1, Int.le_refl c⟩, trivial⟩, Hc⟩
+
+/-- The lock's body is `revMuBody`, or it lags with the lag's token. -/
+theorem revMuBodyL_noLag (s : Loc) (γ γp : StoreNames) (q : Qp) :
+    revMuBodyL (GF := GF) s γ γp q ⊢ ghostVar γ.wsd q.half.half () ∨ revMuBody s γ γp q := by
+  iintro H
+  iunfold revMuBodyL at H
+  icases H with ⟨%log, %ntok, %c, %cp, H⟩
+  iNamed H
+  iunfold revLag at Hlag
+  icases Hlag with ⟨%Hp, Hlag⟩
+  by_cases h : cp = c
+  · subst h
+    iright
+    iunfold revMuBody
+    iexists log, ntok, cp
+    simp only [named]
+    iframe Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev
+    iframe #
+    ipureintro; exact ⟨Hne, Hbudget, Hc⟩
+  · simp only [h, ↓reduceIte]
+    ileft
+    iexact Hlag
+
+/-- **A holder of `s.mu` finds no lag** (M2's item 15): its part of `compactMainRev` and of the
+compaction revision's authority agree with the lock's, at `c`. -/
+theorem revMuBodyL_mu (s : Loc) (γ γp : StoreNames) (q q' : Qp) (dq : DFrac) (cm : Int)
+    (hcm : -1 ≤ cm) :
+    revMuBodyL (GF := GF) s γ γp q ∗
+      (s.[store, go!"compactMainRev"] ↦{dq} (W64 cm : w64) : IProp GF) ∗ crevUB γ.idx q' cm ⊢
+      revMuBody s γ γp q ∗
+        (s.[store, go!"compactMainRev"] ↦{dq} (W64 cm : w64) : IProp GF) ∗ crevUB γ.idx q' cm := by
+  iintro ⟨H, Hm, Hu⟩
+  iunfold revMuBodyL at H
+  icases H with ⟨%log, %ntok, %c, %cp, H⟩
+  iNamed H
+  ihave %Hcc := crevUB_agree γ.idx _ _ c cm Hc.1 hcm $$ Hcrev Hu
+  subst Hcc
+  icombine Hcmp Hm gives %Hv
+  have Hv : (W64 cp : w64) = W64 c := by first | exact Hv.2 | exact Hv
+  iunfold revLag at Hlag
+  icases Hlag with ⟨%Hp, Hlag⟩
+  have Hpp : cp = c := by
+    obtain ⟨-, Hc'⟩ := Hc
+    word
+  subst Hpp
+  iframe Hm Hu
+  iunfold revMuBody
+  iexists log, ntok, cp
+  simp only [named]
+  iframe Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev
+  iframe #
+  ipureintro; exact ⟨Hne, Hbudget, Hc⟩
+
+/-- **A holder of the watchable store's lock finds no lag** (M2's item 15): its deposit ghost,
+whole, excludes the lag's part of it. -/
+theorem revMuBodyL_wsd (s : Loc) (γ γp : StoreNames) (q : Qp) :
+    revMuBodyL (GF := GF) s γ γp q ∗ ghostVar γ.wsd 1 () ⊢
+      revMuBody s γ γp q ∗ ghostVar γ.wsd 1 () := by
+  iintro ⟨H, Hw⟩
+  icases revMuBodyL_noLag s γ γp q $$ H with (Hl | H)
+  · ihave %Hv := ghostVar_valid_2 γ.wsd () 1 () q.half.half $$ Hw Hl
+    exact absurd Hv.1 (Qp_one_add_not_le _)
+  · iframe H Hw
+
 /-- **`s.revMu`'s resource while `store.Restore` restores** (D22 receiver epochs, S3, 2026-10-22):
 `Restore` sets `currentRev = 1` and `compactMainRev = -1` under `s.revMu` and releases it before the
 restored revision is known (`kvstore.go:302-307`), so the lock holds only its parts of the two
@@ -3465,7 +3706,7 @@ S5b): an eighth of the fraction of the store's current objects and names, at `p`
 `revMuBody` with the bucket's view and the index's count of `p`'s names. -/
 def revMuCur (s : Loc) (γ : StoreNames) (q : Qp) : IProp GF :=
   iprop(∃ (p : PhysNames) (o : StoreObjs), curAt (γ.withPhys p) (DFrac.own q.half.half.half) o ∗
-    revMuBody s γ (γ.withPhys p) q)
+    revMuBodyL s γ (γ.withPhys p) q)
 
 theorem curAt_withPhys_agree (γ : StoreNames) (p1 p2 : PhysNames) (dq1 dq2 : DFrac)
     (o1 o2 : StoreObjs) :
@@ -3482,7 +3723,7 @@ instance revMuCur_fractional (s : Loc) (γ : StoreNames) : Fractional (revMuCur 
     constructor
     · iintro ⟨%p, %o, Hc, H⟩
       icases (curAt_fractional (GF := GF) (γ.withPhys p) o).fractional _ _ |>.1 $$ Hc with ⟨Hc1, Hc2⟩
-      icases (revMuBody_fractional (GF := GF) s γ (γ.withPhys p)).fractional q1 q2 |>.1 $$ H
+      icases (revMuBodyL_fractional (GF := GF) s γ (γ.withPhys p)).fractional q1 q2 |>.1 $$ H
         with ⟨H1, H2⟩
       isplitl [Hc1 H1]
       · iexists p, o; iframe Hc1 H1
@@ -3494,7 +3735,7 @@ instance revMuCur_fractional (s : Loc) (γ : StoreNames) : Fractional (revMuCur 
       iexists p1, o1
       isplitl [Hc1 Hc2]
       · iapply (curAt_fractional (GF := GF) (γ.withPhys p1) o1).fractional _ _ |>.2; iframe Hc1 Hc2
-      iapply (revMuBody_fractional (GF := GF) s γ (γ.withPhys p1)).fractional q1 q2 |>.2
+      iapply (revMuBodyL_fractional (GF := GF) s γ (γ.withPhys p1)).fractional q1 q2 |>.2
       iframe H1 H2
 
 /-- **`s.revMu`'s resource** at fraction `q` (D22 receiver epochs, S3, 2026-10-22): half its
@@ -3550,7 +3791,7 @@ def revMuTok (γ γp : StoreNames) (q : Qp) : IProp GF :=
 or a watchable store's share of the fields) finds the lock's body, at some physical names. -/
 theorem revMuInv_open (s : Loc) (γ : StoreNames) (q : Qp) (dq : DFrac) :
     revMuInv (GF := GF) s γ q ∗ dghostVar γ.rst dq false ⊢
-      (∃ γp : StoreNames, revMuBody s γ γp q ∗ revMuTok γ γp q) ∗ dghostVar γ.rst dq false := by
+      (∃ γp : StoreNames, revMuBodyL s γ γp q ∗ revMuTok γ γp q) ∗ dghostVar γ.rst dq false := by
   unfold revMuInv
   iintro ⟨⟨%m, Hf, H⟩, Hr⟩
   icombine Hf Hr gives %Hm
@@ -3572,7 +3813,7 @@ current objects and names at `γ.withPhys p`'s, the lock's body is at them. -/
 theorem revMuInv_open_pin (s : Loc) (γ : StoreNames) (p : PhysNames) (q : Qp) (dq dq' : DFrac)
     (o : StoreObjs) :
     revMuInv (GF := GF) s γ q ∗ dghostVar γ.rst dq false ∗ curAt (γ.withPhys p) dq' o ⊢
-      revMuBody s γ (γ.withPhys p) q ∗ revMuTok γ (γ.withPhys p) q ∗ dghostVar γ.rst dq false ∗
+      revMuBodyL s γ (γ.withPhys p) q ∗ revMuTok γ (γ.withPhys p) q ∗ dghostVar γ.rst dq false ∗
         curAt (γ.withPhys p) dq' o := by
   unfold revMuInv
   iintro ⟨⟨%m, Hf, H⟩, Hr, Hpin⟩
@@ -3594,11 +3835,12 @@ theorem revMuInv_open_pin (s : Loc) (γ : StoreNames) (p : PhysNames) (q : Qp) (
 /-- `revMuInv_open_pin` at the current names `γ` themselves (the writer's, a compaction's). -/
 theorem revMuInv_open_cur (s : Loc) (γ : StoreNames) (q : Qp) (dq dq' : DFrac) (o : StoreObjs) :
     revMuInv (GF := GF) s γ q ∗ dghostVar γ.rst dq false ∗ curAt γ dq' o ⊢
-      revMuBody s γ γ q ∗ revMuTok γ γ q ∗ dghostVar γ.rst dq false ∗ curAt γ dq' o :=
+      revMuBodyL s γ γ q ∗ revMuTok γ γ q ∗ dghostVar γ.rst dq false ∗ curAt γ dq' o :=
   revMuInv_open_pin s γ γ.phys q dq dq' o
 
-theorem revMuInv_close (s : Loc) (γ γp : StoreNames) (q : Qp) :
-    revMuBody (GF := GF) s γ γp q ∗ revMuTok γ γp q ⊢ revMuInv s γ q := by
+/-- `s.revMu`'s resource closed, with a lag (M2's item 15: `restore()`'s, `updateCompactRev`'s). -/
+theorem revMuInv_closeL (s : Loc) (γ γp : StoreNames) (q : Qp) :
+    revMuBodyL (GF := GF) s γ γp q ∗ revMuTok γ γp q ⊢ revMuInv s γ q := by
   unfold revMuInv revMuTok
   iintro ⟨H, Hf, ⟨%o, Hc⟩, %Hp⟩
   iexists false
@@ -3608,6 +3850,13 @@ theorem revMuInv_close (s : Loc) (γ γp : StoreNames) (q : Qp) :
   iexists γp.phys, o
   rw [← Hp]
   iframe H Hc
+
+theorem revMuInv_close (s : Loc) (γ γp : StoreNames) (q : Qp) :
+    revMuBody (GF := GF) s γ γp q ∗ revMuTok γ γp q ⊢ revMuInv s γ q := by
+  iintro ⟨H, Ht⟩
+  iapply revMuInv_closeL s γ γp q
+  iframe Ht
+  iapply revMuBodyL_of s γ γp q $$ H
 
 /-- The initial log's bucket is empty. -/
 theorem bucketMap_init : bucketMap [[], []] = (∅ : Bucket) := by
@@ -3940,6 +4189,33 @@ def muInvAt (s : Loc) (γ : StoreNames) (q : Qp) (c : Int) : IProp GF :=
     "#HpM" ∷ crevPermAt γ c ∗
     "%HcM" ∷ ⌜-1 ≤ c⌝)
 
+/-- **`s.mu`'s resource held exclusively, with the compaction revision's physical lag** (M2's item
+15, the lag state, 2026-11-02): `muInvAt s γ 1 c` (`muInvLag_at`) but for `compactMainRev`, at `cp`,
+at most `c`: `restore()`'s, from its restore of the finished record to its resumed compaction
+(`revLag`). -/
+def muInvLag (s : Loc) (γ : StoreNames) (c cp : Int) : IProp GF :=
+  iprop("HcmpM" ∷ (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half} (W64 cp : w64) :
+      IProp GF) ∗
+    "HcrevM" ∷ crevUB γ.idx (1 : Qp).half.half c ∗
+    "#HclM" ∷ crevSafe γ c ∗
+    "#HpM" ∷ crevPermAt γ c ∗
+    "%HcM" ∷ ⌜-1 ≤ cp ∧ cp ≤ c⌝)
+
+/-- **The lag's token** (M2's item 15): what `s.revMu`'s resource holds of the watchable store's
+deposit ghost while the compaction revision's physical value `cp` lags `c` (`revLag`), which
+`updateCompactRev` gives back when it ends the lag. -/
+def lagTok (γ : StoreNames) (c cp : Int) : IProp GF :=
+  iprop(if cp = c then iprop(True) else ghostVar γ.wsd (1 : Qp).half.half ())
+
+theorem muInvLag_at (s : Loc) (γ : StoreNames) (c : Int) :
+    muInvLag (GF := GF) s γ c c ⊣⊢ muInvAt s γ 1 c := by
+  unfold muInvLag muInvAt
+  constructor
+  · iintro ⟨H1, H2, #H3, #H4, %H5⟩
+    iframe H1 H2 H3 H4; ipureintro; exact H5.1
+  · iintro ⟨H1, H2, #H3, #H4, %H5⟩
+    iframe H1 H2 H3 H4; ipureintro; exact ⟨H5, Int.le_refl c⟩
+
 /-- `s.mu`'s resource at fraction `q`: at some compaction revision, and the writer's deposit
 ghost at the fraction (D22 receiver epochs, S2: a holder of `s.mu` exclusively has all of it, so
 no writer has the writer's state out, `writerInv`). -/
@@ -4136,9 +4412,14 @@ theorem revMuInv_open_held (s : Loc) (γ : StoreNames) (q : Qp) (c : Int) (ti : 
   iNamed Hf
   icases revMuInv_open_cur s γ q _ _ o $$ [H Hfrst Hcur] with ⟨H, Htk, Hfrst, Hcur⟩
   · iframe H Hfrst Hcur
+  iunfold muInvAt at Ha
+  iNamed Ha
+  icases revMuBodyL_mu s γ γ q _ _ c HcM $$ [$H $HcmpM $HcrevM] with ⟨H, HcmpM, HcrevM⟩
   iframe H Htk
   iunfold muHeld
-  iframe Hl Ha
+  iframe Hl
+  isplitl [HcmpM HcrevM]
+  · iunfold muInvAt; iframe HcmpM HcrevM; iframe #; ipureintro; exact HcM
   iexists o
   isplitl []
   · ipureintro; exact Ho
@@ -6047,17 +6328,18 @@ of the fields at `γ.withPhys p`'s names (the watchable store's, a reader's) fin
 them, the logical parts of `γ`. -/
 theorem revMuInv_open_share (s : Loc) (γ : StoreNames) (p : PhysNames) (q q' : Qp)
     (o : StoreObjs) :
-    revMuInv (GF := GF) s γ q ∗ fieldShareAt s (γ.withPhys p) q' o ⊢
+    revMuInv (GF := GF) s γ q ∗ fieldShareAt s (γ.withPhys p) q' o ∗ ghostVar γ.wsd 1 () ⊢
       revMuBody s γ (γ.withPhys p) q ∗ revMuTok γ (γ.withPhys p) q ∗
-        fieldShareAt s (γ.withPhys p) q' o := by
-  iintro ⟨H, Hf⟩
+        fieldShareAt s (γ.withPhys p) q' o ∗ ghostVar γ.wsd 1 () := by
+  iintro ⟨H, Hf, Hw⟩
   iunfold fieldShareAt at Hf
   iNamed Hf
   ihave Hfrst : dghostVar (GF := GF) γ.rst (DFrac.own q'.half) false $$ [Hfrst]
   · withPhys_simp; iexact Hfrst
   icases revMuInv_open_pin s γ p q _ _ o $$ [H Hfrst Hcur] with ⟨H, Htk, Hfrst, Hcur⟩
   · iframe H Hfrst Hcur
-  iframe H Htk
+  icases revMuBodyL_wsd s γ (γ.withPhys p) q $$ [$H $Hw] with ⟨H, Hw⟩
+  iframe H Htk Hw
   iunfold fieldShareAt
   simp only [named]
   withPhys_simp

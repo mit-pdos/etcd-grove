@@ -163,8 +163,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HrevMuR] as ⟨Hrl, HQ⟩
   wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv st γ.st sync.rfrac)) $$ Hlc1 HQ with HQ
-  icases mvcc.revMuInv_open_share st γ.st p _ _ o $$ [HQ Hwsf] with ⟨HQ, HrstR, Hwsf⟩
-  · iframe HQ Hwsf
+  icases mvcc.revMuInv_open_share st γ.st p _ _ o $$ [HQ Hwsf Hwsd] with ⟨HQ, HrstR, Hwsf, Hwsd⟩
+  · iframe HQ Hwsf Hwsd
   -- a slot of the readers' pool, for the snapshot's backend token: checked out under the watchable
   -- store's lock, with its deposit (D22 receiver epochs, S5a), at the share's pin (S5b)
   iunfold mvcc.fieldShareAt at Hwsf

@@ -62,7 +62,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
     (h2 : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG))
     (h3 : mvcc.SetScheduledCompact.spec (GF := GF) (hG := hG)) :
     mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG) := by
-  intro s γ rev c P hk Pre Q Post logc hcmp
+  intro s γ rev c cp P hk Pre Q Post logc hcmp hlag
   wp_start as ⟨#Hs, HmuA, Hright, #HpermR, #HcertC, %HrevC, Hctx, HRTok, #HsupM⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
@@ -91,13 +91,22 @@ theorem mvcc.store.updateCompactRev.wp_proof
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv s γ 1)) $$ Hlc1 HR with HR
   icases mvcc.revMuInv_open_cur s γ _ _ _ _ $$ [HR Hfrst Hcur] with ⟨HR, HrstR, Hfrst, Hcur⟩
   · iframe HR Hfrst Hcur
-  iunfold mvcc.revMuBody at HR
-  icases HR with ⟨%log, %ntok, %c', HR⟩
-  iNamed HR
-  iunfold mvcc.muInvAt at HmuA
+  iunfold mvcc.muInvLag at HmuA
   iNamed HmuA
-  ihave %Hcc := mvcc.crevUB_agree γ.idx _ _ c' c Hc.1 HcM $$ Hcrev Hcr
+  -- the lock's body, with the compaction revision's physical value (M2's item 15: the lag)
+  iunfold mvcc.revMuBodyL at HR
+  icases HR with ⟨%log, %ntok, %c', %cp', HR⟩
+  iNamed HR
+  ihave %Hcc := mvcc.crevUB_agree γ.idx _ _ c' c Hc.1 (by omega) $$ Hcrev Hcr
   subst Hcc
+  iunfold mvcc.revLag at Hlag
+  icases Hlag with ⟨%Hp', Hlag⟩
+  icombine Hcmp HcmpM gives %Hv
+  have Hv : (W64 cp' : w64) = W64 cp := by first | exact Hv.2 | exact Hv
+  have Hpp : cp = cp' := by
+    obtain ⟨-, Hc'⟩ := Hc
+    word
+  subst Hpp
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨%ecp, #Hcomp⟩, ⟨%ef, #Hfut⟩, -⟩
@@ -112,7 +121,17 @@ theorem mvcc.store.updateCompactRev.wp_proof
   | ok sci =>
   wp_auto
   wp_if_destruct
-  · -- `rev <= s.compactMainRev`: `ErrCompacted`, a barrier job
+  · -- `rev <= s.compactMainRev`: `ErrCompacted`, a barrier job; no lag (the caller's `rev` is
+    -- at least the revision it lags)
+    have Hcpc : c' = cp := by
+      have hcz : sint.Z (W64 cp : w64) = cp := by
+        obtain ⟨-, Hc'⟩ := Hc
+        word
+      rw [hcz] at Hif
+      rcases Int.lt_or_eq_of_le Hp'.2 with hlt | heq
+      · have := hlag hlt; omega
+      · exact heq.symm
+    subst Hcpc
     wp_apply chan.wp_make1 (V := Unit) as %ch %γch ⟨#Hch, %Hchcap, Hchown⟩
     imod alloc_broadcast_chan (E := ⊤) iprop(True) γch ch $$ Hch Hchown with Hbc
     ihave #Hbc0 := ownBroadcastChan_Unknown _ _ _ _ $$ Hbc
@@ -178,11 +197,11 @@ theorem mvcc.store.updateCompactRev.wp_proof
       iframe HRTok Hback
       iright
       isplitr
-      · ipureintro; exact ⟨by word, rfl⟩
+      · ipureintro; exact ⟨by word, trivial, rfl⟩
       isplitr
       · iexists ecp; iframe Hcomp; ipureintro; rfl
       isplitl [HcmpM HcrevM]
-      · iunfold mvcc.muInvAt; simp only [named]; iframe; iframe #; ipureintro; exact HcM
+      · iunfold mvcc.muInvAt; simp only [named]; iframe; iframe #; ipureintro; exact HcM.1
       isplitl [Hcr Hq Hcur Hfb Hfidx Hfsch Hfstop Hfrst Hstc Htok]
       · iapply (mvcc.compactRightR_iff s γ _).2
         iframe Hcr Hq
@@ -198,11 +217,15 @@ theorem mvcc.store.updateCompactRev.wp_proof
   · ihave #Hcert' := Hcert
     iunfold mvcc.idxCert at Hcert'
     icases Hcert' with ⟨-, %Hwf, -⟩
-    have hc : sint.Z (W64 c' : w64) = c' := by
-      have := Hwf.2.1
+    have hc : sint.Z (W64 cp : w64) = cp := by
+      obtain ⟨-, Hc'⟩ := Hc
       word
     rw [hc] at Hif
-    have Hgt : c' < sint.Z rev := by omega
+    have Hgt : cp < sint.Z rev := by omega
+    have Hge : c' ≤ sint.Z rev := by
+      by_cases hcp : cp < c'
+      · exact hlag hcp
+      · omega
     have hlen0 : 0 < log.length := List.length_pos_iff.mpr Hne
     have hl : sint.Z (W64 ((log.length : Int) - 1) : w64) = (log.length : Int) - 1 := by
       have := Hwf.2.1
@@ -218,7 +241,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       omega
     · -- `s.compactMainRev = rev`, under both locks: the field and the revision's authority
       have hrl : sint.Z rev < log.length := by omega
-      ihave Hcmpf : (s.[store, go!"compactMainRev"] ↦ (W64 c' : w64) : IProp GF) $$ [Hcmp HcmpM]
+      ihave Hcmpf : (s.[store, go!"compactMainRev"] ↦ (W64 cp : w64) : IProp GF) $$ [Hcmp HcmpM]
       · rw [show (DFrac.own 1 : DFrac) = DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half from
           dfrac_own_half_half 1]
         iapply ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).2
@@ -375,7 +398,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       iframe HRTok Hback
       ileft
       isplitr
-      · ipureintro; exact ⟨rfl, rfl, rfl, Hgt⟩
+      · ipureintro; exact ⟨rfl, rfl, rfl, Hgt, Hge⟩
       isplitl [HcmpM HcrevM]
       · iunfold mvcc.muInvAt; simp only [named]
         rw [hrw]
@@ -395,12 +418,14 @@ theorem mvcc.store.updateCompactRev.wp_proof
         iunfold mvcc.storeFields; simp only [named]; iframe Hfb Hfidx Hfsch Hfstop
 
       iframe HPost
-      iunfold mvcc.compactJobPre
-      iframe #
-      isplitr
-      · ipureintro; exact hcmp
-      ipureintro
-      exact ⟨by omega, hrl⟩
+      isplitr [Hlag]
+      · iunfold mvcc.compactJobPre
+        iframe #
+        isplitr
+        · ipureintro; exact hcmp
+        ipureintro
+        exact ⟨by omega, hrl⟩
+      iunfold mvcc.lagTok; iexact Hlag
 
 end proof
 

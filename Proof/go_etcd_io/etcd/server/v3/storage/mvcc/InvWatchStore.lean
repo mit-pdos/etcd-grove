@@ -1696,9 +1696,9 @@ def isWatchableStore (s st : Loc) (γ : WsNames) : IProp GF :=
 /-- **A holder of a watchable store's `s.mu` finds the inner store's `s.revMu` not restoring**
 (its share of the inner store's fields has the restoring flag down; D22 receiver epochs, S3), at
 some physical names (S5b: the current ones; the body's logical parts are the store's names'). -/
-theorem revMuInv_open_ws (s st : Loc) (γ : WsNames) (q q' : Qp) :
-    s.[watchableStore, go!"store"] ↦□ st ∗ revMuInv (GF := GF) st γ.st q ∗ wsFields s γ q' ⊢
-      (∃ γp : StoreNames, revMuBody st γ.st γp q ∗ revMuTok γ.st γp q) ∗ wsFields s γ q' := by
+theorem revMuInv_open_ws (s st : Loc) (γ : WsNames) (q : Qp) :
+    s.[watchableStore, go!"store"] ↦□ st ∗ revMuInv (GF := GF) st γ.st q ∗ wsFields s γ 1 ⊢
+      (∃ γp : StoreNames, revMuBody st γ.st γp q ∗ revMuTok γ.st γp q) ∗ wsFields s γ 1 := by
   iintro ⟨#Hst, H, Hw⟩
   iunfold wsFields at Hw
   icases Hw with ⟨%st', #Hst', Hf, Hd⟩
@@ -1709,9 +1709,12 @@ theorem revMuInv_open_ws (s st : Loc) (γ : WsNames) (q q' : Qp) :
   iunfold fieldShareAt at Hf
   iNamed Hf
   withPhys_simp
-  icases revMuInv_open st γ.st q _ $$ [H Hfrst] with ⟨H, Hfrst⟩
+  icases revMuInv_open st γ.st q _ $$ [H Hfrst] with ⟨⟨%γp, H, Htk⟩, Hfrst⟩
   · iframe H Hfrst
-  iframe H
+  -- the whole deposit ghost excludes a lag (M2's item 15)
+  icases revMuBodyL_wsd st γ.st γp q $$ [$H $Hd] with ⟨H, Hd⟩
+  isplitl [H Htk]
+  · iexists γp; iframe H Htk
   iunfold wsFields
   iexists st
   iframe Hst Hd

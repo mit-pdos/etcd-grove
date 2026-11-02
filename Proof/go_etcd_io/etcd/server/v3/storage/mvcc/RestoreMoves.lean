@@ -135,6 +135,7 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
   -- `s.revMu`'s body, at the current names
   icases revMuInv_open_cur s γ 1 _ _ o $$ [HR Hrst Hcur] with ⟨HB, HT, Hrst, Hcur⟩
   · iframe HR Hrst Hcur
+  icases revMuBodyL_mu s γ γ 1 _ _ (-1) (by omega) $$ [$HB $Hcmp $Hcrev] with ⟨HB, Hcmp, Hcrev⟩
   iunfold revMuTok at HT
   icases HT with ⟨Hrst2, ⟨%o2, Hcur2⟩, -⟩
   ihave %Ho2 := curAt_agree_o γ _ _ o o2 $$ [Hcur Hcur2]
