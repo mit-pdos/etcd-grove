@@ -119,6 +119,11 @@ theorem chains_flatMap_perm (hok : ChainsOk h cs) :
   rw [List.mem_range, hok.2.1 y, List.mem_flatMap]
   simp only [List.mem_range]
 
+theorem chain_length_le' (hok : ChainsOk h cs) (c : Nat) : (chain cs c).length ≤ h.length := by
+  have := List.Nodup.length_le_of_subset (l₂ := List.range h.length) (hok.1 c).1
+    (fun y hy => List.mem_range.mpr (lt_length_of_mem hok hy))
+  simpa using this
+
 theorem sum_take_le (cs : List (List Nat)) (m : Nat) :
     ((cs.take m).map List.length).sum ≤ (cs.map List.length).sum := by
   conv => rhs; rw [← List.take_append_drop m cs]
@@ -211,6 +216,29 @@ theorem init_fuOk {α : Type} (h : List (Op α)) (cs : List (List Nat)) : FuOk h
   intro c k hv
   rw [init_visAt] at hv
   cases hv
+
+/-- A `firstUnk` set: still fresh (`CoFresh` does not read it). -/
+theorem coFresh_set_fu [GooseExts] {h : List (Op OpV)} {ch : List Nat} {cos : List clientOperation} {j : Nat}
+    {co : clientOperation} (hf : CoFresh h ch cos) (hco : cos[j]? = some co) (s : GoSlice) :
+    CoFresh h ch (cos.set j { co with firstUnk' := s }) := by
+  refine ⟨by rw [List.length_set]; exact hf.1, fun k co' hk => ?_⟩
+  by_cases hkj : k = j
+  · subst hkj
+    rw [List.getElem?_set_self (List.getElem?_eq_some_iff.mp hco).1] at hk
+    cases hk
+    exact hf.2 k co hco
+  · rw [List.getElem?_set_ne (Ne.symm hkj)] at hk
+    exact hf.2 k co' hk
+
+theorem take_set_succ {β : Type} {l : List β} {j : Nat} (hj : j < l.length) (a : β) :
+    (l.set j a).take (j + 1) = l.take j ++ [a] := by
+  rw [List.take_add_one, List.getElem?_set_self hj, List.take_set,
+    List.set_eq_of_length_le (by simp; omega)]
+  rfl
+
+theorem w64_eq_of_sint {a : w64} {n : Nat} (ha : sint.Z a = (n : Int)) (hn : (n : Int) < 2 ^ 63) :
+    a = W64 (n : Int) := by
+  word
 
 /-- `ChainsInv` at no operation linearized, from the state's parts. -/
 theorem chainsInv_init [GooseExts] {h : List (Op OpV)} {cs : List (List Nat)} (hok : ChainsOk h cs)

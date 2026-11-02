@@ -490,7 +490,165 @@ theorem chains.lift.wp_proof
           refine hlc2.inv_init_erase (by rw [hst3]) (by rw [hst3]) (by rw [hst3])
             (by rw [h3n]) (fun h0 => absurd h0 hfin) (fun d _ => by rw [h3n]) h3fr
             (fun ⟨h0, _⟩ => hfin h0)
-      sorry
+      -- the loop over `j`
+      ihave HJ : (∃ (jv : w64) (stj : ChSt),
+          "j" ∷ j_ptr ↦ jv ∗ "Hch" ∷ chainsOwnCl ch cl h cs stj ∗
+          "%Hj" ∷ ⌜0 ≤ sint.Z jv ∧ sint.Z jv ≤ cs.length ∧
+            LiftInv h cs st st2 i (sint.nat jv) stj⌝ : IProp GF) $$ [j Hch]
+      · iexists W64 0, stc
+        iframe
+        ipureintro; exact ⟨by decide, by word, by rw [show sint.nat (W64 0) = 0 from rfl]; exact Hinv0⟩
+      wp_for HJ
+      obtain ⟨Hj1, Hj2, Hinv⟩ := Hj
+      have hstj : ∀ d, stj.head d = st2.head d := fun d => by unfold ChSt.head; rw [Hinv.1]
+      iunfold chainsOwnCl at Hch
+      icases Hch with ⟨%chV4, Hchp, %Hcl4, Hr⟩
+      icases chainsRepr_acc chV4 h cs stj i hil $$ Hr with ⟨%Hlen4, %cvx, Hex, Hcx, Hbackx⟩
+      ihave Hr := Hbackx $$ %stj %cvx [] Hex Hcx
+      · ipureintro; exact ⟨fun _ _ => ⟨rfl, rfl, rfl, rfl⟩, rfl⟩
+      wp_auto
+      wp_if_destruct
+      · -- the body
+        have hjl : sint.nat jv < cs.length := by
+          have : sint.Z jv < sint.Z chV4.clients'.len := by have := go.intoVal_inj Hif; simpa using this
+          rw [Hlen4] at this; rw [snat_eq]; omega
+        have hjv1 : 0 ≤ sint.Z (jv + W64 1) ∧ sint.Z (jv + W64 1) ≤ cs.length := by
+          have := hjl; rw [snat_eq] at this
+          have h1 : sint.Z (jv + W64 1) = sint.Z jv + 1 := by word
+          omega
+        have hj1 : sint.nat (jv + W64 1) = sint.nat jv + 1 := by
+          rw [snat_eq, snat_eq]; have := hjl; rw [snat_eq] at this; word
+        wp_if_destruct
+        · -- `j == i`
+          wp_for_post
+          iframe
+          iexists W64 (i : Int) + W64 1, stj
+          iframe
+          isplitl [Hchp Hr]
+          · iapply chainsOwnCl_fold ch chV4 _ h cs stj Hcl4; iframe
+          ipureintro
+          refine ⟨hjv1.1, hjv1.2, ?_⟩
+          rw [hj1]
+          exact hlc2.inv_skip Hinv (Or.inl hinw)
+        · -- `j != i`: client `j`'s head
+          obtain ⟨jn, hjn⟩ : ∃ jn, sint.nat jv = jn := ⟨_, rfl⟩
+          rw [hjn] at hjl hj1 Hinv
+          have hjz : sint.Z jv = (jn : Int) := by rw [← hjn, snat_eq]; omega
+          have hji : jn ≠ i := by
+            intro he; apply Hif; apply BitVec.eq_of_toInt_eq
+            have := hiz; simp only [sint.Z] at this hjz; omega
+          icases chainsRepr_acc chV4 h cs stj jn hjl $$ Hr with ⟨-, %cvj, Hej, Hcj, Hbackj⟩
+          iunfold clientOwn at Hcj
+          icases Hcj with ⟨%Hcj, %cosj, Hcosj, %Hcokj, Hfusj⟩
+          obtain ⟨Hcj1, Hcj2, Hcj3⟩ := Hcj
+          ihave %Hcosjl := ownSlice_len $$ Hcosj
+          have hbj : 0 ≤ (jn : Int) ∧ (jn : Int) < sint.Z chV4.clients'.len := by omega
+          have hbj4 : (jn : Int) < sint.Z chV4.clients'.len := by omega
+          repeat ((try simp only [hjz, hbj, hbj4, _root_.and_self, ↓reduceIte, Int.natCast_nonneg]); wp_auto)
+          have hcosjl : cosj.length = (chain cs jn).length := Hcokj.1
+          have hk0 : sint.Z cvj.head' = ((st2.head jn : Nat) : Int) := by rw [Hcj2, hstj]
+          wp_if_destruct
+          · -- client `j` unfinished: its head's `firstUnk[i]`
+            obtain ⟨k0, hk0n⟩ : ∃ k0, st2.head jn = k0 := ⟨_, rfl⟩
+            rw [hk0n] at hk0
+            have hk0l : k0 < cosj.length := by
+              have := Hcosjl; rw [snat_eq] at this; omega
+            obtain ⟨co, Hco⟩ : ∃ co, cosj[k0]? = some co := ⟨_, List.getElem?_eq_getElem hk0l⟩
+            icases ownSlice_elem_acc (sint.Z cvj.head') co _ _ cosj (by omega)
+              (by rw [hk0]; simpa using Hco) $$ Hcosj with ⟨Hco, Hcosj⟩
+            icases BigSepL.bigSepL_lookup_acc Hco $$ Hfusj with ⟨Hfu, Hfusj⟩
+            ihave %Hful := ownSlice_len $$ Hfu
+            have hshj : ShapeOk cs stj := hlc2.shape_of Hinv.1 Hinv.2.1 Hinv.2.2.1 Hinv.2.2.2.1
+            have hful : (stj.fuAt jn k0).length = cs.length := (hshj.2.2.2.2 jn k0 (by omega)).2.2
+            have hbk : 0 ≤ sint.Z cvj.head' ∧ sint.Z cvj.head' < sint.Z cvj.cltOps'.len := by omega
+            have hbc : 0 ≤ (i : Int) ∧ (i : Int) < sint.Z co.firstUnk'.len := by
+              have := Hful; rw [snat_eq] at this; omega
+            repeat ((try simp only [hjz, hbj, hbj4, hbk, hiz, hbc, _root_.and_self, ↓reduceIte,
+              Int.natCast_nonneg]); wp_auto)
+            simp only [hiz, hbc, _root_.and_self, ↓reduceIte]
+            obtain ⟨fv, Hfv⟩ : ∃ fv, (stj.fuAt jn k0)[i]? = some fv :=
+              ⟨_, List.getElem?_eq_getElem (by omega)⟩
+            wp_apply wp_load_slice_index co.firstUnk' (i : Int) (stj.fuAt jn k0) _ fv (by omega) $$ [Hfu] as Hfu
+            · iframe; ipureintro; simpa using Hfv
+            ihave Hcosj := Hcosj $$ %co Hco
+            ihave Hfusj := Hfusj $$ %co Hfu
+            have hsetj : cosj.set k0 co = cosj := by
+              obtain ⟨hl, he⟩ := List.getElem?_eq_some_iff.mp Hco
+              rw [← he]; exact List.set_getElem_self hl
+            rw [show (sint.Z cvj.head').toNat = k0 by omega, hsetj]
+            ihave Hr := Hbackj $$ %stj %cvj [] Hej [Hcosj Hfusj]
+            · ipureintro; exact ⟨fun _ _ => ⟨rfl, rfl, rfl, rfl⟩, rfl⟩
+            · iunfold clientOwn
+              isplitr
+              · ipureintro; exact ⟨Hcj1, Hcj2, Hcj3⟩
+              iexists cosj; iframe; ipureintro; exact Hcokj
+            -- client `i`'s head
+            icases chainsRepr_acc chV4 h cs stj i hil $$ Hr with ⟨-, %cvc, Hec, Hcc, Hbackc⟩
+            icases clientOwn_facts h cs stj i cvc $$ Hcc with ⟨%Hcc', Hcc⟩
+            have hbi4 : 0 ≤ (i : Int) ∧ (i : Int) < sint.Z chV4.clients'.len := by omega
+            have hbi4' : (i : Int) < sint.Z chV4.clients'.len := by omega
+            simp only [hiz, hbi4, hbi4', _root_.and_self, ↓reduceIte, Int.natCast_nonneg]
+            wp_auto
+            ihave Hr := Hbackc $$ %stj %cvc [] Hec Hcc
+            · ipureintro; exact ⟨fun _ _ => ⟨rfl, rfl, rfl, rfl⟩, rfl⟩
+            have hvis : stj.visAt jn k0 = true := by
+              have h1 := h2vis jn k0
+              have h2 := Hci.2.2.2.2.2.2.2.1 jn k0 (by omega)
+                (by rw [← hk0n, hlc2.head2_ne hji]; exact Nat.le_refl _)
+              unfold ChSt.visAt at h1 h2 ⊢
+              rw [Hinv.2.1, h1, hst1]; simp only; rw [h2]
+            have hfv : sint.Z fv = FUe h cs jn i k0 := by
+              have := h2fu jn k0 (by unfold ChSt.visAt at hvis ⊢; rw [Hinv.2.1] at hvis; exact hvis)
+                i hil (Ne.symm hji)
+              unfold ChSt.fuAt at this Hfv
+              rw [Hinv.2.2.1] at Hfv
+              rw [List.getD_eq_getElem?_getD, Hfv] at this
+              exact this
+            have hhc : sint.Z cvc.head' = ((st2.head i : Nat) : Int) := by rw [Hcc'.2.1, hstj]
+            have hFle : FUe h cs jn i k0 ≤ (chain cs i).length := fue_le
+            have hcll : (chain cs i).length < 2 ^ 60 := hhl
+            have htest : fv = cvc.head' ↔ FUe h cs jn i k0 = st2.head i := by
+              constructor
+              · intro he; rw [he, hhc] at hfv; omega
+              · intro he; apply BitVec.eq_of_toInt_eq
+                simp only [sint.Z] at hfv hhc ⊢
+                omega
+            wp_if_destruct
+            · -- the test holds: `nDeps[j]--`, and `addToFrontier(j)` at `0`
+              sorry
+            · -- the test fails
+              wp_for_post
+              iframe
+              iexists jv + W64 1, stj
+              iframe
+              isplitl [Hchp Hr]
+              · iapply chainsOwnCl_fold ch chV4 _ h cs stj Hcl4; iframe
+              ipureintro
+              refine ⟨hjv1.1, hjv1.2, ?_⟩
+              rw [hj1]
+              refine hlc2.inv_skip Hinv (Or.inr (Or.inr fun he => Hif ?_))
+              rw [hk0n] at he
+              exact htest.mpr he
+          · -- client `j` finished
+            ihave Hr := Hbackj $$ %stj %cvj [] Hej [Hcosj Hfusj]
+            · ipureintro; exact ⟨fun _ _ => ⟨rfl, rfl, rfl, rfl⟩, rfl⟩
+            · iunfold clientOwn
+              isplitr
+              · ipureintro; exact ⟨Hcj1, Hcj2, Hcj3⟩
+              iexists cosj; iframe; ipureintro; exact Hcokj
+            wp_for_post
+            iframe
+            iexists jv + W64 1, stj
+            iframe
+            isplitl [Hchp Hr]
+            · iapply chainsOwnCl_fold ch chV4 _ h cs stj Hcl4; iframe
+            ipureintro
+            refine ⟨hjv1.1, hjv1.2, ?_⟩
+            rw [hj1]
+            refine hlc2.inv_skip Hinv (Or.inr (Or.inl fun hlt => Hif ?_))
+            have := Hcosjl; rw [snat_eq] at this; rw [hk0]; omega
+      · -- the loop's end: return
+        sorry
   · -- every candidate tried
     have hiv : sint.Z iv = -1 := by
       have : ¬ 0 ≤ sint.Z iv := by

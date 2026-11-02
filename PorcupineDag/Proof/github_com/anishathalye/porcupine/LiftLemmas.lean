@@ -354,6 +354,32 @@ theorem LiftCtx2.inv_skip (hx : LiftCtx2 h cs st st2 B i y) {j : Nat} {stc : ChS
             rw [hnoh x hxi b rfl, c]
       · exact Or.inr (Or.inr d)
 
+/-- The `j`-loop's hit: `nDeps[j] - 1` is `j`'s `deps` at the new heads, and `j` is not in the
+frontier. -/
+theorem LiftCtx2.hit_val (hx : LiftCtx2 h cs st st2 B i y) {j : Nat} {stc : ChSt}
+    (hi : LiftInv h cs st st2 i j stc) (hji : j ≠ i) (hjl : j < cs.length)
+    (hjh : st2.head j < (chain cs j).length) (hfu : FUe h cs j i (st2.head j) = st2.head i)
+    (hcs : (cs.length : Int) < 2 ^ 62) :
+    sint.Z (stc.nDeps.getD j 0 - W64 1) = deps h cs st2.heads j ∧ j ∉ stc.frontier := by
+  obtain ⟨hh, hv, hf, hn, hni, hlo, hhi, hp, hmem⟩ := hi
+  have hold : stc.nDeps.getD j 0 = st.nDeps.getD j 0 := hhi j hji (Nat.le_refl _)
+  have hz : sint.Z (stc.nDeps.getD j 0) = deps h cs st.heads j := by
+    rw [hold]; exact hx.1.2.2.1.2.2.2.2.2.2.2.2.1 j hjl (by rw [← hx.head2_ne hji]; exact hjh)
+  have hdj : deps h cs st.heads j = deps h cs st2.heads j + 1 := by
+    rw [hx.deps2_ne hji, if_pos ⟨hjh, hfu⟩]
+  have hdle : deps h cs st.heads j ≤ cs.length := deps_le
+  refine ⟨?_, fun hjf => ?_⟩
+  · have h2 : (deps h cs st.heads j : Int) ≤ cs.length := by exact_mod_cast hdle
+    have h1 := hz
+    have : sint.Z (stc.nDeps.getD j 0 - W64 1) = sint.Z (stc.nDeps.getD j 0) - 1 := by word
+    rw [this, hz, hdj]; push_cast; omega
+  · obtain ⟨_, _, _, hjo⟩ := (hmem j).mp hjf
+    rcases hjo with h0 | h0 | h0
+    · exact hji h0
+    · exact Nat.lt_irrefl _ h0
+    · obtain ⟨_, _, hd0⟩ := (hx.1.frontier_iff' j).mp h0
+      omega
+
 /-- The `j`-loop, `nDeps[j]` decremented (and `j` added if it reached `0`: `hfr'`). -/
 theorem LiftCtx2.inv_hit (hx : LiftCtx2 h cs st st2 B i y) {j : Nat} {stc stc' : ChSt}
     (hi : LiftInv h cs st st2 i j stc) (hji : j ≠ i) (hjl : j < cs.length)

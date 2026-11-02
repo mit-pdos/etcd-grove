@@ -228,8 +228,10 @@ theorem newChains.wp_proof
         exact BigSepL.bigSepL_nil_intro
       wp_for IH3
       nc_idx [hbi]
+      cleanup_bool_decide
       wp_if_destruct
-      · have hjl : sint.nat jv < (chain cs (sint.nat iv)).length := by word
+      · have hjn : sint.nat jv = (sint.Z jv).toNat := rfl
+        have hjl : sint.nat jv < (chain cs (sint.nat iv)).length := by omega
         obtain ⟨co, hco⟩ : ∃ co, cosj[(sint.Z jv).toNat]? = some co :=
           ⟨_, List.getElem?_eq_getElem (by rw [Hj.2.2.1]; exact hjl)⟩
         obtain ⟨y, o, hy, hyo, hid, -⟩ := Hj.2.2.2 _ co hco
@@ -238,7 +240,67 @@ theorem newChains.wp_proof
         icases typedPointsto_not_null_dup _ _ _ $$ Hco with ⟨Hco, %Hconn⟩
         iStructNamedSuffix Hco "_co"
         nc_idx [hbi, hbj]
-        sorry
+        ihave %Hfucw := ownSliceCap_wf _ _ $$ Hfucap
+        have hyh : y < h.length := (List.getElem?_eq_some_iff.mp hyo).1
+        have hyle : (y + 1) * cs.length ≤ h.length * cs.length := Nat.mul_le_mul_right _ hyh
+        have hlo : sint.Z (co.id' * ohsl.len) = ((y * cs.length : Nat) : Int) := by
+          have : sint.Z co.id' * sint.Z ohsl.len = ((y * cs.length : Nat) : Int) := by
+            rw [hid, hncZ]; push_cast; rfl
+          have : ((y * cs.length : Nat) : Int) ≤ ((h.length * cs.length : Nat) : Int) := by
+            have := Nat.mul_le_mul_right cs.length (Nat.le_of_lt hyh); omega
+          word
+        have hhi : sint.Z ((co.id' + W64 1) * ohsl.len) = (((y + 1) * cs.length : Nat) : Int) := by
+          have h1 : sint.Z (co.id' + W64 1) = ((y + 1 : Nat) : Int) := by
+            have : (y : Int) < 2 ^ 60 := by omega
+            push_cast; word
+          have : sint.Z (co.id' + W64 1) * sint.Z ohsl.len = (((y + 1) * cs.length : Nat) : Int) := by
+            rw [h1, hncZ]; push_cast; rfl
+          have : (((y + 1) * cs.length : Nat) : Int) ≤ ((h.length * cs.length : Nat) : Int) := by
+            omega
+          word
+        have hcapb : sint.Z fsl.len = ((h.length * cs.length : Nat) : Int) := by
+          rw [hfsllen]; word
+        have hsb : 0 ≤ sint.Z (co.id' * ohsl.len) ∧
+            sint.Z (co.id' * ohsl.len) ≤ sint.Z ((co.id' + W64 1) * ohsl.len) ∧
+            sint.Z ((co.id' + W64 1) * ohsl.len) ≤ sint.Z fsl.cap := by
+          rw [hlo, hhi]
+          have : y * cs.length ≤ (y + 1) * cs.length := Nat.mul_le_mul_right _ (Nat.le_succ y)
+          omega
+        nc_idx [hsb, hbi, hbj]
+        have hh63 : (((y + 1) * cs.length : Nat) : Int) < 2 ^ 63 := by omega
+        have hl63 : ((y * cs.length : Nat) : Int) < 2 ^ 63 := by
+          have : y * cs.length ≤ (y + 1) * cs.length := Nat.mul_le_mul_right _ (Nat.le_succ y)
+          omega
+        rw [w64_eq_of_sint hlo hl63, w64_eq_of_sint hhi hh63]
+        obtain ⟨sp, hsp⟩ : ∃ sp, sp = slice.slice fsl w64 (W64 ((y * cs.length : Nat) : Int))
+            (W64 (((y + 1) * cs.length : Nat) : Int)) := ⟨_, rfl⟩
+        rw [← hsp]
+        ihave Hco := typedPointsto_combine _ { co with firstUnk' := sp } _ Hconn $$
+          [Op_co globalId_co id_co firstUnk_co visited_co __co]
+        · simp only [TypedPointsto.typedPointstoDef]; iframe
+        ihave Hsl := Hsl $$ %_ Hco
+        have hjc : sint.nat jv < cosj.length := by rw [Hj.2.2.1]; exact hjl
+        have hyj : (chain cs (sint.nat iv))[sint.nat jv]'hjl = y := by
+          have := hy; rw [hjn.symm, List.getElem?_eq_getElem hjl] at this; exact Option.some.inj this
+        rw [List.drop_eq_getElem_cons hjl, hyj]
+        icases Hpend with ⟨Hp, Hpend⟩
+        wp_for_post
+        iframe
+        iexists jv + W64 1, cosj.set (sint.nat jv) { co with firstUnk' := sp }
+        have hj1 : sint.nat (jv + W64 1) = sint.nat jv + 1 := by
+          have : (((chain cs (sint.nat iv)).length : Nat) : Int) < 2 ^ 60 := by
+            have := chain_length_le' hok (sint.nat iv); omega
+          word
+        rw [hj1, take_set_succ hjc]
+        iframe
+        isplitr
+        · ipureintro
+          refine ⟨by word, by word, coFresh_set_fu Hj.2.2.2 hco _⟩
+        iapply BigSepL.bigSepL_snoc.2
+        iframe
+        unfold fuPiece
+        rw [hsp]
+        iexact Hp
       · sorry
     · sorry
 
