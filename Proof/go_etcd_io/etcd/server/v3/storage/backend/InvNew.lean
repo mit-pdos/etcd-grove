@@ -154,6 +154,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
+/-- **The backend `b`'s hooks are `h`** (persistent; 2026-11-02, the user's approval, branch
+`snap-window`): its `hooks` field, set once by `New` from `BackendConfig.Hooks` (`backend.go`:
+`b.hooks = bcfg.Hooks`) and never written again. What the merged snapshot's window needs to know
+the commit runs the server's `BackendHooks` (`isBackendNH`, from `isBackend` with it). -/
+def hooksAt (b : Loc) (h : GoInterface) : IProp GF := iprop(bF go!"hooks" b ↦□ h)
+
+instance hooksAt_persistent (b : Loc) (h : GoInterface) : Persistent (hooksAt (GF := GF) b h) := by
+  unfold hooksAt; infer_instance
+
 /-- **What the constructor gives, the fresh backend's payment rights traded** (D22 receiver epochs,
 S8a, 2026-10-24): `newPost` with the creator's batch-lock step having taken `bFresh γ` (every
 write-back token and the clients' whole open token) and given `K γ` in its place. A creator that

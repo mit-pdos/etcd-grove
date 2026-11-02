@@ -147,7 +147,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   rotate_left
   · iunfold mvcc.hookIs; iframe HhookC; iunfold mvcc.writerFrag; iexists ow; iexact Hpinw
   iexists ilog, cm
-  iframe Hlbc
+  iframe Hlbc HpM
   isplitl
   rotate_left
   · ipureintro; exact Hclbc

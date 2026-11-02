@@ -756,8 +756,8 @@ theorem ci_saveSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := h
 
 /-- **The consistent index's save opening the stored-index window** (D22 the stored-index window,
 2026-10-23; `notes/decisions.md`, "D22 the stored-index window carried out"): `ci_hook_backend_run`
-at the request of the apply thread at `s` (`ci = s.k`, not 0, nothing in flight), whose state it
-takes: the save stores `s.k` and freezes the protocol (`commit_freeze_au`); the apply thread gets
+at the request of the apply thread at `s` (`ci = s.k`, nothing in flight), whose state it
+takes: the save stores `s.k` (nothing with `ci` 0) and freezes the protocol (`commit_freeze_au`); the apply thread gets
 `freezeY γA s`. -/
 theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
     (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
@@ -766,8 +766,7 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (γA : ApplyNames) (ci : Loc) (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc)
-    (hP : ciKeys P) (st : BSess) (s : ApplyState) (hk0 : s.k ≠ W64 0)
-    (hps : s.pending = false) :
+    (hP : ciKeys P) (st : BSess) (s : ApplyState) (hps : s.pending = false) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
@@ -781,7 +780,7 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
   apply texan_of_strong _ _ _ _ _ (by rfl)
   iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Hinv⟩ %Φ ⟨Hl, Hbl, Hst, %Hpre⟩ HΦ
   iunfold batchLockInv at Hbl
-  icases Hbl with ⟨%mm, Hmt, HTM, Hpend, #Hreg, -⟩
+  icases Hbl with ⟨%mm, Hmt, HTM, Hpend, #Hreg, #Htm0⟩
   icases metaTM_agree γ hP b st mm $$ [$Hl $HTM] with ⟨Hl, Hhk, %Hmm⟩
   imod token_alloc with ⟨%γi, Hti⟩
   imod token_alloc with ⟨%γt, Htt⟩
@@ -798,7 +797,7 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
   iapply (hSave ci γA.ci (btIface t) (hookTM γ P b st γi γt) (token γi) (token γt) mm) $$
     [HTM Hti Htt] [Hmt Hpend Hst HΦ]
   · iframe Hcpkg Hci Hw HTM Hti Htt
-  iapply (commit_freeze_au γA mm s _ hk0 hps) $$ Hinv Hmt Hpend Hst
+  iapply (commit_freeze_au γA mm s _ hps) $$ Hinv Hmt Hpend Hst
   iintro %k %s' %Hmono %Hok Hmt Hpend #Hwd HY
   isplitr
   · ipureintro; exact Hmono
@@ -818,8 +817,7 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
       iexists st'.S
       iframe Hhk
       ipureintro; exact Hm'.1
-    iright
-    iexact Hwd
+    iapply termOk_after_save γA mm k tm $$ Htm0 Hwd
   · ipureintro; exact Hm'.2
 
 /-- **The consistent index's save opening the stored-index window, as the server's hook's indexer
@@ -832,8 +830,7 @@ theorem ci_saveFreeze (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (γA : ApplyNames) (ci : Loc) (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc)
-    (hP : ciKeys P) (hH : storage.hooksParams P) (s : ApplyState) (hk0 : s.k ≠ W64 0)
-    (hps : s.pending = false) :
+    (hP : ciKeys P) (hH : storage.hooksParams P) (s : ApplyState) (hps : s.pending = false) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
@@ -843,7 +840,7 @@ theorem ci_saveFreeze (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
   iintro #H
   unfold storage.saveReq
   iintro !> %st %stop %m %u %Φ !> ⟨Hl, Hbl, Hst, %Hpre, Hpay⟩ HΦ
-  iapply (ci_hook_freeze_run hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st s hk0 hps)
+  iapply (ci_hook_freeze_run hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st s hps)
     $$ H [Hl Hbl Hst]
   · iframe Hl Hbl Hst; ipureintro; exact Hpre
   iintro !> ⟨%st', %ui, %ut, Hl, Hbl, HY, %Hr⟩

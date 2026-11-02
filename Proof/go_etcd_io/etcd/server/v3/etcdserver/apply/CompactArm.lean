@@ -42,10 +42,13 @@ thread's KV (`kvOwn`), its compaction resources (`cmpOwn`, on) and the options' 
 (`backendOptsOk`'s `hookOk`), the store's restorable right at `crev` (at least `-1`), the KV's
 certificate of its log, the writer's hook (`hookIs`: the hook's facts and the writer's fragment,
 from `txn.kvWriter`), the store's reader token (lent by `writerOwn`), the supply; and back, at the
-compaction revision `store.Compact` leaves (any `c'` at least `-1`). -/
+compaction revision `store.Compact` leaves (any `c'` at least `-1`). Every revision is permitted
+(`crevPermAt`, `store.Compact`'s premise: the right's permit is `True` until the server fixes one,
+C3's store law, 2026-11-02). -/
 theorem cmp_store_pre (E : AEnv GF) (log : mvcc.Log) (crev : Int) (h : mvcc.kbCmpM E.γ.kb) :
     kvOwn E log ∗ cmpOwn E crev ∗ mvcc.hookOk E.γ E.P E.f ⊢
-      mvcc.compactRightR E.s E.γ crev ∗ ⌜-1 ≤ crev⌝ ∗ mvcc.idxCert E.γ.idx log ∗
+      mvcc.compactRightR E.s E.γ crev ∗ ⌜-1 ≤ crev⌝ ∗ (□ ∀ r : Int, mvcc.crevPermAt E.γ r) ∗
+      mvcc.idxCert E.γ.idx log ∗
       mvcc.hookIs E.γ E.P E.f ∗ mvcc.storeRT E.γ ∗ mvcc.kbWTSupplyM E.γ.kb ∗
       (∀ c' : Int, mvcc.compactRightR E.s E.γ c' -∗ ⌜-1 ≤ c'⌝ -∗ mvcc.hookIs E.γ E.P E.f -∗
         mvcc.storeRT E.γ -∗ kvOwn E log ∗ cmpOwn E c') := by
@@ -60,10 +63,14 @@ theorem cmp_store_pre (E : AEnv GF) (log : mvcc.Log) (crev : Int) (h : mvcc.kbCm
   icases Hc with ⟨Hr, #Hsup⟩
   iunfold cmpRight at Hr
   simp only [h, ↓reduceIte]
-  icases Hr with ⟨Hr, %hge⟩
+  icases Hr with ⟨Hr, %hge, #Hcp⟩
   iframe Hr Hcert Hrt Hsup
   isplitr
   · ipureintro; exact hge
+  isplitr
+  · iintro !> %r
+    iapply mvcc.crevPermAt_true E.γ r
+    iexact Hcp
   isplitl [Hfr]
   · iunfold mvcc.hookIs; iframe Hhk Hfr
   iintro %c' Hr' %hc' Hhi Hrt'
@@ -79,7 +86,7 @@ theorem cmp_store_pre (E : AEnv GF) (log : mvcc.Log) (crev : Int) (h : mvcc.kbCm
   iframe Hsup
   iunfold cmpRight
   simp only [h, ↓reduceIte]
-  iframe Hr'
+  iframe Hr' Hcp
   ipureintro; exact hc'
 
 end glue

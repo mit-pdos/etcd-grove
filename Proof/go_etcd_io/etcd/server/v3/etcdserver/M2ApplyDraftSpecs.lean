@@ -47,14 +47,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`start`'s split** (G5, review round 1's F-6): the closer by the mode at `c` (at least `-1`)
 is the closer without the right and the apply thread's compaction right at `c`; and back (for the
-server's `Stop` path, or a restore that hands the right back). -/
+server's `Stop` path, or a restore that hands the right back). On, the right carries the store's
+compaction permit (C3's store law, 2026-11-02). -/
 theorem srvKVCloserM_split (s : Loc) (E : apply.AEnv GF) (c : Int) :
-    srvKVCloserM (GF := GF) s E c ∗ ⌜-1 ≤ c⌝ ⊣⊢ srvKVCloserW s E ∗ apply.cmpRight E c := by
+    srvKVCloserM (GF := GF) s E c ∗ ⌜-1 ≤ c⌝ ∗
+      (if mvcc.kbCmpM E.γ.kb then mvcc.crevPermIs E.γ (fun _ => iprop(True)) else iprop(True)) ⊣⊢
+      srvKVCloserW s E ∗ apply.cmpRight E c := by
   unfold srvKVCloserM srvKVCloserW apply.cmpRight
   by_cases h : mvcc.kbCmpM E.γ.kb
   · simp only [h, ↓reduceIte]
     constructor
-    · iintro ⟨⟨%wsl, #Hkv, Hcl⟩, %hc⟩
+    · iintro ⟨⟨%wsl, #Hkv, Hcl⟩, %hc, #Hcp⟩
       icases (mvcc.wsCloserR_iff wsl E.s E.γ c).1 $$ Hcl with ⟨%stc, #Hstc, Hsc, Hw, Hr⟩
       iframe Hr
       isplitl [Hsc Hw]
@@ -62,15 +65,15 @@ theorem srvKVCloserM_split (s : Loc) (E : apply.AEnv GF) (c : Int) :
         iframe Hkv
         iexists stc
         iframe Hstc Hsc Hw
-      · ipureintro; exact hc
-    · iintro ⟨⟨%wsl, #Hkv, %stc, #Hstc, Hsc, Hw⟩, Hr, %hc⟩
+      · iframe Hcp; ipureintro; exact hc
+    · iintro ⟨⟨%wsl, #Hkv, %stc, #Hstc, Hsc, Hw⟩, Hr, %hc, #Hcp⟩
       isplitl [Hsc Hw Hr]
       · iexists wsl
         iframe Hkv
         iapply (mvcc.wsCloserR_iff wsl E.s E.γ c).2
         iexists stc
         iframe Hstc Hsc Hw Hr
-      · ipureintro; exact hc
+      · iframe Hcp; ipureintro; exact hc
   · simp only [h, ↓reduceIte]
     constructor
     · iintro ⟨⟨Hcl, %hc⟩, -⟩
@@ -80,7 +83,9 @@ theorem srvKVCloserM_split (s : Loc) (E : apply.AEnv GF) (c : Int) :
       iframe Hcl
       isplitr
       · ipureintro; exact hc
+      isplitr
       · ipureintro; omega
+      itrivial
 
 end closer
 

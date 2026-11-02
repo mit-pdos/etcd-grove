@@ -61,7 +61,7 @@ end mvcc
 theorem mvcc.watcherGroup.chooseAll.wp_proof (hDel : mvcc.watcherGroup.delete.spec (GF := GF) (hG := hG)) :
     mvcc.watcherGroup.chooseAll.spec (GF := GF) (hG := hG) := by
   intro γ ql wg W ST curRev compactRev
-  wp_start as ⟨Hg, HST, Hsp, %Hdom, %Hst⟩
+  wp_start as ⟨Hg, HST, #Hperm, Hsp, %Hdom, %Hst⟩
   icases (mvcc.ownWatcherGroup_at wg W 1).1 $$ Hg with ⟨%ws, Hg⟩
   icases mvcc.ownWatcherGroupAt_struct wg W ws $$ Hg with ⟨%v, Hwg, %Hv, Hgb⟩
   wp_auto
@@ -197,8 +197,8 @@ theorem mvcc.watcherGroup.chooseAll.wp_proof (hDel : mvcc.watcherGroup.delete.sp
         unfold mvcc.notBehind; rw [hst]
       by_cases hlt : sint.Z st.minRev < sint.Z compactRev
       · -- behind the compaction revision: the compaction response, sent without blocking
-        have hcr0 : compactRev ≠ W64 0 := by
-          intro h; rw [h] at hlt; have : sint.Z (W64 0 : w64) = 0 := rfl; omega
+        have hcr0 : 0 < sint.Z compactRev := by
+          have := (Hst key st hst).1; omega
         have hnbf : mvcc.notBehind ST compactRev key = false := by rw [hnb]; simp; omega
         have Hstep : (keys.take (i + 1)).filter (mvcc.notBehind ST compactRev) =
             (keys.take i).filter (mvcc.notBehind ST compactRev) := by
@@ -261,7 +261,7 @@ theorem mvcc.watcherGroup.chooseAll.wp_proof (hDel : mvcc.watcherGroup.delete.sp
             isplit
             · iapply (mvcc.cmp_send_inner γ key γw r fcs st.ch ql _ compactRev ⟨rfl, rfl, rfl, rfl⟩
                 hcr0)
-              iframe Hmeta Hfix Hwc Hlive
+              iframe Hperm Hmeta Hfix Hwc Hlive
               isplitr
               · iexact Hfok
               iintro Hlive

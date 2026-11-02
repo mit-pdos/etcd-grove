@@ -27,7 +27,8 @@ the caller's lower bound `c` (`rangeOutcomeC`; 2026-10-13, unit 6a). The readers
 (`storeReader`, `rangeOutcome`) is `specR` (`spec_R`, `ReaderSpecs.lean`). At a context that is
 never done (`todo`, `rangeCtx`: `context.TODO()`'s) the result is not `nil`, as
 `metricsTxnWrite.Range`'s (2026-10-31, M2 apply side: `applierV3backend.Compaction` reads `rr.Rev`
-of `KV.Range(context.TODO(), …)` ignoring the error; at `todo = false` today's statement). -/
+of `KV.Range(context.TODO(), …)` ignoring the error; at `todo = false` today's statement). 
+The transaction's compaction revision is permitted (`crevPermAt`, C3's store law, 2026-11-02). -/
 abbrev mvcc.readView.Range.spec : Prop :=
   ∀ (rv s : Loc) (γ : mvcc.StoreNames)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool) (key endk : GoSlice) (k e : GoString)
@@ -40,6 +41,7 @@ abbrev mvcc.readView.Range.spec : Prop :=
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
       ⌜todo = true → r ≠ null⌝ ∗ mvcc.storeReaderC s γ ∗
       ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.idxCert γ.idx log ∗ mvcc.crevLb γ.idx crev ∗
+        mvcc.crevPermAt γ crev ∗
         ⌜log ≠ [] ∧ rev = W64 ((log.length : Int) - 1) ∧ c ≤ crev ∧ -1 ≤ crev⌝ ∗
         mvcc.rangeOutcomeC r err log rev crev (decide (endk = slice.nil)) k e ro }}
 

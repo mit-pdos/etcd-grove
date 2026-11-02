@@ -400,4 +400,5 @@ axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
 sorry EtcdServer.applyAll.wp_proofOn
 sorry EtcdServer.run.wp_proofOn
-sorry mergedCreate_window
+sorry txn.kvWriter_keyObs
+sorry txn.kvWriter_noCmp

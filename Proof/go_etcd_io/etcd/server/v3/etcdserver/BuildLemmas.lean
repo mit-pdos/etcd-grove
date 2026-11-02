@@ -149,7 +149,8 @@ theorem server_kv_watchable_of
   ihave Hsrm : mvcc.kbSRM (GF := GF) (some ({ d with cm := false } : mvcc.KBReal)) $$ []
   · iapply hsr.2; itrivial
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
-  iapply (hNew lg _ le cfg (some ({ d with cm := false } : mvcc.KBReal)) γb γl Pk f rd0 γi γok γtag hcfg)
+  iapply (hNew lg _ le cfg (some ({ d with cm := false } : mvcc.KBReal)) γb γl Pk f rd0 γi γok γtag
+      (fun _ => iprop(True)) hcfg)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hif Hok]
   · iframe Hpkg Hle Hro Hif Hok Hsrm
     isplitr
@@ -162,7 +163,7 @@ theorem server_kv_watchable_of
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
   rw [hj, Nat.sub_zero]
-  iintro %ws ⟨%st, %γw, %Hγ, #Hws, Hro, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl, -, Hfrag, Hret⟩
+  iintro %ws ⟨%st, %γw, %Hγ, #Hws, Hro, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl, -, Hfrag, Hret, -⟩
   obtain ⟨hb, hl, hk, hi, hc, ht, hcmw⟩ := Hγ
   have hcmw' : γw.st.cm = false := by rw [hcmw]; simp [mvcc.kbCmpM]
   ihave #Hws' := Hws
@@ -279,6 +280,7 @@ theorem server_kv_watchable_ofM (c : Bool)
             mvcc.nJobRd (some ({ d with cm := c } : mvcc.KBReal)) - 2) (),
           mvcc.watchReader ws st γw) ∗
         mvcc.wsCloser ws st γw.st ∗ mvcc.crevRightM γw.st ∗
+        mvcc.crevPermIs γw.st (fun _ => iprop(True)) ∗
         mvcc.retiredAt γw.st (mvcc.nJobRd (some ({ d with cm := c } : mvcc.KBReal))) ∗
         (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd ws st γw) ∗ auth.modeTag γw.tag M }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hdl, Hv, Hncmp, Hrg, Hw, Hrts, Hlrd, #Hle, Hro, Hif,
@@ -315,7 +317,8 @@ theorem server_kv_watchable_ofM (c : Bool)
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
   ihave Hsrm := mvcc.kbSRM_some ({ d with cm := c } : mvcc.KBReal) $$ Hsr
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
-  iapply (hNew lg _ le cfg (some ({ d with cm := c } : mvcc.KBReal)) γb γl Pk f rd0 γi γok γtag hcfg)
+  iapply (hNew lg _ le cfg (some ({ d with cm := c } : mvcc.KBReal)) γb γl Pk f rd0 γi γok γtag
+      (fun _ => iprop(True)) hcfg)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hif Hok]
   · iframe Hpkg Hle Hro Hif Hok Hsrm Hsb
     simp only [mvcc.kbView_some, mvcc.kbNoCmp_some, mvcc.kbRegRight_some, mvcc.kbWT_some,
@@ -323,7 +326,7 @@ theorem server_kv_watchable_ofM (c : Bool)
     unfold backend.wbTok
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
-  iintro %ws ⟨%st, %γw, %Hγ, #Hws, Hro, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl, Hcr, Hfrag, Hret⟩
+  iintro %ws ⟨%st, %γw, %Hγ, #Hws, Hro, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl, Hcr, Hfrag, Hret, #HcpIs⟩
   obtain ⟨hb, hl, hk, hi, hc, ht, hcmw⟩ := Hγ
   have hcmw' : γw.st.cm = c := by rw [hcmw]; cases c <;> simp [mvcc.kbCmpM]
   ihave #Hws' := Hws
@@ -333,7 +336,7 @@ theorem server_kv_watchable_ofM (c : Bool)
   iapply HΦ
   iexists st, γw
   rw [ht]
-  iframe Hws Hhk Hwt Hcok Hrds Hcl Hcr Hro Hret
+  iframe Hws Hhk Hwt Hcok Hrds Hcl Hcr Hro Hret HcpIs
   iframe Htag
   isplitr
   · ipureintro; exact ⟨hb, hl, hk, hi, hc, hcmw'⟩

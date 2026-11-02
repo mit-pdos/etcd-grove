@@ -47,26 +47,48 @@ theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IP
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (π0 : ApplyPhys) (γB : backend.BNames)
     (P : backend.BParams) (d' : mvcc.KBReal) (p' : mvcc.PhysNames) (g : GoFunc)
     (al ast lp cl : Loc) (hγB : d'.γB = γB) (hkb' : p'.kb = some d') (hcm' : d'.cm = false)
-    (d : mvcc.KBReal) (hkb : E.γ.kb = some d) (hcm : d.cm = false) :
+    (d : mvcc.KBReal) (hkb : E.γ.kb = some d) (hcm : d.cm = false) (hP : d'.P = P) (hPd : P = d.P)
+    (hk : Loc) :
     isServer s γ ci TM E ρ γr ∗ srvClusterAddr s ↦□ cl ∗
-      isServerCI s (snapγ γ π0 γB) ci ∗ hookSpec (snapγ γ π0 γB) ci (metaTM γB P) #g ⊢
+      isServerCI s (snapγ γ π0 γB) ci ∗ hookSpec (snapγ γ π0 γB) ci (metaTM γB P) #g ∗
+      -- (2026-11-02, branch `snap-window`) the new backend's hooks, the server's `s.beHooks`
+      backend.hooksAt d'.be (storage.hooksIface hk) ∗ structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
+      backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx) (batchLockInv (snapγ γ π0 γB) (metaTM γB P))
+        d'.be ⊢
     isServer s (snapγ γ π0 γB) ci (metaTM γB P)
       (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) ρ γr := by
+  subst hγB hP
   unfold isServer srvFieldsAt
-  iintro ⟨⟨%Hrd, #Hci, Hv, #Hat, #Hgen, #Hrn⟩, #Hcl, #Hci', #Hhook⟩
+  iintro ⟨⟨%Hrd, #Hci, Hv, #Hat, #Hgen, #Hrn⟩, #Hcl, #Hci', #Hhook, #HhkAt, #HbhF, #HB⟩
   icases Hv with ⟨%v, Hf⟩
   icases Hf with ⟨#Hlg, %Hlgn, #Hw, #Hwi, %HP, %Henv, #Hhk, #Hles, #Hlok, #Hfc, #Hal,
-    #Hclv, #Hrc, #Hq, #Hlm, #Hmid, #Hli, #He, #Ht, #Hn, #Has⟩
+    #Hclv, #Hrc, #Hq, #Hlm, #Hmid, #Hli, #He, #Ht, #Hn, #Has, #Hbeh⟩
+  -- (2026-11-02) the new backend with the server's hooks: the old one's hooks are `s.beHooks`
+  iunfold srvBeHooked at Hbeh
+  icases Hbeh with ⟨%d0, %bh, %lgh, %Hp0, #HbhF0, #Hbh, -, -⟩
+  icombine HbhF HbhF0 gives %Hbh0
+  subst Hbh0
+  obtain ⟨hk0, hcK, hhP⟩ := Hp0
+  rw [hkb] at hk0
+  cases hk0
+  ihave #Hbeh' : srvBeHooked s (snapγ γ π0 d'.γB) ci
+      (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d'.P) ci p' g d'.γB al ast lp cl d'.be) $$ []
+  · iunfold srvBeHooked
+    iexists d', hk, lgh
+    iframe HbhF Hbh HhkAt HB
+    ipureintro
+    exact ⟨snapE_kb _ _ _ _ _ _ _ _ _ _ _ _ d' hkb', by rw [hPd]; exact hcK,
+      by rw [hPd]; exact hhP⟩
   icombine Hcl Hclv gives %Heq
   subst Heq
   -- (M2's apply side, the user's (a)) the install only with the mode off: the old backend's
   have hE : E.cmp = false := srvEnvOk_off s γ ci E v.cluster d Henv hkb hcm
-  have hok : srvEnvOk s (snapγ γ π0 γB) ci
-      (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp v.cluster d'.be) v.cluster :=
-    ⟨Henv.1, Henv.2.1, rfl, γB, _, rfl, rfl, d', al, ast, lp, snapE_kb _ _ _ _ _ _ _ _ _ _ _ _ d' hkb', hγB,
+  have hok : srvEnvOk s (snapγ γ π0 d'.γB) ci
+      (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d'.P) ci p' g d'.γB al ast lp v.cluster d'.be) v.cluster :=
+    ⟨Henv.1, Henv.2.1, rfl, d'.γB, _, rfl, rfl, d', al, ast, lp, snapE_kb _ _ _ _ _ _ _ _ _ _ _ _ d' hkb', rfl,
       rfl, hcm'.trans hE.symm⟩
   -- (M2's apply side) the KV invariants' mode law: both backends off
-  ihave #Hat := srvAtomics_snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp v.cluster
+  ihave #Hat := srvAtomics_snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d'.P) ci p' g d'.γB al ast lp v.cluster
     d'.be s γr d d' hkb hcm hkb' hcm' $$ Hat
   rw [srvGenAt_snapE]
   isplitr

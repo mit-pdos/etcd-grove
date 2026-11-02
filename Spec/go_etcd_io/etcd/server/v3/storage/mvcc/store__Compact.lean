@@ -69,13 +69,16 @@ writer's fragment `writerFrag`) is given back in every case, so the caller can s
 **The write-back supply** (M2, the storage side, Q1 (a), 2026-10-30): the caller gives the
 compaction's supply `kbWTSupplyM γ.kb` (persistent; the server's from its write budget, R2-7),
 which the store no longer keeps; the job gets it in its premise (`compactJobPre`).
--/
+
+The revision is permitted (`crevPermAt`, C3's store law, 2026-11-02): the store's compaction
+permit holds of it, which `s.mu`'s and `s.revMu`'s resources keep of the compaction revision. -/
 abbrev mvcc.store.Compact.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val)
     (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool),
   trace ≠ null → mvcc.storeCmp γ → -1 ≤ c →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.compactRightR s γ c ∗
+      mvcc.crevPermAt γ (sint.Z rev) ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length⌝ ∗
       mvcc.hookIs γ P f ∗
       mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗

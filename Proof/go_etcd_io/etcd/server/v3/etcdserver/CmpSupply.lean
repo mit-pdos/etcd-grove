@@ -88,12 +88,13 @@ theorem kbWTSupplyM_of_cmpStock (d : mvcc.KBReal) :
 /-- **The new store's closer, split** (compaction mode): the watchable store's closer and the
 compaction revision's half (`mvcc.New`'s `crevRightM`) make the server's closer without the right and
 the apply thread's compaction right at `-1` (the storage side's `srvKVCloserM_of_new` and
-`srvKVCloserM_split`, at once). -/
+`srvKVCloserM_split`, at once), with the store's compaction permit (`True`, C3's store law). -/
 theorem srvKVCloserW_cmpRight_of_new (s : Loc) (E : apply.AEnv GF) (h : mvcc.kbCmpM E.γ.kb)
     (hc : E.γ.cm = true) :
-    ⊢ srvKVCloser (GF := GF) s E -∗ mvcc.crevRightM E.γ ={⊤}=∗
+    ⊢ srvKVCloser (GF := GF) s E -∗ mvcc.crevRightM E.γ -∗
+      mvcc.crevPermIs E.γ (fun _ => iprop(True)) ={⊤}=∗
       srvKVCloserW s E ∗ apply.cmpRight E (-1) := by
-  iintro Hcl Hcr
+  iintro Hcl Hcr #Hcp
   iunfold srvKVCloser at Hcl
   icases Hcl with ⟨%wsl, #Hkv, Hcl⟩
   imod mvcc.wsCloserR_of_wsCloser wsl E.s E.γ hc ⊤ $$ Hcl Hcr with Hr
@@ -107,7 +108,7 @@ theorem srvKVCloserW_cmpRight_of_new (s : Loc) (E : apply.AEnv GF) (h : mvcc.kbC
     iframe Hkv
     iexists stc
     iframe Hstc Hsc Hw
-  · ipureintro; omega
+  · iframe Hcp; ipureintro; omega
 
 /-- **The new store's closer by the mode, at `-1`** (`watchableStore.Close`'s, for `NewServer`'s error
 returns): off the closer as it is; on, with the compaction revision's half (`crevRightM`). -/

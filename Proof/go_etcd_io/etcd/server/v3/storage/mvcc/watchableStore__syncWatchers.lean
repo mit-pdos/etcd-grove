@@ -232,6 +232,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
       (W64 cQ))
     $$ [$Hunsynced Hstu Hpre] as %g %minRev Hch
   · iunfold mvcc.ownStates; iframe Hstu Hpre
+    isplitr
+    · rw [hcQ]; iexact HpermQ
     ipureintro
     refine ⟨⟨fun w hw => ?_, fun w st hw => ?_⟩, by have := Hok.wu_size; omega⟩
     · rw [hSTu, if_pos hw]; exact Hok.live_st w (Or.inr (Or.inl hw))
