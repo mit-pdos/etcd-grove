@@ -6667,7 +6667,8 @@ lease-free puts and transactions are meaningful again; leased ones wait for T3.
   module path is upstream's, so the translation's names are those etcd's tests import.
   *Rejected:* a GitHub fork (an outward-facing step for a one-hunk change; the vendored copy can
   move to one later, as etcd's `goose-lean` branch).
-- **Completeness only**: the specs say a linearizable history is never `Illegal` (and is `Ok`
+- **Completeness only** (*superseded 2026-11-02* by "Porcupine: sound and complete", below: the
+  specs now characterize the result): the specs say a linearizable history is never `Illegal` (and is `Ok`
   without a timeout), not that `Ok` means linearizable. That is what "testing a linearizable
   library never fails" needs, and it makes the search's argument a backtracking invariant
   (`Theory.Inv`: the stack's configurations, a cursor past calls already tried, a cache of
@@ -29685,3 +29686,39 @@ compaction's write-back stock), a hypothesis of the closed theorem `cache_safe`,
 `compactkv_safe`'s. On the way, `common.StartCompactingServer` now calls `newServerMode(…, "revision", …)`
 (its Go and proof, as `StartPeriodicServer`'s), so both starters are in `common`'s generated
 `Link.lean`; compactkv's and putgetc's hand links use them.
+
+## Porcupine: sound and complete (2026-11-02 · the user's "prove the iff")
+
+Supersedes "Completeness only" of "Porcupine: vendored, complete only, ..." (2026-10-14). The
+`Check*` specs said only that a linearizable history is never `Illegal` (and is `Ok` without a
+timeout). That is all "testing a linearizable library never fails" needs, but it left out what
+makes a failing test meaningful: `Illegal` means the history is not linearizable. Now:
+
+- `CheckOperations`: `b = true ↔ Linearizable S.M (histOf ops)`;
+- `CheckOperationsTimeout`/`Verbose`, `checkOperations`, `checkParallel`: a case split on the
+  result, `(r = Ok ∧ lin) ∨ (r = Illegal ∧ ¬ lin) ∨ (r = Unknown ∧ 0 < timeout)`: with no
+  timeout the check decides linearizability (the margin: `Unknown` also means no partition had
+  failed when the timer fired; no caller can use it without the partitions);
+- `checkSingle`: `(b = true ∧ lin) ∨ (b = false ∗ (¬ lin ∨ □ Done))`, its disjuncts tagged with
+  the verdict (untagged, `b = true ∧ ¬ lin` would satisfy it);
+- `checkResult_complete` (`Soundness.lean`): the result read by a caller that knows the history
+  is linearizable, `r = Ok ∨ (r = Unknown ∧ 0 < timeout)`; `lintest.Run`'s spec keeps its
+  completeness shape and derives it.
+
+Preconditions unchanged. The proof: `Theory.Sound` (pure, `Soundness.lean`): the stack is a
+chain of model steps, each frame lifted a call with only calls before it, the cursor is past calls
+only. It is carried unconditionally beside `⌜Inv⌝ ∨ □ cs.PDone`, because a `StepContext` on a done
+context may refuse a step (losing `Inv`'s "every skipped call is bad") but never accepts one the
+model refuses; at the exit with the list empty, the stack, oldest first, linearizes the history
+(`sound_done`). `checkParallel`'s verdicts carry soundness (`resultP`), and its receive loop
+records that every verdict so far was `true` for the partitions received and that it stopped at
+`count >= len(history)` unless it failed or timed out. Still partial correctness: nothing says the
+search terminates.
+
+`Soundness.lean` is a module of its own rather than part of `Theory`/`Defs`, which about 1150
+modules import: only `checkSingle`'s proof and `lintest.Run` import it, so the change rebuilt 57.
+
+Found on the way (the user's question, 2026-11-02): porcupine's open PR #46 (a DAG-based search,
+github.com/anishathalye/porcupine/pull/46) breaks completeness when two overlapping operations
+share a `ClientId` (a linearizable register history it rejects), so the old spec would be false
+of it; soundness likely survives there. Not filed: the PR is unmerged and not what we verify.
