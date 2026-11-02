@@ -22,6 +22,8 @@ open Theory
 
 variable {α : Type}
 
+theorem snat_eq (x : w64) : sint.nat x = (sint.Z x).toNat := rfl
+
 section basic
 variable {h : List (Op α)} {cs : List (List Nat)}
 
@@ -41,6 +43,10 @@ theorem clientOf_eq (hok : ChainsOk h cs) {c y : Nat} (hc : c < cs.length)
   have hj' : y ∈ chain cs j := by rw [chain_eq (by omega)]; exact hyj
   have := hok.2.2 y j c hj' hy
   omega
+
+theorem chain_length_le (hok : ChainsOk h cs) (c : Nat) : (chain cs c).length ≤ h.length := by
+  have hs : chain cs c ⊆ List.range h.length := fun y hy => List.mem_range.mpr (lt_length_of_mem hok hy)
+  simpa using List.Nodup.length_le_of_subset (hok.1 c).1 hs
 
 theorem keyGt_irrefl {y : Nat} : ¬ KeyGt h cs y y := fun hk => keyGt_asymm hk hk
 
