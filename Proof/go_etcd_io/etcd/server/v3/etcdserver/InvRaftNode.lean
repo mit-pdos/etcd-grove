@@ -1627,6 +1627,20 @@ instance isRaftNode_persistent (E : RNEnv GF) (γ : RNNames) (r : Loc) :
 def rnDoneTok (γ : RNNames) (r : Loc) : IProp GF :=
   iprop(∃ dnc : GoChan, rnDoneAddr r ↦□ dnc ∗ ownBroadcastChan dnc γ.done iprop(True) .Pending)
 
+/-- (DRAFT, R2b-1, 2026-11-02; `notes/restart-plan.md`, "R2b: the stop") **The claim on the raft
+loop's stop escrow** (opaque until R2b-1): the loop's `onStop` closes `done` with what it held, the
+node's durable state and the WAL's closed records, escrowed for this claim, which `raftNode.stop`'s
+stop variant takes (as `srvStopRight`'s claim on the server's `done`). Until then `done`'s
+predicate is `True` and `raftNode.stop` gives nothing back. -/
+opaque rnStopClaim (γ : RNNames) : IProp GF
+
+/-- (DRAFT, R2b-1, 2026-11-02) **The raft wrapper `r`'s WAL, closed, its records `σ`** (opaque
+until R2b-1, which keeps the WAL's records in a ghost token beside its open token, `walOpen`,
+updated by the trust-boundary contract `isRNWal`'s `Save` and `SaveSnap`, and has `Close` give
+it): `ReadAll` from the WAL's last snapshot record reads back the snapshot record at `σ.b`, the
+hard state `σ.hs` and the entries `σ.ents`. R2b-3's closes' axioms make `srvFiles` from it. -/
+opaque rnWalClosed (r : Loc) (σ : StorContents) : IProp GF
+
 end defs
 
 end EtcdGrove

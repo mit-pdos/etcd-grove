@@ -822,21 +822,36 @@ theorem cacheBoundLb_mono (cf : CacheFields) (r r' : w64) (h : sint.Z r' ≤ sin
     · iright
       iapply monoNatLbOwn_le (sint.nat r') (Int.toNat_le_toNat h) $$ H
 
-/-- **The store's gap certificate** in the cache (its `G`): nothing yet. The strengthening of the
-cache's `Get` to etcd's state at the revision asked for (`notes/decisions.md`, "cachekv's check of
-the cache's `Get`") makes it "no event under the prefix in the gap" once progress notifications
-carry that fact (the demux's quiet certificate). -/
-def cacheGap (_pfx : GoString) (_a : w64) (_b : Int) : IProp GF := iprop(True)
+/-- **The store's gap certificate** in the cache (its `G`): etcd had no event under the prefix
+after the snapshot's revision `a` up to `b` (`etcdQuiet`, the demux's quiet certificate). With
+it, a `Get` answers etcd's state at the revision asked for, not only at the snapshot's
+(`cacheGetOk`). -/
+def cacheGap (pfx : GoString) (a : w64) (b : Int) : IProp GF := etcdQuiet pfx (sint.Z a) b
 
 instance cacheGap_persistent (pfx : GoString) (a : w64) (b : Int) :
     Persistent (cacheGap (GF := GF) pfx a b) := by
   unfold cacheGap; infer_instance
 
-/-- Every gap is certified by the cache's `G` (while it is trivial). -/
-theorem cacheGap_all (pfx : GoString) (gs : List (w64 × Int)) :
-    ⊢ gapList (GF := GF) (cacheGap pfx) gs := by
-  unfold gapList cacheGap
-  imodintro; iintro %g %hg; ipureintro; trivial
+/-- An empty gap. -/
+theorem cacheGap_nil (pfx : GoString) (a : w64) (b : Int) (h : b ≤ sint.Z a) :
+    ⊢ cacheGap (GF := GF) pfx a b := by
+  unfold cacheGap; exact etcdQuiet_nil pfx _ b h
+
+/-- A quiet interval from at or below the snapshot's revision is a gap (`etcdStep_restrict`). -/
+theorem cacheGap_of_quiet (pfx : GoString) (a' : Int) (a : w64) (b : Int) (h : a' ≤ sint.Z a) :
+    etcdQuiet (GF := GF) pfx a' b ⊢ cacheGap pfx a b := by
+  unfold cacheGap; exact etcdQuiet_mono pfx a' (sint.Z a) b b h (Int.le_refl _)
+
+/-- A batch's step from at or below the snapshot's revision makes the gap up to the batch. -/
+theorem cacheGap_of_step (pfx : GoString) (p a B : w64) (cs : List EtcdEv) (h : sint.Z p ≤ sint.Z a) :
+    EtcdStep (GF := GF) p B pfx cs ⊢ cacheGap pfx a (sint.Z B - 1) := by
+  unfold cacheGap etcdQuiet
+  iintro #H; imodintro; iintro %x %hx
+  iexists p
+  isplitr
+  · ipureintro; exact h
+  iapply (etcdStep_restrict p p x B pfx cs (Int.le_refl _) (by omega) (Or.inl (by omega)))
+  iexact H
 
 /-- **The store's revision certificate** in the cache (its `R`): etcd has reached `r`, and `r` is
 at most the cache's revision bound. -/
@@ -874,6 +889,13 @@ def cacheCert (cf : CacheFields) : DemuxCert GF where
     unfold cacheRev etcdStepCertBody
     iintro ⟨⟨%cs, -, -, -, H1⟩, H2⟩
     iframe H1 H2
+  quiet := etcdQuiet cf.pfx
+  quiet_timeless := fun _ _ => inferInstance
+  quiet_mono := etcdQuiet_mono cf.pfx
+  quiet_nil := etcdQuiet_nil cf.pfx
+  cert_quiet := fun p b a hp => by
+    iintro ⟨H, -⟩
+    iapply etcdQuiet_of_cert cf.pfx p b a hp $$ H
 
 /-- The cache's demux certificate is stronger than etcd's (`etcdStepCert`), the one `Watch`'s
 statement and the delivery theorem are about. -/
@@ -989,7 +1011,7 @@ theorem respCert_cacheCert (cf : CacheFields) (c : DemuxCore) (r : RespModel) (B
       |==> ∃ B', respCert (cacheCert cf) c r ∗ cacheBound cf B' := by
   unfold respCert
   split
-  · iintro ⟨⟨%Hb, #Hp⟩, Hbd⟩
+  · iintro ⟨⟨%Hb, #Hp, #Hq⟩, Hbd⟩
     have hp : (etcdStepCert (GF := GF) cf.pfx).prog r.hdrRev = etcdReached r.hdrRev := rfl
     rw [hp]
     imod cacheBound_raise cf B r.hdrRev $$ [$Hbd $Hp] with ⟨%B', Hbd, #Hlb, -⟩
@@ -998,11 +1020,15 @@ theorem respCert_cacheCert (cf : CacheFields) (c : DemuxCore) (r : RespModel) (B
     iframe Hbd
     isplitr
     · ipureintro; exact Hb
-    imodintro
-    have hc : (cacheCert (GF := GF) cf).prog r.hdrRev = cacheRev cf r.hdrRev := rfl
-    rw [hc]
-    unfold cacheRev
-    iframe Hp Hlb
+    isplitr
+    · imodintro
+      have hc : (cacheCert (GF := GF) cf).prog r.hdrRev = cacheRev cf r.hdrRev := rfl
+      rw [hc]
+      unfold cacheRev
+      iframe Hp Hlb
+    · have hq : (cacheCert (GF := GF) cf).quiet c.lastRev (sint.Z r.hdrRev) =
+          (etcdStepCert cf.pfx).quiet c.lastRev (sint.Z r.hdrRev) := rfl
+      rw [hq]; iexact Hq
   · split
     · iintro ⟨-, Hbd⟩
       imodintro
@@ -1089,23 +1115,30 @@ theorem certChain_mono (C C' : DemuxCert GF) (h : ∀ p b, C.cert p b ⊢ C'.cer
 
 /-- A watcher's publication is monotone in the certificate. -/
 theorem demuxPubBody_mono (C C' : DemuxCert GF) (hc : ∀ p b, C.cert p b ⊢ C'.cert p b)
-    (hp : ∀ r, C.prog r ⊢ C'.prog r) (pred : Option (GoString → Bool)) (sr : w64)
+    (hp : ∀ r, C.prog r ⊢ C'.prog r) (hq : ∀ a b, C.quiet a b ⊢ C'.quiet a b)
+    (pred : Option (GoString → Bool)) (sr : w64)
     (oc : Option (Option w64)) (L : List RespModel) :
     demuxPubBody C pred sr oc L ⊢ demuxPubBody C' pred sr oc L := by
   unfold demuxPubBody
-  iintro ⟨%s, %v, %p₀, %Hpure, Hch, #Hprog⟩
+  iintro ⟨%s, %v, %p₀, %Hpure, Hch, #Hprog, #Hq⟩
   iexists s, v, p₀
   isplitr
   · ipureintro; exact Hpure
   isplitl [Hch]
   · iapply certChain_mono C C' hc $$ Hch
+  isplitr
   · imodintro; iapply hp $$ Hprog
+  icases Hq with (%h | #Hq)
+  · ileft; ipureintro; exact h
+  · iright; imodintro; iapply hq $$ Hq
 
 /-- The cache's demux publications give etcd's (`etcdStepCert`). -/
 theorem demuxPubBody_cacheCert (cf : CacheFields) (pred : Option (GoString → Bool)) (sr : w64)
     (oc : Option (Option w64)) (L : List RespModel) :
     demuxPubBody (cacheCert cf) pred sr oc L ⊢ demuxPubBody (etcdStepCert (GF := GF) cf.pfx) pred sr oc L :=
-  demuxPubBody_mono _ _ (cacheCert_cert cf) (cacheCert_prog cf) pred sr oc L
+  demuxPubBody_mono _ _ (cacheCert_cert cf) (cacheCert_prog cf)
+    (fun a b => by
+      rw [show (cacheCert (GF := GF) cf).quiet a b = (etcdStepCert cf.pfx).quiet a b from rfl]) pred sr oc L
 
 /-- The `i`-th response `v` on `Cache.Watch`'s channel: modelled by `r`, the `i`-th of a log `L`
 (of the monotone log `fwd`) that is a `cacheWatchLog`. -/
@@ -1155,7 +1188,9 @@ theorem demuxPubBody_nil (C : DemuxCert GF) (pred : Option (GoString → Bool)) 
   rw [h0]
   isplitr
   · iapply certChain_nil
+  isplitr
   · imodintro; iapply C.prog_zero
+  · ileft; ipureintro; exact Or.inr (Or.inl rfl)
 
 /-- **Receiving** on `Cache.Watch`'s channel: with `ok`, the next response, the received log
 (`rs ++ [r]`) still a `cacheWatchLog`; without, the channel was closed. -/
@@ -1438,7 +1473,8 @@ caller) whose header revision is the store's latest revision in some state `st` 
 caller's `r0`), listing, in key order, the `*KeyValue`s of the snapshot `(r, m)` that
 `getSnapshot(o.rev)` picks in `st` (`snapModel`: the greatest cached revision at most `o.rev`,
 or at most `st.latestRev` for `o.rev = 0`) in the range `[key, o.rangeEnd)` (`kvRange`), with
-its count; and `m` is etcd's state at `r` (`isEtcdKvs`). A linearizable request (not
+its count; and `m` is etcd's state under the prefix at the revision asked for (`o.rev`, or
+`st.latestRev` for `o.rev = 0`; `isEtcdKvs`). A linearizable request (not
 `WithSerializable`) is moreover at least as fresh as etcd was when it started: etcd had a
 state at a revision `serverRev`, at least the requested one, that the store's latest revision
 has reached. -/
@@ -1449,7 +1485,8 @@ def cacheGetOk (cf : CacheFields) (r0 : w64) (key : GoString) (o : OpModel) (res
     hdr ↦ respHeaderVal st.latestRev ∗
     kvsSl ↦* ((kvRange key o.rangeEnd m).map Prod.snd) ∗ ownSliceCap Loc kvsSl (DFrac.own 1) ∗
     kvsAt (kvRange key o.rangeEnd m) ∗
-    isEtcdKvs r cf.pfx m ∗ storeSeen cf.γs cf.scap r0 st ∗
+    isEtcdKvs (if o.rev = W64 0 then st.latestRev else o.rev) cf.pfx m ∗
+    storeSeen cf.γs cf.scap r0 st ∗
     ⌜snapModel st o.rev = .ok r m ∧ o.getUnsupported = false ∧
       validRange cf.pfx key o.rangeEnd = true⌝ ∗
     (if o.serializable then iprop(True)

@@ -5,14 +5,18 @@ shutdown: the scheduler stopped, the server's goroutines waited for (`s.wg`), th
 transport stopped (`raftNode.stop`), `Cleanup` (the lessor, the KV store, the auth store, the
 backend and the compactor closed), `done` closed. Lean-first (no Rocq counterpart).
 
-**The triple (DRAFT):** from the right to stop the server (`srvStopRight`, which `NewServer` gives,
-R2b) once it was started (its request view `isServerReq`, which `Start` returns: a `HardStop` of a
-server never started blocks forever, sending on `s.stop`, which only `run` receives; R2b checks that
-only `Start` gives it), `HardStop` returns with member `id`'s data directory as it left it
-(`srvDiskImage`, R2c), recording the request names `ρ` of the view, from which the member can be
-started again. The server's other resources are not given back:
-the next incarnation has its own, and goroutines of this one may still hold some (an `http.Serve`
-handler in flight).
+**The triple:** from the right to stop the server (`srvStopRight`, which `Start` gives: `start`
+makes the channels `stop` and `done`) and evidence that it applied the cluster's bootstrap log
+(`srvBootApplied`, which the stop request carries: the image needs it, R2c review F4; R2b-2
+review F2), `HardStop` returns with member `id`'s data directory as its
+stop left it (`srvDiskImage`, R2c), at the request names `ρ` the right records, from which the
+member can be started again. It sends a stop request on `stop` (or finds `done` already closed),
+waits for `done`, and takes the image `run`'s shutdown escrowed there with the right's claim
+(`srvDoneInv`). The server's other resources are not given back: the next incarnation has its own,
+and goroutines of this one may still hold some (an `http.Serve` handler in flight). (R2b-2,
+2026-11-02: until then, in the R2a draft, also the request view `isServerReq`, for "`Start` was
+called"; a `HardStop` of a server never started blocks forever, which partial correctness allows,
+and the right now comes from `Start`.)
 -/
 module
 
@@ -36,9 +40,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- See the file header. -/
 abbrev EtcdServer.HardStop.spec : Prop :=
-  ∀ (s : Loc) (γ : SrvRaft) (id : w64) (dd : GoString) (E : apply.AEnv GF) (ρ : ReqNames),
+  ∀ (s : Loc) (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvStopRight s γ id dd ∗ isServerReq s E ρ }}
+      srvStopRight s γ ρ id dd ∗ srvBootApplied ρ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"HardStop")) (Val #()))
   {{ RET #(); srvDiskImage γ ρ id dd }}
 

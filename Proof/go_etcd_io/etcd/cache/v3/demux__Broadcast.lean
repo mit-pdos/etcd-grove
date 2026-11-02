@@ -346,35 +346,41 @@ certificate. -/
 theorem demuxBC_cert (C : DemuxCert GF) (cap : Nat) (c : DemuxCore) (r : RespModel)
     (hinv : DemuxInv cap c) (hmin : c.minRev ≠ W64 0) (hv : validRevisions r c.maxRev = true)
     (hs : EvRevSorted r.events) (hbd : RespRevsBounded r) :
-    certChain C c.base c.stream ∗ □ C.prog c.maxRev ∗ respCert C c r ⊢
+    certChain C c.base c.stream ∗ □ C.prog c.maxRev ∗
+      (⌜c.maxRev = W64 0⌝ ∨ □ C.quiet c.lastRev (sint.Z c.maxRev)) ∗ respCert C c r ⊢
       ⌜DemuxInv cap (updResp cap c r) ∧ StreamExt c (updResp cap c r) ∧
         BroadcastPre (updResp cap c r) c.stream.length r⌝ ∗
       certChain C (updResp cap c r).base (updResp cap c r).stream ∗
-      □ C.prog (updResp cap c r).maxRev := by
+      □ C.prog (updResp cap c r).maxRev ∗
+      (⌜(updResp cap c r).maxRev = W64 0⌝ ∨
+        □ C.quiet (updResp cap c r).lastRev (sint.Z (updResp cap c r).maxRev)) := by
+  rw [show (updResp cap c r).lastRev =
+    chainEnd (updResp cap c r).base (updResp cap c r).stream from rfl]
   rw [demuxBC_base]
   by_cases hpn : r.isProgressNotify = true
   · have hst : (updResp cap c r).stream = c.stream := by simp [updResp, hpn]
     have hmx : (updResp cap c r).maxRev = r.hdrRev := by simp [updResp, hpn]
-    rw [hst, hmx]
+    rw [hst, hmx, chainEnd_base_stream]
     unfold respCert; rw [ite_eq_left hpn]
-    iintro ⟨#Hc, -, %Hle, #Hp⟩
+    iintro ⟨#Hc, -, -, %Hle, #Hp, #Hq⟩
     isplitr
     · ipureintro
       exact demuxBC_updResp cap c r hinv hmin hv hs hbd (fun _ => Hle)
         (fun h => by rw [hpn] at h; cases h)
     iframe Hc Hp
+    iright; iexact Hq
   · have hpn' : r.isProgressNotify = false := by simpa using hpn
     by_cases he : r.events = []
     · have hst : (updResp cap c r).stream = c.stream := by simp [updResp, hpn', he]
       have hmx : (updResp cap c r).maxRev = c.maxRev := by simp [updResp, hpn', he]
-      rw [hst, hmx]
+      rw [hst, hmx, chainEnd_base_stream]
       unfold respCert; rw [ite_eq_right hpn, ite_eq_left he]
-      iintro ⟨#Hc, #Hp, -⟩
+      iintro ⟨#Hc, #Hp, #Hq, -⟩
       isplitr
       · ipureintro
         exact demuxBC_updResp cap c r hinv hmin hv hs hbd (fun h => absurd h hpn)
           (fun _ b hb => by rw [he] at hb; simp [splitBatches] at hb)
-      iframe Hc Hp
+      iframe Hc Hp Hq
     · have hst : (updResp cap c r).stream = c.stream ++ splitBatches r.events := by
         simp [updResp, hpn', he, updCore]
       obtain ⟨e, he'⟩ : ∃ e, r.events.getLast? = some e := by
@@ -385,7 +391,7 @@ theorem demuxBC_cert (C : DemuxCert GF) (cap : Nat) (c : DemuxCore) (r : RespMod
       obtain ⟨b, hb, hbr⟩ := splitBatches_last_rev r.events e he'
       rw [hst, hmx]
       unfold respCert; rw [ite_eq_right hpn, ite_eq_right he]
-      iintro ⟨#Hc, -, #Hr⟩
+      iintro ⟨#Hc, -, -, #Hr⟩
       ihave %Habove := demuxBC_certChain_above C c.lastRev _ $$ Hr
       ihave #Hps := certChain_prog (C := C) c.lastRev _ $$ Hr
       have hlb := demuxBC_lastRev_ge cap c hinv
@@ -398,10 +404,17 @@ theorem demuxBC_cert (C : DemuxCert GF) (cap : Nat) (c : DemuxCore) (r : RespMod
         iframe Hc
         rw [demuxBC_chainEnd]
         iexact Hr
-      rw [← hbr]
+      isplitr
+      · rw [← hbr]
+        imodintro
+        iapply Hps
+        ipureintro; exact List.mem_of_getLast? hb
+      iright
+      rw [chainEnd_append, show chainEnd (chainEnd c.base c.stream) (splitBatches r.events) =
+        sint.Z (batchRev b) by simp [chainEnd, hb], hbr]
       imodintro
-      iapply Hps
-      ipureintro; exact List.mem_of_getLast? hb
+      iapply C.quiet_nil
+      exact Int.le_refl _
 
 end iris
 
@@ -488,8 +501,8 @@ theorem demux.Broadcast.wp_proof
       · iframe; iframe #; ipureintro; exact ⟨Hinv, Hif, hv, Hsorted, Hbd⟩
       ihave #HrC := Hcert $$ []
       · ipureintro; exact ⟨Hif, rfl⟩
-      ihave ⟨%Hnew, #Hcerts', #Hprog'⟩ := demuxBC_cert C cap c0 r Hinv Hif hv Hsorted Hbd
-        $$ [Hcerts Hprog HrC]
+      ihave ⟨%Hnew, #Hcerts', #Hprog', #Hquiet'⟩ := demuxBC_cert C cap c0 r Hinv Hif hv Hsorted Hbd
+        $$ [Hcerts Hprog Hquiet HrC]
       · iframe #
       obtain ⟨Hinv', Hext, Hpre⟩ := Hnew
       imod ghostVar_update_halves (updResp cap c0 r) γd.core c0 c0 $$ Hcore Hcw with ⟨Hcore, Hcw⟩
@@ -503,7 +516,7 @@ theorem demux.Broadcast.wp_proof
       · isplitl
         · unfold demuxLocked; iexists actP, lagP; simp only [named]
           rw [actOf_refresh, lagOf_refresh]
-          iframe; iframe Hcerts' Hprog'; ipureintro
+          iframe; iframe Hcerts' Hprog' Hquiet'; ipureintro
           exact ⟨Hok.refresh (Nat.le_refl _) Hext,
             Hstart.refresh (fun _ => demuxBC_minRev cap c0 r Hinv' Hif) (demuxBC_base cap c0 r)⟩
         iframe #; ipureintro; exact ⟨Hinv', Hpre⟩

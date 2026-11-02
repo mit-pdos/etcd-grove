@@ -84,8 +84,10 @@ theorem demux.BroadcastProgressTo.wp_proof
       · rw [Hst]; iexact Hcerts
       ihave #Hpv : □ C.prog v.maxRev $$ []
       · rw [Hmx]; iexact Hprog
+      ihave #Hqv : (⌜v.maxRev = W64 0⌝ ∨ □ C.quiet (chainEnd c.base v.stream) (sint.Z v.maxRev)) $$ []
+      · rw [Hst, Hmx, chainEnd_base_stream]; iexact Hquiet
       ihave #Hpub := pub_send pred sr s v sent (progressResp c.maxRev) c.base
-        (Hstart.sr_ok w _ Hrw) (Hst0.active hact) hnext $$ Hcv Hpv
+        (Hstart.sr_ok w _ Hrw) (Hst0.active hact) hnext $$ Hcv Hpv Hqv
       ihave #Hpub' : iprop(□ (∀ r', ⌜filterResp pred (progressResp c.maxRev) = some r'⌝ -∗
           (demuxPub C pred sr).pub none (sent ++ [r']))) $$ []
       · rw [show (demuxPub C pred sr).pub = demuxPubBody C pred sr from rfl]

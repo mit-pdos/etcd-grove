@@ -43,7 +43,7 @@ theorem startMember.wp_proof
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG))
     (hReg : http.registerClosable_spec (GF := GF))
-    (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
+    (wp_StartS : common.Start_builtS_spec (GF := GF) (hG := hG)) :
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn
     ThB RcB RcN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hck Haf Hbuq Hdbo
@@ -53,13 +53,18 @@ theorem startMember.wp_proof
   ihave #Pcom : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.common $$ []
   · iPkgInit
+  -- the member's raft names are the cluster's (`memberBoot`)
+  ihave %Hγρ : ⌜ρ.rd.raft.raft = γ⌝ $$ [Hmb]
+  · iunfold common.memberBoot at Hmb
+    icases Hmb with ⟨%Hb, -⟩
+    ipureintro; rw [Hb.1]
   (try wp_auto)
   -- `common.BuildServer(name, peer, client, cluster, "restart3", SnapCount, SnapCatchUp, lg)`
   wp_apply (wp_BuildServer N name peerAddr client token (W64 1) (W64 1) peer cluster lg M iu Uok
       ps bootLog ctxs dir id γ ρ E₀ Φs γn hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
       Hdir HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, Hsr⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, Hsr, Hkeep⟩)
   · -- `BuildServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -104,10 +109,9 @@ theorem startMember.wp_proof
     ipureintro; exact isPanic_intoVal serr
   (try wp_auto)
   -- `s.Start()`
-  wp_apply (common.wp_Start_built wp_Start s ρ E₀ lg γn id N true
-      (ReceiptBoundLe.le (GF := GF) (N + 1)))
-    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok] as Hup
-  · iframe Htok
+  wp_apply (wp_StartS s ρ E₀ lg γn id N true (name ++ go!".etcd"))
+    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok Hsr Hkeep] as ⟨Hup, Hsr⟩
+  · iframe Htok Hsr Hkeep
     iframe #
     iunfold common.memberBuilt
     iexists γA, ci, TM, E, γrn, b, cfg, γk, τ
@@ -116,14 +120,17 @@ theorem startMember.wp_proof
     iframe #
     ipureintro; exact HE
   (try wp_auto)
+  icases memberUp_applied s ρ E₀ lg γn id $$ Hup with ⟨Hup, #Hai⟩
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl
   iexists s, lis
   iframe
   iunfold memberStop
+  rw [← Hγρ]
   iframe
-  ipureintro; exact Hli
+  iframe #
+  ipureintro; exact ⟨Hli, rfl⟩
 
 theorem startMember.wp_proofRestart
     (wp_BuildServer : common.BuildServer.specRestart (GF := GF) (hG := hG))
@@ -140,13 +147,15 @@ theorem startMember.wp_proofRestart
   ihave #Pcom : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.common $$ []
   · iPkgInit
+  -- the image's raft names are the cluster's
+  icases srvDiskImage_raft γ ρ id _ $$ Himg with ⟨%Hγρ, Himg⟩
   (try wp_auto)
   -- `common.BuildServer(name, peer, client, cluster, "restart3", SnapCount, SnapCatchUp, lg)`
   wp_apply (wp_BuildServer N name peerAddr client token (W64 1) (W64 1) peer cluster lg M iu Uok
       ps bootLog ctxs dir id γ ρ γn hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
       Hdir HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Himg] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, %ρ', %E₀, %Hρ', Hmb, Hsr⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, %ρ', %E₀, %Hρ', Hmb, Hsr, Hkeep⟩)
   · -- `BuildServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -193,9 +202,9 @@ theorem startMember.wp_proofRestart
     ipureintro; exact isPanic_intoVal serr
   (try wp_auto)
   -- `s.Start()`
-  wp_apply (wp_StartR s ρ' E₀ lg γn id N true)
-    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok] as Hup
-  · iframe Htok
+  wp_apply (wp_StartR s ρ' E₀ lg γn id N true (name ++ go!".etcd"))
+    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok Hsr Hkeep] as ⟨Hup, Hsr⟩
+  · iframe Htok Hsr Hkeep
     iframe #
     iunfold common.memberBuiltR
     iexists ai₀, at₀, c₀, x₀
@@ -206,6 +215,7 @@ theorem startMember.wp_proofRestart
     iframe #
     ipureintro; exact HE
   (try wp_auto)
+  icases memberUp_applied s ρ' E₀ lg γn id $$ Hup with ⟨Hup, #Hai⟩
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl
@@ -213,8 +223,11 @@ theorem startMember.wp_proofRestart
   iframe
   isplitr; · ipureintro; exact Hρ'
   iunfold memberStop
+  have Hγρ' : ρ'.rd.raft.raft = γ := by rw [Hρ'.1, Hγρ]
+  rw [← Hγρ']
   iframe
-  ipureintro; exact Hli
+  iframe #
+  ipureintro; exact ⟨Hli, rfl⟩
 
 end proof
 
