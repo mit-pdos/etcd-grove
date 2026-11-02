@@ -68,7 +68,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specBatch (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nid q γn rt n Hms Hai1
+  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nk q γn rt n Hms Hai1
     Hok hEok hdv hAL hAT Hdisk hciA hcia hγn hnA
   simp only [srvRunH_applyAll_spec]
   have hAE := EtcdServer.applyEntries.spec_off hAE
@@ -78,7 +78,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   icases srvApRes_cfg_size s γr A $$ HAR with ⟨HAR, %hsz⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
-  icases Hsrv' with ⟨%Hρrd, -, ⟨%sv, #Hfl⟩, -, -, #HrnS⟩
+  icases Hsrv' with ⟨%Hρrd, -, ⟨%sv, #Hfl⟩, -, -, #HrnS, -⟩
   iunfold srvFieldsAt at Hfl
   icases Hfl with ⟨#Hlgf, %Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -⟩
   ihave #Hsa' := Hsa
@@ -211,7 +211,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
     rw [List.length_append]; have := hlen'; have := hAL; word
   have hltA : lastTermIs (A ++ unapplied ai ms) at' := lastTermIs_append hAT hat'
   icases Hadv with ⟨#Hnal, #Hsdl, -, #Hfts⟩
-  ihave #Hnal' : (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai')) $$ []
+  ihave #Hnal' : (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nk (uint.nat ai')) $$ []
   · rw [← hidx, ← hρr]; iexact Hnal
   ihave #HrnS' := HrnS
   iunfold srvRaftNode at HrnS'
@@ -221,7 +221,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   ihave #Hkb' := Hkb
   iunfold kvBatch at Hkb'
   icases Hkb' with ⟨#HlbB, -⟩
-  ihave Hstor : srvSnapStor mst γs γr nid ai' at' $$ []
+  ihave Hstor : srvSnapStor mst γs γr nk ai' at' $$ []
   · iunfold srvSnapStor
     iframe Hmsi
     isplitr
@@ -245,7 +245,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   ihave #HsrvM : isServerM false s γ ci TM E ρ γr $$ []
   · rw [isServerM_false]; iexact Hsrv
   wp_apply EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_off hSINC s E ρ.wait γ ci b γr ep st'
-      ai' at' cs' a' t' x' mst γs nid γp (w + (unapplied ai ms).length) TM ρ q Hoff hok'
+      ai' at' cs' a' t' x' mst γs nk γp (w + (unapplied ai ms).length) TM ρ q Hoff hok'
       (hciL hciA) Hdisk.2.1.2.2.1 hsz Hdisk.2.2.1
     $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV HwalT Hstor]
     as ⟨%st'', Hss, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, HwalT, %Hst''⟩
@@ -460,7 +460,7 @@ theorem EtcdServer.applyAll.wp_proofOn
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specOn (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nid γa sa q γn rt n hM hRB
+  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nk γa sa q γn rt n hM hRB
     Hms Hai1 Hok hEok hdv hAL hAT Hdisk hciA hcia hγn hnA
   simp only [srvRunH_applyAll_spec]
   unfold EtcdServer.applyEntries.specOn at hAE
@@ -469,7 +469,7 @@ theorem EtcdServer.applyAll.wp_proofOn
   icases srvApRes_cfg_size s γr A $$ HAR with ⟨HAR, %hsz⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
-  icases Hsrv' with ⟨%Hρrd, -, ⟨%sv, #Hfl⟩, -, -, #HrnS⟩
+  icases Hsrv' with ⟨%Hρrd, -, ⟨%sv, #Hfl⟩, -, -, #HrnS, -⟩
   iunfold srvFieldsAtM at Hfl
   icases Hfl with ⟨#Hlgf, %Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -⟩
   ihave #Hsa' := Hsa
@@ -602,7 +602,7 @@ theorem EtcdServer.applyAll.wp_proofOn
     rw [List.length_append]; have := hlen'; have := hAL; word
   have hltA : lastTermIs (A ++ unapplied ai ms) at' := lastTermIs_append hAT hat'
   icases Hadv with ⟨#Hnal, #Hsdl, -, #Hfts⟩
-  ihave #Hnal' : (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nid (uint.nat ai')) $$ []
+  ihave #Hnal' : (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nk (uint.nat ai')) $$ []
   · rw [← hidx, ← hρr]; iexact Hnal
   ihave #HrnS' := HrnS
   iunfold srvRaftNode at HrnS'
@@ -612,7 +612,7 @@ theorem EtcdServer.applyAll.wp_proofOn
   ihave #Hkb' := Hkb
   iunfold kvBatch at Hkb'
   icases Hkb' with ⟨#HlbB, -⟩
-  ihave Hstor : srvSnapStor mst γs γr nid ai' at' $$ []
+  ihave Hstor : srvSnapStor mst γs γr nk ai' at' $$ []
   · iunfold srvSnapStor
     iframe Hmsi
     isplitr
@@ -633,7 +633,7 @@ theorem EtcdServer.applyAll.wp_proofOn
       iapply epCsAt_ne _ _ _ hL $$ Hcv'
   -- `s.snapshotIfNeededAndCompactRaftLog(ep)`
   wp_apply EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_on hSINC s E ρ.wait γ ci b γr ep st'
-      ai' at' cs' a' t' x' mst γs nid γp (w + (unapplied ai ms).length) TM ρ sa' q
+      ai' at' cs' a' t' x' mst γs nk γp (w + (unapplied ai ms).length) TM ρ sa' q
       (by rw [apply.AEnv.authOn_eq, hM]; rfl) hok'
       (hciL hciA) Hdisk.2.1.2.2.1 hsz Hdisk.2.2.1
     $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV HwalT Hstor]

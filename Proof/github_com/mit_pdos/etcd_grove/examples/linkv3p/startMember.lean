@@ -106,10 +106,12 @@ theorem startMember.wp_proof
       (GMap.insert name₃ sl₃ (GMap.insert name₂ sl₂ (GMap.insert name₁ sl₁ ∅))) initURLs3
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn
       (by omega) Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Hmb Hpown] as %srv %err Hres
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      (common.utf8Keys_insert _ _ _ (by decide) (common.utf8Keys_insert _ _ _ (by decide)
+        (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Htok Hmb Hpown] as %srv %err Hres
   · iframe; iframe #
     iExactEq Hpeer; rfl
-  icases Hres with (%Herr | ⟨%Herr, Hmb⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
   · -- `NewMember` failed: the error returned
     cases err with
     | nil => exact absurd rfl Herr
@@ -136,7 +138,7 @@ theorem startMember.wp_proof
   (try wp_auto)
   iunfold memberUp at Hup
   icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
-    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, Hctl, HWR⟩
+    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, Hctl, HWR, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `v3rpc.Server(s, nil, nil, opt)`: its configuration from `NewServer`'s and `Start`'s
   ihave ⟨%C, #Hgc, %HC, HWRs⟩ : ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk srv C ∗

@@ -27293,6 +27293,43 @@ approved design's "Layer 4: authkv" (`notes/g2-watch-auth.md`) put `watchAddrFac
 `Work.spec` at the auth-on server without checking that its `srvKVFacts` (and `srvLogsSmall`) can
 be discharged from `memberUpOn`; G2's reviews checked only the auth-off callers.
 
+## The restart's lowest commit: `wcommit` (2026-11-02 · durability stage II (p); the coordinator's decision (b))
+
+**The problem** (stage II (o)'s report). A restarted node is in the cluster's dynamic mode, whose
+invariant has I1 at its commit (`RInv.i1`: of two conf-change entries of the log, the first is
+below the commit). Its commit is the stored one, which `StorageHolds` allowed anywhere from the base
+up to `S.commit`; nothing durable recorded I1. **Counterexample** (real raft is unsafe there too):
+node 1 stores entries 1..9 with conf entries at 6 (C5 = {1,2,3} → C6 adds 4) and 8 (adds 5, C8 =
+{1..5}), both committed, `S.commit = 9`; its storage presents the stored commit 5 (allowed);
+raft restarts at C5, commit 5, and `hasUnappliedConfChanges` reads only `(applied, committed]`, so
+it may campaign; meanwhile C8's quorum {3,4,5} commits entry 10; node 1 wins term T+1 with {1,2}
+(a C5 quorum: node 2's log as up to date, raft checks no membership when granting): a leader
+without a committed entry.
+
+**Decision** (option (b) of the report, the coordinator's). `RaftState.wcommit`: the commit of the
+last entered batch that wrote entries or a snapshot (a commit-only batch keeps it). `StorageHolds`
+requires `S.wcommit ≤ σ.commit` (with the base bound kept: a compaction may pass `wcommit`). The
+durable half carries I1 of its full log at `wcommit` (`durI1`); a batch carries I1 at its own
+commit, which the cut reads off the node's `RInv` (every batch's log is the node's at the cut);
+*enter* takes the batch's when it wrote, the durable half's (unchanged log) when not. A client
+writing the hard state with each batch's entries (kvdurable) stores `σ.commit ≥ wcommit`. Option
+(a) (a pure scope premise of `RestartNode` on `σ`) was not taken: it needs a new per-`Ready`
+law telling the client the batch's I1.
+
+## A restart's certified terms above the committed log handed out (2026-11-02 · stage II (p); decision 2, internal)
+
+**The problem.** `ownRawNode`'s `SdtTie` had the certification height equal to the committed log
+handed out; a restarted node certified the attach record's terms up to the stored commit
+(`storCaught`, needed by `raftDL`'s attach reading) and hands out only up to `max b A`.
+
+**Decision.** `SdtTie` is `≤`, the gap `(sdtLen, dtk]` attach-record indices at most `c0`. A `Ready`
+hands the gap out again with the recorded keys (`ownRaftLog_certify_gap`), whose terms are the
+committed log's: `certLink` gains `ctCommitted γ sn` (the record's terms are a committed log's), so
+a `Ready`'s committed entries agree with them by the committed logs' prefix order. Rejected:
+keeping every key's fragment in `storAuths` (the agreement is still needed below a restored
+snapshot's base, where `DtOk` says nothing), and an `ownRawNode` conjunct (`certLink` is the
+storage names' tie to the cluster already, fixed at the attach). `AttachRec` records every index
+`1..c0` once (below the base too), so the restart's delivered keys (`dlvKeys`) are the record's.
 ## M2 apply side: the switch stated in place (2026-10-30, the user's Q6 (a) · `notes/m2-apply-plan.md`, "The switch in place")
 
 Review rounds 1-3 showed that mode-indexed copies of the shape vocabulary (`dispatchOkM`,
@@ -29091,6 +29128,103 @@ the no-compactor arm), and `common.Collect.spec` takes the consumer at any start
 `I 0 c0` (until then `0`, a watch from revision 1). The watch is of the last round's key, guarded
 by `prevRev != 0` so that the key is a round's (`prevOk`, the request's size).
 
+## The backend for the auth split: open shares at acquisition, a reader pool, idle parts (2026-11-01 · Draft, not frozen · `notes/backend-auth-split-plan.md`)
+
+What the auth-on snapshot install's restated premise needs of the backend, after the user's
+decisions of 2026-11-01 (Draft in `AuthSplitDraft.lean`, imported by nothing).
+
+- **A read in progress holds no open share.** Today `readTx.UnsafeRange` takes `bOpen γ qo` to
+  rule out the stopped interval, so a reader holds a share from `RLock` to `RUnlock` and a
+  release cannot give `Close` its share while reads run, though Go's `Close` waits for them
+  (`commit` takes `readTx.Lock()`). Chosen: the held read (`rtHeldF`) records that the interval is
+  live, which `RLock` establishes with the share it takes and gives back; the interval stays live
+  while held (only the stop's commit, under the write lock, clears it). `UnsafeRange` drops the
+  share; `Close` keeps `bOpen γ 1`. Today's statements are corollaries.
+- **Readers draw slots from a pool with a thread token** (the Bounds rule; the shape of minibolt's
+  `isDB` and rafthttp's `raftPool`): the backend's constructor builds a pool of `2 ^ 28` slots (at
+  J8a's thread bound) for the readers that hold no lock of their owner's (member, alarm and auth
+  admin reads, `Recover`s), and leaves the rest counted for the owners whose readers nest a slot
+  under their own read lock (auth's `beMu`, mvcc's `s.mu`), which pool bundles (`notes/bounds-locks.md`,
+  B2). Review round 2 dropped the pool on the premise that every reader holds an owner lock;
+  round 3 showed it false. Where the pool lives is the plan's Q2, open. mvcc's `bkRTx` loses its
+  open share for an acquisition guard in the store (Q5).
+- **`rbOwn` is the writer's contents; idleness is a separate predicate.** The auth Draft's
+  `rbOwn_split_in` split `rbOwn` into idle parts, false while the holder's own write is pending
+  (a held batch with a pending delete: readers still see the key). Chosen: `rbPart γ S r` (the
+  writer's contents on the tracked buckets of `S`; `rbOwn = rbPart ⊤`, meaning kept) and
+  `rbOwnIn γ S r` (idle: readers see `r` there), split/join over disjoint sets; `rbPut` takes its
+  bucket's part only; `Unlock` turns a part handed in into the idle part (Go writes the session
+  back and commits a pending delete, etcd-io/etcd#17119); a fresh backend's are idle. The split the
+  premise needs is restated over `rbOwnIn ⊤`. The batch lock's own side is a third predicate
+  (`rbLock`), so that `backend.Snapshot`'s observation no longer hands the lock's half as `rbOwn`.
+
+## The backend for the auth split, Freeze: decision 1 applied, decision 3 stopped (2026-11-01 · decision 1 frozen · `notes/backend-auth-split-plan.md`, "Freeze")
+
+Supersedes in part the entry above (its first bullet is now applied; its third is not).
+
+- **Decision 1 applied.** `rtHeld`/`rtHeldF` (`InvBackend.lean`) carry `rtx ≠ Loc.null` in their
+  existing pure conjunct (`⌜rd.rtx = rtx ∧ rtx ≠ Loc.null⌝`), not as a separate `∗ ⌜…⌝` outside
+  the existential as the draft wrote it: the same predicate, and the laws that destructure it keep
+  their patterns. `RLock` establishes it with the open share it takes (`rtResAt_live`, over
+  `rtIntv_live`); `readTx.UnsafeRange.spec` takes no open share. The share-free laws are
+  `rtHeldF_lend'`/`rtHeldF_read'` (`ReadLemmas.lean`); today's `rtHeldF_lend`/`rtHeldF_read`/
+  `rtHeld_read` (with `bOpen`) stay, as one-line corollaries, so that their callers are unchanged.
+  `rtHeld_wf` moved from mvcc's bridge to the backend (a law, `ReadLemmas.lean`). The two direct
+  users of `UnsafeRange.spec` (`rtUR_held`, `rt_rangeLimF`) frame the share; no other caller
+  changed. `guarded_RLock` is in `ClientLaws.lean`. `Close.spec`: docstring only (Q1).
+- **Decision 3 stopped: `rtHeldF_rbOwnIn` is not provable over the current read model.** The law
+  says a held read agrees with the idle part on its tracked buckets. On the server every tracked
+  bucket is a hook bucket (`bridgeParams`: `HB n = (n ≠ key)`), and the backend relates the
+  readers' state to the writer's contents only off the hook buckets (`sessWf`'s `agreeOff P.HB`,
+  `vData`, `viewSame`; `hookStep` constrains the write buffer only off them): nothing in today's
+  invariants says what a reader sees of a tracked bucket. The auth Q2 survey's finding (the
+  readers' model would have to be extended to the hook buckets; its estimate 2.5–10k lines). The
+  other laws (split/join, congruence, `batchLocked_rbPart`, `rbLock_agree`) are provable over a
+  per-bucket ghost map of the writer's halves, but without `rbOwnIn` they give no client anything
+  (`Unlock`'s restatement and `newPostK`'s idle part need it), and changing `rbOwn`'s
+  representation changes what `backend.Snapshot`'s axiom asserts (its observation hands the lock's
+  half as `rbOwn`). So nothing of decision 3 is applied; `AuthSplitDraft.lean` keeps it.
+- **Decision 2 held.** The pool in `newPostK` would make `storage.OpenBackend`'s axiom assert it
+  under any thread bound; the axiom's restatement is step 2's, to be approved.
+
+## The backend for the auth split: the user's decisions on the Freeze's questions (2026-11-01 · the user's · `notes/backend-auth-split-plan.md`, "The user's decisions on the Freeze's questions")
+
+Supersedes the Freeze entry's "decision 3 stopped" in its consequence (the finding stands).
+
+- **`rbOwnIn` as a ghost idle token** (option (b)): its meaning is a fact about the session's
+  writes (no put, delete, bucket creation or deletion on the buckets since the holder's last
+  `Unlock`), kept by the proved batch operations, not a fact about what the readers see. That the
+  readers see the idle contents is Go's (`Unlock` writes the session back and commits a pending
+  delete), argued in each trusted reader's docstring and checked by the axiom check. Why not wait
+  for option (a): its cost (a read model over the hook buckets), and the trusted readers are
+  axioms today anyway; (a) is recorded as a later stage.
+- **The pool as a proved corollary of a core axiom**, the thread bound a persistent fact of the
+  server's: the Bounds rule (a bound reasoned about where it is owned) forbids an instance on
+  every spec between `NewServer` and `applySnapshot`.
+- The other five (the decoding premise defined, the trusted set extended to `srvRestOwn`/`bootOk`
+  with writers over any containing set, the readers moved onto the pool, the bounds entry, the
+  merge) as the plan note lists them.
+
+## The backend for the auth split: decision 3 applied as a per-bucket ghost map (2026-11-01 · applied, untrusted part · `notes/backend-auth-split-plan.md`)
+
+- **Representation.** `γ.rbk` is a ghost map, bucket name to (contents, pending flag), over a pure
+  domain `γ.rbD` (a new `BNames` field, `GMap GoString Unit`, fixed at `New`: the tracked buckets
+  with contents or a table entry). The client holds half of each element of its set (`rbPartF`, a
+  big separating conjunction over `rbD`, with the pure fact that a bucket outside `rbD` is empty);
+  `rbPart` hides the flags, `rbOwnIn` is the part with every flag false, `rbOwn = rbPart ⊤`. The
+  batch lock's side (`rbSide`) is the authority, an `rbOwn`-shaped half, and the fact that the
+  table's tracked buckets are in `rbD`. Why a flag rather than a separate token per bucket: the
+  writer's step (`rbSide_put`) and `Unlock`'s (`rbSide_idle`) update one element each, and
+  agreement of the halves gives a holder of `rbOwnIn` the lock's contents without a second
+  resource.
+- **Why `rbOwn`'s meaning is unchanged** (so the trusted axioms naming it, `backend.Snapshot`'s
+  observation included, keep their justification): `rbOwn γ r` still determines the writer's
+  contents `r` by agreement with the lock's side, which has `rbOwn`'s shape; only its
+  representation moved. Hence no `rbLock`: the lock's half is an `rbOwn`.
+- **`Unlock` takes any part** (`Unlock.spec` with `S`, `r`, `rbPart γ S r` to `rbOwnIn γ S r`);
+  callers that hold none use `Unlock.bare` (the empty set). The writers take their bucket's part
+  (`rbPut` per bucket; `rbPutAll` the whole form, for `bt_leaseDel`'s split).
+
 
 ## The cache over a compacting store: `etcd_cache_served` over the store's fact for watches (2026-11-01 · accepted, the user's approval)
 
@@ -29125,6 +29259,83 @@ reads off `isServer`'s `srvEnvOk` with `srvEnvOk_off`. `srvEnvOk` is inside `isS
 exported `applyAll_model`'s preconditions name: a change to an exported statement's meaning, approved.
 Rejected: (B) a new `specSnap` premise, which pushes the same fact up to `run`; and (C) an mvcc law
 opening the store's invariant at names the restore is changing.
+- **Sealed** (2026-11-02, both round-2 reviewers' first tier: the pending flag's meaning was a
+  convention any proof holding the batch lock could break): `rbSide` is `@[no_expose]` and
+  `rbSide_idle` private to `TrackedLemmas.lean`; `NewAlloc.lean` and `batchTxBuffered__Unlock.lean`
+  `import all` them. Outside the backend nothing reaches the ghost map's authority, so a flag is
+  cleared only through `Unlock.spec`. Not yet a gate: the backend has no `etc/api/backend.txt` (an
+  `import all` from another package would reopen it); proposed with the trusted step.
+- **What `rbOwn` now also says**: every tracked bucket of `r` is among `γ.rbD`. The applied
+  creators (`NewLessor`, `NewAlarmStore`, `NewAuthStore`, text unchanged) return `rbOwn` with their
+  bucket inserted, so they rely on the bucket being in the table (as they did in substance before,
+  through `UnsafeCreateBucket.spec`'s `P.has`); no law lets a client derive a name outside `γ.rbD`.
+  The trusted step's draft adds the premise (`leaseParams`, a new `restParams`).
+- **A defect of the applied membership texts** (round 3 of the trusted set's review, 2026-11-02):
+  `MustReadMembersFromBackend`, `MustSaveMemberToBackend` and `MustDeleteMemberFromBackend` (the
+  applied axioms) take `rbOwn d.γB bk` (or the store's `storeRT`/`storeWT`) but no
+  `isBackend d.γB …`, and none of their other premises mentions `γB.rbk` (or, since decision 3,
+  `γB.rbD`): a caller may pick ghost names of its own for `d.γB` (plain fields), allocate a fresh
+  map, and meet the premise with made-up contents, so the axioms assert reads and writes Go does not
+  do (a `members` bucket read as empty; a put to a missing bucket, fatal in Go, proved safe). No
+  current proof does so. The fix, in the trusted step's draft (G): `isBackend d.γB d.P W Pk d.be`
+  in each pre (its batch mutex holds `rbSide d.γB`, which only the real backend's names have).
+- **A defect of the applied `AlarmStore.restore` text** (round 4, 2026-11-02): it quantifies over
+  any `γB`, `P`; for a backend whose `alarm` bucket is untracked (`P.RB "alarm" = false`, which
+  `backend.New.spec` allows) `alarm ∉ γ.rbD` and `rbData` has no `alarm` entry, so its premise
+  "the alarm bucket is empty" holds whatever is stored, while Go loads the stored alarms (or returns
+  the unmarshal error). The server's callers are at `KBReal.P` (alarm tracked). The fix, in the
+  trusted step's draft (J): `P.RB "alarm" = true` and `P.has mvcc.alarmBI`, also on the proved
+  `AlarmStore.Recover`.
+
+## The backend for the auth split: the user's decisions on the second questions (2026-11-02 · the user's · `notes/backend-auth-split-plan.md`, "The user's decisions on the Freeze's second questions")
+
+- **An applied change in meaning of trusted axioms** (Q3, accepted until the trusted step): since
+  decision 3's representation, `rbOwn γ r` also says every tracked bucket of `r` is among `γ.rbD`
+  (the backend's tracked names, fixed at `New`: the table's tracked buckets and the opened data's).
+  `lease.NewLessor`, `v3alarm.NewAlarmStore` and `auth.NewAuthStore` (applied, text unchanged)
+  return `rbOwn` of `r` with their bucket inserted, so they now also assert that bucket is among
+  `γ.rbD`: false for a backend whose table lacks it. Harmless: (1) no law of the vocabulary lets a
+  client derive that a name is outside `γ.rbD`, nor anything from a name's being in it beyond what
+  the lock's side agrees with, so nothing false follows from the extra claim; (2) the dependence was
+  there in substance before (the lock's side only ever reaches a created bucket through
+  `UnsafeCreateBucket.spec`, which needs `P.has`); (3) every caller is at a server backend, whose
+  table has the rest buckets (the lease's by `leaseParams`, the others by the schema's bucket list).
+  The trusted step adds the premise (`P.has` of each created bucket).
+- **The strong `membersDecode`** (Q1): the model's members have their keys as ids along the applied
+  log (`restModel_memIdOk`, proved); the boot's do not as `memBoot` stands (`ccMemberOf`'s id is
+  opaque), so the trusted step proposes `memBoot` with `ccMemberAt`, as Go's bootstrap members are.
+  The weak form is not needed: Go never stores a member under another id's key.
+- Q2, Q4–Q7 as the plan note lists them.
+- **Defects of the applied cluster contract** (round 6 of the trusted set's review, 2026-11-02;
+  not this stage's changes): the rows of `bootOk`'s `clusterApplyOk` (`apply/Contracts.lean:525-549`)
+  quantify over every rest state `r` and are false of Go at some: `UpdateAttributes` of an id
+  neither a member nor removed panics (already a known model gap, `RestModel.lean:19`); `SetVersion`
+  above the server's version panics (`MustDetectDowngrade`); with `v3`, a missing `members` or
+  `cluster` bucket is fatal (`UnsafePut`); and, unconfirmed, the attribute row may need an owned
+  `ClientURLs` slice where it takes a read-only one. A false conjunct of `bootPremise` makes the
+  closed results vacuous, not unsound. Fixes proposed in the draft (`bks-trusted.md`, R; Q9).
+- **Q8, a deployment premise** (the user's decision, 2026-11-02; drafted, `bks-trusted.md` §19, to
+  apply with the trusted step): `bootPremise` asks `bootstrapContract` only for configurations whose
+  initial cluster's member names are valid UTF-8 (`utf8Valid` of every key of `U.initMap`). Go keeps
+  a name raw in the cluster's members while the peers' contexts decode with U+FFFD in its place, so
+  `bootOk`'s members (the contexts' decodings) are Go's only for valid names. A weaker
+  `bootPremise`: the closed results assume less, and each supplies the conjunct from its `Uok`.
+- **Q9** (the user's decision): the cluster contract's false rows get their own stage right after
+  this one (the plan note, "Next stage").
+- **The final review round (round 7)** found a first-tier gap in the draft, not in Go:
+  `applyConfChange` has no `isBackend` for the restated member read and save; repaired in the draft
+  (revision 4.3, T: `srvBeOwn` carries `srvBeRO d`), not re-reviewed. Per the user's rule nothing
+  trusted is applied.
+- **Approved** (the user, 2026-11-02): revision 4.3 of the trusted restatements as it stands, with
+  T, §18 and §19, no further review round. Applied by the apply step (below in STATUS.md).
+- **Applied** (2026-11-02, four stages, STATUS.md): as approved, with one text the draft names but does
+  not spell out: item E's boot fact for alarm and auth is four conjuncts of `bootOk`'s `%Hbe`
+  beside `leaseParams`, `d.P.has mvcc.alarmBI`, `authBI`, `authUsersBI`, `authRolesBI` (the
+  table's entries, per bucket as item I asks); `srvSnapRO` gains the alarm entry. `newPostKP`
+  holds `rdPool`, not `bkRPool` (untrusted; the snapshot path builds `bkRPool` by `bkRPool_intro`).
+- **The user's approvals** (2026-11-02): the four `%Hbe` conjuncts (`d.P.has mvcc.alarmBI`, `authBI`,
+  `authUsersBI`, `authRolesBI`) are within the approved meaning; the branch is approved to land.
+
 
 ## The merged snapshot's window: the writer's observations, the freeze at `ci` 0, the snapshot's compaction keys (2026-11-02 · the user's approvals · branch `snap-window`)
 
@@ -29263,6 +29474,90 @@ stock (`etc/bounds-allow.txt`). The trusted changes: the axioms `leaseTimeToLive
 Rejected: a slot held for the whole call (F1 of the review: a slot and the token held at once by
 one thread); a per-call slot handed down from `NewServer` (it would bound the number of calls).
 
+## The closed lease example: the TTL reply's ID, the lease peers' premise, the run's token (2026-11-02 · accepted, the user's Freeze · branch `lease-ex`)
+
+`examples/leasekv` checks that `TimeToLive(id)` answers about `id` and that `Leases()` lists no lease
+twice (`notes/lease-ex-plan.md`). Three changes to trusted or frozen statements, each the user's
+choice:
+
+- **The reply's ID** (D3): `⌜w.ID' = v.ID'⌝` in the success arm of the trust-boundary
+  `EtcdServer.leaseTimeToLive.spec`, and so of `EtcdServer.LeaseTimeToLive.spec`, `ttlAns` and
+  `leaseTTLOut` (frozen in lease-src). True on every path: the leader's literal has `ID: r.ID`, a
+  follower's `TimeToLiveHTTP` rejects a mismatched reply (`http.go:274`), the handler's not-found
+  reply has `ID: rr.ID`. It survived the `axiom` skill (`notes/axiom-review/lease-ttl-id.md`).
+- **`leasePeersOk`** (the axiom review's (A)): the same review refuted the axiom as it stood since
+  lease-grpc. Its cluster assumption (what answers `/leases/internal` at the leader's peer URLs)
+  was only docstring prose, and a program serving its peer address with an empty `200` panics yet
+  had a proof. Now an `opaque` deployment premise (`etcdserver/LeaseRead.lean`, as `grpcRepliesFit`),
+  taken by the axiom, `LeaseTimeToLive.spec`, `raftLeaseRead_server`, `kv_lease_served`,
+  `leasekv.Main.spec` and `leasekv_safe`'s hypotheses. Rejected: (B) the premise stated over the HTTP
+  model (provable by the program that serves the address; more work in `raftProto`), for later.
+- **The run's thread token**: a lease read's run takes a `threadTok` (the lessor's and the leases'
+  reader pools). Restating `grpc.serve` to give each run one (D1) was unsound and is reverted;
+  lending the client's token fails on a timed-out call; per-lease stocks of reader slots would
+  rework the lessor. `leasekv`'s `Main` forks `holdToken` (sleeps forever, touches no lock) and puts
+  that goroutine's token in the one gRPC slot. No trusted change; the Go program has one idle
+  goroutine.
+
+Also: `memberBuilt`, `memberUp` and `grpcUp` (the examples' aggregates) gain `srvLeaseRd` and
+`grpcLeaseUp`; the review's locality finding (nine `Main` proofs changed their patterns) stands
+as a known cost. The two new rules this stage taught are in `.claude/skills/spec/PRINCIPLES.md`
+("A trusted statement never gives out a counted resource it did not take") and
+`notes/spec-first-plan.md` ("Freeze: the axioms attacked first").
+
+## C3's client stage: deferred, a survey's finding (2026-11-02 · my recommendation, under the user's "follow your recommendations" · branch `periodic`)
+
+**What the stage was to do** (`notes/compactor-pilot-plan.md`): carry the store's permit
+(`kvCmpPermit γk c`: `0 < c` and `kvRevLbZ γk (c + cret)`) up to the client and state C3 in
+`compactkv`. **Surveyed, not started.** Where a client can see a compaction revision:
+- a read's `ErrCompacted`: a gRPC error, about which the gRPC model (`GrpcSpec`, a `Φ` of the reply
+  only) says nothing; a fact there would be a change to the trusted gRPC model;
+- a watch's compaction response: a message, and the server sends the permit already (`watchDn`'s
+  `mvccOk` → `mvccCov` → `respCov` → `respRev`'s `cmpPermOf γ`, over the store's names); the client
+  side (`watchGRPCStream.run`'s `recvElem`, `serveSubstream`, `watchStateElem`) drops it.
+
+**Why deferred.** (1) The client's watch environment ties its KV names to the members' only by
+the state variable (`WEnv.kst`, `isKvWatcher`'s `V.kst = γ.st`, `srvKVFacts`' existential `γr`), not
+by `kvSame`, so `kvCmpPermit γr.kv` does not give `kvCmpPermit γ`: the stage needs the environment's
+KV names first (every `WEnv` construction). (2) Its only consumer would be another `kv.Compact`
+(the one premise written in `kvRevLbZ`): `kvRevLbZ` bounds the KV model of the cluster's *requested*
+log (`γk.rlog`), and no law turns it into a bound on a later `Get`'s revision. A Go-observable C3
+check in `compactkv` (the watch's compaction revision plus the retention at most a later latest
+`Get`'s revision, tight at retention 1) needs that law: the permit restated over the committed
+log (`srvRLogLb`) and a read-side law from a committed bound to a linearizable `Range`'s log
+(`committedAtLeast`, `readLogOk`), or the bound delivered by `Range`'s linearization. Both are
+larger than the stage and change the server's read specs. Recorded as C3's open client stage, after
+periodic mode (the plan's other open item, which has closed results to gain).
+
+## Periodic mode: `NewServer` with the periodic compactor, `putgetc` in periodic mode (2026-11-02 · my recommendation, under the user's "follow your recommendations" · branch `periodic`)
+
+**The compactor plan's C2 in periodic mode** (`notes/compactor-pilot-plan.md`): the closed results
+with the auto-compactor in either mode. Until now `NewServer` proved only revision mode.
+
+**`NewServer`'s premise** (both `spec` and `specG`) gains a third disjunct, the compactor on in
+periodic mode: `AutoCompactionMode = "periodic"`, a period of at least 10ns (`v3compactor.New`'s
+premise: a shorter one busy-loops) and the cluster's retention `ρ.rd.kv.cret = 0`. A period is no
+revision count, so the store's permit (`kvCmpPermit`, C3's server stage) can claim no retention
+beyond "a revision the store had": `cret = 0`. A weakening of the premise: no caller gains an
+obligation.
+
+**The compactor's contract.** `compactableOk_server_of` takes any permit `P` with
+`P r ⊢ ⌜0 < r⌝ ∗ srvRevLb E.γ (r + E.cret)`; revision mode (`compactableOk_server`, unchanged
+statement) and periodic mode (`compactableOk_server_periodic`, `cret = 0`) are its corollaries, and
+`compactableOk_server_mode` picks the mode's (`modePermit`). Periodic mode's permit gives the
+revision through the clock's stamp, `clockwork.stampAt_elim`: the clock's trust boundary (already in
+the trust base, `stampAt`, `clockLb`, `realClock`, ...); the results now rest on this law of it too
+(`etc/tcb-baseline.txt` and the collections, one line each).
+
+**The examples.** `common.newServer` is now `newServerMode(…, "revision", …)`, with the mode a
+parameter (`newServerMode.spec`, in the compaction mode `cmp`, as `NewServer`'s premise); the two
+`newServer` specs are proved over it. `StartPeriodicServer` starts a member in periodic mode.
+`putgetc` runs in periodic mode with a 10ms period (until now revision mode at retention 1, which
+`compactkv` covers): its test now also checks that the compactor compacts during a run (a read at
+the revision before the Put's fails with `ErrCompacted` within 5s). `putgetc_safe`'s statement is
+unchanged. The two new specs repeat their siblings' `threadBound`/`receiptBound` premises, raising
+`examples/common`'s bounds baseline (spec-thread 8 → 10, spec-receipt 12 → 16), as the family's
+others are until the bounds plan moves them.
 ## The writer's pin: M2's item 37, the sole writer's two laws proved (2026-11-02 · the user's approval · branch `m2-item37`)
 
 **Supersedes in part** "Task 4: item 37" of `notes/m2-storage-plan.md` (the route through `writerRes`'s
@@ -29503,3 +29798,60 @@ counter bounds all takes together.
 withdrawn discarded part: a swap gathers all of `E.γbe`); a supply that carries its own later
 credit (the supply is a persistent wand over `⧗ 1` only, `kbWTSupply`; changing it changes mvcc's
 approved statements).
+## The read-side law: a revision reached is at most every later read's (2026-11-02 · the user's "go ahead with the read-side law" · branch `read-law`)
+
+**The question** (C3's client stage, "deferred" above): `kvRevLbZ γk n` is a lower bound of the KV
+model of `γk.rlog`, which the deferral entry read as the *requested* (possibly uncommitted) log.
+It is not: `γk.rlog = γ.raft.log` (`kvInv`), and the log invariant (`srvLogCore`) keeps
+`γ.raft.log`'s authority at exactly the committed requested entries (`ownCommittedOps γ.raft.cl
+(opsOf (srvLE γ Lf))` at the same `Lf`). So `kvRevLbZ` bounds the committed KV, and `kvInv` keeps
+the clients' state (`etcdKV`'s other half) at that log's model. The deferral entry's reason (2) is
+superseded: no restatement over the committed log is needed.
+
+**The law** (`InvRequest.lean`, `kv_revLbZ_le`): `kvInv γ γk -∗ kvRevLbZ γk n -∗ etcdKV γk σ ={E}=∗
+etcdKV γk σ ∗ ⌜n ≤ σ.rev⌝` (`kvN ⊆ E`). A client applies it where it owns `etcdKV` (its own
+invariant, outside the server's atomic updates, which exclude `kvN`) and turns the bound into a
+lower bound of a monotone counter of its state's revision (as `client.kvClientInv`'s), which every
+later read update then sees.
+
+**A Go check** (the user asked for one): `compactkv` now panics if a round's latest `Get` reads at a
+revision below the round's `Put`'s (`resp.Header.Revision < presp.Header.Revision`). Its proof uses
+the law: the `Put`'s reply's `kvRevLb` (not the put's own update) is turned into a lower bound of
+the rounds' counter (`roundsInv` gains `monoNatAuthOwn γv 1 σ.rev`, `roundsInv_revLb`), and the
+round's read update (`getAu_round`) reports it; the reply's revision is the state's
+(`client_get_value_rev`, a sibling of `client_get_value` with the revision's signed value). Its
+observable content was already implied by `linkvtxn`'s porcupine check (linearizability with
+revisions); what is new is the route through a reached revision a client did not make itself, the
+route C3's watch permit (`kvCmpPermit`) needs. Left of C3's client stage: the watch environment's
+KV names tied by `kvSame`, and the permit carried through the client's watch to
+`watchStateElem` (the deferral entry's reason (1)).
+
+## C3's watch side: a delivered watch response's compaction revision is the cluster's permit (2026-11-02 · the user's "do the watch side"; my recommendations otherwise · branch `c3-watch`)
+
+**Done.** C3's client stage: a client's watch states that its compaction response's revision is
+the cluster's permit, and `compactkv` checks in Go that the revision plus the retention is at most
+a later latest `Get`'s revision (`checkCompactRev`; tight at retention `1` in a run, which its
+test asserts). The Draft (scratch, candidate 1) had one `spec-reviewer` round; its findings and
+what came of them:
+- W1 (the store's permit in both auth modes): `srvKVInvsOn`, `srvKVCoreM true` gain `crevPermIs`
+  (`NewServer` creates the store at `kvCmpPermit` in both); `srvKVCoreM_cperm`.
+- W2, the reviewer's finding 1, taken: `WEnv.kst` replaced by `WEnv.kv : KVNames` (`kst` an
+  `abbrev` of `kv.st`, so the existing `V.kst` text stands); `srvKVFacts` ties each member's names
+  to it by `kvSame`. Finding 2 (linkv3p's members): `alloc3` reports `kvSame` between its members,
+  `clusterUp` and `memberWatch` carry it. `Inhabited KVNames` for the examples that never watch.
+- W3: `cmpOkOf γk c := ⌜c = 0⌝ ∨ kvCmpPermit γk (sint.Z c)` in `recvElem`/`recvLive` (made at
+  `reg_pre_cmp` from `mvccOk`'s `cmpPermOf` and the members' `crevPermIs`, `cmpOkOf_of_mvccOk`;
+  the saved predicates' agreement's later stripped without a credit, `kvCmpPermit` being timeless:
+  `crevPermAt_elim_timeless`), in `watchStateElem` and `outcElem` (a new parameter, the KV names).
+  **`watcher.Watch.spec`'s post** states its elements at `V.kv` (a strengthening of the post, no
+  new premise). The reviewer's finding 3 proposed the caller's `γ` with the premise `kvSame V.kv γ`
+  in place of `V.kst = γ.st`: not taken, to keep the spec's premises (every caller builds `V`, so
+  knows `V.kv`; a caller holding `V` only existentially, `isKvWatcher`, cannot use the fact: none
+  needs it). Margin, stated in `cmpOkOf`'s docstring (finding 6): a compaction response's revision
+  is also past the watch's next revision; not stated.
+- W4 (finding 5's second option): `common.CompactRev` (a watch channel's first response's
+  compaction revision, over an abstract `Ok`), `compactkv`'s own channel predicate
+  `common.stateCmpOk` (`stateOk` and the permit; watchkv's and cachekv's `Collect` untouched), and
+  `checkCompactRev` (a function of its own, so that `Main`'s two branches after its first watch
+  call it once each): the permit's `kvRevLbZ (c + 1)`, the read-side law's counter bound
+  (`roundsInv_revLb`), a latest `Get` at least it (`client_Get_rev`, `getRevAu_round`).

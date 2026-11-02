@@ -16,8 +16,9 @@ theorem read_collect [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (E : CoPset) (c 
     raftCommitInv γ -∗ readWit γ c Qr i -∗ isCommitted γ L ={E}=∗ ▷ ▷ □ Qr L
 
 theorem ownLogGhost_within [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl :
-    Option w64) (G : List EntryM) : s.role = Role.leader → ⊢ isLeader γ id s.term -∗ leadFull γ
-    s.term G -∗ ownLogGhost γ id s kl -∗ ⌜plogLastIndexZ base0 G ≤ plogLastIndexZ s.base s.log⌝
+    Option w64) (W : DurMaps) (G : List EntryM) : s.role = Role.leader → ⊢ isLeader γ id s.term -∗
+    leadFull γ s.term G -∗ ownLogGhost γ id s kl W -∗ ⌜plogLastIndexZ base0 G ≤ plogLastIndexZ
+    s.base s.log⌝
 
 theorem ownRaftGhost_read_arrive [ReceiptGS GF] {md : Bool} [InvGS GF] (γ : RaftNames) (id : w64) (s
     : PState) (c : List w8) (Lc : List EntryM) : s.role = Role.leader → plogTermAt s.base s.log
@@ -28,8 +29,8 @@ theorem readReq_agree [ReceiptGS GF] (γ : RaftNames) (c : List w8) (L1 L2 : Lis
     γ c L1 -∗ readReq γ c L2 -∗ ⌜L1 = L2⌝
 
 theorem ownLogGhost_commitIn [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl :
-    Option w64) : ⊢ ownLogGhost γ id s kl -∗ ∃ fp, ⌜FullOk s.base fp ∧ LogOk s⌝ ∗ logRecs γ base0 fp
-    ∗ logRecs γ s.base s.log ∗ commitIn γ (fp ++ s.log) s.commit s.term
+    Option w64) (W : DurMaps) : ⊢ ownLogGhost γ id s kl W -∗ ∃ fp, ⌜FullOk s.base fp ∧ LogOk s⌝ ∗
+    logRecs γ base0 fp ∗ logRecs γ s.base s.log ∗ commitIn γ (fp ++ s.log) s.commit s.term
 
 theorem node_leader [ReceiptGS GF] {md : Bool} [InvGS GF] (γ : RaftNames) (id2 : w64) (ps2 : PState)
     : ps2.role = Role.leader → ⊢ ownRaftGhost γ id2 ps2 md -∗ ∃ fp2 F0, ⌜FullOk ps2.base fp2 ∧
@@ -66,9 +67,10 @@ theorem readAu_fire_open [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (Qr : List E
 theorem CampOk.term_nz {T : w64} {F : List EntryM} (H : CampOk T F) : T ≠ W64 0
 
 theorem ownLogGhost_prefix_within [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState)
-    (kl : Option w64) (ldr : w64) (bL : entryID) (l : List EntryM) : s.role = Role.leader → ⊢
-    isLeader γ id s.term -∗ leadPrefix γ ldr s.term bL l -∗ ownLogGhost γ id s kl -∗ ⌜min
-    (plogLastIndexZ bL l) (2 ^ 64 - 1) ≤ plogLastIndexZ s.base s.log⌝ ∗ ownLogGhost γ id s kl
+    (kl : Option w64) (W : DurMaps) (ldr : w64) (bL : entryID) (l : List EntryM) : s.role =
+    Role.leader → ⊢ isLeader γ id s.term -∗ leadPrefix γ ldr s.term bL l -∗ ownLogGhost γ id s kl W
+    -∗ ⌜min (plogLastIndexZ bL l) (2 ^ 64 - 1) ≤ plogLastIndexZ s.base s.log⌝ ∗ ownLogGhost γ id s
+    kl W
 
 theorem read_arrive_core [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (c : List
     w8) (Lc P fp : List EntryM) : s.role = Role.leader → s.term ≠ W64 0 → plogTermAt s.base s.log

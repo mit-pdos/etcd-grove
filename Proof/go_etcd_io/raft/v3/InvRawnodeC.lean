@@ -75,8 +75,9 @@ theorem ownRawNodeC_intro (c : CfgM) (rn : Loc) (id : w64) (s : NState) (rnv : R
   ipureintro; exact Hasync
 
 /-- The queue of `ownRawNode` without its records (2026-10-16, stage R5). -/
-theorem pendList_forget (γ : RaftNames) (id : w64) (steps : List Loc) (ps : List Pending) :
-    ⊢ pendList (GF := GF) γ id steps ps -∗
+theorem pendList_forget (γ : RaftNames) (id : w64) (W : DurMaps) (steps : List Loc)
+    (ps : List Pending) :
+    ⊢ pendList (GF := GF) γ id W steps ps -∗
       [∗list] _k ↦ l;_p ∈ steps;ps, ∃ st, msgIn (GF := GF) l DFrac.discard st := by
   apply entails_wand
   apply BigSepL2.bigSepL2_mono_of_forall
@@ -86,19 +87,19 @@ theorem pendList_forget (γ : RaftNames) (id : w64) (steps : List Loc) (ps : Lis
   iexact Hm
 
 /-- (D22 S-d3a) ... with a snapshot lent. -/
-theorem lentPend_forget (γ : RaftNames) (id : w64) (o : Option SnapLoan) (steps : List Loc)
-    (ps : List Pending) :
-    ⊢ lentPend o (pendList (GF := GF) γ id steps ps) -∗
+theorem lentPend_forget (γ : RaftNames) (id : w64) (W : DurMaps) (o : Option SnapLoan)
+    (steps : List Loc) (ps : List Pending) :
+    ⊢ lentPend o (pendList (GF := GF) γ id W steps ps) -∗
       lentPend o ([∗list] _k ↦ l;_p ∈ steps;ps, ∃ st, msgIn (GF := GF) l DFrac.discard st) := by
   cases o with
-  | none => exact pendList_forget γ id steps ps
+  | none => exact pendList_forget γ id W steps ps
   | some l =>
     simp only [lentPend]
     iintro ⟨Hh, Hw⟩
     iframe Hh
     iintro Hs
     ihave Hp := Hw $$ Hs
-    iapply pendList_forget γ id steps ps $$ Hp
+    iapply pendList_forget γ id W steps ps $$ Hp
 
 end rawnodeC
 

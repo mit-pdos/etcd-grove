@@ -3,24 +3,30 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def MemoryStorage.CreateSnapshot.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (i : w64) (e : EntryM) (cs : Loc) (dq : DFrac) (c : ConfStateM)
-    (data : GoSlice) (bs : List w8) (eood : GoInterface),
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (i : w64) (e : EntryM) (cs : Loc)
+    (dq : DFrac) (c : ConfStateM) (data : GoSlice) (bs : List w8) (eood : GoInterface),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            memStorInvP ms γs J ∗
+            memStorAt ms γs J o iprop(J.SV (memSnapMade i e.Term' c bs) ∗ J.DL (uint.nat i)) ∗
               memLog γs (uint.nat i) DFrac.discard [e] ∗
-                J.SV (memSnapMade i e.Term' c bs) ∗
-                  J.DL (uint.nat i) ∗
-                    memSnapLb γs 0 ∗
-                      ownCSM cs dq c ∗
-                        ownSlice data bs (DFrac.own 1) ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+                memSnapLb γs 0 ∗
+                  ownCSM cs dq c ∗
+                    ownSlice data bs (DFrac.own 1) ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
           (▷
               ∀ snap err,
                 ownCSM cs dq c ∗
                     memSnapLb γs (uint.nat i) ∗
-                      (⌜err = GoInterface.nil⌝ ∗ ownSnapV snap (DFrac.own 1) (memSnapMade i e.Term' c bs) ∨
-                        ⌜snap = null ∧ err = eood⌝ ∗ ownSlice data bs (DFrac.own 1)) -∗
+                      ((⌜err = GoInterface.nil⌝ ∗
+                          ownSnapV snap (DFrac.own 1) (memSnapMade i e.Term' c bs) ∗
+                            match o with
+                            | some (c0, snd) => memStorFresh ms γs c0 (memSnapMade i e.Term' c bs)
+                            | none => emp) ∨
+                        ⌜snap = null ∧ err = eood⌝ ∗
+                          ownSlice data bs (DFrac.own 1) ∗
+                            match o with
+                            | some (c0, sv0) => memStorFresh ms γs c0 sv0 ∗ ⌜uint.nat i ≤ uint.nat sv0.Metadata'.Index'⌝
+                            | none => emp) -∗
                   Φ (intoVal snap, intoVal err)) -∗
             WP
               ((((intoVal

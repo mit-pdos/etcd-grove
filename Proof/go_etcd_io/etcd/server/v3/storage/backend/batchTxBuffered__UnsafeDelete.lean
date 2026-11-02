@@ -43,7 +43,8 @@ theorem backend.batchTxBuffered.UnsafeDelete.wp_proof
   imod batchGhost_step_rb γ P (st := st) (st' := (st.del bi kb)) rfl rfl rfl
     (pend_succ_nat Hwf Hp) (fun i => by simp [BSess.del, BSess.create, BSess.delBucket])
     bi.name (hkData_del st bi kb Hhk)
-    (rbData_del_other st bi kb) (fkOkG_del Hfk) $$ Hg Hrbp with ⟨Hg, Hrbp⟩
+    (rbData_del_other st bi kb) (fkOkG_del Hfk) (fun _ => ⟨bi.id, Hhas⟩)
+    (BSess.del_S_other st bi kb) $$ Hg Hrbp with ⟨Hg, Hrbp⟩
   wp_apply (hBT γ P W Pk b t st bk bi key kb dk own) $$ [Htxf Hpend Hwtx $Hkey] as ⟨Hw, Hkey⟩
   · iframe #
     unfold btW

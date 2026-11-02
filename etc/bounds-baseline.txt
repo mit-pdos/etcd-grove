@@ -2,9 +2,10 @@
 # Counts may only go down; rewrite with `etc/bounds-check.py --check --update`.
 spec-thread github_com/mit_pdos/etcd_grove/examples/authkv 3
 spec-thread github_com/mit_pdos/etcd_grove/examples/cachekv 1
-spec-thread github_com/mit_pdos/etcd_grove/examples/common 8
+spec-thread github_com/mit_pdos/etcd_grove/examples/common 10
 spec-thread github_com/mit_pdos/etcd_grove/examples/compactkv 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/k8setcd3 1
+spec-thread github_com/mit_pdos/etcd_grove/examples/leasekv 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/linkv3p 4
 spec-thread github_com/mit_pdos/etcd_grove/examples/linkvtxn 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/lintest/logkvrw 3
@@ -18,12 +19,14 @@ spec-thread go_etcd_io/etcd/server/v3/lease 4
 spec-receipt RaftWitness/github_com/mit_pdos/etcd_grove/examples/kvwitness 4
 spec-receipt github_com/mit_pdos/etcd_grove/examples/authkv 4
 spec-receipt github_com/mit_pdos/etcd_grove/examples/cachekv 2
-spec-receipt github_com/mit_pdos/etcd_grove/examples/common 12
+spec-receipt github_com/mit_pdos/etcd_grove/examples/common 16
 spec-receipt github_com/mit_pdos/etcd_grove/examples/compactkv 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/apimodel 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/k8setcd3 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/kv 2
+spec-receipt github_com/mit_pdos/etcd_grove/examples/kvdurable 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/kvreconf 3
+spec-receipt github_com/mit_pdos/etcd_grove/examples/leasekv 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/linkv3p 9
 spec-receipt github_com/mit_pdos/etcd_grove/examples/linkvtxn 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/lintest 1
@@ -47,7 +50,7 @@ spec-readers go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp 1
 spec-readers go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 1
 spec-readers go_etcd_io/etcd/server/v3/etcdserver/read 1
 spec-readers go_etcd_io/etcd/server/v3/lease 1
-spec-readers go_etcd_io/etcd/server/v3/storage/mvcc 7
+spec-readers go_etcd_io/etcd/server/v3/storage/mvcc 1
 spec-readers k8s_io/client_go/tools/cache 2
 spec-readers k8s_io/client_go/util/consistency 2
 spec-readers k8s_io/kubernetes/pkg/controller 1

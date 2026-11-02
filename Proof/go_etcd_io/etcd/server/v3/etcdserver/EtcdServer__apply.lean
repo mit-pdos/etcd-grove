@@ -21,6 +21,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setAppliedIn
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setTerm
 public import Spec.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyConfChange
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestMemId
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__GetId
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
@@ -160,7 +161,7 @@ theorem EtcdServer.apply.wp_proofOff
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
   iunfold isServer at Hsrv
-  icases Hsrv with ⟨%Hrd, #Hsci, ⟨%sv, #Hfl⟩, #Hat, -, #Hrn⟩
+  icases Hsrv with ⟨%Hrd, #Hsci, ⟨%sv, #Hfl⟩, #Hat, -, #Hrn, -⟩
   ihave #Hat' := Hat
   iunfold srvAtomics at Hat'
   icases Hat' with ⟨#Hainv, -, #Hkvi⟩
@@ -532,7 +533,13 @@ theorem EtcdServer.apply.wp_proofOff
         iunfold hookSpec at Hhook2
         ihave #Hh := Hhook2 $$ %(stLoaded γ st') %m.index %m.term %b
         obtain ⟨HEP, HEf⟩ := HE
-        icases srvApplyKV_ua_rt s E ρ.wait xj $$ HKV with ⟨%ua, Hua, #Happlier, Hrt, HKVk⟩
+        icases srvApplyKV_ua_rt_pool s E ρ.wait xj $$ HKV with ⟨%ua, %dP, %HdP, Hua, #Happlier, Hrt, HplP, #HbeRO, HKVk⟩
+        -- (2026-11-02, the backend-auth-split stage) the current backend's reader pool, for
+        -- `applyConfChange`, and the apply thread's token (`srvGoRes`'s)
+        have hPB : dB = dP := Option.some.inj (hkbB.symm.trans HdP)
+        subst dP
+        iunfold srvGoRes at Hgr
+        icases Hgr with ⟨HgrW, HthT⟩
         -- (D43 M3) the driver's view: the entry is the next conf entry of the batch's log
         have hrest : A ++ ms = A ++ ms.take (sint.nat j) ++ m :: ms.drop (sint.nat j + 1) := by
           have hdj : ms.drop (sint.nat j) = m :: ms.drop (sint.nat j + 1) := by
@@ -599,16 +606,21 @@ theorem EtcdServer.apply.wp_proofOff
             rw [hrule]
             simp only [hρr] at this ⊢
             exact this⟩) Hpeer Hloc Hsz hmm.1 hmm.2)
-          $$ [Hcc Hcs Hst Happ Hbe HRS Hua Hdvp Hlr Hmr Hrt Hwt]
+          $$ [Hcc Hcs Hst Happ Hbe HRS Hua Hdvp Hlr Hmr Hrt HplP HthT Hwt]
           as %removed %err ⟨%Hrem, Hlr, Hua, ⟨%cm', %cs', Hcc, %hIdEq, Hcs, Hcsv⟩, HRS, Hpost, Hdvq, Hmr,
-            Hrt⟩
+            Hrt, HplP, HthT⟩
         · rw [ite_eq_left rfl, HEP, HEf]
           iunfold srvRest at HRS
           iframe Hcif Hua Happlier Hrn Hcc Hcs Hcl HRS Hdvp Hlg Hlr Hbh Hbhi Htr Hmid Hmr Hrt Hclg Hcid
+            HplP HthT HbeRO
           isplitr
           · ipureintro; exact Hlgnn
           isplitr
           · ipureintro; exact Hlgcnn
+          isplitr
+          · ipureintro
+            exact membersDecode_restModel γr.kv.c0 γr.raft.raft.boot
+              (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
           isplitl [Hwt]
           · iframe Hwt
             isplitr
@@ -660,7 +672,9 @@ theorem EtcdServer.apply.wp_proofOff
               cases hf
             iapply epCsAt_ne ρ.raft (A ++ ms.take (sint.nat j)) _ hA
             iexact Hcv
-        ihave HKV := HKVk $$ Hua Hrt
+        ihave HKV := HKVk $$ Hua Hrt HplP
+        ihave Hgr : srvGoRes s $$ [HgrW HthT]
+        · iunfold srvGoRes; iframe HgrW HthT
         icases Hdvc $$ Hdvq with ⟨Hdv, Hrun⟩
         (try rw [ite_eq_left rfl])
         ihave Hpost' : iprop(∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩ ∗
@@ -993,7 +1007,7 @@ theorem EtcdServer.apply.wp_proofOn
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
   iunfold isServerM at Hsrv
-  icases Hsrv with ⟨%Hrd, #Hsci, ⟨%sv, #Hfl⟩, #Hat, -, #Hrn⟩
+  icases Hsrv with ⟨%Hrd, #Hsci, ⟨%sv, #Hfl⟩, #Hat, -, #Hrn, -⟩
   ihave #Hat' := Hat
   iunfold srvAtomicsM at Hat'
   icases Hat' with ⟨#Hainv, -, #Hkvi⟩
@@ -1387,7 +1401,13 @@ theorem EtcdServer.apply.wp_proofOn
         iunfold hookSpec at Hhook2
         ihave #Hh := Hhook2 $$ %(stLoaded γ st') %m.index %m.term %b
         obtain ⟨HEP, HEf⟩ := HE
-        icases srvApplyKVOn_ua_rt s E ρ.wait xj saj $$ HKV with ⟨%ua, Hua, #Happlier, Hrt, HKVk⟩
+        icases srvApplyKVOn_ua_rt_pool s E ρ.wait xj saj $$ HKV with ⟨%ua, %dP, %HdP, Hua, #Happlier, Hrt, HplP, #HbeRO, HKVk⟩
+        -- (2026-11-02, the backend-auth-split stage) the current backend's reader pool, for
+        -- `applyConfChange`, and the apply thread's token (`srvGoRes`'s)
+        have hPB : dB = dP := Option.some.inj (hkbB.symm.trans HdP)
+        subst dP
+        iunfold srvGoRes at Hgr
+        icases Hgr with ⟨HgrW, HthT⟩
         -- (D43 M3) the driver's view: the entry is the next conf entry of the batch's log
         have hrest : A ++ ms = A ++ ms.take (sint.nat j) ++ m :: ms.drop (sint.nat j + 1) := by
           have hdj : ms.drop (sint.nat j) = m :: ms.drop (sint.nat j + 1) := by
@@ -1454,16 +1474,21 @@ theorem EtcdServer.apply.wp_proofOn
             rw [hrule]
             simp only [hρr] at this ⊢
             exact this⟩) Hpeer Hloc Hsz hmm.1 hmm.2)
-          $$ [Hcc Hcs Hst Happ Hbe HRS Hua Hdvp Hlr Hmr Hrt Hwt]
+          $$ [Hcc Hcs Hst Happ Hbe HRS Hua Hdvp Hlr Hmr Hrt HplP HthT Hwt]
           as %removed %err ⟨%Hrem, Hlr, Hua, ⟨%cm', %cs', Hcc, %hIdEq, Hcs, Hcsv⟩, HRS, Hpost, Hdvq, Hmr,
-            Hrt⟩
+            Hrt, HplP, HthT⟩
         · rw [ite_eq_left rfl, HEP, HEf]
           iunfold srvRest at HRS
           iframe Hcif Hua Happlier Hrn Hcc Hcs Hcl HRS Hdvp Hlg Hlr Hbh Hbhi Htr Hmid Hmr Hrt Hclg Hcid
+            HplP HthT HbeRO
           isplitr
           · ipureintro; exact Hlgnn
           isplitr
           · ipureintro; exact Hlgcnn
+          isplitr
+          · ipureintro
+            exact membersDecode_restModel γr.kv.c0 γr.raft.raft.boot
+              (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
           isplitl [Hwt]
           · iframe Hwt
             isplitr
@@ -1515,7 +1540,9 @@ theorem EtcdServer.apply.wp_proofOn
               cases hf
             iapply epCsAt_ne ρ.raft (A ++ ms.take (sint.nat j)) _ hA
             iexact Hcv
-        ihave HKV := HKVk $$ Hua Hrt
+        ihave HKV := HKVk $$ Hua Hrt HplP
+        ihave Hgr : srvGoRes s $$ [HgrW HthT]
+        · iunfold srvGoRes; iframe HgrW HthT
         icases Hdvc $$ Hdvq with ⟨Hdv, Hrun⟩
         (try rw [ite_eq_left rfl])
         ihave Hpost' : iprop(∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩ ∗

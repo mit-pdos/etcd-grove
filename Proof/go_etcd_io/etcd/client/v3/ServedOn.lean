@@ -995,25 +995,6 @@ theorem etcd_kv_served_on (addr : GoString) (p q s : Loc)
   imodintro
   iframe #
 
-/-- A method meeting the metadata-indexed `Spec` with the slot `S` meets it with a slot `S'` that
-splits into `S` and a frame `F` and is rebuilt from them. -/
-theorem grpcMethodOkMd_slot {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
-    (ics : List GoFunc) (S S' F : IProp GF) (Spec : GrpcSpecMd Req Rep)
-    (h1 : S' ⊢ S ∗ F) (h2 : S ∗ F ⊢ S') :
-    grpcMethodOkMd mh srv ics S Spec ⊢ grpcMethodOkMd mh srv ics S' Spec := by
-  iintro #Hm
-  unfold grpcMethodOkMd
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
-  ihave ⟨HS, HF⟩ := h1 $$ HS
-  iapply Hm $$ %m %Φ %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec]
-  · iframe
-  inext
-  iintro %resp %err ⟨HS, Hres⟩
-  iapply HΨ
-  iframe Hres
-  iapply h2
-  iframe
-
 /-- The KV methods' run slot is the Auth methods' (`authSlot` and the interceptors'), with the rest
 of the KV handlers' slot and the quota check's. -/
 theorem etcdGrpcSlot_auth (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :

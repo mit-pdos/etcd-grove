@@ -27,6 +27,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.Protocol.Ghost
+public import Proof.go_etcd_io.raft.v3.Protocol.RaftState
 public import Perennial.Ghost.GhostVar
 public import Iris.BI.Lib.Atomic
 public import Iris.Instances.Lib.FUpd
@@ -150,8 +151,9 @@ instance campDyn_timeless (γ : RaftNames) (c T : w64) (F : List EntryM) :
 (2026-10-14, stage B5), at the configuration `c` of the step: static, `c` is the ghost state's;
 dynamic, the full log's prefix `fpR` (with records, so the ghost state's), I1 of the full log at the
 commit index, a configuration index `a ≤ commit` whose prefix's configuration is `c` (`CfgAt`), at
-a leader at most one conf entry at or past `a` (I3), at a candidate `a` is the commit index (I2)
-and its campaign record is of its full log at the commit index. The dynamic refinement
+a leader at most one conf entry at or past `a` (I3), at a candidate `a` is the commit index (I2).
+(2026-10-31, durability R5: no longer a candidate's campaign record, which may be pending; `win`
+takes it from its quorum's votes.) The dynamic refinement
 (`RefinementDyn.lean`) supplies it from `RInv`. -/
 def dynEnv (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) : IProp GF :=
   iprop(⌜CfgStatic γ c⌝ ∨ (⌜γ.reDyn ≠ none⌝ ∗ ∃ (fpR : List EntryM) (a : w64) (M : DecMap),
@@ -159,8 +161,7 @@ def dynEnv (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) : IProp GF :=
       uint.Z a ≤ uint.Z s.commit ∧ CfgAt γ M ((fpR ++ s.log).take (uint.Z a).toNat) c ∧
       (s.role = .leader → confCount ((fpR ++ s.log).drop (uint.Z a).toNat) ≤ 1) ∧
       (s.role = .candidate → a = s.commit)⌝ ∗
-    logRecs γ base0 fpR ∗
-    (∀ (_ : s.role = .candidate), isCampK γ id s.term (fpR ++ s.log) s.commit) ∗ decLb γ M))
+    logRecs γ base0 fpR ∗ decLb γ M))
 
 
 instance dynEnv_persistent (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) :
@@ -428,14 +429,21 @@ def leadLogOwn (_γ : RaftNames) (s : PState) (terms : GMap w64 TermRec) : IProp
         leadFrags γt l0 s.log)
   | _ => iprop(True)
 
-/-- A leader's `Match` values are backed by acknowledgements. -/
-def matchedOk (γ : RaftNames) (s : PState) : IProp GF :=
+/-- A leader's `Match` values are backed by acknowledgements. (2026-10-31, durability R3: but
+its own, set at the win to its last index, which is a pending acknowledgement: there every term
+of its full log `fp ++ log` is below its term, so `step_commit` never counts it. 2026-11-01,
+stage II(a): the exempt index is within the log and every term at or below it is below the term
+-- an index past the log's end made the arm vacuous, and `step_commit` needs the prefix.) -/
+def matchedOk (γ : RaftNames) (id : w64) (s : PState) (fp : List EntryM) : IProp GF :=
   match s.role with
-  | .leader => iprop([∗map] v ↦ i ∈ s.matched, isAcked γ v s.term i)
+  | .leader => iprop([∗map] v ↦ i ∈ s.matched, isAcked γ v s.term i ∨
+      ⌜v = id ∧ uint.Z i ≤ plogLastIndexZ base0 (fp ++ s.log) ∧
+        ∀ j x, uint.Z j ≤ uint.Z i → plogTermAt base0 (fp ++ s.log) j = some x →
+          uint.Z x < uint.Z s.term⌝)
   | _ => iprop(True)
 
-instance matchedOk_persistent (γ : RaftNames) (s : PState) :
-    Persistent (matchedOk (GF := GF) γ s) := by
+instance matchedOk_persistent (γ : RaftNames) (id : w64) (s : PState) (fp : List EntryM) :
+    Persistent (matchedOk (GF := GF) γ id s fp) := by
   unfold matchedOk; split <;> infer_instance
 /-- The log's shape: well-formed (in range), and `base ≤ commit ≤ lastIndex()`. -/
 def LogOk (s : PState) : Prop :=
@@ -497,17 +505,22 @@ def TermsLe (s : PState) (F : List EntryM) : Prop :=
     (s.role = .candidate → uint.Z x < uint.Z s.term)
 
 /-- A candidate's full log is its campaign record; a leader's extends it, by at least the
-leader's entry, and ends in an entry of its term. -/
-def campOwn (γ : RaftNames) (id : w64) (s : PState) (F : List EntryM) : IProp GF :=
+leader's entry, and ends in an entry of its term. (2026-10-31, durability stage I-1: a
+candidate's record is in the node's virtual campaign map `camps`, possibly pending; a leader's
+campaign is entered -- it won with votes whose justification holds its fragment -- and is the
+fragment, as before. 2026-11-01, stage II(a): a candidate's record is at its commit index, which does
+not move within its candidacy: what the dynamic win reads its configuration at.) -/
+def campOwn (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64)) (s : PState)
+    (F : List EntryM) : IProp GF :=
   match s.role with
-  | .candidate => isCamp γ id s.term F
+  | .candidate => iprop(⌜camps !! s.term = some (F, s.commit)⌝)
   | .leader => iprop(∃ F0, isCamp γ id s.term F0 ∗
        ⌜F0 <+: F ∧ plogLastIndexZ base0 F0 < plogLastIndexZ base0 F ∧
          (plogLast base0 F).term' = s.term⌝)
   | .follower => iprop(True)
 
-instance campOwn_persistent (γ : RaftNames) (id : w64) (s : PState)
-    (F : List EntryM) : Persistent (campOwn (GF := GF) γ id s F) := by
+instance campOwn_persistent (γ : RaftNames) (id : w64) (camps : GMap w64 (List EntryM × w64))
+    (s : PState) (F : List EntryM) : Persistent (campOwn (GF := GF) γ id camps s F) := by
   unfold campOwn; split <;> infer_instance
 /-- Node `v`'s `k`-th vote-time log: it voted in `T` with full log `F`, knowing the leader
 of `T` iff `d` (so its histories then are bounded by `vbnd T d`). -/
@@ -773,7 +786,9 @@ theorem votesTbl_insert (γ : RaftNames) (id : w64) (γv : GName) (voted : GMap 
 def committedJust (γ : RaftNames) (l : List EntryM) : IProp GF :=
   -- (2026-10-16, stage R8b, D12) the bootstrap log, committed from the start (`[]` for a
   -- cluster starting empty)
-  iprop(⌜l = γ.reBoot ∧ PlogWf base0 γ.reBoot⌝ ∨
+  -- (2026-11-01, durability stage II(d), approved stage-I repair) with every boot entry of term `1`
+  -- (allocation's `BootWf.terms`), which a node's first start (`raft_start_boot`) reads
+  iprop(⌜l = γ.reBoot ∧ PlogWf base0 γ.reBoot ∧ ∀ e ∈ γ.reBoot, e.Term' = W64 1⌝ ∨
     ∃ t n G ldr, cq γ t n G ∗ ⌜l = G.take (uint.Z n).toNat⌝ ∗
     -- (2026-10-12, read-index) the leader of `t` whose commit extended the log to `n`,
     -- and its commit lower bound for `t`
@@ -1216,9 +1231,22 @@ theorem lcmLead_nl (s : PState) (lcm : GMap w64 GName) (h : s.role ≠ .leader) 
   · contradiction
   · rfl
 
+/-- (2026-11-01, durability stage I-1, R6, as repaired in stage II(d)) **`t` is a term of a campaign
+of `id`** (persistent): what every key of the four leader-side maps carries beside its fragment, in
+the maps' fragment conjuncts next to their authorities (`ownLogGhost`'s terms and winning quorums,
+`lcmOwn`, `rdOwn`, `raftIdSlot`): what makes the keys safe to mint at the win, and what a restarted
+follower's `TermsOk`/`WinsOk`/`LcmOk` come from. (Until then a separate `ledgerCamps`, a wand over
+every fragment, which no allocation could establish.) -/
+def campKey (γ : RaftNames) (id t : w64) : IProp GF :=
+  iprop(∃ F k, isCampK γ id t F k)
+
+instance campKey_persistent (γ : RaftNames) (id t : w64) :
+    Persistent (campKey (GF := GF) γ id t) := by
+  unfold campKey; infer_instance
+
 def lcmOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
   iprop(∃ γl, ∃ (lcm : GMap w64 GName), ⌜γ.reLcm !! id = some γl⌝ ∗
-    ghostMapAuth γl 1 lcm ∗ ([∗map] t ↦ γc ∈ lcm, t ↪[γl]□ γc) ∗
+    ghostMapAuth γl 1 lcm ∗ ([∗map] t ↦ γc ∈ lcm, t ↪[γl]□ γc ∗ campKey γ id t) ∗
     ⌜LcmOk lcm s⌝ ∗ lcmLead s lcm)
 
 /-- Across a step: a leader stays one only within its term, leaves a term only for a
@@ -1276,10 +1304,10 @@ index. -/
 theorem lcmOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
     s.role = .candidate → s'.role = .leader → s'.term = s.term →
     uint.Z s.commit ≤ uint.Z s'.commit →
-    lcmOwn (GF := GF) γ id s ⊢ |==> lcmOwn γ id s' := by
+    campKey (GF := GF) γ id s.term ∗ lcmOwn γ id s ⊢ |==> lcmOwn γ id s' := by
   intro Hr Hr' Hte Hcm
   unfold lcmOwn
-  iintro ⟨%γl, %lcm, %Hγl, Ha, #Hf, %Hok, -⟩
+  iintro ⟨#Hck, %γl, %lcm, %Hγl, Ha, #Hf, %Hok, -⟩
   have Hfree : lcm !! s.term = none := by
     cases h : lcm !! s.term with
     | none => rfl
@@ -1294,8 +1322,8 @@ theorem lcmOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
   iframe Ha
   isplitr; · ipureintro; exact Hγl
   isplitr
-  · iapply (BigSepM.bigSepM_insert (Φ := fun t γc => iprop(t ↪[γl]□ γc)) Hfree).2
-    isplitr; · iexact Hfc
+  · iapply (BigSepM.bigSepM_insert (Φ := fun t γc => iprop(t ↪[γl]□ γc ∗ campKey γ id t)) Hfree).2
+    isplitr; · iframe Hfc Hck
     iexact Hf
   isplitr
   · ipureintro
@@ -1325,7 +1353,7 @@ theorem lcmOwn_commit (γ : RaftNames) (id : w64) (s s' : PState) (n : w64) :
   have Hcn : c ≤ uint.nat n := by have := uint_nat_le_of_Z_le Hle; omega
   ihave Hup := mono_nat_own_update (GF := GF) (γ := γc) (n := c) (uint.nat n) Hcn $$ Hac
   imod Hup with ⟨Hac, #Hlb⟩
-  ihave #Hfc := BigSepM.bigSepM_lookup (Φ := fun t γc => iprop(t ↪[γl]□ γc)) Hγc $$ Hf
+  ihave ⟨#Hfc, -⟩ := BigSepM.bigSepM_lookup (Φ := fun t γc => iprop(t ↪[γl]□ γc ∗ campKey γ id t)) Hγc $$ Hf
   imodintro
   isplitl [Ha Hac]
   · iexists γl, lcm
@@ -1358,7 +1386,7 @@ theorem lcmOwn_bound_keep (γ : RaftNames) (id : w64) (s : PState) (n : w64) :
   rw [Hγl] at Hγl'; cases Hγl'
   rw [lcmLead_leader s lcm Hr]
   icases Hl with ⟨%γc, %c, %Hγc, Hac, %Hcle⟩
-  ihave #Hfc := BigSepM.bigSepM_lookup (Φ := fun t γc => iprop(t ↪[γl]□ γc)) Hγc $$ Hf
+  ihave ⟨#Hfc, -⟩ := BigSepM.bigSepM_lookup (Φ := fun t γc => iprop(t ↪[γl]□ γc ∗ campKey γ id t)) Hγc $$ Hf
   icases ghostMapElem_agree $$ Hfc Hfc' with %Heq
   subst Heq
   ihave %Hv := monoNatLbOwn_valid γc 1 c (uint.nat n) $$ Hac Hlb
@@ -1516,7 +1544,7 @@ theorem rdLead_nl (γ : RaftNames) (s : PState) (rqm : GMap w64 GName) (h : s.ro
 
 def rdOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
   iprop(∃ γl, ∃ (rqm : GMap w64 GName), ⌜γ.reRdq !! id = some γl⌝ ∗
-    ghostMapAuth γl 1 rqm ∗ ([∗map] t ↦ γq ∈ rqm, t ↪[γl]□ γq) ∗
+    ghostMapAuth γl 1 rqm ∗ ([∗map] t ↦ γq ∈ rqm, t ↪[γl]□ γq ∗ campKey γ id t) ∗
     ⌜LcmOk rqm s⌝ ∗ rdLead γ s rqm ∗
     ([∗list] st ∈ s.rd.states, readStateRaw γ st) ∗
     ([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) ∗
@@ -1601,10 +1629,10 @@ theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
     s.role = .candidate → s'.role = .leader → s'.term = s.term →
     s'.rd = rdNL s.rd → rdCount s'.outbox ≤ rdCount s.outbox →
     (propsOf s'.outbox).Subperm (propsOf s.outbox) →
-    rdOwn (GF := GF) γ id s ⊢ |==> rdOwn γ id s' := by
+    campKey (GF := GF) γ id s.term ∗ rdOwn γ id s ⊢ |==> rdOwn γ id s' := by
   intro Hr Hr' Hte Hrd Hcnt Hpo
   unfold rdOwn
-  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, -, #Hst0, #Hpd0, Hcr, #Hinv, Htk⟩
+  iintro ⟨#Hck, %γl, %rqm, %Hγl, Ha, #Hf, %Hok, -, #Hst0, #Hpd0, Hcr, #Hinv, Htk⟩
   have Hfree : rqm !! s.term = none := by
     cases h : rqm !! s.term with
     | none => rfl
@@ -1630,8 +1658,8 @@ theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
   iframe Ha Hinv Hcr
   isplitr; · ipureintro; exact Hγl
   isplitr
-  · iapply (BigSepM.bigSepM_insert (Φ := fun t γc => iprop(t ↪[γl]□ γc)) Hfree).2
-    isplitr; · iexact Hfq
+  · iapply (BigSepM.bigSepM_insert (Φ := fun t γc => iprop(t ↪[γl]□ γc ∗ campKey γ id t)) Hfree).2
+    isplitr; · iframe Hfq Hck
     iexact Hf
   isplitr
   · ipureintro
@@ -1893,7 +1921,7 @@ theorem rdOwn_regLb (γ : RaftNames) (id : w64) (s : PState) (Hr : s.role = .lea
   icases Hl with ⟨%γq, %recs, %Hq, Ha, #Hrs, %Hlen, -⟩
   iexists recs
   ihave #Hlb := monoListLbOwn_get $$ Ha
-  ihave #Ht := BigSepM.bigSepM_lookup (Φ := fun t γq => iprop(t ↪[γl]□ γq)) Hq $$ Hf
+  ihave ⟨#Ht, -⟩ := BigSepM.bigSepM_lookup (Φ := fun t γq => iprop(t ↪[γl]□ γq ∗ campKey γ id t)) Hq $$ Hf
   isplitr; · ipureintro; exact Hlen
   isplitr
   · unfold rqLb
@@ -1934,24 +1962,764 @@ def LeadAcksOk (s : PState) (acks : GMap (w64 × w64) Unit) : Prop :=
   (s.role = .leader → ∀ i, (acks !! (s.term, i)).isSome →
     uint.Z i ≤ plogLastIndexZ s.base s.log)
 
-def ownLogGhost (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) : IProp GF :=
-  iprop(∃ γm, ∃ (terms : GMap w64 TermRec), ∃ γa, ∃ (acks : GMap (w64 × w64) Unit),
-    ∃ (fp : List EntryM), ∃ γc, ∃ (camps : GMap w64 (List EntryM × w64)), ∃ γl,
-    ∃ (vlogs : GMap Nat ((w64 × Bool) × List EntryM)), ∃ γw,
+/-! ### Entered and pending promises (2026-10-31, durability stage I-1)
+
+`notes/raft-durability-proof-plan.md`, I-1, as amended by its review 1 (R2-R9). A node's
+**promises** are its votes, acknowledgements and campaign records. A promise is made in memory at
+`Step` and **entered** when the client enters the batch it is in (`raft_enter`,
+`Protocol/Enter.lean`): only then is its fragment (`isVote`, `isAcked`, `isCampK`, `isVlog`,
+`voteEv`) minted, in the per-id authorities (`reVotes`, `reAcks`, `reCamp`, `reVlogs`, `reEvs`),
+which therefore hold only entered promises, and `votesTbl`, `winTbl`, `committedJust` and Leader
+Completeness keep their meaning.
+
+- `DurMaps`: the five maps as pure values; `virt W π` applies the pending list `π` in order.
+- `Prom`: one promise; `promJust γ id W p` (persistent) is what minting `p` after the state `W`
+  needs, given the fragments of `W` (`durFrags`); `PromFresh` the freshness.
+- The node's volatile half (`ownRaftGhost`) keeps the invariants over the virtual maps
+  `virt V πc`, `V` the entered maps with the queued batch applied (the ghost variable `reSlot`'s
+  first name, half in the slot invariant `slotInv`), `πc` the promises made since the last cut.
+  Its outbox holds each message's facts outright or behind the fragments of the virtual maps
+  (`outMsgOk`), with R9's conjunct for the latter.
+- The durable half (`ownDurGhost γ id S`, `raftState`'s sealed body): half the authorities at the
+  entered maps `E` (a quarter of `reVotes`), and the durable invariants at `S` (`durPers`).
+- The slot (`slotInv`, permanent, at `slotN γ id`): the other half of the authorities, the entered
+  fragments, the virtual maps' other half, the generation counter's half, the queue (at most one
+  batch per generation, its promises' justifications and the durable invariants of its state).
+- `raftIdSlot γ id`, the protocol part of `nodeVacant`: what a node's volatile half gives back at a
+  stop (`raft_stop`) and takes at a restart (`raft_restart`): the leader-side authorities (R6),
+  each key's campaign, the virtual maps' half, the generation's half and a free queue slot. -/
+
+/-- The five per-id promise maps, as pure values. -/
+structure DurMaps where
+  voted : GMap w64 w64
+  acks : GMap (w64 × w64) Unit
+  camps : GMap w64 (List EntryM × w64)
+  vlogs : GMap Nat ((w64 × Bool) × List EntryM)
+  evs : List Aev
+
+instance DurMaps_countable : Pos.Countable DurMaps :=
+  .ofInjective (fun W => Pos.Countable.encode (W.voted, W.acks, W.camps, W.vlogs, W.evs))
+    (by
+      rintro ⟨_, _, _, _, _⟩ ⟨_, _, _, _, _⟩ h
+      have h := Pos.encode_inj h
+      simp_all)
+
+/-- No promise at all. -/
+def DurMaps.empty : DurMaps := ⟨∅, ∅, ∅, ∅, []⟩
+
+/-- `W'` extends `W`: every map is a supermap, the event history an extension. -/
+def DurLe (W W' : DurMaps) : Prop :=
+  (∀ t c, W.voted !! t = some c → W'.voted !! t = some c) ∧
+  (∀ k, (W.acks !! k).isSome → (W'.acks !! k).isSome) ∧
+  (∀ t x, W.camps !! t = some x → W'.camps !! t = some x) ∧
+  (∀ n x, W.vlogs !! n = some x → W'.vlogs !! n = some x) ∧
+  W.evs <+: W'.evs
+
+/-- A promise made in memory: a vote in `T` for `c` knowing the term's leader iff `d`, with the
+full log `Fv`; an acknowledgement `(T, i)`; a campaign record of `T` with the full log `F` and
+commit index `k`. -/
+inductive Prom where
+  | vote (T c : w64) (d : Bool) (Fv : List EntryM)
+  | ack (T i : w64)
+  | camp (T : w64) (F : List EntryM) (k : w64)
+
+instance Prom_countable : Pos.Countable Prom :=
+  .ofInjective (fun
+      | .vote T c d Fv => Pos.Countable.encode
+          (Sum.inl (T, c, d, Fv) : (w64 × w64 × Bool × List EntryM) ⊕ ((w64 × w64) ⊕ (w64 × List EntryM × w64)))
+      | .ack T i => Pos.Countable.encode
+          (Sum.inr (Sum.inl (T, i)) : (w64 × w64 × Bool × List EntryM) ⊕ ((w64 × w64) ⊕ (w64 × List EntryM × w64)))
+      | .camp T F k => Pos.Countable.encode
+          (Sum.inr (Sum.inr (T, F, k)) : (w64 × w64 × Bool × List EntryM) ⊕ ((w64 × w64) ⊕ (w64 × List EntryM × w64))))
+    (by
+      rintro (⟨_, _, _, _⟩ | ⟨_, _⟩ | ⟨_, _, _⟩) (⟨_, _, _, _⟩ | ⟨_, _⟩ | ⟨_, _, _⟩) h <;>
+        have h := Pos.encode_inj h <;> simp_all)
+
+/-- The key a new vote-time log takes: past every key in use. -/
+def vlogKey {V : Type} (m : GMap Nat V) : Nat := m.domList.foldr max 0 + 1
+
+/-- Entering one promise into the maps. -/
+def DurMaps.add (W : DurMaps) : Prom → DurMaps
+  | .vote T c d Fv => DurMaps.mk (<[T := c]> W.voted) W.acks W.camps
+      (<[vlogKey W.vlogs := ((T, d), Fv)]> W.vlogs) (W.evs ++ [Aev.vote T d Fv])
+  | .ack T i => DurMaps.mk W.voted (<[(T, i) := ()]> W.acks) W.camps W.vlogs
+      (W.evs ++ [Aev.ack T i])
+  | .camp T F k => DurMaps.mk W.voted W.acks (<[T := (F, k)]> W.camps) W.vlogs W.evs
+
+/-- The maps with the pending list applied in order. -/
+def virt (W : DurMaps) (π : List Prom) : DurMaps := π.foldl DurMaps.add W
+
+/-- A promise is new to the maps before it: a first vote or campaign record of its term (an
+acknowledgement may repeat). -/
+def PromFresh (W : DurMaps) : Prom → Prop
+  | .vote T _ _ _ => W.voted !! T = none
+  | .ack _ _ => True
+  | .camp T _ _ => W.camps !! T = none
+
+/-- Every promise of `π` is new to the maps before it. -/
+def PromsFresh (W : DurMaps) (π : List Prom) : Prop :=
+  ∀ (k : Nat) (p : Prom), π[k]? = some p → PromFresh (virt W (π.take k)) p
+
+/-! #### The virtual maps' monotonicity (stage II helpers) -/
+
+omit [GooseExts] in
+private theorem foldr_max_ge (l : List Nat) (x : Nat) (h : x ∈ l) : x ≤ l.foldr max 0 := by
+  induction l with
+  | nil => cases h
+  | cons a l ih =>
+    simp only [List.foldr]
+    rcases List.mem_cons.mp h with rfl | h
+    · exact Nat.le_max_left _ _
+    · exact Nat.le_trans (ih h) (Nat.le_max_right _ _)
+
+/-- A new vote-time log's key is free. -/
+theorem vlogKey_fresh {V : Type} (m : GMap Nat V) : m !! vlogKey m = none := by
+  cases h : m !! vlogKey m with
+  | none => rfl
+  | some _ =>
+    have Hin := (GMap.mem_dom_list m (vlogKey m)).mpr (by rw [h]; rfl)
+    have := foldr_max_ge _ _ Hin
+    unfold vlogKey at this
+    omega
+
+theorem virt_nil (W : DurMaps) : virt W [] = W := rfl
+
+theorem virt_cons (W : DurMaps) (p : Prom) (π : List Prom) :
+    virt W (p :: π) = virt (W.add p) π := rfl
+
+theorem virt_append (W : DurMaps) (π1 π2 : List Prom) :
+    virt W (π1 ++ π2) = virt (virt W π1) π2 := by
+  unfold virt; rw [List.foldl_append]
+
+theorem virt_snoc (W : DurMaps) (π : List Prom) (p : Prom) :
+    virt W (π ++ [p]) = (virt W π).add p := by
+  rw [virt_append]; rfl
+
+theorem DurLe_refl (W : DurMaps) : DurLe W W :=
+  ⟨fun _ _ h => h, fun _ h => h, fun _ _ h => h, fun _ _ h => h, List.prefix_refl _⟩
+
+theorem DurLe_trans (W1 W2 W3 : DurMaps) : DurLe W1 W2 → DurLe W2 W3 → DurLe W1 W3 := by
+  rintro ⟨a1, b1, c1, d1, e1⟩ ⟨a2, b2, c2, d2, e2⟩
+  exact ⟨fun t c h => a2 t c (a1 t c h), fun k h => b2 k (b1 k h),
+    fun t x h => c2 t x (c1 t x h), fun n x h => d2 n x (d1 n x h), e1.trans e2⟩
+
+/-- Entering a fresh promise extends the maps. -/
+theorem DurLe_add (W : DurMaps) (p : Prom) : PromFresh W p → DurLe W (W.add p) := by
+  intro Hf
+  cases p with
+  | vote T c d Fv =>
+    simp only [PromFresh] at Hf
+    refine ⟨fun t c' h => ?_, fun _ h => h, fun _ _ h => h, fun n x h => ?_, List.prefix_append _ _⟩
+    · have Ht : T ≠ t := by rintro rfl; rw [Hf] at h; cases h
+      show (<[T := c]> W.voted) !! t = some c'
+      rw [GMap.lookup_insert_ne _ _ Ht]; exact h
+    · have Hn : vlogKey W.vlogs ≠ n := by
+        rintro rfl; rw [vlogKey_fresh] at h; cases h
+      show (<[vlogKey W.vlogs := ((T, d), Fv)]> W.vlogs) !! n = some x
+      rw [GMap.lookup_insert_ne _ _ Hn]; exact h
+  | ack T i =>
+    refine ⟨fun _ _ h => h, fun k h => ?_, fun _ _ h => h, fun _ _ h => h, List.prefix_append _ _⟩
+    show ((<[(T, i) := ()]> W.acks) !! k).isSome
+    by_cases Hk : (T, i) = k
+    · rw [Hk, GMap.lookup_insert_eq]; rfl
+    · rw [GMap.lookup_insert_ne _ _ Hk]; exact h
+  | camp T F k =>
+    simp only [PromFresh] at Hf
+    refine ⟨fun _ _ h => h, fun _ h => h, fun t x h => ?_, fun _ _ h => h, List.prefix_refl _⟩
+    have Ht : T ≠ t := by rintro rfl; rw [Hf] at h; cases h
+    show (<[T := (F, k)]> W.camps) !! t = some x
+    rw [GMap.lookup_insert_ne _ _ Ht]; exact h
+
+theorem PromsFresh_nil (W : DurMaps) : PromsFresh W [] := by
+  intro k p h; simp at h
+
+theorem PromsFresh_cons (W : DurMaps) (p : Prom) (π : List Prom) :
+    PromsFresh W (p :: π) ↔ PromFresh W p ∧ PromsFresh (W.add p) π := by
+  constructor
+  · intro H
+    refine ⟨H 0 p rfl, fun k q hq => ?_⟩
+    have := H (k + 1) q (by simpa using hq)
+    simpa [virt_cons] using this
+  · rintro ⟨H0, H⟩ k q hq
+    cases k with
+    | zero => simp at hq; subst hq; exact H0
+    | succ k =>
+      have := H k q (by simpa using hq)
+      simpa [virt_cons] using this
+
+theorem PromsFresh_snoc (W : DurMaps) (π : List Prom) (p : Prom) :
+    PromsFresh W π → PromFresh (virt W π) p → PromsFresh W (π ++ [p]) := by
+  intro H Hp k q hq
+  by_cases hk : k < π.length
+  · rw [List.getElem?_append_left hk] at hq
+    rw [List.take_append_of_le_length (Nat.le_of_lt hk)]
+    exact H k q hq
+  · have hk' : k = π.length := by
+      have := (List.getElem?_eq_some_iff.mp hq).1
+      simp at this; omega
+    subst hk'
+    rw [List.getElem?_append_right (Nat.le_refl _)] at hq
+    simp at hq; subst hq
+    rw [List.take_append_of_le_length (Nat.le_refl _), List.take_length]
+    exact Hp
+
+/-- The pending list's maps extend the ones before it. -/
+theorem DurLe_virt (W : DurMaps) (π : List Prom) : PromsFresh W π → DurLe W (virt W π) := by
+  induction π generalizing W with
+  | nil => intro _; exact DurLe_refl W
+  | cons p π ih =>
+    intro H
+    obtain ⟨H0, H1⟩ := (PromsFresh_cons W p π).mp H
+    rw [virt_cons]
+    exact DurLe_trans _ _ _ (DurLe_add W p H0) (ih _ H1)
+
+/-- A key with a vote (an acknowledgement) keeps one in any later maps, fresh or not. -/
+theorem virt_voted_isSome (W : DurMaps) (π : List Prom) (t : w64) :
+    (W.voted !! t).isSome → ((virt W π).voted !! t).isSome := by
+  induction π generalizing W with
+  | nil => exact id
+  | cons p π ih =>
+    intro H
+    rw [virt_cons]
+    apply ih
+    cases p with
+    | vote T c d Fv =>
+      show ((<[T := c]> W.voted) !! t).isSome
+      by_cases h : T = t
+      · rw [h, GMap.lookup_insert_eq]; rfl
+      · rw [GMap.lookup_insert_ne _ _ h]; exact H
+    | ack _ _ => exact H
+    | camp _ _ _ => exact H
+
+theorem virt_acks_isSome (W : DurMaps) (π : List Prom) (k : w64 × w64) :
+    (W.acks !! k).isSome → ((virt W π).acks !! k).isSome := by
+  induction π generalizing W with
+  | nil => exact id
+  | cons p π ih =>
+    intro H
+    rw [virt_cons]
+    apply ih
+    cases p with
+    | vote _ _ _ _ => exact H
+    | ack T i =>
+      show ((<[(T, i) := ()]> W.acks) !! k).isSome
+      by_cases h : (T, i) = k
+      · rw [h, GMap.lookup_insert_eq]; rfl
+      · rw [GMap.lookup_insert_ne _ _ h]; exact H
+    | camp _ _ _ => exact H
+
+theorem virt_camps_isSome (W : DurMaps) (π : List Prom) (t : w64) :
+    (W.camps !! t).isSome → ((virt W π).camps !! t).isSome := by
+  induction π generalizing W with
+  | nil => exact id
+  | cons p π ih =>
+    intro H
+    rw [virt_cons]
+    apply ih
+    cases p with
+    | vote _ _ _ _ => exact H
+    | ack _ _ => exact H
+    | camp T F k =>
+      show ((<[T := (F, k)]> W.camps) !! t).isSome
+      by_cases h : T = t
+      · rw [h, GMap.lookup_insert_eq]; rfl
+      · rw [GMap.lookup_insert_ne _ _ h]; exact H
+
+/-- The fragments of node `id`'s maps `W` (persistent): its votes, acknowledgements, campaign
+records, vote-time logs and its event history's lower bound. What a message waiting for its
+sender's promises to be entered needs (`outMsgOk`), and what *enter* gives. -/
+def durFrags (γ : RaftNames) (id : w64) (W : DurMaps) : IProp GF :=
+  iprop(([∗map] t ↦ c ∈ W.voted, isVote γ id t c) ∗
+    ([∗map] k ↦ _u ∈ W.acks, isAcked γ id k.1 k.2) ∗
+    ([∗map] t ↦ x ∈ W.camps, isCampK γ id t x.1 x.2) ∗
+    ([∗map] n ↦ x ∈ W.vlogs, isVlog γ id n x.1.1 x.1.2 x.2) ∗
+    (∃ γe, ⌜γ.reEvs !! id = some γe⌝ ∗ monoListLbOwn γe W.evs))
+
+instance durFrags_persistent (γ : RaftNames) (id : w64) (W : DurMaps) :
+    Persistent (durFrags (GF := GF) γ id W) := by
+  unfold durFrags; infer_instance
+
+/-- (2026-11-01, durability stage II(d), approved repair 1; round 9 in full-log coordinates)
+**An acknowledgement's leader**: `(t, i)` is `0`, or within the full log of a prefix of the term-`t`
+leader's log (`leadFull`). Stronger than `ackIn` by the full log: what the restart's `ackAgree` of
+an acknowledgement in `(c, S.commit]` needs (`durPers_restart_acks`). Every step that makes an
+acknowledgement has it, from the leader's message or its own log; it is the pending
+acknowledgement's justification (`promNeed`), and the entered ones' are kept by the slot and
+`durPers`. -/
+def ackInF (γ : RaftNames) (t i : w64) : IProp GF :=
+  iprop(⌜uint.Z i = 0⌝ ∨ ∃ X, leadFull γ t X ∗ ⌜uint.Z i ≤ plogLastIndexZ base0 X⌝)
+
+instance ackInF_persistent (γ : RaftNames) (t i : w64) : Persistent (ackInF (GF := GF) γ t i) := by
+  unfold ackInF; infer_instance
+instance ackInF_timeless (γ : RaftNames) (t i : w64) : Timeless (ackInF (GF := GF) γ t i) := by
+  unfold ackInF; infer_instance
+
+/-- `ackInF` from a leader prefix reaching `i`. -/
+theorem ackInF_intro_le (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp : List EntryM) (i : w64) :
+    uint.Z i ≤ plogLastIndexZ bL l →
+    ⊢ leadPrefix (GF := GF) γ ldr t bL l -∗ lpfull γ ldr t bL l fp -∗ ackInF γ t i := by
+  intro Hi
+  iintro #Hp #Hpf
+  ihave %Hf : ⌜FullOk bL fp⌝ $$ []
+  · iunfold lpfull at Hpf
+    icases Hpf with ⟨%F0, -, -, %H⟩
+    ipureintro; exact H.1
+  unfold ackInF; iright
+  iexists fp ++ l
+  isplitr; · iapply leadFull_intro $$ Hp Hpf
+  ipureintro; rw [full_last_index _ _ _ Hf]; exact Hi
+
+/-- `ackInF` from a leader prefix holding a term at `i`. -/
+theorem ackInF_intro (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp : List EntryM) (i : w64) :
+    (plogTermAt bL l i).isSome →
+    ⊢ leadPrefix (GF := GF) γ ldr t bL l -∗ lpfull γ ldr t bL l fp -∗ ackInF γ t i := by
+  intro Hs
+  obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp Hs
+  exact ackInF_intro_le γ ldr t bL l fp i (plogTermAt_some_range _ _ _ _ Hx).2
+
+/-- What minting `p` after the maps `W` needs, beyond the fragments: a vote's justification
+(`voteJust` without its `isVlog` and `voteEv`, which *enter* mints, and with the histories of
+`W`'s earlier acknowledgements, which `voteEv` asks of the vote-time log); a campaign record's
+facts (`isCampK` without the map element). -/
+def promNeed (γ : RaftNames) (id : w64) (W : DurMaps) : Prom → IProp GF
+  | .vote T c d Fv => iprop(∃ Fc, isCamp γ c T Fc ∗ logRecs γ base0 Fv ∗
+      ⌜PlogWf base0 Fv ∧ plogUpToDate base0 Fv (plogLast base0 Fc) = true⌝ ∗
+      (⌜d = false⌝ ∨ ∃ ldr q, isWin γ ldr T q ∗ ⌜id ∉ q⌝) ∗
+      dynOn γ (campDyn γ c T Fc) ∗
+      ([∗map] k ↦ _u ∈ W.acks, ∀ (_ : uint.Z k.1 < uint.Z T), hist γ Fv k.1 k.2 (vbnd T d)))
+  | .ack T i => ackInF γ T i
+  | .camp T F k => iprop(⌜CampOk T F ∧ uint.Z k ≤ plogLastIndexZ base0 F ∧
+      γ.reBoot <+: F ∧ (γ.reBoot ≠ [] → 2 ≤ uint.Z T)⌝ ∗ isCommitted γ (F.take (uint.Z k).toNat))
+
+instance promNeed_persistent (γ : RaftNames) (id : w64) (W : DurMaps) (p : Prom) :
+    Persistent (promNeed (GF := GF) γ id W p) := by
+  cases p <;> unfold promNeed <;> infer_instance
+
+/-- A pending promise's justification, captured at `Step` (persistent): given the fragments of the
+maps before it -- entered by the time it is (a self-vote's campaign record, say) -- what minting
+it needs. -/
+def promJust (γ : RaftNames) (id : w64) (W : DurMaps) (p : Prom) : IProp GF :=
+  iprop(□ (durFrags γ id W -∗ promNeed γ id W p))
+
+instance promJust_persistent (γ : RaftNames) (id : w64) (W : DurMaps) (p : Prom) :
+    Persistent (promJust (GF := GF) γ id W p) := by
+  unfold promJust; infer_instance
+
+/-- The justifications of a pending list, each at the maps before it. -/
+def promsJust (γ : RaftNames) (id : w64) (W : DurMaps) (π : List Prom) : IProp GF :=
+  iprop([∗list] k ↦ p ∈ π, promJust γ id (virt W (π.take k)) p)
+
+instance promsJust_persistent (γ : RaftNames) (id : w64) (W : DurMaps) (π : List Prom) :
+    Persistent (promsJust (GF := GF) γ id W π) := by
+  unfold promsJust; infer_instance
+
+/-- What entering `p` mints. -/
+def promFrag (γ : RaftNames) (id : w64) : Prom → IProp GF
+  | .vote T c d Fv => iprop(isVote γ id T c ∗ (∃ n, isVlog γ id n T d Fv) ∗ voteEv γ id T d Fv)
+  | .ack T i => isAcked γ id T i
+  | .camp T F k => isCampK γ id T F k
+
+instance promFrag_persistent (γ : RaftNames) (id : w64) (p : Prom) :
+    Persistent (promFrag (GF := GF) γ id p) := by
+  cases p <;> unfold promFrag <;> infer_instance
+
+/-- R9 (plan-review-1): a non-self message that waits for pending promises is in the outbox
+only of a non-leader, and of a candidate only while its campaign of its term is pending: a
+candidate generates no such message (its rejections and zero acknowledgements are free), and
+one whose campaign is pending cannot win (a vote for it holds the entered record). So a leader's
+messages need no promise of its own (`ownRaftGhost_leader_outbox`). -/
+def OutPend (id : w64) (s : PState) (πc : List Prom) : Prop :=
+  s.role ≠ .leader ∧ (s.role = .candidate → ∃ F k, Prom.camp s.term F k ∈ πc)
+
+/-- A message in the outbox: its facts, or its facts behind the fragments of the node's virtual
+maps `W` (R7: also the queued batch's promises), the latter only as R9 allows. -/
+def outMsgOk (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
+    (m : Msg) : IProp GF :=
+  iprop(isMessage γ m ∨
+    (□ (durFrags γ id W -∗ isMessage γ m)) ∗ ⌜m.dst ≠ id → OutPend id s πc⌝)
+
+instance outMsgOk_persistent (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom)
+    (W : DurMaps) (m : Msg) : Persistent (outMsgOk (GF := GF) γ id s πc W m) := by
+  unfold outMsgOk; infer_instance
+
+/-- An event history's invariants at a term: in term order, at or below the term, and every
+acknowledgement in it in the acknowledgement map (`ownEvs`'s, as a pure fact of the virtual
+maps). -/
+def EvsOk (T : w64) (W : DurMaps) : Prop :=
+  EvSorted W.evs ∧ (∀ e, e ∈ W.evs → uint.Z (aevTerm e) ≤ uint.Z T) ∧
+    (∀ t i, Aev.ack t i ∈ W.evs → (W.acks !! (t, i)).isSome)
+
+/-! #### Fragments, justifications and outbox messages across a larger map state (stage II
+helpers) -/
+
+/-- The fragments of larger maps give the smaller maps' ones. -/
+theorem durFrags_mono (γ : RaftNames) (id : w64) (W W' : DurMaps) :
+    DurLe W W' → durFrags (GF := GF) γ id W' ⊢ durFrags γ id W := by
+  intro HW
+  obtain ⟨Hv, Ha, Hc, Hl, He⟩ := HW
+  unfold durFrags
+  iintro ⟨#Hv', #Ha', #Hc', #Hl', %γe, %Hγe, #He'⟩
+  isplitr
+  · iapply (BigSepM.bigSepM_forall (Φ := fun (t : w64) (c : w64) => isVote (GF := GF) γ id t c)).2
+    iintro %t %c %h
+    iapply (BigSepM.bigSepM_lookup (Φ := fun (t : w64) (c : w64) => isVote (GF := GF) γ id t c)
+      (Hv t c h)) $$ Hv'
+  isplitr
+  · iapply (BigSepM.bigSepM_forall (Φ := fun (k : w64 × w64) (_ : Unit) =>
+      isAcked (GF := GF) γ id k.1 k.2)).2
+    iintro %k %u %h
+    obtain ⟨u', hu'⟩ := Option.isSome_iff_exists.mp (Ha k (Option.isSome_iff_exists.mpr ⟨u, h⟩))
+    iapply (BigSepM.bigSepM_lookup (Φ := fun (k : w64 × w64) (_ : Unit) =>
+      isAcked (GF := GF) γ id k.1 k.2) hu') $$ Ha'
+  isplitr
+  · iapply (BigSepM.bigSepM_forall (Φ := fun (t : w64) (x : List EntryM × w64) =>
+      isCampK (GF := GF) γ id t x.1 x.2)).2
+    iintro %t %x %h
+    iapply (BigSepM.bigSepM_lookup (Φ := fun (t : w64) (x : List EntryM × w64) =>
+      isCampK (GF := GF) γ id t x.1 x.2) (Hc t x h)) $$ Hc'
+  isplitr
+  · iapply (BigSepM.bigSepM_forall (Φ := fun (n : Nat) (x : (w64 × Bool) × List EntryM) =>
+      isVlog (GF := GF) γ id n x.1.1 x.1.2 x.2)).2
+    iintro %n %x %h
+    iapply (BigSepM.bigSepM_lookup (Φ := fun (n : Nat) (x : (w64 × Bool) × List EntryM) =>
+      isVlog (GF := GF) γ id n x.1.1 x.1.2 x.2) (Hl n x h)) $$ Hl'
+  iexists γe
+  isplitr; · ipureintro; exact Hγe
+  iapply monoListLbOwn_le W.evs He $$ He'
+
+/-- The justifications of `π ++ [p]`: those of `π`, and `p`'s at the maps after `π`. -/
+theorem promsJust_snoc (γ : RaftNames) (id : w64) (W : DurMaps) (π : List Prom) (p : Prom) :
+    ⊢ promsJust (GF := GF) γ id W π -∗ promJust γ id (virt W π) p -∗ promsJust γ id W (π ++ [p]) := by
+  unfold promsJust
+  iintro #H #Hp
+  iapply (BigSepL.bigSepL_snoc (Φ := fun k q => promJust (GF := GF) γ id (virt W ((π ++ [p]).take k)) q)).2
+  isplitl
+  · iapply (BigSepL.bigSepL_mono (Φ := fun k q => promJust (GF := GF) γ id (virt W (π.take k)) q) ?_) $$ H
+    intro k x hk
+    have hk' := (List.getElem?_eq_some_iff.mp hk).1
+    rw [List.take_append_of_le_length (Nat.le_of_lt hk')]
+  · rw [List.take_append_of_le_length (Nat.le_refl _), List.take_length]
+    iexact Hp
+
+/-- An outbox message's facts across a step that enlarges the virtual maps and keeps R9's
+condition. -/
+theorem outMsgOk_mono (γ : RaftNames) (id : w64) (s s' : PState) (πc πc' : List Prom)
+    (W W' : DurMaps) (m : Msg) :
+    DurLe W W' → (OutPend id s πc → OutPend id s' πc') →
+    outMsgOk (GF := GF) γ id s πc W m ⊢ outMsgOk γ id s' πc' W' m := by
+  intro Hle Hp
+  unfold outMsgOk
+  iintro (#H | ⟨#H, %Hd⟩)
+  · ileft; iexact H
+  · iright
+    isplitl
+    · imodintro
+      iintro #Hf
+      iapply H
+      iapply durFrags_mono γ id W W' Hle $$ Hf
+    · ipureintro; exact fun h => Hp (Hd h)
+
+/-- The same for the whole outbox. -/
+theorem outbox_mono (γ : RaftNames) (id : w64) (s s' : PState) (πc πc' : List Prom)
+    (W W' : DurMaps) (o : List Msg) :
+    DurLe W W' → (OutPend id s πc → OutPend id s' πc') →
+    ([∗list] m ∈ o, outMsgOk (GF := GF) γ id s πc W m) ⊢
+      [∗list] m ∈ o, outMsgOk γ id s' πc' W' m := fun Hle Hp =>
+  BigSepL.bigSepL_mono fun _ => outMsgOk_mono γ id s s' πc πc' W W' _ Hle Hp
+
+/-- A message whose facts hold outright. -/
+theorem outMsgOk_intro (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
+    (m : Msg) : isMessage (GF := GF) γ m ⊢ outMsgOk γ id s πc W m := by
+  unfold outMsgOk
+  iintro #H; ileft; iexact H
+
+/-- A message to the node itself whose facts wait for the maps' fragments. -/
+theorem outMsgOk_self (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
+    (m : Msg) (Hd : m.dst = id) :
+    □ (durFrags (GF := GF) γ id W -∗ isMessage γ m) ⊢ outMsgOk γ id s πc W m := by
+  unfold outMsgOk
+  iintro #H; iright
+  isplitl; · iexact H
+  ipureintro; exact fun h => absurd Hd h
+
+/-- A message waiting for the maps' fragments, as R9 allows. -/
+theorem outMsgOk_pend (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
+    (m : Msg) (Hp : m.dst ≠ id → OutPend id s πc) :
+    □ (durFrags (GF := GF) γ id W -∗ isMessage γ m) ⊢ outMsgOk γ id s πc W m := by
+  unfold outMsgOk
+  iintro #H; iright
+  isplitl; · iexact H
+  ipureintro; exact Hp
+
+theorem EvsOk_mono (T T' : w64) (W : DurMaps) :
+    uint.Z T ≤ uint.Z T' → EvsOk T W → EvsOk T' W := by
+  rintro HT ⟨Hs, Ht, Hk⟩
+  exact ⟨Hs, fun e He => by have := Ht e He; omega, Hk⟩
+
+theorem EvsOk_add_ack (T i : w64) (W : DurMaps) : EvsOk T W → EvsOk T (W.add (.ack T i)) := by
+  rintro ⟨Hs, Ht, Hk⟩
+  refine ⟨EvSorted_snoc _ _ Hs (fun e He => Ht e He), fun e He => ?_, fun t i' Hi => ?_⟩
+  · rcases List.mem_append.mp He with He | He
+    · exact Ht e He
+    · simp only [List.mem_singleton] at He; subst He; simp [aevTerm]
+  · show ((<[(T, i) := ()]> W.acks) !! (t, i')).isSome
+    rcases List.mem_append.mp Hi with Hi | Hi
+    · by_cases Heq : (T, i) = (t, i')
+      · rw [Heq, GMap.lookup_insert_eq]; rfl
+      · rw [GMap.lookup_insert_ne _ _ Heq]; exact Hk t i' Hi
+    · simp only [List.mem_singleton, Aev.ack.injEq] at Hi
+      obtain ⟨rfl, rfl⟩ := Hi; rw [GMap.lookup_insert_eq]; rfl
+
+theorem EvsOk_add_vote (T T' c : w64) (d : Bool) (F : List EntryM) (W : DurMaps) :
+    uint.Z T ≤ uint.Z T' → EvsOk T W → EvsOk T' (W.add (.vote T' c d F)) := by
+  rintro HT ⟨Hs, Ht, Hk⟩
+  refine ⟨EvSorted_snoc _ _ Hs (fun e He => ?_), fun e He => ?_, fun t i Hi => ?_⟩
+  · have := Ht e He; show _ ≤ uint.Z T'; omega
+  · rcases List.mem_append.mp He with He | He
+    · have := Ht e He; omega
+    · simp only [List.mem_singleton] at He; subst He; simp [aevTerm]
+  · rcases List.mem_append.mp Hi with Hi | Hi
+    · exact Hk t i Hi
+    · simp at Hi
+
+theorem EvsOk_add_camp (T T' : w64) (F : List EntryM) (k : w64) (W : DurMaps) :
+    EvsOk T W → EvsOk T (W.add (.camp T' F k)) := fun H => H
+
+/-- `VoteHistOk` at a durable state. -/
+def VoteHistOkD (voted : GMap w64 w64) (S : RaftState) : Prop :=
+  (∀ t, (voted !! t).isSome → uint.Z t ≤ uint.Z S.term) ∧
+  voted !! S.term = (if S.vote = W64 0 then none else some S.vote)
+
+/-- The bound of a durable state's histories: its term, plus one if it knew the term's leader
+(`kd`, `bnd`'s). -/
+def bndD (S : RaftState) (kd : Option w64) : Int :=
+  match kd with
+  | some _ => uint.Z S.term + 1
+  | none => uint.Z S.term
+
+/-- A durable known leader: it won the term, and, if the node had not voted, without it (`klOk`
+without the role). -/
+def klOkD (γ : RaftNames) (id : w64) (S : RaftState) (kd : Option w64) : IProp GF :=
+  match kd with
+  | none => iprop(True)
+  | some ldr => iprop(∃ q, isWin γ ldr S.term q ∗ ⌜S.vote = W64 0 → id ∉ q⌝)
+
+instance klOkD_persistent (γ : RaftNames) (id : w64) (S : RaftState) (kd : Option w64) :
+    Persistent (klOkD (GF := GF) γ id S kd) := by
+  unfold klOkD; split <;> infer_instance
+
+/-- **The durable invariants of a state `S` over the entered maps `E`** (persistent): the term
+bounds of every promise, the vote history, the vote-time logs' and the acknowledgements'
+histories in `S`'s full log (at the durable known-leader bound `kd`), the log's records, base and
+shape, the acknowledgements of `S.term` above `S.commit` agreeing with the log (R4: below it the
+restart derives them, `durPers_restart_acks`), and `S.commit`'s certificate at a term `≤ S.term`
+with the committed log up to it (R1's resolution); and the commit invariant. -/
+def durPers (γ : RaftNames) (id : w64) (S : RaftState) (E : DurMaps) : IProp GF :=
+  iprop(∃ (kd : Option w64) (fp : List EntryM),
+    ⌜VoteHistOkD E.voted S ∧
+      (∀ k, (E.acks !! k).isSome → uint.Z k.1 ≤ uint.Z S.term) ∧
+      (∀ T, (E.camps !! T).isSome → uint.Z T ≤ uint.Z S.term) ∧
+      EvsOk S.term E ∧
+      FullOk S.base fp ∧ PlogWf S.base S.ents ∧
+      (∀ (j x : w64), plogTermAt base0 (fp ++ S.ents) j = some x → uint.Z x ≤ uint.Z S.term) ∧
+      uint.Z S.base.index' ≤ uint.Z S.commit ∧ uint.Z S.commit ≤ plogLastIndexZ S.base S.ents⌝ ∗
+    logRecs γ S.base S.ents ∗ baseOk γ S.base ∗ logRecs γ base0 fp ∗
+    ([∗map] x ∈ E.vlogs, ⌜uint.Z x.1.1 ≤ uint.Z S.term⌝ ∗
+      [∗map] k ↦ _u ∈ E.acks, ∀ (_ : uint.Z k.1 < uint.Z x.1.1),
+        hist γ x.2 k.1 k.2 (vbnd x.1.1 x.1.2)) ∗
+    ([∗map] k ↦ _u ∈ E.acks, hist γ (fp ++ S.ents) k.1 k.2 (bndD S kd)) ∗
+    klOkD γ id S kd ∗
+    ([∗map] k ↦ _u ∈ E.acks, ∀ (_ : k.1 = S.term ∧ uint.Z S.commit < uint.Z k.2),
+      ackAgree γ S.base S.ents k.1 k.2) ∗
+    commitIn γ (fp ++ S.ents) S.commit S.term ∗
+    isCommitted γ ((fp ++ S.ents).take (uint.Z S.commit).toNat) ∗
+    raftCommitInv γ ∗
+    -- (2026-11-01, stage II(d), approved repair 1) every acknowledgement's leader (`ackInF`), given
+    -- the maps' fragments (a pending one's justification needs them, `promJust`)
+    □ (durFrags γ id E -∗ [∗map] k ↦ _u ∈ E.acks, ackInF γ k.1 k.2))
+
+set_option synthInstance.maxHeartbeats 400000 in
+set_option synthInstance.maxSize 2048 in
+set_option maxSynthPendingDepth 4 in
+instance durPers_persistent (γ : RaftNames) (id : w64) (S : RaftState) (E : DurMaps) :
+    Persistent (durPers (GF := GF) γ id S E) := by
+  unfold durPers; infer_instance
+
+/-- A share `q` of node `id`'s promise authorities at the maps `E` (of `reVotes`, half as much:
+the other half is `votesTbl`'s). -/
+def durShares (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) : IProp GF :=
+  iprop(∃ γv γa γc γl γe,
+    ⌜γ.reVotes !! id = some γv ∧ γ.reAcks !! id = some γa ∧ γ.reCamp !! id = some γc ∧
+      γ.reVlogs !! id = some γl ∧ γ.reEvs !! id = some γe⌝ ∗
+    ghostMapAuth γv q.half E.voted ∗ ghostMapAuth γa q E.acks ∗ ghostMapAuth γc q E.camps ∗
+    ghostMapAuth γl q E.vlogs ∗ monoListAuthOwn γe q E.evs)
+
+-- (2026-11-01, durability stage II(d), approved stage-I repair) `ledgerKey`/`ledgerCamps` (every
+-- fragment of a leader-side map a campaign's term, a wand no allocation could establish) deleted:
+-- each key carries its `campKey` in the maps' fragment conjuncts, next to the authorities.
+
+/-- The names of node `id`'s slot: its virtual maps, its queue, its generation. -/
+abbrev SlotNames := GName × GName × GName
+
+/-- A queued batch: the durable state it enters, the virtual maps at its cut, and (2026-11-01,
+stage II(d)) the entered maps it was cut from, which the slot pins (`slotBody`) and the batch's
+facts (`batchOk`, carried by `pendBatch`) are relative to. -/
+abbrev RaftBatch := RaftState × DurMaps × DurMaps
+
+instance RaftState_countable : Pos.Countable RaftState :=
+  .ofInjective (fun S => Pos.Countable.encode (S.term, S.vote, S.base, S.ents, S.commit, S.wcommit))
+    (by
+      rintro ⟨_, _, _, _, _, _⟩ ⟨_, _, _, _, _, _⟩ h
+      have h := Pos.encode_inj h
+      simp_all)
+
+/-- The virtual maps of the entered ones `E` and a queue entry: with the batch's promises
+applied (its maps), or `E`. -/
+def virtQ (E : DurMaps) : Option (Option RaftBatch) → DurMaps
+  | some (some b) => b.2.1
+  | _ => E
+
+/-- Node `id`'s slot invariant's namespace (R2): within raft's, apart from the commit
+invariant's halves. -/
+def slotN (γ : RaftNames) (id : w64) : Namespace := (raftN γ .@ "slot") .@ id
+
+/-- (stage II helper) The slot opens with the commit invariant's registry half open. -/
+theorem slotN_sub_reg {γ : RaftNames} {id : w64} : (↑(slotN γ id) : CoPset) ⊆ ⊤ \ ↑(raftRegN γ) :=
+  fun p hp => mask_ndot_ne' (raftN γ) "slot" "reg" (by decide) p (nclose_subseteq _ _ p hp)
+
+/-- (stage II helper) ... and its log half too. -/
+theorem slotN_sub_reg_log {γ : RaftNames} {id : w64} :
+    (↑(slotN γ id) : CoPset) ⊆ (⊤ \ ↑(raftRegN γ)) \ ↑(raftLogN γ) := by
+  intro p hp
+  have hs := nclose_subseteq (raftN γ .@ "slot") id p hp
+  rw [Iris.Std.LawfulSet.mem_diff]
+  exact ⟨slotN_sub_reg p hp,
+    fun h => ndot_ne_disjoint (raftN γ) (show "slot" ≠ "log" by decide) p ⟨hs, h⟩⟩
+
+/-- (2026-11-02, durability stage II (p)) **I1 of a durable state's full log at `c`**: in the
+dynamic mode, of two conf-change entries of `S`'s full log (`fp ++ S.ents`, `fp` its compacted
+prefix, which its records pin: `FullOk_unique`), the first is below `c` (`ConfI1`). A batch's state
+has it at its commit (raft's I1 at the cut, `RInv.i1`); the durable half at `S.wcommit`, the commit
+of the last batch that wrote the log (`RaftState.wcommit`), which is what a restart reads
+(`raft_restart`). -/
+def durI1 (γ : RaftNames) (S : RaftState) (c : w64) : IProp GF :=
+  iprop(□ ∀ fp, ⌜FullOk S.base fp⌝ -∗ logRecs γ base0 fp -∗
+    ⌜γ.reDyn.isSome = true → ConfI1 (fp ++ S.ents) (uint.nat c)⌝)
+
+instance durI1_persistent (γ : RaftNames) (S : RaftState) (c : w64) :
+    Persistent (durI1 (GF := GF) γ S c) := by
+  unfold durI1; infer_instance
+
+/-- A node that has stored nothing has no conf-change entry. -/
+theorem durI1_init (γ : RaftNames) : ⊢ durI1 (GF := GF) γ RaftState.init RaftState.init.wcommit := by
+  unfold durI1
+  iintro !> %fp %Hfp -
+  ipureintro; intro _
+  have h0 : uint.Z (W64 0) = 0 := rfl
+  have : fp = [] := List.eq_nil_of_length_eq_zero (by
+    have := Hfp.1; simp only [RaftState.init, h0] at this; omega)
+  subst this
+  intro k1 k2 e1 e2 _ h1
+  simp [RaftState.init] at h1
+
+/-- What the slot holds of a queued batch `b` cut from the entered maps `E`: the pending list it
+applies, fresh, with its justifications, and the durable invariants of the batch's state over its
+maps; (2026-11-02, stage II (p)) and I1 of its log at its commit (`durI1`). -/
+def batchOk (γ : RaftNames) (id : w64) (b : RaftBatch) : IProp GF :=
+  iprop(∃ π, ⌜b.2.1 = virt b.2.2 π ∧ PromsFresh b.2.2 π⌝ ∗ promsJust γ id b.2.2 π ∗
+    durPers γ id b.1 b.2.1 ∗ durI1 γ b.1 b.1.commit)
+
+instance batchOk_persistent (γ : RaftNames) (id : w64) (b : RaftBatch) :
+    Persistent (batchOk (GF := GF) γ id b) := by
+  unfold batchOk; infer_instance
+
+/-- **Node `id`'s slot** (R2, R7, R8): the other half of its promise authorities at the entered
+maps `E`, their fragments, the other half of its virtual maps (`E` with the current generation's
+queued batch applied), the other half of its generation `g`, and the queue: a ghost map of the
+generations up to `g`, each `none` (free) or a batch, the current one's `batchOk`. -/
+def slotBody (γ : RaftNames) (id : w64) : IProp GF :=
+  iprop(∃ (γs : SlotNames) (E : DurMaps) (g : Nat) (Mq : GMap Nat (Option RaftBatch)),
+    ⌜γ.reSlot !! id = some γs⌝ ∗
+    durShares γ id (1 : Qp).half E ∗ durFrags γ id E ∗
+    -- (2026-11-01, stage II(d), approved repair 1) the entered acknowledgements' leaders, for the
+    -- cut's `durPers`
+    ([∗map] k ↦ _u ∈ E.acks, ackInF γ k.1 k.2) ∗
+    ghostVar γs.1 (1 : Qp).half (virtQ E (Mq !! g)) ∗
+    ghostVar γs.2.2 (1 : Qp).half g ∗
+    ghostMapAuth γs.2.1 1 Mq ∗ ⌜∀ k, (Mq !! k).isSome → k ≤ g⌝ ∗ ⌜(Mq !! g).isSome⌝ ∗
+    -- (2026-11-01, stage II(d)) the current batch was cut from the entered maps, and extends
+    -- them; its facts (`batchOk`) are with the client's `pendBatch`, outside the invariant
+    ⌜∀ b, Mq !! g = some (some b) → b.2.2 = E ∧ DurLe E b.2.1⌝)
+
+/-- The slot invariant: permanent, allocated with the cluster (R2). -/
+def slotInv (γ : RaftNames) (id : w64) : IProp GF := inv (slotN γ id) (slotBody γ id)
+
+instance slotInv_persistent (γ : RaftNames) (id : w64) : Persistent (slotInv (GF := GF) γ id) := by
+  unfold slotInv; infer_instance
+
+/-- A share of the generation `g` of node `id` (R8): the running node's (`q = 1` in all), which
+*enter* and the cut need and the stop consumes whole. -/
+def slotLive (γ : RaftNames) (id : w64) (q : Qp) (g : Nat) : IProp GF :=
+  iprop(∃ γs : SlotNames, ⌜γ.reSlot !! id = some γs⌝ ∗ ghostVar γs.2.2 q.half g)
+
+/-- Generation `g`'s queue is free: no batch cut and not entered. -/
+def slotFree (γ : RaftNames) (id : w64) (g : Nat) : IProp GF :=
+  iprop(∃ γs : SlotNames, ⌜γ.reSlot !! id = some γs⌝ ∗ g ↪[γs.2.1] (none : Option RaftBatch))
+
+/-- A batch cut in generation `g` and not entered: it enters `S'`, with the maps `W` (`raft_enter`
+mints `W`'s fragments). -/
+def pendBatch (γ : RaftNames) (id : w64) (g : Nat) (S' : RaftState) (W : DurMaps) : IProp GF :=
+  iprop(∃ (γs : SlotNames) (E : DurMaps), ⌜γ.reSlot !! id = some γs⌝ ∗
+    g ↪[γs.2.1] (some ((S', W, E) : RaftBatch) : Option RaftBatch) ∗
+    -- (2026-11-01, stage II(d), approved stage-I repair) the batch's facts, persistent, with the
+    -- client (so that *enter* reads them without a later)
+    batchOk γ id ((S', W, E) : RaftBatch))
+
+/-- **The durable half of node `id`'s protocol state at `S`** (I-1; `raftState`'s sealed body,
+which adds the term counter's lower bound, amendment 3): half its promise authorities at the
+entered maps, and the durable invariants of `S` over them. -/
+def ownDurGhost (γ : RaftNames) (id : w64) (S : RaftState) : IProp GF :=
+  iprop(∃ E : DurMaps, durShares γ id (1 : Qp).half E ∗ durPers γ id S E ∗
+    -- (2026-11-01, stage II(d), approved stage-I repair) the slot invariant, for *enter*
+    slotInv γ id ∗
+    -- (2026-11-02, stage II (p)) I1 of the log at the commit of the last batch that wrote it
+    durI1 γ S S.wcommit)
+
+/-- **No node of `id` runs** (I-1, R2, R6, R8; the protocol part of `nodeVacant`): the half of
+its virtual maps (the entered ones: its generation's queue is free), its whole generation with
+the free queue slot, the leader-side authorities with their keys' campaigns, and the invariants
+a restarted node's volatile half holds. -/
+def raftIdSlot (γ : RaftNames) (id : w64) : IProp GF :=
+  iprop(∃ (γs : SlotNames) (V : DurMaps) (g : Nat),
+    ⌜γ.reSlot !! id = some γs⌝ ∗ ⌜id ≠ W64 0⌝ ∗
+    ghostVar γs.1 (1 : Qp).half V ∗ slotLive γ id 1 g ∗ slotFree γ id g ∗
+    slotInv γ id ∗ raftCommitInv γ ∗ rdCredInv γ ∗
+    (∃ (γm : GName) (terms : GMap w64 TermRec), ⌜γ.reTerms !! id = some γm⌝ ∗ ghostMapAuth γm 1 terms ∗
+      [∗map] t ↦ x ∈ terms, t ↪[γm]□ x ∗ campKey γ id t) ∗
+    (∃ (γw : GName) (wins : GMap w64 (GSet w64)), ⌜γ.reWins !! id = some γw⌝ ∗ ghostMapAuth γw 1 wins ∗
+      [∗map] t ↦ q ∈ wins, t ↪[γw]□ q ∗ campKey γ id t) ∗
+    (∃ (γl : GName) (lcm : GMap w64 GName), ⌜γ.reLcm !! id = some γl⌝ ∗ ghostMapAuth γl 1 lcm ∗
+      [∗map] t ↦ γc ∈ lcm, t ↪[γl]□ γc ∗ campKey γ id t) ∗
+    (∃ (γl : GName) (rqm : GMap w64 GName), ⌜γ.reRdq !! id = some γl⌝ ∗ ghostMapAuth γl 1 rqm ∗
+      [∗map] t ↦ γq ∈ rqm, t ↪[γl]□ γq ∗ campKey γ id t))
+
+def ownLogGhost (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
+    IProp GF :=
+  iprop(∃ γm, ∃ (terms : GMap w64 TermRec),
+    ∃ (fp : List EntryM), ∃ γw,
     ∃ (wins : GMap w64 (GSet w64)),
     "%Htname"  ∷ ⌜γ.reTerms !! id = some γm⌝ ∗
     "Hterms"   ∷ ghostMapAuth γm 1 terms ∗
-    "#Htfrags" ∷ ([∗map] t ↦ γt ∈ terms, t ↪[γm]□ γt) ∗
+    "#Htfrags" ∷ ([∗map] t ↦ γt ∈ terms, t ↪[γm]□ γt ∗ campKey γ id t) ∗
     "%Hterms_ok" ∷ ⌜TermsOk terms s⌝ ∗
     "Htlog"    ∷ leadLogOwn γ s terms ∗
-    "%Haname"  ∷ ⌜γ.reAcks !! id = some γa⌝ ∗
-    "Hacks"    ∷ ghostMapAuth γa 1 acks ∗
-    "#Hafrags" ∷ ([∗map] k ↦ u ∈ acks, k ↪[γa]□ u) ∗
-    "%Hacks_term" ∷ ⌜AcksTerm s acks⌝ ∗
-    "#Hacks_ok" ∷ acksOk γ s acks ∗
+    -- 2026-10-31 (durability stage I-1): the promise maps are the virtual ones `W` (entered,
+    -- queued and pending), pure; their authorities are in the slot and the durable half
+    "%Hacks_term" ∷ ⌜AcksTerm s W.acks⌝ ∗
+    "#Hacks_ok" ∷ acksOk γ s W.acks ∗
     "%Hlog_ok" ∷ ⌜LogOk s⌝ ∗
     "#Hrecs"   ∷ logRecs γ s.base s.log ∗
-    "#Hmatched" ∷ matchedOk γ s ∗
+    "#Hmatched" ∷ matchedOk γ id s fp ∗
     "#Hcommit" ∷ commitIn γ (fp ++ s.log) s.commit s.term ∗
     "#Hbase"   ∷ baseOk γ s.base ∗
     -- 2026-10-03: the full log, campaign records, vote-time logs and the histories of
@@ -1959,26 +2727,24 @@ def ownLogGhost (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) : IPr
     "%Hfull"   ∷ ⌜FullOk s.base fp ∧ PlogWf s.base s.log ∧
                    TermsLe s (fp ++ s.log)⌝ ∗
     "#Hfrecs"  ∷ logRecs γ base0 fp ∗
-    "%Hcname"  ∷ ⌜γ.reCamp !! id = some γc⌝ ∗
-    "Hcamps"   ∷ ghostMapAuth γc 1 camps ∗
-    "%Hcamps_ok" ∷ ⌜∀ T, (camps !! T).isSome → uint.Z T ≤ uint.Z s.term⌝ ∗
-    "#Hcown"   ∷ campOwn γ id s (fp ++ s.log) ∗
-    "%Hlname"  ∷ ⌜γ.reVlogs !! id = some γl⌝ ∗
-    "Hvlogs"   ∷ ghostMapAuth γl 1 vlogs ∗
-    "#Hvlogs_ok" ∷ vlogsOk γ s acks vlogs ∗
-    "#Hhists"  ∷ histsOk γ s kl (fp ++ s.log) acks ∗
+    "%Hcamps_ok" ∷ ⌜∀ T, (W.camps !! T).isSome → uint.Z T ≤ uint.Z s.term⌝ ∗
+    "#Hcown"   ∷ campOwn γ id W.camps s (fp ++ s.log) ∗
+    "#Hvlogs_ok" ∷ vlogsOk γ s W.acks W.vlogs ∗
+    "#Hhists"  ∷ histsOk γ s kl (fp ++ s.log) W.acks ∗
     -- 2026-10-05: winning quorums and the known leader
     "%Hwname"  ∷ ⌜γ.reWins !! id = some γw⌝ ∗
     "Hwins"    ∷ ghostMapAuth γw 1 wins ∗
+    -- 2026-10-31 (R6): the quorums' elements, for the slot at a stop
+    "#Hwfrags" ∷ ([∗map] t ↦ q ∈ wins, t ↪[γw]□ q ∗ campKey γ id t) ∗
     "%Hwins_ok" ∷ ⌜WinsOk wins s⌝ ∗
     "#Hkl"     ∷ klOk γ id s kl ∗
     -- 2026-10-05: the event history, the commit invariant, and the committed prefix as
-    -- entries, a prefix of the global log
-    "Hevs"     ∷ ownEvs γ id s.term acks ∗
+    -- entries, a prefix of the global log (2026-10-31: the history's invariants over `W`)
+    "%Hevs"    ∷ ⌜EvsOk s.term W⌝ ∗
     "#Hinv"    ∷ raftCommitInv γ ∗
     "#Hcmt"    ∷ isCommitted γ (cprefix fp s) ∗
     -- 2026-10-14 (stage B5): a candidate's and a leader's acknowledgements of their term
-    "%Hlacks"  ∷ ⌜LeadAcksOk s acks⌝ ∗
+    "%Hlacks"  ∷ ⌜LeadAcksOk s W.acks⌝ ∗
     -- 2026-10-16 (stage R8b, D12): the bootstrap log is committed from the start, and the
     -- commit index only grows. (With the records it puts `reBoot` at the full log's start,
     -- `ownLogGhost_boot`, and with `TermsLe` a non-empty one puts the term at `≥ 1`.)
@@ -1994,19 +2760,24 @@ def RoleOk (id : w64) (s : PState) : Prop :=
   (s.role = .candidate → s.lead = W64 0)
 
 def ownRaftGhost (γ : RaftNames) (id : w64) (s : PState) (md : Bool := false) : IProp GF :=
-  iprop(∃ γv, ∃ (voted : GMap w64 w64), ∃ (kl : Option w64),
-    "%Hname"  ∷ ⌜γ.reVotes !! id = some γv⌝ ∗
+  iprop(∃ (γs : SlotNames) (V : DurMaps) (πc : List Prom) (kl : Option w64),
+    -- 2026-10-31 (durability stage I-1, R2, R7): the node's slot, its half of the virtual maps
+    -- `V` (the entered promises with the queued batch applied), the promises made since the last
+    -- cut `πc`, fresh, with their justifications; the invariants below are over `virt V πc`
+    "%Hsname" ∷ ⌜γ.reSlot !! id = some γs⌝ ∗
+    "#Hslot"  ∷ slotInv γ id ∗
+    "Hvirt"   ∷ ghostVar γs.1 (1 : Qp).half V ∗
+    "#Hpend"  ∷ promsJust γ id V πc ∗
+    "%Hfresh" ∷ ⌜PromsFresh V πc⌝ ∗
     "%Hidnz"  ∷ ⌜id ≠ W64 0⌝ ∗
-    "Hvoted"  ∷ ghostMapAuth γv (1 : Qp).half voted ∗
-    "%Hhist"  ∷ ⌜VoteHistOk voted s⌝ ∗
-    "#Hfrags" ∷ ([∗map] t ↦ c ∈ voted, isVote γ id t c) ∗
-    "#Hout"   ∷ ([∗list] m ∈ s.outbox, isMessage γ m) ∗
+    "%Hhist"  ∷ ⌜VoteHistOk (virt V πc).voted s⌝ ∗
+    -- 2026-10-31 (R7, R9): each message's facts, outright or behind the virtual maps' fragments
+    "#Hout"   ∷ ([∗list] m ∈ s.outbox, outMsgOk γ id s πc (virt V πc) m) ∗
     "#Htally" ∷ ([∗map] v ↦ _u ∈ toMap (granted s.votes), isVote γ v s.term id) ∗
     "#Hlead"  ∷ leaderWit γ id s ∗
-    "Hlg"     ∷ ownLogGhost γ id s kl ∗
+    "Hlg"     ∷ ownLogGhost γ id s kl (virt V πc) ∗
     "%Hlead_ok" ∷ ⌜LeadOk id s⌝ ∗
     "%Hfollower_votes" ∷ ⌜FollowerVotesOk s⌝ ∗
-    "#Hvrecs" ∷ ([∗map] t ↦ c ∈ voted, voteJust γ id t c) ∗
     "%Hrole_ok" ∷ ⌜RoleOk id s⌝ ∗
     -- 2026-10-12 (read-index): the commit lower bounds of the terms it led
     "Hlcm"     ∷ lcmOwn γ id s ∗
@@ -2018,41 +2789,45 @@ def ownRaftGhost (γ : RaftNames) (id : w64) (s : PState) (md : Bool := false) :
 
 -- Not `Timeless` since 2026-10-05: `ownLogGhost` holds the invariant `raftCommitInv`.
 
-theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName)
-    (voted : GMap w64 w64) (kl : Option w64) {md : Bool} :
-    γ.reVotes !! id = some γv →
+/-- (2026-10-31, durability stage I-1; review 1's N3: the signature every step lemma's proof
+uses.) -/
+theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γs : SlotNames)
+    (V : DurMaps) (πc : List Prom) (kl : Option w64) {md : Bool} :
+    γ.reSlot !! id = some γs →
     id ≠ W64 0 →
     γ.reDyn.isSome = md →
-    ⊢ ghostMapAuth (GF := GF) γv (1 : Qp).half voted -∗
-      ⌜VoteHistOk voted s⌝ -∗
-      ([∗map] t ↦ c ∈ voted, isVote γ id t c) -∗
-      ([∗list] m ∈ s.outbox, isMessage γ m) -∗
+    PromsFresh V πc →
+    ⊢ slotInv (GF := GF) γ id -∗
+      ghostVar γs.1 (1 : Qp).half V -∗
+      promsJust γ id V πc -∗
+      ⌜VoteHistOk (virt V πc).voted s⌝ -∗
+      ([∗list] m ∈ s.outbox, outMsgOk γ id s πc (virt V πc) m) -∗
       ([∗map] v ↦ _u ∈ toMap (granted s.votes), isVote γ v s.term id) -∗
       leaderWit γ id s -∗
-      ownLogGhost γ id s kl -∗
+      ownLogGhost γ id s kl (virt V πc) -∗
       ⌜LeadOk id s⌝ -∗
       ⌜FollowerVotesOk s⌝ -∗
-      ([∗map] t ↦ c ∈ voted, voteJust γ id t c) -∗
       ⌜RoleOk id s⌝ -∗
       lcmOwn γ id s -∗
       rdOwn γ id s -∗
       ownRaftGhost γ id s md := by
-  intro Hname Hidnz Hmode
+  intro Hname Hidnz Hmode Hfr
   unfold ownRaftGhost
-  iintro H1 %H2 #H3 #H4 #H5 #H6 H7 %H8 %H9 #H10 %H11 H12 H13
-  iexists γv, voted, kl
+  iintro #H0 H1 #H2 %H3 #H4 #H5 #H6 H7 %H8 %H9 %H11 H12 H13
+  iexists γs, V, πc, kl
   isplitr; · ipureintro; exact Hname
-  isplitr; · ipureintro; exact Hidnz
+  isplitr; · iexact H0
   isplitl [H1]; · iexact H1
-  isplitr; · ipureintro; exact H2
-  isplitr; · iexact H3
+  isplitr; · iexact H2
+  isplitr; · ipureintro; exact Hfr
+  isplitr; · ipureintro; exact Hidnz
+  isplitr; · ipureintro; exact H3
   isplitr; · iexact H4
   isplitr; · iexact H5
   isplitr; · iexact H6
   isplitl [H7]; · iexact H7
   isplitr; · ipureintro; exact H8
   isplitr; · ipureintro; exact H9
-  isplitr; · iexact H10
   isplitr; · ipureintro; exact H11
   isplitl [H12]; · iexact H12
   isplitl [H13]; · iexact H13
@@ -2062,7 +2837,7 @@ theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName
 theorem ownRaftGhost_mode (γ : RaftNames) (id : w64) (s : PState) :
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ⌜γ.reDyn.isSome = md⌝ := by
   unfold ownRaftGhost
-  iintro ⟨%γv, %voted, %kl, H⟩
+  iintro ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
   ipureintro; exact Hmode
 
@@ -2070,7 +2845,7 @@ theorem ownRaftGhost_mode (γ : RaftNames) (id : w64) (s : PState) :
 theorem ownRaftGhost_static (γ : RaftNames) (id : w64) (s : PState) :
     ⊢ ownRaftGhost (GF := GF) γ id s -∗ ⌜γ.reDyn = none⌝ := by
   unfold ownRaftGhost
-  iintro ⟨%γv, %voted, %kl, H⟩
+  iintro ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
   ipureintro
   cases h : γ.reDyn with
@@ -2081,7 +2856,7 @@ theorem ownRaftGhost_static (γ : RaftNames) (id : w64) (s : PState) :
 theorem ownRaftGhost_lead_ok (γ : RaftNames) (id : w64) (s : PState) :
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ⌜LeadOk id s⌝ := by
   unfold ownRaftGhost
-  iintro ⟨%γv, %voted, %kl, H⟩
+  iintro ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
   ipureintro; exact Hlead_ok
 
@@ -2089,33 +2864,71 @@ theorem ownRaftGhost_lead_ok (γ : RaftNames) (id : w64) (s : PState) :
 theorem ownRaftGhost_follower_votes (γ : RaftNames) (id : w64) (s : PState) :
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ⌜FollowerVotesOk s⌝ := by
   unfold ownRaftGhost
-  iintro ⟨%γv, %voted, %kl, H⟩
+  iintro ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
   ipureintro; exact Hfollower_votes
 
-theorem matchedOk_eq (γ : RaftNames) (s1 s2 : PState) :
+theorem matchedOk_eq (γ : RaftNames) (id : w64) (s1 s2 : PState) (fp : List EntryM) :
     s2.role = s1.role →
     s2.term = s1.term →
     s2.matched = s1.matched →
-    ⊢ matchedOk (GF := GF) γ s1 -∗ matchedOk γ s2 := by
-  intro H1 H2 H3
-  unfold matchedOk; rw [H1, H2, H3]
+    s2.log = s1.log →
+    ⊢ matchedOk (GF := GF) γ id s1 fp -∗ matchedOk γ id s2 fp := by
+  intro H1 H2 H3 H4
+  unfold matchedOk; rw [H1, H2, H3, H4]
   iintro H; iexact H
 
-/-- Everything in a node's outbox was legitimately put there. -/
+/-- An outbox message's facts, behind the virtual maps' fragments. -/
+theorem outMsgOk_wand (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
+    (m : Msg) :
+    outMsgOk (GF := GF) γ id s πc W m ⊢ □ (durFrags γ id W -∗ isMessage γ m) := by
+  unfold outMsgOk
+  iintro (#H | ⟨#H, %_⟩)
+  · imodintro; iintro -; iexact H
+  · iexact H
+
+/-- At role leader, a message to another node has its facts outright (R9). -/
+theorem outMsgOk_leader (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
+    (m : Msg) (Hrole : s.role = .leader) :
+    outMsgOk (GF := GF) γ id s πc W m ⊢ ⌜m.dst ≠ id⌝ -∗ isMessage γ m := by
+  unfold outMsgOk
+  iintro (#H | ⟨#_, %Hp⟩) %Hd
+  · iexact H
+  · exact absurd Hrole (Hp Hd).1
+
+/-- Everything in a node's outbox was legitimately put there: its facts, once the node's virtual
+maps `W` are entered (2026-10-31, durability stage I-1, R7; the drained messages' wands are
+discharged by `raft_enter`'s fragments). -/
 theorem ownRaftGhost_outbox (γ : RaftNames) (id : w64) (s : PState) :
-    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ([∗list] m ∈ s.outbox, isMessage γ m) := by
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗
+      ∃ W, [∗list] m ∈ s.outbox, □ (durFrags γ id W -∗ isMessage γ m) := by
   unfold ownRaftGhost
-  iintro ⟨%γv, %voted, %kl, H⟩
+  iintro ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
-  iexact Hout
+  iexists (virt V πc)
+  iapply (BigSepL.bigSepL_mono (Φ := fun _ m => outMsgOk (GF := GF) γ id s πc (virt V πc) m)
+    fun _ => outMsgOk_wand γ id s πc (virt V πc) _) $$ Hout
+
+/-- **A leader's messages need no promise of its own** (2026-10-31, durability R9; F3, "the leader
+sends first"): at role leader, every message of the outbox to another node has its facts outright,
+before the batch it is in is entered. -/
+theorem ownRaftGhost_leader_outbox (γ : RaftNames) (id : w64) (s : PState) :
+    s.role = .leader →
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗
+      [∗list] m ∈ s.outbox, ⌜m.dst ≠ id⌝ -∗ isMessage γ m := by
+  intro Hrole
+  unfold ownRaftGhost
+  iintro ⟨%γs, %V, %πc, %kl, H⟩
+  iNamed H
+  iapply (BigSepL.bigSepL_mono (Φ := fun _ m => outMsgOk (GF := GF) γ id s πc (virt V πc) m)
+    fun _ => outMsgOk_leader γ id s πc (virt V πc) _ Hrole) $$ Hout
 
 theorem ownRaftGhost_isLeader (γ : RaftNames) (id : w64) (s : PState) :
     s.role = .leader →
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗ isLeader γ id s.term := by
   intro Hrole
   unfold ownRaftGhost
-  iintro ⟨%γv, %voted, %kl, H⟩
+  iintro ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
   unfold leaderWit; simp only [Hrole]
   iexact Hlead

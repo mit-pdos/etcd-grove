@@ -3,9 +3,11 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvreconf/Cluster__startNe
 (no Rocq counterpart).
 
 Under `c.mu`: with fewer than `maxReplicas` replicas (the map's keys are `1 … nextID-1`, so
-`nextID ≤ 9`), the fresh id `nextID` is joined (`joinAuth_join`: not among the started ids), its
-storage allocated and registered (`kvrStor_alloc`), its node restarted as a newcomer
-(`RestartNode`'s `nodeJoin` disjunct, the bootstrap voters at `0` from the store's cluster), its
+`nextID ≤ 9`), the fresh id `nextID` is joined (`joinAuth_join`: not among the started ids; its
+durable state at `RaftState.init` and its vacant id), its storage allocated and registered
+(`kvrStor_alloc`), its node restarted from the fresh storage (`RestartNode`, the bootstrap voters at
+`0` from the store's cluster, its update fired at once, `kvr_restartAu`; 2026-11-01, durability
+stage II (l)), its
 transport made (`sender`, `repKnown` from the raised `γr.nid` bound) and the replica started
 (`newReplica`, with the id's read-sequence element from the lock's `freshIds`). The replica and its
 stop tokens (unless the stopper took them) go into the lock.
@@ -20,7 +22,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.kvreconf.newReplica
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kvreconf.Stats__add
 public import Spec.go_etcd_io.raft.v3.RestartNode
 public import Spec.go_etcd_io.raft.v3.NewMemoryStorage
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.KvrStorageApi
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.StartLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kvreconf.ClusterLemmas
 
 @[expose] public section
@@ -109,30 +111,39 @@ theorem Cluster.startNew.wp_proof
   iunfold kvrCluster at Hcl'
   icases Hcl' with ⟨#Hic, -, #Hca0, -, -⟩
   have HnU : nid ∉ U := by rw [HdomU]; omega
-  imod joinAuth_join γr.cluster kvrRaftN U nid HnU Hnid0 $$ [$Hic $Hjoin] with ⟨Hjoin, Hnj⟩
+  imod joinAuth_join γr.cluster kvrRaftN U nid HnU Hnid0 $$ [$Hic $Hjoin] with ⟨Hjoin, HrS, Hvac⟩
   ihave Hboot := kvr_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
-    wp_Entries «$r0_ptr» ms bp γs _ (bootCS vs) γr.cluster nid $$ Hpkg Hsrec Hsboot Hml Hfresh Hmeta
-    Hmlog Hmend
+    wp_Entries «$r0_ptr» ms bp γs _ (bootCS vs) γr.cluster
+    (fun K => iprop(memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
+      memStorInvP ms γs (kvrJ γr.cluster K)))
+    $$ Hpkg Hsrec Hsboot Hml Hfresh Hmeta Hmlog Hmend []
+  · iintro %K Hm Hi; iframe Hm Hi
+  ihave Hau := kvr_restartAu γr.cluster kvrRaftN nid kvrBootContents kvrBoot_holds $$ [HrS]
+  · inext; iexact HrS
   ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
-  wp_apply (wp_RestartNode γr.cluster kvrRaftN vs cp cv qLogger
-      ⟨go.GoType.PointerType rStorageTy, #«$r0_ptr»⟩ (HardStateM.mk (W64 0) (W64 0) (W64 0)) (bootCS vs)
-      iprop(memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗ memStorInvP ms γs (kvrJ γr.cluster nid)) HcV HcLg HcSt HcM HcDP HcRO
-      HcDC HcSz HcAS HcAp ⟨rfl, rfl, rfl⟩ rfl rfl rfl rfl rfl)
-    $$ [$Hraft $Hcv $Hlogger Hboot Hnj]
-    as %nd ⟨%n, %Hnd, #HisNode, Hdrv, Hncfg, Hrun, Hmeta, #HmsInv⟩
-  · have Hiface : kvrStorIface «$r0_ptr» =
-        GoInterface.ok ⟨go.GoType.PointerType rStorageTy, #«$r0_ptr»⟩ := rfl
-    rw [HcID, ← Hiface]
-    isplitl [Hboot]
-    · iexact Hboot
-    iright
-    iframe Hnj Hca0
-    ipureintro; exact Hvnd
-  subst Hnd
-  ihave #HisNode' : isNode n γr.cluster kvrRaftN nid $$ []
-  · rw [← HcID]; iexact HisNode
   have Hiface : kvrStorIface «$r0_ptr» =
       GoInterface.ok ⟨go.GoType.PointerType rStorageTy, #«$r0_ptr»⟩ := rfl
+  wp_apply (wp_RestartNode γr.cluster kvrRaftN cp cv qLogger
+      ⟨go.GoType.PointerType rStorageTy, #«$r0_ptr»⟩ kvrBootContents (bootCS vs) 0
+      (Membership.simple (GMap.listToSet vs))
+      (fun S => iprop(raftState γr.cluster nid S ∗ ⌜S = RaftState.init⌝))
+      (fun K => iprop(memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
+        memStorInvP ms γs (kvrJ γr.cluster K)))
+      HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (Or.inl (by rw [HcAp]; rfl))
+      (by rw [HcAp]; simp [StorContents.b]) (by simp [StorContents.commit])
+      (by rw [Hbl0]; simp [StorContents.commit]) (bootCS_is vs Hvnd))
+    $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
+    as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, ⟨HrS, %HS⟩, Hmeta, #HmsInv⟩
+  · have hA : uint.nat cv.Applied' = 0 := by rw [HcAp]; rfl
+    rw [HcID, ← Hiface, hA]
+    iframe Hboot Hvac Hic Hca0 Hfits
+    iExactEq Hau; rfl
+  subst Hnd
+  have Hl0 : l = [] := List.eq_nil_of_length_eq_zero (by rw [Hlen, HcAp]; rfl)
+  rw [kvr_startDriver _ l K S Hl0 HS] at *
+  subst HS
+  ihave #HisNode' : isNode n γr.cluster kvrRaftN nid $$ []
+  · rw [← HcID]; iexact HisNode
   rw [← Hiface]
   try wp_auto
   wp_apply wp_tick γr vs c $$ [$Hc] as %tk %Htk
@@ -153,10 +164,10 @@ theorem Cluster.startNew.wp_proof
     with ⟨Hseq, Hrseq⟩
   have Hvl : (vs.length : Int) < 2 ^ 61 := by
     rw [Ho.2, bootVoters_length]; have := Ho.1.2.1; word
-  wp_apply (wp_newReplica γr vs nid n «$r0_ptr» (c.[RCluster, go!"Stats"]) bp tk f ms γs _ Htk Hvnd
+  wp_apply (wp_newReplica γr vs nid n «$r0_ptr» (c.[RCluster, go!"Stats"]) bp tk f ms γs _ K Htk Hvnd
       Hvl (bootCS_is vs Hvnd))
-    $$ [$Hpkg $Hcci $Hcl $Hstats $HisNode' $Hdrv $Hrun $Hncfg $Hsrec $HmsInv $Hmeta $Hmsnap $HbootCS
-      $Hf $Hseq] as %r ⟨#Hr, Hrs⟩
+    $$ [$Hpkg $Hcci $Hcl $Hstats $HisNode' $Hdrv $HrS $Hrun $Hncfg $Hsrec $HmsInv $Hmeta $Hmsnap
+      $HbootCS $Hf $Hseq] as %r ⟨#Hr, Hrs⟩
   have HRn : R !! nid = none := by
     cases h : R !! nid with
     | none => rfl

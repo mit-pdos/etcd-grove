@@ -623,7 +623,7 @@ theorem restoreView_of (b : GoInterface) (γ : StoreNames) (RT : IProp GF) (q : 
 theorem rep_take1 (P : IProp GF) :
     ([∗list] _x ∈ List.replicate nReaders (), P) ⊢
       P ∗ ([∗list] _x ∈ List.replicate (nReaders - 1) (), P) := by
-  have hpos : 0 < nReaders := Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos)
+  have hpos : 0 < nReaders := by rw [nReaders_val]; decide
   rw [show nReaders = (nReaders - 1) + 1 by omega, List.replicate_succ, Nat.add_sub_cancel]
   iintro H
   icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, Hs⟩

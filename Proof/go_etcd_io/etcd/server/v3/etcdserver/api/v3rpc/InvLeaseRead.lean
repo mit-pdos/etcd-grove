@@ -53,14 +53,14 @@ variable [sem : go.Semantics]
 /-! ## The server's answers -/
 
 /-- **The server's `LeaseTimeToLive` answer** to the request `v` at the context `ctx`, with the
-lower bounds `n`, `m`: `nil` and a fresh response with its header (owned), the request
+lower bounds `n`, `m`: `nil` and a fresh response about the asked lease (`ID`) with its header (owned), the request
 authenticated (`authedOutB`) and, if it asks for the keys, the key check's verdict; or `nil` and an
 `applyErrIs` error (`EtcdServer.LeaseTimeToLive.spec`'s). -/
 def ttlAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk) (n m : Nat)
     (v : etcdserverpb.LeaseTimeToLiveRequest) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗
       (∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗ ⌜w.Header' ≠ null⌝ ∗
-        ∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
+        ⌜w.ID' = v.ID'⌝ ∗ ∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
       authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
       (if v.Keys' then leaseCheckFrom s E (GoInterface.ok ctx) n
           (fun info => leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read)
@@ -137,14 +137,15 @@ def leasesHdrDone (E : apply.AEnv GF) (h : Loc) (cid mid : w64) : IProp GF :=
     ⌜log ≠ [] ∧ (W64 ((log.length : Int) - 1) ≠ W64 0 → r = W64 ((log.length : Int) - 1))⌝)
 
 /-- **`LeaseServer.LeaseTimeToLive`'s answer** to the request `v` at the context `ctx`, with the
-lower bounds `n`, `m`: a response (owned) with its header filled, and either the server's (`ttlAns`'s
+lower bounds `n`, `m`: a response (owned) about the asked lease (`ID`) with its header filled, and
+either the server's (`ttlAns`'s
 verdict) or, on the server's `ErrLeaseNotFound`, the handler's own (`{Header, ID: v.ID, TTL: -1}`,
 the rest zero: no keys); or `nil` and a non-nil error. -/
 def leaseTTLOut (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk) (n m : Nat)
     (v : etcdserverpb.LeaseTimeToLiveRequest) (cid mid : w64) (resp : Loc) (err : GoInterface) :
     IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ w : etcdserverpb.LeaseTimeToLiveResponse,
-      resp ↦ w ∗ leaseHdrDone w.Header' cid mid ∗
+      resp ↦ w ∗ ⌜w.ID' = v.ID'⌝ ∗ leaseHdrDone w.Header' cid mid ∗
       ((authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
           (if v.Keys' then leaseCheckFrom s E (GoInterface.ok ctx) n
               (fun info => leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read)

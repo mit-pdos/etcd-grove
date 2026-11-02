@@ -1,6 +1,7 @@
 /-
 **`putgetc`** (M2, 2026-10-27, `notes/m2-plan.md`): putget's file, for putget with the
-auto-compactor on (`common.StartCompactingServer`, revision mode, retention 1); putget's history
+auto-compactor on (`common.StartPeriodicServer`, periodic mode, period 10ms, since 2026-11-02;
+until then `common.StartCompactingServer`, revision mode, retention 1); putget's history
 below is the original's.
 
 `Main`'s callees linked (item 9, 2026-10-18), by hand: `putgetc.Main.wp_proof` applied to their
@@ -15,7 +16,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.putgetc.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
-public import Proof.github_com.mit_pdos.etcd_grove.examples.common.StartCompactingServer
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.StartPeriodicServer
 public import Proof.go_uber_org.zap.NewNop
 public import Perennial.Proof.context.Link
 public import Proof.context.Link
@@ -42,15 +43,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.putgetc.Assumptions]
 
-/-- `StartCompactingServer`, over `newServer`'s compacting variant (`specCompact`) and `NewServer`'s
-linked result (`wp_NewServer`: `NewServer.spec` in either compaction mode, M2's item 14). -/
-theorem putgetc.wp_StartCompactingServer [go_etcd_io.etcd.cache.v3.Assumptions]
+/-- `StartPeriodicServer`, over `newServerMode` (linked in `common`'s `Link.lean`, over `NewServer`'s
+linked result in either compaction mode, periodic mode since 2026-11-02). -/
+theorem putgetc.wp_StartPeriodicServer [go_etcd_io.etcd.cache.v3.Assumptions]
     [Float64ToInt64Semantics] :
-    common.StartCompactingServer.spec (GF := GF) (hG := hG) :=
-  common.StartCompactingServer.wp_proof
-    (common.newServer.wp_proofCompact common.features.wp_NewDefaultServerFeatureGate
-      wp_NewServer)
-    EtcdServer.wp_Start
+    common.StartPeriodicServer.spec (GF := GF) (hG := hG) :=
+  common.StartPeriodicServer.wp_proof common.wp_newServerMode EtcdServer.wp_Start
 
 /-- **The adequacy example's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/putgetc/Main.lean`), under the semantic premises of
@@ -58,7 +56,7 @@ its callees' linked results: `int64(f)` of a `float64` (`Float64ToInt64Semantics
 and the client's `dialWithBalancer` body (`DialWithBalancerBody`). -/
 theorem putgetc.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     putgetc.Main.spec (GF := GF) (hG := hG) :=
-  putgetc.Main.wp_proof zap.NewNop.wp_proof putgetc.wp_StartCompactingServer common.wp_Serve
+  putgetc.Main.wp_proof zap.NewNop.wp_proof putgetc.wp_StartPeriodicServer common.wp_Serve
     common.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
     context.wp_ErrAny
 

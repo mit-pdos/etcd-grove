@@ -106,9 +106,104 @@ structure NodeDriverState where
   and its snapshot's loan, if it has one (the storage contract's vocabulary: `readyOut`,
   `advReceipt`) -/
   handling : Option (List EntryM × Option SnapLoan)
+  /-- (2026-11-01, durability stage I-8) the storage's key (fixed: the ghost name raft chose at
+  the attach, `restartStorage`'s continuation), which the storage bounds `nodeAppliedLb` and
+  `nodeCommitLb` are keyed by -/
+  key : GName
+  /-- (2026-11-01, durability stage I-8) the durable state the node's next batch starts from: the
+  client's `raftState` once it entered every batch handed out so far -/
+  durable : RaftState
+  /-- (2026-11-01, durability stage I-8) the role the last `Ready` with a `SoftState` reported
+  (`roleAfter`), the follower's at the start -/
+  role : StateType
 
-/-- The state a node's `Ready` loop starts in, at the storage `stor`. -/
-def NodeDriverState.init (stor : Storage) : NodeDriverState := ⟨stor, [], hsZero, none⟩
+/-- The state a node's `Ready` loop starts in, at the storage `stor` of key `K`, from a node that
+has stored nothing (`RaftState.init`). (2026-11-01, durability stage I-8: the key and the
+durable state added.) -/
+def NodeDriverState.init (stor : Storage) (K : GName) : NodeDriverState :=
+  ⟨stor, [], hsZero, none, K, RaftState.init, W64 0⟩
+
+/-- A storage's contents (durability, candidate 12 §2): hard state, snapshot, log base, entries
+above it. -/
+structure StorContents where
+  hs : HardStateM
+  snap : Option SnapshotM
+  base : entryID
+  ents : List EntryM
+
+/-- The base's index. -/
+def StorContents.b (σ : StorContents) : Nat := uint.nat σ.base.index'
+/-- The last index. -/
+def StorContents.last (σ : StorContents) : Nat := σ.b + σ.ents.length
+/-- The stored commit index. -/
+def StorContents.commit (σ : StorContents) : Nat := uint.nat σ.hs.Commit'
+
+/-- **At a restart, the storage holds `S`** (candidate 12 §2, with the user's amendment of review
+1's R1): its log starts at a point `σ.base` at or above `S.base`, within `S`'s log (the term at
+it `S`'s), with `S`'s entries above it; its hard state is `S`'s term and vote with a commit index
+from the base, and from the commit of the last batch that wrote the log (`S.wcommit`), up to `S`'s
+(a lagging stored commit allowed: a commit-only batch is entered without a write); its snapshot, if
+any, at an index in `[σ.base, σ.commit]`, and present if the base passed `S`'s. (2026-11-02, stage
+II (p): the lower bound `S.wcommit`; until then any commit from the base, which a restart cannot
+take: below `S.wcommit` the restarted log may hold two conf-change entries above its commit,
+`notes/decisions.md`, "The restart's lowest commit: `wcommit`".) -/
+def StorageHolds (S : RaftState) (σ : StorContents) : Prop :=
+  uint.Z S.base.index' ≤ uint.Z σ.base.index' ∧
+  plogTermAt S.base S.ents σ.base.index' = some σ.base.term' ∧
+  σ.ents = S.entsFrom σ.base ∧
+  σ.hs.Term' = S.term ∧ σ.hs.Vote' = S.vote ∧
+  σ.b ≤ σ.commit ∧ uint.nat S.wcommit ≤ σ.commit ∧ σ.commit ≤ uint.nat S.commit ∧
+  (∀ sv, σ.snap = some sv →
+    σ.b ≤ uint.nat sv.Metadata'.Index' ∧ uint.nat sv.Metadata'.Index' ≤ σ.commit) ∧
+  (S.base.index' ≠ σ.base.index' → σ.snap.isSome)
+
+/-- **The `Ready` loop's state after a `Ready`** (until 2026-11-01 spelled out in the receive's
+post): by whether it carries a snapshot (its loan `L`), the committed log delivered grows by `ce`
+or is the committed log up to the snapshot; the hard state after `h` (`phsNext`); busy with `es`
+and the loan; (durability stage I-8) the durable state after the batch (`readyDurable`), the role
+its `SoftState` `ss` reports (`roleAfter`). -/
+def NodeDriverState.afterReady (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM)
+    (h : HardStateM) (L : Option SnapLoan) (ss : Option (w64 × StateType)) : NodeDriverState :=
+  { st with
+    delivered := (match L with
+      | none => st.delivered ++ ce
+      | some l => strip l.dlv)
+    hardState := phsNext st.hardState h
+    handling := some (es, L)
+    durable := readyDurable st.durable (phsNext st.hardState h) L es
+    role := roleAfter st.role ss }
+
+/-- (2026-11-01, durability stage II (m); kvdurable's G4, G7–G10, G14, G17) **What a `Ready` is
+past, and within**, at the loop's state `st`, by its snapshot's loan: the commit index does not move
+back, and is within the durable log after the batch; a snapshot is past the hard state's commit
+index last handed out and within the new one; without one, the entries start at most one past the
+durable log and past the hard state's commit index, the committed log delivered is within the
+commit index, and the committed entries above the durable base are the batch's durable log's.
+(2026-11-02, stage II (q); kvdurable's G20) Either way, every entry is of a type of raft's
+(`EntryNormal`, `EntryConfChange`, `EntryConfChangeV2`). -/
+def ReadyRestFacts (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) :
+    Option SnapLoan → Prop
+  | some l =>
+    uint.nat st.hardState.Commit' ≤ uint.nat (phsNext st.hardState h).Commit' ∧
+    uint.nat (phsNext st.hardState h).Commit' ≤
+      (readyDurable st.durable (phsNext st.hardState h) (some l) es).last ∧
+    uint.nat st.hardState.Commit' < uint.nat l.snap.Metadata'.Index' ∧
+    uint.nat l.snap.Metadata'.Index' ≤ uint.nat (phsNext st.hardState h).Commit' ∧
+    (∀ e ∈ es, uint.Z e.Type' ≤ 2)
+  | none =>
+    uint.nat st.hardState.Commit' ≤ uint.nat (phsNext st.hardState h).Commit' ∧
+    uint.nat (phsNext st.hardState h).Commit' ≤
+      (readyDurable st.durable (phsNext st.hardState h) none es).last ∧
+    (∀ e0, es.head? = some e0 → uint.nat e0.Index' ≤ st.durable.last + 1) ∧
+    (st.delivered ++ ce).length ≤ uint.nat (phsNext st.hardState h).Commit' ∧
+    (∀ (j : Nat) (e : LogEntry), ce[j]? = some e →
+      uint.nat (readyDurable st.durable (phsNext st.hardState h) none es).base.index' <
+        st.delivered.length + 1 + j →
+      (readyDurable st.durable (phsNext st.hardState h) none es).ents[st.delivered.length + j -
+        uint.nat (readyDurable st.durable (phsNext st.hardState h) none es).base.index']? =
+        some (e.toEntryM (W64 (st.delivered.length + 1 + j)))) ∧
+    (∀ e0, es.head? = some e0 → uint.nat st.hardState.Commit' < uint.nat e0.Index') ∧
+    (∀ e ∈ es, uint.Z e.Type' ≤ 2)
 
 /-! ### The configuration, abstractly (2026-10-27, for etcd's server: moved from the draft) -/
 

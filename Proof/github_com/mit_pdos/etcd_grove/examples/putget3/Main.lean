@@ -231,7 +231,9 @@ theorem Main.wp_proof
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₁ clientAddr₁) [id₁, id₂, id₃]
       (LogEntry.toEntries boot 0) ctxs
       (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn Htb Hrb48 HrbN
-      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₁ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf
+      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₁ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      (common.utf8Keys_insert _ _ _ (by decide) (common.utf8Keys_insert _ _ _ (by decide)
+        (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf
       Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hpo₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
     iExactEq Hq₁; rfl
@@ -245,7 +247,7 @@ theorem Main.wp_proof
   wp_auto
   iunfold common.memberUp at Hup₁
   icases Hup₁ with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hbemu,
-    Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
+    Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
   iunfold srvGoRes at Hgo
   icases Hgo with ⟨Hwgr, Htok⟩
   wp_apply (wp_StartMember N name₂ peerAddr₂ clientAddr₂ go!"putget3"
@@ -255,7 +257,9 @@ theorem Main.wp_proof
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₂ clientAddr₂) [id₁, id₂, id₃]
       (LogEntry.toEntries boot 0) ctxs
       (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn Htb Hrb48 HrbN
-      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₂ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf
+      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₂ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      (common.utf8Keys_insert _ _ _ (by decide) (common.utf8Keys_insert _ _ _ (by decide)
+        (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf
       Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hpo₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
     iExactEq Hq₂; rfl
@@ -278,7 +282,9 @@ theorem Main.wp_proof
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₃ clientAddr₃) [id₁, id₂, id₃]
       (LogEntry.toEntries boot 0) ctxs
       (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn Htb Hrb48 HrbN
-      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₃ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf
+      hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ctxs boot Hbf) hd₃ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      (common.utf8Keys_insert _ _ _ (by decide) (common.utf8Keys_insert _ _ _ (by decide)
+        (common.utf8Keys_insert _ _ _ (by decide) common.utf8Keys_empty))) Hlg Hck Haf
       Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hpo₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
     iExactEq Hq₃; rfl
@@ -306,6 +312,7 @@ theorem Main.wp_proof
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
     iapply (common.kv_served s₁ E { ρ₁ with wait := γw } ρ₁.rd gs lis clientAddr₁ cid mid R Hrb48 Hrf rfl)
+    unfold common.kvServeStocks
     iframe; iframe #
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv⟩)
   · cases serr with

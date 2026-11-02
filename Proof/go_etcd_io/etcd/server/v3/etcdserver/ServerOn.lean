@@ -503,7 +503,9 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "#Hsmall" ∷ storeSmall E.γ ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗
-    "%Hbound" ∷ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
+    -- (the backend-auth-split stage, 2026-11-02) within the backend's pool of readers (`2 ^ 28`;
+    -- until then `2 ^ 31`, `GoAttach`'s)
+    "%Hbound" ∷ ⌜threadBound GF ≤ backend.rdPoolN⌝ ∗
     "Hua" ∷ srvUberRowM on s E x₀ ∗
     "Hwtok" ∷ idWaitTok ρ.ids ∗
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`)
@@ -683,7 +685,7 @@ theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List Entr
     · iintro %rq %id %hrq
       obtain ⟨hd, hdec, hid⟩ := hrq
       iunfold entryClaim at Hc
-      icases Hc with (%hc | ⟨%rq', %id', %γf, %hrq', #Hcl', #Hreg⟩)
+      icases Hc with (%hc | ⟨%rq', %id', %γf, %k, %hrq', #Hcl', #Hreg⟩)
       · exfalso; rcases hc with hc | hc
         · exact hc ht
         · exact hd hc
@@ -692,9 +694,8 @@ theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List Entr
         cases hdec'
         rw [hid] at hid'
         cases hid'
-        iframe Hreg
-        iexists γf
-        iexact Hcl'
+        iexists γf, k
+        iframe Hcl' Hreg
     · iexists L
       iframe HL
       ipureintro; exact hm
@@ -707,7 +708,8 @@ theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List Entr
     iintro !> %Ψ HR
     iunfold reqWaitR at HR
     icases HR with ⟨%d, %rq, %γf, %F, #Hc0, -, -⟩
-    iapply idClaim_noZero ρ.ids d γf $$ HNZ Hc0
+    ihave #Hc0a := idClaimAny_of ρ.ids (W64 0) d γf $$ Hc0
+    iapply idClaim_noZero ρ.ids d γf $$ HNZ Hc0a
 
 /-- `srv_entry_transfer` for a committed log `A` with no empty `ConfChangeV2` (`srv_committed_noV2`):
 `P` need not hold of one. -/

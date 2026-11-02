@@ -48,7 +48,9 @@ abbrev raft.tickHeartbeat.spec : Prop :=
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
       "Hghost" ∷ ownStepGhost γ md c id s' ∗
       "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-      "%Hcm" ∷ ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed⌝ ∗
+      -- (2026-11-01, durability stage II (m)) and the term and the vote as the model moves them
+      "%Hcm" ∷ ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
+        PVoteLe (toPState s) (toPState s')⌝ ∗
       "%Htick" ∷ ⌜TickStep s s'⌝ }}
 
 end spec

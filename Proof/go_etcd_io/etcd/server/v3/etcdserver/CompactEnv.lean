@@ -69,18 +69,18 @@ reader slots (the lead-time and logger mutexes', the auth store's, `E.RD`) and t
 def srvCompactR (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ E.RD ∗ mvcc.storeReaderC E.s E.γ)
 
-/-- **The server is the compactor's `Compactable`** (review round 1, S3-3): from `Compact.spec`,
-for the revision compactor's permit over `srvRevLb` at a non-negative retention, borrowing
-`srvCompactR`; (M2's apply side, item 15) at a server in compaction mode, over the request path's
-view and the readers' at its names. -/
-theorem compactableOk_server (hC : EtcdServer.Compact.spec (GF := GF) (hG := hG))
-    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ret : Int) (hret : 0 ≤ ret) (hcmp : E.cmp = true)
-    (hcr : (E.cret : Int) ≤ ret) :
+/-- **The server is the compactor's `Compactable`** (review round 1, S3-3), for any permit `P`
+that gives a positive revision the cluster's retention behind one the store has reached
+(`srvRevLb`; periodic mode, 2026-11-02: the mode's permit, `compactableOk_server_mode`): from
+`Compact.spec`, borrowing `srvCompactR`; (M2's apply side, item 15) at a server in compaction
+mode, over the request path's view and the readers' at its names. -/
+theorem compactableOk_server_of (hC : EtcdServer.Compact.spec (GF := GF) (hG := hG))
+    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (P : Int → IProp GF)
+    (hP : ∀ r, P r ⊢ ⌜0 < r⌝ ∗ srvRevLb E.γ (r + E.cret)) (hcmp : E.cmp = true) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ isServerRead s E ρ.rd ∗ idCred ρ.ids 1 ⊢
       v3compactor.compactableOk
-        (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s)
-        (v3compactor.revPermit (srvRevLb E.γ) ret) (srvCompactR s E) := by
+        (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) P (srvCompactR s E) := by
   iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hcred⟩
   iunfold v3compactor.compactableOk
   iexists _
@@ -88,16 +88,15 @@ theorem compactableOk_server (hC : EtcdServer.Compact.spec (GF := GF) (hG := hG)
   · ipureintro; rfl
   imodintro
   iintro %r %ctx %cd %p %Φ !> ⟨Hpm, HR, #Hctx, #Htr, Hreq⟩ HΦ
-  iunfold v3compactor.revPermit at Hpm
-  icases Hpm with ⟨%Hr, #Hlb⟩
+  ihave ⟨%Hr, #Hlb⟩ := hP r $$ Hpm
   iunfold srvCompactR at HR
   icases HR with ⟨Hlt, Hlr, Hrd, Hst⟩
   ihave #Hkvi := srvKVInvs_of_read s E ρ.rd $$ Hsrd
   iunfold srvKVInvs at Hkvi
   icases Hkvi with ⟨#Hkv, #Hci, #Hrl, %Hcok, -, %Hcrt, -⟩
-  -- (C3's server stage) at least the cluster's retention behind it (`cret ≤ ret`)
+  -- (C3's server stage) at least the cluster's retention behind a revision reached
   ihave #Hlb' : srvRevLb E.γ (r + ρ.rd.kv.cret) $$ []
-  · iapply srvRevLb_mono E.γ (r + ρ.rd.kv.cret) (r + ret) (by omega); iexact Hlb
+  · iapply srvRevLb_mono E.γ (r + ρ.rd.kv.cret) (r + E.cret) (by omega); iexact Hlb
   ihave #Hlb'' := Hlb'
   iunfold srvRevLb at Hlb''
   icases Hlb'' with ⟨%lg, #Hlgc, -, %Hlgl⟩
@@ -131,6 +130,65 @@ theorem compactableOk_server (hC : EtcdServer.Compact.spec (GF := GF) (hG := hG)
   iunfold srvCompactR
   iframe Hlt Hlr Hrd Hst
   iapply errTreeOk_of_compactOutIs; iexact Hout
+
+/-- **The server is the revision compactor's `Compactable`**: its permit at a retention at least
+the cluster's (`cret ≤ ret`, C3's server stage). -/
+theorem compactableOk_server (hC : EtcdServer.Compact.spec (GF := GF) (hG := hG))
+    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ret : Int) (hret : 0 ≤ ret) (hcmp : E.cmp = true)
+    (hcr : (E.cret : Int) ≤ ret) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReq s E ρ ∗ isServerRead s E ρ.rd ∗ idCred ρ.ids 1 ⊢
+      v3compactor.compactableOk
+        (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s)
+        (v3compactor.revPermit (srvRevLb E.γ) ret) (srvCompactR s E) := by
+  refine compactableOk_server_of hC s E ρ _ (fun r => ?_) hcmp
+  iintro H
+  iunfold v3compactor.revPermit at H
+  icases H with ⟨%Hr, #Hlb⟩
+  isplitr
+  · ipureintro; exact Hr
+  iapply srvRevLb_mono E.γ (r + E.cret) (r + ret) (by omega); iexact Hlb
+
+/-- **The server is the periodic compactor's `Compactable`** (periodic mode, 2026-11-02): its
+permit gives a revision the store had reached (`stampAt_elim`), so at a cluster retention of `0`
+(a period is no revision count). -/
+theorem compactableOk_server_periodic (hC : EtcdServer.Compact.spec (GF := GF) (hG := hG))
+    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (period : Int) (γf : GName)
+    (hcmp : E.cmp = true) (hcr : E.cret = 0) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReq s E ρ ∗ isServerRead s E ρ.rd ∗ idCred ρ.ids 1 ⊢
+      v3compactor.compactableOk
+        (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s)
+        (v3compactor.perPermit (srvRevLb E.γ) period γf) (srvCompactR s E) := by
+  refine compactableOk_server_of hC s E ρ _ (fun r => ?_) hcmp
+  iintro H
+  iunfold v3compactor.perPermit at H
+  icases H with ⟨%Hr, %T, #Hst, -⟩
+  ihave #Hlb := clockwork.stampAt_elim clockwork.realClock iprop(□ srvRevLb E.γ r) T $$ Hst
+  isplitr
+  · ipureintro; exact Hr
+  iapply srvRevLb_mono E.γ (r + E.cret) r (by omega); iexact Hlb
+
+/-- **The server is the compactor's `Compactable` in its mode** (periodic mode, 2026-11-02): the
+mode's permit (`modePermit`), at a retention at least the cluster's in revision mode and at a
+cluster retention of `0` in the other. -/
+theorem compactableOk_server_mode (hC : EtcdServer.Compact.spec (GF := GF) (hG := hG))
+    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (mode : GoString) (ret : Int) (γf : GName)
+    (hcmp : E.cmp = true)
+    (hcr : if mode = go!"revision" then 0 ≤ ret ∧ (E.cret : Int) ≤ ret else E.cret = 0) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReq s E ρ ∗ isServerRead s E ρ.rd ∗ idCred ρ.ids 1 ⊢
+      v3compactor.compactableOk
+        (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s)
+        (v3compactor.modePermit mode (srvRevLb E.γ) ret γf) (srvCompactR s E) := by
+  unfold v3compactor.modePermit
+  split
+  · next hm =>
+    rw [ite_cond_eq_true _ _ (eq_true hm)] at hcr
+    exact compactableOk_server hC s E ρ ret hcr.1 hcmp hcr.2
+  · next hm =>
+    rw [ite_cond_eq_false _ _ (eq_false hm)] at hcr
+    exact compactableOk_server_periodic hC s E ρ ret γf hcmp hcr
 
 /-- **The server's KV is the compactor's `RevGetter`** (M2, `NewServer.specCompact`): `s.kv.Rev()`
 (`mvcc.store.Rev.spec`, through the watchable store) reaches a revision past every lower bound

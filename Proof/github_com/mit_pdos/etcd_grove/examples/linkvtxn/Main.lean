@@ -102,7 +102,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"linkvtxn" go!"127.0.0.1:23806" go!"127.0.0.1:23796" lg (LogEntry.toEntries boot 0) ctxs
       (linkvtxnDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [linkvtxnDir, dirOne]) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
+      (by simp [linkvtxnDir, dirOne]) (by decide) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
@@ -116,7 +116,7 @@ theorem Main.wp_proof
   wp_auto
   iunfold common.memberUp at Hup
   icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
-    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
+    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `Serve(s, clientAddr)`: (D29) the member never refuses (authentication off, a voter, the
   -- members' axiom), and etcd's KV calls registered at the address
@@ -133,7 +133,8 @@ theorem Main.wp_proof
     · iframe; iframe #
     imod (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23796" cid mid R Hrb48 Hrf rfl)
       $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms] with ⟨Hserv, #Hkv⟩
-    · iframe; iframe #
+    · unfold common.kvServeStocks
+      iframe; iframe #
     imodintro
     iframe Hserv Hkv
     ipureintro; exact Hnr

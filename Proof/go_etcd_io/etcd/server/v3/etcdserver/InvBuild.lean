@@ -363,7 +363,9 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "#Hsmall" ∷ storeSmall E.γ ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗
-    "%Hbound" ∷ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
+    -- (the backend-auth-split stage, 2026-11-02) within the backend's pool of readers (`2 ^ 28`;
+    -- until then `2 ^ 31`, `GoAttach`'s)
+    "%Hbound" ∷ ⌜threadBound GF ≤ backend.rdPoolN⌝ ∗
     "Hua" ∷ (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
       apply.applyKV E ua x₀) ∗
     -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
@@ -382,7 +384,7 @@ read view and the write budget `txn.storeWTs` were rows here until unit N4's `Ne
 `clusterVersionOk` and the thread bound until D17, the same day: `srvBuilt`, from
 `NewServer.spec`'s workload premises and the cluster's `Version` contract.) -/
 def srvBuildGap (s : Loc) (γn : RNNames) (ai₀ at₀ : w64) : IProp GF :=
-  iprop("Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.id ms γn.γs ai₀ at₀))
+  iprop("Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀))
 
 end defs
 

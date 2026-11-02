@@ -35,7 +35,9 @@ variable [KVStor GF]
 abbrev StartCluster.spec : Prop :=
   ∀ (vsl : GoSlice),
   -- the time receipts' bound (D19b, 2026-10-18): raft's term budget is backed by receipts
-  receiptBound GF ≤ 2 ^ 64 - 2 →
+  -- (2026-11-02, durability stage II (l), at the landing: raft's `RestartNode` takes `readyFits`,
+  -- the receipts' bound within `2^61`; until then `2^64 - 2`)
+  receiptBound GF ≤ 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ kvStorInv (GF := GF) ∗
       vsl ↦*□ [W64 1, W64 2, W64 3] }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.StartCluster)) (Val #vsl))

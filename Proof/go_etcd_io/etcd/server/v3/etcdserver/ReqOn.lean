@@ -173,7 +173,7 @@ through it, published (`authPubAt M`: a reader holding it is checked at states n
 def entryWitOn (M : auth.AuthMode) (ρ : ReqNames) (rq : apply.IRRModel) (lb : mvcc.Log)
     (st : auth.AuthState) : IProp GF :=
   iprop(∃ (L : List EntryModel) (m : Nat) (e : EntryModel) (id : w64) (γf : GName),
-    srvRLogLb ρ.raft L ∗ idClaim ρ.ids id e.data γf ∗
+    srvRLogLb ρ.raft L ∗ idClaimAny ρ.ids id e.data γf ∗
     ⌜L[m]? = some e ∧ e.typ = W32 0 ∧ apply.irrDecode e.data = some rq ∧
       apply.irrId rq = some id ∧
       kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) (L.take m) = (st, lb)⌝ ∗
@@ -348,7 +348,7 @@ theorem reqWaitRM_false (ρ : ReqNames) (E : apply.AEnv GF) :
 /-- **The server's wait, in the auth mode `on`** (`waitInv` with `reqWaitRM`). -/
 def waitInvM (on : Bool) (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF) : IProp GF :=
   iprop((∃ RD : IProp GF, isWait w ρ.ids ρ.wait (reqWaitRM on ρ E) RD) ∗
-    idWaitIs ρ.ids ρ.ids.pfx ρ.wait)
+    idWaitIs ρ.ids ρ.ids.key ρ.wait)
 
 instance waitInvM_persistent (on : Bool) (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF) :
     Persistent (waitInvM (GF := GF) on w ρ E) := by

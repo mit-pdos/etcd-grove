@@ -16,6 +16,40 @@ noncomputable section
 
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
+class LeaseClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq LeaseClient.ty LeaseClient.underlying
+  method_set : go.MethodSetIs LeaseClient.ty [(go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseGrantRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType LeaseGrantResponse.ty), go.error]))), (go!"LeaseKeepAlive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty LeaseKeepAliveRequest.ty LeaseKeepAliveResponse.ty), go.error]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseLeasesRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseRevokeRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseTimeToLiveRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType LeaseTimeToLiveResponse.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseClient.ty) []
+
+attribute [instance] LeaseClient.TypeAssumptions.underlying
+  LeaseClient.TypeAssumptions.method_set
+  LeaseClient.TypeAssumptions.ptr_method_set
+
+class leaseClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying leaseClient.underlying leaseClient
+  underlying : go.UnderlyingDirectedEq leaseClient.ty leaseClient.underlying
+  get_cc : ∀ (x : leaseClient), go.IsGoStepPureDetTagged under (StructFieldGet leaseClient.underlying go!"cc") #x (Val #(x.cc'))
+  set_cc : ∀ (x : leaseClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet leaseClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : leaseClient)))
+  method_set : go.MethodSetIs leaseClient.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType leaseClient.ty) [(go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseGrantRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType LeaseGrantResponse.ty), go.error]))), (go!"LeaseKeepAlive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty LeaseKeepAliveRequest.ty LeaseKeepAliveResponse.ty), go.error]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseLeasesRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseRevokeRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseTimeToLiveRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType LeaseTimeToLiveResponse.ty), go.error])))]
+  ptr_LeaseGrant_unfold : MethodUnfold (go.GoType.PointerType leaseClient.ty) go!"LeaseGrant" leaseClient.LeaseGrant.impl
+  ptr_LeaseKeepAlive_unfold : MethodUnfold (go.GoType.PointerType leaseClient.ty) go!"LeaseKeepAlive" leaseClient.LeaseKeepAlive.impl
+  ptr_LeaseLeases_unfold : MethodUnfold (go.GoType.PointerType leaseClient.ty) go!"LeaseLeases" leaseClient.LeaseLeases.impl
+  ptr_LeaseRevoke_unfold : MethodUnfold (go.GoType.PointerType leaseClient.ty) go!"LeaseRevoke" leaseClient.LeaseRevoke.impl
+  ptr_LeaseTimeToLive_unfold : MethodUnfold (go.GoType.PointerType leaseClient.ty) go!"LeaseTimeToLive" leaseClient.LeaseTimeToLive.impl
+
+attribute [instance] leaseClient.TypeAssumptions.type_repr
+  leaseClient.TypeAssumptions.underlying
+  leaseClient.TypeAssumptions.get_cc
+  leaseClient.TypeAssumptions.set_cc
+  leaseClient.TypeAssumptions.method_set
+  leaseClient.TypeAssumptions.ptr_method_set
+  leaseClient.TypeAssumptions.ptr_LeaseGrant_unfold
+  leaseClient.TypeAssumptions.ptr_LeaseKeepAlive_unfold
+  leaseClient.TypeAssumptions.ptr_LeaseLeases_unfold
+  leaseClient.TypeAssumptions.ptr_LeaseRevoke_unfold
+  leaseClient.TypeAssumptions.ptr_LeaseTimeToLive_unfold
+
 class LeaseServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LeaseServer.ty LeaseServer.underlying
   method_set : go.MethodSetIs LeaseServer.ty [(go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseGrantRequest.ty)] false [(go.GoType.PointerType LeaseGrantResponse.ty), go.error]))), (go!"LeaseKeepAlive", (some (go.signature.Signature [(_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty LeaseKeepAliveRequest.ty LeaseKeepAliveResponse.ty)] false [go.error]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseLeasesRequest.ty)] false [(go.GoType.PointerType LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseRevokeRequest.ty)] false [(go.GoType.PointerType LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedLeaseServer", (some (go.signature.Signature [] false [])))]

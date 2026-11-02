@@ -77,9 +77,9 @@ omit [GooseInterp] [GooseSemantics] go_gctx [StorageModel GF] sem package_sem in
 theorem ccData_decodes (o : ConfChangeIM) (bs : List w8) (H : MarshalsConfChange (some o) bs) :
     CCDecodes (confChangeEntryType (some o)) bs := by
   rcases o with m | m
-  · refine ⟨fun _ => ⟨m, H⟩, fun h => ?_⟩
+  · refine ⟨fun _ => ⟨m, H⟩, fun h => ?_, by simp only [confChangeEntryType]; decide⟩
     exfalso; revert h; simp only [confChangeEntryType]; word
-  · refine ⟨fun h => ?_, fun _ => ⟨m, H⟩⟩
+  · refine ⟨fun h => ?_, fun _ => ⟨m, H⟩, by simp only [confChangeEntryType]; decide⟩
     exfalso; revert h; simp only [confChangeEntryType]; word
 
 /-- **A conf change's proposal, tracked** (2026-10-27): once `o` is marshaled to `bs`, the caller's

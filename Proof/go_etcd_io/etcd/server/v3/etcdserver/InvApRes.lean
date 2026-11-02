@@ -172,7 +172,7 @@ theorem memBoot_keys (bootLog : List EntryM) (S : GSet w64)
       (∀ k, (acc !! k).isSome = true → k ∈ S) →
       (∀ e ∈ l, ∀ cc, ccDecodeV1 e.Data' = some cc → cc.nodeId ∈ S) →
       ∀ k, ((l.foldl (fun mem e => match ccDecodeV1 e.Data' with
-        | some cc => mem.insert cc.nodeId (membership.ccMemberOf cc.context)
+        | some cc => mem.insert cc.nodeId (membership.ccMemberAt cc)
         | none => mem) acc) !! k).isSome = true → k ∈ S from
     H bootLog ∅ (fun k hk => by simp at hk) h
   intro l
@@ -352,6 +352,50 @@ theorem srvApplyKV_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.App
   iframe Hrt
   iintro Hrt
   ihave Hwo := Hwo $$ Hrt
+  iunfold srvApplyKV
+  iexists ua
+  isplitl [Hua]
+  · iexact Hua
+  isplitr
+  · iexact Hap
+  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
+  · iunfold apply.applyKV
+    iexists p
+    iframe Hu
+    isplitr
+    · ipureintro; exact Hp
+    iunfold apply.kvOwn
+    iframe
+  isplitl [Hbo]
+  · iexact Hbo
+  iexact Hrest
+
+/-- `srvApplyKV_ua_rt` with the current backend's reader pool lent too (2026-11-02, the
+backend-auth-split stage: for `applyConfChange`, which takes `backend.bkRPool`). -/
+theorem srvApplyKV_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
+    srvApplyKV (GF := GF) s E γw x ⊢ ∃ (ua : GoInterface) (d : mvcc.KBReal), ⌜E.γ.kb = some d⌝ ∗
+      srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ mvcc.storeRT E.γ ∗
+      backend.bkRPool d.γB d.P d.be ∗ srvBeRO d ∗
+      (srvUberApplyAddr s ↦ ua -∗ mvcc.storeRT E.γ -∗ backend.bkRPool d.γB d.P d.be -∗
+        srvApplyKV s E γw x) := by
+  iintro H
+  iunfold srvApplyKV at H
+  icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hrest⟩
+  icases srvBeOwn_pool s E $$ Hbo with ⟨%d, %Hd, #Hbro, Hpl, Hbo⟩
+  iunfold apply.applyKV at Hkv
+  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
+  iunfold apply.kvOwn at Ho
+  icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
+  icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
+  iexists ua, d
+  iframe Hua Hrt Hpl Hbro
+  isplitr
+  · ipureintro; exact Hd
+  isplitr
+  · iexact Hap
+  iintro Hua Hrt Hpl
+  ihave Hwo := Hwo $$ Hrt
+  ihave Hbo := Hbo $$ Hpl
   iunfold srvApplyKV
   iexists ua
   isplitl [Hua]

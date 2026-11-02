@@ -12,6 +12,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Attempted
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.BuildServer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Collect
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.CompactRev
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Gen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.GenAll
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.MaxRev
@@ -23,6 +24,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.common.StartMember
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.StartServer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Writer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.newServer
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.newServerMode
 public import Proof.context.WithTimeoutBackground
 public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
 public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
@@ -85,9 +87,13 @@ theorem features.wp_NewDefaultServerFeatureGate :
     EtcdGrove.features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof
 
+theorem wp_newServerMode [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
+    EtcdGrove.common.newServerMode.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.common.newServerMode.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer
+
 theorem wp_newServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.common.newServer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.common.newServer.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer
+  EtcdGrove.common.newServer.wp_proof wp_newServerMode
 
 theorem wp_BuildServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.common.BuildServer.spec (GF := GF) (hG := hG) :=
@@ -96,6 +102,10 @@ theorem wp_BuildServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64
 theorem wp_Collect :
     EtcdGrove.common.Collect.spec (GF := GF) (hG := hG) :=
   EtcdGrove.common.Collect.wp_proof client.v3.WatchResponse.wp_Err
+
+theorem wp_CompactRev :
+    EtcdGrove.common.CompactRev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.common.CompactRev.wp_proof
 
 theorem wp_NewClients [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.common.NewClients.spec (GF := GF) (hG := hG) :=

@@ -219,6 +219,18 @@ retryLeaseClient__LeaseRevoke: withRepeatablePolicy leaseClient__LeaseRevoke
 retryLeaseClient__LeaseKeepAlive: withRepeatablePolicy leaseClient__LeaseKeepAlive
 v3_lessor__Grant: retryLeaseClient__LeaseGrant LeaseGrantResponse__GetHeader ContextError
 v3_lessor__Revoke: retryLeaseClient__LeaseRevoke ContextError
+# the closed lease example (2026-11-02, `notes/lease-ex-plan.md`): the lessor's reads, the retry
+# lease client's and the stub's, the options of `TimeToLive`
+LeaseTimeToLiveResponse__GetHeader:
+LeaseLeasesResponse__GetHeader:
+leaseClient__LeaseTimeToLive: grpc_StaticMethod grpc_ClientConn__Invoke
+leaseClient__LeaseLeases: grpc_StaticMethod grpc_ClientConn__Invoke
+retryLeaseClient__LeaseTimeToLive: withRepeatablePolicy leaseClient__LeaseTimeToLive
+retryLeaseClient__LeaseLeases: withRepeatablePolicy leaseClient__LeaseLeases
+LeaseOp__applyOpts:
+toLeaseTimeToLiveRequest: LeaseOp__applyOpts
+v3_lessor__TimeToLive: toLeaseTimeToLiveRequest retryLeaseClient__LeaseTimeToLive LeaseTimeToLiveResponse__GetHeader ContextError
+v3_lessor__Leases: retryLeaseClient__LeaseLeases LeaseLeasesResponse__GetHeader ContextError
 keepAlive__close:
 metadata_FromOutgoingContext:
 v3_lessor__closeRequireLeader: metadata_FromOutgoingContext

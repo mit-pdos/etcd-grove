@@ -40,7 +40,10 @@ compaction mode the caller gets the compaction right's half of the revision's au
 (`crevRightM γ.st`, `True` otherwise) beside the closer; the store's logical mode is the
 instance's (`γ.st.cm`); and the write-back supply is no longer taken here (Q1 (a): `store.Compact`
 takes it). (C3's store law, 2026-11-02) The store's compaction permit is the caller's `Perm`
-(`crevPermIs`). -/
+(`crevPermIs`).
+(the backend-auth-split stage, 2026-11-02) The backend's reader tokens it takes are the backend's
+counted stock (`backend.rdStockN`, past the backend's pool), the readers it gives counted from it;
+until then all `actualMaxReaders` of them. -/
 abbrev mvcc.newWatchableStore.spec : Prop :=
   ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (rd0 : GoFunc) (γi : mvcc.IdxNames) (γok γtag : GName)
@@ -51,7 +54,7 @@ abbrev mvcc.newWatchableStore.spec : Prop :=
         mvcc.storeBackend b s γ P) ∗
       mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbNoDelOff kb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
       mvcc.kbSRM kb ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), mvcc.kbRT kb) ∗
+      ([∗list] _x ∈ List.replicate backend.rdStockN (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
       mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.newWatchableStore)) (Val #lg))
@@ -60,7 +63,7 @@ abbrev mvcc.newWatchableStore.spec : Prop :=
         γ.st.idx = γi ∧ γ.st.cok = γok ∧ γ.tag = γtag ∧ γ.st.cm = decide (mvcc.kbCmpM kb)⌝ ∗
       mvcc.isWatchableStore s st γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd s st γ) ∗ mvcc.hookInit γ.st P f ∗ mvcc.watchWriter γ [[], []] ∗
       mvcc.watchToks γ (2 ^ 63 - 3) ∗ ghostMapAuth γ.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - mvcc.nJobRd kb) (),
+      ([∗list] _x ∈ List.replicate (backend.rdStockN - mvcc.nJobRd kb) (),
         mvcc.watchReader s st γ) ∗
       (∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ mvcc.stopCloser stc) ∗
       mvcc.storeCloser st γ.st ∗ mvcc.crevRightM γ.st ∗

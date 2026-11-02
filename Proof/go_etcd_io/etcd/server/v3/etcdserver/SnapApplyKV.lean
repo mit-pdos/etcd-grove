@@ -55,7 +55,9 @@ Brief for the prover. Unfold `srvApplyKV` with `ua := mkOk up'`:
 - `srvAuthApplyRes s E'`: the hypothesis (`snapE_authMode`; integration with the auth track's E2k).
 - `waitOk`: `srvWAddr s ↦□ w0`, `waitOk w0 RD0 …`, `RD0` the hypotheses.
 - (M2's item 15, stage B) the compaction resources at the restored revision `c'`, the caller's
-  (until then at `-1`, free with the new backend not compacting, `apply.cmpOwn_of_off`). -/
+  (until then at `-1`, free with the new backend not compacting, `apply.cmpOwn_of_off`).
+- (2026-11-02, the backend-auth-split stage) `srvBeOwn`'s `srvBeRO d'` and the new backend's
+  pool of readers (`backend.bkRPool`), from the walk. -/
 theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (π0 : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (d' : mvcc.KBReal)
     (p' : mvcc.PhysNames) (γw : mvcc.WsNames) (ws : Loc) (g : GoFunc) (up' : Loc)
@@ -78,6 +80,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗ E.RD ∗
       srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
       dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d' ∗
+      srvBeRO d' ∗ backend.bkRPool d'.γB d'.P d'.be ∗
       revAuth E x.log ∗ srvAuthApplyRes s E ∗
       srvWAddr s ↦□ w0 ∗
       waitOk w0 RD0 (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ∗
@@ -88,7 +91,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
   have hrb : receiptBound GF ≤ 2 ^ 48 := by
     have : backend.wbInit = 2 ^ 40 - 1 := rfl
     omega
-  iintro ⟨#Hopts, #Hws, Hube, Hua, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, Hrv, HRD, Hbe, Hγbe, Hra, Hauar, #Hw,
+  iintro ⟨#Hopts, #Hws, Hube, Hua, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, Hrv, HRD, Hbe, Hγbe, #Hro, Hpl, Hra, Hauar, #Hw,
     #Hwok, HRD0, Hcmp⟩
   ihave ⟨#Hub, Huo⟩ :=
     Hube $$ %(snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) Hopts
@@ -114,11 +117,11 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     · ipureintro; rfl
     simp only [snapE_authOn]
     iframe Huo Hkv Hcmp
-  isplitl [Hbe Hγbe]
+  isplitl [Hbe Hγbe Hpl]
   · iunfold srvBeOwn
     iexists d'
     simp only [snapE_γbe]
-    iframe Hbe Hγbe
+    iframe Hbe Hγbe Hro Hpl
     ipureintro; exact hkb'
   isplitl [Hra]
   · rw [revAuth_snapE]

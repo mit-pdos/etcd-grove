@@ -328,7 +328,7 @@ fresh `MemoryStorage` (an empty conf state, allocated by raft's `EnsureSnapshot`
 `run` uses only the pointers. (2026-10-31, #11) With the storage's invariant at the node `nid` of the
 cluster `cl` (`memStorInv`, at the registry `rg`; persistent), which `NewServer` allocated: what
 `CreateSnapshot` and `Compact` take (`srvSnapStor`). -/
-def rnSnapOnce (rg : GName) (cl : Cluster) (nid : w64) (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) :
+def rnSnapOnce (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) :
     IProp GF :=
   iprop(∀ Φ : val → IProp GF,
     ▷ (∀ (sn pm cs : Loc) (sv : SnapshotM),
@@ -341,7 +341,7 @@ def rnSnapOnce (rg : GName) (cl : Cluster) (nid : w64) (ms : Loc) (γs : MemStor
       -- "no snapshot taken yet" token back (`memSnapNone`, under which `Snapshot()` answers the
       -- empty snapshot; until then the application's snapshot token `memSnapTok`)
       epCsOk cs -∗ memSnapNone γs -∗
-      (letI : MemStorReg GF := ⟨rg⟩; memStorInv ms γs cl nid) -∗
+      (letI : MemStorReg GF := ⟨rg⟩; memStorInv ms γs cl nk) -∗
       Φ (PairV #sn #(GoInterface.nil))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
       (Val #())) {{ Φ }})
@@ -462,7 +462,7 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
     "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v ∗
-    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.id ms γn.γs ai₀ at₀) ∗
+    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
     "Hdc" ∷ ownBroadcastChan v.done γd iprop(True) .Pending ∗

@@ -47,6 +47,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.compactkv.NoDup
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Served
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Collect
 public import Spec.go_etcd_io.etcd.client.v3.watcher__Watch
+public import Spec.github_com.mit_pdos.etcd_grove.examples.compactkv.checkCompactRev
 
 @[expose] public section
 
@@ -96,7 +97,8 @@ theorem Main.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
-    (wp_Collect : common.Collect.spec (GF := GF) (hG := hG)) :
+    (wp_Collect : common.Collect.spec (GF := GF) (hG := hG))
+    (wp_checkCompactRev : checkCompactRev.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem⟩
@@ -155,7 +157,7 @@ theorem Main.wp_proof
         rw [kvModel_boot _ _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
         intro cs hcs
         simp [kvStateOf] at hcs
-        left; exact hcs)) $$ Hetcd with ⟨%γf, %γl, #Hinv⟩
+        left; exact hcs)) $$ Hetcd with ⟨%γf, %γl, %γv, #Hinv⟩
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
   -- `StartCompactingServer("compactkv", "127.0.0.1:23804", clientAddr, retention, lg)`
@@ -166,7 +168,7 @@ theorem Main.wp_proof
       (W64 1) lg
       (LogEntry.toEntries boot 0) ctxs (compactkvDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [compactkvDir, dirOne]) Hlg (by decide) (by rw [hkr]; decide) Hck Haf Hbuq Hdbo)
+      (by simp [compactkvDir, dirOne]) (by decide) Hlg (by decide) (by rw [hkr]; decide) Hck Haf Hbuq Hdbo)
       $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
@@ -180,7 +182,7 @@ theorem Main.wp_proof
   wp_auto
   iunfold common.memberUp at Hup
   icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
-    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
+    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `Serve(s, clientAddr)`, with the ghost step `wk_served_nd` (the KV specs and the watch server's
   -- facts at the address; watches across a compaction, W4: the store's fact for watches, no
@@ -189,7 +191,7 @@ theorem Main.wp_proof
   wp_apply (wp_Serve srv go!"127.0.0.1:23794" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid R => iprop(⌜R.E = E ∧ noRefusalAt go!"127.0.0.1:23794"⌝ ∗
         client.kvRegsAt (⟨go!"127.0.0.1:23794", E, ρ.rd, cid, mid⟩ : client.SrvAt GF) ∗
-        watchAddrFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv.st) ∗
+        watchAddrFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) ∗
         mvcc.idxCert R.E.γ.idx [[], []]))
       (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
@@ -197,7 +199,7 @@ theorem Main.wp_proof
     iintro %gs %lis %cid %mid %R Hg
     iunfold common.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, HWRs, Hlis⟩
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, HWRs, Hlis, -⟩
     obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ⟩ := HC
     subst hRE
     icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
@@ -220,14 +222,14 @@ theorem Main.wp_proof
       omega
     ihave #Hinvs := srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
     ihave #H00 := watchkv.cert0_of_server pw R $$ Hws
-    ihave #Hkf : client.srvKVFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv.st) $$ []
-    · iapply client.srvKVFacts_of_off _ ρ.rd rfl hlog (by omega)
+    ihave #Hkf : client.srvKVFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) $$ []
+    · iapply client.srvKVFacts_of_off _ ρ.rd (kvSame_refl _) hlog (by omega)
       iframe Hinvs
       iapply mvcc.idxCert_sealed; iexact H00
     -- (W4) the store's fact for watches: no revision writes a key twice (the rounds' puts)
     ihave #HwnD : mvcc.watchNoDup R.E.γ $$ []
     · iunfold mvcc.watchNoDup; iright
-      iapply (noDupKeys_of_rounds (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv.st) ρ.rd.kv rfl go!"v")
+      iapply (noDupKeys_of_rounds (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) ρ.rd.kv rfl go!"v")
       iframe Hkf
       iapply oneValAu $$ Hinv
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
@@ -236,7 +238,7 @@ theorem Main.wp_proof
         { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo) $$
       [Hgsn Hlis]
     · iframe Hgsn Hlis; iframe #
-    imod (watchkv.wk_served_nd (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv.st) go!"127.0.0.1:23794"
+    imod (watchkv.wk_served_nd (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) go!"127.0.0.1:23794"
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
         1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl Hrf)
       $$ [Hgsn Hlis Hslots Hwslots] with ⟨Hserv, #HKV, #HWF⟩
@@ -260,7 +262,7 @@ theorem Main.wp_proof
   ihave #Hregs := HKV
   -- `NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient go!"127.0.0.1:23794" lg
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv.st) Hlg
+      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) Hlg
       (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
@@ -347,7 +349,7 @@ theorem Main.wp_proof
       as %pctx %pcd %pcancel ⟨#Hpcancel, #Hpctx, #Hpce, -⟩
     (try wp_auto)
     -- `presp, err := cli.Put(pctx, k, value)`: round `i`'s put
-    ihave #Hau := putAu_round ρ.rd γf γl keysL go!"v" (sint.nat n) kk hk $$ [Hinv Hlb]
+    ihave #Hau := putAu_round ρ.rd γf γl γv keysL go!"v" (sint.nat n) kk hk $$ [Hinv Hlb]
     · iframe #
     wp_apply (client.client_Put_kv cl api ρ.rd.kv true pctx pcd kk go!"v" slice.nil
         (fun σ => iprop(□ (monoNatLbOwn γf (sint.nat n + 1) ∗
@@ -373,6 +375,16 @@ theorem Main.wp_proof
       iapply HΦ; itrivial
     subst Hperr
     icases HQ with ⟨#Hlb', ⟨%r0, #Hidx, %Hr0⟩, %Hσ1⟩
+    -- (the read-side law, 2026-11-02) the put's revision, reached, is a lower bound of the rounds'
+    -- state (`roundsInv_revLb`, with the readers' view's KV invariant)
+    ihave #Hkvs := srvKVInvs_of_read srv E ρ.rd $$ Hrd
+    iunfold srvKVInvs at Hkvs
+    icases Hkvs with ⟨#Hkvi, -⟩
+    have Hrz : ((sint.nat m.hdr.revision : Nat) : Int) = sint.Z m.hdr.revision := by
+      rw [Hs.1]; have := Hs.2.1.lt; unfold sint.nat; word
+    imod (roundsInv_revLb ρ.rd γf γl γv keysL go!"v" (sint.nat m.hdr.revision)) $$ Hkvi Hinv []
+      with #HrvLb
+    · rw [Hrz]; iunfold kvRevLb at Hrv; iexact Hrv
     (try wp_auto)
     -- `presp.Header.Revision - 1`: the revision before the put's, past `0`
     ihave #Hm' := Hm
@@ -406,8 +418,8 @@ theorem Main.wp_proof
       as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -⟩
     (try wp_auto)
     imod monoNatLbOwn_0 (GF := GF) ρ.rd.committed with #Hc0
-    wp_apply (client_Get_round cl go!"127.0.0.1:23794" _ E ρ.rd γf γl keysL go!"v" (sint.nat n) kk hk
-        (W64 0) cid mid gctx gcd slice.nil []
+    wp_apply (client_Get_round cl go!"127.0.0.1:23794" _ E ρ.rd γf γl γv keysL go!"v" (sint.nat n) kk hk
+        (sint.nat m.hdr.revision) (W64 0) cid mid gctx gcd slice.nil []
         (opSizeOk_opGetModel (K := 2) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide)))
         as %gresp %gerr Hget
     · iframe #
@@ -415,7 +427,7 @@ theorem Main.wp_proof
       iExactEq Hc0; rfl
     (try wp_auto)
     wp_apply Hgcancel
-    icases Hget with (⟨%Hgerr, %mg, #Hmg, %Hv⟩ | %Hgfail)
+    icases Hget with (⟨%Hgerr, %mg, #Hmg, ⟨%Hv, %Hgrev⟩⟩ | %Hgfail)
     rotate_left
     · obtain ⟨Hgerr, -⟩ := Hgfail
       cases gerr with
@@ -468,6 +480,14 @@ theorem Main.wp_proof
     wp_apply wp_bytes_to_string vSl kv0.value DFrac.discard $$ [HvS] as -
     · iframe #
     rw [Hval0]
+    -- (the read-side law, 2026-11-02) `resp.Header.Revision < presp.Header.Revision` is false: the
+    -- get read at a revision at least the put's (`client_Get_round`'s bound)
+    iunfold hdrFull at Hhf'
+    icases Hhf' with ⟨%Hhn', -, -, #HrevF', -, -⟩
+    have Hnlt : ¬ sint.Z mg.hdr.revision < sint.Z m.hdr.revision := by
+      rw [← Hrz]; omega
+    wp_auto
+    try simp only [Hnlt, decide_false, ↓reduceIte]
     wp_auto
     -- the previous round's key and revision, for the next round: this round's
     ihave #Hprev' : prevOk γl kk m.hdr.revision $$ []
@@ -523,7 +543,7 @@ theorem Main.wp_proof
       rcases i with _ | i
       · cases Hf; cases Hg; iexact Hfr
       · simp at Hf
-    ihave #Hau' := getAtAu_round ρ.rd γf γl keysL go!"v" j rj pk Hjk $$ [Hinv Hidxj]
+    ihave #Hau' := getAtAu_round ρ.rd γf γl γv keysL go!"v" j rj pk Hjk $$ [Hinv Hidxj]
     · iframe #
     wp_apply (client.client_Get_kv cl api ρ.rd.kv true octx ocd pk pr optsSl
         (fun σ => iprop(⌜∀ r, rj ≤ r → r ≤ σ.rev →
@@ -635,7 +655,7 @@ theorem Main.wp_proof
     obtain ⟨hkj, -, -, hpkl⟩ := Hj
     -- the client's `Watcher`, with the watch server's facts (D19f)
     ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWf, #Hcw⟩ := isNewClient_watcher wp_ErrAny hAs cl
-      [go!"127.0.0.1:23794"] (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv.st) rfl rfl rfl $$ [Pcli Ppb Pctx Hnc HWF]
+      [go!"127.0.0.1:23794"] (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) rfl rfl rfl $$ [Pcli Ppb Pctx Hnc HWF]
     · iframe #
     (try wp_auto)
     -- `wctx, wcancel := context.WithCancel(context.Background())`
@@ -664,7 +684,7 @@ theorem Main.wp_proof
       · cases Hf; cases Hg; iexact Hf2
       · simp at Hf
     -- the rounds' read update: every revision one put of `v`
-    ihave #Hau := oneValAu ρ.rd γf γl keysL go!"v" $$ Hinv
+    ihave #Hau := oneValAu ρ.rd γf γl γv keysL go!"v" $$ Hinv
     iunfold kvReadAu at Hau
     iunfold kvAu at Hau
     -- `wch := cli.Watcher.Watch(wctx, prevKey, clientv3.WithRev(2))`
@@ -688,7 +708,7 @@ theorem Main.wp_proof
           omega
       iintro !> %h
       exact absurd h.2 (Nat.lt_irrefl 0)
-    ihave #Hwch := common.isRespChan_of_state wch γw _ (fun σ => iprop(⌜oneValW go!"v" σ.changes⌝)) _
+    ihave #Hwch := common.isRespChan_of_state wch _ γw _ (fun σ => iprop(⌜oneValW go!"v" σ.changes⌝)) _
       $$ Hsp
     (try wp_auto)
     ihave Hcons : etcdWatchConsumer γw 0 (W64 2 - W64 1) $$ [Hcons Hcur]
@@ -721,6 +741,13 @@ theorem Main.wp_proof
     (try wp_auto)
     cases ok
     · (try wp_auto)
+      -- (C3's watch side) `checkCompactRev(cli, prevKey)`
+      wp_apply (wp_checkCompactRev cl pk R E ρ.rd cid mid γf γl γv keysL go!"v" hpkl hkr hAs) $$ []
+      · iframe #
+        ihave #Hkvs := srvKVInvs_of_read srv E ρ.rd $$ Hrd
+        iunfold srvKVInvs at Hkvs
+        icases Hkvs with ⟨#Hkvi, -⟩
+        iexact Hkvi
       iapply HΦ; itrivial
     ihave ⟨%evs, Hes, -, #Hall⟩ := Hcol $$ %rfl
     (try wp_auto)
@@ -754,6 +781,13 @@ theorem Main.wp_proof
       iframe
       ipureintro; word
     · (try wp_auto)
+      -- (C3's watch side) `checkCompactRev(cli, prevKey)`
+      wp_apply (wp_checkCompactRev cl pk R E ρ.rd cid mid γf γl γv keysL go!"v" hpkl hkr hAs) $$ []
+      · iframe #
+        ihave #Hkvs := srvKVInvs_of_read srv E ρ.rd $$ Hrd
+        iunfold srvKVInvs at Hkvs
+        icases Hkvs with ⟨#Hkvi, -⟩
+        iexact Hkvi
       iapply HΦ; itrivial
 
 end proof

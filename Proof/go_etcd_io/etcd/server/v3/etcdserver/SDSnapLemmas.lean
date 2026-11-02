@@ -33,9 +33,9 @@ instance srvFrozenBelow_persistent_SD (γs : MemStorNames) (n : Nat) :
     Persistent (srvFrozenBelow (GF := GF) γs n) := by
   unfold srvFrozenBelow; infer_instance
 
-instance srvSnapStor_persistent_SD (ms : Loc) (γs : MemStorNames) (γr : ReadNames) (nid ai at' : w64) :
-    Persistent (srvSnapStor (GF := GF) ms γs γr nid ai at') := by
-  unfold srvSnapStor storDL; infer_instance
+instance srvSnapStor_persistent_SD (ms : Loc) (γs : MemStorNames) (γr : ReadNames) (nk : GName) (ai at' : w64) :
+    Persistent (srvSnapStor (GF := GF) ms γs γr nk ai at') := by
+  unfold srvSnapStor; infer_instance
 
 /-- **`Compact`'s entry premise** at an index `k` from `1` to the applied index `n`: frozen
 (`srvFrozenAt` at `n`, `srvFrozenBelow` below it) or compacted. -/

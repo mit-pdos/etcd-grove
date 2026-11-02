@@ -1014,71 +1014,48 @@ theorem rtHeldF_fk (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p : Q
   iframe Ho Hh
   ipureintro; exact Ha
 
-/-- A slice a held shared read transaction returned, read (the backend open: its bbolt
-transaction is). -/
-theorem rtHeld_read (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (qo : Qp)
-    (s : GoSlice) (v : GoString) :
-    rtHeld (GF := GF) γ P b rtx rv ∗ bOpen γ qo ∗ rdB rtx s v ⊢
-      ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ rtHeld γ P b rtx rv ∗ bOpen γ qo) := by
-  iintro ⟨Hh, Ho, #Hs⟩
-  unfold rdB
-  icases Hs with (#Hs | #Hs)
-  · iexists DFrac.discard
-    iframe #
-    iintro _
-    iframe
-  unfold rtHeld rtResAt rtRest rtCore rtIntv
-  icases Hh with ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
-    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩
-  cases hl : rd.live
-  · simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hiv with ⟨-, #Hst⟩
-    iexfalso; iapply bOpen_stopped γ qo $$ [$Ho $Hst]
-  simp only [↓reduceIte]
-  icases Hiv with ⟨Hlive, #Hsnap, #Hintv, #Hwgi, Hwo, Htk⟩
-  subst Hrtx
-  icases txBytes_acc rd.rtx s v sync.rfrac.half $$ [$Hs $Hlive] with ⟨%dq, Hsl, Hback⟩
-  iexists dq
-  iframe Hsl
-  iintro Hsl
-  ihave Hlive := Hback $$ Hsl
-  iframe Ho
-  iexists rt, rd, H, L
-  iframe; iframe #
-  rw [hl]
-  simp only [↓reduceIte]
-  iframe; iframe #
-  isplitr
-  · ipureintro; exact Hok
-  ipureintro; exact Hf
-
-/-- A held shared read transaction lends a share `p2` of bbolt's transaction (the backend open:
-the transaction is; the restore plan's R5b): another reader of the same snapshot reads its bytes
-with it (`txBytes_acc`). -/
-theorem rtHeldF_lend (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (qo p1 p2 : Qp) :
-    rtHeldF (GF := GF) γ P b rtx rv (p1 + p2) ∗ bOpen γ qo ⊢
-      rtHeldF γ P b rtx rv p1 ∗ bOpen γ qo ∗ txLive rtx p2 := by
-  iintro ⟨Hh, Ho⟩
+/-- **A held shared read transaction lends a share `p2` of bbolt's transaction, with no open
+share** (its interval is live: `rtHeldF`'s `rtx ≠ Loc.null`; the backend-auth-split stage's decision
+1): another reader of the same snapshot reads its bytes with it (`txBytes_acc`; the restore plan's
+R5b). -/
+theorem rtHeldF_lend' (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p1 p2 : Qp) :
+    rtHeldF (GF := GF) γ P b rtx rv (p1 + p2) ⊢
+      rtHeldF γ P b rtx rv p1 ∗ txLive rtx p2 := by
+  iintro Hh
   unfold rtHeldF rtResAt rtRest rtCore rtIntv
   icases Hh with ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
     Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩
+  obtain ⟨Hrtx, Hnn⟩ := Hrtx
   cases hl : rd.live
   · simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hiv with ⟨-, #Hst⟩
-    iexfalso; iapply bOpen_stopped γ qo $$ [$Ho $Hst]
+    icases Hiv with ⟨%Hnull, -⟩
+    exact absurd (Hrtx ▸ Hnull) Hnn
   simp only [↓reduceIte]
   icases Hiv with ⟨Hlive, #Hsnap, #Hintv, #Hwgi, Hwo, Htk⟩
   icases ((txLive_fractional rd.rtx).fractional p1 p2).1 $$ Hlive with ⟨Hl1, Hl2⟩
   subst Hrtx
-  iframe Ho Hl2
+  iframe Hl2
   iexists rt, rd, H, L
-  iframe; iframe #
-  rw [hl]
-  simp only [↓reduceIte]
-  iframe; iframe #
-  isplitr
-  · ipureintro; exact Hok
-  ipureintro; exact Hf
+  iframe Hrt Hrl Hcr
+  isplitl
+  · iexists m, Pb, cm
+    iframe; iframe #
+    rw [hl]
+    simp only [↓reduceIte]
+    iframe; iframe #
+    isplitr
+    · ipureintro; exact Hok
+    ipureintro; exact Hf
+  ipureintro; exact ⟨rfl, Hnn⟩
+
+/-- A held shared read transaction lends a share `p2` of bbolt's transaction (`rtHeldF_lend'`, the
+open share framed). -/
+theorem rtHeldF_lend (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (qo p1 p2 : Qp) :
+    rtHeldF (GF := GF) γ P b rtx rv (p1 + p2) ∗ bOpen γ qo ⊢
+      rtHeldF γ P b rtx rv p1 ∗ bOpen γ qo ∗ txLive rtx p2 := by
+  iintro ⟨Hh, Ho⟩
+  icases rtHeldF_lend' γ P b rtx rv p1 p2 $$ Hh with ⟨Hh, Hl⟩
+  iframe Hh Ho Hl
 
 /-- The lent share back. -/
 theorem rtHeldF_return (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p1 p2 : Qp) :
@@ -1087,6 +1064,7 @@ theorem rtHeldF_return (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p
   unfold rtHeldF rtResAt rtRest rtCore rtIntv
   icases Hh with ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
     Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩
+  obtain ⟨Hrtx, Hnn⟩ := Hrtx
   subst Hrtx
   iexists rt, rd, H, L
   iframe Hrt Hrl Hcr
@@ -1105,32 +1083,102 @@ theorem rtHeldF_return (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p
       ihave Hl := ((txLive_fractional rd.rtx).fractional p1 p2).2 $$ [Hl1 Hl2]
       · iframe
       iframe; iframe #
-  ipureintro; rfl
+  ipureintro; exact ⟨rfl, Hnn⟩
 
-/-- A slice a held shared read transaction returned, read, with any share of bbolt's
-transaction (the restore plan's R5b). -/
-theorem rtHeldF_read (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p qo : Qp)
+/-- **A slice a held shared read transaction returned, read, with any share of bbolt's
+transaction and no open share** (the interval live, `rtHeldF_lend'`; the restore plan's R5b, the
+backend-auth-split stage's decision 1). -/
+theorem rtHeldF_read' (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p : Qp)
     (s : GoSlice) (v : GoString) :
-    rtHeldF (GF := GF) γ P b rtx rv p ∗ bOpen γ qo ∗ rdB rtx s v ⊢
-      ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ rtHeldF γ P b rtx rv p ∗ bOpen γ qo) := by
-  iintro ⟨Hh, Ho, #Hs⟩
+    rtHeldF (GF := GF) γ P b rtx rv p ∗ rdB rtx s v ⊢
+      ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ rtHeldF γ P b rtx rv p) := by
+  iintro ⟨Hh, #Hs⟩
   have hp : p = p.half + p.half := (Qp.half_add_half p).symm
   rw [hp]
-  icases rtHeldF_lend γ P b rtx rv qo p.half p.half $$ [$Hh $Ho] with ⟨Hh, Ho, Hl⟩
+  icases rtHeldF_lend' γ P b rtx rv p.half p.half $$ Hh with ⟨Hh, Hl⟩
   unfold rdB
   icases Hs with (#Hs | #Hs)
   · iexists DFrac.discard
     iframe #
     iintro _
-    iframe Ho
     iapply rtHeldF_return γ P b rtx rv p.half p.half $$ [$Hh $Hl]
   icases txBytes_acc rtx s v p.half $$ [$Hs $Hl] with ⟨%dq, Hsl, Hback⟩
   iexists dq
   iframe Hsl
   iintro Hsl
   ihave Hl := Hback $$ Hsl
-  iframe Ho
   iapply rtHeldF_return γ P b rtx rv p.half p.half $$ [$Hh $Hl]
+
+/-- A slice a held shared read transaction returned, read, with any share of bbolt's transaction
+(`rtHeldF_read'`, the open share framed). -/
+theorem rtHeldF_read (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p qo : Qp)
+    (s : GoSlice) (v : GoString) :
+    rtHeldF (GF := GF) γ P b rtx rv p ∗ bOpen γ qo ∗ rdB rtx s v ⊢
+      ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ rtHeldF γ P b rtx rv p ∗ bOpen γ qo) := by
+  iintro ⟨Hh, Ho, Hs⟩
+  icases rtHeldF_read' γ P b rtx rv p s v $$ [$Hh $Hs] with ⟨%dq, Hsl, Hback⟩
+  iexists dq
+  iframe Hsl
+  iintro Hsl
+  iframe Ho
+  iapply Hback $$ Hsl
+
+/-- A slice a held shared read transaction returned, read (`rtHeldF_read`). -/
+theorem rtHeld_read (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (qo : Qp)
+    (s : GoSlice) (v : GoString) :
+    rtHeld (GF := GF) γ P b rtx rv ∗ bOpen γ qo ∗ rdB rtx s v ⊢
+      ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ rtHeld γ P b rtx rv ∗ bOpen γ qo) := by
+  rw [rtHeld_eq]
+  exact rtHeldF_read γ P b rtx rv sync.rfrac.half qo s v
+
+/-- **The held shared read transaction's state is well formed** (a law: mvcc's bridge used to
+unfold `rtHeld`). -/
+theorem rtHeld_wf (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) :
+    rtHeld (GF := GF) γ P b rtx rv ⊢ rtHeld γ P b rtx rv ∗ ⌜rv.2.Wf⌝ := by
+  unfold rtHeld rtResAt rtRest rtCore
+  iintro ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
+    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩
+  isplitl
+  · iexists rt, rd, H, L
+    iframe; iframe #
+    ipureintro; exact ⟨⟨Hok, Hf⟩, Hrtx⟩
+  · ipureintro; exact Hf.1
+
+/-- An interval with an open share is live: its transaction is not nil (a stopped one's is, and
+the backend stopped, `bOpen_stopped`). -/
+theorem rtIntv_live (γ : BNames) (P : BParams) (q : Qp) (rd : RdSt) (cm : GoMap) (D : Data)
+    (p qo : Qp) :
+    rtIntv (GF := GF) γ P q rd cm D p ∗ bOpen γ qo ⊢
+      rtIntv γ P q rd cm D p ∗ bOpen γ qo ∗ ⌜rd.rtx ≠ Loc.null⌝ := by
+  iintro ⟨Hiv, Ho⟩
+  unfold rtIntv
+  cases hl : rd.live
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Hiv with ⟨-, #Hst⟩
+    iexfalso; iapply bOpen_stopped γ qo $$ [$Ho $Hst]
+  · simp only [↓reduceIte]
+    icases Hiv with ⟨Hlive, Hrest⟩
+    ihave %Hn := txLive_nonnull rd.rtx p $$ Hlive
+    iframe Ho Hlive Hrest
+    ipureintro; exact Hn
+
+/-- **What `RLock`'s proof adds** (the backend-auth-split stage's decision 1): `readTx.mu`'s read
+side, with an open share, has a live interval. -/
+theorem rtResAt_live (γ : BNames) (P : BParams) (rt : Loc) (rd : RdSt) (rv : RView)
+    (H : GMap (w64 × Nat) RView) (L : VData) (qo : Qp) :
+    rtResAt (GF := GF) γ P rt sync.rfrac rd rv H (L := L) ∗ bOpen γ qo ⊢
+      rtResAt γ P rt sync.rfrac rd rv H (L := L) ∗ bOpen γ qo ∗ ⌜rd.rtx ≠ Loc.null⌝ := by
+  iintro ⟨HR, Ho⟩
+  unfold rtResAt rtRest rtCore
+  icases HR with ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs, Hcur, Hcln, Hhist, Hrtxf, Hwgf,
+    %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩
+  icases rtIntv_live γ P sync.rfrac rd cm rv.1 sync.rfrac.half qo $$ [$Hiv $Ho] with ⟨Hiv, Ho, %Hn⟩
+  iframe Ho
+  isplitl
+  · iexists m, Pb, cm
+    iframe; iframe #
+    ipureintro; exact ⟨Hok, Hf⟩
+  ipureintro; exact Hn
 
 /-- A slice a concurrent read transaction returned, read. -/
 theorem crtSnap_read (γ : BNames) (P : BParams) (b crt rtx : Loc) (rv : RView) (s : GoSlice)

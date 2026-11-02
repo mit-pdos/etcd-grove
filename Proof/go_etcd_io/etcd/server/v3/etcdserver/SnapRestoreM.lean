@@ -232,9 +232,8 @@ theorem snap_oldReaders (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = s
     have h1 : mvcc.nJobRd (some d) = 1 := by simp [mvcc.nJobRd, hcm]
     unfold mvcc.compactJobResM
     simp only [hon, ↓reduceIte, h1]
-    have h2 := sync.actualMaxReaders_ge_2
     have e : List.replicate (mvcc.nReaders - 1) () = List.replicate (mvcc.nReaders - 1 - 1 + 1) () := by
-      congr 1; unfold mvcc.nReaders; omega
+      congr 1; rw [mvcc.nReaders_val]
     rw [e]
     iintro ⟨H, Hrt, -⟩
     iapply (mvcc.rep_split _ (mvcc.nReaders - 1 - 1) 1).2

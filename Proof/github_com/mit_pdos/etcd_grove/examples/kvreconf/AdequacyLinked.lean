@@ -38,14 +38,14 @@ theorem kvreconf_wp_Main_kvrGF : kvrMainSpec := by
 package's initialization, then `Main()`, which starts a cluster of random options, runs the
 randomized linearizability test under configuration changes and leadership disruptions, panics
 unless porcupine answers `Ok`, and stops the cluster) from a fresh state with one thread, of
-`n < 2^63` steps: the main thread's result, if any, is `#()`; no thread is stuck; no thread has
+`n < 2^61` steps: the main thread's result, if any, is `#()`; no thread is stuck; no thread has
 ended in a panic. -/
 theorem kvreconf_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.kvreconf.Assumptions]
     [hLog : log.NewModel]
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
-    (n : Nat) (Hn : n < 2 ^ 63) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([kvreconfProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧

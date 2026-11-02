@@ -195,7 +195,7 @@ theorem compactQueue_stopped (γ : StoreNames) (c : Int) (Ps : List GName) (p : 
 /-- The `RWMutex` admits at least three readers: the restored store's pool, its writer and its
 compaction job. -/
 theorem nReaders_ge_3 : 3 ≤ nReaders := by
-  unfold nReaders; rw [sync.rwmutex.actualMaxReaders_unseal]; decide
+  rw [nReaders_val]; decide
 
 /-- Three readers out of the pool. -/
 theorem rep_take3 (P : IProp GF) :

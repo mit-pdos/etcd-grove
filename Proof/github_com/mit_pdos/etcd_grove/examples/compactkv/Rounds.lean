@@ -7,7 +7,7 @@ once, even after its call returned, and it changes nothing but its key, in a rev
 monotone count of the rounds whose put has fired, and the revision of each one's first firing,
 suffice; a state's earlier revisions never change (`kvOpStep_at`).
 
-* `roundsInv γ γf γl keys val`: the client's invariant holds `etcdKV` (its half) with the state
+* `roundsInv γ γf γl γv keys val`: the client's invariant holds `etcdKV` (its half) with the state
   sorted by key, past revision `0`, a monotone count `n` at `γf` and the list `L` (`n` long) of the
   rounds' first firings' revisions at `γl`, such that round `j`'s key holds `val` at every revision
   from `L[j]` to the current one.
@@ -166,41 +166,47 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **The client's invariant for the rounds** (see the file header): `etcdKV`, the count of
-rounds whose put fired at `γf` and their first firings' revisions at `γl`. -/
-def roundsInv (γ : ReadNames) (γf γl : GName) (keys : List GoString) (val : GoString) : IProp GF :=
+rounds whose put fired at `γf` and their first firings' revisions at `γl`; (the read-side law,
+2026-11-02) the state's revision as a monotone counter at `γv` (as `client.kvClientInv`'s), where
+a revision the cluster has reached is a lower bound (`roundsInv_revLb`). -/
+def roundsInv (γ : ReadNames) (γf γl γv : GName) (keys : List GoString) (val : GoString) :
+    IProp GF :=
   inv kvClientN iprop(∃ (σ : KVState) (n : Nat) (L : List Nat), etcdKV γ.kv σ ∗
-    monoNatAuthOwn γf 1 n ∗ monoListAuthOwn γl 1 L ∗ ⌜L.length = n ∧ roundsOk keys val σ L⌝)
+    monoNatAuthOwn γf 1 n ∗ monoListAuthOwn γl 1 L ∗ monoNatAuthOwn γv 1 σ.rev ∗
+    ⌜L.length = n ∧ roundsOk keys val σ L⌝)
 
-instance roundsInv_persistent (γ : ReadNames) (γf γl : GName) (keys : List GoString)
-    (val : GoString) : Persistent (roundsInv (GF := GF) γ γf γl keys val) := by
+instance roundsInv_persistent (γ : ReadNames) (γf γl γv : GName) (keys : List GoString)
+    (val : GoString) : Persistent (roundsInv (GF := GF) γ γf γl γv keys val) := by
   unfold roundsInv; infer_instance
 
 /-- The invariant at a start state (a log's, past revision `0`), no round's put fired. -/
 theorem roundsInv_alloc (γr : ReadNames) (l : mvcc.Log) (keys : List GoString) (val : GoString)
     (Em : CoPset) (hl : 2 ≤ l.length) (hov : oneValW val (kvStateOf l).changes) :
     etcdKV (GF := GF) γr.kv (kvStateOf l) ⊢
-      |={Em}=> ∃ γf γl : GName, roundsInv γr γf γl keys val := by
+      |={Em}=> ∃ γf γl γv : GName, roundsInv γr γf γl γv keys val := by
   iintro Hσ
   imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γf, Hm, -⟩
   imod (mono_list_own_alloc (GF := GF) ([] : List Nat)) with ⟨%γl, HL, -⟩
+  imod (mono_nat_own_alloc (GF := GF) (kvStateOf l).rev) with ⟨%γv, Hrv, -⟩
   imod inv_alloc kvClientN Em (iprop(∃ (σ : KVState) (n : Nat) (L : List Nat), etcdKV γr.kv σ ∗
-      monoNatAuthOwn γf 1 n ∗ monoListAuthOwn γl 1 L ∗ ⌜L.length = n ∧ roundsOk keys val σ L⌝))
-      $$ [Hσ Hm HL] with #Hinv
-  · inext; iexists kvStateOf l, 0, []; iframe Hσ Hm HL
+      monoNatAuthOwn γf 1 n ∗ monoListAuthOwn γl 1 L ∗ monoNatAuthOwn γv 1 σ.rev ∗
+      ⌜L.length = n ∧ roundsOk keys val σ L⌝))
+      $$ [Hσ Hm HL Hrv] with #Hinv
+  · inext; iexists kvStateOf l, 0, []; iframe Hσ Hm HL Hrv
     ipureintro
     refine ⟨rfl, KVState.kvs_sorted _, ?_, fun _ _ _ h => by simp at h, hov⟩
     rw [kvStateOf_rev]; omega
   imodintro
-  iexists γf, γl
+  iexists γf, γl, γv
   iunfold roundsInv
   iexact Hinv
 
 /-- **Round `i`'s put's update** (persistent): from the first `i` rounds' puts fired, each firing
 writes `keys[i] ↦ val`; its result is that the first `i + 1` fired, round `i`'s first firing at a
 revision `r0` at most the one this firing wrote (`σ.rev + 1`), and the state's revision past `0`. -/
-theorem putAu_round (γ : ReadNames) (γf γl : GName) (keys : List GoString) (val : GoString)
+theorem putAu_round (γ : ReadNames) (γf γl γv : GName) (keys : List GoString) (val : GoString)
     (i : Nat) (k : GoString) (hk : keys[i]? = some k) :
-    roundsInv γ γf γl keys val ∗ monoNatLbOwn γf i ⊢
+    roundsInv γ γf γl γv keys val ∗ monoNatLbOwn γf i ⊢
       kvOpAu (GF := GF) γ.kv (.put (putKeyOp k val))
         (fun σ => iprop(monoNatLbOwn γf (i + 1) ∗
           (∃ r0, monoListIdxOwn γl i r0 ∗ ⌜r0 ≤ σ.rev + 1⌝) ∗ ⌜1 ≤ σ.rev⌝)) := by
@@ -213,7 +219,7 @@ theorem putAu_round (γ : ReadNames) (γf γl : GName) (keys : List GoString) (v
   iauintro
   unfold atomic_acc
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%σ, %n, %L, Hσ, Hmn, HL, %Hok⟩
+  icases Hi with ⟨%σ, %n, %L, Hσ, Hmn, HL, Hrv, %Hok⟩
   ihave %Hv := monoNatLbOwn_valid γf 1 n i $$ Hmn Hlb
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
@@ -223,8 +229,8 @@ theorem putAu_round (γ : ReadNames) (γf γl : GName) (keys : List GoString) (v
   isplit
   · iintro Hσ
     imod Hmask with -
-    imod Hclose $$ [Hσ Hmn HL] with -
-    · inext; iexists σ, n, L; iframe Hσ Hmn HL; ipureintro; exact Hok
+    imod Hclose $$ [Hσ Hmn HL Hrv] with -
+    · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
     imodintro
     itrivial
   · iintro Hσ
@@ -235,10 +241,12 @@ theorem putAu_round (γ : ReadNames) (γf γl : GName) (keys : List GoString) (v
       $$ Hmn with ⟨Hmn, #Hlb'⟩
     imod (monoListAuthOwn_update (GF := GF) (γ := γl) _ Hpre) $$ HL with ⟨HL, #HLb⟩
     ihave #Hidx := monoListIdxOwn_get (γ := γl) i r0 Hr0 $$ HLb
-    imod Hclose $$ [Hσ Hmn HL] with -
+    imod (mono_nat_own_update (GF := GF) (γ := γv) (kvOpStep (.put (putKeyOp k val)) σ).rev
+      (kvOpStep_rev _ σ)) $$ Hrv with ⟨Hrv, -⟩
+    imod Hclose $$ [Hσ Hmn HL Hrv] with -
     · inext
       iexists (kvOpStep (.put (putKeyOp k val)) σ), (max n (i + 1)), (roundsL L i (σ.rev + 1))
-      iframe Hσ Hmn HL
+      iframe Hσ Hmn HL Hrv
       ipureintro; exact ⟨by rw [Hlen, Hok.1], Hstep⟩
     imodintro
     iintro !>
@@ -250,13 +258,13 @@ theorem putAu_round (γ : ReadNames) (γf γl : GName) (keys : List GoString) (v
 
 /-- **Round `i`'s get's update, after its put fired** (persistent): a read update whose result is
 that the state's value of `keys[i]` is `val`. -/
-theorem getAu_round (γ : ReadNames) (γf γl : GName) (keys : List GoString) (val : GoString)
-    (i : Nat) (k : GoString) (hk : keys[i]? = some k) :
-    roundsInv γ γf γl keys val ∗ monoNatLbOwn γf (i + 1) ⊢
+theorem getAu_round (γ : ReadNames) (γf γl γv : GName) (keys : List GoString) (val : GoString)
+    (i : Nat) (k : GoString) (hk : keys[i]? = some k) (r : Nat) :
+    roundsInv γ γf γl γv keys val ∗ monoNatLbOwn γf (i + 1) ∗ monoNatLbOwn γv r ⊢
       kvReadAu (GF := GF) γ.kv
-        (fun σ => iprop(⌜(mvcc.findKey k σ.kvs).map EtcdKv.value = some val⌝)) := by
+        (fun σ => iprop(⌜(mvcc.findKey k σ.kvs).map EtcdKv.value = some val ∧ r ≤ σ.rev⌝)) := by
   have Hm := kvClientN_mask
-  iintro ⟨#Hinv, #Hlb⟩
+  iintro ⟨#Hinv, #Hlb, #Hrlb⟩
   iunfold kvReadAu
   iunfold kvAu
   iintro !>
@@ -264,8 +272,9 @@ theorem getAu_round (γ : ReadNames) (γf γl : GName) (keys : List GoString) (v
   unfold atomic_acc
   iunfold roundsInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%σ, %n, %L, Hσ, Hmn, HL, %Hok⟩
+  icases Hi with ⟨%σ, %n, %L, Hσ, Hmn, HL, Hrv, %Hok⟩
   ihave %Hv := monoNatLbOwn_valid γf 1 n (i + 1) $$ Hmn Hlb
+  ihave %Hrr := monoNatLbOwn_valid γv 1 σ.rev r $$ Hrv Hrlb
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
@@ -274,27 +283,27 @@ theorem getAu_round (γ : ReadNames) (γf γl : GName) (keys : List GoString) (v
   isplit
   · iintro Hσ
     imod Hmask with -
-    imod Hclose $$ [Hσ Hmn HL] with -
-    · inext; iexists σ, n, L; iframe Hσ Hmn HL; ipureintro; exact Hok
+    imod Hclose $$ [Hσ Hmn HL Hrv] with -
+    · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
     imodintro
     itrivial
   · iintro Hσ
     imod Hmask with -
-    imod Hclose $$ [Hσ Hmn HL] with -
-    · inext; iexists σ, n, L; iframe Hσ Hmn HL; ipureintro; exact Hok
+    imod Hclose $$ [Hσ Hmn HL Hrv] with -
+    · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
     imodintro
     iintro !>
     ipureintro
     have hi : i < L.length := by omega
     obtain ⟨h0, hrg⟩ := Hok.2.2.2.1 i k _ (List.getElem?_eq_getElem hi) hk
-    exact hrg σ.rev h0 (Nat.le_refl _)
+    exact ⟨hrg σ.rev h0 (Nat.le_refl _), Hrr.2⟩
 
 /-- **A get at a revision past round `i`'s put's first firing** (persistent): with round `i`'s first
 firing at `r0`, a read update whose result is that `keys[i]` holds `val` at every revision from
 `r0` to the state's current one. -/
-theorem getAtAu_round (γ : ReadNames) (γf γl : GName) (keys : List GoString) (val : GoString)
+theorem getAtAu_round (γ : ReadNames) (γf γl γv : GName) (keys : List GoString) (val : GoString)
     (i r0 : Nat) (k : GoString) (hk : keys[i]? = some k) :
-    roundsInv γ γf γl keys val ∗ monoListIdxOwn γl i r0 ⊢
+    roundsInv γ γf γl γv keys val ∗ monoListIdxOwn γl i r0 ⊢
       kvReadAu (GF := GF) γ.kv
         (fun σ => iprop(⌜∀ r, r0 ≤ r → r ≤ σ.rev →
           (mvcc.findKey k (σ.at r).kvs).map EtcdKv.value = some val⌝)) := by
@@ -307,7 +316,7 @@ theorem getAtAu_round (γ : ReadNames) (γf γl : GName) (keys : List GoString) 
   unfold atomic_acc
   iunfold roundsInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%σ, %n, %L, Hσ, Hmn, HL, %Hok⟩
+  icases Hi with ⟨%σ, %n, %L, Hσ, Hmn, HL, Hrv, %Hok⟩
   ihave %Hl := mono_list_auth_idx_lookup γl 1 L i r0 $$ HL Hidx
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
@@ -317,14 +326,14 @@ theorem getAtAu_round (γ : ReadNames) (γf γl : GName) (keys : List GoString) 
   isplit
   · iintro Hσ
     imod Hmask with -
-    imod Hclose $$ [Hσ Hmn HL] with -
-    · inext; iexists σ, n, L; iframe Hσ Hmn HL; ipureintro; exact Hok
+    imod Hclose $$ [Hσ Hmn HL Hrv] with -
+    · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
     imodintro
     itrivial
   · iintro Hσ
     imod Hmask with -
-    imod Hclose $$ [Hσ Hmn HL] with -
-    · inext; iexists σ, n, L; iframe Hσ Hmn HL; ipureintro; exact Hok
+    imod Hclose $$ [Hσ Hmn HL Hrv] with -
+    · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
     imodintro
     iintro !>
     ipureintro
@@ -332,8 +341,8 @@ theorem getAtAu_round (γ : ReadNames) (γf γl : GName) (keys : List GoString) 
 
 /-- **The rounds' writes, read** (persistent; watches across a compaction, W4): a read update
 whose result is that every revision is one put of `val`, or empty (`oneValW`). -/
-theorem oneValAu (γ : ReadNames) (γf γl : GName) (keys : List GoString) (val : GoString) :
-    roundsInv γ γf γl keys val ⊢
+theorem oneValAu (γ : ReadNames) (γf γl γv : GName) (keys : List GoString) (val : GoString) :
+    roundsInv γ γf γl γv keys val ⊢
       kvReadAu (GF := GF) γ.kv (fun σ => iprop(⌜oneValW val σ.changes⌝)) := by
   have Hm := kvClientN_mask
   iintro #Hinv
@@ -344,7 +353,7 @@ theorem oneValAu (γ : ReadNames) (γf γl : GName) (keys : List GoString) (val 
   unfold atomic_acc
   iunfold roundsInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%σ, %n, %L, Hσ, Hmn, HL, %Hok⟩
+  icases Hi with ⟨%σ, %n, %L, Hσ, Hmn, HL, Hrv, %Hok⟩
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
@@ -353,18 +362,77 @@ theorem oneValAu (γ : ReadNames) (γf γl : GName) (keys : List GoString) (val 
   isplit
   · iintro Hσ
     imod Hmask with -
-    imod Hclose $$ [Hσ Hmn HL] with -
-    · inext; iexists σ, n, L; iframe Hσ Hmn HL; ipureintro; exact Hok
+    imod Hclose $$ [Hσ Hmn HL Hrv] with -
+    · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
     imodintro
     itrivial
   · iintro Hσ
     imod Hmask with -
-    imod Hclose $$ [Hσ Hmn HL] with -
-    · inext; iexists σ, n, L; iframe Hσ Hmn HL; ipureintro; exact Hok
+    imod Hclose $$ [Hσ Hmn HL Hrv] with -
+    · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
     imodintro
     iintro !>
     ipureintro
     exact Hok.2.2.2.2
+
+/-- **A read at a revision at least the counter's bound** (persistent; C3's watch side,
+2026-11-02): a read update whose result is that the state's revision is at least `r`. -/
+theorem getRevAu_round (γ : ReadNames) (γf γl γv : GName) (keys : List GoString) (val : GoString)
+    (r : Nat) :
+    roundsInv γ γf γl γv keys val ∗ monoNatLbOwn γv r ⊢
+      kvReadAu (GF := GF) γ.kv (fun σ => iprop(⌜r ≤ σ.rev⌝)) := by
+  have Hm := kvClientN_mask
+  iintro ⟨#Hinv, #Hrlb⟩
+  iunfold kvReadAu
+  iunfold kvAu
+  iintro !>
+  iauintro
+  unfold atomic_acc
+  iunfold roundsInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%σ, %n, %L, Hσ, Hmn, HL, Hrv, %Hok⟩
+  ihave %Hrr := monoNatLbOwn_valid γv 1 σ.rev r $$ Hrv Hrlb
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hmask with -
+    imod Hclose $$ [Hσ Hmn HL Hrv] with -
+    · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
+    imodintro
+    itrivial
+  · iintro Hσ
+    imod Hmask with -
+    imod Hclose $$ [Hσ Hmn HL Hrv] with -
+    · inext; iexists σ, n, L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
+    imodintro
+    iintro !>
+    ipureintro
+    exact Hrr.2
+
+/-- **A revision the cluster has reached is a lower bound of the rounds' state** (the read-side
+law, 2026-11-02, `kv_revLbZ_le`): with the KV invariant, a reached revision `n` gives the counter's
+lower bound, so every later read of the rounds reads at a revision at least `n`. -/
+theorem roundsInv_revLb [go_etcd_io.raft.v3.Assumptions] (γ : ReadNames) (γf γl γv : GName) (keys : List GoString)
+    (val : GoString) (n : Nat) :
+    ⊢ kvInv (GF := GF) γ.raft γ.kv -∗ roundsInv γ γf γl γv keys val -∗ kvRevLbZ γ.kv n ={⊤}=∗
+      monoNatLbOwn γv n := by
+  have Hm := kvClientN_mask
+  iintro #Hkv #Hinv #Hlb
+  iunfold roundsInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%σ, %n', %L, Hσ, Hmn, HL, Hrv, %Hok⟩
+  have hE : (↑kvN : CoPset) ⊆ ⊤ \ ↑kvClientN :=
+    Perennial.mask_ndot_ne' nroot _ _ (by decide)
+  imod (kv_revLbZ_le γ.raft γ.kv (⊤ \ ↑kvClientN) hE n σ) $$ Hkv Hlb Hσ with ⟨Hσ, %Hn⟩
+  ihave #Hlb' := monoNatLbOwn_get γv 1 σ.rev $$ Hrv
+  imod Hclose $$ [Hσ Hmn HL Hrv] with -
+  · inext; iexists σ, n', L; iframe Hσ Hmn HL Hrv; ipureintro; exact Hok
+  imodintro
+  iapply monoNatLbOwn_le n (by omega) $$ Hlb'
 
 end inv
 

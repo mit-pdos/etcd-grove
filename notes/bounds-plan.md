@@ -335,3 +335,13 @@ The questions as they were put:
 - **D3.** Bundle `NewServer`'s configuration premises into `cfgScopeOk`?
 - **D4.** Bundle the closed results' workload hypotheses into one `Workload` record? This changes how
   every closed result's statement reads, not what it says.
+
+## Later cleanup: the backend's reader stock in the specs between (2026-11-02, the user's decision on the auth split's Q4)
+
+The backend-auth-split stage's pool (`backend.bkRPool`, `rdPoolN = 2 ^ 28` slots, from
+`newPost_pool`) leaves the constructor's other `rdStockN = actualMaxReaders - rdPoolN` reader slots
+counted, and the specs that consume them (mvcc's `New`, `NewStore`, `newWatchableStore`,
+`store.restore`/`Restore`, `BootBackend`, `EtcdServer.Start`, the snapshot path's `RestoreMoves`,
+`SnapApplyOpts`) are restated over `List.replicate rdStockN`: a slot count in specs between the
+owner and the adequacy theorem, against the rule here. Cleanup: the owner (the backend, or mvcc's
+store pool) turns the stock into a handle those specs take instead of the count.

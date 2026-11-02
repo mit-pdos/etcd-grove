@@ -188,7 +188,7 @@ theorem snap_isApplyLessor
   · iPkgInit
   iapply apply.isApplyLessor_of_lessorInv hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv lp sst γs _ _
     (srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be)) _
-    (lease.lessorBeOn lp d'.be) (backend.rbOwn d'.γB)
+    (lease.lessorBeOn lp d'.be) (backend.rbPart d'.γB (· = go!"lease"))
   iunfold lessorLookupOk at Hllk
   iframe Hllk Hlcfg Hlinv Hlspkg Hmvpkg Hhok
   isplitr

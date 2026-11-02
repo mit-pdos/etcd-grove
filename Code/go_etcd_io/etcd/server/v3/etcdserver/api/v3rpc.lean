@@ -7918,11 +7918,19 @@ class quotaLeaseServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_qa : ∀ (x : quotaLeaseServer) (y : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldSet quotaLeaseServer.underlying go!"qa") (PairV #x #y) (Val #(({ x with qa' := y } : quotaLeaseServer)))
   method_set : go.MethodSetIs quotaLeaseServer.ty [(go!"LeaseKeepAlive", (some (go.signature.Signature [(_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty)] false [go.error]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedLeaseServer", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType quotaLeaseServer.ty) [(go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseKeepAlive", (some (go.signature.Signature [(_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty)] false [go.error]))), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedLeaseServer", (some (go.signature.Signature [] false [])))]
+  LeaseLeases_unfold : MethodUnfold quotaLeaseServer.ty go!"LeaseLeases" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty go!"LeaseLeases"))) (App (Val (GoInstruction (StructFieldGet quotaLeaseServer.ty go!"LeaseServer"))) (Var "$r"))))
   LeaseRevoke_unfold : MethodUnfold quotaLeaseServer.ty go!"LeaseRevoke" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty go!"LeaseRevoke"))) (App (Val (GoInstruction (StructFieldGet quotaLeaseServer.ty go!"LeaseServer"))) (Var "$r"))))
+  LeaseTimeToLive_unfold : MethodUnfold quotaLeaseServer.ty go!"LeaseTimeToLive" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty go!"LeaseTimeToLive"))) (App (Val (GoInstruction (StructFieldGet quotaLeaseServer.ty go!"LeaseServer"))) (Var "$r"))))
   ptr_LeaseGrant_unfold : MethodUnfold (go.GoType.PointerType quotaLeaseServer.ty) go!"LeaseGrant" quotaLeaseServer.LeaseGrant.impl
+  ptr_LeaseLeases_unfold : MethodUnfold (go.GoType.PointerType quotaLeaseServer.ty) go!"LeaseLeases" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty go!"LeaseLeases"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty))) (App (Val (GoInstruction (StructFieldRef quotaLeaseServer.ty go!"LeaseServer"))) (Var "$r")))))
   ptr_LeaseRevoke_unfold : MethodUnfold (go.GoType.PointerType quotaLeaseServer.ty) go!"LeaseRevoke" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty go!"LeaseRevoke"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty))) (App (Val (GoInstruction (StructFieldRef quotaLeaseServer.ty go!"LeaseServer"))) (Var "$r")))))
+  ptr_LeaseTimeToLive_unfold : MethodUnfold (go.GoType.PointerType quotaLeaseServer.ty) go!"LeaseTimeToLive" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty go!"LeaseTimeToLive"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty))) (App (Val (GoInstruction (StructFieldRef quotaLeaseServer.ty go!"LeaseServer"))) (Var "$r")))))
 
 attribute [instance] quotaLeaseServer.TypeAssumptions.type_repr
   quotaLeaseServer.TypeAssumptions.underlying
@@ -7932,9 +7940,13 @@ attribute [instance] quotaLeaseServer.TypeAssumptions.type_repr
   quotaLeaseServer.TypeAssumptions.set_qa
   quotaLeaseServer.TypeAssumptions.method_set
   quotaLeaseServer.TypeAssumptions.ptr_method_set
+  quotaLeaseServer.TypeAssumptions.LeaseLeases_unfold
   quotaLeaseServer.TypeAssumptions.LeaseRevoke_unfold
+  quotaLeaseServer.TypeAssumptions.LeaseTimeToLive_unfold
   quotaLeaseServer.TypeAssumptions.ptr_LeaseGrant_unfold
+  quotaLeaseServer.TypeAssumptions.ptr_LeaseLeases_unfold
   quotaLeaseServer.TypeAssumptions.ptr_LeaseRevoke_unfold
+  quotaLeaseServer.TypeAssumptions.ptr_LeaseTimeToLive_unfold
 
 structure watchServer [GooseExts] where
   mk ::

@@ -4,47 +4,87 @@
 
 theorem newLogWithSize.wp_proof [package_sem : Assumptions] : newLogWithSize.spec
   -- `Perennial.EtcdGrove.newLogWithSize.spec`, unfolded:
-  ∀ (si : GoInterfaceOk) (lg : Logger) (maxSize : w64) (sn : StorNames) (lok : GoInterfaceOk) (R : IProp GF),
+  ∀ (si : GoInterfaceOk) (lg : Logger) (maxSize : w64) (sn : StorNames) (lok : GoInterfaceOk) (R : IProp GF)
+    (b last : Nat),
     lg = GoInterface.ok lok →
       0 < uint.Z maxSize →
-        ⊢
-          ∀ Φ,
-            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                R ∗
-                  (□
-                      ∀ Φ,
-                        R -∗
-                          ▷ (R -∗ Φ (intoVal (W64 1), intoVal GoInterface.nil)) -∗
-                            WP
-                              ((intoVal
-                                  (methods si.ty go!"FirstIndex"
-                                    si.v))
-                                (intoVal ()))
-                              {{ Φ }}) ∗
-                    (□
-                        ∀ Φ,
-                          R -∗
-                            ▷ (R -∗ Φ (intoVal (W64 0), intoVal GoInterface.nil)) -∗
-                              WP
-                                ((intoVal
-                                    (methods si.ty go!"LastIndex" si.v))
-                                  (intoVal ()))
-                                {{ Φ }}) ∗
-                      isLogger lok -∗
-              (▷
-                  ∀ l ip,
+        b ≤ last →
+          ↑last + 1 < 2 ^ 64 →
+            ⊢
+              ∀ Φ,
+                isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                     R ∗
-                        ⌜uint.Z ip = 1⌝ ∗
-                          (isStorageD sn (GoInterface.ok si) -∗
-                            ownStorage sn (GoInterface.ok si)
-                                { prev := { term' := W64 0, index' := W64 0 }, ents := [], pend := [] } -∗
-                              ownRaftLog l
-                                { prev := { term' := W64 0, index' := W64 0 }, sents := [], uents := [],
-                                  committed := W64 0, applied := W64 0, snap := none, inprogress := ip, applying := W64 0,
-                                  unpersisted := [], stored := [], apsize := W64 0, apmax := maxSize,
-                                  storage := GoInterface.ok si, ksn := [], sn := sn }) -∗
-                      Φ (intoVal l)) -∗
-                WP
-                  ((((intoVal (functions newLogWithSize [])) (intoVal (GoInterface.ok si))) (intoVal lg))
-                    (intoVal maxSize))
-                  {{ Φ }}
+                      (□
+                          ∀ Φ,
+                            R -∗
+                              ▷ (R -∗ Φ (intoVal (W64 (↑b + 1)), intoVal GoInterface.nil)) -∗
+                                WP
+                                  ((intoVal
+                                      (methods si.ty go!"FirstIndex"
+                                        si.v))
+                                    (intoVal ()))
+                                  {{ Φ }}) ∗
+                        (□
+                            ∀ Φ,
+                              R -∗
+                                ▷ (R -∗ Φ (intoVal (W64 ↑last), intoVal GoInterface.nil)) -∗
+                                  WP
+                                    ((intoVal
+                                        (methods si.ty go!"LastIndex" si.v))
+                                      (intoVal ()))
+                                    {{ Φ }}) ∗
+                          isLogger lok -∗
+                  (▷
+                      ∀ l ip,
+                        (R ∗
+                            ⌜uint.Z ip = ↑last + 1⌝ ∗
+                              ∃ lv0,
+                                typedPointsto l lv0 (DFrac.own 1) ∗
+                                  ⌜lv0.storage' = GoInterface.ok si ∧
+                                        lv0.committed' = W64 ↑b ∧
+                                          lv0.applied' = W64 ↑b ∧
+                                            lv0.applying' = W64 ↑b ∧
+                                              lv0.unstable'.snapshot' = null ∧
+                                                lv0.unstable'.entries'.len = W64 0 ∧
+                                                  lv0.unstable'.offset' = ip ∧
+                                                    lv0.unstable'.offsetInProgress' = ip ∧
+                                                      lv0.unstable'.snapshotInProgress' = false ∧
+                                                        lv0.applyingEntsSize' = W64 0 ∧
+                                                          lv0.applyingEntsPaused' = false ∧
+                                                            lv0.maxApplyingEntsSize' = maxSize⌝ ∗
+                                    ∀ σ c a,
+                                      ⌜uint.nat σ.prev.index' = b ∧
+                                            b + σ.ents.length = last ∧
+                                              LogIndicesOk σ.prev σ.ents ∧
+                                                σ.pend = [] ∧
+                                                  b ≤ σ.fr ∧
+                                                    σ.fr ≤ uint.nat c ∧
+                                                      σ.sg ≤ b ∧
+                                                        b ≤ uint.nat a ∧
+                                                          uint.nat a ≤ uint.nat c ∧
+                                                            uint.nat c ≤ last ∧
+                                                              uint.nat σ.fl ≤ uint.nat a ∧
+                                                                ∀ (k : Nat) (t : w64),
+                                                                  σ.dt !! k = some t →
+                                                                    k ≤ uint.nat c ∧
+                                                                      (b ≤ k → termAt σ.prev σ.ents (W64 ↑k) = some t)⌝ -∗
+                                        typedPointsto l
+                                            { storage' := lv0.storage', unstable' := lv0.unstable', committed' := c,
+                                              applying' := a, applied' := a, logger' := lv0.logger',
+                                              maxApplyingEntsSize' := lv0.maxApplyingEntsSize',
+                                              applyingEntsSize' := lv0.applyingEntsSize',
+                                              applyingEntsPaused' := lv0.applyingEntsPaused' }
+                                            (DFrac.own 1) -∗
+                                          isStorageD sn (GoInterface.ok si) -∗
+                                            ownStorage sn (GoInterface.ok si) σ -∗
+                                              ownRaftLog l
+                                                { prev := σ.prev, sents := σ.ents, uents := [], committed := c,
+                                                  applied := a, snap := none, inprogress := ip, applying := a,
+                                                  unpersisted := [], stored := σ.ents, apsize := W64 0, apmax := maxSize,
+                                                  storage := GoInterface.ok si, ksn := [], fl := σ.fl, sn := sn,
+                                                  sg := σ.sg, dtk := uint.nat c }) -∗
+                          Φ (intoVal l)) -∗
+                    WP
+                      ((((intoVal (functions newLogWithSize [])) (intoVal (GoInterface.ok si))) (intoVal lg))
+                        (intoVal maxSize))
+                      {{ Φ }}

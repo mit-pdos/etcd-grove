@@ -343,9 +343,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- Raft's reading of the contract's `Bnd c`: some applied lower bound or snapshot handed out at or
-past `c` (the API's `nodeAppliedLb`/`snapGiven` are these lower bounds). -/
+past `c` (the API's `nodeAppliedLb`/`snapGiven` are these lower bounds), or (2026-11-01, durability
+stage I-6) at most the applied bound the attach recorded (`sn.a0`, which raft's floor reaches once
+caught up: `storCaught`). -/
 def raftBnd (sn : StorNames) (c : Nat) : IProp GF :=
-  iprop(∃ (k : Nat), ⌜c ≤ k⌝ ∗ (monoNatLbOwn sn.ga k ∨ monoNatLbOwn sn.gg k))
+  iprop((∃ (k : Nat), ⌜c ≤ k⌝ ∗ (monoNatLbOwn sn.ga k ∨ monoNatLbOwn sn.gg k)) ∨ ⌜c ≤ sn.a0⌝)
 
 instance raftBnd_pers (sn : StorNames) (c : Nat) : Persistent (raftBnd (GF := GF) sn c) := by
   unfold raftBnd; infer_instance
@@ -354,9 +356,12 @@ instance raftBnd_pers (sn : StorNames) (c : Nat) : Persistent (raftBnd (GF := GF
 /-- (U8 v2) Raft's reading of the contract's `DL i` for a valid snapshot of term `t`: raft certified
 the term `t` at `i` (`sn.gd`, whose authority keeps every key at most `committed` and of the log's
 term there: `DtOk`), or `i` is strictly below a snapshot raft handed out (`sn.gg`, so below the
-compaction point raft holds). -/
+compaction point raft holds), or (2026-11-01, durability stage I-6) `i` is at most the commit the
+attach recorded and `t` the term recorded at `i` (`sn.c0`, `sn.ct`; raft certifies those terms from
+its own log once its commit reaches the record: `storCaught`). -/
 def raftDL (sn : StorNames) (i : Nat) (t : w64) : IProp GF :=
-  iprop(i ↪[sn.gd]□ t ∨ ∃ (k : Nat), ⌜i < k⌝ ∗ monoNatLbOwn sn.gg k)
+  iprop(i ↪[sn.gd]□ t ∨ (∃ (k : Nat), ⌜i < k⌝ ∗ monoNatLbOwn sn.gg k) ∨
+    ⌜i ≤ sn.c0 ∧ (i, t) ∈ sn.ct⌝)
 
 instance raftDL_pers (sn : StorNames) (i : Nat) (t : w64) : Persistent (raftDL (GF := GF) sn i t) := by
   unfold raftDL; infer_instance
@@ -375,11 +380,36 @@ def isStorageV (sn : StorNames) (st : Storage) : IProp GF :=
 instance isStorageV_pers (sn : StorNames) (st : Storage) : Persistent (isStorageV (GF := GF) sn st) := by
   unfold isStorageV; infer_instance
 
+/-- (2026-11-01, durability stage I-6) **Raft's view has caught up with the attach record**
+(persistent): its floor has reached the recorded applied bound, and it certified every recorded
+term. So `raftBnd`'s and `raftDL`'s third readings say nothing raft's view does not already know
+(`view_bound`, `view_dl`). Trivial without a record (`storCaught_unrec`); `newRaft` makes it after
+`loadState` and `appliedTo`. -/
+def storCaught (sn : StorNames) : IProp GF :=
+  iprop(monoNatLbOwn sn.ga sn.a0 ∗ □ (∀ (i : Nat) (t : w64), ⌜i ≤ sn.c0 ∧ (i, t) ∈ sn.ct⌝ -∗
+    i ↪[sn.gd]□ t))
+
+instance storCaught_pers (sn : StorNames) : Persistent (storCaught (GF := GF) sn) := by
+  unfold storCaught; infer_instance
+
 /-- The authorities raft keeps for its view: of the applied lower bounds (at `fl`) and of the
-snapshot handed out (at `sg`). Kept also while the ranges are lent (`lentStor`). -/
+snapshot handed out (at `sg`), the certified terms (at `dt`), and (durability stage I-6) the
+catch-up with the attach record (`storCaught`). Kept also while the ranges are lent
+(`lentStor`). -/
 def storAuths (sn : StorNames) (σ : StorState) : IProp GF :=
   iprop(monoNatAuthOwn sn.ga 1 (uint.nat σ.fl) ∗ monoNatAuthOwn sn.gg 1 σ.sg ∗
-    ghostMapAuth sn.gd 1 σ.dt)
+    ghostMapAuth sn.gd 1 σ.dt ∗ storCaught sn)
+
+/-- (durability stage I-6) Without an attach record raft's view is caught up. -/
+theorem storCaught_unrec (sn : StorNames) (q : Qp) (n : Nat) :
+    ⊢ monoNatAuthOwn (GF := GF) sn.ga q n -∗ storCaught sn.unrec := by
+  iintro Ha
+  unfold storCaught StorNames.unrec
+  ihave #Hl := monoNatLbOwn_get sn.ga q n $$ Ha
+  isplitr
+  · iapply monoNatLbOwn_le 0 (Nat.zero_le _) $$ Hl
+  · iintro !> %i %t %H
+    exact absurd H.2 (List.not_mem_nil)
 
 /-- **What raft holds of its storage for its view `σ`**: the compaction point `c = prev.index`
 (`storCompacted`), the frozen prefix `[c, fr]` (the dummy `e0` at `c`, of `prev`'s term: (T)), its

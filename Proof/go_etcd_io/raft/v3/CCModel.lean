@@ -69,9 +69,14 @@ instance (e : EntryM) : Decidable (IsConfEnt e) := by
 
 /-- The bytes of an entry of type `ty` decode as the conf change its type says
 (2026-10-13): `stepLeader` `Unmarshal`s a proposed conf-change entry's data and panics if
-that fails. -/
+that fails. (2026-11-02, durability stage II (q), kvdurable's G20) And the type is one of
+raft's, `EntryNormal`, `EntryConfChange` or `EntryConfChangeV2`: raft itself appends any type
+(`stepLeader` only looks for the two conf-change types), but every entry it is given is built by
+`Propose` (`0`), `ProposeConfChange` (`1`, `2`), its own fillers (`0`, `2`) or a bootstrap log
+(`BootWf`), since `node.Step` takes only messages raft sent. -/
 def CCDecodes (ty : w32) (bs : List w8) : Prop :=
-  (ty = W32 1 → ∃ m, ccDecodeV1 bs = some m) ∧ (ty = W32 2 → ∃ m, ccDecodeV2 bs = some m)
+  (ty = W32 1 → ∃ m, ccDecodeV1 bs = some m) ∧ (ty = W32 2 → ∃ m, ccDecodeV2 bs = some m) ∧
+    uint.Z ty ≤ 2
 
 /-- `len(cc.AsV2().Changes) == 0`, `stepLeader`'s `wantsLeaveJoint`: a `ConfChange`'s
 `AsV2` has its one change, a `ConfChangeV2` is its own. -/

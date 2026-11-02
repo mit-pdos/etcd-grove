@@ -164,9 +164,9 @@ snapshot certified first (`srv_snap_make`), `CreateSnapshot.spec` at the node's 
 snapshot, owned, of the voters' conf state, or `ErrSnapOutOfDate`. -/
 theorem wp_srv_createSnapshot
     (hCS : MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG))
-    (ms : Loc) (γs : MemStorNames) (γr : ReadNames) (nid ai at' : w64) (cs : Loc) (eood : GoInterface)
+    (ms : Loc) (γs : MemStorNames) (γr : ReadNames) (nk : GName) (ai at' : w64) (cs : Loc) (eood : GoInterface)
     (hpos : 0 < uint.Z ai) (hsz : GMap.size γr.raft.raft.cfg < 2 ^ 61) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ srvSnapStor ms γs γr nid ai at' ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ srvSnapStor ms γs γr nk ai at' ∗
         epCsCfg γr cs ∗ srvFrozenTerm γs ai at' ∗ memSnapLb γs 0 ∗
         globalAddr ErrSnapOutOfDate ↦□ eood }}
       (App (App (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"CreateSnapshot"))
@@ -196,16 +196,18 @@ theorem wp_srv_createSnapshot
   letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  wp_apply hCS ms γs (memStorJ γr.raft.raft.cl nid) ai e cs DFrac.discard c slice.nil [] eood
+  -- (2026-11-02, the lean merge) `CreateSnapshot` attached (mode `none`, durability stage I-5)
+  wp_apply hCS ms γs (memStorJ γr.raft.raft.cl nk) none ai e cs DFrac.discard c slice.nil [] eood
     $$ [Hnil Hdl] as %snap %err ⟨-, #Hlb, Hres⟩
-  · simp only [memStorJ]
+  · rw [memStorAt_none]
+    simp only [memStorJ]
     iframe Hnil Hdl
     iframe #
     iExactEq Hmsi
     rfl
   iapply HΦ
   iframe Hlb
-  icases Hres with (⟨%Herr, Hsn⟩ | ⟨%Herr, -⟩)
+  icases Hres with (⟨%Herr, Hsn, -⟩ | ⟨%Herr, -⟩)
   · ileft
     isplitr
     · ipureintro; exact Herr

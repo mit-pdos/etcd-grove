@@ -36,14 +36,14 @@ theorem kv_wp_Main_kvGF : kvMainSpec := by
 `Main`'s linked result): every real execution of `kvProgram` (the store package's
 initialization, then `Main()`, which starts the 3-node raft cluster, runs the randomized
 linearizability test and panics unless porcupine answers `Ok`) from a fresh state with one
-thread, of `n < 2^63` steps: the main thread's result, if any, is `#()`; no thread is stuck; no
+thread, of `n < 2^61` steps: the main thread's result, if any, is `#()`; no thread is stuck; no
 thread has ended in a panic. -/
 theorem kv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
     [hLog : log.NewModel]
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
-    (n : Nat) (Hn : n < 2 ^ 63) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([kvProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧

@@ -91,11 +91,13 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
    in two files, with
    [etcd-leader-advance-before-applyconfchange](etcd-leader-advance-before-applyconfchange.md)):
    `Advance` before `ApplyConfChange`, which the documentation allows, lets two different entries
-   commit at the same index. The highest severity of all, but reproduced only on raft's
-   `RawNode`; etcd's path is possible and no etcd check prevents it, only timing (investigated
-   2026-10-23: concurrent membership changes, a slow apply loop, a partition), not reproduced on a
-   cluster. The documentation fix and etcd's five-line change are easy to argue for; claiming
-   etcd is affected in practice needs more evidence.
+   commit at the same index. The highest severity of all. **Reproduced on an etcd cluster
+   (2026-11-02, `main` `a2e3642bc`, 5 of 5 runs)**: two concurrent `MemberAdd`s through different
+   members, the leader's apply loop behind (a failpoint, 2 s), then a partition `{L, F2} | {F3, A,
+   B}`: the old leader acknowledges a put that the new majority never sees (both sides commit
+   revision 2). The failpoint only widens the leader's apply lag; how often a deployment meets the
+   whole schedule is not measured. etcd's five-line fix (tested: the second change is refused) and
+   the raft documentation fix are easy to argue for; on this evidence it belongs in the top tier.
 8. **[etcd-quota-stale-backend-after-snapshot](etcd-quota-stale-backend-after-snapshot.md)**
     (not in the current filing list, 2026-10-21: availability, the user prefers safety findings)
     (2026-10-19): the gRPC quota check keeps the backend it saw at startup, so after a member
@@ -334,6 +336,17 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 (the `ReportSnapshot` comment: etcd-io/raft#243, open, fixes it as part of a breaking v4 change).
 
 ## Probably not worth their time now
+
+- **[raft-restore-malformed-confstate-panic](raft-restore-malformed-confstate-panic.md)**
+  (2026-11-02): a restart from a `ConfState` with a repeated id, or `AutoLeave` without outgoing
+  voters, panics in `newRaft` instead of erroring; the storage API does not state the
+  precondition. Only hand-built or corrupted storages reach it; a documentation sentence fixes it.
+
+- **[raft-applied-above-snapshot-confstate](raft-applied-above-snapshot-confstate.md)**
+  (2026-10-31): `Config.Applied`'s documentation does not say that `InitialState`'s `ConfState` must
+  be the configuration as of `Applied`; with `Applied` above the snapshot, raft skips the conf
+  changes in between (reproduced: a node elects itself alone). Safety in principle, but etcd leaves
+  `Applied` unset, so it affects only other applications; a documentation sentence fixes it.
 
 - **[etcd-watch-compacted-resent](etcd-watch-compacted-resent.md)** (2026-11-01): with more than
   512 unsynced watchers, `chooseAll` deletes a compacted watcher from `choose`'s copy only, so it

@@ -140,10 +140,12 @@ local macro "trig'" : tactic => `(tactic| (
   iintro %Ψ HR
   iunfold reqWaitR at HR
   icases HR with ⟨%d', %rq', %γf', %F', #Hcl', #Hfl', %Hp'⟩
-  obtain ⟨hd', hΨ, hpx⟩ := Hp'
+  obtain ⟨hd', hΨ, -⟩ := Hp'
   subst hΨ
-  ihave %Hdd := idClaim_agree' ρ.ids id d' m.data γf' γf $$ Hcl' Hcl0
-  obtain ⟨Hdd, Hγ⟩ := Hdd
+  -- (R2c) a waiter's claim is the incarnation's: the entry's claim is of its key
+  ihave %Hdd := idClaim_agree_entry ρ.ids id d' m.data γf' γf k0 $$ Hcl' Hcl0
+  obtain ⟨Hdd, Hγ, hpx⟩ := Hdd
+  replace hpx := hpx.symm
   subst Hdd Hγ
   -- (D21e (A)) a registered id is of the member's prefix: the floor its claim recorded
   ihave #HfF := HfFo $$ %hpx
@@ -181,10 +183,12 @@ local macro "trig" : tactic => `(tactic| (
   iintro %Ψ HR
   iunfold reqWaitR at HR
   icases HR with ⟨%d', %rq', %γf', %F', #Hcl', #Hfl', %Hp'⟩
-  obtain ⟨hd', hΨ, hpx⟩ := Hp'
+  obtain ⟨hd', hΨ, -⟩ := Hp'
   subst hΨ
-  ihave %Hdd := idClaim_agree' ρ.ids id d' m.data γf' γf $$ Hcl' Hcl0
-  obtain ⟨Hdd, Hγ⟩ := Hdd
+  -- (R2c) a waiter's claim is the incarnation's: the entry's claim is of its key
+  ihave %Hdd := idClaim_agree_entry ρ.ids id d' m.data γf' γf k0 $$ Hcl' Hcl0
+  obtain ⟨Hdd, Hγ, hpx⟩ := Hdd
+  replace hpx := hpx.symm
   subst Hdd Hγ
   -- (D21e (A)) a registered id is of the member's prefix: the floor its claim recorded
   ihave #HfF := HfFo $$ %hpx
@@ -509,28 +513,37 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       -- (and, unit T1, the committed log it is in)
       have he : entryWaitOk ρ E m = iprop((∀ (rq : apply.IRRModel) (id : w64),
             ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
-              (∃ γf : GName, idClaim ρ.ids id m.data γf) ∗ idRegd ρ.ids id) ∗
+              ∃ (γf : GName) (k : IdKey),
+                id ↪[ρ.ids.issued]□ (some (m.data, γf, k) : Option IdClaimV) ∗
+                idRegdAt ρ.ids k id) ∗
             ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝) := by
         unfold entryWaitOk; rw [ite_eq_left Htyp]
       ihave #Hewo' : iprop((∀ (rq : apply.IRRModel) (id : w64),
             ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
-              (∃ γf : GName, idClaim ρ.ids id m.data γf) ∗ idRegd ρ.ids id) ∗
+              ∃ (γf : GName) (k : IdKey),
+                id ↪[ρ.ids.issued]□ (some (m.data, γf, k) : Option IdClaimV) ∗
+                idRegdAt ρ.ids k id) ∗
             ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝) $$ []
       · rw [← he]; iexact Hewo
       icases Hewo' with ⟨#Hewc, %Lw, #HLw, %HmLw⟩
-      ihave ⟨⟨%γf, #Hcl0⟩, -⟩ := Hewc $$ %rq %id0 %(⟨hdata, hdec, hid⟩)
+      ihave ⟨%γf, %k0, #Hcl0, -⟩ := Hewc $$ %rq %id0 %(⟨hdata, hdec, hid⟩)
       ihave #Hgen' := Hgen
       iunfold srvGenAt at Hgen'
       icases Hgen' with ⟨%gidg, -, #Hidg⟩
       -- (D21e (A), stage M4) an id of the member's prefix: the floor its claimer recorded (the
       -- generator's facts); another member's: no waiter here (`reqWaitR`), the empty floor
+      -- (R2c) by the claim's key: the incarnation's own claim, or another key's (another
+      -- member's, or an earlier incarnation's): no waiter here, the empty floor
       ihave Hfl : iprop(|={⊤}=> ∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
-          (⌜idPfx id0 = ρ.ids.pfx⌝ -∗ floorAt γf F)) $$ []
-      · by_cases hpx : idPfx id0 = ρ.ids.pfx
-        · imod idClaim_fact ρ.ids gidg (srvFloorFact E) id0 m.data γf ⊤ (by simp)
-            $$ Hidg Hcl0 %hpx with Hff
+          (⌜k0 = ρ.ids.key⌝ -∗ floorAt γf F)) $$ []
+      · by_cases hpx : k0 = ρ.ids.key
+        · ihave #Hcl0o : idClaim ρ.ids id0 m.data γf $$ []
+          · iunfold idClaim; rw [← hpx]; iexact Hcl0
+          imod idClaim_fact ρ.ids gidg (srvFloorFact E) id0 m.data γf ⊤ (by simp)
+            $$ Hidg Hcl0o with Hff
           icases Hff with >#Hff
           iunfold srvFloorFact at Hff
+          iunfold srvFloorFacts at Hff
           icases Hff with ⟨%F, #HfF, #HcF⟩
           imodintro
           iexists F
@@ -681,11 +694,13 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       subst Hid
       -- the entry at its position after the applied raft log `A`, whose model the entry met
       -- (unit W-M3: the proposer's update fired at the state of `x.log`)
+      ihave #Hcl0a : idClaimAny ρ.ids id m.data γf $$ []
+      · iunfold idClaimAny; iexists k0; iexact Hcl0
       ihave #HeW : iprop(entryWit ρ rq x.log) $$ []
       · iunfold entryWit
         iexists A ++ [m], A.length, m, id, γf
         simp only [ReqNames.raft, ReqNames.kv, Hrd]
-        iframe HAm Hcl0
+        iframe HAm Hcl0a
         ipureintro
         refine ⟨by simp, Htyp, hdec, hid, ?_⟩
         rw [List.take_left' rfl, Hxl]
@@ -701,12 +716,9 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)
       -- (linkv-txn stage B1) the result handed over is of a full application: the outcome not
       -- waived, or the registration gone (nothing is sent), or the id another member's
-      ihave %Hot : ⌜ot = none → m.data ≠ [] → idPfx id ≠ ρ.ids.pfx⌝ $$ []
-      · iunfold entryRegd at Hreg
-        ihave ⟨-, %Ho⟩ := Hreg $$ %rq %id %(⟨hdec, hid⟩)
-        ipureintro; exact Ho
+      ihave %Hot := entryRegd_none_key ρ.wait ρ.ids m ot rq id γf k0 ⟨hdec, hid⟩ $$ Hreg Hcl0
       icases Hdel with (%Hwv | #Hg)
-      · have Hwvf : idPfx id = ρ.ids.pfx → out.waived = false := fun _ => Hwv
+      · have Hwvf : k0 = ρ.ids.key → out.waived = false := fun _ => Hwv
         wp_apply HT $$ [HRes HTr HMint]
         · trig
         (try wp_auto)
@@ -718,7 +730,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
           (try wp_auto)
           tail_any
         | none =>
-          have Hwvf : idPfx id = ρ.ids.pfx → out.waived = false := fun h => absurd h (Hot rfl hdata)
+          have Hwvf : k0 = ρ.ids.key → out.waived = false := fun h => absurd h (Hot rfl hdata)
           wp_apply HT $$ [HRes HTr HMint]
           · trig
           (try wp_auto)
@@ -817,10 +829,12 @@ local macro "trig_on" : tactic => `(tactic| (
   iintro %Ψ HR
   iunfold reqWaitRM at HR
   icases HR with ⟨%d', %rq', %γf', %F', #Hcl', #Hfl', %Hp'⟩
-  obtain ⟨hd', hΨ, hpx⟩ := Hp'
+  obtain ⟨hd', hΨ, -⟩ := Hp'
   subst hΨ
-  ihave %Hdd := idClaim_agree' ρ.ids id d' m.data γf' γf $$ Hcl' Hcl0
-  obtain ⟨Hdd, Hγ⟩ := Hdd
+  -- (R2c) a waiter's claim is the incarnation's: the entry's claim is of its key
+  ihave %Hdd := idClaim_agree_entry ρ.ids id d' m.data γf' γf k0 $$ Hcl' Hcl0
+  obtain ⟨Hdd, Hγ, hpx⟩ := Hdd
+  replace hpx := hpx.symm
   subst Hdd Hγ
   ihave #HfF := HfFo $$ %hpx
   ihave %HFF := floorAt_agree γf' F' F $$ Hfl' HfF
@@ -923,11 +937,13 @@ local macro "tail_on" sa':term : tactic => `(tactic| (
   subst Hid
   -- the entry at its position after the applied raft log `A`, whose mode-`on` model is the
   -- auth state and the log the entry met
+  ihave #Hcl0a : idClaimAny ρ.ids id m.data γf $$ []
+  · iunfold idClaimAny; iexists k0; iexact Hcl0
   ihave #HeW : iprop(entryWitOn E.authMode ρ rq x.log sa) $$ []
   · iunfold entryWitOn
     iexists A ++ [m], A.length, m, id, γf
     simp only [ReqNames.raft, ReqNames.kv, Hrd]
-    iframe HAm Hcl0
+    iframe HAm Hcl0a
     isplitr
     · ipureintro
       refine ⟨by simp, Htyp, hdec, hid, ?_⟩
@@ -941,12 +957,9 @@ local macro "tail_on" sa':term : tactic => `(tactic| (
   (try dsimp only)
   ihave #HT := HTrig $$ %id %(interface.mkOk (go.GoType.PointerType
     go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)
-  ihave %Hot : ⌜ot = none → m.data ≠ [] → idPfx id ≠ ρ.ids.pfx⌝ $$ []
-  · iunfold entryRegd at Hreg
-    ihave ⟨-, %Ho⟩ := Hreg $$ %rq %id %(⟨hdec, hid⟩)
-    ipureintro; exact Ho
+  ihave %Hot := entryRegd_none_key ρ.wait ρ.ids m ot rq id γf k0 ⟨hdec, hid⟩ $$ Hreg Hcl0
   icases Hdel with (%Hwv | #Hg)
-  · have Hwvf : idPfx id = ρ.ids.pfx → out.waived = false := fun _ => Hwv
+  · have Hwvf : k0 = ρ.ids.key → out.waived = false := fun _ => Hwv
     wp_apply HT $$ [HRes HTr HMint HAu]
     · trig_on
     (try wp_auto)
@@ -958,7 +971,7 @@ local macro "tail_on" sa':term : tactic => `(tactic| (
       (try wp_auto)
       tail_any
     | none =>
-      have Hwvf : idPfx id = ρ.ids.pfx → out.waived = false := fun h => absurd h (Hot rfl hdata)
+      have Hwvf : k0 = ρ.ids.key → out.waived = false := fun h => absurd h (Hot rfl hdata)
       wp_apply HT $$ [HRes HTr HMint HAu]
       · trig_on
       (try wp_auto)
@@ -1008,7 +1021,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
   · iapply srvKVInvsM_true; iexact Hkvi
   ihave #Hkvi' := Hkvi
   iunfold srvKVInvsOn at Hkvi'
-  icases Hkvi' with ⟨-, -, -, #Htie0, %Hcok⟩
+  icases Hkvi' with ⟨-, -, -, #Htie0, %Hcok, -⟩
   icases srvApplyKVOn_idxCert s E ρ.wait x sa $$ HKV with ⟨HKV, #Hcx, %HaOn⟩
   ihave %Hlx := idxCert_len E.γ.idx x.log $$ Hcx
   -- the mode-`on` model before the entry: `(sa, x.log)`, the start's chain
@@ -1251,26 +1264,35 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       -- the floor its proposer recorded with the entry's claim (and the committed log it is in)
       have he : entryWaitOk ρ E m = iprop((∀ (rq : apply.IRRModel) (id : w64),
             ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
-              (∃ γf : GName, idClaim ρ.ids id m.data γf) ∗ idRegd ρ.ids id) ∗
+              ∃ (γf : GName) (k : IdKey),
+                id ↪[ρ.ids.issued]□ (some (m.data, γf, k) : Option IdClaimV) ∗
+                idRegdAt ρ.ids k id) ∗
             ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝) := by
         unfold entryWaitOk; rw [ite_eq_left Htyp]
       ihave #Hewo' : iprop((∀ (rq : apply.IRRModel) (id : w64),
             ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
-              (∃ γf : GName, idClaim ρ.ids id m.data γf) ∗ idRegd ρ.ids id) ∗
+              ∃ (γf : GName) (k : IdKey),
+                id ↪[ρ.ids.issued]□ (some (m.data, γf, k) : Option IdClaimV) ∗
+                idRegdAt ρ.ids k id) ∗
             ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝) $$ []
       · rw [← he]; iexact Hewo
       icases Hewo' with ⟨#Hewc, %Lw, #HLw, %HmLw⟩
-      ihave ⟨⟨%γf, #Hcl0⟩, -⟩ := Hewc $$ %rq %id0 %(⟨hdata, hdec, hid⟩)
+      ihave ⟨%γf, %k0, #Hcl0, -⟩ := Hewc $$ %rq %id0 %(⟨hdata, hdec, hid⟩)
       ihave #Hgen' := Hgen
       iunfold srvGenAt at Hgen'
       icases Hgen' with ⟨%gidg, -, #Hidg⟩
+      -- (R2c) by the claim's key: the incarnation's own claim, or another key's (another
+      -- member's, or an earlier incarnation's): no waiter here, the empty floor
       ihave Hfl : iprop(|={⊤}=> ∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
-          (⌜idPfx id0 = ρ.ids.pfx⌝ -∗ floorAt γf F)) $$ []
-      · by_cases hpx : idPfx id0 = ρ.ids.pfx
-        · imod idClaim_fact ρ.ids gidg (srvFloorFact E) id0 m.data γf ⊤ (by simp)
-            $$ Hidg Hcl0 %hpx with Hff
+          (⌜k0 = ρ.ids.key⌝ -∗ floorAt γf F)) $$ []
+      · by_cases hpx : k0 = ρ.ids.key
+        · ihave #Hcl0o : idClaim ρ.ids id0 m.data γf $$ []
+          · iunfold idClaim; rw [← hpx]; iexact Hcl0
+          imod idClaim_fact ρ.ids gidg (srvFloorFact E) id0 m.data γf ⊤ (by simp)
+            $$ Hidg Hcl0o with Hff
           icases Hff with >#Hff
           iunfold srvFloorFact at Hff
+          iunfold srvFloorFacts at Hff
           icases Hff with ⟨%F, #HfF, #HcF⟩
           imodintro
           iexists F

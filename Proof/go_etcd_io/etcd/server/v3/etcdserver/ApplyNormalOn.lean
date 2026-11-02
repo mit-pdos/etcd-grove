@@ -495,7 +495,7 @@ theorem reqWaitRM_none (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (id : w64
 /-- The member's registry, from the server's view in the mode (`isServer_waitIs`'s). -/
 theorem isServerM_waitIs (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)
     (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
-    isServerM (GF := GF) on s γ ci TM E ρ γr ⊢ idWaitIs ρ.ids ρ.ids.pfx ρ.wait := by
+    isServerM (GF := GF) on s γ ci TM E ρ γr ⊢ idWaitIs ρ.ids ρ.ids.key ρ.wait := by
   iintro #H
   iunfold isServerM at H
   icases H with ⟨-, -, ⟨%v, #Hf⟩, -⟩
@@ -743,6 +743,53 @@ theorem srvApplyKVOn_small (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
   iunfold txn.kvWriter at Hsw
   icases Hsw with ⟨Hsw, -⟩
   iapply txn.soleWriter_small' $$ Hsw
+
+/-- `srvApplyKVOn_ua_rt` with the current backend's reader pool lent too (2026-11-02, the
+backend-auth-split stage: for `applyConfChange`, which takes `backend.bkRPool`). -/
+theorem srvApplyKVOn_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (st : auth.AuthState) :
+    srvApplyKVOn (GF := GF) s E γw x st ⊢ ∃ (ua : GoInterface) (d : mvcc.KBReal), ⌜E.γ.kb = some d⌝ ∗
+      srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ mvcc.storeRT E.γ ∗
+      backend.bkRPool d.γB d.P d.be ∗ srvBeRO d ∗
+      (srvUberApplyAddr s ↦ ua -∗ mvcc.storeRT E.γ -∗ backend.bkRPool d.γB d.P d.be -∗
+        srvApplyKVOn s E γw x st) := by
+  iintro H
+  iunfold srvApplyKVOn at H
+  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hrest⟩
+  icases srvBeOwn_pool s E $$ Hbo with ⟨%d, %Hd, #Hbro, Hpl, Hbo⟩
+  iunfold apply.applyKV at Hkv
+  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
+  iunfold apply.kvOwn at Ho
+  icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
+  icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
+  iexists ua, d
+  iframe Hua Hrt Hpl Hbro
+  isplitr
+  · ipureintro; exact Hd
+  isplitr
+  · iexact Hap
+  iintro Hua Hrt Hpl
+  ihave Hwo := Hwo $$ Hrt
+  ihave Hbo := Hbo $$ Hpl
+  iunfold srvApplyKVOn
+  iexists ua
+  isplitl [Hua]
+  · iexact Hua
+  isplitr
+  · iexact Hb
+  isplitr
+  · iexact Hap
+  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
+  · iunfold apply.applyKV
+    iexists p
+    iframe Hu
+    isplitr
+    · ipureintro; exact Hp
+    iunfold apply.kvOwn
+    iframe
+  isplitl [Hbo]
+  · iexact Hbo
+  iexact Hrest
 
 /-- **The uber-applier and the store's reader's token, lent, with auth on** (`srvApplyKV_ua_rt`'s,
 for `applyConfChange`). -/

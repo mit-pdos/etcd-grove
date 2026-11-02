@@ -28,6 +28,7 @@ apply thread; here it is read-only.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Lemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Wait
@@ -609,12 +610,25 @@ hands the wait carry a witness at them, `resultIsW`); the server's raft node (`s
 def isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) : IProp GF :=
   iprop(⌜ρ.rd = γr⌝ ∗ isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM E ρ v) ∗
-    srvAtomics s E γr ∗ srvGenAt s E ρ ∗ srvRaftNode s ρ.raft)
+    srvAtomics s E γr ∗ srvGenAt s E ρ ∗ srvRaftNode s ρ.raft ∗
+    -- (the backend-auth-split stage, 2026-11-02) the thread bound within the backend's pool of
+    -- readers (`NewServer`'s premise), for the pool of each backend the apply thread opens
+    ⌜threadBound GF ≤ backend.rdPoolN⌝)
 
 instance isServer_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
     Persistent (isServer s γ ci TM E ρ γr) := by
   unfold isServer; infer_instance
+
+/-- **The server's thread bound is within the backend's pool of readers** (2026-11-02, the
+backend-auth-split stage). -/
+theorem isServer_rdPoolN (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    isServer s γ ci TM E ρ γr ⊢ ⌜threadBound GF ≤ backend.rdPoolN⌝ := by
+  iintro H
+  iunfold isServer at H
+  icases H with ⟨-, -, -, -, -, -, %h⟩
+  ipureintro; exact h
 
 /-- The real backend `be` as the server's `s.be` holds it. -/
 abbrev srvBeIface (be : Loc) : GoInterface :=
@@ -635,11 +649,17 @@ until then `NewServer` kept half of `s.be` read-only for good): half of `s.be` (
 `s.bemu`'s lock invariant's, `bemuP`), at the real backend `d` of the store's names `E.γ`, and a
 quarter of the ghost variable `E.γbe` of the current backend (half `bemuP`'s, split among the
 readers of `s.bemu`; a quarter the write budget's, `srvWTPool`). `applySnapshot`, the only writer
-of `s.be` (`server.go`'s `s.be = newbe`, under `bemu`'s write side), gathers all of both. -/
+of `s.be` (`server.go`'s `s.be = newbe`, under `bemu`'s write side), gathers all of both.
+(2026-11-02, the backend-auth-split stage) With what the apply thread's readers of the backend
+need: its facts (`srvBeRO d`, persistent; item T: `isBackend` for the membership readers and
+writers, which `applyConfChange` calls without `s.bemu`) and its pool of readers
+(`backend.bkRPool`, not persistent: the apply thread's one copy; `applySnapshot` hands the old
+backend's to the goroutine closing it, with its other open shares, and holds the new one's). -/
 def srvBeOwn (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ d : mvcc.KBReal, ⌜E.γ.kb = some d⌝ ∗
     srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.be ∗
-    dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d)
+    dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d ∗
+    srvBeRO d ∗ backend.bkRPool d.γB d.P d.be)
 
 /-- **The apply thread's applier state** at `x` (not persistent): the server's `uberApply`, owned
 (D22 receiver epochs, S7a, 2026-10-23: the apply thread is its only reader and writer,
@@ -657,42 +677,76 @@ def srvApplyKV (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
     ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
       waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD)
 
+/-- **The id `id`, claimed for the data `d`, is not this incarnation's** (persistent; R2c,
+2026-11-02): every claim of it for `d` records another key (another member's, or an earlier
+incarnation's of this member). Until R2c: its prefix was not the member's. -/
+def idOther (γi : IdNames) (id : w64) (d : List w8) : IProp GF :=
+  iprop(□ ∀ (γf : GName) (k : IdKey),
+    id ↪[γi.issued]□ (some (d, γf, k) : Option IdClaimV) -∗ ⌜k ≠ γi.key⌝)
+
+instance idOther_persistent (γi : IdNames) (id : w64) (d : List w8) :
+    Persistent (idOther (GF := GF) γi id d) := by
+  unfold idOther; infer_instance
+
 /-- **What the caller of `applyEntryNormal` knows of the entry's registration** (persistent; the
 request path's unit 4d): for an entry whose data decode to a request with an id, `ot`'s
 knowledge of the id (`waitRegdOpt`: nothing for `none`, the registration with the consumer token
-`t` for `some t`); and (linkv-txn stage B1, 2026-10-20) nothing known only of another prefix's id
-than the member's `p` (the member's own requests were registered before they were proposed:
-`idRegd`, `entryWaitOk`). -/
-def entryRegd (γw : GName) (p : w64) (m : EntryModel) (ot : Option GName) : IProp GF :=
+`t` for `some t`); and (linkv-txn stage B1, 2026-10-20) nothing known only of an id that is not the
+incarnation's (`idOther`; by key since R2c, until then another prefix's than the member's): the
+incarnation's own requests were registered before they were proposed (`idRegd`, `entryWaitOk`). -/
+def entryRegd (γw : GName) (γi : IdNames) (m : EntryModel) (ot : Option GName) : IProp GF :=
   iprop(□ ∀ (rq : apply.IRRModel) (id : w64),
     ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ →
-      waitRegdOpt γw id ot ∗ ⌜ot = none → m.data ≠ [] → idPfx id ≠ p⌝)
+      waitRegdOpt γw id ot ∗ (⌜ot = none⌝ → ⌜m.data ≠ []⌝ → idOther γi id m.data))
 
-instance entryRegd_persistent (γw : GName) (p : w64) (m : EntryModel) (ot : Option GName) :
-    Persistent (entryRegd (GF := GF) γw p m ot) := by
+instance entryRegd_persistent (γw : GName) (γi : IdNames) (m : EntryModel) (ot : Option GName) :
+    Persistent (entryRegd (GF := GF) γw γi m ot) := by
   unfold entryRegd; infer_instance
 
+/-- **Nothing registered here: the entry's claim is another key's** (R2c): from the entry's
+registration with nothing known (`ot = none`) and its claim by the key `k`, `k` is not the
+incarnation's. -/
+theorem entryRegd_none_key (γw : GName) (γi : IdNames) (m : EntryModel) (ot : Option GName)
+    (rq : apply.IRRModel) (id : w64) (γf : GName) (k : IdKey)
+    (h : apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id) :
+    ⊢ entryRegd (GF := GF) γw γi m ot -∗ id ↪[γi.issued]□ (some (m.data, γf, k) : Option IdClaimV) -∗
+      ⌜ot = none → m.data ≠ [] → k ≠ γi.key⌝ := by
+  iintro #Hr #Hc
+  iunfold entryRegd at Hr
+  ihave ⟨-, #Ho⟩ := Hr $$ %rq %id %h
+  cases ot with
+  | some t => ipureintro; intro h'; cases h'
+  | none =>
+    by_cases hd : m.data = []
+    · ipureintro; intro _ h'; exact absurd hd h'
+    · ihave #Ho' := Ho $$ %rfl %hd
+      iunfold idOther at Ho'
+      ihave %Hk := Ho' $$ %γf %k Hc
+      ipureintro; intro _ _; exact Hk
+
 /-- **What the apply thread knows of a committed entry's registration** (linkv-txn stage B1,
-2026-10-20): from the entry's claims (`entryWaitOk`: the id registered in its prefix's member's
-registry, `idRegd`) and the member's registry (`idWaitIs`, `waitInv`), the registration with its
-consumer token for an id of the member's prefix, nothing for another's. -/
+2026-10-20; by key since R2c): from the entry's claims (`entryWaitOk`: the id claimed by the
+incarnation of some key and registered in that incarnation's registry, `idRegdAt`) and the
+incarnation's registry (`idWaitIs`, `waitInv`), the registration with its consumer token for an
+id of the incarnation's own key, nothing (`idOther`) for another key's. -/
 theorem entryRegd_of_wait (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel)
     (ht : m.typ = W32 0) :
-    entryWaitOk (GF := GF) ρ E m ∗ idWaitIs ρ.ids ρ.ids.pfx ρ.wait ⊢
-      ∃ ot : Option GName, entryRegd ρ.wait ρ.ids.pfx m ot := by
+    entryWaitOk (GF := GF) ρ E m ∗ idWaitIs ρ.ids ρ.ids.key ρ.wait ⊢
+      ∃ ot : Option GName, entryRegd ρ.wait ρ.ids m ot := by
   iintro ⟨#Hw, #Hn⟩
   unfold entryWaitOk
   simp only [ht, ↓reduceIte]
   icases Hw with ⟨#Hc, -⟩
   have hnone : (∀ rq id, apply.irrDecode m.data = some rq → apply.irrId rq = some id →
-      m.data ≠ [] → idPfx id ≠ ρ.ids.pfx) → ⊢ entryRegd (GF := GF) ρ.wait ρ.ids.pfx m none := by
+      m.data ≠ [] → False) → ⊢ entryRegd (GF := GF) ρ.wait ρ.ids m none := by
     intro h
     iunfold entryRegd
     iintro !> %rq %id %hrq
     iunfold waitRegdOpt
     isplitr
     · itrivial
-    ipureintro; intro _ hd; exact h rq id hrq.1 hrq.2 hd
+    iintro %- %hd
+    exact (h rq id hrq.1 hrq.2 hd).elim
   by_cases hd : m.data = []
   · iexists none
     iapply hnone (fun _ _ _ _ h => absurd hd h)
@@ -707,12 +761,12 @@ theorem entryRegd_of_wait (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel)
       iapply hnone (fun rq' _ h h' => by
         rw [hdec] at h; cases h; rw [hid] at h'; cases h')
     | some id =>
-      ihave ⟨-, #Hreg⟩ := Hc $$ %rq %id %(⟨hd, rfl, hid⟩)
-      by_cases hp : idPfx id = ρ.ids.pfx
-      · iunfold idRegd at Hreg
+      ihave ⟨%γf, %k, #Hcl, #Hreg⟩ := Hc $$ %rq %id %(⟨hd, rfl, hid⟩)
+      by_cases hk : k = ρ.ids.key
+      · subst hk
+        iunfold idRegdAt at Hreg
         icases Hreg with ⟨%W, %t, #HW, #Hr⟩
-        rw [hp]
-        ihave %HWe := idWaitIs_agree ρ.ids ρ.ids.pfx W ρ.wait $$ HW Hn
+        ihave %HWe := idWaitIs_agree ρ.ids ρ.ids.key W ρ.wait $$ HW Hn
         subst HWe
         iexists some t
         iunfold entryRegd
@@ -723,15 +777,29 @@ theorem entryRegd_of_wait (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel)
         subst this
         iunfold waitRegdOpt
         iframe Hr
-        ipureintro; intro h; cases h
+        iintro %h; cases h
       · iexists none
-        iapply hnone (fun rq' id' h h' _ => by
-          rw [hdec] at h; cases h; rw [hid] at h'; cases h'; exact hp)
+        iunfold entryRegd
+        iintro !> %rq' %id' %h
+        have : rq' = rq := by rw [hdec] at h; exact (Option.some.inj h.1).symm
+        subst this
+        have : id' = id := by rw [hid] at h; exact (Option.some.inj h.2).symm
+        subst this
+        iunfold waitRegdOpt
+        isplitr
+        · itrivial
+        iintro %- %-
+        iunfold idOther
+        iintro !> %γf' %k' #Hcl'
+        ihave %He := idClaim_entry_agree ρ.ids _ _ _ $$ Hcl Hcl'
+        simp only [Prod.mk.injEq] at He
+        ipureintro
+        rw [← He.2.2]; exact hk
 
 /-- The member's registry, from the server's view (linkv-txn stage B1). -/
 theorem isServer_waitIs (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
-    isServer (GF := GF) s γ ci TM E ρ γr ⊢ idWaitIs ρ.ids ρ.ids.pfx ρ.wait := by
+    isServer (GF := GF) s γ ci TM E ρ γr ⊢ idWaitIs ρ.ids ρ.ids.key ρ.wait := by
   iintro #H
   iunfold isServer at H
   icases H with ⟨-, -, ⟨%v, #Hf⟩, -⟩
@@ -858,13 +926,20 @@ theorem srvApplyKV_small (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.
 
 /-- Two claims of one id agree on the data and the ghost name. -/
 theorem idClaim_agree' (γi : IdNames) (id : w64) (d1 d2 : List w8) (γ1 γ2 : GName) :
-    ⊢ idClaim (GF := GF) γi id d1 γ1 -∗ idClaim γi id d2 γ2 -∗ ⌜d1 = d2 ∧ γ1 = γ2⌝ := by
-  iintro H1 H2
-  iunfold idClaim at H1 H2
-  icombine H1 H2 gives %Hag
-  ipureintro
-  have := Option.some.inj Hag.2
-  exact ⟨(Prod.mk.inj this).1, (Prod.mk.inj this).2⟩
+    ⊢ idClaim (GF := GF) γi id d1 γ1 -∗ idClaim γi id d2 γ2 -∗ ⌜d1 = d2 ∧ γ1 = γ2⌝ :=
+  idClaim_agree γi id d1 d2 γ1 γ2
+
+/-- **A claim of the incarnation and a committed entry's claim of one id agree** (R2c): on the
+data, the ghost name, and the entry's key, the incarnation's. -/
+theorem idClaim_agree_entry (γi : IdNames) (id : w64) (d1 d2 : List w8) (γ1 γ2 : GName)
+    (k : IdKey) :
+    ⊢ idClaim (GF := GF) γi id d1 γ1 -∗ id ↪[γi.issued]□ (some (d2, γ2, k) : Option IdClaimV) -∗
+      ⌜d1 = d2 ∧ γ1 = γ2 ∧ γi.key = k⌝ := by
+  iintro #H1 #H2
+  iunfold idClaim at H1
+  ihave %H := idClaim_entry_agree γi id _ _ $$ H1 H2
+  simp only [Prod.mk.injEq] at H
+  ipureintro; exact H
 
 /-! ### The write budget backed by time receipts (D19b) -/
 
@@ -1032,7 +1107,7 @@ theorem srvBeOwn_frag (s : Loc) (E : apply.AEnv GF) :
       (dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d -∗ srvBeOwn s E) := by
   iintro H
   iunfold srvBeOwn at H
-  icases H with ⟨%d, %Hd, Hbe, Hg⟩
+  icases H with ⟨%d, %Hd, Hbe, Hg, #Hro, Hpl⟩
   iexists d
   isplitr
   · ipureintro; exact Hd
@@ -1040,7 +1115,26 @@ theorem srvBeOwn_frag (s : Loc) (E : apply.AEnv GF) :
   iintro Hg
   iunfold srvBeOwn
   iexists d
-  iframe Hbe Hg
+  iframe Hbe Hg Hro Hpl
+  ipureintro; exact Hd
+
+/-- **The apply thread's backend facts and pool of readers, lent from its part of `s.be`**
+(2026-11-02, the backend-auth-split stage): at the current backend `d` (the store's names' `E.γ.kb`),
+`srvBeRO d` and the pool (`backend.bkRPool`), the pool to give back. -/
+theorem srvBeOwn_pool (s : Loc) (E : apply.AEnv GF) :
+    srvBeOwn (GF := GF) s E ⊢ ∃ d : mvcc.KBReal, ⌜E.γ.kb = some d⌝ ∗ srvBeRO d ∗
+      backend.bkRPool d.γB d.P d.be ∗ (backend.bkRPool d.γB d.P d.be -∗ srvBeOwn s E) := by
+  iintro H
+  iunfold srvBeOwn at H
+  icases H with ⟨%d, %Hd, Hbe, Hg, #Hro, Hpl⟩
+  iexists d
+  isplitr
+  · ipureintro; exact Hd
+  iframe Hro Hpl
+  iintro Hpl
+  iunfold srvBeOwn
+  iexists d
+  iframe Hbe Hg Hro Hpl
   ipureintro; exact Hd
 
 /-- The apply thread's part of `s.be`, lent from its applier state (S7b). -/

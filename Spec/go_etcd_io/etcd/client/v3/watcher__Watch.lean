@@ -13,7 +13,10 @@ state `σ`) and a read of that state from the cursor's position `i` to `i + 1`
 (`watchStateRespOk`): an error, a response without events that is not a progress notification, a
 progress notification at `p` (past the cursor: `p ≤ σ.rev` and no event of the range in `(c, p]`),
 or events, exactly the range's events of `σ` from the cursor to the last one's revision, as etcd
-computes them from its key bucket (`KVState.rangeEvents`: one per change, in order).
+computes them from its key bucket (`KVState.rangeEvents`: one per change, in order); and (C3's
+watch side, 2026-11-02) its compaction revision the permit of the cluster's KV names `V.kv`
+(`cmpOkOf`: none, or a positive revision at least the cluster's retention behind one its KV has
+reached; the caller built `V`, so it knows `V.kv`).
 
 **Auth (G2)**: with one member (the gate `V.nm = 1`, a scope restriction: with several, a lagging
 member's store checks at its own older auth state), for a caller's bound `n` on the auth store's
@@ -81,7 +84,7 @@ abbrev watcher.Watch.spec : Prop :=
     (App (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!!
         go!"Watch")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #opts_sl))
   {{ (ch : Loc) (γw : EtcdWatchNames), RET #ch;
-      isSpsc γw.spsc ch (watchStateElem γw (opWatchModel key opts).watchNorm Q
+      isSpsc γw.spsc ch (watchStateElem V.kv γw (opWatchModel key opts).watchNorm Q
         iprop(□ (⌜V.nm = 1⌝ → watchCheckOk (V.mem 0).2.γ (V.mem 0).2.s V.conn
           (GoInterface.ok ctx) n (opWatchModel key opts).key (opWatchModel key opts).base.rangeEnd)))
         (fun _ => iprop(True)) ∗

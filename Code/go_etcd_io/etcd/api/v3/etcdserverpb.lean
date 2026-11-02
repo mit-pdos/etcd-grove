@@ -202,6 +202,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   _Lease_LeaseGrant_Handler_unfold : FuncUnfold _Lease_LeaseGrant_Handler [] _Lease_LeaseGrant_Handler.impl
   _Lease_LeaseRevoke_Handler_unfold : FuncUnfold _Lease_LeaseRevoke_Handler [] _Lease_LeaseRevoke_Handler.impl
   _Lease_LeaseKeepAlive_Handler_unfold : FuncUnfold _Lease_LeaseKeepAlive_Handler [] _Lease_LeaseKeepAlive_Handler.impl
+  _Lease_LeaseTimeToLive_Handler_unfold : FuncUnfold _Lease_LeaseTimeToLive_Handler [] _Lease_LeaseTimeToLive_Handler.impl
+  _Lease_LeaseLeases_Handler_unfold : FuncUnfold _Lease_LeaseLeases_Handler [] _Lease_LeaseLeases_Handler.impl
   RegisterClusterServer_unfold : FuncUnfold RegisterClusterServer [] RegisterClusterServer.impl
   RegisterMaintenanceServer_unfold : FuncUnfold RegisterMaintenanceServer [] RegisterMaintenanceServer.impl
   NewAuthClient_unfold : FuncUnfold NewAuthClient [] NewAuthClient.impl
@@ -400,6 +402,8 @@ attribute [instance] Assumptions.Metadata_instance
   Assumptions._Lease_LeaseGrant_Handler_unfold
   Assumptions._Lease_LeaseRevoke_Handler_unfold
   Assumptions._Lease_LeaseKeepAlive_Handler_unfold
+  Assumptions._Lease_LeaseTimeToLive_Handler_unfold
+  Assumptions._Lease_LeaseLeases_Handler_unfold
   Assumptions.RegisterClusterServer_unfold
   Assumptions.RegisterMaintenanceServer_unfold
   Assumptions.NewAuthClient_unfold

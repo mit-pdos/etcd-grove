@@ -53,7 +53,8 @@ theorem raft.tickHeartbeat.wp_proof
   wp_join iprop(∃ (s1 : NState), "Hphys" ∷ ownRaftPhysCV c c.voters r id s1 ∗
       "Hghost" ∷ ownStepGhost γ md c id s1 ∗
       "%Hs1" ∷ ⌜NStateWf s1 ∧
-        uint.Z s.logst.committed ≤ uint.Z s1.logst.committed ∧
+        (uint.Z s.logst.committed ≤ uint.Z s1.logst.committed ∧
+          PVoteLe (toPState s) (toPState s1)) ∧
         (∀ s', TickStep s1 s' → TickStep s s')⌝ ∗
       "r" ∷ r_ptr ↦ r) with [Hphys Hghost r Hlc2] as ⟨%s1, Hphys, Hghost, %Hs1, r⟩
   · wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
@@ -75,7 +76,7 @@ theorem raft.tickHeartbeat.wp_proof
           iexists s
           iframe
           ipureintro
-          exact ⟨Hwf, Int.le_refl _, fun _ h => h⟩
+          exact ⟨Hwf, ⟨Int.le_refl _, PVoteLe.refl _⟩, fun _ h => h⟩
         · rw [decide_eq_false Hlt]
           try wp_auto
           wp_apply wp_raft_abortLeaderTransfer c (V := c.voters) $$ [$Hphys] as Hphys
@@ -85,13 +86,13 @@ theorem raft.tickHeartbeat.wp_proof
           iexists { s with lt := W64 0 }
           iframe
           ipureintro
-          exact ⟨Hwf, Int.le_refl _, fun _ h => h⟩
+          exact ⟨Hwf, ⟨Int.le_refl _, PVoteLe.refl _⟩, fun _ h => h⟩
       all_goals
         wp_join_done
         iexists s
         iframe
         ipureintro
-        exact ⟨Hwf, Int.le_refl _, fun _ h => h⟩
+        exact ⟨Hwf, ⟨Int.le_refl _, PVoteLe.refl _⟩, fun _ h => h⟩
     · -- (2026-10-17) `checkQuorum` on: `r.Step(&pb.Message{From: new(r.id), Type:
       -- pb.MsgCheckQuorum.Enum()})`, built as the `MsgBeat` below; the leader may step down
       try wp_auto
@@ -157,7 +158,7 @@ theorem raft.tickHeartbeat.wp_proof
         simp [MsgSnap] at Hc
       simp only [hP]
       iintro %err %s0 %c' %md' ⟨Hphys, Hghost, %Hwf0, %Href, %Hcc, -, %Hfr, -, %Htm, -, -, -, Herr⟩
-      have Hcm0 := Href.commit_mono
+      have Hcm0 := And.intro Href.commit_mono Href.voteLe
       have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
       have e2 := Hcc (by msg_ne); subst c'
       -- the step keeps the term and the log's frame: a tick from `s0` is one from `s`
@@ -215,7 +216,7 @@ theorem raft.tickHeartbeat.wp_proof
   · iexists s
     iframe
     ipureintro
-    exact ⟨Hwf, Int.le_refl _, fun _ h => h⟩
+    exact ⟨Hwf, ⟨Int.le_refl _, PVoteLe.refl _⟩, fun _ h => h⟩
   obtain ⟨Hwf1, Hcm1, Htr⟩ := Hs1
   -- `if r.state != StateLeader { return }`
   wp_apply raft.wp_load_stateC $$ Hphys as Hphys
@@ -304,7 +305,7 @@ theorem raft.tickHeartbeat.wp_proof
       simp [MsgSnap] at Hc
     simp only [hP]
     iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, -, %Htm, -, -, -, Herr⟩
-    have Hcm := Href.commit_mono
+    have Hcm := And.intro Href.commit_mono Href.voteLe
     have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
     have e2 := Hcc (by msg_ne); subst c'
     icases Herr with (%Herr | ⟨%Hc', -⟩)
@@ -317,7 +318,7 @@ theorem raft.tickHeartbeat.wp_proof
       have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
       have H0 : uint.Z (zero_val MessageM).Term' = 0 := rfl
       simp only [H0] at Ht3
-      exact ⟨Hwf', Int.le_trans Hcm1 Hcm, Htr _ ⟨Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)), Ht1,
+      exact ⟨Hwf', ⟨Int.le_trans Hcm1.1 Hcm.1, Hcm1.2.trans Hcm.2⟩, Htr _ ⟨Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)), Ht1,
         by have h0 : 0 ≤ uint.Z s1.term := by word
            rw [Int.max_eq_left h0] at Ht3; omega,
         Hi (by msg_ne), fun h => (Hpc'.1 h).1, fun _ hg => PreGuardF.step (Htm (by msg_ne)) hg,

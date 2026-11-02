@@ -384,6 +384,7 @@ theorem mvcc.store.Restore.wp_proof
       iunfold mvcc.restoreOnK at HK
       icases HK with ⟨Hwl2, Hr, Hr2, Hcm2, HcmK, Hl5⟩
       icases HV with ⟨Hv, #Hti', Hrd, #Hrc'⟩
+      ihave Hrd := mvcc.rep_nReaders _ $$ Hrd
       ihave Hcm2 : (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half} (W64 r.finRev : w64) :
           IProp GF) $$ [Hcm2]
       · rw [hx]; iexact Hcm2
@@ -862,7 +863,7 @@ theorem mvcc.store.Restore.wp_proof
   · simp only [mvcc.storeRT, mvcc.StoreNames.withPhys_kb, hk]; iexact Hrts
   -- the new pool's tokens, and the writer's
   rw [show mvcc.nReaders - 1 = (mvcc.nReaders - 2) + (2 - 1) by
-    have := sync.actualMaxReaders_ge_2; unfold mvcc.nReaders; omega]
+    rw [mvcc.nReaders_val]]
   icases (mvcc.rep_split _ _ _).1 $$ Hrts with ⟨Hrts, Hnew⟩
   ihave Hnew := mvcc.rep_one _ $$ Hnew
   ihave Hnc : mvcc.kbNoCmp (GF := GF) (γ.withPhys p').kb (γ.withPhys p').bucket $$ [Hnc]
@@ -954,6 +955,7 @@ theorem mvcc.store.Restore.wp_proof
   · iunfold mvcc.revUnlockW
     iintro %Ψ Hcur2 ⟨Hwl2, Hr, Hr2, Hcm2, HcmK, Hlc4⟩ ⟨Hv, #Hti', Hrd, #Hrc⟩ HΨ
     iunfold mvcc.wsDep at Hwsd
+    ihave Hrd := mvcc.rep_nReaders _ $$ Hrd
     imod (mvcc.restore_switch s γ ⟨b, ti0, GoInterface.ok fi, sstop⟩ ⟨b', ti, sc, stopc⟩ p' R (-1) (-1)
         1 2 hR (by decide) (by simp; omega) (Nat.le_refl 2)) $$
         Hlc4 Hlc3 Hwi Hwsd Hpool Hcur Hfrag HcurR HcurW Htkr Hr Hr2 Hheld Hcur2 Hcm2 [] [] Hnlb Hok'

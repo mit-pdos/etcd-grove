@@ -31,14 +31,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- One of the reader slots of a lock, and the rest back from it. -/
+/-- One of the backend's reader tokens the store takes (`nReaders`, the backend's stock), and the
+rest back from it. -/
 theorem mvcc.slot_take (Q : IProp GF) :
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), Q) ⊢
-      Q ∗ (Q -∗ [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), Q) := by
-  have hpos : 0 < Int.toNat sync.rwmutex.actualMaxReaders :=
-    Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos)
-  obtain ⟨m, hm⟩ : ∃ m, Int.toNat sync.rwmutex.actualMaxReaders = m + 1 :=
-    ⟨_, (Nat.succ_pred_eq_of_pos hpos).symm⟩
+    ([∗list] _x ∈ List.replicate mvcc.nReaders (), Q) ⊢
+      Q ∗ (Q -∗ [∗list] _x ∈ List.replicate mvcc.nReaders (), Q) := by
+  obtain ⟨m, hm⟩ : ∃ m, mvcc.nReaders = m + 1 := ⟨mvcc.nReaders - 1, by rw [mvcc.nReaders_val]⟩
   rw [hm, List.replicate_succ]
   iintro H
   icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, Hs⟩
@@ -96,7 +94,7 @@ theorem mvcc.NewStore.wp_proof
   intro _ lg b le cfg kb γb γl P f rd0 wq γi γok Perm Hcfg0
   have Hrb0 : receiptBound GF ≤ 2 ^ 48 := ReceiptBoundLe.le (GF := GF) _
   wp_start as ⟨Hbk, Hbv, Hncmp, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok⟩
-  have hnr : 1 ≤ mvcc.nReaders := Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos)
+  have hnr : 1 ≤ mvcc.nReaders := by rw [mvcc.nReaders_val]; decide
   have hjr : mvcc.nJobRd kb ≤ mvcc.nReaders := Nat.le_trans (mvcc.nJobRd_le kb) hnr
   -- package facts: the configuration defaults, the `Key` bucket, zap, schedule, schema
   ihave Hmi : (mvccInit : IProp GF) $$ []
@@ -481,6 +479,7 @@ theorem mvcc.NewStore.wp_proof
   -- the readers' pool: every slot of the index's lock in (D22 receiver epochs, S4)
   -- (S5a) each slot with a reader token of the backend
   -- (question 5's core stage, part (1)) less the readers kept back for the compaction job
+  ihave Hird := mvcc.rep_nReaders _ $$ Hird
   icases mvcc.rep_sub _ (mvcc.nJobRd γ.kb) _ (by rw [hγk]; exact hjr) $$ Hird with ⟨Hird, -⟩
   icases mvcc.rep_sub _ (mvcc.nJobRd γ.kb) _ (by rw [hγk]; exact hjr) $$ Hrts with ⟨Hrts, Hjrt⟩
   ihave Hslots := mvcc.idxSlots_of γ (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs) _ $$ [Hird Hrts]
@@ -627,6 +626,8 @@ theorem mvcc.NewStore.wp_proof
     iframe ReadView WriteView
     iframe #
     iunfold mvcc.kvOver; ileft; ipureintro; rfl
+  ihave Hmus := mvcc.rep_nReaders _ $$ Hmus
+  ihave Hrevs := mvcc.rep_nReaders _ $$ Hrevs
   icases mvcc.rep_sub _ (mvcc.nJobRd γ.kb) _ (by rw [hγk]; exact hjr) $$ Hmus with ⟨Hmus, -⟩
   icases mvcc.rep_sub _ (mvcc.nJobRd γ.kb) _ (by rw [hγk]; exact hjr) $$ Hrevs with ⟨Hrevs, -⟩
   isplitl [Hmus Hrevs Htks]

@@ -114,13 +114,16 @@ theorem kv_cert_jump (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : �
 invariant (`srvWTPool`) moved from the current backend `d` (the apply thread's, `E.γ.kb`) to the
 new one `d'` (its facts `srvBeRO d'`, its write-back stock `srvWTStockInv γp d'`, the
 storage-version monitor's read token): `s.be` whole (at `d`) and the monitor's old read token out
-(the old backend's write-back tokens stay in its stock, M2's item 15), and, once `s.be` holds `d'`, `bemu`'s lock invariant and the apply
+(the old backend's write-back tokens stay in its stock, M2's item 15; 2026-11-02, the
+backend-auth-split stage: with the old backend's pool of readers, for its `Close`), and, once `s.be`
+holds `d'`, `bemu`'s lock invariant and the apply
 thread's half of `s.be` and quarter of the ghost variable at `d'`. -/
 theorem srv_be_swap (s : Loc) (E : apply.AEnv GF) (γp : GName) (d' : mvcc.KBReal) :
     srvWTPool E γp ⊢ bemuP s E.γbe 1 -∗ srvBeOwn s E -∗ srvBeRO d' -∗ srvWTStockInv γp d' -∗
       mvcc.bkRTx d'.γB d'.P d'.be -∗ £ 1 -∗
       |={⊤}=> ∃ d : mvcc.KBReal, ⌜E.γ.kb = some d⌝ ∗ srvBeAddr s ↦ srvBeIface d.be ∗
         mvcc.bkRTx d.γB d.P d.be ∗ srvBeRO d ∗
+        backend.bkRPool d.γB d.P d.be ∗
         (srvBeAddr s ↦ srvBeIface d'.be -∗ bemuP s E.γbe 1 ∗
           srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
           dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d') := by
@@ -128,7 +131,7 @@ theorem srv_be_swap (s : Loc) (E : apply.AEnv GF) (γp : GName) (d' : mvcc.KBRea
   iunfold bemuP at Hbm
   icases Hbm with ⟨%d1, Hbe1, Hg1, #Hro1⟩
   iunfold srvBeOwn at Hbo
-  icases Hbo with ⟨%d, %Hd, Hbe2, Hg2⟩
+  icases Hbo with ⟨%d, %Hd, Hbe2, Hg2, -, Hpl⟩
   icombine Hg1 Hg2 gives %Hag
   obtain ⟨-, rfl⟩ := Hag
   icombine Hbe1 Hbe2 as Hbe
@@ -161,7 +164,7 @@ theorem srv_be_swap (s : Loc) (E : apply.AEnv GF) (γp : GName) (d' : mvcc.KBRea
     ileft; iexact Hrt'
   imodintro
   iexists d1
-  iframe Hbe Hrt Hro1
+  iframe Hbe Hrt Hro1 Hpl
   isplitr
   · ipureintro; exact Hd
   iintro Hbe

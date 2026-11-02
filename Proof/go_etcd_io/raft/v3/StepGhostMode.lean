@@ -170,6 +170,113 @@ theorem GMode.StepOut.commit_mono {md : GMode} {c : CfgM} {id : w64} {m : Messag
     obtain ⟨g', -, -, B, recv, H⟩ := H
     exact StepR.commit_mono H
 
+/-! ### The term never moves back, and the vote not within a term (2026-11-01, durability stage II (m))
+
+What the `RawNode` predicate needs to keep `prevHardSt`'s record (`RNState.phs`, `PhsOk`) below the
+node's hard state across steps: a granted vote is never taken back at the same term (`PCanVote`), only
+a new term resets it. -/
+
+/-- `ps'`'s term is at least `ps`'s, and at the same term a vote cast in `ps` is kept. -/
+def PVoteLe (ps ps' : PState) : Prop :=
+  uint.Z ps.term ≤ uint.Z ps'.term ∧ (ps'.term = ps.term → ps.vote = W64 0 ∨ ps'.vote = ps.vote)
+
+theorem PVoteLe.refl (ps : PState) : PVoteLe ps ps := ⟨Int.le_refl _, fun _ => .inr rfl⟩
+
+theorem PVoteLe.trans {a b c : PState} (h1 : PVoteLe a b) (h2 : PVoteLe b c) : PVoteLe a c := by
+  refine ⟨Int.le_trans h1.1 h2.1, fun hc => ?_⟩
+  have hab : b.term = a.term := by
+    have := h1.1; have := h2.1
+    have : uint.Z c.term = uint.Z a.term := by rw [hc]
+    apply word.unsigned_inj; omega
+  have hbc : c.term = b.term := hc.trans hab.symm
+  rcases h1.2 hab with h | h
+  · exact .inl h
+  · rcases h2.2 hbc with h' | h'
+    · exact .inl (h.symm.trans h')
+    · exact .inr (h'.trans h)
+
+/-- A step that keeps the term and the vote. -/
+theorem PVoteLe.of_eq {a b : PState} (ht : b.term = a.term) (hv : b.vote = a.vote) : PVoteLe a b :=
+  ⟨by rw [ht]; exact Int.le_refl _, fun _ => .inr hv⟩
+
+/-- A step to a later term. -/
+theorem PVoteLe.of_lt {a b : PState} (h : uint.Z a.term < uint.Z b.term) : PVoteLe a b :=
+  ⟨Int.le_of_lt h, fun he => absurd (congrArg (fun x : w64 => uint.Z x) he) (by omega)⟩
+
+theorem pbecomeFollower_voteLe (s : PState) (t l : w64) (h : uint.Z s.term ≤ uint.Z t) :
+    PVoteLe s (pbecomeFollower s t l) := by
+  refine ⟨h, fun he => .inr ?_⟩
+  simp only [pbecomeFollower] at he ⊢
+  simp [he]
+
+theorem preadRespondAll_voteLe (id : w64) (s : PState) (qs : List ReadReq) :
+    PVoteLe s (preadRespondAll id s qs) := by
+  obtain ⟨o, rd, h⟩ := preadRespondAll_eq id s qs
+  rw [h]; exact PVoteLe.refl _
+
+theorem StepC.voteLe {c : CfgM} {id : w64} {B : Int} {ps : PState} {recv : List Msg}
+    {ps' : PState} (H : StepC c id B ps recv ps') : PVoteLe ps ps' := by
+  induction H with
+  | refl => exact PVoteLe.refl _
+  | trans _ _ _ _ _ _ _ ih1 ih2 => exact ih1.trans ih2
+  | higherTerm m s h => exact pbecomeFollower_voteLe s _ _ (Int.le_of_lt h)
+  | campaign s _ _ _ _ hnw =>
+    apply PVoteLe.of_lt
+    simp only [psendMsgs, pbecomeCandidate]
+    have : uint.Z (s.term + W64 1) = uint.Z s.term + 1 := by word
+    omega
+  | grantVote m s _ _ _ _ hcv =>
+    refine ⟨Int.le_refl _, fun _ => ?_⟩
+    simp only [psendMsgs]
+    rcases hcv with h | ⟨h, -⟩
+    · exact .inr h.symm
+    · exact .inl h
+  | lose s => exact pbecomeFollower_voteLe s _ _ (Int.le_refl _)
+  | abandon s => exact pbecomeFollower_voteLe s _ _ (Int.le_refl _)
+  | stepDown s => exact pbecomeFollower_voteLe s _ _ (Int.le_refl _)
+  | readAck m s N => exact preadRespondAll_voteLe id _ _
+  | readSingle m s => exact preadRespondAll_voteLe id _ _
+  | readReleaseSingle s => exact preadRespondAll_voteLe id _ _
+  | _ => exact PVoteLe.of_eq rfl rfl
+
+theorem StepR.voteLe {Adm : List EntryM → CCState → Prop} {dec : CCDec} {id : w64}
+    {B : Int} {r : RState} {recv : List Msg} {r' : RState} (H : StepR Adm dec id B r recv r') :
+    PVoteLe r.p r'.p := by
+  induction H with
+  | refl => exact PVoteLe.refl _
+  | trans _ _ _ _ _ _ _ ih1 ih2 => exact ih1.trans ih2
+  | higherTerm m r h => exact pbecomeFollower_voteLe r.p _ _ (Int.le_of_lt h)
+  | campaign r _ _ _ _ hnw =>
+    apply PVoteLe.of_lt
+    simp only [psendMsgs, pbecomeCandidate]
+    have : uint.Z (r.p.term + W64 1) = uint.Z r.p.term + 1 := by word
+    omega
+  | grantVote m r _ _ _ _ hcv =>
+    refine ⟨Int.le_refl _, fun _ => ?_⟩
+    simp only [psendMsgs]
+    rcases hcv with h | ⟨h, -⟩
+    · exact .inr h.symm
+    · exact .inl h
+  | lose r => exact pbecomeFollower_voteLe r.p _ _ (Int.le_refl _)
+  | abandon r => exact pbecomeFollower_voteLe r.p _ _ (Int.le_refl _)
+  | stepDown r => exact pbecomeFollower_voteLe r.p _ _ (Int.le_refl _)
+  | readAck m r N => exact preadRespondAll_voteLe id _ _
+  | readSingle m r => exact preadRespondAll_voteLe id _ _
+  | readReleaseSingle r => exact preadRespondAll_voteLe id _ _
+  | _ => exact PVoteLe.of_eq rfl rfl
+
+/-- The step in the mode's model does not move the code's term back, nor its vote within a term. -/
+theorem GMode.StepOut.voteLe {md : GMode} {c : CfgM} {id : w64} {m : MessageM}
+    {s s' : NState} {md' : GMode} (H : md.StepOut c id m s s' md') :
+    PVoteLe (toPState s) (toPState s') := by
+  cases md with
+  | static =>
+    obtain ⟨-, B, recv, H⟩ := H
+    exact StepC.voteLe H
+  | dyn dec c0 h0 g =>
+    obtain ⟨g', -, -, B, recv, H⟩ := H
+    exact StepR.voteLe H
+
 /-- A step of any message but a `MsgStorageApplyResp`, a `MsgSnap` and (2026-10-28, stage U3) a
 snapshot's acknowledgement (a `MsgStorageAppendResp` that moves `applied`) keeps the mode (the
 configuration index does not move, `CidxMove`). -/
@@ -268,6 +375,19 @@ instance storCertOk_persistent (γ : RaftNames) (sn : StorNames) :
     Persistent (storCertOk (GF := GF) γ sn) := by
   unfold storCertOk; infer_instance
 
+/-- (2026-11-02, durability stage II (p)) **The attach record's terms are the committed log's**:
+every term the storage names record (`sn.ct`, up to `sn.c0`) is the one at its index of a committed
+log. What a restarted node needs to hand the recorded terms out again as the committed log's
+(`SdtTie`, `ownRaftLog_certify_gap`); vacuous without a record (`StartNode`, `ct = []`). -/
+def ctCommitted (γ : RaftNames) (sn : StorNames) : IProp GF :=
+  iprop(∃ Lc : List EntryM, isCommitted γ Lc ∗
+    ⌜∀ (i : Nat) (t : w64), (i, t) ∈ sn.ct → i ≤ sn.c0 →
+      1 ≤ i ∧ (Lc[i - 1]?).map EntryM.Term' = some t⌝)
+
+instance ctCommitted_persistent (γ : RaftNames) (sn : StorNames) :
+    Persistent (ctCommitted (GF := GF) γ sn) := by
+  unfold ctCommitted; infer_instance
+
 end certLink
 
 section ghost
@@ -284,9 +404,8 @@ def ghostRestM (γ : RaftNames) : GMode → CfgM → w64 → NState → IProp GF
     -- (2026-10-28, the decision switch) over the decisions the node witnessed (`g.decs`)
     iprop(⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ g.cfg.cfg = c ∧
         RInv (effDec dec g.decs) c0 (rOf s g)⌝ ∗ decLb γ g.decs ∗
-      logRecs γ base0 g.fp ∗
-      (∀ (_ : (toPState s).role = .candidate),
-        isCampK γ id (toPState s).term (rOf s g).full (toPState s).commit))
+      -- (2026-11-01, durability R5) no candidate campaign record: it may be pending
+      logRecs γ base0 g.fp)
 
 /-- (2026-10-19, D21 M3) The node's no-snapshot mode (`NGhost.ns`) is the cluster's
 (`RaftNames.reNoSnap`): of a cluster with a non-empty bootstrap log (`RaftNames.noSnap_boot`), what
@@ -311,7 +430,8 @@ snapshot certificates are tied to the cluster's (`storCertOk`): a `Ready` certif
 it hands out from them, a `MsgSnap`'s `raft.Step` pins its snapshot's. Until U8 v2 the no-snapshot
 mode needed no link (`⌜γ.reNoSnap = true⌝ ∨ …`); the mode is dropped at raft's level (a node's
 `NGhost.ns` is off, `ownRaftPhys`'s `Hnsoff`). -/
-def certLink (γ : RaftNames) (sn : StorNames) : IProp GF := storCertOk γ sn
+def certLink (γ : RaftNames) (sn : StorNames) : IProp GF :=
+  iprop(storCertOk γ sn ∗ ctCommitted γ sn)
 
 instance certLink_persistent (γ : RaftNames) (sn : StorNames) :
     Persistent (certLink (GF := GF) γ sn) := by
@@ -369,7 +489,7 @@ theorem ghostRest_voters_ne (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
   | dyn dec c0 h0 g =>
     unfold ghostRest
     simp only [ghostRestM]
-    iintro ⟨%Hn, ⟨%Hd, H0, H1, H2⟩, #Hl⟩
+    iintro ⟨%Hn, ⟨%Hd, H0, H1⟩, #Hl⟩
     isplitr
     · ipureintro
       intro _
@@ -377,7 +497,7 @@ theorem ghostRest_voters_ne (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
       rw [← Hd.2.1]; exact Hne _ Hok.2.1
     iframe Hl
     isplitr; · ipureintro; exact Hn
-    iframe H0 H1 H2
+    iframe H0 H1
     ipureintro; exact Hd
 
 
@@ -393,6 +513,17 @@ theorem ghostRest_certLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (
 def ownStepGhost (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : IProp GF :=
   iprop(ownRaftGhost γ id (toPState s) md.isDyn ∗ ghostRest γ md c id s)
 
+/-- (2026-11-02, stage II (p)) The certificate link, read out of the ghost state. -/
+theorem ownStepGhost_certLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ownStepGhost (GF := GF) γ md c id s ⊢ certLink γ s.gh.sn ∗ ownStepGhost γ md c id s := by
+  iintro H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, Hr⟩
+  icases ghostRest_certLink γ md c id s $$ Hr with ⟨#Hl, Hr⟩
+  iframe Hl
+  iunfold ownStepGhost
+  iframe Hg Hr
+
 /-- (2026-10-19, D21 M2r) The node's modes are the cluster's (`NsLink`), read out. -/
 theorem ownStepGhost_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
     ownStepGhost (GF := GF) γ md c id s ⊢ ⌜NsLink γ s⌝ ∗ ownStepGhost γ md c id s := by
@@ -405,19 +536,59 @@ theorem ownStepGhost_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
   iunfold ownStepGhost
   iframe Hg Hr
 
+/-- (2026-11-02, durability stage II (p)) **I1 at the node's commit** over any full prefix with
+records (`RInv.i1` in the dynamic mode; vacuous in the static one, `ownRaftGhost_mode`): what the
+cut gives the batch's state (`durI1`). -/
+theorem ownStepGhost_i1 (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ownStepGhost (GF := GF) γ md c id s ⊢
+      (□ ∀ fp, ⌜FullOk (toPState s).base fp⌝ -∗ logRecs γ base0 fp -∗
+        ⌜γ.reDyn.isSome = true → ConfI1 (fp ++ (toPState s).log) (uint.nat (toPState s).commit)⌝) ∗
+      ownStepGhost γ md c id s := by
+  iintro H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, Hr⟩
+  ihave %Hm := ownRaftGhost_mode (md := md.isDyn) γ id (toPState s) $$ Hg
+  cases md with
+  | static =>
+    isplitr
+    · iintro !> %fp %_ #_
+      ipureintro; intro h
+      simp only [GMode.isDyn] at Hm; rw [Hm] at h; cases h
+    iunfold ownStepGhost; iframe Hg Hr
+  | dyn dec c0 h0 g =>
+    iunfold ghostRest at Hr
+    icases Hr with ⟨%Hn, Hm', #Hl, Hw, Hx⟩
+    simp only [ghostRestM]
+    icases Hm' with ⟨%Hp, #Hd, #Hfr⟩
+    obtain ⟨Hp1, Hp2, HI⟩ := Hp
+    isplitr
+    · iintro !> %fp %Hfp #Hrc
+      icases FullOk_unique γ _ fp g.fp Hfp HI.full $$ Hrc Hfr with %He
+      subst He
+      ipureintro; intro _
+      exact HI.i1
+    iunfold ownStepGhost
+    iframe Hg
+    iunfold ghostRest
+    iframe Hl Hw Hx
+    isplitr; · ipureintro; exact Hn
+    simp only [ghostRestM]
+    iframe Hd Hfr
+    ipureintro; exact ⟨Hp1, Hp2, HI⟩
+
 /-- `LeadOk` and the leader's own witness, read out of `ownRaftGhost`. -/
 private theorem ownRaftGhost_leadInfo (γ : RaftNames) (id : w64) (ps : PState) (md : Bool) :
     ownRaftGhost (GF := GF) γ id ps md ⊢
       ⌜LeadOk id ps⌝ ∗ leaderWit γ id ps ∗ ownRaftGhost γ id ps md := by
   iintro Hown
   iunfold ownRaftGhost at Hown
-  icases Hown with ⟨%γv, %voted, %kl, H⟩
+  icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
   isplitr
   · ipureintro; exact Hlead_ok
   isplitr
   · iexact Hlead
-  iapply ownRaftGhost_intro γ id ps γv voted kl Hname Hidnz Hmode $$ Hvoted [] Hfrags Hout Htally Hlead Hlg [] [] Hvrecs [] Hlcm Hrd
+  iapply ownRaftGhost_intro γ id ps γs V πc kl Hsname Hidnz Hmode Hfresh $$ Hslot Hvirt Hpend [] Hout Htally Hlead Hlg [] [] [] Hlcm Hrd
   · ipureintro; exact Hhist
   · ipureintro; exact Hlead_ok
   · ipureintro; exact Hfollower_votes
@@ -604,23 +775,19 @@ theorem ownStepGhost_dyn (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : Cfg
   simp only [ownStepGhost, ghostRest, ghostRestM, GMode.isDyn, ownRaftGhostR, rOf.proj_p,
     rOf.proj_fp]
   constructor
-  · iintro ⟨Hg, %Hnl, ⟨%Hdc, #HM, #Hfr, #Hc⟩, #Hcl⟩
+  · iintro ⟨Hg, %Hnl, ⟨%Hdc, #HM, #Hfr⟩, #Hcl⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     isplitr
     · ipureintro; exact ⟨HD, hc, Hnl⟩
     iframe Hg Hfr Hcl HM
-    isplitr
-    · ipureintro; exact HI
-    iintro %hcand; iapply Hc; exact hcand
-  · iintro ⟨%Hdc, #HM, ⟨Hg, %HI, #Hfr, #Hc⟩, #Hcl⟩
+    ipureintro; exact HI
+  · iintro ⟨%Hdc, #HM, ⟨Hg, %HI, #Hfr⟩, #Hcl⟩
     obtain ⟨HD, hc, Hnl⟩ := Hdc
     iframe Hg Hfr Hcl
     isplitr
     · ipureintro; exact Hnl
     iframe HM
-    isplitr
-    · ipureintro; exact ⟨HD, hc, HI⟩
-    iintro %hcand; iapply Hc; exact hcand
+    ipureintro; exact ⟨HD, hc, HI⟩
 
 /-- (2026-10-28, the decision switch) **The node witnesses more of the client's decisions**: a lower
 bound of the decision map joins the ghost part's (the two agree, `decLb_compat`; the invariant reads
@@ -630,13 +797,13 @@ theorem ownStepGhost_absorb (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : 
     decLb (GF := GF) γ M ∗ ownStepGhost γ (.dyn dec c0 h0 g) c id s ⊢
       ownStepGhost γ (.dyn dec c0 h0 { g with decs := g.decs ∪ M }) c id s := by
   simp only [ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
-  iintro ⟨#HM, Hg, %Hnl, ⟨%Hdc, #Hg0, #Hfr, #Hc⟩, #Hcl⟩
+  iintro ⟨#HM, Hg, %Hnl, ⟨%Hdc, #Hg0, #Hfr⟩, #Hcl⟩
   obtain ⟨HD, hc, HI⟩ := Hdc
   ihave #Hu := decLb_union γ g.decs M $$ [Hg0 HM]
   · iframe Hg0 HM
   iframe Hg Hcl Hu
   rw [show rOf s { g with decs := g.decs ∪ M } = rOf s g from rfl]
-  iframe Hfr Hc
+  iframe Hfr
   ipureintro
   exact ⟨Hnl, HD, hc, HI.mono_dec (effDec_mono dec (DecCompat.sub_left g.decs M))⟩
 /-- A branch's step updates the mode's ghost state: statically `ownRaftGhost_stepC`,
@@ -665,16 +832,14 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
     ipureintro; exact HC
   | dyn dec c0 h0 g =>
     simp only [ghostRestM, GMode.isDyn]
-    iintro #Hrc Hrecv Hcr Htk Hlc Hg ⟨%Hdc, #HM, #Hfr, #Hc⟩
+    iintro #Hrc Hrecv Hcr Htk Hlc Hg ⟨%Hdc, #HM, #Hfr⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     obtain ⟨cidx', Hcm, HR⟩ := Hstep.2 (AdmS (effDec dec (g.decs)) c0 (fun _ => False)) (effDec dec (g.decs))
       g hc (Hdh dec c0 h0 g rfl _ HI)
     ihave Hown : ownRaftGhostR γ (effDec dec (g.decs)) c0 id (rOf s g) $$ [Hg]
     · simp only [ownRaftGhostR, rOf.proj_p, rOf.proj_fp]
       iframe Hg Hfr
-      isplitr
-      · ipureintro; exact HI
-      iintro %hcand; iapply Hc; exact hcand
+      ipureintro; exact HI
     imod ownRaftGhostR_stepR γ dec (g.decs) c0 h0 HD (fun _ => False) id B HB (rOf s g) recv _ HR
       $$ Hrc HM [] Hrecv Hcr Htk Hlc Hown with Hown
     · imodintro
@@ -683,7 +848,7 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
     imodintro
     iexists GMode.dyn dec c0 h0 { g with cidx := cidx' }
     iunfold ownRaftGhostR at Hown
-    icases Hown with ⟨Hg, %HI', #Hfr', #Hc'⟩
+    icases Hown with ⟨Hg, %HI', #Hfr'⟩
     simp only [rOf.proj_p, rOf.proj_fp]
     iframe Hg
     isplitr
@@ -694,10 +859,7 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
       · exact .inr (.inl (by rw [h]))
       · exact .inr (.inr (.inl ⟨h1, by rw [h2]⟩))
     iframe Hfr' HM
-    isplitr
-    · ipureintro; exact ⟨HD, hc, HI'⟩
-    iintro %hcand; iapply Hc'; exact hcand
-
+    ipureintro; exact ⟨HD, hc, HI'⟩
 
 /-- `ghost_stepCDM` with (D21 M3) `NsLink` kept: the step keeps the mode (`NGhost.ns`). -/
 theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
@@ -781,24 +943,17 @@ theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s'
   | dyn dec c0 h0 g =>
     simp only [ghostRest, ghostRestM]
     rw [hn, hst, hx, hlw]
-    iintro ⟨%Hnl, ⟨%H, #HM, #Hfr, #Hc⟩, #Hcl, #Hw, #Hx⟩
+    iintro ⟨%Hnl, ⟨%H, #HM, #Hfr⟩, #Hcl, #Hw, #Hx⟩
     isplitr
     · ipureintro; exact Hnl
     iframe Hcl Hw Hx
     obtain ⟨HD, hc', HI⟩ := H
     iframe HM
-    have hfull : (rOf s' g).full = (rOf s g).full := by
-      simp only [RState.full, rOf.proj_fp, rOf.proj_p]; rw [hl]
-    isplitr
-    · ipureintro
-      refine ⟨HD, hc', HI.frame (by simp [rOf]) (by simp [rOf, hb]) (by simp [rOf, hl])
-        (by simp [rOf, hc]) (by simp [rOf, ha]) (by simp [rOf, hs]) (by simp [rOf])
-        (by simp [rOf]) (.inr ⟨by simp [rOf, hr], by simp [rOf, hpci]⟩)⟩
     iframe Hfr
-    iintro %hcand
-    rw [hfull, ht, hc]
-    iapply Hc
-    rw [← hr]; exact hcand
+    ipureintro
+    exact ⟨HD, hc', HI.frame (by simp [rOf]) (by simp [rOf, hb]) (by simp [rOf, hl])
+      (by simp [rOf, hc]) (by simp [rOf, ha]) (by simp [rOf, hs]) (by simp [rOf])
+      (by simp [rOf]) (.inr ⟨by simp [rOf, hr], by simp [rOf, hpci]⟩)⟩
 
 /-- (D22 S-b′4, 2026-10-20) What the step needs of the mode: statically, once the `ConfState` names
 the node (the restore exit: `restore` refuses it otherwise), a non-joint `ConfState` with the ghost
@@ -900,7 +1055,7 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
       · simp only [snapCfg, csCfgM]; rw [Hso.2.1]; try rfl
   | dyn dec c0 h0 g =>
     simp only [ghostRestM, GMode.isDyn, GMode.SnapOkIf]
-    iintro #Hrc #Hm Hrecv Hcr Htk Hlc #Hso Hg ⟨%Hdc, #HM0, #Hfr, #Hc⟩
+    iintro #Hrc #Hm Hrecv Hcr Htk Hlc #Hso Hg ⟨%Hdc, #HM0, #Hfr⟩
     obtain ⟨HD, hc, HI0⟩ := Hdc
     -- the snapshot's prefix, from the message, and A3 of it once the `ConfState` names the node
     -- (the certificate's dynamic clause); (2026-10-28, stage U3c) none needed otherwise
@@ -948,9 +1103,7 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
     ihave Hown : ownRaftGhostR γ (effDec dec ((g.decs) ∪ Ms)) c0 id (rOf s g) $$ [Hg]
     · simp only [ownRaftGhostR, rOf.proj_p, rOf.proj_fp]
       iframe Hg Hfr
-      isplitr
-      · ipureintro; exact HI
-      iintro %hcand; iapply Hc; exact hcand
+      ipureintro; exact HI
     imod ownRaftGhostR_stepR γ dec ((g.decs) ∪ Ms) c0 h0 HD (fun fp => fp = fp0) id B HB (rOf s g)
       recv _ HR $$ Hrc HM [] Hrecv Hcr Htk Hlc Hown with Hown
     · imodintro
@@ -960,7 +1113,7 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
     imodintro
     iexists GMode.dyn dec c0 h0 { g' with decs := (g.decs) ∪ Ms }
     iunfold ownRaftGhostR at Hown
-    icases Hown with ⟨Hg, %HI', #Hfr', #Hc'⟩
+    icases Hown with ⟨Hg, %HI', #Hfr'⟩
     simp only [rOf.proj_p, rOf.proj_fp]
     iframe Hg
     isplitr
@@ -971,9 +1124,7 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
       · intro hp; show g'.fp = g.fp; rw [hgp' hp]
     iframe Hfr' HM
     rw [show rOf s' { g' with decs := (g.decs) ∪ Ms } = rOf s' g' from rfl]
-    isplitr
-    · ipureintro; exact ⟨HD, hg', HI'⟩
-    iintro %hcand; iapply Hc'; exact hcand
+    ipureintro; exact ⟨HD, hg', HI'⟩
 
 /-- `ghost_stepCDSM` with (D21 M3) `NsLink` kept. -/
 theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m : MessageM)

@@ -270,7 +270,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "#Hlog0" ∷ memLog γs 0 DFrac.discard [(zero_val EntryM : EntryM)] ∗ "Hend" ∷ memEnd γs 1 ∗
     "Hsnone" ∷ memSnapNone γs ∗
     "Hmeta" ∷ memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
-    "Hfresh" ∷ memStorFresh bv.storage' γs ∗
+    "Hfresh" ∷ memStorFresh bv.storage' γs 0 memSnapEmpty ∗
     "Hpeers" ∷ bv.peers' ↦* pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
     -- the cluster
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
@@ -324,7 +324,8 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "HclBe" ∷ clusterBeOn bc.cl' d.be ∗
     -- (D22, 2026-10-23; option (i) of "D22c decided") the cluster's in-memory members, as
     -- `bootstrap` made them: the boot log's (`memBoot`, the members whose JSON the bootstrap
-    -- entries' contexts are)
+    -- entries' contexts are, each with its entry's node as its id: `ccMemberAt`, 2026-11-02, the
+    -- backend-auth-split stage)
     "Hmem" ∷ membership.clusterMem bc.cl' (memBoot γ.boot) ∗
     -- the consistent index and the apply protocol
     -- (2026-11-01, the user's decision, "bootOk's boot metadata": until then also `γA.m0 = (0, 0)`,
@@ -373,7 +374,13 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
       d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧
       -- (the lease-revoke plan, 2026-10-31) the `Lease` bucket in the table, tracked, no hook
       -- keys: what a revocation's deletions from it take (`mvcc.storeRb`)
-      mvcc.leaseParams d.P⌝ ∗
+      mvcc.leaseParams d.P ∧
+      -- (2026-11-02, the backend-auth-split stage, item E of the approved restatements) the alarm
+      -- and auth buckets in the table (schema's `Alarm`, `Auth`, `AuthUsers`, `AuthRoles`, of
+      -- `MustCreateBackendBuckets`' `AllBuckets`): what `NewAlarmStore` and `NewAuthStore` take of
+      -- the buckets they create, so that they are among the backend's ghost names
+      d.P.has mvcc.alarmBI ∧ d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧
+      d.P.has mvcc.authRolesBI⌝ ∗
     -- (2026-11-02, the user's approval, branch `snap-window`) the backend's hooks are the server's
     -- `s.beHooks` (`bootstrapBackend`'s `OpenBackend(cfg, beHooks)`: `bcfg.Hooks = hooks`, which
     -- `New` stores in `b.hooks`): what the merged snapshot's window needs of its commit
@@ -492,8 +499,8 @@ reported): `Snapshot.spec` admits `ErrSnapshotTemporarilyUnavailable` for any st
 theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (E : RNEnv GF) (γ : RNNames) (r ms0 : Loc) (γs : MemStorNames) (Hms0 : γ.ms = ms0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
-      isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.id -∗ memSnapNone γs -∗
-      ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce (MemStorReg.memStorRegName (GF := GF)) γ.node.cl γ.id ms γs (W64 0) (W64 0) := by
+      isRaftNode E γ r -∗ memStorInv ms0 γs γ.node.cl γ.key -∗ memSnapNone γs -∗
+      ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce (MemStorReg.memStorRegName (GF := GF)) γ.node.cl γ.key ms γs (W64 0) (W64 0) := by
   subst Hms0
   iintro #Hpkg #Hrn #Hinv Hnone
   ihave #Hinv0 := Hinv
@@ -513,9 +520,12 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
   iNamed Hinit
   ihave #Hc0 := memCompacted_zero (GF := GF) γs
   iapply wp_fupd
-  wp_apply wp_Snapshot γ.ms γs _ 0 true _ $$ [$Hraft $Hinv $Hc0 Hnone $ErrSnapUnavail]
-    as %snap %err ⟨Hnone, %Herr, %sv, Hw, %Hsv, -⟩
-  · simp only [↓reduceIte]; iexact Hnone
+  wp_apply wp_Snapshot γ.ms γs (memStorJ γ.node.cl γ.key) none 0 true _
+    $$ [$Hraft $Hc0 Hnone $ErrSnapUnavail] as %snap %err ⟨Hnone, %Herr, %sv, Hw, %Hsv, -⟩
+  · isplitr [Hnone]
+    · iapply memStorAt_none_intro $$ Hinv
+      iempintro
+    simp only [↓reduceIte]; iexact Hnone
   imod ownSnapW_persist $$ Hw with ⟨%pm, %pc, %Hnn, #Hsn, #Hpm, #Hpc, #Hcs⟩
   imodintro
   have Hsv0 := Hsv.2 rfl

@@ -114,7 +114,8 @@ theorem isMessage_leave (γ : RaftNames) : ⊢ isMessage (GF := GF) γ leaveAbs 
   iexists none
   unfold propDataIs
   ipureintro
-  exact ⟨⟨rfl, .inr rfl⟩, fun h => absurd h (show W32 2 ≠ W32 1 by w32_ne), fun _ => ⟨_, ccDecodeV2_nil⟩⟩
+  exact ⟨⟨rfl, .inr rfl⟩, fun h => absurd h (show W32 2 ≠ W32 1 by w32_ne), fun _ => ⟨_, ccDecodeV2_nil⟩,
+    (by decide : uint.Z (W32 2 : w32) ≤ 2)⟩
 
 /-- ... and carries no ticket (a filler's entry, `entTk`). -/
 theorem msgTks_leave (γ : RaftNames) : ⊢ msgTks (GF := GF) γ leaveAbs := by
