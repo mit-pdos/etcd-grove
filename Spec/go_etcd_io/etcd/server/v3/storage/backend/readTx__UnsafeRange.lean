@@ -27,15 +27,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `rt.UnsafeRange(bucket, key, endKey, limit)` of the held shared read transaction, with any
 share `p` of bbolt's transaction (`rtHeld` is `rtHeldF … sync.rfrac.half`; the restore plan's
-R5b): `rtRange` of the readers' state (an end key nil or not empty; no limit above 1 on a bucket
-that is not safe-range: that panics). -/
+R5b) and **no open share** (the backend-auth-split stage's decision 1: the held read's interval is
+live, `rtHeldF`; the guard is at the acquisition, `RLock`): `rtRange` of the readers' state (an
+end key nil or not empty; no limit above 1 on a bucket that is not safe-range: that panics). Go:
+the interval's bbolt transaction stays open while `readTx.mu` is read-locked (the commit that would
+roll it back, and the stop's, take `readTx.Lock()`). -/
 abbrev backend.readTx.UnsafeRange.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (rt : Loc) (rtx : Loc) (rv : RView) (p : Qp) (qo : Qp) (bk : GoInterface) (bi : BucketInfo) (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac) (limit : w64),
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (rt : Loc) (rtx : Loc) (rv : RView) (p : Qp) (bk : GoInterface) (bi : BucketInfo) (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac) (limit : w64),
   (endKey = slice.nil ↔ eb = []) → (sint.Z (rangeLimit eb limit) ≤ 1 ∨ bi.safe = true) → P.has bi →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ rtHeldF γ P b rtx rv p ∗ bOpen γ qo ∗ isBucket bk bi ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ rtHeldF γ P b rtx rv p ∗ isBucket bk bi ∗
       key ↦*{dk} kb ∗ endKey ↦*{de} eb }}
     (App (App (App (App (Val (rt @!! go.GoType.PointerType readTx.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #key)) (Val #endKey)) (Val #limit))
-  {{ (keys vals : GoSlice), RET (PairV #keys #vals); rtHeldF γ P b rtx rv p ∗ bOpen γ qo ∗
+  {{ (keys vals : GoSlice), RET (PairV #keys #vals); rtHeldF γ P b rtx rv p ∗
       key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗ kvsOutRd rtx keys vals (rtRange rv bi kb eb limit) }}
 
 end spec

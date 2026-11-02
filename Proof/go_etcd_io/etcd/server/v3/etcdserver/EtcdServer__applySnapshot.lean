@@ -118,21 +118,21 @@ theorem EtcdServer.applySnapshot.wp_proof_snap
     (hFS : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG)) :
     EtcdServer.applySnapshot.specSnap (GF := GF) (hG := hG) := by
-  · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hcm hdbo hsop hP hcfgl hmmap tI hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre hRok hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm hauthb hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' hA' hoff γnc
+  · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hcm hdbo hsop hP hcfgl hmmap tI hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre hRok hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm halbi hauthb hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' hA' hoff γnc
     iintro %Φ Hpre HΦ
-    icases Hpre with ⟨#Hpkg, #Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, Hkvc, #Hkvex, #Hcok, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, #HauR, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #HmetaB⟩
+    icases Hpre with ⟨#Hpkg, #Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, Htk, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, Hkvc, #Hkvex, #Hcok, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, #HauR, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #HmetaB⟩
     iapply wp_fupd
-    iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hcm hdbo hsop hP hcfgl hmmap tI hmeta hSB st b hle hLR al ast lp cl x A hRO hlease hwq hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel R hpre hRok hkI hbr hGTP hSTP hCIg γp hrbw hRel stp γd γt img nt hstp hnt hNAB hAR halarm hNAuB hauthb hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc hAG) $$ [Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOh]
+    iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hcm hdbo hsop hP hcfgl hmmap tI hmeta hSB st b hle hLR al ast lp cl x A hRO hlease hwq hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel R hpre hRok hkI hbr hGTP hSTP hCIg γp hrbw hRel stp γd γt img nt hstp hnt hNAB hAR halarm halbi hlp hNAuB hauthb hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc hAG) $$ [Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk]
     · iframe #
-      iframe Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOh
-    iintro !> ⟨Hw, Hrcv⟩
+      iframe Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk
+    iintro !> ⟨Hw, Hrcv, Htk⟩
     ihave Hpost := (srvSnapApplied_of_walk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hcm hdbo hsop hP hcfgl tI hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre hRok hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm hauthb hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' hA' hoff) $$ [Hw]
     · iframe #
       iframe Hw
     imod Hpost
     imodintro
     iapply HΦ
-    iframe Hrcv
+    iframe Hrcv Htk
     iexact Hpost
 
 /-- **`applySnapshot.spec`** (J8b, 2026-11-01): `wp_proofEmpty` and `wp_proof_snap`. -/

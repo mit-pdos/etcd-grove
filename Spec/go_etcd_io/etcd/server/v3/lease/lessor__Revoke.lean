@@ -29,7 +29,8 @@ at the item map of the state after `log`, and its revokers), at the watchable st
 store's sole writer at the committed log `log` (`watchWriter`, a reader slot, a write token, the
 post-lock hook on `Pre` and the critical-section contract, as `watchableStore.Write` takes them,
 and the certificate of the revocation's commit, `mvcc.leaseDels`), over the real backend `d` (the lessor's `le.b`
-its `*backend`: `lessorBeOn`), with the right to write the tracked buckets at `r` (`storeRb`):
+its `*backend`: `lessorBeOn`), with the right to write the tracked buckets at `r` (`storeRb`: the
+`Lease` bucket's part, 2026-11-02, the backend-auth-split stage; until then the whole client half):
 * `id` not live: `ErrLeaseNotFound`, nothing changed (`Pre` back);
 * `id` live: the keys the item map puts on `id`, in ascending order, deleted at one revision (none
   if there are none: no revision): `mvcc.leaseDels` of the state (the lease-revoke plan's R1,

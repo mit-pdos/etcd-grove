@@ -59,7 +59,7 @@ theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IP
       (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) ρ γr := by
   subst hγB hP
   unfold isServer srvFieldsAt
-  iintro ⟨⟨%Hrd, #Hci, Hv, #Hat, #Hgen, #Hrn⟩, #Hcl, #Hci', #Hhook, #HhkAt, #HbhF, #HB⟩
+  iintro ⟨⟨%Hrd, #Hci, Hv, #Hat, #Hgen, #Hrn, %Hrdb⟩, #Hcl, #Hci', #Hhook, #HhkAt, #HbhF, #HB⟩
   icases Hv with ⟨%v, Hf⟩
   icases Hf with ⟨#Hlg, %Hlgn, #Hw, #Hwi, %HP, %Henv, #Hhk, #Hles, #Hlok, #Hfc, #Hal,
     #Hclv, #Hrc, #Hq, #Hlm, #Hmid, #Hli, #He, #Ht, #Hn, #Has, #Hbeh⟩
@@ -103,6 +103,7 @@ theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IP
     ipureintro
     exact ⟨Hlgn, ⟨rfl, rfl⟩, hok⟩
   iframe #
+  ipureintro; exact Hrdb
 
 end proof
 end EtcdGrove

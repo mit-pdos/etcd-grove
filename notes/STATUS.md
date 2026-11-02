@@ -594,6 +594,87 @@ p.Term'` was already the tie, unchanged). Rests on `nodeDriver_hardStateCommitte
 with branch `snap-sorries` (not committed on `snap-rt`: it does not build alone). `applyAll`, its
 consumer, untouched.
 
+## The backend for the auth split (2026-11-01, branch `backend-auth-split`; decisions 1 and 3 applied)
+
+`notes/backend-auth-split-plan.md`, "Freeze" and "The user's decisions on the Freeze's questions".
+Applied: decision 1 (a held `readTx` records that its interval is live; `readTx.UnsafeRange` takes
+no open share; `guarded_RLock`; `Close.spec`'s docstring); decision 3's untrusted part, option (b):
+`rbOwnIn` is a ghost idle token, per-bucket elements of a ghost map under `γ.rbk` (contents and a
+pending flag) over the pure domain `γ.rbD`, not tied to the readers' model (`InvBackend.lean`,
+laws in `TrackedLemmas.lean`); `rbOwn = rbPart ⊤`; the four batch writers take their bucket's part
+only; `Unlock` takes any part and returns it idle (`Unlock.bare`, `UnlockBare.lean`, the old
+statement); `rbSide` sealed and `rbSide_idle` private, so only `Unlock` clears a flag (gated since stage 1 of the apply: `etc/import-all-check.py`). Held for the trusted step: the readers' axioms taking `rbOwnIn`, `New`/`OpenBackend`
+giving the idle token, `premise_buckets`' consumer (`AuthSplitDraft.lean`).
+Also applied: `restModel_memIdOk` (`RestMemId.lean`, Q1's strong `membersDecode`: the members'
+ids are their keys along the log). The revised trusted restatements (revision 4: the user's
+decisions of 2026-11-02, §2–§12 in full, §18 `memBoot` with `ccMemberAt`, the `import all` gate) are
+approved (revision 4.3, 2026-11-02); being applied in stages. Later stage:
+option (a), the read model over the tracked hook buckets (the plan note).
+
+**Stage 1 of the apply (2026-11-02): the foundations**, no axiom's text changed, no caller of the
+restated axioms touched. The reader pool in the backend (`RdPool.lean`: `backend.rdPool`,
+`rdLoan`, `rdPool_init`, `rdTok_borrow`/`rdTok_giveBack`, `reader_RLock`/`reader_RUnlock`,
+`rdPoolN := 2 ^ 28`, `rdStockN`, `rdStock`, `bkRPool`, `bOpen_one_pool`, `bkRPool_intro`,
+`newPost_pool`/`newPostP`, `newPostK_pool`/`newPostKP`). `newPostKP` holds `rdPool`, not
+`bkRPool`: `newPostK` has no open token (its `K γ` took `bFresh γ`), so the snapshot path builds
+`bkRPool` where it gets `bOpen γ 1` back (`bOpen_one_pool`, `bkRPool_intro`), as it splits the
+readers' shares today (`SnapApplyWalk.lean`). The membership vocabulary (`InvRest.lean`:
+`membership.memberBkts`, `clusterBkts`, `membersDecode` and its five laws; `RestMemId.lean`:
+`membersDecode_restModel`, `memIdOk_memBoot`, `restModel_memIdOk'`), §18's `memBoot` with
+`ccMemberAt` (trusted, approved), the bucket infos `mvcc.alarmBI`/`authBI`/`authUsersBI`/
+`authRolesBI` (`InvStore.lean`), and Q6's gate: `etc/api/backend.txt` (57 importable modules,
+with `RdPool`) and `etc/import-all-check.py` (`etc/import-all.txt`), in `etc/gates.sh` and CI.
+
+**Stage 2 of the apply (2026-11-02): the untrusted plumbing**, no axiom's text changed. The stock:
+mvcc's `New`/`NewStore`/`newWatchableStore`/`Restore` and the server's boot take and count the
+backend's stock `backend.rdStockN` (irreducible, `rdStockN_val`; `mvcc.nReaders := rdStockN`), so
+the pool's slots come off (`newPost_pool` at `NewServer`, `newPostK_pool` on the snapshot path).
+The bound: `isServer` holds `threadBound GF ≤ backend.rdPoolN` (`isServer_rdPoolN`), `NewServer`'s
+premise written so. The pool: `srvBeOwn` holds `srvBeRO d` and `backend.bkRPool` of the current
+backend (the apply thread's, through `srvApplyKV`); on the snapshot path the new backend's is built
+by `bkRPool_intro` and the old one's shares go to its `Close`. The token: `applyConfChange`,
+`applySnapshot.specSnap`, `NewServer` (and the examples' `newServer`, `NewMember`, and since the
+merge of lean's item 37 `BuildServer`'s three specs) take
+`threadTok` and give it back; the apply thread's is `srvGoRes`'s. `applyConfChange.spec` takes
+`membersDecode rs.bk` (Q) and `bkRPool` (discharged in `EtcdServer.apply` by
+`membersDecode_restModel` and `srvApplyKV(On)_ua_rt_pool`).
+
+**Stage 3 of the apply (2026-11-02): the trusted restatements and their callers.** Applied as
+approved (revision 4.3): §1 `MustReadMembersFromBackend`, §2 `RaftCluster.Recover` (and
+`memBucketsOk`'s docstring, strong form), §3 `SetBackend`, §4 `MustSaveMemberToBackend`, §5
+`MustDeleteMemberFromBackend`, §6 `NewAlarmStore`, §7 `AlarmStore.restore`, §8 `NewLessor` and
+`lessorApplyOk`, §9 `lessor.Recover`, §10 `NewAuthStore` and `authRecoverOk`, §16 `srvRestOwn`
+(the cluster's buckets idle, the others a part, `memIdOk`; `memIdOk` moved to `InvRest.lean`) and
+`clusterApplyOk`'s docstring, §17's UTF-8 sentence; the proved §11-12 (`AlarmStore.Recover`,
+`restoreAlarms`, no error arm). `bootOk`'s backend facts gained the table's alarm and auth entries
+(`d.P.has mvcc.alarmBI`, `authBI`, `authUsersBI`, `authRolesBI`: item E's boot fact, which the
+draft names but does not spell out); `srvSnapRO` the alarm entry. Untrusted consequences: mvcc's
+`kbRb` is the `Lease` bucket's part (`bt_leaseDel` over `batchLocked_rbPart`), the revocation lens
+(`srvRestOwnH_lens_revoke`) and its consumers (`revokeClause_of_lessorInv`,
+`isApplyLessor_of_lessorInv`, `Results.lean`'s `lessor_apply_contract`) give back at buckets
+agreeing off `lease`; `applyConfChange.spec` takes `srvBeRO d` (from `srvApplyKV(On)_ua_rt_pool`);
+`snapWalkPost` and `snap_srvRest` hold the new backend's buckets as `srvRestOwn`'s two parts; the
+snapshot observation (`snapObs_window`, `srvBeSnapOk_window`) takes them and agrees part by part.
+
+**Stage 4 of the apply (2026-11-02): §19.** `common.bootPremise` asks `bootstrapContract` only for
+configurations whose initial cluster's names are valid UTF-8 (`utf8Valid` of every key of
+`U.initMap`; the approved text). `newServer`'s two specs, `NewMember`, `StartMember` and
+`BuildServer.spec` take the cluster map's keys valid, `StartServer`/`StartCompactingServer`
+`utf8Valid name`; every example's `Main` discharges it for its ASCII names (`decide`,
+`common.utf8Keys_empty`/`utf8Keys_insert`): no closed result's statement changed.
+
+**The apply step is complete** (revision 4.3 in full). No axiom added or removed; the restated
+axioms' statements changed (§1-§10); the trusted definitions `memBoot`, `srvRestOwn`, `bootOk`
+(its `%Hbe` table entries, `clusterApplyOk`/`lessorApplyOk`/`authRecoverOk`) and `bootPremise`
+changed as approved; the item E boot fact (`bootOk`'s four `%Hbe` table conjuncts) and landing
+approved by the user (2026-11-02). Lands as the merge of lean `b089f226ea` into the branch. Checks
+at that merge: `lake build`; `etc/tcb-report.py --check` (781 axioms, 9 sorries, the baseline,
+identical to lean's: the branch adds or removes none); every collection but v3rpc (whose 7 new
+names, `leaseTimeToLive.wp_proof`, `lessor.Renew.wp_proof`, ..., are all lean's); bounds; api-check
+and `gen-interface --check --layout` for `backend` and `raft`; `import-all-check`; `gen-link` for
+every mode (the two lintest docstring diffs are lean's); the gates (failing only on lean's own
+three: v3rpc, the lintest links, `issues/INDEX-reviewed.md`).
+
 ## The lease results' sources in a `NewServer`-built server (2026-11-02, branch `lease-src`; frozen and proved)
 
 Follow-on 1 of the lessor/auth list (`notes/lease-src-plan.md`; decisions entry "The lessor's

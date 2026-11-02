@@ -35,6 +35,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevBytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketRange
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RdPool
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.DGhostVar
@@ -227,14 +228,14 @@ instance dbNames_countable : Pos.Countable backend.DBNames :=
 
 instance bNames_countable : Pos.Countable backend.BNames :=
   countableOfLeftInverse
-    (fun x : backend.BNames => (x.fkv, x.fk, x.dlb, x.dlg, x.cln, x.rbk, x.hkd, x.db, x.view, x.rd, x.hist, x.cached, x.cur, x.hook,
-      x.opn, x.wb, x.rdt, x.txa, x.txb, x.rvs, x.cvw, x.wbc, x.used, x.cls, x.sdn, x.stk))
-    (fun r0' => let r := r0'.2; let r' := r.2; let r0 := r'.2; let q0 := r0.2; let q := q0.2; let p := q.2; ⟨p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1,
+    (fun x : backend.BNames => (x.rbD, (x.fkv, x.fk, x.dlb, x.dlg, x.cln, x.rbk, x.hkd, x.db, x.view, x.rd, x.hist, x.cached, x.cur, x.hook,
+      x.opn, x.wb, x.rdt, x.txa, x.txb, x.rvs, x.cvw, x.wbc, x.used, x.cls, x.sdn, x.stk)))
+    (fun pr => let r0' := pr.2; let r := r0'.2; let r' := r.2; let r0 := r'.2; let q0 := r0.2; let q := q0.2; let p := q.2; ⟨p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, p.1, q.1, q0.1, r0.1, r'.1, r.1, r0'.1⟩)
+      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, p.1, q.1, q0.1, r0.1, r'.1, r.1, r0'.1, pr.1⟩)
     (fun _ => rfl)
 
 /-- A real instance's parameters are its record's, whatever its compaction mode (the server's
@@ -1113,6 +1114,24 @@ abbrev leaseName : GoString := go_etcd_io.etcd.server.v3.storage.schema.leaseNam
 safeRangeBucket: false}`). -/
 def leaseBI : backend.BucketInfo := ⟨W64 3, leaseName, false⟩
 
+/-- schema's `Alarm` bucket, as the backend names it (`bucket{id: 4, name: "alarm",
+safeRangeBucket: false}`; 2026-11-02, the backend-auth-split stage). -/
+def alarmBI : backend.BucketInfo := ⟨W64 4, go!"alarm", false⟩
+
+/-- schema's `Auth` bucket, as the backend names it (`bucket{id: 20, name: "auth",
+safeRangeBucket: false}`; 2026-11-02, the backend-auth-split stage). -/
+def authBI : backend.BucketInfo := ⟨W64 20, go_etcd_io.etcd.server.v3.storage.schema.authName, false⟩
+
+/-- schema's `AuthUsers` bucket, as the backend names it (`bucket{id: 21, name: "authUsers",
+safeRangeBucket: false}`; 2026-11-02, the backend-auth-split stage). -/
+def authUsersBI : backend.BucketInfo :=
+  ⟨W64 21, go_etcd_io.etcd.server.v3.storage.schema.authUsersName, false⟩
+
+/-- schema's `AuthRoles` bucket, as the backend names it (`bucket{id: 22, name: "authRoles",
+safeRangeBucket: false}`; 2026-11-02, the backend-auth-split stage). -/
+def authRolesBI : backend.BucketInfo :=
+  ⟨W64 22, go_etcd_io.etcd.server.v3.storage.schema.authRolesName, false⟩
+
 /-- **The backend's parameters let the lessor delete from `Lease`**: the bucket in the table, a
 tracked one (`RB`, D22), none of its keys a hook's own (leases T3, 2026-10-25). -/
 def leaseParams (P : backend.BParams) : Prop :=
@@ -1780,6 +1799,13 @@ theorem rep_sub (P : IProp GF) (m n : Nat) (h : m ≤ n) :
   conv => lhs; rw [show n = (n - m) + m by omega, ← List.replicate_append_replicate]
   exact BigSepL.bigSepL_append.1
 
+/-- `n` copies of `P` give `m ≤ n` of them (2026-11-02, the backend-auth-split stage). -/
+theorem rep_le (P : IProp GF) (m n : Nat) (h : m ≤ n) :
+    ([∗list] _x ∈ List.replicate n (), P) ⊢ [∗list] _x ∈ List.replicate m (), P := by
+  refine (rep_sub P (n - m) n (by omega)).trans ?_
+  rw [show n - (n - m) = m by omega]
+  exact sep_elim_left
+
 /-- At most one reader is kept back for the job. -/
 theorem nJobRd_le (kb : Option KBReal) : nJobRd kb ≤ 1 := by
   unfold nJobRd; cases kb with
@@ -1942,12 +1968,15 @@ def kbCmp (kb : Option KBReal) : Prop := kbCmpM kb
 abbrev storeCmp (γ : StoreNames) : Prop := kbCmp γ.kb
 
 /-- **The right to write the tracked buckets** (`batchTxSpecG`'s `Rb`, at the buckets `r`) of the
-instance `kb`: the real backend's client half of them (`backend.rbOwn`, D22), with its parameters
-letting the lessor delete from `Lease` (`leaseParams`: the holder knows the table); nothing for
-mvcc's assumed backend (leases T3, 2026-10-25: what the lessor's delete in `Revoke` takes). -/
+instance `kb`: the real backend's client part of the `Lease` bucket (`backend.rbPart`, D22), with
+its parameters letting the lessor delete from `Lease` (`leaseParams`: the holder knows the table);
+nothing for mvcc's assumed backend (leases T3, 2026-10-25: what the lessor's delete in `Revoke`
+takes). (2026-11-02, the backend-auth-split stage: until then the whole client half `rbOwn`; the
+revocation's delete writes `Lease` only, and the server's rest resource holds the cluster's buckets
+idle, which the whole half could not give back.) -/
 def kbRb : Option KBReal → GMap GoString backend.BktData → IProp GF
   | none => fun _ => iprop(True)
-  | some d => fun r => iprop(backend.rbOwn d.γB r ∗ ⌜leaseParams d.P⌝)
+  | some d => fun r => iprop(backend.rbPart d.γB (· = leaseName) r ∗ ⌜leaseParams d.P⌝)
 
 /-- The store's right to write the tracked buckets (`kbRb`). -/
 abbrev storeRb (γ : StoreNames) : GMap GoString backend.BktData → IProp GF := kbRb γ.kb
@@ -3590,8 +3619,22 @@ theorem fieldShareAt_idx (s : Loc) (γ : StoreNames) (q : Qp) (o : StoreObjs) :
   simp only [named]
   iframe Hfb Hfidx Hfsch Hfstop
 
-/-- The number of reader slots of the store's locks (`NewStore` hands out one reader per slot). -/
-abbrev nReaders : Nat := Int.toNat sync.rwmutex.actualMaxReaders
+/-- The number of the store's readers (`NewStore` hands out one reader per slot of its pool), the
+backend's reader tokens it holds: (2026-11-02, the backend-auth-split stage) the backend's counted
+stock (`backend.rdStockN`, past the backend's pool of `rdPoolN`); until then all the backend's
+`actualMaxReaders` slots. -/
+abbrev nReaders : Nat := backend.rdStockN
+
+/-- The store's readers' number (2026-11-02, the backend-auth-split stage). -/
+theorem nReaders_val : nReaders = 805306367 := backend.rdStockN_val
+
+/-- A lock's reader slots, as many as the store's readers (`nReaders`, the backend's stock: at most
+the slots; 2026-11-02, the backend-auth-split stage). -/
+theorem rep_nReaders (P : IProp GF) :
+    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), P) ⊢
+      [∗list] _x ∈ List.replicate nReaders (), P := by
+  apply rep_le
+  exact backend.rdStockN_le
 
 /-- **A slot of the readers' pool** (D22 receiver epochs, S4, 2026-10-22; S5a: with the backend's
 reader token): a reader slot of the store's index's lock (of the objects `o`'s index; S5b: the

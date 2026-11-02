@@ -23,7 +23,10 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- `rt.RLock()` of the shared read transaction: held, over the readers' state now. -/
+/-- `rt.RLock()` of the shared read transaction: held, over the readers' state now, its interval
+live (`rtHeld`). The guard against a stopped backend is here, at the acquisition (the
+backend-auth-split stage's decision 1): an open share in, and back at once; the held read needs
+none (`readTx.UnsafeRange`). -/
 abbrev backend.readTx.RLock.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (rt : Loc) (qo : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ rdTok γ P b ∗ bOpen γ qo }}

@@ -150,7 +150,8 @@ theorem leaseDels_notLive (L : List w64) (log : mvcc.Log) (id : w64) (hid : id �
 /-- **The Revoke clause of the real lessor** (the lease-revoke plan's D3): the lessor `lp` (its
 invariant), its backend's write right lent by the rest resource (the tracked buckets and the
 lessor's `le.b` half at the store's real backend; only the buckets change: a grant writes through
-`RW`, a revocation through `RO`, the server's resource of the buckets at its model), the store
+`RW`, a revocation through `RO`, the server's resource of the buckets at its model, given back at
+buckets agreeing with the model's off `lease`: 2026-11-02, the backend-auth-split stage), the store
 watchable (`kvWriter` then holds `watchWriter`'s parts) and its hook's facts. -/
 theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
     (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RO : RestM → IProp GF) :
@@ -159,7 +160,8 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
       lease.lessorInv lp γ.leases ∗ mvcc.hookOk γ P f ∗
       □ (∀ rs : RestM, RO rs -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗
           mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d.be ∗
-          (∀ bk, mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ⊢
+          (∀ bk, ⌜∀ n, n ≠ mvcc.leaseName → bk.lookup n = rs.bk.lookup n⌝ -∗
+            mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ⊢
       revokeClause ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty, #lp⟩ s γ P f RO := by
   iintro ⟨%hw, #Hpkg, #Hmpkg, #Hinv, #Hhok, #Hlens⟩
   iunfold revokeClause
@@ -211,7 +213,7 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
     iframe HPre Hwt Hown Hrvk HK
     isplitl [Hww Hfrag Hclose]
     · iapply Hclose $$ %log %hsl Hww Hfrag
-    iapply Hcl $$ %rs.bk [$Hrb $Hbe]
+    iapply Hcl $$ %rs.bk %(fun _ _ => rfl) [$Hrb $Hbe]
   · -- live: the keys deleted, the record deleted
     obtain ⟨hid, rfl⟩ := Hok
     iapply HΦ
@@ -230,7 +232,9 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
     · iapply leasesKnown_revoke L log id $$ HK
     rw [show restRevoke id rs = { rs with bk := mvcc.rbDel rs.bk mvcc.leaseName (u64Le id).reverse }
       from rfl]
-    iapply Hcl $$ %(mvcc.rbDel rs.bk mvcc.leaseName (u64Le id).reverse) [$Hrb $Hbe]
+    iapply Hcl $$ %(mvcc.rbDel rs.bk mvcc.leaseName (u64Le id).reverse)
+      %(fun n hn => by unfold mvcc.rbDel; rw [GMap.lookup_insert_ne _ _ (Ne.symm hn)])
+      [$Hrb $Hbe]
 
 
 /-- **The apply package's lessor contract, of the real lessor** at `lp`, for a store whose lessor
@@ -255,7 +259,8 @@ theorem isApplyLessor_of_lessorInv
       mvcc.hookOk γ P f ∗
       □ (∀ rs : RestM, RO rs -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗
           mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d.be ∗
-          (∀ bk, mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ∗
+          (∀ bk, ⌜∀ n, n ≠ mvcc.leaseName → bk.lookup n = rs.bk.lookup n⌝ -∗
+            mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗
       lease.lessorBackend lp P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb ∗

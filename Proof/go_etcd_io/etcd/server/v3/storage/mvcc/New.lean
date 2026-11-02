@@ -65,9 +65,8 @@ theorem mvcc.New.wp_proof
     iexists W32 2, 0 + 2
     iframe Hctr Hauth
     ipureintro; decide
-  have hN : 2 ≤ Int.toNat sync.rwmutex.actualMaxReaders - mvcc.nJobRd kb := by
-    have h3 : 3 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
-      rw [sync.rwmutex.actualMaxReaders_unseal]; decide
+  have hN : 2 ≤ backend.rdStockN - mvcc.nJobRd kb := by
+    have := backend.rdStockN_val
     have := mvcc.nJobRd_le kb
     omega
   icases mvcc.slots_take2 _ _ hN $$ Hreaders with ⟨Hr1, Hr2, Hreaders⟩

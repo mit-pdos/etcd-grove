@@ -57,9 +57,9 @@ theorem startMember.wp_proof
   -- `common.BuildServer(name, peer, client, cluster, "restart3", SnapCount, SnapCatchUp, lg)`
   wp_apply (wp_BuildServer N name peerAddr client token (W64 1) (W64 1) peer cluster lg M iu Uok
       ps bootLog ctxs dir id γ ρ E₀ Φs γn hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
-      Hdir HU Hlg Hck Haf Hbuq Hdbo) $$ [Hmb] as %s %err Hres
+      Hdir HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (%Herr | ⟨%Herr, Hmb, Hsr⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, Hsr⟩)
   · -- `BuildServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -144,9 +144,9 @@ theorem startMember.wp_proofRestart
   -- `common.BuildServer(name, peer, client, cluster, "restart3", SnapCount, SnapCatchUp, lg)`
   wp_apply (wp_BuildServer N name peerAddr client token (W64 1) (W64 1) peer cluster lg M iu Uok
       ps bootLog ctxs dir id γ ρ γn hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
-      Hdir HU Hlg Hck Haf Hbuq Hdbo) $$ [Himg] as %s %err Hres
+      Hdir HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Himg] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (%Herr | ⟨%Herr, %ρ', %E₀, %Hρ', Hmb, Hsr⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, %ρ', %E₀, %Hρ', Hmb, Hsr⟩)
   · -- `BuildServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr

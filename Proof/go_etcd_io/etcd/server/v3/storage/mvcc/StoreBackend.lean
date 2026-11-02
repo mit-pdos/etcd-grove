@@ -104,7 +104,7 @@ theorem mvcc.NewStore_backend
         □ (⌜d.cm = true⌝ -∗ backend.fkV d.γB true) ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗
-        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        ([∗list] _x ∈ List.replicate backend.rdStockN (),
           mvcc.bkRTx d.γB d.P d.be) ∗
         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
@@ -121,7 +121,7 @@ theorem mvcc.NewStore_backend
           s.[store, go!"WriteView"] ↦
             (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
           mvcc.isWriteView wv s γ) ∗
-        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - mvcc.nJobRd (some d)) (),
+        ([∗list] _x ∈ List.replicate (backend.rdStockN - mvcc.nJobRd (some d)) (),
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
         mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗

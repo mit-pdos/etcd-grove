@@ -610,12 +610,25 @@ hands the wait carry a witness at them, `resultIsW`); the server's raft node (`s
 def isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) : IProp GF :=
   iprop(⌜ρ.rd = γr⌝ ∗ isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM E ρ v) ∗
-    srvAtomics s E γr ∗ srvGenAt s E ρ ∗ srvRaftNode s ρ.raft)
+    srvAtomics s E γr ∗ srvGenAt s E ρ ∗ srvRaftNode s ρ.raft ∗
+    -- (the backend-auth-split stage, 2026-11-02) the thread bound within the backend's pool of
+    -- readers (`NewServer`'s premise), for the pool of each backend the apply thread opens
+    ⌜threadBound GF ≤ backend.rdPoolN⌝)
 
 instance isServer_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
     Persistent (isServer s γ ci TM E ρ γr) := by
   unfold isServer; infer_instance
+
+/-- **The server's thread bound is within the backend's pool of readers** (2026-11-02, the
+backend-auth-split stage). -/
+theorem isServer_rdPoolN (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    isServer s γ ci TM E ρ γr ⊢ ⌜threadBound GF ≤ backend.rdPoolN⌝ := by
+  iintro H
+  iunfold isServer at H
+  icases H with ⟨-, -, -, -, -, -, %h⟩
+  ipureintro; exact h
 
 /-- The real backend `be` as the server's `s.be` holds it. -/
 abbrev srvBeIface (be : Loc) : GoInterface :=
@@ -636,11 +649,17 @@ until then `NewServer` kept half of `s.be` read-only for good): half of `s.be` (
 `s.bemu`'s lock invariant's, `bemuP`), at the real backend `d` of the store's names `E.γ`, and a
 quarter of the ghost variable `E.γbe` of the current backend (half `bemuP`'s, split among the
 readers of `s.bemu`; a quarter the write budget's, `srvWTPool`). `applySnapshot`, the only writer
-of `s.be` (`server.go`'s `s.be = newbe`, under `bemu`'s write side), gathers all of both. -/
+of `s.be` (`server.go`'s `s.be = newbe`, under `bemu`'s write side), gathers all of both.
+(2026-11-02, the backend-auth-split stage) With what the apply thread's readers of the backend
+need: its facts (`srvBeRO d`, persistent; item T: `isBackend` for the membership readers and
+writers, which `applyConfChange` calls without `s.bemu`) and its pool of readers
+(`backend.bkRPool`, not persistent: the apply thread's one copy; `applySnapshot` hands the old
+backend's to the goroutine closing it, with its other open shares, and holds the new one's). -/
 def srvBeOwn (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ d : mvcc.KBReal, ⌜E.γ.kb = some d⌝ ∗
     srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.be ∗
-    dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d)
+    dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d ∗
+    srvBeRO d ∗ backend.bkRPool d.γB d.P d.be)
 
 /-- **The apply thread's applier state** at `x` (not persistent): the server's `uberApply`, owned
 (D22 receiver epochs, S7a, 2026-10-23: the apply thread is its only reader and writer,
@@ -1056,7 +1075,7 @@ theorem srvBeOwn_frag (s : Loc) (E : apply.AEnv GF) :
       (dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d -∗ srvBeOwn s E) := by
   iintro H
   iunfold srvBeOwn at H
-  icases H with ⟨%d, %Hd, Hbe, Hg⟩
+  icases H with ⟨%d, %Hd, Hbe, Hg, #Hro, Hpl⟩
   iexists d
   isplitr
   · ipureintro; exact Hd
@@ -1064,7 +1083,26 @@ theorem srvBeOwn_frag (s : Loc) (E : apply.AEnv GF) :
   iintro Hg
   iunfold srvBeOwn
   iexists d
-  iframe Hbe Hg
+  iframe Hbe Hg Hro Hpl
+  ipureintro; exact Hd
+
+/-- **The apply thread's backend facts and pool of readers, lent from its part of `s.be`**
+(2026-11-02, the backend-auth-split stage): at the current backend `d` (the store's names' `E.γ.kb`),
+`srvBeRO d` and the pool (`backend.bkRPool`), the pool to give back. -/
+theorem srvBeOwn_pool (s : Loc) (E : apply.AEnv GF) :
+    srvBeOwn (GF := GF) s E ⊢ ∃ d : mvcc.KBReal, ⌜E.γ.kb = some d⌝ ∗ srvBeRO d ∗
+      backend.bkRPool d.γB d.P d.be ∗ (backend.bkRPool d.γB d.P d.be -∗ srvBeOwn s E) := by
+  iintro H
+  iunfold srvBeOwn at H
+  icases H with ⟨%d, %Hd, Hbe, Hg, #Hro, Hpl⟩
+  iexists d
+  isplitr
+  · ipureintro; exact Hd
+  iframe Hro Hpl
+  iintro Hpl
+  iunfold srvBeOwn
+  iexists d
+  iframe Hbe Hg Hro Hpl
   ipureintro; exact Hd
 
 /-- The apply thread's part of `s.be`, lent from its applier state (S7b). -/

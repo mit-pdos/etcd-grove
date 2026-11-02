@@ -42,6 +42,9 @@ abbrev newServerMode.spec : Prop :=
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
+  -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
+  -- `bootPremise`'s condition
+  (∀ k, (M.lookup k).isSome → utf8Valid k) →
   lg ≠ null →
   -- the compactor: on in revision mode at a positive retention at least the cluster's, or in
   -- periodic mode at a period of at least 10ns and the cluster's retention `0`; or off
@@ -51,6 +54,8 @@ abbrev newServerMode.spec : Prop :=
     else retention = W64 0) →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
+      -- (2026-11-02, the backend-auth-split stage) the thread's token, `NewServer`'s, given back
+      threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       -- on, at `N + N` write tokens: `N` more, the compaction's write-back stock
       bootPremise (if cmp then N + N else N) ps bootLog ctxs dir token name Uok id ∗
@@ -62,7 +67,8 @@ abbrev newServerMode.spec : Prop :=
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #mode))
       (Val #retention)) (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
-      ⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ memberBuilt s ρ E₀ lg γn id N false) }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false) }}
 
 end spec
 

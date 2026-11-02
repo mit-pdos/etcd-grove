@@ -257,7 +257,9 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "#Hcv" ∷ clusterVersionOk s ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
     "#Hwci" ∷ waitClosecInit ∗
-    "%Hbound" ∷ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
+    -- (the backend-auth-split stage, 2026-11-02) within the backend's pool of readers (`2 ^ 28`;
+    -- until then `2 ^ 31`, `GoAttach`'s)
+    "%Hbound" ∷ ⌜threadBound GF ≤ backend.rdPoolN⌝ ∗
     -- the fields `start` sets
     "Hw" ∷ (∃ w : GoInterface, srvWAddr s ↦ w) ∗
     "Haw" ∷ (∃ aw : GoInterface, srvApplyWaitAddr s ↦ aw) ∗

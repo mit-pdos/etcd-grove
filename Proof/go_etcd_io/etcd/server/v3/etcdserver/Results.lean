@@ -838,7 +838,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
         backend.dlInit d.γB ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         ownToks d.γB.wb (N + 2) ∗
-        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        ([∗list] _x ∈ List.replicate backend.rdStockN (),
           mvcc.bkRTx d.γB d.P d.be) ∗
         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
@@ -850,7 +850,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
         txn.isKV (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.store.ty) #s) s γ ∗ mvcc.hookIs γ Pk #f ∗
         ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
-        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        ([∗list] _x ∈ List.replicate backend.rdStockN (),
           mvcc.storeReader s γ) ∗
         txn.soleWriter γ [[], []] ∗ txn.storeWTs γ N ∗ mvcc.storeCloser s γ }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, Hv, Hncmp, Hrg, Hw, Hrts, Hlrd, #Hle, Hro⟩ HΦ
@@ -916,7 +916,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
         backend.dlInit d.γB ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         ownToks d.γB.wb (N + 2) ∗
-        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        ([∗list] _x ∈ List.replicate backend.rdStockN (),
           mvcc.bkRTx d.γB d.P d.be) ∗
         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
         mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
@@ -938,7 +938,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
         mvcc.hookInit γw.st Pk f ∗ txn.kvWriter st γw.st [[], []] ∗ txn.storeWTs γw.st N ∗
         ghostMapAuth γw.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
         mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
-        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
+        ([∗list] _x ∈ List.replicate (backend.rdStockN - 2) (),
           mvcc.watchReader ws st γw) ∗
         mvcc.wsCloser ws st γw.st ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd ws st γw) ∗ auth.modeTag γw.tag M }} := by
   iintro %Φ Hpre HΦ
@@ -1071,7 +1071,7 @@ theorem server_kv_backend_hooks (lg lp : Loc)
         backend.dlInit d.γB ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         ownToks d.γB.wb (N + 2) ∗
-        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        ([∗list] _x ∈ List.replicate backend.rdStockN (),
           mvcc.bkRTx d.γB d.P d.be) ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
         lease.lessorInv lp γl ∗ lease.lessorRdOf γl ∗ lease.rdOwn γl rd0 }}
@@ -1085,7 +1085,7 @@ theorem server_kv_backend_hooks (lg lp : Loc)
           go_etcd_io.etcd.server.v3.storage.mvcc.store.ty) #s) s γ ∗
         mvcc.hookIs γ (batchLockInv γA (metaTM d.γB d.P)) #f ∗
         ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
-        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        ([∗list] _x ∈ List.replicate backend.rdStockN (),
           mvcc.storeReader s γ) ∗
         txn.soleWriter γ [[], []] ∗ txn.storeWTs γ N ∗ mvcc.storeCloser s γ }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hspkg, #Hcpkg, #Hnh, #Hh, #Hci, #Hinv, #Hrl, #Hhk, #Hsz, Hdl, Hv,
@@ -1126,7 +1126,8 @@ at `lp` (`lease.lessorInv`, its configuration, its backend's contract for the `L
 `lease.lessorBackend`) meets `apply.isApplyLessor`'s `isTxnLessor`, `Grant`, `Checkpoint` and
 (the lease-revoke plan, 2026-10-31) `Revoke` clauses, from their proofs: the store watchable, its
 hook's facts, and the rest resource `RO` lending the store's right to the tracked buckets and the
-lessor's half of `le.b`; its `Lookup` clause is the premise (`apply.isApplyLessor_of_lessorInv`). -/
+lessor's half of `le.b` (given back at buckets agreeing with `rs.bk` off `lease`: 2026-11-02, the
+backend-auth-split stage); its `Lookup` clause is the premise (`apply.isApplyLessor_of_lessorInv`). -/
 theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RO : EtcdGrove.apply.RestM → IProp GF)
     (RW RW₀ : IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) :
@@ -1134,7 +1135,8 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
       mvcc.hookOk γ P f ∗
       □ (∀ rs : EtcdGrove.apply.RestM, RO rs -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗
           mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d.be ∗
-          (∀ bk, mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ∗
+          (∀ bk, ⌜∀ n, n ≠ mvcc.leaseName → bk.lookup n = rs.bk.lookup n⌝ -∗
+            mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗
       lease.lessorBackend lp P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb ∗

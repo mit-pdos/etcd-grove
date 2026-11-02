@@ -105,7 +105,7 @@ theorem server_kv_watchable_ofD
         backend.dlInit d.γB ∗ □ (⌜d.cm = true⌝ -∗ backend.fkV d.γB true) ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         ownToks d.γB.wb (N + 2) ∗ backend.srSlot d.be ∗
-        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        ([∗list] _x ∈ List.replicate backend.rdStockN (),
           mvcc.bkRTx d.γB d.P d.be) ∗
         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
         mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
@@ -126,7 +126,7 @@ theorem server_kv_watchable_ofD
         txn.storeWTs γw.st N ∗ ghostMapAuth γw.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
         mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
         ([∗list] _x ∈ List.replicate
-            (Int.toNat sync.rwmutex.actualMaxReaders - mvcc.nJobRd (some d) - 2) (),
+            (backend.rdStockN - mvcc.nJobRd (some d) - 2) (),
           mvcc.watchReader ws st γw) ∗
         mvcc.wsCloser ws st γw.st ∗ mvcc.crevRightM γw.st ∗
         mvcc.retiredAt γw.st (mvcc.nJobRd (some d)) ∗
