@@ -313,7 +313,7 @@ what changed.
   `examples/leasegrant`.
 - **M6.** Done: `lessorLb_max`, `leaseGrantedAt_lb_max` (`InvLessor.lean`).
 
-## Design of the server chain (2026-11-02, round 2)
+## Design of the server chain (2026-11-02, round 3)
 
 The plan of record from here on; it replaces the plumbing-commit list (kept, shortened, under
 "Superseded" below). Written as text before any more site is threaded (`notes/spec-first-plan.md`,
@@ -325,6 +325,27 @@ row); B1 in place, gated on `lg` (one spec per function); S6 done; (c) a grantin
 claim about etcd's KV service; revocations out (`rqOk _ _ .leaseRevoke = False`); one member,
 snapshots of a granting cluster behind `srvGrantOpen` (a true, unproved statement; no false
 statement behind a hypothesis).
+
+**Round 2 → round 3** (review `notes/spec-review/lease-grant-design-r2.md`, of `a2320120fc`; no
+blockers):
+
+- **S-A / Q7** (the receive proofs unfold the gated `srvRest` with no `lg = false` fact):
+  `srvGrantable E` moves into `srvRest`'s `lg = true` arm (the reviewer's placement). `applySnapshot`
+  has `lessorRevocable E.γ.leases` in its pre; against `srvGrantable`'s `lessorModeIs … true`,
+  `lessorPinR_agree` refutes the leased arm on entry, so `applySnapshot.spec`'s text does not change.
+  `applyEntryNormal` reads `grantPermRq` off the `srvRest` it opens. No frozen pre gains a conjunct,
+  and `srvSnapRO`/`isServerM` are untouched. Q7 is resolved.
+- **S-B**: `mergedObs` is gated like `imageAt`, and `mergedCreate_window` (proved) is restated at the
+  leased buckets; all three are in §3's table. Corrected: only `merged_image` is a `sorry`, not
+  `mergedCreate_window`.
+- **S-C**: `newHeader`'s post gains `∗ mvcc.certOk E.γ log`.
+- **Q8**: resolved. `kvWriter` holds exactly `soleBudget log` tokens, so no caller lends fewer.
+- **m1**: commit 2 changes only `Grant.spec` and `Checkpoint.spec`. `persistTo` takes
+  `leaseBackend`, and `Revoke` takes `lessorBeOn` directly. **m2**: `d` is named in
+  `isApplyLessor_of_lessorInv`'s premise. **m3**: the boot prefix grants nothing. **m4**:
+  `NewServer.specG` at `on = true` needs `lg = false`. **m5**: the auth-on arm uses the generic
+  `srvRest` laws. **m6**: the duplicate mode conjunct is gone.
+- A "Freeze list" for the user ends the section.
 
 **Round 1 → round 2** (review `notes/spec-review/lease-grant-design.md`, of `5cc0eaa28a`):
 
@@ -338,12 +359,12 @@ statement behind a hypothesis).
   header's fields owned, `Revision ↦ W64 (|log| − 1)`, `2 ≤ |log| ∧ |log| + 3 ≤ 2^63`, from
   `store.Rev` at the sole writer. The grant's answer uses `grantHdr` (`+ 3`), not `appliedHdr`
   (`+ 4`, which no grant callee gives).
-- **S2** (`leaseGrantedAt` needs the mode): `srvGrantable` now carries `lessorModeIs E.γ.leases true`
-  and sits in `srvSnapRO` beside `lessorModeIs` (M2), not in `srvKVInvs`; `grantPermRq` carries it
-  too, so the backend triple converts `leaseLiveFrom` to `leaseGrantedAt`.
+- **S2** (`leaseGrantedAt` needs the mode): `srvGrantable` now carries `lessorModeIs E.γ.leases true`,
+  and so does `grantPermRq`, so the backend triple converts `leaseLiveFrom` to `leaseGrantedAt`.
+  (Round 2 put it in `srvSnapRO`; round 3 moved it into `srvRest`.)
 - **S3**: `srvRest_applyG`'s premise is `plainCover rq ∨ grantPropOk E.lg rq` (`plainEntryM`'s).
 - **S4**: `bkRestAt` keeps its text; `imageAt γk` gates it: `if γk.lg then bkRestAtL … else
-  bkRestAt …` (2.14). `bkRestAt_boot` and the receive proofs at `lg = false` are untouched.
+  bkRestAt …` (2.14). `bkRestAt_boot` is untouched. (Round 3 gated `mergedObs` too, S-B.)
 - **S5**: part 3 lists every statement that changes at `lg = false` too, with the law its callers use.
 - **M1**: `lessorApplyOk`'s new text written out (2.12), both arms of `Grant.spec`.
 - **M3**: one lemma each, taking `lg`: `srvClusterBoot_alloc`/`alloc1` and `kv_lease_served`; no
@@ -389,10 +410,10 @@ still true once a grant is applied in an `lg = true` cluster.
 | `isApplyLessor`'s Grant clause (derived): consumes `RW` | — | true, unusable | over `RO` (2.12) |
 | `lessorApplyOk` (trusted, `NewLessor`'s post): `wbTok ∗ RW` spent whole | — | true; but the lens needs `lessorBeOn` back | lent part returned (2.12, Q4) |
 | `srvRest E γr A := E.RO (restModel …)` (no `lease` write, `restEntry_keep`) | — | **false** after a grant | gated, leased image with `∃ f` (2.9) |
-| `imageAt`'s `bkRestAt` (cluster-wide), `bkRestAt_boot` ("lease empty") | image = `restModel` | **false** after a grant | gated in `imageAt` (2.14) |
+| `imageAt`'s and `mergedObs`'s `bkRestAt` (cluster-wide), `bkRestAt_boot` ("lease empty"), `mergedCreate_window` | image = `restModel` | **false** after a grant | gated in `imageAt` and `mergedObs`; window at the leased buckets (2.14) |
 | `srvGrantGuard`, `lessorOk`, expiry arms, `srvLessorNil` (D1) | done | yes | keep |
 | `UberOn`'s guard, `srvLessorNil` (auth on) | guard `False` with auth on | yes | keep; auth on requires `lg = false` (2.13) |
-| snapshot receive (`applyAll.specSnap`, `Recover`, walk's `hlease`) | premises | `hlease` false at `lg = true` | keep; `srvGrantOpen_snap` (D2), now true at any members' TTLs (B1) |
+| snapshot receive (`applyAll.specSnap`, `applySnapshot.spec`, `Recover`, walk's `hlease`) | premises (`applySnapshot`: `lessorRevocable`) | `hlease` false at `lg = true` | keep; `srvGrantOpen_snap` (D2), now true at any members' TTLs (B1); the leased `srvRest` arm refuted on entry (2.9) |
 | boot: `restBootBk` (empty `lease`), `NewLessor`'s empty bucket | — | yes (fresh boot) | keep; restart not in scope |
 | `ckptEffectsOk` (trusted, opaque) | docstring | vacuous (feature off) | keep |
 
@@ -413,7 +434,10 @@ with a client AU open), `respMethods`/`reqFacts`, `E.RW`.
 - apply: `AEnv.γlt : GName := default`; `ltHalf E L : IProp := if E.lg then ghostVar E.γlt ½ L else
   True` (the tie's half; `ltHalf_false`).
 - server: `restLeasesWith (f : w64 → w64) (ids : List w64) r := ids.foldl (fun r id => restGrantT id
-  (f id) r) r`; `appliedTable γr A := kvLeases γr.kv (γr.raft.pre ++ A)`. Laws:
+  (f id) r) r`; `appliedTable γr A := kvLeases γr.kv (γr.raft.pre ++ A)` (folds from `[]` over
+  `pre ++ A`; the KV model's table folds over `A`; they agree because `pre` grants nothing: the
+  boot log is configuration entries, which `kvTable` keeps, and `pre = []` in `runSnapLgOkBody`
+  and `applySnapshot`; law `kvLeases_pre : (kvLeases γr.kv γr.raft.pre).ids = []`). Laws:
   `(dispatchTable c rq v3 lt).ids = grantIds rq o lt.ids` under the triple's `o ↔` fact;
   `restEntry` commutes with `restGrantT` (`restEntry_keep`, GMap extensionality);
   `restLeasesWith_snoc` (with `f' := Function.update f id t`, equal on `ids` when `id ∉ ids`).
@@ -495,25 +519,36 @@ definitions underneath move):
 at `E.lg`.
 
 **2.9 The apply thread's rest and tie** (internal; `srvRest` the carrier).
-- `srvRest E γr A := E.RO (restModel …)` → `if E.lg then ∃ f, E.RO (restLeasesWith f (appliedTable
-  γr A).ids (restModel …)) ∗ ltHalf E (appliedTable γr A).ids else E.RO (restModel …)`. Cluster-wide
-  where it is used (`runSnapLgOkBody`, the send branch): only ids, the TTLs under `∃ f` (B1).
+- `srvRest E γr A := E.RO (restModel …)` → `if E.lg then (∃ f, E.RO (restLeasesWith f (appliedTable
+  γr A).ids (restModel …))) ∗ ltHalf E (appliedTable γr A).ids ∗ srvGrantable E else E.RO
+  (restModel …)`. Cluster-wide where it is used (`runSnapLgOkBody`, the send branch): only ids, the
+  TTLs under `∃ f` (B1).
 - Laws: `srvRest_false`; `srvRest_snoc`/`_nodata`; `srvRest_applyG` (one lemma, generic in `lg`;
   replaces `srvRest_apply`): premise `plainCover rq ∨ grantPropOk E.lg rq` (S3, what `plainEntryM`
   gives; `grantKindOk` excludes `noSideEffect` and admin), from `Apply`'s post (2.10) `∃ t, E.RO
   (grantRest t rq o (restOut rq v3 o rs)) ∗ ltHalf E (grantIds rq o T)` at `rs := restLeasesWith f …`,
   `T := (appliedTable γr A).ids`, gives `srvRest E γr (A ++ [m])` with `f' := update f g.id t`
   (`restLeasesWith_snoc`; `g.id ∉ T` by the triple's `o ↔ grantIdsOk`).
-- `srvGrantable E := □ (⌜E.lg = true⌝ → (∀ id, lease.leaseGranted E.γ.leases id) ∗
-  lease.lessorModeIs E.γ.leases true)` (S2), a conjunct of `srvSnapRO` beside `lessorModeIs E.γ.leases
-  γr.kv.lg` (M2). Why true: `NewServer` creates the lessor with guard `srvGrantGuard lg on`, and at
-  `lg = true` has `leasesNoExpiry` (`%Hslg`) and `on = false`; the mode is `lessorModeIs … γr.kv.lg`.
-- `applyEntryNormal.spec`/`applyEntries`/`apply` (frozen) gain the persistent `srvGrantable E` in the
-  pre (from `applyAll`'s `srvSnapRO`; `srvGrantable_false` at `lg = false`). Alternative: a field of
-  `isServerM` (more sites).
-- `applyEntryNormal.wp_proof`: opens `srvRest`, calls `Apply` with `rs`, `T`, `grantPermRq E rq`
-  (from `srvGrantable` and `rqOk E.lg`), recloses by `srvRest_applyG`, hands `grantArM` to the waiter.
-  `apply`, `applyEntries`, `applyAll`, `run`: unchanged proofs but the send branch (2.14).
+- `srvGrantable E := □ ((∀ id, lease.leaseGranted E.γ.leases id) ∗ lease.lessorModeIs E.γ.leases
+  true)` (S2; persistent), inside `srvRest`'s leased arm only (S-A, Q7). `srvRest` is already in the
+  pre and post of `applyEntryNormal`, `applyEntries`, `apply`, `applyAll` and `applySnapshot`, so no
+  frozen text changes. It is kept by `srvRest_applyG` (a persistent frame), set up by `NewServer`, and
+  carried by `srvGrantOpen`'s body from the pre's `srvRest`. It holds the only mode fact the leased
+  arm needs, since `srvRest` has no tie in scope (m6). Why it is true: `NewServer` creates the lessor
+  with guard `srvGrantGuard lg on = ⌜leasesNoExpiry ∧ lg ∧ on = false⌝`. At `lg = true` it has
+  `leasesNoExpiry` (`%Hslg`) and `on = false`, and the lessor's mode is `lessorModeIs … γr.kv.lg`
+  (`NewLessor`).
+- **The receive side** (S-A): `applySnapshot.spec` (frozen, text unchanged) has
+  `lessor.lessorRevocable E.γ.leases` in its pre. On entry, its proof refutes `srvRest`'s leased arm
+  (`srvGrantable`'s `lessorModeIs … true` against the revocable mode, `lessorPinR_agree`), and then
+  works at `lg = false` by `srvRest_false`: `snap_srvRest`, the walk, `SnapRecvFacts`'s lemma and
+  `SnapApplyKV`'s lease-free `leasesLive` at `L := []` (with `ltHalf_false`). Each of these takes
+  `E.lg = false` (from the refutation) and is otherwise unchanged.
+- `applyEntryNormal.wp_proof`: opens `srvRest`, calls `Apply` with `rs`, `T` and `grantPermRq E rq`
+  (from `srvRest`'s `srvGrantable` at a grant, and `grantPermRq_of_not_grant` otherwise), recloses
+  by `srvRest_applyG`, and hands `grantArM` to the waiter. Its auth-on arm (`ApplyNormalOn.lean`) has
+  no `lg = false` fact: it uses the generic `srvRest_applyG`/`srvRest_snoc`, not `_false` (m5).
+  `apply`, `applyEntries`, `applyAll`, `run`: unchanged proofs, except the send branch (2.14).
 
 **2.10 `apply.uberApplier.Apply.spec`, `dispatch.spec`** (frozen; text changes):
 - pre: `rqOk false` → `rqOk E.lg`; `+ grantPermRq E rq` (`□ (⌜dispatchKind rq = .leaseGrant⌝ → (∀ g,
@@ -557,20 +592,26 @@ capped/corrupt layer.) Per layer:
 
 **2.11a `apply.applierV3backend.newHeader.spec`** (frozen; post strengthened, S1). Old post
 `storeReader ∗ kvWriter E.s E.γ log ∗ ⌜h ≠ null⌝` → `… ∗ ⌜h ≠ null⌝ ∗ hdrFields h ∗ Revision h ↦
-W64 (|log| − 1) ∗ ⌜2 ≤ |log| ∧ |log| + 3 ≤ 2^63⌝` (`hdrFields`: `ClusterId`, `MemberId`, `RaftTerm`,
+W64 (|log| − 1) ∗ mvcc.certOk E.γ log ∗ ⌜2 ≤ |log| ∧ |log| + 3 ≤ 2^63⌝` (`hdrFields`: `ClusterId`, `MemberId`, `RaftTerm`,
 `LeaderId` owned: `respHdrOwn`'s body). Callees (already its proof's): `mvcc.store.Rev.spec` (through
 `kvOver_rev_wp`), the cluster's and raft status's getters. Glue: the proof calls `Rev` with the sole
 writer's tokens `m := soleBudget log = 2^63 − 3 − |log|`; `Rev`'s post gives `log <+: log'` and
 `|log'| + m + 3 ≤ 2^63`, so `|log'| ≤ |log|`, `log' = log`, `v = |log| − 1`; `kvWriter_len` gives
-`2 ≤ |log|`; the struct allocation gives the fields. The `idxCert`/`certOk` of `grantHdr` come from
-`Rev`'s post (now kept, not dropped with `-`). Callers (51 sites / 36 files): a stronger post; their
+`2 ≤ |log|`; the struct allocation gives the fields. `certOk E.γ log` comes from `Rev`'s post (now
+kept, not dropped with `-`; exact because `log' = log`; not derivable from `kvWriter`, S-C), and
+`idxCert` from `kvWriter_cert`. `kvWriter` holds exactly `soleBudget log` tokens
+(`SoleWriter.lean:89-91`), so the argument holds for every caller (Q8, resolved). Callers (51 sites / 36 files): a stronger post; their
 intro patterns drop the new conjuncts.
 
 **2.12 The lessor contract** (trusted `lessorApplyOk`; derived `isApplyLessor`):
 - `isApplyLessor le s γ P f RO RW` (signature unchanged): its Grant clause pre `… ∗ leaseGranted
   γ.leases id ∗ RW` → `… ∗ leaseGranted γ.leases id ∗ RO rs` (`∀ rs`); post error arm `+ RO rs`,
   success arm `+ ∃ t, RO (restGrantT id t rs)`, conditions as `grantIdsOk L id ttl`.
-  `isApplyLessor_of_lessorInv`: over `Grant.spec` with `Rb := storeRb γ` from the RO lens
+  `isApplyLessor_of_lessorInv`: its backend premise names `d` (m2): `∀ d, ⌜γ.kb = some d⌝ →
+  lessorBackend lp P f (storeWT γ) (lessorBeOn lp d.be) (storeRT γ) Rb`. `NewServer` and
+  `SnapApplyOptsLemmas.lean:178-202` instantiate `lessorApplyOk`'s `RW := lessorBeOn lp d.be`
+  (`rwLens` is reflexive), where today they pass the server's write right. Proof: over `Grant.spec`
+  with `Rb := storeRb γ` from the RO lens
   (`revokeClause_of_lessorInv`'s); the put `Rb (rbSet rb leaseName … (leaseEnc id (grantTTL mt ttl)
   0))` back into `RO (restGrantT id (grantTTL mt ttl) rs)` (`grant_bk`), `t := grantTTL mt ttl`.
 - `lessorBackend lp P f T R Rb` → `lessorBackend lp P f T Ln R Rb` (new `Ln`, the lent part): lens
@@ -582,12 +623,13 @@ intro patterns drop the new conjuncts.
   `BatchTx()`, and `LockInsideApply`/`Unlock` do not write it (`lease.go:55-61`).
 - `lease.lessor.Grant.spec` (frozen): pre `T ∗ R ∗ Rb rb` → `T ∗ Ln ∗ R ∗ Rb rb`; post both arms
   `R ∗ Ln ∗ …` (error arm: `Rb rb`, as now; success arm: `Rb (rbSet …)`, as now; `T` spent in both).
-  `Checkpoint.spec`, `persistTo` (proved) likewise; `Revoke`'s clause (same contract) gets `Ln` back.
+  `Checkpoint.spec` likewise. These two are all (m1): `Lease.persistTo.spec` takes `leaseBackend b`
+  with `b` passed in, and `lessor.Revoke.spec` takes `lessorBeOn` directly and already returns it.
 
-**2.13 `NewServer.spec`/`specM`/`specG`** (frozen; text: one row). `%Hslg` unchanged; `specM true`
-takes `ρ.rd.kv.lg = false`. Proof: allocate `E.γlt` at `[]` (one half into the boot's `leasesLive`
-with `leaseOwn γl [] ∅`, one into `srvRest E γr []` at `f := fun _ => 0`); `srvGrantable E` (2.9) into
-`srvSnapRO`.
+**2.13 `NewServer.spec`/`specM`/`specG`** (frozen; text: one row each). `%Hslg` unchanged. `specM
+true` and `specG on cmp` at `on = true` (m4) take `ρ.rd.kv.lg = false`. Proof: allocate `E.γlt` at
+`[]`, one half into the boot's `leasesLive` with `leaseOwn γl [] ∅` and one into `srvRest E γr []` at
+`f := fun _ => 0` (by `kvLeases_pre`, m3), and `srvGrantable E` (2.9) into the same `srvRest`.
 
 **2.14 The snapshot side**. Receive: unchanged, `srvGrantOpen_snap` (its body's `applyRes` now holds
 the gated `srvRest`, with `∃ f`: true whatever the members' minimum TTLs, B1). Send (`applyAll`'s
@@ -596,9 +638,17 @@ certificates, `snapDirInv`). `imageAt γk bootLog i L A D`: conjunct `bkRestAt �
 `(if γk.lg then bkRestAtL γk bootLog L D else bkRestAt γk.c0 bootLog L D)` (S4), with `bkRestAtL γk
 bootLog L D := ∃ f, ∀ n ∈ restBuckets, D.lookup n = (restLeasesWith f (kvLeases γk L).ids (restModel
 γk.c0 bootLog L)).bk.lookup n`. `bkRestAt`, `bkRestAt_boot`, `SnapRecvFacts`, `KVModelRestore` keep
-their text and proofs (the receive side at `lg = false`). The send branch at `lg = true` reads
-`bkRestAtL` off `srvRest`'s `∃ f`. The S2 `sorry`s (`mergedCreate_window`, `merged_image`) keep
-their role.
+their text and proofs (the receive side at `lg = false`, 2.9). The send branch's own observation is
+gated the same way (S-B):
+- `mergedObs` (`SnapSendBranch.lean:516-524`): its conjunct `bkRestAt γr.kv.c0 γr.raft.raft.boot (pre
+  ++ A) D` → `if γr.kv.lg then bkRestAtL γr.kv bootLog (pre ++ A) D else bkRestAt …` (law
+  `mergedObs_false`, by `rfl`).
+- `mergedCreate_window` (proved): restated with the window at the gated buckets
+  `(restLeasesWith f T (restModel …)).bk`, where `f` and `T` come from `srvRest`'s leased arm, and
+  `f := _`, `T := []` at `lg = false`. Both arms have one proof: it unfolds `srvRest`, passes those
+  buckets to `srvBeSnapOk_window`, concludes the gated observation by `bkRestAt_of_rb`, and recloses.
+- `merged_image` keeps the S2 `sorry` (the file's only one, `:755`), which now also covers the
+  leased image. It is still true: the observed ids are `kvLeases γk (pre ++ A)`, `imageAt`'s `L`.
 
 **2.15 The trust base after the design**. Trusted, restated: `lessorApplyOk` (`NewLessor`'s post,
 2.12: the lent part returned), for the `axiom` skill's pass of the `NewLessor` axiom (with
@@ -612,19 +662,22 @@ keeps one field (`snap`). New `sorry`s: none beyond `srvGrantOpen_open` and the 
 21/10, `logShape false` 13/9, `entryShape false` 5/3, `entryOk` 15/10, `logShapeM` 15/3, `plainLogM
 γk.cmp false` 5/4; `leasesLive` 29/13; `respMethods` 17/10, `reqFacts` 15/10, the four
 `LeaseGrant.spec`s 16/13, `applierTriples` 49/31; `newHeader.spec` 51/36; `dispatch.spec` 4/4,
-`Apply.spec` 12/6; `restAfter` 21/11, `restOut` 16/8; `srvRest` proofs unfolding it 18/8; `imageAt`
-15; `kvInv` openers ≈10; `reqPropOk` 31/10; `appliedOkM` 32/16, `resPostM` 12/6, `resultIsW` 33/12;
-`srvSnapRO` constructors (few; 1 def); `lessorBackend` 11/9, `lessorApplyOk` 18/9,
-`lease.lessor.Grant.spec` 16/10; allocs 32/9. Not touched: `kvOwn` (288/73), `ApplyKV` (549/92),
+`Apply.spec` 12/6; `restAfter` 21/11, `restOut` 16/8; `srvRest` proofs unfolding it 18/8 (among
+them the receive side's `snap_srvRest`, the walk, `SnapRecvFacts`, `SnapApplyKV`); `imageAt` 15;
+`mergedObs` 10/3, `mergedCreate_window` 13/4; `kvInv` openers ≈10; `reqPropOk` 31/10; `appliedOkM`
+32/16, `resPostM` 12/6, `resultIsW` 33/12; `NewServer.specG` 3/2; `lessorBackend` 11/9,
+`lessorApplyOk` 18/9, `lease.lessor.Grant.spec` 16/10, `lease.lessor.Checkpoint.spec` 13/10 (commit 2:
+≈60 sites in ≈30 files, m1); allocs 32/9. Not touched: `kvOwn` (288/73), `ApplyKV` (549/92),
 `dispatchAnswer`/`dispatchResult`/`applyResultIs` (184), `isApplyLessor`'s signature (70/31),
-`bkRestAt` (29/4), `srvKVInvs` (167). Roughly 450 edited sites, most mechanical.
+`bkRestAt` (29/4), `srvKVInvs` (167), `srvSnapRO`, `isServerM`, `applySnapshot.spec`'s text
+(36/21 uses). Roughly 470 edited sites, most mechanical.
 
 **Statements that change at `lg = false` too** (S5; each new part is reached only through a grant,
 which `rqOk false` excludes), with the law their `lg = false` callers use:
 
 | statement | change at every `lg` | law for `lg = false` callers |
 |---|---|---|
-| `lessorApplyOk`, `lessorBackend`, `Grant`/`Checkpoint`/`Revoke`'s clause, `persistTo` | `Ln` returned | none: proofs re-done once (Revoke's user gets `Ln` back, drops it) |
+| `lessorApplyOk`, `lessorBackend`, `Grant.spec`, `Checkpoint.spec` | `Ln` returned | none: proofs re-done once (`persistTo`, `Revoke` unchanged, m1) |
 | `isApplyLessor`'s Grant clause | `RO` for `RW` | none (no `lg = false` caller calls `Grant`) |
 | the four `LeaseGrant.spec`s, `applierTriples`' grant entry | new triple | none (unreachable at `rqOk false`) |
 | `newHeader.spec` | stronger post | none (more conjuncts; intro patterns) |
@@ -632,24 +685,31 @@ which `rqOk false` excludes), with the law their `lg = false` callers use:
 | `appliedOkM`, `resPostM`, `resultIsW(On)` | `+ grantArM`/`grantAnsM` | `grantArM_not_grant` (constructors), dropped by users |
 | `leasesLive` (now over `E`) | `+ ltHalf E L` | `ltHalf_false` (`True`) |
 | `kvInv`'s ≈10 openers | fraction `if γk.lg then 1 else ½` | `kvInv_false`; `kv_prop_auW` splits on `γk.lg`; `kv_revLbZ_le` fraction-generic |
-| `srvSnapRO`, `applyEntryNormal`/`applyEntries`/`apply` pre | `+ srvGrantable` | `srvGrantable_false` (`⊣⊢ True`) |
+| `srvRest`'s users with no `lg` fact: `applySnapshot.wp_proof`, `snap_srvRest`, the walk, `SnapRecvFacts`'s lemma, `SnapApplyKV` | the leased arm carries `srvGrantable` | refute it on entry (`lessorRevocable` vs `lessorModeIs … true`, `lessorPinR_agree`), then `srvRest_false`, `ltHalf_false` |
+| `applyEntryNormal`'s auth-on arm (`ApplyNormalOn.lean`) | gated `srvRest` | the generic `srvRest_applyG`/`srvRest_snoc` (no `lg` fact there, m5) |
+| `mergedObs` | gated `bkRestAt` | `mergedObs_false` (`rfl`) |
+| `mergedCreate_window` (proved) | window at `(restLeasesWith f T (restModel …)).bk` | one proof for both arms; at `false`, `T = []` and `restLeasesWith f [] r = r` |
+| `merged_image` (`sorry`) | premise `mergedObs` gated | none: still the S2 `sorry`, now covering the leased image too |
+| `NewServer.specM true`, `specG` at `on = true` | `+ ρ.rd.kv.lg = false` | callers (`memberBootOn`) allocate at `lg = false` |
 | `kv_lease_served`, `srvClusterBoot_alloc`, `alloc1` | take `lg` | `_false` (old post) |
 | `rqOk`/shapes/`plainLogM`/`kvInv`'s plain log, `srvRest`, `imageAt`, `reqPropOk` | gated | `_false` by `rfl`/`simp` |
 
 **Commits**, each a full build with the checks of the last section (`tcb-report --check` new only
 `srvGrantOpen_open` and the drafts; every collection unchanged; `gen-init`, `gen-interface`):
 1. **Pure** (new modules): 2.0's definitions and laws.
-2. **Lease package** (rebuilds lease and above): `lessorBackend`'s `Ln`, `lessorApplyOk`,
-   `Grant`/`Checkpoint`/`persistTo`/the revoke path returning it.
+2. **Lease package** (rebuilds lease and above; ≈60 sites): `lessorBackend`'s `Ln`, `lessorApplyOk`,
+   `Grant.spec` and `Checkpoint.spec` returning it, `isApplyLessor_of_lessorInv`'s premise with `d`
+   named (m2) and its instantiations.
 3. **Apply package and the apply thread** (one full server rebuild): `AEnv.γlt`, `ltHalf`,
    `leasesLive E`, `newHeader.spec`, `isApplyLessor`'s RO clause and derivation, the grant triple and
    the five layers, `dispatch.spec`/`Apply.spec`, `grantAnswer`/`grantRes`; server side in the same
-   commit: `srvRest` gated, `srvRest_applyG`, `srvSnapRO`'s `srvGrantable`, `entryOk`/`logShape` at
-   `E.lg`, `applyEntryNormal`/`applyEntries`/`apply`, `NewServer`'s allocations, `imageAt`'s gate and
-   the send branch.
+   commit: `srvRest` gated with `srvGrantable` in its leased arm, `srvRest_applyG`, the receive
+   side's refutation, `entryOk`/`logShape` at `E.lg`, `applyEntryNormal` (both arms), `NewServer`'s
+   allocations, `imageAt`'s and `mergedObs`'s gates, `mergedCreate_window` and the send branch.
 4. **The request path** (full server rebuild): `kvInv` (C), `reqPropOk`'s grant disjunct,
    `kv_prop_au_grant` and the refutations, `plainLogM γk.cmp γk.lg`, `kvWork`'s shapes,
-   `grantArM`/`grantAnsM`, `NewServer.specM true`'s `lg = false`, `srvClusterBoot_alloc lg`.
+   `grantArM`/`grantAnsM`, `NewServer.specM true`'s and `specG`'s (`on = true`) `lg = false`,
+   `srvClusterBoot_alloc lg`.
 5. **Leaves** (cheap): `EtcdServer.LeaseGrant.wp_proof`, `lessorGrantOkL_of_server`,
    `kv_lease_served lg`, `alloc1 lg`, `leasegrant.Main.wp_proof`.
 Commits 3 and 4 may be merged to save one full rebuild; kept apart for review.
@@ -681,12 +741,65 @@ Commits 3 and 4 may be merged to save one full rebuild; kept apart for review.
 - **Q5. The snapshot send path.** (a) `imageAt` gated, `bkRestAtL` with `∃ f` (2.14). (b) A second
   sealed field (re-meets commit 1's circularity). **Recommended: (a).**
 - **Q6. Auth on with `lg = true`.** Required `lg = false` (recommended), or a stage of its own.
-- **Q7 (new). Where `srvGrantable` reaches `applyEntryNormal`.** A conjunct of its pre (and of
-  `applyEntries`/`apply`, passed from `applyAll`'s `srvSnapRO`), or a field of `isServerM`.
-  **Recommended: the pre** (three frozen specs, one persistent conjunct; `isServerM` has more users).
-- **Q8 (new, to check in the plumbing). `newHeader`'s `log' = log`.** The argument (2.11a) uses that
-  the sole writer lends `Rev` exactly `soleBudget log` tokens; if a caller lends fewer, the post weakens
-  to `log <+: log'` and the answer's revision to "at least". Its present proof passes `soleBudget log`.
+- **Q7 (resolved, round 3). Where `srvGrantable` reaches `applyEntryNormal`.** Inside `srvRest`'s
+  leased arm (2.9; the reviewer's placement). No frozen text changes, and it also gives the receive
+  proofs their refutation of the leased arm.
+- **Q8 (resolved, round 3). `newHeader`'s `log' = log`.** `kvWriter` holds exactly `soleBudget log`
+  tokens by definition, so every caller of the spec lends `Rev` that budget (2.11a).
+
+### Freeze list (for the user)
+
+**Trusted statements changed** (one, for the `axiom` skill's pass of `lease.NewLessor`):
+- `lessorApplyOk lp`: `lessorBackend lp Pk #f (wbTok d.γB ∗ RW) (bkRTx …) (rbPart d.γB (· = lease))`
+  → `lessorBackend lp Pk #f (wbTok d.γB) RW (bkRTx …) (rbPart d.γB (· = lease))`: the counted token
+  is spent and the lent part `RW` is given back (2.12).
+
+**Frozen specs changed:**
+- `lease.lessor.Grant.spec`, `lease.lessor.Checkpoint.spec`: `+ Ln` in the pre, and given back in
+  every arm of the post.
+- `apply.applierV3backend.newHeader.spec`: a stronger post (fields, `Revision`, `certOk`, bounds).
+- `apply.uberApplier.dispatch.spec`, `apply.uberApplier.Apply.spec`: these changes:
+  - `rqOk E.lg`;
+  - `+ grantPermRq`;
+  - `∀ T`, with `ltHalf E T` in and `ltHalf E (grantIds …)` out;
+  - `∃ t, RO (grantRest t …)`;
+  - `+ grantRes`.
+- The four `LeaseGrant.spec`s of the applier chain: restated to the grant triple (2.11).
+- `EtcdServer.applyAll.spec` (`logShape E.lg`); `applyEntries`/`apply`/`applyEntryNormal.spec`
+  (`logShapeM`/`entryOkM` at `E.lg`).
+- `NewServer.specM true` and `specG` at `on = true`: `+ ρ.rd.kv.lg = false`.
+- Text unchanged, definitions underneath changed: `raftRequest`, `processInternalRaftRequestOnce`,
+  `applySnapshot`, the KV specs (`Put`/`DeleteRange`/`Txn`/`Range`/`Compact`).
+- Drafts of this stage, statements unchanged: `EtcdServer.LeaseGrant.spec`, `leasegrant.Main.spec`.
+
+**New named hypotheses:** none. Those already named are unchanged:
+- `leasesNoExpiry` (S2, `%Hslg`);
+- `srvGrantOpen`, one field, `srvGrantOpen_snap`. It is true of Go: a received snapshot's lease
+  bucket holds records for exactly the committed table's ids, whatever TTLs the leader stored, which
+  `∃ f` absorbs. `Recover` rebuilds the lessor from those ids, and with revocations, checkpoints
+  and expiry out, the table and the lessor's history stay monotone.
+- `apply.backendUnderQuota`, as today. It is true of Go only with the backend under its quota;
+  without it, quota's `LeaseGrant` reports `ErrNoSpace` for a granted lease.
+
+**New `sorry`s expected after the plumbing:** none beyond those already in the baseline:
+- `srvGrantOpen_open`;
+- `merged_image` (S2, now also over the leased image);
+- the Prove stage's drafts: `EtcdServer.LeaseGrant.wp_proof`, `v3rpc.lessorGrantOkL_of_server`,
+  `leasegrant.Main.wp_proof`. (`kv_lease_grant_served` goes; `kv_lease_served lg` is proved.)
+
+**Open questions, with recommendations:**
+- Q1: (C), the KV invariant owns the KV state whole at `lg = true`, so the KV results are vacuous
+  there (as docstrings say).
+- Q2: (ii), the answer beside `dispatchAnswer`.
+- Q3: (a), the halves through `Apply`/`dispatch`.
+- Q4: (a), the `Ln` argument.
+- Q5: (a), `imageAt`/`mergedObs` gated over `∃ f`.
+- Q6: auth on requires `lg = false`.
+
+Q7 and Q8 are resolved, and the reviewer agrees with Q1-Q6.
+
+**Plumbing size:** about 470 edited sites in five commits, most of them mechanical. Commits 3 and 4
+each need a full server rebuild; merging them saves one.
 
 ## Superseded: the plumbing-commit list (2026-11-02)
 
