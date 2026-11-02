@@ -1097,7 +1097,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   wp_apply (hSize (mvcc.unsyncedAddr s) v.Wu 1) $$ [$Hunsynced] as ⟨Hunsynced, -⟩
   (try wp_auto)
   -- the deferred `s.store.revMu.RUnlock()`
-  wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HrstR]
+  wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HabsQ HrstR]
     as HrevMuR
   · inext
     iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody

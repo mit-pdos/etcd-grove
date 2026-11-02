@@ -28,6 +28,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
   wp_start as ⟨Htw, HhookC, HP, #HokN, Hq⟩
   -- the caller's hook: its facts, and the writer's fragment, given back (D22 receiver epochs, S5b)
   icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, Hfrag⟩
+  icases mvcc.writerFrag_off γ $$ Hfrag with ⟨Hfrag, %Hoff⟩
   iunfold mvcc.storeTxnWriteCore at Htw
   iNamed Htw
   obtain ⟨Hps, Hlen⟩ := Hps
@@ -64,11 +65,12 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     -- the writer's state checked back in (D22 receiver epochs, S2): the batch lock's key and the
     -- transaction's part of `s.mu`'s deposit ghost back
     icases ghostVar_halves γ.wv ilog $$ Hwv with ⟨Hwv, HwvW⟩
-    ihave HL : mvcc.writerL s γ $$ [Htoks Hw Hclog Hwv Hcur Hlrd]
+    ihave Hpnd := mvcc.pndEndB_nil γ sealed $$ Hpnd
+    ihave HL : mvcc.writerL s γ $$ [Htoks Hw Hclog Hwv Hcur Hlrd Hpnd]
     · iunfold mvcc.writerL
       iexists ilog, ntok
       simp only [named]
-      iframe Htoks Hw Hclog Hwv Hcur Hlrd
+      iframe Htoks Hw Hclog Hwv Hcur Hlrd Hpnd
       iframe #
       ipureintro; exact ⟨Hbudget, Hne⟩
     icases mvcc.muHeld_cur s γ crev ti $$ Hmu with ⟨%o, %Ho, Hpin, Hmub⟩
@@ -170,11 +172,12 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     -- the writer's state at the committed log, checked back in (D22 receiver epochs, S2)
     imod ghostVar_update (ilog ++ [pend]) γ.wv ilog $$ Hwv with Hwv
     icases ghostVar_halves γ.wv (ilog ++ [pend]) $$ Hwv with ⟨Hwv, HwvW⟩
-    ihave HL : mvcc.writerL s γ $$ [Htoks Hw Hclog Hwv Hcur Hlrd]
+    ihave Hpnd := mvcc.pndEndB_off γ Hoff pend sealed $$ Hpnd
+    ihave HL : mvcc.writerL s γ $$ [Htoks Hw Hclog Hwv Hcur Hlrd Hpnd]
     · iunfold mvcc.writerL
       iexists (ilog ++ [pend]), n
       simp only [named]
-      iframe Htoks Hw Hclog Hwv Hcur Hlrd
+      iframe Htoks Hw Hclog Hwv Hcur Hlrd Hpnd
       iframe #
       ipureintro
       exact ⟨by simp; omega, by simp⟩
@@ -201,13 +204,16 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     · exfalso
       exact hne' (hpend.2 Hif)
     · (try wp_auto)
-      wp_apply sync.RWMutex.wp_Unlock $$ [$Hlk HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL HrstR]
+      iclear HabsL
+      ihave HabsL : mvcc.absAt γ (1 : Qp).half (ilog ++ [pend]) $$ []
+      · rw [mvcc.absAt_off γ Hoff]; itrivial
+      wp_apply sync.RWMutex.wp_Unlock $$ [$Hlk HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL HabsL HrstR]
         as HrevMu
       · inext
         iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
         iexists (ilog ++ [pend]), n, cL
         simp only [named]
-        iframe HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL
+        iframe HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL HabsL
         iframe #
         isplitl []
         · iunfold mvcc.certOkNext at HokN

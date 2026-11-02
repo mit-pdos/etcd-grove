@@ -42,7 +42,7 @@ theorem mvcc.store.Commit.wp_proof : mvcc.store.Commit.spec (GF := GF) (hG := hG
   icases HmuP with ⟨%c, Hmi, Hwr, Hfs⟩
   -- the writer's fragment pins the fields' share at `γ`'s names
   iunfold mvcc.writerFrag at Hfr
-  icases Hfr with ⟨%o, Hpin⟩
+  icases Hfr with ⟨⟨%o, Hpin⟩, %Hoffw⟩
   icases mvcc.fieldShare_pin s γ _ _ o $$ [$Hpin $Hfs] with ⟨Hpin, Hfs⟩
   iunfold mvcc.fieldShareAt at Hfs
   iNamed Hfs
@@ -83,6 +83,7 @@ theorem mvcc.store.Commit.wp_proof : mvcc.store.Commit.spec (GF := GF) (hG := hG
   iunfold mvcc.writerOwn
   iframe Hro Htkr HY
   iunfold mvcc.writerFrag
+  iframe %Hoffw
   iexists o
   iexact Hpin
 

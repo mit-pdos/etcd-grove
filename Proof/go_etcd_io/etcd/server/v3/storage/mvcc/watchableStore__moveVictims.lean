@@ -679,12 +679,12 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
     iNamed HQ
     obtain ⟨-, HLC, HPS', Hset', Hsrb', Hur', HL1⟩ := Hq
     wp_auto
-    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HrstR]
+    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HabsQ HrstR]
     · inext
       iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
       iexists C, ntok, cQ
       simp only [named]
-      iframe HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ
+      iframe HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HabsQ
       iframe #
       ipureintro; exact ⟨HneQ, HbudgetQ, HcQ⟩
     iintro HrevMuR

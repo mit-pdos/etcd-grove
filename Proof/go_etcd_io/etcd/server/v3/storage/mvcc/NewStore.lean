@@ -223,17 +223,17 @@ theorem mvcc.NewStore.wp_proof
   imod ghostVar_alloc (GF := GF) (mvcc.nJobRd kb) with ⟨%γtkr, Htkr0⟩
   icases ghostVar_halves γtkr _ $$ Htkr0 with ⟨Htkra, Hret0⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
-      hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk, hγcm, hγsx⟩ :
+      hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk, hγcm, hγsx, hγabsQ⟩ :
       ∃ γ : mvcc.StoreNames,
       γ.idx = γi ∧ γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
       γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs ∧ γ.cok = γok ∧
       γ.watchQ = wq ∧ γ.wr = γwr ∧ γ.wk = γwk ∧ γ.wv = γwv ∧ γ.cur = γcur ∧ γ.rst = γrst ∧
       γ.tk = γtk ∧ γ.tko = γtko ∧ γ.wsd = γwsd ∧ γ.tkw = γtkw ∧ γ.tkr = γtkr ∧ γ.mwk = γmk ∧
-      γ.cm = decide (mvcc.kbCmpM kb) ∧ γ.sx = γx :=
+      γ.cm = decide (mvcc.kbCmpM kb) ∧ γ.sx = γx ∧ γ.absQ = false :=
     ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γwr, γwk, γwv, γcur, γrst, γtk, γtko,
-        γwsd, γtkw, γtkr, γmk, decide (mvcc.kbCmpM kb), γx⟩,
+        γwsd, γtkw, γtkr, γmk, decide (mvcc.kbCmpM kb), γx, false, 0, 0⟩,
       rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   rw [← hγrst] at *
   rw [← hγtk, ← hγtko, ← hγtkw, ← hγtkr]
   ihave Hwsd : mvcc.wsDep γ $$ [Hwsd]
@@ -450,12 +450,14 @@ theorem mvcc.NewStore.wp_proof
   ispecialize Hrts $$ Hrt1
   (try wp_auto)
   -- the writer's state, in the writer's invariant (D22 receiver epochs, S2)
-  ihave HL : mvcc.writerL «$r0_ptr» γ $$ [Hauth Hiw Hc1 Hwv1 HcurA Hlrd]
+  ihave Hpnd : mvcc.pndAt (GF := GF) γ (1 : Qp).half none $$ []
+  · rw [mvcc.pndAt_off γ hγabsQ]; itrivial
+  ihave HL : mvcc.writerL «$r0_ptr» γ $$ [Hauth Hiw Hc1 Hwv1 HcurA Hlrd Hpnd]
   · iunfold mvcc.writerL
     iexists [[], []], 2 ^ 63 - 5
     simp only [named]
     rw [← hone]
-    iframe Hauth Hiw Hc1 Hwv1 HcurA Hlrd
+    iframe Hauth Hiw Hc1 Hwv1 HcurA Hlrd Hpnd
     iframe #
     ipureintro
     exact ⟨by simp, by simp⟩
@@ -510,8 +512,10 @@ theorem mvcc.NewStore.wp_proof
     · simp only [mvcc.revQ, hγw, Bool.false_eq_true, ↓reduceIte]; iframe Hil
     · simp only [mvcc.revQ, mvcc.logQ, mvcc.idxLogAuth, hγw, ↓reduceIte]; iapply hq.1 $$ Hil
   icases Hsplit with ⟨Hil, HlogQ⟩
+  ihave Habs : mvcc.absAt (GF := GF) γ (1 : Qp).half [[], []] $$ []
+  · rw [mvcc.absAt_off γ hγabsQ]; itrivial
   imod sync.init_RWMutex (mvcc.revMuInv «$r0_ptr» γ) (mvcc.revMuAddr «$r0_ptr»)
-    $$ [HcurB Hc2 Hbv2 HauthR Hil HcmpB HcuR HrstR HcurRev] revMu with Hrevs
+    $$ [HcurB Hc2 Hbv2 HauthR Hil HcmpB HcuR HrstR HcurRev Habs] revMu with Hrevs
   · inext
     iapply (mvcc.revMuInv_close «$r0_ptr» γ γ)
     isplitr [HrstR HcurRev]
@@ -522,7 +526,7 @@ theorem mvcc.NewStore.wp_proof
     iexists [[], []], 2 ^ 63 - 5, -1
     simp only [named]
     rw [mvcc.bucketMap_init, ← hone]
-    iframe HcurB Hc2 Hbv2 HauthR Hil HcmpB HcuR
+    iframe HcurB Hc2 Hbv2 HauthR Hil HcmpB HcuR Habs
     iframe #
     isplitl []
     · iunfold mvcc.certOk; ileft; ipureintro; simp
@@ -648,7 +652,8 @@ theorem mvcc.NewStore.wp_proof
   isplitl [Hwsd]
   · iexact Hwsd
   isplitl [HcurFrag]
-  · iunfold mvcc.writerFrag; iexists _; iexact HcurFrag
+  · iunfold mvcc.writerFrag; isplitl; · iexists _; iexact HcurFrag
+    ipureintro; exact hγabsQ
   -- the compaction right's half of the revision's authority at `-1`
   iframe Hright
   iunfold mvcc.retiredAt

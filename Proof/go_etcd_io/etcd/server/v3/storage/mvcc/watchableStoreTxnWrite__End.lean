@@ -68,7 +68,7 @@ theorem mvcc.isTxnWriteCore_room (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvc
     iexists ti, bt, Locked, ntok
     simp only [named]
     unfold mvcc.revToken
-    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hpnd
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
   ipureintro; omega
@@ -135,7 +135,7 @@ theorem mvcc.body_pin (s stw st : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) (
   have Hl := Hl0.2
   iunfold mvcc.storeTxnWriteCore at Hc
   iNamed Hc
-  simp only [mvcc.idxWriterB_false]
+  simp only [mvcc.idxWriterB_false, mvcc.pndEndB_false]
   iunfold mvcc.idxWriter at Hw
   icases Hw with ⟨Hauth, -, -, -⟩
   ihave %Hbel := mvcc.syncedBelow_of γ σ Hok ilog pend $$ [$Hmem $Hauth]

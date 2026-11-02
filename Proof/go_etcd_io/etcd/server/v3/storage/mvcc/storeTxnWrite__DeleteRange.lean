@@ -94,11 +94,11 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
       (try wp_auto)
       iapply HΦ
       iframe Hown
-      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd]
+      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hpnd Hlrd]
       iunfold mvcc.storeTxnWriteIs
       iexists ti, bt, Locked, chs, ps, ntok
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hpnd
       iframe #
       ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
       ipureintro
@@ -114,11 +114,11 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
       (try wp_auto)
       iapply HΦ
       iframe Hown
-      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd]
+      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hpnd Hlrd]
       iunfold mvcc.storeTxnWriteIs
       iexists ti, bt, Locked, chs, ps, ntok
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hpnd
       iframe #
       ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
       ipureintro
@@ -132,11 +132,11 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
     (try wp_auto)
     iapply HΦ
     iframe Hown
-    isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd]
+    isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hpnd Hlrd]
     iunfold mvcc.storeTxnWriteIs
     iexists ti, bt, Locked, chs, ps, ntok
     simp only [named]
-    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hpnd
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
     ipureintro

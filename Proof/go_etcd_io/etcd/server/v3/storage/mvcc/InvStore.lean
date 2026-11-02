@@ -208,6 +208,17 @@ structure StoreNames where
   name of the scheduler's payload (`stopPayAt`): fresh per scheduler, it records the store's stop
   channel, which `NewStore`/`store.Restore` make after the scheduler -/
   sx : GName := 0
+  /-- (mvcc's candidate API, 2026-11-02, `notes/mvcc-api-proof-plan.md`; logical) the store's
+  abstract mode: its client owns the abstract state (`mvccState`, `Spec/.../mvcc/Api.lean`), of
+  which `s.revMu`'s resource holds a part (`absAt`) and the writer's state the pending revision's
+  (`pndAt`); `false` for today's specs and their clients, where both are `True` -/
+  absQ : Bool := false
+  /-- (the abstract mode; logical) the abstract committed log (`ghostVar Log`): half the client's,
+  half in `s.revMu`'s resource (`absAt`, at its fraction) -/
+  abs : GName := 0
+  /-- (the abstract mode; logical) the revision notified and not yet committed (`ghostVar (Option
+  (List Change))`): half the client's, half the writer's state's (`pndAt`) -/
+  pnd : GName := 0
 
 instance idxNames_countable : Pos.Countable IdxNames :=
   countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev, x.cmp))
@@ -245,8 +256,8 @@ instance kbReal_countable : Pos.Countable KBReal :=
 
 instance storeNames_countable : Pos.Countable StoreNames :=
   countableOfLeftInverse
-    (fun x : StoreNames => ((((x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ, x.wr, x.wk, x.wv, x.cur, x.rst, x.tk, x.tko, x.wsd, x.tkw), x.tkr), x.mwk), x.cm, x.sx))
-    (fun r0 => let r := r0.1; let q := r.1; let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, q.2, r.2, r0.2.1, r0.2.2⟩)
+    (fun x : StoreNames => (((((x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ, x.wr, x.wk, x.wv, x.cur, x.rst, x.tk, x.tko, x.wsd, x.tkw), x.tkr), x.mwk), x.cm, x.sx), x.absQ, x.abs, x.pnd))
+    (fun t => let r0 := t.1; let r := r0.1; let q := r.1; let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, q.2, r.2, r0.2.1, r0.2.2, t.2.1, t.2.2.1, t.2.2.2⟩)
     (fun _ => rfl)
 
 /-- **The store's physical ghost names** (D22 receiver epochs, S5b, 2026-10-22): those of one
@@ -286,7 +297,16 @@ def StoreNames.phys (γ : StoreNames) : PhysNames :=
 def StoreNames.withPhys (γ : StoreNames) (p : PhysNames) : StoreNames :=
   ⟨⟨γ.idx.hist, p.nev, γ.idx.log, γ.idx.crev, p.cmp⟩, p.bucket, γ.clog, γ.leases, γ.revs, p.hook,
     p.hookFn, p.kb, p.cmeta, p.fin, p.sch, γ.cok, γ.watchQ, γ.wr, p.wk, p.wv, γ.cur, γ.rst, γ.tk,
-    γ.tko, γ.wsd, γ.tkw, γ.tkr, p.mwk, γ.cm, p.sx⟩
+    γ.tko, γ.wsd, γ.tkw, γ.tkr, p.mwk, γ.cm, p.sx, γ.absQ, γ.abs, γ.pnd⟩
+
+@[simp] theorem StoreNames.withPhys_absQ (γ : StoreNames) (p : PhysNames) :
+    (γ.withPhys p).absQ = γ.absQ := rfl
+
+@[simp] theorem StoreNames.withPhys_abs (γ : StoreNames) (p : PhysNames) :
+    (γ.withPhys p).abs = γ.abs := rfl
+
+@[simp] theorem StoreNames.withPhys_pnd (γ : StoreNames) (p : PhysNames) :
+    (γ.withPhys p).pnd = γ.pnd := rfl
 
 @[simp] theorem StoreNames.withPhys_phys (γ : StoreNames) (p : PhysNames) :
     (γ.withPhys p).phys = p := rfl
@@ -433,6 +453,87 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
+/-- **The abstract committed log's part** at fraction `q` (the abstract mode, `γ.absQ`; `True`
+otherwise): `s.revMu`'s resource holds half of it at its fraction, the client the other half
+(`notes/mvcc-api-proof-plan.md`). -/
+def absAt (γ : StoreNames) (q : Qp) (log : Log) : IProp GF :=
+  if γ.absQ then ghostVar γ.abs q log else iprop(True)
+
+instance absAt_timeless (γ : StoreNames) (q : Qp) (log : Log) : Timeless (absAt (GF := GF) γ q log) := by
+  unfold absAt; split <;> infer_instance
+
+theorem absAt_split (γ : StoreNames) (q1 q2 : Qp) (log : Log) :
+    absAt (GF := GF) γ (q1 + q2) log ⊣⊢ absAt γ q1 log ∗ absAt γ q2 log := by
+  unfold absAt
+  split
+  · exact (ghostVar_fractional (GF := GF) γ.abs log).fractional q1 q2
+  · exact ⟨by iintro _; isplit <;> itrivial, by iintro _; itrivial⟩
+
+/-- **The pending revision's part** at fraction `q` (the abstract mode; `True` otherwise): the
+writer's state holds half of it at `none` (`writerL`, a write transaction's `storeTxnWriteIs`), the
+client the other half; a write transaction ending may have it notified (`pndEnd`). -/
+def pndAt (γ : StoreNames) (q : Qp) (p : Option (List Change)) : IProp GF :=
+  if γ.absQ then ghostVar γ.pnd q p else iprop(True)
+
+instance pndAt_timeless (γ : StoreNames) (q : Qp) (p : Option (List Change)) :
+    Timeless (pndAt (GF := GF) γ q p) := by
+  unfold pndAt; split <;> infer_instance
+
+/-- **The pending revision's part of a write transaction ending with the changes `pend`**: the
+writer's half at `none`, or at `some pend` once its commit's first update notified it. -/
+def pndEnd (γ : StoreNames) (pend : List Change) : IProp GF :=
+  iprop(∃ p : Option (List Change), pndAt γ (1 : Qp).half p ∗ ⌜p = none ∨ (pend ≠ [] ∧ p = some pend)⌝)
+
+/-- The pending revision's part of a write transaction's core, sealed (`sealed`: the watchable
+store seals the pending revision before it notifies) or not: notified only once sealed. -/
+def pndEndB (γ : StoreNames) (pend : List Change) (sealed : Bool) : IProp GF :=
+  if sealed then pndEnd γ pend else pndAt γ (1 : Qp).half none
+
+@[simp] theorem pndEndB_false (γ : StoreNames) (pend : List Change) :
+    pndEndB (GF := GF) γ pend false = pndAt γ (1 : Qp).half none := rfl
+
+@[simp] theorem pndEndB_true (γ : StoreNames) (pend : List Change) :
+    pndEndB (GF := GF) γ pend true = pndEnd γ pend := rfl
+
+@[simp] theorem absAt_withPhys (γ : StoreNames) (p : PhysNames) (q : Qp) (log : Log) :
+    absAt (GF := GF) (γ.withPhys p) q log = absAt γ q log := rfl
+
+@[simp] theorem pndAt_withPhys (γ : StoreNames) (p : PhysNames) (q : Qp) (x : Option (List Change)) :
+    pndAt (GF := GF) (γ.withPhys p) q x = pndAt γ q x := rfl
+
+/-- Not in the abstract mode, the abstract parts are nothing. -/
+theorem absAt_off (γ : StoreNames) (h : γ.absQ = false) (q : Qp) (log : Log) :
+    absAt (GF := GF) γ q log = iprop(True) := by
+  unfold absAt; rw [h]; rfl
+
+theorem pndAt_off (γ : StoreNames) (h : γ.absQ = false) (q : Qp) (p : Option (List Change)) :
+    pndAt (GF := GF) γ q p = iprop(True) := by
+  unfold pndAt; rw [h]; rfl
+
+theorem pndEndB_off (γ : StoreNames) (h : γ.absQ = false) (pend : List Change) (b : Bool) :
+    pndEndB (GF := GF) γ pend b ⊢ pndAt γ (1 : Qp).half none := by
+  rw [pndAt_off γ h]; iintro _; itrivial
+
+/-- A transaction's core with nothing pending has the pending part at `none`. -/
+theorem pndEndB_nil (γ : StoreNames) (b : Bool) :
+    pndEndB (GF := GF) γ [] b ⊢ pndAt γ (1 : Qp).half none := by
+  cases b
+  · simp only [pndEndB_false]; exact .rfl
+  · simp only [pndEndB_true]
+    unfold pndEnd
+    iintro ⟨%p, H, %hp⟩
+    rcases hp with rfl | ⟨h, -⟩
+    · iexact H
+    · exact absurd rfl h
+
+theorem pndEnd_none (γ : StoreNames) (pend : List Change) :
+    pndAt (GF := GF) γ (1 : Qp).half none ⊢ pndEnd γ pend := by
+  iintro H
+  unfold pndEnd
+  iexists none
+  iframe H
+  ipureintro; left; rfl
+
 /-- **The store's current objects and physical names are `o` and `γ`'s**, at the fraction `dq`
 (D22 receiver epochs, S5b: until then `objsPin`, a discarded pin of the objects): a part of the
 store's ghost variable `cur`, which every share of the locks guarding a reader of the objects holds
@@ -488,6 +589,19 @@ and names, at `γ`'s: the store's names `γ` are the current ones for the holder
 (`hookIs`, which `store.Write` takes and returns; `store.Restore` will take it and return it at the
 new names). `NewStore` returns it. -/
 def writerFrag (γ : StoreNames) : IProp GF :=
+  iprop((∃ o : StoreObjs, curAt γ (DFrac.own (1 : Qp).half.half.half) o) ∗ ⌜γ.absQ = false⌝)
+
+/-- The writer's fragment is of a store not in the abstract mode. -/
+theorem writerFrag_off (γ : StoreNames) : writerFrag (GF := GF) γ ⊢ writerFrag γ ∗ ⌜γ.absQ = false⌝ := by
+  unfold writerFrag
+  iintro ⟨H, %h⟩
+  iframe H
+  ipureintro; exact ⟨h, h⟩
+
+/-- **The writer's fragment, of a store in either mode** (`writerFrag` is of a store not in the
+abstract mode, `γ.absQ = false`: what today's specs, which commit without the client's update, take;
+the abstract mode's proofs hold this one). -/
+def writerFragA (γ : StoreNames) : IProp GF :=
   iprop(∃ o : StoreObjs, curAt γ (DFrac.own (1 : Qp).half.half.half) o)
 
 /-- **A real backend's `meta` bucket records no compaction** (opaque, exclusive; D22 S-g,
@@ -2504,7 +2618,8 @@ def writerL (s : Loc) (γ : StoreNames) : IProp GF :=
       (W64 ((ilog.length : Int) - 1) : w64) : IProp GF) ∗
     "#Hcert" ∷ idxCert γ.idx ilog ∗
     "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
-    "Hlrd" ∷ lease.lessorRdOf γ.leases)
+    "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
+    "Hpnd" ∷ pndAt γ (1 : Qp).half none)
 
 /-! ### The batch lock's resource, late-bound (the real backend)
 
@@ -2936,6 +3051,7 @@ def revMuBody (s : Loc) (γ γp : StoreNames) (q : Qp) : IProp GF :=
     "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own q.half) ntok ∗
     "%Hbudget" ∷ ⌜log.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
     "Hlog" ∷ idxLogAuth γ.idx (revQ γ q) log ∗
+    "Habs" ∷ absAt γ q.half log ∗
     "Hcmp" ∷ (s.[store, go!"compactMainRev"] ↦{DFrac.own q.half} (W64 c : w64) : IProp GF) ∗
     "Hcrev" ∷ crevUB γ.idx q.half.half c ∗
     "%Hc" ∷ ⌜-1 ≤ c ∧ c < log.length⌝)
@@ -2964,6 +3080,7 @@ instance revMuBody_fractional (s : Loc) (γ γp : StoreNames) : Fractional (revM
       fun v => (typedPointsto_dfractional (GF := GF) _ v).dfractional (DFrac.own q1.half)
         (DFrac.own q2.half)
     have hcrev := fun (c : Int) => crevUB_split (GF := GF) γ.idx q1.half.half q2.half.half c
+    have habs := fun (log : Log) => absAt_split (GF := GF) γ q1.half q2.half log
     unfold revMuBody
     rw [revQ_add, Qp_half_add, Qp_half_add]
     refine ⟨?_, ?_⟩
@@ -2977,11 +3094,12 @@ instance revMuBody_fractional (s : Loc) (γ γp : StoreNames) : Fractional (revM
       icases (hlg log).1 $$ Hlog with ⟨Hl1, Hl2⟩
       icases (hcmp _).1 $$ Hcmp with ⟨Hm1, Hm2⟩
       icases (hcrev c).1 $$ Hcrev with ⟨Hv1, Hv2⟩
-      isplitl [Hr1 Hc1 Hb1 Ht1 Hl1 Hm1 Hv1]
-      · iexists log, ntok, c; simp only [named]; iframe Hr1 Hc1 Hb1 Ht1 Hl1 Hm1 Hv1; iframe #
+      icases (habs log).1 $$ Habs with ⟨Ha1, Ha2⟩
+      isplitl [Hr1 Hc1 Hb1 Ht1 Hl1 Hm1 Hv1 Ha1]
+      · iexists log, ntok, c; simp only [named]; iframe Hr1 Hc1 Hb1 Ht1 Hl1 Hm1 Hv1 Ha1; iframe #
         ipureintro
         exact ⟨Hne, Hbudget, Hc⟩
-      · iexists log, ntok, c; simp only [named]; iframe Hr2 Hc2 Hb2 Ht2 Hl2 Hm2 Hv2; iframe #
+      · iexists log, ntok, c; simp only [named]; iframe Hr2 Hc2 Hb2 Ht2 Hl2 Hm2 Hv2 Ha2; iframe #
         ipureintro
         exact ⟨Hne, Hbudget, Hc⟩
     · iintro ⟨H1, H2⟩
@@ -3018,6 +3136,8 @@ instance revMuBody_fractional (s : Loc) (γ γp : StoreNames) : Fractional (revM
       · ipureintro; exact Hbudget1
       isplitl [Hlog1 Hlog2]
       · iapply (hlg log).2; iframe Hlog1 Hlog2
+      isplitl [Habs1 Habs2]
+      · iapply (habs log).2; iframe Habs1 Habs2
       isplitl [Hcmp1 Hcmp2]
       · iapply (hcmp _).2; iframe Hcmp1 Hcmp2
       isplitl [Hcrev1 Hcrev2]
@@ -4474,6 +4594,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
     "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
     "Hcres" ∷ compactRes γ ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
+    "Hpnd" ∷ pndAt γ (1 : Qp).half none ∗
     "%Hcrev" ∷ ⌜-1 ≤ crev ∧ crev < ilog.length⌝ ∗
     "#HZ" ∷ □ Z)
 
@@ -4520,6 +4641,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
     "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
     "Hcres" ∷ compactRes γ ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
+    "Hpnd" ∷ pndEndB γ pend sealed ∗
     "%Hcrev" ∷ ⌜-1 ≤ crev ∧ crev < ilog.length⌝ ∗
     "#HZ" ∷ □ Z)
 
@@ -4570,8 +4692,8 @@ theorem storeTxnWriteIs_split (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend 
   iframe Hchs Hkvs
   iunfold storeTxnWriteCore
   iexists ti, bt, Locked, ntok, Pw, fw, Dep
-  simp only [named, idxWriterB_false]
-  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+  simp only [named, idxWriterB_false, pndEndB_false]
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hpnd
   iframe #
   ipureintro; exact ⟨Hbudget, ⟨Hps, Hlen.1, Hlen.2⟩, Hne, Htrnn, Hcrev⟩
 
@@ -4583,11 +4705,11 @@ theorem storeTxnWriteIs_join (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
   iintro ⟨Hc, Hchs, Hkvs⟩
   iunfold storeTxnWriteCore at Hc
   iNamed Hc
-  simp only [idxWriterB_false]
+  simp only [idxWriterB_false, pndEndB_false]
   iunfold storeTxnWriteIs
   iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
   simp only [named]
-  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hpnd
   iframe #
   ipureintro; exact ⟨Hbudget, Hps.1, Hne, Htrnn, Hcrev⟩
 
@@ -4641,14 +4763,15 @@ theorem storeTxnWriteCore_seal (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend
   iintro Hc
   iunfold storeTxnWriteCore at Hc
   iNamed Hc
-  simp only [idxWriterB_false]
+  simp only [idxWriterB_false, pndEndB_false]
   imod idxWriter_seal γ.idx ilog pend hne $$ Hw with ⟨Hw, #Hlb⟩
   imodintro
   iframe Hlb
   iunfold storeTxnWriteCore
   iexists ti, bt, Locked, ntok, Pw, fw, Dep
-  simp only [named, idxWriterB_true]
-  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+  ihave Hpnd := pndEnd_none γ pend $$ Hpnd
+  simp only [named, idxWriterB_true, pndEndB_true]
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hpnd
   iframe #
   ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
 
@@ -4669,7 +4792,7 @@ theorem storeTxnWriteCore_wf (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
   · iunfold storeTxnWriteCore
     iexists ti, bt, Locked, ntok, Pw, fw, Dep
     simp only [named]
-    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hpnd
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
   ipureintro; exact ⟨Hwf, Hps.1, Hps.2.1, Hps.2.2, Hne⟩

@@ -816,7 +816,7 @@ theorem mvcc.watchableStore.watch.wp_proof
       wp_apply hAdd $$ [$Hsynced] as Hsynced
       · iframe Hfixed; ipureintro; exact ⟨hWs, by have := Hok.ws_size; omega⟩
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HrstR] as HrevMuR
+      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HabsQ HrstR] as HrevMuR
       · inext
         iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
         iexists C, ntok, cQ
@@ -929,7 +929,7 @@ theorem mvcc.watchableStore.watch.wp_proof
       wp_apply hAdd $$ [$Hsynced] as Hsynced
       · iframe Hfixed; ipureintro; exact ⟨hWs, by have := Hok.ws_size; omega⟩
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HrstR] as HrevMuR
+      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HabsQ HrstR] as HrevMuR
       · inext
         iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
         iexists C, ntok, cQ
@@ -1052,7 +1052,7 @@ theorem mvcc.watchableStore.watch.wp_proof
         wp_apply hAdd $$ [$Hsynced] as Hsynced
         · iframe Hfixed; ipureintro; exact ⟨hWs, by have := Hok.ws_size; omega⟩
         (try wp_auto)
-        wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HrstR] as HrevMuR
+        wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HabsQ HrstR] as HrevMuR
         · inext
           iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
           iexists C, ntok, cQ
@@ -1166,7 +1166,7 @@ theorem mvcc.watchableStore.watch.wp_proof
       wp_apply hAdd $$ [$Hunsynced] as Hunsynced
       · iframe Hfixed; ipureintro; exact ⟨hWu, by have := Hok.wu_size; omega⟩
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HrstR] as HrevMuR
+      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HabsQ HrstR] as HrevMuR
       · inext
         iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
         iexists C, ntok, cQ

@@ -675,12 +675,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   iunfold txn.kvWriter at Hkvw
   icases Hkvw with ⟨Hkvw0, Hkvw1, Hfrag0⟩
   iunfold mvcc.writerFrag at Hfrag0
-  icases Hfrag0 with ⟨%ow, Hpinw⟩
+  icases Hfrag0 with ⟨⟨%ow, Hpinw⟩, %Hoffw⟩
   imod mvcc.storeReader_retire kst γw.st _ ow (mvcc.nJobRd (some ({ d with cm := cmp } : mvcc.KBReal))) $$ Hlc1 Hs Hpinw HwrSV Hret0
     with ⟨HrtSV, Hret1, Hpinw⟩
   imod mvcc.storeReader_retire kst γw.st _ ow ((mvcc.nJobRd (some ({ d with cm := cmp } : mvcc.KBReal))) + 1) $$ Hlc2 Hs Hpinw HwrA Hret1 with ⟨HrtA, HtrA, Hpinw⟩
   ihave Hkvw : txn.kvWriter kst γw.st [[], []] $$ [Hkvw0 Hkvw1 Hpinw]
-  · iunfold txn.kvWriter; iframe Hkvw0 Hkvw1; iunfold mvcc.writerFrag; iexists ow; iexact Hpinw
+  · iunfold txn.kvWriter; iframe Hkvw0 Hkvw1; iunfold mvcc.writerFrag; iframe %Hoffw; iexists ow; iexact Hpinw
   -- (D22 receiver epochs, S7b) the current backend's ghost variable, at the real backend: half
   -- `bemu`'s lock invariant's, a quarter the apply thread's, a quarter the write budget's
   imod (dghostVar_alloc (GF := GF) ({ d with cm := cmp } : mvcc.KBReal)) with ⟨%γbe, Hγbe⟩

@@ -32,7 +32,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   -- names are the current ones)
   icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, Hfrag⟩
   iunfold mvcc.writerFrag at Hfrag
-  icases Hfrag with ⟨%ow, Hpinw⟩
+  icases Hfrag with ⟨⟨%ow, Hpinw⟩, %Hoffw⟩
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
@@ -145,7 +145,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   iframe HQ
   isplitr [Hpinw]
   rotate_left
-  · iunfold mvcc.hookIs; iframe HhookC; iunfold mvcc.writerFrag; iexists ow; iexact Hpinw
+  · iunfold mvcc.hookIs; iframe HhookC; iunfold mvcc.writerFrag; iframe %Hoffw; iexists ow; iexact Hpinw
   iexists ilog, cm
   iframe Hlbc
   isplitl
@@ -161,7 +161,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   iexists ow.ti, bt, Locked, chs, [], ntok, Ph, f, Dep
   simp only [named, mvcc.pendPuts_nil]
   simp only [List.replicate_zero]
-  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmuh HrevMuR HtiR HrtR Hcres Hlrd
+  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmuh HrevMuR HtiR HrtR Hcres Hlrd Hpnd
   iframe #
   isplitl []
   · ipureintro; exact Hbudget

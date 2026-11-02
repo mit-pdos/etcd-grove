@@ -107,13 +107,13 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     iintro ⟨Hbucket, %m', %Rd, %Tok, Htok, #Hsnap0, #Hthin⟩
     (try wp_auto)
     -- `s.revMu.RUnlock()`
-    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hclog Hcert Htoks Hlog Hcmp Hcrev HrstR]
+    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hclog Hcert Htoks Hlog Hcmp Hcrev Habs HrstR]
       as HrevMuR
     · inext
       iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
       iexists log, ntok, cm
       simp only [named]
-      iframe Hrev Hbucket Hclog Htoks Hlog Hcmp Hcrev
+      iframe Hrev Hbucket Hclog Htoks Hlog Hcmp Hcrev Habs
       iframe #
       ipureintro; exact ⟨Hne, Hbudget, Hc⟩
     (try wp_auto)

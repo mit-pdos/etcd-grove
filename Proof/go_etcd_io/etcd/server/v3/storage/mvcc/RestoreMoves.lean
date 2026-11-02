@@ -104,6 +104,7 @@ def restoreHeld (γ : StoreNames) (L' : Log) : IProp GF :=
     "Htoks" ∷ ownTokAuth γ.revs 0 ∗
     "Hcrev" ∷ crevUB γ.idx (1 : Qp).half.half (-1) ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
+    "Hpnd" ∷ pndAt γ (1 : Qp).half none ∗
     "Hhist" ∷ monoListAuthOwn γ.idx.hist (1 : Qp).half (histOf L') ∗
     "#Hhlb" ∷ monoListLbOwn γ.idx.hist (histOf L') ∗
     "#Hllb" ∷ monoListLbOwn γ.idx.log L')
@@ -226,10 +227,10 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
   iframe Hcm Hrst Hcur Hcur2 Hc HcrevB
   isplitl [Hcr]
   · iexists _; iexact Hcr
-  isplitl [Hclog Hla Htoks Hcrev Hlrd Hhist]
+  isplitl [Hclog Hla Htoks Hcrev Hlrd Hpnd Hhist]
   · iunfold restoreHeld
     simp only [named]
-    iframe Hclog Hla Htoks Hcrev Hlrd Hhist
+    iframe Hclog Hla Htoks Hcrev Hlrd Hpnd Hhist
     iframe #
   rw [histShape_nil]
   iexact Hhlb
@@ -271,6 +272,7 @@ def restoreWriter (γ : StoreNames) (L' : Log) : IProp GF :=
     "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own (1 : Qp).half) ntok ∗
     "%Hbudget" ∷ ⌜L'.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
+    "Hpnd" ∷ pndAt γ (1 : Qp).half none ∗
     "Hhist" ∷ monoListAuthOwn γ.idx.hist (1 : Qp).half (histOf L') ∗
     "#Hcert" ∷ idxCert γ.idx L')
 
@@ -343,7 +345,7 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
   subst op
   rw [StoreNames.withPhys_self]
   iunfold writerFrag at Hfrag
-  icases Hfrag with ⟨%of, Hc5⟩
+  icases Hfrag with ⟨⟨%of, Hc5⟩, %Hoffw⟩
   ihave %Hof := curAt_agree_o γ _ _ o of $$ [Hc1 Hc5]
   · iframe Hc1 Hc5
   subst Hof
@@ -438,14 +440,17 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
     rw [evsOf_append ([[], []] ++ R) []]; simp [evsOfRev]
   rw [hevs]
   ihave Hbv := restoreViewOut_bucketView (γ.withPhys p') _ R $$ Hview
+  ihave Habs : absAt (GF := GF) γ (1 : Qp).half ([[], []] ++ R) $$ []
+  · rw [absAt_off γ Hoffw]; itrivial
+  have Hoffw' : (γ.withPhys p').absQ = false := by simpa using Hoffw
   imodintro
-  isplitl [Hr1 Hn2 Hrev HclogB Hbv HtoksB HlogB Hcmp Hcrev]
+  isplitl [Hr1 Hn2 Hrev HclogB Hbv HtoksB HlogB Hcmp Hcrev Habs]
   · iapply revMuInv_close s γ (γ.withPhys p') 1
-    isplitl [Hrev HclogB Hbv HtoksB HlogB Hcmp Hcrev]
+    isplitl [Hrev HclogB Hbv HtoksB HlogB Hcmp Hcrev Habs]
     · iunfold revMuBody
       iexists ([[], []] ++ R), (2 ^ 63 - 3 - ([[], []] ++ R).length), (-1)
       simp only [named]
-      iframe Hrev HclogB Hbv HtoksB HlogB Hcmp Hcrev
+      iframe Hrev HclogB Hbv HtoksB HlogB Hcmp Hcrev Habs
       iframe #
       isplitl []
       · iunfold idxNevLb; simp only [StoreNames.withPhys_idx_nev]; iexact Hnv
@@ -460,12 +465,12 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
   · iunfold retiredAt; iexact Htkr
   iframe Hr2 Hn1 Hn4 Hrv HlogQ Hwsd Htkr
   isplitl [Hn3]
-  · iunfold writerFrag; iexists o'; iexact Hn3
-  isplitl [HclogW Hlw HtoksW Hlrd Hhist]
+  · iunfold writerFrag; iframe %Hoffw'; iexists o'; iexact Hn3
+  isplitl [HclogW Hlw HtoksW Hlrd Hpnd Hhist]
   · iunfold restoreWriter
     iexists (2 ^ 63 - 3 - ([[], []] ++ R).length)
     simp only [named]
-    iframe HclogW Hlw HtoksW Hlrd Hhist Hcert
+    iframe HclogW Hlw HtoksW Hlrd Hpnd Hhist Hcert
     ipureintro; omega
   have hm1 : m = 1 := by omega
   subst hm1
@@ -526,20 +531,20 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
   ihave Hhist := hh.2 $$ [Hh Hhist]
   · iframe Hh Hhist
   icases ghostVar_halves p'.wv L' $$ Hwv with ⟨Hwv, HwvR⟩
-  imod Hclose $$ [Hc Htoks Hhist Hlw Hrc Hclog Hwv Hcur Hlrd Hwk HwvR Hbv Hcres Hrr] with -
+  imod Hclose $$ [Hc Htoks Hhist Hlw Hrc Hclog Hwv Hcur Hlrd Hpnd Hwk HwvR Hbv Hcres Hrr] with -
   · inext
     iunfold writerInvBody
     ileft
     iexists p', o'
     iframe Hc
     ileft
-    isplitl [Htoks Hhist Hlw Hrc Hclog Hwv Hcur Hlrd]
+    isplitl [Htoks Hhist Hlw Hrc Hclog Hwv Hcur Hlrd Hpnd]
     · iunfold writerL
       iexists L', ntok
       simp only [named]
       withPhys_simp
-      simp only [StoreNames.withPhys_wv]
-      iframe Htoks Hclog Hwv Hcur Hlrd
+      simp only [StoreNames.withPhys_wv, pndAt_withPhys]
+      iframe Htoks Hclog Hwv Hcur Hlrd Hpnd
       iframe #
       isplitr
       · ipureintro; exact Hbudget
