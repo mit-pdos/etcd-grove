@@ -155,7 +155,8 @@ theorem Main.wp_proof
     · iframe; iframe #
     imod (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23896" cid mid R Hrb48 Hrf rfl)
       $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms] with ⟨Hserv, #Hkv⟩
-    · iframe; iframe #
+    · unfold common.kvServeStocks
+      iframe; iframe #
     imodintro
     iframe Hserv Hkv
     ipureintro; exact Hnr
