@@ -70,8 +70,17 @@ abbrev RestartNode.spec : Prop :=
   -- the bootstrap log within the stored commit [scope]
   γ.bootLen ≤ σ.commit →
   confStateIs csm m →
+  -- (2026-11-02, stage II (p)) at most `2^62` ids in the conf state's lists [scope: `newRaft`'s
+  -- premise, the tracker's sort; a valid membership has fewer than `2^62` ids, which bounds the
+  -- lists' total only by `2^63`]
+  csm.Voters'.length + csm.VotersOutgoing'.length + csm.Learners'.length +
+    csm.LearnersNext'.length ≤ 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isCluster γ N ∗ nodeVacant γ cv.ID' ∗
+      -- (2026-11-02, stage II (p)) the receipts' bound past the bootstrap log within `2^61`
+      -- (`readyFits`): the stored log's last index has a time receipt, so it fits a word with room
+      -- for one more (`newRaft`'s premise) [scope]
+      readyFits γ N ∗
       -- the client's durable state at `RestartNode`'s linearization point (its `InitialState`
       -- read, before any step): the storage holds it
       -- ((2026-11-01, durability stage II (k)) under a later: `raftState` holds an invariant, so

@@ -24,178 +24,31 @@ import Proof.go_etcd_io.raft.v3.StepGhostMode
 import Proof.go_etcd_io.raft.v3.InvStorageRead
 import Proof.go_etcd_io.raft.v3.ConfchangeApiImpl
 import Proof.go_etcd_io.raft.v3.ConfchangeApi
+import Proof.go_etcd_io.raft.v3.Protocol.Enter
 
 @[expose] public section
 
 noncomputable section
-
 
 namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
-/-! ## The raw triple (internal: private to this file)
-
-What the proof over raft's internals shows, from which the wrapper (below) derives the spec. Its documentation, as when it was the spec (until 2026-10-28):
--/
-
 /-! Lean-first (no Rocq counterpart).
 
 ## `RestartNode(c)` (node.go:281)
 
-`NewRawNode(c)` (its premises: a node of a new cluster, `Spec/NewRawNode.lean`) in a
-`node` whose goroutine `run` it starts, for the cluster's term budget `bud`
-(`budget_alloc`, `InvNode.lean`). It returns the node (`isNodeChan`, persistent: what
-`Propose`, `Step`, `Tick` and `Ready` take) and the driver's token (`nodeDriverChan`, at
-the empty committed log: what `node_ready_receive` and `Advance` take). Since 2026-10-10
-also the cluster's proposed slices (`propDataInv`, allocated once with the raft ghost
-state), which `isNodeChan` keeps with the commit invariant. Since 2026-10-15 (stage N) in either
-mode (`md`, `NewRawNode`'s `rnInit`: statically `ownRaftGhost` at the initial state, dynamically
-B5's `ownRaftGhostR` at `rinit c0`), and with the driver's view of the configuration
-(`nodeCfg`, at index `0` and the initial configuration) for `ApplyConfChange` and `Advance`.
-
-raft v3.7 (2026-10-16, stage R5): `NewRawNode`'s premises as they are now (the storage's
-`InitialState` in `newRaft`'s D7 shape, the conf state's record `csm`; 2026-10-16, stage R6b: the
-conf state's `AutoLeave` cell set or not, `csPts cs □ csm al`); **no proposed slices'
-invariant** (D6: an entry's data is its bytes; until then `inv propDataN (propDataInv γ)`, which
-`isNodeChan` kept).
--/
-
-open Iris Iris.BI go_etcd_io.raft.v3
-
-section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- See the file header. (raft-final phase 1, 2026-10-29: over `NewRawNode`'s boot bundle, raft's
-storage names `sn` and frame `R`/`R'`; until then raft's view of an empty storage with an
-`InitialState` closure, and `NodeNames.snapIn`, deleted.) -/
-private abbrev RestartNode.specRaw : Prop :=
-  ∀ (γ : RaftNames) (md : RNMode) (bud : BudgetNames) (c : Loc) (cv : Config)
-    (lok si : GoInterfaceOk) (sn : StorNames)
-    -- (raft-final phase 2) the node's configuration names, allocated by the caller, so that the
-    -- node's table entry (`nodeTabOk`) exists before the storage's contract is read
-    (gdlm gcap gccq gcam glive : GName)
-    (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM) (R R' : IProp GF) (cs' : CCState),
-  -- `NewRawNode`'s premises
-  ConfigValid cv →
-  cv.Logger' = interface.ok lok →
-  cv.Storage' = interface.ok si →
-  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-  cv.DisableProposalForwarding' = false →
-  -- `ReadOnlySafe` (2026-10-12)
-  cv.ReadOnlyOption' = W64 0 →
-  -- conf-change validation on (2026-10-13; `newRaft`'s premise)
-  cv.DisableConfChangeValidation' = false →
-  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-  cv.AsyncStorageWrites' = false →
-  -- (2026-10-25, T-M M2b: pre-vote either way; 2026-10-17 to 2026-10-25 off in the dynamic mode,
-  -- which did not model pre-candidates; until then off in either mode)
-  -- (2026-11-01, durability stage I-6: a restart from a storage holding a log, `NewRawNode`'s
-  -- premises as they are now: raft's view from the base, the attach record, the hard state
-  -- restored, `Applied` within the committed part, any conf state `Restore` accepts. Until then an
-  -- empty storage, an empty hard state, nothing applied, voters only.
-  -- PORT(durability stage II): the ghost-state premises and the post below are still the empty
-  -- start's (`rnInit`, `isCommitted γ []`, the configuration names at `0`, the driver at `[]`);
-  -- stage II (d) restates them with `raft_restart` (`restartP`) and the wrapper.)
-  LogIndicesOk σ.prev σ.ents → σ.pend = [] →
-  -- (2026-11-02, stage II (o): `restartStorage`'s freeze point) frozen up to at most the commit
-  -- `loadState` restores
-  uint.nat σ.prev.index' ≤ σ.fr → σ.fr ≤ uint.nat (committedAfter σ.prev hs) →
-  uint.Z σ.fl ≤ uint.Z σ.prev.index' → σ.sg ≤ uint.nat σ.prev.index' →
-  -- (2026-11-02, stage II (o)) the terms certified at most the base, the base's its term
-  (∀ k t, σ.dt !! k = some t → k ≤ uint.nat σ.prev.index' ∧
-    (uint.nat σ.prev.index' ≤ k → termAt σ.prev σ.ents (W64 (k : Int)) = some t)) →
-  uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 < 2 ^ 64 →
-  AttachRec sn σ.prev σ.ents (uint.nat (committedAfter σ.prev hs))
-    (max (uint.nat σ.prev.index') (uint.nat cv.Applied')) →
-  (HsEmpty hs ∨ uint.Z σ.prev.index' ≤ uint.Z hs.Commit' ∧
-    uint.Z hs.Commit' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) →
-  (cv.Applied' = W64 0 ∨ uint.Z σ.prev.index' ≤ uint.Z cv.Applied' ∧
-    uint.Z cv.Applied' ≤ uint.Z (committedAfter σ.prev hs)) →
-  -- (2026-10-16, stage R5) the conf state's record `csm`, as `NewRawNode`'s
-  restoreM csm.VotersOutgoing' csm.Voters' csm.Learners' csm.LearnersNext' csm.AutoLeave' =
-    some cs' →
-  csm.Voters'.length + csm.VotersOutgoing'.length + csm.Learners'.length +
-    csm.LearnersNext'.length ≤ 2 ^ 62 →
-  -- (2026-10-29, stage U4: only in the static mode; a dynamic node, a newcomer, need not be one of
-  -- the conf state's voters)
-  (md = .static → γ.reCfg = GMap.listToSet csm.Voters') →
-  (md = .static → cv.ID' ∈ csm.Voters') →
-  -- (2026-10-25, T-M M2c: `StepDownOnRemoval` either way; 2026-10-15 to 2026-10-25 on in the dynamic
-  -- mode)
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
-      -- (raft-final phase 1) `NewRawNode`'s boot bundle (durability stage I-6: at the view's base
-      -- and last index; raft's view made without the attach record, `sn.unrec`)
-      (□ {{ R }} (App (Val #(methods si.ty go!"FirstIndex" si.v)) (Val #()))
-         {{ RET (PairV #(W64 (uint.nat σ.prev.index' + 1)) #interface.nil); R }}) ∗
-      (□ {{ R }} (App (Val #(methods si.ty go!"LastIndex" si.v)) (Val #()))
-         {{ RET (PairV #(W64 (uint.nat σ.prev.index' + σ.ents.length)) #interface.nil); R }}) ∗
-      (□ {{ R }} (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #()))
-         {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
-            hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
-            |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn.unrec (interface.ok si) σ ∗
-              R' }}) ∗
-      -- (2026-10-15, stage N) the ghost state in the mode `md` (`NewRawNode`'s `rnInit`; until
-      -- then `ownRaftGhost γ cv.ID' initPState`, the static mode's)
-      rnInit γ md cv.ID' (GMap.listToSet csm.Voters') ∗ isCommitted γ [] ∗
-      -- the cluster's term budget
-      inv budgetN (budgetInv bud) ∗ termLB bud (W64 0) ∗
-      -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`; raft-final phase 1: of
-      -- the storage names, U8 v2)
-      certLink γ sn ∗
-      -- (raft-final phase 2) the configuration names' initial states
-      monoListAuthOwn gdlm 1 ([] : List EntryM) ∗ monoListLbOwn gdlm ([] : List EntryM) ∗
-      dghostVar gcap (DFrac.own 1) ((0 : Nat), cfgState (GMap.listToSet csm.Voters') ∅) ∗
-      dghostVar gccq (DFrac.own 1) ((0 : Nat), cfgState (GMap.listToSet csm.Voters') ∅) ∗
-      monoNatAuthOwn gcam 1 0 ∗ monoNatLbOwn gcam 0 ∗ dghostVar glive (DFrac.own 1) false }}
-    (App (Val #(functions RestartNode [])) (Val #c))
-  {{ (nd : GoInterface), RET #nd;
-      ∃ (γn : NodeNames) (n : Loc),
-        ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = md ∧ γn.sn = sn ∧
-         nd = interface.mkOk (go.GoType.PointerType node.ty) #n ∧
-         γn.dlm = gdlm ∧ γn.cap = gcap ∧ γn.ccq = gccq ∧ γn.cam = gcam ∧ γn.live = glive⌝ ∗
-        -- (raft-final phase 1) the frame `InitialState` gave back
-        R' ∗
-        isNodeChan γn cv.ID' n ∗ nodeDriverChan γn cv.ID' n [] hsZero ∗
-        -- (2026-10-29, stage U9a) the client's half of `live`, for `Stop`
-        nodeLiveRaw γn 1 ∗
-        -- (2026-10-15, stage N) the driver's view of the configuration: the initial one
-        nodeCfg γn 0 (cfgState (GMap.listToSet csm.Voters') ∅) }}
-
-end spec
-
-open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
-
-section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- `NewRawNode` (its result the node open, `rawNodeFresh`, closed here with the ghost state in
-the mode `md`: 2026-10-16, stage R8b; until then `NewRawNode` closed it), `newNode`, then the
-node's ghost state: the channels' hand-shakes (with `P := False` on those nobody sends on), the
-tick channel's invariant (no credit yet), `dlv` and `rof`; `run` takes its halves. (Raft v3.7,
-stage R5: `NewRawNode`'s premises over the conf state's record `csm` and D7's `InitialState`; no
-proposed slices' invariant (D6).) -/
-private theorem RestartNode.wp_raw
-    (wp_NewRawNode : NewRawNode.spec (GF := GF) (hG := hG))
-    (wp_newNode : newNode.spec (GF := GF) (hG := hG))
-    (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
-    RestartNode.specRaw (GF := GF) (hG := hG) := by
-  -- PORT(durability stage II): `NewRawNode.spec` generalized (I-6: `rawNodeAt`); the raw triple to restate for a restart (I-2, I-6)
-  sorry
-
-end proof
-
-/-! ## The spec, from the raw triple -/
+(2026-11-02, durability stage II (p)) One triple, as `StartNode`'s: until then a private raw triple
+over raft's internals (from an empty storage, the ghost state's names allocated by the caller) and
+a wrapper. The client's update fires after the first step (a later credit strips the later of its
+`raftState`), inside the id's slot (`raft_restart`), which gives the restarted follower's volatile
+half, the slot's whole generation with its free queue, and the restarted log's full-log and I1
+facts; raft names the storage at the attach (`restartStorage`'s continuation, inside
+`InitialState`'s post: fresh storage names recording the stored committed log's terms up to the
+stored commit, `AttachRec`); `NewRawNode` builds the node at the restored state (`rawNodeAt`),
+closed here with the restarted ghost state in the cluster's dynamic mode; its table entry is
+inserted while the struct is owned whole; then `run`'s ghost state and `go n.run()`. -/
 
 namespace ApiImpl
 
@@ -388,14 +241,273 @@ private theorem certLink_make (γ : Cluster) (N : Namespace) (HU : UniNames γ N
     iframe Hgk
     imodintro; iexact Hc
 
-/-- `RestartNode.spec` from the raw triple (2026-10-28, stage U4a): the node in the cluster's
-dynamic mode (of the client's decisions, since the decision switch; until then the rule's), taking `MsgSnap`s (`snapIn`), its ghost state the dynamic one at the
-initial state (`ownRaftGhostR_rinit`), its table entry inserted (`nodeTabOk`), its view at the
-voters' membership. -/
+/-- (2026-11-02, stage II (o)) A location owned whole is not also held read-only. -/
+private theorem loc_pts_excl (l a b : Loc) :
+    ⊢ (l ↦ a : IProp GF) -∗ l ↦□ b -∗ False := by
+  iintro H1 H2
+  rw [typedPointsto_unseal_eq l a, typedPointsto_unseal_eq l b]
+  icases H1 with ⟨H1, -⟩
+  icases H2 with ⟨H2, -⟩
+  ihave H1 := (show typedPointstoDef (GF := GF) l a (DFrac.own 1) ⊢ heapPointsto l (DFrac.own 1) #a
+    from .rfl) $$ H1
+  ihave H2 := (show typedPointstoDef (GF := GF) l b DFrac.discard ⊢ heapPointsto l DFrac.discard #b
+    from .rfl) $$ H2
+  icombine H1 H2 gives %Hv
+  obtain ⟨Hv, -⟩ := Hv
+  exfalso
+  have := DFrac.valid_own_op_discard.1 Hv
+  simp at this
+
+/-- (2026-11-02, stage II (o)) A node struct owned whole is not also held read-only (its `rn`
+field). -/
+private theorem node_pts_excl (n : Loc) (nv nv' : node) :
+    ⊢ (n ↦ nv : IProp GF) -∗ n ↦□ nv' -∗ False := by
+  iintro H1 H2
+  rw [typedPointsto_unseal_eq n nv, typedPointsto_unseal_eq n nv']
+  icases H1 with ⟨H1, -⟩
+  icases H2 with ⟨H2, -⟩
+  simp only [TypedPointsto.typedPointstoDef]
+  iNamed H1
+  icases H2 with ⟨-, -, -, -, -, -, -, -, -, -, ⟨H2, -⟩⟩
+  iapply loc_pts_excl _ nv.rn' nv'.rn' $$ rn H2
+
+/-- (2026-11-02, stage II (o)) **Registering a node in the cluster's table**, while its struct is
+owned whole (so it is not in the table yet): its entry, and the struct read-only from then on. -/
+private theorem nodeTab_insert (γ : Cluster) (N : Namespace) (n : Loc) (nv : node) (x : CfgNames) :
+    ⊢ nodeTabInv (GF := GF) γ N -∗ n ↦ nv ={⊤}=∗ n ↦□ nv ∗ n ↪[γ.nodeTab]□ x := by
+  iintro #Hinv Hn
+  unfold nodeTabInv
+  iinv Hinv with ⟨%M, >Hauth, >Hm⟩ Hclose
+  cases hM : M !! n with
+  | some y =>
+    ihave Hy := (BigSepM.bigSepM_lookup (Φ := fun (k : Loc) (_ : CfgNames) =>
+      iprop(∃ nv : node, k ↦□ nv : IProp GF)) hM) $$ Hm
+    icases Hy with ⟨%nv', Hy⟩
+    iexfalso
+    iapply node_pts_excl n nv nv' $$ Hn Hy
+  | none =>
+    imod ghost_map_insert_persist n x hM $$ Hauth with ⟨Hauth, #He⟩
+    ipersist Hn
+    imod Hclose $$ [Hauth Hm] with -
+    · inext
+      iexists (<[n := x]> M)
+      iframe Hauth
+      iapply (BigSepM.bigSepM_insert (Φ := fun (k : Loc) (_ : CfgNames) =>
+        iprop(∃ nv : node, k ↦□ nv : IProp GF)) hM).2
+      iframe Hm
+      iexists nv; iexact Hn
+    imodintro
+    iframe Hn He
+
+/-- (2026-11-02, stage II (p)) The log's shape, read out of the ghost state. -/
+private theorem ownRaftGhost_logOk (γ : RaftNames) (id : w64) (s : PState) (md : Bool) :
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ⌜LogOk s⌝ := by
+  unfold ownRaftGhost
+  iintro ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  icases ownLogGhost_recs γ id s kl _ $$ Hlg with ⟨%Hl, -⟩
+  ipureintro; exact Hl
+
+/-- (2026-11-02, stage II (p)) The commit `loadState` restores from a stored hard state whose commit
+is at least the base: the stored one (an empty hard state's is the base, `0`). -/
+private theorem committedAfter_restart (σ : StorContents) (h : σ.b ≤ σ.commit) :
+    committedAfter σ.base σ.hs = σ.hs.Commit' := by
+  unfold committedAfter
+  split
+  · rename_i he
+    obtain ⟨-, -, hc⟩ := he
+    simp only [StorContents.b, StorContents.commit, hc] at h
+    rw [hc]
+    apply BitVec.eq_of_toNat_eq
+    have : uint.nat (W64 0) = 0 := rfl
+    have h' : uint.nat σ.base.index' = 0 := by omega
+    exact h'
+  · rfl
+
+/-- (2026-11-02, stage II (p)) **The attach record of a restart**: the terms of the committed log
+`F` at the indices `1, …, c`. -/
+def restartCt (F : List EntryM) (c : Nat) : List (Nat × w64) :=
+  (List.range c).map (fun k => (k + 1, ((F[k]?).map EntryM.Term').getD (W64 0)))
+
+private theorem restartCt_mem {F : List EntryM} {c i : Nat} {t : w64} (hc : c ≤ F.length)
+    (h : (i, t) ∈ restartCt F c) : 1 ≤ i ∧ i ≤ c ∧ (F[i - 1]?).map EntryM.Term' = some t := by
+  unfold restartCt at h
+  rw [List.mem_map] at h
+  obtain ⟨k, hk, he⟩ := h
+  rw [List.mem_range] at hk
+  simp only [Prod.mk.injEq] at he
+  obtain ⟨rfl, rfl⟩ := he
+  refine ⟨by omega, by omega, ?_⟩
+  rw [Nat.add_sub_cancel, List.getElem?_eq_getElem (show k < F.length by omega)]
+  rfl
+
+private theorem restartCt_complete {F : List EntryM} {c i : Nat} (hc : c ≤ F.length) (h1 : 1 ≤ i)
+    (h2 : i ≤ c) : ∃ t, (i, t) ∈ restartCt F c ∧ ∀ t', (i, t') ∈ restartCt F c → t' = t := by
+  refine ⟨((F[i - 1]?).map EntryM.Term').getD (W64 0), ?_, fun t' ht' => ?_⟩
+  · unfold restartCt
+    rw [List.mem_map]
+    exact ⟨i - 1, by rw [List.mem_range]; omega, Prod.ext (by simp only; omega) rfl⟩
+  · obtain ⟨-, -, h⟩ := restartCt_mem hc ht'
+    rw [h]; rfl
+
+/-- (2026-11-02, stage II (p)) The stored log's term at an index from its base, from the full log
+`fp ++ ents` (`fp` the compacted prefix of the base `b`). -/
+private theorem termAt_of_full {b : entryID} {fp ents : List EntryM} {i : Nat} {t : w64}
+    (Hf : FullOk b fp) (hb : uint.nat b.index' ≤ i) (h1 : 1 ≤ i) (hi : (i : Int) < 2 ^ 64)
+    (ht : ((fp ++ ents)[i - 1]?).map EntryM.Term' = some t) :
+    termAt b ents (W64 (i : Int)) = some t := by
+  obtain ⟨Hlen, -, Hlast⟩ := Hf
+  have hbn := uint_nat_eq b.index'
+  have hW : uint.Z (W64 (i : Int)) = i := uint_Z_W64 _ (by omega) hi
+  unfold termAt
+  by_cases he : i = uint.nat b.index'
+  · rw [if_pos (by rw [hW]; omega)]
+    have hfl : fp.length = i := by omega
+    rw [List.getElem?_append_left (by omega)] at ht
+    unfold plogLast at Hlast
+    have hgl : fp.getLast? = fp[i - 1]? := by rw [List.getLast?_eq_getElem?, hfl]
+    cases hx : fp[i - 1]? with
+    | none => rw [hx] at ht; cases ht
+    | some x =>
+      rw [hgl, hx] at Hlast
+      rw [hx] at ht
+      simp only [Option.map_some, Option.some.injEq] at ht
+      rw [← ht, ← Hlast]; rfl
+  · rw [if_neg (by rw [hW]; omega)]
+    rw [List.getElem?_append_right (by omega)] at ht
+    rw [show (uint.Z (W64 (i : Int)) - uint.Z b.index' - 1).toNat = i - 1 - fp.length by omega]
+    simpa using ht
+
+/-- See the header. -/
 private theorem wp_RestartNode_impl
-    (hS : EtcdGrove.RestartNode.specRaw (GF := GF) (hG := hG)) :
+    (wp_NewRawNode : NewRawNode.spec (GF := GF) (hG := hG))
+    (wp_newNode : newNode.spec (GF := GF) (hG := hG))
+    (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     EtcdGrove.RestartNode.spec (GF := GF) (hG := hG) := by
-  -- PORT(durability stage II): the spec restated (durability I-2/I-4/I-6/I-7: `nodeVacant`, the update over `raftState`, `restartStorage`)
+  unfold EtcdGrove.RestartNode.spec
+  intro γ N c cv lok si σ csm a m Q F H1 H2 H3 H4 H5 H6 H7 H8 H9 Happ Ha1 Ha2 Hboot Hcs Hcsl
+  wp_start as ⟨Hc, #Hlg, #Hcl, Hvac, #Hfits, HAU, #Hconf, Hrs⟩
+  iunfold EtcdGrove.isCluster at Hcl
+  ihave #Hcl' := Hcl
+  iunfold isClusterU at Hcl'
+  icases Hcl' with ⟨%HU, #Hci, #Hpool, #Htab⟩
+  ihave #Hci' := Hci
+  iunfold clusterInv at Hci'
+  icases Hci' with ⟨%HNs, #Hcinv, -, -⟩
+  have Hsl := HU.2.1
+  -- the configuration point: the cluster's mode, a valid restorable membership
+  iunfold EtcdGrove.confAt at Hconf
+  ihave %Hval := confAt_valid_impl γ a m $$ Hconf
+  ihave %Hres := confAtU_restorable γ a m $$ Hconf
+  ihave #Hconf' := Hconf
+  iunfold confAtU at Hconf'
+  icases Hconf' with ⟨%lA, %MA, #HlbA, #HMA, %HPA⟩
+  obtain ⟨HkA, c0m, gA, HmA, HfA⟩ := HPA
+  obtain ⟨h0, h1, Hmd⟩ := HmA.mode
+  have HD : γ.raft.dyn = some (DynCfg.ofFold noDec (stOf c0m) h0) := HmA.1.2.2.1
+  have Hmdb : γ.raft.reDyn.isSome = true := by
+    have := reDyn_of HD
+    cases h : γ.raft.reDyn with
+    | none => exact absurd h this
+    | some _ => rfl
+  -- the restored hard state's commit, as a word
+  have HbootZ : (γ.raft.reBoot.length : Int) ≤ uint.Z σ.hs.Commit' := by
+    unfold Cluster.bootLen StorContents.commit at Hboot; have := uint_nat_eq σ.hs.Commit'; omega
+  have HsN : (↑(slotN γ.raft cv.ID') : CoPset) ⊆ ↑N := by
+    intro p hp
+    have := slotN_raftN γ.raft cv.ID' p hp
+    unfold raftN at this; rw [HNs] at this
+    exact nclose_subseteq N "raft" p this
+  -- a later credit, for the update's `▷ raftState`
+  wp_auto_lc 1
+  -- the client's update, inside the id's slot: the restarted follower's volatile half
+  iunfold EtcdGrove.nodeVacant at Hvac
+  iunfold nodeVacantU at Hvac
+  imod raft_restart ⊤ γ.raft cv.ID' (md := true) σ.base σ.hs.Commit'
+    (fun S => StorageHolds S σ) (fun S => iprop(Q S ∗ termLB γ.bud S.term))
+    CoPset.subseteq_top Hmdb
+    (fun S HS => by
+      obtain ⟨Hb1, Hb2, Hb3, -, -, Hbc, Hwc, Hcc, -, -⟩ := HS
+      simp only [StorContents.b, StorContents.commit] at Hbc Hwc Hcc
+      have := uint_nat_eq σ.hs.Commit'; have := uint_nat_eq σ.base.index'
+      have := uint_nat_eq S.commit
+      exact ⟨Hb1, by omega, by omega, Hb2, Hwc⟩) HbootZ
+    $$ Hvac [HAU Hlc1]
+    with ⟨%S, %HS, ⟨HQ, #HtS⟩, Hg, %gen, Hgen, Hfree, #HI1r⟩
+  · have HEo : (⊤ \ ↑N : CoPset) ⊆ ⊤ \ ↑(slotN γ.raft cv.ID') := by
+      intro p hp
+      rw [Iris.Std.LawfulSet.mem_diff] at hp ⊢
+      exact ⟨hp.1, fun h => hp.2 (HsN p h)⟩
+    ihave HAU := atomic_update_mask_weaken HEo $$ HAU
+    ihave HAU := aupd_aacc $$ HAU
+    iunfold atomic_acc at HAU
+    imod HAU with ⟨%S, HS, HC⟩
+    rcases S with ⟨S, ⟨⟩⟩
+    irevert HS
+    dsimp only [Std.Tele.app]
+    iintro HS
+    icases HS with ⟨HS, %HSh⟩
+    imod lc_fupd_elim_later $$ Hlc1 HS with HS
+    icases HC with ⟨-, Hcomm⟩
+    ihave Hcomm := Hcomm $$ %PUnit.unit
+    iunfold EtcdGrove.raftState at HS
+    iunfold raftStateU at HS
+    icases HS with ⟨Hdur, #Htlb0⟩
+    imodintro
+    iexists S
+    iframe Hdur
+    isplitr; · ipureintro; exact HSh
+    iintro Hdur
+    imod Hcomm $$ [Hdur] with HQ
+    · iunfold EtcdGrove.raftState
+      unfold raftStateU
+      iframe Hdur Htlb0
+    imodintro
+    iframe HQ Htlb0
+  -- the restarted log: its full prefix with records, its committed prefix, its commit's witness,
+  -- its last index's record
+  icases (entails_wand (persistent_entails_left (ownRaftGhost_cmt γ.raft cv.ID' _))) $$ Hg
+    with ⟨Hg, %fp, %Hfp, #Hfr, #Hcmt⟩
+  icases (entails_wand (persistent_entails_left (wand_entails
+    (ownRaftGhost_commitWit γ.raft cv.ID' _)))) $$ Hg with ⟨Hg, #Hcw⟩
+  icases (entails_wand (persistent_entails_left (wand_entails
+    (ownRaftGhost_logRecs γ.raft cv.ID' _ true)))) $$ Hg with ⟨Hg, %Hwf, #Hrl⟩
+  icases (entails_wand (persistent_entails_left (wand_entails
+    (ownRaftGhost_logOk γ.raft cv.ID' _ true)))) $$ Hg with ⟨Hg, %HlogOk⟩
+  icases (entails_wand (persistent_entails_left (wand_entails
+    (ownRaftGhost_lastRec γ.raft cv.ID' _)))) $$ Hg with ⟨Hg, #Hlr, %Hl64⟩
+  ihave %HFI := HI1r $$ %fp %Hfp Hfr
+  obtain ⟨HDF, HI1⟩ := HFI
+  have HS' := HS
+  obtain ⟨Hsb, Hst, Hse, HsT, HsV, Hbc, Hwc, Hcc, Hsnap, Hsb2⟩ := HS'
+  -- the last index fits a word with room: its receipt (`readyFits`)
+  imod lastRec_receipt γ.raft _ $$ Hlr with Hrc
+  ihave %Hrcl := preceipt_lt _ $$ Hrc
+  iunfold EtcdGrove.readyFits at Hfits
+  icases Hfits with %Hfit
+  have HlenFp : (fp.length : Int) = uint.Z σ.base.index' := Hfp.1
+  have Hlast : uint.Z σ.base.index' + (σ.ents.length : Int) + 1 < 2 ^ 64 := by
+    unfold Cluster.bootLen at Hfit Hboot
+    simp only [restartP, plogLastIndexZ] at Hrcl
+    rw [← Hse] at Hrcl
+    have := uint_nat_eq σ.hs.Commit'
+    unfold StorContents.commit at Hboot
+    omega
+  have Hca : committedAfter σ.base σ.hs = σ.hs.Commit' := committedAfter_restart σ Hbc
+  -- the stored commit within the stored log
+  have HcL : uint.Z σ.hs.Commit' ≤ uint.Z σ.base.index' + (σ.ents.length : Int) := by
+    have := HlogOk.2.2
+    simp only [restartP, plogLastIndexZ] at this
+    rw [← Hse] at this; exact this
+  -- the committed log up to the stored commit, and its terms (the attach record)
+  have HFlen : (fp ++ σ.ents).length = σ.b + σ.ents.length := by
+    rw [List.length_append]; unfold StorContents.b; have := uint_nat_eq σ.base.index'; omega
+  have HcF : σ.commit ≤ (fp ++ σ.ents).length := by
+    rw [HFlen]; unfold StorContents.commit StorContents.b
+    have := uint_nat_eq σ.base.index'; have := uint_nat_eq σ.hs.Commit'; omega
+  ihave #HcmtF : isCommitted γ.raft ((fp ++ σ.ents).take σ.commit) $$ []
+  · iExactEq Hcmt
+    unfold cprefix; simp only [restartP]; rw [← Hse, toNat_uZ]; rfl
   sorry
 
 end wrap
@@ -414,7 +526,7 @@ theorem RestartNode.wp_proof
     (wp_newNode : newNode.spec (GF := GF) (hG := hG))
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     RestartNode.spec (GF := GF) (hG := hG) :=
-  ApiImpl.wp_RestartNode_impl (RestartNode.wp_raw wp_NewRawNode wp_newNode wp_node_run)
+  ApiImpl.wp_RestartNode_impl wp_NewRawNode wp_newNode wp_node_run
 
 end proof
 
