@@ -579,11 +579,15 @@ The open questions:
   `ManualProof` module.
 
 **Not done** (the branch does not build: `Next`'s proof is the old one, over the old body):
-1. **The record's ghost state, in a form that needs no `Main` changes.** The extension's state
-   interpretation holds the record's authority; a successful `"Issue"` hands the program the
-   persistent fact `id ↪ g`. So the program's starting resource is `True`, and no example's `Main`
-   gains an argument (`kvdurable`'s `durableOwn` would have). `Specs.lean` is still the
-   ghost-variable form and has to change.
+1. ~~**The record's ghost state, in a form that needs no `Main` changes.**~~ Done
+   (`GooseLang/Ext/IdIssue/Specs.lean`):
+   - The state interpretation holds the record's authority and every entry's persistent element.
+   - The program starts with `True`, so no `Main` takes anything for it.
+   - `wp_IdIssue` gives, with `b = true`, the fact `idIssueFrag id g`, with the mask open around the
+     step for an invariant. `idIssueFrag_agree`: one issuer per id.
+   - `idIssueFragD` reads the fact without the instance: `if h : HasExt idIssueExt then … else
+     False`, rewritten by `idIssueFragD_eq` under the instance. `idIssueFragD_agree` holds either
+     way.
 2. **`idutil`:**
    - `IdNames` gains the pending map's name and the generator map's name.
    - The generator's invariant splits `idIssued` into the list plus pending ids.
@@ -591,8 +595,8 @@ The open questions:
      the key-to-generator map `Gm`. `Gm`'s values are `Option Loc`: `none` at the key's allocation
      (the element in `idShare`), set by `NewGenerator`. It is injective by the persistent
      prefix-field points-to.
-   - The definitions read the record's fact through `if h : HasExt idIssueExt then … else False`
-     (`HasExt` is a `Prop`), so that they need no extension instance.
+   - The definitions read the record's fact through `idIssueFragD` (item 1), so they need no
+     extension instance.
    - `Next` proved in two steps over the model; `NewGenerator` registers the generator.
    - The one-key-per-prefix condition goes; `idIncarnation_alloc` is proved.
 3. **The instance.** `Next.wp_proof` takes `[HasExt idIssueExt]`, and the linked results that

@@ -3,11 +3,13 @@ Iris reasoning principles for the issue-record extension (`Impl.lean`; the resta
 2, 2026-11-02): the durable-state extension's (`GooseLang/Ext/Durable/Specs.lean`) for a map from ids
 to generators.
 
-* The ghost state: one ghost variable holding the record (`idIssueOwn M`), half in the state
-  interpretation and half the program's; a program puts its half in an invariant (the cluster's
-  claims, `idClusterInv`) and uses the atomic spec.
-* `wp_IdIssue_atomic`: `"Issue"` of `(id, g)` returns `idIssueOk M id g` and leaves `idIssueNext M
-  id g`.
+* The ghost state: a ghost map of the record, its authority and every entry's persistent element in
+  the state interpretation. The program owns nothing of it at the start (its start resource is
+  `True`, so a `Main` takes nothing for it); it learns facts: `idIssueFrag id g`, `g` issued `id`
+  (persistent; one issuer per id, `idIssueFrag_agree`).
+* `wp_IdIssue`: `"Issue"` of `(id, g)` returns `b`, and with `b = true` the fact `idIssueFrag id g`
+  (so `b` only if no other generator issued `id`). The mask is open around the step, for a caller
+  that updates an invariant at it.
 * `idIssueExts`: a program whose only extension is the record (the examples' closure).
 -/
 module
@@ -28,45 +30,88 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 /-! ## Ghost state -/
 
-/-- What the adequacy theorem provides: ghost variables. -/
+/-- What the adequacy theorem provides: the universal camera, for a ghost map. -/
 class IdIssueGpreS (GF : BundledGFunctors) where
   idIssuePreAllG : AllG GF
 
-/-- The ghost variable of the record. -/
+/-- The ghost map of the record. -/
 structure IdIssueGS (GF : BundledGFunctors) where
   idIssueAllG : AllG GF
   idIssueName : GName
 
-section durable
+section ghost
 variable {GF : BundledGFunctors}
 
-/-- The record is `fs`, with fraction `q` (a half is the program's, a half the state
-interpretation's). -/
-def idIssueVar (hL : IdIssueGS GF) (q : Qp) (fs : IdIssueState) : IProp GF :=
+/-- **`id` was issued by the generator `g`** (persistent): the record's element. -/
+def idIssueFragAt (hL : IdIssueGS GF) (id : w64) (g : Loc) : IProp GF :=
   letI := hL.idIssueAllG
-  ghostVar hL.idIssueName q fs
+  id ↪[hL.idIssueName]□ g
 
-/-- The interpretation of the record. -/
-def idIssueCtx (hL : IdIssueGS GF) (fs : IdIssueState) : IProp GF :=
-  idIssueVar hL (1 : Qp).half fs
+instance idIssueFragAt_persistent (hL : IdIssueGS GF) (id : w64) (g : Loc) :
+    Persistent (idIssueFragAt hL id g) := by
+  unfold idIssueFragAt; infer_instance
 
-instance idIssueVar_timeless (hL : IdIssueGS GF) (q : Qp) (fs : IdIssueState) :
-    Timeless (idIssueVar hL q fs) := by
-  unfold idIssueVar; infer_instance
+/-- The interpretation of the record: the map's authority, and every entry's persistent element (so
+that an `"Issue"` that finds its own entry hands it out again). -/
+def idIssueCtx (hL : IdIssueGS GF) (M : IdIssueState) : IProp GF :=
+  letI := hL.idIssueAllG
+  iprop(ghostMapAuth hL.idIssueName 1 M ∗ [∗map] id ↦ g ∈ M, idIssueFragAt hL id g)
 
-theorem idIssue_local_init (hPre : IdIssueGpreS GF) (fs : IdIssueState) :
-    ⊢@{IProp GF} |==> ∃ hL : IdIssueGS GF, idIssueCtx hL fs ∗ idIssueVar hL (1 : Qp).half fs := by
+theorem idIssue_local_init (hPre : IdIssueGpreS GF) (M : IdIssueState) (hM : M = ∅) :
+    ⊢@{IProp GF} |==> ∃ hL : IdIssueGS GF, idIssueCtx hL M ∗ iprop(True) := by
   letI := hPre.idIssuePreAllG
-  imod ghostVar_alloc (GF := GF) fs with ⟨%γ, H⟩
+  subst hM
+  imod (ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc)) with ⟨%γ, H⟩
   imodintro
   iexists (⟨hPre.idIssuePreAllG, γ⟩ : IdIssueGS GF)
-  unfold idIssueCtx idIssueVar
-  iapply (ghostVar_split_half γ 1 fs).mp
-  iexact H
+  unfold idIssueCtx
+  iframe H
+  iapply BigSepM.bigSepM_empty.2
+  itrivial
 
-end durable
+/-- **The record's step** (ghost): the record after an `"Issue"` of `(id, g)`, and, if it is
+allowed, the id's element. -/
+theorem idIssue_ghost_step (hL : IdIssueGS GF) (M : IdIssueState) (id : w64) (g : Loc) :
+    ⊢@{IProp GF} idIssueCtx hL M ==∗
+      idIssueCtx hL (idIssueNext M id g) ∗ (⌜idIssueOk M id g = true⌝ → idIssueFragAt hL id g) := by
+  letI := hL.idIssueAllG
+  iintro HM
+  iunfold idIssueCtx at HM
+  icases HM with ⟨HA, #HE⟩
+  unfold idIssueNext idIssueOk
+  cases hlk : M !! id with
+  | none =>
+    simp only [_root_.decide_true, ↓reduceIte]
+    imod ghost_map_insert_persist id g hlk $$ HA with ⟨HA, #He⟩
+    imodintro
+    isplitl [HA]
+    · iunfold idIssueCtx
+      iframe HA
+      iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := M)
+        (Φ := fun i g' => idIssueFragAt hL i g') hlk).2
+      iframe HE
+      iunfold idIssueFragAt; iexact He
+    · iintro -; iunfold idIssueFragAt; iexact He
+  | some g' =>
+    by_cases hg : g' = g
+    · subst hg
+      simp only [_root_.decide_true, ↓reduceIte, GMap.insert_id M id g' hlk]
+      icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := M)
+        (Φ := fun i g' => idIssueFragAt hL i g') hlk).1 $$ HE with ⟨#He, -⟩
+      imodintro
+      isplitl [HA]
+      · iunfold idIssueCtx; iframe HA HE
+      · iintro -; iexact He
+    · simp only [hg, decide_false, Bool.false_eq_true, ↓reduceIte]
+      imodintro
+      isplitl [HA]
+      · iunfold idIssueCtx; iframe HA HE
+      · iintro %h; cases h
 
-/-- The ghost state of the issue record. The program gets its half of the initial record. -/
+end ghost
+
+/-- The ghost state of the issue record. The program starts with nothing: the record is empty, and
+its facts come from `"Issue"`. -/
 instance idIssue_interp : ExtInterp idIssueExt where
   LocalGS := IdIssueGS
   GlobalGS _ := Unit
@@ -74,61 +119,52 @@ instance idIssue_interp : ExtInterp idIssueExt where
   globalCtx _ _ := iprop(True)
   PreG := IdIssueGpreS
   initgP _ := True
-  initP _ _ := True
+  initP M _ := M = ∅
   globalStart _ _ := iprop(True)
-  localStart hL fs := idIssueVar hL (1 : Qp).half fs
+  localStart _ _ := iprop(True)
   global_init _ _ _ _ := by
     iapply bupd_intro; iexists (); isplitl [] <;> itrivial
-  local_init _ hPre fs _ _ := idIssue_local_init hPre fs
+  local_init _ hPre M _ hM := idIssue_local_init hPre M hM
 
 /-! ## Specs -/
 
 section lifting
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [GoGlobalContext]
-  
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
 
 abbrev gooseIdIssueGS : IdIssueGS GF := extLocalGS idIssueExt
 
-/-- The record is `fs` (the program's half of the ghost variable). -/
-def idIssueOwn (fs : IdIssueState) : IProp GF := idIssueVar gooseIdIssueGS (1 : Qp).half fs
+/-- **`id` was issued by `g`** (persistent; the program's fact). -/
+def idIssueFrag (id : w64) (g : Loc) : IProp GF := idIssueFragAt (gooseIdIssueGS (L := L)) id g
 
-instance idIssueOwn_timeless (fs : IdIssueState) : Timeless (idIssueOwn (L := L) fs) := by
-  unfold idIssueOwn; infer_instance
+instance idIssueFrag_persistent (id : w64) (g : Loc) : Persistent (idIssueFrag (L := L) id g) := by
+  unfold idIssueFrag; infer_instance
 
-theorem idIssue_local_ctx_eq (fs : IdIssueState) :
-    ExtInterp.localCtx (E := idIssueExt) (extLocalGS idIssueExt) fs ⊣⊢
-      idIssueVar (gooseIdIssueGS (L := L)) (1 : Qp).half fs := .rfl
-
-theorem idIssueVar_agree (fs fs' : IdIssueState) :
-    ⊢@{IProp GF} idIssueVar (gooseIdIssueGS (L := L)) (1 : Qp).half fs -∗
-      idIssueOwn (L := L) fs' -∗ ⌜fs = fs'⌝ := by
-  unfold idIssueOwn idIssueVar
+/-- **One issuer per id.** -/
+theorem idIssueFrag_agree (id : w64) (g g' : Loc) :
+    ⊢@{IProp GF} idIssueFrag (L := L) id g -∗ idIssueFrag (L := L) id g' -∗ ⌜g = g'⌝ := by
+  unfold idIssueFrag idIssueFragAt
   letI := (gooseIdIssueGS (L := L)).idIssueAllG
-  exact ghostVar_agree _ _ _ _ _
+  iintro #H1 #H2
+  ihave %H := ghostMapElem_agree $$ H1 H2
+  ipureintro; exact H
 
-theorem idIssueVar_update (fs fs' new : IdIssueState) :
-    ⊢@{IProp GF} idIssueVar (gooseIdIssueGS (L := L)) (1 : Qp).half fs -∗
-      idIssueOwn (L := L) fs' ==∗
-      idIssueVar (gooseIdIssueGS (L := L)) (1 : Qp).half new ∗ idIssueOwn (L := L) new := by
-  unfold idIssueOwn idIssueVar
-  letI := (gooseIdIssueGS (L := L)).idIssueAllG
-  exact ghostVar_update_halves _ _ _ _
+theorem idIssue_local_ctx_eq (M : IdIssueState) :
+    ExtInterp.localCtx (E := idIssueExt) (extLocalGS idIssueExt) M ⊣⊢
+      idIssueCtx (gooseIdIssueGS (L := L)) M := .rfl
 
-/-- `"Issue"` as a logically atomic spec: the record's ownership is needed only during the step,
-so it can come from an invariant. -/
-theorem wp_IdIssue_atomic (id : w64) (g : Loc) (Φ : val → IProp GF) :
-    (|={E,∅}=> ∃ M : IdIssueState, idIssueOwn M ∗
-      (idIssueOwn (idIssueNext M id g) ={∅,E}=∗ Φ #(idIssueOk M id g)))
+/-- **`"Issue"` of `(id, g)`** (the step's spec, with its mask open for an invariant around it): its
+result `b`, and with `b` the fact that `g` issued `id` -- so `b` only if no other generator has
+(`idIssueFrag_agree`). -/
+theorem wp_IdIssue (id : w64) (g : Loc) (Φ : val → IProp GF) :
+    (|={E,∅}=> ∀ b : Bool, (⌜b = true⌝ → idIssueFrag (L := L) id g) ={∅,E}=∗ Φ #b)
     ⊢ WP (ExternalOp idIssueExt.name "Issue" (Val (PairV (#id) (#g)))) @ s; E {{ Φ }} := by
   iintro HAU
   iapply wp_extStep "Issue" (PairV (#id) (#g)) Φ (by simp [val.isPanic])
   iintro %h %σ %gs Hheap Hl Hg
-  imod HAU with ⟨%M, Hown, Hclose⟩
+  imod HAU with Hclose
   icases (idIssue_local_ctx_eq σ).mp $$ Hl with Hl
-  icases idIssueVar_agree σ M $$ Hl Hown with %Heq
-  subst Heq
   imodintro
   isplitr
   · ipureintro; exact ⟨_, h, _, gs, rfl, id, g, rfl, rfl, rfl⟩
@@ -138,8 +174,10 @@ theorem wp_IdIssue_atomic (id : w64) (g : Loc) (Φ : val → IProp GF) :
   obtain ⟨Hid, Hgl⟩ := val.PairV.inj Hv
   obtain rfl := GoGlobalContext.intoVal_inj_w64 Hid
   obtain rfl := GoGlobalContext.intoVal_inj_loc Hgl
-  imod idIssueVar_update σ σ (idIssueNext σ id g) $$ Hl Hown with ⟨Hl, Hown⟩
-  imod Hclose $$ Hown with HΦ
+  imod (idIssue_ghost_step (gooseIdIssueGS (L := L)) σ id g) $$ Hl with ⟨Hl, #Hfr⟩
+  ihave #Hfr' : iprop(⌜idIssueOk σ id g = true⌝ → idIssueFrag (L := L) id g) $$ []
+  · iunfold idIssueFrag; iexact Hfr
+  imod Hclose $$ %(idIssueOk σ id g) Hfr' with HΦ
   imodintro
   iframe Hheap Hg
   isplitl [Hl]
@@ -148,6 +186,43 @@ theorem wp_IdIssue_atomic (id : w64) (g : Loc) (Φ : val → IProp GF) :
   iexact HΦ
 
 end lifting
+
+/-! ## The fact without the extension's instance
+
+`idutil`'s definitions (the cluster's claims, the generators) are stated over every program, not only
+those whose extensions include the record (`HasExt idIssueExt` is a `Prop`, and the server's own
+definitions do not take it). They read the record's fact through `idIssueFragD`, which is
+`idIssueFrag` when the program has the extension and `False` otherwise; only the proofs that step
+through `"Issue"` (`Generator.Next`'s) take the instance, and rewrite with `idIssueFragD_eq`. -/
+
+section instanceFree
+variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+variable {GF : BundledGFunctors} [L : GooseLocalGS GF]
+
+open Classical in
+/-- **`id` was issued by `g`, read without the instance** (see above). -/
+noncomputable def idIssueFragD (id : w64) (g : Loc) : IProp GF :=
+  if h : HasExt idIssueExt then (haveI := h; idIssueFrag (L := L) id g) else iprop(False)
+
+instance idIssueFragD_persistent (id : w64) (g : Loc) : Persistent (idIssueFragD (L := L) id g) := by
+  unfold idIssueFragD; split <;> infer_instance
+
+/-- Under the instance, the fact itself. -/
+theorem idIssueFragD_eq [h : HasExt idIssueExt] (id : w64) (g : Loc) :
+    idIssueFragD (L := L) id g = idIssueFrag (L := L) id g := by
+  unfold idIssueFragD; rw [dif_pos h]
+
+/-- One issuer per id (`idIssueFrag_agree`'s). -/
+theorem idIssueFragD_agree (id : w64) (g g' : Loc) :
+    ⊢@{IProp GF} idIssueFragD (L := L) id g -∗ idIssueFragD (L := L) id g' -∗ ⌜g = g'⌝ := by
+  by_cases h : HasExt idIssueExt
+  · haveI := h
+    rw [idIssueFragD_eq, idIssueFragD_eq]
+    exact idIssueFrag_agree id g g'
+  · unfold idIssueFragD; rw [dif_neg h]
+    iintro H; iexfalso; iexact H
+
+end instanceFree
 
 /-! ## A closed program -/
 
