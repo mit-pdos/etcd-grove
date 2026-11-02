@@ -8,6 +8,49 @@ candidate: issues/upstream/etcd-leader-advance-before-applyconfchange/
 
 # etcdserver: the leader calls raft's Advance before its apply loop has applied a conf change, which lets raft accept an overlapping membership change
 
+**2026-11-02: reproduced end to end on a cluster: an acknowledged write is lost.** At upstream `main`
+`a2e3642bc` (raft v3.7.0, default configuration: strict reconfiguration checks on, `CheckQuorum`, pre-vote),
+`TestLeaderAdvanceBeforeApplyConfChangeLosesWrite`
+([`etcd-leader-advance-before-applyconfchange/repro.patch`](etcd-leader-advance-before-applyconfchange/repro.patch):
+the integration test and a gofail failpoint, `beforeApplyOneConfChangeOnMember`, which sleeps 2 s before each
+conf-change apply on the leader only). Members `{L, F2, F3}`, all through the public API:
+
+1. A client's `MemberAdd(A)` through `L` commits `C1` (A not started). `L`'s raft loop calls `Advance`; its
+   apply loop is still in the failpoint, so raft's configuration stays `{L, F2, F3}`.
+2. Another client's `MemberAdd(B)` through `F3` (which has applied `C1`; `mayAddMember` passes there) is
+   forwarded to `L`, whose raft accepts it (`pendingConfIndex` = applied) and commits it: `C2`. `F3` now has
+   `{L, F2, F3, A, B}`; `L` has applied neither.
+3. Partition `{L, F2} | {F3}`. A `Put(x)` through `L` is committed by `{L, F2}` (`L` still counts quorums in
+   `{L, F2, F3}`) and acknowledged once `L`'s apply loop catches up (revision 2).
+4. `A` and `B` start, reaching only `F3`; `{F3, A, B}`, a majority of the five, elects `F3`, which never had
+   `x`. A `Put(y)` through `F3` is acknowledged at revision 2 as well, and a linearizable `Get(x)` through `F3`
+   returns nothing: **the acknowledged write is lost**, and the two sides committed different entries at the
+   same index. (Healing the partition would then make `L`'s raft panic on the conflict with its committed
+   entry.)
+
+5 of 5 runs (`LOST ACKNOWLEDGED WRITE: x acknowledged at revision 2 by <L>, absent in a linearizable read at
+revision 2 through <F3>`). With the proposed fix
+([`etcd-leader-advance-before-applyconfchange/fix.patch`](etcd-leader-advance-before-applyconfchange/fix.patch),
+the leader waits for the apply loop on a `Ready` with a conf change, as followers do), 2 of 2 runs: `L`'s raft
+logs `ignoring conf change ... possible unapplied conf change` and the second `MemberAdd` times out instead
+(the test fails at "C2 refused"). To run (gofail v0.2.0, as `etcd-compact-past-raft-applied`'s):
+
+```
+git apply issues/etcd-leader-advance-before-applyconfchange/repro.patch   # in an etcd checkout at a2e3642bc
+go install go.etcd.io/gofail@v0.2.0 && gofail enable server/etcdserver/
+(cd server && go get go.etcd.io/gofail@v0.2.0)
+cd tests && go test ./integration/ -run TestLeaderAdvanceBeforeApplyConfChangeLosesWrite -count=1 -v
+```
+
+What the failpoint stands for, and what remains unmeasured: it only widens the window between the leader's
+`Advance` and its apply loop's `ApplyConfChange`; in production that window is as long as the leader's apply
+loop is behind (a backlog of up to 5000 entries is allowed, a slow backend commit, a defragmentation). The rest
+of the schedule is ordinary: two administrators (or automation) changing membership concurrently through
+different members, then a partition separating the old leader with one follower from the rest, and the new
+members started on the far side. How often a real deployment meets all of these was not measured. Side note:
+the test must not `CutPeer` a joining member's rafthttp remote, which `Transport.Stop` then stops a second
+time (`close of closed channel`); `CutPeer` is test-only, so not an etcd issue.
+
 **2026-10-25: fixed in the fork** (D43 M3): branch `goose-lean-leaderwait` of `upamanyus/etcd` (`4d9282b0f`, on
 `bc9c3868c`, the pin of `etc/goose.py`) adds the follower's second `notifyc` send to the leader branch of
 `raftNode.start` (the upstream candidate's fix) and runs `TestConfigChangeBlocksApply` for the leader too (it fails
@@ -72,9 +115,8 @@ documentation PR is accepted): `TestConfigChangeBlocksApply` run for a leader fa
 leader's raft loop calls `Advance` before its apply loop has applied the conf change); the fix makes the leader
 wait as followers do. Still no wrong result reproduced on an etcd cluster.
 
-**Status of this draft**: unconfirmed in etcd. The two ingredients are confirmed (the first by
-reading etcd's code, the second by a Go test on raft); the end-to-end violation has not been
-run on etcd. Not filed.
+**Status of this draft**: confirmed in etcd (2026-11-02, the integration test above loses an acknowledged
+write; a failpoint widens the leader's apply lag). Not filed.
 
 ## Summary
 
@@ -194,7 +236,8 @@ the unsafe case needs two, which in etcd needs the first route too.
 
 ## How to reproduce
 
-Not run on etcd. On raft, `TestAdvanceBeforeApplyConfChangeLeaderLag` (raft issue #TODO)
+On etcd (2026-11-02): `TestLeaderAdvanceBeforeApplyConfChangeLosesWrite` above, 5 of 5 runs at `main`
+`a2e3642bc`. On raft, `TestAdvanceBeforeApplyConfChangeLeaderLag` (raft issue #TODO)
 drives the execution through `RawNode` with node 1 doing what etcd's leader does (`Advance`,
 then `ApplyConfChange` later) and the others what etcd's followers do. An etcd integration
 test would need: a 3-member cluster; the gofail failpoint `beforeApplyOneConfChange`
