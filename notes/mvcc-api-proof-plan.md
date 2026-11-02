@@ -111,6 +111,32 @@ invariants (in `isMvcc`):
   writer reads (the pin agrees with every share; only `Restore` gathers the owned fractions);
 - **`crevLb`/`Z`**: `crevLb (-1)` (persistent, free) and `Z := True`.
 
+## P2 as built so far (internal specs in either mode, beside today's)
+
+- `storeTxnWrite.End.specA` (`absCommit γ ilog pend Q`: the caller's update run at the commit on
+  `absAt`/`pndAt`, giving `Q`), `metricsTxnWrite.End.specA` (`txnEndPreA`/`txnEndPostA`),
+  `store.Read.specA` (`absRead γ Q`: run where the log read is fixed, on `absAt` and `crevUB`),
+  `store.Write.specA` (`hookOk` and a pin `curAt γ dq o` at any fraction for `hookIs`),
+  `NewStore.specA` (at a mode `aq`; `NewStore.wp_proof` is its corollary at `aq = false`).
+- Each `specA` proof is today's with the update applied at the linearization point; the
+  `specA`s sit in the same spec and proof files as today's (a second declaration per file: a
+  known layout exception until the candidate specs replace today's).
+
+## P4's design (the API's predicates over the implementation, plain store first)
+
+- `mvccState γ σ := ghostVar γ.abs ½ σ.log ∗ ghostVar γ.pnd ½ σ.pending ∗ crevUB γ.idx ½ σ.crev ∗
+  idxCert γ.idx σ.log ∗ ∃ M, ghostMapAuth γ.cok 1 M ∗ ⌜every entry n ↦ L is not empty, of length n,
+  a prefix of σ.notifiedLog⌝ ∗ ⌜MvccReachable σ ∧ bound⌝`: the certificate map (`certOk`), the
+  caller's authority today, links the logs the implementation certifies (reads, watch events) to
+  the client's notified history by pure entailment (the watch laws are `⊢`, no invariant).
+- A commit's first update (the notification) inserts the next log's entry (it is the
+  notified log's), which is today's `certOkNext`; a plain store's wrapper fires it before `End`
+  (reads see `σ.log`; nothing else reads `pending`), the second inside `absCommit`.
+- `mvccTxn` of a write transaction: `isTxnWrite` (with the writer's `pndAt ½ none`) and `certOk` of
+  its log: `mvccTxn_write_agree` from `idxCert σ.log` (σ's log a prefix of the transaction's, by the
+  index writer's authority) and `certOk` (the transaction's a prefix of the notified log), with
+  nothing pending (the writer's half).
+
 ## Log
 
 - 2026-11-02: plan; the tester translated (`etc/goose.py` project `mvccrand`; its type `rec`

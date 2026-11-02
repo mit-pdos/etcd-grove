@@ -519,7 +519,13 @@ events from the notified log. Nine rounds: reviews (`spec-reviewer`), the user's
 unsound candidate is replaced, not dropped, and the user's criteria (strong enough for reasonable
 clients, few abstractions: both principles of the `spec` skill now), whose decisions round 8
 applied (2026-11-02: 17 opaque Iris predicates after round 9's review, from 32). They build; nothing proves them, no proof
-uses them. Found on the way: `issues/etcd-mvcc-watch-negative-start-rev.md`,
+uses them. **Proving them (2026-11-02, in progress)**, at the user's request, then the tester's adequacy
+over them (`notes/mvcc-api-proof-plan.md`): a store mode `absQ` (today's specs are the old mode's,
+gated by `writerFrag`), the abstract state's ghost names in `s.revMu`'s resource and the writer's
+state (P1, `cad9d508e3`), and internal specs in either mode with the caller's update at the
+linearization point (`specA` of `storeTxnWrite.End`, `metricsTxnWrite.End`, `store.Read`,
+`store.Write`, `NewStore`); the tester translated (Goose project `mvccrand`). Next: the API's
+predicates over the implementation, the plain store's candidate specs, then the watchable store's. Found on the way: `issues/etcd-mvcc-watch-negative-start-rev.md`,
 `etcd-mvcc-hash-currentrev-race.md`, `etcd-mvcc-hashbyrev-zero-stored.md`,
 `etcd-mvcc-hashbyrev-restore-rev1.md` (each reproduced).
 
