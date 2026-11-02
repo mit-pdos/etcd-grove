@@ -110,7 +110,14 @@ Restated in place: `imageAt`, `dbImage`, `srvImage` (`InvImage.lean`) and their 
 `specSnap`'s caller (`SnapRecvFacts.lean`) over `snapRecv_imageMD`; `kvApplied` (InvRequest). Text
 unchanged, meaning changed: `srvNet` (`InvApplyAll.lean`), `NewServer`'s trusted premise `γn.N =
 srvNet γ` and the examples' specs that name `srvNet` (`Alloc`, `newServerMode`, ...),
-`snapDirInv`. Trusted text: none changes unless the Prove phase restates `backend.Snapshot.spec`.
+`snapDirInv`. **The restart path reads `imageAt` too** (review round 2): `srvDiskImage`
+(`InvRestart.lean:110`, the post of the drafted `EtcdServer.HardStop.spec` and of restart3's
+`stop`, `startMember`, `BuildServer` specs) and `bootstrapRestartContract` (`InvRestart.lean:354`,
+`examples/common/Restart.lean`): restated in place they need, of a stopped member's disk image, the
+records at `crevOf` of its applied log (believed true: the consistent index is committed with
+`updateCompactRev`'s `ForceCommit`; not checked), and a restart in compaction mode will need the
+receipt there too (`srvDiskImage` has none): an open item of the restart path, not of this stage.
+Trusted text: none changes unless the Prove phase restates `backend.Snapshot.spec`.
 Collections whose baseline loses `merged_image_cmp`'s `sorry` once proved: `compactkv`, `m2`
 (`putgetc_safe`), `cachekv`, and the eleven listing `merged_image`.
 
@@ -142,7 +149,40 @@ Round 1 (a fresh `spec-reviewer`, given the targets, the Go code and the callers
   queued), all four sender/receiver mode combinations, the unconditional receipt, the mode out of
   `srvNet`, the permits derived rather than carried.
 
-## Questions
+Round 2 (a fresh `spec-reviewer`): no new first-tier finding; F1 repeated (open, a question). New:
+the restart path's readers of `imageAt` (above, Impact); `CrevPermitLaw` is true (by induction on
+`A`: where `crevOf` rises the entry is a compaction, `kv_entry_claim` gives `0 < r` and `r + cret <
+|kvModel (A.take j)|`, `kv_revLbZ_of_rlogLb` the lower bound), to prove at the switch and drop
+`hperm`; `merged_imageD`'s and `crev_hcc`'s `hcrev` from `kvApplied` once it carries the clause;
+the glue folded into `snapRecv_image` (`A'`, `hlA`, `srvRLogLb A'` then come from one opening of
+the certificate); a law at the member's names (`srvImageD ⊢ … dbImageD` at the member's own `γk`,
+the mode moved with `crevOf_offM`) for both readers of the snapshot directory's image; the pure
+laws to mvcc (`CmpRecs`, `keyImageM_mode`, a `keyImageM_recsPos`), `restoreRcptM_on`/`_off` in
+place of unfolding, `kvCmpPermit_le` beside `kvCmpPermit`; retire `M2StorageDraftB2`'s
+`dbImageR`/`srvImageR` at the switch; a docstring fixed. Confirmed: the Go facts again (whole
+batches only, `crev` also after a restore that resumed a compaction), mixed-mode clusters handled
+(a mode-off member's `kvInv` rules out committed compactions), the receipt in the certificate (a
+receiver's own `idxCert` covers only its shorter log), the permits derived.
 
-See the report (`imgcmp-texts.md` in the session's scratchpad) and `notes/decisions.md`, "The image
-certificate by the mode (#7-cmp)".
+## Questions (for the user; recommendations)
+
+1. **Freeze the certificate as drafted** (`imageAt`'s key view `∃ r, keyImageM γk.cmp (kvModel γk A)
+   r D ∧ r.crev = crevOf γk A`; `dbImage` with the receipt; `srvNet`'s text unchanged). Recommended.
+2. **`keyImageM γk.cmp` or `keyImageM true`** in `imageAt` (both reviewers' third-tier point: with
+   the `crevOf` conjunct the two are interchangeable, and `true` drops the mode from the
+   congruence laws and the `∃ b` of `dbImageD_of_srvImageD`). Recommendation: keep `γk.cmp` (the
+   user's direction; off reads as today's image by `imageAtD_off`), with a law at the member's
+   names hiding the `∃ b`.
+3. **Drop `NoDelPutAt` from `keyImageM`-on and `restoreImageM`** (F1, first tier in both rounds;
+   56's definitions). Recommended: false of a legitimate image, unused by `store.Restore`'s proof,
+   dropped from mvcc's compaction specs since item 18. Without it, `mergedObsD` on is unprovable.
+4. **The permits derived at the receiver** (`CrevPermitLaw`, proved at the switch), not carried in
+   the certificate. Recommended.
+5. **The receipt in `dbImage` in place**, retiring B2's `dbImageR`/`srvImageR`. Recommended.
+6. **`kvApplied` gains `x.crev = crevOf γk A`, `crevOf` moves to a real module** (M2 apply's
+   deferred clause), in this stage's Prove phase. Recommended.
+7. **The sender's mode-on observation**: mvcc tracking of the records and the job's cut, and a
+   restated `backend.Snapshot.spec` observing `Meta`'s hook keys (an axiom check). Recommended as
+   the Prove phase's main item, possibly its own stage.
+8. **The restart path's `imageAt` readers** (`srvDiskImage`, `bootstrapRestartContract`) restated in
+   place with it; their compaction-mode receipt left to the restart path. Recommended.

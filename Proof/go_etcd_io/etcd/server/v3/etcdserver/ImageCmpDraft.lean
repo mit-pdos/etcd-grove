@@ -374,7 +374,7 @@ theorem crev_hcc (γk : KVNames) (A A' : List EntryModel) (x : apply.ApplyKV) (r
     x.crev ≤ r.crev := by
   rw [hcrev, hr]; exact crevOf_mono γk A A' hAA
 
-/-- **The glue at `specSnap`'s call** (in compaction mode `run_job_snap_cmp`'s, either mode): from
+/-- **The glue at `specSnap`'s call** (either mode; in compaction mode `run_job_snap_cmp`'s): from
 the network's certificate of the received file `D` at the snapshot's index `i` and the image's
 committed log `A'` (`snapRecv_image`'s, of length `i`), the receiver's KV invariants (its store's
 permit `crevPermIs E.γ (kvCmpPermit γr.kv)`, the mode ties) and the new backend `d` of the store
