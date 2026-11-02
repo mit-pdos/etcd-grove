@@ -294,6 +294,27 @@ theorem srvStep_transfer (E : apply.AEnv GF) (r0 a r1 : w64) (pfx : GoString) (s
   exact (step_transfer L1 pfx (sint.Z a).toNat (sint.Z r1).toNat (by omega) (by omega)
     (fun x hx1 hx2 => h1q x (by omega) (by omega))).symm
 
+/-- **Restriction** (`EtcdModel.etcdStep_restrict`): the quiet part of a step is a quiet step, over
+the same log. -/
+theorem srvStep_restrict (E : apply.AEnv GF) (p a x b : w64) (pfx : GoString) (evs : List EtcdEv) :
+    sint.Z p ≤ sint.Z a → sint.Z a < sint.Z x → (sint.Z x < sint.Z b ∨ (x = b ∧ evs = [])) →
+    srvStep E p b pfx evs ⊢ srvStep E a x pfx [] := by
+  intro hpa hax hxb
+  unfold srvStep
+  iintro ⟨%L, #H, #C, %h⟩
+  iexists L
+  isplitr
+  · iexact H
+  isplitr
+  · iexact C
+  ipureintro
+  obtain ⟨h0, h1, h2, hq, he⟩ := h
+  have hxb' : sint.Z x ≤ sint.Z b := by rcases hxb with h | ⟨rfl, -⟩ <;> omega
+  refine ⟨by omega, by omega, by omega, fun y hy1 hy2 => hq y (by omega) (by omega), ?_⟩
+  rcases hxb with hxb | ⟨rfl, rfl⟩
+  · exact hq _ (by omega) (by omega)
+  · exact he
+
 theorem srvStep_compose (E : apply.AEnv GF) (a b c : w64) (pfx : GoString) (evs : List EtcdEv) :
     srvStep E a b pfx [] ∗ srvStep E b c pfx evs ⊢ srvStep E a c pfx evs := by
   unfold srvStep
@@ -375,6 +396,7 @@ def etcdModelOfServer (E : apply.AEnv GF) : EtcdModel GF where
   EtcdStep_timeless := srvStep_timeless E
   etcdStep_transfer := srvStep_transfer E
   etcdStep_compose := srvStep_compose E
+  etcdStep_restrict := srvStep_restrict E
   etcdStep_delete_present := srvStep_delete_present E
 
 theorem etcdModelOfServer_etcdState (E : apply.AEnv GF) :

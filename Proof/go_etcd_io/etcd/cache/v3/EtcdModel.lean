@@ -156,6 +156,13 @@ class EtcdModel (GF : BundledGFunctors) where
   /-- **Composition.** A step with no events followed by a step is a step. -/
   etcdStep_compose : ∀ (a b c : w64) (pfx : GoString) (evs : List EtcdEv),
     EtcdStep a b pfx [] ∗ EtcdStep b c pfx evs ⊢ EtcdStep a c pfx evs
+  /-- **Restriction.** The quiet part of a step is a quiet step: in a step `p → b` with events
+  `evs`, no event under the prefix lies in `(a, x]` for `p ≤ a < x`, with `x` before `b`, or at
+  `b` when the step has no events. (Strict at `a`: a step says nothing of the events at its start.)
+  What lets the cache answer at a revision between two snapshots. -/
+  etcdStep_restrict : ∀ (p a x b : w64) (pfx : GoString) (evs : List EtcdEv),
+    sint.Z p ≤ sint.Z a → sint.Z a < sint.Z x → (sint.Z x < sint.Z b ∨ (x = b ∧ evs = [])) →
+    EtcdStep p b pfx evs ⊢ EtcdStep a x pfx []
   /-- **A delete removes a present key**: in a step `r0 → r1` with events `cs`, each delete
   event removes a key that is there when it is applied, from etcd's state at any `a` with
   `r0 ≤ a < r1`. -/
@@ -169,7 +176,7 @@ export EtcdModel (etcdState etcdState_agree etcdState_revs etcdState_keys etcdSt
   etcdState_create_persist
   etcdState_modrev_det etcdState_modrev_persist etcdReachedAt etcdReachedAt_timeless etcdReadAt
   etcdReadAt_persistent etcdReadAt_timeless etcdRevToken
-  etcdRevToken_excl EtcdStep EtcdStep_persistent EtcdStep_timeless etcdStep_transfer
+  etcdRevToken_excl EtcdStep EtcdStep_persistent EtcdStep_timeless etcdStep_transfer etcdStep_restrict
   etcdStep_compose etcdStep_delete_present)
 
 attribute [instance] EtcdModel.etcdReachedAt_timeless EtcdModel.etcdReadAt_persistent

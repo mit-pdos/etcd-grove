@@ -29814,3 +29814,17 @@ repaired (the plan's questions).
    `specSnap`'s derivable premises.
 4. #7-cmp's repair: in place (`imageAt`'s `keyImage` as `mvcc.keyImageM γk.cmp`, the law
    `keyImageM_off`), a stage of its own together with #7-on's (a plan item, `notes/merged-image-plan.md`).
+
+## `EtcdModel.etcdStep_restrict`: the quiet part of a step is a quiet step (2026-11-02 · stage 1 of the cache's `Get` at the requested revision)
+
+The first stage of strengthening `cache_Get`'s post to etcd's state at the requested revision
+(`notes/decisions.md`, "cachekv's check of the cache's `Get`"; the user chose, 2026-11-02, the
+store's gap certificate kept in its lock invariant). A new law of etcd's model:
+`sint.Z p ≤ sint.Z a → sint.Z a < sint.Z x → (sint.Z x < sint.Z b ∨ (x = b ∧ evs = [])) →
+EtcdStep p b pfx evs ⊢ EtcdStep a x pfx []`. No existing law reached a step ending inside
+another (`etcdStep_transfer` reaches only the endpoint). Strict at `a`: a step says nothing of the
+events at its start, and `EtcdStep a a pfx []` is false at every snapshot revision (no refl law;
+the spec-reviewer's round 1 caught the non-strict form). Proved at the three instances
+(`kmStep_restrict`, `srvStep_restrict`, `histStep_restrict`) over the step's own log. Next: the
+store's gap certificate `G` (adjacent snapshots, and the newest against `latestRev`, in
+`storeLockInv`), then the demux's quiet certificate for progress notifications.

@@ -245,6 +245,25 @@ theorem histStep_transfer (γ : ServerRaftNames) (γk : KVNames) (r0 a r1 : w64)
   exact (step_transfer L1 pfx (sint.Z a).toNat (sint.Z r1).toNat (by omega) (by omega)
     (fun x hx1 hx2 => h1q x (by omega) (by omega))).symm
 
+/-- **Restriction** (`EtcdModel.etcdStep_restrict`): the quiet part of a step is a quiet step, over
+the same log. -/
+theorem histStep_restrict (γ : ServerRaftNames) (γk : KVNames) (p a x b : w64) (pfx : GoString) (evs : List EtcdEv) :
+    sint.Z p ≤ sint.Z a → sint.Z a < sint.Z x → (sint.Z x < sint.Z b ∨ (x = b ∧ evs = [])) →
+    histStep (GF := GF) γ γk p b pfx evs ⊢ histStep (GF := GF) γ γk a x pfx [] := by
+  intro hpa hax hxb
+  unfold histStep
+  iintro ⟨%L, #H, %h⟩
+  iexists L
+  isplitr
+  · iexact H
+  ipureintro
+  obtain ⟨h0, h1, h2, hq, he⟩ := h
+  have hxb' : sint.Z x ≤ sint.Z b := by rcases hxb with h | ⟨rfl, -⟩ <;> omega
+  refine ⟨by omega, by omega, by omega, fun y hy1 hy2 => hq y (by omega) (by omega), ?_⟩
+  rcases hxb with hxb | ⟨rfl, rfl⟩
+  · exact hq _ (by omega) (by omega)
+  · exact he
+
 theorem histStep_compose (γ : ServerRaftNames) (γk : KVNames) (a b c : w64) (pfx : GoString)
     (evs : List EtcdEv) :
     histStep (GF := GF) γ γk a b pfx [] ∗ histStep γ γk b c pfx evs ⊢ histStep γ γk a c pfx evs := by
@@ -324,6 +343,7 @@ def etcdModelOfHistory (γ : ServerRaftNames) (γk : KVNames) : EtcdModel GF whe
   EtcdStep_timeless := histStep_timeless γ γk
   etcdStep_transfer := histStep_transfer γ γk
   etcdStep_compose := histStep_compose γ γk
+  etcdStep_restrict := histStep_restrict γ γk
   etcdStep_delete_present := histStep_delete_present γ γk
 
 theorem etcdModelOfHistory_etcdState (γ : ServerRaftNames) (γk : KVNames) :
