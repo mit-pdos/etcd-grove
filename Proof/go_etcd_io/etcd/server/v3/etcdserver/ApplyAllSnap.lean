@@ -73,7 +73,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
     #HW, HWA, Hka, HRS, HAR, #Hkv, HwalT, Hso, #HmetaSnap⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
-  icases Hsrv' with ⟨%Hρrd, -, ⟨%fv, #Hfl⟩, #Hatm, -, #HrnS⟩
+  icases Hsrv' with ⟨%Hρrd, -, ⟨%fv, #Hfl⟩, #Hatm, -, #HrnS, -⟩
   iunfold srvFieldsAt at Hfl
   icases Hfl with ⟨#Hlgf, %Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -164,7 +164,10 @@ theorem EtcdServer.applyAll.wp_proofSnap
     ⟨%stg, #Hstgf, #Hstgc⟩, ⟨%scu, #Hscuf⟩, #Hinf, -,
     ⟨%tr, %γNt, %lidt, %SN, %TSN, #Htrf2, #Htr, %HγNt⟩, %Hkv0⟩
   ihave #Hcfg' := Hcfg $$ %sc %scu Hscf Hscuf
-  -- `s.applySnapshot(ep, apply)`
+  -- `s.applySnapshot(ep, apply)`, (2026-11-02, the backend-auth-split stage) with the apply
+  -- thread's token (`srvGoRes`'s)
+  iunfold srvGoRes at Hgr
+  icases Hgr with ⟨HgrW, HthT⟩
   wp_apply (hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
       { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai d D lgh hkb
       (by rw [hcm, hcmp]) hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hlg hmm tI hmeta st b (by omega)
@@ -174,13 +177,15 @@ theorem EtcdServer.applyAll.wp_proofSnap
       cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq A' Hif.hA' hoff
       γnc)
     $$ [Hsnv Hnr0 Hai Hat Hsd0 Hlr Hbr Hfile Hpath Hst Hbe HKV HRS HKC Hγt Htlive Hsm0 Hcs Hstopc
-      Hbo]
-    as ⟨Hsapp, Hnr1⟩
+      Hbo HthT]
+    as ⟨Hsapp, Hnr1, HthT⟩
   · iframe #; iframe
     isplitr
     · iapply HauR; ipureintro; exact hoff
     rw [authApplyOk_eq, ← hoff]; iexact HauOk
   (try wp_auto)
+  ihave Hgr : srvGoRes s $$ [HgrW HthT]
+  · iunfold srvGoRes; iframe HgrW HthT
   iunfold srvSnapApplied at Hsapp
   icases Hsapp with ⟨%γ', %TM', %E', %b', %st', %d', %x', %cs', %L, %Hsa1, #Hsrv1, Hai, Hat, Hsd,
     Hsm, Hcs, #Hcso, Hst, Hbe, Hlr, Hbr, HKV, HRS, HKC, Hstopc, Hbo, Hγt, Hpath, Htlive,

@@ -45,8 +45,12 @@ theorem backend.newPostK_pool (hT : threadBound GF ≤ backend.rdPoolN) (E : CoP
     backend.BNames) (P : backend.BParams) (W Pk K : backend.BNames → IProp GF) (b : Loc) (D :
     backend.Data) : backend.newPostK γ P W Pk K b D ⊢ |={E}=> backend.newPostKP γ P W Pk K b D
 
+theorem backend.rdStockN_val : backend.rdStockN = 805306367
+
 def backend.rdStock (γ : backend.BNames) (P : backend.BParams) (b : Loc) : IProp GF :=
   [∗list] _x ∈ List.replicate backend.rdStockN (), backend.rdTok γ P b
+
+theorem backend.rdStockN_le : backend.rdStockN ≤ sync.rwmutex.actualMaxReaders.toNat
 
 theorem backend.bigSepL_replicate_add.{u_1} (R : IProp GF) (n m : Nat) : ([∗list] _x ∈
     List.replicate (n + m) (), R) ⊣⊢ ([∗list] _x ∈ List.replicate n (), R) ∗ [∗list] _x ∈
@@ -80,6 +84,14 @@ theorem backend.rdPoolN_add_rdStockN : backend.rdPoolN + backend.rdStockN =
 theorem backend.newPost_pool (hT : threadBound GF ≤ backend.rdPoolN) (E : CoPset) (γ :
     backend.BNames) (P : backend.BParams) (W Pk : backend.BNames → IProp GF) (b : Loc) (D :
     backend.Data) : backend.newPost γ P W Pk b D ⊢ |={E}=> backend.newPostP γ P W Pk b D
+
+theorem backend.newPostKP_named (γ : backend.BNames) (P : backend.BParams) (W Pk K : backend.BNames
+    → IProp GF) (b : Loc) (D : backend.Data) : backend.newPostKP γ P W Pk K b D ⊢ "#HnB" ∷
+    backend.isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ backend.isStopChans γ b ∗ "HnK" ∷ K γ ∗ "HnV" ∷
+    backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 })) true ∗ "HnH" ∷
+    backend.plHook γ func.nil ∗ "HnRB" ∷ backend.rbOwn γ (backend.rbData P D) ∗ "#HnPool" ∷
+    backend.rdPool γ P b ∗ ("HnRT" ∷ [∗list] _x ∈ List.replicate backend.rdStockN (), backend.rdTok
+    γ P b) ∗ "HnDl" ∷ backend.dlInit γ ∗ "HnFk" ∷ backend.fkCl γ P D ∗ "HnSr" ∷ backend.srSlot b
 
 def backend.rdPoolNs : Namespace :=
   nroot.@"backend_readers"

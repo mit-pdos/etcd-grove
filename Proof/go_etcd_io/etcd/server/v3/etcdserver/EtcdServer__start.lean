@@ -317,7 +317,8 @@ theorem EtcdServer.start.wp_proof
     wp_join_done
   -- `GoAttach`'s protocol
   icases ownStopChan_pending_unknown _ _ _ $$ Hsg with ⟨Hsg, #HsgU⟩
-  imod goAttach_init s sgc γsg (GoInterface.ok cctx) fv.lg Hbound Hlgn $$ Hstopping Hsg Hwg HwgMu
+  imod goAttach_init s sgc γsg (GoInterface.ok cctx) fv.lg
+    (Nat.le_trans Hbound (by unfold backend.rdPoolN; omega)) Hlgn $$ Hstopping Hsg Hwg HwgMu
     Hctx Hlgf with ⟨%γg, #Hgok, Hclose, Hwgs⟩
   icases replicate_take2 _ _ sync.actualMaxReaders_ge_2 $$ Hwgs with ⟨Hwg1, Hwg2, Hwgs⟩
   -- the views `run` needs
@@ -360,7 +361,8 @@ theorem EtcdServer.start.wp_proof
     · iunfold srvGenAt
       iexists vq0.gen
       iframe G1 G2
-    iexact G3
+    iframe G3
+    ipureintro; exact Hbound
   ihave #Hpwait : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait $$ []
   · iPkgInit
   ihave #Hwt := isWaitTime_of_timeList hTLW hTLT tl (appliedAtLeast γr) $$ [$Hpwait $Htl]
@@ -835,7 +837,8 @@ theorem EtcdServer.start.wp_proofOn
     wp_join_done
   -- `GoAttach`'s protocol
   icases ownStopChan_pending_unknown _ _ _ $$ Hsg with ⟨Hsg, #HsgU⟩
-  imod goAttach_init s sgc γsg (GoInterface.ok cctx) fv.lg Hbound Hlgn $$ Hstopping Hsg Hwg HwgMu
+  imod goAttach_init s sgc γsg (GoInterface.ok cctx) fv.lg
+    (Nat.le_trans Hbound (by unfold backend.rdPoolN; omega)) Hlgn $$ Hstopping Hsg Hwg HwgMu
     Hctx Hlgf with ⟨%γg, #Hgok, Hclose, Hwgs⟩
   icases replicate_take2 _ _ sync.actualMaxReaders_ge_2 $$ Hwgs with ⟨Hwg1, Hwg2, Hwgs⟩
   -- the views `run` needs
@@ -878,7 +881,8 @@ theorem EtcdServer.start.wp_proofOn
     · iunfold srvGenAt
       iexists vq0.gen
       iframe G1 G2
-    iexact G3
+    iframe G3
+    ipureintro; exact Hbound
   ihave #Hpwait : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait $$ []
   · iPkgInit
   ihave #Hwt := isWaitTime_of_timeList hTLW hTLT tl (appliedAtLeast γr) $$ [$Hpwait $Htl]

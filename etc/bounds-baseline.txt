@@ -47,7 +47,7 @@ spec-readers go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp 1
 spec-readers go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 1
 spec-readers go_etcd_io/etcd/server/v3/etcdserver/read 1
 spec-readers go_etcd_io/etcd/server/v3/lease 1
-spec-readers go_etcd_io/etcd/server/v3/storage/mvcc 7
+spec-readers go_etcd_io/etcd/server/v3/storage/mvcc 1
 spec-readers k8s_io/client_go/tools/cache 2
 spec-readers k8s_io/client_go/util/consistency 2
 spec-readers k8s_io/kubernetes/pkg/controller 1

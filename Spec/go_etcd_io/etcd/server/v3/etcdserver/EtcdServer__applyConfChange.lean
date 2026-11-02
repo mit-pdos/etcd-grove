@@ -56,7 +56,13 @@ with them (`ccMembRes`).
 **Raft's dynamic mode** (D43 M3): `dv` is the driver's view, `none` in raft's static mode, or
 `some γn`; then it is `ApplyBoth`, the node meets the dynamic contract, and the change Go hands
 raft (D43 M5d: `ccRaftEff`, the change if it validates, else with `NodeId` `0`; until then both
-had to) meets raft's premise (`DynCCPreOp`, the view `(ca, cfg)` to `(k + 1, cs')`). -/
+had to) meets raft's premise (`DynCCPreOp`, the view `(ca, cfg)` to `(k + 1, cs')`).
+
+(2026-11-02, the backend-auth-split stage) It takes the members' buckets as the apply thread writes
+them (`membership.membersDecode rs.bk`: its caller's `rs` is an applied log's,
+`membersDecode_restModel`), and the current backend's reader pool and the apply thread's token
+(`backend.bkRPool`, `threadTok`), which it gives back: for the member backend's reads (the next
+stage's pooled readers). -/
 abbrev EtcdServer.applyConfChange.spec : Prop :=
   ∀ (s cc ep : Loc) (m : ConfChangeM) (cs : Loc) (v3 : Bool) (ci : Loc) (ua : GoInterface)
     (E : apply.AEnv GF) (γs : ServerRaftNames) (Pre Q Post Adv : IProp GF) (i t : w64)
@@ -87,6 +93,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
       srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
       srvTransportAddr s ↦□ srvTrIface tl ∗
       srvMemberIDAddr s ↦□ lid ∗ ccMembRes γs cl tl lid prs ∗ mvcc.storeRT E.γ ∗
+      ⌜membership.membersDecode rs.bk⌝ ∗ backend.bkRPool d.γB d.P d.be ∗ threadTok ∗
       (if v3 then iprop(mvcc.storeWT E.γ ∗
           □ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
           (Q ={⊤}=∗ E.P ∗ Post) ∗
@@ -103,7 +110,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
         (epCsVoters γs csl ∨ ⌜membership.ccValidOn rs.bk m = false ∧ csl = cs⌝)) ∗
       E.RO (ccRest v3 m rs) ∗ (if v3 then iprop(Post ∨ Adv) else Pre) ∗
       dvCCPost γs dv k m' ∗ ccMembRes γs cl tl lid (ccPeersAfter v3 m rs.bk prs) ∗
-      mvcc.storeRT E.γ }}
+      mvcc.storeRT E.γ ∗ backend.bkRPool d.γB d.P d.be ∗ threadTok }}
 
 end spec
 

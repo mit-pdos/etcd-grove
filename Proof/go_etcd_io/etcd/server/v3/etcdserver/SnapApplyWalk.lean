@@ -289,7 +289,11 @@ theorem applySnapshot_walk
   · exfalso
     exact Herr.2.2 ⟨hsop.1 ss, hsop.2.1 _ _⟩
   subst Herr Hbe
-  ihave Hnew := backend.newPostK_named _ _ _ _ _ _ _ $$ Hnew
+  -- (2026-11-02, the backend-auth-split stage) the new backend's reader slots into its pool and the
+  -- counted stock (`backend.newPostK_pool`), within the server's thread bound (`isServer`'s)
+  ihave %Hrdb := isServer_rdPoolN s γ ci TM E ρ γr $$ Hsrv
+  imod backend.newPostK_pool Hrdb ⊤ _ _ _ _ _ _ _ $$ Hnew with Hnew
+  ihave Hnew := backend.newPostKP_named _ _ _ _ _ _ _ $$ Hnew
   simp only
   -- (the backend-compaction stage) the new backend never compacts (no compaction with a restore):
   -- its creator fixes nothing deletable
@@ -324,7 +328,10 @@ theorem applySnapshot_walk
   icases Hfs with ⟨Hnwb, Hnop⟩
   ihave Hnop1 : backend.bOpen (GF := GF) γB 1 $$ [Hnop HnCls]
   · iunfold backend.bOpen; iframe Hnop HnCls
-  icases (backend.bOpen_one_shares γB).1 $$ Hnop1 with ⟨HnOh, HnOs⟩
+  icases (backend.bOpen_one_pool γB).1 $$ Hnop1 with ⟨HnOh, HnOp, HnOs⟩
+  ihave HnPl := backend.bkRPool_intro γB d.P d'.be $$ [$HnPool $HnOp]
+  ihave HnPl : backend.bkRPool (GF := GF) d'.γB d'.P d'.be $$ [HnPl]
+  · rw [hγ', hP']; iexact HnPl
   ihave HnRTx := bkRTx_of_rdToks γB d.P d'.be _ $$ [$HnRT $HnOs]
   -- the old backend's objects, from the rest resource
   iunfold srvRest at HRS
@@ -478,7 +485,7 @@ theorem applySnapshot_walk
     rw [kbRT_some]
     iexact Hnew
   imod srv_be_swap s E γp d' (backend.wbInit - 2 - 1 - 2) (by omega) $$ HWP Hbm Hbo HnRO
-      [Hnwb] HnMon Hlc2 with ⟨%dold, %Hdold, Hbefull, -, HoMon, #HoRO, Hbeback⟩
+      [Hnwb] HnMon Hlc2 with ⟨%dold, %Hdold, Hbefull, -, HoMon, #HoRO, HoPl, Hbeback⟩
   · rw [hγ']; iexact Hnwb
   (try wp_auto)
   icases Hbeback $$ Hbefull with ⟨Hbm, HbeA, HγbeA⟩
@@ -590,12 +597,14 @@ theorem applySnapshot_walk
   ihave Hmsh := bkRTx_shares d.γB d.P d.be 1 $$ [HoMon]
   · simp only [List.replicate]; iapply BigSepL.bigSepL_cons.2; iframe HoMon
     iapply BigSepL.bigSepL_nil.2; itrivial
-  ihave HoO1 : backend.bOpen (GF := GF) d.γB 1 $$ [HoOh Hshares Hmsh]
-  · iapply (backend.bOpen_one_shares d.γB).2
-    iframe HoOh
-    have h2 := sync.actualMaxReaders_ge_2
-    rw [show Int.toNat sync.rwmutex.actualMaxReaders = (mvcc.nReaders - 1) + 1 by
-      unfold mvcc.nReaders; omega]
+  -- (the backend-auth-split stage) with the old backend's pool's shares
+  iunfold backend.bkRPool at HoPl
+  icases HoPl with ⟨-, HoPs⟩
+  ihave HoO1 : backend.bOpen (GF := GF) d.γB 1 $$ [HoOh HoPs Hshares Hmsh]
+  · iapply (backend.bOpen_one_pool d.γB).2
+    iframe HoOh HoPs
+    rw [show backend.rdStockN = (mvcc.nReaders - 1) + 1 by
+      rw [mvcc.nReaders_val, backend.rdStockN_val]]
     iapply (mvcc.rep_split _ (mvcc.nReaders - 1) 1).2
     iframe
   iunfold srvBeRO at HoRO

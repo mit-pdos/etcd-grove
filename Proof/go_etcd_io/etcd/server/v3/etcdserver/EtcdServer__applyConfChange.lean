@@ -175,7 +175,7 @@ local macro "fail_tail" : tactic => `(tactic| (
   iapply HΦ
   isplitr
   · ipureintro; rfl
-  iframe Hlr Hua Hdvq Hmr Hrt
+  iframe Hlr Hua Hdvq Hmr Hrt Hpl Htk
   isplitl [Hcs]
   · iexists { m with nodeId := W64 0 }, cs
     iframe Hcc Hcs
@@ -314,7 +314,7 @@ local macro "succ_tail" : tactic => `(tactic| (
     iapply HΦ
     isplitr
     · ipureintro; rfl
-    iframe Hlr Hua Hdvq Hrt
+    iframe Hlr Hua Hdvq Hrt Hpl Htk
     isplitl [Hcsf]
     · iexists m, csp
       iframe Hcc
@@ -381,7 +381,7 @@ local macro "succ_tail" : tactic => `(tactic| (
     iapply HΦ
     isplitr
     · ipureintro; rfl
-    iframe Hlr Hua Hdvq Hrt
+    iframe Hlr Hua Hdvq Hrt Hpl Htk
     isplitl [Hcsf]
     · iexists m, csp
       iframe Hcc
@@ -445,7 +445,7 @@ theorem EtcdServer.applyConfChange.wp_proof
       membership.ccContextOf m.context = some (m.nodeId, false) := Hok
   clear Hdyn Hdv Hloc
   wp_start as ⟨#Hlg, %Hlgnn, Hlr, #Hci, Hua, #Happ, #Hrn, #Hcl, HRS, #Hclg, %Hclgnn, #Hcid, Hdvp, Hcc, Hcs, #Hbh, #Hbhi,
-    #Htr, #Hmid, Hmr, Hrt, Hv3, Hpre⟩
+    #Htr, #Hmid, Hmr, Hrt, -, Hpl, Htk, Hv3, Hpre⟩
   wp_method_call
   wp_call
   wp_auto

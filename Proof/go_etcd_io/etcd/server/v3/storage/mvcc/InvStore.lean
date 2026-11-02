@@ -35,6 +35,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevBytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketRange
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RdPool
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.DGhostVar
@@ -1798,6 +1799,13 @@ theorem rep_sub (P : IProp GF) (m n : Nat) (h : m ≤ n) :
   conv => lhs; rw [show n = (n - m) + m by omega, ← List.replicate_append_replicate]
   exact BigSepL.bigSepL_append.1
 
+/-- `n` copies of `P` give `m ≤ n` of them (2026-11-02, the backend-auth-split stage). -/
+theorem rep_le (P : IProp GF) (m n : Nat) (h : m ≤ n) :
+    ([∗list] _x ∈ List.replicate n (), P) ⊢ [∗list] _x ∈ List.replicate m (), P := by
+  refine (rep_sub P (n - m) n (by omega)).trans ?_
+  rw [show n - (n - m) = m by omega]
+  exact sep_elim_left
+
 /-- At most one reader is kept back for the job. -/
 theorem nJobRd_le (kb : Option KBReal) : nJobRd kb ≤ 1 := by
   unfold nJobRd; cases kb with
@@ -3525,8 +3533,22 @@ theorem fieldShareAt_idx (s : Loc) (γ : StoreNames) (q : Qp) (o : StoreObjs) :
   simp only [named]
   iframe Hfb Hfidx Hfsch Hfstop
 
-/-- The number of reader slots of the store's locks (`NewStore` hands out one reader per slot). -/
-abbrev nReaders : Nat := Int.toNat sync.rwmutex.actualMaxReaders
+/-- The number of the store's readers (`NewStore` hands out one reader per slot of its pool), the
+backend's reader tokens it holds: (2026-11-02, the backend-auth-split stage) the backend's counted
+stock (`backend.rdStockN`, past the backend's pool of `rdPoolN`); until then all the backend's
+`actualMaxReaders` slots. -/
+abbrev nReaders : Nat := backend.rdStockN
+
+/-- The store's readers' number (2026-11-02, the backend-auth-split stage). -/
+theorem nReaders_val : nReaders = 805306367 := backend.rdStockN_val
+
+/-- A lock's reader slots, as many as the store's readers (`nReaders`, the backend's stock: at most
+the slots; 2026-11-02, the backend-auth-split stage). -/
+theorem rep_nReaders (P : IProp GF) :
+    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), P) ⊢
+      [∗list] _x ∈ List.replicate nReaders (), P := by
+  apply rep_le
+  exact backend.rdStockN_le
 
 /-- **A slot of the readers' pool** (D22 receiver epochs, S4, 2026-10-22; S5a: with the backend's
 reader token): a reader slot of the store's index's lock (of the objects `o`'s index; S5b: the

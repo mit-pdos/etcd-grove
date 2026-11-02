@@ -235,7 +235,9 @@ fields with the wait in the mode (`srvFieldsAtM`) and the atomics in the mode (`
 def isServerM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) : IProp GF :=
   iprop(⌜ρ.rd = γr⌝ ∗ isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAtM on s γ ci TM E ρ v) ∗
-    srvAtomicsM on s E γr ∗ srvGenAt s E ρ ∗ srvRaftNode s ρ.raft)
+    srvAtomicsM on s E γr ∗ srvGenAt s E ρ ∗ srvRaftNode s ρ.raft ∗
+    -- (the backend-auth-split stage, 2026-11-02) `isServer`'s thread bound
+    ⌜threadBound GF ≤ backend.rdPoolN⌝)
 
 instance isServerM_persistent (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)
     (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :

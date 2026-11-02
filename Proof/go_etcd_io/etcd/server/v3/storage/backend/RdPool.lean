@@ -35,8 +35,10 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend
 `threadBound GF ≤ 2 ^ 28`, J8a-6). -/
 @[word_unfold] def rdPoolN : Nat := 2 ^ 28
 
-/-- The reader slots the constructor's post leaves counted, past the pool's `rdPoolN`. -/
-def rdStockN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - rdPoolN
+/-- The reader slots the constructor's post leaves counted, past the pool's `rdPoolN`. (Irreducible,
+2026-11-02: a unifier unfolding it would evaluate `Nat.sub` by `2 ^ 28` steps; its value is
+`rdStockN_val`.) -/
+@[irreducible] def rdStockN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - rdPoolN
 
 /-- The pool and the stock are the constructor's `actualMaxReaders` slots (2026-11-02, the
 backend-auth-split stage). -/
@@ -45,6 +47,17 @@ theorem rdPoolN_add_rdStockN :
   unfold rdStockN rdPoolN
   rw [sync.rwmutex.actualMaxReaders_unseal]
   decide
+
+/-- The stock's size (2026-11-02, the backend-auth-split stage): `2 ^ 30 - 1 - 2 ^ 28`, for the
+consumers' arithmetic. -/
+theorem rdStockN_val : rdStockN = 805306367 := by
+  unfold rdStockN rdPoolN
+  rw [sync.rwmutex.actualMaxReaders_unseal]
+  decide
+
+/-- The stock is at most the constructor's slots. -/
+theorem rdStockN_le : rdStockN ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
+  have := rdPoolN_add_rdStockN; omega
 
 /-- The namespace of a backend's pool of reader slots. -/
 def rdPoolNs : Namespace := nroot .@ "backend_readers"
@@ -212,6 +225,18 @@ def newPostKP (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Lo
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗
     rbOwn γ (rbData P D) ∗ rdPool γ P b ∗ rdStock γ P b ∗
     dlInit γ ∗ fkCl γ P D ∗ srSlot b)
+
+/-- **`newPostKP`, by name** (2026-11-02, the backend-auth-split stage; as `newPostK_named`):
+`HnPool` the pool, `HnRT` the counted stock's slots, the others `newPostK_named`'s. -/
+theorem newPostKP_named (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Loc)
+    (D : Data) :
+    newPostKP γ P W Pk K b D ⊢
+      iprop("#HnB" ∷ isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ isStopChans γ b ∗ "HnK" ∷ K γ ∗
+        "HnV" ∷ bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ "HnH" ∷ plHook γ func.nil ∗
+        "HnRB" ∷ rbOwn γ (rbData P D) ∗ "#HnPool" ∷ rdPool γ P b ∗
+        "HnRT" ∷ ([∗list] _x ∈ List.replicate rdStockN (), rdTok γ P b) ∗
+        "HnDl" ∷ dlInit γ ∗ "HnFk" ∷ fkCl γ P D ∗ "HnSr" ∷ srSlot b) := by
+  unfold newPostKP rdStock; exact .rfl
 
 /-- A pooled reader's resource from the pool and its slots' open shares. -/
 theorem bkRPool_intro (γ : BNames) (P : BParams) (b : Loc) :

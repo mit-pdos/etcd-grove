@@ -282,6 +282,7 @@ theorem mvcc.store.Restore.wp_proof
       $$ [Hcur Hfrag HcurR HcurW Htkr Hheld Hrts Hlc3 Hwsd]
   · iunfold mvcc.revUnlockW
     iintro %Ψ Hcur2 ⟨Hwl2, Hr, Hr2, Hcm2, HcmK, Hlc4⟩ ⟨Hv, #Hti', Hrd, #Hrc⟩ HΨ
+    ihave Hrd := mvcc.rep_nReaders _ $$ Hrd
     imod (mvcc.restore_switch s γ ⟨b, ti0, GoInterface.ok fi, sstop⟩ ⟨b', ti, sc, stopc⟩ p' R hR) $$
         Hlc4 Hlc3 Hwi Hwsd Hpool Hcur Hfrag HcurR HcurW Htkr Hr Hr2 Hheld Hcur2 Hcm2 Hnlb Hok' Hv Hrd
         [] [] Hrts
@@ -416,8 +417,7 @@ theorem mvcc.store.Restore.wp_proof
   isplitl []
   · iunfold mvcc.hookP; simp only [mvcc.StoreNames.withPhys_hook]; iexact Hh'
   isplitl [HrtOld Hold]
-  · have h2 := sync.actualMaxReaders_ge_2
-    rw [show mvcc.nReaders - 1 = (mvcc.nReaders - 2) + 1 by unfold mvcc.nReaders; omega,
+  · rw [show mvcc.nReaders - 1 = (mvcc.nReaders - 2) + 1 by rw [mvcc.nReaders_val],
       List.replicate_succ]
     iapply BigSepL.bigSepL_cons.2
     iframe HrtOld Hold

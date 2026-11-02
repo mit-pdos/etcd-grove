@@ -140,6 +140,8 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     mvcc.bkRTx d'.γB d'.P d'.be ∗
     backend.rbOwn d'.γB (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))) ∗
     membership.clusterMem cl memI ∗ backend.bOpen d'.γB (1 : Qp).half ∗
+    -- (2026-11-02, the backend-auth-split stage) the new backend's pool of readers
+    backend.bkRPool d'.γB d'.P d'.be ∗
     mvcc.storeCloser E.s (γw.st.withPhys p') ∗ mvcc.writerFrag (γw.st.withPhys p') ∗
     mvcc.watchWriter γw ([[], []] ++ R) ∗
     (mvcc.storeRT (γw.st.withPhys p') -∗ mvcc.writerOwn (γw.st.withPhys p')) ∗

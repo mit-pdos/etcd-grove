@@ -336,6 +336,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     NewServer.specG (GF := GF) (hG := hG) on cmp := by
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto Hacr Hcmp0
     Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hauthcfg
+  replace Hbnd : threadBound GF ≤ 2 ^ 28 := Hbnd
   letI : MemStorReg GF := ⟨γ.reg⟩
   wp_start
   iNamed Hpre
@@ -556,7 +557,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (M2, the storage side) the safe-range slot `HsrS` and the compaction keys' values tracked
   -- `HfkV` kept for a compacting store (`mvcc.kbSRM_some`; `New`'s `fkV`): dropped at `mvcc.New` below,
   -- whose store does not compact yet (`{ d with cm := false }`)
-  ihave ⟨#HB, #HSC, Hhook, Hopen, Hview, Hwb, Hrbo, Hrts, Hdl, Hncmp, #HfkV, HsrS⟩ := bootBackend_of_newPost d.γB d.P
+  -- (the backend-auth-split stage, 2026-11-02) the reader slots split into the backend's pool and
+  -- the counted stock (`backend.newPost_pool`), for the thread bound
+  imod backend.newPost_pool Hbnd ⊤ d.γB d.P _ _ d.be D $$ Hnew with Hnew
+  ihave ⟨#HB, #HSC, Hhook, Hopen, Hview, Hwb, Hrbo, Hrts, Hdl, Hncmp, #HfkV, HsrS, HbkP⟩ := bootBackend_of_newPost d.γB d.P
     (fun _ => mvcc.lateW d.gx) (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D (N + if cmp then N else 0) HD HN HnoCmp $$ Hnew
   -- (M2) in compaction mode `N` of the tokens set aside, the compaction's write-back stock
   rw [show (N + if cmp then N else 0) + 7 = (if cmp then N else 0) + (N + 7) by omega]
@@ -659,6 +663,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     rw [Hγw.2.2.1, Hcmw]; exact Iff.rfl
   have Hnj : mvcc.nJobRd (some ({ d with cm := cmp } : mvcc.KBReal)) ≤ 1 := by
     cases cmp <;> simp [mvcc.nJobRd]
+  have HstN := backend.rdStockN_val
   -- (D19g (b)) the store's reader slots for request goroutines
   icases replicate_takeN _ 64 _ (by omega) $$ Hwrds with ⟨Hwsr, Hwrds⟩
   -- (2026-10-20, watchkv) 64 more for the watch service's run slots (`srvWatchReaders`)
@@ -1826,7 +1831,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iexists _; iexact Hcmown
   isplitl [Hnot]
   · iexact Hnot
-  isplitl [Hthr Happ Hown Hlr5 Hbmr beA HγbA Hrev HAR Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe Htlive HTR]
+  isplitl [Hthr Happ Hown Hlr5 Hbmr beA HγbA HbkP Hrev HAR Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe Htlive HTR]
   · -- `Happ` (E3c: the mode-`on` row, the auth resource at the store's start state)
     iapply applyBuiltNAM_of_On
     unfold applyBuiltNAOn srvBemuReaderAt
@@ -1839,8 +1844,15 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     isplitl [Hown]
     · unfold applyBackend
       iframe Hown Hmeta
-    isplitl [beA HγbA]
-    · iunfold srvBeOwn; iexists ({ d with cm := cmp } : mvcc.KBReal); iframe beA HγbA; ipureintro; exact Hγw.2.2.1
+    -- (2026-11-02, the backend-auth-split stage) with the backend's reader pool (`newPost_pool`'s)
+    isplitl [beA HγbA HbkP]
+    · iunfold srvBeOwn; iexists ({ d with cm := cmp } : mvcc.KBReal); iframe beA HγbA
+      isplitr
+      · ipureintro; exact Hγw.2.2.1
+      isplitr
+      · iunfold srvBeRO
+        iexists batchLockInv γA (metaTM d.γB d.P); iexact HBs
+      iExactEq HbkP; rfl
     isplitl [Hrev]
     · unfold revAuth
       iexists ∅
@@ -1951,7 +1963,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · iframe Hcvm Hpkg cluster; iframe Hk
     inext; iintro %v Hv; iapply HΦ' $$ Hv
   isplitr
-  · ipureintro; omega
+  · ipureintro; (try unfold backend.rdPoolN); omega
   -- `Hua`: the uber-applier (D14i): its options' contracts, its chain, the apply thread's KV
   have hm0 : γA.m0.1 = W64 0 := by rw [Hci.2]
   have hLoaded : ∀ st : ApplyState, stLoaded γA st = st := by
