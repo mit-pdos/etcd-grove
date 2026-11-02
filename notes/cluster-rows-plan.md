@@ -9,9 +9,9 @@ conjunct of `bootPremise` makes the closed results vacuous there, not unsound. D
 `Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/ClusterRowsDraft.lean` (the rows, their two
 callers' specs and proofs, the request premises) and
 `Proof/go_etcd_io/etcd/server/v3/etcdserver/ClusterRowsDraft.lean` (the rest resource, the
-members' vocabulary, the workload facts, the glue). Status: the Freeze; the trusted texts,
-revision 5 (the session's scratch `clr-trusted.md`), reviewed, await the user's approval of the
-text; nothing applied.
+members' vocabulary, the workload facts, the glue). Status: revision 5 of the trusted texts
+(the session's scratch `clr-trusted.md`) approved by the user (2026-11-02), with the change to the
+exported `Results.lessor_apply_contract`; applying (A1-A5).
 
 Built on backend-auth-split's §16 (`srvRestOwn` over `rbOwnIn`/`rbPart` with `memIdOk`), applied on
 `lean` at `a43af91055` and merged here: `srvRestOwnD` is the applied text over `clusterMemD` with
@@ -321,3 +321,6 @@ A1, A2, A3 are independent of one another; A4 needs A1 (the premise's source) an
 the rows' meaning) and A3 (the row's post at `↦*□`). None is applied before the approval: A1 and A3
 change trusted texts (`monitorReq`, `memberAt`), A2 trusted `srvRestOwn`/`srvRestRW`.
 
+**Approved** (the user, 2026-11-02): revision 5, including the change to the exported
+`Results.lessor_apply_contract`. `lean` at `61ff3bfa32` merged before applying (Perennial's pin
+unchanged, `c4a24e323`).

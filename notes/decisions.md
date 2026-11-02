@@ -29661,7 +29661,7 @@ what came of them:
   call it once each): the permit's `kvRevLbZ (c + 1)`, the read-side law's counter bound
   (`roundsInv_revLb`), a latest `Get` at least it (`client_Get_rev`, `getRevAu_round`).
 
-## The cluster contract's rows: premises from the requests, presence and read-only client URLs in the rest resource (2026-11-02 · the user's decisions accepted; the text awaits approval · branch `cluster-rows`, `notes/cluster-rows-plan.md`)
+## The cluster contract's rows: premises from the requests, presence and read-only client URLs in the rest resource (2026-11-02 · the user's decisions accepted, revision 5 of the text approved · branch `cluster-rows`, `notes/cluster-rows-plan.md`)
 
 **The problem.** `apply.isCluster`'s rows (`bootOk`'s `clusterApplyOk`) are false of Go at some
 rest states: `UpdateAttributes` of an id neither a member nor removed panics; `SetVersion` of a
@@ -29689,3 +29689,7 @@ is fixed to `api.UpdateCapability`, the one value passed, rather than given a ca
 which would need a trust-boundary spec of `UpdateCapability`. Supersedes, in part, §16's parenthesis
 of backend-auth-split ("Not modelled, as before: `UpdateAttributes` of an id …", "Q9's stage may
 revisit it"): the member premise is a row premise, `memIdOk` stays in `srvRestOwn`.
+
+**Approved (the user, 2026-11-02):** revision 5 of the trusted texts (`notes/cluster-rows-plan.md`,
+"The Freeze"), including the change to the exported `Results.lessor_apply_contract` (the revocation
+lens's hypothesis gains `lease`'s presence carried over: a stronger result). Applied in stages A1-A5.
