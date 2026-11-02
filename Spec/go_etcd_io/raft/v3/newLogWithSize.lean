@@ -32,7 +32,7 @@ without the lock: issues/raft-memorystorage-initialstate-unlocked.md). So the st
 `isStorageD sn st ∗ ownStorage sn st σ` here but a client frame `R` with two persistent triples:
 over `R`, `FirstIndex` answers `b + 1` and `LastIndex` `last`. The post gives `R` back, with the
 wand that completes the log at a view `σ` of the storage from the base `b` to `last` (contiguous
-indices, nothing pending; the floor at most the base, frozen only at the base, no snapshot handed
+indices, nothing pending; the floor at most the base, frozen from the base to at most the commit (2026-11-02, stage II (o): `restartStorage`'s freeze point; until then only at the base), no snapshot handed
 out past it, no term certified past it) once raft's view of the storage is supplied: `newRaft`
 makes it after `InitialState`. (Until 2026-11-01 the fresh view `{ prev := ⟨0, 0⟩, ents := [],
 pend := [] }` only; until 2026-10-29 a general view's `isStorageD` and `ownStorage` as premises,
@@ -89,7 +89,7 @@ abbrev newLogWithSize.spec : Prop :=
       -- the log, at the counters `loadState`/`appliedTo` set, over raft's view from the base
       (∀ (σ : StorState) (c a : w64),
         ⌜uint.nat σ.prev.index' = b ∧ b + σ.ents.length = last ∧ LogIndicesOk σ.prev σ.ents ∧
-          σ.pend = [] ∧ σ.fr = b ∧ σ.sg ≤ b ∧
+          σ.pend = [] ∧ b ≤ σ.fr ∧ σ.fr ≤ uint.nat c ∧ σ.sg ≤ b ∧
           b ≤ uint.nat a ∧ uint.nat a ≤ uint.nat c ∧ uint.nat c ≤ last ∧ uint.nat σ.fl ≤ uint.nat a ∧
           (∀ k t, σ.dt !! k = some t → k ≤ uint.nat c ∧
             (b ≤ k → termAt σ.prev σ.ents (W64 (k : Int)) = some t))⌝ -∗

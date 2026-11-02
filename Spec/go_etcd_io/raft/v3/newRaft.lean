@@ -160,11 +160,16 @@ abbrev newRaft.spec : Prop :=
   -- a positive applying-size limit (2026-10-05)
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   -- (durability stage I-6) the storage's view raft makes: from the base (contiguous indices,
-  -- nothing pending, frozen only at the base, the floor, the snapshot handed out and the terms
+  -- nothing pending, frozen from the base up to at most the restored commit, the floor, the snapshot handed out and the terms
   -- certified at most the base), within 64 bits
-  LogIndicesOk σ.prev σ.ents → σ.pend = [] → σ.fr = uint.nat σ.prev.index' →
+  LogIndicesOk σ.prev σ.ents → σ.pend = [] →
+  -- (2026-11-02, stage II (o): `restartStorage`'s freeze point) frozen up to at most the commit
+  -- `loadState` restores
+  uint.nat σ.prev.index' ≤ σ.fr → σ.fr ≤ uint.nat (committedAfter σ.prev hs) →
   uint.Z σ.fl ≤ uint.Z σ.prev.index' → σ.sg ≤ uint.nat σ.prev.index' →
-  (∀ k t, σ.dt !! k = some t → k ≤ uint.nat σ.prev.index') →
+  -- (2026-11-02, stage II (o)) the terms certified at most the base, the base's its term
+  (∀ k t, σ.dt !! k = some t → k ≤ uint.nat σ.prev.index' ∧
+    (uint.nat σ.prev.index' ≤ k → termAt σ.prev σ.ents (W64 (k : Int)) = some t)) →
   uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 < 2 ^ 64 →
   -- (2026-11-01, durability stage I-6) the storage key's attach record (`restartStorage`'s
   -- continuation): the applied bound `max b A`, the commit `loadState` restores, the view's terms
@@ -213,6 +218,8 @@ abbrev newRaft.spec : Prop :=
         s.logst.committed = committedAfter σ.prev hs ∧
         s.logst.applying = w64Max σ.prev.index'
           (if cv.Applied' = W64 0 then σ.prev.index' else cv.Applied') ∧
+        -- (2026-11-02, stage II (o), for `rawNodeAt`) `appliedTo` moves both
+        s.logst.applied = s.logst.applying ∧
         s.logst.unpersisted = [] ∧ s.logst.snap = none ∧
         -- the storage it reads (2026-10-10, for `RNState.storage`)
         s.logst.storage = interface.ok si ∧

@@ -135,8 +135,47 @@ theorem rawNodeAt_fresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64
     HsEmpty hs → σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → A = W64 0 →
     rawNodeAt (GF := GF) rn id si (cfgState V ∅) sdr pre hs σ A s ⊢
       rawNodeFresh rn id si V sdr pre s := by
-  -- PORT(durability stage II): proof (new lemma)
-  sorry
+  intro Hhs Hp He HA
+  obtain ⟨HT, HV, HC⟩ := Hhs
+  have Hca : committedAfter σ.prev hs = W64 0 := by
+    unfold committedAfter; rw [ite_eq_left (show HsEmpty hs from ⟨HT, HV, HC⟩), Hp]
+  unfold rawNodeAt rawNodeFresh
+  iintro ⟨%rnv, %sv, %hprev, Hrn, Hphys, %Hasync, #Hsoft, #Hhard, Hsteps, Hcap, %Hrel, %Hterm,
+    %Hlog, %Hgh, %Hpvoff, %Hsdr, %Hdom, %Hhz, %Hsvr⟩
+  iexists rnv, sv, hprev
+  ihave Hphys := (show ownRaftPhysC (GF := GF) (cfgState V ∅).cfg rnv.raft' id s ⊢
+    ownRaftPhysC (CfgM.simple V ∅) rnv.raft' id s from .rfl) $$ Hphys
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  simp only [named]
+  iframe Hrn Hphys Hsoft Hhard Hsteps Hcap
+  ipureintro
+  obtain ⟨Ht, Hv, Hr, Ho, Hst, Hpd⟩ := Hterm
+  obtain ⟨Hlp, Hse, Hue, Hsd, Hcm, Hap, Hapg, Hun, Hsn, Hsg, Hdtk⟩ := Hlog
+  rw [Hca] at Hcm Hdtk
+  rw [Hp, HA] at Hapg
+  have Hapg0 : s.logst.applying = W64 0 := by rw [Hapg]; rfl
+  have Hrs : restartPState hs σ = initPState := by
+    unfold restartPState; rw [HT, HV, Hca, Hp, He]; rfl
+  rw [Hrs] at Hrel
+  refine ⟨Hasync, Hrel, ⟨by rw [Ht, HT], by rw [Hv, HV], Hr, Ho, Hst, Hpd⟩,
+    ⟨by rw [Hlp, Hp], by rw [Hse, He], Hue, by rw [Hsd, He], Hcm, by rw [Hap, Hapg0], Hapg0, Hun,
+      Hsn, Hsg, by rw [Hdtk]; rfl⟩, Hgh, Hpvoff, Hsdr, ?_, ?_, ?_⟩
+  · rw [Hdom]
+    apply GMap.set_eq; intro k
+    rw [GMap.elem_of_dom']
+    simp only [cfgState]
+    rw [cfgFlags_mem]
+    constructor
+    · rintro (h | h)
+      · exact h
+      · exact absurd h (GMap.not_elem_of_empty _)
+    · exact Or.inl
+  · rw [Hhz, HT, HV, Hca]
+  · refine ⟨Hsvr.1, ?_⟩
+    have H := Hsvr.2
+    rw [Hp, He] at H
+    simp only [List.length_nil] at H
+    apply uint_Z_inj.mp; rw [H]; rfl
 
 /-- Closing `rawNodeFresh`: the pure facts first, the resources in the order of the definition. -/
 theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
