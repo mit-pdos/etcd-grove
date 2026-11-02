@@ -3,6 +3,7 @@ module
 
 public import Perennial.Code.context
 public import Perennial.Code.sync
+public import Perennial.Code.time
 public import Code.go_uber_org.zap
 public import Code.go_etcd_io.etcd.api.v3.mvccpb
 public import Code.go_etcd_io.etcd.cache.v3
@@ -33,6 +34,9 @@ namespace github_com.mit_pdos.etcd_grove.examples.cachekv
 @[reducible] noncomputable def peerAddr [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23883")
 
+@[reducible] noncomputable def period [GooseExts] [GoGlobalContext] : val :=
+  #(W64 10000000)
+
 @[reducible] noncomputable def «prefix» [GooseExts] [GoGlobalContext] : val :=
   #(go!"ck/")
 
@@ -57,7 +61,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
     rejection, the compaction's), with Canceled set: their Err() is not nil because of it (the
     cache never sets a response's unexported closeErr), so collect tests the fields.
 
-    go: cachekv.go:62:6 -/
+    go: cachekv.go:70:6 -/
 noncomputable def collect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wch"
   (Lam "upTo"
@@ -165,7 +169,7 @@ noncomputable def collect.impl [GooseExts] [GoGlobalContext] : val :=
     prefix from revision 2, runs nw writers of nops Puts each, then reads the watch and checks it
     against the writes.
 
-    go: cachekv.go:90:6 -/
+    go: cachekv.go:98:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nw"
   (Lam "nops"
@@ -187,8 +191,9 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "__p" (Let "$a0" (Val #(go!"cachekv"))
   (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val peerAddr))
   (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
-  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.StartServer []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "$a3" (Val period)
+  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.StartPeriodicServer []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -412,7 +417,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.cachekv where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.cache.v3, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.github_com.mit_pdos.etcd_grove.examples.common]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.cache.v3, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.github_com.mit_pdos.etcd_grove.examples.common]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -424,10 +429,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -444,6 +452,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Main_unfold : FuncUnfold Main [] Main.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  import_time_Assumption : _root_.Perennial.time.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
   import_cache_Assumption : _root_.Perennial.go_etcd_io.etcd.cache.v3.Assumptions
@@ -454,6 +463,7 @@ attribute [instance] Assumptions.collect_unfold
   Assumptions.Main_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_sync_Assumption
+  Assumptions.import_time_Assumption
   Assumptions.import_zap_Assumption
   Assumptions.import_mvccpb_Assumption
   Assumptions.import_cache_Assumption

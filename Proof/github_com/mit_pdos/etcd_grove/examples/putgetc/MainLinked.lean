@@ -16,7 +16,6 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.putgetc.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
-public import Proof.github_com.mit_pdos.etcd_grove.examples.common.StartPeriodicServer
 public import Proof.go_uber_org.zap.NewNop
 public import Perennial.Proof.context.Link
 public import Proof.context.Link
@@ -43,20 +42,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.putgetc.Assumptions]
 
-/-- `StartPeriodicServer`, over `newServerMode` (linked in `common`'s `Link.lean`, over `NewServer`'s
-linked result in either compaction mode, periodic mode since 2026-11-02). -/
-theorem putgetc.wp_StartPeriodicServer [go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] :
-    common.StartPeriodicServer.spec (GF := GF) (hG := hG) :=
-  common.StartPeriodicServer.wp_proof common.wp_newServerMode EtcdServer.wp_Start
-
 /-- **The adequacy example's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/putgetc/Main.lean`), under the semantic premises of
 its callees' linked results: `int64(f)` of a `float64` (`Float64ToInt64Semantics`, the server's)
 and the client's `dialWithBalancer` body (`DialWithBalancerBody`). -/
 theorem putgetc.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     putgetc.Main.spec (GF := GF) (hG := hG) :=
-  putgetc.Main.wp_proof zap.NewNop.wp_proof putgetc.wp_StartPeriodicServer common.wp_Serve
+  putgetc.Main.wp_proof zap.NewNop.wp_proof common.wp_StartPeriodicServer common.wp_Serve
     common.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
     context.wp_ErrAny
 
