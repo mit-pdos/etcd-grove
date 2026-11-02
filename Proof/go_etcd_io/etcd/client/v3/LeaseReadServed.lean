@@ -141,6 +141,23 @@ theorem etcd_leaseTTLHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
     iintro %Hnil
     exact absurd Hnil Herr.2
 
+/-- A listed `*LeaseStatus` (owned, `leasesListIs`'s), its `ID` made read-only (the wire's
+`leaseLeasesRespMsg`). -/
+theorem leaseStatus_persist (p : Loc) (ids : List w64) (k : Nat) :
+    iprop(∃ (st : etcdserverpb.LeaseStatus) (id : w64), ⌜ids[k]? = some id ∧ st.ID' = id⌝ ∗
+        p ↦ st) ⊢@{IProp GF}
+      |==> ∃ id : w64, ⌜ids[k]? = some id⌝ ∗
+        structFieldRef etcdserverpb.LeaseStatus go!"ID" p ↦□ id := by
+  iintro ⟨%st, %id, %H, Hp⟩
+  obtain ⟨H1, H2⟩ := H
+  subst H2
+  iStructNamedSuffix Hp "_f"
+  ipersist ID_f
+  imodintro
+  iexists st.ID'
+  iframe #
+  ipureintro; exact H1
+
 /-- **etcd's `LeaseLeases` handler meets etcd's `LeaseLeases` spec** (as
 `etcd_leaseTTLHandlerOk`): the reply lists the lessor's IDs at some index of its history, or
 none. -/
@@ -152,7 +169,91 @@ theorem etcd_leaseLeasesHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
       grpcHandlerOk (lp @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseLeases")
         iprop(S ∗ A.revR) etcdLeaseLeasesSpec := by
-  sorry
+  iintro ⟨#Pv, #Hat, #HL, #Hn, #Hm⟩
+  unfold grpcHandlerOk
+  iintro %req %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hrev⟩, #Hctx, #Hrc, -, Hspec⟩ HΨ
+  iapply wp_fupd
+  iapply (v3rpc.LeaseServer.wp_LeaseLeases lp s A cid mid E γl S ci cd r n m) $$ [HS Hrev]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, Hrev, Hout⟩
+  iunfold v3rpc.leaseLeasesOut at Hout
+  icases Hout with (⟨%Hok, %w, Hw, Hres⟩ | %Herr)
+  · ihave %Hnn := typedPointsto_not_null $$ Hw
+    iStructNamedSuffix Hw "_f"
+    ipersist Header_f
+    ipersist Leases_f
+    icases Hres with (⟨%i, %ids, %Hmi, #Hids, Hh, Hl, -⟩ | ⟨Hh, Hl⟩)
+    · ihave %Hnd := lease.leaseIdsAt_nodup γl i ids $$ Hids
+      iunfold v3rpc.leasesHdrDone at Hh
+      icases Hh with ⟨Hfd, %dq, %rv, %log, Hrv, -, -⟩
+      iunfold v3rpc.hdrFilled at Hfd
+      icases Hfd with ⟨%Hhn, %t, %ld, Hcid, Hmid, Ht, Hld⟩
+      ipersist Hcid
+      ipersist Hmid
+      ipersist Ht
+      ipersist Hld
+      ipersist Hrv
+      iunfold leasesListIs at Hl
+      icases Hl with ⟨%ps, Hsl, %Hlen, Hps⟩
+      ipersist Hsl
+      ihave Hps' : |==> [∗list] k ↦ x ∈ ps, iprop(∃ id : w64, ⌜ids[k]? = some id⌝ ∗
+          structFieldRef etcdserverpb.LeaseStatus go!"ID" x ↦□ id) $$ [Hps]
+      · iapply BigSepL.bigSepL_bupd
+        iapply (BigSepL.bigSepL_mono (fun {k x} _ => leaseStatus_persist x ids k)) $$ Hps
+      imod Hps' with #Hps'
+      imodintro
+      iapply HΨ
+      iframe HS Hrev
+      iintro -
+      iexists (LeaseLeasesRespM.mk (HdrM.mk cid mid rv t ld) ids)
+      isplitl []
+      · simp only [pbLeaseLeasesResponse]
+        unfold leaseLeasesRespMsg hdrFull
+        isplitl []
+        · ipureintro; exact Hnn
+        iexists w.Header', w.Leases', ps
+        iframe #
+        ipureintro; exact ⟨Hhn, Hlen⟩
+      · iunfold etcdLeaseLeasesSpec at Hspec
+        iapply Hspec
+        ipureintro; exact Hnd
+    · iunfold v3rpc.leaseHdrDone at Hh
+      icases Hh with ⟨Hfd, %dq, %rv, Hrv⟩
+      iunfold v3rpc.hdrFilled at Hfd
+      icases Hfd with ⟨%Hhn, %t, %ld, Hcid, Hmid, Ht, Hld⟩
+      ipersist Hcid
+      ipersist Hmid
+      ipersist Ht
+      ipersist Hld
+      ipersist Hrv
+      ipersist Hl
+      imodintro
+      iapply HΨ
+      iframe HS Hrev
+      iintro -
+      iexists (LeaseLeasesRespM.mk (HdrM.mk cid mid rv t ld) [])
+      isplitl []
+      · simp only [pbLeaseLeasesResponse]
+        unfold leaseLeasesRespMsg hdrFull
+        isplitl []
+        · ipureintro; exact Hnn
+        iexists w.Header', w.Leases', []
+        iframe #
+        isplitl []
+        · ipureintro; exact Hhn
+        isplitl []
+        · ipureintro; rfl
+        iapply BigSepL.bigSepL_nil.2
+        itrivial
+      · iunfold etcdLeaseLeasesSpec at Hspec
+        iapply Hspec
+        ipureintro; exact List.nodup_nil
+  · imodintro
+    iapply HΨ
+    iframe HS Hrev
+    iintro %Hnil
+    exact absurd Hnil Herr.2
 
 /-- The lease reads' requests at a pointer: the learner check reads nothing of them. -/
 theorem leaseTTLReq_learnerOk (l : Loc) :
@@ -179,7 +280,27 @@ theorem etcd_leaseTTLMethodOk (q : Loc)
         (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q)
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
-  sorry
+  iintro ⟨#Hh, #Ppb, #Hics⟩
+  unfold grpcMethodOk
+  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseTimeToLiveRequest) -∗
+      (pbLeaseTimeToLiveRequest (GF := GF)).blank l) $$ []
+  · iintro !> %l Hl; simp only [pbLeaseTimeToLiveRequest]; iexact Hl
+  ihave #HQr : iprop(□ ∀ l : Loc, (pbLeaseTimeToLiveRequest (GF := GF)).recv l m -∗
+      v3rpc.learnerReqOk
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseTimeToLiveRequest.ty) #l)) $$ []
+  · iintro !> %l -
+    iapply leaseTTLReq_learnerOk
+  iapply (v3rpc.etcdserverpb.wp__Lease_LeaseTimeToLive_Handler pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse
+    Spec ⟨go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty, #q⟩
+    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
+    $$ [HS HRs HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iapply HΨ
+  iframe
 
 /-- **etcd's `LeaseLeases`, as grpc runs it** (as `etcd_leaseGrantMethodOk`). -/
 theorem etcd_leaseLeasesMethodOk (q : Loc)
@@ -193,7 +314,27 @@ theorem etcd_leaseLeasesMethodOk (q : Loc)
         (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q)
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
-  sorry
+  iintro ⟨#Hh, #Ppb, #Hics⟩
+  unfold grpcMethodOk
+  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseLeasesRequest) -∗
+      (pbLeaseLeasesRequest (GF := GF)).blank l) $$ []
+  · iintro !> %l Hl; simp only [pbLeaseLeasesRequest]; iexact Hl
+  ihave #HQr : iprop(□ ∀ l : Loc, (pbLeaseLeasesRequest (GF := GF)).recv l m -∗
+      v3rpc.learnerReqOk
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseLeasesRequest.ty) #l)) $$ []
+  · iintro !> %l -
+    iapply leaseLeasesReq_learnerOk
+  iapply (v3rpc.etcdserverpb.wp__Lease_LeaseLeases_Handler pbLeaseLeasesRequest pbLeaseLeasesResponse
+    Spec ⟨go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty, #q⟩
+    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
+    $$ [HS HRs HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iapply HΨ
+  iframe
 
 /-- **etcd's lease reads** as registered: `LeaseTimeToLive` and `LeaseLeases`, the generated
 handlers of `Lease_ServiceDesc` with the `*quotaLeaseServer` `q`, with etcd's specs. -/
