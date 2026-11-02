@@ -291,3 +291,23 @@ invariants (in `isMvcc`):
 - 2026-11-02: plan; the tester translated (`etc/goose.py` project `mvccrand`; its type `rec`
   renamed `kvRec`, Lean's recursor's name).
 - 2026-11-02: P1 built and committed (`cad9d508e3`; full `lake build` green, 11331 jobs).
+
+## The end state: one canonical spec (the user's, 2026-11-02)
+
+The user wants a single canonical spec per mvcc function: `Spec/.../mvcc/<F>.lean` holding one
+`<F>.spec`, the candidate's; today's `spec` and the `specA` variants demoted to internal lemmas in
+`Proof/` (the candidate proofs rest on them); every client moved onto the API. As of `e59d153a1a`
+no client outside mvcc uses a `specC`: the etcd server's 34 files (`etcdserver/txn` 15, `etcdserver`
+10, `v3rpc` 6, `apply` 2, `lease` 1) use today's specs, and the linked results (`Link.lean`) are
+today's. What the API lacks before the server can move onto it:
+- `Watch` at start revision `0` (etcd's clients watch from it), filters (v3rpc's `NOPUT`/`NODELETE`),
+  stream-wide progress, and registrar completeness (v3rpc's send loop may need more than `WInfo`:
+  `idAssigned`, `chanRegFact`, `streamRegAt`, review B6);
+- compaction (the abstract mode excludes it; the server's store compacts), `Restore`, the hashes,
+  `NewStore.specC` and an unwatched store's views;
+- the lease package's `Revoke`/`Grant` over the API (the lease bucket written inside the store's
+  write transaction);
+- the server's proofs themselves, in the abstract mode (today's use the old mode's resources:
+  `watchWriter`, `writerFrag`, `storeReader`).
+Then: rename each `specC` to `spec`, move today's specs and the `specA`s to `Proof/` as internal
+lemmas, regenerate the links, the TCB baseline and the interfaces.
