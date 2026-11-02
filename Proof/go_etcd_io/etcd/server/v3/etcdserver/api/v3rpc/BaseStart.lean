@@ -58,6 +58,14 @@ def v3rpc.authDescMethods : List (GoString × val) :=
    (go!"RoleGrantPermission", @! etcdserverpb._Auth_RoleGrantPermission_Handler),
    (go!"RoleRevokePermission", @! etcdserverpb._Auth_RoleRevokePermission_Handler)]
 
+/-- **The methods of the generated `Lease_ServiceDesc`** (`rpc_grpc.pb.go`), with their generated
+handlers (the lease-src plan, 2026-11-02). -/
+def v3rpc.leaseDescMethods : List (GoString × val) :=
+  [(go!"LeaseGrant", @! etcdserverpb._Lease_LeaseGrant_Handler),
+   (go!"LeaseRevoke", @! etcdserverpb._Lease_LeaseRevoke_Handler),
+   (go!"LeaseTimeToLive", @! etcdserverpb._Lease_LeaseTimeToLive_Handler),
+   (go!"LeaseLeases", @! etcdserverpb._Lease_LeaseLeases_Handler)]
+
 /-- `getServerMetrics`'s lock (the package variable `metricsServerLock`). -/
 abbrev v3rpc.metricsMu : Loc := globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.metricsServerLock
 
@@ -106,8 +114,14 @@ def v3rpc.svcDescsOk : IProp GF :=
         (v3rpc.handlerTy etcdserverpb.WatchServer.ty) [] sds ∗
       ⌜sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
         [(go!"Watch", @! etcdserverpb._Watch_Watch_Handler)]⌝) ∗
-    v3rpc.descOk (globalAddr etcdserverpb.Lease_ServiceDesc) go!"etcdserverpb.Lease"
-      etcdserverpb.LeaseServer.ty ∗
+    -- (the lease-src plan, 2026-11-02) the Lease service's methods and stream exactly
+    (∃ (mds : List google_golang_org.grpc.MethodDesc)
+        (sds : List google_golang_org.grpc.StreamDesc),
+      go_etcd_io.etcd.cache.v3.pbDescIs (globalAddr etcdserverpb.Lease_ServiceDesc) go!"etcdserverpb.Lease"
+        (v3rpc.handlerTy etcdserverpb.LeaseServer.ty) mds sds ∗
+      ⌜mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.leaseDescMethods ∧
+        sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
+          [(go!"LeaseKeepAlive", @! etcdserverpb._Lease_LeaseKeepAlive_Handler)]⌝) ∗
     v3rpc.descOk (globalAddr etcdserverpb.Cluster_ServiceDesc) go!"etcdserverpb.Cluster"
       etcdserverpb.ClusterServer.ty ∗
     (∃ (mds : List google_golang_org.grpc.MethodDesc)

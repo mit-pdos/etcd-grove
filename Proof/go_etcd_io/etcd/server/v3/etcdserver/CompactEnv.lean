@@ -74,7 +74,8 @@ for the revision compactor's permit over `srvRevLb` at a non-negative retention,
 `srvCompactR`; (M2's apply side, item 15) at a server in compaction mode, over the request path's
 view and the readers' at its names. -/
 theorem compactableOk_server (hC : EtcdServer.Compact.spec (GF := GF) (hG := hG))
-    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ret : Int) (hret : 0 ≤ ret) (hcmp : E.cmp = true) :
+    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ret : Int) (hret : 0 ≤ ret) (hcmp : E.cmp = true)
+    (hcr : (E.cret : Int) ≤ ret) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ isServerRead s E ρ.rd ∗ idCred ρ.ids 1 ⊢
       v3compactor.compactableOk
@@ -91,23 +92,30 @@ theorem compactableOk_server (hC : EtcdServer.Compact.spec (GF := GF) (hG := hG)
   icases Hpm with ⟨%Hr, #Hlb⟩
   iunfold srvCompactR at HR
   icases HR with ⟨Hlt, Hlr, Hrd, Hst⟩
-  ihave #Hlb' : srvRevLb E.γ r $$ []
-  · iapply srvRevLb_mono E.γ r (r + ret) (by omega); iexact Hlb
+  ihave #Hkvi := srvKVInvs_of_read s E ρ.rd $$ Hsrd
+  iunfold srvKVInvs at Hkvi
+  icases Hkvi with ⟨#Hkv, #Hci, #Hrl, %Hcok, -, %Hcrt, -⟩
+  -- (C3's server stage) at least the cluster's retention behind it (`cret ≤ ret`)
+  ihave #Hlb' : srvRevLb E.γ (r + ρ.rd.kv.cret) $$ []
+  · iapply srvRevLb_mono E.γ (r + ρ.rd.kv.cret) (r + ret) (by omega); iexact Hlb
+  ihave #Hlb'' := Hlb'
+  iunfold srvRevLb at Hlb''
+  icases Hlb'' with ⟨%lg, #Hlgc, -, %Hlgl⟩
+  ihave %Hlgn := idxCert_len E.γ.idx lg $$ Hlgc
+  have hfit : sint.Z (W64 (r + ρ.rd.kv.cret) : w64) = r + ρ.rd.kv.cret := by word
   -- (the client's `kv.Compact`, 2026-10-31) the store's certificate as the KV's revision reached
   -- (`kvRevLb_of_srvRevLb`, with the readers' view's invariants), at the request's revision
   iunfold compactReqIs at Hreq
   icases Hreq with ⟨%v, Hp, %Hv⟩
-  ihave #Hkvi := srvKVInvs_of_read s E ρ.rd $$ Hsrd
-  iunfold srvKVInvs at Hkvi
-  icases Hkvi with ⟨#Hkv, #Hci, #Hrl, %Hcok, -⟩
-  ihave #Hlbv : srvRevLb E.γ (sint.Z v.Revision') $$ []
-  · rw [Hv.1]; iexact Hlb'
+  ihave #Hlbv : srvRevLb E.γ (sint.Z (W64 (r + ρ.rd.kv.cret) : w64)) $$ []
+  · rw [hfit]; iexact Hlb'
   imod (kvRevLb_of_srvRevLb ρ.rd.raft ρ.rd.kv E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full)
-      (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full) v.Revision') $$ Hkv Hci Hrl Hlbv
-    with #Hrev
-  ihave #Hrev' : kvRevLb ρ.rd.kv (W64 r) $$ []
-  · have h : W64 r = v.Revision' := by rw [← Hv.1]; word
-    rw [h]; iexact Hrev
+      (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full) (W64 (r + ρ.rd.kv.cret)))
+    $$ Hkv Hci Hrl Hlbv with #Hrev
+  ihave #Hrev' : kvRevLbZ ρ.rd.kv (r + ρ.rd.kv.cret) $$ []
+  · iapply kvRevLbZ_mono ρ.rd.kv (r + ρ.rd.kv.cret) (sint.Z (W64 (r + ρ.rd.kv.cret) : w64))
+      (by omega)
+    iunfold kvRevLb at Hrev; iexact Hrev
   -- (M2, the storage side, item 35) the permit's revision is past `0`: the scope premise
   iapply (hC s E ρ ctx cd p r (by omega)) $$ [Hlt Hlr Hrd Hst Hp]
   · iframe Hlt Hlr Hrd Hst; iframe #

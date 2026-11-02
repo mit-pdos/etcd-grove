@@ -29293,6 +29293,48 @@ opening the store's invariant at names the restore is changing.
   T, §18 and §19, no further review round. Applied by the apply step (below in STATUS.md).
 
 
+## The merged snapshot's window: the writer's observations, the freeze at `ci` 0, the snapshot's compaction keys (2026-11-02 · the user's approvals · branch `snap-window`)
+
+**The gap.** `mergedCreate_window` (`SnapSendBranch.lean`), `createMergedSnapshotMessage`'s window
+(`s.KV().Commit()` then `s.be.Snapshot()`, the snapshot observing `mergedObs`), was a named `sorry`.
+Five of `mergedObs`'s clauses had sources (the consistent index from the freeze, `ciObs`; the rest
+buckets, `rbOwn`; `IdxWf`, `soleWriter_idxWf`). Four did not:
+
+1. **The `Key` bucket as the writer's log.** `Snapshot`'s observation is a pure wand; the batch lock's
+   resource `W` (`lateW`, the store's `writerRes`) has the bucket's view at the batch lock's log `L`,
+   and nothing the apply thread holds outside a transaction pins `L` to its log (`writerL`'s half is in
+   `writerInv`). With compaction on, the clause as stated (exact) is false: the job deletes keys.
+2. **The freeze's hooks.** `storeReq_freeze` needs `isBackendNH` (the backend's `hooks` field), which
+   `isServer` did not keep (its `TM` generic, `NewServer`'s post existential).
+3. **`ci` at 0.** After a restart Go's `consistentIndex` field is 0 until the first apply (the
+   effective index the backend's, loaded lazily), and `UnsafeSave` stores nothing, so a merged snapshot
+   sent before any apply meets `st.k = 0`, which the freeze excluded (`consFrozen`: `s.k ≠ 0`).
+4. **No compaction key with compaction off** (`noCmpData D`, which `merged_image` needs): the
+   `backend.Snapshot` axiom's observation saw neither of the `Meta` bucket's compaction keys.
+
+**Chosen.**
+- (1) `mergedObs`'s `Key` clause thin always, exact with `cmp` off (internal; the user's "law first, as
+  sorry"). The law `txn.kvWriter_keyObs` (`txn/KeyObs.lean`, a named `sorry`) gives it from the
+  writer, `lateW` and the view; M2's item 37 (the writer's pin of the batch lock's log) implements it
+  in mvcc.
+- (2) The creation specs (`backend.New`, `newBackend`, the axiom `storage.OpenBackend`,
+  `OpenSnapshotBackend`) give the `hooks` field (`backend.hooksAt b h`), `bootOk` carries it, and the
+  server's field predicates carry `srvBeHooked` (the server's `beHooks`, its hooks over `ci`, the
+  backend at the apply thread's batch-lock resource), set by `NewServer` and `applySnapshot`
+  (`snap_isServer`). Approved.
+- (3) `consFrozen` holds `wrOwn γ w` with the stored index `ciEff γ s.k` (`s.k = 0 ↔ w = false`), and
+  `freezeY`'s quarter of `mt` is at `ciEff γ s.k`; the save chain (`commit_freeze_au` ...
+  `storeReq_freeze`) loses `s.k ≠ 0`, the save's disjunct passed through `termOk_after_save`.
+  Internal.
+- (4) `backend.Snapshot`'s post gains a reader's bound of the compaction-key flag over the snapshot's
+  data, `fkRd γ P (D, ⟨∅, W64 0⟩)`, what `unsafeCommit` gives the backend's readers (reviewed:
+  `notes/axiom-review/backend-snapshot-fk.md`, survives; the reviewer's restatement, chosen by the user
+  over the reviewed draft, an observation argument `fkLbAbs γ fa` with `Q` at `fkAbsD D`). The law
+  `txn.kvWriter_noCmp` (a named `sorry`, item 37: the off-mode store lends the writer `bkNoCmp`) gives
+  `d.cm = false → fkAbsRv`, and `noCmpData_of_fkAbsD` the clause.
+
+`mergedCreate_window` is proved over these; the trust base trades its `sorry` for the two laws'.
+
 ## C3's store law: a compaction permit fixed at the store's creation (2026-11-02 · the user's approval · branch `c3-perm`)
 
 **Scope (the user's).** C3 (`notes/compactor-pilot-plan.md`): the store's compaction revision is at
@@ -29330,3 +29372,105 @@ disjunct (vacuous at any follower).
 `kv_Read`/`Range` drop it (nothing needs it before the server's permit is not `True`); the client
 does not see `crevPermIs` (only the apply thread does). Both go with C3's client stage. Reviews: three
 `spec-reviewer` rounds (the Draft's candidates 2-5); the example `.claude/skills/spec/examples/c3-store-law.md`.
+
+## C3's server stage: the cluster's compaction retention and permit (2026-11-02 · the user's approval · branch `c3-server`)
+
+**What the user approved.** The cluster's retention `KVNames.cret` (default `0`); the client's
+`kv.Compact` (and the gRPC contract `etcdCompactSpec`) taking `kvRevLbZ γ (sint.Z rev + γ.cret)` in
+place of `kvRevLb γ rev`; `NewServer`'s premise, with the compactor on (revision mode),
+`ρ.rd.kv.cret ≤ AutoCompactionRetention`; the apply chain's persistent premise of a compaction
+request.
+
+**The statements.** `kvRevLbZ γk (n : Int)` (`kvRevLb` its alias at `sint.Z`: a revision plus the
+retention must not wrap, review round 1); `kvCmpPermit γk c := ⌜0 < c⌝ ∗ kvRevLbZ γk (c + γk.cret)`,
+the cluster's certificate, not a member's (round 1: it holds on every member and across a snapshot
+install, and a client uses it as it stands). `reqPropOk`'s compaction form carries
+`kvRevLbZ γk (r + cret)`; the KV invariant records `r + cret < (kvModel γk A).length`
+(`cmpEntryOk`). `NewServer` creates the store at `Perm := kvCmpPermit ρ.rd.kv`; `srvKVInvs` keeps
+`crevPermIs E.γ (kvCmpPermit γr.kv)` and `⌜γr.kv.cret = E.cret⌝` (both the apply thread and the
+readers hold it, round 3). The apply chain (`Apply` → `dispatch` → `cmpTriple` → the wrappers →
+`applierV3backend.Compaction`) takes `cmpPermRq E rq` (of a compaction request, `crevPermAt E.γ r`:
+`store.Compact`'s own premise, round 2), which `applyEntryNormal` builds from the entry's claim
+(`kv_revLbZ_of_rlogLb`, `cmpPermRq_of_entry`). `EtcdServer.Compact.spec` takes
+`kvRevLbZ ρ.rd.kv (r + ρ.rd.kv.cret)`; the compactor's proposals give it from its permit's
+`srvRevLb (r + ret)` when `E.cret ≤ ret` (`compactableOk_server`).
+
+**`AEnv.cret`, a departure from candidate 4.** The compactor's `Compact` call is made at request
+names `ρ'` the run chooses (`compactorRun`'s `∀ ρ`), not `NewServer`'s `ρ`, so `NewServer`'s premise
+on `ρ.rd.kv.cret` does not reach it. As the mode `cmp` does, the server's environment carries the
+retention (`AEnv.cret`, `NewServer` builds it at `ρ.rd.kv.cret`) and `srvKVInvs` ties every reader
+view's `γr.kv.cret` to it.
+
+**The examples.** `alloc1`/`srvClusterBoot_alloc` take `cret` (default `0`) and report it;
+`putgetc` and `compactkv` allocate at `cret := 1` (their retention); `StartCompactingServer` and
+`newServer.specCompact` take `ρ.rd.kv.cret ≤ retention`; `compactkv` compacts at the Put's revision
+minus one, which is `cret` behind the revision reached. At retention 1 the law adds only "below
+the head" (the configured retention is what it is as strong as).
+
+**Restores**, an open obligation: a compaction-mode restore's resumed compaction needs
+`kvCmpPermit γk sched` of the image's scheduled revision (the cluster's fact of every committed
+compaction entry); no link from an image to committed entries exists yet, and no compaction-mode
+restore runs at the pin. Reviews: three `spec-reviewer` rounds (candidates 2-4).
+
+## The lessor's reader slots as a pool: the lease specs over `lessorRdPool` (2026-11-02 · accepted, the user's Freeze · branch `lease-src`)
+
+**The gap.** The lease checks' specs (`EtcdServer.checkLease{TimeToLive,Renew}`, the entry points
+`Lease{TimeToLive,Leases,Renew}`, the axiom `leaseTimeToLive`) took one lessor reader slot
+(`lessorRdOf γl`) and returned it, and the callee specs `lessor.Leases` (proved) and
+`lessor.Renew` (an axiom) took `lessorRd`. Nothing gave a server's caller such a slot:
+`NewServer` handed the lessor's spare slots nowhere, and a goroutine has one `threadTok`, which
+`Lease.Keys` needs while the slot is out.
+
+**Chosen.** The spare slots go into a Perennial thread pool (`lessorRdPool γl`, persistent,
+`InvLessor.lean`), which `NewServer`'s posts export. A spec takes the pool and the caller's token;
+the proof borrows a slot with the token around each lessor call (`lessorRdPool_borrow`) and gets
+the token back for the next. The pool's `init` (`RdPool.lean`) is an owner of the `threadBound`
+stock (`etc/bounds-allow.txt`). The trusted changes: the axioms `leaseTimeToLive` and
+`lessor.Renew` are restated over the pool (their old premises are incomparable with the new ones).
+Rejected: a slot held for the whole call (F1 of the review: a slot and the token held at once by
+one thread); a per-call slot handed down from `NewServer` (it would bound the number of calls).
+
+## The writer's pin: M2's item 37, the sole writer's two laws proved (2026-11-02 · the user's approval · branch `m2-item37`)
+
+**Supersedes in part** "Task 4: item 37" of `notes/m2-storage-plan.md` (the route through `writerRes`'s
+log, `bucketViewL`) and the "Item 37 deferred to item 15" entry for the two laws of "The merged
+snapshot's window" (they no longer wait for item 15; `bucketViewL` still does).
+
+**What was open.** `txn.kvWriter_keyObs` (the sole writer, with the batch lock's resource `lateW d.gx`
+and a view of the backend, sees the `Key` bucket thin of its log, exact with compaction off) and
+`txn.kvWriter_noCmp` (with a reader's bound of the compaction-key flag, no compaction key with
+compaction off) were named `sorry`s.
+
+**Why not through `lateW`.** The planned route pinned `writerRes`'s log (a third share of `γ.wv`) and
+read the view through `lateW`. But `lateW` is unregistered after `store.Restore` until the next
+writer's lock (`writerReg`): a snapshot sent after a restore and before any write sees `lateW`'s `none`
+half and nothing of the data, so the law as stated was not provable in that window.
+
+**Chosen (candidate 1, approved).** The writer holds a share of the view itself:
+
+    writerLoan γ := if kbCmpM γ.kb then True else kbNoCmp γ.kb γ.bucket ∗ kbNoDel γ.kb
+    writerPin γ log := bucketView γ ¼ (bucketMap log) ∗ writerLoan γ
+
+- The bucket view's fractions: `writerRes` ¼ (was ½), the pin ¼, `revMuBody` ½. The write
+  transaction's `Hbv` stays ½: `store.Write` joins `writerRes`'s quarter with the pin's
+  (`bucketView_join_quarters`: the two agree), `storeTxnWrite.End` splits it back at the commit. The
+  loan rides in the transaction's `Hcres`.
+- The off-mode store no longer drops its no-compaction token: `NewStore` keeps `restore`'s
+  `kbNoCmp` in the pin (`physCmp_alloc` gives `kbMW` only in compaction mode), and the backend's
+  "nothing deletable" (`dlNoDel`) comes in through `kbNoDelOff kb` (`NewStore`, `New`,
+  `newWatchableStore`) or `kbNoDel (some d')` (`store.Restore`, `watchableStore.Restore`: a
+  restore runs only with compaction off).
+- Statements: `NewStore`'s post gains `writerPin γ [[], []]`; `store.Write` takes `writerPin γ log`;
+  `storeTxnWrite.End` gives `writerPin γ (commitLog ilog pend)`; `writeView.Put`/`DeleteRange` take
+  and give it; `store.Restore` takes the old pin and gives `writerPin (γ.withPhys p') ([[], []] ++ R)`.
+  The linked restatements (`mvcc_NewStore_backend`, `_cmp`, `mvcc_store_Write_backend`) follow.
+- The pin is folded into `watchWriter` (watchable store) and `txn.wlogOwn` (`wlogOwnW` the old body),
+  so `kvWriter`, the txn specs and the server's texts are unchanged. `watchableStore.Restore`'s post
+  `watchWriter` is now at the inner store's new names (`{ γ with st := γ.st.withPhys p' }`): the pin
+  is of the new view.
+- `kvWriter_keyObs` drops `lateW d.gx` (unused); both laws are proved (`txn/KeyObs.lean`, from
+  `backend.viewAt_bView`, `thinV_exact`, `fkRd_abs`). Two `sorry`s fewer.
+
+**Not chosen.** The pin hidden in `writerFrag`, tied to `kvWriter`'s log by fractions of the
+revision tokens' and the log's authorities: fewer spec diffs, but a harder refactor of `revMuBody`'s
+and `writerL`'s fractions and a less direct contract.

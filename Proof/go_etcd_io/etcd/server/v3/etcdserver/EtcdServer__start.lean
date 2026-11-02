@@ -454,7 +454,7 @@ theorem EtcdServer.start.wp_proof
     -- side's (`srvKVInvs`)
     ihave #Hkvt := Hkvi
     iunfold srvKVInvs at Hkvt
-    icases Hkvt with ⟨-, #HkcI, -, -, %Hktie⟩
+    icases Hkvt with ⟨-, #HkcI, -, -, %Hktie, -⟩
     have hkv : ({ ρ with wait := γw } : ReqNames).kv = γr.kv := by subst Hρrd; rfl
     have hrf : ({ ρ with wait := γw } : ReqNames).raft = γr.raft := by subst Hρrd; rfl
     rw [hkv, hrf]

@@ -15,8 +15,9 @@ state no older than `n`.
 - `isAuthStoreLeaseLb st RD M n` (persistent): the auth store's methods the checks call, each at
   states no older than `n`: `IsAuthEnabled`, `Revision`, `IsAdminPermitted`, `IsPutPermitted`,
   `IsRangePermitted`. The real store's: `IsAuthEnabled.wp_lb`, `Revision.wp_lb`,
-  `IsPutPermitted.wp_lb`, `IsRangePermitted.wp_lb` (`auth/Fresh*.lean`); `IsAdminPermitted` at a
-  lower bound has no proof yet (Part B leaves the server-level resources to the entry points).
+  `IsPutPermitted.wp_lb`, `IsRangePermitted.wp_lb`, `IsAdminPermitted.wp_lb` (`auth/Fresh*.lean`).
+  Both are in `AuthLeaseLb.lean` since the lease-src plan (2026-11-02), for the auth store's
+  construction (`authStoreLbM`) to state the latter.
 - `srvAuthLeaseLb s E`, `srvLessorRd s γl`: the server's auth store and lessor fields with them.
 - `leaseKeysFrom`'s verdicts: `leaseOfKeysVerdictFrom` (of a lease), `leaseKeysVerdictFrom` (of an id); the checks' class:
   `leaseCheckFrom`.
@@ -24,6 +25,7 @@ state no older than `n`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthLeaseLb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthCheckTxnLb
 public import Spec.go_etcd_io.etcd.server.v3.lease.Lease__Keys
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Lookup
@@ -46,54 +48,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-
-/-- **`IsAdminPermitted`'s verdict no older than the index `n`** in the mode `M` (persistent): in
-`on γa`, a passed check's principal an admin at a state recorded at an index at least `n`; with auth
-off, a pass. -/
-def adminVerdictFrom (M : auth.AuthMode) (n : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
-    (err : GoInterface) : IProp GF :=
-  match M with
-  | .off => iprop(⌜err = GoInterface.nil⌝)
-  | .any => iprop(True)
-  | .on γa => iprop(∃ (i : Nat) (st : auth.AuthState), auth.authStateAt γa i st ∗
-      ⌜n ≤ i ∧ (err = GoInterface.nil → auth.adminOk st (some (auth.authInfoM info)))⌝)
-
-instance adminVerdictFrom_persistent (M : auth.AuthMode) (n : Nat)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (err : GoInterface) :
-    Persistent (adminVerdictFrom (GF := GF) M n info err) := by
-  unfold adminVerdictFrom; cases M <;> infer_instance
-
-/-- **`permCheck2` no older than a lower bound**: `IsPutPermitted(authInfo, key)`'s verdict at states
-no older than `n`, for a caller with the reader resource `RD`. -/
-def permCheck2Lb (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (M : auth.AuthMode) (n : Nat)
-    (op : auth.PermType) : IProp GF :=
-  iprop(□ (∀ (a : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (key : GoSlice) (k : List w8)
-      (dk : DFrac),
-    {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
-      (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key))
-    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ authApplyErrIs err ∗
-        auth.permVerdictFrom M n info k [] op err }}))
-
-/-- **The auth store's methods the lease checks call, no older than a reader's lower bound `n`**
-(persistent): `IsAuthEnabled`, `Revision` and `IsAdminPermitted` with their verdicts at states no
-older than `n`, and the permission checks `IsPutPermitted` and `IsRangePermitted` at such states. -/
-def isAuthStoreLeaseLb (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (n : Nat) :
-    IProp GF :=
-  iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
-    □ ({{ RD }} (App (Val #(methods ai.ty go!"IsAuthEnabled" ai.v)) (Val #()))
-        {{ (b : Bool), RET #b; RD ∗ auth.enabledVerdictFrom M n b }}) ∗
-    □ ({{ True }} (App (Val #(methods ai.ty go!"Revision" ai.v)) (Val #()))
-        {{ (x : w64), RET #x; auth.revisionVerdictFrom M n x }}) ∗
-    □ (∀ (a : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
-      {{ a ↦{dq} info ∗ RD }} (App (Val #(methods ai.ty go!"IsAdminPermitted" ai.v)) (Val #a))
-      {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ RD ∗ authApplyErrIs err ∗
-          adminVerdictFrom M n info err }}) ∗
-    permCheck2Lb ai go!"IsPutPermitted" RD M n .write ∗
-    apply.permCheck3Lb ai go!"IsRangePermitted" RD M n .read)
-
-instance isAuthStoreLeaseLb_persistent (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode)
-    (n : Nat) : Persistent (isAuthStoreLeaseLb st RD M n) := by
-  unfold isAuthStoreLeaseLb permCheck2Lb apply.permCheck3Lb; infer_instance
 
 /-- **The server `s`'s auth store with the lease checks' methods at every lower bound**
 (persistent): its `authStore` field, and `isAuthStoreLeaseLb` of it at any lower bound of the

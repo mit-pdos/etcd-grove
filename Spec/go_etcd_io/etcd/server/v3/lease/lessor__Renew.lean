@@ -24,8 +24,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 /-- **`le.Renew(id)`** (names-only, a contract; the lease-renew plan's C1), any goroutine, with the
-lessor (`lessorInv`), a reader slot of its lock (`lessorRd`, as `Lookup`'s: `Renew` read-locks
-`le.mu` first) and a thread token (as `checkLeaseRenew`'s: `l.expired()` read-locks the lease's
+lessor (`lessorInv`), its reader pool (`lessorRdPool`; a reader slot of its lock until the lease-src
+plan, 2026-11-02: `Renew` read-locks `le.mu` first and unlocks it before `l.expired()`,
+`lessor.go:396-414`, so the slot is borrowed with the token and given back first) and a thread
+token (as `checkLeaseRenew`'s: `l.expired()` read-locks the lease's
 `expiryMu`, whose reader slots `isLeaseObj`'s pool lends for one), which it returns: a TTL and
 `nil`, or `ErrNotPrimary` (not the primary, or demoted or stopped while waiting for an expired
 lease's revocation, or the checkpointer's refusal) or `ErrLeaseNotFound` (no lease of `id`, or it
@@ -55,9 +57,9 @@ returns before it reads `cp`. The lease-grant work must revisit this contract. -
 abbrev lease.lessor.Renew.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗
-      lessorRd lp γl ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
+      lessorRdPool γl ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
     (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"Renew")) (Val #id))
-  {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); lessorRd lp γl ∗ threadTok ∗
+  {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); threadTok ∗
       (⌜err = GoInterface.nil⌝ ∨
       (∃ e : GoInterfaceOk, globalAddr ErrNotPrimary ↦□ GoInterface.ok e ∗
         ⌜err = GoInterface.ok e⌝) ∨

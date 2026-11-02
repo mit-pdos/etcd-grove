@@ -141,9 +141,9 @@ theorem Main.wp_proof
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (compactkvDir id) (dirOne_member id _)
-      (by omega) (by omega) (cmp := true)) $$ Hmarsh
+      (by omega) (by omega) (cmp := true) (cret := 1)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, hkc⟩ := Hal
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, hkc, hkr⟩ := Hal
   -- the rounds' invariant at the bootstrap log
   rw [kvModelSt_boot _ (fun _ _ => True) _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot)]
   imod (roundsInv_alloc ρ.rd (kvModel ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))) keysL
@@ -166,7 +166,8 @@ theorem Main.wp_proof
       (W64 1) lg
       (LogEntry.toEntries boot 0) ctxs (compactkvDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [compactkvDir, dirOne]) Hlg (by decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
+      (by simp [compactkvDir, dirOne]) Hlg (by decide) (by rw [hkr]; decide) Hck Haf Hbuq Hdbo)
+      $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
@@ -381,8 +382,11 @@ theorem Main.wp_proof
     icases Hhf with ⟨%Hhn, -, -, #HrevF, -, -⟩
     (try wp_auto)
     have Hr1 : 1 ≤ sint.Z (m.hdr.revision - W64 1) := by rw [Hs.1]; have := Hs.2.1.lt; word
-    ihave #Hrv1 := kvRevLb_mono ρ.rd.kv m.hdr.revision (m.hdr.revision - W64 1)
-      (by rw [Hs.1]; have := Hs.2.1.lt; word) $$ Hrv
+    -- (C3's server stage) the compaction at the cluster's retention (`1`) behind the put's revision
+    ihave #Hrv1 : kvRevLbZ ρ.rd.kv (sint.Z (m.hdr.revision - W64 1) + ρ.rd.kv.cret) $$ []
+    · iapply kvRevLbZ_mono ρ.rd.kv _ (sint.Z m.hdr.revision)
+        (by rw [hkr]; have := Hs.2.1.lt; rw [Hs.1]; rw [Hs.1] at Hr1; word)
+      iunfold kvRevLb at Hrv; iexact Hrv
     -- `cctx, ccancel := context.WithTimeout(...)`; `cli.Compact(cctx, ...)`, its outcome ignored
     wp_apply wp_Background
     (try wp_auto)

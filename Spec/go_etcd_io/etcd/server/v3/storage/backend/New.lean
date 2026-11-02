@@ -36,7 +36,8 @@ abbrev backend.New.spec : Prop :=
     (App (Val (@! New)) (Val #cfg))
   {{ (r : val), RET r;
       (∃ (b : Loc) (γ : BNames),
-        ⌜r = #(interface.mkOk (go.GoType.PointerType backend.ty) #b)⌝ ∗ newPostK γ P W Pk K b D) ∨
+        ⌜r = #(interface.mkOk (go.GoType.PointerType backend.ty) #b)⌝ ∗ newPostK γ P W Pk K b D ∗
+          hooksAt b cfg.Hooks') ∨
       ⌜∃ p : val, r = PanicV p⌝ }}
 
 end spec

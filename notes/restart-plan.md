@@ -1,6 +1,7 @@
 # Plan: restarting a member (`examples/restart3`)
 
-**Date:** 2026-11-02. **Status:** Scope, drafted; the questions Q1-Q6 below are open (the user's).
+**Date:** 2026-11-02. **Status:** Scope decided: Q1-Q6 take the recommended options (the user,
+2026-11-02). **R1 done** (2026-11-02): the Go program, its test and translation (below, "R1").
 Follows the spec-first plan's steps (`notes/spec-first-plan.md`: Scope, Draft, Review, Test, Probe,
 Freeze, Prove).
 
@@ -161,7 +162,14 @@ theorem restart3_safe ... :
 What stays out: crashes (Q4), membership changes (the membership track), restarting the leader
 mid-request (Q6), and a member whose data directory was lost.
 
-## Questions for the user
+## Questions for the user (decided 2026-11-02: each the recommended option)
+
+The stop is `HardStop` (Q1). `run`'s deferred shutdown stops the raft node and the transport and
+calls `Cleanup`, which closes the lessor, the KV store, the auth store and the backend (etcd's embed
+calls `Cleanup` itself only for a server that never started). `Cleanup` must not be called again
+after a stop: a second `lessor.Stop` closes a closed channel. L1's stop spec covers `run`'s
+shutdown with `Cleanup` in it.
+
 
 - **Q1. `Stop` or `HardStop`?** `Stop` first tries to transfer leadership
   (`TryTransferLeadershipOnShutdown`), which needs raft's `TransferLeadership` in the server's
@@ -222,3 +230,109 @@ mid-request (Q6), and a member whose data directory was lost.
 
 R1 can start now. R2 can start once Q1-Q6 are answered, with L4 as a named `sorry` if Q2 says the
 durability work comes first.
+
+## R1 (2026-11-02)
+
+- `examples/restart3` (`restart3.go`): `Run(lg)` is the program at a logger, `Main` is `Run` at
+  `zap.NewNop()`, so the test counts through `Run` what the proof is about. Two changes to the
+  draft above, both from the test:
+  - **The stop is `HardStop` alone.** `run`'s deferred shutdown calls `Cleanup`, and a second
+    `Cleanup` panics (`lessor.Stop` closes a closed channel). The first version called both.
+  - **The member stopped is a follower:** member 3, or member 2 if member 3 leads (Q6; the client's
+    member 1 is never stopped). With member 3 always stopped, a run in which it led failed its next
+    put ("leader changed") and ended without the check.
+- `common.BuildServer` (exported): `newServer` with the auto-compactor off, serving nothing, so that
+  `restart3` keeps its listeners and closes them at the stop. Translated, no spec yet (R2).
+- The test (`TestRun`) counts, with a counting logger, the restart's messages and fails unless a
+  member restarted from its WAL, its WAL held a snapshot, and a snapshot was sent and installed
+  after the restart; then it reads the last put's value at members 2 and 3. 15 runs of 15 passed
+  (about 1.3s each), each with exactly one restart, one WAL snapshot and one snapshot sent and
+  installed after it.
+- Translated: project `restart3` of `etc/goose.py`; its package fact `True`
+  (`Proof/.../restart3/Base.lean`) and its generated `Init.lean` (`etc/gen-init.py`'s `ROOTS`).
+
+
+## R2, the Draft: its sub-steps (2026-11-02)
+
+Top-down, each a Lean draft (statements, proofs `sorry`, the glue proved) reviewed before the next
+one freezes:
+
+- **R2a. The example's layer.** The specs of `restart3`'s functions (`put`, `startMember` in its two
+  uses, `stop`, `Run`, `Main`) and the statement of `restart3_safe`, over the server's interface as
+  the example sees it:
+  - `common.BuildServer.spec`, `newServer`'s at the auto-compactor off, for a first start (proved
+    from `newServer.spec`) and for a restart (over R2c's boot);
+  - `EtcdServer.HardStop.spec`: from what the main thread holds of a started member (`memberUp`), to
+    what the next incarnation boots from (`memberDown`: the image's token, R2c, and the member's
+    addresses back);
+  - the trust-boundary specs the stop needs: `grpc.Server.Stop`, `net.Listener.Close` (giving back
+    `netAddrFree` and, for the peer listener, the raft protocol's registration, so that the next
+    `http.Serve` can register its handler).
+- **R2b. The stop (L1, M6).** `HardStop` over `run`'s return and its deferred shutdown, the "server
+  open" token in the request paths.
+- **R2c. The image and the boot (L2, L3).** The image's ghost token, the restart case of
+  `bootstrapContract` and its `bootOk`.
+- **R2d. `NewServer` over a restart boot (L5).**
+- **R2e. Raft's restart (L4).** `RestartNode` over a durable-state token, a named `sorry` until the
+  user's durability work gives it.
+
+What drafting has found so far:
+
+- **Request ids across incarnations.** A restarted member's id generator starts again at its old
+  prefix, from the wall clock (`issues/etcd-request-id-restart-reuse.md`). The cluster's map of
+  issued ids (`idClusterInv`) cannot take a reissued id, so the restart boot takes a premise: the
+  new generator's first suffix is past the ids the member's prefix issued (a time premise, as the
+  issue's precondition). Named in R2c.
+- **The stopped incarnation's goroutines.** `http.Serve` returns at the listener's close without
+  waiting for its handlers, and `gs.Stop` cancels the gRPC handlers without waiting for them (grpc's
+  default, without `WaitForHandlers`).
+  Their loans of the old server's resources are never returned. Nothing needs them back: the next
+  incarnation has its own. Only the addresses' rights must come back (R2a's trust-boundary specs).
+- **An address is listened on once in a run** (`Proof/net/InvNet.lean`: `net.Listen` consumes
+  `netAddrFree` for good), and a gRPC address's server is fixed forever (`grpcServes addr ...`).
+  So `restart3` serves only member 1's gRPC API before the restart, and the restarted member's after
+  it: its client address is listened on once (changed in the Go program, 2026-11-02; the test
+  passes as before). The peer address must be listened on twice. That needs one change to the
+  network's trust boundary, drafted in R2a: `net.Listener.Close` gives back `netAddrFree` and the
+  right to serve the address with its raft protocol (`httpProtoOwn`). The protocol itself stays
+  fixed (`httpProtoAt`: the restarted member serves the same member's raft handler protocol). The
+  axiom review (the `axiom` skill) checks it with the old `http.Serve`'s handlers still running.
+
+### R2a, where it stands (2026-11-02)
+
+Drafted, built, no `sorry`, no new axiom. The new server statements are `opaque` placeholders, the
+draft statements are `Prop`s the proofs take as hypotheses, and the specs take the thread and
+receipt bounds as instances (`ThreadBoundLe`/`ReceiptBoundLe`; `etc/bounds-check.py` stays at its
+baseline):
+
+- **Server vocabulary** (`etcdserver/InvRestart.lean`, opaque until R2b/R2c):
+  - `srvStopRight s γ id`: `NewServer` gives it, `HardStop` takes it.
+  - `srvDiskImage γ id`: the stopped member's data directory.
+  - `srvRestartBoot`: the restarted member's ghost bundle.
+  - `bootstrapRestartContract`: `bootstrap`'s restart case.
+- **`EtcdServer.HardStop.spec`** (draft): from `srvStopRight s γ id` and the server's request view
+  (`isServerReq`, which `Start` returns: a `HardStop` before `Start` blocks forever; R2b checks only
+  `Start` gives it) to `srvDiskImage γ id`.
+- **`common`:**
+  - `BuildServer.spec`, proved over `newServer` and linked.
+  - Its drafted variants `specStop` (with the stop right) and `specRestart` (from the image).
+  - `memberBuilt` now takes the apply thread's starting state, a first start's by default.
+    `Restart.lean` has `bootPremiseR` and `memberBuiltR` (`memberBuilt` at some starting state).
+  - `StartStop.lean`: `Start_builtR_spec`, the restart's `Start`. `Start.spec` takes `ai₀ = 0`, so
+    this is a hypothesis until R2d.
+- **The network's draft boundary** (`Proof/net/http/ListenerClose.lean`):
+  - `registerClosable_spec`: the registration keeps a closing half, and the listener has a
+    dynamic type.
+  - `ListenerClose_spec`: `Close` gives back `netAddrFree` and `httpProtoOwn`.
+- **`restart3`:**
+  - `Defs.lean`: putget3's pure facts with `common.httpURL`; `premises` with the restart contracts
+    of members 2 and 3; `memberStop`.
+  - Specs of `startMember` (`spec`, `specRestart`), `stop`, `serveClient`, `Run` and `Main`.
+  - Proved over those specs: `startMember` (both cases), `stop`, `serveClient` and `Main`.
+
+**Next:** `Run`'s glue, which is where R2c starts. `Run` needs `srvRestartBoot` to tie the
+restarted member's names to the cluster's, so that its `Serve` registers the cluster's KV answers,
+and the client invariant must carry the last put's value (`v2`) across the stop. That is what
+`srvRestartBoot` and `srvDiskImage` must say: the restarted member's `ReqNames` agree with the
+cluster's raft and KV names (`ρ.rd.raft`, `kvInv`), its id generator is fresh past its previous
+ids, and its wait registry is new.

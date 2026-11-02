@@ -407,7 +407,7 @@ abbrev mvcc.store.Restore.specM : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ ⌜∃ d, γ.kb = some d ∧ d'.cm = d.cm⌝ ∗
       mvcc.restoreRightM s γ c ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗
-      mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗
+      mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ mvcc.writerPin γ L ∗
       mvcc.idxCert γ.idx L ∗ ownToks γ.revs (2 ^ 63 - 3 - L.length) ∗
       (if γ.watchQ then mvcc.logQ γ L else iprop(True)) ∗
       mvcc.certOk γ ([[], []] ++ R) ∗
@@ -417,7 +417,8 @@ abbrev mvcc.store.Restore.specM : Prop :=
         mvcc.keyCleanReadR b' (mvcc.bucketViewC (γ.withPhys p))
           iprop(mvcc.storeRT (γ.withPhys p) ∗ mvcc.restoreRegM d')
           (mvcc.kbRecs (γ.withPhys p).kb (γ.withPhys p).bucket r) r) ∗
-      mvcc.restoreImageM d' γb' ([[], []] ++ R) r ∗ mvcc.kbRegRight (some d') ∗
+      mvcc.restoreImageM d' γb' ([[], []] ++ R) r ∗ mvcc.kbNoDelOff (some d') ∗
+      mvcc.kbRegRight (some d') ∗
       mvcc.restoreRegM d' ∗ mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.resumeHookM d' r ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Restore")) (Val #b'))
@@ -426,6 +427,7 @@ abbrev mvcc.store.Restore.specM : Prop :=
       mvcc.storeCloserM s (γ.withPhys p') r.crev ∗
       mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗
       mvcc.writerFrag (γ.withPhys p') ∗ mvcc.writerOwn (γ.withPhys p') ∗
+      mvcc.writerPin (γ.withPhys p') ([[], []] ++ R) ∗
       mvcc.hookP (γ.withPhys p') P' ∗
       mvcc.idxCert γ.idx ([[], []] ++ R) ∗
       ownToks γ.revs (2 ^ 63 - 3 - ([[], []] ++ R).length) ∗
@@ -452,8 +454,8 @@ from the drafted one at `c = -1` and no records (`r.crev = -1`). -/
 theorem mvcc.store.Restore.spec_of_specM (h : mvcc.store.Restore.specM (GF := GF) (hG := hG)) :
     mvcc.store.Restore.spec (GF := GF) (hG := hG) := by
   intro s γ b' d' γb' P' L R hpre hR
-  iintro %Φ ⟨#Hpkg, #Hs, %Hd, %Hd', Hcl, Hfs, Hwd, Hwf, Hwo, #Hfrz, Hcert, Htoks, Hq, #Hok,
-    Hbk, Hkc, Hv, Hnc, Hrr, Hrts⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hs, %Hd, %Hd', Hcl, Hfs, Hwd, Hwf, Hwo, Hpin, #Hfrz, Hcert, Htoks, Hq, #Hok,
+    Hbk, Hkc, Hv, Hnc, #Hnd, Hrr, Hrts⟩ HΦ
   obtain ⟨d, hγd, hdcm⟩ := Hd
   obtain ⟨hoff, hj0, hsr, hws, -⟩ := mvcc.cmOff_true (GF := GF) d' Hd'
   obtain ⟨hoffd, hj0d, -, -, hjr⟩ := mvcc.cmOff_true (GF := GF) d hdcm
@@ -461,8 +463,10 @@ theorem mvcc.store.Restore.spec_of_specM (h : mvcc.store.Restore.specM (GF := GF
   have hc : (-1 : Int) ≤ mvcc.CmpRecs.empty.crev := by rw [mvcc.CmpRecs.crev_empty]; exact Int.le_refl _
   have hb : mvcc.restoreBoundM (GF := GF) d' ([[], []] ++ R) := fun h => by rw [Hd'] at h; cases h
   iapply (h s γ b' d' γb' P' L R (-1) mvcc.CmpRecs.empty hpre hR hc hb) $$
-    [Hcl Hfs Hwd Hwf Hwo Hcert Htoks Hq Hbk Hkc Hv Hnc Hrr Hrts]
-  · iframe Hpkg Hs Hfs Hwd Hwf Hwo Hcert Htoks Hq Hok Hrr Hrts
+    [Hcl Hfs Hwd Hwf Hwo Hpin Hcert Htoks Hq Hbk Hkc Hv Hnc Hrr Hrts]
+  · iframe Hpkg Hs Hfs Hwd Hwf Hwo Hpin Hcert Htoks Hq Hok Hrr Hrts
+    simp only [mvcc.kbNoDelOff, hoff, ↓reduceIte]
+    iframe Hnd
     isplitr
     · ipureintro; exact ⟨d, hγd, by rw [Hd', hdcm]⟩
     isplitl [Hcl]
@@ -488,13 +492,13 @@ theorem mvcc.store.Restore.spec_of_specM (h : mvcc.store.Restore.specM (GF := GF
     all_goals itrivial
   have hr : mvcc.nReaders - 1 - mvcc.nJobRd γ.kb = mvcc.nReaders - 1 := by rw [hγd, hj0d]; rfl
   rw [hr]
-  iintro !> ⟨%p', %hp', Hcl', Hfs, Hwd, Hwf, Hwo, #Hhook, #Hcert', Htoks, Hq, -, -, Hrd, Hrt⟩
+  iintro !> ⟨%p', %hp', Hcl', Hfs, Hwd, Hwf, Hwo, Hpin, #Hhook, #Hcert', Htoks, Hq, -, -, Hrd, Hrt⟩
   iapply HΦ
   iexists p'
   have hoffp : ¬ mvcc.kbCmpM (γ.withPhys p').kb := by
     rw [StoreNames.withPhys_kb, hp'.2]; exact hoff
   ihave Hcl' := (mvcc.storeCloserM_off s (γ.withPhys p') _ hoffp).1 $$ Hcl'
-  iframe Hcl' Hfs Hwd Hwf Hwo Hhook Hcert' Htoks Hq Hrd Hrt
+  iframe Hcl' Hfs Hwd Hwf Hwo Hpin Hhook Hcert' Htoks Hq Hrd Hrt
   ipureintro; exact hp'
 
 /-! ## `watchableStore.Restore` in either mode -/
@@ -521,7 +525,8 @@ abbrev mvcc.watchableStore.Restore.specM : Prop :=
         mvcc.keyCleanReadR b' (mvcc.bucketViewC (γ.st.withPhys p))
           iprop(mvcc.storeRT (γ.st.withPhys p) ∗ mvcc.restoreRegM d')
           (mvcc.kbRecs (γ.st.withPhys p).kb (γ.st.withPhys p).bucket r) r) ∗
-      mvcc.restoreImageM d' γb' ([[], []] ++ R) r ∗ mvcc.kbRegRight (some d') ∗
+      mvcc.restoreImageM d' γb' ([[], []] ++ R) r ∗ mvcc.kbNoDelOff (some d') ∗
+      mvcc.kbRegRight (some d') ∗
       mvcc.restoreRegM d' ∗ mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.resumeHookM d' r ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Restore")) (Val #b'))
@@ -530,7 +535,7 @@ abbrev mvcc.watchableStore.Restore.specM : Prop :=
       mvcc.storeCloserM st (γ.st.withPhys p') r.crev ∗
       mvcc.writerFrag (γ.st.withPhys p') ∗ mvcc.writerOwn (γ.st.withPhys p') ∗
       mvcc.hookP (γ.st.withPhys p') P' ∗
-      mvcc.watchWriter γ ([[], []] ++ R) ∗
+      mvcc.watchWriter { γ with st := γ.st.withPhys p' } ([[], []] ++ R) ∗
       mvcc.resumeHookM d' r ∗
       mvcc.compactJobResM γ.st.kb ∗
       ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1 - mvcc.nJobRd γ.st.kb) (), mvcc.storeRT γ.st) ∗
@@ -541,7 +546,7 @@ theorem mvcc.watchableStore.Restore.spec_of_specM
     (h : mvcc.watchableStore.Restore.specM (GF := GF) (hG := hG)) :
     mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG) := by
   intro s st γ b' d' γb' P' L R hpre hR
-  iintro %Φ ⟨#Hpkg, #Hws, %Hd, %Hd', Hcl, Hwf, Hwo, #Hfrz, Hww, #Hok, Hbk, Hkc, Hv, Hnc, Hrr,
+  iintro %Φ ⟨#Hpkg, #Hws, %Hd, %Hd', Hcl, Hwf, Hwo, #Hfrz, Hww, #Hok, Hbk, Hkc, Hv, Hnc, #Hnd, Hrr,
     Hrts⟩ HΦ
   obtain ⟨d, hγd, hdcm⟩ := Hd
   obtain ⟨hoff, -, hsr, hws, -⟩ := mvcc.cmOff_true (GF := GF) d' Hd'
@@ -552,6 +557,8 @@ theorem mvcc.watchableStore.Restore.spec_of_specM
   iapply (h s st γ b' d' γb' P' L R (-1) mvcc.CmpRecs.empty hpre hR hc hb) $$
     [Hcl Hwf Hwo Hww Hbk Hkc Hv Hnc Hrr Hrts]
   · iframe Hpkg Hws Hwf Hwo Hww Hok Hrr Hrts
+    simp only [mvcc.kbNoDelOff, hoff, ↓reduceIte]
+    iframe Hnd
     isplitr
     · ipureintro; exact ⟨d, hγd, by rw [Hd', hdcm]⟩
     isplitl [Hcl]

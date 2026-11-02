@@ -742,6 +742,19 @@ theorem leaseOwn_eq {γl : GName} {L : List w64} {I J : GMap LeaseItem w64} (h :
 def lessorRdOf (γl : GName) : IProp GF :=
   iprop(∃ lp : Loc, lessorPin γl lp ∗ lessorRd lp γl)
 
+/-- The namespace of the lessor's reader pool. -/
+def lessorPoolN : Namespace := nroot .@ "lessor_pool"
+
+/-- **The lessor's reader pool** (persistent; the lease-src plan, 2026-11-02): a thread pool of
+reader slots of the lessor of `γl` (`lessorRdOf`), any of which a goroutine borrows with its thread
+token for one lessor call (`Lookup`, `Leases`) and gives back after (`lessorRdPool_borrow`). The
+server makes it of `NewLessor`'s slots it does not keep (`NewServer`). -/
+def lessorRdPool (γl : GName) : IProp GF :=
+  iprop(∃ γp : GName, threadPool.isThreadPool lessorPoolN γp (lessorRdOf γl))
+
+instance lessorRdPool_persistent (γl : GName) : Persistent (lessorRdPool (GF := GF) γl) := by
+  unfold lessorRdPool; infer_instance
+
 /-- **The lease owner's resource** at the txn layer: its half of the live set and a reader slot
 of the lessor's lock (`Lookup`); (unit T3) its revokers. -/
 def lessorUser (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp GF :=
@@ -998,6 +1011,21 @@ theorem leaseOwn_items_short (γl : GName) (L : List w64) (I : GMap LeaseItem w6
     iframe Hp Him HI Hcm
     ipureintro; exact ⟨HC, HIL, HIS⟩
   · ipureintro; exact HIS
+
+/-- **A reader slot borrowed from the lessor's pool** with the thread token, and the step that
+gives it back for the token. -/
+theorem lessorRdPool_borrow (γl : GName) (E : CoPset) (HN : ↑lessorPoolN ⊆ E) :
+    lessorRdPool (GF := GF) γl ∗ threadTok ⊢
+      |={E}=> ▷ lessorRdOf γl ∗ (lessorRdOf γl ={E}=∗ threadTok) := by
+  unfold lessorRdPool
+  iintro ⟨⟨%γp, #Hp⟩, Ht⟩
+  imod threadPool.borrow lessorPoolN γp (lessorRdOf γl) E HN $$ [Ht] with ⟨HR, Hl⟩
+  · iframe Hp Ht
+  imodintro
+  iframe HR
+  iintro HR
+  iapply threadPool.giveBack lessorPoolN γp (lessorRdOf γl) E HN
+  iframe Hp Hl HR
 
 /-- **The owner's item map's facts, through the txn layer's resource**: its keys short, its
 leases live (the lease-keys plan: `checkLeasePuts` reads both before `Lookup`). -/

@@ -14,7 +14,7 @@ per-call resources `S` and the KV's revision reader `R` (which `LeaseLeases`' `n
 and the handler's `fill` after it), both given back, at any context and lower bounds `n` (the auth
 store's published index) and `m` (the lessor's history `γl`); their answers are the server's
 (`ttlAns`, `leasesAns`): on success the response with the key check's verdict, on an error an
-`applyErrIs` error. The server meets it with `S := E.RD ∗ lessorRdOf γl ∗ threadTok` and
+`applyErrIs` error. The server meets it with `S := E.RD ∗ threadTok` and
 `R := mvcc.storeReader E.s E.γ`.
 
 **The handlers' answers** (`leaseTTLOut`, `leaseLeasesOut`): the server's response with its header

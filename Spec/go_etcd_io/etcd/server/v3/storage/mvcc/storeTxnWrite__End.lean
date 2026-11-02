@@ -27,7 +27,8 @@ revision is committed (`currentRev++` and the batch transaction's write-back, un
 `s.revMu`), certified (`idxCert` of `commitLog`); the transaction's tokens are the caller's
 again (`storeReaderC`, with the reader's tag `Z`; 2026-10-13, unit 6a), and so is its revision
 token if no revision was made (`pend = []`). `Unlock` takes the batch lock's invariant `P` (the
-store's, `hookIs`) back; the writer's fragment is given back (D22 receiver epochs, S5b). A commit takes the outer quarter of the committed log's authority and
+store's, `hookIs`) back; the writer's fragment is given back (D22 receiver epochs, S5b), and its pin at the committed log
+(`writerPin`, M2's item 37). A commit takes the outer quarter of the committed log's authority and
 gives it back at the committed log (`logQPre`/`logQPost`, unit W-K). The lock token may be the
 one the lessor's delete from `Lease` left (`ld`, leases T3, 2026-10-25). The readers' statement (`storeReader`) is `specR` (`spec_R`, `ReaderSpecs.lean`). -/
 abbrev mvcc.storeTxnWrite.End.spec : Prop :=
@@ -40,7 +41,7 @@ abbrev mvcc.storeTxnWrite.End.spec : Prop :=
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
       (if pend = [] then mvcc.revToken γ else iprop(True)) ∗ mvcc.logQPost γ ilog pend ∗
-      mvcc.writerFrag γ }}
+      mvcc.writerFrag γ ∗ mvcc.writerPin γ (mvcc.commitLog ilog pend) }}
 
 end spec
 

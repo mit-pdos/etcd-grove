@@ -106,6 +106,8 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     -- the snapshot's backend and what reads and writes it (persistent)
     backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx)
       (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) d'.be ∗
+    -- (2026-11-02, branch `snap-window`) its hooks the server's `s.beHooks` (`OpenSnapshotBackend`'s)
+    backend.hooksAt d'.be (storage.hooksIface hk) ∗ structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
     backend.isStopChans γB d'.be ∗ mvcc.keySized d'.γB d'.P d'.be ∗
     backend.hooksOk d.P (fun _ => mvcc.lateW gx)
       (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (storage.hooksIface hk) ∗
@@ -143,7 +145,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     -- (2026-11-02, the backend-auth-split stage) the new backend's pool of readers
     backend.bkRPool d'.γB d'.P d'.be ∗
     mvcc.storeCloser E.s (γw.st.withPhys p') ∗ mvcc.writerFrag (γw.st.withPhys p') ∗
-    mvcc.watchWriter γw ([[], []] ++ R) ∗
+    mvcc.watchWriter { γw with st := γw.st.withPhys p' } ([[], []] ++ R) ∗
     (mvcc.storeRT (γw.st.withPhys p') -∗ mvcc.writerOwn (γw.st.withPhys p')) ∗
     mvcc.storeReader E.s E.γ ∗ trLive γn t c L ∗ srvLgReader s ∗
     epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗

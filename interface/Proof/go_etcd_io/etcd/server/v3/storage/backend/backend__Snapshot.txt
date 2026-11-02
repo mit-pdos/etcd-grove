@@ -19,7 +19,10 @@ axiom backend.backend.Snapshot.wp_proof : backend.backend.Snapshot.spec
           (▷
               ∀ sp D,
                 backend.snapOpen sp D ∗
-                    backend.bOpen γ qo ∗ R ∗ ⌜Q (backend.sData P D) (backend.hkData P D) (backend.rbData P D)⌝ -∗
+                    backend.bOpen γ qo ∗
+                      R ∗
+                        backend.fkRd γ P (D, { bks := ∅, ver := W64 0 }) ∗
+                          ⌜Q (backend.sData P D) (backend.hkData P D) (backend.rbData P D)⌝ -∗
                   Φ
                     (intoVal
                       (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty.PointerType (intoVal sp)))) -∗

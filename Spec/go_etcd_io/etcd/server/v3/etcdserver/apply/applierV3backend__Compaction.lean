@@ -37,6 +37,7 @@ abbrev apply.applierV3backend.Compaction.spec : Prop :=
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.backendIs E p ∗ apply.compactionIs cr rev ∗ ⌜apply.cmpAdmitRev E.γ.kb log rev⌝ ∗
+      mvcc.crevPermAt E.γ (sint.Z rev) ∗
       apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log
         Pre Q Post ∗ apply.cmpOwn E crev }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"Compaction")) (Val #cr))

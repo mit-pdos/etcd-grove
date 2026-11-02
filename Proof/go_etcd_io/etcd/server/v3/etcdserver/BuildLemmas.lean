@@ -158,7 +158,9 @@ theorem server_kv_watchable_of
       iapply Hsb
       ipureintro; exact ⟨hγ.1, hγ.2.1⟩
     simp only [mvcc.kbView_some, mvcc.kbNoCmp_some, mvcc.kbRegRight_some, mvcc.kbWT_some,
-      mvcc.kbRT_some, mvcc.KBReal.P_withCm]
+      mvcc.kbRT_some, mvcc.KBReal.P_withCm, mvcc.kbNoDelOff, mvcc.kbCmpM, mvcc.kbNoDel,
+      Bool.false_eq_true, ↓reduceIte]
+    iframe Hnd
     unfold backend.wbTok
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
@@ -188,7 +190,7 @@ theorem server_kv_watchable_of
     iunfold mvcc.kvOver; iright; iexists ws; iframe Hst; ipureintro; rfl
   isplitl [Hww Hfrag]
   · iunfold mvcc.watchWriter at Hww
-    icases Hww with ⟨#Hc, Htoks, Hhalf⟩
+    icases Hww with ⟨#Hc, Htoks, Hhalf, Hpin⟩
     iunfold txn.kvWriter
     isplitl [Htoks]
     · iunfold txn.soleWriter
@@ -199,6 +201,7 @@ theorem server_kv_watchable_of
       ipureintro; exact ⟨txn.soleLog_boot, hrb⟩
     isplitr [Hfrag]
     · iapply (txn.wlogOwn_watch st γw.st [[], []] Hwq).2
+      iframe Hpin
       iexists ws, γw
       iframe Hws Hhalf Hc
       ipureintro; rfl
@@ -245,7 +248,7 @@ theorem server_kv_watchable_ofM (c : Bool)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : val)
     (rd0 : GoFunc) (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (M : auth.AuthMode)
     (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
-    (hrb : receiptBound GF ≤ 2 ^ 48) :
+    (hrb : receiptBound GF ≤ 2 ^ 48) (Perm : Int → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -280,16 +283,17 @@ theorem server_kv_watchable_ofM (c : Bool)
             mvcc.nJobRd (some ({ d with cm := c } : mvcc.KBReal)) - 2) (),
           mvcc.watchReader ws st γw) ∗
         mvcc.wsCloser ws st γw.st ∗ mvcc.crevRightM γw.st ∗
-        mvcc.crevPermIs γw.st (fun _ => iprop(True)) ∗
+        mvcc.crevPermIs γw.st Perm ∗
         mvcc.retiredAt γw.st (mvcc.nJobRd (some ({ d with cm := c } : mvcc.KBReal))) ∗
         (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd ws st γw) ∗ auth.modeTag γw.tag M }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hdl, Hv, Hncmp, Hrg, Hw, Hrts, Hlrd, #Hle, Hro, Hif,
     Hok, #Hfv, Hsr⟩ HΦ
   -- the backend's deletable keys fixed by the mode, and the store's contract the bridge's of it
-  ihave Hsb : iprop(|==> □ ∀ (s : Loc) (γ : mvcc.StoreNames),
+  ihave Hsb : iprop(|==> ((□ ∀ (s : Loc) (γ : mvcc.StoreNames),
       ⌜γ.bucket = γb ∧ γ.kb = some ({ d with cm := c } : mvcc.KBReal) ∧ γ.idx = γi⌝ →
         mvcc.storeBackend (interface.mkOk (go.GoType.PointerType
-          go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be) s γ Pk) $$ [Hdl]
+          go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be) s γ Pk) ∗
+      mvcc.kbNoDelOff (some ({ d with cm := c } : mvcc.KBReal)))) $$ [Hdl]
   · cases c with
     | true =>
       imod mvcc.storeDlReg_fix d.γB γi $$ Hdl with #Hreg
@@ -298,19 +302,26 @@ theorem server_kv_watchable_ofM (c : Bool)
         hrRU hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe (hLSR rfl) (hUSR rfl) (hUP rfl)
         ({ d with cm := true } : mvcc.KBReal) hP Pk γb γi $$ []
       · simp only [mvcc.KBReal.P_withCm]; iframe #
-      imodintro; imodintro
-      iexact Hsb
+      imodintro
+      isplitl []
+      · imodintro
+        iexact Hsb
+      simp only [mvcc.kbNoDelOff, mvcc.kbCmpM, ↓reduceIte]; itrivial
     | false =>
       imod backend.dlNoDel_fix d.γB $$ Hdl with #Hnd
       ihave #Hsb := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL
         hrRU hrUR hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe ({ d with cm := false } : mvcc.KBReal)
         hP rfl Pk γb $$ []
       · simp only [mvcc.KBReal.P_withCm]; iframe #
-      imodintro; imodintro
-      iintro %s %γ %hγ
-      iapply Hsb
-      ipureintro; exact ⟨hγ.1, hγ.2.1⟩
-  imod Hsb with #Hsb
+      imodintro
+      isplitl []
+      · imodintro
+        iintro %s %γ %hγ
+        iapply Hsb
+        ipureintro; exact ⟨hγ.1, hγ.2.1⟩
+      simp only [mvcc.kbNoDelOff, mvcc.kbCmpM, mvcc.kbNoDel, Bool.false_eq_true, ↓reduceIte]
+      iexact Hnd
+  imod Hsb with ⟨#Hsb, #Hnd⟩
   imod auth.modeTag_alloc (GF := GF) M with ⟨%γtag, #Htag⟩
   rw [show N + 2 = (N + 1) + 1 by omega]
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
@@ -318,9 +329,9 @@ theorem server_kv_watchable_ofM (c : Bool)
   ihave Hsrm := mvcc.kbSRM_some ({ d with cm := c } : mvcc.KBReal) $$ Hsr
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
   iapply (hNew lg _ le cfg (some ({ d with cm := c } : mvcc.KBReal)) γb γl Pk f rd0 γi γok γtag
-      (fun _ => iprop(True)) hcfg)
+      Perm hcfg)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hif Hok]
-  · iframe Hpkg Hle Hro Hif Hok Hsrm Hsb
+  · iframe Hpkg Hle Hro Hif Hok Hsrm Hsb Hnd
     simp only [mvcc.kbView_some, mvcc.kbNoCmp_some, mvcc.kbRegRight_some, mvcc.kbWT_some,
       mvcc.kbRT_some, mvcc.KBReal.P_withCm]
     unfold backend.wbTok
@@ -351,7 +362,7 @@ theorem server_kv_watchable_ofM (c : Bool)
     iunfold mvcc.kvOver; iright; iexists ws; iframe Hst; ipureintro; rfl
   isplitl [Hww Hfrag]
   · iunfold mvcc.watchWriter at Hww
-    icases Hww with ⟨#Hc, Htoks, Hhalf⟩
+    icases Hww with ⟨#Hc, Htoks, Hhalf, Hpin⟩
     iunfold txn.kvWriter
     isplitl [Htoks]
     · iunfold txn.soleWriter
@@ -362,6 +373,7 @@ theorem server_kv_watchable_ofM (c : Bool)
       ipureintro; exact ⟨txn.soleLog_boot, hrb⟩
     isplitr [Hfrag]
     · iapply (txn.wlogOwn_watch st γw.st [[], []] Hwq).2
+      iframe Hpin
       iexists ws, γw
       iframe Hws Hhalf Hc
       ipureintro; rfl

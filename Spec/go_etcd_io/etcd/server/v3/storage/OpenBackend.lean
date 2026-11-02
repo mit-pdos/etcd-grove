@@ -19,6 +19,9 @@ well-formed values, `mvcc.fkV_of_fkCl`, `mvcc.fkCl_wf`; both computed by `New`'s
 this axiom claims nothing more of the file); the backend-compaction stage, 2026-10-29: until then a
 separate wand
 `⌜noCmpData D⌝ -∗ bkNoCmp γ`, an opaque token, D22 S-g). Stated at `HasLC.hasLC` (`newPost` is).
+(2026-11-02, the user's approval, branch `snap-window`) And the backend's hooks are `hooks`
+(`backend.hooksAt`): `newBackend` sets `bcfg.Hooks = hooks` (`server/storage/backend.go:58`), which
+`New` stores in `b.hooks` (`backend/backend.go:275`); `New`'s proof gives it.
 -/
 module
 
@@ -50,7 +53,7 @@ abbrev storage.OpenBackend.spec : Prop :=
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.OpenBackend)) (Val #cfg)) (Val #h))
   {{ (b : Loc) (γ : BNames),
       RET #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b);
-      newPostK γ P W Pk K b D }}
+      newPostK γ P W Pk K b D ∗ hooksAt b h }}
 
 end spec
 
