@@ -17,8 +17,8 @@ Recorded here although the PR is unmerged, at the request of the task that verif
 the operations of one `ClientId` into one chain, in the order the history lists them; the
 search (`dag.go`, `client.lift`) linearizes a chain only in that order (`head` moves forward
 one operation at a time), and the dependency search (`computeFirstUnk`) assumes that along a
-chain both the call and the return times increase (its exponential and binary searches, and
-its start from the previous operation's bound).
+chain the return times do not decrease (its exponential and binary searches find the first
+operation that does not precede, and take all before it to precede).
 
 What the PR decides, precisely (checked against a brute-force checker on 300000 random register
 histories): linearizability by an order that respects real time *and* each client's listed order

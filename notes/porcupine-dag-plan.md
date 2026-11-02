@@ -463,6 +463,71 @@ the invariant plan. `fillDefault`, `noPartition`, the bitset's, `byTime.*`: v1.3
 
 As candidate 1: nothing calls the part; `CheckEvents*` and a general `Consistency` out of scope.
 
+## Spec plan (candidate 3, 2026-11-02)
+
+Candidate 2 with the repairs of the second review (a fresh `spec-reviewer`; 1.2M more random
+histories against brute-force `LinearizableCO`, up to 9 operations and 5 clients, sparse client
+ids, two models: no disagreement; with calls after returns 26.5k disagreements, so `HistOk`'s
+call ≤ return stays). Everything not restated is candidate 2's.
+
+1. **`makeEntries.spec` was false**: `ops = []`, `nc = 2^46` meets its premises, and
+   `make(operationHistory, nc)` asks for 24·2^46 bytes, above `maxAlloc` (a Go test panics). Premise
+   `AllocOk (sint.nat nc) ops.length` added.
+2. **The allocation bound, exact.** `maxAlloc` limits each allocation, not their sum. The PR's
+   allocations sized by the client count `nc`: `firstUnks` `8·n·nc` bytes, the clients `48·nc`,
+   the per-client slices `24·nc`, the frontier `8·nc`; the largest is `8·nc·max n 6`:
+
+       /-- gc's largest allocation, in bytes: `maxAlloc` on 64-bit linux (2^48; ios/arm64 has
+       2^40); a larger `make` panics (`makeslice: len out of range`). Perennial does not model it:
+       the premises below that mention it keep the specs true of Go, and the proofs never use
+       them. -/
+       @[word_unfold] def maxAllocBytes : Int := 2 ^ 48
+
+       /-- The allocations sized by `nc` clients over `n` operations fit (`newChains`,
+       `makeEntries`): the largest is `8·nc·max n 6` bytes. -/
+       def AllocOk (nc n : Nat) : Prop := (nc : Int) * (max n 6 : Nat) * 8 ≤ maxAllocBytes
+
+   The allocations that grow with `n` only (`longest`, the bitset, the entries) are smaller than
+   the caller's slice of `Operation`s or are grown by `append` from a live slice: Go runs out of
+   memory (the heap is at most 2^47 bytes) before one of them could exceed `maxAlloc`; this is
+   said in `Defs.lean`'s header.
+3. **`ClientsOk` names its two parts**, which a caller proves from different sources (its client
+   numbering, its clock):
+
+       def ClientIdsOk (ops : List Operation) : Prop :=
+         ∀ o ∈ ops, 0 ≤ sint.Z o.ClientId' ∧ AllocOk (sint.nat o.ClientId' + 1) ops.length
+       def MonoReturns (ops : List Operation) : Prop :=
+         ∀ i j oi oj, i < j → ops[i]? = some oi → ops[j]? = some oj →
+           oi.ClientId' = oj.ClientId' → sint.Z oi.Return' ≤ sint.Z oj.Return'
+       def ClientsOk (ops : List Operation) : Prop := ClientIdsOk ops ∧ MonoReturns ops
+
+4. **`checkParallel.spec` is indexed by the chains**, not by relations (equality of `Prop`-valued
+   functions would need function and propositional extensionality in the caller):
+   `css : List (List (List Nat))`, `css.length = hs.length`, each partition's premise
+   `hs[i]? = some h ∧ css[i]? = some cs ∧ ChainsOk h cs ∧ HistWf h ∧ AllocOk cs.length h.length`,
+   and the post `(r = Ok ∧ ∀ i h cs, hs[i]? = some h → css[i]? = some cs →
+   LinearizableCO S.M h (chainOrder cs)) ∨ (r = Illegal ∧ ¬ (that)) ∨ (r = Unknown ∧ 0 < dur)`.
+5. **Laws**: `linCO_iff_lin` drops `HistOk` (under `ClientsSeq`, `clientOrder i j` gives
+   `Prec i j` directly). New introduction law, for a client proving completeness:
+
+       theorem linearizableCO_intro {M h co π} (hπ : Completes M h (Prec h) (fun _ => False) M.init π)
+           (hco : π.Pairwise fun a b => ¬ co b a) : LinearizableCO M h co
+
+   The corollaries are named, in the shape `CheckOperations.spec → CheckOperations.specSeq`
+   (`specSeq`: candidate 2's v1.3.1-shaped posts under `HistOk`, `ClientsOk`, `ClientsSeq`), for
+   the three public functions, in `Results.lean`; and `CheckOperations.spec →
+   CheckOperations.specSound` (`true → Linearizable`, under `HistOk`, `ClientsOk`).
+6. **The vocabulary's names**: the code's `Completes`/`Good` take the order `R` as an extra
+   argument (v1.3.1's take none: same names, one more argument; `Theory.lean`'s header says so).
+   The plan's `CompletesR`/`GoodR` are those.
+7. **The caller's slice is returned**: the public specs and `checkOperations` give back
+   `sl ↦*{dq} ops` (only `makeEntries` reads it, in the calling thread; the goroutines read copies).
+   v1.3.1's specs do not; this is a strengthening, harmless to callers.
+8. `issues/porcupine-dag-client-order.md`'s "Where" no longer says `computeFirstUnk` assumes calls
+   increase.
+
+Not repaired, answered: none.
+
 ## Invariant plan (candidate 2, 2026-11-02)
 
 After the exhaustive checks of candidate 1 (two agents: one on sections 1, 2, 5 and the lift/unlift

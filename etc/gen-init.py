@@ -99,10 +99,11 @@ PRE_RES = {'go_etcd_io.etcd.server.v3.etcdserver.read': 'EtcdGrove.read.readRegP
 PERENNIAL_HERE = {'math.rand', 'reflect'}
 
 
-def inventory():
-    """Every translated package: its file, imports, untranslated initializers, translated vars."""
+def inventory(code='Code'):
+    """Every translated package: its file, imports, untranslated initializers, translated vars
+    (of the translation under `code`: `Code`, or a part's `<root>/Code`)."""
     out = {}
-    files = sorted(glob.glob('Code/**/*.lean', recursive=True)) + \
+    files = sorted(glob.glob(code + '/**/*.lean', recursive=True)) + \
         sorted(glob.glob(PERENNIAL_CODE + '/**/*.lean', recursive=True))
     for f in files:
         t = open(f).read()
@@ -117,14 +118,15 @@ def inventory():
     return out
 
 
-def instances():
-    """Where each package's `IsPkgInit` instance is (first in path order) and its fact."""
+def instances(proof='Proof/'):
+    """Where each package's `IsPkgInit` instance is (first in path order) and its fact (in the
+    proofs under `proof`: `Proof/`, or a part's `<root>/Proof/`)."""
     loc = {}
-    for f in sorted(glob.glob('Proof/**/*.lean', recursive=True)):
+    for f in sorted(glob.glob(proof + '**/*.lean', recursive=True)):
         t = open(f).read()
         for m in re.finditer(r"IsPkgInit \(IProp GF\) pkg_id\.(\S+?) :=\s*\n?\s*define_is_pkg_init\s+(\S+)", t):
             loc.setdefault(m.group(1).replace('«attribute»', 'attribute'), []).append(
-                (f[len('Proof/'):-len('.lean')], m.group(2)))
+                (f[len(proof):-len('.lean')], m.group(2)))
     return loc
 
 
@@ -2219,6 +2221,114 @@ def part_copy(path, txt):
             f'-- `etc/gen-init.py`): the same, but its imports of the copied modules and of raft are the part\'s.\n')
     return f'{PART_ROOT}/{path}', txt[:i] + note + txt[i:]
 
+# The part `PorcupineDag/` (porcupine's pull request #46, the DAG search; notes/porcupine-dag-plan.md):
+# the same Go path as v1.3.1's porcupine, translated into a module root of its own. Its package's
+# initializer is generated as the main tree's, from the part's translation (`DAG_ROOT/Code`) and
+# the part's instance (`DAG_ROOT/Proof`), with the imports of the part's modules prefixed; and the
+# closures its fact names (func literals of its variables' initializers, which capture nothing),
+# extracted from the translation into `Closures.lean`.
+DAG_ROOT = 'PorcupineDag'
+DAG_PKG = 'github_com.anishathalye.porcupine'
+# name -> (variable, the `Let` binding of a composite literal's field, or None for the whole
+# initializer), and the doc
+DAG_CLOSURES = [
+    ('rtV', 'RealTime', None, '`RealTime`: the real-time oracle.'),
+    ('glV', 'GeneralLikely', None, '`GeneralLikely`: the call-order oracle.'),
+    ('rvInitV', 'RVal', '$v0', '`RVal.Init`: the model\'s `Init`.'),
+    ('rvStepV', 'RVal', '$v1', '`RVal.Step`: the model\'s `StepContext`.'),
+]
+DAG_SPECIAL = dict(
+    doc="""Its fact (`linInit`, `Base.lean`): `Linearizability` holds the consistency value whose
+oracles slice holds `RealTime` and `GeneralLikely` and whose validity is `RVal` (the closures of
+`Closures.lean`). Its initializer runs its variables' translated initializers (func literals,
+slice and struct literals).""",
+    imports=[],
+    alloc_types={'GeneralLikely': 'GoFunc', 'RealTime': 'GoFunc',
+                 'LinearizabilityOracles': 'GoSlice', 'RealTimeWrites': 'GoFunc',
+                 'OrderedSequentialConsistencyOracles': 'GoSlice', 'RVal': 'Validity',
+                 'Linearizability': 'Consistency', 'OrderedSequentialConsistency': 'Consistency'},
+    finish=['sorry'],
+)
+
+
+def sexp_end(s, i):
+    """The index after the parenthesized term starting at `s[i] == '('` (strings skipped)."""
+    assert s[i] == '(', s[i:i + 20]
+    depth = 0
+    j = i
+    while j < len(s):
+        ch = s[j]
+        if ch == '"':
+            j += 1
+            while s[j] != '"':
+                j += 2 if s[j] == '\\' else 1
+        elif ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth -= 1
+            if depth == 0:
+                return j + 1
+        j += 1
+    raise ValueError('unbalanced')
+
+
+def dag_initializer(body, var):
+    """The initializer term of `var` in `initialize'`'s body: the `Let "$r0"` bound around its
+    store."""
+    store = body.index(f'(GlobalVarAddr {var}))) (Val #())) (Var "$r0")')
+    best = None
+    for m in re.finditer(r'\(Let "\$r0" ', body):
+        if m.start() < store and sexp_end(body, m.start()) > store:
+            best = m.start()
+    k = best + len('(Let "$r0" ')
+    return body[k:sexp_end(body, k)]
+
+
+def dag_closures():
+    """`Closures.lean`: the func literals the package fact names, from the translation."""
+    t = open(f'{DAG_ROOT}/Code/{dirof(DAG_PKG)}.lean').read()
+    i = t.find("noncomputable def initialize'")
+    body = t[i:t.find("\n\n", i)]
+    L = ['/-',
+         f'The closures `{DAG_PKG}`\'s package fact names (`linInit`, `Base.lean`): the func literals',
+         'of its variables\' initializers, as the translation\'s `initialize\'` has them (they capture',
+         'nothing). Generated by `etc/gen-init.py` (`DAG_CLOSURES`) from',
+         f'`{DAG_ROOT}/Code/{dirof(DAG_PKG)}.lean`; do not edit.',
+         '-/', 'module', '', f'public import {DAG_ROOT}.Code.{DAG_PKG}', '',
+         '@[expose] public section', '', 'set_option maxRecDepth 100000', '',
+         'namespace Perennial', 'noncomputable section', '', f'namespace {DAG_PKG}', '']
+    for name, var, field, doc in DAG_CLOSURES:
+        init = dag_initializer(body, var)
+        if field is not None:
+            k = init.index(f'(Let "{field}" ') + len(f'(Let "{field}" ')
+            init = init[k:sexp_end(init, k)]
+        m = re.match(r'\(Lam "([^"]*)"\n', init)
+        assert m and init.endswith(')'), (name, init[:60])
+        arg = m.group(1)
+        inner = init[m.end():-1]
+        L.append(f'/-- {doc} -/')
+        L.append(f'noncomputable def {name} [GooseExts] [GoGlobalContext] : GoFunc :=')
+        L.append(f'  func.mk BAnon "{arg}"')
+        L.append('  ' + inner.replace('\n', '\n  '))
+        L.append('')
+    L += [f'end {DAG_PKG}', '', 'end', 'end Perennial']
+    return f'{DAG_ROOT}/Proof/{dirof(DAG_PKG)}/Closures.lean', '\n'.join(L) + '\n'
+
+
+def dag_init():
+    """The part's `Init.lean`, generated as the main tree's from the part's files."""
+    global inv, inst
+    saved = inv, inst
+    try:
+        inv = inventory(f'{DAG_ROOT}/Code')
+        inst = instances(f'{DAG_ROOT}/Proof/')
+        path, txt = gen(DAG_PKG, DAG_SPECIAL)
+    finally:
+        inv, inst = saved
+    txt = re.sub(r'(?m)^(public import )(Proof\.' + re.escape(plain(DAG_PKG)) + r'\.)', r'\1' + DAG_ROOT + r'.\2', txt)
+    return f'{DAG_ROOT}/{path}', txt
+
+
 
 def main(argv):
     check = '--check' in argv
@@ -2229,6 +2339,8 @@ def main(argv):
         outs.append(gen_ext())
         outs += [gen_table(p, path) for p, path in PROGRAMS.items()]
     outs += [part_copy(path, txt) for path, txt in outs if path in PART_PATHS]
+    if not [a for a in argv if not a.startswith('--')]:
+        outs += [dag_closures(), dag_init()]
     for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None
         if old == txt:
