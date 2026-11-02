@@ -29330,3 +29330,30 @@ disjunct (vacuous at any follower).
 `kv_Read`/`Range` drop it (nothing needs it before the server's permit is not `True`); the client
 does not see `crevPermIs` (only the apply thread does). Both go with C3's client stage. Reviews: three
 `spec-reviewer` rounds (the Draft's candidates 2-5); the example `.claude/skills/spec/examples/c3-store-law.md`.
+
+## The cluster contract's rows: premises from the requests, presence and read-only client URLs in the rest resource (2026-11-02 · proposed, for the user's approval · branch `cluster-rows`, `notes/cluster-rows-plan.md`)
+
+**The problem.** `apply.isCluster`'s rows (`bootOk`'s `clusterApplyOk`) are false of Go at some
+rest states: `UpdateAttributes` of an id neither a member nor removed panics; `SetVersion` of a
+version above the server's major.minor panics (`MustDetectDowngrade`), and calls its `onSet`,
+which the row lets be any value; a missing `members`/`cluster` bucket is fatal with v3; and the
+post's members own halves of the client URLs' elements, which Go aliases from the request the
+caller holds read-only. Go tests show each (`notes/cluster-rows-plan.md`).
+
+**Where each fix goes (proposed).** The two facts of the request go in the rows as premises
+(`⌜(r.mem.lookup id).isSome⌝`, `⌜semverAtMostServer s⌝`, a new opaque), because they are facts of
+what the server proposes, not of the apply thread's state: they come from the requests' only
+proposers, the monitors (`monitorReq` gains the server's own id and the version's bound, so the
+names-only axioms of `publishV3` and `monitorClusterVersions` claim them, texts unchanged), flow
+through the proposal permission (`reqPropOkM` gains `attrIdOk`), the KV invariant's workload facts
+(`kvWork` gains `attrLogOk`: the committed log's attribute requests name voters) and
+`EtcdServer.apply` (with `srvMemOk`'s converse: the voters are members at every applied log, the
+membership being static after boot) to `dispatch`'s new premise `restReqOk`. The member premise
+names members only, not "or removed": the server removes none, and the removed case would need the
+contract to model Go's `c.removed`. The facts of the apply thread's state go in `srvRestOwn`
+(`clusterPresent r.bk`, kept by every row and by `applyConfChange`, true of every model rest state)
+and in `memberAt` (client URLs `↦*□`: no Go code writes a member's client URLs' elements). `onSet`
+is fixed to `api.UpdateCapability`, the one value passed, rather than given a callback contract,
+which would need a trust-boundary spec of `UpdateCapability`. Supersedes, in part, §16's parenthesis
+of backend-auth-split ("Not modelled, as before: `UpdateAttributes` of an id …", "Q9's stage may
+revisit it"): the member premise is a row premise, `memIdOk` stays in `srvRestOwn`.
