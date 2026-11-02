@@ -34,8 +34,8 @@ abbrev mvcc.watchableStore.Close.spec : Prop :=
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Close")) (Val #()))
   {{ RET #(GoInterface.nil); True }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `ws.Close()`, with the store's whole open token: its loops stopped, its store closed
-(its compaction scheduler stopped); `nil`. -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `ws.Close()`, with the store's whole open token: its loops stopped, its store closed (its
+compaction scheduler stopped); `nil`. -/
 abbrev mvcc.watchableStore.Close.specC : Prop :=
   ∀ (ws : Loc) (γ : mvcc.MvccName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isWatchableMvcc ws γ ∗ mvcc.mvccOpen γ 1 }}

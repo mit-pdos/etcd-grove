@@ -41,22 +41,21 @@ abbrev mvcc.metricsTxnWrite.Range.spec : Prop :=
       ⌜todo = true → r ≠ null⌝ ∗ mvcc.isTxn mw s γ trace kind crev Z ∗
       mvcc.rangeOutcomeC r err kind.readLog kind.readRev crev (decide (endk = slice.nil)) k e ro }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.Range(ctx, key, end, ro)` in a transaction of view `k`: `rangeKeys` of the log it
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.Range(ctx, key, end, ro)` in a transaction of view `k`: `rangeKeys` of the log it
 reads (a write transaction's with its pending changes, at the pending revision once it has a
 change) at the compaction revision of the state it began at: `ErrFutureRev` above the
-transaction's revision, `ErrCompacted` below the compaction revision, else the answer of the
-state at the revision asked (`rangeOutcomeC`). At a context never cancelled (`todo`), no context
-error. -/
+transaction's revision, `ErrCompacted` below the compaction revision, else the answer of the state
+at the revision asked (`rangeOutcomeC`). At a context never cancelled (`todo`), no context error. -/
 abbrev mvcc.metricsTxnWrite.Range.specC : Prop :=
   ∀ (mw : Loc) (γ : mvcc.MvccName) (trace : Loc) (k : mvcc.MTxn)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
     (key endk : GoSlice) (kk e : GoString) (ro : RangeOptions),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.mvccTxn mw γ trace k ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ kk ∗ endk ↦*□ e }}
+      mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace k ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ kk ∗ endk ↦*□ e }}
     (App (App (App (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
-      ⌜todo = true → r ≠ null⌝ ∗ mvcc.mvccTxn mw γ trace k ∗
+      ⌜todo = true → r ≠ null⌝ ∗ mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace k ∗
       mvcc.rangeOutcomeC r err k.readLog k.readRev k.state.crev (decide (endk = slice.nil)) kk e ro }}
 
 end spec

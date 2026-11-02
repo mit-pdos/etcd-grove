@@ -22,31 +22,26 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `hs.HashByRev(rev)`: a hash stored for `rev` (with the current revision), or the store's
-hash at `rev` (`0`: the current revision), of the revisions after the compaction revision, by the
-caller's update at the store's state `σ`, unchanged:
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `hs.HashByRev(rev)`: a hash stored for `rev`, or the store's hash at `rev` (`0`: the
+current revision), of the revisions after the compaction revision, by the caller's update at the
+store's state `σ`, unchanged:
 * `0 < rev < σ.crev` (and no hash stored for it): `ErrCompacted`, revision `0`;
 * `σ.rev < rev` (and none stored): `ErrFutureRev`, the current revision;
-* else a hash of the store (`mvccHashOk`: of the revisions `(CompactRevision, Revision]` of its
-  history, `mvccHashOk_state`) at `rev`, and the current revision, `nil`.
-(A stored hash short-cuts both checks: a hash stored at a revision later compacted is still
-returned; and for `0` a hash stored for revision `0`, by a compaction at `0`, is returned, not the
-current revision's: `issues/etcd-mvcc-hashbyrev-zero-stored.md`.) A share of the store's open
-token: a stored hash is answered with the current revision read under `revMu` only, which a
-concurrent `Restore` sets to `1` for a while (`issues/etcd-mvcc-hashbyrev-restore-rev1.md`; round
-6). The margin: etcd's periodic corruption check, its peers' `/members/hashkv`
-handler and the maintenance `HashKV` call it with nothing that excludes a snapshot's `Restore`,
-so until the Go code is fixed a proof of etcd's server has restores or concurrent hash checks, not
-both (the user's decision, `notes/mvcc-api-candidate.md`). Its value rests on crc32's (`kvHasher`'s trust boundary). -/
+* else a hash of the store (`mvccHashOk`, `mvccHashOk_state`) at `rev`, or for `0` at the current
+  revision or a hash stored for revision `0` (`issues/etcd-mvcc-hashbyrev-zero-stored.md`), and
+  the current revision, or `1` when a stored hash is answered during a `Restore`
+  (`issues/etcd-mvcc-hashbyrev-restore-rev1.md`: the restore's placeholder; with the Go fix the
+  post loses that case), `nil`.
+A stored hash short-cuts both checks. Its value rests on crc32's (`kvHasher`'s trust boundary). -/
 abbrev mvcc.hashStorage.HashByRev.specC : Prop :=
-  ∀ (hs : Loc) (γ : mvcc.MvccName) (q : Qp) (rev : w64) (Q : mvcc.MvccState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isHashStorage hs γ ∗ mvcc.mvccOpen γ q ∗ threadTok ∗
+  ∀ (hs : Loc) (γ : mvcc.MvccName) (rev : w64) (Q : mvcc.MvccState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isHashStorage hs γ ∗ threadTok ∗
       AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ }> @ ⊤ \ ↑mvcc.mvccN, ∅
         <{ mvcc.mvccState γ σ, COMM Q σ }> }}
     (App (Val (hs @!! go.GoType.PointerType hashStorage.ty @!! go!"HashByRev")) (Val #rev))
   {{ (h : KeyValueHash) (cur : w64) (err : GoInterface), RET (PairV (PairV #h #cur) #err);
-      mvcc.mvccOpen γ q ∗ threadTok ∗ ∃ σ : mvcc.MvccState, Q σ ∗
-      ((⌜err = GoInterface.nil ∧ cur = W64 (σ.rev : Int) ∧
+      threadTok ∗ ∃ σ : mvcc.MvccState, Q σ ∗
+      ((⌜err = GoInterface.nil ∧ (cur = W64 (σ.rev : Int) ∨ cur = W64 1) ∧
           (h.Revision' = rev ∨ (rev = W64 0 ∧ h.Revision' = W64 (σ.rev : Int)))⌝ ∗
           mvcc.mvccHashOk γ h) ∨
        (⌜0 < sint.Z rev ∧ sint.Z rev < σ.crev ∧ cur = W64 0⌝ ∗

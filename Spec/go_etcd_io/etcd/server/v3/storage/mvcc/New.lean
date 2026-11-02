@@ -60,16 +60,15 @@ abbrev mvcc.New.spec : Prop :=
         mvcc.wsCloser s st γ.st ∗ mvcc.crevRightM γ.st ∗
         mvcc.writerFrag γ.st ∗ mvcc.retiredAt γ.st (mvcc.nJobRd kb) }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `New(lg, b, le, cfg)` over a fresh real backend `d` (what its creator holds, as
-`NewStore_backend` takes it: the backend unchanged in this candidate, `notes/mvcc-api-candidate.md`)
-and the receipt-paid write-backs (`□ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB)`: so that no write takes a
-token), the store's lessor `le` (`isMvccLessor`, with its resource `R`) and a
-batch-limit not negative: the watchable store `ws` of a new store `γ` at `mvccStart`, its
-lessor's and backend's names `γ`'s, the client's empty announcements, the batch lock's invariant
-`Pk`, the backend's identity (`mvccBackendIs`), the store's whole open token, and the range deleter it set on the lessor. The threads bound the
-store's readers (`threadBound GF ≤ 2 ^ 30`: Go's read-write mutexes allow `2 ^ 30` readers). -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `New(lg, b, le, cfg)` over a fresh real backend `d` (what its creator holds, as `NewStore_backend` takes it:
+the backend boundary is unchanged in this candidate), the write-backs paid from time receipts
+(`□ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB)`, so that no write takes a token), the real lessor (today's
+`isLessor`), and a batch limit not negative; the threads bound the store's readers
+(`threadBound GF ≤ 2 ^ 30`: Go's read-write mutexes allow `2 ^ 30` readers): the watchable store `ws` of a new store `γ` at
+`mvccStart`, with watchers, its backend's identity (the batch lock's invariant `Pk`), its whole
+open token, and the range deleter it set on the lessor (its own `Write`). -/
 abbrev mvcc.New.specC : Prop :=
-  ∀ (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (d : mvcc.KBReal) (Pk R : IProp GF)
+  ∀ (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (d : mvcc.KBReal) (Pk : IProp GF)
     (γl : GName) (rd0 : GoFunc),
   0 ≤ sint.Z cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 → threadBound GF ≤ 2 ^ 30 →
   mvcc.bridgeParams d.P →
@@ -81,15 +80,15 @@ abbrev mvcc.New.specC : Prop :=
       □ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB) ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.bkRTx d.γB d.P d.be) ∗
-      mvcc.isMvccLessor le γl R ∗ R ∗ lease.rdOwn γl rd0 }}
+      lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.New)) (Val #lg))
       (Val #(interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
       (Val #le)) (Val #cfg))
   {{ (ws : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStore.ty) #ws);
       ∃ γ : mvcc.MvccName, ⌜mvcc.mvccLeases γ = γl ∧ mvcc.mvccBackend γ = d.γB⌝ ∗
-        mvcc.isWatchableMvcc ws γ ∗ mvcc.mvccState γ mvcc.mvccStart ∗ mvcc.mvccAnnAuth γ ∅ ∗
-        mvcc.mvccHookInit γ Pk ∗ mvcc.mvccBackendIs γ d.P Pk d.be ∗ mvcc.mvccOpen γ 1 ∗
+        mvcc.isWatchableMvcc ws γ ∗ mvcc.mvccState γ mvcc.mvccStart ∗
+        mvcc.mvccBackendIs γ d.P Pk d.be ∗ mvcc.mvccOpen γ 1 ∗
         (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.mvccDeleter rd γ) }}
 
 end spec

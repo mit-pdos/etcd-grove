@@ -41,7 +41,7 @@ abbrev mvcc.store.Close.spec : Prop :=
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Close")) (Val #()))
   {{ RET #(GoInterface.nil); True }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Close()`, with the store's whole open token: its stop channel closed, its compaction
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Close()`, with the store's whole open token: its stop channel closed, its compaction
 scheduler stopped; `nil`. -/
 abbrev mvcc.store.Close.specC : Prop :=
   ∀ (s : Loc) (γ : mvcc.MvccName),

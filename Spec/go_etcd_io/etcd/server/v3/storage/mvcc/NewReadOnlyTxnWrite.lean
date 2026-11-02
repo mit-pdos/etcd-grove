@@ -34,14 +34,14 @@ abbrev mvcc.NewReadOnlyTxnWrite.spec : Prop :=
   {{ (trw : Loc), RET #(interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw : GoInterface);
       mvcc.isRoTxnWrite trw s γ trace log rev crev Z }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `NewReadOnlyTxnWrite(t)` of a read transaction at `σ`: a `TxnWrite` over it. -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `NewReadOnlyTxnWrite(t)` of a read transaction at `σ`: a `TxnWrite` over it. -/
 abbrev mvcc.NewReadOnlyTxnWrite.specC : Prop :=
   ∀ (mw : Loc) (γ : mvcc.MvccName) (trace : Loc) (σ : mvcc.MvccState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccTxn mw γ trace (.read σ) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace (.read σ) }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewReadOnlyTxnWrite))
       (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface)))
   {{ (trw : Loc), RET #(interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw : GoInterface);
-      mvcc.mvccRoTxn trw γ trace σ }}
+      mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) γ trace (.read σ) }}
 
 end spec
 

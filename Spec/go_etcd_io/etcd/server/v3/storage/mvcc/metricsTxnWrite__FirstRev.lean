@@ -35,15 +35,15 @@ abbrev mvcc.metricsTxnWrite.FirstRev.spec : Prop :=
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"FirstRev")) (Val #()))
   {{ RET #(W64 crev : w64); mvcc.isTxnRead mw s γ trace log rev crev Z }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.FirstRev()`: a read transaction's compaction revision (of the state it read); a
-write transaction's is `0` (`store.Write` sets no first revision). -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.FirstRev()`: a read transaction's compaction revision (of the state it read); a write
+transaction's is `0` (`store.Write` sets no first revision). -/
 abbrev mvcc.metricsTxnWrite.FirstRev.specC : Prop :=
   ∀ (mw : Loc) (γ : mvcc.MvccName) (trace : Loc) (k : mvcc.MTxn),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccTxn mw γ trace k }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace k }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"FirstRev")) (Val #()))
   {{ RET #(match k with
       | .read σ => (W64 σ.crev : w64)
-      | .write _ _ => (W64 0 : w64)); mvcc.mvccTxn mw γ trace k }}
+      | .write _ _ => (W64 0 : w64)); mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace k }}
 
 end spec
 

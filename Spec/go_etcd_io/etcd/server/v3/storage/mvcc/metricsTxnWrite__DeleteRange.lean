@@ -42,7 +42,7 @@ abbrev mvcc.metricsTxnWrite.DeleteRange.spec : Prop :=
         rev = W64 ((mvcc.writeRev ilog
           (pend ++ (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).map .del) : Nat) : Int)⌝ }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.DeleteRange(key, end)` in a write transaction begun at `σ`: the keys of the range
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.DeleteRange(key, end)` in a write transaction begun at `σ`: the keys of the range
 present in the pending state deleted, in key order (`delKeys`), appended to the pending changes,
 and detached from their leases in the item map; their number and the pending revision (the
 transaction's revision if nothing is pending) returned. -/
@@ -50,15 +50,15 @@ abbrev mvcc.metricsTxnWrite.DeleteRange.specC : Prop :=
   ∀ (mw : Loc) (γ : mvcc.MvccName) (trace : Loc) (σ : mvcc.MvccState) (pend : List mvcc.Change)
     (key endk : GoSlice) (k e : GoString) (L : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.mvccTxn mw γ trace (.write σ pend) ∗ key ↦*□ k ∗ endk ↦*□ e ∗
+      mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace (.write σ pend) ∗ key ↦*□ k ∗ endk ↦*□ e ∗
       lease.leaseOwn (mvcc.mvccLeases γ) L (mvcc.pendItems σ.log pend) }}
     (App (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"DeleteRange"))
       (Val #key)) (Val #endk))
   {{ (n rev : w64), RET (PairV #n #rev);
-      mvcc.mvccTxn mw γ trace (.write σ (pend ++ (mvcc.delKeys σ.log pend (decide (endk = slice.nil)) k e).map .del)) ∗
-      lease.leaseOwn (mvcc.mvccLeases γ) L (mvcc.pendItems σ.log (pend ++ (mvcc.delKeys σ.log pend (decide (endk = slice.nil)) k e).map .del)) ∗
+      mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace (.write σ (pend ++ (mvcc.delKeys σ.log pend (decide (endk = slice.nil)) k e).map mvcc.Change.del)) ∗
+      lease.leaseOwn (mvcc.mvccLeases γ) L (mvcc.pendItems σ.log (pend ++ (mvcc.delKeys σ.log pend (decide (endk = slice.nil)) k e).map mvcc.Change.del)) ∗
       ⌜n = W64 ((mvcc.delKeys σ.log pend (decide (endk = slice.nil)) k e).length : Int) ∧
-        rev = W64 ((mvcc.writeRev σ.log (pend ++ (mvcc.delKeys σ.log pend (decide (endk = slice.nil)) k e).map .del) : Nat) : Int)⌝ }}
+        rev = W64 ((mvcc.writeRev σ.log (pend ++ (mvcc.delKeys σ.log pend (decide (endk = slice.nil)) k e).map mvcc.Change.del) : Nat) : Int)⌝ }}
 
 end spec
 

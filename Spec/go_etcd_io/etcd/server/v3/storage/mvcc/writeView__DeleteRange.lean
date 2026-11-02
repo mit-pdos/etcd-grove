@@ -52,22 +52,25 @@ abbrev mvcc.writeView.DeleteRange.spec : Prop :=
           rev = W64 ((mvcc.writeRev ilog
             ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).map mvcc.Change.del) : Nat) : Int)⌝ }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `wv.DeleteRange(key, end)` (the store's `DeleteRange`): a write transaction deleting
-the range's keys present at the store's state `σ` (`delKeys`, in key order), committed by the
-caller's update (no revision if none), through the watchable store when the store has watchers
-(the announcement of the log after it, as `writeView.Put.specC`); their number and the revision
-returned; the item map as `Put`'s. -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `wv.DeleteRange(key, end)` (the store's `DeleteRange`): a write transaction deleting the
+range's keys present at the store's state `σ` (`delKeys`, in key order; no revision if none), their
+number and the revision returned, committed by the caller's updates (the commit's two steps: the
+notification, then the bump; through the watchable store when the store has watchers, else both at
+the bump). The lessor's item map, the caller's (the lease owner), is the state's (the first update
+says so: the store reads it when it attaches the lease, before it commits), and after the commit's.
+The hook as in `Write` (the critical-section contract: `Pre` to `Q'` by `hookRun`,
+`Q' ={⊤}=∗ P ∗ Post` before the lock is released). -/
 abbrev mvcc.writeView.DeleteRange.specC : Prop :=
   ∀ (wv : Loc) (γ : mvcc.MvccName) (key endk : GoSlice) (k e : GoString) (L : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (P Pre Q' Post : IProp GF)
     (f : GoFunc) (Q : mvcc.MvccState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWriteViewOf wv γ ∗ threadTok ∗ key ↦*□ k ∗ endk ↦*□ e ∗
+      mvcc.isMvccView (interface.mkOk (go.GoType.PointerType writeView.ty) #wv) γ ∗ threadTok ∗ key ↦*□ k ∗ endk ↦*□ e ∗
       lease.leaseOwn (mvcc.mvccLeases γ) L I ∗ mvcc.mvccHook γ P f ∗ Pre ∗ mvcc.hookRun P f Pre Q' ∗ (Q' ={⊤}=∗ P ∗ Post) ∗
-      AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ ∗ ⌜mvcc.pendItems σ.log [] = I⌝ ∗
-              (⌜mvcc.mvccWatched γ = false ∨ ((mvcc.delKeys σ.log [] (decide (endk = slice.nil)) k e).map mvcc.Change.del) = []⌝ ∨
-                mvcc.mvccAnn γ σ.log.length (σ.log ++ [((mvcc.delKeys σ.log [] (decide (endk = slice.nil)) k e).map mvcc.Change.del)])) }> @ ⊤ \ ↑mvcc.mvccN, ∅
-        <{ mvcc.mvccState γ (σ.commit ((mvcc.delKeys σ.log [] (decide (endk = slice.nil)) k e).map mvcc.Change.del)), COMM Q σ }> }}
+      AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ ∗ ⌜mvcc.pendItems σ.log [] = I⌝ }> @ ⊤ \ ↑mvcc.mvccN, ∅
+        <{ mvcc.mvccState γ (σ.notify ((mvcc.delKeys σ.log [] (decide (endk = slice.nil)) k e).map mvcc.Change.del)), COMM
+            AU <{ ∃∃ (σ' : mvcc.MvccState), mvcc.mvccState γ σ' }> @ ⊤ \ ↑mvcc.mvccN, ∅
+              <{ mvcc.mvccState γ σ'.commitPending, COMM Q σ }> }> }}
     (App (App (Val (wv @!! go.GoType.PointerType writeView.ty @!! go!"DeleteRange")) (Val #key))
       (Val #endk))
   {{ (n rev : w64), RET (PairV #n #rev); threadTok ∗ Post ∗ ∃ σ : mvcc.MvccState, Q σ ∗

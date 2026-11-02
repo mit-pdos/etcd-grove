@@ -48,25 +48,25 @@ abbrev mvcc.writeView.Put.spec : Prop :=
         lease.leaseOwn γ.leases L (mvcc.pendItems ilog [.put k v leaseID]) ∗
         ⌜rev = W64 (ilog.length : Int)⌝ }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `wv.Put(key, value, lease)` (the store's `Put`): a write transaction of the put,
-committed by the caller's update at the store's state `σ` (revision `σ`'s next, returned), through
-the watchable store when the store has watchers, so the update gives the announcement of the log
-after it then (read when the store notifies). The lessor's item map, the caller's (the lease
-owner), is the state's (the update says so: the store reads it when it attaches the lease, before
-it commits), and after the commit's. The hook as in `Write` (the critical-section contract: `Pre`
-to `Q'` by `hookRun`, `Q' ={⊤}=∗ P ∗ Post` before the lock is released). -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `wv.Put(key, value, lease)` (the store's `Put`): a write transaction of the put at the
+store's state `σ` (revision `σ`'s next, returned), committed by the caller's updates (the commit's two steps: the
+notification, then the bump; through the watchable store when the store has watchers, else both at
+the bump). The lessor's item map, the caller's (the lease owner), is the state's (the first update
+says so: the store reads it when it attaches the lease, before it commits), and after the commit's.
+The hook as in `Write` (the critical-section contract: `Pre` to `Q'` by `hookRun`,
+`Q' ={⊤}=∗ P ∗ Post` before the lock is released). -/
 abbrev mvcc.writeView.Put.specC : Prop :=
   ∀ (wv : Loc) (γ : mvcc.MvccName) (key value : GoSlice) (k v : GoString) (leaseID : w64)
     (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (P Pre Q' Post : IProp GF)
     (f : GoFunc) (Q : mvcc.MvccState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWriteViewOf wv γ ∗ threadTok ∗ key ↦*□ k ∗ value ↦*□ v ∗
+      mvcc.isMvccView (interface.mkOk (go.GoType.PointerType writeView.ty) #wv) γ ∗ threadTok ∗ key ↦*□ k ∗ value ↦*□ v ∗
       ⌜leaseID ≠ W64 0 → (k.length : Int) < 2 ^ 63 - 1⌝ ∗
       lease.leaseOwn (mvcc.mvccLeases γ) L I ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗ mvcc.mvccHook γ P f ∗ Pre ∗ mvcc.hookRun P f Pre Q' ∗ (Q' ={⊤}=∗ P ∗ Post) ∗
-      AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ ∗ ⌜mvcc.pendItems σ.log [] = I⌝ ∗
-              (⌜mvcc.mvccWatched γ = false⌝ ∨ mvcc.mvccAnn γ σ.log.length (σ.log ++ [[.put k v leaseID]])) }>
-          @ ⊤ \ ↑mvcc.mvccN, ∅
-        <{ mvcc.mvccState γ (σ.commit [.put k v leaseID]), COMM Q σ }> }}
+      AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ ∗ ⌜mvcc.pendItems σ.log [] = I⌝ }> @ ⊤ \ ↑mvcc.mvccN, ∅
+        <{ mvcc.mvccState γ (σ.notify [.put k v leaseID]), COMM
+            AU <{ ∃∃ (σ' : mvcc.MvccState), mvcc.mvccState γ σ' }> @ ⊤ \ ↑mvcc.mvccN, ∅
+              <{ mvcc.mvccState γ σ'.commitPending, COMM Q σ }> }> }}
     (App (App (App (Val (wv @!! go.GoType.PointerType writeView.ty @!! go!"Put")) (Val #key))
       (Val #value)) (Val #leaseID))
   {{ (rev : w64), RET #rev; threadTok ∗ Post ∗ ∃ σ : mvcc.MvccState, Q σ ∗

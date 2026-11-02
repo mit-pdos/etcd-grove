@@ -41,21 +41,19 @@ abbrev mvcc.watchableStoreTxnWrite.End.spec : Prop :=
       mvcc.watchWriter γ (mvcc.commitLog ilog pend) ∗ (∃ te : Bool, traceutil.ownTrace trace te) ∗
       mvcc.writerFrag γ.st }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `tw.End()` ends the watchable store's write transaction begun at `σ`: its pending
-changes sent to the watchers, then committed (none: no revision) by the caller's update, the batch
-lock's invariant `P` back. The watchers get the events before the revision is bumped, so the
-caller's update gives, with the state, the announcement of the log after the commit (`mvccAnn`;
-nothing for no change), which the store reads when it notifies (opening the update and closing it
-unchanged) and the watch laws relate the events to (`wsRecv_events`). A sole writer may announce
-beforehand and give its announcement each time. -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `tw.End()` ends the watchable store's write transaction begun at `σ`: its pending changes
+sent to the watchers (the first update: the state's pending revision), then committed (the second:
+the bump; none: no revision), the batch lock's invariant `P` back. A read between the two sees the
+revision before (it answers from the state's committed log). -/
 abbrev mvcc.watchableStoreTxnWrite.End.specC : Prop :=
-  ∀ (tw mw : Loc) (γ : mvcc.MvccName) (trace : Loc) (σ : mvcc.MvccState)
-    (pend : List mvcc.Change) (P : IProp GF) (f : GoFunc) (Q : IProp GF),
+  ∀ (tw : Loc) (γ : mvcc.MvccName) (trace : Loc) (σ₀ : mvcc.MvccState) (pend : List mvcc.Change)
+    (P : IProp GF) (f : GoFunc) (Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.mvccWatchTxnOf tw mw ∗ mvcc.mvccTxn mw γ trace (.write σ pend) ∗ mvcc.mvccHook γ P f ∗ P ∗
-      AU <{ ∃∃ (σ' : mvcc.MvccState), mvcc.mvccState γ σ' ∗
-              (⌜pend = []⌝ ∨ mvcc.mvccAnn γ σ'.log.length (σ'.log ++ [pend])) }> @ ⊤ \ ↑mvcc.mvccN, ∅
-        <{ mvcc.mvccState γ (σ'.commit pend), COMM Q }> }}
+      mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw) γ trace (.write σ₀ pend) ∗ mvcc.mvccHook γ P f ∗ P ∗
+      AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ }> @ ⊤ \ ↑mvcc.mvccN, ∅
+        <{ mvcc.mvccState γ (σ.notify pend), COMM
+            AU <{ ∃∃ (σ' : mvcc.MvccState), mvcc.mvccState γ σ' }> @ ⊤ \ ↑mvcc.mvccN, ∅
+              <{ mvcc.mvccState γ σ'.commitPending, COMM Q }> }> }}
     (App (Val (tw @!! go.GoType.PointerType watchableStoreTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); threadTok ∗ (∃ te : Bool, traceutil.ownTrace trace te) ∗ Q }}
 

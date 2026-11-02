@@ -52,10 +52,9 @@ abbrev mvcc.store.Read.spec : Prop :=
         ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ c ≤ crev⌝ ∗ mvcc.logLent γ.idx oa ∗
         ⌜∀ q L, oa = some (q, L) → log = L⌝ }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Read(mode, trace)`, in either mode, opens a read transaction at the store's state
-`σ`: the caller's update fires at `σ`, unchanged (the transaction's snapshot, taken under
-`s.revMu`: every write ended before the call is in it). The caller's thread token is the
-transaction's until its `End` (the store's readers are bounded by the threads). -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Read(mode, trace)`, in either mode, opens a read transaction at the store's state
+`σ`: the caller's update fires at `σ`, unchanged (the snapshot of its committed revisions, taken
+under `s.revMu`). The caller's thread token is the transaction's until its `End`. -/
 abbrev mvcc.store.Read.specC : Prop :=
   ∀ (s : Loc) (γ : mvcc.MvccName) (mode : w32) (trace : Loc) (te : Bool)
     (Q : mvcc.MvccState → IProp GF),
@@ -65,7 +64,7 @@ abbrev mvcc.store.Read.specC : Prop :=
         <{ mvcc.mvccState γ σ, COMM Q σ }> }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
-      ∃ σ : mvcc.MvccState, mvcc.mvccTxn mw γ trace (.read σ) ∗ Q σ }}
+      ∃ σ : mvcc.MvccState, mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace (.read σ) ∗ Q σ }}
 
 end spec
 

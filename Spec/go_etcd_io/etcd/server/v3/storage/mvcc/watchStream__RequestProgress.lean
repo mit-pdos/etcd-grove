@@ -30,7 +30,7 @@ abbrev mvcc.watchStream.RequestProgress.spec : Prop :=
     (App (Val (ws @!! go.GoType.PointerType watchStream.ty @!! go!"RequestProgress")) (Val #id))
   {{ RET #(); P.R }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.RequestProgress(id)`: asks for the progress of `id`'s watcher (a response without
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.RequestProgress(id)`: asks for the progress of `id`'s watcher (a response without
 events, if it is synced: `wsRecv_progress`). -/
 abbrev mvcc.watchStream.RequestProgress.specC : Prop :=
   ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName) (id : w64),

@@ -32,12 +32,12 @@ abbrev mvcc.txnReadWrite.Rev.spec : Prop :=
   {{ RET #rev; mvcc.isRoTxnWrite trw s γ trace log rev crev Z ∗
       ⌜log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)⌝ }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.Rev()`: the read transaction's revision. -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.Rev()`: the read transaction's revision. -/
 abbrev mvcc.txnReadWrite.Rev.specC : Prop :=
   ∀ (trw : Loc) (γ : mvcc.MvccName) (trace : Loc) (σ : mvcc.MvccState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccRoTxn trw γ trace σ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) γ trace (.read σ) }}
     (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"Rev")) (Val #()))
-  {{ RET #(W64 (σ.rev : Int) : w64); mvcc.mvccRoTxn trw γ trace σ }}
+  {{ RET #(W64 (σ.rev : Int) : w64); mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) γ trace (.read σ) }}
 
 end spec
 

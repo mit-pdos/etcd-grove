@@ -38,21 +38,23 @@ abbrev mvcc.metricsTxnWrite.End.spec : Prop :=
   {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.txnEndPost γ kind ∗
       (∃ te : Bool, traceutil.ownTrace trace te) }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.End()` ends a transaction: a read one; or a write one begun at `σ`, its pending
-changes committed (none: no revision) by the caller's update at the state, which is `σ`
-(`mvccTxn_write_agree`), the batch lock's invariant `P` given back, once its watchers were
-notified (`mvccNotified`: free for a store without watchers, `mvccNotified_unwatched`; for a
-watched store only the watchable store's `End`, which notifies, has it). The caller's thread
-token and trace are its own again. -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.End()` ends a transaction: a read one; or a write one begun at `σ`, its pending changes
+committed (none: no revision) by the caller's updates (the commit's two steps, both at the bump:
+this `End` notifies no watcher), the batch lock's invariant `P` given back, once its watchers were
+taken care of (`mvccWatchersOk`: free for a store without watchers or a commit of nothing; for a
+watched store only the watchable store's `End`, which notifies, has it). The caller's thread token
+and trace are its own again. -/
 abbrev mvcc.metricsTxnWrite.End.specC : Prop :=
   ∀ (mw : Loc) (γ : mvcc.MvccName) (trace : Loc) (k : mvcc.MTxn) (P : IProp GF) (f : GoFunc)
     (Q : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccTxn mw γ trace k ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace k ∗
       match k with
       | .read _ => iprop(True)
-      | .write σ pend => iprop(mvcc.mvccNotified γ σ pend ∗ mvcc.mvccHook γ P f ∗ P ∗
-          AU <{ ∃∃ (σ' : mvcc.MvccState), mvcc.mvccState γ σ' }> @ ⊤ \ ↑mvcc.mvccN, ∅
-            <{ mvcc.mvccState γ (σ'.commit pend), COMM Q }>) }}
+      | .write σ₀ pend => iprop(mvcc.mvccWatchersOk γ (.commit σ₀ pend) ∗ mvcc.mvccHook γ P f ∗ P ∗
+          AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ }> @ ⊤ \ ↑mvcc.mvccN, ∅
+            <{ mvcc.mvccState γ (σ.notify pend), COMM
+                AU <{ ∃∃ (σ' : mvcc.MvccState), mvcc.mvccState γ σ' }> @ ⊤ \ ↑mvcc.mvccN, ∅
+                  <{ mvcc.mvccState γ σ'.commitPending, COMM Q }> }>) }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); threadTok ∗ (∃ te : Bool, traceutil.ownTrace trace te) ∗
       match k with

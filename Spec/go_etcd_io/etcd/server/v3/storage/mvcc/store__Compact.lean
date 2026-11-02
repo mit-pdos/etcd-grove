@@ -89,9 +89,9 @@ abbrev mvcc.store.Compact.spec : Prop :=
         (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
         mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True))) }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Compact(trace, rev)` on an open store (a share of its open token: after `Close` the
-scheduler is stopped and `Schedule` panics), by the caller's update at the store's state `σ`
-(under `s.mu` held exclusively: no transaction open):
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Compact(trace, rev)` on an open store (a share of its open token: after `Close` the
+scheduler is stopped and `Schedule` panics), by the caller's update at the store's state `σ` (under
+`s.mu` held exclusively: no transaction open, nothing pending):
 * `σ.crev < rev ≤ σ.rev`: the compaction revision is `rev` (reads below it fail with
   `ErrCompacted` from now on), persisted (the backend's commit, serving `X ⇒ Y`), `nil`, and the
   job's channel; the batch lock taken for the scheduled-compaction key, so the hook runs (the
@@ -102,11 +102,11 @@ A compacted revision may delete a key and put it again (fixed upstream, etcd-io/
 Proving it needs the backend's compaction model (M2's `KBReal.cm`). -/
 abbrev mvcc.store.Compact.specC : Prop :=
   ∀ (s : Loc) (γ : mvcc.MvccName) (q : Qp) (trace : Loc) (te : Bool) (rev : w64) (P : IProp GF)
-    (f : GoFunc) (Pre Q' Post X Y : IProp GF) (Q : mvcc.MvccState → IProp GF),
+    (f : GoFunc) (Pre Q' Post : IProp GF) (BP : backend.BParams) (Pk : IProp GF) (b : Loc)
+    (X Y : IProp GF) (Q : mvcc.MvccState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isMvcc s γ ∗ mvcc.mvccOpen γ q ∗ threadTok ∗ ⌜trace ≠ null⌝ ∗
-      traceutil.ownTrace trace te ∗ X ∗ mvcc.mvccCommitReq γ X Y ∗
-      mvcc.mvccHook γ P f ∗ Pre ∗ mvcc.hookRun P f Pre Q' ∗ (Q' ={⊤}=∗ P ∗ Post) ∗
+      traceutil.ownTrace trace te ∗ mvcc.mvccBackendIs γ BP Pk b ∗ X ∗ backend.commitReq (mvcc.mvccBackend γ) BP Pk b X Y ∗ mvcc.mvccHook γ P f ∗ Pre ∗ mvcc.hookRun P f Pre Q' ∗ (Q' ={⊤}=∗ P ∗ Post) ∗
       AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ }> @ ⊤ \ ↑mvcc.mvccN, ∅
         <{ mvcc.mvccState γ (if σ.crev < sint.Z rev ∧ sint.Z rev ≤ (σ.rev : Int)
               then σ.compactTo (sint.Z rev) else σ), COMM Q σ }> }}

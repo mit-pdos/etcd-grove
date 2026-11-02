@@ -38,14 +38,14 @@ abbrev mvcc.metricsTxnWrite.Changes.spec : Prop :=
       chs ↦* ps ∗ mvcc.changesAre ps ilog pend ∗ ⌜ps.length = pend.length⌝ ∗
       mvcc.isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ld }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.Changes()`: the transaction's change records, one per pending change (none for a
-read transaction). Only their number is stated: the watchable store's `End` writes them and hands
-them to the watchers, and callers inspect the length. -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.Changes()`: the transaction's change records, one per pending change (none for a read
+transaction). Only their number is stated: the watchable store's `End` writes them and hands them
+to the watchers, and callers inspect the length. -/
 abbrev mvcc.metricsTxnWrite.Changes.specC : Prop :=
   ∀ (mw : Loc) (γ : mvcc.MvccName) (trace : Loc) (k : mvcc.MTxn),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccTxn mw γ trace k }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace k }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Changes")) (Val #()))
-  {{ (chs : GoSlice), RET #chs; mvcc.mvccTxn mw γ trace k ∗ ⌜uint.nat chs.len = k.pend.length⌝ }}
+  {{ (chs : GoSlice), RET #chs; mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace k ∗ ⌜uint.nat chs.len = k.pend.length⌝ }}
 
 end spec
 

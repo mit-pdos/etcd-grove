@@ -39,13 +39,12 @@ abbrev mvcc.store.Commit.spec : Prop :=
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Commit")) (Val #()))
   {{ RET #(); mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ Y }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Commit()`: the backend's commit (`ForceCommit`, under `s.mu` held exclusively),
-serving the request `X ⇒ Y` of its hooks (`mvccCommitReq`, from the backend's `commitReq`:
-`mvccCommitReq_of`; for the server, the consistent index saved); the store's state unchanged. -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Commit()`: the backend's commit (`ForceCommit`, under `s.mu` held exclusively),
+serving the request `X ⇒ Y` of its hooks (`backend.commitReq` at the store's backend: a plain wand,
+or the hooks' request; for the server, the consistent index saved); the store's state unchanged. -/
 abbrev mvcc.store.Commit.specC : Prop :=
-  ∀ (s : Loc) (γ : mvcc.MvccName) (X Y : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isMvcc s γ ∗ threadTok ∗ X ∗ mvcc.mvccCommitReq γ X Y }}
+  ∀ (s : Loc) (γ : mvcc.MvccName) (BP : backend.BParams) (Pk : IProp GF) (b : Loc) (X Y : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isMvcc s γ ∗ threadTok ∗ mvcc.mvccBackendIs γ BP Pk b ∗ X ∗ backend.commitReq (mvcc.mvccBackend γ) BP Pk b X Y }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Commit")) (Val #()))
   {{ RET #(); threadTok ∗ Y }}
 

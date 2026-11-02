@@ -31,7 +31,7 @@ abbrev mvcc.hashStorage.Store.spec : Prop :=
     (App (Val (hp @!! go.GoType.PointerType hashStorage.ty @!! go!"Store")) (Val #h))
   {{ RET #(); True }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `hs.Store(h)` of a hash of the store (`mvccHashOk`: the compaction job's, of the
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `hs.Store(h)` of a hash of the store (`mvccHashOk`: the compaction job's, of the
 revisions it compacted): kept (the last `hashStorageMaxSize`), so that `HashByRev` may return it.
 The premise is not the code's need: it keeps `HashByRev`'s result a hash of the store, which a
 stored arbitrary value would not be. -/

@@ -22,7 +22,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `hs.Hashes()`: a fresh copy of the stored hashes, each a hash of the store. -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `hs.Hashes()`: a fresh copy of the stored hashes, each a hash of the store. -/
 abbrev mvcc.hashStorage.Hashes.specC : Prop :=
   ∀ (hs : Loc) (γ : mvcc.MvccName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isHashStorage hs γ }}

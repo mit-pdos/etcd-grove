@@ -32,8 +32,8 @@ abbrev mvcc.watchStream.RequestProgressAll.spec : Prop :=
     (App (Val (ws @!! go.GoType.PointerType watchStream.ty @!! go!"RequestProgressAll")) (Val #()))
   {{ (b : Bool), RET #b; P.R }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.RequestProgressAll()`: asks for the whole stream's progress (a response of id
-`-1`, if every watcher is synced: `wsRecv_progress`). -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.RequestProgressAll()`: asks for the whole stream's progress (a response of id `-1`,
+if every watcher is synced: `wsRecv_progress`). -/
 abbrev mvcc.watchStream.RequestProgressAll.specC : Prop :=
   ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isMvccWatchStream st γ ι ∗ threadTok }}

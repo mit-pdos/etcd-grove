@@ -144,31 +144,28 @@ abbrev mvcc.store.Restore.spec : Prop :=
       ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1) (), mvcc.storeRT γ) ∗
       mvcc.storeRT (γ.withPhys p') }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Restore(b)`, with the store's whole open token (it stops and replaces the compaction
-scheduler, which a concurrent `Compact` reads: `mvccOpen`), from a backend `b` holding the state
-`σ'` (`mvccRestorable`): the store's state becomes `σ'` by the caller's update, `nil`. On a store
-with watchers, the watchers must be reset (`mvccRestoreOk`, free without watchers: only the
-watchable store's `Restore` has it) and `σ'` announced (the watchers resynchronize from it). In
-both modes the update gives that `σ'` extends the state's history and does not lower its
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Restore(b)`, with the store's whole open token (it stops and replaces the compaction
+scheduler, which a concurrent `Compact` reads), from a backend `b` holding the state `σ'`
+(`mvccRestorable`): the store's state becomes `σ'` by the caller's update, `nil`. On a store with
+watchers, the watchers must be reset (`mvccWatchersOk`, free without watchers: only the watchable
+store's `Restore` resets them). The update gives that `σ'` extends the state's history and does not lower its
 compaction revision (the stored hashes survive a restore and stay hashes of the history,
-`mvccHashOk_state`; the watchers' compaction responses stay below the compaction revision; round
-6). Each re-attached key is on a live lease and shorter than `2 ^ 63 - 1` (`isMvccLessor`'s
-`Attach`). Open: a compaction the new backend scheduled and did not finish is resumed (`restore`'s
-`compactLockfree`), which takes the batch lock (the hook) and commits the backend, with no contract
-here yet (the backend boundary). Every key of `σ'` with a lease is on a live one, re-attached in the lessor's
-item map (which the lessor's own recovery emptied). Open: the backend's identity (`mvccBackend`,
-`mvccBackendIs`, the hook) is fixed in the vocabulary, but a restore replaces the backend; it must
-become the state's (the backend boundary's design, `notes/mvcc-api-candidate.md`). -/
+`mvccHashOk_state`; the watchers resynchronize from it). Each re-attached key is on a live lease
+and shorter than `2 ^ 63 - 1` (`isLessor`'s `Attach`); the lessor's item map, emptied by its own
+recovery, becomes the new state's. Open: the backend's identity (`mvccBackend`, `mvccBackendIs`,
+the hook) is fixed in the vocabulary, but a restore replaces the backend; a compaction the new
+backend left unfinished is resumed (`restore`'s `compactLockfree`: the hook and a commit) with no
+contract here yet (the backend boundary, `notes/mvcc-api-candidate.md`). -/
 abbrev mvcc.store.Restore.specC : Prop :=
   ∀ (s : Loc) (γ : mvcc.MvccName) (b : Loc) (σ' : mvcc.MvccState) (L : List w64)
     (Q : mvcc.MvccState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isMvcc s γ ∗ mvcc.mvccOpen γ 1 ∗ mvcc.mvccRestoreOk γ ∗ mvcc.mvccRestorable γ b σ' ∗
+      mvcc.isMvcc s γ ∗ mvcc.mvccOpen γ 1 ∗ mvcc.mvccWatchersOk γ .restore ∗
+      mvcc.mvccRestorable γ b σ' ∗
       lease.leaseOwn (mvcc.mvccLeases γ) L ∅ ∗
       ⌜∀ it lid, (mvcc.pendItems σ'.log []).lookup it = some lid →
         lid ∈ L ∧ (it.Key'.length : Int) < 2 ^ 63 - 1⌝ ∗
-      AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ ∗ ⌜σ.log <+: σ'.log ∧ σ.crev ≤ σ'.crev⌝ ∗
-              (⌜mvcc.mvccWatched γ = false⌝ ∨ mvcc.mvccLogOk γ σ'.log) }>
+      AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ ∗ ⌜σ.log <+: σ'.log ∧ σ.crev ≤ σ'.crev⌝ }>
           @ ⊤ \ ↑mvcc.mvccN, ∅
         <{ mvcc.mvccState γ σ', COMM Q σ }> }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Restore"))

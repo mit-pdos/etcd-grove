@@ -35,12 +35,12 @@ abbrev mvcc.metricsTxnWrite.Rev.spec : Prop :=
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Rev")) (Val #()))
   {{ RET #(kind.beginRev : w64); mvcc.isTxn mw s γ trace kind crev Z }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.Rev()`: the revision of the state the transaction began at. -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.Rev()`: the revision of the state the transaction began at. -/
 abbrev mvcc.metricsTxnWrite.Rev.specC : Prop :=
   ∀ (mw : Loc) (γ : mvcc.MvccName) (trace : Loc) (k : mvcc.MTxn),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccTxn mw γ trace k }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace k }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Rev")) (Val #()))
-  {{ RET #(W64 (k.state.rev : Int) : w64); mvcc.mvccTxn mw γ trace k }}
+  {{ RET #(W64 (k.state.rev : Int) : w64); mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace k }}
 
 end spec
 

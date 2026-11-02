@@ -45,16 +45,14 @@ abbrev mvcc.store.Rev.spec : Prop :=
         ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ log ≠ [] ∧
           v = W64 ((log.length : Int) - 1)⌝ }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Rev()`: the current revision, the caller's update fired at the state, unchanged. -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `s.Rev()`: the current revision, the caller's update fired at the state, unchanged. -/
 abbrev mvcc.store.Rev.specC : Prop :=
   ∀ (s : Loc) (γ : mvcc.MvccName) (Q : mvcc.MvccState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isMvcc s γ ∗ threadTok ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isMvcc s γ ∗ threadTok ∗
       AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ }> @ ⊤ \ ↑mvcc.mvccN, ∅
         <{ mvcc.mvccState γ σ, COMM Q σ }> }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Rev")) (Val #()))
-  {{ (v : w64), RET #v; threadTok ∗
-      ∃ σ : mvcc.MvccState, Q σ ∗ ⌜v = W64 (σ.rev : Int)⌝ }}
+  {{ (v : w64), RET #v; threadTok ∗ ∃ σ : mvcc.MvccState, Q σ ∗ ⌜v = W64 (σ.rev : Int)⌝ }}
 
 end spec
 

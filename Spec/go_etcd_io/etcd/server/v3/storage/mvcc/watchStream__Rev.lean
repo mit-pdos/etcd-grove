@@ -30,7 +30,7 @@ abbrev mvcc.watchStream.Rev.spec : Prop :=
     (App (Val (ws @!! go.GoType.PointerType watchStream.ty @!! go!"Rev")) (Val #()))
   {{ (r : w64), RET #r; P.R }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.Rev()`: the store's current revision, by the caller's update at the state,
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.Rev()`: the store's current revision, by the caller's update at the state,
 unchanged. -/
 abbrev mvcc.watchStream.Rev.specC : Prop :=
   ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName) (Q : mvcc.MvccState → IProp GF),
@@ -38,8 +38,7 @@ abbrev mvcc.watchStream.Rev.specC : Prop :=
       AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ }> @ ⊤ \ ↑mvcc.mvccN, ∅
         <{ mvcc.mvccState γ σ, COMM Q σ }> }}
     (App (Val (st @!! go.GoType.PointerType watchStream.ty @!! go!"Rev")) (Val #()))
-  {{ (v : w64), RET #v; threadTok ∗
-      ∃ σ : mvcc.MvccState, Q σ ∗ ⌜v = W64 (σ.rev : Int)⌝ }}
+  {{ (v : w64), RET #v; threadTok ∗ ∃ σ : mvcc.MvccState, Q σ ∗ ⌜v = W64 (σ.rev : Int)⌝ }}
 
 end spec
 

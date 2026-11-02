@@ -34,29 +34,16 @@ abbrev mvcc.watchStream.Cancel.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       ⌜err = GoInterface.nil⌝ ∨ globalAddr ErrWatcherNotExist ↦□ err }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.Cancel(id)`, by what the caller knows of `id` (`by`):
-* `live`: it holds the watcher's live token; the watcher is cancelled for good (`wsCanceled`, no
-  longer covered by the stream's progress);
-* `unknown`: the id is not in its registrar's view (lent, given back): no watcher has it (the
-  stream never reuses an id, `nextID` only grows), nothing changes;
-* `dead`: the watcher was cancelled already; nothing changes.
-v3rpc's receive loop, the registrar, cancels each id its client sends in one of the three ways.
-`nil` or `ErrWatcherNotExist`. (Round 2 cancelled without anything, so a watcher whose live token
-another holder kept could be cancelled, falsifying the stream's progress law; round 3 merged the
-last two cases, so a caller could lose its view: round 4.) -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `st.Cancel(id)`: by the caller's update at the registrar's view, the watcher `id` no
+longer live (no change for an id never registered or already cancelled: the stream never reuses an
+id); `nil` or `ErrWatcherNotExist`. Responses sent before may still arrive. -/
 abbrev mvcc.watchStream.Cancel.specC : Prop :=
-  ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName) (id : w64) (by_ : mvcc.CancelBy) (S : List w64),
+  ∀ (st : Loc) (γ : mvcc.MvccName) (ι : mvcc.WsName) (id : w64) (Q : List mvcc.WInfo → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isMvccWatchStream st γ ι ∗ threadTok ∗
-      (match by_ with
-       | .live => mvcc.wsLive ι id
-       | .unknown => iprop(mvcc.wsWatchers ι S ∗ ⌜id ∉ S⌝)
-       | .dead => mvcc.wsCanceled ι id) }}
+      AU <{ ∃∃ (W : List mvcc.WInfo), mvcc.wsWatchers ι W }> @ ⊤ \ ↑mvcc.mvccN, ∅
+        <{ mvcc.wsWatchers ι (W.modify (sint.nat id) (fun w => { w with live := false })), COMM Q W }> }}
     (App (Val (st @!! go.GoType.PointerType watchStream.ty @!! go!"Cancel")) (Val #id))
-  {{ (err : GoInterface), RET #err; threadTok ∗
-      (match by_ with
-       | .live => mvcc.wsCanceled ι id
-       | .unknown => mvcc.wsWatchers ι S
-       | .dead => iprop(True)) ∗
+  {{ (err : GoInterface), RET #err; threadTok ∗ (∃ W : List mvcc.WInfo, Q W) ∗
       (⌜err = GoInterface.nil⌝ ∨ globalAddr ErrWatcherNotExist ↦□ err) }}
 
 end spec

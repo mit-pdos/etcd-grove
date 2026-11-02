@@ -33,11 +33,11 @@ abbrev mvcc.readView.FirstRev.spec : Prop :=
   {{ (v : w64), RET #v; mvcc.storeReaderC s γ ∗
       ∃ crev : Int, mvcc.crevLb γ.idx crev ∗ ⌜v = W64 crev ∧ c ≤ crev ∧ -1 ≤ crev⌝ }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `rv.FirstRev()` (the store's `FirstRev`): the compaction revision, the caller's update
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `rv.FirstRev()` (the store's `FirstRev`): the compaction revision, the caller's update
 fired at the state, unchanged. -/
 abbrev mvcc.readView.FirstRev.specC : Prop :=
   ∀ (rv : Loc) (γ : mvcc.MvccName) (Q : mvcc.MvccState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isReadViewOf rv γ ∗ threadTok ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isMvccView (interface.mkOk (go.GoType.PointerType readView.ty) #rv) γ ∗ threadTok ∗
       AU <{ ∃∃ (σ : mvcc.MvccState), mvcc.mvccState γ σ }> @ ⊤ \ ↑mvcc.mvccN, ∅
         <{ mvcc.mvccState γ σ, COMM Q σ }> }}
     (App (Val (rv @!! go.GoType.PointerType readView.ty @!! go!"FirstRev")) (Val #()))

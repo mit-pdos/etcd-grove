@@ -46,15 +46,15 @@ abbrev mvcc.watchableStore.NewWatchStream.spec : Prop :=
           γo.regi = γc.regi ∧ 0 < sint.Z γc.ch.chanCap⌝ ∗ savedPropOwn γo.prog DFrac.discard Q ∗
         savedPredOwn γo.rsn DFrac.discard Ψ }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `ws.NewWatchStream()`: a new stream `ι` of the store, open, its channel, the
-registrar's view (no watcher) and the consumer's (nothing received). -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `ws.NewWatchStream()`: a new stream `ι` of the store, open, the registrar's view (no
+watcher) and the consumer's (nothing received). -/
 abbrev mvcc.watchableStore.NewWatchStream.specC : Prop :=
   ∀ (ws : Loc) (γ : mvcc.MvccName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isWatchableMvcc ws γ }}
     (App (Val (ws @!! go.GoType.PointerType watchableStore.ty @!! go!"NewWatchStream")) (Val #()))
   {{ (st : Loc), RET #(interface.mkOk (go.GoType.PointerType watchStream.ty) #st);
-      ∃ (ι : mvcc.WsName) (ch : GoChan), mvcc.isMvccWatchStream st γ ι ∗ mvcc.wsChan ι ch ∗
-        mvcc.wsOpen ι 1 ∗ mvcc.wsWatchers ι [] ∗ mvcc.wsRecv ι [] }}
+      ∃ ι : mvcc.WsName, mvcc.isMvccWatchStream st γ ι ∗ mvcc.wsOpen ι 1 ∗ mvcc.wsWatchers ι [] ∗
+        mvcc.wsRecv ι [] }}
 
 end spec
 

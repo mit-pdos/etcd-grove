@@ -33,10 +33,10 @@ abbrev mvcc.txnReadWrite.End.spec : Prop :=
     (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z ∗ (∃ te : Bool, traceutil.ownTrace trace te) }}
 
-/-- **Candidate** (2026-11-01, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.End()`: the read transaction ended; the caller's thread token and trace its own. -/
+/-- **Candidate** (round 8, 2026-11-02, `notes/mvcc-api-candidate.md`; over `Api.lean`, not proved). `t.End()`: the read transaction ended; the caller's thread token and trace its own. -/
 abbrev mvcc.txnReadWrite.End.specC : Prop :=
   ∀ (trw : Loc) (γ : mvcc.MvccName) (trace : Loc) (σ : mvcc.MvccState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccRoTxn trw γ trace σ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.mvccTxn (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) γ trace (.read σ) }}
     (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); threadTok ∗ (∃ te : Bool, traceutil.ownTrace trace te) }}
 
