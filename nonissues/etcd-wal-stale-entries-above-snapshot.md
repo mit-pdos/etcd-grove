@@ -37,6 +37,17 @@ wal_stale_test.go:54: ReadAll after a snapshot at 3 (term 2) returned 2 entries 
 
 Upstream not searched (no GitHub access from the session that found it, 2026-11-02).
 
+**The fork's fix** (branch `goose-lean-walsnap` of `upamanyus/etcd`, on the pin `ab3c28d9a`; the
+user's choice, 2026-11-02): `ReadAll` reads the records as the log they write. An entry written at
+or below the start snapshot's index truncates the entries above it (`ReadAll` ignored such writes,
+a second way to keep stale entries), and at the start snapshot's record the entries above it go
+unless the log holds the snapshot's entry (its index and term): raft puts a received snapshot in a
+`Ready` only when the log conflicts with it or is shorter, and the server's own snapshots are of its
+applied log, whose entry at the index is in the WAL before the record. Tests in
+`server/storage/wal/wal_test.go`: `TestReadAllDropsEntriesAReceivedSnapshotDiscards`,
+`TestReadAllTruncatesAtEntryBelowStart` (both fail without the fix),
+`TestReadAllKeepsEntriesAboveOwnSnapshot`.
+
 ## Proof
 
 yes: the restart plan's image of a stopped member (`srvDiskImage`, `InvRestart.lean`) says the WAL's
@@ -44,5 +55,6 @@ records hold the node's durable state (`StorageHolds S σ`, what raft's `Restart
 raft's durable state after a snapshot has no entries above it (`RaftState.next`). A member stopped
 in the window above has WAL records with the stale tail, so the image is false of it, and the
 durability of a restart (R2b-1, `notes/restart-plan.md`) cannot be proved as stated. Found while
-drafting R2b-1 (2026-11-02); the plan's options are in `notes/restart-plan.md`, "R2b-1: the WAL's
-records".
+drafting R2b-1 (2026-11-02); the proof needs the fork's fix above (the user's choice among the
+options in `notes/restart-plan.md`, "R2b-1: the WAL's records"), whose `ReadAll` the WAL's
+trust-boundary model describes.

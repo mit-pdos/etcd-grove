@@ -875,3 +875,19 @@ Options:
    restarted log is not a log raft ever had).
 3. **A scope premise** on the stopped member (no received snapshot since its last appended entry):
    nothing in `restart3` can check it.
+
+**Decision (the user, 2026-11-02): option 1, the fork's fix.** Branch `goose-lean-walsnap` of the
+etcd fork (`6293455e0`, on the pin `ab3c28d9a`; in `/shared/etcd-goose-lean-walsnap`): `ReadAll`
+reads the records as the log they write (an entry at or below the start index truncates the
+entries above it; at the start snapshot's record the entries above it go unless the log holds the
+snapshot's entry). The WAL and server tests pass; two new tests fail without it. The pin moves to it
+once the branch is pushed (`etc/goose.py`, `examples/go.mod`); the Go code is the trust boundary
+(the `wal` package is names-only), so the translation does not change.
+
+**The draft** (`etcdserver/InvWal.lean`, imported by nothing proved yet): the records `walRecs`
+(trust-boundary token), their model (`walSave`: hard state by `phsNext`, entries by `appendEnts`;
+`walSaveSnap`: the entries above the snapshot kept only when the log holds its entry; `walFresh`),
+the contract `isRNWalR` (`Save`/`SaveSnap` as atomic updates in the cases the server uses,
+`WalSaveOk`/`WalSnapOk`, failing only on I/O), the durability invariant `rnDurInv`, the pure laws
+as statements (`walSave_holds_stmt`, `walSnapSave_holds_stmt`, `walOwnSnap_holds_stmt`,
+`walFresh_holds_stmt`), and the receive keeping *enter* unfired (`rnReadyRecvR_stmt`).
