@@ -67,6 +67,8 @@ theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc
   iunfold txn.kvWriter at Hkw
   icases Hkw with ⟨Hsw, Hwl, Hfrag⟩
   iunfold txn.wlogOwn at Hwl
+  icases Hwl with ⟨Hwl, Hpin⟩
+  iunfold txn.wlogOwnW at Hwl
   rw [hwq]
   simp only [↓reduceIte]
   icases Hwl with ⟨%ws, %γw, %hγw, #Hws, Hwl, -⟩
@@ -94,7 +96,7 @@ theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc
   iunfold txn.soleWriter at Hsw
   icases Hsw with ⟨#Hc, Htoks, -⟩
   simp only [txn.soleBudget, mvcc.wBudget]
-  iframe Hc Htoks Hwl
+  iframe Hc Htoks Hwl Hpin
 
 /-- `noCompactor` reads only the logical names (its body sealed: by its laws). -/
 theorem mvcc.noCompactor_withPhys [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]

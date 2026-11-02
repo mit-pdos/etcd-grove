@@ -435,6 +435,8 @@ theorem applySnapshot_walk
     isplitr
     · iintro %p %Hp
       iapply HkcR $$ %(γw.st.withPhys p) %Hp
+    isplitr
+    · simp only [mvcc.kbNoDel]; iexact Hnd'
     isplitl [HlateR]
     · simp only [mvcc.kbRegRight, mvcc.lateReg, hgx']; iexact HlateR
     rw [kbRT_some, hγ', hP']; iexact HnRTx

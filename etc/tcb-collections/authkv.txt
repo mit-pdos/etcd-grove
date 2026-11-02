@@ -111,6 +111,7 @@ axiom clockwork.clockLb_le
 axiom clockwork.clockLb_persistent
 axiom clockwork.realClock
 axiom clockwork.stampAt
+axiom clockwork.stampAt_elim
 axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
@@ -400,5 +401,3 @@ axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
 sorry EtcdServer.applyAll.wp_proofOn
 sorry EtcdServer.run.wp_proofOn
-sorry txn.kvWriter_keyObs
-sorry txn.kvWriter_noCmp

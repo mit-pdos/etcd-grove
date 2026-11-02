@@ -1,17 +1,19 @@
 // Package putgetc is putget with the auto-compactor on (notes/m2-plan.md): one etcd member started
-// in-process with the compactor in revision mode keeping one revision (the most aggressive
-// retention: every compaction is at the revision before the store's), a client connected to it, a
-// Put of a key and a Get of the same key, and a check that the Get returns the Put's value. Main
-// panics if the check fails; the theorem to prove is that it does not, whatever the compactor did
-// meanwhile (a latest read is never compacted).
+// in-process with the compactor in periodic mode keeping a period of 10ms (since 2026-11-02; until
+// then in revision mode keeping one revision, which examples/compactkv covers: a period that
+// short compacts, during a run, every revision the store had 10ms before), a client connected to
+// it, a Put of a key and a Get of the same key, and a check that the Get returns the Put's value.
+// Main panics if the check fails; the theorem to prove is that it does not, whatever the compactor
+// did meanwhile (a latest read is never compacted).
 //
-// As putget, Main calls only what the proofs specify (examples/common: StartCompactingServer,
+// As putget, Main calls only what the proofs specify (examples/common: StartPeriodicServer,
 // Serve, NewClient; the client's Put and Get, each in a context with the examples' request
 // timeout); an error from any step ends Main without a check.
 package putgetc
 
 import (
 	"context"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -22,14 +24,14 @@ import (
 // host:port, no scheme: clientv3.New's premise plainEndpoint).
 const clientAddr = "127.0.0.1:23791"
 
-// The compactor's retention, in revisions.
-const retention = 1
+// The compactor's period.
+const period = 10 * time.Millisecond
 
-// Main starts one member of a new cluster with the auto-compactor on, puts key "k" with value
+// Main starts one member of a new cluster with the auto-compactor on (periodic), puts key "k" with value
 // "v", gets "k" and panics if the value is not "v".
 func Main() {
 	lg := zap.NewNop()
-	s, err := common.StartCompactingServer("putgetc", "127.0.0.1:23801", clientAddr, retention, lg)
+	s, err := common.StartPeriodicServer("putgetc", "127.0.0.1:23801", clientAddr, period, lg)
 	if err != nil {
 		return
 	}

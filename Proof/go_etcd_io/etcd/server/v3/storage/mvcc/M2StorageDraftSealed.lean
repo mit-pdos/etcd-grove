@@ -106,7 +106,7 @@ abbrev mvcc.store.Restore.specMR : Prop :=
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ ⌜∃ d, γ.kb = some d ∧ d'.cm = d.cm⌝ ∗
       mvcc.restoreRightM s γ c ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗
-      mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗
+      mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ mvcc.writerPin γ L ∗
       mvcc.idxCert γ.idx L ∗ ownToks γ.revs (2 ^ 63 - 3 - L.length) ∗
       (if γ.watchQ then mvcc.logQ γ L else iprop(True)) ∗
       mvcc.certOk γ ([[], []] ++ R) ∗
@@ -116,7 +116,8 @@ abbrev mvcc.store.Restore.specMR : Prop :=
         mvcc.keyCleanReadR b' (mvcc.bucketViewC (γ.withPhys p))
           iprop(mvcc.storeRT (γ.withPhys p) ∗ mvcc.restoreRegM d')
           (mvcc.kbRecs (γ.withPhys p).kb (γ.withPhys p).bucket r) r) ∗
-      mvcc.restoreImageM d' γb' ([[], []] ++ R) r ∗ mvcc.kbRegRight (some d') ∗
+      mvcc.restoreImageM d' γb' ([[], []] ++ R) r ∗ mvcc.kbNoDelOff (some d') ∗
+      mvcc.kbRegRight (some d') ∗
       mvcc.restoreRegM d' ∗ mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.resumeHookM d' r ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Restore")) (Val #b'))
@@ -125,6 +126,7 @@ abbrev mvcc.store.Restore.specMR : Prop :=
       mvcc.storeCloserM s (γ.withPhys p') r.crev ∗
       mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗
       mvcc.writerFrag (γ.withPhys p') ∗ mvcc.writerOwn (γ.withPhys p') ∗
+      mvcc.writerPin (γ.withPhys p') ([[], []] ++ R) ∗
       mvcc.hookP (γ.withPhys p') P' ∗
       mvcc.idxCert γ.idx ([[], []] ++ R) ∗
       ownToks γ.revs (2 ^ 63 - 3 - ([[], []] ++ R).length) ∗

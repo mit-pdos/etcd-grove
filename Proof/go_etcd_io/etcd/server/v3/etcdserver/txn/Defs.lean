@@ -99,20 +99,30 @@ def isKV (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) : IProp GF :=
 of a watchable store (`γ.watchQ`), a watchable store over `s` with `γw.st = γ`, the sole writer's
 half of its notified log `L` (`γw.wlog`, `mvcc.watchWriter`'s) and the certificate of `L`; nothing
 for a plain store. -/
-def wlogOwn (s : Loc) (γ : mvcc.StoreNames) (L : mvcc.Log) : IProp GF :=
+def wlogOwnW (s : Loc) (γ : mvcc.StoreNames) (L : mvcc.Log) : IProp GF :=
   if γ.watchQ then
     iprop(∃ (ws : Loc) (γw : mvcc.WsNames), ⌜γw.st = γ⌝ ∗ mvcc.isWatchableStore ws s γw ∗
       monoListAuthOwn γw.wlog (1 : Qp).half L ∗ mvcc.idxCert γ.idx L)
   else iprop(True)
 
+/-- **The writer's own parts at its log `L`** (unit N4, D14a; M2's item 37, 2026-11-02): for a
+watchable store, its part of the notified log (`wlogOwnW`), and for either store the store's
+writer's pin at `L` (`mvcc.writerPin`: its quarter of the bucket's view, and the loan of a store
+that does not compact). -/
+def wlogOwn (s : Loc) (γ : mvcc.StoreNames) (L : mvcc.Log) : IProp GF :=
+  iprop(wlogOwnW s γ L ∗ mvcc.writerPin γ L)
+
 instance isKV_persistent (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) :
     Persistent (isKV (GF := GF) kv s γ) := by
   unfold isKV; infer_instance
 
-/-- A plain store has no notified log. -/
+/-- A plain store has no notified log: the writer's own parts are its pin. -/
 theorem wlogOwn_plain (s : Loc) (γ : mvcc.StoreNames) (L : mvcc.Log) (h : γ.watchQ = false) :
-    ⊢ wlogOwn (GF := GF) s γ L := by
-  unfold wlogOwn; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
+    wlogOwn (GF := GF) s γ L ⊣⊢ mvcc.writerPin γ L := by
+  unfold wlogOwn wlogOwnW; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]
+  constructor
+  · iintro ⟨-, H⟩; iexact H
+  · iintro H; iframe H
 
 end kvdefs
 

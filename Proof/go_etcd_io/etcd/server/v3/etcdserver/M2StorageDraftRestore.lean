@@ -343,6 +343,8 @@ theorem restorePre_of_applyM (s : Loc) (E : apply.AEnv GF) (log : mvcc.Log) (c :
   iunfold txn.kvWriter at Hkw
   icases Hkw with ⟨Hsw, Hwl, Hfrag⟩
   iunfold txn.wlogOwn at Hwl
+  icases Hwl with ⟨Hwl, Hpin⟩
+  iunfold txn.wlogOwnW at Hwl
   rw [hwq]
   simp only [↓reduceIte]
   icases Hwl with ⟨%ws, %γw, %hγw, #Hws, Hwl, -⟩
@@ -383,7 +385,7 @@ theorem restorePre_of_applyM (s : Loc) (E : apply.AEnv GF) (log : mvcc.Log) (c :
   iunfold txn.soleWriter at Hsw
   icases Hsw with ⟨#Hc, Htoks, -⟩
   simp only [txn.soleBudget, mvcc.wBudget]
-  iframe Hc Htoks Hwl
+  iframe Hc Htoks Hwl Hpin
 
 /-! ## The restore step composes -/
 

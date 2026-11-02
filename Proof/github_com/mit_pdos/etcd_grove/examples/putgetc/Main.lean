@@ -1,6 +1,7 @@
 /-
 **`putgetc`** (M2, 2026-10-27, `notes/m2-plan.md`): putget's file, for putget with the
-auto-compactor on (`common.StartCompactingServer`, revision mode, retention 1); putget's history
+auto-compactor on (`common.StartPeriodicServer`, periodic mode, period 10ms, since 2026-11-02;
+until then `common.StartCompactingServer`, revision mode, retention 1); putget's history
 below is the original's.
 
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/putgetc/Main.lean` (item 9, stage 2,
@@ -8,7 +9,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/putgetc/Main.lean` (item 
 counterpart).
 
 The steps: `Main`'s premises in the shared start's form (`common.bootPremise_of`,
-`commonPremises`); the ghost state `NewServer` takes (`common.alloc1`); `common.StartCompactingServer` (the member's configuration with the auto-compactor on, `NewServer`, `Start`);
+`commonPremises`); the ghost state `NewServer` takes (`common.alloc1`); `common.StartPeriodicServer` (the member's configuration with the auto-compactor on in periodic mode, `NewServer`, `Start`);
 `common.Serve` (`v3rpc.Server`, `Listen`, `go gs.Serve(l)`) with the ghost step
 `common.kv_served` (one gRPC slot; etcd's `Put` and `Range` registered at the address);
 `common.NewClient` (`clientv3.New`); each call's context with the request timeout
@@ -23,7 +24,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.putgetc.Main
 public import Spec.go_uber_org.zap.NewNop
-public import Spec.github_com.mit_pdos.etcd_grove.examples.common.StartCompactingServer
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.StartPeriodicServer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Serve
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.NewClient
 public import Perennial.Spec.context.Background
@@ -57,7 +58,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.putgetc.Assumpti
 set_option maxHeartbeats 800000 in
 theorem Main.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
-    (wp_StartCompactingServer : common.StartCompactingServer.spec (GF := GF) (hG := hG))
+    (wp_StartPeriodicServer : common.StartPeriodicServer.spec (GF := GF) (hG := hG))
     (wp_Serve : common.Serve.spec (GF := GF) (hG := hG))
     (wp_NewClient : common.NewClient.spec (GF := GF) (hG := hG))
     (wp_Background : context.Background.spec (GF := GF) (hG := hG))
@@ -100,20 +101,21 @@ theorem Main.wp_proof
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (putgetcDir id) (dirOne_member id _)
-      (by omega) (by omega) (cmp := true) (cret := 1)) $$ Hmarsh
+      (by omega) (by omega) (cmp := true)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -, hkr⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
-  -- `StartCompactingServer("putgetc", "127.0.0.1:23801", clientAddr, retention, lg)`
+  -- `StartPeriodicServer("putgetc", "127.0.0.1:23801", clientAddr, period, lg)` (periodic mode,
+  -- 2026-11-02: the cluster's retention `0`, `alloc1`'s default)
   -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
   have Hdirok : netDirOk (putgetcDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
-  wp_apply (wp_StartCompactingServer N go!"putgetc" go!"127.0.0.1:23801" go!"127.0.0.1:23791"
-      (W64 1) lg
+  wp_apply (wp_StartPeriodicServer N go!"putgetc" go!"127.0.0.1:23801" go!"127.0.0.1:23791"
+      (W64 10000000) lg
       (LogEntry.toEntries boot 0) ctxs (putgetcDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [putgetcDir, dirOne]) Hlg (by decide) (by rw [hkr]; decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
+      (by simp [putgetcDir, dirOne]) Hlg (by decide) hkr Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
