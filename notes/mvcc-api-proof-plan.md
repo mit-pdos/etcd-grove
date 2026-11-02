@@ -137,6 +137,36 @@ invariants (in `isMvcc`):
   index writer's authority) and `certOk` (the transaction's a prefix of the notified log), with
   nothing pending (the writer's half).
 
+## P4/P5 as built so far (2026-11-02)
+
+- **The implementation** (`ApiImpl.lean`): `MvccImpl` (store names, the readers' pool's name, the
+  mode); `mvccStateI` (the client's halves of `γ.abs` and `γ.pnd`, half of `crevUB`, `idxCert` of
+  the log, the certificate map `γ.cok` with `certMapOk` against the notified history, the notified
+  log's certificate while pending, reachability and `|log| + 3 ≤ 2 ^ 63`); `isMvccI` (`isStore`,
+  the mode, a persistent pin of the objects, the readers' `threadPool` of `storeReaderC`, the
+  receipt-paid `revPool`, the write-back supply); `mvccTxnI` (today's read or write transaction at
+  the state, the pool's loan); `mvccBackendIsI`, `mvccWatchersOkI`. `Api.lean` defines its
+  vocabulary over them (the watch stream's, the views', the hash's still opaque).
+- **The lemmas** (`ApiLemmas.lean`): `mvccHook_hookOk`; the certificate map's; `commit_second`,
+  `absCommit_of_au` (a plain store's commit update: both of the caller's updates at the bump, the
+  next log's certificate inserted at the notification), `commitAU_nil`; `mvccTxn_read_eq`,
+  `mvccTxn_write_eq`.
+- **Proved candidate specs** (`<F>.wp_proofC`, from `specA` or today's `spec`): `store.Read`,
+  `store.Write`, `metricsTxnWrite.End`, `.Range`, `.Rev`, `.Put`, `.DeleteRange`.
+- **Changes to the candidate API found by the proof**: `mvccHook` requires a non-nil hook (today's
+  real-backend hook fact, `bkHookIs`, does: a store without a hook cannot write); `Put`'s key bound
+  `|k| < 2 ^ 63 - 1` is unconditional (today's `Put` needs it of every key);
+  `mvccState_reachable`'s bound is `|log| + 3 ≤ 2 ^ 63` (the revision budget's), not `< 2 ^ 62`.
+- **Internal specs changed for the abstract mode** (`specA`s): the reader's ticket after the
+  call's first step (`£ 1 ={⊤}=∗ storeReaderC ∗ T`, the pool's borrow needs a later credit), the
+  revision and write-back tokens paid by receipts of the call's resolution steps; the commit's
+  certificate produced by the commit update (`absCommit` gives `certOk` of the next log), not taken
+  beforehand.
+- **Next**: `FirstRev` (write), `Changes`, `NewReadOnlyTxnWrite`, `txnReadWrite.*`, `store.Commit`
+  (a `specA` without the writer's fragment), `store.Rev`, `NewStore`/`New` (the pools made), the
+  laws; then the watchable store (its commit's notification at `γ.rel`'s raise, the registrar's
+  view, the watch laws), then the tester.
+
 ## Log
 
 - 2026-11-02: plan; the tester translated (`etc/goose.py` project `mvccrand`; its type `rec`
