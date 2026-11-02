@@ -392,14 +392,16 @@ theorem durI1_of_full (γ : RaftNames) (S : RaftState) (F : List EntryM) (c : w6
   exact HI
 
 /-- (2026-11-02, stage II (p)) **I1 at a restart**: the durable half's I1 at `S.wcommit`
-(`durI1`), re-based at a base `b` within `S`'s log, at a commit `c ≥ S.wcommit` (`ConfI1.mono`). -/
+(`durI1`), re-based at a base `b` within `S`'s log, at a commit `c ≥ S.wcommit` (`ConfI1.mono`);
+and the re-based log is `S`'s full log (`DurFull`). -/
 theorem durI1_rebase (γ : RaftNames) (id : w64) (S : RaftState) (Ed : DurMaps) (b : entryID)
     (c : w64) :
     uint.Z S.base.index' ≤ uint.Z b.index' → plogTermAt S.base S.ents b.index' = some b.term' →
     uint.nat S.wcommit ≤ uint.nat c →
     ⊢ durPers (GF := GF) γ id S Ed -∗ durI1 γ S S.wcommit -∗
       □ ∀ fp, ⌜FullOk b fp⌝ -∗ logRecs γ base0 fp -∗
-        ⌜γ.reDyn.isSome = true → ConfI1 (fp ++ S.entsFrom b) (uint.nat c)⌝ := by
+        ⌜DurFull S (fp ++ S.entsFrom b) ∧
+          (γ.reDyn.isSome = true → ConfI1 (fp ++ S.entsFrom b) (uint.nat c))⌝ := by
   intro Hb1 Hbt Hwc
   iintro #Hd #HI
   unfold durPers
@@ -428,9 +430,13 @@ theorem durI1_rebase (γ : RaftNames) (id : w64) (S : RaftState) (Ed : DurMaps) 
   ihave #Ht := logRecs_take γ F m $$ HrF
   icases FullOk_unique γ b fp _ Hfp HfB $$ Hr Ht with %Hfe
   ipureintro
-  intro hd
   rw [Hfe, ← Hdrop, List.take_append_drop]
-  exact (HI0 hd).mono Hwc
+  have hbn := uint_nat_eq S.base.index'
+  have Hn0 : uint.nat S.base.index' = fp0.length := by omega
+  refine ⟨⟨?_, ?_⟩, fun hd => (HI0 hd).mono Hwc⟩
+  · rw [← HF, Hn0, List.drop_left]
+  · rw [← HF, Hn0, List.take_left]
+    exact HfullS
 
 /-- **The cut** (at a `Ready`, `InvRawnodeReady`'s handout, beside `ownRaftGhost_drain`): the outbox
 drained to `o'`, its messages `out` with their read credits and tickets, and the promises made since
@@ -1297,9 +1303,10 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool}
         (ownDurGhost γ id S ={∅, E \ ↑(slotN γ id)}=∗ R S)) ={E}=∗
       ∃ S, ⌜Φ S⌝ ∗ R S ∗ ownRaftGhost γ id (restartP S b c) md ∗
         ∃ g, slotLive γ id 1 g ∗ slotFree γ id g ∗
-        -- (2026-11-02, stage II (p)) I1 of the restarted log at the commit (`durI1_rebase`)
+        -- (2026-11-02, stage II (p)) the restarted log is `S`'s full log, with I1 at the commit
+        -- (`durI1_rebase`)
         □ (∀ fp, ⌜FullOk b fp⌝ -∗ logRecs γ base0 fp -∗
-          ⌜md = true → ConfI1 (fp ++ S.entsFrom b) (uint.nat c)⌝) := by
+          ⌜DurFull S (fp ++ S.entsFrom b) ∧ (md = true → ConfI1 (fp ++ S.entsFrom b) (uint.nat c))⌝) := by
   intro HE Hmd HΦ Hboot
   iintro Hslot Hacc
   unfold raftIdSlot
