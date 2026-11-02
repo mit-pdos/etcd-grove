@@ -243,6 +243,17 @@ def delOk (log : mvcc.Log) (_o : OpFull) : Prop :=
 def rangeOk (log : mvcc.Log) (o : OpFull) : Prop :=
   log.length + 3 ≤ 2 ^ 63 ∧ txn.validSortTarget o ∧ txn.sortOk o log
 
+/-- **A lease grant the apply thread admits** (the lease-grant plan's D3, 2026-11-02; since its B1/B2
+commit 2 `rqOk`'s grant arm in a cluster that grants leases): a request dispatched to `LeaseGrant`,
+with no admin and no side-effect-free field set (the server proposes `{LeaseGrant: r}` alone), its
+id not `0` (`EtcdServer.LeaseGrant` writes a fresh id while `r.ID` is `0`,
+`v3_server.go:436-439`). Nothing about the TTL or the live set: `lessor.Grant` answers an error
+for a TTL above `MaxLeaseTTL` or a live id, which the response carries (with the lessor tied to
+the KV model's lease table, the outcome is a function of the applied log). -/
+def grantKindOk (rq : IRRModel) : Prop :=
+  dispatchKind rq = .leaseGrant ∧ needAdminPermission rq = false ∧ noSideEffect rq = false ∧
+    ∀ g, rq.leaseGrant = some g → g.id ≠ W64 0
+
 /-- **The per-request premise** of `rq` at the sole writer's log `log`, by what `dispatch` does
 with it: the txn package's for a KV request (`TxnPre` for a transaction); a lease checkpoint
 request with at most one checkpoint (each checkpoint is its own critical section of the batch
@@ -254,14 +265,19 @@ lessor proposes no revocation and no checkpoint); `lessor.Revoke` is not specifi
 writers take the environment's write right `AEnv.RW` (the server's is `False`: the apply thread
 holds the rest buckets at their model, `RestModel.lean`), so `dispatch` does not call them; no
 workload admits one (the server's `plainCover`). Until then their premise was `True` (the user's
-and role's name within the key bound for `UserAdd`/`RoleAdd`). -/
-def rqOk (log : mvcc.Log) (rq : IRRModel) : Prop :=
+and role's name within the key bound for `UserAdd`/`RoleAdd`). (The lease-grant stage, B1,
+2026-11-02, the user's decision: in place, gated) In a cluster that grants leases (`lg`,
+`KVNames.lg`), a grant the apply thread admits (`grantKindOk`); in one that grants none, no grant,
+as before (`rqOk_false_leaseGrant`), so `rqOk false` means what `rqOk` meant until then. -/
+def rqOk (lg : Bool) (log : mvcc.Log) (rq : IRRModel) : Prop :=
   match dispatchKind rq with
   | .put => putOk log
   | .deleteRange => ∀ o, rq.deleteRange = some o → delOk log o
   | .range => ∀ o, rq.range = some o → rangeOk log o
   | .txn => ∀ t, rq.txn = some t → txn.TxnPre log t
-  | .leaseGrant => False
+  | .leaseGrant => match lg with
+    | true => grantKindOk rq
+    | false => False
   | .leaseRevoke => False
   | .leaseCheckpoint => False
   | .clusterVersionSet => ∀ v, rq.clusterVersionSet = some v → semverValid v
@@ -313,13 +329,30 @@ only, an admitted admin request (`adminKindOk`). A second clause rather than a m
 `rqOk`: `rqOk` and every statement written with it (the entries' claims, the examples' workloads)
 keep their text, and in the mode `off` the two agree (`rqOkM_off`). -/
 def rqOkM (M : auth.AuthMode) (log : mvcc.Log) (rq : IRRModel) : Prop :=
-  rqOk log rq ∨ (M.isOn = true ∧ adminKindOk rq)
+  rqOk false log rq ∨ (M.isOn = true ∧ adminKindOk rq)
 
-theorem rqOkM_off (log : mvcc.Log) (rq : IRRModel) : rqOkM .off log rq ↔ rqOk log rq := by
+theorem rqOkM_off (log : mvcc.Log) (rq : IRRModel) : rqOkM .off log rq ↔ rqOk false log rq := by
   simp [rqOkM, auth.AuthMode.isOn]
 
-theorem rqOkM_of_rqOk (M : auth.AuthMode) (log : mvcc.Log) (rq : IRRModel) (h : rqOk log rq) :
-    rqOkM M log rq := Or.inl h
+theorem rqOkM_of_rqOk (M : auth.AuthMode) (log : mvcc.Log) (rq : IRRModel)
+    (h : rqOk false log rq) : rqOkM M log rq := Or.inl h
+
+/-- **A cluster that grants none admits no grant** (the lease-grant plan's B1/B2 commit 2): `rqOk
+false`'s grant arm is `False`, every other arm `rqOk lg`'s whatever `lg`. -/
+theorem rqOk_false_leaseGrant (log : mvcc.Log) (rq : IRRModel)
+    (hk : dispatchKind rq = .leaseGrant) : ¬ rqOk false log rq := by
+  simp [rqOk, hk]
+
+/-- **What a cluster that grants none admits, one that grants does** (`rqOk` is monotone in `lg`). -/
+theorem rqOk_of_false (lg : Bool) (log : mvcc.Log) (rq : IRRModel) (h : rqOk false log rq) :
+    rqOk lg log rq := by
+  unfold rqOk at h ⊢
+  split <;> simp_all
+
+/-- **A grant is admitted only where the cluster grants** (`rqOk`'s grant arm). -/
+theorem rqOk_leaseGrant (lg : Bool) (log : mvcc.Log) (rq : IRRModel)
+    (hk : dispatchKind rq = .leaseGrant) : rqOk lg log rq ↔ lg = true ∧ grantKindOk rq := by
+  cases lg <;> simp [rqOk, hk]
 
 /-! ## The compaction arm, pure (M2, the apply side, 2026-10-31) -/
 

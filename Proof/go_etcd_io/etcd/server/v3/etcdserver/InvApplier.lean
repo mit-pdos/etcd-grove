@@ -114,7 +114,7 @@ compaction nor empty (`dispatchOk`), and satisfying the txn package's premises a
 (`rqOk`: `apply.Apply.spec`'s). -/
 def entryOk (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧ (∃ id, apply.irrId rq = some id) ∧
-    apply.rqOk x.log rq ∧ apply.dispatchOk x.chain.authOn rq
+    apply.rqOk false x.log rq ∧ apply.dispatchOk x.chain.authOn rq
 
 /-- **An entry's premise at a small log, from its shape** (D19c's move, 2026-10-18): the KV
 invariant keeps every committed entry's shape (`entryShape`), and the apply thread's log is

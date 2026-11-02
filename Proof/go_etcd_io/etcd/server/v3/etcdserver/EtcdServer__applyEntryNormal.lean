@@ -1125,7 +1125,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       iunfold srvRest at HRS
       rcases Hpe Htyp hdata rq hdec with ⟨⟨hp, hpk⟩, -, -⟩ | ⟨hadm, hns⟩
       · -- a plain request: `apply.Apply`
-        have hrq' : apply.rqOk x.log rq :=
+        have hrq' : apply.rqOk false x.log rq :=
           hrq.resolve_right (fun h => adminKindOk_notPutget rq h hpk)
         ihave #Hcp : apply.certPreV false E x.chain rq x.log $$ []
         · simp only [apply.certPreV, Bool.false_eq_true, ↓reduceIte]; itrivial
@@ -1314,7 +1314,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       rcases Hpe Htyp hdata rq hdec with ⟨⟨hp, hpk⟩, hz, hsa⟩ | ⟨hadm, hns⟩
       · have hna := plainCover_needAdmin rq hp hpk
         icases HtokA with ⟨Htok, -⟩
-        have hrq' : apply.rqOk x.log rq :=
+        have hrq' : apply.rqOk false x.log rq :=
           hrq.resolve_right (fun h => adminKindOk_notPutget rq h hpk)
         -- D14i: the snapshot right and the consistent index's resources, lent out of `Pre`
         ihave HFSE : E.FS $$ [HFS]

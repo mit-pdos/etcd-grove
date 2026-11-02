@@ -58,7 +58,7 @@ abbrev apply.uberApplier.Apply.kvSpecL : Prop :=
       apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗ apply.kvOwn E x.log ∗
       apply.certPreVW v3 E x.chain rq x.log
         (apply.kvOutL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log) ∗
-      mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗ ⌜apply.rqOk x.log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗
+      mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗ ⌜apply.rqOk false x.log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗
       ⌜skip = true → rq.txn.isSome = true⌝ ∗ mvcc.idxCert E.γ.idx F ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
       (∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗

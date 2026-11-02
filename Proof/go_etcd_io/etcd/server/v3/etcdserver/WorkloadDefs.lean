@@ -257,7 +257,7 @@ theorem rqSmall_of_small (log : mvcc.Log) (rq : apply.IRRModel)
 /-- **The shape of `rq`** (see the file header): `dispatchOk` whatever the auth mode, and its
 premise at every log at which the size clauses hold. -/
 def rqShape (rq : apply.IRRModel) : Prop :=
-  (∀ on, apply.dispatchOk on rq) ∧ ∀ log, rqSmall log rq → apply.rqOk log rq
+  (∀ on, apply.dispatchOk on rq) ∧ ∀ log, rqSmall log rq → apply.rqOk false log rq
 
 /-- **What the KV invariant keeps of a committed entry** (D19c): a normal entry with data
 decodes to a request with an id, of a good shape; a conf change has the id `0` (raft's
