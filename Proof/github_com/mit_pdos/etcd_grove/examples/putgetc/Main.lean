@@ -100,9 +100,9 @@ theorem Main.wp_proof
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (putgetcDir id) (dirOne_member id _)
-      (by omega) (by omega) (cmp := true)) $$ Hmarsh
+      (by omega) (by omega) (cmp := true) (cret := 1)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -⟩ := Hal
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -, hkr⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
   -- `StartCompactingServer("putgetc", "127.0.0.1:23801", clientAddr, retention, lg)`
@@ -113,7 +113,7 @@ theorem Main.wp_proof
       (W64 1) lg
       (LogEntry.toEntries boot 0) ctxs (putgetcDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [putgetcDir, dirOne]) Hlg (by decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
+      (by simp [putgetcDir, dirOne]) Hlg (by decide) (by rw [hkr]; decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)

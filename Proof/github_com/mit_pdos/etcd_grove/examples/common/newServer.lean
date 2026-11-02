@@ -143,7 +143,7 @@ theorem newServer.wp_proofCompact
       NewServer.spec (GF := GF) (hG := hG)) :
     newServer.specCompact (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ
-    ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hret Hck Haf Hbuq
+    ρ E₀ Φs γn Htb Hrb48 HrbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hret Hcret Hck Haf Hbuq
     Hdbo
   wp_start as ⟨#Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
   iunfold bootPremise at Hboot
@@ -176,7 +176,7 @@ theorem newServer.wp_proofCompact
       γ id ctxs ρ E₀ N Φs γn dir γd hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok
       Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
-      v3rpc.maxTxnOpsOk_default (Or.inr ⟨rfl, by simpa using Hret⟩)
+      v3rpc.maxTxnOpsOk_default (Or.inr ⟨rfl, by simpa using Hret, Hcret⟩)
       (by rw [hcmp0]; symm; simp only [decide_eq_true_eq]; intro h0; simp [h0] at Hret)
       (hkcmp.trans hcmp0.symm) Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir))

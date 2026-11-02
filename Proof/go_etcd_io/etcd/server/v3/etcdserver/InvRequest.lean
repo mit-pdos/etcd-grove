@@ -151,25 +151,30 @@ structure KVNames where
   member's `ServerRaftNames.raft.log`; `kvInv`'s tie `γk.rlog = γ.raft.log`), where a revision
   reached is read (`kvRevLb`; the client's `kv.Compact`, 2026-10-31). -/
   rlog : GName := 0
+  /-- (C3's server stage, 2026-11-02, the user's) The cluster's compaction retention: every
+  compaction of the cluster is at least `cret` revisions behind a revision its KV has reached
+  (`reqPropOk`'s compaction form, `kvCmpPermit`); `0`, no more than the store's own check. -/
+  cret : Nat := 0
 
 /-- **Two KV names of one cluster's KV** (pure; the client's `kv.Compact`, 2026-10-31): the same
 state, the same model (its start index, chain and start log), the same requested log and the same
-mode; a member's own names (its certificates' map `cok`, `hi`, `ids`) aside. -/
+mode and retention; a member's own names (its certificates' map `cok`, `hi`, `ids`) aside. -/
 def kvSame (γk γk' : KVNames) : Prop :=
   γk.st = γk'.st ∧ γk.c0 = γk'.c0 ∧ γk.ch0 = γk'.ch0 ∧ γk.log0 = γk'.log0 ∧
-    γk.rlog = γk'.rlog ∧ γk.cmp = γk'.cmp
+    γk.rlog = γk'.rlog ∧ γk.cmp = γk'.cmp ∧ γk.cret = γk'.cret
 
-theorem kvSame_refl (γk : KVNames) : kvSame γk γk := ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+theorem kvSame_refl (γk : KVNames) : kvSame γk γk := ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 theorem kvSame_symm {γk γk' : KVNames} (h : kvSame γk γk') : kvSame γk' γk := by
-  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
-  exact ⟨h1.symm, h2.symm, h3.symm, h4.symm, h5.symm, h6.symm⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h
+  exact ⟨h1.symm, h2.symm, h3.symm, h4.symm, h5.symm, h6.symm, h7.symm⟩
 
 theorem kvSame_trans {γk γk' γk'' : KVNames} (h : kvSame γk γk') (h' : kvSame γk' γk'') :
     kvSame γk γk'' := by
-  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
-  obtain ⟨h1', h2', h3', h4', h5', h6'⟩ := h'
-  exact ⟨h1.trans h1', h2.trans h2', h3.trans h3', h4.trans h4', h5.trans h5', h6.trans h6'⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h
+  obtain ⟨h1', h2', h3', h4', h5', h6', h7'⟩ := h'
+  exact ⟨h1.trans h1', h2.trans h2', h3.trans h3', h4.trans h4', h5.trans h5', h6.trans h6',
+    h7.trans h7'⟩
 
 /-- The KV invariant's namespace (disjoint from raft's commit). -/
 def kvN : Namespace := nroot .@ "server_kv"
@@ -258,7 +263,7 @@ rejected by `Apply`; review round 1's F-4), at a revision of the model of `A` (n
 def cmpEntryOk (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel) : Prop :=
   m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
     apply.dispatchKind rq = .compaction → cmp = true ∧ compactPropOk rq ∧
-      ∀ r, rq.compaction = some r → sint.Z r < (kvModel γk A).length
+      ∀ r, rq.compaction = some r → sint.Z r + γk.cret < (kvModel γk A).length
 
 /-- **Every compaction of `L` claims at the model before it.** -/
 def cmpLogOk (γk : KVNames) (cmp : Bool) (L : List EntryModel) : Prop :=
@@ -567,26 +572,58 @@ longer than `r`, so every entry requested later is applied after revision `r` ex
 cluster (`kvSame` names agree on it), unlike a member's certificates. A `Put`'s reply gives it at
 the put's revision; the start's revisions are free (`kvRevLb_start`). What `reqPropOk`'s compaction
 form carries to the commit, where the KV invariant records the revision as one of the model
-before the entry (`cmpLogOk`, `kv_prop_au_cmp`). Clients use its laws only. -/
-def kvRevLb (γk : KVNames) (r : w64) : IProp GF :=
-  iprop(∃ L₀ : List EntryModel, monoListLbOwn γk.rlog L₀ ∗
-    ⌜sint.Z r < (kvModel γk L₀).length⌝)
+before the entry (`cmpLogOk`, `kv_prop_au_cmp`). Clients use its laws only. At an integer
+revision (`kvRevLbZ`, C3's server stage: a revision plus the retention does not wrap). -/
+def kvRevLbZ (γk : KVNames) (n : Int) : IProp GF :=
+  iprop(∃ L₀ : List EntryModel, monoListLbOwn γk.rlog L₀ ∗ ⌜n < (kvModel γk L₀).length⌝)
+
+omit raftAsm in
+instance kvRevLbZ_persistent (γk : KVNames) (n : Int) : Persistent (kvRevLbZ (GF := GF) γk n) := by
+  unfold kvRevLbZ; infer_instance
+
+omit raftAsm in
+/-- A revision below a reached one is reached. -/
+theorem kvRevLbZ_mono (γk : KVNames) (n m : Int) (h : n ≤ m) :
+    kvRevLbZ (GF := GF) γk m ⊢ kvRevLbZ γk n := by
+  iintro H
+  iunfold kvRevLbZ at H
+  icases H with ⟨%L₀, #HL, %Hl⟩
+  iunfold kvRevLbZ
+  iexists L₀
+  iframe HL
+  ipureintro; omega
+
+omit raftAsm in
+/-- The same cluster's KV names agree on the revisions reached. -/
+theorem kvRevLbZ_same (γk γk' : KVNames) (h : kvSame γk γk') (n : Int) :
+    kvRevLbZ (GF := GF) γk n ⊢ kvRevLbZ γk' n := by
+  obtain ⟨-, h2, h3, h4, h5, -, -⟩ := h
+  unfold kvRevLbZ kvModel
+  rw [h2, h3, h4, h5]
+
+/-- `kvRevLbZ` at a `w64` revision. -/
+def kvRevLb (γk : KVNames) (r : w64) : IProp GF := kvRevLbZ γk (sint.Z r)
 
 omit raftAsm in
 instance kvRevLb_persistent (γk : KVNames) (r : w64) : Persistent (kvRevLb (GF := GF) γk r) := by
   unfold kvRevLb; infer_instance
 
+/-- **The cluster's compaction permit** (C3's server stage, 2026-11-02; persistent): a positive
+revision at least the retention `cret` behind a revision the cluster's KV has reached. The
+server's store keeps it of its compaction revision (`mvcc.crevPermIs`). -/
+def kvCmpPermit (γk : KVNames) (c : Int) : IProp GF :=
+  iprop(⌜0 < c⌝ ∗ kvRevLbZ γk (c + γk.cret))
+
+omit raftAsm in
+instance kvCmpPermit_persistent (γk : KVNames) (c : Int) :
+    Persistent (kvCmpPermit (GF := GF) γk c) := by
+  unfold kvCmpPermit; infer_instance
+
 omit raftAsm in
 /-- A revision below a reached one is reached. -/
 theorem kvRevLb_mono (γk : KVNames) (r r' : w64) (h : sint.Z r' ≤ sint.Z r) :
     kvRevLb (GF := GF) γk r ⊢ kvRevLb γk r' := by
-  iintro H
-  iunfold kvRevLb at H
-  icases H with ⟨%L₀, #HL, %Hl⟩
-  iunfold kvRevLb
-  iexists L₀
-  iframe HL
-  ipureintro; omega
+  unfold kvRevLb; exact kvRevLbZ_mono γk _ _ h
 
 omit raftAsm in
 /-- The start log's revisions are reached (`log0 = [[], []]` in every cluster: `0` and `1`). -/
@@ -595,7 +632,7 @@ theorem kvRevLb_start (γk : KVNames) (r : w64) (h : sint.Z r < γk.log0.length)
   iintro
   imod (monoListLbOwn_nil (GF := GF) (A := EntryModel) γk.rlog) with #H0
   imodintro
-  iunfold kvRevLb
+  unfold kvRevLb kvRevLbZ
   iexists []
   iframe H0
   ipureintro
@@ -605,19 +642,18 @@ omit raftAsm in
 /-- The same cluster's KV names agree on the revisions reached. -/
 theorem kvRevLb_same (γk γk' : KVNames) (h : kvSame γk γk') (r : w64) :
     kvRevLb (GF := GF) γk r ⊢ kvRevLb γk' r := by
-  obtain ⟨-, h2, h3, h4, h5, -⟩ := h
-  unfold kvRevLb kvModel
-  rw [h2, h3, h4, h5]
+  unfold kvRevLb; exact kvRevLbZ_same γk γk' h _
 
 /-- **What a proposal of `rq` needs** (M2's apply side, item 6, 2026-10-31): the write forms
 (`reqPropOkW`); or, in the cluster's compaction mode, a compaction in M2's scope at a reached
-revision (`kvRevLb`), its result trivial. -/
+revision at least the cluster's retention behind a reached one (`kvRevLbZ`, C3's server stage),
+its result trivial. -/
 def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
   iprop(reqPropOkW γk rq Qr ∨
     (⌜γk.cmp = true ∧ compactPropOk rq ∧ rqShape rq ∧ irrNoZeroEnd rq ∧
         Qr = fun _ => iprop(True)⌝ ∗
-      ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLb γk r))
+      ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLbZ γk (sint.Z r + γk.cret)))
 
 /-- The write forms are proposals. -/
 theorem reqPropOk_of_W (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :

@@ -54,12 +54,12 @@ theorem mvcc.watchableStore.Write.wp_proof (hWrite : mvcc.store.Write.spec (GF :
   iunfold mvcc.isWatchableStore at Hws
   iNamed Hws
   iunfold mvcc.watchWriter at Hww
-  icases Hww with ⟨#Hcert, Htoks, Hwlog⟩
+  icases Hww with ⟨#Hcert, Htoks, Hwlog, Hpin⟩
   have hb : mvcc.wBudget L = (mvcc.wBudget L - 1) + 1 := by unfold mvcc.wBudget; omega
   rw [hb]
   icases (ownToks_add 1 (mvcc.wBudget L - 1) γ.st.revs).1 $$ Htoks with ⟨Htoks, H1⟩
   (try wp_auto)
-  wp_apply (hWrite st γ.st trace P Pre Q f te) $$ [$Hs $Hrd H1 $Hwt $Hhook $Hpre $Htr $Htrc]
+  wp_apply (hWrite st γ.st trace P Pre Q f te L) $$ [$Hs $Hrd H1 $Hwt $Hhook $Hpin $Hpre $Htr $Htrc]
     as %mw ⟨⟨%ilog, %crev, Htx, -⟩, HQ, Hhook⟩
   · unfold mvcc.revToken; iframe H1; ipureintro; exact Htrnn
   iunfold mvcc.isTxnWrite at Htx

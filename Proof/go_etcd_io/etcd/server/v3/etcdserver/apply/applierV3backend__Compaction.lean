@@ -107,7 +107,7 @@ theorem apply.applierV3backend.Compaction.wp_proof
     (hRange : mvcc.readView.Range.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Compaction.spec (GF := GF) (hG := hG) := by
   intro E p cr rev log crev Pre Q Post info
-  wp_start as ⟨#Hb, #Hcr, %Hadm, Hpre, Hc⟩
+  wp_start as ⟨#Hb, #Hcr, %Hadm, #Hperm, Hpre, Hc⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   ihave #Hok' := Hok
@@ -149,7 +149,7 @@ theorem apply.applierV3backend.Compaction.wp_proof
   ihave %Hkvok := mvcc.kvOver_ok _ E.s $$ Hko
   obtain ⟨kty, kvv, Hkveq⟩ := Hkvok
   ihave %Hcge := apply.cmpOwn_ge E crev $$ Hc
-  ihave ⟨Hr, %Hc1, #Hperms, #Hcert, Hhi, Hrt, #Hsup, Hback⟩ :=
+  ihave ⟨Hr, %Hc1, #Hcert, Hhi, Hrt, #Hsup, Hback⟩ :=
     apply.cmp_store_pre E log crev Hadm.1 $$ [$Hkvo $Hc $Hhk]
   rw [Hkveq]
   simp only [interface.mkOk]
@@ -157,10 +157,7 @@ theorem apply.applierV3backend.Compaction.wp_proof
   · iPkgInit
   wp_apply (kvOver_Compact hCompact kty kvv E.s E.γ trc rev crev E.P E.f Pre Q Post log false
       Htrcnn Hadm.1 Hc1) $$ [$Hr $Hhi $Hcs $Htrc $Hrt] as %ch %err ⟨Htrc, Hrt, Hhi, Hout⟩
-  · iframe #
-    isplitr
-    · iapply Hperms
-    ipureintro; exact Hadm.2
+  · iframe #; ipureintro; exact Hadm.2
   icases Hout with (⟨%Herr, Hr, #Hlb, HPost, -⟩ | ⟨%Hle, ⟨%ec, #Hec, %Herr⟩, Hr, HPre, -⟩)
   · -- compacted: `KV.Range(context.TODO(), "compaction", nil, {})` for the header
     obtain ⟨Herr, Hlt⟩ := Herr

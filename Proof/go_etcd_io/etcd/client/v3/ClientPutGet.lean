@@ -576,13 +576,14 @@ theorem client_Put_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfa
 
 /-- **`cli.Compact(ctx, rev)` by `New`'s client `cl`** (the client's `kv.Compact`, 2026-11-01;
 `kv.Compact` through the `KV` field, as `client_Put_kv`): on a compacting cluster, at a revision
-past `0` the KV has reached (`kvRevLb`, a `Put`'s reply's), no options: `nil` and the reply's
+past `0` at least the cluster's retention behind a revision the KV has reached (`kvRevLbZ`; at
+retention `0` a `Put`'s reply's `kvRevLb`), no options: `nil` and the reply's
 message, or a client error. -/
 theorem client_Compact_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (rev : w64) (hr : 1 ≤ sint.Z rev) (hc : γ.cmp = true) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□ GoInterface.ok (kvIfaceOf api) ∗
-        isKv api γ dup ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ kvRevLb γ rev }}
+        isKv api γ dup ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ kvRevLbZ γ (sint.Z rev + γ.cret) }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Compact")) (Val #(GoInterface.ok ci))) (Val #rev)) (Val #slice.nil))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

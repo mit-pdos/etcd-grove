@@ -335,7 +335,8 @@ side, item 19) the KV names' compaction mode the server's, which is its store's 
 track's `srvEnvOkD` makes the backend's mode the server's). -/
 def srvKVInvs (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(kvInv γr.raft γr.kv ∗ kvCertInv γr.raft γr.kv ∗ srvRaftLogInv γr.raft ∗
-    ⌜E.γ.cok = γr.kv.cok⌝ ∗ ⌜γr.kv.cmp = E.cmp ∧ (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)⌝)
+    ⌜E.γ.cok = γr.kv.cok⌝ ∗ ⌜γr.kv.cmp = E.cmp ∧ (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)⌝ ∗
+    ⌜γr.kv.cret = E.cret⌝ ∗ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv))
 
 instance srvKVInvs_persistent (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVInvs (GF := GF) E γr) := by

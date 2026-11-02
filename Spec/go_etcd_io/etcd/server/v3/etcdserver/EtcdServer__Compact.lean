@@ -78,7 +78,8 @@ abbrev EtcdServer.Compact.spec : Prop :=
       isServerReq s E ρ ∗ ⌜E.cmp = true⌝ ∗ isServerRead s E ρ.rd ∗ srvLeadTimeReader s ∗
       srvLgReader s ∗ E.RD ∗
       mvcc.storeReaderC E.s E.γ ∗ idCred ρ.ids 1 ∗
-      context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx none ∗ kvRevLb ρ.rd.kv (W64 r) ∗
+      context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx none ∗
+      kvRevLbZ ρ.rd.kv (r + ρ.rd.kv.cret) ∗
       compactReqIs p r }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Compact"))
       (Val #(GoInterface.ok ctx))) (Val #p))

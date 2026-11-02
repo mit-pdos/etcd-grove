@@ -1838,9 +1838,11 @@ def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
 def wBudget (L : Log) : Nat := 2 ^ 63 - 3 - L.length
 
 /-- **The sole writer** of the watchable store at the committed (and notified) log `L`: its
-certificate, every revision token not spent, and its half of the notified log. -/
+certificate, every revision token not spent, its half of the notified log, and the inner store's
+writer's pin at `L` (`writerPin`, M2's item 37, 2026-11-02). -/
 def watchWriter (γ : WsNames) (L : Log) : IProp GF :=
-  iprop(idxCert γ.st.idx L ∗ ownToks γ.st.revs (wBudget L) ∗ monoListAuthOwn γ.wlog (1 : Qp).half L)
+  iprop(idxCert γ.st.idx L ∗ ownToks γ.st.revs (wBudget L) ∗ monoListAuthOwn γ.wlog (1 : Qp).half L ∗
+    writerPin γ.st L)
 
 /-- The write transaction `s.Write` returns (`tw`, a `watchableStoreTxnWrite`): its fields, the
 inner transaction (`isTxnWrite` of `metricsTxnWrite` `mw`) over the inner store `st`, and the

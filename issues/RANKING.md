@@ -233,6 +233,9 @@ reachability not reproduced by a test yet, which it needs before filing; #20356 
 in a cluster that became unavailable, closed without a root cause),
 [etcd-request-id-member-prefix](etcd-request-id-member-prefix.md) (needs two member ids equal in
 their low 16 bits),
+[etcd-request-id-restart-reuse](etcd-request-id-restart-reuse.md) (2026-11-02: the same collision
+across one member's restart; needs the wall clock to step back across it, or more than 256 ids per
+millisecond before it; not reproduced),
 [etcd-lease-close-require-leader-ctx-misaligned](etcd-lease-close-require-leader-ctx-misaligned.md)
 (a canceled `KeepAlive` closes another caller's channel after an `ErrNoLeader` stream end; test and
 one-token fix; known: etcd-io/etcd#22081 and fix PR #22087, open, unreviewed, marked stale),

@@ -31,7 +31,8 @@ committed log's authority, `wlogQ`), then every synced watcher moved to the unsy
 its `restore` flag set (`syncWatchers` then sends it the restored log's events from its
 `minRev`, or, past the restored log, moves it back: `chooseAll` clears the flag rather than
 panic), the synced group emptied; `nil`. The sole writer at the committed (and notified) log `L`
-(`watchWriter`) is at `L'` after: the lock's notified log is `L'` (no watcher is synced: the
+(`watchWriter`) is at `L'` after, at the inner store's new physical names (with the writer's pin
+there, `writerPin`; M2's item 37, 2026-11-02): the lock's notified log is `L'` (no watcher is synced: the
 restored revisions' events go out through `syncWatchers`). A move delivers no event: each moved
 watcher keeps its delivered events, and the lock records it delivered up to its `minRev`, as
 far as its events go (`popFacts`: nothing of its range between its `minRev` and its delivery
@@ -55,7 +56,7 @@ abbrev mvcc.watchableStore.Restore.spec : Prop :=
         mvcc.keyCleanRead b' (mvcc.bucketViewC (γ.st.withPhys p)) (mvcc.storeRT (γ.st.withPhys p))
           (mvcc.kbNoCmp (γ.st.withPhys p).kb (γ.st.withPhys p).bucket)) ∗
       mvcc.kbViewC (some d') γb' 1 (mvcc.bucketMap ([[], []] ++ R)) ∗
-      mvcc.kbNoCmp (some d') γb' ∗ mvcc.kbRegRight (some d') ∗
+      mvcc.kbNoCmp (some d') γb' ∗ mvcc.kbNoDel (some d') ∗ mvcc.kbRegRight (some d') ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Restore")) (Val #b'))
   {{ RET #GoInterface.nil; ∃ p' : mvcc.PhysNames,
@@ -63,7 +64,7 @@ abbrev mvcc.watchableStore.Restore.spec : Prop :=
       mvcc.storeCloser st (γ.st.withPhys p') ∗
       mvcc.writerFrag (γ.st.withPhys p') ∗ mvcc.writerOwn (γ.st.withPhys p') ∗
       mvcc.hookP (γ.st.withPhys p') P' ∗
-      mvcc.watchWriter γ ([[], []] ++ R) ∗
+      mvcc.watchWriter { γ with st := γ.st.withPhys p' } ([[], []] ++ R) ∗
       ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1) (), mvcc.storeRT γ.st) ∗
       mvcc.storeRT (γ.st.withPhys p') }}
 

@@ -83,8 +83,8 @@ noncomputable def StartServer [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def StartCompactingServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.StartCompactingServer"
 
-noncomputable def NewServer [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/common.NewServer"
+noncomputable def BuildServer [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/common.BuildServer"
 
 noncomputable def NewMember [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.NewMember"
@@ -349,14 +349,14 @@ noncomputable def StartCompactingServer.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Pair (Var "peer") (Var "$r0")))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))))
 
-/-- NewServer builds member name of a new cluster whose initial members' peer URLs are cluster and
+/-- BuildServer builds member name of a new cluster whose initial members' peer URLs are cluster and
     whose token is token, its peer URLs peer and its one client URL http://client, with the
     snapshot settings snapCount and catchUp (newServer, the auto-compactor off), and serves nothing:
     for an example that keeps its listeners, to close them when it stops the member
     (examples/restart3).
 
     go: common.go:125:6 -/
-noncomputable def NewServer.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def BuildServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
   (Lam "client"
@@ -1411,7 +1411,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   newServer_unfold : FuncUnfold newServer [] newServer.impl
   StartServer_unfold : FuncUnfold StartServer [] StartServer.impl
   StartCompactingServer_unfold : FuncUnfold StartCompactingServer [] StartCompactingServer.impl
-  NewServer_unfold : FuncUnfold NewServer [] NewServer.impl
+  BuildServer_unfold : FuncUnfold BuildServer [] BuildServer.impl
   NewMember_unfold : FuncUnfold NewMember [] NewMember.impl
   StartMember_unfold : FuncUnfold StartMember [] StartMember.impl
   Serve_unfold : FuncUnfold Serve [] Serve.impl
@@ -1448,7 +1448,7 @@ attribute [instance] Assumptions.KV_instance
   Assumptions.newServer_unfold
   Assumptions.StartServer_unfold
   Assumptions.StartCompactingServer_unfold
-  Assumptions.NewServer_unfold
+  Assumptions.BuildServer_unfold
   Assumptions.NewMember_unfold
   Assumptions.StartMember_unfold
   Assumptions.Serve_unfold

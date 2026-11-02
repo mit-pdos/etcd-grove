@@ -143,7 +143,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     backend.rbOwn d'.γB (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))) ∗
     membership.clusterMem cl memI ∗ backend.bOpen d'.γB (1 : Qp).half ∗
     mvcc.storeCloser E.s (γw.st.withPhys p') ∗ mvcc.writerFrag (γw.st.withPhys p') ∗
-    mvcc.watchWriter γw ([[], []] ++ R) ∗
+    mvcc.watchWriter { γw with st := γw.st.withPhys p' } ([[], []] ++ R) ∗
     (mvcc.storeRT (γw.st.withPhys p') -∗ mvcc.writerOwn (γw.st.withPhys p')) ∗
     mvcc.storeReader E.s E.γ ∗ trLive γn t c L ∗ srvLgReader s ∗
     epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗

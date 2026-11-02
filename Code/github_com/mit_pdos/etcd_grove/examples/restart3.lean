@@ -4,14 +4,10 @@ module
 public import Perennial.Code.context
 public import Code.net
 public import Code.net.http
-public import Perennial.Code.time
 public import Code.go_uber_org.zap
-public import Code.google_golang_org.grpc
-public import Code.google_golang_org.grpc.keepalive
 public import Code.go_etcd_io.etcd.client.pkg.v3.types
 public import Code.go_etcd_io.etcd.client.v3
 public import Code.go_etcd_io.etcd.server.v3.etcdserver
-public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import Code.github_com.mit_pdos.etcd_grove.examples.common
 public import Perennial.Golang.Defn
 
@@ -67,6 +63,9 @@ attribute [irreducible] member.ty
 noncomputable def startMember [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/restart3.startMember"
 
+noncomputable def serveClient [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/restart3.serveClient"
+
 noncomputable def stop [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/restart3.stop"
 
@@ -80,12 +79,12 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/restart3.Main"
 
 /-- startMember starts member name of the cluster cluster (token "restart3"), whose peer URLs are
-    peer (the one URL http://peerAddr): the server built (common.NewServer, at the snapshot
-    settings), its raft handler served on a listener at peerAddr, the server started, and its gRPC
-    API served on a listener at client. Starting a member that was stopped finds its data directory
-    (the member's name + ".etcd"): etcd restarts it from its WAL.
+    peer (the one URL http://peerAddr): the server built (common.BuildServer, at the snapshot
+    settings), its raft handler served on a listener at peerAddr, and the server started. Its client
+    URL is http://client, served only by serveClient. Starting a member that was stopped finds its
+    data directory (the member's name + ".etcd"): etcd restarts it from its WAL.
 
-    go: restart3.go:68:6 -/
+    go: restart3.go:64:6 -/
 noncomputable def startMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -110,7 +109,7 @@ noncomputable def startMember.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a5" (Val SnapCount)
   (Let "$a6" (Val SnapCatchUp)
   (Let "$a7" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.NewServer []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")) (Var "$a7"))))))))))
+  (App (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.BuildServer []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")) (Var "$a7"))))))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -135,35 +134,10 @@ noncomputable def startMember.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"RaftHandler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))
   (Let "$go" (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.http.Serve []))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (Val #(go!"tcp"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "client"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.Listen []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "cl" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.Listener.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.net.Listener.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)))) (Val UntypedNil))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Val UntypedNil))
-  (Let "$a3" (Let "$sl0" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val _root_.Perennial.time.Second)))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.keepalive.EnforcementPolicy.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MinTime")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v0")))])))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.KeepaliveEnforcementPolicy []))) (Val #())) (Var "$a0")))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ServerOption.ty (Var "$sl0")))])))
-  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Server []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
-  (Let "gs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (Var "cl"))
-  (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) go!"Serve"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Var "gs")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoAlloc member.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (Var "pl"))
-  (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Var "gs"))
-  (App (Val (GoInstruction (CompositeLiteral member.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"s")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"pl")) (ElementExpression _root_.Perennial.net.Listener.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"gs")) (ElementExpression (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) (Var "$v2")))]))))))
+  (App (Val (GoInstruction (CompositeLiteral member.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"s")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"pl")) (ElementExpression _root_.Perennial.net.Listener.ty (Var "$v1")))])))))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -174,29 +148,7 @@ noncomputable def startMember.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType member.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
-  (Fork
-  (App (Var "$go") (Var "$a0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Pair (Var "gs") (Var "$r0")))))))))
-  (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"Start"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType member.ty)))) (Val UntypedNil))
-  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType member.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.net.Listener.ty))) (Pair (Var "cl") (Var "$r0")))))))))))))
   (App (Val doExecute)
   (Fork
   (App (App (Var "$go") (Var "$a0")) (Var "$a1"))))))))))
@@ -236,31 +188,50 @@ noncomputable def startMember.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "s") (Var "$r0")))))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))))
 
-/-- stop stops the member m: its gRPC server stopped (its listener and connections closed), the
-    server stopped (HardStop: no leadership transfer; run's deferred shutdown stops the raft node and
-    the transport and calls Cleanup, which closes the lessor, the KV store, the auth store and the
-    backend, so that the data directory can be opened again; Cleanup must not be called again: a
-    second lessor.Stop closes a closed channel), and its peer listener closed.
+/-- serveClient serves the started member m's gRPC API on a listener at client (common.Serve). An
+    address is served once in a run: member 1's from the start, the restarted member's only after
+    its restart (the proofs' network model binds an address's gRPC server for good).
 
-    go: restart3.go:97:6 -/
+    go: restart3.go:82:6 -/
+noncomputable def serveClient.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam "client"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "client" (App (Val (GoInstruction (GoAlloc go.string))) (Var "client"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType member.ty)))) (Var "m"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef member.ty go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "m"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "client"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Serve []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- stop stops the member m: the server stopped (HardStop: no leadership transfer; run's deferred
+    shutdown stops the raft node and the transport and calls Cleanup, which closes the lessor, the KV
+    store, the auth store and the backend, so that the data directory can be opened again; Cleanup
+    must not be called again: a second lessor.Stop closes a closed channel), then its peer listener
+    closed, so that the restarted member can listen on the address again.
+
+    go: restart3.go:91:6 -/
 noncomputable def stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType member.ty)))) (Var "m"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Listener.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (App (Val (GoInstruction (StructFieldRef member.ty go!"pl"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "m"))))) (Val #())))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"HardStop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef member.ty go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "m"))))) (Val #()))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) go!"Stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (App (Val (GoInstruction (StructFieldRef member.ty go!"gs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "m"))))) (Val #()))))))
   (Val #())))
 
 /-- put puts key k with value v through cli, in a context with the request timeout, cancelled after
     the call.
 
-    go: restart3.go:105:6 -/
+    go: restart3.go:98:6 -/
 noncomputable def put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "k"
@@ -315,7 +286,7 @@ noncomputable def put.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Run is Main with the logger lg (the members' and the clients'), so that a test can count what
     the members log.
 
-    go: restart3.go:114:6 -/
+    go: restart3.go:107:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Seq (App (Val exceptionDo)
@@ -344,6 +315,21 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v3"))), (KeyedElement (some (KeyExpression go.string (Var "$k4"))) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v5")))]))))))))
   (Let "cluster" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (Val #(go!"restart3-1"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer1"))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val peerAddr1))
+  (Let "$a3" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr1))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
+  (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve startMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5"))))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "m1" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType member.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (Val #(go!"restart3-2"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer2"))
@@ -356,7 +342,6 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Let "m2" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType member.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -373,6 +358,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "m3" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType member.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -403,6 +389,21 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "peerAddr"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (Var "client"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
+  (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve startMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5"))))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "mR" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType member.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -473,19 +474,10 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "cliR") (Var "$r0")))))))))))))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "peerAddr"))
-  (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (Var "client"))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
-  (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve startMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5"))))))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "mR"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "client"))
+  (App (App (App (Val (GoInstruction (FuncResolve serveClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doReturn)
@@ -493,9 +485,16 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType member.ty)))) (Pair (Var "mR") (Var "$r0")))))))))))))
   (Let "$r0" (Val #(W64 0))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -576,6 +575,18 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "cli") (Var "$r0")))))))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "m1"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr1))
+  (App (App (App (Val (GoInstruction (FuncResolve serveClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doReturn)
   (Val #()))
@@ -593,30 +604,16 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType member.ty)))) (Pair (Var "m2") (Var "$r0"))))))))))))))
-  (Let "__p" (Let "$a0" (Val #(go!"restart3-1"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer1"))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val peerAddr1))
-  (Let "$a3" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr1))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
-  (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve startMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5"))))))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType member.ty)))) (Pair (Var "m2") (Var "$r0")))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #())))))
+  (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType member.ty)))) (Pair (Var "m1") (Var "$r0"))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Pair (Var "cluster") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -629,7 +626,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Main runs the example with no logging (Run).
 
-    go: restart3.go:173:6 -/
+    go: restart3.go:174:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -639,16 +636,12 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.restart3 where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.net, pkg_id.net.http, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.keepalive, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.github_com.mit_pdos.etcd_grove.examples.common]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.net, pkg_id.net.http, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.github_com.mit_pdos.etcd_grove.examples.common]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.restart3)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -663,13 +656,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.http.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.time.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.keepalive.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -677,23 +664,19 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.initialize') (Val #()))))))))
 
 structure member [GooseExts] where
   mk ::
   s' : Loc
   pl' : _root_.Perennial.net.Listener
-  gs' : Loc
 
 noncomputable instance member.zero_val [GooseExts] : ZeroVal member :=
-  ⟨member.mk zeroValDef zeroValDef zeroValDef⟩
+  ⟨member.mk zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def member.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"s" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)),
-(go.field_decl.FieldDecl go!"pl" _root_.Perennial.net.Listener.ty),
-(go.field_decl.FieldDecl go!"gs" (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty))]
+(go.field_decl.FieldDecl go!"pl" _root_.Perennial.net.Listener.ty)]
 
 @[irreducible] noncomputable def member.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   member.fieldsUnsealed
@@ -712,8 +695,6 @@ class member.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_s : ∀ (x : member) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : member)))
   get_pl : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"pl") #x (Val #(x.pl'))
   set_pl : ∀ (x : member) (y : _root_.Perennial.net.Listener), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"pl") (PairV #x #y) (Val #(({ x with pl' := y } : member)))
-  get_gs : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"gs") #x (Val #(x.gs'))
-  set_gs : ∀ (x : member) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"gs") (PairV #x #y) (Val #(({ x with gs' := y } : member)))
   method_set : go.MethodSetIs member.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType member.ty) []
 
@@ -723,14 +704,13 @@ attribute [instance] member.TypeAssumptions.type_repr
   member.TypeAssumptions.set_s
   member.TypeAssumptions.get_pl
   member.TypeAssumptions.set_pl
-  member.TypeAssumptions.get_gs
-  member.TypeAssumptions.set_gs
   member.TypeAssumptions.method_set
   member.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   member_instance : member.TypeAssumptions
   startMember_unfold : FuncUnfold startMember [] startMember.impl
+  serveClient_unfold : FuncUnfold serveClient [] serveClient.impl
   stop_unfold : FuncUnfold stop [] stop.impl
   put_unfold : FuncUnfold put [] put.impl
   Run_unfold : FuncUnfold Run [] Run.impl
@@ -738,18 +718,15 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
   import_http_Assumption : _root_.Perennial.net.http.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
-  import_keepalive_Assumption : _root_.Perennial.google_golang_org.grpc.keepalive.Assumptions
   import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
   import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
   import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_v3rpc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
   import_common_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Assumptions
 
 attribute [instance] Assumptions.member_instance
   Assumptions.startMember_unfold
+  Assumptions.serveClient_unfold
   Assumptions.stop_unfold
   Assumptions.put_unfold
   Assumptions.Run_unfold
@@ -757,14 +734,10 @@ attribute [instance] Assumptions.member_instance
   Assumptions.import_context_Assumption
   Assumptions.import_net_Assumption
   Assumptions.import_http_Assumption
-  Assumptions.import_time_Assumption
   Assumptions.import_zap_Assumption
-  Assumptions.import_grpc_Assumption
-  Assumptions.import_keepalive_Assumption
   Assumptions.import_types_Assumption
   Assumptions.import_clientv3_Assumption
   Assumptions.import_etcdserver_Assumption
-  Assumptions.import_v3rpc_Assumption
   Assumptions.import_common_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.restart3

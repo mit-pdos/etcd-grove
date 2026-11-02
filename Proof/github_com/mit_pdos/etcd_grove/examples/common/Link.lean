@@ -9,6 +9,7 @@ hand.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Attempted
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.BuildServer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Collect
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Gen
@@ -80,6 +81,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptions]
 
+theorem features.wp_NewDefaultServerFeatureGate :
+    EtcdGrove.features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof
+
+theorem wp_newServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
+    EtcdGrove.common.newServer.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.common.newServer.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer
+
+theorem wp_BuildServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
+    EtcdGrove.common.BuildServer.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.common.BuildServer.wp_proof wp_newServer
+
 theorem wp_Collect :
     EtcdGrove.common.Collect.spec (GF := GF) (hG := hG) :=
   EtcdGrove.common.Collect.wp_proof client.v3.WatchResponse.wp_Err
@@ -91,14 +104,6 @@ theorem wp_NewClients [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
 theorem wp_NewClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.common.NewClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.common.NewClient.wp_proof wp_NewClients
-
-theorem features.wp_NewDefaultServerFeatureGate :
-    EtcdGrove.features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof
-
-theorem wp_newServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
-    EtcdGrove.common.newServer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.common.newServer.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer
 
 theorem net.wp_Listen :
     EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
