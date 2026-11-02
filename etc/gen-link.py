@@ -503,7 +503,7 @@ LEAN_FIRST = {
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--authkv": "authkv", "--cachekv": "cachekv", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
+              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--authkv": "authkv", "--cachekv": "cachekv", "--kvdurable": "kvdurable", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
               "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache", "--k8sinformers": "k8sinformers",
               "--apimodel": "apimodel"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
@@ -694,6 +694,7 @@ if cache and "--skip-unproved" in sys.argv[2:]:
     fns = [fn for fn in fns if fn not in skipped]
 
 spec = {}
+in_eg = {}  # whether the spec is declared below `EtcdGrove` (`durable`'s are only below `Perennial`)
 for fn in fns:
     src = open(spec_file(fn)).read()
     m = re.search(r"^abbrev ([\w.«»']+)\.spec\b", src, re.M)
@@ -701,6 +702,7 @@ for fn in fns:
     nss = re.findall(r"^namespace (\S+)", src, re.M)
     inner = nss[nss.index("EtcdGrove") + 1:] if "EtcdGrove" in nss else []
     spec[fn] = ".".join(inner + [m.group(1)])
+    in_eg[fn] = "EtcdGrove" in nss
 
 # The specs stated at `HeapGS HasLC.hasLC GF` (the ghost state holds an invariant).
 haslc = {fn for fn in fns
@@ -724,8 +726,11 @@ def result(fn):
 
 
 def specref(fn):
-    """The spec's name as the Link refers to it: in a namespaced mode, below `EtcdGrove`."""
-    return f"EtcdGrove.{spec[fn]}" if nsd else spec[fn]
+    """The spec's name as the Link refers to it: in a namespaced mode, below `EtcdGrove` (or, for a
+    spec declared only below `Perennial`, from the root)."""
+    if not nsd:
+        return spec[fn]
+    return f"EtcdGrove.{spec[fn]}" if in_eg[fn] else f"_root_.Perennial.{spec[fn]}"
 
 
 def external_link(fn):

@@ -25,7 +25,7 @@ def MemoryStorage.CreateSnapshot.spec : Prop :=
                         ⌜snap = null ∧ err = eood⌝ ∗
                           ownSlice data bs (DFrac.own 1) ∗
                             match o with
-                            | some (c0, sv0) => memStorFresh ms γs c0 sv0
+                            | some (c0, sv0) => memStorFresh ms γs c0 sv0 ∗ ⌜uint.nat i ≤ uint.nat sv0.Metadata'.Index'⌝
                             | none => emp) -∗
                   Φ (intoVal snap, intoVal err)) -∗
             WP
